@@ -12,6 +12,9 @@ lint:
 build-lib:
 	@yarn build:lib
 
+build-docs:
+	@yarn build:docs
+
 #########
 # TOOLS #
 #########
@@ -193,7 +196,7 @@ _launch-iinklicenses-volume:
 ###########
 _launch-iink-backend:
 	@echo "Starting iink backend container!"
-	@docker run -d --userns=host \
+	@docker run --pull always --userns=host -d \
 		$(NETWORK_PARAM) \
 		$(NETWORK_ALIAS_IINK_BACKEND_PARAM) \
 		-e "MYSCRIPT_IINK_MONGOURL=mongodb://$(NETWORK_ALIAS_MONGO):27017/webservices" \
