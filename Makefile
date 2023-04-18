@@ -15,6 +15,9 @@ build-lib:
 build-docs:
 	@yarn build:docs
 
+audit:
+	@yarn audit --groups dependencies
+
 #########
 # TOOLS #
 #########
@@ -57,7 +60,7 @@ _launch_examples: docker-examples
 	@docker run -d \
 		$(NETWORK_PARAM) \
 		$(NETWORK_ALIAS_EXAMPLES_PARAM) \
-	  -e "LISTEN_PORT=$(EXAMPLES_LISTEN_PORT)" \
+      -e "LISTEN_PORT=$(EXAMPLES_LISTEN_PORT)" \
 		-e "API_SCHEME=http" \
 		-e "API_HOST=$(NETWORK_ALIAS_IINK_BACKEND):8897" \
 		-e "APPLICATION_KEY=$(APPLICATION_KEY)" \
@@ -67,6 +70,7 @@ _launch_examples: docker-examples
 
 _check_examples:
 	@docker run --rm \
+		--user=$$(id -u) --userns=host \
 		$(NETWORK_PARAM) \
 		-e "WAIT_PORT=$(EXAMPLES_LISTEN_PORT)" \
 		-e "WAIT_HOST=$(NETWORK_ALIAS_EXAMPLES)" \
@@ -81,7 +85,8 @@ init_examples: _launch_examples _check_examples
 #########
 test-unit:
 	@echo "Starting test unit"
-	@docker run --rm --user=$${UID} \
+	@docker run --rm \
+		--user=$$(id -u) --userns=host \
 		-e "TEST_SUITE_PATH=$(TEST_SUITE_PATH)" \
 		-v $(CURRENT_PWD):/test \
 		-w "/test/test/unit" \
@@ -98,7 +103,8 @@ _prepare-test-integration: _create-network \
 
 _start-test-integration:
 	@echo "Starting test integration"
-	@docker run -i --user=$${UID} \
+	@docker run -i \
+		--user=$$(id -u) --userns=host \
 		$(NETWORK_PARAM) \
 		-e BASE_URL="http://$(NETWORK_ALIAS_EXAMPLES):$(EXAMPLES_LISTEN_PORT)" \
 		-e BROWSER=$(BROWSER) \
@@ -120,6 +126,7 @@ _launch-iink-scripts:
     make BUILDID=$(BUILDID) -C ./ docker-mongo-scripts && \
 		echo "Launch scripts volume" && \
 		docker run -d \
+			--user=$$(id -u) --userns=host \
 			--name $(DOCKER_INSTANCE_IINK_SCRIPTS) \
 			$(DOCKER_IMAGE_IINK_SCRIPTS) ;\
 	 fi
@@ -135,6 +142,7 @@ _start-mongo:
 _check-mongo:
 	@echo "Check mongo container"
 	@docker run --rm \
+			--user=$$(id -u) --userns=host \
 			$(NETWORK_PARAM) \
 			-e "WAIT_PORT=27017" \
 			-e "WAIT_HOST=$(NETWORK_ALIAS_MONGO)" \
@@ -148,6 +156,7 @@ _setting-up-mongo-replica-set:
 _check-mongo-replica-set:
 	@echo "Check mongo replica set"
 	@docker run --rm \
+			--user=$$(id -u) --userns=host \
 			$(NETWORK_PARAM) \
 			--volumes-from $(DOCKER_INSTANCE_IINK_SCRIPTS) \
 			$(DOCKER_IMAGE_MONGO) mongo --quiet $(NETWORK_ALIAS_MONGO):27017 /mongo-scripts/waitForReplica.js
@@ -155,6 +164,7 @@ _check-mongo-replica-set:
 _populate-mongo:
 	@echo "Populate mongo"
 	@docker run --rm \
+			--user=$$(id -u) --userns=host \
 			$(NETWORK_PARAM) \
 			--volumes-from $(DOCKER_INSTANCE_IINK_SCRIPTS) \
 			$(DOCKER_IMAGE_MONGO) mongorestore --quiet --host $(NETWORK_ALIAS_MONGO) /mongo-scripts/mongodump
@@ -166,7 +176,8 @@ _launch-mongo: _launch-iink-scripts _start-mongo _check-mongo _setting-up-mongo-
 #########
 _launch-googlefonts-volume:
 	@echo "Starting googlefonts volume!"
-	@docker run --pull always --user=$${UID} --userns=host -d \
+	@docker run --pull always -d \
+		--user=$$(id -u) --userns=host \
 		--name $(DOCKER_INSTANCE_IINK_FONTS) \
 		$(DOCKER_IMAGE_IINK_FONTS)
 	@echo "Googlefonts volume started!"
@@ -176,7 +187,8 @@ _launch-googlefonts-volume:
 #############
 _launch-iinkresources-volume:
 	@echo "Starting iink resources volume!"
-	@docker run --user=$${UID} --userns=host -d \
+	@docker run -d \
+		--user=$$(id -u) --userns=host \
 		--name $(DOCKER_INSTANCE_IINK_RESOURCES) \
 		$(DOCKER_IMAGE_IINK_RESOURCES_MYSCRYPT)
 	@echo "IInk resources volume started!"
@@ -186,7 +198,8 @@ _launch-iinkresources-volume:
 ############
 _launch-iinklicenses-volume:
 	@echo "Starting iink licenses volume!"
-	@docker run --user=$${UID} --userns=host -d \
+	@docker run -d \
+		--user=$$(id -u) --userns=host \
 		--name $(DOCKER_INSTANCE_IINK_LICENSES) \
 		$(DOCKER_IMAGE_IINK_LICENSES)
 	@echo "IInk Licenses volume started!"
@@ -196,7 +209,8 @@ _launch-iinklicenses-volume:
 ###########
 _launch-iink-backend:
 	@echo "Starting iink backend container!"
-	@docker run --pull always --userns=host -d \
+	@docker run --pull always -d \
+		--user=$$(id -u) --userns=host \
 		$(NETWORK_PARAM) \
 		$(NETWORK_ALIAS_IINK_BACKEND_PARAM) \
 		-e "MYSCRIPT_IINK_MONGOURL=mongodb://$(NETWORK_ALIAS_MONGO):27017/webservices" \
@@ -216,6 +230,7 @@ _launch-iink-backend:
 
 _check-iink-backend:
 	@docker run --rm \
+		--user=$$(id -u) --userns=host \
 		$(NETWORK_PARAM) \
 		-e "WAIT_HOST=$(NETWORK_ALIAS_IINK_BACKEND)" \
 		-e "WAIT_PORT=8897" \
