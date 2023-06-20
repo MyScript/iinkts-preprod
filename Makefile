@@ -60,7 +60,7 @@ _launch_examples: docker-examples
 	@docker run -d \
 		$(NETWORK_PARAM) \
 		$(NETWORK_ALIAS_EXAMPLES_PARAM) \
-      -e "LISTEN_PORT=$(EXAMPLES_LISTEN_PORT)" \
+		-e "LISTEN_PORT=$(EXAMPLES_LISTEN_PORT)" \
 		-e "API_SCHEME=http" \
 		-e "API_HOST=$(NETWORK_ALIAS_IINK_BACKEND):8897" \
 		-e "APPLICATION_KEY=$(APPLICATION_KEY)" \
@@ -85,15 +85,14 @@ init_examples: _launch_examples _check_examples
 #########
 test-unit:
 	@echo "Starting test unit"
-	@docker run --rm \
-		--user=$$(id -u) --userns=host \
+	@docker run --rm --user=$$(id -u) --userns=host \
 		-e "TEST_SUITE_PATH=$(TEST_SUITE_PATH)" \
 		-v $(CURRENT_PWD):/test \
 		-w "/test/test/unit" \
 		$(DOCKER_IMAGE_JEST) \
-		yarn test:unit
+		yarn test:unit:coverage
 
-_prepare-test-integration: _create-network \
+prepare-test-integration: _create-network \
 	_launch-mongo \
 	_launch-googlefonts-volume \
 	_launch-iinkresources-volume \
@@ -101,10 +100,9 @@ _prepare-test-integration: _create-network \
 	_launch-iink-backend \
 	init_examples
 
-_start-test-integration:
+test-integration:
 	@echo "Starting test integration"
-	@docker run -i \
-		--user=$$(id -u) --userns=host \
+	@docker run --rm --ipc=host --user=$$(id -u) --userns=host --init \
 		$(NETWORK_PARAM) \
 		-e BASE_URL="http://$(NETWORK_ALIAS_EXAMPLES):$(EXAMPLES_LISTEN_PORT)" \
 		-e BROWSER=$(BROWSER) \
@@ -113,10 +111,8 @@ _start-test-integration:
 		$(DOCKER_IMAGE_PLAYWRIGHT) \
 		yarn test:integration
 
-test-integration: _prepare-test-integration _start-test-integration
-
 dev-test-integration:
-	@make WITH_NETWORK=false -C ./ _prepare-test-integration
+	@make WITH_NETWORK=false -C ./ prepare-test-integration
 
 #########
 # MONGO #
