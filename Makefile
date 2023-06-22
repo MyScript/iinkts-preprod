@@ -18,6 +18,16 @@ build-docs:
 audit:
 	@yarn audit --groups dependencies
 
+#######
+# DEV #
+#######
+dev-lib:
+	@make WITH_NETWORK=false -C ./ _launch-mongo \
+	_launch-googlefonts-volume \
+	_launch-iinkresources-volume \
+	_launch-iinklicenses-volume \
+	_launch-iink-backend \
+
 #########
 # TOOLS #
 #########
@@ -108,6 +118,7 @@ test-integration:
 		-e BROWSER=$(BROWSER) \
 		-v $(CURRENT_PWD):/home/pwuser/tests \
 		-w "/home/pwuser/tests" \
+		--name "$(DOCKER_PREFIX)-playwright-$(BROWSER)" \
 		$(DOCKER_IMAGE_PLAYWRIGHT) \
 		yarn test:integration
 
@@ -184,8 +195,7 @@ _launch-mongo: _launch-iink-scripts _start-mongo _check-mongo _setting-up-mongo-
 #########
 _launch-googlefonts-volume:
 	@echo "Starting googlefonts volume!"
-	@docker run --pull always -d \
-		--user=$$(id -u) --userns=host \
+	@docker run --pull always -d --user=$$(id -u) --userns=host \
 		--name $(DOCKER_INSTANCE_IINK_FONTS) \
 		$(DOCKER_IMAGE_IINK_FONTS)
 	@echo "Googlefonts volume started!"
@@ -195,8 +205,7 @@ _launch-googlefonts-volume:
 #############
 _launch-iinkresources-volume:
 	@echo "Starting iink resources volume!"
-	@docker run -d \
-		--user=$$(id -u) --userns=host \
+	@docker run -d --user=$$(id -u) --userns=host \
 		--name $(DOCKER_INSTANCE_IINK_RESOURCES) \
 		$(DOCKER_IMAGE_IINK_RESOURCES_MYSCRYPT)
 	@echo "IInk resources volume started!"
@@ -206,8 +215,7 @@ _launch-iinkresources-volume:
 ############
 _launch-iinklicenses-volume:
 	@echo "Starting iink licenses volume!"
-	@docker run -d \
-		--user=$$(id -u) --userns=host \
+	@docker run -d --user=$$(id -u) --userns=host \
 		--name $(DOCKER_INSTANCE_IINK_LICENSES) \
 		$(DOCKER_IMAGE_IINK_LICENSES)
 	@echo "IInk Licenses volume started!"
@@ -230,7 +238,8 @@ _launch-iink-backend:
 		-e "IINK_BACKEND_BATCH_MAXTHREADS=10" \
 		-e "IINK_BACKEND_BATCH_MAXQUEUESIZE=50" \
 		-e "MYSCRIPT_IINK_JVM_PARAMS=-Xmx2G -Djava.net.preferIPv4Stack=true -Djava.awt.headless=true -Dlogging.level.com.myscript.cloud.iink.controller.websocket.IInkSessionUtil=DEBUG" \
-		--volumes-from $(DOCKER_INSTANCE_IINK_FONTS) -e "IINK_BACKEND_CONFDIR=/resources/conf/" \
+		-e "IINK_BACKEND_CONFDIR=/resources/conf/" \
+		--volumes-from $(DOCKER_INSTANCE_IINK_FONTS) \
 		--volumes-from $(DOCKER_INSTANCE_IINK_LICENSES) \
 		--volumes-from $(DOCKER_INSTANCE_IINK_RESOURCES) \
 		--name $(DOCKER_INSTANCE_IINK_BACKEND) \

@@ -1,10 +1,8 @@
 
+REGISTRY := registry.corp.myscript.com:5000
 WITH_NETWORK ?= true
 GIT_BRANCH = $(shell git rev-parse --abbrev-ref HEAD)
 BUILDID ?= $(shell echo "dev-$(GIT_BRANCH)"|sed 's/[_\/\.]/-/g'|cut -c '1-32')
-
-REGISTRY := registry.corp.myscript.com:5000
-GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 CURRENT_PWD := $(shell pwd)
 
 DOCKER_REPOSITORY_MONGO := mongo
