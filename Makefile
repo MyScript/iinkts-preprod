@@ -114,6 +114,18 @@ test-integration:
 dev-test-integration:
 	@make WITH_NETWORK=false -C ./ prepare-test-integration
 
+local-test-integration:
+	@echo "Starting test integration"
+	@docker run --rm --ipc=host --user=$$(id -u) --userns=host --init \
+		--network host \
+		-e BASE_URL="http://localhost:80" \
+		-e BROWSER=$(BROWSER) \
+		-v $(CURRENT_PWD):/home/pwuser/tests \
+		-w "/home/pwuser/tests" \
+		--name $(DOCKER_PREFIX)-playwright-$(BROWSER) \
+		$(DOCKER_IMAGE_PLAYWRIGHT) \
+		yarn test:integration
+
 #########
 # MONGO #
 #########
