@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="HandheldFriendly" content="true" />
+
+    <title>Custom lexicon</title>
+
+    <link rel="stylesheet" href="../examples.css" />
+
+    <script type="text/javascript" src="../../dist/iink.min.js"></script>
+
+    <style>
+      .button-div > p {
+        margin-right: 12px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div>
+      <nav>
+        <div class="button-div">
+          <button id="undo" class="nav-btn btn-fab-mini btn-lightBlue" disabled>
+            <img src="../assets/undo.svg" />
+          </button>
+          <button id="redo" class="nav-btn btn-fab-mini btn-lightBlue" disabled>
+            <img src="../assets/redo.svg" />
+          </button>
+        </div>
+        <div class="spacer"></div>
+        <input
+          type="text"
+          class="input-field"
+          id="lexicon"
+          data-type="text/plain"
+          placeholder='Add your own lexicon (space-separated) and press "Send"'
+        />
+        <button class="classic-btn" id="reinit">Send</button>
+      </nav>
+      <div id="editor" touch-action="none"></div>
+    </div>
+    <script>
+      const editorElement = document.getElementById("editor")
+
+      const undoElement = document.getElementById("undo")
+      const redoElement = document.getElementById("redo")
+
+      const reinitButton = document.getElementById("reinit")
+      const lexicon = document.getElementById("lexicon")
+      let editor
+
+      async function loadEditor() {
+        const res = await fetch("../server-configuration.json")
+        const conf = await res.json()
+        const options = {
+          configuration: {
+            server: {
+              ...conf,
+              protocol: "WEBSOCKET",
+            },
+            recognition: {
+              type: "TEXT",
+              addLKText: true,
+              configuration: {
+                customLexicon: "",
+              },
+            },
+          },
+        }
+
+        /**
+         * Instanciate Editor
+         * @param {Element} The DOM element to attach the ink paper
+         * @param {Object} The editor options
+         */
+        editor = new iink.Editor(editorElement, options)
+
+        editor.events.addEventListener("changed", (event) => {
+          undoElement.disabled = !event.detail.canUndo
+          redoElement.disabled = !event.detail.canRedo
+        })
+
+        undoElement.addEventListener("click", () => {
+          editorElement.editor.undo()
+        })
+        redoElement.addEventListener("click", () => {
+          editorElement.editor.redo()
+        })
+
+        reinitButton.addEventListener("click", () => {
+          const values = lexicon.value
+          const configuration = editor.configuration
+          configuration.recognition = {
+            configuration: {
+              customLexicon: values.split(" "),
+              addLKText: true,
+            },
+          }
+          editor.configuration = configuration
+        })
+
+        window.addEventListener("resize", () => {
+          editorElement.editor.resize()
+        })
+      }
+      loadEditor()
+    </script>
+  </body>
+</html>
