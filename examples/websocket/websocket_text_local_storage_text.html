@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="HandheldFriendly" content="true" />
+
+    <title>WEBSOCKET Text iink</title>
+
+    <link rel="stylesheet" href="../examples.css" />
+
+    <script type="text/javascript" src="../../dist/iink.min.js"></script>
+    <style>
+      nav {
+        flex-wrap: wrap-reverse;
+      }
+
+      @media only screen and (max-device-width: 560px) {
+        #clearStorage {
+          margin: 0 0 12px auto;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div>
+      <nav>
+        <div class="button-div">
+          <button id="undo" class="nav-btn btn-fab-mini btn-lightBlue" disabled>
+            <img src="../assets/undo.svg" />
+          </button>
+          <button id="redo" class="nav-btn btn-fab-mini btn-lightBlue" disabled>
+            <img src="../assets/redo.svg" />
+          </button>
+        </div>
+        <button class="classic-btn" id="clearStorage">
+          Clear local storage
+        </button>
+      </nav>
+      <div id="editor" touch-action="none"></div>
+    </div>
+    <script>
+      const editorElement = document.getElementById("editor")
+      const undoElement = document.getElementById("undo")
+      const redoElement = document.getElementById("redo")
+      const clearStorage = document.getElementById("clearStorage")
+      let editor
+
+      async function loadEditor() {
+        const res = await fetch("../server-configuration.json")
+        const conf = await res.json()
+        const options = {
+          configuration: {
+            server: {
+              ...conf,
+              protocol: "WEBSOCKET",
+            },
+            recognition: {
+              type: "TEXT",
+              text: {
+                mimeTypes: ["text/plain"],
+              },
+            },
+          },
+        }
+        editor = new iink.Editor(editorElement, options)
+
+        editorElement.addEventListener("changed", (event) => {
+          undoElement.disabled = !event.detail.canUndo
+          redoElement.disabled = !event.detail.canRedo
+        })
+
+        editorElement.addEventListener("exported", (event) => {
+          localStorage.setItem("editorTextContent", event.detail["text/plain"])
+        })
+
+        clearStorage.addEventListener("click", () => {
+          localStorage.removeItem("editorTextContent")
+        })
+
+        undoElement.addEventListener("click", () => {
+          editorElement.editor.undo()
+        })
+        redoElement.addEventListener("click", () => {
+          editorElement.editor.redo()
+        })
+
+        window.addEventListener("resize", () => {
+          editorElement.editor.resize()
+        })
+
+        let editorTextContent
+        if (localStorage.editorTextContent) {
+          editorTextContent = localStorage.getItem("editorTextContent")
+          editor.importText(editorTextContent, 'text/plain')
+        }
+      }
+      loadEditor()
+    </script>
+  </body>
+</html>

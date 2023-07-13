@@ -66,10 +66,11 @@
               protocol: "WEBSOCKET",
             },
             recognition: {
-              type: "TEXT",
-              addLKText: true,
-              configuration: {
-                customLexicon: "",
+              text: {
+                configuration: {
+                  customLexicon: [""],
+                  addLKText: true,
+                },
               },
             },
           },
@@ -97,11 +98,9 @@
         reinitButton.addEventListener("click", () => {
           const values = lexicon.value
           const configuration = editor.configuration
-          configuration.recognition = {
-            configuration: {
-              customLexicon: values.split(" "),
-              addLKText: true,
-            },
+          configuration.recognition.text.configuration = {
+            customLexicon: values.split(" "),
+            addLKText: true,
           }
           editor.configuration = configuration
         })
