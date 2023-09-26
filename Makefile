@@ -115,27 +115,31 @@ test-integration:
 	@docker run --rm --ipc=host --user=$$(id -u) --userns=host --init \
 		$(NETWORK_PARAM) \
 		-e BASE_URL="http://$(NETWORK_ALIAS_EXAMPLES):$(EXAMPLES_LISTEN_PORT)" \
-		-e BROWSER=$(BROWSER) \
+		-e BROWSER="$(BROWSER)" \
+		-e DEVICE="$(DEVICE)" \
+		-e PROJECT="$(PROJECT)" \
 		-v $(CURRENT_PWD):/home/pwuser/tests \
 		-w "/home/pwuser/tests" \
-		--name "$(DOCKER_PREFIX)-playwright-$(BROWSER)" \
+		--name "$(DOCKER_PREFIX)-playwright-$(subst $() $(),-,$(shell echo $(PROJECT)-$(BROWSER)-$(DEVICE) | tr A-Z a-z))" \
 		$(DOCKER_IMAGE_PLAYWRIGHT) \
-		yarn test:integration
+		yarn test:integration --runInBand
 
 dev-test-integration:
 	@make WITH_NETWORK=false -C ./ prepare-test-integration
 
 local-test-integration:
 	@echo "Starting test integration"
-	@docker run --rm --ipc=host --user=$$(id -u) --userns=host --init \
+	docker run --rm --ipc=host --user=$$(id -u) --userns=host --init \
 		--network host \
 		-e BASE_URL="http://localhost:80" \
-		-e BROWSER=$(BROWSER) \
+		-e BROWSER="$(BROWSER)" \
+		-e DEVICE="$(DEVICE)" \
+		-e PROJECT="$(PROJECT)" \
 		-v $(CURRENT_PWD):/home/pwuser/tests \
 		-w "/home/pwuser/tests" \
-		--name $(DOCKER_PREFIX)-playwright-$(BROWSER) \
+		--name "$(DOCKER_PREFIX)-playwright-$(subst $() $(),-,$(shell echo $(PROJECT)-$(BROWSER)-$(DEVICE) | tr A-Z a-z))" \
 		$(DOCKER_IMAGE_PLAYWRIGHT) \
-		yarn test:integration
+		yarn test:integration --runInBand
 
 #########
 # MONGO #
