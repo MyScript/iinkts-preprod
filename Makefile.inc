@@ -19,7 +19,8 @@ DOCKER_REPOSITORY_PLAYWRIGHT := mcr.microsoft.com/playwright
 DOCKER_TAG_IINK_FONTS := 20220922-00
 DOCKER_TAG_IINK_RESOURCES_MYSCRYPT := latest
 DOCKER_TAG_IINK_LICENSES := latest
-DOCKER_TAG_IINK_BACKEND := integration-offscreen-20231204
+# DOCKER_TAG_IINK_BACKEND := integration-offscreen-20231204
+DOCKER_TAG_IINK_BACKEND := test-offscreen-20240122
 ## in mongo 5.0 mongo --replSet not work
 DOCKER_TAG_MONGO := 4.4
 DOCKER_TAG_WAIT_TCP := 1.0.0
