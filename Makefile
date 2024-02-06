@@ -12,6 +12,10 @@ lint:
 build-lib:
 	@yarn build:lib
 
+build-tldraw-examples:
+	@yarn copy:to:tldraw
+	@cd ./examples/offscreen-interactivity/offscreen_interactivity_tldraw && yarn build
+
 build-docs:
 	@yarn build:docs
 
@@ -57,13 +61,13 @@ _create-network:
 ############
 # EXAMPLES #
 ############
-docker-examples: build-lib
+docker-examples: build-lib build-tldraw-examples
 	@echo "Building examples image!"
 	@rm -rf docker/examples/delivery/
 	@mkdir -p docker/examples/delivery
 	@cp -R dist docker/examples/delivery/
 	@cp -R examples docker/examples/delivery/
-	@cd docker/examples/ && docker build --quiet -t $(DOCKER_IMAGE_IINK_EXAMPLES) .
+	@cd docker/examples/ && find . -name 'node_modules' -type d -prune -exec rm -rf '{}' + && docker build --quiet -t $(DOCKER_IMAGE_IINK_EXAMPLES) .
 
 _launch_examples: docker-examples
 	@echo "Starting examples container!"
