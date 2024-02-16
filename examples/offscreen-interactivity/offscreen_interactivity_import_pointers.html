@@ -13,13 +13,43 @@
     <style>
       #editor {
         width: calc(100vw - 300px);
-        height: calc(100dvh - 66px);
+        height: calc(100dvh - 62px);
         touch-action: none;
       }
-
       textarea {
         width: 300px;
-        height: calc(100dvh - 66px);
+        height: calc(100dvh - 62px);
+        resize: none;
+      }
+      @media only screen and (max-width: 900px) {
+        #show-symbols-to-import-btn {
+          display: block;
+        }
+        #pointerEventsObject {
+          position: absolute;
+          z-index: 89;
+          top: 60px;
+          left: 0px;
+          min-width: 300px;
+          width: 50%;
+          height: 0px;
+          background-color: white;
+          box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.225);
+          overflow: hidden;
+          opacity: 0;
+          -webkit-transition: all 0.3s ease-in-out;
+          -moz-transition: all 0.3s ease-in-out;
+          -o-transition: all 0.3s ease-in-out;
+          transition: all 0.3s ease-in-out;
+        }
+        #pointerEventsObject.open {
+          height: calc(100dvh - 62px);
+          opacity: 1;
+          overflow: auto;
+        }
+        #editor {
+          width: 100dvw;
+        }
       }
     </style>
     <script type="text/javascript" src="../../dist/iink.min.js"></script>
@@ -27,21 +57,23 @@
 
   <body>
     <nav>
-      <div class="flex-container wrap gap">
-        <button class="classic-btn" id="import">Import</button>
-      </div>
+      <button id="show-symbols-to-import-btn" class="classic-btn">Show symbols</button>
+      <button class="classic-btn" id="import">Import</button>
     </nav>
     <div class="flex-container">
-      <textarea id="pointerEventsObject">
-
-      </textarea>
+      <textarea id="pointerEventsObject"> </textarea>
       <div id="editor" touch-action="none"></div>
     </div>
 
     <script>
       const editorElement = document.getElementById("editor");
+      const showSymbolBtn = document.getElementById("show-symbols-to-import-btn");
       const pointerEventsObjectElement = document.getElementById("pointerEventsObject");
       const importBtn = document.getElementById("import");
+
+      showSymbolBtn.addEventListener("pointerup", () => {
+        pointerEventsObjectElement.classList.toggle("open");
+      });
 
       /**
        * we expose the editor for use in the integration test
@@ -56,28 +88,11 @@
           configuration: {
             offscreen: true,
             server,
-            recognition: {
-              export: {
-                jiix: {
-                  // // required to draw elements box & convert
-                  "bounding-box": true,
-                  // // required to convert
-                  ids: true,
-                  // // required to convert
-                  "full-stroke-ids": true,
-                  // // required to convert text
-                  text: {
-                    chars: true,
-                    // words: true
-                  },
-                }
-              }
-            },
             rendering: {
               minHeight: 1000,
-              minWidth: 1000,
-            },
-          },
+              minWidth: 1000
+            }
+          }
         };
 
         /**

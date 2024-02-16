@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="HandheldFriendly" content="true" />
+
+    <title>Offscreen create symbol</title>
+
+    <link rel="stylesheet" href="../assets/style/examples.css" />
+    <style>
+      #editor {
+        width: calc(100vw - 300px);
+        height: calc(100dvh - 62px);
+        touch-action: none;
+      }
+      #show-symbols-to-import-btn {
+        display: none;
+      }
+      #symbols-to-create {
+        width: 300px;
+        height: calc(100dvh - 62px);
+        background-color: white;
+        box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.225);
+      }
+      textarea {
+        min-width: 300px;
+        width: 100%;
+        height: calc(100% - 40px);
+        resize: none;
+      }
+      @media only screen and (max-width: 900px) {
+        #show-symbols-to-import-btn {
+          display: block;
+        }
+        #symbols-to-create {
+          position: absolute;
+          z-index: 89;
+          top: 60px;
+          left: 0px;
+          min-width: 300px;
+          width: 50%;
+          height: 0px;
+          background-color: white;
+          box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.225);
+          overflow: hidden;
+          -webkit-transition: all 0.3s ease-in-out;
+          -moz-transition: all 0.3s ease-in-out;
+          -o-transition: all 0.3s ease-in-out;
+          transition: all 0.3s ease-in-out;
+        }
+        #symbols-to-create.open {
+          height: calc(100dvh - 62px);
+          overflow: auto;
+        }
+        #editor {
+          height: calc(100dvh - 62px);
+          width: 100dvw;
+        }
+      }
+    </style>
+    <script type="text/javascript" src="../../dist/iink.min.js"></script>
+  </head>
+
+  <body>
+    <nav>
+      <button id="show-symbols-to-import-btn" class="classic-btn">Show symbols</button>
+      <button class="classic-btn" id="create-all-btn">Create all</button>
+    </nav>
+    <div class="flex-container">
+      <div id="symbols-to-create"></div>
+      <div id="editor" touch-action="none"></div>
+    </div>
+
+    <script>
+      const editorElement = document.getElementById("editor");
+      const showSymbolBtn = document.getElementById("show-symbols-to-import-btn");
+      const createAllBtn = document.getElementById("create-all-btn");
+      const symbolsToCreate = document.getElementById("symbols-to-create");
+
+      showSymbolBtn.addEventListener("pointerup", () => {
+        document.getElementById("symbols-to-create").classList.toggle("open");
+      });
+
+      function createSymbolElToCreate(s, index) {
+        const inputsWrapper = document.createElement("div");
+        inputsWrapper.style.setProperty("height", "50%");
+
+        const textarea = document.createElement("textarea");
+        textarea.value = JSON.stringify(s, null, 2);
+        inputsWrapper.appendChild(textarea);
+
+        const btn = document.createElement("buttom");
+        btn.id = `add-symbol-${index}-btn`;
+        btn.classList.add("classic-btn");
+        btn.textContent = "Create";
+        inputsWrapper.appendChild(btn);
+        btn.addEventListener("pointerup", () => {
+          document.getElementById("editor").editor.behaviors.createSymbol(JSON.parse(textarea.value));
+        });
+
+        return inputsWrapper;
+      }
+
+      /**
+       * we expose the editor for use in the integration test
+       */
+      let editor;
+
+      async function loadEditor() {
+        const res = await fetch("../server-configuration.json");
+        const server = await res.json();
+
+        const options = {
+          configuration: {
+            offscreen: true,
+            server,
+            rendering: {
+              minHeight: 800,
+              minWidth: 800
+            }
+          }
+        };
+
+        /**
+         * Instanciate editor
+         * @param {Element} The DOM element to attach the ink paper
+         * @param {Object} The Editor parameters
+         */
+        const editor = new iink.Editor(editorElement, options);
+
+        /**
+         *  async initialize editor behaviors
+         */
+        await editor.initialize();
+
+        const shapeRes = await fetch("../assets/datas/diagram-with-shape.json");
+        const symbols = await shapeRes.json();
+        symbols.forEach((s, i) => {
+          symbolsToCreate.appendChild(createSymbolElToCreate(s, i));
+        });
+
+        createAllBtn.addEventListener("pointerup", () => {
+          symbols.map(s => editor.behaviors.createSymbol(s))
+        })
+
+        window.addEventListener("resize", () => {
+          editor.resize();
+        });
+      }
+
+      loadEditor().catch((error) => console.error(error));
+    </script>
+  </body>
+</html>
