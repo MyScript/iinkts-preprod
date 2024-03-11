@@ -3,7 +3,7 @@ include Makefile.inc
 purge:
 	@git clean -xdf || true
 
-prepare:
+prepare: docker-mongo-scripts docker-wait-tcp docker-jest
 	@PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 yarn install
 
 lint:
@@ -146,7 +146,6 @@ local-test-integration:
 #########
 _launch-iink-scripts:
 	@if [ $$(docker ps -a | grep $(DOCKER_INSTANCE_IINK_SCRIPTS) | wc -l) -eq 0 ]; then \
-    make BUILDID=$(BUILDID) -C ./ docker-mongo-scripts && \
 		echo "Launch scripts volume" && \
 		docker run -d \
 			--user=$$(id -u) --userns=host \
@@ -233,7 +232,6 @@ _launch-iink-backend:
 		--user=$$(id -u) --userns=host \
 		$(NETWORK_PARAM) \
 		$(NETWORK_ALIAS_IINK_BACKEND_PARAM) \
-		-e "MYSCRIPT_IINK_MONGOURL=mongodb://$(NETWORK_ALIAS_MONGO):27017/webservices" \
 		-e "IINK_BACKEND_MAXINACTIVITYDURATION=10000" \
 		-e "IINK_BACKEND_MAXINACTIVITYNOSTROKEDURATION=5000" \
 		-e "IINK_BACKEND_BATCH_SYNCHRONEMODE=true" \
@@ -241,8 +239,9 @@ _launch-iink-backend:
 		-e "IINK_BACKEND_ENGINECACHE_SIZELIMIT=20" \
 		-e "IINK_BACKEND_BATCH_MAXTHREADS=10" \
 		-e "IINK_BACKEND_BATCH_MAXQUEUESIZE=50" \
-		-e "MYSCRIPT_IINK_JVM_PARAMS=-Xmx2G -Djava.net.preferIPv4Stack=true -Djava.awt.headless=true -Dlogging.level.com.myscript.cloud.iink.controller.websocket.IInkSessionUtil=DEBUG" \
 		-e "IINK_BACKEND_CONFDIR=/resources/conf/" \
+		-e "MONGOURL=mongodb://$(NETWORK_ALIAS_MONGO):27017/webservices" \
+		-e "JVM_PARAMS=-Xmx2G -Djava.net.preferIPv4Stack=true -Djava.awt.headless=true -Dlogging.level.com.myscript.cloud.iink.controller.websocket.IInkSessionUtil=DEBUG" \
 		--volumes-from $(DOCKER_INSTANCE_IINK_FONTS) \
 		--volumes-from $(DOCKER_INSTANCE_IINK_LICENSES) \
 		--volumes-from $(DOCKER_INSTANCE_IINK_RESOURCES) \
