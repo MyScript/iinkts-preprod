@@ -242,6 +242,19 @@ export class SmartGuide {
     this.#closeMenu()
   }
 
+  #createFakeElement(value: string): HTMLTextAreaElement {
+    const isRTL = document.documentElement.getAttribute("dir") === "rtl";
+    const fakeElement = document.createElement("textarea");
+    fakeElement.style.fontSize = "12pt";
+    fakeElement.style.display = "absolute";
+    fakeElement.style[isRTL ? "right" : "left"] = "-9999px";
+    const yPosition = window.pageYOffset || document.documentElement.scrollTop;
+    fakeElement.style.top = `${yPosition}px`;
+    fakeElement.setAttribute("readonly", "");
+    fakeElement.value = value;
+    return fakeElement;
+  }
+
   #onClickCopy = async (evt: Event): Promise<void> => {
     this.#logger.info("onClickCopy", { evt })
     evt.preventDefault()
@@ -251,15 +264,11 @@ export class SmartGuide {
       let message = "Nothing to copy"
       if (this.#prompterTextElement.innerText) {
         message = `"${this.#prompterTextElement.innerText}" copied to clipboard`
-        if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-          const permissionName = "clipboard-write" as PermissionName;
-          const permissionStatus = await navigator.permissions.query({ name: permissionName });
-          if (permissionStatus.state === "granted") {
-            await navigator.clipboard.writeText(this.#prompterTextElement.innerText)
-          }
-        } else {
-          await navigator.clipboard.writeText(this.#prompterTextElement.innerText)
-        }
+        const fakeEl = this.#createFakeElement(this.#prompterTextElement.innerText)
+        this.#prompterContainerElement.appendChild(fakeEl)
+        fakeEl.select()
+        document.execCommand("copy")
+        fakeEl.remove()
       }
       this.internalEvent.emitNotif({ message, timeout: 1500 })
     } catch (error) {
