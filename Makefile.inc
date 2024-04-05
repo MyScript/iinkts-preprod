@@ -33,16 +33,17 @@ APPLICATION_KEY := 7d223f9e-a3cb-4213-ba4b-85e930605f8b
 HMAC_KEY := 5ab1935e-529a-4d48-a695-158450e52b13
 EXAMPLES_LISTEN_PORT := 80
 
-DOCKER_PREFIX := iink-ts-$(BUILDID)
-
-# ifeq ($(firstword $(subst -, ,$(MAKECMDGOALS))),dev)
 ifeq ($(WITH_NETWORK),false)
+	DOCKER_PREFIX := iink-ts-local-$(BUILDID)
+
 	NETWORK_PARAM := --network host
 	NETWORK_ALIAS_EXAMPLES := localhost
 	NETWORK_ALIAS_MONGO := localhost
 	NETWORK_ALIAS_IINK_BACKEND := localhost
 else
-	NETWORK_NAME := $(DOCKER_PREFIX)-network
+	DOCKER_PREFIX := iink-ts-ci-$(BUILDID)
+
+	NETWORK_NAME := $(DOCKER_PREFIX)
 
 	NETWORK_PARAM := --network $(NETWORK_NAME)
 	NETWORK_ALIAS_EXAMPLES := iink-examples
