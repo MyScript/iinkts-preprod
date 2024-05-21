@@ -5,7 +5,7 @@ purge:
 
 prepare: docker-mongo-scripts docker-wait-tcp docker-jest
 	@PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 yarn install
-	yarn install:tldraw &&  yarn prepare:tldraw
+	yarn install:tldraw && yarn prepare:tldraw
 
 lint:
 	@yarn lint
