@@ -1,5 +1,0 @@
-export * from "./OIRecognizer"
-export * from "./OIRecognizerMessage"
-export * from "./RestRecognizer"
-export * from "./WSRecognizer"
-export * from "./WSRecognizerMessage"
