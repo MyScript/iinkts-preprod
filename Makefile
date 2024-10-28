@@ -105,7 +105,7 @@ test-unit:
 		-v $(CURRENT_PWD):/test \
 		-w "/test/test/unit" \
 		$(DOCKER_IMAGE_JEST) \
-		yarn test:unit --coverage
+		yarn test:unit --coverage --maxWorkers 2
 
 prepare-test-integration: _create-network \
 	_launch-mongo \
