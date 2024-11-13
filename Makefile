@@ -102,12 +102,12 @@ test-unit:
 	@echo "Starting test unit"
 	@docker run --rm --user=$$(id -u) --userns=host \
 		-e "TEST_SUITE_PATH=$(TEST_SUITE_PATH)" \
-		-v $(CURRENT_PWD):/test \
-		-w "/test/test/unit" \
+		-v $(CURRENT_PWD):/iink-ts \
+		-w "/iink-ts/test/unit" \
 		$(DOCKER_IMAGE_JEST) \
 		yarn test:unit --coverage --maxWorkers 2
 
-prepare-test-integration: _create-network \
+prepare-test-examples: _create-network \
 	_launch-mongo \
 	_launch-googlefonts-volume \
 	_launch-iinkresources-volume \
@@ -115,36 +115,34 @@ prepare-test-integration: _create-network \
 	_launch-iink-backend \
 	init_examples
 
-test-integration:
-	@echo "Starting test integration"
+test-examples:
+	@echo "Starting test examples"
 	@docker run --rm --ipc=host --user=$$(id -u) --userns=host --init \
 		$(NETWORK_PARAM) \
 		-e BASE_URL="http://$(NETWORK_ALIAS_EXAMPLES):$(EXAMPLES_LISTEN_PORT)" \
-		-e BROWSER="$(BROWSER)" \
-		-e DEVICE="$(DEVICE)" \
 		-e PROJECT="$(PROJECT)" \
-		-v $(CURRENT_PWD):/home/pwuser/tests \
-		-w "/home/pwuser/tests" \
-		--name "$(DOCKER_PREFIX)-playwright-$(subst $() $(),-,$(shell echo $(PROJECT)-$(BROWSER)-$(DEVICE) | tr A-Z a-z))" \
+		-e CI="true" \
+		-v $(CURRENT_PWD):/iink-ts \
+		-w "/iink-ts/test/examples" \
+		--name "$(DOCKER_INSTANCE_PLAYWRIGHT)" \
 		$(DOCKER_IMAGE_PLAYWRIGHT) \
-		yarn test:integration --runInBand
+		yarn test:examples
 
-dev-test-integration:
-	@make WITH_NETWORK=false -C ./ prepare-test-integration
+dev-test-examples:
+	@make WITH_NETWORK=false -C ./ prepare-test-examples
 
-local-test-integration:
-	@echo "Starting test integration"
+local-test-examples:
+	@echo "Starting test examples"
 	docker run --rm --ipc=host --user=$$(id -u) --userns=host --init \
 		--network host \
-		-e BASE_URL="http://localhost:80" \
-		-e BROWSER="$(BROWSER)" \
-		-e DEVICE="$(DEVICE)" \
+		-e BASE_URL="http://localhost:8000" \
 		-e PROJECT="$(PROJECT)" \
-		-v $(CURRENT_PWD):/home/pwuser/tests \
-		-w "/home/pwuser/tests" \
-		--name "$(DOCKER_PREFIX)-playwright-$(subst $() $(),-,$(shell echo $(PROJECT)-$(BROWSER)-$(DEVICE) | tr A-Z a-z))" \
+		-e CI="true" \
+		-v $(CURRENT_PWD):/iink-ts \
+		-w "/iink-ts/test/examples" \
+		--name "$(DOCKER_INSTANCE_PLAYWRIGHT)" \
 		$(DOCKER_IMAGE_PLAYWRIGHT) \
-		yarn test:integration --runInBand
+		yarn test:examples
 
 #########
 # MONGO #

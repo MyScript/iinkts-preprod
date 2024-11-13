@@ -83,3 +83,4 @@ DOCKER_INSTANCE_IINK_LICENSES := $(DOCKER_PREFIX)-iink-license-volume
 DOCKER_INSTANCE_IINK_RESOURCES := $(DOCKER_PREFIX)-iink-resources
 DOCKER_INSTANCE_IINK_BACKEND := $(DOCKER_PREFIX)-iink-backend
 DOCKER_INSTANCE_IINK_EXAMPLES := $(DOCKER_PREFIX)-examples
+DOCKER_INSTANCE_PLAYWRIGHT := $(shell echo "$(DOCKER_PREFIX)-playwright-$(PROJECT)" | tr "[:upper:]" "[:lower:]" | tr " " "-")
