@@ -135,7 +135,7 @@ local-test-examples:
 	@echo "Starting test examples"
 	docker run --rm --ipc=host --user=$$(id -u) --userns=host --init \
 		--network host \
-		-e BASE_URL="http://localhost:8000" \
+		-e BASE_URL="http://localhost:80" \
 		-e PROJECT="$(PROJECT)" \
 		-e CI="true" \
 		-v $(CURRENT_PWD):/iink-ts \
