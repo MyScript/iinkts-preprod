@@ -3,7 +3,7 @@ include Makefile.inc
 purge:
 	@git clean -xdf || true
 
-prepare: docker-mongo-scripts docker-wait-tcp docker-jest
+prepare: docker-mongo-scripts docker-wait4x docker-jest
 	@PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 yarn install
 	yarn install:tldraw && yarn prepare:tldraw
 
@@ -40,9 +40,9 @@ docker-mongo-scripts:
 	@echo "Build mongo scripts"
 	@cd docker/mongo-scripts && docker build --quiet -t $(DOCKER_IMAGE_IINK_SCRIPTS) .
 
-docker-wait-tcp:
-	@echo "Build wait tcp"
-	@cd docker/wait-tcp/ && docker build --quiet -t $(DOCKER_IMAGE_WAIT_TCP) .
+docker-wait4x:
+	echo "Build wait4x"
+	docker build -t $(DOCKER_IMAGE_WAIT4X) ./docker/wait4x
 
 docker-jest:
 	@echo "Build jest"
@@ -84,13 +84,7 @@ _launch_examples: docker-examples
 		$(DOCKER_IMAGE_IINK_EXAMPLES)
 
 _check_examples:
-	@docker run --rm \
-		--user=$$(id -u) --userns=host \
-		$(NETWORK_PARAM) \
-		-e "WAIT_PORT=$(EXAMPLES_LISTEN_PORT)" \
-		-e "WAIT_HOST=$(NETWORK_ALIAS_EXAMPLES)" \
-		-e "WAIT_SERVICE=Examples" \
-		$(DOCKER_IMAGE_WAIT_TCP)
+	@docker run --rm --user=$$(id -u) --userns=host $(NETWORK_PARAM) -e "WAIT_PORT=$(EXAMPLES_LISTEN_PORT)" -e "WAIT_HOST=$(NETWORK_ALIAS_EXAMPLES)" -e "WAIT_SERVICE=Examples" $(DOCKER_IMAGE_WAIT4X)
 	@echo "Examples started!"
 
 init_examples: _launch_examples _check_examples
@@ -150,60 +144,29 @@ local-test-examples:
 _launch-iink-scripts:
 	@if [ $$(docker ps -a | grep $(DOCKER_INSTANCE_IINK_SCRIPTS) | wc -l) -eq 0 ]; then \
 		echo "Launch scripts volume" && \
-		docker run -d \
-			--user=$$(id -u) --userns=host \
-			--name $(DOCKER_INSTANCE_IINK_SCRIPTS) \
-			$(DOCKER_IMAGE_IINK_SCRIPTS) ;\
+		docker run -d --user=$$(id -u) --userns=host --name $(DOCKER_INSTANCE_IINK_SCRIPTS) $(DOCKER_IMAGE_IINK_SCRIPTS) ;\
 	 fi
 
 _start-mongo:
 	@echo "Starting mongo container!"
-	@docker run -d \
-		$(NETWORK_PARAM) \
-		$(NETWORK_ALIAS_MONGO_PARAM) \
-		--name $(DOCKER_INSTANCE_MONGO) \
-		$(DOCKER_IMAGE_MONGO) mongod --replSet "$(DOCKER_MONGO_REPLICATSET)"
-
-_check-mongo:
-	@echo "Check mongo container"
-	@docker run --rm \
-			--user=$$(id -u) --userns=host \
-			$(NETWORK_PARAM) \
-			-e "WAIT_PORT=27017" \
-			-e "WAIT_HOST=$(NETWORK_ALIAS_MONGO)" \
-			-e "WAIT_SERVICE=mongoDB" \
-			$(DOCKER_IMAGE_WAIT_TCP)
-
-_setting-up-mongo-replica-set:
-	@echo "Setting up replica set"
-	@docker exec $(DOCKER_INSTANCE_MONGO) mongo --quiet --eval "rs.initiate({_id: '$(DOCKER_MONGO_REPLICATSET)', version: 1, members: [{ _id: 0, host : '$(NETWORK_ALIAS_MONGO):27017' }]});"
-
-_check-mongo-replica-set:
-	@echo "Check mongo replica set"
-	@docker run --rm \
-			--user=$$(id -u) --userns=host \
-			$(NETWORK_PARAM) \
-			--volumes-from $(DOCKER_INSTANCE_IINK_SCRIPTS) \
-			$(DOCKER_IMAGE_MONGO) mongo --quiet $(NETWORK_ALIAS_MONGO):27017 /mongo-scripts/waitForReplica.js
+	@docker run -d $(NETWORK_PARAM) $(NETWORK_ALIAS_MONGO_PARAM) --name $(DOCKER_INSTANCE_MONGO) $(DOCKER_IMAGE_MONGO) mongod --replSet "$(DOCKER_MONGO_REPLICATSET)"
+	@docker run --rm $(NETWORK_PARAM) $(DOCKER_IMAGE_WAIT4X) wait4x tcp $(NETWORK_ALIAS_MONGO):27017 -t 60s
+	@echo "mongo container started!"
+	@echo "Initiate mongo replicat set"
+	@docker exec $(DOCKER_INSTANCE_MONGO) mongosh --quiet --eval "rs.initiate({_id: '$(DOCKER_MONGO_REPLICATSET)', version: 1, members: [{ _id: 0, host : '$(NETWORK_ALIAS_MONGO):27017' }]});"
 
 _populate-mongo:
 	@echo "Populate mongo"
-	@docker run --rm \
-			--user=$$(id -u) --userns=host \
-			$(NETWORK_PARAM) \
-			--volumes-from $(DOCKER_INSTANCE_IINK_SCRIPTS) \
-			$(DOCKER_IMAGE_MONGO) mongorestore --quiet --host $(NETWORK_ALIAS_MONGO) /mongo-scripts/mongodump
+	@docker run --rm --user=$$(id -u) --userns=host $(NETWORK_PARAM) --volumes-from $(DOCKER_INSTANCE_IINK_SCRIPTS) $(DOCKER_IMAGE_MONGO) mongorestore --quiet --host $(NETWORK_ALIAS_MONGO) /mongo-scripts/mongodump
 
-_launch-mongo: _launch-iink-scripts _start-mongo _check-mongo _setting-up-mongo-replica-set _check-mongo-replica-set _populate-mongo
+_launch-mongo: _launch-iink-scripts _start-mongo _populate-mongo
 
 #########
 # FONTS #
 #########
 _launch-googlefonts-volume:
 	@echo "Starting googlefonts volume!"
-	@docker run --pull always -d --user=$$(id -u) --userns=host \
-		--name $(DOCKER_INSTANCE_IINK_FONTS) \
-		$(DOCKER_IMAGE_IINK_FONTS)
+	@docker run --pull always -d --user=$$(id -u) --userns=host --name $(DOCKER_INSTANCE_IINK_FONTS) $(DOCKER_IMAGE_IINK_FONTS)
 	@echo "Googlefonts volume started!"
 
 #############
@@ -211,9 +174,7 @@ _launch-googlefonts-volume:
 #############
 _launch-iinkresources-volume:
 	@echo "Starting iink resources volume!"
-	@docker run -d --user=$$(id -u) --userns=host \
-		--name $(DOCKER_INSTANCE_IINK_RESOURCES) \
-		$(DOCKER_IMAGE_IINK_RESOURCES_MYSCRYPT)
+	@docker run -d --user=$$(id -u) --userns=host --name $(DOCKER_INSTANCE_IINK_RESOURCES) $(DOCKER_IMAGE_IINK_RESOURCES_MYSCRYPT)
 	@echo "IInk resources volume started!"
 
 ############
@@ -258,7 +219,7 @@ _check-iink-backend:
 		-e "WAIT_HOST=$(NETWORK_ALIAS_IINK_BACKEND)" \
 		-e "WAIT_PORT=8897" \
 		-e "WAIT_SERVICE=IINK-Backend" \
-		$(DOCKER_IMAGE_WAIT_TCP)
+		$(DOCKER_IMAGE_WAIT4X)
 	@echo "iink Backend started!"
 
 #########
