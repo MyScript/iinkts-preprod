@@ -120,7 +120,7 @@ test-examples:
 		-w "/iink-ts/test/examples" \
 		--name "$(DOCKER_INSTANCE_PLAYWRIGHT)" \
 		$(DOCKER_IMAGE_PLAYWRIGHT) \
-		yarn test:examples
+		yarn test:examples rest-diagram-import.test.js
 
 dev-test-examples:
 	@make WITH_NETWORK=false -C ./ prepare-test-examples
