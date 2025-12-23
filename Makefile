@@ -76,10 +76,6 @@ _launch_examples: docker-examples
 		$(NETWORK_PARAM) \
 		$(NETWORK_ALIAS_EXAMPLES_PARAM) \
 		-e "LISTEN_PORT=$(EXAMPLES_LISTEN_PORT)" \
-		-e "API_SCHEME=http" \
-		-e "API_HOST=$(NETWORK_ALIAS_IINK_BACKEND):8897" \
-		-e "APPLICATION_KEY=$(APPLICATION_KEY)" \
-		-e "HMAC_KEY=$(HMAC_KEY)" \
 		--name $(DOCKER_INSTANCE_IINK_EXAMPLES) \
 		$(DOCKER_IMAGE_IINK_EXAMPLES)
 
@@ -88,6 +84,9 @@ _check_examples:
 	@echo "Examples started!"
 
 init_examples: _launch_examples _check_examples
+
+dev-init_examples:
+	@make WITH_NETWORK=false -C ./ init_examples
 
 #########
 # TESTS #
@@ -120,7 +119,7 @@ test-examples:
 		-w "/iink-ts/test/examples" \
 		--name "$(DOCKER_INSTANCE_PLAYWRIGHT)" \
 		$(DOCKER_IMAGE_PLAYWRIGHT) \
-		yarn test:examples rest-diagram-import.test.js
+		yarn test:examples
 
 dev-test-examples:
 	@make WITH_NETWORK=false -C ./ prepare-test-examples
