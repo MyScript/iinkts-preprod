@@ -115,6 +115,10 @@ test-examples:
 		-e BASE_URL="http://$(NETWORK_ALIAS_EXAMPLES):$(EXAMPLES_LISTEN_PORT)" \
 		-e PROJECT="$(PROJECT)" \
 		-e CI="true" \
+    -e "SCHEME=http" \
+		-e "HOST=$(NETWORK_ALIAS_EXAMPLES):$(EXAMPLES_LISTEN_PORT)" \
+		-e "APPLICATION_KEY=$(APPLICATION_KEY)" \
+		-e "HMAC_KEY=$(HMAC_KEY)" \
 		-v $(CURRENT_PWD):/iink-ts \
 		-w "/iink-ts/test/examples" \
 		--name "$(DOCKER_INSTANCE_PLAYWRIGHT)" \
@@ -124,18 +128,27 @@ test-examples:
 dev-test-examples:
 	@make WITH_NETWORK=false -C ./ prepare-test-examples
 
-local-test-examples:
+prepare-test-examples-ci: _create-network init_examples
+
+test-examples-ci:
 	@echo "Starting test examples"
-	docker run --rm --ipc=host --user=$$(id -u) --userns=host --init \
-		--network host \
-		-e BASE_URL="http://localhost:80" \
+	@docker run --rm --ipc=host --user=$$(id -u) --userns=host --init \
+		$(NETWORK_PARAM) \
+		-e BASE_URL="http://$(NETWORK_ALIAS_EXAMPLES):$(EXAMPLES_LISTEN_PORT)" \
 		-e PROJECT="$(PROJECT)" \
 		-e CI="true" \
+		-e SCHEME="https" \
+		-e HOST="cloud.preprod.myscript.com" \
+		-e HMAC_KEY="b97ab54d-0ee8-4c68-98bd-2a26a21df5b0" \
+		-e APPLICATION_KEY="acf191b9-4437-4e30-92a8-c37173f96137" \
 		-v $(CURRENT_PWD):/iink-ts \
 		-w "/iink-ts/test/examples" \
 		--name "$(DOCKER_INSTANCE_PLAYWRIGHT)" \
 		$(DOCKER_IMAGE_PLAYWRIGHT) \
 		yarn test:examples
+
+dev-test-examples-ci:
+	@make WITH_NETWORK=false -C ./ prepare-test-examples-ci test-examples-ci
 
 #########
 # MONGO #
