@@ -100,7 +100,7 @@ test-unit:
 		$(DOCKER_IMAGE_JEST) \
 		yarn test:unit --coverage --maxWorkers 2
 
-prepare-test-examples: _create-network \
+prepare-test-examples-ci: _create-network \
 	_launch-mongo \
 	_launch-googlefonts-volume \
 	_launch-iinkresources-volume \
@@ -108,17 +108,17 @@ prepare-test-examples: _create-network \
 	_launch-iink-backend \
 	init_examples
 
-test-examples:
+test-examples-ci:
 	@echo "Starting test examples"
 	@docker run --rm --ipc=host --user=$$(id -u) --userns=host --init \
 		$(NETWORK_PARAM) \
 		-e BASE_URL="http://$(NETWORK_ALIAS_EXAMPLES):$(EXAMPLES_LISTEN_PORT)" \
 		-e PROJECT="$(PROJECT)" \
 		-e CI="true" \
-    -e "SCHEME=http" \
-		-e "HOST=$(NETWORK_ALIAS_EXAMPLES):$(EXAMPLES_LISTEN_PORT)" \
-		-e "APPLICATION_KEY=$(APPLICATION_KEY)" \
-		-e "HMAC_KEY=$(HMAC_KEY)" \
+    -e SCHEME="http" \
+		-e HOST="$(NETWORK_ALIAS_IINK_BACKEND):$(BACKEND_LISTEN_PORT)" \
+		-e APPLICATION_KEY="$(APPLICATION_KEY)" \
+		-e HMAC_KEY="$(HMAC_KEY)" \
 		-v $(CURRENT_PWD):/iink-ts \
 		-w "/iink-ts/test/examples" \
 		--name "$(DOCKER_INSTANCE_PLAYWRIGHT)" \
@@ -128,19 +128,15 @@ test-examples:
 dev-test-examples:
 	@make WITH_NETWORK=false -C ./ prepare-test-examples
 
-prepare-test-examples-ci: _create-network init_examples
+prepare-test-examples: _create-network init_examples
 
-test-examples-ci:
+test-examples:
 	@echo "Starting test examples"
 	@docker run --rm --ipc=host --user=$$(id -u) --userns=host --init \
 		$(NETWORK_PARAM) \
-		-e BASE_URL="http://$(NETWORK_ALIAS_EXAMPLES):$(EXAMPLES_LISTEN_PORT)" \
 		-e PROJECT="$(PROJECT)" \
 		-e CI="true" \
-		-e SCHEME="https" \
-		-e HOST="cloud.preprod.myscript.com" \
-		-e HMAC_KEY="b97ab54d-0ee8-4c68-98bd-2a26a21df5b0" \
-		-e APPLICATION_KEY="acf191b9-4437-4e30-92a8-c37173f96137" \
+		-e TARGET="preprod" \
 		-v $(CURRENT_PWD):/iink-ts \
 		-w "/iink-ts/test/examples" \
 		--name "$(DOCKER_INSTANCE_PLAYWRIGHT)" \
@@ -229,7 +225,7 @@ _check-iink-backend:
 		--user=$$(id -u) --userns=host \
 		$(NETWORK_PARAM) \
 		-e "WAIT_HOST=$(NETWORK_ALIAS_IINK_BACKEND)" \
-		-e "WAIT_PORT=8897" \
+		-e "WAIT_PORT=$(BACKEND_LISTEN_PORT)" \
 		-e "WAIT_SERVICE=IINK-Backend" \
 		$(DOCKER_IMAGE_WAIT4X)
 	@echo "iink Backend started!"
