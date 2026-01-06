@@ -112,11 +112,11 @@ test-examples-ci:
 	@echo "Starting test examples"
 	@docker run --rm --ipc=host --user=$$(id -u) --userns=host --init \
 		$(NETWORK_PARAM) \
-		-e BASE_URL="http://$(NETWORK_ALIAS_EXAMPLES):$(EXAMPLES_LISTEN_PORT)" \
+		-e BASE_URL="$(BASE_URL)" \
 		-e PROJECT="$(PROJECT)" \
 		-e CI="true" \
     -e SCHEME="http" \
-		-e HOST="$(NETWORK_ALIAS_IINK_BACKEND):$(BACKEND_LISTEN_PORT)" \
+		-e HOST="$(BACKEND_HOST)" \
 		-e APPLICATION_KEY="$(APPLICATION_KEY)" \
 		-e HMAC_KEY="$(HMAC_KEY)" \
 		-v $(CURRENT_PWD):/iink-ts \
@@ -133,10 +133,13 @@ prepare-test-examples: _create-network init_examples
 test-examples:
 	@echo "Starting test examples"
 	@docker run --rm --ipc=host --user=$$(id -u) --userns=host --init \
-		$(NETWORK_PARAM) \
-		-e PROJECT="$(PROJECT)" \
-		-e CI="true" \
-		-e TARGET="preprod" \
+		-e "PROJECT=$(PROJECT)" \
+		-e "CI=true" \
+		-e "BASE_URL=$(BASE_URL)" \
+    -e "SCHEME=http" \
+		-e "HOST=$(BACKEND_HOST)" \
+		-e "APPLICATION_KEY=$(APPLICATION_KEY)" \
+		-e "HMAC_KEY=$(HMAC_KEY)" \
 		-v $(CURRENT_PWD):/iink-ts \
 		-w "/iink-ts/test/examples" \
 		--name "$(DOCKER_INSTANCE_PLAYWRIGHT)" \
