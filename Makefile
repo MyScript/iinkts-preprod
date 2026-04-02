@@ -62,7 +62,7 @@ _create-network:
 ############
 # EXAMPLES #
 ############
-docker-examples: build-lib build-tldraw-examples
+docker-examples:
 	@echo "Building examples image!"
 	@rm -rf docker/examples/delivery/
 	@mkdir -p docker/examples/delivery
