@@ -1,8 +1,28 @@
 import { EdgeDecoration, TBox } from "../symbol"
 import { TJIIXElementBase, TJIIXWord, TJIIXChar, TJIIXLine } from "./ExportCommon"
+import { TJIIXMathElement } from "./ExportMath"
 
 // Re-export common types for backward compatibility
 export type { TJIIXStrokeItem, TJIIXBase, TJIIXElementBase, TJIIXWord, TJIIXChar, TJIIXLine } from "./ExportCommon"
+
+// Export Math types
+export type {
+  TJIIXMathElement,
+  TJIIXMathExpression,
+  TJIIXMathNumber,
+  TJIIXMathVariable,
+  TJIIXMathSymbolExpression,
+  TJIIXMathOperator,
+  TJIIXMathGroup,
+  TJIIXMathFraction,
+  TJIIXMathSuperscript,
+  TJIIXMathSubscript,
+  TJIIXMathSubsuperscript,
+  TJIIXMathSquareRoot,
+  TJIIXMathRoot,
+  TJIIXMathSymbol,
+} from "./ExportMath"
+export { JIIXMathExpressionType } from "./ExportMath"
 
 /**
  * @group Exports
@@ -25,6 +45,7 @@ export enum ExportType
 export enum JIIXELementType
 {
   Text = "Text",
+  Math = "Math",
   Node = "Node",
   Edge = "Edge",
   RawContent = "Raw Content",
@@ -210,6 +231,7 @@ export type TJIIXEdgeElement =
  */
 export type TJIIXElement =
   TJIIXTextElement |
+  TJIIXMathElement |
   TJIIXNodeElement |
   TJIIXEdgeElement
 

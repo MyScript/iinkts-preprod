@@ -17,7 +17,8 @@ import
   TRecognizerWebSocketMessagePartChange,
   TRecognizerWebSocketMessageReceived,
   TRecognizerWebSocketMessageType,
-  TInteractiveInkSessionDescriptionMessage
+  TInteractiveInkSessionDescriptionMessage,
+  TRecognizerWebSocketMessageMathSolverResult
 } from "./RecognizerWebSocketMessage"
 import { RecognizerError } from "./RecognizerError"
 import PingWorker from "web-worker:../worker/ping.worker.ts"
@@ -69,6 +70,8 @@ export class RecognizerWebSocket
   protected undoDeferred?: DeferredPromise<void>
   protected redoDeferred?: DeferredPromise<void>
   protected clearDeferred?: DeferredPromise<void>
+  protected availableActionsDeferred?: DeferredPromise<string[]>
+  protected numericalComputationDeferred?: DeferredPromise<string>
 
   configuration: RecognizerWebSocketConfiguration
   initialized: DeferredPromise<void>
@@ -140,6 +143,8 @@ export class RecognizerWebSocket
     this.exportDeferredMap.clear()
     this.waitForIdleDeferred = undefined
     this.closeDeferred = undefined
+    this.availableActionsDeferred = undefined
+    this.numericalComputationDeferred = undefined
   }
 
   protected clearSocketListener(): void
@@ -377,6 +382,20 @@ export class RecognizerWebSocket
     this.contextlessGestureDeferred.get(gestureMessage.strokeId)?.resolve(gestureMessage)
   }
 
+  protected manageMathSolverResult(mathSolverMessage: TRecognizerWebSocketMessageMathSolverResult): void
+  {
+    switch (mathSolverMessage.action) {
+      case "available-actions":
+        this.availableActionsDeferred?.resolve(mathSolverMessage.result as string[])
+        break;
+      case "numerical-computation":
+        this.numericalComputationDeferred?.resolve(mathSolverMessage.result as string)
+        break;
+      default:
+        break;
+    }
+  }
+
   protected messageCallback(message: MessageEvent<string>): void
   {
     this.currentErrorCode = undefined
@@ -413,6 +432,9 @@ export class RecognizerWebSocket
           break
         case TRecognizerWebSocketMessageType.ContextlessGesture:
           this.manageContextlessGesture(websocketMessage)
+          break
+        case TRecognizerWebSocketMessageType.MathSolverResult:
+          this.manageMathSolverResult(websocketMessage)
           break
         case TRecognizerWebSocketMessageType.Error:
           this.manageErrorMessage(websocketMessage)
@@ -514,6 +536,46 @@ export class RecognizerWebSocket
     await this.send(this.buildAddStrokesMessage(strokes, processGestures))
     return this.addStrokeDeferred?.promise
   }
+
+  async getAvailableActions(blocId: string): Promise<string[]>
+  {
+    this.availableActionsDeferred = new DeferredPromise<string[]>()
+    await this.send({
+      type: "mathSolver",
+      action: "available-actions",
+      blocId,
+    })
+    const actions = await this.availableActionsDeferred!.promise
+    this.availableActionsDeferred = undefined
+    return actions
+  }
+
+  async getNumericalComputation(blocId: string): Promise<TJIIXExport>
+  {
+    this.numericalComputationDeferred = new DeferredPromise<string>()
+    await this.send({
+      type: "mathSolver",
+      action: "numerical-computation",
+      blocId: blocId
+    })
+    const result = JSON.parse(await this.numericalComputationDeferred!.promise) as TJIIXExport
+    this.numericalComputationDeferred = undefined
+    return result
+  }
+
+  // async getVariables(blocId: string): Promise<Record<string, any>>
+  // {
+  //   const exportId = "variables_export_" + Date.now()
+  //   this.exportDeferredMap.set(exportId, new DeferredPromise<TExport>())
+  //   await this.send({
+  //     type: "mathSolver",
+  //     blocId,
+  //     mimeType: "application/json",
+  //     contentType: "Variables"
+  //   })
+  //   const exportResult = await this.exportDeferredMap.get(exportId)!.promise
+  //   return exportResult["application/json"] as Record<string, any>
+  // }
 
   protected buildReplaceStrokesMessage(oldStrokeIds: string[], newStrokes: IIStroke[]): TRecognizerWebSocketMessage
   {
