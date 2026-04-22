@@ -29,6 +29,12 @@ export type TJIIXBase = {
 export type TJIIXElementBase<T = string> = TJIIXBase & {
   id: string
   type: T
+  /** IDs of child elements */
+  children?: string[]
+  /** Positions of children in the content */
+  "children-pos"?: number[]
+  /** ID of parent element */
+  parent?: string
 }
 
 /**
@@ -41,6 +47,10 @@ export type TJIIXWord = TJIIXBase & {
   candidates?: string[]
   "first-char"?: number
   "last-char"?: number
+  /** References to child elements (e.g., Math elements) */
+  refs?: string[]
+  /** Reflow label for mixed content */
+  "reflow-label"?: string
 }
 
 /**

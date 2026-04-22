@@ -162,6 +162,7 @@ export abstract class IIMenu
   protected createMenuItemButton(item: TMenuItemButton): HTMLElement
   {
     const btn = document.createElement("button")
+    btn.id = item.id
     btn.classList.add("ms-menu-item", "ms-menu-button")
     btn.innerHTML = item.icon || item.label
     btn.addEventListener("pointerup", item.callback)

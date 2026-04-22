@@ -10,6 +10,7 @@ import
 import
 {
   IIRecognizedText,
+  IIRecognizedMath,
   IIRecognizedArc,
   IIRecognizedCircle,
   IIRecognizedEllipse,
@@ -34,7 +35,7 @@ export type TIIShape = IIShapeCircle | IIShapeEllipse | IIShapePolygon
 /**
  * @group Symbol
  */
-export type TIIRecognized = IIRecognizedText | IIRecognizedArc | IIRecognizedCircle | IIRecognizedEllipse | IIRecognizedLine | IIRecognizedPolyLine | IIRecognizedPolygon
+export type TIIRecognized = IIRecognizedText | IIRecognizedMath | IIRecognizedArc | IIRecognizedCircle | IIRecognizedEllipse | IIRecognizedLine | IIRecognizedPolyLine | IIRecognizedPolygon
 
 /**
  * @group Symbol

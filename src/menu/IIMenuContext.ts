@@ -1,9 +1,9 @@
 import ArrowDown from "../assets/svg/nav-arrow-down.svg"
 import { SELECTION_MARGIN } from "../Constants"
 import { LoggerCategory, LoggerManager } from "../logger"
-import { DecoratorKind, IIDecorator, IIRecognizedText, IIStroke, IISymbolGroup, IIText, RecognizedKind, SymbolType, TIISymbol } from "../symbol"
+import { DecoratorKind, IIDecorator, IIRecognizedText, IIRecognizedMath, IIStroke, IISymbolGroup, IIText, RecognizedKind, SymbolType, TIISymbol } from "../symbol"
 import { IIMenu, TMenuItemBoolean, TMenuItemButton, TMenuItemColorList } from "./IIMenu"
-import { createUUID } from "../utils"
+import { convertMillimeterToPixel, createUUID } from "../utils"
 import { IIMenuSub, TSubMenuParam } from "./IIMenuSub"
 import { InteractiveInkEditor } from "../editor"
 import { createMenuButtonWithText } from "./MenuHelper"
@@ -26,12 +26,11 @@ export class IIMenuContext extends IIMenu
   groupBtn?: HTMLButtonElement
   convertBtn?: HTMLButtonElement
   removeBtn?: HTMLButtonElement
+  mathMenu?: HTMLDivElement
 
   position: {
     x: number,
-    y: number,
-    scrollTop: number,
-    scrollLeft: number
+    y: number
   }
 
   constructor(editor: InteractiveInkEditor, id = "ms-menu-context")
@@ -40,7 +39,7 @@ export class IIMenuContext extends IIMenu
     this.id = id
     this.#logger.info("constructor")
     this.editor = editor
-    this.position = { x: 0, y: 0, scrollLeft: 0, scrollTop: 0 }
+    this.position = { x: 0, y: 0 }
   }
 
   get symbolsSelected(): TIISymbol[]
@@ -63,6 +62,25 @@ export class IIMenuContext extends IIMenu
   get showDecorator(): boolean
   {
     return this.symbolsDecorable.length > 0
+  }
+
+  get hasMathSelected(): boolean
+  {
+    return this.symbolsSelected.some(s => s.type === SymbolType.Recognized && s.kind === RecognizedKind.Math)
+  }
+
+  get hasSingleMathSymbol(): boolean
+  {
+    return this.symbolsSelected.length === 1 && this.symbolsSelected[0].type === SymbolType.Recognized && this.symbolsSelected[0].kind === RecognizedKind.Math
+  }
+
+  get hasMixedTextAndMath(): boolean
+  {
+    const hasText = this.symbolsSelected.some(s =>
+      s.type === SymbolType.Text ||
+      (s.type === SymbolType.Recognized && s.kind === RecognizedKind.Text)
+    )
+    return hasText && this.hasMathSelected
   }
 
   protected createMenuEdit(): HTMLElement
@@ -456,9 +474,164 @@ export class IIMenuContext extends IIMenu
     return btn
   }
 
+  protected createMenuMath(): HTMLElement
+  {
+    const trigger = document.createElement("button")
+    trigger.id = `${ this.id }-math`
+    trigger.classList.add("ms-menu-button")
+    const label = document.createElement("span")
+    label.innerText = "Math"
+    trigger.appendChild(label)
+    const icon = document.createElement("span")
+    icon.style.setProperty("width", "32px")
+    icon.style.setProperty("transform", "rotate(270deg)")
+    icon.innerHTML = ArrowDown
+    trigger.appendChild(icon)
+
+    const menuItems: TMenuItemButton[] = [
+      {
+        type: "button",
+        id: `${ this.id }-math-get-variable`,
+        label: "Get variable",
+        callback: async () =>
+        {
+          this.#logger.info("Get variable clicked")
+          // TODO: Implement get variable logic
+          // This should extract variables from the selected math expression
+          const mathSymbols = this.symbolsSelected.filter(s =>
+            s.type === SymbolType.Recognized && s.kind === RecognizedKind.Math
+          ) as IIRecognizedMath[]
+
+          mathSymbols.forEach(math =>
+          {
+            this.#logger.info("Math expression:", { label: math.label, expressions: math.expressions })
+            // Extract variables from expressions tree
+            // This would need to recursively traverse the expressions
+          })
+        }
+      },
+      {
+        type: "button",
+        id: `${ this.id }-math-set-variable`,
+        label: "Set variable value",
+        callback: async () =>
+        {
+          this.#logger.info("Set variable value clicked")
+          // TODO: Implement set variable value logic
+          // This should allow user to assign values to variables
+        }
+      },
+      {
+        type: "button",
+        id: `${ this.id }-numerical-computation`,
+        label: "Solve",
+        callback: async () =>
+        {
+          this.#logger.info("Solve clicked")
+          try {
+            const mathSymbols = this.symbolsSelected.filter(s =>
+              s.type === SymbolType.Recognized && s.kind === RecognizedKind.Math
+            ) as IIRecognizedMath[]
+            if (mathSymbols.length === 0) {
+              this.#logger.warn("No math symbol selected")
+              return
+            }
+            const blocId = mathSymbols[0].jiixId
+            if (!blocId) {
+              this.#logger.warn("Selected math symbol does not have jiixId")
+              return
+            }
+            const result = await this.editor.recognizer.getNumericalComputation(blocId)
+            this.#logger.info("Math solved successfully", result)
+
+            // Extract and render solver output strokes
+            const extractSolverOutputStrokes = (obj: unknown): Array<{ X: number[], Y: number[], F?: number[], T?: number[] }> => {
+              const strokes: Array<{ X: number[], Y: number[], F?: number[], T?: number[] }> = []
+
+              if (!obj || typeof obj !== "object") {
+                return strokes
+              }
+
+              const objRecord = obj as Record<string, unknown>
+
+              // Check if this is a solver output item
+              if (objRecord["type"] === "number" && objRecord["solver-output"] === true && objRecord.items && Array.isArray(objRecord.items)) {
+                strokes.push(...objRecord.items as Array<{ X: number[], Y: number[], F?: number[], T?: number[] }>)
+              }
+
+              // Recursively search in operands
+              if (objRecord.operands && Array.isArray(objRecord.operands)) {
+                objRecord.operands.forEach((operand: unknown) => {
+                  if (operand) {
+                    strokes.push(...extractSolverOutputStrokes(operand))
+                  }
+                })
+              }
+
+              // Recursively search in expressions
+              if (objRecord.expressions && Array.isArray(objRecord.expressions)) {
+                objRecord.expressions.forEach((expr: unknown) => {
+                  if (expr) {
+                    strokes.push(...extractSolverOutputStrokes(expr))
+                  }
+                })
+              }
+
+              return strokes
+            }
+
+            const solverStrokes = extractSolverOutputStrokes(result)
+            this.#logger.info("Found solver output strokes:", solverStrokes.length)
+
+            // Create IIStroke objects from solver output data
+            for (const strokeData of solverStrokes) {
+              if (!strokeData.X || !strokeData.Y) {
+                this.#logger.warn("Stroke data missing X or Y coordinates")
+                continue
+              }
+
+              const pointers = strokeData.X.map((x: number, i: number) => ({
+                x: convertMillimeterToPixel(x),
+                y: convertMillimeterToPixel(strokeData.Y[i]),
+                p: strokeData.F?.[i] || 1,
+                t: strokeData.T?.[i] || i
+              }))
+
+              const stroke = IIStroke.create({
+                pointers,
+                style: { color: "#4caf50", width: 5 }  // Green color for solver output
+              })
+
+              await this.editor.addSymbol(stroke)
+              this.#logger.info("Added solver output stroke:", stroke.id)
+            }
+          } catch (error) {
+            this.#logger.error("Error solving math:", error)
+          }
+        }
+      }
+    ]
+
+    const subMenuWrapper = document.createElement("div")
+    subMenuWrapper.classList.add("ms-menu-colmun")
+    menuItems.forEach(i =>
+    {
+      subMenuWrapper.appendChild(this.createMenuItem(i))
+    })
+
+    const params: TSubMenuParam = {
+      trigger: trigger,
+      subMenu: subMenuWrapper,
+      position: "right"
+    }
+    this.mathMenu = new IIMenuSub(params).element
+    console.log("this.mathMenu: ", this.mathMenu);
+    return this.mathMenu
+  }
+
   protected updateDecoratorSubMenu(): void
   {
-    if (this.showDecorator) {
+    if (this.showDecorator && !this.hasSingleMathSymbol) {
       this.decoratorMenu?.style.removeProperty("display")
 
       Object.values(DecoratorKind).forEach(kind =>
@@ -509,7 +682,7 @@ export class IIMenuContext extends IIMenu
 
   protected updateGroupMenu(): void
   {
-    if (this.groupBtn && this.haveSymbolsSelected) {
+    if (this.groupBtn && this.haveSymbolsSelected && !this.hasSingleMathSymbol) {
       this.groupBtn.style.removeProperty("display")
       if (this.symbolsSelected.length === 1 && this.symbolsSelected[0].type === SymbolType.Group) {
         this.groupBtn.textContent = "UnGroup"
@@ -523,10 +696,72 @@ export class IIMenuContext extends IIMenu
     }
   }
 
+  protected async updateMathMenu(): Promise<void>
+  {
+    if (this.mathMenu) {
+      if (this.hasSingleMathSymbol) {
+        const mathSymbol = this.symbolsSelected[0] as IIRecognizedMath
+        const actions = await this.editor.recognizer.getAvailableActions(mathSymbol.jiixId!)
+        console.log("==> actions: ", actions);
+        if (actions?.length) {
+          (this.mathMenu.querySelector(`#${ this.id }-math-get-variable`) as HTMLButtonElement).style.setProperty("display", !actions.includes("get-variable") ? "none" : "inline-block");
+          (this.mathMenu.querySelector(`#${ this.id }-math-set-variable`) as HTMLButtonElement).style.setProperty("display", !actions.includes("set-variable") ? "none" : "inline-block");
+          (this.mathMenu.querySelector(`#${ this.id }-numerical-computation`) as HTMLButtonElement).style.setProperty("display", !actions.includes("numerical-computation") ? "none" : "inline-block");
+          this.mathMenu.style.removeProperty("display")
+        }
+        else {
+          this.mathMenu.style.setProperty("display", "none")
+        }
+      }
+      else {
+        this.mathMenu.style.setProperty("display", "none")
+      }
+    }
+  }
+
   update(): void
   {
-    this.wrapper?.style.setProperty("left", `${ this.position.x - this.position.scrollLeft }px`)
-    this.wrapper?.style.setProperty("top", `${ this.position.y - this.position.scrollTop }px`)
+    // Position is now in client coordinates (relative to viewport), no need to adjust for scroll
+    this.wrapper?.style.setProperty("left", `${ this.position.x }px`)
+    this.wrapper?.style.setProperty("top", `${ this.position.y }px`)
+
+    // Adjust position if menu overflows viewport boundaries
+    if (this.wrapper) {
+      const rect = this.wrapper.getBoundingClientRect()
+      const viewportWidth = window.innerWidth
+      const viewportHeight = window.innerHeight
+
+      let adjustedX = this.position.x
+      let adjustedY = this.position.y
+
+      // Check if menu overflows bottom
+      if (rect.bottom > viewportHeight) {
+        adjustedY = viewportHeight - rect.height - 10 // 10px margin
+      }
+
+      // Check if menu overflows right
+      if (rect.right > viewportWidth) {
+        adjustedX = viewportWidth - rect.width - 10 // 10px margin
+      }
+
+      // Check if menu overflows left
+      if (adjustedX < 10) {
+        adjustedX = 10 // 10px margin
+      }
+
+      // Check if menu overflows top
+      if (adjustedY < 10) {
+        adjustedY = 10 // 10px margin
+      }
+
+      // Apply adjusted positions if needed
+      if (adjustedX !== this.position.x) {
+        this.wrapper.style.setProperty("left", `${ adjustedX }px`)
+      }
+      if (adjustedY !== this.position.y) {
+        this.wrapper.style.setProperty("top", `${ adjustedY }px`)
+      }
+    }
 
     if (this.haveSymbolsSelected) {
       const textSymbol = this.editor.model.symbolsSelected.find(s => s.type === SymbolType.Text)
@@ -538,7 +773,8 @@ export class IIMenuContext extends IIMenu
         this.editMenu?.style.setProperty("display", "none")
       }
 
-      if (this.editor.extractStrokesFromSymbols(this.symbolsSelected).length) {
+      // Show convert button only if there are strokes AND not only math selected
+      if (this.editor.extractStrokesFromSymbols(this.symbolsSelected).length && !this.hasSingleMathSymbol) {
         this.convertBtn?.style.removeProperty("display")
       }
       else {
@@ -561,6 +797,7 @@ export class IIMenuContext extends IIMenu
     }
     this.updateDecoratorSubMenu()
     this.updateGroupMenu()
+    this.updateMathMenu()
   }
 
   render(layer: HTMLElement): void
@@ -573,6 +810,7 @@ export class IIMenuContext extends IIMenu
     this.wrapper.appendChild(this.createMenuReorder())
     this.wrapper.appendChild(this.createMenuExport())
     this.wrapper.appendChild(this.createMenuConvert())
+    this.wrapper.appendChild(this.createMenuMath())
     this.wrapper.appendChild(this.createMenuGroup())
     this.wrapper.appendChild(this.createMenuDuplicate())
     this.wrapper.appendChild(this.createMenuRemove())
@@ -580,11 +818,10 @@ export class IIMenuContext extends IIMenu
     this.wrapper.style.setProperty("display", "none")
     layer.appendChild(this.wrapper)
 
+    // Hide context menu when scrolling as the referenced element moves
     this.editor.layers.rendering.addEventListener("scroll", () =>
     {
-      this.position.scrollLeft = this.editor.layers.rendering.scrollLeft || 0
-      this.position.scrollTop = this.editor.layers.rendering.scrollTop || 0
-      this.update()
+      this.hide()
     })
   }
 

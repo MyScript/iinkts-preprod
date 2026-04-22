@@ -12,10 +12,10 @@ export type TRecognitionWebSocketConfiguration = {
     text?: TTextConfConfiguration
     "session-time"?: number
     recognition?: {
-      types: ("text" | "shape")[]
+      types: ("text" | "shape" | "math")[]
     }
     classification?: {
-      types: ("text" | "shape")[]
+      types: ("text" | "shape" | "math")[]
     }
     gestures?: ("underline" | "scratch-out" | "join" | "insert" | "strike-through" | "surround")[]
   }
@@ -45,10 +45,10 @@ export const DefaultRecognitionWebSocketConfiguration: TRecognitionWebSocketConf
   },
   "raw-content": {
     recognition: {
-      types: ["text", "shape"]
+      types: ["text", "shape", "math"]
     },
     classification: {
-      types: ["text", "shape"]
+      types: ["text", "shape", "math"]
     },
     gestures: ["underline", "scratch-out", "join", "insert", "strike-through", "surround"]
   },
@@ -91,16 +91,17 @@ export class RecognizerWebSocketConfiguration implements TRecognizerWebSocketCon
 
     this.recognition = mergeDeep({}, DefaultRecognizerWebSocketConfiguration.recognition, configuration?.recognition)
     this.recognition.export.jiix["full-stroke-ids"] = true
+    this.recognition.export.jiix.strokes = true
     this.recognition.export.jiix.ids = true
     this.recognition.export.jiix.text.words = true
     this.recognition.export.jiix.text.chars = true
     this.recognition.export.jiix.text.lines = true
     this.recognition.export.jiix["bounding-box"] = true
     if (configuration?.recognition?.["raw-content"]?.recognition?.types) {
-      this.recognition["raw-content"].recognition!.types = configuration.recognition["raw-content"].recognition.types as ("text" | "shape")[]
+      this.recognition["raw-content"].recognition!.types = configuration.recognition["raw-content"].recognition.types as ("text" | "shape" | "math")[]
     }
     if (configuration?.recognition?.["raw-content"]?.classification?.types) {
-      this.recognition["raw-content"].classification!.types = configuration.recognition["raw-content"].classification.types as ("text" | "shape")[]
+      this.recognition["raw-content"].classification!.types = configuration.recognition["raw-content"].classification.types as ("text" | "shape" | "math")[]
     }
     if (configuration?.recognition?.["raw-content"]?.gestures) {
       this.recognition["raw-content"].gestures = configuration.recognition["raw-content"].gestures as ("underline" | "scratch-out" | "join" | "insert" | "strike-through" | "surround")[]

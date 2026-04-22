@@ -302,6 +302,17 @@ export class IIDebugSVGManager
             })
             break
           }
+          case "Math": {
+            if (el["bounding-box"]) {
+              const box = convertBoundingBoxMillimeterToPixel(el["bounding-box"])
+              const hideProperties = ["bounding-box", "items", "id", "expressions"]
+              const infos = Object.keys(el).filter(k => !hideProperties.includes(k)).map(k => `${ k }: ${ JSON.stringify(el[k as keyof typeof el]) }`)
+              infos.push(`parent: ${ el.parent || "none" }`)
+              infos.push(`expressions: ${ el.expressions?.length || 0 }`)
+              this.drawRecognitionBox(box, infos)
+            }
+            break
+          }
           case "Edge": {
             if (el.kind === JIIXEdgeKind.PolyEdge) {
               const infos = [
@@ -331,7 +342,7 @@ export class IIDebugSVGManager
             break
           }
           default: {
-            this.#logger.warn("drawRecognitionBox", `Unknown jiix element type: ${ el.type }`)
+            this.#logger.warn("drawRecognitionBox", `Unknown jiix element type: ${ (el as { type: string }).type }`)
             break
           }
         }
@@ -420,6 +431,23 @@ export class IIDebugSVGManager
     this.renderer.layer.addEventListener("pointercancel", () => this.renderer.layer.removeEventListener("pointermove", translateEl))
 
   }
+
+  protected drawMathExpressions(expressions: { type: string; label?: string; "bounding-box"?: TBox; operands?: unknown[] }[], depth: number = 0): void
+  {
+    expressions?.forEach(expr =>
+    {
+      if (expr?.["bounding-box"]) {
+        const box = convertBoundingBoxMillimeterToPixel(expr["bounding-box"])
+        const label = `${ expr.type }${ expr.label ? `: ${ expr.label }` : "" }`
+        this.drawRecognitionItemBox(box, label)
+      }
+      // Recursively process operands if present
+      if (expr.operands) {
+        this.drawMathExpressions(expr.operands as { type: string; label?: string; "bounding-box"?: TBox; operands?: unknown[] }[], depth + 1)
+      }
+    })
+  }
+
   protected async showRecognitionItemBox(): Promise<void>
   {
     this.#logger.info("showRecognitionBoxItem")
@@ -438,6 +466,12 @@ export class IIDebugSVGManager
                 this.drawRecognitionItemBox(box, c.label, c.candidates)
               }
             })
+            break
+          }
+          case "Math": {
+            if (el.expressions) {
+              this.drawMathExpressions(el.expressions)
+            }
             break
           }
           case "Node": {
@@ -462,7 +496,7 @@ export class IIDebugSVGManager
             break
           }
           default:
-            this.#logger.warn("drawRecognitionBoxItem", `Unknown jiix element type: ${ el.type }`)
+            this.#logger.warn("drawRecognitionBoxItem", `Unknown jiix element type: ${ (el as { type: string }).type }`)
             break
         }
       })

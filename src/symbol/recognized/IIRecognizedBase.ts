@@ -12,6 +12,7 @@ import { SymbolType } from "../base/Symbol"
 export enum RecognizedKind
 {
   Text = "text",
+  Math = "math",
   Line = "line",
   PolyEdge = "polyedge",
   Arc = "arc",
@@ -26,6 +27,9 @@ export enum RecognizedKind
 export abstract class IIRecognizedBase<K = RecognizedKind> extends IISymbolBase<SymbolType.Recognized>
 {
   readonly kind: K
+
+  /** JIIX element ID from recognition result */
+  jiixId?: string
 
   strokes: IIStroke[]
 

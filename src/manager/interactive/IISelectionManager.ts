@@ -501,8 +501,26 @@ export class IISelectionManager
     if (this.selectedGroup) {
       this.renderer.layer.appendChild(this.selectedGroup)
       const groupBox = this.selectedGroup.getBBox()
-      this.editor.menu.context.position.x = groupBox.x + groupBox.width / 2 - this.renderer.parent.clientLeft
-      this.editor.menu.context.position.y = groupBox.y + groupBox.height - this.renderer.parent.clientTop
+
+      // Convert SVG coordinates to client coordinates for menu positioning
+      const svgElement = this.renderer.layer
+      const ctm = svgElement.getScreenCTM()
+      if (ctm) {
+        const point = svgElement.createSVGPoint()
+        point.x = groupBox.x + groupBox.width / 2
+        point.y = groupBox.y + groupBox.height
+        const screenPoint = point.matrixTransform(ctm)
+
+        const menuParent = this.editor.menu.context.wrapper?.parentElement
+        if (menuParent) {
+          const rect = menuParent.getBoundingClientRect()
+          this.editor.menu.context.position.x = screenPoint.x - rect.left
+          this.editor.menu.context.position.y = screenPoint.y - rect.top
+        } else {
+          this.editor.menu.context.position.x = screenPoint.x
+          this.editor.menu.context.position.y = screenPoint.y
+        }
+      }
       this.editor.menu.context.show()
     }
     this.editor.menu.update()
@@ -594,8 +612,18 @@ export class IISelectionManager
       this.editor.updateLayerUI()
     }
     else {
-      this.editor.menu.context.position.x = info.pointer.x + this.renderer.parent.clientLeft
-      this.editor.menu.context.position.y = info.pointer.y + this.renderer.parent.clientTop
+      // Use clientX/clientY relative to the menu's parent container
+      // The menu is attached to the UI layer, so we need its bounding rect
+      const menuParent = this.editor.menu.context.wrapper?.parentElement
+      if (menuParent) {
+        const rect = menuParent.getBoundingClientRect()
+        this.editor.menu.context.position.x = info.clientX - rect.left
+        this.editor.menu.context.position.y = info.clientY - rect.top
+      } else {
+        // Fallback: use viewport coordinates directly
+        this.editor.menu.context.position.x = info.clientX
+        this.editor.menu.context.position.y = info.clientY
+      }
       this.editor.menu.context.show()
     }
   }

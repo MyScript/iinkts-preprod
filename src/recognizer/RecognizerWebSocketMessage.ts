@@ -17,6 +17,7 @@ export enum TRecognizerWebSocketMessageType
   Exported = "exported",
   GestureDetected = "gestureDetected",
   ContextlessGesture = "contextlessGesture",
+  MathSolverResult = "mathSolverResult",
   Error = "error",
 }
 
@@ -112,6 +113,15 @@ export type TRecognizerWebSocketMessageIdle = TRecognizerWebSocketMessage<TRecog
 /**
  * @group Recognizer
  */
+export type TRecognizerWebSocketMessageMathSolverResult = TRecognizerWebSocketMessage<TRecognizerWebSocketMessageType.MathSolverResult> & {
+  blocId: string
+  action: "available-actions" | "numerical-computation" | string
+  result: string | string[]
+}
+
+/**
+ * @group Recognizer
+ */
 export type TRecognizerWebSocketMessageError = TRecognizerWebSocketMessage<TRecognizerWebSocketMessageType.Error> & {
   code?: number | string
   message?: string
@@ -136,4 +146,5 @@ export type TRecognizerWebSocketMessageReceived =
   TRecognizerWebSocketMessageContextlessGesture |
   TRecognizerWebSocketMessagePong |
   TRecognizerWebSocketMessageIdle |
+  TRecognizerWebSocketMessageMathSolverResult |
   TRecognizerWebSocketMessageError
