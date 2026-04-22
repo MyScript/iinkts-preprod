@@ -1,4 +1,4 @@
-import { DecoratorKind, RecognizedKind, TIIRecognized } from "../../symbol"
+import { DecoratorKind, RecognizedKind, TIIRecognized, IIRecognizedText } from "../../symbol"
 import { DefaultStyle } from "../../style"
 import { SVGRendererDecoratorUtil } from "./SVGRendererDecoratorUtil"
 import { SVGRendererStrokeUtil } from "./SVGRendererStrokeUtil"
@@ -40,6 +40,37 @@ export class SVGRendererRecognizedUtil
     })
 
     if (recognizedSymbol.kind === RecognizedKind.Text) {
+      const recognizedText = recognizedSymbol as IIRecognizedText
+
+      // Render word-level decorators if words exist
+      if (recognizedText.words) {
+        recognizedText.words.forEach(word =>
+        {
+          if (word.decorators && word.bounds) {
+            word.decorators.forEach(d =>
+            {
+              const deco = SVGRendererDecoratorUtil.getSVGElementFromBounds(
+                d,
+                word.bounds!,
+                recognizedText.baseline,
+                recognizedText.xHeight,
+                { width: recognizedText.style.width, color: recognizedText.style.color },
+                recognizedText.deleting
+              )
+              if (deco) {
+                if (d.kind === DecoratorKind.Highlight) {
+                  groupEl.prepend(deco)
+                }
+                else {
+                  groupEl.append(deco)
+                }
+              }
+            })
+          }
+        })
+      }
+
+      // Render symbol-level decorators (for backward compatibility)
       recognizedSymbol.decorators.forEach(d =>
       {
         const deco = SVGRendererDecoratorUtil.getSVGElement(d, recognizedSymbol)

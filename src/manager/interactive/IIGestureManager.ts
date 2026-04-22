@@ -118,7 +118,7 @@ export class IIGestureManager
   #logger = LoggerManager.getLogger(LoggerCategory.GESTURE)
 
   static readonly #TEXT_STROKE_GROUP_TYPES = new Set([SymbolType.Text, SymbolType.Stroke, SymbolType.Group])
-  static readonly #SURROUND_SELECT_TYPES = new Set([SymbolType.Group, SymbolType.Stroke, SymbolType.Text])
+  static readonly #SURROUND_SELECT_TYPES = new Set([SymbolType.Group, SymbolType.Stroke, SymbolType.Text, SymbolType.Recognized])
   static readonly #ERASE_OVERLAY_TYPES = new Set([SymbolType.Stroke, SymbolType.Text, SymbolType.Group])
   static readonly #ERASE_CONTAIN_TYPES = new Set([SymbolType.Shape, SymbolType.Edge])
 
@@ -181,6 +181,63 @@ export class IIGestureManager
     return symbol.type === SymbolType.Group || symbol.type === SymbolType.Stroke || symbol.type === SymbolType.Text || (symbol.type === SymbolType.Recognized && symbol.kind === RecognizedKind.Text)
   }
 
+  /**
+   * Helper function to apply decorator on words that intersect with gesture stroke
+   * @param symbol - The symbol to apply decorator on (can be IIText or IIRecognizedText)
+   * @param gestureStroke - The gesture stroke
+   * @param decoratorKind - The kind of decorator to apply
+   * @returns true if at least one word was modified, false otherwise
+   */
+  protected applyDecoratorOnWords(
+    symbol: IIText | IIRecognizedText,
+    gestureStroke: IIStroke,
+    decoratorKind: DecoratorKind
+  ): boolean
+  {
+    // For IIRecognizedText with words
+    if (symbol.type === SymbolType.Recognized && symbol.kind === RecognizedKind.Text) {
+      const recognizedText = symbol as IIRecognizedText
+
+      if (!recognizedText.words || !recognizedText.words.length) {
+        // Fallback to text-level decorator if no words
+        const decorator = new IIDecorator(decoratorKind, this.editor.penStyle)
+        const index = recognizedText.decorators.findIndex(d => d.kind === decoratorKind)
+        const added = index === -1
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+        added ? recognizedText.decorators.push(decorator) : recognizedText.decorators.splice(index, 1)
+        return added
+      }
+
+      let modified = false
+      recognizedText.words.forEach(word =>
+      {
+        // Check if word bounds intersect with gesture stroke bounds
+        if (word.bounds && gestureStroke.bounds.overlaps(word.bounds)) {
+          if (!word.decorators) {
+            word.decorators = []
+          }
+          const index = word.decorators.findIndex(d => d.kind === decoratorKind)
+          const added = index === -1
+          if (added) {
+            word.decorators.push(new IIDecorator(decoratorKind, this.editor.penStyle))
+          } else {
+            word.decorators.splice(index, 1)
+          }
+          modified = true
+        }
+      })
+      return modified
+    } else {
+      // For IIText or other decorable symbols, apply at symbol level
+      const decorator = new IIDecorator(decoratorKind, this.editor.penStyle)
+      const index = symbol.decorators.findIndex(d => d.kind === decoratorKind)
+      const added = index === -1
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+      added ? symbol.decorators.push(decorator) : symbol.decorators.splice(index, 1)
+      return added
+    }
+  }
+
   async applySurroundGesture(gestureStroke: IIStroke, gesture: TGesture): Promise<void>
   {
     this.#logger.info("applySurroundGesture", { gestureStroke, gesture })
@@ -202,15 +259,28 @@ export class IIGestureManager
           const sym = this.model.getRootSymbol(id)
           if (sym && this.isDecorable(sym) && !symbolIdSet.has(sym.id)) {
             const symWithDec = sym as (IIText | IIStroke | IISymbolGroup | IIRecognizedText)
-            const highlight = new IIDecorator(DecoratorKind.Highlight, this.editor.penStyle)
-            const index = symWithDec.decorators.findIndex(d => d.kind === DecoratorKind.Highlight)
-            const added = index === -1
-            // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-            added ? symWithDec.decorators.push(highlight) : symWithDec.decorators.splice(index, 1)
-            this.model.updateSymbol(symWithDec)
-            this.renderer.drawSymbol(symWithDec)
-            symbolIdSet.add(symWithDec.id)
-            changes.decorator!.push({ symbol: symWithDec, decorator: highlight, added })
+
+            // Apply decorator on words for IIRecognizedText, or on symbol level for others
+            if ((symWithDec.type === SymbolType.Recognized && symWithDec.kind === RecognizedKind.Text) || symWithDec.type === SymbolType.Text) {
+              const modified = this.applyDecoratorOnWords(symWithDec as (IIText | IIRecognizedText), gestureStroke, DecoratorKind.Highlight)
+              if (modified) {
+                this.model.updateSymbol(symWithDec)
+                this.renderer.drawSymbol(symWithDec)
+                symbolIdSet.add(symWithDec.id)
+                const highlight = new IIDecorator(DecoratorKind.Highlight, this.editor.penStyle)
+                changes.decorator!.push({ symbol: symWithDec, decorator: highlight, added: true })
+              }
+            } else {
+              const highlight = new IIDecorator(DecoratorKind.Highlight, this.editor.penStyle)
+              const index = symWithDec.decorators.findIndex(d => d.kind === DecoratorKind.Highlight)
+              const added = index === -1
+              // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+              added ? symWithDec.decorators.push(highlight) : symWithDec.decorators.splice(index, 1)
+              this.model.updateSymbol(symWithDec)
+              this.renderer.drawSymbol(symWithDec)
+              symbolIdSet.add(symWithDec.id)
+              changes.decorator!.push({ symbol: symWithDec, decorator: highlight, added })
+            }
           }
         })
         if (changes.decorator.length) {
@@ -226,15 +296,28 @@ export class IIGestureManager
           const sym = this.model.getRootSymbol(id)
           if (sym && this.isDecorable(sym) && !symbolIdSet.has(sym.id)) {
             const symWithDec = sym as (IIText | IIStroke | IISymbolGroup | IIRecognizedText)
-            const surround = new IIDecorator(DecoratorKind.Surround, this.editor.penStyle)
-            const index = symWithDec.decorators.findIndex(d => d.kind === DecoratorKind.Surround)
-            const added = index === -1
-            // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-            added ? symWithDec.decorators.push(surround) : symWithDec.decorators.splice(index, 1)
-            this.model.updateSymbol(symWithDec)
-            this.renderer.drawSymbol(symWithDec)
-            changes.decorator!.push({ symbol: symWithDec, decorator: surround, added })
-            symbolIdSet.add(symWithDec.id)
+
+            // Apply decorator on words for IIRecognizedText, or on symbol level for others
+            if ((symWithDec.type === SymbolType.Recognized && symWithDec.kind === RecognizedKind.Text) || symWithDec.type === SymbolType.Text) {
+              const modified = this.applyDecoratorOnWords(symWithDec as (IIText | IIRecognizedText), gestureStroke, DecoratorKind.Surround)
+              if (modified) {
+                this.model.updateSymbol(symWithDec)
+                this.renderer.drawSymbol(symWithDec)
+                symbolIdSet.add(symWithDec.id)
+                const surround = new IIDecorator(DecoratorKind.Surround, this.editor.penStyle)
+                changes.decorator!.push({ symbol: symWithDec, decorator: surround, added: true })
+              }
+            } else {
+              const surround = new IIDecorator(DecoratorKind.Surround, this.editor.penStyle)
+              const index = symWithDec.decorators.findIndex(d => d.kind === DecoratorKind.Surround)
+              const added = index === -1
+              // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+              added ? symWithDec.decorators.push(surround) : symWithDec.decorators.splice(index, 1)
+              this.model.updateSymbol(symWithDec)
+              this.renderer.drawSymbol(symWithDec)
+              changes.decorator!.push({ symbol: symWithDec, decorator: surround, added })
+              symbolIdSet.add(symWithDec.id)
+            }
           }
         })
         this.history.push(this.model, changes)
@@ -918,15 +1001,28 @@ export class IIGestureManager
       const sym = this.model.getRootSymbol(id)
       if (sym && this.isDecorable(sym) && !symbolIdSet.has(sym.id)) {
         const symWithDec = sym as (IIText | IIStroke | IISymbolGroup | IIRecognizedText)
-        const underline = new IIDecorator(DecoratorKind.Underline, this.editor.penStyle)
-        const index = symWithDec.decorators.findIndex(d => d.kind === DecoratorKind.Underline)
-        const added = index === -1
-        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-        added ? symWithDec.decorators.push(underline) : symWithDec.decorators.splice(index, 1)
-        this.model.updateSymbol(symWithDec)
-        this.renderer.drawSymbol(symWithDec)
-        changes.decorator?.push({ symbol: symWithDec, decorator: underline, added })
-        symbolIdSet.add(symWithDec.id)
+
+        // Apply decorator on words for IIRecognizedText, or on symbol level for others
+        if ((symWithDec.type === SymbolType.Recognized && symWithDec.kind === RecognizedKind.Text) || symWithDec.type === SymbolType.Text) {
+          const modified = this.applyDecoratorOnWords(symWithDec as (IIText | IIRecognizedText), gestureStroke, DecoratorKind.Underline)
+          if (modified) {
+            this.model.updateSymbol(symWithDec)
+            this.renderer.drawSymbol(symWithDec)
+            symbolIdSet.add(symWithDec.id)
+            const underline = new IIDecorator(DecoratorKind.Underline, this.editor.penStyle)
+            changes.decorator?.push({ symbol: symWithDec, decorator: underline, added: true })
+          }
+        } else {
+          const underline = new IIDecorator(DecoratorKind.Underline, this.editor.penStyle)
+          const index = symWithDec.decorators.findIndex(d => d.kind === DecoratorKind.Underline)
+          const added = index === -1
+          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+          added ? symWithDec.decorators.push(underline) : symWithDec.decorators.splice(index, 1)
+          this.model.updateSymbol(symWithDec)
+          this.renderer.drawSymbol(symWithDec)
+          changes.decorator?.push({ symbol: symWithDec, decorator: underline, added })
+          symbolIdSet.add(symWithDec.id)
+        }
       }
     })
     if (changes.decorator?.length) {
@@ -950,15 +1046,28 @@ export class IIGestureManager
           const symbol = this.model.getRootSymbol(id)
           if (symbol && [SymbolType.Group, SymbolType.Stroke, SymbolType.Text, SymbolType.Recognized].includes(symbol.type) && !symbolIds.includes(symbol.id)) {
             const symWithDec = symbol as (IIText | IIStroke | IISymbolGroup | IIRecognizedText)
-            const strikethrough = new IIDecorator(DecoratorKind.Strikethrough, this.editor.penStyle)
-            const index = symWithDec.decorators.findIndex(d => d.kind === DecoratorKind.Strikethrough)
-            const added = index === -1
-            // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-            added ? symWithDec.decorators.push(strikethrough) : symWithDec.decorators.splice(index, 1)
-            this.model.updateSymbol(symWithDec)
-            this.renderer.drawSymbol(symWithDec)
-            changes.decorator?.push({ symbol: symWithDec, decorator: strikethrough, added })
-            symbolIds.push(symWithDec.id)
+
+            // Apply decorator on words for IIRecognizedText, or on symbol level for others
+            if ((symWithDec.type === SymbolType.Recognized && symWithDec.kind === RecognizedKind.Text) || symWithDec.type === SymbolType.Text) {
+              const modified = this.applyDecoratorOnWords(symWithDec as (IIText | IIRecognizedText), gestureStroke, DecoratorKind.Strikethrough)
+              if (modified) {
+                this.model.updateSymbol(symWithDec)
+                this.renderer.drawSymbol(symWithDec)
+                symbolIds.push(symWithDec.id)
+                const strikethrough = new IIDecorator(DecoratorKind.Strikethrough, this.editor.penStyle)
+                changes.decorator?.push({ symbol: symWithDec, decorator: strikethrough, added: true })
+              }
+            } else {
+              const strikethrough = new IIDecorator(DecoratorKind.Strikethrough, this.editor.penStyle)
+              const index = symWithDec.decorators.findIndex(d => d.kind === DecoratorKind.Strikethrough)
+              const added = index === -1
+              // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+              added ? symWithDec.decorators.push(strikethrough) : symWithDec.decorators.splice(index, 1)
+              this.model.updateSymbol(symWithDec)
+              this.renderer.drawSymbol(symWithDec)
+              changes.decorator?.push({ symbol: symWithDec, decorator: strikethrough, added })
+              symbolIds.push(symWithDec.id)
+            }
           }
         })
         if (changes.decorator?.length) {
