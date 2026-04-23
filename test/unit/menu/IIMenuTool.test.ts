@@ -44,7 +44,7 @@ describe("IIMenuTool.ts", () =>
     const editor = new InteractiveInkEditorMock()
     editor.init()
     const menu = new IIMenuTool(editor)
-    const pointerUpEvt = new LeftClickEventMock("pointerup", {
+    const clickEvt = new LeftClickEventMock("click", {
       pointerType: "pen",
       clientX: 10,
       clientY: 10,
@@ -55,21 +55,21 @@ describe("IIMenuTool.ts", () =>
     {
       editor.tool = EditorTool.Erase
       const menuEl = editor.layers.ui.root.querySelector("#ms-menu-tool-select") as HTMLDivElement
-      menuEl.dispatchEvent(pointerUpEvt)
+      menuEl.dispatchEvent(clickEvt)
       expect(editor.tool).toEqual(EditorTool.Select)
     })
     test("should set menu move", () =>
     {
       editor.tool = EditorTool.Erase
       const menuEl = editor.layers.ui.root.querySelector("#ms-menu-tool-move") as HTMLDivElement
-      menuEl.dispatchEvent(pointerUpEvt)
+      menuEl.dispatchEvent(clickEvt)
       expect(editor.tool).toEqual(EditorTool.Move)
     })
     test("should set menu erase", () =>
     {
       editor.tool = EditorTool.Write
       const menuEl = editor.layers.ui.root.querySelector("#ms-menu-tool-erase") as HTMLDivElement
-      menuEl.dispatchEvent(pointerUpEvt)
+      menuEl.dispatchEvent(clickEvt)
       expect(editor.tool).toEqual(EditorTool.Erase)
     })
     test("should set menu write pencil", () =>
@@ -77,7 +77,7 @@ describe("IIMenuTool.ts", () =>
       editor.tool = EditorTool.Erase
       editor.writer.tool = EditorWriteTool.Rectangle
       const menuEl = editor.layers.ui.root.querySelector("#ms-menu-tool-write-pencil") as HTMLDivElement
-      menuEl.dispatchEvent(pointerUpEvt)
+      menuEl.dispatchEvent(clickEvt)
       expect(editor.tool).toEqual(EditorTool.Write)
       expect(editor.writer.tool).toEqual(EditorWriteTool.Pencil)
     })
@@ -86,7 +86,7 @@ describe("IIMenuTool.ts", () =>
       const menuEl = editor.layers.ui.root.querySelector("#ms-menu-tool-write-shape") as HTMLDivElement
       const subMenuEl1 = editor.layers.ui.root.querySelector(".sub-menu-content-shape") as HTMLDivElement
       expect(subMenuEl1.classList.contains("open")).toBeFalsy()
-      menuEl.dispatchEvent(pointerUpEvt)
+      menuEl.dispatchEvent(clickEvt)
       const subMenuEl2 = editor.layers.ui.root.querySelector(".sub-menu-content-shape") as HTMLDivElement
       expect(subMenuEl2.classList.contains("open")).toBeFalsy()
     })
@@ -95,7 +95,7 @@ describe("IIMenuTool.ts", () =>
       editor.tool = EditorTool.Erase
       editor.writer.tool = EditorWriteTool.Pencil
       const subMenuEl1 = editor.layers.ui.root.querySelector("#ms-menu-tool-write-shape-rectangle") as HTMLDivElement
-      subMenuEl1.dispatchEvent(pointerUpEvt)
+      subMenuEl1.dispatchEvent(clickEvt)
       const subMenuEl2 = editor.layers.ui.root.querySelector("#ms-menu-tool-write-shape-rectangle") as HTMLDivElement
       expect(subMenuEl2.classList.contains("open")).toBeFalsy()
 
@@ -107,7 +107,7 @@ describe("IIMenuTool.ts", () =>
       editor.tool = EditorTool.Erase
       editor.writer.tool = EditorWriteTool.Pencil
       const subMenuEl1 = editor.layers.ui.root.querySelector("#ms-menu-tool-write-shape-triangle") as HTMLDivElement
-      subMenuEl1.dispatchEvent(pointerUpEvt)
+      subMenuEl1.dispatchEvent(clickEvt)
       const subMenuEl2 = editor.layers.ui.root.querySelector("#ms-menu-tool-write-shape-triangle") as HTMLDivElement
       expect(subMenuEl2.classList.contains("open")).toBeFalsy()
 
@@ -119,7 +119,7 @@ describe("IIMenuTool.ts", () =>
       editor.tool = EditorTool.Erase
       editor.writer.tool = EditorWriteTool.Pencil
       const subMenuEl1 = editor.layers.ui.root.querySelector("#ms-menu-tool-write-shape-ellipse") as HTMLDivElement
-      subMenuEl1.dispatchEvent(pointerUpEvt)
+      subMenuEl1.dispatchEvent(clickEvt)
       const subMenuEl2 = editor.layers.ui.root.querySelector("#ms-menu-tool-write-shape-ellipse") as HTMLDivElement
       expect(subMenuEl2.classList.contains("open")).toBeFalsy()
 
@@ -131,7 +131,7 @@ describe("IIMenuTool.ts", () =>
       editor.tool = EditorTool.Erase
       editor.writer.tool = EditorWriteTool.Pencil
       const subMenuEl1 = editor.layers.ui.root.querySelector("#ms-menu-tool-write-shape-circle") as HTMLDivElement
-      subMenuEl1.dispatchEvent(pointerUpEvt)
+      subMenuEl1.dispatchEvent(clickEvt)
       const subMenuEl2 = editor.layers.ui.root.querySelector("#ms-menu-tool-write-shape-circle") as HTMLDivElement
       expect(subMenuEl2.classList.contains("open")).toBeFalsy()
 
@@ -143,7 +143,7 @@ describe("IIMenuTool.ts", () =>
       const menuEl = editor.layers.ui.root.querySelector("#ms-menu-tool-write-edge") as HTMLDivElement
       const subMenuEl1 = editor.layers.ui.root.querySelector(".sub-menu-content-edge") as HTMLDivElement
       expect(subMenuEl1.classList.contains("open")).toBeFalsy()
-      menuEl.dispatchEvent(pointerUpEvt)
+      menuEl.dispatchEvent(clickEvt)
       const subMenuEl2 = editor.layers.ui.root.querySelector(".sub-menu-content-edge") as HTMLDivElement
       expect(subMenuEl2.classList.contains("open")).toBeFalsy()
     })
@@ -152,7 +152,7 @@ describe("IIMenuTool.ts", () =>
       editor.tool = EditorTool.Erase
       editor.writer.tool = EditorWriteTool.Pencil
       const subMenuEl1 = editor.layers.ui.root.querySelector("#ms-menu-tool-write-edge-arrow") as HTMLDivElement
-      subMenuEl1.dispatchEvent(pointerUpEvt)
+      subMenuEl1.dispatchEvent(clickEvt)
       const subMenuEl2 = editor.layers.ui.root.querySelector("#ms-menu-tool-write-edge-arrow") as HTMLDivElement
       expect(subMenuEl2.classList.contains("open")).toBeFalsy()
 
