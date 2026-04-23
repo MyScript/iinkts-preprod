@@ -30,7 +30,6 @@ export interface ModalConfig {
 
 /**
  * @group Components
- * A reusable modal component for displaying forms with custom fields and buttons
  */
 export class Modal {
   private modal: HTMLDivElement

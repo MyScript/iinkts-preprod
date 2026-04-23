@@ -29,21 +29,21 @@ export class IIMenuManager
       this.style = new CustomMenuStyle(this.editor)
     }
     else {
-      this.style = new IIMenuStyle(this.editor)
+      this.style = new IIMenuStyle(this.editor, "ms-menu-style", this.editor.configuration.menu.style)
     }
     if (custom?.tool) {
       const CustomMenuTool = custom.tool as unknown as typeof IIMenuTool
       this.tool = new CustomMenuTool(this.editor)
     }
     else {
-      this.tool = new IIMenuTool(this.editor)
+      this.tool = new IIMenuTool(this.editor, "ms-menu-tool", this.editor.configuration.menu.tool)
     }
     if (custom?.action) {
       const CustomMenuAction = custom.action as unknown as typeof IIMenuAction
       this.action = new CustomMenuAction(this.editor)
     }
     else {
-      this.action = new IIMenuAction(this.editor)
+      this.action = new IIMenuAction(this.editor, "ms-menu-action", this.editor.configuration.menu.action)
     }
     if (custom?.context) {
       const CustomMenuAction = custom.context as unknown as typeof IIMenuContext

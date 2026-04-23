@@ -15,7 +15,6 @@ export interface ChartConfig {
 
 /**
  * @group Components
- * A reusable chart component for plotting mathematical functions
  */
 export class Chart {
   private canvas: HTMLCanvasElement
