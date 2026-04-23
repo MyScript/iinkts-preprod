@@ -41,7 +41,7 @@ describe("IIMenuStyle.ts", () =>
         expect(menuColor).not.toBeNull()
         expect(menuColor.style.display).toEqual("block")
         const list = menuColor.querySelector("#ms-menu-style-color-list") as HTMLElement
-        expect(list.childElementCount).toEqual(menu.colors.length)
+        expect(list.childElementCount).toEqual(menu.config.colors.length)
       })
       test("should render menu fill color and not display", () =>
       {
@@ -49,23 +49,23 @@ describe("IIMenuStyle.ts", () =>
         expect(menuFill).not.toBeNull()
         expect(menuFill.style.display).toEqual("none")
         const list = menuFill.querySelector("#ms-menu-style-fill-list") as HTMLElement
-        expect(list.childElementCount).toEqual(menu.colors.length)
+        expect(list.childElementCount).toEqual(menu.config.colors.length)
       })
       test("should render menu thickness", () =>
       {
         const menuThickness = layer.querySelector("#ms-menu-style-thickness") as HTMLElement
         expect(menuThickness).not.toBeNull()
         expect(menuThickness.style.display).toEqual("block")
-        const list = menuThickness.querySelector("#ms-menu-style-thickness-list") as HTMLElement
-        expect(list.childElementCount).toEqual(menu.thicknessList.length)
+        const buttons = menuThickness.querySelectorAll("button")
+        expect(buttons.length).toEqual(menu.config.thicknessList.length)
       })
       test("should render menu font-size", () =>
       {
-        const menuThickness = layer.querySelector("#ms-menu-style-font-size") as HTMLElement
-        expect(menuThickness).not.toBeNull()
-        expect(menuThickness.style.display).toEqual("block")
-        const list = menuThickness.querySelector("#ms-menu-style-font-size-list") as HTMLElement
-        expect(list.childElementCount).toEqual(menu.fontSizeList.length)
+        const menuFontSize = layer.querySelector("#ms-menu-style-font-size") as HTMLElement
+        expect(menuFontSize).not.toBeNull()
+        expect(menuFontSize.style.display).toEqual("block")
+        const buttons = menuFontSize.querySelectorAll("button")
+        expect(buttons.length).toEqual(menu.config.fontSizeList.length)
       })
       test("should render menu opacity", () =>
       {
@@ -99,7 +99,7 @@ describe("IIMenuStyle.ts", () =>
         expect(menuColor).not.toBeNull()
         expect(menuColor.style.display).toEqual("block")
         const list = menuColor.querySelector("#ms-menu-style-color-list") as HTMLElement
-        expect(list.childElementCount).toEqual(menu.colors.length)
+        expect(list.childElementCount).toEqual(menu.config.colors.length)
       })
       test("should render menu fill color and not display", () =>
       {
@@ -107,23 +107,23 @@ describe("IIMenuStyle.ts", () =>
         expect(menuFill).not.toBeNull()
         expect(menuFill.style.display).toEqual("none")
         const list = menuFill.querySelector("#ms-menu-style-fill-list") as HTMLElement
-        expect(list.childElementCount).toEqual(menu.colors.length)
+        expect(list.childElementCount).toEqual(menu.config.colors.length)
       })
       test("should render menu thickness", () =>
       {
         const menuThickness = layer.querySelector("#ms-menu-style-thickness") as HTMLElement
         expect(menuThickness).not.toBeNull()
         expect(menuThickness.style.display).toEqual("block")
-        const list = menuThickness.querySelector("#ms-menu-style-thickness-list") as HTMLElement
-        expect(list.childElementCount).toEqual(menu.thicknessList.length)
+        const buttons = menuThickness.querySelectorAll("button")
+        expect(buttons.length).toEqual(menu.config.thicknessList.length)
       })
       test("should render menu font-size", () =>
       {
-        const menuThickness = layer.querySelector("#ms-menu-style-font-size") as HTMLElement
-        expect(menuThickness).not.toBeNull()
-        expect(menuThickness.style.display).toEqual("block")
-        const list = menuThickness.querySelector("#ms-menu-style-font-size-list") as HTMLElement
-        expect(list.childElementCount).toEqual(menu.fontSizeList.length)
+        const menuFontSize = layer.querySelector("#ms-menu-style-font-size") as HTMLElement
+        expect(menuFontSize).not.toBeNull()
+        expect(menuFontSize.style.display).toEqual("block")
+        const buttons = menuFontSize.querySelectorAll("button")
+        expect(buttons.length).toEqual(menu.config.fontSizeList.length)
       })
       test("should render menu opacity", () =>
       {
@@ -144,6 +144,12 @@ describe("IIMenuStyle.ts", () =>
       clientY: 10,
       pressure: 1
     })
+    const clickEvt = new LeftClickEventMock("click", {
+      pointerType: "pen",
+      clientX: 10,
+      clientY: 10,
+      pressure: 1
+    })
     const layer = document.createElement("div")
     const editor = new InteractiveInkEditorMock()
     editor.selector.resetSelectedGroup = jest.fn()
@@ -159,8 +165,8 @@ describe("IIMenuStyle.ts", () =>
 
     test("should update style color", () =>
     {
-      const btn = layer.querySelector("#ms-menu-style-color-808080-btn") as HTMLButtonElement
-      btn.dispatchEvent(pointerUpEvt)
+      const btn = layer.querySelector("#ms-menu-style-color-list-808080") as HTMLButtonElement
+      btn.dispatchEvent(clickEvt)
       expect(editor.penStyle.color).toEqual("#808080")
     })
     test("should update color of selected symbols", () =>
@@ -168,8 +174,8 @@ describe("IIMenuStyle.ts", () =>
       const stroke = buildOIStroke()
       stroke.selected = true
       editor.model.addSymbol(stroke)
-      const btn = layer.querySelector("#ms-menu-style-color-808080-btn") as HTMLButtonElement
-      btn.dispatchEvent(pointerUpEvt)
+      const btn = layer.querySelector("#ms-menu-style-color-list-808080") as HTMLButtonElement
+      btn.dispatchEvent(clickEvt)
       expect(editor.updateSymbolsStyle).toHaveBeenCalledTimes(1)
       expect(editor.updateSymbolsStyle).toHaveBeenCalledWith([stroke.id], { color: "#808080" })
     })
@@ -178,14 +184,14 @@ describe("IIMenuStyle.ts", () =>
       const stroke = buildOIStroke()
       stroke.selected = true
       editor.model.addSymbol(stroke)
-      const btn = layer.querySelector("#ms-menu-style-fill-ffff00-btn") as HTMLButtonElement
-      btn.dispatchEvent(pointerUpEvt)
+      const btn = layer.querySelector("#ms-menu-style-fill-list-ffff00") as HTMLButtonElement
+      btn.dispatchEvent(clickEvt)
       expect(editor.updateSymbolsStyle).toHaveBeenCalledTimes(1)
       expect(editor.updateSymbolsStyle).toHaveBeenCalledWith([stroke.id], { fill: "#ffff00" })
     })
     test("should update style thickness", () =>
     {
-      const btn = layer.querySelector("#ms-menu-style-thickness-XL-btn") as HTMLButtonElement
+      const btn = layer.querySelector("#ms-menu-style-thickness-8") as HTMLButtonElement
       btn.dispatchEvent(pointerUpEvt)
       expect(editor.penStyle.width).toEqual(8)
     })
@@ -194,7 +200,7 @@ describe("IIMenuStyle.ts", () =>
       const stroke = buildOIStroke()
       stroke.selected = true
       editor.model.addSymbol(stroke)
-      const btn = layer.querySelector("#ms-menu-style-thickness-XL-btn") as HTMLButtonElement
+      const btn = layer.querySelector("#ms-menu-style-thickness-8") as HTMLButtonElement
       btn.dispatchEvent(pointerUpEvt)
       expect(editor.updateSymbolsStyle).toHaveBeenCalledTimes(1)
       expect(editor.updateSymbolsStyle).toHaveBeenCalledWith([stroke.id], { width: 8 })

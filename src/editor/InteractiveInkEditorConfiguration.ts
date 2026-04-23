@@ -80,6 +80,26 @@ export class InteractiveInkEditorConfiguration implements TInteractiveInkEditorC
     this.rendering = mergeDeep({}, DefaultInteractiveInkEditorConfiguration.rendering, configuration?.rendering)
     this["undo-redo"] = mergeDeep({}, DefaultInteractiveInkEditorConfiguration["undo-redo"], configuration?.["undo-redo"])
     this.menu = mergeDeep({}, DefaultInteractiveInkEditorConfiguration.menu, configuration?.menu)
+    if (configuration?.menu?.style) {
+      if (configuration.menu.style.colors) {
+        this.menu.style.colors = configuration.menu.style.colors.filter((color): color is string => color !== undefined)
+      }
+      if (configuration.menu.style.thicknessList) {
+        this.menu.style.thicknessList = configuration.menu.style.thicknessList.filter((item): item is { label: string, value: number } => item !== undefined)
+      }
+      if (configuration.menu.style.fontSizeList) {
+        this.menu.style.fontSizeList = configuration.menu.style.fontSizeList.filter((item): item is { label: string, value: "auto" | number } => item !== undefined)
+      }
+      if (configuration.menu.style.fontWeightList) {
+        this.menu.style.fontWeightList = configuration.menu.style.fontWeightList.filter((item): item is { label: string, value: "auto" | "normal" | "bold" } => item !== undefined)
+      }
+      this.menu.style.strokeColor = configuration.menu.style.strokeColor ?? this.menu.style.strokeColor
+      this.menu.style.fillColor = configuration.menu.style.fillColor ?? this.menu.style.fillColor
+      this.menu.style.thickness = configuration.menu.style.thickness ?? this.menu.style.thickness
+      this.menu.style.fontSize = configuration.menu.style.fontSize ?? this.menu.style.fontSize
+      this.menu.style.fontWeight = configuration.menu.style.fontWeight ?? this.menu.style.fontWeight
+      this.menu.style.opacity = configuration.menu.style.opacity ?? this.menu.style.opacity
+    }
     this.gesture = mergeDeep({}, DefaultInteractiveInkEditorConfiguration.gesture, configuration?.gesture)
     this.snap = new SnapConfiguration(configuration?.snap)
 
