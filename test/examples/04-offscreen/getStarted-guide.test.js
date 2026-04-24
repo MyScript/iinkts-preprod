@@ -21,7 +21,7 @@ test.describe("Offscreen Get Started - Guides", () => {
 
     await test.step("should display menu guide", async () => {
       await page.locator(locator.menu.action.triggerBtn).click()
-      const menuActionGuideBtn = page.locator(locator.menu.action.guide.triggerBtn)
+      const menuActionGuideBtn = page.getByRole('button', { name: 'Guide' })
       await expect(menuActionGuideBtn).toBeVisible()
       await menuActionGuideBtn.click()
       await expect(page.getByRole('heading', { name: 'Guide' })).toBeVisible()
@@ -45,7 +45,7 @@ test.describe("Offscreen Get Started - Guides", () => {
 
       await test.step("should set guide style to grid", async () => {
         await page.locator(locator.menu.action.triggerBtn).click()
-        await page.locator(locator.menu.action.guide.triggerBtn).click()
+        await page.getByRole('button', { name: 'Guide' }).click()
         await page.getByRole("checkbox", { id: locator.menu.action.guide.enable }).check()
         await page.locator(locator.menu.action.guide.types).selectOption({ value: "grid" })
       })
@@ -66,7 +66,7 @@ test.describe("Offscreen Get Started - Guides", () => {
 
       await test.step("should set guide style to line", async () => {
         await page.locator(locator.menu.action.triggerBtn).click()
-        await page.locator(locator.menu.action.guide.triggerBtn).click()
+        await page.getByRole('button', { name: 'Guide' }).click()
         await page.getByRole("checkbox", { id: locator.menu.action.guide.enable }).check()
         await page.locator(locator.menu.action.guide.types).selectOption({ value: "line" })
       })
@@ -87,7 +87,7 @@ test.describe("Offscreen Get Started - Guides", () => {
 
       await test.step("should set guide style to point", async () => {
         await page.locator(locator.menu.action.triggerBtn).click()
-        await page.locator(locator.menu.action.guide.triggerBtn).click()
+        await page.getByRole('button', { name: 'Guide' }).click()
         await page.getByRole("checkbox", { id: locator.menu.action.guide.enable }).check()
         await page.locator(locator.menu.action.guide.types).selectOption({ value: "point" })
       })

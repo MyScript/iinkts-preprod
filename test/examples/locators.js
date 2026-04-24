@@ -25,8 +25,8 @@ export default {
         snapAngle: "#ms-menu-action-snap-angle"
       },
       convertBtn: "#ms-menu-action-convert",
-      undoBtn: "#ms-menu-action-undo",
-      redoBtn: "#ms-menu-action-redo",
+      undoBtn: "#ms-menu-action-undoredo-undo",
+      redoBtn: "#ms-menu-action-undoredo-redo",
       clearBtn: "#ms-menu-action-clear",
       language: {
         trigger: "#ms-menu-action-language-trigger",
