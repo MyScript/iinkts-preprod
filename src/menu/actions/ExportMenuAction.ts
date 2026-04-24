@@ -35,6 +35,12 @@ export class ExportMenuAction extends SubMenuItem
           id: `${idPrefix}-export-png`,
           label: "PNG",
           action: (editor) => editor.downloadAsPNG()
+        },
+        {
+          type: "button",
+          id: `${idPrefix}-export-text`,
+          label: "Text",
+          action: (editor) => editor.downloadAsText()
         }
       ]
     }
