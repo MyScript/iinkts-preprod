@@ -61,7 +61,7 @@ export class IIMenuAction
       menuTrigger.innerHTML = menuIcon
 
       const subMenuWrapper = document.createElement("div")
-      subMenuWrapper.classList.add("ms-menu-colmun")
+      subMenuWrapper.classList.add("ms-menu-column")
 
       if (this.config.gesture) {
         const gestureAction = new GestureMenuAction(this.editor, this.id)

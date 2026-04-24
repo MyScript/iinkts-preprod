@@ -14,6 +14,7 @@ export class ExportMenuAction extends SubMenuItem
       type: "submenu",
       id: `${idPrefix}-export`,
       label: "Export",
+      menuTitle: "Export",
       icon: downloadIcon,
       position: "right-top",
       items: [

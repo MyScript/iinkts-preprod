@@ -63,6 +63,7 @@ export class DebugMenuAction extends SubMenuItem
       type: "submenu",
       id: `${idPrefix}-debug`,
       label: "Debug",
+      menuTitle: "Debug",
       icon: debugIcon,
       position: "right-top",
       items: items
