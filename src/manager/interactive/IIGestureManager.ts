@@ -212,8 +212,31 @@ export class IIGestureManager
       let modified = false
       recognizedText.words.forEach(word =>
       {
-        // Check if word bounds intersect with gesture stroke bounds
-        if (word.bounds && gestureStroke.bounds.overlaps(word.bounds)) {
+        if (!word.bounds) return
+
+        // Different detection logic based on decorator kind
+        let shouldApplyDecorator: boolean
+        if (decoratorKind === DecoratorKind.Underline) {
+          // For underline: gesture stroke is below the word
+          // Check horizontal overlap and vertical proximity (stroke below word)
+          const horizontalOverlap = gestureStroke.bounds.xMax >= word.bounds.xMin &&
+                                   gestureStroke.bounds.xMin <= word.bounds.xMax
+          const isBelow = gestureStroke.bounds.yMid >= word.bounds.yMin &&
+                         gestureStroke.bounds.yMid <= word.bounds.yMax + word.bounds.height * 0.5
+          shouldApplyDecorator = horizontalOverlap && isBelow
+        } else if (decoratorKind === DecoratorKind.Strikethrough) {
+          // For strikethrough: gesture stroke crosses through the middle of the word
+          const horizontalOverlap = gestureStroke.bounds.xMax >= word.bounds.xMin &&
+                                   gestureStroke.bounds.xMin <= word.bounds.xMax
+          const crossesMiddle = gestureStroke.bounds.yMid >= word.bounds.yMin + word.bounds.height * 0.25 &&
+                               gestureStroke.bounds.yMid <= word.bounds.yMax - word.bounds.height * 0.25
+          shouldApplyDecorator = horizontalOverlap && crossesMiddle
+        } else {
+          // For highlight, surround: gesture stroke overlaps with word bounds
+          shouldApplyDecorator = gestureStroke.bounds.overlaps(word.bounds)
+        }
+
+        if (shouldApplyDecorator) {
           if (!word.decorators) {
             word.decorators = []
           }
