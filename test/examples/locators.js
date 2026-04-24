@@ -3,20 +3,20 @@ export default {
   menu: {
     action: {
       gesture: {
-        triggerBtn: "#ms-menu-action-gesture",
-        detectCheckbox: "#ms-menu-action-gesture-detect",
-        strikeThroughSelect: "#ms-menu-action-gesture-strikethrough",
-        surroundSelect: "#ms-menu-action-gesture-surround",
-        insertSelect: "#ms-menu-action-gesture-insert"
+        triggerBtn: "#ms-menu-action-gesture button" ,
+        detectCheckbox: "#ms-menu-action-gesture-detect-input",
+        strikeThroughSelect: "#ms-menu-action-gesture-strikethrough-input",
+        surroundSelect: "#ms-menu-action-gesture-surround-input",
+        insertSelect: "#ms-menu-action-gesture-insert-input"
       },
       guide: {
-        triggerBtn: "#ms-menu-action-guide",
+        triggerBtn: "#ms-menu-action-guide button",
         enable: "#ms-menu-action-guide-enable",
-        types: "#ms-menu-action-guide-type",
-        sizeS: "#ms-menu-action-guide-size-25-btn",
-        sizeM: "#ms-menu-action-guide-size-50-btn",
-        sizeL: "#ms-menu-action-guide-size-100-btn",
-        sizeXL: "#ms-menu-action-guide-size-150-btn"
+        types: "#ms-menu-action-guide-type-input",
+        sizeS: "#ms-menu-action-guide-size-25",
+        sizeM: "#ms-menu-action-guide-size-50",
+        sizeL: "#ms-menu-action-guide-size-100",
+        sizeXL: "#ms-menu-action-guide-size-150"
       },
       snap: {
         triggerBtn: "#ms-menu-action-snap",
@@ -29,6 +29,7 @@ export default {
       redoBtn: "#ms-menu-action-redo",
       clearBtn: "#ms-menu-action-clear",
       language: {
+        trigger: "#ms-menu-action-language-trigger",
         inputSelect: "#ms-menu-action-language"
       },
       triggerBtn: "#ms-menu-action"
