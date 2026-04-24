@@ -1528,8 +1528,42 @@ export class InteractiveInkEditor extends AbstractEditor
   downloadAsJson(selection = false)
   {
     const symbolsToExport = selection ? this.model.symbolsSelected : this.model.symbols
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(symbolsToExport, null, 2))
+
+    // Clone and filter: extract strokes from recognized symbols, keep strokes and geometric shapes
+    const clonedSymbols = symbolsToExport.map(s => s.clone())
+    const filteredSymbols = this.filterSymbolsForExport(clonedSymbols)
+
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(filteredSymbols, null, 2))
     this.triggerDownload(this.getExportName("json"), dataStr)
+  }
+
+  protected filterSymbolsForExport(symbols: TIISymbol[]): TIISymbol[]
+  {
+    const result: TIISymbol[] = []
+
+    symbols.forEach(s => {
+      // Keep strokes, shapes, and edges as-is
+      if (s.type === SymbolType.Stroke || s.type === SymbolType.Shape || s.type === SymbolType.Edge) {
+        result.push(s)
+      }
+      // Extract strokes from recognized symbols
+      else if (s.type === SymbolType.Recognized) {
+        const recognized = s as TIIRecognized
+        const strokes = recognized.strokes.map((stroke: IIStroke) => stroke.clone())
+        result.push(...strokes)
+      }
+      // Keep groups but filter their children recursively
+      else if (s.type === SymbolType.Group) {
+        const group = s as IISymbolGroup
+        group.children = this.filterSymbolsForExport(group.children)
+        if (group.children.length > 0) {
+          result.push(group)
+        }
+      }
+      // Exclude text and eraser
+    })
+
+    return result
   }
 
   extractStrokesFromSymbols(symbols: TIISymbol[] | undefined): IIStroke[]
