@@ -13,6 +13,7 @@ import
   Box,
   TPoint,
   IIRecognizedText,
+  IIRecognizedMath,
   RecognizedKind,
 } from "../../symbol"
 import { RecognizerWebSocket } from "../../recognizer"
@@ -393,6 +394,8 @@ export class IIGestureManager
             const strokesToConserve: IIStroke[] = childrenNotTouch.concat(...results.flatMap(r => r.result))
             const strokeText = new IIRecognizedText(strokesToConserve, { baseline: symbol.baseline, xHeight: symbol.xHeight }, symbol.style)
             strokeText.decorators = symbol.decorators
+            // Reset jiixId as strokes have changed and need re-recognition
+            strokeText.jiixId = undefined
             return {
               replaced: [strokeText]
             }
@@ -415,6 +418,12 @@ export class IIGestureManager
             const newSym = symbol.clone()
             newSym.id = `${ newSym.type }-${ createUUID() }`
             newSym.strokes = strokesToConserve
+            // Reset jiixId as strokes have changed and need re-recognition
+            newSym.jiixId = undefined
+            // Reset variableValues for math symbols as they're tied to jiixId
+            if (newSym.kind === RecognizedKind.Math) {
+              (newSym as IIRecognizedMath).variableValues = undefined
+            }
             return {
               replaced: [newSym]
             }

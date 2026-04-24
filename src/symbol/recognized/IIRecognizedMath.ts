@@ -21,6 +21,9 @@ export class IIRecognizedMath extends IIRecognizedBase<RecognizedKind.Math>
   /** Parsed JIIX expressions tree */
   expressions?: TJIIXMathExpression[]
 
+  /** Stored variable values set by user */
+  variableValues?: { [name: string]: number }
+
   constructor(
     strokes: IIStroke[],
     style?: PartialDeep<TStyle>
@@ -37,6 +40,7 @@ export class IIRecognizedMath extends IIRecognizedBase<RecognizedKind.Math>
     clone.jiixId = this.jiixId
     clone.parent = this.parent
     clone.expressions = this.expressions ? structuredClone(this.expressions) : undefined
+    clone.variableValues = this.variableValues ? structuredClone(this.variableValues) : undefined
     clone.selected = this.selected
     clone.deleting = this.deleting
     clone.creationTime = this.creationTime
@@ -54,6 +58,7 @@ export class IIRecognizedMath extends IIRecognizedBase<RecognizedKind.Math>
       jiixId: this.jiixId,
       parent: this.parent,
       expressions: this.expressions,
+      variableValues: this.variableValues,
       strokes: structuredClone(this.strokes)
     }
   }
@@ -80,6 +85,9 @@ export class IIRecognizedMath extends IIRecognizedBase<RecognizedKind.Math>
     }
     if (partial.expressions) {
       math.expressions = partial.expressions.filter(e => e !== undefined) as TJIIXMathExpression[]
+    }
+    if (partial.variableValues) {
+      math.variableValues = partial.variableValues as { [name: string]: number }
     }
     return math
   }

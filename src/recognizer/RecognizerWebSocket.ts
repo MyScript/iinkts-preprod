@@ -18,7 +18,9 @@ import
   TRecognizerWebSocketMessageReceived,
   TRecognizerWebSocketMessageType,
   TInteractiveInkSessionDescriptionMessage,
-  TRecognizerWebSocketMessageMathSolverResult
+  TRecognizerWebSocketMessageMathSolverResult,
+  TMathVariable,
+  TMathEvaluable
 } from "./RecognizerWebSocketMessage"
 import { RecognizerError } from "./RecognizerError"
 import PingWorker from "web-worker:../worker/ping.worker.ts"
@@ -72,6 +74,11 @@ export class RecognizerWebSocket
   protected clearDeferred?: DeferredPromise<void>
   protected availableActionsDeferred?: DeferredPromise<string[]>
   protected numericalComputationDeferred?: DeferredPromise<string>
+  protected getDiagnosticDeferred?: DeferredPromise<string>
+  protected getVariablesDeferred?: DeferredPromise<TMathVariable[]>
+  protected setVariableValueDeferred?: DeferredPromise<void>
+  protected getEvaluablesDeferred?: DeferredPromise<TMathEvaluable[]>
+  protected evaluateDeferred?: DeferredPromise<number[][]>
 
   configuration: RecognizerWebSocketConfiguration
   initialized: DeferredPromise<void>
@@ -386,10 +393,25 @@ export class RecognizerWebSocket
   {
     switch (mathSolverMessage.action) {
       case "available-actions":
-        this.availableActionsDeferred?.resolve(mathSolverMessage.result as string[])
+        this.availableActionsDeferred?.resolve(mathSolverMessage.result)
         break;
       case "numerical-computation":
-        this.numericalComputationDeferred?.resolve(mathSolverMessage.result as string)
+        this.numericalComputationDeferred?.resolve(mathSolverMessage.result)
+        break;
+      case "get-diagnostic":
+        this.getDiagnosticDeferred?.resolve(mathSolverMessage.result)
+        break;
+      case "get-variables":
+        this.getVariablesDeferred?.resolve(mathSolverMessage.result)
+        break;
+      case "set-variable-value":
+        this.setVariableValueDeferred?.resolve()
+        break;
+      case "get-evaluables":
+        this.getEvaluablesDeferred?.resolve(mathSolverMessage.result)
+        break;
+      case "evaluate":
+        this.evaluateDeferred?.resolve(mathSolverMessage.result)
         break;
       default:
         break;
@@ -563,19 +585,104 @@ export class RecognizerWebSocket
     return result
   }
 
-  // async getVariables(blocId: string): Promise<Record<string, any>>
-  // {
-  //   const exportId = "variables_export_" + Date.now()
-  //   this.exportDeferredMap.set(exportId, new DeferredPromise<TExport>())
-  //   await this.send({
-  //     type: "mathSolver",
-  //     blocId,
-  //     mimeType: "application/json",
-  //     contentType: "Variables"
-  //   })
-  //   const exportResult = await this.exportDeferredMap.get(exportId)!.promise
-  //   return exportResult["application/json"] as Record<string, any>
-  // }
+  async getDiagnostic(blocId: string, task: string): Promise<string>
+  {
+    this.getDiagnosticDeferred = new DeferredPromise<string>()
+    await this.send({
+      type: "mathSolver",
+      action: "get-diagnostic",
+      task,
+      blocId
+    })
+    const result = await this.getDiagnosticDeferred!.promise
+    this.getDiagnosticDeferred = undefined
+    return result
+  }
+
+  async getVariables(blocId: string): Promise<TMathVariable[]>
+  {
+    this.getVariablesDeferred = new DeferredPromise<TMathVariable[]>()
+    await this.send({
+      type: "mathSolver",
+      action: "get-variables",
+      blocId
+    })
+    const result = await this.getVariablesDeferred!.promise
+    this.getVariablesDeferred = undefined
+    return result
+  }
+
+  async setVariableValue(blocId: string, variableName: string, variableValue: number): Promise<void>
+  {
+    this.setVariableValueDeferred = new DeferredPromise<void>()
+    await this.send({
+      type: "mathSolver",
+      action: "set-variable-value",
+      blocId,
+      variableName,
+      variableValue
+    })
+    await this.setVariableValueDeferred!.promise
+    this.setVariableValueDeferred = undefined
+  }
+
+  async getEvaluables(blocId: string): Promise<TMathEvaluable[]>
+  {
+    this.getEvaluablesDeferred = new DeferredPromise<TMathEvaluable[]>()
+    await this.send({
+      type: "mathSolver",
+      action: "get-evaluables",
+      blocId
+    })
+    const result = await this.getEvaluablesDeferred!.promise
+    this.getEvaluablesDeferred = undefined
+    return result
+  }
+
+  async evaluate(blocId: string, evaluation: {
+    inputVariableName: string,
+    outputVariableName: string,
+    from: number,
+    to: number,
+    pointCount: number
+  }): Promise<{ [key: string]: number }[]>
+  {
+    this.evaluateDeferred = new DeferredPromise<number[][]>()
+    await this.send({
+      type: "mathSolver",
+      action: "evaluate",
+      blocId,
+      evaluation
+    })
+    const result = await this.evaluateDeferred!.promise
+
+    // Transform flat array to array of objects with variable names
+    // Result format: [[x1, y1, x2, y2, ...]] -> [{ inputVar: x1, outputVar: y1 }, { inputVar: x2, outputVar: y2 }, ...]
+    const flatArray = result[0] || []
+    const points: { [key: string]: number }[] = []
+
+    for (let i = 0; i < flatArray.length; i += 2) {
+      if (i + 1 < flatArray.length) {
+        const xVal = flatArray[i]
+        const yVal = flatArray[i + 1]
+
+        // Include all points, even with NaN values (will be handled by chart component)
+        points.push({
+          [evaluation.inputVariableName]: xVal,
+          [evaluation.outputVariableName]: yVal
+        })
+      }
+    }
+
+    this.#logger.info("Evaluate result transformed", {
+      inputVar: evaluation.inputVariableName,
+      outputVar: evaluation.outputVariableName,
+      points
+    })
+
+    this.evaluateDeferred = undefined
+    return points
+  }
 
   protected buildReplaceStrokesMessage(oldStrokeIds: string[], newStrokes: IIStroke[]): TRecognizerWebSocketMessage
   {

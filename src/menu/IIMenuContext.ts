@@ -3,10 +3,12 @@ import { SELECTION_MARGIN } from "../Constants"
 import { LoggerCategory, LoggerManager } from "../logger"
 import { DecoratorKind, IIDecorator, IIRecognizedText, IIRecognizedMath, IIStroke, IISymbolGroup, IIText, RecognizedKind, SymbolType, TIISymbol } from "../symbol"
 import { IIMenu, TMenuItemBoolean, TMenuItemButton, TMenuItemColorList } from "./IIMenu"
-import { convertMillimeterToPixel, createUUID } from "../utils"
+import { createUUID } from "../utils"
 import { IIMenuSub, TSubMenuParam } from "./IIMenuSub"
 import { InteractiveInkEditor } from "../editor"
 import { createMenuButtonWithText } from "./MenuHelper"
+import { Modal, ModalField } from "../components"
+import { Chart } from "../components"
 /**
  * @group Menu
  */
@@ -155,6 +157,12 @@ export class IIMenuContext extends IIMenu
                 break
               case SymbolType.Recognized:
                 s.strokes.forEach(s => s.id = `${s.type}-${ createUUID() }`)
+                // Reset jiixId as strokes have changed and need re-recognition
+                s.jiixId = undefined
+                // Reset variableValues for math symbols as they're tied to jiixId
+                if (s.kind === RecognizedKind.Math) {
+                  (s as IIRecognizedMath).variableValues = undefined
+                }
                 break
             }
           })
@@ -162,6 +170,15 @@ export class IIMenuContext extends IIMenu
         const duplicatedSymbols = symbolsToDuplicate.map(s =>
         {
           const clone = s.clone()
+
+          // Reset jiixId and variableValues for recognized symbols as they need re-recognition
+          if (clone.type === SymbolType.Recognized) {
+            clone.jiixId = undefined
+            if (clone.kind === RecognizedKind.Math) {
+              (clone as IIRecognizedMath).variableValues = undefined
+            }
+          }
+
           while (this.editor.model.symbols.find(s => s.id === clone.id)) {
             clone.id = `${clone.type}-${ createUUID() }`
             if (clone.type === SymbolType.Group) {
@@ -169,6 +186,12 @@ export class IIMenuContext extends IIMenu
             }
             else if (clone.type === SymbolType.Recognized) {
               clone.strokes.forEach(s => s.id = `${s.type}-${ createUUID() }`)
+              // Reset jiixId as strokes have changed and need re-recognition
+              clone.jiixId = undefined
+              // Reset variableValues for math symbols as they're tied to jiixId
+              if (clone.kind === RecognizedKind.Math) {
+                (clone as IIRecognizedMath).variableValues = undefined
+              }
             }
           }
           clone.selected = true
@@ -492,33 +515,82 @@ export class IIMenuContext extends IIMenu
       {
         type: "button",
         id: `${ this.id }-math-get-variable`,
-        label: "Get variable",
+        label: "Get variables",
         callback: async () =>
         {
-          this.#logger.info("Get variable clicked")
-          // TODO: Implement get variable logic
-          // This should extract variables from the selected math expression
-          const mathSymbols = this.symbolsSelected.filter(s =>
-            s.type === SymbolType.Recognized && s.kind === RecognizedKind.Math
-          ) as IIRecognizedMath[]
+          this.#logger.info("Get variables clicked")
+          try {
+            const mathSymbol = this.symbolsSelected[0] as IIRecognizedMath
+            if (!mathSymbol.jiixId) {
+              this.#logger.warn("Selected math symbol does not have jiixId")
+              return
+            }
 
-          mathSymbols.forEach(math =>
-          {
-            this.#logger.info("Math expression:", { label: math.label, expressions: math.expressions })
-            // Extract variables from expressions tree
-            // This would need to recursively traverse the expressions
-          })
-        }
-      },
-      {
-        type: "button",
-        id: `${ this.id }-math-set-variable`,
-        label: "Set variable value",
-        callback: async () =>
-        {
-          this.#logger.info("Set variable value clicked")
-          // TODO: Implement set variable value logic
-          // This should allow user to assign values to variables
+            const variables = await this.editor.getVariables(mathSymbol.jiixId)
+            this.#logger.info("Variables extracted:", variables)
+
+            if (variables.length === 0) {
+              alert("No variables found in the expression")
+              return
+            }
+
+            // Create modal fields from variables
+            const fields: ModalField[] = variables.map(variable => ({
+              id: `var-${variable.name}`,
+              label: `${variable.name}:`,
+              type: "number" as const,
+              defaultValue: mathSymbol.variableValues?.[variable.name] ?? variable.value,
+              placeholder: "Value"
+            }))
+
+            const modal: Modal = new Modal({
+              title: "Variables",
+              fields,
+              buttons: [
+                {
+                  label: "Set",
+                  type: "primary",
+                  callback: async (values): Promise<void> => {
+                    try {
+                      // Initialize variableValues if not present
+                      if (!mathSymbol.variableValues) {
+                        mathSymbol.variableValues = {}
+                      }
+
+                      for (const variable of variables) {
+                        const value = values[`var-${variable.name}`]
+                        if (value && value !== "") {
+                          const numValue = parseFloat(value)
+                          if (!isNaN(numValue)) {
+                            await this.editor.setVariableValue(mathSymbol.jiixId!, variable.name, numValue)
+                            // Store the value in the symbol
+                            mathSymbol.variableValues[variable.name] = numValue
+                            this.#logger.info(`Set ${variable.name} = ${numValue}`)
+                          }
+                        }
+                      }
+
+                      // Persist the changes
+                      await this.editor.model.updateSymbol(mathSymbol)
+                      modal.destroy()
+                    } catch (error) {
+                      this.#logger.error("Error setting variable values:", error)
+                    }
+                  }
+                },
+                {
+                  label: "Close",
+                  type: "secondary",
+                  callback: (): void => modal.destroy()
+                }
+              ]
+            })
+
+            modal.open()
+          }
+          catch (error) {
+            this.#logger.error("Error getting variables:", error)
+          }
         }
       },
       {
@@ -541,72 +613,181 @@ export class IIMenuContext extends IIMenu
               this.#logger.warn("Selected math symbol does not have jiixId")
               return
             }
-            const result = await this.editor.recognizer.getNumericalComputation(blocId)
+            const result = await this.editor.getNumericalComputation(blocId)
             this.#logger.info("Math solved successfully", result)
 
-            // Extract and render solver output strokes
-            const extractSolverOutputStrokes = (obj: unknown): Array<{ X: number[], Y: number[], F?: number[], T?: number[] }> => {
-              const strokes: Array<{ X: number[], Y: number[], F?: number[], T?: number[] }> = []
+            // Add solver output strokes to canvas
+            const addedStrokes = await this.editor.addSolverOutputStrokes(result)
+            this.#logger.info(`Added ${addedStrokes.length} solver output strokes`)
 
-              if (!obj || typeof obj !== "object") {
-                return strokes
-              }
-
-              const objRecord = obj as Record<string, unknown>
-
-              // Check if this is a solver output item
-              if (objRecord["type"] === "number" && objRecord["solver-output"] === true && objRecord.items && Array.isArray(objRecord.items)) {
-                strokes.push(...objRecord.items as Array<{ X: number[], Y: number[], F?: number[], T?: number[] }>)
-              }
-
-              // Recursively search in operands
-              if (objRecord.operands && Array.isArray(objRecord.operands)) {
-                objRecord.operands.forEach((operand: unknown) => {
-                  if (operand) {
-                    strokes.push(...extractSolverOutputStrokes(operand))
-                  }
-                })
-              }
-
-              // Recursively search in expressions
-              if (objRecord.expressions && Array.isArray(objRecord.expressions)) {
-                objRecord.expressions.forEach((expr: unknown) => {
-                  if (expr) {
-                    strokes.push(...extractSolverOutputStrokes(expr))
-                  }
-                })
-              }
-
-              return strokes
-            }
-
-            const solverStrokes = extractSolverOutputStrokes(result)
-            this.#logger.info("Found solver output strokes:", solverStrokes.length)
-
-            // Create IIStroke objects from solver output data
-            for (const strokeData of solverStrokes) {
-              if (!strokeData.X || !strokeData.Y) {
-                this.#logger.warn("Stroke data missing X or Y coordinates")
-                continue
-              }
-
-              const pointers = strokeData.X.map((x: number, i: number) => ({
-                x: convertMillimeterToPixel(x),
-                y: convertMillimeterToPixel(strokeData.Y[i]),
-                p: strokeData.F?.[i] || 1,
-                t: strokeData.T?.[i] || i
-              }))
-
-              const stroke = IIStroke.create({
-                pointers,
-                style: { color: "#4caf50", width: 5 }  // Green color for solver output
-              })
-
-              await this.editor.addSymbol(stroke)
-              this.#logger.info("Added solver output stroke:", stroke.id)
+            if (addedStrokes.length === 0) {
+              alert("No solver output to display")
+            } else {
+              // Redraw selection as the symbol has changed
+              this.editor.selector.resetSelectedGroup(this.symbolsSelected)
             }
           } catch (error) {
             this.#logger.error("Error solving math:", error)
+          }
+        }
+      },
+      {
+        type: "button",
+        id: `${ this.id }-math-evaluate`,
+        label: "Evaluate function",
+        callback: async () =>
+        {
+          this.#logger.info("Evaluate function clicked")
+          try {
+            const mathSymbol = this.symbolsSelected[0] as IIRecognizedMath
+            if (!mathSymbol.jiixId) {
+              this.#logger.warn("Selected math symbol does not have jiixId")
+              return
+            }
+
+            // Get evaluables
+            const evaluables = await this.editor.getEvaluables(mathSymbol.jiixId)
+            if (evaluables.length === 0) {
+              alert("No evaluable functions found")
+              return
+            }
+
+            this.#logger.info("Evaluables found:", evaluables)
+
+            // Create modal fields
+            const fields: ModalField[] = []
+
+            // Add evaluable selection if multiple evaluables exist
+            if (evaluables.length > 1) {
+              fields.push({
+                id: "evaluableIndex",
+                label: "Function to evaluate:",
+                type: "select",
+                defaultValue: "0",
+                options: evaluables.map((ev, index) => ({
+                  value: String(index),
+                  label: `${ev.outputName} = f(${ev.inputName})`
+                }))
+              })
+            }
+
+            fields.push(
+              {
+                id: "from",
+                label: "From:",
+                type: "number",
+                defaultValue: -10,
+                placeholder: "Start value"
+              },
+              {
+                id: "to",
+                label: "To:",
+                type: "number",
+                defaultValue: 10,
+                placeholder: "End value"
+              },
+              {
+                id: "pointCount",
+                label: "Number of points:",
+                type: "number",
+                defaultValue: 20,
+                placeholder: "Point count"
+              }
+            )
+
+            const modal: Modal = new Modal({
+              title: `Evaluate function`,
+              fields,
+              buttons: [
+                {
+                  label: "Evaluate",
+                  type: "primary",
+                  callback: async (values): Promise<void> => {
+                    try {
+                      // Get selected evaluable
+                      let evaluable = evaluables[0]
+                      if (evaluables.length > 1 && values.evaluableIndex) {
+                        const selectedIndex = parseInt(values.evaluableIndex)
+                        if (!isNaN(selectedIndex) && selectedIndex >= 0 && selectedIndex < evaluables.length) {
+                          evaluable = evaluables[selectedIndex]
+                        }
+                      }
+
+                      const from = parseFloat(values.from)
+                      const to = parseFloat(values.to)
+                      const pointCount = parseInt(values.pointCount)
+
+                      if (isNaN(from) || isNaN(to) || isNaN(pointCount)) {
+                        alert("Invalid input")
+                        return
+                      }
+
+                      if (!mathSymbol.jiixId) {
+                        this.#logger.error("Math symbol has no jiixId")
+                        return
+                      }
+
+                      const points = await this.editor.evaluate(mathSymbol.jiixId, {
+                        inputVariableName: evaluable.inputName,
+                        outputVariableName: evaluable.outputName,
+                        from,
+                        to,
+                        pointCount
+                      })
+
+                      this.#logger.info("Function evaluated:", points)
+
+                      // Create chart to display results
+                      const chart = new Chart({
+                        width: 500,
+                        height: 350,
+                        title: `${evaluable.outputName} = f(${evaluable.inputName})`,
+                        xLabel: evaluable.inputName,
+                        yLabel: evaluable.outputName,
+                        lineColor: "#2196F3",
+                        showGrid: true,
+                        showPoints: true
+                      })
+                      chart.setData(points)
+
+                      // Prepare chart container
+                      const chartContainer = document.createElement("div")
+                      chartContainer.style.cssText = "margin: 16px 0; text-align: center; overflow: hidden;"
+                      chartContainer.appendChild(chart.getElement())
+
+                      // Create a new modal to display the chart
+                      const resultModal: Modal = new Modal({
+                        title: "Evaluation Result",
+                        fields: [],
+                        customContent: chartContainer,
+                        buttons: [
+                          {
+                            label: "Close",
+                            type: "secondary",
+                            callback: (): void => resultModal.destroy()
+                          }
+                        ]
+                      })
+
+                      modal.destroy()
+                      resultModal.open()
+                    } catch (error) {
+                      this.#logger.error("Error evaluating:", error)
+                    }
+                  }
+                },
+                {
+                  label: "Cancel",
+                  type: "secondary",
+                  callback: (): void => modal.destroy()
+                }
+              ]
+            })
+
+            modal.open()
+          }
+          catch (error) {
+            this.#logger.error("Error evaluating function:", error)
           }
         }
       }
@@ -625,7 +806,7 @@ export class IIMenuContext extends IIMenu
       position: "right"
     }
     this.mathMenu = new IIMenuSub(params).element
-    console.log("this.mathMenu: ", this.mathMenu);
+
     return this.mathMenu
   }
 
@@ -701,17 +882,12 @@ export class IIMenuContext extends IIMenu
     if (this.mathMenu) {
       if (this.hasSingleMathSymbol) {
         const mathSymbol = this.symbolsSelected[0] as IIRecognizedMath
-        const actions = await this.editor.recognizer.getAvailableActions(mathSymbol.jiixId!)
-        console.log("==> actions: ", actions);
-        if (actions?.length) {
-          (this.mathMenu.querySelector(`#${ this.id }-math-get-variable`) as HTMLButtonElement).style.setProperty("display", !actions.includes("get-variable") ? "none" : "inline-block");
-          (this.mathMenu.querySelector(`#${ this.id }-math-set-variable`) as HTMLButtonElement).style.setProperty("display", !actions.includes("set-variable") ? "none" : "inline-block");
-          (this.mathMenu.querySelector(`#${ this.id }-numerical-computation`) as HTMLButtonElement).style.setProperty("display", !actions.includes("numerical-computation") ? "none" : "inline-block");
-          this.mathMenu.style.removeProperty("display")
-        }
-        else {
-          this.mathMenu.style.setProperty("display", "none")
-        }
+        const actions = await this.editor.getAvailableActions(mathSymbol.jiixId!)
+        this.#logger.debug("Available math actions:", actions);
+        (this.mathMenu.querySelector(`#${ this.id }-math-get-variable`) as HTMLButtonElement)?.style.setProperty("display", "inline-block");
+        (this.mathMenu.querySelector(`#${ this.id }-numerical-computation`) as HTMLButtonElement)?.style.setProperty("display", "inline-block");
+        (this.mathMenu.querySelector(`#${ this.id }-math-evaluate`) as HTMLButtonElement)?.style.setProperty("display", "inline-block");
+        this.mathMenu.style.removeProperty("display")
       }
       else {
         this.mathMenu.style.setProperty("display", "none")

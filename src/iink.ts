@@ -1,4 +1,5 @@
 export * from "./Constants"
+export * from "./components"
 export * from "./editor"
 export * from "./grabber"
 export * from "./logger"
