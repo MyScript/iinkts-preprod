@@ -34,6 +34,12 @@ export class ExportContextMenu extends SubMenuItem
           type: "button",
           label: "png",
           action: () => editor.downloadAsPNG(haveSymbolsSelected)
+        },
+        {
+          id: `${idPrefix}-export-text`,
+          type: "button",
+          label: "text",
+          action: () => editor.downloadAsText(haveSymbolsSelected)
         }
       ]
     }
