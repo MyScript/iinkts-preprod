@@ -159,6 +159,7 @@ test.describe("Offscreen Get Started Menu Action", () => {
 
   test("language", async ({ page }) => {
     await test.step("should display language list", async () => {
+      await page.locator(locator.menu.action.language.trigger).click()
       await page.locator(locator.menu.action.language.inputSelect).click()
       const languageOptions = await page.locator(locator.menu.action.language.inputSelect + " option").all()
       expect(languageOptions.length).toBeGreaterThan(0)
@@ -174,18 +175,20 @@ test.describe("Offscreen Get Started Menu Action", () => {
       await callEditorSynchronize(page)
 
       const symbols = await getEditorSymbols(page)
-      expect(symbols).toHaveLength(laLecon.exports["application/vnd.myscript.jiix"].words.length)
-      expect(symbols[0].label).toEqual(laLecon.exports["application/vnd.myscript.jiix"].words[0].label)
+      expect(symbols).toHaveLength(1)
+      expect(symbols[0].label).not.toEqual(laLecon.exports["application/vnd.myscript.jiix"].label)
+      expect(symbols[0].words[0].label).toEqual(laLecon.exports["application/vnd.myscript.jiix"].words[0].label)
       //should not recognize typical French character: ç
-      expect(symbols[1].label).not.toEqual(laLecon.exports["application/vnd.myscript.jiix"].words[1].label)
+      expect(symbols[0].words[2].label).not.toEqual(laLecon.exports["application/vnd.myscript.jiix"].words[1].label)
 
       const jiix = await getEditorExportsType(page, "application/vnd.myscript.jiix")
-      expect(jiix.elements[0].labe).not.toEqual(laLecon.exports["application/vnd.myscript.jiix"].label)
+      expect(jiix.elements[0].label).not.toEqual(laLecon.exports["application/vnd.myscript.jiix"].label)
     })
 
     await test.step("should recognize french text", async () => {
       await Promise.all([
         waitForLoadedEvent(page),
+        page.locator(locator.menu.action.language.trigger).click(),
         page.locator(locator.menu.action.language.inputSelect).selectOption({ value: "fr_FR" })
       ])
       //write something in French with a typical French character: ç
@@ -197,10 +200,12 @@ test.describe("Offscreen Get Started Menu Action", () => {
       await callEditorSynchronize(page)
 
       const symbols = await getEditorSymbols(page)
-      expect(symbols).toHaveLength(laLecon.exports["application/vnd.myscript.jiix"].words.length)
-      expect(symbols[0].label).toEqual(laLecon.exports["application/vnd.myscript.jiix"].words[0].label)
+      expect(symbols).toHaveLength(1)
+      console.log('symbols: ', symbols);
+      expect(symbols[0].label).toEqual(laLecon.exports["application/vnd.myscript.jiix"].label)
+      expect(symbols[0].words[0].label).toEqual(laLecon.exports["application/vnd.myscript.jiix"].words[0].label)
       //should recognize typical French character: ç
-      expect(symbols[1].label).toEqual(laLecon.exports["application/vnd.myscript.jiix"].words[1].label)
+      expect(symbols[0].words[2].label).toEqual(laLecon.exports["application/vnd.myscript.jiix"].words[1].label)
 
       const jiix = await getEditorExportsType(page, "application/vnd.myscript.jiix")
       expect(jiix.elements[0].label).toEqual(laLecon.exports["application/vnd.myscript.jiix"].label)
@@ -216,8 +221,8 @@ test.describe("Offscreen Get Started Menu Action", () => {
     })
 
     await test.step("should define strikethrough on draw", async () => {
-      await page.locator(locator.menu.action.gesture.detectCheckbox).check()
       await page.locator(locator.menu.action.gesture.triggerBtn).click()
+      await page.locator(locator.menu.action.gesture.detectCheckbox).check()
       await page.locator(locator.menu.action.gesture.strikeThroughSelect).selectOption({ value: "draw" })
     })
 
@@ -229,8 +234,8 @@ test.describe("Offscreen Get Started Menu Action", () => {
       const symbols = await getEditorSymbols(page)
       expect(symbols).toHaveLength(1)
       const symbol = symbols[0]
-      expect(symbol.decorators).toHaveLength(1)
-      const strikeThrough = symbol.decorators[0]
+      expect(symbol.words[0].decorators).toHaveLength(1)
+      const strikeThrough = symbol.words[0].decorators[0]
       expect(strikeThrough.kind).toEqual("strikethrough")
 
       // toBeVisible fails on horizontal line so we just check if parent is visible
@@ -250,8 +255,8 @@ test.describe("Offscreen Get Started Menu Action", () => {
       expect(symbols).toHaveLength(1)
       const text = symbols[0]
       expect(text.type).toEqual("text")
-      expect(text.decorators).toHaveLength(1)
-      const strikeThrough = text.decorators[0]
+      expect(text.words[0].decorators).toHaveLength(1)
+      const strikeThrough = text.words[0].decorators[0]
       expect(strikeThrough.kind).toEqual("strikethrough")
 
       const symbolLocator = page.locator(`#${ text.id }`)
