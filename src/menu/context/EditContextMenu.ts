@@ -39,7 +39,7 @@ export class EditContextMenu extends BaseMenuItem<HTMLElement>
     trigger.appendChild(icon)
 
     const subMenuWrapper = document.createElement("div")
-    subMenuWrapper.classList.add("ms-menu-colmun")
+    subMenuWrapper.classList.add("ms-menu-column")
     
     this.editInput = document.createElement("input")
     subMenuWrapper.appendChild(this.editInput)

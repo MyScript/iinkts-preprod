@@ -16,6 +16,7 @@ export class ImportMenuAction extends SubMenuItem
       type: "submenu",
       id: `${idPrefix}-import`,
       label: "Import",
+      menuTitle: "Import",
       icon: uploadIcon,
       position: "right-top",
       items: [

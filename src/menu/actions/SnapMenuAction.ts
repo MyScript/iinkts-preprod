@@ -14,6 +14,7 @@ export class SnapMenuAction extends SubMenuItem
       type: "submenu",
       id: `${idPrefix}-snap`,
       label: "Snap",
+      menuTitle: "Snap",
       icon: snapIcon,
       position: "right-top",
       items: [

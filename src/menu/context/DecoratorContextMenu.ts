@@ -58,7 +58,7 @@ export class DecoratorContextMenu extends BaseMenuItem<HTMLElement>
     trigger.appendChild(icon)
 
     const subMenuWrapper = document.createElement("div")
-    subMenuWrapper.classList.add("ms-menu-colmun")
+    subMenuWrapper.classList.add("ms-menu-column")
 
     // Enable checkbox
     const enableWrapper = document.createElement("div")
@@ -187,7 +187,7 @@ export class DecoratorContextMenu extends BaseMenuItem<HTMLElement>
     trigger.appendChild(icon)
 
     const subMenuWrapper = document.createElement("div")
-    subMenuWrapper.classList.add("ms-menu-colmun")
+    subMenuWrapper.classList.add("ms-menu-column")
     subMenuWrapper.appendChild(this.createDecoratorSubMenu("Hightlight", DecoratorKind.Highlight))
     subMenuWrapper.appendChild(this.createDecoratorSubMenu("Surround", DecoratorKind.Surround))
     subMenuWrapper.appendChild(this.createDecoratorSubMenu("Underline", DecoratorKind.Underline))

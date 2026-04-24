@@ -1,6 +1,5 @@
 import { InteractiveInkEditor } from "../../editor"
 import { SubMenuItem, IMenuSubMenu } from "../items/SubMenuItem"
-import ArrowDown from "../../assets/svg/nav-arrow-down.svg"
 import { SymbolType, RecognizedKind, IIRecognizedMath } from "../../symbol"
 import { Modal, ModalField } from "../../components"
 import { Chart } from "../../components"
@@ -20,7 +19,6 @@ export class MathContextMenu extends SubMenuItem
       id: `${idPrefix}-math`,
       type: "submenu",
       label: "Math",
-      icon: ArrowDown,
       position: "right",
       items: [
         {
