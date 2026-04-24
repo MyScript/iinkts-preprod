@@ -255,8 +255,8 @@ test.describe("Offscreen Get Started Menu Action", () => {
       expect(symbols).toHaveLength(1)
       const text = symbols[0]
       expect(text.type).toEqual("text")
-      expect(text.words[0].decorators).toHaveLength(1)
-      const strikeThrough = text.words[0].decorators[0]
+      expect(text.decorators).toHaveLength(1)
+      const strikeThrough = text.decorators[0]
       expect(strikeThrough.kind).toEqual("strikethrough")
 
       const symbolLocator = page.locator(`#${ text.id }`)
@@ -326,7 +326,7 @@ test.describe("Offscreen Get Started Menu Action", () => {
     await test.step("write hello in one stroke", async () => {
       await Promise.all([
         waitForUIUpdatedEvent(page),
-        writePointers(page, helloOneStrokeSurrounded.strokes[0].pointers)
+        writePointers(page, helloOneStrokeSurrounded.strokes[0].pointers, 0, 100)
       ])
     })
 
@@ -342,7 +342,7 @@ test.describe("Offscreen Get Started Menu Action", () => {
       await Promise.all([
         waitForChangedEvent(page),
         waitForUIUpdatedEvent(page),
-        writePointers(page, helloOneStrokeSurrounded.strokes[1].pointers)
+        writePointers(page, helloOneStrokeSurrounded.strokes[1].pointers, 0, 100)
       ])
     })
 
@@ -378,7 +378,7 @@ test.describe("Offscreen Get Started Menu Action", () => {
       //write something with surround
       await Promise.all([
         waitForGesturedEvent(page),
-        writeStrokes(page, helloOneStrokeSurrounded.strokes)
+        writeStrokes(page, helloOneStrokeSurrounded.strokes, 0, 100)
       ])
       const symbols = await getEditorSymbols(page)
       expect(symbols).toHaveLength(1)
@@ -386,9 +386,9 @@ test.describe("Offscreen Get Started Menu Action", () => {
       const recoSym = symbols[0]
       expect(recoSym.type).toEqual("recognized")
       expect(recoSym.kind).toEqual("text")
-      expect(recoSym.decorators).toHaveLength(1)
+      expect(recoSym.words[0].decorators).toHaveLength(1)
 
-      const surrondSym = recoSym.decorators[0]
+      const surrondSym = recoSym.words[0].decorators[0]
       expect(surrondSym.kind).toEqual("surround")
 
       const symLocator = page.locator(`#${ recoSym.id }`)
@@ -459,7 +459,7 @@ test.describe("Offscreen Get Started Menu Action", () => {
     await test.step("should write the stroke", async () => {
       await Promise.all([
         waitForSynchronizedEvent(page),
-        writePointers(page, helloInsert.strokes[0].pointers)
+        writePointers(page, helloInsert.strokes[0].pointers, 0, 100)
       ])
       const symbols = await page.evaluate("editorEl.editor.model.symbols")
       expect(symbols).toHaveLength(1)
@@ -470,28 +470,15 @@ test.describe("Offscreen Get Started Menu Action", () => {
     await test.step("should separate stroke in 2 on insert gesture", async () => {
       await Promise.all([
         waitForGesturedEvent(page),
-        writePointers(page, helloInsert.strokes[1].pointers)
+        writePointers(page, helloInsert.strokes[1].pointers, 0, 100)
       ])
       // necessary to ensure that recognition is completed
       await page.evaluate("editorEl.editor.synchronizeStrokesWithJIIX()")
       const symbols = await getEditorSymbols(page)
-      expect(symbols).toHaveLength(2)
-      expect(symbols[0]).toEqual(expect.objectContaining({
-        type: "recognized",
-        kind: "text",
-        label: "hel"
-      }))
-      expect(symbols[1]).toEqual(expect.objectContaining({
-        type: "recognized",
-        kind: "text",
-        label: "to"
-      }))
-
-      const helElBox = await page.locator(`#${ symbols[0].id }`).boundingBox()
-      const toElBox = await page.locator(`#${ symbols[1].id }`).boundingBox()
-
-      // check 2nd word is separated from the first by at least 50px
-      expect(toElBox.x - helElBox.x - helElBox.width).toBeGreaterThan(50)
+      expect(symbols).toHaveLength(1)
+      expect(symbols[0].words[0].label).toEqual("hel")
+      expect(symbols[0].words[1].label).toEqual(" ")
+      expect(symbols[0].words[2].label).toEqual("to")
     })
 
     await test.step("insert should be kept on convert", async () => {
