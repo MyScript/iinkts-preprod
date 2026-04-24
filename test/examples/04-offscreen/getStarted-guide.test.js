@@ -24,7 +24,7 @@ test.describe("Offscreen Get Started - Guides", () => {
       const menuActionGuideBtn = page.locator(locator.menu.action.guide.triggerBtn)
       await expect(menuActionGuideBtn).toBeVisible()
       await menuActionGuideBtn.click()
-      await expect(page.getByText("Guide", { exact: true })).toBeVisible()
+      await expect(page.getByRole('heading', { name: 'Guide' })).toBeVisible()
       await expect(page.getByRole("checkbox", { id: locator.menu.action.guide.enable })).toBeVisible()
       await expect(page.locator(locator.menu.action.guide.types)).toBeVisible()
       await expect(page.locator("#ms-menu-action-guide-size")).toBeVisible()

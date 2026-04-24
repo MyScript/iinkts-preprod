@@ -54,6 +54,7 @@ export class GuideMenuAction extends SubMenuItem
           type: "buttonlist",
           id: `${idPrefix}-guide-size`,
           label: "Guide size",
+          buttonType: "square",
           options: guideGaps,
           getValue: (editor) => editor.configuration.rendering.guides.gap.toString(),
           setValue: (editor, value) => {
