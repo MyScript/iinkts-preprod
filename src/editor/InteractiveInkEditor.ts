@@ -1,5 +1,5 @@
 import { EditorTool, SELECTION_MARGIN } from "../Constants"
-import { JIIXEdgeKind, JIIXELementType, JIIXNodeKind, IIModel, TExport, TJIIXStrokeItem, TJIIXMathElement, TJIIXMathExpression } from "../model"
+import { JIIXEdgeKind, JIIXELementType, JIIXNodeKind, IIModel, TExport, TJIIXExport, TJIIXStrokeItem, TJIIXMathElement, TJIIXMathExpression } from "../model"
 import
 {
   Box,
@@ -27,7 +27,7 @@ import
   IIRecognizedPolyLine,
   IIRecognizedArc,
 } from "../symbol"
-import { RecognizerWebSocket } from "../recognizer"
+import { RecognizerWebSocket, TMathVariable, TMathEvaluable } from "../recognizer"
 import { SVGRenderer, SVGBuilder, TIIRendererConfiguration } from "../renderer"
 import { TStyle } from "../style"
 import
@@ -889,12 +889,24 @@ export class InteractiveInkEditor extends AbstractEditor
                     if (
                       symAsso.type === SymbolType.Recognized &&
                       symAsso.kind === RecognizedKind.Math &&
-                      symAsso.jiixId === mathEl.id &&
-                      symAsso.label === mathEl.label &&
                       symAsso.strokes.length === mathJiixAssociation.strokes.length
                     ) {
-                      this.logger.debug("synchronizeStrokesWithJIIX", "Embedded Math symbol already exists and is identical, skipping")
-                      return
+                      // If jiixId matches, symbol is already up to date
+                      if (symAsso.jiixId === mathEl.id && symAsso.label === mathEl.label) {
+                        this.logger.debug("synchronizeStrokesWithJIIX", "Embedded Math symbol already exists and is identical, skipping")
+                        return
+                      }
+                      // If no jiixId or different jiixId, update it (e.g., after duplication)
+                      if (!symAsso.jiixId || symAsso.jiixId !== mathEl.id) {
+                        this.logger.debug("synchronizeStrokesWithJIIX", "Updating embedded Math symbol jiixId from", symAsso.jiixId, "to", mathEl.id)
+                        symAsso.jiixId = mathEl.id
+                        symAsso.label = mathEl.label
+                        symAsso.parent = mathEl.parent
+                        symAsso.expressions = mathEl.expressions
+                        this.model.updateSymbol(symAsso)
+                        this.renderer.drawSymbol(symAsso)
+                        return
+                      }
                     }
                   }
 
@@ -948,13 +960,47 @@ export class InteractiveInkEditor extends AbstractEditor
               if (
                 symAsso.type === SymbolType.Recognized &&
                 symAsso.kind === RecognizedKind.Text &&
-                symAsso.jiixId === el.id &&
-                symAsso.label === el.label &&
                 symAsso.strokes.length === jiixAssociation.strokes.length &&
                 (!el.children || (symAsso.children?.length === el.children.length))
               ) {
-                this.logger.debug("synchronizeStrokesWithJIIX", "Text symbol already exists and is identical, skipping")
-                return
+                // If jiixId matches, symbol is already up to date
+                if (symAsso.jiixId === el.id && symAsso.label === el.label) {
+                  this.logger.debug("synchronizeStrokesWithJIIX", "Text symbol already exists and is identical, skipping")
+                  return
+                }
+                // If no jiixId or different jiixId, update it
+                if (!symAsso.jiixId || symAsso.jiixId !== el.id) {
+                  this.logger.debug("synchronizeStrokesWithJIIX", "Updating Text symbol jiixId from", symAsso.jiixId, "to", el.id)
+                  symAsso.jiixId = el.id
+                  symAsso.label = el.label
+
+                  // Update children if present
+                  if (el.children && el.children.length > 0) {
+                    symAsso.children = [...el.children]
+                    symAsso.childrenPos = [...(el["children-pos"] || [])]
+                  }
+
+                  // Update words and chars
+                  if (el.words?.length) {
+                    symAsso.words = el.words.map(w => ({
+                      label: w.label,
+                      firstChar: w["first-char"],
+                      lastChar: w["last-char"],
+                      bounds: w["bounding-box"] ? new Box(convertBoundingBoxMillimeterToPixel(w["bounding-box"])) : undefined
+                    }))
+                  }
+                  if (el.chars?.length) {
+                    symAsso.chars = el.chars.map(c => ({
+                      label: c.label,
+                      word: c.word,
+                      bounds: c["bounding-box"] ? new Box(convertBoundingBoxMillimeterToPixel(c["bounding-box"])) : undefined
+                    }))
+                  }
+
+                  this.model.updateSymbol(symAsso)
+                  this.renderer.drawSymbol(symAsso)
+                  return
+                }
               }
             }
 
@@ -1043,12 +1089,24 @@ export class InteractiveInkEditor extends AbstractEditor
               if (
                 symAsso.type === SymbolType.Recognized &&
                 symAsso.kind === RecognizedKind.Math &&
-                symAsso.jiixId === el.id &&
-                symAsso.label === el.label &&
                 symAsso.strokes.length === jiixAssociation.strokes.length
               ) {
-                this.logger.debug("synchronizeStrokesWithJIIX", "Standalone Math symbol already exists and is identical, skipping")
-                return
+                // If jiixId matches, symbol is already up to date
+                if (symAsso.jiixId === el.id && symAsso.label === el.label) {
+                  this.logger.debug("synchronizeStrokesWithJIIX", "Standalone Math symbol already exists and is identical, skipping")
+                  return
+                }
+                // If no jiixId or different jiixId, update it
+                if (!symAsso.jiixId || symAsso.jiixId !== el.id) {
+                  this.logger.debug("synchronizeStrokesWithJIIX", "Updating standalone Math symbol jiixId from", symAsso.jiixId, "to", el.id)
+                  symAsso.jiixId = el.id
+                  symAsso.label = el.label
+                  symAsso.parent = el.parent
+                  symAsso.expressions = el.expressions
+                  this.model.updateSymbol(symAsso)
+                  this.renderer.drawSymbol(symAsso)
+                  return
+                }
               }
             }
 
@@ -1080,9 +1138,19 @@ export class InteractiveInkEditor extends AbstractEditor
             if (jiixAssociation.symbols.length === 1) {
               const symAsso = jiixAssociation.symbols[0]
               if (symAsso.type === SymbolType.Recognized &&
-                symAsso.jiixId === el.id &&
                 symAsso.strokes.length === jiixAssociation.strokes.length) {
-                return
+                // If jiixId matches, symbol is already up to date
+                if (symAsso.jiixId === el.id) {
+                  return
+                }
+                // If no jiixId or different jiixId, update it
+                if (!symAsso.jiixId || symAsso.jiixId !== el.id) {
+                  this.logger.debug("synchronizeStrokesWithJIIX", "Updating Node symbol jiixId from", symAsso.jiixId, "to", el.id)
+                  symAsso.jiixId = el.id
+                  this.model.updateSymbol(symAsso)
+                  this.renderer.drawSymbol(symAsso)
+                  return
+                }
               }
             }
             switch (el.kind) {
@@ -1126,9 +1194,19 @@ export class InteractiveInkEditor extends AbstractEditor
             if (jiixAssociation.symbols.length === 1) {
               const symAsso = jiixAssociation.symbols[0]
               if (symAsso.type === SymbolType.Recognized &&
-                symAsso.jiixId === el.id &&
                 symAsso.strokes.length === jiixAssociation.strokes.length) {
-                return
+                // If jiixId matches, symbol is already up to date
+                if (symAsso.jiixId === el.id) {
+                  return
+                }
+                // If no jiixId or different jiixId, update it
+                if (!symAsso.jiixId || symAsso.jiixId !== el.id) {
+                  this.logger.debug("synchronizeStrokesWithJIIX", "Updating Edge symbol jiixId from", symAsso.jiixId, "to", el.id)
+                  symAsso.jiixId = el.id
+                  this.model.updateSymbol(symAsso)
+                  this.renderer.drawSymbol(symAsso)
+                  return
+                }
               }
             }
             switch (el.kind) {
@@ -1255,6 +1333,12 @@ export class InteractiveInkEditor extends AbstractEditor
               const ws = sym.clone()
               ws.removeStrokes(ids)
               if (ws.strokes.length) {
+                // Reset jiixId as strokes have changed and need re-recognition
+                ws.jiixId = undefined
+                // Reset variableValues for math symbols as they're tied to jiixId
+                if (ws.kind === RecognizedKind.Math) {
+                  (ws as IIRecognizedMath).variableValues = undefined
+                }
                 symbolsToUpdate.push(ws)
               }
               else {
@@ -1735,6 +1819,244 @@ export class InteractiveInkEditor extends AbstractEditor
       this.event.emitCleared()
     } catch (error) {
       this.manageError(error as Error)
+    }
+  }
+
+  /**
+   * Get available math solver actions for a specific math element
+   * @param blocId - The ID of the math element (jiixId)
+   * @returns Promise with array of available actions
+   * @group MathSolver
+   */
+  async getAvailableActions(blocId: string): Promise<string[]>
+  {
+    try {
+      this.logger.info("getAvailableActions", { blocId })
+      return await this.recognizer.getAvailableActions(blocId)
+    }
+    catch (error) {
+      this.logger.error("getAvailableActions", { error })
+      this.manageError(error as Error)
+      throw error
+    }
+  }
+
+  /**
+   * Get diagnostic result for a specific math task
+   * @param blocId - The ID of the math element (jiixId)
+   * @param task - The task to diagnose (e.g., "numerical-computation", "evaluation")
+   * @returns Promise with diagnostic result (e.g., "ALLOWED", "NOT_ALLOWED")
+   * @group MathSolver
+   */
+  async getDiagnostic(blocId: string, task: string): Promise<string>
+  {
+    try {
+      this.logger.info("getDiagnostic", { blocId, task })
+      return await this.recognizer.getDiagnostic(blocId, task)
+    }
+    catch (error) {
+      this.logger.error("getDiagnostic", { error })
+      this.manageError(error as Error)
+      throw error
+    }
+  }
+
+  /**
+   * Get numerical computation result for a math expression
+   * @param blocId - The ID of the math element (jiixId)
+   * @returns Promise with JIIX export containing the computed result
+   * @group MathSolver
+   */
+  async getNumericalComputation(blocId: string): Promise<TJIIXExport>
+  {
+    try {
+      this.logger.info("getNumericalComputation", { blocId })
+      return await this.recognizer.getNumericalComputation(blocId)
+    }
+    catch (error) {
+      this.logger.error("getNumericalComputation", { error })
+      this.manageError(error as Error)
+      throw error
+    }
+  }
+
+  /**
+   * Get variables from a math expression
+   * @param blocId - The ID of the math element (jiixId)
+   * @returns Promise with array of variables
+   * @group MathSolver
+   */
+  async getVariables(blocId: string): Promise<TMathVariable[]>
+  {
+    try {
+      this.logger.info("getVariables", { blocId })
+      return await this.recognizer.getVariables(blocId)
+    }
+    catch (error) {
+      this.logger.error("getVariables", { error })
+      this.manageError(error as Error)
+      throw error
+    }
+  }
+
+  /**
+   * Set value for a specific variable in a math expression
+   * @param blocId - The ID of the math element (jiixId)
+   * @param variableName - Name of the variable to set
+   * @param variableValue - Value to assign to the variable
+   * @returns Promise that resolves when the variable is set
+   * @group MathSolver
+   */
+  async setVariableValue(blocId: string, variableName: string, variableValue: number): Promise<void>
+  {
+    try {
+      this.logger.info("setVariableValue", { blocId, variableName, variableValue })
+      await this.recognizer.setVariableValue(blocId, variableName, variableValue)
+    }
+    catch (error) {
+      this.logger.error("setVariableValue", { error })
+      this.manageError(error as Error)
+      throw error
+    }
+  }
+
+  /**
+   * Get evaluable input/output variable pairs for a math expression
+   * @param blocId - The ID of the math element (jiixId)
+   * @returns Promise with array of evaluable pairs
+   * @group MathSolver
+   */
+  async getEvaluables(blocId: string): Promise<TMathEvaluable[]>
+  {
+    try {
+      this.logger.info("getEvaluables", { blocId })
+      return await this.recognizer.getEvaluables(blocId)
+    }
+    catch (error) {
+      this.logger.error("getEvaluables", { error })
+      this.manageError(error as Error)
+      throw error
+    }
+  }
+
+  /**
+   * Evaluate a math function for a range of input values
+   * @param blocId - The ID of the math element (jiixId)
+   * @param evaluation - Evaluation parameters (input/output variables, range, point count)
+   * @returns Promise with array of objects { inputVar: value, outputVar: value }
+   * @group MathSolver
+   */
+  async evaluate(blocId: string, evaluation: {
+    inputVariableName: string,
+    outputVariableName: string,
+    from: number,
+    to: number,
+    pointCount: number
+  }): Promise<{ [key: string]: number }[]>
+  {
+    try {
+      this.logger.info("evaluate", { blocId, evaluation })
+      return await this.recognizer.evaluate(blocId, evaluation)
+    }
+    catch (error) {
+      this.logger.error("evaluate", { error })
+      this.manageError(error as Error)
+      throw error
+    }
+  }
+
+  /**
+   * Extract solver output strokes from a JIIX export result
+   * Recursively searches for solver-output items and extracts their stroke data
+   * @param obj - The JIIX export object to search
+   * @returns Array of stroke data with X, Y coordinates and optional F (force) and T (time)
+   * @group MathSolver
+   */
+  protected extractSolverOutputStrokes(obj: unknown): Array<{ X: number[], Y: number[], F?: number[], T?: number[] }>
+  {
+    const strokes: Array<{ X: number[], Y: number[], F?: number[], T?: number[] }> = []
+
+    if (!obj || typeof obj !== "object") {
+      return strokes
+    }
+
+    const objRecord = obj as Record<string, unknown>
+
+    // Check if this is a solver output item
+    if (objRecord["type"] === "number" && objRecord["solver-output"] === true && objRecord.items && Array.isArray(objRecord.items)) {
+      strokes.push(...objRecord.items as Array<{ X: number[], Y: number[], F?: number[], T?: number[] }>)
+    }
+
+    // Recursively search in operands
+    if (objRecord.operands && Array.isArray(objRecord.operands)) {
+      objRecord.operands.forEach((operand: unknown) =>
+      {
+        if (operand) {
+          strokes.push(...this.extractSolverOutputStrokes(operand))
+        }
+      })
+    }
+
+    // Recursively search in expressions
+    if (objRecord.expressions && Array.isArray(objRecord.expressions)) {
+      objRecord.expressions.forEach((expr: unknown) =>
+      {
+        if (expr) {
+          strokes.push(...this.extractSolverOutputStrokes(expr))
+        }
+      })
+    }
+
+    return strokes
+  }
+
+  /**
+   * Add solver output strokes to the canvas
+   * Extracts strokes from a math solver result and adds them as new symbols
+   * @param result - The JIIX export result from a math solver operation
+   * @param style - Optional style for the solver output strokes (defaults to green with width 5)
+   * @returns Promise that resolves when all strokes are added
+   * @group MathSolver
+   */
+  async addSolverOutputStrokes(result: TJIIXExport, style?: TStyle): Promise<IIStroke[]>
+  {
+    try {
+      this.logger.info("addSolverOutputStrokes", { result })
+      const solverStrokes = this.extractSolverOutputStrokes(result)
+      this.logger.debug("addSolverOutputStrokes", `Found ${solverStrokes.length} solver output strokes`)
+
+      const addedStrokes: IIStroke[] = []
+      const defaultStyle = style || { color: "#4caf50", width: 5 } // Green color for solver output
+
+      for (const strokeData of solverStrokes) {
+        if (!strokeData.X || !strokeData.Y) {
+          this.logger.warn("addSolverOutputStrokes", "Stroke data missing X or Y coordinates")
+          continue
+        }
+
+        const pointers = strokeData.X.map((x: number, i: number) => ({
+          x: convertMillimeterToPixel(x),
+          y: convertMillimeterToPixel(strokeData.Y[i]),
+          p: strokeData.F?.[i] || 1,
+          t: strokeData.T?.[i] || i
+        }))
+
+        const stroke = IIStroke.create({
+          pointers,
+          style: defaultStyle
+        })
+
+        await this.addSymbol(stroke)
+        addedStrokes.push(stroke)
+        this.logger.debug("addSolverOutputStrokes", "Added solver output stroke:", stroke.id)
+      }
+
+      return addedStrokes
+    }
+    catch (error) {
+      this.logger.error("addSolverOutputStrokes", { error })
+      this.manageError(error as Error)
+      throw error
     }
   }
 

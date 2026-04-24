@@ -113,11 +113,93 @@ export type TRecognizerWebSocketMessageIdle = TRecognizerWebSocketMessage<TRecog
 /**
  * @group Recognizer
  */
-export type TRecognizerWebSocketMessageMathSolverResult = TRecognizerWebSocketMessage<TRecognizerWebSocketMessageType.MathSolverResult> & {
-  blocId: string
-  action: "available-actions" | "numerical-computation" | string
-  result: string | string[]
+export type TMathVariable = {
+  name: string
+  value?: number
 }
+
+/**
+ * @group Recognizer
+ */
+export type TMathEvaluable = {
+  inputName: string
+  outputName: string
+}
+
+/**
+ * @group Recognizer
+ */
+export type TRecognizerWebSocketMessageMathSolverAvailableActions = TRecognizerWebSocketMessage<TRecognizerWebSocketMessageType.MathSolverResult> & {
+  blocId: string
+  action: "available-actions"
+  result: string[]
+}
+
+/**
+ * @group Recognizer
+ */
+export type TRecognizerWebSocketMessageMathSolverGetDiagnostic = TRecognizerWebSocketMessage<TRecognizerWebSocketMessageType.MathSolverResult> & {
+  blocId: string
+  action: "get-diagnostic"
+  result: string
+}
+
+/**
+ * @group Recognizer
+ */
+export type TRecognizerWebSocketMessageMathSolverNumericalComputation = TRecognizerWebSocketMessage<TRecognizerWebSocketMessageType.MathSolverResult> & {
+  blocId: string
+  action: "numerical-computation"
+  result: string
+}
+
+/**
+ * @group Recognizer
+ */
+export type TRecognizerWebSocketMessageMathSolverGetVariables = TRecognizerWebSocketMessage<TRecognizerWebSocketMessageType.MathSolverResult> & {
+  blocId: string
+  action: "get-variables"
+  result: TMathVariable[]
+}
+
+/**
+ * @group Recognizer
+ */
+export type TRecognizerWebSocketMessageMathSolverSetVariableValue = TRecognizerWebSocketMessage<TRecognizerWebSocketMessageType.MathSolverResult> & {
+  blocId: string
+  action: "set-variable-value"
+  result?: undefined
+}
+
+/**
+ * @group Recognizer
+ */
+export type TRecognizerWebSocketMessageMathSolverGetEvaluables = TRecognizerWebSocketMessage<TRecognizerWebSocketMessageType.MathSolverResult> & {
+  blocId: string
+  action: "get-evaluables"
+  result: TMathEvaluable[]
+}
+
+/**
+ * @group Recognizer
+ */
+export type TRecognizerWebSocketMessageMathSolverEvaluate = TRecognizerWebSocketMessage<TRecognizerWebSocketMessageType.MathSolverResult> & {
+  blocId: string
+  action: "evaluate"
+  result: number[][]
+}
+
+/**
+ * @group Recognizer
+ */
+export type TRecognizerWebSocketMessageMathSolverResult =
+  | TRecognizerWebSocketMessageMathSolverAvailableActions
+  | TRecognizerWebSocketMessageMathSolverGetDiagnostic
+  | TRecognizerWebSocketMessageMathSolverNumericalComputation
+  | TRecognizerWebSocketMessageMathSolverGetVariables
+  | TRecognizerWebSocketMessageMathSolverSetVariableValue
+  | TRecognizerWebSocketMessageMathSolverGetEvaluables
+  | TRecognizerWebSocketMessageMathSolverEvaluate
 
 /**
  * @group Recognizer
