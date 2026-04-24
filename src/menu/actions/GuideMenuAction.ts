@@ -21,6 +21,7 @@ export class GuideMenuAction extends SubMenuItem
       type: "submenu",
       id: `${idPrefix}-guide`,
       label: "Guide",
+      menuTitle: "Guide",
       icon: guideIcon,
       position: "right-top",
       items: [

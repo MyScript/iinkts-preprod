@@ -1,3 +1,4 @@
+import ArrowDown from "../../assets/svg/nav-arrow-down.svg"
 import { BaseMenuItem, IMenuItemBase } from "./BaseMenuItem"
 import { createMenuItemInstance } from "./MenuItemFactory"
 import { IMenuButton } from "./ButtonMenuItem"
@@ -37,10 +38,25 @@ export interface IMenuSubMenu extends IMenuItemBase {
 export class SubMenuItem extends BaseMenuItem<HTMLDivElement>
 {
   protected declare config: IMenuSubMenu
-  private subMenuWrapper?: HTMLElement
-  private subMenuContent?: HTMLDivElement
-  private trigger?: HTMLButtonElement
-  private subMenuItems: Map<string, BaseMenuItem> = new Map()
+  protected subMenuWrapper?: HTMLElement
+  protected subMenuContent?: HTMLDivElement
+  protected trigger?: HTMLButtonElement
+  protected arrowSpan?: HTMLSpanElement
+  protected subMenuItems: Map<string, BaseMenuItem> = new Map()
+  protected closedRotation: number = 0
+  protected openedRotation: number = 180
+
+  protected getArrowRotationForPosition(position: TMenuPosition): number {
+    if (position.includes("bottom")) {
+      return 180
+    } else if (position.includes("left")) {
+      return 90
+    } else if (position.includes("right")) {
+      return -90
+    } else {
+      return 0
+    }
+  }
 
   createElement(): HTMLDivElement {
     // Wrapper principal
@@ -51,25 +67,43 @@ export class SubMenuItem extends BaseMenuItem<HTMLDivElement>
     // Bouton trigger
     this.trigger = document.createElement("button")
     this.trigger.classList.add("ms-menu-button")
+    const position = this.config.position || "right-top"
+
+    this.closedRotation = this.getArrowRotationForPosition(position)
+    this.openedRotation = this.closedRotation + 180
+
+    this.arrowSpan = document.createElement("span")
+    this.arrowSpan.innerHTML = ArrowDown
+    this.arrowSpan.style.transition = "transform 0.2s ease"
+    this.arrowSpan.style.transform = `rotate(${this.closedRotation}deg)`
+
     if (this.config.icon && this.config.label) {
       const labelSpan = document.createElement("span")
       labelSpan.textContent = this.config.label
       this.trigger.appendChild(labelSpan)
       const iconSpan = document.createElement("span")
       iconSpan.style.setProperty("width", "32px")
-      // iconSpan.style.setProperty("transform", "rotate(270deg)")
       iconSpan.innerHTML = this.config.icon
       this.trigger.appendChild(iconSpan)
     } else if (this.config.icon) {
-      this.trigger.classList.add("square")
-      this.trigger.innerHTML = this.config.icon
+      const iconSpan = document.createElement("span")
+      iconSpan.style.setProperty("width", "32px")
+      iconSpan.innerHTML = this.config.icon
+      this.trigger.appendChild(iconSpan)
     } else if (this.config.label) {
       this.trigger.textContent = this.config.label
     }
+
+    if (position.includes("left")) {
+      this.trigger.prepend(this.arrowSpan)
+    } else {
+      this.trigger.appendChild(this.arrowSpan)
+    }
+
     wrapper.appendChild(this.trigger)
 
     this.subMenuContent = document.createElement("div")
-    this.subMenuContent.classList.add("sub-menu-content", this.config.position || "right-top")
+    this.subMenuContent.classList.add("sub-menu-content", position)
 
     if (this.config.menuTitle) {
       const menuTitleElement = document.createElement("h3")
@@ -79,7 +113,7 @@ export class SubMenuItem extends BaseMenuItem<HTMLDivElement>
     }
 
     this.subMenuWrapper = document.createElement("div")
-    this.subMenuWrapper.classList.add("ms-menu-colmun")
+    this.subMenuWrapper.classList.add("ms-menu-column")
 
     this.config.items.forEach(item => {
       const menuItem = createMenuItemInstance(item, this.editor)
@@ -108,6 +142,9 @@ export class SubMenuItem extends BaseMenuItem<HTMLDivElement>
    */
   open(): void {
     this.subMenuContent?.classList.add("open")
+    if (this.arrowSpan) {
+      this.arrowSpan.style.transform = `rotate(${this.openedRotation}deg)`
+    }
   }
 
   /**
@@ -115,6 +152,9 @@ export class SubMenuItem extends BaseMenuItem<HTMLDivElement>
    */
   close(): void {
     this.subMenuContent?.classList.remove("open")
+    if (this.arrowSpan) {
+      this.arrowSpan.style.transform = `rotate(${this.closedRotation}deg)`
+    }
   }
 
   /**
@@ -122,6 +162,10 @@ export class SubMenuItem extends BaseMenuItem<HTMLDivElement>
    */
   toggle(): void {
     this.subMenuContent?.classList.toggle("open")
+    if (this.arrowSpan) {
+      const isOpen = this.subMenuContent?.classList.contains("open")
+      this.arrowSpan.style.transform = `rotate(${isOpen ? this.openedRotation : this.closedRotation}deg)`
+    }
   }
 
   /**

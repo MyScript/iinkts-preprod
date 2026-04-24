@@ -34,6 +34,7 @@ export class GestureMenuAction extends SubMenuItem
       type: "submenu",
       id: `${idPrefix}-gesture`,
       label: "Gesture",
+      menuTitle: "Gesture",
       icon: gestureIcon,
       position: "right-top",
       items: [

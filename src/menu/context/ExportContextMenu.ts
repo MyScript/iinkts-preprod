@@ -1,6 +1,5 @@
 import { InteractiveInkEditor } from "../../editor"
 import { SubMenuItem, IMenuSubMenu } from "../items/SubMenuItem"
-import ArrowDown from "../../assets/svg/nav-arrow-down.svg"
 
 /**
  * @group Menu
@@ -16,7 +15,6 @@ export class ExportContextMenu extends SubMenuItem
       id: `${idPrefix}-export`,
       type: "submenu",
       label: "Export",
-      icon: ArrowDown,
       position: "right",
       items: [
         {

@@ -97,7 +97,7 @@ export class IIMenuStyle
       this.triggerBtn.innerHTML = styleIcon
 
       const subMenuContent = document.createElement("div")
-      subMenuContent.classList.add("ms-menu-colmun")
+      subMenuContent.classList.add("ms-menu-column")
 
       // Add style elements conditionally using new style classes
       if (this.config.strokeColor) {
