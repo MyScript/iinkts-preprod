@@ -68,8 +68,9 @@ export class SVGRendererDecoratorUtil
           y: bounds.yMid
         }
         if (baseline !== undefined && xHeight !== undefined) {
-          p1.y = baseline - xHeight / 2
-          p2.y = baseline - xHeight / 2
+          // Strikethrough should go through the middle of the text
+          p1.y = baseline + xHeight
+          p2.y = baseline + xHeight
         }
         element = SVGBuilder.createLine(p1, p2, attrs)
         break
@@ -87,8 +88,9 @@ export class SVGRendererDecoratorUtil
           y: bounds.yMax + +strokeWidth
         }
         if (baseline !== undefined && xHeight !== undefined) {
-          p1.y = baseline + xHeight / 2
-          p2.y = baseline + xHeight / 2
+          // Underline should be below the baseline
+          p1.y = baseline + 2 * xHeight
+          p2.y = baseline + 2 * xHeight
         }
         element = SVGBuilder.createLine(p1, p2, attrs)
         break
