@@ -1537,6 +1537,42 @@ export class InteractiveInkEditor extends AbstractEditor
     this.triggerDownload(this.getExportName("json"), dataStr)
   }
 
+  downloadAsText(selection = false)
+  {
+    const symbolsToExport = selection ? this.model.symbolsSelected : this.model.symbols
+    const text = this.extractTextFromSymbols(symbolsToExport)
+    const dataStr = "data:text/plain;charset=utf-8," + encodeURIComponent(text)
+    this.triggerDownload(this.getExportName("txt"), dataStr)
+  }
+
+  protected extractTextFromSymbols(symbols: TIISymbol[]): string
+  {
+    const textParts: string[] = []
+
+    symbols.forEach(s => {
+      if (s.type === SymbolType.Recognized && s.kind === RecognizedKind.Text) {
+        const recognizedText = s as IIRecognizedText
+        if (recognizedText.label) {
+          textParts.push(recognizedText.label)
+        }
+      } else if (s.type === SymbolType.Text) {
+        const text = s as IIText
+        const textContent = text.label
+        if (textContent) {
+          textParts.push(textContent)
+        }
+      } else if (s.type === SymbolType.Group) {
+        const group = s as IISymbolGroup
+        const groupText = this.extractTextFromSymbols(group.children)
+        if (groupText) {
+          textParts.push(groupText)
+        }
+      }
+    })
+
+    return textParts.join("\n")
+  }
+
   protected filterSymbolsForExport(symbols: TIISymbol[]): TIISymbol[]
   {
     const result: TIISymbol[] = []
