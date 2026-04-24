@@ -49,11 +49,27 @@ export class SVGRendererRecognizedUtil
           if (word.decorators && word.bounds) {
             word.decorators.forEach(d =>
             {
+              // Calculate local baseline for multi-line text
+              // For each word, estimate its baseline based on its vertical position relative to the global baseline
+              let wordBaseline: number | undefined = undefined
+              let wordXHeight: number | undefined = undefined
+
+              if (recognizedText.baseline !== undefined && recognizedText.xHeight !== undefined) {
+                // Calculate the vertical offset from the first line
+                // The global baseline is for the first line, so we need to adjust for each word's position
+                const firstLineY = recognizedText.baseline - recognizedText.xHeight
+                const wordLineY = word.bounds!.y
+                const lineOffset = wordLineY - firstLineY
+
+                wordBaseline = recognizedText.baseline + lineOffset
+                wordXHeight = recognizedText.xHeight
+              }
+
               const deco = SVGRendererDecoratorUtil.getSVGElementFromBounds(
                 d,
                 word.bounds!,
-                recognizedText.baseline,
-                recognizedText.xHeight,
+                wordBaseline,
+                wordXHeight,
                 { width: recognizedText.style.width, color: recognizedText.style.color },
                 recognizedText.deleting
               )
