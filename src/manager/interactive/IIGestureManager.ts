@@ -861,6 +861,7 @@ export class IIGestureManager
     const replaced: { oldSymbols: TIISymbol[], newSymbols: TIISymbol[] } = { oldSymbols: [], newSymbols: [] }
 
     const symbolsAfterGestureInRow = this.model.symbols.filter(s => gestureStroke.id !== s.id && this.model.isSymbolInRow(gestureStroke, s) && gestureStroke.bounds.xMid < s.bounds.xMin)
+    const symbolsBelow = this.model.symbols.filter(s => this.model.isSymbolBelow(gestureStroke, s))
 
     const groupSymbolsBefore = groupToSplit.children.filter(s => s.bounds.xMid <= gestureStroke.bounds.xMid)
     const groupsSymbolsAfter = groupToSplit.children.filter(s => s.bounds.xMid > gestureStroke.bounds.xMid)
@@ -874,11 +875,31 @@ export class IIGestureManager
     if (groupsSymbolsAfter.length) {
       const grouAfter = new IISymbolGroup(groupsSymbolsAfter.map(s => s.clone()), groupToSplit.style)
       grouAfter.decorators = groupToSplit.decorators.map(d => new IIDecorator(d.kind, d.style))
-      this.translator.applyToSymbol(grouAfter, this.strokeSpaceWidth, 0)
+
+      // Apply translation based on insert action
+      if (this.insertAction === InsertAction.LineBreak) {
+        // For line break, move to next line
+        const minXBefore = groupSymbolsBefore.length ? Math.min(...groupSymbolsBefore.map(s => s.bounds.xMin)) : 0
+        this.translator.applyToSymbol(grouAfter, -grouAfter.bounds.xMin + minXBefore, this.rowHeight)
+      } else {
+        // For insert, move horizontally
+        this.translator.applyToSymbol(grouAfter, this.strokeSpaceWidth, 0)
+      }
       replaced.newSymbols.push(grouAfter)
     }
-    if (symbolsAfterGestureInRow?.length) {
-      translate.push({ symbols: symbolsAfterGestureInRow.filter(s => s.id !== groupToSplit.id), tx: this.strokeSpaceWidth, ty: 0 })
+
+    // Handle other symbols based on insert action
+    if (this.insertAction === InsertAction.LineBreak) {
+      if (symbolsAfterGestureInRow?.length) {
+        translate.push({ symbols: symbolsAfterGestureInRow.filter(s => s.id !== groupToSplit.id), tx: 0, ty: this.rowHeight })
+      }
+      if (symbolsBelow.length) {
+        translate.push({ symbols: symbolsBelow, tx: 0, ty: this.rowHeight })
+      }
+    } else {
+      if (symbolsAfterGestureInRow?.length) {
+        translate.push({ symbols: symbolsAfterGestureInRow.filter(s => s.id !== groupToSplit.id), tx: this.strokeSpaceWidth, ty: 0 })
+      }
     }
 
     return {
@@ -893,24 +914,171 @@ export class IIGestureManager
     const replaced: { oldSymbols: TIISymbol[], newSymbols: TIISymbol[] } = { oldSymbols: [], newSymbols: [] }
 
     const symbolsAfterGestureInRow = this.model.symbols.filter(s => gestureStroke.id !== s.id && this.model.isSymbolInRow(gestureStroke, s) && gestureStroke.bounds.xMid < s.bounds.xMin)
+    const symbolsBelow = this.model.symbols.filter(s => this.model.isSymbolBelow(gestureStroke, s))
 
-    const strokesBefore = strokeTextToSplit.strokes.filter(s => s.bounds.xMid <= gestureStroke.bounds.xMid)
-    const strokesAfter = strokeTextToSplit.strokes.filter(s => s.bounds.xMid > gestureStroke.bounds.xMid)
+    const gestureX = gestureStroke.bounds.xMid
+    const gestureY = gestureStroke.bounds.yMid
+
+    // If the recognized text has words with bounds, use them to identify the split point
+    if (strokeTextToSplit.words && strokeTextToSplit.words.length > 0 && strokeTextToSplit.words.some(w => w.bounds)) {
+      const wordsWithBounds = strokeTextToSplit.words.filter(w => w.bounds)
+
+      // Group words by visual lines based on their Y position
+      const lineGroups: { words: typeof wordsWithBounds, yMid: number }[] = []
+      const lineTolerance = this.rowHeight / 3
+
+      wordsWithBounds.forEach(word => {
+        const wordYMid = word.bounds!.yMid
+        let foundLine = false
+
+        for (const line of lineGroups) {
+          if (Math.abs(wordYMid - line.yMid) < lineTolerance) {
+            line.words.push(word)
+            foundLine = true
+            break
+          }
+        }
+
+        if (!foundLine) {
+          lineGroups.push({ words: [word], yMid: wordYMid })
+        }
+      })
+
+      // Sort line groups by Y position (top to bottom)
+      lineGroups.sort((a, b) => a.yMid - b.yMid)
+
+      // Find which line the gesture is on (or between lines)
+      let splitIndex = -1
+
+      for (let lineIdx = 0; lineIdx < lineGroups.length; lineIdx++) {
+        const currentLine = lineGroups[lineIdx]
+        const nextLine = lineGroups[lineIdx + 1]
+
+        // Check if gesture is on this line
+        const isOnThisLine = Math.abs(gestureY - currentLine.yMid) < lineTolerance
+
+        if (isOnThisLine) {
+          // Gesture is on this line - find position within the line
+          const lineWords = currentLine.words.sort((a, b) => a.bounds!.xMin - b.bounds!.xMin)
+
+          for (let i = 0; i < lineWords.length; i++) {
+            const word = lineWords[i]
+
+            // Check if gesture is after this word
+            if (gestureX > word.bounds!.xMax) {
+              // Check if there's a next word on the same line
+              const nextWordOnLine = lineWords[i + 1]
+              if (!nextWordOnLine || gestureX < nextWordOnLine.bounds!.xMin) {
+                // Gesture is between this word and next (or after last word on line)
+                const wordIndexInFull = wordsWithBounds.indexOf(word)
+                splitIndex = wordIndexInFull + 1
+                break
+              }
+            }
+          }
+
+          if (splitIndex !== -1) break
+        }
+
+        // Check if gesture is between this line and the next
+        if (nextLine && !isOnThisLine) {
+          const isBetweenLines = gestureY > currentLine.yMid && gestureY < nextLine.yMid
+
+          if (isBetweenLines) {
+            // Split after the last word of current line
+            const lastWordOfLine = currentLine.words[currentLine.words.length - 1]
+            const wordIndexInFull = wordsWithBounds.indexOf(lastWordOfLine)
+            splitIndex = wordIndexInFull + 1
+            break
+          }
+        }
+      }
+
+      if (splitIndex > 0 && splitIndex < wordsWithBounds.length) {
+        // Split at the identified position
+        const wordsBefore = wordsWithBounds.slice(0, splitIndex)
+        const wordsAfter = wordsWithBounds.slice(splitIndex)
+
+        // Get the bounds of words before and after
+        const beforeWordBounds = wordsBefore.map(w => w.bounds!)
+        const afterWordBounds = wordsAfter.map(w => w.bounds!)
+
+        // Associate strokes with words
+        const strokesBefore = strokeTextToSplit.strokes.filter(s =>
+          beforeWordBounds.some(wb => s.bounds.overlaps(wb))
+        )
+        const strokesAfter = strokeTextToSplit.strokes.filter(s =>
+          afterWordBounds.some(wb => s.bounds.overlaps(wb))
+        )
+
+        // Handle orphan strokes (not overlapping any word)
+        const orphanStrokes = strokeTextToSplit.strokes.filter(s =>
+          !strokesBefore.includes(s) && !strokesAfter.includes(s)
+        )
+        orphanStrokes.forEach(s => {
+          if (s.bounds.xMid <= gestureX) {
+            strokesBefore.push(s)
+          } else {
+            strokesAfter.push(s)
+          }
+        })
+
+        replaced.oldSymbols.push(strokeTextToSplit)
+
+        if (strokesBefore.length) {
+          const strokeTextBefore = new IIRecognizedText(strokesBefore.map(s => s.clone()), strokeTextToSplit, strokeTextToSplit.style)
+          strokeTextBefore.decorators = strokeTextToSplit.decorators.map(d => new IIDecorator(d.kind, d.style))
+          replaced.newSymbols.push(strokeTextBefore)
+        }
+
+        if (strokesAfter.length) {
+          const strokeTextAfter = new IIRecognizedText(strokesAfter.map(s => s.clone()), strokeTextToSplit, strokeTextToSplit.style)
+          strokeTextAfter.decorators = strokeTextToSplit.decorators.map(d => new IIDecorator(d.kind, d.style))
+          // Don't translate - keep the strokes at their original positions
+          replaced.newSymbols.push(strokeTextAfter)
+        }
+
+        // No translation of other symbols needed - the split is within the recognized text
+        return { translate, replaced }
+      }
+    }
+
+    // Fallback to original X-only logic if words are not available or split point not found
+    const strokesBefore = strokeTextToSplit.strokes.filter(s => s.bounds.xMid <= gestureX)
+    const strokesAfter = strokeTextToSplit.strokes.filter(s => s.bounds.xMid > gestureX)
 
     replaced.oldSymbols.push(strokeTextToSplit)
+
     if (strokesBefore.length) {
       const strokeTextBefore = new IIRecognizedText(strokesBefore.map(s => s.clone()), strokeTextToSplit, strokeTextToSplit.style)
       strokeTextBefore.decorators = strokeTextToSplit.decorators.map(d => new IIDecorator(d.kind, d.style))
       replaced.newSymbols.push(strokeTextBefore)
     }
+
     if (strokesAfter.length) {
       const strokeTextAfter = new IIRecognizedText(strokesAfter.map(s => s.clone()), strokeTextToSplit, strokeTextToSplit.style)
       strokeTextAfter.decorators = strokeTextToSplit.decorators.map(d => new IIDecorator(d.kind, d.style))
-      this.translator.applyToSymbol(strokeTextAfter, this.strokeSpaceWidth, 0)
+
+      if (this.insertAction === InsertAction.LineBreak) {
+        const minXBefore = strokesBefore.length ? Math.min(...strokesBefore.map(s => s.bounds.xMin)) : 0
+        this.translator.applyToSymbol(strokeTextAfter, -strokeTextAfter.bounds.xMin + minXBefore, this.rowHeight)
+      } else {
+        this.translator.applyToSymbol(strokeTextAfter, this.strokeSpaceWidth, 0)
+      }
       replaced.newSymbols.push(strokeTextAfter)
     }
-    if (symbolsAfterGestureInRow?.length) {
-      translate.push({ symbols: symbolsAfterGestureInRow.filter(s => s.id !== strokeTextToSplit.id), tx: this.strokeSpaceWidth, ty: 0 })
+
+    if (this.insertAction === InsertAction.LineBreak) {
+      if (symbolsAfterGestureInRow?.length) {
+        translate.push({ symbols: symbolsAfterGestureInRow.filter(s => s.id !== strokeTextToSplit.id), tx: 0, ty: this.rowHeight })
+      }
+      if (symbolsBelow.length) {
+        translate.push({ symbols: symbolsBelow, tx: 0, ty: this.rowHeight })
+      }
+    } else {
+      if (symbolsAfterGestureInRow?.length) {
+        translate.push({ symbols: symbolsAfterGestureInRow.filter(s => s.id !== strokeTextToSplit.id), tx: this.strokeSpaceWidth, ty: 0 })
+      }
     }
 
     return {
@@ -925,6 +1093,7 @@ export class IIGestureManager
     const replaced: { oldSymbols: TIISymbol[], newSymbols: TIISymbol[] } = { oldSymbols: [], newSymbols: [] }
 
     const symbolsAfterGestureInRow = this.model.symbols.filter(s => gestureStroke.id !== s.id && this.model.isSymbolInRow(gestureStroke, s) && gestureStroke.bounds.xMid < s.bounds.xMin)
+    const symbolsBelow = this.model.symbols.filter(s => this.model.isSymbolBelow(gestureStroke, s))
 
     const charsBefore = textToSplit.chars.filter(c => c.bounds.x + c.bounds.width / 2 <= gestureStroke.bounds.xMid)
     const charsAfter = textToSplit.chars.filter(c => c.bounds.x + c.bounds.width / 2 > gestureStroke.bounds.xMid)
@@ -933,9 +1102,20 @@ export class IIGestureManager
       const textBefore = new IIText(charsBefore, textToSplit.point, Box.createFromBoxes(charsBefore.map(c => c.bounds)))
       this.texter.setBounds(textBefore)
       newTexts.push(textBefore)
-      const pointAfter: TPoint = {
-        x: textBefore.point.x + textBefore.bounds.width + this.texter.getSpaceWidth(computeAverage(textBefore.chars.map(c => c.fontSize))),
-        y: textBefore.point.y
+
+      let pointAfter: TPoint
+      if (this.insertAction === InsertAction.LineBreak) {
+        // For line break, position at start of next line
+        pointAfter = {
+          x: textToSplit.point.x,
+          y: textToSplit.point.y + this.rowHeight
+        }
+      } else {
+        // For insert, add horizontal space
+        pointAfter = {
+          x: textBefore.point.x + textBefore.bounds.width + this.texter.getSpaceWidth(computeAverage(textBefore.chars.map(c => c.fontSize))),
+          y: textBefore.point.y
+        }
       }
       const textAfter = new IIText(charsAfter, pointAfter, Box.createFromBoxes(charsAfter.map(c => c.bounds)))
       this.texter.setBounds(textAfter)
@@ -943,8 +1123,19 @@ export class IIGestureManager
       replaced.newSymbols = newTexts
       replaced.oldSymbols = [textToSplit]
     }
-    if (symbolsAfterGestureInRow?.length) {
-      translate.push({ symbols: symbolsAfterGestureInRow.filter(s => s.id !== gestureStroke.id), tx: this.strokeSpaceWidth, ty: 0 })
+
+    // Handle other symbols based on insert action
+    if (this.insertAction === InsertAction.LineBreak) {
+      if (symbolsAfterGestureInRow?.length) {
+        translate.push({ symbols: symbolsAfterGestureInRow.filter(s => s.id !== gestureStroke.id), tx: 0, ty: this.rowHeight })
+      }
+      if (symbolsBelow.length) {
+        translate.push({ symbols: symbolsBelow, tx: 0, ty: this.rowHeight })
+      }
+    } else {
+      if (symbolsAfterGestureInRow?.length) {
+        translate.push({ symbols: symbolsAfterGestureInRow.filter(s => s.id !== gestureStroke.id), tx: this.strokeSpaceWidth, ty: 0 })
+      }
     }
 
     return {
