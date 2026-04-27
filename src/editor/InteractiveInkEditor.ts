@@ -325,7 +325,7 @@ export class InteractiveInkEditor extends AbstractEditor
       this.configuration.recognition.lang = code
       await this.recognizer.newSession(this.configuration)
       this.recognizer.addStrokes(this.extractStrokesFromSymbols(this.model.symbols), false)
-      await this.synchronizeStrokesWithJIIX(true)
+      await this.synchronizeStrokesWithJIIX()
       this.layers.hideLoader()
       this.event.emitLoaded()
     }
@@ -765,13 +765,8 @@ export class InteractiveInkEditor extends AbstractEditor
     return group.children
   }
 
-  async synchronizeStrokesWithJIIX(force: boolean = false): Promise<void>
+  async synchronizeStrokesWithJIIX(): Promise<void>
   {
-    const strokes = this.model.symbols.filter(s => s.type === SymbolType.Stroke)
-    if (!force && !strokes.length) {
-      this.event.emitSynchronized()
-      return
-    }
     await this.export(["application/vnd.myscript.jiix"])
 
     const getSymbolsAndStrokesAssociatedFromJIIXStrokeItems = (items: TJIIXStrokeItem[] = []): { symbols: TIISymbol[], strokes: IIStroke[] } =>
