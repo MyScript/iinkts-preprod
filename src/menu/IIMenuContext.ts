@@ -77,11 +77,23 @@ export class IIMenuContext
       if (this.hasSingleMathSymbol) {
         const mathSymbol = this.symbolsSelected[0] as IIRecognizedMath
         const actions = await this.editor.getAvailableActions(mathSymbol.jiixId!)
-        this.#logger.debug("Available math actions:", actions);
-        (mathMenu.querySelector(`#${ this.id }-math-get-variable`) as HTMLButtonElement)?.style.setProperty("display", "inline-block");
-        (mathMenu.querySelector(`#${ this.id }-numerical-computation`) as HTMLButtonElement)?.style.setProperty("display", "inline-block");
-        (mathMenu.querySelector(`#${ this.id }-math-evaluate`) as HTMLButtonElement)?.style.setProperty("display", "inline-block");
-        mathMenu.style.removeProperty("display")
+        this.#logger.debug("Math symbol available actions:", actions)
+        const variables = await this.editor.getAllVariableValues(mathSymbol.jiixId!)
+        console.log('==> variables: ', variables);
+        this.#logger.debug("Math symbol variables:", variables)
+        const evaluables = await this.editor.getEvaluables(mathSymbol.jiixId!)
+        this.#logger.debug("Math symbol evaluables:", evaluables)
+        const canGetVariables = Object.keys(variables).length > 0
+        const canCompute = actions?.includes("numerical-computation")
+        const canEvaluate = evaluables?.length ? true : false
+        if (canGetVariables || canCompute || canEvaluate) {
+          mathMenu.style.removeProperty("display");
+          (mathMenu.querySelector(`#${ this.id }-math-get-variable`) as HTMLButtonElement)?.style.setProperty("display", canGetVariables ? "inline-block" : "none");
+          (mathMenu.querySelector(`#${ this.id }-numerical-computation`) as HTMLButtonElement)?.style.setProperty("display", canCompute ? "inline-block" : "none");
+          (mathMenu.querySelector(`#${ this.id }-math-evaluate`) as HTMLButtonElement)?.style.setProperty("display", canEvaluate ? "inline-block" : "none");
+        } else {
+          mathMenu.style.setProperty("display", "none")
+        }
       }
       else {
         mathMenu.style.setProperty("display", "none")

@@ -77,6 +77,7 @@ export class RecognizerWebSocket
   protected getDiagnosticDeferred?: DeferredPromise<string>
   protected getVariablesDeferred?: DeferredPromise<TMathVariable[]>
   protected setVariableValueDeferred?: DeferredPromise<void>
+  protected getVariableValueDeferred?: DeferredPromise<number>
   protected getEvaluablesDeferred?: DeferredPromise<TMathEvaluable[]>
   protected evaluateDeferred?: DeferredPromise<number[][]>
 
@@ -152,6 +153,12 @@ export class RecognizerWebSocket
     this.closeDeferred = undefined
     this.availableActionsDeferred = undefined
     this.numericalComputationDeferred = undefined
+    this.getDiagnosticDeferred = undefined
+    this.getVariablesDeferred = undefined
+    this.setVariableValueDeferred = undefined
+    this.getVariableValueDeferred = undefined
+    this.getEvaluablesDeferred = undefined
+    this.evaluateDeferred = undefined
   }
 
   protected clearSocketListener(): void
@@ -407,6 +414,9 @@ export class RecognizerWebSocket
       case "set-variable-value":
         this.setVariableValueDeferred?.resolve()
         break;
+      case "get-variable-value":
+        this.getVariableValueDeferred?.resolve(mathSolverMessage.result)
+        break;
       case "get-evaluables":
         this.getEvaluablesDeferred?.resolve(mathSolverMessage.result)
         break;
@@ -609,6 +619,20 @@ export class RecognizerWebSocket
     })
     const result = await this.getVariablesDeferred!.promise
     this.getVariablesDeferred = undefined
+    return result
+  }
+
+  async getVariableValue(blocId: string, variableName: string): Promise<number>
+  {
+    this.getVariableValueDeferred = new DeferredPromise<number>()
+    await this.send({
+      type: "mathSolver",
+      action: "get-variable-value",
+      blocId,
+      variableName
+    })
+    const result = await this.getVariableValueDeferred!.promise
+    this.getVariableValueDeferred = undefined
     return result
   }
 

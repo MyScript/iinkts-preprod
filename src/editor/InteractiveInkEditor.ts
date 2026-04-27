@@ -1965,6 +1965,54 @@ export class InteractiveInkEditor extends AbstractEditor
   }
 
   /**
+   * Get available math solver actions for a specific math element
+   * @param blocId - The ID of the math element (jiixId)
+   * @returns Promise with the value of the variable
+   * @group MathSolver
+   */
+  async getVariableValue(blocId: string, variableName: string): Promise<number>
+  {
+    try {
+      this.logger.info("getVariableValue", { blocId, variableName })
+      return await this.recognizer.getVariableValue(blocId, variableName)
+    }
+    catch (error) {
+      this.logger.error("getVariableValue", { error })
+      this.manageError(error as Error)
+      throw error
+    }
+  }
+
+  /**
+   * Get all variable values for a specific math element
+   * @param blocId - The ID of the math element (jiixId)
+   * @returns Promise with an object containing variable names as keys and their values as numbers or null if undefined
+   * @group MathSolver
+   */
+  async getAllVariableValues(blocId: string): Promise<{ [variableName: string]: number | null }>
+  {
+    try {
+      this.logger.info("getAllVariableValues", { blocId })
+      const variables = await this.recognizer.getVariables(blocId)
+      const variableValues: { [variableName: string]: number | null } = {}
+      for (const variable of variables) {
+        if (variable.sourceType !== "UNDEFINED") {
+          variableValues[variable.name] = await this.recognizer.getVariableValue(blocId, variable.name)
+        }
+        else {
+          variableValues[variable.name] = null
+        }
+      }
+      return variableValues
+    }
+    catch (error) {
+      this.logger.error("getAllVariableValues", { error })
+      this.manageError(error as Error)
+      throw error
+    }
+  }
+
+  /**
    * Set value for a specific variable in a math expression
    * @param blocId - The ID of the math element (jiixId)
    * @param variableName - Name of the variable to set
