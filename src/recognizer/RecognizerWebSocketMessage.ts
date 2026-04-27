@@ -116,6 +116,7 @@ export type TRecognizerWebSocketMessageIdle = TRecognizerWebSocketMessage<TRecog
 export type TMathVariable = {
   name: string
   value?: number
+  sourceType?: "UNDEFINED" | "API" | "API_GLOBAL" | "BLOCK" | "PREDIFINED"
 }
 
 /**
@@ -174,6 +175,15 @@ export type TRecognizerWebSocketMessageMathSolverSetVariableValue = TRecognizerW
 /**
  * @group Recognizer
  */
+export type TRecognizerWebSocketMessageMathSolverGetVariableValue = TRecognizerWebSocketMessage<TRecognizerWebSocketMessageType.MathSolverResult> & {
+  blocId: string
+  action: "get-variable-value"
+  result: number
+}
+
+/**
+ * @group Recognizer
+ */
 export type TRecognizerWebSocketMessageMathSolverGetEvaluables = TRecognizerWebSocketMessage<TRecognizerWebSocketMessageType.MathSolverResult> & {
   blocId: string
   action: "get-evaluables"
@@ -198,6 +208,7 @@ export type TRecognizerWebSocketMessageMathSolverResult =
   | TRecognizerWebSocketMessageMathSolverNumericalComputation
   | TRecognizerWebSocketMessageMathSolverGetVariables
   | TRecognizerWebSocketMessageMathSolverSetVariableValue
+  | TRecognizerWebSocketMessageMathSolverGetVariableValue
   | TRecognizerWebSocketMessageMathSolverGetEvaluables
   | TRecognizerWebSocketMessageMathSolverEvaluate
 
