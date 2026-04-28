@@ -24,6 +24,9 @@ export class IIRecognizedMath extends IIRecognizedBase<RecognizedKind.Math>
   /** Stored variable values set by user */
   variableValues?: { [name: string]: number }
 
+  /** IDs of solver output strokes added by numerical computation */
+  solverOutputStrokeIds?: string[]
+
   constructor(
     strokes: IIStroke[],
     style?: PartialDeep<TStyle>
@@ -41,6 +44,7 @@ export class IIRecognizedMath extends IIRecognizedBase<RecognizedKind.Math>
     clone.parent = this.parent
     clone.expressions = this.expressions ? structuredClone(this.expressions) : undefined
     clone.variableValues = this.variableValues ? structuredClone(this.variableValues) : undefined
+    clone.solverOutputStrokeIds = this.solverOutputStrokeIds ? structuredClone(this.solverOutputStrokeIds) : undefined
     clone.selected = this.selected
     clone.deleting = this.deleting
     clone.creationTime = this.creationTime
@@ -59,6 +63,7 @@ export class IIRecognizedMath extends IIRecognizedBase<RecognizedKind.Math>
       parent: this.parent,
       expressions: this.expressions,
       variableValues: this.variableValues,
+      solverOutputStrokeIds: this.solverOutputStrokeIds,
       strokes: structuredClone(this.strokes)
     }
   }
@@ -88,6 +93,9 @@ export class IIRecognizedMath extends IIRecognizedBase<RecognizedKind.Math>
     }
     if (partial.variableValues) {
       math.variableValues = partial.variableValues as { [name: string]: number }
+    }
+    if (partial.solverOutputStrokeIds) {
+      math.solverOutputStrokeIds = partial.solverOutputStrokeIds as string[]
     }
     return math
   }
