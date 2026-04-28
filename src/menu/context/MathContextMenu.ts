@@ -13,20 +13,29 @@ export class MathContextMenu extends SubMenuItem
 {
   protected logger = LoggerManager.getLogger(LoggerCategory.MENU)
 
+  readonly id: string
+  readonly idEditVariables: string
+  readonly idNumericalComputation: string
+  readonly idEvaluate: string
+
   constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-context")
   {
+    const id = `${idPrefix}-math`
+    const idEditVariables = `${id}-variables`
+    const idNumericalComputation = `${id}-numerical-computation`
+    const idEvaluate = `${id}-evaluate`
     const config: IMenuSubMenu = {
-      id: `${idPrefix}-math`,
+      id: id,
       type: "submenu",
       label: "Math",
       position: "right",
       items: [
         {
-          id: `${idPrefix}-math-get-variable`,
+          id: idEditVariables,
           type: "button",
-          label: "Get variables",
+          label: "Edit variables",
           action: async () => {
-            this.logger.info("Get variables clicked")
+            this.logger.info("Edit variables clicked")
             
             try {
               const symbolsSelected = editor.model.symbolsSelected
@@ -63,26 +72,19 @@ export class MathContextMenu extends SubMenuItem
                     type: "primary",
                     callback: async (values): Promise<void> => {
                       try {
-                        // Initialize variableValues if not present
-                        if (!mathSymbol.variableValues) {
-                          mathSymbol.variableValues = {}
-                        }
+                        const variableValues: { [name: string]: number } = {}
 
                         for (const variable of variables) {
                           const value = values[`var-${variable.name}`]
                           if (value && value !== "") {
                             const numValue = parseFloat(value)
                             if (!isNaN(numValue)) {
-                              await editor.setVariableValue(mathSymbol.jiixId!, variable.name, numValue)
-                              // Store the value in the symbol
-                              mathSymbol.variableValues[variable.name] = numValue
-                              this.logger.info(`Set ${variable.name} = ${numValue}`)
+                              variableValues[variable.name] = numValue
                             }
                           }
                         }
 
-                        // Persist the changes
-                        await editor.model.updateSymbol(mathSymbol)
+                        await editor.setMathVariables(mathSymbol, variableValues)
                         modal.destroy()
                       } catch (error) {
                         this.logger.error("Error setting variable values:", error)
@@ -104,11 +106,11 @@ export class MathContextMenu extends SubMenuItem
           }
         },
         {
-          id: `${idPrefix}-numerical-computation`,
+          id: idNumericalComputation,
           type: "button",
-          label: "Solve",
+          label: "Compute numerical result",
           action: async () => {
-            this.logger.info("Solve clicked")
+            this.logger.info("Compute numerical result clicked")
             
             try {
               const symbolsSelected = editor.model.symbolsSelected
@@ -121,32 +123,20 @@ export class MathContextMenu extends SubMenuItem
                 return
               }
               
-              const blocId = mathSymbols[0].jiixId
-              if (!blocId) {
-                this.logger.warn("Selected math symbol does not have jiixId")
-                return
-              }
+              const mathSymbol = mathSymbols[0]
               
-              const result = await editor.getNumericalComputation(blocId)
-              this.logger.info("Math solved successfully", result)
+              const { addedStrokesCount } = await editor.computeMathNumericalResult(mathSymbol)
 
-              // Add solver output strokes to canvas
-              const addedStrokes = await editor.addSolverOutputStrokes(result)
-              this.logger.info(`Added ${addedStrokes.length} solver output strokes`)
-
-              if (addedStrokes.length === 0) {
+              if (addedStrokesCount === 0) {
                 alert("No solver output to display")
-              } else {
-                // Redraw selection as the symbol has changed
-                editor.selector.resetSelectedGroup(symbolsSelected)
               }
             } catch (error) {
-              this.logger.error("Error solving math:", error)
+              this.logger.error("Error computing numerical result:", error)
             }
           }
         },
         {
-          id: `${idPrefix}-math-evaluate`,
+          id: idEvaluate,
           type: "button",
           label: "Evaluate function",
           action: async () => {
@@ -238,12 +228,7 @@ export class MathContextMenu extends SubMenuItem
                           return
                         }
 
-                        if (!mathSymbol.jiixId) {
-                          this.logger.error("Math symbol has no jiixId")
-                          return
-                        }
-
-                        const points = await editor.evaluate(mathSymbol.jiixId, {
+                        const points = await editor.evaluateMathFunction(mathSymbol, {
                           inputVariableName: evaluable.inputName,
                           outputVariableName: evaluable.outputName,
                           from,
@@ -310,5 +295,33 @@ export class MathContextMenu extends SubMenuItem
     }
 
     super(config, editor)
+    this.id = id
+    this.idEditVariables = idEditVariables
+    this.idNumericalComputation = idNumericalComputation
+    this.idEvaluate = idEvaluate
   }
+
+  setMenuVisibility(show: boolean, { canEditVariables, canCompute, canEvaluate }: { canEditVariables: boolean, canCompute: boolean, canEvaluate: boolean }): void {
+    const mathMenu = this.getElement()
+    if (show && (canEditVariables || canCompute || canEvaluate)) {
+      mathMenu.style.removeProperty("display")
+      const editVariablesButton = mathMenu.querySelector(`#${ this.idEditVariables }`) as HTMLButtonElement
+      const numericalComputationButton = mathMenu.querySelector(`#${ this.idNumericalComputation }`) as HTMLButtonElement
+      const evaluateButton = mathMenu.querySelector(`#${ this.idEvaluate }`) as HTMLButtonElement
+
+      if (editVariablesButton) {
+        editVariablesButton.style.setProperty("display", canEditVariables ? "inline-block" : "none")
+      }
+      if (numericalComputationButton) {
+        numericalComputationButton.style.setProperty("display", canCompute ? "inline-block" : "none")
+      }
+      if (evaluateButton) {
+        evaluateButton.style.setProperty("display", canEvaluate ? "inline-block" : "none")
+      }
+
+    } else {
+      mathMenu.style.setProperty("display", "none")
+    }
+  }
+
 }
