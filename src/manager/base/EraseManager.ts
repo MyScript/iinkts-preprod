@@ -1,5 +1,5 @@
 import { LoggerCategory, LoggerManager } from "../../logger"
-import { IIEraser, TSegment, SymbolType, IIRecognizedText, IIText, Box } from "../../symbol"
+import { IIEraser, TSegment, SymbolType, IIRecognizedText, IIText, Box, RecognizedKind } from "../../symbol"
 import { SVGRenderer } from "../../renderer"
 import { PointerEventGrabber, PointerInfo } from "../../grabber"
 import { findIntersectionBetween2Segment } from "../../utils"
@@ -154,18 +154,28 @@ export class EraseManager
 
       editor.model.symbols.forEach(s => {
         if (s.type === SymbolType.Recognized) {
-          const recognized = s as IIRecognizedText
-          const strokeIdsToDelete = recognized.strokes
+          const strokeIdsToDelete = s.strokes
             .filter(stroke => stroke.deleting)
             .map(stroke => stroke.id)
 
           if (strokeIdsToDelete.length > 0) {
-            if (strokeIdsToDelete.length === recognized.strokes.length) {
+            if (strokeIdsToDelete.length === s.strokes.length) {
               // All strokes deleted, remove the entire symbol
               symbolsToRemove.push(s.id)
             } else {
               // Partial deletion: collect stroke IDs to delete
               strokeIdsToDelete.forEach(id => allStrokeIdsToDelete.push(id))
+              // Clean up solverOutputStrokeIds for math symbols
+              if (s.kind === RecognizedKind.Math) {
+                if (s.solverOutputStrokeIds && s.solverOutputStrokeIds.length > 0) {
+                  // Remove deleted stroke IDs from solverOutputStrokeIds
+                  const updatedSolverIds = s.solverOutputStrokeIds.filter(
+                    id => !strokeIdsToDelete.includes(id)
+                  )
+                  // Update or clear the property
+                  s.solverOutputStrokeIds = updatedSolverIds.length > 0 ? updatedSolverIds : undefined
+                }
+              }
             }
           }
         } else if (s.type === SymbolType.Text && this.charsToDelete.has(s.id)) {
