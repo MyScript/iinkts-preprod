@@ -21,6 +21,7 @@ import
 import { IIStroke } from "./IIStroke"
 import { IISymbolGroup } from "./IISymbolGroup"
 import { IIText } from "./IIText"
+import { IIMath } from "./IIMath"
 
 /**
  * @group Symbol
@@ -40,4 +41,4 @@ export type TIIRecognized = IIRecognizedText | IIRecognizedMath | IIRecognizedAr
 /**
  * @group Symbol
  */
-export type TIISymbol = TIIEdge | TIIShape | IIStroke | IISymbolGroup | IIText | TIIRecognized
+export type TIISymbol = TIIEdge | TIIShape | IIStroke | IISymbolGroup | IIText | IIMath | TIIRecognized
