@@ -1,5 +1,5 @@
 import { EditorTool, SELECTION_MARGIN } from "../Constants"
-import { JIIXEdgeKind, JIIXELementType, JIIXNodeKind, IIModel, TExport, TJIIXExport, TJIIXStrokeItem, TJIIXMathElement, TJIIXMathExpression } from "../model"
+import { IIModel, TExport, TJIIXExport } from "../model"
 import
 {
   Box,
@@ -44,10 +44,11 @@ import
   IIMoveManager,
   IIGestureManager,
   IISnapManager,
+  IISynchronizerManager,
 } from "../manager"
 import { RecognizedKind, IIRecognizedCircle, IIRecognizedEllipse, IIRecognizedPolygon } from "../symbol"
 import { IIHistoryManager, TIIHistoryBackendChanges, TIIHistoryChanges, THistoryContext } from "../history"
-import { PartialDeep, convertMillimeterToPixel, convertBoundingBoxMillimeterToPixel, mergeDeep } from "../utils"
+import { PartialDeep, convertMillimeterToPixel, mergeDeep } from "../utils"
 import { IIMenuAction, IIMenuManager, IIMenuStyle, IIMenuTool } from "../menu"
 import { AbstractEditor, EditorOptionsBase } from "./AbstractEditor"
 import { InteractiveInkEditorConfiguration, TInteractiveInkEditorConfiguration } from "./InteractiveInkEditorConfiguration"
@@ -99,6 +100,7 @@ export class InteractiveInkEditor extends AbstractEditor
   svgDebugger: IIDebugSVGManager
   snaps: IISnapManager
   move: IIMoveManager
+  synchronizer: IISynchronizerManager
   menu: IIMenuManager
 
   constructor(rootElement: HTMLElement, options?: TInteractiveInkEditorOptions)
@@ -139,6 +141,7 @@ export class InteractiveInkEditor extends AbstractEditor
     this.texter = new IITextManager(this)
     this.svgDebugger = new IIDebugSVGManager(this)
     this.snaps = new IISnapManager(this, this.#configuration.snap)
+    this.synchronizer = new IISynchronizerManager(this)
     this.menu = new IIMenuManager(this, options?.override?.menu)
 
     this.#model = new IIModel(this.#configuration.rendering.minWidth, this.#configuration.rendering.minHeight, this.configuration.rendering.guides.gap)
@@ -274,7 +277,7 @@ export class InteractiveInkEditor extends AbstractEditor
     clearTimeout(this.#recognizeStrokeTimer)
     this.#recognizeStrokeTimer = setTimeout(async () =>
     {
-      await this.synchronizeStrokesWithJIIX()
+      await this.synchronizer.synchronize()
       this.updateLayerUI(0)
       this.event.emitChanged(undoRedoContext)
     }, 500)
@@ -325,7 +328,7 @@ export class InteractiveInkEditor extends AbstractEditor
       this.configuration.recognition.lang = code
       await this.recognizer.newSession(this.configuration)
       this.recognizer.addStrokes(this.extractStrokesFromSymbols(this.model.symbols), false)
-      await this.synchronizeStrokesWithJIIX()
+      await this.synchronizer.synchronize()
       this.layers.hideLoader()
       this.event.emitLoaded()
     }
@@ -765,539 +768,12 @@ export class InteractiveInkEditor extends AbstractEditor
     return group.children
   }
 
+  /**
+   * Synchronize strokes with JIIX export
+   */
   async synchronizeStrokesWithJIIX(): Promise<void>
   {
-    await this.export(["application/vnd.myscript.jiix"])
-
-    const getSymbolsAndStrokesAssociatedFromJIIXStrokeItems = (items: TJIIXStrokeItem[] = []): { symbols: TIISymbol[], strokes: IIStroke[] } =>
-    {
-      const symbols: TIISymbol[] = []
-      const strokes: IIStroke[] = []
-      const strokeIdsUsed: string[] = []
-      items.forEach(i =>
-      {
-        const strokeId = i["full-id"]!
-        if (strokeIdsUsed.includes(strokeId)) {
-          return
-        }
-        strokeIdsUsed.push(strokeId)
-        const sym = this.model.getRootSymbol(strokeId)
-        if (sym) {
-          switch (sym?.type) {
-            case SymbolType.Recognized:
-              strokes.push(sym.strokes.find(s => s.id === i["full-id"]!)!)
-              break
-            default:
-              strokes.push(sym as IIStroke)
-              break
-          }
-          const symIdx = symbols.findIndex(s => s.id === sym.id)
-          if (symIdx < 0) {
-            symbols.push(sym)
-          }
-          else {
-            symbols[symIdx] = sym
-          }
-        }
-      })
-      return {
-        symbols,
-        strokes
-      }
-    }
-
-    // Helper function to recursively collect all items from Math expressions
-    const collectMathItems = (expr: TJIIXMathExpression): TJIIXStrokeItem[] =>
-    {
-      const items: TJIIXStrokeItem[] = []
-
-      // Check if expr is null or undefined
-      if (!expr) {
-        return items
-      }
-
-      if ("items" in expr && expr.items && Array.isArray(expr.items)) {
-        items.push(...expr.items)
-      }
-
-      if ("operands" in expr && expr.operands && Array.isArray(expr.operands)) {
-        expr.operands.forEach((operand: TJIIXMathExpression) =>
-        {
-          if (operand) {
-            items.push(...collectMathItems(operand))
-          }
-        })
-      }
-
-      return items
-    }
-
-    // Helper function to collect all items from a Math element
-    const getMathElementItems = (mathElement: TJIIXMathElement): TJIIXStrokeItem[] =>
-    {
-      const items: TJIIXStrokeItem[] = []
-
-      // Collect from direct items
-      if (mathElement.items) {
-        items.push(...mathElement.items)
-      }
-
-      // Collect from expressions
-      if (mathElement.expressions && Array.isArray(mathElement.expressions)) {
-        mathElement.expressions.forEach(expr =>
-        {
-          if (expr) {
-            items.push(...collectMathItems(expr))
-          }
-        })
-      }
-
-      return items
-    }
-
-    const jiix = this.model.exports?.["application/vnd.myscript.jiix"]
-    this.logger.debug("synchronizeStrokesWithJIIX", "JIIX elements:", jiix?.elements)
-
-    // Process all elements in a single pass
-    jiix?.elements?.forEach(el =>
-    {
-      switch (el.type) {
-        case JIIXELementType.Text: {
-          this.logger.debug("synchronizeStrokesWithJIIX", "Processing Text element:", el)
-
-          // If there are children (embedded Math), process them first
-          if (el.children && el.children.length > 0) {
-            this.logger.debug("synchronizeStrokesWithJIIX", `Text has ${el.children.length} children, processing Math elements:`, el.children)
-
-            el.children.forEach(childId => {
-              const mathEl = jiix?.elements?.find(e => e.id === childId && e.type === "Math") as TJIIXMathElement | undefined
-              if (mathEl) {
-                this.logger.debug("synchronizeStrokesWithJIIX", "Found embedded Math element:", mathEl)
-                const mathItems = getMathElementItems(mathEl)
-                this.logger.debug("synchronizeStrokesWithJIIX", `Collected ${mathItems.length} items from embedded Math element`)
-                const mathJiixAssociation = getSymbolsAndStrokesAssociatedFromJIIXStrokeItems(mathItems)
-
-                if (mathJiixAssociation.strokes.length) {
-                  // Find existing Math symbol with same jiixId
-                  const existingMath = this.model.symbols.find(s =>
-                    s.type === SymbolType.Recognized &&
-                    s.kind === RecognizedKind.Math &&
-                    (s as IIRecognizedMath).jiixId === mathEl.id
-                  ) as IIRecognizedMath | undefined
-
-                  if (existingMath) {
-                    // Update existing symbol
-                    this.logger.debug("synchronizeStrokesWithJIIX", "Updating existing embedded Math symbol:", existingMath.id)
-                    existingMath.strokes = mathJiixAssociation.strokes
-                    existingMath.label = mathEl.label
-                    existingMath.parent = mathEl.parent
-                    existingMath.expressions = mathEl.expressions
-                    // solverOutputStrokeIds and variableValues are preserved automatically
-
-                    // Remove old symbols EXCEPT the existing one and parent Text
-                    mathJiixAssociation.symbols.forEach(sym =>
-                    {
-                      if (sym.id !== existingMath.id) {
-                        if (sym.type === SymbolType.Recognized && sym.kind === RecognizedKind.Text) {
-                          this.logger.debug("synchronizeStrokesWithJIIX", "Skipping removal of Text symbol:", sym.id)
-                          return
-                        }
-                        this.logger.debug("synchronizeStrokesWithJIIX", "Removing old symbol for embedded Math:", sym.id)
-                        this.model.removeSymbol(sym.id)
-                        this.renderer.removeSymbol(sym.id)
-                      }
-                    })
-
-                    this.model.updateSymbol(existingMath)
-                    this.renderer.drawSymbol(existingMath)
-
-                    // If selected, reset the selection
-                    if (existingMath.selected) {
-                      this.selector.resetSelectedGroup([existingMath])
-                    }
-                  } else {
-                    // Create new symbol
-                    this.logger.debug("synchronizeStrokesWithJIIX", "Creating new embedded Math symbol")
-                    const recognizedMath = new IIRecognizedMath(mathJiixAssociation.strokes)
-                    recognizedMath.jiixId = mathEl.id
-                    recognizedMath.label = mathEl.label
-                    recognizedMath.parent = mathEl.parent
-                    recognizedMath.expressions = mathEl.expressions
-
-                    // Remove old symbols EXCEPT the parent Text (which will be replaced later)
-                    mathJiixAssociation.symbols.forEach(sym =>
-                    {
-                      if (sym.type === SymbolType.Recognized && sym.kind === RecognizedKind.Text) {
-                        this.logger.debug("synchronizeStrokesWithJIIX", "Skipping removal of Text symbol:", sym.id)
-                        return
-                      }
-                      this.logger.debug("synchronizeStrokesWithJIIX", "Removing old symbol for embedded Math:", sym.id)
-                      this.model.removeSymbol(sym.id)
-                      this.renderer.removeSymbol(sym.id)
-                    })
-
-                    this.model.addSymbol(recognizedMath)
-                    this.renderer.drawSymbol(recognizedMath)
-                    this.logger.debug("synchronizeStrokesWithJIIX", "Added embedded Math symbol:", recognizedMath)
-                  }
-                } else {
-                  this.logger.warn("synchronizeStrokesWithJIIX", "Embedded Math element has no strokes:", mathEl.id)
-                }
-              }
-            })
-          }
-
-          // Process Text element
-          // If there are NO children, collect ALL word strokes
-          // If there ARE children (embedded Math), only collect strokes from words without refs
-          const textWordItems = el.children && el.children.length > 0
-            ? (el.words?.filter(w => !w.refs).flatMap(w => w.items || []) || [])
-            : (el.words?.flatMap(w => w.items || []) || [])
-
-          const wordsWithRefs = el.words?.filter(w => w.refs) || []
-          this.logger.debug("synchronizeStrokesWithJIIX", `Text element has ${el.children?.length || 0} children, ${wordsWithRefs.length} words with refs`)
-
-          const jiixAssociation = getSymbolsAndStrokesAssociatedFromJIIXStrokeItems(textWordItems)
-
-          this.logger.debug("synchronizeStrokesWithJIIX", `Text strokes: ${jiixAssociation.strokes.length}, symbols: ${jiixAssociation.symbols.length}`)
-
-          if (jiixAssociation.strokes.length) {
-            // Find existing Text symbol with same jiixId
-            const existingText = this.model.symbols.find(s =>
-              s.type === SymbolType.Recognized &&
-              s.kind === RecognizedKind.Text &&
-              (s as IIRecognizedText).jiixId === el.id
-            ) as IIRecognizedText | undefined
-
-            if (existingText) {
-              // Update existing symbol
-              this.logger.debug("synchronizeStrokesWithJIIX", "Updating existing Text symbol:", existingText.id)
-              existingText.strokes = jiixAssociation.strokes
-              existingText.label = el.label
-
-              // Update children if present
-              if (el.children && el.children.length > 0) {
-                existingText.children = [...el.children]
-                existingText.childrenPos = [...(el["children-pos"] || [])]
-              }
-
-              // Update words and chars
-              if (el.words?.length) {
-                existingText.words = el.words.map(w => ({
-                  label: w.label,
-                  firstChar: w["first-char"],
-                  lastChar: w["last-char"],
-                  bounds: w["bounding-box"] ? new Box(convertBoundingBoxMillimeterToPixel(w["bounding-box"])) : undefined
-                }))
-              }
-              if (el.chars?.length) {
-                existingText.chars = el.chars.map(c => ({
-                  label: c.label,
-                  word: c.word,
-                  bounds: c["bounding-box"] ? new Box(convertBoundingBoxMillimeterToPixel(c["bounding-box"])) : undefined
-                }))
-              }
-
-              // Remove old symbols EXCEPT the existing one
-              jiixAssociation.symbols.forEach(sym =>
-              {
-                if (sym.id !== existingText.id) {
-                  this.logger.debug("synchronizeStrokesWithJIIX", "Removing old symbol:", sym.id)
-                  this.model.removeSymbol(sym.id)
-                  this.renderer.removeSymbol(sym.id)
-                }
-              })
-
-              this.model.updateSymbol(existingText)
-              this.renderer.drawSymbol(existingText)
-
-              // If selected, reset the selection
-              if (existingText.selected) {
-                this.selector.resetSelectedGroup([existingText])
-              }
-            } else {
-              // Create a single IIRecognizedText for the entire Text element
-              this.logger.debug("synchronizeStrokesWithJIIX", "Creating new Text symbol")
-              const line = el.lines![0]  // Use first line for baseline/xHeight
-              const recognizedText = new IIRecognizedText(
-                jiixAssociation.strokes,
-                {
-                  baseline: convertMillimeterToPixel(line["baseline-y"]),
-                  xHeight: convertMillimeterToPixel(line["x-height"])
-                }
-              )
-              recognizedText.jiixId = el.id
-              recognizedText.label = el.label
-
-              // Handle children (embedded Math elements)
-              if (el.children && el.children.length > 0) {
-                recognizedText.children = [...el.children]
-                recognizedText.childrenPos = [...(el["children-pos"] || [])]
-                this.logger.debug("synchronizeStrokesWithJIIX", `Text has ${el.children.length} children:`, el.children)
-              }
-
-              // Map words from JIIX to IIRecognizedText
-              if (el.words?.length) {
-                recognizedText.words = el.words.map(w => ({
-                  label: w.label,
-                  firstChar: w["first-char"],
-                  lastChar: w["last-char"],
-                  bounds: w["bounding-box"] ? new Box(convertBoundingBoxMillimeterToPixel(w["bounding-box"])) : undefined
-                }))
-              }
-
-              // Map chars from JIIX to IIRecognizedText
-              if (el.chars?.length) {
-                recognizedText.chars = el.chars.map(c => ({
-                  label: c.label,
-                  word: c.word,
-                  bounds: c["bounding-box"] ? new Box(convertBoundingBoxMillimeterToPixel(c["bounding-box"])) : undefined
-                }))
-              }
-
-              this.logger.debug("synchronizeStrokesWithJIIX", "Created Text symbol:", recognizedText)
-
-              // Collect decorators from old symbols
-              jiixAssociation.symbols.forEach(sym =>
-              {
-                if (sym.type === SymbolType.Recognized && sym.kind === RecognizedKind.Text) {
-                  sym.decorators.forEach(d =>
-                  {
-                    if (!recognizedText.decorators.some(wd => wd.kind === d.kind)) {
-                      recognizedText.decorators.push(d)
-                    }
-                  })
-                }
-                this.logger.debug("synchronizeStrokesWithJIIX", "Removing old symbol:", sym.id)
-                this.model.removeSymbol(sym.id)
-                this.renderer.removeSymbol(sym.id)
-              })
-
-              this.model.addSymbol(recognizedText)
-              this.renderer.drawSymbol(recognizedText)
-              this.logger.debug("synchronizeStrokesWithJIIX", "Added Text symbol to model and rendered")
-            }
-          } else {
-            this.logger.warn("synchronizeStrokesWithJIIX", "Text element has no strokes after filtering")
-          }
-          break
-        }
-        case JIIXELementType.Math: {
-          // Process only standalone Math elements (without parent)
-          if (el.parent) {
-            this.logger.debug("synchronizeStrokesWithJIIX", "Skipping embedded Math element (has parent):", el.id)
-            return
-          }
-
-          this.logger.debug("synchronizeStrokesWithJIIX", "Processing standalone Math element:", el)
-          const mathItems = getMathElementItems(el)
-          this.logger.debug("synchronizeStrokesWithJIIX", `Collected ${mathItems.length} items from Math element`)
-          const jiixAssociation = getSymbolsAndStrokesAssociatedFromJIIXStrokeItems(mathItems)
-
-          if (jiixAssociation.strokes.length) {
-            this.logger.debug("synchronizeStrokesWithJIIX", `Math strokes: ${jiixAssociation.strokes.length}, symbols: ${jiixAssociation.symbols.length}`)
-
-            // Find existing Math symbol with same jiixId
-            const existingMath = this.model.symbols.find(s =>
-              s.type === SymbolType.Recognized &&
-              s.kind === RecognizedKind.Math &&
-              (s as IIRecognizedMath).jiixId === el.id
-            ) as IIRecognizedMath | undefined
-
-            if (existingMath) {
-              // Update existing symbol
-              this.logger.debug("synchronizeStrokesWithJIIX", "Updating existing standalone Math symbol:", existingMath.id)
-              existingMath.strokes = jiixAssociation.strokes
-              existingMath.label = el.label
-              existingMath.parent = el.parent
-              existingMath.expressions = el.expressions
-              // solverOutputStrokeIds and variableValues are preserved automatically
-
-              // Remove old symbols EXCEPT the existing one
-              jiixAssociation.symbols.forEach(sym =>
-              {
-                if (sym.id !== existingMath.id) {
-                  this.logger.debug("synchronizeStrokesWithJIIX", "Removing old symbol for standalone Math:", sym.id)
-                  this.model.removeSymbol(sym.id)
-                  this.renderer.removeSymbol(sym.id)
-                }
-              })
-
-              this.model.updateSymbol(existingMath)
-              this.renderer.drawSymbol(existingMath)
-
-              // If selected, reset the selection
-              if (existingMath.selected) {
-                this.selector.resetSelectedGroup([existingMath])
-              }
-            } else {
-              // Create new symbol
-              this.logger.debug("synchronizeStrokesWithJIIX", "Creating new standalone Math symbol")
-              const recognizedMath = new IIRecognizedMath(jiixAssociation.strokes)
-              recognizedMath.jiixId = el.id
-              recognizedMath.label = el.label
-              recognizedMath.parent = el.parent
-              recognizedMath.expressions = el.expressions
-
-              // Remove old symbols and add new Math symbol
-              jiixAssociation.symbols.forEach(sym =>
-              {
-                this.logger.debug("synchronizeStrokesWithJIIX", "Removing old symbol for standalone Math:", sym.id)
-                this.model.removeSymbol(sym.id)
-                this.renderer.removeSymbol(sym.id)
-              })
-              this.model.addSymbol(recognizedMath)
-              this.renderer.drawSymbol(recognizedMath)
-              this.logger.debug("synchronizeStrokesWithJIIX", "Added standalone Math symbol:", recognizedMath)
-            }
-          } else {
-            this.logger.warn("synchronizeStrokesWithJIIX", "Math element has no strokes:", el.id)
-          }
-          break
-        }
-        case JIIXELementType.Node: {
-          const jiixAssociation = getSymbolsAndStrokesAssociatedFromJIIXStrokeItems(el.items)
-          if (jiixAssociation.strokes.length) {
-            // Find existing Node symbol with same jiixId
-            const existingNode = this.model.symbols.find(s =>
-              s.type === SymbolType.Recognized &&
-              (s as TIIRecognized).jiixId === el.id
-            ) as TIIRecognized | undefined
-
-            if (existingNode) {
-              // Update existing symbol
-              this.logger.debug("synchronizeStrokesWithJIIX", "Updating existing Node symbol:", existingNode.id)
-              existingNode.strokes = jiixAssociation.strokes
-
-              // Remove old symbols EXCEPT the existing one
-              jiixAssociation.symbols.forEach(sym =>
-              {
-                if (sym.id !== existingNode.id) {
-                  this.logger.debug("synchronizeStrokesWithJIIX", "Removing old symbol for Node:", sym.id)
-                  this.model.removeSymbol(sym.id)
-                  this.renderer.removeSymbol(sym.id)
-                }
-              })
-
-              this.model.updateSymbol(existingNode)
-              this.renderer.drawSymbol(existingNode)
-
-              // If selected, reset the selection
-              if (existingNode.selected) {
-                this.selector.resetSelectedGroup([existingNode])
-              }
-            } else {
-              // Create new symbol based on kind
-              let symbolRecognized: TIIRecognized | undefined
-              switch (el.kind) {
-                case JIIXNodeKind.Circle: {
-                  symbolRecognized = new IIRecognizedCircle(jiixAssociation.strokes)
-                  break
-                }
-                case JIIXNodeKind.Ellipse: {
-                  symbolRecognized = new IIRecognizedEllipse(jiixAssociation.strokes)
-                  break
-                }
-                case JIIXNodeKind.Rectangle:
-                case JIIXNodeKind.Triangle:
-                case JIIXNodeKind.Parallelogram:
-                case JIIXNodeKind.Polygon:
-                case JIIXNodeKind.Rhombus: {
-                  symbolRecognized = new IIRecognizedPolygon(jiixAssociation.strokes)
-                  break
-                }
-                default:
-                  this.logger.warn("synchronizeStrokesWithJIIX", `Can not create recognized shape symbol, kind unknown: ${ el }`)
-                  break
-              }
-              if (symbolRecognized) {
-                symbolRecognized.jiixId = el.id
-                jiixAssociation.symbols.forEach(sym =>
-                {
-                  this.model.removeSymbol(sym.id)
-                  this.renderer.removeSymbol(sym.id)
-                })
-                this.model.addSymbol(symbolRecognized)
-                this.renderer.drawSymbol(symbolRecognized)
-              }
-            }
-          }
-          break
-        }
-        case JIIXELementType.Edge: {
-          const jiixAssociation = getSymbolsAndStrokesAssociatedFromJIIXStrokeItems(el.kind === JIIXEdgeKind.PolyEdge ? el.edges.flatMap(e => e.items!) : el.items)
-          if (jiixAssociation.strokes.length) {
-            // Find existing Edge symbol with same jiixId
-            const existingEdge = this.model.symbols.find(s =>
-              s.type === SymbolType.Recognized &&
-              (s as TIIRecognized).jiixId === el.id
-            ) as TIIRecognized | undefined
-
-            if (existingEdge) {
-              // Update existing symbol
-              this.logger.debug("synchronizeStrokesWithJIIX", "Updating existing Edge symbol:", existingEdge.id)
-              existingEdge.strokes = jiixAssociation.strokes
-
-              // Remove old symbols EXCEPT the existing one
-              jiixAssociation.symbols.forEach(sym =>
-              {
-                if (sym.id !== existingEdge.id) {
-                  this.logger.debug("synchronizeStrokesWithJIIX", "Removing old symbol for Edge:", sym.id)
-                  this.model.removeSymbol(sym.id)
-                  this.renderer.removeSymbol(sym.id)
-                }
-              })
-
-              this.model.updateSymbol(existingEdge)
-              this.renderer.drawSymbol(existingEdge)
-
-              // If selected, reset the selection
-              if (existingEdge.selected) {
-                this.selector.resetSelectedGroup([existingEdge])
-              }
-            } else {
-              // Create new symbol based on kind
-              let symbolRecognized: TIIRecognized | undefined
-              switch (el.kind) {
-                case JIIXEdgeKind.Line: {
-                  symbolRecognized = new IIRecognizedLine(jiixAssociation.strokes)
-                  break
-                }
-                case JIIXEdgeKind.PolyEdge: {
-                  symbolRecognized = new IIRecognizedPolyLine(jiixAssociation.strokes)
-                  break
-                }
-                case JIIXEdgeKind.Arc: {
-                  symbolRecognized = new IIRecognizedArc(jiixAssociation.strokes)
-                  break
-                }
-                default:
-                  this.logger.warn("synchronizeStrokesWithJIIX", `Can not create recognized edge symbol, kind unknown: ${ el }`)
-                  break
-              }
-              if (symbolRecognized) {
-                symbolRecognized.jiixId = el.id
-                jiixAssociation.symbols.forEach(sym =>
-                {
-                  this.model.removeSymbol(sym.id)
-                  this.renderer.removeSymbol(sym.id)
-                })
-                this.model.addSymbol(symbolRecognized)
-                this.renderer.drawSymbol(symbolRecognized)
-              }
-            }
-          }
-          break
-        }
-        default:
-          this.logger.warn("synchronizeStrokesWithJIIX", `Can not create recognized symbol, type unknown: ${ el }`)
-          break
-      }
-    })
-
-    this.model.mergeExport({ "application/vnd.myscript.jiix": jiix })
-    this.history.update(this.model)
-    this.event.emitSynchronized()
+    await this.synchronizer.synchronize()
   }
 
   async removeSymbol(id: string, addToHistory = true): Promise<void>
