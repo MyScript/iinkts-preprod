@@ -33,20 +33,78 @@ export class SVGRendererMathUtil
 
     const mathGroup = SVGBuilder.createGroup(attrs)
 
-    const mathElement = SVGBuilder.createText(math.point, "")
+    // Check if we have elements with superscript/subscript positions (limits on operators)
+    const hasSuperscript = math.elements.some(e => e.position === "superscript")
+    const hasSubscript = math.elements.some(e => e.position === "subscript")
 
-    math.elements.forEach(e =>
-    {
-      const attrs: { [key: string]: string } = {
-        id: e.id,
-        fill: e.color,
-        "font-size": `${ e.fontSize }px`,
-        "font-weight": e.fontWeight.toString(),
-        "font-family": e.fontFamily,
-      }
-      mathElement.appendChild(SVGBuilder.createTSpan(e.label, attrs))
-    })
-    mathGroup.append(mathElement)
+    if (hasSuperscript || hasSubscript) {
+      // Create separate text elements for operator, superscript, subscript, and rest
+      let currentX = math.point.x
+      const baselineY = math.point.y
+
+      math.elements.forEach(e =>
+      {
+        const textAttrs: { [key: string]: string } = {
+          id: e.id,
+          fill: e.color,
+          "font-size": `${ e.fontSize }px`,
+          "font-weight": e.fontWeight.toString(),
+          "font-family": e.fontFamily,
+        }
+
+        let x = currentX
+        let y = baselineY
+
+        // Position based on element type
+        if (e.position === "superscript") {
+          // Above the operator, shifted left to center over it
+          y = baselineY - e.fontSize * 1.5
+          x = currentX - e.label.length * e.fontSize * 0.3
+        } else if (e.position === "subscript") {
+          // Below the operator, shifted left to center under it
+          y = baselineY + e.fontSize * 1.2
+          x = currentX - e.label.length * e.fontSize * 0.3
+        } else {
+          // Normal element - advance x position
+          x = currentX
+          if (math.elements.indexOf(e) > 0) {
+            // Advance x after operator and limits
+            const prevElement = math.elements[math.elements.indexOf(e) - 1]
+            if (prevElement.position === "normal") {
+              currentX += prevElement.label.length * prevElement.fontSize * 0.6
+            }
+          }
+        }
+
+        const textElement = SVGBuilder.createText({ x, y }, e.label)
+        Object.entries(textAttrs).forEach(([key, value]) => {
+          textElement.setAttribute(key, value)
+        })
+        mathGroup.appendChild(textElement)
+
+        // Update currentX for the next normal element
+        if (e.position === "normal") {
+          currentX = x + e.label.length * e.fontSize * 0.6
+        }
+      })
+    } else {
+      // Simple case: single text element with tspan
+      const mathElement = SVGBuilder.createText(math.point, "")
+
+      math.elements.forEach(e =>
+      {
+        const tspanAttrs: { [key: string]: string } = {
+          id: e.id,
+          fill: e.color,
+          "font-size": `${ e.fontSize }px`,
+          "font-weight": e.fontWeight.toString(),
+          "font-family": e.fontFamily,
+        }
+        mathElement.appendChild(SVGBuilder.createTSpan(e.label, tspanAttrs))
+      })
+
+      mathGroup.append(mathElement)
+    }
 
     math.decorators.forEach(d =>
     {

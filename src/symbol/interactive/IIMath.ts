@@ -18,6 +18,7 @@ export type TIIMathElement = {
   fontFamily: string
   color: string
   bounds: TBox
+  position?: "superscript" | "subscript" | "normal"
 }
 
 /**

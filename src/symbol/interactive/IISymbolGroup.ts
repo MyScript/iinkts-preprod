@@ -7,6 +7,7 @@ import { IIDecorator } from "./IIDecorator"
 import { IISymbolBase } from "./IISymbolBase"
 import { IIStroke } from "./IIStroke"
 import { IIText } from "./IIText"
+import { IIMath } from "./IIMath"
 import { TIISymbol } from "."
 import { RecognizedKind } from "../recognized"
 
@@ -61,6 +62,14 @@ export class IISymbolGroup extends IISymbolBase<SymbolType.Group>
             }
           })
           break
+        case SymbolType.Math:
+          child.elements.forEach(e =>
+          {
+            if (child.style.color) {
+              e.color = child.style.color
+            }
+          })
+          break
         case SymbolType.Recognized:
           child.updateChildrenStyle()
           break
@@ -87,6 +96,11 @@ export class IISymbolGroup extends IISymbolBase<SymbolType.Group>
   extractText(): IIText[]
   {
     return IISymbolGroup.extractText(this)
+  }
+
+  extractMath(): IIMath[]
+  {
+    return IISymbolGroup.extractMath(this)
   }
 
   extractStrokes(): IIStroke[]
@@ -128,6 +142,23 @@ export class IISymbolGroup extends IISymbolBase<SymbolType.Group>
       }
     })
     return texts
+  }
+
+  static extractMath(group: IISymbolGroup): IIMath[]
+  {
+    const maths: IIMath[] = []
+    group.children.forEach(s =>
+    {
+      switch (s.type) {
+        case SymbolType.Math:
+          maths.push(s)
+          break;
+        case SymbolType.Group:
+          maths.push(...IISymbolGroup.extractMath(s))
+          break;
+      }
+    })
+    return maths
   }
 
   static extractStrokes(group: IISymbolGroup): IIStroke[]

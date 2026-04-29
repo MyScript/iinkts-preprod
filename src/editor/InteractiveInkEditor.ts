@@ -18,6 +18,7 @@ import
   IIRecognizedMath,
   IISymbolGroup,
   IIText,
+  IIMath,
   ShapeKind,
   SymbolType,
   TIISymbol,
@@ -411,6 +412,8 @@ export class InteractiveInkEditor extends AbstractEditor
           return this.buildEdge(partialSymbol as PartialDeep<TIIEdge>)
         case SymbolType.Text:
           return IIText.create(partialSymbol as PartialDeep<IIText>)
+        case SymbolType.Math:
+          return IIMath.create(partialSymbol as PartialDeep<IIMath>)
         case SymbolType.Group:
           return this.buildGroup(partialSymbol as PartialDeep<IISymbolGroup>)
         case SymbolType.Recognized:
@@ -444,6 +447,11 @@ export class InteractiveInkEditor extends AbstractEditor
     return IIText.create(partialSymbol as PartialDeep<IIText>)
   }
 
+  protected buildMath(partialSymbol: PartialDeep<IIMath>): IIMath
+  {
+    return IIMath.create(partialSymbol as PartialDeep<IIMath>)
+  }
+
   protected buildSymbol(partialSymbol: PartialDeep<TIISymbol>): TIISymbol
   {
     try {
@@ -456,6 +464,8 @@ export class InteractiveInkEditor extends AbstractEditor
           return this.buildEdge(partialSymbol)
         case SymbolType.Text:
           return this.buildText(partialSymbol)
+        case SymbolType.Math:
+          return this.buildMath(partialSymbol)
         case SymbolType.Group:
           return this.buildGroup(partialSymbol)
         case SymbolType.Recognized:
@@ -1171,6 +1181,24 @@ export class InteractiveInkEditor extends AbstractEditor
       }
     })
     return texts
+  }
+
+  extractMathsFromSymbols(symbols: TIISymbol[] | undefined): IIMath[]
+  {
+    if (!symbols?.length) return []
+    const maths: IIMath[] = []
+    symbols.forEach(s =>
+    {
+      switch (s.type) {
+        case SymbolType.Math:
+          maths.push(s)
+          break
+        case SymbolType.Group:
+          maths.push(...s.extractMath())
+          break
+      }
+    })
+    return maths
   }
 
   protected extractBackendChanges(changes: TIIHistoryChanges): TIIHistoryBackendChanges

@@ -9,6 +9,7 @@ import
   IIStroke,
   IISymbolGroup,
   IIText,
+  IIMath,
   ShapeKind,
   SymbolType,
   TIIEdge,
@@ -141,6 +142,27 @@ export class IIResizeManager
     return this.editor.texter.updateBounds(text)
   }
 
+  protected applyOnMath(math: IIMath, origin: TPoint, scaleX: number, scaleY: number): IIMath
+  {
+    math.point.x = +(origin.x + scaleX * (math.point.x - origin.x)).toFixed(3)
+    math.point.y = +(origin.y + scaleY * (math.point.y - origin.y)).toFixed(3)
+
+    math.elements.forEach(e =>
+    {
+      e.fontSize = +(e.fontSize * (scaleX + scaleY) / 2).toFixed(3)
+    })
+
+    // Update bounds based on new point and scaled elements
+    const corners = math.elements.map(e => new Box(e.bounds).corners).flat()
+    const scaledCorners = corners.map(p => ({
+      x: +(origin.x + scaleX * (p.x - origin.x)).toFixed(3),
+      y: +(origin.y + scaleY * (p.y - origin.y)).toFixed(3)
+    }))
+    math.bounds = Box.createFromPoints(scaledCorners)
+
+    return math
+  }
+
   protected applyOnGroup(group: IISymbolGroup, origin: TPoint, scaleX: number, scaleY: number): IISymbolGroup
   {
     group.children.forEach(s => this.applyToSymbol(s, origin, scaleX, scaleY))
@@ -168,6 +190,8 @@ export class IIResizeManager
         return this.applyToEdge(symbol, origin, scaleX, scaleY)
       case SymbolType.Text:
         return this.applyOnText(symbol, origin, scaleX, scaleY)
+      case SymbolType.Math:
+        return this.applyOnMath(symbol, origin, scaleX, scaleY)
       case SymbolType.Group:
         return this.applyOnGroup(symbol, origin, scaleX, scaleY)
       case SymbolType.Recognized:
@@ -194,7 +218,7 @@ export class IIResizeManager
     this.interactElementsGroup = (target.closest(`[role=${ SvgElementRole.InteractElementsGroup }]`) as unknown) as SVGGElement
     this.direction = target.getAttribute("resize-direction") as ResizeDirection
 
-    this.keepRatio = this.model.symbolsSelected.some(s => s.type === SymbolType.Text || (s.type === SymbolType.Shape && (s as TIIShape).kind === ShapeKind.Circle))
+    this.keepRatio = this.model.symbolsSelected.some(s => s.type === SymbolType.Text || s.type === SymbolType.Math || (s.type === SymbolType.Shape && (s as TIIShape).kind === ShapeKind.Circle))
 
     this.transformOrigin = origin
     this.boundingBox = Box.createFromPoints(this.model.symbolsSelected.flatMap(s => s.vertices))
