@@ -547,26 +547,160 @@ export class IIConversionManager
     }
     const color = strokes[0]?.style.color || "black"
 
-    // Convert the LaTeX label to Unicode for display
-    const unicodeLabel = mathElement.label ? this.convertLatexToUnicode(mathElement.label) : ""
+    const label = mathElement.label || ""
+    const mathElements: TIIMathElement[] = []
 
-    // Create a single element with the full converted label
-    const mathElements: TIIMathElement[] = [{
-      id: `math-element-${createUUID()}`,
-      label: unicodeLabel,
-      color,
-      fontSize,
-      fontWeight,
-      fontFamily,
-      bounds: boundingBox
-    }]
+    // Check for operators with bounds (like \sum ^{...}_{...} or \sum _{...}^{...})
+    // Support both orders: ^{...}_{...} and _{...}^{...}
+    const operatorWithBothBounds1 = /\\(sum|int|prod)\s*\^{([^}]+)}_{([^}]+)}/
+    const operatorWithBothBounds2 = /\\(sum|int|prod)\s*_{([^}]+)}\^{([^}]+)}/
+
+    let match = label.match(operatorWithBothBounds1)
+    let upperBound = ""
+    let lowerBound = ""
+
+    if (!match) {
+      match = label.match(operatorWithBothBounds2)
+      if (match) {
+        // Order is reversed: _{lower}^{upper}
+        upperBound = match[3]
+        lowerBound = match[2]
+      }
+    } else {
+      // Normal order: ^{upper}_{lower}
+      upperBound = match[2]
+      lowerBound = match[3]
+    }
+
+    if (match) {
+      // Extract operator and rest of expression
+      const operator = match[1] // "sum", "int", or "prod"
+      const restOfExpression = label.substring(match.index! + match[0].length)
+
+      // Convert operator to Unicode
+      const operatorSymbols: { [key: string]: string } = {
+        "sum": "∑",
+        "int": "∫",
+        "prod": "∏"
+      }
+      const operatorSymbol = operatorSymbols[operator] || operator
+
+      // Create elements in order: operator, superscript (upper bound), subscript (lower bound), rest
+      const limitFontSize = fontSize * 0.5 // Smaller font for limits (50% of main size)
+
+      // 1. Main operator symbol
+      mathElements.push({
+        id: `math-element-${createUUID()}`,
+        label: operatorSymbol,
+        color,
+        fontSize,
+        fontWeight,
+        fontFamily,
+        bounds: boundingBox,
+        position: "normal"
+      })
+
+      // 2. Upper bound (superscript)
+      mathElements.push({
+        id: `math-element-${createUUID()}`,
+        label: this.convertLatexToUnicode(upperBound),
+        color,
+        fontSize: limitFontSize,
+        fontWeight,
+        fontFamily,
+        bounds: boundingBox,
+        position: "superscript"
+      })
+
+      // 3. Lower bound (subscript)
+      mathElements.push({
+        id: `math-element-${createUUID()}`,
+        label: this.convertLatexToUnicode(lowerBound),
+        color,
+        fontSize: limitFontSize,
+        fontWeight,
+        fontFamily,
+        bounds: boundingBox,
+        position: "subscript"
+      })
+
+      // 4. Rest of expression
+      if (restOfExpression) {
+        mathElements.push({
+          id: `math-element-${createUUID()}`,
+          label: this.convertLatexToUnicode(restOfExpression),
+          color,
+          fontSize,
+          fontWeight,
+          fontFamily,
+          bounds: boundingBox,
+          position: "normal"
+        })
+      }
+    } else {
+      // No special bounds - convert the whole label as before
+      const unicodeLabel = this.convertLatexToUnicode(label)
+
+      mathElements.push({
+        id: `math-element-${createUUID()}`,
+        label: unicodeLabel,
+        color,
+        fontSize,
+        fontWeight,
+        fontFamily,
+        bounds: boundingBox,
+        position: "normal"
+      })
+    }
 
     const point: TPoint = {
       x: boundingBox.xMin,
       y: boundingBox.yMax
     }
 
-    const math = new IIMath(mathElements, point, boundingBox, strokes[0]?.style)
+    // Calculate adjusted bounding box for operators with superscript/subscript limits
+    let adjustedBounds = boundingBox
+    if (match) {
+      // When we have superscript/subscript, the renderer positions them vertically
+      // superscript: y = baselineY - fontSize * 1.5 (this is baseline position)
+      // subscript: y = baselineY + fontSize * 1.2 (this is baseline position)
+      const baselineY = boundingBox.yMax
+      const limitFontSize = fontSize * 0.5
+
+      // Calculate vertical extent
+      // Superscript: text extends above its baseline by ~fontSize
+      const superscriptTop = baselineY - limitFontSize * 1.5 - limitFontSize
+      // Subscript: text extends below its baseline by ~0.25 * fontSize (descenders)
+      const subscriptBottom = baselineY + limitFontSize * 1.2 + limitFontSize * 0.25
+
+      // Calculate horizontal extent
+      // The renderer positions normal elements horizontally with width = label.length * fontSize * 0.6
+      // Sum up all normal elements (operator + rest)
+      const normalElements = mathElements.filter(e => e.position === "normal")
+      const totalWidth = normalElements.reduce((sum, e) => sum + e.label.length * e.fontSize * 0.6, 0)
+
+      // Also check if superscript/subscript extend beyond the operator
+      const limitElements = mathElements.filter(e => e.position === "superscript" || e.position === "subscript")
+      const maxLimitWidth = limitElements.reduce((max, e) => {
+        // Limits are centered: x = currentX - label.length * fontSize * 0.3
+        // So they extend from (currentX - label.length * fontSize * 0.3) to (currentX - label.length * fontSize * 0.3 + label.length * fontSize * 0.6)
+        const limitWidth = e.label.length * e.fontSize * 0.6
+        return Math.max(max, limitWidth)
+      }, 0)
+
+      // Final width is the max of total normal width and limit width
+      const finalWidth = Math.max(totalWidth, maxLimitWidth)
+
+      // Extend bounding box to include superscript and subscript
+      adjustedBounds = new Box({
+        x: boundingBox.x,
+        y: superscriptTop,
+        width: finalWidth,
+        height: subscriptBottom - superscriptTop
+      })
+    }
+
+    const math = new IIMath(mathElements, point, adjustedBounds, strokes[0]?.style)
 
     return math
   }
@@ -585,7 +719,7 @@ export class IIConversionManager
 
     // Calculate font size based on bounding box height
     const height = convertMillimeterToPixel(mathElement["bounding-box"].height)
-    const fontSize = Math.round(height * 0.8) // Adjust factor as needed
+    const fontSize = Math.round(height * 0.4) // Divided by 2 from original 0.8
 
     const mathSymbol = this.buildMath(mathElement, mathStrokes, fontSize)
 
