@@ -8,6 +8,7 @@ import { IISymbolBase } from "./IISymbolBase"
 import { IIStroke } from "./IIStroke"
 import { IIText } from "./IIText"
 import { TIISymbol } from "."
+import { RecognizedKind } from "../recognized"
 
 /**
  * @group Symbol
@@ -179,6 +180,15 @@ export class IISymbolGroup extends IISymbolBase<SymbolType.Group>
         s.removeStrokes(symbolIds)
         if (!s.strokes.length) {
           group.removeChilds([s.id])
+        } else {
+          // Clean up solverOutputStrokeIds for math symbols after stroke removal
+          if (s.kind === RecognizedKind.Math) {
+            if (s.solverOutputStrokeIds && s.solverOutputStrokeIds.length > 0) {
+              const remainingIds = new Set(s.strokes.map(stroke => stroke.id))
+              const updatedSolverIds = s.solverOutputStrokeIds.filter(id => remainingIds.has(id))
+              s.solverOutputStrokeIds = updatedSolverIds.length > 0 ? updatedSolverIds : undefined
+            }
+          }
         }
       }
     })

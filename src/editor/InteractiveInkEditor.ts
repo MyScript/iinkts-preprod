@@ -863,7 +863,13 @@ export class InteractiveInkEditor extends AbstractEditor
                 ws.jiixId = undefined
                 // Reset variableValues for math symbols as they're tied to jiixId
                 if (ws.kind === RecognizedKind.Math) {
-                  (ws as IIRecognizedMath).variableValues = undefined
+                  ws.variableValues = undefined
+                  // Clean up solverOutputStrokeIds by removing deleted stroke IDs
+                  if (ws.solverOutputStrokeIds && ws.solverOutputStrokeIds.length > 0) {
+                    const remainingIds = new Set(ws.strokes.map(s => s.id))
+                    const updatedSolverIds = ws.solverOutputStrokeIds.filter(id => remainingIds.has(id))
+                    ws.solverOutputStrokeIds = updatedSolverIds.length > 0 ? updatedSolverIds : undefined
+                  }
                 }
                 symbolsToUpdate.push(ws)
               }
