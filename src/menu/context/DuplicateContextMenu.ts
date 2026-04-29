@@ -59,7 +59,7 @@ export class DuplicateContextMenu extends BaseMenuItem<HTMLButtonElement>
         if (clone.type === SymbolType.Recognized) {
           clone.jiixId = undefined
           if (clone.kind === RecognizedKind.Math) {
-            (clone as IIRecognizedMath).variableValues = undefined
+            clone.variableValues = undefined
           }
         }
 
@@ -69,17 +69,18 @@ export class DuplicateContextMenu extends BaseMenuItem<HTMLButtonElement>
             updateDeepIdInGroup(clone)
           }
           else if (clone.type === SymbolType.Recognized) {
+            clone.jiixId = undefined
             clone.strokes.forEach(s => s.id = `${s.type}-${ createUUID() }`)
             // Reset jiixId as strokes have changed and need re-recognition
             clone.jiixId = undefined
             // Reset variableValues for math symbols as they're tied to jiixId
             if (clone.kind === RecognizedKind.Math) {
-              (clone as IIRecognizedMath).variableValues = undefined
+              clone.variableValues = undefined
             }
           }
         }
         clone.selected = true
-        this.editor.translator.applyToSymbol(clone, SELECTION_MARGIN, SELECTION_MARGIN)
+        this.editor.translator.applyToSymbol(clone, SELECTION_MARGIN, clone.bounds.height + SELECTION_MARGIN)
         return clone
       })
 
