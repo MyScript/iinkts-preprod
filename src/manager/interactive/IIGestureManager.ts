@@ -13,7 +13,6 @@ import
   Box,
   TPoint,
   IIRecognizedText,
-  IIRecognizedMath,
   RecognizedKind,
 } from "../../symbol"
 import { RecognizerWebSocket } from "../../recognizer"
@@ -445,7 +444,13 @@ export class IIGestureManager
             newSym.jiixId = undefined
             // Reset variableValues for math symbols as they're tied to jiixId
             if (newSym.kind === RecognizedKind.Math) {
-              (newSym as IIRecognizedMath).variableValues = undefined
+              newSym.variableValues = undefined
+              // Clean up solverOutputStrokeIds by removing deleted stroke IDs
+              if (newSym.solverOutputStrokeIds && newSym.solverOutputStrokeIds.length > 0) {
+                const conservedIds = new Set(strokesToConserve.map(s => s.id))
+                const updatedSolverIds = newSym.solverOutputStrokeIds.filter(id => conservedIds.has(id))
+                newSym.solverOutputStrokeIds = updatedSolverIds.length > 0 ? updatedSolverIds : undefined
+              }
             }
             return {
               replaced: [newSym]
