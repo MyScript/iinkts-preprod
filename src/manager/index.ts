@@ -23,6 +23,7 @@
  * - {@link IITranslateManager} - Handles movement/translation
  * - {@link IITextManager} - Handles text editing
  * - {@link IIMoveManager} - Manages move operations
+ * - {@link IISynchronizerManager} - Synchronizes strokes with JIIX recognition results
  *
  * **Debug Managers** (`./debug`)
  * - {@link IIDebugSVGManager} - Debug visualization for InteractiveInkEditor
