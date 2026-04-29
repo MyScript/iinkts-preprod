@@ -11,6 +11,7 @@ import { SVGRendererGroupUtil } from "./SVGRendererGroupUtil"
 import { SVGRendererShapeUtil } from "./SVGRendererShapeUtil"
 import { SVGRendererStrokeUtil } from "./SVGRendererStrokeUtil"
 import { SVGRendererTextUtil } from "./SVGRendererTextUtil"
+import { SVGRendererMathUtil } from "./SVGRendererMathUtil"
 import { SVGRendererRecognizedUtil } from "./SVGRendererRecognizedUtil"
 import { SVGBuilder } from "./utils/SVGBuilder"
 
@@ -317,6 +318,9 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
         break
       case SymbolType.Text:
         element = SVGRendererTextUtil.getSVGElement(symbol)
+        break
+      case SymbolType.Math:
+        element = SVGRendererMathUtil.getSVGElement(symbol)
         break
       case SymbolType.Group:
         element = SVGRendererGroupUtil.getSVGElement(symbol)

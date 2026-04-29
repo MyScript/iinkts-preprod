@@ -499,6 +499,12 @@ export class IIGestureManager
           }
         }
       }
+      case SymbolType.Math: {
+        // Math symbols should be erased entirely when scratched
+        return {
+          erased: true
+        }
+      }
       case SymbolType.Shape:
       case SymbolType.Edge: {
         return {
