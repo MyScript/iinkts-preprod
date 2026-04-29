@@ -201,7 +201,6 @@ test.describe("Offscreen Get Started Menu Action", () => {
 
       const symbols = await getEditorSymbols(page)
       expect(symbols).toHaveLength(1)
-      console.log('symbols: ', symbols);
       expect(symbols[0].label).toEqual(laLecon.exports["application/vnd.myscript.jiix"].label)
       expect(symbols[0].words[0].label).toEqual(laLecon.exports["application/vnd.myscript.jiix"].words[0].label)
       //should recognize typical French character: ç
