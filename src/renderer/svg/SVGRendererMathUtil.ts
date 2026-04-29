@@ -65,13 +65,13 @@ export class SVGRendererMathUtil
           y = baselineY + e.fontSize * 1.2
           x = currentX - e.label.length * e.fontSize * 0.3
         } else {
-          // Normal element - advance x position
-          x = currentX
+          // Normal element - advance x position after previous normal elements
           if (math.elements.indexOf(e) > 0) {
             // Advance x after operator and limits
             const prevElement = math.elements[math.elements.indexOf(e) - 1]
             if (prevElement.position === "normal") {
               currentX += prevElement.label.length * prevElement.fontSize * 0.6
+              x = currentX
             }
           }
         }
