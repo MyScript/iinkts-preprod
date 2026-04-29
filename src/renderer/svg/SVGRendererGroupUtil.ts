@@ -7,6 +7,7 @@ import { SVGRendererStrokeUtil } from "./SVGRendererStrokeUtil"
 import { SVGRendererConst } from "./utils/SVGRendererConst"
 import { SVGBuilder } from "./utils/SVGBuilder"
 import { SVGRendererTextUtil } from "./SVGRendererTextUtil"
+import { SVGRendererMathUtil } from "./SVGRendererMathUtil"
 import { SVGRendererRecognizedUtil } from "./SVGRendererRecognizedUtil"
 
 /**
@@ -30,6 +31,9 @@ export class SVGRendererGroupUtil
         break
       case SymbolType.Text:
         element = SVGRendererTextUtil.getSVGElement(symbol)
+        break
+      case SymbolType.Math:
+        element = SVGRendererMathUtil.getSVGElement(symbol)
         break
       case SymbolType.Group:
         element = SVGRendererGroupUtil.getSVGElement(symbol)

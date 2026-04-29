@@ -9,6 +9,7 @@ import
   IIStroke,
   IISymbolGroup,
   IIText,
+  IIMath,
   TIIRecognized,
   ShapeKind,
   SymbolType,
@@ -110,6 +111,15 @@ export class IIRotationManager
     return this.editor.texter.updateBounds(text)
   }
 
+  protected applyOnMath(math: IIMath, center: TPoint, angleRad: number): IIMath
+  {
+    math.rotation = {
+      degree: convertRadianToDegree(angleRad) + (math.rotation?.degree || 0),
+      center: center
+    }
+    return math
+  }
+
   protected applyOnGroup(group: IISymbolGroup, center: TPoint, angleRad: number): IISymbolGroup
   {
     group.children.forEach(s => this.applyToSymbol(s, center, angleRad))
@@ -133,6 +143,8 @@ export class IIRotationManager
         return this.applyToEdge(symbol, center, angleRad)
       case SymbolType.Text:
         return this.applyOnText(symbol, center, angleRad)
+      case SymbolType.Math:
+        return this.applyOnMath(symbol, center, angleRad)
       case SymbolType.Group:
         return this.applyOnGroup(symbol, center, angleRad)
       case SymbolType.Recognized:
