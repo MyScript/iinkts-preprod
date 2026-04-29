@@ -75,10 +75,14 @@ export class IIMenuContext
     if (mathMenuInstance) {
       if (this.hasSingleMathSymbol) {
         const mathSymbol = this.symbolsSelected[0] as IIRecognizedMath
+        if (!mathSymbol.jiixId) {
+          mathMenuInstance.setMenuVisibility(false, { canEditVariables: false, canCompute: false, canEvaluate: false })
+          return
+        }
         const [actions, variables, evaluables] = await Promise.all([
-          this.editor.getAvailableActions(mathSymbol.jiixId!),
-          this.editor.getVariables(mathSymbol.jiixId!),
-          this.editor.getEvaluables(mathSymbol.jiixId!)
+          this.editor.getAvailableActions(mathSymbol.jiixId),
+          this.editor.getVariables(mathSymbol.jiixId),
+          this.editor.getEvaluables(mathSymbol.jiixId)
         ])
 
         const canEditVariables = Object.keys(variables).length > 0
