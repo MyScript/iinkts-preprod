@@ -60,21 +60,55 @@
     3. The result will be computed automatically when you end with "=" or "?"<br>
     4. Or click "Compute" to manually calculate a selected expression<br>
     5. Change the variable value using the input below<br>
-    6. Watch the dependent expressions recalculate automatically!
+    6. Watch the dependent expressions recalculate automatically!<br>
+    7. <strong>Hover over math blocks</strong> to see dependencies highlighted (sources in green, dependents in orange)<br>
+    8. Enable "Show Dependency Arrows" to visualize connections between blocks
   </p>
 
-  <div class="flex-container wrap gap" style="background: #fff3cd; padding: 6px 12px;">
-    <div class="flex-container wrap gap">
+  <div style="background: #fff3cd;">
+    <div class="flex-container wrap gap" style="padding: 6px 12px;">
+      <div class="flex-container wrap gap">
+        <label>
+          <strong>Set variable value:</strong>
+          <select id="variableSelect" disabled>
+            <option value="">-- No variables --</option>
+          </select>
+          <input type="number" id="variableValue" placeholder="New value" disabled />
+          <button id="setVariable" class="classic-btn" disabled>Set Value</button>
+        </label>
+      </div>
+      <button class="classic-btn" id="compute" disabled>Compute</button>
+    </div>
+    <div class="flex-container wrap gap" style="padding: 6px 12px; margin-top: 12px;">
       <label>
-        <strong>Set variable value:</strong>
-        <select id="variableSelect" disabled>
-          <option value="">-- No variables --</option>
-        </select>
-        <input type="number" id="variableValue" placeholder="New value" disabled />
-        <button id="setVariable" class="classic-btn" disabled>Set Value</button>
+        Show Badges (∑)
+        <input type="checkbox" id="showBadges" checked />
+      </label>
+      <label>
+        Show Borders
+        <input type="checkbox" id="showBorders" checked />
+      </label>
+      <label>
+        Show Result Panels
+        <input type="checkbox" id="showResultPanels" />
+      </label>
+      <button id="refreshBtn" class="classic-btn">Refresh Overlays</button>
+    </div>
+    <div class="flex-container wrap gap" style="padding: 6px 12px; margin-top: 12px; border-top: 1px solid #ddd;">
+      <strong style="width: 100%;">Interactions:</strong>
+      <label>
+        Highlight on Hover
+        <input type="checkbox" id="highlightOnHover" checked />
+      </label>
+      <label>
+        Highlight on Select
+        <input type="checkbox" id="highlightOnSelect" checked />
+      </label>
+      <label>
+        Show Dependency Arrows
+        <input type="checkbox" id="showDependencyArrows" />
       </label>
     </div>
-    <button class="classic-btn" id="compute" disabled>Compute</button>
   </div>
 
   <div id="editor-container">
@@ -96,6 +130,9 @@
     const variableSelect = document.getElementById('variableSelect')
     const variableValue = document.getElementById('variableValue')
     const setVariableBtn = document.getElementById('setVariable')
+    const showBadgesCheckbox = document.getElementById('showBadges')
+    const showBordersCheckbox = document.getElementById('showBorders')
+    const showResultPanelsCheckbox = document.getElementById('showResultPanels')
 
     let editor
     let allVariables = []
@@ -129,6 +166,14 @@
 
       editor = await Editor.load(editorElement, 'INTERACTIVEINK', options)
 
+      editor.mathOverlays.updateConfig({ showBadges: showBadgesCheckbox.checked })
+      editor.mathOverlays.updateConfig({ showBorders: showBordersCheckbox.checked })
+      editor.mathOverlays.updateConfig({ showResultPanels: showResultPanelsCheckbox.checked })
+
+      editor.mathInteractions.updateConfig({ highlightOnHover: highlightOnHoverCheckbox.checked })
+      editor.mathInteractions.updateConfig({ highlightOnSelect: highlightOnSelectCheckbox.checked })
+      editor.mathInteractions.updateConfig({ showDependencyArrows: showDependencyArrowsCheckbox.checked })
+
       editor.event.addChangedListener(onEditorChanged)
       editor.event.addSynchronizedListener(onSynchronized)
       editor.event.addLoadedListener(() => {
@@ -145,6 +190,10 @@
         variableSelect.disabled = true
         variableValue.disabled = true
         setVariableBtn.disabled = true
+
+        // Clear all transient symbols when editor is emptied
+        editor.transientInk.clearAll()
+
         return
       }
 
@@ -155,7 +204,6 @@
       synchronizeTimeout && clearTimeout(synchronizeTimeout)
       synchronizeTimeout = setTimeout(() => {
         const sym = editor.model.symbols.map(d => ({label: d.label, jiix: d.jiixId, dependentBlocks: d.dependentBlocks?.join(', ')}))
-        console.log('onSynchronized: ', JSON.stringify(sym, null, 2));
         updateDependenciesDisplay()
         updateVariablesList()
         tryAutoCompute()
@@ -174,14 +222,26 @@
         // Check if expression ends with = or ? (indicates a computation request)
         if ((label.endsWith('=') || label.endsWith('?')) && mathSymbol.jiixId) {
           try {
-            // Check if numerical-computation is available and no result already exists
-            console.log('=> mathSymbol.jiixId: ', mathSymbol.jiixId);
             const actions = await editor.getAvailableActions(mathSymbol.jiixId)
             const canCompute = actions?.includes('numerical-computation') && !mathSymbol.solverOutputStrokeIds
 
             if (canCompute) {
               console.log(`Auto-computing: ${label}`)
+
+              // Clear any existing transient results for this block
+              if (mathSymbol.id) {
+                editor.transientInk.clearTransientsForBlock(mathSymbol.id)
+              }
+
               await editor.computeMathNumericalResult(mathSymbol)
+
+              // Register solver output strokes as transient
+              if (mathSymbol.solverOutputStrokeIds && mathSymbol.solverOutputStrokeIds.length > 0) {
+                mathSymbol.solverOutputStrokeIds.forEach(strokeId => {
+                  editor.transientInk.addTransientSymbol(mathSymbol.id, strokeId)
+                })
+                console.log(`Registered ${mathSymbol.solverOutputStrokeIds.length} transient result(s) for "${label}"`)
+              }
             }
           } catch (e) {
             // Silently ignore errors - expression might not be computable yet
@@ -301,7 +361,6 @@
       setVariableBtn.disabled = allVariables.length === 0
     }
 
-
     computeElement.addEventListener('click', async () => {
       const selectedSymbols = editor.selector.selectedGroup
       if (selectedSymbols.length === 0) {
@@ -319,7 +378,20 @@
         computeElement.disabled = true
         computeElement.textContent = 'Computing...'
 
+        // Clear any existing transient results for this block
+        if (mathSymbol.id) {
+          editor.transientInk.clearTransientsForBlock(mathSymbol.id)
+        }
+
         await editor.computeMathNumericalResult(mathSymbol)
+
+        // Register solver output strokes as transient
+        if (mathSymbol.solverOutputStrokeIds && mathSymbol.solverOutputStrokeIds.length > 0) {
+          mathSymbol.solverOutputStrokeIds.forEach(strokeId => {
+            editor.transientInk.addTransientSymbol(mathSymbol.id, strokeId)
+          })
+          console.log(`Registered ${mathSymbol.solverOutputStrokeIds.length} transient result(s) for "${mathSymbol.label}"`)
+        }
 
         computeElement.textContent = 'Compute'
         computeElement.disabled = false
@@ -348,6 +420,18 @@
 
         console.log(`Setting ${varName} = ${newValue} in block ${sourceId}`)
 
+        // Clear transient results for all dependent blocks before changing the variable
+        const sourceSymbol = editor.model.symbols.find(s => s.jiixId === sourceId && s.type === 'recognized' && s.kind === 'math')
+        if (sourceSymbol && sourceSymbol.dependentBlocks) {
+          sourceSymbol.dependentBlocks.forEach(depJiixId => {
+            const depSymbol = editor.model.symbols.find(s => s.jiixId === depJiixId)
+            if (depSymbol && depSymbol.id) {
+              editor.transientInk.clearTransientsForBlock(depSymbol.id)
+              console.log(`Cleared transients for dependent block: ${depSymbol.label}`)
+            }
+          })
+        }
+
         await editor.setVariableValue(sourceId, varName, newValue)
 
         alert(`Variable ${varName} updated to ${newValue}. Dependent expressions recalculated!`)
@@ -363,6 +447,43 @@
         setVariableBtn.textContent = 'Set Value'
         setVariableBtn.disabled = false
       }
+    })
+
+    showBadgesCheckbox.addEventListener('change', (e) => {
+      editor.mathOverlays.toggleBadges(e.target.checked)
+    })
+
+    showBordersCheckbox.addEventListener('change', (e) => {
+      editor.mathOverlays.toggleBorders(e.target.checked)
+    })
+
+    showResultPanelsCheckbox.addEventListener('change', (e) => {
+      editor.mathOverlays.toggleResultPanels(e.target.checked)
+    })
+
+    const refreshBtn = document.getElementById('refreshBtn')
+    refreshBtn.addEventListener('click', () => {
+      editor.mathOverlays.refresh()
+    })
+
+    // Interaction controls
+    const highlightOnHoverCheckbox = document.getElementById('highlightOnHover')
+    const highlightOnSelectCheckbox = document.getElementById('highlightOnSelect')
+    const showDependencyArrowsCheckbox = document.getElementById('showDependencyArrows')
+
+    highlightOnHoverCheckbox.addEventListener('change', (e) => {
+      editor.mathInteractions.updateConfig({ highlightOnHover: e.target.checked })
+      if (!e.target.checked) {
+        editor.mathInteractions.clearAll()
+      }
+    })
+
+    highlightOnSelectCheckbox.addEventListener('change', (e) => {
+      editor.mathInteractions.updateConfig({ highlightOnSelect: e.target.checked })
+    })
+
+    showDependencyArrowsCheckbox.addEventListener('change', (e) => {
+      editor.mathInteractions.toggleDependencyArrows(e.target.checked)
     })
 
     showModalBtn.addEventListener('click', () => {
