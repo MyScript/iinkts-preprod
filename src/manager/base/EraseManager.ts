@@ -201,7 +201,6 @@ export class EraseManager
       // Erase deleted strokes from recognizer and wait for synchronization
       if (allStrokeIdsToDelete.length > 0) {
         await editor.recognizer.eraseStrokes(allStrokeIdsToDelete)
-        await editor.synchronizeStrokesWithJIIX()
       }
 
       // Remove complete symbols

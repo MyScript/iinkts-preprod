@@ -278,7 +278,7 @@ export class InteractiveInkEditor extends AbstractEditor
     clearTimeout(this.#recognizeStrokeTimer)
     this.#recognizeStrokeTimer = setTimeout(async () =>
     {
-      await this.synchronizer.synchronize()
+      await this.synchronizeStrokesWithJIIX()
       this.updateLayerUI(0)
       this.event.emitChanged(undoRedoContext)
     }, 500)
@@ -329,7 +329,6 @@ export class InteractiveInkEditor extends AbstractEditor
       this.configuration.recognition.lang = code
       await this.recognizer.newSession(this.configuration)
       this.recognizer.addStrokes(this.extractStrokesFromSymbols(this.model.symbols), false)
-      await this.synchronizer.synchronize()
       this.layers.hideLoader()
       this.event.emitLoaded()
     }
@@ -1453,16 +1452,48 @@ export class InteractiveInkEditor extends AbstractEditor
   }
 
   /**
+   * Find a math symbol by its JIIX ID
+   * @param jiixId - The JIIX ID to search for
+   * @returns The math symbol if found, undefined otherwise
+   * @group MathSolver
+   */
+  findMathSymbolByJiixId(jiixId: string): IIRecognizedMath | undefined
+  {
+    return this.model.symbols.find(s =>
+      s.type === SymbolType.Recognized &&
+      s.kind === RecognizedKind.Math &&
+      (s as IIRecognizedMath).jiixId === jiixId
+    ) as IIRecognizedMath | undefined
+  }
+
+  /**
+   * Clear solver output strokes from a math symbol
+   * @param mathSymbol - The math symbol to clear solver outputs from
+   * @returns Promise that resolves when strokes are removed
+   * @group MathSolver
+   */
+  async clearSolverOutputStrokes(mathSymbol: IIRecognizedMath): Promise<void>
+  {
+    if (mathSymbol.solverOutputStrokeIds && mathSymbol.solverOutputStrokeIds.length > 0) {
+      this.logger.info("clearSolverOutputStrokes", `Removing ${mathSymbol.solverOutputStrokeIds.length} solver output strokes from ${mathSymbol.jiixId}`)
+      await this.removeSymbols(mathSymbol.solverOutputStrokeIds, false)
+      mathSymbol.strokes = mathSymbol.strokes.filter(s => !mathSymbol.solverOutputStrokeIds!.includes(s.id))
+      mathSymbol.solverOutputStrokeIds = undefined
+      await this.model.updateSymbol(mathSymbol)
+    }
+  }
+
+  /**
    * Get available math solver actions for a specific math element
-   * @param blocId - The ID of the math element (jiixId)
+   * @param blockId - The ID of the math element (jiixId)
    * @returns Promise with array of available actions
    * @group MathSolver
    */
-  async getAvailableActions(blocId: string): Promise<string[]>
+  async getAvailableActions(blockId: string): Promise<string[]>
   {
     try {
-      this.logger.info("getAvailableActions", { blocId })
-      return await this.recognizer.getAvailableActions(blocId)
+      this.logger.info("getAvailableActions", { blockId })
+      return await this.recognizer.getAvailableActions(blockId)
     }
     catch (error) {
       this.logger.error("getAvailableActions", { error })
@@ -1473,16 +1504,16 @@ export class InteractiveInkEditor extends AbstractEditor
 
   /**
    * Get diagnostic result for a specific math task
-   * @param blocId - The ID of the math element (jiixId)
+   * @param blockId - The ID of the math element (jiixId)
    * @param task - The task to diagnose (e.g., "numerical-computation", "evaluation")
    * @returns Promise with diagnostic result (e.g., "ALLOWED", "NOT_ALLOWED")
    * @group MathSolver
    */
-  async getDiagnostic(blocId: string, task: string): Promise<string>
+  async getDiagnostic(blockId: string, task: string): Promise<string>
   {
     try {
-      this.logger.info("getDiagnostic", { blocId, task })
-      return await this.recognizer.getDiagnostic(blocId, task)
+      this.logger.info("getDiagnostic", { blockId, task })
+      return await this.recognizer.getDiagnostic(blockId, task)
     }
     catch (error) {
       this.logger.error("getDiagnostic", { error })
@@ -1493,15 +1524,15 @@ export class InteractiveInkEditor extends AbstractEditor
 
   /**
    * Get numerical computation result for a math expression
-   * @param blocId - The ID of the math element (jiixId)
+   * @param blockId - The ID of the math element (jiixId)
    * @returns Promise with JIIX export containing the computed result
    * @group MathSolver
    */
-  async getNumericalComputation(blocId: string): Promise<TJIIXExport>
+  async getNumericalComputation(blockId: string): Promise<TJIIXExport>
   {
     try {
-      this.logger.info("getNumericalComputation", { blocId })
-      return await this.recognizer.getNumericalComputation(blocId)
+      this.logger.info("getNumericalComputation", { blockId })
+      return await this.recognizer.getNumericalComputation(blockId)
     }
     catch (error) {
       this.logger.error("getNumericalComputation", { error })
@@ -1512,15 +1543,15 @@ export class InteractiveInkEditor extends AbstractEditor
 
   /**
    * Get variables from a math expression
-   * @param blocId - The ID of the math element (jiixId)
+   * @param blockId - The ID of the math element (jiixId)
    * @returns Promise with array of variables
    * @group MathSolver
    */
-  async getVariables(blocId: string): Promise<TMathVariable[]>
+  async getVariables(blockId: string): Promise<TMathVariable[]>
   {
     try {
-      this.logger.info("getVariables", { blocId })
-      return await this.recognizer.getVariables(blocId)
+      this.logger.info("getVariables", { blockId })
+      return await this.recognizer.getVariables(blockId)
     }
     catch (error) {
       this.logger.error("getVariables", { error })
@@ -1531,15 +1562,15 @@ export class InteractiveInkEditor extends AbstractEditor
 
   /**
    * Get available math solver actions for a specific math element
-   * @param blocId - The ID of the math element (jiixId)
+   * @param blockId - The ID of the math element (jiixId)
    * @returns Promise with the value of the variable
    * @group MathSolver
    */
-  async getVariableValue(blocId: string, variableName: string): Promise<number>
+  async getVariableValue(blockId: string, variableName: string): Promise<number>
   {
     try {
-      this.logger.info("getVariableValue", { blocId, variableName })
-      return await this.recognizer.getVariableValue(blocId, variableName)
+      this.logger.info("getVariableValue", { blockId, variableName })
+      return await this.recognizer.getVariableValue(blockId, variableName)
     }
     catch (error) {
       this.logger.error("getVariableValue", { error })
@@ -1550,38 +1581,30 @@ export class InteractiveInkEditor extends AbstractEditor
 
   /**
    * Set value for a specific variable in a math expression
-   * @param blocId - The ID of the math element (jiixId)
+   * @param blockId - The ID of the math element (jiixId)
    * @param variableName - Name of the variable to set
    * @param variableValue - Value to assign to the variable
    * @param mathSymbol - Optional math symbol (will be found if not provided)
    * @returns Promise that resolves when the variable is set
    * @group MathSolver
    */
-  async setVariableValue(blocId: string, variableName: string, variableValue: number, mathSymbol?: IIRecognizedMath): Promise<void>
+  async setVariableValue(blockId: string, variableName: string, variableValue: number, mathSymbol?: IIRecognizedMath): Promise<void>
   {
     try {
-      this.logger.info("setVariableValue", { blocId, variableName, variableValue })
+      this.logger.info("setVariableValue", { blockId, variableName, variableValue })
 
-      // Find the math symbol corresponding to this blocId if not provided
+      // Find the math symbol corresponding to this blockId if not provided
       let symbol = mathSymbol
       if (!symbol) {
-        symbol = this.model.symbols.find(s =>
-          s.type === SymbolType.Recognized &&
-          s.kind === RecognizedKind.Math &&
-          (s as IIRecognizedMath).jiixId === blocId
-        ) as IIRecognizedMath | undefined
+        symbol = this.findMathSymbolByJiixId(blockId)
       }
 
       // Remove previous solver output strokes when setting a new variable value
-      if (symbol?.solverOutputStrokeIds && symbol.solverOutputStrokeIds.length > 0) {
-        this.logger.info(`Removing ${symbol.solverOutputStrokeIds.length} solver output strokes due to variable change`)
-        await this.removeSymbols(symbol.solverOutputStrokeIds, false)
-        symbol.strokes = symbol.strokes.filter(s => !symbol.solverOutputStrokeIds!.includes(s.id))
-        symbol.solverOutputStrokeIds = undefined
-        await this.model.updateSymbol(symbol)
+      if (symbol) {
+        await this.clearSolverOutputStrokes(symbol)
       }
 
-      await this.recognizer.setVariableValue(blocId, variableName, variableValue)
+      await this.recognizer.setVariableValue(blockId, variableName, variableValue)
       if (symbol) {
         if (!symbol.variableValues) {
           symbol.variableValues = {}
@@ -1589,6 +1612,10 @@ export class InteractiveInkEditor extends AbstractEditor
         symbol.variableValues[variableName] = variableValue
         await this.model.updateSymbol(symbol)
       }
+
+      // Recalculate dependent blocks automatically
+      this.logger.info("setVariableValue", `Variable value changed, recalculating dependent blocks for ${blockId}`)
+      await this.recalculateDependentBlocks(blockId)
     }
     catch (error) {
       this.logger.error("setVariableValue", { error })
@@ -1597,25 +1624,21 @@ export class InteractiveInkEditor extends AbstractEditor
     }
   }
 
-  async solve(blocId: string, variables?: { [key: string]: number }): Promise<TJIIXExport>
+  async solve(blockId: string, variables?: { [key: string]: number }): Promise<TJIIXExport>
   {
     try {
-      this.logger.info("solve", { blocId, variables })
-      const mathSymbol = this.model.symbols.find(s =>
-        s.type === SymbolType.Recognized &&
-        s.kind === RecognizedKind.Math &&
-        (s as IIRecognizedMath).jiixId === blocId
-      ) as IIRecognizedMath | undefined
+      this.logger.info("solve", { blockId, variables })
+      const mathSymbol = this.findMathSymbolByJiixId(blockId)
       if (!mathSymbol) {
-        throw new Error(`No math symbol found for blocId ${ blocId }`)
+        throw new Error(`No math symbol found for blockId ${ blockId }`)
       }
       if (variables) {
         for (const [variableName, variableValue] of Object.entries(variables)) {
-          await this.setVariableValue(blocId, variableName, variableValue, mathSymbol)
+          await this.setVariableValue(blockId, variableName, variableValue, mathSymbol)
         }
       }
 
-      const result = await this.getNumericalComputation(blocId)
+      const result = await this.getNumericalComputation(blockId)
       this.logger.info("Numerical computation completed successfully", result)
 
       // Add solver output strokes to canvas (this also removes previous ones)
@@ -1633,15 +1656,15 @@ export class InteractiveInkEditor extends AbstractEditor
 
   /**
    * Get evaluable input/output variable pairs for a math expression
-   * @param blocId - The ID of the math element (jiixId)
+   * @param blockId - The ID of the math element (jiixId)
    * @returns Promise with array of evaluable pairs
    * @group MathSolver
    */
-  async getEvaluables(blocId: string): Promise<TMathEvaluable[]>
+  async getEvaluables(blockId: string): Promise<TMathEvaluable[]>
   {
     try {
-      this.logger.info("getEvaluables", { blocId })
-      return await this.recognizer.getEvaluables(blocId)
+      this.logger.info("getEvaluables", { blockId })
+      return await this.recognizer.getEvaluables(blockId)
     }
     catch (error) {
       this.logger.error("getEvaluables", { error })
@@ -1652,12 +1675,12 @@ export class InteractiveInkEditor extends AbstractEditor
 
   /**
    * Evaluate a math function for a range of input values
-   * @param blocId - The ID of the math element (jiixId)
+   * @param blockId - The ID of the math element (jiixId)
    * @param evaluation - Evaluation parameters (input/output variables, range, point count)
    * @returns Promise with array of objects { inputVar: value, outputVar: value }
    * @group MathSolver
    */
-  async evaluate(blocId: string, evaluation: {
+  async evaluate(blockId: string, evaluation: {
     inputVariableName: string,
     outputVariableName: string,
     from: number,
@@ -1666,8 +1689,8 @@ export class InteractiveInkEditor extends AbstractEditor
   }): Promise<{ [key: string]: number }[]>
   {
     try {
-      this.logger.info("evaluate", { blocId, evaluation })
-      return await this.recognizer.evaluate(blocId, evaluation)
+      this.logger.info("evaluate", { blockId, evaluation })
+      return await this.recognizer.evaluate(blockId, evaluation)
     }
     catch (error) {
       this.logger.error("evaluate", { error })
@@ -1881,11 +1904,92 @@ export class InteractiveInkEditor extends AbstractEditor
     }
   }
 
+  /**
+   * Recalculate all blocks that depend on a source block's variables
+   * When a variable value changes in a source block, this automatically recomputes dependent expressions
+   * @param sourceBlockId - The JIIX ID of the source block that changed
+   * @returns Promise that resolves when all dependent blocks are recalculated
+   * @group MathSolver
+   */
+  async recalculateDependentBlocks(sourceBlockId: string): Promise<void>
+  {
+    try {
+      this.logger.info("recalculateDependentBlocks", { sourceBlockId })
+
+      const sourceMathSymbol = this.findMathSymbolByJiixId(sourceBlockId)
+
+      if (!sourceMathSymbol) {
+        this.logger.warn("recalculateDependentBlocks", `Source block not found: ${sourceBlockId}`)
+        return
+      }
+
+      if (!sourceMathSymbol.dependentBlocks || sourceMathSymbol.dependentBlocks.length === 0) {
+        this.logger.debug("recalculateDependentBlocks", "No dependent blocks to recalculate")
+        return
+      }
+
+      this.logger.info("recalculateDependentBlocks", `Found ${sourceMathSymbol.dependentBlocks.length} dependent blocks`)
+
+      for (const dependentBlockId of sourceMathSymbol.dependentBlocks) {
+        const dependentMathSymbol = this.findMathSymbolByJiixId(dependentBlockId)
+
+        if (!dependentMathSymbol) {
+          this.logger.warn("recalculateDependentBlocks", `Dependent block not found: ${dependentBlockId}`)
+          continue
+        }
+
+        await this.clearSolverOutputStrokes(dependentMathSymbol)
+
+        try {
+          this.logger.info("recalculateDependentBlocks", `Computing numerical result for ${dependentBlockId}`)
+          const result = await this.getNumericalComputation(dependentBlockId)
+
+          const addedStrokes = await this.addSolverOutputStrokes(result, dependentMathSymbol)
+          this.logger.info("recalculateDependentBlocks", `Added ${addedStrokes.length} new solver output strokes to ${dependentBlockId}`)
+        }
+        catch (computeError) {
+          this.logger.error("recalculateDependentBlocks", `Error computing ${dependentBlockId}:`, computeError)
+          // Continue with other dependent blocks even if one fails
+        }
+      }
+
+      this.logger.info("recalculateDependentBlocks", "All dependent blocks recalculated")
+      this.event.emitChanged(this.history.context)
+    }
+    catch (error) {
+      this.logger.error("recalculateDependentBlocks", { error })
+      this.manageError(error as Error)
+      throw error
+    }
+  }
+
+  /**
+   * Get all dependencies for a math block
+   * Returns information about which variables this block uses and from where,
+   * and which other blocks depend on this block's variables
+   * @param blockId - The JIIX ID of the math block
+   * @returns Object containing variable sources and dependent blocks
+   * @group MathSolver
+   */
+  getMathDependencies(blockId: string): { variableSources?: { [variableName: string]: string }, dependentBlocks?: string[] } | null
+  {
+    const mathSymbol = this.findMathSymbolByJiixId(blockId)
+
+    if (!mathSymbol) {
+      this.logger.warn("getMathDependencies", `Math symbol not found for blockId: ${blockId}`)
+      return null
+    }
+
+    return {
+      variableSources: mathSymbol.variableSources,
+      dependentBlocks: mathSymbol.dependentBlocks
+    }
+  }
+
   async destroy(): Promise<void>
   {
     this.logger.info("destroy")
 
-    // Retirer les écouteurs d'événements clavier
     window.removeEventListener("keydown", this.handleKeyDown)
     window.removeEventListener("keyup", this.handleKeyUp)
 

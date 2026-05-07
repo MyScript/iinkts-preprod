@@ -22,6 +22,14 @@ export type TRecognitionWebSocketConfiguration = {
   gesture: {
     enable: boolean,
     ignoreGestureStrokes: boolean
+  },
+  math?: {
+    solver?: {
+      "auto-variable-management"?: {
+        enable?: boolean,
+        "scoping-policy"?: "closest"|"last-modified"|"last-edited"
+      }
+    }
   }
 }
 
