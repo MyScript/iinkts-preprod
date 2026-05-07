@@ -27,6 +27,12 @@ export class IIRecognizedMath extends IIRecognizedBase<RecognizedKind.Math>
   /** IDs of solver output strokes added by numerical computation */
   solverOutputStrokeIds?: string[]
 
+  /** Map of variable sources: variableName -> source blockId */
+  variableSources?: { [variableName: string]: string }
+
+  /** List of blockIds that depend on this block's variables */
+  dependentBlocks?: string[]
+
   constructor(
     strokes: IIStroke[],
     style?: PartialDeep<TStyle>
@@ -45,6 +51,8 @@ export class IIRecognizedMath extends IIRecognizedBase<RecognizedKind.Math>
     clone.expressions = this.expressions ? structuredClone(this.expressions) : undefined
     clone.variableValues = this.variableValues ? structuredClone(this.variableValues) : undefined
     clone.solverOutputStrokeIds = this.solverOutputStrokeIds ? structuredClone(this.solverOutputStrokeIds) : undefined
+    clone.variableSources = this.variableSources ? structuredClone(this.variableSources) : undefined
+    clone.dependentBlocks = this.dependentBlocks ? structuredClone(this.dependentBlocks) : undefined
     clone.selected = this.selected
     clone.deleting = this.deleting
     clone.creationTime = this.creationTime
@@ -64,6 +72,8 @@ export class IIRecognizedMath extends IIRecognizedBase<RecognizedKind.Math>
       expressions: this.expressions,
       variableValues: this.variableValues,
       solverOutputStrokeIds: this.solverOutputStrokeIds,
+      variableSources: this.variableSources,
+      dependentBlocks: this.dependentBlocks,
       strokes: structuredClone(this.strokes)
     }
   }
@@ -96,6 +106,12 @@ export class IIRecognizedMath extends IIRecognizedBase<RecognizedKind.Math>
     }
     if (partial.solverOutputStrokeIds) {
       math.solverOutputStrokeIds = partial.solverOutputStrokeIds as string[]
+    }
+    if (partial.variableSources) {
+      math.variableSources = partial.variableSources as { [variableName: string]: string }
+    }
+    if (partial.dependentBlocks) {
+      math.dependentBlocks = partial.dependentBlocks as string[]
     }
     return math
   }

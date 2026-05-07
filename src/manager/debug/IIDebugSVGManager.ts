@@ -2,7 +2,7 @@ import { LoggerManager, LoggerCategory } from "../../logger"
 import { IIModel, JIIXEdgeKind } from "../../model"
 import { Box, IIText, SymbolType, TBox, TIISymbol } from "../../symbol"
 import { SVGRenderer, SVGRendererConst, SVGBuilder } from "../../renderer"
-import { convertBoundingBoxMillimeterToPixel, createUUID } from "../../utils"
+import { convertBoundingBoxMillimeterToPixel } from "../../utils"
 import { InteractiveInkEditor } from "../../editor/InteractiveInkEditor"
 
 /**
@@ -10,12 +10,23 @@ import { InteractiveInkEditor } from "../../editor/InteractiveInkEditor"
  */
 export class IIDebugSVGManager
 {
+  // Constants for debug box styling
+  private static readonly DEBUG_BOX_STYLES = {
+    PADDING: 4,
+    FONT_SIZE: 12,
+    LINE_HEIGHT: 14,
+    RECOGNITION_BOX_COLOR: "green",
+    RECOGNITION_ITEM_BOX_COLOR: "blue"
+  }
+
   #logger = LoggerManager.getLogger(LoggerCategory.SVGDEBUG)
   #snapPointsVisibility = false
   #verticesVisibility = false
   #boundingBoxVisibility = false
   #recognitionBoxVisibility = false
   #recognitionItemBoxVisibility = false
+  #previousRecognitionBoxes: Map<string, string> = new Map()
+  #previousRecognitionItemBoxes: Map<string, string> = new Map()
 
   editor: InteractiveInkEditor
 
@@ -205,68 +216,81 @@ export class IIDebugSVGManager
     }
   }
 
-  protected drawRecognitionBox(box: TBox, infos?: string[]): void
+  protected drawDebugBox(box: TBox, color: string, debugType: string, infos?: string[], boxId?: string): void
   {
-    const COLOR = "green"
-    const TEXT_HEIGHT = 20
-    const recognitionGroup = SVGBuilder.createGroup({ "debug": "recognition-box" })
-
-    const rect = SVGBuilder.createRect(box, { fill: "transparent", stroke: COLOR, style: SVGRendererConst.noSelection })
-    recognitionGroup.appendChild(rect)
-
-    const infosGroup = SVGBuilder.createGroup({ id: `infos-group-${ createUUID() }` })
-    const infoX = box.x + box.width
-    let infoY = box.y + TEXT_HEIGHT / 2
-    infos?.forEach(w =>
-    {
-      infosGroup.appendChild(SVGBuilder.createText({ x: infoX, y: infoY }, w, { stroke: COLOR, style: SVGRendererConst.noSelection }))
-      infoY += TEXT_HEIGHT
-    })
-    recognitionGroup.appendChild(infosGroup)
-    this.renderer.layer.appendChild(recognitionGroup)
-
-    const infosGroupBox = infosGroup.getBBox()
-    const rectBox = {
-      width: infosGroupBox.width + 10,
-      height: infosGroupBox.height + 10,
-      x: infosGroupBox.x - 5,
-      y: infosGroupBox.y - 5,
+    const { PADDING, FONT_SIZE, LINE_HEIGHT } = IIDebugSVGManager.DEBUG_BOX_STYLES
+    const groupAttrs: Record<string, string> = { "debug": debugType }
+    if (boxId) {
+      groupAttrs["box-id"] = boxId
     }
-    const rectTranslate = SVGBuilder.createRect(rectBox, { fill: "white", style: "cursor:move", stroke: COLOR })
-    infosGroup.prepend(rectTranslate)
+    const group = SVGBuilder.createGroup(groupAttrs)
 
-    const translateEl = (e: PointerEvent) =>
-    {
-      e.preventDefault()
-      e.stopPropagation()
-      const originX = Number(this.renderer.getAttribute(infosGroup.id, "originX"))
-      const originY = Number(this.renderer.getAttribute(infosGroup.id, "originY"))
-      const tx = e.clientX - originX
-      const ty = e.clientY - originY
-      this.renderer.setAttribute(infosGroup.id, "transform", `translate(${ tx },${ ty })`)
-      const newRectBox = {
-        width: rectBox.width,
-        height: rectBox.height,
-        x: rectBox.x + tx,
-        y: rectBox.y + ty,
-      }
-      this.renderer.removeSymbol(`connection-${ infosGroup.id }`)
-      this.renderer.drawConnectionBetweenBox(`connection-${ infosGroup.id }`, box, newRectBox, "corners", { stroke: COLOR, debug: "recognition-box-link" })
+    const rect = SVGBuilder.createRect(box, { fill: "transparent", stroke: color, "stroke-width": "1", style: SVGRendererConst.noSelection })
+    group.appendChild(rect)
+
+    if (infos && infos.length > 0) {
+      const textGroup = SVGBuilder.createGroup({})
+      let currentY = box.y - PADDING
+
+      infos.forEach((info) => {
+        const textElement = SVGBuilder.createText(
+          { x: box.x, y: currentY },
+          info,
+          {
+            fill: color,
+            "font-size": FONT_SIZE.toString(),
+            "font-family": "monospace",
+            style: SVGRendererConst.noSelection
+          }
+        )
+        textGroup.appendChild(textElement)
+        currentY -= LINE_HEIGHT
+      })
+
+      group.appendChild(textGroup)
+
+      const textBBox = textGroup.getBBox()
+      const bgRect = SVGBuilder.createRect(
+        {
+          x: textBBox.x - PADDING / 2,
+          y: textBBox.y - PADDING / 2,
+          width: textBBox.width + PADDING,
+          height: textBBox.height + PADDING
+        },
+        {
+          fill: "white",
+          stroke: color,
+          "stroke-width": "1",
+          style: SVGRendererConst.noSelection
+        }
+      )
+      group.insertBefore(bgRect, textGroup)
     }
 
-    rectTranslate.addEventListener("pointerdown", e =>
-    {
-      e.preventDefault()
-      e.stopPropagation()
-      if (!this.renderer.getAttribute(infosGroup.id, "originX")) {
-        this.renderer.setAttribute(infosGroup.id, "originX", e.clientX.toString())
-        this.renderer.setAttribute(infosGroup.id, "originY", e.clientY.toString())
-      }
-      this.renderer.layer.addEventListener("pointermove", translateEl)
-      this.renderer.layer.addEventListener("pointerup", () => this.renderer.layer.removeEventListener("pointermove", translateEl))
-      this.renderer.layer.addEventListener("pointerleave", () => this.renderer.layer.removeEventListener("pointermove", translateEl))
-      this.renderer.layer.addEventListener("pointercancel", () => this.renderer.layer.removeEventListener("pointermove", translateEl))
-    })
+    this.renderer.layer.appendChild(group)
+  }
+
+  protected trackAndDrawBox(
+    boxId: string,
+    box: TBox,
+    infos: string[],
+    debugType: string,
+    color: string,
+    currentBoxes: Map<string, string>,
+    previousBoxes: Map<string, string>
+  ): void
+  {
+    const boxData = JSON.stringify({ box, infos })
+    currentBoxes.set(boxId, boxData)
+    if (previousBoxes.get(boxId) !== boxData) {
+      this.renderer.clearElements({ attrs: { "debug": debugType, "box-id": boxId } })
+      this.drawDebugBox(box, color, debugType, infos, boxId)
+    }
+  }
+
+  protected drawRecognitionBox(box: TBox, infos?: string[], boxId?: string): void
+  {
+    this.drawDebugBox(box, IIDebugSVGManager.DEBUG_BOX_STYLES.RECOGNITION_BOX_COLOR, "recognition-box", infos, boxId)
   }
 
   protected async showRecognitionBox(): Promise<void>
@@ -280,64 +304,49 @@ export class IIDebugSVGManager
         this.#logger.warn("drawRecognitionBox", "You must to enabled configuration.recognition.exports[\"bounding-box\"]")
         return
       }
-      jiix.elements?.forEach(el =>
+      const currentBoxes = new Map<string, string>()
+      jiix.elements?.forEach((el, elIndex) =>
       {
         switch (el.type) {
           case "Node": {
             if (el["bounding-box"]) {
+              const boxId = `node-${elIndex}`
               const box = convertBoundingBoxMillimeterToPixel(el["bounding-box"])
-              const hideProperties = ["bounding-box", "items", "id"]
-              const infos = Object.keys(el).filter(k => !hideProperties.includes(k)).map(k => `${ k }: ${ JSON.stringify(el[k as keyof typeof el]) }`)
-              this.drawRecognitionBox(box, infos)
+              const infos = [`type: ${el.type}`, `kind: ${el.kind}`]
+              this.trackAndDrawBox(boxId, box, infos, "recognition-box", IIDebugSVGManager.DEBUG_BOX_STYLES.RECOGNITION_BOX_COLOR, currentBoxes, this.#previousRecognitionBoxes)
             }
             break
           }
           case "Text": {
-            el.words?.forEach(w =>
-            {
-              if (w?.["bounding-box"]) {
-                const box = convertBoundingBoxMillimeterToPixel(w["bounding-box"])
-                this.drawRecognitionBox(box, [`type: ${ el.type }`, `candidates: ${ JSON.stringify(w.candidates || []) }`])
-              }
-            })
+            if (el["bounding-box"]) {
+              const boxId = `text-${elIndex}`
+              const box = convertBoundingBoxMillimeterToPixel(el["bounding-box"])
+              const infos = [`type: ${el.type}`, `label: ${el.label || ""}`]
+              this.trackAndDrawBox(boxId, box, infos, "recognition-box", IIDebugSVGManager.DEBUG_BOX_STYLES.RECOGNITION_BOX_COLOR, currentBoxes, this.#previousRecognitionBoxes)
+            }
             break
           }
           case "Math": {
             if (el["bounding-box"]) {
+              const boxId = `math-${elIndex}`
               const box = convertBoundingBoxMillimeterToPixel(el["bounding-box"])
-              const hideProperties = ["bounding-box", "items", "id", "expressions"]
-              const infos = Object.keys(el).filter(k => !hideProperties.includes(k)).map(k => `${ k }: ${ JSON.stringify(el[k as keyof typeof el]) }`)
-              infos.push(`parent: ${ el.parent || "none" }`)
-              infos.push(`expressions: ${ el.expressions?.length || 0 }`)
-              this.drawRecognitionBox(box, infos)
+              const infos = [`type: ${el.type}`, `label: ${el.label || ""}`]
+              this.trackAndDrawBox(boxId, box, infos, "recognition-box", IIDebugSVGManager.DEBUG_BOX_STYLES.RECOGNITION_BOX_COLOR, currentBoxes, this.#previousRecognitionBoxes)
             }
             break
           }
           case "Edge": {
             if (el.kind === JIIXEdgeKind.PolyEdge) {
-              const infos = [
-                `type: ${ el.type }`,
-                `kind: ${ el.kind }`,
-              ]
-              el.edges.forEach((e, i) =>
-              {
-                let inf = `edge-${ i }: [{ x1: ${ e.x1 }, y2: ${ e.y1 } },{ x2: ${ e.x2 }, y2: ${ e.y2 } }]`
-                if (e.p1Decoration) {
-                  inf += `, p1Decoration: ${ e.p1Decoration }`
-                }
-                if (e.p2Decoration) {
-                  inf += `, p2Decoration: ${ e.p2Decoration }`
-                }
-                infos.push(inf)
-              })
+              const boxId = `edge-poly-${elIndex}`
+              const infos = [`type: ${el.type}`, `kind: ${el.kind}`]
               const box = convertBoundingBoxMillimeterToPixel(Box.createFromBoxes(el.edges.map(e => e["bounding-box"] as TBox)))
-              this.drawRecognitionBox(box, infos)
+              this.trackAndDrawBox(boxId, box, infos, "recognition-box", IIDebugSVGManager.DEBUG_BOX_STYLES.RECOGNITION_BOX_COLOR, currentBoxes, this.#previousRecognitionBoxes)
             }
             else if (el["bounding-box"]) {
+              const boxId = `edge-${elIndex}`
               const box = convertBoundingBoxMillimeterToPixel(el["bounding-box"])
-              const hideProperties = ["bounding-box", "items", "id", "ports", "connected"]
-              const infos = Object.keys(el).filter(k => !hideProperties.includes(k)).map(k => `${ k }: ${ JSON.stringify(el[k as keyof typeof el]) }`)
-              this.drawRecognitionBox(box, infos)
+              const infos = [`type: ${el.type}`, `kind: ${el.kind}`]
+              this.trackAndDrawBox(boxId, box, infos, "recognition-box", IIDebugSVGManager.DEBUG_BOX_STYLES.RECOGNITION_BOX_COLOR, currentBoxes, this.#previousRecognitionBoxes)
             }
             break
           }
@@ -347,103 +356,57 @@ export class IIDebugSVGManager
           }
         }
       })
+
+      this.#previousRecognitionBoxes.forEach((_, boxId) => {
+        if (!currentBoxes.has(boxId)) {
+          this.renderer.clearElements({ attrs: { "debug": "recognition-box", "box-id": boxId } })
+        }
+      })
+      this.#previousRecognitionBoxes = currentBoxes
     }
   }
   protected clearRecognitionBox(): void
   {
     this.#logger.info("clearRecognitionBox")
     this.renderer.clearElements({ attrs: { "debug": "recognition-box" } })
-    this.renderer.clearElements({ attrs: { "debug": "recognition-box-link" } })
   }
   async debugRecognitionBox(): Promise<void>
   {
-    this.clearRecognitionBox()
     if (this.#recognitionBoxVisibility) {
-      this.showRecognitionBox()
+      await this.showRecognitionBox()
+    } else {
+      this.clearRecognitionBox()
+      this.#previousRecognitionBoxes.clear()
     }
   }
 
-  protected drawRecognitionItemBox(box: TBox, label?: string, chars?: string[]): void
+  protected drawRecognitionItemBox(box: TBox, label?: string, chars?: string[], boxId?: string): void
   {
-    const COLOR = "blue"
-    const CHAR_SIZE = 14
-
-    const recognitionItemGroup = SVGBuilder.createGroup({ "debug": "recognition-item-box" })
-    const rect = SVGBuilder.createRect(box, { fill: "transparent", stroke: COLOR, style: SVGRendererConst.noSelection })
-    recognitionItemGroup.appendChild(rect)
-
-    const charX = box.x
-    let charY = box.y - CHAR_SIZE
-
-    const charsGroup = SVGBuilder.createGroup({ id: `chars-group-${ createUUID() }` })
+    const infoParts: string[] = []
     if (label) {
-      charsGroup.appendChild(SVGBuilder.createText({ x: charX, y: charY }, `label: ${ label }`, { fill: COLOR, "font-size": CHAR_SIZE.toString(), style: SVGRendererConst.noSelection }))
+      infoParts.push(`label: ${label}`)
     }
     if (chars?.length) {
-      charY += CHAR_SIZE
-      charsGroup.appendChild(SVGBuilder.createText({ x: charX, y: charY }, `[${ chars.join(", ") }]`, { fill: COLOR, "font-size": CHAR_SIZE.toString(), style: SVGRendererConst.noSelection }))
+      infoParts.push(`[${chars.join(", ")}]`)
     }
 
-    recognitionItemGroup.appendChild(charsGroup)
-    this.renderer.layer.appendChild(recognitionItemGroup)
-
-    const charsGroupBox = charsGroup.getBBox()
-    const rectBox = {
-      width: charsGroupBox.width + 10,
-      height: charsGroupBox.height + 10,
-      x: charsGroupBox.x - 5,
-      y: charsGroupBox.y - 5,
-    }
-    const rectTranslate = SVGBuilder.createRect(rectBox, { fill: "white", style: "cursor:move", stroke: COLOR })
-    charsGroup.prepend(rectTranslate)
-
-    const translateEl = (e: PointerEvent) =>
-    {
-      e.preventDefault()
-      e.stopPropagation()
-      const originX = Number(this.renderer.getAttribute(charsGroup.id, "originX"))
-      const originY = Number(this.renderer.getAttribute(charsGroup.id, "originY"))
-      const tx = e.clientX - originX
-      const ty = e.clientY - originY
-      this.renderer.setAttribute(charsGroup.id, "transform", `translate(${ tx },${ ty })`)
-      const newRectBox = {
-        width: rectBox.width,
-        height: rectBox.height,
-        x: rectBox.x + tx,
-        y: rectBox.y + ty,
-      }
-      this.renderer.removeSymbol(`connection-${ charsGroup.id }`)
-      this.renderer.drawConnectionBetweenBox(`connection-${ charsGroup.id }`, box, newRectBox, "corners", { stroke: COLOR, debug: "recognition-item-box-link" })
-    }
-
-    rectTranslate.addEventListener("pointerdown", e =>
-    {
-      e.preventDefault()
-      e.stopPropagation()
-      if (!this.renderer.getAttribute(charsGroup.id, "originX")) {
-        this.renderer.setAttribute(charsGroup.id, "originX", e.clientX.toString())
-        this.renderer.setAttribute(charsGroup.id, "originY", e.clientY.toString())
-      }
-      this.renderer.layer.addEventListener("pointermove", translateEl)
-    })
-    this.renderer.layer.addEventListener("pointerup", () => this.renderer.layer.removeEventListener("pointermove", translateEl))
-    this.renderer.layer.addEventListener("pointerleave", () => this.renderer.layer.removeEventListener("pointermove", translateEl))
-    this.renderer.layer.addEventListener("pointercancel", () => this.renderer.layer.removeEventListener("pointermove", translateEl))
-
+    this.drawDebugBox(box, IIDebugSVGManager.DEBUG_BOX_STYLES.RECOGNITION_ITEM_BOX_COLOR, "recognition-item-box", infoParts, boxId)
   }
 
-  protected drawMathExpressions(expressions: { type: string; label?: string; "bounding-box"?: TBox; operands?: unknown[] }[], depth: number = 0): void
+  protected drawMathExpressions(expressions: { type: string; label?: string; "bounding-box"?: TBox; operands?: unknown[] }[], depth: number = 0, parentId: string = "", currentBoxes?: Map<string, string>): void
   {
-    expressions?.forEach(expr =>
+    expressions?.forEach((expr, exprIndex) =>
     {
       if (expr?.["bounding-box"]) {
+        const boxId = `${parentId}-expr-${depth}-${exprIndex}`
         const box = convertBoundingBoxMillimeterToPixel(expr["bounding-box"])
         const label = `${ expr.type }${ expr.label ? `: ${ expr.label }` : "" }`
-        this.drawRecognitionItemBox(box, label)
+        const infos = [`label: ${label}`]
+        this.trackAndDrawBox(boxId, box, infos, "recognition-item-box", IIDebugSVGManager.DEBUG_BOX_STYLES.RECOGNITION_ITEM_BOX_COLOR, currentBoxes!, this.#previousRecognitionItemBoxes)
       }
-      // Recursively process operands if present
+
       if (expr.operands) {
-        this.drawMathExpressions(expr.operands as { type: string; label?: string; "bounding-box"?: TBox; operands?: unknown[] }[], depth + 1)
+        this.drawMathExpressions(expr.operands as { type: string; label?: string; "bounding-box"?: TBox; operands?: unknown[] }[], depth + 1, `${parentId}-expr-${depth}-${exprIndex}`, currentBoxes)
       }
     })
   }
@@ -455,43 +418,58 @@ export class IIDebugSVGManager
     const jiix = this.model.exports?.["application/vnd.myscript.jiix"]
     this.#logger.debug("showRecognitionBoxItem", { jiix })
     if (jiix) {
-      jiix.elements?.forEach(el =>
+      const currentBoxes = new Map<string, string>()
+      jiix.elements?.forEach((el, elIndex) =>
       {
         switch (el.type) {
           case "Text": {
-            el.chars?.forEach(c =>
+            el.chars?.forEach((c, cIndex) =>
             {
               if (c?.["bounding-box"]) {
+                const boxId = `text-${elIndex}-char-${cIndex}`
                 const box = convertBoundingBoxMillimeterToPixel(c["bounding-box"])
-                this.drawRecognitionItemBox(box, c.label, c.candidates)
+                const infos: string[] = []
+                if (c.label) {
+                  infos.push(`label: ${c.label}`)
+                }
+                if (c.candidates?.length) {
+                  infos.push(`[${c.candidates.join(", ")}]`)
+                }
+                this.trackAndDrawBox(boxId, box, infos, "recognition-item-box", IIDebugSVGManager.DEBUG_BOX_STYLES.RECOGNITION_ITEM_BOX_COLOR, currentBoxes, this.#previousRecognitionItemBoxes)
               }
             })
             break
           }
           case "Math": {
             if (el.expressions) {
-              this.drawMathExpressions(el.expressions)
+              this.drawMathExpressions(el.expressions, 0, `math-${elIndex}`, currentBoxes)
             }
             break
           }
           case "Node": {
             if (el?.["bounding-box"]) {
+              const boxId = `node-${elIndex}`
               const box = convertBoundingBoxMillimeterToPixel(el["bounding-box"])
-              this.drawRecognitionItemBox(box, el.kind)
+              const infos = [`label: ${el.kind}`]
+              this.trackAndDrawBox(boxId, box, infos, "recognition-item-box", IIDebugSVGManager.DEBUG_BOX_STYLES.RECOGNITION_ITEM_BOX_COLOR, currentBoxes, this.#previousRecognitionItemBoxes)
             }
             break
           }
           case "Edge": {
             if (el.kind === JIIXEdgeKind.PolyEdge) {
-              el.edges.forEach(e =>
+              el.edges.forEach((e, eIndex) =>
               {
+                const boxId = `edge-poly-${elIndex}-sub-${eIndex}`
                 const box = convertBoundingBoxMillimeterToPixel(e["bounding-box"])
-                this.drawRecognitionItemBox(box, e.kind)
+                const infos = [`label: ${e.kind}`]
+                this.trackAndDrawBox(boxId, box, infos, "recognition-item-box", IIDebugSVGManager.DEBUG_BOX_STYLES.RECOGNITION_ITEM_BOX_COLOR, currentBoxes, this.#previousRecognitionItemBoxes)
               })
             }
             else if (el["bounding-box"]) {
+              const boxId = `edge-${elIndex}`
               const box = convertBoundingBoxMillimeterToPixel(el["bounding-box"])
-              this.drawRecognitionItemBox(box, el.kind)
+              const infos = [`label: ${el.kind}`]
+              this.trackAndDrawBox(boxId, box, infos, "recognition-item-box", IIDebugSVGManager.DEBUG_BOX_STYLES.RECOGNITION_ITEM_BOX_COLOR, currentBoxes, this.#previousRecognitionItemBoxes)
             }
             break
           }
@@ -500,19 +478,26 @@ export class IIDebugSVGManager
             break
         }
       })
+      this.#previousRecognitionItemBoxes.forEach((_, boxId) => {
+        if (!currentBoxes.has(boxId)) {
+          this.renderer.clearElements({ attrs: { "debug": "recognition-item-box", "box-id": boxId } })
+        }
+      })
+      this.#previousRecognitionItemBoxes = currentBoxes
     }
   }
   protected clearRecognitionItemBox(): void
   {
     this.#logger.info("clearRecognitionBoxItem")
     this.renderer.clearElements({ attrs: { "debug": "recognition-item-box" } })
-    this.renderer.clearElements({ attrs: { "debug": "recognition-item-box-link" } })
   }
   async debugRecognitionItemBox(): Promise<void>
   {
-    this.clearRecognitionItemBox()
     if (this.#recognitionItemBoxVisibility) {
-      this.showRecognitionItemBox()
+      await this.showRecognitionItemBox()
+    } else {
+      this.clearRecognitionItemBox()
+      this.#previousRecognitionItemBoxes.clear()
     }
   }
 
