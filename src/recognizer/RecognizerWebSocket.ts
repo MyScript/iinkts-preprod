@@ -72,14 +72,14 @@ export class RecognizerWebSocket
   protected undoDeferred?: DeferredPromise<void>
   protected redoDeferred?: DeferredPromise<void>
   protected clearDeferred?: DeferredPromise<void>
-  protected availableActionsDeferred?: DeferredPromise<string[]>
-  protected numericalComputationDeferred?: DeferredPromise<string>
-  protected getDiagnosticDeferred?: DeferredPromise<string>
-  protected getVariablesDeferred?: DeferredPromise<TMathVariable[]>
-  protected setVariableValueDeferred?: DeferredPromise<void>
-  protected getVariableValueDeferred?: DeferredPromise<number>
-  protected getEvaluablesDeferred?: DeferredPromise<TMathEvaluable[]>
-  protected evaluateDeferred?: DeferredPromise<number[][]>
+  protected availableActionsDeferred: Map<string, DeferredPromise<string[]>>
+  protected numericalComputationDeferred: Map<string, DeferredPromise<string>>
+  protected getDiagnosticDeferred: Map<string, DeferredPromise<string>>
+  protected getVariablesDeferred: Map<string, DeferredPromise<TMathVariable[]>>
+  protected setVariableValueDeferred: Map<string, DeferredPromise<void>>
+  protected getVariableValueDeferred: Map<string, DeferredPromise<number>>
+  protected getEvaluablesDeferred: Map<string, DeferredPromise<TMathEvaluable[]>>
+  protected evaluateDeferred: Map<string, DeferredPromise<number[][]>>
 
   configuration: RecognizerWebSocketConfiguration
   initialized: DeferredPromise<void>
@@ -97,6 +97,14 @@ export class RecognizerWebSocket
     this.initialized = new DeferredPromise<void>()
     this.exportDeferredMap = new Map()
     this.contextlessGestureDeferred = new Map()
+    this.availableActionsDeferred = new Map()
+    this.numericalComputationDeferred = new Map()
+    this.getDiagnosticDeferred = new Map()
+    this.getVariablesDeferred = new Map()
+    this.setVariableValueDeferred = new Map()
+    this.getVariableValueDeferred = new Map()
+    this.getEvaluablesDeferred = new Map()
+    this.evaluateDeferred = new Map()
   }
 
   get mimeTypes(): string[]
@@ -151,14 +159,14 @@ export class RecognizerWebSocket
     this.exportDeferredMap.clear()
     this.waitForIdleDeferred = undefined
     this.closeDeferred = undefined
-    this.availableActionsDeferred = undefined
-    this.numericalComputationDeferred = undefined
-    this.getDiagnosticDeferred = undefined
-    this.getVariablesDeferred = undefined
-    this.setVariableValueDeferred = undefined
-    this.getVariableValueDeferred = undefined
-    this.getEvaluablesDeferred = undefined
-    this.evaluateDeferred = undefined
+    this.availableActionsDeferred.clear()
+    this.numericalComputationDeferred.clear()
+    this.getDiagnosticDeferred.clear()
+    this.getVariablesDeferred.clear()
+    this.setVariableValueDeferred.clear()
+    this.getVariableValueDeferred.clear()
+    this.getEvaluablesDeferred.clear()
+    this.evaluateDeferred.clear()
   }
 
   protected clearSocketListener(): void
@@ -398,30 +406,89 @@ export class RecognizerWebSocket
 
   protected manageMathSolverResult(mathSolverMessage: TRecognizerWebSocketMessageMathSolverResult): void
   {
+    const blockId = mathSolverMessage.blockId
+
     switch (mathSolverMessage.action) {
       case "available-actions":
-        this.availableActionsDeferred?.resolve(mathSolverMessage.result)
+        if (blockId && this.availableActionsDeferred.has(blockId)) {
+          this.availableActionsDeferred.get(blockId)?.resolve(mathSolverMessage.result)
+        } else {
+          // Fallback: resolve first pending promise (FIFO) if no blockId
+          const firstKey = this.availableActionsDeferred.keys().next().value
+          if (firstKey) {
+            this.availableActionsDeferred.get(firstKey)?.resolve(mathSolverMessage.result)
+          }
+        }
         break;
       case "numerical-computation":
-        this.numericalComputationDeferred?.resolve(mathSolverMessage.result)
+        if (blockId && this.numericalComputationDeferred.has(blockId)) {
+          this.numericalComputationDeferred.get(blockId)?.resolve(mathSolverMessage.result)
+        } else {
+          const firstKey = this.numericalComputationDeferred.keys().next().value
+          if (firstKey) {
+            this.numericalComputationDeferred.get(firstKey)?.resolve(mathSolverMessage.result)
+          }
+        }
         break;
       case "get-diagnostic":
-        this.getDiagnosticDeferred?.resolve(mathSolverMessage.result)
+        if (blockId && this.getDiagnosticDeferred.has(blockId)) {
+          this.getDiagnosticDeferred.get(blockId)?.resolve(mathSolverMessage.result)
+        } else {
+          const firstKey = this.getDiagnosticDeferred.keys().next().value
+          if (firstKey) {
+            this.getDiagnosticDeferred.get(firstKey)?.resolve(mathSolverMessage.result)
+          }
+        }
         break;
       case "get-variables":
-        this.getVariablesDeferred?.resolve(mathSolverMessage.result)
+        if (blockId && this.getVariablesDeferred.has(blockId)) {
+          this.getVariablesDeferred.get(blockId)?.resolve(mathSolverMessage.result)
+        } else {
+          const firstKey = this.getVariablesDeferred.keys().next().value
+          if (firstKey) {
+            this.getVariablesDeferred.get(firstKey)?.resolve(mathSolverMessage.result)
+          }
+        }
         break;
       case "set-variable-value":
-        this.setVariableValueDeferred?.resolve()
+        if (blockId && this.setVariableValueDeferred.has(blockId)) {
+          this.setVariableValueDeferred.get(blockId)?.resolve()
+        } else {
+          const firstKey = this.setVariableValueDeferred.keys().next().value
+          if (firstKey) {
+            this.setVariableValueDeferred.get(firstKey)?.resolve()
+          }
+        }
         break;
       case "get-variable-value":
-        this.getVariableValueDeferred?.resolve(mathSolverMessage.result)
+        if (blockId && this.getVariableValueDeferred.has(blockId)) {
+          this.getVariableValueDeferred.get(blockId)?.resolve(mathSolverMessage.result)
+        } else {
+          const firstKey = this.getVariableValueDeferred.keys().next().value
+          if (firstKey) {
+            this.getVariableValueDeferred.get(firstKey)?.resolve(mathSolverMessage.result)
+          }
+        }
         break;
       case "get-evaluables":
-        this.getEvaluablesDeferred?.resolve(mathSolverMessage.result)
+        if (blockId && this.getEvaluablesDeferred.has(blockId)) {
+          this.getEvaluablesDeferred.get(blockId)?.resolve(mathSolverMessage.result)
+        } else {
+          const firstKey = this.getEvaluablesDeferred.keys().next().value
+          if (firstKey) {
+            this.getEvaluablesDeferred.get(firstKey)?.resolve(mathSolverMessage.result)
+          }
+        }
         break;
       case "evaluate":
-        this.evaluateDeferred?.resolve(mathSolverMessage.result)
+        if (blockId && this.evaluateDeferred.has(blockId)) {
+          this.evaluateDeferred.get(blockId)?.resolve(mathSolverMessage.result)
+        } else {
+          const firstKey = this.evaluateDeferred.keys().next().value
+          if (firstKey) {
+            this.evaluateDeferred.get(firstKey)?.resolve(mathSolverMessage.result)
+          }
+        }
         break;
       default:
         break;
@@ -569,101 +636,101 @@ export class RecognizerWebSocket
     return this.addStrokeDeferred?.promise
   }
 
-  async getAvailableActions(blocId: string): Promise<string[]>
+  async getAvailableActions(blockId: string): Promise<string[]>
   {
-    this.availableActionsDeferred = new DeferredPromise<string[]>()
+    this.availableActionsDeferred.set(blockId, new DeferredPromise<string[]>())
     await this.send({
       type: "mathSolver",
       action: "available-actions",
-      blocId,
+      blockId,
     })
-    const actions = await this.availableActionsDeferred!.promise
-    this.availableActionsDeferred = undefined
+    const actions = await this.availableActionsDeferred.get(blockId)!.promise
+    this.availableActionsDeferred.delete(blockId)
     return actions
   }
 
-  async getNumericalComputation(blocId: string): Promise<TJIIXExport>
+  async getNumericalComputation(blockId: string): Promise<TJIIXExport>
   {
-    this.numericalComputationDeferred = new DeferredPromise<string>()
+    this.numericalComputationDeferred.set(blockId, new DeferredPromise<string>())
     await this.send({
       type: "mathSolver",
       action: "numerical-computation",
-      blocId: blocId
+      blockId: blockId
     })
-    const result = JSON.parse(await this.numericalComputationDeferred!.promise) as TJIIXExport
-    this.numericalComputationDeferred = undefined
+    const result = JSON.parse(await this.numericalComputationDeferred.get(blockId)!.promise) as TJIIXExport
+    this.numericalComputationDeferred.delete(blockId)
     return result
   }
 
-  async getDiagnostic(blocId: string, task: string): Promise<string>
+  async getDiagnostic(blockId: string, task: string): Promise<string>
   {
-    this.getDiagnosticDeferred = new DeferredPromise<string>()
+    this.getDiagnosticDeferred.set(blockId, new DeferredPromise<string>())
     await this.send({
       type: "mathSolver",
       action: "get-diagnostic",
       task,
-      blocId
+      blockId
     })
-    const result = await this.getDiagnosticDeferred!.promise
-    this.getDiagnosticDeferred = undefined
+    const result = await this.getDiagnosticDeferred.get(blockId)!.promise
+    this.getDiagnosticDeferred.delete(blockId)
     return result
   }
 
-  async getVariables(blocId: string): Promise<TMathVariable[]>
+  async getVariables(blockId: string): Promise<TMathVariable[]>
   {
-    this.getVariablesDeferred = new DeferredPromise<TMathVariable[]>()
+    this.getVariablesDeferred.set(blockId, new DeferredPromise<TMathVariable[]>())
     await this.send({
       type: "mathSolver",
       action: "get-variables",
-      blocId
+      blockId
     })
-    const result = await this.getVariablesDeferred!.promise
-    this.getVariablesDeferred = undefined
+    const result = await this.getVariablesDeferred.get(blockId)!.promise
+    this.getVariablesDeferred.delete(blockId)
     return result
   }
 
-  async getVariableValue(blocId: string, variableName: string): Promise<number>
+  async getVariableValue(blockId: string, variableName: string): Promise<number>
   {
-    this.getVariableValueDeferred = new DeferredPromise<number>()
+    this.getVariableValueDeferred.set(blockId, new DeferredPromise<number>())
     await this.send({
       type: "mathSolver",
       action: "get-variable-value",
-      blocId,
+      blockId,
       variableName
     })
-    const result = await this.getVariableValueDeferred!.promise
-    this.getVariableValueDeferred = undefined
+    const result = await this.getVariableValueDeferred.get(blockId)!.promise
+    this.getVariableValueDeferred.delete(blockId)
     return result
   }
 
-  async setVariableValue(blocId: string, variableName: string, variableValue: number): Promise<void>
+  async setVariableValue(blockId: string, variableName: string, variableValue: number): Promise<void>
   {
-    this.setVariableValueDeferred = new DeferredPromise<void>()
+    this.setVariableValueDeferred.set(blockId, new DeferredPromise<void>())
     await this.send({
       type: "mathSolver",
       action: "set-variable-value",
-      blocId,
+      blockId,
       variableName,
       variableValue
     })
-    await this.setVariableValueDeferred!.promise
-    this.setVariableValueDeferred = undefined
+    await this.setVariableValueDeferred.get(blockId)!.promise
+    this.setVariableValueDeferred.delete(blockId)
   }
 
-  async getEvaluables(blocId: string): Promise<TMathEvaluable[]>
+  async getEvaluables(blockId: string): Promise<TMathEvaluable[]>
   {
-    this.getEvaluablesDeferred = new DeferredPromise<TMathEvaluable[]>()
+    this.getEvaluablesDeferred.set(blockId, new DeferredPromise<TMathEvaluable[]>())
     await this.send({
       type: "mathSolver",
       action: "get-evaluables",
-      blocId
+      blockId
     })
-    const result = await this.getEvaluablesDeferred!.promise
-    this.getEvaluablesDeferred = undefined
+    const result = await this.getEvaluablesDeferred.get(blockId)!.promise
+    this.getEvaluablesDeferred.delete(blockId)
     return result
   }
 
-  async evaluate(blocId: string, evaluation: {
+  async evaluate(blockId: string, evaluation: {
     inputVariableName: string,
     outputVariableName: string,
     from: number,
@@ -671,14 +738,14 @@ export class RecognizerWebSocket
     pointCount: number
   }): Promise<{ [key: string]: number }[]>
   {
-    this.evaluateDeferred = new DeferredPromise<number[][]>()
+    this.evaluateDeferred.set(blockId, new DeferredPromise<number[][]>())
     await this.send({
       type: "mathSolver",
       action: "evaluate",
-      blocId,
+      blockId,
       evaluation
     })
-    const result = await this.evaluateDeferred!.promise
+    const result = await this.evaluateDeferred.get(blockId)!.promise
 
     // Transform flat array to array of objects with variable names
     // Result format: [[x1, y1, x2, y2, ...]] -> [{ inputVar: x1, outputVar: y1 }, { inputVar: x2, outputVar: y2 }, ...]
@@ -704,7 +771,7 @@ export class RecognizerWebSocket
       points
     })
 
-    this.evaluateDeferred = undefined
+    this.evaluateDeferred.delete(blockId)
     return points
   }
 
