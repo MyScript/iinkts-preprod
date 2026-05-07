@@ -46,6 +46,9 @@ import
   IIGestureManager,
   IISnapManager,
   IISynchronizerManager,
+  MathOverlayManager,
+  MathInteractionManager,
+  TransientInkManager,
 } from "../manager"
 import { RecognizedKind, IIRecognizedCircle, IIRecognizedEllipse, IIRecognizedPolygon } from "../symbol"
 import { IIHistoryManager, TIIHistoryBackendChanges, TIIHistoryChanges, THistoryContext } from "../history"
@@ -102,6 +105,9 @@ export class InteractiveInkEditor extends AbstractEditor
   snaps: IISnapManager
   move: IIMoveManager
   synchronizer: IISynchronizerManager
+  mathOverlays: MathOverlayManager
+  mathInteractions: MathInteractionManager
+  transientInk: TransientInkManager
   menu: IIMenuManager
 
   constructor(rootElement: HTMLElement, options?: TInteractiveInkEditorOptions)
@@ -127,6 +133,8 @@ export class InteractiveInkEditor extends AbstractEditor
 
     this.renderer = new SVGRenderer(this.#configuration.rendering)
 
+    this.#model = new IIModel(this.#configuration.rendering.minWidth, this.#configuration.rendering.minHeight, this.configuration.rendering.guides.gap)
+
     this.history = new IIHistoryManager(this.#configuration["undo-redo"], this.event)
 
     this.writer = new IIWriterManager(this)
@@ -143,9 +151,10 @@ export class InteractiveInkEditor extends AbstractEditor
     this.svgDebugger = new IIDebugSVGManager(this)
     this.snaps = new IISnapManager(this, this.#configuration.snap)
     this.synchronizer = new IISynchronizerManager(this)
+    this.mathOverlays = new MathOverlayManager(this)
+    this.mathInteractions = new MathInteractionManager(this)
+    this.transientInk = new TransientInkManager(this.renderer, this.#model)
     this.menu = new IIMenuManager(this, options?.override?.menu)
-
-    this.#model = new IIModel(this.#configuration.rendering.minWidth, this.#configuration.rendering.minHeight, this.configuration.rendering.guides.gap)
   }
 
   get initializationPromise(): Promise<void>
@@ -297,6 +306,7 @@ export class InteractiveInkEditor extends AbstractEditor
       window.addEventListener("keydown", this.handleKeyDown)
       window.addEventListener("keyup", this.handleKeyUp)
       this.layers.root.addEventListener("wheel", this.handleWheel)
+      this.layers.rendering.addEventListener("pointermove", this.handleMathHover)
 
       const compStyles = window.getComputedStyle(this.layers.root)
       this.model.width = Math.max(parseInt(compStyles.width.replace("px", "")), this.#configuration.rendering.minWidth)
@@ -895,6 +905,10 @@ export class InteractiveInkEditor extends AbstractEditor
     this.recognizer.eraseStrokes(strokesIds)
     symbolsToRemove.forEach(s =>
     {
+      if (s.type === SymbolType.Recognized && s.kind === RecognizedKind.Math) {
+        this.transientInk.clearTransientsForBlock(s.id)
+      }
+
       this.model.removeSymbol(s.id)
       this.renderer.removeSymbol(s.id)
     })
@@ -1301,6 +1315,37 @@ export class InteractiveInkEditor extends AbstractEditor
     }
   }
 
+  protected handleMathHover = (event: PointerEvent): void => {
+    // Get pointer position relative to rendering layer
+    const rect = this.layers.rendering.getBoundingClientRect()
+    const x = (event.clientX - rect.left) / this.renderer.getZoom()
+    const y = (event.clientY - rect.top) / this.renderer.getZoom()
+
+    // Find math symbol under pointer
+    let hoveredSymbolId: string | null = null
+    for (const symbol of this.model.symbols) {
+      if (
+        symbol.type === SymbolType.Recognized &&
+        symbol.kind === RecognizedKind.Math
+      ) {
+        const mathSymbol = symbol as IIRecognizedMath
+        const bounds = mathSymbol.bounds
+        if (
+          x >= bounds.x &&
+          x <= bounds.x + bounds.width &&
+          y >= bounds.y &&
+          y <= bounds.y + bounds.height
+        ) {
+          hoveredSymbolId = mathSymbol.id
+          break
+        }
+      }
+    }
+
+    // Update hover state
+    this.mathInteractions.onSymbolHover(hoveredSymbolId)
+  }
+
   protected handleKeyUp = (event: KeyboardEvent): void => {
     if (!event.ctrlKey && !event.metaKey && this.#toolBeforeCtrl) {
       this.logger.debug("handleKeyUp", "Restoring previous tool")
@@ -1440,6 +1485,7 @@ export class InteractiveInkEditor extends AbstractEditor
         const erased = this.model.symbols
         this.renderer.clear()
         this.model.clear()
+        this.transientInk.clearAll()
         this.history.push(this.model, { erased })
         this.recognizer.clear()
         this.event.emitSelected(this.model.symbolsSelected)
@@ -1476,6 +1522,7 @@ export class InteractiveInkEditor extends AbstractEditor
   {
     if (mathSymbol.solverOutputStrokeIds && mathSymbol.solverOutputStrokeIds.length > 0) {
       this.logger.info("clearSolverOutputStrokes", `Removing ${mathSymbol.solverOutputStrokeIds.length} solver output strokes from ${mathSymbol.jiixId}`)
+      this.transientInk.clearTransientsForBlock(mathSymbol.id)
       await this.removeSymbols(mathSymbol.solverOutputStrokeIds, false)
       mathSymbol.strokes = mathSymbol.strokes.filter(s => !mathSymbol.solverOutputStrokeIds!.includes(s.id))
       mathSymbol.solverOutputStrokeIds = undefined
@@ -1892,6 +1939,12 @@ export class InteractiveInkEditor extends AbstractEditor
       // Store the IDs in the math symbol if provided
       if (addedStrokes.length > 0) {
         mathSymbol.solverOutputStrokeIds = addedStrokes.map(s => s.id)
+
+        // Register as transient symbols linked to the source math block
+        addedStrokes.forEach(stroke => {
+          this.transientInk.addTransientSymbol(mathSymbol.id, stroke.id)
+        })
+
         await this.model.updateSymbol(mathSymbol)
       }
 

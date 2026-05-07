@@ -95,6 +95,8 @@ export class IISynchronizerManager
 
     this.cleanupMathDependencies(mathSymbols)
 
+    this.editor.mathOverlays.refresh()
+
     this.editor.event.emitSynchronized()
   }
 
