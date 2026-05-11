@@ -74,25 +74,25 @@ export class RecognizerHTTPV2Configuration implements TRecognizerHTTPV2Configura
     this.recognition = mergeDeep({}, DefaultRecognizerHTTPV2Configuration.recognition, configuration?.recognition)
 
     if (configuration?.recognition?.text?.mimeTypes) {
-      this.recognition.text.mimeTypes = configuration.recognition.text.mimeTypes as ("text/plain" | "application/vnd.myscript.jiix")[]
+      this.recognition.text.mimeTypes = configuration.recognition.text.mimeTypes.filter(t => !!t)
     }
     this.recognition.text.mimeTypes = [...new Set(this.recognition.text.mimeTypes)]
 
     if (configuration?.recognition?.math?.mimeTypes) {
-      this.recognition.math.mimeTypes = configuration.recognition.math.mimeTypes as ("application/vnd.myscript.jiix" | "application/x-latex" | "application/mathml+xml")[]
+      this.recognition.math.mimeTypes = configuration.recognition.math.mimeTypes.filter(t => !!t)
     }
     this.recognition.math.mimeTypes = [...new Set(this.recognition.math.mimeTypes)]
 
     if (configuration?.recognition?.shape?.mimeTypes) {
-      this.recognition.shape.mimeTypes = configuration.recognition.shape.mimeTypes as ("application/vnd.myscript.jiix" | "application/vnd.openxmlformats-officedocument.presentationml.presentation" | "image/svg+xml")[]
+      this.recognition.shape.mimeTypes = configuration.recognition.shape.mimeTypes.filter(t => !!t)
     }
     this.recognition.shape.mimeTypes = [...new Set(this.recognition.shape.mimeTypes)]
 
     if (configuration?.recognition?.["raw-content"]?.recognition?.types) {
-      this.recognition["raw-content"].recognition!.types = configuration?.recognition?.["raw-content"]?.recognition?.types as ("text" | "shape")[]
+      this.recognition["raw-content"].recognition!.types = configuration?.recognition?.["raw-content"]?.recognition?.types.filter(t => !!t)
     }
     if (configuration?.recognition?.["raw-content"]?.classification?.types) {
-      this.recognition["raw-content"].classification!.types = configuration?.recognition?.["raw-content"]?.classification?.types as ("text" | "shape")[]
+      this.recognition["raw-content"].classification!.types = configuration?.recognition?.["raw-content"]?.classification?.types.filter(t => !!t)
     }
 
     if (this.server.version) {
