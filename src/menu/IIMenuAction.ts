@@ -13,6 +13,7 @@ import {
   GuideMenuAction,
   SnapMenuAction,
   DebugMenuAction,
+  MathMenuAction,
   ExportMenuAction,
   ImportMenuAction
 } from "./actions"
@@ -87,6 +88,12 @@ export class IIMenuAction
         subMenuWrapper.appendChild(debugAction.getElement())
       }
 
+      if (this.config.mathDependencies) {
+        const mathDependenciesAction = new MathMenuAction(this.editor, this.id)
+        this.menuActions.set("mathDependencies", mathDependenciesAction)
+        subMenuWrapper.appendChild(mathDependenciesAction.getElement())
+      }
+
       if (this.config.import) {
         const importAction = new ImportMenuAction(this.editor, this.id)
         this.menuActions.set("import", importAction)
@@ -102,24 +109,27 @@ export class IIMenuAction
       this.wrapper = document.createElement("div")
       this.wrapper.classList.add("ms-menu", "ms-menu-top-left", "ms-menu-row")
 
-      const subMenuElement = document.createElement("div")
-      subMenuElement.classList.add("sub-menu")
-      subMenuElement.appendChild(menuTrigger)
+      // Only add submenu if there are items
+      if (subMenuWrapper.children.length > 0) {
+        const subMenuElement = document.createElement("div")
+        subMenuElement.classList.add("sub-menu")
+        subMenuElement.appendChild(menuTrigger)
 
-      const subMenuContent = document.createElement("div")
-      subMenuContent.classList.add("sub-menu-content", "bottom-right")
-      subMenuContent.appendChild(subMenuWrapper)
-      subMenuElement.appendChild(subMenuContent)
+        const subMenuContent = document.createElement("div")
+        subMenuContent.classList.add("sub-menu-content", "bottom-right")
+        subMenuContent.appendChild(subMenuWrapper)
+        subMenuElement.appendChild(subMenuContent)
 
-      // Event listeners
-      menuTrigger.addEventListener("pointerdown", () => subMenuContent.classList.toggle("open"))
-      document.addEventListener("pointerdown", (e) => {
-        if (!subMenuElement.contains(e.target as HTMLElement)) {
-          subMenuContent.classList.remove("open")
-        }
-      })
+        // Event listeners
+        menuTrigger.addEventListener("pointerdown", () => subMenuContent.classList.toggle("open"))
+        document.addEventListener("pointerdown", (e) => {
+          if (!subMenuElement.contains(e.target as HTMLElement)) {
+            subMenuContent.classList.remove("open")
+          }
+        })
 
-      this.wrapper.appendChild(subMenuElement)
+        this.wrapper.appendChild(subMenuElement)
+      }
 
       if (this.config.language) {
         const languageAction = new LanguageMenuAction(this.editor, this.id)

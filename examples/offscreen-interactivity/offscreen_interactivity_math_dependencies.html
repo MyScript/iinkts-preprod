@@ -442,7 +442,7 @@
         const sourceSymbol = editor.model.symbols.find(s => s.jiixId === jiixId && s.type === 'recognized' && s.kind === 'math')
 
         await editor.setVariableValue(jiixId, varName, newValue)
-        
+
         await updateVariablesList()
         await updateDependenciesDisplay()
         await tryAutoCompute()
