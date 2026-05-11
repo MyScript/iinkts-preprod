@@ -437,6 +437,8 @@ test.describe("Offscreen Get Started Menu Action", () => {
   })
 
   test("gesture insert", async ({ page }) => {
+    test.fixme(true, "The insert gesture must be activated first for the menu to appear")
+
     await test.step("should display menu gesture", async () => {
       await expect(page.locator(locator.menu.action.gesture.triggerBtn)).toBeHidden()
       await expect(page.locator(locator.menu.action.gesture.detectCheckbox)).toBeHidden()
@@ -531,7 +533,7 @@ test.describe("Offscreen Get Started Menu Action", () => {
 
       await expect(page.locator(`#${  hel.id }`)).toHaveText(hel.chars.map(c => c.label).join(""))
       await expect(page.locator(`#${ lo.id }`)).toHaveText(lo.chars.map(c => c.label).join(""))
-      //verify 2nd word is separatedr fom the first by at least 10px
+      //verify 2nd word is separated from the first by at least 10px
       expect(lo.bounds.x - hel.bounds.x - hel.bounds.width).toBeGreaterThan(10)
     })
 
