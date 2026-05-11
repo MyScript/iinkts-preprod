@@ -13,6 +13,13 @@ export interface ChartConfig {
   showPoints?: boolean
 }
 
+interface ViewPort {
+  xMin: number
+  xMax: number
+  yMin: number
+  yMax: number
+}
+
 /**
  * @group Components
  */
@@ -23,6 +30,11 @@ export class Chart {
   private points: number[][] = []
   private container: HTMLDivElement
   private tableElement?: HTMLTableElement
+  private viewport: ViewPort | null = null
+  private defaultViewport: ViewPort | null = null
+  private isDragging = false
+  private lastMousePos = { x: 0, y: 0 }
+  private controlsContainer?: HTMLDivElement
 
   constructor(config: ChartConfig = {}) {
     this.config = {
@@ -42,6 +54,9 @@ export class Chart {
     this.container.style.cssText =
       "display: flex; flex-direction: column; gap: 16px;"
 
+    // Create controls
+    this.createControls()
+
     this.canvas = document.createElement("canvas")
     this.canvas.width = this.config.width
     this.canvas.height = this.config.height
@@ -51,6 +66,7 @@ export class Chart {
       background: white;
       display: block;
       max-width: 100%;
+      cursor: grab;
     `
 
     const ctx = this.canvas.getContext("2d")
@@ -59,7 +75,208 @@ export class Chart {
     }
     this.ctx = ctx
 
+    // Add zoom and pan event listeners
+    this.setupInteractions()
+
     this.container.appendChild(this.canvas)
+  }
+
+  private createControls(): void {
+    this.controlsContainer = document.createElement("div")
+    this.controlsContainer.style.cssText = `
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      padding: 8px;
+      background: #f5f5f5;
+      border-radius: 4px;
+    `
+
+    const createButton = (label: string, onClick: () => void): HTMLButtonElement => {
+      const btn = document.createElement("button")
+      btn.textContent = label
+      btn.style.cssText = `
+        padding: 4px 12px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        background: white;
+        cursor: pointer;
+        font-size: 12px;
+      `
+      btn.onclick = onClick
+      btn.onmouseenter = () => (btn.style.background = "#e0e0e0")
+      btn.onmouseleave = () => (btn.style.background = "white")
+      return btn
+    }
+
+    const zoomInBtn = createButton("Zoom +", () => this.zoom(1.2))
+    const zoomOutBtn = createButton("Zoom −", () => this.zoom(0.8))
+    const resetBtn = createButton("Reset", () => this.resetZoom())
+
+    const label = document.createElement("span")
+    label.textContent = "Zoom: "
+    label.style.cssText = "font-size: 12px; color: #666; margin-left: auto;"
+
+    const info = document.createElement("span")
+    info.textContent = "Use mouse wheel to zoom, drag to pan"
+    info.style.cssText = "font-size: 11px; color: #999; font-style: italic;"
+
+    this.controlsContainer.appendChild(zoomInBtn)
+    this.controlsContainer.appendChild(zoomOutBtn)
+    this.controlsContainer.appendChild(resetBtn)
+    this.controlsContainer.appendChild(label)
+    this.controlsContainer.appendChild(info)
+
+    this.container.appendChild(this.controlsContainer)
+  }
+
+  private setupInteractions(): void {
+    this.canvas.addEventListener("wheel", (e) => {
+      e.preventDefault()
+      const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9
+      this.zoom(zoomFactor, { x: e.offsetX, y: e.offsetY })
+    })
+
+    this.canvas.addEventListener("mousedown", (e) => {
+      this.isDragging = true
+      this.lastMousePos = { x: e.offsetX, y: e.offsetY }
+      this.canvas.style.cursor = "grabbing"
+    })
+
+    this.canvas.addEventListener("mousemove", (e) => {
+      if (!this.isDragging || !this.viewport) return
+
+      const dx = e.offsetX - this.lastMousePos.x
+      const dy = e.offsetY - this.lastMousePos.y
+      this.lastMousePos = { x: e.offsetX, y: e.offsetY }
+
+      this.pan(dx, dy)
+    })
+
+    this.canvas.addEventListener("mouseup", () => {
+      this.isDragging = false
+      this.canvas.style.cursor = "grab"
+    })
+
+    this.canvas.addEventListener("mouseleave", () => {
+      this.isDragging = false
+      this.canvas.style.cursor = "grab"
+    })
+  }
+
+  private zoom(factor: number, center?: { x: number; y: number }): void {
+    if (!this.viewport) return
+
+    const margin = { top: 40, right: 40, bottom: 60, left: 60 }
+    const chartWidth = this.config.width - margin.left - margin.right
+    const chartHeight = this.config.height - margin.top - margin.bottom
+
+    let centerX: number, centerY: number
+
+    if (center) {
+      // Zoom towards mouse position
+      const relX = (center.x - margin.left) / chartWidth
+      const relY = (center.y - margin.top) / chartHeight
+      centerX = this.viewport.xMin + relX * (this.viewport.xMax - this.viewport.xMin)
+      centerY = this.viewport.yMax - relY * (this.viewport.yMax - this.viewport.yMin)
+    } else {
+      // Zoom towards center
+      centerX = (this.viewport.xMin + this.viewport.xMax) / 2
+      centerY = (this.viewport.yMin + this.viewport.yMax) / 2
+    }
+
+    const xRange = (this.viewport.xMax - this.viewport.xMin) / factor
+    const yRange = (this.viewport.yMax - this.viewport.yMin) / factor
+
+    this.viewport = {
+      xMin: centerX - xRange / 2,
+      xMax: centerX + xRange / 2,
+      yMin: centerY - yRange / 2,
+      yMax: centerY + yRange / 2
+    }
+
+    this.draw()
+  }
+
+  private pan(dx: number, dy: number): void {
+    if (!this.viewport) return
+
+    const margin = { top: 40, right: 40, bottom: 60, left: 60 }
+    const chartWidth = this.config.width - margin.left - margin.right
+    const chartHeight = this.config.height - margin.top - margin.bottom
+
+    const xRange = this.viewport.xMax - this.viewport.xMin
+    const yRange = this.viewport.yMax - this.viewport.yMin
+
+    const xShift = (-dx / chartWidth) * xRange
+    const yShift = (dy / chartHeight) * yRange
+
+    this.viewport = {
+      xMin: this.viewport.xMin + xShift,
+      xMax: this.viewport.xMax + xShift,
+      yMin: this.viewport.yMin + yShift,
+      yMax: this.viewport.yMax + yShift
+    }
+
+    this.draw()
+  }
+
+  private resetZoom(): void {
+    this.viewport = this.defaultViewport ? { ...this.defaultViewport } : null
+    this.draw()
+  }
+
+  /**
+   * Filter outliers using IQR method
+   */
+  private filterOutliers(values: number[]): number[] {
+    if (values.length === 0) return values
+
+    const sorted = [...values].sort((a, b) => a - b)
+    const q1Index = Math.floor(sorted.length * 0.25)
+    const q3Index = Math.floor(sorted.length * 0.75)
+    const q1 = sorted[q1Index]
+    const q3 = sorted[q3Index]
+    const iqr = q3 - q1
+    const lowerBound = q1 - 3 * iqr
+    const upperBound = q3 + 3 * iqr
+
+    return values.filter((v) => v >= lowerBound && v <= upperBound)
+  }
+
+  /**
+   * Calculate default viewport based on median values
+   */
+  private calculateDefaultViewport(): ViewPort | null {
+    const xValues = this.points
+      .map((p) => p[0])
+      .filter((v) => !isNaN(v) && isFinite(v))
+    const yValues = this.points
+      .map((p) => p[1])
+      .filter((v) => !isNaN(v) && isFinite(v))
+
+    if (xValues.length === 0 || yValues.length === 0) {
+      return null
+    }
+
+    // Filter outliers for better default view
+    const filteredYValues = this.filterOutliers(yValues)
+
+    const xMin = Math.min(...xValues)
+    const xMax = Math.max(...xValues)
+    const yMin = Math.min(...filteredYValues)
+    const yMax = Math.max(...filteredYValues)
+
+    // Add padding
+    const yRange = yMax - yMin
+    const yPadding = yRange * 0.1
+
+    return {
+      xMin,
+      xMax,
+      yMin: yMin - yPadding,
+      yMax: yMax + yPadding
+    }
   }
 
   /**
@@ -92,6 +309,10 @@ export class Chart {
     } else {
       this.points = points as number[][]
     }
+
+    // Calculate default viewport with outlier filtering
+    this.defaultViewport = this.calculateDefaultViewport()
+    this.viewport = this.defaultViewport ? { ...this.defaultViewport } : null
 
     this.draw()
     this.updateTable()
@@ -209,28 +430,38 @@ export class Chart {
     const chartWidth = width - margin.left - margin.right
     const chartHeight = height - margin.top - margin.bottom
 
-    // Calculate data bounds (filter out NaN values)
-    const xValues = this.points
-      .map((p) => p[0])
-      .filter((v) => !isNaN(v) && isFinite(v))
-    const yValues = this.points
-      .map((p) => p[1])
-      .filter((v) => !isNaN(v) && isFinite(v))
+    // Use viewport if available, otherwise calculate from all data
+    let xMin: number, xMax: number, yMin: number, yMax: number
 
-    if (xValues.length === 0 || yValues.length === 0) {
-      return
+    if (this.viewport) {
+      xMin = this.viewport.xMin
+      xMax = this.viewport.xMax
+      yMin = this.viewport.yMin
+      yMax = this.viewport.yMax
+    } else {
+      // Calculate data bounds (filter out NaN values)
+      const xValues = this.points
+        .map((p) => p[0])
+        .filter((v) => !isNaN(v) && isFinite(v))
+      const yValues = this.points
+        .map((p) => p[1])
+        .filter((v) => !isNaN(v) && isFinite(v))
+
+      if (xValues.length === 0 || yValues.length === 0) {
+        return
+      }
+
+      xMin = Math.min(...xValues)
+      xMax = Math.max(...xValues)
+      yMin = Math.min(...yValues)
+      yMax = Math.max(...yValues)
+
+      // Add padding to y range
+      const yRange = yMax - yMin
+      const yPadding = yRange * 0.1
+      yMin = yMin - yPadding
+      yMax = yMax + yPadding
     }
-
-    const xMin = Math.min(...xValues)
-    const xMax = Math.max(...xValues)
-    const yMin = Math.min(...yValues)
-    const yMax = Math.max(...yValues)
-
-    // Add padding to y range
-    const yRange = yMax - yMin
-    const yPadding = yRange * 0.1
-    const yMinPadded = yMin - yPadding
-    const yMaxPadded = yMax + yPadding
 
     // Scale functions
     const scaleX = (x: number) =>
@@ -238,7 +469,33 @@ export class Chart {
     const scaleY = (y: number) =>
       margin.top +
       chartHeight -
-      ((y - yMinPadded) / (yMaxPadded - yMinPadded)) * chartHeight
+      ((y - yMin) / (yMax - yMin)) * chartHeight
+
+    // Calculate position for axes (cross at origin if 0 is in range, otherwise at appropriate edge)
+    let xAxisY: number
+    let yAxisX: number
+
+    if (yMin <= 0 && yMax >= 0) {
+      // Y=0 is in range, cross at origin
+      xAxisY = scaleY(0)
+    } else if (yMax < 0) {
+      // All values are negative Y, axis at top
+      xAxisY = margin.top
+    } else {
+      // All values are positive Y, axis at bottom
+      xAxisY = margin.top + chartHeight
+    }
+
+    if (xMin <= 0 && xMax >= 0) {
+      // X=0 is in range, cross at origin
+      yAxisX = scaleX(0)
+    } else if (xMax < 0) {
+      // All values are negative X, axis at right
+      yAxisX = margin.left + chartWidth
+    } else {
+      // All values are positive X, axis at left
+      yAxisX = margin.left
+    }
 
     // Draw title
     if (this.config.title) {
@@ -274,20 +531,25 @@ export class Chart {
       }
     }
 
+    // Draw chart border
+    ctx.strokeStyle = "#ccc"
+    ctx.lineWidth = 1
+    ctx.strokeRect(margin.left, margin.top, chartWidth, chartHeight)
+
     // Draw axes
     ctx.strokeStyle = "#333"
     ctx.lineWidth = 2
 
     // X-axis
     ctx.beginPath()
-    ctx.moveTo(margin.left, margin.top + chartHeight)
-    ctx.lineTo(margin.left + chartWidth, margin.top + chartHeight)
+    ctx.moveTo(margin.left, xAxisY)
+    ctx.lineTo(margin.left + chartWidth, xAxisY)
     ctx.stroke()
 
     // Y-axis
     ctx.beginPath()
-    ctx.moveTo(margin.left, margin.top)
-    ctx.lineTo(margin.left, margin.top + chartHeight)
+    ctx.moveTo(yAxisX, margin.top)
+    ctx.lineTo(yAxisX, margin.top + chartHeight)
     ctx.stroke()
 
     // Draw axis labels
@@ -315,34 +577,80 @@ export class Chart {
       const x = xMin + ((xMax - xMin) / xTickCount) * i
       const xPos = scaleX(x)
       ctx.textAlign = "center"
-      ctx.fillText(x.toFixed(2), xPos, margin.top + chartHeight + 20)
 
-      // Tick mark
+      // Position labels based on axis position
+      let labelY: number
+      let tickDirection: number
+
+      if (xAxisY <= margin.top + 10) {
+        // Axis is at top
+        labelY = xAxisY + 15
+        tickDirection = 1 // Tick pointing down
+      } else if (xAxisY >= margin.top + chartHeight - 10) {
+        // Axis is at bottom
+        labelY = xAxisY + 20
+        tickDirection = -1 // Tick pointing up
+      } else {
+        // Axis is in the middle (at Y=0)
+        labelY = margin.top + chartHeight + 20
+        tickDirection = -1
+      }
+
+      ctx.fillText(x.toFixed(2), xPos, labelY)
+
+      // Tick mark on the axis
       ctx.strokeStyle = "#333"
       ctx.beginPath()
-      ctx.moveTo(xPos, margin.top + chartHeight)
-      ctx.lineTo(xPos, margin.top + chartHeight + 5)
+      ctx.moveTo(xPos, xAxisY)
+      ctx.lineTo(xPos, xAxisY + (5 * tickDirection))
       ctx.stroke()
     }
 
     // Y-axis ticks
     const yTickCount = 5
     for (let i = 0; i <= yTickCount; i++) {
-      const y = yMinPadded + ((yMaxPadded - yMinPadded) / yTickCount) * i
+      const y = yMin + ((yMax - yMin) / yTickCount) * i
       const yPos = scaleY(y)
-      ctx.textAlign = "right"
-      ctx.fillText(y.toFixed(2), margin.left - 10, yPos + 4)
 
-      // Tick mark
+      // Position labels based on axis position
+      let labelX: number
+      let tickDirection: number
+
+      if (yAxisX >= margin.left + chartWidth - 10) {
+        // Axis is at right
+        ctx.textAlign = "right"
+        labelX = yAxisX - 10
+        tickDirection = -1 // Tick pointing left
+      } else if (yAxisX <= margin.left + 10) {
+        // Axis is at left
+        ctx.textAlign = "right"
+        labelX = margin.left - 10
+        tickDirection = 1 // Tick pointing right
+      } else {
+        // Axis is in the middle (at X=0)
+        ctx.textAlign = "right"
+        labelX = margin.left - 10
+        tickDirection = 1
+      }
+
+      ctx.fillText(y.toFixed(2), labelX, yPos + 4)
+
+      // Tick mark on the axis
       ctx.strokeStyle = "#333"
       ctx.beginPath()
-      ctx.moveTo(margin.left - 5, yPos)
-      ctx.lineTo(margin.left, yPos)
+      ctx.moveTo(yAxisX, yPos)
+      ctx.lineTo(yAxisX + (5 * tickDirection), yPos)
       ctx.stroke()
     }
 
     // Draw the curve
     ctx.save()
+
+    // Clip to chart area to prevent lines from going outside
+    ctx.beginPath()
+    ctx.rect(margin.left, margin.top, chartWidth, chartHeight)
+    ctx.clip()
+
     ctx.strokeStyle = this.config.lineColor
     ctx.lineWidth = this.config.lineWidth
     ctx.beginPath()
@@ -373,6 +681,12 @@ export class Chart {
     // Draw points
     if (this.config.showPoints) {
       ctx.save()
+
+      // Clip to chart area to prevent points from going outside
+      ctx.beginPath()
+      ctx.rect(margin.left, margin.top, chartWidth, chartHeight)
+      ctx.clip()
+
       for (const [x, y] of this.points) {
         // Skip NaN or Infinite values
         if (isNaN(x) || isNaN(y) || !isFinite(x) || !isFinite(y)) {
