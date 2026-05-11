@@ -1,7 +1,7 @@
 import { InteractiveInkEditor } from "../../editor"
 import { SubMenuItem, IMenuSubMenu } from "../items/SubMenuItem"
 import { EditorTool, EditorWriteTool } from "../../Constants"
-import { InsertAction, StrikeThroughAction, SurroundAction } from "../../manager"
+import { InsertAction, StrikeThroughAction, SurroundAction, UnderlineAction } from "../../manager"
 import gestureIcon from "../../assets/svg/spock-hand-gesture.svg"
 
 /**
@@ -22,6 +22,12 @@ export class GestureMenuAction extends SubMenuItem
     for (const key in StrikeThroughAction) {
       const value = StrikeThroughAction[key as keyof typeof StrikeThroughAction]
       strikeThroughActionValues.push({ label: key, value })
+    }
+
+    const underlineActionValues: { label: string, value: string }[] = []
+    for (const key in UnderlineAction) {
+      const value = UnderlineAction[key as keyof typeof UnderlineAction]
+      underlineActionValues.push({ label: key, value })
     }
 
     const splitActionValues: { label: string, value: string }[] = []
@@ -48,44 +54,64 @@ export class GestureMenuAction extends SubMenuItem
             editor.tool = EditorTool.Write
             editor.writer.tool = EditorWriteTool.Pencil
           }
-        },
-        {
-          type: "select",
-          id: `${idPrefix}-gesture-surround`,
-          label: "On surround",
-          options: surroundActionValues,
-          getValue: (editor) => editor.gesture.surroundAction,
-          setValue: (editor, value) => {
-            editor.gesture.surroundAction = value as SurroundAction
-            editor.tool = EditorTool.Write
-            editor.writer.tool = EditorWriteTool.Pencil
-          }
-        },
-        {
-          type: "select",
-          id: `${idPrefix}-gesture-strikethrough`,
-          label: "On strikethrough",
-          options: strikeThroughActionValues,
-          getValue: (editor) => editor.gesture.strikeThroughAction,
-          setValue: (editor, value) => {
-            editor.gesture.strikeThroughAction = value as StrikeThroughAction
-            editor.tool = EditorTool.Write
-            editor.writer.tool = EditorWriteTool.Pencil
-          }
-        },
-        {
-          type: "select",
-          id: `${idPrefix}-gesture-insert`,
-          label: "On insert",
-          options: splitActionValues,
-          getValue: (editor) => editor.gesture.insertAction,
-          setValue: (editor, value) => {
-            editor.gesture.insertAction = value as InsertAction
-            editor.tool = EditorTool.Write
-            editor.writer.tool = EditorWriteTool.Pencil
-          }
         }
       ]
+    }
+    if (editor.configuration.recognition["raw-content"]?.gestures?.includes("surround")) {
+      config.items.push({
+        type: "select",
+        id: `${idPrefix}-gesture-surround`,
+        label: "On surround",
+        options: surroundActionValues,
+        getValue: (editor) => editor.gesture.surroundAction,
+        setValue: (editor, value) => {
+          editor.gesture.surroundAction = value as SurroundAction
+          editor.tool = EditorTool.Write
+          editor.writer.tool = EditorWriteTool.Pencil
+        }
+      })
+    }
+    if (editor.configuration.recognition["raw-content"]?.gestures?.includes("strike-through")) {
+      config.items.push({
+        type: "select",
+        id: `${idPrefix}-gesture-strikethrough`,
+        label: "On strikethrough",
+        options: strikeThroughActionValues,
+        getValue: (editor) => editor.gesture.strikeThroughAction,
+        setValue: (editor, value) => {
+          editor.gesture.strikeThroughAction = value as StrikeThroughAction
+          editor.tool = EditorTool.Write
+          editor.writer.tool = EditorWriteTool.Pencil
+        }
+      })
+    }
+    if (editor.configuration.recognition["raw-content"]?.gestures?.includes("underline")) {
+      config.items.push({
+        type: "select",
+        id: `${idPrefix}-gesture-underline`,
+        label: "On underline",
+        options: underlineActionValues,
+        getValue: (editor) => editor.gesture.underlineAction,
+        setValue: (editor, value) => {
+          editor.gesture.underlineAction = value as UnderlineAction
+          editor.tool = EditorTool.Write
+          editor.writer.tool = EditorWriteTool.Pencil
+        }
+      })
+    }
+    if (editor.configuration.recognition["raw-content"]?.gestures?.includes("insert")) {
+      config.items.push({
+        type: "select",
+        id: `${idPrefix}-gesture-insert`,
+        label: "On insert",
+        options: splitActionValues,
+        getValue: (editor) => editor.gesture.insertAction,
+        setValue: (editor, value) => {
+          editor.gesture.insertAction = value as InsertAction
+          editor.tool = EditorTool.Write
+          editor.writer.tool = EditorWriteTool.Pencil
+        }
+      })
     }
 
     super(config, editor)

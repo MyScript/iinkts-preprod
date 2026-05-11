@@ -75,6 +75,19 @@ export enum StrikeThroughAction
 /**
  * @group Gesture
  * @summary
+ * List all action allowed on underline detected
+ * @remarks
+ * only usable in the case of offscreen
+ */
+export enum UnderlineAction
+{
+  Draw = "draw",
+  Thicken = "thicken"
+}
+
+/**
+ * @group Gesture
+ * @summary
  * List all action allowed on split detected
  * @remarks
  * only usable in the case of offscreen
@@ -98,6 +111,7 @@ export enum InsertAction
 export type TGestureConfiguration = {
   surround: SurroundAction
   strikeThrough: StrikeThroughAction
+  underline: UnderlineAction
   insert: InsertAction
 }
 
@@ -108,6 +122,7 @@ export type TGestureConfiguration = {
 export const DefaultGestureConfiguration: TGestureConfiguration = {
   surround: SurroundAction.Select,
   strikeThrough: StrikeThroughAction.Draw,
+  underline: UnderlineAction.Draw,
   insert: InsertAction.LineBreak
 }
 
@@ -126,6 +141,7 @@ export class IIGestureManager
   insertAction: InsertAction = InsertAction.LineBreak
   surroundAction: SurroundAction = SurroundAction.Select
   strikeThroughAction: StrikeThroughAction = StrikeThroughAction.Draw
+  underlineAction: UnderlineAction = UnderlineAction.Draw
   editor: InteractiveInkEditor
 
   constructor(editor: InteractiveInkEditor, gestureAction?: PartialDeep<TGestureConfiguration>)
@@ -134,6 +150,7 @@ export class IIGestureManager
     this.editor = editor
     this.surroundAction = gestureAction?.surround || DefaultGestureConfiguration.surround
     this.strikeThroughAction = gestureAction?.strikeThrough || DefaultGestureConfiguration.strikeThrough
+    this.underlineAction = gestureAction?.underline || DefaultGestureConfiguration.underline
     this.insertAction = gestureAction?.insert || DefaultGestureConfiguration.insert
   }
 
@@ -1249,39 +1266,67 @@ export class IIGestureManager
       return
     }
 
-    const changes: TIIHistoryChanges = { decorator: [] }
-    const symbolIdSet = new Set<string>()
-    gesture.strokeIds.forEach(id =>
-    {
-      const sym = this.model.getRootSymbol(id)
-      if (sym && this.isDecorable(sym) && !symbolIdSet.has(sym.id)) {
-        const symWithDec = sym as (IIText | IIStroke | IISymbolGroup | IIRecognizedText)
+    switch (this.underlineAction) {
+      case UnderlineAction.Draw: {
+        const changes: TIIHistoryChanges = { decorator: [] }
+        const symbolIdSet = new Set<string>()
+        gesture.strokeIds.forEach(id =>
+        {
+          const sym = this.model.getRootSymbol(id)
+          if (sym && this.isDecorable(sym) && !symbolIdSet.has(sym.id)) {
+            const symWithDec = sym as (IIText | IIStroke | IISymbolGroup | IIRecognizedText)
 
-        // Apply decorator on words for IIRecognizedText, or on symbol level for others
-        if ((symWithDec.type === SymbolType.Recognized && symWithDec.kind === RecognizedKind.Text) || symWithDec.type === SymbolType.Text) {
-          const modified = this.applyDecoratorOnWords(symWithDec as (IIText | IIRecognizedText), gestureStroke, DecoratorKind.Underline)
-          if (modified) {
-            this.model.updateSymbol(symWithDec)
-            this.renderer.drawSymbol(symWithDec)
-            symbolIdSet.add(symWithDec.id)
-            const underline = new IIDecorator(DecoratorKind.Underline, this.editor.penStyle)
-            changes.decorator?.push({ symbol: symWithDec, decorator: underline, added: true })
+            // Apply decorator on words for IIRecognizedText, or on symbol level for others
+            if ((symWithDec.type === SymbolType.Recognized && symWithDec.kind === RecognizedKind.Text) || symWithDec.type === SymbolType.Text) {
+              const modified = this.applyDecoratorOnWords(symWithDec as (IIText | IIRecognizedText), gestureStroke, DecoratorKind.Underline)
+              if (modified) {
+                this.model.updateSymbol(symWithDec)
+                this.renderer.drawSymbol(symWithDec)
+                symbolIdSet.add(symWithDec.id)
+                const underline = new IIDecorator(DecoratorKind.Underline, this.editor.penStyle)
+                changes.decorator?.push({ symbol: symWithDec, decorator: underline, added: true })
+              }
+            } else {
+              const underline = new IIDecorator(DecoratorKind.Underline, this.editor.penStyle)
+              const index = symWithDec.decorators.findIndex(d => d.kind === DecoratorKind.Underline)
+              const added = index === -1
+              // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+              added ? symWithDec.decorators.push(underline) : symWithDec.decorators.splice(index, 1)
+              this.model.updateSymbol(symWithDec)
+              this.renderer.drawSymbol(symWithDec)
+              changes.decorator?.push({ symbol: symWithDec, decorator: underline, added })
+              symbolIdSet.add(symWithDec.id)
+            }
           }
-        } else {
-          const underline = new IIDecorator(DecoratorKind.Underline, this.editor.penStyle)
-          const index = symWithDec.decorators.findIndex(d => d.kind === DecoratorKind.Underline)
-          const added = index === -1
-          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-          added ? symWithDec.decorators.push(underline) : symWithDec.decorators.splice(index, 1)
-          this.model.updateSymbol(symWithDec)
-          this.renderer.drawSymbol(symWithDec)
-          changes.decorator?.push({ symbol: symWithDec, decorator: underline, added })
-          symbolIdSet.add(symWithDec.id)
+        })
+        if (changes.decorator?.length) {
+          this.history.push(this.model, changes)
         }
+        break
       }
-    })
-    if (changes.decorator?.length) {
-      this.history.push(this.model, changes)
+      case UnderlineAction.Thicken: {
+        const symbolsToThicken: TIISymbol[] = []
+        gesture.strokeIds.forEach(id =>
+        {
+          const sym = this.model.getRootSymbol(id)
+          if (sym && !symbolsToThicken.some(s => s.id === sym.id)) {
+            const currentWidth = sym.style.width || 1
+            const newWidth = currentWidth * 2
+            this.editor.updateSymbolsStyle([sym.id], { width: newWidth }, false)
+            symbolsToThicken.push(sym)
+          }
+        })
+        if (symbolsToThicken.length) {
+          const changes: TIIHistoryChanges = {
+            style: { symbols: symbolsToThicken }
+          }
+          this.history.push(this.model, changes)
+        }
+        break
+      }
+      default:
+        this.#logger.warn("applyUnderlineGesture", `Unknown underlineAction: ${ this.underlineAction }, values allowed are: ${ UnderlineAction.Draw }, ${ UnderlineAction.Thicken }`)
+        break
     }
   }
 
