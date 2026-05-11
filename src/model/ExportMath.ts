@@ -16,6 +16,8 @@ export enum JIIXMathExpressionType {
   Subsuperscript = "subsuperscript",
   SquareRoot = "square root",
   Root = "root",
+  Power = "power",
+  Underoverscript = "underoverscript",
   Add = "+",
   Subtract = "-",
   Multiply = "×",
@@ -30,6 +32,12 @@ export enum JIIXMathExpressionType {
 
 /**
  * @group Exports
+ * @remarks Union type for all possible math expression type values (derived from JIIXMathExpressionType enum)
+ */
+export type TJIIXMathExpressionTypeValue = JIIXMathExpressionType | string
+
+/**
+ * @group Exports
  * @remarks Symbol in a math expression
  */
 export type TJIIXMathSymbol = {
@@ -41,17 +49,16 @@ export type TJIIXMathSymbol = {
  * @group Exports
  * @remarks Base type for math expressions
  */
-export type TJIIXMathExpressionBase = TJIIXBase & {
+export type TJIIXMathExpressionBase<T = TJIIXMathExpressionTypeValue> = TJIIXBase & {
   id: string
-  type: string
+  type: T
 }
 
 /**
  * @group Exports
  * @remarks Number expression in math
  */
-export type TJIIXMathNumber = TJIIXMathExpressionBase & {
-  type: "number"
+export type TJIIXMathNumber = TJIIXMathExpressionBase<JIIXMathExpressionType.Number> & {
   label: string
   value: number
   symbols?: TJIIXMathSymbol[]
@@ -61,17 +68,16 @@ export type TJIIXMathNumber = TJIIXMathExpressionBase & {
  * @group Exports
  * @remarks Variable expression in math (e.g., x, y, z)
  */
-export type TJIIXMathVariable = TJIIXMathExpressionBase & {
-  type: "variable"
+export type TJIIXMathVariable = TJIIXMathExpressionBase<JIIXMathExpressionType.Variable> & {
   label: string
+  value?: number | string
 }
 
 /**
  * @group Exports
  * @remarks Symbol expression in math
  */
-export type TJIIXMathSymbolExpression = TJIIXMathExpressionBase & {
-  type: "symbol"
+export type TJIIXMathSymbolExpression = TJIIXMathExpressionBase<JIIXMathExpressionType.Symbol> & {
   label: string
   symbols?: TJIIXMathSymbol[]
 }
@@ -80,8 +86,7 @@ export type TJIIXMathSymbolExpression = TJIIXMathExpressionBase & {
  * @group Exports
  * @remarks Operator expression (binary or unary)
  */
-export type TJIIXMathOperator = TJIIXMathExpressionBase & {
-  type: string  // "+", "-", "×", "/", "=", etc.
+export type TJIIXMathOperator = TJIIXMathExpressionBase<string> & {
   symbols?: TJIIXMathSymbol[]
   operands?: TJIIXMathExpression[]
 }
@@ -90,8 +95,7 @@ export type TJIIXMathOperator = TJIIXMathExpressionBase & {
  * @group Exports
  * @remarks Group expression
  */
-export type TJIIXMathGroup = TJIIXMathExpressionBase & {
-  type: "group"
+export type TJIIXMathGroup = TJIIXMathExpressionBase<JIIXMathExpressionType.Group> & {
   operands?: TJIIXMathExpression[]
 }
 
@@ -99,8 +103,7 @@ export type TJIIXMathGroup = TJIIXMathExpressionBase & {
  * @group Exports
  * @remarks Fraction expression
  */
-export type TJIIXMathFraction = TJIIXMathExpressionBase & {
-  type: "fraction"
+export type TJIIXMathFraction = TJIIXMathExpressionBase<JIIXMathExpressionType.Fraction> & {
   operands?: [TJIIXMathExpression, TJIIXMathExpression]  // [numerator, denominator]
 }
 
@@ -108,8 +111,7 @@ export type TJIIXMathFraction = TJIIXMathExpressionBase & {
  * @group Exports
  * @remarks Superscript expression (exponent)
  */
-export type TJIIXMathSuperscript = TJIIXMathExpressionBase & {
-  type: "superscript"
+export type TJIIXMathSuperscript = TJIIXMathExpressionBase<JIIXMathExpressionType.Superscript> & {
   operands?: [TJIIXMathExpression, TJIIXMathExpression]  // [base, exponent]
 }
 
@@ -117,8 +119,7 @@ export type TJIIXMathSuperscript = TJIIXMathExpressionBase & {
  * @group Exports
  * @remarks Subscript expression
  */
-export type TJIIXMathSubscript = TJIIXMathExpressionBase & {
-  type: "subscript"
+export type TJIIXMathSubscript = TJIIXMathExpressionBase<JIIXMathExpressionType.Subscript> & {
   operands?: [TJIIXMathExpression, TJIIXMathExpression]  // [base, subscript]
 }
 
@@ -126,8 +127,7 @@ export type TJIIXMathSubscript = TJIIXMathExpressionBase & {
  * @group Exports
  * @remarks Subsuperscript expression (both subscript and superscript)
  */
-export type TJIIXMathSubsuperscript = TJIIXMathExpressionBase & {
-  type: "subsuperscript"
+export type TJIIXMathSubsuperscript = TJIIXMathExpressionBase<JIIXMathExpressionType.Subsuperscript> & {
   operands?: [TJIIXMathExpression, TJIIXMathExpression, TJIIXMathExpression]  // [base, subscript, superscript]
 }
 
@@ -135,8 +135,8 @@ export type TJIIXMathSubsuperscript = TJIIXMathExpressionBase & {
  * @group Exports
  * @remarks Square root expression
  */
-export type TJIIXMathSquareRoot = TJIIXMathExpressionBase & {
-  type: "square root"
+export type TJIIXMathSquareRoot = TJIIXMathExpressionBase<JIIXMathExpressionType.SquareRoot> & {
+  label?: string
   operands?: [TJIIXMathExpression]
 }
 
@@ -144,9 +144,24 @@ export type TJIIXMathSquareRoot = TJIIXMathExpressionBase & {
  * @group Exports
  * @remarks Root expression (nth root)
  */
-export type TJIIXMathRoot = TJIIXMathExpressionBase & {
-  type: "root"
+export type TJIIXMathRoot = TJIIXMathExpressionBase<JIIXMathExpressionType.Root> & {
   operands?: [TJIIXMathExpression, TJIIXMathExpression]  // [radicand, index]
+}
+
+/**
+ * @group Exports
+ * @remarks Power expression (exponentiation)
+ */
+export type TJIIXMathPower = TJIIXMathExpressionBase<JIIXMathExpressionType.Power> & {
+  operands?: [TJIIXMathExpression, TJIIXMathExpression]  // [base, exponent]
+}
+
+/**
+ * @group Exports
+ * @remarks Underoverscript expression (e.g., integrals with bounds)
+ */
+export type TJIIXMathUnderoverscript = TJIIXMathExpressionBase<JIIXMathExpressionType.Underoverscript> & {
+  operands?: [TJIIXMathExpression, TJIIXMathExpression, TJIIXMathExpression]  // [symbol, underscript, overscript]
 }
 
 /**
@@ -165,6 +180,8 @@ export type TJIIXMathExpression =
   | TJIIXMathSubsuperscript
   | TJIIXMathSquareRoot
   | TJIIXMathRoot
+  | TJIIXMathPower
+  | TJIIXMathUnderoverscript
 
 /**
  * @group Exports
