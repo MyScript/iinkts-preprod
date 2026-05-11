@@ -1,8 +1,11 @@
 import { LoggerManager, LoggerCategory } from "../../logger"
 import { InteractiveInkEditor } from "../../editor/InteractiveInkEditor"
-import { IIRecognizedMath } from "../../symbol"
+import { IIRecognizedMath, TBox } from "../../symbol"
 import { MathOverlayManager } from "./MathOverlayManager"
+import { VariableColorManager } from "./VariableColorManager"
 import { isMathSymbol } from "../../symbol"
+import { convertBoundingBoxMillimeterToPixel } from "../../utils"
+import { TJIIXMathExpression } from "../../model/ExportMath"
 
 /**
  * Configuration for math interaction features
@@ -43,6 +46,7 @@ export class MathInteractionManager {
   #config: TMathInteractionConfig
   #hoveredSymbolId: string | null = null
   #selectedSymbolIds: Set<string> = new Set()
+  #colorManager: VariableColorManager
 
   editor: InteractiveInkEditor
   overlayManager: MathOverlayManager
@@ -51,6 +55,7 @@ export class MathInteractionManager {
     this.#logger.info("constructor")
     this.editor = editor
     this.overlayManager = editor.mathOverlays
+    this.#colorManager = VariableColorManager.getInstance()
     this.#config = { ...MathInteractionManager.DEFAULT_CONFIG, ...config }
   }
 
@@ -81,6 +86,35 @@ export class MathInteractionManager {
    */
   protected findMathSymbol(symbolId: string): IIRecognizedMath | undefined {
     return this.getMathSymbols().find(s => s.id === symbolId)
+  }
+
+  /**
+   * Find variable bounding box in JIIX expressions recursively
+   * @param expressions - Array of JIIX expressions to search
+   * @param variableName - Name of the variable to find (e.g., "x", "y")
+   * @returns Bounding box in pixels, or null if not found
+   */
+  protected findVariableBoxInExpressions(expressions: TJIIXMathExpression[], variableName: string): TBox | null {
+    for (const expr of expressions) {
+      // Check operands if they exist
+      if ("operands" in expr && expr.operands && Array.isArray(expr.operands)) {
+        for (const operand of expr.operands) {
+          // Direct variable match
+          if (operand.type === "variable" && "label" in operand && operand.label === variableName && operand["bounding-box"]) {
+            return convertBoundingBoxMillimeterToPixel(operand["bounding-box"])
+          }
+
+          // Recursive search in nested operands
+          if ("operands" in operand && operand.operands && Array.isArray(operand.operands)) {
+            const result = this.findVariableBoxInExpressions([operand], variableName)
+            if (result) {
+              return result
+            }
+          }
+        }
+      }
+    }
+    return null
   }
 
   /**
@@ -277,25 +311,86 @@ export class MathInteractionManager {
       return
     }
 
+    // Draw arrows from sources to current symbol's variable references
     sources.forEach(sourceId => {
       const sourceSymbol = this.findMathSymbol(sourceId)
-      if (sourceSymbol) {
-        this.overlayManager.drawDependencyArrow(
-          sourceSymbol.id,
-          symbol.id,
-          MathInteractionManager.HIGHLIGHT_STYLES.SOURCE_COLOR
-        )
+      if (sourceSymbol && sourceSymbol.jiixId && symbol.variableSources) {
+        // Find which variable in current symbol comes from this source
+        for (const [variableName, sourceJiixId] of Object.entries(symbol.variableSources)) {
+          if (sourceJiixId === sourceSymbol.jiixId && symbol.expressions) {
+            // Find the variable's bounding box in the current symbol's expressions
+            const variableBox = this.findVariableBoxInExpressions(symbol.expressions, variableName)
+            if (variableBox) {
+              // Get unique color for this variable
+              const variableColor = this.#colorManager.getColorForVariable(variableName)
+
+              // Highlight source symbol with variable color
+              this.overlayManager.highlightAsSource(sourceSymbol, variableColor)
+
+              // Draw rectangle around the variable
+              this.overlayManager.highlightVariableBox(
+                variableBox,
+                symbol.id,
+                variableName
+              )
+              // Draw arrow to the variable
+              this.overlayManager.drawDependencyArrowToBox(
+                sourceSymbol.id,
+                sourceSymbol.bounds,
+                symbol.id,
+                variableBox,
+                variableColor
+              )
+            } else {
+              // Fallback to original behavior if variable box not found
+              this.overlayManager.drawDependencyArrow(
+                sourceSymbol.id,
+                symbol.id,
+                MathInteractionManager.HIGHLIGHT_STYLES.SOURCE_COLOR
+              )
+            }
+          }
+        }
       }
     })
 
+    // Draw arrows from current symbol to dependents' variable references
     dependents.forEach(dependentId => {
       const dependentSymbol = this.findMathSymbol(dependentId)
-      if (dependentSymbol) {
-        this.overlayManager.drawDependencyArrow(
-          symbol.id,
-          dependentSymbol.id,
-          MathInteractionManager.HIGHLIGHT_STYLES.DEPENDENT_COLOR
-        )
+      if (dependentSymbol && dependentSymbol.variableSources && symbol.jiixId) {
+        // Find which variable in dependent symbol comes from current symbol
+        for (const [variableName, sourceJiixId] of Object.entries(dependentSymbol.variableSources)) {
+          if (sourceJiixId === symbol.jiixId && dependentSymbol.expressions) {
+            // Find the variable's bounding box in the dependent symbol's expressions
+            const variableBox = this.findVariableBoxInExpressions(dependentSymbol.expressions, variableName)
+            if (variableBox) {
+              // Get unique color for this variable
+              const variableColor = this.#colorManager.getColorForVariable(variableName)
+
+              // Draw rectangle around the variable
+              this.overlayManager.highlightVariableBox(
+                variableBox,
+                dependentSymbol.id,
+                variableName
+              )
+              // Draw arrow to the variable
+              this.overlayManager.drawDependencyArrowToBox(
+                symbol.id,
+                symbol.bounds,
+                dependentSymbol.id,
+                variableBox,
+                variableColor
+              )
+            } else {
+              // Fallback to original behavior if variable box not found
+              this.overlayManager.drawDependencyArrow(
+                symbol.id,
+                dependentSymbol.id,
+                MathInteractionManager.HIGHLIGHT_STYLES.DEPENDENT_COLOR
+              )
+            }
+          }
+        }
       }
     })
   }

@@ -361,9 +361,9 @@ export class MathOverlayManager {
     this.renderer.layer.appendChild(rect)
   }
 
-  highlightAsSource(mathSymbol: IIRecognizedMath): void {
+  highlightAsSource(mathSymbol: IIRecognizedMath, color?: string): void {
     this.drawOverlayRect(mathSymbol, "highlight-source", {
-      stroke: "#4CAF50",
+      stroke: color || "#4CAF50",
       "stroke-width": "3",
       "stroke-dasharray": "5 3",
       "data-overlay": "highlight"
@@ -377,6 +377,33 @@ export class MathOverlayManager {
       "stroke-dasharray": "5 3",
       "data-overlay": "highlight"
     })
+  }
+
+  /**
+   * Highlight a specific variable box within an equation
+   * @param box - Variable bounding box
+   * @param symbolId - Parent symbol ID for unique identifier
+   * @param variableName - Variable name for unique identifier and color assignment
+   */
+  highlightVariableBox(box: TBox, symbolId: string, variableName: string): void {
+    const id = `highlight-var-${symbolId}-${variableName}`.replace(/[^a-zA-Z0-9_-]/g, "_")
+    this.renderer.removeSymbol(id)
+
+    // Get unique color for this variable
+    const color = this.#colorManager.getColorForVariable(variableName)
+
+    const finalAttrs: Record<string, string> = {
+      id,
+      fill: "transparent",
+      stroke: color,
+      "stroke-width": "2",
+      "data-overlay": "highlight",
+      "data-block-id": symbolId,
+      style: "pointer-events: none;"
+    }
+
+    const rect = SVGBuilder.createRect(box, finalAttrs)
+    this.renderer.layer.appendChild(rect)
   }
 
   addHoverGlow(mathSymbol: IIRecognizedMath): void {
@@ -411,6 +438,41 @@ export class MathOverlayManager {
     const startY = fromSymbol.bounds.y + fromSymbol.bounds.height / 2
     const endX = toSymbol.bounds.x
     const endY = toSymbol.bounds.y + toSymbol.bounds.height / 2
+
+    const controlX = (startX + endX) / 2
+    const path = `M ${startX} ${startY} Q ${controlX} ${startY}, ${controlX} ${(startY + endY) / 2} T ${endX} ${endY}`
+
+    const arrowPath = document.createElementNS("http://www.w3.org/2000/svg", "path")
+    arrowPath.setAttribute("id", arrowId)
+    arrowPath.setAttribute("d", path)
+    arrowPath.setAttribute("stroke", color)
+    arrowPath.setAttribute("stroke-width", "2")
+    arrowPath.setAttribute("fill", "transparent")
+    arrowPath.setAttribute("marker-end", "url(#arrowhead)")
+    arrowPath.setAttribute("data-overlay", "arrow")
+    arrowPath.setAttribute("style", "pointer-events: none;")
+
+    this.renderer.layer.appendChild(arrowPath)
+
+    this.ensureArrowheadMarker()
+  }
+
+  /**
+   * Draw dependency arrow from a symbol to a specific variable box
+   * @param fromId - Source symbol ID
+   * @param fromBounds - Source symbol bounds
+   * @param toId - Target symbol ID (for unique arrow ID)
+   * @param toBox - Target variable bounding box
+   * @param color - Arrow color
+   */
+  drawDependencyArrowToBox(fromId: string, fromBounds: TBox, toId: string, toBox: TBox, color: string): void {
+    const arrowId = `arrow-${fromId}-${toId}`
+    this.renderer.removeSymbol(arrowId)
+
+    const startX = fromBounds.x + fromBounds.width
+    const startY = fromBounds.y + fromBounds.height / 2
+    const endX = toBox.x
+    const endY = toBox.y + toBox.height / 2
 
     const controlX = (startX + endX) / 2
     const path = `M ${startX} ${startY} Q ${controlX} ${startY}, ${controlX} ${(startY + endY) / 2} T ${endX} ${endY}`
