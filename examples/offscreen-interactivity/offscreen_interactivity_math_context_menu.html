@@ -131,16 +131,38 @@
             }
           }
         },
+        menu: {
+          action: {
+            language: false,
+            gesture: false,
+            snap: false,
+            export: false,
+            import: false,
+            convert: false,
+          },
+          tool: {
+            write: true,
+            move: true,
+            select: true,
+            erase: true,
+            shape: false,
+            edge: false
+          },
+          style: {
+            strokeColor: true,
+            fillColor: false,
+            thickness: false,
+            fontSize: false,
+            fontWeight: false,
+            opacity: false,
+          }
+        }
       }
     }
 
     async function loadEditor(options) {
       await editor?.destroy()
-
       editor = await Editor.load(editorElement, 'INTERACTIVEINK', options)
-
-      console.log("Editor loaded. Draw a circle around a math expression to access the context menu!")
-
       return editor
     }
 
