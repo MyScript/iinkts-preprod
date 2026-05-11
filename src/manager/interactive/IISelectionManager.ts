@@ -606,10 +606,7 @@ export class IISelectionManager
     }
     this.editor.unselectAll()
     if (currentEl?.id) {
-      this.model.selectSymbol(currentEl.id)
-      this.renderer.drawSymbol(this.model.symbolsSelected[0])
-      this.drawSelectedGroup(this.model.symbolsSelected)
-      this.editor.updateLayerUI()
+      this.editor.select([currentEl.id])
     }
     else {
       // Use clientX/clientY relative to the menu's parent container

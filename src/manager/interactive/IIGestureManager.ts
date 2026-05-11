@@ -14,6 +14,7 @@ import
   TPoint,
   IIRecognizedText,
   RecognizedKind,
+  isMathSymbol,
 } from "../../symbol"
 import { RecognizerWebSocket } from "../../recognizer"
 import { SVGRenderer } from "../../renderer"
@@ -440,10 +441,9 @@ export class IIGestureManager
             const newSym = symbol.clone()
             newSym.id = `${ newSym.type }-${ createUUID() }`
             newSym.strokes = strokesToConserve
-            // Reset jiixId as strokes have changed and need re-recognition
             newSym.jiixId = undefined
-            // Reset variableValues for math symbols as they're tied to jiixId
             if (newSym.kind === RecognizedKind.Math) {
+              newSym.computedResult = undefined
               newSym.variableValues = undefined
               // Clean up solverOutputStrokeIds by removing deleted stroke IDs
               if (newSym.solverOutputStrokeIds && newSym.solverOutputStrokeIds.length > 0) {
@@ -537,6 +537,27 @@ export class IIGestureManager
         }
       }
     })
+
+    const affectedMathSymbols = [
+      ...symbolsToErase.filter(isMathSymbol),
+      ...symbolsToReplace.oldSymbols.filter(isMathSymbol)
+    ]
+
+    const dependentBlocksToClean = new Set<string>()
+    affectedMathSymbols.forEach(mathSymbol => {
+      if (mathSymbol.dependentBlocks && mathSymbol.dependentBlocks.length > 0) {
+        this.#logger.info("applyScratch", `Math symbol ${mathSymbol.jiixId} has ${mathSymbol.dependentBlocks.length} dependent blocks, clearing their solver outputs`)
+        mathSymbol.dependentBlocks.forEach(blockId => dependentBlocksToClean.add(blockId))
+      }
+    })
+
+    for (const blockId of dependentBlocksToClean) {
+      const dependentMathSymbol = this.editor.findMathSymbolByJiixId(blockId)
+      if (dependentMathSymbol) {
+        await this.editor.clearSolverOutputStrokes(dependentMathSymbol)
+        this.#logger.info("applyScratch", `Cleared solver outputs from dependent block ${blockId}`)
+      }
+    }
 
     const promises: Promise<void | TIISymbol[]>[] = []
     const changes: TIIHistoryChanges = {}

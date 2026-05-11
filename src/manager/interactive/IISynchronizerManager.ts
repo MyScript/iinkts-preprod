@@ -17,7 +17,8 @@ import
   IIRecognizedCircle,
   IIRecognizedEllipse,
   IIRecognizedPolygon,
-  RecognizedKind
+  RecognizedKind,
+  isMathSymbol
 } from "../../symbol"
 import { convertMillimeterToPixel, convertBoundingBoxMillimeterToPixel } from "../../utils"
 
@@ -27,7 +28,11 @@ import { convertMillimeterToPixel, convertBoundingBoxMillimeterToPixel } from ".
 export class IISynchronizerManager
 {
   #logger = LoggerManager.getLogger(LoggerCategory.SYNCHRONIZER)
+  #synchronizePromise?: Promise<void>
   editor: InteractiveInkEditor
+
+  static readonly SYNCHRONIZE_TIMEOUT = 30000
+  static readonly MAX_RETRY_ATTEMPTS = 3
 
   constructor(editor: InteractiveInkEditor)
   {
@@ -40,13 +45,85 @@ export class IISynchronizerManager
     return this.editor.model
   }
 
-  /**
-   * Synchronize strokes with JIIX export
-   * Updates symbols based on recognition results from the backend
-   */
+  #createTimeoutPromise(timeoutMs: number): Promise<never>
+  {
+    return new Promise((_, reject) => {
+      setTimeout(() => {
+        reject(new Error(`Synchronization timeout after ${timeoutMs}ms`))
+      }, timeoutMs)
+    })
+  }
+
   async synchronize(): Promise<void>
   {
-    await this.editor.export(["application/vnd.myscript.jiix"])
+    if (this.#synchronizePromise) {
+      this.#logger.debug("synchronize", "Synchronization already in progress, waiting for it to complete")
+      await this.#synchronizePromise
+      return
+    }
+
+    this.editor.layers.updateState(false)
+    this.#synchronizePromise = this.#synchronizeWithRetry()
+
+    try {
+      await this.#synchronizePromise
+    } finally {
+      this.#synchronizePromise = undefined
+      this.editor.layers.updateState(true)
+    }
+  }
+
+  async #synchronizeWithRetry(): Promise<void>
+  {
+    let lastError: Error | undefined
+
+    for (let attempt = 1; attempt <= IISynchronizerManager.MAX_RETRY_ATTEMPTS; attempt++) {
+      try {
+        if (attempt > 1) {
+          this.#logger.warn("synchronize", `Retry attempt ${attempt}/${IISynchronizerManager.MAX_RETRY_ATTEMPTS}`)
+        }
+
+        await Promise.race([
+          this.#doSynchronize(),
+          this.#createTimeoutPromise(IISynchronizerManager.SYNCHRONIZE_TIMEOUT)
+        ])
+
+        if (attempt > 1) {
+          this.#logger.info("synchronize", `Synchronization succeeded on attempt ${attempt}`)
+        }
+        return
+
+      } catch (error) {
+        lastError = error as Error
+        const isTimeout = error instanceof Error && error.message.includes("timeout")
+
+        if (isTimeout) {
+          this.#logger.error("synchronize", `Timeout on attempt ${attempt}/${IISynchronizerManager.MAX_RETRY_ATTEMPTS}:`, error)
+          if (attempt < IISynchronizerManager.MAX_RETRY_ATTEMPTS) {
+            this.#logger.warn("synchronize", `Will retry synchronization (attempt ${attempt + 1}/${IISynchronizerManager.MAX_RETRY_ATTEMPTS})`)
+            await new Promise(resolve => setTimeout(resolve, 500))
+            continue
+          }
+        } else {
+          // Non-timeout error - don't retry, fail immediately
+          this.#logger.error("synchronize", "Synchronization failed with non-timeout error:", error)
+          throw error
+        }
+      }
+    }
+
+    this.#logger.error("synchronize", `Synchronization failed after ${IISynchronizerManager.MAX_RETRY_ATTEMPTS} attempts`)
+    throw lastError || new Error(`Synchronization failed after ${IISynchronizerManager.MAX_RETRY_ATTEMPTS} attempts`)
+  }
+
+  async #doSynchronize(): Promise<void>
+  {
+    try {
+      await this.editor.export(["application/vnd.myscript.jiix"])
+    } catch (error) {
+      this.#logger.error("#doSynchronize", "Failed to export JIIX:", error)
+      throw error
+    }
 
     const jiix = this.model.exports?.["application/vnd.myscript.jiix"]
     this.#logger.debug("synchronize", "JIIX elements:", jiix?.elements)
@@ -57,22 +134,27 @@ export class IISynchronizerManager
     }
 
     for (const el of jiix.elements || []) {
-      switch (el.type) {
-        case JIIXELementType.Text:
-          await this.synchronizeTextElement(el, jiix)
-          break
-        case JIIXELementType.Math:
-          await this.synchronizeMathElement(el)
-          break
-        case JIIXELementType.Node:
-          this.synchronizeNodeElement(el)
-          break
-        case JIIXELementType.Edge:
-          this.synchronizeEdgeElement(el)
-          break
-        default:
-          this.#logger.warn("synchronize", `Can not create recognized symbol, type unknown: ${ el }`)
-          break
+      try {
+        switch (el.type) {
+          case JIIXELementType.Text:
+            await this.synchronizeTextElement(el, jiix)
+            break
+          case JIIXELementType.Math:
+            await this.synchronizeMathElement(el)
+            break
+          case JIIXELementType.Node:
+            this.synchronizeNodeElement(el)
+            break
+          case JIIXELementType.Edge:
+            this.synchronizeEdgeElement(el)
+            break
+          default:
+            this.#logger.warn("synchronize", `Can not create recognized symbol, type unknown: ${ el }`)
+            break
+        }
+      } catch (error) {
+        this.#logger.error("#doSynchronize", `Failed to synchronize element of type ${el.type}:`, error)
+        // Continue with next element instead of failing completely
       }
     }
 
@@ -80,30 +162,35 @@ export class IISynchronizerManager
     this.editor.history.update(this.model)
 
     const mathSymbols = this.model.symbols.filter(s =>
-      s.type === SymbolType.Recognized &&
-      s.kind === RecognizedKind.Math &&
+      isMathSymbol(s) &&
       s.strokes &&
       s.strokes.length > 0
     ) as IIRecognizedMath[]
 
-    const enrichPromises = mathSymbols.map(mathSymbol =>
-      this.enrichMathDependencies(mathSymbol).catch(err =>
+    // Serialize enrichment to avoid race conditions with concurrent getVariables calls
+    for (const mathSymbol of mathSymbols) {
+      try {
+        await this.enrichMathDependencies(mathSymbol)
+      } catch (err) {
         this.#logger.error("synchronize", "Error enriching math dependencies:", err)
-      )
-    )
-    await Promise.all(enrichPromises)
+      }
+    }
 
-    this.cleanupMathDependencies(mathSymbols)
+    try {
+      this.cleanupMathDependencies(mathSymbols)
+    } catch (error) {
+      this.#logger.error("#doSynchronize", "Failed to cleanup math dependencies:", error)
+    }
 
-    this.editor.mathOverlays.refresh()
+    try {
+      this.editor.mathOverlays.refresh()
+    } catch (error) {
+      this.#logger.error("#doSynchronize", "Failed to refresh math overlays:", error)
+    }
 
     this.editor.event.emitSynchronized()
   }
 
-  /**
-   * Clean up dependentBlocks and variableSources by removing IDs that don't exist in the model anymore
-   * Also ensures bidirectional consistency: if A has B in dependentBlocks, then B must have A in variableSources
-   */
   protected cleanupMathDependencies(mathSymbols: IIRecognizedMath[]): void
   {
     const existingJiixIds = new Set(mathSymbols.map(s => s.jiixId).filter(Boolean))
@@ -189,12 +276,6 @@ export class IISynchronizerManager
     })
   }
 
-  /**
-   * Enrich a math symbol with variable dependencies
-   * Analyzes variables used in the expression and links them to their source blocks
-   * @param mathSymbol - The math symbol to enrich
-   * @returns Promise that resolves when dependencies are established
-   */
   protected async enrichMathDependencies(mathSymbol: IIRecognizedMath): Promise<void>
   {
     try {
@@ -203,32 +284,59 @@ export class IISynchronizerManager
         return
       }
 
+      const originalJiixId = mathSymbol.jiixId
+
       const symbolExists = this.model.symbols.some(s => s.id === mathSymbol.id)
       if (!symbolExists) {
-        this.#logger.debug("enrichMathDependencies", `Symbol ${mathSymbol.id} (${mathSymbol.jiixId}) no longer exists in model, skipping enrichment`)
+        this.#logger.debug("enrichMathDependencies", `Symbol ${mathSymbol.id} (${originalJiixId}) no longer exists in model, skipping enrichment`)
         return
       }
 
-      // Verify the symbol still has strokes (not deleted by erase/scratch)
       if (!mathSymbol.strokes || mathSymbol.strokes.length === 0) {
-        this.#logger.debug("enrichMathDependencies", `Symbol ${mathSymbol.id} (${mathSymbol.jiixId}) has no strokes, skipping enrichment`)
+        this.#logger.debug("enrichMathDependencies", `Symbol ${mathSymbol.id} (${originalJiixId}) has no strokes, skipping enrichment`)
         return
       }
 
-      this.#logger.info("enrichMathDependencies", `Starting enrichment for ${mathSymbol.label} (${mathSymbol.jiixId})`)
-
-      const variables = await this.editor.getVariables(mathSymbol.jiixId)
-
-      if (!variables || variables.length === 0) {
-        this.#logger.debug("enrichMathDependencies", `No variables found in ${mathSymbol.label}`)
-        if (mathSymbol.variableSources && Object.keys(mathSymbol.variableSources).length > 0) {
-          mathSymbol.variableSources = {}
-          await this.model.updateSymbol(mathSymbol)
-        }
+      // Re-check jiixId before making async call - it may have been cleared by concurrent operations
+      if (!mathSymbol.jiixId || mathSymbol.jiixId !== originalJiixId) {
+        this.#logger.debug("enrichMathDependencies", `Symbol ${mathSymbol.id} jiixId changed from ${originalJiixId} to ${mathSymbol.jiixId}, skipping enrichment`)
         return
       }
 
-      this.#logger.info("enrichMathDependencies", `Found ${variables.length} variables:`, variables.map(v => `${v.name} (sourceType: ${v.sourceType}, sourceId: ${v.sourceId})`))
+      this.#logger.info("enrichMathDependencies", `Starting enrichment for ${mathSymbol.label} (${originalJiixId})`)
+
+      // Use originalJiixId instead of mathSymbol.jiixId to avoid race condition
+      const variables = await this.editor.getVariables(originalJiixId)
+
+    // Get the CURRENT symbol from model - it may have been recreated during the async getVariables call
+    const currentSymbol = this.model.symbols.find(s =>
+      isMathSymbol(s) && s.jiixId === originalJiixId
+    ) as IIRecognizedMath | undefined
+
+    if (!currentSymbol) {
+      this.#logger.debug("enrichMathDependencies", `Symbol with jiixId ${originalJiixId} no longer exists in model after getVariables, aborting enrichment`)
+      return
+    }
+
+    // Re-check that the symbol still has strokes
+    if (!currentSymbol.strokes || currentSymbol.strokes.length === 0) {
+      this.#logger.debug("enrichMathDependencies", `Symbol with jiixId ${originalJiixId} has no strokes after getVariables, aborting enrichment`)
+      return
+    }
+
+    // Use currentSymbol instead of mathSymbol for all subsequent operations
+    mathSymbol = currentSymbol
+
+    if (!variables || variables.length === 0) {
+      this.#logger.debug("enrichMathDependencies", `No variables found in ${mathSymbol.label}`)
+      if (mathSymbol.variableSources && Object.keys(mathSymbol.variableSources).length > 0) {
+        mathSymbol.variableSources = {}
+        await this.model.updateSymbol(mathSymbol)
+      }
+      return
+    }
+
+    this.#logger.info("enrichMathDependencies", `Found ${variables.length} variables:`, variables.map(v => `${v.name} (sourceType: ${v.sourceType}, sourceId: ${v.sourceId})`))
 
       const newVariableSources: { [variableName: string]: string } = {}
       for (const variable of variables) {
@@ -353,9 +461,6 @@ export class IISynchronizerManager
     return items
   }
 
-  /**
-   * Synchronize a Text element from JIIX
-   */
   protected async synchronizeTextElement(el: TJIIXTextElement, jiix: TJIIXExport): Promise<void>
   {
     this.#logger.debug("synchronizeTextElement", "Processing Text element:", el)
@@ -546,9 +651,7 @@ export class IISynchronizerManager
 
     if (mathJiixAssociation.strokes.length) {
       const existingMath = this.model.symbols.find(s =>
-        s.type === SymbolType.Recognized &&
-        s.kind === RecognizedKind.Math &&
-        (s as IIRecognizedMath).jiixId === mathEl.id
+        isMathSymbol(s) && s.jiixId === mathEl.id
       ) as IIRecognizedMath | undefined
 
       if (existingMath) {
@@ -577,9 +680,7 @@ export class IISynchronizerManager
       this.#logger.debug("synchronizeMathElement", `Math strokes: ${jiixAssociation.strokes.length}, symbols: ${jiixAssociation.symbols.length}`)
 
       const existingMath = this.model.symbols.find(s =>
-        s.type === SymbolType.Recognized &&
-        s.kind === RecognizedKind.Math &&
-        s.jiixId === el.id
+        isMathSymbol(s) && s.jiixId === el.id
       ) as IIRecognizedMath | undefined
 
       if (existingMath) {
