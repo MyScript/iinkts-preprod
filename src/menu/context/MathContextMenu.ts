@@ -198,6 +198,13 @@ export class MathContextMenu extends SubMenuItem
                   type: "number",
                   defaultValue: 20,
                   placeholder: "Point count"
+                },
+                {
+                  id: "step",
+                  label: "Step:",
+                  type: "number",
+                  defaultValue: parseFloat(((10 - (-10)) / (20 - 1)).toFixed(6)),
+                  placeholder: "Step size"
                 }
               )
 
@@ -251,12 +258,10 @@ export class MathContextMenu extends SubMenuItem
                         })
                         chart.setData(points)
 
-                        // Prepare chart container
                         const chartContainer = document.createElement("div")
                         chartContainer.style.cssText = "margin: 16px 0; text-align: center; overflow: hidden;"
                         chartContainer.appendChild(chart.getElement())
 
-                        // Create a new modal to display the chart
                         const resultModal: Modal = new Modal({
                           title: "Evaluation Result",
                           fields: [],
@@ -286,6 +291,70 @@ export class MathContextMenu extends SubMenuItem
               })
 
               modal.open()
+
+              const fromInput = document.querySelector("#from") as HTMLInputElement
+              const toInput = document.querySelector("#to") as HTMLInputElement
+              const pointCountInput = document.querySelector("#pointCount") as HTMLInputElement
+              const stepInput = document.querySelector("#step") as HTMLInputElement
+
+              let isUpdatingStep = false
+              let isUpdatingPointCount = false
+              let lastModified: "step" | "pointCount" = "pointCount" // Track which field was last manually modified
+
+              const updateStep = () => {
+                if (isUpdatingStep) return
+                isUpdatingPointCount = true
+
+                const from = parseFloat(fromInput.value)
+                const to = parseFloat(toInput.value)
+                const pointCount = parseInt(pointCountInput.value)
+
+                if (!isNaN(from) && !isNaN(to) && !isNaN(pointCount) && pointCount > 1) {
+                  const step = (to - from) / (pointCount - 1)
+                  stepInput.value = step.toFixed(6)
+                }
+
+                isUpdatingPointCount = false
+              }
+
+              const updatePointCount = () => {
+                if (isUpdatingPointCount) return
+                isUpdatingStep = true
+
+                const from = parseFloat(fromInput.value)
+                const to = parseFloat(toInput.value)
+                const step = parseFloat(stepInput.value)
+
+                if (!isNaN(from) && !isNaN(to) && !isNaN(step) && step > 0) {
+                  const pointCount = Math.floor((to - from) / step) + 1
+                  pointCountInput.value = String(Math.max(2, pointCount))
+                }
+
+                isUpdatingStep = false
+              }
+
+              const updateBasedOnLastModified = () => {
+                if (lastModified === "pointCount") {
+                  updateStep()
+                } else {
+                  updatePointCount()
+                }
+              }
+
+              fromInput.addEventListener("input", () => {
+                updateBasedOnLastModified()
+              })
+              toInput.addEventListener("input", () => {
+                updateBasedOnLastModified()
+              })
+              pointCountInput.addEventListener("input", () => {
+                lastModified = "pointCount"
+                updateStep()
+              })
+              stepInput.addEventListener("input", () => {
+                lastModified = "step"
+                updatePointCount()
+              })
             } catch (error) {
               this.logger.error("Error evaluating function:", error)
             }
