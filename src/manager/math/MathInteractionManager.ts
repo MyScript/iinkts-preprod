@@ -1,10 +1,12 @@
 import { LoggerManager, LoggerCategory } from "../../logger"
 import { InteractiveInkEditor } from "../../editor/InteractiveInkEditor"
-import { IIRecognizedMath, RecognizedKind, SymbolType } from "../../symbol"
+import { IIRecognizedMath } from "../../symbol"
 import { MathOverlayManager } from "./MathOverlayManager"
+import { isMathSymbol } from "../../symbol"
 
 /**
  * Configuration for math interaction features
+ * @group Manager
  */
 export type TMathInteractionConfig = {
   highlightOnHover: boolean
@@ -24,15 +26,15 @@ export type TMathInteractionConfig = {
  */
 export class MathInteractionManager {
   private static readonly DEFAULT_CONFIG: TMathInteractionConfig = {
-    highlightOnHover: true,
-    highlightOnSelect: true,
+    highlightOnHover: false,
+    highlightOnSelect: false,
     showDependencyArrows: false,
     dimOpacity: 0.3,
   }
 
   private static readonly HIGHLIGHT_STYLES = {
-    SOURCE_COLOR: "#4CAF50",      // Green for blocks this depends on
-    DEPENDENT_COLOR: "#FF9800",   // Orange for blocks that depend on this
+    SOURCE_COLOR: "#4CAF50",
+    DEPENDENT_COLOR: "#FF9800",
     HOVER_GLOW: "0 0 8px rgba(33, 150, 243, 0.6)",
     DASH_ARRAY: "5 3",
   }
@@ -71,10 +73,7 @@ export class MathInteractionManager {
    * Get all math symbols from the model
    */
   protected getMathSymbols(): IIRecognizedMath[] {
-    return this.editor.model.symbols.filter(
-      (s): s is IIRecognizedMath =>
-        s.type === SymbolType.Recognized && s.kind === RecognizedKind.Math
-    )
+    return this.editor.model.symbols.filter(isMathSymbol)
   }
 
   /**
@@ -85,13 +84,16 @@ export class MathInteractionManager {
   }
 
   /**
-   * Get all source blocks (blocks this symbol depends on) recursively
+   * Get all source blocks recursively
+   * @param symbolId - Symbol ID to get sources for
+   * @param visited - Set of already visited symbols to prevent infinite loops
+   * @returns Set of source symbol IDs
    */
   getRecursiveSources(symbolId: string, visited: Set<string> = new Set()): Set<string> {
     const sources = new Set<string>()
 
     if (visited.has(symbolId)) {
-      return sources // Avoid infinite loops
+      return sources
     }
     visited.add(symbolId)
 
@@ -100,13 +102,10 @@ export class MathInteractionManager {
       return sources
     }
 
-    // Add direct sources
     Object.values(mathSymbol.variableSources).forEach(sourceJiixId => {
       const sourceSymbol = this.editor.findMathSymbolByJiixId(sourceJiixId)
       if (sourceSymbol && !visited.has(sourceSymbol.id)) {
         sources.add(sourceSymbol.id)
-
-        // Add recursive sources
         const recursiveSources = this.getRecursiveSources(sourceSymbol.id, visited)
         recursiveSources.forEach(id => sources.add(id))
       }
@@ -116,13 +115,16 @@ export class MathInteractionManager {
   }
 
   /**
-   * Get all dependent blocks (blocks that depend on this symbol) recursively
+   * Get all dependent blocks recursively
+   * @param symbolId - Symbol ID to get dependents for
+   * @param visited - Set of already visited symbols to prevent infinite loops
+   * @returns Set of dependent symbol IDs
    */
   getRecursiveDependents(symbolId: string, visited: Set<string> = new Set()): Set<string> {
     const dependents = new Set<string>()
 
     if (visited.has(symbolId)) {
-      return dependents // Avoid infinite loops
+      return dependents
     }
     visited.add(symbolId)
 
@@ -131,13 +133,10 @@ export class MathInteractionManager {
       return dependents
     }
 
-    // Add direct dependents
     mathSymbol.dependentBlocks.forEach(dependentJiixId => {
       const dependentSymbol = this.editor.findMathSymbolByJiixId(dependentJiixId)
       if (dependentSymbol && !visited.has(dependentSymbol.id)) {
         dependents.add(dependentSymbol.id)
-
-        // Add recursive dependents
         const recursiveDependents = this.getRecursiveDependents(dependentSymbol.id, visited)
         recursiveDependents.forEach(id => dependents.add(id))
       }
@@ -147,14 +146,14 @@ export class MathInteractionManager {
   }
 
   /**
-   * Handle symbol hover
+   * Handle symbol hover event
+   * @param symbolId - Symbol ID being hovered, or null to clear hover
    */
   onSymbolHover(symbolId: string | null): void {
     if (!this.#config.highlightOnHover) {
       return
     }
 
-    // Clear previous hover highlights
     if (this.#hoveredSymbolId) {
       this.clearHoverHighlights()
     }
@@ -173,7 +172,6 @@ export class MathInteractionManager {
 
     this.#logger.debug("onSymbolHover", { symbolId, label: mathSymbol.label })
 
-    // Highlight sources (green)
     const sources = this.getRecursiveSources(symbolId)
     sources.forEach(sourceId => {
       const sourceSymbol = this.findMathSymbol(sourceId)
@@ -182,7 +180,6 @@ export class MathInteractionManager {
       }
     })
 
-    // Highlight dependents (orange)
     const dependents = this.getRecursiveDependents(symbolId)
     dependents.forEach(dependentId => {
       const dependentSymbol = this.findMathSymbol(dependentId)
@@ -191,10 +188,8 @@ export class MathInteractionManager {
       }
     })
 
-    // Add glow to hovered symbol
     this.overlayManager.addHoverGlow(mathSymbol)
 
-    // Draw dependency arrows if enabled
     if (this.#config.showDependencyArrows) {
       this.drawDependencyArrows(symbolId, sources, dependents)
     }
@@ -211,22 +206,19 @@ export class MathInteractionManager {
 
   /**
    * Handle symbol selection
+   * @param symbolIds - Array of selected symbol IDs
    */
   onSymbolSelect(symbolIds: string[]): void {
-    if (!this.#config.highlightOnSelect) {
-      return
-    }
+    this.clearSelectionHighlights()
 
     this.#selectedSymbolIds = new Set(symbolIds)
 
-    if (symbolIds.length === 0) {
-      this.clearSelectionHighlights()
+    if (!this.#config.highlightOnSelect || symbolIds.length === 0) {
       return
     }
 
     this.#logger.debug("onSymbolSelect", { symbolIds })
 
-    // Get all related blocks
     const relatedBlocks = new Set<string>()
     symbolIds.forEach(id => {
       relatedBlocks.add(id)
@@ -234,14 +226,12 @@ export class MathInteractionManager {
       this.getRecursiveDependents(id).forEach(depId => relatedBlocks.add(depId))
     })
 
-    // Dim non-related blocks
     this.getMathSymbols().forEach(symbol => {
       if (!relatedBlocks.has(symbol.id)) {
         this.overlayManager.dimSymbol(symbol, this.#config.dimOpacity)
       }
     })
 
-    // Highlight sources and dependents
     symbolIds.forEach(id => {
       const sources = this.getRecursiveSources(id)
       const dependents = this.getRecursiveDependents(id)
@@ -263,7 +253,7 @@ export class MathInteractionManager {
   }
 
   /**
-   * Clear selection highlights
+   * Clear all selection highlights and dimming
    */
   protected clearSelectionHighlights(): void {
     this.#logger.debug("clearSelectionHighlights")
@@ -272,7 +262,10 @@ export class MathInteractionManager {
   }
 
   /**
-   * Draw dependency arrows between related blocks
+   * Draw dependency arrows between symbol and its sources/dependents
+   * @param symbolId - Central symbol ID
+   * @param sources - Set of source symbol IDs
+   * @param dependents - Set of dependent symbol IDs
    */
   protected drawDependencyArrows(
     symbolId: string,
@@ -284,7 +277,6 @@ export class MathInteractionManager {
       return
     }
 
-    // Draw arrows from sources to this symbol
     sources.forEach(sourceId => {
       const sourceSymbol = this.findMathSymbol(sourceId)
       if (sourceSymbol) {
@@ -296,7 +288,6 @@ export class MathInteractionManager {
       }
     })
 
-    // Draw arrows from this symbol to dependents
     dependents.forEach(dependentId => {
       const dependentSymbol = this.findMathSymbol(dependentId)
       if (dependentSymbol) {
@@ -311,6 +302,7 @@ export class MathInteractionManager {
 
   /**
    * Toggle dependency arrows visibility
+   * @param show - Whether to show dependency arrows
    */
   toggleDependencyArrows(show: boolean): void {
     this.updateConfig({ showDependencyArrows: show })
@@ -318,7 +310,6 @@ export class MathInteractionManager {
     if (!show) {
       this.overlayManager.clearDependencyArrows()
     } else if (this.#hoveredSymbolId) {
-      // Redraw arrows for currently hovered symbol
       const sources = this.getRecursiveSources(this.#hoveredSymbolId)
       const dependents = this.getRecursiveDependents(this.#hoveredSymbolId)
       this.drawDependencyArrows(this.#hoveredSymbolId, sources, dependents)
@@ -326,7 +317,7 @@ export class MathInteractionManager {
   }
 
   /**
-   * Clear all interaction highlights
+   * Clear all highlights and reset state
    */
   clearAll(): void {
     this.#logger.info("clearAll")

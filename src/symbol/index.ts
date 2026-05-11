@@ -39,3 +39,6 @@ export * from "./geometry"
 
 // Recognition results
 export * from "./recognized"
+
+// Symbol helpers
+export * from "./symbol-helpers"

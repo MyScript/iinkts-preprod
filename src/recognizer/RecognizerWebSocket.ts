@@ -1,6 +1,6 @@
 import { TIIHistoryBackendChanges, THistoryContext } from "../history"
 import { LoggerCategory, LoggerManager } from "../logger"
-import { TExport, TJIIXExport } from "../model"
+import { TExport, TJIIXExport, TJIIXMathElement } from "../model"
 import { IIStroke } from "../symbol"
 import { TMatrixTransform } from "../transform"
 import { computeHmac, mergeDeep, DeferredPromise, PartialDeep, isVersionSuperiorOrEqual, getApiInfos } from "../utils"
@@ -407,6 +407,10 @@ export class RecognizerWebSocket
   protected manageMathSolverResult(mathSolverMessage: TRecognizerWebSocketMessageMathSolverResult): void
   {
     const blockId = mathSolverMessage.blockId
+    if (!blockId) {
+      this.#logger.error("manageMathSolverResult", "Received math solver result without blockId, unable to resolve corresponding promise", mathSolverMessage)
+      return
+    }
 
     switch (mathSolverMessage.action) {
       case "available-actions":
@@ -649,7 +653,7 @@ export class RecognizerWebSocket
     return actions
   }
 
-  async getNumericalComputation(blockId: string): Promise<TJIIXExport>
+  async getNumericalComputation(blockId: string): Promise<TJIIXMathElement>
   {
     this.numericalComputationDeferred.set(blockId, new DeferredPromise<string>())
     await this.send({
@@ -657,7 +661,7 @@ export class RecognizerWebSocket
       action: "numerical-computation",
       blockId: blockId
     })
-    const result = JSON.parse(await this.numericalComputationDeferred.get(blockId)!.promise) as TJIIXExport
+    const result = JSON.parse(await this.numericalComputationDeferred.get(blockId)!.promise) as TJIIXMathElement
     this.numericalComputationDeferred.delete(blockId)
     return result
   }

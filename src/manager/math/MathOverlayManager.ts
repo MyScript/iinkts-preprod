@@ -43,6 +43,14 @@ export class MathOverlayManager {
     OFFSET: 4,
   }
 
+  private static readonly OVERLAY_PREFIXES = [
+    "badge",
+    "border",
+    "result-panel",
+    "result-connection",
+    "hover-zone"
+  ] as const
+
   #logger = LoggerManager.getLogger(LoggerCategory.MODEL)
   #config: TMathOverlayConfig
   #colorManager: VariableColorManager
@@ -58,36 +66,23 @@ export class MathOverlayManager {
     this.#colorManager = VariableColorManager.getInstance()
   }
 
-  /**
-   * Get the model from the editor
-   */
   get model(): IIModel {
     return this.editor.model
   }
 
-  /**
-   * Update overlay configuration
-   */
   updateConfig(config: Partial<TMathOverlayConfig>): void {
     this.#logger.debug("updateConfig", config)
     this.#config = { ...this.#config, ...config }
     this.refresh()
   }
 
-  /**
-   * Get current configuration
-   */
   getConfig(): TMathOverlayConfig {
     return { ...this.#config }
   }
 
-  /**
-   * Draw badge (∑) on top-left corner of a math block
-   */
-  protected drawBadge(box: TBox, blockId: string): void {
-    const badgeId = `badge-${blockId}`
+  protected drawBadge(box: TBox, id: string): void {
+    const badgeId = `badge-${id}`.replace(/[^a-zA-Z0-9_-]/g, "_")
 
-    // Remove existing badge
     this.renderer.removeSymbol(badgeId)
 
     if (!this.#config.showBadges) {
@@ -97,17 +92,15 @@ export class MathOverlayManager {
     const size = this.#config.badgeSize
     const offset = MathOverlayManager.BADGE_STYLES.OFFSET
 
-    // Badge positioned at top-left with offset
     const badgeX = box.x - offset - size
     const badgeY = box.y - offset - size
 
     const badgeGroup = SVGBuilder.createGroup({
       id: badgeId,
       "data-overlay": "badge",
-      "data-block-id": blockId
+      "data-block-id": id
     })
 
-    // Background circle
     const circle = SVGBuilder.createCircle(
       { x: badgeX + size / 2, y: badgeY + size / 2 },
       size / 2,
@@ -120,7 +113,6 @@ export class MathOverlayManager {
     )
     badgeGroup.appendChild(circle)
 
-    // Badge text
     const text = SVGBuilder.createText(
       { x: badgeX + size / 2, y: badgeY + size / 2 + 5 },
       MathOverlayManager.BADGE_STYLES.MATH,
@@ -137,13 +129,9 @@ export class MathOverlayManager {
     this.renderer.layer.appendChild(badgeGroup)
   }
 
-  /**
-   * Draw border around a block
-   */
-  protected drawBorder(box: TBox, blockId: string, color: string = "#cccccc", dashArray?: string): void {
-    const borderId = `border-${blockId}`
+  protected drawBorder(box: TBox, id: string, color: string = "#cccccc", dashArray?: string): void {
+    const borderId = `border-${id}`.replace(/[^a-zA-Z0-9_-]/g, "_")
 
-    // Remove existing border
     this.renderer.removeSymbol(borderId)
 
     if (!this.#config.showBorders) {
@@ -156,7 +144,7 @@ export class MathOverlayManager {
       stroke: color,
       "stroke-width": this.#config.borderWidth.toString(),
       "data-overlay": "border",
-      "data-block-id": blockId,
+      "data-block-id": id,
       style: SVGRendererConst.noSelection
     }
 
@@ -168,14 +156,10 @@ export class MathOverlayManager {
     this.renderer.layer.appendChild(rect)
   }
 
-  /**
-   * Draw result panel to the right of a math block
-   */
-  protected drawResultPanel(box: TBox, blockId: string, resultText: string): void {
-    const panelId = `result-panel-${blockId}`
-    const connectionId = `result-connection-${blockId}`
+  protected drawResultPanel(box: TBox, id: string, resultText: string): void {
+    const panelId = `result-panel-${id}`.replace(/[^a-zA-Z0-9_-]/g, "_")
+    const connectionId = `result-connection-${id}`.replace(/[^a-zA-Z0-9_-]/g, "_")
 
-    // Remove existing panel and connection
     this.renderer.removeSymbol(panelId)
     this.renderer.removeSymbol(connectionId)
 
@@ -187,22 +171,19 @@ export class MathOverlayManager {
     const fontSize = 14
     const lineHeight = 18
 
-    // Position panel to the right of the block
     const panelX = box.x + box.width + 20
     const panelY = box.y
 
     const panelGroup = SVGBuilder.createGroup({
       id: panelId,
       "data-overlay": "result-panel",
-      "data-block-id": blockId
+      "data-block-id": id
     })
 
-    // Calculate text dimensions (rough estimate)
     const textWidth = resultText.length * fontSize * 0.6
     const panelWidth = textWidth + padding * 2
     const panelHeight = lineHeight + padding * 2
 
-    // Panel background
     const panelRect = SVGBuilder.createRect(
       { x: panelX, y: panelY, width: panelWidth, height: panelHeight },
       {
@@ -215,7 +196,6 @@ export class MathOverlayManager {
     )
     panelGroup.appendChild(panelRect)
 
-    // Result text
     const text = SVGBuilder.createText(
       { x: panelX + padding, y: panelY + padding + fontSize },
       resultText,
@@ -230,7 +210,6 @@ export class MathOverlayManager {
 
     this.renderer.layer.appendChild(panelGroup)
 
-    // Draw connection line from block to panel
     const connectionBox = {
       x: panelX,
       y: panelY,
@@ -248,41 +227,58 @@ export class MathOverlayManager {
         "stroke-width": "1",
         "stroke-dasharray": "5 3",
         "data-overlay": "result-connection",
-        "data-block-id": blockId
+        "data-block-id": id
       }
     )
   }
 
-  /**
-   * Refresh all overlays for all symbols
-   */
+  protected createHoverZone(mathSymbol: IIRecognizedMath): void {
+    const id = `hover-zone-${mathSymbol.id}`
+
+    this.renderer.removeSymbol(id)
+
+    const attrs: Record<string, string> = {
+      id,
+      fill: "transparent",
+      stroke: "transparent",
+      "data-overlay": "hover-zone",
+      "data-block-id": mathSymbol.id,
+      style: "pointer-events: all;"
+    }
+
+    const hoverZone = SVGBuilder.createRect(mathSymbol.bounds, attrs)
+
+    hoverZone.addEventListener("pointerenter", () => {
+      this.#logger.debug("hover", `Pointer entered block ${mathSymbol.id}`)
+      this.editor.mathInteractions.onSymbolHover(mathSymbol.id)
+    })
+
+    hoverZone.addEventListener("pointerleave", () => {
+      this.#logger.debug("hover", `Pointer left block ${mathSymbol.id}`)
+      this.editor.mathInteractions.onSymbolHover(null)
+    })
+
+    this.renderer.layer.appendChild(hoverZone)
+  }
+
   refresh(): void {
     this.#logger.info("refresh", "Refreshing all overlays")
 
-    // Check if model is available
     if (!this.model) {
       this.#logger.warn("refresh", "Model not available, skipping overlay refresh")
       return
     }
 
-    // Clear all existing overlays
     this.clearAll()
 
-    // Redraw overlays for all symbols
     this.model.symbols.forEach(symbol => {
       this.updateOverlaysForSymbol(symbol)
     })
   }
 
-  /**
-   * Determine the color for a math block based on its variables
-   * Returns the color of the first variable source, or a default color
-   */
   protected getBlockColor(mathSymbol: IIRecognizedMath): string {
-    // Default color if no variables
     const defaultColor = "#cccccc"
 
-    // If block uses variables, color by the first variable
     if (mathSymbol.variableSources && Object.keys(mathSymbol.variableSources).length > 0) {
       const variableNames = Object.keys(mathSymbol.variableSources)
       const firstVariable = variableNames[0]
@@ -295,12 +291,7 @@ export class MathOverlayManager {
     return defaultColor
   }
 
-  /**
-   * Update overlays for a specific symbol
-   * Only applies to RecognizedKind.Math symbols (IIRecognizedMath)
-   */
   updateOverlaysForSymbol(symbol: TIISymbol): void {
-    // Only process recognized math symbols
     if (symbol.type !== SymbolType.Recognized || symbol.kind !== RecognizedKind.Math) {
       return
     }
@@ -311,127 +302,100 @@ export class MathOverlayManager {
     this.drawBadge(mathSymbol.bounds, mathSymbol.id)
     this.drawBorder(mathSymbol.bounds, mathSymbol.id, blockColor)
 
-    // Draw result panel if solver output exists
-    if (mathSymbol.solverOutputStrokeIds && mathSymbol.solverOutputStrokeIds.length > 0) {
-      // TODO: Extract actual result text from solver output
-      const resultText = "Result: [computed]"
+    if (mathSymbol.computedResult !== undefined || (mathSymbol.solverOutputStrokeIds && mathSymbol.solverOutputStrokeIds.length > 0)) {
+
+      let resultText = "Result = "
+      if (mathSymbol.computedResult !== undefined) {
+        resultText += `${mathSymbol.computedResult}`
+      }
+      else {
+        resultText += "N/A"
+      }
       this.drawResultPanel(mathSymbol.bounds, mathSymbol.id, resultText)
     }
+
+    this.createHoverZone(mathSymbol)
   }
 
-  /**
-   * Clear all overlays
-   */
   clearAll(): void {
     this.#logger.info("clearAll", "Clearing all overlays")
-
-    // Remove all overlay elements
     this.renderer.clearElements({ attrs: { "data-overlay": "badge" } })
     this.renderer.clearElements({ attrs: { "data-overlay": "border" } })
     this.renderer.clearElements({ attrs: { "data-overlay": "result-panel" } })
     this.renderer.clearElements({ attrs: { "data-overlay": "result-connection" } })
+    this.renderer.clearElements({ attrs: { "data-overlay": "hover-zone" } })
+  }
+
+  clearOverlaysForBlock(id: string): void {
+    this.#logger.debug("clearOverlaysForBlock", { id })
+
+    MathOverlayManager.OVERLAY_PREFIXES.forEach(prefix => {
+      this.renderer.removeSymbol(`${prefix}-${id}`)
+    })
   }
 
   /**
-   * Clear overlays for a specific block
+   * Generic method to draw a rectangle overlay on a math symbol
+   * @param mathSymbol - The math symbol to draw overlay on
+   * @param idPrefix - Prefix for the overlay ID
+   * @param attrs - Additional SVG attributes
    */
-  clearOverlaysForBlock(blockId: string): void {
-    this.#logger.debug("clearOverlaysForBlock", { blockId })
+  protected drawOverlayRect(
+    mathSymbol: IIRecognizedMath,
+    idPrefix: string,
+    attrs: Partial<Record<string, string>>
+  ): void {
+    const id = `${idPrefix}-${mathSymbol.id}`
+    this.renderer.removeSymbol(id)
 
-    this.renderer.removeSymbol(`badge-${blockId}`)
-    this.renderer.removeSymbol(`border-${blockId}`)
-    this.renderer.removeSymbol(`result-panel-${blockId}`)
-    this.renderer.removeSymbol(`result-connection-${blockId}`)
-  }
-
-  /**
-   * Highlight symbol as a source (green dashed border)
-   */
-  highlightAsSource(mathSymbol: IIRecognizedMath): void {
-    const highlightId = `highlight-source-${mathSymbol.id}`
-    this.renderer.removeSymbol(highlightId)
-
-    const attrs: Record<string, string> = {
-      id: highlightId,
+    const finalAttrs: Record<string, string> = {
+      id,
       fill: "transparent",
+      "data-overlay": attrs["data-overlay"] || idPrefix,
+      "data-block-id": mathSymbol.id,
+      style: attrs.style || "pointer-events: none;",
+      ...attrs
+    }
+
+    const rect = SVGBuilder.createRect(mathSymbol.bounds, finalAttrs)
+    this.renderer.layer.appendChild(rect)
+  }
+
+  highlightAsSource(mathSymbol: IIRecognizedMath): void {
+    this.drawOverlayRect(mathSymbol, "highlight-source", {
       stroke: "#4CAF50",
       "stroke-width": "3",
       "stroke-dasharray": "5 3",
-      "data-overlay": "highlight",
-      "data-block-id": mathSymbol.id,
-      style: "pointer-events: none;"
-    }
-
-    const rect = SVGBuilder.createRect(mathSymbol.bounds, attrs)
-    this.renderer.layer.appendChild(rect)
+      "data-overlay": "highlight"
+    })
   }
 
-  /**
-   * Highlight symbol as a dependent (orange dashed border)
-   */
   highlightAsDependent(mathSymbol: IIRecognizedMath): void {
-    const highlightId = `highlight-dependent-${mathSymbol.id}`
-    this.renderer.removeSymbol(highlightId)
-
-    const attrs: Record<string, string> = {
-      id: highlightId,
-      fill: "transparent",
+    this.drawOverlayRect(mathSymbol, "highlight-dependent", {
       stroke: "#FF9800",
       "stroke-width": "3",
       "stroke-dasharray": "5 3",
-      "data-overlay": "highlight",
-      "data-block-id": mathSymbol.id,
-      style: "pointer-events: none;"
-    }
-
-    const rect = SVGBuilder.createRect(mathSymbol.bounds, attrs)
-    this.renderer.layer.appendChild(rect)
+      "data-overlay": "highlight"
+    })
   }
 
-  /**
-   * Add glow effect to hovered symbol
-   */
   addHoverGlow(mathSymbol: IIRecognizedMath): void {
-    const glowId = `glow-${mathSymbol.id}`
-    this.renderer.removeSymbol(glowId)
-
-    const attrs: Record<string, string> = {
-      id: glowId,
-      fill: "transparent",
+    this.drawOverlayRect(mathSymbol, "glow", {
       stroke: "#2196F3",
       "stroke-width": "2",
       "data-overlay": "glow",
-      "data-block-id": mathSymbol.id,
       style: "pointer-events: none; filter: drop-shadow(0 0 8px rgba(33, 150, 243, 0.6));"
-    }
-
-    const rect = SVGBuilder.createRect(mathSymbol.bounds, attrs)
-    this.renderer.layer.appendChild(rect)
+    })
   }
 
-  /**
-   * Dim a symbol (reduce opacity)
-   */
   dimSymbol(mathSymbol: IIRecognizedMath, opacity: number = 0.3): void {
-    const dimId = `dim-${mathSymbol.id}`
-    this.renderer.removeSymbol(dimId)
-
-    const attrs: Record<string, string> = {
-      id: dimId,
+    this.drawOverlayRect(mathSymbol, "dim", {
       fill: "#ffffff",
       opacity: (1 - opacity).toString(),
-      "data-overlay": "dim",
-      "data-block-id": mathSymbol.id,
-      style: "pointer-events: none;"
-    }
-
-    const rect = SVGBuilder.createRect(mathSymbol.bounds, attrs)
-    this.renderer.layer.appendChild(rect)
+      "data-overlay": "dim"
+    })
   }
 
-  /**
-   * Draw an arrow between two math symbols
-   */
   drawDependencyArrow(fromId: string, toId: string, color: string): void {
     const arrowId = `arrow-${fromId}-${toId}`
     this.renderer.removeSymbol(arrowId)
@@ -443,13 +407,11 @@ export class MathOverlayManager {
       return
     }
 
-    // Calculate arrow start (right side of from box) and end (left side of to box)
     const startX = fromSymbol.bounds.x + fromSymbol.bounds.width
     const startY = fromSymbol.bounds.y + fromSymbol.bounds.height / 2
     const endX = toSymbol.bounds.x
     const endY = toSymbol.bounds.y + toSymbol.bounds.height / 2
 
-    // Create curved path
     const controlX = (startX + endX) / 2
     const path = `M ${startX} ${startY} Q ${controlX} ${startY}, ${controlX} ${(startY + endY) / 2} T ${endX} ${endY}`
 
@@ -465,13 +427,9 @@ export class MathOverlayManager {
 
     this.renderer.layer.appendChild(arrowPath)
 
-    // Ensure arrowhead marker exists
     this.ensureArrowheadMarker()
   }
 
-  /**
-   * Ensure SVG arrowhead marker is defined
-   */
   protected ensureArrowheadMarker(): void {
     if (this.renderer.layer.querySelector("#arrowhead")) {
       return
@@ -495,45 +453,27 @@ export class MathOverlayManager {
     this.renderer.layer.appendChild(defs)
   }
 
-  /**
-   * Clear all highlight overlays
-   */
   clearHighlights(): void {
     this.renderer.clearElements({ attrs: { "data-overlay": "highlight" } })
     this.renderer.clearElements({ attrs: { "data-overlay": "glow" } })
   }
 
-  /**
-   * Clear all dimming overlays
-   */
   clearDimming(): void {
     this.renderer.clearElements({ attrs: { "data-overlay": "dim" } })
   }
 
-  /**
-   * Clear all dependency arrows
-   */
   clearDependencyArrows(): void {
     this.renderer.clearElements({ attrs: { "data-overlay": "arrow" } })
   }
 
-  /**
-   * Toggle badges visibility
-   */
   toggleBadges(show: boolean): void {
     this.updateConfig({ showBadges: show })
   }
 
-  /**
-   * Toggle borders visibility
-   */
   toggleBorders(show: boolean): void {
     this.updateConfig({ showBorders: show })
   }
 
-  /**
-   * Toggle result panels visibility
-   */
   toggleResultPanels(show: boolean): void {
     this.updateConfig({ showResultPanels: show })
   }

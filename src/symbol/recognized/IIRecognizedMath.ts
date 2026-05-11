@@ -27,6 +27,9 @@ export class IIRecognizedMath extends IIRecognizedBase<RecognizedKind.Math>
   /** IDs of solver output strokes added by numerical computation */
   solverOutputStrokeIds?: string[]
 
+  /** Computed numerical result from solver */
+  computedResult?: number
+
   /** Map of variable sources: variableName -> source blockId */
   variableSources?: { [variableName: string]: string }
 
@@ -51,6 +54,7 @@ export class IIRecognizedMath extends IIRecognizedBase<RecognizedKind.Math>
     clone.expressions = this.expressions ? structuredClone(this.expressions) : undefined
     clone.variableValues = this.variableValues ? structuredClone(this.variableValues) : undefined
     clone.solverOutputStrokeIds = this.solverOutputStrokeIds ? structuredClone(this.solverOutputStrokeIds) : undefined
+    clone.computedResult = this.computedResult
     clone.variableSources = this.variableSources ? structuredClone(this.variableSources) : undefined
     clone.dependentBlocks = this.dependentBlocks ? structuredClone(this.dependentBlocks) : undefined
     clone.selected = this.selected
@@ -72,6 +76,7 @@ export class IIRecognizedMath extends IIRecognizedBase<RecognizedKind.Math>
       expressions: this.expressions,
       variableValues: this.variableValues,
       solverOutputStrokeIds: this.solverOutputStrokeIds,
+      computedResult: this.computedResult,
       variableSources: this.variableSources,
       dependentBlocks: this.dependentBlocks,
       strokes: structuredClone(this.strokes)
@@ -106,6 +111,9 @@ export class IIRecognizedMath extends IIRecognizedBase<RecognizedKind.Math>
     }
     if (partial.solverOutputStrokeIds) {
       math.solverOutputStrokeIds = partial.solverOutputStrokeIds as string[]
+    }
+    if (partial.computedResult !== undefined) {
+      math.computedResult = partial.computedResult as number
     }
     if (partial.variableSources) {
       math.variableSources = partial.variableSources as { [variableName: string]: string }
