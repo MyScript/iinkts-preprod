@@ -41,16 +41,28 @@ describe("MathInteractionManager", () =>
       findMathSymbolByJiixId: jest.fn(),
     } as any
 
-    manager = new MathInteractionManager(mockEditor)
+    manager = new MathInteractionManager(mockEditor, { highlightOnHover: true, highlightOnSelect: true, showDependencyArrows: true })
   })
 
   describe("constructor", () =>
   {
     test("should initialize with default config", () =>
     {
-      const config = manager.getConfig()
-      expect(config.highlightOnHover).toBe(true)
-      expect(config.highlightOnSelect).toBe(true)
+      // Create mock model
+      const localMockModel = {
+        symbols: [],
+      } as any
+
+      // Create mock editor
+      const localMockEditor = {
+        model: localMockModel,
+        mathOverlays: mockOverlayManager,
+        findMathSymbolByJiixId: jest.fn(),
+      } as any
+      const localMen = new MathInteractionManager(localMockEditor)
+      const config = localMen.getConfig()
+      expect(config.highlightOnHover).toBe(false)
+      expect(config.highlightOnSelect).toBe(false)
       expect(config.showDependencyArrows).toBe(false)
       expect(config.dimOpacity).toBe(0.3)
     })
@@ -58,30 +70,42 @@ describe("MathInteractionManager", () =>
     test("should accept partial config override", () =>
     {
       const customManager = new MathInteractionManager(mockEditor, {
-        highlightOnHover: false,
+        highlightOnHover: true,
         dimOpacity: 0.5
       })
 
       const config = customManager.getConfig()
-      expect(config.highlightOnHover).toBe(false)
+      expect(config.highlightOnHover).toBe(true)
       expect(config.dimOpacity).toBe(0.5)
-      expect(config.highlightOnSelect).toBe(true) // default preserved
+      expect(config.highlightOnSelect).toBe(false) // default preserved
     })
   })
 
   describe("updateConfig", () =>
   {
+    // Create mock model
+    const localMockModel = {
+      symbols: [],
+    } as any
+
+    // Create mock editor
+    const localMockEditor = {
+      model: localMockModel,
+      mathOverlays: mockOverlayManager,
+      findMathSymbolByJiixId: jest.fn(),
+    } as any
+    const localMen = new MathInteractionManager(localMockEditor)
     test("should update config values", () =>
     {
-      manager.updateConfig({ highlightOnHover: false })
-      expect(manager.getConfig().highlightOnHover).toBe(false)
+      localMen.updateConfig({ highlightOnHover: true })
+      expect(localMen.getConfig().highlightOnHover).toBe(true)
     })
 
     test("should preserve unchanged config values", () =>
     {
-      const originalDimOpacity = manager.getConfig().dimOpacity
-      manager.updateConfig({ highlightOnHover: false })
-      expect(manager.getConfig().dimOpacity).toBe(originalDimOpacity)
+      const originalDimOpacity = localMen.getConfig().dimOpacity
+      localMen.updateConfig({ highlightOnHover: true })
+      expect(localMen.getConfig().dimOpacity).toBe(originalDimOpacity)
     })
   })
 

@@ -56,8 +56,8 @@
     <strong>Instructions:</strong><br>
     1. Write a variable definition like "x=2"<br>
     2. Write an expression using that variable like "3x+2="<br>
-    3. The result will be computed automatically when you end with "=" or "?"<br>
-    4. Or click "Compute" to manually calculate a selected expression<br>
+    3. The result will be computed automatically when you end with "=" or "?" (if Auto-compute is enabled)<br>
+    4. Uncheck "Auto-compute" to use the "Compute" button for manual calculation<br>
     5. Change the variable value using the input below<br>
     6. Watch the dependent expressions recalculate automatically!<br>
     7. <strong>Hover over math blocks</strong> to see dependencies highlighted (sources in green, dependents in orange)<br>
@@ -65,7 +65,7 @@
   </p>
 
   <div style="background: #fff3cd;">
-    <div class="flex-container wrap gap" style="padding: 6px 12px;">
+    <div class="flex-container between wrap gap" style="padding: 6px 12px;">
       <div class="flex-container wrap gap">
         <label>
           <strong>Set variable value:</strong>
@@ -73,10 +73,16 @@
             <option value="">-- No variables --</option>
           </select>
           <input type="number" id="variableValue" placeholder="New value" disabled />
-          <button id="setVariable" class="classic-btn" disabled>Set Value</button>
         </label>
+        <button id="setVariable" class="classic-btn" disabled>Set Value</button>
       </div>
-      <button class="classic-btn" id="compute" disabled>Compute</button>
+      <div class="flex-container wrap gap">
+        <label>
+          Auto-compute
+          <input type="checkbox" id="autoCompute" checked />
+        </label>
+        <button class="classic-btn" id="compute" disabled>Compute</button>
+      </div>
     </div>
     <div class="flex-container wrap gap" style="padding: 6px 12px; margin-top: 12px;">
       <label>
@@ -105,7 +111,7 @@
       </label>
       <label>
         Show Dependency Arrows
-        <input type="checkbox" id="showDependencyArrows" />
+        <input type="checkbox" id="showDependencyArrows" checked />
       </label>
     </div>
   </div>
@@ -132,6 +138,7 @@
     const showBadgesCheckbox = document.getElementById('showBadges')
     const showBordersCheckbox = document.getElementById('showBorders')
     const showResultPanelsCheckbox = document.getElementById('showResultPanels')
+    const autoComputeCheckbox = document.getElementById('autoCompute')
 
     let editor
     let allVariables = []
@@ -157,7 +164,36 @@
             }
           }
         },
-      }
+        menu: {
+          action: {
+            language: false,
+            gesture: false,
+            snap: false,
+            export: false,
+            import: false,
+            convert: false,
+            mathDependencies: false,
+            debug: false,
+            guide: false
+          },
+          tool: {
+            write: true,
+            move: true,
+            select: true,
+            erase: true,
+            shape: false,
+            edge: false
+          },
+          style: {
+            strokeColor: true,
+            fillColor: false,
+            thickness: false,
+            fontSize: false,
+            fontWeight: false,
+            opacity: false,
+          }
+        }
+      },
     }
 
     async function loadEditor(options) {
@@ -175,11 +211,17 @@
 
       editor.event.addChangedListener(onEditorChanged)
       editor.event.addSynchronizedListener(onSynchronized)
+      editor.event.addSelectedListener(onSelected)
       editor.event.addLoadedListener(() => {
         computeElement.disabled = false
       })
 
       return editor
+    }
+
+    async function onSelected(symbols) {
+      const hasMath = symbols.some(s => s.type === 'recognized' && s.kind === 'math')
+      computeElement.disabled = !hasMath
     }
 
     async function onEditorChanged(event) {
@@ -189,9 +231,6 @@
         variableSelect.disabled = true
         variableValue.disabled = true
         setVariableBtn.disabled = true
-
-        // Clear all transient symbols when editor is emptied
-        editor.transientInk.clearAll()
 
         return
       }
@@ -210,6 +249,11 @@
     }
 
     async function tryAutoCompute() {
+      // Check if auto-compute is enabled
+      if (!autoComputeCheckbox.checked) {
+        return
+      }
+
       // Try to auto-compute expressions that end with "=" or "?"
       const mathSymbols = editor.model.symbols.filter(s =>
         s.type === 'recognized' && s.kind === 'math'
@@ -222,25 +266,12 @@
         if ((label.endsWith('=') || label.endsWith('?')) && mathSymbol.jiixId) {
           try {
             const actions = await editor.getAvailableActions(mathSymbol.jiixId)
-            const canCompute = actions?.includes('numerical-computation') && !mathSymbol.solverOutputStrokeIds
+            const canCompute = actions?.includes('numerical-computation')
 
             if (canCompute) {
               console.log(`Auto-computing: ${label}`)
 
-              // Clear any existing transient results for this block
-              if (mathSymbol.id) {
-                editor.transientInk.clearTransientsForBlock(mathSymbol.id)
-              }
-
               await editor.computeMathNumericalResult(mathSymbol)
-
-              // Register solver output strokes as transient
-              if (mathSymbol.solverOutputStrokeIds && mathSymbol.solverOutputStrokeIds.length > 0) {
-                mathSymbol.solverOutputStrokeIds.forEach(strokeId => {
-                  editor.transientInk.addTransientSymbol(mathSymbol.id, strokeId)
-                })
-                console.log(`Registered ${mathSymbol.solverOutputStrokeIds.length} transient result(s) for "${label}"`)
-              }
             }
           } catch (e) {
             // Silently ignore errors - expression might not be computable yet
@@ -340,7 +371,8 @@
                 name: v.name,
                 sourceId: v.sourceId,
                 value: v.value,
-                label: mathSymbol.label
+                label: mathSymbol.label,
+                jiixId: mathSymbol.jiixId
               })
             }
           })
@@ -352,7 +384,7 @@
       variableSelect.innerHTML = allVariables.length === 0
         ? '<option value="">-- No variables --</option>'
         : allVariables.map(v =>
-            `<option value="${v.sourceId}:${v.name}">${v.name} = ${v.value} (in ${v.label})</option>`
+            `<option value="${v.sourceId}:${v.name}:${v.jiixId}">${v.name} = ${v.value} (in ${v.label})</option>`
           ).join('')
 
       variableSelect.disabled = allVariables.length === 0
@@ -361,7 +393,7 @@
     }
 
     computeElement.addEventListener('click', async () => {
-      const selectedSymbols = editor.selector.selectedGroup
+      const selectedSymbols = editor.model.symbolsSelected
       if (selectedSymbols.length === 0) {
         alert('Please select a math expression first')
         return
@@ -377,20 +409,7 @@
         computeElement.disabled = true
         computeElement.textContent = 'Computing...'
 
-        // Clear any existing transient results for this block
-        if (mathSymbol.id) {
-          editor.transientInk.clearTransientsForBlock(mathSymbol.id)
-        }
-
         await editor.computeMathNumericalResult(mathSymbol)
-
-        // Register solver output strokes as transient
-        if (mathSymbol.solverOutputStrokeIds && mathSymbol.solverOutputStrokeIds.length > 0) {
-          mathSymbol.solverOutputStrokeIds.forEach(strokeId => {
-            editor.transientInk.addTransientSymbol(mathSymbol.id, strokeId)
-          })
-          console.log(`Registered ${mathSymbol.solverOutputStrokeIds.length} transient result(s) for "${mathSymbol.label}"`)
-        }
 
         computeElement.textContent = 'Compute'
         computeElement.disabled = false
@@ -405,7 +424,7 @@
       const selected = variableSelect.value
       if (!selected) return
 
-      const [sourceId, varName] = selected.split(':')
+      const [sourceId, varName, jiixId] = selected.split(':')
       const newValue = parseFloat(variableValue.value)
 
       if (isNaN(newValue)) {
@@ -417,26 +436,16 @@
         setVariableBtn.disabled = true
         setVariableBtn.textContent = 'Setting...'
 
-        console.log(`Setting ${varName} = ${newValue} in block ${sourceId}`)
+        console.log(`Setting ${varName} = ${newValue} in block ${jiixId}`)
 
         // Clear transient results for all dependent blocks before changing the variable
-        const sourceSymbol = editor.model.symbols.find(s => s.jiixId === sourceId && s.type === 'recognized' && s.kind === 'math')
-        if (sourceSymbol && sourceSymbol.dependentBlocks) {
-          sourceSymbol.dependentBlocks.forEach(depJiixId => {
-            const depSymbol = editor.model.symbols.find(s => s.jiixId === depJiixId)
-            if (depSymbol && depSymbol.id) {
-              editor.transientInk.clearTransientsForBlock(depSymbol.id)
-              console.log(`Cleared transients for dependent block: ${depSymbol.label}`)
-            }
-          })
-        }
+        const sourceSymbol = editor.model.symbols.find(s => s.jiixId === jiixId && s.type === 'recognized' && s.kind === 'math')
 
-        await editor.setVariableValue(sourceId, varName, newValue)
-
-        alert(`Variable ${varName} updated to ${newValue}. Dependent expressions recalculated!`)
-
+        await editor.setVariableValue(jiixId, varName, newValue)
+        
         await updateVariablesList()
         await updateDependenciesDisplay()
+        await tryAutoCompute()
 
         setVariableBtn.textContent = 'Set Value'
         setVariableBtn.disabled = false
