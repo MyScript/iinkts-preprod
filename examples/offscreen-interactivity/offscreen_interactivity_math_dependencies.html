@@ -14,17 +14,35 @@
   <style>
     #editor-container {
       display: flex;
+      flex-wrap: wrap;
       gap: 12px;
-      height: calc(100dvh - 460px);
+      height: calc(100dvh - 427px);
     }
-
+    @media only screen and (max-width: 1010px) {
+      #editor-container {
+        height: calc(100dvh - 475px);
+      }
+    }
+    @media only screen and (max-width: 760px) {
+      #editor-container {
+        height: calc(100dvh - 514px);
+      }
+    }
+    @media only screen and (max-width: 653px) {
+      #editor-container {
+        height: calc(100dvh - 581px);
+        width: 100%;
+      }
+    }
     #editorEl {
-      flex: 1;
-      min-width: 0;
+      flex: 4;
+      min-width: 300px;
+      min-height: 300px;
     }
 
     #dependencies {
-      width: 300px;
+      flex: 1;
+      min-width: 300px;
       padding: 12px;
       background: #f5f5f5;
       border-radius: 4px;
