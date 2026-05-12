@@ -125,11 +125,8 @@ export class MathContextMenu extends SubMenuItem
               
               const mathSymbol = mathSymbols[0]
               
-              const { addedStrokesCount } = await editor.computeMathNumericalResult(mathSymbol)
+              await editor.computeMathNumericalResult(mathSymbol, editor.mathComputationMode)
 
-              if (addedStrokesCount === 0) {
-                alert("No solver output to display")
-              }
             } catch (error) {
               this.logger.error("Error computing numerical result:", error)
             }
@@ -151,7 +148,6 @@ export class MathContextMenu extends SubMenuItem
                 return
               }
 
-              // Get evaluables
               const evaluables = await editor.getEvaluables(mathSymbol.jiixId)
               if (evaluables.length === 0) {
                 alert("No evaluable functions found")
@@ -160,10 +156,7 @@ export class MathContextMenu extends SubMenuItem
 
               this.logger.info("Evaluables found:", evaluables)
 
-              // Create modal fields
               const fields: ModalField[] = []
-
-              // Add evaluable selection if multiple evaluables exist
               if (evaluables.length > 1) {
                 fields.push({
                   id: "evaluableIndex",
@@ -196,14 +189,14 @@ export class MathContextMenu extends SubMenuItem
                   id: "pointCount",
                   label: "Number of points:",
                   type: "number",
-                  defaultValue: 20,
+                  defaultValue: 21,
                   placeholder: "Point count"
                 },
                 {
                   id: "step",
                   label: "Step:",
                   type: "number",
-                  defaultValue: parseFloat(((10 - (-10)) / (20 - 1)).toFixed(6)),
+                  defaultValue: parseFloat(((10 - (-10)) / (21 - 1)).toFixed(6)),
                   placeholder: "Step size"
                 }
               )
@@ -249,9 +242,11 @@ export class MathContextMenu extends SubMenuItem
                         const chart = new Chart({
                           width: 500,
                           height: 350,
-                          title: `${evaluable.outputName} = f(${evaluable.inputName})`,
-                          xLabel: evaluable.inputName,
-                          yLabel: evaluable.outputName,
+                          title: evaluable.inputName
+                            ? `${evaluable.outputName || "?"} = f(${evaluable.inputName})`
+                            : `${evaluable.outputName || "?"} = ${points[0]?.y ?? "?"}`,
+                          xLabel: evaluable.inputName || "?",
+                          yLabel: evaluable.outputName || "?",
                           lineColor: "#2196F3",
                           showGrid: true,
                           showPoints: true
