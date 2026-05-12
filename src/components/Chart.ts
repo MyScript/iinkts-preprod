@@ -27,7 +27,7 @@ export class Chart {
   private canvas: HTMLCanvasElement
   private ctx: CanvasRenderingContext2D
   private config: Required<ChartConfig>
-  private points: number[][] = []
+  private series: number[][][] = [] // Array of series, each series is an array of [x, y] points
   private container: HTMLDivElement
   private tableElement?: HTMLTableElement
   private viewport: ViewPort | null = null
@@ -248,10 +248,16 @@ export class Chart {
    * Calculate default viewport based on median values
    */
   private calculateDefaultViewport(): ViewPort | null {
-    const xValues = this.points
+    // Collect all points from all series
+    const allPoints: number[][] = []
+    for (const series of this.series) {
+      allPoints.push(...series)
+    }
+
+    const xValues = allPoints
       .map((p) => p[0])
       .filter((v) => !isNaN(v) && isFinite(v))
-    const yValues = this.points
+    const yValues = allPoints
       .map((p) => p[1])
       .filter((v) => !isNaN(v) && isFinite(v))
 
@@ -303,32 +309,48 @@ export class Chart {
 
   /**
    * Set the data points to plot
-   * @param points Array of [x, y] coordinates, array of objects, or array of two arrays [xValues[], yValues[]]
+   * @param data Can be:
+   *   - Single series: number[][] or { [key: string]: number }[]
+   *   - Multiple series: number[][][] or { [key: string]: number }[][]
    */
-  setData(points: number[][] | { [key: string]: number }[]): void {
-    // Check if data is array of objects { x: val, y: val }
-    if (
-      points.length > 0 &&
-      typeof points[0] === "object" &&
-      !Array.isArray(points[0])
-    ) {
-      const objectArray = points as { [key: string]: number }[]
-      this.points = objectArray.map((obj) => [
-        obj[this.config.xLabel],
-        obj[this.config.yLabel]
-      ])
+  setData(data: number[][] | { [key: string]: number }[] | number[][][] | { [key: string]: number }[][]): void {
+    // Detect if we have multiple series or single series
+    let multipleSeries = false
+
+    if (Array.isArray(data) && data.length > 0) {
+      const firstElement = data[0]
+
+      // Check for multiple series:
+      // - number[][][]: data[0] is number[][], data[0][0] is number[], data[0][0][0] is number
+      // - { [key: string]: number }[][]: data[0] is { [key: string]: number }[], data[0][0] is object
+
+      if (Array.isArray(firstElement) && firstElement.length > 0) {
+        const firstSubElement = firstElement[0]
+
+        // Case 1: number[][][] - firstSubElement is a number[]
+        if (Array.isArray(firstSubElement)) {
+          multipleSeries = true
+        }
+        // Case 2: { [key: string]: number }[][] - firstSubElement is an object
+        else if (typeof firstSubElement === "object" && firstSubElement !== null && !Array.isArray(firstSubElement)) {
+          multipleSeries = true
+        }
+      }
     }
-    // Check if data is in format [[x1, x2, ...], [y1, y2, ...]] and convert to [[x1, y1], [x2, y2], ...]
-    else if (
-      points.length === 2 &&
-      Array.isArray(points[0]) &&
-      Array.isArray(points[1])
-    ) {
-      const xValues = points[0] as number[]
-      const yValues = points[1] as number[]
-      this.points = xValues.map((x, i) => [x, yValues[i]])
+
+    if (multipleSeries) {
+      // Handle multiple series
+      this.series = []
+      const seriesArray = data as (number[][] | { [key: string]: number }[])[]
+
+      for (const seriesData of seriesArray) {
+        const points = this.convertToPoints(seriesData)
+        this.series.push(points)
+      }
     } else {
-      this.points = points as number[][]
+      // Handle single series (backward compatibility)
+      const points = this.convertToPoints(data as number[][] | { [key: string]: number }[])
+      this.series = [points]
     }
 
     // Calculate default viewport with outlier filtering
@@ -337,6 +359,33 @@ export class Chart {
 
     this.draw()
     this.updateTable()
+  }
+
+  private convertToPoints(data: number[][] | { [key: string]: number }[]): number[][] {
+    // Check if data is array of objects { x: val, y: val }
+    if (
+      data.length > 0 &&
+      typeof data[0] === "object" &&
+      !Array.isArray(data[0])
+    ) {
+      const objectArray = data as { [key: string]: number }[]
+      return objectArray.map((obj) => [
+        obj[this.config.xLabel],
+        obj[this.config.yLabel]
+      ])
+    }
+    // Check if data is in format [[x1, x2, ...], [y1, y2, ...]] and convert to [[x1, y1], [x2, y2], ...]
+    else if (
+      data.length === 2 &&
+      Array.isArray(data[0]) &&
+      Array.isArray(data[1])
+    ) {
+      const xValues = data[0] as number[]
+      const yValues = data[1] as number[]
+      return xValues.map((x, i) => [x, yValues[i]])
+    } else {
+      return data as number[][]
+    }
   }
 
   /**
@@ -366,7 +415,9 @@ export class Chart {
       this.tableElement.remove()
     }
 
-    if (this.points.length === 0) return
+    // Count total points
+    const totalPoints = this.series.reduce((sum, s) => sum + s.length, 0)
+    if (totalPoints === 0) return
 
     this.tableElement = this.createTable()
 
@@ -381,6 +432,14 @@ export class Chart {
     thIndex.style.cssText =
       "border: 1px solid #ddd; padding: 8px; text-align: center; background: #f5f5f5;"
     headerRow.appendChild(thIndex)
+
+    if (this.series.length > 1) {
+      const thSeries = document.createElement("th")
+      thSeries.textContent = "Series"
+      thSeries.style.cssText =
+        "border: 1px solid #ddd; padding: 8px; text-align: center; background: #f5f5f5;"
+      headerRow.appendChild(thSeries)
+    }
 
     const thX = document.createElement("th")
     thX.textContent = this.config.xLabel
@@ -399,43 +458,58 @@ export class Chart {
 
     // Create tbody
     const tbody = document.createElement("tbody")
-    this.points.forEach(([x, y], index) => {
-      const row = document.createElement("tr")
-      row.style.cssText = "hover:background-color: #f9f9f9;"
+    let globalIndex = 0
 
-      const tdIndex = document.createElement("td")
-      tdIndex.textContent = String(index + 1)
-      tdIndex.style.cssText =
-        "border: 1px solid #ddd; padding: 8px; text-align: center; background: #fafafa;"
-      row.appendChild(tdIndex)
+    for (let seriesIndex = 0; seriesIndex < this.series.length; seriesIndex++) {
+      const points = this.series[seriesIndex]
 
-      const tdX = document.createElement("td")
-      tdX.textContent = isNaN(x) || !isFinite(x) ? "N/A" : x.toFixed(4)
-      tdX.style.cssText =
-        "border: 1px solid #ddd; padding: 8px; text-align: right;"
-      if (isNaN(x) || !isFinite(x)) {
-        tdX.style.cssText += " color: #999; font-style: italic;"
-      }
-      row.appendChild(tdX)
+      points.forEach(([x, y]) => {
+        globalIndex++
+        const row = document.createElement("tr")
+        row.style.cssText = "hover:background-color: #f9f9f9;"
 
-      const tdY = document.createElement("td")
-      tdY.textContent = isNaN(y) || !isFinite(y) ? "N/A" : y.toFixed(4)
-      tdY.style.cssText =
-        "border: 1px solid #ddd; padding: 8px; text-align: right;"
-      if (isNaN(y) || !isFinite(y)) {
-        tdY.style.cssText += " color: #999; font-style: italic;"
-      }
-      row.appendChild(tdY)
+        const tdIndex = document.createElement("td")
+        tdIndex.textContent = String(globalIndex)
+        tdIndex.style.cssText =
+          "border: 1px solid #ddd; padding: 8px; text-align: center; background: #fafafa;"
+        row.appendChild(tdIndex)
 
-      tbody.appendChild(row)
-    })
+        if (this.series.length > 1) {
+          const tdSeries = document.createElement("td")
+          tdSeries.textContent = String(seriesIndex + 1)
+          tdSeries.style.cssText =
+            "border: 1px solid #ddd; padding: 8px; text-align: center;"
+          row.appendChild(tdSeries)
+        }
+
+        const tdX = document.createElement("td")
+        tdX.textContent = isNaN(x) || !isFinite(x) ? "N/A" : x.toFixed(4)
+        tdX.style.cssText =
+          "border: 1px solid #ddd; padding: 8px; text-align: right;"
+        if (isNaN(x) || !isFinite(x)) {
+          tdX.style.cssText += " color: #999; font-style: italic;"
+        }
+        row.appendChild(tdX)
+
+        const tdY = document.createElement("td")
+        tdY.textContent = isNaN(y) || !isFinite(y) ? "N/A" : y.toFixed(4)
+        tdY.style.cssText =
+          "border: 1px solid #ddd; padding: 8px; text-align: right;"
+        if (isNaN(y) || !isFinite(y)) {
+          tdY.style.cssText += " color: #999; font-style: italic;"
+        }
+        row.appendChild(tdY)
+
+        tbody.appendChild(row)
+      })
+    }
     this.tableElement.appendChild(tbody)
 
     this.container.appendChild(this.tableElement)
   }
 
   private draw(): void {
-    if (this.points.length === 0) {
+    if (this.series.length === 0) {
       return
     }
 
@@ -460,11 +534,16 @@ export class Chart {
       yMin = this.viewport.yMin
       yMax = this.viewport.yMax
     } else {
-      // Calculate data bounds (filter out NaN values)
-      const xValues = this.points
+      // Calculate data bounds from all series (filter out NaN values)
+      const allPoints: number[][] = []
+      for (const series of this.series) {
+        allPoints.push(...series)
+      }
+
+      const xValues = allPoints
         .map((p) => p[0])
         .filter((v) => !isNaN(v) && isFinite(v))
-      const yValues = this.points
+      const yValues = allPoints
         .map((p) => p[1])
         .filter((v) => !isNaN(v) && isFinite(v))
 
@@ -677,7 +756,7 @@ export class Chart {
       ctx.stroke()
     }
 
-    // Draw the curve
+    // Draw all curves
     ctx.save()
 
     // Clip to chart area to prevent lines from going outside
@@ -685,30 +764,45 @@ export class Chart {
     ctx.rect(margin.left, margin.top, chartWidth, chartHeight)
     ctx.clip()
 
-    ctx.strokeStyle = this.config.lineColor
-    ctx.lineWidth = this.config.lineWidth
-    ctx.beginPath()
+    // Define colors for multiple series
+    const colors = [
+      this.config.lineColor,
+      "#FF5722", // Red
+      "#4CAF50", // Green
+      "#9C27B0", // Purple
+      "#FF9800", // Orange
+      "#00BCD4", // Cyan
+      "#E91E63"  // Pink
+    ]
 
-    let pathStarted = false
-    for (let i = 0; i < this.points.length; i++) {
-      const [x, y] = this.points[i]
+    // Draw each series
+    for (let seriesIndex = 0; seriesIndex < this.series.length; seriesIndex++) {
+      const points = this.series[seriesIndex]
+      ctx.strokeStyle = colors[seriesIndex % colors.length]
+      ctx.lineWidth = this.config.lineWidth
+      ctx.beginPath()
 
-      if (isNaN(x) || isNaN(y) || !isFinite(x) || !isFinite(y)) {
-        pathStarted = false
-        continue
+      let pathStarted = false
+      for (let i = 0; i < points.length; i++) {
+        const [x, y] = points[i]
+
+        if (isNaN(x) || isNaN(y) || !isFinite(x) || !isFinite(y)) {
+          pathStarted = false
+          continue
+        }
+
+        const xPos = scaleX(x)
+        const yPos = scaleY(y)
+
+        if (!pathStarted) {
+          ctx.moveTo(xPos, yPos)
+          pathStarted = true
+        } else {
+          ctx.lineTo(xPos, yPos)
+        }
       }
-
-      const xPos = scaleX(x)
-      const yPos = scaleY(y)
-
-      if (!pathStarted) {
-        ctx.moveTo(xPos, yPos)
-        pathStarted = true
-      } else {
-        ctx.lineTo(xPos, yPos)
-      }
+      ctx.stroke()
     }
-    ctx.stroke()
     ctx.restore()
 
     // Draw points
@@ -720,26 +814,43 @@ export class Chart {
       ctx.rect(margin.left, margin.top, chartWidth, chartHeight)
       ctx.clip()
 
-      for (const [x, y] of this.points) {
-        // Skip NaN or Infinite values
-        if (isNaN(x) || isNaN(y) || !isFinite(x) || !isFinite(y)) {
-          continue
+      // Define colors for multiple series
+      const colors = [
+        this.config.lineColor,
+        "#FF5722", // Red
+        "#4CAF50", // Green
+        "#9C27B0", // Purple
+        "#FF9800", // Orange
+        "#00BCD4", // Cyan
+        "#E91E63"  // Pink
+      ]
+
+      // Draw points for each series
+      for (let seriesIndex = 0; seriesIndex < this.series.length; seriesIndex++) {
+        const points = this.series[seriesIndex]
+        const pointColor = colors[seriesIndex % colors.length]
+
+        for (const [x, y] of points) {
+          // Skip NaN or Infinite values
+          if (isNaN(x) || isNaN(y) || !isFinite(x) || !isFinite(y)) {
+            continue
+          }
+
+          const xPos = scaleX(x)
+          const yPos = scaleY(y)
+
+          // Draw white border first (larger circle)
+          ctx.beginPath()
+          ctx.arc(xPos, yPos, 5, 0, Math.PI * 2)
+          ctx.fillStyle = "white"
+          ctx.fill()
+
+          // Draw colored point on top
+          ctx.beginPath()
+          ctx.arc(xPos, yPos, 4, 0, Math.PI * 2)
+          ctx.fillStyle = pointColor
+          ctx.fill()
         }
-
-        const xPos = scaleX(x)
-        const yPos = scaleY(y)
-
-        // Draw white border first (larger circle)
-        ctx.beginPath()
-        ctx.arc(xPos, yPos, 5, 0, Math.PI * 2)
-        ctx.fillStyle = "white"
-        ctx.fill()
-
-        // Draw colored point on top
-        ctx.beginPath()
-        ctx.arc(xPos, yPos, 4, 0, Math.PI * 2)
-        ctx.fillStyle = this.config.lineColor
-        ctx.fill()
       }
       ctx.restore()
     }

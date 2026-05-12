@@ -88,10 +88,10 @@ export class IIMenuAction
         subMenuWrapper.appendChild(debugAction.getElement())
       }
 
-      if (this.config.mathDependencies) {
-        const mathDependenciesAction = new MathMenuAction(this.editor, this.id)
-        this.menuActions.set("mathDependencies", mathDependenciesAction)
-        subMenuWrapper.appendChild(mathDependenciesAction.getElement())
+      if (this.config.math) {
+        const mathAction = new MathMenuAction(this.editor, this.id)
+        this.menuActions.set("math", mathAction)
+        subMenuWrapper.appendChild(mathAction.getElement())
       }
 
       if (this.config.import) {

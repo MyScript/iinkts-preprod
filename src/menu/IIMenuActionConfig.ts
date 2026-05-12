@@ -22,7 +22,7 @@ export interface IIMenuActionConfig {
   /** Enable/disable Debug submenu */
   debug?: boolean
   /** Enable/disable Math Dependencies submenu */
-  mathDependencies?: boolean
+  math?: boolean
   /** Enable/disable Export submenu */
   export?: boolean
   /** Enable/disable Import submenu */
@@ -42,7 +42,7 @@ export const defaultMenuActionConfig: Required<IIMenuActionConfig> = {
   guide: true,
   snap: true,
   debug: true,
-  mathDependencies: true,
+  math: true,
   export: true,
   import: true
 }
