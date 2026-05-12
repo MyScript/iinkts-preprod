@@ -41,7 +41,7 @@ describe("MathInteractionManager", () =>
       findMathSymbolByJiixId: jest.fn(),
     } as any
 
-    manager = new MathInteractionManager(mockEditor, { highlightOnHover: true, highlightOnSelect: true, showDependencyArrows: true })
+    manager = new MathInteractionManager(mockEditor, { showDependencyOnHover: true, highlightOnSelect: true })
   })
 
   describe("constructor", () =>
@@ -61,21 +61,20 @@ describe("MathInteractionManager", () =>
       } as any
       const localMen = new MathInteractionManager(localMockEditor)
       const config = localMen.getConfig()
-      expect(config.highlightOnHover).toBe(false)
+      expect(config.showDependencyOnHover).toBe(false)
       expect(config.highlightOnSelect).toBe(false)
-      expect(config.showDependencyArrows).toBe(false)
       expect(config.dimOpacity).toBe(0.3)
     })
 
     test("should accept partial config override", () =>
     {
       const customManager = new MathInteractionManager(mockEditor, {
-        highlightOnHover: true,
+        showDependencyOnHover: true,
         dimOpacity: 0.5
       })
 
       const config = customManager.getConfig()
-      expect(config.highlightOnHover).toBe(true)
+      expect(config.showDependencyOnHover).toBe(true)
       expect(config.dimOpacity).toBe(0.5)
       expect(config.highlightOnSelect).toBe(false) // default preserved
     })
@@ -97,14 +96,14 @@ describe("MathInteractionManager", () =>
     const localMen = new MathInteractionManager(localMockEditor)
     test("should update config values", () =>
     {
-      localMen.updateConfig({ highlightOnHover: true })
-      expect(localMen.getConfig().highlightOnHover).toBe(true)
+      localMen.updateConfig({ showDependencyOnHover: true })
+      expect(localMen.getConfig().showDependencyOnHover).toBe(true)
     })
 
     test("should preserve unchanged config values", () =>
     {
       const originalDimOpacity = localMen.getConfig().dimOpacity
-      localMen.updateConfig({ highlightOnHover: true })
+      localMen.updateConfig({ showDependencyOnHover: true })
       expect(localMen.getConfig().dimOpacity).toBe(originalDimOpacity)
     })
   })
@@ -349,9 +348,9 @@ describe("MathInteractionManager", () =>
 
   describe("onSymbolHover", () =>
   {
-    test("should do nothing if highlightOnHover is disabled", () =>
+    test("should do nothing if showDependencyOnHover is disabled", () =>
     {
-      manager.updateConfig({ highlightOnHover: false })
+      manager.updateConfig({ showDependencyOnHover: false })
 
       const mathSymbol: IIRecognizedMath = {
         id: "math1",
@@ -477,20 +476,7 @@ describe("MathInteractionManager", () =>
     })
   })
 
-  describe("toggleDependencyArrows", () =>
-  {
-    test("should update config", () =>
-    {
-      manager.toggleDependencyArrows(true)
-      expect(manager.getConfig().showDependencyArrows).toBe(true)
-    })
 
-    test("should clear arrows when disabled", () =>
-    {
-      manager.toggleDependencyArrows(false)
-      expect(mockOverlayManager.clearDependencyArrows).toHaveBeenCalled()
-    })
-  })
 
   describe("clearAll", () =>
   {

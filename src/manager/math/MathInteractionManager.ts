@@ -12,9 +12,8 @@ import { TJIIXMathExpression } from "../../model/ExportMath"
  * @group Manager
  */
 export type TMathInteractionConfig = {
-  highlightOnHover: boolean
+  showDependencyOnHover: boolean
   highlightOnSelect: boolean
-  showDependencyArrows: boolean
   dimOpacity: number
 }
 
@@ -29,9 +28,8 @@ export type TMathInteractionConfig = {
  */
 export class MathInteractionManager {
   private static readonly DEFAULT_CONFIG: TMathInteractionConfig = {
-    highlightOnHover: false,
+    showDependencyOnHover: false,
     highlightOnSelect: false,
-    showDependencyArrows: false,
     dimOpacity: 0.3,
   }
 
@@ -184,7 +182,7 @@ export class MathInteractionManager {
    * @param symbolId - Symbol ID being hovered, or null to clear hover
    */
   onSymbolHover(symbolId: string | null): void {
-    if (!this.#config.highlightOnHover) {
+    if (!this.#config.showDependencyOnHover) {
       return
     }
 
@@ -223,10 +221,7 @@ export class MathInteractionManager {
     })
 
     this.overlayManager.addHoverGlow(mathSymbol)
-
-    if (this.#config.showDependencyArrows) {
-      this.drawDependencyArrows(symbolId, sources, dependents)
-    }
+    this.drawDependencyArrows(symbolId, sources, dependents)
   }
 
   /**
@@ -311,29 +306,20 @@ export class MathInteractionManager {
       return
     }
 
-    // Draw arrows from sources to current symbol's variable references
     sources.forEach(sourceId => {
       const sourceSymbol = this.findMathSymbol(sourceId)
       if (sourceSymbol && sourceSymbol.jiixId && symbol.variableSources) {
-        // Find which variable in current symbol comes from this source
         for (const [variableName, sourceJiixId] of Object.entries(symbol.variableSources)) {
           if (sourceJiixId === sourceSymbol.jiixId && symbol.expressions) {
-            // Find the variable's bounding box in the current symbol's expressions
             const variableBox = this.findVariableBoxInExpressions(symbol.expressions, variableName)
             if (variableBox) {
-              // Get unique color for this variable
               const variableColor = this.#colorManager.getColorForVariable(variableName)
-
-              // Highlight source symbol with variable color
               this.overlayManager.highlightAsSource(sourceSymbol, variableColor)
-
-              // Draw rectangle around the variable
               this.overlayManager.highlightVariableBox(
                 variableBox,
                 symbol.id,
                 variableName
               )
-              // Draw arrow to the variable
               this.overlayManager.drawDependencyArrowToBox(
                 sourceSymbol.id,
                 sourceSymbol.bounds,
@@ -342,7 +328,6 @@ export class MathInteractionManager {
                 variableColor
               )
             } else {
-              // Fallback to original behavior if variable box not found
               this.overlayManager.drawDependencyArrow(
                 sourceSymbol.id,
                 symbol.id,
@@ -354,26 +339,19 @@ export class MathInteractionManager {
       }
     })
 
-    // Draw arrows from current symbol to dependents' variable references
     dependents.forEach(dependentId => {
       const dependentSymbol = this.findMathSymbol(dependentId)
       if (dependentSymbol && dependentSymbol.variableSources && symbol.jiixId) {
-        // Find which variable in dependent symbol comes from current symbol
         for (const [variableName, sourceJiixId] of Object.entries(dependentSymbol.variableSources)) {
           if (sourceJiixId === symbol.jiixId && dependentSymbol.expressions) {
-            // Find the variable's bounding box in the dependent symbol's expressions
             const variableBox = this.findVariableBoxInExpressions(dependentSymbol.expressions, variableName)
             if (variableBox) {
-              // Get unique color for this variable
               const variableColor = this.#colorManager.getColorForVariable(variableName)
-
-              // Draw rectangle around the variable
               this.overlayManager.highlightVariableBox(
                 variableBox,
                 dependentSymbol.id,
                 variableName
               )
-              // Draw arrow to the variable
               this.overlayManager.drawDependencyArrowToBox(
                 symbol.id,
                 symbol.bounds,
@@ -382,7 +360,6 @@ export class MathInteractionManager {
                 variableColor
               )
             } else {
-              // Fallback to original behavior if variable box not found
               this.overlayManager.drawDependencyArrow(
                 symbol.id,
                 dependentSymbol.id,
@@ -395,21 +372,7 @@ export class MathInteractionManager {
     })
   }
 
-  /**
-   * Toggle dependency arrows visibility
-   * @param show - Whether to show dependency arrows
-   */
-  toggleDependencyArrows(show: boolean): void {
-    this.updateConfig({ showDependencyArrows: show })
 
-    if (!show) {
-      this.overlayManager.clearDependencyArrows()
-    } else if (this.#hoveredSymbolId) {
-      const sources = this.getRecursiveSources(this.#hoveredSymbolId)
-      const dependents = this.getRecursiveDependents(this.#hoveredSymbolId)
-      this.drawDependencyArrows(this.#hoveredSymbolId, sources, dependents)
-    }
-  }
 
   /**
    * Clear all highlights and reset state
