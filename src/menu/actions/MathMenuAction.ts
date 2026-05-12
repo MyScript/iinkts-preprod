@@ -41,11 +41,11 @@ export class MathMenuAction extends SubMenuItem
       },
       {
         type: "checkbox",
-        id: `${idPrefix}-math-highlight-on-hover`,
-        label: "Highlight on Hover",
-        getValue: (editor: InteractiveInkEditor) => editor.mathInteractions.getConfig().highlightOnHover,
+        id: `${idPrefix}-math-show-dependency-on-hover`,
+        label: "Show Dependencies on Hover",
+        getValue: (editor: InteractiveInkEditor) => editor.mathInteractions.getConfig().showDependencyOnHover,
         setValue: (editor: InteractiveInkEditor, value: boolean) => {
-          editor.mathInteractions.updateConfig({ highlightOnHover: value })
+          editor.mathInteractions.updateConfig({ showDependencyOnHover: value })
           if (!value) {
             editor.mathInteractions.clearAll()
           }
@@ -58,15 +58,6 @@ export class MathMenuAction extends SubMenuItem
         getValue: (editor: InteractiveInkEditor) => editor.mathInteractions.getConfig().highlightOnSelect,
         setValue: (editor: InteractiveInkEditor, value: boolean) => {
           editor.mathInteractions.updateConfig({ highlightOnSelect: value })
-        }
-      },
-      {
-        type: "checkbox",
-        id: `${idPrefix}-math-show-dependency-arrows`,
-        label: "Show Dependency Arrows",
-        getValue: (editor: InteractiveInkEditor) => editor.mathInteractions.getConfig().showDependencyArrows,
-        setValue: (editor: InteractiveInkEditor, value: boolean) => {
-          editor.mathInteractions.toggleDependencyArrows(value)
         }
       }
     ]

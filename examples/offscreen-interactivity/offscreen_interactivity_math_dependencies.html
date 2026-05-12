@@ -78,8 +78,7 @@
     4. Uncheck "Auto-compute" to use the "Compute" button for manual calculation<br>
     5. Change the variable value using the input below<br>
     6. Watch the dependent expressions recalculate automatically!<br>
-    7. <strong>Hover over math blocks</strong> to see dependencies highlighted (sources in green, dependents in orange)<br>
-    8. Enable "Show Dependency Arrows" to visualize connections between blocks
+    7. <strong>Hover over math blocks</strong> to see dependencies highlighted (sources in green, dependents in orange) with arrows showing connections
   </p>
 
   <div style="background: #fff3cd;">
@@ -120,16 +119,12 @@
     <div class="flex-container wrap gap" style="padding: 6px 12px; margin-top: 12px; border-top: 1px solid #ddd;">
       <strong style="width: 100%;">Interactions:</strong>
       <label>
-        Highlight on Hover
-        <input type="checkbox" id="highlightOnHover" checked />
+        Show Dependencies on Hover
+        <input type="checkbox" id="showDependencyOnHover" checked />
       </label>
       <label>
         Highlight on Select
         <input type="checkbox" id="highlightOnSelect" checked />
-      </label>
-      <label>
-        Show Dependency Arrows
-        <input type="checkbox" id="showDependencyArrows" checked />
       </label>
     </div>
   </div>
@@ -223,9 +218,8 @@
       editor.mathOverlays.updateConfig({ showBorders: showBordersCheckbox.checked })
       editor.mathOverlays.updateConfig({ showResultPanels: showResultPanelsCheckbox.checked })
 
-      editor.mathInteractions.updateConfig({ highlightOnHover: highlightOnHoverCheckbox.checked })
+      editor.mathInteractions.updateConfig({ showDependencyOnHover: showDependencyOnHoverCheckbox.checked })
       editor.mathInteractions.updateConfig({ highlightOnSelect: highlightOnSelectCheckbox.checked })
-      editor.mathInteractions.updateConfig({ showDependencyArrows: showDependencyArrowsCheckbox.checked })
 
       editor.event.addChangedListener(onEditorChanged)
       editor.event.addSynchronizedListener(onSynchronized)
@@ -493,12 +487,11 @@
     })
 
     // Interaction controls
-    const highlightOnHoverCheckbox = document.getElementById('highlightOnHover')
+    const showDependencyOnHoverCheckbox = document.getElementById('showDependencyOnHover')
     const highlightOnSelectCheckbox = document.getElementById('highlightOnSelect')
-    const showDependencyArrowsCheckbox = document.getElementById('showDependencyArrows')
 
-    highlightOnHoverCheckbox.addEventListener('change', (e) => {
-      editor.mathInteractions.updateConfig({ highlightOnHover: e.target.checked })
+    showDependencyOnHoverCheckbox.addEventListener('change', (e) => {
+      editor.mathInteractions.updateConfig({ showDependencyOnHover: e.target.checked })
       if (!e.target.checked) {
         editor.mathInteractions.clearAll()
       }
@@ -506,10 +499,6 @@
 
     highlightOnSelectCheckbox.addEventListener('change', (e) => {
       editor.mathInteractions.updateConfig({ highlightOnSelect: e.target.checked })
-    })
-
-    showDependencyArrowsCheckbox.addEventListener('change', (e) => {
-      editor.mathInteractions.toggleDependencyArrows(e.target.checked)
     })
 
     showModalBtn.addEventListener('click', () => {
