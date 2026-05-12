@@ -14,20 +14,11 @@ export class MathMenuAction extends SubMenuItem
     const items: IMenuCheckbox[] = [
       {
         type: "checkbox",
-        id: `${idPrefix}-math-show-badges`,
-        label: "Show Badges (∑)",
-        getValue: (editor: InteractiveInkEditor) => editor.mathOverlays.getConfig().showBadges,
+        id: `${idPrefix}-math-show-block-overlays`,
+        label: "Show Block Overlays (∑)",
+        getValue: (editor: InteractiveInkEditor) => editor.mathOverlays.getConfig().showBlockOverlays,
         setValue: (editor: InteractiveInkEditor, value: boolean) => {
-          editor.mathOverlays.toggleBadges(value)
-        }
-      },
-      {
-        type: "checkbox",
-        id: `${idPrefix}-math-show-borders`,
-        label: "Show Borders",
-        getValue: (editor: InteractiveInkEditor) => editor.mathOverlays.getConfig().showBorders,
-        setValue: (editor: InteractiveInkEditor, value: boolean) => {
-          editor.mathOverlays.toggleBorders(value)
+          editor.mathOverlays.toggleBlockOverlays(value)
         }
       },
       {
