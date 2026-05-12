@@ -740,7 +740,7 @@ export class RecognizerWebSocket
     from: number,
     to: number,
     pointCount: number
-  }): Promise<{ [key: string]: number }[]>
+  }): Promise<{ [key: string]: number }[][]>
   {
     this.evaluateDeferred.set(blockId, new DeferredPromise<number[][]>())
     await this.send({
@@ -751,32 +751,41 @@ export class RecognizerWebSocket
     })
     const result = await this.evaluateDeferred.get(blockId)!.promise
 
-    // Transform flat array to array of objects with variable names
-    // Result format: [[x1, y1, x2, y2, ...]] -> [{ inputVar: x1, outputVar: y1 }, { inputVar: x2, outputVar: y2 }, ...]
-    const flatArray = result[0] || []
-    const points: { [key: string]: number }[] = []
+    // Transform result arrays to series of points
+    // Result format: [[x1, y1, x2, y2, ...], [x1, y1, x2, y2, ...]] for multiple curves
+    const allSeries: { [key: string]: number }[][] = []
 
-    for (let i = 0; i < flatArray.length; i += 2) {
-      if (i + 1 < flatArray.length) {
-        const xVal = flatArray[i]
-        const yVal = flatArray[i + 1]
+    for (const flatArray of result) {
+      const points: { [key: string]: number }[] = []
 
-        // Include all points, even with NaN values (will be handled by chart component)
-        points.push({
-          [evaluation.inputVariableName || "?"]: xVal,
-          [evaluation.outputVariableName || "?"]: yVal
-        })
+      // Server always returns [x1, y1, x2, y2, ...] format, even for constant functions
+      const xKey = evaluation.inputVariableName || "x"
+      const yKey = evaluation.outputVariableName || "?"
+
+      for (let i = 0; i < flatArray.length; i += 2) {
+        if (i + 1 < flatArray.length) {
+          const xVal = flatArray[i]
+          const yVal = flatArray[i + 1]
+
+          points.push({
+            [xKey]: xVal,
+            [yKey]: yVal
+          })
+        }
       }
+
+      allSeries.push(points)
     }
 
     this.#logger.info("Evaluate result transformed", {
-      inputVar: evaluation.inputVariableName || "?",
+      inputVar: evaluation.inputVariableName || "x",
       outputVar: evaluation.outputVariableName || "?",
-      points
+      seriesCount: allSeries.length,
+      totalPoints: allSeries.reduce((sum, series) => sum + series.length, 0)
     })
 
     this.evaluateDeferred.delete(blockId)
-    return points
+    return allSeries
   }
 
   protected buildReplaceStrokesMessage(oldStrokeIds: string[], newStrokes: IIStroke[]): TRecognizerWebSocketMessage

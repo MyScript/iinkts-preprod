@@ -1,6 +1,8 @@
 import { InteractiveInkEditor } from "../../editor"
 import { SubMenuItem, IMenuSubMenu } from "../items/SubMenuItem"
 import { IMenuCheckbox } from "../items/CheckboxMenuItem"
+import { IMenuSelect } from "../items/SelectMenuItem"
+import { isMathSymbol } from "../../symbol"
 import mathIcon from "../../assets/svg/linear-double-arrow.svg"
 
 /**
@@ -11,7 +13,7 @@ export class MathMenuAction extends SubMenuItem
 {
   constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-action")
   {
-    const items: IMenuCheckbox[] = [
+    const items: (IMenuCheckbox | IMenuSelect)[] = [
       {
         type: "checkbox",
         id: `${idPrefix}-math-show-block-overlays`,
@@ -22,12 +24,29 @@ export class MathMenuAction extends SubMenuItem
         }
       },
       {
-        type: "checkbox",
-        id: `${idPrefix}-math-show-result-panels`,
-        label: "Show Result Panels",
-        getValue: (editor: InteractiveInkEditor) => editor.mathOverlays.getConfig().showResultPanels,
-        setValue: (editor: InteractiveInkEditor, value: boolean) => {
-          editor.mathOverlays.toggleResultPanels(value)
+        type: "select",
+        id: `${idPrefix}-math-computation-mode`,
+        label: "Computation result:",
+        options: [
+          { label: "Draw strokes", value: "strokes-only" },
+          { label: "Show in panel", value: "value-only" },
+          { label: "Both", value: "both" }
+        ],
+        getValue: (editor: InteractiveInkEditor) => editor.mathComputationMode,
+        setValue: async (editor: InteractiveInkEditor, value: string) => {
+          const oldMode = editor.mathComputationMode
+          editor.mathComputationMode = value as "strokes-only" | "value-only" | "both"
+
+          if (value === "value-only" && oldMode !== "value-only") {
+            const mathSymbols = editor.model.symbols.filter(isMathSymbol)
+            for (const mathSymbol of mathSymbols) {
+              await editor.clearSolverOutputStrokes(mathSymbol)
+            }
+          }
+
+          if (value === "value-only" || value === "both") {
+            editor.mathOverlays.updateConfig({ showResultPanels: true })
+          }
         }
       },
       {

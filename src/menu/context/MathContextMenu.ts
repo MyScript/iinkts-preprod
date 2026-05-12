@@ -238,14 +238,16 @@ export class MathContextMenu extends SubMenuItem
 
                         this.logger.info("Function evaluated:", points)
 
+                        const yLabel = evaluable.outputName || "?"
+
                         // Create chart to display results
                         const chart = new Chart({
                           width: 500,
                           height: 350,
                           title: evaluable.inputName
                             ? `${evaluable.outputName || "?"} = f(${evaluable.inputName})`
-                            : `${evaluable.outputName || "?"} = ${points[0]?.y ?? "?"}`,
-                          xLabel: evaluable.inputName || "?",
+                            : `${evaluable.outputName || "?"} = ${points[0]?.[0]?.[yLabel] ?? "?"}`,
+                          xLabel: evaluable.inputName || "x",
                           yLabel: evaluable.outputName || "?",
                           lineColor: "#2196F3",
                           showGrid: true,
