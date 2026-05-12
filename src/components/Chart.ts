@@ -267,15 +267,37 @@ export class Chart {
     const yMin = Math.min(...filteredYValues)
     const yMax = Math.max(...filteredYValues)
 
-    // Add padding
+    // Add padding to ranges
+    const xRange = xMax - xMin
     const yRange = yMax - yMin
-    const yPadding = yRange * 0.1
+
+    // Calculate x padding
+    let finalXMin = xMin
+    let finalXMax = xMax
+    if (xRange === 0) {
+      const padding = Math.abs(xMin) * 0.1 || 1
+      finalXMin = xMin - padding
+      finalXMax = xMax + padding
+    }
+
+    // Calculate y padding
+    let finalYMin: number
+    let finalYMax: number
+    if (yRange === 0) {
+      const padding = Math.abs(yMin) * 0.1 || 1
+      finalYMin = yMin - padding
+      finalYMax = yMax + padding
+    } else {
+      const yPadding = yRange * 0.1
+      finalYMin = yMin - yPadding
+      finalYMax = yMax + yPadding
+    }
 
     return {
-      xMin,
-      xMax,
-      yMin: yMin - yPadding,
-      yMax: yMax + yPadding
+      xMin: finalXMin,
+      xMax: finalXMax,
+      yMin: finalYMin,
+      yMax: finalYMax
     }
   }
 
@@ -291,11 +313,10 @@ export class Chart {
       !Array.isArray(points[0])
     ) {
       const objectArray = points as { [key: string]: number }[]
-      const keys = Object.keys(objectArray[0])
-      if (keys.length >= 2) {
-        // Convert objects to [[x, y], ...] format
-        this.points = objectArray.map((obj) => [obj[keys[0]], obj[keys[1]]])
-      }
+      this.points = objectArray.map((obj) => [
+        obj[this.config.xLabel],
+        obj[this.config.yLabel]
+      ])
     }
     // Check if data is in format [[x1, x2, ...], [y1, y2, ...]] and convert to [[x1, y1], [x2, y2], ...]
     else if (
@@ -456,11 +477,24 @@ export class Chart {
       yMin = Math.min(...yValues)
       yMax = Math.max(...yValues)
 
-      // Add padding to y range
+      const xRange = xMax - xMin
       const yRange = yMax - yMin
-      const yPadding = yRange * 0.1
-      yMin = yMin - yPadding
-      yMax = yMax + yPadding
+
+      if (xRange === 0) {
+        const padding = Math.abs(xMin) * 0.1 || 1
+        xMin = xMin - padding
+        xMax = xMax + padding
+      }
+
+      if (yRange === 0) {
+        const padding = Math.abs(yMin) * 0.1 || 1
+        yMin = yMin - padding
+        yMax = yMax + padding
+      } else {
+        const yPadding = yRange * 0.1
+        yMin = yMin - yPadding
+        yMax = yMax + yPadding
+      }
     }
 
     // Scale functions
@@ -659,7 +693,6 @@ export class Chart {
     for (let i = 0; i < this.points.length; i++) {
       const [x, y] = this.points[i]
 
-      // Skip NaN or Infinite values
       if (isNaN(x) || isNaN(y) || !isFinite(x) || !isFinite(y)) {
         pathStarted = false
         continue

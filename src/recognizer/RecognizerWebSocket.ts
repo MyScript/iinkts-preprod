@@ -763,15 +763,15 @@ export class RecognizerWebSocket
 
         // Include all points, even with NaN values (will be handled by chart component)
         points.push({
-          [evaluation.inputVariableName]: xVal,
-          [evaluation.outputVariableName]: yVal
+          [evaluation.inputVariableName || "?"]: xVal,
+          [evaluation.outputVariableName || "?"]: yVal
         })
       }
     }
 
     this.#logger.info("Evaluate result transformed", {
-      inputVar: evaluation.inputVariableName,
-      outputVar: evaluation.outputVariableName,
+      inputVar: evaluation.inputVariableName || "?",
+      outputVar: evaluation.outputVariableName || "?",
       points
     })
 
