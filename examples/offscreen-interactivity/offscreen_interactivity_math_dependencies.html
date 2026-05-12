@@ -103,12 +103,8 @@
     </div>
     <div class="flex-container wrap gap" style="padding: 6px 12px; margin-top: 12px;">
       <label>
-        Show Badges (∑)
-        <input type="checkbox" id="showBadges" checked />
-      </label>
-      <label>
-        Show Borders
-        <input type="checkbox" id="showBorders" checked />
+        Show Block Overlays (∑)
+        <input type="checkbox" id="showBlockOverlays" checked />
       </label>
       <label>
         Show Result Panels
@@ -148,8 +144,7 @@
     const variableSelect = document.getElementById('variableSelect')
     const variableValue = document.getElementById('variableValue')
     const setVariableBtn = document.getElementById('setVariable')
-    const showBadgesCheckbox = document.getElementById('showBadges')
-    const showBordersCheckbox = document.getElementById('showBorders')
+    const showBlockOverlaysCheckbox = document.getElementById('showBlockOverlays')
     const showResultPanelsCheckbox = document.getElementById('showResultPanels')
     const autoComputeCheckbox = document.getElementById('autoCompute')
 
@@ -214,8 +209,7 @@
 
       editor = await Editor.load(editorElement, 'INTERACTIVEINK', options)
 
-      editor.mathOverlays.updateConfig({ showBadges: showBadgesCheckbox.checked })
-      editor.mathOverlays.updateConfig({ showBorders: showBordersCheckbox.checked })
+      editor.mathOverlays.updateConfig({ showBlockOverlays: showBlockOverlaysCheckbox.checked })
       editor.mathOverlays.updateConfig({ showResultPanels: showResultPanelsCheckbox.checked })
 
       editor.mathInteractions.updateConfig({ showDependencyOnHover: showDependencyOnHoverCheckbox.checked })
@@ -469,12 +463,8 @@
       }
     })
 
-    showBadgesCheckbox.addEventListener('change', (e) => {
-      editor.mathOverlays.toggleBadges(e.target.checked)
-    })
-
-    showBordersCheckbox.addEventListener('change', (e) => {
-      editor.mathOverlays.toggleBorders(e.target.checked)
+    showBlockOverlaysCheckbox.addEventListener('change', (e) => {
+      editor.mathOverlays.toggleBlockOverlays(e.target.checked)
     })
 
     showResultPanelsCheckbox.addEventListener('change', (e) => {

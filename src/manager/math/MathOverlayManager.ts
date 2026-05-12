@@ -9,8 +9,7 @@ import { VariableColorManager } from "./VariableColorManager"
  * Visual overlay configuration
  */
 export type TMathOverlayConfig = {
-  showBadges: boolean
-  showBorders: boolean
+  showBlockOverlays: boolean
   showResultPanels: boolean
   badgeSize: number
   borderWidth: number
@@ -27,8 +26,7 @@ export type TMathOverlayConfig = {
  */
 export class MathOverlayManager {
   private static readonly DEFAULT_CONFIG: TMathOverlayConfig = {
-    showBadges: false,
-    showBorders: false,
+    showBlockOverlays: false,
     showResultPanels: false,
     badgeSize: 20,
     borderWidth: 2,
@@ -85,7 +83,7 @@ export class MathOverlayManager {
 
     this.renderer.removeSymbol(badgeId)
 
-    if (!this.#config.showBadges) {
+    if (!this.#config.showBlockOverlays) {
       return
     }
 
@@ -134,7 +132,7 @@ export class MathOverlayManager {
 
     this.renderer.removeSymbol(borderId)
 
-    if (!this.#config.showBorders) {
+    if (!this.#config.showBlockOverlays) {
       return
     }
 
@@ -528,12 +526,8 @@ export class MathOverlayManager {
     this.renderer.clearElements({ attrs: { "data-overlay": "arrow" } })
   }
 
-  toggleBadges(show: boolean): void {
-    this.updateConfig({ showBadges: show })
-  }
-
-  toggleBorders(show: boolean): void {
-    this.updateConfig({ showBorders: show })
+  toggleBlockOverlays(show: boolean): void {
+    this.updateConfig({ showBlockOverlays: show })
   }
 
   toggleResultPanels(show: boolean): void {

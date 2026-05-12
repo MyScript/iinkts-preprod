@@ -52,22 +52,21 @@ describe("MathOverlayManager", () =>
     test("should initialize with default config", () =>
     {
       const config = manager.getConfig()
-      expect(config.showBadges).toBe(false)
-      expect(config.showBorders).toBe(false)
+      expect(config.showBlockOverlays).toBe(false)
       expect(config.showResultPanels).toBe(false)
     })
 
     test("should accept partial config override", () =>
     {
       const customManager = new MathOverlayManager(mockEditor, {
-        showBadges: true,
+        showBlockOverlays: true,
         badgeSize: 30
       })
 
       const config = customManager.getConfig()
-      expect(config.showBadges).toBe(true)
+      expect(config.showBlockOverlays).toBe(true)
       expect(config.badgeSize).toBe(30)
-      expect(config.showBorders).toBe(false) // default preserved
+      expect(config.showResultPanels).toBe(false) // default preserved
     })
   })
 
@@ -75,21 +74,21 @@ describe("MathOverlayManager", () =>
   {
     test("should update config values", () =>
     {
-      manager.updateConfig({ showBadges: false })
-      expect(manager.getConfig().showBadges).toBe(false)
+      manager.updateConfig({ showBlockOverlays: true })
+      expect(manager.getConfig().showBlockOverlays).toBe(true)
     })
 
     test("should preserve unchanged config values", () =>
     {
       const originalBorderWidth = manager.getConfig().borderWidth
-      manager.updateConfig({ showBadges: false })
+      manager.updateConfig({ showBlockOverlays: true })
       expect(manager.getConfig().borderWidth).toBe(originalBorderWidth)
     })
 
     test("should call refresh after config update", () =>
     {
       const refreshSpy = jest.spyOn(manager, 'refresh')
-      manager.updateConfig({ showBadges: false })
+      manager.updateConfig({ showBlockOverlays: true })
       expect(refreshSpy).toHaveBeenCalled()
     })
   })
@@ -132,8 +131,7 @@ describe("MathOverlayManager", () =>
         strokes: [],
       } as any
 
-      manager.toggleBadges(true)
-      manager.toggleBorders(true)
+      manager.toggleBlockOverlays(true)
       manager.updateOverlaysForSymbol(mathSymbol)
 
       // Check that badge element was added to layer
@@ -181,9 +179,9 @@ describe("MathOverlayManager", () =>
       expect(mockRenderer.drawConnectionBetweenBox).toHaveBeenCalled()
     })
 
-    test("should respect config showBadges=false", () =>
+    test("should respect config showBlockOverlays=false", () =>
     {
-      manager.updateConfig({ showBadges: false })
+      manager.updateConfig({ showBlockOverlays: false })
       mockRenderer.layer.innerHTML = "" // Clear
 
       const mathSymbol: IIRecognizedMath = {
@@ -198,6 +196,9 @@ describe("MathOverlayManager", () =>
 
       const badges = mockRenderer.layer.querySelectorAll('[data-overlay="badge"]')
       expect(badges.length).toBe(0)
+
+      const borders = mockRenderer.layer.querySelectorAll('[data-overlay="border"]')
+      expect(borders.length).toBe(0)
     })
   })
 
@@ -332,16 +333,10 @@ describe("MathOverlayManager", () =>
 
   describe("toggle methods", () =>
   {
-    test("toggleBadges should update config", () =>
+    test("toggleBlockOverlays should update config", () =>
     {
-      manager.toggleBadges(false)
-      expect(manager.getConfig().showBadges).toBe(false)
-    })
-
-    test("toggleBorders should update config", () =>
-    {
-      manager.toggleBorders(false)
-      expect(manager.getConfig().showBorders).toBe(false)
+      manager.toggleBlockOverlays(true)
+      expect(manager.getConfig().showBlockOverlays).toBe(true)
     })
 
     test("toggleResultPanels should update config", () =>
