@@ -113,6 +113,7 @@ export class InteractiveInkEditor extends AbstractEditor
   mathInteractions: MathInteractionManager
   transientInk: TransientInkManager
   menu: IIMenuManager
+  mathComputationMode: "strokes-only" | "value-only" | "both" = "strokes-only"
 
   constructor(rootElement: HTMLElement, options?: TInteractiveInkEditorOptions)
   {
@@ -1765,6 +1766,65 @@ export class InteractiveInkEditor extends AbstractEditor
   }
 
   /**
+   * Compute numerical result for a math symbol
+   * @param mathSymbol - The math symbol to compute
+   * @param mode - Computation mode: "value-only" (just get result), "strokes-only" (just draw), or "both" (default)
+   * @returns Promise with the computation result, number of added strokes, and optional numeric value
+   * @group MathSolver
+   */
+  async computeMathNumericalResult(
+    mathSymbol: IIRecognizedMath,
+    mode: "value-only" | "strokes-only" | "both" = "both"
+  ): Promise<{ result: TJIIXMathElement, addedStrokesCount: number, value?: number }>
+  {
+    try {
+      this.logger.info("computeMathNumericalResult", { mathSymbol: mathSymbol.id, mode })
+
+      if (!mathSymbol.jiixId) {
+        throw new Error("Math symbol does not have jiixId")
+      }
+
+      if (mode === "strokes-only" || mode === "both") {
+        await this.clearSolverOutputStrokes(mathSymbol)
+      }
+
+      const result = await this.getNumericalComputation(mathSymbol.jiixId)
+      this.logger.info("Numerical computation completed successfully", result)
+
+      let addedStrokesCount = 0
+
+      if (mode === "strokes-only" || mode === "both") {
+        const addedStrokes = await this.addSolverOutputStrokes(result, mathSymbol)
+        addedStrokesCount = addedStrokes.length
+        this.logger.info(`Added ${addedStrokesCount} solver output strokes`)
+      }
+
+      let value: number | undefined
+      if (mode === "value-only" || mode === "both") {
+        if (result.expressions && Array.isArray(result.expressions)) {
+          const equalExpression = result.expressions.find(expr =>
+            expr.type === "=" && "value" in expr && typeof (expr as { value?: unknown }).value === "number"
+          )
+          if (equalExpression && "value" in equalExpression) {
+            value = (equalExpression as { value: number }).value
+            this.logger.info("Extracted numerical value", { value })
+
+            mathSymbol.computedResult = value
+            await this.model.updateSymbol(mathSymbol)
+          }
+        }
+      }
+
+      return { result, addedStrokesCount, value }
+    }
+    catch (error) {
+      this.logger.error("computeMathNumericalResult", { error })
+      this.manageError(error as Error)
+      throw error
+    }
+  }
+
+  /**
    * Get variables from a math expression
    * @param blockId - The ID of the math element (jiixId)
    * @returns Promise with array of variables
@@ -1849,51 +1909,6 @@ export class InteractiveInkEditor extends AbstractEditor
   }
 
   /**
-   * Get evaluables from a math expression
-   * @param blockId - The ID of the math element (jiixId)
-   * @returns Promise with array of evaluables
-   * @group MathSolver
-   */
-  async getEvaluables(blockId: string): Promise<TMathEvaluable[]>
-  {
-    try {
-      this.logger.info("getEvaluables", { blockId })
-      return await this.recognizer.getEvaluables(blockId)
-    }
-    catch (error) {
-      this.logger.error("getEvaluables", { error })
-      this.manageError(error as Error)
-      throw error
-    }
-  }
-
-  /**
-   * Evaluate a math function for a range of input values
-   * @param blockId - The ID of the math element (jiixId)
-   * @param evaluation - Evaluation parameters (input/output variables, range, point count)
-   * @returns Promise with array of objects { inputVar: value, outputVar: value }
-   * @group MathSolver
-   */
-  async evaluate(blockId: string, evaluation: {
-    inputVariableName: string,
-    outputVariableName: string,
-    from: number,
-    to: number,
-    pointCount: number
-  }): Promise<{ [key: string]: number }[]>
-  {
-    try {
-      this.logger.info("evaluate", { blockId, evaluation })
-      return await this.recognizer.evaluate(blockId, evaluation)
-    }
-    catch (error) {
-      this.logger.error("evaluate", { error })
-      this.manageError(error as Error)
-      throw error
-    }
-  }
-
-  /**
    * Set multiple variable values for a math symbol
    * @param mathSymbol - The math symbol to update
    * @param variableValues - Object with variable names as keys and their values
@@ -1925,59 +1940,45 @@ export class InteractiveInkEditor extends AbstractEditor
   }
 
   /**
-   * Compute numerical result for a math symbol
-   * @param mathSymbol - The math symbol to compute
-   * @param mode - Computation mode: "value-only" (just get result), "strokes-only" (just draw), or "both" (default)
-   * @returns Promise with the computation result, number of added strokes, and optional numeric value
+   * Get evaluables from a math expression
+   * @param blockId - The ID of the math element (jiixId)
+   * @returns Promise with array of evaluables
    * @group MathSolver
    */
-  async computeMathNumericalResult(
-    mathSymbol: IIRecognizedMath,
-    mode: "value-only" | "strokes-only" | "both" = "both"
-  ): Promise<{ result: TJIIXMathElement, addedStrokesCount: number, value?: number }>
+  async getEvaluables(blockId: string): Promise<TMathEvaluable[]>
   {
     try {
-      this.logger.info("computeMathNumericalResult", { mathSymbol: mathSymbol.id, mode })
-
-      if (!mathSymbol.jiixId) {
-        throw new Error("Math symbol does not have jiixId")
-      }
-
-      if (mode === "strokes-only" || mode === "both") {
-        await this.clearSolverOutputStrokes(mathSymbol)
-      }
-
-      const result = await this.getNumericalComputation(mathSymbol.jiixId)
-      this.logger.info("Numerical computation completed successfully", result)
-
-      let addedStrokesCount = 0
-
-      if (mode === "strokes-only" || mode === "both") {
-        const addedStrokes = await this.addSolverOutputStrokes(result, mathSymbol)
-        addedStrokesCount = addedStrokes.length
-        this.logger.info(`Added ${addedStrokesCount} solver output strokes`)
-      }
-
-      let value: number | undefined
-      if (mode === "value-only" || mode === "both") {
-        if (result.expressions && Array.isArray(result.expressions)) {
-          const equalExpression = result.expressions.find(expr =>
-            expr.type === "=" && "value" in expr && typeof (expr as { value?: unknown }).value === "number"
-          )
-          if (equalExpression && "value" in equalExpression) {
-            value = (equalExpression as { value: number }).value
-            this.logger.info("Extracted numerical value", { value })
-
-            mathSymbol.computedResult = value
-            await this.model.updateSymbol(mathSymbol)
-          }
-        }
-      }
-
-      return { result, addedStrokesCount, value }
+      this.logger.info("getEvaluables", { blockId })
+      return await this.recognizer.getEvaluables(blockId)
     }
     catch (error) {
-      this.logger.error("computeMathNumericalResult", { error })
+      this.logger.error("getEvaluables", { error })
+      this.manageError(error as Error)
+      throw error
+    }
+  }
+
+  /**
+   * Evaluate a math function for a range of input values
+   * @param blockId - The ID of the math element (jiixId)
+   * @param evaluation - Evaluation parameters (input/output variables, range, point count)
+   * @returns Promise with array of objects { inputVar: value, outputVar: value }
+   * @group MathSolver
+   */
+  async evaluate(blockId: string, evaluation: {
+    inputVariableName: string,
+    outputVariableName: string,
+    from: number,
+    to: number,
+    pointCount: number
+  }): Promise<{ [key: string]: number }[][]>
+  {
+    try {
+      this.logger.info("evaluate", { blockId, evaluation })
+      return await this.recognizer.evaluate(blockId, evaluation)
+    }
+    catch (error) {
+      this.logger.error("evaluate", { error })
       this.manageError(error as Error)
       throw error
     }
@@ -1999,7 +2000,7 @@ export class InteractiveInkEditor extends AbstractEditor
       to: number,
       pointCount: number
     }
-  ): Promise<{ [key: string]: number }[]>
+  ): Promise<{ [key: string]: number }[][]>
   {
     try {
       this.logger.info("evaluateMathFunction", { mathSymbol: mathSymbol.id, evaluation })
@@ -2008,10 +2009,13 @@ export class InteractiveInkEditor extends AbstractEditor
         throw new Error("Math symbol does not have jiixId")
       }
 
-      const points = await this.evaluate(mathSymbol.jiixId, evaluation)
-      this.logger.info("Function evaluated successfully", { pointsCount: points.length })
+      const series = await this.evaluate(mathSymbol.jiixId, evaluation)
+      this.logger.info("Function evaluated successfully", {
+        seriesCount: series.length,
+        totalPoints: series.reduce((sum, s) => sum + s.length, 0)
+      })
 
-      return points
+      return series
     }
     catch (error) {
       this.logger.error("evaluateMathFunction", { error })

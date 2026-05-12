@@ -107,8 +107,12 @@
         <input type="checkbox" id="showBlockOverlays" checked />
       </label>
       <label>
-        Show Result Panels
-        <input type="checkbox" id="showResultPanels" />
+        Computation result:
+        <select id="computationMode">
+          <option value="strokes-only" selected>Draw strokes</option>
+          <option value="value-only">Show in panel</option>
+          <option value="both">Both</option>
+        </select>
       </label>
       <button id="refreshBtn" class="classic-btn">Refresh Overlays</button>
     </div>
@@ -145,7 +149,7 @@
     const variableValue = document.getElementById('variableValue')
     const setVariableBtn = document.getElementById('setVariable')
     const showBlockOverlaysCheckbox = document.getElementById('showBlockOverlays')
-    const showResultPanelsCheckbox = document.getElementById('showResultPanels')
+    const computationModeSelect = document.getElementById('computationMode')
     const autoComputeCheckbox = document.getElementById('autoCompute')
 
     let editor
@@ -180,7 +184,7 @@
             export: false,
             import: false,
             convert: false,
-            mathDependencies: false,
+            math: false,
             debug: false,
             guide: false
           },
@@ -210,7 +214,11 @@
       editor = await Editor.load(editorElement, 'INTERACTIVEINK', options)
 
       editor.mathOverlays.updateConfig({ showBlockOverlays: showBlockOverlaysCheckbox.checked })
-      editor.mathOverlays.updateConfig({ showResultPanels: showResultPanelsCheckbox.checked })
+      editor.mathComputationMode = computationModeSelect.value
+
+      if (editor.mathComputationMode === 'value-only' || editor.mathComputationMode === 'both') {
+        editor.mathOverlays.updateConfig({ showResultPanels: true })
+      }
 
       editor.mathInteractions.updateConfig({ showDependencyOnHover: showDependencyOnHoverCheckbox.checked })
       editor.mathInteractions.updateConfig({ highlightOnSelect: highlightOnSelectCheckbox.checked })
@@ -218,10 +226,6 @@
       editor.event.addChangedListener(onEditorChanged)
       editor.event.addSynchronizedListener(onSynchronized)
       editor.event.addSelectedListener(onSelected)
-      editor.event.addLoadedListener(() => {
-        computeElement.disabled = false
-      })
-
       return editor
     }
 
@@ -237,10 +241,8 @@
         variableSelect.disabled = true
         variableValue.disabled = true
         setVariableBtn.disabled = true
-
         return
       }
-
     }
 
     let synchronizeTimeout
@@ -255,20 +257,16 @@
     }
 
     async function tryAutoCompute() {
-      // Check if auto-compute is enabled
       if (!autoComputeCheckbox.checked) {
         return
       }
 
-      // Try to auto-compute expressions that end with "=" or "?"
       const mathSymbols = editor.model.symbols.filter(s =>
         s.type === 'recognized' && s.kind === 'math'
       )
 
       for (const mathSymbol of mathSymbols) {
         const label = mathSymbol.label || ''
-
-        // Check if expression ends with = or ? (indicates a computation request)
         if ((label.endsWith('=') || label.endsWith('?')) && mathSymbol.jiixId) {
           try {
             const actions = await editor.getAvailableActions(mathSymbol.jiixId)
@@ -277,7 +275,7 @@
             if (canCompute) {
               console.log(`Auto-computing: ${label}`)
 
-              await editor.computeMathNumericalResult(mathSymbol)
+              await editor.computeMathNumericalResult(mathSymbol, editor.mathComputationMode)
             }
           } catch (e) {
             // Silently ignore errors - expression might not be computable yet
@@ -444,7 +442,6 @@
 
         console.log(`Setting ${varName} = ${newValue} in block ${jiixId}`)
 
-        // Clear transient results for all dependent blocks before changing the variable
         const sourceSymbol = editor.model.symbols.find(s => s.jiixId === jiixId && s.type === 'recognized' && s.kind === 'math')
 
         await editor.setVariableValue(jiixId, varName, newValue)
@@ -467,8 +464,22 @@
       editor.mathOverlays.toggleBlockOverlays(e.target.checked)
     })
 
-    showResultPanelsCheckbox.addEventListener('change', (e) => {
-      editor.mathOverlays.toggleResultPanels(e.target.checked)
+    computationModeSelect.addEventListener('change', async (e) => {
+      const oldMode = editor.mathComputationMode
+      editor.mathComputationMode = e.target.value
+      if (e.target.value === 'value-only' && oldMode !== 'value-only') {
+        const mathSymbols = editor.model.symbols.filter(s =>
+          s.type === 'recognized' && s.kind === 'math'
+        )
+        for (const mathSymbol of mathSymbols) {
+          await editor.clearSolverOutputStrokes(mathSymbol)
+        }
+      }
+      if (e.target.value === 'value-only' || e.target.value === 'both') {
+        editor.mathOverlays.updateConfig({ showResultPanels: true })
+      } else {
+        editor.mathOverlays.updateConfig({ showResultPanels: false })
+      }
     })
 
     const refreshBtn = document.getElementById('refreshBtn')
@@ -476,7 +487,6 @@
       editor.mathOverlays.refresh()
     })
 
-    // Interaction controls
     const showDependencyOnHoverCheckbox = document.getElementById('showDependencyOnHover')
     const highlightOnSelectCheckbox = document.getElementById('highlightOnSelect')
 
