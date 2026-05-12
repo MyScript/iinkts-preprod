@@ -329,7 +329,7 @@
         html += `<div class="dependency-info source" style="margin-bottom: 8px; background: #c8e6c9;">`
         html += `<strong>📊 ${symbol.label || symbol.jiixId}</strong>`
         if (deps.dependentBlocks.length > 0) {
-          html += ` <small>(utilisé par ${deps.dependentBlocks.length} bloc(s))</small>`
+          html += ` <small>(used by ${deps.dependentBlocks.length} block(s))</small>`
         }
         html += `</div>`
 
@@ -362,7 +362,7 @@
       const remainingBlocks = mathSymbols.filter(s => !processedBlocks.has(s.jiixId))
       if (remainingBlocks.length > 0) {
         html += '<div style="margin-top: 16px; padding-top: 8px; border-top: 1px dashed #ccc;">'
-        html += '<small><strong>Blocs isolés:</strong></small><br>'
+        html += '<small><strong>Isolated blocks:</strong></small><br>'
         for (const mathSymbol of remainingBlocks) {
           html += `<div class="dependency-info" style="margin-top: 4px;">`
           html += `<strong>${mathSymbol.label || mathSymbol.jiixId}</strong>`
