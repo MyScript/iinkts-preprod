@@ -1,4 +1,4 @@
-import { TSymbol, SymbolType, IIStroke, IIText, IISymbolGroup } from "../../symbol"
+import { TSymbol, SymbolType, IIStroke, IIText } from "../../symbol"
 
 /**
  * @group Renderer
@@ -22,14 +22,6 @@ export function isStroke(symbol: TSymbol): symbol is IIStroke
 export function isText(symbol: TSymbol): symbol is IIText
 {
   return symbol.type === SymbolType.Text
-}
-
-/**
- * Check if symbol is a group
- */
-export function isGroup(symbol: TSymbol): symbol is IISymbolGroup
-{
-  return symbol.type === SymbolType.Group
 }
 
 /**

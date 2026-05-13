@@ -1,5 +1,5 @@
 import { LoggerCategory, LoggerManager } from "../logger"
-import { IIRecognizedText, IIRecognizedMath, IIStroke, IISymbolGroup, IIText, RecognizedKind, SymbolType, TIISymbol } from "../symbol"
+import { IIRecognizedText, IIRecognizedMath, IIStroke, IIText, RecognizedKind, SymbolType, TIISymbol } from "../symbol"
 import { InteractiveInkEditor } from "../editor"
 import { IIMenuContextConfig, defaultMenuContextConfig } from "./IIMenuContextConfig"
 import {
@@ -9,7 +9,6 @@ import {
   ExportContextMenu,
   ConvertContextMenu,
   MathContextMenu,
-  GroupContextMenu,
   DuplicateContextMenu,
   RemoveContextMenu,
   SelectAllContextMenu
@@ -26,7 +25,7 @@ export class IIMenuContext
   config: Required<IIMenuContextConfig>
 
   // Context menu instances
-  private contextMenus: Map<string, EditContextMenu | DecoratorContextMenu | ReorderContextMenu | ExportContextMenu | ConvertContextMenu | MathContextMenu | GroupContextMenu | DuplicateContextMenu | RemoveContextMenu | SelectAllContextMenu> = new Map()
+  private contextMenus: Map<string, EditContextMenu | DecoratorContextMenu | ReorderContextMenu | ExportContextMenu | ConvertContextMenu | MathContextMenu | DuplicateContextMenu | RemoveContextMenu | SelectAllContextMenu> = new Map()
 
   position: {
     x: number,
@@ -52,11 +51,11 @@ export class IIMenuContext
     return this.symbolsSelected.length > 0
   }
 
-  get symbolsDecorable(): (IIStroke | IIText | IISymbolGroup | IIRecognizedText)[]
+  get symbolsDecorable(): (IIStroke | IIText | IIRecognizedText)[]
   {
     return this.symbolsSelected.filter(s => {
-      return s.type === SymbolType.Stroke || s.type === SymbolType.Text || s.type === SymbolType.Group || (s.type === SymbolType.Recognized && s.kind === RecognizedKind.Text)
-    }) as (IIStroke | IIText | IISymbolGroup | IIRecognizedText)[]
+      return s.type === SymbolType.Stroke || s.type === SymbolType.Text || (s.type === SymbolType.Recognized && s.kind === RecognizedKind.Text)
+    }) as (IIStroke | IIText | IIRecognizedText)[]
   }
 
   get showDecorator(): boolean
@@ -170,16 +169,6 @@ export class IIMenuContext
       this.contextMenus.get("duplicate")?.getElement().style.removeProperty("display")
       this.contextMenus.get("remove")?.getElement().style.removeProperty("display")
       this.contextMenus.get("export")?.getElement().style.removeProperty("display")
-
-      // Update group menu
-      const groupMenuInstance = this.contextMenus.get("group") as GroupContextMenu | undefined
-      if (groupMenuInstance && !this.hasSingleMathSymbol) {
-        groupMenuInstance.update()
-        groupMenuInstance.getElement().style.removeProperty("display")
-      }
-      else {
-        groupMenuInstance?.getElement().style.setProperty("display", "none")
-      }
     }
     else {
       this.contextMenus.get("edit")?.getElement().style.setProperty("display", "none")
@@ -188,7 +177,6 @@ export class IIMenuContext
       this.contextMenus.get("duplicate")?.getElement().style.setProperty("display", "none")
       this.contextMenus.get("remove")?.getElement().style.setProperty("display", "none")
       this.contextMenus.get("export")?.getElement().style.setProperty("display", "none")
-      this.contextMenus.get("group")?.getElement().style.setProperty("display", "none")
     }
 
     // Update menu instances
@@ -240,12 +228,6 @@ export class IIMenuContext
       const mathMenuInstance = new MathContextMenu(this.editor, this.id)
       this.contextMenus.set("math", mathMenuInstance)
       this.wrapper.appendChild(mathMenuInstance.getElement())
-    }
-
-    if (this.config.group) {
-      const groupMenuInstance = new GroupContextMenu(this.editor, this.id)
-      this.contextMenus.set("group", groupMenuInstance)
-      this.wrapper.appendChild(groupMenuInstance.getElement())
     }
 
     if (this.config.duplicate) {

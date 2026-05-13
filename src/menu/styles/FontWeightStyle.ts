@@ -33,7 +33,7 @@ export class FontWeightStyle extends BaseMenuItem<HTMLDivElement>
       setValue: (editor, value) => {
         editor.configuration.fontStyle.weight = value as "auto" | "normal" | "bold"
         if (value !== "auto") {
-          const textSymbols = editor.model.symbolsSelected.filter(s => s.type === SymbolType.Text || (s.type === SymbolType.Group && s.extractText().length))
+          const textSymbols = editor.model.symbolsSelected.filter(s => s.type === SymbolType.Text)
           editor.updateTextFontStyle(textSymbols.map(s => s.id), { fontWeight: value as "normal" | "bold" })
           editor.selector.resetSelectedGroup(editor.model.symbolsSelected)
         }

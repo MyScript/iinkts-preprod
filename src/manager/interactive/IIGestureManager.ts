@@ -8,7 +8,6 @@ import
   SymbolType,
   IIText,
   DecoratorKind,
-  IISymbolGroup,
   TIISymbol,
   Box,
   TPoint,
@@ -196,7 +195,7 @@ export class IIGestureManager
 
   protected isDecorable(symbol: TIISymbol): boolean
   {
-    return symbol.type === SymbolType.Group || symbol.type === SymbolType.Stroke || symbol.type === SymbolType.Text || (symbol.type === SymbolType.Recognized && symbol.kind === RecognizedKind.Text)
+    return symbol.type === SymbolType.Stroke || symbol.type === SymbolType.Text || (symbol.type === SymbolType.Recognized && symbol.kind === RecognizedKind.Text)
   }
 
   /**
@@ -299,7 +298,7 @@ export class IIGestureManager
         {
           const sym = this.model.getRootSymbol(id)
           if (sym && this.isDecorable(sym) && !symbolIdSet.has(sym.id)) {
-            const symWithDec = sym as (IIText | IIStroke | IISymbolGroup | IIRecognizedText)
+            const symWithDec = sym as (IIText | IIStroke | IIRecognizedText)
 
             // Apply decorator on words for IIRecognizedText, or on symbol level for others
             if ((symWithDec.type === SymbolType.Recognized && symWithDec.kind === RecognizedKind.Text) || symWithDec.type === SymbolType.Text) {
@@ -336,7 +335,7 @@ export class IIGestureManager
         {
           const sym = this.model.getRootSymbol(id)
           if (sym && this.isDecorable(sym) && !symbolIdSet.has(sym.id)) {
-            const symWithDec = sym as (IIText | IIStroke | IISymbolGroup | IIRecognizedText)
+            const symWithDec = sym as (IIText | IIStroke | IIRecognizedText)
 
             // Apply decorator on words for IIRecognizedText, or on symbol level for others
             if ((symWithDec.type === SymbolType.Recognized && symWithDec.kind === RecognizedKind.Text) || symWithDec.type === SymbolType.Text) {
@@ -475,34 +474,6 @@ export class IIGestureManager
           }
         }
       }
-      case SymbolType.Group: {
-        const childrenNotTouch = symbol.children.filter(s => !gestureStroke.bounds.overlaps(s.bounds))
-        const childrenTouch = symbol.children.filter(s => gestureStroke.bounds.overlaps(s.bounds))
-        const results = childrenTouch.map(s =>
-        {
-          return {
-            symbol: s,
-            result: this.computeScratchOnSymbol(gestureStroke, gesture, s)
-          }
-        })
-        if (childrenNotTouch.length === 0 && results.every(r => r.result.erased)) {
-          return { erased: true }
-        }
-        else {
-          const symbolsGroup: TIISymbol[] = childrenNotTouch
-          results.forEach(r =>
-          {
-            if (r.result.replaced) {
-              symbolsGroup.push(...r.result.replaced)
-            }
-          })
-          const newGroup = new IISymbolGroup(symbolsGroup, symbol.style)
-          newGroup.decorators = symbol.decorators
-          return {
-            replaced: [newGroup]
-          }
-        }
-      }
       case SymbolType.Text: {
         const textScratchedResult = this.computeScratchOnText(gestureStroke, symbol)
         if (textScratchedResult) {
@@ -613,29 +584,7 @@ export class IIGestureManager
     const translate: { symbols: TIISymbol[], tx: number, ty: number }[] = []
     if (symbolsOnGestureInRow.length) {
       const symbolToJoin = symbolsOnGestureInRow[0]
-      if (symbolToJoin?.type === SymbolType.Group) {
-        const children = symbolToJoin.children.map(c => c.clone())
-        const childBefore = children.filter(c => c.bounds.xMid <= gestureStroke.bounds.xMid)
-        const childAfter = children.filter(c => c.bounds.xMid > gestureStroke.bounds.xMid)
-        if (childBefore.length && childAfter.length) {
-          const tx = Math.max(...childBefore.map(c => c.bounds.xMax)) - Math.min(...childAfter.map(c => c.bounds.xMin))
-          childAfter.forEach(c => this.translator.applyToSymbol(c, tx, 0))
-          const newGroup = new IISymbolGroup(children, symbolToJoin.style)
-          newGroup.decorators = symbolToJoin.decorators.map(d => d.clone())
-          changes.replaced = {
-            oldSymbols: [symbolToJoin],
-            newSymbols: [newGroup]
-          }
-          if (symbolsAfterGestureInRow.length) {
-            translate.push({ symbols: symbolsAfterGestureInRow, tx, ty: 0 })
-          }
-        }
-        else if (symbolsAfterGestureInRow.length) {
-          const tx = symbolToJoin.bounds.xMax - Math.min(...symbolsAfterGestureInRow.map(s => s.bounds.xMin))
-          translate.push({ symbols: symbolsAfterGestureInRow, tx, ty: 0 })
-        }
-      }
-      else if (symbolToJoin?.type === SymbolType.Recognized) {
+      if (symbolToJoin?.type === SymbolType.Recognized) {
         const strokeText = symbolToJoin.clone()
         const childBefore = strokeText.strokes.filter(c => c.bounds.xMid <= gestureStroke.bounds.xMid)
         const childAfter = strokeText.strokes.filter(c => c.bounds.xMid > gestureStroke.bounds.xMid)
@@ -675,11 +624,9 @@ export class IIGestureManager
       const lastSymbBeforeClone = lastSymbBefore.clone()
       const firstSymbolAfterClone = firstSymbolAfter.clone()
       this.translator.applyToSymbol(firstSymbolAfterClone, translateX, 0)
-      const symbolsToGroup = lastSymbBefore.type === SymbolType.Group ? (lastSymbBeforeClone as IISymbolGroup).children : [lastSymbBeforeClone]
-      symbolsToGroup.push(...(firstSymbolAfterClone.type === SymbolType.Group ? (firstSymbolAfterClone as IISymbolGroup).children : [firstSymbolAfterClone]))
 
-      if (symbolsToGroup.every(s => s.type === SymbolType.Text)) {
-        const texts = symbolsToGroup as IIText[]
+      if (lastSymbBefore.type === SymbolType.Text && firstSymbolAfter.type === SymbolType.Text) {
+        const texts = [lastSymbBeforeClone as IIText, firstSymbolAfterClone as IIText]
         const text = new IIText(texts.flatMap(s => s.chars), texts[0].point, Box.createFromBoxes(texts.map(t => t.bounds)))
         this.texter.setBounds(text)
         changes.replaced = {
@@ -687,34 +634,12 @@ export class IIGestureManager
           newSymbols: [text]
         }
       }
-      else if (symbolsToGroup.every(s => s.type === SymbolType.Recognized)) {
-        const strokeTexts = symbolsToGroup as IIRecognizedText[]
+      else if (lastSymbBefore.type === SymbolType.Recognized && firstSymbolAfter.type === SymbolType.Recognized) {
+        const strokeTexts = [lastSymbBeforeClone as IIRecognizedText, firstSymbolAfterClone as IIRecognizedText]
         const strokeText = new IIRecognizedText(strokeTexts.flatMap(s => s.strokes), strokeTexts[0], strokeTexts[0].style)
         changes.replaced = {
           oldSymbols: [lastSymbBefore, firstSymbolAfter],
           newSymbols: [strokeText]
-        }
-      }
-      else {
-        const group = new IISymbolGroup(symbolsToGroup, lastSymbBefore.style)
-        if (this.isDecorable(lastSymbBefore)) {
-          (lastSymbBefore as IIStroke).decorators.forEach(d =>
-          {
-            group.decorators.push(new IIDecorator(d.kind, d.style))
-          })
-        }
-        if (this.isDecorable(firstSymbolAfter)) {
-          (firstSymbolAfter as IIStroke).decorators.forEach(d =>
-          {
-            if (!group.decorators.some(d1 => d1.kind == d.kind)) {
-              group.decorators.push(new IIDecorator(d.kind, d.style))
-            }
-          })
-        }
-
-        changes.replaced = {
-          oldSymbols: [lastSymbBefore, firstSymbolAfter],
-          newSymbols: [group]
         }
       }
 
@@ -821,43 +746,6 @@ export class IIGestureManager
     }
   }
 
-  protected computeSplitStrokeInGroup(gestureStroke: IIStroke, group: IISymbolGroup, subStrokes: { fullStrokeId: string, x: number[], y: number[] }[]): IISymbolGroup[]
-  {
-    const newGroups: IISymbolGroup[] = []
-    const symbolsBefore: TIISymbol[] = []
-    const symbolsAfter: TIISymbol[] = []
-
-    const strokeIdToSplit = subStrokes[0].fullStrokeId
-
-    group.children.forEach(gs =>
-    {
-      if (gs.id === strokeIdToSplit) {
-        const subStroke = this.computeSplitStroke(gs as IIStroke, subStrokes)
-        if (subStroke.before) {
-          symbolsBefore.push(subStroke.before)
-        }
-        if (subStroke.after) {
-          symbolsAfter.push(subStroke.after)
-        }
-      }
-      else if (gs.bounds.xMid < gestureStroke.bounds.xMid) {
-        symbolsBefore.push(gs)
-      }
-      else if (gs.bounds.xMid > gestureStroke.bounds.xMid) {
-        this.translator.applyToSymbol(gs, this.strokeSpaceWidth, 0)
-        symbolsAfter.push(gs)
-      }
-    })
-
-    if (symbolsBefore.length) {
-      newGroups.push(new IISymbolGroup(symbolsBefore, group.style))
-    }
-    if (symbolsAfter.length) {
-      newGroups.push(new IISymbolGroup(symbolsAfter, group.style))
-    }
-    return newGroups
-  }
-
   protected computeChangesOnSplitStroke(gestureStroke: IIStroke, strokeIdToSplit: string, subStrokes: { fullStrokeId: string, x: number[], y: number[] }[]): TIIHistoryChanges
   {
     const translate: { symbols: TIISymbol[], tx: number, ty: number }[] = []
@@ -866,12 +754,7 @@ export class IIGestureManager
     const symbolsAfterGestureInRow = this.model.symbols.filter(s => gestureStroke.id !== s.id && this.model.isSymbolInRow(gestureStroke, s) && gestureStroke.bounds.xMid < s.bounds.xMin)
 
     const symbolToSplit = this.model.getRootSymbol(strokeIdToSplit)
-    if (symbolToSplit?.type === SymbolType.Group) {
-      const newGroups = this.computeSplitStrokeInGroup(gestureStroke, symbolToSplit, subStrokes)
-      replaced.newSymbols.push(...newGroups)
-      replaced.oldSymbols.push(symbolToSplit)
-    }
-    else if (symbolToSplit?.type === SymbolType.Stroke) {
+    if (symbolToSplit?.type === SymbolType.Stroke) {
       const newStrokes = this.computeSplitStroke(symbolToSplit, subStrokes)
       if (newStrokes.before) {
         replaced.newSymbols.push(newStrokes.before)
@@ -896,59 +779,6 @@ export class IIGestureManager
     }
     if (symbolsAfterGestureInRow.length) {
       translate.push({ symbols: symbolsAfterGestureInRow, tx: this.strokeSpaceWidth, ty: 0 })
-    }
-
-    return {
-      translate,
-      replaced
-    }
-  }
-
-  protected computeChangesOnSplitGroup(gestureStroke: IIStroke, groupToSplit: IISymbolGroup): TIIHistoryChanges
-  {
-    const translate: { symbols: TIISymbol[], tx: number, ty: number }[] = []
-    const replaced: { oldSymbols: TIISymbol[], newSymbols: TIISymbol[] } = { oldSymbols: [], newSymbols: [] }
-
-    const symbolsAfterGestureInRow = this.model.symbols.filter(s => gestureStroke.id !== s.id && this.model.isSymbolInRow(gestureStroke, s) && gestureStroke.bounds.xMid < s.bounds.xMin)
-    const symbolsBelow = this.model.symbols.filter(s => this.model.isSymbolBelow(gestureStroke, s))
-
-    const groupSymbolsBefore = groupToSplit.children.filter(s => s.bounds.xMid <= gestureStroke.bounds.xMid)
-    const groupsSymbolsAfter = groupToSplit.children.filter(s => s.bounds.xMid > gestureStroke.bounds.xMid)
-
-    replaced.oldSymbols.push(groupToSplit)
-    if (groupSymbolsBefore.length) {
-      const groupBefore = new IISymbolGroup(groupSymbolsBefore.map(s => s.clone()), groupToSplit.style)
-      groupBefore.decorators = groupToSplit.decorators.map(d => new IIDecorator(d.kind, d.style))
-      replaced.newSymbols.push(groupBefore)
-    }
-    if (groupsSymbolsAfter.length) {
-      const grouAfter = new IISymbolGroup(groupsSymbolsAfter.map(s => s.clone()), groupToSplit.style)
-      grouAfter.decorators = groupToSplit.decorators.map(d => new IIDecorator(d.kind, d.style))
-
-      // Apply translation based on insert action
-      if (this.insertAction === InsertAction.LineBreak) {
-        // For line break, move to next line
-        const minXBefore = groupSymbolsBefore.length ? Math.min(...groupSymbolsBefore.map(s => s.bounds.xMin)) : 0
-        this.translator.applyToSymbol(grouAfter, -grouAfter.bounds.xMin + minXBefore, this.rowHeight)
-      } else {
-        // For insert, move horizontally
-        this.translator.applyToSymbol(grouAfter, this.strokeSpaceWidth, 0)
-      }
-      replaced.newSymbols.push(grouAfter)
-    }
-
-    // Handle other symbols based on insert action
-    if (this.insertAction === InsertAction.LineBreak) {
-      if (symbolsAfterGestureInRow?.length) {
-        translate.push({ symbols: symbolsAfterGestureInRow.filter(s => s.id !== groupToSplit.id), tx: 0, ty: this.rowHeight })
-      }
-      if (symbolsBelow.length) {
-        translate.push({ symbols: symbolsBelow, tx: 0, ty: this.rowHeight })
-      }
-    } else {
-      if (symbolsAfterGestureInRow?.length) {
-        translate.push({ symbols: symbolsAfterGestureInRow.filter(s => s.id !== groupToSplit.id), tx: this.strokeSpaceWidth, ty: 0 })
-      }
     }
 
     return {
@@ -1199,7 +1029,6 @@ export class IIGestureManager
 
     const symbolsRow = this.model.symbols.filter(s => gestureStroke.id !== s.id && this.model.isSymbolInRow(gestureStroke, s))
     const textToSplit = symbolsRow.find(s => s.type === SymbolType.Text && isBetween(gestureStroke.bounds.xMid, s.bounds.xMin, s.bounds.xMax)) as IIText | undefined
-    const groupToSplit = symbolsRow.find(s => s.type === SymbolType.Group && isBetween(gestureStroke.bounds.xMid, s.bounds.xMin, s.bounds.xMax)) as IISymbolGroup | undefined
     const strokeTextToSplit = symbolsRow.find(s => s.type === SymbolType.Recognized && isBetween(gestureStroke.bounds.xMid, s.bounds.xMin, s.bounds.xMax)) as IIRecognizedText | undefined
 
     const symbolsBeforeGestureInRow = symbolsRow.filter(s => gestureStroke.bounds.xMid > s.bounds.xMax)
@@ -1211,9 +1040,6 @@ export class IIGestureManager
     let changes: TIIHistoryChanges | undefined
     if (gesture.strokeIds.length && gesture.subStrokes?.length) {
       changes = this.computeChangesOnSplitStroke(gestureStroke, gesture.strokeIds[0], gesture.subStrokes)
-    }
-    else if (groupToSplit) {
-      changes = this.computeChangesOnSplitGroup(gestureStroke, groupToSplit)
     }
     else if (textToSplit) {
       changes = this.computeChangesOnSplitText(gestureStroke, textToSplit)
@@ -1274,7 +1100,7 @@ export class IIGestureManager
         {
           const sym = this.model.getRootSymbol(id)
           if (sym && this.isDecorable(sym) && !symbolIdSet.has(sym.id)) {
-            const symWithDec = sym as (IIText | IIStroke | IISymbolGroup | IIRecognizedText)
+            const symWithDec = sym as (IIText | IIStroke | IIRecognizedText)
 
             // Apply decorator on words for IIRecognizedText, or on symbol level for others
             if ((symWithDec.type === SymbolType.Recognized && symWithDec.kind === RecognizedKind.Text) || symWithDec.type === SymbolType.Text) {
@@ -1345,7 +1171,7 @@ export class IIGestureManager
         {
           const symbol = this.model.getRootSymbol(id)
           if (symbol && [SymbolType.Group, SymbolType.Stroke, SymbolType.Text, SymbolType.Recognized].includes(symbol.type) && !symbolIds.includes(symbol.id)) {
-            const symWithDec = symbol as (IIText | IIStroke | IISymbolGroup | IIRecognizedText)
+            const symWithDec = symbol as (IIText | IIStroke | IIRecognizedText)
 
             // Apply decorator on words for IIRecognizedText, or on symbol level for others
             if ((symWithDec.type === SymbolType.Recognized && symWithDec.kind === RecognizedKind.Text) || symWithDec.type === SymbolType.Text) {

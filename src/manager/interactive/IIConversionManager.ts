@@ -132,25 +132,23 @@ export class IIConversionManager
     strokes.forEach(s =>
     {
       const sym = this.model.getRootSymbol(s.id)
-      if ((sym?.type === SymbolType.Recognized && sym.kind === RecognizedKind.Text) || sym?.type === SymbolType.Group) {
+      if (sym?.type === SymbolType.Recognized && sym.kind === RecognizedKind.Text) {
         // Check for word-level decorators in recognized text
-        if (sym.type === SymbolType.Recognized && sym.kind === RecognizedKind.Text) {
-          const recognizedText = sym as IIRecognizedText
-          if (recognizedText.words) {
-            recognizedText.words.forEach((w: TIIRecognizedWord) => {
-              if (w.decorators && w.bounds) {
-                // Check if this word overlaps with the current text bounds
-                if (w.bounds.overlaps(boundingBox)) {
-                  w.decorators.forEach((d: IIDecorator) => {
-                    const exists = decorators.find(dec => dec.kind === d.kind)
-                    if (!exists) {
-                      decorators.push(d)
-                    }
-                  })
-                }
+        const recognizedText = sym as IIRecognizedText
+        if (recognizedText.words) {
+          recognizedText.words.forEach((w: TIIRecognizedWord) => {
+            if (w.decorators && w.bounds) {
+              // Check if this word overlaps with the current text bounds
+              if (w.bounds.overlaps(boundingBox)) {
+                w.decorators.forEach((d: IIDecorator) => {
+                  const exists = decorators.find(dec => dec.kind === d.kind)
+                  if (!exists) {
+                    decorators.push(d)
+                  }
+                })
               }
-            })
-          }
+            }
+          })
         }
 
         const hightlight = sym.decorators.find(d => d.kind === DecoratorKind.Highlight)

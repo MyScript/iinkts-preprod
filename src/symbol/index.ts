@@ -15,7 +15,6 @@
  * - {@link IISymbol} - Rich symbol with advanced features
  * - {@link IIStroke} - Stroke with decorators and style
  * - {@link IIText} - Text symbol with font styling
- * - {@link IISymbolGroup} - Group of symbols
  * - {@link IIDecorator} - Edge decorators (arrows, etc.)
  * - {@link IIEraser} - Eraser tool marker
  *

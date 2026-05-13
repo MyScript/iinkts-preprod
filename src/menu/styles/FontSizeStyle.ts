@@ -39,7 +39,7 @@ export class FontSizeStyle extends BaseMenuItem<HTMLDivElement>
         } else {
           const fontSize = parseFloat(value)
           editor.configuration.fontStyle.size = fontSize
-          const textSymbols = editor.model.symbolsSelected.filter(s => s.type === SymbolType.Text || (s.type === SymbolType.Group && s.extractText().length))
+          const textSymbols = editor.model.symbolsSelected.filter(s => s.type === SymbolType.Text)
           editor.updateTextFontStyle(textSymbols.map(s => s.id), { fontSize: fontSize * this.rowHeight })
           editor.selector.resetSelectedGroup(editor.model.symbolsSelected)
         }

@@ -7,7 +7,6 @@ import
   Box,
   EdgeKind,
   IIStroke,
-  IISymbolGroup,
   IIText,
   IIMath,
   ShapeKind,
@@ -163,12 +162,6 @@ export class IIResizeManager
     return math
   }
 
-  protected applyOnGroup(group: IISymbolGroup, origin: TPoint, scaleX: number, scaleY: number): IISymbolGroup
-  {
-    group.children.forEach(s => this.applyToSymbol(s, origin, scaleX, scaleY))
-    return group
-  }
-
   protected applyOnRecognizedSymbol(recognizedSymbol: TIIRecognized, origin: TPoint, scaleX: number, scaleY: number): TIIRecognized
   {
     recognizedSymbol.strokes.forEach(s => this.applyToStroke(s, origin, scaleX, scaleY))
@@ -192,8 +185,6 @@ export class IIResizeManager
         return this.applyOnText(symbol, origin, scaleX, scaleY)
       case SymbolType.Math:
         return this.applyOnMath(symbol, origin, scaleX, scaleY)
-      case SymbolType.Group:
-        return this.applyOnGroup(symbol, origin, scaleX, scaleY)
       case SymbolType.Recognized:
         return this.applyOnRecognizedSymbol(symbol, origin, scaleX, scaleY)
       default:

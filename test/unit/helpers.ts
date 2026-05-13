@@ -13,8 +13,6 @@ import
   TIISymbolChar,
   TPoint,
   DecoratorKind,
-  IISymbolGroup,
-  TIISymbol,
   IIEraser,
   IIRecognizedText,
   PartialDeep,
@@ -118,27 +116,6 @@ export function buildOIText(
 ): IIText
 {
   return new IIText(chars, point, boundingBox, style)
-}
-
-export function buildOIGroup(
-  { style = DefaultStyle, nbOIStroke = 2, nbOICircle = 0, nbOILine = 0, nbOIText = 0 }:
-    { style?: PartialDeep<TStyle>, nbOIStroke?: number, nbOICircle?: number, nbOILine?: number, nbOIText?: number } = {}
-): IISymbolGroup
-{
-  const symbols: TIISymbol[] = []
-  for (let index = 0; index < nbOIStroke; index++) {
-    symbols.push(buildOIStroke())
-  }
-  for (let index = 0; index < nbOICircle; index++) {
-    symbols.push(buildOICircle())
-  }
-  for (let index = 0; index < nbOILine; index++) {
-    symbols.push(buildOILine())
-  }
-  for (let index = 0; index < nbOIText; index++) {
-    symbols.push(buildOIText())
-  }
-  return new IISymbolGroup(symbols, style)
 }
 
 export function buildRecognizedText(
