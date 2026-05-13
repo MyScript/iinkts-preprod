@@ -1,7 +1,7 @@
 import { InteractiveInkEditor } from "../../editor"
 import { BaseMenuItem, TGenericMenuItem } from "../items/BaseMenuItem"
 import { SELECTION_MARGIN } from "../../Constants"
-import { SymbolType, RecognizedKind, IIRecognizedMath, IISymbolGroup } from "../../symbol"
+import { SymbolType, RecognizedKind } from "../../symbol"
 import { createUUID } from "../../utils"
 
 /**
@@ -32,26 +32,6 @@ export class DuplicateContextMenu extends BaseMenuItem<HTMLButtonElement>
     button.addEventListener("pointerup", async () => {
       const symbolsToDuplicate = this.editor.model.symbolsSelected.slice()
 
-      const updateDeepIdInGroup = (group: IISymbolGroup) => {
-        group.id = `${group.type}-${ createUUID() }`
-        group.children.forEach(s => {
-          switch (s.type) {
-            case SymbolType.Group:
-              updateDeepIdInGroup(s)
-              break
-            case SymbolType.Recognized:
-              s.strokes.forEach(s => s.id = `${s.type}-${ createUUID() }`)
-              // Reset jiixId as strokes have changed and need re-recognition
-              s.jiixId = undefined
-              // Reset variableValues for math symbols as they're tied to jiixId
-              if (s.kind === RecognizedKind.Math) {
-                (s as IIRecognizedMath).variableValues = undefined
-              }
-              break
-          }
-        })
-      }
-
       const duplicatedSymbols = symbolsToDuplicate.map(s => {
         const clone = s.clone()
 
@@ -65,10 +45,7 @@ export class DuplicateContextMenu extends BaseMenuItem<HTMLButtonElement>
 
         while (this.editor.model.symbols.find(s => s.id === clone.id)) {
           clone.id = `${clone.type}-${ createUUID() }`
-          if (clone.type === SymbolType.Group) {
-            updateDeepIdInGroup(clone)
-          }
-          else if (clone.type === SymbolType.Recognized) {
+          if (clone.type === SymbolType.Recognized) {
             clone.jiixId = undefined
             clone.strokes.forEach(s => s.id = `${s.type}-${ createUUID() }`)
             // Reset jiixId as strokes have changed and need re-recognition

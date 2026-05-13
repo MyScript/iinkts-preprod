@@ -19,7 +19,6 @@ import
   IIRecognizedPolygon
 } from "../recognized"
 import { IIStroke } from "./IIStroke"
-import { IISymbolGroup } from "./IISymbolGroup"
 import { IIText } from "./IIText"
 import { IIMath } from "./IIMath"
 
@@ -41,4 +40,4 @@ export type TIIRecognized = IIRecognizedText | IIRecognizedMath | IIRecognizedAr
 /**
  * @group Symbol
  */
-export type TIISymbol = TIIEdge | TIIShape | IIStroke | IISymbolGroup | IIText | IIMath | TIIRecognized
+export type TIISymbol = TIIEdge | TIIShape | IIStroke | IIText | IIMath | TIIRecognized

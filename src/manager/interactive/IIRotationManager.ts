@@ -7,7 +7,6 @@ import
   Box,
   EdgeKind,
   IIStroke,
-  IISymbolGroup,
   IIText,
   IIMath,
   TIIRecognized,
@@ -120,12 +119,6 @@ export class IIRotationManager
     return math
   }
 
-  protected applyOnGroup(group: IISymbolGroup, center: TPoint, angleRad: number): IISymbolGroup
-  {
-    group.children.forEach(s => this.applyToSymbol(s, center, angleRad))
-    return group
-  }
-
   protected applyOnRecognizedSymbol(strokeText: TIIRecognized, center: TPoint, angleRad: number): TIIRecognized
   {
     strokeText.strokes.forEach(s => this.applyToStroke(s, center, angleRad))
@@ -145,8 +138,6 @@ export class IIRotationManager
         return this.applyOnText(symbol, center, angleRad)
       case SymbolType.Math:
         return this.applyOnMath(symbol, center, angleRad)
-      case SymbolType.Group:
-        return this.applyOnGroup(symbol, center, angleRad)
       case SymbolType.Recognized:
         return this.applyOnRecognizedSymbol(symbol, center, angleRad)
       default:

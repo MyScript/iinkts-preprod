@@ -4,7 +4,6 @@ import
 {
   Box,
   EdgeKind,
-  IIDecorator,
   TIIEdge,
   IIEdgeArc,
   IIEdgeLine,
@@ -16,7 +15,6 @@ import
   IIStroke,
   IIRecognizedText,
   IIRecognizedMath,
-  IISymbolGroup,
   IIRecognizedLine,
   IIRecognizedPolyLine,
   IIRecognizedArc,
@@ -411,43 +409,6 @@ export class InteractiveInkEditor extends AbstractEditor
     }
   }
 
-  protected buildGroup(partialGroup: PartialDeep<IISymbolGroup>): IISymbolGroup
-  {
-    if (!partialGroup.children?.length) {
-      throw new Error(`Unable to create group, no children`)
-    }
-
-    const children = partialGroup.children.map(partialSymbol =>
-    {
-      switch (partialSymbol?.type) {
-        case SymbolType.Stroke:
-          return IIStroke.create(partialSymbol as PartialDeep<IIStroke>)
-        case SymbolType.Shape:
-          return this.buildShape(partialSymbol as PartialDeep<TIIShape>)
-        case SymbolType.Edge:
-          return this.buildEdge(partialSymbol as PartialDeep<TIIEdge>)
-        case SymbolType.Text:
-          return IIText.create(partialSymbol as PartialDeep<IIText>)
-        case SymbolType.Math:
-          return IIMath.create(partialSymbol as PartialDeep<IIMath>)
-        case SymbolType.Group:
-          return this.buildGroup(partialSymbol as PartialDeep<IISymbolGroup>)
-        case SymbolType.Recognized:
-          return this.buildRecognized(partialSymbol as PartialDeep<TIIRecognized>)
-        default:
-          throw new Error(`Unable to create group, symbol type '${ JSON.stringify(partialSymbol) } is unknown`)
-      }
-    })
-    const group = new IISymbolGroup(children, partialGroup.style)
-    if (partialGroup.id) {
-      group.id = partialGroup.id
-    }
-    if (partialGroup.decorators) {
-      group.decorators = partialGroup.decorators.map(d => new IIDecorator(d!.kind!, d!.style as TStyle))
-    }
-    return group
-  }
-
   protected buildStroke(partialSymbol: PartialDeep<IIStroke>): IIStroke
   {
     return IIStroke.create(partialSymbol as PartialDeep<IIStroke>)
@@ -482,8 +443,6 @@ export class InteractiveInkEditor extends AbstractEditor
           return this.buildText(partialSymbol)
         case SymbolType.Math:
           return this.buildMath(partialSymbol)
-        case SymbolType.Group:
-          return this.buildGroup(partialSymbol)
         case SymbolType.Recognized:
           return this.buildRecognized(partialSymbol as PartialDeep<TIIRecognized>)
         default:
@@ -574,9 +533,6 @@ export class InteractiveInkEditor extends AbstractEditor
   {
     if (symbol.type === SymbolType.Text) {
       this.texter.updateBounds(symbol)
-    }
-    else if (symbol.type === SymbolType.Group) {
-      symbol.extractText().forEach(t => this.texter.updateBounds(t))
     }
   }
 
@@ -706,7 +662,6 @@ export class InteractiveInkEditor extends AbstractEditor
         s.style = Object.assign({}, s.style, style)
         if (
           SymbolType.Text === s.type ||
-          SymbolType.Group === s.type ||
           SymbolType.Recognized === s.type) {
           s.updateChildrenStyle()
         }
@@ -742,7 +697,7 @@ export class InteractiveInkEditor extends AbstractEditor
   updateTextFontStyle(textIds: string[], { fontSize, fontWeight }: { fontSize?: number, fontWeight?: "normal" | "bold" | "auto" }): void
   {
     this.logger.info("updateTextFontStyle", { textIds, fontSize, fontWeight })
-    const symbols: (IIText | IISymbolGroup)[] = []
+    const symbols: (IIText)[] = []
     const translate: { symbols: TIISymbol[], tx: number, ty: number }[] = []
     this.model.symbols.forEach(s =>
     {
@@ -765,30 +720,6 @@ export class InteractiveInkEditor extends AbstractEditor
           }
           s.modificationDate = Date.now()
           symbols.push(s)
-        }
-        else if (s.type === SymbolType.Group) {
-          const textChildren = s.extractText()
-          if (textChildren.length) {
-            textChildren.forEach(text =>
-            {
-              text.updateChildrenFont({ fontSize, fontWeight: fontWeight === "auto" ? undefined : fontWeight })
-              const lastWidth = s.bounds.width
-              this.texter.updateBounds(text)
-              const tx = s.bounds.width - lastWidth
-              const symbolsTranslated = this.texter.moveTextAfter(text, tx)
-              if (symbolsTranslated?.length) {
-                translate.push({
-                  symbols: symbolsTranslated,
-                  tx,
-                  ty: 0
-                })
-              }
-            })
-            s.modificationDate = Date.now()
-            this.renderer.drawSymbol(s)
-            symbols.push(s)
-          }
-
         }
       }
     })
@@ -860,38 +791,6 @@ export class InteractiveInkEditor extends AbstractEditor
   }
 
   /**
-   * Group multiple symbols into a single group
-   * @param symbols - Symbols to group
-   * @returns The created group symbol
-   */
-  groupSymbols(symbols: TIISymbol[]): IISymbolGroup
-  {
-    const group = this.buildGroup({ children: symbols })
-    symbols.forEach(s =>
-    {
-      this.model.removeSymbol(s.id)
-      this.renderer.removeSymbol(s.id)
-    })
-    this.model.addSymbol(group)
-    this.history.push(this.model, { group: { symbols } })
-    return group
-  }
-
-  /**
-   * Ungroup a symbol group into individual symbols
-   * @param group - Group to ungroup
-   * @returns Array of ungrouped symbols
-   */
-  ungroupSymbol(group: IISymbolGroup): TIISymbol[]
-  {
-    group.children.forEach(s => this.renderer.drawSymbol(s))
-    this.renderer.removeSymbol(group.id)
-    this.model.replaceSymbol(group.id, group.children)
-    this.history.push(this.model, { ungroup: { group } })
-    return group.children
-  }
-
-  /**
    * Synchronize strokes with JIIX export
    */
   async synchronizeStrokesWithJIIX(): Promise<void>
@@ -911,27 +810,9 @@ export class InteractiveInkEditor extends AbstractEditor
     const symbol = this.model.getRootSymbol(id)
     if (symbol) {
       this.updateLayerState(false)
-      if (symbol.type === SymbolType.Group) {
-        const groupStrokeIds = symbol.extractStrokes().map(s => s.id)
-        symbol.removeChilds([id])
-        if (symbol.children.length) {
-          this.model.updateSymbol(symbol)
-          this.renderer.drawSymbol(symbol)
-          if (groupStrokeIds.includes(id)) {
-            this.recognizer.eraseStrokes([id])
-          }
-        }
-        else {
-          this.recognizer.eraseStrokes(groupStrokeIds)
-          this.model.removeSymbol(symbol.id)
-          this.renderer.removeSymbol(symbol.id)
-        }
-      }
-      else {
-        this.recognizer.eraseStrokes([id])
-        this.model.removeSymbol(symbol.id)
-        this.renderer.removeSymbol(symbol.id)
-      }
+      this.recognizer.eraseStrokes([id])
+      this.model.removeSymbol(symbol.id)
+      this.renderer.removeSymbol(symbol.id)
       if (addToHistory) {
         this.history.push(this.model, { erased: [symbol] })
       }
@@ -969,26 +850,11 @@ export class InteractiveInkEditor extends AbstractEditor
             case SymbolType.Recognized:
               strokesIds.push(...sym.strokes.map(s => s.id))
               break
-            case SymbolType.Group:
-              strokesIds.push(...sym.extractStrokes().map(s => s.id))
-              break
           }
         }
         else {
           /** we want to remove child */
           switch (sym.type) {
-            case SymbolType.Group: {
-              const gr = sym.clone()
-              strokesIds.push(...gr.extractStrokes().map(s => s.id).filter(id => ids.includes(id)))
-              gr.removeChilds(ids)
-              if (gr.children.length) {
-                symbolsToUpdate.push(gr)
-              }
-              else {
-                symbolsToRemove.push(gr)
-              }
-              break
-            }
             case SymbolType.Recognized: {
               strokesIds.push(id)
               const ws = sym.clone()
@@ -1279,12 +1145,6 @@ export class InteractiveInkEditor extends AbstractEditor
         if (textContent) {
           textParts.push(textContent)
         }
-      } else if (s.type === SymbolType.Group) {
-        const group = s as IISymbolGroup
-        const groupText = this.extractTextFromSymbols(group.children)
-        if (groupText) {
-          textParts.push(groupText)
-        }
       }
     })
 
@@ -1303,13 +1163,6 @@ export class InteractiveInkEditor extends AbstractEditor
         const recognized = s as TIIRecognized
         const strokes = recognized.strokes.map((stroke: IIStroke) => stroke.clone())
         result.push(...strokes)
-      }
-      else if (s.type === SymbolType.Group) {
-        const group = s as IISymbolGroup
-        group.children = this.filterSymbolsForExport(group.children)
-        if (group.children.length > 0) {
-          result.push(group)
-        }
       }
     })
 
@@ -1334,9 +1187,6 @@ export class InteractiveInkEditor extends AbstractEditor
         case SymbolType.Recognized:
           strokes.push(...s.strokes)
           break
-        case SymbolType.Group:
-          strokes.push(...s.extractStrokes())
-          break
       }
     })
     return strokes
@@ -1357,9 +1207,6 @@ export class InteractiveInkEditor extends AbstractEditor
         case SymbolType.Text:
           texts.push(s)
           break
-        case SymbolType.Group:
-          texts.push(...s.extractText())
-          break
       }
     })
     return texts
@@ -1379,9 +1226,6 @@ export class InteractiveInkEditor extends AbstractEditor
       switch (s.type) {
         case SymbolType.Math:
           maths.push(s)
-          break
-        case SymbolType.Group:
-          maths.push(...s.extractMath())
           break
       }
     })

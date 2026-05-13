@@ -63,10 +63,7 @@ export class IIModel
   selectSymbol(id: string): void
   {
     this.#syncMap()
-    let symbol = this.#symbolsMap.get(id)
-    if (!symbol) {
-      symbol = this.symbols.find(s => s.type === SymbolType.Group && s.containsSymbol(id))
-    }
+    const symbol = this.#symbolsMap.get(id)
     if (symbol) {
       symbol.selected = true
     }
@@ -94,9 +91,6 @@ export class IIModel
 
     return this.symbols.find(s =>
     {
-      if (s.type === SymbolType.Group && s.containsSymbol(id)) {
-        return s
-      }
       if (s.type === SymbolType.Recognized && s.containsStroke(id)) {
         return s
       }
