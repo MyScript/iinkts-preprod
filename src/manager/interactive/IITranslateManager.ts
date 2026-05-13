@@ -8,7 +8,6 @@ import
   IIStroke,
   IIText,
   IIMath,
-  IISymbolGroup,
   ShapeKind,
   SymbolType,
   TIIEdge,
@@ -131,12 +130,6 @@ export class IITranslateManager
     return math
   }
 
-  protected applyOnGroup(group: IISymbolGroup, tx: number, ty: number): IISymbolGroup
-  {
-    group.children.forEach(s => this.applyToSymbol(s, tx, ty))
-    return group
-  }
-
   protected applyOnRecognizedSymbol(recognizedSymbol: TIIRecognized, tx: number, ty: number): TIIRecognized
   {
     recognizedSymbol.strokes.forEach(s => this.applyToStroke(s, tx, ty))
@@ -160,8 +153,6 @@ export class IITranslateManager
         return this.applyOnText(symbol, tx, ty)
       case SymbolType.Math:
         return this.applyOnMath(symbol, tx, ty)
-      case SymbolType.Group:
-        return this.applyOnGroup(symbol, tx, ty)
       case SymbolType.Recognized:
         return this.applyOnRecognizedSymbol(symbol, tx, ty)
       default:
