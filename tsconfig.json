@@ -1,9 +1,10 @@
 {
   "compilerOptions": {
+    "rootDir": "./",
     "outDir": "dist",
     "target": "ESNext",
     "module": "ESNext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "lib": [
       "DOM",
       "ESNext",
@@ -38,7 +39,7 @@
     "plugins",
     "./eslint.config.mjs",
     "examples/**/*.ts",
-    "examples/**/*.js",
+    "examples/**/*.js"
   ],
   "exclude": [
     "node_modules",
