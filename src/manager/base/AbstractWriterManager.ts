@@ -6,7 +6,7 @@ import
 } from "../../symbol"
 import { SVGRenderer } from "../../renderer"
 import { TStyle } from "../../style"
-import { InteractiveInkEditor } from "../../editor/InteractiveInkEditor"
+import { InteractiveInkEditor } from "../../editor/variants/InteractiveInkEditor"
 import { PointerEventGrabber, PointerInfo } from "../../grabber"
 import { InkEditor } from "../../editor"
 

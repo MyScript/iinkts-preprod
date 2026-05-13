@@ -1,5 +1,5 @@
 import { ResizeDirection, SvgElementRole } from "../../Constants"
-import { InteractiveInkEditor } from "../../editor/InteractiveInkEditor"
+import { InteractiveInkEditor } from "../../editor/variants/InteractiveInkEditor"
 import { LoggerCategory, LoggerManager } from "../../logger"
 import { IIModel } from "../../model"
 import

@@ -1,5 +1,5 @@
-import { EditorTool, SELECTION_MARGIN } from "../Constants"
-import { IIModel, TExport, TJIIXMathElement } from "../model"
+import { EditorTool, SELECTION_MARGIN } from "../../Constants"
+import { IIModel, TExport, TJIIXMathElement } from "../../model"
 import
 {
   Box,
@@ -30,10 +30,10 @@ import
   SymbolType,
   convertPartialStrokesToOIStrokes,
   isRecognizedMathSymbol
-} from "../symbol"
-import { RecognizerWebSocket, TMathVariable, TMathEvaluable } from "../recognizer"
-import { SVGRenderer, SVGBuilder, TIIRendererConfiguration } from "../renderer"
-import { TStyle } from "../style"
+} from "../../symbol"
+import { RecognizerWebSocket, TMathVariable, TMathEvaluable } from "../../recognizer"
+import { SVGRenderer, SVGBuilder, TIIRendererConfiguration } from "../../renderer"
+import { TStyle } from "../../style"
 import
 {
   IIConversionManager,
@@ -52,11 +52,11 @@ import
   MathOverlayManager,
   MathInteractionManager,
   TransientInkManager,
-} from "../manager"
-import { IIHistoryManager, TIIHistoryBackendChanges, TIIHistoryChanges, THistoryContext } from "../history"
-import { PartialDeep, convertMillimeterToPixel, mergeDeep } from "../utils"
-import { IIMenuAction, IIMenuManager, IIMenuStyle, IIMenuTool } from "../menu"
-import { AbstractEditor, EditorOptionsBase } from "./AbstractEditor"
+} from "../../manager"
+import { IIHistoryManager, TIIHistoryBackendChanges, TIIHistoryChanges, THistoryContext } from "../../history"
+import { PartialDeep, convertMillimeterToPixel, mergeDeep } from "../../utils"
+import { IIMenuAction, IIMenuManager, IIMenuStyle, IIMenuTool } from "../../menu"
+import { AbstractEditor, EditorOptionsBase } from "../AbstractEditor"
 import { InteractiveInkEditorConfiguration, TInteractiveInkEditorConfiguration } from "./InteractiveInkEditorConfiguration"
 
 /**

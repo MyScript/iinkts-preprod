@@ -3,7 +3,7 @@ import { IIModel } from "../../model"
 import { Box, TPoint, TSegment } from "../../symbol"
 import { SVGRenderer } from "../../renderer"
 import { SVGRendererConst } from "../../renderer/svg/SVGRendererConst"
-import { InteractiveInkEditor } from "../../editor/InteractiveInkEditor"
+import { InteractiveInkEditor } from "../../editor/variants/InteractiveInkEditor"
 import { PartialDeep } from "../../utils"
 
 /**

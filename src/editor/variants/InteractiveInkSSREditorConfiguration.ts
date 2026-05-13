@@ -1,12 +1,12 @@
-import { DefaultGrabberConfiguration, TGrabberConfiguration } from "../grabber"
-import { DefaultHistoryConfiguration, THistoryConfiguration } from "../history"
-import { DefaultLoggerConfiguration, TLoggerConfiguration } from "../logger"
-import { DefaultRecognizerWebSocketSSRConfiguration, TRecognizerWebSocketSSRRecognitionConfiguration, TRecognizerWebSocketSSRConfiguration, RecognizerWebSocketSSRConfiguration, TServerWebsocketConfiguration } from "../recognizer"
-import { DefaultRendererConfiguration, TRendererConfiguration } from "../renderer"
-import { DefaultTheme, TPenStyle, TTheme } from "../style"
-import { mergeDeep, PartialDeep } from "../utils"
-import { TEditorConfiguration } from "./AbstractEditor"
-import { DefaulTEditorTriggerConfiguration, TEditorTriggerConfiguration } from "./EditorTriggerConfiguration"
+import { DefaultGrabberConfiguration, TGrabberConfiguration } from "../../grabber"
+import { DefaultHistoryConfiguration, THistoryConfiguration } from "../../history"
+import { DefaultLoggerConfiguration, TLoggerConfiguration } from "../../logger"
+import { DefaultRecognizerWebSocketSSRConfiguration, TRecognizerWebSocketSSRRecognitionConfiguration, TRecognizerWebSocketSSRConfiguration, RecognizerWebSocketSSRConfiguration, TServerWebsocketConfiguration } from "../../recognizer"
+import { DefaultRendererConfiguration, TRendererConfiguration } from "../../renderer"
+import { DefaultTheme, TPenStyle, TTheme } from "../../style"
+import { mergeDeep, PartialDeep } from "../../utils"
+import { TEditorConfiguration } from "../AbstractEditor"
+import { DefaulTEditorTriggerConfiguration, TEditorTriggerConfiguration } from "../EditorTriggerConfiguration"
 
 /**
  * @group Editor

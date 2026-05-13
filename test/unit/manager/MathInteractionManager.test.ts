@@ -1,11 +1,11 @@
 import { MathInteractionManager } from "../../../src/manager/math/MathInteractionManager"
 import { MathOverlayManager } from "../../../src/manager/math/MathOverlayManager"
-import { InteractiveInkEditor } from "../../../src/editor/InteractiveInkEditor"
+import { InteractiveInkEditor } from "../../../src/editor/variants/InteractiveInkEditor"
 import { IIModel } from "../../../src/model"
 import { IIRecognizedMath, RecognizedKind, SymbolType } from "../../../src/symbol"
 
 // Mock dependencies
-jest.mock("../../../src/editor/InteractiveInkEditor")
+jest.mock("../../../src/editor/variants/InteractiveInkEditor")
 jest.mock("../../../src/model")
 
 describe("MathInteractionManager", () =>

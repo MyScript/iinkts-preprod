@@ -21,7 +21,7 @@ import { TStyle } from "../../style"
 import { IIHistoryManager } from "../../history"
 import { IIGestureManager, TGesture } from "./IIGestureManager"
 import { IISnapManager } from "./IISnapManager"
-import { InteractiveInkEditor } from "../../editor/InteractiveInkEditor"
+import { InteractiveInkEditor } from "../../editor/variants/InteractiveInkEditor"
 import { PointerInfo } from "../../grabber"
 import { AbstractWriterManager } from "../base/AbstractWriterManager"
 

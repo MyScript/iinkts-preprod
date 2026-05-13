@@ -1,6 +1,6 @@
-jest.mock('../../../src/editor/InkEditorDeprecated')
-jest.mock('../../../src/editor/InteractiveInkSSREditor')
-jest.mock('../../../src/editor/InteractiveInkEditor')
+jest.mock('../../../src/editor/variants/InkEditorDeprecated')
+jest.mock('../../../src/editor/variants/InteractiveInkSSREditor')
+jest.mock('../../../src/editor/variants/InteractiveInkEditor')
 
 import { Editor, InteractiveInkEditor, InkEditorDeprecated, InteractiveInkSSREditor } from "../../../src/iink"
 

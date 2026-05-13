@@ -3,8 +3,8 @@ import { IIEraser, TSegment, SymbolType, IIRecognizedText, IIText, Box, Recogniz
 import { SVGRenderer } from "../../renderer"
 import { PointerEventGrabber, PointerInfo } from "../../grabber"
 import { findIntersectionBetween2Segment } from "../../utils"
-import type { InteractiveInkEditor } from "../../editor/InteractiveInkEditor"
-import type { InkEditor } from "../../editor/InkEditor"
+import type { InteractiveInkEditor } from "../../editor/variants/InteractiveInkEditor"
+import type { InkEditor } from "../../editor/variants/InkEditor"
 
 /**
  * @group Manager

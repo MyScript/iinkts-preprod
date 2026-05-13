@@ -2,7 +2,7 @@ import { LoggerCategory, LoggerManager } from "../../logger"
 import { IIModel } from "../../model"
 import { Box, IIText, SymbolType, TIISymbol, TIISymbolChar } from "../../symbol"
 import { SVGRenderer } from "../../renderer"
-import { InteractiveInkEditor } from "../../editor/InteractiveInkEditor"
+import { InteractiveInkEditor } from "../../editor/variants/InteractiveInkEditor"
 
 /**
  * @group Manager
