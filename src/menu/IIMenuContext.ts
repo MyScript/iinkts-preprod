@@ -87,11 +87,7 @@ export class IIMenuContext
         const canEditVariables = Object.keys(variables).length > 0
         const canCompute = actions?.includes("numerical-computation") && !mathSymbol.solverOutputStrokeIds
         const canEvaluate = evaluables?.length ? true : false
-        if (canEditVariables || canCompute || canEvaluate) {
-          mathMenuInstance.setMenuVisibility(true, { canEditVariables, canCompute, canEvaluate })
-        } else {
-          mathMenuInstance.setMenuVisibility(false, { canEditVariables: false, canCompute: false, canEvaluate: false })
-        }
+        mathMenuInstance.setMenuVisibility(true, { canEditVariables, canCompute, canEvaluate })
       }
       else {
         mathMenuInstance.setMenuVisibility(false, { canEditVariables: false, canCompute: false, canEvaluate: false })
