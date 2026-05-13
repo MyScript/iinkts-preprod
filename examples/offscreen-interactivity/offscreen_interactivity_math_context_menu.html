@@ -56,6 +56,77 @@
       border-radius: 2px;
       font-weight: bold;
     }
+
+    /* Tabs */
+    .tabs-container {
+      margin: 12px 0;
+    }
+
+    .tabs-header {
+      display: flex;
+      gap: 4px;
+      border-bottom: 2px solid #e0e0e0;
+      margin-bottom: 0;
+    }
+
+    .tab-button {
+      padding: 12px 20px;
+      background: #f5f5f5;
+      border: none;
+      border-top-left-radius: 4px;
+      border-top-right-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      color: #666;
+      transition: all 0.2s;
+      border-bottom: 3px solid transparent;
+    }
+
+    .tab-button:hover {
+      background: #e8e8e8;
+      color: #333;
+    }
+
+    .tab-button.active {
+      background: white;
+      color: #1976D2;
+      border-bottom-color: #2196F3;
+    }
+
+    .tab-content {
+      display: none;
+      padding: 16px;
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-top: none;
+      border-radius: 0 0 4px 4px;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .tab-content h3 {
+      margin-top: 0;
+      margin-bottom: 12px;
+    }
+
+    .tab-content ul,
+    .tab-content ol {
+      margin: 8px 0;
+      padding-left: 24px;
+    }
+
+    .tab-content li {
+      margin: 8px 0;
+      line-height: 1.5;
+    }
+
+    .tab-content h4 {
+      margin-top: 12px;
+      margin-bottom: 8px;
+    }
   </style>
 </head>
 
@@ -76,29 +147,98 @@
       <li>Choose an operation from the menu</li>
     </ol>
   </div>
-  <div class="info-section" style="background: #fff3cd; border-left-color: #ff9800;">
-    <h3>✏️ Try these examples:</h3>
-    <ol>
-      <li><strong>Computation:</strong> Write <span class="highlight">√16=</span>, draw around it, Compute numerical result</li>
-      <li><strong>Variable substitution:</strong> Write <span class="highlight">x=3</span>, then <span class="highlight">2x+5=</span>, draw around the second expression, Compute numerical result (will use x=3 value)</li>
-      <li><strong>Function plot:</strong> Write <span class="highlight">f(x)=x²</span>, draw around it, Evaluate function → Set range from -5 to 5</li>
-      <li><strong>Reversible function plot:</strong> Write <span class="highlight">y=x²</span>, draw around it, Evaluate function → you can choose to plot y = f(x) or x = f(y)</li>
-      <li><strong>Complex expression:</strong> Write <span class="highlight">a=2</span>, then <span class="highlight">3a²+2a-1=</span>, draw around the expression, Edit variables → Change a value, Compute numerical result (will use the updated value)</li>
-    </ol>
+
+  <div class="tabs-container">
+    <div class="tabs-header">
+      <button class="tab-button active" data-tab="examples">✏️ Try these examples</button>
+      <button class="tab-button" data-tab="diagnostic">🔍 Diagnostic Feature</button>
+      <button class="tab-button" data-tab="tips">💡 Tips</button>
+    </div>
+
+    <div id="tab-examples" class="tab-content active">
+      <ol>
+        <li><strong>Computation:</strong> Write <span class="highlight">√16=</span>, draw around it, Compute numerical result</li>
+        <li><strong>Variable substitution:</strong> Write <span class="highlight">x=3</span>, then <span class="highlight">2x+5=</span>, draw around the second expression, Compute numerical result (will use x=3 value)</li>
+        <li><strong>Function plot:</strong> Write <span class="highlight">f(x)=x²</span>, draw around it, Evaluate function → Set range from -5 to 5</li>
+        <li><strong>Reversible function plot:</strong> Write <span class="highlight">y=x²</span>, draw around it, Evaluate function → you can choose to plot y = f(x) or x = f(y)</li>
+        <li><strong>Complex expression:</strong> Write <span class="highlight">a=2</span>, then <span class="highlight">3a²+2a-1=</span>, draw around the expression, Edit variables → Change a value, Compute numerical result (will use the updated value)</li>
+        <li><strong>Check diagnostic (both tasks):</strong> Write <span class="highlight">y=x²+2x</span>, draw around it, Check diagnostic → See both "Numerical Computation" and "Function Evaluation" diagnostics</li>
+        <li><strong>Division by zero:</strong> Write <span class="highlight">1/0=</span>, draw around it, Check diagnostic → See error message about division by zero</li>
+      </ol>
+    </div>
+
+    <div id="tab-diagnostic" class="tab-content">
+      <p>
+        The <strong>Check diagnostic</strong> option analyzes your mathematical expression and provides comprehensive feedback for two different tasks:
+      </p>
+
+      <h4 style="color: #1976d2; margin-top: 16px;">🔢 Numerical Computation</h4>
+      <p style="margin: 8px 0; font-size: 14px;">
+        Checks if the expression can be computed to get a numerical result (e.g., <code>2+2=</code>, <code>√16=</code>).
+      </p>
+
+      <h4 style="color: #1976d2; margin-top: 16px;">📊 Function Evaluation</h4>
+      <p style="margin: 8px 0; font-size: 14px;">
+        Checks if the expression can be evaluated and plotted as a function (e.g., <code>f(x)=x²</code>, <code>y=2x+1</code>).
+      </p>
+
+      <h4 style="color: #7b1fa2; margin-top: 20px;">Diagnostic Results:</h4>
+      <p style="margin: 8px 0; font-size: 14px; color: #666;">
+        Each task will show one of these diagnostic codes:
+      </p>
+      <ul>
+        <li><strong style="color: #2e7d32;">✓ ALLOWED:</strong> The task can be performed successfully</li>
+        <li><strong style="color: #f57c00;">⚠ INCOMPLETE_EXPRESSION:</strong> The expression needs to be completed</li>
+        <li><strong style="color: #f57c00;">⚠ TOO_MANY_VARIABLES:</strong> Too many undefined variables</li>
+        <li><strong style="color: #c62828;">✗ DIVISION_BY_ZERO:</strong> Computation leads to division by zero</li>
+        <li><strong style="color: #c62828;">✗ NUMBER_OVERFLOW:</strong> Result is too large</li>
+        <li><strong style="color: #c62828;">✗ INVALID_OPERATION:</strong> Invalid mathematical operation</li>
+        <li><strong style="color: #1976d2;">ℹ NO_VARIABLE:</strong> No undefined variables to evaluate</li>
+        <li><strong style="color: #1976d2;">ℹ NOT_APPLICABLE:</strong> Task doesn't apply to this expression</li>
+      </ul>
+      <p style="margin-top: 12px; padding: 12px; background: #e8f5e9; border-left: 4px solid #4caf50; border-radius: 4px; font-size: 14px;">
+        <strong>💡 Pro tip:</strong> Use the diagnostic to understand <em>why</em> a task might fail and which operations are possible for your expression before attempting them.
+      </p>
+    </div>
+
+    <div id="tab-tips" class="tab-content">
+      <ul>
+        <li>End expressions with <strong>=</strong> or <strong>?</strong> to indicate you want a result</li>
+        <li>Variables are automatically detected when you define them (e.g., <code>x=5</code>)</li>
+        <li>You can use the same variable in multiple expressions</li>
+        <li>The solver supports common math functions: sin, cos, tan, sqrt, exp, log, etc.</li>
+        <li>For evaluation, the function must have a clear input-output relationship (e.g., y=f(x))</li>
+        <li><strong>Use "Check diagnostic"</strong> to verify if an expression is ready for both computation and evaluation before attempting either task</li>
+        <li>The diagnostic feature shows results for <strong>two tasks</strong>: Numerical Computation (🔢) and Function Evaluation (📊)</li>
+        <li>Green diagnostic (✓ ALLOWED) means you can safely perform that specific task</li>
+        <li>Each task can have a different diagnostic result - for example, an expression might be evaluable but not computable</li>
+      </ul>
+    </div>
   </div>
 
   <div id="editorEl"></div>
 
-  <div class="info-section" style="background: #e8f5e9; border-left-color: #4caf50;">
-    <h3>💡 Tips</h3>
-    <ul>
-      <li>End expressions with <strong>=</strong> or <strong>?</strong> to indicate you want a result</li>
-      <li>Variables are automatically detected when you define them (e.g., <code>x=5</code>)</li>
-      <li>You can use the same variable in multiple expressions</li>
-      <li>The solver supports common math functions: sin, cos, tan, sqrt, exp, log, etc.</li>
-      <li>For evaluation, the function must have a clear input-output relationship (e.g., y=f(x))</li>
-    </ul>
-  </div>
+  <script>
+    // Tab switching functionality
+    document.addEventListener('DOMContentLoaded', () => {
+      const tabButtons = document.querySelectorAll('.tab-button');
+      const tabContents = document.querySelectorAll('.tab-content');
+
+      tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+          const targetTab = button.getAttribute('data-tab');
+
+          // Remove active class from all buttons and contents
+          tabButtons.forEach(btn => btn.classList.remove('active'));
+          tabContents.forEach(content => content.classList.remove('active'));
+
+          // Add active class to clicked button and corresponding content
+          button.classList.add('active');
+          document.getElementById(`tab-${targetTab}`).classList.add('active');
+        });
+      });
+    });
+  </script>
 
   <script type="module">
     import { Editor } from '../../dist/iink.esm.js'
