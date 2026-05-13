@@ -111,7 +111,7 @@ export class InteractiveInkEditor extends AbstractEditor
   mathInteractions: MathInteractionManager
   transientInk: TransientInkManager
   menu: IIMenuManager
-  mathComputationMode: "strokes-only" | "value-only" | "both" = "strokes-only"
+  mathComputationMode: boolean = true
 
   constructor(rootElement: HTMLElement, options?: TInteractiveInkEditorOptions)
   {
@@ -1612,50 +1612,47 @@ export class InteractiveInkEditor extends AbstractEditor
   /**
    * Compute numerical result for a math symbol
    * @param mathSymbol - The math symbol to compute
-   * @param mode - Computation mode: "value-only" (just get result), "strokes-only" (just draw), or "both" (default)
-   * @returns Promise with the computation result, number of added strokes, and optional numeric value
+   * @param drawStrokes - Whether to draw the result as strokes (default: true)
+   * @returns Promise with the computation result, number of added strokes, and numeric value
    * @group MathSolver
    */
   async computeMathNumericalResult(
     mathSymbol: IIRecognizedMath,
-    mode: "value-only" | "strokes-only" | "both" = "both"
+    drawStrokes: boolean = true
   ): Promise<{ result: TJIIXMathElement, addedStrokesCount: number, value?: number }>
   {
     try {
-      this.logger.info("computeMathNumericalResult", { mathSymbol: mathSymbol.id, mode })
+      this.logger.info("computeMathNumericalResult", { mathSymbol: mathSymbol.id, drawStrokes })
 
       if (!mathSymbol.jiixId) {
         throw new Error("Math symbol does not have jiixId")
       }
 
-      if (mode === "strokes-only" || mode === "both") {
-        await this.clearSolverOutputStrokes(mathSymbol)
-      }
+      await this.clearSolverOutputStrokes(mathSymbol)
 
       const result = await this.getNumericalComputation(mathSymbol.jiixId)
       this.logger.info("Numerical computation completed successfully", result)
 
       let addedStrokesCount = 0
 
-      if (mode === "strokes-only" || mode === "both") {
+      if (drawStrokes) {
         const addedStrokes = await this.addSolverOutputStrokes(result, mathSymbol)
         addedStrokesCount = addedStrokes.length
         this.logger.info(`Added ${addedStrokesCount} solver output strokes`)
       }
 
+      // Always extract and set the computed value
       let value: number | undefined
-      if (mode === "value-only" || mode === "both") {
-        if (result.expressions && Array.isArray(result.expressions)) {
-          const equalExpression = result.expressions.find(expr =>
-            expr.type === "=" && "value" in expr && typeof (expr as { value?: unknown }).value === "number"
-          )
-          if (equalExpression && "value" in equalExpression) {
-            value = (equalExpression as { value: number }).value
-            this.logger.info("Extracted numerical value", { value })
+      if (result.expressions && Array.isArray(result.expressions)) {
+        const equalExpression = result.expressions.find(expr =>
+          expr.type === "=" && "value" in expr && typeof (expr as { value?: unknown }).value === "number"
+        )
+        if (equalExpression && "value" in equalExpression) {
+          value = (equalExpression as { value: number }).value
+          this.logger.info("Extracted numerical value", { value })
 
-            mathSymbol.computedResult = value
-            await this.model.updateSymbol(mathSymbol)
-          }
+          mathSymbol.computedResult = value
+          await this.model.updateSymbol(mathSymbol)
         }
       }
 
@@ -2005,7 +2002,7 @@ export class InteractiveInkEditor extends AbstractEditor
 
         try {
           this.logger.info("recalculateDependentBlocks", `Computing numerical result for ${dependentBlockId}`)
-          await this.computeMathNumericalResult(dependentMathSymbol)
+          await this.computeMathNumericalResult(dependentMathSymbol, this.mathComputationMode)
         }
         catch (computeError) {
           this.logger.error("recalculateDependentBlocks", `Error computing ${dependentBlockId}:`, computeError)

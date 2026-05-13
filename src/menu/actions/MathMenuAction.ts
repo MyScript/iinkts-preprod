@@ -24,29 +24,24 @@ export class MathMenuAction extends SubMenuItem
         }
       },
       {
-        type: "select",
-        id: `${idPrefix}-math-computation-mode`,
-        label: "Computation result:",
-        options: [
-          { label: "Draw strokes", value: "strokes-only" },
-          { label: "Show in panel", value: "value-only" },
-          { label: "Both", value: "both" }
-        ],
+        type: "checkbox",
+        id: `${idPrefix}-math-draw-result-strokes`,
+        label: "Draw result as strokes",
         getValue: (editor: InteractiveInkEditor) => editor.mathComputationMode,
-        setValue: async (editor: InteractiveInkEditor, value: string) => {
+        setValue: async (editor: InteractiveInkEditor, value: boolean) => {
           const oldMode = editor.mathComputationMode
-          editor.mathComputationMode = value as "strokes-only" | "value-only" | "both"
+          editor.mathComputationMode = value
 
-          if (value === "value-only" && oldMode !== "value-only") {
+          if (!value && oldMode) {
+            // If switching from drawing strokes to not drawing, clear existing solver strokes
             const mathSymbols = editor.model.symbols.filter(isRecognizedMathSymbol)
             for (const mathSymbol of mathSymbols) {
               await editor.clearSolverOutputStrokes(mathSymbol)
             }
           }
 
-          if (value === "value-only" || value === "both") {
-            editor.mathOverlays.updateConfig({ showResultPanels: true })
-          }
+          // Show result panels when not drawing strokes
+          editor.mathOverlays.updateConfig({ showResultPanels: !value })
         }
       },
       {

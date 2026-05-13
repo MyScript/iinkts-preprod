@@ -125,7 +125,42 @@ export class MathContextMenu extends SubMenuItem
               
               const mathSymbol = mathSymbols[0]
               
-              await editor.computeMathNumericalResult(mathSymbol, editor.mathComputationMode)
+              const result = await editor.computeMathNumericalResult(mathSymbol, editor.mathComputationMode)
+
+              // If not drawing strokes, show modal with result
+              if (!editor.mathComputationMode && result.value !== undefined) {
+                const content = document.createElement("div")
+                content.style.padding = "16px"
+                content.style.textAlign = "center"
+
+                const equation = document.createElement("div")
+                equation.style.fontSize = "18px"
+                equation.style.marginBottom = "12px"
+                equation.style.fontWeight = "500"
+                equation.textContent = mathSymbol.label || "Expression"
+                content.appendChild(equation)
+
+                const resultDiv = document.createElement("div")
+                resultDiv.style.fontSize = "32px"
+                resultDiv.style.fontWeight = "bold"
+                resultDiv.style.color = "#4caf50"
+                resultDiv.textContent = result.value?.toString() || "N/A"
+                content.appendChild(resultDiv)
+
+                const modal: Modal = new Modal({
+                  title: "Numerical Result",
+                  fields: [],
+                  customContent: content,
+                  buttons: [
+                    {
+                      label: "Close",
+                      type: "primary",
+                      callback: (): void => modal.destroy()
+                    }
+                  ]
+                })
+                modal.open()
+              }
 
             } catch (error) {
               this.logger.error("Error computing numerical result:", error)
