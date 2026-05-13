@@ -242,8 +242,8 @@ export class MathContextMenu extends SubMenuItem
 
                         // Create chart to display results
                         const chart = new Chart({
-                          width: 500,
-                          height: 350,
+                          width: Math.max(600, window.innerWidth * 0.8),
+                          height: Math.max(350, window.innerHeight * 0.5),
                           title: evaluable.inputName
                             ? `${evaluable.outputName || "?"} = f(${evaluable.inputName})`
                             : `${evaluable.outputName || "?"} = ${points[0]?.[0]?.[yLabel] ?? "?"}`,
