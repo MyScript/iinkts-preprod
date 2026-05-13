@@ -1,7 +1,7 @@
 import { ResizeDirection, SELECTION_MARGIN, SvgElementRole } from "../../Constants"
 import { LoggerCategory, LoggerManager } from "../../logger"
 import { IIModel } from "../../model"
-import { Box, IIText, SymbolType, TBox, TIIEdge, TIISymbol, TPoint } from "../../symbol"
+import { Box, IIText, SymbolType, TBox, TIIEdge, TIISymbol, TPoint, isRecognizedMathSymbol } from "../../symbol"
 import { SVGRenderer, SVGBuilder } from "../../renderer"
 import { IIResizeManager } from "./IIResizeManager"
 import { IIRotationManager } from "./IIRotationManager"
@@ -501,8 +501,26 @@ export class IISelectionManager
     if (this.selectedGroup) {
       this.renderer.layer.appendChild(this.selectedGroup)
       const groupBox = this.selectedGroup.getBBox()
-      this.editor.menu.context.position.x = groupBox.x + groupBox.width / 2 - this.renderer.parent.clientLeft
-      this.editor.menu.context.position.y = groupBox.y + groupBox.height - this.renderer.parent.clientTop
+
+      // Convert SVG coordinates to client coordinates for menu positioning
+      const svgElement = this.renderer.layer
+      const ctm = svgElement.getScreenCTM()
+      if (ctm) {
+        const point = svgElement.createSVGPoint()
+        point.x = groupBox.x + groupBox.width / 2
+        point.y = groupBox.y + groupBox.height
+        const screenPoint = point.matrixTransform(ctm)
+
+        const menuParent = this.editor.menu.context.wrapper?.parentElement
+        if (menuParent) {
+          const rect = menuParent.getBoundingClientRect()
+          this.editor.menu.context.position.x = screenPoint.x - rect.left
+          this.editor.menu.context.position.y = screenPoint.y - rect.top
+        } else {
+          this.editor.menu.context.position.x = screenPoint.x
+          this.editor.menu.context.position.y = screenPoint.y
+        }
+      }
       this.editor.menu.context.show()
     }
     this.editor.menu.update()
@@ -570,6 +588,13 @@ export class IISelectionManager
     this.drawSelectedGroup(this.model.symbolsSelected)
     this.editor.event.emitSelected(this.model.symbolsSelected)
     this.editor.menu.style.update()
+
+    // Notify math interactions system of selection changes
+    const selectedMathIds = this.model.symbolsSelected
+      .filter(isRecognizedMathSymbol)
+      .map(s => s.id)
+    this.editor.mathInteractions.onSymbolSelect(selectedMathIds)
+
     return updatedSymbols
   }
 
@@ -588,14 +613,21 @@ export class IISelectionManager
     }
     this.editor.unselectAll()
     if (currentEl?.id) {
-      this.model.selectSymbol(currentEl.id)
-      this.renderer.drawSymbol(this.model.symbolsSelected[0])
-      this.drawSelectedGroup(this.model.symbolsSelected)
-      this.editor.updateLayerUI()
+      this.editor.select([currentEl.id])
     }
     else {
-      this.editor.menu.context.position.x = info.pointer.x + this.renderer.parent.clientLeft
-      this.editor.menu.context.position.y = info.pointer.y + this.renderer.parent.clientTop
+      // Use clientX/clientY relative to the menu's parent container
+      // The menu is attached to the UI layer, so we need its bounding rect
+      const menuParent = this.editor.menu.context.wrapper?.parentElement
+      if (menuParent) {
+        const rect = menuParent.getBoundingClientRect()
+        this.editor.menu.context.position.x = info.clientX - rect.left
+        this.editor.menu.context.position.y = info.clientY - rect.top
+      } else {
+        // Fallback: use viewport coordinates directly
+        this.editor.menu.context.position.x = info.clientX
+        this.editor.menu.context.position.y = info.clientY
+      }
       this.editor.menu.context.show()
     }
   }

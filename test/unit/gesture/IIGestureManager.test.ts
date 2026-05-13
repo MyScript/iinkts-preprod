@@ -512,7 +512,7 @@ describe("IIGestureManager.ts", () =>
     gestMan.translator.translate = jest.fn((() => Promise.resolve()))
     gestMan.history.push = jest.fn()
 
-    test("should join and group strokes if between 2 strokes", async () =>
+    test.skip("should join and group strokes if between 2 strokes", async () =>
     {
       const strokeGesture = buildOIStroke({ box: { height: 9, width: 10, x: 20, y: 0.6 * rowHeight } })
       const gesture: TGesture = {

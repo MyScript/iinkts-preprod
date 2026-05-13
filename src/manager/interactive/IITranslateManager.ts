@@ -7,7 +7,7 @@ import
   EdgeKind,
   IIStroke,
   IIText,
-  IISymbolGroup,
+  IIMath,
   ShapeKind,
   SymbolType,
   TIIEdge,
@@ -109,10 +109,25 @@ export class IITranslateManager
     return this.editor.texter.updateBounds(text)
   }
 
-  protected applyOnGroup(group: IISymbolGroup, tx: number, ty: number): IISymbolGroup
+  protected applyOnMath(math: IIMath, tx: number, ty: number): IIMath
   {
-    group.children.forEach(s => this.applyToSymbol(s, tx, ty))
-    return group
+    if (math.rotation) {
+      math.rotation.center = { x: math.rotation.center.x + tx, y: math.rotation.center.y + ty }
+    }
+    math.point.x += tx
+    math.point.y += ty
+
+    // Update bounds
+    math.bounds.x += tx
+    math.bounds.y += ty
+
+    // Update element bounds
+    math.elements.forEach(e => {
+      e.bounds.x += tx
+      e.bounds.y += ty
+    })
+
+    return math
   }
 
   protected applyOnRecognizedSymbol(recognizedSymbol: TIIRecognized, tx: number, ty: number): TIIRecognized
@@ -136,8 +151,8 @@ export class IITranslateManager
         return this.applyToEdge(symbol, tx, ty)
       case SymbolType.Text:
         return this.applyOnText(symbol, tx, ty)
-      case SymbolType.Group:
-        return this.applyOnGroup(symbol, tx, ty)
+      case SymbolType.Math:
+        return this.applyOnMath(symbol, tx, ty)
       case SymbolType.Recognized:
         return this.applyOnRecognizedSymbol(symbol, tx, ty)
       default:

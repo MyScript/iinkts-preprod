@@ -10,6 +10,7 @@ import
 import
 {
   IIRecognizedText,
+  IIRecognizedMath,
   IIRecognizedArc,
   IIRecognizedCircle,
   IIRecognizedEllipse,
@@ -18,8 +19,8 @@ import
   IIRecognizedPolygon
 } from "../recognized"
 import { IIStroke } from "./IIStroke"
-import { IISymbolGroup } from "./IISymbolGroup"
 import { IIText } from "./IIText"
+import { IIMath } from "./IIMath"
 
 /**
  * @group Symbol
@@ -34,9 +35,9 @@ export type TIIShape = IIShapeCircle | IIShapeEllipse | IIShapePolygon
 /**
  * @group Symbol
  */
-export type TIIRecognized = IIRecognizedText | IIRecognizedArc | IIRecognizedCircle | IIRecognizedEllipse | IIRecognizedLine | IIRecognizedPolyLine | IIRecognizedPolygon
+export type TIIRecognized = IIRecognizedText | IIRecognizedMath | IIRecognizedArc | IIRecognizedCircle | IIRecognizedEllipse | IIRecognizedLine | IIRecognizedPolyLine | IIRecognizedPolygon
 
 /**
  * @group Symbol
  */
-export type TIISymbol = TIIEdge | TIIShape | IIStroke | IISymbolGroup | IIText | TIIRecognized
+export type TIISymbol = TIIEdge | TIIShape | IIStroke | IIText | IIMath | TIIRecognized

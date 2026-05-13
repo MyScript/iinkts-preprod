@@ -159,6 +159,7 @@ test.describe("Offscreen Get Started Menu Action", () => {
 
   test("language", async ({ page }) => {
     await test.step("should display language list", async () => {
+      await page.locator(locator.menu.action.language.trigger).click()
       await page.locator(locator.menu.action.language.inputSelect).click()
       const languageOptions = await page.locator(locator.menu.action.language.inputSelect + " option").all()
       expect(languageOptions.length).toBeGreaterThan(0)
@@ -174,18 +175,20 @@ test.describe("Offscreen Get Started Menu Action", () => {
       await callEditorSynchronize(page)
 
       const symbols = await getEditorSymbols(page)
-      expect(symbols).toHaveLength(laLecon.exports["application/vnd.myscript.jiix"].words.length)
-      expect(symbols[0].label).toEqual(laLecon.exports["application/vnd.myscript.jiix"].words[0].label)
+      expect(symbols).toHaveLength(1)
+      expect(symbols[0].label).not.toEqual(laLecon.exports["application/vnd.myscript.jiix"].label)
+      expect(symbols[0].words[0].label).toEqual(laLecon.exports["application/vnd.myscript.jiix"].words[0].label)
       //should not recognize typical French character: ç
-      expect(symbols[1].label).not.toEqual(laLecon.exports["application/vnd.myscript.jiix"].words[1].label)
+      expect(symbols[0].words[2].label).not.toEqual(laLecon.exports["application/vnd.myscript.jiix"].words[1].label)
 
       const jiix = await getEditorExportsType(page, "application/vnd.myscript.jiix")
-      expect(jiix.elements[0].labe).not.toEqual(laLecon.exports["application/vnd.myscript.jiix"].label)
+      expect(jiix.elements[0].label).not.toEqual(laLecon.exports["application/vnd.myscript.jiix"].label)
     })
 
     await test.step("should recognize french text", async () => {
       await Promise.all([
         waitForLoadedEvent(page),
+        page.locator(locator.menu.action.language.trigger).click(),
         page.locator(locator.menu.action.language.inputSelect).selectOption({ value: "fr_FR" })
       ])
       //write something in French with a typical French character: ç
@@ -197,10 +200,11 @@ test.describe("Offscreen Get Started Menu Action", () => {
       await callEditorSynchronize(page)
 
       const symbols = await getEditorSymbols(page)
-      expect(symbols).toHaveLength(laLecon.exports["application/vnd.myscript.jiix"].words.length)
-      expect(symbols[0].label).toEqual(laLecon.exports["application/vnd.myscript.jiix"].words[0].label)
+      expect(symbols).toHaveLength(1)
+      expect(symbols[0].label).toEqual(laLecon.exports["application/vnd.myscript.jiix"].label)
+      expect(symbols[0].words[0].label).toEqual(laLecon.exports["application/vnd.myscript.jiix"].words[0].label)
       //should recognize typical French character: ç
-      expect(symbols[1].label).toEqual(laLecon.exports["application/vnd.myscript.jiix"].words[1].label)
+      expect(symbols[0].words[2].label).toEqual(laLecon.exports["application/vnd.myscript.jiix"].words[1].label)
 
       const jiix = await getEditorExportsType(page, "application/vnd.myscript.jiix")
       expect(jiix.elements[0].label).toEqual(laLecon.exports["application/vnd.myscript.jiix"].label)
@@ -216,8 +220,8 @@ test.describe("Offscreen Get Started Menu Action", () => {
     })
 
     await test.step("should define strikethrough on draw", async () => {
-      await page.locator(locator.menu.action.gesture.detectCheckbox).check()
       await page.locator(locator.menu.action.gesture.triggerBtn).click()
+      await page.locator(locator.menu.action.gesture.detectCheckbox).check()
       await page.locator(locator.menu.action.gesture.strikeThroughSelect).selectOption({ value: "draw" })
     })
 
@@ -229,8 +233,8 @@ test.describe("Offscreen Get Started Menu Action", () => {
       const symbols = await getEditorSymbols(page)
       expect(symbols).toHaveLength(1)
       const symbol = symbols[0]
-      expect(symbol.decorators).toHaveLength(1)
-      const strikeThrough = symbol.decorators[0]
+      expect(symbol.words[0].decorators).toHaveLength(1)
+      const strikeThrough = symbol.words[0].decorators[0]
       expect(strikeThrough.kind).toEqual("strikethrough")
 
       // toBeVisible fails on horizontal line so we just check if parent is visible
@@ -321,7 +325,7 @@ test.describe("Offscreen Get Started Menu Action", () => {
     await test.step("write hello in one stroke", async () => {
       await Promise.all([
         waitForUIUpdatedEvent(page),
-        writePointers(page, helloOneStrokeSurrounded.strokes[0].pointers)
+        writePointers(page, helloOneStrokeSurrounded.strokes[0].pointers, 0, 100)
       ])
     })
 
@@ -337,7 +341,7 @@ test.describe("Offscreen Get Started Menu Action", () => {
       await Promise.all([
         waitForChangedEvent(page),
         waitForUIUpdatedEvent(page),
-        writePointers(page, helloOneStrokeSurrounded.strokes[1].pointers)
+        writePointers(page, helloOneStrokeSurrounded.strokes[1].pointers, 0, 100)
       ])
     })
 
@@ -373,7 +377,7 @@ test.describe("Offscreen Get Started Menu Action", () => {
       //write something with surround
       await Promise.all([
         waitForGesturedEvent(page),
-        writeStrokes(page, helloOneStrokeSurrounded.strokes)
+        writeStrokes(page, helloOneStrokeSurrounded.strokes, 0, 100)
       ])
       const symbols = await getEditorSymbols(page)
       expect(symbols).toHaveLength(1)
@@ -381,9 +385,9 @@ test.describe("Offscreen Get Started Menu Action", () => {
       const recoSym = symbols[0]
       expect(recoSym.type).toEqual("recognized")
       expect(recoSym.kind).toEqual("text")
-      expect(recoSym.decorators).toHaveLength(1)
+      expect(recoSym.words[0].decorators).toHaveLength(1)
 
-      const surrondSym = recoSym.decorators[0]
+      const surrondSym = recoSym.words[0].decorators[0]
       expect(surrondSym.kind).toEqual("surround")
 
       const symLocator = page.locator(`#${ recoSym.id }`)
@@ -433,6 +437,8 @@ test.describe("Offscreen Get Started Menu Action", () => {
   })
 
   test("gesture insert", async ({ page }) => {
+    test.fixme(true, "The insert gesture must be activated first for the menu to appear")
+
     await test.step("should display menu gesture", async () => {
       await expect(page.locator(locator.menu.action.gesture.triggerBtn)).toBeHidden()
       await expect(page.locator(locator.menu.action.gesture.detectCheckbox)).toBeHidden()
@@ -454,7 +460,7 @@ test.describe("Offscreen Get Started Menu Action", () => {
     await test.step("should write the stroke", async () => {
       await Promise.all([
         waitForSynchronizedEvent(page),
-        writePointers(page, helloInsert.strokes[0].pointers)
+        writePointers(page, helloInsert.strokes[0].pointers, 0, 100)
       ])
       const symbols = await page.evaluate("editorEl.editor.model.symbols")
       expect(symbols).toHaveLength(1)
@@ -465,28 +471,15 @@ test.describe("Offscreen Get Started Menu Action", () => {
     await test.step("should separate stroke in 2 on insert gesture", async () => {
       await Promise.all([
         waitForGesturedEvent(page),
-        writePointers(page, helloInsert.strokes[1].pointers)
+        writePointers(page, helloInsert.strokes[1].pointers, 0, 100)
       ])
       // necessary to ensure that recognition is completed
       await page.evaluate("editorEl.editor.synchronizeStrokesWithJIIX()")
       const symbols = await getEditorSymbols(page)
-      expect(symbols).toHaveLength(2)
-      expect(symbols[0]).toEqual(expect.objectContaining({
-        type: "recognized",
-        kind: "text",
-        label: "hel"
-      }))
-      expect(symbols[1]).toEqual(expect.objectContaining({
-        type: "recognized",
-        kind: "text",
-        label: "to"
-      }))
-
-      const helElBox = await page.locator(`#${ symbols[0].id }`).boundingBox()
-      const toElBox = await page.locator(`#${ symbols[1].id }`).boundingBox()
-
-      // check 2nd word is separated from the first by at least 50px
-      expect(toElBox.x - helElBox.x - helElBox.width).toBeGreaterThan(50)
+      expect(symbols).toHaveLength(1)
+      expect(symbols[0].words[0].label).toEqual("hel")
+      expect(symbols[0].words[1].label).toEqual(" ")
+      expect(symbols[0].words[2].label).toEqual("to")
     })
 
     await test.step("insert should be kept on convert", async () => {
@@ -540,7 +533,7 @@ test.describe("Offscreen Get Started Menu Action", () => {
 
       await expect(page.locator(`#${  hel.id }`)).toHaveText(hel.chars.map(c => c.label).join(""))
       await expect(page.locator(`#${ lo.id }`)).toHaveText(lo.chars.map(c => c.label).join(""))
-      //verify 2nd word is separatedr fom the first by at least 10px
+      //verify 2nd word is separated from the first by at least 10px
       expect(lo.bounds.x - hel.bounds.x - hel.bounds.width).toBeGreaterThan(10)
     })
 

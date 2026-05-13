@@ -1,4 +1,4 @@
-import { buildOICircle, buildOIGroup, buildOIStroke } from "../helpers"
+import { buildOICircle, buildOIStroke } from "../helpers"
 
 import { IIModel, TExport, } from "../../../src/iink"
 
@@ -212,36 +212,16 @@ describe("IIModel.ts", () =>
     const stroke1 = buildOIStroke()
     model.addSymbol(stroke1)
 
-    const group1 = buildOIGroup()
-    model.addSymbol(group1)
-
     const circle1 = buildOICircle({ center: { x: 200, y: rowHeight * 1.4 }, radius: 5 })
     model.addSymbol(circle1)
-
-    const group2 = buildOIGroup()
-    const group21 = buildOIGroup()
-    group2.children.push(group21)
-    model.addSymbol(group2)
 
     test("shoud get symbol if stroke root", () =>
     {
       expect(model.getRootSymbol(stroke1.id)).toEqual(stroke1)
     })
-    test("shoud get symbol if group root", () =>
-    {
-      expect(model.getRootSymbol(group1.id)).toEqual(group1)
-    })
     test("shoud get symbol if circle root", () =>
     {
       expect(model.getRootSymbol(circle1.id)).toEqual(circle1)
-    })
-    test("shoud get symbol if child of group root", () =>
-    {
-      expect(model.getRootSymbol(group1.children[0].id)).toEqual(group1)
-    })
-    test("shoud get symbol if sub-child of group root", () =>
-    {
-      expect(model.getRootSymbol(group21.children[0].id)).toEqual(group2)
     })
     test("shoud get undefined if child of group root", () =>
     {

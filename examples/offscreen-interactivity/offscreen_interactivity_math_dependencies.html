@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Math Dependencies Example</title>
+
+  <link rel="stylesheet" href="../assets/style/reset.css" />
+  <link rel="stylesheet" href="../assets/style/components.css" />
+  <link rel="stylesheet" href="../assets/style/examples.css" />
+
+  <script type="text/javascript" src="../../dist/iink.min.js"></script>
+
+  <style>
+    #editor-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      height: calc(100dvh - 427px);
+    }
+    @media only screen and (max-width: 1010px) {
+      #editor-container {
+        height: calc(100dvh - 475px);
+      }
+    }
+    @media only screen and (max-width: 760px) {
+      #editor-container {
+        height: calc(100dvh - 514px);
+      }
+    }
+    @media only screen and (max-width: 653px) {
+      #editor-container {
+        height: calc(100dvh - 581px);
+        width: 100%;
+      }
+    }
+    #editorEl {
+      flex: 4;
+      min-width: 300px;
+      min-height: 300px;
+    }
+
+    #dependencies {
+      flex: 1;
+      min-width: 300px;
+      padding: 12px;
+      background: #f5f5f5;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+
+    .dependency-info {
+      margin: 4px 0;
+      padding: 4px;
+      background: white;
+      border-left: 3px solid #2196F3;
+    }
+
+    .source { border-left-color: #4CAF50; }
+    .dependent { border-left-color: #FF9800; }
+  </style>
+</head>
+
+<body>
+  <header class="header-main">
+    <button id="showModalBtn" class="btn-keys">Change server configuration</button>
+    <h1 class="header-title">Math Dependencies Example</h1>
+  </header>
+
+  <p class="description" style="padding: 6px 12px;">
+    <strong>Instructions:</strong><br>
+    1. Write a variable definition like "x=2"<br>
+    2. Write an expression using that variable like "3x+2="<br>
+    3. The result will be computed automatically when you end with "=" or "?" (if Auto-compute is enabled)<br>
+    4. Uncheck "Auto-compute" to use the "Compute" button for manual calculation<br>
+    5. Change the variable value using the input below<br>
+    6. Watch the dependent expressions recalculate automatically!<br>
+    7. <strong>Hover over math blocks</strong> to see dependencies highlighted (sources in green, dependents in orange) with arrows showing connections
+  </p>
+
+  <div style="background: #fff3cd;">
+    <div class="flex-container between wrap gap" style="padding: 6px 12px;">
+      <div class="flex-container wrap gap">
+        <label>
+          <strong>Set variable value:</strong>
+          <select id="variableSelect" disabled>
+            <option value="">-- No variables --</option>
+          </select>
+          <input type="number" id="variableValue" placeholder="New value" disabled />
+        </label>
+        <button id="setVariable" class="classic-btn" disabled>Set Value</button>
+      </div>
+      <div class="flex-container wrap gap">
+        <label>
+          Auto-compute
+          <input type="checkbox" id="autoCompute" checked />
+        </label>
+        <button class="classic-btn" id="compute" disabled>Compute</button>
+      </div>
+    </div>
+    <div class="flex-container wrap gap" style="padding: 6px 12px; margin-top: 12px;">
+      <label>
+        Show Block Overlays (∑)
+        <input type="checkbox" id="showBlockOverlays" checked />
+      </label>
+      <label>
+        Computation result:
+        <select id="computationMode">
+          <option value="strokes-only" selected>Draw strokes</option>
+          <option value="value-only">Show in panel</option>
+          <option value="both">Both</option>
+        </select>
+      </label>
+      <button id="refreshBtn" class="classic-btn">Refresh Overlays</button>
+    </div>
+    <div class="flex-container wrap gap" style="padding: 6px 12px; margin-top: 12px; border-top: 1px solid #ddd;">
+      <strong style="width: 100%;">Interactions:</strong>
+      <label>
+        Show Dependencies on Hover
+        <input type="checkbox" id="showDependencyOnHover" checked />
+      </label>
+      <label>
+        Highlight on Select
+        <input type="checkbox" id="highlightOnSelect" checked />
+      </label>
+    </div>
+  </div>
+
+  <div id="editor-container">
+    <div id="editorEl"></div>
+    <div id="dependencies">
+      <strong>Dependencies:</strong><br>
+      <span id="dependency-list">No dependencies yet</span>
+    </div>
+  </div>
+
+  <script type="module">
+    import { Editor } from '../../dist/iink.esm.js'
+    import { ModalEditorOptions } from '../components/modal/modalEditorOptions.js'
+
+    const editorElement = document.getElementById('editorEl')
+    const computeElement = document.getElementById('compute')
+    const showModalBtn = document.getElementById('showModalBtn')
+    const dependenciesList = document.getElementById('dependency-list')
+    const variableSelect = document.getElementById('variableSelect')
+    const variableValue = document.getElementById('variableValue')
+    const setVariableBtn = document.getElementById('setVariable')
+    const showBlockOverlaysCheckbox = document.getElementById('showBlockOverlays')
+    const computationModeSelect = document.getElementById('computationMode')
+    const autoComputeCheckbox = document.getElementById('autoCompute')
+
+    let editor
+    let allVariables = []
+
+    const editorOptions = {
+      configuration: {
+        recognition: {
+          "raw-content": {
+            recognition: {
+              types: ["math"]
+            },
+            classification: {
+              types: ["math"]
+            },
+            gestures: ["scratch-out", "surround"]
+          },
+          math: {
+            solver: {
+              "auto-variable-management": {
+                enable: true,
+                "scoping-policy": "closest"
+              }
+            }
+          }
+        },
+        menu: {
+          action: {
+            language: false,
+            gesture: false,
+            snap: false,
+            export: false,
+            import: false,
+            convert: false,
+            math: false,
+            debug: false,
+            guide: false
+          },
+          tool: {
+            write: true,
+            move: true,
+            select: true,
+            erase: true,
+            shape: false,
+            edge: false
+          },
+          style: {
+            strokeColor: true,
+            fillColor: false,
+            thickness: false,
+            fontSize: false,
+            fontWeight: false,
+            opacity: false,
+          }
+        }
+      },
+    }
+
+    async function loadEditor(options) {
+      await editor?.destroy()
+
+      editor = await Editor.load(editorElement, 'INTERACTIVEINK', options)
+
+      editor.mathOverlays.updateConfig({ showBlockOverlays: showBlockOverlaysCheckbox.checked })
+      editor.mathComputationMode = computationModeSelect.value
+
+      if (editor.mathComputationMode === 'value-only' || editor.mathComputationMode === 'both') {
+        editor.mathOverlays.updateConfig({ showResultPanels: true })
+      }
+
+      editor.mathInteractions.updateConfig({ showDependencyOnHover: showDependencyOnHoverCheckbox.checked })
+      editor.mathInteractions.updateConfig({ highlightOnSelect: highlightOnSelectCheckbox.checked })
+
+      editor.event.addChangedListener(onEditorChanged)
+      editor.event.addSynchronizedListener(onSynchronized)
+      editor.event.addSelectedListener(onSelected)
+      return editor
+    }
+
+    async function onSelected(symbols) {
+      const hasMath = symbols.some(s => s.type === 'recognized' && s.kind === 'math')
+      computeElement.disabled = !hasMath
+    }
+
+    async function onEditorChanged(event) {
+      if (event.empty) {
+        dependenciesList.innerHTML = 'No dependencies yet'
+        variableSelect.innerHTML = '<option value="">-- No variables --</option>'
+        variableSelect.disabled = true
+        variableValue.disabled = true
+        setVariableBtn.disabled = true
+        return
+      }
+    }
+
+    let synchronizeTimeout
+    async function onSynchronized() {
+      synchronizeTimeout && clearTimeout(synchronizeTimeout)
+      synchronizeTimeout = setTimeout(() => {
+        const sym = editor.model.symbols.map(d => ({label: d.label, jiix: d.jiixId, dependentBlocks: d.dependentBlocks?.join(', ')}))
+        updateDependenciesDisplay()
+        updateVariablesList()
+        tryAutoCompute()
+      }, 250)
+    }
+
+    async function tryAutoCompute() {
+      if (!autoComputeCheckbox.checked) {
+        return
+      }
+
+      const mathSymbols = editor.model.symbols.filter(s =>
+        s.type === 'recognized' && s.kind === 'math'
+      )
+
+      for (const mathSymbol of mathSymbols) {
+        const label = mathSymbol.label || ''
+        if ((label.endsWith('=') || label.endsWith('?')) && mathSymbol.jiixId) {
+          try {
+            const actions = await editor.getAvailableActions(mathSymbol.jiixId)
+            const canCompute = actions?.includes('numerical-computation')
+
+            if (canCompute) {
+              console.log(`Auto-computing: ${label}`)
+
+              await editor.computeMathNumericalResult(mathSymbol, editor.mathComputationMode)
+            }
+          } catch (e) {
+            // Silently ignore errors - expression might not be computable yet
+            console.debug(`Cannot auto-compute "${label}":`, e.message)
+          }
+        }
+      }
+    }
+
+    async function updateDependenciesDisplay() {
+      const mathSymbols = editor.model.symbols.filter(s =>
+        s.type === 'recognized' && s.kind === 'math'
+      )
+
+      if (mathSymbols.length === 0) {
+        dependenciesList.innerHTML = 'No math blocks yet'
+        return
+      }
+      const sourceBlocks = []
+      const processedBlocks = new Set()
+
+      for (const mathSymbol of mathSymbols) {
+        const deps = editor.getMathDependencies(mathSymbol.jiixId)
+        if (deps?.dependentBlocks && deps.dependentBlocks.length > 0) {
+          sourceBlocks.push({
+            symbol: mathSymbol,
+            deps: deps
+          })
+        }
+      }
+
+      let html = ''
+      for (const sourceBlock of sourceBlocks) {
+        const { symbol, deps } = sourceBlock
+
+        html += `<div style="margin-bottom: 16px; padding: 8px; background: #e8f5e9; border-radius: 4px;">`
+        html += `<div class="dependency-info source" style="margin-bottom: 8px; background: #c8e6c9;">`
+        html += `<strong>📊 ${symbol.label || symbol.jiixId}</strong>`
+        if (deps.dependentBlocks.length > 0) {
+          html += ` <small>(used by ${deps.dependentBlocks.length} block(s))</small>`
+        }
+        html += `</div>`
+
+        processedBlocks.add(symbol.jiixId)
+
+        for (const depId of deps.dependentBlocks) {
+          const depSymbol = mathSymbols.find(s => s.jiixId === depId)
+          if (depSymbol) {
+            const depDeps = editor.getMathDependencies(depId)
+            html += `<div class="dependency-info dependent" style="margin-left: 16px; margin-bottom: 4px;">`
+            html += `<strong>→ ${depSymbol.label || depId}</strong><br>`
+
+            if (depDeps?.variableSources && Object.keys(depDeps.variableSources).length > 0) {
+              html += '<small>Variables: '
+              html += Object.entries(depDeps.variableSources).map(([varName, sourceId]) => {
+                const sourceSymbol = mathSymbols.find(s => s.jiixId === sourceId)
+                return `${varName} = ${sourceSymbol?.label || sourceId}`
+              }).join(', ')
+              html += '</small>'
+            }
+
+            html += '</div>'
+            processedBlocks.add(depId)
+          }
+        }
+
+        html += '</div>'
+      }
+
+      const remainingBlocks = mathSymbols.filter(s => !processedBlocks.has(s.jiixId))
+      if (remainingBlocks.length > 0) {
+        html += '<div style="margin-top: 16px; padding-top: 8px; border-top: 1px dashed #ccc;">'
+        html += '<small><strong>Isolated blocks:</strong></small><br>'
+        for (const mathSymbol of remainingBlocks) {
+          html += `<div class="dependency-info" style="margin-top: 4px;">`
+          html += `<strong>${mathSymbol.label || mathSymbol.jiixId}</strong>`
+          html += '</div>'
+        }
+        html += '</div>'
+      }
+
+      dependenciesList.innerHTML = html
+    }
+
+    async function updateVariablesList() {
+      allVariables = []
+      const mathSymbols = editor.model.symbols.filter(s =>
+        s.type === 'recognized' && s.kind === 'math'
+      )
+
+      for (const mathSymbol of mathSymbols) {
+        try {
+          const variables = await editor.getVariables(mathSymbol.jiixId)
+          variables.forEach(v => {
+            if (!allVariables.find(av => av.name === v.name && av.sourceId === v.sourceId)) {
+              allVariables.push({
+                name: v.name,
+                sourceId: v.sourceId,
+                value: v.value,
+                label: mathSymbol.label,
+                jiixId: mathSymbol.jiixId
+              })
+            }
+          })
+        } catch (e) {
+          console.error('Error getting variables:', e)
+        }
+      }
+
+      variableSelect.innerHTML = allVariables.length === 0
+        ? '<option value="">-- No variables --</option>'
+        : allVariables.map(v =>
+            `<option value="${v.sourceId}:${v.name}:${v.jiixId}">${v.name} = ${v.value} (in ${v.label})</option>`
+          ).join('')
+
+      variableSelect.disabled = allVariables.length === 0
+      variableValue.disabled = allVariables.length === 0
+      setVariableBtn.disabled = allVariables.length === 0
+    }
+
+    computeElement.addEventListener('click', async () => {
+      const selectedSymbols = editor.model.symbolsSelected
+      if (selectedSymbols.length === 0) {
+        alert('Please select a math expression first')
+        return
+      }
+
+      const mathSymbol = selectedSymbols.find(s => s.type === 'recognized' && s.kind === 'math')
+      if (!mathSymbol) {
+        alert('Please select a math expression')
+        return
+      }
+
+      try {
+        computeElement.disabled = true
+        computeElement.textContent = 'Computing...'
+
+        await editor.computeMathNumericalResult(mathSymbol)
+
+        computeElement.textContent = 'Compute'
+        computeElement.disabled = false
+      } catch (error) {
+        alert('Error computing: ' + error.message)
+        computeElement.textContent = 'Compute'
+        computeElement.disabled = false
+      }
+    })
+
+    setVariableBtn.addEventListener('click', async () => {
+      const selected = variableSelect.value
+      if (!selected) return
+
+      const [sourceId, varName, jiixId] = selected.split(':')
+      const newValue = parseFloat(variableValue.value)
+
+      if (isNaN(newValue)) {
+        alert('Please enter a valid number')
+        return
+      }
+
+      try {
+        setVariableBtn.disabled = true
+        setVariableBtn.textContent = 'Setting...'
+
+        console.log(`Setting ${varName} = ${newValue} in block ${jiixId}`)
+
+        const sourceSymbol = editor.model.symbols.find(s => s.jiixId === jiixId && s.type === 'recognized' && s.kind === 'math')
+
+        await editor.setVariableValue(jiixId, varName, newValue)
+
+        await updateVariablesList()
+        await updateDependenciesDisplay()
+        await tryAutoCompute()
+
+        setVariableBtn.textContent = 'Set Value'
+        setVariableBtn.disabled = false
+        variableValue.value = ''
+      } catch (error) {
+        alert('Error setting variable: ' + error.message)
+        setVariableBtn.textContent = 'Set Value'
+        setVariableBtn.disabled = false
+      }
+    })
+
+    showBlockOverlaysCheckbox.addEventListener('change', (e) => {
+      editor.mathOverlays.toggleBlockOverlays(e.target.checked)
+    })
+
+    computationModeSelect.addEventListener('change', async (e) => {
+      const oldMode = editor.mathComputationMode
+      editor.mathComputationMode = e.target.value
+      if (e.target.value === 'value-only' && oldMode !== 'value-only') {
+        const mathSymbols = editor.model.symbols.filter(s =>
+          s.type === 'recognized' && s.kind === 'math'
+        )
+        for (const mathSymbol of mathSymbols) {
+          await editor.clearSolverOutputStrokes(mathSymbol)
+        }
+      }
+      if (e.target.value === 'value-only' || e.target.value === 'both') {
+        editor.mathOverlays.updateConfig({ showResultPanels: true })
+      } else {
+        editor.mathOverlays.updateConfig({ showResultPanels: false })
+      }
+    })
+
+    const refreshBtn = document.getElementById('refreshBtn')
+    refreshBtn.addEventListener('click', () => {
+      editor.mathOverlays.refresh()
+    })
+
+    const showDependencyOnHoverCheckbox = document.getElementById('showDependencyOnHover')
+    const highlightOnSelectCheckbox = document.getElementById('highlightOnSelect')
+
+    showDependencyOnHoverCheckbox.addEventListener('change', (e) => {
+      editor.mathInteractions.updateConfig({ showDependencyOnHover: e.target.checked })
+      if (!e.target.checked) {
+        editor.mathInteractions.clearAll()
+      }
+    })
+
+    highlightOnSelectCheckbox.addEventListener('change', (e) => {
+      editor.mathInteractions.updateConfig({ highlightOnSelect: e.target.checked })
+    })
+
+    showModalBtn.addEventListener('click', () => {
+      ModalEditorOptions.show(loadEditor, editorOptions)
+    })
+
+    ModalEditorOptions.initConfiguration(loadEditor, editorOptions)
+  </script>
+</body>
+</html>

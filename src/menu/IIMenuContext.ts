@@ -1,46 +1,44 @@
-import ArrowDown from "../assets/svg/nav-arrow-down.svg"
-import { SELECTION_MARGIN } from "../Constants"
 import { LoggerCategory, LoggerManager } from "../logger"
-import { DecoratorKind, IIDecorator, IIRecognizedText, IIStroke, IISymbolGroup, IIText, RecognizedKind, SymbolType, TIISymbol } from "../symbol"
-import { IIMenu, TMenuItemBoolean, TMenuItemButton, TMenuItemColorList } from "./IIMenu"
-import { createUUID } from "../utils"
-import { IIMenuSub, TSubMenuParam } from "./IIMenuSub"
+import { IIRecognizedText, IIRecognizedMath, IIStroke, IIText, RecognizedKind, SymbolType, TIISymbol } from "../symbol"
 import { InteractiveInkEditor } from "../editor"
-import { createMenuButtonWithText } from "./MenuHelper"
+import { IIMenuContextConfig, defaultMenuContextConfig } from "./IIMenuContextConfig"
+import {
+  EditContextMenu,
+  DecoratorContextMenu,
+  ReorderContextMenu,
+  ExportContextMenu,
+  ConvertContextMenu,
+  MathContextMenu,
+  DuplicateContextMenu,
+  RemoveContextMenu,
+  SelectAllContextMenu
+} from "./context"
 /**
  * @group Menu
  */
-export class IIMenuContext extends IIMenu
+export class IIMenuContext
 {
   #logger = LoggerManager.getLogger(LoggerCategory.MENU)
   editor: InteractiveInkEditor
   id: string
   wrapper?: HTMLElement
-  editMenu?: HTMLDivElement
-  editInput?: HTMLInputElement
-  editSaveBtn?: HTMLButtonElement
-  reorderMenu?: HTMLDivElement
-  decoratorMenu?: HTMLDivElement
-  menuExport?: HTMLDivElement
-  duplicateBtn?: HTMLButtonElement
-  groupBtn?: HTMLButtonElement
-  convertBtn?: HTMLButtonElement
-  removeBtn?: HTMLButtonElement
+  config: Required<IIMenuContextConfig>
+
+  // Context menu instances
+  private contextMenus: Map<string, EditContextMenu | DecoratorContextMenu | ReorderContextMenu | ExportContextMenu | ConvertContextMenu | MathContextMenu | DuplicateContextMenu | RemoveContextMenu | SelectAllContextMenu> = new Map()
 
   position: {
     x: number,
-    y: number,
-    scrollTop: number,
-    scrollLeft: number
+    y: number
   }
 
-  constructor(editor: InteractiveInkEditor, id = "ms-menu-context")
+  constructor(editor: InteractiveInkEditor, id = "ms-menu-context", config?: IIMenuContextConfig)
   {
-    super()
     this.id = id
     this.#logger.info("constructor")
     this.editor = editor
-    this.position = { x: 0, y: 0, scrollLeft: 0, scrollTop: 0 }
+    this.config = { ...defaultMenuContextConfig, ...config }
+    this.position = { x: 0, y: 0 }
   }
 
   get symbolsSelected(): TIISymbol[]
@@ -53,11 +51,11 @@ export class IIMenuContext extends IIMenu
     return this.symbolsSelected.length > 0
   }
 
-  get symbolsDecorable(): (IIStroke | IIText | IISymbolGroup | IIRecognizedText)[]
+  get symbolsDecorable(): (IIStroke | IIText | IIRecognizedText)[]
   {
     return this.symbolsSelected.filter(s => {
-      return s.type === SymbolType.Stroke || s.type === SymbolType.Text || s.type === SymbolType.Group || (s.type === SymbolType.Recognized && s.kind === RecognizedKind.Text)
-    }) as (IIStroke | IIText | IISymbolGroup | IIRecognizedText)[]
+      return s.type === SymbolType.Stroke || s.type === SymbolType.Text || (s.type === SymbolType.Recognized && s.kind === RecognizedKind.Text)
+    }) as (IIStroke | IIText | IIRecognizedText)[]
   }
 
   get showDecorator(): boolean
@@ -65,526 +63,198 @@ export class IIMenuContext extends IIMenu
     return this.symbolsDecorable.length > 0
   }
 
-  protected createMenuEdit(): HTMLElement
+  get hasSingleMathSymbol(): boolean
   {
-    const trigger = document.createElement("button")
-    trigger.id = `${ this.id }-edit-trigger`
-    trigger.classList.add("ms-menu-button")
-    const label = document.createElement("span")
-    label.innerText = "Edit"
-    trigger.appendChild(label)
-    const icon = document.createElement("span")
-    icon.style.setProperty("width", "32px")
-    icon.style.setProperty("transform", "rotate(270deg)")
-    icon.innerHTML = ArrowDown
-    trigger.appendChild(icon)
+    return this.symbolsSelected.length === 1 && this.symbolsSelected[0].type === SymbolType.Recognized && this.symbolsSelected[0].kind === RecognizedKind.Math
+  }
 
-    const subMenuWrapper = document.createElement("div")
-    subMenuWrapper.classList.add("ms-menu-colmun")
-    this.editInput = document.createElement("input")
-    subMenuWrapper.appendChild(this.editInput)
-    this.editSaveBtn = document.createElement("button")
-    this.editSaveBtn.classList.add("ms-menu-button")
-    this.editSaveBtn.innerText = "Save"
-    subMenuWrapper.appendChild(this.editSaveBtn)
-    this.editSaveBtn.addEventListener("pointerdown", async (e) =>
-    {
-      e.stopPropagation()
-      const textSymbol = this.editor.model.symbolsSelected.find(s => s.type === SymbolType.Text) as IIText
-      if (textSymbol) {
-        const firstChar = textSymbol.chars[0]
-        textSymbol.chars = []
-        for (let i = 0; i < this.editInput!.value.length; i++) {
-          textSymbol.chars.push({
-            label: this.editInput!.value.charAt(i),
-            id: createUUID(),
-            color: firstChar.color,
-            fontSize: firstChar.fontSize,
-            fontWeight: firstChar.fontWeight,
-            bounds: firstChar.bounds
-          })
+  protected async updateMathMenu(): Promise<void>
+  {
+    const mathMenuInstance = this.contextMenus.get("math") as MathContextMenu | undefined
+    if (mathMenuInstance) {
+      if (this.hasSingleMathSymbol) {
+        const mathSymbol = this.symbolsSelected[0] as IIRecognizedMath
+        if (!mathSymbol.jiixId) {
+          mathMenuInstance.setMenuVisibility(false, { canEditVariables: false, canCompute: false, canEvaluate: false })
+          return
         }
-        await this.editor.updateSymbol(textSymbol)
-        this.editor.selector.resetSelectedGroup([textSymbol])
-      }
-    })
-    const params: TSubMenuParam = {
-      trigger: trigger,
-      subMenu: subMenuWrapper,
-      position: "right"
-    }
-    this.editMenu = new IIMenuSub(params).element
+        const [actions, variables, evaluables] = await Promise.all([
+          this.editor.getAvailableActions(mathSymbol.jiixId),
+          this.editor.getVariables(mathSymbol.jiixId),
+          this.editor.getEvaluables(mathSymbol.jiixId)
+        ])
 
-    return this.editMenu
-  }
-
-  protected createMenuDuplicate(): HTMLElement
-  {
-    this.duplicateBtn = createMenuButtonWithText(
-      `${ this.id }-duplicate`,
-      "Duplicate",
-      async () => {
-        const symbolsToDuplicate = this.symbolsSelected
-
-        const updateDeepIdInGroup = (gr: IISymbolGroup) =>
-        {
-          gr.children.forEach(s =>
-          {
-            s.id = `${s.type}-${ createUUID() }`
-            switch (s.type) {
-              case SymbolType.Group:
-                updateDeepIdInGroup(s)
-                break
-              case SymbolType.Recognized:
-                s.strokes.forEach(s => s.id = `${s.type}-${ createUUID() }`)
-                break
-            }
-          })
+        const canEditVariables = Object.keys(variables).length > 0
+        const canCompute = actions?.includes("numerical-computation") && !mathSymbol.solverOutputStrokeIds
+        const canEvaluate = evaluables?.length ? true : false
+        if (canEditVariables || canCompute || canEvaluate) {
+          mathMenuInstance.setMenuVisibility(true, { canEditVariables, canCompute, canEvaluate })
+        } else {
+          mathMenuInstance.setMenuVisibility(false, { canEditVariables: false, canCompute: false, canEvaluate: false })
         }
-        const duplicatedSymbols = symbolsToDuplicate.map(s =>
-        {
-          const clone = s.clone()
-          while (this.editor.model.symbols.find(s => s.id === clone.id)) {
-            clone.id = `${clone.type}-${ createUUID() }`
-            if (clone.type === SymbolType.Group) {
-              updateDeepIdInGroup(clone)
-            }
-            else if (clone.type === SymbolType.Recognized) {
-              clone.strokes.forEach(s => s.id = `${s.type}-${ createUUID() }`)
-            }
-          }
-          clone.selected = true
-          this.editor.translator.applyToSymbol(clone, SELECTION_MARGIN, SELECTION_MARGIN)
-          return clone
-        })
-
-        this.editor.unselectAll()
-        await this.editor.addSymbols(duplicatedSymbols)
-        this.editor.selector.drawSelectedGroup(duplicatedSymbols)
-      }
-    )
-    return this.duplicateBtn
-  }
-
-  protected createMenuGroup(): HTMLElement
-  {
-    this.groupBtn = createMenuButtonWithText(
-      `${ this.id }-group`,
-      "Group",
-      async () => {
-        if (this.symbolsSelected.length === 1 && this.symbolsSelected[0].type === SymbolType.Group) {
-          const symbols = this.editor.ungroupSymbol(this.symbolsSelected[0] as IISymbolGroup)
-          this.editor.select(symbols.map(s => s.id))
-        }
-        else {
-          const symbols = this.symbolsSelected.slice()
-          this.editor.unselectAll()
-          const group = this.editor.groupSymbols(symbols)
-          group.selected = true
-          this.editor.select([group.id])
-        }
-      }
-    )
-    return this.groupBtn
-  }
-
-  protected createMenuConvert(): HTMLElement
-  {
-    this.convertBtn = createMenuButtonWithText(
-      `${ this.id }-convert`,
-      "Convert",
-      () => this.editor.convertSymbols(this.symbolsSelected)
-    )
-    return this.convertBtn
-  }
-
-  protected createMenuRemove(): HTMLButtonElement
-  {
-    this.removeBtn = createMenuButtonWithText(
-      `${ this.id }-remove`,
-      "Remove",
-      async () => {
-        this.editor.selector.removeSelectedGroup()
-        await this.editor.removeSymbols(this.symbolsSelected.map(s => s.id))
-      }
-    )
-    return this.removeBtn
-  }
-
-  protected createMenuReorder(): HTMLElement
-  {
-    const trigger = document.createElement("button")
-    trigger.id = `${ this.id }-reorder`
-    trigger.classList.add("ms-menu-button")
-    const label = document.createElement("span")
-    label.innerText = "Reorder"
-    trigger.appendChild(label)
-    const icon = document.createElement("span")
-    icon.style.setProperty("width", "32px")
-    icon.style.setProperty("transform", "rotate(270deg)")
-    icon.innerHTML = ArrowDown
-    trigger.appendChild(icon)
-
-    const menuItems: TMenuItemButton[] = [
-      {
-        type: "button",
-        id: `${ this.id }-reorder-first`,
-        label: "Bring to front",
-        callback: () =>
-        {
-          this.editor.changeOrderSymbols(this.symbolsSelected, "last")
-          this.editor.selector.resetSelectedGroup(this.symbolsSelected)
-        }
-      },
-      {
-        type: "button",
-        id: `${ this.id }-reorder-forward`,
-        label: "Bring forward",
-        callback: () =>
-        {
-          this.editor.changeOrderSymbols(this.symbolsSelected, "forward")
-          this.editor.selector.resetSelectedGroup(this.symbolsSelected)
-        }
-      },
-      {
-        type: "button",
-        id: `${ this.id }-reorder-backward`,
-        label: "Send backward",
-        callback: () =>
-        {
-          this.editor.changeOrderSymbols(this.symbolsSelected, "backward")
-          this.editor.selector.resetSelectedGroup(this.symbolsSelected)
-        }
-      },
-      {
-        type: "button",
-        id: `${ this.id }-reorder-last`,
-        label: "Send to back",
-        callback: () =>
-        {
-          this.editor.changeOrderSymbols(this.symbolsSelected.slice().reverse(), "first")
-          this.editor.selector.resetSelectedGroup(this.symbolsSelected)
-        }
-      },
-    ]
-    const subMenuWrapper = document.createElement("div")
-    subMenuWrapper.classList.add("ms-menu-colmun")
-    menuItems.forEach(i =>
-    {
-      subMenuWrapper.appendChild(this.createMenuItem(i))
-    })
-    const params: TSubMenuParam = {
-      trigger: trigger,
-      subMenu: subMenuWrapper,
-      position: "right"
-    }
-    this.reorderMenu = new IIMenuSub(params).element
-    return this.reorderMenu
-  }
-
-  protected createDecoratorSubMenu(label: string, kind: DecoratorKind): HTMLElement
-  {
-    const trigger = document.createElement("button")
-    trigger.id = `${ this.id }-decorator-${ kind }`
-    trigger.classList.add("ms-menu-button")
-    const labelEL = document.createElement("span")
-    labelEL.innerText = label
-    trigger.appendChild(labelEL)
-    const icon = document.createElement("span")
-    icon.style.setProperty("width", "32px")
-    icon.style.setProperty("transform", "rotate(270deg)")
-    icon.innerHTML = ArrowDown
-    trigger.appendChild(icon)
-
-    const menuItems: (TMenuItemBoolean | TMenuItemColorList)[] = [
-      {
-        type: "checkbox",
-        id: `${ this.id }-decorator-${ kind }-enable`,
-        label: "Enable",
-        initValue: false,
-        callback: (enable) =>
-        {
-          this.symbolsDecorable.forEach(s =>
-          {
-            if (enable) {
-              if (!s.decorators.some(d => d.kind === kind)) {
-                s.decorators.push(new IIDecorator(kind, this.editor.penStyle))
-              }
-            }
-            else {
-              const decoIndex = s.decorators.findIndex(d => d.kind === kind)
-              if (decoIndex > -1) {
-                s.decorators.splice(decoIndex, 1)
-              }
-            }
-            this.editor.model.updateSymbol(s)
-            this.editor.renderer.drawSymbol(s)
-          })
-
-          document.querySelectorAll(`#${ this.id }-decorator-${ kind }-color button`).forEach(b =>
-          {
-            (b as HTMLButtonElement).disabled = !enable
-            b.classList.remove("active")
-          })
-          if (enable) {
-            document.querySelector(`#${ this.id }-decorator-${ kind }-color button`)?.classList.add("active")
-          }
-        }
-      },
-      {
-        type: "colors",
-        label: "Colors",
-        id: `${ this.id }-decorator-${ kind }-color`,
-        fill: false,
-        values: this.colors.filter((_c, i) => !(i % 4)),
-        initValue: this.colors[0],
-        disabled: true,
-        callback: (color) =>
-        {
-          this.symbolsDecorable.forEach(s =>
-          {
-            const deco = s.decorators.find(d => d.kind === kind)
-            if (deco) {
-              deco.style.color = color
-              this.editor.model.updateSymbol(s)
-              this.editor.renderer.drawSymbol(s)
-            }
-          })
-        },
-      }
-    ]
-    const subMenuWrapper = document.createElement("div")
-    subMenuWrapper.classList.add("ms-menu-colmun")
-    menuItems.forEach(i =>
-    {
-      subMenuWrapper.appendChild(this.createMenuItem(i))
-    })
-    const params: TSubMenuParam = {
-      trigger: trigger,
-      subMenu: subMenuWrapper,
-      position: "right"
-    }
-    return this.decoratorMenu = new IIMenuSub(params).element
-  }
-
-  protected createMenuDecorator(): HTMLElement
-  {
-    const trigger = document.createElement("button")
-    trigger.id = `${ this.id }-decorator`
-    trigger.classList.add("ms-menu-button")
-    const label = document.createElement("span")
-    label.innerText = "Decorator"
-    trigger.appendChild(label)
-    const icon = document.createElement("span")
-    icon.style.setProperty("width", "32px")
-    icon.style.setProperty("transform", "rotate(270deg)")
-    icon.innerHTML = ArrowDown
-    trigger.appendChild(icon)
-
-    const subMenuWrapper = document.createElement("div")
-    subMenuWrapper.classList.add("ms-menu-colmun")
-    subMenuWrapper.appendChild(this.createDecoratorSubMenu("Hightlight", DecoratorKind.Highlight))
-    subMenuWrapper.appendChild(this.createDecoratorSubMenu("Surround", DecoratorKind.Surround))
-    subMenuWrapper.appendChild(this.createDecoratorSubMenu("Underline", DecoratorKind.Underline))
-    subMenuWrapper.appendChild(this.createDecoratorSubMenu("Strikethrough", DecoratorKind.Strikethrough))
-
-    const params: TSubMenuParam = {
-      trigger: trigger,
-      subMenu: subMenuWrapper,
-      position: "right"
-    }
-    this.decoratorMenu = new IIMenuSub(params).element
-    return this.decoratorMenu
-  }
-
-  protected createMenuExport(): HTMLElement
-  {
-    const trigger = document.createElement("button")
-    trigger.id = `${ this.id }-export`
-    trigger.classList.add("ms-menu-button")
-    const label = document.createElement("span")
-    label.innerText = "Export"
-    trigger.appendChild(label)
-    const icon = document.createElement("span")
-    icon.style.setProperty("width", "32px")
-    icon.style.setProperty("transform", "rotate(270deg)")
-    icon.innerHTML = ArrowDown
-    trigger.appendChild(icon)
-
-    const menuItems: TMenuItemButton[] = [
-      {
-        type: "button",
-        id: `${ this.id }-export-json`,
-        label: "json",
-        callback: () => this.editor.downloadAsJson(this.haveSymbolsSelected)
-      },
-      {
-        type: "button",
-        id: `${ this.id }-export-svg`,
-        label: "svg",
-        callback: () => this.editor.downloadAsSVG(this.haveSymbolsSelected)
-      },
-      {
-        type: "button",
-        id: `${ this.id }-export-png`,
-        label: "png",
-        callback: () => this.editor.downloadAsPNG(this.haveSymbolsSelected)
-      },
-    ]
-    const subMenuWrapper = document.createElement("div")
-    subMenuWrapper.classList.add("ms-menu-colmun")
-    menuItems.forEach(i =>
-    {
-      subMenuWrapper.appendChild(this.createMenuItem(i))
-    })
-    const params: TSubMenuParam = {
-      trigger: trigger,
-      subMenu: subMenuWrapper,
-      position: "right"
-    }
-    this.menuExport = new IIMenuSub(params).element
-    return this.menuExport
-  }
-
-  protected createMenuSelectAll(): HTMLElement
-  {
-    const btn = document.createElement("button")
-    btn.id = `${ this.id }-duplicate`
-    btn.textContent = "Select all"
-    btn.classList.add("ms-menu-button")
-    btn.addEventListener("pointerup", async () => this.editor.selectAll())
-    return btn
-  }
-
-  protected updateDecoratorSubMenu(): void
-  {
-    if (this.showDecorator) {
-      this.decoratorMenu?.style.removeProperty("display")
-
-      Object.values(DecoratorKind).forEach(kind =>
-      {
-        const checkbox = document.getElementById(`${ this.id }-decorator-${ kind }-enable`) as HTMLInputElement
-        if (checkbox) {
-          document.querySelectorAll(`#${ this.id }-decorator-${ kind }-color button`).forEach(e => e.classList.remove("active"))
-          const decos = this.symbolsDecorable.flatMap(s => s.decorators).filter(d => d.kind === kind)
-
-          if (decos.length && decos.every(d => d.style.color === decos[0].style.color)) {
-            const btnToActivate = document.getElementById(`${ this.id }-decorator-${ kind }-color-${ decos[0].style.color?.replace("#", "") }-btn`)
-            btnToActivate?.classList.add("active")
-          }
-
-          if (this.symbolsDecorable.filter(s => s.decorators.some(d => d.kind === kind)).length === this.symbolsDecorable.length) {
-            checkbox.checked = true
-
-            document.querySelectorAll(`#${ this.id }-decorator-${ kind }-color button`).forEach(b =>
-            {
-              (b as HTMLButtonElement).disabled = false
-            })
-            checkbox.indeterminate = false
-          }
-          else if (this.symbolsDecorable.filter(s => !s.decorators.some(d => d.kind === kind)).length === this.symbolsDecorable.length) {
-            checkbox.checked = false
-            document.querySelectorAll(`#${ this.id }-decorator-${ kind }-color button`).forEach(b =>
-            {
-              (b as HTMLButtonElement).disabled = true
-            })
-            checkbox.indeterminate = false
-          }
-          else {
-            checkbox.setAttribute("indeterminate", "true")
-            checkbox.indeterminate = true
-            document.querySelectorAll(`#${ this.id }-decorator-${ kind }-color button`).forEach(b =>
-            {
-              (b as HTMLButtonElement).disabled = false
-            })
-          }
-        }
-
-      })
-    }
-    else {
-      this.decoratorMenu?.style.setProperty("display", "none")
-    }
-  }
-
-  protected updateGroupMenu(): void
-  {
-    if (this.groupBtn && this.haveSymbolsSelected) {
-      this.groupBtn.style.removeProperty("display")
-      if (this.symbolsSelected.length === 1 && this.symbolsSelected[0].type === SymbolType.Group) {
-        this.groupBtn.textContent = "UnGroup"
       }
       else {
-        this.groupBtn.textContent = "Group"
+        mathMenuInstance.setMenuVisibility(false, { canEditVariables: false, canCompute: false, canEvaluate: false })
       }
-    }
-    else {
-      this.groupBtn?.style.setProperty("display", "none")
     }
   }
 
   update(): void
   {
-    this.wrapper?.style.setProperty("left", `${ this.position.x - this.position.scrollLeft }px`)
-    this.wrapper?.style.setProperty("top", `${ this.position.y - this.position.scrollTop }px`)
+    // Position is now in client coordinates (relative to viewport), no need to adjust for scroll
+    this.wrapper?.style.setProperty("left", `${ this.position.x }px`)
+    this.wrapper?.style.setProperty("top", `${ this.position.y }px`)
+
+    // Adjust position if menu overflows viewport boundaries
+    if (this.wrapper) {
+      const rect = this.wrapper.getBoundingClientRect()
+      const viewportWidth = window.innerWidth
+      const viewportHeight = window.innerHeight
+
+      let adjustedX = this.position.x
+      let adjustedY = this.position.y
+
+      // Check if menu overflows bottom
+      if (rect.bottom > viewportHeight) {
+        adjustedY = viewportHeight - rect.height - 10 // 10px margin
+      }
+
+      // Check if menu overflows right
+      if (rect.right > viewportWidth) {
+        adjustedX = viewportWidth - rect.width - 10 // 10px margin
+      }
+
+      // Check if menu overflows left
+      if (adjustedX < 10) {
+        adjustedX = 10 // 10px margin
+      }
+
+      // Check if menu overflows top
+      if (adjustedY < 10) {
+        adjustedY = 10 // 10px margin
+      }
+
+      // Apply adjusted positions if needed
+      if (adjustedX !== this.position.x) {
+        this.wrapper.style.setProperty("left", `${ adjustedX }px`)
+      }
+      if (adjustedY !== this.position.y) {
+        this.wrapper.style.setProperty("top", `${ adjustedY }px`)
+      }
+    }
 
     if (this.haveSymbolsSelected) {
-      const textSymbol = this.editor.model.symbolsSelected.find(s => s.type === SymbolType.Text)
-      if (this.editMenu && this.editInput && this.editor.model.symbolsSelected.length === 1 && textSymbol) {
-        this.editMenu.style.removeProperty("display")
-        this.editInput.value = (textSymbol as IIText).label
+      // Update edit menu
+      const editMenuInstance = this.contextMenus.get("edit") as EditContextMenu | undefined
+      if (editMenuInstance) {
+        const textSymbol = this.editor.model.symbolsSelected.find(s => s.type === SymbolType.Text)
+        if (editMenuInstance.editInput && this.editor.model.symbolsSelected.length === 1 && textSymbol) {
+          editMenuInstance.editInput.value = (textSymbol as IIText).label
+          editMenuInstance.getElement().style.removeProperty("display")
+        }
+        else {
+          editMenuInstance.getElement().style.setProperty("display", "none")
+        }
+      }
+
+      // Show convert button only if there are strokes AND not only math selected
+      if (this.editor.extractStrokesFromSymbols(this.symbolsSelected).length && !this.hasSingleMathSymbol) {
+        this.contextMenus.get("convert")?.getElement().style.removeProperty("display")
       }
       else {
-        this.editMenu?.style.setProperty("display", "none")
+        this.contextMenus.get("convert")?.getElement().style.setProperty("display", "none")
       }
 
-      if (this.editor.extractStrokesFromSymbols(this.symbolsSelected).length) {
-        this.convertBtn?.style.removeProperty("display")
-      }
-      else {
-        this.convertBtn?.style.setProperty("display", "none")
-      }
-
-
-      this.reorderMenu?.style.removeProperty("display")
-      this.duplicateBtn?.style.removeProperty("display")
-      this.removeBtn?.style.removeProperty("display")
-      this.menuExport?.style.removeProperty("display")
+      this.contextMenus.get("reorder")?.getElement().style.removeProperty("display")
+      this.contextMenus.get("duplicate")?.getElement().style.removeProperty("display")
+      this.contextMenus.get("remove")?.getElement().style.removeProperty("display")
+      this.contextMenus.get("export")?.getElement().style.removeProperty("display")
     }
     else {
-      this.editMenu?.style.setProperty("display", "none")
-      this.convertBtn?.style.setProperty("display", "none")
-      this.reorderMenu?.style.setProperty("display", "none")
-      this.duplicateBtn?.style.setProperty("display", "none")
-      this.removeBtn?.style.setProperty("display", "none")
-      this.menuExport?.style.setProperty("display", "none")
+      this.contextMenus.get("edit")?.getElement().style.setProperty("display", "none")
+      this.contextMenus.get("convert")?.getElement().style.setProperty("display", "none")
+      this.contextMenus.get("reorder")?.getElement().style.setProperty("display", "none")
+      this.contextMenus.get("duplicate")?.getElement().style.setProperty("display", "none")
+      this.contextMenus.get("remove")?.getElement().style.setProperty("display", "none")
+      this.contextMenus.get("export")?.getElement().style.setProperty("display", "none")
     }
-    this.updateDecoratorSubMenu()
-    this.updateGroupMenu()
+
+    // Update menu instances
+    this.contextMenus.get("edit")?.update()
+    this.contextMenus.get("decorator")?.update()
+    this.contextMenus.get("duplicate")?.update()
+    this.updateMathMenu()
   }
 
   render(layer: HTMLElement): void
   {
+    this.#logger.info("Rendering context menu with config", this.config)
+
     this.wrapper = document.createElement("div")
     this.wrapper.id = `${ this.id }-wrapper`
     this.wrapper.classList.add("ms-menu", "ms-menu-context")
-    this.wrapper.appendChild(this.createMenuEdit())
-    this.wrapper.appendChild(this.createMenuDecorator())
-    this.wrapper.appendChild(this.createMenuReorder())
-    this.wrapper.appendChild(this.createMenuExport())
-    this.wrapper.appendChild(this.createMenuConvert())
-    this.wrapper.appendChild(this.createMenuGroup())
-    this.wrapper.appendChild(this.createMenuDuplicate())
-    this.wrapper.appendChild(this.createMenuRemove())
-    this.wrapper.appendChild(this.createMenuSelectAll())
+
+    if (this.config.edit) {
+      const editMenuInstance = new EditContextMenu(this.editor, this.id)
+      this.contextMenus.set("edit", editMenuInstance)
+      this.wrapper.appendChild(editMenuInstance.getElement())
+    }
+
+    if (this.config.decorator) {
+      const decoratorMenuInstance = new DecoratorContextMenu(this.editor, this.id)
+      this.contextMenus.set("decorator", decoratorMenuInstance)
+      this.wrapper.appendChild(decoratorMenuInstance.getElement())
+    }
+
+    if (this.config.reorder) {
+      const reorderMenuInstance = new ReorderContextMenu(this.editor, this.id)
+      this.contextMenus.set("reorder", reorderMenuInstance)
+      this.wrapper.appendChild(reorderMenuInstance.getElement())
+    }
+
+    if (this.config.export) {
+      const exportMenuInstance = new ExportContextMenu(this.editor, this.id)
+      this.contextMenus.set("export", exportMenuInstance)
+      this.wrapper.appendChild(exportMenuInstance.getElement())
+    }
+
+    if (this.config.convert) {
+      const convertMenuInstance = new ConvertContextMenu(this.editor, this.id)
+      this.contextMenus.set("convert", convertMenuInstance)
+      this.wrapper.appendChild(convertMenuInstance.getElement())
+    }
+
+    if (this.config.math) {
+      const mathMenuInstance = new MathContextMenu(this.editor, this.id)
+      this.contextMenus.set("math", mathMenuInstance)
+      this.wrapper.appendChild(mathMenuInstance.getElement())
+    }
+
+    if (this.config.duplicate) {
+      const duplicateMenuInstance = new DuplicateContextMenu(this.editor, this.id)
+      this.contextMenus.set("duplicate", duplicateMenuInstance)
+      this.wrapper.appendChild(duplicateMenuInstance.getElement())
+    }
+
+    if (this.config.remove) {
+      const removeMenuInstance = new RemoveContextMenu(this.editor, this.id)
+      this.contextMenus.set("remove", removeMenuInstance)
+      this.wrapper.appendChild(removeMenuInstance.getElement())
+    }
+
+    if (this.config.selectAll) {
+      const selectAllMenuInstance = new SelectAllContextMenu(this.editor, this.id)
+      this.contextMenus.set("selectAll", selectAllMenuInstance)
+      this.wrapper.appendChild(selectAllMenuInstance.getElement())
+    }
+
     this.wrapper.style.setProperty("display", "none")
     layer.appendChild(this.wrapper)
 
+    // Hide context menu when scrolling as the referenced element moves
     this.editor.layers.rendering.addEventListener("scroll", () =>
     {
-      this.position.scrollLeft = this.editor.layers.rendering.scrollLeft || 0
-      this.position.scrollTop = this.editor.layers.rendering.scrollTop || 0
-      this.update()
+      this.hide()
     })
   }
 

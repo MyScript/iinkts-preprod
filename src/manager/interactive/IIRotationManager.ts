@@ -7,8 +7,8 @@ import
   Box,
   EdgeKind,
   IIStroke,
-  IISymbolGroup,
   IIText,
+  IIMath,
   TIIRecognized,
   ShapeKind,
   SymbolType,
@@ -110,10 +110,13 @@ export class IIRotationManager
     return this.editor.texter.updateBounds(text)
   }
 
-  protected applyOnGroup(group: IISymbolGroup, center: TPoint, angleRad: number): IISymbolGroup
+  protected applyOnMath(math: IIMath, center: TPoint, angleRad: number): IIMath
   {
-    group.children.forEach(s => this.applyToSymbol(s, center, angleRad))
-    return group
+    math.rotation = {
+      degree: convertRadianToDegree(angleRad) + (math.rotation?.degree || 0),
+      center: center
+    }
+    return math
   }
 
   protected applyOnRecognizedSymbol(strokeText: TIIRecognized, center: TPoint, angleRad: number): TIIRecognized
@@ -133,8 +136,8 @@ export class IIRotationManager
         return this.applyToEdge(symbol, center, angleRad)
       case SymbolType.Text:
         return this.applyOnText(symbol, center, angleRad)
-      case SymbolType.Group:
-        return this.applyOnGroup(symbol, center, angleRad)
+      case SymbolType.Math:
+        return this.applyOnMath(symbol, center, angleRad)
       case SymbolType.Recognized:
         return this.applyOnRecognizedSymbol(symbol, center, angleRad)
       default:

@@ -1,10 +1,9 @@
 import { EditorTool, SELECTION_MARGIN } from "../Constants"
-import { JIIXEdgeKind, JIIXELementType, JIIXNodeKind, IIModel, TExport, TJIIXStrokeItem } from "../model"
+import { IIModel, TExport, TJIIXMathElement } from "../model"
 import
 {
   Box,
   EdgeKind,
-  IIDecorator,
   TIIEdge,
   IIEdgeArc,
   IIEdgeLine,
@@ -15,18 +14,24 @@ import
   IIShapePolygon,
   IIStroke,
   IIRecognizedText,
-  IISymbolGroup,
-  IIText,
-  ShapeKind,
-  SymbolType,
-  TIISymbol,
-  convertPartialStrokesToOIStrokes,
-  TIIRecognized,
+  IIRecognizedMath,
   IIRecognizedLine,
   IIRecognizedPolyLine,
   IIRecognizedArc,
+  IIRecognizedCircle,
+  IIRecognizedEllipse,
+  IIRecognizedPolygon,
+  IIText,
+  IIMath,
+  TIISymbol,
+  TIIRecognized,
+  RecognizedKind,
+  ShapeKind,
+  SymbolType,
+  convertPartialStrokesToOIStrokes,
+  isRecognizedMathSymbol
 } from "../symbol"
-import { RecognizerWebSocket } from "../recognizer"
+import { RecognizerWebSocket, TMathVariable, TMathEvaluable } from "../recognizer"
 import { SVGRenderer, SVGBuilder, TIIRendererConfiguration } from "../renderer"
 import { TStyle } from "../style"
 import
@@ -43,8 +48,11 @@ import
   IIMoveManager,
   IIGestureManager,
   IISnapManager,
+  IISynchronizerManager,
+  MathOverlayManager,
+  MathInteractionManager,
+  TransientInkManager,
 } from "../manager"
-import { RecognizedKind, IIRecognizedCircle, IIRecognizedEllipse, IIRecognizedPolygon } from "../symbol"
 import { IIHistoryManager, TIIHistoryBackendChanges, TIIHistoryChanges, THistoryContext } from "../history"
 import { PartialDeep, convertMillimeterToPixel, mergeDeep } from "../utils"
 import { IIMenuAction, IIMenuManager, IIMenuStyle, IIMenuTool } from "../menu"
@@ -98,7 +106,12 @@ export class InteractiveInkEditor extends AbstractEditor
   svgDebugger: IIDebugSVGManager
   snaps: IISnapManager
   move: IIMoveManager
+  synchronizer: IISynchronizerManager
+  mathOverlays: MathOverlayManager
+  mathInteractions: MathInteractionManager
+  transientInk: TransientInkManager
   menu: IIMenuManager
+  mathComputationMode: "strokes-only" | "value-only" | "both" = "strokes-only"
 
   constructor(rootElement: HTMLElement, options?: TInteractiveInkEditorOptions)
   {
@@ -123,6 +136,8 @@ export class InteractiveInkEditor extends AbstractEditor
 
     this.renderer = new SVGRenderer(this.#configuration.rendering)
 
+    this.#model = new IIModel(this.#configuration.rendering.minWidth, this.#configuration.rendering.minHeight, this.configuration.rendering.guides.gap)
+
     this.history = new IIHistoryManager(this.#configuration["undo-redo"], this.event)
 
     this.writer = new IIWriterManager(this)
@@ -138,9 +153,11 @@ export class InteractiveInkEditor extends AbstractEditor
     this.texter = new IITextManager(this)
     this.svgDebugger = new IIDebugSVGManager(this)
     this.snaps = new IISnapManager(this, this.#configuration.snap)
+    this.synchronizer = new IISynchronizerManager(this)
+    this.mathOverlays = new MathOverlayManager(this)
+    this.mathInteractions = new MathInteractionManager(this)
+    this.transientInk = new TransientInkManager(this.renderer, this.#model)
     this.menu = new IIMenuManager(this, options?.override?.menu)
-
-    this.#model = new IIModel(this.#configuration.rendering.minWidth, this.#configuration.rendering.minHeight, this.configuration.rendering.guides.gap)
   }
 
   get initializationPromise(): Promise<void>
@@ -220,6 +237,10 @@ export class InteractiveInkEditor extends AbstractEditor
     this.layers.updateState(idle)
   }
 
+  /**
+   * Update layer UI with debouncing
+   * @param timeout - Debounce timeout in milliseconds (default: 500ms)
+   */
   updateLayerUI(timeout: number = 500): void
   {
     clearTimeout(this.#layerUITimer)
@@ -227,12 +248,11 @@ export class InteractiveInkEditor extends AbstractEditor
     {
       this.menu.update()
       this.svgDebugger.apply()
-      this.waitForIdle()
       this.event.emitUIpdated()
     }, timeout)
   }
 
-  manageError(error: Error): void
+  protected manageError(error: Error): void
   {
     this.layers.showMessageError(error)
     this.event.emitError(error)
@@ -324,7 +344,6 @@ export class InteractiveInkEditor extends AbstractEditor
       this.configuration.recognition.lang = code
       await this.recognizer.newSession(this.configuration)
       this.recognizer.addStrokes(this.extractStrokesFromSymbols(this.model.symbols), false)
-      await this.synchronizeStrokesWithJIIX(true)
       this.layers.hideLoader()
       this.event.emitLoaded()
     }
@@ -371,6 +390,8 @@ export class InteractiveInkEditor extends AbstractEditor
     switch (partialSymbol.kind) {
       case RecognizedKind.Text:
         return IIRecognizedText.create(partialSymbol)
+      case RecognizedKind.Math:
+        return IIRecognizedMath.create(partialSymbol)
       case RecognizedKind.Arc:
         return IIRecognizedArc.create(partialSymbol)
       case RecognizedKind.Circle:
@@ -388,41 +409,6 @@ export class InteractiveInkEditor extends AbstractEditor
     }
   }
 
-  protected buildGroup(partialGroup: PartialDeep<IISymbolGroup>): IISymbolGroup
-  {
-    if (!partialGroup.children?.length) {
-      throw new Error(`Unable to create group, no children`)
-    }
-
-    const children = partialGroup.children.map(partialSymbol =>
-    {
-      switch (partialSymbol?.type) {
-        case SymbolType.Stroke:
-          return IIStroke.create(partialSymbol as PartialDeep<IIStroke>)
-        case SymbolType.Shape:
-          return this.buildShape(partialSymbol as PartialDeep<TIIShape>)
-        case SymbolType.Edge:
-          return this.buildEdge(partialSymbol as PartialDeep<TIIEdge>)
-        case SymbolType.Text:
-          return IIText.create(partialSymbol as PartialDeep<IIText>)
-        case SymbolType.Group:
-          return this.buildGroup(partialSymbol as PartialDeep<IISymbolGroup>)
-        case SymbolType.Recognized:
-          return this.buildRecognized(partialSymbol as PartialDeep<TIIRecognized>)
-        default:
-          throw new Error(`Unable to create group, symbol type '${ JSON.stringify(partialSymbol) } is unknown`)
-      }
-    })
-    const group = new IISymbolGroup(children, partialGroup.style)
-    if (partialGroup.id) {
-      group.id = partialGroup.id
-    }
-    if (partialGroup.decorators) {
-      group.decorators = partialGroup.decorators.map(d => new IIDecorator(d!.kind!, d!.style as TStyle))
-    }
-    return group
-  }
-
   protected buildStroke(partialSymbol: PartialDeep<IIStroke>): IIStroke
   {
     return IIStroke.create(partialSymbol as PartialDeep<IIStroke>)
@@ -438,6 +424,11 @@ export class InteractiveInkEditor extends AbstractEditor
     return IIText.create(partialSymbol as PartialDeep<IIText>)
   }
 
+  protected buildMath(partialSymbol: PartialDeep<IIMath>): IIMath
+  {
+    return IIMath.create(partialSymbol as PartialDeep<IIMath>)
+  }
+
   protected buildSymbol(partialSymbol: PartialDeep<TIISymbol>): TIISymbol
   {
     try {
@@ -450,8 +441,8 @@ export class InteractiveInkEditor extends AbstractEditor
           return this.buildEdge(partialSymbol)
         case SymbolType.Text:
           return this.buildText(partialSymbol)
-        case SymbolType.Group:
-          return this.buildGroup(partialSymbol)
+        case SymbolType.Math:
+          return this.buildMath(partialSymbol)
         case SymbolType.Recognized:
           return this.buildRecognized(partialSymbol as PartialDeep<TIIRecognized>)
         default:
@@ -465,6 +456,34 @@ export class InteractiveInkEditor extends AbstractEditor
     }
   }
 
+  /**
+   * Optimizes recognizer calls by comparing old and new strokes
+   * and calling the most appropriate method (erase, add, or replace)
+   * @param oldStrokes - Strokes before the change
+   * @param newStrokes - Strokes after the change
+   */
+  #optimizeRecognizerCall(oldStrokes: IIStroke[], newStrokes: IIStroke[]): void
+  {
+    const oldStrokeIds = new Set(oldStrokes.map(s => s.id))
+    const newStrokeIds = new Set(newStrokes.map(s => s.id))
+
+    const addedStrokes = newStrokes.filter(s => !oldStrokeIds.has(s.id))
+    const removedStrokeIds = oldStrokes.filter(s => !newStrokeIds.has(s.id)).map(s => s.id)
+
+    if (removedStrokeIds.length > 0 && addedStrokes.length > 0) {
+      this.recognizer.replaceStrokes(removedStrokeIds, addedStrokes)
+    } else if (removedStrokeIds.length > 0) {
+      this.recognizer.eraseStrokes(removedStrokeIds)
+    } else if (addedStrokes.length > 0) {
+      this.recognizer.addStrokes(addedStrokes, false)
+    }
+  }
+
+  /**
+   * Create a symbol from partial data
+   * @param partialSymbol - Partial symbol data
+   * @returns Promise resolving to created symbol
+   */
   async createSymbol(partialSymbol: PartialDeep<TIISymbol>): Promise<TIISymbol>
   {
     try {
@@ -480,6 +499,11 @@ export class InteractiveInkEditor extends AbstractEditor
     }
   }
 
+  /**
+   * Create multiple symbols from partial data
+   * @param partialSymbols - Array of partial symbol data
+   * @returns Promise resolving to array of created symbols
+   */
   async createSymbols(partialSymbols: PartialDeep<TIISymbol>[]): Promise<TIISymbol[]>
   {
     try {
@@ -510,9 +534,6 @@ export class InteractiveInkEditor extends AbstractEditor
     if (symbol.type === SymbolType.Text) {
       this.texter.updateBounds(symbol)
     }
-    else if (symbol.type === SymbolType.Group) {
-      symbol.extractText().forEach(t => this.texter.updateBounds(t))
-    }
   }
 
   /** @hidden */
@@ -534,7 +555,12 @@ export class InteractiveInkEditor extends AbstractEditor
     return sym
   }
 
-  /** @hidden */
+  /**
+   * Add multiple symbols to the model and renderer
+   * @param symList - Array of symbols to add
+   * @param addToHistory - Whether to add to history (default: true)
+   * @returns Promise resolving to array of added symbols
+   */
   async addSymbols(symList: TIISymbol[], addToHistory = true): Promise<TIISymbol[]>
   {
     this.logger.info("addSymbol", { symList })
@@ -554,15 +580,28 @@ export class InteractiveInkEditor extends AbstractEditor
     return symList
   }
 
+  /**
+   * Update an existing symbol
+   * @param sym - Symbol to update
+   * @param addToHistory - Whether to add to history (default: true)
+   * @returns Promise resolving to updated symbol
+   */
   async updateSymbol(sym: TIISymbol, addToHistory = true): Promise<TIISymbol>
   {
     this.logger.info("updateSymbol", { sym })
     this.updateLayerState(false)
     this.updateTextBounds(sym)
+
+    const oldSymbol = this.history.stack.at(-1)?.model.symbols.find(s => s.id === sym.id) || this.model.symbols.find(s => s.id === sym.id)
+    const oldStrokes = oldSymbol ? this.extractStrokesFromSymbols([oldSymbol]) : []
+
     this.model.updateSymbol(sym)
     this.renderer.drawSymbol(sym)
-    const strokes = this.extractStrokesFromSymbols([sym])
-    this.recognizer.replaceStrokes(strokes.map(s => s.id), strokes)
+
+    const newStrokes = this.extractStrokesFromSymbols([sym])
+
+    this.#optimizeRecognizerCall(oldStrokes, newStrokes)
+
     if (addToHistory) {
       this.history.push(this.model, { updated: [sym] })
     }
@@ -570,18 +609,36 @@ export class InteractiveInkEditor extends AbstractEditor
     return sym
   }
 
+  /**
+   * Update multiple existing symbols
+   * @param symList - Array of symbols to update
+   * @param addToHistory - Whether to add to history (default: true)
+   * @returns Promise resolving to array of updated symbols
+   */
   async updateSymbols(symList: TIISymbol[], addToHistory = true): Promise<TIISymbol[]>
   {
     this.logger.info("updateSymbol", { symList })
     this.updateLayerState(false)
+
+    const oldSymbolsMap = new Map<string, TIISymbol>()
+    symList.forEach(sym => {
+      const oldSymbol = this.history.stack.at(-1)?.model.symbols.find(s => s.id === sym.id) || this.model.symbols.find(s => s.id === sym.id)
+      if (oldSymbol) {
+        oldSymbolsMap.set(sym.id, oldSymbol)
+      }
+    })
+    const oldStrokes = this.extractStrokesFromSymbols(Array.from(oldSymbolsMap.values()))
+
     symList.forEach(s =>
     {
       this.updateTextBounds(s)
       this.model.updateSymbol(s)
       this.renderer.drawSymbol(s)
     })
-    const strokes = this.extractStrokesFromSymbols(symList)
-    this.recognizer.replaceStrokes(strokes.map(s => s.id), strokes)
+
+    const newStrokes = this.extractStrokesFromSymbols(symList)
+    this.#optimizeRecognizerCall(oldStrokes, newStrokes)
+
     if (addToHistory) {
       this.history.push(this.model, { updated: symList })
     }
@@ -589,6 +646,12 @@ export class InteractiveInkEditor extends AbstractEditor
     return symList
   }
 
+  /**
+   * Update style of multiple symbols
+   * @param symbolIds - Array of symbol IDs to update
+   * @param style - Partial style to apply
+   * @param addToHistory - Whether to add to history (default: true)
+   */
   updateSymbolsStyle(symbolIds: string[], style: PartialDeep<TStyle>, addToHistory = true): void
   {
     this.logger.info("updateSymbolsStyle", { symbolIds, style })
@@ -599,7 +662,6 @@ export class InteractiveInkEditor extends AbstractEditor
         s.style = Object.assign({}, s.style, style)
         if (
           SymbolType.Text === s.type ||
-          SymbolType.Group === s.type ||
           SymbolType.Recognized === s.type) {
           s.updateChildrenStyle()
         }
@@ -627,10 +689,15 @@ export class InteractiveInkEditor extends AbstractEditor
     }
   }
 
+  /**
+   * Update font style of text symbols
+   * @param textIds - Array of text symbol IDs
+   * @param options - Font style options (fontSize, fontWeight)
+   */
   updateTextFontStyle(textIds: string[], { fontSize, fontWeight }: { fontSize?: number, fontWeight?: "normal" | "bold" | "auto" }): void
   {
     this.logger.info("updateTextFontStyle", { textIds, fontSize, fontWeight })
-    const symbols: (IIText | IISymbolGroup)[] = []
+    const symbols: (IIText)[] = []
     const translate: { symbols: TIISymbol[], tx: number, ty: number }[] = []
     this.model.symbols.forEach(s =>
     {
@@ -654,30 +721,6 @@ export class InteractiveInkEditor extends AbstractEditor
           s.modificationDate = Date.now()
           symbols.push(s)
         }
-        else if (s.type === SymbolType.Group) {
-          const textChildren = s.extractText()
-          if (textChildren.length) {
-            textChildren.forEach(text =>
-            {
-              text.updateChildrenFont({ fontSize, fontWeight: fontWeight === "auto" ? undefined : fontWeight })
-              const lastWidth = s.bounds.width
-              this.texter.updateBounds(text)
-              const tx = s.bounds.width - lastWidth
-              const symbolsTranslated = this.texter.moveTextAfter(text, tx)
-              if (symbolsTranslated?.length) {
-                translate.push({
-                  symbols: symbolsTranslated,
-                  tx,
-                  ty: 0
-                })
-              }
-            })
-            s.modificationDate = Date.now()
-            this.renderer.drawSymbol(s)
-            symbols.push(s)
-          }
-
-        }
       }
     })
     if (symbols.length) {
@@ -685,6 +728,12 @@ export class InteractiveInkEditor extends AbstractEditor
     }
   }
 
+  /**
+   * Replace old symbols with new symbols
+   * @param oldSymbols - Array of old symbols to be replaced
+   * @param newSymbols - Array of new symbols to replace with
+   * @param addToHistory - Whether to add this operation to history (default: true)
+   */
   async replaceSymbols(oldSymbols: TIISymbol[], newSymbols: TIISymbol[], addToHistory = true): Promise<void>
   {
     this.logger.info("replaceSymbol", { oldSymbols, newSymbols })
@@ -705,16 +754,7 @@ export class InteractiveInkEditor extends AbstractEditor
       this.model.replaceSymbol(symToReplace.id, newSymbols)
       this.renderer.replaceSymbol(symToReplace.id, newSymbols)
 
-
-      if (oldStrokes.length && newStrokes.length) {
-        this.recognizer.replaceStrokes(oldStrokes.map(s => s.id), newStrokes)
-      }
-      else if (oldStrokes.length) {
-        this.recognizer.eraseStrokes(oldStrokes.map(s => s.id))
-      }
-      else {
-        this.recognizer.addStrokes(newStrokes, false)
-      }
+      this.#optimizeRecognizerCall(oldStrokes, newStrokes)
 
       if (addToHistory) {
         this.history.push(this.model, { replaced: { oldSymbols, newSymbols } })
@@ -723,6 +763,11 @@ export class InteractiveInkEditor extends AbstractEditor
     }
   }
 
+  /**
+   * Change the order of a symbol in the rendering stack
+   * @param symbol - Symbol to reorder
+   * @param position - New position (first, last, forward, backward)
+   */
   changeOrderSymbol(symbol: TIISymbol, position: "first" | "last" | "forward" | "backward"): void
   {
     this.model.changeOrderSymbol(symbol.id, position)
@@ -730,6 +775,11 @@ export class InteractiveInkEditor extends AbstractEditor
     this.history.push(this.model, { order: { symbols: [symbol], position } })
   }
 
+  /**
+   * Change the order of multiple symbols in the rendering stack
+   * @param symbols - Symbols to reorder
+   * @param position - New position (first, last, forward, backward)
+   */
   changeOrderSymbols(symbols: TIISymbol[], position: "first" | "last" | "forward" | "backward")
   {
     symbols.forEach(s =>
@@ -740,237 +790,29 @@ export class InteractiveInkEditor extends AbstractEditor
     this.history.push(this.model, { order: { symbols, position } })
   }
 
-  groupSymbols(symbols: TIISymbol[]): IISymbolGroup
+  /**
+   * Synchronize strokes with JIIX export
+   */
+  async synchronizeStrokesWithJIIX(): Promise<void>
   {
-    const group = this.buildGroup({ children: symbols })
-    symbols.forEach(s =>
-    {
-      this.model.removeSymbol(s.id)
-      this.renderer.removeSymbol(s.id)
-    })
-    this.model.addSymbol(group)
-    this.history.push(this.model, { group: { symbols } })
-    return group
+    await this.synchronizer.synchronize()
   }
 
-  ungroupSymbol(group: IISymbolGroup): TIISymbol[]
-  {
-    group.children.forEach(s => this.renderer.drawSymbol(s))
-    this.renderer.removeSymbol(group.id)
-    this.model.replaceSymbol(group.id, group.children)
-    this.history.push(this.model, { ungroup: { group } })
-    return group.children
-  }
-
-  async synchronizeStrokesWithJIIX(force: boolean = false): Promise<void>
-  {
-    const strokes = this.model.symbols.filter(s => s.type === SymbolType.Stroke)
-    if (!force && !strokes.length) {
-      this.event.emitSynchronized()
-      return
-    }
-    await this.export(["application/vnd.myscript.jiix"])
-
-    const getSymbolsAndStrokesAssociatedFromJIIXStrokeItems = (items: TJIIXStrokeItem[] = []): { symbols: TIISymbol[], strokes: IIStroke[] } =>
-    {
-      const symbols: TIISymbol[] = []
-      const strokes: IIStroke[] = []
-      const strokeIdsUsed: string[] = []
-      items.forEach(i =>
-      {
-        const strokeId = i["full-id"]!
-        if (strokeIdsUsed.includes(strokeId)) {
-          return
-        }
-        strokeIdsUsed.push(strokeId)
-        const sym = this.model.getRootSymbol(strokeId)
-        if (sym) {
-          switch (sym?.type) {
-            case SymbolType.Recognized:
-              strokes.push(sym.strokes.find(s => s.id === i["full-id"]!)!)
-              break
-            default:
-              strokes.push(sym as IIStroke)
-              break
-          }
-          const symIdx = symbols.findIndex(s => s.id === sym.id)
-          if (symIdx < 0) {
-            symbols.push(sym)
-          }
-          else {
-            symbols[symIdx] = sym
-          }
-        }
-      })
-      return {
-        symbols,
-        strokes
-      }
-    }
-
-    const jiix = this.model.exports?.["application/vnd.myscript.jiix"]
-    jiix?.elements?.forEach(el =>
-    {
-      switch (el.type) {
-        case JIIXELementType.Text: {
-          el.words?.forEach(w =>
-          {
-            const jiixAssociation = getSymbolsAndStrokesAssociatedFromJIIXStrokeItems(w.items)
-            if (jiixAssociation.strokes.length) {
-              if (jiixAssociation.symbols.length === 1) {
-                const symAsso = jiixAssociation.symbols[0]
-                if (
-                  symAsso.type === SymbolType.Recognized && symAsso.kind === RecognizedKind.Text &&
-                  symAsso.label === w.label &&
-                  symAsso.strokes.length === symAsso.strokes.length
-                ) {
-                  return
-                }
-              }
-              const line = el.lines!.find(l => l["first-char"]! <= w["first-char"]! && l["last-char"]! >= w["last-char"]!)!
-              const recognizedText = new IIRecognizedText(jiixAssociation.strokes, { baseline: convertMillimeterToPixel(line["baseline-y"]), xHeight: convertMillimeterToPixel(line["x-height"]) })
-              recognizedText.label = w.label
-              jiixAssociation.symbols.forEach(sym =>
-              {
-                if (sym.type === SymbolType.Recognized && sym.kind === RecognizedKind.Text) {
-                  sym.decorators.forEach(d =>
-                  {
-                    if (!recognizedText.decorators.some(wd => wd.kind === d.kind)) {
-                      recognizedText.decorators.push(d)
-                    }
-                  })
-                }
-                this.model.removeSymbol(sym.id)
-                this.renderer.removeSymbol(sym.id)
-              })
-              this.model.addSymbol(recognizedText)
-              this.renderer.drawSymbol(recognizedText)
-            }
-          })
-          break
-        }
-        case JIIXELementType.Node: {
-          let symbolRecognized: TIIRecognized | undefined
-          const jiixAssociation = getSymbolsAndStrokesAssociatedFromJIIXStrokeItems(el.items)
-          if (jiixAssociation.strokes.length) {
-            if (jiixAssociation.symbols.length === 1) {
-              const symAsso = jiixAssociation.symbols[0]
-              if (symAsso.type === SymbolType.Recognized &&
-                symAsso.strokes.length === jiixAssociation.strokes.length) {
-                return
-              }
-            }
-            switch (el.kind) {
-              case JIIXNodeKind.Circle: {
-                symbolRecognized = new IIRecognizedCircle(jiixAssociation.strokes)
-                break
-              }
-              case JIIXNodeKind.Ellipse: {
-                symbolRecognized = new IIRecognizedEllipse(jiixAssociation.strokes)
-                break
-              }
-              case JIIXNodeKind.Rectangle:
-              case JIIXNodeKind.Triangle:
-              case JIIXNodeKind.Parallelogram:
-              case JIIXNodeKind.Polygon:
-              case JIIXNodeKind.Rhombus: {
-                symbolRecognized = new IIRecognizedPolygon(jiixAssociation.strokes)
-                break
-              }
-              default:
-                this.logger.warn("synchronizeStrokesWithJIIX", `Can not create recognized shape symbol, kind unknown: ${ el }`)
-                break
-            }
-            if (symbolRecognized) {
-              jiixAssociation.symbols.forEach(sym =>
-              {
-                this.model.removeSymbol(sym.id)
-                this.renderer.removeSymbol(sym.id)
-              })
-              this.model.addSymbol(symbolRecognized)
-              this.renderer.drawSymbol(symbolRecognized)
-            }
-          }
-          break
-        }
-        case JIIXELementType.Edge: {
-          let symbolRecognized: TIIRecognized | undefined
-          const jiixAssociation = getSymbolsAndStrokesAssociatedFromJIIXStrokeItems(el.kind === JIIXEdgeKind.PolyEdge ? el.edges.flatMap(e => e.items!) : el.items)
-          if (jiixAssociation.strokes.length) {
-            if (jiixAssociation.symbols.length === 1) {
-              const symAsso = jiixAssociation.symbols[0]
-              if (symAsso.type === SymbolType.Recognized &&
-                symAsso.strokes.length === jiixAssociation.strokes.length) {
-                return
-              }
-            }
-            switch (el.kind) {
-              case JIIXEdgeKind.Line: {
-                symbolRecognized = new IIRecognizedLine(jiixAssociation.strokes)
-                break
-              }
-              case JIIXEdgeKind.PolyEdge: {
-                symbolRecognized = new IIRecognizedPolyLine(jiixAssociation.strokes)
-                break
-              }
-              case JIIXEdgeKind.Arc: {
-                symbolRecognized = new IIRecognizedArc(jiixAssociation.strokes)
-                break
-              }
-              default:
-                this.logger.warn("synchronizeStrokesWithJIIX", `Can not create recognized edge symbol, kind unknown: ${ el }`)
-                break
-            }
-            if (symbolRecognized) {
-              jiixAssociation.symbols.forEach(sym =>
-              {
-                this.model.removeSymbol(sym.id)
-                this.renderer.removeSymbol(sym.id)
-              })
-              this.model.addSymbol(symbolRecognized)
-              this.renderer.drawSymbol(symbolRecognized)
-            }
-          }
-          break
-        }
-        default:
-          this.logger.warn("synchronizeStrokesWithJIIX", `Can not create recognized symbol, type unknown: ${ el }`)
-          break
-      }
-    })
-
-    this.model.mergeExport({ "application/vnd.myscript.jiix": jiix })
-    this.history.update(this.model)
-    this.event.emitSynchronized()
-  }
-
+  /**
+   * Remove a symbol from the model
+   * @param id - ID of symbol to remove
+   * @param addToHistory - Whether to add to history (default: true)
+   * @returns Promise that resolves when symbol is removed
+   */
   async removeSymbol(id: string, addToHistory = true): Promise<void>
   {
     this.logger.info("removeSymbol", { id })
     const symbol = this.model.getRootSymbol(id)
     if (symbol) {
       this.updateLayerState(false)
-      if (symbol.type === SymbolType.Group) {
-        const groupStrokeIds = symbol.extractStrokes().map(s => s.id)
-        symbol.removeChilds([id])
-        if (symbol.children.length) {
-          this.model.updateSymbol(symbol)
-          this.renderer.drawSymbol(symbol)
-          if (groupStrokeIds.includes(id)) {
-            this.recognizer.eraseStrokes([id])
-          }
-        }
-        else {
-          this.recognizer.eraseStrokes(groupStrokeIds)
-          this.model.removeSymbol(symbol.id)
-          this.renderer.removeSymbol(symbol.id)
-        }
-      }
-      else {
-        this.recognizer.eraseStrokes([id])
-        this.model.removeSymbol(symbol.id)
-        this.renderer.removeSymbol(symbol.id)
-      }
+      this.recognizer.eraseStrokes([id])
+      this.model.removeSymbol(symbol.id)
+      this.renderer.removeSymbol(symbol.id)
       if (addToHistory) {
         this.history.push(this.model, { erased: [symbol] })
       }
@@ -982,6 +824,12 @@ export class InteractiveInkEditor extends AbstractEditor
     }
   }
 
+  /**
+   * Remove multiple symbols from the model
+   * @param ids - Array of symbol IDs to remove
+   * @param addToHistory - Whether to add to history (default: true)
+   * @returns Promise that resolves when symbols are removed
+   */
   async removeSymbols(ids: string[], addToHistory = true): Promise<TIISymbol[]>
   {
     this.logger.info("removeSymbol", { ids })
@@ -1002,31 +850,25 @@ export class InteractiveInkEditor extends AbstractEditor
             case SymbolType.Recognized:
               strokesIds.push(...sym.strokes.map(s => s.id))
               break
-            case SymbolType.Group:
-              strokesIds.push(...sym.extractStrokes().map(s => s.id))
-              break
           }
         }
         else {
           /** we want to remove child */
           switch (sym.type) {
-            case SymbolType.Group: {
-              const gr = sym.clone()
-              strokesIds.push(...gr.extractStrokes().map(s => s.id).filter(id => ids.includes(id)))
-              gr.removeChilds(ids)
-              if (gr.children.length) {
-                symbolsToUpdate.push(gr)
-              }
-              else {
-                symbolsToRemove.push(gr)
-              }
-              break
-            }
             case SymbolType.Recognized: {
               strokesIds.push(id)
               const ws = sym.clone()
               ws.removeStrokes(ids)
               if (ws.strokes.length) {
+                ws.jiixId = undefined
+                if (isRecognizedMathSymbol(ws)) {
+                  ws.variableValues = undefined
+                  if (ws.solverOutputStrokeIds && ws.solverOutputStrokeIds.length > 0) {
+                    const remainingIds = new Set(ws.strokes.map(s => s.id))
+                    const updatedSolverIds = ws.solverOutputStrokeIds.filter(id => remainingIds.has(id))
+                    ws.solverOutputStrokeIds = updatedSolverIds.length > 0 ? updatedSolverIds : undefined
+                  }
+                }
                 symbolsToUpdate.push(ws)
               }
               else {
@@ -1042,6 +884,10 @@ export class InteractiveInkEditor extends AbstractEditor
     this.recognizer.eraseStrokes(strokesIds)
     symbolsToRemove.forEach(s =>
     {
+      if (isRecognizedMathSymbol(s)) {
+        this.transientInk.clearTransientsForBlock(s.id)
+      }
+
       this.model.removeSymbol(s.id)
       this.renderer.removeSymbol(s.id)
     })
@@ -1070,6 +916,10 @@ export class InteractiveInkEditor extends AbstractEditor
     return symbolsToRemove
   }
 
+  /**
+   * Select symbols by their IDs
+   * @param ids - Array of symbol IDs to select
+   */
   select(ids: string[]): void
   {
     this.selector.removeSelectedGroup()
@@ -1079,10 +929,19 @@ export class InteractiveInkEditor extends AbstractEditor
       this.renderer.drawSymbol(s)
     })
     this.selector.drawSelectedGroup(this.model.symbolsSelected)
+
+    const selectedMathIds = this.model.symbolsSelected
+      .filter(isRecognizedMathSymbol)
+      .map(s => s.id)
+    this.mathInteractions.onSymbolSelect(selectedMathIds)
+
     this.updateLayerUI()
     this.event.emitSelected(this.model.symbolsSelected)
   }
 
+  /**
+   * Select all symbols
+   */
   selectAll(): void
   {
     this.selector.removeSelectedGroup()
@@ -1092,10 +951,19 @@ export class InteractiveInkEditor extends AbstractEditor
       this.renderer.drawSymbol(s)
     })
     this.selector.drawSelectedGroup(this.model.symbolsSelected)
+
+    const selectedMathIds = this.model.symbolsSelected
+      .filter(isRecognizedMathSymbol)
+      .map(s => s.id)
+    this.mathInteractions.onSymbolSelect(selectedMathIds)
+
     this.updateLayerUI()
     this.event.emitSelected(this.model.symbolsSelected)
   }
 
+  /**
+   * Unselect all currently selected symbols
+   */
   unselectAll(): void
   {
     if (this.model.symbolsSelected.length) {
@@ -1106,10 +974,17 @@ export class InteractiveInkEditor extends AbstractEditor
       })
       this.selector.removeSelectedGroup()
       this.updateLayerUI()
+
+      this.mathInteractions.onSymbolSelect([])
       this.event.emitSelected(this.model.symbolsSelected)
     }
   }
 
+  /**
+   * Import strokes from point events
+   * @param partialStrokes - Array of partial stroke data
+   * @returns Promise resolving to updated model
+   */
   async importPointEvents(partialStrokes: PartialDeep<IIStroke>[]): Promise<IIModel>
   {
     this.logger.info("importPointEvents", { partialStrokes })
@@ -1138,6 +1013,12 @@ export class InteractiveInkEditor extends AbstractEditor
     downloadAnchorNode.remove()
   }
 
+  /**
+   * Get bounding box for a list of symbols
+   * @param symbols - Symbols to calculate bounds for
+   * @param margin - Margin to add around bounds (default: SELECTION_MARGIN)
+   * @returns Bounding box containing all symbols
+   */
   getSymbolsBounds(symbols: TIISymbol[], margin: number = SELECTION_MARGIN): Box
   {
     const box = Box.createFromBoxes(symbols.map(s => s.bounds))
@@ -1177,6 +1058,10 @@ export class InteractiveInkEditor extends AbstractEditor
     }
   }
 
+  /**
+   * Download symbols as SVG file, either all symbols or only selected ones
+   * @param selection - Whether to download only selected symbols (default: false, downloads all symbols)
+   */
   downloadAsSVG(selection = false)
   {
     const symbols = selection ? this.model.symbolsSelected : this.model.symbols
@@ -1186,6 +1071,10 @@ export class InteractiveInkEditor extends AbstractEditor
     this.triggerDownload(this.getExportName("svg"), url)
   }
 
+  /**
+   * Download symbols as PNG file, either all symbols or only selected ones
+   * @param selection - Whether to download only selected symbols (default: false, downloads all symbols)
+   */
   downloadAsPNG(selection = false)
   {
     const symbols = selection ? this.model.symbolsSelected : this.model.symbols
@@ -1213,13 +1102,78 @@ export class InteractiveInkEditor extends AbstractEditor
     }
   }
 
+  /**
+   * Download symbols as JSON file, either all symbols or only selected ones
+   * @param selection - Whether to download only selected symbols (default: false, downloads all symbols)
+   */
   downloadAsJson(selection = false)
   {
     const symbolsToExport = selection ? this.model.symbolsSelected : this.model.symbols
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(symbolsToExport, null, 2))
+
+    const clonedSymbols = symbolsToExport.map(s => s.clone())
+    const filteredSymbols = this.filterSymbolsForExport(clonedSymbols)
+
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(filteredSymbols, null, 2))
     this.triggerDownload(this.getExportName("json"), dataStr)
   }
 
+  /**
+   * Download symbols as plain text file, either all symbols or only selected ones
+   * @param selection - Whether to download only selected symbols (default: false, downloads all symbols)
+   */
+  downloadAsText(selection = false)
+  {
+    const symbolsToExport = selection ? this.model.symbolsSelected : this.model.symbols
+    const text = this.extractTextFromSymbols(symbolsToExport)
+    const dataStr = "data:text/plain;charset=utf-8," + encodeURIComponent(text)
+    this.triggerDownload(this.getExportName("txt"), dataStr)
+  }
+
+  protected extractTextFromSymbols(symbols: TIISymbol[]): string
+  {
+    const textParts: string[] = []
+
+    symbols.forEach(s => {
+      if (s.type === SymbolType.Recognized && s.kind === RecognizedKind.Text) {
+        const recognizedText = s as IIRecognizedText
+        if (recognizedText.label) {
+          textParts.push(recognizedText.label)
+        }
+      } else if (s.type === SymbolType.Text) {
+        const text = s as IIText
+        const textContent = text.label
+        if (textContent) {
+          textParts.push(textContent)
+        }
+      }
+    })
+
+    return textParts.join("\n")
+  }
+
+  protected filterSymbolsForExport(symbols: TIISymbol[]): TIISymbol[]
+  {
+    const result: TIISymbol[] = []
+
+    symbols.forEach(s => {
+      if (s.type === SymbolType.Stroke || s.type === SymbolType.Shape || s.type === SymbolType.Edge) {
+        result.push(s)
+      }
+      else if (s.type === SymbolType.Recognized) {
+        const recognized = s as TIIRecognized
+        const strokes = recognized.strokes.map((stroke: IIStroke) => stroke.clone())
+        result.push(...strokes)
+      }
+    })
+
+    return result
+  }
+
+  /**
+   * Extract all strokes from symbols recursively
+   * @param symbols - Symbols to extract strokes from
+   * @returns Array of extracted strokes
+   */
   extractStrokesFromSymbols(symbols: TIISymbol[] | undefined): IIStroke[]
   {
     if (!symbols?.length) return []
@@ -1233,14 +1187,16 @@ export class InteractiveInkEditor extends AbstractEditor
         case SymbolType.Recognized:
           strokes.push(...s.strokes)
           break
-        case SymbolType.Group:
-          strokes.push(...s.extractStrokes())
-          break
       }
     })
     return strokes
   }
 
+  /**
+   * Extract all text symbols recursively
+   * @param symbols - Symbols to extract texts from
+   * @returns Array of extracted text symbols
+   */
   extractTextsFromSymbols(symbols: TIISymbol[] | undefined): IIText[]
   {
     if (!symbols?.length) return []
@@ -1251,12 +1207,29 @@ export class InteractiveInkEditor extends AbstractEditor
         case SymbolType.Text:
           texts.push(s)
           break
-        case SymbolType.Group:
-          texts.push(...s.extractText())
-          break
       }
     })
     return texts
+  }
+
+  /**
+   * Extract all math symbols recursively
+   * @param symbols - Symbols to extract maths from
+   * @returns Array of extracted math symbols
+   */
+  extractMathsFromSymbols(symbols: TIISymbol[] | undefined): IIMath[]
+  {
+    if (!symbols?.length) return []
+    const maths: IIMath[] = []
+    symbols.forEach(s =>
+    {
+      switch (s.type) {
+        case SymbolType.Math:
+          maths.push(s)
+          break
+      }
+    })
+    return maths
   }
 
   protected extractBackendChanges(changes: TIIHistoryChanges): TIIHistoryBackendChanges
@@ -1356,7 +1329,7 @@ export class InteractiveInkEditor extends AbstractEditor
       const offsetX = event.clientX - rect.left
       const offsetY = event.clientY - rect.top
       this.renderer.setZoom(zoom, offsetX, offsetY)
-      this.menu.action.updateZoomDisplay()
+      this.menu.action.update()
     }
   }
 
@@ -1368,6 +1341,10 @@ export class InteractiveInkEditor extends AbstractEditor
     }
   }
 
+  /**
+   * Undo the last action
+   * @returns Promise resolving to updated model
+   */
   async undo(): Promise<IIModel>
   {
     this.logger.info("undo")
@@ -1397,6 +1374,10 @@ export class InteractiveInkEditor extends AbstractEditor
     return this.model
   }
 
+  /**
+   * Redo the previously undone action
+   * @returns Promise resolving to updated model
+   */
   async redo(): Promise<IIModel>
   {
     this.logger.info("redo")
@@ -1428,6 +1409,11 @@ export class InteractiveInkEditor extends AbstractEditor
     return this.model
   }
 
+  /**
+   * Export content to specified MIME types
+   * @param mimeTypes - Array of MIME types to export
+   * @returns Promise resolving to updated model with exports
+   */
   async export(mimeTypes?: string[]): Promise<IIModel>
   {
     try {
@@ -1443,11 +1429,20 @@ export class InteractiveInkEditor extends AbstractEditor
     return this.model
   }
 
+  /**
+   * Convert all symbols
+   * @returns Promise that resolves when conversion is complete
+   */
   async convert(): Promise<void>
   {
     await this.convertSymbols()
   }
 
+  /**
+   * Convert specific symbols
+   * @param symbols - Symbols to convert (defaults to all symbols)
+   * @returns Promise that resolves when conversion is complete
+   */
   async convertSymbols(symbols?: TIISymbol[]): Promise<void>
   {
     try {
@@ -1465,11 +1460,20 @@ export class InteractiveInkEditor extends AbstractEditor
     }
   }
 
+  /**
+   * Wait for the recognizer to become idle
+   * @returns Promise that resolves when idle
+   */
   async waitForIdle(): Promise<void>
   {
     return this.recognizer.waitForIdle()
   }
 
+  /**
+   * Resize the editor
+   * @param dimensions - New height and/or width
+   * @returns Promise that resolves when resize is complete
+   */
   async resize({ height, width }: { height?: number, width?: number } = {}): Promise<void>
   {
     try {
@@ -1489,6 +1493,10 @@ export class InteractiveInkEditor extends AbstractEditor
     }
   }
 
+  /**
+   * Clear all content from the editor
+   * @returns Promise that resolves when cleared
+   */
   async clear(): Promise<void>
   {
     try {
@@ -1499,6 +1507,7 @@ export class InteractiveInkEditor extends AbstractEditor
         const erased = this.model.symbols
         this.renderer.clear()
         this.model.clear()
+        this.transientInk.clearAll()
         this.history.push(this.model, { erased })
         this.recognizer.clear()
         this.event.emitSelected(this.model.symbolsSelected)
@@ -1510,11 +1519,540 @@ export class InteractiveInkEditor extends AbstractEditor
     }
   }
 
+  /**
+   * Find a math symbol by its JIIX ID
+   * @param jiixId - JIIX ID to search for
+   * @returns Math symbol if found, undefined otherwise
+   * @group MathSolver
+   */
+  findMathSymbolByJiixId(jiixId: string): IIRecognizedMath | undefined
+  {
+    return this.model.symbols.find(s =>
+      isRecognizedMathSymbol(s) && s.jiixId === jiixId
+    ) as IIRecognizedMath | undefined
+  }
+
+  /**
+   * Clear solver output strokes from a math symbol
+   * @param mathSymbol - The math symbol to clear solver outputs from
+   * @returns Promise that resolves when strokes are removed
+   * @group MathSolver
+   */
+  async clearSolverOutputStrokes(mathSymbol: IIRecognizedMath): Promise<void>
+  {
+    if (mathSymbol.solverOutputStrokeIds && mathSymbol.solverOutputStrokeIds.length > 0) {
+      this.logger.info("clearSolverOutputStrokes", `Removing ${mathSymbol.solverOutputStrokeIds.length} solver output strokes from ${mathSymbol.jiixId}`)
+      this.transientInk.clearTransientsForBlock(mathSymbol.id)
+      await this.removeSymbols(mathSymbol.solverOutputStrokeIds, false)
+      mathSymbol.strokes = mathSymbol.strokes.filter(s => !mathSymbol.solverOutputStrokeIds!.includes(s.id))
+      mathSymbol.solverOutputStrokeIds = undefined
+      mathSymbol.computedResult = undefined
+      await this.model.updateSymbol(mathSymbol)
+    }
+  }
+
+  /**
+   * Get available math solver actions for a specific math element
+   * @param blockId - The ID of the math element (jiixId)
+   * @returns Promise with array of available actions
+   * @group MathSolver
+   */
+  async getAvailableActions(blockId: string): Promise<string[]>
+  {
+    try {
+      this.logger.info("getAvailableActions", { blockId })
+      return await this.recognizer.getAvailableActions(blockId)
+    }
+    catch (error) {
+      this.logger.error("getAvailableActions", { error })
+      this.manageError(error as Error)
+      throw error
+    }
+  }
+
+  /**
+   * Get diagnostic result for a specific math task
+   * @param blockId - The ID of the math element (jiixId)
+   * @param task - The task to diagnose (e.g., "numerical-computation", "evaluation")
+   * @returns Promise with diagnostic result (e.g., "ALLOWED", "NOT_ALLOWED")
+   * @group MathSolver
+   */
+  async getDiagnostic(blockId: string, task: string): Promise<string>
+  {
+    try {
+      this.logger.info("getDiagnostic", { blockId, task })
+      return await this.recognizer.getDiagnostic(blockId, task)
+    }
+    catch (error) {
+      this.logger.error("getDiagnostic", { error })
+      this.manageError(error as Error)
+      throw error
+    }
+  }
+
+  /**
+   * Get numerical computation result for a math expression
+   * @param blockId - The ID of the math element (jiixId)
+   * @returns Promise with JIIX export containing the computed result
+   * @group MathSolver
+   */
+  async getNumericalComputation(blockId: string): Promise<TJIIXMathElement>
+  {
+    try {
+      this.logger.info("getNumericalComputation", { blockId })
+      return await this.recognizer.getNumericalComputation(blockId)
+    }
+    catch (error) {
+      this.logger.error("getNumericalComputation", { error })
+      this.manageError(error as Error)
+      throw error
+    }
+  }
+
+  /**
+   * Compute numerical result for a math symbol
+   * @param mathSymbol - The math symbol to compute
+   * @param mode - Computation mode: "value-only" (just get result), "strokes-only" (just draw), or "both" (default)
+   * @returns Promise with the computation result, number of added strokes, and optional numeric value
+   * @group MathSolver
+   */
+  async computeMathNumericalResult(
+    mathSymbol: IIRecognizedMath,
+    mode: "value-only" | "strokes-only" | "both" = "both"
+  ): Promise<{ result: TJIIXMathElement, addedStrokesCount: number, value?: number }>
+  {
+    try {
+      this.logger.info("computeMathNumericalResult", { mathSymbol: mathSymbol.id, mode })
+
+      if (!mathSymbol.jiixId) {
+        throw new Error("Math symbol does not have jiixId")
+      }
+
+      if (mode === "strokes-only" || mode === "both") {
+        await this.clearSolverOutputStrokes(mathSymbol)
+      }
+
+      const result = await this.getNumericalComputation(mathSymbol.jiixId)
+      this.logger.info("Numerical computation completed successfully", result)
+
+      let addedStrokesCount = 0
+
+      if (mode === "strokes-only" || mode === "both") {
+        const addedStrokes = await this.addSolverOutputStrokes(result, mathSymbol)
+        addedStrokesCount = addedStrokes.length
+        this.logger.info(`Added ${addedStrokesCount} solver output strokes`)
+      }
+
+      let value: number | undefined
+      if (mode === "value-only" || mode === "both") {
+        if (result.expressions && Array.isArray(result.expressions)) {
+          const equalExpression = result.expressions.find(expr =>
+            expr.type === "=" && "value" in expr && typeof (expr as { value?: unknown }).value === "number"
+          )
+          if (equalExpression && "value" in equalExpression) {
+            value = (equalExpression as { value: number }).value
+            this.logger.info("Extracted numerical value", { value })
+
+            mathSymbol.computedResult = value
+            await this.model.updateSymbol(mathSymbol)
+          }
+        }
+      }
+
+      return { result, addedStrokesCount, value }
+    }
+    catch (error) {
+      this.logger.error("computeMathNumericalResult", { error })
+      this.manageError(error as Error)
+      throw error
+    }
+  }
+
+  /**
+   * Get variables from a math expression
+   * @param blockId - The ID of the math element (jiixId)
+   * @returns Promise with array of variables
+   * @group MathSolver
+   */
+  async getVariables(blockId: string): Promise<TMathVariable[]>
+  {
+    try {
+      if (!blockId) {
+        this.logger.warn("getVariables", "blockId is empty or undefined, returning empty array")
+        return []
+      }
+      this.logger.info("getVariables", { blockId })
+      return await this.recognizer.getVariables(blockId)
+    }
+    catch (error) {
+      this.logger.error("getVariables", { error })
+      this.manageError(error as Error)
+      throw error
+    }
+  }
+
+  /**
+   * Get available math solver actions for a specific math element
+   * @param blockId - The ID of the math element (jiixId)
+   * @returns Promise with the value of the variable
+   * @group MathSolver
+   */
+  async getVariableValue(blockId: string, variableName: string): Promise<number>
+  {
+    try {
+      this.logger.info("getVariableValue", { blockId, variableName })
+      return await this.recognizer.getVariableValue(blockId, variableName)
+    }
+    catch (error) {
+      this.logger.error("getVariableValue", { error })
+      this.manageError(error as Error)
+      throw error
+    }
+  }
+
+  /**
+   * Set value for a specific variable in a math expression
+   * @param blockId - The ID of the math element (jiixId)
+   * @param variableName - Name of the variable to set
+   * @param variableValue - Value to assign to the variable
+   * @param mathSymbol - Optional math symbol (will be found if not provided)
+   * @returns Promise that resolves when the variable is set
+   * @group MathSolver
+   */
+  async setVariableValue(blockId: string, variableName: string, variableValue: number, mathSymbol?: IIRecognizedMath): Promise<void>
+  {
+    try {
+      this.logger.info("setVariableValue", { blockId, variableName, variableValue })
+
+      let symbol = mathSymbol
+      if (!symbol) {
+        symbol = this.findMathSymbolByJiixId(blockId)
+      }
+
+      if (symbol) {
+        await this.clearSolverOutputStrokes(symbol)
+      }
+
+      await this.recognizer.setVariableValue(blockId, variableName, variableValue)
+      if (symbol) {
+        if (!symbol.variableValues) {
+          symbol.variableValues = {}
+        }
+        symbol.variableValues[variableName] = variableValue
+        await this.model.updateSymbol(symbol)
+      }
+
+      this.logger.info("setVariableValue", `Variable value changed, recalculating dependent blocks for ${blockId}`)
+      await this.recalculateDependentBlocks(blockId)
+    }
+    catch (error) {
+      this.logger.error("setVariableValue", { error })
+      this.manageError(error as Error)
+      throw error
+    }
+  }
+
+  /**
+   * Set multiple variable values for a math symbol
+   * @param mathSymbol - The math symbol to update
+   * @param variableValues - Object with variable names as keys and their values
+   * @returns Promise that resolves when all variables are set
+   * @group MathSolver
+   */
+  async setMathVariables(mathSymbol: IIRecognizedMath, variableValues: { [name: string]: number }): Promise<void>
+  {
+    try {
+      this.logger.info("setMathVariables", { mathSymbol: mathSymbol.id, variableValues })
+
+      if (!mathSymbol.jiixId) {
+        throw new Error("Math symbol does not have jiixId")
+      }
+
+      for (const [variableName, variableValue] of Object.entries(variableValues)) {
+        await this.setVariableValue(mathSymbol.jiixId, variableName, variableValue, mathSymbol)
+      }
+
+      await this.model.updateSymbol(mathSymbol)
+
+      this.selector.resetSelectedGroup([mathSymbol])
+    }
+    catch (error) {
+      this.logger.error("setMathVariables", { error })
+      this.manageError(error as Error)
+      throw error
+    }
+  }
+
+  /**
+   * Get evaluables from a math expression
+   * @param blockId - The ID of the math element (jiixId)
+   * @returns Promise with array of evaluables
+   * @group MathSolver
+   */
+  async getEvaluables(blockId: string): Promise<TMathEvaluable[]>
+  {
+    try {
+      this.logger.info("getEvaluables", { blockId })
+      return await this.recognizer.getEvaluables(blockId)
+    }
+    catch (error) {
+      this.logger.error("getEvaluables", { error })
+      this.manageError(error as Error)
+      throw error
+    }
+  }
+
+  /**
+   * Evaluate a math function for a range of input values
+   * @param blockId - The ID of the math element (jiixId)
+   * @param evaluation - Evaluation parameters (input/output variables, range, point count)
+   * @returns Promise with array of objects { inputVar: value, outputVar: value }
+   * @group MathSolver
+   */
+  async evaluate(blockId: string, evaluation: {
+    inputVariableName: string,
+    outputVariableName: string,
+    from: number,
+    to: number,
+    pointCount: number
+  }): Promise<{ [key: string]: number }[][]>
+  {
+    try {
+      this.logger.info("evaluate", { blockId, evaluation })
+      return await this.recognizer.evaluate(blockId, evaluation)
+    }
+    catch (error) {
+      this.logger.error("evaluate", { error })
+      this.manageError(error as Error)
+      throw error
+    }
+  }
+
+  /**
+   * Evaluate a math function for a math symbol
+   * @param mathSymbol - The math symbol containing the function
+   * @param evaluation - Evaluation parameters
+   * @returns Promise with evaluation points
+   * @group MathSolver
+   */
+  async evaluateMathFunction(
+    mathSymbol: IIRecognizedMath,
+    evaluation: {
+      inputVariableName: string,
+      outputVariableName: string,
+      from: number,
+      to: number,
+      pointCount: number
+    }
+  ): Promise<{ [key: string]: number }[][]>
+  {
+    try {
+      this.logger.info("evaluateMathFunction", { mathSymbol: mathSymbol.id, evaluation })
+
+      if (!mathSymbol.jiixId) {
+        throw new Error("Math symbol does not have jiixId")
+      }
+
+      const series = await this.evaluate(mathSymbol.jiixId, evaluation)
+      this.logger.info("Function evaluated successfully", {
+        seriesCount: series.length,
+        totalPoints: series.reduce((sum, s) => sum + s.length, 0)
+      })
+
+      return series
+    }
+    catch (error) {
+      this.logger.error("evaluateMathFunction", { error })
+      this.manageError(error as Error)
+      throw error
+    }
+  }
+
+  /**
+   * Extract solver output strokes from a JIIX export result
+   * Recursively searches for solver-output items and extracts their stroke data
+   * @param obj - The JIIX export object to search
+   * @returns Array of stroke data with X, Y coordinates and optional F (force) and T (time)
+   * @group MathSolver
+   */
+  protected extractSolverOutputStrokes(obj: unknown): Array<{ X: number[], Y: number[], F?: number[], T?: number[] }>
+  {
+    const strokes: Array<{ X: number[], Y: number[], F?: number[], T?: number[] }> = []
+
+    if (!obj || typeof obj !== "object") {
+      return strokes
+    }
+
+    const objRecord = obj as Record<string, unknown>
+
+    if (objRecord["type"] === "number" && objRecord["solver-output"] === true && objRecord.items && Array.isArray(objRecord.items)) {
+      strokes.push(...objRecord.items as Array<{ X: number[], Y: number[], F?: number[], T?: number[] }>)
+    }
+
+    if (objRecord.operands && Array.isArray(objRecord.operands)) {
+      objRecord.operands.forEach((operand: unknown) =>
+      {
+        if (operand) {
+          strokes.push(...this.extractSolverOutputStrokes(operand))
+        }
+      })
+    }
+
+    if (objRecord.expressions && Array.isArray(objRecord.expressions)) {
+      objRecord.expressions.forEach((expr: unknown) =>
+      {
+        if (expr) {
+          strokes.push(...this.extractSolverOutputStrokes(expr))
+        }
+      })
+    }
+
+    return strokes
+  }
+
+  /**
+   * Add solver output strokes to a math symbol
+   * @param result - JIIX math result containing solver output
+   * @param mathSymbol - Math symbol to add strokes to
+   * @param style - Optional style for the strokes
+   * @returns Promise resolving to array of added strokes
+   * @group MathSolver
+   */
+  async addSolverOutputStrokes(result: TJIIXMathElement, mathSymbol: IIRecognizedMath, style?: TStyle): Promise<IIStroke[]>
+  {
+    try {
+      this.logger.info("addSolverOutputStrokes", { result })
+
+      const solverStrokes = this.extractSolverOutputStrokes(result)
+      this.logger.debug("addSolverOutputStrokes", `Found ${solverStrokes.length} solver output strokes`)
+
+      const addedStrokes: IIStroke[] = []
+      const defaultStyle = style || { color: "#4caf50", width: 5 } // Green color for solver output
+
+      for (const strokeData of solverStrokes) {
+        if (!strokeData.X || !strokeData.Y) {
+          this.logger.warn("addSolverOutputStrokes", "Stroke data missing X or Y coordinates")
+          continue
+        }
+
+        const pointers = strokeData.X.map((x: number, i: number) => ({
+          x: convertMillimeterToPixel(x),
+          y: convertMillimeterToPixel(strokeData.Y[i]),
+          p: strokeData.F?.[i] || 1,
+          t: strokeData.T?.[i] || i
+        }))
+
+        const stroke = IIStroke.create({
+          pointers,
+          style: defaultStyle
+        })
+
+        await this.addSymbol(stroke)
+        addedStrokes.push(stroke)
+        this.logger.debug("addSolverOutputStrokes", "Added solver output stroke:", stroke.id)
+      }
+
+      if (addedStrokes.length > 0) {
+        mathSymbol.solverOutputStrokeIds = addedStrokes.map(s => s.id)
+        addedStrokes.forEach(stroke => {
+          this.transientInk.addTransientSymbol(mathSymbol.id, stroke.id)
+        })
+
+        await this.model.updateSymbol(mathSymbol)
+      }
+
+      return addedStrokes
+    }
+    catch (error) {
+      this.logger.error("addSolverOutputStrokes", { error })
+      this.manageError(error as Error)
+      throw error
+    }
+  }
+
+  /**
+   * Recalculate all blocks that depend on a source block
+   * @param sourceBlockId - ID of the source block whose value changed
+   * @returns Promise that resolves when all dependents are recalculated
+   * @group MathSolver
+   */
+  async recalculateDependentBlocks(sourceBlockId: string): Promise<void>
+  {
+    try {
+      this.logger.info("recalculateDependentBlocks", { sourceBlockId })
+
+      const sourceMathSymbol = this.findMathSymbolByJiixId(sourceBlockId)
+
+      if (!sourceMathSymbol) {
+        this.logger.warn("recalculateDependentBlocks", `Source block not found: ${sourceBlockId}`)
+        return
+      }
+
+      if (!sourceMathSymbol.dependentBlocks || sourceMathSymbol.dependentBlocks.length === 0) {
+        this.logger.debug("recalculateDependentBlocks", "No dependent blocks to recalculate")
+        return
+      }
+
+      this.logger.info("recalculateDependentBlocks", `Found ${sourceMathSymbol.dependentBlocks.length} dependent blocks`)
+
+      for (const dependentBlockId of sourceMathSymbol.dependentBlocks) {
+        const dependentMathSymbol = this.findMathSymbolByJiixId(dependentBlockId)
+
+        if (!dependentMathSymbol) {
+          this.logger.warn("recalculateDependentBlocks", `Dependent block not found: ${dependentBlockId}`)
+          continue
+        }
+
+        try {
+          this.logger.info("recalculateDependentBlocks", `Computing numerical result for ${dependentBlockId}`)
+          await this.computeMathNumericalResult(dependentMathSymbol)
+        }
+        catch (computeError) {
+          this.logger.error("recalculateDependentBlocks", `Error computing ${dependentBlockId}:`, computeError)
+        }
+      }
+
+      this.logger.info("recalculateDependentBlocks", "All dependent blocks recalculated")
+      this.event.emitChanged(this.history.context)
+    }
+    catch (error) {
+      this.logger.error("recalculateDependentBlocks", { error })
+      this.manageError(error as Error)
+      throw error
+    }
+  }
+
+  /**
+   * Get all dependencies for a math block
+   * Returns information about which variables this block uses and from where,
+   * and which other blocks depend on this block's variables
+   * @param blockId - The JIIX ID of the math block
+   * @returns Object containing variable sources and dependent blocks
+   * @group MathSolver
+   */
+  getMathDependencies(blockId: string): { variableSources?: { [variableName: string]: string }, dependentBlocks?: string[] } | null
+  {
+    const mathSymbol = this.findMathSymbolByJiixId(blockId)
+
+    if (!mathSymbol) {
+      this.logger.warn("getMathDependencies", `Math symbol not found for blockId: ${blockId}`)
+      return null
+    }
+
+    return {
+      variableSources: mathSymbol.variableSources,
+      dependentBlocks: mathSymbol.dependentBlocks
+    }
+  }
+
+  /**
+   * Destroy the editor and clean up resources
+   * @returns Promise that resolves when destruction is complete
+   */
   async destroy(): Promise<void>
   {
     this.logger.info("destroy")
 
-    // Retirer les écouteurs d'événements clavier
     window.removeEventListener("keydown", this.handleKeyDown)
     window.removeEventListener("keyup", this.handleKeyUp)
 

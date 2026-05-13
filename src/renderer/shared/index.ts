@@ -7,4 +7,3 @@
  */
 
 export * from "./GeometryUtils"
-export * from "./SymbolUtils"

@@ -20,7 +20,8 @@ import
   TJIIXNodeRhombus,
   TJIIXNodeTriangle,
   TJIIXTextElement,
-  TJIIXWord
+  TJIIXWord,
+  TJIIXMathElement
 } from "../../model"
 import
 {
@@ -30,20 +31,25 @@ import
   IIEdgeArc,
   IIEdgeLine,
   IIEdgePolyLine,
+  IIRecognizedText,
+  IIRecognizedMath,
   IIShapeCircle,
   IIShapeEllipse,
   IIShapePolygon,
   IIStroke,
   IIText,
+  IIMath,
   SymbolType,
   TIIEdge,
   TIIShape,
   TIISymbol,
   TIISymbolChar,
-  TPoint
+  TPoint,
+  TIIRecognizedWord,
+  TIIMathElement
 } from "../../symbol"
 import { RecognizedKind } from "../../symbol"
-import { computeAngleAxeRadian, computeAverage, convertBoundingBoxMillimeterToPixel, convertMillimeterToPixel, createUUID } from "../../utils"
+import { computeAngleAxeRadian, computeAverage, convertBoundingBoxMillimeterToPixel, convertMillimeterToPixel, convertPixelToMillimeter, createUUID } from "../../utils"
 
 /**
  * @group Manager
@@ -126,7 +132,25 @@ export class IIConversionManager
     strokes.forEach(s =>
     {
       const sym = this.model.getRootSymbol(s.id)
-      if ((sym?.type === SymbolType.Recognized && sym.kind === RecognizedKind.Text) || sym?.type === SymbolType.Group) {
+      if (sym?.type === SymbolType.Recognized && sym.kind === RecognizedKind.Text) {
+        // Check for word-level decorators in recognized text
+        const recognizedText = sym as IIRecognizedText
+        if (recognizedText.words) {
+          recognizedText.words.forEach((w: TIIRecognizedWord) => {
+            if (w.decorators && w.bounds) {
+              // Check if this word overlaps with the current text bounds
+              if (w.bounds.overlaps(boundingBox)) {
+                w.decorators.forEach((d: IIDecorator) => {
+                  const exists = decorators.find(dec => dec.kind === d.kind)
+                  if (!exists) {
+                    decorators.push(d)
+                  }
+                })
+              }
+            }
+          })
+        }
+
         const hightlight = sym.decorators.find(d => d.kind === DecoratorKind.Highlight)
         if (hightlight) decorators.push(hightlight)
         const strikethrough = sym.decorators.find(d => d.kind === DecoratorKind.Strikethrough)
@@ -442,6 +466,267 @@ export class IIConversionManager
     }
   }
 
+  protected convertLatexToUnicode(latex: string): string
+  {
+    // Convert common LaTeX commands to Unicode symbols
+    const result = latex
+      // Greek letters
+      .replace(/\\alpha/g, "α")
+      .replace(/\\beta/g, "β")
+      .replace(/\\gamma/g, "γ")
+      .replace(/\\delta/g, "δ")
+      .replace(/\\epsilon/g, "ε")
+      .replace(/\\lambda/g, "λ")
+      .replace(/\\Lambda/g, "Λ")
+      .replace(/\\pi/g, "π")
+      .replace(/\\sigma/g, "σ")
+      .replace(/\\Sigma/g, "Σ")
+      .replace(/\\omega/g, "ω")
+      .replace(/\\Omega/g, "Ω")
+      // Math operators
+      .replace(/\\int/g, "∫")
+      .replace(/\\sum/g, "∑")
+      .replace(/\\prod/g, "∏")
+      .replace(/\\sqrt/g, "√")
+      .replace(/\\infty/g, "∞")
+      .replace(/\\partial/g, "∂")
+      .replace(/\\nabla/g, "∇")
+      // Superscripts (convert ^{n} to Unicode superscript)
+      .replace(/\^{([0-9]+)}/g, (_, num) => {
+        const superscripts: { [key: string]: string } = {
+          "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴",
+          "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹"
+        }
+        return num.split("").map((d: string) => superscripts[d] || d).join("")
+      })
+      .replace(/\^([0-9])/g, (_, num) => {
+        const superscripts: { [key: string]: string } = {
+          "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴",
+          "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹"
+        }
+        return superscripts[num] || num
+      })
+      // Subscripts (convert _{n} to Unicode subscript)
+      .replace(/_{([0-9]+)}/g, (_, num) => {
+        const subscripts: { [key: string]: string } = {
+          "0": "₀", "1": "₁", "2": "₂", "3": "₃", "4": "₄",
+          "5": "₅", "6": "₆", "7": "₇", "8": "₈", "9": "₉"
+        }
+        return num.split("").map((d: string) => subscripts[d] || d).join("")
+      })
+      .replace(/_([0-9])/g, (_, num) => {
+        const subscripts: { [key: string]: string } = {
+          "0": "₀", "1": "₁", "2": "₂", "3": "₃", "4": "₄",
+          "5": "₅", "6": "₆", "7": "₇", "8": "₈", "9": "₉"
+        }
+        return subscripts[num] || num
+      })
+      // Fractions - simplified rendering as a/b
+      .replace(/\\dfrac{([^}]+)}{([^}]+)}/g, "($1)/($2)")
+      .replace(/\\frac{([^}]+)}{([^}]+)}/g, "($1)/($2)")
+      // Remove remaining braces
+      .replace(/[{}]/g, "")
+      // Clean up backslashes for simple commands
+      .replace(/\\/g, "")
+
+    return result
+  }
+
+  buildMath(mathElement: TJIIXMathElement, strokes: IIStroke[], fontSize: number): IIMath
+  {
+    const boundingBox = Box.createFromBoxes([convertBoundingBoxMillimeterToPixel(mathElement["bounding-box"])])
+
+    // Get font family with comprehensive fallbacks for math symbols
+    const fontFamily = "'STIX Two Math', STIXGeneral, STIX, 'Cambria Math', 'Latin Modern Math', 'DejaVu Math', serif"
+
+    let fontWeight = this.configuration.weight
+    if (fontWeight === "auto") {
+      fontWeight = (strokes[0]?.style.width || 1) > 2 ? "bold" : "normal"
+    }
+    const color = strokes[0]?.style.color || "black"
+
+    const label = mathElement.label || ""
+    const mathElements: TIIMathElement[] = []
+
+    // Check for operators with bounds (like \sum ^{...}_{...} or \sum _{...}^{...})
+    // Support both orders: ^{...}_{...} and _{...}^{...}
+    const operatorWithBothBounds1 = /\\(sum|int|prod)\s*\^{([^}]+)}_{([^}]+)}/
+    const operatorWithBothBounds2 = /\\(sum|int|prod)\s*_{([^}]+)}\^{([^}]+)}/
+
+    let match = label.match(operatorWithBothBounds1)
+    let upperBound = ""
+    let lowerBound = ""
+
+    if (!match) {
+      match = label.match(operatorWithBothBounds2)
+      if (match) {
+        // Order is reversed: _{lower}^{upper}
+        upperBound = match[3]
+        lowerBound = match[2]
+      }
+    } else {
+      // Normal order: ^{upper}_{lower}
+      upperBound = match[2]
+      lowerBound = match[3]
+    }
+
+    if (match) {
+      // Extract operator and rest of expression
+      const operator = match[1] // "sum", "int", or "prod"
+      const restOfExpression = label.substring(match.index! + match[0].length)
+
+      // Convert operator to Unicode
+      const operatorSymbols: { [key: string]: string } = {
+        "sum": "∑",
+        "int": "∫",
+        "prod": "∏"
+      }
+      const operatorSymbol = operatorSymbols[operator] || operator
+
+      // Create elements in order: operator, superscript (upper bound), subscript (lower bound), rest
+      const limitFontSize = fontSize * 0.5 // Smaller font for limits (50% of main size)
+
+      // 1. Main operator symbol
+      mathElements.push({
+        id: `math-element-${createUUID()}`,
+        label: operatorSymbol,
+        color,
+        fontSize,
+        fontWeight,
+        fontFamily,
+        bounds: boundingBox,
+        position: "normal"
+      })
+
+      // 2. Upper bound (superscript)
+      mathElements.push({
+        id: `math-element-${createUUID()}`,
+        label: this.convertLatexToUnicode(upperBound),
+        color,
+        fontSize: limitFontSize,
+        fontWeight,
+        fontFamily,
+        bounds: boundingBox,
+        position: "superscript"
+      })
+
+      // 3. Lower bound (subscript)
+      mathElements.push({
+        id: `math-element-${createUUID()}`,
+        label: this.convertLatexToUnicode(lowerBound),
+        color,
+        fontSize: limitFontSize,
+        fontWeight,
+        fontFamily,
+        bounds: boundingBox,
+        position: "subscript"
+      })
+
+      // 4. Rest of expression
+      if (restOfExpression) {
+        mathElements.push({
+          id: `math-element-${createUUID()}`,
+          label: this.convertLatexToUnicode(restOfExpression),
+          color,
+          fontSize,
+          fontWeight,
+          fontFamily,
+          bounds: boundingBox,
+          position: "normal"
+        })
+      }
+    } else {
+      // No special bounds - convert the whole label as before
+      const unicodeLabel = this.convertLatexToUnicode(label)
+
+      mathElements.push({
+        id: `math-element-${createUUID()}`,
+        label: unicodeLabel,
+        color,
+        fontSize,
+        fontWeight,
+        fontFamily,
+        bounds: boundingBox,
+        position: "normal"
+      })
+    }
+
+    const point: TPoint = {
+      x: boundingBox.xMin,
+      y: boundingBox.yMax
+    }
+
+    // Calculate adjusted bounding box for operators with superscript/subscript limits
+    let adjustedBounds = boundingBox
+    if (match) {
+      // When we have superscript/subscript, the renderer positions them vertically
+      // superscript: y = baselineY - fontSize * 1.5 (this is baseline position)
+      // subscript: y = baselineY + fontSize * 1.2 (this is baseline position)
+      const baselineY = boundingBox.yMax
+      const limitFontSize = fontSize * 0.5
+
+      // Calculate vertical extent
+      // Superscript: text extends above its baseline by ~fontSize
+      const superscriptTop = baselineY - limitFontSize * 1.5 - limitFontSize
+      // Subscript: text extends below its baseline by ~0.25 * fontSize (descenders)
+      const subscriptBottom = baselineY + limitFontSize * 1.2 + limitFontSize * 0.25
+
+      // Calculate horizontal extent
+      // The renderer positions normal elements horizontally with width = label.length * fontSize * 0.6
+      // Sum up all normal elements (operator + rest)
+      const normalElements = mathElements.filter(e => e.position === "normal")
+      const totalWidth = normalElements.reduce((sum, e) => sum + e.label.length * e.fontSize * 0.6, 0)
+
+      // Also check if superscript/subscript extend beyond the operator
+      const limitElements = mathElements.filter(e => e.position === "superscript" || e.position === "subscript")
+      const maxLimitWidth = limitElements.reduce((max, e) => {
+        // Limits are centered: x = currentX - label.length * fontSize * 0.3
+        // So they extend from (currentX - label.length * fontSize * 0.3) to (currentX - label.length * fontSize * 0.3 + label.length * fontSize * 0.6)
+        const limitWidth = e.label.length * e.fontSize * 0.6
+        return Math.max(max, limitWidth)
+      }, 0)
+
+      // Final width is the max of total normal width and limit width
+      const finalWidth = Math.max(totalWidth, maxLimitWidth)
+
+      // Extend bounding box to include superscript and subscript
+      adjustedBounds = new Box({
+        x: boundingBox.x,
+        y: superscriptTop,
+        width: finalWidth,
+        height: subscriptBottom - superscriptTop
+      })
+    }
+
+    const math = new IIMath(mathElements, point, adjustedBounds, strokes[0]?.style)
+
+    return math
+  }
+
+  convertMath(mathElement: TJIIXMathElement, strokes: IIStroke[]): { symbol: IIMath, strokes: IIStroke[] } | undefined
+  {
+    if (!mathElement["bounding-box"]) {
+      this.#logger.warn("convertMath", "Math element missing bounding-box")
+      return undefined
+    }
+
+    const mathStrokes = strokes.filter(s => mathElement.items?.some(i => i["full-id"] === s.id)) as IIStroke[]
+    if (!mathStrokes.length) {
+      return undefined
+    }
+
+    // Calculate font size based on bounding box height
+    const height = convertMillimeterToPixel(mathElement["bounding-box"].height)
+    const fontSize = Math.round(height * 0.4) // Divided by 2 from original 0.8
+
+    const mathSymbol = this.buildMath(mathElement, mathStrokes, fontSize)
+
+    return {
+      symbol: mathSymbol,
+      strokes: mathStrokes
+    }
+  }
+
   async apply(symbols: TIISymbol[] = []): Promise<void>
   {
     this.#logger.info("convert")
@@ -450,11 +735,47 @@ export class IIConversionManager
     }
     this.editor.selector.removeSelectedGroup()
     const jiix = this.model.exports?.["application/vnd.myscript.jiix"] as TJIIXExport
-    if (jiix?.elements?.length) {
-      const strokesToConvert = this.editor.extractStrokesFromSymbols(symbols.length ? symbols : this.model.symbols)
 
+    const strokesToConvert = this.editor.extractStrokesFromSymbols(symbols.length ? symbols : this.model.symbols)
+    const conversionResults: { symbol: TIISymbol, strokes: IIStroke[] }[] = []
+
+    // Convert IIRecognizedMath symbols directly
+    const symbolsToProcess = symbols.length ? symbols : this.model.symbols
+    symbolsToProcess.forEach(sym => {
+      if (sym.type === SymbolType.Recognized) {
+        const recognizedSym = sym as IIRecognizedMath
+        if (recognizedSym.kind === RecognizedKind.Math && recognizedSym.expressions && recognizedSym.label && recognizedSym.bounds) {
+          // Build a temporary JIIX Math element from the recognized math
+          // Convert pixel bounds to millimeters for compatibility with convertMath
+          const boundsMM = {
+            x: convertPixelToMillimeter(recognizedSym.bounds.x),
+            y: convertPixelToMillimeter(recognizedSym.bounds.y),
+            width: convertPixelToMillimeter(recognizedSym.bounds.width),
+            height: convertPixelToMillimeter(recognizedSym.bounds.height)
+          }
+          const mathElement: TJIIXMathElement = {
+            type: "Math",
+            id: recognizedSym.jiixId || recognizedSym.id,
+            label: recognizedSym.label,
+            expressions: recognizedSym.expressions,
+            "bounding-box": boundsMM,
+            items: recognizedSym.strokes.map(s => ({
+              type: "stroke" as const,
+              id: s.id,
+              "full-id": s.id
+            }))
+          }
+          const conversion = this.convertMath(mathElement, recognizedSym.strokes)
+          if (conversion) {
+            conversionResults.push(conversion)
+          }
+        }
+      }
+    })
+
+    // Also convert from JIIX export if available
+    if (jiix?.elements?.length) {
       const onlyText = !jiix.elements?.some(e => e.type !== "Text")
-      const conversionResults: { symbol: TIISymbol, strokes: IIStroke[] }[] = []
       jiix.elements.forEach(el =>
       {
         switch (el.type) {
@@ -462,6 +783,13 @@ export class IIConversionManager
             const conversion = this.convertText(el, strokesToConvert, onlyText)
             if (conversion) {
               conversionResults.push(...conversion)
+            }
+            break
+          }
+          case "Math": {
+            const conversion = this.convertMath(el, strokesToConvert)
+            if (conversion) {
+              conversionResults.push(conversion)
             }
             break
           }
@@ -480,11 +808,13 @@ export class IIConversionManager
             break
           }
           default: {
-            this.#logger.warn("buildConversions", `Unknown jiix element type: ${ el.type }`)
+            this.#logger.warn("buildConversions", `Unknown jiix element type: ${ (el as { type: string }).type }`)
           }
         }
       })
+    }
 
+    if (conversionResults.length) {
       this.editor.addSymbols(conversionResults.map(cs => cs.symbol), false)
       this.editor.removeSymbols(conversionResults.flatMap(cs => cs.strokes.map(s => s.id)), false)
       this.editor.history.push(this.model, { added: conversionResults.map(c => c.symbol), erased: conversionResults.flatMap(cs => cs.strokes) })

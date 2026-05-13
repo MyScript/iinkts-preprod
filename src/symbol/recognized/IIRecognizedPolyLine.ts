@@ -22,6 +22,7 @@ export class IIRecognizedPolyLine extends IIRecognizedBase<RecognizedKind.PolyEd
   {
     const clone = new IIRecognizedPolyLine(this.strokes.map(s => s.clone()), structuredClone({ ...this.style }))
     clone.id = this.id
+    clone.jiixId = this.jiixId
     clone.selected = this.selected
     clone.deleting = this.deleting
     clone.creationTime = this.creationTime
@@ -35,6 +36,7 @@ export class IIRecognizedPolyLine extends IIRecognizedBase<RecognizedKind.PolyEd
       id: this.id,
       type: this.type,
       kind: this.kind,
+      jiixId: this.jiixId,
       strokes: structuredClone(this.strokes),
     }
   }
@@ -50,6 +52,9 @@ export class IIRecognizedPolyLine extends IIRecognizedBase<RecognizedKind.PolyEd
 
     if (partial.id) {
       ws.id = partial.id
+    }
+    if (partial.jiixId) {
+      ws.jiixId = partial.jiixId
     }
     return ws
   }

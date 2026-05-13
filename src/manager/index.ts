@@ -23,10 +23,17 @@
  * - {@link IITranslateManager} - Handles movement/translation
  * - {@link IITextManager} - Handles text editing
  * - {@link IIMoveManager} - Manages move operations
+ * - {@link IISynchronizerManager} - Synchronizes strokes with JIIX recognition results
  *
  * **Debug Managers** (`./debug`)
  * - {@link IIDebugSVGManager} - Debug visualization for InteractiveInkEditor
  * - {@link IDebugSVGManager} - Debug visualization for InkEditor
+ *
+ * **Math Managers** (`./math`)
+ * - {@link VariableColorManager} - Color palette for variable visualization
+ * - {@link TransientInkManager} - Manages temporary solver result overlays
+ * - {@link MathOverlayManager} - Visual overlays (badges, borders, result panels)
+ * - {@link MathInteractionManager} - Interaction highlighting and dependency visualization
  */
 
 // Core abstractions
@@ -40,3 +47,6 @@ export * from "./interactive"
 
 // Debug managers
 export * from "./debug"
+
+// Math managers
+export * from "./math"

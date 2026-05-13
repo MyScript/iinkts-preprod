@@ -7,10 +7,10 @@ import { BaseRenderer } from "../base"
 import { SVGRendererConst } from "./utils/SVGRendererConst"
 import { SVGRendererEdgeUtil } from "./SVGRendererEdgeUtil"
 import { SVGRendererEraserUtil } from "./SVGRendererEraserUtil"
-import { SVGRendererGroupUtil } from "./SVGRendererGroupUtil"
 import { SVGRendererShapeUtil } from "./SVGRendererShapeUtil"
 import { SVGRendererStrokeUtil } from "./SVGRendererStrokeUtil"
 import { SVGRendererTextUtil } from "./SVGRendererTextUtil"
+import { SVGRendererMathUtil } from "./SVGRendererMathUtil"
 import { SVGRendererRecognizedUtil } from "./SVGRendererRecognizedUtil"
 import { SVGBuilder } from "./utils/SVGBuilder"
 
@@ -318,8 +318,8 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
       case SymbolType.Text:
         element = SVGRendererTextUtil.getSVGElement(symbol)
         break
-      case SymbolType.Group:
-        element = SVGRendererGroupUtil.getSVGElement(symbol)
+      case SymbolType.Math:
+        element = SVGRendererMathUtil.getSVGElement(symbol)
         break
       case SymbolType.Recognized:
         element = SVGRendererRecognizedUtil.getSVGElement(symbol)
@@ -361,6 +361,10 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
 
   removeElement(id: string): void {
     this.#logger.debug("Element", { id })
+    if (!this.layer) {
+      this.#logger.debug("removeElement: layer not initialized yet, skipping")
+      return
+    }
     const oldStroke = this.layer.querySelector(`#${id}`)
     if (oldStroke) {
       oldStroke.remove()
@@ -451,15 +455,21 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
   }
 
   getElementById(id: string): SVGGraphicsElement | null {
+    if (!this.layer) {
+      return null
+    }
     return this.layer.querySelector(`#${id}`) as SVGGraphicsElement | null
   }
 
   getElements({ tagName, attrs }: { tagName?: string, attrs?: { [key: string]: string } }): NodeListOf<Element> {
     this.#logger.info("getElements", { tagName, attrs })
+    if (!this.layer) {
+      return document.querySelectorAll("never-match") // Return empty NodeList
+    }
     let query = tagName || "*"
     if (attrs) {
       for (const k in attrs) {
-        query += `[${k}=${attrs[k]}]`
+        query += `[${k}="${attrs[k]}"]`
       }
     }
     return this.layer.querySelectorAll(query)
@@ -467,6 +477,10 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
 
   clearElements({ tagName, attrs }: { tagName?: string, attrs?: { [key: string]: string } }): void {
     this.#logger.info("clearElements", { tagName, attrs })
+    if (!this.layer) {
+      this.#logger.debug("clearElements: layer not initialized yet, skipping")
+      return
+    }
     this.getElements({ tagName, attrs })
       .forEach(e => e.remove())
   }

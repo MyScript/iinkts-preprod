@@ -12,16 +12,24 @@ export type TRecognitionWebSocketConfiguration = {
     text?: TTextConfConfiguration
     "session-time"?: number
     recognition?: {
-      types: ("text" | "shape")[]
+      types: ("text" | "shape" | "math")[]
     }
     classification?: {
-      types: ("text" | "shape")[]
+      types: ("text" | "shape" | "math")[]
     }
     gestures?: ("underline" | "scratch-out" | "join" | "insert" | "strike-through" | "surround")[]
   }
   gesture: {
     enable: boolean,
     ignoreGestureStrokes: boolean
+  },
+  math?: {
+    solver?: {
+      "auto-variable-management"?: {
+        enable?: boolean,
+        "scoping-policy"?: "closest"|"last-modified"|"last-edited"
+      }
+    }
   }
 }
 
@@ -45,12 +53,12 @@ export const DefaultRecognitionWebSocketConfiguration: TRecognitionWebSocketConf
   },
   "raw-content": {
     recognition: {
-      types: ["text", "shape"]
+      types: ["text", "shape", "math"]
     },
     classification: {
-      types: ["text", "shape"]
+      types: ["text", "shape", "math"]
     },
-    gestures: ["underline", "scratch-out", "join", "insert", "strike-through", "surround"]
+    gestures: ["underline", "scratch-out", "strike-through", "surround"]
   },
   lang: "en_US",
   gesture: {
@@ -91,19 +99,20 @@ export class RecognizerWebSocketConfiguration implements TRecognizerWebSocketCon
 
     this.recognition = mergeDeep({}, DefaultRecognizerWebSocketConfiguration.recognition, configuration?.recognition)
     this.recognition.export.jiix["full-stroke-ids"] = true
+    this.recognition.export.jiix.strokes = true
     this.recognition.export.jiix.ids = true
     this.recognition.export.jiix.text.words = true
     this.recognition.export.jiix.text.chars = true
     this.recognition.export.jiix.text.lines = true
     this.recognition.export.jiix["bounding-box"] = true
     if (configuration?.recognition?.["raw-content"]?.recognition?.types) {
-      this.recognition["raw-content"].recognition!.types = configuration.recognition["raw-content"].recognition.types as ("text" | "shape")[]
+      this.recognition["raw-content"].recognition!.types = configuration.recognition["raw-content"].recognition.types.filter(t => !!t)
     }
     if (configuration?.recognition?.["raw-content"]?.classification?.types) {
-      this.recognition["raw-content"].classification!.types = configuration.recognition["raw-content"].classification.types as ("text" | "shape")[]
+      this.recognition["raw-content"].classification!.types = configuration.recognition["raw-content"].classification.types.filter(t => !!t)
     }
     if (configuration?.recognition?.["raw-content"]?.gestures) {
-      this.recognition["raw-content"].gestures = configuration.recognition["raw-content"].gestures as ("underline" | "scratch-out" | "join" | "insert" | "strike-through" | "surround")[]
+      this.recognition["raw-content"].gestures = configuration.recognition["raw-content"].gestures.filter(g => !!g)
     }
     if (this.server.version && !isVersionSuperiorOrEqual(this.server.version, "3.2.0")) {
       delete this.recognition.export.jiix.text.lines

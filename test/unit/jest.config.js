@@ -48,6 +48,14 @@ export default {
   transform: {
     "^.+\\.css$": "jest-transform-css",
     "^.+\\.svg$": "<rootDir>/test/unit/__config__/svgTransform.ts",
+    "^.+\\.ts$": ["ts-jest", {
+      useESM: true,
+      tsconfig: {
+        esModuleInterop: true,
+        allowSyntheticDefaultImports: true,
+      }
+    }]
   },
+  extensionsToTreatAsEsm: [".ts"],
   verbose: false
 }
