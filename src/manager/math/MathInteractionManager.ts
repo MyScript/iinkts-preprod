@@ -1,5 +1,5 @@
 import { LoggerManager, LoggerCategory } from "../../logger"
-import { InteractiveInkEditor } from "../../editor/InteractiveInkEditor"
+import { InteractiveInkEditor } from "../../editor/variants/InteractiveInkEditor"
 import { IIRecognizedMath, TBox } from "../../symbol"
 import { MathOverlayManager } from "./MathOverlayManager"
 import { VariableColorManager } from "./VariableColorManager"

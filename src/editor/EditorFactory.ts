@@ -1,9 +1,9 @@
 import { LoggerCategory, LoggerManager } from "../logger"
 import { EditorType } from "./AbstractEditor"
-import { InteractiveInkEditor, TInteractiveInkEditorOptions } from "./InteractiveInkEditor"
-import { InkEditorDeprecated, TInkEditorDeprecatedOptions } from "./InkEditorDeprecated"
-import { InteractiveInkSSREditor, TInteractiveInkSSREditorOptions } from "./InteractiveInkSSREditor"
-import { InkEditor, TInkEditorOptions } from "./InkEditor"
+import { InteractiveInkEditor, TInteractiveInkEditorOptions } from "./variants/InteractiveInkEditor"
+import { InkEditorDeprecated, TInkEditorDeprecatedOptions } from "./variants/InkEditorDeprecated"
+import { InteractiveInkSSREditor, TInteractiveInkSSREditorOptions } from "./variants/InteractiveInkSSREditor"
+import { InkEditor, TInkEditorOptions } from "./variants/InkEditor"
 
 /**
  * @group Editor

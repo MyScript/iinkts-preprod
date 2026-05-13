@@ -2,7 +2,7 @@ import { LoggerManager, LoggerCategory } from "../../logger"
 import { SVGRenderer, SVGBuilder, SVGRendererConst } from "../../renderer"
 import { IIModel } from "../../model"
 import { TBox, TIISymbol, IIRecognizedMath, RecognizedKind, SymbolType } from "../../symbol"
-import { InteractiveInkEditor } from "../../editor/InteractiveInkEditor"
+import { InteractiveInkEditor } from "../../editor/variants/InteractiveInkEditor"
 import { VariableColorManager } from "./VariableColorManager"
 
 /**
