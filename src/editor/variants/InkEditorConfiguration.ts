@@ -1,12 +1,12 @@
-import { DefaultGrabberConfiguration, TGrabberConfiguration } from "../grabber"
-import { DefaultHistoryConfiguration, THistoryConfiguration } from "../history"
-import { DefaultLoggerConfiguration, TLoggerConfiguration } from "../logger"
-import { DefaultRecognizerHTTPV2Configuration, RecognizerHTTPV2Configuration, TRecognizerHTTPV2Configuration, TRecognizerHTTPV2RecognitionConfiguration, TServerHTTPConfiguration } from "../recognizer"
-import { DefaultIIRendererConfiguration, TIIRendererConfiguration } from "../renderer"
-import { DefaultStyle, TStyle } from "../style"
-import { convertPixelToMillimeter, mergeDeep, PartialDeep } from "../utils"
-import { TEditorConfiguration } from "./AbstractEditor"
-import { DefaulTEditorTriggerConfiguration, TEditorTriggerConfiguration } from "./EditorTriggerConfiguration"
+import { DefaultGrabberConfiguration, TGrabberConfiguration } from "../../grabber"
+import { DefaultHistoryConfiguration, THistoryConfiguration } from "../../history"
+import { DefaultLoggerConfiguration, TLoggerConfiguration } from "../../logger"
+import { DefaultRecognizerHTTPV2Configuration, RecognizerHTTPV2Configuration, TRecognizerHTTPV2Configuration, TRecognizerHTTPV2RecognitionConfiguration, TServerHTTPConfiguration } from "../../recognizer"
+import { DefaultIIRendererConfiguration, TIIRendererConfiguration } from "../../renderer"
+import { DefaultStyle, TStyle } from "../../style"
+import { convertPixelToMillimeter, mergeDeep, PartialDeep } from "../../utils"
+import { TEditorConfiguration } from "../AbstractEditor"
+import { DefaulTEditorTriggerConfiguration, TEditorTriggerConfiguration } from "../EditorTriggerConfiguration"
 
 
 /**

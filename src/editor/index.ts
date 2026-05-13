@@ -11,16 +11,3 @@ export { EditorFactory, type EditorVariantMap, type EditorOptionsMap } from "./E
 
 // Editor variants
 export * from "./variants"
-
-// Re-export concrete implementations for backward compatibility
-export * from "./InkEditor"
-export * from "./InkEditorConfiguration"
-
-export * from "./InkEditorDeprecated"
-export * from "./InkEditorDeprecatedConfiguration"
-
-export * from "./InteractiveInkSSREditor"
-export * from "./InteractiveInkSSREditorConfiguration"
-
-export * from "./InteractiveInkEditor"
-export * from "./InteractiveInkEditorConfiguration"

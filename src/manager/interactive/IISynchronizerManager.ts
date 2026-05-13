@@ -1,5 +1,5 @@
 import { LoggerCategory, LoggerManager } from "../../logger"
-import { InteractiveInkEditor } from "../../editor/InteractiveInkEditor"
+import { InteractiveInkEditor } from "../../editor/variants/InteractiveInkEditor"
 import { IIModel, TJIIXExport, TJIIXStrokeItem, TJIIXMathElement, TJIIXMathExpression, TJIIXTextElement, TJIIXNodeElement, TJIIXEdgeElement, TJIIXWord, TJIIXChar, TJIIXEdgeLine, JIIXELementType, JIIXEdgeKind, JIIXNodeKind } from "../../model"
 import
 {

@@ -1,13 +1,13 @@
-import { mergeDeep, PartialDeep } from "../utils"
-import { DefaultStyle, TStyle } from "../style"
-import { DefaultLoggerConfiguration, TLoggerConfiguration } from "../logger"
-import { DefaultGrabberConfiguration, TGrabberConfiguration } from "../grabber"
-import { DefaultHistoryConfiguration, THistoryConfiguration } from "../history"
-import { DefaultMenuConfiguration, TMenuConfiguration } from "../menu"
-import { DefaultRecognizerWebSocketConfiguration, RecognizerWebSocketConfiguration, TRecognitionWebSocketConfiguration, TRecognizerWebSocketConfiguration, TServerWebsocketConfiguration } from "../recognizer"
-import { DefaultIIRendererConfiguration, TIIRendererConfiguration } from "../renderer"
-import { TEditorConfiguration } from "./AbstractEditor"
-import { DefaultGestureConfiguration, TGestureConfiguration, DefaultSnapConfiguration, SnapConfiguration, TSnapConfiguration } from "../manager"
+import { mergeDeep, PartialDeep } from "../../utils"
+import { DefaultStyle, TStyle } from "../../style"
+import { DefaultLoggerConfiguration, TLoggerConfiguration } from "../../logger"
+import { DefaultGrabberConfiguration, TGrabberConfiguration } from "../../grabber"
+import { DefaultHistoryConfiguration, THistoryConfiguration } from "../../history"
+import { DefaultMenuConfiguration, TMenuConfiguration } from "../../menu"
+import { DefaultRecognizerWebSocketConfiguration, RecognizerWebSocketConfiguration, TRecognitionWebSocketConfiguration, TRecognizerWebSocketConfiguration, TServerWebsocketConfiguration } from "../../recognizer"
+import { DefaultIIRendererConfiguration, TIIRendererConfiguration } from "../../renderer"
+import { TEditorConfiguration } from "../AbstractEditor"
+import { DefaultGestureConfiguration, TGestureConfiguration, DefaultSnapConfiguration, SnapConfiguration, TSnapConfiguration } from "../../manager"
 
 /**
  * @group Editor

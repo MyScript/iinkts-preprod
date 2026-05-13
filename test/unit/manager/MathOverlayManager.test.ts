@@ -1,12 +1,12 @@
 import { MathOverlayManager } from "../../../src/manager/math/MathOverlayManager"
 import { VariableColorManager } from "../../../src/manager/math/VariableColorManager"
-import { InteractiveInkEditor } from "../../../src/editor/InteractiveInkEditor"
+import { InteractiveInkEditor } from "../../../src/editor/variants/InteractiveInkEditor"
 import { SVGRenderer, SVGBuilder } from "../../../src/renderer"
 import { IIModel } from "../../../src/model"
 import { IIRecognizedMath, RecognizedKind, SymbolType } from "../../../src/symbol"
 
 // Mock dependencies
-jest.mock("../../../src/editor/InteractiveInkEditor")
+jest.mock("../../../src/editor/variants/InteractiveInkEditor")
 jest.mock("../../../src/model")
 
 describe("MathOverlayManager", () =>

@@ -6,7 +6,7 @@ import { SVGRenderer, SVGBuilder } from "../../renderer"
 import { IIResizeManager } from "./IIResizeManager"
 import { IIRotationManager } from "./IIRotationManager"
 import { IITranslateManager } from "./IITranslateManager"
-import { InteractiveInkEditor } from "../../editor/InteractiveInkEditor"
+import { InteractiveInkEditor } from "../../editor/variants/InteractiveInkEditor"
 import { PointerEventGrabber, PointerInfo } from "../../grabber"
 
 /**

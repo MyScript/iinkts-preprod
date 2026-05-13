@@ -1,4 +1,4 @@
-import { InteractiveInkEditor } from "../../editor/InteractiveInkEditor"
+import { InteractiveInkEditor } from "../../editor/variants/InteractiveInkEditor"
 import { PointerEventGrabber, PointerInfo } from "../../grabber"
 import { LoggerCategory, LoggerManager } from "../../logger"
 import { SVGRenderer } from "../../renderer"
