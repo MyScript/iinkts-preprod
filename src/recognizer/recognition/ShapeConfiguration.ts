@@ -1,22 +1,33 @@
-
-import { DefaultEraserConfiguration, TEraserConfiguration } from "./EraserConfiguration"
+import
+{
+  DefaultEraserConfiguration,
+  TEraserConfiguration
+} from "./EraserConfiguration"
 
 /**
  * @group Recognizer
  */
 export type TShapeConvertConfiguration = {
-  types?: ("shape")[]
+  types?: "shape"[]
   "match-text-size"?: boolean
 }
 
+/**
+ * @group Recognizer
+ */
 export type TShapeBeautificationConfiguration = {
-    enable?: true
+  enable?: true
 }
+
 /**
  * @group Recognizer
  */
 export type TShapeConfiguration = {
-  mimeTypes: ("application/vnd.myscript.jiix" | "application/vnd.openxmlformats-officedocument.presentationml.presentation" | "image/svg+xml")[]
+  mimeTypes: (
+    | "application/vnd.myscript.jiix"
+    | "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+    | "image/svg+xml"
+  )[]
   "enable-sub-blocks"?: boolean
   convert?: TShapeConvertConfiguration
   "session-time"?: number
@@ -33,9 +44,14 @@ export const DefaultShapeConvertConfiguration: TShapeConvertConfiguration = {
   "match-text-size": true
 }
 
-export const DefaultShapeBeautificationConfiguration: TShapeBeautificationConfiguration = {
-    enable: true
-  }
+/**
+ * @group Recognizer
+ * @source
+ */
+export const DefaultShapeBeautificationConfiguration: TShapeBeautificationConfiguration =
+{
+  enable: true
+}
 
 /**
  * @group Recognizer

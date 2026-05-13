@@ -7,6 +7,7 @@ import { VariableColorManager } from "./VariableColorManager"
 
 /**
  * Visual overlay configuration
+ * @group Manager
  */
 export type TMathOverlayConfig = {
   showBlockOverlays: boolean
