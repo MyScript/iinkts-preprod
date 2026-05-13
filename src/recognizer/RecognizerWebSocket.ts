@@ -408,8 +408,8 @@ export class RecognizerWebSocket
   {
     const blockId = mathSolverMessage.blockId
     if (!blockId) {
-      this.#logger.error("manageMathSolverResult", "Received math solver result without blockId, unable to resolve corresponding promise", mathSolverMessage)
-      return
+      this.#logger.warn("manageMathSolverResult", "Received math solver result without blockId, unable to resolve corresponding promise", mathSolverMessage)
+      // return
     }
 
     switch (mathSolverMessage.action) {
