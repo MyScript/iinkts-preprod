@@ -1,6 +1,0 @@
-export * from "./StrokeColorStyle"
-export * from "./FillColorStyle"
-export * from "./ThicknessStyle"
-export * from "./FontSizeStyle"
-export * from "./FontWeightStyle"
-export * from "./OpacityStyle"
