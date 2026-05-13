@@ -366,6 +366,9 @@ export type JIIXV2RawContentItemShape = JIIXV2RawContentBase<"Shape"> & {
   elements: JIIXV2ShapeElement[]
 }
 
+/**
+ * @group Exports
+ */
 export type JIIXV2RawContentElement = JIIXV2RawContentItemText | JIIXV2RawContentItemShape
 
 /**

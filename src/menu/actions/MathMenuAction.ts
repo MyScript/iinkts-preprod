@@ -2,7 +2,7 @@ import { InteractiveInkEditor } from "../../editor"
 import { SubMenuItem, IMenuSubMenu } from "../items/SubMenuItem"
 import { IMenuCheckbox } from "../items/CheckboxMenuItem"
 import { IMenuSelect } from "../items/SelectMenuItem"
-import { isMathSymbol } from "../../symbol"
+import { isRecognizedMathSymbol } from "../../symbol"
 import mathIcon from "../../assets/svg/linear-double-arrow.svg"
 
 /**
@@ -38,7 +38,7 @@ export class MathMenuAction extends SubMenuItem
           editor.mathComputationMode = value as "strokes-only" | "value-only" | "both"
 
           if (value === "value-only" && oldMode !== "value-only") {
-            const mathSymbols = editor.model.symbols.filter(isMathSymbol)
+            const mathSymbols = editor.model.symbols.filter(isRecognizedMathSymbol)
             for (const mathSymbol of mathSymbols) {
               await editor.clearSolverOutputStrokes(mathSymbol)
             }

@@ -40,4 +40,4 @@ export * from "./geometry"
 export * from "./recognized"
 
 // Symbol helpers
-export * from "./symbol-helpers"
+export * from "./SymbolHelpers"

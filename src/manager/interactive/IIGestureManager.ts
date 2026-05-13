@@ -13,7 +13,8 @@ import
   TPoint,
   IIRecognizedText,
   RecognizedKind,
-  isMathSymbol,
+  isRecognizedMathSymbol,
+  isRecognizedTextSymbol,
 } from "../../symbol"
 import { RecognizerWebSocket } from "../../recognizer"
 import { SVGRenderer } from "../../renderer"
@@ -195,7 +196,7 @@ export class IIGestureManager
 
   protected isDecorable(symbol: TIISymbol): boolean
   {
-    return symbol.type === SymbolType.Stroke || symbol.type === SymbolType.Text || (symbol.type === SymbolType.Recognized && symbol.kind === RecognizedKind.Text)
+    return symbol.type === SymbolType.Stroke || symbol.type === SymbolType.Text || isRecognizedTextSymbol(symbol)
   }
 
   /**
@@ -212,8 +213,8 @@ export class IIGestureManager
   ): boolean
   {
     // For IIRecognizedText with words
-    if (symbol.type === SymbolType.Recognized && symbol.kind === RecognizedKind.Text) {
-      const recognizedText = symbol as IIRecognizedText
+    if (isRecognizedTextSymbol(symbol)) {
+      const recognizedText = symbol
 
       if (!recognizedText.words || !recognizedText.words.length) {
         // Fallback to text-level decorator if no words
@@ -527,8 +528,8 @@ export class IIGestureManager
     })
 
     const affectedMathSymbols = [
-      ...symbolsToErase.filter(isMathSymbol),
-      ...symbolsToReplace.oldSymbols.filter(isMathSymbol)
+      ...symbolsToErase.filter(isRecognizedMathSymbol),
+      ...symbolsToReplace.oldSymbols.filter(isRecognizedMathSymbol)
     ]
 
     const dependentBlocksToClean = new Set<string>()

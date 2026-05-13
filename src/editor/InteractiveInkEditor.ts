@@ -29,7 +29,7 @@ import
   ShapeKind,
   SymbolType,
   convertPartialStrokesToOIStrokes,
-  isMathSymbol
+  isRecognizedMathSymbol
 } from "../symbol"
 import { RecognizerWebSocket, TMathVariable, TMathEvaluable } from "../recognizer"
 import { SVGRenderer, SVGBuilder, TIIRendererConfiguration } from "../renderer"
@@ -861,7 +861,7 @@ export class InteractiveInkEditor extends AbstractEditor
               ws.removeStrokes(ids)
               if (ws.strokes.length) {
                 ws.jiixId = undefined
-                if (isMathSymbol(ws)) {
+                if (isRecognizedMathSymbol(ws)) {
                   ws.variableValues = undefined
                   if (ws.solverOutputStrokeIds && ws.solverOutputStrokeIds.length > 0) {
                     const remainingIds = new Set(ws.strokes.map(s => s.id))
@@ -884,7 +884,7 @@ export class InteractiveInkEditor extends AbstractEditor
     this.recognizer.eraseStrokes(strokesIds)
     symbolsToRemove.forEach(s =>
     {
-      if (isMathSymbol(s)) {
+      if (isRecognizedMathSymbol(s)) {
         this.transientInk.clearTransientsForBlock(s.id)
       }
 
@@ -931,7 +931,7 @@ export class InteractiveInkEditor extends AbstractEditor
     this.selector.drawSelectedGroup(this.model.symbolsSelected)
 
     const selectedMathIds = this.model.symbolsSelected
-      .filter(isMathSymbol)
+      .filter(isRecognizedMathSymbol)
       .map(s => s.id)
     this.mathInteractions.onSymbolSelect(selectedMathIds)
 
@@ -953,7 +953,7 @@ export class InteractiveInkEditor extends AbstractEditor
     this.selector.drawSelectedGroup(this.model.symbolsSelected)
 
     const selectedMathIds = this.model.symbolsSelected
-      .filter(isMathSymbol)
+      .filter(isRecognizedMathSymbol)
       .map(s => s.id)
     this.mathInteractions.onSymbolSelect(selectedMathIds)
 
@@ -1528,7 +1528,7 @@ export class InteractiveInkEditor extends AbstractEditor
   findMathSymbolByJiixId(jiixId: string): IIRecognizedMath | undefined
   {
     return this.model.symbols.find(s =>
-      isMathSymbol(s) && s.jiixId === jiixId
+      isRecognizedMathSymbol(s) && s.jiixId === jiixId
     ) as IIRecognizedMath | undefined
   }
 
