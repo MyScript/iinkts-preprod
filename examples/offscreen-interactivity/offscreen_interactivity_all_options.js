@@ -229,7 +229,6 @@ async function loadEditor(options) {
   })
 
   editor.event.addEventListener('exported', (event) => {
-    console.log('event.detail: ', event.detail);
     if (event.detail?.['text/html']) {
       exportHtmlBody.srcdoc = event.detail['text/html']
     } else {

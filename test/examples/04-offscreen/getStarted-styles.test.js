@@ -28,7 +28,7 @@ test.describe("Offscreen Get Started Menu Style", () => {
     colors.forEach(async (color) => {
       test(`should write with color: ${ color.color }`, async ({ page }) => {
         await page.locator("#ms-menu-style-color").click()
-        await page.locator("#ms-menu-style-color-" + color.rgb + "-btn").click()
+        await page.locator("#ms-menu-style-color-list-" + color.rgb).click()
 
         await Promise.all([
           waitForSynchronizedEvent(page),
@@ -56,9 +56,9 @@ test.describe("Offscreen Get Started Menu Style", () => {
     ]
     thicknesses.forEach(async (thickness) => {
       test(`should write with size: ${ thickness.size }`, async ({ page }) => {
-        await page.locator("#ms-menu-style-thickness").click()
+        await page.locator("#ms-menu-style-thickness .collapsible-header").click()
         await page
-          .locator("#ms-menu-style-thickness-" + thickness.size + "-btn")
+          .locator("#ms-menu-style-thickness-" + thickness.width)
           .click()
 
         await Promise.all([
@@ -84,14 +84,15 @@ test.describe("Offscreen Get Started Menu Style", () => {
   test.describe("Font size", () => {
     const fontSizes = [
       //{"size":"Auto", "pixels":34},
-      { size: "S", pixels: 25 },
-      { size: "M", pixels: 37.5 },
-      { size: "L", pixels: 50 },
+      { size: "S", pixels: 0.5 },
+      { size: "M", pixels: 0.75 },
+      { size: "L", pixels: 1 },
     ]
+    const DEFAULT_GUIDE_SIZE = 50
     fontSizes.forEach(async (fontSize) => {
       test(`should convert stroke with font size: ${fontSize.size}`, async ({ page }) => {
-        await page.locator("#ms-menu-style-font-size").click()
-        await page.locator("#ms-menu-style-font-size-" + fontSize.size + "-btn").click()
+        await page.locator("#ms-menu-style-font-size .collapsible-header").click()
+        await page.locator(`[id="ms-menu-style-font-size-${fontSize.pixels}"]`).click()
         await Promise.all([
           waitForSynchronizedEvent(page),
           writeStrokes(page, helloOneStroke.strokes),
@@ -106,18 +107,18 @@ test.describe("Offscreen Get Started Menu Style", () => {
         expect(symbols).toHaveLength(1)
 
         const chars = symbols[0].chars
-        expect(chars.length).toStrictEqual(helloOneStroke.exports["application/vnd.myscript.jiix"].label.length)
+        expect(chars).toHaveLength(helloOneStroke.exports["application/vnd.myscript.jiix"].label.length)
 
         for (const char of chars) {
-          expect(char.fontSize).toStrictEqual(fontSize.pixels)
-          await expect(page.locator(`#${ char.id }`)).toHaveAttribute("font-size", fontSize.pixels.toString() + "px")
+          expect(char.fontSize).toStrictEqual(fontSize.pixels * DEFAULT_GUIDE_SIZE)
+          await expect(page.locator(`#${ char.id }`)).toHaveAttribute("font-size", (fontSize.pixels * DEFAULT_GUIDE_SIZE).toString() + "px")
         }
       })
     })
 
     test("should have a correct text converted size with fontSize Auto", async ({ page, }) => {
-      await page.locator("#ms-menu-style-font-size").click()
-      await page.locator("#ms-menu-style-font-size-Auto-btn").click()
+      await page.locator("#ms-menu-style-font-size .collapsible-header").click()
+      await page.locator("#ms-menu-style-font-size-auto").click()
 
       await Promise.all([
         waitForSynchronizedEvent(page),
@@ -137,7 +138,7 @@ test.describe("Offscreen Get Started Menu Style", () => {
       const symbolsAfterConvert = await page.evaluate("editorEl.editor.model.symbols")
       const boundsHeight = symbolsAfterConvert[0].bounds.height
       const chars = symbolsAfterConvert[0].chars
-      expect(chars.length).toStrictEqual(helloOneStroke.exports["application/vnd.myscript.jiix"].label.length)
+      expect(chars).toHaveLength(helloOneStroke.exports["application/vnd.myscript.jiix"].label.length)
       // Allow 20% of difference between the height of the strokes and the height of the bounds
       expect(boundsHeight).toBeLessThanOrEqual(1.2 * strokesHeight)
       expect(boundsHeight).toBeGreaterThanOrEqual(0.7 * strokesHeight)
@@ -155,12 +156,12 @@ test.describe("Offscreen Get Started Menu Style", () => {
 
   test.describe("Font weight", () => {
     const fontWeights = [
-      { label: "Normal", id: "ms-menu-style-font-weight-Normal-btn", value: "normal" },
-      { label: "Bold", id: "ms-menu-style-font-weight-Bold-btn", value: "bold" }
+      { label: "Normal", id: "ms-menu-style-font-weight-normal", value: "normal" },
+      { label: "Bold", id: "ms-menu-style-font-weight-bold", value: "bold" }
     ]
     fontWeights.forEach(fw => {
       test(`should have convert with font weight ${fw.label}`, async ({ page }) => {
-        await page.locator("#ms-menu-style-font-weight").click()
+        await page.locator("#ms-menu-style-font-weight .collapsible-header").click()
         await page.locator(`#${fw.id}`).click()
 
         await Promise.all([

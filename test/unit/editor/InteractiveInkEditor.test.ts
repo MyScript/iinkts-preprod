@@ -1,5 +1,5 @@
 import { jiixText } from "../__dataset__/exports.dataset"
-import { buildOICircle, buildOIGroup, buildOIStroke, buildRecognizedText, buildOIText, delay } from "../helpers"
+import { buildOICircle, buildOIStroke, buildRecognizedText, buildOIText, delay } from "../helpers"
 import
 {
   InteractiveInkEditor,
@@ -457,25 +457,23 @@ describe("EditorOffscreen.ts", () =>
     const stroke1 = buildOIStroke()
     const stroke2 = buildOIStroke()
     const strokeText = buildRecognizedText()
-    const group = buildOIGroup({ nbOIText: 1, nbOIStroke: 1 })
     const symbols: TIISymbol[] = [
       stroke1,
       text1,
       stroke2,
       strokeText,
       text2,
-      buildOICircle(),
-      group
+      buildOICircle()
     ]
     test("should extract strokes", () =>
     {
       const strokes = editor.extractStrokesFromSymbols(symbols)
-      expect(strokes).toEqual([stroke1, stroke2, ...strokeText.strokes, ...group.children.filter(s => s.type === SymbolType.Stroke)])
+      expect(strokes).toEqual([stroke1, stroke2, ...strokeText.strokes])
     })
     test("should extract texts", () =>
     {
       const texts = editor.extractTextsFromSymbols(symbols)
-      expect(texts).toEqual([text1, text2, ...group.children.filter(s => s.type === SymbolType.Text)])
+      expect(texts).toEqual([text1, text2])
     })
   })
 

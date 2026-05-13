@@ -12,4 +12,10 @@ dist
 .env.local
 .env.*.local
 
+# Generated dev environment loader (contains sensitive keys)
+examples/dev-env-loader.generated.js
+
 __diff_output__
+
+# AI Agent customization files
+.agent/

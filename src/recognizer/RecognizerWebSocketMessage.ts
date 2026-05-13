@@ -17,6 +17,7 @@ export enum TRecognizerWebSocketMessageType
   Exported = "exported",
   GestureDetected = "gestureDetected",
   ContextlessGesture = "contextlessGesture",
+  MathSolverResult = "mathSolverResult",
   Error = "error",
 }
 
@@ -112,6 +113,110 @@ export type TRecognizerWebSocketMessageIdle = TRecognizerWebSocketMessage<TRecog
 /**
  * @group Recognizer
  */
+export type TMathVariable = {
+  name: string
+  value?: number
+  sourceType?: "UNDEFINED" | "API" | "API_GLOBAL" | "BLOCK" | "PREDIFINED"
+  sourceId?: string
+  occurrenceCount?: number
+}
+
+/**
+ * @group Recognizer
+ */
+export type TMathEvaluable = {
+  inputName: string
+  outputName: string
+}
+
+/**
+ * @group Recognizer
+ */
+export type TRecognizerWebSocketMessageMathSolverAvailableActions = TRecognizerWebSocketMessage<TRecognizerWebSocketMessageType.MathSolverResult> & {
+  blockId: string
+  action: "available-actions"
+  result: string[]
+}
+
+/**
+ * @group Recognizer
+ */
+export type TRecognizerWebSocketMessageMathSolverGetDiagnostic = TRecognizerWebSocketMessage<TRecognizerWebSocketMessageType.MathSolverResult> & {
+  blockId: string
+  action: "get-diagnostic"
+  result: string
+}
+
+/**
+ * @group Recognizer
+ */
+export type TRecognizerWebSocketMessageMathSolverNumericalComputation = TRecognizerWebSocketMessage<TRecognizerWebSocketMessageType.MathSolverResult> & {
+  blockId: string
+  action: "numerical-computation"
+  result: string
+}
+
+/**
+ * @group Recognizer
+ */
+export type TRecognizerWebSocketMessageMathSolverGetVariables = TRecognizerWebSocketMessage<TRecognizerWebSocketMessageType.MathSolverResult> & {
+  blockId: string
+  action: "get-variables"
+  result: TMathVariable[]
+}
+
+/**
+ * @group Recognizer
+ */
+export type TRecognizerWebSocketMessageMathSolverSetVariableValue = TRecognizerWebSocketMessage<TRecognizerWebSocketMessageType.MathSolverResult> & {
+  blockId: string
+  action: "set-variable-value"
+  result?: undefined
+}
+
+/**
+ * @group Recognizer
+ */
+export type TRecognizerWebSocketMessageMathSolverGetVariableValue = TRecognizerWebSocketMessage<TRecognizerWebSocketMessageType.MathSolverResult> & {
+  blockId: string
+  action: "get-variable-value"
+  result: number
+}
+
+/**
+ * @group Recognizer
+ */
+export type TRecognizerWebSocketMessageMathSolverGetEvaluables = TRecognizerWebSocketMessage<TRecognizerWebSocketMessageType.MathSolverResult> & {
+  blockId: string
+  action: "get-evaluables"
+  result: TMathEvaluable[]
+}
+
+/**
+ * @group Recognizer
+ */
+export type TRecognizerWebSocketMessageMathSolverEvaluate = TRecognizerWebSocketMessage<TRecognizerWebSocketMessageType.MathSolverResult> & {
+  blockId: string
+  action: "evaluate"
+  result: number[][]
+}
+
+/**
+ * @group Recognizer
+ */
+export type TRecognizerWebSocketMessageMathSolverResult =
+  | TRecognizerWebSocketMessageMathSolverAvailableActions
+  | TRecognizerWebSocketMessageMathSolverGetDiagnostic
+  | TRecognizerWebSocketMessageMathSolverNumericalComputation
+  | TRecognizerWebSocketMessageMathSolverGetVariables
+  | TRecognizerWebSocketMessageMathSolverSetVariableValue
+  | TRecognizerWebSocketMessageMathSolverGetVariableValue
+  | TRecognizerWebSocketMessageMathSolverGetEvaluables
+  | TRecognizerWebSocketMessageMathSolverEvaluate
+
+/**
+ * @group Recognizer
+ */
 export type TRecognizerWebSocketMessageError = TRecognizerWebSocketMessage<TRecognizerWebSocketMessageType.Error> & {
   code?: number | string
   message?: string
@@ -136,4 +241,5 @@ export type TRecognizerWebSocketMessageReceived =
   TRecognizerWebSocketMessageContextlessGesture |
   TRecognizerWebSocketMessagePong |
   TRecognizerWebSocketMessageIdle |
+  TRecognizerWebSocketMessageMathSolverResult |
   TRecognizerWebSocketMessageError

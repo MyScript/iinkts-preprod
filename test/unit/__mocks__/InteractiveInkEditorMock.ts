@@ -15,6 +15,9 @@ export class InteractiveInkEditorMock extends InteractiveInkEditor
     //@ts-ignore
     super(document.createElement("div"), options)
     this.event = new EditorEventMock(this.layers.root)
+
+    // Mock mathOverlays.refresh to prevent DOM access issues in tests
+    this.mathOverlays.refresh = jest.fn()
   }
 
   init = jest.fn(() => {
@@ -69,4 +72,11 @@ export class InteractiveInkEditorMock extends InteractiveInkEditor
   resize = jest.fn()
   clear = jest.fn()
   destroy = jest.fn()
+
+  // Math-specific methods
+  getVariables = jest.fn()
+  setMathVariables = jest.fn()
+  computeMathNumericalResult = jest.fn()
+  getEvaluables = jest.fn()
+  evaluateMathFunction = jest.fn()
 }

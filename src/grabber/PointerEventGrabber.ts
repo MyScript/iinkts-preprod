@@ -2,6 +2,9 @@ import { TGrabberConfiguration } from "./GrabberConfiguration"
 import { LoggerCategory, LoggerLevel, LoggerManager } from "../logger"
 import { TPointer } from "../symbol"
 
+/**
+ * @group Grabber
+ */
 export type PointerInfo = {
   clientX: number,
   clientY: number,

@@ -11,6 +11,7 @@ export enum SymbolType
   Shape = "shape",
   Edge = "edge",
   Text = "text",
+  Math = "math",
   Eraser = "eraser",
   Recognized = "recognized"
 }

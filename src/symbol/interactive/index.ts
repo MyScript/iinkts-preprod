@@ -7,8 +7,8 @@
  */
 export * from "./IISymbol"
 export * from "./IISymbolBase"
-export * from "./IISymbolGroup"
 export * from "./IIStroke"
 export * from "./IIText"
+export * from "./IIMath"
 export * from "./IIDecorator"
 export * from "./IIEraser"
