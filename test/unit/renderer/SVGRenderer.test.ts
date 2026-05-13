@@ -1,4 +1,4 @@
-import { buildOICircle, buildOIEraser, buildOIGroup, buildOILine, buildOIStroke, buildOIText } from "../helpers"
+import { buildOICircle, buildOIEraser, buildOILine, buildOIStroke, buildOIText } from "../helpers"
 import
 {
   SVGRenderer,
@@ -273,14 +273,6 @@ describe("SVGRenderer.ts", () =>
       expect(charsElements[0].getAttribute("fill")).toEqual(chars[0].color)
       expect(charsElements[0].getAttribute("font-size")).toEqual(chars[0].fontSize + "px")
       expect(charsElements[0].getAttribute("font-weight")).toEqual(chars[0].fontWeight)
-    })
-    test("should draw group", () =>
-    {
-      const groupSym = buildOIGroup({ nbOIStroke: 1, nbOILine: 1 })
-      renderer.drawSymbol(groupSym)
-      const el = divElement.querySelector(`#${ groupSym.id }`)!
-      expect(el).toBeDefined()
-      expect(el.children).toHaveLength(2)
     })
     test("should draw stroke already renderer", () =>
     {

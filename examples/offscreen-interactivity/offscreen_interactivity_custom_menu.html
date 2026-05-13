@@ -106,7 +106,7 @@
 
     <script type="module">
       import { Editor } from '../../dist/iink.esm.js'
-      import { CustomMenuStyle, CustomMenuTool, CustomMenuAction } from './offscreen_interactivity_custom_menu.js'
+      import { customMenuStyleConfig, customMenuToolConfig, customMenuActionConfig } from './offscreen_interactivity_custom_menu.js'
       import { ModalEditorOptions } from '../components/modal/modalEditorOptions.js'
 
       const editorElement = document.getElementById('editor')
@@ -120,22 +120,9 @@
       const editorOptions = {
         configuration: {
           menu: {
-            style: {
-              enable: true
-            },
-            tool: {
-              enable: true
-            },
-            action: {
-              enable: true
-            }
-          }
-        },
-        override: {
-          menu: {
-            style: CustomMenuStyle,
-            tool: CustomMenuTool,
-            action: CustomMenuAction
+            style: customMenuStyleConfig,
+            tool: customMenuToolConfig,
+            action: customMenuActionConfig
           }
         }
       }

@@ -328,12 +328,12 @@ export class EditorEvent extends EventTarget
 
   emitGestured(gesture: { gestureType: TGestureType, stroke: IIStroke }): void
   {
-    this.#logger.info("emitSynchronized")
+    this.#logger.info("emitGestured")
     this.emit(EditorEventName.GESTURED, gesture)
   }
   addGesturedListener(callback: (gesture: { gestureType: TGestureType, stroke: IIStroke }) => void): void
   {
-    this.#logger.info("addSynchronizedListener", { callback })
+    this.#logger.info("addGesturedListener", { callback })
     this.addEventListener(
       EditorEventName.GESTURED,
       (evt) => callback((evt as CustomEvent).detail as { gestureType: TGestureType, stroke: IIStroke }),

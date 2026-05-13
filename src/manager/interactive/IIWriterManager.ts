@@ -110,13 +110,6 @@ export class IIWriterManager extends AbstractWriterManager
         case SymbolType.Recognized:
         case SymbolType.Stroke:
           return false
-        case SymbolType.Group:
-          if (s.containsOnlyStroke()) {
-            return false
-          }
-          else {
-            return s.bounds.overlaps(strokeBoundsWithMargin)
-          }
         default:
           return s.bounds.overlaps(strokeBoundsWithMargin)
       }
@@ -243,7 +236,7 @@ export class IIWriterManager extends AbstractWriterManager
       localPointer.y = y
     }
 
-    this.renderer.ensurePointVisible(localPointer)
+    this.renderer.ensurePointVisible(localPointer, 5)
 
     this.updateCurrentSymbol(localPointer)
     this.renderer.drawSymbol(this.model.currentSymbol!)

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Math Context Menu Example</title>
+
+  <link rel="stylesheet" href="../assets/style/reset.css" />
+  <link rel="stylesheet" href="../assets/style/components.css" />
+  <link rel="stylesheet" href="../assets/style/examples.css" />
+
+  <script type="text/javascript" src="../../dist/iink.min.js"></script>
+
+  <style>
+    #editorEl {
+      height: calc(100dvh - 610px);
+      min-height: 300px;
+      margin: 12px 0;
+    }
+
+    .info-section {
+      background: #e3f2fd;
+      padding: 12px;
+      margin: 12px 0;
+      border-radius: 4px;
+      border-left: 4px solid #2196F3;
+    }
+
+    .info-section h3 {
+      margin-top: 0;
+      color: #1976D2;
+    }
+
+    .info-section ul {
+      margin: 8px 0;
+      padding-left: 24px;
+    }
+
+    .info-section li {
+      margin: 4px 0;
+    }
+
+    .code-example {
+      display: block;
+      background: #f5f5f5;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+
+    .highlight {
+      background: #fff3cd;
+      padding: 2px 6px;
+      border-radius: 2px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+  <header class="header-main">
+    <button id="showModalBtn" class="btn-keys">Change server configuration</button>
+    <h1 class="header-title">Math Context Menu Example</h1>
+  </header>
+
+  <div class="info-section">
+    <h3>📋 How to use the Math Context Menu</h3>
+    <p>
+      The Math context menu provides powerful operations for mathematical expressions.
+      To access it:
+    </p>
+    <ol>
+      <li><strong>Draw a circle or rectangle around</strong> the expression you want to work with (this selects it)</li>
+      <li>Choose an operation from the menu</li>
+    </ol>
+  </div>
+  <div class="info-section" style="background: #fff3cd; border-left-color: #ff9800;">
+    <h3>✏️ Try these examples:</h3>
+    <ol>
+      <li><strong>Computation:</strong> Write <span class="highlight">√16=</span>, draw around it, Compute numerical result</li>
+      <li><strong>Variable substitution:</strong> Write <span class="highlight">x=3</span>, then <span class="highlight">2x+5=</span>, draw around the second expression, Compute numerical result (will use x=3 value)</li>
+      <li><strong>Function plot:</strong> Write <span class="highlight">f(x)=x²</span>, draw around it, Evaluate function → Set range from -5 to 5</li>
+      <li><strong>Reversible function plot:</strong> Write <span class="highlight">y=x²</span>, draw around it, Evaluate function → you can choose to plot y = f(x) or x = f(y)</li>
+      <li><strong>Complex expression:</strong> Write <span class="highlight">a=2</span>, then <span class="highlight">3a²+2a-1=</span>, draw around the expression, Edit variables → Change a value, Compute numerical result (will use the updated value)</li>
+    </ol>
+  </div>
+
+  <div id="editorEl"></div>
+
+  <div class="info-section" style="background: #e8f5e9; border-left-color: #4caf50;">
+    <h3>💡 Tips</h3>
+    <ul>
+      <li>End expressions with <strong>=</strong> or <strong>?</strong> to indicate you want a result</li>
+      <li>Variables are automatically detected when you define them (e.g., <code>x=5</code>)</li>
+      <li>You can use the same variable in multiple expressions</li>
+      <li>The solver supports common math functions: sin, cos, tan, sqrt, exp, log, etc.</li>
+      <li>For evaluation, the function must have a clear input-output relationship (e.g., y=f(x))</li>
+    </ul>
+  </div>
+
+  <script type="module">
+    import { Editor } from '../../dist/iink.esm.js'
+    import { ModalEditorOptions } from '../components/modal/modalEditorOptions.js'
+
+    const editorElement = document.getElementById('editorEl')
+    const showModalBtn = document.getElementById('showModalBtn')
+
+    let editor
+
+    const editorOptions = {
+      configuration: {
+        recognition: {
+          "raw-content": {
+            recognition: {
+              types: ["math"]
+            },
+            classification: {
+              types: ["math"]
+            },
+            gestures: ["scratch-out", "surround"]
+          },
+          math: {
+            solver: {
+              enable: true,
+              "auto-variable-management": {
+                enable: true,
+                "scoping-policy": "closest"
+              }
+            }
+          }
+        },
+        menu: {
+          action: {
+            language: false,
+            gesture: false,
+            snap: false,
+            export: false,
+            import: false,
+            convert: false,
+          },
+          tool: {
+            write: true,
+            move: true,
+            select: true,
+            erase: true,
+            shape: false,
+            edge: false
+          },
+          style: {
+            strokeColor: true,
+            fillColor: false,
+            thickness: false,
+            fontSize: false,
+            fontWeight: false,
+            opacity: false,
+          }
+        }
+      }
+    }
+
+    async function loadEditor(options) {
+      await editor?.destroy()
+      editor = await Editor.load(editorElement, 'INTERACTIVEINK', options)
+      return editor
+    }
+
+    const modal = new ModalEditorOptions(editorOptions, (options) => {
+      loadEditor(options)
+    })
+
+    showModalBtn.addEventListener('click', () => {
+      ModalEditorOptions.show(loadEditor, editorOptions)
+    })
+
+    ModalEditorOptions.initConfiguration(loadEditor, editorOptions)
+  </script>
+</body>
+</html>

@@ -1,8 +1,10 @@
 import serve from "rollup-plugin-serve"
 import livereload from "rollup-plugin-livereload"
+import generateDevEnv from "./rollup-plugin-dev-env.mjs"
 import config from "./rollup.config.mjs"
 
 config[0].plugins.push(
+  generateDevEnv(),
   serve({
     open: true,
     openPage: "/examples/index.html",
