@@ -151,6 +151,8 @@
     const showBlockOverlaysCheckbox = document.getElementById('showBlockOverlays')
     const computationModeSelect = document.getElementById('computationMode')
     const autoComputeCheckbox = document.getElementById('autoCompute')
+    const showDependencyOnHoverCheckbox = document.getElementById('showDependencyOnHover')
+    const highlightOnSelectCheckbox = document.getElementById('highlightOnSelect')
 
     let editor
     let allVariables = []
@@ -368,6 +370,10 @@
 
       for (const mathSymbol of mathSymbols) {
         try {
+          if (!mathSymbol.jiixId) continue
+          // Only consider symbols that are either variable definitions (ending with '=') or have solver output (like computed results)
+          if (!mathSymbol.label?.endsWith('=') && !mathSymbol.solverOutputStrokeIds?.length) continue
+
           const variables = await editor.getVariables(mathSymbol.jiixId)
           variables.forEach(v => {
             if (!allVariables.find(av => av.name === v.name && av.sourceId === v.sourceId)) {
@@ -487,8 +493,6 @@
       editor.mathOverlays.refresh()
     })
 
-    const showDependencyOnHoverCheckbox = document.getElementById('showDependencyOnHover')
-    const highlightOnSelectCheckbox = document.getElementById('highlightOnSelect')
 
     showDependencyOnHoverCheckbox.addEventListener('change', (e) => {
       editor.mathInteractions.updateConfig({ showDependencyOnHover: e.target.checked })
