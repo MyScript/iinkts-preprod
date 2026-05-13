@@ -1,7 +1,7 @@
 import { LoggerCategory, LoggerManager } from "../logger"
 import
 {
-  RecognizedKind,
+  isRecognizedTextSymbol,
   SymbolType,
   TIISymbol,
 } from "../symbol"
@@ -100,7 +100,7 @@ export class IIModel
 
   getSymbolRowIndex(symbol: TIISymbol): number
   {
-    return Math.round((symbol.type === SymbolType.Recognized && symbol.kind === RecognizedKind.Text ? symbol.baseline : symbol.bounds.yMid) / this.rowHeight)
+    return Math.round((isRecognizedTextSymbol(symbol) ? symbol.baseline : symbol.bounds.yMid) / this.rowHeight)
   }
 
   getSymbolsByRowOrdered(): { rowIndex: number, symbols: TIISymbol[] }[]

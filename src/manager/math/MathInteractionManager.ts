@@ -3,7 +3,7 @@ import { InteractiveInkEditor } from "../../editor/InteractiveInkEditor"
 import { IIRecognizedMath, TBox } from "../../symbol"
 import { MathOverlayManager } from "./MathOverlayManager"
 import { VariableColorManager } from "./VariableColorManager"
-import { isMathSymbol } from "../../symbol"
+import { isRecognizedMathSymbol } from "../../symbol"
 import { convertBoundingBoxMillimeterToPixel } from "../../utils"
 import { TJIIXMathExpression } from "../../model/ExportMath"
 
@@ -76,7 +76,7 @@ export class MathInteractionManager {
    * Get all math symbols from the model
    */
   protected getMathSymbols(): IIRecognizedMath[] {
-    return this.editor.model.symbols.filter(isMathSymbol)
+    return this.editor.model.symbols.filter(isRecognizedMathSymbol)
   }
 
   /**

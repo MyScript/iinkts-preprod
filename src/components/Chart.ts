@@ -13,6 +13,9 @@ export interface ChartConfig {
   showPoints?: boolean
 }
 
+/**
+ * @hidden
+ */
 interface ViewPort {
   xMin: number
   xMax: number

@@ -6,6 +6,9 @@ export interface ModalFieldOption {
   label: string
 }
 
+/**
+ * @group Components
+ */
 export interface ModalField {
   id: string
   label: string
@@ -15,12 +18,18 @@ export interface ModalField {
   options?: ModalFieldOption[]
 }
 
+/**
+ * @group Components
+ */
 export interface ModalButton {
   label: string
   type: "primary" | "secondary"
   callback: (values: { [key: string]: string }) => void | Promise<void>
 }
 
+/**
+ * @group Components
+ */
 export interface ModalConfig {
   title: string
   fields: ModalField[]

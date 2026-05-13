@@ -31,6 +31,7 @@ export interface IIMenuActionConfig {
 
 /**
  * Default configuration with all menus enabled
+ * @group Menu
  */
 export const defaultMenuActionConfig: Required<IIMenuActionConfig> = {
   clear: true,
