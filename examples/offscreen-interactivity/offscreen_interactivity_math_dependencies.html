@@ -107,12 +107,8 @@
         <input type="checkbox" id="showBlockOverlays" checked />
       </label>
       <label>
-        Computation result:
-        <select id="computationMode">
-          <option value="strokes-only" selected>Draw strokes</option>
-          <option value="value-only">Show in panel</option>
-          <option value="both">Both</option>
-        </select>
+        Draw result as strokes
+        <input type="checkbox" id="drawResultStrokes" checked />
       </label>
       <button id="refreshBtn" class="classic-btn">Refresh Overlays</button>
     </div>
@@ -149,7 +145,7 @@
     const variableValue = document.getElementById('variableValue')
     const setVariableBtn = document.getElementById('setVariable')
     const showBlockOverlaysCheckbox = document.getElementById('showBlockOverlays')
-    const computationModeSelect = document.getElementById('computationMode')
+    const drawResultStrokesCheckbox = document.getElementById('drawResultStrokes')
     const autoComputeCheckbox = document.getElementById('autoCompute')
     const showDependencyOnHoverCheckbox = document.getElementById('showDependencyOnHover')
     const highlightOnSelectCheckbox = document.getElementById('highlightOnSelect')
@@ -216,11 +212,10 @@
       editor = await Editor.load(editorElement, 'INTERACTIVEINK', options)
 
       editor.mathOverlays.updateConfig({ showBlockOverlays: showBlockOverlaysCheckbox.checked })
-      editor.mathComputationMode = computationModeSelect.value
+      editor.mathComputationMode = drawResultStrokesCheckbox.checked
 
-      if (editor.mathComputationMode === 'value-only' || editor.mathComputationMode === 'both') {
-        editor.mathOverlays.updateConfig({ showResultPanels: true })
-      }
+      // Show result panels when not drawing strokes
+      editor.mathOverlays.updateConfig({ showResultPanels: !drawResultStrokesCheckbox.checked })
 
       editor.mathInteractions.updateConfig({ showDependencyOnHover: showDependencyOnHoverCheckbox.checked })
       editor.mathInteractions.updateConfig({ highlightOnSelect: highlightOnSelectCheckbox.checked })
@@ -470,10 +465,11 @@
       editor.mathOverlays.toggleBlockOverlays(e.target.checked)
     })
 
-    computationModeSelect.addEventListener('change', async (e) => {
+    drawResultStrokesCheckbox.addEventListener('change', async (e) => {
       const oldMode = editor.mathComputationMode
-      editor.mathComputationMode = e.target.value
-      if (e.target.value === 'value-only' && oldMode !== 'value-only') {
+      editor.mathComputationMode = e.target.checked
+      if (!e.target.checked && oldMode) {
+        // If switching from drawing strokes to not drawing, clear existing solver strokes
         const mathSymbols = editor.model.symbols.filter(s =>
           s.type === 'recognized' && s.kind === 'math'
         )
@@ -481,11 +477,8 @@
           await editor.clearSolverOutputStrokes(mathSymbol)
         }
       }
-      if (e.target.value === 'value-only' || e.target.value === 'both') {
-        editor.mathOverlays.updateConfig({ showResultPanels: true })
-      } else {
-        editor.mathOverlays.updateConfig({ showResultPanels: false })
-      }
+      // Show result panels when not drawing strokes
+      editor.mathOverlays.updateConfig({ showResultPanels: !e.target.checked })
     })
 
     const refreshBtn = document.getElementById('refreshBtn')
