@@ -255,11 +255,11 @@ describe("MathContextMenu.ts", () =>
       expect(editor.setMathVariables).toHaveBeenCalledWith(mathSymbol, { x: 10, y: 20 })
     })
 
-    test("computeMathNumericalResult can be called with mode", async () =>
+    test("computeMathNumericalResult can be called with drawStrokes boolean", async () =>
     {
       editor.computeMathNumericalResult = jest.fn().mockResolvedValue(undefined)
-      await editor.computeMathNumericalResult(mathSymbol, "value-only")
-      expect(editor.computeMathNumericalResult).toHaveBeenCalledWith(mathSymbol, "value-only")
+      await editor.computeMathNumericalResult(mathSymbol, false)
+      expect(editor.computeMathNumericalResult).toHaveBeenCalledWith(mathSymbol, false)
     })
 
     test("getEvaluables returns evaluable functions", async () =>
