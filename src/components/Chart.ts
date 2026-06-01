@@ -115,6 +115,14 @@ export class Chart {
     const zoomInBtn = createButton("Zoom +", () => this.zoom(1.2))
     const zoomOutBtn = createButton("Zoom −", () => this.zoom(0.8))
     const resetBtn = createButton("Reset", () => this.resetZoom())
+    const togglePointsBtn = createButton(
+      this.config.showPoints ? "Hide Points" : "Show Points",
+      () => {
+        this.config.showPoints = !this.config.showPoints
+        togglePointsBtn.textContent = this.config.showPoints ? "Hide Points" : "Show Points"
+        this.draw()
+      }
+    )
 
     const label = document.createElement("span")
     label.textContent = "Zoom: "
@@ -127,6 +135,7 @@ export class Chart {
     this.controlsContainer.appendChild(zoomInBtn)
     this.controlsContainer.appendChild(zoomOutBtn)
     this.controlsContainer.appendChild(resetBtn)
+    this.controlsContainer.appendChild(togglePointsBtn)
     this.controlsContainer.appendChild(label)
     this.controlsContainer.appendChild(info)
 
