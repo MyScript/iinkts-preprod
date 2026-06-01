@@ -1037,11 +1037,22 @@ export class InteractiveInkEditor extends AbstractEditor
         if (recognizedText.label) {
           textParts.push(recognizedText.label)
         }
+      } else if (s.type === SymbolType.Recognized && s.kind === RecognizedKind.Math) {
+        const recognizedMath = s as IIRecognizedMath
+        if (recognizedMath.label) {
+          textParts.push(recognizedMath.label)
+        }
       } else if (s.type === SymbolType.Text) {
         const text = s as IIText
         const textContent = text.label
         if (textContent) {
           textParts.push(textContent)
+        }
+      } else if (s.type === SymbolType.Math) {
+        const math = s as IIMath
+        const mathContent = math.label
+        if (mathContent) {
+          textParts.push(mathContent)
         }
       }
     })

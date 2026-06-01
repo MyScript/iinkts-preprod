@@ -1,5 +1,5 @@
 import { jiixText } from "../__dataset__/exports.dataset"
-import { buildOICircle, buildOIStroke, buildRecognizedText, buildOIText, delay } from "../helpers"
+import { buildOICircle, buildOIStroke, buildRecognizedText, buildRecognizedMath, buildOIText, buildOIMath, delay } from "../helpers"
 import
 {
   InteractiveInkEditor,
@@ -445,6 +445,66 @@ describe("EditorOffscreen.ts", () =>
       expect(link.href).not.toContain(stroke2.id)
       expect(link.download).toContain("iink-ts-")
       expect(link.download).toContain(".json")
+      expect(link.click).toHaveBeenCalledTimes(1)
+    })
+    test("should call trigger download text file", async () =>
+    {
+      const recognizedText = buildRecognizedText(1)
+      recognizedText.label = "Hello World"
+      editor.model.addSymbol(recognizedText)
+
+      const recognizedMath = buildRecognizedMath(1, "y=3x+2")
+      editor.model.addSymbol(recognizedMath)
+
+      const textChars = [{
+        id: "char-1",
+        label: "Test text",
+        fontSize: 16,
+        fontWeight: "normal" as const,
+        color: "#000000",
+        bounds: { x: 0, y: 0, width: 50, height: 20 }
+      }]
+      const oiText = buildOIText({ chars: textChars })
+      editor.model.addSymbol(oiText)
+
+      const oiMath = buildOIMath("a=b+c")
+      editor.model.addSymbol(oiMath)
+
+      const link = document.createElement("a")
+      link.click = jest.fn()
+      jest.spyOn(document, "createElement").mockImplementationOnce(() => link)
+      editor.downloadAsText()
+
+      expect(link.href).toContain("data:text/plain;charset=utf-8,")
+      expect(link.href).toContain("Hello%20World")
+      expect(link.href).toContain("y%3D3x%2B2")
+      expect(link.href).toContain("Test%20text")
+      expect(link.href).toContain("a%3Db%2Bc")
+      expect(link.download).toContain("iink-ts-")
+      expect(link.download).toContain(".txt")
+      expect(link.click).toHaveBeenCalledTimes(1)
+    })
+    test("should call trigger download text file with only selected symbols", async () =>
+    {
+      const recognizedMath = buildRecognizedMath(1, "equation-selected")
+      recognizedMath.selected = true
+      editor.model.addSymbol(recognizedMath)
+
+      const recognizedText = buildRecognizedText(1)
+      recognizedText.label = "text-not-selected"
+      recognizedText.selected = false
+      editor.model.addSymbol(recognizedText)
+
+      const link = document.createElement("a")
+      link.click = jest.fn()
+      jest.spyOn(document, "createElement").mockImplementationOnce(() => link)
+      editor.downloadAsText(true)
+
+      expect(link.href).toContain("data:text/plain;charset=utf-8,")
+      expect(link.href).toContain("equation-selected")
+      expect(link.href).not.toContain("text-not-selected")
+      expect(link.download).toContain("iink-ts-")
+      expect(link.download).toContain(".txt")
       expect(link.click).toHaveBeenCalledTimes(1)
     })
   })
