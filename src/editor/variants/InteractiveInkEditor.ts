@@ -21,6 +21,7 @@ import { TStyle } from "../../style"
 import
 {
   IIConversionManager,
+  IIKeyboardManager,
   IIWriterManager,
   IISelectionManager,
   IIResizeManager,
@@ -70,7 +71,6 @@ export class InteractiveInkEditor extends AbstractEditor
   #configuration: InteractiveInkEditorConfiguration
   #model: IIModel
   #tool: EditorTool = EditorTool.Write
-  #toolBeforeCtrl?: EditorTool
   #layerUITimer?: ReturnType<typeof setTimeout>
   #recognizeStrokeTimer?: ReturnType<typeof setTimeout>
   #symbolFactory: SymbolFactory
@@ -82,6 +82,7 @@ export class InteractiveInkEditor extends AbstractEditor
 
   history: IIHistoryManager
   writer: IIWriterManager
+  keyboard: IIKeyboardManager
   eraser: EraseManager
   gesture: IIGestureManager
   resizer: IIResizeManager
@@ -129,6 +130,7 @@ export class InteractiveInkEditor extends AbstractEditor
 
     this.history = new IIHistoryManager(this.#configuration["undo-redo"], this.event)
 
+    this.keyboard = new IIKeyboardManager(this)
     this.writer = new IIWriterManager(this)
     this.eraser = new EraseManager(this)
     this.selector = new IISelectionManager(this)
@@ -166,8 +168,8 @@ export class InteractiveInkEditor extends AbstractEditor
     this.setCursorStyle()
     this.unselectAll()
 
-    if (this.#toolBeforeCtrl && i !== EditorTool.Move) {
-      this.#toolBeforeCtrl = undefined
+    if (i !== EditorTool.Move) {
+      this.keyboard.resetStoredTool()
     }
 
     this.eraser.detach()
@@ -299,8 +301,7 @@ export class InteractiveInkEditor extends AbstractEditor
       this.renderer.init(this.layers.rendering)
       this.menu.render(this.layers.ui.root)
 
-      window.addEventListener("keydown", this.handleKeyDown)
-      window.addEventListener("keyup", this.handleKeyUp)
+      this.keyboard.attach()
       this.layers.root.addEventListener("wheel", this.handleWheel)
 
       const compStyles = window.getComputedStyle(this.layers.root)
@@ -1203,19 +1204,6 @@ export class InteractiveInkEditor extends AbstractEditor
     return backendChanges
   }
 
-  protected handleKeyDown = (event: KeyboardEvent): void => {
-    const target = event.target as HTMLElement
-    if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) {
-      return
-    }
-
-    if ((event.ctrlKey || event.metaKey) && this.#tool !== EditorTool.Move && !this.#toolBeforeCtrl) {
-      this.logger.debug("handleKeyDown", "Switching to Move mode")
-      this.#toolBeforeCtrl = this.#tool
-      this.tool = EditorTool.Move
-    }
-  }
-
   protected handleWheel = (event: WheelEvent): void => {
     if (event.ctrlKey || event.metaKey) {
       event.preventDefault()
@@ -1227,14 +1215,6 @@ export class InteractiveInkEditor extends AbstractEditor
       const offsetY = event.clientY - rect.top
       this.renderer.setZoom(zoom, offsetX, offsetY)
       this.menu.action.update()
-    }
-  }
-
-  protected handleKeyUp = (event: KeyboardEvent): void => {
-    if (!event.ctrlKey && !event.metaKey && this.#toolBeforeCtrl) {
-      this.logger.debug("handleKeyUp", "Restoring previous tool")
-      this.tool = this.#toolBeforeCtrl
-      this.#toolBeforeCtrl = undefined
     }
   }
 
@@ -1901,8 +1881,7 @@ export class InteractiveInkEditor extends AbstractEditor
   {
     this.logger.info("destroy")
 
-    window.removeEventListener("keydown", this.handleKeyDown)
-    window.removeEventListener("keyup", this.handleKeyUp)
+    this.keyboard.detach()
 
     this.layers.root.classList.remove("draw")
     this.layers.root.classList.remove("erase")
