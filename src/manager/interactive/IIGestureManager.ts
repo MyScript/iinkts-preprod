@@ -150,8 +150,8 @@ export class IIGestureManager
     this.underlineAction = gestureAction?.underline || DefaultGestureConfiguration.underline
     this.insertAction = gestureAction?.insert || DefaultGestureConfiguration.insert
 
-    // Initialize helpers and register handlers
-    this.#helpers = new GestureHelpers(editor)
+    // Initialize helpers with reference to this manager and register handlers
+    this.#helpers = new GestureHelpers(editor, this)
     this.#registerHandlers()
   }
 
@@ -161,12 +161,12 @@ export class IIGestureManager
    */
   #registerHandlers(): void
   {
-    this.#handlers.set("SURROUND", new SurroundGestureHandler(this.editor, this.#helpers, this.surroundAction))
-    this.#handlers.set("STRIKETHROUGH", new StrikeThroughGestureHandler(this.editor, this.#helpers, this.strikeThroughAction))
-    this.#handlers.set("UNDERLINE", new UnderlineGestureHandler(this.editor, this.#helpers, this.underlineAction))
+    this.#handlers.set("SURROUND", new SurroundGestureHandler(this.editor, this.#helpers))
+    this.#handlers.set("STRIKETHROUGH", new StrikeThroughGestureHandler(this.editor, this.#helpers))
+    this.#handlers.set("UNDERLINE", new UnderlineGestureHandler(this.editor, this.#helpers))
     this.#handlers.set("SCRATCH", new ScratchGestureHandler(this.editor, this.#helpers))
     this.#handlers.set("JOIN", new JoinGestureHandler(this.editor, this.#helpers))
-    this.#handlers.set("INSERT", new InsertGestureHandler(this.editor, this.#helpers, this.insertAction))
+    this.#handlers.set("INSERT", new InsertGestureHandler(this.editor, this.#helpers))
   }
 
   get renderer(): SVGRenderer

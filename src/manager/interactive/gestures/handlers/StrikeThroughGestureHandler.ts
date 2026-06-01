@@ -19,8 +19,7 @@ export class StrikeThroughGestureHandler extends GestureHandler
 
   constructor(
     editor: InteractiveInkEditor,
-    helpers: GestureHelpers,
-    private strikeThroughAction: StrikeThroughAction
+    helpers: GestureHelpers
   )
   {
     super(editor, helpers)
@@ -35,14 +34,14 @@ export class StrikeThroughGestureHandler extends GestureHandler
       return
     }
 
-    switch (this.strikeThroughAction) {
+    switch (this.helpers.strikeThroughAction) {
       case StrikeThroughAction.Draw:
         await this.applyDraw(gestureStroke, gesture)
         break
       case StrikeThroughAction.Erase:
         return this.editor.removeSymbols(gesture.strokeIds)
       default:
-        this.#logger.warn("applyStrikeThroughGesture", `Unknown strikeThroughAction: ${ this.strikeThroughAction }`)
+        this.#logger.warn("applyStrikeThroughGesture", `Unknown strikeThroughAction: ${ this.helpers.strikeThroughAction }`)
         break
     }
   }

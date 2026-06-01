@@ -17,17 +17,14 @@ export class InsertGestureHandler extends GestureHandler
 {
   #logger: Logger
   readonly gestureType = "INSERT" as const
-  private insertAction: InsertAction
 
   constructor(
     editor: InteractiveInkEditor,
-    helpers: GestureHelpers,
-    insertAction: InsertAction
+    helpers: GestureHelpers
   )
   {
     super(editor, helpers)
     this.#logger = LoggerManager.getLogger(LoggerCategory.GESTURE)
-    this.insertAction = insertAction
   }
 
   async apply(gestureStroke: IIStroke, gesture: TGesture): Promise<void>
@@ -49,10 +46,10 @@ export class InsertGestureHandler extends GestureHandler
       changes = this.helpers.computeChangesOnSplitStroke(gestureStroke, gesture.strokeIds[0], gesture.subStrokes)
     }
     else if (textToSplit) {
-      changes = this.helpers.computeChangesOnSplitText(gestureStroke, textToSplit, this.insertAction)
+      changes = this.helpers.computeChangesOnSplitText(gestureStroke, textToSplit, this.helpers.insertAction)
     }
     else if (strokeTextToSplit) {
-      changes = this.helpers.computeChangesOnSplitStrokeText(gestureStroke, strokeTextToSplit, this.insertAction)
+      changes = this.helpers.computeChangesOnSplitStrokeText(gestureStroke, strokeTextToSplit, this.helpers.insertAction)
     }
     else if (symbolsAfterGestureInRow.length) {
       const translate: { symbols: TIISymbol[], tx: number, ty: number }[] = []
@@ -61,7 +58,7 @@ export class InsertGestureHandler extends GestureHandler
         translateX = Math.min(...symbolsBeforeGestureInRow.map(s => s.bounds.xMin)) - Math.min(...symbolsAfterGestureInRow.map(s => s.bounds.xMin))
       }
 
-      switch (this.insertAction) {
+      switch (this.helpers.insertAction) {
         case InsertAction.LineBreak:
           translate.push({ symbols: symbolsAfterGestureInRow, tx: translateX, ty: this.helpers.rowHeight })
           if (symbolsBelow.length) {
@@ -74,7 +71,7 @@ export class InsertGestureHandler extends GestureHandler
       }
       changes = { translate }
     }
-    else if (symbolsBeforeGestureInRow.length && symbolsBelow.length && this.insertAction === InsertAction.LineBreak) {
+    else if (symbolsBeforeGestureInRow.length && symbolsBelow.length && this.helpers.insertAction === InsertAction.LineBreak) {
       changes = { translate: [{ symbols: symbolsBelow, tx: 0, ty: this.helpers.rowHeight }] }
     }
 

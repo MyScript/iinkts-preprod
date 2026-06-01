@@ -20,8 +20,7 @@ export class SurroundGestureHandler extends GestureHandler
 
   constructor(
     editor: InteractiveInkEditor,
-    helpers: GestureHelpers,
-    private surroundAction: SurroundAction
+    helpers: GestureHelpers
   )
   {
     super(editor, helpers)
@@ -34,7 +33,7 @@ export class SurroundGestureHandler extends GestureHandler
     const changes: TIIHistoryChanges = {}
     const ids = this.model.symbols.filter(s => gestureStroke.bounds.contains(s.bounds)).map(s => s.id)
 
-    switch (this.surroundAction) {
+    switch (this.helpers.surroundAction) {
       case SurroundAction.Select:
         await this.applySelect(ids)
         break
@@ -49,7 +48,7 @@ export class SurroundGestureHandler extends GestureHandler
         this.history.push(this.model, changes)
         break
       default:
-        this.#logger.error("applySurroundGesture", `Unknown surroundAction: ${ this.surroundAction }`)
+        this.#logger.error("applySurroundGesture", `Unknown surroundAction: ${ this.helpers.surroundAction }`)
         break
     }
   }
