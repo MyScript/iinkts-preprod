@@ -43,6 +43,7 @@ import { IIMenuAction, IIMenuManager, IIMenuStyle, IIMenuTool } from "../../menu
 import { AbstractEditor, EditorOptionsBase } from "../AbstractEditor"
 import { InteractiveInkEditorConfiguration, TInteractiveInkEditorConfiguration } from "./InteractiveInkEditorConfiguration"
 import { SymbolFactory } from "../../factories"
+import { MathDependencyService } from "../../services"
 
 /**
  * @group Editor
@@ -95,6 +96,7 @@ export class InteractiveInkEditor extends AbstractEditor
   synchronizer: IISynchronizerManager
   mathOverlays: MathOverlayManager
   mathInteractions: MathInteractionManager
+  mathDependencies: MathDependencyService
   transientInk: TransientInkManager
   menu: IIMenuManager
   mathComputationMode: boolean = true
@@ -143,6 +145,7 @@ export class InteractiveInkEditor extends AbstractEditor
     this.synchronizer = new IISynchronizerManager(this)
     this.mathOverlays = new MathOverlayManager(this)
     this.mathInteractions = new MathInteractionManager(this)
+    this.mathDependencies = new MathDependencyService(this)
     this.transientInk = new TransientInkManager(this.renderer, this.#model)
     this.menu = new IIMenuManager(this, options?.override?.menu)
   }
@@ -1421,9 +1424,7 @@ export class InteractiveInkEditor extends AbstractEditor
    */
   findMathSymbolByJiixId(jiixId: string): IIRecognizedMath | undefined
   {
-    return this.model.symbols.find(s =>
-      isRecognizedMathSymbol(s) && s.jiixId === jiixId
-    ) as IIRecognizedMath | undefined
+    return this.mathDependencies.findMathSymbolByJiixId(jiixId)
   }
 
   /**
@@ -1870,41 +1871,7 @@ export class InteractiveInkEditor extends AbstractEditor
   async recalculateDependentBlocks(sourceBlockId: string): Promise<void>
   {
     try {
-      this.logger.info("recalculateDependentBlocks", { sourceBlockId })
-
-      const sourceMathSymbol = this.findMathSymbolByJiixId(sourceBlockId)
-
-      if (!sourceMathSymbol) {
-        this.logger.warn("recalculateDependentBlocks", `Source block not found: ${sourceBlockId}`)
-        return
-      }
-
-      if (!sourceMathSymbol.dependentBlocks || sourceMathSymbol.dependentBlocks.length === 0) {
-        this.logger.debug("recalculateDependentBlocks", "No dependent blocks to recalculate")
-        return
-      }
-
-      this.logger.info("recalculateDependentBlocks", `Found ${sourceMathSymbol.dependentBlocks.length} dependent blocks`)
-
-      for (const dependentBlockId of sourceMathSymbol.dependentBlocks) {
-        const dependentMathSymbol = this.findMathSymbolByJiixId(dependentBlockId)
-
-        if (!dependentMathSymbol) {
-          this.logger.warn("recalculateDependentBlocks", `Dependent block not found: ${dependentBlockId}`)
-          continue
-        }
-
-        try {
-          this.logger.info("recalculateDependentBlocks", `Computing numerical result for ${dependentBlockId}`)
-          await this.computeMathNumericalResult(dependentMathSymbol, this.mathComputationMode)
-        }
-        catch (computeError) {
-          this.logger.error("recalculateDependentBlocks", `Error computing ${dependentBlockId}:`, computeError)
-        }
-      }
-
-      this.logger.info("recalculateDependentBlocks", "All dependent blocks recalculated")
-      this.event.emitChanged(this.history.context)
+      return await this.mathDependencies.recalculateDependentBlocks(sourceBlockId)
     }
     catch (error) {
       this.logger.error("recalculateDependentBlocks", { error })
@@ -1923,17 +1890,7 @@ export class InteractiveInkEditor extends AbstractEditor
    */
   getMathDependencies(blockId: string): { variableSources?: { [variableName: string]: string }, dependentBlocks?: string[] } | null
   {
-    const mathSymbol = this.findMathSymbolByJiixId(blockId)
-
-    if (!mathSymbol) {
-      this.logger.warn("getMathDependencies", `Math symbol not found for blockId: ${blockId}`)
-      return null
-    }
-
-    return {
-      variableSources: mathSymbol.variableSources,
-      dependentBlocks: mathSymbol.dependentBlocks
-    }
+    return this.mathDependencies.getMathDependencies(blockId)
   }
 
   /**
