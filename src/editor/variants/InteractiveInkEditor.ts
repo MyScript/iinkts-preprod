@@ -3,30 +3,14 @@ import { IIModel, TExport, TJIIXMathElement } from "../../model"
 import
 {
   Box,
-  EdgeKind,
-  TIIEdge,
-  IIEdgeArc,
-  IIEdgeLine,
-  IIEdgePolyLine,
-  TIIShape,
-  IIShapeCircle,
-  IIShapeEllipse,
-  IIShapePolygon,
   IIStroke,
   IIRecognizedText,
   IIRecognizedMath,
-  IIRecognizedLine,
-  IIRecognizedPolyLine,
-  IIRecognizedArc,
-  IIRecognizedCircle,
-  IIRecognizedEllipse,
-  IIRecognizedPolygon,
   IIText,
   IIMath,
   TIISymbol,
   TIIRecognized,
   RecognizedKind,
-  ShapeKind,
   SymbolType,
   convertPartialStrokesToOIStrokes,
   isRecognizedMathSymbol
@@ -58,6 +42,7 @@ import { PartialDeep, convertMillimeterToPixel, mergeDeep } from "../../utils"
 import { IIMenuAction, IIMenuManager, IIMenuStyle, IIMenuTool } from "../../menu"
 import { AbstractEditor, EditorOptionsBase } from "../AbstractEditor"
 import { InteractiveInkEditorConfiguration, TInteractiveInkEditorConfiguration } from "./InteractiveInkEditorConfiguration"
+import { SymbolFactory } from "../../factories"
 
 /**
  * @group Editor
@@ -87,6 +72,7 @@ export class InteractiveInkEditor extends AbstractEditor
   #toolBeforeCtrl?: EditorTool
   #layerUITimer?: ReturnType<typeof setTimeout>
   #recognizeStrokeTimer?: ReturnType<typeof setTimeout>
+  #symbolFactory: SymbolFactory
 
   renderer: SVGRenderer
   recognizer: RecognizerWebSocket
@@ -119,6 +105,7 @@ export class InteractiveInkEditor extends AbstractEditor
 
     this.#configuration = new InteractiveInkEditorConfiguration(options?.configuration)
     this.#penStyle = Object.assign({}, this.#configuration.penStyle)
+    this.#symbolFactory = new SymbolFactory()
 
     if (options?.override?.recognizer) {
       const CustomRecognizer = options?.override.recognizer as unknown as typeof RecognizerWebSocket
@@ -357,100 +344,19 @@ export class InteractiveInkEditor extends AbstractEditor
     }
   }
 
-  protected buildShape(partialShape: PartialDeep<TIIShape>): TIIShape
-  {
-    switch (partialShape.kind) {
-      case ShapeKind.Circle:
-        return IIShapeCircle.create(partialShape as PartialDeep<IIShapeCircle>)
-      case ShapeKind.Ellipse:
-        return IIShapeEllipse.create(partialShape as PartialDeep<IIShapeEllipse>)
-      case ShapeKind.Polygon:
-        return IIShapePolygon.create(partialShape as PartialDeep<IIShapePolygon>)
-      default:
-        throw new Error(`Unable to create shape, kind: "${ partialShape.kind }" is unknown`)
-    }
-  }
-
-  protected buildEdge(partialEdge: PartialDeep<TIIEdge>): TIIEdge
-  {
-    switch (partialEdge.kind) {
-      case EdgeKind.Arc:
-        return IIEdgeArc.create(partialEdge as PartialDeep<IIEdgeArc>)
-      case EdgeKind.Line:
-        return IIEdgeLine.create(partialEdge as PartialDeep<IIEdgeLine>)
-      case EdgeKind.PolyEdge:
-        return IIEdgePolyLine.create(partialEdge as PartialDeep<IIEdgePolyLine>)
-      default:
-        throw new Error(`Unable to create edge, kind: "${ partialEdge.kind }" is unknown`)
-    }
-  }
-
-  protected buildRecognized(partialSymbol: PartialDeep<TIIRecognized>): TIIRecognized
-  {
-    switch (partialSymbol.kind) {
-      case RecognizedKind.Text:
-        return IIRecognizedText.create(partialSymbol)
-      case RecognizedKind.Math:
-        return IIRecognizedMath.create(partialSymbol)
-      case RecognizedKind.Arc:
-        return IIRecognizedArc.create(partialSymbol)
-      case RecognizedKind.Circle:
-        return IIRecognizedCircle.create(partialSymbol)
-      case RecognizedKind.Ellipse:
-        return IIRecognizedEllipse.create(partialSymbol)
-      case RecognizedKind.Polygone:
-        return IIRecognizedPolygon.create(partialSymbol)
-      case RecognizedKind.Line:
-        return IIRecognizedLine.create(partialSymbol)
-      case RecognizedKind.PolyEdge:
-        return IIRecognizedPolyLine.create(partialSymbol)
-      default:
-        throw new Error(`Unable to create recognized, symbol type '${ JSON.stringify(partialSymbol) } is unknown`)
-    }
-  }
-
-  protected buildStroke(partialSymbol: PartialDeep<IIStroke>): IIStroke
-  {
-    return IIStroke.create(partialSymbol as PartialDeep<IIStroke>)
-  }
-
-  protected buildStrokeText(partialSymbol: PartialDeep<IIRecognizedText>): IIRecognizedText
-  {
-    return IIRecognizedText.create(partialSymbol as PartialDeep<IIRecognizedText>)
-  }
-
-  protected buildText(partialSymbol: PartialDeep<IIText>): IIText
-  {
-    return IIText.create(partialSymbol as PartialDeep<IIText>)
-  }
-
-  protected buildMath(partialSymbol: PartialDeep<IIMath>): IIMath
-  {
-    return IIMath.create(partialSymbol as PartialDeep<IIMath>)
-  }
-
+  /**
+   * Build a symbol from partial data
+   * @param partialSymbol - Partial symbol data
+   * @returns Complete symbol instance
+   * @deprecated Use SymbolFactory directly for better separation of concerns
+   */
   protected buildSymbol(partialSymbol: PartialDeep<TIISymbol>): TIISymbol
   {
     try {
-      switch (partialSymbol.type) {
-        case SymbolType.Stroke:
-          return this.buildStroke(partialSymbol)
-        case SymbolType.Shape:
-          return this.buildShape(partialSymbol)
-        case SymbolType.Edge:
-          return this.buildEdge(partialSymbol)
-        case SymbolType.Text:
-          return this.buildText(partialSymbol)
-        case SymbolType.Math:
-          return this.buildMath(partialSymbol)
-        case SymbolType.Recognized:
-          return this.buildRecognized(partialSymbol as PartialDeep<TIIRecognized>)
-        default:
-          throw new Error(`Unable to build symbol, type: "${ partialSymbol.type }" is unknown`)
-      }
+      return this.#symbolFactory.buildSymbol(partialSymbol)
     }
     catch (error) {
-      this.logger.error("createSymbol", error)
+      this.logger.error("buildSymbol", error)
       this.manageError(error as Error)
       throw error
     }
@@ -507,19 +413,7 @@ export class InteractiveInkEditor extends AbstractEditor
   async createSymbols(partialSymbols: PartialDeep<TIISymbol>[]): Promise<TIISymbol[]>
   {
     try {
-      const errors: string[] = []
-      const symbols: TIISymbol[] = []
-      partialSymbols.forEach(partialSymbol =>
-      {
-        try {
-          symbols.push(this.buildSymbol(partialSymbol))
-        } catch (error) {
-          errors.push(((error as Error).message || error) as string)
-        }
-      })
-      if (errors.length) {
-        throw new Error(errors.join("\n"))
-      }
+      const symbols = this.#symbolFactory.buildSymbols(partialSymbols)
       return await this.addSymbols(symbols)
     } catch (error) {
       this.logger.error("createSymbols", error)
