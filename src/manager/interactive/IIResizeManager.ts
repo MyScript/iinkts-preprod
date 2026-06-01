@@ -20,6 +20,21 @@ import
 } from "../../symbol"
 
 /**
+ * Helper functions for resize direction checks
+ */
+const isEasternResize = (direction: ResizeDirection): boolean =>
+  [ResizeDirection.East, ResizeDirection.NorthEast, ResizeDirection.SouthEast].includes(direction)
+
+const isWesternResize = (direction: ResizeDirection): boolean =>
+  [ResizeDirection.West, ResizeDirection.NorthWest, ResizeDirection.SouthWest].includes(direction)
+
+const isNorthernResize = (direction: ResizeDirection): boolean =>
+  [ResizeDirection.North, ResizeDirection.NorthEast, ResizeDirection.NorthWest].includes(direction)
+
+const isSouthernResize = (direction: ResizeDirection): boolean =>
+  [ResizeDirection.South, ResizeDirection.SouthEast, ResizeDirection.SouthWest].includes(direction)
+
+/**
  * @group Manager
  */
 export class IIResizeManager
@@ -248,17 +263,17 @@ export class IIResizeManager
     localPoint.y = y
 
     let deltaX = 0, deltaY = 0
-    if ([ResizeDirection.East, ResizeDirection.NorthEast, ResizeDirection.SouthEast].includes(this.direction)) {
+    if (isEasternResize(this.direction)) {
       deltaX = localPoint.x - this.boundingBox.xMax
     }
-    else if ([ResizeDirection.West, ResizeDirection.NorthWest, ResizeDirection.SouthWest].includes(this.direction)) {
+    else if (isWesternResize(this.direction)) {
       deltaX = this.boundingBox.xMin - localPoint.x
     }
 
-    if ([ResizeDirection.North, ResizeDirection.NorthEast, ResizeDirection.NorthWest].includes(this.direction)) {
+    if (isNorthernResize(this.direction)) {
       deltaY = this.boundingBox.yMin - localPoint.y
     }
-    else if ([ResizeDirection.South, ResizeDirection.SouthEast, ResizeDirection.SouthWest].includes(this.direction)) {
+    else if (isSouthernResize(this.direction)) {
       deltaY = localPoint.y - this.boundingBox.yMax
     }
 
