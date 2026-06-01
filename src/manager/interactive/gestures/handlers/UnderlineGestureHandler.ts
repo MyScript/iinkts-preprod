@@ -19,8 +19,7 @@ export class UnderlineGestureHandler extends GestureHandler
 
   constructor(
     editor: InteractiveInkEditor,
-    helpers: GestureHelpers,
-    private underlineAction: UnderlineAction
+    helpers: GestureHelpers
   )
   {
     super(editor, helpers)
@@ -35,7 +34,7 @@ export class UnderlineGestureHandler extends GestureHandler
       return
     }
 
-    switch (this.underlineAction) {
+    switch (this.helpers.underlineAction) {
       case UnderlineAction.Draw:
         await this.applyDraw(gestureStroke, gesture)
         break
@@ -43,7 +42,7 @@ export class UnderlineGestureHandler extends GestureHandler
         await this.applyThicken(gesture)
         break
       default:
-        this.#logger.warn("applyUnderlineGesture", `Unknown underlineAction: ${ this.underlineAction }`)
+        this.#logger.warn("applyUnderlineGesture", `Unknown underlineAction: ${ this.helpers.underlineAction }`)
         break
     }
   }
