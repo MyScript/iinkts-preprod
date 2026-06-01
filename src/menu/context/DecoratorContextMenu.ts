@@ -1,7 +1,7 @@
 import { InteractiveInkEditor } from "../../editor"
 import { BaseMenuItem, TGenericMenuItem } from "../items/BaseMenuItem"
 import ArrowDown from "../../assets/svg/nav-arrow-down.svg"
-import { DecoratorKind, IIDecorator, IIRecognizedText, IIStroke, IIText, RecognizedKind, SymbolType } from "../../symbol"
+import { DecoratorKind, IIDecorator, IIRecognizedText, IIStroke, IIText, RecognizedKind, SymbolType, isRecognizedMathSymbol } from "../../symbol"
 import { DEFAULT_MENU_COLORS } from "../MenuConstants"
 
 /**
@@ -38,7 +38,7 @@ export class DecoratorContextMenu extends BaseMenuItem<HTMLElement>
   get hasSingleMathSymbol(): boolean
   {
     const selected = this.editor.model.symbolsSelected
-    return selected.length === 1 && selected[0].type === SymbolType.Recognized && selected[0].kind === RecognizedKind.Math
+    return selected.length === 1 && isRecognizedMathSymbol(selected[0])
   }
 
   protected createDecoratorSubMenu(label: string, kind: DecoratorKind): HTMLElement
