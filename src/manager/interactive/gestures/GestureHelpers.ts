@@ -20,8 +20,8 @@ import { computeAverage, createUUID } from "../../../utils"
 import { IITranslateManager } from "../IITranslateManager"
 import { IITextManager } from "../IITextManager"
 import type { InteractiveInkEditor } from "../../../editor"
-import type { TGesture } from "../IIGestureManager"
-import { InsertAction } from "../IIGestureManager"
+import type { TGesture, IIGestureManager } from "../IIGestureManager"
+import { InsertAction, SurroundAction, StrikeThroughAction, UnderlineAction } from "../IIGestureManager"
 
 /**
  * Helper class containing all shared utility methods for gesture handlers
@@ -30,7 +30,7 @@ import { InsertAction } from "../IIGestureManager"
  */
 export class GestureHelpers
 {
-  constructor(private editor: InteractiveInkEditor)
+  constructor(private editor: InteractiveInkEditor, private manager: IIGestureManager)
   {
   }
 
@@ -74,6 +74,40 @@ export class GestureHelpers
   get strokeSpaceWidth(): number
   {
     return this.editor.configuration.rendering.guides.gap * 2
+  }
+
+  // ==================== GESTURE ACTION ACCESSORS ====================
+
+  /**
+   * Get current surround action (dynamically from manager)
+   */
+  get surroundAction(): SurroundAction
+  {
+    return this.manager.surroundAction
+  }
+
+  /**
+   * Get current strikethrough action (dynamically from manager)
+   */
+  get strikeThroughAction(): StrikeThroughAction
+  {
+    return this.manager.strikeThroughAction
+  }
+
+  /**
+   * Get current underline action (dynamically from manager)
+   */
+  get underlineAction(): UnderlineAction
+  {
+    return this.manager.underlineAction
+  }
+
+  /**
+   * Get current insert action (dynamically from manager)
+   */
+  get insertAction(): InsertAction
+  {
+    return this.manager.insertAction
   }
 
   // ==================== DECORATOR HELPERS ====================
