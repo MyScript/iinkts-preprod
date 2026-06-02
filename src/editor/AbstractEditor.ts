@@ -49,7 +49,7 @@ export abstract class AbstractEditor
 
   constructor(rootElement: HTMLElement, options?: PartialDeep<EditorOptionsBase>)
   {
-    this.loggerConfiguration = Object.assign({}, DefaultLoggerConfiguration, options?.configuration?.logger)
+    this.loggerConfiguration = { ...DefaultLoggerConfiguration, ...options?.configuration?.logger }
     this.logger.info("constructor", { rootElement, options })
 
     this.event = new EditorEvent(rootElement)
@@ -66,7 +66,7 @@ export abstract class AbstractEditor
 
   set loggerConfiguration(loggerConfig: TLoggerConfiguration)
   {
-    this.#loggerConfiguration = Object.assign({}, DefaultLoggerConfiguration, loggerConfig)
+    this.#loggerConfiguration = { ...DefaultLoggerConfiguration, ...loggerConfig }
     LoggerManager.setLoggerLevel(this.#loggerConfiguration)
   }
 
