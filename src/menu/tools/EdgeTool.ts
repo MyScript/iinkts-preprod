@@ -1,9 +1,9 @@
-import { InteractiveInkEditor } from "../../editor"
-import { BaseMenuItem, IMenuItemBase } from "../items/BaseMenuItem"
-import { EditorTool, EditorWriteTool } from "../../Constants"
-import lineIcon from "../../assets/svg/linear.svg"
-import arrowIcon from "../../assets/svg/linear-arrow.svg"
-import doubleArrowIcon from "../../assets/svg/linear-double-arrow.svg"
+import { InteractiveInkEditor } from "@/editor"
+import { BaseMenuItem, IMenuItemBase } from "@/menu/items/BaseMenuItem"
+import { EditorTool, EditorWriteTool } from "@/Constants"
+import lineIcon from "@/assets/svg/linear.svg"
+import arrowIcon from "@/assets/svg/linear-arrow.svg"
+import doubleArrowIcon from "@/assets/svg/linear-double-arrow.svg"
 
 interface IEdgeToolConfig extends IMenuItemBase {
   type: "edge"

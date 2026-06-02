@@ -1,13 +1,13 @@
-import { LoggerCategory, LoggerManager } from "../../logger"
-import { IIModel } from "../../model"
-import { Box, TPoint, TSegment } from "../../symbol"
-import { SVGRenderer } from "../../renderer"
-import { SVGRendererConst } from "../../renderer/svg/SVGRendererConst"
-import { InteractiveInkEditor } from "../../editor/variants/InteractiveInkEditor"
-import { PartialDeep } from "../../utils"
+import { LoggerCategory, LoggerManager } from "@/logger"
+import { IIModel } from "@/model"
+import { Box, TPoint, TSegment } from "@/symbol"
+import { SVGRenderer } from "@/renderer"
+import { SVGRendererConst } from "@/renderer/svg/SVGRendererConst"
+import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import { PartialDeep } from "@/utils"
 
 /**
- * @group Snap
+ * @group Manager/Interactive
  */
 export type TSnapConfiguration = {
   guide: boolean
@@ -16,7 +16,7 @@ export type TSnapConfiguration = {
 }
 
 /**
- * @group Snap
+ * @group Manager/Interactive
  * @source
  */
 export const DefaultSnapConfiguration: TSnapConfiguration = {
@@ -26,7 +26,7 @@ export const DefaultSnapConfiguration: TSnapConfiguration = {
 }
 
 /**
- * @group Snap
+ * @group Manager/Interactive
  */
 export class SnapConfiguration implements TSnapConfiguration
 {
@@ -43,12 +43,12 @@ export class SnapConfiguration implements TSnapConfiguration
 }
 
 /**
- * @group Snap
+ * @group Manager/Interactive
  */
 export type TSnapNudge = TPoint
 
 /**
- * @group Snap
+ * @group Manager/Interactive
  */
 export type TSnapLineInfos = {
   nudge: TSnapNudge,
@@ -57,7 +57,7 @@ export type TSnapLineInfos = {
 }
 
 /**
- * @group Snap
+ * @group Manager/Interactive
  */
 export class IISnapManager
 {

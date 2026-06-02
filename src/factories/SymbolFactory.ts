@@ -1,5 +1,5 @@
-import { LoggerManager, LoggerCategory } from "../logger"
-import { PartialDeep } from "../utils"
+import { LoggerManager, LoggerCategory } from "@/logger"
+import { PartialDeep } from "@/utils"
 import
 {
   TIISymbol,
@@ -27,7 +27,7 @@ import
   ShapeKind,
   EdgeKind,
   RecognizedKind
-} from "../symbol"
+} from "@/symbol"
 
 /**
  * Factory responsible for creating symbols from partial data

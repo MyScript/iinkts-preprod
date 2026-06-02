@@ -1,4 +1,4 @@
-import { LoggerCategory, LoggerManager } from "../logger"
+import { LoggerCategory, LoggerManager } from "@/logger"
 import { EditorType } from "./AbstractEditor"
 import { InteractiveInkEditor, TInteractiveInkEditorOptions } from "./variants/InteractiveInkEditor"
 import { InkEditorDeprecated, TInkEditorDeprecatedOptions } from "./variants/InkEditorDeprecated"

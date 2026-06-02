@@ -1,11 +1,11 @@
-import { getApiInfos, PartialDeep, TApiInfos } from "../utils"
+import { getApiInfos, PartialDeep, TApiInfos } from "@/utils"
 import {
   LoggerCategory,
   LoggerManager,
   DefaultLoggerConfiguration,
   TLoggerConfiguration
-} from "../logger"
-import { TServerHTTPConfiguration } from "../recognizer"
+} from "@/logger"
+import { TServerHTTPConfiguration } from "@/recognizer"
 import { EditorEvent } from "./EditorEvent"
 import { EditorLayer } from "./EditorLayer"
 

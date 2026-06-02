@@ -1,7 +1,7 @@
-import { InteractiveInkEditor } from "../../editor"
-import { SubMenuItem, IMenuSubMenu } from "../items/SubMenuItem"
-import { IMenuCheckbox } from "../items/CheckboxMenuItem"
-import debugIcon from "../../assets/svg/wolf.svg"
+import { InteractiveInkEditor } from "@/editor"
+import { SubMenuItem, IMenuSubMenu } from "@/menu/items/SubMenuItem"
+import { IMenuCheckbox } from "@/menu/items/CheckboxMenuItem"
+import debugIcon from "@/assets/svg/wolf.svg"
 
 /**
  * @group Menu

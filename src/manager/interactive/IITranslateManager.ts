@@ -1,7 +1,7 @@
-import { SvgElementRole } from "../../Constants"
-import { InteractiveInkEditor } from "../../editor/variants/InteractiveInkEditor"
-import { LoggerCategory, LoggerManager } from "../../logger"
-import { IIModel } from "../../model"
+import { SvgElementRole } from "@/Constants"
+import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import { LoggerCategory, LoggerManager } from "@/logger"
+import { IIModel } from "@/model"
 import
 {
   EdgeKind,
@@ -16,10 +16,10 @@ import
   TPoint,
   TIIRecognized,
   RecognizedKind
-} from "../../symbol"
+} from "@/symbol"
 
 /**
- * @group Manager
+ * @group Manager/Interactive
  */
 export class IITranslateManager
 {

@@ -1,10 +1,10 @@
-import { TStyle } from "../../style"
-import { PartialDeep } from "../../utils"
-import { Box, TBox } from "../base/Box"
-import { IIStroke } from "../interactive/IIStroke"
-import { IISymbolBase } from "../interactive/IISymbolBase"
-import { TPoint } from "../base/Point"
-import { SymbolType } from "../base/Symbol"
+import { TStyle } from "@/style"
+import { PartialDeep } from "@/utils"
+import { Box, TBox } from "@/symbol/base/Box"
+import { IIStroke } from "@/symbol/interactive/IIStroke"
+import { IISymbolBase } from "@/symbol/interactive/IISymbolBase"
+import { TPoint } from "@/symbol/base/Point"
+import { SymbolType } from "@/symbol/base/Symbol"
 
 /**
  * @group Symbol

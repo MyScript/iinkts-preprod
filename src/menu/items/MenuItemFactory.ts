@@ -1,4 +1,4 @@
-import { InteractiveInkEditor } from "../../editor"
+import { InteractiveInkEditor } from "@/editor"
 import { BaseMenuItem, TGenericMenuItem } from "./BaseMenuItem"
 import { ButtonMenuItem } from "./ButtonMenuItem"
 import { CheckboxMenuItem } from "./CheckboxMenuItem"

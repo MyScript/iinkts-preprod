@@ -1,6 +1,6 @@
-import { LoggerCategory, LoggerManager } from "../../logger"
-import { TPoint, TCanvasShapeEllipseSymbol, TCanvasShapeLineSymbol, TCanvasShapeTableSymbol, TSymbol } from "../../symbol"
-import { normalizeAngle, calculateEllipseArcPoints } from "../shared"
+import { LoggerCategory, LoggerManager } from "@/logger"
+import { TPoint, TCanvasShapeEllipseSymbol, TCanvasShapeLineSymbol, TCanvasShapeTableSymbol, TSymbol } from "@/symbol"
+import { normalizeAngle, computeEllipseArcPoints } from "@/utils"
 
 /**
  * @group Renderer
@@ -24,7 +24,7 @@ export class CanvasRendererShape
     context2D.save()
     try {
       context2D.beginPath()
-      const arcPoints = calculateEllipseArcPoints(centerPoint, maxRadius, minRadius, orientation, startAngle, sweepAngle)
+      const arcPoints = computeEllipseArcPoints(centerPoint, maxRadius, minRadius, orientation, startAngle, sweepAngle)
 
       arcPoints.forEach((point, index) => {
         if (index === 0) {

@@ -1,7 +1,7 @@
-import { SvgElementRole } from "../../Constants"
-import { InteractiveInkEditor } from "../../editor/variants/InteractiveInkEditor"
-import { LoggerCategory, LoggerManager } from "../../logger"
-import { IIModel } from "../../model"
+import { SvgElementRole } from "@/Constants"
+import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import { LoggerCategory, LoggerManager } from "@/logger"
+import { IIModel } from "@/model"
 import
 {
   Box,
@@ -16,11 +16,11 @@ import
   TIIShape,
   TIISymbol,
   TPoint
-} from "../../symbol"
-import { computeAngleRadian, convertDegreeToRadian, convertRadianToDegree, computeRotatedPoint } from "../../utils"
+} from "@/symbol"
+import { computeAngleRadian, convertDegreeToRadian, convertRadianToDegree, computeRotatedPoint } from "@/utils"
 
 /**
- * @group Manager
+ * @group Manager/Interactive
  */
 export class IIRotationManager
 {

@@ -1,14 +1,14 @@
-import { TransientInkManager } from "../../../src/manager/math/TransientInkManager"
-import { SVGRenderer } from "../../../src/renderer"
-import { IIModel } from "../../../src/model"
-import { SymbolType } from "../../../src/symbol"
+import { IITransientInkManager } from "../../../../src/manager/interactive/IITransientInkManager"
+import { SVGRenderer } from "../../../../src/renderer"
+import { IIModel } from "../../../../src/model"
+import { SymbolType } from "../../../../src/symbol"
 
 // Mock dependencies
-jest.mock("../../../src/renderer")
-jest.mock("../../../src/model")
+jest.mock("../../../../src/renderer")
+jest.mock("../../../../src/model")
 
-describe("TransientInkManager", () => {
-  let manager: TransientInkManager;
+describe("IITransientInkManager", () => {
+  let manager: IITransientInkManager;
   let mockRenderer: jest.Mocked<SVGRenderer>;
   let mockModel: jest.Mocked<IIModel>;
 
@@ -23,7 +23,7 @@ describe("TransientInkManager", () => {
       removeSymbol: jest.fn(),
     } as any
 
-    manager = new TransientInkManager(mockRenderer, mockModel)
+    manager = new IITransientInkManager(mockRenderer, mockModel)
   })
 
   describe("addTransientSymbol", () => {

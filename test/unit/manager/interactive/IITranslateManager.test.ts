@@ -1,4 +1,4 @@
-import { InteractiveInkEditorMock } from "../__mocks__/InteractiveInkEditorMock"
+import { InteractiveInkEditorMock } from "../../__mocks__/InteractiveInkEditorMock"
 import
 {
   IIEdgeLine,
@@ -8,7 +8,7 @@ import
   IIStroke,
   TPoint,
   SvgElementRole,
-} from "../../../src/iink"
+} from "../../../../src/iink"
 
 describe("IITranslateManager.ts", () =>
 {

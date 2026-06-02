@@ -1,13 +1,13 @@
-import type { IIStroke, TIISymbol } from "../../../symbol"
-import type { InteractiveInkEditor } from "../../../editor"
-import type { TGesture, TGestureType } from "../IIGestureManager"
+import type { IIStroke, TIISymbol } from "@/symbol"
+import type { InteractiveInkEditor } from "@/editor"
+import type { TGesture, TGestureType } from "@/manager/interactive/GestureTypes"
 import type { GestureHelpers } from "./GestureHelpers"
-import { IIModel } from "../../../model"
-import { SVGRenderer } from "../../../renderer"
-import { IIHistoryManager } from "../../../history"
-import { RecognizerWebSocket } from "../../../recognizer"
-import { IITranslateManager } from "../IITranslateManager"
-import { IITextManager } from "../IITextManager"
+import { IIModel } from "@/model"
+import { SVGRenderer } from "@/renderer"
+import { IIHistoryManager } from "@/history"
+import { RecognizerWebSocket } from "@/recognizer"
+import { IITranslateManager } from "@/manager/interactive/IITranslateManager"
+import { IITextManager } from "@/manager/interactive/IITextManager"
 
 /**
  * Base interface for gesture handlers

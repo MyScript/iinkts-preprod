@@ -1,4 +1,4 @@
-import { TRecognitionV2Type } from "../recognizer"
+import { TRecognitionV2Type } from "@/recognizer"
 import { TJIIXBase, TJIIXWord } from "./ExportCommon"
 
 /**

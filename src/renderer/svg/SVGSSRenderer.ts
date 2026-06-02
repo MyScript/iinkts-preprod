@@ -1,8 +1,8 @@
-import { LoggerCategory, LoggerManager } from "../../logger"
-import { Model } from "../../model"
-import { TStroke } from "../../symbol"
-import { TRendererConfiguration } from "../RendererConfiguration"
-import { TUpdatePatch, TUpdatePatchAppendChild, TUpdatePatchInsertBefore, TUpdatePatchRemoveAttribut, TUpdatePatchRemoveChild, TUpdatePatchRemoveElement, TUpdatePatchReplaceAll, TUpdatePatchReplaceELement, TUpdatePatchSetAttribut } from "../../recognizer"
+import { LoggerCategory, LoggerManager } from "@/logger"
+import { Model } from "@/model"
+import { TStroke } from "@/symbol"
+import { TRendererConfiguration } from "@/renderer/RendererConfiguration"
+import { TUpdatePatch, TUpdatePatchAppendChild, TUpdatePatchInsertBefore, TUpdatePatchRemoveAttribut, TUpdatePatchRemoveChild, TUpdatePatchRemoveElement, TUpdatePatchReplaceAll, TUpdatePatchReplaceELement, TUpdatePatchSetAttribut } from "@/recognizer"
 import { SVGStroker } from "./SVGStroker"
 
 /**

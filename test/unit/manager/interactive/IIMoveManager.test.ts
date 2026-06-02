@@ -1,5 +1,5 @@
-import { InteractiveInkEditorMock } from "../__mocks__/InteractiveInkEditorMock"
-import { IIMoveManager, PointerInfo } from "../../../src/iink"
+import { InteractiveInkEditorMock } from "../../__mocks__/InteractiveInkEditorMock"
+import { IIMoveManager, PointerInfo } from "../../../../src/iink"
 
 
 describe("IIMoveManager.ts", () =>
