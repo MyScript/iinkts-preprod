@@ -77,3 +77,8 @@ export const enum ResizeDirection
  * @group Renderer
  */
 export const SELECTION_MARGIN = 10 as const
+
+/**
+ * @group Constants
+ */
+export * from "./constants/MathDiagnosticMessages"

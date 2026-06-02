@@ -1,9 +1,10 @@
 import { InteractiveInkEditor } from "../../editor"
 import { SubMenuItem, IMenuSubMenu } from "../items/SubMenuItem"
-import { SymbolType, RecognizedKind, IIRecognizedMath } from "../../symbol"
+import { IIRecognizedMath, isRecognizedMathSymbol } from "../../symbol"
 import { Modal, ModalField } from "../../components"
 import { Chart } from "../../components"
 import { LoggerCategory, LoggerManager } from "../../logger"
+import { getMathDiagnosticMessage } from "../../constants/MathDiagnosticMessages"
 
 /**
  * @group Menu
@@ -16,6 +17,7 @@ export class MathContextMenu extends SubMenuItem
   readonly id: string
   readonly idEditVariables: string
   readonly idNumericalComputation: string
+  readonly idCheckDiagnostic: string
   readonly idEvaluate: string
 
   constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-context")
@@ -23,6 +25,7 @@ export class MathContextMenu extends SubMenuItem
     const id = `${idPrefix}-math`
     const idEditVariables = `${id}-variables`
     const idNumericalComputation = `${id}-numerical-computation`
+    const idCheckDiagnostic = `${id}-check-diagnostic`
     const idEvaluate = `${id}-evaluate`
     const config: IMenuSubMenu = {
       id: id,
@@ -30,6 +33,156 @@ export class MathContextMenu extends SubMenuItem
       label: "Math",
       position: "right",
       items: [
+        {
+          id: idCheckDiagnostic,
+          type: "button",
+          label: "Check diagnostic",
+          action: async () => {
+            this.logger.info("Check diagnostic clicked")
+
+            try {
+              const symbolsSelected = editor.model.symbolsSelected
+              const mathSymbols = symbolsSelected.filter(isRecognizedMathSymbol)
+
+              if (mathSymbols.length === 0) {
+                this.logger.warn("No math symbol selected")
+                return
+              }
+
+              const mathSymbol = mathSymbols[0]
+
+              if (!mathSymbol.jiixId) {
+                this.logger.warn("Selected math symbol does not have jiixId")
+                return
+              }
+
+              // Check diagnostic for both tasks
+              const computeDiagnostic = await editor.getDiagnostic(mathSymbol.jiixId, "numerical-computation")
+              const evaluationDiagnostic = await editor.getDiagnostic(mathSymbol.jiixId, "evaluation")
+
+              this.logger.info("Numerical computation diagnostic:", computeDiagnostic)
+              this.logger.info("Evaluation diagnostic:", evaluationDiagnostic)
+
+              const computeInfo = getMathDiagnosticMessage(computeDiagnostic)
+              const evalInfo = getMathDiagnosticMessage(evaluationDiagnostic)
+
+              // Severity colors configuration
+              const severityColors = {
+                success: { bg: "#e8f5e9", color: "#2e7d32", icon: "✓" },
+                warning: { bg: "#fff3e0", color: "#f57c00", icon: "⚠" },
+                error: { bg: "#ffebee", color: "#c62828", icon: "✗" },
+                info: { bg: "#e3f2fd", color: "#1976d2", icon: "ℹ" }
+              }
+
+              // Helper function to create diagnostic section
+              const createDiagnosticSection = (
+                taskName: string,
+                diagnosticCode: string,
+                diagnosticInfo: { title: string, message: string, severity: "success" | "warning" | "error" | "info" }
+              ) => {
+                const section = document.createElement("div")
+                section.style.marginBottom = "20px"
+                section.style.padding = "16px"
+                section.style.background = "#fafafa"
+                section.style.borderRadius = "6px"
+                section.style.border = "1px solid #e0e0e0"
+
+                // Task title
+                const taskTitle = document.createElement("div")
+                taskTitle.style.fontSize = "15px"
+                taskTitle.style.fontWeight = "600"
+                taskTitle.style.marginBottom = "12px"
+                taskTitle.style.color = "#424242"
+                taskTitle.textContent = taskName
+                section.appendChild(taskTitle)
+
+                // Diagnostic code
+                const codeDiv = document.createElement("div")
+                codeDiv.style.fontSize = "13px"
+                codeDiv.style.marginBottom = "12px"
+                codeDiv.style.padding = "8px 10px"
+                codeDiv.style.background = "#f5f5f5"
+                codeDiv.style.borderRadius = "4px"
+                codeDiv.style.fontFamily = "monospace"
+                codeDiv.style.border = "1px solid #e0e0e0"
+                codeDiv.innerHTML = `<strong>Code:</strong> ${diagnosticCode}`
+                section.appendChild(codeDiv)
+
+                // Status indicator
+                const statusDiv = document.createElement("div")
+                statusDiv.style.fontSize = "16px"
+                statusDiv.style.marginBottom = "10px"
+                statusDiv.style.padding = "10px 12px"
+                statusDiv.style.borderRadius = "4px"
+                statusDiv.style.fontWeight = "bold"
+
+                const colors = severityColors[diagnosticInfo.severity]
+                statusDiv.style.background = colors.bg
+                statusDiv.style.color = colors.color
+                statusDiv.innerHTML = `${colors.icon} ${diagnosticInfo.title}`
+                section.appendChild(statusDiv)
+
+                // Message
+                const messageDiv = document.createElement("div")
+                messageDiv.style.fontSize = "14px"
+                messageDiv.style.lineHeight = "1.5"
+                messageDiv.style.color = "#555"
+                messageDiv.textContent = diagnosticInfo.message
+                section.appendChild(messageDiv)
+
+                return section
+              }
+
+              // Create modal content
+              const content = document.createElement("div")
+              content.style.padding = "16px"
+              content.style.maxWidth = "600px"
+
+              // Expression header
+              const expressionDiv = document.createElement("div")
+              expressionDiv.style.fontSize = "18px"
+              expressionDiv.style.marginBottom = "20px"
+              expressionDiv.style.fontWeight = "600"
+              expressionDiv.style.color = "#1976d2"
+              expressionDiv.style.padding = "12px"
+              expressionDiv.style.background = "#e3f2fd"
+              expressionDiv.style.borderRadius = "4px"
+              expressionDiv.innerHTML = `<strong>Expression:</strong> ${mathSymbol.label || "N/A"}`
+              content.appendChild(expressionDiv)
+
+              // Numerical computation diagnostic
+              content.appendChild(createDiagnosticSection(
+                "🔢 Numerical Computation",
+                computeDiagnostic,
+                computeInfo
+              ))
+
+              // Evaluation diagnostic
+              content.appendChild(createDiagnosticSection(
+                "📊 Function Evaluation",
+                evaluationDiagnostic,
+                evalInfo
+              ))
+
+              const modal: Modal = new Modal({
+                title: "Math Diagnostic",
+                fields: [],
+                customContent: content,
+                buttons: [
+                  {
+                    label: "Close",
+                    type: "primary",
+                    callback: (): void => modal.destroy()
+                  }
+                ]
+              })
+              modal.open()
+
+            } catch (error) {
+              this.logger.error("Error checking diagnostic:", error)
+            }
+          }
+        },
         {
           id: idEditVariables,
           type: "button",
@@ -114,9 +267,7 @@ export class MathContextMenu extends SubMenuItem
             
             try {
               const symbolsSelected = editor.model.symbolsSelected
-              const mathSymbols = symbolsSelected.filter(s =>
-                s.type === SymbolType.Recognized && s.kind === RecognizedKind.Math
-              ) as IIRecognizedMath[]
+              const mathSymbols = symbolsSelected.filter(isRecognizedMathSymbol)
               
               if (mathSymbols.length === 0) {
                 this.logger.warn("No math symbol selected")
@@ -399,6 +550,7 @@ export class MathContextMenu extends SubMenuItem
     this.id = id
     this.idEditVariables = idEditVariables
     this.idNumericalComputation = idNumericalComputation
+    this.idCheckDiagnostic = idCheckDiagnostic
     this.idEvaluate = idEvaluate
   }
 
@@ -408,6 +560,7 @@ export class MathContextMenu extends SubMenuItem
       mathMenu.style.removeProperty("display")
       const editVariablesButton = mathMenu.querySelector(`#${ this.idEditVariables }`) as HTMLButtonElement
       const numericalComputationButton = mathMenu.querySelector(`#${ this.idNumericalComputation }`) as HTMLButtonElement
+      const checkDiagnosticButton = mathMenu.querySelector(`#${ this.idCheckDiagnostic }`) as HTMLButtonElement
       const evaluateButton = mathMenu.querySelector(`#${ this.idEvaluate }`) as HTMLButtonElement
 
       if (editVariablesButton) {
@@ -415,6 +568,10 @@ export class MathContextMenu extends SubMenuItem
       }
       if (numericalComputationButton) {
         numericalComputationButton.style.setProperty("display", canCompute ? "inline-block" : "none")
+      }
+      if (checkDiagnosticButton) {
+        // Diagnostic is always available when a math symbol is selected
+        checkDiagnosticButton.style.setProperty("display", "inline-block")
       }
       if (evaluateButton) {
         evaluateButton.style.setProperty("display", canEvaluate ? "inline-block" : "none")

@@ -15,6 +15,9 @@ import
   DecoratorKind,
   IIEraser,
   IIRecognizedText,
+  IIRecognizedMath,
+  IIMath,
+  TIIMathElement,
   PartialDeep,
 } from "../../src/iink"
 
@@ -129,4 +132,37 @@ export function buildRecognizedText(
     strokes.push(buildOIStroke())
   }
   return new IIRecognizedText(strokes, { baseline, xHeight }, style)
+}
+
+export function buildRecognizedMath(
+  nbStroke: number = 1,
+  label: string = "y=3x+2",
+  style?: PartialDeep<TStyle>
+): IIRecognizedMath
+{
+  const strokes: IIStroke[] = []
+  for (let i = 0; i < nbStroke; i++) {
+    strokes.push(buildOIStroke())
+  }
+  const math = new IIRecognizedMath(strokes, style)
+  math.label = label
+  return math
+}
+
+export function buildOIMath(
+  label: string = "y=3x+2",
+  { point = { x: 0, y: 0 }, boundingBox = { x: 0, y: 10, width: 50, height: 30 }, style = DefaultStyle }:
+    { point?: TPoint, boundingBox?: TBox, style?: PartialDeep<TStyle> } = {}
+): IIMath
+{
+  const elements: TIIMathElement[] = [{
+    id: "math-elem-1",
+    label,
+    fontSize: 16,
+    fontWeight: "normal",
+    fontFamily: "Arial",
+    color: "#000000",
+    bounds: boundingBox
+  }]
+  return new IIMath(elements, point, boundingBox, style)
 }

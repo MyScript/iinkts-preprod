@@ -1,5 +1,5 @@
 import { LoggerCategory, LoggerManager } from "../logger"
-import { IIRecognizedText, IIRecognizedMath, IIStroke, IIText, RecognizedKind, SymbolType, TIISymbol } from "../symbol"
+import { IIRecognizedText, IIRecognizedMath, IIStroke, IIText, RecognizedKind, SymbolType, TIISymbol, isRecognizedMathSymbol } from "../symbol"
 import { InteractiveInkEditor } from "../editor"
 import { IIMenuContextConfig, defaultMenuContextConfig } from "./IIMenuContextConfig"
 import {
@@ -65,7 +65,7 @@ export class IIMenuContext
 
   get hasSingleMathSymbol(): boolean
   {
-    return this.symbolsSelected.length === 1 && this.symbolsSelected[0].type === SymbolType.Recognized && this.symbolsSelected[0].kind === RecognizedKind.Math
+    return this.symbolsSelected.length === 1 && isRecognizedMathSymbol(this.symbolsSelected[0])
   }
 
   protected async updateMathMenu(): Promise<void>
@@ -87,11 +87,7 @@ export class IIMenuContext
         const canEditVariables = Object.keys(variables).length > 0
         const canCompute = actions?.includes("numerical-computation") && !mathSymbol.solverOutputStrokeIds
         const canEvaluate = evaluables?.length ? true : false
-        if (canEditVariables || canCompute || canEvaluate) {
-          mathMenuInstance.setMenuVisibility(true, { canEditVariables, canCompute, canEvaluate })
-        } else {
-          mathMenuInstance.setMenuVisibility(false, { canEditVariables: false, canCompute: false, canEvaluate: false })
-        }
+        mathMenuInstance.setMenuVisibility(true, { canEditVariables, canCompute, canEvaluate })
       }
       else {
         mathMenuInstance.setMenuVisibility(false, { canEditVariables: false, canCompute: false, canEvaluate: false })

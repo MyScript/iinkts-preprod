@@ -44,7 +44,6 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
     this.layer.style.setProperty("width", "auto")
     this.#viewBox = { x: 0, y: 0, width, height }
     this.layer.appendChild(this.createSVGTools())
-    this.parent.style.setProperty("overflow", "auto")
     this.parent.appendChild(this.layer)
   }
 
