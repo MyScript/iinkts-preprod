@@ -3,30 +3,14 @@ import { IIModel, TExport, TJIIXMathElement } from "../../model"
 import
 {
   Box,
-  EdgeKind,
-  TIIEdge,
-  IIEdgeArc,
-  IIEdgeLine,
-  IIEdgePolyLine,
-  TIIShape,
-  IIShapeCircle,
-  IIShapeEllipse,
-  IIShapePolygon,
   IIStroke,
   IIRecognizedText,
   IIRecognizedMath,
-  IIRecognizedLine,
-  IIRecognizedPolyLine,
-  IIRecognizedArc,
-  IIRecognizedCircle,
-  IIRecognizedEllipse,
-  IIRecognizedPolygon,
   IIText,
   IIMath,
   TIISymbol,
   TIIRecognized,
   RecognizedKind,
-  ShapeKind,
   SymbolType,
   convertPartialStrokesToOIStrokes,
   isRecognizedMathSymbol
@@ -37,6 +21,7 @@ import { TStyle } from "../../style"
 import
 {
   IIConversionManager,
+  IIKeyboardManager,
   IIWriterManager,
   IISelectionManager,
   IIResizeManager,
@@ -58,6 +43,8 @@ import { PartialDeep, convertMillimeterToPixel, mergeDeep } from "../../utils"
 import { IIMenuAction, IIMenuManager, IIMenuStyle, IIMenuTool } from "../../menu"
 import { AbstractEditor, EditorOptionsBase } from "../AbstractEditor"
 import { InteractiveInkEditorConfiguration, TInteractiveInkEditorConfiguration } from "./InteractiveInkEditorConfiguration"
+import { SymbolFactory } from "../../factories"
+import { MathDependencyService } from "../../services"
 
 /**
  * @group Editor
@@ -84,9 +71,9 @@ export class InteractiveInkEditor extends AbstractEditor
   #configuration: InteractiveInkEditorConfiguration
   #model: IIModel
   #tool: EditorTool = EditorTool.Write
-  #toolBeforeCtrl?: EditorTool
   #layerUITimer?: ReturnType<typeof setTimeout>
   #recognizeStrokeTimer?: ReturnType<typeof setTimeout>
+  #symbolFactory: SymbolFactory
 
   renderer: SVGRenderer
   recognizer: RecognizerWebSocket
@@ -95,6 +82,7 @@ export class InteractiveInkEditor extends AbstractEditor
 
   history: IIHistoryManager
   writer: IIWriterManager
+  keyboard: IIKeyboardManager
   eraser: EraseManager
   gesture: IIGestureManager
   resizer: IIResizeManager
@@ -109,6 +97,7 @@ export class InteractiveInkEditor extends AbstractEditor
   synchronizer: IISynchronizerManager
   mathOverlays: MathOverlayManager
   mathInteractions: MathInteractionManager
+  mathDependencies: MathDependencyService
   transientInk: TransientInkManager
   menu: IIMenuManager
   mathComputationMode: boolean = true
@@ -119,6 +108,7 @@ export class InteractiveInkEditor extends AbstractEditor
 
     this.#configuration = new InteractiveInkEditorConfiguration(options?.configuration)
     this.#penStyle = Object.assign({}, this.#configuration.penStyle)
+    this.#symbolFactory = new SymbolFactory()
 
     if (options?.override?.recognizer) {
       const CustomRecognizer = options?.override.recognizer as unknown as typeof RecognizerWebSocket
@@ -140,6 +130,7 @@ export class InteractiveInkEditor extends AbstractEditor
 
     this.history = new IIHistoryManager(this.#configuration["undo-redo"], this.event)
 
+    this.keyboard = new IIKeyboardManager(this)
     this.writer = new IIWriterManager(this)
     this.eraser = new EraseManager(this)
     this.selector = new IISelectionManager(this)
@@ -156,6 +147,7 @@ export class InteractiveInkEditor extends AbstractEditor
     this.synchronizer = new IISynchronizerManager(this)
     this.mathOverlays = new MathOverlayManager(this)
     this.mathInteractions = new MathInteractionManager(this)
+    this.mathDependencies = new MathDependencyService(this)
     this.transientInk = new TransientInkManager(this.renderer, this.#model)
     this.menu = new IIMenuManager(this, options?.override?.menu)
   }
@@ -176,8 +168,8 @@ export class InteractiveInkEditor extends AbstractEditor
     this.setCursorStyle()
     this.unselectAll()
 
-    if (this.#toolBeforeCtrl && i !== EditorTool.Move) {
-      this.#toolBeforeCtrl = undefined
+    if (i !== EditorTool.Move) {
+      this.keyboard.resetStoredTool()
     }
 
     this.eraser.detach()
@@ -309,8 +301,7 @@ export class InteractiveInkEditor extends AbstractEditor
       this.renderer.init(this.layers.rendering)
       this.menu.render(this.layers.ui.root)
 
-      window.addEventListener("keydown", this.handleKeyDown)
-      window.addEventListener("keyup", this.handleKeyUp)
+      this.keyboard.attach()
       this.layers.root.addEventListener("wheel", this.handleWheel)
 
       const compStyles = window.getComputedStyle(this.layers.root)
@@ -357,100 +348,19 @@ export class InteractiveInkEditor extends AbstractEditor
     }
   }
 
-  protected buildShape(partialShape: PartialDeep<TIIShape>): TIIShape
-  {
-    switch (partialShape.kind) {
-      case ShapeKind.Circle:
-        return IIShapeCircle.create(partialShape as PartialDeep<IIShapeCircle>)
-      case ShapeKind.Ellipse:
-        return IIShapeEllipse.create(partialShape as PartialDeep<IIShapeEllipse>)
-      case ShapeKind.Polygon:
-        return IIShapePolygon.create(partialShape as PartialDeep<IIShapePolygon>)
-      default:
-        throw new Error(`Unable to create shape, kind: "${ partialShape.kind }" is unknown`)
-    }
-  }
-
-  protected buildEdge(partialEdge: PartialDeep<TIIEdge>): TIIEdge
-  {
-    switch (partialEdge.kind) {
-      case EdgeKind.Arc:
-        return IIEdgeArc.create(partialEdge as PartialDeep<IIEdgeArc>)
-      case EdgeKind.Line:
-        return IIEdgeLine.create(partialEdge as PartialDeep<IIEdgeLine>)
-      case EdgeKind.PolyEdge:
-        return IIEdgePolyLine.create(partialEdge as PartialDeep<IIEdgePolyLine>)
-      default:
-        throw new Error(`Unable to create edge, kind: "${ partialEdge.kind }" is unknown`)
-    }
-  }
-
-  protected buildRecognized(partialSymbol: PartialDeep<TIIRecognized>): TIIRecognized
-  {
-    switch (partialSymbol.kind) {
-      case RecognizedKind.Text:
-        return IIRecognizedText.create(partialSymbol)
-      case RecognizedKind.Math:
-        return IIRecognizedMath.create(partialSymbol)
-      case RecognizedKind.Arc:
-        return IIRecognizedArc.create(partialSymbol)
-      case RecognizedKind.Circle:
-        return IIRecognizedCircle.create(partialSymbol)
-      case RecognizedKind.Ellipse:
-        return IIRecognizedEllipse.create(partialSymbol)
-      case RecognizedKind.Polygone:
-        return IIRecognizedPolygon.create(partialSymbol)
-      case RecognizedKind.Line:
-        return IIRecognizedLine.create(partialSymbol)
-      case RecognizedKind.PolyEdge:
-        return IIRecognizedPolyLine.create(partialSymbol)
-      default:
-        throw new Error(`Unable to create recognized, symbol type '${ JSON.stringify(partialSymbol) } is unknown`)
-    }
-  }
-
-  protected buildStroke(partialSymbol: PartialDeep<IIStroke>): IIStroke
-  {
-    return IIStroke.create(partialSymbol as PartialDeep<IIStroke>)
-  }
-
-  protected buildStrokeText(partialSymbol: PartialDeep<IIRecognizedText>): IIRecognizedText
-  {
-    return IIRecognizedText.create(partialSymbol as PartialDeep<IIRecognizedText>)
-  }
-
-  protected buildText(partialSymbol: PartialDeep<IIText>): IIText
-  {
-    return IIText.create(partialSymbol as PartialDeep<IIText>)
-  }
-
-  protected buildMath(partialSymbol: PartialDeep<IIMath>): IIMath
-  {
-    return IIMath.create(partialSymbol as PartialDeep<IIMath>)
-  }
-
+  /**
+   * Build a symbol from partial data
+   * @param partialSymbol - Partial symbol data
+   * @returns Complete symbol instance
+   * @deprecated Use SymbolFactory directly for better separation of concerns
+   */
   protected buildSymbol(partialSymbol: PartialDeep<TIISymbol>): TIISymbol
   {
     try {
-      switch (partialSymbol.type) {
-        case SymbolType.Stroke:
-          return this.buildStroke(partialSymbol)
-        case SymbolType.Shape:
-          return this.buildShape(partialSymbol)
-        case SymbolType.Edge:
-          return this.buildEdge(partialSymbol)
-        case SymbolType.Text:
-          return this.buildText(partialSymbol)
-        case SymbolType.Math:
-          return this.buildMath(partialSymbol)
-        case SymbolType.Recognized:
-          return this.buildRecognized(partialSymbol as PartialDeep<TIIRecognized>)
-        default:
-          throw new Error(`Unable to build symbol, type: "${ partialSymbol.type }" is unknown`)
-      }
+      return this.#symbolFactory.buildSymbol(partialSymbol)
     }
     catch (error) {
-      this.logger.error("createSymbol", error)
+      this.logger.error("buildSymbol", error)
       this.manageError(error as Error)
       throw error
     }
@@ -507,19 +417,7 @@ export class InteractiveInkEditor extends AbstractEditor
   async createSymbols(partialSymbols: PartialDeep<TIISymbol>[]): Promise<TIISymbol[]>
   {
     try {
-      const errors: string[] = []
-      const symbols: TIISymbol[] = []
-      partialSymbols.forEach(partialSymbol =>
-      {
-        try {
-          symbols.push(this.buildSymbol(partialSymbol))
-        } catch (error) {
-          errors.push(((error as Error).message || error) as string)
-        }
-      })
-      if (errors.length) {
-        throw new Error(errors.join("\n"))
-      }
+      const symbols = this.#symbolFactory.buildSymbols(partialSymbols)
       return await this.addSymbols(symbols)
     } catch (error) {
       this.logger.error("createSymbols", error)
@@ -1139,11 +1037,22 @@ export class InteractiveInkEditor extends AbstractEditor
         if (recognizedText.label) {
           textParts.push(recognizedText.label)
         }
+      } else if (s.type === SymbolType.Recognized && s.kind === RecognizedKind.Math) {
+        const recognizedMath = s as IIRecognizedMath
+        if (recognizedMath.label) {
+          textParts.push(recognizedMath.label)
+        }
       } else if (s.type === SymbolType.Text) {
         const text = s as IIText
         const textContent = text.label
         if (textContent) {
           textParts.push(textContent)
+        }
+      } else if (s.type === SymbolType.Math) {
+        const math = s as IIMath
+        const mathContent = math.label
+        if (mathContent) {
+          textParts.push(mathContent)
         }
       }
     })
@@ -1306,19 +1215,6 @@ export class InteractiveInkEditor extends AbstractEditor
     return backendChanges
   }
 
-  protected handleKeyDown = (event: KeyboardEvent): void => {
-    const target = event.target as HTMLElement
-    if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) {
-      return
-    }
-
-    if ((event.ctrlKey || event.metaKey) && this.#tool !== EditorTool.Move && !this.#toolBeforeCtrl) {
-      this.logger.debug("handleKeyDown", "Switching to Move mode")
-      this.#toolBeforeCtrl = this.#tool
-      this.tool = EditorTool.Move
-    }
-  }
-
   protected handleWheel = (event: WheelEvent): void => {
     if (event.ctrlKey || event.metaKey) {
       event.preventDefault()
@@ -1330,14 +1226,6 @@ export class InteractiveInkEditor extends AbstractEditor
       const offsetY = event.clientY - rect.top
       this.renderer.setZoom(zoom, offsetX, offsetY)
       this.menu.action.update()
-    }
-  }
-
-  protected handleKeyUp = (event: KeyboardEvent): void => {
-    if (!event.ctrlKey && !event.metaKey && this.#toolBeforeCtrl) {
-      this.logger.debug("handleKeyUp", "Restoring previous tool")
-      this.tool = this.#toolBeforeCtrl
-      this.#toolBeforeCtrl = undefined
     }
   }
 
@@ -1527,9 +1415,7 @@ export class InteractiveInkEditor extends AbstractEditor
    */
   findMathSymbolByJiixId(jiixId: string): IIRecognizedMath | undefined
   {
-    return this.model.symbols.find(s =>
-      isRecognizedMathSymbol(s) && s.jiixId === jiixId
-    ) as IIRecognizedMath | undefined
+    return this.mathDependencies.findMathSymbolByJiixId(jiixId)
   }
 
   /**
@@ -1976,41 +1862,7 @@ export class InteractiveInkEditor extends AbstractEditor
   async recalculateDependentBlocks(sourceBlockId: string): Promise<void>
   {
     try {
-      this.logger.info("recalculateDependentBlocks", { sourceBlockId })
-
-      const sourceMathSymbol = this.findMathSymbolByJiixId(sourceBlockId)
-
-      if (!sourceMathSymbol) {
-        this.logger.warn("recalculateDependentBlocks", `Source block not found: ${sourceBlockId}`)
-        return
-      }
-
-      if (!sourceMathSymbol.dependentBlocks || sourceMathSymbol.dependentBlocks.length === 0) {
-        this.logger.debug("recalculateDependentBlocks", "No dependent blocks to recalculate")
-        return
-      }
-
-      this.logger.info("recalculateDependentBlocks", `Found ${sourceMathSymbol.dependentBlocks.length} dependent blocks`)
-
-      for (const dependentBlockId of sourceMathSymbol.dependentBlocks) {
-        const dependentMathSymbol = this.findMathSymbolByJiixId(dependentBlockId)
-
-        if (!dependentMathSymbol) {
-          this.logger.warn("recalculateDependentBlocks", `Dependent block not found: ${dependentBlockId}`)
-          continue
-        }
-
-        try {
-          this.logger.info("recalculateDependentBlocks", `Computing numerical result for ${dependentBlockId}`)
-          await this.computeMathNumericalResult(dependentMathSymbol, this.mathComputationMode)
-        }
-        catch (computeError) {
-          this.logger.error("recalculateDependentBlocks", `Error computing ${dependentBlockId}:`, computeError)
-        }
-      }
-
-      this.logger.info("recalculateDependentBlocks", "All dependent blocks recalculated")
-      this.event.emitChanged(this.history.context)
+      return await this.mathDependencies.recalculateDependentBlocks(sourceBlockId)
     }
     catch (error) {
       this.logger.error("recalculateDependentBlocks", { error })
@@ -2029,17 +1881,7 @@ export class InteractiveInkEditor extends AbstractEditor
    */
   getMathDependencies(blockId: string): { variableSources?: { [variableName: string]: string }, dependentBlocks?: string[] } | null
   {
-    const mathSymbol = this.findMathSymbolByJiixId(blockId)
-
-    if (!mathSymbol) {
-      this.logger.warn("getMathDependencies", `Math symbol not found for blockId: ${blockId}`)
-      return null
-    }
-
-    return {
-      variableSources: mathSymbol.variableSources,
-      dependentBlocks: mathSymbol.dependentBlocks
-    }
+    return this.mathDependencies.getMathDependencies(blockId)
   }
 
   /**
@@ -2050,8 +1892,7 @@ export class InteractiveInkEditor extends AbstractEditor
   {
     this.logger.info("destroy")
 
-    window.removeEventListener("keydown", this.handleKeyDown)
-    window.removeEventListener("keyup", this.handleKeyUp)
+    this.keyboard.detach()
 
     this.layers.root.classList.remove("draw")
     this.layers.root.classList.remove("erase")
