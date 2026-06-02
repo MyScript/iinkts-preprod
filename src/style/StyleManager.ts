@@ -1,5 +1,5 @@
-import { LoggerCategory, LoggerManager } from "../logger"
-import { PartialDeep, mergeDeep } from "../utils"
+import { LoggerCategory, LoggerManager } from "@/logger"
+import { PartialDeep, mergeDeep } from "@/utils"
 import { DefaultPenStyle, TPenStyle } from "./PenStyle"
 import { DefaultTheme, TTheme } from "./Theme"
 

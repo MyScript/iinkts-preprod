@@ -1,6 +1,6 @@
-import { EditorEvent } from "../editor/EditorEvent"
-import { LoggerCategory, LoggerManager } from "../logger"
-import { Model } from "../model"
+import { EditorEvent } from "@/editor/EditorEvent"
+import { LoggerCategory, LoggerManager } from "@/logger"
+import { Model } from "@/model"
 import { THistoryConfiguration } from "./HistoryConfiguration"
 import { THistoryContext, getInitialHistoryContext } from "./HistoryContext"
 

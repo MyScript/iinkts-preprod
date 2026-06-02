@@ -1,7 +1,7 @@
-import { TStyle } from "../../style"
-import { PartialDeep } from "../../utils"
+import { TStyle } from "@/style"
+import { PartialDeep } from "@/utils"
 import { EdgeDecoration, EdgeKind, OIEdgeBase } from "./IIEdge"
-import { TPoint, isValidPoint } from "../base/Point"
+import { TPoint, isValidPoint } from "@/symbol/base/Point"
 
 /**
  * @group Symbol

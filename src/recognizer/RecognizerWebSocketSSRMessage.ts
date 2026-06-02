@@ -1,4 +1,4 @@
-import { TExport } from "../model"
+import { TExport } from "@/model"
 
 /**
  * @group Recognizer

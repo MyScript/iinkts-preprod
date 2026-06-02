@@ -1,15 +1,15 @@
-import { DefaultGrabberConfiguration, TGrabberConfiguration } from "../../grabber"
-import { DefaultHistoryConfiguration, THistoryConfiguration } from "../../history"
-import { DefaultLoggerConfiguration, TLoggerConfiguration } from "../../logger"
-import { DefaultRecognizerWebSocketSSRConfiguration, TRecognizerWebSocketSSRRecognitionConfiguration, TRecognizerWebSocketSSRConfiguration, RecognizerWebSocketSSRConfiguration, TServerWebsocketConfiguration } from "../../recognizer"
-import { DefaultRendererConfiguration, TRendererConfiguration } from "../../renderer"
-import { DefaultTheme, TPenStyle, TTheme } from "../../style"
-import { mergeDeep, PartialDeep } from "../../utils"
-import { TEditorConfiguration } from "../AbstractEditor"
-import { DefaulTEditorTriggerConfiguration, TEditorTriggerConfiguration } from "../EditorTriggerConfiguration"
+import { DefaultGrabberConfiguration, TGrabberConfiguration } from "@/grabber"
+import { DefaultHistoryConfiguration, THistoryConfiguration } from "@/history"
+import { DefaultLoggerConfiguration, TLoggerConfiguration } from "@/logger"
+import { DefaultRecognizerWebSocketSSRConfiguration, TRecognizerWebSocketSSRRecognitionConfiguration, TRecognizerWebSocketSSRConfiguration, RecognizerWebSocketSSRConfiguration, TServerWebsocketConfiguration } from "@/recognizer"
+import { DefaultRendererConfiguration, TRendererConfiguration } from "@/renderer"
+import { DefaultTheme, TPenStyle, TTheme } from "@/style"
+import { mergeDeep, PartialDeep } from "@/utils"
+import { TEditorConfiguration } from "@/editor/AbstractEditor"
+import { DefaultEditorTriggerConfiguration, TEditorTriggerConfiguration } from "@/editor/EditorTriggerConfiguration"
 
 /**
- * @group Editor
+ * @group Editor/variants
  */
 export type TInteractiveInkSSREditorConfiguration = TEditorConfiguration & TRecognizerWebSocketSSRConfiguration & {
   rendering: TRendererConfiguration
@@ -26,7 +26,7 @@ export type TInteractiveInkSSREditorConfiguration = TEditorConfiguration & TReco
 }
 
 /**
- * @group Editor
+ * @group Editor/variants
  * @source
  */
 export const DefaultInteractiveInkSSREditorConfiguration: TInteractiveInkSSREditorConfiguration = {
@@ -37,7 +37,7 @@ export const DefaultInteractiveInkSSREditorConfiguration: TInteractiveInkSSREdit
     enable: true
   },
   grabber: DefaultGrabberConfiguration,
-  triggers: DefaulTEditorTriggerConfiguration,
+  triggers: DefaultEditorTriggerConfiguration,
   "undo-redo": DefaultHistoryConfiguration,
   logger: DefaultLoggerConfiguration,
   penStyle: {},
@@ -45,7 +45,7 @@ export const DefaultInteractiveInkSSREditorConfiguration: TInteractiveInkSSREdit
 }
 
 /**
- * @group Editor
+ * @group Editor/variants
  */
 export class InteractiveInkSSREditorConfiguration implements TInteractiveInkSSREditorConfiguration
 {

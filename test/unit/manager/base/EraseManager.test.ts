@@ -1,6 +1,6 @@
-import { buildOICircle, buildOIStroke } from "../helpers"
-import { InteractiveInkEditorMock } from "../__mocks__/InteractiveInkEditorMock"
-import { EraseManager, PointerInfo, SymbolType } from "../../../src/iink"
+import { buildOICircle, buildOIStroke } from "../../helpers"
+import { InteractiveInkEditorMock } from "../../__mocks__/InteractiveInkEditorMock"
+import { EraseManager, PointerInfo, SymbolType } from "../../../../src/iink"
 
 
 describe("EraseManager.ts", () =>

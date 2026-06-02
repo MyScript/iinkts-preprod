@@ -1,6 +1,6 @@
-import { IIShapeCircle, IIShapeEllipse, IIShapePolygon, ShapeKind, TIIShape } from "../../symbol"
-import { DefaultStyle } from "../../style"
-import { convertRadianToDegree } from "../../utils"
+import { IIShapeCircle, IIShapeEllipse, IIShapePolygon, ShapeKind, TIIShape } from "@/symbol"
+import { DefaultStyle } from "@/style"
+import { convertRadianToDegree } from "@/utils"
 import { SVGRendererConst } from "./utils/SVGRendererConst"
 import { SVGBuilder } from "./utils/SVGBuilder"
 

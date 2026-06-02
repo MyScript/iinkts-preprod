@@ -1,17 +1,17 @@
-import { EditorTool } from "../../Constants"
-import { PointerEventGrabber, PointerInfo } from "../../grabber"
-import { Model, TExport } from "../../model"
-import { Stroke, TStroke, TPointer } from "../../symbol"
-import { RecognizerHTTPV1, TConverstionState } from "../../recognizer"
-import { CanvasRenderer } from "../../renderer"
-import { DefaultPenStyle, StyleManager, TPenStyle, TTheme } from "../../style"
-import { HistoryManager } from "../../history"
-import { DeferredPromise, PartialDeep } from "../../utils"
-import { AbstractEditor, EditorOptionsBase } from "../AbstractEditor"
+import { EditorTool } from "@/Constants"
+import { PointerEventGrabber, PointerInfo } from "@/grabber"
+import { Model, TExport } from "@/model"
+import { Stroke, TStroke, TPointer } from "@/symbol"
+import { RecognizerHTTPV1, TConverstionState } from "@/recognizer"
+import { CanvasRenderer } from "@/renderer"
+import { DefaultPenStyle, StyleManager, TPenStyle, TTheme } from "@/style"
+import { HistoryManager } from "@/history"
+import { DeferredPromise, PartialDeep } from "@/utils"
+import { AbstractEditor, EditorOptionsBase } from "@/editor/AbstractEditor"
 import { InkEditorDeprecatedConfiguration, TInkEditorDeprecatedConfiguration } from "./InkEditorDeprecatedConfiguration"
 
 /**
- * @group Editor
+ * @group Editor/variants
  */
 export type TInkEditorDeprecatedOptions = PartialDeep<EditorOptionsBase &
 {
@@ -25,7 +25,7 @@ export type TInkEditorDeprecatedOptions = PartialDeep<EditorOptionsBase &
 }
 
 /**
- * @group Editor
+ * @group Editor/variants
  * @deprecated Use {@link InkEditor} instead.
  */
 export class InkEditorDeprecated extends AbstractEditor

@@ -1,10 +1,10 @@
-import { LoggerCategory, LoggerManager } from "../logger"
+import { LoggerCategory, LoggerManager } from "@/logger"
 import
 {
   isRecognizedTextSymbol,
   SymbolType,
   TIISymbol,
-} from "../symbol"
+} from "@/symbol"
 import { TExport } from "./Export"
 
 /**

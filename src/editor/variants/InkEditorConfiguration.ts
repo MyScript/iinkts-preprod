@@ -1,16 +1,16 @@
-import { DefaultGrabberConfiguration, TGrabberConfiguration } from "../../grabber"
-import { DefaultHistoryConfiguration, THistoryConfiguration } from "../../history"
-import { DefaultLoggerConfiguration, TLoggerConfiguration } from "../../logger"
-import { DefaultRecognizerHTTPV2Configuration, RecognizerHTTPV2Configuration, TRecognizerHTTPV2Configuration, TRecognizerHTTPV2RecognitionConfiguration, TServerHTTPConfiguration } from "../../recognizer"
-import { DefaultIIRendererConfiguration, TIIRendererConfiguration } from "../../renderer"
-import { DefaultStyle, TStyle } from "../../style"
-import { convertPixelToMillimeter, mergeDeep, PartialDeep } from "../../utils"
-import { TEditorConfiguration } from "../AbstractEditor"
-import { DefaulTEditorTriggerConfiguration, TEditorTriggerConfiguration } from "../EditorTriggerConfiguration"
+import { DefaultGrabberConfiguration, TGrabberConfiguration } from "@/grabber"
+import { DefaultHistoryConfiguration, THistoryConfiguration } from "@/history"
+import { DefaultLoggerConfiguration, TLoggerConfiguration } from "@/logger"
+import { DefaultRecognizerHTTPV2Configuration, RecognizerHTTPV2Configuration, TRecognizerHTTPV2Configuration, TRecognizerHTTPV2RecognitionConfiguration, TServerHTTPConfiguration } from "@/recognizer"
+import { DefaultIIRendererConfiguration, TIIRendererConfiguration } from "@/renderer"
+import { DefaultStyle, TStyle } from "@/style"
+import { convertPixelToMillimeter, mergeDeep, PartialDeep } from "@/utils"
+import { TEditorConfiguration } from "@/editor/AbstractEditor"
+import { DefaultEditorTriggerConfiguration, TEditorTriggerConfiguration } from "@/editor/EditorTriggerConfiguration"
 
 
 /**
- * @group Editor
+ * @group Editor/variants
  */
 export type TInkEditorConfiguration = TEditorConfiguration & TRecognizerHTTPV2Configuration & {
   rendering: TIIRendererConfiguration
@@ -22,7 +22,7 @@ export type TInkEditorConfiguration = TEditorConfiguration & TRecognizerHTTPV2Co
 }
 
 /**
- * @group Editor
+ * @group Editor/variants
  * @source
  */
 export const DefaultInkEditorConfiguration: TInkEditorConfiguration = {
@@ -30,14 +30,14 @@ export const DefaultInkEditorConfiguration: TInkEditorConfiguration = {
   recognition: DefaultRecognizerHTTPV2Configuration.recognition,
   rendering: DefaultIIRendererConfiguration,
   grabber: DefaultGrabberConfiguration,
-  triggers: DefaulTEditorTriggerConfiguration,
+  triggers: DefaultEditorTriggerConfiguration,
   "undo-redo": DefaultHistoryConfiguration,
   logger: DefaultLoggerConfiguration,
   penStyle: DefaultStyle,
 }
 
 /**
- * @group Editor
+ * @group Editor/variants
  */
 export class InkEditorConfiguration implements TInkEditorConfiguration
 {

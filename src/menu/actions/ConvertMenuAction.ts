@@ -1,6 +1,6 @@
-import { InteractiveInkEditor } from "../../editor"
-import { ButtonMenuItem, IMenuButton } from "../items/ButtonMenuItem"
-import translateIcon from "../../assets/svg/translate.svg"
+import { InteractiveInkEditor } from "@/editor"
+import { ButtonMenuItem, IMenuButton } from "@/menu/items/ButtonMenuItem"
+import translateIcon from "@/assets/svg/translate.svg"
 
 /**
  * @group Menu

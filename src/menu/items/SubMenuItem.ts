@@ -1,4 +1,4 @@
-import ArrowDown from "../../assets/svg/nav-arrow-down.svg"
+import ArrowDown from "@/assets/svg/nav-arrow-down.svg"
 import { BaseMenuItem, IMenuItemBase } from "./BaseMenuItem"
 import { createMenuItemInstance } from "./MenuItemFactory"
 import { IMenuButton } from "./ButtonMenuItem"

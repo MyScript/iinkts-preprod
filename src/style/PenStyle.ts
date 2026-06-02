@@ -1,4 +1,4 @@
-import { PartialDeep } from "../utils"
+import { PartialDeep } from "@/utils"
 import { TStyle } from "./Style"
 
 /**

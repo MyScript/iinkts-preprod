@@ -1,15 +1,15 @@
-import { LoggerManager, LoggerCategory } from "../../logger"
-import { InteractiveInkEditor } from "../../editor/variants/InteractiveInkEditor"
-import { IIRecognizedMath, TBox } from "../../symbol"
-import { MathOverlayManager } from "./MathOverlayManager"
-import { VariableColorManager } from "./VariableColorManager"
-import { isRecognizedMathSymbol } from "../../symbol"
-import { convertBoundingBoxMillimeterToPixel } from "../../utils"
-import { TJIIXMathExpression } from "../../model/ExportMath"
+import { LoggerManager, LoggerCategory } from "@/logger"
+import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import { IIRecognizedMath, TBox } from "@/symbol"
+import { isRecognizedMathSymbol } from "@/symbol"
+import { convertBoundingBoxMillimeterToPixel } from "@/utils"
+import { TJIIXMathExpression } from "@/model/ExportMath"
+import { IIMathOverlayManager } from "./IIMathOverlayManager"
+import { ColorPaletteManager } from "../base"
 
 /**
  * Configuration for math interaction features
- * @group Manager
+ * @group Manager/Math
  */
 export type TMathInteractionConfig = {
   showDependencyOnHover: boolean
@@ -24,9 +24,9 @@ export type TMathInteractionConfig = {
  * - Dependency arrows/lines between related blocks
  * - Recursive dependency tree traversal
  *
- * @group Manager
+ * @group Manager/Math
  */
-export class MathInteractionManager {
+export class IIMathInteractionManager {
   private static readonly DEFAULT_CONFIG: TMathInteractionConfig = {
     showDependencyOnHover: false,
     highlightOnSelect: false,
@@ -44,17 +44,17 @@ export class MathInteractionManager {
   #config: TMathInteractionConfig
   #hoveredSymbolId: string | null = null
   #selectedSymbolIds: Set<string> = new Set()
-  #colorManager: VariableColorManager
+  #colorManager: ColorPaletteManager
 
   editor: InteractiveInkEditor
-  overlayManager: MathOverlayManager
+  overlayManager: IIMathOverlayManager
 
   constructor(editor: InteractiveInkEditor, config: Partial<TMathInteractionConfig> = {}) {
     this.#logger.info("constructor")
     this.editor = editor
     this.overlayManager = editor.mathOverlays
-    this.#colorManager = VariableColorManager.getInstance()
-    this.#config = { ...MathInteractionManager.DEFAULT_CONFIG, ...config }
+    this.#colorManager = ColorPaletteManager.getInstance()
+    this.#config = { ...IIMathInteractionManager.DEFAULT_CONFIG, ...config }
   }
 
   /**
@@ -331,7 +331,7 @@ export class MathInteractionManager {
               this.overlayManager.drawDependencyArrow(
                 sourceSymbol.id,
                 symbol.id,
-                MathInteractionManager.HIGHLIGHT_STYLES.SOURCE_COLOR
+                IIMathInteractionManager.HIGHLIGHT_STYLES.SOURCE_COLOR
               )
             }
           }
@@ -363,7 +363,7 @@ export class MathInteractionManager {
               this.overlayManager.drawDependencyArrow(
                 symbol.id,
                 dependentSymbol.id,
-                MathInteractionManager.HIGHLIGHT_STYLES.DEPENDENT_COLOR
+                IIMathInteractionManager.HIGHLIGHT_STYLES.DEPENDENT_COLOR
               )
             }
           }
@@ -371,8 +371,6 @@ export class MathInteractionManager {
       }
     })
   }
-
-
 
   /**
    * Clear all highlights and reset state

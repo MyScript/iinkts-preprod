@@ -1,7 +1,7 @@
-import menuIcon from "../assets/svg/menu.svg"
-import { LoggerCategory, LoggerManager } from "../logger"
-import { IIModel } from "../model"
-import { InteractiveInkEditor } from "../editor"
+import menuIcon from "@/assets/svg/menu.svg"
+import { LoggerCategory, LoggerManager } from "@/logger"
+import { IIModel } from "@/model"
+import { InteractiveInkEditor } from "@/editor"
 import { BaseMenuItem } from "./items"
 import {
   ClearMenuAction,
