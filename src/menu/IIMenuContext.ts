@@ -101,33 +101,42 @@ export class IIMenuContext
     this.wrapper?.style.setProperty("left", `${ this.position.x }px`)
     this.wrapper?.style.setProperty("top", `${ this.position.y }px`)
 
-    // Adjust position if menu overflows viewport boundaries
+    // Adjust position if menu overflows rendering layer boundaries
     if (this.wrapper) {
-      const rect = this.wrapper.getBoundingClientRect()
-      const viewportWidth = window.innerWidth
-      const viewportHeight = window.innerHeight
+      const menuRect = this.wrapper.getBoundingClientRect()
+      const renderingRect = this.editor.layers.rendering.getBoundingClientRect()
+      const parent = this.wrapper.parentElement
+      if (!parent) return
+      const parentRect = parent.getBoundingClientRect()
 
+      const margin = 10
       let adjustedX = this.position.x
       let adjustedY = this.position.y
 
-      // Check if menu overflows bottom
-      if (rect.bottom > viewportHeight) {
-        adjustedY = viewportHeight - rect.height - 10 // 10px margin
+      // Convert rendering layer bounds to parent-relative coordinates
+      const renderingLeft = renderingRect.left - parentRect.left
+      const renderingTop = renderingRect.top - parentRect.top
+      const renderingRight = renderingLeft + renderingRect.width
+      const renderingBottom = renderingTop + renderingRect.height
+
+      // Check if menu overflows bottom of rendering layer
+      if (menuRect.bottom > renderingRect.bottom) {
+        adjustedY = renderingBottom - menuRect.height - margin
       }
 
-      // Check if menu overflows right
-      if (rect.right > viewportWidth) {
-        adjustedX = viewportWidth - rect.width - 10 // 10px margin
+      // Check if menu overflows right of rendering layer
+      if (menuRect.right > renderingRect.right) {
+        adjustedX = renderingRight - menuRect.width - margin
       }
 
-      // Check if menu overflows left
-      if (adjustedX < 10) {
-        adjustedX = 10 // 10px margin
+      // Check if menu overflows left of rendering layer
+      if (menuRect.left < renderingRect.left) {
+        adjustedX = renderingLeft + margin
       }
 
-      // Check if menu overflows top
-      if (adjustedY < 10) {
-        adjustedY = 10 // 10px margin
+      // Check if menu overflows top of rendering layer
+      if (menuRect.top < renderingRect.top) {
+        adjustedY = renderingTop + margin
       }
 
       // Apply adjusted positions if needed
@@ -256,8 +265,8 @@ export class IIMenuContext
 
   show(): void
   {
-    this.update()
     this.wrapper?.style.setProperty("display", "block")
+    this.update()
   }
 
   hide(): void
