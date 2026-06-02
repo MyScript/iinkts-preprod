@@ -1,9 +1,9 @@
-import { InteractiveInkEditor } from "../../editor"
-import { SubMenuItem, IMenuSubMenu } from "../items/SubMenuItem"
-import { IMenuCheckbox } from "../items/CheckboxMenuItem"
-import { IMenuSelect } from "../items/SelectMenuItem"
-import { isRecognizedMathSymbol } from "../../symbol"
-import mathIcon from "../../assets/svg/linear-double-arrow.svg"
+import { InteractiveInkEditor } from "@/editor"
+import { SubMenuItem, IMenuSubMenu } from "@/menu/items/SubMenuItem"
+import { IMenuCheckbox } from "@/menu/items/CheckboxMenuItem"
+import { IMenuSelect } from "@/menu/items/SelectMenuItem"
+import { isRecognizedMathSymbol } from "@/symbol"
+import mathIcon from "@/assets/svg/linear-double-arrow.svg"
 
 /**
  * @group Menu

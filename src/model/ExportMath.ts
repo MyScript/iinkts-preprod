@@ -1,4 +1,4 @@
-import { TBox } from "../symbol"
+import { TBox } from "@/symbol"
 import { TJIIXBase, TJIIXElementBase } from "./ExportCommon"
 
 /**

@@ -1,7 +1,7 @@
-import { InteractiveInkEditor } from "../../editor"
-import { BaseMenuItem } from "../items/BaseMenuItem"
-import { getAvailableLanguageList } from "../../utils"
-import languageIcon from "../../assets/svg/language.svg"
+import { InteractiveInkEditor } from "@/editor"
+import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
+import { getAvailableLanguageList } from "@/utils"
+import languageIcon from "@/assets/svg/language.svg"
 
 /**
  * @group Menu

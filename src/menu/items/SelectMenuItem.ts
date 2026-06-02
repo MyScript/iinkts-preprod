@@ -1,4 +1,4 @@
-import { InteractiveInkEditor } from "../../editor"
+import { InteractiveInkEditor } from "@/editor"
 import { BaseMenuItem, IMenuItemBase } from "./BaseMenuItem"
 
 /**

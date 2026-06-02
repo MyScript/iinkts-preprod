@@ -1,11 +1,16 @@
 import terser from "@rollup/plugin-terser"
 import resolve from "@rollup/plugin-node-resolve"
+import alias from "@rollup/plugin-alias"
 import typescript from "rollup-plugin-typescript2"
 import postcss from "rollup-plugin-postcss"
 import dts from "rollup-plugin-dts"
 import commonjs from "@rollup/plugin-commonjs"
 import svg from "rollup-plugin-svg-import"
 import webWorkerLoader from "rollup-plugin-web-worker-loader"
+import { fileURLToPath } from "url"
+import path from "path"
+
+const configDir = path.dirname(fileURLToPath(import.meta.url))
 
 export default [
   {
@@ -23,6 +28,11 @@ export default [
       },
     ],
     plugins: [
+      alias({
+        entries: [
+          { find: "@", replacement: path.resolve(configDir, "../src") }
+        ]
+      }),
       typescript({
         tsconfig: "./tsconfig.json",
         clean: true,
@@ -50,7 +60,14 @@ export default [
   {
     input: "src/iink.ts",
     plugins: [
-      dts(),
+      alias({
+        entries: [
+          { find: "@", replacement: path.resolve(configDir, "../src") }
+        ]
+      }),
+      dts({
+        respectExternal: false,
+      }),
       postcss({
         inject: false
       }),

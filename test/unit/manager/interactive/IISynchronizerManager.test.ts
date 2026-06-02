@@ -1,6 +1,6 @@
-import { hTextJIIX, circleJIIX, lineJIIX } from "../__dataset__/jiix.dataset"
-import { buildOIStroke } from "../helpers"
-import { InteractiveInkEditorMock } from "../__mocks__/InteractiveInkEditorMock"
+import { hTextJIIX, circleJIIX, lineJIIX } from "../../__dataset__/jiix.dataset"
+import { buildOIStroke } from "../../helpers"
+import { InteractiveInkEditorMock } from "../../__mocks__/InteractiveInkEditorMock"
 import
 {
   IISynchronizerManager,
@@ -16,7 +16,7 @@ import
   DecoratorKind,
   IIDecorator,
   JIIXELementType,
-} from "../../../src/iink"
+} from "../../../../src/iink"
 
 // Mock Math JIIX export
 const mathJIIX: TJIIXExport = {

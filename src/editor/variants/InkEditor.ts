@@ -1,19 +1,17 @@
-import { EditorTool } from "../../Constants"
-import { PointerEventGrabber } from "../../grabber"
-import { IModel, TExport, TExportV2 } from "../../model"
-import { RecognizerHTTPV2 } from "../../recognizer"
-import { SVGRenderer } from "../../renderer"
-import { TStyle } from "../../style"
-import { IHistoryManager } from "../../history"
-import { PartialDeep } from "../../utils"
-import { AbstractEditor, EditorOptionsBase } from "../AbstractEditor"
+import { EditorTool } from "@/Constants"
+import { PointerEventGrabber } from "@/grabber"
+import { IModel, TExport, TExportV2 } from "@/model"
+import { RecognizerHTTPV2 } from "@/recognizer"
+import { SVGRenderer } from "@/renderer"
+import { TStyle } from "@/style"
+import { IHistoryManager } from "@/history"
+import { PartialDeep } from "@/utils"
+import { IWriterManager, IDebugSVGManager, EraseManager } from "@/manager"
+import { AbstractEditor, EditorOptionsBase } from "@/editor/AbstractEditor"
 import { InkEditorConfiguration, TInkEditorConfiguration } from "./InkEditorConfiguration"
-import { IWriterManager } from "../../manager/simple"
-import { IDebugSVGManager } from "../../manager/debug"
-import { EraseManager } from "../../manager/base"
 
 /**
- * @group Editor
+ * @group Editor/variants
  */
 export type TInkEditorOptions = PartialDeep<EditorOptionsBase &
 {
@@ -27,7 +25,17 @@ export type TInkEditorOptions = PartialDeep<EditorOptionsBase &
 }
 
 /**
- * @group Editor
+ * @group Editor/variants
+ * @remarks InkEditor is the core editor variant focused on freeform ink input, rendering, and recognition. It provides a rich API for managing strokes, exports, and editor state, and serves as the foundation for more specialized editor variants.
+ *
+ * Key features include:
+ * - Stroke management: Add, remove, and style ink strokes with real-time rendering.
+ * - Recognition integration: Seamlessly send ink data to the recognizer and handle results.
+ * - Export capabilities: Support for exporting recognized content in various formats.
+ * - History management: Undo/redo functionality for stroke modifications and exports.
+ * - Tool support: Built-in tools for writing and erasing with customizable styles.
+ *
+ * The InkEditor is designed for extensibility, allowing developers to override core components like the recognizer or input grabber for custom behavior.
  */
 export class InkEditor extends AbstractEditor
 {

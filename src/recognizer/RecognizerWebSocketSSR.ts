@@ -1,9 +1,9 @@
-import { LoggerCategory, LoggerManager } from "../logger"
-import { Model, TExport, TJIIXExport } from "../model"
-import { Stroke } from "../symbol"
-import { StyleHelper, TPenStyle, TTheme } from "../style"
-import { THistoryContext } from "../history"
-import { DeferredPromise, PartialDeep, computeHmac, getApiInfos, isVersionSuperiorOrEqual } from "../utils"
+import { LoggerCategory, LoggerManager } from "@/logger"
+import { Model, TExport, TJIIXExport } from "@/model"
+import { Stroke } from "@/symbol"
+import { StyleHelper, TPenStyle, TTheme } from "@/style"
+import { THistoryContext } from "@/history"
+import { DeferredPromise, PartialDeep, computeHmac, getApiInfos, isVersionSuperiorOrEqual } from "@/utils"
 import
 {
   TRecognizerWebSocketSSRMessage,

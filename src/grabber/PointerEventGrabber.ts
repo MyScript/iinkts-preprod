@@ -1,6 +1,6 @@
+import { LoggerCategory, LoggerLevel, LoggerManager } from "@/logger"
+import { TPointer } from "@/symbol"
 import { TGrabberConfiguration } from "./GrabberConfiguration"
-import { LoggerCategory, LoggerLevel, LoggerManager } from "../logger"
-import { TPointer } from "../symbol"
 
 /**
  * @group Grabber

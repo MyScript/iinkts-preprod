@@ -1,6 +1,6 @@
-import { IIKeyboardManager } from "../../../src/manager/interactive/IIKeyboardManager"
-import { InteractiveInkEditor } from "../../../src/editor"
-import { EditorTool } from "../../../src/Constants"
+import { IIKeyboardManager } from "../../../../src/manager/interactive/IIKeyboardManager"
+import { InteractiveInkEditor } from "../../../../src/editor"
+import { EditorTool } from "../../../../src/Constants"
 
 describe("IIKeyboardManager", () =>
 {

@@ -1,4 +1,4 @@
-import ArrowDown from "../../assets/svg/nav-arrow-down.svg"
+import ArrowDown from "@/assets/svg/nav-arrow-down.svg"
 
 /**
  * @group Menu

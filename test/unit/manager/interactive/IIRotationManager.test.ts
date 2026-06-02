@@ -1,4 +1,4 @@
-import { InteractiveInkEditorMock } from "../__mocks__/InteractiveInkEditorMock"
+import { InteractiveInkEditorMock } from "../../__mocks__/InteractiveInkEditorMock"
 import
 {
   IIEdgeLine,
@@ -10,7 +10,7 @@ import
   TPoint,
   computeRotatedPoint,
   convertDegreeToRadian,
-} from "../../../src/iink"
+} from "../../../../src/iink"
 
 describe("IIRotationManager.ts", () =>
 {

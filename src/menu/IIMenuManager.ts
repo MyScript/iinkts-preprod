@@ -1,6 +1,6 @@
 import style from "./menu.css"
-import { LoggerCategory, LoggerManager } from "../logger"
-import { InteractiveInkEditor } from "../editor"
+import { LoggerCategory, LoggerManager } from "@/logger"
+import { InteractiveInkEditor } from "@/editor"
 import { IIMenuAction } from "./IIMenuAction"
 import { IIMenuTool } from "./IIMenuTool"
 import { IIMenuContext } from "./IIMenuContext"

@@ -1,5 +1,5 @@
 
-import style from "../iink.css"
+import style from "@/iink.css"
 /**
  * @group Editor
  */

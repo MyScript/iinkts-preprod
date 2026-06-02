@@ -1,7 +1,7 @@
-import { EditorEvent } from "../editor/EditorEvent"
-import { LoggerCategory, LoggerManager } from "../logger"
-import { IModel } from "../model"
-import { IIStroke, TIISymbol } from "../symbol"
+import { EditorEvent } from "@/editor/EditorEvent"
+import { LoggerCategory, LoggerManager } from "@/logger"
+import { IModel } from "@/model"
+import { IIStroke, TIISymbol } from "@/symbol"
 import { THistoryContext, getInitialHistoryContext } from "./HistoryContext"
 import { THistoryConfiguration } from "./HistoryConfiguration"
 

@@ -1,7 +1,7 @@
-import { InteractiveInkEditor } from "../../editor"
-import { ButtonMenuItem, IMenuButton } from "../items/ButtonMenuItem"
-import { EditorTool, EditorWriteTool } from "../../Constants"
-import pencilIcon from "../../assets/svg/edit-pencil.svg"
+import { InteractiveInkEditor } from "@/editor"
+import { ButtonMenuItem, IMenuButton } from "@/menu/items/ButtonMenuItem"
+import { EditorTool, EditorWriteTool } from "@/Constants"
+import pencilIcon from "@/assets/svg/edit-pencil.svg"
 
 /**
  * @group Menu

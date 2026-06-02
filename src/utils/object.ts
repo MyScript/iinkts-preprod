@@ -4,6 +4,9 @@
  */
 type Mergeable = Record<string, unknown> | unknown[] | unknown
 
+/**
+ * @group Utils
+ */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const mergeDeep = (target: any, ...sources: Mergeable[]): any =>
 {

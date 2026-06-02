@@ -1,7 +1,7 @@
-import { InteractiveInkEditor } from "../../editor"
-import { BaseMenuItem } from "../items/BaseMenuItem"
-import { ButtonListMenuItem, IMenuButtonList, CollapsibleWrapper } from "../items"
-import { SymbolType } from "../../symbol"
+import { InteractiveInkEditor } from "@/editor"
+import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
+import { ButtonListMenuItem, IMenuButtonList, CollapsibleWrapper } from "@/menu/items"
+import { SymbolType } from "@/symbol"
 
 /**
  * @group Menu

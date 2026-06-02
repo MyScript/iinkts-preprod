@@ -1,5 +1,5 @@
-import { TPointer, TStroke } from "../../symbol"
-import { computeAngleAxeRadian, computeLinksPointers, computeMiddlePointer } from "../../utils"
+import { TPointer, TStroke } from "@/symbol"
+import { computeAngleAxeRadian, computeLinksPointers, computeMiddlePointer } from "@/utils"
 
 /**
  * @group Renderer

@@ -1,11 +1,11 @@
-import { EditorEvent } from "../editor/EditorEvent"
-import { LoggerCategory, LoggerManager } from "../logger"
-import { IIModel } from "../model"
-import { IIDecorator, IIStroke, TIISymbol, TPoint } from "../symbol"
-import { TStyle } from "../style"
-import { MatrixTransform, TMatrixTransform } from "../transform"
+import { EditorEvent } from "@/editor/EditorEvent"
+import { LoggerCategory, LoggerManager } from "@/logger"
+import { IIModel } from "@/model"
+import { IIDecorator, IIStroke, TIISymbol, TPoint } from "@/symbol"
+import { TStyle } from "@/style"
+import { MatrixTransform, TMatrixTransform } from "@/transform"
 import { THistoryContext, getInitialHistoryContext } from "./HistoryContext"
-import { PartialDeep } from "../utils"
+import { PartialDeep } from "@/utils"
 import { THistoryConfiguration } from "./HistoryConfiguration"
 
 /**

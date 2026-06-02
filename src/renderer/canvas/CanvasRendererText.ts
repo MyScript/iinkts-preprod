@@ -1,5 +1,5 @@
-import { LoggerCategory, LoggerManager } from "../../logger"
-import { TSymbol, TCanvasTextSymbol, TCanvasTextUnderlineSymbol, TCanvasUnderLineSymbol, TPoint } from "../../symbol"
+import { LoggerCategory, LoggerManager } from "@/logger"
+import { TSymbol, TCanvasTextSymbol, TCanvasTextUnderlineSymbol, TCanvasUnderLineSymbol, TPoint } from "@/symbol"
 
 /**
  * @group Renderer
