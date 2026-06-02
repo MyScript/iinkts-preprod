@@ -22,7 +22,7 @@ export type TEditorTriggerConfiguration = {
  * @group Editor
  * @source
  */
-export const DefaulTEditorTriggerConfiguration: TEditorTriggerConfiguration = {
+export const DefaultEditorTriggerConfiguration: TEditorTriggerConfiguration = {
   exportContent: "QUIET_PERIOD",
   exportContentDelay: 1000,
   resizeTriggerDelay: 100
