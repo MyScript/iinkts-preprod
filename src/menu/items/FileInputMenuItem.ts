@@ -1,5 +1,5 @@
 import { BaseMenuItem, IMenuItemBase } from "./BaseMenuItem"
-import { InteractiveInkEditor } from "../../editor"
+import { InteractiveInkEditor } from "@/editor"
 
 /**
  * @group Menu

@@ -1,7 +1,7 @@
-import { ResizeDirection, SvgElementRole } from "../../Constants"
-import { InteractiveInkEditor } from "../../editor/variants/InteractiveInkEditor"
-import { LoggerCategory, LoggerManager } from "../../logger"
-import { IIModel } from "../../model"
+import { ResizeDirection, SvgElementRole } from "@/Constants"
+import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import { LoggerCategory, LoggerManager } from "@/logger"
+import { IIModel } from "@/model"
 import
 {
   Box,
@@ -17,7 +17,7 @@ import
   TPoint,
   TIIRecognized,
   RecognizedKind
-} from "../../symbol"
+} from "@/symbol"
 
 /**
  * Helper functions for resize direction checks
@@ -35,7 +35,7 @@ const isSouthernResize = (direction: ResizeDirection): boolean =>
   [ResizeDirection.South, ResizeDirection.SouthEast, ResizeDirection.SouthWest].includes(direction)
 
 /**
- * @group Manager
+ * @group Manager/Interactive
  */
 export class IIResizeManager
 {

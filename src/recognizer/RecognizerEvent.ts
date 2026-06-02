@@ -1,5 +1,5 @@
-import { THistoryContext } from "../history"
-import { TExport } from "../model"
+import { THistoryContext } from "@/history"
+import { TExport } from "@/model"
 import { TRecognizerWebSocketSSRMessageSVGPatch } from "./RecognizerWebSocketSSRMessage"
 
 /**

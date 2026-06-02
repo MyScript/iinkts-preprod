@@ -20,3 +20,18 @@ export * from "./IITranslateManager"
 export * from "./IIWriterManager"
 export * from "./IIGestureManager"
 export * from "./IISnapManager"
+export * from "./gestures"
+
+/**
+ * Math-specific managers
+ *
+ * These managers handle math-specific features:
+ * - IITransientInkManager: Temporary solver result overlays
+ * - IIMathOverlayManager: Visual overlays (badges, borders, result panels)
+ * - IIMathInteractionManager: Interaction highlighting and dependency visualization
+ * - IIMathDependencyManager: Math symbol dependency tracking and recalculation
+ */
+export { IITransientInkManager } from "./IITransientInkManager"
+export { IIMathOverlayManager, TMathOverlayConfig } from "./IIMathOverlayManager"
+export { IIMathInteractionManager, TMathInteractionConfig } from "./IIMathInteractionManager"
+export { IIMathDependencyManager, MathDependencies } from "./IIMathDependencyManager"

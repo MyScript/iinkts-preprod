@@ -1,5 +1,5 @@
-import { InteractiveInkEditor } from "../../editor"
-import { LoggerManager, LoggerCategory } from "../../logger"
+import { InteractiveInkEditor } from "@/editor"
+import { LoggerManager, LoggerCategory } from "@/logger"
 import
 {
   IIModel,
@@ -22,7 +22,7 @@ import
   TJIIXTextElement,
   TJIIXWord,
   TJIIXMathElement
-} from "../../model"
+} from "@/model"
 import
 {
   Box,
@@ -47,12 +47,12 @@ import
   TPoint,
   TIIRecognizedWord,
   TIIMathElement
-} from "../../symbol"
-import { RecognizedKind } from "../../symbol"
-import { computeAngleAxeRadian, computeAverage, convertBoundingBoxMillimeterToPixel, convertMillimeterToPixel, convertPixelToMillimeter, createUUID } from "../../utils"
+} from "@/symbol"
+import { RecognizedKind } from "@/symbol"
+import { computeAngleAxeRadian, computeAverage, convertBoundingBoxMillimeterToPixel, convertMillimeterToPixel, convertPixelToMillimeter, createUUID } from "@/utils"
 
 /**
- * @group Manager
+ * @group Manager/Interactive
  */
 export class IIConversionManager
 {

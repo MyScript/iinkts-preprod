@@ -1,18 +1,18 @@
-import { EditorTool } from "../../Constants"
-import { PointerEventGrabber, PointerInfo } from "../../grabber"
-import { Model, TExport, TJIIXExport } from "../../model"
-import { TRecognizerWebSocketSSRMessageSVGPatch, RecognizerWebSocketSSR, DefaultMarginConfiguration, TConverstionState, TMarginConfiguration } from "../../recognizer"
-import { InteractiveInkSSRSmartGuide } from "../../smartguide"
-import { InteractiveInkSSRSVGRenderer } from "../../renderer"
-import { DefaultPenStyle, StyleManager, TPenStyle, TTheme } from "../../style"
-import { HistoryManager, THistoryContext } from "../../history"
-import { DeferredPromise, PartialDeep } from "../../utils"
-import { Stroke, TStroke, TPointer } from "../../symbol"
-import { AbstractEditor, EditorOptionsBase } from "../AbstractEditor"
+import { EditorTool } from "@/Constants"
+import { PointerEventGrabber, PointerInfo } from "@/grabber"
+import { Model, TExport, TJIIXExport } from "@/model"
+import { TRecognizerWebSocketSSRMessageSVGPatch, RecognizerWebSocketSSR, DefaultMarginConfiguration, TConverstionState, TMarginConfiguration } from "@/recognizer"
+import { InteractiveInkSSRSmartGuide } from "@/smartguide"
+import { InteractiveInkSSRSVGRenderer } from "@/renderer"
+import { DefaultPenStyle, StyleManager, TPenStyle, TTheme } from "@/style"
+import { HistoryManager, THistoryContext } from "@/history"
+import { DeferredPromise, PartialDeep } from "@/utils"
+import { Stroke, TStroke, TPointer } from "@/symbol"
+import { AbstractEditor, EditorOptionsBase } from "@/editor/AbstractEditor"
 import { InteractiveInkSSREditorConfiguration } from "./InteractiveInkSSREditorConfiguration"
 
 /**
- * @group Editor
+ * @group Editor/variants
  */
 export type TInteractiveInkSSREditorOptions = PartialDeep<EditorOptionsBase &
   {
@@ -26,7 +26,7 @@ export type TInteractiveInkSSREditorOptions = PartialDeep<EditorOptionsBase &
   }
 
 /**
- * @group Editor
+ * @group Editor/variants
  */
 export class InteractiveInkSSREditor extends AbstractEditor
 {

@@ -1,12 +1,12 @@
-import { LoggerManager, LoggerCategory, type Logger } from "../../../../logger"
-import { IIStroke, SymbolType, IIText, IIRecognizedText, type TIISymbol } from "../../../../symbol"
-import { TIIHistoryChanges } from "../../../../history"
-import { isBetween } from "../../../../utils"
-import type { InteractiveInkEditor } from "../../../../editor"
-import type { TGesture } from "../../IIGestureManager"
-import { InsertAction } from "../../IIGestureManager"
-import { GestureHandler } from "../GestureHandler"
-import type { GestureHelpers } from "../GestureHelpers"
+import { LoggerManager, LoggerCategory, type Logger } from "@/logger"
+import { IIStroke, SymbolType, IIText, IIRecognizedText, type TIISymbol } from "@/symbol"
+import { TIIHistoryChanges } from "@/history"
+import { isBetween } from "@/utils"
+import type { InteractiveInkEditor } from "@/editor"
+import type { TGesture } from "@/manager/interactive/GestureTypes"
+import { InsertAction } from "@/manager/interactive/GestureTypes"
+import { GestureHandler } from "@/manager/interactive/gestures/GestureHandler"
+import type { GestureHelpers } from "@/manager/interactive/gestures/GestureHelpers"
 
 /**
  * Handler for INSERT gesture type

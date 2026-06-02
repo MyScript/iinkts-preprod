@@ -1,5 +1,5 @@
-import { Box, DecoratorKind, IIDecorator, isRecognizedTextSymbol, TBox, TIISymbol } from "../../symbol"
-import { DefaultStyle } from "../../style"
+import { Box, DecoratorKind, IIDecorator, isRecognizedTextSymbol, TBox, TIISymbol } from "@/symbol"
+import { DefaultStyle } from "@/style"
 import { SVGBuilder } from "./utils/SVGBuilder"
 
 /**

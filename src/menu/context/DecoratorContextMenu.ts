@@ -1,8 +1,8 @@
-import { InteractiveInkEditor } from "../../editor"
-import { BaseMenuItem, TGenericMenuItem } from "../items/BaseMenuItem"
-import ArrowDown from "../../assets/svg/nav-arrow-down.svg"
-import { DecoratorKind, IIDecorator, IIRecognizedText, IIStroke, IIText, RecognizedKind, SymbolType, isRecognizedMathSymbol } from "../../symbol"
-import { DEFAULT_MENU_COLORS } from "../MenuConstants"
+import { InteractiveInkEditor } from "@/editor"
+import { BaseMenuItem, TGenericMenuItem } from "@/menu/items/BaseMenuItem"
+import ArrowDown from "@/assets/svg/nav-arrow-down.svg"
+import { DecoratorKind, IIDecorator, IIRecognizedText, IIStroke, IIText, RecognizedKind, SymbolType, isRecognizedMathSymbol } from "@/symbol"
+import { DEFAULT_MENU_COLORS } from "@/menu/MenuConstants"
 
 /**
  * @group Menu

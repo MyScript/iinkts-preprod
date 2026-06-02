@@ -1,16 +1,16 @@
-import { DefaultGrabberConfiguration, TGrabberConfiguration } from "../../grabber"
-import { DefaultHistoryConfiguration, THistoryConfiguration } from "../../history"
-import { DefaultLoggerConfiguration, TLoggerConfiguration } from "../../logger"
-import { DefaultRecognizerHTTPV1Configuration, RecognizerHTTPV1Configuration, TRecognitionHTTPV1Configuration, TRecognizerHTTPV1Configuration, TServerHTTPConfiguration } from "../../recognizer"
-import { DefaultRendererConfiguration, TRendererConfiguration } from "../../renderer"
-import { DefaultTheme, TPenStyle, TTheme } from "../../style"
-import { mergeDeep, PartialDeep } from "../../utils"
-import { TEditorConfiguration } from "../AbstractEditor"
-import { DefaulTEditorTriggerConfiguration, TEditorTriggerConfiguration } from "../EditorTriggerConfiguration"
+import { DefaultGrabberConfiguration, TGrabberConfiguration } from "@/grabber"
+import { DefaultHistoryConfiguration, THistoryConfiguration } from "@/history"
+import { DefaultLoggerConfiguration, TLoggerConfiguration } from "@/logger"
+import { DefaultRecognizerHTTPV1Configuration, RecognizerHTTPV1Configuration, TRecognitionHTTPV1Configuration, TRecognizerHTTPV1Configuration, TServerHTTPConfiguration } from "@/recognizer"
+import { DefaultRendererConfiguration, TRendererConfiguration } from "@/renderer"
+import { DefaultTheme, TPenStyle, TTheme } from "@/style"
+import { mergeDeep, PartialDeep } from "@/utils"
+import { TEditorConfiguration } from "@/editor/AbstractEditor"
+import { DefaulTEditorTriggerConfiguration, TEditorTriggerConfiguration } from "@/editor/EditorTriggerConfiguration"
 
 
 /**
- * @group Editor
+ * @group Editor/variants
  */
 export type TInkEditorDeprecatedConfiguration = TEditorConfiguration & TRecognizerHTTPV1Configuration & {
   rendering: TRendererConfiguration
@@ -24,7 +24,7 @@ export type TInkEditorDeprecatedConfiguration = TEditorConfiguration & TRecogniz
 }
 
 /**
- * @group Editor
+ * @group Editor/variants
  * @source
  */
 export const DefaultInkEditorDeprecatedConfiguration: TInkEditorDeprecatedConfiguration = {
@@ -40,7 +40,7 @@ export const DefaultInkEditorDeprecatedConfiguration: TInkEditorDeprecatedConfig
 }
 
 /**
- * @group Editor
+ * @group Editor/variants
  */
 export class InkEditorDeprecatedConfiguration implements TInkEditorDeprecatedConfiguration
 {
