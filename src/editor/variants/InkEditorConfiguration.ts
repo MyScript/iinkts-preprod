@@ -6,7 +6,7 @@ import { DefaultIIRendererConfiguration, TIIRendererConfiguration } from "@/rend
 import { DefaultStyle, TStyle } from "@/style"
 import { convertPixelToMillimeter, mergeDeep, PartialDeep } from "@/utils"
 import { TEditorConfiguration } from "@/editor/AbstractEditor"
-import { DefaulTEditorTriggerConfiguration, TEditorTriggerConfiguration } from "@/editor/EditorTriggerConfiguration"
+import { DefaultEditorTriggerConfiguration, TEditorTriggerConfiguration } from "@/editor/EditorTriggerConfiguration"
 
 
 /**
@@ -30,7 +30,7 @@ export const DefaultInkEditorConfiguration: TInkEditorConfiguration = {
   recognition: DefaultRecognizerHTTPV2Configuration.recognition,
   rendering: DefaultIIRendererConfiguration,
   grabber: DefaultGrabberConfiguration,
-  triggers: DefaulTEditorTriggerConfiguration,
+  triggers: DefaultEditorTriggerConfiguration,
   "undo-redo": DefaultHistoryConfiguration,
   logger: DefaultLoggerConfiguration,
   penStyle: DefaultStyle,

@@ -6,7 +6,7 @@ import { DefaultRendererConfiguration, TRendererConfiguration } from "@/renderer
 import { DefaultTheme, TPenStyle, TTheme } from "@/style"
 import { mergeDeep, PartialDeep } from "@/utils"
 import { TEditorConfiguration } from "@/editor/AbstractEditor"
-import { DefaulTEditorTriggerConfiguration, TEditorTriggerConfiguration } from "@/editor/EditorTriggerConfiguration"
+import { DefaultEditorTriggerConfiguration, TEditorTriggerConfiguration } from "@/editor/EditorTriggerConfiguration"
 
 /**
  * @group Editor/variants
@@ -37,7 +37,7 @@ export const DefaultInteractiveInkSSREditorConfiguration: TInteractiveInkSSREdit
     enable: true
   },
   grabber: DefaultGrabberConfiguration,
-  triggers: DefaulTEditorTriggerConfiguration,
+  triggers: DefaultEditorTriggerConfiguration,
   "undo-redo": DefaultHistoryConfiguration,
   logger: DefaultLoggerConfiguration,
   penStyle: {},
