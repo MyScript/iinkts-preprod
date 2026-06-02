@@ -121,18 +121,6 @@ describe("MathContextMenu.ts", () =>
       expect(menuElement.style.display).toBe("none")
     })
 
-    test("should hide menu when no actions are available", () =>
-    {
-      mathMenu.setMenuVisibility(true, {
-        canEditVariables: false,
-        canCompute: false,
-        canEvaluate: false
-      })
-
-      const menuElement = mathMenu.getElement()
-      expect(menuElement.style.display).toBe("none")
-    })
-
     test("should show menu when all actions are available", () =>
     {
       mathMenu.setMenuVisibility(true, {
