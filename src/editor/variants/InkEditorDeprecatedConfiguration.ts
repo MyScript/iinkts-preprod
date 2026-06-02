@@ -6,7 +6,7 @@ import { DefaultRendererConfiguration, TRendererConfiguration } from "@/renderer
 import { DefaultTheme, TPenStyle, TTheme } from "@/style"
 import { mergeDeep, PartialDeep } from "@/utils"
 import { TEditorConfiguration } from "@/editor/AbstractEditor"
-import { DefaulTEditorTriggerConfiguration, TEditorTriggerConfiguration } from "@/editor/EditorTriggerConfiguration"
+import { DefaultEditorTriggerConfiguration, TEditorTriggerConfiguration } from "@/editor/EditorTriggerConfiguration"
 
 
 /**
@@ -32,7 +32,7 @@ export const DefaultInkEditorDeprecatedConfiguration: TInkEditorDeprecatedConfig
   recognition: DefaultRecognizerHTTPV1Configuration.recognition,
   rendering: DefaultRendererConfiguration,
   grabber: DefaultGrabberConfiguration,
-  triggers: DefaulTEditorTriggerConfiguration,
+  triggers: DefaultEditorTriggerConfiguration,
   "undo-redo": DefaultHistoryConfiguration,
   logger: DefaultLoggerConfiguration,
   penStyle: {},
