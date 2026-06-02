@@ -1,10 +1,10 @@
-import { InteractiveInkEditor } from "../../editor/variants/InteractiveInkEditor"
-import { PointerEventGrabber, PointerInfo } from "../../grabber"
-import { LoggerCategory, LoggerManager } from "../../logger"
-import { SVGRenderer } from "../../renderer"
+import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import { PointerEventGrabber, PointerInfo } from "@/grabber"
+import { LoggerCategory, LoggerManager } from "@/logger"
+import { SVGRenderer } from "@/renderer"
 
 /**
- * @group Manager
+ * @group Manager/Interactive
  */
 export class IIMoveManager
 {

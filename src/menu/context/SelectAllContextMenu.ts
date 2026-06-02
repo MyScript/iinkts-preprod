@@ -1,5 +1,5 @@
-import { InteractiveInkEditor } from "../../editor"
-import { ButtonMenuItem, IMenuButton } from "../items/ButtonMenuItem"
+import { InteractiveInkEditor } from "@/editor"
+import { ButtonMenuItem, IMenuButton } from "@/menu/items/ButtonMenuItem"
 
 /**
  * @group Menu

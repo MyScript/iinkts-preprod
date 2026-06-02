@@ -1,10 +1,10 @@
-import { InkEditor } from "../../editor";
-import { PointerInfo } from "../../grabber";
-import { IModel } from "../../model";
-import { TStyle } from "../../style";
-import { IIStroke, SymbolType, TIISymbol, TPointer } from "../../symbol";
-import { DeferredPromise } from "../../utils";
-import { AbstractWriterManager } from "../base/AbstractWriterManager";
+import { InkEditor } from "@/editor";
+import { PointerInfo } from "@/grabber";
+import { IModel } from "@/model";
+import { TStyle } from "@/style";
+import { IIStroke, SymbolType, TIISymbol, TPointer } from "@/symbol";
+import { DeferredPromise } from "@/utils";
+import { AbstractWriterManager } from "@/manager/base/AbstractWriterManager";
 
 export class IWriterManager extends AbstractWriterManager {
   editor: InkEditor

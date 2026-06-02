@@ -1,6 +1,6 @@
-import { LoggerCategory, LoggerManager } from "../../logger"
-import { Stroke, TPointer } from "../../symbol"
-import { computeAngleAxeRadian, computeLinksPointers, computeMiddlePointer } from "../../utils"
+import { LoggerCategory, LoggerManager } from "@/logger"
+import { Stroke, TPointer } from "@/symbol"
+import { computeAngleAxeRadian, computeLinksPointers, computeMiddlePointer } from "@/utils"
 
 /**
  * @group Renderer

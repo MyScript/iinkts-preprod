@@ -1,9 +1,9 @@
-import { createUUID, PartialDeep } from "../../utils"
-import { TPoint, TPointer } from "../base/Point"
-import { Box, TBox } from "../base/Box"
-import { SymbolType } from "../base/Symbol"
+import { createUUID, PartialDeep } from "@/utils"
+import { TPoint, TPointer } from "@/symbol/base/Point"
+import { Box, TBox } from "@/symbol/base/Box"
+import { SymbolType } from "@/symbol/base/Symbol"
 import { IISymbolBase } from "./IISymbolBase"
-import { TStyle } from "../../style"
+import { TStyle } from "@/style"
 
 const style: TStyle = {
   color: "grey",

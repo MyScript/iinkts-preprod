@@ -1,4 +1,4 @@
-import { mergeDeep, isVersionSuperiorOrEqual, PartialDeep } from "../utils"
+import { mergeDeep, isVersionSuperiorOrEqual, PartialDeep } from "@/utils"
 import { TExportConfiguration, TTextConfConfiguration } from "./recognition"
 import { DefaultServerWebsocketConfiguration, TServerWebsocketConfiguration } from "./ServerConfiguration"
 

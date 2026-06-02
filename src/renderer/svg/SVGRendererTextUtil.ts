@@ -1,4 +1,4 @@
-import { DecoratorKind, IIText } from "../../symbol"
+import { DecoratorKind, IIText } from "@/symbol"
 import { SVGRendererDecoratorUtil } from "./SVGRendererDecoratorUtil"
 import { SVGRendererConst } from "./utils/SVGRendererConst"
 import { SVGBuilder } from "./utils/SVGBuilder"

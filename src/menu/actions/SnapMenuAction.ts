@@ -1,6 +1,6 @@
-import { InteractiveInkEditor } from "../../editor"
-import { SubMenuItem, IMenuSubMenu } from "../items/SubMenuItem"
-import snapIcon from "../../assets/svg/arrow-to-dot.svg"
+import { InteractiveInkEditor } from "@/editor"
+import { SubMenuItem, IMenuSubMenu } from "@/menu/items/SubMenuItem"
+import snapIcon from "@/assets/svg/arrow-to-dot.svg"
 
 /**
  * @group Menu

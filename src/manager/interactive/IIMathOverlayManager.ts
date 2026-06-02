@@ -1,13 +1,13 @@
-import { LoggerManager, LoggerCategory } from "../../logger"
-import { SVGRenderer, SVGBuilder, SVGRendererConst } from "../../renderer"
-import { IIModel } from "../../model"
-import { TBox, TIISymbol, IIRecognizedMath, RecognizedKind, SymbolType } from "../../symbol"
-import { InteractiveInkEditor } from "../../editor/variants/InteractiveInkEditor"
-import { VariableColorManager } from "./VariableColorManager"
+import { LoggerManager, LoggerCategory } from "@/logger"
+import { SVGRenderer, SVGBuilder, SVGRendererConst } from "@/renderer"
+import { IIModel } from "@/model"
+import { TBox, TIISymbol, IIRecognizedMath, RecognizedKind, SymbolType } from "@/symbol"
+import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import { ColorPaletteManager } from "../base"
 
 /**
  * Visual overlay configuration
- * @group Manager
+ * @group Manager/Math
  */
 export type TMathOverlayConfig = {
   showBlockOverlays: boolean
@@ -23,9 +23,9 @@ export type TMathOverlayConfig = {
  * - Borders around blocks
  * - Result panels with connection lines
  *
- * @group Manager
+ * @group Manager/Math
  */
-export class MathOverlayManager {
+export class IIMathOverlayManager {
   private static readonly DEFAULT_CONFIG: TMathOverlayConfig = {
     showBlockOverlays: false,
     showResultPanels: false,
@@ -52,7 +52,7 @@ export class MathOverlayManager {
 
   #logger = LoggerManager.getLogger(LoggerCategory.MODEL)
   #config: TMathOverlayConfig
-  #colorManager: VariableColorManager
+  #colorManager: ColorPaletteManager
 
   editor: InteractiveInkEditor
   renderer: SVGRenderer
@@ -61,8 +61,8 @@ export class MathOverlayManager {
     this.#logger.info("constructor")
     this.editor = editor
     this.renderer = editor.renderer
-    this.#config = { ...MathOverlayManager.DEFAULT_CONFIG, ...config }
-    this.#colorManager = VariableColorManager.getInstance()
+    this.#config = { ...IIMathOverlayManager.DEFAULT_CONFIG, ...config }
+    this.#colorManager = ColorPaletteManager.getInstance()
   }
 
   get model(): IIModel {
@@ -89,7 +89,7 @@ export class MathOverlayManager {
     }
 
     const size = this.#config.badgeSize
-    const offset = MathOverlayManager.BADGE_STYLES.OFFSET
+    const offset = IIMathOverlayManager.BADGE_STYLES.OFFSET
 
     const badgeX = box.x - offset - size
     const badgeY = box.y - offset - size
@@ -104,8 +104,8 @@ export class MathOverlayManager {
       { x: badgeX + size / 2, y: badgeY + size / 2 },
       size / 2,
       {
-        fill: MathOverlayManager.BADGE_STYLES.BACKGROUND,
-        stroke: MathOverlayManager.BADGE_STYLES.BORDER,
+        fill: IIMathOverlayManager.BADGE_STYLES.BACKGROUND,
+        stroke: IIMathOverlayManager.BADGE_STYLES.BORDER,
         "stroke-width": "1",
         style: SVGRendererConst.noSelection
       }
@@ -114,10 +114,10 @@ export class MathOverlayManager {
 
     const text = SVGBuilder.createText(
       { x: badgeX + size / 2, y: badgeY + size / 2 + 5 },
-      MathOverlayManager.BADGE_STYLES.MATH,
+      IIMathOverlayManager.BADGE_STYLES.MATH,
       {
         fill: "#000000",
-        "font-size": MathOverlayManager.BADGE_STYLES.FONT_SIZE.toString(),
+        "font-size": IIMathOverlayManager.BADGE_STYLES.FONT_SIZE.toString(),
         "font-weight": "bold",
         "text-anchor": "middle",
         style: SVGRendererConst.noSelection
@@ -328,7 +328,7 @@ export class MathOverlayManager {
   clearOverlaysForBlock(id: string): void {
     this.#logger.debug("clearOverlaysForBlock", { id })
 
-    MathOverlayManager.OVERLAY_PREFIXES.forEach(prefix => {
+    IIMathOverlayManager.OVERLAY_PREFIXES.forEach(prefix => {
       this.renderer.removeSymbol(`${prefix}-${id}`)
     })
   }

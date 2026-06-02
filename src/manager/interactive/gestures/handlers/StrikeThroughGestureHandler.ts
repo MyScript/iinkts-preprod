@@ -1,11 +1,11 @@
-import { LoggerManager, LoggerCategory, type Logger } from "../../../../logger"
-import { IIDecorator, IIStroke, SymbolType, IIText, DecoratorKind, IIRecognizedText, RecognizedKind, type TIISymbol } from "../../../../symbol"
-import { TIIHistoryChanges } from "../../../../history"
-import type { InteractiveInkEditor } from "../../../../editor"
-import type { TGesture } from "../../IIGestureManager"
-import { StrikeThroughAction } from "../../IIGestureManager"
-import { GestureHandler } from "../GestureHandler"
-import type { GestureHelpers } from "../GestureHelpers"
+import { LoggerManager, LoggerCategory, type Logger } from "@/logger"
+import { IIDecorator, IIStroke, SymbolType, IIText, DecoratorKind, IIRecognizedText, RecognizedKind, type TIISymbol } from "@/symbol"
+import { TIIHistoryChanges } from "@/history"
+import type { InteractiveInkEditor } from "@/editor"
+import type { TGesture } from "@/manager/interactive/GestureTypes"
+import { StrikeThroughAction } from "@/manager/interactive/GestureTypes"
+import { GestureHandler } from "@/manager/interactive/gestures/GestureHandler"
+import type { GestureHelpers } from "@/manager/interactive/gestures/GestureHelpers"
 
 /**
  * Handler for STRIKETHROUGH gesture type

@@ -1,4 +1,4 @@
-import { mergeDeep, isVersionSuperiorOrEqual, PartialDeep } from "../utils"
+import { mergeDeep, isVersionSuperiorOrEqual, PartialDeep } from "@/utils"
 import {
   DefaultShapeConfiguration,
   DefaultExportConfiguration,

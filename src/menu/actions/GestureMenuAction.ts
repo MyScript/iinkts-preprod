@@ -1,8 +1,8 @@
-import { InteractiveInkEditor } from "../../editor"
-import { SubMenuItem, IMenuSubMenu } from "../items/SubMenuItem"
-import { EditorTool, EditorWriteTool } from "../../Constants"
-import { InsertAction, StrikeThroughAction, SurroundAction, UnderlineAction } from "../../manager"
-import gestureIcon from "../../assets/svg/spock-hand-gesture.svg"
+import { InteractiveInkEditor } from "@/editor"
+import { SubMenuItem, IMenuSubMenu } from "@/menu/items/SubMenuItem"
+import { EditorTool, EditorWriteTool } from "@/Constants"
+import { InsertAction, StrikeThroughAction, SurroundAction, UnderlineAction } from "@/manager"
+import gestureIcon from "@/assets/svg/spock-hand-gesture.svg"
 
 /**
  * @group Menu

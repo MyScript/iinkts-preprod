@@ -1,11 +1,11 @@
-import { hTextJIIX, lineJIIX, rectangleJIIX } from "../__dataset__/jiix.dataset"
-import { buildOIStroke, buildOIText, delay } from "../helpers"
+import { hTextJIIX, lineJIIX, rectangleJIIX } from "../../__dataset__/jiix.dataset"
+import { buildOIStroke, buildOIText, delay } from "../../helpers"
 import
 {
   IIDebugSVGManager,
   TIISymbolChar,
-} from "../../../src/iink"
-import { InteractiveInkEditorMock } from "../__mocks__/InteractiveInkEditorMock"
+} from "../../../../src/iink"
+import { InteractiveInkEditorMock } from "../../__mocks__/InteractiveInkEditorMock"
 
 describe("IIDebugSVGManager.ts", () =>
 {

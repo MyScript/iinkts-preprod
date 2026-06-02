@@ -1,4 +1,4 @@
-import { IIEraser, TPointer } from "../../symbol"
+import { IIEraser, TPointer } from "@/symbol"
 import { SVGBuilder } from "./utils/SVGBuilder"
 
 /**

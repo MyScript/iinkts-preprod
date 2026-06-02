@@ -1,8 +1,8 @@
-import { TStyle } from "../../style"
-import { TPoint, isValidPoint } from "../base/Point"
+import { TStyle } from "@/style"
+import { TPoint, isValidPoint } from "@/symbol/base/Point"
 import { OIShapeBase, ShapeKind } from "./IIShape"
-import { Box } from "../base/Box"
-import { PartialDeep } from "../../utils"
+import { Box } from "@/symbol/base/Box"
+import { PartialDeep } from "@/utils"
 
 /**
  * @group Symbol

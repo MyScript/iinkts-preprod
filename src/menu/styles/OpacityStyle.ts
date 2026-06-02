@@ -1,6 +1,6 @@
-import { InteractiveInkEditor } from "../../editor"
-import { BaseMenuItem } from "../items/BaseMenuItem"
-import { RangeMenuItem, IMenuRange, CollapsibleWrapper } from "../items"
+import { InteractiveInkEditor } from "@/editor"
+import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
+import { RangeMenuItem, IMenuRange, CollapsibleWrapper } from "@/menu/items"
 
 /**
  * @group Menu

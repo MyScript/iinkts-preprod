@@ -1,5 +1,5 @@
-import { LoggerCategory, LoggerManager } from "../logger"
-import { InteractiveInkEditor } from "../editor"
+import { LoggerCategory, LoggerManager } from "@/logger"
+import { InteractiveInkEditor } from "@/editor"
 import { BaseMenuItem } from "./items"
 import {
   WriteTool,

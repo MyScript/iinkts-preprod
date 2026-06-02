@@ -1,10 +1,10 @@
-import { InteractiveInkEditor } from "../../editor"
-import { SubMenuItem, IMenuSubMenu } from "../items/SubMenuItem"
-import { IIRecognizedMath, isRecognizedMathSymbol } from "../../symbol"
-import { Modal, ModalField } from "../../components"
-import { Chart } from "../../components"
-import { LoggerCategory, LoggerManager } from "../../logger"
-import { getMathDiagnosticMessage } from "../../constants/MathDiagnosticMessages"
+import { InteractiveInkEditor } from "@/editor"
+import { SubMenuItem, IMenuSubMenu } from "@/menu/items/SubMenuItem"
+import { IIRecognizedMath, isRecognizedMathSymbol } from "@/symbol"
+import { Modal, ModalField } from "@/components"
+import { Chart } from "@/components"
+import { LoggerCategory, LoggerManager } from "@/logger"
+import { getMathDiagnosticMessage } from "@/constants/MathDiagnosticMessages"
 
 /**
  * @group Menu

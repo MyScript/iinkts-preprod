@@ -1,8 +1,8 @@
-import { TStyle } from "../../style"
-import { PartialDeep } from "../../utils"
+import { TStyle } from "@/style"
+import { PartialDeep } from "@/utils"
 import { IIRecognizedBase, RecognizedKind } from "./IIRecognizedBase"
-import { IIStroke } from "../interactive/IIStroke"
-import { TJIIXMathExpression } from "../../model"
+import { IIStroke } from "@/symbol/interactive/IIStroke"
+import { TJIIXMathExpression } from "@/model"
 
 /**
  * @group Symbol

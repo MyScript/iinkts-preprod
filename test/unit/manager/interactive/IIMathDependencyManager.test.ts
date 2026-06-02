@@ -1,10 +1,10 @@
-import { MathDependencyService } from "../../../src/services"
-import { RecognizedKind, SymbolType } from "../../../src/symbol"
-import { InteractiveInkEditor } from "../../../src/editor"
+import { IIMathDependencyManager } from "../../../../src/manager/interactive"
+import { RecognizedKind, SymbolType } from "../../../../src/symbol"
+import { InteractiveInkEditor } from "../../../../src/editor"
 
-describe("MathDependencyService", () =>
+describe("IIMathDependencyManager", () =>
 {
-  let service: MathDependencyService
+  let service: IIMathDependencyManager
   let mockEditor: any
 
   beforeEach(() =>
@@ -23,7 +23,7 @@ describe("MathDependencyService", () =>
       mathComputationMode: true
     }
 
-    service = new MathDependencyService(mockEditor as InteractiveInkEditor)
+    service = new IIMathDependencyManager(mockEditor as InteractiveInkEditor)
   })
 
   describe("findMathSymbolByJiixId", () =>

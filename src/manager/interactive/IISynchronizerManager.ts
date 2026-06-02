@@ -1,6 +1,6 @@
-import { LoggerCategory, LoggerManager } from "../../logger"
-import { InteractiveInkEditor } from "../../editor/variants/InteractiveInkEditor"
-import { IIModel, TJIIXExport, TJIIXStrokeItem, TJIIXMathElement, TJIIXMathExpression, TJIIXTextElement, TJIIXNodeElement, TJIIXEdgeElement, TJIIXWord, TJIIXChar, TJIIXEdgeLine, JIIXELementType, JIIXEdgeKind, JIIXNodeKind } from "../../model"
+import { LoggerCategory, LoggerManager } from "@/logger"
+import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import { IIModel, TJIIXExport, TJIIXStrokeItem, TJIIXMathElement, TJIIXMathExpression, TJIIXTextElement, TJIIXNodeElement, TJIIXEdgeElement, TJIIXWord, TJIIXChar, TJIIXEdgeLine, JIIXELementType, JIIXEdgeKind, JIIXNodeKind } from "@/model"
 import
 {
   Box,
@@ -19,11 +19,11 @@ import
   IIRecognizedPolygon,
   RecognizedKind,
   isRecognizedMathSymbol
-} from "../../symbol"
-import { convertMillimeterToPixel, convertBoundingBoxMillimeterToPixel } from "../../utils"
+} from "@/symbol"
+import { convertMillimeterToPixel, convertBoundingBoxMillimeterToPixel } from "@/utils"
 
 /**
- * @group Manager
+ * @group Manager/Interactive
  */
 export class IISynchronizerManager
 {

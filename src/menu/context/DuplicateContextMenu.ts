@@ -1,8 +1,8 @@
-import { InteractiveInkEditor } from "../../editor"
-import { BaseMenuItem, TGenericMenuItem } from "../items/BaseMenuItem"
-import { SELECTION_MARGIN } from "../../Constants"
-import { SymbolType, RecognizedKind } from "../../symbol"
-import { createUUID } from "../../utils"
+import { InteractiveInkEditor } from "@/editor"
+import { BaseMenuItem, TGenericMenuItem } from "@/menu/items/BaseMenuItem"
+import { SELECTION_MARGIN } from "@/Constants"
+import { SymbolType, RecognizedKind } from "@/symbol"
+import { createUUID } from "@/utils"
 
 /**
  * @group Menu

@@ -1,13 +1,13 @@
-import { LoggerManager, LoggerCategory } from "../../logger"
-import { SVGRenderer } from "../../renderer"
-import { IIModel } from "../../model"
+import { LoggerManager, LoggerCategory } from "@/logger"
+import { SVGRenderer } from "@/renderer"
+import { IIModel } from "@/model"
 
 /**
  * Manages transient ink overlays (temporary solver results)
  * These are removed when source blocks are modified
  * @group Manager
  */
-export class TransientInkManager {
+export class IITransientInkManager {
   #logger = LoggerManager.getLogger(LoggerCategory.MODEL)
 
   // Map: sourceBlockId -> transient symbol IDs

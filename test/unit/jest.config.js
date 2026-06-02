@@ -22,6 +22,7 @@ export default {
     "js"
   ],
   moduleNameMapper: {
+    "^@/(.*)$": "<rootDir>/src/$1",
     "web-worker:(.*)\\.worker.ts": "<rootDir>/src/worker/$1.worker.ts",
   },
   modulePathIgnorePatterns: [

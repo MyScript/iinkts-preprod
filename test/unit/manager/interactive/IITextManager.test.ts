@@ -1,12 +1,12 @@
-import { buildOIText } from "../helpers"
-import { InteractiveInkEditorMock } from "../__mocks__/InteractiveInkEditorMock"
+import { buildOIText } from "../../helpers"
+import { InteractiveInkEditorMock } from "../../__mocks__/InteractiveInkEditorMock"
 import
 {
   IITextManager,
   TIISymbolChar,
   Box,
   SVGBuilder
-} from "../../../src/iink"
+} from "../../../../src/iink"
 
 describe("IITextManager.ts", () =>
 {

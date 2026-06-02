@@ -1,4 +1,4 @@
-import { isVersionSuperiorOrEqual, mergeDeep, PartialDeep } from "../utils"
+import { isVersionSuperiorOrEqual, mergeDeep, PartialDeep } from "@/utils"
 import {
   DefaultDiagramConfiguration,
   DefaultExportConfiguration,

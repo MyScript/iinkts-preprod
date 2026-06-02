@@ -1,4 +1,4 @@
-import { EdgeDecoration, TBox } from "../symbol"
+import { EdgeDecoration, TBox } from "@/symbol"
 import { TJIIXElementBase, TJIIXWord, TJIIXChar, TJIIXLine } from "./ExportCommon"
 import { TJIIXMathElement } from "./ExportMath"
 

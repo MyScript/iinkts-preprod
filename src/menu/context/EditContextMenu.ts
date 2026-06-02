@@ -1,8 +1,8 @@
-import { InteractiveInkEditor } from "../../editor"
-import { BaseMenuItem, TGenericMenuItem } from "../items/BaseMenuItem"
-import ArrowDown from "../../assets/svg/nav-arrow-down.svg"
-import { SymbolType, IIText } from "../../symbol"
-import { createUUID } from "../../utils"
+import { InteractiveInkEditor } from "@/editor"
+import { BaseMenuItem, TGenericMenuItem } from "@/menu/items/BaseMenuItem"
+import ArrowDown from "@/assets/svg/nav-arrow-down.svg"
+import { SymbolType, IIText } from "@/symbol"
+import { createUUID } from "@/utils"
 
 /**
  * @group Menu

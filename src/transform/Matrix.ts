@@ -1,4 +1,4 @@
-import { TPoint } from "../symbol"
+import { TPoint } from "@/symbol"
 
 /**
  * @group Transform

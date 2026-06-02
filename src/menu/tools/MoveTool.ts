@@ -1,7 +1,7 @@
-import { InteractiveInkEditor } from "../../editor"
-import { ButtonMenuItem, IMenuButton } from "../items/ButtonMenuItem"
-import { EditorTool } from "../../Constants"
-import handIcon from "../../assets/svg/drag-hand-gesture.svg"
+import { InteractiveInkEditor } from "@/editor"
+import { ButtonMenuItem, IMenuButton } from "@/menu/items/ButtonMenuItem"
+import { EditorTool } from "@/Constants"
+import handIcon from "@/assets/svg/drag-hand-gesture.svg"
 
 /**
  * @group Menu

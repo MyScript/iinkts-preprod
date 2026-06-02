@@ -1,5 +1,5 @@
-import { EditorTool, SELECTION_MARGIN } from "../../Constants"
-import { IIModel, TExport, TJIIXMathElement } from "../../model"
+import { EditorTool, SELECTION_MARGIN } from "@/Constants"
+import { IIModel, TExport, TJIIXMathElement } from "@/model"
 import
 {
   Box,
@@ -14,10 +14,10 @@ import
   SymbolType,
   convertPartialStrokesToOIStrokes,
   isRecognizedMathSymbol
-} from "../../symbol"
-import { RecognizerWebSocket, TMathVariable, TMathEvaluable } from "../../recognizer"
-import { SVGRenderer, SVGBuilder, TIIRendererConfiguration } from "../../renderer"
-import { TStyle } from "../../style"
+} from "@/symbol"
+import { RecognizerWebSocket, TMathVariable, TMathEvaluable } from "@/recognizer"
+import { SVGRenderer, SVGBuilder, TIIRendererConfiguration } from "@/renderer"
+import { TStyle } from "@/style"
 import
 {
   IIConversionManager,
@@ -34,37 +34,38 @@ import
   IIGestureManager,
   IISnapManager,
   IISynchronizerManager,
-  MathOverlayManager,
-  MathInteractionManager,
-  TransientInkManager,
-} from "../../manager"
-import { IIHistoryManager, TIIHistoryBackendChanges, TIIHistoryChanges, THistoryContext } from "../../history"
-import { PartialDeep, convertMillimeterToPixel, mergeDeep } from "../../utils"
-import { IIMenuAction, IIMenuManager, IIMenuStyle, IIMenuTool } from "../../menu"
-import { AbstractEditor, EditorOptionsBase } from "../AbstractEditor"
+  IIMathOverlayManager,
+  IIMathInteractionManager,
+  IITransientInkManager,
+  IIMathDependencyManager,
+} from "@/manager"
+import { IIHistoryManager, TIIHistoryBackendChanges, TIIHistoryChanges, THistoryContext } from "@/history"
+import { PartialDeep, convertMillimeterToPixel, mergeDeep } from "@/utils"
+import { IIMenuAction, IIMenuManager, IIMenuStyle, IIMenuTool } from "@/menu"
+import { SymbolFactory } from "@/factories"
+import { AbstractEditor, EditorOptionsBase } from "@/editor/AbstractEditor"
 import { InteractiveInkEditorConfiguration, TInteractiveInkEditorConfiguration } from "./InteractiveInkEditorConfiguration"
-import { SymbolFactory } from "../../factories"
-import { MathDependencyService } from "../../services"
 
 /**
- * @group Editor
+ * @group Editor/variants
  */
 export type TInteractiveInkEditorOptions = PartialDeep<EditorOptionsBase &
-  {
-    configuration: TInteractiveInkEditorConfiguration
-  }> &
-  {
-    override?: {
-      recognizer?: RecognizerWebSocket
-      menu?: {
-        style?: IIMenuStyle
-        tool?: IIMenuTool
-        action?: IIMenuAction
-      }
+{
+  configuration: TInteractiveInkEditorConfiguration
+}> &
+{
+  override?: {
+    recognizer?: RecognizerWebSocket
+    menu?: {
+      style?: IIMenuStyle
+      tool?: IIMenuTool
+      action?: IIMenuAction
     }
   }
+}
+
 /**
- * @group Editor
+ * @group Editor/variants
  */
 export class InteractiveInkEditor extends AbstractEditor
 {
@@ -95,10 +96,10 @@ export class InteractiveInkEditor extends AbstractEditor
   snaps: IISnapManager
   move: IIMoveManager
   synchronizer: IISynchronizerManager
-  mathOverlays: MathOverlayManager
-  mathInteractions: MathInteractionManager
-  mathDependencies: MathDependencyService
-  transientInk: TransientInkManager
+  mathOverlays: IIMathOverlayManager
+  mathInteractions: IIMathInteractionManager
+  mathDependencies: IIMathDependencyManager
+  transientInk: IITransientInkManager
   menu: IIMenuManager
   mathComputationMode: boolean = true
 
@@ -145,10 +146,10 @@ export class InteractiveInkEditor extends AbstractEditor
     this.svgDebugger = new IIDebugSVGManager(this)
     this.snaps = new IISnapManager(this, this.#configuration.snap)
     this.synchronizer = new IISynchronizerManager(this)
-    this.mathOverlays = new MathOverlayManager(this)
-    this.mathInteractions = new MathInteractionManager(this)
-    this.mathDependencies = new MathDependencyService(this)
-    this.transientInk = new TransientInkManager(this.renderer, this.#model)
+    this.mathOverlays = new IIMathOverlayManager(this)
+    this.mathInteractions = new IIMathInteractionManager(this)
+    this.mathDependencies = new IIMathDependencyManager(this)
+    this.transientInk = new IITransientInkManager(this.renderer, this.#model)
     this.menu = new IIMenuManager(this, options?.override?.menu)
   }
 
@@ -310,7 +311,7 @@ export class InteractiveInkEditor extends AbstractEditor
       this.model.rowHeight = this.configuration.rendering.guides.gap
       this.history.init(this.model)
 
-      if(!this.recognizer.configuration.server.version) {
+      if (!this.recognizer.configuration.server.version) {
         await this.loadInfo(this.configuration.server)
         this.recognizer.configuration.server.version = this.info!.version
       }
@@ -519,7 +520,8 @@ export class InteractiveInkEditor extends AbstractEditor
     this.updateLayerState(false)
 
     const oldSymbolsMap = new Map<string, TIISymbol>()
-    symList.forEach(sym => {
+    symList.forEach(sym =>
+    {
       const oldSymbol = this.history.stack.at(-1)?.model.symbols.find(s => s.id === sym.id) || this.model.symbols.find(s => s.id === sym.id)
       if (oldSymbol) {
         oldSymbolsMap.set(sym.id, oldSymbol)
@@ -1031,7 +1033,8 @@ export class InteractiveInkEditor extends AbstractEditor
   {
     const textParts: string[] = []
 
-    symbols.forEach(s => {
+    symbols.forEach(s =>
+    {
       if (s.type === SymbolType.Recognized && s.kind === RecognizedKind.Text) {
         const recognizedText = s as IIRecognizedText
         if (recognizedText.label) {
@@ -1064,7 +1067,8 @@ export class InteractiveInkEditor extends AbstractEditor
   {
     const result: TIISymbol[] = []
 
-    symbols.forEach(s => {
+    symbols.forEach(s =>
+    {
       if (s.type === SymbolType.Stroke || s.type === SymbolType.Shape || s.type === SymbolType.Edge) {
         result.push(s)
       }
@@ -1215,7 +1219,8 @@ export class InteractiveInkEditor extends AbstractEditor
     return backendChanges
   }
 
-  protected handleWheel = (event: WheelEvent): void => {
+  protected handleWheel = (event: WheelEvent): void =>
+  {
     if (event.ctrlKey || event.metaKey) {
       event.preventDefault()
       event.stopPropagation()
@@ -1427,7 +1432,7 @@ export class InteractiveInkEditor extends AbstractEditor
   async clearSolverOutputStrokes(mathSymbol: IIRecognizedMath): Promise<void>
   {
     if (mathSymbol.solverOutputStrokeIds && mathSymbol.solverOutputStrokeIds.length > 0) {
-      this.logger.info("clearSolverOutputStrokes", `Removing ${mathSymbol.solverOutputStrokeIds.length} solver output strokes from ${mathSymbol.jiixId}`)
+      this.logger.info("clearSolverOutputStrokes", `Removing ${ mathSymbol.solverOutputStrokeIds.length } solver output strokes from ${ mathSymbol.jiixId }`)
       this.transientInk.clearTransientsForBlock(mathSymbol.id)
       await this.removeSymbols(mathSymbol.solverOutputStrokeIds, false)
       mathSymbol.strokes = mathSymbol.strokes.filter(s => !mathSymbol.solverOutputStrokeIds!.includes(s.id))
@@ -1524,7 +1529,7 @@ export class InteractiveInkEditor extends AbstractEditor
       if (drawStrokes) {
         const addedStrokes = await this.addSolverOutputStrokes(result, mathSymbol)
         addedStrokesCount = addedStrokes.length
-        this.logger.info(`Added ${addedStrokesCount} solver output strokes`)
+        this.logger.info(`Added ${ addedStrokesCount } solver output strokes`)
       }
 
       // Always extract and set the computed value
@@ -1625,7 +1630,7 @@ export class InteractiveInkEditor extends AbstractEditor
         await this.model.updateSymbol(symbol)
       }
 
-      this.logger.info("setVariableValue", `Variable value changed, recalculating dependent blocks for ${blockId}`)
+      this.logger.info("setVariableValue", `Variable value changed, recalculating dependent blocks for ${ blockId }`)
       await this.recalculateDependentBlocks(blockId)
     }
     catch (error) {
@@ -1807,7 +1812,7 @@ export class InteractiveInkEditor extends AbstractEditor
       this.logger.info("addSolverOutputStrokes", { result })
 
       const solverStrokes = this.extractSolverOutputStrokes(result)
-      this.logger.debug("addSolverOutputStrokes", `Found ${solverStrokes.length} solver output strokes`)
+      this.logger.debug("addSolverOutputStrokes", `Found ${ solverStrokes.length } solver output strokes`)
 
       const addedStrokes: IIStroke[] = []
       const defaultStyle = style || { color: "#4caf50", width: 5 } // Green color for solver output
@@ -1837,7 +1842,8 @@ export class InteractiveInkEditor extends AbstractEditor
 
       if (addedStrokes.length > 0) {
         mathSymbol.solverOutputStrokeIds = addedStrokes.map(s => s.id)
-        addedStrokes.forEach(stroke => {
+        addedStrokes.forEach(stroke =>
+        {
           this.transientInk.addTransientSymbol(mathSymbol.id, stroke.id)
         })
 
