@@ -1,8 +1,8 @@
-import { InteractiveInkEditor } from "../../editor"
-import { SubMenuItem, IMenuSubMenu } from "../items/SubMenuItem"
-import { PartialDeep } from "../../utils"
-import { TIISymbol } from "../../symbol"
-import uploadIcon from "../../assets/svg/upload.svg"
+import { InteractiveInkEditor } from "@/editor"
+import { SubMenuItem, IMenuSubMenu } from "@/menu/items/SubMenuItem"
+import { PartialDeep } from "@/utils"
+import { TIISymbol } from "@/symbol"
+import uploadIcon from "@/assets/svg/upload.svg"
 
 /**
  * @group Menu

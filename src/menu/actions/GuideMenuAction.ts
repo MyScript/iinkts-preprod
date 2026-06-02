@@ -1,6 +1,6 @@
-import { InteractiveInkEditor } from "../../editor"
-import { SubMenuItem, IMenuSubMenu } from "../items/SubMenuItem"
-import guideIcon from "../../assets/svg/orthogonal-view.svg"
+import { InteractiveInkEditor } from "@/editor"
+import { SubMenuItem, IMenuSubMenu } from "@/menu/items/SubMenuItem"
+import guideIcon from "@/assets/svg/orthogonal-view.svg"
 
 /**
  * @group Menu

@@ -1,4 +1,4 @@
-import { IIModel } from "../../../model"
+import { IIModel } from "@/model"
 import
 {
   IIDecorator,
@@ -12,16 +12,17 @@ import
   IIRecognizedText,
   RecognizedKind,
   isRecognizedTextSymbol,
-} from "../../../symbol"
-import { RecognizerWebSocket } from "../../../recognizer"
-import { SVGRenderer } from "../../../renderer"
-import { IIHistoryManager, TIIHistoryChanges } from "../../../history"
-import { computeAverage, createUUID } from "../../../utils"
-import { IITranslateManager } from "../IITranslateManager"
-import { IITextManager } from "../IITextManager"
-import type { InteractiveInkEditor } from "../../../editor"
-import type { TGesture, IIGestureManager } from "../IIGestureManager"
-import { InsertAction, SurroundAction, StrikeThroughAction, UnderlineAction } from "../IIGestureManager"
+} from "@/symbol"
+import { RecognizerWebSocket } from "@/recognizer"
+import { SVGRenderer } from "@/renderer"
+import { IIHistoryManager, TIIHistoryChanges } from "@/history"
+import { computeAverage, createUUID } from "@/utils"
+import { IITranslateManager } from "@/manager/interactive/IITranslateManager"
+import { IITextManager } from "@/manager/interactive/IITextManager"
+import type { InteractiveInkEditor } from "@/editor"
+import type { TGesture } from "@/manager/interactive/GestureTypes"
+import { InsertAction, SurroundAction, StrikeThroughAction, UnderlineAction } from "@/manager/interactive/GestureTypes"
+import type { IIGestureManager } from "@/manager/interactive/IIGestureManager"
 
 /**
  * Helper class containing all shared utility methods for gesture handlers
@@ -33,8 +34,6 @@ export class GestureHelpers
   constructor(private editor: InteractiveInkEditor, private manager: IIGestureManager)
   {
   }
-
-  // ==================== ACCESSORS ====================
 
   get model(): IIModel
   {
@@ -76,8 +75,6 @@ export class GestureHelpers
     return this.editor.configuration.rendering.guides.gap * 2
   }
 
-  // ==================== GESTURE ACTION ACCESSORS ====================
-
   /**
    * Get current surround action (dynamically from manager)
    */
@@ -109,8 +106,6 @@ export class GestureHelpers
   {
     return this.manager.insertAction
   }
-
-  // ==================== DECORATOR HELPERS ====================
 
   /**
    * Check if a symbol can have decorators applied to it
@@ -207,8 +202,6 @@ export class GestureHelpers
       return added
     }
   }
-
-  // ==================== SCRATCH HELPERS ====================
 
   /**
    * Compute scratch on strokes by subtracting the gesture stroke
@@ -371,8 +364,6 @@ export class GestureHelpers
       }
     }
   }
-
-  // ==================== SPLIT/JOIN HELPERS ====================
 
   /**
    * Create strokes from gesture substrokes

@@ -1,5 +1,5 @@
-import { DecoratorKind, RecognizedKind, TIIRecognized, IIRecognizedText } from "../../symbol"
-import { DefaultStyle } from "../../style"
+import { DecoratorKind, RecognizedKind, TIIRecognized, IIRecognizedText } from "@/symbol"
+import { DefaultStyle } from "@/style"
 import { SVGRendererDecoratorUtil } from "./SVGRendererDecoratorUtil"
 import { SVGRendererStrokeUtil } from "./SVGRendererStrokeUtil"
 import { SVGRendererConst } from "./utils/SVGRendererConst"

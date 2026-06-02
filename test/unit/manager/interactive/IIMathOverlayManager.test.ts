@@ -1,17 +1,17 @@
-import { MathOverlayManager } from "../../../src/manager/math/MathOverlayManager"
-import { VariableColorManager } from "../../../src/manager/math/VariableColorManager"
-import { InteractiveInkEditor } from "../../../src/editor/variants/InteractiveInkEditor"
-import { SVGRenderer, SVGBuilder } from "../../../src/renderer"
-import { IIModel } from "../../../src/model"
-import { IIRecognizedMath, RecognizedKind, SymbolType } from "../../../src/symbol"
+import { IIMathOverlayManager } from "../../../../src/manager/interactive/IIMathOverlayManager"
+import { ColorPaletteManager } from "../../../../src/manager/base/ColorPaletteManager"
+import { InteractiveInkEditor } from "../../../../src/editor/variants/InteractiveInkEditor"
+import { SVGRenderer, SVGBuilder } from "../../../../src/renderer"
+import { IIModel } from "../../../../src/model"
+import { IIRecognizedMath, RecognizedKind, SymbolType } from "../../../../src/symbol"
 
 // Mock dependencies
-jest.mock("../../../src/editor/variants/InteractiveInkEditor")
-jest.mock("../../../src/model")
+jest.mock("../../../../src/editor/variants/InteractiveInkEditor")
+jest.mock("../../../../src/model")
 
-describe("MathOverlayManager", () =>
+describe("IIMathOverlayManager", () =>
 {
-  let manager: MathOverlayManager;;
+  let manager: IIMathOverlayManager;;
   let mockEditor: jest.Mocked<InteractiveInkEditor>;;
   let mockRenderer: jest.Mocked<SVGRenderer>;;
   let mockModel: jest.Mocked<IIModel>;;
@@ -42,9 +42,9 @@ describe("MathOverlayManager", () =>
     } as any
 
     // Reset color manager between tests
-    VariableColorManager.getInstance().clear()
+    ColorPaletteManager.getInstance().clear()
 
-    manager = new MathOverlayManager(mockEditor)
+    manager = new IIMathOverlayManager(mockEditor)
   })
 
   describe("constructor", () =>
@@ -58,7 +58,7 @@ describe("MathOverlayManager", () =>
 
     test("should accept partial config override", () =>
     {
-      const customManager = new MathOverlayManager(mockEditor, {
+      const customManager = new IIMathOverlayManager(mockEditor, {
         showBlockOverlays: true,
         badgeSize: 30
       })

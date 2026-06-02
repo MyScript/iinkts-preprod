@@ -1,11 +1,10 @@
-import { LoggerManager, LoggerCategory } from "../../logger"
+import { LoggerManager, LoggerCategory } from "@/logger"
 
 /**
- * Excel-like color palette for variable visualization
  * @group Manager
  */
-export class VariableColorManager {
-  private static instance: VariableColorManager
+export class ColorPaletteManager {
+  private static instance: ColorPaletteManager
   private static readonly EXCEL_PALETTE = [
     "#4472C4", // Blue
     "#ED7D31", // Orange
@@ -26,14 +25,14 @@ export class VariableColorManager {
   #colorIndex = 0
 
   private constructor() {
-    this.#logger.info("VariableColorManager", "Singleton instance created")
+    this.#logger.info("ColorPaletteManager", "Singleton instance created")
   }
 
-  static getInstance(): VariableColorManager {
-    if (!VariableColorManager.instance) {
-      VariableColorManager.instance = new VariableColorManager()
+  static getInstance(): ColorPaletteManager {
+    if (!ColorPaletteManager.instance) {
+      ColorPaletteManager.instance = new ColorPaletteManager()
     }
-    return VariableColorManager.instance
+    return ColorPaletteManager.instance
   }
 
   /**
@@ -44,7 +43,7 @@ export class VariableColorManager {
       return this.#variableColorMap.get(variableName)!
     }
 
-    const color = VariableColorManager.EXCEL_PALETTE[this.#colorIndex % VariableColorManager.EXCEL_PALETTE.length]
+    const color = ColorPaletteManager.EXCEL_PALETTE[this.#colorIndex % ColorPaletteManager.EXCEL_PALETTE.length]
     this.#variableColorMap.set(variableName, color)
     this.#colorIndex++
 
@@ -80,6 +79,6 @@ export class VariableColorManager {
    * Get the full color palette
    */
   static getPalette(): string[] {
-    return [...VariableColorManager.EXCEL_PALETTE]
+    return [...ColorPaletteManager.EXCEL_PALETTE]
   }
 }

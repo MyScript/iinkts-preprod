@@ -1,9 +1,9 @@
 import style from "./InteractiveInkSSRSmartGuide.css"
-import { InteractiveInkSSREditor } from "../editor"
-import { LoggerCategory, LoggerManager } from "../logger"
-import { ExportType, TJIIXExport, TJIIXWord } from "../model"
-import { convertMillimeterToPixel, createUUID } from "../utils"
-import { TMarginConfiguration } from "../recognizer"
+import { InteractiveInkSSREditor } from "@/editor"
+import { LoggerCategory, LoggerManager } from "@/logger"
+import { ExportType, TJIIXExport, TJIIXWord } from "@/model"
+import { convertMillimeterToPixel, createUUID } from "@/utils"
+import { TMarginConfiguration } from "@/recognizer"
 
 /**
  * @group InteractiveInkSSRSmartGuide

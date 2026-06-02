@@ -6,3 +6,4 @@
  */
 export { AbstractWriterManager } from "./AbstractWriterManager"
 export { EraseManager } from "./EraseManager"
+export { ColorPaletteManager } from "./ColorPaletteManager"

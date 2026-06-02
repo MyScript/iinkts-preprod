@@ -1,9 +1,9 @@
-import { TIIHistoryBackendChanges, THistoryContext } from "../history"
-import { LoggerCategory, LoggerManager } from "../logger"
-import { TExport, TJIIXExport, TJIIXMathElement } from "../model"
-import { IIStroke } from "../symbol"
-import { TMatrixTransform } from "../transform"
-import { computeHmac, mergeDeep, DeferredPromise, PartialDeep, isVersionSuperiorOrEqual, getApiInfos } from "../utils"
+import { TIIHistoryBackendChanges, THistoryContext } from "@/history"
+import { LoggerCategory, LoggerManager } from "@/logger"
+import { TExport, TJIIXExport, TJIIXMathElement } from "@/model"
+import { IIStroke } from "@/symbol"
+import { TMatrixTransform } from "@/transform"
+import { computeHmac, mergeDeep, DeferredPromise, PartialDeep, isVersionSuperiorOrEqual, getApiInfos } from "@/utils"
 import
 {
   TRecognizerWebSocketMessage,

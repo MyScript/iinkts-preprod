@@ -1,4 +1,4 @@
-import { InteractiveInkEditorMock } from "../__mocks__/InteractiveInkEditorMock"
+import { InteractiveInkEditorMock } from "../../__mocks__/InteractiveInkEditorMock"
 import
 {
   IIEdgeArc,
@@ -14,8 +14,8 @@ import
   SvgElementRole,
   TIISymbolChar,
   TPoint
-} from "../../../src/iink"
-import { buildOIStroke } from "../helpers"
+} from "../../../../src/iink"
+import { buildOIStroke } from "../../helpers"
 
 describe("IIResizeManager.ts", () =>
 {

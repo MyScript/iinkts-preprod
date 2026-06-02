@@ -1,7 +1,8 @@
 /**
  * @group Components
  */
-export interface ChartConfig {
+export interface ChartConfig
+{
   width?: number
   height?: number
   title?: string
@@ -16,7 +17,8 @@ export interface ChartConfig {
 /**
  * @hidden
  */
-interface ViewPort {
+interface ViewPort
+{
   xMin: number
   xMax: number
   yMin: number
@@ -26,7 +28,8 @@ interface ViewPort {
 /**
  * @group Components
  */
-export class Chart {
+export class Chart
+{
   private canvas: HTMLCanvasElement
   private ctx: CanvasRenderingContext2D
   private config: Required<ChartConfig>
@@ -39,7 +42,8 @@ export class Chart {
   private lastMousePos = { x: 0, y: 0 }
   private controlsContainer?: HTMLDivElement
 
-  constructor(config: ChartConfig = {}) {
+  constructor(config: ChartConfig = {})
+  {
     this.config = {
       width: config.width ?? 500,
       height: config.height ?? 350,
@@ -84,7 +88,8 @@ export class Chart {
     this.container.appendChild(this.canvas)
   }
 
-  private createControls(): void {
+  private createControls(): void
+  {
     this.controlsContainer = document.createElement("div")
     this.controlsContainer.style.cssText = `
       display: flex;
@@ -95,7 +100,8 @@ export class Chart {
       border-radius: 4px;
     `
 
-    const createButton = (label: string, onClick: () => void): HTMLButtonElement => {
+    const createButton = (label: string, onClick: () => void): HTMLButtonElement =>
+    {
       const btn = document.createElement("button")
       btn.textContent = label
       btn.style.cssText = `
@@ -117,7 +123,8 @@ export class Chart {
     const resetBtn = createButton("Reset", () => this.resetZoom())
     const togglePointsBtn = createButton(
       this.config.showPoints ? "Hide Points" : "Show Points",
-      () => {
+      () =>
+      {
         this.config.showPoints = !this.config.showPoints
         togglePointsBtn.textContent = this.config.showPoints ? "Hide Points" : "Show Points"
         this.draw()
@@ -142,20 +149,24 @@ export class Chart {
     this.container.appendChild(this.controlsContainer)
   }
 
-  private setupInteractions(): void {
-    this.canvas.addEventListener("wheel", (e) => {
+  private setupInteractions(): void
+  {
+    this.canvas.addEventListener("wheel", (e) =>
+    {
       e.preventDefault()
       const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9
       this.zoom(zoomFactor, { x: e.offsetX, y: e.offsetY })
     })
 
-    this.canvas.addEventListener("mousedown", (e) => {
+    this.canvas.addEventListener("mousedown", (e) =>
+    {
       this.isDragging = true
       this.lastMousePos = { x: e.offsetX, y: e.offsetY }
       this.canvas.style.cursor = "grabbing"
     })
 
-    this.canvas.addEventListener("mousemove", (e) => {
+    this.canvas.addEventListener("mousemove", (e) =>
+    {
       if (!this.isDragging || !this.viewport) return
 
       const dx = e.offsetX - this.lastMousePos.x
@@ -165,18 +176,21 @@ export class Chart {
       this.pan(dx, dy)
     })
 
-    this.canvas.addEventListener("mouseup", () => {
+    this.canvas.addEventListener("mouseup", () =>
+    {
       this.isDragging = false
       this.canvas.style.cursor = "grab"
     })
 
-    this.canvas.addEventListener("mouseleave", () => {
+    this.canvas.addEventListener("mouseleave", () =>
+    {
       this.isDragging = false
       this.canvas.style.cursor = "grab"
     })
   }
 
-  private zoom(factor: number, center?: { x: number; y: number }): void {
+  private zoom(factor: number, center?: { x: number; y: number }): void
+  {
     if (!this.viewport) return
 
     const margin = { top: 40, right: 40, bottom: 60, left: 60 }
@@ -210,7 +224,8 @@ export class Chart {
     this.draw()
   }
 
-  private pan(dx: number, dy: number): void {
+  private pan(dx: number, dy: number): void
+  {
     if (!this.viewport) return
 
     const margin = { top: 40, right: 40, bottom: 60, left: 60 }
@@ -233,7 +248,8 @@ export class Chart {
     this.draw()
   }
 
-  private resetZoom(): void {
+  private resetZoom(): void
+  {
     this.viewport = this.defaultViewport ? { ...this.defaultViewport } : null
     this.draw()
   }
@@ -241,7 +257,8 @@ export class Chart {
   /**
    * Filter outliers using IQR method
    */
-  private filterOutliers(values: number[]): number[] {
+  private filterOutliers(values: number[]): number[]
+  {
     if (values.length === 0) return values
 
     const sorted = [...values].sort((a, b) => a - b)
@@ -259,7 +276,8 @@ export class Chart {
   /**
    * Calculate default viewport based on median values
    */
-  private calculateDefaultViewport(): ViewPort | null {
+  private calculateDefaultViewport(): ViewPort | null
+  {
     // Collect all points from all series
     const allPoints: number[][] = []
     for (const series of this.series) {
@@ -325,7 +343,8 @@ export class Chart {
    *   - Single series: number[][] or { [key: string]: number }[]
    *   - Multiple series: number[][][] or { [key: string]: number }[][]
    */
-  setData(data: number[][] | { [key: string]: number }[] | number[][][] | { [key: string]: number }[][]): void {
+  setData(data: number[][] | { [key: string]: number }[] | number[][][] | { [key: string]: number }[][]): void
+  {
     // Detect if we have multiple series or single series
     let multipleSeries = false
 
@@ -373,7 +392,8 @@ export class Chart {
     this.updateTable()
   }
 
-  private convertToPoints(data: number[][] | { [key: string]: number }[]): number[][] {
+  private convertToPoints(data: number[][] | { [key: string]: number }[]): number[][]
+  {
     // Check if data is array of objects { x: val, y: val }
     if (
       data.length > 0 &&
@@ -403,11 +423,13 @@ export class Chart {
   /**
    * Get the container element (includes canvas and table)
    */
-  getElement(): HTMLDivElement {
+  getElement(): HTMLDivElement
+  {
     return this.container
   }
 
-  private createTable(): HTMLTableElement {
+  private createTable(): HTMLTableElement
+  {
     const table = document.createElement("table")
     table.style.cssText = `
       width: 100%;
@@ -421,7 +443,8 @@ export class Chart {
     return table
   }
 
-  private updateTable(): void {
+  private updateTable(): void
+  {
     // Remove old table if exists
     if (this.tableElement) {
       this.tableElement.remove()
@@ -475,7 +498,8 @@ export class Chart {
     for (let seriesIndex = 0; seriesIndex < this.series.length; seriesIndex++) {
       const points = this.series[seriesIndex]
 
-      points.forEach(([x, y]) => {
+      points.forEach(([x, y]) =>
+      {
         globalIndex++
         const row = document.createElement("tr")
         row.style.cssText = "hover:background-color: #f9f9f9;"
@@ -520,7 +544,8 @@ export class Chart {
     this.container.appendChild(this.tableElement)
   }
 
-  private draw(): void {
+  private draw(): void
+  {
     if (this.series.length === 0) {
       return
     }
@@ -871,7 +896,8 @@ export class Chart {
   /**
    * Update chart configuration and redraw
    */
-  updateConfig(config: Partial<ChartConfig>): void {
+  updateConfig(config: Partial<ChartConfig>): void
+  {
     Object.assign(this.config, config)
     this.draw()
   }
@@ -879,7 +905,8 @@ export class Chart {
   /**
    * Destroy the chart
    */
-  destroy(): void {
+  destroy(): void
+  {
     this.container.remove()
   }
 }

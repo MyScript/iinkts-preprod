@@ -1,5 +1,5 @@
-import { LoggerCategory, LoggerManager } from "../logger"
-import { IIStroke } from "../symbol"
+import { LoggerCategory, LoggerManager } from "@/logger"
+import { IIStroke } from "@/symbol"
 import { TExportV2 } from "./ExportV2"
 
 /**

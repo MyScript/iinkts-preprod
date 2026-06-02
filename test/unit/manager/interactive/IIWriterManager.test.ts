@@ -1,4 +1,4 @@
-import { InteractiveInkEditorMock } from "../__mocks__/InteractiveInkEditorMock"
+import { InteractiveInkEditorMock } from "../../__mocks__/InteractiveInkEditorMock"
 import
 {
   IIWriterManager,
@@ -13,7 +13,7 @@ import
   EdgeKind,
   IIStroke,
   PointerInfo
-} from "../../../src/iink"
+} from "../../../../src/iink"
 
 describe("IIWriterManager.ts", () =>
 {

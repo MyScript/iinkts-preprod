@@ -1,9 +1,9 @@
-import { LoggerManager, LoggerCategory } from "../../logger"
-import { IIModel, JIIXEdgeKind } from "../../model"
-import { Box, IIText, SymbolType, TBox, TIISymbol } from "../../symbol"
-import { SVGRenderer, SVGRendererConst, SVGBuilder } from "../../renderer"
-import { convertBoundingBoxMillimeterToPixel } from "../../utils"
-import { InteractiveInkEditor } from "../../editor/variants/InteractiveInkEditor"
+import { LoggerManager, LoggerCategory } from "@/logger"
+import { IIModel, JIIXEdgeKind } from "@/model"
+import { Box, IIText, SymbolType, TBox, TIISymbol } from "@/symbol"
+import { SVGRenderer, SVGRendererConst, SVGBuilder } from "@/renderer"
+import { convertBoundingBoxMillimeterToPixel } from "@/utils"
+import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 
 /**
  * @group Manager

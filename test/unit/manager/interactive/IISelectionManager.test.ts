@@ -1,5 +1,5 @@
-import { buildOIStroke } from "../helpers"
-import { InteractiveInkEditorMock } from "../__mocks__/InteractiveInkEditorMock"
+import { buildOIStroke } from "../../helpers"
+import { InteractiveInkEditorMock } from "../../__mocks__/InteractiveInkEditorMock"
 import
 {
   IISelectionManager,
@@ -7,8 +7,8 @@ import
   SvgElementRole,
   ResizeDirection,
   PointerInfo,
-} from "../../../src/iink"
-import { LeftClickEventMock, RightClickEventMock } from "../__mocks__/EventMock"
+} from "../../../../src/iink"
+import { LeftClickEventMock, RightClickEventMock } from "../../__mocks__/EventMock"
 
 describe("IISelectionManager.ts", () =>
 {

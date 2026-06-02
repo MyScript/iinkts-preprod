@@ -1,13 +1,13 @@
-import { LoggerManager, LoggerCategory } from "../logger"
-import { IIRecognizedMath, isRecognizedMathSymbol } from "../symbol"
-import type { InteractiveInkEditor } from "../editor"
+import { LoggerManager, LoggerCategory } from "@/logger"
+import { IIRecognizedMath, isRecognizedMathSymbol } from "@/symbol"
+import type { InteractiveInkEditor } from "@/editor"
 
 /**
- * Service responsible for managing math symbol dependencies
+ * Manager responsible for managing math symbol dependencies
  * Handles variable tracking and dependent block recalculation
- * @group Services
+ * @group Manager/Math
  */
-export class MathDependencyService
+export class IIMathDependencyManager
 {
   #logger = LoggerManager.getLogger(LoggerCategory.EDITOR)
 
@@ -94,6 +94,7 @@ export class MathDependencyService
 
 /**
  * Type representing math symbol dependencies
+ * @group Manager/Math
  */
 export type MathDependencies = {
   /**

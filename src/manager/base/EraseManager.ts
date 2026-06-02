@@ -1,10 +1,10 @@
-import { LoggerCategory, LoggerManager } from "../../logger"
-import { IIEraser, TSegment, SymbolType, IIRecognizedText, IIText, Box, RecognizedKind } from "../../symbol"
-import { SVGRenderer } from "../../renderer"
-import { PointerEventGrabber, PointerInfo } from "../../grabber"
-import { findIntersectionBetween2Segment } from "../../utils"
-import type { InteractiveInkEditor } from "../../editor/variants/InteractiveInkEditor"
-import type { InkEditor } from "../../editor/variants/InkEditor"
+import { LoggerCategory, LoggerManager } from "@/logger"
+import { IIEraser, TSegment, SymbolType, IIRecognizedText, IIText, Box, RecognizedKind } from "@/symbol"
+import { SVGRenderer } from "@/renderer"
+import { PointerEventGrabber, PointerInfo } from "@/grabber"
+import { findIntersectionBetween2Segment } from "@/utils"
+import type { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import type { InkEditor } from "@/editor/variants/InkEditor"
 
 /**
  * @group Manager

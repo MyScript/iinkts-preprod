@@ -13,17 +13,17 @@
  * DEMAND :       Action is triggered on external demande
  */
 export type TEditorTriggerConfiguration = {
-    exportContent: "QUIET_PERIOD" | "POINTER_UP" | "DEMAND"
-    exportContentDelay: number
-    resizeTriggerDelay: number
-  }
+  exportContent: "QUIET_PERIOD" | "POINTER_UP" | "DEMAND"
+  exportContentDelay: number
+  resizeTriggerDelay: number
+}
 
-  /**
-   * @group Editor
-   * @source
-   */
-  export const DefaulTEditorTriggerConfiguration: TEditorTriggerConfiguration = {
-    exportContent: "QUIET_PERIOD",
-    exportContentDelay: 1000,
-    resizeTriggerDelay: 100
-  }
+/**
+ * @group Editor
+ * @source
+ */
+export const DefaulTEditorTriggerConfiguration: TEditorTriggerConfiguration = {
+  exportContent: "QUIET_PERIOD",
+  exportContentDelay: 1000,
+  resizeTriggerDelay: 100
+}

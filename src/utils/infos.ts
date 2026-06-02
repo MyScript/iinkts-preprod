@@ -1,4 +1,4 @@
-import { TServerHTTPConfiguration } from "../recognizer"
+import { TServerHTTPConfiguration } from "@/recognizer"
 import { PartialDeep } from "./types"
 
 /**

@@ -1,6 +1,6 @@
-import { LoggerManager, LoggerCategory } from "../../logger"
-import { EditorTool } from "../../Constants"
-import type { InteractiveInkEditor } from "../../editor"
+import { LoggerManager, LoggerCategory } from "@/logger"
+import { EditorTool } from "@/Constants"
+import type { InteractiveInkEditor } from "@/editor"
 
 /**
  * Manages keyboard input for the Interactive Ink editor

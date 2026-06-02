@@ -28,17 +28,17 @@
   "cleanOutputDir": true,
   "categorizeByGroup": false,
   "categoryOrder": [],
-  "groupOrder": [
-    "Editor",
-    "Behavior",
-    "Renderer",
-    "Recognizer",
-    "Grabber",
-    "Model",
-    "Model/Export",
-    "Constants",
-    "*"
-  ],
+  // "groupOrder": [
+  //   "Editor",
+  //   "Editor/variants",
+  //   "Renderer",
+  //   "Recognizer",
+  //   "Grabber",
+  //   "Model",
+  //   "Model/Export",
+  //   "Constants",
+  //   "*"
+  // ],
   "navigation": {
     "includeCategories": false,
     "includeGroups": true

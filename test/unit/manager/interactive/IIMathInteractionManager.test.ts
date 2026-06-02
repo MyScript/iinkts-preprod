@@ -1,18 +1,18 @@
-import { MathInteractionManager } from "../../../src/manager/math/MathInteractionManager"
-import { MathOverlayManager } from "../../../src/manager/math/MathOverlayManager"
-import { InteractiveInkEditor } from "../../../src/editor/variants/InteractiveInkEditor"
-import { IIModel } from "../../../src/model"
-import { IIRecognizedMath, RecognizedKind, SymbolType } from "../../../src/symbol"
+import { IIMathInteractionManager } from "../../../../src/manager/interactive/IIMathInteractionManager"
+import { IIMathOverlayManager } from "../../../../src/manager/interactive/IIMathOverlayManager"
+import { InteractiveInkEditor } from "../../../../src/editor/variants/InteractiveInkEditor"
+import { IIModel } from "../../../../src/model"
+import { IIRecognizedMath, RecognizedKind, SymbolType } from "../../../../src/symbol"
 
 // Mock dependencies
-jest.mock("../../../src/editor/variants/InteractiveInkEditor")
-jest.mock("../../../src/model")
+jest.mock("../../../../src/editor/variants/InteractiveInkEditor")
+jest.mock("../../../../src/model")
 
-describe("MathInteractionManager", () =>
+describe("IIMathInteractionManager", () =>
 {
-  let manager: MathInteractionManager;;
+  let manager: IIMathInteractionManager;;
   let mockEditor: jest.Mocked<InteractiveInkEditor>;;
-  let mockOverlayManager: jest.Mocked<MathOverlayManager>;;
+  let mockOverlayManager: jest.Mocked<IIMathOverlayManager>;;
   let mockModel: jest.Mocked<IIModel>;;
 
   beforeEach(() =>
@@ -41,7 +41,7 @@ describe("MathInteractionManager", () =>
       findMathSymbolByJiixId: jest.fn(),
     } as any
 
-    manager = new MathInteractionManager(mockEditor, { showDependencyOnHover: true, highlightOnSelect: true })
+    manager = new IIMathInteractionManager(mockEditor, { showDependencyOnHover: true, highlightOnSelect: true })
   })
 
   describe("constructor", () =>
@@ -59,7 +59,7 @@ describe("MathInteractionManager", () =>
         mathOverlays: mockOverlayManager,
         findMathSymbolByJiixId: jest.fn(),
       } as any
-      const localMen = new MathInteractionManager(localMockEditor)
+      const localMen = new IIMathInteractionManager(localMockEditor)
       const config = localMen.getConfig()
       expect(config.showDependencyOnHover).toBe(false)
       expect(config.highlightOnSelect).toBe(false)
@@ -68,7 +68,7 @@ describe("MathInteractionManager", () =>
 
     test("should accept partial config override", () =>
     {
-      const customManager = new MathInteractionManager(mockEditor, {
+      const customManager = new IIMathInteractionManager(mockEditor, {
         showDependencyOnHover: true,
         dimOpacity: 0.5
       })
@@ -93,7 +93,7 @@ describe("MathInteractionManager", () =>
       mathOverlays: mockOverlayManager,
       findMathSymbolByJiixId: jest.fn(),
     } as any
-    const localMen = new MathInteractionManager(localMockEditor)
+    const localMen = new IIMathInteractionManager(localMockEditor)
     test("should update config values", () =>
     {
       localMen.updateConfig({ showDependencyOnHover: true })

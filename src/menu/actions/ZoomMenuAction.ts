@@ -1,7 +1,7 @@
-import { InteractiveInkEditor } from "../../editor"
-import { BaseMenuItem } from "../items/BaseMenuItem"
-import zoomInIcon from "../../assets/svg/zoom-in.svg"
-import zoomOutIcon from "../../assets/svg/zoom-out.svg"
+import { InteractiveInkEditor } from "@/editor"
+import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
+import zoomInIcon from "@/assets/svg/zoom-in.svg"
+import zoomOutIcon from "@/assets/svg/zoom-out.svg"
 
 /**
  * @group Menu

@@ -1,7 +1,7 @@
-import { InteractiveInkEditor } from "../../editor"
-import { ButtonMenuItem, IMenuButton } from "../items/ButtonMenuItem"
-import { EditorTool } from "../../Constants"
-import cursorIcon from "../../assets/svg/frame-select.svg"
+import { InteractiveInkEditor } from "@/editor"
+import { ButtonMenuItem, IMenuButton } from "@/menu/items/ButtonMenuItem"
+import { EditorTool } from "@/Constants"
+import cursorIcon from "@/assets/svg/frame-select.svg"
 
 /**
  * @group Menu

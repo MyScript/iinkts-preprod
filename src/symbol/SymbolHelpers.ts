@@ -15,8 +15,9 @@ import { RecognizedKind } from "./recognized/IIRecognizedBase"
 // Type Guards for Base Symbol Types
 // ============================================================================
 
-/**
- * Check if symbol is a stroke
+  /**
+   * @group Symbol
+   * @summary Check if symbol is a stroke
  * @param symbol - Symbol to check
  * @returns True if symbol is a stroke
  */
@@ -26,7 +27,8 @@ export function isStroke(symbol: TSymbol): symbol is IIStroke
 }
 
 /**
- * Check if symbol is text
+ * @group Symbol
+ * @summary Check if symbol is text
  * @param symbol - Symbol to check
  * @returns True if symbol is text
  */
@@ -36,7 +38,8 @@ export function isText(symbol: TSymbol): symbol is IIText
 }
 
 /**
- * Check if symbol is a shape (circle, ellipse, polygon)
+ * @group Symbol
+ * @summary Check if symbol is a shape (circle, ellipse, polygon)
  * @param symbol - Symbol to check
  * @returns True if symbol is a shape
  */
@@ -46,7 +49,8 @@ export function isShape(symbol: TSymbol): boolean
 }
 
 /**
- * Check if symbol is a recognized result (text, arc, circle, etc.)
+ * @group Symbol
+ * @summary Check if symbol is a recognized result (text, arc, circle, etc.)
  * @param symbol - Symbol to check
  * @returns True if symbol is recognized
  */
@@ -60,7 +64,8 @@ export function isRecognized(symbol: TSymbol): boolean
 // ============================================================================
 
 /**
- * Type guard to check if a symbol is a recognized math symbol
+ * @group Symbol
+ * @summary Type guard to check if a symbol is a recognized math symbol
  * @param symbol - The symbol to check
  * @returns True if the symbol is a recognized math symbol
  */
@@ -70,7 +75,8 @@ export function isRecognizedMathSymbol(symbol: TIISymbol): symbol is IIRecognize
 }
 
 /**
- * Type guard to check if a symbol is a recognized text symbol
+ * @group Symbol
+ * @summary Type guard to check if a symbol is a recognized text symbol
  * @param symbol - The symbol to check
  * @returns True if the symbol is a recognized text symbol
  */
@@ -84,7 +90,8 @@ export function isRecognizedTextSymbol(symbol: TIISymbol): symbol is IIRecognize
 // ============================================================================
 
 /**
- * Filter math symbols from an array
+ * @group Symbol
+ * @summary Filter math symbols from an array
  * @param symbols - Array of symbols to filter
  * @returns Array of recognized math symbols
  */

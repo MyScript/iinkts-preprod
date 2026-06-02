@@ -1,6 +1,6 @@
-import { InteractiveInkEditor } from "../../editor"
-import { ButtonMenuItem, IMenuButton } from "../items/ButtonMenuItem"
-import trashIcon from "../../assets/svg/trash.svg"
+import { InteractiveInkEditor } from "@/editor"
+import { ButtonMenuItem, IMenuButton } from "@/menu/items/ButtonMenuItem"
+import trashIcon from "@/assets/svg/trash.svg"
 
 /**
  * @group Menu

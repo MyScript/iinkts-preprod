@@ -1,9 +1,9 @@
-import { PartialDeep, createUUID, findIntersectionBetween2Segment } from "../../utils"
-import { TBox } from "../base/Box"
-import { TPoint, TSegment } from "../base/Point"
-import { SymbolType, TSymbol } from "../base/Symbol"
-import { DefaultStyle, TStyle } from "../../style"
-import { MatrixTransform } from "../../transform"
+import { PartialDeep, createUUID, findIntersectionBetween2Segment } from "@/utils"
+import { TBox } from "@/symbol/base/Box"
+import { TPoint, TSegment } from "@/symbol/base/Point"
+import { SymbolType, TSymbol } from "@/symbol/base/Symbol"
+import { DefaultStyle, TStyle } from "@/style"
+import { MatrixTransform } from "@/transform"
 
 /**
  * @group Symbol

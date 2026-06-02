@@ -1,6 +1,6 @@
-import { LoggerCategory, LoggerManager } from "../logger"
-import { IIRecognizedText, IIRecognizedMath, IIStroke, IIText, RecognizedKind, SymbolType, TIISymbol, isRecognizedMathSymbol } from "../symbol"
-import { InteractiveInkEditor } from "../editor"
+import { LoggerCategory, LoggerManager } from "@/logger"
+import { IIRecognizedText, IIRecognizedMath, IIStroke, IIText, RecognizedKind, SymbolType, TIISymbol, isRecognizedMathSymbol } from "@/symbol"
+import { InteractiveInkEditor } from "@/editor"
 import { IIMenuContextConfig, defaultMenuContextConfig } from "./IIMenuContextConfig"
 import {
   EditContextMenu,

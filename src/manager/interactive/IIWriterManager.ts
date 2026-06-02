@@ -1,5 +1,5 @@
-import { SELECTION_MARGIN, EditorWriteTool } from "../../Constants"
-import { IIModel } from "../../model"
+import { SELECTION_MARGIN, EditorWriteTool } from "@/Constants"
+import { IIModel } from "@/model"
 import
 {
   EdgeDecoration,
@@ -14,20 +14,20 @@ import
   TIISymbol,
   TPoint,
   TPointer
-} from "../../symbol"
-import { RecognizerWebSocket } from "../../recognizer"
-import { SVGRenderer } from "../../renderer"
-import { TStyle } from "../../style"
-import { IIHistoryManager } from "../../history"
+} from "@/symbol"
+import { RecognizerWebSocket } from "@/recognizer"
+import { SVGRenderer } from "@/renderer"
+import { TStyle } from "@/style"
+import { IIHistoryManager } from "@/history"
 import { IIGestureManager, TGesture } from "./IIGestureManager"
 import { IISnapManager } from "./IISnapManager"
-import { InteractiveInkEditor } from "../../editor/variants/InteractiveInkEditor"
-import { PointerInfo } from "../../grabber"
-import { AbstractWriterManager } from "../base/AbstractWriterManager"
+import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import { PointerInfo } from "@/grabber"
+import { AbstractWriterManager } from "@/manager/base/AbstractWriterManager"
 
 
 /**
- * @group Manager
+ * @group Manager/Interactive
  */
 export class IIWriterManager extends AbstractWriterManager
 {
