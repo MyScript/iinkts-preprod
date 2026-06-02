@@ -556,7 +556,7 @@ export class MathContextMenu extends SubMenuItem
 
   setMenuVisibility(show: boolean, { canEditVariables, canCompute, canEvaluate }: { canEditVariables: boolean, canCompute: boolean, canEvaluate: boolean }): void {
     const mathMenu = this.getElement()
-    if (show && (canEditVariables || canCompute || canEvaluate)) {
+    if (show) {
       mathMenu.style.removeProperty("display")
       const editVariablesButton = mathMenu.querySelector(`#${ this.idEditVariables }`) as HTMLButtonElement
       const numericalComputationButton = mathMenu.querySelector(`#${ this.idNumericalComputation }`) as HTMLButtonElement
