@@ -1,6 +1,6 @@
 import { BORDER_RADIUS, flexColumnStyle, flexContainerStyle, SPACING } from "./styles"
 import { createButton } from "./ui-utils"
-import { TWO_PI } from "@/utils"
+import { TWO_PI, areValidCoordinates } from "@/utils"
 
 /**
  * @group Components
@@ -239,7 +239,7 @@ export class Chart
    */
   private isValidPoint(x: number, y: number): boolean
   {
-    return !isNaN(x) && !isNaN(y) && isFinite(x) && isFinite(y)
+    return areValidCoordinates(x, y)
   }
 
   /**
@@ -376,10 +376,10 @@ export class Chart
 
     const xValues = allPoints
       .map((p) => p[0])
-      .filter((v) => !isNaN(v) && isFinite(v))
+      .filter((v) => areValidCoordinates(v, 0))
     const yValues = allPoints
       .map((p) => p[1])
-      .filter((v) => !isNaN(v) && isFinite(v))
+      .filter((v) => areValidCoordinates(0, v))
 
     if (xValues.length === 0 || yValues.length === 0) {
       return null
