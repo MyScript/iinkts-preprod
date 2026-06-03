@@ -5,7 +5,7 @@ import type { InteractiveInkEditor } from "@/editor"
 /**
  * Manages keyboard input for the Interactive Ink editor
  * Handles tool switching via modifier keys (Ctrl/Cmd for Move mode)
- * @group Manager/Interactive
+ * @group Manager
  */
 export class IIKeyboardManager
 {

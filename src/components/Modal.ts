@@ -1,3 +1,6 @@
+import { BORDER_RADIUS, flexColumnStyle, SPACING } from "./styles"
+import { createSelect } from "./ui-utils"
+
 /**
  * @group Components
  */
@@ -82,7 +85,7 @@ export class Modal {
       transform: translate(-50%, -50%);
       background: white;
       padding: 0;
-      border-radius: 8px;
+      border-radius: ${BORDER_RADIUS.lg};
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
       z-index: 10000;
       min-width: 300px;
@@ -120,7 +123,7 @@ export class Modal {
       font-size: 20px;
       cursor: pointer;
       padding: 4px 8px;
-      border-radius: 4px;
+      border-radius: ${BORDER_RADIUS.sm};
       transition: background 0.2s;
     `
     this.fullscreenButton.addEventListener("mouseenter", () => {
@@ -148,11 +151,11 @@ export class Modal {
 
     // Form
     const form = document.createElement("form")
-    form.style.cssText = "display: flex; flex-direction: column; gap: 12px;"
+    form.style.cssText = flexColumnStyle(SPACING.md)
 
     this.config.fields.forEach(field => {
       const fieldWrapper = document.createElement("div")
-      fieldWrapper.style.cssText = "display: flex; flex-direction: column; gap: 4px;"
+      fieldWrapper.style.cssText = flexColumnStyle(SPACING.xs)
 
       const label = document.createElement("label")
       label.textContent = field.label
@@ -162,29 +165,22 @@ export class Modal {
       let inputElement: HTMLInputElement | HTMLSelectElement
 
       if (field.type === "select") {
-        const select = document.createElement("select")
-        select.id = field.id
-        select.style.cssText = `
-          padding: 8px;
-          border: 1px solid #ccc;
-          border-radius: 4px;
-          font-size: 14px;
-          background: white;
-        `
-        select.classList.add("ms-menu-input")
-
-        if (field.options) {
-          field.options.forEach(option => {
-            const optionElement = document.createElement("option")
-            optionElement.value = option.value
-            optionElement.textContent = option.label
-            select.appendChild(optionElement)
-          })
-        }
-
-        if (field.defaultValue !== undefined) {
-          select.value = String(field.defaultValue)
-        }
+        const select = createSelect({
+          id: field.id,
+          className: "ms-menu-input",
+          customStyle: `
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: ${BORDER_RADIUS.sm};
+            font-size: 14px;
+            background: white;
+          `,
+          options: (field.options || []).map(opt => ({
+            value: opt.value,
+            label: opt.label
+          })),
+          defaultValue: field.defaultValue !== undefined ? String(field.defaultValue) : undefined
+        })
 
         inputElement = select
       } else {
@@ -198,7 +194,7 @@ export class Modal {
         input.style.cssText = `
           padding: 8px;
           border: 1px solid #ccc;
-          border-radius: 4px;
+          border-radius: ${BORDER_RADIUS.sm};
           font-size: 14px;
         `
         input.classList.add("ms-menu-input")
@@ -230,6 +226,7 @@ export class Modal {
       const isPrimary = button.type === "primary"
       btn.style.cssText = `
         padding: 6px 12px;
+        border-radius: ${BORDER_RADIUS.sm};
         ${isPrimary ? "background-color: #4caf50; color: white;" : ""}
       `
 

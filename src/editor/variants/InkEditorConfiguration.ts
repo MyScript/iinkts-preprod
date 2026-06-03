@@ -10,7 +10,7 @@ import { DefaultEditorTriggerConfiguration, TEditorTriggerConfiguration } from "
 
 
 /**
- * @group Editor/variants
+ * @group Editor
  */
 export type TInkEditorConfiguration = TEditorConfiguration & TRecognizerHTTPV2Configuration & {
   rendering: TIIRendererConfiguration
@@ -22,7 +22,7 @@ export type TInkEditorConfiguration = TEditorConfiguration & TRecognizerHTTPV2Co
 }
 
 /**
- * @group Editor/variants
+ * @group Editor
  * @source
  */
 export const DefaultInkEditorConfiguration: TInkEditorConfiguration = {
@@ -37,7 +37,7 @@ export const DefaultInkEditorConfiguration: TInkEditorConfiguration = {
 }
 
 /**
- * @group Editor/variants
+ * @group Editor
  */
 export class InkEditorConfiguration implements TInkEditorConfiguration
 {

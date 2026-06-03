@@ -10,9 +10,12 @@ import {
   SPACING,
   sectionStyle,
   cardStyle,
-  selectStyle
+  selectStyle,
+  gridContainerStyle,
+  flexColumnStyle,
+  BORDER_RADIUS
 } from "./styles"
-import { createColorDot, createButton } from "./ui-utils"
+import { createColorDot, createButton, createLabeledInput, createSelect } from "./ui-utils"
 
 /**
  * @group Components
@@ -39,7 +42,7 @@ export interface EvaluationResult {
  * @group Components
  * @remarks Component for evaluating and displaying multiple math functions
  */
-export class FunctionEvaluator {
+export class IIFunctionEvaluator {
   private editor: InteractiveInkEditor
   private symbols: IIRecognizedMath[]
   private modal?: Modal
@@ -86,7 +89,7 @@ export class FunctionEvaluator {
             symbol,
             evaluables: evaluables,
             selectedEvaluableIndex: 0,
-            color: FunctionEvaluator.COLORS[i % FunctionEvaluator.COLORS.length]
+            color: IIFunctionEvaluator.COLORS[i % IIFunctionEvaluator.COLORS.length]
           })
         }
       } catch (error) {
@@ -125,9 +128,7 @@ export class FunctionEvaluator {
   private createModalContent(functions: EvaluableFunction[]): HTMLDivElement {
     const container = document.createElement("div")
     container.style.cssText = `
-      display: flex;
-      flex-direction: column;
-      gap: ${SPACING.lg};
+     ${flexColumnStyle(SPACING.lg)}
       width: 100%;
       height: 100%;
       box-sizing: border-box;
@@ -187,24 +188,22 @@ export class FunctionEvaluator {
         color: ${COLORS.gray[600]};
       `
 
-      const select = document.createElement("select")
-      select.style.cssText = selectStyle
-
-      func.evaluables.forEach((ev, evIndex) => {
-        const option = document.createElement("option")
-        option.value = String(evIndex)
-        option.textContent = `${ev.outputName} = f(${ev.inputName})`
-        option.selected = evIndex === func.selectedEvaluableIndex
-        select.appendChild(option)
-      })
-
-      select.addEventListener("change", () => {
-        func.selectedEvaluableIndex = parseInt(select.value)
-        const newEvaluable = func.evaluables[func.selectedEvaluableIndex]
-        label.textContent = `${newEvaluable.outputName} = f(${newEvaluable.inputName})`
-        // Clear evaluation results when changing evaluable
-        this.evaluationResults = undefined
-        this.renderCurrentTab()
+      const select = createSelect({
+        id: `evaluable-select-${func.symbol.id}`,
+        customStyle: selectStyle,
+        options: func.evaluables.map((ev, evIndex) => ({
+          value: String(evIndex),
+          label: `${ev.outputName} = f(${ev.inputName})`,
+          selected: evIndex === func.selectedEvaluableIndex
+        })),
+        onChange: (value) => {
+          func.selectedEvaluableIndex = parseInt(value)
+          const newEvaluable = func.evaluables[func.selectedEvaluableIndex]
+          label.textContent = `${newEvaluable.outputName} = f(${newEvaluable.inputName})`
+          // Clear evaluation results when changing evaluable
+          this.evaluationResults = undefined
+          this.renderCurrentTab()
+        }
       })
 
       selectWrapper.appendChild(selectLabel)
@@ -255,16 +254,12 @@ export class FunctionEvaluator {
     }
   } {
     const inputGrid = document.createElement("div")
-    inputGrid.style.cssText = `
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr 1fr;
-      gap: ${SPACING.md};
-    `
+    inputGrid.style.cssText = gridContainerStyle("repeat(4, 1fr)", SPACING.md)
 
-    const fromInput = this.createInput("from", "From:", -10)
-    const toInput = this.createInput("to", "To:", 10)
-    const pointCountInput = this.createInput("pointCount", "Points:", 21)
-    const stepInput = this.createInput("step", "Step:", 1)
+    const fromInput = createLabeledInput({ id: "from", label: "From:", defaultValue: -10 }).wrapper
+    const toInput = createLabeledInput({ id: "to", label: "To:", defaultValue: 10 }).wrapper
+    const pointCountInput = createLabeledInput({ id: "pointCount", label: "Points:", defaultValue: 21 }).wrapper
+    const stepInput = createLabeledInput({ id: "step", label: "Step:", defaultValue: 1 }).wrapper
 
     inputGrid.appendChild(fromInput)
     inputGrid.appendChild(toInput)
@@ -323,45 +318,6 @@ export class FunctionEvaluator {
     this.setupInputSynchronization(inputs.from, inputs.to, inputs.pointCount, inputs.step)
 
     return section
-  }
-
-  /**
-   * Create an input field
-   */
-  private createInput(id: string, label: string, defaultValue: number): HTMLDivElement {
-    const wrapper = document.createElement("div")
-    wrapper.style.cssText = `
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    `
-
-    const labelElement = document.createElement("label")
-    labelElement.textContent = label
-    labelElement.htmlFor = id
-    labelElement.style.cssText = `
-      font-size: 13px;
-      font-weight: 500;
-      color: #424242;
-    `
-
-    const input = document.createElement("input")
-    input.type = "number"
-    input.id = id
-    input.value = String(defaultValue)
-    input.step = "any"
-    input.style.cssText = `
-      padding: 8px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      font-size: 14px;
-      width: 100%;
-    `
-
-    wrapper.appendChild(labelElement)
-    wrapper.appendChild(input)
-
-    return wrapper
   }
 
   /**
@@ -444,14 +400,14 @@ export class FunctionEvaluator {
     const section = document.createElement("div")
     section.style.cssText = `
       border: 1px solid #ddd;
-      border-radius: 8px;
+      border-radius: ${BORDER_RADIUS.lg};
       overflow: hidden;
     `
 
     // Tab headers
     const tabHeaders = document.createElement("div")
     tabHeaders.style.cssText = `
-      display: flex;
+      ${flexContainerStyle(SPACING.sm)}
       background: #f5f5f5;
       border-bottom: 2px solid #ddd;
     `
@@ -526,8 +482,8 @@ export class FunctionEvaluator {
     `
 
     if (active) {
-      tab.style.color = "#2196F3"
-      tab.style.borderBottom = "3px solid #2196F3"
+      tab.style.color = COLORS.primary
+      tab.style.borderBottom = `3px solid ${COLORS.primary}`
       tab.style.fontWeight = "600"
     }
 
@@ -544,8 +500,8 @@ export class FunctionEvaluator {
     // Update styles when active class changes
     const observer = new MutationObserver(() => {
       if (tab.classList.contains("active")) {
-        tab.style.color = "#2196F3"
-        tab.style.borderBottom = "3px solid #2196F3"
+        tab.style.color = COLORS.primary
+        tab.style.borderBottom = `3px solid ${COLORS.primary}`
         tab.style.fontWeight = "600"
       } else {
         tab.style.color = "#666"
@@ -702,7 +658,7 @@ export class FunctionEvaluator {
         title: chartTitle,
         xLabel: inputName,
         yLabel: outputNamesStr,
-        lineColor: "#2196F3",
+        lineColor: COLORS.primary,
         showGrid: true,
         showPoints: true,
         seriesColors: seriesColors
@@ -751,7 +707,7 @@ export class FunctionEvaluator {
       color: #1976d2;
       padding: 8px 12px;
       background: #e3f2fd;
-      border-radius: 4px;
+      border-radius: ${BORDER_RADIUS.sm};
     `
     tableTitle.textContent = `Input: ${inputName}`
     return tableTitle

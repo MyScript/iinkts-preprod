@@ -2,10 +2,11 @@ import { InteractiveInkEditor } from "@/editor"
 import { isRecognizedMathSymbol, IIRecognizedMath } from "@/symbol"
 import { Modal } from "./Modal"
 import { Table, TableRow } from "./Table"
-import { FunctionEvaluator } from "./FunctionEvaluator"
-import { DiagnosticChecker } from "./DiagnosticChecker"
+import { IIFunctionEvaluator } from "./IIFunctionEvaluator"
+import { IIDiagnosticChecker } from "./IIDiagnosticChecker"
 import { IINumericalComputationResult } from "./IINumericalComputationResult"
-import { COLORS, flexContainerStyle, SPACING } from "./styles"
+import { IIVariableEditor } from "./IIVariableEditor"
+import { COLORS, flexColumnStyle, flexContainerStyle, SPACING } from "./styles"
 import { createButton, createStatusBadge } from "./ui-utils"
 
 /**
@@ -23,7 +24,7 @@ export interface MathSymbolCapabilities {
  * @group Components
  * @remarks Component for displaying math symbols capabilities in a table
  */
-export class MathCapabilitiesTable {
+export class IIMathCapabilitiesTable {
   private editor: InteractiveInkEditor
   private modal?: Modal
   private table?: Table
@@ -268,8 +269,8 @@ export class MathCapabilitiesTable {
 
     if (selectedSymbols.length === 0) return
 
-    // Use DiagnosticChecker component
-    const checker = new DiagnosticChecker(this.editor, selectedSymbols)
+    // Use IIDiagnosticChecker component
+    const checker = new IIDiagnosticChecker(this.editor, selectedSymbols)
     await checker.show()
   }
 
@@ -280,14 +281,16 @@ export class MathCapabilitiesTable {
     if (!this.table) return
 
     const selectedIndices = this.table.getSelectedRows()
-    const selectedCapabilities = selectedIndices
+    const selectedSymbols = selectedIndices
       .map(index => this.capabilities[index])
       .filter(cap => cap.canEditVariables)
+      .map(cap => cap.symbol)
 
-    if (selectedCapabilities.length === 0) return
+    if (selectedSymbols.length === 0) return
 
-    alert(`Edit Variables will be executed for ${selectedCapabilities.length} symbol(s)`)
-    // TODO: Implement actual variable editing
+    // Use IIVariableEditor component
+    const variableEditor = new IIVariableEditor(this.editor, selectedSymbols)
+    await variableEditor.show()
   }
 
   /**
@@ -323,8 +326,8 @@ export class MathCapabilitiesTable {
 
     if (selectedSymbols.length === 0) return
 
-    // Use FunctionEvaluator component
-    const evaluator = new FunctionEvaluator(this.editor, selectedSymbols)
+    // Use IIFunctionEvaluator component
+    const evaluator = new IIFunctionEvaluator(this.editor, selectedSymbols)
     await evaluator.show()
   }
 
@@ -356,11 +359,10 @@ export class MathCapabilitiesTable {
     // Create container
     const container = document.createElement("div")
     container.style.cssText = `
+      ${flexColumnStyle(SPACING.sm)}
       width: 100%;
       height: 100%;
       overflow: hidden;
-      display: flex;
-      flex-direction: column;
       box-sizing: border-box;
     `
 

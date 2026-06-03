@@ -9,7 +9,7 @@ import { TEditorConfiguration } from "@/editor/AbstractEditor"
 import { DefaultEditorTriggerConfiguration, TEditorTriggerConfiguration } from "@/editor/EditorTriggerConfiguration"
 
 /**
- * @group Editor/variants
+ * @group Editor
  */
 export type TInteractiveInkSSREditorConfiguration = TEditorConfiguration & TRecognizerWebSocketSSRConfiguration & {
   rendering: TRendererConfiguration
@@ -26,7 +26,7 @@ export type TInteractiveInkSSREditorConfiguration = TEditorConfiguration & TReco
 }
 
 /**
- * @group Editor/variants
+ * @group Editor
  * @source
  */
 export const DefaultInteractiveInkSSREditorConfiguration: TInteractiveInkSSREditorConfiguration = {
@@ -45,7 +45,7 @@ export const DefaultInteractiveInkSSREditorConfiguration: TInteractiveInkSSREdit
 }
 
 /**
- * @group Editor/variants
+ * @group Editor
  */
 export class InteractiveInkSSREditorConfiguration implements TInteractiveInkSSREditorConfiguration
 {

@@ -2,7 +2,7 @@ import { TServerHTTPConfiguration } from "@/recognizer"
 import { PartialDeep } from "./types"
 
 /**
- * @group Utils
+ * @group Utilities
  */
 export async function getAvailableLanguageList(configuration: PartialDeep<{ server: TServerHTTPConfiguration }>): Promise<{ result: { [key: string]: string } }>
 {

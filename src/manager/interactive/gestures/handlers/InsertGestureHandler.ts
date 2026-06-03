@@ -11,7 +11,7 @@ import type { GestureHelpers } from "@/manager/interactive/gestures/GestureHelpe
 /**
  * Handler for INSERT gesture type
  * Inserts line breaks or space by drawing vertical line
- * @group Gesture/Handler
+ * @group Manager
  */
 export class InsertGestureHandler extends GestureHandler
 {
