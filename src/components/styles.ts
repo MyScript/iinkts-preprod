@@ -2,9 +2,13 @@
  * Shared CSS styles for components
  */
 
+/**
+ * Color palette
+ * @group Styles
+ */
 export const COLORS = {
   primary: "#2196F3",
-  secondary: "#FF9800",
+  secondary: "#9E9E9E",
   success: "#4CAF50",
   danger: "#f44336",
   warning: "#ff9800",
@@ -30,6 +34,10 @@ export const COLORS = {
   }
 } as const
 
+/**
+ * Spacing constants
+ * @group Styles
+ */
 export const SPACING = {
   xs: "4px",
   sm: "8px",
@@ -38,6 +46,10 @@ export const SPACING = {
   xl: "24px"
 } as const
 
+/**
+ * Border radius constants
+ * @group Styles
+ */
 export const BORDER_RADIUS = {
   sm: "4px",
   md: "6px",
@@ -47,6 +59,7 @@ export const BORDER_RADIUS = {
 
 /**
  * Common button styles
+ * @group Styles
  */
 export const buttonStyle = (backgroundColor: string = COLORS.primary): string => `
   padding: ${SPACING.sm} ${SPACING.lg};
@@ -59,25 +72,39 @@ export const buttonStyle = (backgroundColor: string = COLORS.primary): string =>
   font-weight: 600;
 `
 
+/**
+ * Disabled button styles
+ * @group Styles
+ */
 export const buttonDisabledStyle = `
   opacity: 0.5;
   cursor: not-allowed;
 `
 
 /**
- * Common container styles
+ * Flex container with horizontal alignment
+ * @group Styles
  */
 export const flexContainerStyle = (gap: string = SPACING.sm): string => `
   display: flex;
+  align-items: center;
   gap: ${gap};
 `
 
+/**
+ * Flex container with vertical alignment
+ * @group Styles
+ */
 export const flexColumnStyle = (gap: string = SPACING.sm): string => `
   display: flex;
   flex-direction: column;
   gap: ${gap};
 `
 
+/**
+ * Grid container styles
+ * @group Styles
+ */
 export const gridContainerStyle = (columns: string, gap: string = SPACING.md): string => `
   display: grid;
   grid-template-columns: ${columns};
@@ -85,7 +112,8 @@ export const gridContainerStyle = (columns: string, gap: string = SPACING.md): s
 `
 
 /**
- * Common section/card styles
+ * Card container styles
+ * @group Styles
  */
 export const cardStyle = `
   padding: ${SPACING.md};
@@ -94,6 +122,10 @@ export const cardStyle = `
   border: 1px solid ${COLORS.gray[300]};
 `
 
+/**
+ * Section container styles
+ * @group Styles
+ */
 export const sectionStyle = `
   padding: ${SPACING.lg};
   background: ${COLORS.gray[100]};
@@ -102,7 +134,8 @@ export const sectionStyle = `
 `
 
 /**
- * Common input styles
+ * Standard input field styles
+ * @group Styles
  */
 export const inputStyle = `
   padding: ${SPACING.sm} ${SPACING.md};
@@ -111,6 +144,10 @@ export const inputStyle = `
   font-size: 14px;
 `
 
+/**
+ * Select dropdown styles
+ * @group Styles
+ */
 export const selectStyle = `
   padding: ${SPACING.sm} ${SPACING.sm};
   border: 1px solid #ccc;
@@ -121,7 +158,8 @@ export const selectStyle = `
 `
 
 /**
- * Common text styles
+ * Title text styles
+ * @group Styles
  */
 export const titleStyle = `
   font-weight: 600;
@@ -129,6 +167,10 @@ export const titleStyle = `
   color: ${COLORS.gray[800]};
 `
 
+/**
+ * Subtitle text styles with background
+ * @group Styles
+ */
 export const subtitleStyle = `
   font-weight: 600;
   font-size: 16px;
@@ -139,18 +181,27 @@ export const subtitleStyle = `
   border-radius: ${BORDER_RADIUS.sm};
 `
 
+/**
+ * Label text styles
+ * @group Styles
+ */
 export const labelStyle = `
   font-size: 12px;
   color: #666;
   margin-bottom: ${SPACING.xs};
 `
 
+/**
+ * Monospace text styles
+ * @group Styles
+ */
 export const monoTextStyle = `
   font-family: monospace;
 `
 
 /**
  * Color dot for function/series indicators
+ * @group Styles
  */
 export const colorDotStyle = (color: string, size: string = "12px"): string => `
   width: ${size};
@@ -162,7 +213,8 @@ export const colorDotStyle = (color: string, size: string = "12px"): string => `
 `
 
 /**
- * Common wrapper styles
+ * Scrollable container styles
+ * @group Styles
  */
 export const scrollableWrapperStyle = (maxHeight: string = "400px"): string => `
   max-height: ${maxHeight};
@@ -171,7 +223,8 @@ export const scrollableWrapperStyle = (maxHeight: string = "400px"): string => `
 `
 
 /**
- * Tab styles
+ * Tab button styles
+ * @group Styles
  */
 export const tabButtonStyle = (active: boolean): string => `
   padding: ${SPACING.md} ${SPACING.xl};
@@ -186,7 +239,8 @@ export const tabButtonStyle = (active: boolean): string => `
 `
 
 /**
- * Message/alert styles
+ * Message/alert box styles
+ * @group Styles
  */
 export const messageStyle = (type: "info" | "warning" | "error" | "success" = "info"): string => {
   const colors = {
@@ -207,7 +261,8 @@ export const messageStyle = (type: "info" | "warning" | "error" | "success" = "i
 }
 
 /**
- * Diagnostic severity styles
+ * Diagnostic severity color mappings
+ * @group Styles
  */
 export const diagnosticColors = {
   success: COLORS.success,
@@ -216,6 +271,10 @@ export const diagnosticColors = {
   info: COLORS.info
 } as const
 
+/**
+ * Diagnostic icon styles
+ * @group Styles
+ */
 export const diagnosticIconStyle = (severity: keyof typeof diagnosticColors): string => `
   color: ${diagnosticColors[severity]};
   font-weight: bold;

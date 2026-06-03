@@ -1,7 +1,7 @@
 import { TPoint } from "@/symbol"
 
 /**
- * @group Transform
+ * @group Utilities
  * @remarks Represents a 2D affine transform, defined as a 3x3 matrix with an implicit third raw of <code>[ 0 0 1 ]</code>
  */
 export type TMatrixTransform = {
@@ -32,7 +32,7 @@ export type TMatrixTransform = {
 }
 
 /**
- * @group Transform
+ * @group Utilities
  * @remarks Represents a 2D affine transform, defined as a 3x3 matrix with an implicit third raw of <code>[ 0 0 1 ]</code>
  */
 export class MatrixTransform implements TMatrixTransform

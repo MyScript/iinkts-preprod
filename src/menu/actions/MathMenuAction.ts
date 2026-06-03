@@ -4,7 +4,7 @@ import { IMenuCheckbox } from "@/menu/items/CheckboxMenuItem"
 import { IMenuSelect } from "@/menu/items/SelectMenuItem"
 import { IMenuButton } from "@/menu/items/ButtonMenuItem"
 import { isRecognizedMathSymbol } from "@/symbol"
-import { MathCapabilitiesTable } from "@/components"
+import { IIMathCapabilitiesTable } from "@/components"
 import mathIcon from "@/assets/svg/linear-double-arrow.svg"
 
 /**
@@ -78,7 +78,7 @@ export class MathMenuAction extends SubMenuItem
       id: `${idPrefix}-math-capabilities-overview`,
       label: "Show Math Capabilities Overview",
       action: async (editor: InteractiveInkEditor) => {
-        const capabilitiesTable = new MathCapabilitiesTable(editor)
+        const capabilitiesTable = new IIMathCapabilitiesTable(editor)
         await capabilitiesTable.show()
       }
     })

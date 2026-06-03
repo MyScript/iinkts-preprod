@@ -2,7 +2,7 @@ import { TServerHTTPConfiguration } from "@/recognizer"
 import { PartialDeep } from "./types"
 
 /**
- * @group Utils
+ * @group Utilities
  */
 export type TApiInfos = {
   version: string,
@@ -11,7 +11,7 @@ export type TApiInfos = {
 }
 
 /**
- * @group Utils
+ * @group Utilities
  */
 export async function getApiInfos(configuration?: PartialDeep<{ server: TServerHTTPConfiguration }>): Promise<TApiInfos>
 {

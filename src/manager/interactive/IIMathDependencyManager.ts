@@ -5,7 +5,7 @@ import type { InteractiveInkEditor } from "@/editor"
 /**
  * Manager responsible for managing math symbol dependencies
  * Handles variable tracking and dependent block recalculation
- * @group Manager/Math
+ * @group Manager
  */
 export class IIMathDependencyManager
 {
@@ -94,7 +94,7 @@ export class IIMathDependencyManager
 
 /**
  * Type representing math symbol dependencies
- * @group Manager/Math
+ * @group Manager
  */
 export type MathDependencies = {
   /**

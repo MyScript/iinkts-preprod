@@ -1,5 +1,5 @@
 /**
- * @group Style
+ * @group Styles
  * @property {String} color=#000000 Color (supported formats rgb() rgba() hsl() hsla() #rgb #rgba #rrggbb #rrggbbaa)
  * @property {String} width in px
 
@@ -13,7 +13,7 @@ export type TStyle = {
 }
 
 /**
- * @group Style
+ * @group Styles
  * @source
  */
 export const DefaultStyle: TStyle = {

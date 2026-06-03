@@ -1,7 +1,7 @@
 import { InteractiveInkEditor } from "@/editor"
 import { SubMenuItem, IMenuSubMenu } from "@/menu/items/SubMenuItem"
 import { IIRecognizedMath, isRecognizedMathSymbol } from "@/symbol"
-import { Modal, ModalField, FunctionEvaluator, DiagnosticChecker, IINumericalComputationResult } from "@/components"
+import { Modal, ModalField, IIFunctionEvaluator, IIDiagnosticChecker, IINumericalComputationResult } from "@/components"
 import { LoggerCategory, LoggerManager } from "@/logger"
 
 /**
@@ -47,8 +47,8 @@ export class MathContextMenu extends SubMenuItem
                 return
               }
 
-              // Use DiagnosticChecker component
-              const checker = new DiagnosticChecker(editor, mathSymbols)
+              // Use IIDiagnosticChecker component
+              const checker = new IIDiagnosticChecker(editor, mathSymbols)
               await checker.show()
 
             } catch (error) {
@@ -171,7 +171,7 @@ export class MathContextMenu extends SubMenuItem
                 this.logger.warn("No math symbol selected")
                 return
               }
-              const evaluator = new FunctionEvaluator(editor, mathSymbols)
+              const evaluator = new IIFunctionEvaluator(editor, mathSymbols)
               await evaluator.show()
 
             } catch (error) {

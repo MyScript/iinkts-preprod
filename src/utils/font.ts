@@ -2,7 +2,7 @@ import { TServerHTTPConfiguration } from "@/recognizer"
 import { PartialDeep } from "./types"
 
 /**
- * @group Utils
+ * @group Utilities
  */
 export async function getAvailableFontList(configuration: PartialDeep<{ server: TServerHTTPConfiguration, recognition: { lang: string }}>): Promise<Array<string>>
 {

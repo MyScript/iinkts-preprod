@@ -4,7 +4,7 @@ import { LoggerCategory, LoggerManager } from "@/logger"
 import { SVGRenderer } from "@/renderer"
 
 /**
- * @group Manager/Interactive
+ * @group Manager
  */
 export class IIMoveManager
 {

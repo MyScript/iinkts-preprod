@@ -35,7 +35,7 @@ const isSouthernResize = (direction: ResizeDirection): boolean =>
   [ResizeDirection.South, ResizeDirection.SouthEast, ResizeDirection.SouthWest].includes(direction)
 
 /**
- * @group Manager/Interactive
+ * @group Manager
  */
 export class IIResizeManager
 {

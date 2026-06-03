@@ -234,7 +234,7 @@ export class IIStroke extends IISymbolBase<SymbolType.Stroke>
 
 /**
  * @group Symbol
- * @group Utils
+ * @group Utilities
  */
 export function convertPartialStrokesToOIStrokes(json: PartialDeep<TStroke>[]): IIStroke[]
 {

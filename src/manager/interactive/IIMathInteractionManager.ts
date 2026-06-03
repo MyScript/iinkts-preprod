@@ -9,7 +9,7 @@ import { ColorPaletteManager } from "../base"
 
 /**
  * Configuration for math interaction features
- * @group Manager/Math
+ * @group Manager
  */
 export type TMathInteractionConfig = {
   showDependencyOnHover: boolean
@@ -24,7 +24,7 @@ export type TMathInteractionConfig = {
  * - Dependency arrows/lines between related blocks
  * - Recursive dependency tree traversal
  *
- * @group Manager/Math
+ * @group Manager
  */
 export class IIMathInteractionManager {
   private static readonly DEFAULT_CONFIG: TMathInteractionConfig = {

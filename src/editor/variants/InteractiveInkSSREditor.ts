@@ -12,7 +12,7 @@ import { AbstractEditor, EditorOptionsBase } from "@/editor/AbstractEditor"
 import { InteractiveInkSSREditorConfiguration } from "./InteractiveInkSSREditorConfiguration"
 
 /**
- * @group Editor/variants
+ * @group Editor
  */
 export type TInteractiveInkSSREditorOptions = PartialDeep<EditorOptionsBase &
   {
@@ -26,7 +26,7 @@ export type TInteractiveInkSSREditorOptions = PartialDeep<EditorOptionsBase &
   }
 
 /**
- * @group Editor/variants
+ * @group Editor
  */
 export class InteractiveInkSSREditor extends AbstractEditor
 {

@@ -4,10 +4,11 @@ import { IIModel } from "@/model"
 import { TBox, TIISymbol, IIRecognizedMath, RecognizedKind, SymbolType } from "@/symbol"
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import { ColorPaletteManager } from "../base"
+import { COLORS } from "@/components"
 
 /**
  * Visual overlay configuration
- * @group Manager/Math
+ * @group Manager
  */
 export type TMathOverlayConfig = {
   showBlockOverlays: boolean
@@ -23,7 +24,7 @@ export type TMathOverlayConfig = {
  * - Borders around blocks
  * - Result panels with connection lines
  *
- * @group Manager/Math
+ * @group Manager
  */
 export class IIMathOverlayManager {
   private static readonly DEFAULT_CONFIG: TMathOverlayConfig = {
@@ -407,7 +408,7 @@ export class IIMathOverlayManager {
 
   addHoverGlow(mathSymbol: IIRecognizedMath): void {
     this.drawOverlayRect(mathSymbol, "glow", {
-      stroke: "#2196F3",
+      stroke: COLORS.primary,
       "stroke-width": "2",
       "data-overlay": "glow",
       style: "pointer-events: none; filter: drop-shadow(0 0 8px rgba(33, 150, 243, 0.6));"

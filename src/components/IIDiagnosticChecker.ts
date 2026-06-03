@@ -3,6 +3,7 @@ import { IIRecognizedMath } from "@/symbol"
 import { Modal } from "./Modal"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import { getMathDiagnosticMessage } from "@/constants/MathDiagnosticMessages"
+import { BORDER_RADIUS, flexColumnStyle } from "./styles"
 
 /**
  * @group Components
@@ -17,7 +18,7 @@ export interface SymbolDiagnostic {
  * @group Components
  * @remarks Component for checking and displaying diagnostics for multiple math symbols
  */
-export class DiagnosticChecker {
+export class IIDiagnosticChecker {
   private editor: InteractiveInkEditor
   private symbols: IIRecognizedMath[]
   private modal?: Modal
@@ -88,9 +89,7 @@ export class DiagnosticChecker {
   private createModalContent(diagnostics: SymbolDiagnostic[]): HTMLDivElement {
     const container = document.createElement("div")
     container.style.cssText = `
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
+      ${flexColumnStyle("20px")}
       width: 100%;
       height: 100%;
       overflow-y: auto;
@@ -114,7 +113,7 @@ export class DiagnosticChecker {
     const section = document.createElement("div")
     section.style.cssText = `
       border: 2px solid #e0e0e0;
-      border-radius: 8px;
+      border-radius: ${BORDER_RADIUS.lg};
       padding: 16px;
       background: white;
     `
@@ -128,7 +127,7 @@ export class DiagnosticChecker {
       color: #1976d2;
       padding: 12px;
       background: #e3f2fd;
-      border-radius: 4px;
+      border-radius: ${BORDER_RADIUS.sm};
     `
     expressionDiv.innerHTML = `<strong>Expression:</strong> ${diagnostic.symbol.label || "N/A"}`
     section.appendChild(expressionDiv)
@@ -178,7 +177,7 @@ export class DiagnosticChecker {
       margin-bottom: 20px;
       padding: 16px;
       background: #fafafa;
-      border-radius: 6px;
+      border-radius: ${BORDER_RADIUS.md};
       border: 1px solid #e0e0e0;
     `
 
@@ -200,7 +199,7 @@ export class DiagnosticChecker {
       margin-bottom: 12px;
       padding: 8px 10px;
       background: #f5f5f5;
-      border-radius: 4px;
+      border-radius: ${BORDER_RADIUS.sm};
       font-family: monospace;
       border: 1px solid #e0e0e0;
     `
@@ -213,7 +212,7 @@ export class DiagnosticChecker {
       font-size: 16px;
       margin-bottom: 10px;
       padding: 10px 12px;
-      border-radius: 4px;
+      border-radius: ${BORDER_RADIUS.sm};
       font-weight: bold;
     `
 

@@ -27,7 +27,7 @@ import { AbstractWriterManager } from "@/manager/base/AbstractWriterManager"
 
 
 /**
- * @group Manager/Interactive
+ * @group Manager
  */
 export class IIWriterManager extends AbstractWriterManager
 {
