@@ -29,10 +29,10 @@ export class MathMenuAction extends SubMenuItem
         type: "checkbox",
         id: `${idPrefix}-math-draw-result-strokes`,
         label: "Draw result as strokes",
-        getValue: (editor: InteractiveInkEditor) => editor.mathComputationMode,
+        getValue: (editor: InteractiveInkEditor) => editor.drawComputationResult,
         setValue: async (editor: InteractiveInkEditor, value: boolean) => {
-          const oldMode = editor.mathComputationMode
-          editor.mathComputationMode = value
+          const oldMode = editor.drawComputationResult
+          editor.drawComputationResult = value
 
           if (!value && oldMode) {
             // If switching from drawing strokes to not drawing, clear existing solver strokes

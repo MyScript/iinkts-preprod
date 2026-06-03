@@ -1,7 +1,7 @@
 import { InteractiveInkEditor } from "@/editor"
 import { SubMenuItem, IMenuSubMenu } from "@/menu/items/SubMenuItem"
 import { IIRecognizedMath, isRecognizedMathSymbol } from "@/symbol"
-import { Modal, ModalField, FunctionEvaluator, DiagnosticChecker } from "@/components"
+import { Modal, ModalField, FunctionEvaluator, DiagnosticChecker, IINumericalComputationResult } from "@/components"
 import { LoggerCategory, LoggerManager } from "@/logger"
 
 /**
@@ -147,44 +147,9 @@ export class MathContextMenu extends SubMenuItem
                 return
               }
               
-              const mathSymbol = mathSymbols[0]
-              
-              const result = await editor.computeMathNumericalResult(mathSymbol, editor.mathComputationMode)
-
-              // If not drawing strokes, show modal with result
-              if (!editor.mathComputationMode && result.value !== undefined) {
-                const content = document.createElement("div")
-                content.style.padding = "16px"
-                content.style.textAlign = "center"
-
-                const equation = document.createElement("div")
-                equation.style.fontSize = "18px"
-                equation.style.marginBottom = "12px"
-                equation.style.fontWeight = "500"
-                equation.textContent = mathSymbol.label || "Expression"
-                content.appendChild(equation)
-
-                const resultDiv = document.createElement("div")
-                resultDiv.style.fontSize = "32px"
-                resultDiv.style.fontWeight = "bold"
-                resultDiv.style.color = "#4caf50"
-                resultDiv.textContent = result.value?.toString() || "N/A"
-                content.appendChild(resultDiv)
-
-                const modal: Modal = new Modal({
-                  title: "Numerical Result",
-                  fields: [],
-                  customContent: content,
-                  buttons: [
-                    {
-                      label: "Close",
-                      type: "primary",
-                      callback: (): void => modal.destroy()
-                    }
-                  ]
-                })
-                modal.open()
-              }
+              // Use IINumericalComputationResult component
+              const computer = new IINumericalComputationResult(editor, mathSymbols)
+              await computer.show()
 
             } catch (error) {
               this.logger.error("Error computing numerical result:", error)
@@ -206,8 +171,6 @@ export class MathContextMenu extends SubMenuItem
                 this.logger.warn("No math symbol selected")
                 return
               }
-
-              // Use FunctionEvaluator component
               const evaluator = new FunctionEvaluator(editor, mathSymbols)
               await evaluator.show()
 

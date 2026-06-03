@@ -58,7 +58,7 @@ export class IIMathDependencyManager
 
       try {
         this.#logger.info("recalculateDependentBlocks", `Computing numerical result for ${dependentBlockId}`)
-        await this.editor.computeMathNumericalResult(dependentMathSymbol, this.editor.mathComputationMode)
+        await this.editor.computeMathNumericalResult(dependentMathSymbol, this.editor.drawComputationResult)
       }
       catch (computeError) {
         this.#logger.error("recalculateDependentBlocks", `Error computing ${dependentBlockId}:`, computeError)

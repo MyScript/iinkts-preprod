@@ -101,7 +101,7 @@ export class InteractiveInkEditor extends AbstractEditor
   mathDependencies: IIMathDependencyManager
   transientInk: IITransientInkManager
   menu: IIMenuManager
-  mathComputationMode: boolean = true
+  drawComputationResult: boolean = true
 
   constructor(rootElement: HTMLElement, options?: TInteractiveInkEditorOptions)
   {
