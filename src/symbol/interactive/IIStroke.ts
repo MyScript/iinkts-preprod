@@ -236,7 +236,7 @@ export class IIStroke extends IISymbolBase<SymbolType.Stroke>
  * @group Symbol
  * @group Utilities
  */
-export function convertPartialStrokesToOIStrokes(json: PartialDeep<TStroke>[]): IIStroke[]
+export function convertPartialStrokesToIIStrokes(json: PartialDeep<TStroke>[]): IIStroke[]
 {
   const errors: string[] = []
   const strokes: IIStroke[] = []
