@@ -1,7 +1,5 @@
 import { SvgElementRole } from "@/Constants"
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
-import { LoggerCategory, LoggerManager } from "@/logger"
-import { IIModel } from "@/model"
 import
 {
   EdgeKind,
@@ -9,7 +7,6 @@ import
   IIText,
   IIMath,
   ShapeKind,
-  SymbolType,
   TIIEdge,
   TIIShape,
   TIISymbol,
@@ -17,26 +14,19 @@ import
   TIIRecognized,
   RecognizedKind
 } from "@/symbol"
+import { AbstractTransformManager } from "./AbstractTransformManager"
 
 /**
  * @group Manager
  */
-export class IITranslateManager
+export class IITranslateManager extends AbstractTransformManager<[number, number]>
 {
-  #logger = LoggerManager.getLogger(LoggerCategory.TRANSFORMER)
-  editor: InteractiveInkEditor
-  interactElementsGroup?: SVGElement
+  protected transformName = "translate"
   transformOrigin!: TPoint
 
   constructor(editor: InteractiveInkEditor)
   {
-    this.#logger.info("constructor")
-    this.editor = editor
-  }
-
-  get model(): IIModel
-  {
-    return this.editor.model
+    super(editor)
   }
 
   protected applyToStroke(stroke: IIStroke, tx: number, ty: number): IIStroke
@@ -139,30 +129,9 @@ export class IITranslateManager
     return recognizedSymbol
   }
 
-  applyToSymbol(symbol: TIISymbol, tx: number, ty: number): TIISymbol
-  {
-    this.#logger.info("applyToSymbol", { symbol, tx, ty })
-    switch (symbol.type) {
-      case SymbolType.Stroke:
-        return this.applyToStroke(symbol, tx, ty)
-      case SymbolType.Shape:
-        return this.applyToShape(symbol, tx, ty)
-      case SymbolType.Edge:
-        return this.applyToEdge(symbol, tx, ty)
-      case SymbolType.Text:
-        return this.applyOnText(symbol, tx, ty)
-      case SymbolType.Math:
-        return this.applyOnMath(symbol, tx, ty)
-      case SymbolType.Recognized:
-        return this.applyOnRecognizedSymbol(symbol, tx, ty)
-      default:
-        throw new Error(`Can't apply translate on symbol, type unknown: ${ JSON.stringify(symbol) }`)
-    }
-  }
-
   translate(symbols: TIISymbol[], tx: number, ty: number, addToHistory = true): Promise<void>
   {
-    this.#logger.info("translate", { symbols, tx, ty })
+    this.logger.info("translate", { symbols, tx, ty })
     symbols.forEach(s =>
     {
       this.applyToSymbol(s, tx, ty)
@@ -178,20 +147,20 @@ export class IITranslateManager
 
   translateElement(id: string, tx: number, ty: number): void
   {
-    this.#logger.info("translateElement", { id, tx, ty })
+    this.logger.info("translateElement", { id, tx, ty })
     this.editor.renderer.setAttribute(id, "transform", `translate(${ tx },${ ty })`)
   }
 
   start(target: Element, origin: TPoint): void
   {
-    this.#logger.info("start", { origin })
+    this.logger.info("start", { origin })
     this.interactElementsGroup = (target.closest(`[role=${ SvgElementRole.InteractElementsGroup }]`) as unknown) as SVGGElement
     this.transformOrigin = origin
   }
 
   continue(point: TPoint): { tx: number, ty: number }
   {
-    this.#logger.info("continue", { point })
+    this.logger.info("continue", { point })
     if (!this.interactElementsGroup) {
       throw new Error("Can't translate, you must call start before")
     }
@@ -216,7 +185,7 @@ export class IITranslateManager
 
   async end(point: TPoint): Promise<void>
   {
-    this.#logger.info("end", { point })
+    this.logger.info("end", { point })
     const { tx, ty } = this.continue(point)
     this.editor.snaps.clearSnapToElementLines()
     this.translate(this.model.symbolsSelected, tx, ty)
