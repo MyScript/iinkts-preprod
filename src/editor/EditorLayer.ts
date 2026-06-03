@@ -1,7 +1,7 @@
 
 import style from "@/iink.css"
 /**
- * @group Editor/layers
+ * @group Editor
  */
 export type EditorLayerUIInfoModal = {
   root: HTMLDivElement,
@@ -9,7 +9,7 @@ export type EditorLayerUIInfoModal = {
 }
 
 /**
- * @group Editor/layers
+ * @group Editor
  */
 export type EditorLayerUIMessage = {
   root: HTMLDivElement
@@ -18,7 +18,7 @@ export type EditorLayerUIMessage = {
 }
 
 /**
- * @group Editor/layers
+ * @group Editor
  */
 export type EditorLayerUIState = {
   root: HTMLDivElement
@@ -26,7 +26,7 @@ export type EditorLayerUIState = {
 }
 
 /**
- * @group Editor/layers
+ * @group Editor
  */
 export type EditorLayerUI = {
   root: HTMLDivElement
@@ -36,7 +36,7 @@ export type EditorLayerUI = {
 }
 
 /**
- * @group Editor/layers
+ * @group Editor
  */
 export class EditorLayer
 {

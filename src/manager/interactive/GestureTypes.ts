@@ -1,11 +1,11 @@
 /**
- * @group Gesture
+ * @group Manager
  * @summary List all authorized gestures
  */
 export type TGestureType = "UNDERLINE" | "SCRATCH" | "JOIN" | "INSERT" | "STRIKETHROUGH" | "SURROUND"
 
 /**
- * @group Gesture
+ * @group Manager
  * @remarks
  *  when gestureType = "INSERT", subStrokes represent the two parts
  *  when gestureType = "SCRATCH", subStrokes represent the part to substract at the stroke corresponding fullStrokeId
@@ -20,7 +20,7 @@ export type TGesture = {
 }
 
 /**
- * @group Gesture
+ * @group Manager
  * @summary
  * List all action allowed on surround detected
  * @remarks
@@ -34,7 +34,7 @@ export enum SurroundAction
 }
 
 /**
- * @group Gesture
+ * @group Manager
  * @summary
  * List all action allowed on strikeThrough detected
  * @remarks
@@ -47,7 +47,7 @@ export enum StrikeThroughAction
 }
 
 /**
- * @group Gesture
+ * @group Manager
  * @summary
  * List all action allowed on underline detected
  * @remarks
@@ -60,7 +60,7 @@ export enum UnderlineAction
 }
 
 /**
- * @group Gesture
+ * @group Manager
  * @summary
  * List all action allowed on split detected
  * @remarks
@@ -79,7 +79,7 @@ export enum InsertAction
 }
 
 /**
- * @group Gesture
+ * @group Manager
  * @source
  */
 export type TGestureConfiguration = {
@@ -90,7 +90,7 @@ export type TGestureConfiguration = {
 }
 
 /**
- * @group Gesture
+ * @group Manager
  * @source
  */
 export const DefaultGestureConfiguration: TGestureConfiguration = {

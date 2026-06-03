@@ -1,3 +1,6 @@
+import { BORDER_RADIUS, flexColumnStyle, flexContainerStyle, SPACING } from "./styles"
+import { createButton } from "./ui-utils"
+
 /**
  * @group Components
  */
@@ -99,11 +102,7 @@ export class Chart
 
     // Create container
     this.container = document.createElement("div")
-    this.container.style.cssText =`
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    `
+    this.container.style.cssText = flexColumnStyle("16px")
 
     // Create controls
     this.createControls()
@@ -113,7 +112,7 @@ export class Chart
     this.canvas.height = this.config.height
     this.canvas.style.cssText = `
       border: 1px solid #ddd;
-      border-radius: 4px;
+      border-radius: ${BORDER_RADIUS.sm};
       background: white;
       display: block;
       max-width: 100%;
@@ -136,36 +135,32 @@ export class Chart
   {
     this.controlsContainer = document.createElement("div")
     this.controlsContainer.style.cssText = `
-      display: flex;
-      gap: 8px;
-      align-items: center;
+     ${flexContainerStyle(SPACING.md)}
       padding: 8px;
       background: #f5f5f5;
-      border-radius: 4px;
+      border-radius: ${BORDER_RADIUS.sm};
     `
 
-    const createButton = (label: string, onClick: () => void): HTMLButtonElement =>
+    const createChartButton = (label: string, onClick: () => void): HTMLButtonElement =>
     {
-      const btn = document.createElement("button")
-      btn.textContent = label
+      const btn = createButton({ label, onClick })
       btn.style.cssText = `
         padding: 4px 12px;
         border: 1px solid #ccc;
-        border-radius: 4px;
+        border-radius: ${BORDER_RADIUS.sm};
         background: white;
         cursor: pointer;
         font-size: 12px;
       `
-      btn.onclick = onClick
       btn.onmouseenter = () => (btn.style.background = "#e0e0e0")
       btn.onmouseleave = () => (btn.style.background = "white")
       return btn
     }
 
-    const zoomInBtn = createButton("Zoom +", () => this.zoom(1.2))
-    const zoomOutBtn = createButton("Zoom −", () => this.zoom(0.8))
-    const resetBtn = createButton("Reset", () => this.resetZoom())
-    const togglePointsBtn = createButton(
+    const zoomInBtn = createChartButton("Zoom +", () => this.zoom(1.2))
+    const zoomOutBtn = createChartButton("Zoom −", () => this.zoom(0.8))
+    const resetBtn = createChartButton("Reset", () => this.resetZoom())
+    const togglePointsBtn = createChartButton(
       this.config.showPoints ? "Hide Points" : "Show Points",
       () =>
       {

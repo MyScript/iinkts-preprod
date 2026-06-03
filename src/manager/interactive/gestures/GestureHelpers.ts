@@ -27,7 +27,7 @@ import type { IIGestureManager } from "@/manager/interactive/IIGestureManager"
 /**
  * Helper class containing all shared utility methods for gesture handlers
  * Centralizes common functionality to avoid code duplication across handlers
- * @group Gesture/Helpers
+ * @group Manager
  */
 export class GestureHelpers
 {

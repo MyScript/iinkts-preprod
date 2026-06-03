@@ -11,7 +11,7 @@ import type { GestureHelpers } from "@/manager/interactive/gestures/GestureHelpe
 /**
  * Handler for SURROUND gesture type
  * Supports three actions: Select, Highlight, and Surround
- * @group Gesture/Handler
+ * @group Manager
  */
 export class SurroundGestureHandler extends GestureHandler
 {

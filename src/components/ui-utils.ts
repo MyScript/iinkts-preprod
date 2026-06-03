@@ -2,10 +2,11 @@
  * Reusable UI component utilities
  */
 
-import { colorDotStyle, buttonStyle, flexContainerStyle, SPACING, BORDER_RADIUS } from "./styles"
+import { colorDotStyle, buttonStyle, SPACING, BORDER_RADIUS, flexColumnStyle } from "./styles"
 
 /**
  * Create a color dot element
+ * @group Utilities
  */
 export function createColorDot(color: string, size: string = "12px"): HTMLSpanElement {
   const dot = document.createElement("span")
@@ -15,6 +16,7 @@ export function createColorDot(color: string, size: string = "12px"): HTMLSpanEl
 
 /**
  * Create a button with consistent styling
+ * @group Utilities
  */
 export function createButton(config: {
   label: string
@@ -41,20 +43,41 @@ export function createButton(config: {
 }
 
 /**
- * Create a button group container
+ * Create a number input field
+ * @group Utilities
  */
-export function createButtonGroup(buttons: HTMLButtonElement[], gap: string = SPACING.sm): HTMLDivElement {
-  const container = document.createElement("div")
-  container.style.cssText = `
-    ${flexContainerStyle(gap)}
-    flex-wrap: wrap;
+export function createNumberInput(config: {
+  id: string
+  defaultValue?: number
+  step?: string | number
+  min?: number
+  max?: number
+  placeholder?: string
+  fullWidth?: boolean
+}): HTMLInputElement {
+  const input = document.createElement("input")
+  input.type = "number"
+  input.id = config.id
+  input.value = String(config.defaultValue ?? "")
+  input.step = config.step !== undefined ? String(config.step) : "any"
+  input.placeholder = config.placeholder || ""
+  input.style.cssText = `
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: ${BORDER_RADIUS.sm};
+    font-size: 14px;
+    ${config.fullWidth ? "width: 100%;" : ""}
   `
-  buttons.forEach(btn => container.appendChild(btn))
-  return container
+
+  if (config.min !== undefined) input.min = String(config.min)
+  if (config.max !== undefined) input.max = String(config.max)
+
+  return input
 }
 
 /**
  * Create a labeled input field
+ * @group Utilities
  */
 export function createLabeledInput(config: {
   id: string
@@ -64,20 +87,18 @@ export function createLabeledInput(config: {
   placeholder?: string
   min?: number
   max?: number
-  step?: number
+  step?: string | number
+  labelSize?: string
+  gap?: string
 }): { wrapper: HTMLDivElement; input: HTMLInputElement; label: HTMLLabelElement } {
   const wrapper = document.createElement("div")
-  wrapper.style.cssText = `
-    display: flex;
-    flex-direction: column;
-    gap: ${SPACING.xs};
-  `
+  wrapper.style.cssText = flexColumnStyle(config.gap || SPACING.xs)
 
   const labelElement = document.createElement("label")
   labelElement.htmlFor = config.id
   labelElement.textContent = config.label
   labelElement.style.cssText = `
-    font-size: 12px;
+    font-size: ${config.labelSize || "13px"};
     font-weight: 500;
     color: #424242;
   `
@@ -87,16 +108,17 @@ export function createLabeledInput(config: {
   input.id = config.id
   input.value = String(config.defaultValue ?? "")
   input.placeholder = config.placeholder || ""
+  input.step = config.step !== undefined ? String(config.step) : (config.type === "number" ? "any" : "")
   input.style.cssText = `
-    padding: ${SPACING.sm} ${SPACING.md};
+    padding: 8px;
     border: 1px solid #ccc;
     border-radius: ${BORDER_RADIUS.sm};
     font-size: 14px;
+    width: 100%;
   `
 
   if (config.min !== undefined) input.min = String(config.min)
   if (config.max !== undefined) input.max = String(config.max)
-  if (config.step !== undefined) input.step = String(config.step)
 
   wrapper.appendChild(labelElement)
   wrapper.appendChild(input)
@@ -106,22 +128,35 @@ export function createLabeledInput(config: {
 
 /**
  * Create a select dropdown with options
+ * @group Utilities
  */
 export function createSelect(config: {
   id: string
   options: Array<{ value: string; label: string; selected?: boolean }>
   onChange?: (value: string) => void
+  customStyle?: string
+  className?: string
+  defaultValue?: string
 }): HTMLSelectElement {
   const select = document.createElement("select")
   select.id = config.id
-  select.style.cssText = `
-    padding: ${SPACING.xs} ${SPACING.sm};
-    border: 1px solid #ccc;
-    border-radius: ${BORDER_RADIUS.sm};
-    font-size: 12px;
-    background: white;
-    cursor: pointer;
-  `
+
+  if (config.customStyle) {
+    select.style.cssText = config.customStyle
+  } else {
+    select.style.cssText = `
+      padding: ${SPACING.xs} ${SPACING.sm};
+      border: 1px solid #ccc;
+      border-radius: ${BORDER_RADIUS.sm};
+      font-size: 12px;
+      background: white;
+      cursor: pointer;
+    `
+  }
+
+  if (config.className) {
+    select.classList.add(config.className)
+  }
 
   config.options.forEach(opt => {
     const option = document.createElement("option")
@@ -131,6 +166,10 @@ export function createSelect(config: {
     select.appendChild(option)
   })
 
+  if (config.defaultValue !== undefined) {
+    select.value = config.defaultValue
+  }
+
   if (config.onChange) {
     select.addEventListener("change", () => config.onChange!(select.value))
   }
@@ -139,59 +178,8 @@ export function createSelect(config: {
 }
 
 /**
- * Create a flex row container
- */
-export function createFlexRow(config: {
-  gap?: string
-  alignItems?: string
-  justifyContent?: string
-  children?: HTMLElement[]
-}): HTMLDivElement {
-  const container = document.createElement("div")
-  container.style.cssText = `
-    display: flex;
-    gap: ${config.gap || SPACING.sm};
-    align-items: ${config.alignItems || "center"};
-    justify-content: ${config.justifyContent || "flex-start"};
-  `
-
-  if (config.children) {
-    config.children.forEach(child => container.appendChild(child))
-  }
-
-  return container
-}
-
-/**
- * Create a section title
- */
-export function createSectionTitle(text: string, level: "h2" | "h3" = "h2"): HTMLDivElement {
-  const title = document.createElement("div")
-  title.style.cssText = `
-    font-weight: 600;
-    font-size: ${level === "h2" ? "16px" : "14px"};
-    margin-bottom: ${SPACING.md};
-    color: #424242;
-  `
-  title.textContent = text
-  return title
-}
-
-/**
- * Create a monospace text element
- */
-export function createMonoText(text: string, color?: string): HTMLSpanElement {
-  const span = document.createElement("span")
-  span.textContent = text
-  span.style.cssText = `
-    font-family: monospace;
-    ${color ? `color: ${color};` : ""}
-  `
-  return span
-}
-
-/**
  * Create a status badge (✓ or ✗)
+ * @group Utilities
  */
 export function createStatusBadge(available: boolean): HTMLSpanElement {
   const badge = document.createElement("span")

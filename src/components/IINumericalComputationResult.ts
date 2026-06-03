@@ -2,6 +2,7 @@ import { InteractiveInkEditor } from "@/editor"
 import { IIRecognizedMath } from "@/symbol"
 import { Modal } from "./Modal"
 import { LoggerCategory, LoggerManager } from "@/logger"
+import { BORDER_RADIUS, flexColumnStyle, SPACING } from "./styles"
 
 /**
  * @group Components
@@ -66,9 +67,7 @@ export class IINumericalComputationResult {
   private createResultsDisplay(results: NumericalComputationResult[]): HTMLDivElement {
     const container = document.createElement("div")
     container.style.cssText = `
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
+      ${flexColumnStyle(SPACING.md)}
       max-height: 500px;
       overflow-y: auto;
     `
@@ -78,7 +77,7 @@ export class IINumericalComputationResult {
       resultItem.style.cssText = `
         padding: 12px;
         background: #f9f9f9;
-        border-radius: 6px;
+        border-radius: ${BORDER_RADIUS.md};
         border: 1px solid #ddd;
       `
 
@@ -100,7 +99,7 @@ export class IINumericalComputationResult {
           font-size: 14px;
           padding: 8px;
           background: #ffebee;
-          border-radius: 4px;
+          border-radius: ${BORDER_RADIUS.sm};
         `
         errorDiv.textContent = `Error: ${result.error}`
         resultItem.appendChild(errorDiv)
@@ -113,7 +112,7 @@ export class IINumericalComputationResult {
           font-family: monospace;
           padding: 8px;
           background: #e8f5e9;
-          border-radius: 4px;
+          border-radius: ${BORDER_RADIUS.sm};
         `
         valueDiv.textContent = `Result: ${result.value}`
         resultItem.appendChild(valueDiv)
@@ -150,7 +149,7 @@ export class IINumericalComputationResult {
 
     // Create modal
     this.modal = new Modal({
-      title: `Numerical Computation Results (${this.symbols.length} symbol${this.symbols.length > 1 ? 's' : ''})`,
+      title: `Numerical Computation Results (${this.symbols.length} symbol${this.symbols.length > 1 ? "s" : ""})`,
       fields: [],
       customContent: resultsDisplay,
       buttons: [

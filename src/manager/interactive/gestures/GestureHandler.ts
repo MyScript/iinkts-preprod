@@ -12,7 +12,7 @@ import { IITextManager } from "@/manager/interactive/IITextManager"
 /**
  * Base interface for gesture handlers
  * Each handler is responsible for applying a specific gesture type
- * @group Gesture/Handler
+ * @group Manager
  */
 export interface IGestureHandler
 {
@@ -33,7 +33,7 @@ export interface IGestureHandler
 /**
  * Abstract base class for gesture handlers
  * Provides common functionality and access to editor services via helpers
- * @group Gesture/Handler
+ * @group Manager
  */
 export abstract class GestureHandler implements IGestureHandler
 {
