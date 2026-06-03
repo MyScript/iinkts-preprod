@@ -405,7 +405,7 @@ export class IIDebugSVGManager
         this.trackAndDrawBox(boxId, box, infos, "recognition-item-box", IIDebugSVGManager.DEBUG_BOX_STYLES.RECOGNITION_ITEM_BOX_COLOR, currentBoxes!, this.#previousRecognitionItemBoxes)
       }
 
-      if (expr.operands) {
+      if (expr?.operands) {
         this.drawMathExpressions(expr.operands as { type: string; label?: string; "bounding-box"?: TBox; operands?: unknown[] }[], depth + 1, `${parentId}-expr-${depth}-${exprIndex}`, currentBoxes)
       }
     })
