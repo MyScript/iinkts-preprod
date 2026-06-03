@@ -4,6 +4,7 @@ import { Modal } from "./Modal"
 import { Table, TableRow } from "./Table"
 import { FunctionEvaluator } from "./FunctionEvaluator"
 import { DiagnosticChecker } from "./DiagnosticChecker"
+import { IINumericalComputationResult } from "./IINumericalComputationResult"
 import { COLORS, flexContainerStyle, SPACING } from "./styles"
 import { createButton, createStatusBadge } from "./ui-utils"
 
@@ -296,19 +297,16 @@ export class MathCapabilitiesTable {
     if (!this.table) return
 
     const selectedIndices = this.table.getSelectedRows()
-    const selectedCapabilities = selectedIndices
+    const selectedSymbols = selectedIndices
       .map(index => this.capabilities[index])
       .filter(cap => cap.canCompute)
+      .map(cap => cap.symbol)
 
-    if (selectedCapabilities.length === 0) return
+    if (selectedSymbols.length === 0) return
 
-    for (const cap of selectedCapabilities) {
-      try {
-        await this.editor.computeMathNumericalResult(cap.symbol, this.editor.mathComputationMode)
-      } catch (error) {
-        console.error(`Error computing result for ${cap.symbol.label}:`, error)
-      }
-    }
+    // Use IINumericalComputationResult component
+    const computer = new IINumericalComputationResult(this.editor, selectedSymbols)
+    await computer.show()
   }
 
   /**
