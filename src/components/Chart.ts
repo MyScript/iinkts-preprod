@@ -262,9 +262,7 @@ export class Chart
   {
     if (!this.viewport) return
 
-    const margin = Chart.CHART_MARGIN
-    const chartWidth = this.config.width - margin.left - margin.right
-    const chartHeight = this.config.height - margin.top - margin.bottom
+    const { chartWidth, chartHeight, margin } = this.getChartDimensions()
 
     let centerX: number, centerY: number
 
@@ -297,9 +295,7 @@ export class Chart
   {
     if (!this.viewport) return
 
-    const margin = Chart.CHART_MARGIN
-    const chartWidth = this.config.width - margin.left - margin.right
-    const chartHeight = this.config.height - margin.top - margin.bottom
+    const { chartWidth, chartHeight } = this.getChartDimensions()
 
     const xRange = this.viewport.xMax - this.viewport.xMin
     const yRange = this.viewport.yMax - this.viewport.yMin
@@ -321,6 +317,31 @@ export class Chart
   {
     this.viewport = this.defaultViewport ? { ...this.defaultViewport } : null
     this.draw()
+  }
+
+  /**
+   * Get chart dimensions accounting for margins
+   */
+  private getChartDimensions(): { chartWidth: number; chartHeight: number; margin: Margin }
+  {
+    const margin = Chart.CHART_MARGIN
+    const chartWidth = this.config.width - margin.left - margin.right
+    const chartHeight = this.config.height - margin.top - margin.bottom
+    return { chartWidth, chartHeight, margin }
+  }
+
+  /**
+   * Compute range with padding for axis bounds
+   */
+  private computeRangeWithPadding(min: number, max: number, paddingRatio: number = 0.1): { min: number; max: number }
+  {
+    const range = max - min
+    if (range === 0) {
+      const padding = Math.abs(min) * paddingRatio || 1
+      return { min: min - padding, max: max + padding }
+    }
+    const padding = range * paddingRatio
+    return { min: min - padding, max: max + padding }
   }
 
   /**
@@ -373,30 +394,8 @@ export class Chart
     const yMax = Math.max(...filteredYValues)
 
     // Add padding to ranges
-    const xRange = xMax - xMin
-    const yRange = yMax - yMin
-
-    // Calculate x padding
-    let finalXMin = xMin
-    let finalXMax = xMax
-    if (xRange === 0) {
-      const padding = Math.abs(xMin) * 0.1 || 1
-      finalXMin = xMin - padding
-      finalXMax = xMax + padding
-    }
-
-    // Calculate y padding
-    let finalYMin: number
-    let finalYMax: number
-    if (yRange === 0) {
-      const padding = Math.abs(yMin) * 0.1 || 1
-      finalYMin = yMin - padding
-      finalYMax = yMax + padding
-    } else {
-      const yPadding = yRange * 0.1
-      finalYMin = yMin - yPadding
-      finalYMax = yMax + yPadding
-    }
+    const { min: finalXMin, max: finalXMax } = this.computeRangeWithPadding(xMin, xMax)
+    const { min: finalYMin, max: finalYMax } = this.computeRangeWithPadding(yMin, yMax)
 
     return {
       xMin: finalXMin,
@@ -510,9 +509,7 @@ export class Chart
     ctx.clearRect(0, 0, width, height)
 
     // Setup chart dimensions
-    const margin = Chart.CHART_MARGIN
-    const chartWidth = width - margin.left - margin.right
-    const chartHeight = height - margin.top - margin.bottom
+    const { margin, chartWidth, chartHeight } = this.getChartDimensions()
 
     // Calculate viewport bounds
     const bounds = this.calculateViewportBounds()
@@ -567,32 +564,16 @@ export class Chart
       return null
     }
 
-    let xMin = Math.min(...xValues)
-    let xMax = Math.max(...xValues)
-    let yMin = Math.min(...yValues)
-    let yMax = Math.max(...yValues)
+    const xMin = Math.min(...xValues)
+    const xMax = Math.max(...xValues)
+    const yMin = Math.min(...yValues)
+    const yMax = Math.max(...yValues)
 
     // Add padding to ranges
-    const xRange = xMax - xMin
-    const yRange = yMax - yMin
+    const { min: finalXMin, max: finalXMax } = this.computeRangeWithPadding(xMin, xMax)
+    const { min: finalYMin, max: finalYMax } = this.computeRangeWithPadding(yMin, yMax)
 
-    if (xRange === 0) {
-      const padding = Math.abs(xMin) * 0.1 || 1
-      xMin = xMin - padding
-      xMax = xMax + padding
-    }
-
-    if (yRange === 0) {
-      const padding = Math.abs(yMin) * 0.1 || 1
-      yMin = yMin - padding
-      yMax = yMax + padding
-    } else {
-      const yPadding = yRange * 0.1
-      yMin = yMin - yPadding
-      yMax = yMax + yPadding
-    }
-
-    return { xMin, xMax, yMin, yMax }
+    return { xMin: finalXMin, xMax: finalXMax, yMin: finalYMin, yMax: finalYMax }
   }
 
   /**
