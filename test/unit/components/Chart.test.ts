@@ -153,7 +153,7 @@ describe("Chart.ts", () =>
       expect(() => chart.setData(data)).not.toThrow()
     })
 
-    test("should update table after setting data", () =>
+    test("should show canvas after setting data", () =>
     {
       const chart = new Chart()
       container.appendChild(chart.getElement())
@@ -166,8 +166,10 @@ describe("Chart.ts", () =>
 
       chart.setData(data)
 
-      const table = chart.getElement().querySelector("table")
-      expect(table).toBeTruthy()
+      // After refactoring, Chart no longer contains a table element
+      // The chart now only displays data on canvas
+      const canvas = chart.getElement().querySelector("canvas")
+      expect(canvas).toBeTruthy()
     })
   })
 
@@ -298,78 +300,6 @@ describe("Chart.ts", () =>
       const resetBtn = buttons.find(btn => btn.textContent?.includes("Reset") || btn.textContent?.includes("↻"))
 
       expect(resetBtn).toBeTruthy()
-    })
-  })
-
-  describe("table display", () =>
-  {
-    test("should create table for single series data", () =>
-    {
-      const chart = new Chart()
-      container.appendChild(chart.getElement())
-
-      const data = [
-        [1, 10],
-        [2, 20],
-        [3, 30]
-      ]
-
-      chart.setData(data)
-
-      const table = chart.getElement().querySelector("table")
-      expect(table).toBeTruthy()
-
-      const rows = table?.querySelectorAll("tbody tr")
-      expect(rows?.length).toBe(3)
-    })
-
-    test("should create table for multiple series", () =>
-    {
-      const chart = new Chart()
-      container.appendChild(chart.getElement())
-
-      const data = [
-        [[1, 10], [2, 20]],
-        [[1, 15], [2, 25]]
-      ]
-
-      chart.setData(data)
-
-      const table = chart.getElement().querySelector("table")
-      expect(table).toBeTruthy()
-
-      const rows = table?.querySelectorAll("tbody tr")
-      expect(rows?.length).toBe(4) // 2 points × 2 series
-    })
-
-    test("should have correct table headers", () =>
-    {
-      const chart = new Chart({ xLabel: "Time", yLabel: "Speed" })
-      container.appendChild(chart.getElement())
-
-      const data = [[1, 10], [2, 20]]
-      chart.setData(data)
-
-      const table = chart.getElement().querySelector("table")
-      const headers = table?.querySelectorAll("th")
-
-      expect(headers).toBeTruthy()
-      expect(headers!.length).toBeGreaterThan(0)
-
-      const headerTexts = Array.from(headers!).map(h => h.textContent)
-      expect(headerTexts.some(text => text?.includes("Time"))).toBe(true)
-      expect(headerTexts.some(text => text?.includes("Speed"))).toBe(true)
-    })
-
-    test("should not create table for empty data", () =>
-    {
-      const chart = new Chart()
-      container.appendChild(chart.getElement())
-
-      chart.setData([])
-
-      const table = chart.getElement().querySelector("table")
-      expect(table).toBeNull()
     })
   })
 
