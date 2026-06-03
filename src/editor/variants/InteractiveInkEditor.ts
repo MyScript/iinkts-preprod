@@ -12,7 +12,7 @@ import
   TIIRecognized,
   RecognizedKind,
   SymbolType,
-  convertPartialStrokesToOIStrokes,
+  convertPartialStrokesToIIStrokes,
   isRecognizedMathSymbol
 } from "@/symbol"
 import { RecognizerWebSocket, TMathVariable, TMathEvaluable } from "@/recognizer"
@@ -889,7 +889,7 @@ export class InteractiveInkEditor extends AbstractEditor
   {
     this.logger.info("importPointEvents", { partialStrokes })
     this.updateLayerState(false)
-    const strokes = convertPartialStrokesToOIStrokes(partialStrokes)
+    const strokes = convertPartialStrokesToIIStrokes(partialStrokes)
     strokes.forEach(s =>
     {
       this.model.addSymbol(s)
