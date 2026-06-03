@@ -43,7 +43,10 @@ export class MathMenuAction extends SubMenuItem
           // Show result panels when not drawing strokes
           editor.mathOverlays.updateConfig({ showResultPanels: !value })
         }
-      },
+      }
+    ]
+    if (editor.configuration.recognition.math?.solver?.["auto-variable-management"]?.enable) {
+      items.push(
       {
         type: "checkbox",
         id: `${idPrefix}-math-show-dependency-on-hover`,
@@ -64,8 +67,8 @@ export class MathMenuAction extends SubMenuItem
         setValue: (editor: InteractiveInkEditor, value: boolean) => {
           editor.mathInteractions.updateConfig({ highlightOnSelect: value })
         }
-      }
-    ]
+      })
+    }
 
     const config: IMenuSubMenu = {
       type: "submenu",
