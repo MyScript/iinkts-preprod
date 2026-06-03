@@ -1,5 +1,6 @@
 import { BORDER_RADIUS, flexColumnStyle, flexContainerStyle, SPACING } from "./styles"
 import { createButton } from "./ui-utils"
+import { TWO_PI } from "@/utils"
 
 /**
  * @group Components
@@ -944,13 +945,13 @@ export class Chart
 
         // Draw white border
         ctx.beginPath()
-        ctx.arc(xPos, yPos, 5, 0, Math.PI * 2)
+        ctx.arc(xPos, yPos, 5, 0, TWO_PI)
         ctx.fillStyle = "white"
         ctx.fill()
 
         // Draw colored point
         ctx.beginPath()
-        ctx.arc(xPos, yPos, 4, 0, Math.PI * 2)
+        ctx.arc(xPos, yPos, 4, 0, TWO_PI)
         ctx.fillStyle = pointColor
         ctx.fill()
       }

@@ -4,7 +4,7 @@ import { LoggerCategory, LoggerManager } from "@/logger"
 import { TIISymbol, TPoint, TBox, Box, IIEraser, SymbolType } from "@/symbol"
 import { TIIRendererConfiguration } from "@/renderer/RendererConfiguration"
 import { BaseRenderer } from "@/renderer/base"
-import { SVGRendererConst } from "./utils/SVGRendererConst"
+import { SVGRendererConst, GUIDE_PATH_ATTRS, SUB_GUIDE_PATH_ATTRS } from "./utils/SVGRendererConst"
 import { SVGRendererEdgeUtil } from "./SVGRendererEdgeUtil"
 import { SVGRendererEraserUtil } from "./SVGRendererEraserUtil"
 import { SVGRendererShapeUtil } from "./SVGRendererShapeUtil"
@@ -165,7 +165,7 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
           pathData += `M ${startX + offSet} ${y} L ${endX - offSet} ${y} `
         }
         if (pathData) {
-          const path = SVGBuilder.createPath({ d: pathData, "stroke-width": "1", stroke: "grey", fill: "none", style: SVGRendererConst.noSelection })
+          const path = SVGBuilder.createPath({ ...GUIDE_PATH_ATTRS, d: pathData, style: SVGRendererConst.noSelection })
           guidesGroup.appendChild(path)
         }
         break
@@ -200,11 +200,11 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
         }
 
         if (mainPathData) {
-          const mainPath = SVGBuilder.createPath({ d: mainPathData, "stroke-width": "1", stroke: "grey", fill: "none", style: SVGRendererConst.noSelection })
+          const mainPath = SVGBuilder.createPath({ ...GUIDE_PATH_ATTRS, d: mainPathData, style: SVGRendererConst.noSelection })
           guidesGroup.appendChild(mainPath)
         }
         if (subPathData) {
-          const subPath = SVGBuilder.createPath({ d: subPathData, "stroke-width": "0.25", stroke: "grey", fill: "none", style: SVGRendererConst.noSelection })
+          const subPath = SVGBuilder.createPath({ ...SUB_GUIDE_PATH_ATTRS, d: subPathData, style: SVGRendererConst.noSelection })
           guidesGroup.appendChild(subPath)
         }
         break
@@ -262,7 +262,7 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
   protected removeGuides(): void {
     this.verticalGuides = []
     this.horizontalGuides = []
-    this.layer.querySelector(`#${this.groupGuidesId}`)?.remove()
+    this.getElementById(this.groupGuidesId)?.remove()
   }
 
   redrawGuides(): void {
@@ -290,12 +290,12 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
   }
 
   getAttribute(id: string, name: string): string | undefined | null {
-    const element = this.layer.querySelector(`#${id}`) as HTMLElement | null
+    const element = this.getElementById(id)
     return element?.getAttribute(name)
   }
 
   setAttribute(id: string, name: string, value: string): void {
-    const element = this.layer.querySelector(`#${id}`) as HTMLElement | null
+    const element = this.getElementById(id)
     element?.setAttribute(name, value)
   }
 
@@ -334,7 +334,7 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
   }
 
   changeOrderSymbol(symbolToMove: TIISymbol, position: "first" | "last" | "forward" | "backward"): void {
-    const moveEl = this.layer.querySelector(`#${symbolToMove.id}`)
+    const moveEl = this.getElementById(symbolToMove.id)
     if (!moveEl) return
     switch (position) {
       case "first":
@@ -364,15 +364,12 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
       this.#logger.debug("removeElement: layer not initialized yet, skipping")
       return
     }
-    const oldStroke = this.layer.querySelector(`#${id}`)
-    if (oldStroke) {
-      oldStroke.remove()
-    }
+    this.getElementById(id)?.remove()
   }
 
   drawSymbol(symbol: TIISymbol | IIEraser): SVGGraphicsElement | undefined {
     this.#logger.debug("drawSymbol", { symbol })
-    const oldNode = this.layer.querySelector(`#${symbol?.id}`)
+    const oldNode = this.getElementById(symbol?.id)
     const svgEl = this.buildElementFromSymbol(symbol)
 
     if (svgEl) {
@@ -388,7 +385,7 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
 
   replaceSymbol(id: string, symbols: TIISymbol[]): SVGGraphicsElement[] | undefined {
     this.#logger.debug("drawSymbol", { symbols })
-    const oldNode = this.layer.querySelector(`#${id}`)
+    const oldNode = this.getElementById(id)
     const elements = symbols.map(s => this.buildElementFromSymbol(s)).filter(x => !!x) as SVGGraphicsElement[]
 
     if (elements.length) {

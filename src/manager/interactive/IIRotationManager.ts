@@ -17,7 +17,7 @@ import
   TIISymbol,
   TPoint
 } from "@/symbol"
-import { computeAngleRadian, convertDegreeToRadian, convertRadianToDegree, computeRotatedPoint } from "@/utils"
+import { computeAngleRadian, convertDegreeToRadian, convertRadianToDegree, computeRotatedPoint, TWO_PI } from "@/utils"
 
 /**
  * @group Manager
@@ -57,7 +57,7 @@ export class IIRotationManager
     switch (shape.kind) {
       case ShapeKind.Ellipse: {
         shape.center = computeRotatedPoint(shape.center, center, angleRad)
-        shape.orientation = (shape.orientation + angleRad) % (2 * Math.PI)
+        shape.orientation = (shape.orientation + angleRad) % TWO_PI
         return shape
       }
       case ShapeKind.Circle: {
@@ -82,7 +82,7 @@ export class IIRotationManager
   {
     switch (edge.kind) {
       case EdgeKind.Arc: {
-        edge.phi = (edge.phi - angleRad) % (2 * Math.PI)
+        edge.phi = (edge.phi - angleRad) % TWO_PI
         edge.center = computeRotatedPoint(edge.center, center, angleRad)
         return edge
       }
@@ -200,7 +200,7 @@ export class IIRotationManager
   {
     this.#logger.info("end", { point })
     const angleDegree = this.continue(point)
-    const angleRad = convertDegreeToRadian(angleDegree) % (2 * Math.PI)
+    const angleRad = convertDegreeToRadian(angleDegree) % TWO_PI
     const oldSymbols = this.model.symbolsSelected.map(s => s.clone())
     this.model.symbolsSelected.forEach(s =>
     {

@@ -2,7 +2,7 @@ import { LoggerCategory, LoggerManager } from "@/logger"
 import { IIModel } from "@/model"
 import { Box, TPoint, TSegment } from "@/symbol"
 import { SVGRenderer } from "@/renderer"
-import { SVGRendererConst } from "@/renderer/svg/SVGRendererConst"
+import { SVGRendererConst } from "@/renderer/svg/utils/SVGRendererConst"
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import { PartialDeep } from "@/utils"
 

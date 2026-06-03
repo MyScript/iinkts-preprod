@@ -1,6 +1,6 @@
 import { SELECTION_MARGIN } from "@/Constants"
 import { TStyle } from "@/style"
-import { PartialDeep, findIntersectBetweenSegmentAndCircle, isValidNumber, computeRotatedPoint, computeDistance } from "@/utils"
+import { PartialDeep, findIntersectBetweenSegmentAndCircle, isValidNumber, computeRotatedPoint, computeDistance, TWO_PI } from "@/utils"
 import { TPoint, isValidPoint } from "@/symbol/base/Point"
 import { OIShapeBase, ShapeKind } from "./IIShape"
 import { Box, TBox } from "@/symbol/base/Box"
@@ -41,11 +41,11 @@ export class IIShapeCircle extends OIShapeBase<ShapeKind.Circle>
       x: this.center.x,
       y: this.radius + this.center.y
     }
-    const perimeter = 2 * Math.PI * this.radius
+    const perimeter = TWO_PI * this.radius
     const nbPoint = Math.max(8, Math.round(perimeter / SELECTION_MARGIN))
     const points: TPoint[] = []
     for (let i = 0; i < nbPoint; i++) {
-      const rad = 2 * Math.PI * (i / nbPoint)
+      const rad = TWO_PI * (i / nbPoint)
       points.push(computeRotatedPoint(firstPoint, this.center, rad))
     }
     return points

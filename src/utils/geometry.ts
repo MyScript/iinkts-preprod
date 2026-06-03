@@ -2,6 +2,15 @@ import { TBox, TPoint, TSegment } from "@/symbol"
 import { isBetween } from "./math"
 
 /**
+ * Mathematical constants for geometric calculations
+ * @group Constants
+ */
+export const TWO_PI = 2 * Math.PI
+export const PI_HALF = Math.PI / 2
+export const PI_QUARTER = Math.PI / 4
+export const ANGLE_EPSILON = 0.1 // Threshold for angle comparisons
+
+/**
  * @group Utilities
  */
 export function computeDistance(p1: TPoint, p2: TPoint): number
@@ -86,7 +95,7 @@ export function isPointInsideBox(point: TPoint, box: TBox): boolean
  */
 export function convertRadianToDegree(radian: number): number
 {
-  return +((radian % (2 * Math.PI)) / Math.PI * 180).toFixed(4)
+  return +((radian % TWO_PI) / Math.PI * 180).toFixed(4)
 }
 
 /**
@@ -295,9 +304,9 @@ export function isPointInsidePolygon(point: TPoint, points: TPoint[])
  */
 export function normalizeAngle(angle: number): number
 {
-  let returnedAngle = ((angle + Math.PI) % (Math.PI * 2)) - Math.PI
+  let returnedAngle = ((angle + Math.PI) % TWO_PI) - Math.PI
   if (returnedAngle < -Math.PI) {
-    returnedAngle += Math.PI * 2
+    returnedAngle += TWO_PI
   }
   return returnedAngle
 }
