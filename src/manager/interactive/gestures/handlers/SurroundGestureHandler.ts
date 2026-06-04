@@ -33,7 +33,7 @@ export class SurroundGestureHandler extends GestureHandler
     const changes: TIIHistoryChanges = {}
     const ids = this.model.symbols.filter(s => gestureStroke.bounds.contains(s.bounds)).map(s => s.id)
 
-    switch (this.helpers.surroundAction) {
+    switch (this.manager.surroundAction) {
       case SurroundAction.Select:
         await this.applySelect(ids)
         break
@@ -48,7 +48,7 @@ export class SurroundGestureHandler extends GestureHandler
         this.history.push(this.model, changes)
         break
       default:
-        this.#logger.error("applySurroundGesture", `Unknown surroundAction: ${ this.helpers.surroundAction }`)
+        this.#logger.error("applySurroundGesture", `Unknown surroundAction: ${ this.manager.surroundAction }`)
         break
     }
   }

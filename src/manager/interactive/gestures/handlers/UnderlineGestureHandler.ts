@@ -34,7 +34,7 @@ export class UnderlineGestureHandler extends GestureHandler
       return
     }
 
-    switch (this.helpers.underlineAction) {
+    switch (this.manager.underlineAction) {
       case UnderlineAction.Draw:
         await this.applyDraw(gestureStroke, gesture)
         break
@@ -42,7 +42,7 @@ export class UnderlineGestureHandler extends GestureHandler
         await this.applyThicken(gesture)
         break
       default:
-        this.#logger.warn("applyUnderlineGesture", `Unknown underlineAction: ${ this.helpers.underlineAction }`)
+        this.#logger.warn("applyUnderlineGesture", `Unknown underlineAction: ${ this.manager.underlineAction }`)
         break
     }
   }
