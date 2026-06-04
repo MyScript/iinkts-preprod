@@ -60,7 +60,7 @@ export class IIGestureManager
     this.insertAction = gestureAction?.insert || DefaultGestureConfiguration.insert
 
     // Initialize helpers with reference to this manager and register handlers
-    this.#helpers = new GestureHelpers(editor, this)
+    this.#helpers = new GestureHelpers(editor)
     this.#registerHandlers()
   }
 

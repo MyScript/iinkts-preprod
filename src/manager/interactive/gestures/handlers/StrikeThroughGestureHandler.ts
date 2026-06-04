@@ -34,14 +34,14 @@ export class StrikeThroughGestureHandler extends GestureHandler
       return
     }
 
-    switch (this.helpers.strikeThroughAction) {
+    switch (this.manager.strikeThroughAction) {
       case StrikeThroughAction.Draw:
         await this.applyDraw(gestureStroke, gesture)
         break
       case StrikeThroughAction.Erase:
         return this.editor.removeSymbols(gesture.strokeIds)
       default:
-        this.#logger.warn("applyStrikeThroughGesture", `Unknown strikeThroughAction: ${ this.helpers.strikeThroughAction }`)
+        this.#logger.warn("applyStrikeThroughGesture", `Unknown strikeThroughAction: ${ this.manager.strikeThroughAction }`)
         break
     }
   }

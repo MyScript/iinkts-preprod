@@ -8,6 +8,7 @@ import { IIHistoryManager } from "@/history"
 import { RecognizerWebSocket } from "@/recognizer"
 import { IITranslateManager } from "@/manager/interactive/IITranslateManager"
 import { IITextManager } from "@/manager/interactive/IITextManager"
+import { IIGestureManager } from "../IIGestureManager"
 
 /**
  * Base interface for gesture handlers
@@ -52,7 +53,14 @@ export abstract class GestureHandler implements IGestureHandler
    */
   protected get model(): IIModel
   {
-    return this.helpers.model
+    return this.editor.model
+  }
+  /**
+   * Get the editor's model
+   */
+  protected get manager(): IIGestureManager
+  {
+    return this.editor.gesture
   }
 
   /**
@@ -60,7 +68,7 @@ export abstract class GestureHandler implements IGestureHandler
    */
   protected get renderer(): SVGRenderer
   {
-    return this.helpers.renderer
+    return this.editor.renderer
   }
 
   /**
@@ -68,7 +76,7 @@ export abstract class GestureHandler implements IGestureHandler
    */
   protected get history(): IIHistoryManager
   {
-    return this.helpers.history
+    return this.editor.history
   }
 
   /**
@@ -76,7 +84,7 @@ export abstract class GestureHandler implements IGestureHandler
    */
   protected get recognizer(): RecognizerWebSocket
   {
-    return this.helpers.recognizer
+    return this.editor.recognizer
   }
 
   /**
@@ -84,7 +92,7 @@ export abstract class GestureHandler implements IGestureHandler
    */
   protected get translator(): IITranslateManager
   {
-    return this.helpers.translator
+    return this.editor.translator
   }
 
   /**
@@ -92,7 +100,7 @@ export abstract class GestureHandler implements IGestureHandler
    */
   protected get texter(): IITextManager
   {
-    return this.helpers.texter
+    return this.editor.texter
   }
 
   /**
@@ -100,7 +108,7 @@ export abstract class GestureHandler implements IGestureHandler
    */
   protected get rowHeight(): number
   {
-    return this.helpers.rowHeight
+    return this.editor.configuration.rendering.guides.gap
   }
 
   /**
@@ -108,6 +116,6 @@ export abstract class GestureHandler implements IGestureHandler
    */
   protected get strokeSpaceWidth(): number
   {
-    return this.helpers.strokeSpaceWidth
+    return this.editor.configuration.rendering.guides.gap * 2
   }
 }
