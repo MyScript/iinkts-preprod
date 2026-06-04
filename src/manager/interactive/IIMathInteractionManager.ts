@@ -1,7 +1,6 @@
 import { LoggerManager, LoggerCategory } from "@/logger"
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
-import { IIRecognizedMath, TBox } from "@/symbol"
-import { isRecognizedMathSymbol } from "@/symbol"
+import { IIRecognizedMath, TBox, isRecognizedMath } from "@/symbol"
 import { convertBoundingBoxMillimeterToPixel } from "@/utils"
 import { TJIIXMathExpression } from "@/model/ExportMath"
 import { IIMathOverlayManager } from "./IIMathOverlayManager"
@@ -76,7 +75,7 @@ export class IIMathInteractionManager {
    * Get all math symbols from the model
    */
   protected getMathSymbols(): IIRecognizedMath[] {
-    return this.editor.model.symbols.filter(isRecognizedMathSymbol)
+    return this.editor.model.symbols.filter(isRecognizedMath)
   }
 
   /**

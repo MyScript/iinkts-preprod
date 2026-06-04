@@ -1,5 +1,5 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { IIRecognizedText, IIRecognizedMath, IIStroke, IIText, RecognizedKind, SymbolType, TIISymbol, isRecognizedMathSymbol } from "@/symbol"
+import { IIRecognizedText, IIRecognizedMath, IIStroke, IIText, RecognizedKind, SymbolType, TIISymbol, isRecognizedMath } from "@/symbol"
 import { InteractiveInkEditor } from "@/editor"
 import { IIMenuContextConfig, defaultMenuContextConfig } from "./IIMenuContextConfig"
 import {
@@ -65,7 +65,7 @@ export class IIMenuContext
 
   get hasSingleMathSymbol(): boolean
   {
-    return this.symbolsSelected.length === 1 && isRecognizedMathSymbol(this.symbolsSelected[0])
+    return this.symbolsSelected.length === 1 && isRecognizedMath(this.symbolsSelected[0])
   }
 
   protected async updateMathMenu(): Promise<void>

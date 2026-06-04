@@ -10,6 +10,7 @@
  */
 export * from "./IIConversionManager"
 export * from "./IIKeyboardManager"
+export * from "./AbstractTransformManager"
 export * from "./IIMoveManager"
 export * from "./IIResizeManager"
 export * from "./IIRotationManager"

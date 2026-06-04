@@ -18,7 +18,7 @@ import
   IIRecognizedEllipse,
   IIRecognizedPolygon,
   RecognizedKind,
-  isRecognizedMathSymbol
+  isRecognizedMath
 } from "@/symbol"
 import { convertMillimeterToPixel, convertBoundingBoxMillimeterToPixel } from "@/utils"
 
@@ -162,7 +162,7 @@ export class IISynchronizerManager
     this.editor.history.update(this.model)
 
     const mathSymbols = this.model.symbols.filter(s =>
-      isRecognizedMathSymbol(s) &&
+      isRecognizedMath(s) &&
       s.strokes &&
       s.strokes.length > 0
     ) as IIRecognizedMath[]
@@ -310,7 +310,7 @@ export class IISynchronizerManager
 
     // Get the CURRENT symbol from model - it may have been recreated during the async getVariables call
     const currentSymbol = this.model.symbols.find(s =>
-      isRecognizedMathSymbol(s) && s.jiixId === originalJiixId
+      isRecognizedMath(s) && s.jiixId === originalJiixId
     ) as IIRecognizedMath | undefined
 
     if (!currentSymbol) {
@@ -651,7 +651,7 @@ export class IISynchronizerManager
 
     if (mathJiixAssociation.strokes.length) {
       const existingMath = this.model.symbols.find(s =>
-        isRecognizedMathSymbol(s) && s.jiixId === mathEl.id
+        isRecognizedMath(s) && s.jiixId === mathEl.id
       ) as IIRecognizedMath | undefined
 
       if (existingMath) {
@@ -680,7 +680,7 @@ export class IISynchronizerManager
       this.#logger.debug("synchronizeMathElement", `Math strokes: ${jiixAssociation.strokes.length}, symbols: ${jiixAssociation.symbols.length}`)
 
       const existingMath = this.model.symbols.find(s =>
-        isRecognizedMathSymbol(s) && s.jiixId === el.id
+        isRecognizedMath(s) && s.jiixId === el.id
       ) as IIRecognizedMath | undefined
 
       if (existingMath) {

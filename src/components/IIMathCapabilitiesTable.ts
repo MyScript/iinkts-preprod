@@ -1,5 +1,5 @@
 import { InteractiveInkEditor } from "@/editor"
-import { isRecognizedMathSymbol, IIRecognizedMath } from "@/symbol"
+import { isRecognizedMath, IIRecognizedMath } from "@/symbol"
 import { Modal } from "./Modal"
 import { Table, TableRow } from "./Table"
 import { IIFunctionEvaluator } from "./IIFunctionEvaluator"
@@ -336,7 +336,7 @@ export class IIMathCapabilitiesTable {
    */
   async show(): Promise<void> {
     // Get all math symbols
-    const mathSymbols = this.editor.model.symbols.filter(isRecognizedMathSymbol) as IIRecognizedMath[]
+    const mathSymbols = this.editor.model.symbols.filter(isRecognizedMath)
 
     if (mathSymbols.length === 0) {
       alert("No math symbols found in the model")
