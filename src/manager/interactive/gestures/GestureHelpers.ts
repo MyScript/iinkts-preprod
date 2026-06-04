@@ -11,7 +11,7 @@ import
   TPoint,
   IIRecognizedText,
   RecognizedKind,
-  isRecognizedTextSymbol,
+  isRecognizedText,
 } from "@/symbol"
 import { RecognizerWebSocket } from "@/recognizer"
 import { SVGRenderer } from "@/renderer"
@@ -116,7 +116,7 @@ export class GestureHelpers
   {
     return symbol.type === SymbolType.Stroke ||
            symbol.type === SymbolType.Text ||
-           isRecognizedTextSymbol(symbol)
+           isRecognizedText(symbol)
   }
 
   /**
@@ -138,7 +138,7 @@ export class GestureHelpers
   ): boolean
   {
     // For IIRecognizedText with words
-    if (isRecognizedTextSymbol(symbol)) {
+    if (isRecognizedText(symbol)) {
       const recognizedText = symbol
 
       if (!recognizedText.words || !recognizedText.words.length) {

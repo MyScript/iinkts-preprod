@@ -1,5 +1,5 @@
 import { LoggerManager, LoggerCategory } from "@/logger"
-import { IIRecognizedMath, isRecognizedMathSymbol } from "@/symbol"
+import { IIRecognizedMath, isRecognizedMath } from "@/symbol"
 import type { InteractiveInkEditor } from "@/editor"
 
 /**
@@ -21,7 +21,7 @@ export class IIMathDependencyManager
   findMathSymbolByJiixId(jiixId: string): IIRecognizedMath | undefined
   {
     return this.editor.model.symbols.find(s =>
-      isRecognizedMathSymbol(s) && s.jiixId === jiixId
+      isRecognizedMath(s) && s.jiixId === jiixId
     ) as IIRecognizedMath | undefined
   }
 

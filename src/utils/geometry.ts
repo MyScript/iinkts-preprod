@@ -6,8 +6,20 @@ import { isBetween } from "./math"
  * @group Constants
  */
 export const TWO_PI = 2 * Math.PI
+/**
+ * Mathematical constants for geometric calculations
+ * @group Constants
+ */
 export const PI_HALF = Math.PI / 2
+/**
+ * Mathematical constants for geometric calculations
+ * @group Constants
+ */
 export const PI_QUARTER = Math.PI / 4
+/**
+ * Mathematical constants for geometric calculations
+ * @group Constants
+ */
 export const ANGLE_EPSILON = 0.1 // Threshold for angle comparisons
 
 /**

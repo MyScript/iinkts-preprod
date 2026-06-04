@@ -1,6 +1,6 @@
 import { SELECTION_MARGIN } from "@/Constants"
 import { TStyle } from "@/style"
-import { PartialDeep, computePointOnEllipse, findIntersectionBetween2Segment, isValidNumber, TWO_PI } from "@/utils"
+import { PartialDeep, computePointOnEllipse, computeEllipseRadiusAverage, findIntersectionBetween2Segment, isValidNumber, TWO_PI } from "@/utils"
 import { TPoint, isValidPoint } from "@/symbol/base/Point"
 import { OIShapeBase, ShapeKind } from "./IIShape"
 import { Box, TBox } from "@/symbol/base/Box"
@@ -40,7 +40,7 @@ export class IIShapeEllipse extends OIShapeBase<ShapeKind.Ellipse>
   protected computedVertices(): TPoint[]
   {
     const points: TPoint[] = []
-    const perimeter = TWO_PI * Math.sqrt((Math.pow(this.radiusX, 2) + Math.pow(this.radiusY, 2)) / 2)
+    const perimeter = TWO_PI * computeEllipseRadiusAverage(this.radiusX, this.radiusY)
     const nbPoint = Math.max(8, Math.round(perimeter / SELECTION_MARGIN))
     for (let i = 0; i < nbPoint; i++) {
       const theta = TWO_PI * (i / nbPoint)

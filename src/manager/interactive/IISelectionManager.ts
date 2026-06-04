@@ -1,13 +1,13 @@
 import { ResizeDirection, SELECTION_MARGIN, SvgElementRole } from "@/Constants"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import { IIModel } from "@/model"
-import { Box, IIText, SymbolType, TBox, TIIEdge, TIISymbol, TPoint, isRecognizedMathSymbol } from "@/symbol"
+import { Box, IIText, SymbolType, TBox, TIIEdge, TIISymbol, TPoint, isRecognizedMath } from "@/symbol"
 import { SVGRenderer, SVGBuilder } from "@/renderer"
+import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import { PointerEventGrabber, PointerInfo } from "@/grabber"
 import { IIResizeManager } from "./IIResizeManager"
 import { IIRotationManager } from "./IIRotationManager"
 import { IITranslateManager } from "./IITranslateManager"
-import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
-import { PointerEventGrabber, PointerInfo } from "@/grabber"
 
 /**
  * @group Manager
@@ -591,7 +591,7 @@ export class IISelectionManager
 
     // Notify math interactions system of selection changes
     const selectedMathIds = this.model.symbolsSelected
-      .filter(isRecognizedMathSymbol)
+      .filter(isRecognizedMath)
       .map(s => s.id)
     this.editor.mathInteractions.onSymbolSelect(selectedMathIds)
 
