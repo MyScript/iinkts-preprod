@@ -1,7 +1,7 @@
 import { ResizeDirection, SELECTION_MARGIN, SvgElementRole } from "@/Constants"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import { IIModel } from "@/model"
-import { Box, IIText, SymbolType, TBox, TIIEdge, TIISymbol, TPoint, isRecognizedMath } from "@/symbol"
+import { Box, SymbolType, TBox, TIIEdge, TIISymbol, TPoint, isRecognizedMath, isText, isEdge } from "@/symbol"
 import { SVGRenderer, SVGBuilder } from "@/renderer"
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import { PointerEventGrabber, PointerInfo } from "@/grabber"
@@ -390,9 +390,8 @@ export class IISelectionManager
           height: s.symbol.bounds.height + (s.symbol.style.width || 1) * 2,
           width: s.symbol.bounds.width + (s.symbol.style.width || 1) * 2,
         }
-        if (s.symbol.type === SymbolType.Text) {
-          const t = s.symbol as IIText
-          SURROUND_ATTRS.transform = `rotate(${ t.rotation?.degree || 0 }, ${ t.rotation?.center.x || 0 }, ${ t.rotation?.center.y || 0 })`
+        if (isText(s.symbol)) {
+          SURROUND_ATTRS.transform = `rotate(${ s.symbol.rotation?.degree || 0 }, ${ s.symbol.rotation?.center.x || 0 }, ${ s.symbol.rotation?.center.y || 0 })`
         }
         else {
           SURROUND_ATTRS.transform = "rotate(0, 0, 0)"
@@ -492,8 +491,8 @@ export class IISelectionManager
   drawSelectedGroup(symbols: TIISymbol[]): void
   {
     if (!symbols.length) return
-    if (symbols.length === 1 && symbols[0].type === SymbolType.Edge) {
-      this.selectedGroup = this.createInteractEdgeGroup(symbols[0] as TIIEdge)
+    if (symbols.length === 1 && isEdge(symbols[0])) {
+      this.selectedGroup = this.createInteractEdgeGroup(symbols[0])
     }
     else {
       this.selectedGroup = this.createInteractElementsGroup(symbols)

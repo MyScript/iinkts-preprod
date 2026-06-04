@@ -1,7 +1,7 @@
 import { InteractiveInkEditor } from "@/editor"
 import { BaseMenuItem, TGenericMenuItem } from "@/menu/items/BaseMenuItem"
 import ArrowDown from "@/assets/svg/nav-arrow-down.svg"
-import { DecoratorKind, IIDecorator, IIRecognizedText, IIStroke, IIText, RecognizedKind, SymbolType, isRecognizedMath } from "@/symbol"
+import { DecoratorKind, IIDecorator, IIRecognizedText, IIStroke, IIText, isRecognizedMath, isStroke, isText, isRecognizedText } from "@/symbol"
 import { DEFAULT_MENU_COLORS } from "@/menu/MenuConstants"
 
 /**
@@ -26,7 +26,7 @@ export class DecoratorContextMenu extends BaseMenuItem<HTMLElement>
   get symbolsDecorable(): (IIStroke | IIText | IIRecognizedText)[]
   {
     return this.editor.model.symbolsSelected.filter(s => {
-      return s.type === SymbolType.Stroke || s.type === SymbolType.Text || (s.type === SymbolType.Recognized && s.kind === RecognizedKind.Text)
+      return isStroke(s) || isText(s) || isRecognizedText(s)
     }) as (IIStroke | IIText | IIRecognizedText)[]
   }
 

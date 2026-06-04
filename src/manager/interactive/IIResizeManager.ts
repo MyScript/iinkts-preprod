@@ -8,12 +8,15 @@ import
   IIText,
   IIMath,
   ShapeKind,
-  SymbolType,
   TIIEdge,
   TIIShape,
   TPoint,
   TIIRecognized,
-  RecognizedKind
+  RecognizedKind,
+  isText,
+  isMath,
+  isShape,
+  isCircleShape
 } from "@/symbol"
 import { AbstractTransformManager } from "./AbstractTransformManager"
 
@@ -192,7 +195,9 @@ export class IIResizeManager extends AbstractTransformManager<[TPoint, number, n
     this.interactElementsGroup = (target.closest(`[role=${ SvgElementRole.InteractElementsGroup }]`) as unknown) as SVGGElement
     this.direction = target.getAttribute("resize-direction") as ResizeDirection
 
-    this.keepRatio = this.model.symbolsSelected.some(s => s.type === SymbolType.Text || s.type === SymbolType.Math || (s.type === SymbolType.Shape && (s as TIIShape).kind === ShapeKind.Circle))
+    this.keepRatio = this.model.symbolsSelected.some(s =>
+      isText(s) || isMath(s) || (isShape(s) && isCircleShape(s))
+    )
 
     this.transformOrigin = origin
     this.boundingBox = Box.createFromPoints(this.model.symbolsSelected.flatMap(s => s.vertices))

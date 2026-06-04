@@ -2,7 +2,7 @@ import styleIcon from "@/assets/svg/palette.svg"
 import { EditorTool, EditorWriteTool } from "@/Constants"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import { IIModel } from "@/model"
-import { SymbolType, TIISymbol } from "@/symbol"
+import { TIISymbol, isShape } from "@/symbol"
 import { InteractiveInkEditor } from "@/editor"
 import { IIMenuStyleConfig, defaultMenuStyleConfig } from "./IIMenuStyleConfig"
 import { BaseMenuItem } from "./items"
@@ -196,7 +196,7 @@ export class IIMenuStyle
     }
     else if (this.editor.tool === EditorTool.Select) {
       this.show()
-      const shapeSelected = this.model.symbolsSelected.length && this.model.symbolsSelected.some(s => s.type === SymbolType.Shape)
+      const shapeSelected = this.model.symbolsSelected.length && this.model.symbolsSelected.some(s => isShape(s))
 
       const strokeColorEl = this.styleItems.get("strokeColor")?.getElement()
       const fillColorEl = this.styleItems.get("fillColor")?.getElement()

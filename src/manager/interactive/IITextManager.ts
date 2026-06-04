@@ -1,6 +1,6 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
 import { IIModel } from "@/model"
-import { Box, IIText, SymbolType, TIISymbol, TIISymbolChar } from "@/symbol"
+import { Box, IIText, TIISymbol, TIISymbolChar, isText } from "@/symbol"
 import { SVGRenderer } from "@/renderer"
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 
@@ -104,7 +104,7 @@ export class IITextManager
   {
     const row = this.model.getSymbolsByRowOrdered().find(r => r.rowIndex === this.model.getSymbolRowIndex(text))
     if (row) {
-      const textsAfter = row.symbols.filter(s => s.type === SymbolType.Text && s.bounds.xMid > text.bounds.xMid) as IIText[]
+      const textsAfter = row.symbols.filter(s => isText(s) && s.bounds.xMid > text.bounds.xMid) as IIText[]
       textsAfter.forEach(symbol => {
         symbol.point.x += tx
         this.updateBounds(symbol)

@@ -2,8 +2,8 @@ import { LoggerCategory, LoggerManager } from "@/logger"
 import
 {
   isRecognizedText,
-  SymbolType,
   TIISymbol,
+  isRecognized
 } from "@/symbol"
 import { TExport } from "./Export"
 
@@ -87,7 +87,7 @@ export class IIModel
 
     return this.symbols.find(s =>
     {
-      if (s.type === SymbolType.Recognized && s.containsStroke(id)) {
+      if (isRecognized(s) && s.containsStroke(id)) {
         return s
       }
       return

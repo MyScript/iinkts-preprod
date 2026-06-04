@@ -21,8 +21,6 @@ export class InteractiveInkEditorMock extends InteractiveInkEditor
   }
 
   init = jest.fn(() => {
-    this.model.width = Math.max(this.layers.root.clientWidth, this.configuration.rendering.minWidth)
-    this.model.height = Math.max(this.layers.root.clientHeight, this.configuration.rendering.minHeight)
     this.model.rowHeight = this.configuration.rendering.guides.gap
     this.history.push(this.model, {})
 
