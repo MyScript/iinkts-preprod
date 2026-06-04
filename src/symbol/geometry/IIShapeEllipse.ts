@@ -2,13 +2,13 @@ import { SELECTION_MARGIN } from "@/Constants"
 import { TStyle } from "@/style"
 import { PartialDeep, computePointOnEllipse, computeEllipseRadiusAverage, findIntersectionBetween2Segment, isValidNumber, TWO_PI } from "@/utils"
 import { TPoint, isValidPoint } from "@/symbol/base/Point"
-import { OIShapeBase, ShapeKind } from "./IIShape"
+import { IIShapeBase, ShapeKind } from "./IIShape"
 import { Box, TBox } from "@/symbol/base/Box"
 
 /**
  * @group Symbol
  */
-export class IIShapeEllipse extends OIShapeBase<ShapeKind.Ellipse>
+export class IIShapeEllipse extends IIShapeBase<ShapeKind.Ellipse>
 {
   center: TPoint
   radiusX: number

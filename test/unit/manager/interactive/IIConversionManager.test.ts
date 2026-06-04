@@ -1,5 +1,5 @@
 import { arcJIIX, circleJIIX, ellipseJIIX, hTextJIIX, lineJIIX, parallelogramJIIX, polygonJIIX, rectangleJIIX, rhombusJIIX, triangleJIIX } from "../../__dataset__/jiix.dataset"
-import { buildOIStroke } from "../../helpers"
+import { buildIIStroke } from "../../helpers"
 import { InteractiveInkEditorMock } from "../../__mocks__/InteractiveInkEditorMock"
 import { IIConversionManager, TJIIXEdgeElement, TJIIXNodeElement, TJIIXTextElement } from "../../../../src/iink"
 
@@ -95,7 +95,7 @@ describe("IIConversionManager.ts", () =>
     })
     test("should return converted symbol & strokes associate", async () =>
     {
-      const helloStroke = buildOIStroke()
+      const helloStroke = buildIIStroke()
       helloStroke.id = hTextJIIXElement.words![0].items![0]["full-id"]!
       manager.model.symbols.push(helloStroke)
       const result = manager.convertText(hTextJIIXElement, [helloStroke], false)!
@@ -121,7 +121,7 @@ describe("IIConversionManager.ts", () =>
 
     test("should should return nothing when shape.kind unknow", async () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       stroke.id = "stroke-95ec1ea8-3dc9-4d63-945c-eaaa1d92636711"
       manager.model.symbols.push(stroke)
       //@ts-ignore
@@ -129,7 +129,7 @@ describe("IIConversionManager.ts", () =>
     })
     test("should return converted symbol & strokes associate when rectangle", async () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       stroke.id = "stroke-95ec1ea8-3dc9-4d63-945c-eaaa1d926367"
       manager.model.symbols.push(stroke)
       const result = manager.convertNode(jiixNodeRect, [stroke])!
@@ -138,7 +138,7 @@ describe("IIConversionManager.ts", () =>
     })
     test("should return converted symbol & strokes associate when rectangle", async () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       stroke.id = "stroke-e3ab0f2b-7846-4440-9e49-97ae560813ee"
       manager.model.symbols.push(stroke)
       const result = manager.convertNode(jiixNodeCircle, [stroke])!
@@ -147,7 +147,7 @@ describe("IIConversionManager.ts", () =>
     })
     test("should return converted symbol & strokes associate when ellipse", async () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       stroke.id = "stroke-c5f186da-33c9-41ce-8750-1909e52fbf4c"
       manager.model.symbols.push(stroke)
       const result = manager.convertNode(jiixNodeEllipse, [stroke])!
@@ -156,7 +156,7 @@ describe("IIConversionManager.ts", () =>
     })
     test("should return converted symbol & strokes associate when triangle", async () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       stroke.id = "stroke-024da324-4196-41d0-8f51-16c2a21b9226"
       manager.model.symbols.push(stroke)
       const result = manager.convertNode(jiixNodeTriangle, [stroke])!
@@ -165,7 +165,7 @@ describe("IIConversionManager.ts", () =>
     })
     test("should return converted symbol & strokes associate when parallelogram", async () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       stroke.id = "stroke-768451fe-6737-43e7-b3a5-d7f2b3da8caa"
       manager.model.symbols.push(stroke)
       const result = manager.convertNode(jiixNodeParrallelogram, [stroke])!
@@ -174,7 +174,7 @@ describe("IIConversionManager.ts", () =>
     })
     test("should return converted symbol & strokes associate when rhombus", async () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       stroke.id = "stroke-1d68a985-9ca6-48dd-88b5-d385df793105"
       manager.model.symbols.push(stroke)
       const result = manager.convertNode(jiixNodeRhombus, [stroke])!
@@ -183,7 +183,7 @@ describe("IIConversionManager.ts", () =>
     })
     test("should return converted symbol & strokes associate when polygon", async () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       stroke.id = "stroke-fa6ee3fd-6189-4bdf-8c06-1907588f298f"
       manager.model.symbols.push(stroke)
       const result = manager.convertNode(jiixNodePolygon, [stroke])!
@@ -206,7 +206,7 @@ describe("IIConversionManager.ts", () =>
 
     test("should return nothing when when edge.kind unknow", async () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       stroke.id = "stroke-2632b9c1-697d-44e6-bba4-44c49820318211"
       manager.model.symbols.push(stroke)
       //@ts-ignore
@@ -214,7 +214,7 @@ describe("IIConversionManager.ts", () =>
     })
     test("should return converted symbol & strokes associate when line", async () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       stroke.id = "stroke-2632b9c1-697d-44e6-bba4-44c498203182"
       manager.model.symbols.push(stroke)
       const result = manager.convertEdge(jiixEdgeLine, [stroke])!
@@ -223,7 +223,7 @@ describe("IIConversionManager.ts", () =>
     })
     test("should return converted symbol & strokes associate when arc", async () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       stroke.id = "stroke-a3aea978-6ea3-449e-8b02-74772a8233bb"
       manager.model.symbols.push(stroke)
       const result = manager.convertEdge(jiixEdgeArc, [stroke])!

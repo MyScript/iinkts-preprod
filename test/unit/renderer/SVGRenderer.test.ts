@@ -1,4 +1,4 @@
-import { buildOICircle, buildOIEraser, buildOILine, buildOIStroke, buildOIText } from "../helpers"
+import { buildIICircle, buildIIEraser, buildIILine, buildIIStroke, buildIIText } from "../helpers"
 import
 {
   SVGRenderer,
@@ -195,7 +195,7 @@ describe("SVGRenderer.ts", () =>
     })
     test("should draw eraser", () =>
     {
-      const eraser = buildOIEraser()
+      const eraser = buildIIEraser()
       renderer.drawSymbol(eraser)
       const el = divElement.querySelector(`#${ eraser.id }`)!
       expect(el).toBeDefined()
@@ -207,7 +207,7 @@ describe("SVGRenderer.ts", () =>
     })
     test("should draw stroke", () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       renderer.drawSymbol(stroke)
       const el = divElement.querySelector(`#${ stroke.id }`)!
       expect(el).toBeDefined()
@@ -219,7 +219,7 @@ describe("SVGRenderer.ts", () =>
     })
     test("should draw circle", () =>
     {
-      const circle = buildOICircle()
+      const circle = buildIICircle()
       renderer.drawSymbol(circle)
       const el = divElement.querySelector(`#${ circle.id }`)!
       expect(el).toBeDefined()
@@ -231,7 +231,7 @@ describe("SVGRenderer.ts", () =>
     })
     test("should draw line", () =>
     {
-      const line = buildOILine()
+      const line = buildIILine()
       renderer.drawSymbol(line)
       const el = divElement.querySelector(`#${ line.id }`)!
       expect(el).toBeDefined()
@@ -261,7 +261,7 @@ describe("SVGRenderer.ts", () =>
           label: "b"
         }
       ]
-      const text = buildOIText({ chars, boundingBox: { height: 10, width: 10, x: 0, y: 10 } })
+      const text = buildIIText({ chars, boundingBox: { height: 10, width: 10, x: 0, y: 10 } })
       renderer.drawSymbol(text)
       const el = divElement.querySelector(`#${ text.id }`)!
       expect(el).toBeDefined()
@@ -276,7 +276,7 @@ describe("SVGRenderer.ts", () =>
     })
     test("should draw stroke already renderer", () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       renderer.drawSymbol(stroke)
       const oldPath = divElement.querySelector(`#${ stroke.id }`)!.querySelector("path")!.getAttribute("d")
       for (let x = 0; x < 10; x++) {
@@ -292,12 +292,12 @@ describe("SVGRenderer.ts", () =>
     })
     test("should replace stroke by circle", () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       renderer.drawSymbol(stroke)
       const oldEl = divElement.querySelector(`#${ stroke.id }`)!
       expect(oldEl).toBeDefined()
 
-      const circle = buildOICircle()
+      const circle = buildIICircle()
       renderer.replaceSymbol(stroke.id, [circle])
       const el = divElement.querySelector(`#${ circle.id }`)!
       expect(el).toBeDefined()
@@ -306,7 +306,7 @@ describe("SVGRenderer.ts", () =>
     })
     test("should append circle if replace symbol not rendered", () =>
     {
-      const circle = buildOICircle()
+      const circle = buildIICircle()
       renderer.replaceSymbol("not-rendered", [circle])
       const el = divElement.querySelector(`#${ circle.id }`)!
       expect(el).toBeDefined()
@@ -314,7 +314,7 @@ describe("SVGRenderer.ts", () =>
     })
     test("should removeSymbol stroke", () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       renderer.drawSymbol(stroke)
       expect(divElement.querySelector(`#${ stroke.id }`)).toBeDefined()
       renderer.removeSymbol(stroke.id)
@@ -408,9 +408,9 @@ describe("SVGRenderer.ts", () =>
     test("should clearElements by tagName", () =>
     {
       const nbPath = renderer.layer.querySelectorAll("path").length
-      const stroke1 = buildOIStroke()
+      const stroke1 = buildIIStroke()
       renderer.drawSymbol(stroke1)
-      const stroke2 = buildOIStroke()
+      const stroke2 = buildIIStroke()
       renderer.drawSymbol(stroke2)
       expect(renderer.layer.querySelectorAll("path")).toHaveLength(nbPath + 2)
       renderer.clearElements({ tagName: "path" })
@@ -419,9 +419,9 @@ describe("SVGRenderer.ts", () =>
     test("should clearElements by attrs", () =>
     {
       expect(renderer.layer.querySelectorAll("path")).toHaveLength(0)
-      const stroke1 = buildOIStroke()
+      const stroke1 = buildIIStroke()
       renderer.drawSymbol(stroke1)
-      const stroke2 = buildOIStroke()
+      const stroke2 = buildIIStroke()
       renderer.drawSymbol(stroke2)
       expect(renderer.layer.querySelectorAll("path")).toHaveLength(2)
       renderer.clearElements({ attrs: { id: stroke2.id } })
@@ -430,9 +430,9 @@ describe("SVGRenderer.ts", () =>
     test("should clearElements by tagName and attrs", () =>
     {
       renderer.clearElements({ tagName: "path" })
-      const stroke1 = buildOIStroke()
+      const stroke1 = buildIIStroke()
       renderer.drawSymbol(stroke1)
-      const stroke2 = buildOIStroke()
+      const stroke2 = buildIIStroke()
       renderer.drawSymbol(stroke2)
       const nbGroup = renderer.layer.querySelectorAll("g").length
       renderer.clearElements({ tagName: "g", attrs: { id: stroke2.id } })
@@ -446,7 +446,7 @@ describe("SVGRenderer.ts", () =>
     const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
     renderer.init(divElement)
     const initChildNumber = renderer.layer.childElementCount
-    const stroke = buildOIStroke()
+    const stroke = buildIIStroke()
     renderer.drawSymbol(stroke)
     expect(renderer.layer.childElementCount).toEqual(initChildNumber + 1)
     renderer.clear()

@@ -2,13 +2,13 @@ import { SELECTION_MARGIN } from "@/Constants"
 import { TStyle } from "@/style"
 import { PartialDeep, findIntersectBetweenSegmentAndCircle, isValidNumber, computeRotatedPoint, computeDistance, TWO_PI } from "@/utils"
 import { TPoint, isValidPoint } from "@/symbol/base/Point"
-import { OIShapeBase, ShapeKind } from "./IIShape"
+import { IIShapeBase, ShapeKind } from "./IIShape"
 import { Box, TBox } from "@/symbol/base/Box"
 
 /**
  * @group Symbol
  */
-export class IIShapeCircle extends OIShapeBase<ShapeKind.Circle>
+export class IIShapeCircle extends IIShapeBase<ShapeKind.Circle>
 {
   center: TPoint
   radius: number

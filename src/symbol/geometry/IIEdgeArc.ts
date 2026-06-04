@@ -1,13 +1,13 @@
 import { SELECTION_MARGIN } from "@/Constants"
 import { TStyle } from "@/style"
 import { PartialDeep, computePointOnEllipse, computeEllipseRadiusAverage, isValidNumber } from "@/utils"
-import { EdgeDecoration, EdgeKind, OIEdgeBase } from "./IIEdge"
+import { EdgeDecoration, EdgeKind, IIEdgeBase } from "./IIEdge"
 import { TPoint, isValidPoint } from "@/symbol/base/Point"
 
 /**
  * @group Symbol
  */
-export class IIEdgeArc extends OIEdgeBase<EdgeKind.Arc>
+export class IIEdgeArc extends IIEdgeBase<EdgeKind.Arc>
 {
   center: TPoint
   startAngle: number

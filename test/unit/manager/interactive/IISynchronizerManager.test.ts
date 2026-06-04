@@ -1,5 +1,5 @@
 import { hTextJIIX, circleJIIX, lineJIIX } from "../../__dataset__/jiix.dataset"
-import { buildOIStroke } from "../../helpers"
+import { buildIIStroke } from "../../helpers"
 import { InteractiveInkEditorMock } from "../../__mocks__/InteractiveInkEditorMock"
 import
 {
@@ -321,7 +321,7 @@ describe("IISynchronizerManager.ts", () =>
       const editor = new InteractiveInkEditorMock()
       const manager = new IISynchronizerManager(editor)
 
-      const stroke1 = buildOIStroke()
+      const stroke1 = buildIIStroke()
       stroke1.id = "stroke-1"
       editor.model.symbols.push(stroke1)
 
@@ -346,7 +346,7 @@ describe("IISynchronizerManager.ts", () =>
       const editor = new InteractiveInkEditorMock()
       const manager = new IISynchronizerManager(editor)
 
-      const stroke1 = buildOIStroke()
+      const stroke1 = buildIIStroke()
       stroke1.id = "stroke-1"
       editor.model.symbols.push(stroke1)
 
@@ -372,7 +372,7 @@ describe("IISynchronizerManager.ts", () =>
       //@ts-ignore
       manager.createNewTextSymbol = jest.fn()
 
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       stroke.id = "stroke-7d4b2518-619d-4cf8-af49-1c93481d85eb"
       editor.model.symbols.push(stroke)
 
@@ -392,7 +392,7 @@ describe("IISynchronizerManager.ts", () =>
       //@ts-ignore
       manager.updateExistingTextSymbol = jest.fn()
 
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       stroke.id = "stroke-7d4b2518-619d-4cf8-af49-1c93481d85eb"
 
       const existingText = new IIRecognizedText([stroke], { baseline: 10, xHeight: 5 })
@@ -422,11 +422,11 @@ describe("IISynchronizerManager.ts", () =>
       //@ts-ignore
       manager.createNewTextSymbol = jest.fn()
 
-      const stroke1 = buildOIStroke()
+      const stroke1 = buildIIStroke()
       stroke1.id = "stroke-text-1"
-      const stroke2 = buildOIStroke()
+      const stroke2 = buildIIStroke()
       stroke2.id = "stroke-text-2"
-      const strokeMath = buildOIStroke()
+      const strokeMath = buildIIStroke()
       strokeMath.id = "stroke-math-embedded"
 
       editor.model.symbols.push(stroke1, stroke2, strokeMath)
@@ -449,7 +449,7 @@ describe("IISynchronizerManager.ts", () =>
       editor.model.updateSymbol = jest.fn()
       const manager = new IISynchronizerManager(editor)
 
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       stroke.id = "stroke-1"
       const existingText = new IIRecognizedText([stroke], { baseline: 10, xHeight: 5 })
       existingText.jiixId = "raw-content/11"
@@ -472,7 +472,7 @@ describe("IISynchronizerManager.ts", () =>
       editor.model.updateSymbol = jest.fn()
       const manager = new IISynchronizerManager(editor)
 
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       stroke.id = "stroke-1"
       const existingText = new IIRecognizedText([stroke], { baseline: 10, xHeight: 5 })
 
@@ -507,7 +507,7 @@ describe("IISynchronizerManager.ts", () =>
       editor.model.removeSymbol = jest.fn()
       const manager = new IISynchronizerManager(editor)
 
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       stroke.id = "stroke-1"
 
       const textElement = hTextJIIX.elements![0] as TJIIXTextElement
@@ -531,7 +531,7 @@ describe("IISynchronizerManager.ts", () =>
       editor.model.removeSymbol = jest.fn()
       const manager = new IISynchronizerManager(editor)
 
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       stroke.id = "stroke-1"
 
       const oldText = new IIRecognizedText([stroke], { baseline: 10, xHeight: 5 })
@@ -578,7 +578,7 @@ describe("IISynchronizerManager.ts", () =>
       //@ts-ignore
       manager.createNewMathSymbol = jest.fn()
 
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       stroke.id = "stroke-math-1"
       editor.model.symbols.push(stroke)
 
@@ -598,7 +598,7 @@ describe("IISynchronizerManager.ts", () =>
       //@ts-ignore
       manager.updateExistingMathSymbol = jest.fn()
 
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       stroke.id = "stroke-math-1"
 
       const existingMath = new IIRecognizedMath([stroke])
@@ -625,7 +625,7 @@ describe("IISynchronizerManager.ts", () =>
       //@ts-ignore
       manager.createNewNodeSymbol = jest.fn()
 
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       stroke.id = "stroke-e3ab0f2b-7846-4440-9e49-97ae560813ee"
       editor.model.symbols.push(stroke)
 
@@ -643,7 +643,7 @@ describe("IISynchronizerManager.ts", () =>
       //@ts-ignore
       manager.updateExistingNodeSymbol = jest.fn()
 
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       stroke.id = "stroke-e3ab0f2b-7846-4440-9e49-97ae560813ee"
 
       const existingCircle = new IIRecognizedCircle([stroke])
@@ -668,7 +668,7 @@ describe("IISynchronizerManager.ts", () =>
       //@ts-ignore
       manager.createNewEdgeSymbol = jest.fn()
 
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       stroke.id = "stroke-2632b9c1-697d-44e6-bba4-44c498203182"
       editor.model.symbols.push(stroke)
 
@@ -686,7 +686,7 @@ describe("IISynchronizerManager.ts", () =>
       //@ts-ignore
       manager.updateExistingEdgeSymbol = jest.fn()
 
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       stroke.id = "stroke-2632b9c1-697d-44e6-bba4-44c498203182"
 
       const existingLine = new IIRecognizedLine([stroke])
@@ -713,7 +713,7 @@ describe("IISynchronizerManager.ts", () =>
       editor.model.removeSymbol = jest.fn()
       const manager = new IISynchronizerManager(editor)
 
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       const nodeElement = circleJIIX.elements![0] as TJIIXNodeElement
       const jiixAssociation = { symbols: [stroke], strokes: [stroke] }
 
@@ -737,7 +737,7 @@ describe("IISynchronizerManager.ts", () =>
       editor.model.removeSymbol = jest.fn()
       const manager = new IISynchronizerManager(editor)
 
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       const edgeElement = lineJIIX.elements![0] as TJIIXEdgeElement
       const jiixAssociation = { symbols: [stroke], strokes: [stroke] }
 
@@ -874,9 +874,9 @@ describe("IISynchronizerManager.ts", () =>
       editor.model.removeSymbol = jest.fn()
       const manager = new IISynchronizerManager(editor)
 
-      const newStroke = buildOIStroke()
+      const newStroke = buildIIStroke()
       newStroke.id = "stroke-new"
-      const oldStroke = buildOIStroke()
+      const oldStroke = buildIIStroke()
       oldStroke.id = "stroke-old"
 
       const existingNode = new IIRecognizedCircle([oldStroke])
@@ -901,9 +901,9 @@ describe("IISynchronizerManager.ts", () =>
       editor.model.removeSymbol = jest.fn()
       const manager = new IISynchronizerManager(editor)
 
-      const newStroke = buildOIStroke()
+      const newStroke = buildIIStroke()
       newStroke.id = "stroke-new"
-      const oldStroke = buildOIStroke()
+      const oldStroke = buildIIStroke()
       oldStroke.id = "stroke-old"
 
       const existingEdge = new IIRecognizedLine([oldStroke])
@@ -926,7 +926,7 @@ describe("IISynchronizerManager.ts", () =>
       editor.model.updateSymbol = jest.fn()
       const manager = new IISynchronizerManager(editor)
 
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       const existingMath = new IIRecognizedMath([stroke])
 
       const mathElement = {
@@ -954,7 +954,7 @@ describe("IISynchronizerManager.ts", () =>
       editor.model.updateSymbol = jest.fn()
       const manager = new IISynchronizerManager(editor)
 
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       const existingMath = new IIRecognizedMath([stroke])
       existingMath.solverOutputStrokeIds = ["solver-1", "solver-2"]
       existingMath.variableValues = { x: 5, y: 10 }
@@ -986,7 +986,7 @@ describe("IISynchronizerManager.ts", () =>
       editor.model.removeSymbol = jest.fn()
       const manager = new IISynchronizerManager(editor)
 
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       const mathElement = {
         type: "Math",
         id: "math-1",
@@ -1014,7 +1014,7 @@ describe("IISynchronizerManager.ts", () =>
       //@ts-ignore
       manager.createNewMathSymbol = jest.fn()
 
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       stroke.id = "stroke-math-embedded"
       editor.model.symbols.push(stroke)
 

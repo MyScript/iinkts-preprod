@@ -1,4 +1,4 @@
-import { buildOIText } from "../../helpers"
+import { buildIIText } from "../../helpers"
 import { InteractiveInkEditorMock } from "../../__mocks__/InteractiveInkEditorMock"
 import
 {
@@ -57,7 +57,7 @@ describe("IITextManager.ts", () =>
   {
     const editor = new InteractiveInkEditorMock()
     const manager = new IITextManager(editor)
-    const text = buildOIText({ chars })
+    const text = buildIIText({ chars })
     const textEl = manager.renderer.buildElementFromSymbol(text) as SVGGElement
     manager.setCharsBounds(text, textEl)
 
@@ -69,7 +69,7 @@ describe("IITextManager.ts", () =>
   {
     const editor = new InteractiveInkEditorMock()
     const manager = new IITextManager(editor)
-    const text = buildOIText({ chars })
+    const text = buildIIText({ chars })
     const textEl = manager.renderer.buildElementFromSymbol(text) as SVGGElement
     expect(manager.getElementBoundingBox(textEl)).toEqual({ x: 0, y: 0, width: 10, height: 10 })
   })
@@ -80,7 +80,7 @@ describe("IITextManager.ts", () =>
     const manager = new IITextManager(editor)
     manager.renderer.layer = SVGBuilder.createLayer({ x: 0, y: 0, width: 100, height: 100 })
     manager.renderer.prependElement = jest.fn()
-    const text = buildOIText({ chars })
+    const text = buildIIText({ chars })
     manager.getElementBoundingBox = jest.fn(() => new Box({ x: 1, y: 2, width: 3, height: 4 }))
     expect(manager.getBoundingBox(text)).toEqual({ x: 1, y: 2, width: 3, height: 4 })
     expect(manager.getElementBoundingBox).toHaveBeenCalledTimes(1)
@@ -103,7 +103,7 @@ describe("IITextManager.ts", () =>
     manager.renderer.prependElement = jest.fn()
     manager.getElementBoundingBox = jest.fn(() => new Box({ x: 1989, y: 27, width: 5, height: 42 }))
     manager.setCharsBounds = jest.fn()
-    const text = buildOIText({ chars })
+    const text = buildIIText({ chars })
     manager.updateBounds(text)
     expect(text.bounds).toEqual({ x: 1989, y: 27, width: 5, height: 42 })
     expect(manager.getElementBoundingBox).toHaveBeenCalledTimes(1)

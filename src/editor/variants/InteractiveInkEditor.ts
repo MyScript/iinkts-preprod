@@ -131,7 +131,7 @@ export class InteractiveInkEditor extends AbstractEditor
 
     this.renderer = new SVGRenderer(this.#configuration.rendering)
 
-    this.#model = new IIModel(this.#configuration.rendering.minWidth, this.#configuration.rendering.minHeight, this.configuration.rendering.guides.gap)
+    this.#model = new IIModel(this.configuration.rendering.guides.gap)
 
     this.history = new IIHistoryManager(this.#configuration["undo-redo"], this.event)
 
@@ -309,9 +309,6 @@ export class InteractiveInkEditor extends AbstractEditor
       this.keyboard.attach()
       this.layers.root.addEventListener("wheel", this.handleWheel)
 
-      const compStyles = window.getComputedStyle(this.layers.root)
-      this.model.width = Math.max(parseInt(compStyles.width.replace("px", "")), this.#configuration.rendering.minWidth)
-      this.model.height = Math.max(parseInt(compStyles.height.replace("px", "")), this.#configuration.rendering.minHeight)
       this.model.rowHeight = this.configuration.rendering.guides.gap
       this.history.init(this.model)
 
@@ -1375,8 +1372,6 @@ export class InteractiveInkEditor extends AbstractEditor
       width = width || Math.max(parseInt(compStyles.width.replace("px", "")), this.configuration.rendering.minWidth)
 
       this.updateLayerState(false)
-      this.model.height = height
-      this.model.width = width
       this.renderer.resize(height, width)
       this.updateLayerUI(50)
       this.updateLayerState(true)

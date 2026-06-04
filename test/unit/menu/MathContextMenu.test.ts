@@ -1,7 +1,7 @@
 import { InteractiveInkEditorMock } from "../__mocks__/InteractiveInkEditorMock"
 import { MathContextMenu } from "../../../src/menu/context/MathContextMenu"
 import { IIRecognizedMath, SymbolType, RecognizedKind } from "../../../src/symbol"
-import { buildOIStroke } from "../helpers"
+import { buildIIStroke } from "../helpers"
 
 describe("MathContextMenu.ts", () =>
 {
@@ -176,7 +176,7 @@ describe("MathContextMenu.ts", () =>
 
     beforeEach(() =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       mathSymbol = {
         id: "math-1",
         type: SymbolType.Recognized,

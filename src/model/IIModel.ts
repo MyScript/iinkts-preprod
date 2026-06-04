@@ -20,17 +20,13 @@ export class IIModel
   symbols: TIISymbol[]
   exports?: TExport
   converts?: TExport
-  width: number
-  height: number
   rowHeight: number
   idle: boolean
 
-  constructor(width = 100, height = 100, rowHeight = 0, creationDate = Date.now())
+  constructor(rowHeight = 0, creationDate = Date.now())
   {
     this.creationTime = creationDate
     this.modificationDate = creationDate
-    this.width = width
-    this.height = height
     this.rowHeight = rowHeight
     this.symbols = []
     this.exports = undefined
@@ -289,7 +285,7 @@ export class IIModel
   clone(): IIModel
   {
     this.#logger.info("clone")
-    const clonedModel = new IIModel(this.width, this.height, this.rowHeight, this.creationTime)
+    const clonedModel = new IIModel(this.rowHeight, this.creationTime)
     clonedModel.modificationDate = this.modificationDate
     clonedModel.symbols = this.symbols.map(s =>
     {

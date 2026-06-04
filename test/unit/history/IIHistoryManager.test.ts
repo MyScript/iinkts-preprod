@@ -1,4 +1,4 @@
-import { buildOIStroke } from "../helpers"
+import { buildIIStroke } from "../helpers"
 import
 {
   THistoryConfiguration,
@@ -29,7 +29,7 @@ describe("IIHistoryManager.ts", () =>
     })
     test("should init stack without actions", () =>
     {
-      const model1 = new IIModel(27, 5)
+      const model1 = new IIModel()
       manager.init(model1)
 
       expect(manager.context.stackIndex).toStrictEqual(0)
@@ -49,14 +49,14 @@ describe("IIHistoryManager.ts", () =>
     const configuration: THistoryConfiguration = { maxStackSize: 5 }
     const manager = new IIHistoryManager(configuration, event)
 
-    const model1 = new IIModel(27, 5)
+    const model1 = new IIModel()
     manager.init(model1)
 
-    const stroke2 = buildOIStroke()
-    const model2 = new IIModel(18, 89)
+    const stroke2 = buildIIStroke()
+    const model2 = new IIModel()
     model2.addSymbol(stroke2)
 
-    const model3 = new IIModel(18, 89)
+    const model3 = new IIModel()
 
     test("should not push item to stack without actions and not emitChanged", () =>
     {
@@ -95,7 +95,7 @@ describe("IIHistoryManager.ts", () =>
     {
       const NB_STROKE = 5
       for (let i = 0; i < NB_STROKE; i++) {
-        const stroke = buildOIStroke()
+        const stroke = buildIIStroke()
         model3.addSymbol(stroke)
         manager.push(model3, { added: [stroke] })
       }
@@ -104,7 +104,7 @@ describe("IIHistoryManager.ts", () =>
 
       manager.context.stackIndex = 0
 
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       model3.addSymbol(stroke)
 
       manager.push(model3, { added: [stroke] })
@@ -122,7 +122,7 @@ describe("IIHistoryManager.ts", () =>
     {
       const NB_STROKE = 10
       for (let i = 0; i < NB_STROKE; i++) {
-        const stroke = buildOIStroke()
+        const stroke = buildIIStroke()
         model3.addSymbol(stroke)
         manager.push(model3, { added: [stroke] })
       }
@@ -142,7 +142,7 @@ describe("IIHistoryManager.ts", () =>
 
   describe("undo", () =>
   {
-    const model = new IIModel(27, 5)
+    const model = new IIModel()
     const manager = new IIHistoryManager(DefaultHistoryConfiguration, event)
     manager.init(model)
 
@@ -155,8 +155,8 @@ describe("IIHistoryManager.ts", () =>
 
     test("should get the previous model", () =>
     {
-      const model2 = new IIModel(27, 5)
-      const stroke = buildOIStroke()
+      const model2 = new IIModel()
+      const stroke = buildIIStroke()
       model2.addSymbol(stroke)
       manager.push(model2, { added: [stroke] })
       const previousStackItem = manager.undo()
@@ -173,8 +173,8 @@ describe("IIHistoryManager.ts", () =>
 
     test("should invert added action", () =>
     {
-      const model2 = new IIModel(27, 5)
-      const stroke = buildOIStroke()
+      const model2 = new IIModel()
+      const stroke = buildIIStroke()
       manager.push(model2, { added: [stroke] })
       const previousStackItem = manager.undo()
       expect(previousStackItem.changes).toEqual({ erased: [stroke] })
@@ -182,8 +182,8 @@ describe("IIHistoryManager.ts", () =>
 
     test("should invert erased action", () =>
     {
-      const model2 = new IIModel(27, 5)
-      const stroke = buildOIStroke()
+      const model2 = new IIModel()
+      const stroke = buildIIStroke()
       manager.push(model2, { erased: [stroke] })
       const previousStackItem = manager.undo()
       expect(previousStackItem.changes).toEqual({ added: [stroke] })
@@ -191,9 +191,9 @@ describe("IIHistoryManager.ts", () =>
 
     test("should invert replaced action", () =>
     {
-      const model2 = new IIModel(27, 5)
-      const oldStroke = buildOIStroke()
-      const newStroke = buildOIStroke()
+      const model2 = new IIModel()
+      const oldStroke = buildIIStroke()
+      const newStroke = buildIIStroke()
       manager.push(model2, { replaced: { newSymbols: [newStroke], oldSymbols: [oldStroke] } })
       const previousStackItem = manager.undo()
       expect(previousStackItem.changes).toEqual({ replaced: { newSymbols: [oldStroke], oldSymbols: [newStroke] } })
@@ -201,8 +201,8 @@ describe("IIHistoryManager.ts", () =>
 
     test("should invert translate action", () =>
     {
-      const model2 = new IIModel(27, 5)
-      const stroke = buildOIStroke()
+      const model2 = new IIModel()
+      const stroke = buildIIStroke()
       manager.push(model2, { translate: [{ symbols: [stroke], tx: 42, ty: 24 }] })
       const previousStackItem = manager.undo()
       expect(previousStackItem.changes).toEqual({ translate: [{ symbols: [stroke], tx: -42, ty: -24 }] })
@@ -210,8 +210,8 @@ describe("IIHistoryManager.ts", () =>
 
     test("should invert matrix action", () =>
     {
-      const model2 = new IIModel(27, 5)
-      const stroke = buildOIStroke()
+      const model2 = new IIModel()
+      const stroke = buildIIStroke()
       const matrix = MatrixTransform.identity().rotate(Math.PI / 2).translate(2, 5)
       manager.push(model2, { matrix: { symbols: [stroke], matrix } })
       const previousStackItem = manager.undo()
@@ -221,16 +221,16 @@ describe("IIHistoryManager.ts", () =>
 
   describe("redo", () =>
   {
-    const model = new IIModel(27, 5)
+    const model = new IIModel()
     const manager = new IIHistoryManager(DefaultHistoryConfiguration, event)
 
-    const stroke = buildOIStroke()
+    const stroke = buildIIStroke()
     model.addSymbol(stroke)
     manager.init(model)
 
     test("should get the next model", () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       model.addSymbol(stroke)
 
       manager.push(model, { added: [stroke] })

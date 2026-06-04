@@ -1,5 +1,5 @@
 import { hTextJIIX, lineJIIX, rectangleJIIX } from "../../__dataset__/jiix.dataset"
-import { buildOIStroke, buildOIText, delay } from "../../helpers"
+import { buildIIStroke, buildIIText, delay } from "../../helpers"
 import
 {
   IIDebugSVGManager,
@@ -40,7 +40,7 @@ describe("IIDebugSVGManager.ts", () =>
 
     test("should show/hide stroke bounding box", async () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       manager.model.addSymbol(stroke)
       manager.renderer.drawSymbol(stroke)
       expect(manager.renderer.layer.querySelectorAll("[debug=\"bounding-box\"]")).toHaveLength(0)
@@ -70,7 +70,7 @@ describe("IIDebugSVGManager.ts", () =>
           label: "b"
         }
       ]
-      const text = buildOIText({ chars, boundingBox: { height: 10, width: 10, x: 0, y: 10 } })
+      const text = buildIIText({ chars, boundingBox: { height: 10, width: 10, x: 0, y: 10 } })
       manager.model.addSymbol(text)
       manager.renderer.drawSymbol(text)
       expect(manager.renderer.layer.querySelectorAll("[debug=\"bounding-box\"]")).toHaveLength(0)
@@ -95,7 +95,7 @@ describe("IIDebugSVGManager.ts", () =>
 
     test("should show/hide stroke vertices", async () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       manager.model.addSymbol(stroke)
       manager.renderer.drawSymbol(stroke)
       expect(manager.renderer.layer.querySelectorAll("[debug=\"vertices\"]")).toHaveLength(0)

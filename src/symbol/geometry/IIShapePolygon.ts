@@ -1,13 +1,13 @@
 import { TStyle } from "@/style"
 import { TPoint, isValidPoint } from "@/symbol/base/Point"
-import { OIShapeBase, ShapeKind } from "./IIShape"
+import { IIShapeBase, ShapeKind } from "./IIShape"
 import { Box } from "@/symbol/base/Box"
 import { PartialDeep } from "@/utils"
 
 /**
  * @group Symbol
  */
-export class IIShapePolygon extends OIShapeBase<ShapeKind.Polygon>
+export class IIShapePolygon extends IIShapeBase<ShapeKind.Polygon>
 {
   points: TPoint[]
 
