@@ -103,7 +103,6 @@ export class ScratchGestureHandler extends GestureHandler
       case SymbolType.Recognized: {
         const childrenNotTouch = symbol.strokes.filter(s => !gestureStroke.bounds.overlaps(s.bounds))
         const childrenTouch = symbol.strokes.filter(s => gestureStroke.bounds.overlaps(s.bounds) || gesture.strokeIds.includes(s.id))
-        console.log("childrenTouch: ", childrenTouch);
         const results = childrenTouch.map(s =>
         {
           return {
