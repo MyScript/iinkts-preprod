@@ -1,5 +1,5 @@
 import { LoggerManager, LoggerCategory, type Logger } from "@/logger"
-import { IIStroke, SymbolType, IIText, Box, IIRecognizedText, type TIISymbol } from "@/symbol"
+import { IIStroke, IIText, Box, IIRecognizedText, type TIISymbol, isText, isRecognized } from "@/symbol"
 import { TIIHistoryChanges } from "@/history"
 import type { InteractiveInkEditor } from "@/editor"
 import type { TGesture } from "@/manager/interactive/GestureTypes"
@@ -42,7 +42,7 @@ export class JoinGestureHandler extends GestureHandler
 
     if (symbolsOnGestureInRow.length) {
       const symbolToJoin = symbolsOnGestureInRow[0]
-      if (symbolToJoin?.type === SymbolType.Recognized) {
+      if (isRecognized(symbolToJoin)) {
         const strokeText = symbolToJoin.clone()
         const childBefore = strokeText.strokes.filter(c => c.bounds.xMid <= gestureStroke.bounds.xMid)
         const childAfter = strokeText.strokes.filter(c => c.bounds.xMid > gestureStroke.bounds.xMid)
@@ -83,7 +83,7 @@ export class JoinGestureHandler extends GestureHandler
       const firstSymbolAfterClone = firstSymbolAfter.clone()
       this.helpers.translator.applyToSymbol(firstSymbolAfterClone, translateX, 0)
 
-      if (lastSymbBefore.type === SymbolType.Text && firstSymbolAfter.type === SymbolType.Text) {
+      if (isText(lastSymbBefore) && isText(firstSymbolAfter)) {
         const texts = [lastSymbBeforeClone as IIText, firstSymbolAfterClone as IIText]
         const text = new IIText(texts.flatMap(s => s.chars), texts[0].point, Box.createFromBoxes(texts.map(t => t.bounds)))
         this.helpers.texter.setBounds(text)
@@ -92,7 +92,7 @@ export class JoinGestureHandler extends GestureHandler
           newSymbols: [text]
         }
       }
-      else if (lastSymbBefore.type === SymbolType.Recognized && firstSymbolAfter.type === SymbolType.Recognized) {
+      else if (isRecognized(lastSymbBefore) && isRecognized(firstSymbolAfter)) {
         const strokeTexts = [lastSymbBeforeClone as IIRecognizedText, firstSymbolAfterClone as IIRecognizedText]
         const strokeText = new IIRecognizedText(strokeTexts.flatMap(s => s.strokes), strokeTexts[0], strokeTexts[0].style)
         changes.replaced = {

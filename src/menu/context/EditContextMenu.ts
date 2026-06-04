@@ -1,7 +1,7 @@
 import { InteractiveInkEditor } from "@/editor"
 import { BaseMenuItem, TGenericMenuItem } from "@/menu/items/BaseMenuItem"
 import ArrowDown from "@/assets/svg/nav-arrow-down.svg"
-import { SymbolType, IIText } from "@/symbol"
+import { IIText, isText } from "@/symbol"
 import { createUUID } from "@/utils"
 
 /**
@@ -51,7 +51,7 @@ export class EditContextMenu extends BaseMenuItem<HTMLElement>
     
     this.editSaveBtn.addEventListener("pointerdown", async (e) => {
       e.stopPropagation()
-      const textSymbol = this.editor.model.symbolsSelected.find(s => s.type === SymbolType.Text) as IIText
+      const textSymbol = this.editor.model.symbolsSelected.find(s => isText(s)) as IIText
       if (textSymbol) {
         const firstChar = textSymbol.chars[0]
         textSymbol.chars = []

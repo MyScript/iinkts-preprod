@@ -1,7 +1,7 @@
 import { InteractiveInkEditor } from "@/editor"
 import { BaseMenuItem, TGenericMenuItem } from "@/menu/items/BaseMenuItem"
 import { SELECTION_MARGIN } from "@/Constants"
-import { SymbolType, RecognizedKind } from "@/symbol"
+import { RecognizedKind, isRecognized } from "@/symbol"
 import { createUUID } from "@/utils"
 
 /**
@@ -36,7 +36,7 @@ export class DuplicateContextMenu extends BaseMenuItem<HTMLButtonElement>
         const clone = s.clone()
 
         // Reset jiixId and variableValues for recognized symbols as they need re-recognition
-        if (clone.type === SymbolType.Recognized) {
+        if (isRecognized(clone)) {
           clone.jiixId = undefined
           if (clone.kind === RecognizedKind.Math) {
             clone.variableValues = undefined
@@ -45,7 +45,7 @@ export class DuplicateContextMenu extends BaseMenuItem<HTMLButtonElement>
 
         while (this.editor.model.symbols.find(s => s.id === clone.id)) {
           clone.id = `${clone.type}-${ createUUID() }`
-          if (clone.type === SymbolType.Recognized) {
+          if (isRecognized(clone)) {
             clone.jiixId = undefined
             clone.strokes.forEach(s => s.id = `${s.type}-${ createUUID() }`)
             // Reset jiixId as strokes have changed and need re-recognition

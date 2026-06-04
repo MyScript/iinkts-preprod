@@ -1,6 +1,6 @@
 import { LoggerManager, LoggerCategory } from "@/logger"
 import { IModel } from "@/model"
-import { Box, IIStroke, IIText, SymbolType, TBox, TIISymbol } from "@/symbol"
+import { Box, IIStroke, TBox, TIISymbol, isText } from "@/symbol"
 import { SVGRenderer, SVGRendererConst, SVGBuilder } from "@/renderer"
 import { createUUID } from "@/utils"
 import { InkEditor } from "@/editor"
@@ -70,13 +70,12 @@ export class IDebugSVGManager {
     symbols.forEach(s => {
       const symEl = this.renderer.getElementById(s.id)
       if (symEl) {
-        if (s.type === SymbolType.Text) {
-          const text = s as IIText
+        if (isText(s)) {
           let transform: string = ""
-          if (text.rotation) {
-            transform = `rotate(${text.rotation.degree}, ${text.rotation.center.x}, ${text.rotation.center.y})`
+          if (s.rotation) {
+            transform = `rotate(${s.rotation.degree}, ${s.rotation.center.x}, ${s.rotation.center.y})`
           }
-          text.chars.forEach(c => {
+          s.chars.forEach(c => {
             const ca = {
               ...charAttrs,
               char: c.label,

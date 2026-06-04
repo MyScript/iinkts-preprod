@@ -13,7 +13,8 @@ import
   TIIEdge,
   TIISymbol,
   TPoint,
-  TPointer
+  TPointer,
+  isStroke
 } from "@/symbol"
 import { RecognizerWebSocket } from "@/recognizer"
 import { SVGRenderer } from "@/renderer"
@@ -282,7 +283,7 @@ export class IIWriterManager extends AbstractWriterManager
 
     this.renderer.redrawGuides()
 
-    if (localSymbol.type === SymbolType.Stroke) {
+    if (isStroke(localSymbol)) {
       await this.interactWithBackend(localSymbol)
     }
   }

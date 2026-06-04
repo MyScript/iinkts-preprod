@@ -31,24 +31,22 @@ import
   IIEdgeArc,
   IIEdgeLine,
   IIEdgePolyLine,
-  IIRecognizedText,
-  IIRecognizedMath,
   IIShapeCircle,
   IIShapeEllipse,
   IIShapePolygon,
   IIStroke,
   IIText,
   IIMath,
-  SymbolType,
   TIIEdge,
   TIIShape,
   TIISymbol,
   TIISymbolChar,
   TPoint,
   TIIRecognizedWord,
-  TIIMathElement
+  TIIMathElement,
+  isRecognizedMath,
+  isRecognizedText,
 } from "@/symbol"
-import { RecognizedKind } from "@/symbol"
 import { computeAngleAxeRadian, computeAverage, convertBoundingBoxMillimeterToPixel, convertMillimeterToPixel, convertPixelToMillimeter, createUUID } from "@/utils"
 
 /**
@@ -132,11 +130,10 @@ export class IIConversionManager
     strokes.forEach(s =>
     {
       const sym = this.model.getRootSymbol(s.id)
-      if (sym?.type === SymbolType.Recognized && sym.kind === RecognizedKind.Text) {
+      if (sym && isRecognizedText(sym)) {
         // Check for word-level decorators in recognized text
-        const recognizedText = sym as IIRecognizedText
-        if (recognizedText.words) {
-          recognizedText.words.forEach((w: TIIRecognizedWord) => {
+        if (sym.words) {
+          sym.words.forEach((w: TIIRecognizedWord) => {
             if (w.decorators && w.bounds) {
               // Check if this word overlaps with the current text bounds
               if (w.bounds.overlaps(boundingBox)) {
@@ -742,30 +739,29 @@ export class IIConversionManager
     // Convert IIRecognizedMath symbols directly
     const symbolsToProcess = symbols.length ? symbols : this.model.symbols
     symbolsToProcess.forEach(sym => {
-      if (sym.type === SymbolType.Recognized) {
-        const recognizedSym = sym as IIRecognizedMath
-        if (recognizedSym.kind === RecognizedKind.Math && recognizedSym.expressions && recognizedSym.label && recognizedSym.bounds) {
+      if (isRecognizedMath(sym)) {
+        if (sym.expressions && sym.label && sym.bounds) {
           // Build a temporary JIIX Math element from the recognized math
           // Convert pixel bounds to millimeters for compatibility with convertMath
           const boundsMM = {
-            x: convertPixelToMillimeter(recognizedSym.bounds.x),
-            y: convertPixelToMillimeter(recognizedSym.bounds.y),
-            width: convertPixelToMillimeter(recognizedSym.bounds.width),
-            height: convertPixelToMillimeter(recognizedSym.bounds.height)
+            x: convertPixelToMillimeter(sym.bounds.x),
+            y: convertPixelToMillimeter(sym.bounds.y),
+            width: convertPixelToMillimeter(sym.bounds.width),
+            height: convertPixelToMillimeter(sym.bounds.height)
           }
           const mathElement: TJIIXMathElement = {
             type: "Math",
-            id: recognizedSym.jiixId || recognizedSym.id,
-            label: recognizedSym.label,
-            expressions: recognizedSym.expressions,
+            id: sym.jiixId || sym.id,
+            label: sym.label,
+            expressions: sym.expressions,
             "bounding-box": boundsMM,
-            items: recognizedSym.strokes.map(s => ({
+            items: sym.strokes.map(s => ({
               type: "stroke" as const,
               id: s.id,
               "full-id": s.id
             }))
           }
-          const conversion = this.convertMath(mathElement, recognizedSym.strokes)
+          const conversion = this.convertMath(mathElement, sym.strokes)
           if (conversion) {
             conversionResults.push(conversion)
           }

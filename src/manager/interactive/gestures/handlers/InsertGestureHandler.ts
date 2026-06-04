@@ -1,5 +1,5 @@
 import { LoggerManager, LoggerCategory, type Logger } from "@/logger"
-import { IIStroke, SymbolType, IIText, IIRecognizedText, type TIISymbol } from "@/symbol"
+import { IIStroke, IIText, IIRecognizedText, type TIISymbol, isText, isRecognizedText } from "@/symbol"
 import { TIIHistoryChanges } from "@/history"
 import { isBetween } from "@/utils"
 import type { InteractiveInkEditor } from "@/editor"
@@ -32,8 +32,8 @@ export class InsertGestureHandler extends GestureHandler
     this.#logger.debug("applyInsertGesture", { gestureStroke, gesture })
 
     const symbolsRow = this.model.symbols.filter(s => gestureStroke.id !== s.id && this.model.isSymbolInRow(gestureStroke, s))
-    const textToSplit = symbolsRow.find(s => s.type === SymbolType.Text && isBetween(gestureStroke.bounds.xMid, s.bounds.xMin, s.bounds.xMax)) as IIText | undefined
-    const strokeTextToSplit = symbolsRow.find(s => s.type === SymbolType.Recognized && isBetween(gestureStroke.bounds.xMid, s.bounds.xMin, s.bounds.xMax)) as IIRecognizedText | undefined
+    const textToSplit = symbolsRow.find(s => isText(s) && isBetween(gestureStroke.bounds.xMid, s.bounds.xMin, s.bounds.xMax)) as IIText | undefined
+    const strokeTextToSplit = symbolsRow.find(s => isRecognizedText(s) && isBetween(gestureStroke.bounds.xMid, s.bounds.xMin, s.bounds.xMax)) as IIRecognizedText | undefined
 
     const symbolsBeforeGestureInRow = symbolsRow.filter(s => gestureStroke.bounds.xMid > s.bounds.xMax)
     const symbolsAfterGestureInRow = symbolsRow.filter(s => gestureStroke.bounds.xMid < s.bounds.xMin)

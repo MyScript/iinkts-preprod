@@ -1,5 +1,5 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { IIRecognizedText, IIRecognizedMath, IIStroke, IIText, RecognizedKind, SymbolType, TIISymbol, isRecognizedMath } from "@/symbol"
+import { IIRecognizedText, IIRecognizedMath, IIStroke, IIText, TIISymbol, isRecognizedMath, isStroke, isText, isRecognizedText } from "@/symbol"
 import { InteractiveInkEditor } from "@/editor"
 import { IIMenuContextConfig, defaultMenuContextConfig } from "./IIMenuContextConfig"
 import {
@@ -54,7 +54,7 @@ export class IIMenuContext
   get symbolsDecorable(): (IIStroke | IIText | IIRecognizedText)[]
   {
     return this.symbolsSelected.filter(s => {
-      return s.type === SymbolType.Stroke || s.type === SymbolType.Text || (s.type === SymbolType.Recognized && s.kind === RecognizedKind.Text)
+      return isStroke(s) || isText(s) || isRecognizedText(s)
     }) as (IIStroke | IIText | IIRecognizedText)[]
   }
 
@@ -152,7 +152,7 @@ export class IIMenuContext
       // Update edit menu
       const editMenuInstance = this.contextMenus.get("edit") as EditContextMenu | undefined
       if (editMenuInstance) {
-        const textSymbol = this.editor.model.symbolsSelected.find(s => s.type === SymbolType.Text)
+        const textSymbol = this.editor.model.symbolsSelected.find(s => isText(s))
         if (editMenuInstance.editInput && this.editor.model.symbolsSelected.length === 1 && textSymbol) {
           editMenuInstance.editInput.value = (textSymbol as IIText).label
           editMenuInstance.getElement().style.removeProperty("display")
