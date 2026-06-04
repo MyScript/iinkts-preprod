@@ -381,13 +381,6 @@ export class IIMathCapabilitiesTable {
       title: `Math Symbols Capabilities (${mathSymbols.length} symbols)`,
       fields: [],
       customContent: container,
-      buttons: [
-        {
-          label: "Close",
-          type: "primary",
-          callback: (): void => this.close()
-        }
-      ]
     })
     this.modal.open()
   }
