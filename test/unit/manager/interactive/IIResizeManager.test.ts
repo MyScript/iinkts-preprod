@@ -15,7 +15,7 @@ import
   TIISymbolChar,
   TPoint
 } from "../../../../src/iink"
-import { buildOIStroke } from "../../helpers"
+import { buildIIStroke } from "../../helpers"
 
 describe("IIResizeManager.ts", () =>
 {
@@ -32,7 +32,7 @@ describe("IIResizeManager.ts", () =>
     const manager = new IIResizeManager(editor)
     test("should not resize symbol with type unknown", () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       //@ts-ignore
       stroke.type = "pouet"
       const origin: TPoint = { x: 0, y: 0 }

@@ -1,6 +1,6 @@
 import { LeftClickEventMock } from "../__mocks__/EventMock"
 import { InteractiveInkEditorMock } from "../__mocks__/InteractiveInkEditorMock"
-import { buildOICircle, buildOIStroke } from "../helpers"
+import { buildIICircle, buildIIStroke } from "../helpers"
 import { EditorTool, IIMenuStyle, EditorWriteTool } from "../../../src/iink"
 
 describe("IIMenuStyle.ts", () =>
@@ -171,7 +171,7 @@ describe("IIMenuStyle.ts", () =>
     })
     test("should update color of selected symbols", () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       stroke.selected = true
       editor.model.addSymbol(stroke)
       const btn = layer.querySelector("#ms-menu-style-color-list-808080") as HTMLButtonElement
@@ -181,7 +181,7 @@ describe("IIMenuStyle.ts", () =>
     })
     test("should update fill of selected symbols", () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       stroke.selected = true
       editor.model.addSymbol(stroke)
       const btn = layer.querySelector("#ms-menu-style-fill-list-ffff00") as HTMLButtonElement
@@ -197,7 +197,7 @@ describe("IIMenuStyle.ts", () =>
     })
     test("should update thickness of selected symbols", () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       stroke.selected = true
       editor.model.addSymbol(stroke)
       const btn = layer.querySelector("#ms-menu-style-thickness-8") as HTMLButtonElement
@@ -216,7 +216,7 @@ describe("IIMenuStyle.ts", () =>
     })
     test("should update opacity of selected symbols", () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       stroke.selected = true
       editor.model.addSymbol(stroke)
       const input = layer.querySelector("#ms-menu-style-opacity-input") as HTMLInputElement
@@ -325,7 +325,7 @@ describe("IIMenuStyle.ts", () =>
     {
       beforeAll(() => {
         editor.tool = EditorTool.Select
-        const shape = buildOICircle()
+        const shape = buildIICircle()
         shape.selected = true
         editor.model.addSymbol(shape)
         menu.update()

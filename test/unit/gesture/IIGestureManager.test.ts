@@ -1,8 +1,8 @@
-import { buildOICircle, buildOIStroke, buildOIText } from "../helpers"
+import { buildIICircle, buildIIStroke, buildIIText } from "../helpers"
 import { InteractiveInkEditorMock } from "../__mocks__/InteractiveInkEditorMock"
 import
 {
-    DefaultIIRendererConfiguration,
+  DefaultIIRendererConfiguration,
   TGesture,
   SurroundAction,
   TIISymbolChar,
@@ -32,7 +32,7 @@ describe("IIGestureManager.ts", () =>
     const gestMan = new IIGestureManager(editor)
     // Handlers are now private - test behavior instead of implementation
 
-    const gestureStroke = buildOIStroke()
+    const gestureStroke = buildIIStroke()
     test("should remove gestureStroke from renderer", async () =>
     {
       const gesture: TGesture = {
@@ -111,7 +111,7 @@ describe("IIGestureManager.ts", () =>
   describe.skip("applySurroundGesture", () =>
   {
     const editor = new InteractiveInkEditorMock()
-    const stroke = buildOIStroke()
+    const stroke = buildIIStroke()
     editor.model.addSymbol(stroke)
 
     const gestMan = new IIGestureManager(editor)
@@ -125,7 +125,7 @@ describe("IIGestureManager.ts", () =>
 
     test("should do nothing if gestureStroke not contains symbols", async () =>
     {
-      const gestureStroke = buildOIStroke({ box: { height: 2, width: 2, x: 500, y: 500 } })
+      const gestureStroke = buildIIStroke({ box: { height: 2, width: 2, x: 500, y: 500 } })
       const gesture: TGesture = {
         gestureType: "SURROUND",
         gestureStrokeId: "stroke-5b5c63a1-d546-4eb8-a63a-6db512ce2aaf",
@@ -141,7 +141,7 @@ describe("IIGestureManager.ts", () =>
 
     test("should select", async () =>
     {
-      const gestureStroke = buildOIStroke({
+      const gestureStroke = buildIIStroke({
         box: {
           height: stroke.bounds.height * 2,
           width: stroke.bounds.width * 2,
@@ -165,7 +165,7 @@ describe("IIGestureManager.ts", () =>
 
     test("should add Highlight and re-render symbol", async () =>
     {
-      const gestureStroke = buildOIStroke({
+      const gestureStroke = buildIIStroke({
         box: {
           height: stroke.bounds.height * 2,
           width: stroke.bounds.width * 2,
@@ -192,7 +192,7 @@ describe("IIGestureManager.ts", () =>
 
     test("should remove Highlight and re-render symbol", async () =>
     {
-      const gestureStroke = buildOIStroke({
+      const gestureStroke = buildIIStroke({
         box: {
           height: stroke.bounds.height * 2,
           width: stroke.bounds.width * 2,
@@ -219,7 +219,7 @@ describe("IIGestureManager.ts", () =>
 
     test("should add Surround and re-render symbol", async () =>
     {
-      const gestureStroke = buildOIStroke({
+      const gestureStroke = buildIIStroke({
         box: {
           height: stroke.bounds.height * 2,
           width: stroke.bounds.width * 2,
@@ -246,7 +246,7 @@ describe("IIGestureManager.ts", () =>
 
     test("should remove Surround and re-render symbol", async () =>
     {
-      const gestureStroke = buildOIStroke({
+      const gestureStroke = buildIIStroke({
         box: {
           height: stroke.bounds.height * 2,
           width: stroke.bounds.width * 2,
@@ -274,7 +274,7 @@ describe("IIGestureManager.ts", () =>
     test("should log error if surroundAction is unknown", async () =>
     {
       console.error = jest.fn()
-      const gestureStroke = buildOIStroke({
+      const gestureStroke = buildIIStroke({
         box: {
           height: stroke.bounds.height * 2,
           width: stroke.bounds.width * 2,
@@ -321,7 +321,7 @@ describe("IIGestureManager.ts", () =>
 
     test("should do nothing if gesture as no strokeIds", async () =>
     {
-      const gestureStroke = buildOIStroke()
+      const gestureStroke = buildIIStroke()
       const gesture: TGesture = {
         gestureType: "SCRATCH",
         gestureStrokeId: gestureStroke.id,
@@ -339,9 +339,9 @@ describe("IIGestureManager.ts", () =>
 
     test("should erase shape symbol", async () =>
     {
-      const circle = buildOICircle()
+      const circle = buildIICircle()
       editor.model.addSymbol(circle)
-      const gestureStroke = buildOIStroke({ box: circle.bounds, nbPoint: 100 })
+      const gestureStroke = buildIIStroke({ box: circle.bounds, nbPoint: 100 })
       const gesture: TGesture = {
         gestureType: "SCRATCH",
         gestureStrokeId: gestureStroke.id,
@@ -377,9 +377,9 @@ describe("IIGestureManager.ts", () =>
           label: "b"
         }
       ]
-      const text = buildOIText({ chars, boundingBox: { height: 10, width: 10, x: 0, y: 10 } })
+      const text = buildIIText({ chars, boundingBox: { height: 10, width: 10, x: 0, y: 10 } })
       editor.model.addSymbol(text)
-      const gestureStroke = buildOIStroke({ box: { height: 20, width: 20, x: -5, y: 5 }, nbPoint: 100 })
+      const gestureStroke = buildIIStroke({ box: { height: 20, width: 20, x: -5, y: 5 }, nbPoint: 100 })
       const gesture: TGesture = {
         gestureType: "SCRATCH",
         gestureStrokeId: gestureStroke.id,
@@ -414,9 +414,9 @@ describe("IIGestureManager.ts", () =>
           label: "b"
         }
       ]
-      const text = buildOIText({ chars, boundingBox: { height: 10, width: 10, x: 0, y: 10 } })
+      const text = buildIIText({ chars, boundingBox: { height: 10, width: 10, x: 0, y: 10 } })
       editor.model.addSymbol(text)
-      const gestureStroke = buildOIStroke({ box: chars[0].bounds })
+      const gestureStroke = buildIIStroke({ box: chars[0].bounds })
       const gesture: TGesture = {
         gestureType: "SCRATCH",
         gestureStrokeId: gestureStroke.id,
@@ -434,9 +434,9 @@ describe("IIGestureManager.ts", () =>
 
     test("should erase stroke symbol", async () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       editor.model.addSymbol(stroke)
-      const gestureStroke = buildOIStroke()
+      const gestureStroke = buildIIStroke()
       const gesture: TGesture = {
         gestureType: "SCRATCH",
         gestureStrokeId: gestureStroke.id,
@@ -453,9 +453,9 @@ describe("IIGestureManager.ts", () =>
 
     test("should partially erase stroke symbol", async () =>
     {
-      const stroke = buildOIStroke({ nbPoint: 50 })
+      const stroke = buildIIStroke({ nbPoint: 50 })
       editor.model.addSymbol(stroke)
-      const gestureStroke = buildOIStroke()
+      const gestureStroke = buildIIStroke()
       const gesture: TGesture = {
         gestureType: "SCRATCH",
         gestureStrokeId: gestureStroke.id,
@@ -477,11 +477,11 @@ describe("IIGestureManager.ts", () =>
   describe.skip("applyJoinGesture", () =>
   {
     const editor = new InteractiveInkEditorMock()
-    const stroke11 = buildOIStroke({ box: { height: 9, width: 10, x: 0, y: 0.6 * rowHeight } })
+    const stroke11 = buildIIStroke({ box: { height: 9, width: 10, x: 0, y: 0.6 * rowHeight } })
     editor.model.addSymbol(stroke11)
-    const stroke12 = buildOIStroke({ box: { height: 9, width: 10, x: 100, y: 0.6 * rowHeight } })
+    const stroke12 = buildIIStroke({ box: { height: 9, width: 10, x: 100, y: 0.6 * rowHeight } })
     editor.model.addSymbol(stroke12)
-    const stroke21 = buildOIStroke({ box: { height: 9, width: 10, x: 100, y: 1.6 * rowHeight } })
+    const stroke21 = buildIIStroke({ box: { height: 9, width: 10, x: 100, y: 1.6 * rowHeight } })
     editor.model.addSymbol(stroke21)
     const gestMan = new IIGestureManager(editor)
     gestMan.translator.translate = jest.fn((() => Promise.resolve()))
@@ -489,7 +489,7 @@ describe("IIGestureManager.ts", () =>
 
     test.skip("should join and group strokes if between 2 strokes", async () =>
     {
-      const strokeGesture = buildOIStroke({ box: { height: 9, width: 10, x: 20, y: 0.6 * rowHeight } })
+      const strokeGesture = buildIIStroke({ box: { height: 9, width: 10, x: 20, y: 0.6 * rowHeight } })
       const gesture: TGesture = {
         gestureType: "JOIN",
         gestureStrokeId: "stroke-5b5c63a1-d546-4eb8-a63a-6db512ce2aaf",
@@ -505,7 +505,7 @@ describe("IIGestureManager.ts", () =>
 
     test("should go up strokes if strokesAfter and go after stroke in previous row", async () =>
     {
-      const strokeGesture = buildOIStroke({ box: { height: 9, width: 10, x: 10, y: 1.6 * rowHeight } })
+      const strokeGesture = buildIIStroke({ box: { height: 9, width: 10, x: 10, y: 1.6 * rowHeight } })
       const gesture: TGesture = {
         gestureType: "JOIN",
         gestureStrokeId: "stroke-5b5c63a1-d546-4eb8-a63a-6db512ce2aaf",
@@ -521,7 +521,7 @@ describe("IIGestureManager.ts", () =>
 
     test("should go up strokes if strokesAfter and no stroke in previous row", async () =>
     {
-      const stroke51 = buildOIStroke({ box: { height: 9, width: 10, x: 100, y: 4.6 * rowHeight } })
+      const stroke51 = buildIIStroke({ box: { height: 9, width: 10, x: 100, y: 4.6 * rowHeight } })
       const gesture: TGesture = {
         gestureType: "JOIN",
         gestureStrokeId: "stroke-5b5c63a1-d546-4eb8-a63a-6db512ce2aaf",
@@ -530,7 +530,7 @@ describe("IIGestureManager.ts", () =>
         strokeAfterIds: []
       }
       editor.model.addSymbol(stroke51)
-      const strokeGesture = buildOIStroke({ box: { height: 9, width: 10, x: 10, y: 4.6 * rowHeight } })
+      const strokeGesture = buildIIStroke({ box: { height: 9, width: 10, x: 10, y: 4.6 * rowHeight } })
       // @ts-expect-error - Method moved to JoinGestureHandler
       await gestMan.applyJoinGesture(strokeGesture, gesture)
       expect(gestMan.translator.translate).toHaveBeenNthCalledWith(1, [stroke51], 0, -rowHeight, false)
@@ -543,7 +543,7 @@ describe("IIGestureManager.ts", () =>
   describe.skip("applyInsertGesture", () =>
   {
     const editor = new InteractiveInkEditorMock()
-    const stroke = buildOIStroke()
+    const stroke = buildIIStroke()
     editor.model.addSymbol(stroke)
     const gestMan = new IIGestureManager(editor)
     gestMan.translator.translate = jest.fn((() => Promise.resolve()))
@@ -551,7 +551,7 @@ describe("IIGestureManager.ts", () =>
 
     test("should split", async () =>
     {
-      const strokeGesture = buildOIStroke({ box: { height: 9, width: 10, x: 20, y: 0.6 * rowHeight } })
+      const strokeGesture = buildIIStroke({ box: { height: 9, width: 10, x: 20, y: 0.6 * rowHeight } })
       const gesture: TGesture = {
         gestureType: "JOIN",
         gestureStrokeId: strokeGesture.id,
@@ -569,7 +569,7 @@ describe("IIGestureManager.ts", () =>
 
     test("should go down stroke", async () =>
     {
-      const strokeGesture = buildOIStroke({ box: { height: stroke.bounds.height, width: 5, x: stroke.bounds.xMin - 10, y: stroke.bounds.yMin } })
+      const strokeGesture = buildIIStroke({ box: { height: stroke.bounds.height, width: 5, x: stroke.bounds.xMin - 10, y: stroke.bounds.yMin } })
       const gesture: TGesture = {
         gestureType: "JOIN",
         gestureStrokeId: strokeGesture.id,
@@ -589,7 +589,7 @@ describe("IIGestureManager.ts", () =>
   describe.skip("applyUnderlineGesture", () =>
   {
     const editor = new InteractiveInkEditorMock()
-    const stroke = buildOIStroke()
+    const stroke = buildIIStroke()
     editor.model.addSymbol(stroke)
 
     const gestMan = new IIGestureManager(editor)
@@ -639,7 +639,7 @@ describe("IIGestureManager.ts", () =>
   describe.skip("applyStrikeThroughGesture", () =>
   {
     const editor = new InteractiveInkEditorMock()
-    const stroke = buildOIStroke()
+    const stroke = buildIIStroke()
     editor.model.addSymbol(stroke)
     const gestMan = new IIGestureManager(editor)
     gestMan.renderer.drawSymbol = jest.fn()
@@ -736,7 +736,7 @@ describe("IIGestureManager.ts", () =>
     test("should return undefined when recognizeGesture return nothing", async () =>
     {
       gestMan.recognizer.recognizeGesture = jest.fn()
-      const gestureStroke = buildOIStroke()
+      const gestureStroke = buildIIStroke()
       expect(await gestMan.getGestureFromContextLess(gestureStroke)).toBeUndefined()
     })
 
@@ -747,7 +747,7 @@ describe("IIGestureManager.ts", () =>
         gestureType: "none",
         strokeId: stroke.id
       }))
-      const gestureStroke = buildOIStroke()
+      const gestureStroke = buildIIStroke()
       expect(await gestMan.getGestureFromContextLess(gestureStroke)).toBeUndefined()
     })
 
@@ -765,19 +765,19 @@ describe("IIGestureManager.ts", () =>
 
       test("should return undefined when there is no symbols", async () =>
       {
-        const gestureStroke = buildOIStroke()
+        const gestureStroke = buildIIStroke()
         expect(await gestMan.getGestureFromContextLess(gestureStroke)).toBeUndefined()
       })
       test("should return undefined when the gesture stroke contains no symbols", async () =>
       {
-        const gestureStroke = buildOIStroke({ box: { height: 10, width: 10, x: 0, y: 0 } })
-        editor.model.addSymbol(buildOICircle({ center: gestureStroke.bounds.center, radius: Math.max(gestureStroke.bounds.width * 2, gestureStroke.bounds.height * 2) }))
+        const gestureStroke = buildIIStroke({ box: { height: 10, width: 10, x: 0, y: 0 } })
+        editor.model.addSymbol(buildIICircle({ center: gestureStroke.bounds.center, radius: Math.max(gestureStroke.bounds.width * 2, gestureStroke.bounds.height * 2) }))
         expect(await gestMan.getGestureFromContextLess(gestureStroke)).toBeUndefined()
       })
       test("should return gesture when the gesture stroke contains symbol", async () =>
       {
-        const gestureStroke = buildOIStroke({ box: { height: 10, width: 10, x: 0, y: 0 } })
-        editor.model.addSymbol(buildOICircle({ center: gestureStroke.bounds.center, radius: Math.min(gestureStroke.bounds.width / 2, gestureStroke.bounds.height / 2) }))
+        const gestureStroke = buildIIStroke({ box: { height: 10, width: 10, x: 0, y: 0 } })
+        editor.model.addSymbol(buildIICircle({ center: gestureStroke.bounds.center, radius: Math.min(gestureStroke.bounds.width / 2, gestureStroke.bounds.height / 2) }))
         expect(await gestMan.getGestureFromContextLess(gestureStroke)).toEqual(expect.objectContaining({
           gestureType: "SURROUND",
           gestureStrokeId: gestureStroke.id
@@ -800,14 +800,14 @@ describe("IIGestureManager.ts", () =>
       })
       test("must return undefined when the gesture stroke does not match either the underline or the strikethrough of the symbols", async () =>
       {
-        const gestureStroke = buildOIStroke({ box: { height: 2, width: 10, x: 0, y: 50 } })
-        editor.model.addSymbol(buildOIText({ boundingBox: { height: 10, width: 10, x: 0, y: 0 } }))
+        const gestureStroke = buildIIStroke({ box: { height: 2, width: 10, x: 0, y: 50 } })
+        editor.model.addSymbol(buildIIText({ boundingBox: { height: 10, width: 10, x: 0, y: 0 } }))
         expect(await gestMan.getGestureFromContextLess(gestureStroke)).toBeUndefined()
       })
       test("should return gesture underline when the gesture stroke match symbol", async () =>
       {
-        const gestureStroke = buildOIStroke({ box: { height: 2, width: 10, x: 0, y: 10 } })
-        const text = buildOIText({ boundingBox: { height: 12, width: 10, x: 0, y: 0 } })
+        const gestureStroke = buildIIStroke({ box: { height: 2, width: 10, x: 0, y: 10 } })
+        const text = buildIIText({ boundingBox: { height: 12, width: 10, x: 0, y: 0 } })
         editor.model.addSymbol(gestureStroke)
         editor.model.addSymbol(text)
         expect(await gestMan.getGestureFromContextLess(gestureStroke)).toEqual(expect.objectContaining({
@@ -818,8 +818,8 @@ describe("IIGestureManager.ts", () =>
       })
       test("should return gesture strikethrough when the gesture stroke match symbol", async () =>
       {
-        const gestureStroke = buildOIStroke({ box: { height: 2, width: 10, x: 0, y: 5 } })
-        const text = buildOIText({ boundingBox: { height: 12, width: 10, x: 0, y: 0 } })
+        const gestureStroke = buildIIStroke({ box: { height: 2, width: 10, x: 0, y: 5 } })
+        const text = buildIIText({ boundingBox: { height: 12, width: 10, x: 0, y: 0 } })
         editor.model.addSymbol(gestureStroke)
         editor.model.addSymbol(text)
         expect(await gestMan.getGestureFromContextLess(gestureStroke)).toEqual(expect.objectContaining({
@@ -843,14 +843,14 @@ describe("IIGestureManager.ts", () =>
       })
       test("must return undefined when the gesture stroke does not match either the underline or the strikethrough of the symbols", async () =>
       {
-        const gestureStroke = buildOIStroke({ box: { height: 2, width: 10, x: 0, y: 50 } })
-        editor.model.addSymbol(buildOIText({ boundingBox: { height: 10, width: 10, x: 0, y: 0 } }))
+        const gestureStroke = buildIIStroke({ box: { height: 2, width: 10, x: 0, y: 50 } })
+        editor.model.addSymbol(buildIIText({ boundingBox: { height: 10, width: 10, x: 0, y: 0 } }))
         expect(await gestMan.getGestureFromContextLess(gestureStroke)).toBeUndefined()
       })
       test("should return gesture underline when the gesture stroke match symbol", async () =>
       {
-        const gestureStroke = buildOIStroke({ box: { height: 2, width: 10, x: 0, y: 10 } })
-        const text = buildOIText({ boundingBox: { height: 12, width: 10, x: 0, y: 0 } })
+        const gestureStroke = buildIIStroke({ box: { height: 2, width: 10, x: 0, y: 10 } })
+        const text = buildIIText({ boundingBox: { height: 12, width: 10, x: 0, y: 0 } })
         editor.model.addSymbol(gestureStroke)
         editor.model.addSymbol(text)
         expect(await gestMan.getGestureFromContextLess(gestureStroke)).toEqual(expect.objectContaining({
@@ -873,14 +873,14 @@ describe("IIGestureManager.ts", () =>
       })
       test("must return undefined when the gesture stroke has no symbols in row", async () =>
       {
-        const gestureStroke = buildOIStroke({ box: { height: 10, width: 10, x: 0, y: editor.model.rowHeight } })
-        editor.model.addSymbol(buildOIText({ boundingBox: { height: 10, width: 10, x: 0, y: 2 * editor.model.rowHeight } }))
+        const gestureStroke = buildIIStroke({ box: { height: 10, width: 10, x: 0, y: editor.model.rowHeight } })
+        editor.model.addSymbol(buildIIText({ boundingBox: { height: 10, width: 10, x: 0, y: 2 * editor.model.rowHeight } }))
         expect(await gestMan.getGestureFromContextLess(gestureStroke)).toBeUndefined()
       })
       test("should return gesture join when there is symbol in gesture row", async () =>
       {
-        const gestureStroke = buildOIStroke({ box: { height: 20, width: 10, x: 0, y: editor.model.rowHeight } })
-        const text = buildOIText({ boundingBox: { height: 12, width: 10, x: 0, y: editor.model.rowHeight } })
+        const gestureStroke = buildIIStroke({ box: { height: 20, width: 10, x: 0, y: editor.model.rowHeight } })
+        const text = buildIIText({ boundingBox: { height: 12, width: 10, x: 0, y: editor.model.rowHeight } })
         editor.model.addSymbol(gestureStroke)
         editor.model.addSymbol(text)
         expect(await gestMan.getGestureFromContextLess(gestureStroke)).toEqual(expect.objectContaining({
@@ -902,14 +902,14 @@ describe("IIGestureManager.ts", () =>
       })
       test("must return undefined when the gesture stroke has no symbols in row", async () =>
       {
-        const gestureStroke = buildOIStroke({ box: { height: 10, width: 10, x: 0, y: editor.model.rowHeight } })
-        editor.model.addSymbol(buildOIText({ boundingBox: { height: 10, width: 10, x: 0, y: 2 * editor.model.rowHeight } }))
+        const gestureStroke = buildIIStroke({ box: { height: 10, width: 10, x: 0, y: editor.model.rowHeight } })
+        editor.model.addSymbol(buildIIText({ boundingBox: { height: 10, width: 10, x: 0, y: 2 * editor.model.rowHeight } }))
         expect(await gestMan.getGestureFromContextLess(gestureStroke)).toBeUndefined()
       })
       test("should return gesture insert when there is symbol in gesture row", async () =>
       {
-        const gestureStroke = buildOIStroke({ box: { height: 20, width: 10, x: 0, y: editor.model.rowHeight } })
-        const text = buildOIText({ boundingBox: { height: 12, width: 10, x: 0, y: editor.model.rowHeight } })
+        const gestureStroke = buildIIStroke({ box: { height: 20, width: 10, x: 0, y: editor.model.rowHeight } })
+        const text = buildIIText({ boundingBox: { height: 12, width: 10, x: 0, y: editor.model.rowHeight } })
         editor.model.addSymbol(gestureStroke)
         editor.model.addSymbol(text)
         expect(await gestMan.getGestureFromContextLess(gestureStroke)).toEqual(expect.objectContaining({

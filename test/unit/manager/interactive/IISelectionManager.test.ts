@@ -1,4 +1,4 @@
-import { buildOIStroke } from "../../helpers"
+import { buildIIStroke } from "../../helpers"
 import { InteractiveInkEditorMock } from "../../__mocks__/InteractiveInkEditorMock"
 import
 {
@@ -93,7 +93,7 @@ describe("IISelectionManager.ts", () =>
     const editor = new InteractiveInkEditorMock()
     editor.menu.context.hide = jest.fn()
     const manager = new IISelectionManager(editor)
-    const stroke = buildOIStroke()
+    const stroke = buildIIStroke()
 
     beforeAll(async () =>
     {
@@ -165,7 +165,7 @@ describe("IISelectionManager.ts", () =>
     editor.resizer.end = jest.fn()
     const manager = new IISelectionManager(editor)
     manager.resetSelectedGroup = jest.fn()
-    const stroke = buildOIStroke()
+    const stroke = buildIIStroke()
 
     beforeAll(async () =>
     {
@@ -337,9 +337,9 @@ describe("IISelectionManager.ts", () =>
   {
     const editor = new InteractiveInkEditorMock()
     const manager = new IISelectionManager(editor)
-    const strokeToSelect = buildOIStroke({ box: { height: 10, width: 10, x: 10, y: 10 } })
+    const strokeToSelect = buildIIStroke({ box: { height: 10, width: 10, x: 10, y: 10 } })
     manager.model.addSymbol(strokeToSelect)
-    const otherStroke = buildOIStroke({ box: { height: 10, width: 10, x: 100, y: 100 } })
+    const otherStroke = buildIIStroke({ box: { height: 10, width: 10, x: 100, y: 100 } })
     manager.model.addSymbol(otherStroke)
     manager.drawSelectingRect = jest.fn()
     manager.clearSelectingRect = jest.fn()

@@ -1,4 +1,4 @@
-import { buildOIStroke } from "../helpers"
+import { buildIIStroke } from "../helpers"
 import
   {
     InkEditor,
@@ -87,8 +87,8 @@ describe("InkEditor.ts", () =>
   {
     const editor = new InkEditor(document.createElement("div"), DefaultEditorRestRecognizerOptions)
 
-    const stroke1 = buildOIStroke()
-    const stroke2 = buildOIStroke()
+    const stroke1 = buildIIStroke()
+    const stroke2 = buildIIStroke()
     editor.model.addStroke(stroke1)
     editor.model.addStroke(stroke2)
     editor.renderer.drawSymbol = jest.fn()
@@ -104,7 +104,7 @@ describe("InkEditor.ts", () =>
     {
       const editor = new InkEditor(document.createElement("div"), DefaultEditorRestRecognizerOptions)
       await editor.initialize()
-      const stroke1 = buildOIStroke()
+      const stroke1 = buildIIStroke()
       const firstModel = editor.model.clone()
       firstModel.addStroke(stroke1)
       editor.recognizer.send = jest.fn()
@@ -119,7 +119,7 @@ describe("InkEditor.ts", () =>
     {
       const editor = new InkEditor(document.createElement("div"), DefaultEditorRestRecognizerOptions)
       await editor.initialize()
-      const stroke1 = buildOIStroke()
+      const stroke1 = buildIIStroke()
       const firstModel = editor.model.clone()
       firstModel.addStroke(stroke1)
       editor.recognizer.send = jest.fn()
@@ -135,7 +135,7 @@ describe("InkEditor.ts", () =>
     {
       const editor = new InkEditor(document.createElement("div"), DefaultEditorRestRecognizerOptions)
       await editor.initialize()
-      const stroke1 = buildOIStroke()
+      const stroke1 = buildIIStroke()
       const firstModel = editor.model.clone()
       firstModel.addStroke(stroke1)
       editor.recognizer.send = jest.fn()
@@ -155,7 +155,7 @@ describe("InkEditor.ts", () =>
     {
       const editor = new InkEditor(document.createElement("div"), DefaultEditorRestRecognizerOptions)
       await editor.initialize()
-      const stroke1 = buildOIStroke()
+      const stroke1 = buildIIStroke()
       const firstModel = editor.model.clone()
       firstModel.addStroke(stroke1)
       editor.recognizer.send = jest.fn()
@@ -170,7 +170,7 @@ describe("InkEditor.ts", () =>
     {
       const editor = new InkEditor(document.createElement("div"), DefaultEditorRestRecognizerOptions)
       await editor.initialize()
-      const stroke1 = buildOIStroke()
+      const stroke1 = buildIIStroke()
       const firstModel = editor.model.clone()
       firstModel.addStroke(stroke1)
       editor.recognizer.send = jest.fn()
@@ -186,7 +186,7 @@ describe("InkEditor.ts", () =>
     {
       const editor = new InkEditor(document.createElement("div"), DefaultEditorRestRecognizerOptions)
       await editor.initialize()
-      const stroke1 = buildOIStroke()
+      const stroke1 = buildIIStroke()
       editor.model.addStroke(stroke1)
       editor.recognizer.send = jest.fn()
       editor.renderer.drawSymbol = jest.fn()
@@ -203,7 +203,7 @@ describe("InkEditor.ts", () =>
   {
     const editor = new InkEditor(document.createElement("div"), DefaultEditorRestRecognizerOptions)
     await editor.initialize()
-    const stroke1 = buildOIStroke()
+    const stroke1 = buildIIStroke()
     editor.model.addStroke(stroke1)
     editor.history.push = jest.fn()
     editor.renderer.clear = jest.fn()

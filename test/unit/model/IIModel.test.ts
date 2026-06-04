@@ -1,20 +1,20 @@
-import { buildOICircle, buildOIStroke } from "../helpers"
+import { buildIICircle, buildIIStroke } from "../helpers"
 
 import { IIModel, TExport, } from "../../../src/iink"
 
 describe("IIModel.ts", () =>
 {
-  const width = 100, height = 100, rowHeight = 10
+  const rowHeight = 10
   test("should create", () =>
   {
-    const model = new IIModel(width, height, rowHeight)
+    const model = new IIModel(rowHeight)
     expect(model).toBeDefined()
   })
 
   describe("crud symbols", () =>
   {
-    const model = new IIModel(width, height, rowHeight)
-    const sym = buildOIStroke()
+    const model = new IIModel(rowHeight)
+    const sym = buildIIStroke()
     test("should addSymbol", () =>
     {
       expect(model.symbols).toHaveLength(0)
@@ -34,7 +34,7 @@ describe("IIModel.ts", () =>
     })
     test("should not updateSymbol if id not exist", () =>
     {
-      const symb2 = buildOIStroke()
+      const symb2 = buildIIStroke()
       model.addSymbol(symb2)
       const updatedSymb2 = structuredClone(symb2)
       updatedSymb2.id = "not-exist"
@@ -46,11 +46,11 @@ describe("IIModel.ts", () =>
     })
     test("should replaceSymbol", () =>
     {
-      const sym1 = buildOIStroke()
+      const sym1 = buildIIStroke()
       model.addSymbol(sym1)
       const oldLength = model.symbols.length
-      const sym2 = buildOIStroke()
-      const sym3 = buildOIStroke()
+      const sym2 = buildIIStroke()
+      const sym3 = buildIIStroke()
       model.replaceSymbol(sym1.id, [sym2, sym3])
       expect(oldLength + 1).toEqual(model.symbols.length)
       expect(model.symbols.find(s => s.id === sym1.id)).toBeUndefined()
@@ -59,11 +59,11 @@ describe("IIModel.ts", () =>
     })
     test("should not replaceSymbol if id not exist", () =>
     {
-      const sym1 = buildOIStroke()
+      const sym1 = buildIIStroke()
       model.addSymbol(sym1)
       const oldLength = model.symbols.length
-      const sym2 = buildOIStroke()
-      const sym3 = buildOIStroke()
+      const sym2 = buildIIStroke()
+      const sym3 = buildIIStroke()
       model.replaceSymbol("unknow", [sym2, sym3])
       expect(oldLength).toEqual(model.symbols.length)
       expect(model.symbols.find(s => s.id === sym1.id)).toEqual(sym1)
@@ -87,19 +87,19 @@ describe("IIModel.ts", () =>
 
   describe("change symbol order", () =>
   {
-    const model = new IIModel(width, height, rowHeight)
-    const sym1 = buildOIStroke()
+    const model = new IIModel(rowHeight)
+    const sym1 = buildIIStroke()
     model.addSymbol(sym1)
-    const sym2 = buildOIStroke()
+    const sym2 = buildIIStroke()
     model.addSymbol(sym2)
-    const sym3 = buildOIStroke()
+    const sym3 = buildIIStroke()
     model.addSymbol(sym3)
-    const sym4 = buildOIStroke()
+    const sym4 = buildIIStroke()
     model.addSymbol(sym4)
 
     test("should do nothing when change symbol order not in model", () =>
     {
-      const symUnknow = buildOIStroke()
+      const symUnknow = buildIIStroke()
       model.changeOrderSymbol(symUnknow.id, "first")
       expect(model.symbols[0].id).toEqual(sym1.id)
       expect(model.symbols[1].id).toEqual(sym2.id)
@@ -158,27 +158,27 @@ describe("IIModel.ts", () =>
 
   describe("get symbols with row index", () =>
   {
-    const model = new IIModel(width, height, rowHeight)
+    const model = new IIModel(rowHeight)
 
-    const stroke51 = buildOIStroke({ box: { height: 9, width: 10, x: 0, y: 4.6 * rowHeight } })
+    const stroke51 = buildIIStroke({ box: { height: 9, width: 10, x: 0, y: 4.6 * rowHeight } })
     model.addSymbol(stroke51)
 
-    const stroke12 = buildOIStroke({ box: { height: 9, width: 100, x: 50, y: rowHeight / 2 } })
+    const stroke12 = buildIIStroke({ box: { height: 9, width: 100, x: 50, y: rowHeight / 2 } })
     model.addSymbol(stroke12)
 
-    const circle13 = buildOICircle({ center: { x: 200, y: rowHeight * 1.4 }, radius: 5 })
+    const circle13 = buildIICircle({ center: { x: 200, y: rowHeight * 1.4 }, radius: 5 })
     model.addSymbol(circle13)
 
-    const circle22 = buildOICircle({ center: { x: 200, y: rowHeight * 2.25 }, radius: 5 })
+    const circle22 = buildIICircle({ center: { x: 200, y: rowHeight * 2.25 }, radius: 5 })
     model.addSymbol(circle22)
 
-    const stroke21 = buildOIStroke({ box: { height: 9, width: 10, x: 0, y: 1.6 * rowHeight } })
+    const stroke21 = buildIIStroke({ box: { height: 9, width: 10, x: 0, y: 1.6 * rowHeight } })
     model.addSymbol(stroke21)
 
-    const stroke11 = buildOIStroke({ box: { height: 9, width: 10, x: 0, y: rowHeight / 2 } })
+    const stroke11 = buildIIStroke({ box: { height: 9, width: 10, x: 0, y: rowHeight / 2 } })
     model.addSymbol(stroke11)
 
-    const stroke31 = buildOIStroke({ box: { height: 9, width: 10, x: 0, y: 2.6 * rowHeight } })
+    const stroke31 = buildIIStroke({ box: { height: 9, width: 10, x: 0, y: 2.6 * rowHeight } })
     model.addSymbol(stroke31)
 
     test("shoud get rowIndex for each symbols", () =>
@@ -207,12 +207,12 @@ describe("IIModel.ts", () =>
 
   describe("get root symbol", () =>
   {
-    const model = new IIModel(width, height, rowHeight)
+    const model = new IIModel(rowHeight)
 
-    const stroke1 = buildOIStroke()
+    const stroke1 = buildIIStroke()
     model.addSymbol(stroke1)
 
-    const circle1 = buildOICircle({ center: { x: 200, y: rowHeight * 1.4 }, radius: 5 })
+    const circle1 = buildIICircle({ center: { x: 200, y: rowHeight * 1.4 }, radius: 5 })
     model.addSymbol(circle1)
 
     test("shoud get symbol if stroke root", () =>
@@ -232,7 +232,7 @@ describe("IIModel.ts", () =>
 
   describe("roundToLineGuide", () =>
   {
-    const model = new IIModel(width, height, rowHeight)
+    const model = new IIModel(rowHeight)
     test("should return row height", () => {
       expect(model.roundToLineGuide(1.4 * rowHeight)).toEqual(rowHeight)
     })
@@ -243,11 +243,11 @@ describe("IIModel.ts", () =>
 
   describe("isSymbol", () =>
   {
-    const model = new IIModel(width, height, rowHeight)
-    const s11 = buildOIStroke({ box: { height: rowHeight / 2, width: 5, x: 5, y: rowHeight }})
-    const s12 = buildOIStroke({ box: { height: rowHeight / 2, width: 5, x: 50, y: rowHeight }})
-    const s21 = buildOIStroke({ box: { height: rowHeight * 2, width: 5, x: 5, y: rowHeight }})
-    const s22 = buildOIStroke({ box: { height: rowHeight * 2, width: 5, x: 50, y: rowHeight }})
+    const model = new IIModel(rowHeight)
+    const s11 = buildIIStroke({ box: { height: rowHeight / 2, width: 5, x: 5, y: rowHeight }})
+    const s12 = buildIIStroke({ box: { height: rowHeight / 2, width: 5, x: 50, y: rowHeight }})
+    const s21 = buildIIStroke({ box: { height: rowHeight * 2, width: 5, x: 5, y: rowHeight }})
+    const s22 = buildIIStroke({ box: { height: rowHeight * 2, width: 5, x: 50, y: rowHeight }})
     test("above should return false", () => {
       expect(model.isSymbolAbove(s11, s12)).toEqual(false)
     })
@@ -297,12 +297,12 @@ describe("IIModel.ts", () =>
 
   describe("get first/last symbol", () =>
   {
-    const model = new IIModel(width, height, rowHeight)
-    const s11 = buildOIStroke({ box: { height: rowHeight / 2, width: 5, x: 5, y: rowHeight }})
-    const s21 = buildOIStroke({ box: { height: rowHeight * 2, width: 5, x: 5, y: rowHeight }})
-    const s22 = buildOIStroke({ box: { height: rowHeight * 2, width: 5, x: 50, y: rowHeight }})
-    const s23 = buildOIStroke({ box: { height: rowHeight * 2, width: 5, x: 150, y: rowHeight }})
-    const s31 = buildOIStroke({ box: { height: rowHeight * 3, width: 5, x: 5, y: rowHeight }})
+    const model = new IIModel(rowHeight)
+    const s11 = buildIIStroke({ box: { height: rowHeight / 2, width: 5, x: 5, y: rowHeight }})
+    const s21 = buildIIStroke({ box: { height: rowHeight * 2, width: 5, x: 5, y: rowHeight }})
+    const s22 = buildIIStroke({ box: { height: rowHeight * 2, width: 5, x: 50, y: rowHeight }})
+    const s23 = buildIIStroke({ box: { height: rowHeight * 2, width: 5, x: 150, y: rowHeight }})
+    const s31 = buildIIStroke({ box: { height: rowHeight * 3, width: 5, x: 5, y: rowHeight }})
     test("should return first symbol when different rows", () => {
       expect(model.getFirstSymbol([s11, s21, s31])).toEqual(s11)
     })
@@ -325,10 +325,10 @@ describe("IIModel.ts", () =>
 
   describe("selection", () =>
   {
-    const model = new IIModel(width, height, rowHeight)
-    const stroke1 = buildOIStroke({ box: { height: 10, width: 10, x: 0, y: 0 } })
+    const model = new IIModel(rowHeight)
+    const stroke1 = buildIIStroke({ box: { height: 10, width: 10, x: 0, y: 0 } })
     model.addSymbol(stroke1)
-    const stroke2 = buildOIStroke({ box: { height: 10, width: 10, x: 20, y: 0 } })
+    const stroke2 = buildIIStroke({ box: { height: 10, width: 10, x: 20, y: 0 } })
     model.addSymbol(stroke2)
     test("should select stroke when point on stroke", () =>
     {
@@ -359,14 +359,14 @@ describe("IIModel.ts", () =>
 
   describe("extract", () =>
   {
-    const model = new IIModel(width, height, rowHeight)
-    model.addSymbol(buildOIStroke())
-    model.addSymbol(buildOIStroke())
+    const model = new IIModel(rowHeight)
+    model.addSymbol(buildIIStroke())
+    model.addSymbol(buildIIStroke())
 
     test("should extract symbol added in second model", () =>
     {
       const newModel = model.clone()
-      const newSymb = buildOIStroke()
+      const newSymb = buildIIStroke()
       model.addSymbol(newSymb)
       const { added, removed } = model.extractDifferenceSymbols(newModel)
       expect(added).toEqual([newSymb])
@@ -375,7 +375,7 @@ describe("IIModel.ts", () =>
     test("should extract symbol removed in second model", () =>
     {
       const newModel = model.clone()
-      const newSymb = buildOIStroke()
+      const newSymb = buildIIStroke()
       model.addSymbol(newSymb)
       const { added, removed } = newModel.extractDifferenceSymbols(model)
       expect(added).toEqual([])
@@ -391,7 +391,7 @@ describe("IIModel.ts", () =>
 
   describe("export", () =>
   {
-    const model = new IIModel(width, height, rowHeight)
+    const model = new IIModel(rowHeight)
     const e: TExport = { "text/plain": "poney" }
     test("should define export to undefined", () =>
     {
@@ -427,8 +427,8 @@ describe("IIModel.ts", () =>
 
   describe("clone", () =>
   {
-    const model = new IIModel(width, height, rowHeight)
-    const stroke = buildOIStroke()
+    const model = new IIModel(rowHeight)
+    const stroke = buildIIStroke()
     model.addSymbol(stroke)
     model.exports = { "text/plain": "M" }
     test("should clone", () =>
@@ -443,9 +443,9 @@ describe("IIModel.ts", () =>
   {
     test("should clear model", () =>
     {
-      const model = new IIModel(width, height, rowHeight)
-      model.currentSymbol = buildOIStroke()
-      model.addSymbol(buildOIStroke())
+      const model = new IIModel(rowHeight)
+      model.currentSymbol = buildIIStroke()
+      model.addSymbol(buildIIStroke())
       expect(model.currentSymbol).toBeDefined()
       expect(model.symbols).toHaveLength(1)
 
