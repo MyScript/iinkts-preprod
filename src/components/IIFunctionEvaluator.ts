@@ -110,13 +110,6 @@ export class IIFunctionEvaluator {
       title: "Evaluate Function",
       fields: [],
       customContent: container,
-      buttons: [
-        {
-          label: "Close",
-          type: "secondary",
-          callback: (): void => this.close()
-        }
-      ]
     })
 
     this.modal.open()
