@@ -36,7 +36,7 @@ export interface ModalButton {
 export interface ModalConfig {
   title: string
   fields: ModalField[]
-  buttons: ModalButton[]
+  buttons?: ModalButton[]
   customContent?: HTMLElement
 }
 
@@ -77,6 +77,16 @@ export class Modal {
   }
 
   private createModal(): HTMLDivElement {
+    const modal = this.createModalContainer()
+    const titleBar = this.createTitleBar()
+    const contentWrapper = this.createContentWrapper()
+
+    modal.appendChild(titleBar)
+    modal.appendChild(contentWrapper)
+    return modal
+  }
+
+  private createModalContainer(): HTMLDivElement {
     const modal = document.createElement("div")
     modal.style.cssText = `
       position: fixed;
@@ -95,8 +105,10 @@ export class Modal {
       overflow: hidden;
       transition: all 0.3s ease;
     `
+    return modal
+  }
 
-    // Title bar with drag handle and fullscreen button
+  private createTitleBar(): HTMLDivElement {
     this.titleBar = document.createElement("div")
     this.titleBar.style.cssText = `
       display: flex;
@@ -113,11 +125,30 @@ export class Modal {
     title.textContent = this.config.title
     title.style.cssText = "margin: 0; font-size: 18px; font-weight: 600; flex: 1;"
 
-    // Fullscreen button
-    this.fullscreenButton = document.createElement("button")
-    this.fullscreenButton.innerHTML = "⛶"
-    this.fullscreenButton.title = "Toggle fullscreen"
-    this.fullscreenButton.style.cssText = `
+    const buttonsContainer = this.createTitleBarButtons()
+
+    this.titleBar.appendChild(title)
+    this.titleBar.appendChild(buttonsContainer)
+    return this.titleBar
+  }
+
+  private createTitleBarButtons(): HTMLDivElement {
+    const buttonsContainer = document.createElement("div")
+    buttonsContainer.style.cssText = "display: flex; gap: 4px;"
+
+    this.fullscreenButton = this.createFullscreenButton()
+    const closeButton = this.createCloseButton()
+
+    buttonsContainer.appendChild(this.fullscreenButton)
+    buttonsContainer.appendChild(closeButton)
+    return buttonsContainer
+  }
+
+  private createFullscreenButton(): HTMLButtonElement {
+    const button = document.createElement("button")
+    button.innerHTML = "⛶"
+    button.title = "Toggle fullscreen"
+    button.style.cssText = `
       background: none;
       border: none;
       font-size: 20px;
@@ -126,22 +157,46 @@ export class Modal {
       border-radius: ${BORDER_RADIUS.sm};
       transition: background 0.2s;
     `
-    this.fullscreenButton.addEventListener("mouseenter", () => {
-      this.fullscreenButton!.style.background = "#e0e0e0"
+    button.addEventListener("mouseenter", () => {
+      button.style.background = "#e0e0e0"
     })
-    this.fullscreenButton.addEventListener("mouseleave", () => {
-      this.fullscreenButton!.style.background = "none"
+    button.addEventListener("mouseleave", () => {
+      button.style.background = "none"
     })
-    this.fullscreenButton.addEventListener("click", (e) => {
+    button.addEventListener("click", (e) => {
       e.stopPropagation()
       this.toggleFullscreen()
     })
+    return button
+  }
 
-    this.titleBar.appendChild(title)
-    this.titleBar.appendChild(this.fullscreenButton)
-    modal.appendChild(this.titleBar)
+  private createCloseButton(): HTMLButtonElement {
+    const button = document.createElement("button")
+    button.innerHTML = "✕"
+    button.title = "Close"
+    button.style.cssText = `
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: ${BORDER_RADIUS.sm};
+      transition: background 0.2s;
+    `
+    button.addEventListener("mouseenter", () => {
+      button.style.background = "#e0e0e0"
+    })
+    button.addEventListener("mouseleave", () => {
+      button.style.background = "none"
+    })
+    button.addEventListener("click", (e) => {
+      e.stopPropagation()
+      this.close()
+    })
+    return button
+  }
 
-    // Content wrapper
+  private createContentWrapper(): HTMLDivElement {
     const contentWrapper = document.createElement("div")
     contentWrapper.style.cssText = `
       padding: 20px;
@@ -149,98 +204,117 @@ export class Modal {
       max-height: calc(90vh - 100px);
     `
 
-    // Form
-    const form = document.createElement("form")
-    form.style.cssText = flexColumnStyle(SPACING.md)
-
-    this.config.fields.forEach(field => {
-      const fieldWrapper = document.createElement("div")
-      fieldWrapper.style.cssText = flexColumnStyle(SPACING.xs)
-
-      const label = document.createElement("label")
-      label.textContent = field.label
-      label.style.cssText = "font-weight: 500; font-size: 14px;"
-      label.setAttribute("for", field.id)
-
-      let inputElement: HTMLInputElement | HTMLSelectElement
-
-      if (field.type === "select") {
-        const select = createSelect({
-          id: field.id,
-          className: "ms-menu-input",
-          customStyle: `
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: ${BORDER_RADIUS.sm};
-            font-size: 14px;
-            background: white;
-          `,
-          options: (field.options || []).map(opt => ({
-            value: opt.value,
-            label: opt.label
-          })),
-          defaultValue: field.defaultValue !== undefined ? String(field.defaultValue) : undefined
-        })
-
-        inputElement = select
-      } else {
-        const input = document.createElement("input")
-        input.id = field.id
-        input.type = field.type
-        input.placeholder = field.placeholder || ""
-        if (field.defaultValue !== undefined) {
-          input.value = String(field.defaultValue)
-        }
-        input.style.cssText = `
-          padding: 8px;
-          border: 1px solid #ccc;
-          border-radius: ${BORDER_RADIUS.sm};
-          font-size: 14px;
-        `
-        input.classList.add("ms-menu-input")
-        inputElement = input
-      }
-
-      fieldWrapper.appendChild(label)
-      fieldWrapper.appendChild(inputElement)
-      form.appendChild(fieldWrapper)
-    })
-
+    const form = this.createForm()
     contentWrapper.appendChild(form)
 
-    // Add custom content if provided
     if (this.config.customContent) {
       contentWrapper.appendChild(this.config.customContent)
     }
 
-    // Buttons container
+    const actionButtons = this.createActionButtons()
+    contentWrapper.appendChild(actionButtons)
+
+    return contentWrapper
+  }
+
+  private createForm(): HTMLFormElement {
+    const form = document.createElement("form")
+    form.style.cssText = flexColumnStyle(SPACING.md)
+
+    this.config.fields.forEach(field => {
+      const fieldWrapper = this.createFormField(field)
+      form.appendChild(fieldWrapper)
+    })
+
+    return form
+  }
+
+  private createFormField(field: ModalField): HTMLDivElement {
+    const fieldWrapper = document.createElement("div")
+    fieldWrapper.style.cssText = flexColumnStyle(SPACING.xs)
+
+    const label = document.createElement("label")
+    label.textContent = field.label
+    label.style.cssText = "font-weight: 500; font-size: 14px;"
+    label.setAttribute("for", field.id)
+
+    const inputElement = field.type === "select"
+      ? this.createSelectInput(field)
+      : this.createTextInput(field)
+
+    fieldWrapper.appendChild(label)
+    fieldWrapper.appendChild(inputElement)
+    return fieldWrapper
+  }
+
+  private createSelectInput(field: ModalField): HTMLSelectElement {
+    return createSelect({
+      id: field.id,
+      className: "ms-menu-input",
+      customStyle: `
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: ${BORDER_RADIUS.sm};
+        font-size: 14px;
+        background: white;
+      `,
+      options: (field.options || []).map(opt => ({
+        value: opt.value,
+        label: opt.label
+      })),
+      defaultValue: field.defaultValue !== undefined ? String(field.defaultValue) : undefined
+    })
+  }
+
+  private createTextInput(field: ModalField): HTMLInputElement {
+    const input = document.createElement("input")
+    input.id = field.id
+    input.type = field.type
+    input.placeholder = field.placeholder || ""
+    if (field.defaultValue !== undefined) {
+      input.value = String(field.defaultValue)
+    }
+    input.style.cssText = `
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: ${BORDER_RADIUS.sm};
+      font-size: 14px;
+    `
+    input.classList.add("ms-menu-input")
+    return input
+  }
+
+  private createActionButtons(): HTMLDivElement {
     const buttonsWrapper = document.createElement("div")
     buttonsWrapper.style.cssText = "display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end;"
 
-    this.config.buttons.forEach(button => {
-      const btn = document.createElement("button")
-      btn.textContent = button.label
-      btn.type = "button"
-      btn.classList.add("ms-menu-button")
-
-      const isPrimary = button.type === "primary"
-      btn.style.cssText = `
-        padding: 6px 12px;
-        border-radius: ${BORDER_RADIUS.sm};
-        ${isPrimary ? "background-color: #4caf50; color: white;" : ""}
-      `
-
-      btn.addEventListener("click", async () => {
-        const values = this.getFieldValues()
-        await button.callback(values)
-      })
-
+    this.config.buttons?.forEach(button => {
+      const btn = this.createActionButton(button)
       buttonsWrapper.appendChild(btn)
     })
 
-    contentWrapper.appendChild(buttonsWrapper)
-    modal.appendChild(contentWrapper)
-    return modal
+    return buttonsWrapper
+  }
+
+  private createActionButton(button: ModalButton): HTMLButtonElement {
+    const btn = document.createElement("button")
+    btn.textContent = button.label
+    btn.type = "button"
+    btn.classList.add("ms-menu-button")
+
+    const isPrimary = button.type === "primary"
+    btn.style.cssText = `
+      padding: 6px 12px;
+      border-radius: ${BORDER_RADIUS.sm};
+      ${isPrimary ? "background-color: #4caf50; color: white;" : ""}
+    `
+
+    btn.addEventListener("click", async () => {
+      const values = this.getFieldValues()
+      await button.callback(values)
+    })
+
+    return btn
   }
 
   /**

@@ -152,13 +152,6 @@ export class IINumericalComputationResult {
       title: `Numerical Computation Results (${this.symbols.length} symbol${this.symbols.length > 1 ? "s" : ""})`,
       fields: [],
       customContent: resultsDisplay,
-      buttons: [
-        {
-          label: "Close",
-          type: "secondary",
-          callback: (): void => this.close()
-        }
-      ]
     })
 
     this.modal.open()

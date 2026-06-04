@@ -71,13 +71,6 @@ export class IIDiagnosticChecker {
       title: `Math Diagnostic${diagnostics.length > 1 ? "s" : ""} (${diagnostics.length} symbol${diagnostics.length > 1 ? "s" : ""})`,
       fields: [],
       customContent: container,
-      buttons: [
-        {
-          label: "Close",
-          type: "primary",
-          callback: (): void => this.close()
-        }
-      ]
     })
 
     this.modal.open()

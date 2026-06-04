@@ -75,11 +75,6 @@ export class IIVariableEditor {
           type: "primary",
           callback: async (): Promise<void> => this.applyChanges()
         },
-        {
-          label: "Close",
-          type: "secondary",
-          callback: (): void => this.close()
-        }
       ]
     })
 
