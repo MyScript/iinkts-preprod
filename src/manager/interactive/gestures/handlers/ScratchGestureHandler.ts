@@ -1,5 +1,5 @@
 import { LoggerManager, LoggerCategory, type Logger } from "@/logger"
-import { IIStroke, isRecognizedMathSymbol, type TIISymbol } from "@/symbol"
+import { IIStroke, isRecognizedMath, type TIISymbol } from "@/symbol"
 import { TIIHistoryChanges } from "@/history"
 import type { InteractiveInkEditor } from "@/editor"
 import type { TGesture } from "@/manager/interactive/GestureTypes"
@@ -52,8 +52,8 @@ export class ScratchGestureHandler extends GestureHandler
 
     // Handle dependent math blocks
     const affectedMathSymbols = [
-      ...symbolsToErase.filter(isRecognizedMathSymbol),
-      ...symbolsToReplace.oldSymbols.filter(isRecognizedMathSymbol)
+      ...symbolsToErase.filter(isRecognizedMath),
+      ...symbolsToReplace.oldSymbols.filter(isRecognizedMath)
     ]
 
     const dependentBlocksToClean = new Set<string>()

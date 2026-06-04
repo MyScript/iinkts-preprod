@@ -1,6 +1,6 @@
 import { SELECTION_MARGIN } from "@/Constants"
 import { TStyle } from "@/style"
-import { PartialDeep, computePointOnEllipse, isValidNumber } from "@/utils"
+import { PartialDeep, computePointOnEllipse, computeEllipseRadiusAverage, isValidNumber } from "@/utils"
 import { EdgeDecoration, EdgeKind, OIEdgeBase } from "./IIEdge"
 import { TPoint, isValidPoint } from "@/symbol/base/Point"
 
@@ -47,7 +47,7 @@ export class IIEdgeArc extends OIEdgeBase<EdgeKind.Arc>
 
   protected computedVertices(): TPoint[]
   {
-    const length = Math.abs(this.sweepAngle) * Math.sqrt((Math.pow(this.radiusX, 2) + Math.pow(this.radiusY, 2)) / 2)
+    const length = Math.abs(this.sweepAngle) * computeEllipseRadiusAverage(this.radiusX, this.radiusY)
     const nbVertices = Math.max(8, Math.round(length / SELECTION_MARGIN))
     const angleStep = this.sweepAngle / nbVertices
     const v: TPoint[] = []

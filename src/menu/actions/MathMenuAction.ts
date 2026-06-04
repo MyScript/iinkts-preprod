@@ -3,7 +3,7 @@ import { SubMenuItem, IMenuSubMenu } from "@/menu/items/SubMenuItem"
 import { IMenuCheckbox } from "@/menu/items/CheckboxMenuItem"
 import { IMenuSelect } from "@/menu/items/SelectMenuItem"
 import { IMenuButton } from "@/menu/items/ButtonMenuItem"
-import { isRecognizedMathSymbol } from "@/symbol"
+import { isRecognizedMath } from "@/symbol"
 import { IIMathCapabilitiesTable } from "@/components"
 import mathIcon from "@/assets/svg/linear-double-arrow.svg"
 
@@ -36,7 +36,7 @@ export class MathMenuAction extends SubMenuItem
 
           if (!value && oldMode) {
             // If switching from drawing strokes to not drawing, clear existing solver strokes
-            const mathSymbols = editor.model.symbols.filter(isRecognizedMathSymbol)
+            const mathSymbols = editor.model.symbols.filter(isRecognizedMath)
             for (const mathSymbol of mathSymbols) {
               await editor.clearSolverOutputStrokes(mathSymbol)
             }

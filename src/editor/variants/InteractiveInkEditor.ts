@@ -4,16 +4,20 @@ import
 {
   Box,
   IIStroke,
-  IIRecognizedText,
   IIRecognizedMath,
   IIText,
   IIMath,
   TIISymbol,
-  TIIRecognized,
-  RecognizedKind,
   SymbolType,
   convertPartialStrokesToIIStrokes,
-  isRecognizedMathSymbol
+  isRecognizedMath,
+  isRecognizedText,
+  isText,
+  isMath,
+  isStroke,
+  isShape,
+  isEdge,
+  isRecognized
 } from "@/symbol"
 import { RecognizerWebSocket, TMathVariable, TMathEvaluable } from "@/recognizer"
 import { SVGRenderer, SVGBuilder, TIIRendererConfiguration } from "@/renderer"
@@ -430,7 +434,7 @@ export class InteractiveInkEditor extends AbstractEditor
   /** @hidden */
   protected updateTextBounds(symbol: TIISymbol): void
   {
-    if (symbol.type === SymbolType.Text) {
+    if (isText(symbol)) {
       this.texter.updateBounds(symbol)
     }
   }
@@ -574,7 +578,7 @@ export class InteractiveInkEditor extends AbstractEditor
     if (symbols.length) {
       symbols.forEach(s =>
       {
-        if (s.type === SymbolType.Text) {
+        if (isText(s)) {
           const lastWidth = s.bounds.width
           this.texter.updateBounds(s)
           const tx = s.bounds.width - lastWidth
@@ -602,7 +606,7 @@ export class InteractiveInkEditor extends AbstractEditor
     this.model.symbols.forEach(s =>
     {
       if (textIds.includes(s.id)) {
-        if (s.type === SymbolType.Text) {
+        if (isText(s)) {
           s.updateChildrenFont({ fontSize, fontWeight: fontWeight === "auto" ? undefined : fontWeight })
           const lastWidth = s.bounds.width
           this.texter.updateBounds(s)
@@ -761,7 +765,7 @@ export class InteractiveInkEditor extends AbstractEditor
               ws.removeStrokes(ids)
               if (ws.strokes.length) {
                 ws.jiixId = undefined
-                if (isRecognizedMathSymbol(ws)) {
+                if (isRecognizedMath(ws)) {
                   ws.variableValues = undefined
                   if (ws.solverOutputStrokeIds && ws.solverOutputStrokeIds.length > 0) {
                     const remainingIds = new Set(ws.strokes.map(s => s.id))
@@ -784,7 +788,7 @@ export class InteractiveInkEditor extends AbstractEditor
     this.recognizer.eraseStrokes(strokesIds)
     symbolsToRemove.forEach(s =>
     {
-      if (isRecognizedMathSymbol(s)) {
+      if (isRecognizedMath(s)) {
         this.transientInk.clearTransientsForBlock(s.id)
       }
 
@@ -831,7 +835,7 @@ export class InteractiveInkEditor extends AbstractEditor
     this.selector.drawSelectedGroup(this.model.symbolsSelected)
 
     const selectedMathIds = this.model.symbolsSelected
-      .filter(isRecognizedMathSymbol)
+      .filter(isRecognizedMath)
       .map(s => s.id)
     this.mathInteractions.onSymbolSelect(selectedMathIds)
 
@@ -853,7 +857,7 @@ export class InteractiveInkEditor extends AbstractEditor
     this.selector.drawSelectedGroup(this.model.symbolsSelected)
 
     const selectedMathIds = this.model.symbolsSelected
-      .filter(isRecognizedMathSymbol)
+      .filter(isRecognizedMath)
       .map(s => s.id)
     this.mathInteractions.onSymbolSelect(selectedMathIds)
 
@@ -1035,25 +1039,21 @@ export class InteractiveInkEditor extends AbstractEditor
 
     symbols.forEach(s =>
     {
-      if (s.type === SymbolType.Recognized && s.kind === RecognizedKind.Text) {
-        const recognizedText = s as IIRecognizedText
-        if (recognizedText.label) {
-          textParts.push(recognizedText.label)
+      if (isRecognizedText(s)) {
+        if (s.label) {
+          textParts.push(s.label)
         }
-      } else if (s.type === SymbolType.Recognized && s.kind === RecognizedKind.Math) {
-        const recognizedMath = s as IIRecognizedMath
-        if (recognizedMath.label) {
-          textParts.push(recognizedMath.label)
+      } else if (isRecognizedMath(s)) {
+        if (s.label) {
+          textParts.push(s.label)
         }
-      } else if (s.type === SymbolType.Text) {
-        const text = s as IIText
-        const textContent = text.label
+      } else if (isText(s)) {
+        const textContent = s.label
         if (textContent) {
           textParts.push(textContent)
         }
-      } else if (s.type === SymbolType.Math) {
-        const math = s as IIMath
-        const mathContent = math.label
+      } else if (isMath(s)) {
+        const mathContent = s.label
         if (mathContent) {
           textParts.push(mathContent)
         }
@@ -1069,12 +1069,11 @@ export class InteractiveInkEditor extends AbstractEditor
 
     symbols.forEach(s =>
     {
-      if (s.type === SymbolType.Stroke || s.type === SymbolType.Shape || s.type === SymbolType.Edge) {
+      if (isStroke(s) || isShape(s) || isEdge(s)) {
         result.push(s)
       }
-      else if (s.type === SymbolType.Recognized) {
-        const recognized = s as TIIRecognized
-        const strokes = recognized.strokes.map((stroke: IIStroke) => stroke.clone())
+      else if (isRecognized(s)) {
+        const strokes = s.strokes.map((stroke: IIStroke) => stroke.clone())
         result.push(...strokes)
       }
     })

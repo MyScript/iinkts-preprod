@@ -1,6 +1,6 @@
 import { InteractiveInkEditor } from "@/editor"
 import { SubMenuItem, IMenuSubMenu } from "@/menu/items/SubMenuItem"
-import { IIRecognizedMath, isRecognizedMathSymbol } from "@/symbol"
+import { IIRecognizedMath, isRecognizedMath } from "@/symbol"
 import { Modal, ModalField, IIFunctionEvaluator, IIDiagnosticChecker, IINumericalComputationResult } from "@/components"
 import { LoggerCategory, LoggerManager } from "@/logger"
 
@@ -40,7 +40,7 @@ export class MathContextMenu extends SubMenuItem
 
             try {
               const symbolsSelected = editor.model.symbolsSelected
-              const mathSymbols = symbolsSelected.filter(isRecognizedMathSymbol)
+              const mathSymbols = symbolsSelected.filter(isRecognizedMath)
 
               if (mathSymbols.length === 0) {
                 this.logger.warn("No math symbol selected")
@@ -140,7 +140,7 @@ export class MathContextMenu extends SubMenuItem
             
             try {
               const symbolsSelected = editor.model.symbolsSelected
-              const mathSymbols = symbolsSelected.filter(isRecognizedMathSymbol)
+              const mathSymbols = symbolsSelected.filter(isRecognizedMath)
               
               if (mathSymbols.length === 0) {
                 this.logger.warn("No math symbol selected")
@@ -165,7 +165,7 @@ export class MathContextMenu extends SubMenuItem
             
             try {
               const symbolsSelected = editor.model.symbolsSelected
-              const mathSymbols = symbolsSelected.filter(isRecognizedMathSymbol)
+              const mathSymbols = symbolsSelected.filter(isRecognizedMath)
               
               if (mathSymbols.length === 0) {
                 this.logger.warn("No math symbol selected")
