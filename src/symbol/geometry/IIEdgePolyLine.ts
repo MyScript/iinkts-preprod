@@ -1,12 +1,12 @@
 import { TStyle } from "@/style"
 import { PartialDeep } from "@/utils"
-import { EdgeDecoration, EdgeKind, OIEdgeBase } from "./IIEdge"
+import { EdgeDecoration, EdgeKind, IIEdgeBase } from "./IIEdge"
 import { TPoint, isValidPoint } from "@/symbol/base/Point"
 
 /**
  * @group Symbol
  */
-export class IIEdgePolyLine extends OIEdgeBase<EdgeKind.PolyEdge>
+export class IIEdgePolyLine extends IIEdgeBase<EdgeKind.PolyEdge>
 {
   points: TPoint[]
 

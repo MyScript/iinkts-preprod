@@ -1,7 +1,7 @@
 import { Box, IIRecognizedCircle, TBox, SymbolType, RecognizedKind } from "../../../../src/symbol"
 import { DefaultStyle, TStyle } from "../../../../src/style"
 import { PartialDeep } from "../../../../src/utils"
-import { buildOIStroke } from "../../helpers"
+import { buildIIStroke } from "../../helpers"
 
 describe("IIRecognizedCircle.ts", () =>
 {
@@ -9,7 +9,7 @@ describe("IIRecognizedCircle.ts", () =>
   {
     test("should create with default style", () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       const recognizedArc = new IIRecognizedCircle([stroke])
       expect(recognizedArc).toBeDefined()
       expect(recognizedArc.creationTime).toBeLessThanOrEqual(Date.now())
@@ -23,7 +23,7 @@ describe("IIRecognizedCircle.ts", () =>
         color: "blue",
         width: 20
       }
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       const recognizedArc = new IIRecognizedCircle([stroke], style)
       expect(recognizedArc).toBeDefined()
       expect(recognizedArc.creationTime).toBeLessThanOrEqual(Date.now())
@@ -37,7 +37,7 @@ describe("IIRecognizedCircle.ts", () =>
   {
     test("should get stroke bounds", () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       const recognizedArc = new IIRecognizedCircle([stroke])
       expect(recognizedArc.bounds.height).toEqual(stroke.bounds.height)
       expect(recognizedArc.bounds.width).toEqual(stroke.bounds.width)
@@ -46,8 +46,8 @@ describe("IIRecognizedCircle.ts", () =>
     })
     test("should get strokes bounds", () =>
     {
-      const stroke = buildOIStroke()
-      const stroke1 = buildOIStroke()
+      const stroke = buildIIStroke()
+      const stroke1 = buildIIStroke()
       const bounds = Box.createFromBoxes([stroke.bounds, stroke1.bounds])
       const recognizedArc = new IIRecognizedCircle([stroke])
       expect(recognizedArc.bounds.height).toEqual(bounds.height)
@@ -61,9 +61,9 @@ describe("IIRecognizedCircle.ts", () =>
   {
     test("should call overlaps of each strokes", () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       stroke.overlaps = jest.fn()
-      const stroke1 = buildOIStroke()
+      const stroke1 = buildIIStroke()
       stroke1.overlaps = jest.fn()
       const recognizedArc = new IIRecognizedCircle([stroke, stroke1])
       const boundingBox: TBox = { height: 10, width: 10, x: 1, y: 1 }
@@ -77,15 +77,15 @@ describe("IIRecognizedCircle.ts", () =>
   {
     test("should return true", () =>
     {
-      const stroke = buildOIStroke()
-      const stroke1 = buildOIStroke()
+      const stroke = buildIIStroke()
+      const stroke1 = buildIIStroke()
       const recognizedArc = new IIRecognizedCircle([stroke, stroke1])
       expect(recognizedArc.containsStroke(stroke.id)).toEqual(true)
     })
     test("should return false", () =>
     {
-      const stroke = buildOIStroke()
-      const stroke1 = buildOIStroke()
+      const stroke = buildIIStroke()
+      const stroke1 = buildIIStroke()
       const recognizedArc = new IIRecognizedCircle([stroke, stroke1])
       expect(recognizedArc.containsStroke("fake-id")).toEqual(false)
     })
@@ -95,16 +95,16 @@ describe("IIRecognizedCircle.ts", () =>
   {
     test("should remove one stroke", () =>
     {
-      const stroke = buildOIStroke()
-      const stroke1 = buildOIStroke()
+      const stroke = buildIIStroke()
+      const stroke1 = buildIIStroke()
       const recognizedArc = new IIRecognizedCircle([stroke, stroke1])
       recognizedArc.removeStrokes([stroke.id])
       expect(recognizedArc.strokes).toEqual([stroke1])
     })
     test("should remove all strokes", () =>
     {
-      const stroke = buildOIStroke()
-      const stroke1 = buildOIStroke()
+      const stroke = buildIIStroke()
+      const stroke1 = buildIIStroke()
       const recognizedArc = new IIRecognizedCircle([stroke, stroke1])
       recognizedArc.removeStrokes([stroke.id, stroke1.id])
       expect(recognizedArc.strokes).toEqual([])
@@ -119,7 +119,7 @@ describe("IIRecognizedCircle.ts", () =>
         color: "blue",
         width: 20
       }
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       const recognizedArc = new IIRecognizedCircle([stroke], style)
 
       const clone = recognizedArc.clone()
@@ -132,7 +132,7 @@ describe("IIRecognizedCircle.ts", () =>
   {
     test("should get json", () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       const recognizedArc = new IIRecognizedCircle([stroke])
       const json = recognizedArc.toJSON()
       expect(json).toEqual({
@@ -144,7 +144,7 @@ describe("IIRecognizedCircle.ts", () =>
     })
     test("should equal to JSON.parse -> JSON.stringify", () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       const recognizedArc = new IIRecognizedCircle([stroke])
       const json = JSON.parse(JSON.stringify(recognizedArc))
       expect(json).toEqual(recognizedArc.toJSON())
@@ -161,7 +161,7 @@ describe("IIRecognizedCircle.ts", () =>
     })
     test("should create clone from json", () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       const recognizedArc = new IIRecognizedCircle([stroke])
       const json = JSON.parse(JSON.stringify(recognizedArc))
       const newRecognizedArc = IIRecognizedCircle.create(json)

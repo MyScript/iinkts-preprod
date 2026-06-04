@@ -1,7 +1,7 @@
 import { Box, DecoratorKind, IIDecorator, IIStroke, IIRecognizedText, TBox, SymbolType, RecognizedKind } from "../../../../src/symbol"
 import { DefaultStyle, TStyle } from "../../../../src/style"
 import { PartialDeep } from "../../../../src/utils"
-import { buildOIStroke } from "../../helpers"
+import { buildIIStroke } from "../../helpers"
 
 describe("IIRecognizedText.ts", () =>
 {
@@ -9,7 +9,7 @@ describe("IIRecognizedText.ts", () =>
   {
     test("should create with default style", () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       const symbol = new IIRecognizedText([stroke], { baseline: 10, xHeight: 12 })
       expect(symbol).toBeDefined()
       expect(symbol.creationTime).toBeLessThanOrEqual(Date.now())
@@ -23,7 +23,7 @@ describe("IIRecognizedText.ts", () =>
         color: "blue",
         width: 20
       }
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       const symbol = new IIRecognizedText([stroke], { baseline: 10, xHeight: 12 }, style)
       expect(symbol).toBeDefined()
       expect(symbol.creationTime).toBeLessThanOrEqual(Date.now())
@@ -37,7 +37,7 @@ describe("IIRecognizedText.ts", () =>
   {
     test("should get stroke bounds", () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       const symbol = new IIRecognizedText([stroke], { baseline: 10, xHeight: 12 })
       expect(symbol.bounds.height).toEqual(stroke.bounds.height)
       expect(symbol.bounds.width).toEqual(stroke.bounds.width)
@@ -46,8 +46,8 @@ describe("IIRecognizedText.ts", () =>
     })
     test("should get strokes bounds", () =>
     {
-      const stroke = buildOIStroke()
-      const stroke1 = buildOIStroke()
+      const stroke = buildIIStroke()
+      const stroke1 = buildIIStroke()
       const bounds = Box.createFromBoxes([stroke.bounds, stroke1.bounds])
       const symbol = new IIRecognizedText([stroke], { baseline: 10, xHeight: 12 })
       expect(symbol.bounds.height).toEqual(bounds.height)
@@ -65,8 +65,8 @@ describe("IIRecognizedText.ts", () =>
         color: "blue",
         width: 20
       }
-      const stroke = buildOIStroke()
-      const stroke1 = buildOIStroke()
+      const stroke = buildIIStroke()
+      const stroke1 = buildIIStroke()
       const symbol = new IIRecognizedText([stroke, stroke1], { baseline: 10, xHeight: 12 })
       expect(stroke.style).toEqual(DefaultStyle)
       expect(stroke1.style).toEqual(DefaultStyle)
@@ -81,9 +81,9 @@ describe("IIRecognizedText.ts", () =>
   {
     test("should call overlaps of each strokes", () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       stroke.overlaps = jest.fn()
-      const stroke1 = buildOIStroke()
+      const stroke1 = buildIIStroke()
       stroke1.overlaps = jest.fn()
       const symbol = new IIRecognizedText([stroke, stroke1], { baseline: 10, xHeight: 12 })
       const boundingBox: TBox = { height: 10, width: 10, x: 1, y: 1 }
@@ -97,15 +97,15 @@ describe("IIRecognizedText.ts", () =>
   {
     test("should return true", () =>
     {
-      const stroke = buildOIStroke()
-      const stroke1 = buildOIStroke()
+      const stroke = buildIIStroke()
+      const stroke1 = buildIIStroke()
       const symbol = new IIRecognizedText([stroke, stroke1], { baseline: 10, xHeight: 12 })
       expect(symbol.containsStroke(stroke.id)).toEqual(true)
     })
     test("should return false", () =>
     {
-      const stroke = buildOIStroke()
-      const stroke1 = buildOIStroke()
+      const stroke = buildIIStroke()
+      const stroke1 = buildIIStroke()
       const symbol = new IIRecognizedText([stroke, stroke1], { baseline: 10, xHeight: 12 })
       expect(symbol.containsStroke("fake-id")).toEqual(false)
     })
@@ -115,16 +115,16 @@ describe("IIRecognizedText.ts", () =>
   {
     test("should remove one stroke", () =>
     {
-      const stroke = buildOIStroke()
-      const stroke1 = buildOIStroke()
+      const stroke = buildIIStroke()
+      const stroke1 = buildIIStroke()
       const symbol = new IIRecognizedText([stroke, stroke1], { baseline: 10, xHeight: 12 })
       symbol.removeStrokes([stroke.id])
       expect(symbol.strokes).toEqual([stroke1])
     })
     test("should remove all strokes", () =>
     {
-      const stroke = buildOIStroke()
-      const stroke1 = buildOIStroke()
+      const stroke = buildIIStroke()
+      const stroke1 = buildIIStroke()
       const symbol = new IIRecognizedText([stroke, stroke1], { baseline: 10, xHeight: 12 })
       symbol.removeStrokes([stroke.id, stroke1.id])
       expect(symbol.strokes).toEqual([])
@@ -139,7 +139,7 @@ describe("IIRecognizedText.ts", () =>
         color: "blue",
         width: 20
       }
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       const symbol = new IIRecognizedText([stroke], { baseline: 10, xHeight: 12 }, style)
 
       const clone = symbol.clone()
@@ -152,7 +152,7 @@ describe("IIRecognizedText.ts", () =>
         color: "blue",
         width: 20
       }
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       const symbol = new IIRecognizedText([stroke], { baseline: 10, xHeight: 12 }, style)
       symbol.decorators.push(new IIDecorator(DecoratorKind.Highlight, { color: "red", opacity: 0.5 }))
       const clone = symbol.clone()
@@ -165,7 +165,7 @@ describe("IIRecognizedText.ts", () =>
   {
     test("should get json", () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       const symbol = new IIRecognizedText([stroke], { baseline: 10, xHeight: 12 })
       symbol.label = "pouet"
       const json = symbol.toJSON()
@@ -182,7 +182,7 @@ describe("IIRecognizedText.ts", () =>
     })
     test("should equal to JSON.parse -> JSON.stringify", () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       const symbol = new IIRecognizedText([stroke], { baseline: 10, xHeight: 12 })
       const json = JSON.parse(JSON.stringify(symbol))
       expect(json).toEqual(symbol.toJSON())
@@ -230,7 +230,7 @@ describe("IIRecognizedText.ts", () =>
     })
     test("should create clone from json", () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       const symbol = new IIRecognizedText([stroke], { baseline: 10, xHeight: 12 })
       const json = JSON.parse(JSON.stringify(symbol))
       const newSymbol = IIRecognizedText.create(json)

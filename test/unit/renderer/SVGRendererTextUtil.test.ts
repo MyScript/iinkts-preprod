@@ -1,7 +1,7 @@
 import { DecoratorKind, IIDecorator, IIText, SymbolType, TBox, TIISymbolChar, TPoint } from "../../../src/symbol"
 import { SVGRendererConst, SVGRendererTextUtil } from "../../../src/renderer"
 
-describe("teOISVGRendererTextUtilxt", () =>
+describe("SVGRendererTextUtil.ts", () =>
   {
     const chars: TIISymbolChar[] = [
       {

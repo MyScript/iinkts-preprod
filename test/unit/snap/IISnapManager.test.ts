@@ -1,4 +1,4 @@
-import { buildOILine } from "../helpers"
+import { buildIILine } from "../helpers"
 import { InteractiveInkEditorMock } from "../__mocks__/InteractiveInkEditorMock"
 import
 {
@@ -111,7 +111,7 @@ describe("IISnapManager.ts", () =>
           x: point.x + 3 * manager.snapThreshold,
           y: point.y + 4 * manager.snapThreshold
         }
-        const line = buildOILine({ start, end })
+        const line = buildIILine({ start, end })
         editor.model.addSymbol(line)
         expect(manager.snapResize(point)).toEqual(point)
         expect(manager.renderer.clearElements).toHaveBeenCalledTimes(1)
@@ -130,7 +130,7 @@ describe("IISnapManager.ts", () =>
           x: point.x + manager.snapThreshold / 2,
           y: point.y + 4 * manager.snapThreshold
         }
-        const line = buildOILine({ start, end })
+        const line = buildIILine({ start, end })
         editor.model.addSymbol(line)
         expect(manager.snapResize(point)).toEqual({ x: end.x, y: point.y })
         expect(manager.renderer.drawLine).toHaveBeenCalledTimes(1)
@@ -149,7 +149,7 @@ describe("IISnapManager.ts", () =>
           x: point.x + 3 * manager.snapThreshold,
           y: point.y + manager.snapThreshold / 2
         }
-        const line = buildOILine({ start, end })
+        const line = buildIILine({ start, end })
         editor.model.addSymbol(line)
         expect(manager.snapResize(point)).toEqual({ x: point.x, y: end.y })
         expect(manager.renderer.drawLine).toHaveBeenCalledTimes(1)
@@ -168,7 +168,7 @@ describe("IISnapManager.ts", () =>
           x: point.x + 3 * manager.snapThreshold,
           y: point.y + manager.snapThreshold / 2
         }
-        const line = buildOILine({ start, end })
+        const line = buildIILine({ start, end })
         editor.model.addSymbol(line)
         expect(manager.snapResize(point)).toEqual({ x: start.x, y: end.y })
         expect(manager.renderer.drawLine).toHaveBeenCalledTimes(2)
@@ -242,7 +242,7 @@ describe("IISnapManager.ts", () =>
           x: nudge.x + 3 * manager.snapThreshold,
           y: nudge.y + 4 * manager.snapThreshold
         }
-        const line = buildOILine({ start, end })
+        const line = buildIILine({ start, end })
         editor.model.addSymbol(line)
         expect(manager.snapTranslate(nudge.x, nudge.y)).toEqual(nudge)
         expect(manager.renderer.clearElements).toHaveBeenCalledTimes(1)
@@ -261,7 +261,7 @@ describe("IISnapManager.ts", () =>
           x: selectionSnapPointMock.x + nudge.x + manager.snapThreshold / 2,
           y: selectionSnapPointMock.y + nudge.y + 4 * manager.snapThreshold
         }
-        const line = buildOILine({ start, end })
+        const line = buildIILine({ start, end })
         editor.model.addSymbol(line)
         expect(manager.snapTranslate(nudge.x, nudge.y)).toEqual({ x: (end.x - selectionSnapPointMock.x), y: nudge.y })
         expect(manager.renderer.drawLine).toHaveBeenCalledTimes(1)
@@ -280,7 +280,7 @@ describe("IISnapManager.ts", () =>
           x: selectionSnapPointMock.x + nudge.x + 3 * manager.snapThreshold,
           y: selectionSnapPointMock.y + nudge.y +  manager.snapThreshold / 4
         }
-        const line = buildOILine({ start, end })
+        const line = buildIILine({ start, end })
         editor.model.addSymbol(line)
         expect(manager.snapTranslate(nudge.x, nudge.y)).toEqual({ x: nudge.x, y: (end.y - selectionSnapPointMock.y) })
         expect(manager.renderer.drawLine).toHaveBeenCalledTimes(1)
@@ -299,7 +299,7 @@ describe("IISnapManager.ts", () =>
           x: selectionSnapPointMock.x + nudge.x + 3 * manager.snapThreshold,
           y: selectionSnapPointMock.y + nudge.y +  manager.snapThreshold / 2
         }
-        const line = buildOILine({ start, end })
+        const line = buildIILine({ start, end })
         editor.model.addSymbol(line)
         expect(manager.snapTranslate(nudge.x, nudge.y)).toEqual({ x: (start.x - selectionSnapPointMock.x), y: (end.y - selectionSnapPointMock.y) })
         expect(manager.renderer.drawLine).toHaveBeenCalledTimes(2)
