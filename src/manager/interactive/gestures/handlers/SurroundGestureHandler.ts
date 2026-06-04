@@ -1,6 +1,6 @@
 import { LoggerManager, LoggerCategory, type Logger } from "@/logger"
 import { EditorTool } from "@/Constants"
-import { IIDecorator, IIStroke, SymbolType, IIText, DecoratorKind, IIRecognizedText, RecognizedKind } from "@/symbol"
+import { IIDecorator, IIStroke, IIText, DecoratorKind, IIRecognizedText, isRecognizedText, isText } from "@/symbol"
 import { TIIHistoryChanges } from "@/history"
 import type { InteractiveInkEditor } from "@/editor"
 import type { TGesture } from "@/manager/interactive/GestureTypes"
@@ -73,7 +73,7 @@ export class SurroundGestureHandler extends GestureHandler
         const symWithDec = sym as (IIText | IIStroke | IIRecognizedText)
 
         // Apply decorator on words for IIRecognizedText, or on symbol level for others
-        if ((symWithDec.type === SymbolType.Recognized && symWithDec.kind === RecognizedKind.Text) || symWithDec.type === SymbolType.Text) {
+        if (isRecognizedText(symWithDec) || isText(symWithDec)) {
           const modified = this.helpers.applyDecoratorOnWords(symWithDec as (IIText | IIRecognizedText), gestureStroke, DecoratorKind.Highlight)
           if (modified) {
             this.model.updateSymbol(symWithDec)
@@ -111,7 +111,7 @@ export class SurroundGestureHandler extends GestureHandler
         const symWithDec = sym as (IIText | IIStroke | IIRecognizedText)
 
         // Apply decorator on words for IIRecognizedText, or on symbol level for others
-        if ((symWithDec.type === SymbolType.Recognized && symWithDec.kind === RecognizedKind.Text) || symWithDec.type === SymbolType.Text) {
+        if (isRecognizedText(symWithDec) || isText(symWithDec)) {
           const modified = this.helpers.applyDecoratorOnWords(symWithDec as (IIText | IIRecognizedText), gestureStroke, DecoratorKind.Surround)
           if (modified) {
             this.model.updateSymbol(symWithDec)

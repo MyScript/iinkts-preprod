@@ -1,5 +1,5 @@
 import { LoggerManager, LoggerCategory, type Logger } from "@/logger"
-import { IIDecorator, IIStroke, SymbolType, IIText, DecoratorKind, IIRecognizedText, RecognizedKind, type TIISymbol } from "@/symbol"
+import { IIDecorator, IIStroke, IIText, DecoratorKind, IIRecognizedText, type TIISymbol, isRecognizedText, isText, SymbolType } from "@/symbol"
 import { TIIHistoryChanges } from "@/history"
 import type { InteractiveInkEditor } from "@/editor"
 import type { TGesture } from "@/manager/interactive/GestureTypes"
@@ -58,7 +58,7 @@ export class StrikeThroughGestureHandler extends GestureHandler
         const symWithDec = symbol as (IIText | IIStroke | IIRecognizedText)
 
         // Apply decorator on words for IIRecognizedText, or on symbol level for others
-        if ((symWithDec.type === SymbolType.Recognized && symWithDec.kind === RecognizedKind.Text) || symWithDec.type === SymbolType.Text) {
+        if (isRecognizedText(symWithDec) || isText(symWithDec)) {
           const modified = this.helpers.applyDecoratorOnWords(symWithDec as (IIText | IIRecognizedText), gestureStroke, DecoratorKind.Strikethrough)
           if (modified) {
             this.model.updateSymbol(symWithDec)

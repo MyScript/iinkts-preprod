@@ -17,8 +17,9 @@ import
   IIRecognizedCircle,
   IIRecognizedEllipse,
   IIRecognizedPolygon,
-  RecognizedKind,
-  isRecognizedMath
+  isRecognizedMath,
+  isRecognizedText,
+  isRecognized
 } from "@/symbol"
 import { convertMillimeterToPixel, convertBoundingBoxMillimeterToPixel } from "@/utils"
 
@@ -492,8 +493,7 @@ export class IISynchronizerManager
 
     if (jiixAssociation.strokes.length) {
       const existingText = this.model.symbols.find(s =>
-        s.type === SymbolType.Recognized &&
-        s.kind === RecognizedKind.Text &&
+        isRecognizedText(s) &&
         s.jiixId === el.id
       ) as IIRecognizedText | undefined
 
@@ -589,10 +589,9 @@ export class IISynchronizerManager
     const oldWordDecorators = new Map<string, IIDecorator[]>()
     jiixAssociation.symbols.forEach(sym =>
     {
-      if (sym.type === SymbolType.Recognized && sym.kind === RecognizedKind.Text) {
-        const oldText = sym as IIRecognizedText
-        if (oldText.words) {
-          oldText.words.forEach(w => {
+      if (isRecognizedText(sym)) {
+        if (sym.words) {
+          sym.words.forEach(w => {
             if (w.decorators && w.decorators.length > 0) {
               oldWordDecorators.set(w.label, w.decorators)
             }
@@ -623,7 +622,7 @@ export class IISynchronizerManager
 
     jiixAssociation.symbols.forEach(sym =>
     {
-      if (sym.type === SymbolType.Recognized && sym.kind === RecognizedKind.Text) {
+      if (isRecognizedText(sym)) {
         sym.decorators.forEach(d =>
         {
           if (!recognizedText.decorators.some(wd => wd.kind === d.kind)) {
@@ -761,7 +760,7 @@ export class IISynchronizerManager
     jiixAssociation.symbols.forEach(sym =>
     {
       if (sym.id !== existingMath.id) {
-        if (isEmbedded && sym.type === SymbolType.Recognized && sym.kind === RecognizedKind.Text) {
+        if (isEmbedded && isRecognizedText(sym)) {
           this.#logger.debug("updateExistingMathSymbol", "Skipping removal of Text symbol:", sym.id)
           return
         }
@@ -793,7 +792,7 @@ export class IISynchronizerManager
 
     jiixAssociation.symbols.forEach(sym =>
     {
-      if (isEmbedded && sym.type === SymbolType.Recognized && sym.kind === RecognizedKind.Text) {
+      if (isEmbedded && isRecognizedText(sym)) {
         this.#logger.debug("createNewMathSymbol", "Skipping removal of Text symbol:", sym.id)
         return
       }
@@ -814,7 +813,7 @@ export class IISynchronizerManager
     const jiixAssociation = this.getSymbolsAndStrokesAssociatedFromJIIXStrokeItems(el.items)
     if (jiixAssociation.strokes.length) {
       const existingNode = this.model.symbols.find(s =>
-        s.type === SymbolType.Recognized &&
+        isRecognized(s) &&
         s.jiixId === el.id
       ) as TIIRecognized | undefined
 
@@ -892,8 +891,8 @@ export class IISynchronizerManager
     )
     if (jiixAssociation.strokes.length) {
       const existingEdge = this.model.symbols.find(s =>
-        s.type === SymbolType.Recognized &&
-        (s as TIIRecognized).jiixId === el.id
+        isRecognized(s) &&
+        s.jiixId === el.id
       ) as TIIRecognized | undefined
 
       if (existingEdge) {
