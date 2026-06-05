@@ -1,5 +1,4 @@
 import { InteractiveInkEditor } from "@/editor"
-import { IIRecognizedMath } from "@/symbol"
 import { Modal } from "./Modal"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import { BORDER_RADIUS, flexColumnStyle, SPACING } from "./styles"
@@ -8,7 +7,7 @@ import { BORDER_RADIUS, flexColumnStyle, SPACING } from "./styles"
  * @group Components
  */
 export interface NumericalComputationResult {
-  symbol: IIRecognizedMath
+  jiixBlock: {id: string, label: string}
   value?: number
   error?: string
 }
@@ -19,13 +18,15 @@ export interface NumericalComputationResult {
  */
 export class IINumericalComputationResult {
   private editor: InteractiveInkEditor
-  private symbols: IIRecognizedMath[]
+  private jiixBlocks: {id: string, label: string}[]
   private modal?: Modal
   private logger = LoggerManager.getLogger(LoggerCategory.MENU)
 
-  constructor(editor: InteractiveInkEditor, symbols: IIRecognizedMath[]) {
+  constructor(editor: InteractiveInkEditor, jiixBlocks: {id: string, label: string}[]) {
     this.editor = editor
-    this.symbols = symbols
+    this.jiixBlocks = [...new Map(
+      jiixBlocks.map(block => [block.id, block])
+    ).values()]
   }
 
   /**
@@ -34,25 +35,25 @@ export class IINumericalComputationResult {
   private async computeResults(): Promise<NumericalComputationResult[]> {
     const results: NumericalComputationResult[] = []
 
-    for (const symbol of this.symbols) {
+    for (const jiixBlock of this.jiixBlocks) {
       try {
-        const result = await this.editor.computeMathNumericalResult(symbol, this.editor.drawComputationResult)
+        const result = await this.editor.computeMathNumericalResult(jiixBlock, this.editor.drawComputationResult)
 
         if (!this.editor.drawComputationResult && result.value !== undefined) {
           results.push({
-            symbol,
+            jiixBlock,
             value: result.value
           })
         } else if (this.editor.drawComputationResult) {
           results.push({
-            symbol,
+            jiixBlock,
             value: result.value
           })
         }
       } catch (error) {
         this.logger.error("computeResults", error)
         results.push({
-          symbol,
+          jiixBlock,
           error: error instanceof Error ? error.message : String(error)
         })
       }
@@ -88,7 +89,7 @@ export class IINumericalComputationResult {
         color: #424242;
         font-family: monospace;
       `
-      symbolLabel.textContent = result.symbol.label || "N/A"
+      symbolLabel.textContent = result.jiixBlock.label || "N/A"
 
       resultItem.appendChild(symbolLabel)
 
@@ -139,7 +140,7 @@ export class IINumericalComputationResult {
    * Show the numerical computation results modal
    */
   async show(): Promise<void> {
-    this.logger.info("show", { symbols: this.symbols })
+    this.logger.info("show", { jiixBlocks: this.jiixBlocks.map(b => b.label) })
 
     // Compute results
     const results = await this.computeResults()
@@ -149,7 +150,7 @@ export class IINumericalComputationResult {
 
     // Create modal
     this.modal = new Modal({
-      title: `Numerical Computation Results (${this.symbols.length} symbol${this.symbols.length > 1 ? "s" : ""})`,
+      title: `Numerical Computation Results (${this.jiixBlocks.length} block${this.jiixBlocks.length > 1 ? "s" : ""})`,
       fields: [],
       customContent: resultsDisplay,
     })

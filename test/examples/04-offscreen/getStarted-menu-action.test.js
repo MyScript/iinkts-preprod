@@ -37,9 +37,15 @@ test.describe("Offscreen Get Started Menu Action", () => {
         writeStrokes(page, helloOneStroke.strokes)
       ])
       const symbols = await getEditorSymbols(page)
-      expect(symbols).toHaveLength(1)
-      expect(symbols[0].type).toEqual("recognized")
-      expect(symbols[0].label).toEqual(helloOneStroke.exports["text/plain"].at(-1))
+      const jiix = await getEditorExportsType(page, "application/vnd.myscript.jiix")
+      expect(symbols).toHaveLength(helloOneStroke.strokes.length)
+      expect(jiix.elements).toHaveLength(1)
+      expect(jiix.elements[0].type).toStrictEqual("Text")
+      symbols.forEach(symbol => {
+        expect(symbol.type).toEqual("stroke")
+        expect(symbol.jiixBlockId).toEqual(jiix.elements[0].id)
+        expect(symbol.jiixBlockType).toEqual(jiix.elements[0].type)
+      })
     })
 
     await test.step("should undo the last stroke written", async () => {
@@ -136,8 +142,7 @@ test.describe("Offscreen Get Started Menu Action", () => {
       ])
       const symbols = await getEditorSymbols(page)
       expect(symbols).toHaveLength(1)
-      expect(symbols[0].type).toEqual("recognized")
-      expect(symbols[0].kind).toEqual("text")
+      expect(symbols[0].type).toEqual("stroke")
     })
 
     await test.step("should convert stroke to text", async () => {
@@ -175,12 +180,7 @@ test.describe("Offscreen Get Started Menu Action", () => {
       await callEditorSynchronize(page)
 
       const symbols = await getEditorSymbols(page)
-      expect(symbols).toHaveLength(1)
-      expect(symbols[0].label).not.toEqual(laLecon.exports["application/vnd.myscript.jiix"].label)
-      expect(symbols[0].words[0].label).toEqual(laLecon.exports["application/vnd.myscript.jiix"].words[0].label)
-      //should not recognize typical French character: ç
-      expect(symbols[0].words[2].label).not.toEqual(laLecon.exports["application/vnd.myscript.jiix"].words[1].label)
-
+      expect(symbols).toHaveLength(laLecon.strokes.length)
       const jiix = await getEditorExportsType(page, "application/vnd.myscript.jiix")
       expect(jiix.elements[0].label).not.toEqual(laLecon.exports["application/vnd.myscript.jiix"].label)
     })
@@ -191,20 +191,11 @@ test.describe("Offscreen Get Started Menu Action", () => {
         page.locator(locator.menu.action.language.trigger).click(),
         page.locator(locator.menu.action.language.inputSelect).selectOption({ value: "fr_FR" })
       ])
-      //write something in French with a typical French character: ç
-      await Promise.all([
-        waitForSynchronizedEvent(page),
-        writeStrokes(page, laLecon.strokes)
-      ])
       await callEditorIdle(page)
       await callEditorSynchronize(page)
 
       const symbols = await getEditorSymbols(page)
-      expect(symbols).toHaveLength(1)
-      expect(symbols[0].label).toEqual(laLecon.exports["application/vnd.myscript.jiix"].label)
-      expect(symbols[0].words[0].label).toEqual(laLecon.exports["application/vnd.myscript.jiix"].words[0].label)
-      //should recognize typical French character: ç
-      expect(symbols[0].words[2].label).toEqual(laLecon.exports["application/vnd.myscript.jiix"].words[1].label)
+      expect(symbols).toHaveLength(laLecon.strokes.length)
 
       const jiix = await getEditorExportsType(page, "application/vnd.myscript.jiix")
       expect(jiix.elements[0].label).toEqual(laLecon.exports["application/vnd.myscript.jiix"].label)
@@ -233,8 +224,8 @@ test.describe("Offscreen Get Started Menu Action", () => {
       const symbols = await getEditorSymbols(page)
       expect(symbols).toHaveLength(1)
       const symbol = symbols[0]
-      expect(symbol.words[0].decorators).toHaveLength(1)
-      const strikeThrough = symbol.words[0].decorators[0]
+      expect(symbol.decorators).toHaveLength(1)
+      const strikeThrough = symbol.decorators[0]
       expect(strikeThrough.kind).toEqual("strikethrough")
 
       // toBeVisible fails on horizontal line so we just check if parent is visible
@@ -383,17 +374,14 @@ test.describe("Offscreen Get Started Menu Action", () => {
       expect(symbols).toHaveLength(1)
 
       const recoSym = symbols[0]
-      expect(recoSym.type).toEqual("recognized")
-      expect(recoSym.kind).toEqual("text")
-      expect(recoSym.words[0].decorators).toHaveLength(1)
+      expect(recoSym.type).toEqual("stroke")
 
-      const surrondSym = recoSym.words[0].decorators[0]
+      const surrondSym = recoSym.decorators[0]
       expect(surrondSym.kind).toEqual("surround")
 
       const symLocator = page.locator(`#${ recoSym.id }`)
       await expect(symLocator).toBeVisible()
-      await expect(symLocator).toHaveAttribute("type", "recognized")
-      await expect(symLocator).toHaveAttribute("kind", "text")
+      await expect(symLocator).toHaveAttribute("type", "stroke")
 
       const surroundLocator = symLocator.locator(`#${ surrondSym.id }`)
       await expect(surroundLocator).toBeVisible()
@@ -464,7 +452,7 @@ test.describe("Offscreen Get Started Menu Action", () => {
       ])
       const symbols = await page.evaluate("editorEl.editor.model.symbols")
       expect(symbols).toHaveLength(1)
-      expect(symbols[0].type).toEqual("recognized")
+      expect(symbols[0].type).toEqual("stroke")
       expect(symbols[0].kind).toEqual("text")
     })
 

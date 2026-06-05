@@ -1,6 +1,6 @@
 import { InteractiveInkEditor } from "@/editor"
 import { SubMenuItem, IMenuSubMenu } from "@/menu/items/SubMenuItem"
-import { IIRecognizedMath, isRecognizedMath } from "@/symbol"
+import { IIStroke, isRecognizedMath } from "@/symbol"
 import { Modal, ModalField, IIFunctionEvaluator, IIDiagnosticChecker, IINumericalComputationResult } from "@/components"
 import { LoggerCategory, LoggerManager } from "@/logger"
 
@@ -47,8 +47,7 @@ export class MathContextMenu extends SubMenuItem
                 return
               }
 
-              // Use IIDiagnosticChecker component
-              const checker = new IIDiagnosticChecker(editor, mathSymbols)
+              const checker = new IIDiagnosticChecker(editor, mathSymbols.map(s => ({id: s.jiixBlockId!, label: editor.blockMetadata.getLabel(s.id) || "N/A"})))
               await checker.show()
 
             } catch (error) {
@@ -65,14 +64,14 @@ export class MathContextMenu extends SubMenuItem
             
             try {
               const symbolsSelected = editor.model.symbolsSelected
-              const mathSymbol = symbolsSelected[0] as IIRecognizedMath
+              const mathSymbol = symbolsSelected[0] as IIStroke
               
-              if (!mathSymbol.jiixId) {
+              if (!mathSymbol.jiixBlockId) {
                 this.logger.warn("Selected math symbol does not have jiixId")
                 return
               }
 
-              const variables = await editor.getVariables(mathSymbol.jiixId)
+              const variables = await editor.getVariables(mathSymbol.jiixBlockId)
               this.logger.info("Variables extracted:", variables)
 
               if (variables.length === 0) {
@@ -81,13 +80,17 @@ export class MathContextMenu extends SubMenuItem
               }
 
               // Create modal fields from variables
-              const fields: ModalField[] = variables.map(variable => ({
-                id: `var-${variable.name}`,
-                label: `${variable.name}:`,
-                type: "number" as const,
-                defaultValue: mathSymbol.variableValues?.[variable.name] ?? variable.value,
-                placeholder: "Value"
-              }))
+              const fields: ModalField[] = variables.map(variable => {
+                // Get current value from computation manager
+                const storedValues = editor.math.actions.getStoredVariableValues(mathSymbol.jiixBlockId!)
+                return {
+                  id: `var-${variable.name}`,
+                  label: `${variable.name}:`,
+                  type: "number" as const,
+                  defaultValue: storedValues?.[variable.name] ?? variable.value,
+                  placeholder: "Value"
+                }
+              })
 
               const modal: Modal = new Modal({
                 title: "Variables",
@@ -110,7 +113,7 @@ export class MathContextMenu extends SubMenuItem
                           }
                         }
 
-                        await editor.setMathVariables(mathSymbol, variableValues)
+                        await editor.setMathVariables({ id: mathSymbol.jiixBlockId!, label: editor.blockMetadata.getLabel(mathSymbol.id)! }, variableValues)
                         modal.destroy()
                       } catch (error) {
                         this.logger.error("Error setting variable values:", error)
@@ -148,7 +151,7 @@ export class MathContextMenu extends SubMenuItem
               }
               
               // Use IINumericalComputationResult component
-              const computer = new IINumericalComputationResult(editor, mathSymbols)
+              const computer = new IINumericalComputationResult(editor, mathSymbols.map(s => ({id: s.jiixBlockId!, label: editor.blockMetadata.getLabel(s.id) || "N/A"})))
               await computer.show()
 
             } catch (error) {
@@ -171,7 +174,7 @@ export class MathContextMenu extends SubMenuItem
                 this.logger.warn("No math symbol selected")
                 return
               }
-              const evaluator = new IIFunctionEvaluator(editor, mathSymbols)
+              const evaluator = new IIFunctionEvaluator(editor, mathSymbols.map(s => ({id: s.jiixBlockId!, label: editor.blockMetadata.getLabel(s.id) || "N/A"})))
               await evaluator.show()
 
             } catch (error) {

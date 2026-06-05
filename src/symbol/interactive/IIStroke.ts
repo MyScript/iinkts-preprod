@@ -4,8 +4,40 @@ import { TStroke, TStrokeToSend } from "@/symbol/base/Stroke"
 import { TPoint, TPointer } from "@/symbol/base/Point"
 import { Box, TBox } from "@/symbol/base/Box"
 import { SymbolType } from "@/symbol/base/Symbol"
-import { IIDecorator } from "./IIDecorator"
+import { IIDecorator, DecoratorKind } from "./IIDecorator"
 import { IISymbolBase } from "./IISymbolBase"
+
+/**
+ * JIIX Text metadata for a stroke
+ * @group Symbol
+ */
+export type TStrokeJIIXTextWordInfo = {
+  label: string
+  firstChar?: number
+  lastChar?: number
+  bounds?: Box
+  decorators?: IIDecorator[]
+  id?: string
+}
+
+/**
+ * JIIX Text metadata for a stroke
+ * @group Symbol
+ */
+export type TStrokeJIIXTextCharInfo = {
+  label: string
+  word: number
+  bounds?: Box
+}
+
+/**
+ * JIIX Text metadata for a stroke
+ * @group Symbol
+ */
+export type TStrokeJIIXTextLineInfo = {
+  baseline: number
+  xHeight: number
+}
 
 /**
  * @group Symbol
@@ -18,6 +50,16 @@ export class IIStroke extends IISymbolBase<SymbolType.Stroke>
   length: number
   decorators: IIDecorator[]
   pointers: Array<TPointer>
+
+  // JIIX Block metadata
+  jiixBlockId?: string
+  jiixBlockType?: "Text" | "Math" | "Node" | "Edge" | "Decorator"
+
+  // Computation metadata
+  isSolverOutput?: boolean  // True if this stroke is from a numerical computation result
+
+  // Decorator metadata
+  decoratorKind?: DecoratorKind  // Type of decorator if this stroke is a decorator
 
   constructor(style?: PartialDeep<TStyle>, pointerType = "pen")
   {
@@ -139,6 +181,13 @@ export class IIStroke extends IISymbolBase<SymbolType.Stroke>
     clone.pointers = structuredClone(this.pointers)
     clone.decorators = this.decorators.map(d => d.clone())
     clone.length = this.length
+
+    // Copy JIIX metadata
+    clone.jiixBlockId = this.jiixBlockId
+    clone.jiixBlockType = this.jiixBlockType
+    clone.isSolverOutput = this.isSolverOutput
+    clone.decoratorKind = this.decoratorKind
+
     return clone
   }
 

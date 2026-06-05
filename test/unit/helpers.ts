@@ -14,8 +14,6 @@ import
   TPoint,
   DecoratorKind,
   IIEraser,
-  IIRecognizedText,
-  IIRecognizedMath,
   IIMath,
   TIIMathElement,
   PartialDeep,
@@ -119,34 +117,6 @@ export function buildIIText(
 ): IIText
 {
   return new IIText(chars, point, boundingBox, style)
-}
-
-export function buildRecognizedText(
-  nbStroke: number = 1,
-  { baseline, xHeight }: { baseline: number, xHeight: number } = { baseline: 10, xHeight: 10 },
-  style?: PartialDeep<TStyle>
-): IIRecognizedText
-{
-  const strokes: IIStroke[] = []
-  for (let i = 0; i < nbStroke; i++) {
-    strokes.push(buildIIStroke())
-  }
-  return new IIRecognizedText(strokes, { baseline, xHeight }, style)
-}
-
-export function buildRecognizedMath(
-  nbStroke: number = 1,
-  label: string = "y=3x+2",
-  style?: PartialDeep<TStyle>
-): IIRecognizedMath
-{
-  const strokes: IIStroke[] = []
-  for (let i = 0; i < nbStroke; i++) {
-    strokes.push(buildIIStroke())
-  }
-  const math = new IIRecognizedMath(strokes, style)
-  math.label = label
-  return math
 }
 
 export function buildIIMath(

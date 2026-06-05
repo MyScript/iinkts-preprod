@@ -1,32 +1,27 @@
-import { LoggerManager, LoggerCategory } from "@/logger"
-import { SVGRenderer } from "@/renderer"
-import { IIModel } from "@/model"
+import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import { IIAbstractManager } from "./IIAbstractManager"
 
 /**
  * Manages transient ink overlays (temporary solver results)
  * These are removed when source blocks are modified
  * @group Manager
  */
-export class IITransientInkManager {
-  #logger = LoggerManager.getLogger(LoggerCategory.MODEL)
+export class IITransientInkManager extends IIAbstractManager {
+  protected managerName = "IITransientInkManager"
 
   // Map: sourceBlockId -> transient symbol IDs
   #transientSymbols: Map<string, string[]> = new Map()
 
-  renderer: SVGRenderer
-  model: IIModel
-
-  constructor(renderer: SVGRenderer, model: IIModel) {
-    this.#logger.info("constructor")
-    this.renderer = renderer
-    this.model = model
+  constructor(editor: InteractiveInkEditor) {
+    super(editor)
+    this.logger.info("constructor")
   }
 
   /**
    * Add a transient symbol (solver output) linked to a source block
    */
   addTransientSymbol(sourceBlockId: string, symbolId: string): void {
-    this.#logger.debug("addTransientSymbol", { sourceBlockId, symbolId })
+    this.logger.debug("addTransientSymbol", { sourceBlockId, symbolId })
 
     if (!this.#transientSymbols.has(sourceBlockId)) {
       this.#transientSymbols.set(sourceBlockId, [])
@@ -42,7 +37,7 @@ export class IITransientInkManager {
    * Remove all transient symbols associated with a source block
    */
   clearTransientsForBlock(sourceBlockId: string): void {
-    this.#logger.debug("clearTransientsForBlock", { sourceBlockId })
+    this.logger.debug("clearTransientsForBlock", { sourceBlockId })
 
     const symbolIds = this.#transientSymbols.get(sourceBlockId)
     if (!symbolIds) {
@@ -69,7 +64,7 @@ export class IITransientInkManager {
    * Clear all transient symbols
    */
   clearAll(): void {
-    this.#logger.info("clearAll", "Clearing all transient symbols")
+    this.logger.info("clearAll", "Clearing all transient symbols")
 
     for (const sourceBlockId of this.#transientSymbols.keys()) {
       this.clearTransientsForBlock(sourceBlockId)

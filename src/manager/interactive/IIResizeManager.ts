@@ -11,14 +11,12 @@ import
   TIIEdge,
   TIIShape,
   TPoint,
-  TIIRecognized,
-  RecognizedKind,
   isText,
   isMath,
   isShape,
   isCircleShape
 } from "@/symbol"
-import { AbstractTransformManager } from "./AbstractTransformManager"
+import { IIAbstractTransformManager } from "./AbstractTransformManager"
 
 /**
  * Helper functions for resize direction checks
@@ -38,8 +36,9 @@ const isSouthernResize = (direction: ResizeDirection): boolean =>
 /**
  * @group Manager
  */
-export class IIResizeManager extends AbstractTransformManager<[TPoint, number, number]>
+export class IIResizeManager extends IIAbstractTransformManager<[TPoint, number, number]>
 {
+  protected managerName = "IIResizeManager"
   protected transformName = "resize"
   direction!: ResizeDirection
   boundingBox!: Box
@@ -54,11 +53,23 @@ export class IIResizeManager extends AbstractTransformManager<[TPoint, number, n
   protected applyToStroke(stroke: IIStroke, origin: TPoint, scaleX: number, scaleY: number): IIStroke
   {
     this.logger.debug("applyToStroke", { stroke, origin, scaleX, scaleY })
+
+    // NEW ARCHITECTURE: Skip solver outputs - they should be recalculated
+    if (stroke.isSolverOutput) {
+      this.logger.warn("applyToStroke", "Skipping solver output stroke - it will be recalculated", stroke.id)
+      return stroke
+    }
+
     stroke.pointers.forEach(p =>
     {
       p.x = +(origin.x + scaleX * (p.x - origin.x)).toFixed(3)
       p.y = +(origin.y + scaleY * (p.y - origin.y)).toFixed(3)
     })
+
+    // Note: Text bounds in blockMetadata should be invalidated after resize
+    // This will be recalculated during next synchronization
+    // TODO: Consider clearing metadata here or marking as invalid
+
     return stroke
   }
 
@@ -169,14 +180,7 @@ export class IIResizeManager extends AbstractTransformManager<[TPoint, number, n
     return math
   }
 
-  protected applyOnRecognizedSymbol(recognizedSymbol: TIIRecognized, origin: TPoint, scaleX: number, scaleY: number): TIIRecognized
-  {
-    recognizedSymbol.strokes.forEach(s => this.applyToStroke(s, origin, scaleX, scaleY))
-    if (recognizedSymbol.kind === RecognizedKind.Text) {
-      recognizedSymbol.xHeight *= scaleY
-    }
-    return recognizedSymbol
-  }
+  // applyOnRecognizedSymbol removed - recognized symbols no longer exist
 
   setTransformOrigin(id: string, originX: number, originY: number): void
   {

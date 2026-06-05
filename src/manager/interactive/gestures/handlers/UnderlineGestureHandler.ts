@@ -1,5 +1,5 @@
 import { LoggerManager, LoggerCategory, type Logger } from "@/logger"
-import { IIDecorator, IIStroke, IIText, DecoratorKind, IIRecognizedText, type TIISymbol, isRecognizedText, isText } from "@/symbol"
+import { IIDecorator, IIStroke, IIText, DecoratorKind, type TIISymbol, isRecognizedText, isText } from "@/symbol"
 import { TIIHistoryChanges } from "@/history"
 import type { InteractiveInkEditor } from "@/editor"
 import type { TGesture } from "@/manager/interactive/GestureTypes"
@@ -56,11 +56,11 @@ export class UnderlineGestureHandler extends GestureHandler
     {
       const sym = this.model.getRootSymbol(id)
       if (sym && this.helpers.isDecorable(sym) && !symbolIdSet.has(sym.id)) {
-        const symWithDec = sym as (IIText | IIStroke | IIRecognizedText)
+        const symWithDec = sym as (IIText | IIStroke)
 
-        // Apply decorator on words for IIRecognizedText, or on symbol level for others
+        // Apply decorator on words for recognized text strokes, or on symbol level for others
         if (isRecognizedText(symWithDec) || isText(symWithDec)) {
-          const modified = this.helpers.applyDecoratorOnWords(symWithDec as (IIText | IIRecognizedText), gestureStroke, DecoratorKind.Underline)
+          const modified = this.helpers.applyDecoratorOnWords(symWithDec as (IIText | IIStroke), gestureStroke, DecoratorKind.Underline)
           if (modified) {
             this.model.updateSymbol(symWithDec)
             this.renderer.drawSymbol(symWithDec)
@@ -68,16 +68,6 @@ export class UnderlineGestureHandler extends GestureHandler
             const underline = new IIDecorator(DecoratorKind.Underline, this.editor.penStyle)
             changes.decorator?.push({ symbol: symWithDec, decorator: underline, added: true })
           }
-        } else {
-          const underline = new IIDecorator(DecoratorKind.Underline, this.editor.penStyle)
-          const index = symWithDec.decorators.findIndex(d => d.kind === DecoratorKind.Underline)
-          const added = index === -1
-          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-          added ? symWithDec.decorators.push(underline) : symWithDec.decorators.splice(index, 1)
-          this.model.updateSymbol(symWithDec)
-          this.renderer.drawSymbol(symWithDec)
-          changes.decorator?.push({ symbol: symWithDec, decorator: underline, added })
-          symbolIdSet.add(symWithDec.id)
         }
       }
     })

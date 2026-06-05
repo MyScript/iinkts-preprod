@@ -10,17 +10,16 @@ import
   TIIEdge,
   TIIShape,
   TIISymbol,
-  TPoint,
-  TIIRecognized,
-  RecognizedKind
+  TPoint
 } from "@/symbol"
-import { AbstractTransformManager } from "./AbstractTransformManager"
+import { IIAbstractTransformManager } from "./AbstractTransformManager"
 
 /**
  * @group Manager
  */
-export class IITranslateManager extends AbstractTransformManager<[number, number]>
+export class IITranslateManager extends IIAbstractTransformManager<[number, number]>
 {
+  protected managerName = "IITranslateManager"
   protected transformName = "translate"
   transformOrigin!: TPoint
 
@@ -31,11 +30,22 @@ export class IITranslateManager extends AbstractTransformManager<[number, number
 
   protected applyToStroke(stroke: IIStroke, tx: number, ty: number): IIStroke
   {
+    // NEW ARCHITECTURE: Skip solver outputs - they should be recalculated
+    if (stroke.isSolverOutput) {
+      this.logger.warn("applyToStroke", "Skipping solver output stroke - it will be recalculated", stroke.id)
+      return stroke
+    }
+
     stroke.pointers.forEach(p =>
     {
       p.x += tx
       p.y += ty
     })
+
+    // Note: Text bounds in blockMetadata would need to be translated too
+    // but this is now handled by the IIBlockMetadataManager during synchronization
+    // The bounds will be recalculated on the next sync from the backend
+
     return stroke
   }
 
@@ -120,14 +130,7 @@ export class IITranslateManager extends AbstractTransformManager<[number, number
     return math
   }
 
-  protected applyOnRecognizedSymbol(recognizedSymbol: TIIRecognized, tx: number, ty: number): TIIRecognized
-  {
-    recognizedSymbol.strokes.forEach(s => this.applyToStroke(s, tx, ty))
-    if (recognizedSymbol.kind === RecognizedKind.Text) {
-      recognizedSymbol.baseline += ty
-    }
-    return recognizedSymbol
-  }
+  // applyOnRecognizedSymbol removed - recognized symbols no longer exist
 
   translate(symbols: TIISymbol[], tx: number, ty: number, addToHistory = true): Promise<void>
   {

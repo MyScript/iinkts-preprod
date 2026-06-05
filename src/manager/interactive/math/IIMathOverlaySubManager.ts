@@ -1,10 +1,11 @@
-import { LoggerManager, LoggerCategory } from "@/logger"
-import { SVGRenderer, SVGBuilder, SVGRendererConst } from "@/renderer"
-import { IIModel } from "@/model"
-import { TBox, TIISymbol, IIRecognizedMath, RecognizedKind, SymbolType } from "@/symbol"
+import { IIAbstractManager } from "../IIAbstractManager"
+import { SVGBuilder, SVGRendererConst } from "@/renderer"
+import { TJIIXMathElement } from "@/model"
+import { TBox, IIStroke } from "@/symbol"
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
-import { ColorPaletteManager } from "../base"
+import { ColorPaletteManager } from "../../base"
 import { COLORS } from "@/components"
+import { convertBoundingBoxMillimeterToPixel } from "@/utils"
 
 /**
  * Visual overlay configuration
@@ -19,14 +20,17 @@ export type TMathOverlayConfig = {
 }
 
 /**
- * Manages visual overlays for recognized math symbols (RecognizedKind.Math):
+ * Manages visual overlays for recognized math symbols:
  * - Badges (∑ for math blocks)
  * - Borders around blocks
  * - Result panels with connection lines
  *
  * @group Manager
  */
-export class IIMathOverlayManager {
+export class IIMathOverlaySubManager extends IIAbstractManager
+{
+  protected managerName = "IIMathOverlaySubManager"
+
   private static readonly DEFAULT_CONFIG: TMathOverlayConfig = {
     showBlockOverlays: false,
     showResultPanels: false,
@@ -51,27 +55,18 @@ export class IIMathOverlayManager {
     "hover-zone"
   ] as const
 
-  #logger = LoggerManager.getLogger(LoggerCategory.MODEL)
   #config: TMathOverlayConfig
   #colorManager: ColorPaletteManager
 
-  editor: InteractiveInkEditor
-  renderer: SVGRenderer
-
-  constructor(editor: InteractiveInkEditor, config: Partial<TMathOverlayConfig> = {}) {
-    this.#logger.info("constructor")
-    this.editor = editor
-    this.renderer = editor.renderer
-    this.#config = { ...IIMathOverlayManager.DEFAULT_CONFIG, ...config }
+  constructor(editor: InteractiveInkEditor, config: Partial<TMathOverlayConfig> = {})
+  {
+    super(editor)
+    this.#config = { ...IIMathOverlaySubManager.DEFAULT_CONFIG, ...config }
     this.#colorManager = ColorPaletteManager.getInstance()
   }
 
-  get model(): IIModel {
-    return this.editor.model
-  }
-
   updateConfig(config: Partial<TMathOverlayConfig>): void {
-    this.#logger.debug("updateConfig", config)
+    this.logger.debug("updateConfig", config)
     this.#config = { ...this.#config, ...config }
     this.refresh()
   }
@@ -90,7 +85,7 @@ export class IIMathOverlayManager {
     }
 
     const size = this.#config.badgeSize
-    const offset = IIMathOverlayManager.BADGE_STYLES.OFFSET
+    const offset = IIMathOverlaySubManager.BADGE_STYLES.OFFSET
 
     const badgeX = box.x - offset - size
     const badgeY = box.y - offset - size
@@ -105,8 +100,8 @@ export class IIMathOverlayManager {
       { x: badgeX + size / 2, y: badgeY + size / 2 },
       size / 2,
       {
-        fill: IIMathOverlayManager.BADGE_STYLES.BACKGROUND,
-        stroke: IIMathOverlayManager.BADGE_STYLES.BORDER,
+        fill: IIMathOverlaySubManager.BADGE_STYLES.BACKGROUND,
+        stroke: IIMathOverlaySubManager.BADGE_STYLES.BORDER,
         "stroke-width": "1",
         style: SVGRendererConst.noSelection
       }
@@ -115,10 +110,10 @@ export class IIMathOverlayManager {
 
     const text = SVGBuilder.createText(
       { x: badgeX + size / 2, y: badgeY + size / 2 + 5 },
-      IIMathOverlayManager.BADGE_STYLES.MATH,
+      IIMathOverlaySubManager.BADGE_STYLES.MATH,
       {
         fill: "#000000",
-        "font-size": IIMathOverlayManager.BADGE_STYLES.FONT_SIZE.toString(),
+        "font-size": IIMathOverlaySubManager.BADGE_STYLES.FONT_SIZE.toString(),
         "font-weight": "bold",
         "text-anchor": "middle",
         style: SVGRendererConst.noSelection
@@ -232,8 +227,8 @@ export class IIMathOverlayManager {
     )
   }
 
-  protected createHoverZone(mathSymbol: IIRecognizedMath): void {
-    const id = `hover-zone-${mathSymbol.id}`
+  protected createHoverZone(bounds: TBox, blockId: string): void {
+    const id = `hover-zone-${blockId}`
 
     this.renderer.removeSymbol(id)
 
@@ -242,83 +237,93 @@ export class IIMathOverlayManager {
       fill: "transparent",
       stroke: "transparent",
       "data-overlay": "hover-zone",
-      "data-block-id": mathSymbol.id,
+      "data-block-id": blockId,
       style: "pointer-events: all;"
     }
 
-    const hoverZone = SVGBuilder.createRect(mathSymbol.bounds, attrs)
+    const hoverZone = SVGBuilder.createRect(bounds, attrs)
 
     hoverZone.addEventListener("pointerenter", () => {
-      this.#logger.debug("hover", `Pointer entered block ${mathSymbol.id}`)
-      this.editor.mathInteractions.onSymbolHover(mathSymbol.id)
+      this.logger.debug("hover", `Pointer entered block ${blockId}`)
+      this.editor.math.interactions.onSymbolHover(blockId)
     })
 
     hoverZone.addEventListener("pointerleave", () => {
-      this.#logger.debug("hover", `Pointer left block ${mathSymbol.id}`)
-      this.editor.mathInteractions.onSymbolHover(null)
+      this.logger.debug("hover", `Pointer left block ${blockId}`)
+      this.editor.math.interactions.onSymbolHover(null)
     })
 
     this.renderer.layer.appendChild(hoverZone)
   }
 
   refresh(): void {
-    this.#logger.info("refresh", "Refreshing all overlays")
+    this.logger.info("refresh", "Refreshing all overlays")
 
     if (!this.model) {
-      this.#logger.warn("refresh", "Model not available, skipping overlay refresh")
+      this.logger.warn("refresh", "Model not available, skipping overlay refresh")
       return
     }
 
     this.clearAll()
 
-    this.model.symbols.forEach(symbol => {
-      this.updateOverlaysForSymbol(symbol)
+    this.model.getMathBlocks().forEach(mathBlock => {
+      if (!mathBlock["bounding-box"]) {
+        this.logger.warn("refresh", `Math block ${mathBlock.id} has no bounds, skipping overlay`)
+        return
+      }
+      this.updateOverlaysForSymbol(mathBlock)
     })
   }
 
-  protected getBlockColor(mathSymbol: IIRecognizedMath): string {
+  protected getBlockColor(mathBlockId: string, mathBlockLabel?: string): string {
     const defaultColor = "#cccccc"
 
-    if (mathSymbol.variableSources && Object.keys(mathSymbol.variableSources).length > 0) {
-      const variableNames = Object.keys(mathSymbol.variableSources)
+    // Get variable sources from computation manager
+    const computation = this.editor.math.computation.getMathBlock(mathBlockId)
+    if (computation?.variableSources && Object.keys(computation.variableSources).length > 0) {
+      const variableNames = Object.keys(computation.variableSources)
       const firstVariable = variableNames[0]
       const color = this.#colorManager.getColorForVariable(firstVariable)
-      this.#logger.debug("getBlockColor", `Block ${mathSymbol.label} uses variable "${firstVariable}" → ${color}`)
+      this.logger.debug("getBlockColor", `Block ${mathBlockLabel || mathBlockId} uses variable "${firstVariable}" → ${color}`)
       return color
     }
 
-    this.#logger.debug("getBlockColor", `Block ${mathSymbol.label} has no variables → ${defaultColor}`)
+    this.logger.debug("getBlockColor", `Block ${mathBlockLabel || mathBlockId} has no variables → ${defaultColor}`)
     return defaultColor
   }
 
-  updateOverlaysForSymbol(symbol: TIISymbol): void {
-    if (symbol.type !== SymbolType.Recognized || symbol.kind !== RecognizedKind.Math) {
+  updateOverlaysForSymbol(mathBlock: TJIIXMathElement): void {
+    if (!mathBlock["bounding-box"]) {
+      this.logger.warn("updateOverlaysForSymbol", `Math block ${mathBlock.id} has no bounding box`)
       return
     }
 
-    const mathSymbol = symbol as IIRecognizedMath
-    const blockColor = this.getBlockColor(mathSymbol)
+    const bounds = convertBoundingBoxMillimeterToPixel(mathBlock["bounding-box"])
+    const blockId = mathBlock.id
+    const blockColor = this.getBlockColor(blockId, mathBlock.label)
 
-    this.drawBadge(mathSymbol.bounds, mathSymbol.id)
-    this.drawBorder(mathSymbol.bounds, mathSymbol.id, blockColor)
+    this.drawBadge(bounds, blockId)
+    this.drawBorder(bounds, blockId, blockColor)
 
-    if (mathSymbol.computedResult !== undefined || (mathSymbol.solverOutputStrokeIds && mathSymbol.solverOutputStrokeIds.length > 0)) {
+    // Get computed result and solver outputs from computation manager
+    const computation = this.editor.math.computation.getMathBlock(blockId)
+    if (computation?.computedResult !== undefined || (computation?.solverOutputStrokeIds && computation.solverOutputStrokeIds.length > 0)) {
 
       let resultText = "Result = "
-      if (mathSymbol.computedResult !== undefined) {
-        resultText += `${mathSymbol.computedResult}`
+      if (computation?.computedResult !== undefined) {
+        resultText += `${computation.computedResult}`
       }
       else {
         resultText += "N/A"
       }
-      this.drawResultPanel(mathSymbol.bounds, mathSymbol.id, resultText)
+      this.drawResultPanel(bounds, blockId, resultText)
     }
 
-    this.createHoverZone(mathSymbol)
+    this.createHoverZone(bounds, blockId)
   }
 
   clearAll(): void {
-    this.#logger.info("clearAll", "Clearing all overlays")
+    this.logger.info("clearAll", "Clearing all overlays")
     this.renderer.clearElements({ attrs: { "data-overlay": "badge" } })
     this.renderer.clearElements({ attrs: { "data-overlay": "border" } })
     this.renderer.clearElements({ attrs: { "data-overlay": "result-panel" } })
@@ -327,9 +332,9 @@ export class IIMathOverlayManager {
   }
 
   clearOverlaysForBlock(id: string): void {
-    this.#logger.debug("clearOverlaysForBlock", { id })
+    this.logger.debug("clearOverlaysForBlock", { id })
 
-    IIMathOverlayManager.OVERLAY_PREFIXES.forEach(prefix => {
+    IIMathOverlaySubManager.OVERLAY_PREFIXES.forEach(prefix => {
       this.renderer.removeSymbol(`${prefix}-${id}`)
     })
   }
@@ -341,7 +346,7 @@ export class IIMathOverlayManager {
    * @param attrs - Additional SVG attributes
    */
   protected drawOverlayRect(
-    mathSymbol: IIRecognizedMath,
+    mathSymbol: IIStroke,
     idPrefix: string,
     attrs: Partial<Record<string, string>>
   ): void {
@@ -361,7 +366,7 @@ export class IIMathOverlayManager {
     this.renderer.layer.appendChild(rect)
   }
 
-  highlightAsSource(mathSymbol: IIRecognizedMath, color?: string): void {
+  highlightAsSource(mathSymbol: IIStroke, color?: string): void {
     this.drawOverlayRect(mathSymbol, "highlight-source", {
       stroke: color || "#4CAF50",
       "stroke-width": "3",
@@ -370,7 +375,7 @@ export class IIMathOverlayManager {
     })
   }
 
-  highlightAsDependent(mathSymbol: IIRecognizedMath): void {
+  highlightAsDependent(mathSymbol: IIStroke): void {
     this.drawOverlayRect(mathSymbol, "highlight-dependent", {
       stroke: "#FF9800",
       "stroke-width": "3",
@@ -406,7 +411,7 @@ export class IIMathOverlayManager {
     this.renderer.layer.appendChild(rect)
   }
 
-  addHoverGlow(mathSymbol: IIRecognizedMath): void {
+  addHoverGlow(mathSymbol: IIStroke): void {
     this.drawOverlayRect(mathSymbol, "glow", {
       stroke: COLORS.primary,
       "stroke-width": "2",
@@ -415,7 +420,7 @@ export class IIMathOverlayManager {
     })
   }
 
-  dimSymbol(mathSymbol: IIRecognizedMath, opacity: number = 0.3): void {
+  dimSymbol(mathSymbol: IIStroke, opacity: number = 0.3): void {
     this.drawOverlayRect(mathSymbol, "dim", {
       fill: "#ffffff",
       opacity: (1 - opacity).toString(),
@@ -427,8 +432,8 @@ export class IIMathOverlayManager {
     const arrowId = `arrow-${fromId}-${toId}`
     this.renderer.removeSymbol(arrowId)
 
-    const fromSymbol = this.model.symbols.find(s => s.id === fromId) as IIRecognizedMath | undefined
-    const toSymbol = this.model.symbols.find(s => s.id === toId) as IIRecognizedMath | undefined
+    const fromSymbol = this.model.symbols.find(s => s.id === fromId) as IIStroke | undefined
+    const toSymbol = this.model.symbols.find(s => s.id === toId) as IIStroke | undefined
 
     if (!fromSymbol || !toSymbol) {
       return

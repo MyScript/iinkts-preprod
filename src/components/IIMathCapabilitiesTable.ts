@@ -1,5 +1,5 @@
 import { InteractiveInkEditor } from "@/editor"
-import { isRecognizedMath, IIRecognizedMath } from "@/symbol"
+import { isRecognizedMath } from "@/symbol"
 import { Modal } from "./Modal"
 import { Table, TableRow } from "./Table"
 import { IIFunctionEvaluator } from "./IIFunctionEvaluator"
@@ -13,7 +13,7 @@ import { createButton, createStatusBadge } from "./ui-utils"
  * @group Components
  */
 export interface MathSymbolCapabilities {
-  symbol: IIRecognizedMath
+  jiixBlock: {id: string, label: string}
   canCheckDiagnostic: boolean
   canEditVariables: boolean
   canCompute: boolean
@@ -43,23 +43,25 @@ export class IIMathCapabilitiesTable {
   /**
    * Fetch capabilities for a single math symbol
    */
-  private async fetchSymbolCapabilities(mathSymbol: IIRecognizedMath): Promise<MathSymbolCapabilities> {
+  private async fetchSymbolCapabilities(jiixBlock: {id: string, label: string}): Promise<MathSymbolCapabilities> {
     let canCheckDiagnostic = false
     let canEditVariables = false
     let canCompute = false
     let canEvaluate = false
 
-    if (mathSymbol.jiixId) {
+    if (jiixBlock.id) {
       try {
         const [actions, variables, evaluables] = await Promise.all([
-          this.editor.getAvailableActions(mathSymbol.jiixId),
-          this.editor.getVariables(mathSymbol.jiixId),
-          this.editor.getEvaluables(mathSymbol.jiixId)
+          this.editor.getAvailableActions(jiixBlock.id),
+          this.editor.getVariables(jiixBlock.id),
+          this.editor.getEvaluables(jiixBlock.id)
         ])
 
         canCheckDiagnostic = true // Always available if jiixId exists
         canEditVariables = Object.keys(variables).length > 0
-        canCompute = actions?.includes("numerical-computation") && !mathSymbol.solverOutputStrokeIds
+        // Check if numerical computation is available
+        // Note: Could also check if block has solver outputs via editor.math.actions.getStoredSolverOutputs(jiixBlock.id)
+        canCompute = actions?.includes("numerical-computation")
         canEvaluate = evaluables?.length ? true : false
       } catch (error) {
         console.error("Error fetching capabilities:", error)
@@ -67,7 +69,7 @@ export class IIMathCapabilitiesTable {
     }
 
     return {
-      symbol: mathSymbol,
+      jiixBlock: { id: jiixBlock.id, label: jiixBlock.label },
       canCheckDiagnostic,
       canEditVariables,
       canCompute,
@@ -86,8 +88,8 @@ export class IIMathCapabilitiesTable {
     const rows: TableRow[] = capabilities.map(cap => {
       // Symbol label cell
       const symbolCell = document.createElement("span")
-      symbolCell.textContent = cap.symbol.label || "N/A"
-      symbolCell.title = cap.symbol.label || ""
+      symbolCell.textContent = cap.jiixBlock.label || "N/A"
+      symbolCell.title = cap.jiixBlock.label || ""
       symbolCell.style.cssText = `
         font-family: monospace;
         max-width: 200px;
@@ -111,7 +113,7 @@ export class IIMathCapabilitiesTable {
 
       return {
         cells: [symbolCell, ...capabilityCells],
-        data: cap.symbol // Store symbol reference in row data
+        data: cap.jiixBlock // Store jiixBlock reference in row data
       }
     })
 
@@ -142,8 +144,8 @@ export class IIMathCapabilitiesTable {
     if (!this.table) return
 
     // Get selected symbols from table
-    const selectedSymbols = this.table.getSelectedRowsData() as IIRecognizedMath[]
-    const selectedIds = selectedSymbols.map(s => s.id)
+    const selectedBlocks = this.table.getSelectedRowsData() as { id: string, label: string }[]
+    const selectedIds = selectedBlocks.map(s => s.id)
 
     // Update editor selection
     this.editor.select(selectedIds)
@@ -262,15 +264,15 @@ export class IIMathCapabilitiesTable {
     if (!this.table) return
 
     const selectedIndices = this.table.getSelectedRows()
-    const selectedSymbols = selectedIndices
+    const selectedBlocks = selectedIndices
       .map(index => this.capabilities[index])
       .filter(cap => cap.canCheckDiagnostic)
-      .map(cap => cap.symbol)
+      .map(cap => cap.jiixBlock)
 
-    if (selectedSymbols.length === 0) return
+    if (selectedBlocks.length === 0) return
 
     // Use IIDiagnosticChecker component
-    const checker = new IIDiagnosticChecker(this.editor, selectedSymbols)
+    const checker = new IIDiagnosticChecker(this.editor, selectedBlocks.map(b => ({id: b.id, label: b.label || "N/A"})))
     await checker.show()
   }
 
@@ -281,15 +283,16 @@ export class IIMathCapabilitiesTable {
     if (!this.table) return
 
     const selectedIndices = this.table.getSelectedRows()
-    const selectedSymbols = selectedIndices
+    const selectedBlocks = selectedIndices
       .map(index => this.capabilities[index])
       .filter(cap => cap.canEditVariables)
-      .map(cap => cap.symbol)
+      .map(cap => cap.jiixBlock)
 
-    if (selectedSymbols.length === 0) return
+    if (selectedBlocks.length === 0) return
 
     // Use IIVariableEditor component
-    const variableEditor = new IIVariableEditor(this.editor, selectedSymbols)
+    const jiixBlocks = selectedBlocks.map(b => ({ id: b.id, label: b.label! }))
+    const variableEditor = new IIVariableEditor(this.editor, jiixBlocks)
     await variableEditor.show()
   }
 
@@ -300,15 +303,16 @@ export class IIMathCapabilitiesTable {
     if (!this.table) return
 
     const selectedIndices = this.table.getSelectedRows()
-    const selectedSymbols = selectedIndices
+    const selectedBlocks = selectedIndices
       .map(index => this.capabilities[index])
       .filter(cap => cap.canCompute)
-      .map(cap => cap.symbol)
+      .map(cap => cap.jiixBlock)
 
-    if (selectedSymbols.length === 0) return
+    if (selectedBlocks.length === 0) return
 
     // Use IINumericalComputationResult component
-    const computer = new IINumericalComputationResult(this.editor, selectedSymbols)
+    const jiixBlocks = selectedBlocks.map(b => ({ id: b.id, label: b.label! }))
+    const computer = new IINumericalComputationResult(this.editor, jiixBlocks)
     await computer.show()
   }
 
@@ -319,15 +323,16 @@ export class IIMathCapabilitiesTable {
     if (!this.table) return
 
     const selectedIndices = this.table.getSelectedRows()
-    const selectedSymbols = selectedIndices
+    const selectedBlocks = selectedIndices
       .map(index => this.capabilities[index])
       .filter(cap => cap.canEvaluate)
-      .map(cap => cap.symbol)
+      .map(cap => cap.jiixBlock)
 
-    if (selectedSymbols.length === 0) return
+    if (selectedBlocks.length === 0) return
 
     // Use IIFunctionEvaluator component
-    const evaluator = new IIFunctionEvaluator(this.editor, selectedSymbols)
+    const jiixBlocks = selectedBlocks.map(b => ({ id: b.id, label: b.label! }))
+    const evaluator = new IIFunctionEvaluator(this.editor, jiixBlocks)
     await evaluator.show()
   }
 
@@ -336,7 +341,9 @@ export class IIMathCapabilitiesTable {
    */
   async show(): Promise<void> {
     // Get all math symbols
-    const mathSymbols = this.editor.model.symbols.filter(isRecognizedMath)
+    const mathSymbols = [...new Map(
+      this.editor.model.symbols.filter(isRecognizedMath).map(block => [block.id, block])
+    ).values()]
 
     if (mathSymbols.length === 0) {
       alert("No math symbols found in the model")
@@ -346,7 +353,7 @@ export class IIMathCapabilitiesTable {
     // Fetch capabilities for all symbols
     const capabilities: MathSymbolCapabilities[] = []
     for (const mathSymbol of mathSymbols) {
-      const cap = await this.fetchSymbolCapabilities(mathSymbol)
+      const cap = await this.fetchSymbolCapabilities({ id: mathSymbol.jiixBlockId || "", label: this.editor.blockMetadata.getLabel(mathSymbol.id) || "" })
       capabilities.push(cap)
     }
 

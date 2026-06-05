@@ -466,17 +466,7 @@
     })
 
     drawResultStrokesCheckbox.addEventListener('change', async (e) => {
-      const oldMode = editor.drawComputationResult
       editor.drawComputationResult = e.target.checked
-      if (!e.target.checked && oldMode) {
-        // If switching from drawing strokes to not drawing, clear existing solver strokes
-        const mathSymbols = editor.model.symbols.filter(s =>
-          s.type === 'recognized' && s.kind === 'math'
-        )
-        for (const mathSymbol of mathSymbols) {
-          await editor.clearSolverOutputStrokes(mathSymbol)
-        }
-      }
       // Show result panels when not drawing strokes
       editor.mathOverlays.updateConfig({ showResultPanels: !e.target.checked })
     })

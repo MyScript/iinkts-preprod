@@ -1,5 +1,5 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { IIRecognizedText, IIRecognizedMath, IIStroke, IIText, TIISymbol, isRecognizedMath, isStroke, isText, isRecognizedText } from "@/symbol"
+import { IIStroke, IIText, TIISymbol, isRecognizedMath, isStroke, isText } from "@/symbol"
 import { InteractiveInkEditor } from "@/editor"
 import { IIMenuContextConfig, defaultMenuContextConfig } from "./IIMenuContextConfig"
 import {
@@ -51,11 +51,11 @@ export class IIMenuContext
     return this.symbolsSelected.length > 0
   }
 
-  get symbolsDecorable(): (IIStroke | IIText | IIRecognizedText)[]
+  get symbolsDecorable(): (IIStroke | IIText)[]
   {
     return this.symbolsSelected.filter(s => {
-      return isStroke(s) || isText(s) || isRecognizedText(s)
-    }) as (IIStroke | IIText | IIRecognizedText)[]
+      return isStroke(s) || isText(s)
+    }) as (IIStroke | IIText)[]
   }
 
   get showDecorator(): boolean
@@ -65,7 +65,7 @@ export class IIMenuContext
 
   get hasSingleMathSymbol(): boolean
   {
-    return this.symbolsSelected.length === 1 && isRecognizedMath(this.symbolsSelected[0])
+    return this.symbolsSelected.length > 0 && this.symbolsSelected.every(s => isRecognizedMath(s) && s.jiixBlockId === (this.symbolsSelected[0] as IIStroke)?.jiixBlockId)
   }
 
   protected async updateMathMenu(): Promise<void>
@@ -73,19 +73,20 @@ export class IIMenuContext
     const mathMenuInstance = this.contextMenus.get("math") as MathContextMenu | undefined
     if (mathMenuInstance) {
       if (this.hasSingleMathSymbol) {
-        const mathSymbol = this.symbolsSelected[0] as IIRecognizedMath
-        if (!mathSymbol.jiixId) {
+        const mathSymbol = this.symbolsSelected[0] as IIStroke
+        if (!mathSymbol.jiixBlockId) {
           mathMenuInstance.setMenuVisibility(false, { canEditVariables: false, canCompute: false, canEvaluate: false })
           return
         }
         const [actions, variables, evaluables] = await Promise.all([
-          this.editor.getAvailableActions(mathSymbol.jiixId),
-          this.editor.getVariables(mathSymbol.jiixId),
-          this.editor.getEvaluables(mathSymbol.jiixId)
+          this.editor.getAvailableActions(mathSymbol.jiixBlockId),
+          this.editor.getVariables(mathSymbol.jiixBlockId),
+          this.editor.getEvaluables(mathSymbol.jiixBlockId)
         ])
 
         const canEditVariables = Object.keys(variables).length > 0
-        const canCompute = actions?.includes("numerical-computation") && !mathSymbol.solverOutputStrokeIds
+        const solverOutputs = this.editor.math.actions.getStoredSolverOutputs(mathSymbol.jiixBlockId!)
+        const canCompute = actions?.includes("numerical-computation") && (!solverOutputs || solverOutputs.length === 0)
         const canEvaluate = evaluables?.length ? true : false
         mathMenuInstance.setMenuVisibility(true, { canEditVariables, canCompute, canEvaluate })
       }
@@ -163,7 +164,7 @@ export class IIMenuContext
       }
 
       // Show convert button only if there are strokes AND not only math selected
-      if (this.editor.extractStrokesFromSymbols(this.symbolsSelected).length && !this.hasSingleMathSymbol) {
+      if (this.editor.extractStrokesFromSymbols(this.symbolsSelected).length) {
         this.contextMenus.get("convert")?.getElement().style.removeProperty("display")
       }
       else {

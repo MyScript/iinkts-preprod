@@ -1,5 +1,5 @@
 import { LoggerManager, LoggerCategory, type Logger } from "@/logger"
-import { IIStroke, IIText, isRecognizedMath, RecognizedKind, SymbolType, type TIISymbol } from "@/symbol"
+import { IIStroke, IIText, isRecognizedMath, SymbolType, type TIISymbol } from "@/symbol"
 import { TIIHistoryChanges } from "@/history"
 import type { InteractiveInkEditor } from "@/editor"
 import type { TGesture } from "@/manager/interactive/GestureTypes"
@@ -100,39 +100,6 @@ export class ScratchGestureHandler extends GestureHandler
           return { erased: true }
         }
       }
-      case SymbolType.Recognized: {
-        const childrenNotTouch = symbol.strokes.filter(s => !gestureStroke.bounds.overlaps(s.bounds))
-        const childrenTouch = symbol.strokes.filter(s => gestureStroke.bounds.overlaps(s.bounds) || gesture.strokeIds.includes(s.id))
-        const results = childrenTouch.map(s =>
-        {
-          return {
-            symbol: s,
-            result: this.computeScratchOnStrokes(gesture, s)
-          }
-        })
-        if (childrenNotTouch.length === 0 && results.every(r => r.result.length === 0)) {
-          return { erased: true }
-        }
-        const strokesToConserve = childrenNotTouch.concat(...results.flatMap(r => r.result))
-        const newSym = symbol.clone()
-        // Reset jiixId as strokes have changed and need re-recognition
-        newSym.jiixId = undefined
-        newSym.strokes = strokesToConserve
-
-        if (newSym.kind === RecognizedKind.Math) {
-          newSym.computedResult = undefined
-          newSym.variableValues = undefined
-          // Clean up solverOutputStrokeIds by removing deleted stroke IDs
-          if (newSym.solverOutputStrokeIds && newSym.solverOutputStrokeIds.length > 0) {
-            const conservedIds = new Set(strokesToConserve.map(s => s.id))
-            const updatedSolverIds = newSym.solverOutputStrokeIds.filter(id => conservedIds.has(id))
-            newSym.solverOutputStrokeIds = updatedSolverIds.length > 0 ? updatedSolverIds : undefined
-          }
-        }
-        return {
-          replaced: [newSym]
-        }
-      }
       case SymbolType.Text: {
         const textScratchedResult = this.computeScratchOnText(gestureStroke, symbol)
         if (textScratchedResult) {
@@ -193,16 +160,20 @@ export class ScratchGestureHandler extends GestureHandler
 
     const dependentBlocksToClean = new Set<string>()
     affectedMathSymbols.forEach(mathSymbol => {
-      if (mathSymbol.dependentBlocks && mathSymbol.dependentBlocks.length > 0) {
-        this.#logger.info("applyScratch", `Math symbol ${mathSymbol.jiixId} has ${mathSymbol.dependentBlocks.length} dependent blocks, clearing their solver outputs`)
-        mathSymbol.dependentBlocks.forEach(blockId => dependentBlocksToClean.add(blockId))
+      if (!mathSymbol.jiixBlockId) return
+
+      // Get dependent blocks from computation manager
+      const computation = this.editor.math.computation.getMathBlock(mathSymbol.jiixBlockId)
+      if (computation?.dependentBlocks && computation.dependentBlocks.length > 0) {
+        this.#logger.info("applyScratch", `Math symbol ${mathSymbol.jiixBlockId} has ${computation.dependentBlocks.length} dependent blocks, clearing their solver outputs`)
+        computation.dependentBlocks.forEach(blockId => dependentBlocksToClean.add(blockId))
       }
     })
 
     for (const blockId of dependentBlocksToClean) {
       const dependentMathSymbol = this.editor.findMathSymbolByJiixId(blockId)
       if (dependentMathSymbol) {
-        await this.editor.clearSolverOutputStrokes(dependentMathSymbol)
+        await this.editor.math.actions.clearSolverOutputs(dependentMathSymbol.jiixBlockId!)
         this.#logger.info("applyScratch", `Cleared solver outputs from dependent block ${blockId}`)
       }
     }
