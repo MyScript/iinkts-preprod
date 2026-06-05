@@ -1,36 +1,23 @@
-import { LoggerCategory, LoggerManager } from "@/logger"
-import { IIModel } from "@/model"
 import { Box, IIText, TIISymbol, TIISymbolChar, isText } from "@/symbol"
-import { SVGRenderer } from "@/renderer"
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import { IIAbstractManager } from "./IIAbstractManager"
 
 /**
  * @group Manager
  */
-export class IITextManager
+export class IITextManager extends IIAbstractManager
 {
-  #logger = LoggerManager.getLogger(LoggerCategory.CONVERTER)
-  editor: InteractiveInkEditor
+  protected managerName = "IITextManager"
 
   constructor(editor: InteractiveInkEditor)
   {
-    this.#logger.info("constructor")
-    this.editor = editor
-  }
-
-  get renderer(): SVGRenderer
-  {
-    return this.editor.renderer
+    super(editor)
+    this.logger.info("constructor")
   }
 
   get rowHeight(): number
   {
     return this.editor.configuration.rendering.guides.gap
-  }
-
-  get model(): IIModel
-  {
-    return this.editor.model
   }
 
   protected drawSymbolHidden(text: IIText): SVGGElement

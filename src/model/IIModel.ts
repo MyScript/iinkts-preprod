@@ -1,11 +1,6 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
-import
-{
-  isRecognizedText,
-  TIISymbol,
-  isRecognized
-} from "@/symbol"
-import { TExport } from "./Export"
+import { TIISymbol } from "@/symbol"
+import { TExport, TJIIXTextElement, TJIIXMathElement, JIIXELementType } from "./Export"
 
 /**
  * @group Model
@@ -85,18 +80,16 @@ export class IIModel
     const directMatch = this.#symbolsMap.get(id)
     if (directMatch) return directMatch
 
-    return this.symbols.find(s =>
-    {
-      if (isRecognized(s) && s.containsStroke(id)) {
-        return s
-      }
-      return
-    })
+    // Recognized symbols no longer exist - all symbols are direct matches
+    return undefined
   }
 
   getSymbolRowIndex(symbol: TIISymbol): number
   {
-    return Math.round((isRecognizedText(symbol) ? symbol.baseline : symbol.bounds.yMid) / this.rowHeight)
+    // Use symbol bounds yMid for row calculation
+    // Note: Previously used jiixTextLine.baseline for text, but that metadata
+    // is now managed in IIBlockMetadataManager
+    return Math.round(symbol.bounds.yMid / this.rowHeight)
   }
 
   getSymbolsByRowOrdered(): { rowIndex: number, symbols: TIISymbol[] }[]
@@ -311,5 +304,35 @@ export class IIModel
     this.converts = undefined
     this.idle = true
 
+  }
+
+  /**
+   * Get all Text blocks from JIIX export
+   * @returns Array of Text elements from the JIIX export, or empty array if no export available
+   */
+  getTextBlocks(): TJIIXTextElement[]
+  {
+    const jiixExport = this.exports?.["application/vnd.myscript.jiix"]
+    if (!jiixExport?.elements) {
+      return []
+    }
+    return jiixExport.elements.filter(
+      (el): el is TJIIXTextElement => el.type === JIIXELementType.Text
+    )
+  }
+
+  /**
+   * Get all Math blocks from JIIX export
+   * @returns Array of Math elements from the JIIX export, or empty array if no export available
+   */
+  getMathBlocks(): TJIIXMathElement[]
+  {
+    const jiixExport = this.exports?.["application/vnd.myscript.jiix"]
+    if (!jiixExport?.elements) {
+      return []
+    }
+    return jiixExport.elements.filter(
+      (el): el is TJIIXMathElement => el.type === JIIXELementType.Math
+    )
   }
 }

@@ -1,10 +1,8 @@
-import { LoggerCategory, LoggerManager } from "@/logger"
-import { IIModel } from "@/model"
 import { Box, TPoint, TSegment } from "@/symbol"
-import { SVGRenderer } from "@/renderer"
 import { SVGRendererConst } from "@/renderer/svg/utils/SVGRendererConst"
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import { PartialDeep } from "@/utils"
+import { IIAbstractManager } from "./IIAbstractManager"
 
 /**
  * @group Manager
@@ -59,27 +57,17 @@ export type TSnapLineInfos = {
 /**
  * @group Manager
  */
-export class IISnapManager
+export class IISnapManager extends IIAbstractManager
 {
-  #logger = LoggerManager.getLogger(LoggerCategory.CONVERTER)
-  editor: InteractiveInkEditor
-  configuration: SnapConfiguration
+  protected managerName = "IISnapManager"
+
+  snapConfiguration: SnapConfiguration
 
   constructor(editor: InteractiveInkEditor, config?: PartialDeep<TSnapConfiguration>)
   {
-    this.#logger.info("constructor")
-    this.editor = editor
-    this.configuration = new SnapConfiguration(config)
-  }
-
-  get model(): IIModel
-  {
-    return this.editor.model
-  }
-
-  get renderer(): SVGRenderer
-  {
-    return this.editor.renderer
+    super(editor)
+    this.logger.info("constructor")
+    this.snapConfiguration = new SnapConfiguration(config)
   }
 
   get selectionSnapPoints(): TPoint[]
@@ -193,18 +181,18 @@ export class IISnapManager
   snapResize(point: TPoint, horizontal = true, vertical = true): TPoint
   {
     this.clearSnapToElementLines()
-    if (!this.configuration.symbol && !this.configuration.guide) return point
+    if (!this.snapConfiguration.symbol && !this.snapConfiguration.guide) return point
 
     let localPoint: TPoint = {
       x: Infinity,
       y: Infinity
     }
-    if (this.configuration.guide) {
+    if (this.snapConfiguration.guide) {
       localPoint = this.getGuidePointToSnap(point)
     }
     const snapLines: TSegment[] = []
 
-    if (this.configuration.symbol) {
+    if (this.snapConfiguration.symbol) {
       const snapLinesInfos = this.getSnapLinesInfos([point], this.otherSnapPoints)
       if (horizontal && Math.abs(snapLinesInfos.nudge.x) <= Math.abs(point.x - localPoint.x)) {
         localPoint.x = point.x + snapLinesInfos.nudge.x
@@ -228,14 +216,14 @@ export class IISnapManager
   {
     this.clearSnapToElementLines()
     const nudge: TSnapNudge = { x: tx, y: ty }
-    if (!this.configuration.symbol && !this.configuration.guide) return nudge
+    if (!this.snapConfiguration.symbol && !this.snapConfiguration.guide) return nudge
 
     const selectionSymbolPoints = this.selectionSnapPoints.map(p => ({ x: p.x + tx, y: p.y + ty }))
 
     let lastDeltaX = Infinity
     let lastDeltaY = Infinity
 
-    if (this.configuration.guide) {
+    if (this.snapConfiguration.guide) {
       selectionSymbolPoints.forEach(p =>
       {
         const gridPoint = this.getGuidePointToSnap(p)
@@ -251,7 +239,7 @@ export class IISnapManager
     }
 
     const snapLines: TSegment[] = []
-    if (this.configuration.symbol) {
+    if (this.snapConfiguration.symbol) {
       const snapLinesInfos = this.getSnapLinesInfos(selectionSymbolPoints, this.otherSnapPoints)
       if (lastDeltaX >= Math.abs(snapLinesInfos.nudge.x) && snapLinesInfos.verticales.length) {
         nudge.x = snapLinesInfos.nudge.x + tx
@@ -275,8 +263,8 @@ export class IISnapManager
 
   snapRotation(angleDegree: number): number
   {
-    if (this.configuration.angle > 0) {
-      return this.configuration.angle * Math.round(angleDegree / this.configuration.angle)
+    if (this.snapConfiguration.angle > 0) {
+      return this.snapConfiguration.angle * Math.round(angleDegree / this.snapConfiguration.angle)
     }
     return angleDegree
   }

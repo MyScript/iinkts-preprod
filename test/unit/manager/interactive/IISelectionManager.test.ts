@@ -378,8 +378,8 @@ describe("IISelectionManager.ts", () =>
       expect(manager.drawSelectedGroup).toHaveBeenCalledTimes(1)
       expect(manager.drawSelectedGroup).toHaveBeenCalledWith([strokeToSelect])
       expect(manager.model.symbolsSelected).toEqual([strokeToSelect])
-      expect(manager.editor.event.emitSelected).toHaveBeenCalledTimes(1)
-      expect(manager.editor.event.emitSelected).toHaveBeenCalledWith([strokeToSelect])
+      expect(editor.event.emitSelected).toHaveBeenCalledTimes(1)
+      expect(editor.event.emitSelected).toHaveBeenCalledWith([strokeToSelect])
     })
 
     test("continue should throw error when no start before", () =>

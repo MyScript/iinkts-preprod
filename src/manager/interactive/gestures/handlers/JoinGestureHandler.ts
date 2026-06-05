@@ -1,5 +1,5 @@
 import { LoggerManager, LoggerCategory, type Logger } from "@/logger"
-import { IIStroke, IIText, Box, IIRecognizedText, type TIISymbol, isText, isRecognized } from "@/symbol"
+import { IIStroke, IIText, Box, type TIISymbol, isText } from "@/symbol"
 import { TIIHistoryChanges } from "@/history"
 import type { InteractiveInkEditor } from "@/editor"
 import type { TGesture } from "@/manager/interactive/GestureTypes"
@@ -33,37 +33,13 @@ export class JoinGestureHandler extends GestureHandler
     const symbolsRow = this.model.symbols.filter(s => gestureStroke.id !== s.id && this.model.isSymbolInRow(gestureStroke, s))
 
     const symbolsBeforeGestureInRow = symbolsRow.filter(s => s.bounds.xMax <= gestureStroke.bounds.xMid)
-    const symbolsOnGestureInRow = symbolsRow.filter(s => s.bounds.xMax > gestureStroke.bounds.xMid && s.bounds.xMin <= gestureStroke.bounds.xMid)
     const symbolsAfterGestureInRow = symbolsRow.filter(s => s.bounds.xMin > gestureStroke.bounds.xMid)
     const symbolsBelow = this.model.symbols.filter(s => this.model.isSymbolBelow(gestureStroke, s))
 
     const changes: TIIHistoryChanges = {}
     const translate: { symbols: TIISymbol[], tx: number, ty: number }[] = []
 
-    if (symbolsOnGestureInRow.length) {
-      const symbolToJoin = symbolsOnGestureInRow[0]
-      if (isRecognized(symbolToJoin)) {
-        const strokeText = symbolToJoin.clone()
-        const childBefore = strokeText.strokes.filter(c => c.bounds.xMid <= gestureStroke.bounds.xMid)
-        const childAfter = strokeText.strokes.filter(c => c.bounds.xMid > gestureStroke.bounds.xMid)
-        if (childBefore.length && childAfter.length) {
-          const tx = Math.max(...childBefore.map(c => c.bounds.xMax)) - Math.min(...childAfter.map(c => c.bounds.xMin))
-          childAfter.forEach(c => this.manager.translator.applyToSymbol(c, tx, 0))
-          changes.replaced = {
-            oldSymbols: [symbolToJoin],
-            newSymbols: [strokeText]
-          }
-          if (symbolsAfterGestureInRow.length) {
-            translate.push({ symbols: symbolsAfterGestureInRow, tx, ty: 0 })
-          }
-        }
-        else if (symbolsAfterGestureInRow.length) {
-          const tx = symbolToJoin.bounds.xMax - Math.min(...symbolsAfterGestureInRow.map(s => s.bounds.xMin))
-          translate.push({ symbols: symbolsAfterGestureInRow, tx, ty: 0 })
-        }
-      }
-    }
-    else if (symbolsBeforeGestureInRow.length && symbolsAfterGestureInRow.length) {
+    if (symbolsBeforeGestureInRow.length && symbolsAfterGestureInRow.length) {
       const lastSymbBefore = this.model.getLastSymbol(symbolsBeforeGestureInRow)!
       const firstSymbolAfter = this.model.getFirstSymbol(symbolsAfterGestureInRow)!
 
@@ -90,14 +66,6 @@ export class JoinGestureHandler extends GestureHandler
         changes.replaced = {
           oldSymbols: [lastSymbBefore, firstSymbolAfter],
           newSymbols: [text]
-        }
-      }
-      else if (isRecognized(lastSymbBefore) && isRecognized(firstSymbolAfter)) {
-        const strokeTexts = [lastSymbBeforeClone as IIRecognizedText, firstSymbolAfterClone as IIRecognizedText]
-        const strokeText = new IIRecognizedText(strokeTexts.flatMap(s => s.strokes), strokeTexts[0], strokeTexts[0].style)
-        changes.replaced = {
-          oldSymbols: [lastSymbBefore, firstSymbolAfter],
-          newSymbols: [strokeText]
         }
       }
 
