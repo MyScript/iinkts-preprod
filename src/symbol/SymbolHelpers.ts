@@ -3,17 +3,14 @@ import type {
   TIISymbol,
   TIIShape,
   TIIEdge,
-  TIIRecognized,
   IIStroke,
   IIText,
   IIMath,
   IIEraser
 } from "./index"
-import type { IIRecognizedText, IIRecognizedMath, IIRecognizedArc, IIRecognizedCircle, IIRecognizedEllipse, IIRecognizedLine, IIRecognizedPolyLine, IIRecognizedPolygon } from "./recognized"
 import type { IIShapeCircle, IIShapeEllipse, IIShapePolygon } from "./geometry"
 import type { IIEdgeArc, IIEdgeLine, IIEdgePolyLine } from "./geometry"
 import { SymbolType } from "./base/Symbol"
-import { RecognizedKind } from "./recognized/IIRecognizedBase"
 import { ShapeKind } from "./geometry/IIShape"
 import { EdgeKind } from "./geometry/IIEdge"
 
@@ -97,105 +94,72 @@ export function isEraser(symbol: TSymbol): symbol is IIEraser
 
 /**
  * @group Symbol
- * @summary Check if symbol is a recognized result (text, arc, circle, etc.)
+ * @summary Check if symbol is a stroke with Math JIIX metadata
  * @param symbol - Symbol to check
- * @returns True if symbol is recognized
+ * @returns True if symbol is a stroke with Math JIIX block type
  */
-export function isRecognized(symbol: TSymbol): symbol is TIIRecognized
+export function isRecognizedMath(symbol: TIISymbol): symbol is IIStroke
 {
-  return symbol.type === SymbolType.Recognized
-}
-
-// ============================================================================
-// Type Guards for Specific Symbol Types
-// ============================================================================
-
-/**
- * @group Symbol
- * @summary Type guard to check if a symbol is a recognized math symbol
- * @param symbol - The symbol to check
- * @returns True if the symbol is a recognized math symbol
- */
-export function isRecognizedMath(symbol: TIISymbol): symbol is IIRecognizedMath
-{
-  return symbol.type === SymbolType.Recognized && symbol.kind === RecognizedKind.Math
+  return isStroke(symbol) && symbol.jiixBlockType === "Math"
 }
 
 /**
  * @group Symbol
- * @summary Type guard to check if a symbol is a recognized text symbol
- * @param symbol - The symbol to check
- * @returns True if the symbol is a recognized text symbol
+ * @summary Check if symbol is a stroke with Text JIIX metadata
+ * @param symbol - Symbol to check
+ * @returns True if symbol is a stroke with Text JIIX block type
  */
-export function isRecognizedText(symbol: TIISymbol): symbol is IIRecognizedText
+export function isRecognizedText(symbol: TIISymbol): symbol is IIStroke
 {
-  return symbol.type === SymbolType.Recognized && symbol.kind === RecognizedKind.Text
+  return isStroke(symbol) && symbol.jiixBlockType === "Text"
 }
 
 /**
- * @group Symbol
- * @summary Type guard to check if a symbol is a recognized line
- * @param symbol - The symbol to check
- * @returns True if the symbol is a recognized line
+ * @deprecated Recognized symbols no longer exist - check stroke JIIX metadata instead
  */
-export function isRecognizedLine(symbol: TIISymbol): symbol is IIRecognizedLine
+export function isRecognizedLine(symbol: TIISymbol): symbol is IIStroke
 {
-  return symbol.type === SymbolType.Recognized && symbol.kind === RecognizedKind.Line
+  return isStroke(symbol) && symbol.jiixBlockType === "Edge"
 }
 
 /**
- * @group Symbol
- * @summary Type guard to check if a symbol is a recognized arc
- * @param symbol - The symbol to check
- * @returns True if the symbol is a recognized arc
+ * @deprecated Recognized symbols no longer exist - check stroke JIIX metadata instead
  */
-export function isRecognizedArc(symbol: TIISymbol): symbol is IIRecognizedArc
+export function isRecognizedArc(): boolean
 {
-  return symbol.type === SymbolType.Recognized && symbol.kind === RecognizedKind.Arc
+  return false
 }
 
 /**
- * @group Symbol
- * @summary Type guard to check if a symbol is a recognized circle
- * @param symbol - The symbol to check
- * @returns True if the symbol is a recognized circle
+ * @deprecated Recognized symbols no longer exist - check stroke JIIX metadata instead
  */
-export function isRecognizedCircle(symbol: TIISymbol): symbol is IIRecognizedCircle
+export function isRecognizedCircle(): boolean
 {
-  return symbol.type === SymbolType.Recognized && symbol.kind === RecognizedKind.Circle
+  return false
 }
 
 /**
- * @group Symbol
- * @summary Type guard to check if a symbol is a recognized ellipse
- * @param symbol - The symbol to check
- * @returns True if the symbol is a recognized ellipse
+ * @deprecated Recognized symbols no longer exist - check stroke JIIX metadata instead
  */
-export function isRecognizedEllipse(symbol: TIISymbol): symbol is IIRecognizedEllipse
+export function isRecognizedEllipse(): boolean
 {
-  return symbol.type === SymbolType.Recognized && symbol.kind === RecognizedKind.Ellipse
+  return false
 }
 
 /**
- * @group Symbol
- * @summary Type guard to check if a symbol is a recognized polygon
- * @param symbol - The symbol to check
- * @returns True if the symbol is a recognized polygon
+ * @deprecated Recognized symbols no longer exist - check stroke JIIX metadata instead
  */
-export function isRecognizedPolygon(symbol: TIISymbol): symbol is IIRecognizedPolygon
+export function isRecognizedPolygon(): boolean
 {
-  return symbol.type === SymbolType.Recognized && symbol.kind === RecognizedKind.Polygone
+  return false
 }
 
 /**
- * @group Symbol
- * @summary Type guard to check if a symbol is a recognized polyline
- * @param symbol - The symbol to check
- * @returns True if the symbol is a recognized polyline
+ * @deprecated Recognized symbols no longer exist - check stroke JIIX metadata instead
  */
-export function isRecognizedPolyLine(symbol: TIISymbol): symbol is IIRecognizedPolyLine
+export function isRecognizedPolyLine(): boolean
 {
-  return symbol.type === SymbolType.Recognized && symbol.kind === RecognizedKind.PolyEdge
+  return false
 }
 
 // ============================================================================
@@ -280,9 +244,9 @@ export function isPolyEdge(edge: TIIEdge): edge is IIEdgePolyLine
  * @group Symbol
  * @summary Filter math symbols from an array
  * @param symbols - Array of symbols to filter
- * @returns Array of recognized math symbols
+ * @returns Array of strokes with math JIIX metadata
  */
-export function filterMathSymbols(symbols: TIISymbol[]): IIRecognizedMath[]
+export function filterMathSymbols(symbols: TIISymbol[]): IIStroke[]
 {
   return symbols.filter(isRecognizedMath)
 }

@@ -36,8 +36,5 @@ export * from "./interactive"
 // Geometry
 export * from "./geometry"
 
-// Recognition results
-export * from "./recognized"
-
 // Symbol helpers
 export * from "./SymbolHelpers"

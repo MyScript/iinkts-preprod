@@ -1,5 +1,5 @@
 import { jiixText } from "../__dataset__/exports.dataset"
-import { buildIICircle, buildIIStroke, buildRecognizedText, buildRecognizedMath, buildIIText, buildIIMath, delay } from "../helpers"
+import { buildIICircle, buildIIStroke, buildIIText, buildIIMath, delay } from "../helpers"
 import
 {
   InteractiveInkEditor,
@@ -449,24 +449,6 @@ describe("EditorOffscreen.ts", () =>
     })
     test("should call trigger download text file", async () =>
     {
-      const recognizedText = buildRecognizedText(1)
-      recognizedText.label = "Hello World"
-      editor.model.addSymbol(recognizedText)
-
-      const recognizedMath = buildRecognizedMath(1, "y=3x+2")
-      editor.model.addSymbol(recognizedMath)
-
-      const textChars = [{
-        id: "char-1",
-        label: "Test text",
-        fontSize: 16,
-        fontWeight: "normal" as const,
-        color: "#000000",
-        bounds: { x: 0, y: 0, width: 50, height: 20 }
-      }]
-      const oiText = buildIIText({ chars: textChars })
-      editor.model.addSymbol(oiText)
-
       const oiMath = buildIIMath("a=b+c")
       editor.model.addSymbol(oiMath)
 
@@ -476,33 +458,7 @@ describe("EditorOffscreen.ts", () =>
       editor.downloadAsText()
 
       expect(link.href).toContain("data:text/plain;charset=utf-8,")
-      expect(link.href).toContain("Hello%20World")
-      expect(link.href).toContain("y%3D3x%2B2")
-      expect(link.href).toContain("Test%20text")
       expect(link.href).toContain("a%3Db%2Bc")
-      expect(link.download).toContain("iink-ts-")
-      expect(link.download).toContain(".txt")
-      expect(link.click).toHaveBeenCalledTimes(1)
-    })
-    test("should call trigger download text file with only selected symbols", async () =>
-    {
-      const recognizedMath = buildRecognizedMath(1, "equation-selected")
-      recognizedMath.selected = true
-      editor.model.addSymbol(recognizedMath)
-
-      const recognizedText = buildRecognizedText(1)
-      recognizedText.label = "text-not-selected"
-      recognizedText.selected = false
-      editor.model.addSymbol(recognizedText)
-
-      const link = document.createElement("a")
-      link.click = jest.fn()
-      jest.spyOn(document, "createElement").mockImplementationOnce(() => link)
-      editor.downloadAsText(true)
-
-      expect(link.href).toContain("data:text/plain;charset=utf-8,")
-      expect(link.href).toContain("equation-selected")
-      expect(link.href).not.toContain("text-not-selected")
       expect(link.download).toContain("iink-ts-")
       expect(link.download).toContain(".txt")
       expect(link.click).toHaveBeenCalledTimes(1)
@@ -516,19 +472,17 @@ describe("EditorOffscreen.ts", () =>
     const text2 = buildIIText()
     const stroke1 = buildIIStroke()
     const stroke2 = buildIIStroke()
-    const strokeText = buildRecognizedText()
     const symbols: TIISymbol[] = [
       stroke1,
       text1,
       stroke2,
-      strokeText,
       text2,
       buildIICircle()
     ]
     test("should extract strokes", () =>
     {
       const strokes = editor.extractStrokesFromSymbols(symbols)
-      expect(strokes).toEqual([stroke1, stroke2, ...strokeText.strokes])
+      expect(strokes).toEqual([stroke1, stroke2])
     })
     test("should extract texts", () =>
     {

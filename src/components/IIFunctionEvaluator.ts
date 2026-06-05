@@ -1,5 +1,4 @@
 import { InteractiveInkEditor } from "@/editor"
-import { IIRecognizedMath } from "@/symbol"
 import { Modal } from "./Modal"
 import { Chart } from "./Chart"
 import { Table, TableRow } from "./Table"
@@ -21,7 +20,7 @@ import { createColorDot, createButton, createLabeledInput, createSelect } from "
  * @group Components
  */
 export interface EvaluableFunction {
-  symbol: IIRecognizedMath
+  jiixBlock: {id: string, label: string}
   evaluables: Array<{
     inputName: string
     outputName: string
@@ -44,7 +43,7 @@ export interface EvaluationResult {
  */
 export class IIFunctionEvaluator {
   private editor: InteractiveInkEditor
-  private symbols: IIRecognizedMath[]
+  private jiixBlocks: {id: string, label: string}[]
   private modal?: Modal
   private evaluationResults?: EvaluationResult[]
   private tabContent?: HTMLDivElement
@@ -66,9 +65,11 @@ export class IIFunctionEvaluator {
     "#795548"  // Brown
   ]
 
-  constructor(editor: InteractiveInkEditor, symbols: IIRecognizedMath[]) {
+  constructor(editor: InteractiveInkEditor, jiixBlocks: {id: string, label: string}[]) {
     this.editor = editor
-    this.symbols = symbols
+    this.jiixBlocks = [...new Map(
+      jiixBlocks.map(block => [block.id, block])
+    ).values()]
   }
 
   /**
@@ -78,22 +79,22 @@ export class IIFunctionEvaluator {
     // Fetch evaluables for all symbols
     this.functionsToEvaluate = []
 
-    for (let i = 0; i < this.symbols.length; i++) {
-      const symbol = this.symbols[i]
-      if (!symbol.jiixId) continue
+    for (let i = 0; i < this.jiixBlocks.length; i++) {
+      const jiixBlock = this.jiixBlocks[i]
+      if (!jiixBlock.id) continue
 
       try {
-        const evaluables = await this.editor.getEvaluables(symbol.jiixId)
+        const evaluables = await this.editor.getEvaluables(jiixBlock.id)
         if (evaluables.length > 0) {
           this.functionsToEvaluate.push({
-            symbol,
+            jiixBlock,
             evaluables: evaluables,
             selectedEvaluableIndex: 0,
             color: IIFunctionEvaluator.COLORS[i % IIFunctionEvaluator.COLORS.length]
           })
         }
       } catch (error) {
-        this.logger.error(`Error fetching evaluables for symbol ${symbol.label}:`, error)
+        this.logger.error(`Error fetching evaluables for symbol ${jiixBlock.label}:`, error)
       }
     }
 
@@ -158,7 +159,7 @@ export class IIFunctionEvaluator {
     label.style.flexShrink = "0"
 
     const symbolLabel = document.createElement("span")
-    symbolLabel.textContent = ` - ${func.symbol.label || "N/A"}`
+    symbolLabel.textContent = ` - ${func.jiixBlock.label || "N/A"}`
     symbolLabel.style.color = "#666"
     symbolLabel.style.flexShrink = "0"
 
@@ -182,7 +183,7 @@ export class IIFunctionEvaluator {
       `
 
       const select = createSelect({
-        id: `evaluable-select-${func.symbol.id}`,
+        id: `evaluable-select-${func.jiixBlock.id}`,
         customStyle: selectStyle,
         options: func.evaluables.map((ev, evIndex) => ({
           value: String(evIndex),
@@ -535,7 +536,7 @@ export class IIFunctionEvaluator {
 
       for (const func of functions) {
         const selectedEvaluable = func.evaluables[func.selectedEvaluableIndex]
-        const points = await this.editor.evaluateMathFunction(func.symbol, {
+        const points = await this.editor.evaluateMathFunction(func.jiixBlock, {
           inputVariableName: selectedEvaluable.inputName,
           outputVariableName: selectedEvaluable.outputName,
           from,

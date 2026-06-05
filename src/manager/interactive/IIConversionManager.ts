@@ -1,8 +1,7 @@
 import { InteractiveInkEditor } from "@/editor"
-import { LoggerManager, LoggerCategory } from "@/logger"
+import { IIAbstractManager } from "./IIAbstractManager"
 import
 {
-  IIModel,
   TJIIXChar,
   TJIIXEdgeArc,
   TJIIXEdgeElement,
@@ -21,7 +20,8 @@ import
   TJIIXNodeTriangle,
   TJIIXTextElement,
   TJIIXWord,
-  TJIIXMathElement
+  TJIIXMathElement,
+  JIIXELementType
 } from "@/model"
 import
 {
@@ -42,7 +42,6 @@ import
   TIISymbol,
   TIISymbolChar,
   TPoint,
-  TIIRecognizedWord,
   TIIMathElement,
   isRecognizedMath,
   isRecognizedText,
@@ -52,24 +51,18 @@ import { computeAngleAxeRadian, computeAverage, convertBoundingBoxMillimeterToPi
 /**
  * @group Manager
  */
-export class IIConversionManager
+export class IIConversionManager extends IIAbstractManager
 {
-  #logger = LoggerManager.getLogger(LoggerCategory.CONVERTER)
-  editor: InteractiveInkEditor
+  protected managerName = "IIConversionManager"
 
   constructor(editor: InteractiveInkEditor)
   {
-    this.#logger.info("constructor")
-    this.editor = editor
+    super(editor)
+    this.logger.info("constructor")
   }
 
-  get configuration(): { size: number | "auto", weight: "bold" | "normal" | "auto" } {
+  get fontStyleConfiguration(): { size: number | "auto", weight: "bold" | "normal" | "auto" } {
     return this.editor.configuration.fontStyle
-  }
-
-  get model(): IIModel
-  {
-    return this.editor.model
   }
 
   get rowHeight(): number
@@ -92,7 +85,7 @@ export class IIConversionManager
       x: convertMillimeterToPixel(p.x),
       y: convertMillimeterToPixel(p.y),
     }))
-    let fontWeight = this.configuration.weight
+    let fontWeight = this.fontStyleConfiguration.weight
     if (fontWeight === "auto") {
       fontWeight = (strokes[0].style.width || 1) > 2 ? "bold" : "normal"
     }
@@ -131,23 +124,24 @@ export class IIConversionManager
     {
       const sym = this.model.getRootSymbol(s.id)
       if (sym && isRecognizedText(sym)) {
-        // Check for word-level decorators in recognized text
-        if (sym.words) {
-          sym.words.forEach((w: TIIRecognizedWord) => {
-            if (w.decorators && w.bounds) {
-              // Check if this word overlaps with the current text bounds
-              if (w.bounds.overlaps(boundingBox)) {
-                w.decorators.forEach((d: IIDecorator) => {
-                  const exists = decorators.find(dec => dec.kind === d.kind)
-                  if (!exists) {
-                    decorators.push(d)
-                  }
-                })
-              }
+        // Check for word-level decorators in text metadata
+        const textMetadata = this.editor.blockMetadata.getTextMetadata(sym.id)
+        if (textMetadata?.word) {
+          const w = textMetadata.word
+          if (w.decorators && w.bounds) {
+            // Check if this word overlaps with the current text bounds
+            if (w.bounds.overlaps(boundingBox)) {
+              w.decorators.forEach((d: IIDecorator) => {
+                const exists = decorators.find(dec => dec.kind === d.kind)
+                if (!exists) {
+                  decorators.push(d)
+                }
+              })
             }
-          })
+          }
         }
 
+        // Check for stroke-level decorators
         const hightlight = sym.decorators.find(d => d.kind === DecoratorKind.Highlight)
         if (hightlight) decorators.push(hightlight)
         const strikethrough = sym.decorators.find(d => d.kind === DecoratorKind.Strikethrough)
@@ -201,12 +195,12 @@ export class IIConversionManager
     const result: { symbol: IIText, strokes: IIStroke[] }[] = []
 
 
-    let textFontSize = this.configuration.size
+    let textFontSize = this.fontStyleConfiguration.size
     if (onlyText && textFontSize === "auto") {
       textFontSize = Math.round(this.computeFontSize(jiixChars.filter(c => c.items?.length)) / 2) * 2
     }
-    else if (this.configuration.size !== "auto") {
-      textFontSize = this.configuration.size * this.rowHeight
+    else if (this.fontStyleConfiguration.size !== "auto") {
+      textFontSize = this.fontStyleConfiguration.size * this.rowHeight
     }
 
     let isNewLine = false
@@ -369,7 +363,7 @@ export class IIConversionManager
         shape = this.buildRhombus(node, uniqStrokes)
         break
       default:
-        this.#logger.warn("convertNode", `Conversion of Node with kind equal to ${ JSON.stringify(node) } is unknown`)
+        this.logger.warn("convertNode", `Conversion of Node with kind equal to ${ JSON.stringify(node) } is unknown`)
         return
     }
     return { symbol: shape, strokes: uniqStrokes }
@@ -458,7 +452,7 @@ export class IIConversionManager
         }
       }
       default:
-        this.#logger.error("convertEdge", `Conversion of Edge with kind equal to ${ JSON.stringify(edge) } is unknown`)
+        this.logger.error("convertEdge", `Conversion of Edge with kind equal to ${ JSON.stringify(edge) } is unknown`)
         return
     }
   }
@@ -536,7 +530,7 @@ export class IIConversionManager
     // Get font family with comprehensive fallbacks for math symbols
     const fontFamily = "'STIX Two Math', STIXGeneral, STIX, 'Cambria Math', 'Latin Modern Math', 'DejaVu Math', serif"
 
-    let fontWeight = this.configuration.weight
+    let fontWeight = this.fontStyleConfiguration.weight
     if (fontWeight === "auto") {
       fontWeight = (strokes[0]?.style.width || 1) > 2 ? "bold" : "normal"
     }
@@ -703,7 +697,7 @@ export class IIConversionManager
   convertMath(mathElement: TJIIXMathElement, strokes: IIStroke[]): { symbol: IIMath, strokes: IIStroke[] } | undefined
   {
     if (!mathElement["bounding-box"]) {
-      this.#logger.warn("convertMath", "Math element missing bounding-box")
+      this.logger.warn("convertMath", "Math element missing bounding-box")
       return undefined
     }
 
@@ -726,7 +720,7 @@ export class IIConversionManager
 
   async apply(symbols: TIISymbol[] = []): Promise<void>
   {
-    this.#logger.info("convert")
+    this.logger.info("convert")
     if (!this.model.exports?.["application/vnd.myscript.jiix"]) {
       await this.editor.export(["application/vnd.myscript.jiix"])
     }
@@ -734,86 +728,138 @@ export class IIConversionManager
     const jiix = this.model.exports?.["application/vnd.myscript.jiix"] as TJIIXExport
 
     const strokesToConvert = this.editor.extractStrokesFromSymbols(symbols.length ? symbols : this.model.symbols)
-    const conversionResults: { symbol: TIISymbol, strokes: IIStroke[] }[] = []
 
-    // Convert IIRecognizedMath symbols directly
+    // Track all changes for history (batch at the end for performance)
+    const allAddedSymbols: TIISymbol[] = []
+    const allErasedStrokes: IIStroke[] = []
+
+    // Convert symbols directly - group by jiixBlockId first
     const symbolsToProcess = symbols.length ? symbols : this.model.symbols
-    symbolsToProcess.forEach(sym => {
+    const mathStrokesByBlock = new Map<string, IIStroke[]>()
+
+    for (const sym of symbolsToProcess) {
       if (isRecognizedMath(sym)) {
-        if (sym.expressions && sym.label && sym.bounds) {
-          // Build a temporary JIIX Math element from the recognized math
-          // Convert pixel bounds to millimeters for compatibility with convertMath
+        const blockId = sym.jiixBlockId || sym.id
+        const existingStrokes = mathStrokesByBlock.get(blockId) || []
+        existingStrokes.push(sym)
+        mathStrokesByBlock.set(blockId, existingStrokes)
+      }
+    }
+
+    // Convert each math block (with all its strokes) - process sequentially with visual updates
+    for (const [blockId, blockStrokes] of mathStrokesByBlock.entries()) {
+      // Get metadata from first stroke (all strokes in block share same metadata)
+      const firstStroke = blockStrokes[0]
+      const mathMetadata = this.editor.blockMetadata.getMathMetadata(firstStroke.id)
+      const label = this.editor.blockMetadata.getLabel(firstStroke.id)
+
+      if (mathMetadata?.expressions && label) {
+        // Calculate bounding box that contains all strokes
+        const allBounds = blockStrokes.map(s => s.bounds).filter(b => b !== undefined)
+        if (allBounds.length > 0) {
+          const combinedBounds = Box.createFromBoxes(allBounds)
           const boundsMM = {
-            x: convertPixelToMillimeter(sym.bounds.x),
-            y: convertPixelToMillimeter(sym.bounds.y),
-            width: convertPixelToMillimeter(sym.bounds.width),
-            height: convertPixelToMillimeter(sym.bounds.height)
+            x: convertPixelToMillimeter(combinedBounds.x),
+            y: convertPixelToMillimeter(combinedBounds.y),
+            width: convertPixelToMillimeter(combinedBounds.width),
+            height: convertPixelToMillimeter(combinedBounds.height)
           }
+
           const mathElement: TJIIXMathElement = {
-            type: "Math",
-            id: sym.jiixId || sym.id,
-            label: sym.label,
-            expressions: sym.expressions,
+            type: JIIXELementType.Math,
+            id: blockId,
+            label: label,
+            expressions: mathMetadata.expressions,
             "bounding-box": boundsMM,
-            items: sym.strokes.map(s => ({
+            items: blockStrokes.map(s => ({
               type: "stroke" as const,
               id: s.id,
               "full-id": s.id
             }))
           }
-          const conversion = this.convertMath(mathElement, sym.strokes)
+
+          const conversion = this.convertMath(mathElement, blockStrokes)
           if (conversion) {
-            conversionResults.push(conversion)
+            // Progressive rendering: remove strokes then add typeset symbol
+            await this.editor.removeSymbols(conversion.strokes.map(s => s.id), false)
+            await this.editor.addSymbols([conversion.symbol], false)
+
+            allAddedSymbols.push(conversion.symbol)
+            allErasedStrokes.push(...conversion.strokes)
+
+            // Allow browser to render between blocks
+            await new Promise(resolve => requestAnimationFrame(resolve))
           }
         }
       }
-    })
+    }
 
-    // Also convert from JIIX export if available
+    // Also convert from JIIX export if available - process sequentially
     if (jiix?.elements?.length) {
       const onlyText = !jiix.elements?.some(e => e.type !== "Text")
-      jiix.elements.forEach(el =>
-      {
+
+      for (const el of jiix.elements) {
+        let conversionResults: { symbol: TIISymbol, strokes: IIStroke[] }[] = []
+
         switch (el.type) {
-          case "Text": {
+          case JIIXELementType.Text: {
             const conversion = this.convertText(el, strokesToConvert, onlyText)
             if (conversion) {
-              conversionResults.push(...conversion)
+              conversionResults = conversion
             }
             break
           }
-          case "Math": {
+          case JIIXELementType.Math: {
             const conversion = this.convertMath(el, strokesToConvert)
             if (conversion) {
-              conversionResults.push(conversion)
+              conversionResults = [conversion]
             }
             break
           }
-          case "Node": {
+          case JIIXELementType.Node: {
             const conversion = this.convertNode(el, strokesToConvert)
             if (conversion) {
-              conversionResults.push(conversion)
+              conversionResults = [conversion]
             }
             break
           }
-          case "Edge": {
+          case JIIXELementType.Edge: {
             const conversion = this.convertEdge(el, strokesToConvert)
             if (conversion) {
-              conversionResults.push(conversion)
+              conversionResults = [conversion]
             }
             break
           }
           default: {
-            this.#logger.warn("buildConversions", `Unknown jiix element type: ${ (el as { type: string }).type }`)
+            this.logger.warn("apply", `Unknown jiix element type: ${ (el as { type: string })?.type }`)
           }
         }
-      })
+
+        // Progressive rendering: process this block's conversions
+        if (conversionResults.length) {
+          // First remove all strokes for this block
+          const strokeIds = conversionResults.flatMap(cs => cs.strokes.map(s => s.id))
+          await this.editor.removeSymbols(strokeIds, false)
+
+          // Then add all typeset symbols for this block
+          const newSymbols = conversionResults.map(cs => cs.symbol)
+          await this.editor.addSymbols(newSymbols, false)
+
+          allAddedSymbols.push(...newSymbols)
+          allErasedStrokes.push(...conversionResults.flatMap(cs => cs.strokes))
+
+          // Allow browser to render between blocks
+          await new Promise(resolve => requestAnimationFrame(resolve))
+        }
+      }
     }
 
-    if (conversionResults.length) {
-      this.editor.addSymbols(conversionResults.map(cs => cs.symbol), false)
-      this.editor.removeSymbols(conversionResults.flatMap(cs => cs.strokes.map(s => s.id)), false)
-      this.editor.history.push(this.model, { added: conversionResults.map(c => c.symbol), erased: conversionResults.flatMap(cs => cs.strokes) })
+    // Add single history entry for the entire conversion
+    if (allAddedSymbols.length) {
+      this.editor.history.push(this.model, {
+        added: allAddedSymbols,
+        erased: allErasedStrokes
+      })
     }
   }
 }

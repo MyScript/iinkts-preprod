@@ -1,22 +1,21 @@
 import { ResizeDirection, SELECTION_MARGIN, SvgElementRole } from "@/Constants"
-import { LoggerCategory, LoggerManager } from "@/logger"
-import { IIModel } from "@/model"
-import { Box, SymbolType, TBox, TIIEdge, TIISymbol, TPoint, isRecognizedMath, isText, isEdge } from "@/symbol"
-import { SVGRenderer, SVGBuilder } from "@/renderer"
+import { Box, IIStroke, SymbolType, TBox, TIIEdge, TIISymbol, TPoint, isRecognizedMath, isText, isEdge } from "@/symbol"
+import { SVGBuilder } from "@/renderer"
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import { PointerEventGrabber, PointerInfo } from "@/grabber"
 import { IIResizeManager } from "./IIResizeManager"
 import { IIRotationManager } from "./IIRotationManager"
 import { IITranslateManager } from "./IITranslateManager"
+import { IIAbstractManager } from "./IIAbstractManager"
 
 /**
  * @group Manager
  */
-export class IISelectionManager
+export class IISelectionManager extends IIAbstractManager
 {
-  #logger = LoggerManager.getLogger(LoggerCategory.SELECTION)
+  protected managerName = "IISelectionManager"
+
   grabber: PointerEventGrabber
-  editor: InteractiveInkEditor
 
   #selectingId = "selecting-rect"
   startSelectionPoint?: TPoint
@@ -25,23 +24,13 @@ export class IISelectionManager
 
   constructor(editor: InteractiveInkEditor)
   {
-    this.#logger.info("constructor")
-    this.editor = editor
+    super(editor)
+    this.logger.info("constructor")
     this.grabber = new PointerEventGrabber(editor.configuration.grabber)
     this.grabber.onPointerDown = this.start.bind(this)
     this.grabber.onPointerMove = this.continue.bind(this)
     this.grabber.onPointerUp = this.end.bind(this)
     this.grabber.onContextMenu = this.onContextMenu.bind(this)
-  }
-
-  get model(): IIModel
-  {
-    return this.editor.model
-  }
-
-  get renderer(): SVGRenderer
-  {
-    return this.editor.renderer
   }
 
   get rotator(): IIRotationManager
@@ -339,7 +328,7 @@ export class IISelectionManager
 
   protected createInteractElementsGroup(symbols: TIISymbol[]): SVGGElement | undefined
   {
-    this.#logger.info("createInteractElementsGroup", { symbols })
+    this.logger.info("createInteractElementsGroup", { symbols })
 
     if (!symbols.length) return
 
@@ -477,7 +466,7 @@ export class IISelectionManager
 
   protected createInteractEdgeGroup(edge: TIIEdge): SVGGElement | undefined
   {
-    this.#logger.info("createInteractEdgeGroup", { edge })
+    this.logger.info("createInteractEdgeGroup", { edge })
     const attrs = {
       id: `selected-${ Date.now() }`,
       role: SvgElementRole.InteractElementsGroup,
@@ -527,14 +516,14 @@ export class IISelectionManager
 
   resetSelectedGroup(symbols: TIISymbol[]): void
   {
-    this.#logger.info("resetSelectedGroup", { symbols })
+    this.logger.info("resetSelectedGroup", { symbols })
     this.removeSelectedGroup()
     this.drawSelectedGroup(symbols)
   }
 
   removeSelectedGroup(): void
   {
-    this.#logger.info("removeSelectedGroup")
+    this.logger.info("removeSelectedGroup")
     this.editor.menu.context.hide()
     this.selectedGroup?.remove()
     this.selectedGroup = undefined
@@ -549,6 +538,62 @@ export class IISelectionManager
       {
         el.setAttribute("visibility", "hidden")
       })
+  }
+
+  /**
+   * NEW ARCHITECTURE: Select text strokes according to selection level
+   * @param baseStroke - The stroke that was initially selected
+   * @returns Array of strokes that should be selected based on the configured level
+   */
+  selectTextStrokes(baseStroke: IIStroke): IIStroke[]
+  {
+    const level = this.editor.configuration.textSelectionLevel
+    const strokes: IIStroke[] = []
+
+    if (!baseStroke.jiixBlockId || baseStroke.jiixBlockType !== "Text") {
+      return [baseStroke]
+    }
+
+    for (const symbol of this.model.symbols) {
+      if (symbol.type !== SymbolType.Stroke) continue
+
+      const stroke = symbol as IIStroke
+
+      switch (level) {
+        case "char":
+          // Select only strokes from same character
+          if (stroke.jiixBlockId === baseStroke.jiixBlockId) {
+            const strokeTextMeta = this.editor.blockMetadata.getTextMetadata(stroke.id)
+            const baseTextMeta = this.editor.blockMetadata.getTextMetadata(baseStroke.id)
+            if (strokeTextMeta?.char?.label === baseTextMeta?.char?.label &&
+                strokeTextMeta?.char?.word === baseTextMeta?.char?.word) {
+              strokes.push(stroke)
+            }
+          }
+          break
+
+        case "word":
+          // Select strokes from same word
+          if (stroke.jiixBlockId === baseStroke.jiixBlockId) {
+            const strokeTextMeta = this.editor.blockMetadata.getTextMetadata(stroke.id)
+            const baseTextMeta = this.editor.blockMetadata.getTextMetadata(baseStroke.id)
+            if (strokeTextMeta?.word?.label === baseTextMeta?.word?.label) {
+              strokes.push(stroke)
+            }
+          }
+          break
+
+        case "block":
+        default:
+          // Select all strokes from block
+          if (stroke.jiixBlockId === baseStroke.jiixBlockId) {
+            strokes.push(stroke)
+          }
+          break
+      }
+    }
+
+    return strokes
   }
 
   start(info: PointerInfo): void
@@ -566,14 +611,46 @@ export class IISelectionManager
     }
     this.endSelectionPoint = info.pointer
     const updatedSymbols: TIISymbol[] = []
+
+    // First pass: basic selection by overlaps
+    const textStrokesToExpand: IIStroke[] = []
     this.model.symbols.forEach(s =>
     {
-      if (s.selected !== s.overlaps(this.selectionBox!)) {
-        s.selected = s.overlaps(this.selectionBox!)
+      const shouldBeSelected = s.overlaps(this.selectionBox!)
+
+      if (s.selected !== shouldBeSelected) {
+        s.selected = shouldBeSelected
         updatedSymbols.push(s)
         this.renderer.drawSymbol(s)
+
+        // Track text strokes that were just selected for level-based expansion
+        if (shouldBeSelected && s.type === SymbolType.Stroke) {
+          const stroke = s as IIStroke
+          if (stroke.jiixBlockId && stroke.jiixBlockType === "Text") {
+            textStrokesToExpand.push(stroke)
+          }
+        }
       }
     })
+
+    // Second pass: expand selection for text strokes based on configured level
+    const additionalStrokes = new Set<IIStroke>()
+    textStrokesToExpand.forEach(baseStroke => {
+      const relatedStrokes = this.selectTextStrokes(baseStroke)
+      relatedStrokes.forEach(stroke => {
+        if (!stroke.selected) {
+          additionalStrokes.add(stroke)
+        }
+      })
+    })
+
+    // Mark additional strokes as selected
+    additionalStrokes.forEach(stroke => {
+      stroke.selected = true
+      updatedSymbols.push(stroke)
+      this.renderer.drawSymbol(stroke)
+    })
+
     this.drawSelectingRect(this.selectionBox!)
     return updatedSymbols
   }
@@ -592,7 +669,7 @@ export class IISelectionManager
     const selectedMathIds = this.model.symbolsSelected
       .filter(isRecognizedMath)
       .map(s => s.id)
-    this.editor.mathInteractions.onSymbolSelect(selectedMathIds)
+    this.editor.math.interactions.onSymbolSelect(selectedMathIds)
 
     return updatedSymbols
   }

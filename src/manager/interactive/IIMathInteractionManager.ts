@@ -1,9 +1,9 @@
 import { LoggerManager, LoggerCategory } from "@/logger"
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
-import { IIRecognizedMath, TBox, isRecognizedMath } from "@/symbol"
+import { IIStroke, TBox, isRecognizedMath } from "@/symbol"
 import { convertBoundingBoxMillimeterToPixel } from "@/utils"
 import { TJIIXMathExpression } from "@/model/ExportMath"
-import { IIMathOverlayManager } from "./IIMathOverlayManager"
+import { IIMathOverlaySubManager } from "./math/IIMathOverlaySubManager"
 import { ColorPaletteManager } from "../base"
 
 /**
@@ -46,12 +46,12 @@ export class IIMathInteractionManager {
   #colorManager: ColorPaletteManager
 
   editor: InteractiveInkEditor
-  overlayManager: IIMathOverlayManager
+  overlayManager: IIMathOverlaySubManager
 
   constructor(editor: InteractiveInkEditor, config: Partial<TMathInteractionConfig> = {}) {
     this.#logger.info("constructor")
     this.editor = editor
-    this.overlayManager = editor.mathOverlays
+    this.overlayManager = editor.math.overlays
     this.#colorManager = ColorPaletteManager.getInstance()
     this.#config = { ...IIMathInteractionManager.DEFAULT_CONFIG, ...config }
   }
@@ -74,14 +74,14 @@ export class IIMathInteractionManager {
   /**
    * Get all math symbols from the model
    */
-  protected getMathSymbols(): IIRecognizedMath[] {
+  protected getMathSymbols(): IIStroke[] {
     return this.editor.model.symbols.filter(isRecognizedMath)
   }
 
   /**
    * Find math symbol by ID
    */
-  protected findMathSymbol(symbolId: string): IIRecognizedMath | undefined {
+  protected findMathSymbol(symbolId: string): IIStroke | undefined {
     return this.getMathSymbols().find(s => s.id === symbolId)
   }
 
@@ -129,11 +129,17 @@ export class IIMathInteractionManager {
     visited.add(symbolId)
 
     const mathSymbol = this.findMathSymbol(symbolId)
-    if (!mathSymbol || !mathSymbol.variableSources) {
+    if (!mathSymbol || !mathSymbol.jiixBlockId) {
       return sources
     }
 
-    Object.values(mathSymbol.variableSources).forEach(sourceJiixId => {
+    // Get variable sources from computation manager
+    const computation = this.editor.math.computation.getMathBlock(mathSymbol.jiixBlockId)
+    if (!computation?.variableSources) {
+      return sources
+    }
+
+    Object.values(computation.variableSources).forEach(sourceJiixId => {
       const sourceSymbol = this.editor.findMathSymbolByJiixId(sourceJiixId)
       if (sourceSymbol && !visited.has(sourceSymbol.id)) {
         sources.add(sourceSymbol.id)
@@ -160,11 +166,17 @@ export class IIMathInteractionManager {
     visited.add(symbolId)
 
     const mathSymbol = this.findMathSymbol(symbolId)
-    if (!mathSymbol || !mathSymbol.jiixId || !mathSymbol.dependentBlocks) {
+    if (!mathSymbol || !mathSymbol.jiixBlockId) {
       return dependents
     }
 
-    mathSymbol.dependentBlocks.forEach(dependentJiixId => {
+    // Get dependent blocks from computation manager
+    const computation = this.editor.math.computation.getMathBlock(mathSymbol.jiixBlockId)
+    if (!computation?.dependentBlocks) {
+      return dependents
+    }
+
+    computation.dependentBlocks.forEach(dependentJiixId => {
       const dependentSymbol = this.editor.findMathSymbolByJiixId(dependentJiixId)
       if (dependentSymbol && !visited.has(dependentSymbol.id)) {
         dependents.add(dependentSymbol.id)
@@ -201,7 +213,7 @@ export class IIMathInteractionManager {
       return
     }
 
-    this.#logger.debug("onSymbolHover", { symbolId, label: mathSymbol.label })
+    this.#logger.debug("onSymbolHover", { symbolId, label: this.editor.blockMetadata.getLabel(mathSymbol.id) })
 
     const sources = this.getRecursiveSources(symbolId)
     sources.forEach(sourceId => {
@@ -307,10 +319,17 @@ export class IIMathInteractionManager {
 
     sources.forEach(sourceId => {
       const sourceSymbol = this.findMathSymbol(sourceId)
-      if (sourceSymbol && sourceSymbol.jiixId && symbol.variableSources) {
-        for (const [variableName, sourceJiixId] of Object.entries(symbol.variableSources)) {
-          if (sourceJiixId === sourceSymbol.jiixId && symbol.expressions) {
-            const variableBox = this.findVariableBoxInExpressions(symbol.expressions, variableName)
+      if (!sourceSymbol || !sourceSymbol.jiixBlockId || !symbol.jiixBlockId) {
+        return
+      }
+
+      // Get variable sources from computation manager
+      const computation = this.editor.math.computation.getMathBlock(symbol.jiixBlockId)
+      if (computation?.variableSources) {
+        for (const [variableName, sourceJiixId] of Object.entries(computation.variableSources)) {
+          const mathMetadata = this.editor.blockMetadata.getMathMetadata(symbol.id)
+          if (sourceJiixId === sourceSymbol.jiixBlockId && mathMetadata?.expressions) {
+            const variableBox = this.findVariableBoxInExpressions(mathMetadata.expressions, variableName)
             if (variableBox) {
               const variableColor = this.#colorManager.getColorForVariable(variableName)
               this.overlayManager.highlightAsSource(sourceSymbol, variableColor)
@@ -340,10 +359,17 @@ export class IIMathInteractionManager {
 
     dependents.forEach(dependentId => {
       const dependentSymbol = this.findMathSymbol(dependentId)
-      if (dependentSymbol && dependentSymbol.variableSources && symbol.jiixId) {
-        for (const [variableName, sourceJiixId] of Object.entries(dependentSymbol.variableSources)) {
-          if (sourceJiixId === symbol.jiixId && dependentSymbol.expressions) {
-            const variableBox = this.findVariableBoxInExpressions(dependentSymbol.expressions, variableName)
+      if (!dependentSymbol || !dependentSymbol.jiixBlockId || !symbol.jiixBlockId) {
+        return
+      }
+
+      // Get variable sources from computation manager for the dependent symbol
+      const computation = this.editor.math.computation.getMathBlock(dependentSymbol.jiixBlockId)
+      if (computation?.variableSources) {
+        for (const [variableName, sourceJiixId] of Object.entries(computation.variableSources)) {
+          const dependentMathMetadata = this.editor.blockMetadata.getMathMetadata(dependentSymbol.id)
+          if (sourceJiixId === symbol.jiixBlockId && dependentMathMetadata?.expressions) {
+            const variableBox = this.findVariableBoxInExpressions(dependentMathMetadata.expressions, variableName)
             if (variableBox) {
               const variableColor = this.#colorManager.getColorForVariable(variableName)
               this.overlayManager.highlightVariableBox(

@@ -1,19 +1,21 @@
-import { LoggerManager, LoggerCategory } from "@/logger"
 import { EditorTool } from "@/Constants"
 import type { InteractiveInkEditor } from "@/editor"
+import { IIAbstractManager } from "./IIAbstractManager"
 
 /**
  * Manages keyboard input for the Interactive Ink editor
  * Handles tool switching via modifier keys (Ctrl/Cmd for Move mode)
  * @group Manager
  */
-export class IIKeyboardManager
+export class IIKeyboardManager extends IIAbstractManager
 {
-  #logger = LoggerManager.getLogger(LoggerCategory.EDITOR)
+  protected managerName = "IIKeyboardManager"
+
   #toolBeforeCtrl?: EditorTool
 
-  constructor(private editor: InteractiveInkEditor)
+  constructor(editor: InteractiveInkEditor)
   {
+    super(editor)
     this.handleKeyDown = this.handleKeyDown.bind(this)
     this.handleKeyUp = this.handleKeyUp.bind(this)
   }
@@ -23,7 +25,7 @@ export class IIKeyboardManager
    */
   attach(): void
   {
-    this.#logger.info("attach")
+    this.logger.info("attach")
     window.addEventListener("keydown", this.handleKeyDown)
     window.addEventListener("keyup", this.handleKeyUp)
   }
@@ -33,7 +35,7 @@ export class IIKeyboardManager
    */
   detach(): void
   {
-    this.#logger.info("detach")
+    this.logger.info("detach")
     window.removeEventListener("keydown", this.handleKeyDown)
     window.removeEventListener("keyup", this.handleKeyUp)
   }
@@ -61,7 +63,7 @@ export class IIKeyboardManager
     }
 
     if ((event.ctrlKey || event.metaKey) && this.editor.tool !== EditorTool.Move && !this.#toolBeforeCtrl) {
-      this.#logger.debug("handleKeyDown", "Switching to Move mode")
+      this.logger.debug("handleKeyDown", "Switching to Move mode")
       this.#toolBeforeCtrl = this.editor.tool
       this.editor.tool = EditorTool.Move
     }
@@ -74,7 +76,7 @@ export class IIKeyboardManager
   protected handleKeyUp = (event: KeyboardEvent): void =>
   {
     if (!event.ctrlKey && !event.metaKey && this.#toolBeforeCtrl) {
-      this.#logger.debug("handleKeyUp", "Restoring previous tool")
+      this.logger.debug("handleKeyUp", "Restoring previous tool")
       this.editor.tool = this.#toolBeforeCtrl
       this.#toolBeforeCtrl = undefined
     }

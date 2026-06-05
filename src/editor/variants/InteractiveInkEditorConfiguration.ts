@@ -11,6 +11,12 @@ import { TEditorConfiguration } from "@/editor/AbstractEditor"
 
 /**
  * @group Editor
+ * @remarks Level of text selection granularity
+ */
+export type TTextSelectionLevel = "block" | "word" | "char"
+
+/**
+ * @group Editor
  */
 export type TInteractiveInkEditorConfiguration = TEditorConfiguration & TRecognizerWebSocketConfiguration & {
  "undo-redo": THistoryConfiguration
@@ -24,6 +30,7 @@ export type TInteractiveInkEditorConfiguration = TEditorConfiguration & TRecogni
   }
   gesture: TGestureConfiguration
   snap: TSnapConfiguration
+  textSelectionLevel: TTextSelectionLevel
 }
 
 /**
@@ -45,7 +52,8 @@ export const DefaultInteractiveInkEditorConfiguration: TInteractiveInkEditorConf
     weight: "auto",
   },
   gesture: DefaultGestureConfiguration,
-  snap: DefaultSnapConfiguration
+  snap: DefaultSnapConfiguration,
+  textSelectionLevel: "block",
 }
 
 /**
@@ -68,6 +76,7 @@ export class InteractiveInkEditorConfiguration implements TInteractiveInkEditorC
   }
   gesture: TGestureConfiguration
   snap: TSnapConfiguration
+  textSelectionLevel: TTextSelectionLevel
 
   constructor(configuration?: PartialDeep<TInteractiveInkEditorConfiguration>)
   {
@@ -105,5 +114,6 @@ export class InteractiveInkEditorConfiguration implements TInteractiveInkEditorC
 
     this.penStyle = mergeDeep({}, DefaultInteractiveInkEditorConfiguration.penStyle, configuration?.penStyle)
     this.fontStyle = mergeDeep({}, DefaultInteractiveInkEditorConfiguration.fontStyle, configuration?.fontStyle)
+    this.textSelectionLevel = configuration?.textSelectionLevel ?? DefaultInteractiveInkEditorConfiguration.textSelectionLevel
   }
 }

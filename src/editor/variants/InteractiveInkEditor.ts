@@ -4,26 +4,24 @@ import
 {
   Box,
   IIStroke,
-  IIRecognizedMath,
   IIText,
   IIMath,
   TIISymbol,
   SymbolType,
   convertPartialStrokesToIIStrokes,
   isRecognizedMath,
-  isRecognizedText,
   isText,
   isMath,
   isStroke,
   isShape,
-  isEdge,
-  isRecognized
+  isEdge
 } from "@/symbol"
 import { RecognizerWebSocket, TMathVariable, TMathEvaluable } from "@/recognizer"
 import { SVGRenderer, SVGBuilder, TIIRendererConfiguration } from "@/renderer"
 import { TStyle } from "@/style"
 import
 {
+  IIBlockMetadataManager,
   IIConversionManager,
   IIKeyboardManager,
   IIWriterManager,
@@ -38,10 +36,8 @@ import
   IIGestureManager,
   IISnapManager,
   IISynchronizerManager,
-  IIMathOverlayManager,
-  IIMathInteractionManager,
   IITransientInkManager,
-  IIMathDependencyManager,
+  IIMathManager,
 } from "@/manager"
 import { IIHistoryManager, TIIHistoryBackendChanges, TIIHistoryChanges, THistoryContext } from "@/history"
 import { PartialDeep, convertMillimeterToPixel, mergeDeep } from "@/utils"
@@ -100,12 +96,11 @@ export class InteractiveInkEditor extends AbstractEditor
   snaps: IISnapManager
   move: IIMoveManager
   synchronizer: IISynchronizerManager
-  mathOverlays: IIMathOverlayManager
-  mathInteractions: IIMathInteractionManager
-  mathDependencies: IIMathDependencyManager
+  blockMetadata: IIBlockMetadataManager
+  math: IIMathManager
   transientInk: IITransientInkManager
   menu: IIMenuManager
-  drawComputationResult: boolean = true
+  #drawComputationResult: boolean = true
 
   constructor(rootElement: HTMLElement, options?: TInteractiveInkEditorOptions)
   {
@@ -150,10 +145,9 @@ export class InteractiveInkEditor extends AbstractEditor
     this.svgDebugger = new IIDebugSVGManager(this)
     this.snaps = new IISnapManager(this, this.#configuration.snap)
     this.synchronizer = new IISynchronizerManager(this)
-    this.mathOverlays = new IIMathOverlayManager(this)
-    this.mathInteractions = new IIMathInteractionManager(this)
-    this.mathDependencies = new IIMathDependencyManager(this)
-    this.transientInk = new IITransientInkManager(this.renderer, this.#model)
+    this.blockMetadata = new IIBlockMetadataManager(this)
+    this.math = new IIMathManager(this)
+    this.transientInk = new IITransientInkManager(this)
     this.menu = new IIMenuManager(this, options?.override?.menu)
   }
 
@@ -226,6 +220,18 @@ export class InteractiveInkEditor extends AbstractEditor
   {
     this.logger.info("set penStyle", { penStyle })
     this.#penStyle = Object.assign({}, this.#penStyle, penStyle)
+  }
+  get drawComputationResult(): boolean
+  {
+    return this.#drawComputationResult
+  }
+  set drawComputationResult(flag: boolean)
+  {
+    this.logger.info("set drawComputationResult", { flag })
+    this.#drawComputationResult = flag
+    if (!flag) {
+      this.clearSolverOutputStrokes()
+    }
   }
 
   protected updateLayerState(idle: boolean): void
@@ -354,7 +360,6 @@ export class InteractiveInkEditor extends AbstractEditor
    * Build a symbol from partial data
    * @param partialSymbol - Partial symbol data
    * @returns Complete symbol instance
-   * @deprecated Use SymbolFactory directly for better separation of concerns
    */
   protected buildSymbol(partialSymbol: PartialDeep<TIISymbol>): TIISymbol
   {
@@ -561,9 +566,7 @@ export class InteractiveInkEditor extends AbstractEditor
     {
       if (symbolIds.includes(s.id)) {
         s.style = Object.assign({}, s.style, style)
-        if (
-          SymbolType.Text === s.type ||
-          SymbolType.Recognized === s.type) {
+        if (SymbolType.Text === s.type) {
           s.updateChildrenStyle()
         }
         this.renderer.drawSymbol(s)
@@ -735,79 +738,26 @@ export class InteractiveInkEditor extends AbstractEditor
   {
     this.logger.info("removeSymbol", { ids })
     const symbolsToRemove: TIISymbol[] = []
-    const symbolsToUpdate: TIISymbol[] = []
     const strokesIds: string[] = []
     ids.forEach(id =>
     {
-      const sym = this.model.getRootSymbol(id)
-      if (sym) {
-        /** we remove root element */
-        if (sym.id === id) {
-          symbolsToRemove.push(sym)
-          switch (sym.type) {
-            case SymbolType.Stroke:
-              strokesIds.push(sym.id)
-              break
-            case SymbolType.Recognized:
-              strokesIds.push(...sym.strokes.map(s => s.id))
-              break
-          }
+      const sym = this.model.symbols.find(s => s.id === id)
+      if (sym?.type === SymbolType.Stroke) {
+        strokesIds.push(sym.id)
+        if (isRecognizedMath(sym)) {
+          this.transientInk.clearTransientsForBlock(sym.id)
         }
-        else {
-          /** we want to remove child */
-          switch (sym.type) {
-            case SymbolType.Recognized: {
-              strokesIds.push(id)
-              const ws = sym.clone()
-              ws.removeStrokes(ids)
-              if (ws.strokes.length) {
-                ws.jiixId = undefined
-                if (isRecognizedMath(ws)) {
-                  ws.variableValues = undefined
-                  if (ws.solverOutputStrokeIds && ws.solverOutputStrokeIds.length > 0) {
-                    const remainingIds = new Set(ws.strokes.map(s => s.id))
-                    const updatedSolverIds = ws.solverOutputStrokeIds.filter(id => remainingIds.has(id))
-                    ws.solverOutputStrokeIds = updatedSolverIds.length > 0 ? updatedSolverIds : undefined
-                  }
-                }
-                symbolsToUpdate.push(ws)
-              }
-              else {
-                symbolsToRemove.push(ws)
-              }
-              break
-            }
-          }
-
-        }
+        this.model.removeSymbol(sym.id)
+        this.renderer.removeSymbol(sym.id)
       }
     })
     this.recognizer.eraseStrokes(strokesIds)
-    symbolsToRemove.forEach(s =>
-    {
-      if (isRecognizedMath(s)) {
-        this.transientInk.clearTransientsForBlock(s.id)
-      }
-
-      this.model.removeSymbol(s.id)
-      this.renderer.removeSymbol(s.id)
-    })
-
-    symbolsToUpdate.forEach(s =>
-    {
-      this.model.updateSymbol(s)
-      this.renderer.drawSymbol(s)
-    })
-
 
     if (addToHistory) {
       const changes: TIIHistoryChanges = {}
-      if (symbolsToRemove.length || symbolsToUpdate.length) {
+      if (symbolsToRemove.length) {
         if (symbolsToRemove.length) {
           changes.erased = symbolsToRemove
-        }
-        if (symbolsToUpdate.length) {
-          changes.updated = symbolsToUpdate
         }
         this.history.push(this.model, changes)
         this.updateLayerUI()
@@ -834,7 +784,7 @@ export class InteractiveInkEditor extends AbstractEditor
     const selectedMathIds = this.model.symbolsSelected
       .filter(isRecognizedMath)
       .map(s => s.id)
-    this.mathInteractions.onSymbolSelect(selectedMathIds)
+    this.math.interactions.onSymbolSelect(selectedMathIds)
 
     this.updateLayerUI()
     this.event.emitSelected(this.model.symbolsSelected)
@@ -856,7 +806,7 @@ export class InteractiveInkEditor extends AbstractEditor
     const selectedMathIds = this.model.symbolsSelected
       .filter(isRecognizedMath)
       .map(s => s.id)
-    this.mathInteractions.onSymbolSelect(selectedMathIds)
+    this.math.interactions.onSymbolSelect(selectedMathIds)
 
     this.updateLayerUI()
     this.event.emitSelected(this.model.symbolsSelected)
@@ -876,7 +826,7 @@ export class InteractiveInkEditor extends AbstractEditor
       this.selector.removeSelectedGroup()
       this.updateLayerUI()
 
-      this.mathInteractions.onSymbolSelect([])
+      this.math.interactions.onSymbolSelect([])
       this.event.emitSelected(this.model.symbolsSelected)
     }
   }
@@ -1036,23 +986,16 @@ export class InteractiveInkEditor extends AbstractEditor
 
     symbols.forEach(s =>
     {
-      if (isRecognizedText(s)) {
-        if (s.label) {
-          textParts.push(s.label)
+      if (isText(s) || isMath(s)) {
+        const content = s.label
+        if (content) {
+          textParts.push(content)
         }
-      } else if (isRecognizedMath(s)) {
-        if (s.label) {
-          textParts.push(s.label)
-        }
-      } else if (isText(s)) {
-        const textContent = s.label
-        if (textContent) {
-          textParts.push(textContent)
-        }
-      } else if (isMath(s)) {
-        const mathContent = s.label
-        if (mathContent) {
-          textParts.push(mathContent)
+      } else if (isStroke(s)) {
+        // Stroke with JIIX metadata (text or math recognized from backend)
+        const label = this.blockMetadata.getLabel(s.id)
+        if (label) {
+          textParts.push(label)
         }
       }
     })
@@ -1069,10 +1012,7 @@ export class InteractiveInkEditor extends AbstractEditor
       if (isStroke(s) || isShape(s) || isEdge(s)) {
         result.push(s)
       }
-      else if (isRecognized(s)) {
-        const strokes = s.strokes.map((stroke: IIStroke) => stroke.clone())
-        result.push(...strokes)
-      }
+      // Recognized symbols no longer exist - they are now strokes with JIIX metadata
     })
 
     return result
@@ -1086,19 +1026,7 @@ export class InteractiveInkEditor extends AbstractEditor
   extractStrokesFromSymbols(symbols: TIISymbol[] | undefined): IIStroke[]
   {
     if (!symbols?.length) return []
-    const strokes: IIStroke[] = []
-    symbols.forEach(s =>
-    {
-      switch (s.type) {
-        case SymbolType.Stroke:
-          strokes.push(s)
-          break
-        case SymbolType.Recognized:
-          strokes.push(...s.strokes)
-          break
-      }
-    })
-    return strokes
+    return symbols.filter(isStroke)
   }
 
   /**
@@ -1109,16 +1037,7 @@ export class InteractiveInkEditor extends AbstractEditor
   extractTextsFromSymbols(symbols: TIISymbol[] | undefined): IIText[]
   {
     if (!symbols?.length) return []
-    const texts: IIText[] = []
-    symbols.forEach(s =>
-    {
-      switch (s.type) {
-        case SymbolType.Text:
-          texts.push(s)
-          break
-      }
-    })
-    return texts
+    return symbols.filter(isText)
   }
 
   /**
@@ -1129,16 +1048,7 @@ export class InteractiveInkEditor extends AbstractEditor
   extractMathsFromSymbols(symbols: TIISymbol[] | undefined): IIMath[]
   {
     if (!symbols?.length) return []
-    const maths: IIMath[] = []
-    symbols.forEach(s =>
-    {
-      switch (s.type) {
-        case SymbolType.Math:
-          maths.push(s)
-          break
-      }
-    })
-    return maths
+    return symbols.filter(isMath)
   }
 
   protected extractBackendChanges(changes: TIIHistoryChanges): TIIHistoryBackendChanges
@@ -1412,27 +1322,23 @@ export class InteractiveInkEditor extends AbstractEditor
    * @returns Math symbol if found, undefined otherwise
    * @group Utilities
    */
-  findMathSymbolByJiixId(jiixId: string): IIRecognizedMath | undefined
+  findMathSymbolByJiixId(jiixId: string): IIStroke | undefined
   {
-    return this.mathDependencies.findMathSymbolByJiixId(jiixId)
+    return this.math.dependencies.findMathSymbolByJiixId(jiixId)
   }
 
   /**
    * Clear solver output strokes from a math symbol
-   * @param mathSymbol - The math symbol to clear solver outputs from
+   * @param jiixBlockId - The JIIX block ID
    * @returns Promise that resolves when strokes are removed
    * @group Utilities
    */
-  async clearSolverOutputStrokes(mathSymbol: IIRecognizedMath): Promise<void>
+  async clearSolverOutputStrokes(jiixBlockId?: string): Promise<void>
   {
-    if (mathSymbol.solverOutputStrokeIds && mathSymbol.solverOutputStrokeIds.length > 0) {
-      this.logger.info("clearSolverOutputStrokes", `Removing ${ mathSymbol.solverOutputStrokeIds.length } solver output strokes from ${ mathSymbol.jiixId }`)
-      this.transientInk.clearTransientsForBlock(mathSymbol.id)
-      await this.removeSymbols(mathSymbol.solverOutputStrokeIds, false)
-      mathSymbol.strokes = mathSymbol.strokes.filter(s => !mathSymbol.solverOutputStrokeIds!.includes(s.id))
-      mathSymbol.solverOutputStrokeIds = undefined
-      mathSymbol.computedResult = undefined
-      await this.model.updateSymbol(mathSymbol)
+    if (jiixBlockId) {
+      await this.math.clearSolverOutputs(jiixBlockId)
+    } else {
+      await Promise.all(this.model.getMathBlocks().map(block => this.math.clearSolverOutputs(block.id)))
     }
   }
 
@@ -1445,11 +1351,9 @@ export class InteractiveInkEditor extends AbstractEditor
   async getAvailableActions(blockId: string): Promise<string[]>
   {
     try {
-      this.logger.info("getAvailableActions", { blockId })
-      return await this.recognizer.getAvailableActions(blockId)
+      return await this.math.actions.getAvailableActions(blockId)
     }
     catch (error) {
-      this.logger.error("getAvailableActions", { error })
       this.manageError(error as Error)
       throw error
     }
@@ -1465,11 +1369,9 @@ export class InteractiveInkEditor extends AbstractEditor
   async getDiagnostic(blockId: string, task: string): Promise<string>
   {
     try {
-      this.logger.info("getDiagnostic", { blockId, task })
-      return await this.recognizer.getDiagnostic(blockId, task)
+      return await this.math.actions.getDiagnostic(blockId, task)
     }
     catch (error) {
-      this.logger.error("getDiagnostic", { error })
       this.manageError(error as Error)
       throw error
     }
@@ -1496,55 +1398,20 @@ export class InteractiveInkEditor extends AbstractEditor
 
   /**
    * Compute numerical result for a math symbol
-   * @param mathSymbol - The math symbol to compute
+   * @param jiixBlock - Object with id and label of the math block
    * @param drawStrokes - Whether to draw the result as strokes (default: true)
    * @returns Promise with the computation result, number of added strokes, and numeric value
    * @group Utilities
    */
   async computeMathNumericalResult(
-    mathSymbol: IIRecognizedMath,
+    jiixBlock: { id: string, label: string },
     drawStrokes: boolean = true
   ): Promise<{ result: TJIIXMathElement, addedStrokesCount: number, value?: number }>
   {
     try {
-      this.logger.info("computeMathNumericalResult", { mathSymbol: mathSymbol.id, drawStrokes })
-
-      if (!mathSymbol.jiixId) {
-        throw new Error("Math symbol does not have jiixId")
-      }
-
-      await this.clearSolverOutputStrokes(mathSymbol)
-
-      const result = await this.getNumericalComputation(mathSymbol.jiixId)
-      this.logger.info("Numerical computation completed successfully", result)
-
-      let addedStrokesCount = 0
-
-      if (drawStrokes) {
-        const addedStrokes = await this.addSolverOutputStrokes(result, mathSymbol)
-        addedStrokesCount = addedStrokes.length
-        this.logger.info(`Added ${ addedStrokesCount } solver output strokes`)
-      }
-
-      // Always extract and set the computed value
-      let value: number | undefined
-      if (result.expressions && Array.isArray(result.expressions)) {
-        const equalExpression = result.expressions.find(expr =>
-          expr.type === "=" && "value" in expr && typeof (expr as { value?: unknown }).value === "number"
-        )
-        if (equalExpression && "value" in equalExpression) {
-          value = (equalExpression as { value: number }).value
-          this.logger.info("Extracted numerical value", { value })
-
-          mathSymbol.computedResult = value
-          await this.model.updateSymbol(mathSymbol)
-        }
-      }
-
-      return { result, addedStrokesCount, value }
+      return await this.math.computeNumericalResult(jiixBlock.id, drawStrokes)
     }
     catch (error) {
-      this.logger.error("computeMathNumericalResult", { error })
       this.manageError(error as Error)
       throw error
     }
@@ -1559,34 +1426,27 @@ export class InteractiveInkEditor extends AbstractEditor
   async getVariables(blockId: string): Promise<TMathVariable[]>
   {
     try {
-      if (!blockId) {
-        this.logger.warn("getVariables", "blockId is empty or undefined, returning empty array")
-        return []
-      }
-      this.logger.info("getVariables", { blockId })
-      return await this.recognizer.getVariables(blockId)
+      return await this.math.actions.getVariables(blockId)
     }
     catch (error) {
-      this.logger.error("getVariables", { error })
       this.manageError(error as Error)
       throw error
     }
   }
 
   /**
-   * Get available math solver actions for a specific math element
+   * Get variable value from a math expression
    * @param blockId - The ID of the math element (jiixId)
+   * @param variableName - Name of the variable
    * @returns Promise with the value of the variable
    * @group Utilities
    */
   async getVariableValue(blockId: string, variableName: string): Promise<number>
   {
     try {
-      this.logger.info("getVariableValue", { blockId, variableName })
-      return await this.recognizer.getVariableValue(blockId, variableName)
+      return await this.math.actions.getVariableValue(blockId, variableName)
     }
     catch (error) {
-      this.logger.error("getVariableValue", { error })
       this.manageError(error as Error)
       throw error
     }
@@ -1597,38 +1457,15 @@ export class InteractiveInkEditor extends AbstractEditor
    * @param blockId - The ID of the math element (jiixId)
    * @param variableName - Name of the variable to set
    * @param variableValue - Value to assign to the variable
-   * @param mathSymbol - Optional math symbol (will be found if not provided)
    * @returns Promise that resolves when the variable is set
    * @group Utilities
    */
-  async setVariableValue(blockId: string, variableName: string, variableValue: number, mathSymbol?: IIRecognizedMath): Promise<void>
+  async setVariableValue(blockId: string, variableName: string, variableValue: number): Promise<void>
   {
     try {
-      this.logger.info("setVariableValue", { blockId, variableName, variableValue })
-
-      let symbol = mathSymbol
-      if (!symbol) {
-        symbol = this.findMathSymbolByJiixId(blockId)
-      }
-
-      if (symbol) {
-        await this.clearSolverOutputStrokes(symbol)
-      }
-
-      await this.recognizer.setVariableValue(blockId, variableName, variableValue)
-      if (symbol) {
-        if (!symbol.variableValues) {
-          symbol.variableValues = {}
-        }
-        symbol.variableValues[variableName] = variableValue
-        await this.model.updateSymbol(symbol)
-      }
-
-      this.logger.info("setVariableValue", `Variable value changed, recalculating dependent blocks for ${ blockId }`)
-      await this.recalculateDependentBlocks(blockId)
+      return await this.math.setVariableValue(blockId, variableName, variableValue)
     }
     catch (error) {
-      this.logger.error("setVariableValue", { error })
       this.manageError(error as Error)
       throw error
     }
@@ -1636,30 +1473,17 @@ export class InteractiveInkEditor extends AbstractEditor
 
   /**
    * Set multiple variable values for a math symbol
-   * @param mathSymbol - The math symbol to update
+   * @param jiixBlock - Object with id and label of the math block
    * @param variableValues - Object with variable names as keys and their values
    * @returns Promise that resolves when all variables are set
    * @group Utilities
    */
-  async setMathVariables(mathSymbol: IIRecognizedMath, variableValues: { [name: string]: number }): Promise<void>
+  async setMathVariables(jiixBlock: { id: string; label: string; }, variableValues: { [name: string]: number }): Promise<void>
   {
     try {
-      this.logger.info("setMathVariables", { mathSymbol: mathSymbol.id, variableValues })
-
-      if (!mathSymbol.jiixId) {
-        throw new Error("Math symbol does not have jiixId")
-      }
-
-      for (const [variableName, variableValue] of Object.entries(variableValues)) {
-        await this.setVariableValue(mathSymbol.jiixId, variableName, variableValue, mathSymbol)
-      }
-
-      await this.model.updateSymbol(mathSymbol)
-
-      this.selector.resetSelectedGroup([mathSymbol])
+      return await this.math.actions.setVariables(jiixBlock.id, variableValues)
     }
     catch (error) {
-      this.logger.error("setMathVariables", { error })
       this.manageError(error as Error)
       throw error
     }
@@ -1674,11 +1498,9 @@ export class InteractiveInkEditor extends AbstractEditor
   async getEvaluables(blockId: string): Promise<TMathEvaluable[]>
   {
     try {
-      this.logger.info("getEvaluables", { blockId })
-      return await this.recognizer.getEvaluables(blockId)
+      return await this.math.actions.getEvaluables(blockId)
     }
     catch (error) {
-      this.logger.error("getEvaluables", { error })
       this.manageError(error as Error)
       throw error
     }
@@ -1700,11 +1522,9 @@ export class InteractiveInkEditor extends AbstractEditor
   }): Promise<{ [key: string]: number }[][]>
   {
     try {
-      this.logger.info("evaluate", { blockId, evaluation })
-      return await this.recognizer.evaluate(blockId, evaluation)
+      return await this.math.evaluateFunction(blockId, evaluation)
     }
     catch (error) {
-      this.logger.error("evaluate", { error })
       this.manageError(error as Error)
       throw error
     }
@@ -1712,13 +1532,13 @@ export class InteractiveInkEditor extends AbstractEditor
 
   /**
    * Evaluate a math function for a math symbol
-   * @param mathSymbol - The math symbol containing the function
+   * @param jiixBlock - Object with id and label of the math block
    * @param evaluation - Evaluation parameters
    * @returns Promise with evaluation points
    * @group Utilities
    */
   async evaluateMathFunction(
-    mathSymbol: IIRecognizedMath,
+    jiixBlock: { id: string, label: string },
     evaluation: {
       inputVariableName: string,
       outputVariableName: string,
@@ -1729,22 +1549,9 @@ export class InteractiveInkEditor extends AbstractEditor
   ): Promise<{ [key: string]: number }[][]>
   {
     try {
-      this.logger.info("evaluateMathFunction", { mathSymbol: mathSymbol.id, evaluation })
-
-      if (!mathSymbol.jiixId) {
-        throw new Error("Math symbol does not have jiixId")
-      }
-
-      const series = await this.evaluate(mathSymbol.jiixId, evaluation)
-      this.logger.info("Function evaluated successfully", {
-        seriesCount: series.length,
-        totalPoints: series.reduce((sum, s) => sum + s.length, 0)
-      })
-
-      return series
+      return await this.math.evaluateFunction(jiixBlock.id, evaluation)
     }
     catch (error) {
-      this.logger.error("evaluateMathFunction", { error })
       this.manageError(error as Error)
       throw error
     }
@@ -1780,8 +1587,8 @@ export class InteractiveInkEditor extends AbstractEditor
       })
     }
 
-    if (objRecord.expressions && Array.isArray(objRecord.expressions)) {
-      objRecord.expressions.forEach((expr: unknown) =>
+    if (objRecord.jiixMathExpressions && Array.isArray(objRecord.jiixMathExpressions)) {
+      objRecord.jiixMathExpressions.forEach((expr: unknown) =>
       {
         if (expr) {
           strokes.push(...this.extractSolverOutputStrokes(expr))
@@ -1800,7 +1607,7 @@ export class InteractiveInkEditor extends AbstractEditor
    * @returns Promise resolving to array of added strokes
    * @group Utilities
    */
-  async addSolverOutputStrokes(result: TJIIXMathElement, mathSymbol: IIRecognizedMath, style?: TStyle): Promise<IIStroke[]>
+  async addSolverOutputStrokes(result: TJIIXMathElement, jiixBlock: { id: string, label: string }, style?: TStyle): Promise<IIStroke[]>
   {
     try {
       this.logger.info("addSolverOutputStrokes", { result })
@@ -1826,7 +1633,8 @@ export class InteractiveInkEditor extends AbstractEditor
 
         const stroke = IIStroke.create({
           pointers,
-          style: defaultStyle
+          style: defaultStyle,
+          isSolverOutput: true,
         })
 
         await this.addSymbol(stroke)
@@ -1835,13 +1643,13 @@ export class InteractiveInkEditor extends AbstractEditor
       }
 
       if (addedStrokes.length > 0) {
-        mathSymbol.solverOutputStrokeIds = addedStrokes.map(s => s.id)
+        // jiixBlock.solverOutputStrokeIds = addedStrokes.map(s => s.id)
         addedStrokes.forEach(stroke =>
         {
-          this.transientInk.addTransientSymbol(mathSymbol.id, stroke.id)
+          this.transientInk.addTransientSymbol(jiixBlock.id, stroke.id)
         })
 
-        await this.model.updateSymbol(mathSymbol)
+        // await this.model.updateSymbol(mathSymbol)
       }
 
       return addedStrokes
@@ -1862,7 +1670,7 @@ export class InteractiveInkEditor extends AbstractEditor
   async recalculateDependentBlocks(sourceBlockId: string): Promise<void>
   {
     try {
-      return await this.mathDependencies.recalculateDependentBlocks(sourceBlockId)
+      return await this.math.recalculateDependentBlocks(sourceBlockId)
     }
     catch (error) {
       this.logger.error("recalculateDependentBlocks", { error })
@@ -1881,7 +1689,7 @@ export class InteractiveInkEditor extends AbstractEditor
    */
   getMathDependencies(blockId: string): { variableSources?: { [variableName: string]: string }, dependentBlocks?: string[] } | null
   {
-    return this.mathDependencies.getMathDependencies(blockId)
+    return this.math.dependencies.getMathDependencies(blockId)
   }
 
   /**

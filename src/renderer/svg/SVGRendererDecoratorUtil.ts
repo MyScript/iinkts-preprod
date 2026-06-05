@@ -1,4 +1,4 @@
-import { Box, DecoratorKind, IIDecorator, isRecognizedText, TBox, TIISymbol } from "@/symbol"
+import { Box, DecoratorKind, IIDecorator, TBox, TIISymbol } from "@/symbol"
 import { DefaultStyle } from "@/style"
 import { SVGBuilder } from "./utils/SVGBuilder"
 
@@ -102,8 +102,11 @@ export class SVGRendererDecoratorUtil
 
   static getSVGElement(decorator: IIDecorator, symbol: TIISymbol): SVGGeometryElement | undefined
   {
-    const baseline = isRecognizedText(symbol) ? symbol.baseline : undefined
-    const xHeight = isRecognizedText(symbol) ? symbol.xHeight : undefined
+    // Note: baseline and xHeight were previously retrieved from symbol.jiixTextLine
+    // This metadata is now managed in IIBlockMetadataManager
+    // For now, decorators use only symbol bounds
+    const baseline = undefined
+    const xHeight = undefined
 
     return this.getSVGElementFromBounds(
       decorator,

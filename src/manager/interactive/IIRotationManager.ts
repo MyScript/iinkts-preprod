@@ -7,20 +7,20 @@ import
   IIStroke,
   IIText,
   IIMath,
-  TIIRecognized,
   ShapeKind,
   TIIEdge,
   TIIShape,
   TPoint
 } from "@/symbol"
 import { computeAngleRadian, convertDegreeToRadian, convertRadianToDegree, computeRotatedPoint, TWO_PI } from "@/utils"
-import { AbstractTransformManager } from "./AbstractTransformManager"
+import { IIAbstractTransformManager } from "./AbstractTransformManager"
 
 /**
  * @group Manager
  */
-export class IIRotationManager extends AbstractTransformManager<[TPoint, number]>
+export class IIRotationManager extends IIAbstractTransformManager<[TPoint, number]>
 {
+  protected managerName = "IIRotationManager"
   protected transformName = "rotate"
   center!: TPoint
   origin!: TPoint
@@ -32,12 +32,23 @@ export class IIRotationManager extends AbstractTransformManager<[TPoint, number]
 
   protected applyToStroke(stroke: IIStroke, center: TPoint, angleRad: number): IIStroke
   {
+    // NEW ARCHITECTURE: Skip solver outputs - they should be recalculated
+    if (stroke.isSolverOutput) {
+      this.logger.warn("applyToStroke", "Skipping solver output stroke - it will be recalculated", stroke.id)
+      return stroke
+    }
+
     stroke.pointers.forEach(p =>
     {
       const { x, y } = computeRotatedPoint(p, center, angleRad)
       p.x = x
       p.y = y
     })
+
+    // Note: Text bounds in blockMetadata should be invalidated after rotation
+    // This will be recalculated during next synchronization
+    // TODO: Consider clearing metadata here or marking as invalid
+
     return stroke
   }
 
@@ -108,11 +119,7 @@ export class IIRotationManager extends AbstractTransformManager<[TPoint, number]
     return math
   }
 
-  protected applyOnRecognizedSymbol(strokeText: TIIRecognized, center: TPoint, angleRad: number): TIIRecognized
-  {
-    strokeText.strokes.forEach(s => this.applyToStroke(s, center, angleRad))
-    return strokeText
-  }
+  // applyOnRecognizedSymbol removed - recognized symbols no longer exist
 
   setTransformOrigin(id: string, originX: number, originY: number): void
   {

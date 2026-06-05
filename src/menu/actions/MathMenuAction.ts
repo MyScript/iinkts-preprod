@@ -20,9 +20,9 @@ export class MathMenuAction extends SubMenuItem
         type: "checkbox",
         id: `${idPrefix}-math-show-block-overlays`,
         label: "Show Block Overlays (∑)",
-        getValue: (editor: InteractiveInkEditor) => editor.mathOverlays.getConfig().showBlockOverlays,
+        getValue: (editor: InteractiveInkEditor) => editor.math.overlays.getConfig().showBlockOverlays,
         setValue: (editor: InteractiveInkEditor, value: boolean) => {
-          editor.mathOverlays.toggleBlockOverlays(value)
+          editor.math.overlays.toggleBlockOverlays(value)
         }
       },
       {
@@ -31,19 +31,19 @@ export class MathMenuAction extends SubMenuItem
         label: "Draw result as strokes",
         getValue: (editor: InteractiveInkEditor) => editor.drawComputationResult,
         setValue: async (editor: InteractiveInkEditor, value: boolean) => {
-          const oldMode = editor.drawComputationResult
           editor.drawComputationResult = value
 
-          if (!value && oldMode) {
+          if (!value) {
             // If switching from drawing strokes to not drawing, clear existing solver strokes
-            const mathSymbols = editor.model.symbols.filter(isRecognizedMath)
+            const mathSymbols = editor.model.symbols.filter(isRecognizedMath).map(s => s.jiixBlockId)
+
             for (const mathSymbol of mathSymbols) {
-              await editor.clearSolverOutputStrokes(mathSymbol)
+              await editor.clearSolverOutputStrokes(mathSymbol!)
             }
           }
 
           // Show result panels when not drawing strokes
-          editor.mathOverlays.updateConfig({ showResultPanels: !value })
+          editor.math.overlays.updateConfig({ showResultPanels: !value })
         }
       }
     ]
@@ -53,11 +53,11 @@ export class MathMenuAction extends SubMenuItem
         type: "checkbox",
         id: `${idPrefix}-math-show-dependency-on-hover`,
         label: "Show Dependencies on Hover",
-        getValue: (editor: InteractiveInkEditor) => editor.mathInteractions.getConfig().showDependencyOnHover,
+        getValue: (editor: InteractiveInkEditor) => editor.math.interactions.getConfig().showDependencyOnHover,
         setValue: (editor: InteractiveInkEditor, value: boolean) => {
-          editor.mathInteractions.updateConfig({ showDependencyOnHover: value })
+          editor.math.interactions.updateConfig({ showDependencyOnHover: value })
           if (!value) {
-            editor.mathInteractions.clearAll()
+            editor.math.interactions.clearAll()
           }
         }
       },
@@ -65,9 +65,9 @@ export class MathMenuAction extends SubMenuItem
         type: "checkbox",
         id: `${idPrefix}-math-highlight-on-select`,
         label: "Highlight on Select",
-        getValue: (editor: InteractiveInkEditor) => editor.mathInteractions.getConfig().highlightOnSelect,
+        getValue: (editor: InteractiveInkEditor) => editor.math.interactions.getConfig().highlightOnSelect,
         setValue: (editor: InteractiveInkEditor, value: boolean) => {
-          editor.mathInteractions.updateConfig({ highlightOnSelect: value })
+          editor.math.interactions.updateConfig({ highlightOnSelect: value })
         }
       })
     }

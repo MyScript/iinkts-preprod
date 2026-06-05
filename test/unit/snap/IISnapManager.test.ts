@@ -67,16 +67,16 @@ describe("IISnapManager.ts", () =>
 
     test("should do nothing if configuration.symbol & configuration.guide are equal to false", () =>
     {
-      manager.configuration.guide = false
-      manager.configuration.symbol = false
+      manager.snapConfiguration.guide = false
+      manager.snapConfiguration.symbol = false
       expect(manager.snapResize({ x: 10, y: 10 })).toEqual({ x: 10, y: 10 })
       expect(manager.renderer.clearElements).toHaveBeenCalledTimes(1)
     })
 
     test("should return guide point when configuration.guide is equal to true", () =>
     {
-      manager.configuration.guide = true
-      manager.configuration.symbol = false
+      manager.snapConfiguration.guide = true
+      manager.snapConfiguration.symbol = false
       expect(manager.snapResize({ x: 12, y: 32 })).toEqual({ x: 10, y: 30 })
       expect(manager.renderer.clearElements).toHaveBeenCalledTimes(1)
     })
@@ -85,8 +85,8 @@ describe("IISnapManager.ts", () =>
     {
       beforeEach(async () =>
       {
-        manager.configuration.guide = false
-        manager.configuration.symbol = true
+        manager.snapConfiguration.guide = false
+        manager.snapConfiguration.symbol = true
       })
       afterEach(() =>
       {
@@ -197,16 +197,16 @@ describe("IISnapManager.ts", () =>
 
     test("should do nothing if configuration.symbol & configuration.guide are equal to false", () =>
     {
-      manager.configuration.guide = false
-      manager.configuration.symbol = false
+      manager.snapConfiguration.guide = false
+      manager.snapConfiguration.symbol = false
       expect(manager.snapTranslate(10, 12)).toEqual({ x: 10, y: 12 })
       expect(manager.renderer.clearElements).toHaveBeenCalledTimes(1)
     })
 
     test("should return a nudge to the nearest guide point when configuration.guide equals true", () =>
     {
-      manager.configuration.guide = true
-      manager.configuration.symbol = false
+      manager.snapConfiguration.guide = true
+      manager.snapConfiguration.symbol = false
       expect(manager.snapTranslate(30, 22)).toEqual({ x: 25, y: 20 })
       expect(manager.renderer.clearElements).toHaveBeenCalledTimes(1)
     })
@@ -215,8 +215,8 @@ describe("IISnapManager.ts", () =>
     {
       beforeEach(async () =>
       {
-        manager.configuration.guide = false
-        manager.configuration.symbol = true
+        manager.snapConfiguration.guide = false
+        manager.snapConfiguration.symbol = true
       })
       afterEach(() =>
       {
@@ -314,13 +314,13 @@ describe("IISnapManager.ts", () =>
 
     test("should do nothing if configuration.symbol & configuration.guide are equal to false", () =>
     {
-      manager.configuration.angle = 0
+      manager.snapConfiguration.angle = 0
       expect(manager.snapRotation(12)).toEqual(12)
     })
 
     test("should return guide point when configuration.guide is equal to true", () =>
     {
-      manager.configuration.angle = 20
+      manager.snapConfiguration.angle = 20
       expect(manager.snapRotation(12)).toEqual(20)
     })
 

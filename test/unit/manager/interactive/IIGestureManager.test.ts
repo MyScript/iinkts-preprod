@@ -1,5 +1,5 @@
-import { buildIICircle, buildIIStroke, buildIIText } from "../helpers"
-import { InteractiveInkEditorMock } from "../__mocks__/InteractiveInkEditorMock"
+import { buildIICircle, buildIIStroke, buildIIText } from "../../helpers"
+import { InteractiveInkEditorMock } from "../../__mocks__/InteractiveInkEditorMock"
 import
 {
   DefaultIIRendererConfiguration,
@@ -12,7 +12,7 @@ import
   StrikeThroughAction,
   IIStroke,
   TRecognizerWebSocketMessageType
-} from "../../../src/iink"
+} from "../../../../src/iink"
 
 describe("IIGestureManager.ts", () =>
 {
@@ -135,7 +135,7 @@ describe("IIGestureManager.ts", () =>
       }
       // @ts-expect-error - Method moved to SurroundGestureHandler
       await gestMan.applySurroundGesture(gestureStroke, gesture)
-      expect(gestMan.editor.select).toHaveBeenCalledTimes(0)
+      expect((gestMan as any).editor.select).toHaveBeenCalledTimes(0)
       expect(gestMan.history.push).toHaveBeenCalledTimes(0)
     })
 
@@ -158,8 +158,8 @@ describe("IIGestureManager.ts", () =>
       }
       // @ts-expect-error - Method moved to SurroundGestureHandler
       await gestMan.applySurroundGesture(gestureStroke, gesture)
-      expect(gestMan.editor.event.emitToolChanged).toHaveBeenNthCalledWith(1, EditorTool.Select)
-      expect(gestMan.editor.select).toHaveBeenNthCalledWith(1, [stroke.id])
+      expect((gestMan as any).editor.event.emitToolChanged).toHaveBeenNthCalledWith(1, EditorTool.Select)
+      expect((gestMan as any).editor.select).toHaveBeenNthCalledWith(1, [stroke.id])
       expect(gestMan.history.push).toHaveBeenCalledTimes(0)
     })
 
@@ -499,7 +499,7 @@ describe("IIGestureManager.ts", () =>
       }
       // @ts-expect-error - Method moved to JoinGestureHandler
       await gestMan.applyJoinGesture(strokeGesture, gesture)
-      expect(gestMan.editor.replaceSymbols).toHaveBeenCalledTimes(1)
+      expect((gestMan as any).editor.replaceSymbols).toHaveBeenCalledTimes(1)
       expect(gestMan.history.push).toHaveBeenCalledTimes(1)
     })
 

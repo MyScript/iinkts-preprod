@@ -1,12 +1,9 @@
-import { LoggerManager, LoggerCategory } from "@/logger"
-import { IIModel } from "@/model"
 import { IIStroke, SymbolType } from "@/symbol"
-import { RecognizerWebSocket } from "@/recognizer"
-import { SVGRenderer } from "@/renderer"
 import { IIHistoryManager } from "@/history"
 import { isBetween, PartialDeep } from "@/utils"
 import { IITranslateManager, IITextManager } from "."
 import { InteractiveInkEditor } from "@/editor"
+import { IIAbstractManager } from "./IIAbstractManager"
 import type { IGestureHandler } from "./gestures"
 import {
   GestureHelpers,
@@ -33,9 +30,10 @@ import {
  * @group Manager
  * @remarks Orchestrator for gesture recognition and handling using Strategy Pattern
  */
-export class IIGestureManager
+export class IIGestureManager extends IIAbstractManager
 {
-  #logger = LoggerManager.getLogger(LoggerCategory.GESTURE)
+  protected managerName = "IIGestureManager"
+
   #handlers: Map<TGestureType, IGestureHandler> = new Map()
   #helpers: GestureHelpers
 
@@ -48,12 +46,11 @@ export class IIGestureManager
   surroundAction: SurroundAction = SurroundAction.Select
   strikeThroughAction: StrikeThroughAction = StrikeThroughAction.Draw
   underlineAction: UnderlineAction = UnderlineAction.Draw
-  editor: InteractiveInkEditor
 
   constructor(editor: InteractiveInkEditor, gestureAction?: PartialDeep<TGestureConfiguration>)
   {
-    this.#logger.info("constructor")
-    this.editor = editor
+    super(editor)
+    this.logger.info("constructor")
     this.surroundAction = gestureAction?.surround || DefaultGestureConfiguration.surround
     this.strikeThroughAction = gestureAction?.strikeThrough || DefaultGestureConfiguration.strikeThrough
     this.underlineAction = gestureAction?.underline || DefaultGestureConfiguration.underline
@@ -78,16 +75,6 @@ export class IIGestureManager
     this.#handlers.set("INSERT", new InsertGestureHandler(this.editor, this.#helpers))
   }
 
-  get renderer(): SVGRenderer
-  {
-    return this.editor.renderer
-  }
-
-  get recognizer(): RecognizerWebSocket
-  {
-    return this.editor.recognizer
-  }
-
   get translator(): IITranslateManager
   {
     return this.editor.translator
@@ -96,11 +83,6 @@ export class IIGestureManager
   get texter(): IITextManager
   {
     return this.editor.texter
-  }
-
-  get model(): IIModel
-  {
-    return this.editor.model
   }
 
   get history(): IIHistoryManager
@@ -125,7 +107,7 @@ export class IIGestureManager
    */
   async apply(gestureStroke: IIStroke, gesture: TGesture): Promise<void>
   {
-    this.#logger.info("apply", { gestureStroke, gesture })
+    this.logger.info("apply", { gestureStroke, gesture })
 
     // Prepare gesture stroke for removal
     this.editor.updateSymbolsStyle([gestureStroke.id], { opacity: (gestureStroke.style.opacity || 1) / 2 }, false)
@@ -137,7 +119,7 @@ export class IIGestureManager
     if (handler) {
       await handler.apply(gestureStroke, gesture)
     } else {
-      this.#logger.warn("apply", `No handler found for gesture type: ${gesture.gestureType}`)
+      this.logger.warn("apply", `No handler found for gesture type: ${gesture.gestureType}`)
     }
 
     // Emit event and update UI

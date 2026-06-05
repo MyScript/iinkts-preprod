@@ -1,0 +1,5 @@
+export * from "./IIMathActionSubManager"
+export * from "./IIMathComputationSubManager"
+export * from "./IIMathDependencySubManager"
+export * from "./IIMathInteractionSubManager"
+export * from "./IIMathOverlaySubManager"

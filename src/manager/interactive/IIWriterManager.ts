@@ -108,9 +108,9 @@ export class IIWriterManager extends AbstractWriterManager
     return this.detectGesture && this.model.symbols.some(s =>
     {
       switch (s.type) {
-        case SymbolType.Recognized:
         case SymbolType.Stroke:
           return false
+        // SymbolType.Recognized removed - recognized symbols no longer exist
         default:
           return s.bounds.overlaps(strokeBoundsWithMargin)
       }

@@ -1,6 +1,5 @@
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
-import { LoggerCategory, LoggerManager } from "@/logger"
-import { IIModel } from "@/model"
+import { IIAbstractManager } from "./IIAbstractManager"
 import
 {
   IIStroke,
@@ -9,31 +8,31 @@ import
   SymbolType,
   TIIEdge,
   TIIShape,
-  TIISymbol,
-  TIIRecognized
+  TIISymbol
 } from "@/symbol"
 
 /**
  * Abstract base class for transform managers (translate, rotate, resize)
  * Factorizes common code and structure across transformation types
+ * Extends IIAbstractManager to benefit from common manager structure
  * @group Manager
  */
-export abstract class AbstractTransformManager<TParams extends unknown[]>
+export abstract class IIAbstractTransformManager<TParams extends unknown[]> extends IIAbstractManager
 {
-  protected logger = LoggerManager.getLogger(LoggerCategory.TRANSFORMER)
+  /**
+   * Name of the transformation (translate, rotate, resize)
+   * Used for error messages and logging
+   */
   protected abstract transformName: string
-  editor: InteractiveInkEditor
+
+  /**
+   * SVG group element for interaction feedback
+   */
   interactElementsGroup?: SVGElement
 
   constructor(editor: InteractiveInkEditor)
   {
-    this.logger.info("constructor")
-    this.editor = editor
-  }
-
-  get model(): IIModel
-  {
-    return this.editor.model
+    super(editor)
   }
 
   /**
@@ -66,11 +65,7 @@ export abstract class AbstractTransformManager<TParams extends unknown[]>
    */
   protected abstract applyOnMath(math: IIMath, ...params: TParams): IIMath
 
-  /**
-   * Apply transformation to recognized symbol
-   * Must be implemented by concrete classes
-   */
-  protected abstract applyOnRecognizedSymbol(recognized: TIIRecognized, ...params: TParams): TIIRecognized
+  // applyOnRecognizedSymbol removed - recognized symbols no longer exist
 
   /**
    * Apply transformation to any symbol based on its type
@@ -90,8 +85,7 @@ export abstract class AbstractTransformManager<TParams extends unknown[]>
         return this.applyOnText(symbol, ...params)
       case SymbolType.Math:
         return this.applyOnMath(symbol, ...params)
-      case SymbolType.Recognized:
-        return this.applyOnRecognizedSymbol(symbol, ...params)
+      // SymbolType.Recognized removed - recognized symbols no longer exist
       default:
         throw new Error(`Can't apply ${ this.transformName } on symbol, type unknown: ${ JSON.stringify(symbol) }`)
     }

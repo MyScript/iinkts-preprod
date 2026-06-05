@@ -1,29 +1,27 @@
 import { IITransientInkManager } from "../../../../src/manager/interactive/IITransientInkManager"
-import { SVGRenderer } from "../../../../src/renderer"
-import { IIModel } from "../../../../src/model"
 import { SymbolType } from "../../../../src/symbol"
+import { InteractiveInkEditor } from "../../../../src/editor/variants/InteractiveInkEditor"
 
-// Mock dependencies
-jest.mock("../../../../src/renderer")
-jest.mock("../../../../src/model")
+// Mock the editor
+jest.mock("../../../../src/editor/variants/InteractiveInkEditor")
 
 describe("IITransientInkManager", () => {
   let manager: IITransientInkManager;
-  let mockRenderer: jest.Mocked<SVGRenderer>;
-  let mockModel: jest.Mocked<IIModel>;
+  let mockEditor: jest.Mocked<InteractiveInkEditor>;
 
   beforeEach(() => {
-    // Create mock instances
-    mockRenderer = {
-      removeSymbol: jest.fn(),
+    // Create mock editor with required properties
+    mockEditor = {
+      renderer: {
+        removeSymbol: jest.fn(),
+      },
+      model: {
+        symbols: [],
+        removeSymbol: jest.fn(),
+      },
     } as any
 
-    mockModel = {
-      symbols: [],
-      removeSymbol: jest.fn(),
-    } as any
-
-    manager = new IITransientInkManager(mockRenderer, mockModel)
+    manager = new IITransientInkManager(mockEditor)
   })
 
   describe("addTransientSymbol", () => {
@@ -71,24 +69,24 @@ describe("IITransientInkManager", () => {
     test("should remove symbols from renderer", () => {
       manager.clearTransientsForBlock("block1")
 
-      expect(mockRenderer.removeSymbol).toHaveBeenCalledWith("symbol1")
-      expect(mockRenderer.removeSymbol).toHaveBeenCalledWith("symbol2")
-      expect(mockRenderer.removeSymbol).toHaveBeenCalledTimes(2)
+      expect(mockEditor.renderer.removeSymbol).toHaveBeenCalledWith("symbol1")
+      expect(mockEditor.renderer.removeSymbol).toHaveBeenCalledWith("symbol2")
+      expect(mockEditor.renderer.removeSymbol).toHaveBeenCalledTimes(2)
     })
 
     test("should remove symbols from model if they exist", () => {
       const mockSymbol1 = { id: "symbol1", type: SymbolType.Stroke } as any
       const mockSymbol2 = { id: "symbol2", type: SymbolType.Stroke } as any
-      mockModel.symbols = [mockSymbol1, mockSymbol2]
+      mockEditor.model.symbols = [mockSymbol1, mockSymbol2]
 
       manager.clearTransientsForBlock("block1")
 
-      expect(mockModel.removeSymbol).toHaveBeenCalledWith("symbol1")
-      expect(mockModel.removeSymbol).toHaveBeenCalledWith("symbol2")
+      expect(mockEditor.model.removeSymbol).toHaveBeenCalledWith("symbol1")
+      expect(mockEditor.model.removeSymbol).toHaveBeenCalledWith("symbol2")
     })
 
     test("should handle missing symbols gracefully", () => {
-      mockModel.symbols = []
+      mockEditor.model.symbols = []
 
       expect(() => {
         manager.clearTransientsForBlock("block1")
@@ -128,10 +126,10 @@ describe("IITransientInkManager", () => {
     test("should call removeSymbol for all symbols", () => {
       manager.clearAll()
 
-      expect(mockRenderer.removeSymbol).toHaveBeenCalledWith("symbol1")
-      expect(mockRenderer.removeSymbol).toHaveBeenCalledWith("symbol2")
-      expect(mockRenderer.removeSymbol).toHaveBeenCalledWith("symbol3")
-      expect(mockRenderer.removeSymbol).toHaveBeenCalledTimes(3)
+      expect(mockEditor.renderer.removeSymbol).toHaveBeenCalledWith("symbol1")
+      expect(mockEditor.renderer.removeSymbol).toHaveBeenCalledWith("symbol2")
+      expect(mockEditor.renderer.removeSymbol).toHaveBeenCalledWith("symbol3")
+      expect(mockEditor.renderer.removeSymbol).toHaveBeenCalledTimes(3)
     })
   })
 
