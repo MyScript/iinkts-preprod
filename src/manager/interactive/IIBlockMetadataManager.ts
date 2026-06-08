@@ -6,6 +6,7 @@ import { IIAbstractManager } from "./IIAbstractManager"
 
 /**
  * Text metadata for a block
+ * @group Manager
  */
 export type TBlockTextMetadata = {
   label?: string
@@ -16,6 +17,7 @@ export type TBlockTextMetadata = {
 
 /**
  * Math metadata for a block
+ * @group Manager
  */
 export type TBlockMathMetadata = {
   label?: string

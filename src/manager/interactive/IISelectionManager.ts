@@ -557,7 +557,7 @@ export class IISelectionManager extends IIAbstractManager
     for (const symbol of this.model.symbols) {
       if (symbol.type !== SymbolType.Stroke) continue
 
-      const stroke = symbol as IIStroke
+      const stroke = symbol
 
       switch (level) {
         case "char":

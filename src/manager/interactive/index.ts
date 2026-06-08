@@ -24,6 +24,7 @@ export * from "./IIWriterManager"
 export * from "./IIGestureManager"
 export * from "./IISnapManager"
 export * from "./gestures"
+export * from "./math"
 
 
 export { IIMathManager } from "./IIMathManager"

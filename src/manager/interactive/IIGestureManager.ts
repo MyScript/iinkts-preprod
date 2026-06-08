@@ -14,7 +14,6 @@ import {
   JoinGestureHandler,
   InsertGestureHandler
 } from "./gestures"
-export * from "./GestureTypes"
 import {
   TGestureType,
   TGesture,
@@ -24,7 +23,7 @@ import {
   InsertAction,
   TGestureConfiguration,
   DefaultGestureConfiguration
-} from "./GestureTypes"
+} from "./gestures/GestureTypes"
 
 /**
  * @group Manager

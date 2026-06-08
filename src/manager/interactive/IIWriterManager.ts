@@ -20,12 +20,12 @@ import { RecognizerWebSocket } from "@/recognizer"
 import { SVGRenderer } from "@/renderer"
 import { TStyle } from "@/style"
 import { IIHistoryManager } from "@/history"
-import { IIGestureManager, TGesture } from "./IIGestureManager"
+import { PointerInfo } from "@/grabber"
+import { IIGestureManager } from "./IIGestureManager"
+import { TGesture } from "./gestures"
 import { IISnapManager } from "./IISnapManager"
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
-import { PointerInfo } from "@/grabber"
 import { AbstractWriterManager } from "@/manager/base/AbstractWriterManager"
-
 
 /**
  * @group Manager

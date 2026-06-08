@@ -1,6 +1,6 @@
 import type { IIStroke, TIISymbol } from "@/symbol"
 import type { InteractiveInkEditor } from "@/editor"
-import type { TGesture, TGestureType } from "@/manager/interactive/GestureTypes"
+import type { TGesture, TGestureType } from "@/manager/interactive/gestures/GestureTypes"
 import type { GestureHelpers } from "./GestureHelpers"
 import { IIModel } from "@/model"
 import { SVGRenderer } from "@/renderer"

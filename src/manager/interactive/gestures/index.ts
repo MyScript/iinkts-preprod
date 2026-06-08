@@ -1,9 +1,9 @@
 /**
  * @group Manager
  */
-export { GestureHandler } from "./GestureHandler"
-export type { IGestureHandler } from "./GestureHandler"
-export { GestureHelpers } from "./GestureHelpers"
+export * from "./GestureHandler"
+export * from "./GestureHelpers"
+export * from "./GestureTypes"
 export { SurroundGestureHandler } from "./handlers/SurroundGestureHandler"
 export { StrikeThroughGestureHandler } from "./handlers/StrikeThroughGestureHandler"
 export { UnderlineGestureHandler } from "./handlers/UnderlineGestureHandler"
