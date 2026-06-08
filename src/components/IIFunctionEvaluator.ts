@@ -20,7 +20,7 @@ import { createColorDot, createButton, createLabeledInput, createSelect } from "
  * @group Components
  */
 export interface EvaluableFunction {
-  jiixBlock: {id: string, label: string}
+  jiixBlockId: string
   evaluables: Array<{
     inputName: string
     outputName: string
@@ -43,7 +43,7 @@ export interface EvaluationResult {
  */
 export class IIFunctionEvaluator {
   private editor: InteractiveInkEditor
-  private jiixBlocks: {id: string, label: string}[]
+  private jiixBlockIds: string[]
   private modal?: Modal
   private evaluationResults?: EvaluationResult[]
   private tabContent?: HTMLDivElement
@@ -65,11 +65,9 @@ export class IIFunctionEvaluator {
     "#795548"  // Brown
   ]
 
-  constructor(editor: InteractiveInkEditor, jiixBlocks: {id: string, label: string}[]) {
+  constructor(editor: InteractiveInkEditor, jiixBlockIds: string[]) {
     this.editor = editor
-    this.jiixBlocks = [...new Map(
-      jiixBlocks.map(block => [block.id, block])
-    ).values()]
+    this.jiixBlockIds = [...new Set(jiixBlockIds)]
   }
 
   /**
@@ -79,22 +77,23 @@ export class IIFunctionEvaluator {
     // Fetch evaluables for all symbols
     this.functionsToEvaluate = []
 
-    for (let i = 0; i < this.jiixBlocks.length; i++) {
-      const jiixBlock = this.jiixBlocks[i]
-      if (!jiixBlock.id) continue
+    for (let i = 0; i < this.jiixBlockIds.length; i++) {
+      const jiixBlockId = this.jiixBlockIds[i]
+      if (!jiixBlockId) continue
 
       try {
-        const evaluables = await this.editor.getEvaluables(jiixBlock.id)
+        const evaluables = await this.editor.getEvaluables(jiixBlockId)
         if (evaluables.length > 0) {
           this.functionsToEvaluate.push({
-            jiixBlock,
+            jiixBlockId,
             evaluables: evaluables,
             selectedEvaluableIndex: 0,
             color: IIFunctionEvaluator.COLORS[i % IIFunctionEvaluator.COLORS.length]
           })
         }
       } catch (error) {
-        this.logger.error(`Error fetching evaluables for symbol ${jiixBlock.label}:`, error)
+        const label = this.editor.jiix.getBlockLabel(jiixBlockId)
+        this.logger.error(`Error fetching evaluables for symbol ${label}:`, error)
       }
     }
 
@@ -159,7 +158,8 @@ export class IIFunctionEvaluator {
     label.style.flexShrink = "0"
 
     const symbolLabel = document.createElement("span")
-    symbolLabel.textContent = ` - ${func.jiixBlock.label || "N/A"}`
+    const blockLabel = this.editor.jiix.getBlockLabel(func.jiixBlockId) || "N/A"
+    symbolLabel.textContent = ` - ${blockLabel}`
     symbolLabel.style.color = "#666"
     symbolLabel.style.flexShrink = "0"
 
@@ -183,7 +183,7 @@ export class IIFunctionEvaluator {
       `
 
       const select = createSelect({
-        id: `evaluable-select-${func.jiixBlock.id}`,
+        id: `evaluable-select-${func.jiixBlockId}`,
         customStyle: selectStyle,
         options: func.evaluables.map((ev, evIndex) => ({
           value: String(evIndex),
@@ -536,7 +536,8 @@ export class IIFunctionEvaluator {
 
       for (const func of functions) {
         const selectedEvaluable = func.evaluables[func.selectedEvaluableIndex]
-        const points = await this.editor.evaluateMathFunction(func.jiixBlock, {
+        const jiixBlock = { id: func.jiixBlockId, label: this.editor.jiix.getBlockLabel(func.jiixBlockId) || "" }
+        const points = await this.editor.evaluateMathFunction(jiixBlock, {
           inputVariableName: selectedEvaluable.inputName,
           outputVariableName: selectedEvaluable.outputName,
           from,

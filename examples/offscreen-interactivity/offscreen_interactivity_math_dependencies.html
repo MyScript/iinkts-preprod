@@ -211,14 +211,14 @@
 
       editor = await Editor.load(editorElement, 'INTERACTIVEINK', options)
 
-      editor.mathOverlays.updateConfig({ showBlockOverlays: showBlockOverlaysCheckbox.checked })
+      editor.math.overlays.updateConfig({ showBlockOverlays: showBlockOverlaysCheckbox.checked })
       editor.drawComputationResult = drawResultStrokesCheckbox.checked
 
       // Show result panels when not drawing strokes
-      editor.mathOverlays.updateConfig({ showResultPanels: !drawResultStrokesCheckbox.checked })
+      editor.math.overlays.updateConfig({ showResultPanels: !drawResultStrokesCheckbox.checked })
 
-      editor.mathInteractions.updateConfig({ showDependencyOnHover: showDependencyOnHoverCheckbox.checked })
-      editor.mathInteractions.updateConfig({ highlightOnSelect: highlightOnSelectCheckbox.checked })
+      editor.math.interactions.updateConfig({ showDependencyOnHover: showDependencyOnHoverCheckbox.checked })
+      editor.math.interactions.updateConfig({ highlightOnSelect: highlightOnSelectCheckbox.checked })
 
       editor.event.addChangedListener(onEditorChanged)
       editor.event.addSynchronizedListener(onSynchronized)
@@ -246,7 +246,6 @@
     async function onSynchronized() {
       synchronizeTimeout && clearTimeout(synchronizeTimeout)
       synchronizeTimeout = setTimeout(() => {
-        const sym = editor.model.symbols.map(d => ({label: d.label, jiix: d.jiixId, dependentBlocks: d.dependentBlocks?.join(', ')}))
         updateDependenciesDisplay()
         updateVariablesList()
         tryAutoCompute()
@@ -258,21 +257,21 @@
         return
       }
 
-      const mathSymbols = editor.model.symbols.filter(s =>
-        s.type === 'recognized' && s.kind === 'math'
-      )
+      const mathBlocks = editor.model.getMathBlocks()
+      console.log('mathBlocks: ', mathBlocks);
 
-      for (const mathSymbol of mathSymbols) {
-        const label = mathSymbol.label || ''
-        if ((label.endsWith('=') || label.endsWith('?')) && mathSymbol.jiixId) {
+      for (const mb of mathBlocks) {
+        console.log('mb: ', mb);
+        const label = mb.label || ''
+        if ((label.endsWith('=') || label.endsWith('?')) && mb.id) {
           try {
-            const actions = await editor.getAvailableActions(mathSymbol.jiixId)
+            const actions = await editor.getAvailableActions(mb.id)
             const canCompute = actions?.includes('numerical-computation')
 
             if (canCompute) {
               console.log(`Auto-computing: ${label}`)
 
-              await editor.computeMathNumericalResult(mathSymbol, editor.drawComputationResult)
+              await editor.computeMathNumericalResult(mb, editor.drawComputationResult)
             }
           } catch (e) {
             // Silently ignore errors - expression might not be computable yet
@@ -283,22 +282,20 @@
     }
 
     async function updateDependenciesDisplay() {
-      const mathSymbols = editor.model.symbols.filter(s =>
-        s.type === 'recognized' && s.kind === 'math'
-      )
+      const mathBlocks = editor.model.getMathBlocks()
 
-      if (mathSymbols.length === 0) {
+      if (mathBlocks.length === 0) {
         dependenciesList.innerHTML = 'No math blocks yet'
         return
       }
       const sourceBlocks = []
       const processedBlocks = new Set()
 
-      for (const mathSymbol of mathSymbols) {
-        const deps = editor.getMathDependencies(mathSymbol.jiixId)
+      for (const mb of mathBlocks) {
+        const deps = editor.getMathDependencies(mb.id)
         if (deps?.dependentBlocks && deps.dependentBlocks.length > 0) {
           sourceBlocks.push({
-            symbol: mathSymbol,
+            symbol: mb,
             deps: deps
           })
         }
@@ -319,7 +316,7 @@
         processedBlocks.add(symbol.jiixId)
 
         for (const depId of deps.dependentBlocks) {
-          const depSymbol = mathSymbols.find(s => s.jiixId === depId)
+          const depSymbol = mathBlocks.find(s => s.jiixId === depId)
           if (depSymbol) {
             const depDeps = editor.getMathDependencies(depId)
             html += `<div class="dependency-info dependent" style="margin-left: 16px; margin-bottom: 4px;">`
@@ -328,7 +325,7 @@
             if (depDeps?.variableSources && Object.keys(depDeps.variableSources).length > 0) {
               html += '<small>Variables: '
               html += Object.entries(depDeps.variableSources).map(([varName, sourceId]) => {
-                const sourceSymbol = mathSymbols.find(s => s.jiixId === sourceId)
+                const sourceSymbol = mathBlocks.find(s => s.jiixId === sourceId)
                 return `${varName} = ${sourceSymbol?.label || sourceId}`
               }).join(', ')
               html += '</small>'
@@ -462,30 +459,30 @@
     })
 
     showBlockOverlaysCheckbox.addEventListener('change', (e) => {
-      editor.mathOverlays.toggleBlockOverlays(e.target.checked)
+      editor.math.overlays.toggleBlockOverlays(e.target.checked)
     })
 
     drawResultStrokesCheckbox.addEventListener('change', async (e) => {
       editor.drawComputationResult = e.target.checked
       // Show result panels when not drawing strokes
-      editor.mathOverlays.updateConfig({ showResultPanels: !e.target.checked })
+      editor.math.overlays.updateConfig({ showResultPanels: !e.target.checked })
     })
 
     const refreshBtn = document.getElementById('refreshBtn')
     refreshBtn.addEventListener('click', () => {
-      editor.mathOverlays.refresh()
+      editor.math.overlays.refresh()
     })
 
 
     showDependencyOnHoverCheckbox.addEventListener('change', (e) => {
-      editor.mathInteractions.updateConfig({ showDependencyOnHover: e.target.checked })
+      editor.math.interactions.updateConfig({ showDependencyOnHover: e.target.checked })
       if (!e.target.checked) {
-        editor.mathInteractions.clearAll()
+        editor.math.interactions.clearAll()
       }
     })
 
     highlightOnSelectCheckbox.addEventListener('change', (e) => {
-      editor.mathInteractions.updateConfig({ highlightOnSelect: e.target.checked })
+      editor.math.interactions.updateConfig({ highlightOnSelect: e.target.checked })
     })
 
     showModalBtn.addEventListener('click', () => {

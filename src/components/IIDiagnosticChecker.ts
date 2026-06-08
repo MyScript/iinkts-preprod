@@ -8,7 +8,7 @@ import { BORDER_RADIUS, flexColumnStyle } from "./styles"
  * @group Components
  */
 export interface SymbolDiagnostic {
-  jiixBlock: {id: string, label: string}
+  jiixBlockId: string
   computeDiagnostic: string
   evaluationDiagnostic: string
 }
@@ -19,15 +19,13 @@ export interface SymbolDiagnostic {
  */
 export class IIDiagnosticChecker {
   private editor: InteractiveInkEditor
-  private jiixBlocks: {id: string, label: string}[]
+  private jiixBlockIds: string[]
   private modal?: Modal
   private logger = LoggerManager.getLogger(LoggerCategory.MENU)
 
-  constructor(editor: InteractiveInkEditor, jiixBlocks: {id: string, label: string}[]) {
+  constructor(editor: InteractiveInkEditor, jiixBlockIds: string[]) {
     this.editor = editor
-    this.jiixBlocks = [...new Map(
-      jiixBlocks.map(block => [block.id, block])
-    ).values()]
+    this.jiixBlockIds = [...new Set(jiixBlockIds)]
   }
 
   /**
@@ -37,25 +35,26 @@ export class IIDiagnosticChecker {
     // Fetch diagnostics for all symbols
     const diagnostics: SymbolDiagnostic[] = []
 
-    for (const jiixBlock of this.jiixBlocks) {
-      if (!jiixBlock.id) {
-        this.logger.warn(`Symbol ${jiixBlock.label} does not have jiixBlockId`)
+    for (const jiixBlockId of this.jiixBlockIds) {
+      if (!jiixBlockId) {
+        this.logger.warn(`Invalid jiixBlockId`)
         continue
       }
 
       try {
         const [computeDiagnostic, evaluationDiagnostic] = await Promise.all([
-          this.editor.getDiagnostic(jiixBlock.id, "numerical-computation"),
-          this.editor.getDiagnostic(jiixBlock.id, "evaluation")
+          this.editor.getDiagnostic(jiixBlockId, "numerical-computation"),
+          this.editor.getDiagnostic(jiixBlockId, "evaluation")
         ])
 
         diagnostics.push({
-          jiixBlock,
+          jiixBlockId,
           computeDiagnostic,
           evaluationDiagnostic
         })
       } catch (error) {
-        this.logger.error(`Error fetching diagnostics for symbol ${jiixBlock.label}:`, error)
+        const label = this.editor.jiix.getBlockLabel(jiixBlockId)
+        this.logger.error(`Error fetching diagnostics for symbol ${label}:`, error)
       }
     }
 
@@ -123,7 +122,8 @@ export class IIDiagnosticChecker {
       background: #e3f2fd;
       border-radius: ${BORDER_RADIUS.sm};
     `
-    expressionDiv.innerHTML = `<strong>Expression:</strong> ${diagnostic.jiixBlock.label || "N/A"}`
+    const label = this.editor.jiix.getBlockLabel(diagnostic.jiixBlockId) || "N/A"
+    expressionDiv.innerHTML = `<strong>Expression:</strong> ${label}`
     section.appendChild(expressionDiv)
 
     // Severity colors configuration
