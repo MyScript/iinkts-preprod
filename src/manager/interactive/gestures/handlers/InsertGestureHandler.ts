@@ -3,10 +3,10 @@ import { IIStroke, IIText, type TIISymbol, isText, SymbolType, Box, TPoint } fro
 import { TIIHistoryChanges } from "@/history"
 import { computeAverage, isBetween } from "@/utils"
 import type { InteractiveInkEditor } from "@/editor"
-import type { TGesture } from "@/manager/interactive/GestureTypes"
-import { InsertAction } from "@/manager/interactive/GestureTypes"
-import { GestureHandler } from "@/manager/interactive/gestures/GestureHandler"
-import type { GestureHelpers } from "@/manager/interactive/gestures/GestureHelpers"
+import type { TGesture } from "../GestureTypes"
+import { InsertAction } from "../GestureTypes"
+import { GestureHandler } from "../GestureHandler"
+import type { GestureHelpers } from "../GestureHelpers"
 
 /**
  * Handler for INSERT gesture type

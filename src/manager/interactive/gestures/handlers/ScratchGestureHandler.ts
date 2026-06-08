@@ -2,7 +2,7 @@ import { LoggerManager, LoggerCategory, type Logger } from "@/logger"
 import { IIStroke, IIText, isRecognizedMath, SymbolType, type TIISymbol } from "@/symbol"
 import { TIIHistoryChanges } from "@/history"
 import type { InteractiveInkEditor } from "@/editor"
-import type { TGesture } from "@/manager/interactive/GestureTypes"
+import type { TGesture } from "@/manager/interactive/gestures/GestureTypes"
 import { GestureHandler } from "@/manager/interactive/gestures/GestureHandler"
 import type { GestureHelpers } from "@/manager/interactive/gestures/GestureHelpers"
 
