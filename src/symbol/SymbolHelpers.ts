@@ -22,13 +22,9 @@ import { EdgeKind } from "./geometry/IIEdge"
  * and filtering used throughout the application.
  */
 
-// ============================================================================
-// Type Guards for Base Symbol Types
-// ============================================================================
-
-  /**
-   * @group Symbol
-   * @summary Check if symbol is a stroke
+/**
+ * @group Symbol
+ * @summary Check if symbol is a stroke
  * @param symbol - Symbol to check
  * @returns True if symbol is a stroke
  */
@@ -115,58 +111,6 @@ export function isRecognizedText(symbol: TIISymbol): symbol is IIStroke
 }
 
 /**
- * @deprecated Recognized symbols no longer exist - check stroke JIIX metadata instead
- */
-export function isRecognizedLine(symbol: TIISymbol): symbol is IIStroke
-{
-  return isStroke(symbol) && symbol.jiixBlockType === "Edge"
-}
-
-/**
- * @deprecated Recognized symbols no longer exist - check stroke JIIX metadata instead
- */
-export function isRecognizedArc(): boolean
-{
-  return false
-}
-
-/**
- * @deprecated Recognized symbols no longer exist - check stroke JIIX metadata instead
- */
-export function isRecognizedCircle(): boolean
-{
-  return false
-}
-
-/**
- * @deprecated Recognized symbols no longer exist - check stroke JIIX metadata instead
- */
-export function isRecognizedEllipse(): boolean
-{
-  return false
-}
-
-/**
- * @deprecated Recognized symbols no longer exist - check stroke JIIX metadata instead
- */
-export function isRecognizedPolygon(): boolean
-{
-  return false
-}
-
-/**
- * @deprecated Recognized symbols no longer exist - check stroke JIIX metadata instead
- */
-export function isRecognizedPolyLine(): boolean
-{
-  return false
-}
-
-// ============================================================================
-// Type Guards for Shape Kinds
-// ============================================================================
-
-/**
  * @group Symbol
  * @summary Type guard to check if a shape is a circle
  * @param shape - The shape to check
@@ -234,19 +178,4 @@ export function isArcEdge(edge: TIIEdge): edge is IIEdgeArc
 export function isPolyEdge(edge: TIIEdge): edge is IIEdgePolyLine
 {
   return edge.kind === EdgeKind.PolyEdge
-}
-
-// ============================================================================
-// Filtering Functions
-// ============================================================================
-
-/**
- * @group Symbol
- * @summary Filter math symbols from an array
- * @param symbols - Array of symbols to filter
- * @returns Array of strokes with math JIIX metadata
- */
-export function filterMathSymbols(symbols: TIISymbol[]): IIStroke[]
-{
-  return symbols.filter(isRecognizedMath)
 }
