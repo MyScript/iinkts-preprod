@@ -1,6 +1,15 @@
-import { IIShapeCircle, IIShapeEllipse, IIShapePolygon, ShapeKind, SymbolType, TPoint } from "../../../src/symbol"
-import { SVGRendererConst, SVGRendererShapeUtil } from "../../../src/renderer"
-import { DefaultStyle, TStyle } from "../../../src/style"
+import {
+  IIShapeCircle,
+  IIShapeEllipse,
+  IIShapePolygon,
+  ShapeKind,
+  SymbolType,
+  TPoint,
+  SVGRendererConst,
+  SVGRendererShapeUtil,
+  DefaultStyle,
+  TStyle
+} from "../../../src/iink"
 
 describe("SVGRendererShapeUtil.ts", () =>
 {

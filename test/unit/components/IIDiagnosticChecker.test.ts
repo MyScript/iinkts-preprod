@@ -1,5 +1,5 @@
 import { InteractiveInkEditorMock } from "../__mocks__/InteractiveInkEditorMock"
-import { IIDiagnosticChecker } from "../../../src/components/IIDiagnosticChecker"
+import { IIDiagnosticChecker } from "../../../src/iink"
 
 describe("IIDiagnosticChecker.ts", () =>
 {

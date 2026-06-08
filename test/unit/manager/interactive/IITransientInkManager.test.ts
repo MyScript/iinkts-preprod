@@ -1,6 +1,8 @@
-import { IITransientInkManager } from "../../../../src/manager/interactive/IITransientInkManager"
-import { SymbolType } from "../../../../src/symbol"
-import { InteractiveInkEditor } from "../../../../src/editor/variants/InteractiveInkEditor"
+import {
+  IITransientInkManager,
+  SymbolType,
+  InteractiveInkEditor
+} from "../../../../src/iink"
 
 // Mock the editor
 jest.mock("../../../../src/editor/variants/InteractiveInkEditor")

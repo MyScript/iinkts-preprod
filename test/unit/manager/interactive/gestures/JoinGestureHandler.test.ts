@@ -1,8 +1,10 @@
-import { InteractiveInkEditorMock } from "../../../__mocks__/InteractiveInkEditorMock"
-import { JoinGestureHandler } from "../../../../../src/manager/interactive/gestures/handlers/JoinGestureHandler"
 import { buildIIStroke, buildIIText } from "../../../helpers"
-import { GestureHelpers } from "../../../../../src/manager/interactive/gestures/GestureHelpers"
-import { TGesture } from "../../../../../src/manager/interactive/GestureTypes"
+import { InteractiveInkEditorMock } from "../../../__mocks__/InteractiveInkEditorMock"
+import {
+  JoinGestureHandler,
+  GestureHelpers,
+  TGesture
+} from "../../../../../src/iink"
 
 describe("JoinGestureHandler.ts", () =>
 {

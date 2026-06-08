@@ -1,5 +1,5 @@
 import { InteractiveInkEditorMock } from "../__mocks__/InteractiveInkEditorMock"
-import { IIMathCapabilitiesTable } from "../../../src/components/IIMathCapabilitiesTable"
+import { IIMathCapabilitiesTable } from "../../../src/iink"
 
 describe("IIMathCapabilitiesTable.ts", () =>
 {

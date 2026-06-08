@@ -1,5 +1,5 @@
 import { InteractiveInkEditorMock } from "../__mocks__/InteractiveInkEditorMock"
-import { IIVariableEditor } from "../../../src/components/IIVariableEditor"
+import { IIVariableEditor } from "../../../src/iink"
 
 describe("IIVariableEditor.ts", () =>
 {

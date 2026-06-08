@@ -1,8 +1,10 @@
 import { InteractiveInkEditorMock } from "../../../__mocks__/InteractiveInkEditorMock"
-import { ScratchGestureHandler } from "../../../../../src/manager/interactive/gestures/handlers/ScratchGestureHandler"
 import { buildIIStroke, buildIIText } from "../../../helpers"
-import { GestureHelpers } from "../../../../../src/manager/interactive/gestures/GestureHelpers"
-import { TGesture } from "../../../../../src/manager/interactive/GestureTypes"
+import {
+  ScratchGestureHandler,
+  GestureHelpers,
+  TGesture
+} from "../../../../../src/iink"
 
 describe("ScratchGestureHandler.ts", () =>
 {

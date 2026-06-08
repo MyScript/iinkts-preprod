@@ -1,7 +1,9 @@
 import { InteractiveInkEditorMock } from "../../../__mocks__/InteractiveInkEditorMock"
-import { InsertGestureHandler } from "../../../../../src/manager/interactive/gestures/handlers/InsertGestureHandler"
 import { buildIIStroke } from "../../../helpers"
-import { GestureHelpers } from "../../../../../src/manager/interactive/gestures/GestureHelpers"
+import {
+  InsertGestureHandler,
+  GestureHelpers
+} from "../../../../../src/iink"
 
 describe("InsertGestureHandler.ts", () =>
 {
