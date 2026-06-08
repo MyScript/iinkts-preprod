@@ -8,7 +8,7 @@ import { BORDER_RADIUS, COLORS, SPACING, cardStyle, flexColumnStyle, gridContain
  * @group Components
  */
 export interface SymbolVariables {
-  jiixBlock: {id: string, label: string}
+  jiixBlockId: string
   variables: TMathVariable[]
 }
 
@@ -18,17 +18,15 @@ export interface SymbolVariables {
  */
 export class IIVariableEditor {
   private editor: InteractiveInkEditor
-  private jiixBlocks: {id: string, label: string}[]
+  private jiixBlockIds: string[]
   private modal?: Modal
-  private symbolVariables: SymbolVariables[] = []
+  private blockVariables: SymbolVariables[] = []
   private inputsMap: Map<string, Map<string, HTMLInputElement>> = new Map()
   private logger = LoggerManager.getLogger(LoggerCategory.MENU)
 
-  constructor(editor: InteractiveInkEditor, jiixBlocks: {id: string, label: string}[]) {
+  constructor(editor: InteractiveInkEditor, jiixBlockIds: string[]) {
     this.editor = editor
-    this.jiixBlocks = [...new Map(
-      jiixBlocks.map(block => [block.id, block])
-    ).values()]
+    this.jiixBlockIds = [...new Set(jiixBlockIds)]
   }
 
   /**
@@ -36,38 +34,39 @@ export class IIVariableEditor {
    */
   async show(): Promise<void> {
     // Fetch variables for all symbols
-    this.symbolVariables = []
+    this.blockVariables = []
 
-    for (const jiixBlock of this.jiixBlocks) {
-      if (!jiixBlock.id) {
-        this.logger.warn(`JiixBlock ${jiixBlock.label} does not have id`)
+    for (const jiixBlockId of this.jiixBlockIds) {
+      if (!jiixBlockId) {
+        this.logger.warn(`Invalid jiixBlockId`)
         continue
       }
 
       try {
-        const variables = await this.editor.getVariables(jiixBlock.id)
+        const variables = await this.editor.getVariables(jiixBlockId)
         if (variables.length > 0) {
-          this.symbolVariables.push({
-            jiixBlock,
+          this.blockVariables.push({
+            jiixBlockId,
             variables
           })
         }
       } catch (error) {
-        this.logger.error(`Error fetching variables for JiixBlock ${jiixBlock.label}:`, error)
+        const label = this.editor.jiix.getBlockLabel(jiixBlockId)
+        this.logger.error(`Error fetching variables for JiixBlock ${label}:`, error)
       }
     }
 
-    if (this.symbolVariables.length === 0) {
+    if (this.blockVariables.length === 0) {
       alert("No variables found in the selected symbols")
       return
     }
 
     // Create modal content
-    const container = this.createModalContent(this.symbolVariables)
+    const container = this.createModalContent(this.blockVariables)
 
     // Create modal
     this.modal = new Modal({
-      title: `Edit Variable${this.symbolVariables.length > 1 ? "s" : ""} (${this.symbolVariables.length} symbol${this.symbolVariables.length > 1 ? "s" : ""})`,
+      title: `Edit Variable${this.blockVariables.length > 1 ? "s" : ""} (${this.blockVariables.length} symbol${this.blockVariables.length > 1 ? "s" : ""})`,
       fields: [],
       customContent: container,
       buttons: [
@@ -123,7 +122,8 @@ export class IIVariableEditor {
       background: ${COLORS.blue[50]};
       border-radius: ${BORDER_RADIUS.sm};
     `
-    expressionDiv.innerHTML = `<strong>Expression:</strong> ${symVar.jiixBlock.label || "N/A"}`
+    const label = this.editor.jiix.getBlockLabel(symVar.jiixBlockId) || "N/A"
+    expressionDiv.innerHTML = `<strong>Expression:</strong> ${label}`
     section.appendChild(expressionDiv)
 
     // Variables container
@@ -134,11 +134,11 @@ export class IIVariableEditor {
 
     // Create inputs map for this symbol
     const symbolInputsMap = new Map<string, HTMLInputElement>()
-    this.inputsMap.set(symVar.jiixBlock.id, symbolInputsMap)
+    this.inputsMap.set(symVar.jiixBlockId, symbolInputsMap)
 
     // Create input for each variable
     symVar.variables.forEach(variable => {
-      const variableRow = this.createVariableInput(symVar.jiixBlock, variable)
+      const variableRow = this.createVariableInput(symVar.jiixBlockId, variable)
       variablesContainer.appendChild(variableRow)
     })
 
@@ -150,7 +150,7 @@ export class IIVariableEditor {
   /**
    * Create input row for a single variable
    */
-  private createVariableInput(jiixBlock: {id: string, label: string}, variable: TMathVariable): HTMLDivElement {
+  private createVariableInput(jiixBlockId: string, variable: TMathVariable): HTMLDivElement {
     const row = document.createElement("div")
     row.style.cssText = `
       ${gridContainerStyle("120px 1fr 80px", SPACING.sm)}
@@ -194,7 +194,7 @@ export class IIVariableEditor {
     })
 
     // Set default value - get from computation manager
-    const storedValues = this.editor.math.actions.getStoredVariableValues(jiixBlock.id)
+    const storedValues = this.editor.math.actions.getStoredVariableValues(jiixBlockId)
     const currentValue = storedValues?.[variable.name] ?? variable.value
     if (currentValue !== undefined) {
       input.value = currentValue.toString()
@@ -203,7 +203,7 @@ export class IIVariableEditor {
     row.appendChild(input)
 
     // Store input reference
-    const symbolInputsMap = this.inputsMap.get(jiixBlock.id)
+    const symbolInputsMap = this.inputsMap.get(jiixBlockId)
     if (symbolInputsMap) {
       symbolInputsMap.set(variable.name, input)
     }
@@ -241,8 +241,8 @@ export class IIVariableEditor {
     try {
       const updates: Promise<void>[] = []
 
-      for (const symVar of this.symbolVariables) {
-        const symbolInputsMap = this.inputsMap.get(symVar.jiixBlock.id)
+      for (const symVar of this.blockVariables) {
+        const symbolInputsMap = this.inputsMap.get(symVar.jiixBlockId)
         if (!symbolInputsMap) continue
 
         const variableValues: { [name: string]: number } = {}
@@ -260,7 +260,8 @@ export class IIVariableEditor {
         }
 
         if (hasChanges) {
-          updates.push(this.editor.setMathVariables(symVar.jiixBlock, variableValues))
+          const jiixBlock = { id: symVar.jiixBlockId, label: this.editor.jiix.getBlockLabel(symVar.jiixBlockId) || "" }
+          updates.push(this.editor.setMathVariables(jiixBlock, variableValues))
         }
       }
 
@@ -286,7 +287,7 @@ export class IIVariableEditor {
       this.modal.destroy()
       this.modal = undefined
     }
-    this.symbolVariables = []
+    this.blockVariables = []
     this.inputsMap.clear()
   }
 }

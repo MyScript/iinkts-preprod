@@ -10,6 +10,7 @@
  */
 export * from "./IIBlockMetadataManager"
 export * from "./IIConversionManager"
+export * from "./IIJiixQueryManager"
 export * from "./IIKeyboardManager"
 export * from "./AbstractTransformManager"
 export * from "./IIAbstractManager"
@@ -22,10 +23,7 @@ export * from "./IITextManager"
 export * from "./IITranslateManager"
 export * from "./IIWriterManager"
 export * from "./IIGestureManager"
-export * from "./IISnapManager"
 export * from "./gestures"
+export * from "./IISnapManager"
+export * from "./IIMathManager"
 export * from "./math"
-
-
-export { IIMathManager } from "./IIMathManager"
-export * from "./IITransientInkManager"

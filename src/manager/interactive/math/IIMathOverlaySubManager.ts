@@ -228,7 +228,7 @@ export class IIMathOverlaySubManager extends IIAbstractManager
   }
 
   protected createHoverZone(bounds: TBox, blockId: string): void {
-    const id = `hover-zone-${blockId}`
+    const id = `hover-zone-${blockId}`.replace(/[^a-zA-Z0-9_-]/g, "_")
 
     this.renderer.removeSymbol(id)
 
@@ -335,7 +335,7 @@ export class IIMathOverlaySubManager extends IIAbstractManager
     this.logger.debug("clearOverlaysForBlock", { id })
 
     IIMathOverlaySubManager.OVERLAY_PREFIXES.forEach(prefix => {
-      this.renderer.removeSymbol(`${prefix}-${id}`)
+      this.renderer.removeSymbol(`${prefix}-${id}`.replace(/[^a-zA-Z0-9_-]/g, "_"))
     })
   }
 

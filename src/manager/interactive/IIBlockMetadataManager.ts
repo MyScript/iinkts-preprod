@@ -77,7 +77,7 @@ export class IIBlockMetadataManager extends IIAbstractManager
     return this.#textMetadata.get(strokeId)
   }
 
-  /**isClosed
+  /**
    * Get math metadata for a stroke
    */
   getMathMetadata(strokeId: string): TBlockMathMetadata | undefined

@@ -10,6 +10,15 @@ describe("IIFunctionEvaluator.ts", () =>
     editor = new InteractiveInkEditorMock()
     editor.init()
 
+    // Mock jiix.getBlockLabel method
+    editor.jiix = {
+      getBlockLabel: jest.fn().mockImplementation((id: string) => {
+        if (id === "block-1") return "f(x) = x + 1"
+        if (id === "block-2") return "g(x) = 2x"
+        return "Unknown"
+      })
+    } as any
+
     // Mock getEvaluables method
     editor.getEvaluables = jest.fn().mockResolvedValue([
       { inputName: "x", outputName: "f(x)" }
@@ -26,26 +35,19 @@ describe("IIFunctionEvaluator.ts", () =>
     document.body.innerHTML = ""
   })
 
-  test("should instantiate with editor and jiixBlocks", () =>
+  test("should instantiate with editor and jiixBlockIds", () =>
   {
-    const jiixBlocks = [
-      { id: "block-1", label: "f(x) = x + 1" },
-      { id: "block-2", label: "g(x) = 2x" }
-    ]
+    const jiixBlockIds = ["block-1", "block-2"]
 
-    const evaluator = new IIFunctionEvaluator(editor, jiixBlocks)
+    const evaluator = new IIFunctionEvaluator(editor, jiixBlockIds)
     expect(evaluator).toBeDefined()
   })
 
-  test("should deduplicate jiixBlocks by id in constructor", () =>
+  test("should deduplicate jiixBlockIds in constructor", () =>
   {
-    const jiixBlocks = [
-      { id: "block-1", label: "f(x) = x + 1" },
-      { id: "block-1", label: "f(x) = x + 1" },
-      { id: "block-2", label: "g(x) = 2x" }
-    ]
+    const jiixBlockIds = ["block-1", "block-1", "block-2"]
 
-    const evaluator = new IIFunctionEvaluator(editor, jiixBlocks)
+    const evaluator = new IIFunctionEvaluator(editor, jiixBlockIds)
     expect(evaluator).toBeDefined()
   })
 
@@ -53,12 +55,9 @@ describe("IIFunctionEvaluator.ts", () =>
   {
     test("should fetch evaluables for all blocks", async () =>
     {
-      const jiixBlocks = [
-        { id: "block-1", label: "f(x) = x + 1" },
-        { id: "block-2", label: "g(x) = 2x" }
-      ]
+      const jiixBlockIds = ["block-1", "block-2"]
 
-      const evaluator = new IIFunctionEvaluator(editor, jiixBlocks)
+      const evaluator = new IIFunctionEvaluator(editor, jiixBlockIds)
 
       // Mock modal to prevent actual DOM operations
       const showSpy = jest.spyOn(evaluator as any, "createModalContent")
@@ -72,14 +71,11 @@ describe("IIFunctionEvaluator.ts", () =>
       showSpy.mockRestore()
     })
 
-    test("should skip blocks without id", async () =>
+    test("should skip empty block ids", async () =>
     {
-      const jiixBlocks = [
-        { id: "", label: "f(x) = x + 1" },
-        { id: "block-2", label: "g(x) = 2x" }
-      ]
+      const jiixBlockIds = ["", "block-2"]
 
-      const evaluator = new IIFunctionEvaluator(editor, jiixBlocks)
+      const evaluator = new IIFunctionEvaluator(editor, jiixBlockIds)
 
       const showSpy = jest.spyOn(evaluator as any, "createModalContent")
       showSpy.mockReturnValue(document.createElement("div"))
@@ -95,14 +91,12 @@ describe("IIFunctionEvaluator.ts", () =>
 
     test("should handle errors when fetching evaluables", async () =>
     {
-      const jiixBlocks = [
-        { id: "block-1", label: "f(x) = x + 1" }
-      ]
+      const jiixBlockIds = ["block-1"]
 
       // Mock getEvaluables to throw error
       editor.getEvaluables = jest.fn().mockRejectedValue(new Error("Evaluables error"))
 
-      const evaluator = new IIFunctionEvaluator(editor, jiixBlocks)
+      const evaluator = new IIFunctionEvaluator(editor, jiixBlockIds)
 
       const alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {})
 
@@ -115,14 +109,12 @@ describe("IIFunctionEvaluator.ts", () =>
 
     test("should show alert when no evaluable functions found", async () =>
     {
-      const jiixBlocks = [
-        { id: "block-1", label: "x + 1" }
-      ]
+      const jiixBlockIds = ["block-1"]
 
       // Mock getEvaluables to return empty array
       editor.getEvaluables = jest.fn().mockResolvedValue([])
 
-      const evaluator = new IIFunctionEvaluator(editor, jiixBlocks)
+      const evaluator = new IIFunctionEvaluator(editor, jiixBlockIds)
 
       const alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {})
 
@@ -135,13 +127,9 @@ describe("IIFunctionEvaluator.ts", () =>
 
     test("should assign unique colors to functions", async () =>
     {
-      const jiixBlocks = [
-        { id: "block-1", label: "f(x) = x + 1" },
-        { id: "block-2", label: "g(x) = 2x" },
-        { id: "block-3", label: "h(x) = 3x" }
-      ]
+      const jiixBlockIds = ["block-1", "block-2", "block-3"]
 
-      const evaluator = new IIFunctionEvaluator(editor, jiixBlocks)
+      const evaluator = new IIFunctionEvaluator(editor, jiixBlockIds)
 
       const showSpy = jest.spyOn(evaluator as any, "createModalContent")
       showSpy.mockReturnValue(document.createElement("div"))

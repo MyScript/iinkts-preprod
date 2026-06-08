@@ -11,6 +11,16 @@ describe("IINumericalComputationResult.ts", () =>
     editor.init()
     editor.drawComputationResult = false
 
+    // Mock jiix.getBlockLabel method
+    editor.jiix = {
+      getBlockLabel: jest.fn().mockImplementation((id: string) => {
+        if (id === "block-1") return "2 + 3"
+        if (id === "block-2") return "x + 1"
+        if (id === "block-error") return "error"
+        return "Unknown"
+      })
+    } as any
+
     // Mock computeMathNumericalResult method
     editor.computeMathNumericalResult = jest.fn().mockImplementation((jiixBlock) => {
       if (jiixBlock.label === "error") {
@@ -25,26 +35,19 @@ describe("IINumericalComputationResult.ts", () =>
     document.body.innerHTML = ""
   })
 
-  test("should instantiate with editor and jiixBlocks", () =>
+  test("should instantiate with editor and jiixBlockIds", () =>
   {
-    const jiixBlocks = [
-      { id: "block-1", label: "2 + 3" },
-      { id: "block-2", label: "x + 1" }
-    ]
+    const jiixBlockIds = ["block-1", "block-2"]
 
-    const computationResult = new IINumericalComputationResult(editor, jiixBlocks)
+    const computationResult = new IINumericalComputationResult(editor, jiixBlockIds)
     expect(computationResult).toBeDefined()
   })
 
-  test("should deduplicate jiixBlocks by id in constructor", () =>
+  test("should deduplicate jiixBlockIds in constructor", () =>
   {
-    const jiixBlocks = [
-      { id: "block-1", label: "2 + 3" },
-      { id: "block-1", label: "2 + 3" },
-      { id: "block-2", label: "x + 1" }
-    ]
+    const jiixBlockIds = ["block-1", "block-1", "block-2"]
 
-    const computationResult = new IINumericalComputationResult(editor, jiixBlocks)
+    const computationResult = new IINumericalComputationResult(editor, jiixBlockIds)
     expect(computationResult).toBeDefined()
   })
 
@@ -52,35 +55,30 @@ describe("IINumericalComputationResult.ts", () =>
   {
     test("should compute results for all blocks", async () =>
     {
-      const jiixBlocks = [
-        { id: "block-1", label: "2 + 3" },
-        { id: "block-2", label: "x + 1" }
-      ]
+      const jiixBlockIds = ["block-1", "block-2"]
 
-      const computationResult = new IINumericalComputationResult(editor, jiixBlocks)
+      const computationResult = new IINumericalComputationResult(editor, jiixBlockIds)
       const results = await (computationResult as any).computeResults()
 
       expect(results.length).toBe(2)
-      expect(results[0].jiixBlock).toEqual(jiixBlocks[0])
+      expect(results[0].jiixBlockId).toBe("block-1")
       expect(results[0].value).toBe(42)
-      expect(results[1].jiixBlock).toEqual(jiixBlocks[1])
+      expect(results[1].jiixBlockId).toBe("block-2")
       expect(results[1].value).toBe(42)
 
-      expect(editor.computeMathNumericalResult).toHaveBeenCalledWith(jiixBlocks[0], false)
-      expect(editor.computeMathNumericalResult).toHaveBeenCalledWith(jiixBlocks[1], false)
+      expect(editor.computeMathNumericalResult).toHaveBeenCalledWith({ id: "block-1", label: "2 + 3" }, false)
+      expect(editor.computeMathNumericalResult).toHaveBeenCalledWith({ id: "block-2", label: "x + 1" }, false)
     })
 
     test("should handle computation errors", async () =>
     {
-      const jiixBlocks = [
-        { id: "block-1", label: "error" }
-      ]
+      const jiixBlockIds = ["block-error"]
 
-      const computationResult = new IINumericalComputationResult(editor, jiixBlocks)
+      const computationResult = new IINumericalComputationResult(editor, jiixBlockIds)
       const results = await (computationResult as any).computeResults()
 
       expect(results.length).toBe(1)
-      expect(results[0].jiixBlock).toEqual(jiixBlocks[0])
+      expect(results[0].jiixBlockId).toBe("block-error")
       expect(results[0].error).toBe("Computation failed")
       expect(results[0].value).toBeUndefined()
     })
@@ -88,11 +86,9 @@ describe("IINumericalComputationResult.ts", () =>
     test("should include results when drawComputationResult is true", async () =>
     {
       editor.drawComputationResult = true
-      const jiixBlocks = [
-        { id: "block-1", label: "2 + 3" }
-      ]
+      const jiixBlockIds = ["block-1"]
 
-      const computationResult = new IINumericalComputationResult(editor, jiixBlocks)
+      const computationResult = new IINumericalComputationResult(editor, jiixBlockIds)
       const results = await (computationResult as any).computeResults()
 
       expect(results.length).toBe(1)
@@ -102,11 +98,9 @@ describe("IINumericalComputationResult.ts", () =>
     test("should include results when drawComputationResult is false and value is defined", async () =>
     {
       editor.drawComputationResult = false
-      const jiixBlocks = [
-        { id: "block-1", label: "2 + 3" }
-      ]
+      const jiixBlockIds = ["block-1"]
 
-      const computationResult = new IINumericalComputationResult(editor, jiixBlocks)
+      const computationResult = new IINumericalComputationResult(editor, jiixBlockIds)
       const results = await (computationResult as any).computeResults()
 
       expect(results.length).toBe(1)
@@ -118,11 +112,9 @@ describe("IINumericalComputationResult.ts", () =>
       editor.drawComputationResult = false
       editor.computeMathNumericalResult = jest.fn().mockResolvedValue({ value: undefined })
 
-      const jiixBlocks = [
-        { id: "block-1", label: "2 + 3" }
-      ]
+      const jiixBlockIds = ["block-1"]
 
-      const computationResult = new IINumericalComputationResult(editor, jiixBlocks)
+      const computationResult = new IINumericalComputationResult(editor, jiixBlockIds)
       const results = await (computationResult as any).computeResults()
 
       expect(results.length).toBe(0)
@@ -133,11 +125,9 @@ describe("IINumericalComputationResult.ts", () =>
   {
     test("should compute and display results", async () =>
     {
-      const jiixBlocks = [
-        { id: "block-1", label: "2 + 3" }
-      ]
+      const jiixBlockIds = ["block-1"]
 
-      const computationResult = new IINumericalComputationResult(editor, jiixBlocks)
+      const computationResult = new IINumericalComputationResult(editor, jiixBlockIds)
 
       // Mock createResultsDisplay to prevent actual DOM operations
       const displaySpy = jest.spyOn(computationResult as any, "createResultsDisplay")
@@ -145,7 +135,7 @@ describe("IINumericalComputationResult.ts", () =>
 
       await computationResult.show()
 
-      expect(editor.computeMathNumericalResult).toHaveBeenCalledWith(jiixBlocks[0], false)
+      expect(editor.computeMathNumericalResult).toHaveBeenCalledWith({ id: "block-1", label: "2 + 3" }, false)
       expect(displaySpy).toHaveBeenCalled()
 
       displaySpy.mockRestore()
@@ -156,11 +146,9 @@ describe("IINumericalComputationResult.ts", () =>
   {
     test("should close and destroy modal", () =>
     {
-      const jiixBlocks = [
-        { id: "block-1", label: "2 + 3" }
-      ]
+      const jiixBlockIds = ["block-1"]
 
-      const computationResult = new IINumericalComputationResult(editor, jiixBlocks)
+      const computationResult = new IINumericalComputationResult(editor, jiixBlockIds)
 
       // Create a mock modal
       const mockModal = {
@@ -176,11 +164,9 @@ describe("IINumericalComputationResult.ts", () =>
 
     test("should handle close when no modal exists", () =>
     {
-      const jiixBlocks = [
-        { id: "block-1", label: "2 + 3" }
-      ]
+      const jiixBlockIds = ["block-1"]
 
-      const computationResult = new IINumericalComputationResult(editor, jiixBlocks)
+      const computationResult = new IINumericalComputationResult(editor, jiixBlockIds)
 
       expect(() => computationResult.close()).not.toThrow()
     })

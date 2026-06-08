@@ -1,8 +1,10 @@
 import { IIAbstractManager } from "../IIAbstractManager"
-import { TJIIXMathElement } from "@/model"
+import { TJIIXMathElement, TJIIXMathExpression } from "@/model"
 import { TMathVariable, TMathEvaluable } from "@/recognizer"
 import { IIStroke, isStroke } from "@/symbol"
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import { convertMillimeterToPixel } from "@/utils"
+import { TStyle } from "@/style/Style"
 
 /**
  * @group Manager
@@ -74,8 +76,7 @@ export class IIMathActionSubManager extends IIAbstractManager
       ) as IIStroke | undefined
 
       if (firstStroke) {
-        const jiixBlock = { id: jiixBlockId, label: this.editor.blockMetadata.getLabel(firstStroke.id) || "" }
-        const addedStrokes = await this.editor.addSolverOutputStrokes(result, jiixBlock)
+        const addedStrokes = await this.addSolverOutputStrokes(result)
         addedStrokesCount = addedStrokes.length
         this.logger.info(`Added ${addedStrokesCount} solver output strokes`)
 
@@ -103,6 +104,102 @@ export class IIMathActionSubManager extends IIAbstractManager
     }
 
     return { result, addedStrokesCount, value }
+  }
+
+  /**
+   * Extract solver output strokes from a JIIX math expression
+   * Recursively searches for solver-output items and extracts their stroke data
+   * @param expression - The JIIX math expression to search
+   * @returns Array of stroke data with X, Y coordinates and optional F (force) and T (time)
+   * @group Utilities
+   */
+  protected extractSolverOutputStrokesFromExpression(expression: TJIIXMathExpression): Array<{ X: number[], Y: number[], F?: number[], T?: number[] }>
+  {
+    const items: Array<{ X: number[], Y: number[], F?: number[], T?: number[] }> = []
+
+    // Check if this expression is a solver output number with items
+    const exprRecord = expression as Record<string, unknown>
+    if (expression.type === "number" && exprRecord["solver-output"] === true && exprRecord.items && Array.isArray(exprRecord.items)) {
+      items.push(...exprRecord.items as Array<{ X: number[], Y: number[], F?: number[], T?: number[] }>)
+    }
+
+    // Recursively search in operands if they exist
+    if ("operands" in expression && expression.operands && Array.isArray(expression.operands)) {
+      expression.operands.forEach((operand: TJIIXMathExpression) =>
+      {
+        items.push(...this.extractSolverOutputStrokesFromExpression(operand))
+      })
+    }
+    return items
+  }
+
+  /**
+   * Extract solver output strokes from a JIIX math element
+   * Recursively searches for solver-output items and extracts their stroke data
+   * @param mathElement - The JIIX math element to search
+   * @returns Array of stroke data with X, Y coordinates and optional F (force) and T (time)
+   * @group Utilities
+   */
+  protected extractSolverOutputStrokes(mathElement: TJIIXMathElement): Array<{ X: number[], Y: number[], F?: number[], T?: number[] }>
+  {
+    this.logger.debug("extractSolverOutputStrokes", "Extracting solver output strokes from math element", mathElement.id)
+    const strokes: Array<{ X: number[], Y: number[], F?: number[], T?: number[] }> = []
+
+    // Search in all expressions of the math element
+    if (mathElement.expressions && Array.isArray(mathElement.expressions)) {
+      mathElement.expressions.forEach((expression: TJIIXMathExpression) =>
+      {
+        strokes.push(...this.extractSolverOutputStrokesFromExpression(expression))
+      })
+    }
+
+    this.logger.debug("extractSolverOutputStrokes", `Found ${strokes.length} solver output stroke(s)`)
+    // strokes.forEach(s => s.
+    return strokes
+  }
+
+  /**
+   * Add solver output strokes to a math symbol
+   * @param result - JIIX math result containing solver output
+   * @param mathSymbol - Math symbol to add strokes to
+   * @param style - Optional style for the strokes
+   * @returns Promise resolving to array of added strokes
+   * @group Utilities
+   */
+  async addSolverOutputStrokes(result: TJIIXMathElement, style?: TStyle): Promise<IIStroke[]>
+  {
+    this.logger.info("addSolverOutputStrokes", { result })
+
+    const solverStrokes = this.extractSolverOutputStrokes(result)
+    this.logger.debug("addSolverOutputStrokes", `Found ${ solverStrokes.length } solver output strokes`)
+
+    const addedStrokes: IIStroke[] = []
+    const defaultStyle = style || { color: "#4caf50", width: 5 } // Green color for solver output
+
+    for (const strokeData of solverStrokes) {
+      if (!strokeData.X || !strokeData.Y) {
+        this.logger.warn("addSolverOutputStrokes", "Stroke data missing X or Y coordinates")
+        continue
+      }
+
+      const pointers = strokeData.X.map((x: number, i: number) => ({
+        x: convertMillimeterToPixel(x),
+        y: convertMillimeterToPixel(strokeData.Y[i]),
+        p: strokeData.F?.[i] || 1,
+        t: strokeData.T?.[i] || i
+      }))
+
+      const stroke = IIStroke.create({
+        pointers,
+        style: defaultStyle,
+        isSolverOutput: true,
+      })
+
+      await this.editor.addSymbol(stroke)
+      addedStrokes.push(stroke)
+      this.logger.debug("addSolverOutputStrokes", "Added solver output stroke:", stroke.id)
+    }
+    return addedStrokes
   }
 
   /**
