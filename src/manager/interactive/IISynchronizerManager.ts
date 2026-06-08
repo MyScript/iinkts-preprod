@@ -131,9 +131,9 @@ export class IISynchronizerManager extends IIAbstractManager
 
           // Update type-specific metadata
           if (el.type === JIIXELementType.Text) {
-            this.editor.blockMetadata.updateTextMetadata(stroke, el as TJIIXTextElement)
+            this.editor.blockMetadata.updateTextMetadata(stroke, el)
           } else if (el.type === JIIXELementType.Math) {
-            this.editor.blockMetadata.updateMathMetadata(stroke, el as TJIIXMathElement)
+            this.editor.blockMetadata.updateMathMetadata(stroke, el)
           }
 
           this.model.updateSymbol(stroke)
@@ -310,7 +310,7 @@ export class IISynchronizerManager extends IIAbstractManager
     this.logger.debug("#updateBlockMetadata", `Updated ${stroke.id}: jiixBlockId=${element.id}, jiixBlockType=${stroke.jiixBlockType}, jiixLabel=${label}`)
   }
 
-  // TODO broken when jiix is not update to date
+  // TODO broken when jiix is not up to date
   // /**
   //  * Delete strokes that are not present in JIIX
   //  */

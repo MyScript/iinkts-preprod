@@ -36,11 +36,11 @@ import
   IIGestureManager,
   IISnapManager,
   IISynchronizerManager,
-  IITransientInkManager,
   IIMathManager,
+  IIJiixQueryManager,
 } from "@/manager"
 import { IIHistoryManager, TIIHistoryBackendChanges, TIIHistoryChanges, THistoryContext } from "@/history"
-import { PartialDeep, convertMillimeterToPixel, mergeDeep } from "@/utils"
+import { PartialDeep, mergeDeep } from "@/utils"
 import { IIMenuAction, IIMenuManager, IIMenuStyle, IIMenuTool } from "@/menu"
 import { SymbolFactory } from "@/factories"
 import { AbstractEditor, EditorOptionsBase } from "@/editor/AbstractEditor"
@@ -97,8 +97,8 @@ export class InteractiveInkEditor extends AbstractEditor
   move: IIMoveManager
   synchronizer: IISynchronizerManager
   blockMetadata: IIBlockMetadataManager
+  jiix: IIJiixQueryManager
   math: IIMathManager
-  transientInk: IITransientInkManager
   menu: IIMenuManager
   #drawComputationResult: boolean = true
 
@@ -146,8 +146,8 @@ export class InteractiveInkEditor extends AbstractEditor
     this.snaps = new IISnapManager(this, this.#configuration.snap)
     this.synchronizer = new IISynchronizerManager(this)
     this.blockMetadata = new IIBlockMetadataManager(this)
+    this.jiix = new IIJiixQueryManager(this)
     this.math = new IIMathManager(this)
-    this.transientInk = new IITransientInkManager(this)
     this.menu = new IIMenuManager(this, options?.override?.menu)
   }
 
@@ -744,9 +744,6 @@ export class InteractiveInkEditor extends AbstractEditor
       const sym = this.model.symbols.find(s => s.id === id)
       if (sym?.type === SymbolType.Stroke) {
         strokesIds.push(sym.id)
-        if (isRecognizedMath(sym)) {
-          this.transientInk.clearTransientsForBlock(sym.id)
-        }
         this.model.removeSymbol(sym.id)
         this.renderer.removeSymbol(sym.id)
       }
@@ -1304,7 +1301,6 @@ export class InteractiveInkEditor extends AbstractEditor
         const erased = this.model.symbols
         this.renderer.clear()
         this.model.clear()
-        this.transientInk.clearAll()
         this.history.push(this.model, { erased })
         this.recognizer.clear()
         this.event.emitSelected(this.model.symbolsSelected)
@@ -1552,110 +1548,6 @@ export class InteractiveInkEditor extends AbstractEditor
       return await this.math.evaluateFunction(jiixBlock.id, evaluation)
     }
     catch (error) {
-      this.manageError(error as Error)
-      throw error
-    }
-  }
-
-  /**
-   * Extract solver output strokes from a JIIX export result
-   * Recursively searches for solver-output items and extracts their stroke data
-   * @param obj - The JIIX export object to search
-   * @returns Array of stroke data with X, Y coordinates and optional F (force) and T (time)
-   * @group Utilities
-   */
-  protected extractSolverOutputStrokes(obj: unknown): Array<{ X: number[], Y: number[], F?: number[], T?: number[] }>
-  {
-    const strokes: Array<{ X: number[], Y: number[], F?: number[], T?: number[] }> = []
-
-    if (!obj || typeof obj !== "object") {
-      return strokes
-    }
-
-    const objRecord = obj as Record<string, unknown>
-
-    if (objRecord["type"] === "number" && objRecord["solver-output"] === true && objRecord.items && Array.isArray(objRecord.items)) {
-      strokes.push(...objRecord.items as Array<{ X: number[], Y: number[], F?: number[], T?: number[] }>)
-    }
-
-    if (objRecord.operands && Array.isArray(objRecord.operands)) {
-      objRecord.operands.forEach((operand: unknown) =>
-      {
-        if (operand) {
-          strokes.push(...this.extractSolverOutputStrokes(operand))
-        }
-      })
-    }
-
-    if (objRecord.jiixMathExpressions && Array.isArray(objRecord.jiixMathExpressions)) {
-      objRecord.jiixMathExpressions.forEach((expr: unknown) =>
-      {
-        if (expr) {
-          strokes.push(...this.extractSolverOutputStrokes(expr))
-        }
-      })
-    }
-
-    return strokes
-  }
-
-  /**
-   * Add solver output strokes to a math symbol
-   * @param result - JIIX math result containing solver output
-   * @param mathSymbol - Math symbol to add strokes to
-   * @param style - Optional style for the strokes
-   * @returns Promise resolving to array of added strokes
-   * @group Utilities
-   */
-  async addSolverOutputStrokes(result: TJIIXMathElement, jiixBlock: { id: string, label: string }, style?: TStyle): Promise<IIStroke[]>
-  {
-    try {
-      this.logger.info("addSolverOutputStrokes", { result })
-
-      const solverStrokes = this.extractSolverOutputStrokes(result)
-      this.logger.debug("addSolverOutputStrokes", `Found ${ solverStrokes.length } solver output strokes`)
-
-      const addedStrokes: IIStroke[] = []
-      const defaultStyle = style || { color: "#4caf50", width: 5 } // Green color for solver output
-
-      for (const strokeData of solverStrokes) {
-        if (!strokeData.X || !strokeData.Y) {
-          this.logger.warn("addSolverOutputStrokes", "Stroke data missing X or Y coordinates")
-          continue
-        }
-
-        const pointers = strokeData.X.map((x: number, i: number) => ({
-          x: convertMillimeterToPixel(x),
-          y: convertMillimeterToPixel(strokeData.Y[i]),
-          p: strokeData.F?.[i] || 1,
-          t: strokeData.T?.[i] || i
-        }))
-
-        const stroke = IIStroke.create({
-          pointers,
-          style: defaultStyle,
-          isSolverOutput: true,
-        })
-
-        await this.addSymbol(stroke)
-        addedStrokes.push(stroke)
-        this.logger.debug("addSolverOutputStrokes", "Added solver output stroke:", stroke.id)
-      }
-
-      if (addedStrokes.length > 0) {
-        // jiixBlock.solverOutputStrokeIds = addedStrokes.map(s => s.id)
-        addedStrokes.forEach(stroke =>
-        {
-          this.transientInk.addTransientSymbol(jiixBlock.id, stroke.id)
-        })
-
-        // await this.model.updateSymbol(mathSymbol)
-      }
-
-      return addedStrokes
-    }
-    catch (error) {
-      this.logger.error("addSolverOutputStrokes", { error })
       this.manageError(error as Error)
       throw error
     }

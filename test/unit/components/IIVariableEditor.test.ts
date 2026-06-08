@@ -10,6 +10,15 @@ describe("IIVariableEditor.ts", () =>
     editor = new InteractiveInkEditorMock()
     editor.init()
 
+    // Mock jiix.getBlockLabel method
+    editor.jiix = {
+      getBlockLabel: jest.fn().mockImplementation((id: string) => {
+        if (id === "block-1") return "x + y"
+        if (id === "block-2") return "2x"
+        return "Unknown"
+      })
+    } as any
+
     // Mock getVariables method
     editor.getVariables = jest.fn().mockResolvedValue([
       { name: "x", value: 5, sourceType: "UNDEFINED" },
@@ -28,26 +37,19 @@ describe("IIVariableEditor.ts", () =>
     document.body.innerHTML = ""
   })
 
-  test("should instantiate with editor and jiixBlocks", () =>
+  test("should instantiate with editor and jiixBlockIds", () =>
   {
-    const jiixBlocks = [
-      { id: "block-1", label: "x + y" },
-      { id: "block-2", label: "2x" }
-    ]
+    const jiixBlockIds = ["block-1", "block-2"]
 
-    const variableEditor = new IIVariableEditor(editor, jiixBlocks)
+    const variableEditor = new IIVariableEditor(editor, jiixBlockIds)
     expect(variableEditor).toBeDefined()
   })
 
-  test("should deduplicate jiixBlocks by id in constructor", () =>
+  test("should deduplicate jiixBlockIds in constructor", () =>
   {
-    const jiixBlocks = [
-      { id: "block-1", label: "x + y" },
-      { id: "block-1", label: "x + y" },
-      { id: "block-2", label: "2x" }
-    ]
+    const jiixBlockIds = ["block-1", "block-1", "block-2"]
 
-    const variableEditor = new IIVariableEditor(editor, jiixBlocks)
+    const variableEditor = new IIVariableEditor(editor, jiixBlockIds)
     expect(variableEditor).toBeDefined()
   })
 
@@ -55,12 +57,9 @@ describe("IIVariableEditor.ts", () =>
   {
     test("should fetch variables for all blocks", async () =>
     {
-      const jiixBlocks = [
-        { id: "block-1", label: "x + y" },
-        { id: "block-2", label: "2x" }
-      ]
+      const jiixBlockIds = ["block-1", "block-2"]
 
-      const variableEditor = new IIVariableEditor(editor, jiixBlocks)
+      const variableEditor = new IIVariableEditor(editor, jiixBlockIds)
 
       // Mock modal to prevent actual DOM operations
       const showSpy = jest.spyOn(variableEditor as any, "createModalContent")
@@ -74,14 +73,11 @@ describe("IIVariableEditor.ts", () =>
       showSpy.mockRestore()
     })
 
-    test("should skip blocks without id", async () =>
+    test("should skip empty block ids", async () =>
     {
-      const jiixBlocks = [
-        { id: "", label: "x + y" },
-        { id: "block-2", label: "2x" }
-      ]
+      const jiixBlockIds = ["", "block-2"]
 
-      const variableEditor = new IIVariableEditor(editor, jiixBlocks)
+      const variableEditor = new IIVariableEditor(editor, jiixBlockIds)
 
       const showSpy = jest.spyOn(variableEditor as any, "createModalContent")
       showSpy.mockReturnValue(document.createElement("div"))
@@ -97,14 +93,12 @@ describe("IIVariableEditor.ts", () =>
 
     test("should handle errors when fetching variables", async () =>
     {
-      const jiixBlocks = [
-        { id: "block-1", label: "x + y" }
-      ]
+      const jiixBlockIds = ["block-1"]
 
       // Mock getVariables to throw error
       editor.getVariables = jest.fn().mockRejectedValue(new Error("Variables error"))
 
-      const variableEditor = new IIVariableEditor(editor, jiixBlocks)
+      const variableEditor = new IIVariableEditor(editor, jiixBlockIds)
 
       const alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {})
 
@@ -117,14 +111,12 @@ describe("IIVariableEditor.ts", () =>
 
     test("should show alert when no variables found", async () =>
     {
-      const jiixBlocks = [
-        { id: "block-1", label: "2 + 3" }
-      ]
+      const jiixBlockIds = ["block-2"]
 
       // Mock getVariables to return empty array
       editor.getVariables = jest.fn().mockResolvedValue([])
 
-      const variableEditor = new IIVariableEditor(editor, jiixBlocks)
+      const variableEditor = new IIVariableEditor(editor, jiixBlockIds)
 
       const alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {})
 
@@ -137,10 +129,7 @@ describe("IIVariableEditor.ts", () =>
 
     test("should filter blocks that have no variables", async () =>
     {
-      const jiixBlocks = [
-        { id: "block-1", label: "x + y" },
-        { id: "block-2", label: "2 + 3" }
-      ]
+      const jiixBlockIds = ["block-1", "block-2"]
 
       let callCount = 0
       editor.getVariables = jest.fn().mockImplementation(() => {
@@ -151,16 +140,16 @@ describe("IIVariableEditor.ts", () =>
         return Promise.resolve([])
       })
 
-      const variableEditor = new IIVariableEditor(editor, jiixBlocks)
+      const variableEditor = new IIVariableEditor(editor, jiixBlockIds)
 
       const showSpy = jest.spyOn(variableEditor as any, "createModalContent")
       showSpy.mockReturnValue(document.createElement("div"))
 
       await variableEditor.show()
 
-      const symbolVariables = (variableEditor as any).symbolVariables
-      expect(symbolVariables.length).toBe(1)
-      expect(symbolVariables[0].jiixBlock.id).toBe("block-1")
+      const blockVariables = (variableEditor as any).blockVariables
+      expect(blockVariables.length).toBe(1)
+      expect(blockVariables[0].jiixBlockId).toBe("block-1")
 
       showSpy.mockRestore()
     })
@@ -173,7 +162,7 @@ describe("IIVariableEditor.ts", () =>
       const variableEditor = new IIVariableEditor(editor, [])
 
       const symVar = {
-        jiixBlock: { id: "block-1", label: "x + y" },
+        jiixBlockId: "block-1",
         variables: [
           { name: "x", value: 5, sourceType: "UNDEFINED" },
           { name: "y", value: 10, sourceType: "API" }
@@ -191,7 +180,7 @@ describe("IIVariableEditor.ts", () =>
       const variableEditor = new IIVariableEditor(editor, [])
 
       const symVar = {
-        jiixBlock: { id: "block-1", label: "x + y" },
+        jiixBlockId: "block-1",
         variables: [
           { name: "x", value: 5, sourceType: "UNDEFINED" }
         ]
@@ -208,11 +197,9 @@ describe("IIVariableEditor.ts", () =>
   {
     test("should apply variable changes to editor", async () =>
     {
-      const jiixBlocks = [
-        { id: "block-1", label: "x + y" }
-      ]
+      const jiixBlockIds = ["block-1"]
 
-      const variableEditor = new IIVariableEditor(editor, jiixBlocks)
+      const variableEditor = new IIVariableEditor(editor, jiixBlockIds)
 
       // Setup inputs map manually for testing
       const inputsMap = new Map()
@@ -226,9 +213,9 @@ describe("IIVariableEditor.ts", () =>
       inputsMap.set("block-1", symbolInputsMap)
       ;(variableEditor as any).inputsMap = inputsMap
 
-      ;(variableEditor as any).symbolVariables = [
+      ;(variableEditor as any).blockVariables = [
         {
-          jiixBlock: { id: "block-1", label: "x + y" },
+          jiixBlockId: "block-1",
           variables: [{ name: "x", value: 5, sourceType: "UNDEFINED" }]
         }
       ]
@@ -243,11 +230,9 @@ describe("IIVariableEditor.ts", () =>
 
     test("should apply variables even if values are the same", async () =>
     {
-      const jiixBlocks = [
-        { id: "block-1", label: "x + y" }
-      ]
+      const jiixBlockIds = ["block-1"]
 
-      const variableEditor = new IIVariableEditor(editor, jiixBlocks)
+      const variableEditor = new IIVariableEditor(editor, jiixBlockIds)
 
       // Setup inputs map with same value as stored
       const inputsMap = new Map()
@@ -261,9 +246,9 @@ describe("IIVariableEditor.ts", () =>
       inputsMap.set("block-1", symbolInputsMap)
       ;(variableEditor as any).inputsMap = inputsMap
 
-      ;(variableEditor as any).symbolVariables = [
+      ;(variableEditor as any).blockVariables = [
         {
-          jiixBlock: { id: "block-1", label: "x + y" },
+          jiixBlockId: "block-1",
           variables: [{ name: "x", value: 5, sourceType: "UNDEFINED" }]
         }
       ]
@@ -284,11 +269,9 @@ describe("IIVariableEditor.ts", () =>
 
     test("should skip symbols when inputs are empty", async () =>
     {
-      const jiixBlocks = [
-        { id: "block-1", label: "x + y" }
-      ]
+      const jiixBlockIds = ["block-1"]
 
-      const variableEditor = new IIVariableEditor(editor, jiixBlocks)
+      const variableEditor = new IIVariableEditor(editor, jiixBlockIds)
 
       const inputsMap = new Map()
       const symbolInputsMap = new Map()
@@ -301,9 +284,9 @@ describe("IIVariableEditor.ts", () =>
       inputsMap.set("block-1", symbolInputsMap)
       ;(variableEditor as any).inputsMap = inputsMap
 
-      ;(variableEditor as any).symbolVariables = [
+      ;(variableEditor as any).blockVariables = [
         {
-          jiixBlock: { id: "block-1", label: "x + y" },
+          jiixBlockId: "block-1",
           variables: [{ name: "x", value: 5, sourceType: "UNDEFINED" }]
         }
       ]

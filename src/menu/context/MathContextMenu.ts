@@ -47,7 +47,9 @@ export class MathContextMenu extends SubMenuItem
                 return
               }
 
-              const checker = new IIDiagnosticChecker(editor, mathSymbols.map(s => ({id: s.jiixBlockId!, label: editor.blockMetadata.getLabel(s.id) || "N/A"})))
+              const jiixBlockIds = mathSymbols.map(s => s.jiixBlockId!).filter(Boolean)
+
+              const checker = new IIDiagnosticChecker(editor, jiixBlockIds)
               await checker.show()
 
             } catch (error) {
@@ -151,7 +153,8 @@ export class MathContextMenu extends SubMenuItem
               }
               
               // Use IINumericalComputationResult component
-              const computer = new IINumericalComputationResult(editor, mathSymbols.map(s => ({id: s.jiixBlockId!, label: editor.blockMetadata.getLabel(s.id) || "N/A"})))
+              const jiixBlockIds = mathSymbols.map(s => s.jiixBlockId!).filter(Boolean)
+              const computer = new IINumericalComputationResult(editor, jiixBlockIds)
               await computer.show()
 
             } catch (error) {
@@ -174,7 +177,8 @@ export class MathContextMenu extends SubMenuItem
                 this.logger.warn("No math symbol selected")
                 return
               }
-              const evaluator = new IIFunctionEvaluator(editor, mathSymbols.map(s => ({id: s.jiixBlockId!, label: editor.blockMetadata.getLabel(s.id) || "N/A"})))
+              const jiixBlockIds = mathSymbols.map(s => s.jiixBlockId!).filter(Boolean)
+              const evaluator = new IIFunctionEvaluator(editor, jiixBlockIds)
               await evaluator.show()
 
             } catch (error) {

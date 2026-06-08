@@ -10,6 +10,15 @@ describe("IIDiagnosticChecker.ts", () =>
     editor = new InteractiveInkEditorMock()
     editor.init()
 
+    // Mock jiix.getBlockLabel method
+    editor.jiix = {
+      getBlockLabel: jest.fn().mockImplementation((id: string) => {
+        if (id === "block-1") return "x + 1"
+        if (id === "block-2") return "2y"
+        return "Unknown"
+      })
+    } as any
+
     // Mock getDiagnostic method
     editor.getDiagnostic = jest.fn().mockImplementation((_id: string, type: string) => {
       if (type === "numerical-computation") {
@@ -27,26 +36,19 @@ describe("IIDiagnosticChecker.ts", () =>
     document.body.innerHTML = ""
   })
 
-  test("should instantiate with editor and jiixBlocks", () =>
+  test("should instantiate with editor and jiixBlockIds", () =>
   {
-    const jiixBlocks = [
-      { id: "block-1", label: "x + 1" },
-      { id: "block-2", label: "2y" }
-    ]
+    const jiixBlockIds = ["block-1", "block-2"]
 
-    const checker = new IIDiagnosticChecker(editor, jiixBlocks)
+    const checker = new IIDiagnosticChecker(editor, jiixBlockIds)
     expect(checker).toBeDefined()
   })
 
-  test("should deduplicate jiixBlocks by id in constructor", () =>
+  test("should deduplicate jiixBlockIds in constructor", () =>
   {
-    const jiixBlocks = [
-      { id: "block-1", label: "x + 1" },
-      { id: "block-1", label: "x + 1" },
-      { id: "block-2", label: "2y" }
-    ]
+    const jiixBlockIds = ["block-1", "block-1", "block-2"]
 
-    const checker = new IIDiagnosticChecker(editor, jiixBlocks)
+    const checker = new IIDiagnosticChecker(editor, jiixBlockIds)
     expect(checker).toBeDefined()
   })
 
@@ -54,12 +56,9 @@ describe("IIDiagnosticChecker.ts", () =>
   {
     test("should fetch diagnostics for all blocks", async () =>
     {
-      const jiixBlocks = [
-        { id: "block-1", label: "x + 1" },
-        { id: "block-2", label: "2y" }
-      ]
+      const jiixBlockIds = ["block-1", "block-2"]
 
-      const checker = new IIDiagnosticChecker(editor, jiixBlocks)
+      const checker = new IIDiagnosticChecker(editor, jiixBlockIds)
 
       // Mock modal to prevent actual DOM operations
       const showSpy = jest.spyOn(checker as any, "createModalContent")
@@ -75,14 +74,11 @@ describe("IIDiagnosticChecker.ts", () =>
       showSpy.mockRestore()
     })
 
-    test("should skip blocks without id", async () =>
+    test("should skip empty block ids", async () =>
     {
-      const jiixBlocks = [
-        { id: "", label: "x + 1" },
-        { id: "block-2", label: "2y" }
-      ]
+      const jiixBlockIds = ["", "block-2"]
 
-      const checker = new IIDiagnosticChecker(editor, jiixBlocks)
+      const checker = new IIDiagnosticChecker(editor, jiixBlockIds)
 
       const showSpy = jest.spyOn(checker as any, "createModalContent")
       showSpy.mockReturnValue(document.createElement("div"))
@@ -102,14 +98,12 @@ describe("IIDiagnosticChecker.ts", () =>
 
     test("should handle errors when fetching diagnostics", async () =>
     {
-      const jiixBlocks = [
-        { id: "block-1", label: "x + 1" }
-      ]
+      const jiixBlockIds = ["block-1"]
 
       // Mock getDiagnostic to throw error
       editor.getDiagnostic = jest.fn().mockRejectedValue(new Error("Diagnostic error"))
 
-      const checker = new IIDiagnosticChecker(editor, jiixBlocks)
+      const checker = new IIDiagnosticChecker(editor, jiixBlockIds)
 
       const alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {})
 
@@ -122,11 +116,9 @@ describe("IIDiagnosticChecker.ts", () =>
 
     test("should show alert when no diagnostics available", async () =>
     {
-      const jiixBlocks = [
-        { id: "", label: "x + 1" }
-      ]
+      const jiixBlockIds = [""]
 
-      const checker = new IIDiagnosticChecker(editor, jiixBlocks)
+      const checker = new IIDiagnosticChecker(editor, jiixBlockIds)
 
       const alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {})
 
@@ -142,11 +134,9 @@ describe("IIDiagnosticChecker.ts", () =>
   {
     test("should close and destroy modal", () =>
     {
-      const jiixBlocks = [
-        { id: "block-1", label: "x + 1" }
-      ]
+      const jiixBlockIds = ["block-1"]
 
-      const checker = new IIDiagnosticChecker(editor, jiixBlocks)
+      const checker = new IIDiagnosticChecker(editor, jiixBlockIds)
 
       // Create a mock modal
       const mockModal = {
@@ -162,11 +152,9 @@ describe("IIDiagnosticChecker.ts", () =>
 
     test("should handle close when no modal exists", () =>
     {
-      const jiixBlocks = [
-        { id: "block-1", label: "x + 1" }
-      ]
+      const jiixBlockIds = ["block-1"]
 
-      const checker = new IIDiagnosticChecker(editor, jiixBlocks)
+      const checker = new IIDiagnosticChecker(editor, jiixBlockIds)
 
       expect(() => checker.close()).not.toThrow()
     })

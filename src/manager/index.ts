@@ -25,7 +25,6 @@
  * - {@link IITextManager} - Handles text editing
  * - {@link IIMoveManager} - Manages move operations
  * - {@link IISynchronizerManager} - Synchronizes strokes with JIIX recognition results
- * - {@link IITransientInkManager} - Manages temporary solver result overlays
  * - {@link IIMathOverlayManager} - Visual overlays (badges, borders, result panels)
  * - {@link IIMathInteractionManager} - Interaction highlighting and dependency visualization
  * - {@link IIMathDependencyManager} - Math symbol dependency tracking and recalculation
