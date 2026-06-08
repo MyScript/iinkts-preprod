@@ -1,6 +1,14 @@
-import { IIMath, SymbolType, TIIMathElement, TPoint, TBox, DecoratorKind } from "../../../src/symbol"
-import { SVGRendererConst, SVGRendererMathUtil } from "../../../src/renderer"
 import { buildIIDecorator } from "../helpers"
+import {
+  IIMath,
+  SymbolType,
+  TIIMathElement,
+  TPoint,
+  TBox,
+  DecoratorKind,
+  SVGRendererConst,
+  SVGRendererMathUtil
+} from "../../../src/iink"
 
 describe("SVGRendererMathUtil.ts", () =>
 {

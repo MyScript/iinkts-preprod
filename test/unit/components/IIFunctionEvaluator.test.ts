@@ -1,5 +1,5 @@
 import { InteractiveInkEditorMock } from "../__mocks__/InteractiveInkEditorMock"
-import { IIFunctionEvaluator } from "../../../src/components/IIFunctionEvaluator"
+import { IIFunctionEvaluator } from "../../../src/iink"
 
 describe("IIFunctionEvaluator.ts", () =>
 {

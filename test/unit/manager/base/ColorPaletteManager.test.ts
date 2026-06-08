@@ -1,4 +1,4 @@
-import { ColorPaletteManager } from "../../../../src/manager/base/ColorPaletteManager"
+import { ColorPaletteManager } from "../../../../src/iink"
 
 describe("ColorPaletteManager", () =>
 {

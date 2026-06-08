@@ -1,9 +1,11 @@
 import { InteractiveInkEditorMock } from "../../../__mocks__/InteractiveInkEditorMock"
-import { SurroundGestureHandler } from "../../../../../src/manager/interactive/gestures/handlers/SurroundGestureHandler"
 import { buildIIStroke, buildIIText } from "../../../helpers"
-import { GestureHelpers } from "../../../../../src/manager/interactive/gestures/GestureHelpers"
-import { TGesture, SurroundAction } from "../../../../../src/manager/interactive/GestureTypes"
-import { IIGestureManager } from "../../../../../src/manager/interactive/IIGestureManager"
+import {
+  SurroundGestureHandler,
+  GestureHelpers,
+  TGesture,
+  SurroundAction,
+  IIGestureManager } from "../../../../../src/iink"
 
 describe("SurroundGestureHandler.ts", () =>
 {

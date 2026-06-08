@@ -1,5 +1,5 @@
 import { InteractiveInkEditorMock } from "../__mocks__/InteractiveInkEditorMock"
-import { IINumericalComputationResult } from "../../../src/components/IINumericalComputationResult"
+import { IINumericalComputationResult } from "../../../src/iink"
 
 describe("IINumericalComputationResult.ts", () =>
 {
