@@ -8,7 +8,6 @@
  * @remarks
  * All managers in this group work with InteractiveInkEditor and depend on the IIModel (Interactive Ink Model).
  */
-export * from "./IIBlockMetadataManager"
 export * from "./IIConversionManager"
 export * from "./IIJiixQueryManager"
 export * from "./IIKeyboardManager"

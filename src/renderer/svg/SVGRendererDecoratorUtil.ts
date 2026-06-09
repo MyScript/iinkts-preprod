@@ -102,8 +102,6 @@ export class SVGRendererDecoratorUtil
 
   static getSVGElement(decorator: IIDecorator, symbol: TIISymbol): SVGGeometryElement | undefined
   {
-    // Note: baseline and xHeight were previously retrieved from symbol.jiixTextLine
-    // This metadata is now managed in IIBlockMetadataManager
     // For now, decorators use only symbol bounds
     const baseline = undefined
     const xHeight = undefined

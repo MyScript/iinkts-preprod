@@ -21,7 +21,6 @@ import { SVGRenderer, SVGBuilder, TIIRendererConfiguration } from "@/renderer"
 import { TStyle } from "@/style"
 import
 {
-  IIBlockMetadataManager,
   IIConversionManager,
   IIKeyboardManager,
   IIWriterManager,
@@ -96,7 +95,6 @@ export class InteractiveInkEditor extends AbstractEditor
   snaps: IISnapManager
   move: IIMoveManager
   synchronizer: IISynchronizerManager
-  blockMetadata: IIBlockMetadataManager
   jiix: IIJiixQueryManager
   math: IIMathManager
   menu: IIMenuManager
@@ -145,7 +143,6 @@ export class InteractiveInkEditor extends AbstractEditor
     this.svgDebugger = new IIDebugSVGManager(this)
     this.snaps = new IISnapManager(this, this.#configuration.snap)
     this.synchronizer = new IISynchronizerManager(this)
-    this.blockMetadata = new IIBlockMetadataManager(this)
     this.jiix = new IIJiixQueryManager(this)
     this.math = new IIMathManager(this)
     this.menu = new IIMenuManager(this, options?.override?.menu)
@@ -990,7 +987,7 @@ export class InteractiveInkEditor extends AbstractEditor
         }
       } else if (isStroke(s)) {
         // Stroke with JIIX metadata (text or math recognized from backend)
-        const label = this.blockMetadata.getLabel(s.id)
+        const label = this.jiix.getLabelForStroke(s.id)
         if (label) {
           textParts.push(label)
         }
@@ -1469,15 +1466,15 @@ export class InteractiveInkEditor extends AbstractEditor
 
   /**
    * Set multiple variable values for a math symbol
-   * @param jiixBlock - Object with id and label of the math block
+   * @param jiixBlockId - The ID of the math block
    * @param variableValues - Object with variable names as keys and their values
    * @returns Promise that resolves when all variables are set
    * @group Utilities
    */
-  async setMathVariables(jiixBlock: { id: string; label: string; }, variableValues: { [name: string]: number }): Promise<void>
+  async setMathVariables(jiixBlockId: string, variableValues: { [name: string]: number }): Promise<void>
   {
     try {
-      return await this.math.actions.setVariables(jiixBlock.id, variableValues)
+      return await this.math.actions.setVariables(jiixBlockId, variableValues)
     }
     catch (error) {
       this.manageError(error as Error)
