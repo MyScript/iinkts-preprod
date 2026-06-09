@@ -1399,18 +1399,18 @@ export class InteractiveInkEditor extends AbstractEditor
 
   /**
    * Compute numerical result for a math symbol
-   * @param jiixBlock - Object with id and label of the math block
+   * @param jiixBlockId - The ID of the math block
    * @param drawStrokes - Whether to draw the result as strokes (default: true)
    * @returns Promise with the computation result, number of added strokes, and numeric value
    * @group Utilities
    */
   async computeMathNumericalResult(
-    jiixBlock: { id: string, label: string },
+    jiixBlockId: string,
     drawStrokes: boolean = true
   ): Promise<{ result: TJIIXMathElement, addedStrokesCount: number, value?: number }>
   {
     try {
-      return await this.math.computeNumericalResult(jiixBlock.id, drawStrokes)
+      return await this.math.computeNumericalResult(jiixBlockId, drawStrokes)
     }
     catch (error) {
       this.manageError(error as Error)
