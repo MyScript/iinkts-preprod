@@ -1,5 +1,5 @@
 import { ResizeDirection, SELECTION_MARGIN, SvgElementRole } from "@/Constants"
-import { Box, IIStroke, SymbolType, TBox, TIIEdge, TIISymbol, TPoint, isRecognizedMath, isText, isEdge } from "@/symbol"
+import { Box, IIStroke, SymbolType, TBox, TIIEdge, TIISymbol, TPoint, isRecognizedMath, isEdge } from "@/symbol"
 import { SVGBuilder } from "@/renderer"
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import { PointerEventGrabber, PointerInfo } from "@/grabber"
@@ -332,14 +332,6 @@ export class IISelectionManager extends IIAbstractManager
 
     if (!symbols.length) return
 
-    const symbolElementMap = symbols.map(s =>
-    {
-      return {
-        symbol: s,
-        element: this.renderer.getElementById(s.id),
-      }
-    })
-
     const box1 = Box.createFromBoxes(symbols.map(s =>
     {
       return {
@@ -361,33 +353,6 @@ export class IISelectionManager extends IIAbstractManager
     surroundGroup.appendChild(this.createTranslateRect(box))
     surroundGroup.appendChild(this.createResizeGroup(box))
     surroundGroup.appendChild(this.createRotateGroup(box))
-    const SURROUND_ATTRS = {
-      style: "pointer-events: none",
-      fill: "transparent",
-      stroke: "#3e68ff",
-      "stroke-width": "1",
-      "stroke-dasharray": "4",
-      "vector-effect": "non-scaling-size",
-      transform: "rotate(0, 0, 0)"
-    }
-    symbolElementMap.forEach(s =>
-    {
-      if (s.element) {
-        const bounds: TBox = {
-          x: s.symbol.bounds.x - (s.symbol.style.width || 1),
-          y: s.symbol.bounds.y - (s.symbol.style.width || 1),
-          height: s.symbol.bounds.height + (s.symbol.style.width || 1) * 2,
-          width: s.symbol.bounds.width + (s.symbol.style.width || 1) * 2,
-        }
-        if (isText(s.symbol)) {
-          SURROUND_ATTRS.transform = `rotate(${ s.symbol.rotation?.degree || 0 }, ${ s.symbol.rotation?.center.x || 0 }, ${ s.symbol.rotation?.center.y || 0 })`
-        }
-        else {
-          SURROUND_ATTRS.transform = "rotate(0, 0, 0)"
-        }
-        surroundGroup.prepend(SVGBuilder.createRect(bounds, SURROUND_ATTRS))
-      }
-    })
     return surroundGroup
   }
 

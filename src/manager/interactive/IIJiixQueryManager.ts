@@ -50,7 +50,7 @@ export type TStrokeQueryResult = {
  * Indexed JIIX data for fast queries
  * @group Manager
  */
-type TJiixIndex = {
+export type TJiixIndex = {
   /** Map stroke ID -> parent element */
   strokeToElement: Map<string, TJIIXElement>
   /** Map stroke ID -> precise label */

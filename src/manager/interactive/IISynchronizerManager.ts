@@ -112,8 +112,10 @@ export class IISynchronizerManager extends IIAbstractManager
 
     // Collect all stroke IDs present in JIIX
     const jiixStrokeIds = new Set<string>()
+    const now = Date.now()
 
-    // Process each element and collect stroke IDs
+    // Process each element — strokes are reference types, so in-place mutation is
+    // immediately visible in model.symbols without calling the O(n) updateSymbol()
     for (const el of jiix.elements || []) {
       try {
         const items = this.#getElementItems(el)
@@ -123,23 +125,28 @@ export class IISynchronizerManager extends IIAbstractManager
           }
         })
 
-        // Update block metadata (jiixBlockId, jiixBlockType, jiixLabel only)
         const strokes = this.#getStrokesFromItems(items)
         for (const stroke of strokes) {
           this.#updateBlockMetadata(stroke, el)
 
-          // Update type-specific metadata
           if (el.type === JIIXELementType.Text) {
             this.editor.jiix.updateTextMetadata(stroke, el)
           }
 
-          this.model.updateSymbol(stroke)
+          stroke.modificationDate = now
         }
       } catch (error) {
         this.logger.error("#doSynchronize", `Failed to synchronize element of type ${el.type}:`, error)
-        // Continue with next element instead of failing completely
       }
     }
+
+    // Mark model modified once instead of N×O(n) via updateSymbol()
+    this.model.modificationDate = now
+    this.model.converts = undefined
+    this.model.exports = undefined
+
+    // Yield to event loop so pointer events can be processed before math enrichment
+    await Promise.resolve()
 
     // Delete strokes not present in JIIX
     // this.#deleteOrphanedStrokes(jiixStrokeIds)
@@ -257,20 +264,17 @@ export class IISynchronizerManager extends IIAbstractManager
   #getStrokesFromItems(items: TJIIXStrokeItem[]): IIStroke[]
   {
     const strokes: IIStroke[] = []
-    const strokeIdsUsed: string[] = []
+    const seen = new Set<string>()
 
-    items.forEach(item => {
+    for (const item of items) {
       const strokeId = item["full-id"]
-      if (!strokeId || strokeIdsUsed.includes(strokeId)) {
-        return
-      }
-      strokeIdsUsed.push(strokeId)
-
+      if (!strokeId || seen.has(strokeId)) continue
+      seen.add(strokeId)
       const symbol = this.model.getRootSymbol(strokeId)
       if (symbol && isStroke(symbol)) {
         strokes.push(symbol)
       }
-    })
+    }
 
     return strokes
   }
