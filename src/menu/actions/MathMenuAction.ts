@@ -3,7 +3,6 @@ import { SubMenuItem, IMenuSubMenu } from "@/menu/items/SubMenuItem"
 import { IMenuCheckbox } from "@/menu/items/CheckboxMenuItem"
 import { IMenuSelect } from "@/menu/items/SelectMenuItem"
 import { IMenuButton } from "@/menu/items/ButtonMenuItem"
-import { isRecognizedMath } from "@/symbol"
 import { IIMathCapabilitiesTable } from "@/components"
 import mathIcon from "@/assets/svg/linear-double-arrow.svg"
 
@@ -34,12 +33,9 @@ export class MathMenuAction extends SubMenuItem
           editor.drawComputationResult = value
 
           if (!value) {
-            // If switching from drawing strokes to not drawing, clear existing solver strokes
-            const mathSymbols = editor.model.symbols.filter(isRecognizedMath).map(s => s.jiixBlockId)
-
-            for (const mathSymbol of mathSymbols) {
-              await editor.clearSolverOutputStrokes(mathSymbol!)
-            }
+            await editor.math.clearAllSolverOutputs()
+          } else {
+            await editor.math.actions.computeAllNumericalResults()
           }
 
           // Show result panels when not drawing strokes

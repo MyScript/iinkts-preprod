@@ -44,6 +44,27 @@ export class IIMathActionSubManager extends IIAbstractManager
   }
 
   /**
+   * Clear all solver output strokes
+   * @returns Promise<void>
+   */
+  async clearAllSolverOutputs(): Promise<void>
+  {
+    this.logger.info("IIMathActionManager.clearAllSolverOutputs")
+    // Find all solver output strokes
+    const solverOutputStrokes = this.editor.model.symbols.filter(
+      s => isStroke(s) && s.isSolverOutput
+    )
+
+    // Remove the strokes from the model
+    if (solverOutputStrokes.length > 0) {
+      this.editor.removeSymbols(solverOutputStrokes.map(s => s.id), false)
+    }
+
+    // Update the computation manager
+    this.editor.math.computation.updateSolverOutputsForAll([])
+  }
+
+  /**
    * Compute numerical result for a math block
    * @param jiixBlockId - The JIIX block ID
    * @param drawStrokes - Whether to draw the result as strokes (default: true)
@@ -104,6 +125,22 @@ export class IIMathActionSubManager extends IIAbstractManager
     }
 
     return { result, addedStrokesCount, value }
+  }
+
+  async computeAllNumericalResults(): Promise<void>
+  {
+    this.logger.info("IIMathActionManager.computeAllNumericalResults")
+
+    const jiixBlocks = this.editor.model.getMathBlocks()
+
+    for (const mathSymbol of jiixBlocks) {
+      try {
+        await this.computeNumericalResult(mathSymbol.id, true)
+      }
+      catch (error) {
+        this.logger.error(`Error computing numerical result for block ${mathSymbol.id}:`, error)
+      }
+    }
   }
 
   /**
