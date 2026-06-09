@@ -1508,30 +1508,6 @@ export class InteractiveInkEditor extends AbstractEditor
   }
 
   /**
-   * Evaluate a math function for a range of input values
-   * @param blockId - The ID of the math element (jiixId)
-   * @param evaluation - Evaluation parameters (input/output variables, range, point count)
-   * @returns Promise with array of objects { inputVar: value, outputVar: value }
-   * @group Utilities
-   */
-  async evaluate(blockId: string, evaluation: {
-    inputVariableName: string,
-    outputVariableName: string,
-    from: number,
-    to: number,
-    pointCount: number
-  }): Promise<{ [key: string]: number }[][]>
-  {
-    try {
-      return await this.math.evaluateFunction(blockId, evaluation)
-    }
-    catch (error) {
-      this.manageError(error as Error)
-      throw error
-    }
-  }
-
-  /**
    * Evaluate a math function for a math symbol
    * @param jiixBlock - Object with id and label of the math block
    * @param evaluation - Evaluation parameters
@@ -1539,7 +1515,7 @@ export class InteractiveInkEditor extends AbstractEditor
    * @group Utilities
    */
   async evaluateMathFunction(
-    jiixBlock: { id: string, label: string },
+    jiixBlockId: string,
     evaluation: {
       inputVariableName: string,
       outputVariableName: string,
@@ -1550,7 +1526,7 @@ export class InteractiveInkEditor extends AbstractEditor
   ): Promise<{ [key: string]: number }[][]>
   {
     try {
-      return await this.math.evaluateFunction(jiixBlock.id, evaluation)
+      return await this.math.evaluateFunction(jiixBlockId, evaluation)
     }
     catch (error) {
       this.manageError(error as Error)

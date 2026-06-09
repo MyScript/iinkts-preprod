@@ -15,6 +15,8 @@ export class IIMathActionSubManager extends IIAbstractManager
 {
   protected managerName = "IIMathActionSubManager"
 
+  #variableValues: Map<string, Record<string, number>> = new Map()
+
   constructor(editor: InteractiveInkEditor)
   {
     super(editor)
@@ -120,7 +122,7 @@ export class IIMathActionSubManager extends IIAbstractManager
         this.logger.info("Extracted numerical value", { value })
 
         // Store in computation manager
-        this.editor.math.computation.updateComputationResult(jiixBlockId, value, undefined)
+        this.editor.math.computation.updateComputationResult(jiixBlockId, value)
       }
     }
 
@@ -267,13 +269,9 @@ export class IIMathActionSubManager extends IIAbstractManager
     // Call backend to set variable
     await this.editor.recognizer.setVariableValue(jiixBlockId, variableName, variableValue)
 
-    // Update computation manager with new variable value
-    const existingBlock = this.editor.math.computation.getMathBlock(jiixBlockId)
-    const updatedVariableValues = {
-      ...(existingBlock?.variableValues || {}),
-      [variableName]: variableValue
-    }
-    this.editor.math.computation.updateComputationResult(jiixBlockId, undefined, updatedVariableValues)
+    // Store new variable value
+    const existing = this.#variableValues.get(jiixBlockId) ?? {}
+    this.#variableValues.set(jiixBlockId, { ...existing, [variableName]: variableValue })
 
     // Recalculate dependent blocks
     this.logger.info("Variable value changed, recalculating dependent blocks", { jiixBlockId })
@@ -405,8 +403,7 @@ export class IIMathActionSubManager extends IIAbstractManager
    */
   getStoredVariableValues(jiixBlockId: string): Record<string, number> | undefined
   {
-    const block = this.editor.math.computation.getMathBlock(jiixBlockId)
-    return block?.variableValues
+    return this.#variableValues.get(jiixBlockId)
   }
 
   /**

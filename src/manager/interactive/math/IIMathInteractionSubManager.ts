@@ -131,13 +131,12 @@ export class IIMathInteractionSubManager extends IIAbstractManager
       return sources
     }
 
-    // Get variable sources from computation manager
-    const computation = this.editor.math.computation.getMathBlock(mathSymbol.jiixBlockId)
-    if (!computation?.variableSources) {
+    const deps = this.editor.math.dependencies.getMathDependencies(mathSymbol.jiixBlockId)
+    if (!deps?.variableSources) {
       return sources
     }
 
-    Object.values(computation.variableSources).forEach(sourceJiixId => {
+    Object.values(deps.variableSources).forEach(sourceJiixId => {
       const sourceSymbol = this.editor.math.dependencies.findMathSymbolByJiixId(sourceJiixId)
       if (sourceSymbol && !visited.has(sourceSymbol.id)) {
         sources.add(sourceSymbol.id)
@@ -168,13 +167,12 @@ export class IIMathInteractionSubManager extends IIAbstractManager
       return dependents
     }
 
-    // Get dependent blocks from computation manager
-    const computation = this.editor.math.computation.getMathBlock(mathSymbol.jiixBlockId)
-    if (!computation?.dependentBlocks) {
+    const deps = this.editor.math.dependencies.getMathDependencies(mathSymbol.jiixBlockId)
+    if (!deps?.dependentBlocks) {
       return dependents
     }
 
-    computation.dependentBlocks.forEach(dependentJiixId => {
+    deps.dependentBlocks.forEach(dependentJiixId => {
       const dependentSymbol = this.editor.math.dependencies.findMathSymbolByJiixId(dependentJiixId)
       if (dependentSymbol && !visited.has(dependentSymbol.id)) {
         dependents.add(dependentSymbol.id)
@@ -333,10 +331,9 @@ export class IIMathInteractionSubManager extends IIAbstractManager
         return
       }
 
-      // Get variable sources from computation manager
-      const computation = this.editor.math.computation.getMathBlock(symbol.jiixBlockId)
-      if (computation?.variableSources) {
-        for (const [variableName, sourceJiixId] of Object.entries(computation.variableSources)) {
+      const deps = this.editor.math.dependencies.getMathDependencies(symbol.jiixBlockId)
+      if (deps?.variableSources) {
+        for (const [variableName, sourceJiixId] of Object.entries(deps.variableSources)) {
           const mathExpressions = (this.editor.jiix.getElementForStroke(symbol.id) as TJIIXMathElement | undefined)?.expressions
           if (sourceJiixId === sourceSymbol.jiixBlockId && mathExpressions) {
             const variableBox = this.findVariableBoxInExpressions(mathExpressions, variableName)
@@ -373,10 +370,9 @@ export class IIMathInteractionSubManager extends IIAbstractManager
         return
       }
 
-      // Get variable sources from computation manager for the dependent symbol
-      const computation = this.editor.math.computation.getMathBlock(dependentSymbol.jiixBlockId)
-      if (computation?.variableSources) {
-        for (const [variableName, sourceJiixId] of Object.entries(computation.variableSources)) {
+      const deps = this.editor.math.dependencies.getMathDependencies(dependentSymbol.jiixBlockId)
+      if (deps?.variableSources) {
+        for (const [variableName, sourceJiixId] of Object.entries(deps.variableSources)) {
           const dependentMathExpressions = (this.editor.jiix.getElementForStroke(dependentSymbol.id) as TJIIXMathElement | undefined)?.expressions
           if (sourceJiixId === symbol.jiixBlockId && dependentMathExpressions) {
             const variableBox = this.findVariableBoxInExpressions(dependentMathExpressions, variableName)
