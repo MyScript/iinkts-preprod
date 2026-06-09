@@ -101,6 +101,17 @@ export function isRecognizedMath(symbol: TIISymbol): symbol is IIStroke
 
 /**
  * @group Symbol
+ * @summary Check if symbol is a stroke with Solver Output JIIX metadata
+ * @param symbol - Symbol to check
+ * @returns True if symbol is a stroke with Solver Output JIIX block type
+ */
+export function isStrokeSolverOutput(symbol: TIISymbol): symbol is IIStroke
+{
+  return isStroke(symbol) && symbol.isSolverOutput === true
+}
+
+/**
+ * @group Symbol
  * @summary Check if symbol is a stroke with Text JIIX metadata
  * @param symbol - Symbol to check
  * @returns True if symbol is a stroke with Text JIIX block type

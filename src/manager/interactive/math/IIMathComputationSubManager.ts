@@ -120,6 +120,19 @@ export class IIMathComputationSubManager extends IIAbstractManager
   }
 
   /**
+   * Update solver output strokes for all math blocks
+   * @param solverOutputStrokeIds - IDs of strokes that are solver outputs
+   */
+  updateSolverOutputsForAll(solverOutputStrokeIds: string[]): void
+  {
+    this.logger.debug("updateSolverOutputsForAll", { count: solverOutputStrokeIds.length })
+
+    for (const computation of this.#computations.values()) {
+      computation.solverOutputStrokeIds = solverOutputStrokeIds
+    }
+  }
+
+  /**
    * Update dependencies for a math block
    * @param jiixBlockId - JIIX ID of the math block
    * @param dependentBlocks - IDs of blocks that depend on this one
