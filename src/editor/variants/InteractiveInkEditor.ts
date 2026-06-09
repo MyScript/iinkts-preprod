@@ -769,8 +769,10 @@ export class InteractiveInkEditor extends AbstractEditor
     this.selector.removeSelectedGroup()
     this.model.symbols.forEach(s =>
     {
-      s.selected = ids.includes(s.id)
-      this.renderer.drawSymbol(s)
+      if (ids.includes(s.id) !== s.selected) {
+        s.selected = ids.includes(s.id)
+        this.renderer.updateSymbolSelection(s)
+      }
     })
     this.selector.drawSelectedGroup(this.model.symbolsSelected)
 
@@ -795,7 +797,7 @@ export class InteractiveInkEditor extends AbstractEditor
     this.model.symbols.forEach(s =>
     {
       s.selected = true
-      this.renderer.drawSymbol(s)
+      this.renderer.updateSymbolSelection(s)
     })
     this.selector.drawSelectedGroup(this.model.symbolsSelected)
 
@@ -820,13 +822,13 @@ export class InteractiveInkEditor extends AbstractEditor
       this.model.symbolsSelected.forEach(s =>
       {
         s.selected = false
-        this.renderer.drawSymbol(s)
+        this.renderer.updateSymbolSelection(s)
       })
       this.selector.removeSelectedGroup()
       this.updateLayerUI()
 
       this.math.interactions.clearMathBlockSelection()
-      this.event.emitSelected(this.model.symbolsSelected)
+      setTimeout(() => this.event.emitSelected(this.model.symbolsSelected), 0)
     }
   }
 

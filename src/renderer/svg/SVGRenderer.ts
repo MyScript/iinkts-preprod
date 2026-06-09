@@ -380,6 +380,23 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
     return svgEl
   }
 
+  updateSymbolSelection(symbol: TIISymbol): void {
+    // Edge selection adds/removes a child outline path — full redraw needed
+    if (symbol.type === SymbolType.Edge) {
+      this.drawSymbol(symbol)
+      return
+    }
+    const el = this.getElementById(symbol.id)
+    if (!el) return
+    if (symbol.deleting) {
+      el.setAttribute("filter", `url(#${ SVGRendererConst.removalFilterId })`)
+    } else if (symbol.selected) {
+      el.setAttribute("filter", `url(#${ SVGRendererConst.selectionFilterId })`)
+    } else {
+      el.removeAttribute("filter")
+    }
+  }
+
   replaceSymbol(id: string, symbols: TIISymbol[]): SVGGraphicsElement[] | undefined {
     this.#logger.debug("drawSymbol", { symbols })
     const oldNode = this.getElementById(id)
