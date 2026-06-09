@@ -9,7 +9,7 @@ import {
   TJIIXStrokeItem,
   JIIXELementType
 } from "@/model"
-import { Box, IIStroke, TStrokeJIIXTextWordInfo, TStrokeJIIXTextCharInfo, TStrokeJIIXTextLineInfo } from "@/symbol"
+import { Box, IIStroke, TBox, TStrokeJIIXTextWordInfo, TStrokeJIIXTextCharInfo, TStrokeJIIXTextLineInfo } from "@/symbol"
 import { convertMillimeterToPixel, convertBoundingBoxMillimeterToPixel } from "@/utils"
 import { IIAbstractManager } from "./IIAbstractManager"
 
@@ -713,5 +713,147 @@ export class IIJiixQueryManager extends IIAbstractManager
   clearTextMetadata(strokeId: string): void
   {
     this.#textMetadata.delete(strokeId)
+  }
+
+  /**
+   * Get stroke groups with pixel bboxes for text selection.
+   * Only groups with valid bounding boxes are returned.
+   * @param level - Selection granularity: "block", "word", or "char"
+   */
+  getTextSelectionGroups(level: "block" | "word" | "char"): Array<{ strokeIds: string[], bounds: TBox }>
+  {
+    this.ensureIndexValid()
+
+    const jiixExport = this.model.exports?.["application/vnd.myscript.jiix"]
+    if (!jiixExport?.elements) return []
+
+    const groups: Array<{ strokeIds: string[], bounds: TBox }> = []
+
+    for (const element of jiixExport.elements) {
+      if (element.type !== JIIXELementType.Text) continue
+      const textEl = element as TJIIXTextElement
+
+      if (level === "block") {
+        if (textEl["bounding-box"] && textEl.id) {
+          const strokeIds = this.getStrokesForElement(textEl.id)
+          if (strokeIds.length > 0) {
+            groups.push({ strokeIds, bounds: convertBoundingBoxMillimeterToPixel(textEl["bounding-box"]) })
+          }
+        }
+      }
+      else if (level === "word" && textEl.words) {
+        for (const word of textEl.words) {
+          if (word["bounding-box"] && word.items) {
+            const strokeIds = word.items.map(i => i.id).filter((id): id is string => !!id)
+            if (strokeIds.length > 0) {
+              groups.push({ strokeIds, bounds: convertBoundingBoxMillimeterToPixel(word["bounding-box"]) })
+            }
+          }
+        }
+      }
+      else if (level === "char" && textEl.chars) {
+        for (const char of textEl.chars) {
+          if (char["bounding-box"] && char.items) {
+            const strokeIds = char.items.map(i => i.id).filter((id): id is string => !!id)
+            if (strokeIds.length > 0) {
+              groups.push({ strokeIds, bounds: convertBoundingBoxMillimeterToPixel(char["bounding-box"]) })
+            }
+          }
+        }
+      }
+    }
+
+    return groups
+  }
+
+  /**
+   * Get stroke groups with pixel bboxes for math selection.
+   * Only groups with valid bounding boxes are returned.
+   * @param level - Selection granularity: "block" or "operand"
+   */
+  getMathSelectionGroups(level: "block" | "operand"): Array<{ strokeIds: string[], bounds: TBox }>
+  {
+    this.ensureIndexValid()
+
+    const jiixExport = this.model.exports?.["application/vnd.myscript.jiix"]
+    if (!jiixExport?.elements) return []
+
+    const groups: Array<{ strokeIds: string[], bounds: TBox }> = []
+
+    for (const element of jiixExport.elements) {
+      if (element.type !== JIIXELementType.Math) continue
+      const mathEl = element as TJIIXMathElement
+
+      if (level === "block") {
+        if (mathEl["bounding-box"] && mathEl.id) {
+          const strokeIds = this.getStrokesForElement(mathEl.id)
+          if (strokeIds.length > 0) {
+            groups.push({ strokeIds, bounds: convertBoundingBoxMillimeterToPixel(mathEl["bounding-box"]) })
+          }
+        }
+      }
+      else if (level === "operand" && mathEl.expressions) {
+        this.collectMathExpressionGroups(mathEl.expressions, groups)
+      }
+    }
+
+    return groups
+  }
+
+  /**
+   * Get stroke groups with pixel bboxes for shape (Node/Edge) selection.
+   * "element" level: one group per Node/Edge element.
+   * "stroke" level: returns empty (signals fallback to stroke overlap).
+   * @param level - Selection granularity: "element" or "stroke"
+   */
+  getShapeSelectionGroups(level: "element" | "stroke"): Array<{ strokeIds: string[], bounds: TBox }>
+  {
+    if (level === "stroke") return []
+
+    this.ensureIndexValid()
+
+    const jiixExport = this.model.exports?.["application/vnd.myscript.jiix"]
+    if (!jiixExport?.elements) return []
+
+    const groups: Array<{ strokeIds: string[], bounds: TBox }> = []
+
+    for (const element of jiixExport.elements) {
+      if (element.type !== JIIXELementType.Node && element.type !== JIIXELementType.Edge) continue
+
+      if (element["bounding-box"] && element.id) {
+        const strokeIds = this.getStrokesForElement(element.id)
+        if (strokeIds.length > 0) {
+          groups.push({ strokeIds, bounds: convertBoundingBoxMillimeterToPixel(element["bounding-box"]) })
+        }
+      }
+    }
+
+    return groups
+  }
+
+  /**
+   * Recursively collect math expression groups with pixel bboxes
+   */
+  protected collectMathExpressionGroups(
+    expressions: TJIIXMathExpression[],
+    groups: Array<{ strokeIds: string[], bounds: TBox }>
+  ): void
+  {
+    for (const expr of expressions) {
+      const exprRecord = expr as Record<string, unknown>
+      const bbox = exprRecord["bounding-box"] as TBox | undefined
+      const items = exprRecord.items as Array<{ id?: string }> | undefined
+
+      if (bbox && items) {
+        const strokeIds = items.map(i => i.id).filter((id): id is string => !!id)
+        if (strokeIds.length > 0) {
+          groups.push({ strokeIds, bounds: convertBoundingBoxMillimeterToPixel(bbox) })
+        }
+      }
+
+      if ("operands" in expr && expr.operands && Array.isArray(expr.operands)) {
+        this.collectMathExpressionGroups(expr.operands, groups)
+      }
+    }
   }
 }
