@@ -105,16 +105,7 @@ export class IIWriterManager extends AbstractWriterManager
   protected needContextLessGesture(stroke: IIStroke): boolean
   {
     const strokeBoundsWithMargin = this.editor.getSymbolsBounds([stroke], 2 * SELECTION_MARGIN)
-    return this.detectGesture && this.model.symbols.some(s =>
-    {
-      switch (s.type) {
-        case SymbolType.Stroke:
-          return false
-        // SymbolType.Recognized removed - recognized symbols no longer exist
-        default:
-          return s.bounds.overlaps(strokeBoundsWithMargin)
-      }
-    })
+    return this.detectGesture && this.model.symbols.some(s => !isStroke(s) && s.bounds.overlaps(strokeBoundsWithMargin))
   }
 
   protected createCurrentSymbol(pointer: TPointer, style: TStyle, pointerType: string): TIISymbol
