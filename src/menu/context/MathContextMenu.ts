@@ -152,10 +152,13 @@ export class MathContextMenu extends SubMenuItem
                 return
               }
               
-              // Use IINumericalComputationResult component
               const jiixBlockIds = mathSymbols.map(s => s.jiixBlockId!).filter(Boolean)
-              const computer = new IINumericalComputationResult(editor, jiixBlockIds)
-              await computer.show()
+              if (this.editor.drawComputationResult) {
+                await Promise.all(jiixBlockIds.map(jiixBlockId => this.editor.computeMathNumericalResult(jiixBlockId, this.editor.drawComputationResult)))
+              } else {
+                const computer = new IINumericalComputationResult(editor, jiixBlockIds)
+                await computer.show()
+              }
 
             } catch (error) {
               this.logger.error("Error computing numerical result:", error)

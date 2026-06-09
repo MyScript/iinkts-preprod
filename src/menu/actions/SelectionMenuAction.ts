@@ -5,13 +5,17 @@ import frameSelectIcon from "@/assets/svg/frame-select.svg"
 
 /**
  * @group Menu
- * @remarks Menu action for configuring selection granularity (text and math levels)
+ * @remarks Menu action for configuring selection granularity (text, math and shape levels)
  */
 export class SelectionMenuAction extends SubMenuItem
 {
   constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-action")
   {
     const items: IMenuSelect[] = [
+    ]
+
+    if (editor.configuration.recognition["raw-content"].recognition?.types.includes("text")) {
+      items.push(
       {
         type: "select",
         id: `${idPrefix}-selection-text-level`,
@@ -25,7 +29,10 @@ export class SelectionMenuAction extends SubMenuItem
         setValue: (editor: InteractiveInkEditor, value: string) => {
           editor.configuration.textSelectionLevel = value as "element" | "word" | "char"
         }
-      },
+      })
+    }
+    if (editor.configuration.recognition["raw-content"].recognition?.types.includes("math")) {
+      items.push(
       {
         type: "select",
         id: `${idPrefix}-selection-math-level`,
@@ -38,7 +45,10 @@ export class SelectionMenuAction extends SubMenuItem
         setValue: (editor: InteractiveInkEditor, value: string) => {
           editor.configuration.mathSelectionLevel = value as "element" | "operand"
         }
-      },
+      })
+    }
+    if (editor.configuration.recognition["raw-content"].recognition?.types.includes("shape")) {
+      items.push(
       {
         type: "select",
         id: `${idPrefix}-selection-shape-level`,
@@ -51,8 +61,8 @@ export class SelectionMenuAction extends SubMenuItem
         setValue: (editor: InteractiveInkEditor, value: string) => {
           editor.configuration.shapeSelectionLevel = value as "element" | "stroke"
         }
-      }
-    ]
+      })
+    }
 
     const config: IMenuSubMenu = {
       type: "submenu",

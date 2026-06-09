@@ -196,7 +196,7 @@ export class IIVariableEditor {
     // Set default value - get from computation manager
     const storedValues = this.editor.math.actions.getStoredVariableValues(jiixBlockId)
     const currentValue = storedValues?.[variable.name] ?? variable.value
-    if (currentValue !== undefined) {
+    if (currentValue != null) {
       input.value = currentValue.toString()
     }
 
