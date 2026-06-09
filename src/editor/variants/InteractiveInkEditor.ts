@@ -217,6 +217,7 @@ export class InteractiveInkEditor extends AbstractEditor
     this.logger.info("set penStyle", { penStyle })
     this.#penStyle = Object.assign({}, this.#penStyle, penStyle)
   }
+
   get drawComputationResult(): boolean
   {
     return this.#drawComputationResult
