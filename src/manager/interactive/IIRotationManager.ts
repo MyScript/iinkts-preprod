@@ -45,10 +45,6 @@ export class IIRotationManager extends IIAbstractTransformManager<[TPoint, numbe
       p.y = y
     })
 
-    // Note: Text bounds in blockMetadata should be invalidated after rotation
-    // This will be recalculated during next synchronization
-    // TODO: Consider clearing metadata here or marking as invalid
-
     return stroke
   }
 

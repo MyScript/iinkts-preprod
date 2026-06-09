@@ -223,7 +223,7 @@ describe("IIVariableEditor.ts", () =>
       await (variableEditor as any).applyChanges()
 
       expect(editor.setMathVariables).toHaveBeenCalledWith(
-        { id: "block-1", label: "x + y" },
+        "block-1",
         { x: 15 }
       )
     })
@@ -260,7 +260,7 @@ describe("IIVariableEditor.ts", () =>
 
       // Should call setMathVariables even if value is the same
       expect(editor.setMathVariables).toHaveBeenCalledWith(
-        { id: "block-1", label: "x + y" },
+        "block-1",
         { x: 5 }
       )
 

@@ -198,7 +198,6 @@ export class IIMathActionSubManager extends IIAbstractManager
   /**
    * Add solver output strokes to a math symbol
    * @param result - JIIX math result containing solver output
-   * @param mathSymbol - Math symbol to add strokes to
    * @param style - Optional style for the strokes
    * @returns Promise resolving to array of added strokes
    * @group Utilities

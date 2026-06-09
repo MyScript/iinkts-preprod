@@ -125,7 +125,7 @@ export class IIConversionManager extends IIAbstractManager
       const sym = this.model.getRootSymbol(s.id)
       if (sym && isRecognizedText(sym)) {
         // Check for word-level decorators in text metadata
-        const textMetadata = this.editor.blockMetadata.getTextMetadata(sym.id)
+        const textMetadata = this.editor.jiix.getTextMetadata(sym.id)
         if (textMetadata?.word) {
           const w = textMetadata.word
           if (w.decorators && w.bounds) {
@@ -750,10 +750,10 @@ export class IIConversionManager extends IIAbstractManager
     for (const [blockId, blockStrokes] of mathStrokesByBlock.entries()) {
       // Get metadata from first stroke (all strokes in block share same metadata)
       const firstStroke = blockStrokes[0]
-      const mathMetadata = this.editor.blockMetadata.getMathMetadata(firstStroke.id)
-      const label = this.editor.blockMetadata.getLabel(firstStroke.id)
+      const jiixMathElement = this.editor.jiix.getElementForStroke(firstStroke.id) as TJIIXMathElement | undefined
+      const label = this.editor.jiix.getLabelForStroke(firstStroke.id)
 
-      if (mathMetadata?.expressions && label) {
+      if (jiixMathElement?.expressions && label) {
         // Calculate bounding box that contains all strokes
         const allBounds = blockStrokes.map(s => s.bounds).filter(b => b !== undefined)
         if (allBounds.length > 0) {
@@ -769,7 +769,7 @@ export class IIConversionManager extends IIAbstractManager
             type: JIIXELementType.Math,
             id: blockId,
             label: label,
-            expressions: mathMetadata.expressions,
+            expressions: jiixMathElement.expressions,
             "bounding-box": boundsMM,
             items: blockStrokes.map(s => ({
               type: "stroke" as const,

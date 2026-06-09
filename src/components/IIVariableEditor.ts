@@ -260,8 +260,7 @@ export class IIVariableEditor {
         }
 
         if (hasChanges) {
-          const jiixBlock = { id: symVar.jiixBlockId, label: this.editor.jiix.getBlockLabel(symVar.jiixBlockId) || "" }
-          updates.push(this.editor.setMathVariables(jiixBlock, variableValues))
+          updates.push(this.editor.setMathVariables(symVar.jiixBlockId, variableValues))
         }
       }
 

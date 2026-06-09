@@ -6,7 +6,6 @@ import { IIAbstractManager } from "./IIAbstractManager"
 /**
  * @group Manager
  * @remarks Simplified synchronizer that only manages JIIX block IDs and stroke lifecycle
- * Complex metadata management is delegated to IIBlockMetadataManager
  */
 export class IISynchronizerManager extends IIAbstractManager
 {
@@ -131,9 +130,7 @@ export class IISynchronizerManager extends IIAbstractManager
 
           // Update type-specific metadata
           if (el.type === JIIXELementType.Text) {
-            this.editor.blockMetadata.updateTextMetadata(stroke, el)
-          } else if (el.type === JIIXELementType.Math) {
-            this.editor.blockMetadata.updateMathMetadata(stroke, el)
+            this.editor.jiix.updateTextMetadata(stroke, el)
           }
 
           this.model.updateSymbol(stroke)
@@ -151,12 +148,12 @@ export class IISynchronizerManager extends IIAbstractManager
     this.model.mergeExport({ "application/vnd.myscript.jiix": jiix })
     this.editor.history.update(this.model)
 
-    // Enrich math blocks with dependencies (delegated to BlockMetadataManager)
+    // Enrich math blocks with dependencies
     const mathSymbols = this.model.symbols.filter(s => isRecognizedMath(s)) as IIStroke[]
 
     for (const mathSymbol of mathSymbols) {
       try {
-        await this.editor.blockMetadata.enrichMathDependencies(mathSymbol)
+        await this.editor.math.dependencies.enrichMathDependencies(mathSymbol)
       } catch (err) {
         this.logger.error("synchronize", "Error enriching math dependencies:", err)
       }
@@ -164,7 +161,7 @@ export class IISynchronizerManager extends IIAbstractManager
 
     // Cleanup invalid math dependencies
     try {
-      this.editor.blockMetadata.cleanupMathDependencies(mathSymbols)
+      this.editor.math.dependencies.cleanupMathDependencies(mathSymbols)
     } catch (error) {
       this.logger.error("#doSynchronize", "Failed to cleanup math dependencies:", error)
     }
@@ -279,7 +276,7 @@ export class IISynchronizerManager extends IIAbstractManager
   }
 
   /**
-   * Update block metadata (jiixBlockId, jiixBlockType, jiixLabel ONLY)
+   * Update block metadata (jiixBlockId, jiixBlockType ONLY)
    */
   #updateBlockMetadata(
     stroke: IIStroke,
@@ -287,10 +284,6 @@ export class IISynchronizerManager extends IIAbstractManager
   ): void
   {
     stroke.jiixBlockId = element.id
-
-    // Store label in blockMetadata manager instead of on stroke
-    const label = "label" in element ? element.label : undefined
-    this.editor.blockMetadata.setLabel(stroke.id, label)
 
     switch (element.type) {
       case JIIXELementType.Text:
@@ -307,7 +300,7 @@ export class IISynchronizerManager extends IIAbstractManager
         break
     }
 
-    this.logger.debug("#updateBlockMetadata", `Updated ${stroke.id}: jiixBlockId=${element.id}, jiixBlockType=${stroke.jiixBlockType}, jiixLabel=${label}`)
+    this.logger.debug("#updateBlockMetadata", `Updated ${stroke.id}: jiixBlockId=${element.id}, jiixBlockType=${stroke.jiixBlockType}`)
   }
 
   // TODO broken when jiix is not up to date

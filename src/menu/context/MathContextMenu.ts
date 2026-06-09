@@ -115,7 +115,7 @@ export class MathContextMenu extends SubMenuItem
                           }
                         }
 
-                        await editor.setMathVariables({ id: mathSymbol.jiixBlockId!, label: editor.blockMetadata.getLabel(mathSymbol.id)! }, variableValues)
+                        await editor.setMathVariables(mathSymbol.jiixBlockId!, variableValues)
                         modal.destroy()
                       } catch (error) {
                         this.logger.error("Error setting variable values:", error)

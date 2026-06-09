@@ -87,8 +87,6 @@ export class IIModel
   getSymbolRowIndex(symbol: TIISymbol): number
   {
     // Use symbol bounds yMid for row calculation
-    // Note: Previously used jiixTextLine.baseline for text, but that metadata
-    // is now managed in IIBlockMetadataManager
     return Math.round(symbol.bounds.yMid / this.rowHeight)
   }
 

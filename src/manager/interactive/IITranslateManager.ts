@@ -30,21 +30,11 @@ export class IITranslateManager extends IIAbstractTransformManager<[number, numb
 
   protected applyToStroke(stroke: IIStroke, tx: number, ty: number): IIStroke
   {
-    // NEW ARCHITECTURE: Skip solver outputs - they should be recalculated
-    if (stroke.isSolverOutput) {
-      this.logger.warn("applyToStroke", "Skipping solver output stroke - it will be recalculated", stroke.id)
-      return stroke
-    }
-
     stroke.pointers.forEach(p =>
     {
       p.x += tx
       p.y += ty
     })
-
-    // Note: Text bounds in blockMetadata would need to be translated too
-    // but this is now handled by the IIBlockMetadataManager during synchronization
-    // The bounds will be recalculated on the next sync from the backend
 
     return stroke
   }
