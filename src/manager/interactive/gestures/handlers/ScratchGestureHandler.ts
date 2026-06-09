@@ -162,20 +162,16 @@ export class ScratchGestureHandler extends GestureHandler
     affectedMathSymbols.forEach(mathSymbol => {
       if (!mathSymbol.jiixBlockId) return
 
-      // Get dependent blocks from computation manager
-      const computation = this.editor.math.computation.getMathBlock(mathSymbol.jiixBlockId)
-      if (computation?.dependentBlocks && computation.dependentBlocks.length > 0) {
-        this.#logger.info("applyScratch", `Math symbol ${mathSymbol.jiixBlockId} has ${computation.dependentBlocks.length} dependent blocks, clearing their solver outputs`)
-        computation.dependentBlocks.forEach(blockId => dependentBlocksToClean.add(blockId))
+      const deps = this.editor.math.dependencies.getMathDependencies(mathSymbol.jiixBlockId)
+      if (deps?.dependentBlocks && deps.dependentBlocks.length > 0) {
+        this.#logger.info("applyScratch", `Math symbol ${mathSymbol.jiixBlockId} has ${deps.dependentBlocks.length} dependent blocks, clearing their solver outputs`)
+        deps.dependentBlocks.forEach(blockId => dependentBlocksToClean.add(blockId))
       }
     })
 
     for (const blockId of dependentBlocksToClean) {
-      const dependentMathSymbol = this.editor.findMathSymbolByJiixId(blockId)
-      if (dependentMathSymbol) {
-        await this.editor.math.actions.clearSolverOutputs(dependentMathSymbol.jiixBlockId!)
-        this.#logger.info("applyScratch", `Cleared solver outputs from dependent block ${blockId}`)
-      }
+      await this.editor.math.actions.clearSolverOutputs(blockId)
+      this.#logger.info("applyScratch", `Cleared solver outputs from dependent block ${blockId}`)
     }
 
     const promises: Promise<void | TIISymbol[]>[] = []

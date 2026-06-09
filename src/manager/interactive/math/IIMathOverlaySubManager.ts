@@ -278,10 +278,9 @@ export class IIMathOverlaySubManager extends IIAbstractManager
   protected getBlockColor(mathBlockId: string, mathBlockLabel?: string): string {
     const defaultColor = "#cccccc"
 
-    // Get variable sources from computation manager
-    const computation = this.editor.math.computation.getMathBlock(mathBlockId)
-    if (computation?.variableSources && Object.keys(computation.variableSources).length > 0) {
-      const variableNames = Object.keys(computation.variableSources)
+    const deps = this.editor.math.dependencies.getMathDependencies(mathBlockId)
+    if (deps?.variableSources && Object.keys(deps.variableSources).length > 0) {
+      const variableNames = Object.keys(deps.variableSources)
       const firstVariable = variableNames[0]
       const color = this.#colorManager.getColorForVariable(firstVariable)
       this.logger.debug("getBlockColor", `Block ${mathBlockLabel || mathBlockId} uses variable "${firstVariable}" → ${color}`)

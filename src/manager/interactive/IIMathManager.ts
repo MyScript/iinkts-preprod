@@ -32,8 +32,8 @@ import { TJIIXMathElement } from "@/model"
  *
  * @example Direct sub-manager access
  * ```typescript
- * const variables = editor.math.computation.getVariableValues(blockId)
- * const dependents = editor.math.dependencies.getDependentBlocks(blockId)
+ * const variables = editor.math.actions.getStoredVariableValues(blockId)
+ * const dependents = editor.math.dependencies.getMathDependencies(blockId)
  * ```
  *
  * @group Manager
@@ -165,7 +165,7 @@ export class IIMathManager extends IIAbstractManager
    */
   getStoredVariableValues(jiixBlockId: string): Record<string, number> | undefined
   {
-    return this.#computation.getVariableValues(jiixBlockId)
+    return this.#actions.getStoredVariableValues(jiixBlockId)
   }
 
   /**
@@ -175,15 +175,6 @@ export class IIMathManager extends IIAbstractManager
   getComputation(jiixBlockId: string): TMathBlockComputation | undefined
   {
     return this.#computation.getMathBlock(jiixBlockId)
-  }
-
-  /**
-   * Synchronize computation map with model state
-   * Delegates to computation sub-manager
-   */
-  syncComputationsWithModel(): void
-  {
-    this.#computation.syncWithModel()
   }
 
   // ==========================================

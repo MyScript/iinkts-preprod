@@ -536,8 +536,7 @@ export class IIFunctionEvaluator {
 
       for (const func of functions) {
         const selectedEvaluable = func.evaluables[func.selectedEvaluableIndex]
-        const jiixBlock = { id: func.jiixBlockId, label: this.editor.jiix.getBlockLabel(func.jiixBlockId) || "" }
-        const points = await this.editor.evaluateMathFunction(jiixBlock, {
+        const points = await this.editor.evaluateMathFunction(func.jiixBlockId, {
           inputVariableName: selectedEvaluable.inputName,
           outputVariableName: selectedEvaluable.outputName,
           from,
