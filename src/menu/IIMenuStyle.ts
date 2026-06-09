@@ -165,15 +165,19 @@ export class IIMenuStyle
   {
     if (this.subMenuContent && this.subMenuWrapper) {
       if (this.isMobile) {
-        // wrap
-        this.subMenuContent.classList.add("sub-menu-content")
-        this.subMenuWrapper.appendChild(this.subMenuContent)
-        this.subMenuWrapper.style.display = "block"
+        // wrap — only if not already inside subMenuWrapper
+        if (this.subMenuContent.parentElement !== this.subMenuWrapper) {
+          this.subMenuContent.classList.add("sub-menu-content")
+          this.subMenuWrapper.appendChild(this.subMenuContent)
+          this.subMenuWrapper.style.display = "block"
+        }
       } else {
-        // unwrap
-        this.subMenuContent.classList.remove("sub-menu-content")
-        this.subMenuWrapper.insertAdjacentElement("beforebegin", this.subMenuContent)
-        this.subMenuWrapper.style.display = "none"
+        // unwrap — only if not already positioned before subMenuWrapper
+        if (this.subMenuContent.nextElementSibling !== this.subMenuWrapper) {
+          this.subMenuContent.classList.remove("sub-menu-content")
+          this.subMenuWrapper.insertAdjacentElement("beforebegin", this.subMenuContent)
+          this.subMenuWrapper.style.display = "none"
+        }
       }
     }
 

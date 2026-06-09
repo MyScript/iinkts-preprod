@@ -630,7 +630,7 @@ export class IISelectionManager extends IIAbstractManager
       if (s.selected !== shouldBeSelected) {
         s.selected = shouldBeSelected
         updatedSymbols.push(s)
-        this.renderer.drawSymbol(s)
+        this.renderer.updateSymbolSelection(s)
       }
     })
 
@@ -683,7 +683,6 @@ export class IISelectionManager extends IIAbstractManager
     this.endSelectionPoint = undefined
     this.clearSelectingRect()
     this.drawSelectedGroup(this.model.symbolsSelected)
-    this.editor.event.emitSelected(this.model.symbolsSelected)
     this.editor.menu.style.update()
 
     // Notify math interactions system of selection changes
@@ -695,6 +694,8 @@ export class IISelectionManager extends IIAbstractManager
       this.editor.math.interactions.clearMathBlockSelection()
     }
 
+    // Defer external event so synchronous user callbacks don't block pointer-up completion
+    setTimeout(() => this.editor.event.emitSelected(this.model.symbolsSelected), 0)
     return updatedSymbols
   }
 
