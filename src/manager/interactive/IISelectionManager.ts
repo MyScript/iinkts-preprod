@@ -640,7 +640,7 @@ export class IISelectionManager extends IIAbstractManager
 
   /**
    * Find the JIIX block ID of the single fully-selected math block, if any.
-   * In "block" mode: a block qualifies if any of its strokes are selected.
+   * In "element" mode: a block qualifies if any of its strokes are selected.
    * In "operand" mode: a block qualifies only if ALL its strokes are selected.
    * Returns undefined when zero or more than one block qualifies.
    */
@@ -661,7 +661,7 @@ export class IISelectionManager extends IIAbstractManager
 
     const qualifyingBlockIds: string[] = []
     for (const [jiixBlockId, strokes] of blockGroups) {
-      if (mathLevel === "block") {
+      if (mathLevel === "element") {
         qualifyingBlockIds.push(jiixBlockId)
       }
       else {

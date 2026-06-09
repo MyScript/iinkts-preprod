@@ -17,13 +17,13 @@ export class SelectionMenuAction extends SubMenuItem
         id: `${idPrefix}-selection-text-level`,
         label: "Text selection",
         options: [
-          { label: "Block", value: "block" },
+          { label: "Element", value: "element" },
           { label: "Word", value: "word" },
           { label: "Character", value: "char" },
         ],
         getValue: (editor: InteractiveInkEditor) => editor.configuration.textSelectionLevel,
         setValue: (editor: InteractiveInkEditor, value: string) => {
-          editor.configuration.textSelectionLevel = value as "block" | "word" | "char"
+          editor.configuration.textSelectionLevel = value as "element" | "word" | "char"
         }
       },
       {
@@ -31,12 +31,12 @@ export class SelectionMenuAction extends SubMenuItem
         id: `${idPrefix}-selection-math-level`,
         label: "Math selection",
         options: [
-          { label: "Block", value: "block" },
+          { label: "Element", value: "element" },
           { label: "Operand", value: "operand" },
         ],
         getValue: (editor: InteractiveInkEditor) => editor.configuration.mathSelectionLevel,
         setValue: (editor: InteractiveInkEditor, value: string) => {
-          editor.configuration.mathSelectionLevel = value as "block" | "operand"
+          editor.configuration.mathSelectionLevel = value as "element" | "operand"
         }
       },
       {

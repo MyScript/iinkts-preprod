@@ -153,6 +153,7 @@ export class IISynchronizerManager extends IIAbstractManager
 
     // Save JIIX export and update history
     this.model.mergeExport({ "application/vnd.myscript.jiix": jiix })
+    this.editor.jiix.invalidateIndex()
     this.editor.history.update(this.model)
 
     // Enrich math blocks with dependencies
