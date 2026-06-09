@@ -331,7 +331,6 @@ export class IIModel
     if (!jiixExport?.elements) {
       return []
     }
-    console.log('jiixExport.elements: ', jiixExport.elements);
     return jiixExport.elements.filter(
       (el): el is TJIIXMathElement => el.type === JIIXELementType.Math
     )

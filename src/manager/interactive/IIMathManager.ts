@@ -146,6 +146,15 @@ export class IIMathManager extends IIAbstractManager
     return this.#actions.clearSolverOutputs(jiixBlockId)
   }
 
+  /**
+   * Clear solver output strokes for all math blocks
+   * Delegates to actions sub-manager
+   */
+  async clearAllSolverOutputs(): Promise<void>
+  {
+    return this.#actions.clearAllSolverOutputs()
+  }
+
   // ==========================================
   // Facade methods - Computation
   // ==========================================
