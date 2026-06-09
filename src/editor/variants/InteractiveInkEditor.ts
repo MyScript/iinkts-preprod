@@ -9,7 +9,6 @@ import
   TIISymbol,
   SymbolType,
   convertPartialStrokesToIIStrokes,
-  isRecognizedMath,
   isText,
   isMath,
   isStroke,
@@ -775,10 +774,13 @@ export class InteractiveInkEditor extends AbstractEditor
     })
     this.selector.drawSelectedGroup(this.model.symbolsSelected)
 
-    const selectedMathIds = this.model.symbolsSelected
-      .filter(isRecognizedMath)
-      .map(s => s.id)
-    this.math.interactions.onSymbolSelect(selectedMathIds)
+    const selectedMathJiixBlockId = this.selector.getSelectedMathJiixBlockId()
+    if (selectedMathJiixBlockId) {
+      this.math.interactions.onMathBlockSelected(selectedMathJiixBlockId)
+    }
+    else {
+      this.math.interactions.clearMathBlockSelection()
+    }
 
     this.updateLayerUI()
     this.event.emitSelected(this.model.symbolsSelected)
@@ -797,10 +799,13 @@ export class InteractiveInkEditor extends AbstractEditor
     })
     this.selector.drawSelectedGroup(this.model.symbolsSelected)
 
-    const selectedMathIds = this.model.symbolsSelected
-      .filter(isRecognizedMath)
-      .map(s => s.id)
-    this.math.interactions.onSymbolSelect(selectedMathIds)
+    const selectedMathJiixBlockId = this.selector.getSelectedMathJiixBlockId()
+    if (selectedMathJiixBlockId) {
+      this.math.interactions.onMathBlockSelected(selectedMathJiixBlockId)
+    }
+    else {
+      this.math.interactions.clearMathBlockSelection()
+    }
 
     this.updateLayerUI()
     this.event.emitSelected(this.model.symbolsSelected)
@@ -820,7 +825,7 @@ export class InteractiveInkEditor extends AbstractEditor
       this.selector.removeSelectedGroup()
       this.updateLayerUI()
 
-      this.math.interactions.onSymbolSelect([])
+      this.math.interactions.clearMathBlockSelection()
       this.event.emitSelected(this.model.symbolsSelected)
     }
   }

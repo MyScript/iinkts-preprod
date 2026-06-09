@@ -43,7 +43,7 @@ export class IIMathInteractionSubManager extends IIAbstractManager
 
   #config: TMathInteractionConfig
   #hoveredSymbolId: string | null = null
-  #selectedSymbolIds: Set<string> = new Set()
+  #selectedJiixBlockIds: Set<string> = new Set()
   #colorManager: ColorPaletteManager
 
 
@@ -243,51 +243,63 @@ export class IIMathInteractionSubManager extends IIAbstractManager
   }
 
   /**
-   * Handle symbol selection
-   * @param symbolIds - Array of selected symbol IDs
+   * Handle math block selection by JIIX block ID.
+   * Resets highlights and applies dependency visualization for the selected block.
+   * @param jiixBlockId - JIIX block ID of the selected math block
    */
-  onSymbolSelect(symbolIds: string[]): void {
+  onMathBlockSelected(jiixBlockId: string): void {
     this.clearSelectionHighlights()
 
-    this.#selectedSymbolIds = new Set(symbolIds)
+    this.#selectedJiixBlockIds = new Set([jiixBlockId])
 
-    if (!this.#config.highlightOnSelect || symbolIds.length === 0) {
+    if (!this.#config.highlightOnSelect) {
       return
     }
 
-    this.logger.debug("onSymbolSelect", { symbolIds })
+    this.logger.debug("onMathBlockSelected", { jiixBlockId })
 
-    const relatedBlocks = new Set<string>()
-    symbolIds.forEach(id => {
-      relatedBlocks.add(id)
-      this.getRecursiveSources(id).forEach(sourceId => relatedBlocks.add(sourceId))
-      this.getRecursiveDependents(id).forEach(depId => relatedBlocks.add(depId))
-    })
+    const symbol = this.editor.math.dependencies.findMathSymbolByJiixId(jiixBlockId)
+    if (!symbol) {
+      this.logger.warn("onMathBlockSelected", `No symbol found for jiixBlockId: ${jiixBlockId}`)
+      return
+    }
 
-    this.getMathSymbols().forEach(symbol => {
-      if (!relatedBlocks.has(symbol.id)) {
-        this.editor.math.overlays.dimSymbol(symbol, this.#config.dimOpacity)
+    const sources = this.getRecursiveSources(symbol.id)
+    const dependents = this.getRecursiveDependents(symbol.id)
+
+    const relatedBlocks = new Set<string>([symbol.id])
+    sources.forEach(id => relatedBlocks.add(id))
+    dependents.forEach(id => relatedBlocks.add(id))
+
+    this.getMathSymbols().forEach(s => {
+      if (!relatedBlocks.has(s.id)) {
+        this.editor.math.overlays.dimSymbol(s, this.#config.dimOpacity)
       }
     })
 
-    symbolIds.forEach(id => {
-      const sources = this.getRecursiveSources(id)
-      const dependents = this.getRecursiveDependents(id)
-
-      sources.forEach(sourceId => {
-        const sourceSymbol = this.findMathSymbol(sourceId)
-        if (sourceSymbol) {
-          this.editor.math.overlays.highlightAsSource(sourceSymbol)
-        }
-      })
-
-      dependents.forEach(dependentId => {
-        const dependentSymbol = this.findMathSymbol(dependentId)
-        if (dependentSymbol) {
-          this.editor.math.overlays.highlightAsDependent(dependentSymbol)
-        }
-      })
+    sources.forEach(sourceId => {
+      const sourceSymbol = this.findMathSymbol(sourceId)
+      if (sourceSymbol) {
+        this.editor.math.overlays.highlightAsSource(sourceSymbol)
+      }
     })
+
+    dependents.forEach(dependentId => {
+      const dependentSymbol = this.findMathSymbol(dependentId)
+      if (dependentSymbol) {
+        this.editor.math.overlays.highlightAsDependent(dependentSymbol)
+      }
+    })
+
+    this.drawDependencyArrows(symbol.id, sources, dependents)
+  }
+
+  /**
+   * Clear math block selection highlights and state
+   */
+  clearMathBlockSelection(): void {
+    this.clearSelectionHighlights()
+    this.#selectedJiixBlockIds.clear()
   }
 
   /**
@@ -403,6 +415,6 @@ export class IIMathInteractionSubManager extends IIAbstractManager
     this.clearHoverHighlights()
     this.clearSelectionHighlights()
     this.#hoveredSymbolId = null
-    this.#selectedSymbolIds.clear()
+    this.#selectedJiixBlockIds.clear()
   }
 }
