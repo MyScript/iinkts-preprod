@@ -231,6 +231,7 @@ export class IIStroke extends IISymbolBase<SymbolType.Stroke>
     if (partial.id) {
       stroke.id = partial.id
     }
+    stroke.isSolverOutput = partial.isSolverOutput
     const errors: string[] = []
     let flag = true
     partial.pointers?.forEach((pp, pIndex) =>

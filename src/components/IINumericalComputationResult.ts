@@ -8,6 +8,7 @@ import { BORDER_RADIUS, flexColumnStyle, SPACING } from "./styles"
  */
 export interface NumericalComputationResult {
   jiixBlockId: string
+  label: string
   value?: number
   error?: string
 }
@@ -34,18 +35,20 @@ export class IINumericalComputationResult {
     const results: NumericalComputationResult[] = []
 
     for (const jiixBlockId of this.jiixBlockIds) {
+      const label = this.editor.jiix.getBlockLabel(jiixBlockId) ?? jiixBlockId
       try {
-        const jiixBlock = { id: jiixBlockId, label: this.editor.jiix.getBlockLabel(jiixBlockId) || "" }
-        const result = await this.editor.computeMathNumericalResult(jiixBlock, this.editor.drawComputationResult)
+        const result = await this.editor.computeMathNumericalResult(jiixBlockId, this.editor.drawComputationResult)
 
         if (!this.editor.drawComputationResult && result.value !== undefined) {
           results.push({
             jiixBlockId,
+            label,
             value: result.value
           })
         } else if (this.editor.drawComputationResult) {
           results.push({
             jiixBlockId,
+            label,
             value: result.value
           })
         }
@@ -53,6 +56,7 @@ export class IINumericalComputationResult {
         this.logger.error("computeResults", error)
         results.push({
           jiixBlockId,
+          label,
           error: error instanceof Error ? error.message : String(error)
         })
       }
@@ -88,7 +92,7 @@ export class IINumericalComputationResult {
         color: #424242;
         font-family: monospace;
       `
-      const label = this.editor.jiix.getBlockLabel(result.jiixBlockId) || "N/A"
+      const label = result.label
       symbolLabel.textContent = label
 
       resultItem.appendChild(symbolLabel)

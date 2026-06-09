@@ -2,6 +2,23 @@ import { IIAbstractManager } from "../IIAbstractManager"
 import { IIStroke, isStroke, isRecognizedMath } from "@/symbol"
 import type { InteractiveInkEditor } from "@/editor"
 
+
+/**
+ * Type representing math symbol dependencies
+ * @group Manager
+ */
+export type MathDependencies = {
+  /**
+   * Map of variable names to their source block IDs
+   */
+  variableSources?: { [variableName: string]: string }
+
+  /**
+   * Array of block IDs that depend on this block
+   */
+  dependentBlocks?: string[]
+}
+
 /**
  * Manager responsible for managing math symbol dependencies
  * Handles variable tracking and dependent block recalculation
@@ -63,7 +80,7 @@ export class IIMathDependencySubManager extends IIAbstractManager
 
       try {
         this.logger.info("recalculateDependentBlocks", `Computing numerical result for ${dependentBlockId}`)
-        await this.editor.computeMathNumericalResult({ id: dependentMathSymbol.jiixBlockId!, label: this.editor.jiix.getLabelForStroke(dependentMathSymbol.id)! }, this.editor.drawComputationResult)
+        await this.editor.computeMathNumericalResult(dependentMathSymbol.jiixBlockId!, this.editor.drawComputationResult)
       }
       catch (computeError) {
         this.logger.error("recalculateDependentBlocks", `Error computing ${dependentBlockId}:`, computeError)
@@ -290,20 +307,4 @@ export class IIMathDependencySubManager extends IIAbstractManager
       }
     })
   }
-}
-
-/**
- * Type representing math symbol dependencies
- * @group Manager
- */
-export type MathDependencies = {
-  /**
-   * Map of variable names to their source block IDs
-   */
-  variableSources?: { [variableName: string]: string }
-
-  /**
-   * Array of block IDs that depend on this block
-   */
-  dependentBlocks?: string[]
 }
