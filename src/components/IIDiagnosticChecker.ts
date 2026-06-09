@@ -42,10 +42,8 @@ export class IIDiagnosticChecker {
       }
 
       try {
-        const [computeDiagnostic, evaluationDiagnostic] = await Promise.all([
-          this.editor.getDiagnostic(jiixBlockId, "numerical-computation"),
-          this.editor.getDiagnostic(jiixBlockId, "evaluation")
-        ])
+        const computeDiagnostic =  await this.editor.getDiagnostic(jiixBlockId, "numerical-computation")
+        const evaluationDiagnostic = await this.editor.getDiagnostic(jiixBlockId, "evaluation")
 
         diagnostics.push({
           jiixBlockId,

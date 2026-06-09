@@ -1,6 +1,6 @@
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import { TJIIXStrokeItem, TJIIXMathElement, TJIIXMathExpression, TJIIXTextElement, TJIIXNodeElement, TJIIXEdgeElement, TJIIXEdgeLine, JIIXELementType, JIIXEdgeKind } from "@/model"
-import { IIStroke, isRecognizedMath, isStroke } from "@/symbol"
+import { IIStroke, isStroke } from "@/symbol"
 import { IIAbstractManager } from "./IIAbstractManager"
 
 /**
@@ -12,6 +12,9 @@ export class IISynchronizerManager extends IIAbstractManager
   protected managerName = "IISynchronizerManager"
 
   #synchronizePromise?: Promise<void>
+  // True when synchronize() was called while a sync was already running.
+  // The running sync will re-run once to capture strokes added during it.
+  #dirtyDuringSync = false
 
   static readonly SYNCHRONIZE_TIMEOUT = 30000
   static readonly MAX_RETRY_ATTEMPTS = 3
@@ -34,13 +37,14 @@ export class IISynchronizerManager extends IIAbstractManager
   async synchronize(): Promise<void>
   {
     if (this.#synchronizePromise) {
-      this.logger.debug("synchronize", "Synchronization already in progress, waiting for it to complete")
+      this.logger.debug("synchronize", "Synchronization already in progress, will re-run after")
+      this.#dirtyDuringSync = true
       await this.#synchronizePromise
       return
     }
 
     this.editor.layers.updateState(false)
-    this.#synchronizePromise = this.#synchronizeWithRetry()
+    this.#synchronizePromise = this.#syncLoop()
 
     try {
       await this.#synchronizePromise
@@ -48,6 +52,14 @@ export class IISynchronizerManager extends IIAbstractManager
       this.#synchronizePromise = undefined
       this.editor.layers.updateState(true)
     }
+  }
+
+  async #syncLoop(): Promise<void>
+  {
+    do {
+      this.#dirtyDuringSync = false
+      await this.#synchronizeWithRetry()
+    } while (this.#dirtyDuringSync)
   }
 
   async #synchronizeWithRetry(): Promise<void>
@@ -156,12 +168,12 @@ export class IISynchronizerManager extends IIAbstractManager
     this.editor.jiix.invalidateIndex()
     this.editor.history.update(this.model)
 
-    // Enrich math blocks with dependencies
-    const mathSymbols = this.model.symbols.filter(s => isRecognizedMath(s)) as IIStroke[]
+    // Enrich math blocks with dependencies — one call per unique jiix block
+    const mathBlockIds = this.model.getMathBlocks().map(mb => mb.id)
 
-    for (const mathSymbol of mathSymbols) {
+    for (const blockId of mathBlockIds) {
       try {
-        await this.editor.math.dependencies.enrichMathDependencies(mathSymbol)
+        await this.editor.math.dependencies.enrichMathDependencies(blockId)
       } catch (err) {
         this.logger.error("synchronize", "Error enriching math dependencies:", err)
       }
@@ -169,7 +181,7 @@ export class IISynchronizerManager extends IIAbstractManager
 
     // Cleanup invalid math dependencies
     try {
-      this.editor.math.dependencies.cleanupMathDependencies(mathSymbols)
+      this.editor.math.dependencies.cleanupMathDependencies(mathBlockIds)
     } catch (error) {
       this.logger.error("#doSynchronize", "Failed to cleanup math dependencies:", error)
     }
