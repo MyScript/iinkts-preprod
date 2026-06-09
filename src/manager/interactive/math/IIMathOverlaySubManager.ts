@@ -1,7 +1,7 @@
 import { IIAbstractManager } from "../IIAbstractManager"
 import { SVGBuilder, SVGRendererConst } from "@/renderer"
 import { TJIIXMathElement } from "@/model"
-import { TBox, IIStroke } from "@/symbol"
+import { Box, TBox, IIStroke, isStroke } from "@/symbol"
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import { ColorPaletteManager } from "../../base"
 import { COLORS } from "@/components"
@@ -293,12 +293,19 @@ export class IIMathOverlaySubManager extends IIAbstractManager
   }
 
   updateOverlaysForSymbol(mathBlock: TJIIXMathElement): void {
-    if (!mathBlock["bounding-box"]) {
-      this.logger.warn("updateOverlaysForSymbol", `Math block ${mathBlock.id} has no bounding box`)
-      return
+    let bounds: TBox
+    if (mathBlock["bounding-box"]) {
+      bounds = convertBoundingBoxMillimeterToPixel(mathBlock["bounding-box"])
+    } else {
+      const blockStrokes = this.editor.model.symbols.filter(
+        s => isStroke(s) && (s as IIStroke).jiixBlockId === mathBlock.id
+      ) as IIStroke[]
+      if (!blockStrokes.length) {
+        this.logger.warn("updateOverlaysForSymbol", `Math block ${mathBlock.id} has no bounding box and no strokes`)
+        return
+      }
+      bounds = Box.createFromBoxes(blockStrokes.map(s => s.bounds))
     }
-
-    const bounds = convertBoundingBoxMillimeterToPixel(mathBlock["bounding-box"])
     const blockId = mathBlock.id
     const blockColor = this.getBlockColor(blockId, mathBlock.label)
 

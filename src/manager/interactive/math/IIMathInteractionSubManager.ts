@@ -1,6 +1,6 @@
 import { IIAbstractManager } from "../IIAbstractManager"
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
-import { IIStroke, TBox, isStroke } from "@/symbol"
+import { IIStroke, TBox, isRecognizedMath } from "@/symbol"
 import { convertBoundingBoxMillimeterToPixel } from "@/utils"
 import { TJIIXMathExpression, TJIIXMathElement } from "@/model/ExportMath"
 import { ColorPaletteManager } from "../../base"
@@ -73,14 +73,14 @@ export class IIMathInteractionSubManager extends IIAbstractManager
    * Get all math symbols from the model
    */
   protected getMathSymbols(): IIStroke[] {
-    return this.editor.model.symbols.filter(isStroke)
+    return this.editor.model.symbols.filter(isRecognizedMath)
   }
 
   /**
    * Find math symbol by ID
    */
   protected findMathSymbol(symbolId: string): IIStroke | undefined {
-    return this.getMathSymbols().find(s => s.id === symbolId)
+    return this.editor.model.symbols.find((s): s is IIStroke  =>  s.id === symbolId && s.type === "stroke" && s.jiixBlockType === "Math")
   }
 
   /**
@@ -188,9 +188,9 @@ export class IIMathInteractionSubManager extends IIAbstractManager
 
   /**
    * Handle symbol hover event
-   * @param symbolId - Symbol ID being hovered, or null to clear hover
+   * @param jiixBlockId - JIIX block ID being hovered, or null to clear hover
    */
-  onSymbolHover(symbolId: string | null): void {
+  onSymbolHover(jiixBlockId: string | null): void {
     if (!this.#config.showDependencyOnHover) {
       return
     }
@@ -199,19 +199,19 @@ export class IIMathInteractionSubManager extends IIAbstractManager
       this.clearHoverHighlights()
     }
 
-    if (!symbolId) {
+    if (!jiixBlockId) {
       this.#hoveredSymbolId = null
-      this.clearHoverHighlights()
       return
     }
 
-    this.#hoveredSymbolId = symbolId
-    const mathSymbol = this.findMathSymbol(symbolId)
+    const mathSymbol = this.editor.math.dependencies.findMathSymbolByJiixId(jiixBlockId)
     if (!mathSymbol) {
       return
     }
 
-    this.logger.debug("onSymbolHover", { symbolId, label: this.editor.jiix.getLabelForStroke(mathSymbol.id) })
+    const symbolId = mathSymbol.id
+    this.#hoveredSymbolId = symbolId
+    this.logger.debug("onSymbolHover", { jiixBlockId, symbolId, label: this.editor.jiix.getLabelForStroke(symbolId) })
 
     const sources = this.getRecursiveSources(symbolId)
     sources.forEach(sourceId => {

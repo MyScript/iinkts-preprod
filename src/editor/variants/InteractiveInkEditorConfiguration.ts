@@ -13,13 +13,13 @@ import { TEditorConfiguration } from "@/editor/AbstractEditor"
  * @group Editor
  * @remarks Level of text selection granularity
  */
-export type TTextSelectionLevel = "block" | "word" | "char"
+export type TTextSelectionLevel = "element" | "word" | "char"
 
 /**
  * @group Editor
  * @remarks Level of math selection granularity
  */
-export type TMathSelectionLevel = "block" | "operand"
+export type TMathSelectionLevel = "element" | "operand"
 
 /**
  * @group Editor
@@ -67,8 +67,8 @@ export const DefaultInteractiveInkEditorConfiguration: TInteractiveInkEditorConf
   },
   gesture: DefaultGestureConfiguration,
   snap: DefaultSnapConfiguration,
-  textSelectionLevel: "block",
-  mathSelectionLevel: "block",
+  textSelectionLevel: "element",
+  mathSelectionLevel: "element",
   shapeSelectionLevel: "element",
 }
 
