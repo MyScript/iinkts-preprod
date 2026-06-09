@@ -66,10 +66,6 @@ export class IIResizeManager extends IIAbstractTransformManager<[TPoint, number,
       p.y = +(origin.y + scaleY * (p.y - origin.y)).toFixed(3)
     })
 
-    // Note: Text bounds in blockMetadata should be invalidated after resize
-    // This will be recalculated during next synchronization
-    // TODO: Consider clearing metadata here or marking as invalid
-
     return stroke
   }
 

@@ -563,8 +563,8 @@ export class IISelectionManager extends IIAbstractManager
         case "char":
           // Select only strokes from same character
           if (stroke.jiixBlockId === baseStroke.jiixBlockId) {
-            const strokeTextMeta = this.editor.blockMetadata.getTextMetadata(stroke.id)
-            const baseTextMeta = this.editor.blockMetadata.getTextMetadata(baseStroke.id)
+            const strokeTextMeta = this.editor.jiix.getTextMetadata(stroke.id)
+            const baseTextMeta = this.editor.jiix.getTextMetadata(baseStroke.id)
             if (strokeTextMeta?.char?.label === baseTextMeta?.char?.label &&
                 strokeTextMeta?.char?.word === baseTextMeta?.char?.word) {
               strokes.push(stroke)
@@ -575,8 +575,8 @@ export class IISelectionManager extends IIAbstractManager
         case "word":
           // Select strokes from same word
           if (stroke.jiixBlockId === baseStroke.jiixBlockId) {
-            const strokeTextMeta = this.editor.blockMetadata.getTextMetadata(stroke.id)
-            const baseTextMeta = this.editor.blockMetadata.getTextMetadata(baseStroke.id)
+            const strokeTextMeta = this.editor.jiix.getTextMetadata(stroke.id)
+            const baseTextMeta = this.editor.jiix.getTextMetadata(baseStroke.id)
             if (strokeTextMeta?.word?.label === baseTextMeta?.word?.label) {
               strokes.push(stroke)
             }

@@ -2,7 +2,7 @@ import { LoggerManager, LoggerCategory } from "@/logger"
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import { IIStroke, TBox, isRecognizedMath } from "@/symbol"
 import { convertBoundingBoxMillimeterToPixel } from "@/utils"
-import { TJIIXMathExpression } from "@/model/ExportMath"
+import { TJIIXMathExpression, TJIIXMathElement } from "@/model/ExportMath"
 import { IIMathOverlaySubManager } from "./math/IIMathOverlaySubManager"
 import { ColorPaletteManager } from "../base"
 
@@ -213,7 +213,7 @@ export class IIMathInteractionManager {
       return
     }
 
-    this.#logger.debug("onSymbolHover", { symbolId, label: this.editor.blockMetadata.getLabel(mathSymbol.id) })
+    this.#logger.debug("onSymbolHover", { symbolId, label: this.editor.jiix.getLabelForStroke(mathSymbol.id) })
 
     const sources = this.getRecursiveSources(symbolId)
     sources.forEach(sourceId => {
@@ -327,9 +327,9 @@ export class IIMathInteractionManager {
       const computation = this.editor.math.computation.getMathBlock(symbol.jiixBlockId)
       if (computation?.variableSources) {
         for (const [variableName, sourceJiixId] of Object.entries(computation.variableSources)) {
-          const mathMetadata = this.editor.blockMetadata.getMathMetadata(symbol.id)
-          if (sourceJiixId === sourceSymbol.jiixBlockId && mathMetadata?.expressions) {
-            const variableBox = this.findVariableBoxInExpressions(mathMetadata.expressions, variableName)
+          const mathExpressions = (this.editor.jiix.getElementForStroke(symbol.id) as TJIIXMathElement | undefined)?.expressions
+          if (sourceJiixId === sourceSymbol.jiixBlockId && mathExpressions) {
+            const variableBox = this.findVariableBoxInExpressions(mathExpressions, variableName)
             if (variableBox) {
               const variableColor = this.#colorManager.getColorForVariable(variableName)
               this.overlayManager.highlightAsSource(sourceSymbol, variableColor)
@@ -367,9 +367,9 @@ export class IIMathInteractionManager {
       const computation = this.editor.math.computation.getMathBlock(dependentSymbol.jiixBlockId)
       if (computation?.variableSources) {
         for (const [variableName, sourceJiixId] of Object.entries(computation.variableSources)) {
-          const dependentMathMetadata = this.editor.blockMetadata.getMathMetadata(dependentSymbol.id)
-          if (sourceJiixId === symbol.jiixBlockId && dependentMathMetadata?.expressions) {
-            const variableBox = this.findVariableBoxInExpressions(dependentMathMetadata.expressions, variableName)
+          const dependentMathExpressions = (this.editor.jiix.getElementForStroke(dependentSymbol.id) as TJIIXMathElement | undefined)?.expressions
+          if (sourceJiixId === symbol.jiixBlockId && dependentMathExpressions) {
+            const variableBox = this.findVariableBoxInExpressions(dependentMathExpressions, variableName)
             if (variableBox) {
               const variableColor = this.#colorManager.getColorForVariable(variableName)
               this.overlayManager.highlightVariableBox(

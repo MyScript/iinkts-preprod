@@ -9,8 +9,20 @@ import {
   TJIIXStrokeItem,
   JIIXELementType
 } from "@/model"
-import { IIStroke } from "@/symbol"
+import { Box, IIStroke, TStrokeJIIXTextWordInfo, TStrokeJIIXTextCharInfo, TStrokeJIIXTextLineInfo } from "@/symbol"
+import { convertMillimeterToPixel, convertBoundingBoxMillimeterToPixel } from "@/utils"
 import { IIAbstractManager } from "./IIAbstractManager"
+
+/**
+ * Text metadata for a block
+ * @group Manager
+ */
+export type TBlockTextMetadata = {
+  label?: string
+  word?: TStrokeJIIXTextWordInfo
+  char?: TStrokeJIIXTextCharInfo
+  line?: TStrokeJIIXTextLineInfo
+}
 
 /**
  * Result type for stroke queries
@@ -66,6 +78,9 @@ export class IIJiixQueryManager extends IIAbstractManager
 
   /** Current model version for cache invalidation */
   #modelVersion = 0
+
+  /** Text metadata per stroke ID (pixel-converted, set during sync) */
+  #textMetadata = new Map<string, TBlockTextMetadata>()
 
   constructor(editor: InteractiveInkEditor)
   {
@@ -641,5 +656,62 @@ export class IIJiixQueryManager extends IIAbstractManager
     }
 
     return stats
+  }
+
+  /**
+   * Get pixel-converted text metadata for a stroke
+   */
+  getTextMetadata(strokeId: string): TBlockTextMetadata | undefined
+  {
+    return this.#textMetadata.get(strokeId)
+  }
+
+  /**
+   * Update pixel-converted text metadata for a stroke (called during sync)
+   */
+  updateTextMetadata(stroke: IIStroke, element: TJIIXTextElement): void
+  {
+    const metadata: TBlockTextMetadata = {
+      label: element.label
+    }
+
+    if (element.words && element.words.length > 0) {
+      const firstWord = element.words[0]
+      metadata.word = {
+        label: firstWord.label,
+        bounds: firstWord["bounding-box"]
+          ? new Box(convertBoundingBoxMillimeterToPixel(firstWord["bounding-box"]))
+          : undefined
+      }
+    }
+
+    if (element.chars && element.chars.length > 0) {
+      const firstChar = element.chars[0]
+      metadata.char = {
+        label: firstChar.label,
+        word: firstChar.word,
+        bounds: firstChar["bounding-box"]
+          ? new Box(convertBoundingBoxMillimeterToPixel(firstChar["bounding-box"]))
+          : undefined
+      }
+    }
+
+    if (element.lines && element.lines.length > 0) {
+      const firstLine = element.lines[0]
+      metadata.line = {
+        baseline: convertMillimeterToPixel(firstLine["baseline-y"]),
+        xHeight: convertMillimeterToPixel(firstLine["x-height"])
+      }
+    }
+
+    this.#textMetadata.set(stroke.id, metadata)
+  }
+
+  /**
+   * Clear text metadata for a stroke (called when stroke is deleted)
+   */
+  clearTextMetadata(strokeId: string): void
+  {
+    this.#textMetadata.delete(strokeId)
   }
 }
