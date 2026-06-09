@@ -541,59 +541,69 @@ export class IISelectionManager extends IIAbstractManager
   }
 
   /**
-   * NEW ARCHITECTURE: Select text strokes according to selection level
-   * @param baseStroke - The stroke that was initially selected
-   * @returns Array of strokes that should be selected based on the configured level
+   * Build selected/covered stroke ID sets from JIIX text groups.
+   * Returns null when no JIIX groups exist (fallback to stroke overlap).
    */
-  selectTextStrokes(baseStroke: IIStroke): IIStroke[]
+  protected getTextGroupSets(selectionBox: TBox): { selected: Set<string>, covered: Set<string> } | null
   {
-    const level = this.editor.configuration.textSelectionLevel
-    const strokes: IIStroke[] = []
+    const groups = this.editor.jiix.getTextSelectionGroups(this.editor.configuration.textSelectionLevel)
+    if (groups.length === 0) return null
 
-    if (!baseStroke.jiixBlockId || baseStroke.jiixBlockType !== "Text") {
-      return [baseStroke]
-    }
+    const selected = new Set<string>()
+    const covered = new Set<string>()
 
-    for (const symbol of this.model.symbols) {
-      if (symbol.type !== SymbolType.Stroke) continue
-
-      const stroke = symbol
-
-      switch (level) {
-        case "char":
-          // Select only strokes from same character
-          if (stroke.jiixBlockId === baseStroke.jiixBlockId) {
-            const strokeTextMeta = this.editor.jiix.getTextMetadata(stroke.id)
-            const baseTextMeta = this.editor.jiix.getTextMetadata(baseStroke.id)
-            if (strokeTextMeta?.char?.label === baseTextMeta?.char?.label &&
-                strokeTextMeta?.char?.word === baseTextMeta?.char?.word) {
-              strokes.push(stroke)
-            }
-          }
-          break
-
-        case "word":
-          // Select strokes from same word
-          if (stroke.jiixBlockId === baseStroke.jiixBlockId) {
-            const strokeTextMeta = this.editor.jiix.getTextMetadata(stroke.id)
-            const baseTextMeta = this.editor.jiix.getTextMetadata(baseStroke.id)
-            if (strokeTextMeta?.word?.label === baseTextMeta?.word?.label) {
-              strokes.push(stroke)
-            }
-          }
-          break
-
-        case "block":
-        default:
-          // Select all strokes from block
-          if (stroke.jiixBlockId === baseStroke.jiixBlockId) {
-            strokes.push(stroke)
-          }
-          break
+    for (const group of groups) {
+      group.strokeIds.forEach(id => covered.add(id))
+      if (Box.overlaps(group.bounds, selectionBox)) {
+        group.strokeIds.forEach(id => selected.add(id))
       }
     }
 
-    return strokes
+    return { selected, covered }
+  }
+
+  /**
+   * Build selected/covered stroke ID sets from JIIX math groups.
+   * Returns null when no JIIX groups exist (fallback to stroke overlap).
+   */
+  protected getMathGroupSets(selectionBox: TBox): { selected: Set<string>, covered: Set<string> } | null
+  {
+    const groups = this.editor.jiix.getMathSelectionGroups(this.editor.configuration.mathSelectionLevel)
+    if (groups.length === 0) return null
+
+    const selected = new Set<string>()
+    const covered = new Set<string>()
+
+    for (const group of groups) {
+      group.strokeIds.forEach(id => covered.add(id))
+      if (Box.overlaps(group.bounds, selectionBox)) {
+        group.strokeIds.forEach(id => selected.add(id))
+      }
+    }
+
+    return { selected, covered }
+  }
+
+  /**
+   * Build selected/covered stroke ID sets from JIIX shape (Node/Edge) groups.
+   * Returns null when level is "stroke" or no groups exist (fallback to stroke overlap).
+   */
+  protected getShapeGroupSets(selectionBox: TBox): { selected: Set<string>, covered: Set<string> } | null
+  {
+    const groups = this.editor.jiix.getShapeSelectionGroups(this.editor.configuration.shapeSelectionLevel)
+    if (groups.length === 0) return null
+
+    const selected = new Set<string>()
+    const covered = new Set<string>()
+
+    for (const group of groups) {
+      group.strokeIds.forEach(id => covered.add(id))
+      if (Box.overlaps(group.bounds, selectionBox)) {
+        group.strokeIds.forEach(id => selected.add(id))
+      }
+    }
+
+    return { selected, covered }
   }
 
   start(info: PointerInfo): void
@@ -610,49 +620,95 @@ export class IISelectionManager extends IIAbstractManager
       throw new Error("You need to call startSelectionByBox before")
     }
     this.endSelectionPoint = info.pointer
+    const selectionBox = this.selectionBox!
     const updatedSymbols: TIISymbol[] = []
 
-    // First pass: basic selection by overlaps
-    const textStrokesToExpand: IIStroke[] = []
+    const textSets = this.getTextGroupSets(selectionBox)
+    const mathSets = this.getMathGroupSets(selectionBox)
+    const shapeSets = this.getShapeGroupSets(selectionBox)
+
     this.model.symbols.forEach(s =>
     {
-      const shouldBeSelected = s.overlaps(this.selectionBox!)
+      let shouldBeSelected: boolean
+
+      if (s.type === SymbolType.Stroke) {
+        const stroke = s as IIStroke
+        if (stroke.jiixBlockType === "Text") {
+          if (textSets && textSets.covered.has(stroke.id)) {
+            shouldBeSelected = textSets.selected.has(stroke.id)
+          } else {
+            shouldBeSelected = s.overlaps(selectionBox)
+          }
+        }
+        else if (stroke.jiixBlockType === "Math") {
+          if (mathSets && mathSets.covered.has(stroke.id)) {
+            shouldBeSelected = mathSets.selected.has(stroke.id)
+          } else {
+            shouldBeSelected = s.overlaps(selectionBox)
+          }
+        }
+        else if (stroke.jiixBlockType === "Node" || stroke.jiixBlockType === "Edge") {
+          if (shapeSets && shapeSets.covered.has(stroke.id)) {
+            shouldBeSelected = shapeSets.selected.has(stroke.id)
+          } else {
+            shouldBeSelected = s.overlaps(selectionBox)
+          }
+        }
+        else {
+          shouldBeSelected = s.overlaps(selectionBox)
+        }
+      }
+      else {
+        shouldBeSelected = s.overlaps(selectionBox)
+      }
 
       if (s.selected !== shouldBeSelected) {
         s.selected = shouldBeSelected
         updatedSymbols.push(s)
         this.renderer.drawSymbol(s)
-
-        // Track text strokes that were just selected for level-based expansion
-        if (shouldBeSelected && s.type === SymbolType.Stroke) {
-          const stroke = s as IIStroke
-          if (stroke.jiixBlockId && stroke.jiixBlockType === "Text") {
-            textStrokesToExpand.push(stroke)
-          }
-        }
       }
     })
 
-    // Second pass: expand selection for text strokes based on configured level
-    const additionalStrokes = new Set<IIStroke>()
-    textStrokesToExpand.forEach(baseStroke => {
-      const relatedStrokes = this.selectTextStrokes(baseStroke)
-      relatedStrokes.forEach(stroke => {
-        if (!stroke.selected) {
-          additionalStrokes.add(stroke)
-        }
-      })
-    })
-
-    // Mark additional strokes as selected
-    additionalStrokes.forEach(stroke => {
-      stroke.selected = true
-      updatedSymbols.push(stroke)
-      this.renderer.drawSymbol(stroke)
-    })
-
-    this.drawSelectingRect(this.selectionBox!)
+    this.drawSelectingRect(selectionBox)
     return updatedSymbols
+  }
+
+  /**
+   * Find the JIIX block ID of the single fully-selected math block, if any.
+   * In "block" mode: a block qualifies if any of its strokes are selected.
+   * In "operand" mode: a block qualifies only if ALL its strokes are selected.
+   * Returns undefined when zero or more than one block qualifies.
+   */
+  getSelectedMathJiixBlockId(): string | undefined
+  {
+    const mathLevel = this.editor.configuration.mathSelectionLevel
+    const selectedMathStrokes = this.model.symbolsSelected.filter(isRecognizedMath) as IIStroke[]
+
+    if (selectedMathStrokes.length === 0) return undefined
+
+    const blockGroups = new Map<string, IIStroke[]>()
+    selectedMathStrokes.forEach(stroke => {
+      if (!stroke.jiixBlockId) return
+      const group = blockGroups.get(stroke.jiixBlockId) ?? []
+      group.push(stroke)
+      blockGroups.set(stroke.jiixBlockId, group)
+    })
+
+    const qualifyingBlockIds: string[] = []
+    for (const [jiixBlockId, strokes] of blockGroups) {
+      if (mathLevel === "block") {
+        qualifyingBlockIds.push(jiixBlockId)
+      }
+      else {
+        const allBlockStrokeIds = this.editor.jiix.getStrokesForElement(jiixBlockId)
+        const selectedIds = new Set(strokes.map(s => s.id))
+        if (allBlockStrokeIds.length > 0 && allBlockStrokeIds.every(id => selectedIds.has(id))) {
+          qualifyingBlockIds.push(jiixBlockId)
+        }
+      }
+    }
+
+    return qualifyingBlockIds.length === 1 ? qualifyingBlockIds[0] : undefined
   }
 
   end(info: PointerInfo): TIISymbol[]
@@ -666,10 +722,13 @@ export class IISelectionManager extends IIAbstractManager
     this.editor.menu.style.update()
 
     // Notify math interactions system of selection changes
-    const selectedMathIds = this.model.symbolsSelected
-      .filter(isRecognizedMath)
-      .map(s => s.id)
-    this.editor.math.interactions.onSymbolSelect(selectedMathIds)
+    const selectedMathJiixBlockId = this.getSelectedMathJiixBlockId()
+    if (selectedMathJiixBlockId) {
+      this.editor.math.interactions.onMathBlockSelected(selectedMathJiixBlockId)
+    }
+    else {
+      this.editor.math.interactions.clearMathBlockSelection()
+    }
 
     return updatedSymbols
   }
