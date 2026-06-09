@@ -28,6 +28,8 @@ export class IIMathDependencySubManager extends IIAbstractManager
 {
   protected managerName = "IIMathDependencySubManager"
 
+  #dependencies: Map<string, MathDependencies> = new Map()
+
   constructor(editor: InteractiveInkEditor)
   {
     super(editor)
@@ -51,15 +53,15 @@ export class IIMathDependencySubManager extends IIAbstractManager
   {
     this.logger.info("recalculateDependentBlocks", { sourceBlockId })
 
-    const computation = this.editor.math.computation.getMathBlock(sourceBlockId)
-    if (!computation?.dependentBlocks || computation.dependentBlocks.length === 0) {
+    const deps = this.#dependencies.get(sourceBlockId)
+    if (!deps?.dependentBlocks || deps.dependentBlocks.length === 0) {
       this.logger.debug("recalculateDependentBlocks", "No dependent blocks to recalculate")
       return
     }
 
-    this.logger.info("recalculateDependentBlocks", `Found ${computation.dependentBlocks.length} dependent blocks`)
+    this.logger.info("recalculateDependentBlocks", `Found ${deps.dependentBlocks.length} dependent blocks`)
 
-    for (const dependentBlockId of computation.dependentBlocks) {
+    for (const dependentBlockId of deps.dependentBlocks) {
       try {
         this.logger.info("recalculateDependentBlocks", `Computing numerical result for ${dependentBlockId}`)
         await this.editor.computeMathNumericalResult(dependentBlockId, this.editor.drawComputationResult)
@@ -79,16 +81,7 @@ export class IIMathDependencySubManager extends IIAbstractManager
    */
   getMathDependencies(blockId: string): MathDependencies | null
   {
-    const computation = this.editor.math.computation.getMathBlock(blockId)
-    if (!computation) {
-      this.logger.warn("getMathDependencies", `No computation data found for blockId: ${blockId}`)
-      return null
-    }
-
-    return {
-      variableSources: computation.variableSources,
-      dependentBlocks: computation.dependentBlocks
-    }
+    return this.#dependencies.get(blockId) ?? null
   }
 
   /**
@@ -107,9 +100,9 @@ export class IIMathDependencySubManager extends IIAbstractManager
       if (!variables || variables.length === 0) {
         this.logger.debug("enrichMathDependencies", `No variables in "${blockLabel}"`)
 
-        const computation = this.editor.math.computation.getMathBlock(jiixBlockId)
-        if (computation?.variableSources && Object.keys(computation.variableSources).length > 0) {
-          this.editor.math.computation.updateDependencies(jiixBlockId, computation.dependentBlocks, {})
+        const existing = this.#dependencies.get(jiixBlockId)
+        if (existing?.variableSources && Object.keys(existing.variableSources).length > 0) {
+          this.#dependencies.set(jiixBlockId, { ...existing, variableSources: {} })
         }
         return
       }
@@ -122,15 +115,14 @@ export class IIMathDependencySubManager extends IIAbstractManager
         if (variable.sourceType === "BLOCK" && variable.sourceId) {
           newVariableSources[variable.name] = variable.sourceId
 
-          const sourceComputation = this.editor.math.computation.getMathBlock(variable.sourceId)
-          const currentDependentBlocks = sourceComputation?.dependentBlocks || []
+          const sourceDeps = this.#dependencies.get(variable.sourceId) ?? {}
+          const currentDependentBlocks = sourceDeps.dependentBlocks ?? []
 
           if (!currentDependentBlocks.includes(jiixBlockId)) {
-            this.editor.math.computation.updateDependencies(
-              variable.sourceId,
-              [...currentDependentBlocks, jiixBlockId],
-              sourceComputation?.variableSources
-            )
+            this.#dependencies.set(variable.sourceId, {
+              ...sourceDeps,
+              dependentBlocks: [...currentDependentBlocks, jiixBlockId]
+            })
             this.logger.info("enrichMathDependencies", `Added "${blockLabel}" to dependentBlocks of source block ${variable.sourceId}`)
           }
         } else {
@@ -138,12 +130,11 @@ export class IIMathDependencySubManager extends IIAbstractManager
         }
       }
 
-      const computation = this.editor.math.computation.getMathBlock(jiixBlockId)
-      this.editor.math.computation.updateDependencies(
-        jiixBlockId,
-        computation?.dependentBlocks,
-        newVariableSources
-      )
+      const existing = this.#dependencies.get(jiixBlockId) ?? {}
+      this.#dependencies.set(jiixBlockId, {
+        ...existing,
+        variableSources: newVariableSources
+      })
 
       this.logger.info("enrichMathDependencies", `Enriched "${blockLabel}" with variableSources:`, newVariableSources)
       this.editor.event.emitChanged(this.editor.history.context)
@@ -161,18 +152,25 @@ export class IIMathDependencySubManager extends IIAbstractManager
   {
     const existingJiixIds = new Set(jiixBlockIds)
 
+    // Remove entries for blocks that no longer exist
+    for (const [id] of this.#dependencies) {
+      if (!existingJiixIds.has(id)) {
+        this.#dependencies.delete(id)
+      }
+    }
+
     // Pass 1: remove references to deleted blocks
     for (const jiixBlockId of jiixBlockIds) {
       let needsUpdate = false
-      const computation = this.editor.math.computation.getMathBlock(jiixBlockId)
-      if (!computation) continue
+      const deps = this.#dependencies.get(jiixBlockId)
+      if (!deps) continue
 
-      let updatedDependentBlocks = computation.dependentBlocks
-      let updatedVariableSources = computation.variableSources
+      let updatedDependentBlocks = deps.dependentBlocks
+      let updatedVariableSources = deps.variableSources
 
-      if (computation.dependentBlocks && computation.dependentBlocks.length > 0) {
-        const filtered = computation.dependentBlocks.filter(id => existingJiixIds.has(id))
-        const removedCount = computation.dependentBlocks.length - filtered.length
+      if (deps.dependentBlocks && deps.dependentBlocks.length > 0) {
+        const filtered = deps.dependentBlocks.filter(id => existingJiixIds.has(id))
+        const removedCount = deps.dependentBlocks.length - filtered.length
         if (removedCount > 0) {
           this.logger.info("cleanupMathDependencies", `Removed ${removedCount} deleted dependent(s) from block ${jiixBlockId}`)
           updatedDependentBlocks = filtered
@@ -180,12 +178,12 @@ export class IIMathDependencySubManager extends IIAbstractManager
         }
       }
 
-      if (computation.variableSources && Object.keys(computation.variableSources).length > 0) {
-        const stale = Object.entries(computation.variableSources)
+      if (deps.variableSources && Object.keys(deps.variableSources).length > 0) {
+        const stale = Object.entries(deps.variableSources)
           .filter(([, sourceId]) => !existingJiixIds.has(sourceId))
           .map(([varName]) => varName)
         if (stale.length > 0) {
-          updatedVariableSources = { ...computation.variableSources }
+          updatedVariableSources = { ...deps.variableSources }
           stale.forEach(varName => delete updatedVariableSources![varName])
           this.logger.info("cleanupMathDependencies", `Removed ${stale.length} stale variable source(s) from block ${jiixBlockId}`)
           needsUpdate = true
@@ -193,25 +191,25 @@ export class IIMathDependencySubManager extends IIAbstractManager
       }
 
       if (needsUpdate) {
-        this.editor.math.computation.updateDependencies(jiixBlockId, updatedDependentBlocks, updatedVariableSources)
+        this.#dependencies.set(jiixBlockId, { ...deps, dependentBlocks: updatedDependentBlocks, variableSources: updatedVariableSources })
       }
     }
 
     // Pass 2: remove from dependentBlocks any block that no longer references this one as a source
     const blockToSources = new Map<string, Set<string>>()
     for (const jiixBlockId of jiixBlockIds) {
-      const computation = this.editor.math.computation.getMathBlock(jiixBlockId)
+      const deps = this.#dependencies.get(jiixBlockId)
       blockToSources.set(
         jiixBlockId,
-        computation?.variableSources ? new Set(Object.values(computation.variableSources)) : new Set()
+        deps?.variableSources ? new Set(Object.values(deps.variableSources)) : new Set()
       )
     }
 
     for (const jiixBlockId of jiixBlockIds) {
-      const computation = this.editor.math.computation.getMathBlock(jiixBlockId)
-      if (!computation?.dependentBlocks || computation.dependentBlocks.length === 0) continue
+      const deps = this.#dependencies.get(jiixBlockId)
+      if (!deps?.dependentBlocks || deps.dependentBlocks.length === 0) continue
 
-      const filtered = computation.dependentBlocks.filter(depId => {
+      const filtered = deps.dependentBlocks.filter(depId => {
         const sources = blockToSources.get(depId)
         if (!sources) {
           this.logger.warn("cleanupMathDependencies", `Dependent block "${depId}" not in blockToSources, keeping`)
@@ -220,11 +218,21 @@ export class IIMathDependencySubManager extends IIAbstractManager
         return sources.has(jiixBlockId)
       })
 
-      const removedCount = computation.dependentBlocks.length - filtered.length
+      const removedCount = deps.dependentBlocks.length - filtered.length
       if (removedCount > 0) {
         this.logger.info("cleanupMathDependencies", `Removed ${removedCount} inconsistent dependent(s) from block ${jiixBlockId}`)
-        this.editor.math.computation.updateDependencies(jiixBlockId, filtered, computation.variableSources)
+        this.#dependencies.set(jiixBlockId, { ...deps, dependentBlocks: filtered })
       }
     }
+  }
+
+  clear(): void
+  {
+    this.#dependencies.clear()
+  }
+
+  protected onDestroy(): void
+  {
+    this.clear()
   }
 }
