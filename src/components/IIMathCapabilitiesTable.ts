@@ -63,7 +63,7 @@ export class IIMathCapabilitiesTable {
         canCompute = actions?.includes("numerical-computation")
         canEvaluate = evaluables?.length ? true : false
       } catch (error) {
-        console.error("Error fetching capabilities:", error)
+        console.error("Error fetching capabilities for blockId:", jiixBlockId, error)
       }
     }
 

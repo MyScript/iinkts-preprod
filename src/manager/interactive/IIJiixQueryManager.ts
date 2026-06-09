@@ -59,6 +59,8 @@ export type TJiixIndex = {
   strokeToContext: Map<string, TStrokeQueryResult["context"]>
   /** Map element ID -> all stroke IDs */
   elementToStrokes: Map<string, string[]>
+  /** Map element ID -> element (for label lookup without needing model.exports) */
+  elementById: Map<string, TJIIXElement>
   /** Cache version for invalidation */
   version: number
 }
@@ -101,6 +103,7 @@ export class IIJiixQueryManager extends IIAbstractManager
       strokeToLabel: new Map(),
       strokeToContext: new Map(),
       elementToStrokes: new Map(),
+      elementById: new Map(),
       version: this.#modelVersion
     }
 
@@ -141,6 +144,9 @@ export class IIJiixQueryManager extends IIAbstractManager
 
     if (elementStrokes.length > 0 && element.id) {
       index.elementToStrokes.set(element.id, elementStrokes)
+    }
+    if (element.id) {
+      index.elementById.set(element.id, element)
     }
   }
 
@@ -602,24 +608,20 @@ export class IIJiixQueryManager extends IIAbstractManager
   {
     this.ensureIndexValid()
 
-    const jiixElement = this.model.exports?.["application/vnd.myscript.jiix"]?.elements?.find(
-      el => el.id === jiixBlockId
-    )
+    const jiixElement = this.#index?.elementById.get(jiixBlockId)
 
     if (!jiixElement) {
       return undefined
     }
 
-    // Text and Math elements have label properties
     if (jiixElement.type === JIIXELementType.Text) {
-      return (jiixElement as TJIIXTextElement).label
+      return jiixElement.label
     }
 
     if (jiixElement.type === JIIXELementType.Math) {
-      return (jiixElement as TJIIXMathElement).label
+      return jiixElement.label
     }
 
-    // For Node and Edge elements, return the element ID as label
     return jiixElement.id
   }
 
