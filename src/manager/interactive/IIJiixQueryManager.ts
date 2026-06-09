@@ -314,25 +314,39 @@ export class IIJiixQueryManager extends IIAbstractManager
   }
 
   /**
-   * Ensure index is up to date
+   * Ensure index is up to date.
+   * When model.exports is absent (cleared by updateSymbol etc.) but a valid index exists,
+   * preserve it rather than overwriting with an empty rebuild.
    */
   protected ensureIndexValid(): void
   {
     const currentVersion = this.model.modificationDate
 
     if (!this.#index || this.#modelVersion !== currentVersion) {
+      if (!this.model.exports?.["application/vnd.myscript.jiix"]?.elements && this.#index) {
+        // Exports cleared transiently — keep existing index, advance version marker
+        this.#modelVersion = currentVersion
+        return
+      }
       this.#modelVersion = currentVersion
       this.buildIndex()
     }
   }
 
   /**
-   * Invalidate the index (called when JIIX changes)
+   * Invalidate and immediately rebuild the index from current exports.
+   * Called after mergeExport so the rebuild happens while exports are still set,
+   * before any subsequent updateSymbol calls clear them.
    */
   invalidateIndex(): void
   {
     this.logger.debug("invalidateIndex", "Invalidating JIIX index")
     this.#index = null
+    const jiixExport = this.model.exports?.["application/vnd.myscript.jiix"]
+    if (jiixExport?.elements) {
+      this.#modelVersion = this.model.modificationDate
+      this.buildIndex()
+    }
   }
 
   /**
