@@ -7,7 +7,7 @@ import {
   TJIIXEdgeElement,
   TJIIXMathExpression,
   TJIIXStrokeItem,
-  JIIXELementType
+  JIIXElementType
 } from "@/model"
 import { Box, IIStroke, TBox, TStrokeJIIXTextWordInfo, TStrokeJIIXTextCharInfo, TStrokeJIIXTextLineInfo } from "@/symbol"
 import { convertMillimeterToPixel, convertBoundingBoxMillimeterToPixel } from "@/utils"
@@ -131,14 +131,14 @@ export class IIJiixQueryManager extends IIAbstractManager
     const elementStrokes: string[] = []
 
     switch (element.type) {
-      case JIIXELementType.Text:
+      case JIIXElementType.Text:
         this.indexTextElement(element as TJIIXTextElement, index, elementStrokes)
         break
-      case JIIXELementType.Math:
+      case JIIXElementType.Math:
         this.indexMathElement(element as TJIIXMathElement, index, elementStrokes)
         break
-      case JIIXELementType.Node:
-      case JIIXELementType.Edge:
+      case JIIXElementType.Node:
+      case JIIXElementType.Edge:
         this.indexNodeOrEdgeElement(element, index, elementStrokes)
         break
     }
@@ -458,7 +458,7 @@ export class IIJiixQueryManager extends IIAbstractManager
       el => el.id === elementId
     )
 
-    if (!jiixElement || jiixElement.type !== JIIXELementType.Text) {
+    if (!jiixElement || jiixElement.type !== JIIXElementType.Text) {
       return []
     }
 
@@ -503,7 +503,7 @@ export class IIJiixQueryManager extends IIAbstractManager
       el => el.id === elementId
     )
 
-    if (!jiixElement || jiixElement.type !== JIIXELementType.Text) {
+    if (!jiixElement || jiixElement.type !== JIIXElementType.Text) {
       return []
     }
 
@@ -615,11 +615,11 @@ export class IIJiixQueryManager extends IIAbstractManager
       return undefined
     }
 
-    if (jiixElement.type === JIIXELementType.Text) {
+    if (jiixElement.type === JIIXElementType.Text) {
       return jiixElement.label
     }
 
-    if (jiixElement.type === JIIXELementType.Math) {
+    if (jiixElement.type === JIIXElementType.Math) {
       return jiixElement.label
     }
 
@@ -755,7 +755,7 @@ export class IIJiixQueryManager extends IIAbstractManager
     const groups: Array<{ strokeIds: string[], bounds: TBox }> = []
 
     for (const element of jiixExport.elements) {
-      if (element.type !== JIIXELementType.Text) continue
+      if (element.type !== JIIXElementType.Text) continue
       const textEl = element as TJIIXTextElement
 
       if (level === "element") {
@@ -806,7 +806,7 @@ export class IIJiixQueryManager extends IIAbstractManager
     const groups: Array<{ strokeIds: string[], bounds: TBox }> = []
 
     for (const element of jiixExport.elements) {
-      if (element.type !== JIIXELementType.Math) continue
+      if (element.type !== JIIXElementType.Math) continue
       const mathEl = element as TJIIXMathElement
 
       if (level === "element") {
@@ -851,7 +851,7 @@ export class IIJiixQueryManager extends IIAbstractManager
     const groups: Array<{ strokeIds: string[], bounds: TBox }> = []
 
     for (const element of jiixExport.elements) {
-      if (element.type !== JIIXELementType.Node && element.type !== JIIXELementType.Edge) continue
+      if (element.type !== JIIXElementType.Node && element.type !== JIIXElementType.Edge) continue
 
       if (element["bounding-box"] && element.id) {
         const strokeIds = this.getStrokesForElement(element.id)

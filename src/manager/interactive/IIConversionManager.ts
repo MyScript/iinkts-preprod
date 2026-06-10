@@ -13,7 +13,7 @@ import
   TJIIXNodeElement,
   TJIIXNodeEllipse,
   JIIXNodeKind,
-  TJIIXNodeParrallelogram,
+  TJIIXNodeParallelogram,
   TJIIXNodePolygon,
   TJIIXNodeRectangle,
   TJIIXNodeRhombus,
@@ -21,7 +21,7 @@ import
   TJIIXTextElement,
   TJIIXWord,
   TJIIXMathElement,
-  JIIXELementType
+  JIIXElementType
 } from "@/model"
 import
 {
@@ -320,7 +320,7 @@ export class IIConversionManager extends IIAbstractManager
     return new IIShapePolygon(points, strokes[0]?.style)
   }
 
-  buildParallelogram(polygon: TJIIXNodeParrallelogram, strokes: IIStroke[]): IIShapePolygon
+  buildParallelogram(polygon: TJIIXNodeParallelogram, strokes: IIStroke[]): IIShapePolygon
   {
     const points: TPoint[] = []
     for (let i = 0; i < polygon.points.length; i += 2) {
@@ -767,7 +767,7 @@ export class IIConversionManager extends IIAbstractManager
           }
 
           const mathElement: TJIIXMathElement = {
-            type: JIIXELementType.Math,
+            type: JIIXElementType.Math,
             id: blockId,
             label: label,
             expressions: jiixMathElement.expressions,
@@ -803,28 +803,28 @@ export class IIConversionManager extends IIAbstractManager
         let conversionResults: { symbol: TIISymbol, strokes: IIStroke[] }[] = []
 
         switch (el.type) {
-          case JIIXELementType.Text: {
+          case JIIXElementType.Text: {
             const conversion = this.convertText(el, strokesToConvert, onlyText)
             if (conversion) {
               conversionResults = conversion
             }
             break
           }
-          case JIIXELementType.Math: {
+          case JIIXElementType.Math: {
             const conversion = this.convertMath(el, strokesToConvert)
             if (conversion) {
               conversionResults = [conversion]
             }
             break
           }
-          case JIIXELementType.Node: {
+          case JIIXElementType.Node: {
             const conversion = this.convertNode(el, strokesToConvert)
             if (conversion) {
               conversionResults = [conversion]
             }
             break
           }
-          case JIIXELementType.Edge: {
+          case JIIXElementType.Edge: {
             const conversion = this.convertEdge(el, strokesToConvert)
             if (conversion) {
               conversionResults = [conversion]

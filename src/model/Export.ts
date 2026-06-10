@@ -48,7 +48,7 @@ export enum ExportType
  * @group Exports
  * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/jiix  Element type}
  */
-export enum JIIXELementType
+export enum JIIXElementType
 {
   Text = "Text",
   Math = "Math",
@@ -86,7 +86,7 @@ export enum JIIXEdgeKind
  * @group Exports
  * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/jiix/#text-interpretation | Text Element }
  */
-export type TJIIXTextElement = TJIIXElementBase<JIIXELementType.Text> & {
+export type TJIIXTextElement = TJIIXElementBase<JIIXElementType.Text> & {
   id: string
   "bounding-box"?: TBox
   label: string
@@ -98,7 +98,7 @@ export type TJIIXTextElement = TJIIXElementBase<JIIXELementType.Text> & {
 /**
  * @group Exports
  */
-export type TJIIXNodeElementBase<K = string> = TJIIXElementBase<JIIXELementType.Node> & {
+export type TJIIXNodeElementBase<K = string> = TJIIXElementBase<JIIXElementType.Node> & {
   id: string
   kind: K
 }
@@ -147,7 +147,7 @@ export type TJIIXNodeTriangle = TJIIXNodeElementBase<JIIXNodeKind.Triangle> & {
 /**
  * @group Exports
  */
-export type TJIIXNodeParrallelogram = TJIIXNodeElementBase<JIIXNodeKind.Parallelogram> & {
+export type TJIIXNodeParallelogram = TJIIXNodeElementBase<JIIXNodeKind.Parallelogram> & {
   id: string
   points: number[]
 }
@@ -176,14 +176,14 @@ export type TJIIXNodeElement =
   TJIIXNodeEllipse |
   TJIIXNodeRectangle |
   TJIIXNodeTriangle |
-  TJIIXNodeParrallelogram |
+  TJIIXNodeParallelogram |
   TJIIXNodePolygon |
   TJIIXNodeRhombus
 
 /**
  * @group Exports
  */
-export type TJIIXEdgeElementBase<K = string> = TJIIXElementBase<JIIXELementType.Edge> & {
+export type TJIIXEdgeElementBase<K = string> = TJIIXElementBase<JIIXElementType.Edge> & {
   kind: K
 }
 

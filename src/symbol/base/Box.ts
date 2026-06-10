@@ -21,14 +21,14 @@ export class Box implements TBox
   width: number
   height: number
 
-  constructor(boundindBox: TBox)
+  constructor(boundingBox: TBox)
   {
-    if (boundindBox.width < 0) throw new Error("width must be positive")
-    if (boundindBox.height < 0) throw new Error("height must be positive")
-    this.height = boundindBox.height
-    this.width = boundindBox.width
-    this.x = boundindBox.x
-    this.y = boundindBox.y
+    if (boundingBox.width < 0) throw new Error("width must be positive")
+    if (boundingBox.height < 0) throw new Error("height must be positive")
+    this.height = boundingBox.height
+    this.width = boundingBox.width
+    this.x = boundingBox.x
+    this.y = boundingBox.y
   }
 
   static createFromBoxes(boxes: TBox[]): Box
