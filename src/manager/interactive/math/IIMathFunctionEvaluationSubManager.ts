@@ -47,9 +47,4 @@ export class IIMathFunctionEvaluationSubManager extends IIAbstractManager
     this.logger.info("getEvaluables", { jiixBlockId })
     return this.editor.recognizer.getEvaluables(jiixBlockId)
   }
-
-  protected onDestroy(): void
-  {
-    // no state to clear
-  }
 }
