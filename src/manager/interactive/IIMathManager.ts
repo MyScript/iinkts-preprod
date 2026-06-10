@@ -5,6 +5,7 @@ import {
   IIMathFunctionEvaluationSubManager,
   IIMathOverlaySubManager,
   IIMathVariableSubManager,
+  MathDependencies,
   TMathBlockComputation,
   TMathInteractionConfig,
   TMathOverlayConfig,
@@ -135,7 +136,7 @@ export class IIMathManager extends IIAbstractManager
     return this.#variables.getStoredVariableValues(jiixBlockId)
   }
 
-  getMathDependencies(jiixBlockId: string): import("./math").MathDependencies | null
+  getDependencies(jiixBlockId: string): MathDependencies | null
   {
     return this.#variables.getDependencies(jiixBlockId)
   }
@@ -257,11 +258,6 @@ export class IIMathManager extends IIAbstractManager
   clearAllOverlays(): void
   {
     this.#overlays.clearAll()
-  }
-
-  updateOverlaysForSymbol(mathBlock: TJIIXMathElement): void
-  {
-    this.#overlays.updateOverlaysForSymbol(mathBlock)
   }
 
   getOverlaysConfig(): TMathOverlayConfig

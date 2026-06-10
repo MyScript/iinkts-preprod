@@ -36,6 +36,7 @@ import
   IISynchronizerManager,
   IIMathManager,
   IIJiixQueryManager,
+  MathDependencies,
 } from "@/manager"
 import { IIHistoryManager, TIIHistoryBackendChanges, TIIHistoryChanges, THistoryContext } from "@/history"
 import { PartialDeep, mergeDeep } from "@/utils"
@@ -1455,6 +1456,17 @@ export class InteractiveInkEditor extends AbstractEditor
   {
     try {
       return await this.math.setVariables(jiixBlockId, variableValues)
+    }
+    catch (error) {
+      this.manageError(error as Error)
+      throw error
+    }
+  }
+
+  async getMathDependencies(blockId: string): Promise<MathDependencies | null>
+  {
+    try {
+      return await this.math.getDependencies(blockId)
     }
     catch (error) {
       this.manageError(error as Error)

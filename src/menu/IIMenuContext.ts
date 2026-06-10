@@ -85,8 +85,7 @@ export class IIMenuContext
         ])
 
         const canEditVariables = Object.keys(variables).length > 0
-        const solverOutputs = this.editor.math.getStoredSolverOutputs(mathSymbol.jiixBlockId!)
-        const canCompute = actions?.includes("numerical-computation") && (!solverOutputs || solverOutputs.length === 0)
+        const canCompute = actions?.includes("numerical-computation")
         const canEvaluate = evaluables?.length ? true : false
         mathMenuInstance.setMenuVisibility(true, { canEditVariables, canCompute, canEvaluate })
       }
