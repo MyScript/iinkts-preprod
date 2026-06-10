@@ -51,15 +51,15 @@ export class IIMathCapabilitiesTable {
     if (jiixBlockId) {
       try {
         const [actions, variables, evaluables] = await Promise.all([
-          this.editor.getAvailableActions(jiixBlockId),
-          this.editor.getVariables(jiixBlockId),
-          this.editor.getEvaluables(jiixBlockId)
+          this.editor.getMathAvailableActions(jiixBlockId),
+          this.editor.getMathVariables(jiixBlockId),
+          this.editor.getMathEvaluables(jiixBlockId)
         ])
 
         canCheckDiagnostic = true // Always available if jiixId exists
         canEditVariables = Object.keys(variables).length > 0
         // Check if numerical computation is available
-        // Note: Could also check if block has solver outputs via editor.math.actions.getStoredSolverOutputs(jiixBlock.id)
+        // Note: Could also check if block has solver outputs via editor.math.computation.getStoredSolverOutputs(jiixBlock.id)
         canCompute = actions?.includes("numerical-computation")
         canEvaluate = evaluables?.length ? true : false
       } catch (error) {

@@ -20,7 +20,7 @@ describe("IIDiagnosticChecker.ts", () =>
     } as any
 
     // Mock getDiagnostic method
-    editor.getDiagnostic = jest.fn().mockImplementation((_id: string, type: string) => {
+    editor.getMathDiagnostic = jest.fn().mockImplementation((_id: string, type: string) => {
       if (type === "numerical-computation") {
         return Promise.resolve("compute_ok")
       }
@@ -66,10 +66,10 @@ describe("IIDiagnosticChecker.ts", () =>
 
       await checker.show()
 
-      expect(editor.getDiagnostic).toHaveBeenCalledWith("block-1", "numerical-computation")
-      expect(editor.getDiagnostic).toHaveBeenCalledWith("block-1", "evaluation")
-      expect(editor.getDiagnostic).toHaveBeenCalledWith("block-2", "numerical-computation")
-      expect(editor.getDiagnostic).toHaveBeenCalledWith("block-2", "evaluation")
+      expect(editor.getMathDiagnostic).toHaveBeenCalledWith("block-1", "numerical-computation")
+      expect(editor.getMathDiagnostic).toHaveBeenCalledWith("block-1", "evaluation")
+      expect(editor.getMathDiagnostic).toHaveBeenCalledWith("block-2", "numerical-computation")
+      expect(editor.getMathDiagnostic).toHaveBeenCalledWith("block-2", "evaluation")
 
       showSpy.mockRestore()
     })
@@ -89,8 +89,8 @@ describe("IIDiagnosticChecker.ts", () =>
       await checker.show()
 
       // Only block-2 should be called
-      expect(editor.getDiagnostic).toHaveBeenCalledWith("block-2", "numerical-computation")
-      expect(editor.getDiagnostic).toHaveBeenCalledWith("block-2", "evaluation")
+      expect(editor.getMathDiagnostic).toHaveBeenCalledWith("block-2", "numerical-computation")
+      expect(editor.getMathDiagnostic).toHaveBeenCalledWith("block-2", "evaluation")
 
       showSpy.mockRestore()
       alertSpy.mockRestore()
@@ -100,8 +100,8 @@ describe("IIDiagnosticChecker.ts", () =>
     {
       const jiixBlockIds = ["block-1"]
 
-      // Mock getDiagnostic to throw error
-      editor.getDiagnostic = jest.fn().mockRejectedValue(new Error("Diagnostic error"))
+      // Mock getMathDiagnostic to throw error
+      editor.getMathDiagnostic = jest.fn().mockRejectedValue(new Error("Diagnostic error"))
 
       const checker = new IIDiagnosticChecker(editor, jiixBlockIds)
 

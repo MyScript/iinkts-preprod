@@ -19,14 +19,14 @@ describe("IIVariableEditor.ts", () =>
       })
     } as any
 
-    // Mock getVariables method
-    editor.getVariables = jest.fn().mockResolvedValue([
+    // Mock getMathVariables method
+    editor.getMathVariables = jest.fn().mockResolvedValue([
       { name: "x", value: 5, sourceType: "UNDEFINED" },
       { name: "y", value: 10, sourceType: "API" }
     ])
 
-    // Mock math.actions.getStoredVariableValues
-    editor.math.actions.getStoredVariableValues = jest.fn().mockReturnValue({ x: 5, y: 10 })
+    // Mock math.getStoredVariableValues
+    editor.math.getStoredVariableValues = jest.fn().mockReturnValue({ x: 5, y: 10 })
 
     // Mock setMathVariables on editor
     editor.setMathVariables = jest.fn().mockResolvedValue(undefined)
@@ -67,8 +67,8 @@ describe("IIVariableEditor.ts", () =>
 
       await variableEditor.show()
 
-      expect(editor.getVariables).toHaveBeenCalledWith("block-1")
-      expect(editor.getVariables).toHaveBeenCalledWith("block-2")
+      expect(editor.getMathVariables).toHaveBeenCalledWith("block-1")
+      expect(editor.getMathVariables).toHaveBeenCalledWith("block-2")
 
       showSpy.mockRestore()
     })
@@ -85,8 +85,8 @@ describe("IIVariableEditor.ts", () =>
       await variableEditor.show()
 
       // Only block-2 should be called
-      expect(editor.getVariables).toHaveBeenCalledWith("block-2")
-      expect(editor.getVariables).toHaveBeenCalledTimes(1)
+      expect(editor.getMathVariables).toHaveBeenCalledWith("block-2")
+      expect(editor.getMathVariables).toHaveBeenCalledTimes(1)
 
       showSpy.mockRestore()
     })
@@ -95,8 +95,8 @@ describe("IIVariableEditor.ts", () =>
     {
       const jiixBlockIds = ["block-1"]
 
-      // Mock getVariables to throw error
-      editor.getVariables = jest.fn().mockRejectedValue(new Error("Variables error"))
+      // Mock getMathVariables to throw error
+      editor.getMathVariables = jest.fn().mockRejectedValue(new Error("Variables error"))
 
       const variableEditor = new IIVariableEditor(editor, jiixBlockIds)
 
@@ -113,8 +113,8 @@ describe("IIVariableEditor.ts", () =>
     {
       const jiixBlockIds = ["block-2"]
 
-      // Mock getVariables to return empty array
-      editor.getVariables = jest.fn().mockResolvedValue([])
+      // Mock getMathVariables to return empty array
+      editor.getMathVariables = jest.fn().mockResolvedValue([])
 
       const variableEditor = new IIVariableEditor(editor, jiixBlockIds)
 
@@ -132,7 +132,7 @@ describe("IIVariableEditor.ts", () =>
       const jiixBlockIds = ["block-1", "block-2"]
 
       let callCount = 0
-      editor.getVariables = jest.fn().mockImplementation(() => {
+      editor.getMathVariables = jest.fn().mockImplementation(() => {
         callCount++
         if (callCount === 1) {
           return Promise.resolve([{ name: "x", value: 5, sourceType: "UNDEFINED" }])

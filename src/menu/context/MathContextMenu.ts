@@ -73,7 +73,7 @@ export class MathContextMenu extends SubMenuItem
                 return
               }
 
-              const variables = await editor.getVariables(mathSymbol.jiixBlockId)
+              const variables = await editor.getMathVariables(mathSymbol.jiixBlockId)
               this.logger.info("Variables extracted:", variables)
 
               if (variables.length === 0) {
@@ -84,7 +84,7 @@ export class MathContextMenu extends SubMenuItem
               // Create modal fields from variables
               const fields: ModalField[] = variables.map(variable => {
                 // Get current value from computation manager
-                const storedValues = editor.math.actions.getStoredVariableValues(mathSymbol.jiixBlockId!)
+                const storedValues = editor.math.getStoredVariableValues(mathSymbol.jiixBlockId!)
                 return {
                   id: `var-${variable.name}`,
                   label: `${variable.name}:`,

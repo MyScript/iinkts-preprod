@@ -19,8 +19,8 @@ describe("IIFunctionEvaluator.ts", () =>
       })
     } as any
 
-    // Mock getEvaluables method
-    editor.getEvaluables = jest.fn().mockResolvedValue([
+    // Mock getMathEvaluables method
+    editor.getMathEvaluables = jest.fn().mockResolvedValue([
       { inputName: "x", outputName: "f(x)" }
     ])
 
@@ -65,8 +65,8 @@ describe("IIFunctionEvaluator.ts", () =>
 
       await evaluator.show()
 
-      expect(editor.getEvaluables).toHaveBeenCalledWith("block-1")
-      expect(editor.getEvaluables).toHaveBeenCalledWith("block-2")
+      expect(editor.getMathEvaluables).toHaveBeenCalledWith("block-1")
+      expect(editor.getMathEvaluables).toHaveBeenCalledWith("block-2")
 
       showSpy.mockRestore()
     })
@@ -83,8 +83,8 @@ describe("IIFunctionEvaluator.ts", () =>
       await evaluator.show()
 
       // Only block-2 should be called
-      expect(editor.getEvaluables).toHaveBeenCalledWith("block-2")
-      expect(editor.getEvaluables).toHaveBeenCalledTimes(1)
+      expect(editor.getMathEvaluables).toHaveBeenCalledWith("block-2")
+      expect(editor.getMathEvaluables).toHaveBeenCalledTimes(1)
 
       showSpy.mockRestore()
     })
@@ -93,8 +93,8 @@ describe("IIFunctionEvaluator.ts", () =>
     {
       const jiixBlockIds = ["block-1"]
 
-      // Mock getEvaluables to throw error
-      editor.getEvaluables = jest.fn().mockRejectedValue(new Error("Evaluables error"))
+      // Mock getMathEvaluables to throw error
+      editor.getMathEvaluables = jest.fn().mockRejectedValue(new Error("Evaluables error"))
 
       const evaluator = new IIFunctionEvaluator(editor, jiixBlockIds)
 
@@ -111,8 +111,8 @@ describe("IIFunctionEvaluator.ts", () =>
     {
       const jiixBlockIds = ["block-1"]
 
-      // Mock getEvaluables to return empty array
-      editor.getEvaluables = jest.fn().mockResolvedValue([])
+      // Mock getMathEvaluables to return empty array
+      editor.getMathEvaluables = jest.fn().mockResolvedValue([])
 
       const evaluator = new IIFunctionEvaluator(editor, jiixBlockIds)
 

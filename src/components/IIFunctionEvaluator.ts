@@ -82,7 +82,7 @@ export class IIFunctionEvaluator {
       if (!jiixBlockId) continue
 
       try {
-        const evaluables = await this.editor.getEvaluables(jiixBlockId)
+        const evaluables = await this.editor.getMathEvaluables(jiixBlockId)
         if (evaluables.length > 0) {
           this.functionsToEvaluate.push({
             jiixBlockId,

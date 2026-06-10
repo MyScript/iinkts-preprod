@@ -212,14 +212,14 @@
 
       editor = await Editor.load(editorElement, 'INTERACTIVEINK', options)
 
-      editor.math.overlays.updateConfig({ showBlockOverlays: showBlockOverlaysCheckbox.checked })
+      editor.math.updateOverlaysConfig({ showBlockOverlays: showBlockOverlaysCheckbox.checked })
       editor.drawComputationResult = drawResultStrokesCheckbox.checked
 
       // Show result panels when not drawing strokes
-      editor.math.overlays.updateConfig({ showResultPanels: !drawResultStrokesCheckbox.checked })
+      editor.math.updateOverlaysConfig({ showResultPanels: !drawResultStrokesCheckbox.checked })
 
-      editor.math.interactions.updateConfig({ showDependencyOnHover: showDependencyOnHoverCheckbox.checked })
-      editor.math.interactions.updateConfig({ highlightOnSelect: highlightOnSelectCheckbox.checked })
+      editor.math.updateVariablesConfig({ showDependencyOnHover: showDependencyOnHoverCheckbox.checked })
+      editor.math.updateVariablesConfig({ highlightOnSelect: highlightOnSelectCheckbox.checked })
 
       editor.event.addChangedListener(onEditorChanged)
       editor.event.addSynchronizedListener(onSynchronized)
@@ -264,7 +264,7 @@
         const label = mb.label || ''
         if ((label.endsWith('=') || label.endsWith('?')) && mb.id) {
           try {
-            const actions = await editor.getAvailableActions(mb.id)
+            const actions = await editor.getMathAvailableActions(mb.id)
             const canCompute = actions?.includes('numerical-computation')
 
             if (canCompute) {
@@ -357,7 +357,7 @@
 
       for (const mb of mathBlocks) {
         try {
-          const variables = await editor.getVariables(mb.id)
+          const variables = await editor.getMathVariables(mb.id)
           variables.forEach(v => {
             if (!allVariables.find(av => av.name === v.name && av.sourceId === v.sourceId)) {
               allVariables.push({
@@ -429,7 +429,7 @@
         setVariableBtn.disabled = true
         setVariableBtn.textContent = 'Setting...'
 
-        await editor.setVariableValue(jiixId, varName, newValue)
+        await editor.setMathVariableValue(jiixId, varName, newValue)
 
         await updateVariablesList()
         await updateDependenciesDisplay()
@@ -446,30 +446,30 @@
     })
 
     showBlockOverlaysCheckbox.addEventListener('change', (e) => {
-      editor.math.overlays.toggleBlockOverlays(e.target.checked)
+      editor.math.toggleBlockOverlays(e.target.checked)
     })
 
     drawResultStrokesCheckbox.addEventListener('change', async (e) => {
       editor.drawComputationResult = e.target.checked
       // Show result panels when not drawing strokes
-      editor.math.overlays.updateConfig({ showResultPanels: !e.target.checked })
+      editor.math.updateOverlaysConfig({ showResultPanels: !e.target.checked })
     })
 
     const refreshBtn = document.getElementById('refreshBtn')
     refreshBtn.addEventListener('click', () => {
-      editor.math.overlays.refresh()
+      editor.math.refreshOverlays()
     })
 
 
     showDependencyOnHoverCheckbox.addEventListener('change', (e) => {
-      editor.math.interactions.updateConfig({ showDependencyOnHover: e.target.checked })
+      editor.math.updateVariablesConfig({ showDependencyOnHover: e.target.checked })
       if (!e.target.checked) {
-        editor.math.interactions.clearAll()
+        editor.math.clearVariableInteractions()
       }
     })
 
     highlightOnSelectCheckbox.addEventListener('change', (e) => {
-      editor.math.interactions.updateConfig({ highlightOnSelect: e.target.checked })
+      editor.math.updateVariablesConfig({ highlightOnSelect: e.target.checked })
     })
 
     showModalBtn.addEventListener('click', () => {

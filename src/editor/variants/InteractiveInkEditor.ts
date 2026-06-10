@@ -227,7 +227,7 @@ export class InteractiveInkEditor extends AbstractEditor
     this.logger.info("set drawComputationResult", { flag })
     this.#drawComputationResult = flag
     if (!flag) {
-      this.clearSolverOutputStrokes()
+      this.math.clearAllSolverOutputs()
     }
   }
 
@@ -779,10 +779,10 @@ export class InteractiveInkEditor extends AbstractEditor
 
     const selectedMathJiixBlockId = this.selector.getSelectedMathJiixBlockId()
     if (selectedMathJiixBlockId) {
-      this.math.interactions.onMathBlockSelected(selectedMathJiixBlockId)
+      this.math.selectBlock(selectedMathJiixBlockId)
     }
     else {
-      this.math.interactions.clearMathBlockSelection()
+      this.math.clearBlockSelection()
     }
 
     this.updateLayerUI()
@@ -804,10 +804,10 @@ export class InteractiveInkEditor extends AbstractEditor
 
     const selectedMathJiixBlockId = this.selector.getSelectedMathJiixBlockId()
     if (selectedMathJiixBlockId) {
-      this.math.interactions.onMathBlockSelected(selectedMathJiixBlockId)
+      this.math.selectBlock(selectedMathJiixBlockId)
     }
     else {
-      this.math.interactions.clearMathBlockSelection()
+      this.math.clearBlockSelection()
     }
 
     this.updateLayerUI()
@@ -828,7 +828,7 @@ export class InteractiveInkEditor extends AbstractEditor
       this.selector.removeSelectedGroup()
       this.updateLayerUI()
 
-      this.math.interactions.clearMathBlockSelection()
+      this.math.clearBlockSelection()
       setTimeout(() => this.event.emitSelected(this.model.symbolsSelected), 0)
     }
   }
@@ -1318,41 +1318,15 @@ export class InteractiveInkEditor extends AbstractEditor
   }
 
   /**
-   * Find a math symbol by its JIIX ID
-   * @param jiixId - JIIX ID to search for
-   * @returns Math symbol if found, undefined otherwise
-   * @group Utilities
-   */
-  findMathSymbolByJiixId(jiixId: string): IIStroke | undefined
-  {
-    return this.math.dependencies.findMathSymbolByJiixId(jiixId)
-  }
-
-  /**
-   * Clear solver output strokes from a math symbol
-   * @param jiixBlockId - The JIIX block ID
-   * @returns Promise that resolves when strokes are removed
-   * @group Utilities
-   */
-  async clearSolverOutputStrokes(jiixBlockId?: string): Promise<void>
-  {
-    if (jiixBlockId) {
-      await this.math.clearSolverOutputs(jiixBlockId)
-    } else {
-      await Promise.all(this.model.getMathBlocks().map(block => this.math.clearSolverOutputs(block.id)))
-    }
-  }
-
-  /**
    * Get available math solver actions for a specific math element
    * @param blockId - The ID of the math element (jiixId)
    * @returns Promise with array of available actions
    * @group Utilities
    */
-  async getAvailableActions(blockId: string): Promise<string[]>
+  async getMathAvailableActions(blockId: string): Promise<string[]>
   {
     try {
-      return await this.math.actions.getAvailableActions(blockId)
+      return await this.math.getAvailableActions(blockId)
     }
     catch (error) {
       this.manageError(error as Error)
@@ -1365,12 +1339,11 @@ export class InteractiveInkEditor extends AbstractEditor
    * @param blockId - The ID of the math element (jiixId)
    * @param task - The task to diagnose (e.g., "numerical-computation", "evaluation")
    * @returns Promise with diagnostic result (e.g., "ALLOWED", "NOT_ALLOWED")
-   * @group Utilities
    */
-  async getDiagnostic(blockId: string, task: string): Promise<string>
+  async getMathDiagnostic(blockId: string, task: string): Promise<string>
   {
     try {
-      return await this.math.actions.getDiagnostic(blockId, task)
+      return await this.math.getDiagnostic(blockId, task)
     }
     catch (error) {
       this.manageError(error as Error)
@@ -1384,14 +1357,14 @@ export class InteractiveInkEditor extends AbstractEditor
    * @returns Promise with JIIX export containing the computed result
    * @group Utilities
    */
-  async getNumericalComputation(blockId: string): Promise<TJIIXMathElement>
+  async getMathNumericalComputation(blockId: string): Promise<TJIIXMathElement>
   {
     try {
-      this.logger.info("getNumericalComputation", { blockId })
+      this.logger.info("getMathNumericalComputation", { blockId })
       return await this.recognizer.getNumericalComputation(blockId)
     }
     catch (error) {
-      this.logger.error("getNumericalComputation", { error })
+      this.logger.error("getMathNumericalComputation", { error })
       this.manageError(error as Error)
       throw error
     }
@@ -1402,7 +1375,6 @@ export class InteractiveInkEditor extends AbstractEditor
    * @param jiixBlockId - The ID of the math block
    * @param drawStrokes - Whether to draw the result as strokes (default: true)
    * @returns Promise with the computation result, number of added strokes, and numeric value
-   * @group Utilities
    */
   async computeMathNumericalResult(
     jiixBlockId: string,
@@ -1424,10 +1396,10 @@ export class InteractiveInkEditor extends AbstractEditor
    * @returns Promise with array of variables
    * @group Utilities
    */
-  async getVariables(blockId: string): Promise<TMathVariable[]>
+  async getMathVariables(blockId: string): Promise<TMathVariable[]>
   {
     try {
-      return await this.math.actions.getVariables(blockId)
+      return await this.math.getVariables(blockId)
     }
     catch (error) {
       this.manageError(error as Error)
@@ -1442,10 +1414,10 @@ export class InteractiveInkEditor extends AbstractEditor
    * @returns Promise with the value of the variable
    * @group Utilities
    */
-  async getVariableValue(blockId: string, variableName: string): Promise<number>
+  async getMathVariableValue(blockId: string, variableName: string): Promise<number>
   {
     try {
-      return await this.math.actions.getVariableValue(blockId, variableName)
+      return await this.math.getVariableValue(blockId, variableName)
     }
     catch (error) {
       this.manageError(error as Error)
@@ -1461,7 +1433,7 @@ export class InteractiveInkEditor extends AbstractEditor
    * @returns Promise that resolves when the variable is set
    * @group Utilities
    */
-  async setVariableValue(blockId: string, variableName: string, variableValue: number): Promise<void>
+  async setMathVariableValue(blockId: string, variableName: string, variableValue: number): Promise<void>
   {
     try {
       return await this.math.setVariableValue(blockId, variableName, variableValue)
@@ -1482,7 +1454,7 @@ export class InteractiveInkEditor extends AbstractEditor
   async setMathVariables(jiixBlockId: string, variableValues: { [name: string]: number }): Promise<void>
   {
     try {
-      return await this.math.actions.setVariables(jiixBlockId, variableValues)
+      return await this.math.setVariables(jiixBlockId, variableValues)
     }
     catch (error) {
       this.manageError(error as Error)
@@ -1496,10 +1468,10 @@ export class InteractiveInkEditor extends AbstractEditor
    * @returns Promise with array of evaluables
    * @group Utilities
    */
-  async getEvaluables(blockId: string): Promise<TMathEvaluable[]>
+  async getMathEvaluables(blockId: string): Promise<TMathEvaluable[]>
   {
     try {
-      return await this.math.actions.getEvaluables(blockId)
+      return await this.math.getEvaluables(blockId)
     }
     catch (error) {
       this.manageError(error as Error)
@@ -1532,37 +1504,6 @@ export class InteractiveInkEditor extends AbstractEditor
       this.manageError(error as Error)
       throw error
     }
-  }
-
-  /**
-   * Recalculate all blocks that depend on a source block
-   * @param sourceBlockId - ID of the source block whose value changed
-   * @returns Promise that resolves when all dependents are recalculated
-   * @group Utilities
-   */
-  async recalculateDependentBlocks(sourceBlockId: string): Promise<void>
-  {
-    try {
-      return await this.math.recalculateDependentBlocks(sourceBlockId)
-    }
-    catch (error) {
-      this.logger.error("recalculateDependentBlocks", { error })
-      this.manageError(error as Error)
-      throw error
-    }
-  }
-
-  /**
-   * Get all dependencies for a math block
-   * Returns information about which variables this block uses and from where,
-   * and which other blocks depend on this block's variables
-   * @param blockId - The JIIX ID of the math block
-   * @returns Object containing variable sources and dependent blocks
-   * @group Utilities
-   */
-  getMathDependencies(blockId: string): { variableSources?: { [variableName: string]: string }, dependentBlocks?: string[] } | null
-  {
-    return this.math.dependencies.getMathDependencies(blockId)
   }
 
   /**
