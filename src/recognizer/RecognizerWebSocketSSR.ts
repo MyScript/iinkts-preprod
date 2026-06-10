@@ -176,9 +176,6 @@ export class RecognizerWebSocketSSR
     if (this.clearDeferred?.isPending) {
       this.clearDeferred.reject(error)
     }
-    if (this.waitForIdleDeferred?.isPending) {
-      this.waitForIdleDeferred.reject(error)
-    }
   }
 
   protected closeCallback(evt: CloseEvent): void
