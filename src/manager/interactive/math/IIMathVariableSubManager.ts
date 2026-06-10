@@ -1,5 +1,5 @@
 import { IIAbstractManager } from "../IIAbstractManager"
-import { IIStroke, TBox, isStroke, isRecognizedMath } from "@/symbol"
+import { IIStroke, TBox, Box, isStroke, isRecognizedMath } from "@/symbol"
 import { convertBoundingBoxMillimeterToPixel } from "@/utils"
 import { TJIIXMathExpression, TJIIXMathElement } from "@/model/ExportMath"
 import { TMathVariable } from "@/recognizer"
@@ -63,7 +63,7 @@ export class IIMathVariableSubManager extends IIAbstractManager
   #variableValues: Map<string, Record<string, number>> = new Map()
 
   #config: TMathInteractionConfig
-  #hoveredSymbolId: string | null = null
+  #hoveredJiixBlockId: string | null = null
   #selectedJiixBlockIds: Set<string> = new Set()
   #colorManager: ColorPaletteManager
 
@@ -98,38 +98,37 @@ export class IIMathVariableSubManager extends IIAbstractManager
     return this.editor.model.symbols.filter(isRecognizedMath)
   }
 
-  findMathSymbolByJiixId(jiixId: string): IIStroke | undefined
+  findMathSymbolsByJiixId(jiixId: string): IIStroke[]
   {
-    return this.editor.model.symbols.find(s =>
+    return this.editor.model.symbols.filter(s =>
       isStroke(s) && s.jiixBlockId === jiixId && s.jiixBlockType === "Math"
-    ) as IIStroke | undefined
+    ) as IIStroke[]
   }
 
-  protected findMathSymbol(symbolId: string): IIStroke | undefined
+  protected getBlockBounds(jiixBlockId: string): TBox | null
   {
-    return this.editor.model.symbols.find(
-      (s): s is IIStroke => s.id === symbolId && s.type === "stroke" && s.jiixBlockType === "Math"
-    )
+    const strokes = this.findMathSymbolsByJiixId(jiixBlockId)
+    if (!strokes.length) return null
+    return Box.createFromBoxes(strokes.map(s => s.bounds))
   }
 
-  protected findVariableBoxInExpressions(expressions: TJIIXMathExpression[], variableName: string): TBox | null
+  protected findVariableBoxesInExpressions(expressions: TJIIXMathExpression[], variableName: string): TBox[]
   {
+    const boxes: TBox[] = []
     for (const expr of expressions) {
       if ("operands" in expr && expr.operands && Array.isArray(expr.operands)) {
         for (const operand of expr.operands) {
+          if (!operand) continue
           if (operand.type === "variable" && "label" in operand && operand.label === variableName && operand["bounding-box"]) {
-            return convertBoundingBoxMillimeterToPixel(operand["bounding-box"])
+            boxes.push(convertBoundingBoxMillimeterToPixel(operand["bounding-box"]))
           }
           if ("operands" in operand && operand.operands && Array.isArray(operand.operands)) {
-            const result = this.findVariableBoxInExpressions([operand], variableName)
-            if (result) {
-              return result
-            }
+            boxes.push(...this.findVariableBoxesInExpressions([operand], variableName))
           }
         }
       }
     }
-    return null
+    return boxes
   }
 
   // ==========================================
@@ -315,65 +314,43 @@ export class IIMathVariableSubManager extends IIAbstractManager
   }
 
   // ==========================================
-  // Recursive source/dependent traversal
+  // Recursive source/dependent traversal (jiixBlockId-based)
   // ==========================================
 
-  getRecursiveSources(symbolId: string, visited: Set<string> = new Set()): Set<string>
+  getRecursiveSources(jiixBlockId: string, visited: Set<string> = new Set()): Set<string>
   {
     const sources = new Set<string>()
 
-    if (visited.has(symbolId)) {
-      return sources
-    }
-    visited.add(symbolId)
+    if (visited.has(jiixBlockId)) return sources
+    visited.add(jiixBlockId)
 
-    const mathSymbol = this.findMathSymbol(symbolId)
-    if (!mathSymbol || !mathSymbol.jiixBlockId) {
-      return sources
-    }
-
-    const deps = this.getDependencies(mathSymbol.jiixBlockId)
-    if (!deps?.variableSources) {
-      return sources
-    }
+    const deps = this.getDependencies(jiixBlockId)
+    if (!deps?.variableSources) return sources
 
     Object.values(deps.variableSources).forEach(sourceJiixId => {
-      const sourceSymbol = this.findMathSymbolByJiixId(sourceJiixId)
-      if (sourceSymbol && !visited.has(sourceSymbol.id)) {
-        sources.add(sourceSymbol.id)
-        const recursiveSources = this.getRecursiveSources(sourceSymbol.id, visited)
-        recursiveSources.forEach(id => sources.add(id))
+      if (!visited.has(sourceJiixId)) {
+        sources.add(sourceJiixId)
+        this.getRecursiveSources(sourceJiixId, visited).forEach(id => sources.add(id))
       }
     })
 
     return sources
   }
 
-  getRecursiveDependents(symbolId: string, visited: Set<string> = new Set()): Set<string>
+  getRecursiveDependents(jiixBlockId: string, visited: Set<string> = new Set()): Set<string>
   {
     const dependents = new Set<string>()
 
-    if (visited.has(symbolId)) {
-      return dependents
-    }
-    visited.add(symbolId)
+    if (visited.has(jiixBlockId)) return dependents
+    visited.add(jiixBlockId)
 
-    const mathSymbol = this.findMathSymbol(symbolId)
-    if (!mathSymbol || !mathSymbol.jiixBlockId) {
-      return dependents
-    }
-
-    const deps = this.getDependencies(mathSymbol.jiixBlockId)
-    if (!deps?.dependentBlocks) {
-      return dependents
-    }
+    const deps = this.getDependencies(jiixBlockId)
+    if (!deps?.dependentBlocks) return dependents
 
     deps.dependentBlocks.forEach(dependentJiixId => {
-      const dependentSymbol = this.findMathSymbolByJiixId(dependentJiixId)
-      if (dependentSymbol && !visited.has(dependentSymbol.id)) {
-        dependents.add(dependentSymbol.id)
-        const recursiveDependents = this.getRecursiveDependents(dependentSymbol.id, visited)
-        recursiveDependents.forEach(id => dependents.add(id))
+      if (!visited.has(dependentJiixId)) {
+        dependents.add(dependentJiixId)
+        this.getRecursiveDependents(dependentJiixId, visited).forEach(id => dependents.add(id))
       }
     })
 
@@ -390,42 +367,34 @@ export class IIMathVariableSubManager extends IIAbstractManager
       return
     }
 
-    if (this.#hoveredSymbolId) {
+    if (this.#hoveredJiixBlockId) {
       this.clearHoverHighlights()
     }
 
     if (!jiixBlockId) {
-      this.#hoveredSymbolId = null
+      this.#hoveredJiixBlockId = null
       return
     }
 
-    const mathSymbol = this.findMathSymbolByJiixId(jiixBlockId)
-    if (!mathSymbol) {
-      return
-    }
+    this.#hoveredJiixBlockId = jiixBlockId
+    this.logger.debug("onSymbolHover", { jiixBlockId })
 
-    const symbolId = mathSymbol.id
-    this.#hoveredSymbolId = symbolId
-    this.logger.debug("onSymbolHover", { jiixBlockId, symbolId })
-
-    const sources = this.getRecursiveSources(symbolId)
-    sources.forEach(sourceId => {
-      const sourceSymbol = this.findMathSymbol(sourceId)
-      if (sourceSymbol) {
-        this.editor.math.overlays.highlightAsSource(sourceSymbol)
-      }
+    const sources = this.getRecursiveSources(jiixBlockId)
+    sources.forEach(sourceJiixId => {
+      const bounds = this.getBlockBounds(sourceJiixId)
+      if (bounds) this.editor.math.overlays.highlightAsSource(sourceJiixId, bounds)
     })
 
-    const dependents = this.getRecursiveDependents(symbolId)
-    dependents.forEach(dependentId => {
-      const dependentSymbol = this.findMathSymbol(dependentId)
-      if (dependentSymbol) {
-        this.editor.math.overlays.highlightAsDependent(dependentSymbol)
-      }
+    const dependents = this.getRecursiveDependents(jiixBlockId)
+    dependents.forEach(dependentJiixId => {
+      const bounds = this.getBlockBounds(dependentJiixId)
+      if (bounds) this.editor.math.overlays.highlightAsDependent(dependentJiixId, bounds)
     })
 
-    this.editor.math.overlays.addHoverGlow(mathSymbol)
-    this.drawDependencyArrows(symbolId, sources, dependents)
+    const hoveredBounds = this.getBlockBounds(jiixBlockId)
+    if (hoveredBounds) this.editor.math.overlays.addHoverGlow(jiixBlockId, hoveredBounds)
+
+    this.drawDependencyArrows(jiixBlockId, sources, dependents)
   }
 
   protected clearHoverHighlights(): void
@@ -447,40 +416,35 @@ export class IIMathVariableSubManager extends IIAbstractManager
 
     this.logger.debug("selectBlock", { jiixBlockId })
 
-    const symbol = this.findMathSymbolByJiixId(jiixBlockId)
-    if (!symbol) {
-      this.logger.warn("selectBlock", `No symbol found for jiixBlockId: ${jiixBlockId}`)
-      return
-    }
+    const sources = this.getRecursiveSources(jiixBlockId)
+    const dependents = this.getRecursiveDependents(jiixBlockId)
 
-    const sources = this.getRecursiveSources(symbol.id)
-    const dependents = this.getRecursiveDependents(symbol.id)
+    const relatedJiixIds = new Set<string>([jiixBlockId])
+    sources.forEach(id => relatedJiixIds.add(id))
+    dependents.forEach(id => relatedJiixIds.add(id))
 
-    const relatedBlocks = new Set<string>([symbol.id])
-    sources.forEach(id => relatedBlocks.add(id))
-    dependents.forEach(id => relatedBlocks.add(id))
-
+    const allJiixIds = new Set<string>()
     this.getMathSymbols().forEach(s => {
-      if (!relatedBlocks.has(s.id)) {
-        this.editor.math.overlays.dimSymbol(s, this.#config.dimOpacity)
+      if (s.jiixBlockId) allJiixIds.add(s.jiixBlockId)
+    })
+    allJiixIds.forEach(jid => {
+      if (!relatedJiixIds.has(jid)) {
+        const bounds = this.getBlockBounds(jid)
+        if (bounds) this.editor.math.overlays.dimSymbol(jid, bounds, this.#config.dimOpacity)
       }
     })
 
-    sources.forEach(sourceId => {
-      const sourceSymbol = this.findMathSymbol(sourceId)
-      if (sourceSymbol) {
-        this.editor.math.overlays.highlightAsSource(sourceSymbol)
-      }
+    sources.forEach(sourceJiixId => {
+      const bounds = this.getBlockBounds(sourceJiixId)
+      if (bounds) this.editor.math.overlays.highlightAsSource(sourceJiixId, bounds)
     })
 
-    dependents.forEach(dependentId => {
-      const dependentSymbol = this.findMathSymbol(dependentId)
-      if (dependentSymbol) {
-        this.editor.math.overlays.highlightAsDependent(dependentSymbol)
-      }
+    dependents.forEach(dependentJiixId => {
+      const bounds = this.getBlockBounds(dependentJiixId)
+      if (bounds) this.editor.math.overlays.highlightAsDependent(dependentJiixId, bounds)
     })
 
-    this.drawDependencyArrows(symbol.id, sources, dependents)
+    this.drawDependencyArrows(jiixBlockId, sources, dependents)
   }
 
   clearBlockSelection(): void
@@ -497,90 +461,101 @@ export class IIMathVariableSubManager extends IIAbstractManager
   }
 
   protected drawDependencyArrows(
-    symbolId: string,
+    jiixBlockId: string,
     sources: Set<string>,
     dependents: Set<string>
   ): void
   {
-    const symbol = this.findMathSymbol(symbolId)
-    if (!symbol) {
-      return
-    }
+    const hoveredBounds = this.getBlockBounds(jiixBlockId)
+    if (!hoveredBounds) return
 
-    sources.forEach(sourceId => {
-      const sourceSymbol = this.findMathSymbol(sourceId)
-      if (!sourceSymbol || !sourceSymbol.jiixBlockId || !symbol.jiixBlockId) {
-        return
-      }
+    // Any stroke of the hovered block shares the same JIIX — use first for expression lookup
+    const hoveredFirstStroke = this.findMathSymbolsByJiixId(jiixBlockId)[0]
 
-      const deps = this.getDependencies(symbol.jiixBlockId)
-      if (deps?.variableSources) {
-        for (const [variableName, sourceJiixId] of Object.entries(deps.variableSources)) {
-          const mathExpressions = (this.editor.jiix.getElementForStroke(symbol.id) as TJIIXMathElement | undefined)?.expressions
-          if (sourceJiixId === sourceSymbol.jiixBlockId && mathExpressions) {
-            const variableBox = this.findVariableBoxInExpressions(mathExpressions, variableName)
-            if (variableBox) {
-              const variableColor = this.#colorManager.getColorForVariable(variableName)
-              this.editor.math.overlays.highlightAsSource(sourceSymbol, variableColor)
-              this.editor.math.overlays.highlightVariableBox(
-                variableBox,
-                symbol.id,
-                variableName
-              )
+    sources.forEach(sourceJiixId => {
+      const sourceBounds = this.getBlockBounds(sourceJiixId)
+      if (!sourceBounds) return
+
+      const deps = this.getDependencies(jiixBlockId)
+      if (!deps?.variableSources) return
+
+      for (const [variableName, depSourceJiixId] of Object.entries(deps.variableSources)) {
+        if (depSourceJiixId !== sourceJiixId) continue
+
+        const mathExpressions = hoveredFirstStroke
+          ? (this.editor.jiix.getElementForStroke(hoveredFirstStroke.id) as TJIIXMathElement | undefined)?.expressions
+          : undefined
+
+        if (mathExpressions) {
+          const variableBoxes = this.findVariableBoxesInExpressions(mathExpressions, variableName)
+          if (variableBoxes.length > 0) {
+            const variableColor = this.#colorManager.getColorForVariable(variableName)
+            this.editor.math.overlays.highlightAsSource(sourceJiixId, sourceBounds, variableColor)
+            variableBoxes.forEach((variableBox, i) => {
+              this.editor.math.overlays.highlightVariableBox(variableBox, `${jiixBlockId}-occ${i}`, variableName)
               this.editor.math.overlays.drawDependencyArrowToBox(
-                sourceSymbol.id,
-                sourceSymbol.bounds,
-                symbol.id,
+                `${sourceJiixId}-occ${i}`,
+                sourceBounds,
+                `${jiixBlockId}-occ${i}`,
                 variableBox,
                 variableColor
               )
-            } else {
-              this.editor.math.overlays.drawDependencyArrow(
-                sourceSymbol.id,
-                symbol.id,
-                IIMathVariableSubManager.HIGHLIGHT_STYLES.SOURCE_COLOR
-              )
-            }
+            })
+            continue
           }
         }
+
+        this.editor.math.overlays.drawDependencyArrowToBox(
+          sourceJiixId,
+          sourceBounds,
+          jiixBlockId,
+          hoveredBounds,
+          IIMathVariableSubManager.HIGHLIGHT_STYLES.SOURCE_COLOR
+        )
       }
     })
 
-    dependents.forEach(dependentId => {
-      const dependentSymbol = this.findMathSymbol(dependentId)
-      if (!dependentSymbol || !dependentSymbol.jiixBlockId || !symbol.jiixBlockId) {
-        return
-      }
+    dependents.forEach(dependentJiixId => {
+      const depBounds = this.getBlockBounds(dependentJiixId)
+      if (!depBounds) return
 
-      const deps = this.getDependencies(dependentSymbol.jiixBlockId)
-      if (deps?.variableSources) {
-        for (const [variableName, sourceJiixId] of Object.entries(deps.variableSources)) {
-          const dependentMathExpressions = (this.editor.jiix.getElementForStroke(dependentSymbol.id) as TJIIXMathElement | undefined)?.expressions
-          if (sourceJiixId === symbol.jiixBlockId && dependentMathExpressions) {
-            const variableBox = this.findVariableBoxInExpressions(dependentMathExpressions, variableName)
-            if (variableBox) {
-              const variableColor = this.#colorManager.getColorForVariable(variableName)
-              this.editor.math.overlays.highlightVariableBox(
-                variableBox,
-                dependentSymbol.id,
-                variableName
-              )
+      const depDeps = this.getDependencies(dependentJiixId)
+      if (!depDeps?.variableSources) return
+
+      const depFirstStroke = this.findMathSymbolsByJiixId(dependentJiixId)[0]
+
+      for (const [variableName, sourceJiixId] of Object.entries(depDeps.variableSources)) {
+        if (sourceJiixId !== jiixBlockId) continue
+
+        const depMathExpressions = depFirstStroke
+          ? (this.editor.jiix.getElementForStroke(depFirstStroke.id) as TJIIXMathElement | undefined)?.expressions
+          : undefined
+
+        if (depMathExpressions) {
+          const variableBoxes = this.findVariableBoxesInExpressions(depMathExpressions, variableName)
+          if (variableBoxes.length > 0) {
+            const variableColor = this.#colorManager.getColorForVariable(variableName)
+            variableBoxes.forEach((variableBox, i) => {
+              this.editor.math.overlays.highlightVariableBox(variableBox, `${dependentJiixId}-occ${i}`, variableName)
               this.editor.math.overlays.drawDependencyArrowToBox(
-                symbol.id,
-                symbol.bounds,
-                dependentSymbol.id,
+                `${jiixBlockId}-occ${i}`,
+                hoveredBounds,
+                `${dependentJiixId}-occ${i}`,
                 variableBox,
                 variableColor
               )
-            } else {
-              this.editor.math.overlays.drawDependencyArrow(
-                symbol.id,
-                dependentSymbol.id,
-                IIMathVariableSubManager.HIGHLIGHT_STYLES.DEPENDENT_COLOR
-              )
-            }
+            })
+            continue
           }
         }
+
+        this.editor.math.overlays.drawDependencyArrowToBox(
+          jiixBlockId,
+          hoveredBounds,
+          dependentJiixId,
+          depBounds,
+          IIMathVariableSubManager.HIGHLIGHT_STYLES.DEPENDENT_COLOR
+        )
       }
     })
   }
@@ -590,7 +565,7 @@ export class IIMathVariableSubManager extends IIAbstractManager
     this.logger.info("clearAll")
     this.clearHoverHighlights()
     this.clearSelectionHighlights()
-    this.#hoveredSymbolId = null
+    this.#hoveredJiixBlockId = null
     this.#selectedJiixBlockIds.clear()
   }
 

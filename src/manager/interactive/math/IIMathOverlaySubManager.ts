@@ -278,7 +278,7 @@ export class IIMathOverlaySubManager extends IIAbstractManager
   protected getBlockColor(mathBlockId: string, mathBlockLabel?: string): string {
     const defaultColor = "#cccccc"
 
-    const deps = this.editor.math.getMathDependencies(mathBlockId)
+    const deps = this.editor.math.getDependencies(mathBlockId)
     if (deps?.variableSources && Object.keys(deps.variableSources).length > 0) {
       const variableNames = Object.keys(deps.variableSources)
       const firstVariable = variableNames[0]
@@ -291,7 +291,7 @@ export class IIMathOverlaySubManager extends IIAbstractManager
     return defaultColor
   }
 
-  updateOverlaysForSymbol(mathBlock: TJIIXMathElement): void {
+  protected updateOverlaysForSymbol(mathBlock: TJIIXMathElement): void {
     let bounds: TBox
     if (mathBlock["bounding-box"]) {
       bounds = convertBoundingBoxMillimeterToPixel(mathBlock["bounding-box"])
@@ -345,35 +345,41 @@ export class IIMathOverlaySubManager extends IIAbstractManager
     })
   }
 
+  protected sanitizeId(id: string): string {
+    return id.replace(/[^a-zA-Z0-9_-]/g, "_")
+  }
+
   /**
-   * Generic method to draw a rectangle overlay on a math symbol
-   * @param mathSymbol - The math symbol to draw overlay on
-   * @param idPrefix - Prefix for the overlay ID
+   * Generic method to draw a rectangle overlay for a math block
+   * @param id - Block identifier (used as part of SVG element ID)
+   * @param bounds - Bounding box to draw the rectangle
+   * @param idPrefix - Prefix for the overlay element ID
    * @param attrs - Additional SVG attributes
    */
   protected drawOverlayRect(
-    mathSymbol: IIStroke,
+    id: string,
+    bounds: TBox,
     idPrefix: string,
     attrs: Partial<Record<string, string>>
   ): void {
-    const id = `${idPrefix}-${mathSymbol.id}`
-    this.renderer.removeSymbol(id)
+    const elemId = this.sanitizeId(`${idPrefix}-${id}`)
+    this.renderer.removeSymbol(elemId)
 
     const finalAttrs: Record<string, string> = {
-      id,
+      id: elemId,
       fill: "transparent",
       "data-overlay": attrs["data-overlay"] || idPrefix,
-      "data-block-id": mathSymbol.id,
+      "data-block-id": id,
       style: attrs.style || "pointer-events: none;",
       ...attrs
     }
 
-    const rect = SVGBuilder.createRect(mathSymbol.bounds, finalAttrs)
+    const rect = SVGBuilder.createRect(bounds, finalAttrs)
     this.renderer.layer.appendChild(rect)
   }
 
-  highlightAsSource(mathSymbol: IIStroke, color?: string): void {
-    this.drawOverlayRect(mathSymbol, "highlight-source", {
+  highlightAsSource(id: string, bounds: TBox, color?: string): void {
+    this.drawOverlayRect(id, bounds, "highlight-source", {
       stroke: color || "#4CAF50",
       "stroke-width": "3",
       "stroke-dasharray": "5 3",
@@ -381,8 +387,8 @@ export class IIMathOverlaySubManager extends IIAbstractManager
     })
   }
 
-  highlightAsDependent(mathSymbol: IIStroke): void {
-    this.drawOverlayRect(mathSymbol, "highlight-dependent", {
+  highlightAsDependent(id: string, bounds: TBox): void {
+    this.drawOverlayRect(id, bounds, "highlight-dependent", {
       stroke: "#FF9800",
       "stroke-width": "3",
       "stroke-dasharray": "5 3",
@@ -417,8 +423,8 @@ export class IIMathOverlaySubManager extends IIAbstractManager
     this.renderer.layer.appendChild(rect)
   }
 
-  addHoverGlow(mathSymbol: IIStroke): void {
-    this.drawOverlayRect(mathSymbol, "glow", {
+  addHoverGlow(id: string, bounds: TBox): void {
+    this.drawOverlayRect(id, bounds, "glow", {
       stroke: COLORS.primary,
       "stroke-width": "2",
       "data-overlay": "glow",
@@ -426,8 +432,8 @@ export class IIMathOverlaySubManager extends IIAbstractManager
     })
   }
 
-  dimSymbol(mathSymbol: IIStroke, opacity: number = 0.3): void {
-    this.drawOverlayRect(mathSymbol, "dim", {
+  dimSymbol(id: string, bounds: TBox, opacity: number = 0.3): void {
+    this.drawOverlayRect(id, bounds, "dim", {
       fill: "#ffffff",
       opacity: (1 - opacity).toString(),
       "data-overlay": "dim"
@@ -435,7 +441,7 @@ export class IIMathOverlaySubManager extends IIAbstractManager
   }
 
   drawDependencyArrow(fromId: string, toId: string, color: string): void {
-    const arrowId = `arrow-${fromId}-${toId}`
+    const arrowId = this.sanitizeId(`arrow-${fromId}-${toId}`)
     this.renderer.removeSymbol(arrowId)
 
     const fromSymbol = this.model.symbols.find(s => s.id === fromId) as IIStroke | undefined
@@ -477,7 +483,7 @@ export class IIMathOverlaySubManager extends IIAbstractManager
    * @param color - Arrow color
    */
   drawDependencyArrowToBox(fromId: string, fromBounds: TBox, toId: string, toBox: TBox, color: string): void {
-    const arrowId = `arrow-${fromId}-${toId}`
+    const arrowId = this.sanitizeId(`arrow-${fromId}-${toId}`)
     this.renderer.removeSymbol(arrowId)
 
     const startX = fromBounds.x + fromBounds.width

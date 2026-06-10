@@ -289,7 +289,7 @@
       const processedBlocks = new Set()
 
       for (const mb of mathBlocks) {
-        const deps = editor.getMathDependencies(mb.id)
+        const deps = await editor.getMathDependencies(mb.id)
         if (deps?.dependentBlocks && deps.dependentBlocks.length > 0) {
           sourceBlocks.push({
             symbol: mb,
@@ -315,7 +315,7 @@
         for (const depId of deps.dependentBlocks) {
           const depSymbol = mathBlocks.find(s => s.id === depId)
           if (depSymbol) {
-            const depDeps = editor.getMathDependencies(depId)
+            const depDeps = await editor.getMathDependencies(depId)
             html += `<div class="dependency-info dependent" style="margin-left: 16px; margin-bottom: 4px;">`
             html += `<strong>→ ${depSymbol.label || depId}</strong><br>`
 
