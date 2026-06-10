@@ -162,7 +162,7 @@ export class ScratchGestureHandler extends GestureHandler
     affectedMathSymbols.forEach(mathSymbol => {
       if (!mathSymbol.jiixBlockId) return
 
-      const deps = this.editor.math.dependencies.getMathDependencies(mathSymbol.jiixBlockId)
+      const deps = this.editor.math.getMathDependencies(mathSymbol.jiixBlockId)
       if (deps?.dependentBlocks && deps.dependentBlocks.length > 0) {
         this.#logger.info("applyScratch", `Math symbol ${mathSymbol.jiixBlockId} has ${deps.dependentBlocks.length} dependent blocks, clearing their solver outputs`)
         deps.dependentBlocks.forEach(blockId => dependentBlocksToClean.add(blockId))
@@ -170,7 +170,7 @@ export class ScratchGestureHandler extends GestureHandler
     })
 
     for (const blockId of dependentBlocksToClean) {
-      await this.editor.math.actions.clearSolverOutputs(blockId)
+      await this.editor.math.clearSolverOutputs(blockId)
       this.#logger.info("applyScratch", `Cleared solver outputs from dependent block ${blockId}`)
     }
 

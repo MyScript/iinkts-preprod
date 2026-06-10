@@ -345,6 +345,7 @@ describe("IISelectionManager.ts", () =>
     manager.clearSelectingRect = jest.fn()
     manager.drawSelectedGroup = jest.fn()
     manager.renderer.drawSymbol = jest.fn()
+    manager.renderer.updateSymbolSelection = jest.fn()
 
     test("start", () =>
     {
@@ -362,12 +363,12 @@ describe("IISelectionManager.ts", () =>
       } as PointerInfo
       manager.continue(info)
       expect(manager.drawSelectingRect).toHaveBeenCalledTimes(1)
-      expect(manager.renderer.drawSymbol).toHaveBeenCalledTimes(1)
-      expect(manager.renderer.drawSymbol).toHaveBeenCalledWith(strokeToSelect)
+      expect(manager.renderer.updateSymbolSelection).toHaveBeenCalledTimes(1)
+      expect(manager.renderer.updateSymbolSelection).toHaveBeenCalledWith(strokeToSelect)
       expect(manager.model.symbolsSelected).toEqual([strokeToSelect])
     })
 
-    test("end", () =>
+    test("end", async () =>
     {
       const info = {
         pointer: { x: 20, y: 20 }
@@ -378,6 +379,8 @@ describe("IISelectionManager.ts", () =>
       expect(manager.drawSelectedGroup).toHaveBeenCalledTimes(1)
       expect(manager.drawSelectedGroup).toHaveBeenCalledWith([strokeToSelect])
       expect(manager.model.symbolsSelected).toEqual([strokeToSelect])
+      // emitSelected is deferred via setTimeout(0)
+      await new Promise(resolve => setTimeout(resolve, 0))
       expect(editor.event.emitSelected).toHaveBeenCalledTimes(1)
       expect(editor.event.emitSelected).toHaveBeenCalledWith([strokeToSelect])
     })

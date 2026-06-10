@@ -245,12 +245,12 @@ export class IIMathOverlaySubManager extends IIAbstractManager
 
     hoverZone.addEventListener("pointerenter", () => {
       this.logger.debug("hover", `Pointer entered block ${blockId}`)
-      this.editor.math.interactions.onSymbolHover(blockId)
+      this.editor.math.onSymbolHover(blockId)
     })
 
     hoverZone.addEventListener("pointerleave", () => {
       this.logger.debug("hover", `Pointer left block ${blockId}`)
-      this.editor.math.interactions.onSymbolHover(null)
+      this.editor.math.onSymbolHover(null)
     })
 
     this.renderer.layer.appendChild(hoverZone)
@@ -278,7 +278,7 @@ export class IIMathOverlaySubManager extends IIAbstractManager
   protected getBlockColor(mathBlockId: string, mathBlockLabel?: string): string {
     const defaultColor = "#cccccc"
 
-    const deps = this.editor.math.dependencies.getMathDependencies(mathBlockId)
+    const deps = this.editor.math.getMathDependencies(mathBlockId)
     if (deps?.variableSources && Object.keys(deps.variableSources).length > 0) {
       const variableNames = Object.keys(deps.variableSources)
       const firstVariable = variableNames[0]
@@ -312,7 +312,7 @@ export class IIMathOverlaySubManager extends IIAbstractManager
     this.drawBorder(bounds, blockId, blockColor)
 
     // Get computed result and solver outputs from computation manager
-    const computation = this.editor.math.computation.getMathBlock(blockId)
+    const computation = this.editor.math.getComputation(blockId)
     if (computation?.computedResult !== undefined || (computation?.solverOutputStrokeIds && computation.solverOutputStrokeIds.length > 0)) {
 
       let resultText = "Result = "

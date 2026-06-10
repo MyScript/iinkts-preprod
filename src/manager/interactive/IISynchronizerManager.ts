@@ -173,7 +173,7 @@ export class IISynchronizerManager extends IIAbstractManager
 
     for (const blockId of mathBlockIds) {
       try {
-        await this.editor.math.dependencies.enrichMathDependencies(blockId)
+        await this.editor.math.enrichMathDependencies(blockId)
       } catch (err) {
         this.logger.error("synchronize", "Error enriching math dependencies:", err)
       }
@@ -181,14 +181,14 @@ export class IISynchronizerManager extends IIAbstractManager
 
     // Cleanup invalid math dependencies
     try {
-      this.editor.math.dependencies.cleanupMathDependencies(mathBlockIds)
+      this.editor.math.cleanupMathDependencies(mathBlockIds)
     } catch (error) {
       this.logger.error("#doSynchronize", "Failed to cleanup math dependencies:", error)
     }
 
     // Refresh math overlays
     try {
-      this.editor.math.overlays.refresh()
+      this.editor.math.refreshOverlays()
     } catch (error) {
       this.logger.error("#doSynchronize", "Failed to refresh math overlays:", error)
     }

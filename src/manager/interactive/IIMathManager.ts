@@ -1,40 +1,25 @@
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import { IIAbstractManager } from "./IIAbstractManager"
 import {
-  IIMathActionSubManager,
   IIMathComputationSubManager,
-  IIMathDependencySubManager,
-  IIMathInteractionSubManager,
+  IIMathFunctionEvaluationSubManager,
   IIMathOverlaySubManager,
-  TMathBlockComputation
+  IIMathVariableSubManager,
+  TMathBlockComputation,
+  TMathInteractionConfig,
+  TMathOverlayConfig,
 } from "./math"
 import { TJIIXMathElement } from "@/model"
+import { TMathEvaluable, TMathVariable } from "@/recognizer/RecognizerWebSocketMessage"
 
 /**
- * Main Math manager that orchestrates all math-related sub-managers
- *
- * This manager follows the Facade pattern to provide a unified interface
- * for all math operations while delegating to specialized sub-managers.
+ * Main Math manager that orchestrates all math-related sub-managers.
  *
  * Sub-managers:
- * - actions: Compute, evaluate, set variables
- * - computation: Store computation data and results
- * - dependencies: Track dependencies between math blocks
- * - interactions: Handle user interactions (click, hover)
+ * - computation: Computation cache, solver I/O, numerical result ops
+ * - variables: Variable state, dependency tracking, visual interactions (hover/select)
+ * - evaluation: Function evaluation
  * - overlays: Render visual overlays for math blocks
- *
- * @example Basic usage via facade methods
- * ```typescript
- * const result = await editor.math.computeNumericalResult(blockId)
- * await editor.math.setVariableValues(blockId, { x: 5, y: 10 })
- * editor.math.refreshOverlays()
- * ```
- *
- * @example Direct sub-manager access
- * ```typescript
- * const variables = editor.math.actions.getStoredVariableValues(blockId)
- * const dependents = editor.math.dependencies.getMathDependencies(blockId)
- * ```
  *
  * @group Manager
  */
@@ -43,86 +28,188 @@ export class IIMathManager extends IIAbstractManager
   protected managerName = "IIMathManager"
 
   // Sub-managers
-  #actions: IIMathActionSubManager
   #computation: IIMathComputationSubManager
-  #dependencies: IIMathDependencySubManager
-  #interactions: IIMathInteractionSubManager
+  #variables: IIMathVariableSubManager
+  #evaluation: IIMathFunctionEvaluationSubManager
   #overlays: IIMathOverlaySubManager
 
   constructor(editor: InteractiveInkEditor)
   {
     super(editor)
 
-    // Initialize all sub-managers
-    this.#actions = new IIMathActionSubManager(editor)
     this.#computation = new IIMathComputationSubManager(editor)
-    this.#dependencies = new IIMathDependencySubManager(editor)
-    this.#interactions = new IIMathInteractionSubManager(editor)
+    this.#variables = new IIMathVariableSubManager(editor)
+    this.#evaluation = new IIMathFunctionEvaluationSubManager(editor)
     this.#overlays = new IIMathOverlaySubManager(editor)
   }
 
-  // ==========================================
-  // Sub-manager accessors
-  // ==========================================
-
-  get actions(): IIMathActionSubManager
-  {
-    return this.#actions
-  }
-
-  get computation(): IIMathComputationSubManager
-  {
-    return this.#computation
-  }
-
-  get dependencies(): IIMathDependencySubManager
-  {
-    return this.#dependencies
-  }
-
-  get interactions(): IIMathInteractionSubManager
-  {
-    return this.#interactions
-  }
-
+  /**
+   * @internal — used only by math sub-managers (variables)
+   */
   get overlays(): IIMathOverlaySubManager
   {
     return this.#overlays
   }
 
   // ==========================================
-  // Facade methods - Actions
+  // Computation facades
   // ==========================================
 
-  /**
-   * Compute numerical result for a math block
-   * Delegates to actions sub-manager
-   */
   async computeNumericalResult(
     jiixBlockId: string,
     drawStrokes?: boolean
   ): Promise<{ result: TJIIXMathElement, addedStrokesCount: number, value?: number }>
   {
-    return this.#actions.computeNumericalResult(jiixBlockId, drawStrokes)
+    return this.#computation.computeNumericalResult(jiixBlockId, drawStrokes)
   }
 
-  /**
-   * Set variable value for a specific math block
-   * Delegates to actions sub-manager
-   */
+  async computeAllNumericalResults(): Promise<void>
+  {
+    return this.#computation.computeAllNumericalResults()
+  }
+
+  async clearSolverOutputs(jiixBlockId: string): Promise<void>
+  {
+    return this.#computation.clearSolverOutputs(jiixBlockId)
+  }
+
+  async clearAllSolverOutputs(): Promise<void>
+  {
+    return this.#computation.clearAllSolverOutputs()
+  }
+
+  getComputation(jiixBlockId: string): TMathBlockComputation | undefined
+  {
+    return this.#computation.getMathBlock(jiixBlockId)
+  }
+
+  getStoredSolverOutputs(jiixBlockId: string): string[] | undefined
+  {
+    return this.#computation.getStoredSolverOutputs(jiixBlockId)
+  }
+
+  // ==========================================
+  // Variable facades
+  // ==========================================
+
   async setVariableValue(
     jiixBlockId: string,
     variableName: string,
     value: number
   ): Promise<void>
   {
-    return this.#actions.setVariableValue(jiixBlockId, variableName, value)
+    this.logger.info("setVariableValue", { jiixBlockId, variableName, value })
+    await this.#computation.clearSolverOutputs(jiixBlockId)
+    await this.#variables.setVariableValue(jiixBlockId, variableName, value)
+    await this.recalculateDependentBlocks(jiixBlockId)
   }
 
-  /**
-   * Evaluate a math function
-   * Delegates to actions sub-manager
-   */
+  async getVariables(jiixBlockId: string): Promise<TMathVariable[]>
+  {
+    return this.#variables.getVariables(jiixBlockId)
+  }
+
+  async setVariables(
+    jiixBlockId: string,
+    variableValues: Record<string, number>
+  ): Promise<void>
+  {
+    this.logger.info("setVariables", { jiixBlockId, variableValues })
+
+    if (!jiixBlockId) {
+      throw new Error("Math block does not have jiixBlockId")
+    }
+
+    for (const [variableName, variableValue] of Object.entries(variableValues)) {
+      await this.setVariableValue(jiixBlockId, variableName, variableValue)
+    }
+  }
+
+  async getVariableValue(jiixBlockId: string, variableName: string): Promise<number>
+  {
+    return this.#variables.getVariableValue(jiixBlockId, variableName)
+  }
+
+  getStoredVariableValues(jiixBlockId: string): Record<string, number> | undefined
+  {
+    return this.#variables.getStoredVariableValues(jiixBlockId)
+  }
+
+  getMathDependencies(jiixBlockId: string): import("./math").MathDependencies | null
+  {
+    return this.#variables.getDependencies(jiixBlockId)
+  }
+
+  async enrichMathDependencies(jiixBlockId: string): Promise<void>
+  {
+    return this.#variables.enrichMathDependencies(jiixBlockId)
+  }
+
+  cleanupMathDependencies(jiixBlockIds: string[]): void
+  {
+    this.#variables.cleanupMathDependencies(jiixBlockIds)
+  }
+
+  async recalculateDependentBlocks(sourceBlockId: string): Promise<void>
+  {
+    this.logger.info("recalculateDependentBlocks", { sourceBlockId })
+
+    const deps = this.#variables.getDependencies(sourceBlockId)
+    if (!deps?.dependentBlocks || deps.dependentBlocks.length === 0) {
+      this.logger.debug("recalculateDependentBlocks", "No dependent blocks to recalculate")
+      return
+    }
+
+    this.logger.info("recalculateDependentBlocks", `Found ${deps.dependentBlocks.length} dependent blocks`)
+
+    for (const dependentBlockId of deps.dependentBlocks) {
+      try {
+        this.logger.info("recalculateDependentBlocks", `Computing numerical result for ${dependentBlockId}`)
+        await this.#computation.computeNumericalResult(dependentBlockId, this.editor.drawComputationResult)
+      }
+      catch (computeError) {
+        this.logger.error("recalculateDependentBlocks", `Error computing ${dependentBlockId}:`, computeError)
+      }
+    }
+
+    this.logger.info("recalculateDependentBlocks", "All dependent blocks recalculated")
+    this.editor.event.emitChanged(this.editor.history.context)
+  }
+
+  selectBlock(jiixBlockId: string): void
+  {
+    this.#variables.selectBlock(jiixBlockId)
+  }
+
+  clearBlockSelection(): void
+  {
+    this.#variables.clearBlockSelection()
+  }
+
+  onSymbolHover(jiixBlockId: string | null): void
+  {
+    this.#variables.onSymbolHover(jiixBlockId)
+  }
+
+  getVariablesConfig(): TMathInteractionConfig
+  {
+    return this.#variables.getConfig()
+  }
+
+  updateVariablesConfig(config: Partial<TMathInteractionConfig>): void
+  {
+    this.#variables.updateConfig(config)
+  }
+
+  clearVariableInteractions(): void
+  {
+    this.#variables.clearAll()
+  }
+
+  // ==========================================
+  // Evaluation facades
+  // ==========================================
+
   async evaluateFunction(
     jiixBlockId: string,
     evaluation: {
@@ -134,104 +221,69 @@ export class IIMathManager extends IIAbstractManager
     }
   ): Promise<{ [key: string]: number }[][]>
   {
-    return this.#actions.evaluateFunction(jiixBlockId, evaluation)
+    return this.#evaluation.evaluateFunction(jiixBlockId, evaluation)
   }
 
-  /**
-   * Clear solver output strokes for a specific math block
-   * Delegates to actions sub-manager
-   */
-  async clearSolverOutputs(jiixBlockId: string): Promise<void>
+  async getEvaluables(blockId: string): Promise<TMathEvaluable[]>
   {
-    return this.#actions.clearSolverOutputs(jiixBlockId)
+    return this.#evaluation.getEvaluables(blockId)
   }
 
-  /**
-   * Clear solver output strokes for all math blocks
-   * Delegates to actions sub-manager
-   */
-  async clearAllSolverOutputs(): Promise<void>
+  // ==========================================
+  // Diagnostic facades
+  // ==========================================
+
+  async getDiagnostic(jiixBlockId: string, task: string): Promise<string>
   {
-    return this.#actions.clearAllSolverOutputs()
+    this.logger.info("getDiagnostic", { jiixBlockId, task })
+    return await this.editor.recognizer.getDiagnostic(jiixBlockId, task)
   }
 
-  // ==========================================
-  // Facade methods - Computation
-  // ==========================================
-
-  /**
-   * Get variable values for a math block
-   * Delegates to computation sub-manager
-   */
-  getStoredVariableValues(jiixBlockId: string): Record<string, number> | undefined
+  async getAvailableActions(jiixBlockId: string): Promise<string[]>
   {
-    return this.#actions.getStoredVariableValues(jiixBlockId)
-  }
-
-  /**
-   * Get computation data for a math block
-   * Delegates to computation sub-manager
-   */
-  getComputation(jiixBlockId: string): TMathBlockComputation | undefined
-  {
-    return this.#computation.getMathBlock(jiixBlockId)
+    this.logger.info("getAvailableActions", { jiixBlockId })
+    return await this.editor.recognizer.getAvailableActions(jiixBlockId)
   }
 
   // ==========================================
-  // Facade methods - Dependencies
+  // Overlay facades
   // ==========================================
 
-  /**
-   * Recalculate blocks that depend on the given block
-   * Delegates to dependencies sub-manager
-   */
-  async recalculateDependentBlocks(jiixBlockId: string): Promise<void>
-  {
-    return this.#dependencies.recalculateDependentBlocks(jiixBlockId)
-  }
-
-  // ==========================================
-  // Facade methods - Overlays
-  // ==========================================
-
-  /**
-   * Refresh all math overlays
-   * Delegates to overlays sub-manager
-   */
   refreshOverlays(): void
   {
     this.#overlays.refresh()
   }
 
-  /**
-   * Clear all math overlays
-   * Delegates to overlays sub-manager
-   */
   clearAllOverlays(): void
   {
     this.#overlays.clearAll()
   }
 
-  /**
-   * Update overlay for a specific math block
-   * Delegates to overlays sub-manager
-   */
   updateOverlaysForSymbol(mathBlock: TJIIXMathElement): void
   {
     this.#overlays.updateOverlaysForSymbol(mathBlock)
   }
 
-  // ==========================================
-  // Lifecycle
-  // ==========================================
+  getOverlaysConfig(): TMathOverlayConfig
+  {
+    return this.#overlays.getConfig()
+  }
+
+  updateOverlaysConfig(config: Partial<TMathOverlayConfig>): void
+  {
+    this.#overlays.updateConfig(config)
+  }
+
+  toggleBlockOverlays(show: boolean): void
+  {
+    this.#overlays.toggleBlockOverlays(show)
+  }
 
   protected onDestroy(): void
   {
-    // Destroy all sub-managers
-    this.#actions.destroy()
     this.#computation.destroy()
-    this.#dependencies.destroy()
-    this.#interactions.destroy()
+    this.#variables.destroy()
+    this.#evaluation.destroy()
     this.#overlays.destroy()
   }
 }

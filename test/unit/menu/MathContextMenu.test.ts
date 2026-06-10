@@ -170,10 +170,10 @@ describe("MathContextMenu.ts", () =>
 
   describe("editor math methods", () =>
   {
-    test("should have getVariables method available", () =>
+    test("should have getMathVariables method available", () =>
     {
-      expect(editor.getVariables).toBeDefined()
-      expect(typeof editor.getVariables).toBe("function")
+      expect(editor.getMathVariables).toBeDefined()
+      expect(typeof editor.getMathVariables).toBe("function")
     })
 
     test("should have setMathVariables method available", () =>
@@ -200,12 +200,12 @@ describe("MathContextMenu.ts", () =>
       expect(typeof editor.evaluateMathFunction).toBe("function")
     })
 
-    test("getVariables returns a promise", async () =>
+    test("getMathVariables returns a promise", async () =>
     {
-      editor.getVariables = jest.fn().mockResolvedValue([])
-      const result = await editor.getVariables("test-id")
+      editor.getMathVariables = jest.fn().mockResolvedValue([])
+      const result = await editor.getMathVariables("test-id")
       expect(result).toEqual([])
-      expect(editor.getVariables).toHaveBeenCalledWith("test-id")
+      expect(editor.getMathVariables).toHaveBeenCalledWith("test-id")
     })
 
     test("getEvaluables returns evaluable functions", async () =>
