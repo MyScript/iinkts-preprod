@@ -1,4 +1,3 @@
-import { LoggerManager, LoggerCategory, type Logger } from "@/logger"
 import { IIStroke, IIText, isRecognizedMath, SymbolType, type TIISymbol } from "@/symbol"
 import { TIIHistoryChanges } from "@/history"
 import type { InteractiveInkEditor } from "@/editor"
@@ -13,7 +12,6 @@ import type { GestureHelpers } from "@/manager/interactive/gestures/GestureHelpe
  */
 export class ScratchGestureHandler extends GestureHandler
 {
-  #logger: Logger
   readonly gestureType = "SCRATCH" as const
 
   constructor(
@@ -22,7 +20,6 @@ export class ScratchGestureHandler extends GestureHandler
   )
   {
     super(editor, helpers)
-    this.#logger = LoggerManager.getLogger(LoggerCategory.GESTURE)
   }
 
   /**
@@ -129,9 +126,9 @@ export class ScratchGestureHandler extends GestureHandler
   }
   async apply(gestureStroke: IIStroke, gesture: TGesture): Promise<void>
   {
-    this.#logger.debug("applyScratchGesture", { gestureStroke, gesture })
+    this.logger.debug("applyScratchGesture", { gestureStroke, gesture })
     if (!gesture.strokeIds.length) {
-      this.#logger.warn("applyScratchGesture", "Unable to apply scratch because there are no strokes")
+      this.logger.warn("applyScratchGesture", "Unable to apply scratch because there are no strokes")
       return
     }
 
@@ -164,14 +161,14 @@ export class ScratchGestureHandler extends GestureHandler
 
       const deps = await this.editor.getMathDependencies(mathSymbol.jiixBlockId)
       if (deps?.dependentBlocks && deps.dependentBlocks.length > 0) {
-        this.#logger.info("applyScratch", `Math symbol ${mathSymbol.jiixBlockId} has ${deps.dependentBlocks.length} dependent blocks, clearing their solver outputs`)
+        this.logger.info("applyScratch", `Math symbol ${mathSymbol.jiixBlockId} has ${deps.dependentBlocks.length} dependent blocks, clearing their solver outputs`)
         deps.dependentBlocks.forEach(blockId => dependentBlocksToClean.add(blockId))
       }
     }
 
     for (const blockId of dependentBlocksToClean) {
       await this.editor.math.clearSolverOutputs(blockId)
-      this.#logger.info("applyScratch", `Cleared solver outputs from dependent block ${blockId}`)
+      this.logger.info("applyScratch", `Cleared solver outputs from dependent block ${blockId}`)
     }
 
     const promises: Promise<void | TIISymbol[]>[] = []

@@ -1,4 +1,3 @@
-import { LoggerManager, LoggerCategory, type Logger } from "@/logger"
 import { IIStroke, IIText, Box, type TIISymbol, isText } from "@/symbol"
 import { TIIHistoryChanges } from "@/history"
 import type { InteractiveInkEditor } from "@/editor"
@@ -13,7 +12,6 @@ import type { GestureHelpers } from "@/manager/interactive/gestures/GestureHelpe
  */
 export class JoinGestureHandler extends GestureHandler
 {
-  #logger: Logger
   readonly gestureType = "JOIN" as const
 
   constructor(
@@ -22,12 +20,11 @@ export class JoinGestureHandler extends GestureHandler
   )
   {
     super(editor, helpers)
-    this.#logger = LoggerManager.getLogger(LoggerCategory.GESTURE)
   }
 
   async apply(gestureStroke: IIStroke, gesture: TGesture): Promise<void>
   {
-    this.#logger.debug("applyJoinGesture", { gestureStroke, gesture })
+    this.logger.debug("applyJoinGesture", { gestureStroke, gesture })
 
     const symbolsAbove = this.model.symbols.filter(s => this.model.isSymbolAbove(gestureStroke, s))
     const symbolsRow = this.model.symbols.filter(s => gestureStroke.id !== s.id && this.model.isSymbolInRow(gestureStroke, s))
