@@ -425,40 +425,6 @@ export class IIMathOverlaySubManager extends IIAbstractManager
     })
   }
 
-  drawDependencyArrow(fromId: string, toId: string, color: string): void {
-    const arrowId = this.sanitizeId(`arrow-${fromId}-${toId}`)
-    this.renderer.removeSymbol(arrowId)
-
-    const fromSymbol = this.model.symbols.find(s => s.id === fromId) as IIStroke | undefined
-    const toSymbol = this.model.symbols.find(s => s.id === toId) as IIStroke | undefined
-
-    if (!fromSymbol || !toSymbol) {
-      return
-    }
-
-    const startX = fromSymbol.bounds.x + fromSymbol.bounds.width
-    const startY = fromSymbol.bounds.y + fromSymbol.bounds.height / 2
-    const endX = toSymbol.bounds.x
-    const endY = toSymbol.bounds.y + toSymbol.bounds.height / 2
-
-    const controlX = (startX + endX) / 2
-    const path = `M ${startX} ${startY} Q ${controlX} ${startY}, ${controlX} ${(startY + endY) / 2} T ${endX} ${endY}`
-
-    const arrowPath = document.createElementNS("http://www.w3.org/2000/svg", "path")
-    arrowPath.setAttribute("id", arrowId)
-    arrowPath.setAttribute("d", path)
-    arrowPath.setAttribute("stroke", color)
-    arrowPath.setAttribute("stroke-width", "2")
-    arrowPath.setAttribute("fill", "transparent")
-    arrowPath.setAttribute("marker-end", "url(#arrowhead)")
-    arrowPath.setAttribute("data-overlay", "arrow")
-    arrowPath.setAttribute("style", "pointer-events: none;")
-
-    this.renderer.layer.appendChild(arrowPath)
-
-    this.ensureArrowheadMarker()
-  }
-
   /**
    * Draw dependency arrow from a symbol to a specific variable box
    * @param fromId - Source symbol ID
