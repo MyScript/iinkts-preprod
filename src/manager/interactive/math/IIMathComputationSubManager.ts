@@ -101,7 +101,7 @@ export class IIMathComputationSubManager extends IIAbstractManager
     )
 
     if (solverOutputStrokes.length > 0) {
-      this.editor.removeSymbols(solverOutputStrokes.map(s => s.id), false)
+      await this.editor.removeSymbols(solverOutputStrokes.map(s => s.id), false)
     }
 
     this.updateSolverOutputs(jiixBlockId, [])
@@ -116,7 +116,7 @@ export class IIMathComputationSubManager extends IIAbstractManager
     )
 
     if (solverOutputStrokes.length > 0) {
-      this.editor.removeSymbols(solverOutputStrokes.map(s => s.id), false)
+      await this.editor.removeSymbols(solverOutputStrokes.map(s => s.id), false)
     }
 
     this.updateSolverOutputsForAll([])

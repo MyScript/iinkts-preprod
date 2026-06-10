@@ -288,7 +288,7 @@ export class IIMathVariableSubManager extends IIAbstractManager
   async getVariableValue(jiixBlockId: string, variableName: string): Promise<number>
   {
     this.logger.info("getVariableValue", { jiixBlockId, variableName })
-    return this.editor.recognizer.getVariableValue(jiixBlockId, variableName)
+    return await this.editor.recognizer.getVariableValue(jiixBlockId, variableName)
   }
 
   async setVariableValue(
