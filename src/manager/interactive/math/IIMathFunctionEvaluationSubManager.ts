@@ -1,7 +1,7 @@
 import { IIAbstractManager } from "../IIAbstractManager"
 import { TMathEvaluable } from "@/recognizer"
 import type { InteractiveInkEditor } from "@/editor"
-import { LoggerCategory } from "@/logger/logger"
+import { LoggerCategory } from "@/logger"
 
 /**
  * Sub-manager responsible for math function evaluation

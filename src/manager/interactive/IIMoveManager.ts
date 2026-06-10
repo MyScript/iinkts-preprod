@@ -1,7 +1,7 @@
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import { PointerEventGrabber, PointerInfo } from "@/grabber"
 import { IIAbstractManager } from "./IIAbstractManager"
-import { LoggerCategory } from "@/logger/logger"
+import { LoggerCategory } from "@/logger"
 
 /**
  * @group Manager
