@@ -1,4 +1,3 @@
-import { LoggerManager, LoggerCategory, type Logger } from "@/logger"
 import { IIStroke, IIText, type TIISymbol, isText, SymbolType, Box, TPoint } from "@/symbol"
 import { TIIHistoryChanges } from "@/history"
 import { computeAverage, isBetween } from "@/utils"
@@ -15,7 +14,6 @@ import type { GestureHelpers } from "../GestureHelpers"
  */
 export class InsertGestureHandler extends GestureHandler
 {
-  #logger: Logger
   readonly gestureType = "INSERT" as const
 
   constructor(
@@ -24,7 +22,6 @@ export class InsertGestureHandler extends GestureHandler
   )
   {
     super(editor, helpers)
-    this.#logger = LoggerManager.getLogger(LoggerCategory.GESTURE)
   }
 
   /**
@@ -209,7 +206,7 @@ export class InsertGestureHandler extends GestureHandler
 
   async apply(gestureStroke: IIStroke, gesture: TGesture): Promise<void>
   {
-    this.#logger.debug("applyInsertGesture", { gestureStroke, gesture })
+    this.logger.debug("applyInsertGesture", { gestureStroke, gesture })
 
     const symbolsRow = this.model.symbols.filter(s => gestureStroke.id !== s.id && this.model.isSymbolInRow(gestureStroke, s))
     const textToSplit = symbolsRow.find(s => isText(s) && isBetween(gestureStroke.bounds.xMid, s.bounds.xMin, s.bounds.xMax)) as IIText | undefined
