@@ -1,7 +1,7 @@
 import { EditorTool } from "@/Constants"
 import type { InteractiveInkEditor } from "@/editor"
 import { IIAbstractManager } from "./IIAbstractManager"
-import { LoggerCategory } from "@/logger/logger"
+import { LoggerCategory } from "@/logger"
 
 /**
  * Manages keyboard input for the Interactive Ink editor
