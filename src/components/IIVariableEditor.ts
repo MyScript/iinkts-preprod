@@ -22,7 +22,7 @@ export class IIVariableEditor {
   private modal?: Modal
   private blockVariables: SymbolVariables[] = []
   private inputsMap: Map<string, Map<string, HTMLInputElement>> = new Map()
-  private logger = LoggerManager.getLogger(LoggerCategory.MENU)
+  private logger = LoggerManager.getLogger(LoggerCategory.MATH)
 
   constructor(editor: InteractiveInkEditor, jiixBlockIds: string[]) {
     this.editor = editor
