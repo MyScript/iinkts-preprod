@@ -79,8 +79,6 @@ export class IIModel
     this.#syncMap()
     const directMatch = this.#symbolsMap.get(id)
     if (directMatch) return directMatch
-
-    // Recognized symbols no longer exist - all symbols are direct matches
     return undefined
   }
 

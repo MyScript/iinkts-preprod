@@ -90,7 +90,6 @@ export class EraseManager
     if (isInteractiveInkEditor(this.editor)) {
       this.editor.model.symbols.forEach(s =>
       {
-        // Recognized symbols no longer exist - skip this check
         if (isText(s)) {
           // For text symbols, mark only intersected characters
           let hasIntersectedChar = false
@@ -139,7 +138,6 @@ export class EraseManager
       const allStrokeIdsToDelete: string[] = []
 
       editor.model.symbols.forEach(s => {
-        // Recognized symbols no longer exist - skip this check
         if (isText(s) && this.charsToDelete.has(s.id)) {
           const charIdsToDelete = this.charsToDelete.get(s.id)!
           const remainingChars = s.chars.filter(char => !charIdsToDelete.has(char.id))

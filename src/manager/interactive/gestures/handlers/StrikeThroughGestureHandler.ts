@@ -1,6 +1,4 @@
-import { type TIISymbol } from "@/symbol"
 import { DecoratorKind, IIStroke } from "@/symbol"
-import { TIIHistoryChanges } from "@/history"
 import type { InteractiveInkEditor } from "@/editor"
 import type { TGesture } from "@/manager/interactive/gestures/GestureTypes"
 import { StrikeThroughAction } from "@/manager/interactive/gestures/GestureTypes"
@@ -21,7 +19,7 @@ export class StrikeThroughGestureHandler extends GestureHandler
     super(editor, helpers)
   }
 
-  async apply(gestureStroke: IIStroke, gesture: TGesture): Promise<void | TIISymbol[]>
+  async apply(gestureStroke: IIStroke, gesture: TGesture): Promise<void>
   {
     this.logger.debug("applyStrikeThroughGesture", { gestureStroke, gesture })
     if (!gesture.strokeIds.length) {
@@ -31,15 +29,13 @@ export class StrikeThroughGestureHandler extends GestureHandler
 
     switch (this.manager.strikeThroughAction) {
       case StrikeThroughAction.Draw: {
-        const decorators = this.applyDecoratorToIds(gesture.strokeIds, gestureStroke, DecoratorKind.Strikethrough)
-        if (decorators.length) {
-          const changes: TIIHistoryChanges = { decorator: decorators }
-          this.history.push(this.model, changes)
-        }
+        const changes = await this.processor.apply(gesture.strokeIds, { kind: "decorator", decoratorKind: DecoratorKind.Strikethrough })
+        if (changes) this.history.push(this.model, changes)
         break
       }
       case StrikeThroughAction.Erase:
-        return this.editor.removeSymbols(gesture.strokeIds)
+        await this.processor.apply(gesture.strokeIds, { kind: "erase" })
+        break
       default:
         this.logger.warn("applyStrikeThroughGesture", `Unknown strikeThroughAction: ${ this.manager.strikeThroughAction }`)
         break

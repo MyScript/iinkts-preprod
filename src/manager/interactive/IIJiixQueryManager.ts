@@ -403,6 +403,59 @@ export class IIJiixQueryManager extends IIAbstractManager
   }
 
   /**
+   * Get the JIIX word group for a stroke (for word-level decorator spanning).
+   * Returns all stroke IDs in the same word and the word's pixel bounding box.
+   */
+  getWordGroupForStroke(strokeId: string): {
+    wordKey: string
+    wordBounds: Box | null
+    allStrokeIds: string[]
+    baseline: number | null
+    xHeight: number | null
+  } | null
+  {
+    this.ensureIndexValid()
+    const info = this.getStrokeInfo(strokeId)
+    if (!info?.context?.word) return null
+    const textElement = info.element as TJIIXTextElement
+    const wordIndex = info.context.word.index
+    const word = textElement.words?.[wordIndex]
+    if (!word) return null
+    const allStrokeIds = (word.items || [])
+      .map(item => item["full-id"] || item.id)
+      .filter((id): id is string => !!id)
+    const wordBounds = word["bounding-box"]
+      ? new Box(convertBoundingBoxMillimeterToPixel(word["bounding-box"]))
+      : null
+
+    // Find the line containing this word via first-char/last-char indices
+    let baseline: number | null = null
+    let xHeight: number | null = null
+    if (textElement.lines && textElement.chars) {
+      const chars = textElement.chars
+      const firstCharIndex = chars.findIndex(c => c.word === wordIndex)
+      if (firstCharIndex !== -1) {
+        const line = textElement.lines.find(l =>
+          (l["first-char"] === undefined || l["first-char"] <= firstCharIndex) &&
+          (l["last-char"] === undefined || l["last-char"] >= firstCharIndex)
+        )
+        if (line) {
+          baseline = convertMillimeterToPixel(line["baseline-y"])
+          xHeight = convertMillimeterToPixel(line["x-height"])
+        }
+      }
+    }
+
+    return {
+      wordKey: `${ textElement.id }:${ wordIndex }`,
+      wordBounds,
+      allStrokeIds,
+      baseline,
+      xHeight
+    }
+  }
+
+  /**
    * Get all stroke IDs belonging to an element
    * @param elementId - The JIIX element ID
    * @returns Array of stroke IDs

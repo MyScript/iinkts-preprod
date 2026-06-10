@@ -1,10 +1,11 @@
 import { SvgElementRole } from "@/Constants"
 import { getClosestPoints } from "@/utils"
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { TIISymbol, TPoint, TBox, Box, IIEraser, SymbolType } from "@/symbol"
+import { TIISymbol, TPoint, TBox, Box, IIEraser, IIDecorator, SymbolType } from "@/symbol"
 import { TIIRendererConfiguration } from "@/renderer/RendererConfiguration"
 import { BaseRenderer } from "@/renderer/base"
 import { SVGRendererConst, GUIDE_PATH_ATTRS, SUB_GUIDE_PATH_ATTRS } from "./utils/SVGRendererConst"
+import { SVGRendererDecoratorUtil } from "./SVGRendererDecoratorUtil"
 import { SVGRendererEdgeUtil } from "./SVGRendererEdgeUtil"
 import { SVGRendererEraserUtil } from "./SVGRendererEraserUtil"
 import { SVGRendererShapeUtil } from "./SVGRendererShapeUtil"
@@ -319,7 +320,9 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
       case SymbolType.Math:
         element = SVGRendererMathUtil.getSVGElement(symbol)
         break
-      // SymbolType.Recognized removed - recognized symbols no longer exist
+      case SymbolType.Decorator:
+        element = SVGRendererDecoratorUtil.getSVGElementForSymbol(symbol as IIDecorator)
+        break
       default:
         this.#logger.error("buildElementFromSymbol", `symbol unknown: "${JSON.stringify(symbol)}"`)
     }
@@ -372,6 +375,10 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
     if (svgEl) {
       if (oldNode) {
         oldNode.replaceWith(svgEl)
+      }
+      else if (symbol.type === SymbolType.Decorator) {
+        // Decorators render behind all other symbols
+        this.definitionGroup.insertAdjacentElement("afterend", svgEl)
       }
       else {
         this.layer.appendChild(svgEl)

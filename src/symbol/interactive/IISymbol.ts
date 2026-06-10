@@ -10,6 +10,7 @@ import
 import { IIStroke } from "./IIStroke"
 import { IIText } from "./IIText"
 import { IIMath } from "./IIMath"
+import { IIDecorator } from "./IIDecorator"
 
 /**
  * @group Symbol
@@ -24,4 +25,4 @@ export type TIIShape = IIShapeCircle | IIShapeEllipse | IIShapePolygon
 /**
  * @group Symbol
  */
-export type TIISymbol = TIIEdge | TIIShape | IIStroke | IIText | IIMath
+export type TIISymbol = TIIEdge | TIIShape | IIStroke | IIText | IIMath | IIDecorator
