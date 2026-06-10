@@ -281,7 +281,7 @@ export class IIConversionManager extends IIAbstractManager
     return new IIShapePolygon(points, strokes[0]?.style)
   }
 
-  buildPolygon(polygon: TJIIXNodePolygon, strokes: IIStroke[]): IIShapePolygon
+  #buildPolygonFromPoints(polygon: { points: number[] }, strokes: IIStroke[]): IIShapePolygon
   {
     const points: TPoint[] = []
     for (let i = 0; i < polygon.points.length; i += 2) {
@@ -290,47 +290,27 @@ export class IIConversionManager extends IIAbstractManager
         y: convertMillimeterToPixel(polygon.points[i + 1])
       })
     }
-
     return new IIShapePolygon(points, strokes[0]?.style)
+  }
+
+  buildPolygon(polygon: TJIIXNodePolygon, strokes: IIStroke[]): IIShapePolygon
+  {
+    return this.#buildPolygonFromPoints(polygon, strokes)
   }
 
   buildRhombus(polygon: TJIIXNodeRhombus, strokes: IIStroke[]): IIShapePolygon
   {
-    const points: TPoint[] = []
-    for (let i = 0; i < polygon.points.length; i += 2) {
-      points.push({
-        x: convertMillimeterToPixel(polygon.points[i]),
-        y: convertMillimeterToPixel(polygon.points[i + 1])
-      })
-    }
-
-    return new IIShapePolygon(points, strokes[0]?.style)
+    return this.#buildPolygonFromPoints(polygon, strokes)
   }
 
   buildTriangle(polygon: TJIIXNodeTriangle, strokes: IIStroke[]): IIShapePolygon
   {
-    const points: TPoint[] = []
-    for (let i = 0; i < polygon.points.length; i += 2) {
-      points.push({
-        x: convertMillimeterToPixel(polygon.points[i]),
-        y: convertMillimeterToPixel(polygon.points[i + 1])
-      })
-    }
-
-    return new IIShapePolygon(points, strokes[0]?.style)
+    return this.#buildPolygonFromPoints(polygon, strokes)
   }
 
   buildParallelogram(polygon: TJIIXNodeParallelogram, strokes: IIStroke[]): IIShapePolygon
   {
-    const points: TPoint[] = []
-    for (let i = 0; i < polygon.points.length; i += 2) {
-      points.push({
-        x: convertMillimeterToPixel(polygon.points[i]),
-        y: convertMillimeterToPixel(polygon.points[i + 1])
-      })
-    }
-
-    return new IIShapePolygon(points, strokes[0]?.style)
+    return this.#buildPolygonFromPoints(polygon, strokes)
   }
 
   convertNode(node: TJIIXNodeElement, strokes: IIStroke[]): { symbol: TIIShape, strokes: IIStroke[] } | undefined
