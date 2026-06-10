@@ -1,6 +1,6 @@
 import { TBox } from "@/symbol"
 import { TJIIXBase, TJIIXElementBase } from "./ExportCommon"
-import { JIIXELementType } from "./Export"
+import { JIIXElementType } from "./Export"
 
 /**
  * @group Exports
@@ -188,7 +188,7 @@ export type TJIIXMathExpression =
  * @group Exports
  * @remarks Math element that can be embedded in text or standalone
  */
-export type TJIIXMathElement = TJIIXElementBase<JIIXELementType.Math> & {
+export type TJIIXMathElement = TJIIXElementBase<JIIXElementType.Math> & {
   id: string
   "bounding-box"?: TBox
   label?: string

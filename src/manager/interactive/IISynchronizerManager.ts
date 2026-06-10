@@ -1,5 +1,5 @@
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
-import { TJIIXStrokeItem, TJIIXMathElement, TJIIXMathExpression, TJIIXTextElement, TJIIXNodeElement, TJIIXEdgeElement, TJIIXEdgeLine, JIIXELementType, JIIXEdgeKind } from "@/model"
+import { TJIIXStrokeItem, TJIIXMathElement, TJIIXMathExpression, TJIIXTextElement, TJIIXNodeElement, TJIIXEdgeElement, TJIIXEdgeLine, JIIXElementType, JIIXEdgeKind } from "@/model"
 import { IIStroke, isStroke } from "@/symbol"
 import { IIAbstractManager } from "./IIAbstractManager"
 import { LoggerCategory } from "@/logger"
@@ -142,7 +142,7 @@ export class IISynchronizerManager extends IIAbstractManager
         for (const stroke of strokes) {
           this.#updateBlockMetadata(stroke, el)
 
-          if (el.type === JIIXELementType.Text) {
+          if (el.type === JIIXElementType.Text) {
             this.editor.jiix.updateTextMetadata(stroke, el)
           }
 
@@ -205,7 +205,7 @@ export class IISynchronizerManager extends IIAbstractManager
     const items: TJIIXStrokeItem[] = []
 
     switch (element.type) {
-      case JIIXELementType.Text:
+      case JIIXElementType.Text:
         // Collect all word items (including those with refs - embedded math)
         element.words?.forEach(word => {
           if (word.items) {
@@ -214,7 +214,7 @@ export class IISynchronizerManager extends IIAbstractManager
         })
         break
 
-      case JIIXELementType.Math:
+      case JIIXElementType.Math:
         // Collect items from expressions
         if (element.items) {
           items.push(...element.items)
@@ -226,13 +226,13 @@ export class IISynchronizerManager extends IIAbstractManager
         }
         break
 
-      case JIIXELementType.Node:
+      case JIIXElementType.Node:
         if (element.items) {
           items.push(...element.items)
         }
         break
 
-      case JIIXELementType.Edge:
+      case JIIXElementType.Edge:
         if (element.kind === JIIXEdgeKind.PolyEdge) {
           element.edges?.forEach((edge: TJIIXEdgeLine) => {
             if (edge.items) {
@@ -304,16 +304,16 @@ export class IISynchronizerManager extends IIAbstractManager
     stroke.jiixBlockId = element.id
 
     switch (element.type) {
-      case JIIXELementType.Text:
+      case JIIXElementType.Text:
         stroke.jiixBlockType = "Text"
         break
-      case JIIXELementType.Math:
+      case JIIXElementType.Math:
         stroke.jiixBlockType = "Math"
         break
-      case JIIXELementType.Node:
+      case JIIXElementType.Node:
         stroke.jiixBlockType = "Node"
         break
-      case JIIXELementType.Edge:
+      case JIIXElementType.Edge:
         stroke.jiixBlockType = "Edge"
         break
     }
