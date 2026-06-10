@@ -94,7 +94,7 @@ export class IIMathVariableSubManager extends IIAbstractManager
   // Symbol helpers
   // ==========================================
 
-  protected getMathSymbols(): IIStroke[]
+  private getMathSymbols(): IIStroke[]
   {
     return this.editor.model.symbols.filter(isRecognizedMath)
   }
@@ -106,7 +106,7 @@ export class IIMathVariableSubManager extends IIAbstractManager
     ) as IIStroke[]
   }
 
-  protected getBlockBounds(jiixBlockId: string): TBox | null
+  private getBlockBounds(jiixBlockId: string): TBox | null
   {
     const strokes = this.findMathSymbolsByJiixId(jiixBlockId)
     if (!strokes.length) return null
@@ -398,7 +398,7 @@ export class IIMathVariableSubManager extends IIAbstractManager
     this.drawDependencyArrows(jiixBlockId, sources, dependents)
   }
 
-  protected clearHoverHighlights(): void
+  private clearHoverHighlights(): void
   {
     this.logger.debug("clearHoverHighlights")
     this.editor.math.overlays.clearHighlights()
@@ -454,7 +454,7 @@ export class IIMathVariableSubManager extends IIAbstractManager
     this.#selectedJiixBlockIds.clear()
   }
 
-  protected clearSelectionHighlights(): void
+  private clearSelectionHighlights(): void
   {
     this.logger.debug("clearSelectionHighlights")
     this.editor.math.overlays.clearHighlights()
