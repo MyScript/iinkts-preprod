@@ -2,6 +2,7 @@ import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import { TJIIXStrokeItem, TJIIXMathElement, TJIIXMathExpression, TJIIXTextElement, TJIIXNodeElement, TJIIXEdgeElement, TJIIXEdgeLine, JIIXELementType, JIIXEdgeKind } from "@/model"
 import { IIStroke, isStroke } from "@/symbol"
 import { IIAbstractManager } from "./IIAbstractManager"
+import { LoggerCategory } from "@/logger"
 
 /**
  * @group Manager
@@ -21,7 +22,7 @@ export class IISynchronizerManager extends IIAbstractManager
 
   constructor(editor: InteractiveInkEditor)
   {
-    super(editor)
+    super(editor, LoggerCategory.SYNCHRONIZER)
     this.logger.info("constructor", "IISynchronizerManager")
   }
 

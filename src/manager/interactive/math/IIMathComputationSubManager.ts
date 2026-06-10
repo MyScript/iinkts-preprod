@@ -4,6 +4,7 @@ import { IIStroke, isStroke } from "@/symbol"
 import { convertMillimeterToPixel } from "@/utils"
 import { TStyle } from "@/style/Style"
 import type { InteractiveInkEditor } from "@/editor"
+import { LoggerCategory } from "@/logger"
 
 /**
  * Computation data for a math block
@@ -30,7 +31,7 @@ export class IIMathComputationSubManager extends IIAbstractManager
 
   constructor(editor: InteractiveInkEditor)
   {
-    super(editor)
+    super(editor, LoggerCategory.MATH)
   }
 
   // ==========================================
@@ -76,42 +77,15 @@ export class IIMathComputationSubManager extends IIAbstractManager
     return this.#computations.get(jiixBlockId)
   }
 
-  getComputedBlocks(): TMathBlockComputation[]
-  {
-    return Array.from(this.#computations.values()).filter(c => c.computedResult !== undefined)
-  }
-
   removeMathBlock(jiixBlockId: string): void
   {
     this.logger.debug("removeMathBlock", { jiixBlockId })
     this.#computations.delete(jiixBlockId)
   }
 
-  getStoredComputedResult(jiixBlockId: string): unknown
-  {
-    return this.#computations.get(jiixBlockId)?.computedResult
-  }
-
   getStoredSolverOutputs(jiixBlockId: string): string[] | undefined
   {
     return this.#computations.get(jiixBlockId)?.solverOutputStrokeIds
-  }
-
-  getStats(): {
-    totalBlocks: number
-    computedBlocks: number
-    blocksWithSolverOutputs: number
-  }
-  {
-    const computations = Array.from(this.#computations.values())
-
-    return {
-      totalBlocks: computations.length,
-      computedBlocks: computations.filter(c => c.computedResult !== undefined).length,
-      blocksWithSolverOutputs: computations.filter(c =>
-        c.solverOutputStrokeIds && c.solverOutputStrokeIds.length > 0
-      ).length
-    }
   }
 
   // ==========================================
@@ -171,23 +145,16 @@ export class IIMathComputationSubManager extends IIAbstractManager
     let addedStrokesCount = 0
 
     if (drawStrokes) {
-      const firstStroke = this.editor.model.symbols.find(
-        s => isStroke(s) && s.jiixBlockId === jiixBlockId
-      ) as IIStroke | undefined
-
-      if (firstStroke) {
-        const addedStrokes = await this.addSolverOutputStrokes(result)
-        addedStrokesCount = addedStrokes.length
-        this.logger.info("computeNumericalResult", `Added ${addedStrokesCount} solver output strokes`)
-
-        this.updateSolverOutputs(jiixBlockId, addedStrokes.map(s => s.id))
-      }
+      const addedStrokes = await this.addSolverOutputStrokes(result)
+      addedStrokesCount = addedStrokes.length
+      this.logger.info("computeNumericalResult", `Added ${addedStrokesCount} solver output strokes`)
+      this.updateSolverOutputs(jiixBlockId, addedStrokes.map(s => s.id))
     }
 
     let value: number | undefined
     if (result.expressions && Array.isArray(result.expressions)) {
       const equalExpression = result.expressions.find((expr) =>
-        expr.type === "=" && "value" in expr && typeof (expr as { value?: unknown }).value === "number"
+        expr && expr.type === "=" && "value" in expr && typeof (expr as { value?: unknown }).value === "number"
       )
       if (equalExpression && "value" in equalExpression) {
         value = (equalExpression as { value: number }).value
@@ -224,7 +191,7 @@ export class IIMathComputationSubManager extends IIAbstractManager
     const items: Array<{ X: number[], Y: number[], F?: number[], T?: number[] }> = []
 
     const exprRecord = expression as Record<string, unknown>
-    if (expression.type === "number" && exprRecord["solver-output"] === true && exprRecord.items && Array.isArray(exprRecord.items)) {
+    if (expression?.type === "number" && exprRecord["solver-output"] === true && exprRecord.items && Array.isArray(exprRecord.items)) {
       items.push(...exprRecord.items as Array<{ X: number[], Y: number[], F?: number[], T?: number[] }>)
     }
 

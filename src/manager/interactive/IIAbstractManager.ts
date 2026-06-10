@@ -63,9 +63,9 @@ export abstract class IIAbstractManager
    * Create a new manager
    * @param editor - The Interactive Ink Editor instance
    */
-  constructor(protected editor: InteractiveInkEditor)
+  constructor(protected editor: InteractiveInkEditor, logger: LoggerCategory)
   {
-    this.logger = LoggerManager.getLogger(LoggerCategory.EDITOR)
+    this.logger = LoggerManager.getLogger(logger)
 
     // Call optional initialization hook
     if (this.onInit) {

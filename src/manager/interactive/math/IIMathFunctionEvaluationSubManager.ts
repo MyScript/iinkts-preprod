@@ -1,6 +1,7 @@
 import { IIAbstractManager } from "../IIAbstractManager"
 import { TMathEvaluable } from "@/recognizer"
 import type { InteractiveInkEditor } from "@/editor"
+import { LoggerCategory } from "@/logger/logger"
 
 /**
  * Sub-manager responsible for math function evaluation
@@ -12,7 +13,7 @@ export class IIMathFunctionEvaluationSubManager extends IIAbstractManager
 
   constructor(editor: InteractiveInkEditor)
   {
-    super(editor)
+    super(editor, LoggerCategory.MATH)
   }
 
   async evaluateFunction(

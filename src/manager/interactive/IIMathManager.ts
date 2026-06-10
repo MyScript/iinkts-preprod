@@ -12,6 +12,7 @@ import {
 } from "./math"
 import { TJIIXMathElement } from "@/model"
 import { TMathEvaluable, TMathVariable } from "@/recognizer/RecognizerWebSocketMessage"
+import { LoggerCategory } from "@/logger"
 
 /**
  * Main Math manager that orchestrates all math-related sub-managers.
@@ -36,7 +37,7 @@ export class IIMathManager extends IIAbstractManager
 
   constructor(editor: InteractiveInkEditor)
   {
-    super(editor)
+    super(editor, LoggerCategory.MATH)
 
     this.#computation = new IIMathComputationSubManager(editor)
     this.#variables = new IIMathVariableSubManager(editor)

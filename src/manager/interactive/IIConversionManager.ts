@@ -47,6 +47,7 @@ import
   isRecognizedText,
 } from "@/symbol"
 import { computeAngleAxeRadian, computeAverage, convertBoundingBoxMillimeterToPixel, convertMillimeterToPixel, convertPixelToMillimeter, createUUID } from "@/utils"
+import { LoggerCategory } from "@/logger"
 
 /**
  * @group Manager
@@ -57,7 +58,7 @@ export class IIConversionManager extends IIAbstractManager
 
   constructor(editor: InteractiveInkEditor)
   {
-    super(editor)
+    super(editor, LoggerCategory.CONVERTER)
     this.logger.info("constructor")
   }
 

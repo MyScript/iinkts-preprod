@@ -12,6 +12,7 @@ import {
 import { Box, IIStroke, TBox, TStrokeJIIXTextWordInfo, TStrokeJIIXTextCharInfo, TStrokeJIIXTextLineInfo } from "@/symbol"
 import { convertMillimeterToPixel, convertBoundingBoxMillimeterToPixel } from "@/utils"
 import { IIAbstractManager } from "./IIAbstractManager"
+import { LoggerCategory } from "@/logger"
 
 /**
  * Text metadata for a block
@@ -86,7 +87,7 @@ export class IIJiixQueryManager extends IIAbstractManager
 
   constructor(editor: InteractiveInkEditor)
   {
-    super(editor)
+    super(editor, LoggerCategory.JIIX_QUERY)
     this.logger.info("constructor", this.managerName)
   }
 
