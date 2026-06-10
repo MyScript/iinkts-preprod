@@ -5,6 +5,7 @@ import { TJIIXMathExpression, TJIIXMathElement } from "@/model/ExportMath"
 import { TMathVariable } from "@/recognizer"
 import { ColorPaletteManager } from "../../base"
 import type { InteractiveInkEditor } from "@/editor"
+import { LoggerCategory } from "@/logger/logger"
 
 /**
  * Type representing math symbol dependencies
@@ -69,7 +70,7 @@ export class IIMathVariableSubManager extends IIAbstractManager
 
   constructor(editor: InteractiveInkEditor, config: Partial<TMathInteractionConfig> = {})
   {
-    super(editor)
+    super(editor, LoggerCategory.MATH)
     this.#colorManager = ColorPaletteManager.getInstance()
     this.#config = { ...IIMathVariableSubManager.DEFAULT_CONFIG, ...config }
   }

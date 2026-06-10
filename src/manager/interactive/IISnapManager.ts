@@ -3,6 +3,7 @@ import { SVGRendererConst } from "@/renderer/svg/utils/SVGRendererConst"
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import { PartialDeep } from "@/utils"
 import { IIAbstractManager } from "./IIAbstractManager"
+import { LoggerCategory } from "@/logger"
 
 /**
  * @group Manager
@@ -65,7 +66,7 @@ export class IISnapManager extends IIAbstractManager
 
   constructor(editor: InteractiveInkEditor, config?: PartialDeep<TSnapConfiguration>)
   {
-    super(editor)
+    super(editor, LoggerCategory.SNAP)
     this.logger.info("constructor")
     this.snapConfiguration = new SnapConfiguration(config)
   }

@@ -24,6 +24,7 @@ import {
   TGestureConfiguration,
   DefaultGestureConfiguration
 } from "./gestures/GestureTypes"
+import { LoggerCategory } from "@/logger/logger"
 
 /**
  * @group Manager
@@ -48,7 +49,7 @@ export class IIGestureManager extends IIAbstractManager
 
   constructor(editor: InteractiveInkEditor, gestureAction?: PartialDeep<TGestureConfiguration>)
   {
-    super(editor)
+    super(editor, LoggerCategory.GESTURE)
     this.logger.info("constructor")
     this.surroundAction = gestureAction?.surround || DefaultGestureConfiguration.surround
     this.strikeThroughAction = gestureAction?.strikeThrough || DefaultGestureConfiguration.strikeThrough

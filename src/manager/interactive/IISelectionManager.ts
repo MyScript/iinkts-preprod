@@ -7,6 +7,7 @@ import { IIResizeManager } from "./IIResizeManager"
 import { IIRotationManager } from "./IIRotationManager"
 import { IITranslateManager } from "./IITranslateManager"
 import { IIAbstractManager } from "./IIAbstractManager"
+import { LoggerCategory } from "@/logger"
 
 /**
  * @group Manager
@@ -24,7 +25,7 @@ export class IISelectionManager extends IIAbstractManager
 
   constructor(editor: InteractiveInkEditor)
   {
-    super(editor)
+    super(editor, LoggerCategory.SELECTION)
     this.logger.info("constructor")
     this.grabber = new PointerEventGrabber(editor.configuration.grabber)
     this.grabber.onPointerDown = this.start.bind(this)

@@ -6,6 +6,7 @@ import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import { ColorPaletteManager } from "../../base"
 import { COLORS } from "@/components"
 import { convertBoundingBoxMillimeterToPixel } from "@/utils"
+import { LoggerCategory } from "@/logger/logger"
 
 /**
  * Visual overlay configuration
@@ -47,20 +48,12 @@ export class IIMathOverlaySubManager extends IIAbstractManager
     OFFSET: 4,
   }
 
-  private static readonly OVERLAY_PREFIXES = [
-    "badge",
-    "border",
-    "result-panel",
-    "result-connection",
-    "hover-zone"
-  ] as const
-
   #config: TMathOverlayConfig
   #colorManager: ColorPaletteManager
 
   constructor(editor: InteractiveInkEditor, config: Partial<TMathOverlayConfig> = {})
   {
-    super(editor)
+    super(editor, LoggerCategory.MATH)
     this.#config = { ...IIMathOverlaySubManager.DEFAULT_CONFIG, ...config }
     this.#colorManager = ColorPaletteManager.getInstance()
   }
@@ -337,14 +330,6 @@ export class IIMathOverlaySubManager extends IIAbstractManager
     this.renderer.clearElements({ attrs: { "data-overlay": "hover-zone" } })
   }
 
-  clearOverlaysForBlock(id: string): void {
-    this.logger.debug("clearOverlaysForBlock", { id })
-
-    IIMathOverlaySubManager.OVERLAY_PREFIXES.forEach(prefix => {
-      this.renderer.removeSymbol(`${prefix}-${id}`.replace(/[^a-zA-Z0-9_-]/g, "_"))
-    })
-  }
-
   protected sanitizeId(id: string): string {
     return id.replace(/[^a-zA-Z0-9_-]/g, "_")
   }
@@ -547,9 +532,5 @@ export class IIMathOverlaySubManager extends IIAbstractManager
 
   toggleBlockOverlays(show: boolean): void {
     this.updateConfig({ showBlockOverlays: show })
-  }
-
-  toggleResultPanels(show: boolean): void {
-    this.updateConfig({ showResultPanels: show })
   }
 }
