@@ -59,8 +59,8 @@ export class IIEdgeLine extends IIEdgeBase<EdgeKind.Line>
 
   static create(partial: PartialDeep<IIEdgeLine>): IIEdgeLine
   {
-    if (!isValidPoint(partial?.start)) throw new Error(`Unable to create a arc, start point is invalid`)
-    if (!isValidPoint(partial?.end)) throw new Error(`Unable to create a arc, end point is invalid`)
+    if (!isValidPoint(partial?.start)) throw new Error(`Unable to create a line, start point is invalid`)
+    if (!isValidPoint(partial?.end)) throw new Error(`Unable to create a line, end point is invalid`)
     const line = new IIEdgeLine(partial?.start as TPoint, partial?.end as TPoint, partial.startDecoration, partial.endDecoration, partial.style)
     if (partial.id) {
       line.id = partial.id
