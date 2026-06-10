@@ -94,7 +94,6 @@ export class IIRotationManager extends IIAbstractTransformManager<[TPoint, numbe
       default:
         throw new Error(`Can't apply rotate on edge, kind unknown: ${ JSON.stringify(edge) }`)
     }
-    return edge
   }
 
   protected applyOnText(text: IIText, center: TPoint, angleRad: number): IIText
