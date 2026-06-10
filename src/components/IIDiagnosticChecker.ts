@@ -21,7 +21,7 @@ export class IIDiagnosticChecker {
   private editor: InteractiveInkEditor
   private jiixBlockIds: string[]
   private modal?: Modal
-  private logger = LoggerManager.getLogger(LoggerCategory.MENU)
+  private logger = LoggerManager.getLogger(LoggerCategory.MATH)
 
   constructor(editor: InteractiveInkEditor, jiixBlockIds: string[]) {
     this.editor = editor

@@ -49,7 +49,7 @@ export class IIFunctionEvaluator {
   private tabContent?: HTMLDivElement
   private currentTab: "graph" | "table" = "graph"
   private functionsToEvaluate: EvaluableFunction[] = []
-  private logger = LoggerManager.getLogger(LoggerCategory.MENU)
+  private logger = LoggerManager.getLogger(LoggerCategory.MATH)
 
   // Chart colors for multiple functions
   private static readonly COLORS = [
