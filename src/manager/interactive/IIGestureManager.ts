@@ -24,7 +24,7 @@ import {
   TGestureConfiguration,
   DefaultGestureConfiguration
 } from "./gestures/GestureTypes"
-import { LoggerCategory } from "@/logger/logger"
+import { LoggerCategory } from "@/logger"
 
 /**
  * @group Manager

@@ -5,7 +5,7 @@ import { TJIIXMathExpression, TJIIXMathElement } from "@/model/ExportMath"
 import { TMathVariable } from "@/recognizer"
 import { ColorPaletteManager } from "../../base"
 import type { InteractiveInkEditor } from "@/editor"
-import { LoggerCategory } from "@/logger/logger"
+import { LoggerCategory } from "@/logger"
 
 /**
  * Type representing math symbol dependencies

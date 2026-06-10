@@ -6,7 +6,7 @@ import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import { ColorPaletteManager } from "../../base"
 import { COLORS } from "@/components"
 import { convertBoundingBoxMillimeterToPixel } from "@/utils"
-import { LoggerCategory } from "@/logger/logger"
+import { LoggerCategory } from "@/logger"
 
 /**
  * Visual overlay configuration
