@@ -1,6 +1,6 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
 import { TIISymbol } from "@/symbol"
-import { TExport, TJIIXTextElement, TJIIXMathElement, JIIXELementType } from "./Export"
+import { TExport, TJIIXTextElement, TJIIXMathElement, JIIXElementType } from "./Export"
 
 /**
  * @group Model
@@ -315,7 +315,7 @@ export class IIModel
       return []
     }
     return jiixExport.elements.filter(
-      (el): el is TJIIXTextElement => el.type === JIIXELementType.Text
+      (el): el is TJIIXTextElement => el.type === JIIXElementType.Text
     )
   }
 
@@ -330,7 +330,7 @@ export class IIModel
       return []
     }
     return jiixExport.elements.filter(
-      (el): el is TJIIXMathElement => el.type === JIIXELementType.Math
+      (el): el is TJIIXMathElement => el.type === JIIXElementType.Math
     )
   }
 }

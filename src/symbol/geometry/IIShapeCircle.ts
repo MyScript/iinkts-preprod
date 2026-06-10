@@ -27,7 +27,7 @@ export class IIShapeCircle extends IIShapeBase<ShapeKind.Circle>
     this._vertices = new Map<string, TPoint[]>()
     this._vertices.set(this.verticesId, this.computedVertices())
     this._bounds = new Map<string, Box>()
-    this._bounds.set(this.verticesId, this.computedBondingBox())
+    this._bounds.set(this.verticesId, this.computedBoundingBox())
   }
 
   protected get verticesId(): string
@@ -51,7 +51,7 @@ export class IIShapeCircle extends IIShapeBase<ShapeKind.Circle>
     return points
   }
 
-  protected computedBondingBox(): Box
+  protected computedBoundingBox(): Box
   {
     const boundingBox: TBox = {
       x: this.center.x - this.radius,
@@ -65,7 +65,7 @@ export class IIShapeCircle extends IIShapeBase<ShapeKind.Circle>
   get bounds(): Box
   {
     if (!this._bounds.has(this.verticesId)) {
-      this._bounds.set(this.verticesId, this.computedBondingBox())
+      this._bounds.set(this.verticesId, this.computedBoundingBox())
     }
     return this._bounds.get(this.verticesId)!
   }
