@@ -1,5 +1,4 @@
-import { LoggerManager, LoggerCategory, type Logger } from "@/logger"
-import { IIDecorator, IIStroke, IIText, DecoratorKind, type TIISymbol, isRecognizedText, isText } from "@/symbol"
+import { IIStroke, DecoratorKind, type TIISymbol } from "@/symbol"
 import { TIIHistoryChanges } from "@/history"
 import type { InteractiveInkEditor } from "@/editor"
 import type { TGesture } from "@/manager/interactive/gestures/GestureTypes"
@@ -14,66 +13,36 @@ import type { GestureHelpers } from "@/manager/interactive/gestures/GestureHelpe
  */
 export class UnderlineGestureHandler extends GestureHandler
 {
-  #logger: Logger
   readonly gestureType = "UNDERLINE" as const
 
-  constructor(
-    editor: InteractiveInkEditor,
-    helpers: GestureHelpers
-  )
+  constructor(editor: InteractiveInkEditor, helpers: GestureHelpers)
   {
     super(editor, helpers)
-    this.#logger = LoggerManager.getLogger(LoggerCategory.GESTURE)
   }
 
   async apply(gestureStroke: IIStroke, gesture: TGesture): Promise<void>
   {
-    this.#logger.debug("applyUnderlineGesture", { gestureStroke, gesture })
+    this.logger.debug("applyUnderlineGesture", { gestureStroke, gesture })
     if (!gesture.strokeIds.length) {
-      this.#logger.warn("applyUnderlineGesture", "Unable to apply underline because there are no strokes")
+      this.logger.warn("applyUnderlineGesture", "Unable to apply underline because there are no strokes")
       return
     }
 
     switch (this.manager.underlineAction) {
-      case UnderlineAction.Draw:
-        await this.applyDraw(gestureStroke, gesture)
+      case UnderlineAction.Draw: {
+        const decorators = this.applyDecoratorToIds(gesture.strokeIds, gestureStroke, DecoratorKind.Underline)
+        if (decorators.length) {
+          const changes: TIIHistoryChanges = { decorator: decorators }
+          this.history.push(this.model, changes)
+        }
         break
+      }
       case UnderlineAction.Thicken:
         await this.applyThicken(gesture)
         break
       default:
-        this.#logger.warn("applyUnderlineGesture", `Unknown underlineAction: ${ this.manager.underlineAction }`)
+        this.logger.warn("applyUnderlineGesture", `Unknown underlineAction: ${ this.manager.underlineAction }`)
         break
-    }
-  }
-
-  private async applyDraw(gestureStroke: IIStroke, gesture: TGesture): Promise<void>
-  {
-    const changes: TIIHistoryChanges = { decorator: [] }
-    const symbolIdSet = new Set<string>()
-
-    gesture.strokeIds.forEach(id =>
-    {
-      const sym = this.model.getRootSymbol(id)
-      if (sym && this.helpers.isDecorable(sym) && !symbolIdSet.has(sym.id)) {
-        const symWithDec = sym as (IIText | IIStroke)
-
-        // Apply decorator on words for recognized text strokes, or on symbol level for others
-        if (isRecognizedText(symWithDec) || isText(symWithDec)) {
-          const modified = this.helpers.applyDecoratorOnWords(symWithDec as (IIText | IIStroke), gestureStroke, DecoratorKind.Underline)
-          if (modified) {
-            this.model.updateSymbol(symWithDec)
-            this.renderer.drawSymbol(symWithDec)
-            symbolIdSet.add(symWithDec.id)
-            const underline = new IIDecorator(DecoratorKind.Underline, this.editor.penStyle)
-            changes.decorator?.push({ symbol: symWithDec, decorator: underline, added: true })
-          }
-        }
-      }
-    })
-
-    if (changes.decorator?.length) {
-      this.history.push(this.model, changes)
     }
   }
 
