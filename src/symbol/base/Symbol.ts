@@ -13,7 +13,7 @@ export enum SymbolType
   Text = "text",
   Math = "math",
   Eraser = "eraser",
-  Recognized = "recognized"
+  Decorator = "decorator"
 }
 
 /**

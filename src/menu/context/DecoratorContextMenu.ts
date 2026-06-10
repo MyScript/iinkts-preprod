@@ -1,7 +1,7 @@
 import { InteractiveInkEditor } from "@/editor"
 import { BaseMenuItem, TGenericMenuItem } from "@/menu/items/BaseMenuItem"
 import ArrowDown from "@/assets/svg/nav-arrow-down.svg"
-import { DecoratorKind, IIDecorator, IIStroke, IIText, isRecognizedMath, isStroke, isText } from "@/symbol"
+import { DecoratorKind, IIDecorator, IIText, isDecorator, isRecognizedMath, isText } from "@/symbol"
 import { DEFAULT_MENU_COLORS } from "@/menu/MenuConstants"
 
 /**
@@ -23,11 +23,17 @@ export class DecoratorContextMenu extends BaseMenuItem<HTMLElement>
     super(config, editor)
   }
 
-  get symbolsDecorable(): (IIStroke | IIText)[]
+  get symbolsDecorable(): IIText[]
   {
-    return this.editor.model.symbolsSelected.filter(s => {
-      return isStroke(s) || isText(s)
-    }) as (IIStroke | IIText)[]
+    return this.editor.model.symbolsSelected.filter(isText) as IIText[]
+  }
+
+  get symbolsDecoratorInModel(): IIDecorator[]
+  {
+    const selectedIds = new Set(this.editor.model.symbolsSelected.map(s => s.id))
+    return this.editor.model.symbols
+      .filter(isDecorator)
+      .filter(d => (d as IIDecorator).targetIds.some(id => selectedIds.has(id))) as IIDecorator[]
   }
 
   get showDecorator(): boolean

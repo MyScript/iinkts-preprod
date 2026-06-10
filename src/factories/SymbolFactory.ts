@@ -118,7 +118,6 @@ export class SymbolFactory
           return this.buildText(partialSymbol)
         case SymbolType.Math:
           return this.buildMath(partialSymbol)
-        // SymbolType.Recognized no longer exists in TIISymbol union
         default:
           throw new Error(`Unable to build symbol, type: "${ partialSymbol.type }" is unknown`)
       }
