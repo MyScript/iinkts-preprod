@@ -90,7 +90,7 @@ export class InsertGestureHandler extends GestureHandler
 
   /**
    * Compute changes needed when splitting a stroke
-   * Handles both simple Stroke symbols and Recognized symbols with child strokes
+   * Handles both simple Stroke symbols with child strokes
    * @param gestureStroke - The gesture stroke
    * @param strokeIdToSplit - ID of the stroke to split
    * @param subStrokes - Substroke data

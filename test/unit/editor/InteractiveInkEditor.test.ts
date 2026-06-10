@@ -484,11 +484,6 @@ describe("EditorOffscreen.ts", () =>
       const strokes = editor.extractStrokesFromSymbols(symbols)
       expect(strokes).toEqual([stroke1, stroke2])
     })
-    test("should extract texts", () =>
-    {
-      const texts = editor.extractTextsFromSymbols(symbols)
-      expect(texts).toEqual([text1, text2])
-    })
   })
 
   describe("undo", () =>

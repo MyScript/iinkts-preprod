@@ -117,7 +117,8 @@ export class ScratchGestureHandler extends GestureHandler
         }
       }
       case SymbolType.Shape:
-      case SymbolType.Edge: {
+      case SymbolType.Edge:
+      default: {
         return {
           erased: true
         }

@@ -3,17 +3,17 @@ import { IIModel, TExport, TJIIXMathElement } from "@/model"
 import
 {
   Box,
+  IIDecorator,
   IIStroke,
   IIText,
   IIMath,
   TIISymbol,
   SymbolType,
   convertPartialStrokesToIIStrokes,
+  isDecorator,
   isText,
   isMath,
   isStroke,
-  isShape,
-  isEdge
 } from "@/symbol"
 import { RecognizerWebSocket, TMathVariable, TMathEvaluable } from "@/recognizer"
 import { SVGRenderer, SVGBuilder, TIIRendererConfiguration } from "@/renderer"
@@ -658,8 +658,18 @@ export class InteractiveInkEditor extends AbstractEditor
 
       this.#optimizeRecognizerCall(oldStrokes, newStrokes)
 
+      // All old symbols (including symToReplace) are gone; new symbols replace them
+      const allOldIds = new Set([symToReplace.id, ...oldSymbols.map(s => s.id)])
+      const newIds = new Set(newSymbols.map(s => s.id))
+      // Only clean up decorators whose targets are fully gone (not re-created by newSymbols)
+      const removedIds = new Set([...allOldIds].filter(id => !newIds.has(id)))
+      const { erased: decErased, updated: decUpdated } = this.#cleanupDecoratorsForRemovedIds(removedIds)
+
       if (addToHistory) {
-        this.history.push(this.model, { replaced: { oldSymbols, newSymbols } })
+        const changes: TIIHistoryChanges = { replaced: { oldSymbols: [symToReplace, ...oldSymbols], newSymbols } }
+        if (decErased.length) changes.erased = decErased
+        if (decUpdated.length) changes.updated = decUpdated
+        this.history.push(this.model, changes)
       }
       this.updateLayerUI()
     }
@@ -701,6 +711,36 @@ export class InteractiveInkEditor extends AbstractEditor
   }
 
   /**
+   * After removing strokes, clean up orphaned/partial standalone decorators.
+   * Returns erased and updated decorators so callers can include them in history.
+   */
+  #cleanupDecoratorsForRemovedIds(removedIds: Set<string>): { erased: IIDecorator[], updated: IIDecorator[] }
+  {
+    const erased: IIDecorator[] = []
+    const updated: IIDecorator[] = []
+
+    for (const sym of [...this.model.symbols]) {
+      if (!isDecorator(sym)) continue
+      const dec = sym as IIDecorator
+      const remaining = dec.targetIds.filter(id => !removedIds.has(id))
+      if (remaining.length === 0) {
+        this.model.removeSymbol(dec.id)
+        this.renderer.removeElement(dec.id)
+        erased.push(dec)
+      } else if (remaining.length < dec.targetIds.length) {
+        dec.targetIds = remaining
+        const targetSyms = remaining.map(id => this.model.getRootSymbol(id)).filter((s): s is TIISymbol => !!s)
+        if (targetSyms.length) dec.bounds = Box.createFromBoxes(targetSyms.map(s => s.bounds))
+        this.model.updateSymbol(dec)
+        this.renderer.drawSymbol(dec)
+        updated.push(dec)
+      }
+    }
+
+    return { erased, updated }
+  }
+
+  /**
    * Remove a symbol from the model
    * @param id - ID of symbol to remove
    * @param addToHistory - Whether to add to history (default: true)
@@ -715,8 +755,12 @@ export class InteractiveInkEditor extends AbstractEditor
       this.recognizer.eraseStrokes([id])
       this.model.removeSymbol(symbol.id)
       this.renderer.removeSymbol(symbol.id)
+      const { erased: decErased, updated: decUpdated } = this.#cleanupDecoratorsForRemovedIds(new Set([id]))
       if (addToHistory) {
-        this.history.push(this.model, { erased: [symbol] })
+        const changes: TIIHistoryChanges = { erased: [symbol] }
+        if (decErased.length) changes.erased = [...changes.erased!, ...decErased]
+        if (decUpdated.length) changes.updated = decUpdated
+        this.history.push(this.model, changes)
       }
       this.updateLayerUI()
     }
@@ -734,32 +778,33 @@ export class InteractiveInkEditor extends AbstractEditor
    */
   async removeSymbols(ids: string[], addToHistory = true): Promise<TIISymbol[]>
   {
-    this.logger.info("removeSymbol", { ids })
-    const symbolsToRemove: TIISymbol[] = []
+    this.logger.info("removeSymbols", { ids })
+    const symbolsRemoved: TIISymbol[] = []
     const strokesIds: string[] = []
     ids.forEach(id =>
     {
       const sym = this.model.symbols.find(s => s.id === id)
-      if (sym?.type === SymbolType.Stroke) {
-        strokesIds.push(sym.id)
+      if (sym) {
+        symbolsRemoved.push(sym)
+        if (sym.type === SymbolType.Stroke) strokesIds.push(sym.id)
         this.model.removeSymbol(sym.id)
         this.renderer.removeSymbol(sym.id)
       }
     })
     this.recognizer.eraseStrokes(strokesIds)
 
-    if (addToHistory) {
-      const changes: TIIHistoryChanges = {}
-      if (symbolsToRemove.length) {
-        if (symbolsToRemove.length) {
-          changes.erased = symbolsToRemove
-        }
-        this.history.push(this.model, changes)
-        this.updateLayerUI()
-      }
+    const removedIds = new Set(symbolsRemoved.map(s => s.id))
+    const { erased: decErased, updated: decUpdated } = this.#cleanupDecoratorsForRemovedIds(removedIds)
+
+    if (addToHistory && symbolsRemoved.length) {
+      const changes: TIIHistoryChanges = { erased: symbolsRemoved }
+      if (decErased.length) changes.erased = [...changes.erased!, ...decErased]
+      if (decUpdated.length) changes.updated = decUpdated
+      this.history.push(this.model, changes)
+      this.updateLayerUI()
     }
     this.updateLayerState(false)
-    return symbolsToRemove
+    return symbolsRemoved
   }
 
   /**
@@ -965,7 +1010,7 @@ export class InteractiveInkEditor extends AbstractEditor
     const symbolsToExport = selection ? this.model.symbolsSelected : this.model.symbols
 
     const clonedSymbols = symbolsToExport.map(s => s.clone())
-    const filteredSymbols = this.filterSymbolsForExport(clonedSymbols)
+    const filteredSymbols = clonedSymbols
 
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(filteredSymbols, null, 2))
     this.triggerDownload(this.getExportName("json"), dataStr)
@@ -1006,21 +1051,6 @@ export class InteractiveInkEditor extends AbstractEditor
     return textParts.join("\n")
   }
 
-  protected filterSymbolsForExport(symbols: TIISymbol[]): TIISymbol[]
-  {
-    const result: TIISymbol[] = []
-
-    symbols.forEach(s =>
-    {
-      if (isStroke(s) || isShape(s) || isEdge(s)) {
-        result.push(s)
-      }
-      // Recognized symbols no longer exist - they are now strokes with JIIX metadata
-    })
-
-    return result
-  }
-
   /**
    * Extract all strokes from symbols recursively
    * @param symbols - Symbols to extract strokes from
@@ -1030,17 +1060,6 @@ export class InteractiveInkEditor extends AbstractEditor
   {
     if (!symbols?.length) return []
     return symbols.filter(isStroke)
-  }
-
-  /**
-   * Extract all text symbols recursively
-   * @param symbols - Symbols to extract texts from
-   * @returns Array of extracted text symbols
-   */
-  extractTextsFromSymbols(symbols: TIISymbol[] | undefined): IIText[]
-  {
-    if (!symbols?.length) return []
-    return symbols.filter(isText)
   }
 
   /**

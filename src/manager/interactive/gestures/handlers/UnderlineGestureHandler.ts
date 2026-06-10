@@ -1,5 +1,4 @@
-import { IIStroke, DecoratorKind, type TIISymbol } from "@/symbol"
-import { TIIHistoryChanges } from "@/history"
+import { IIStroke, DecoratorKind } from "@/symbol"
 import type { InteractiveInkEditor } from "@/editor"
 import type { TGesture } from "@/manager/interactive/gestures/GestureTypes"
 import { UnderlineAction } from "@/manager/interactive/gestures/GestureTypes"
@@ -30,42 +29,18 @@ export class UnderlineGestureHandler extends GestureHandler
 
     switch (this.manager.underlineAction) {
       case UnderlineAction.Draw: {
-        const decorators = this.applyDecoratorToIds(gesture.strokeIds, gestureStroke, DecoratorKind.Underline)
-        if (decorators.length) {
-          const changes: TIIHistoryChanges = { decorator: decorators }
-          this.history.push(this.model, changes)
-        }
+        const changes = await this.processor.apply(gesture.strokeIds, { kind: "decorator", decoratorKind: DecoratorKind.Underline })
+        if (changes) this.history.push(this.model, changes)
         break
       }
-      case UnderlineAction.Thicken:
-        await this.applyThicken(gesture)
+      case UnderlineAction.Thicken: {
+        const changes = await this.processor.apply(gesture.strokeIds, { kind: "thicken", factor: 2 })
+        if (changes) this.history.push(this.model, changes)
         break
+      }
       default:
         this.logger.warn("applyUnderlineGesture", `Unknown underlineAction: ${ this.manager.underlineAction }`)
         break
-    }
-  }
-
-  private async applyThicken(gesture: TGesture): Promise<void>
-  {
-    const symbolsToThicken: TIISymbol[] = []
-
-    gesture.strokeIds.forEach(id =>
-    {
-      const sym = this.model.getRootSymbol(id)
-      if (sym && !symbolsToThicken.some(s => s.id === sym.id)) {
-        const currentWidth = sym.style.width || 1
-        const newWidth = currentWidth * 2
-        this.editor.updateSymbolsStyle([sym.id], { width: newWidth }, false)
-        symbolsToThicken.push(sym)
-      }
-    })
-
-    if (symbolsToThicken.length) {
-      const changes: TIIHistoryChanges = {
-        style: { symbols: symbolsToThicken }
-      }
-      this.history.push(this.model, changes)
     }
   }
 }

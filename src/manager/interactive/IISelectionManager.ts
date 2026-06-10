@@ -1,5 +1,5 @@
 import { ResizeDirection, SELECTION_MARGIN, SvgElementRole } from "@/Constants"
-import { Box, IIStroke, SymbolType, TBox, TIIEdge, TIISymbol, TPoint, isRecognizedMath, isEdge } from "@/symbol"
+import { Box, IIDecorator, IIStroke, SymbolType, TBox, TIIEdge, TIISymbol, TPoint, isDecorator, isRecognizedMath, isEdge } from "@/symbol"
 import { SVGBuilder } from "@/renderer"
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import { PointerEventGrabber, PointerInfo } from "@/grabber"
@@ -704,7 +704,7 @@ export class IISelectionManager extends IIAbstractManager
   {
     let found = false
     let currentEl = info.target as HTMLElement | null
-    const symbolTypesAllowed = [SymbolType.Edge, SymbolType.Shape, SymbolType.Stroke, SymbolType.Text]
+    const symbolTypesAllowed = [SymbolType.Decorator, SymbolType.Edge, SymbolType.Shape, SymbolType.Stroke, SymbolType.Text]
     while (currentEl && currentEl.tagName !== "svg" && !found) {
       if (symbolTypesAllowed.includes(currentEl.getAttribute("type") as SymbolType)) {
         found = true
@@ -715,7 +715,12 @@ export class IISelectionManager extends IIAbstractManager
     }
     this.editor.unselectAll()
     if (currentEl?.id) {
-      this.editor.select([currentEl.id])
+      const sym = this.editor.model.symbols.find(s => s.id === currentEl!.id)
+      if (sym && isDecorator(sym)) {
+        this.editor.select((sym as IIDecorator).targetIds)
+      } else {
+        this.editor.select([currentEl.id])
+      }
     }
     else {
       // Use clientX/clientY relative to the menu's parent container

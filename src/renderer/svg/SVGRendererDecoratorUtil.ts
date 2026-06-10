@@ -69,8 +69,8 @@ export class SVGRendererDecoratorUtil
         }
         if (baseline !== undefined && xHeight !== undefined) {
           // Strikethrough should go through the middle of the text
-          p1.y = baseline + xHeight
-          p2.y = baseline + xHeight
+          p1.y = baseline - xHeight
+          p2.y = baseline - xHeight
         }
         element = SVGBuilder.createLine(p1, p2, attrs)
         break
@@ -89,8 +89,8 @@ export class SVGRendererDecoratorUtil
         }
         if (baseline !== undefined && xHeight !== undefined) {
           // Underline should be below the baseline
-          p1.y = baseline + 2 * xHeight
-          p2.y = baseline + 2 * xHeight
+          p1.y = baseline + xHeight
+          p2.y = baseline + xHeight
         }
         element = SVGBuilder.createLine(p1, p2, attrs)
         break
@@ -102,17 +102,26 @@ export class SVGRendererDecoratorUtil
 
   static getSVGElement(decorator: IIDecorator, symbol: TIISymbol): SVGGeometryElement | undefined
   {
-    // For now, decorators use only symbol bounds
-    const baseline = undefined
-    const xHeight = undefined
-
+    const bounds = decorator.hasBounds ? decorator.bounds : symbol.bounds
     return this.getSVGElementFromBounds(
       decorator,
-      symbol.bounds,
-      baseline,
-      xHeight,
+      bounds,
+      undefined,
+      undefined,
       { width: symbol.style.width, color: symbol.style.color },
       symbol.deleting
+    )
+  }
+
+  static getSVGElementForSymbol(decorator: IIDecorator): SVGGeometryElement | undefined
+  {
+    return this.getSVGElementFromBounds(
+      decorator,
+      decorator.bounds,
+      decorator.baseline,
+      decorator.xHeight,
+      { width: decorator.style.width, color: decorator.style.color },
+      decorator.deleting
     )
   }
 }

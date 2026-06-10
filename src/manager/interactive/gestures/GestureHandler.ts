@@ -1,5 +1,4 @@
-import type { IIStroke, TIISymbol, IIText } from "@/symbol"
-import { IIDecorator, DecoratorKind, isRecognizedText, isText } from "@/symbol"
+import type { IIStroke, TIISymbol } from "@/symbol"
 import type { InteractiveInkEditor } from "@/editor"
 import type { TGesture, TGestureType } from "@/manager/interactive/gestures/GestureTypes"
 import type { GestureHelpers } from "./GestureHelpers"
@@ -11,6 +10,7 @@ import { IITranslateManager } from "@/manager/interactive/IITranslateManager"
 import { IITextManager } from "@/manager/interactive/IITextManager"
 import { IIGestureManager } from "../IIGestureManager"
 import { LoggerManager, LoggerCategory, type Logger } from "@/logger"
+import { IIGestureAnnotationProcessor } from "./IIGestureAnnotationProcessor"
 
 /**
  * Base interface for gesture handlers
@@ -38,11 +38,12 @@ export interface IGestureHandler
  * Provides common functionality and access to editor services via helpers
  * @group Manager
  */
-export type TDecoratorChange = { symbol: IIText | IIStroke, decorator: IIDecorator, added: boolean }
+export type { TGestureAnnotation } from "./GestureAnnotation"
 
 export abstract class GestureHandler implements IGestureHandler
 {
   protected readonly logger: Logger
+  protected readonly processor: IIGestureAnnotationProcessor
 
   constructor(
     protected editor: InteractiveInkEditor,
@@ -50,37 +51,11 @@ export abstract class GestureHandler implements IGestureHandler
   )
   {
     this.logger = LoggerManager.getLogger(LoggerCategory.GESTURE)
+    this.processor = new IIGestureAnnotationProcessor(editor)
   }
 
   abstract readonly gestureType: TGestureType
   abstract apply(gestureStroke: IIStroke, gesture: TGesture): Promise<void | TIISymbol[]>
-
-  protected applyDecoratorToIds(
-    ids: string[],
-    gestureStroke: IIStroke,
-    kind: DecoratorKind
-  ): TDecoratorChange[]
-  {
-    const changes: TDecoratorChange[] = []
-    const seen = new Set<string>()
-
-    for (const id of ids) {
-      const sym = this.model.getRootSymbol(id)
-      if (!sym || !this.helpers.isDecorable(sym) || seen.has(sym.id)) continue
-      const symWithDec = sym as IIText | IIStroke
-      if (isRecognizedText(symWithDec) || isText(symWithDec)) {
-        const modified = this.helpers.applyDecoratorOnWords(symWithDec, gestureStroke, kind)
-        if (modified) {
-          this.model.updateSymbol(symWithDec)
-          this.renderer.drawSymbol(symWithDec)
-          seen.add(symWithDec.id)
-          changes.push({ symbol: symWithDec, decorator: new IIDecorator(kind, this.editor.penStyle), added: true })
-        }
-      }
-    }
-
-    return changes
-  }
 
   /**
    * Get the editor's model

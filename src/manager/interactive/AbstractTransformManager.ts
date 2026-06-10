@@ -66,8 +66,6 @@ export abstract class IIAbstractTransformManager<TParams extends unknown[]> exte
    */
   protected abstract applyOnMath(math: IIMath, ...params: TParams): IIMath
 
-  // applyOnRecognizedSymbol removed - recognized symbols no longer exist
-
   /**
    * Apply transformation to any symbol based on its type
    * Delegates to specific methods via template method pattern
@@ -86,7 +84,6 @@ export abstract class IIAbstractTransformManager<TParams extends unknown[]> exte
         return this.applyOnText(symbol, ...params)
       case SymbolType.Math:
         return this.applyOnMath(symbol, ...params)
-      // SymbolType.Recognized removed - recognized symbols no longer exist
       default:
         throw new Error(`Can't apply ${ this.transformName } on symbol, type unknown: ${ JSON.stringify(symbol) }`)
     }

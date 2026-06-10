@@ -44,7 +44,7 @@ import
   TPoint,
   TIIMathElement,
   isRecognizedMath,
-  isRecognizedText,
+  isDecorator,
 } from "@/symbol"
 import { computeAngleAxeRadian, computeAverage, convertBoundingBoxMillimeterToPixel, convertMillimeterToPixel, convertPixelToMillimeter, createUUID } from "@/utils"
 import { LoggerCategory } from "@/logger"
@@ -120,56 +120,28 @@ export class IIConversionManager extends IIAbstractManager
       y: boundingBox.yMax
     }
     const text = new IIText(charSymbols, point, boundingBox, strokes[0].style)
-    const decorators = strokes.flatMap(s => s.decorators)
-    strokes.forEach(s =>
-    {
-      const sym = this.model.getRootSymbol(s.id)
-      if (sym && isRecognizedText(sym)) {
-        // Check for word-level decorators in text metadata
-        const textMetadata = this.editor.jiix.getTextMetadata(sym.id)
-        if (textMetadata?.word) {
-          const w = textMetadata.word
-          if (w.decorators && w.bounds) {
-            // Check if this word overlaps with the current text bounds
-            if (w.bounds.overlaps(boundingBox)) {
-              w.decorators.forEach((d: IIDecorator) => {
-                const exists = decorators.find(dec => dec.kind === d.kind)
-                if (!exists) {
-                  decorators.push(d)
-                }
-              })
-            }
-          }
-        }
+    const strokeIds = new Set(strokes.map(s => s.id))
 
-        // Check for stroke-level decorators
-        const hightlight = sym.decorators.find(d => d.kind === DecoratorKind.Highlight)
-        if (hightlight) decorators.push(hightlight)
-        const strikethrough = sym.decorators.find(d => d.kind === DecoratorKind.Strikethrough)
-        if (strikethrough) decorators.push(strikethrough)
-        const surround = sym.decorators.find(d => d.kind === DecoratorKind.Surround)
-        if (surround) decorators.push(surround)
-        const underline = sym.decorators.find(d => d.kind === DecoratorKind.Underline)
-        if (underline) decorators.push(underline)
+    // Find standalone IIDecorator symbols in model whose targets overlap with converted strokes
+    const appliedKinds = new Set<DecoratorKind>()
+    const decoratorsToRemove: IIDecorator[] = []
+
+    for (const sym of this.model.symbols) {
+      if (!isDecorator(sym)) continue
+      const dec = sym as IIDecorator
+      const hasOverlap = dec.targetIds.some(id => strokeIds.has(id))
+      if (!hasOverlap) continue
+      decoratorsToRemove.push(dec)
+      if (!appliedKinds.has(dec.kind)) {
+        appliedKinds.add(dec.kind)
+        text.decorators.push(new IIDecorator(dec.kind, dec.style))
       }
-    })
-    if (decorators.length) {
-      const hightlight = decorators.find(d => d.kind === DecoratorKind.Highlight)
-      if (hightlight) {
-        text.decorators.push(new IIDecorator(DecoratorKind.Highlight, hightlight.style))
-      }
-      const strikethrough = decorators.find(d => d.kind === DecoratorKind.Strikethrough)
-      if (strikethrough) {
-        text.decorators.push(new IIDecorator(DecoratorKind.Strikethrough, strikethrough.style))
-      }
-      const surround = decorators.find(d => d.kind === DecoratorKind.Surround)
-      if (surround) {
-        text.decorators.push(new IIDecorator(DecoratorKind.Surround, surround.style))
-      }
-      const underline = decorators.find(d => d.kind === DecoratorKind.Underline)
-      if (underline) {
-        text.decorators.push(new IIDecorator(DecoratorKind.Underline, underline.style))
-      }
+    }
+
+    // Remove standalone decorators that were absorbed into the text
+    for (const dec of decoratorsToRemove) {
+      this.model.removeSymbol(dec.id)
+      this.editor.renderer.removeElement(dec.id)
     }
 
     return text

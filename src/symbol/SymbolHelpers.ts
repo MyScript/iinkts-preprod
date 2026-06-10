@@ -6,7 +6,8 @@ import type {
   IIStroke,
   IIText,
   IIMath,
-  IIEraser
+  IIEraser,
+  IIDecorator
 } from "./index"
 import type { IIShapeCircle, IIShapeEllipse, IIShapePolygon } from "./geometry"
 import type { IIEdgeArc, IIEdgeLine, IIEdgePolyLine } from "./geometry"
@@ -189,4 +190,13 @@ export function isArcEdge(edge: TIIEdge): edge is IIEdgeArc
 export function isPolyEdge(edge: TIIEdge): edge is IIEdgePolyLine
 {
   return edge.kind === EdgeKind.PolyEdge
+}
+
+/**
+ * @group Symbol
+ * @summary Check if symbol is a standalone decorator
+ */
+export function isDecorator(symbol: TSymbol): symbol is IIDecorator
+{
+  return symbol.type === SymbolType.Decorator
 }

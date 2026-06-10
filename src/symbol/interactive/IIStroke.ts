@@ -4,7 +4,7 @@ import { TStroke, TStrokeToSend } from "@/symbol/base/Stroke"
 import { TPoint, TPointer } from "@/symbol/base/Point"
 import { Box, TBox } from "@/symbol/base/Box"
 import { SymbolType } from "@/symbol/base/Symbol"
-import { IIDecorator, DecoratorKind } from "./IIDecorator"
+import { DecoratorKind } from "./IIDecorator"
 import { IISymbolBase } from "./IISymbolBase"
 
 /**
@@ -16,7 +16,6 @@ export type TStrokeJIIXTextWordInfo = {
   firstChar?: number
   lastChar?: number
   bounds?: Box
-  decorators?: IIDecorator[]
   id?: string
 }
 
@@ -48,7 +47,6 @@ export class IIStroke extends IISymbolBase<SymbolType.Stroke>
 
   pointerType: string
   length: number
-  decorators: IIDecorator[]
   pointers: Array<TPointer>
 
   // JIIX Block metadata
@@ -67,7 +65,6 @@ export class IIStroke extends IISymbolBase<SymbolType.Stroke>
 
     this.pointerType = pointerType
     this.pointers = []
-    this.decorators = []
     this.length = 0
   }
 
@@ -179,7 +176,6 @@ export class IIStroke extends IISymbolBase<SymbolType.Stroke>
     clone.creationTime = this.creationTime
     clone.modificationDate = this.modificationDate
     clone.pointers = structuredClone(this.pointers)
-    clone.decorators = this.decorators.map(d => d.clone())
     clone.length = this.length
 
     // Copy JIIX metadata
@@ -217,8 +213,7 @@ export class IIStroke extends IISymbolBase<SymbolType.Stroke>
       id: this.id,
       type: this.type,
       pointers: this.pointers,
-      style: this.style,
-      decorators: this.decorators.length ? this.decorators : undefined
+      style: this.style
     }
   }
 
@@ -270,13 +265,6 @@ export class IIStroke extends IISymbolBase<SymbolType.Stroke>
 
     if (errors.length) {
       throw new Error(errors.join(" and "))
-    }
-    if (partial.decorators?.length) {
-      partial.decorators.forEach(d => {
-        if(d?.kind) {
-          stroke.decorators.push(new IIDecorator(d.kind, Object.assign({}, stroke.style, d.style)))
-        }
-      })
     }
     return stroke
   }
