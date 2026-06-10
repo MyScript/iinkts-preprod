@@ -79,13 +79,13 @@ export class IIMenuContext
           return
         }
         const [actions, variables, evaluables] = await Promise.all([
-          this.editor.getAvailableActions(mathSymbol.jiixBlockId),
-          this.editor.getVariables(mathSymbol.jiixBlockId),
-          this.editor.getEvaluables(mathSymbol.jiixBlockId)
+          this.editor.getMathAvailableActions(mathSymbol.jiixBlockId),
+          this.editor.getMathVariables(mathSymbol.jiixBlockId),
+          this.editor.getMathEvaluables(mathSymbol.jiixBlockId)
         ])
 
         const canEditVariables = Object.keys(variables).length > 0
-        const solverOutputs = this.editor.math.actions.getStoredSolverOutputs(mathSymbol.jiixBlockId!)
+        const solverOutputs = this.editor.math.getStoredSolverOutputs(mathSymbol.jiixBlockId!)
         const canCompute = actions?.includes("numerical-computation") && (!solverOutputs || solverOutputs.length === 0)
         const canEvaluate = evaluables?.length ? true : false
         mathMenuInstance.setMenuVisibility(true, { canEditVariables, canCompute, canEvaluate })

@@ -43,7 +43,7 @@ export class IIVariableEditor {
       }
 
       try {
-        const variables = await this.editor.getVariables(jiixBlockId)
+        const variables = await this.editor.getMathVariables(jiixBlockId)
         if (variables.length > 0) {
           this.blockVariables.push({
             jiixBlockId,
@@ -194,7 +194,7 @@ export class IIVariableEditor {
     })
 
     // Set default value - get from computation manager
-    const storedValues = this.editor.math.actions.getStoredVariableValues(jiixBlockId)
+    const storedValues = this.editor.math.getStoredVariableValues(jiixBlockId)
     const currentValue = storedValues?.[variable.name] ?? variable.value
     if (currentValue != null) {
       input.value = currentValue.toString()

@@ -19,9 +19,9 @@ export class MathMenuAction extends SubMenuItem
         type: "checkbox",
         id: `${idPrefix}-math-show-block-overlays`,
         label: "Show Block Overlays (∑)",
-        getValue: (editor: InteractiveInkEditor) => editor.math.overlays.getConfig().showBlockOverlays,
+        getValue: (editor: InteractiveInkEditor) => editor.math.getOverlaysConfig().showBlockOverlays,
         setValue: (editor: InteractiveInkEditor, value: boolean) => {
-          editor.math.overlays.toggleBlockOverlays(value)
+          editor.math.toggleBlockOverlays(value)
         }
       },
       {
@@ -35,11 +35,11 @@ export class MathMenuAction extends SubMenuItem
           if (!value) {
             await editor.math.clearAllSolverOutputs()
           } else {
-            await editor.math.actions.computeAllNumericalResults()
+            await editor.math.computeAllNumericalResults()
           }
 
           // Show result panels when not drawing strokes
-          editor.math.overlays.updateConfig({ showResultPanels: !value })
+          editor.math.updateOverlaysConfig({ showResultPanels: !value })
         }
       }
     ]
@@ -49,11 +49,11 @@ export class MathMenuAction extends SubMenuItem
         type: "checkbox",
         id: `${idPrefix}-math-show-dependency-on-hover`,
         label: "Show Dependencies on Hover",
-        getValue: (editor: InteractiveInkEditor) => editor.math.interactions.getConfig().showDependencyOnHover,
+        getValue: (editor: InteractiveInkEditor) => editor.math.getVariablesConfig().showDependencyOnHover,
         setValue: (editor: InteractiveInkEditor, value: boolean) => {
-          editor.math.interactions.updateConfig({ showDependencyOnHover: value })
+          editor.math.updateVariablesConfig({ showDependencyOnHover: value })
           if (!value) {
-            editor.math.interactions.clearAll()
+            editor.math.clearVariableInteractions()
           }
         }
       },
@@ -61,9 +61,9 @@ export class MathMenuAction extends SubMenuItem
         type: "checkbox",
         id: `${idPrefix}-math-highlight-on-select`,
         label: "Highlight on Select",
-        getValue: (editor: InteractiveInkEditor) => editor.math.interactions.getConfig().highlightOnSelect,
+        getValue: (editor: InteractiveInkEditor) => editor.math.getVariablesConfig().highlightOnSelect,
         setValue: (editor: InteractiveInkEditor, value: boolean) => {
-          editor.math.interactions.updateConfig({ highlightOnSelect: value })
+          editor.math.updateVariablesConfig({ highlightOnSelect: value })
         }
       })
     }

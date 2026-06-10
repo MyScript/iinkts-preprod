@@ -688,10 +688,10 @@ export class IISelectionManager extends IIAbstractManager
     // Notify math interactions system of selection changes
     const selectedMathJiixBlockId = this.getSelectedMathJiixBlockId()
     if (selectedMathJiixBlockId) {
-      this.editor.math.interactions.onMathBlockSelected(selectedMathJiixBlockId)
+      this.editor.math.selectBlock(selectedMathJiixBlockId)
     }
     else {
-      this.editor.math.interactions.clearMathBlockSelection()
+      this.editor.math.clearBlockSelection()
     }
 
     // Defer external event so synchronous user callbacks don't block pointer-up completion

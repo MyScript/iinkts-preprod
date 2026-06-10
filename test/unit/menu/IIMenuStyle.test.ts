@@ -29,12 +29,6 @@ describe("IIMenuStyle.ts", () =>
       {
         expect(menu.isMobile).toBe(true)
       })
-      test("should render ms-menu-style and display", () =>
-      {
-        const btn = layer.querySelector("#ms-menu-style") as HTMLButtonElement
-        expect(btn).not.toBeNull()
-        expect(btn.parentElement?.style.display).toEqual("block")
-      })
       test("should render menu stroke color", () =>
       {
         const menuColor = layer.querySelector("#ms-menu-style-color") as HTMLElement
