@@ -22,7 +22,7 @@ import
   TMathVariable,
   TMathEvaluable
 } from "./RecognizerWebSocketMessage"
-import { RecognizerError } from "./RecognizerError"
+import { RecognizerError, mapCloseCodeToMessage } from "./RecognizerError"
 import PingWorker from "web-worker:../worker/ping.worker.ts"
 import { RecognizerEvent } from "./RecognizerEvent"
 import { RecognizerWebSocketConfiguration, TRecognizerWebSocketConfiguration } from "./RecognizerWebSocketConfiguration"
@@ -181,50 +181,7 @@ export class RecognizerWebSocket
     this.#logger.info("closeCallback", { evt })
     let message = evt.reason
     if (!this.currentErrorCode) {
-      switch (evt.code) {
-        case 1000:
-          // Normal Closure
-          break
-        case 1001:
-          message = RecognizerError.GOING_AWAY
-          break
-        case 1002:
-          message = RecognizerError.PROTOCOL_ERROR
-          break
-        case 1003:
-          message = RecognizerError.UNSUPPORTED_DATA
-          break
-        case 1006:
-          message = RecognizerError.ABNORMAL_CLOSURE
-          break
-        case 1007:
-          message = RecognizerError.INVALID_FRAME_PAYLOAD
-          break
-        case 1008:
-          message = RecognizerError.POLICY_VIOLATION
-          break
-        case 1009:
-          message = RecognizerError.MESSAGE_TOO_BIG
-          break
-        case 1011:
-          message = RecognizerError.INTERNAL_ERROR
-          break
-        case 1012:
-          message = RecognizerError.SERVICE_RESTART
-          break
-        case 1013:
-          message = RecognizerError.TRY_AGAIN
-          break
-        case 1014:
-          message = RecognizerError.BAD_GATEWAY
-          break
-        case 1015:
-          message = RecognizerError.TLS_HANDSHAKE
-          break
-        default:
-          message = RecognizerError.CANT_ESTABLISH
-          break
-      }
+      message = mapCloseCodeToMessage(evt.code) ?? RecognizerError.CANT_ESTABLISH
     }
 
     this.clearSocketListener()
