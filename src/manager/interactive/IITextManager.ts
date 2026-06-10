@@ -1,6 +1,7 @@
 import { Box, IIText, TIISymbol, TIISymbolChar, isText } from "@/symbol"
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import { IIAbstractManager } from "./IIAbstractManager"
+import { LoggerCategory } from "@/logger"
 
 /**
  * @group Manager
@@ -11,7 +12,7 @@ export class IITextManager extends IIAbstractManager
 
   constructor(editor: InteractiveInkEditor)
   {
-    super(editor)
+    super(editor, LoggerCategory.TEXT)
     this.logger.info("constructor")
   }
 

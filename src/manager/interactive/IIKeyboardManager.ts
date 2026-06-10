@@ -1,6 +1,7 @@
 import { EditorTool } from "@/Constants"
 import type { InteractiveInkEditor } from "@/editor"
 import { IIAbstractManager } from "./IIAbstractManager"
+import { LoggerCategory } from "@/logger/logger"
 
 /**
  * Manages keyboard input for the Interactive Ink editor
@@ -15,7 +16,7 @@ export class IIKeyboardManager extends IIAbstractManager
 
   constructor(editor: InteractiveInkEditor)
   {
-    super(editor)
+    super(editor, LoggerCategory.KEYBOARD)
     this.handleKeyDown = this.handleKeyDown.bind(this)
     this.handleKeyUp = this.handleKeyUp.bind(this)
   }

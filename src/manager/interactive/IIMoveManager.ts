@@ -1,6 +1,7 @@
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import { PointerEventGrabber, PointerInfo } from "@/grabber"
 import { IIAbstractManager } from "./IIAbstractManager"
+import { LoggerCategory } from "@/logger/logger"
 
 /**
  * @group Manager
@@ -20,7 +21,7 @@ export class IIMoveManager extends IIAbstractManager
 
   constructor(editor: InteractiveInkEditor)
   {
-    super(editor)
+    super(editor, LoggerCategory.MOVE)
     this.grabber = new PointerEventGrabber(editor.configuration.grabber)
   }
 

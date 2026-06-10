@@ -10,6 +10,7 @@ import
   TIIShape,
   TIISymbol
 } from "@/symbol"
+import { LoggerCategory } from "@/logger"
 
 /**
  * Abstract base class for transform managers (translate, rotate, resize)
@@ -32,7 +33,7 @@ export abstract class IIAbstractTransformManager<TParams extends unknown[]> exte
 
   constructor(editor: InteractiveInkEditor)
   {
-    super(editor)
+    super(editor, LoggerCategory.TRANSFORMER)
   }
 
   /**
