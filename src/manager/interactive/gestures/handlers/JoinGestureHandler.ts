@@ -114,11 +114,11 @@ export class JoinGestureHandler extends GestureHandler
     }
 
     if (changes.replaced?.oldSymbols.length) {
-      this.editor.replaceSymbols(changes.replaced.oldSymbols, changes.replaced.newSymbols, false)
+      await this.editor.replaceSymbols(changes.replaced.oldSymbols, changes.replaced.newSymbols, false)
     }
     if (translate.length) {
       changes.translate = translate
-      Promise.all(translate.map(tr => this.manager.translator.translate(tr.symbols, tr.tx, tr.ty, false)))
+      await Promise.all(translate.map(tr => this.manager.translator.translate(tr.symbols, tr.tx, tr.ty, false)))
     }
     this.history.push(this.model, changes)
   }
