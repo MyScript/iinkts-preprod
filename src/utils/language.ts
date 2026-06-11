@@ -1,16 +1,13 @@
 import { TServerHTTPConfiguration } from "@/recognizer"
 import { PartialDeep } from "./types"
+import { assertServerConfig } from "./validation"
 
 /**
  * @group Utilities
  */
 export async function getAvailableLanguageList(configuration: PartialDeep<{ server: TServerHTTPConfiguration }>): Promise<{ result: { [key: string]: string } }>
 {
-  if (configuration?.server?.scheme && configuration?.server?.host) {
-    const serverConfig = configuration.server
-    const response = await fetch(`${ serverConfig.scheme }://${ serverConfig.host }/api/v4.0/iink/availableLanguageList`)
-    return response.json()
-  } else {
-    return Promise.reject("Failed to get languages: configuration.server.scheme & configuration.server.host are required!")
-  }
+  assertServerConfig(configuration?.server, "Failed to get languages")
+  const response = await fetch(`${ configuration.server.scheme }://${ configuration.server.host }/api/v4.0/iink/availableLanguageList`)
+  return response.json()
 }
