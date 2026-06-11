@@ -110,13 +110,13 @@ export class IIMathManager extends IIAbstractManager
   async setVariableValue(
     jiixBlockId: string,
     variableName: string,
-    value: number
+    variableValue: number
   ): Promise<void>
   {
     try {
-      this.logger.info("setVariableValue", { jiixBlockId, variableName, value })
+      this.logger.info("setVariableValue", { jiixBlockId, variableName, variableValue })
       await this.#computation.clearSolverOutputs(jiixBlockId)
-      await this.#variables.setVariableValue(jiixBlockId, variableName, value)
+      await this.#variables.setVariableValue(jiixBlockId, variableName, variableValue)
       await this.recalculateDependentBlocks(jiixBlockId)
     }
     catch (error) {
@@ -155,7 +155,7 @@ export class IIMathManager extends IIAbstractManager
 
   /**
    * Get variables from a math expression
-   * @param blockId - The ID of the math element (jiixId)
+   * @param jiixBlockId - The ID of the math element (jiixId)
    * @returns Promise with array of variables
    */
   async getVariables(jiixBlockId: string): Promise<TMathVariable[]>
@@ -282,7 +282,7 @@ export class IIMathManager extends IIAbstractManager
 
   /**
    * Evaluate a math function for a math symbol
-   * @param jiixBlock - Object with id and label of the math block
+   * @param jiixBlockId - The ID of the math element (jiixId)
    * @param evaluation - Evaluation parameters
    * @returns Promise with evaluation points
    */
@@ -308,13 +308,13 @@ export class IIMathManager extends IIAbstractManager
 
   /**
    * Get evaluables from a math expression
-   * @param blockId - The ID of the math element (jiixId)
+   * @param jiixBlockId - The ID of the math element (jiixId)
    * @returns Promise with array of evaluables
    */
-  async getEvaluables(blockId: string): Promise<TMathEvaluable[]>
+  async getEvaluables(jiixBlockId: string): Promise<TMathEvaluable[]>
   {
     try {
-      return this.#evaluation.getEvaluables(blockId)
+      return this.#evaluation.getEvaluables(jiixBlockId)
     }
     catch (error) {
       this.editor.manageError(error as Error)
