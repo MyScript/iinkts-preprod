@@ -368,6 +368,18 @@ export class RecognizerWebSocket
     this.contextlessGestureDeferred.get(gestureMessage.strokeId)?.resolve(gestureMessage)
   }
 
+  protected resolveDeferredByBlockId<T>(map: Map<string, DeferredPromise<T>>, blockId: string | undefined, value?: T): void
+  {
+    if (blockId && map.has(blockId)) {
+      map.get(blockId)!.resolve(value as T)
+    } else {
+      const firstKey = (map.keys().next().value as string | undefined)
+      if (firstKey) {
+        map.get(firstKey)!.resolve(value as T)
+      }
+    }
+  }
+
   protected manageMathSolverResult(mathSolverMessage: TRecognizerWebSocketMessageMathSolverResult): void
   {
     const blockId = mathSolverMessage.blockId
@@ -377,85 +389,28 @@ export class RecognizerWebSocket
 
     switch (mathSolverMessage.action) {
       case "available-actions":
-        if (blockId && this.availableActionsDeferred.has(blockId)) {
-          this.availableActionsDeferred.get(blockId)?.resolve(mathSolverMessage.result)
-        } else {
-          // Fallback: resolve first pending promise (FIFO) if no blockId
-          const firstKey = this.availableActionsDeferred.keys().next().value
-          if (firstKey) {
-            this.availableActionsDeferred.get(firstKey)?.resolve(mathSolverMessage.result)
-          }
-        }
+        this.resolveDeferredByBlockId(this.availableActionsDeferred, blockId, mathSolverMessage.result)
         break;
       case "numerical-computation":
-        if (blockId && this.numericalComputationDeferred.has(blockId)) {
-          this.numericalComputationDeferred.get(blockId)?.resolve(mathSolverMessage.result)
-        } else {
-          const firstKey = this.numericalComputationDeferred.keys().next().value
-          if (firstKey) {
-            this.numericalComputationDeferred.get(firstKey)?.resolve(mathSolverMessage.result)
-          }
-        }
+        this.resolveDeferredByBlockId(this.numericalComputationDeferred, blockId, mathSolverMessage.result)
         break;
       case "get-diagnostic":
-        if (blockId && this.getDiagnosticDeferred.has(blockId)) {
-          this.getDiagnosticDeferred.get(blockId)?.resolve(mathSolverMessage.result)
-        } else {
-          const firstKey = this.getDiagnosticDeferred.keys().next().value
-          if (firstKey) {
-            this.getDiagnosticDeferred.get(firstKey)?.resolve(mathSolverMessage.result)
-          }
-        }
+        this.resolveDeferredByBlockId(this.getDiagnosticDeferred, blockId, mathSolverMessage.result)
         break;
       case "get-variables":
-        if (blockId && this.getVariablesDeferred.has(blockId)) {
-          this.getVariablesDeferred.get(blockId)?.resolve(mathSolverMessage.result)
-        } else {
-          const firstKey = this.getVariablesDeferred.keys().next().value
-          if (firstKey) {
-            this.getVariablesDeferred.get(firstKey)?.resolve(mathSolverMessage.result)
-          }
-        }
+        this.resolveDeferredByBlockId(this.getVariablesDeferred, blockId, mathSolverMessage.result)
         break;
       case "set-variable-value":
-        if (blockId && this.setVariableValueDeferred.has(blockId)) {
-          this.setVariableValueDeferred.get(blockId)?.resolve()
-        } else {
-          const firstKey = this.setVariableValueDeferred.keys().next().value
-          if (firstKey) {
-            this.setVariableValueDeferred.get(firstKey)?.resolve()
-          }
-        }
+        this.resolveDeferredByBlockId(this.setVariableValueDeferred, blockId)
         break;
       case "get-variable-value":
-        if (blockId && this.getVariableValueDeferred.has(blockId)) {
-          this.getVariableValueDeferred.get(blockId)?.resolve(mathSolverMessage.result)
-        } else {
-          const firstKey = this.getVariableValueDeferred.keys().next().value
-          if (firstKey) {
-            this.getVariableValueDeferred.get(firstKey)?.resolve(mathSolverMessage.result)
-          }
-        }
+        this.resolveDeferredByBlockId(this.getVariableValueDeferred, blockId, mathSolverMessage.result)
         break;
       case "get-evaluables":
-        if (blockId && this.getEvaluablesDeferred.has(blockId)) {
-          this.getEvaluablesDeferred.get(blockId)?.resolve(mathSolverMessage.result)
-        } else {
-          const firstKey = this.getEvaluablesDeferred.keys().next().value
-          if (firstKey) {
-            this.getEvaluablesDeferred.get(firstKey)?.resolve(mathSolverMessage.result)
-          }
-        }
+        this.resolveDeferredByBlockId(this.getEvaluablesDeferred, blockId, mathSolverMessage.result)
         break;
       case "evaluate":
-        if (blockId && this.evaluateDeferred.has(blockId)) {
-          this.evaluateDeferred.get(blockId)?.resolve(mathSolverMessage.result)
-        } else {
-          const firstKey = this.evaluateDeferred.keys().next().value
-          if (firstKey) {
-            this.evaluateDeferred.get(firstKey)?.resolve(mathSolverMessage.result)
-          }
-        }
+        this.resolveDeferredByBlockId(this.evaluateDeferred, blockId, mathSolverMessage.result)
         break;
       default:
         break;
