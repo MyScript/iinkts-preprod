@@ -19,6 +19,23 @@ describe("IIVariableEditor.ts", () =>
       })
     } as any
 
+    // Mock math.asVariableDefinition method
+    editor.math.asVariableDefinition = jest.fn().mockImplementation((jiixBlockId: string) => {
+      if (jiixBlockId === "block-1") {
+        return {
+          name: "expr1",
+          type: "expression"
+        }
+      }
+      if (jiixBlockId === "block-2") {
+        return {
+          name: "expr2",
+          type: "expression"
+        }
+      }
+      return Promise.reject(new Error("Unknown block ID"))
+    })
+
     // Mock math.getVariables method
     editor.math.getVariables = jest.fn().mockResolvedValue([
       { name: "x", value: 5, sourceType: "UNDEFINED" },
@@ -67,6 +84,8 @@ describe("IIVariableEditor.ts", () =>
 
       await variableEditor.show()
 
+      expect(editor.math.asVariableDefinition).toHaveBeenCalledWith("block-1")
+      expect(editor.math.asVariableDefinition).toHaveBeenCalledWith("block-2")
       expect(editor.math.getVariables).toHaveBeenCalledWith("block-1")
       expect(editor.math.getVariables).toHaveBeenCalledWith("block-2")
 
@@ -128,6 +147,7 @@ describe("IIVariableEditor.ts", () =>
 
       const symVar = {
         jiixBlockId: "block-1",
+        definition: { name: "expr1", type: "expression" },
         variables: [
           { name: "x", value: 5, sourceType: "UNDEFINED" },
           { name: "y", value: 10, sourceType: "API" }
@@ -146,6 +166,7 @@ describe("IIVariableEditor.ts", () =>
 
       const symVar = {
         jiixBlockId: "block-1",
+        definition: { name: "expr1", type: "expression" },
         variables: [
           { name: "x", value: 5, sourceType: "UNDEFINED" }
         ]
@@ -181,6 +202,7 @@ describe("IIVariableEditor.ts", () =>
       ;(variableEditor as any).blockVariables = [
         {
           jiixBlockId: "block-1",
+          definition: { name: "expr1", type: "expression" },
           variables: [{ name: "x", value: 5, sourceType: "UNDEFINED" }]
         }
       ]
@@ -193,7 +215,7 @@ describe("IIVariableEditor.ts", () =>
       )
     })
 
-    test("should apply variables even if values are the same", async () =>
+    test("should not apply variables even if values are the same", async () =>
     {
       const jiixBlockIds = ["block-1"]
 
@@ -214,6 +236,7 @@ describe("IIVariableEditor.ts", () =>
       ;(variableEditor as any).blockVariables = [
         {
           jiixBlockId: "block-1",
+          definition: { name: "expr1", type: "expression" },
           variables: [{ name: "x", value: 5, sourceType: "UNDEFINED" }]
         }
       ]
@@ -221,10 +244,7 @@ describe("IIVariableEditor.ts", () =>
       await (variableEditor as any).applyChanges()
 
       // Should call math.setListVariableValue even if value is the same
-      expect(editor.math.setListVariableValue).toHaveBeenCalledWith(
-        "block-1",
-        { x: 5 }
-      )
+      expect(editor.math.setListVariableValue).not.toHaveBeenCalled()
     })
 
     test("should skip symbols when inputs are empty", async () =>
@@ -247,6 +267,7 @@ describe("IIVariableEditor.ts", () =>
       ;(variableEditor as any).blockVariables = [
         {
           jiixBlockId: "block-1",
+          definition: { name: "expr1", type: "expression" },
           variables: [{ name: "x", value: 5, sourceType: "UNDEFINED" }]
         }
       ]
