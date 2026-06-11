@@ -148,6 +148,9 @@ export class IIHistoryManager
     if (changes.erased) {
       reversedChanges.added = changes.erased
     }
+    if (changes.updated) {
+      reversedChanges.updated = changes.updated
+    }
     if (changes.replaced) {
       reversedChanges.replaced = {
         newSymbols: changes.replaced.oldSymbols,
