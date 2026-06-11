@@ -337,7 +337,7 @@ export class RecognizerWebSocketSSR
       this.pingCount = 0
       switch (websocketMessage.type) {
         case "ack":
-          this.manageAckMessage(websocketMessage)
+          this.manageAckMessage(websocketMessage).catch(err => this.event.emitError(err))
           break
         case "contentPackageDescription":
           this.manageContentPackageDescriptionMessage()
