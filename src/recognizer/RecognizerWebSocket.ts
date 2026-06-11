@@ -428,7 +428,7 @@ export class RecognizerWebSocket
       this.pingCount = 0
       switch (websocketMessage.type) {
         case TRecognizerWebSocketMessageType.HMAC_Challenge:
-          this.manageHMACChallenge(websocketMessage)
+          this.manageHMACChallenge(websocketMessage).catch(err => this.event.emitError(err))
           break
         case TRecognizerWebSocketMessageType.Authenticated:
           this.manageAuthenticated()

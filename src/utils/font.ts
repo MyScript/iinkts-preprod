@@ -9,7 +9,7 @@ export async function getAvailableFontList(configuration: PartialDeep<{ server: 
 {
   assertServerConfig(configuration?.server, "Failed to get fonts")
   if (!configuration?.recognition?.lang) {
-    return Promise.reject("Failed to get fonts: configuration.recognition.lang is required!")
+    throw new Error("Failed to get fonts: configuration.recognition.lang is required!")
   }
   const response = await fetch(`${ configuration.server.scheme }://${ configuration.server.host }/api/v4.0/iink/font/google/language/` + configuration.recognition.lang)
   const { result } = await response.json()
