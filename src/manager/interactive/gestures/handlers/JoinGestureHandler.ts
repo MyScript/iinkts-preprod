@@ -9,7 +9,7 @@ import type { GestureHelpers } from "@/manager/interactive/gestures/GestureHelpe
 /**
  * Handler for JOIN gesture type
  * Joins rows of text together by removing line breaks
- * @group Gesture/Handler
+ * @group Manager
  */
 export class JoinGestureHandler extends GestureHandler
 {

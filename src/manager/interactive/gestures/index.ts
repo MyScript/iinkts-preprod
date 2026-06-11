@@ -1,3 +1,6 @@
+/**
+ * @group Manager
+ */
 export { GestureHandler } from "./GestureHandler"
 export type { IGestureHandler } from "./GestureHandler"
 export { GestureHelpers } from "./GestureHelpers"

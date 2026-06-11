@@ -5,7 +5,7 @@ import type { InteractiveInkEditor } from "@/editor"
 /**
  * Manager responsible for managing math symbol dependencies
  * Handles variable tracking and dependent block recalculation
- * @group Manager/Math
+ * @group Manager
  */
 export class IIMathDependencyManager
 {
@@ -58,7 +58,7 @@ export class IIMathDependencyManager
 
       try {
         this.#logger.info("recalculateDependentBlocks", `Computing numerical result for ${dependentBlockId}`)
-        await this.editor.computeMathNumericalResult(dependentMathSymbol, this.editor.mathComputationMode)
+        await this.editor.computeMathNumericalResult(dependentMathSymbol, this.editor.drawComputationResult)
       }
       catch (computeError) {
         this.#logger.error("recalculateDependentBlocks", `Error computing ${dependentBlockId}:`, computeError)
@@ -94,7 +94,7 @@ export class IIMathDependencyManager
 
 /**
  * Type representing math symbol dependencies
- * @group Manager/Math
+ * @group Manager
  */
 export type MathDependencies = {
   /**

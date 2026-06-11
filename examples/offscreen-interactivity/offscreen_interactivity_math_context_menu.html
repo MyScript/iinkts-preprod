@@ -153,7 +153,7 @@
   </div>
 
   <div class="flex-container between wrap" style="height: calc(100dvh - 224px);min-height: 450px;">
-    <div class="tabs-container">
+    <div class="tabs-container" style="max-width: 400px; flex: 1;">
       <div class="tabs-header">
         <button class="tab-button active" data-tab="examples">✏️ Try these examples</button>
         <button class="tab-button" data-tab="diagnostic">🔍 Diagnostic Feature</button>
@@ -161,7 +161,7 @@
       </div>
 
       <div id="tab-examples" class="tab-content active">
-        <ol>
+        <ul>
           <li><strong>Computation:</strong> Write <span class="highlight">√16=</span>, draw around it, Compute numerical result</li>
           <li><strong>Variable substitution:</strong> Write <span class="highlight">x=3</span>, then <span class="highlight">2x+5=</span>, draw around the second expression, Compute numerical result (will use x=3 value)</li>
           <li><strong>Function plot:</strong> Write <span class="highlight">f(x)=x²</span>, draw around it, Evaluate function → Set range from -5 to 5</li>
@@ -169,7 +169,7 @@
           <li><strong>Complex expression:</strong> Write <span class="highlight">a=2</span>, then <span class="highlight">3a²+2a-1=</span>, draw around the expression, Edit variables → Change a value, Compute numerical result (will use the updated value)</li>
           <li><strong>Check diagnostic (both tasks):</strong> Write <span class="highlight">y=x²+2x</span>, draw around it, Check diagnostic → See both "Numerical Computation" and "Function Evaluation" diagnostics</li>
           <li><strong>Division by zero:</strong> Write <span class="highlight">1/0=</span>, draw around it, Check diagnostic → See error message about division by zero</li>
-        </ol>
+        </ul>
       </div>
 
       <div id="tab-diagnostic" class="tab-content">
@@ -221,7 +221,7 @@
       </div>
     </div>
 
-    <div id="editorEl"></div>
+    <div id="editorEl" style="min-width: 400px; flex: 3;"></div>
   </div>
 
   <script>
@@ -270,6 +270,7 @@
           math: {
             solver: {
               enable: true,
+              "angle-unit": "rad",
               "auto-variable-management": {
                 enable: true,
                 "scoping-policy": "closest"

@@ -66,7 +66,7 @@ export const MathDiagnosticMessages: { [key: string]: { title: string, message: 
 }
 
 /**
- * @group Utils
+ * @group Utilities
  * @summary Get diagnostic message for a given diagnostic code
  * @param diagnostic - The diagnostic code (e.g., "ALLOWED", "DIVISION_BY_ZERO")
  * @returns Message object with title, message, and severity

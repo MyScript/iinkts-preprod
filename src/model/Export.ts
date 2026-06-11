@@ -2,9 +2,15 @@ import { EdgeDecoration, TBox } from "@/symbol"
 import { TJIIXElementBase, TJIIXWord, TJIIXChar, TJIIXLine } from "./ExportCommon"
 import { TJIIXMathElement } from "./ExportMath"
 
+/**
+ * @group Exports
+ */
 // Re-export common types for backward compatibility
 export type { TJIIXStrokeItem, TJIIXBase, TJIIXElementBase, TJIIXWord, TJIIXChar, TJIIXLine } from "./ExportCommon"
 
+/**
+ * @group Exports
+ */
 // Export Math types
 export type {
   TJIIXMathElement,

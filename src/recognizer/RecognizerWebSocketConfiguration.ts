@@ -28,7 +28,8 @@ export type TRecognitionWebSocketConfiguration = {
       "auto-variable-management"?: {
         enable?: boolean,
         "scoping-policy"?: "closest"|"last-modified"|"last-edited"
-      }
+      },
+      "angle-unit"?: "deg" | "rad"
     }
   }
 }

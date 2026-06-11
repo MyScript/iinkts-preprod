@@ -4,7 +4,7 @@ import {
   TStyle,
   TPointer,
   TStroke,
-  convertPartialStrokesToOIStrokes,
+  convertPartialStrokesToIIStrokes,
   PartialDeep
 } from "../../../src/iink"
 
@@ -179,7 +179,7 @@ describe("IIStroke.ts", () =>
     })
   })
 
-  describe("convertPartialStrokesToOIStrokes", () =>
+  describe("convertPartialStrokesToIIStrokes", () =>
   {
     test("should convert", () => {
       const pStrokes: PartialDeep<TStroke>[] = [
@@ -197,7 +197,7 @@ describe("IIStroke.ts", () =>
           style: { width: 3, color: "#1A8CFF" }
         }
       ]
-      const strokes = convertPartialStrokesToOIStrokes(pStrokes)
+      const strokes = convertPartialStrokesToIIStrokes(pStrokes)
       expect(strokes).toHaveLength(2)
       expect(strokes[0].pointers[0]).toEqual(pStrokes[0]?.pointers?.[0])
       expect(strokes[0].style).toEqual(DefaultStyle)
@@ -209,7 +209,7 @@ describe("IIStroke.ts", () =>
         {
         },
       ]
-      expect(() => convertPartialStrokesToOIStrokes(pStrokes)).toThrow("stroke 1 has not pointers")
+      expect(() => convertPartialStrokesToIIStrokes(pStrokes)).toThrow("stroke 1 has not pointers")
     })
     test("should throw error if pointers have empty object", () => {
       const pStrokes: PartialDeep<TStroke>[] = [
@@ -217,7 +217,7 @@ describe("IIStroke.ts", () =>
           pointers: [undefined]
         },
       ]
-      expect(() => convertPartialStrokesToOIStrokes(pStrokes)).toThrow("stroke 1 has no pointer at 0")
+      expect(() => convertPartialStrokesToIIStrokes(pStrokes)).toThrow("stroke 1 has no pointer at 0")
     })
     test("should throw an error if an x ​​is missing on pointers ", () => {
       const pStrokes: PartialDeep<TStroke>[] = [
@@ -228,7 +228,7 @@ describe("IIStroke.ts", () =>
           ]
         },
       ]
-      expect(() => convertPartialStrokesToOIStrokes(pStrokes)).toThrow("stroke 1 has no x at pointer at 1")
+      expect(() => convertPartialStrokesToIIStrokes(pStrokes)).toThrow("stroke 1 has no x at pointer at 1")
     })
     test("should throw an error if an y ​​is missing on pointers ", () => {
       const pStrokes: PartialDeep<TStroke>[] = [
@@ -239,7 +239,7 @@ describe("IIStroke.ts", () =>
           ]
         },
       ]
-      expect(() => convertPartialStrokesToOIStrokes(pStrokes)).toThrow("stroke 1 has no y at pointer at 1")
+      expect(() => convertPartialStrokesToIIStrokes(pStrokes)).toThrow("stroke 1 has no y at pointer at 1")
     })
   })
 })

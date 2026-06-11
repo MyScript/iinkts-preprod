@@ -11,7 +11,7 @@ import { AbstractEditor, EditorOptionsBase } from "@/editor/AbstractEditor"
 import { InkEditorConfiguration, TInkEditorConfiguration } from "./InkEditorConfiguration"
 
 /**
- * @group Editor/variants
+ * @group Editor
  */
 export type TInkEditorOptions = PartialDeep<EditorOptionsBase &
 {
@@ -25,7 +25,7 @@ export type TInkEditorOptions = PartialDeep<EditorOptionsBase &
 }
 
 /**
- * @group Editor/variants
+ * @group Editor
  * @remarks InkEditor is the core editor variant focused on freeform ink input, rendering, and recognition. It provides a rich API for managing strokes, exports, and editor state, and serves as the foundation for more specialized editor variants.
  *
  * Key features include:

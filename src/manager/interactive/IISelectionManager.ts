@@ -10,7 +10,7 @@ import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import { PointerEventGrabber, PointerInfo } from "@/grabber"
 
 /**
- * @group Manager/Interactive
+ * @group Manager
  */
 export class IISelectionManager
 {

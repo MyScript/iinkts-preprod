@@ -10,7 +10,7 @@ import type { GestureHelpers } from "@/manager/interactive/gestures/GestureHelpe
 /**
  * Handler for STRIKETHROUGH gesture type
  * Supports two actions: Draw (apply decorator) and Erase (remove symbols)
- * @group Gesture/Handler
+ * @group Manager
  */
 export class StrikeThroughGestureHandler extends GestureHandler
 {

@@ -52,7 +52,7 @@ import { RecognizedKind } from "@/symbol"
 import { computeAngleAxeRadian, computeAverage, convertBoundingBoxMillimeterToPixel, convertMillimeterToPixel, convertPixelToMillimeter, createUUID } from "@/utils"
 
 /**
- * @group Manager/Interactive
+ * @group Manager
  */
 export class IIConversionManager
 {

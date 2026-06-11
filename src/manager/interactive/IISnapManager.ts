@@ -7,7 +7,7 @@ import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import { PartialDeep } from "@/utils"
 
 /**
- * @group Manager/Interactive
+ * @group Manager
  */
 export type TSnapConfiguration = {
   guide: boolean
@@ -16,7 +16,7 @@ export type TSnapConfiguration = {
 }
 
 /**
- * @group Manager/Interactive
+ * @group Manager
  * @source
  */
 export const DefaultSnapConfiguration: TSnapConfiguration = {
@@ -26,7 +26,7 @@ export const DefaultSnapConfiguration: TSnapConfiguration = {
 }
 
 /**
- * @group Manager/Interactive
+ * @group Manager
  */
 export class SnapConfiguration implements TSnapConfiguration
 {
@@ -43,12 +43,12 @@ export class SnapConfiguration implements TSnapConfiguration
 }
 
 /**
- * @group Manager/Interactive
+ * @group Manager
  */
 export type TSnapNudge = TPoint
 
 /**
- * @group Manager/Interactive
+ * @group Manager
  */
 export type TSnapLineInfos = {
   nudge: TSnapNudge,
@@ -57,7 +57,7 @@ export type TSnapLineInfos = {
 }
 
 /**
- * @group Manager/Interactive
+ * @group Manager
  */
 export class IISnapManager
 {

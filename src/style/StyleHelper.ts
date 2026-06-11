@@ -20,7 +20,7 @@ const getParser = (): IJsonCSSParser => {
 }
 
 /**
- * @group Style
+ * @group Styles
  */
 export const StyleHelper = {
   themeToCSS(json: TTheme): string
