@@ -1,7 +1,7 @@
 import { EditorEvent } from "@/editor/EditorEvent"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import { IModel } from "@/model"
-import { IIStroke, TIISymbol } from "@/symbol"
+import { TIISymbol } from "@/symbol"
 import { THistoryContext, getInitialHistoryContext } from "./HistoryContext"
 import { THistoryConfiguration } from "./HistoryConfiguration"
 
@@ -11,15 +11,6 @@ import { THistoryConfiguration } from "./HistoryConfiguration"
 export type TIHistoryChanges = {
   added?: TIISymbol[]
   removed?: TIISymbol[]
-}
-
-/**
- * @group History
- * @remarks used to send messages to the backend on undo or redo
- */
-export type TIHistoryBackendChanges = {
-  added?: IIStroke[]
-  removed?: IIStroke[]
 }
 
 /**
@@ -60,7 +51,6 @@ export class IHistoryManager {
     const stackIdx = this.stack.findIndex(s => s.model.modificationDate === model.modificationDate)
     if (stackIdx > -1) {
       this.stack[stackIdx].model = model.clone()
-      this.updateContext()
     }
     this.updateContext()
     this.event.emitChanged(this.context)
