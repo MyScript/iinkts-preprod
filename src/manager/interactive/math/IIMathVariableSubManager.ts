@@ -146,7 +146,7 @@ export class IIMathVariableSubManager extends IIAbstractManager
     try {
       this.logger.info("enrichMathDependencies", `Starting enrichment for "${jiixBlockId}"`)
 
-      const variables = await this.editor.getMathVariables(jiixBlockId)
+      const variables = await this.getVariables(jiixBlockId)
 
       if (!variables || variables.length === 0) {
         this.logger.debug("enrichMathDependencies", `No variables in "${jiixBlockId}"`)
