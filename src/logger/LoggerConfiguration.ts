@@ -31,4 +31,10 @@ export const DefaultLoggerConfiguration: TLoggerConfiguration = {
   [LoggerCategory.SVGDEBUG]: LoggerLevel.ERROR,
   [LoggerCategory.MENU]: LoggerLevel.ERROR,
   [LoggerCategory.MOVE]: LoggerLevel.ERROR,
+  [LoggerCategory.MANAGER]: LoggerLevel.ERROR,
+  [LoggerCategory.JIIX_QUERY]: LoggerLevel.ERROR,
+  [LoggerCategory.KEYBOARD]: LoggerLevel.ERROR,
+  [LoggerCategory.MATH]: LoggerLevel.ERROR,
+  [LoggerCategory.SNAP]: LoggerLevel.ERROR,
+  [LoggerCategory.TEXT]: LoggerLevel.ERROR,
 }

@@ -1,22 +1,22 @@
 import { ResizeDirection, SELECTION_MARGIN, SvgElementRole } from "@/Constants"
-import { LoggerCategory, LoggerManager } from "@/logger"
-import { IIModel } from "@/model"
-import { Box, IIText, SymbolType, TBox, TIIEdge, TIISymbol, TPoint, isRecognizedMathSymbol } from "@/symbol"
-import { SVGRenderer, SVGBuilder } from "@/renderer"
+import { Box, IIDecorator, IIStroke, SymbolType, TBox, TIIEdge, TIISymbol, TPoint, isDecorator, isRecognizedMath, isEdge } from "@/symbol"
+import { SVGBuilder } from "@/renderer"
+import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import { PointerEventGrabber, PointerInfo } from "@/grabber"
 import { IIResizeManager } from "./IIResizeManager"
 import { IIRotationManager } from "./IIRotationManager"
 import { IITranslateManager } from "./IITranslateManager"
-import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
-import { PointerEventGrabber, PointerInfo } from "@/grabber"
+import { IIAbstractManager } from "./IIAbstractManager"
+import { LoggerCategory } from "@/logger"
 
 /**
  * @group Manager
  */
-export class IISelectionManager
+export class IISelectionManager extends IIAbstractManager
 {
-  #logger = LoggerManager.getLogger(LoggerCategory.SELECTION)
+  protected managerName = "IISelectionManager"
+
   grabber: PointerEventGrabber
-  editor: InteractiveInkEditor
 
   #selectingId = "selecting-rect"
   startSelectionPoint?: TPoint
@@ -25,23 +25,13 @@ export class IISelectionManager
 
   constructor(editor: InteractiveInkEditor)
   {
-    this.#logger.info("constructor")
-    this.editor = editor
+    super(editor, LoggerCategory.SELECTION)
+    this.logger.info("constructor")
     this.grabber = new PointerEventGrabber(editor.configuration.grabber)
     this.grabber.onPointerDown = this.start.bind(this)
     this.grabber.onPointerMove = this.continue.bind(this)
     this.grabber.onPointerUp = this.end.bind(this)
     this.grabber.onContextMenu = this.onContextMenu.bind(this)
-  }
-
-  get model(): IIModel
-  {
-    return this.editor.model
-  }
-
-  get renderer(): SVGRenderer
-  {
-    return this.editor.renderer
   }
 
   get rotator(): IIRotationManager
@@ -339,17 +329,9 @@ export class IISelectionManager
 
   protected createInteractElementsGroup(symbols: TIISymbol[]): SVGGElement | undefined
   {
-    this.#logger.info("createInteractElementsGroup", { symbols })
+    this.logger.info("createInteractElementsGroup", { symbols })
 
     if (!symbols.length) return
-
-    const symbolElementMap = symbols.map(s =>
-    {
-      return {
-        symbol: s,
-        element: this.renderer.getElementById(s.id),
-      }
-    })
 
     const box1 = Box.createFromBoxes(symbols.map(s =>
     {
@@ -372,34 +354,6 @@ export class IISelectionManager
     surroundGroup.appendChild(this.createTranslateRect(box))
     surroundGroup.appendChild(this.createResizeGroup(box))
     surroundGroup.appendChild(this.createRotateGroup(box))
-    const SURROUND_ATTRS = {
-      style: "pointer-events: none",
-      fill: "transparent",
-      stroke: "#3e68ff",
-      "stroke-width": "1",
-      "stroke-dasharray": "4",
-      "vector-effect": "non-scaling-size",
-      transform: "rotate(0, 0, 0)"
-    }
-    symbolElementMap.forEach(s =>
-    {
-      if (s.element) {
-        const bounds: TBox = {
-          x: s.symbol.bounds.x - (s.symbol.style.width || 1),
-          y: s.symbol.bounds.y - (s.symbol.style.width || 1),
-          height: s.symbol.bounds.height + (s.symbol.style.width || 1) * 2,
-          width: s.symbol.bounds.width + (s.symbol.style.width || 1) * 2,
-        }
-        if (s.symbol.type === SymbolType.Text) {
-          const t = s.symbol as IIText
-          SURROUND_ATTRS.transform = `rotate(${ t.rotation?.degree || 0 }, ${ t.rotation?.center.x || 0 }, ${ t.rotation?.center.y || 0 })`
-        }
-        else {
-          SURROUND_ATTRS.transform = "rotate(0, 0, 0)"
-        }
-        surroundGroup.prepend(SVGBuilder.createRect(bounds, SURROUND_ATTRS))
-      }
-    })
     return surroundGroup
   }
 
@@ -478,7 +432,7 @@ export class IISelectionManager
 
   protected createInteractEdgeGroup(edge: TIIEdge): SVGGElement | undefined
   {
-    this.#logger.info("createInteractEdgeGroup", { edge })
+    this.logger.info("createInteractEdgeGroup", { edge })
     const attrs = {
       id: `selected-${ Date.now() }`,
       role: SvgElementRole.InteractElementsGroup,
@@ -492,8 +446,8 @@ export class IISelectionManager
   drawSelectedGroup(symbols: TIISymbol[]): void
   {
     if (!symbols.length) return
-    if (symbols.length === 1 && symbols[0].type === SymbolType.Edge) {
-      this.selectedGroup = this.createInteractEdgeGroup(symbols[0] as TIIEdge)
+    if (symbols.length === 1 && isEdge(symbols[0])) {
+      this.selectedGroup = this.createInteractEdgeGroup(symbols[0])
     }
     else {
       this.selectedGroup = this.createInteractElementsGroup(symbols)
@@ -528,14 +482,14 @@ export class IISelectionManager
 
   resetSelectedGroup(symbols: TIISymbol[]): void
   {
-    this.#logger.info("resetSelectedGroup", { symbols })
+    this.logger.info("resetSelectedGroup", { symbols })
     this.removeSelectedGroup()
     this.drawSelectedGroup(symbols)
   }
 
   removeSelectedGroup(): void
   {
-    this.#logger.info("removeSelectedGroup")
+    this.logger.info("removeSelectedGroup")
     this.editor.menu.context.hide()
     this.selectedGroup?.remove()
     this.selectedGroup = undefined
@@ -552,6 +506,72 @@ export class IISelectionManager
       })
   }
 
+  /**
+   * Build selected/covered stroke ID sets from JIIX text groups.
+   * Returns null when no JIIX groups exist (fallback to stroke overlap).
+   */
+  protected getTextGroupSets(selectionBox: TBox): { selected: Set<string>, covered: Set<string> } | null
+  {
+    const groups = this.editor.jiix.getTextSelectionGroups(this.editor.configuration.textSelectionLevel)
+    if (groups.length === 0) return null
+
+    const selected = new Set<string>()
+    const covered = new Set<string>()
+
+    for (const group of groups) {
+      group.strokeIds.forEach(id => covered.add(id))
+      if (Box.overlaps(group.bounds, selectionBox)) {
+        group.strokeIds.forEach(id => selected.add(id))
+      }
+    }
+
+    return { selected, covered }
+  }
+
+  /**
+   * Build selected/covered stroke ID sets from JIIX math groups.
+   * Returns null when no JIIX groups exist (fallback to stroke overlap).
+   */
+  protected getMathGroupSets(selectionBox: TBox): { selected: Set<string>, covered: Set<string> } | null
+  {
+    const groups = this.editor.jiix.getMathSelectionGroups(this.editor.configuration.mathSelectionLevel)
+    if (groups.length === 0) return null
+
+    const selected = new Set<string>()
+    const covered = new Set<string>()
+
+    for (const group of groups) {
+      group.strokeIds.forEach(id => covered.add(id))
+      if (Box.overlaps(group.bounds, selectionBox)) {
+        group.strokeIds.forEach(id => selected.add(id))
+      }
+    }
+
+    return { selected, covered }
+  }
+
+  /**
+   * Build selected/covered stroke ID sets from JIIX shape (Node/Edge) groups.
+   * Returns null when level is "stroke" or no groups exist (fallback to stroke overlap).
+   */
+  protected getShapeGroupSets(selectionBox: TBox): { selected: Set<string>, covered: Set<string> } | null
+  {
+    const groups = this.editor.jiix.getShapeSelectionGroups(this.editor.configuration.shapeSelectionLevel)
+    if (groups.length === 0) return null
+
+    const selected = new Set<string>()
+    const covered = new Set<string>()
+
+    for (const group of groups) {
+      group.strokeIds.forEach(id => covered.add(id))
+      if (Box.overlaps(group.bounds, selectionBox)) {
+        group.strokeIds.forEach(id => selected.add(id))
+      }
+    }
+
+    return { selected, covered }
+  }
+
   start(info: PointerInfo): void
   {
     this.removeSelectedGroup()
@@ -566,17 +586,95 @@ export class IISelectionManager
       throw new Error("You need to call startSelectionByBox before")
     }
     this.endSelectionPoint = info.pointer
+    const selectionBox = this.selectionBox!
     const updatedSymbols: TIISymbol[] = []
+
+    const textSets = this.getTextGroupSets(selectionBox)
+    const mathSets = this.getMathGroupSets(selectionBox)
+    const shapeSets = this.getShapeGroupSets(selectionBox)
+
     this.model.symbols.forEach(s =>
     {
-      if (s.selected !== s.overlaps(this.selectionBox!)) {
-        s.selected = s.overlaps(this.selectionBox!)
+      let shouldBeSelected: boolean
+
+      if (s.type === SymbolType.Stroke) {
+        const stroke = s as IIStroke
+        if (stroke.jiixBlockType === "Text") {
+          if (textSets && textSets.covered.has(stroke.id)) {
+            shouldBeSelected = textSets.selected.has(stroke.id)
+          } else {
+            shouldBeSelected = s.overlaps(selectionBox)
+          }
+        }
+        else if (stroke.jiixBlockType === "Math") {
+          if (mathSets && mathSets.covered.has(stroke.id)) {
+            shouldBeSelected = mathSets.selected.has(stroke.id)
+          } else {
+            shouldBeSelected = s.overlaps(selectionBox)
+          }
+        }
+        else if (stroke.jiixBlockType === "Node" || stroke.jiixBlockType === "Edge") {
+          if (shapeSets && shapeSets.covered.has(stroke.id)) {
+            shouldBeSelected = shapeSets.selected.has(stroke.id)
+          } else {
+            shouldBeSelected = s.overlaps(selectionBox)
+          }
+        }
+        else {
+          shouldBeSelected = s.overlaps(selectionBox)
+        }
+      }
+      else {
+        shouldBeSelected = s.overlaps(selectionBox)
+      }
+
+      if (s.selected !== shouldBeSelected) {
+        s.selected = shouldBeSelected
         updatedSymbols.push(s)
-        this.renderer.drawSymbol(s)
+        this.renderer.updateSymbolSelection(s)
       }
     })
-    this.drawSelectingRect(this.selectionBox!)
+
+    this.drawSelectingRect(selectionBox)
     return updatedSymbols
+  }
+
+  /**
+   * Find the JIIX block ID of the single fully-selected math block, if any.
+   * In "element" mode: a block qualifies if any of its strokes are selected.
+   * In "operand" mode: a block qualifies only if ALL its strokes are selected.
+   * Returns undefined when zero or more than one block qualifies.
+   */
+  getSelectedMathJiixBlockId(): string | undefined
+  {
+    const mathLevel = this.editor.configuration.mathSelectionLevel
+    const selectedMathStrokes = this.model.symbolsSelected.filter(isRecognizedMath) as IIStroke[]
+
+    if (selectedMathStrokes.length === 0) return undefined
+
+    const blockGroups = new Map<string, IIStroke[]>()
+    selectedMathStrokes.forEach(stroke => {
+      if (!stroke.jiixBlockId) return
+      const group = blockGroups.get(stroke.jiixBlockId) ?? []
+      group.push(stroke)
+      blockGroups.set(stroke.jiixBlockId, group)
+    })
+
+    const qualifyingBlockIds: string[] = []
+    for (const [jiixBlockId, strokes] of blockGroups) {
+      if (mathLevel === "element") {
+        qualifyingBlockIds.push(jiixBlockId)
+      }
+      else {
+        const allBlockStrokeIds = this.editor.jiix.getStrokesForElement(jiixBlockId)
+        const selectedIds = new Set(strokes.map(s => s.id))
+        if (allBlockStrokeIds.length > 0 && allBlockStrokeIds.every(id => selectedIds.has(id))) {
+          qualifyingBlockIds.push(jiixBlockId)
+        }
+      }
+    }
+
+    return qualifyingBlockIds.length === 1 ? qualifyingBlockIds[0] : undefined
   }
 
   end(info: PointerInfo): TIISymbol[]
@@ -586,15 +684,19 @@ export class IISelectionManager
     this.endSelectionPoint = undefined
     this.clearSelectingRect()
     this.drawSelectedGroup(this.model.symbolsSelected)
-    this.editor.event.emitSelected(this.model.symbolsSelected)
     this.editor.menu.style.update()
 
     // Notify math interactions system of selection changes
-    const selectedMathIds = this.model.symbolsSelected
-      .filter(isRecognizedMathSymbol)
-      .map(s => s.id)
-    this.editor.mathInteractions.onSymbolSelect(selectedMathIds)
+    const selectedMathJiixBlockId = this.getSelectedMathJiixBlockId()
+    if (selectedMathJiixBlockId) {
+      this.editor.math.selectBlock(selectedMathJiixBlockId)
+    }
+    else {
+      this.editor.math.clearBlockSelection()
+    }
 
+    // Defer external event so synchronous user callbacks don't block pointer-up completion
+    setTimeout(() => this.editor.event.emitSelected(this.model.symbolsSelected), 0)
     return updatedSymbols
   }
 
@@ -602,7 +704,7 @@ export class IISelectionManager
   {
     let found = false
     let currentEl = info.target as HTMLElement | null
-    const symbolTypesAllowed = [SymbolType.Edge, SymbolType.Shape, SymbolType.Stroke, SymbolType.Text]
+    const symbolTypesAllowed = [SymbolType.Decorator, SymbolType.Edge, SymbolType.Shape, SymbolType.Stroke, SymbolType.Text]
     while (currentEl && currentEl.tagName !== "svg" && !found) {
       if (symbolTypesAllowed.includes(currentEl.getAttribute("type") as SymbolType)) {
         found = true
@@ -613,7 +715,12 @@ export class IISelectionManager
     }
     this.editor.unselectAll()
     if (currentEl?.id) {
-      this.editor.select([currentEl.id])
+      const sym = this.editor.model.symbols.find(s => s.id === currentEl!.id)
+      if (sym && isDecorator(sym)) {
+        this.editor.select((sym as IIDecorator).targetIds)
+      } else {
+        this.editor.select([currentEl.id])
+      }
     }
     else {
       // Use clientX/clientY relative to the menu's parent container

@@ -1,6 +1,6 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
 import { Stroke, TPointer } from "@/symbol"
-import { computeAngleAxeRadian, computeLinksPointers, computeMiddlePointer } from "@/utils"
+import { computeAngleAxeRadian, computeLinksPointers, computeMiddlePointer, TWO_PI } from "@/utils"
 
 /**
  * @group Renderer
@@ -12,7 +12,7 @@ export class CanvasRendererStroke
   protected renderArc(context2d: CanvasRenderingContext2D, center: TPointer, radius: number): void
   {
     this.#logger.debug("renderArc", { context2d, center, radius })
-    context2d.arc(center.x, center.y, radius, 0, Math.PI * 2, true)
+    context2d.arc(center.x, center.y, radius, 0, TWO_PI, true)
   }
 
   protected renderLine(context2d: CanvasRenderingContext2D, begin: TPointer, end: TPointer, width: number): void

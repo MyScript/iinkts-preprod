@@ -22,18 +22,18 @@ export class SnapMenuAction extends SubMenuItem
           type: "checkbox",
           id: `${idPrefix}-snap-to-guide`,
           label: "Snap to guide",
-          getValue: (editor) => editor.snaps.configuration.guide,
+          getValue: (editor) => editor.snaps.snapConfiguration.guide,
           setValue: (editor, value) => {
-            editor.snaps.configuration.guide = value
+            editor.snaps.snapConfiguration.guide = value
           }
         },
         {
           type: "checkbox",
           id: `${idPrefix}-snap-to-element`,
           label: "Snap to element",
-          getValue: (editor) => editor.snaps.configuration.symbol,
+          getValue: (editor) => editor.snaps.snapConfiguration.symbol,
           setValue: (editor, value) => {
-            editor.snaps.configuration.symbol = value
+            editor.snaps.snapConfiguration.symbol = value
           }
         },
         {
@@ -48,9 +48,9 @@ export class SnapMenuAction extends SubMenuItem
             { label: "90°", value: "90" },
             { label: "180°", value: "180" }
           ],
-          getValue: (editor) => editor.snaps.configuration.angle.toString(),
+          getValue: (editor) => editor.snaps.snapConfiguration.angle.toString(),
           setValue: (editor, angle) => {
-            editor.snaps.configuration.angle = +angle
+            editor.snaps.snapConfiguration.angle = +angle
           }
         }
       ]

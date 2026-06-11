@@ -1,11 +1,6 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
-import
-{
-  isRecognizedTextSymbol,
-  SymbolType,
-  TIISymbol,
-} from "@/symbol"
-import { TExport } from "./Export"
+import { TIISymbol } from "@/symbol"
+import { TExport, TJIIXTextElement, TJIIXMathElement, JIIXElementType } from "./Export"
 
 /**
  * @group Model
@@ -20,17 +15,13 @@ export class IIModel
   symbols: TIISymbol[]
   exports?: TExport
   converts?: TExport
-  width: number
-  height: number
   rowHeight: number
   idle: boolean
 
-  constructor(width = 100, height = 100, rowHeight = 0, creationDate = Date.now())
+  constructor(rowHeight = 0, creationDate = Date.now())
   {
     this.creationTime = creationDate
     this.modificationDate = creationDate
-    this.width = width
-    this.height = height
     this.rowHeight = rowHeight
     this.symbols = []
     this.exports = undefined
@@ -88,19 +79,13 @@ export class IIModel
     this.#syncMap()
     const directMatch = this.#symbolsMap.get(id)
     if (directMatch) return directMatch
-
-    return this.symbols.find(s =>
-    {
-      if (s.type === SymbolType.Recognized && s.containsStroke(id)) {
-        return s
-      }
-      return
-    })
+    return undefined
   }
 
   getSymbolRowIndex(symbol: TIISymbol): number
   {
-    return Math.round((isRecognizedTextSymbol(symbol) ? symbol.baseline : symbol.bounds.yMid) / this.rowHeight)
+    // Use symbol bounds yMid for row calculation
+    return Math.round(symbol.bounds.yMid / this.rowHeight)
   }
 
   getSymbolsByRowOrdered(): { rowIndex: number, symbols: TIISymbol[] }[]
@@ -289,7 +274,7 @@ export class IIModel
   clone(): IIModel
   {
     this.#logger.info("clone")
-    const clonedModel = new IIModel(this.width, this.height, this.rowHeight, this.creationTime)
+    const clonedModel = new IIModel(this.rowHeight, this.creationTime)
     clonedModel.modificationDate = this.modificationDate
     clonedModel.symbols = this.symbols.map(s =>
     {
@@ -315,5 +300,35 @@ export class IIModel
     this.converts = undefined
     this.idle = true
 
+  }
+
+  /**
+   * Get all Text blocks from JIIX export
+   * @returns Array of Text elements from the JIIX export, or empty array if no export available
+   */
+  getTextBlocks(): TJIIXTextElement[]
+  {
+    const jiixExport = this.exports?.["application/vnd.myscript.jiix"]
+    if (!jiixExport?.elements) {
+      return []
+    }
+    return jiixExport.elements.filter(
+      (el): el is TJIIXTextElement => el.type === JIIXElementType.Text
+    )
+  }
+
+  /**
+   * Get all Math blocks from JIIX export
+   * @returns Array of Math elements from the JIIX export, or empty array if no export available
+   */
+  getMathBlocks(): TJIIXMathElement[]
+  {
+    const jiixExport = this.exports?.["application/vnd.myscript.jiix"]
+    if (!jiixExport?.elements) {
+      return []
+    }
+    return jiixExport.elements.filter(
+      (el): el is TJIIXMathElement => el.type === JIIXElementType.Math
+    )
   }
 }

@@ -1,12 +1,12 @@
 import { TStyle } from "@/style"
 import { PartialDeep } from "@/utils"
-import { EdgeDecoration, EdgeKind, OIEdgeBase } from "./IIEdge"
+import { EdgeDecoration, EdgeKind, IIEdgeBase } from "./IIEdge"
 import { TPoint, isValidPoint } from "@/symbol/base/Point"
 
 /**
  * @group Symbol
  */
-export class IIEdgePolyLine extends OIEdgeBase<EdgeKind.PolyEdge>
+export class IIEdgePolyLine extends IIEdgeBase<EdgeKind.PolyEdge>
 {
   points: TPoint[]
 
@@ -52,7 +52,7 @@ export class IIEdgePolyLine extends OIEdgeBase<EdgeKind.PolyEdge>
 
   static create(partial: PartialDeep<IIEdgePolyLine>): IIEdgePolyLine
   {
-    if (!partial?.points?.map(p => isValidPoint(p))) throw new Error(`Unable to create a PolyLine, points are invalid`)
+    if (partial?.points?.some(p => !isValidPoint(p))) throw new Error(`Unable to create a PolyLine, points are invalid`)
     const polyline = new IIEdgePolyLine(partial?.points as TPoint[], partial.startDecoration, partial.endDecoration, partial.style)
     if (partial.id) {
       polyline.id = partial.id

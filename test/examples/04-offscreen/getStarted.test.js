@@ -1,8 +1,6 @@
 import { test, expect } from "@playwright/test"
 import {
   passModalKey,
-  callEditorIdle,
-  waitForEditorInit,
   writeStrokes,
   waitForSynchronizedEvent,
   getEditorSymbols,
@@ -26,11 +24,8 @@ test.describe("Offscreen Get Started", () => {
     test("should have stroke into model.symbols", async ({ page }) => {
       const symbols = await getEditorSymbols(page)
       expect(symbols).toHaveLength(1)
-      const sym = symbols[0]
-      expect(sym.type).toEqual("recognized")
-      expect(sym.kind).toEqual("text")
-      expect(sym.strokes).toHaveLength(1)
-      const stroke = sym.strokes[0]
+      const stroke = symbols[0]
+      expect(stroke.type).toEqual("stroke")
       expect(stroke.pointers).toHaveLength(
         helloOneStroke.strokes[0].pointers.length
       )
@@ -39,13 +34,10 @@ test.describe("Offscreen Get Started", () => {
     test("should display stroke", async ({ page }) => {
       const symbols = await getEditorSymbols(page)
       expect(symbols).toHaveLength(1)
-      const sym = symbols[0]
-      expect(sym.type).toEqual("recognized")
-      expect(sym.kind).toEqual("text")
-      expect(sym.strokes).toHaveLength(1)
-      const stroke = sym.strokes[0]
+      const stroke = symbols[0]
+      expect(stroke.type).toEqual("stroke")
 
-      const symLocator = page.locator(`#${sym.id}`)
+      const symLocator = page.locator(`#${stroke.id}`)
       await expect(symLocator).toBeVisible()
 
       const strokePathLocator = page.locator(`#${stroke.id} path`)

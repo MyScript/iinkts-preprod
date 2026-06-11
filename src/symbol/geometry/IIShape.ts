@@ -19,7 +19,7 @@ export enum ShapeKind
 /**
  * @group Symbol
  */
-export abstract class OIShapeBase<K = ShapeKind> extends IISymbolBase<SymbolType.Shape>
+export abstract class IIShapeBase<K = ShapeKind> extends IISymbolBase<SymbolType.Shape>
 {
   readonly kind: K
   readonly isClosed = true

@@ -1,12 +1,9 @@
-import { LoggerManager, LoggerCategory } from "@/logger"
-import { IIModel } from "@/model"
-import { IIStroke, SymbolType } from "@/symbol"
-import { RecognizerWebSocket } from "@/recognizer"
-import { SVGRenderer } from "@/renderer"
+import { IIStroke, SymbolType, isDecorator } from "@/symbol"
 import { IIHistoryManager } from "@/history"
 import { isBetween, PartialDeep } from "@/utils"
 import { IITranslateManager, IITextManager } from "."
 import { InteractiveInkEditor } from "@/editor"
+import { IIAbstractManager } from "./IIAbstractManager"
 import type { IGestureHandler } from "./gestures"
 import {
   GestureHelpers,
@@ -17,7 +14,6 @@ import {
   JoinGestureHandler,
   InsertGestureHandler
 } from "./gestures"
-export * from "./GestureTypes"
 import {
   TGestureType,
   TGesture,
@@ -27,20 +23,22 @@ import {
   InsertAction,
   TGestureConfiguration,
   DefaultGestureConfiguration
-} from "./GestureTypes"
+} from "./gestures/GestureTypes"
+import { LoggerCategory } from "@/logger"
 
 /**
  * @group Manager
  * @remarks Orchestrator for gesture recognition and handling using Strategy Pattern
  */
-export class IIGestureManager
+export class IIGestureManager extends IIAbstractManager
 {
-  #logger = LoggerManager.getLogger(LoggerCategory.GESTURE)
+  protected managerName = "IIGestureManager"
+
   #handlers: Map<TGestureType, IGestureHandler> = new Map()
   #helpers: GestureHelpers
 
   static readonly #TEXT_STROKE_GROUP_TYPES = new Set([SymbolType.Text, SymbolType.Stroke, SymbolType.Group])
-  static readonly #SURROUND_SELECT_TYPES = new Set([SymbolType.Group, SymbolType.Stroke, SymbolType.Text, SymbolType.Recognized])
+  static readonly #SURROUND_SELECT_TYPES = new Set([SymbolType.Group, SymbolType.Stroke, SymbolType.Text])
   static readonly #ERASE_OVERLAY_TYPES = new Set([SymbolType.Stroke, SymbolType.Text, SymbolType.Group])
   static readonly #ERASE_CONTAIN_TYPES = new Set([SymbolType.Shape, SymbolType.Edge])
 
@@ -48,19 +46,18 @@ export class IIGestureManager
   surroundAction: SurroundAction = SurroundAction.Select
   strikeThroughAction: StrikeThroughAction = StrikeThroughAction.Draw
   underlineAction: UnderlineAction = UnderlineAction.Draw
-  editor: InteractiveInkEditor
 
   constructor(editor: InteractiveInkEditor, gestureAction?: PartialDeep<TGestureConfiguration>)
   {
-    this.#logger.info("constructor")
-    this.editor = editor
+    super(editor, LoggerCategory.GESTURE)
+    this.logger.info("constructor")
     this.surroundAction = gestureAction?.surround || DefaultGestureConfiguration.surround
     this.strikeThroughAction = gestureAction?.strikeThrough || DefaultGestureConfiguration.strikeThrough
     this.underlineAction = gestureAction?.underline || DefaultGestureConfiguration.underline
     this.insertAction = gestureAction?.insert || DefaultGestureConfiguration.insert
 
     // Initialize helpers with reference to this manager and register handlers
-    this.#helpers = new GestureHelpers(editor, this)
+    this.#helpers = new GestureHelpers(editor)
     this.#registerHandlers()
   }
 
@@ -78,16 +75,6 @@ export class IIGestureManager
     this.#handlers.set("INSERT", new InsertGestureHandler(this.editor, this.#helpers))
   }
 
-  get renderer(): SVGRenderer
-  {
-    return this.editor.renderer
-  }
-
-  get recognizer(): RecognizerWebSocket
-  {
-    return this.editor.recognizer
-  }
-
   get translator(): IITranslateManager
   {
     return this.editor.translator
@@ -96,11 +83,6 @@ export class IIGestureManager
   get texter(): IITextManager
   {
     return this.editor.texter
-  }
-
-  get model(): IIModel
-  {
-    return this.editor.model
   }
 
   get history(): IIHistoryManager
@@ -125,19 +107,16 @@ export class IIGestureManager
    */
   async apply(gestureStroke: IIStroke, gesture: TGesture): Promise<void>
   {
-    this.#logger.info("apply", { gestureStroke, gesture })
+    this.logger.info("apply", { gestureStroke, gesture })
 
-    // Prepare gesture stroke for removal
-    this.editor.updateSymbolsStyle([gestureStroke.id], { opacity: (gestureStroke.style.opacity || 1) / 2 }, false)
-    await this.editor.removeSymbol(gestureStroke.id, false)
-    await this.editor.synchronizeStrokesWithJIIX()
+    this.editor.removeSymbol(gestureStroke.id, false)
 
     // Dispatch to appropriate handler
     const handler = this.#handlers.get(gesture.gestureType)
     if (handler) {
       await handler.apply(gestureStroke, gesture)
     } else {
-      this.#logger.warn("apply", `No handler found for gesture type: ${gesture.gestureType}`)
+      this.logger.warn("apply", `No handler found for gesture type: ${gesture.gestureType}`)
     }
 
     // Emit event and update UI
@@ -159,7 +138,7 @@ export class IIGestureManager
       case "surround": {
         const hasSymbolsToSurrond = this.model.symbols.some(s =>
         {
-          if (s.id !== gestureStroke.id && gestureStroke.bounds.contains(s.bounds)) {
+          if (s.id !== gestureStroke.id && !isDecorator(s) && gestureStroke.bounds.contains(s.bounds)) {
             return this.surroundAction === SurroundAction.Select || IIGestureManager.#SURROUND_SELECT_TYPES.has(s.type)
           }
           return false

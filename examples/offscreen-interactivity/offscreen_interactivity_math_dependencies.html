@@ -184,7 +184,8 @@
             convert: false,
             math: false,
             debug: false,
-            guide: false
+            guide: false,
+            selection: false
           },
           tool: {
             write: true,
@@ -211,14 +212,14 @@
 
       editor = await Editor.load(editorElement, 'INTERACTIVEINK', options)
 
-      editor.mathOverlays.updateConfig({ showBlockOverlays: showBlockOverlaysCheckbox.checked })
+      editor.math.updateOverlaysConfig({ showBlockOverlays: showBlockOverlaysCheckbox.checked })
       editor.drawComputationResult = drawResultStrokesCheckbox.checked
 
       // Show result panels when not drawing strokes
-      editor.mathOverlays.updateConfig({ showResultPanels: !drawResultStrokesCheckbox.checked })
+      editor.math.updateOverlaysConfig({ showResultPanels: !drawResultStrokesCheckbox.checked })
 
-      editor.mathInteractions.updateConfig({ showDependencyOnHover: showDependencyOnHoverCheckbox.checked })
-      editor.mathInteractions.updateConfig({ highlightOnSelect: highlightOnSelectCheckbox.checked })
+      editor.math.updateVariablesConfig({ showDependencyOnHover: showDependencyOnHoverCheckbox.checked })
+      editor.math.updateVariablesConfig({ highlightOnSelect: highlightOnSelectCheckbox.checked })
 
       editor.event.addChangedListener(onEditorChanged)
       editor.event.addSynchronizedListener(onSynchronized)
@@ -227,7 +228,7 @@
     }
 
     async function onSelected(symbols) {
-      const hasMath = symbols.some(s => s.type === 'recognized' && s.kind === 'math')
+      const hasMath = symbols.some(s => s.jiixBlockType === 'Math')
       computeElement.disabled = !hasMath
     }
 
@@ -246,7 +247,6 @@
     async function onSynchronized() {
       synchronizeTimeout && clearTimeout(synchronizeTimeout)
       synchronizeTimeout = setTimeout(() => {
-        const sym = editor.model.symbols.map(d => ({label: d.label, jiix: d.jiixId, dependentBlocks: d.dependentBlocks?.join(', ')}))
         updateDependenciesDisplay()
         updateVariablesList()
         tryAutoCompute()
@@ -258,21 +258,17 @@
         return
       }
 
-      const mathSymbols = editor.model.symbols.filter(s =>
-        s.type === 'recognized' && s.kind === 'math'
-      )
+      const mathBlocks = editor.model.getMathBlocks()
 
-      for (const mathSymbol of mathSymbols) {
-        const label = mathSymbol.label || ''
-        if ((label.endsWith('=') || label.endsWith('?')) && mathSymbol.jiixId) {
+      for (const mb of mathBlocks) {
+        const label = mb.label || ''
+        if ((label.endsWith('=') || label.endsWith('?')) && mb.id) {
           try {
-            const actions = await editor.getAvailableActions(mathSymbol.jiixId)
+            const actions = await editor.getMathAvailableActions(mb.id)
             const canCompute = actions?.includes('numerical-computation')
 
             if (canCompute) {
-              console.log(`Auto-computing: ${label}`)
-
-              await editor.computeMathNumericalResult(mathSymbol, editor.drawComputationResult)
+              await editor.computeMathNumericalResult(mb.id, editor.drawComputationResult)
             }
           } catch (e) {
             // Silently ignore errors - expression might not be computable yet
@@ -283,22 +279,20 @@
     }
 
     async function updateDependenciesDisplay() {
-      const mathSymbols = editor.model.symbols.filter(s =>
-        s.type === 'recognized' && s.kind === 'math'
-      )
+      const mathBlocks = editor.model.getMathBlocks()
 
-      if (mathSymbols.length === 0) {
+      if (mathBlocks.length === 0) {
         dependenciesList.innerHTML = 'No math blocks yet'
         return
       }
       const sourceBlocks = []
       const processedBlocks = new Set()
 
-      for (const mathSymbol of mathSymbols) {
-        const deps = editor.getMathDependencies(mathSymbol.jiixId)
+      for (const mb of mathBlocks) {
+        const deps = await editor.getMathDependencies(mb.id)
         if (deps?.dependentBlocks && deps.dependentBlocks.length > 0) {
           sourceBlocks.push({
-            symbol: mathSymbol,
+            symbol: mb,
             deps: deps
           })
         }
@@ -310,25 +304,25 @@
 
         html += `<div style="margin-bottom: 16px; padding: 8px; background: #e8f5e9; border-radius: 4px;">`
         html += `<div class="dependency-info source" style="margin-bottom: 8px; background: #c8e6c9;">`
-        html += `<strong>📊 ${symbol.label || symbol.jiixId}</strong>`
+        html += `<strong>📊 ${symbol.label || symbol.id}</strong>`
         if (deps.dependentBlocks.length > 0) {
           html += ` <small>(used by ${deps.dependentBlocks.length} block(s))</small>`
         }
         html += `</div>`
 
-        processedBlocks.add(symbol.jiixId)
+        processedBlocks.add(symbol.id)
 
         for (const depId of deps.dependentBlocks) {
-          const depSymbol = mathSymbols.find(s => s.jiixId === depId)
+          const depSymbol = mathBlocks.find(s => s.id === depId)
           if (depSymbol) {
-            const depDeps = editor.getMathDependencies(depId)
+            const depDeps = await editor.getMathDependencies(depId)
             html += `<div class="dependency-info dependent" style="margin-left: 16px; margin-bottom: 4px;">`
             html += `<strong>→ ${depSymbol.label || depId}</strong><br>`
 
             if (depDeps?.variableSources && Object.keys(depDeps.variableSources).length > 0) {
               html += '<small>Variables: '
               html += Object.entries(depDeps.variableSources).map(([varName, sourceId]) => {
-                const sourceSymbol = mathSymbols.find(s => s.jiixId === sourceId)
+                const sourceSymbol = mathBlocks.find(s => s.id === sourceId)
                 return `${varName} = ${sourceSymbol?.label || sourceId}`
               }).join(', ')
               html += '</small>'
@@ -342,13 +336,13 @@
         html += '</div>'
       }
 
-      const remainingBlocks = mathSymbols.filter(s => !processedBlocks.has(s.jiixId))
+      const remainingBlocks = mathBlocks.filter(s => !processedBlocks.has(s.id))
       if (remainingBlocks.length > 0) {
         html += '<div style="margin-top: 16px; padding-top: 8px; border-top: 1px dashed #ccc;">'
         html += '<small><strong>Isolated blocks:</strong></small><br>'
-        for (const mathSymbol of remainingBlocks) {
+        for (const mathBlock of remainingBlocks) {
           html += `<div class="dependency-info" style="margin-top: 4px;">`
-          html += `<strong>${mathSymbol.label || mathSymbol.jiixId}</strong>`
+          html += `<strong>${mathBlock.label || mathBlock.id}</strong>`
           html += '</div>'
         }
         html += '</div>'
@@ -359,30 +353,24 @@
 
     async function updateVariablesList() {
       allVariables = []
-      const mathSymbols = editor.model.symbols.filter(s =>
-        s.type === 'recognized' && s.kind === 'math'
-      )
+      const mathBlocks = editor.model.getMathBlocks()
 
-      for (const mathSymbol of mathSymbols) {
+      for (const mb of mathBlocks) {
         try {
-          if (!mathSymbol.jiixId) continue
-          // Only consider symbols that are either variable definitions (ending with '=') or have solver output (like computed results)
-          if (!mathSymbol.label?.endsWith('=') && !mathSymbol.solverOutputStrokeIds?.length) continue
-
-          const variables = await editor.getVariables(mathSymbol.jiixId)
+          const variables = await editor.getMathVariables(mb.id)
           variables.forEach(v => {
             if (!allVariables.find(av => av.name === v.name && av.sourceId === v.sourceId)) {
               allVariables.push({
                 name: v.name,
                 sourceId: v.sourceId,
                 value: v.value,
-                label: mathSymbol.label,
-                jiixId: mathSymbol.jiixId
+                label: mb.label,
+                jiixId: mb.id
               })
             }
           })
         } catch (e) {
-          console.error('Error getting variables:', e)
+          // Block may have no variables
         }
       }
 
@@ -404,8 +392,8 @@
         return
       }
 
-      const mathSymbol = selectedSymbols.find(s => s.type === 'recognized' && s.kind === 'math')
-      if (!mathSymbol) {
+      const mathStroke = selectedSymbols.find(s => s.jiixBlockType === 'Math')
+      if (!mathStroke) {
         alert('Please select a math expression')
         return
       }
@@ -414,7 +402,7 @@
         computeElement.disabled = true
         computeElement.textContent = 'Computing...'
 
-        await editor.computeMathNumericalResult(mathSymbol)
+        await editor.computeMathNumericalResult(mathStroke.jiixBlockId, editor.drawComputationResult)
 
         computeElement.textContent = 'Compute'
         computeElement.disabled = false
@@ -441,11 +429,7 @@
         setVariableBtn.disabled = true
         setVariableBtn.textContent = 'Setting...'
 
-        console.log(`Setting ${varName} = ${newValue} in block ${jiixId}`)
-
-        const sourceSymbol = editor.model.symbols.find(s => s.jiixId === jiixId && s.type === 'recognized' && s.kind === 'math')
-
-        await editor.setVariableValue(jiixId, varName, newValue)
+        await editor.setMathVariableValue(jiixId, varName, newValue)
 
         await updateVariablesList()
         await updateDependenciesDisplay()
@@ -462,40 +446,30 @@
     })
 
     showBlockOverlaysCheckbox.addEventListener('change', (e) => {
-      editor.mathOverlays.toggleBlockOverlays(e.target.checked)
+      editor.math.toggleBlockOverlays(e.target.checked)
     })
 
     drawResultStrokesCheckbox.addEventListener('change', async (e) => {
-      const oldMode = editor.drawComputationResult
       editor.drawComputationResult = e.target.checked
-      if (!e.target.checked && oldMode) {
-        // If switching from drawing strokes to not drawing, clear existing solver strokes
-        const mathSymbols = editor.model.symbols.filter(s =>
-          s.type === 'recognized' && s.kind === 'math'
-        )
-        for (const mathSymbol of mathSymbols) {
-          await editor.clearSolverOutputStrokes(mathSymbol)
-        }
-      }
       // Show result panels when not drawing strokes
-      editor.mathOverlays.updateConfig({ showResultPanels: !e.target.checked })
+      editor.math.updateOverlaysConfig({ showResultPanels: !e.target.checked })
     })
 
     const refreshBtn = document.getElementById('refreshBtn')
     refreshBtn.addEventListener('click', () => {
-      editor.mathOverlays.refresh()
+      editor.math.refreshOverlays()
     })
 
 
     showDependencyOnHoverCheckbox.addEventListener('change', (e) => {
-      editor.mathInteractions.updateConfig({ showDependencyOnHover: e.target.checked })
+      editor.math.updateVariablesConfig({ showDependencyOnHover: e.target.checked })
       if (!e.target.checked) {
-        editor.mathInteractions.clearAll()
+        editor.math.clearVariableInteractions()
       }
     })
 
     highlightOnSelectCheckbox.addEventListener('change', (e) => {
-      editor.mathInteractions.updateConfig({ highlightOnSelect: e.target.checked })
+      editor.math.updateVariablesConfig({ highlightOnSelect: e.target.checked })
     })
 
     showModalBtn.addEventListener('click', () => {

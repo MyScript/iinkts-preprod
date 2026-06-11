@@ -12,21 +12,11 @@ import
   IIEdgeArc,
   IIEdgeLine,
   IIEdgePolyLine,
-  IIRecognizedText,
-  IIRecognizedMath,
-  IIRecognizedArc,
-  IIRecognizedCircle,
-  IIRecognizedEllipse,
-  IIRecognizedPolygon,
-  IIRecognizedLine,
-  IIRecognizedPolyLine,
   TIIShape,
   TIIEdge,
-  TIIRecognized,
   SymbolType,
   ShapeKind,
-  EdgeKind,
-  RecognizedKind
+  EdgeKind
 } from "@/symbol"
 
 /**
@@ -75,36 +65,6 @@ export class SymbolFactory
         return IIEdgePolyLine.create(partialEdge as PartialDeep<IIEdgePolyLine>)
       default:
         throw new Error(`Unable to create edge, kind: "${ partialEdge.kind }" is unknown`)
-    }
-  }
-
-  /**
-   * Build a recognized symbol from partial data
-   * @param partialSymbol - Partial recognized symbol data
-   * @returns Complete recognized symbol instance
-   * @throws Error if recognized kind is unknown
-   */
-  buildRecognized(partialSymbol: PartialDeep<TIIRecognized>): TIIRecognized
-  {
-    switch (partialSymbol.kind) {
-      case RecognizedKind.Text:
-        return IIRecognizedText.create(partialSymbol)
-      case RecognizedKind.Math:
-        return IIRecognizedMath.create(partialSymbol)
-      case RecognizedKind.Arc:
-        return IIRecognizedArc.create(partialSymbol)
-      case RecognizedKind.Circle:
-        return IIRecognizedCircle.create(partialSymbol)
-      case RecognizedKind.Ellipse:
-        return IIRecognizedEllipse.create(partialSymbol)
-      case RecognizedKind.Polygone:
-        return IIRecognizedPolygon.create(partialSymbol)
-      case RecognizedKind.Line:
-        return IIRecognizedLine.create(partialSymbol)
-      case RecognizedKind.PolyEdge:
-        return IIRecognizedPolyLine.create(partialSymbol)
-      default:
-        throw new Error(`Unable to create recognized, symbol type '${ JSON.stringify(partialSymbol) } is unknown`)
     }
   }
 
@@ -158,8 +118,6 @@ export class SymbolFactory
           return this.buildText(partialSymbol)
         case SymbolType.Math:
           return this.buildMath(partialSymbol)
-        case SymbolType.Recognized:
-          return this.buildRecognized(partialSymbol as PartialDeep<TIIRecognized>)
         default:
           throw new Error(`Unable to build symbol, type: "${ partialSymbol.type }" is unknown`)
       }

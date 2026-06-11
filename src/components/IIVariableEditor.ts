@@ -1,5 +1,4 @@
 import { InteractiveInkEditor } from "@/editor"
-import { IIRecognizedMath } from "@/symbol"
 import { Modal } from "./Modal"
 import { TMathVariable } from "@/recognizer"
 import { LoggerCategory, LoggerManager } from "@/logger"
@@ -9,7 +8,7 @@ import { BORDER_RADIUS, COLORS, SPACING, cardStyle, flexColumnStyle, gridContain
  * @group Components
  */
 export interface SymbolVariables {
-  symbol: IIRecognizedMath
+  jiixBlockId: string
   variables: TMathVariable[]
 }
 
@@ -19,15 +18,15 @@ export interface SymbolVariables {
  */
 export class IIVariableEditor {
   private editor: InteractiveInkEditor
-  private symbols: IIRecognizedMath[]
+  private jiixBlockIds: string[]
   private modal?: Modal
-  private symbolVariables: SymbolVariables[] = []
+  private blockVariables: SymbolVariables[] = []
   private inputsMap: Map<string, Map<string, HTMLInputElement>> = new Map()
-  private logger = LoggerManager.getLogger(LoggerCategory.MENU)
+  private logger = LoggerManager.getLogger(LoggerCategory.MATH)
 
-  constructor(editor: InteractiveInkEditor, symbols: IIRecognizedMath[]) {
+  constructor(editor: InteractiveInkEditor, jiixBlockIds: string[]) {
     this.editor = editor
-    this.symbols = symbols
+    this.jiixBlockIds = [...new Set(jiixBlockIds)]
   }
 
   /**
@@ -35,38 +34,39 @@ export class IIVariableEditor {
    */
   async show(): Promise<void> {
     // Fetch variables for all symbols
-    this.symbolVariables = []
+    this.blockVariables = []
 
-    for (const symbol of this.symbols) {
-      if (!symbol.jiixId) {
-        this.logger.warn(`Symbol ${symbol.label} does not have jiixId`)
+    for (const jiixBlockId of this.jiixBlockIds) {
+      if (!jiixBlockId) {
+        this.logger.warn(`Invalid jiixBlockId`)
         continue
       }
 
       try {
-        const variables = await this.editor.getVariables(symbol.jiixId)
+        const variables = await this.editor.getMathVariables(jiixBlockId)
         if (variables.length > 0) {
-          this.symbolVariables.push({
-            symbol,
+          this.blockVariables.push({
+            jiixBlockId,
             variables
           })
         }
       } catch (error) {
-        this.logger.error(`Error fetching variables for symbol ${symbol.label}:`, error)
+        const label = this.editor.jiix.getBlockLabel(jiixBlockId)
+        this.logger.error(`Error fetching variables for JiixBlock ${label}:`, error)
       }
     }
 
-    if (this.symbolVariables.length === 0) {
+    if (this.blockVariables.length === 0) {
       alert("No variables found in the selected symbols")
       return
     }
 
     // Create modal content
-    const container = this.createModalContent(this.symbolVariables)
+    const container = this.createModalContent(this.blockVariables)
 
     // Create modal
     this.modal = new Modal({
-      title: `Edit Variable${this.symbolVariables.length > 1 ? "s" : ""} (${this.symbolVariables.length} symbol${this.symbolVariables.length > 1 ? "s" : ""})`,
+      title: `Edit Variable${this.blockVariables.length > 1 ? "s" : ""} (${this.blockVariables.length} symbol${this.blockVariables.length > 1 ? "s" : ""})`,
       fields: [],
       customContent: container,
       buttons: [
@@ -75,11 +75,6 @@ export class IIVariableEditor {
           type: "primary",
           callback: async (): Promise<void> => this.applyChanges()
         },
-        {
-          label: "Close",
-          type: "secondary",
-          callback: (): void => this.close()
-        }
       ]
     })
 
@@ -127,7 +122,8 @@ export class IIVariableEditor {
       background: ${COLORS.blue[50]};
       border-radius: ${BORDER_RADIUS.sm};
     `
-    expressionDiv.innerHTML = `<strong>Expression:</strong> ${symVar.symbol.label || "N/A"}`
+    const label = this.editor.jiix.getBlockLabel(symVar.jiixBlockId) || "N/A"
+    expressionDiv.innerHTML = `<strong>Expression:</strong> ${label}`
     section.appendChild(expressionDiv)
 
     // Variables container
@@ -138,11 +134,11 @@ export class IIVariableEditor {
 
     // Create inputs map for this symbol
     const symbolInputsMap = new Map<string, HTMLInputElement>()
-    this.inputsMap.set(symVar.symbol.id, symbolInputsMap)
+    this.inputsMap.set(symVar.jiixBlockId, symbolInputsMap)
 
     // Create input for each variable
     symVar.variables.forEach(variable => {
-      const variableRow = this.createVariableInput(symVar.symbol, variable)
+      const variableRow = this.createVariableInput(symVar.jiixBlockId, variable)
       variablesContainer.appendChild(variableRow)
     })
 
@@ -154,7 +150,7 @@ export class IIVariableEditor {
   /**
    * Create input row for a single variable
    */
-  private createVariableInput(symbol: IIRecognizedMath, variable: TMathVariable): HTMLDivElement {
+  private createVariableInput(jiixBlockId: string, variable: TMathVariable): HTMLDivElement {
     const row = document.createElement("div")
     row.style.cssText = `
       ${gridContainerStyle("120px 1fr 80px", SPACING.sm)}
@@ -197,16 +193,17 @@ export class IIVariableEditor {
       input.style.borderColor = COLORS.gray[300]
     })
 
-    // Set default value
-    const currentValue = symbol.variableValues?.[variable.name] ?? variable.value
-    if (currentValue !== undefined) {
+    // Set default value - get from computation manager
+    const storedValues = this.editor.math.getStoredVariableValues(jiixBlockId)
+    const currentValue = storedValues?.[variable.name] ?? variable.value
+    if (currentValue != null) {
       input.value = currentValue.toString()
     }
 
     row.appendChild(input)
 
     // Store input reference
-    const symbolInputsMap = this.inputsMap.get(symbol.id)
+    const symbolInputsMap = this.inputsMap.get(jiixBlockId)
     if (symbolInputsMap) {
       symbolInputsMap.set(variable.name, input)
     }
@@ -244,8 +241,8 @@ export class IIVariableEditor {
     try {
       const updates: Promise<void>[] = []
 
-      for (const symVar of this.symbolVariables) {
-        const symbolInputsMap = this.inputsMap.get(symVar.symbol.id)
+      for (const symVar of this.blockVariables) {
+        const symbolInputsMap = this.inputsMap.get(symVar.jiixBlockId)
         if (!symbolInputsMap) continue
 
         const variableValues: { [name: string]: number } = {}
@@ -263,7 +260,7 @@ export class IIVariableEditor {
         }
 
         if (hasChanges) {
-          updates.push(this.editor.setMathVariables(symVar.symbol, variableValues))
+          updates.push(this.editor.setMathVariables(symVar.jiixBlockId, variableValues))
         }
       }
 
@@ -289,7 +286,7 @@ export class IIVariableEditor {
       this.modal.destroy()
       this.modal = undefined
     }
-    this.symbolVariables = []
+    this.blockVariables = []
     this.inputsMap.clear()
   }
 }

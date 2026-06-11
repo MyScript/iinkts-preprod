@@ -1,6 +1,6 @@
 import { InteractiveInkEditor } from "@/editor"
 import { SubMenuItem, IMenuSubMenu } from "@/menu/items/SubMenuItem"
-import { IIRecognizedMath, isRecognizedMathSymbol } from "@/symbol"
+import { IIStroke, isRecognizedMath } from "@/symbol"
 import { Modal, ModalField, IIFunctionEvaluator, IIDiagnosticChecker, IINumericalComputationResult } from "@/components"
 import { LoggerCategory, LoggerManager } from "@/logger"
 
@@ -40,15 +40,16 @@ export class MathContextMenu extends SubMenuItem
 
             try {
               const symbolsSelected = editor.model.symbolsSelected
-              const mathSymbols = symbolsSelected.filter(isRecognizedMathSymbol)
+              const mathSymbols = symbolsSelected.filter(isRecognizedMath)
 
               if (mathSymbols.length === 0) {
                 this.logger.warn("No math symbol selected")
                 return
               }
 
-              // Use IIDiagnosticChecker component
-              const checker = new IIDiagnosticChecker(editor, mathSymbols)
+              const jiixBlockIds = mathSymbols.map(s => s.jiixBlockId!).filter(Boolean)
+
+              const checker = new IIDiagnosticChecker(editor, jiixBlockIds)
               await checker.show()
 
             } catch (error) {
@@ -65,14 +66,14 @@ export class MathContextMenu extends SubMenuItem
             
             try {
               const symbolsSelected = editor.model.symbolsSelected
-              const mathSymbol = symbolsSelected[0] as IIRecognizedMath
+              const mathSymbol = symbolsSelected[0] as IIStroke
               
-              if (!mathSymbol.jiixId) {
+              if (!mathSymbol.jiixBlockId) {
                 this.logger.warn("Selected math symbol does not have jiixId")
                 return
               }
 
-              const variables = await editor.getVariables(mathSymbol.jiixId)
+              const variables = await editor.getMathVariables(mathSymbol.jiixBlockId)
               this.logger.info("Variables extracted:", variables)
 
               if (variables.length === 0) {
@@ -81,13 +82,17 @@ export class MathContextMenu extends SubMenuItem
               }
 
               // Create modal fields from variables
-              const fields: ModalField[] = variables.map(variable => ({
-                id: `var-${variable.name}`,
-                label: `${variable.name}:`,
-                type: "number" as const,
-                defaultValue: mathSymbol.variableValues?.[variable.name] ?? variable.value,
-                placeholder: "Value"
-              }))
+              const fields: ModalField[] = variables.map(variable => {
+                // Get current value from computation manager
+                const storedValues = editor.math.getStoredVariableValues(mathSymbol.jiixBlockId!)
+                return {
+                  id: `var-${variable.name}`,
+                  label: `${variable.name}:`,
+                  type: "number" as const,
+                  defaultValue: storedValues?.[variable.name] ?? variable.value,
+                  placeholder: "Value"
+                }
+              })
 
               const modal: Modal = new Modal({
                 title: "Variables",
@@ -110,7 +115,7 @@ export class MathContextMenu extends SubMenuItem
                           }
                         }
 
-                        await editor.setMathVariables(mathSymbol, variableValues)
+                        await editor.setMathVariables(mathSymbol.jiixBlockId!, variableValues)
                         modal.destroy()
                       } catch (error) {
                         this.logger.error("Error setting variable values:", error)
@@ -140,16 +145,20 @@ export class MathContextMenu extends SubMenuItem
             
             try {
               const symbolsSelected = editor.model.symbolsSelected
-              const mathSymbols = symbolsSelected.filter(isRecognizedMathSymbol)
+              const mathSymbols = symbolsSelected.filter(isRecognizedMath)
               
               if (mathSymbols.length === 0) {
                 this.logger.warn("No math symbol selected")
                 return
               }
               
-              // Use IINumericalComputationResult component
-              const computer = new IINumericalComputationResult(editor, mathSymbols)
-              await computer.show()
+              const jiixBlockIds = mathSymbols.map(s => s.jiixBlockId!).filter(Boolean)
+              if (this.editor.drawComputationResult) {
+                await Promise.all(jiixBlockIds.map(jiixBlockId => this.editor.computeMathNumericalResult(jiixBlockId, this.editor.drawComputationResult)))
+              } else {
+                const computer = new IINumericalComputationResult(editor, jiixBlockIds)
+                await computer.show()
+              }
 
             } catch (error) {
               this.logger.error("Error computing numerical result:", error)
@@ -165,13 +174,14 @@ export class MathContextMenu extends SubMenuItem
             
             try {
               const symbolsSelected = editor.model.symbolsSelected
-              const mathSymbols = symbolsSelected.filter(isRecognizedMathSymbol)
+              const mathSymbols = symbolsSelected.filter(isRecognizedMath)
               
               if (mathSymbols.length === 0) {
                 this.logger.warn("No math symbol selected")
                 return
               }
-              const evaluator = new IIFunctionEvaluator(editor, mathSymbols)
+              const jiixBlockIds = mathSymbols.map(s => s.jiixBlockId!).filter(Boolean)
+              const evaluator = new IIFunctionEvaluator(editor, jiixBlockIds)
               await evaluator.show()
 
             } catch (error) {

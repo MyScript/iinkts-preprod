@@ -6,7 +6,7 @@ import {
   hTextJIIX,
   partChangeMessage
 } from "../__mocks__/ServerWebSocketMock"
-import { buildOIStroke, delay } from "../helpers"
+import { buildIIStroke, delay } from "../helpers"
 import
 {
   RecognizerWebSocket,
@@ -273,7 +273,7 @@ describe("RecognizerWebSocket.ts", () =>
     conf.server.host = "add-strokes-test"
     let mockServer: ServerWebSocketMock
     let oiRecognizer: RecognizerWebSocket
-    const strokes = [buildOIStroke()]
+    const strokes = [buildIIStroke()]
 
     beforeEach(() =>
     {
@@ -342,7 +342,7 @@ describe("RecognizerWebSocket.ts", () =>
     conf.server.host = "replace-strokes-test"
     let mockServer: ServerWebSocketMock
     let oiRecognizer: RecognizerWebSocket
-    const strokes = [buildOIStroke()]
+    const strokes = [buildIIStroke()]
     const oldStrokeIds = ["id-1", "id-2"]
 
     beforeEach(() =>
@@ -775,7 +775,7 @@ describe("RecognizerWebSocket.ts", () =>
     conf.server.host = "recognize-gesture-test"
     let mockServer: ServerWebSocketMock
     let oiRecognizer: RecognizerWebSocket
-    const stroke = buildOIStroke()
+    const stroke = buildIIStroke()
 
     beforeEach(() =>
     {
@@ -916,7 +916,7 @@ describe("RecognizerWebSocket.ts", () =>
       oiRecognizer.undo({})
       await delay(100)
       expect(oiRecognizer.send).toHaveBeenCalledTimes(0)
-      const changes: TIIHistoryBackendChanges = { added: [buildOIStroke()] }
+      const changes: TIIHistoryBackendChanges = { added: [buildIIStroke()] }
       oiRecognizer.undo(changes)
       await delay(100)
       expect(oiRecognizer.send).toHaveBeenCalledTimes(1)
@@ -925,13 +925,13 @@ describe("RecognizerWebSocket.ts", () =>
     {
       await oiRecognizer.init()
       const changes: TIIHistoryBackendChanges = {
-        added: [buildOIStroke()],
-        erased: [buildOIStroke()],
-        replaced: { newStrokes: [buildOIStroke()], oldStrokes: [buildOIStroke()] },
-        matrix: { matrix: new MatrixTransform(1, 2, 3, 4, 5, 6), strokes: [buildOIStroke()] },
-        rotate: [{ angle: Math.PI / 2, center: { x: 5, y: 10 }, strokes: [buildOIStroke()] }],
-        scale: [{ origin: { x: 2, y: 4 }, scaleX: 2, scaleY: 3, strokes: [buildOIStroke()] }],
-        translate: [{ strokes: [buildOIStroke()], tx: 12, ty: 42 }]
+        added: [buildIIStroke()],
+        erased: [buildIIStroke()],
+        replaced: { newStrokes: [buildIIStroke()], oldStrokes: [buildIIStroke()] },
+        matrix: { matrix: new MatrixTransform(1, 2, 3, 4, 5, 6), strokes: [buildIIStroke()] },
+        rotate: [{ angle: Math.PI / 2, center: { x: 5, y: 10 }, strokes: [buildIIStroke()] }],
+        scale: [{ origin: { x: 2, y: 4 }, scaleX: 2, scaleY: 3, strokes: [buildIIStroke()] }],
+        translate: [{ strokes: [buildIIStroke()], tx: 12, ty: 42 }]
       }
       oiRecognizer.undo(changes)
       //¯\_(ツ)_/¯  required to wait for the instantiation of the promise of the recognizer
@@ -1016,7 +1016,7 @@ describe("RecognizerWebSocket.ts", () =>
     {
       expect.assertions(1)
       await oiRecognizer.init()
-      const changes: TIIHistoryBackendChanges = { added: [buildOIStroke()] }
+      const changes: TIIHistoryBackendChanges = { added: [buildIIStroke()] }
       const promise = oiRecognizer.undo(changes)
       //¯\_(ツ)_/¯  required to wait for the instantiation of the promise of the recognizer
       await delay(100)
@@ -1028,7 +1028,7 @@ describe("RecognizerWebSocket.ts", () =>
       const spyEmitError: jest.SpyInstance = jest.spyOn(oiRecognizer.event, "emitError")
       expect.assertions(3)
       await oiRecognizer.init()
-      const changes: TIIHistoryBackendChanges = { added: [buildOIStroke()] }
+      const changes: TIIHistoryBackendChanges = { added: [buildIIStroke()] }
       const promise = oiRecognizer.undo(changes)
       //¯\_(ツ)_/¯  required to wait for the instantiation of the promise of the recognizer
       await delay(100)
@@ -1062,7 +1062,7 @@ describe("RecognizerWebSocket.ts", () =>
     {
       expect.assertions(1)
       await oiRecognizer.init()
-      const changes: TIIHistoryBackendChanges = { added: [buildOIStroke()] }
+      const changes: TIIHistoryBackendChanges = { added: [buildIIStroke()] }
       oiRecognizer.redo(changes)
       //¯\_(ツ)_/¯  required to wait for the instantiation of the promise of the recognizer
       await delay(100)
@@ -1074,7 +1074,7 @@ describe("RecognizerWebSocket.ts", () =>
     {
       expect.assertions(1)
       await oiRecognizer.init()
-      const changes: TIIHistoryBackendChanges = { added: [buildOIStroke()] }
+      const changes: TIIHistoryBackendChanges = { added: [buildIIStroke()] }
       const promise = oiRecognizer.redo(changes)
       //¯\_(ツ)_/¯  required to wait for the instantiation of the promise of the recognizer
       await delay(100)
@@ -1086,7 +1086,7 @@ describe("RecognizerWebSocket.ts", () =>
       const spyEmitError: jest.SpyInstance = jest.spyOn(oiRecognizer.event, "emitError")
       expect.assertions(3)
       await oiRecognizer.init()
-      const changes: TIIHistoryBackendChanges = { added: [buildOIStroke()] }
+      const changes: TIIHistoryBackendChanges = { added: [buildIIStroke()] }
       const promise = oiRecognizer.redo(changes)
       //¯\_(ツ)_/¯  required to wait for the instantiation of the promise of the recognizer
       await delay(100)

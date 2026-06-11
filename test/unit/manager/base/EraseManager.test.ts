@@ -1,4 +1,4 @@
-import { buildOICircle, buildOIStroke } from "../../helpers"
+import { buildIICircle, buildIIStroke } from "../../helpers"
 import { InteractiveInkEditorMock } from "../../__mocks__/InteractiveInkEditorMock"
 import { EraseManager, PointerInfo, SymbolType } from "../../../../src/iink"
 
@@ -55,13 +55,13 @@ describe("EraseManager.ts", () =>
     test("should complete erasing", async () =>
     {
       const eraserId = manager.currentEraser!.id
-      const strokeToErase = buildOIStroke()
+      const strokeToErase = buildIIStroke()
       strokeToErase.deleting = true
       editor.model.symbols.push(strokeToErase)
-      const circleToErase = buildOICircle()
+      const circleToErase = buildIICircle()
       circleToErase.deleting = true
       editor.model.symbols.push(circleToErase)
-      editor.model.symbols.push(buildOIStroke())
+      editor.model.symbols.push(buildIIStroke())
 
       const info = {
         pointer: { t: 1, p: 0.5, x: 20, y: 20 }
