@@ -244,15 +244,8 @@ async function loadEditor(options) {
     clearTimeout(exportTimeout)
     exportTimeout = setTimeout(async () => {
       const HTML = await editor.export(['text/html'])
+      exportHtmlBody.srcdoc = HTML?.['text/html'] || BACKEND_MODEL_EMPTY
     }, 500)
-  })
-
-  editor.event.addEventListener('exported', (event) => {
-    if (event.detail?.['text/html']) {
-      exportHtmlBody.srcdoc = event.detail['text/html']
-    } else {
-      exportHtmlBody.srcdoc = BACKEND_MODEL_EMPTY
-    }
   })
 
   editor.event.addEventListener('selected', (event) => {
