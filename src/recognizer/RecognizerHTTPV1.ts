@@ -169,6 +169,7 @@ export class RecognizerHTTPV1
       }
     } catch (error) {
       this.#logger.error("post.computeHmac", error)
+      throw error
     }
     headers.append("Content-Type", "application/json")
 
