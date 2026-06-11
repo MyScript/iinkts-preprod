@@ -57,7 +57,7 @@ export class IIVariableEditor {
     }
 
     if (this.blockVariables.length === 0) {
-      alert("No variables found in the selected symbols")
+      this.logger.warn("No variables found in the selected symbols")
       return
     }
 
@@ -267,14 +267,10 @@ export class IIVariableEditor {
       if (updates.length > 0) {
         await Promise.all(updates)
         this.logger.info(`Updated variables for ${updates.length} symbol(s)`)
-        alert(`Variables updated successfully for ${updates.length} symbol(s)`)
         this.close()
-      } else {
-        alert("No changes to apply")
       }
     } catch (error) {
       this.logger.error("Error applying variable changes:", error)
-      alert("Error updating variables. Please check the console for details.")
     }
   }
 
