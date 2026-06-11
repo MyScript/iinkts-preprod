@@ -1,4 +1,4 @@
-import { IIStroke, SymbolType } from "@/symbol"
+import { IIStroke, SymbolType, isDecorator } from "@/symbol"
 import { IIHistoryManager } from "@/history"
 import { isBetween, PartialDeep } from "@/utils"
 import { IITranslateManager, IITextManager } from "."
@@ -109,10 +109,7 @@ export class IIGestureManager extends IIAbstractManager
   {
     this.logger.info("apply", { gestureStroke, gesture })
 
-    // Prepare gesture stroke for removal
-    this.editor.updateSymbolsStyle([gestureStroke.id], { opacity: (gestureStroke.style.opacity || 1) / 2 }, false)
-    await this.editor.removeSymbol(gestureStroke.id, false)
-    await this.editor.synchronizeStrokesWithJIIX()
+    this.editor.removeSymbol(gestureStroke.id, false)
 
     // Dispatch to appropriate handler
     const handler = this.#handlers.get(gesture.gestureType)
@@ -141,7 +138,7 @@ export class IIGestureManager extends IIAbstractManager
       case "surround": {
         const hasSymbolsToSurrond = this.model.symbols.some(s =>
         {
-          if (s.id !== gestureStroke.id && gestureStroke.bounds.contains(s.bounds)) {
+          if (s.id !== gestureStroke.id && !isDecorator(s) && gestureStroke.bounds.contains(s.bounds)) {
             return this.surroundAction === SurroundAction.Select || IIGestureManager.#SURROUND_SELECT_TYPES.has(s.type)
           }
           return false
