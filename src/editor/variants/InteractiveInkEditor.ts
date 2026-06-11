@@ -1233,21 +1233,21 @@ export class InteractiveInkEditor extends AbstractEditor
   /**
    * Export content to specified MIME types
    * @param mimeTypes - Array of MIME types to export
-   * @returns Promise resolving to updated model with exports
+   * @returns Promise resolving with exports
    */
-  async export(mimeTypes?: string[]): Promise<IIModel>
+  async export(mimeTypes?: string[]): Promise<TExport>
   {
     try {
       this.logger.info("export", { mimeTypes })
       const exports = await this.recognizer.export(mimeTypes)
       this.model.mergeExport(exports as TExport)
+      return exports
     }
     catch (error) {
       this.logger.error("export", { error })
       this.manageError(error as Error)
       throw error
     }
-    return this.model
   }
 
   /**
