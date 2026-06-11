@@ -58,6 +58,10 @@ export class RecognizerWebSocket
   protected pingCount = 0
   protected reconnectionCount = 0
   protected sessionId?: string
+
+  protected boundOpenCallback: () => void
+  protected boundCloseCallback: (evt: CloseEvent) => void
+  protected boundMessageCallback: (message: MessageEvent<string>) => void
   protected currentPartId?: string
   protected currentErrorCode?: string | number
 
@@ -95,6 +99,9 @@ export class RecognizerWebSocket
 
     this.event = event || new RecognizerEvent()
     this.initialized = new DeferredPromise<void>()
+    this.boundOpenCallback = this.openCallback.bind(this)
+    this.boundCloseCallback = this.closeCallback.bind(this)
+    this.boundMessageCallback = this.messageCallback.bind(this)
     this.exportDeferredMap = new Map()
     this.contextlessGestureDeferred = new Map()
     this.availableActionsDeferred = new Map()
@@ -171,9 +178,9 @@ export class RecognizerWebSocket
 
   protected clearSocketListener(): void
   {
-    this.socket.removeEventListener("open", this.openCallback.bind(this))
-    this.socket.removeEventListener("close", this.closeCallback.bind(this))
-    this.socket.removeEventListener("message", this.messageCallback.bind(this))
+    this.socket.removeEventListener("open", this.boundOpenCallback)
+    this.socket.removeEventListener("close", this.boundCloseCallback)
+    this.socket.removeEventListener("message", this.boundMessageCallback)
   }
 
   protected closeCallback(evt: CloseEvent): void
@@ -534,9 +541,9 @@ export class RecognizerWebSocket
     }
     this.socket = new WebSocket(this.url)
     this.clearSocketListener()
-    this.socket.addEventListener("open", this.openCallback.bind(this))
-    this.socket.addEventListener("close", this.closeCallback.bind(this))
-    this.socket.addEventListener("message", this.messageCallback.bind(this))
+    this.socket.addEventListener("open", this.boundOpenCallback)
+    this.socket.addEventListener("close", this.boundCloseCallback)
+    this.socket.addEventListener("message", this.boundMessageCallback)
     await this.initialized.promise
     if (this.configuration.server.websocket.pingEnabled) {
       this.pingCount = 0
