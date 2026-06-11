@@ -1269,7 +1269,7 @@ export class InteractiveInkEditor extends AbstractEditor
     try {
       this.updateLayerState(false)
       await this.converter.apply(symbols)
-      this.event.emitConverted(this.model.converts as TExport)
+      this.event.emitConverted()
     }
     catch (error) {
       this.logger.error("convert", error)

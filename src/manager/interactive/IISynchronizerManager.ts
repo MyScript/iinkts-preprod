@@ -155,7 +155,6 @@ export class IISynchronizerManager extends IIAbstractManager
 
     // Mark model modified once instead of N×O(n) via updateSymbol()
     this.model.modificationDate = now
-    this.model.converts = undefined
     this.model.exports = undefined
 
     // Yield to event loop so pointer events can be processed before math enrichment
