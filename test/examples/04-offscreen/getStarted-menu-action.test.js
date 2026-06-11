@@ -4,7 +4,6 @@ import {
   callEditorIdle,
   writePointers,
   writeStrokes,
-  callEditorExport,
   waitForLoadedEvent,
   waitForUIUpdatedEvent,
   waitForChangedEvent,
@@ -15,7 +14,6 @@ import {
   getEditorSymbols,
   getEditorExportsType,
   callEditorSynchronize,
-  getEditorExports
 } from "../helper"
 import locator from "../locators"
 import laLecon from "../__dataset__/laLecon"

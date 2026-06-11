@@ -1,8 +1,6 @@
 import { test, expect } from "@playwright/test"
 import {
   passModalKey,
-  callEditorIdle,
-  waitForEditorInit,
   writeStrokes,
   waitForSynchronizedEvent,
   getEditorSymbols,

@@ -2,12 +2,10 @@ import { test, expect } from "@playwright/test"
 import {
   passModalKey,
   getEditorSymbols,
-  callEditorIdle,
   waitForConvertedEvent,
-  waitForEditorInit,
   waitForSynchronizedEvent,
   writeStrokes,
-  callEditoConvert
+  callEditorConvert
 } from "../helper"
 import helloOneStroke from "../__dataset__/helloOneStroke"
 
@@ -100,7 +98,7 @@ test.describe("Offscreen Get Started Menu Style", () => {
 
         await Promise.all([
           waitForConvertedEvent(page),
-          callEditoConvert(page)
+          callEditorConvert(page)
         ])
 
         const symbols = await getEditorSymbols(page)
@@ -127,7 +125,7 @@ test.describe("Offscreen Get Started Menu Style", () => {
 
       await Promise.all([
         waitForConvertedEvent(page),
-        callEditoConvert(page)
+        callEditorConvert(page)
       ])
 
       const minX = Math.min(...helloOneStroke.strokes[0].pointers.map(p => p.x))
@@ -171,7 +169,7 @@ test.describe("Offscreen Get Started Menu Style", () => {
 
         await Promise.all([
           waitForConvertedEvent(page),
-          callEditoConvert(page)
+          callEditorConvert(page)
         ])
 
         const symbols = await getEditorSymbols(page)
