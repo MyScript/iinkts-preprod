@@ -5,7 +5,7 @@ import { IIStroke, TIISymbol, TPoint } from "@/symbol"
 import { TStyle } from "@/style"
 import { MatrixTransform, TMatrixTransform } from "@/transform"
 import { THistoryContext, getInitialHistoryContext } from "./HistoryContext"
-import { PartialDeep, TWO_PI } from "@/utils"
+import { PartialDeep } from "@/utils"
 import { THistoryConfiguration } from "./HistoryConfiguration"
 
 /**
@@ -175,7 +175,7 @@ export class IIHistoryManager
       {
         return {
           symbols: tr.symbols,
-          angle: TWO_PI - tr.angle,
+          angle: -tr.angle,
           center: tr.center
         }
       })
