@@ -598,18 +598,7 @@ export class IIFunctionEvaluator {
     if (!this.tabContent) return
     const tabContent = this.tabContent
 
-    // Group results by inputName
-    const groupedByInput = new Map<string, EvaluationResult[]>()
-
-    results.forEach(result => {
-      const evalSelected = result.func.evaluables[result.func.selectedEvaluableIndex]
-      const inputName = evalSelected.inputName
-
-      if (!groupedByInput.has(inputName)) {
-        groupedByInput.set(inputName, [])
-      }
-      groupedByInput.get(inputName)!.push(result)
-    })
+    const groupedByInput = this.groupResultsByInputName(results)
 
     // Create a chart for each input group
     groupedByInput.forEach((groupResults, inputName) => {
