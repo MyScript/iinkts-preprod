@@ -22,7 +22,7 @@ describe("language.ts", () =>
     getApiInfos()
       .catch(e =>
       {
-        expect(e).toBe("Failed to get infos: configuration.server.scheme & configuration.server.host are required!")
+        expect(e.message).toBe("Failed to get infos: configuration.server.scheme & configuration.server.host are required!")
       })
   })
 
@@ -33,7 +33,7 @@ describe("language.ts", () =>
     getApiInfos(conf)
       .catch(e =>
       {
-        expect(e).toBe("Failed to get infos: configuration.server.scheme & configuration.server.host are required!")
+        expect(e.message).toBe("Failed to get infos: configuration.server.scheme & configuration.server.host are required!")
       })
   })
 
@@ -44,7 +44,7 @@ describe("language.ts", () =>
     getApiInfos(conf)
       .catch(e =>
       {
-        expect(e).toBe("Failed to get infos: configuration.server.scheme & configuration.server.host are required!")
+        expect(e.message).toBe("Failed to get infos: configuration.server.scheme & configuration.server.host are required!")
       })
   })
 
@@ -55,7 +55,7 @@ describe("language.ts", () =>
     getApiInfos(conf)
       .catch(e =>
       {
-        expect(e).toBe("Failed to get infos: configuration.server.scheme & configuration.server.host are required!")
+        expect(e.message).toBe("Failed to get infos: configuration.server.scheme & configuration.server.host are required!")
       })
   })
 })
