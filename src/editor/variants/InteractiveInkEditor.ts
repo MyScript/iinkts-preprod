@@ -1546,6 +1546,7 @@ export class InteractiveInkEditor extends AbstractEditor
     this.logger.info("destroy")
 
     this.keyboard.detach()
+    this.layers.root.removeEventListener("wheel", this.handleWheel)
 
     this.layers.root.classList.remove("draw")
     this.layers.root.classList.remove("erase")
