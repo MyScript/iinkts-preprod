@@ -217,15 +217,14 @@ const editorOptions = {
   }
 }
 
+/**
+ * Load (or reload) the editor with the given options, reset UI state and attach event listeners.
+ * @param {Object} options - Editor options forwarded to Editor.load
+ */
 async function loadEditor(options) {
   importBtn.disabled = true
   exportHtmlBody.srcdoc = BACKEND_MODEL_EMPTY
   await editor?.destroy()
-  /**
-   * get editor instance from type
-   * @param {Element} The DOM element to attach the ink paper
-   * @param {Object} The Editor parameters
-   */
   editor = await Editor.load(editorElement, 'INTERACTIVEINK', options)
   importBtn.disabled = false
   setCurrentTab(currentTabId)
