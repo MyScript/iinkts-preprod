@@ -19,7 +19,7 @@ const contentTab = document.getElementById('content-tab')
 
 const BACKEND_MODEL_EMPTY = '<div style="display: flex; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; color: #666;">The backend model is empty</div>'
 
-copyTabToClipboard.addEventListener('pointerdown', () => {
+copyTabToClipboard.addEventListener('pointerup', () => {
   try {
     navigator.clipboard.writeText(contentTab.getAttribute('data-string'))
   } catch (err) {
