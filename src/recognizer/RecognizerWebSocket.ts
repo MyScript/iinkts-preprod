@@ -299,7 +299,7 @@ export class RecognizerWebSocket
     this.clearDeferred?.resolve()
     this.event.emitContentChanged({
       canRedo: contentChangeMessage.canRedo,
-      canUndo: contentChangeMessage.canRedo,
+      canUndo: contentChangeMessage.canUndo,
     } as THistoryContext)
   }
 
