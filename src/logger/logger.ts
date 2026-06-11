@@ -23,6 +23,7 @@ export enum LoggerCategory
   MODEL = "MODEL",
   RENDERER = "RENDERER",
   SMARTGUIDE = "SMARTGUIDE",
+  MANAGER = "MANAGER",
   STYLE = "STYLE",
   HISTORY = "HISTORY",
   SYMBOL = "SYMBOL",
@@ -32,7 +33,12 @@ export enum LoggerCategory
   SELECTION = "SELECTION",
   SYNCHRONIZER = "SYNCHRONIZER",
   SVGDEBUG = "SVGDEBUG",
-  MENU = "MENU"
+  MENU = "MENU",
+  JIIX_QUERY = "JIIX_QUERY",
+  KEYBOARD = "KEYBOARD",
+  MATH = "MATH",
+  SNAP = "SNAP",
+  TEXT = "TEXT",
 }
 
 /**

@@ -1,4 +1,4 @@
-import { buildOIStroke } from "../../helpers"
+import { buildIIStroke } from "../../helpers"
 import { InteractiveInkEditorMock } from "../../__mocks__/InteractiveInkEditorMock"
 import
 {
@@ -93,7 +93,7 @@ describe("IISelectionManager.ts", () =>
     const editor = new InteractiveInkEditorMock()
     editor.menu.context.hide = jest.fn()
     const manager = new IISelectionManager(editor)
-    const stroke = buildOIStroke()
+    const stroke = buildIIStroke()
 
     beforeAll(async () =>
     {
@@ -165,7 +165,7 @@ describe("IISelectionManager.ts", () =>
     editor.resizer.end = jest.fn()
     const manager = new IISelectionManager(editor)
     manager.resetSelectedGroup = jest.fn()
-    const stroke = buildOIStroke()
+    const stroke = buildIIStroke()
 
     beforeAll(async () =>
     {
@@ -337,14 +337,15 @@ describe("IISelectionManager.ts", () =>
   {
     const editor = new InteractiveInkEditorMock()
     const manager = new IISelectionManager(editor)
-    const strokeToSelect = buildOIStroke({ box: { height: 10, width: 10, x: 10, y: 10 } })
+    const strokeToSelect = buildIIStroke({ box: { height: 10, width: 10, x: 10, y: 10 } })
     manager.model.addSymbol(strokeToSelect)
-    const otherStroke = buildOIStroke({ box: { height: 10, width: 10, x: 100, y: 100 } })
+    const otherStroke = buildIIStroke({ box: { height: 10, width: 10, x: 100, y: 100 } })
     manager.model.addSymbol(otherStroke)
     manager.drawSelectingRect = jest.fn()
     manager.clearSelectingRect = jest.fn()
     manager.drawSelectedGroup = jest.fn()
     manager.renderer.drawSymbol = jest.fn()
+    manager.renderer.updateSymbolSelection = jest.fn()
 
     test("start", () =>
     {
@@ -362,12 +363,12 @@ describe("IISelectionManager.ts", () =>
       } as PointerInfo
       manager.continue(info)
       expect(manager.drawSelectingRect).toHaveBeenCalledTimes(1)
-      expect(manager.renderer.drawSymbol).toHaveBeenCalledTimes(1)
-      expect(manager.renderer.drawSymbol).toHaveBeenCalledWith(strokeToSelect)
+      expect(manager.renderer.updateSymbolSelection).toHaveBeenCalledTimes(1)
+      expect(manager.renderer.updateSymbolSelection).toHaveBeenCalledWith(strokeToSelect)
       expect(manager.model.symbolsSelected).toEqual([strokeToSelect])
     })
 
-    test("end", () =>
+    test("end", async () =>
     {
       const info = {
         pointer: { x: 20, y: 20 }
@@ -378,8 +379,10 @@ describe("IISelectionManager.ts", () =>
       expect(manager.drawSelectedGroup).toHaveBeenCalledTimes(1)
       expect(manager.drawSelectedGroup).toHaveBeenCalledWith([strokeToSelect])
       expect(manager.model.symbolsSelected).toEqual([strokeToSelect])
-      expect(manager.editor.event.emitSelected).toHaveBeenCalledTimes(1)
-      expect(manager.editor.event.emitSelected).toHaveBeenCalledWith([strokeToSelect])
+      // emitSelected is deferred via setTimeout(0)
+      await new Promise(resolve => setTimeout(resolve, 0))
+      expect(editor.event.emitSelected).toHaveBeenCalledTimes(1)
+      expect(editor.event.emitSelected).toHaveBeenCalledWith([strokeToSelect])
     })
 
     test("continue should throw error when no start before", () =>

@@ -16,13 +16,11 @@ export class InteractiveInkEditorMock extends InteractiveInkEditor
     super(document.createElement("div"), options)
     this.event = new EditorEventMock(this.layers.root)
 
-    // Mock mathOverlays.refresh to prevent DOM access issues in tests
-    this.mathOverlays.refresh = jest.fn()
+    // Mock math.refreshOverlays to prevent DOM access issues in tests
+    this.math.refreshOverlays = jest.fn()
   }
 
   init = jest.fn(() => {
-    this.model.width = Math.max(this.layers.root.clientWidth, this.configuration.rendering.minWidth)
-    this.model.height = Math.max(this.layers.root.clientHeight, this.configuration.rendering.minHeight)
     this.model.rowHeight = this.configuration.rendering.guides.gap
     this.history.push(this.model, {})
 
@@ -74,7 +72,7 @@ export class InteractiveInkEditorMock extends InteractiveInkEditor
   destroy = jest.fn()
 
   // Math-specific methods
-  getVariables = jest.fn()
+  getMathVariables = jest.fn()
   setMathVariables = jest.fn()
   computeMathNumericalResult = jest.fn()
   getEvaluables = jest.fn()

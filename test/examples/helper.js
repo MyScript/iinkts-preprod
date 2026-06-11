@@ -192,7 +192,7 @@ export const callEditorIdle = async (page) => {
  * @param {Page} page - Playwright Page
  * @returns Promise<void>
  */
-export const callEditoConvert = async (page) => {
+export const callEditorConvert = async (page) => {
   await page.waitForFunction(() => !!editorEl?.editor)
   return page.evaluate("editorEl.editor.convert()")
 }

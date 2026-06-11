@@ -1,4 +1,4 @@
-import { buildOIDecorator, buildOIStroke } from "../helpers"
+import { buildIIDecorator, buildIIStroke } from "../helpers"
 import { DecoratorKind, DefaultStyle, SVGRendererDecoratorUtil, TStyle } from "../../../src/iink"
 
 describe("SVGRendererDecoratorUtil.ts", () =>
@@ -8,12 +8,12 @@ describe("SVGRendererDecoratorUtil.ts", () =>
   {
     test("should get Highlight", () =>
     {
-      const sym = buildOIStroke()
+      const sym = buildIIStroke()
       const style: TStyle = {
         color: "red",
         width: 42
       }
-      const decorator = buildOIDecorator(DecoratorKind.Highlight, style)
+      const decorator = buildIIDecorator(DecoratorKind.Highlight, style)
       const el = SVGRendererDecoratorUtil.getSVGElement(decorator, sym) as SVGGeometryElement
       expect(el).toBeDefined()
       expect(el.getAttribute("kind")).toEqual(DecoratorKind.Highlight)
@@ -23,8 +23,8 @@ describe("SVGRendererDecoratorUtil.ts", () =>
     })
     test("should get Highlight with DefaultStyle", () =>
     {
-      const sym = buildOIStroke()
-      const decorator = buildOIDecorator(DecoratorKind.Highlight, {})
+      const sym = buildIIStroke()
+      const decorator = buildIIDecorator(DecoratorKind.Highlight, {})
       const el = SVGRendererDecoratorUtil.getSVGElement(decorator, sym) as SVGGeometryElement
       expect(el).toBeDefined()
       expect(el.getAttribute("kind")).toEqual(DecoratorKind.Highlight)
@@ -34,8 +34,8 @@ describe("SVGRendererDecoratorUtil.ts", () =>
     })
     test("should Highlight to delete", () =>
     {
-      const sym = buildOIStroke()
-      const decorator = buildOIDecorator(DecoratorKind.Highlight)
+      const sym = buildIIStroke()
+      const decorator = buildIIDecorator(DecoratorKind.Highlight)
       const elNotToDelete = SVGRendererDecoratorUtil.getSVGElement(decorator, sym) as SVGGeometryElement
       expect(elNotToDelete.getAttribute("opacity")).toEqual(`0.5`)
       sym.deleting = true
@@ -44,13 +44,13 @@ describe("SVGRendererDecoratorUtil.ts", () =>
     })
     test("should get Surround", () =>
     {
-      const sym = buildOIStroke()
+      const sym = buildIIStroke()
       const style: TStyle = {
         color: "red",
         opacity: 0.5,
         width: 4
       }
-      const decorator = buildOIDecorator(DecoratorKind.Surround, style)
+      const decorator = buildIIDecorator(DecoratorKind.Surround, style)
       const el = SVGRendererDecoratorUtil.getSVGElement(decorator, sym) as SVGGeometryElement
       expect(el).toBeDefined()
       expect(el.getAttribute("kind")).toEqual(DecoratorKind.Surround)
@@ -61,8 +61,8 @@ describe("SVGRendererDecoratorUtil.ts", () =>
     })
     test("should get Surround with DefaultStyle", () =>
     {
-      const sym = buildOIStroke()
-      const decorator = buildOIDecorator(DecoratorKind.Surround, {})
+      const sym = buildIIStroke()
+      const decorator = buildIIDecorator(DecoratorKind.Surround, {})
       const el = SVGRendererDecoratorUtil.getSVGElement(decorator, sym) as SVGGeometryElement
       expect(el).toBeDefined()
       expect(el.getAttribute("kind")).toEqual(DecoratorKind.Surround)
@@ -72,13 +72,13 @@ describe("SVGRendererDecoratorUtil.ts", () =>
     })
     test("should get Strikethrough", () =>
     {
-      const sym = buildOIStroke()
+      const sym = buildIIStroke()
       const style: TStyle = {
         color: "red",
         opacity: 0.5,
         width: 4
       }
-      const decorator = buildOIDecorator(DecoratorKind.Strikethrough, style)
+      const decorator = buildIIDecorator(DecoratorKind.Strikethrough, style)
       const el = SVGRendererDecoratorUtil.getSVGElement(decorator, sym) as SVGGeometryElement
       expect(el).toBeDefined()
       expect(el.getAttribute("kind")).toEqual(DecoratorKind.Strikethrough)
@@ -89,8 +89,8 @@ describe("SVGRendererDecoratorUtil.ts", () =>
     })
     test("should get Strikethrough with DefaultStyle", () =>
     {
-      const sym = buildOIStroke()
-      const decorator = buildOIDecorator(DecoratorKind.Strikethrough, {})
+      const sym = buildIIStroke()
+      const decorator = buildIIDecorator(DecoratorKind.Strikethrough, {})
       const el = SVGRendererDecoratorUtil.getSVGElement(decorator, sym) as SVGGeometryElement
       expect(el).toBeDefined()
       expect(el.getAttribute("kind")).toEqual(DecoratorKind.Strikethrough)
@@ -100,13 +100,13 @@ describe("SVGRendererDecoratorUtil.ts", () =>
     })
     test("should get Underline", () =>
     {
-      const sym = buildOIStroke()
+      const sym = buildIIStroke()
       const style: TStyle = {
         color: "red",
         opacity: 0.5,
         width: 4
       }
-      const decorator = buildOIDecorator(DecoratorKind.Underline, style)
+      const decorator = buildIIDecorator(DecoratorKind.Underline, style)
       const el = SVGRendererDecoratorUtil.getSVGElement(decorator, sym) as SVGGeometryElement
       expect(el).toBeDefined()
       expect(el.getAttribute("kind")).toEqual(DecoratorKind.Underline)
@@ -117,8 +117,8 @@ describe("SVGRendererDecoratorUtil.ts", () =>
     })
     test("should get Underline with DefaultStyle", () =>
     {
-      const sym = buildOIStroke()
-      const decorator = buildOIDecorator(DecoratorKind.Underline, {})
+      const sym = buildIIStroke()
+      const decorator = buildIIDecorator(DecoratorKind.Underline, {})
       const el = SVGRendererDecoratorUtil.getSVGElement(decorator, sym) as SVGGeometryElement
       expect(el).toBeDefined()
       expect(el.getAttribute("kind")).toEqual(DecoratorKind.Underline)

@@ -4,7 +4,6 @@ import {
   callEditorIdle,
   writePointers,
   writeStrokes,
-  callEditorExport,
   waitForLoadedEvent,
   waitForUIUpdatedEvent,
   waitForChangedEvent,
@@ -15,7 +14,6 @@ import {
   getEditorSymbols,
   getEditorExportsType,
   callEditorSynchronize,
-  getEditorExports
 } from "../helper"
 import locator from "../locators"
 import laLecon from "../__dataset__/laLecon"
@@ -37,9 +35,15 @@ test.describe("Offscreen Get Started Menu Action", () => {
         writeStrokes(page, helloOneStroke.strokes)
       ])
       const symbols = await getEditorSymbols(page)
-      expect(symbols).toHaveLength(1)
-      expect(symbols[0].type).toEqual("recognized")
-      expect(symbols[0].label).toEqual(helloOneStroke.exports["text/plain"].at(-1))
+      const jiix = await getEditorExportsType(page, "application/vnd.myscript.jiix")
+      expect(symbols).toHaveLength(helloOneStroke.strokes.length)
+      expect(jiix.elements).toHaveLength(1)
+      expect(jiix.elements[0].type).toStrictEqual("Text")
+      symbols.forEach(symbol => {
+        expect(symbol.type).toEqual("stroke")
+        expect(symbol.jiixBlockId).toEqual(jiix.elements[0].id)
+        expect(symbol.jiixBlockType).toEqual(jiix.elements[0].type)
+      })
     })
 
     await test.step("should undo the last stroke written", async () => {
@@ -136,8 +140,7 @@ test.describe("Offscreen Get Started Menu Action", () => {
       ])
       const symbols = await getEditorSymbols(page)
       expect(symbols).toHaveLength(1)
-      expect(symbols[0].type).toEqual("recognized")
-      expect(symbols[0].kind).toEqual("text")
+      expect(symbols[0].type).toEqual("stroke")
     })
 
     await test.step("should convert stroke to text", async () => {
@@ -175,12 +178,7 @@ test.describe("Offscreen Get Started Menu Action", () => {
       await callEditorSynchronize(page)
 
       const symbols = await getEditorSymbols(page)
-      expect(symbols).toHaveLength(1)
-      expect(symbols[0].label).not.toEqual(laLecon.exports["application/vnd.myscript.jiix"].label)
-      expect(symbols[0].words[0].label).toEqual(laLecon.exports["application/vnd.myscript.jiix"].words[0].label)
-      //should not recognize typical French character: ç
-      expect(symbols[0].words[2].label).not.toEqual(laLecon.exports["application/vnd.myscript.jiix"].words[1].label)
-
+      expect(symbols).toHaveLength(laLecon.strokes.length)
       const jiix = await getEditorExportsType(page, "application/vnd.myscript.jiix")
       expect(jiix.elements[0].label).not.toEqual(laLecon.exports["application/vnd.myscript.jiix"].label)
     })
@@ -191,20 +189,11 @@ test.describe("Offscreen Get Started Menu Action", () => {
         page.locator(locator.menu.action.language.trigger).click(),
         page.locator(locator.menu.action.language.inputSelect).selectOption({ value: "fr_FR" })
       ])
-      //write something in French with a typical French character: ç
-      await Promise.all([
-        waitForSynchronizedEvent(page),
-        writeStrokes(page, laLecon.strokes)
-      ])
       await callEditorIdle(page)
       await callEditorSynchronize(page)
 
       const symbols = await getEditorSymbols(page)
-      expect(symbols).toHaveLength(1)
-      expect(symbols[0].label).toEqual(laLecon.exports["application/vnd.myscript.jiix"].label)
-      expect(symbols[0].words[0].label).toEqual(laLecon.exports["application/vnd.myscript.jiix"].words[0].label)
-      //should recognize typical French character: ç
-      expect(symbols[0].words[2].label).toEqual(laLecon.exports["application/vnd.myscript.jiix"].words[1].label)
+      expect(symbols).toHaveLength(laLecon.strokes.length)
 
       const jiix = await getEditorExportsType(page, "application/vnd.myscript.jiix")
       expect(jiix.elements[0].label).toEqual(laLecon.exports["application/vnd.myscript.jiix"].label)
@@ -227,25 +216,28 @@ test.describe("Offscreen Get Started Menu Action", () => {
 
     await test.step("should draw strikethrough on stroke", async () => {
       await Promise.all([
-        waitForGesturedEvent(page),
-        writeStrokes(page, helloStrike.strokes)
+        waitForSynchronizedEvent(page),
+        writePointers(page, helloStrike.strokes[0].pointers)
       ])
+      expect(await getEditorSymbols(page)).toHaveLength(1)
+
+      await Promise.all([
+        waitForGesturedEvent(page),
+        writePointers(page, helloStrike.strokes[1].pointers)
+      ])
+
       const symbols = await getEditorSymbols(page)
-      expect(symbols).toHaveLength(1)
-      const symbol = symbols[0]
-      expect(symbol.words[0].decorators).toHaveLength(1)
-      const strikeThrough = symbol.words[0].decorators[0]
-      expect(strikeThrough.kind).toEqual("strikethrough")
+      expect(symbols).toHaveLength(2)
+      const strikethrough = symbols.find(s => s.type === "decorator")
+      expect(strikethrough).toBeDefined()
+      expect(strikethrough.kind).toEqual("strikethrough")
 
       // toBeVisible fails on horizontal line so we just check if parent is visible
       // https://github.com/microsoft/playwright/issues/20389
-      const symbolLocator = page.locator(` #${ symbol.id }`)
-      await expect(symbolLocator).toBeVisible()
-      const strikeThroughEl = symbolLocator.locator(` #${ strikeThrough.id }`)
-      // await expect(strikeThroughEl).toBeVisible()
-
-      await expect(strikeThroughEl).toHaveAttribute("type", "decorator")
-      await expect(strikeThroughEl).toHaveAttribute("kind", "strikethrough")
+      const strikethroughLocator = page.locator(`#${ strikethrough.id }`)
+      await expect(strikethroughLocator).toBeAttached()
+      await expect(strikethroughLocator).toHaveAttribute("type", "decorator")
+      await expect(strikethroughLocator).toHaveAttribute("kind", "strikethrough")
     })
 
     await test.step("should conserve strikethrough when convert", async () => {
@@ -261,9 +253,9 @@ test.describe("Offscreen Get Started Menu Action", () => {
       const symbolLocator = page.locator(`#${ text.id }`)
       // toBeVisible fails on horizontal line so we just check if parent is visible
       // https://github.com/microsoft/playwright/issues/20389
-      await expect(symbolLocator).toBeVisible()
+      await expect(symbolLocator).toBeAttached()
 
-      const strikeThroughEl = symbolLocator.locator(` #${ strikeThrough.id }`)
+      const strikeThroughEl = symbolLocator.locator(`#${ strikeThrough.id }`)
       await expect(strikeThroughEl).toHaveAttribute("type", "decorator")
       await expect(strikeThroughEl).toHaveAttribute("kind", "strikethrough")
     })
@@ -380,22 +372,20 @@ test.describe("Offscreen Get Started Menu Action", () => {
         writeStrokes(page, helloOneStrokeSurrounded.strokes, 0, 100)
       ])
       const symbols = await getEditorSymbols(page)
-      expect(symbols).toHaveLength(1)
+      expect(symbols).toHaveLength(2)
 
-      const recoSym = symbols[0]
-      expect(recoSym.type).toEqual("recognized")
-      expect(recoSym.kind).toEqual("text")
-      expect(recoSym.words[0].decorators).toHaveLength(1)
+      const stroke = symbols.find(s => s.type === "stroke")
+      expect(stroke.type).toEqual("stroke")
 
-      const surrondSym = recoSym.words[0].decorators[0]
-      expect(surrondSym.kind).toEqual("surround")
+      const surround = symbols.find(s => s.type === "decorator")
+      expect(surround).toBeDefined()
+      expect(surround.kind).toEqual("surround")
 
-      const symLocator = page.locator(`#${ recoSym.id }`)
+      const symLocator = page.locator(`#${ stroke.id }`)
       await expect(symLocator).toBeVisible()
-      await expect(symLocator).toHaveAttribute("type", "recognized")
-      await expect(symLocator).toHaveAttribute("kind", "text")
+      await expect(symLocator).toHaveAttribute("type", "stroke")
 
-      const surroundLocator = symLocator.locator(`#${ surrondSym.id }`)
+      const surroundLocator = page.locator(`#${ surround.id }`)
       await expect(surroundLocator).toBeVisible()
       await expect(surroundLocator).toHaveAttribute("type", "decorator")
       await expect(surroundLocator).toHaveAttribute("kind", "surround")
@@ -403,7 +393,7 @@ test.describe("Offscreen Get Started Menu Action", () => {
       await expect(surroundLocator).toHaveAttribute("y")
       await expect(surroundLocator).toHaveAttribute("height")
       await expect(surroundLocator).toHaveAttribute("width")
-      await expect(surroundLocator).toHaveAttribute("stroke", surrondSym.style.color)
+      await expect(surroundLocator).toHaveAttribute("stroke", surround.style.color)
     })
 
     await test.step("verify surround is kept after convert", async () => {
@@ -417,14 +407,14 @@ test.describe("Offscreen Get Started Menu Action", () => {
       expect(convertSym.type).toEqual("text")
       expect(convertSym.decorators).toHaveLength(1)
 
-      const surrondSym = convertSym.decorators[0]
-      expect(surrondSym.kind).toEqual("surround")
+      const surround = convertSym.decorators[0]
+      expect(surround.kind).toEqual("surround")
 
       const symLocator = page.locator(`#${ convertSym.id }`)
       await expect(symLocator).toBeVisible()
       await expect(symLocator).toHaveAttribute("type", "text")
 
-      const surroundLocator = symLocator.locator(`#${ surrondSym.id }`)
+      const surroundLocator = page.locator(`#${ surround.id }`)
       await expect(surroundLocator).toBeVisible()
       await expect(surroundLocator).toHaveAttribute("type", "decorator")
       await expect(surroundLocator).toHaveAttribute("kind", "surround")
@@ -432,7 +422,7 @@ test.describe("Offscreen Get Started Menu Action", () => {
       await expect(surroundLocator).toHaveAttribute("y")
       await expect(surroundLocator).toHaveAttribute("height")
       await expect(surroundLocator).toHaveAttribute("width")
-      await expect(surroundLocator).toHaveAttribute("stroke", surrondSym.style.color)
+      await expect(surroundLocator).toHaveAttribute("stroke", surround.style.color)
     })
   })
 
@@ -464,7 +454,7 @@ test.describe("Offscreen Get Started Menu Action", () => {
       ])
       const symbols = await page.evaluate("editorEl.editor.model.symbols")
       expect(symbols).toHaveLength(1)
-      expect(symbols[0].type).toEqual("recognized")
+      expect(symbols[0].type).toEqual("stroke")
       expect(symbols[0].kind).toEqual("text")
     })
 

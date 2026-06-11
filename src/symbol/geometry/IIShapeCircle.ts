@@ -1,14 +1,14 @@
 import { SELECTION_MARGIN } from "@/Constants"
 import { TStyle } from "@/style"
-import { PartialDeep, findIntersectBetweenSegmentAndCircle, isValidNumber, computeRotatedPoint, computeDistance } from "@/utils"
+import { PartialDeep, findIntersectBetweenSegmentAndCircle, isValidNumber, computeRotatedPoint, computeDistance, TWO_PI } from "@/utils"
 import { TPoint, isValidPoint } from "@/symbol/base/Point"
-import { OIShapeBase, ShapeKind } from "./IIShape"
+import { IIShapeBase, ShapeKind } from "./IIShape"
 import { Box, TBox } from "@/symbol/base/Box"
 
 /**
  * @group Symbol
  */
-export class IIShapeCircle extends OIShapeBase<ShapeKind.Circle>
+export class IIShapeCircle extends IIShapeBase<ShapeKind.Circle>
 {
   center: TPoint
   radius: number
@@ -27,7 +27,7 @@ export class IIShapeCircle extends OIShapeBase<ShapeKind.Circle>
     this._vertices = new Map<string, TPoint[]>()
     this._vertices.set(this.verticesId, this.computedVertices())
     this._bounds = new Map<string, Box>()
-    this._bounds.set(this.verticesId, this.computedBondingBox())
+    this._bounds.set(this.verticesId, this.computedBoundingBox())
   }
 
   protected get verticesId(): string
@@ -41,17 +41,17 @@ export class IIShapeCircle extends OIShapeBase<ShapeKind.Circle>
       x: this.center.x,
       y: this.radius + this.center.y
     }
-    const perimeter = 2 * Math.PI * this.radius
+    const perimeter = TWO_PI * this.radius
     const nbPoint = Math.max(8, Math.round(perimeter / SELECTION_MARGIN))
     const points: TPoint[] = []
     for (let i = 0; i < nbPoint; i++) {
-      const rad = 2 * Math.PI * (i / nbPoint)
+      const rad = TWO_PI * (i / nbPoint)
       points.push(computeRotatedPoint(firstPoint, this.center, rad))
     }
     return points
   }
 
-  protected computedBondingBox(): Box
+  protected computedBoundingBox(): Box
   {
     const boundingBox: TBox = {
       x: this.center.x - this.radius,
@@ -65,7 +65,7 @@ export class IIShapeCircle extends OIShapeBase<ShapeKind.Circle>
   get bounds(): Box
   {
     if (!this._bounds.has(this.verticesId)) {
-      this._bounds.set(this.verticesId, this.computedBondingBox())
+      this._bounds.set(this.verticesId, this.computedBoundingBox())
     }
     return this._bounds.get(this.verticesId)!
   }

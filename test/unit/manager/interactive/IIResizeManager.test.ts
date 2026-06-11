@@ -15,7 +15,7 @@ import
   TIISymbolChar,
   TPoint
 } from "../../../../src/iink"
-import { buildOIStroke } from "../../helpers"
+import { buildIIStroke } from "../../helpers"
 
 describe("IIResizeManager.ts", () =>
 {
@@ -32,7 +32,7 @@ describe("IIResizeManager.ts", () =>
     const manager = new IIResizeManager(editor)
     test("should not resize symbol with type unknown", () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       //@ts-ignore
       stroke.type = "pouet"
       const origin: TPoint = { x: 0, y: 0 }
@@ -168,7 +168,7 @@ describe("IIResizeManager.ts", () =>
     })
     test("resize edge Text", () =>
     {
-      manager.editor.texter.updateBounds = jest.fn()
+      editor.texter.updateBounds = jest.fn()
       const point: TPoint = { x: 0, y: 0 }
       const chars: TIISymbolChar[] = [
         {
@@ -185,7 +185,7 @@ describe("IIResizeManager.ts", () =>
       manager.applyToSymbol(text, origin, 2, 3)
       expect(text.point).toEqual({ x: 0, y: 0 })
       expect(chars[0].fontSize).toEqual(30)
-      expect(manager.editor.texter.updateBounds).toHaveBeenCalledTimes(1)
+      expect(editor.texter.updateBounds).toHaveBeenCalledTimes(1)
     })
   })
 
@@ -196,8 +196,8 @@ describe("IIResizeManager.ts", () =>
     editor.recognizer.transformScale = jest.fn(() => Promise.resolve())
     editor.renderer.setAttribute = jest.fn()
     editor.renderer.drawSymbol = jest.fn()
-    editor.snaps.configuration.guide = false
-    editor.snaps.configuration.symbol = false
+    editor.snaps.snapConfiguration.guide = false
+    editor.snaps.snapConfiguration.symbol = false
 
     const manager = new IIResizeManager(editor)
     manager.applyToSymbol = jest.fn()

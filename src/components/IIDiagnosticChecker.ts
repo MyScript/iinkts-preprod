@@ -1,5 +1,4 @@
 import { InteractiveInkEditor } from "@/editor"
-import { IIRecognizedMath } from "@/symbol"
 import { Modal } from "./Modal"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import { getMathDiagnosticMessage } from "@/constants/MathDiagnosticMessages"
@@ -9,7 +8,7 @@ import { BORDER_RADIUS, flexColumnStyle } from "./styles"
  * @group Components
  */
 export interface SymbolDiagnostic {
-  symbol: IIRecognizedMath
+  jiixBlockId: string
   computeDiagnostic: string
   evaluationDiagnostic: string
 }
@@ -20,13 +19,13 @@ export interface SymbolDiagnostic {
  */
 export class IIDiagnosticChecker {
   private editor: InteractiveInkEditor
-  private symbols: IIRecognizedMath[]
+  private jiixBlockIds: string[]
   private modal?: Modal
-  private logger = LoggerManager.getLogger(LoggerCategory.MENU)
+  private logger = LoggerManager.getLogger(LoggerCategory.MATH)
 
-  constructor(editor: InteractiveInkEditor, symbols: IIRecognizedMath[]) {
+  constructor(editor: InteractiveInkEditor, jiixBlockIds: string[]) {
     this.editor = editor
-    this.symbols = symbols
+    this.jiixBlockIds = [...new Set(jiixBlockIds)]
   }
 
   /**
@@ -36,25 +35,24 @@ export class IIDiagnosticChecker {
     // Fetch diagnostics for all symbols
     const diagnostics: SymbolDiagnostic[] = []
 
-    for (const symbol of this.symbols) {
-      if (!symbol.jiixId) {
-        this.logger.warn(`Symbol ${symbol.label} does not have jiixId`)
+    for (const jiixBlockId of this.jiixBlockIds) {
+      if (!jiixBlockId) {
+        this.logger.warn(`Invalid jiixBlockId`)
         continue
       }
 
       try {
-        const [computeDiagnostic, evaluationDiagnostic] = await Promise.all([
-          this.editor.getDiagnostic(symbol.jiixId, "numerical-computation"),
-          this.editor.getDiagnostic(symbol.jiixId, "evaluation")
-        ])
+        const computeDiagnostic =  await this.editor.getMathDiagnostic(jiixBlockId, "numerical-computation")
+        const evaluationDiagnostic = await this.editor.getMathDiagnostic(jiixBlockId, "evaluation")
 
         diagnostics.push({
-          symbol,
+          jiixBlockId,
           computeDiagnostic,
           evaluationDiagnostic
         })
       } catch (error) {
-        this.logger.error(`Error fetching diagnostics for symbol ${symbol.label}:`, error)
+        const label = this.editor.jiix.getBlockLabel(jiixBlockId)
+        this.logger.error(`Error fetching diagnostics for symbol ${label}:`, error)
       }
     }
 
@@ -71,13 +69,6 @@ export class IIDiagnosticChecker {
       title: `Math Diagnostic${diagnostics.length > 1 ? "s" : ""} (${diagnostics.length} symbol${diagnostics.length > 1 ? "s" : ""})`,
       fields: [],
       customContent: container,
-      buttons: [
-        {
-          label: "Close",
-          type: "primary",
-          callback: (): void => this.close()
-        }
-      ]
     })
 
     this.modal.open()
@@ -129,7 +120,8 @@ export class IIDiagnosticChecker {
       background: #e3f2fd;
       border-radius: ${BORDER_RADIUS.sm};
     `
-    expressionDiv.innerHTML = `<strong>Expression:</strong> ${diagnostic.symbol.label || "N/A"}`
+    const label = this.editor.jiix.getBlockLabel(diagnostic.jiixBlockId) || "N/A"
+    expressionDiv.innerHTML = `<strong>Expression:</strong> ${label}`
     section.appendChild(expressionDiv)
 
     // Severity colors configuration

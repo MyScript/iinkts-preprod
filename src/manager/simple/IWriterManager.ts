@@ -2,7 +2,7 @@ import { InkEditor } from "@/editor";
 import { PointerInfo } from "@/grabber";
 import { IModel } from "@/model";
 import { TStyle } from "@/style";
-import { IIStroke, SymbolType, TIISymbol, TPointer } from "@/symbol";
+import { IIStroke, TIISymbol, TPointer, isStroke } from "@/symbol";
 import { DeferredPromise } from "@/utils";
 import { AbstractWriterManager } from "@/manager/base/AbstractWriterManager";
 
@@ -29,7 +29,7 @@ export class IWriterManager extends AbstractWriterManager {
   }
 
   protected updateCurrentSymbol(pointer: TPointer): IIStroke {
-    if (this.model.currentStroke?.type === SymbolType.Stroke) {
+    if (this.model.currentStroke && isStroke(this.model.currentStroke)) {
       this.model.currentStroke.addPointer(pointer)
     }
     return this.model.currentStroke!

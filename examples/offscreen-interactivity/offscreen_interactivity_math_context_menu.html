@@ -164,9 +164,9 @@
         <ul>
           <li><strong>Computation:</strong> Write <span class="highlight">√16=</span>, draw around it, Compute numerical result</li>
           <li><strong>Variable substitution:</strong> Write <span class="highlight">x=3</span>, then <span class="highlight">2x+5=</span>, draw around the second expression, Compute numerical result (will use x=3 value)</li>
+          <li><strong>Edit variable &amp; recompute:</strong> Draw around <span class="highlight">2x+5=</span>, Set variable value → change x to another number, then Compute numerical result again to see the updated result</li>
           <li><strong>Function plot:</strong> Write <span class="highlight">f(x)=x²</span>, draw around it, Evaluate function → Set range from -5 to 5</li>
-          <li><strong>Reversible function plot:</strong> Write <span class="highlight">y=x²</span>, draw around it, Evaluate function → you can choose to plot y = f(x) or x = f(y)</li>
-          <li><strong>Complex expression:</strong> Write <span class="highlight">a=2</span>, then <span class="highlight">3a²+2a-1=</span>, draw around the expression, Edit variables → Change a value, Compute numerical result (will use the updated value)</li>
+          <li><strong>Reversible function plot:</strong> Write <span class="highlight">a=b²</span>, draw around it, Evaluate function → you can choose to plot a = f(b) or b = f(a)</li>
           <li><strong>Check diagnostic (both tasks):</strong> Write <span class="highlight">y=x²+2x</span>, draw around it, Check diagnostic → See both "Numerical Computation" and "Function Evaluation" diagnostics</li>
           <li><strong>Division by zero:</strong> Write <span class="highlight">1/0=</span>, draw around it, Check diagnostic → See error message about division by zero</li>
         </ul>
@@ -286,6 +286,8 @@
             export: false,
             import: false,
             convert: false,
+            debug: false,
+            guide: false,
           },
           tool: {
             write: true,

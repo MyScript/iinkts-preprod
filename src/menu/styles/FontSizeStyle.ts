@@ -1,7 +1,7 @@
 import { InteractiveInkEditor } from "@/editor"
 import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
 import { ButtonListMenuItem, IMenuButtonList, CollapsibleWrapper } from "@/menu/items"
-import { SymbolType } from "@/symbol"
+import { isText } from "@/symbol"
 
 /**
  * @group Menu
@@ -39,7 +39,7 @@ export class FontSizeStyle extends BaseMenuItem<HTMLDivElement>
         } else {
           const fontSize = parseFloat(value)
           editor.configuration.fontStyle.size = fontSize
-          const textSymbols = editor.model.symbolsSelected.filter(s => s.type === SymbolType.Text)
+          const textSymbols = editor.model.symbolsSelected.filter(s => isText(s))
           editor.updateTextFontStyle(textSymbols.map(s => s.id), { fontSize: fontSize * this.rowHeight })
           editor.selector.resetSelectedGroup(editor.model.symbolsSelected)
         }

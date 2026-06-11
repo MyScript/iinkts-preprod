@@ -1,5 +1,5 @@
 import { jiixText } from "../__dataset__/exports.dataset"
-import { buildOICircle, buildOIStroke, buildRecognizedText, buildRecognizedMath, buildOIText, buildOIMath, delay } from "../helpers"
+import { buildIICircle, buildIIStroke, buildIIText, buildIIMath, delay } from "../helpers"
 import
 {
   InteractiveInkEditor,
@@ -190,7 +190,7 @@ describe("EditorOffscreen.ts", () =>
 
     test("add stroke", async () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       await editor.addSymbol(stroke)
       expect(editor.model.addSymbol).toHaveBeenNthCalledWith(1, stroke)
       expect(editor.renderer.drawSymbol).toHaveBeenNthCalledWith(1, stroke)
@@ -198,7 +198,7 @@ describe("EditorOffscreen.ts", () =>
     })
     test("add shape", async () =>
     {
-      const shape = buildOICircle()
+      const shape = buildIICircle()
       await editor.addSymbol(shape)
       expect(editor.model.addSymbol).toHaveBeenNthCalledWith(1, shape)
       expect(editor.renderer.drawSymbol).toHaveBeenNthCalledWith(1, shape)
@@ -230,8 +230,8 @@ describe("EditorOffscreen.ts", () =>
     })
     test("replace stroke by stroke", async () =>
     {
-      const stroke1 = buildOIStroke()
-      const stroke2 = buildOIStroke()
+      const stroke1 = buildIIStroke()
+      const stroke2 = buildIIStroke()
       await editor.replaceSymbols([stroke1], [stroke2])
       expect(editor.model.replaceSymbol).toHaveBeenNthCalledWith(1, stroke1.id, [stroke2])
       expect(editor.renderer.replaceSymbol).toHaveBeenNthCalledWith(1, stroke1.id, [stroke2])
@@ -239,8 +239,8 @@ describe("EditorOffscreen.ts", () =>
     })
     test("replace stroke by shape", async () =>
     {
-      const stroke = buildOIStroke()
-      const shape = buildOICircle()
+      const stroke = buildIIStroke()
+      const shape = buildIICircle()
       await editor.replaceSymbols([stroke], [shape])
       expect(editor.model.replaceSymbol).toHaveBeenNthCalledWith(1, stroke.id, [shape])
       expect(editor.renderer.replaceSymbol).toHaveBeenNthCalledWith(1, stroke.id, [shape])
@@ -248,8 +248,8 @@ describe("EditorOffscreen.ts", () =>
     })
     test("replace shape by stroke", async () =>
     {
-      const stroke = buildOIStroke()
-      const shape = buildOICircle()
+      const stroke = buildIIStroke()
+      const shape = buildIICircle()
       await editor.replaceSymbols([shape], [stroke])
       expect(editor.model.replaceSymbol).toHaveBeenNthCalledWith(1, shape.id, [stroke])
       expect(editor.renderer.replaceSymbol).toHaveBeenNthCalledWith(1, shape.id, [stroke])
@@ -257,14 +257,14 @@ describe("EditorOffscreen.ts", () =>
     })
     test("change order symbol", async () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       await editor.changeOrderSymbol(stroke, "last")
       expect(editor.model.changeOrderSymbol).toHaveBeenNthCalledWith(1, stroke.id, "last")
       expect(editor.renderer.changeOrderSymbol).toHaveBeenNthCalledWith(1, stroke, "last")
     })
     test("remove stroke", async () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       editor.model.symbols.push(stroke)
       await editor.removeSymbol(stroke.id)
       expect(editor.model.removeSymbol).toHaveBeenNthCalledWith(1, stroke.id)
@@ -273,7 +273,7 @@ describe("EditorOffscreen.ts", () =>
     })
     test("remove shape", async () =>
     {
-      const shape = buildOICircle()
+      const shape = buildIICircle()
       editor.model.symbols.push(shape)
       await editor.removeSymbol(shape.id)
       expect(editor.model.removeSymbol).toHaveBeenNthCalledWith(1, shape.id)
@@ -287,9 +287,9 @@ describe("EditorOffscreen.ts", () =>
     editor.recognizer.init = jest.fn()
     editor.recognizer.waitForIdle = jest.fn(() => Promise.resolve())
     editor.renderer.drawSymbol = jest.fn()
-    const stroke1 = buildOIStroke()
+    const stroke1 = buildIIStroke()
     editor.model.addSymbol(stroke1)
-    const stroke2 = buildOIStroke()
+    const stroke2 = buildIIStroke()
     editor.model.addSymbol(stroke2)
     test("should update symbol color and draw", async () =>
     {
@@ -370,10 +370,10 @@ describe("EditorOffscreen.ts", () =>
   describe("Download", () =>
   {
     const editor = new InteractiveInkEditor(document.createElement("div"), EditorOptions)
-    const stroke1 = buildOIStroke()
+    const stroke1 = buildIIStroke()
     stroke1.selected = true
     editor.model.addSymbol(stroke1)
-    const stroke2 = buildOIStroke()
+    const stroke2 = buildIIStroke()
     editor.model.addSymbol(stroke2)
 
     editor.renderer.getElementById = jest.fn((id) =>
@@ -449,25 +449,7 @@ describe("EditorOffscreen.ts", () =>
     })
     test("should call trigger download text file", async () =>
     {
-      const recognizedText = buildRecognizedText(1)
-      recognizedText.label = "Hello World"
-      editor.model.addSymbol(recognizedText)
-
-      const recognizedMath = buildRecognizedMath(1, "y=3x+2")
-      editor.model.addSymbol(recognizedMath)
-
-      const textChars = [{
-        id: "char-1",
-        label: "Test text",
-        fontSize: 16,
-        fontWeight: "normal" as const,
-        color: "#000000",
-        bounds: { x: 0, y: 0, width: 50, height: 20 }
-      }]
-      const oiText = buildOIText({ chars: textChars })
-      editor.model.addSymbol(oiText)
-
-      const oiMath = buildOIMath("a=b+c")
+      const oiMath = buildIIMath("a=b+c")
       editor.model.addSymbol(oiMath)
 
       const link = document.createElement("a")
@@ -476,33 +458,7 @@ describe("EditorOffscreen.ts", () =>
       editor.downloadAsText()
 
       expect(link.href).toContain("data:text/plain;charset=utf-8,")
-      expect(link.href).toContain("Hello%20World")
-      expect(link.href).toContain("y%3D3x%2B2")
-      expect(link.href).toContain("Test%20text")
       expect(link.href).toContain("a%3Db%2Bc")
-      expect(link.download).toContain("iink-ts-")
-      expect(link.download).toContain(".txt")
-      expect(link.click).toHaveBeenCalledTimes(1)
-    })
-    test("should call trigger download text file with only selected symbols", async () =>
-    {
-      const recognizedMath = buildRecognizedMath(1, "equation-selected")
-      recognizedMath.selected = true
-      editor.model.addSymbol(recognizedMath)
-
-      const recognizedText = buildRecognizedText(1)
-      recognizedText.label = "text-not-selected"
-      recognizedText.selected = false
-      editor.model.addSymbol(recognizedText)
-
-      const link = document.createElement("a")
-      link.click = jest.fn()
-      jest.spyOn(document, "createElement").mockImplementationOnce(() => link)
-      editor.downloadAsText(true)
-
-      expect(link.href).toContain("data:text/plain;charset=utf-8,")
-      expect(link.href).toContain("equation-selected")
-      expect(link.href).not.toContain("text-not-selected")
       expect(link.download).toContain("iink-ts-")
       expect(link.download).toContain(".txt")
       expect(link.click).toHaveBeenCalledTimes(1)
@@ -512,28 +468,21 @@ describe("EditorOffscreen.ts", () =>
   describe("extract symbols", () =>
   {
     const editor = new InteractiveInkEditor(document.createElement("div"), EditorOptions)
-    const text1 = buildOIText()
-    const text2 = buildOIText()
-    const stroke1 = buildOIStroke()
-    const stroke2 = buildOIStroke()
-    const strokeText = buildRecognizedText()
+    const text1 = buildIIText()
+    const text2 = buildIIText()
+    const stroke1 = buildIIStroke()
+    const stroke2 = buildIIStroke()
     const symbols: TIISymbol[] = [
       stroke1,
       text1,
       stroke2,
-      strokeText,
       text2,
-      buildOICircle()
+      buildIICircle()
     ]
     test("should extract strokes", () =>
     {
       const strokes = editor.extractStrokesFromSymbols(symbols)
-      expect(strokes).toEqual([stroke1, stroke2, ...strokeText.strokes])
-    })
-    test("should extract texts", () =>
-    {
-      const texts = editor.extractTextsFromSymbols(symbols)
-      expect(texts).toEqual([text1, text2])
+      expect(strokes).toEqual([stroke1, stroke2])
     })
   })
 
@@ -565,7 +514,7 @@ describe("EditorOffscreen.ts", () =>
     })
     test("should call recognizer.undo & renderer.drawSymbol when history.undo return added stroke", async () =>
     {
-      const stroke1 = buildOIStroke()
+      const stroke1 = buildIIStroke()
       const firstModel = editor.model.clone()
       firstModel.addSymbol(stroke1)
       editor.history.undo = jest.fn(() => ({ model: firstModel, changes: { added: [stroke1] } }))
@@ -579,7 +528,7 @@ describe("EditorOffscreen.ts", () =>
     })
     test("should not call recognizer.undo & call renderer.drawSymbol when history.undo return added shape", async () =>
     {
-      const circle = buildOICircle()
+      const circle = buildIICircle()
       const firstModel = editor.model.clone()
       firstModel.addSymbol(circle)
       editor.history.undo = jest.fn(() => ({ model: firstModel, changes: { added: [circle] } }))
@@ -592,7 +541,7 @@ describe("EditorOffscreen.ts", () =>
     })
     test("should call recognizer.undo & renderer.removeSymbol when history.undo return erased stroke", async () =>
     {
-      const stroke1 = buildOIStroke()
+      const stroke1 = buildIIStroke()
       const firstModel = editor.model.clone()
       editor.model.addSymbol(stroke1)
       editor.history.undo = jest.fn(() => ({ model: firstModel, changes: { erased: [stroke1] } }))
@@ -606,8 +555,8 @@ describe("EditorOffscreen.ts", () =>
     })
     test("should call recognizer.undo & renderer.drawSymbol & renderer.removeSymbol when history.undo return replaced stroke", async () =>
     {
-      const stroke1 = buildOIStroke()
-      const stroke2 = buildOIStroke()
+      const stroke1 = buildIIStroke()
+      const stroke2 = buildIIStroke()
       const firstModel = editor.model.clone()
       firstModel.addSymbol(stroke1)
       editor.model.addSymbol(stroke2)
@@ -623,7 +572,7 @@ describe("EditorOffscreen.ts", () =>
     })
     test("should call recognizer.undo & renderer.drawSymbol & renderer.removeSymbol when history.undo return matrix", async () =>
     {
-      const stroke1 = buildOIStroke()
+      const stroke1 = buildIIStroke()
       const firstModel = editor.model.clone()
       firstModel.addSymbol(stroke1)
       editor.history.undo = jest.fn(() => ({ model: firstModel, changes: { matrix: { matrix: { tx: 2, ty: 3, xx: 4, xy: 5, yx: 6, yy: 7 }, symbols: [stroke1] } } }))
@@ -636,7 +585,7 @@ describe("EditorOffscreen.ts", () =>
     })
     test("should call recognizer.undo & renderer.drawSymbol & renderer.removeSymbol when history.undo return translate", async () =>
     {
-      const stroke1 = buildOIStroke()
+      const stroke1 = buildIIStroke()
       const firstModel = editor.model.clone()
       firstModel.addSymbol(stroke1)
       editor.history.undo = jest.fn(() => ({ model: firstModel, changes: { translate: [{ tx: 1, ty: 2, symbols: [stroke1] }] } }))
@@ -649,7 +598,7 @@ describe("EditorOffscreen.ts", () =>
     })
     test("should call recognizer.undo & renderer.drawSymbol & renderer.removeSymbol when history.undo return scale", async () =>
     {
-      const stroke1 = buildOIStroke()
+      const stroke1 = buildIIStroke()
       const firstModel = editor.model.clone()
       firstModel.addSymbol(stroke1)
       editor.history.undo = jest.fn(() => ({ model: firstModel, changes: { scale: [{ origin: { x: 1, y: 2 }, scaleX: 2, scaleY: 4, symbols: [stroke1] }] } }))
@@ -662,7 +611,7 @@ describe("EditorOffscreen.ts", () =>
     })
     test("should call recognizer.undo & renderer.drawSymbol & renderer.removeSymbol when history.undo return rotate", async () =>
     {
-      const stroke1 = buildOIStroke()
+      const stroke1 = buildIIStroke()
       const firstModel = editor.model.clone()
       firstModel.addSymbol(stroke1)
       editor.history.undo = jest.fn(() => ({ model: firstModel, changes: { rotate: [{ angle: 42, center: { x: 1, y: 2 }, symbols: [stroke1] }] } }))
@@ -703,7 +652,7 @@ describe("EditorOffscreen.ts", () =>
     })
     test("should call recognizer.redo & renderer.drawSymbol when history.redo return added stroke", async () =>
     {
-      const stroke1 = buildOIStroke()
+      const stroke1 = buildIIStroke()
       const secondModel = editor.model.clone()
       secondModel.addSymbol(stroke1)
       editor.history.context.canRedo = true
@@ -716,7 +665,7 @@ describe("EditorOffscreen.ts", () =>
     })
     test("should not call recognizer.redo & call renderer.drawSymbol when history.redo return added shape", async () =>
     {
-      const circle = buildOICircle()
+      const circle = buildIICircle()
       const firstModel = editor.model.clone()
       firstModel.addSymbol(circle)
       editor.history.redo = jest.fn(() => ({ model: firstModel, changes: { added: [circle] } }))
@@ -729,7 +678,7 @@ describe("EditorOffscreen.ts", () =>
     })
     test("should call recognizer.redo & renderer.removeSymbol when history.redo return erased stroke", async () =>
     {
-      const stroke1 = buildOIStroke()
+      const stroke1 = buildIIStroke()
       const firstModel = editor.model.clone()
       editor.model.addSymbol(stroke1)
       editor.history.redo = jest.fn(() => ({ model: firstModel, changes: { erased: [stroke1] } }))
@@ -743,8 +692,8 @@ describe("EditorOffscreen.ts", () =>
     })
     test("should call recognizer.redo & renderer.drawSymbol & renderer.removeSymbol when history.redo return replaced stroke", async () =>
     {
-      const stroke1 = buildOIStroke()
-      const stroke2 = buildOIStroke()
+      const stroke1 = buildIIStroke()
+      const stroke2 = buildIIStroke()
       const firstModel = editor.model.clone()
       firstModel.addSymbol(stroke1)
       editor.model.addSymbol(stroke2)
@@ -853,12 +802,6 @@ describe("EditorOffscreen.ts", () =>
       await editor.resize({ height: 1, width: 2})
       await expect(editor.renderer.resize).toHaveBeenCalledTimes(1)
     })
-    test("should update model", async () =>
-    {
-        await editor.resize({ height: 5, width: 6})
-      await expect(editor.model.height).toEqual(5)
-      await expect(editor.model.width).toEqual(6)
-    })
   })
 
   describe("clear", () =>
@@ -877,28 +820,28 @@ describe("EditorOffscreen.ts", () =>
 
     test("should call renderer.clear", async () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       editor.model.addSymbol(stroke)
       await editor.clear()
       await expect(editor.renderer.clear).toHaveBeenCalledTimes(1)
     })
     test("should call selector.removeSelectedGroup", async () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       editor.model.addSymbol(stroke)
       await editor.clear()
       await expect(editor.selector.removeSelectedGroup).toHaveBeenCalledTimes(1)
     })
     test("should call recognizer.clear", async () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       editor.model.addSymbol(stroke)
       editor.clear()
       await expect(editor.recognizer.clear).toHaveBeenCalledTimes(1)
     })
     test("should clear model", async () =>
     {
-      const stroke = buildOIStroke()
+      const stroke = buildIIStroke()
       editor.model.addSymbol(stroke)
       await editor.clear()
       expect(editor.model.symbols).toHaveLength(0)

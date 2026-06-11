@@ -27,7 +27,7 @@ export enum EdgeDecoration
 /**
  * @group Symbol
  */
-export abstract class OIEdgeBase<K = EdgeKind> extends IISymbolBase<SymbolType.Edge>
+export abstract class IIEdgeBase<K = EdgeKind> extends IISymbolBase<SymbolType.Edge>
 {
   readonly kind: K
   readonly isClosed = false
@@ -78,5 +78,5 @@ export abstract class OIEdgeBase<K = EdgeKind> extends IISymbolBase<SymbolType.E
       this.edges.some(e1 => Box.getSides(box).some(e2 => !!findIntersectionBetween2Segment(e1, e2)))
   }
 
-  abstract clone(): OIEdgeBase
+  abstract clone(): IIEdgeBase
 }

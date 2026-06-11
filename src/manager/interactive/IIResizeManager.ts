@@ -1,7 +1,5 @@
 import { ResizeDirection, SvgElementRole } from "@/Constants"
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
-import { LoggerCategory, LoggerManager } from "@/logger"
-import { IIModel } from "@/model"
 import
 {
   Box,
@@ -10,14 +8,15 @@ import
   IIText,
   IIMath,
   ShapeKind,
-  SymbolType,
   TIIEdge,
   TIIShape,
-  TIISymbol,
   TPoint,
-  TIIRecognized,
-  RecognizedKind
+  isText,
+  isMath,
+  isShape,
+  isCircleShape
 } from "@/symbol"
+import { IIAbstractTransformManager } from "./AbstractTransformManager"
 
 /**
  * Helper functions for resize direction checks
@@ -37,12 +36,10 @@ const isSouthernResize = (direction: ResizeDirection): boolean =>
 /**
  * @group Manager
  */
-export class IIResizeManager
+export class IIResizeManager extends IIAbstractTransformManager<[TPoint, number, number]>
 {
-  #logger = LoggerManager.getLogger(LoggerCategory.TRANSFORMER)
-  editor: InteractiveInkEditor
-
-  interactElementsGroup?: SVGElement
+  protected managerName = "IIResizeManager"
+  protected transformName = "resize"
   direction!: ResizeDirection
   boundingBox!: Box
   transformOrigin!: TPoint
@@ -50,29 +47,31 @@ export class IIResizeManager
 
   constructor(editor: InteractiveInkEditor)
   {
-    this.#logger.info("constructor")
-    this.editor = editor
-  }
-
-  get model(): IIModel
-  {
-    return this.editor.model
+    super(editor)
   }
 
   protected applyToStroke(stroke: IIStroke, origin: TPoint, scaleX: number, scaleY: number): IIStroke
   {
-    this.#logger.debug("applyToStroke", { stroke, origin, scaleX, scaleY })
+    this.logger.debug("applyToStroke", { stroke, origin, scaleX, scaleY })
+
+    // NEW ARCHITECTURE: Skip solver outputs - they should be recalculated
+    if (stroke.isSolverOutput) {
+      this.logger.warn("applyToStroke", "Skipping solver output stroke - it will be recalculated", stroke.id)
+      return stroke
+    }
+
     stroke.pointers.forEach(p =>
     {
       p.x = +(origin.x + scaleX * (p.x - origin.x)).toFixed(3)
       p.y = +(origin.y + scaleY * (p.y - origin.y)).toFixed(3)
     })
+
     return stroke
   }
 
   protected applyToShape(shape: TIIShape, origin: TPoint, scaleX: number, scaleY: number): TIIShape
   {
-    this.#logger.debug("applyToShape", { shape, origin, scaleX, scaleY })
+    this.logger.debug("applyToShape", { shape, origin, scaleX, scaleY })
     switch (shape.kind) {
       case ShapeKind.Ellipse: {
         const cosPhi = Math.cos(shape.orientation)
@@ -104,7 +103,7 @@ export class IIResizeManager
 
   protected applyToEdge(edge: TIIEdge, origin: TPoint, scaleX: number, scaleY: number): TIIEdge
   {
-    this.#logger.debug("applyToEdge", { edge, origin, scaleX, scaleY })
+    this.logger.debug("applyToEdge", { edge, origin, scaleX, scaleY })
     switch (edge.kind) {
       case EdgeKind.Arc: {
         const cosPhi = Math.cos(edge.phi)
@@ -177,35 +176,7 @@ export class IIResizeManager
     return math
   }
 
-  protected applyOnRecognizedSymbol(recognizedSymbol: TIIRecognized, origin: TPoint, scaleX: number, scaleY: number): TIIRecognized
-  {
-    recognizedSymbol.strokes.forEach(s => this.applyToStroke(s, origin, scaleX, scaleY))
-    if (recognizedSymbol.kind === RecognizedKind.Text) {
-      recognizedSymbol.xHeight *= scaleY
-    }
-    return recognizedSymbol
-  }
-
-  applyToSymbol(symbol: TIISymbol, origin: TPoint, scaleX: number, scaleY: number): TIISymbol
-  {
-    this.#logger.info("applyToSymbol", { symbol, scaleX, scaleY })
-    switch (symbol.type) {
-      case SymbolType.Stroke:
-        return this.applyToStroke(symbol, origin, scaleX, scaleY)
-      case SymbolType.Shape:
-        return this.applyToShape(symbol, origin, scaleX, scaleY)
-      case SymbolType.Edge:
-        return this.applyToEdge(symbol, origin, scaleX, scaleY)
-      case SymbolType.Text:
-        return this.applyOnText(symbol, origin, scaleX, scaleY)
-      case SymbolType.Math:
-        return this.applyOnMath(symbol, origin, scaleX, scaleY)
-      case SymbolType.Recognized:
-        return this.applyOnRecognizedSymbol(symbol, origin, scaleX, scaleY)
-      default:
-        throw new Error(`Can't apply resize on symbol, type unknown: ${ JSON.stringify(symbol) }`)
-    }
-  }
+  // applyOnRecognizedSymbol removed - recognized symbols no longer exist
 
   setTransformOrigin(id: string, originX: number, originY: number): void
   {
@@ -214,17 +185,19 @@ export class IIResizeManager
 
   scaleElement(id: string, sx: number, sy: number): void
   {
-    this.#logger.info("scaleElement", { id, sx, sy })
+    this.logger.info("scaleElement", { id, sx, sy })
     this.editor.renderer.setAttribute(id, "transform", `scale(${ sx },${ sy })`)
   }
 
   start(target: Element, origin: TPoint): void
   {
-    this.#logger.info("start", { target })
+    this.logger.info("start", { target })
     this.interactElementsGroup = (target.closest(`[role=${ SvgElementRole.InteractElementsGroup }]`) as unknown) as SVGGElement
     this.direction = target.getAttribute("resize-direction") as ResizeDirection
 
-    this.keepRatio = this.model.symbolsSelected.some(s => s.type === SymbolType.Text || s.type === SymbolType.Math || (s.type === SymbolType.Shape && (s as TIIShape).kind === ShapeKind.Circle))
+    this.keepRatio = this.model.symbolsSelected.some(s =>
+      isText(s) || isMath(s) || (isShape(s) && isCircleShape(s))
+    )
 
     this.transformOrigin = origin
     this.boundingBox = Box.createFromPoints(this.model.symbolsSelected.flatMap(s => s.vertices))
@@ -237,7 +210,7 @@ export class IIResizeManager
 
   continue(point: TPoint): { scaleX: number, scaleY: number }
   {
-    this.#logger.info("continue", { point })
+    this.logger.info("continue", { point })
     if (!this.interactElementsGroup) {
       throw new Error("Can't resize, you must call start before")
     }
@@ -305,7 +278,7 @@ export class IIResizeManager
 
   async end(point: TPoint): Promise<void>
   {
-    this.#logger.info("end", { point })
+    this.logger.info("end", { point })
     const { scaleX, scaleY } = this.continue(point)
     this.editor.snaps.clearSnapToElementLines()
     const oldSymbols = this.model.symbolsSelected.map(s => s.clone())

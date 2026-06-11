@@ -1,12 +1,12 @@
 import { TStyle } from "@/style"
 import { PartialDeep } from "@/utils"
-import { EdgeDecoration, EdgeKind, OIEdgeBase } from "./IIEdge"
+import { EdgeDecoration, EdgeKind, IIEdgeBase } from "./IIEdge"
 import { TPoint, isValidPoint } from "@/symbol/base/Point"
 
 /**
  * @group Symbol
  */
-export class IIEdgeLine extends OIEdgeBase<EdgeKind.Line>
+export class IIEdgeLine extends IIEdgeBase<EdgeKind.Line>
 {
   start: TPoint
   end: TPoint
@@ -59,8 +59,8 @@ export class IIEdgeLine extends OIEdgeBase<EdgeKind.Line>
 
   static create(partial: PartialDeep<IIEdgeLine>): IIEdgeLine
   {
-    if (!isValidPoint(partial?.start)) throw new Error(`Unable to create a arc, start point is invalid`)
-    if (!isValidPoint(partial?.end)) throw new Error(`Unable to create a arc, end point is invalid`)
+    if (!isValidPoint(partial?.start)) throw new Error(`Unable to create a line, start point is invalid`)
+    if (!isValidPoint(partial?.end)) throw new Error(`Unable to create a line, end point is invalid`)
     const line = new IIEdgeLine(partial?.start as TPoint, partial?.end as TPoint, partial.startDecoration, partial.endDecoration, partial.style)
     if (partial.id) {
       line.id = partial.id
