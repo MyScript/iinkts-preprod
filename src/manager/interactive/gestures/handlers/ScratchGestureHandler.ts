@@ -133,7 +133,6 @@ export class ScratchGestureHandler extends GestureHandler
       return
     }
 
-    const symbolsToUpdate: TIISymbol[] = []
     const symbolsToErase: TIISymbol[] = []
     const symbolsToReplace: { oldSymbols: TIISymbol[], newSymbols: TIISymbol[] } = { oldSymbols: [], newSymbols: [] }
 
@@ -174,11 +173,6 @@ export class ScratchGestureHandler extends GestureHandler
 
     const promises: Promise<void | TIISymbol[]>[] = []
     const changes: TIIHistoryChanges = {}
-
-    if (symbolsToUpdate.length) {
-      promises.push(this.editor.updateSymbols(symbolsToUpdate, false))
-      changes.updated = symbolsToUpdate
-    }
 
     if (symbolsToErase.length) {
       promises.push(this.editor.removeSymbols(symbolsToErase.map(s => s.id), false))
