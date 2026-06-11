@@ -6,7 +6,7 @@ import { convertMillimeterToPixel, createUUID } from "@/utils"
 import { TMarginConfiguration } from "@/recognizer"
 
 /**
- * @group InteractiveInkSSRSmartGuide
+ * @group SmartGuide
  */
 export class InteractiveInkSSRSmartGuide
 {

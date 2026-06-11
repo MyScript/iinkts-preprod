@@ -2,7 +2,7 @@ import { TBox, TPoint, TSegment } from "@/symbol"
 import { isBetween } from "./math"
 
 /**
- * @group Utils
+ * @group Utilities
  */
 export function computeDistance(p1: TPoint, p2: TPoint): number
 {
@@ -11,7 +11,7 @@ export function computeDistance(p1: TPoint, p2: TPoint): number
 }
 
 /**
- * @group Utils
+ * @group Utilities
  * @remarks Faster than computeDistance when comparing distances (avoids sqrt)
  */
 export function computeDistanceSquared(p1: TPoint, p2: TPoint): number
@@ -22,7 +22,7 @@ export function computeDistanceSquared(p1: TPoint, p2: TPoint): number
 }
 
 /**
- * @group Utils
+ * @group Utilities
  */
 export function computeAngleAxeRadian(begin: TPoint, end: TPoint): number
 {
@@ -30,7 +30,7 @@ export function computeAngleAxeRadian(begin: TPoint, end: TPoint): number
 }
 
 /**
- * @group Utils
+ * @group Utilities
  */
 export function createPointsOnSegment(p1: TPoint, p2: TPoint, spaceBetweenPoint = 1): TPoint[]
 {
@@ -49,7 +49,7 @@ export function createPointsOnSegment(p1: TPoint, p2: TPoint, spaceBetweenPoint 
 }
 
 /**
- * @group Utils
+ * @group Utilities
  */
 export function scalaire(v1: TPoint, v2: TPoint): number
 {
@@ -57,7 +57,7 @@ export function scalaire(v1: TPoint, v2: TPoint): number
 }
 
 /**
- * @group Utils
+ * @group Utilities
  */
 export function computeNearestPointOnSegment(p: TPoint, seg: TSegment): TPoint
 {
@@ -74,7 +74,7 @@ export function computeNearestPointOnSegment(p: TPoint, seg: TSegment): TPoint
 }
 
 /**
- * @group Utils
+ * @group Utilities
  */
 export function isPointInsideBox(point: TPoint, box: TBox): boolean
 {
@@ -82,7 +82,7 @@ export function isPointInsideBox(point: TPoint, box: TBox): boolean
 }
 
 /**
- * @group Utils
+ * @group Utilities
  */
 export function convertRadianToDegree(radian: number): number
 {
@@ -90,7 +90,7 @@ export function convertRadianToDegree(radian: number): number
 }
 
 /**
- * @group Utils
+ * @group Utilities
  */
 export function convertDegreeToRadian(degree: number): number
 {
@@ -98,7 +98,7 @@ export function convertDegreeToRadian(degree: number): number
 }
 
 /**
- * @group Utils
+ * @group Utilities
  */
 export function computeRotatedPoint(point: TPoint, center: TPoint, radian: number): TPoint
 {
@@ -113,7 +113,7 @@ export function computeRotatedPoint(point: TPoint, center: TPoint, radian: numbe
 }
 
 /**
- * @group Utils
+ * @group Utilities
  */
 export function computePointOnEllipse(center: TPoint, radiusX: number, radiusY: number, phi: number, theta: number): TPoint
 {
@@ -130,7 +130,7 @@ export function computePointOnEllipse(center: TPoint, radiusX: number, radiusY: 
 }
 
 /**
- * @group Utils
+ * @group Utilities
  */
 export function computeDistanceBetweenPointAndSegment(p: TPoint, seg: TSegment): number
 {
@@ -138,7 +138,7 @@ export function computeDistanceBetweenPointAndSegment(p: TPoint, seg: TSegment):
 }
 
 /**
- * @group Utils
+ * @group Utilities
  */
 export function findIntersectionBetween2Segment(seg1: TSegment, seg2: TSegment): TPoint | undefined
 {
@@ -176,7 +176,7 @@ export function findIntersectionBetween2Segment(seg1: TSegment, seg2: TSegment):
 }
 
 /**
- * @group Utils
+ * @group Utilities
  */
 export function findIntersectBetweenSegmentAndCircle(seg: TSegment, c: TPoint, r: number): TPoint[]
 {
@@ -220,7 +220,7 @@ export function findIntersectBetweenSegmentAndCircle(seg: TSegment, c: TPoint, r
 }
 
 /**
- * @group Utils
+ * @group Utilities
  */
 export function computeAngleRadian(p1: TPoint, center: TPoint, p2: TPoint): number
 {
@@ -231,7 +231,7 @@ export function computeAngleRadian(p1: TPoint, center: TPoint, p2: TPoint): numb
 }
 
 /**
- * @group Utils
+ * @group Utilities
  */
 export function getClosestPoints(points1: TPoint[], points2: TPoint[]): { p1: TPoint, p2: TPoint }
 {
@@ -251,7 +251,7 @@ export function getClosestPoints(points1: TPoint[], points2: TPoint[]): { p1: TP
 }
 
 /**
- * @group Utils
+ * @group Utilities
  */
 export function getClosestPoint(points: TPoint[], point: TPoint): { point?: TPoint, index: number }
 {
@@ -271,7 +271,7 @@ export function getClosestPoint(points: TPoint[], point: TPoint): { point?: TPoi
 }
 
 /**
- * @group Utils
+ * @group Utilities
  */
 export function isPointInsidePolygon(point: TPoint, points: TPoint[])
 {
@@ -289,7 +289,7 @@ export function isPointInsidePolygon(point: TPoint, points: TPoint[])
 
 /**
  * Calculate rotation angle for ellipse arc
- * @group Utils
+ * @group Utilities
  * @param angle - The angle in radians
  * @returns Normalized angle
  */
@@ -303,7 +303,7 @@ export function normalizeAngle(angle: number): number
 }
 
 /**
- * @group Utils
+ * @group Utilities
  * @param centerPoint - Center of the ellipse
  * @param maxRadius - Maximum radius (semi-major axis)
  * @param minRadius - Minimum radius (semi-minor axis)

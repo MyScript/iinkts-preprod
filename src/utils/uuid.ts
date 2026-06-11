@@ -1,6 +1,6 @@
 
 /**
- * @group Utils
+ * @group Utilities
  */
 export function createUUID(): string
 {

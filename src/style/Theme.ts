@@ -1,14 +1,14 @@
 import { TPenStyle } from "./PenStyle"
 
 /**
- * @group Style
+ * @group Styles
  */
 export type TThemeMath = {
   "font-family": string
 }
 
 /**
- * @group Style
+ * @group Styles
  */
 export type TThemeMathSolved = {
   "font-family": string
@@ -16,7 +16,7 @@ export type TThemeMathSolved = {
 }
 
 /**
- * @group Style
+ * @group Styles
  */
 export type TThemeText = {
   "font-family": string,
@@ -24,7 +24,7 @@ export type TThemeText = {
 }
 
 /**
- * @group Style
+ * @group Styles
  */
 export type TTheme = {
   ink: TPenStyle
@@ -35,7 +35,7 @@ export type TTheme = {
 }
 
 /**
- * @group Style
+ * @group Styles
  * @source
  */
 export const DefaultTheme: TTheme = {

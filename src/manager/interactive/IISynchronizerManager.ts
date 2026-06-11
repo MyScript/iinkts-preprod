@@ -23,7 +23,7 @@ import
 import { convertMillimeterToPixel, convertBoundingBoxMillimeterToPixel } from "@/utils"
 
 /**
- * @group Manager/Interactive
+ * @group Manager
  */
 export class IISynchronizerManager
 {

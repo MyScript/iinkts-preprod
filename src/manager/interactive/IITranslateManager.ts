@@ -19,7 +19,7 @@ import
 } from "@/symbol"
 
 /**
- * @group Manager/Interactive
+ * @group Manager
  */
 export class IITranslateManager
 {

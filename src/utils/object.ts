@@ -1,11 +1,11 @@
 
 /**
- * @group Utils
+ * @group Utilities
  */
 type Mergeable = Record<string, unknown> | unknown[] | unknown
 
 /**
- * @group Utils
+ * @group Utilities
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const mergeDeep = (target: any, ...sources: Mergeable[]): any =>
@@ -49,7 +49,7 @@ export const mergeDeep = (target: any, ...sources: Mergeable[]): any =>
 }
 
 /**
- * @group Utils
+ * @group Utilities
  */
 export const isDeepEqual = (object1: unknown, object2: unknown): boolean =>
 {
@@ -79,7 +79,7 @@ export const isDeepEqual = (object1: unknown, object2: unknown): boolean =>
 }
 
 /**
- * @group Utils
+ * @group Utilities
  */
 const isObject = (object: unknown): object is Record<string, unknown> =>
 {

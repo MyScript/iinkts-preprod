@@ -1,5 +1,5 @@
 /**
- * @group Utils
+ * @group Utilities
  */
 export function isValidNumber(x: unknown): boolean
 {
@@ -7,7 +7,7 @@ export function isValidNumber(x: unknown): boolean
   return !isNaN(parseFloat(x.toString())) && isFinite(+x)
 }
 /**
- * @group Utils
+ * @group Utilities
  */
 export function isBetween(val: number, min: number, max: number): boolean
 {
@@ -15,7 +15,7 @@ export function isBetween(val: number, min: number, max: number): boolean
 }
 
 /**
- * @group Utils
+ * @group Utilities
  */
 export function computeAverage(arr: number[]): number
 {

@@ -6,6 +6,9 @@ import { IIStroke, SymbolType, TIISymbol, TPointer } from "@/symbol";
 import { DeferredPromise } from "@/utils";
 import { AbstractWriterManager } from "@/manager/base/AbstractWriterManager";
 
+/**
+ * @group Manager
+ */
 export class IWriterManager extends AbstractWriterManager {
   editor: InkEditor
   #exportTimer?: ReturnType<typeof setTimeout>

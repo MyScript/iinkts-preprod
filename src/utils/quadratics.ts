@@ -1,7 +1,7 @@
 import { TPoint, TPointer } from "@/symbol"
 
 /**
- * @group Utils
+ * @group Utilities
  */
 export function computeLinksPointers(point: TPointer, angle: number, width: number): TPoint[]
 {
@@ -19,7 +19,7 @@ export function computeLinksPointers(point: TPointer, angle: number, width: numb
 }
 
 /**
- * @group Utils
+ * @group Utilities
  */
 export function computeMiddlePointer(point1: TPointer, point2: TPointer): TPointer
 {

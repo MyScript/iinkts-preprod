@@ -9,7 +9,7 @@ import type { GestureHelpers } from "@/manager/interactive/gestures/GestureHelpe
 /**
  * Handler for SCRATCH gesture type
  * Erases or partially removes symbols by scratching over them
- * @group Gesture/Handler
+ * @group Manager
  */
 export class ScratchGestureHandler extends GestureHandler
 {

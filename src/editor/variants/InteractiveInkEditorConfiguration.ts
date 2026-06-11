@@ -10,7 +10,7 @@ import { DefaultGestureConfiguration, TGestureConfiguration, DefaultSnapConfigur
 import { TEditorConfiguration } from "@/editor/AbstractEditor"
 
 /**
- * @group Editor/variants
+ * @group Editor
  */
 export type TInteractiveInkEditorConfiguration = TEditorConfiguration & TRecognizerWebSocketConfiguration & {
  "undo-redo": THistoryConfiguration
@@ -27,7 +27,7 @@ export type TInteractiveInkEditorConfiguration = TEditorConfiguration & TRecogni
 }
 
 /**
- * @group Editor/variants
+ * @group Editor
  * @source
  */
 export const DefaultInteractiveInkEditorConfiguration: TInteractiveInkEditorConfiguration = {

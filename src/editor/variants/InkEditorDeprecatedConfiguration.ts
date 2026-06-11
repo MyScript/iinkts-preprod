@@ -10,7 +10,7 @@ import { DefaultEditorTriggerConfiguration, TEditorTriggerConfiguration } from "
 
 
 /**
- * @group Editor/variants
+ * @group Editor
  */
 export type TInkEditorDeprecatedConfiguration = TEditorConfiguration & TRecognizerHTTPV1Configuration & {
   rendering: TRendererConfiguration
@@ -24,7 +24,7 @@ export type TInkEditorDeprecatedConfiguration = TEditorConfiguration & TRecogniz
 }
 
 /**
- * @group Editor/variants
+ * @group Editor
  * @source
  */
 export const DefaultInkEditorDeprecatedConfiguration: TInkEditorDeprecatedConfiguration = {
@@ -40,7 +40,7 @@ export const DefaultInkEditorDeprecatedConfiguration: TInkEditorDeprecatedConfig
 }
 
 /**
- * @group Editor/variants
+ * @group Editor
  */
 export class InkEditorDeprecatedConfiguration implements TInkEditorDeprecatedConfiguration
 {

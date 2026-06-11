@@ -212,7 +212,7 @@
       editor = await Editor.load(editorElement, 'INTERACTIVEINK', options)
 
       editor.mathOverlays.updateConfig({ showBlockOverlays: showBlockOverlaysCheckbox.checked })
-      editor.mathComputationMode = drawResultStrokesCheckbox.checked
+      editor.drawComputationResult = drawResultStrokesCheckbox.checked
 
       // Show result panels when not drawing strokes
       editor.mathOverlays.updateConfig({ showResultPanels: !drawResultStrokesCheckbox.checked })
@@ -272,7 +272,7 @@
             if (canCompute) {
               console.log(`Auto-computing: ${label}`)
 
-              await editor.computeMathNumericalResult(mathSymbol, editor.mathComputationMode)
+              await editor.computeMathNumericalResult(mathSymbol, editor.drawComputationResult)
             }
           } catch (e) {
             // Silently ignore errors - expression might not be computable yet
@@ -466,8 +466,8 @@
     })
 
     drawResultStrokesCheckbox.addEventListener('change', async (e) => {
-      const oldMode = editor.mathComputationMode
-      editor.mathComputationMode = e.target.checked
+      const oldMode = editor.drawComputationResult
+      editor.drawComputationResult = e.target.checked
       if (!e.target.checked && oldMode) {
         // If switching from drawing strokes to not drawing, clear existing solver strokes
         const mathSymbols = editor.model.symbols.filter(s =>

@@ -10,7 +10,7 @@ import type { GestureHelpers } from "@/manager/interactive/gestures/GestureHelpe
 /**
  * Handler for UNDERLINE gesture type
  * Supports two actions: Draw (apply decorator) and Thicken (increase stroke width)
- * @group Gesture/Handler
+ * @group Manager
  */
 export class UnderlineGestureHandler extends GestureHandler
 {

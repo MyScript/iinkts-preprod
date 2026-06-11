@@ -1,6 +1,6 @@
 
 /**
- * @group Utils
+ * @group Utilities
  */
 export const isVersionSuperiorOrEqual = (source: string, target: string): boolean =>
 {

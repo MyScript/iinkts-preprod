@@ -1,3 +1,6 @@
+import { BORDER_RADIUS, flexColumnStyle, SPACING } from "./styles"
+import { createSelect } from "./ui-utils"
+
 /**
  * @group Components
  */
@@ -44,10 +47,17 @@ export class Modal {
   private modal: HTMLDivElement
   private backdrop: HTMLDivElement
   private isOpen = false
+  private isFullscreen = false
+  private isDragging = false
+  private dragOffset = { x: 0, y: 0 }
+  private modalPosition = { x: 0, y: 0 }
+  private fullscreenButton?: HTMLButtonElement
+  private titleBar?: HTMLDivElement
 
   constructor(private config: ModalConfig) {
     this.backdrop = this.createBackdrop()
     this.modal = this.createModal()
+    this.setupDragging()
   }
 
   private createBackdrop(): HTMLDivElement {
@@ -74,30 +84,78 @@ export class Modal {
       left: 50%;
       transform: translate(-50%, -50%);
       background: white;
-      padding: 20px;
-      border-radius: 8px;
+      padding: 0;
+      border-radius: ${BORDER_RADIUS.lg};
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
       z-index: 10000;
       min-width: 300px;
       max-width: 90vw;
       max-height: 90vh;
-      overflow: auto;
       display: none;
+      overflow: hidden;
+      transition: all 0.3s ease;
     `
 
-    // Title
+    // Title bar with drag handle and fullscreen button
+    this.titleBar = document.createElement("div")
+    this.titleBar.style.cssText = `
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: #f5f5f5;
+      border-bottom: 1px solid #ddd;
+      cursor: move;
+      user-select: none;
+    `
+
     const title = document.createElement("h3")
     title.textContent = this.config.title
-    title.style.cssText = "margin: 0 0 16px 0; font-size: 18px; font-weight: 600;"
-    modal.appendChild(title)
+    title.style.cssText = "margin: 0; font-size: 18px; font-weight: 600; flex: 1;"
+
+    // Fullscreen button
+    this.fullscreenButton = document.createElement("button")
+    this.fullscreenButton.innerHTML = "⛶"
+    this.fullscreenButton.title = "Toggle fullscreen"
+    this.fullscreenButton.style.cssText = `
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: ${BORDER_RADIUS.sm};
+      transition: background 0.2s;
+    `
+    this.fullscreenButton.addEventListener("mouseenter", () => {
+      this.fullscreenButton!.style.background = "#e0e0e0"
+    })
+    this.fullscreenButton.addEventListener("mouseleave", () => {
+      this.fullscreenButton!.style.background = "none"
+    })
+    this.fullscreenButton.addEventListener("click", (e) => {
+      e.stopPropagation()
+      this.toggleFullscreen()
+    })
+
+    this.titleBar.appendChild(title)
+    this.titleBar.appendChild(this.fullscreenButton)
+    modal.appendChild(this.titleBar)
+
+    // Content wrapper
+    const contentWrapper = document.createElement("div")
+    contentWrapper.style.cssText = `
+      padding: 20px;
+      overflow: auto;
+      max-height: calc(90vh - 100px);
+    `
 
     // Form
     const form = document.createElement("form")
-    form.style.cssText = "display: flex; flex-direction: column; gap: 12px;"
+    form.style.cssText = flexColumnStyle(SPACING.md)
 
     this.config.fields.forEach(field => {
       const fieldWrapper = document.createElement("div")
-      fieldWrapper.style.cssText = "display: flex; flex-direction: column; gap: 4px;"
+      fieldWrapper.style.cssText = flexColumnStyle(SPACING.xs)
 
       const label = document.createElement("label")
       label.textContent = field.label
@@ -107,29 +165,22 @@ export class Modal {
       let inputElement: HTMLInputElement | HTMLSelectElement
 
       if (field.type === "select") {
-        const select = document.createElement("select")
-        select.id = field.id
-        select.style.cssText = `
-          padding: 8px;
-          border: 1px solid #ccc;
-          border-radius: 4px;
-          font-size: 14px;
-          background: white;
-        `
-        select.classList.add("ms-menu-input")
-
-        if (field.options) {
-          field.options.forEach(option => {
-            const optionElement = document.createElement("option")
-            optionElement.value = option.value
-            optionElement.textContent = option.label
-            select.appendChild(optionElement)
-          })
-        }
-
-        if (field.defaultValue !== undefined) {
-          select.value = String(field.defaultValue)
-        }
+        const select = createSelect({
+          id: field.id,
+          className: "ms-menu-input",
+          customStyle: `
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: ${BORDER_RADIUS.sm};
+            font-size: 14px;
+            background: white;
+          `,
+          options: (field.options || []).map(opt => ({
+            value: opt.value,
+            label: opt.label
+          })),
+          defaultValue: field.defaultValue !== undefined ? String(field.defaultValue) : undefined
+        })
 
         inputElement = select
       } else {
@@ -143,7 +194,7 @@ export class Modal {
         input.style.cssText = `
           padding: 8px;
           border: 1px solid #ccc;
-          border-radius: 4px;
+          border-radius: ${BORDER_RADIUS.sm};
           font-size: 14px;
         `
         input.classList.add("ms-menu-input")
@@ -155,11 +206,11 @@ export class Modal {
       form.appendChild(fieldWrapper)
     })
 
-    modal.appendChild(form)
+    contentWrapper.appendChild(form)
 
     // Add custom content if provided
     if (this.config.customContent) {
-      modal.appendChild(this.config.customContent)
+      contentWrapper.appendChild(this.config.customContent)
     }
 
     // Buttons container
@@ -175,6 +226,7 @@ export class Modal {
       const isPrimary = button.type === "primary"
       btn.style.cssText = `
         padding: 6px 12px;
+        border-radius: ${BORDER_RADIUS.sm};
         ${isPrimary ? "background-color: #4caf50; color: white;" : ""}
       `
 
@@ -186,8 +238,150 @@ export class Modal {
       buttonsWrapper.appendChild(btn)
     })
 
-    modal.appendChild(buttonsWrapper)
+    contentWrapper.appendChild(buttonsWrapper)
+    modal.appendChild(contentWrapper)
     return modal
+  }
+
+  /**
+   * Setup dragging functionality
+   */
+  private setupDragging(): void {
+    if (!this.titleBar) return
+
+    this.titleBar.addEventListener("pointerdown", (e: PointerEvent) => {
+      if (this.isFullscreen) return
+      if ((e.target as HTMLElement).tagName === "BUTTON") return
+
+      this.isDragging = true
+      const rect = this.modal.getBoundingClientRect()
+      this.dragOffset.x = e.clientX - rect.left
+      this.dragOffset.y = e.clientY - rect.top
+
+      this.titleBar!.style.cursor = "grabbing"
+
+      // Capture pointer to ensure we receive all events
+      if (this.titleBar) {
+        this.titleBar.setPointerCapture(e.pointerId)
+      }
+    })
+
+    this.titleBar.addEventListener("pointermove", (e: PointerEvent) => {
+      if (!this.isDragging || this.isFullscreen) return
+
+      e.preventDefault()
+
+      const x = e.clientX - this.dragOffset.x
+      const y = e.clientY - this.dragOffset.y
+
+      this.modalPosition.x = x
+      this.modalPosition.y = y
+
+      this.modal.style.transform = "none"
+      this.modal.style.left = `${x}px`
+      this.modal.style.top = `${y}px`
+    })
+
+    this.titleBar.addEventListener("pointerup", (e: PointerEvent) => {
+      if (this.isDragging) {
+        this.isDragging = false
+        this.titleBar!.style.cursor = "move"
+
+        // Release pointer capture
+        if (this.titleBar!.hasPointerCapture(e.pointerId)) {
+          this.titleBar!.releasePointerCapture(e.pointerId)
+        }
+      }
+    })
+
+    this.titleBar.addEventListener("pointercancel", (e: PointerEvent) => {
+      if (this.isDragging) {
+        this.isDragging = false
+        this.titleBar!.style.cursor = "move"
+
+        // Release pointer capture
+        if (this.titleBar!.hasPointerCapture(e.pointerId)) {
+          this.titleBar!.releasePointerCapture(e.pointerId)
+        }
+      }
+    })
+  }
+
+  /**
+   * Toggle fullscreen mode
+   */
+  private toggleFullscreen(): void {
+    this.isFullscreen = !this.isFullscreen
+
+    if (this.isFullscreen) {
+      // Save current position
+      const rect = this.modal.getBoundingClientRect()
+      this.modalPosition.x = rect.left
+      this.modalPosition.y = rect.top
+
+      // Apply fullscreen styles
+      this.modal.style.transform = "none"
+      this.modal.style.left = "0"
+      this.modal.style.top = "0"
+      this.modal.style.width = "100vw"
+      this.modal.style.height = "100vh"
+      this.modal.style.maxWidth = "100vw"
+      this.modal.style.maxHeight = "100vh"
+      this.modal.style.borderRadius = "0"
+
+      // Update content wrapper height
+      const contentWrapper = this.modal.querySelector("div:last-child") as HTMLDivElement
+      if (contentWrapper) {
+        contentWrapper.style.maxHeight = "calc(100vh - 60px)"
+      }
+
+      // Update button icon
+      if (this.fullscreenButton) {
+        this.fullscreenButton.innerHTML = "⛶"
+        this.fullscreenButton.title = "Exit fullscreen"
+      }
+
+      // Disable dragging in fullscreen
+      if (this.titleBar) {
+        this.titleBar.style.cursor = "default"
+      }
+    } else {
+      // Restore normal mode
+      this.modal.style.width = ""
+      this.modal.style.height = ""
+      this.modal.style.maxWidth = "90vw"
+      this.modal.style.maxHeight = "90vh"
+      this.modal.style.borderRadius = "8px"
+
+      // Restore position
+      if (this.modalPosition.x === 0 && this.modalPosition.y === 0) {
+        // If no custom position, center it
+        this.modal.style.left = "50%"
+        this.modal.style.top = "50%"
+        this.modal.style.transform = "translate(-50%, -50%)"
+      } else {
+        this.modal.style.left = `${this.modalPosition.x}px`
+        this.modal.style.top = `${this.modalPosition.y}px`
+        this.modal.style.transform = "none"
+      }
+
+      // Update content wrapper height
+      const contentWrapper = this.modal.querySelector("div:last-child") as HTMLDivElement
+      if (contentWrapper) {
+        contentWrapper.style.maxHeight = "calc(90vh - 100px)"
+      }
+
+      // Update button icon
+      if (this.fullscreenButton) {
+        this.fullscreenButton.innerHTML = "⛶"
+        this.fullscreenButton.title = "Toggle fullscreen"
+      }
+
+      // Re-enable dragging
+      if (this.titleBar) {
+        this.titleBar.style.cursor = "move"
+      }
+    }
   }
 
   private getFieldValues(): { [key: string]: string } {

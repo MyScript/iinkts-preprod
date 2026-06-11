@@ -30,7 +30,7 @@ import {
 } from "./GestureTypes"
 
 /**
- * @group Manager/Interactive
+ * @group Manager
  * @remarks Orchestrator for gesture recognition and handling using Strategy Pattern
  */
 export class IIGestureManager

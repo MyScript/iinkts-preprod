@@ -99,7 +99,7 @@ export class Stroke implements TStroke
 
 /**
  * @group Symbol
- * @group Utils
+ * @group Utilities
  */
 export function convertPartialStrokesToStrokes(json: PartialDeep<TStroke>[]): Stroke[]
 {
