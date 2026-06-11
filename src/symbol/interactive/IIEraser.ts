@@ -1,4 +1,4 @@
-import { createUUID, PartialDeep } from "@/utils"
+import { PartialDeep } from "@/utils"
 import { TPoint, TPointer } from "@/symbol/base/Point"
 import { Box, TBox } from "@/symbol/base/Box"
 import { SymbolType } from "@/symbol/base/Symbol"
@@ -23,9 +23,6 @@ export class IIEraser extends IISymbolBase<SymbolType.Eraser>
   constructor()
   {
     super(SymbolType.Eraser, style)
-    this.id = `${ this.type }-${ createUUID() }`
-    this.creationTime = Date.now()
-    this.modificationDate = this.creationTime
     this.pointers = []
   }
 

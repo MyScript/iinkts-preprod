@@ -2,12 +2,10 @@ import { test, expect } from "@playwright/test"
 import {
   passModalKey,
   getEditorSymbols,
-  callEditorIdle,
   waitForConvertedEvent,
-  waitForEditorInit,
   waitForSynchronizedEvent,
   writeStrokes,
-  callEditoConvert
+  callEditorConvert
 } from "../helper"
 import helloOneStroke from "../__dataset__/helloOneStroke"
 
@@ -35,8 +33,8 @@ test.describe("Offscreen Get Started Menu Style", () => {
           writeStrokes(page, helloOneStroke.strokes),
         ])
 
-        const symbols = await getEditorSymbols(page)
-        const stroke = symbols[0].strokes[0]
+        const strokes = await getEditorSymbols(page)
+        const stroke = strokes[0]
         expect(stroke.style.color).toStrictEqual("#" + color.rgb)
         expect(stroke.style.width).toStrictEqual(2)
 
@@ -66,8 +64,8 @@ test.describe("Offscreen Get Started Menu Style", () => {
           writeStrokes(page, helloOneStroke.strokes),
         ])
 
-        const symbols = await getEditorSymbols(page)
-        const stroke = symbols[0].strokes[0]
+        const strokes = await getEditorSymbols(page)
+        const stroke = strokes[0]
         expect(stroke.style.color).toStrictEqual("#000000")
         expect(stroke.style.width).toStrictEqual(thickness.width)
 
@@ -100,7 +98,7 @@ test.describe("Offscreen Get Started Menu Style", () => {
 
         await Promise.all([
           waitForConvertedEvent(page),
-          callEditoConvert(page)
+          callEditorConvert(page)
         ])
 
         const symbols = await getEditorSymbols(page)
@@ -127,7 +125,7 @@ test.describe("Offscreen Get Started Menu Style", () => {
 
       await Promise.all([
         waitForConvertedEvent(page),
-        callEditoConvert(page)
+        callEditorConvert(page)
       ])
 
       const minX = Math.min(...helloOneStroke.strokes[0].pointers.map(p => p.x))
@@ -171,7 +169,7 @@ test.describe("Offscreen Get Started Menu Style", () => {
 
         await Promise.all([
           waitForConvertedEvent(page),
-          callEditoConvert(page)
+          callEditorConvert(page)
         ])
 
         const symbols = await getEditorSymbols(page)
@@ -194,8 +192,8 @@ test.describe("Offscreen Get Started Menu Style", () => {
         writeStrokes(page, helloOneStroke.strokes),
       ])
 
-      const symbols = await getEditorSymbols(page)
-      const stroke = symbols[0].strokes[0]
+      const strokes = await getEditorSymbols(page)
+      const stroke = strokes[0]
       expect(stroke.style.opacity).toStrictEqual(0.5)
       await expect(page.locator(`#${ stroke.id } path`)).toHaveAttribute("opacity", "0.5")
     })

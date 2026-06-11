@@ -1,11 +1,11 @@
 import { EditorEvent } from "@/editor/EditorEvent"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import { IIModel } from "@/model"
-import { IIDecorator, IIStroke, TIISymbol, TPoint } from "@/symbol"
+import { IIStroke, TIISymbol, TPoint } from "@/symbol"
 import { TStyle } from "@/style"
 import { MatrixTransform, TMatrixTransform } from "@/transform"
 import { THistoryContext, getInitialHistoryContext } from "./HistoryContext"
-import { PartialDeep } from "@/utils"
+import { PartialDeep, TWO_PI } from "@/utils"
 import { THistoryConfiguration } from "./HistoryConfiguration"
 
 /**
@@ -22,7 +22,6 @@ export type TIIHistoryChanges = {
   rotate?: { symbols: TIISymbol[], angle: number, center: TPoint }[]
   style?: { symbols: TIISymbol[], style?: PartialDeep<TStyle>, fontSize?: number }
   order?: { symbols: TIISymbol[], position: "first" | "last" | "forward" | "backward" }
-  decorator?: { symbol: TIISymbol, decorator: IIDecorator, added: boolean }[]
   group?: { symbols: TIISymbol[] }
   ungroup?: { group: TIISymbol }
 }
@@ -90,7 +89,6 @@ export class IIHistoryManager
       changes.scale?.length ||
       changes.style?.symbols?.length ||
       changes.order?.symbols?.length ||
-      changes.decorator?.length ||
       changes.group?.symbols.length ||
       changes.ungroup?.group
     )
@@ -177,7 +175,7 @@ export class IIHistoryManager
       {
         return {
           symbols: tr.symbols,
-          angle: 2 * Math.PI - tr.angle,
+          angle: TWO_PI - tr.angle,
           center: tr.center
         }
       })

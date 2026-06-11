@@ -1,6 +1,6 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
 import { TPenStyle } from "@/style"
-import { computeDistance } from "@/utils"
+import { computeDistance, computeDistanceSquared, isBetween } from "@/utils"
 import { TExport } from "./Export"
 import { Stroke, TPoint, TPointer } from "@/symbol"
 
@@ -72,8 +72,6 @@ export class Model
   getStrokeFromPoint(point: TPoint): Stroke[]
   {
     this.#logger.info("getStrokeFromPoint", { point })
-    const isBetween = (val: number, min: number, max: number): boolean => (val >= min && val <= max)
-
     const _strokeList: Stroke[] = []
     this.symbols.forEach((stroke) =>
     {
@@ -87,7 +85,7 @@ export class Model
           break
         }
         else {
-          if (computeDistance(point, strokePointer) < 10) {
+          if (computeDistanceSquared(point, strokePointer) < 100) { // 10^2 = 100
             _strokeList.push(stroke)
             break
           }

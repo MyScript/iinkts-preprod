@@ -1,7 +1,6 @@
 import { InteractiveInkEditor } from "@/editor"
 import { BaseMenuItem, TGenericMenuItem } from "@/menu/items/BaseMenuItem"
 import { SELECTION_MARGIN } from "@/Constants"
-import { SymbolType, RecognizedKind } from "@/symbol"
 import { createUUID } from "@/utils"
 
 /**
@@ -35,27 +34,11 @@ export class DuplicateContextMenu extends BaseMenuItem<HTMLButtonElement>
       const duplicatedSymbols = symbolsToDuplicate.map(s => {
         const clone = s.clone()
 
-        // Reset jiixId and variableValues for recognized symbols as they need re-recognition
-        if (clone.type === SymbolType.Recognized) {
-          clone.jiixId = undefined
-          if (clone.kind === RecognizedKind.Math) {
-            clone.variableValues = undefined
-          }
+        // Generate unique ID for cloned symbols
+        while (this.editor.model.symbols.find(sym => sym.id === clone.id)) {
+          clone.id = `${clone.type}-${createUUID()}`
         }
 
-        while (this.editor.model.symbols.find(s => s.id === clone.id)) {
-          clone.id = `${clone.type}-${ createUUID() }`
-          if (clone.type === SymbolType.Recognized) {
-            clone.jiixId = undefined
-            clone.strokes.forEach(s => s.id = `${s.type}-${ createUUID() }`)
-            // Reset jiixId as strokes have changed and need re-recognition
-            clone.jiixId = undefined
-            // Reset variableValues for math symbols as they're tied to jiixId
-            if (clone.kind === RecognizedKind.Math) {
-              clone.variableValues = undefined
-            }
-          }
-        }
         clone.selected = true
         this.editor.translator.applyToSymbol(clone, SELECTION_MARGIN, clone.bounds.height + SELECTION_MARGIN)
         return clone

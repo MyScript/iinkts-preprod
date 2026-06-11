@@ -1,4 +1,4 @@
-import { buildOILine } from "../helpers"
+import { buildIILine } from "../helpers"
 import { InteractiveInkEditorMock } from "../__mocks__/InteractiveInkEditorMock"
 import
 {
@@ -67,16 +67,16 @@ describe("IISnapManager.ts", () =>
 
     test("should do nothing if configuration.symbol & configuration.guide are equal to false", () =>
     {
-      manager.configuration.guide = false
-      manager.configuration.symbol = false
+      manager.snapConfiguration.guide = false
+      manager.snapConfiguration.symbol = false
       expect(manager.snapResize({ x: 10, y: 10 })).toEqual({ x: 10, y: 10 })
       expect(manager.renderer.clearElements).toHaveBeenCalledTimes(1)
     })
 
     test("should return guide point when configuration.guide is equal to true", () =>
     {
-      manager.configuration.guide = true
-      manager.configuration.symbol = false
+      manager.snapConfiguration.guide = true
+      manager.snapConfiguration.symbol = false
       expect(manager.snapResize({ x: 12, y: 32 })).toEqual({ x: 10, y: 30 })
       expect(manager.renderer.clearElements).toHaveBeenCalledTimes(1)
     })
@@ -85,8 +85,8 @@ describe("IISnapManager.ts", () =>
     {
       beforeEach(async () =>
       {
-        manager.configuration.guide = false
-        manager.configuration.symbol = true
+        manager.snapConfiguration.guide = false
+        manager.snapConfiguration.symbol = true
       })
       afterEach(() =>
       {
@@ -111,7 +111,7 @@ describe("IISnapManager.ts", () =>
           x: point.x + 3 * manager.snapThreshold,
           y: point.y + 4 * manager.snapThreshold
         }
-        const line = buildOILine({ start, end })
+        const line = buildIILine({ start, end })
         editor.model.addSymbol(line)
         expect(manager.snapResize(point)).toEqual(point)
         expect(manager.renderer.clearElements).toHaveBeenCalledTimes(1)
@@ -130,7 +130,7 @@ describe("IISnapManager.ts", () =>
           x: point.x + manager.snapThreshold / 2,
           y: point.y + 4 * manager.snapThreshold
         }
-        const line = buildOILine({ start, end })
+        const line = buildIILine({ start, end })
         editor.model.addSymbol(line)
         expect(manager.snapResize(point)).toEqual({ x: end.x, y: point.y })
         expect(manager.renderer.drawLine).toHaveBeenCalledTimes(1)
@@ -149,7 +149,7 @@ describe("IISnapManager.ts", () =>
           x: point.x + 3 * manager.snapThreshold,
           y: point.y + manager.snapThreshold / 2
         }
-        const line = buildOILine({ start, end })
+        const line = buildIILine({ start, end })
         editor.model.addSymbol(line)
         expect(manager.snapResize(point)).toEqual({ x: point.x, y: end.y })
         expect(manager.renderer.drawLine).toHaveBeenCalledTimes(1)
@@ -168,7 +168,7 @@ describe("IISnapManager.ts", () =>
           x: point.x + 3 * manager.snapThreshold,
           y: point.y + manager.snapThreshold / 2
         }
-        const line = buildOILine({ start, end })
+        const line = buildIILine({ start, end })
         editor.model.addSymbol(line)
         expect(manager.snapResize(point)).toEqual({ x: start.x, y: end.y })
         expect(manager.renderer.drawLine).toHaveBeenCalledTimes(2)
@@ -197,16 +197,16 @@ describe("IISnapManager.ts", () =>
 
     test("should do nothing if configuration.symbol & configuration.guide are equal to false", () =>
     {
-      manager.configuration.guide = false
-      manager.configuration.symbol = false
+      manager.snapConfiguration.guide = false
+      manager.snapConfiguration.symbol = false
       expect(manager.snapTranslate(10, 12)).toEqual({ x: 10, y: 12 })
       expect(manager.renderer.clearElements).toHaveBeenCalledTimes(1)
     })
 
     test("should return a nudge to the nearest guide point when configuration.guide equals true", () =>
     {
-      manager.configuration.guide = true
-      manager.configuration.symbol = false
+      manager.snapConfiguration.guide = true
+      manager.snapConfiguration.symbol = false
       expect(manager.snapTranslate(30, 22)).toEqual({ x: 25, y: 20 })
       expect(manager.renderer.clearElements).toHaveBeenCalledTimes(1)
     })
@@ -215,8 +215,8 @@ describe("IISnapManager.ts", () =>
     {
       beforeEach(async () =>
       {
-        manager.configuration.guide = false
-        manager.configuration.symbol = true
+        manager.snapConfiguration.guide = false
+        manager.snapConfiguration.symbol = true
       })
       afterEach(() =>
       {
@@ -242,7 +242,7 @@ describe("IISnapManager.ts", () =>
           x: nudge.x + 3 * manager.snapThreshold,
           y: nudge.y + 4 * manager.snapThreshold
         }
-        const line = buildOILine({ start, end })
+        const line = buildIILine({ start, end })
         editor.model.addSymbol(line)
         expect(manager.snapTranslate(nudge.x, nudge.y)).toEqual(nudge)
         expect(manager.renderer.clearElements).toHaveBeenCalledTimes(1)
@@ -261,7 +261,7 @@ describe("IISnapManager.ts", () =>
           x: selectionSnapPointMock.x + nudge.x + manager.snapThreshold / 2,
           y: selectionSnapPointMock.y + nudge.y + 4 * manager.snapThreshold
         }
-        const line = buildOILine({ start, end })
+        const line = buildIILine({ start, end })
         editor.model.addSymbol(line)
         expect(manager.snapTranslate(nudge.x, nudge.y)).toEqual({ x: (end.x - selectionSnapPointMock.x), y: nudge.y })
         expect(manager.renderer.drawLine).toHaveBeenCalledTimes(1)
@@ -280,7 +280,7 @@ describe("IISnapManager.ts", () =>
           x: selectionSnapPointMock.x + nudge.x + 3 * manager.snapThreshold,
           y: selectionSnapPointMock.y + nudge.y +  manager.snapThreshold / 4
         }
-        const line = buildOILine({ start, end })
+        const line = buildIILine({ start, end })
         editor.model.addSymbol(line)
         expect(manager.snapTranslate(nudge.x, nudge.y)).toEqual({ x: nudge.x, y: (end.y - selectionSnapPointMock.y) })
         expect(manager.renderer.drawLine).toHaveBeenCalledTimes(1)
@@ -299,7 +299,7 @@ describe("IISnapManager.ts", () =>
           x: selectionSnapPointMock.x + nudge.x + 3 * manager.snapThreshold,
           y: selectionSnapPointMock.y + nudge.y +  manager.snapThreshold / 2
         }
-        const line = buildOILine({ start, end })
+        const line = buildIILine({ start, end })
         editor.model.addSymbol(line)
         expect(manager.snapTranslate(nudge.x, nudge.y)).toEqual({ x: (start.x - selectionSnapPointMock.x), y: (end.y - selectionSnapPointMock.y) })
         expect(manager.renderer.drawLine).toHaveBeenCalledTimes(2)
@@ -314,13 +314,13 @@ describe("IISnapManager.ts", () =>
 
     test("should do nothing if configuration.symbol & configuration.guide are equal to false", () =>
     {
-      manager.configuration.angle = 0
+      manager.snapConfiguration.angle = 0
       expect(manager.snapRotation(12)).toEqual(12)
     })
 
     test("should return guide point when configuration.guide is equal to true", () =>
     {
-      manager.configuration.angle = 20
+      manager.snapConfiguration.angle = 20
       expect(manager.snapRotation(12)).toEqual(20)
     })
 

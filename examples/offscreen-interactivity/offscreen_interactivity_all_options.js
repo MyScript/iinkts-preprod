@@ -35,6 +35,7 @@ function setCurrentTab(tabId) {
   updateTabContent()
 }
 async function updateTabContent() {
+  if (!leftPanToggle.checked) return
   if (!editor) {
     contentTab.innerHTML = '<p>No editor available</p>'
     return
@@ -46,15 +47,26 @@ async function updateTabContent() {
 
   switch (currentTabId) {
     case 'jiix-tab':
-      const { exports } = await editor.export(['application/vnd.myscript.jiix'])
+      const exports = await editor.export(['application/vnd.myscript.jiix'])
       const jiix = exports?.['application/vnd.myscript.jiix'] || {}
       content = renderjson(jiix)
       dataString = JSON.stringify(jiix)
       break
     case 'symbols-tab':
       if (editor.model.symbols.length) {
-        content = renderjson(editor.model.symbols)
-        dataString = JSON.stringify(editor.model.symbols)
+        const MAX_SYMBOLS = 200
+        const symbols = editor.model.symbols
+        const sliced = symbols.slice(0, MAX_SYMBOLS)
+        const wrapper = document.createElement('div')
+        if (symbols.length > MAX_SYMBOLS) {
+          const banner = document.createElement('p')
+          banner.style.cssText = 'margin:4px 0;color:#888;font-size:0.85em'
+          banner.textContent = `Showing ${MAX_SYMBOLS} of ${symbols.length} symbols`
+          wrapper.appendChild(banner)
+        }
+        wrapper.appendChild(renderjson(sliced))
+        content = wrapper
+        dataString = JSON.stringify(sliced)
       } else {
         const mes = document.createElement('p')
         mes.textContent = 'No symbols'
@@ -183,6 +195,9 @@ exportHtmlPan.style.setProperty('display', htmlPanToggle.checked ? 'block' : 'no
 
 leftPanToggle.addEventListener('change', () => {
   document.getElementById('left-pan').classList.toggle('open')
+  if (leftPanToggle.checked) {
+    updateTabContent()
+  }
   editor?.resize()
 })
 
@@ -202,6 +217,7 @@ const editorOptions = {
 }
 
 async function loadEditor(options) {
+  importBtn.disabled = true
   exportHtmlBody.srcdoc = BACKEND_MODEL_EMPTY
   await editor?.destroy()
   /**
@@ -210,22 +226,24 @@ async function loadEditor(options) {
    * @param {Object} The Editor parameters
    */
   editor = await Editor.load(editorElement, 'INTERACTIVEINK', options)
-
+  importBtn.disabled = false
   setCurrentTab(currentTabId)
 
 
   let exportTimeout
+  let updateTabTimeout
   editor.event.addEventListener('changed', (event) => {
     if (event.detail.empty) {
       importBtn.disabled = false
     } else {
       importBtn.disabled = editor.model.symbols.some((s1) => shakespeareQuotes.some((s2) => s2.id === s1.id))
     }
-    updateTabContent()
+    clearTimeout(updateTabTimeout)
+    updateTabTimeout = setTimeout(() => updateTabContent(), 300)
     clearTimeout(exportTimeout)
     exportTimeout = setTimeout(async () => {
-      await editor.export(['text/html'])
-    }, 1000)
+      const HTML = await editor.export(['text/html'])
+    }, 500)
   })
 
   editor.event.addEventListener('exported', (event) => {
@@ -237,7 +255,8 @@ async function loadEditor(options) {
   })
 
   editor.event.addEventListener('selected', (event) => {
-    updateTabContent()
+    clearTimeout(updateTabTimeout)
+    updateTabTimeout = setTimeout(() => updateTabContent(), 300)
   })
 
 }

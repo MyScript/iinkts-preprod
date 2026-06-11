@@ -1,7 +1,5 @@
 import { InteractiveInkEditorMock } from "../__mocks__/InteractiveInkEditorMock"
-import { MathContextMenu } from "../../../src/menu/context/MathContextMenu"
-import { IIRecognizedMath, SymbolType, RecognizedKind } from "../../../src/symbol"
-import { buildOIStroke } from "../helpers"
+import { MathContextMenu } from "../../../src/iink"
 
 describe("MathContextMenu.ts", () =>
 {
@@ -172,36 +170,10 @@ describe("MathContextMenu.ts", () =>
 
   describe("editor math methods", () =>
   {
-    let mathSymbol: IIRecognizedMath
-
-    beforeEach(() =>
+    test("should have getMathVariables method available", () =>
     {
-      const stroke = buildOIStroke()
-      mathSymbol = {
-        id: "math-1",
-        type: SymbolType.Recognized,
-        kind: RecognizedKind.Math,
-        strokes: [stroke],
-        label: "2x + 3",
-        jiixId: "jiix-1",
-        baseline: 10,
-        bounds: stroke.bounds,
-        decorators: [],
-        style: stroke.style,
-        modificationDate: Date.now(),
-        creationDate: Date.now(),
-        variableValues: {},
-        clone: jest.fn()
-      } as unknown as IIRecognizedMath
-
-      editor.model.addSymbol(mathSymbol)
-      editor.model.selectSymbol(mathSymbol.id)
-    })
-
-    test("should have getVariables method available", () =>
-    {
-      expect(editor.getVariables).toBeDefined()
-      expect(typeof editor.getVariables).toBe("function")
+      expect(editor.getMathVariables).toBeDefined()
+      expect(typeof editor.getMathVariables).toBe("function")
     })
 
     test("should have setMathVariables method available", () =>
@@ -228,26 +200,12 @@ describe("MathContextMenu.ts", () =>
       expect(typeof editor.evaluateMathFunction).toBe("function")
     })
 
-    test("getVariables returns a promise", async () =>
+    test("getMathVariables returns a promise", async () =>
     {
-      editor.getVariables = jest.fn().mockResolvedValue([])
-      const result = await editor.getVariables("test-id")
+      editor.getMathVariables = jest.fn().mockResolvedValue([])
+      const result = await editor.getMathVariables("test-id")
       expect(result).toEqual([])
-      expect(editor.getVariables).toHaveBeenCalledWith("test-id")
-    })
-
-    test("setMathVariables can be called with symbol and variables", async () =>
-    {
-      editor.setMathVariables = jest.fn().mockResolvedValue(undefined)
-      await editor.setMathVariables(mathSymbol, { x: 10, y: 20 })
-      expect(editor.setMathVariables).toHaveBeenCalledWith(mathSymbol, { x: 10, y: 20 })
-    })
-
-    test("computeMathNumericalResult can be called with drawStrokes boolean", async () =>
-    {
-      editor.computeMathNumericalResult = jest.fn().mockResolvedValue(undefined)
-      await editor.computeMathNumericalResult(mathSymbol, false)
-      expect(editor.computeMathNumericalResult).toHaveBeenCalledWith(mathSymbol, false)
+      expect(editor.getMathVariables).toHaveBeenCalledWith("test-id")
     })
 
     test("getEvaluables returns evaluable functions", async () =>
@@ -262,32 +220,6 @@ describe("MathContextMenu.ts", () =>
       expect(editor.getEvaluables).toHaveBeenCalledWith("test-id")
     })
 
-    test("evaluateMathFunction returns data points", async () =>
-    {
-      const points = [
-        [{ x: -10, y: 100 }],
-        [{ x: 0, y: 0 }],
-        [{ x: 10, y: 100 }]
-      ]
-      editor.evaluateMathFunction = jest.fn().mockResolvedValue(points)
-
-      const result = await editor.evaluateMathFunction(mathSymbol, {
-        inputVariableName: "x",
-        outputVariableName: "y",
-        from: -10,
-        to: 10,
-        pointCount: 21
-      })
-
-      expect(result).toEqual(points)
-      expect(editor.evaluateMathFunction).toHaveBeenCalledWith(mathSymbol, {
-        inputVariableName: "x",
-        outputVariableName: "y",
-        from: -10,
-        to: 10,
-        pointCount: 21
-      })
-    })
   })
 
   describe("menu properties", () =>

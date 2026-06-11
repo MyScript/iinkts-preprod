@@ -7,20 +7,10 @@ import
   IIShapeEllipse,
   IIShapePolygon
 } from "@/symbol/geometry"
-import
-{
-  IIRecognizedText,
-  IIRecognizedMath,
-  IIRecognizedArc,
-  IIRecognizedCircle,
-  IIRecognizedEllipse,
-  IIRecognizedLine,
-  IIRecognizedPolyLine,
-  IIRecognizedPolygon
-} from "@/symbol/recognized"
 import { IIStroke } from "./IIStroke"
 import { IIText } from "./IIText"
 import { IIMath } from "./IIMath"
+import { IIDecorator } from "./IIDecorator"
 
 /**
  * @group Symbol
@@ -35,9 +25,4 @@ export type TIIShape = IIShapeCircle | IIShapeEllipse | IIShapePolygon
 /**
  * @group Symbol
  */
-export type TIIRecognized = IIRecognizedText | IIRecognizedMath | IIRecognizedArc | IIRecognizedCircle | IIRecognizedEllipse | IIRecognizedLine | IIRecognizedPolyLine | IIRecognizedPolygon
-
-/**
- * @group Symbol
- */
-export type TIISymbol = TIIEdge | TIIShape | IIStroke | IIText | IIMath | TIIRecognized
+export type TIISymbol = TIIEdge | TIIShape | IIStroke | IIText | IIMath | IIDecorator

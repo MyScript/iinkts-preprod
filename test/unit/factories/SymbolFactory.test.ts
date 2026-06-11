@@ -1,5 +1,9 @@
-import { SymbolFactory } from "../../../src/factories/SymbolFactory"
-import { SymbolType, ShapeKind, EdgeKind, RecognizedKind } from "../../../src/symbol"
+import {
+  SymbolFactory,
+  SymbolType,
+  ShapeKind,
+  EdgeKind
+} from "../../../src/iink"
 
 describe("SymbolFactory", () =>
 {
@@ -172,46 +176,6 @@ describe("SymbolFactory", () =>
     })
   })
 
-  describe("buildRecognized", () =>
-  {
-    it("should build recognized text", () =>
-    {
-      const partial: any = {
-        type: SymbolType.Recognized,
-        kind: RecognizedKind.Text,
-        id: "recognized-text-1",
-        label: "Hello",
-        words: [],
-        strokes: [{ id: "s1", pointers: [{ t: 0, p: 1, x: 0, y: 0 }], style: {} }]
-      }
-      const recognized = factory.buildRecognized(partial)
-      expect(recognized.kind).toBe(RecognizedKind.Text)
-    })
-
-    it("should build recognized math", () =>
-    {
-      const partial: any = {
-        type: SymbolType.Recognized,
-        kind: RecognizedKind.Math,
-        id: "recognized-math-1",
-        label: "x+1",
-        expressions: [],
-        strokes: [{ id: "s1", pointers: [{ t: 0, p: 1, x: 0, y: 0 }], style: {} }]
-      }
-      const recognized = factory.buildRecognized(partial)
-      expect(recognized.kind).toBe(RecognizedKind.Math)
-    })
-
-    it("should throw error for unknown recognized kind", () =>
-    {
-      const partial: any = {
-        type: SymbolType.Recognized,
-        kind: "UnknownKind" as any
-      }
-      expect(() => factory.buildRecognized(partial)).toThrow("Unable to create recognized")
-    })
-  })
-
   describe("buildSymbol", () =>
   {
     it("should build stroke symbol", () =>
@@ -276,20 +240,6 @@ describe("SymbolFactory", () =>
       }
       const symbol = factory.buildSymbol(partial)
       expect(symbol.type).toBe(SymbolType.Edge)
-    })
-
-    it("should build recognized symbol", () =>
-    {
-      const partial: any = {
-        type: SymbolType.Recognized,
-        kind: RecognizedKind.Text,
-        id: "recognized-text-1",
-        label: "Hello",
-        words: [],
-        strokes: [{ id: "s1", pointers: [{ t: 0, p: 1, x: 0, y: 0 }], style: {} }]
-      }
-      const symbol = factory.buildSymbol(partial)
-      expect(symbol.type).toBe(SymbolType.Recognized)
     })
 
     it("should throw error for unknown symbol type", () =>

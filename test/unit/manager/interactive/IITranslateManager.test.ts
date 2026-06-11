@@ -69,8 +69,8 @@ describe("IITranslateManager.ts", () =>
   describe("translate process on stroke without snap", () =>
   {
     const editor = new InteractiveInkEditorMock()
-    editor.snaps.configuration.guide = false
-    editor.snaps.configuration.symbol = false
+    editor.snaps.snapConfiguration.guide = false
+    editor.snaps.snapConfiguration.symbol = false
     editor.recognizer.init = jest.fn(() => Promise.resolve())
     editor.recognizer.transformTranslate = jest.fn(() => Promise.resolve())
     editor.renderer.setAttribute = jest.fn()

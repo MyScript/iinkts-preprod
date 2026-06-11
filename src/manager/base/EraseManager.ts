@@ -1,5 +1,5 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { IIEraser, TSegment, SymbolType, IIRecognizedText, IIText, Box, RecognizedKind } from "@/symbol"
+import { IIEraser, TSegment, Box, isText } from "@/symbol"
 import { SVGRenderer } from "@/renderer"
 import { PointerEventGrabber, PointerInfo } from "@/grabber"
 import { findIntersectionBetween2Segment } from "@/utils"
@@ -90,25 +90,10 @@ export class EraseManager
     if (isInteractiveInkEditor(this.editor)) {
       this.editor.model.symbols.forEach(s =>
       {
-        if (s.type === SymbolType.Recognized) {
-          // For recognized symbols, mark only intersected strokes as deleting
-          const recognized = s as IIRecognizedText
-          let hasIntersectedStroke = false
-          recognized.strokes.forEach(stroke => {
-            if (stroke.isIntersected(lastSeg)) {
-              stroke.deleting = true
-              hasIntersectedStroke = true
-            }
-          })
-          if (hasIntersectedStroke) {
-            this.renderer.drawSymbol(s)
-          }
-        }
-        else if (s.type === SymbolType.Text) {
+        if (isText(s)) {
           // For text symbols, mark only intersected characters
-          const text = s as IIText
           let hasIntersectedChar = false
-          text.chars.forEach(char => {
+          s.chars.forEach(char => {
             const charBox = new Box(char.bounds)
             if (segmentIntersectsBox(lastSeg, charBox)) {
               if (!this.charsToDelete.has(s.id)) {
@@ -153,43 +138,17 @@ export class EraseManager
       const allStrokeIdsToDelete: string[] = []
 
       editor.model.symbols.forEach(s => {
-        if (s.type === SymbolType.Recognized) {
-          const strokeIdsToDelete = s.strokes
-            .filter(stroke => stroke.deleting)
-            .map(stroke => stroke.id)
-
-          if (strokeIdsToDelete.length > 0) {
-            if (strokeIdsToDelete.length === s.strokes.length) {
-              // All strokes deleted, remove the entire symbol
-              symbolsToRemove.push(s.id)
-            } else {
-              // Partial deletion: collect stroke IDs to delete
-              strokeIdsToDelete.forEach(id => allStrokeIdsToDelete.push(id))
-              // Clean up solverOutputStrokeIds for math symbols
-              if (s.kind === RecognizedKind.Math) {
-                if (s.solverOutputStrokeIds && s.solverOutputStrokeIds.length > 0) {
-                  // Remove deleted stroke IDs from solverOutputStrokeIds
-                  const updatedSolverIds = s.solverOutputStrokeIds.filter(
-                    id => !strokeIdsToDelete.includes(id)
-                  )
-                  // Update or clear the property
-                  s.solverOutputStrokeIds = updatedSolverIds.length > 0 ? updatedSolverIds : undefined
-                }
-              }
-            }
-          }
-        } else if (s.type === SymbolType.Text && this.charsToDelete.has(s.id)) {
-          const text = s as IIText
+        if (isText(s) && this.charsToDelete.has(s.id)) {
           const charIdsToDelete = this.charsToDelete.get(s.id)!
-          const remainingChars = text.chars.filter(char => !charIdsToDelete.has(char.id))
+          const remainingChars = s.chars.filter(char => !charIdsToDelete.has(char.id))
 
           if (remainingChars.length === 0) {
             // All chars deleted, remove the symbol
             symbolsToRemove.push(s.id)
           } else {
             // Some chars deleted, update the symbol directly
-            text.chars = remainingChars
-            editor.texter.setBounds(text)
+            s.chars = remainingChars
+            editor.texter.setBounds(s)
             this.renderer.drawSymbol(s)
           }
         } else if (s.deleting) {

@@ -11,6 +11,24 @@ import { TEditorConfiguration } from "@/editor/AbstractEditor"
 
 /**
  * @group Editor
+ * @remarks Level of text selection granularity
+ */
+export type TTextSelectionLevel = "element" | "word" | "char"
+
+/**
+ * @group Editor
+ * @remarks Level of math selection granularity
+ */
+export type TMathSelectionLevel = "element" | "operand"
+
+/**
+ * @group Editor
+ * @remarks Level of shape (Node/Edge) selection granularity
+ */
+export type TShapeSelectionLevel = "element" | "stroke"
+
+/**
+ * @group Editor
  */
 export type TInteractiveInkEditorConfiguration = TEditorConfiguration & TRecognizerWebSocketConfiguration & {
  "undo-redo": THistoryConfiguration
@@ -24,6 +42,9 @@ export type TInteractiveInkEditorConfiguration = TEditorConfiguration & TRecogni
   }
   gesture: TGestureConfiguration
   snap: TSnapConfiguration
+  textSelectionLevel: TTextSelectionLevel
+  mathSelectionLevel: TMathSelectionLevel
+  shapeSelectionLevel: TShapeSelectionLevel
 }
 
 /**
@@ -45,7 +66,10 @@ export const DefaultInteractiveInkEditorConfiguration: TInteractiveInkEditorConf
     weight: "auto",
   },
   gesture: DefaultGestureConfiguration,
-  snap: DefaultSnapConfiguration
+  snap: DefaultSnapConfiguration,
+  textSelectionLevel: "element",
+  mathSelectionLevel: "element",
+  shapeSelectionLevel: "element",
 }
 
 /**
@@ -68,6 +92,9 @@ export class InteractiveInkEditorConfiguration implements TInteractiveInkEditorC
   }
   gesture: TGestureConfiguration
   snap: TSnapConfiguration
+  textSelectionLevel: TTextSelectionLevel
+  mathSelectionLevel: TMathSelectionLevel
+  shapeSelectionLevel: TShapeSelectionLevel
 
   constructor(configuration?: PartialDeep<TInteractiveInkEditorConfiguration>)
   {
@@ -105,5 +132,8 @@ export class InteractiveInkEditorConfiguration implements TInteractiveInkEditorC
 
     this.penStyle = mergeDeep({}, DefaultInteractiveInkEditorConfiguration.penStyle, configuration?.penStyle)
     this.fontStyle = mergeDeep({}, DefaultInteractiveInkEditorConfiguration.fontStyle, configuration?.fontStyle)
+    this.textSelectionLevel = configuration?.textSelectionLevel ?? DefaultInteractiveInkEditorConfiguration.textSelectionLevel
+    this.mathSelectionLevel = configuration?.mathSelectionLevel ?? DefaultInteractiveInkEditorConfiguration.mathSelectionLevel
+    this.shapeSelectionLevel = configuration?.shapeSelectionLevel ?? DefaultInteractiveInkEditorConfiguration.shapeSelectionLevel
   }
 }

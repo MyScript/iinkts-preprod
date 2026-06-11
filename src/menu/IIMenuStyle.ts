@@ -2,7 +2,7 @@ import styleIcon from "@/assets/svg/palette.svg"
 import { EditorTool, EditorWriteTool } from "@/Constants"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import { IIModel } from "@/model"
-import { SymbolType, TIISymbol } from "@/symbol"
+import { TIISymbol, isShape } from "@/symbol"
 import { InteractiveInkEditor } from "@/editor"
 import { IIMenuStyleConfig, defaultMenuStyleConfig } from "./IIMenuStyleConfig"
 import { BaseMenuItem } from "./items"
@@ -165,15 +165,19 @@ export class IIMenuStyle
   {
     if (this.subMenuContent && this.subMenuWrapper) {
       if (this.isMobile) {
-        // wrap
-        this.subMenuContent.classList.add("sub-menu-content")
-        this.subMenuWrapper.appendChild(this.subMenuContent)
-        this.subMenuWrapper.style.display = "block"
+        // wrap — only if not already inside subMenuWrapper
+        if (this.subMenuContent.parentElement !== this.subMenuWrapper) {
+          this.subMenuContent.classList.add("sub-menu-content")
+          this.subMenuWrapper.appendChild(this.subMenuContent)
+          this.subMenuWrapper.style.display = "block"
+        }
       } else {
-        // unwrap
-        this.subMenuContent.classList.remove("sub-menu-content")
-        this.subMenuWrapper.insertAdjacentElement("beforebegin", this.subMenuContent)
-        this.subMenuWrapper.style.display = "none"
+        // unwrap — only if not already positioned before subMenuWrapper
+        if (this.subMenuContent.nextElementSibling !== this.subMenuWrapper) {
+          this.subMenuContent.classList.remove("sub-menu-content")
+          this.subMenuWrapper.insertAdjacentElement("beforebegin", this.subMenuContent)
+          this.subMenuWrapper.style.display = "none"
+        }
       }
     }
 
@@ -196,7 +200,7 @@ export class IIMenuStyle
     }
     else if (this.editor.tool === EditorTool.Select) {
       this.show()
-      const shapeSelected = this.model.symbolsSelected.length && this.model.symbolsSelected.some(s => s.type === SymbolType.Shape)
+      const shapeSelected = this.model.symbolsSelected.length && this.model.symbolsSelected.some(s => isShape(s))
 
       const strokeColorEl = this.styleItems.get("strokeColor")?.getElement()
       const fillColorEl = this.styleItems.get("fillColor")?.getElement()

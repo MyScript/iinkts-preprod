@@ -1,7 +1,7 @@
 import { InteractiveInkEditor } from "@/editor"
 import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
 import { ButtonListMenuItem, IMenuButtonList, CollapsibleWrapper } from "@/menu/items"
-import { SymbolType } from "@/symbol"
+import { isText } from "@/symbol"
 
 /**
  * @group Menu
@@ -33,7 +33,7 @@ export class FontWeightStyle extends BaseMenuItem<HTMLDivElement>
       setValue: (editor, value) => {
         editor.configuration.fontStyle.weight = value as "auto" | "normal" | "bold"
         if (value !== "auto") {
-          const textSymbols = editor.model.symbolsSelected.filter(s => s.type === SymbolType.Text)
+          const textSymbols = editor.model.symbolsSelected.filter(s => isText(s))
           editor.updateTextFontStyle(textSymbols.map(s => s.id), { fontWeight: value as "normal" | "bold" })
           editor.selector.resetSelectedGroup(editor.model.symbolsSelected)
         }

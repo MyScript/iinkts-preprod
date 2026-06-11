@@ -1,36 +1,24 @@
-import { LoggerCategory, LoggerManager } from "@/logger"
-import { IIModel } from "@/model"
-import { Box, IIText, SymbolType, TIISymbol, TIISymbolChar } from "@/symbol"
-import { SVGRenderer } from "@/renderer"
+import { Box, IIText, TIISymbol, TIISymbolChar, isText } from "@/symbol"
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import { IIAbstractManager } from "./IIAbstractManager"
+import { LoggerCategory } from "@/logger"
 
 /**
  * @group Manager
  */
-export class IITextManager
+export class IITextManager extends IIAbstractManager
 {
-  #logger = LoggerManager.getLogger(LoggerCategory.CONVERTER)
-  editor: InteractiveInkEditor
+  protected managerName = "IITextManager"
 
   constructor(editor: InteractiveInkEditor)
   {
-    this.#logger.info("constructor")
-    this.editor = editor
-  }
-
-  get renderer(): SVGRenderer
-  {
-    return this.editor.renderer
+    super(editor, LoggerCategory.TEXT)
+    this.logger.info("constructor")
   }
 
   get rowHeight(): number
   {
     return this.editor.configuration.rendering.guides.gap
-  }
-
-  get model(): IIModel
-  {
-    return this.editor.model
   }
 
   protected drawSymbolHidden(text: IIText): SVGGElement
@@ -104,7 +92,7 @@ export class IITextManager
   {
     const row = this.model.getSymbolsByRowOrdered().find(r => r.rowIndex === this.model.getSymbolRowIndex(text))
     if (row) {
-      const textsAfter = row.symbols.filter(s => s.type === SymbolType.Text && s.bounds.xMid > text.bounds.xMid) as IIText[]
+      const textsAfter = row.symbols.filter(s => isText(s) && s.bounds.xMid > text.bounds.xMid) as IIText[]
       textsAfter.forEach(symbol => {
         symbol.point.x += tx
         this.updateBounds(symbol)

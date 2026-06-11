@@ -1,7 +1,6 @@
-import { DecoratorKind, IIStroke, TPointer } from "@/symbol"
+import { IIStroke, TPointer } from "@/symbol"
 import { DefaultStyle } from "@/style"
 import { computeAngleAxeRadian, computeLinksPointers, computeMiddlePointer } from "@/utils"
-import { SVGRendererDecoratorUtil } from "./SVGRendererDecoratorUtil"
 import { SVGRendererConst } from "./utils/SVGRendererConst"
 import { SVGBuilder } from "./utils/SVGBuilder"
 
@@ -122,19 +121,6 @@ export class SVGRendererStrokeUtil
       strokeAttrs.opacity = stroke.style.opacity.toString()
     }
     strokeGroup.append(SVGBuilder.createPath(strokeAttrs))
-
-    stroke.decorators.forEach(d =>
-    {
-      const deco = SVGRendererDecoratorUtil.getSVGElement(d, stroke)
-      if (deco) {
-        if (d.kind === DecoratorKind.Highlight) {
-          strokeGroup.prepend(deco)
-        }
-        else {
-          strokeGroup.append(deco)
-        }
-      }
-    })
 
     return strokeGroup
   }

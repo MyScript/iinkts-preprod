@@ -1,0 +1,148 @@
+import { InteractiveInkEditorMock } from "../__mocks__/InteractiveInkEditorMock"
+import { IIFunctionEvaluator } from "../../../src/iink"
+
+describe("IIFunctionEvaluator.ts", () =>
+{
+  let editor: InteractiveInkEditorMock
+
+  beforeEach(() =>
+  {
+    editor = new InteractiveInkEditorMock()
+    editor.init()
+
+    // Mock jiix.getBlockLabel method
+    editor.jiix = {
+      getBlockLabel: jest.fn().mockImplementation((id: string) => {
+        if (id === "block-1") return "f(x) = x + 1"
+        if (id === "block-2") return "g(x) = 2x"
+        return "Unknown"
+      })
+    } as any
+
+    // Mock getMathEvaluables method
+    editor.getMathEvaluables = jest.fn().mockResolvedValue([
+      { inputName: "x", outputName: "f(x)" }
+    ])
+
+    // Mock evaluateMathFunction method
+    editor.evaluateMathFunction = jest.fn().mockResolvedValue({
+      f: [[1, 2], [2, 4], [3, 6]]
+    })
+  })
+
+  afterEach(() =>
+  {
+    document.body.innerHTML = ""
+  })
+
+  test("should instantiate with editor and jiixBlockIds", () =>
+  {
+    const jiixBlockIds = ["block-1", "block-2"]
+
+    const evaluator = new IIFunctionEvaluator(editor, jiixBlockIds)
+    expect(evaluator).toBeDefined()
+  })
+
+  test("should deduplicate jiixBlockIds in constructor", () =>
+  {
+    const jiixBlockIds = ["block-1", "block-1", "block-2"]
+
+    const evaluator = new IIFunctionEvaluator(editor, jiixBlockIds)
+    expect(evaluator).toBeDefined()
+  })
+
+  describe("show()", () =>
+  {
+    test("should fetch evaluables for all blocks", async () =>
+    {
+      const jiixBlockIds = ["block-1", "block-2"]
+
+      const evaluator = new IIFunctionEvaluator(editor, jiixBlockIds)
+
+      // Mock modal to prevent actual DOM operations
+      const showSpy = jest.spyOn(evaluator as any, "createModalContent")
+      showSpy.mockReturnValue(document.createElement("div"))
+
+      await evaluator.show()
+
+      expect(editor.getMathEvaluables).toHaveBeenCalledWith("block-1")
+      expect(editor.getMathEvaluables).toHaveBeenCalledWith("block-2")
+
+      showSpy.mockRestore()
+    })
+
+    test("should skip empty block ids", async () =>
+    {
+      const jiixBlockIds = ["", "block-2"]
+
+      const evaluator = new IIFunctionEvaluator(editor, jiixBlockIds)
+
+      const showSpy = jest.spyOn(evaluator as any, "createModalContent")
+      showSpy.mockReturnValue(document.createElement("div"))
+
+      await evaluator.show()
+
+      // Only block-2 should be called
+      expect(editor.getMathEvaluables).toHaveBeenCalledWith("block-2")
+      expect(editor.getMathEvaluables).toHaveBeenCalledTimes(1)
+
+      showSpy.mockRestore()
+    })
+
+    test("should handle errors when fetching evaluables", async () =>
+    {
+      const jiixBlockIds = ["block-1"]
+
+      // Mock getMathEvaluables to throw error
+      editor.getMathEvaluables = jest.fn().mockRejectedValue(new Error("Evaluables error"))
+
+      const evaluator = new IIFunctionEvaluator(editor, jiixBlockIds)
+
+      const alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {})
+
+      await evaluator.show()
+
+      expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining("No evaluable functions"))
+
+      alertSpy.mockRestore()
+    })
+
+    test("should show alert when no evaluable functions found", async () =>
+    {
+      const jiixBlockIds = ["block-1"]
+
+      // Mock getMathEvaluables to return empty array
+      editor.getMathEvaluables = jest.fn().mockResolvedValue([])
+
+      const evaluator = new IIFunctionEvaluator(editor, jiixBlockIds)
+
+      const alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {})
+
+      await evaluator.show()
+
+      expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining("No evaluable functions"))
+
+      alertSpy.mockRestore()
+    })
+
+    test("should assign unique colors to functions", async () =>
+    {
+      const jiixBlockIds = ["block-1", "block-2", "block-3"]
+
+      const evaluator = new IIFunctionEvaluator(editor, jiixBlockIds)
+
+      const showSpy = jest.spyOn(evaluator as any, "createModalContent")
+      showSpy.mockReturnValue(document.createElement("div"))
+
+      await evaluator.show()
+
+      const functions = (evaluator as any).functionsToEvaluate
+      expect(functions.length).toBe(3)
+      expect(functions[0].color).toBeDefined()
+      expect(functions[1].color).toBeDefined()
+      expect(functions[2].color).toBeDefined()
+
+      showSpy.mockRestore()
+    })
+  })
+})

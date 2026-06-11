@@ -14,8 +14,6 @@ import
   TPoint,
   DecoratorKind,
   IIEraser,
-  IIRecognizedText,
-  IIRecognizedMath,
   IIMath,
   TIIMathElement,
   PartialDeep,
@@ -66,7 +64,7 @@ export function buildStrokeV2({ box = defaultBox, style = DefaultPenStyle, nbPoi
   return stroke
 }
 
-export function buildOIStroke({ box = defaultBox, style = DefaultStyle, nbPoint = 5, pointerType = "pen" } = {}): IIStroke
+export function buildIIStroke({ box = defaultBox, style = DefaultStyle, nbPoint = 5, pointerType = "pen" } = {}): IIStroke
 {
   const stroke = new IIStroke(style, pointerType)
   const stepX = box.width / (nbPoint - 1)
@@ -82,7 +80,7 @@ export function buildOIStroke({ box = defaultBox, style = DefaultStyle, nbPoint 
   return stroke
 }
 
-export function buildOIEraser({ box = defaultBox, nbPoint = 5 } = {}): IIEraser
+export function buildIIEraser({ box = defaultBox, nbPoint = 5 } = {}): IIEraser
 {
   const eraser = new IIEraser()
   const stepX = box.width / (nbPoint - 1)
@@ -98,22 +96,22 @@ export function buildOIEraser({ box = defaultBox, nbPoint = 5 } = {}): IIEraser
   return eraser
 }
 
-export function buildOIDecorator(kind: DecoratorKind, style: PartialDeep<TStyle> = DefaultStyle): IIDecorator
+export function buildIIDecorator(kind: DecoratorKind, style: PartialDeep<TStyle> = DefaultStyle): IIDecorator
 {
   return new IIDecorator(kind, style)
 }
 
-export function buildOICircle({ center = { x: 0, y: 0 }, radius = 5, style = DefaultStyle }: { center?: TPoint, radius?: number, style?: PartialDeep<TStyle> } = {}): IIShapeCircle
+export function buildIICircle({ center = { x: 0, y: 0 }, radius = 5, style = DefaultStyle }: { center?: TPoint, radius?: number, style?: PartialDeep<TStyle> } = {}): IIShapeCircle
 {
   return new IIShapeCircle(center, radius, style)
 }
 
-export function buildOILine({ start = { x: 0, y: 0 }, end = { x: 5, y: 5 }, style = DefaultStyle }: { start?: TPoint, end?: TPoint, style?: PartialDeep<TStyle> } = {}): IIEdgeLine
+export function buildIILine({ start = { x: 0, y: 0 }, end = { x: 5, y: 5 }, style = DefaultStyle }: { start?: TPoint, end?: TPoint, style?: PartialDeep<TStyle> } = {}): IIEdgeLine
 {
   return new IIEdgeLine(start, end, undefined, undefined, style)
 }
 
-export function buildOIText(
+export function buildIIText(
   { chars = [], point = { x: 0, y: 0 }, boundingBox = { x: 0, y: 10, width: 20, height: 30 }, style = DefaultStyle }:
     { chars?: TIISymbolChar[], point?: TPoint, boundingBox?: TBox, style?: PartialDeep<TStyle> } = {}
 ): IIText
@@ -121,35 +119,7 @@ export function buildOIText(
   return new IIText(chars, point, boundingBox, style)
 }
 
-export function buildRecognizedText(
-  nbStroke: number = 1,
-  { baseline, xHeight }: { baseline: number, xHeight: number } = { baseline: 10, xHeight: 10 },
-  style?: PartialDeep<TStyle>
-): IIRecognizedText
-{
-  const strokes: IIStroke[] = []
-  for (let i = 0; i < nbStroke; i++) {
-    strokes.push(buildOIStroke())
-  }
-  return new IIRecognizedText(strokes, { baseline, xHeight }, style)
-}
-
-export function buildRecognizedMath(
-  nbStroke: number = 1,
-  label: string = "y=3x+2",
-  style?: PartialDeep<TStyle>
-): IIRecognizedMath
-{
-  const strokes: IIStroke[] = []
-  for (let i = 0; i < nbStroke; i++) {
-    strokes.push(buildOIStroke())
-  }
-  const math = new IIRecognizedMath(strokes, style)
-  math.label = label
-  return math
-}
-
-export function buildOIMath(
+export function buildIIMath(
   label: string = "y=3x+2",
   { point = { x: 0, y: 0 }, boundingBox = { x: 0, y: 10, width: 50, height: 30 }, style = DefaultStyle }:
     { point?: TPoint, boundingBox?: TBox, style?: PartialDeep<TStyle> } = {}

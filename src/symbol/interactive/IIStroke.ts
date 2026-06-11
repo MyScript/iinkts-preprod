@@ -4,8 +4,39 @@ import { TStroke, TStrokeToSend } from "@/symbol/base/Stroke"
 import { TPoint, TPointer } from "@/symbol/base/Point"
 import { Box, TBox } from "@/symbol/base/Box"
 import { SymbolType } from "@/symbol/base/Symbol"
-import { IIDecorator } from "./IIDecorator"
+import { DecoratorKind } from "./IIDecorator"
 import { IISymbolBase } from "./IISymbolBase"
+
+/**
+ * JIIX Text metadata for a stroke
+ * @group Symbol
+ */
+export type TStrokeJIIXTextWordInfo = {
+  label: string
+  firstChar?: number
+  lastChar?: number
+  bounds?: Box
+  id?: string
+}
+
+/**
+ * JIIX Text metadata for a stroke
+ * @group Symbol
+ */
+export type TStrokeJIIXTextCharInfo = {
+  label: string
+  word: number
+  bounds?: Box
+}
+
+/**
+ * JIIX Text metadata for a stroke
+ * @group Symbol
+ */
+export type TStrokeJIIXTextLineInfo = {
+  baseline: number
+  xHeight: number
+}
 
 /**
  * @group Symbol
@@ -16,8 +47,17 @@ export class IIStroke extends IISymbolBase<SymbolType.Stroke>
 
   pointerType: string
   length: number
-  decorators: IIDecorator[]
   pointers: Array<TPointer>
+
+  // JIIX Block metadata
+  jiixBlockId?: string
+  jiixBlockType?: "Text" | "Math" | "Node" | "Edge" | "Decorator"
+
+  // Computation metadata
+  isSolverOutput?: boolean  // True if this stroke is from a numerical computation result
+
+  // Decorator metadata
+  decoratorKind?: DecoratorKind  // Type of decorator if this stroke is a decorator
 
   constructor(style?: PartialDeep<TStyle>, pointerType = "pen")
   {
@@ -25,7 +65,6 @@ export class IIStroke extends IISymbolBase<SymbolType.Stroke>
 
     this.pointerType = pointerType
     this.pointers = []
-    this.decorators = []
     this.length = 0
   }
 
@@ -137,8 +176,14 @@ export class IIStroke extends IISymbolBase<SymbolType.Stroke>
     clone.creationTime = this.creationTime
     clone.modificationDate = this.modificationDate
     clone.pointers = structuredClone(this.pointers)
-    clone.decorators = this.decorators.map(d => d.clone())
     clone.length = this.length
+
+    // Copy JIIX metadata
+    clone.jiixBlockId = this.jiixBlockId
+    clone.jiixBlockType = this.jiixBlockType
+    clone.isSolverOutput = this.isSolverOutput
+    clone.decoratorKind = this.decoratorKind
+
     return clone
   }
 
@@ -168,8 +213,7 @@ export class IIStroke extends IISymbolBase<SymbolType.Stroke>
       id: this.id,
       type: this.type,
       pointers: this.pointers,
-      style: this.style,
-      decorators: this.decorators.length ? this.decorators : undefined
+      style: this.style
     }
   }
 
@@ -182,6 +226,7 @@ export class IIStroke extends IISymbolBase<SymbolType.Stroke>
     if (partial.id) {
       stroke.id = partial.id
     }
+    stroke.isSolverOutput = partial.isSolverOutput
     const errors: string[] = []
     let flag = true
     partial.pointers?.forEach((pp, pIndex) =>
@@ -220,13 +265,6 @@ export class IIStroke extends IISymbolBase<SymbolType.Stroke>
 
     if (errors.length) {
       throw new Error(errors.join(" and "))
-    }
-    if (partial.decorators?.length) {
-      partial.decorators.forEach(d => {
-        if(d?.kind) {
-          stroke.decorators.push(new IIDecorator(d.kind, Object.assign({}, stroke.style, d.style)))
-        }
-      })
     }
     return stroke
   }

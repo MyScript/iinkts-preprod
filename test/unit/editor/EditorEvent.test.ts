@@ -5,7 +5,7 @@ import
   TExport,
   EditorTool
 } from "../../../src/iink"
-import { buildOICircle, buildOIStroke } from "../helpers"
+import { buildIICircle, buildIIStroke } from "../helpers"
 
 describe('EditorEvent.ts', () =>
 {
@@ -122,7 +122,7 @@ describe('EditorEvent.ts', () =>
 
     test("should execute callback on emitSelected", () =>
     {
-      const symbols = [buildOICircle(), buildOIStroke()]
+      const symbols = [buildIICircle(), buildIIStroke()]
       events.addSelectedListener(selectedCallback)
       events.emitSelected(symbols)
       expect(selectedCallback).toHaveBeenNthCalledWith(1, symbols)
@@ -272,7 +272,7 @@ describe('EditorEvent.ts', () =>
 
     test("should execute callback on emitSelected", () =>
     {
-      const symbols = [buildOICircle(), buildOIStroke()]
+      const symbols = [buildIICircle(), buildIIStroke()]
       const testCallback = jest.fn()
       element.addEventListener(EditorEventName.SELECTED, testCallback)
       events.emitSelected(symbols)

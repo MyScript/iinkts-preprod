@@ -1,6 +1,6 @@
 import type { IIStroke, TIISymbol } from "@/symbol"
 import type { InteractiveInkEditor } from "@/editor"
-import type { TGesture, TGestureType } from "@/manager/interactive/GestureTypes"
+import type { TGesture, TGestureType } from "@/manager/interactive/gestures/GestureTypes"
 import type { GestureHelpers } from "./GestureHelpers"
 import { IIModel } from "@/model"
 import { SVGRenderer } from "@/renderer"
@@ -8,6 +8,9 @@ import { IIHistoryManager } from "@/history"
 import { RecognizerWebSocket } from "@/recognizer"
 import { IITranslateManager } from "@/manager/interactive/IITranslateManager"
 import { IITextManager } from "@/manager/interactive/IITextManager"
+import { IIGestureManager } from "../IIGestureManager"
+import { LoggerManager, LoggerCategory, type Logger } from "@/logger"
+import { IIGestureAnnotationProcessor } from "./IIGestureAnnotationProcessor"
 
 /**
  * Base interface for gesture handlers
@@ -35,13 +38,20 @@ export interface IGestureHandler
  * Provides common functionality and access to editor services via helpers
  * @group Manager
  */
+export type { TGestureAnnotation } from "./GestureAnnotation"
+
 export abstract class GestureHandler implements IGestureHandler
 {
+  protected readonly logger: Logger
+  protected readonly processor: IIGestureAnnotationProcessor
+
   constructor(
     protected editor: InteractiveInkEditor,
     protected helpers: GestureHelpers
   )
   {
+    this.logger = LoggerManager.getLogger(LoggerCategory.GESTURE)
+    this.processor = new IIGestureAnnotationProcessor(editor)
   }
 
   abstract readonly gestureType: TGestureType
@@ -52,7 +62,14 @@ export abstract class GestureHandler implements IGestureHandler
    */
   protected get model(): IIModel
   {
-    return this.helpers.model
+    return this.editor.model
+  }
+  /**
+   * Get the editor's model
+   */
+  protected get manager(): IIGestureManager
+  {
+    return this.editor.gesture
   }
 
   /**
@@ -60,7 +77,7 @@ export abstract class GestureHandler implements IGestureHandler
    */
   protected get renderer(): SVGRenderer
   {
-    return this.helpers.renderer
+    return this.editor.renderer
   }
 
   /**
@@ -68,7 +85,7 @@ export abstract class GestureHandler implements IGestureHandler
    */
   protected get history(): IIHistoryManager
   {
-    return this.helpers.history
+    return this.editor.history
   }
 
   /**
@@ -76,7 +93,7 @@ export abstract class GestureHandler implements IGestureHandler
    */
   protected get recognizer(): RecognizerWebSocket
   {
-    return this.helpers.recognizer
+    return this.editor.recognizer
   }
 
   /**
@@ -84,7 +101,7 @@ export abstract class GestureHandler implements IGestureHandler
    */
   protected get translator(): IITranslateManager
   {
-    return this.helpers.translator
+    return this.editor.translator
   }
 
   /**
@@ -92,7 +109,7 @@ export abstract class GestureHandler implements IGestureHandler
    */
   protected get texter(): IITextManager
   {
-    return this.helpers.texter
+    return this.editor.texter
   }
 
   /**
@@ -100,7 +117,7 @@ export abstract class GestureHandler implements IGestureHandler
    */
   protected get rowHeight(): number
   {
-    return this.helpers.rowHeight
+    return this.editor.configuration.rendering.guides.gap
   }
 
   /**
@@ -108,6 +125,6 @@ export abstract class GestureHandler implements IGestureHandler
    */
   protected get strokeSpaceWidth(): number
   {
-    return this.helpers.strokeSpaceWidth
+    return this.editor.configuration.rendering.guides.gap * 2
   }
 }

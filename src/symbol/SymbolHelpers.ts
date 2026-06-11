@@ -1,7 +1,19 @@
-import type { TSymbol, TIISymbol, IIStroke, IIText, IIRecognizedText } from "./index"
-import type { IIRecognizedMath } from "./recognized/IIRecognizedMath"
+import type {
+  TSymbol,
+  TIISymbol,
+  TIIShape,
+  TIIEdge,
+  IIStroke,
+  IIText,
+  IIMath,
+  IIEraser,
+  IIDecorator
+} from "./index"
+import type { IIShapeCircle, IIShapeEllipse, IIShapePolygon } from "./geometry"
+import type { IIEdgeArc, IIEdgeLine, IIEdgePolyLine } from "./geometry"
 import { SymbolType } from "./base/Symbol"
-import { RecognizedKind } from "./recognized/IIRecognizedBase"
+import { ShapeKind } from "./geometry/IIShape"
+import { EdgeKind } from "./geometry/IIEdge"
 
 /**
  * @group Symbol
@@ -11,13 +23,9 @@ import { RecognizedKind } from "./recognized/IIRecognizedBase"
  * and filtering used throughout the application.
  */
 
-// ============================================================================
-// Type Guards for Base Symbol Types
-// ============================================================================
-
-  /**
-   * @group Symbol
-   * @summary Check if symbol is a stroke
+/**
+ * @group Symbol
+ * @summary Check if symbol is a stroke
  * @param symbol - Symbol to check
  * @returns True if symbol is a stroke
  */
@@ -43,59 +51,152 @@ export function isText(symbol: TSymbol): symbol is IIText
  * @param symbol - Symbol to check
  * @returns True if symbol is a shape
  */
-export function isShape(symbol: TSymbol): boolean
+export function isShape(symbol: TSymbol): symbol is TIIShape
 {
-  return symbol.type === SymbolType.Shape || symbol.type === SymbolType.Edge
+  return symbol.type === SymbolType.Shape
 }
 
 /**
  * @group Symbol
- * @summary Check if symbol is a recognized result (text, arc, circle, etc.)
+ * @summary Check if symbol is an edge (line, arc, polyline)
  * @param symbol - Symbol to check
- * @returns True if symbol is recognized
+ * @returns True if symbol is an edge
  */
-export function isRecognized(symbol: TSymbol): boolean
+export function isEdge(symbol: TSymbol): symbol is TIIEdge
 {
-  return symbol.type === SymbolType.Recognized
-}
-
-// ============================================================================
-// Type Guards for Specific Symbol Types
-// ============================================================================
-
-/**
- * @group Symbol
- * @summary Type guard to check if a symbol is a recognized math symbol
- * @param symbol - The symbol to check
- * @returns True if the symbol is a recognized math symbol
- */
-export function isRecognizedMathSymbol(symbol: TIISymbol): symbol is IIRecognizedMath
-{
-  return symbol.type === SymbolType.Recognized && symbol.kind === RecognizedKind.Math
+  return symbol.type === SymbolType.Edge
 }
 
 /**
  * @group Symbol
- * @summary Type guard to check if a symbol is a recognized text symbol
- * @param symbol - The symbol to check
- * @returns True if the symbol is a recognized text symbol
+ * @summary Check if symbol is math
+ * @param symbol - Symbol to check
+ * @returns True if symbol is math
  */
-export function isRecognizedTextSymbol(symbol: TIISymbol): symbol is IIRecognizedText
+export function isMath(symbol: TSymbol): symbol is IIMath
 {
-  return symbol.type === SymbolType.Recognized && symbol.kind === RecognizedKind.Text
+  return symbol.type === SymbolType.Math
+}
+
+/**
+ * @group Symbol
+ * @summary Check if symbol is an eraser
+ * @param symbol - Symbol to check
+ * @returns True if symbol is an eraser
+ */
+export function isEraser(symbol: TSymbol): symbol is IIEraser
+{
+  return symbol.type === SymbolType.Eraser
+}
+
+/**
+ * @group Symbol
+ * @summary Check if symbol is a stroke with Math JIIX metadata
+ * @param symbol - Symbol to check
+ * @returns True if symbol is a stroke with Math JIIX block type
+ */
+export function isRecognizedMath(symbol: TIISymbol): symbol is IIStroke
+{
+  return isStroke(symbol) && symbol.jiixBlockType === "Math"
+}
+
+/**
+ * @group Symbol
+ * @summary Check if symbol is a stroke with Solver Output JIIX metadata
+ * @param symbol - Symbol to check
+ * @returns True if symbol is a stroke with Solver Output JIIX block type
+ */
+export function isStrokeSolverOutput(symbol: TIISymbol): symbol is IIStroke
+{
+  return isStroke(symbol) && symbol.isSolverOutput === true
+}
+
+/**
+ * @group Symbol
+ * @summary Check if symbol is a stroke with Text JIIX metadata
+ * @param symbol - Symbol to check
+ * @returns True if symbol is a stroke with Text JIIX block type
+ */
+export function isRecognizedText(symbol: TIISymbol): symbol is IIStroke
+{
+  return isStroke(symbol) && symbol.jiixBlockType === "Text"
+}
+
+/**
+ * @group Symbol
+ * @summary Type guard to check if a shape is a circle
+ * @param shape - The shape to check
+ * @returns True if the shape is a circle
+ */
+export function isCircleShape(shape: TIIShape): shape is IIShapeCircle
+{
+  return shape.kind === ShapeKind.Circle
+}
+
+/**
+ * @group Symbol
+ * @summary Type guard to check if a shape is an ellipse
+ * @param shape - The shape to check
+ * @returns True if the shape is an ellipse
+ */
+export function isEllipseShape(shape: TIIShape): shape is IIShapeEllipse
+{
+  return shape.kind === ShapeKind.Ellipse
+}
+
+/**
+ * @group Symbol
+ * @summary Type guard to check if a shape is a polygon
+ * @param shape - The shape to check
+ * @returns True if the shape is a polygon
+ */
+export function isPolygonShape(shape: TIIShape): shape is IIShapePolygon
+{
+  return shape.kind === ShapeKind.Polygon
 }
 
 // ============================================================================
-// Filtering Functions
+// Type Guards for Edge Kinds
 // ============================================================================
 
 /**
  * @group Symbol
- * @summary Filter math symbols from an array
- * @param symbols - Array of symbols to filter
- * @returns Array of recognized math symbols
+ * @summary Type guard to check if an edge is a line
+ * @param edge - The edge to check
+ * @returns True if the edge is a line
  */
-export function filterMathSymbols(symbols: TIISymbol[]): IIRecognizedMath[]
+export function isLineEdge(edge: TIIEdge): edge is IIEdgeLine
 {
-  return symbols.filter(isRecognizedMathSymbol)
+  return edge.kind === EdgeKind.Line
+}
+
+/**
+ * @group Symbol
+ * @summary Type guard to check if an edge is an arc
+ * @param edge - The edge to check
+ * @returns True if the edge is an arc
+ */
+export function isArcEdge(edge: TIIEdge): edge is IIEdgeArc
+{
+  return edge.kind === EdgeKind.Arc
+}
+
+/**
+ * @group Symbol
+ * @summary Type guard to check if an edge is a polyline
+ * @param edge - The edge to check
+ * @returns True if the edge is a polyline
+ */
+export function isPolyEdge(edge: TIIEdge): edge is IIEdgePolyLine
+{
+  return edge.kind === EdgeKind.PolyEdge
+}
+
+/**
+ * @group Symbol
+ * @summary Check if symbol is a standalone decorator
+ */
+export function isDecorator(symbol: TSymbol): symbol is IIDecorator
+{
+  return symbol.type === SymbolType.Decorator
 }

@@ -1,7 +1,5 @@
 import { SvgElementRole } from "@/Constants"
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
-import { LoggerCategory, LoggerManager } from "@/logger"
-import { IIModel } from "@/model"
 import
 {
   Box,
@@ -9,46 +7,44 @@ import
   IIStroke,
   IIText,
   IIMath,
-  TIIRecognized,
   ShapeKind,
-  SymbolType,
   TIIEdge,
   TIIShape,
-  TIISymbol,
   TPoint
 } from "@/symbol"
-import { computeAngleRadian, convertDegreeToRadian, convertRadianToDegree, computeRotatedPoint } from "@/utils"
+import { computeAngleRadian, convertDegreeToRadian, convertRadianToDegree, computeRotatedPoint, TWO_PI } from "@/utils"
+import { IIAbstractTransformManager } from "./AbstractTransformManager"
 
 /**
  * @group Manager
  */
-export class IIRotationManager
+export class IIRotationManager extends IIAbstractTransformManager<[TPoint, number]>
 {
-  #logger = LoggerManager.getLogger(LoggerCategory.TRANSFORMER)
-  editor: InteractiveInkEditor
-  interactElementsGroup?: SVGElement
+  protected managerName = "IIRotationManager"
+  protected transformName = "rotate"
   center!: TPoint
   origin!: TPoint
 
   constructor(editor: InteractiveInkEditor)
   {
-    this.#logger.info("constructor")
-    this.editor = editor
-  }
-
-  get model(): IIModel
-  {
-    return this.editor.model
+    super(editor)
   }
 
   protected applyToStroke(stroke: IIStroke, center: TPoint, angleRad: number): IIStroke
   {
+    // NEW ARCHITECTURE: Skip solver outputs - they should be recalculated
+    if (stroke.isSolverOutput) {
+      this.logger.warn("applyToStroke", "Skipping solver output stroke - it will be recalculated", stroke.id)
+      return stroke
+    }
+
     stroke.pointers.forEach(p =>
     {
       const { x, y } = computeRotatedPoint(p, center, angleRad)
       p.x = x
       p.y = y
     })
+
     return stroke
   }
 
@@ -57,7 +53,7 @@ export class IIRotationManager
     switch (shape.kind) {
       case ShapeKind.Ellipse: {
         shape.center = computeRotatedPoint(shape.center, center, angleRad)
-        shape.orientation = (shape.orientation + angleRad) % (2 * Math.PI)
+        shape.orientation = (shape.orientation + angleRad) % TWO_PI
         return shape
       }
       case ShapeKind.Circle: {
@@ -82,7 +78,7 @@ export class IIRotationManager
   {
     switch (edge.kind) {
       case EdgeKind.Arc: {
-        edge.phi = (edge.phi - angleRad) % (2 * Math.PI)
+        edge.phi = (edge.phi - angleRad) % TWO_PI
         edge.center = computeRotatedPoint(edge.center, center, angleRad)
         return edge
       }
@@ -98,7 +94,6 @@ export class IIRotationManager
       default:
         throw new Error(`Can't apply rotate on edge, kind unknown: ${ JSON.stringify(edge) }`)
     }
-    return edge
   }
 
   protected applyOnText(text: IIText, center: TPoint, angleRad: number): IIText
@@ -119,31 +114,7 @@ export class IIRotationManager
     return math
   }
 
-  protected applyOnRecognizedSymbol(strokeText: TIIRecognized, center: TPoint, angleRad: number): TIIRecognized
-  {
-    strokeText.strokes.forEach(s => this.applyToStroke(s, center, angleRad))
-    return strokeText
-  }
-
-  applyToSymbol(symbol: TIISymbol, center: TPoint, angleRad: number): TIISymbol
-  {
-    switch (symbol.type) {
-      case SymbolType.Stroke:
-        return this.applyToStroke(symbol, center, angleRad)
-      case SymbolType.Shape:
-        return this.applyToShape(symbol, center, angleRad)
-      case SymbolType.Edge:
-        return this.applyToEdge(symbol, center, angleRad)
-      case SymbolType.Text:
-        return this.applyOnText(symbol, center, angleRad)
-      case SymbolType.Math:
-        return this.applyOnMath(symbol, center, angleRad)
-      case SymbolType.Recognized:
-        return this.applyOnRecognizedSymbol(symbol, center, angleRad)
-      default:
-        throw new Error(`Can't apply rotate on symbol, type unknown: ${ JSON.stringify(symbol) }`)
-    }
-  }
+  // applyOnRecognizedSymbol removed - recognized symbols no longer exist
 
   setTransformOrigin(id: string, originX: number, originY: number): void
   {
@@ -152,13 +123,13 @@ export class IIRotationManager
 
   rotateElement(id: string, degree: number): void
   {
-    this.#logger.info("rotateElement", { id, degree })
+    this.logger.info("rotateElement", { id, degree })
     this.editor.renderer.setAttribute(id, "transform", `rotate(${ degree })`)
   }
 
   start(target: Element, origin: TPoint): void
   {
-    this.#logger.info("start", { target })
+    this.logger.info("start", { target })
     this.interactElementsGroup = (target.closest(`[role=${ SvgElementRole.InteractElementsGroup }]`) as unknown) as SVGGElement
     const boundingBox = Box.createFromPoints(this.model.symbolsSelected.flatMap(s => s.vertices))
 
@@ -176,7 +147,7 @@ export class IIRotationManager
 
   continue(point: TPoint): number
   {
-    this.#logger.info("continue", { point })
+    this.logger.info("continue", { point })
     if (!this.interactElementsGroup) {
       throw new Error("Can't rotate, you must call start before")
     }
@@ -198,9 +169,9 @@ export class IIRotationManager
 
   async end(point: TPoint): Promise<void>
   {
-    this.#logger.info("end", { point })
+    this.logger.info("end", { point })
     const angleDegree = this.continue(point)
-    const angleRad = convertDegreeToRadian(angleDegree) % (2 * Math.PI)
+    const angleRad = convertDegreeToRadian(angleDegree) % TWO_PI
     const oldSymbols = this.model.symbolsSelected.map(s => s.clone())
     this.model.symbolsSelected.forEach(s =>
     {

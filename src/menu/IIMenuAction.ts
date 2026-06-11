@@ -14,6 +14,7 @@ import {
   SnapMenuAction,
   DebugMenuAction,
   MathMenuAction,
+  SelectionMenuAction,
   ExportMenuAction,
   ImportMenuAction
 } from "./actions"
@@ -92,6 +93,12 @@ export class IIMenuAction
         const mathAction = new MathMenuAction(this.editor, this.id)
         this.menuActions.set("math", mathAction)
         subMenuWrapper.appendChild(mathAction.getElement())
+      }
+
+      if (this.config.selection) {
+        const selectionAction = new SelectionMenuAction(this.editor, this.id)
+        this.menuActions.set("selection", selectionAction)
+        subMenuWrapper.appendChild(selectionAction.getElement())
       }
 
       if (this.config.import) {

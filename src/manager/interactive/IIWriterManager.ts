@@ -13,18 +13,19 @@ import
   TIIEdge,
   TIISymbol,
   TPoint,
-  TPointer
+  TPointer,
+  isStroke
 } from "@/symbol"
 import { RecognizerWebSocket } from "@/recognizer"
 import { SVGRenderer } from "@/renderer"
 import { TStyle } from "@/style"
 import { IIHistoryManager } from "@/history"
-import { IIGestureManager, TGesture } from "./IIGestureManager"
+import { PointerInfo } from "@/grabber"
+import { IIGestureManager } from "./IIGestureManager"
+import { TGesture } from "./gestures"
 import { IISnapManager } from "./IISnapManager"
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
-import { PointerInfo } from "@/grabber"
 import { AbstractWriterManager } from "@/manager/base/AbstractWriterManager"
-
 
 /**
  * @group Manager
@@ -104,16 +105,7 @@ export class IIWriterManager extends AbstractWriterManager
   protected needContextLessGesture(stroke: IIStroke): boolean
   {
     const strokeBoundsWithMargin = this.editor.getSymbolsBounds([stroke], 2 * SELECTION_MARGIN)
-    return this.detectGesture && this.model.symbols.some(s =>
-    {
-      switch (s.type) {
-        case SymbolType.Recognized:
-        case SymbolType.Stroke:
-          return false
-        default:
-          return s.bounds.overlaps(strokeBoundsWithMargin)
-      }
-    })
+    return this.detectGesture && this.model.symbols.some(s => !isStroke(s) && s.bounds.overlaps(strokeBoundsWithMargin))
   }
 
   protected createCurrentSymbol(pointer: TPointer, style: TStyle, pointerType: string): TIISymbol
@@ -282,7 +274,7 @@ export class IIWriterManager extends AbstractWriterManager
 
     this.renderer.redrawGuides()
 
-    if (localSymbol.type === SymbolType.Stroke) {
+    if (isStroke(localSymbol)) {
       await this.interactWithBackend(localSymbol)
     }
   }
