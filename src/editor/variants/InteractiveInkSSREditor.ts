@@ -414,8 +414,9 @@ export class InteractiveInkSSREditor extends AbstractEditor
     if (errors.length) {
       this.event.emitError(new Error(errors.join("\n")))
     }
-    strokesToImport.map(s => this.model.addStroke(s))
-    const exportPoints = await this.recognizer.importPointEvents(strokesToImport)
+    const validStrokes = strokesToImport.filter(s => s.pointers.length > 0)
+    validStrokes.forEach(s => this.model.addStroke(s))
+    const exportPoints = await this.recognizer.importPointEvents(validStrokes)
     this.model.mergeExport(exportPoints)
     this.event.emitImported(this.model.exports as TExport)
     this.logger.debug("importPointEvents", this.model)
