@@ -148,31 +148,32 @@ function createSymbolInputWidth(symbol) {
   const minus = document.createElement('button')
   minus.classList.add('symbol-input')
   minus.textContent = '-'
-  minus.addEventListener('pointerup', () => {
-    symbol.style.width--
-    if (symbol.style.width <= 1) {
-      minus.setAttribute('disabled', true)
-    } else {
-      minus.removeAttribute('disabled')
-    }
-    editor?.updateSymbolsStyle([symbol.id], { width: symbol.style.width })
-  })
 
   const plus = document.createElement('button')
   plus.textContent = '+'
   plus.classList.add('symbol-input')
-  if (symbol.style.width <= 1) {
-    minus.setAttribute('disabled', true)
-  }
-  plus.addEventListener('pointerup', () => {
-    symbol.style.width++
+
+  function syncMinusState() {
     if (symbol.style.width <= 1) {
       minus.setAttribute('disabled', true)
     } else {
       minus.removeAttribute('disabled')
     }
-    editor.updateSymbolsStyle([symbol.id], { width: symbol.style.width })
+  }
+
+  minus.addEventListener('pointerup', () => {
+    symbol.style.width--
+    syncMinusState()
+    editor?.updateSymbolsStyle([symbol.id], { width: symbol.style.width })
   })
+
+  plus.addEventListener('pointerup', () => {
+    symbol.style.width++
+    syncMinusState()
+    editor?.updateSymbolsStyle([symbol.id], { width: symbol.style.width })
+  })
+
+  syncMinusState()
   return { minus, plus }
 }
 
