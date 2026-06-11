@@ -2,7 +2,7 @@ import { IIAbstractManager } from "../IIAbstractManager"
 import { IIStroke, TBox, Box, isStroke, isRecognizedMath } from "@/symbol"
 import { convertBoundingBoxMillimeterToPixel } from "@/utils"
 import { TJIIXMathExpression, TJIIXMathElement } from "@/model/ExportMath"
-import { TMathVariable } from "@/recognizer"
+import { TMathVariable, TMathVariableDefinition, TMathVariableDefinitions } from "@/recognizer"
 import { ColorPaletteManager } from "../../base"
 import type { InteractiveInkEditor } from "@/editor"
 import { LoggerCategory } from "@/logger"
@@ -312,6 +312,35 @@ export class IIMathVariableSubManager extends IIAbstractManager
   getStoredVariableValues(jiixBlockId: string): Record<string, number> | undefined
   {
     return this.#variableValues.get(jiixBlockId)
+  }
+
+  async removeVariableValue(jiixBlockId: string, variableName: string): Promise<void>
+  {
+    this.logger.info("removeVariableValue", { jiixBlockId, variableName })
+
+    if (!jiixBlockId) {
+      throw new Error("Math block does not have jiixBlockId")
+    }
+
+    await this.editor.recognizer.removeVariableValue(jiixBlockId, variableName)
+
+    const existing = this.#variableValues.get(jiixBlockId)
+    if (existing) {
+      delete existing[variableName]
+      this.#variableValues.set(jiixBlockId, existing)
+    }
+  }
+
+  async asVariableDefinition(jiixBlockId: string): Promise<TMathVariableDefinition>
+  {
+    this.logger.info("asVariableDefinition", { jiixBlockId })
+    return await this.editor.recognizer.asVariableDefinition(jiixBlockId)
+  }
+
+  async getVariableDefinitions(): Promise<TMathVariableDefinitions[]>
+  {
+    this.logger.info("getVariableDefinitions")
+    return await this.editor.recognizer.getVariableDefinitions()
   }
 
   // ==========================================

@@ -82,7 +82,7 @@ export class IIFunctionEvaluator {
       if (!jiixBlockId) continue
 
       try {
-        const evaluables = await this.editor.getMathEvaluables(jiixBlockId)
+        const evaluables = await this.editor.math.getEvaluables(jiixBlockId)
         if (evaluables.length > 0) {
           this.functionsToEvaluate.push({
             jiixBlockId,
@@ -92,8 +92,7 @@ export class IIFunctionEvaluator {
           })
         }
       } catch (error) {
-        const label = this.editor.jiix.getBlockLabel(jiixBlockId)
-        this.logger.error(`Error fetching evaluables for symbol ${label}:`, error)
+        this.logger.error(`Error fetching evaluables for symbol ${jiixBlockId}:`, error)
       }
     }
 
@@ -536,7 +535,7 @@ export class IIFunctionEvaluator {
 
       for (const func of functions) {
         const selectedEvaluable = func.evaluables[func.selectedEvaluableIndex]
-        const points = await this.editor.evaluateMathFunction(func.jiixBlockId, {
+        const points = await this.editor.math.evaluateFunction(func.jiixBlockId, {
           inputVariableName: selectedEvaluable.inputName,
           outputVariableName: selectedEvaluable.outputName,
           from,

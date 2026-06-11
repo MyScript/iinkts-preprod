@@ -70,11 +70,4 @@ export class InteractiveInkEditorMock extends InteractiveInkEditor
   resize = jest.fn()
   clear = jest.fn()
   destroy = jest.fn()
-
-  // Math-specific methods
-  getMathVariables = jest.fn()
-  setMathVariables = jest.fn()
-  computeMathNumericalResult = jest.fn()
-  getEvaluables = jest.fn()
-  evaluateMathFunction = jest.fn()
 }
