@@ -373,7 +373,6 @@ export class RecognizerWebSocket
     const blockId = mathSolverMessage.blockId
     if (!blockId) {
       this.#logger.warn("manageMathSolverResult", "Received math solver result without blockId, unable to resolve corresponding promise", mathSolverMessage)
-      // return
     }
 
     switch (mathSolverMessage.action) {
@@ -550,7 +549,6 @@ export class RecognizerWebSocket
       this.initPing()
     }
     this.event.emitEndtInitialization()
-    return this.initialized.promise
   }
 
   async send(message: TRecognizerWebSocketMessage): Promise<void>
