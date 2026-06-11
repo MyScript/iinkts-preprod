@@ -1,6 +1,6 @@
 import { InteractiveInkEditor } from "@/editor"
 import { Modal } from "./Modal"
-import { TMathVariable } from "@/recognizer"
+import { TMathVariable, TMathVariableDefinition } from "@/recognizer"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import { BORDER_RADIUS, COLORS, SPACING, cardStyle, flexColumnStyle, gridContainerStyle } from "./styles"
 
@@ -9,6 +9,7 @@ import { BORDER_RADIUS, COLORS, SPACING, cardStyle, flexColumnStyle, gridContain
  */
 export interface SymbolVariables {
   jiixBlockId: string
+  definition: TMathVariableDefinition
   variables: TMathVariable[]
 }
 
@@ -43,10 +44,12 @@ export class IIVariableEditor {
       }
 
       try {
-        const variables = await this.editor.getMathVariables(jiixBlockId)
+        const definition = await this.editor.math.asVariableDefinition(jiixBlockId)
+        const variables = await this.editor.math.getVariables(jiixBlockId)
         if (variables.length > 0) {
           this.blockVariables.push({
             jiixBlockId,
+            definition,
             variables
           })
         }
@@ -138,7 +141,11 @@ export class IIVariableEditor {
 
     // Create input for each variable
     symVar.variables.forEach(variable => {
-      const variableRow = this.createVariableInput(symVar.jiixBlockId, variable)
+      const isDefinition = symVar.definition.name === variable.name
+      if (isDefinition && variable.value == null) {
+        variable.value = symVar.definition.value
+      }
+      const variableRow = this.createVariableInput(symVar.jiixBlockId, variable, isDefinition)
       variablesContainer.appendChild(variableRow)
     })
 
@@ -150,7 +157,7 @@ export class IIVariableEditor {
   /**
    * Create input row for a single variable
    */
-  private createVariableInput(jiixBlockId: string, variable: TMathVariable): HTMLDivElement {
+  private createVariableInput(jiixBlockId: string, variable: TMathVariable, isDefinition: boolean): HTMLDivElement {
     const row = document.createElement("div")
     row.style.cssText = `
       ${gridContainerStyle("120px 1fr 80px", SPACING.sm)}
@@ -177,6 +184,7 @@ export class IIVariableEditor {
     input.type = "number"
     input.step = "any"
     input.placeholder = "Enter value"
+    input.disabled = isDefinition
     input.style.cssText = `
       padding: ${SPACING.sm} ${SPACING.md};
       border: 1px solid ${COLORS.gray[300]};
@@ -226,7 +234,7 @@ export class IIVariableEditor {
 
     if (variable.sourceType) {
       sourceInfo.style.color = sourceTypeColors[variable.sourceType] || COLORS.gray[600]
-      sourceInfo.textContent = variable.sourceType
+      sourceInfo.textContent = isDefinition ? "Definition" : variable.sourceType
     }
 
     row.appendChild(sourceInfo)
@@ -252,7 +260,7 @@ export class IIVariableEditor {
           const input = symbolInputsMap.get(variable.name)
           if (input && input.value !== "") {
             const numValue = parseFloat(input.value)
-            if (!isNaN(numValue)) {
+            if (!isNaN(numValue) && numValue !== variable.value) {
               variableValues[variable.name] = numValue
               hasChanges = true
             }
@@ -260,15 +268,15 @@ export class IIVariableEditor {
         }
 
         if (hasChanges) {
-          updates.push(this.editor.setMathVariables(symVar.jiixBlockId, variableValues))
+          updates.push(this.editor.math.setListVariableValue(symVar.jiixBlockId, variableValues))
         }
       }
 
       if (updates.length > 0) {
         await Promise.all(updates)
         this.logger.info(`Updated variables for ${updates.length} symbol(s)`)
-        this.close()
       }
+      this.close()
     } catch (error) {
       this.logger.error("Error applying variable changes:", error)
     }

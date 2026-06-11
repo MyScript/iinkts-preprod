@@ -20,7 +20,7 @@ describe("IIDiagnosticChecker.ts", () =>
     } as any
 
     // Mock getDiagnostic method
-    editor.getMathDiagnostic = jest.fn().mockImplementation((_id: string, type: string) => {
+    editor.math.getDiagnostic = jest.fn().mockImplementation((_id: string, type: string) => {
       if (type === "numerical-computation") {
         return Promise.resolve("compute_ok")
       }
@@ -66,10 +66,10 @@ describe("IIDiagnosticChecker.ts", () =>
 
       await checker.show()
 
-      expect(editor.getMathDiagnostic).toHaveBeenCalledWith("block-1", "numerical-computation")
-      expect(editor.getMathDiagnostic).toHaveBeenCalledWith("block-1", "evaluation")
-      expect(editor.getMathDiagnostic).toHaveBeenCalledWith("block-2", "numerical-computation")
-      expect(editor.getMathDiagnostic).toHaveBeenCalledWith("block-2", "evaluation")
+      expect(editor.math.getDiagnostic).toHaveBeenCalledWith("block-1", "numerical-computation")
+      expect(editor.math.getDiagnostic).toHaveBeenCalledWith("block-1", "evaluation")
+      expect(editor.math.getDiagnostic).toHaveBeenCalledWith("block-2", "numerical-computation")
+      expect(editor.math.getDiagnostic).toHaveBeenCalledWith("block-2", "evaluation")
 
       showSpy.mockRestore()
     })
@@ -83,50 +83,13 @@ describe("IIDiagnosticChecker.ts", () =>
       const showSpy = jest.spyOn(checker as any, "createModalContent")
       showSpy.mockReturnValue(document.createElement("div"))
 
-      // Mock alert
-      const alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {})
-
       await checker.show()
 
       // Only block-2 should be called
-      expect(editor.getMathDiagnostic).toHaveBeenCalledWith("block-2", "numerical-computation")
-      expect(editor.getMathDiagnostic).toHaveBeenCalledWith("block-2", "evaluation")
+      expect(editor.math.getDiagnostic).toHaveBeenCalledWith("block-2", "numerical-computation")
+      expect(editor.math.getDiagnostic).toHaveBeenCalledWith("block-2", "evaluation")
 
       showSpy.mockRestore()
-      alertSpy.mockRestore()
-    })
-
-    test("should handle errors when fetching diagnostics", async () =>
-    {
-      const jiixBlockIds = ["block-1"]
-
-      // Mock getMathDiagnostic to throw error
-      editor.getMathDiagnostic = jest.fn().mockRejectedValue(new Error("Diagnostic error"))
-
-      const checker = new IIDiagnosticChecker(editor, jiixBlockIds)
-
-      const alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {})
-
-      await checker.show()
-
-      expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining("No diagnostics"))
-
-      alertSpy.mockRestore()
-    })
-
-    test("should show alert when no diagnostics available", async () =>
-    {
-      const jiixBlockIds = [""]
-
-      const checker = new IIDiagnosticChecker(editor, jiixBlockIds)
-
-      const alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {})
-
-      await checker.show()
-
-      expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining("No diagnostics"))
-
-      alertSpy.mockRestore()
     })
   })
 

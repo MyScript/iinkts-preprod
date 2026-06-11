@@ -42,8 +42,8 @@ export class IIDiagnosticChecker {
       }
 
       try {
-        const computeDiagnostic =  await this.editor.getMathDiagnostic(jiixBlockId, "numerical-computation")
-        const evaluationDiagnostic = await this.editor.getMathDiagnostic(jiixBlockId, "evaluation")
+        const computeDiagnostic =  await this.editor.math.getDiagnostic(jiixBlockId, "numerical-computation")
+        const evaluationDiagnostic = await this.editor.math.getDiagnostic(jiixBlockId, "evaluation")
 
         diagnostics.push({
           jiixBlockId,

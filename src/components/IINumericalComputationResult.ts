@@ -37,7 +37,7 @@ export class IINumericalComputationResult {
     for (const jiixBlockId of this.jiixBlockIds) {
       const label = this.editor.jiix.getBlockLabel(jiixBlockId) ?? jiixBlockId
       try {
-        const result = await this.editor.computeMathNumericalResult(jiixBlockId, this.editor.drawComputationResult)
+        const result = await this.editor.math.computeNumericalResult(jiixBlockId, this.editor.drawComputationResult)
 
         if (!this.editor.drawComputationResult && result.value !== undefined) {
           results.push({

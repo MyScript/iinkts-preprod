@@ -11,7 +11,7 @@ import {
   TMathOverlayConfig,
 } from "./math"
 import { TJIIXMathElement } from "@/model"
-import { TMathEvaluable, TMathVariable } from "@/recognizer/RecognizerWebSocketMessage"
+import { TMathEvaluable, TMathVariable, TMathVariableDefinition, TMathVariableDefinitions } from "@/recognizer/RecognizerWebSocketMessage"
 import { LoggerCategory } from "@/logger"
 
 /**
@@ -53,16 +53,25 @@ export class IIMathManager extends IIAbstractManager
     return this.#overlays
   }
 
-  // ==========================================
-  // Computation facades
-  // ==========================================
 
+  /**
+   * Compute numerical result for a math symbol
+   * @param jiixBlockId - The ID of the math block
+   * @param drawStrokes - Whether to draw the result as strokes (default: true)
+   * @returns Promise with the computation result, number of added strokes, and numeric value
+   */
   async computeNumericalResult(
     jiixBlockId: string,
     drawStrokes?: boolean
   ): Promise<{ result: TJIIXMathElement, addedStrokesCount: number, value?: number }>
   {
+    try {
     return this.#computation.computeNumericalResult(jiixBlockId, drawStrokes)
+    }
+    catch (error) {
+      this.editor.manageError(error as Error)
+      throw error
+    }
   }
 
   async computeAllNumericalResults(): Promise<void>
@@ -90,46 +99,92 @@ export class IIMathManager extends IIAbstractManager
     return this.#computation.getStoredSolverOutputs(jiixBlockId)
   }
 
-  // ==========================================
-  // Variable facades
-  // ==========================================
 
+  /**
+   * Set value for a specific variable in a math expression
+   * @param jiixBlockId - The ID of the math element (jiixId)
+   * @param variableName - Name of the variable to set
+   * @param variableValue - Value to assign to the variable
+   * @returns Promise that resolves when the variable is set
+   */
   async setVariableValue(
     jiixBlockId: string,
     variableName: string,
     value: number
   ): Promise<void>
   {
-    this.logger.info("setVariableValue", { jiixBlockId, variableName, value })
-    await this.#computation.clearSolverOutputs(jiixBlockId)
-    await this.#variables.setVariableValue(jiixBlockId, variableName, value)
-    await this.recalculateDependentBlocks(jiixBlockId)
+    try {
+      this.logger.info("setVariableValue", { jiixBlockId, variableName, value })
+      await this.#computation.clearSolverOutputs(jiixBlockId)
+      await this.#variables.setVariableValue(jiixBlockId, variableName, value)
+      await this.recalculateDependentBlocks(jiixBlockId)
+    }
+    catch (error) {
+      this.editor.manageError(error as Error)
+      throw error
+    }
   }
 
-  async getVariables(jiixBlockId: string): Promise<TMathVariable[]>
-  {
-    return this.#variables.getVariables(jiixBlockId)
-  }
-
-  async setVariables(
+  /**
+   * Set multiple variable values for a math symbol
+   * @param jiixBlockId - The ID of the math block
+   * @param variableValues - Object with variable names as keys and their values
+   * @returns Promise that resolves when all variables are set
+   */
+  async setListVariableValue(
     jiixBlockId: string,
     variableValues: Record<string, number>
   ): Promise<void>
   {
-    this.logger.info("setVariables", { jiixBlockId, variableValues })
+    try {
+      this.logger.info("setListVariableValue", { jiixBlockId, variableValues })
 
-    if (!jiixBlockId) {
-      throw new Error("Math block does not have jiixBlockId")
+      if (!jiixBlockId) {
+        throw new Error("Math block does not have jiixBlockId")
+      }
+
+      for (const [variableName, variableValue] of Object.entries(variableValues)) {
+        await this.setVariableValue(jiixBlockId, variableName, variableValue)
+      }
     }
-
-    for (const [variableName, variableValue] of Object.entries(variableValues)) {
-      await this.setVariableValue(jiixBlockId, variableName, variableValue)
+    catch (error) {
+      this.editor.manageError(error as Error)
+      throw error
     }
   }
 
+  /**
+   * Get variables from a math expression
+   * @param blockId - The ID of the math element (jiixId)
+   * @returns Promise with array of variables
+   */
+  async getVariables(jiixBlockId: string): Promise<TMathVariable[]>
+  {
+    try {
+      return this.#variables.getVariables(jiixBlockId)
+    }
+    catch (error) {
+      this.editor.manageError(error as Error)
+      throw error
+    }
+  }
+
+
+  /**
+   * Get variable value from a math expression
+   * @param jiixBlockId - The ID of the math element (jiixId)
+   * @param variableName - Name of the variable
+   * @returns Promise with the value of the variable
+   */
   async getVariableValue(jiixBlockId: string, variableName: string): Promise<number>
   {
-    return this.#variables.getVariableValue(jiixBlockId, variableName)
+    try {
+      return this.#variables.getVariableValue(jiixBlockId, variableName)
+    }
+    catch (error) {
+      this.editor.manageError(error as Error)
+      throw error
+    }
   }
 
   getStoredVariableValues(jiixBlockId: string): Record<string, number> | undefined
@@ -203,15 +258,34 @@ export class IIMathManager extends IIAbstractManager
     this.#variables.updateConfig(config)
   }
 
+  async removeVariable(jiixBlockId: string, variableName: string): Promise<void>
+  {
+    await this.#variables.removeVariableValue(jiixBlockId, variableName)
+    await this.recalculateDependentBlocks(jiixBlockId)
+  }
+
+  async asVariableDefinition(jiixBlockId: string): Promise<TMathVariableDefinition>
+  {
+    return this.#variables.asVariableDefinition(jiixBlockId)
+  }
+
+  async getVariableDefinitions(): Promise<TMathVariableDefinitions[]>
+  {
+    return this.#variables.getVariableDefinitions()
+  }
+
   clearVariableInteractions(): void
   {
     this.#variables.clearAll()
   }
 
-  // ==========================================
-  // Evaluation facades
-  // ==========================================
 
+  /**
+   * Evaluate a math function for a math symbol
+   * @param jiixBlock - Object with id and label of the math block
+   * @param evaluation - Evaluation parameters
+   * @returns Promise with evaluation points
+   */
   async evaluateFunction(
     jiixBlockId: string,
     evaluation: {
@@ -223,28 +297,66 @@ export class IIMathManager extends IIAbstractManager
     }
   ): Promise<{ [key: string]: number }[][]>
   {
-    return this.#evaluation.evaluateFunction(jiixBlockId, evaluation)
+    try {
+      return this.#evaluation.evaluateFunction(jiixBlockId, evaluation)
+    }
+    catch (error) {
+      this.editor.manageError(error as Error)
+      throw error
+    }
   }
 
+  /**
+   * Get evaluables from a math expression
+   * @param blockId - The ID of the math element (jiixId)
+   * @returns Promise with array of evaluables
+   */
   async getEvaluables(blockId: string): Promise<TMathEvaluable[]>
   {
-    return this.#evaluation.getEvaluables(blockId)
+    try {
+      return this.#evaluation.getEvaluables(blockId)
+    }
+    catch (error) {
+      this.editor.manageError(error as Error)
+      throw error
+    }
   }
 
-  // ==========================================
-  // Diagnostic facades
-  // ==========================================
 
+  /**
+   * Get diagnostic result for a specific math task
+   * @param jiixBlockId - The ID of the math element (jiixId)
+   * @param task - The task to diagnose (e.g., "numerical-computation", "evaluation")
+   * @returns Promise with diagnostic result (e.g., "ALLOWED", "NOT_ALLOWED")
+   */
   async getDiagnostic(jiixBlockId: string, task: string): Promise<string>
   {
-    this.logger.info("getDiagnostic", { jiixBlockId, task })
-    return await this.editor.recognizer.getDiagnostic(jiixBlockId, task)
+    try {
+      this.logger.info("getDiagnostic", { jiixBlockId, task })
+      return await this.editor.recognizer.getDiagnostic(jiixBlockId, task)
+    }
+    catch (error) {
+      this.editor.manageError(error as Error)
+      throw error
+    }
   }
 
+  /**
+   * Get available math solver actions for a specific math element
+   * @param jiixBlockId - The ID of the math element (jiixId)
+   * @returns Promise with array of available actions
+   * @group Utilities
+   */
   async getAvailableActions(jiixBlockId: string): Promise<string[]>
   {
+    try {
     this.logger.info("getAvailableActions", { jiixBlockId })
     return await this.editor.recognizer.getAvailableActions(jiixBlockId)
+    }
+    catch (error) {
+      this.editor.manageError(error as Error)
+      throw error
+    }
   }
 
   // ==========================================
