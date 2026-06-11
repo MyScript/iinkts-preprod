@@ -135,7 +135,6 @@ export class EraseManager
     if (isInteractiveInkEditor(this.editor)) {
       const editor = this.editor as InteractiveInkEditor
       const symbolsToRemove: string[] = []
-      const allStrokeIdsToDelete: string[] = []
 
       editor.model.symbols.forEach(s => {
         if (isText(s) && this.charsToDelete.has(s.id)) {
@@ -156,11 +155,6 @@ export class EraseManager
           symbolsToRemove.push(s.id)
         }
       })
-
-      // Erase deleted strokes from recognizer and wait for synchronization
-      if (allStrokeIdsToDelete.length > 0) {
-        await editor.recognizer.eraseStrokes(allStrokeIdsToDelete)
-      }
 
       // Remove complete symbols
       if (symbolsToRemove.length > 0) {
