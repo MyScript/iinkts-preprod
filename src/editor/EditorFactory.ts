@@ -58,11 +58,8 @@ export class EditorFactory
       throw new Error(`Param 'options' missing`)
     }
 
-    // Cleanup previous instance
-    const previousInstance = EditorFactory.getInstance()
-    if (previousInstance) {
-      await previousInstance.destroy()
-    }
+    // Cleanup any existing instances before creating a new one
+    await EditorFactory.clearInstances()
 
     let instance: EditorVariantMap[EditorType]
 
@@ -121,8 +118,11 @@ export class EditorFactory
   /**
    * Clears all stored editor instances
    */
-  static clearInstances(): void
+  static async clearInstances(): Promise<void>
   {
+    for (const instance of EditorFactory.instances.values()) {
+      await instance.destroy()
+    }
     EditorFactory.instances.clear()
   }
 }
