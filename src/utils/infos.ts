@@ -1,5 +1,6 @@
 import { TServerHTTPConfiguration } from "@/recognizer"
 import { PartialDeep } from "./types"
+import { assertServerConfig } from "./validation"
 
 /**
  * @group Utilities
@@ -16,9 +17,7 @@ export type TApiInfos = {
 export async function getApiInfos(configuration?: PartialDeep<{ server: TServerHTTPConfiguration }>): Promise<TApiInfos>
 {
   try {
-    if (!configuration?.server?.scheme && !configuration?.server?.host) {
-      return Promise.reject("Failed to get infos: configuration.server.scheme & configuration.server.host are required!")
-    }
+    assertServerConfig(configuration?.server, "Failed to get infos")
     const response = await fetch(`${ configuration.server.scheme }://${ configuration.server.host }/api/v4.0/iink/version`)
     if (response.ok) {
       const version = await response.json() as TApiInfos
