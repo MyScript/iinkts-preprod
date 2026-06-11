@@ -89,7 +89,7 @@ export class MathContextMenu extends SubMenuItem
               
               const jiixBlockIds = mathSymbols.map(s => s.jiixBlockId!).filter(Boolean)
               if (this.editor.drawComputationResult) {
-                await Promise.all(jiixBlockIds.map(jiixBlockId => this.editor.computeMathNumericalResult(jiixBlockId, this.editor.drawComputationResult)))
+                await Promise.all(jiixBlockIds.map(jiixBlockId => this.editor.math.computeNumericalResult(jiixBlockId, this.editor.drawComputationResult)))
               } else {
                 const computer = new IINumericalComputationResult(editor, jiixBlockIds)
                 await computer.show()

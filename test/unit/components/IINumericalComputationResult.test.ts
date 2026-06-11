@@ -21,8 +21,8 @@ describe("IINumericalComputationResult.ts", () =>
       })
     } as any
 
-    // Mock computeMathNumericalResult method
-    editor.computeMathNumericalResult = jest.fn().mockImplementation((jiixBlockId) => {
+    // Mock math.computeNumericalResult method
+    editor.math.computeNumericalResult = jest.fn().mockImplementation((jiixBlockId) => {
       if (jiixBlockId === "block-error") {
         return Promise.reject(new Error("Computation failed"))
       }
@@ -66,8 +66,8 @@ describe("IINumericalComputationResult.ts", () =>
       expect(results[1].jiixBlockId).toBe("block-2")
       expect(results[1].value).toBe(42)
 
-      expect(editor.computeMathNumericalResult).toHaveBeenCalledWith("block-1", false)
-      expect(editor.computeMathNumericalResult).toHaveBeenCalledWith("block-2", false)
+      expect(editor.math.computeNumericalResult).toHaveBeenCalledWith("block-1", false)
+      expect(editor.math.computeNumericalResult).toHaveBeenCalledWith("block-2", false)
     })
 
     test("should handle computation errors", async () =>
@@ -110,7 +110,7 @@ describe("IINumericalComputationResult.ts", () =>
     test("should exclude results when drawComputationResult is false and value is undefined", async () =>
     {
       editor.drawComputationResult = false
-      editor.computeMathNumericalResult = jest.fn().mockResolvedValue({ value: undefined })
+      editor.math.computeNumericalResult = jest.fn().mockResolvedValue({ value: undefined })
 
       const jiixBlockIds = ["block-1"]
 
@@ -135,7 +135,7 @@ describe("IINumericalComputationResult.ts", () =>
 
       await computationResult.show()
 
-      expect(editor.computeMathNumericalResult).toHaveBeenCalledWith("block-1", false)
+      expect(editor.math.computeNumericalResult).toHaveBeenCalledWith("block-1", false)
       expect(displaySpy).toHaveBeenCalled()
 
       displaySpy.mockRestore()

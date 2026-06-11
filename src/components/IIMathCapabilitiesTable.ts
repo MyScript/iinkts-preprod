@@ -54,9 +54,9 @@ export class IIMathCapabilitiesTable {
     if (jiixBlockId) {
       try {
         const [actions, variables, evaluables] = await Promise.all([
-          this.editor.getMathAvailableActions(jiixBlockId),
-          this.editor.getMathVariables(jiixBlockId),
-          this.editor.getMathEvaluables(jiixBlockId)
+          this.editor.math.getAvailableActions(jiixBlockId),
+          this.editor.math.getVariables(jiixBlockId),
+          this.editor.math.getEvaluables(jiixBlockId)
         ])
 
         canCheckDiagnostic = true // Always available if jiixId exists

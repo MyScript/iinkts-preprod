@@ -264,11 +264,11 @@
         const label = mb.label || ''
         if ((label.endsWith('=') || label.endsWith('?')) && mb.id) {
           try {
-            const actions = await editor.getMathAvailableActions(mb.id)
+            const actions = await editor.math.getAvailableActions(mb.id)
             const canCompute = actions?.includes('numerical-computation')
 
             if (canCompute) {
-              await editor.computeMathNumericalResult(mb.id, editor.drawComputationResult)
+              await editor.math.computeNumericalResult(mb.id, editor.drawComputationResult)
             }
           } catch (e) {
             // Silently ignore errors - expression might not be computable yet
@@ -289,7 +289,7 @@
       const processedBlocks = new Set()
 
       for (const mb of mathBlocks) {
-        const deps = await editor.getMathDependencies(mb.id)
+        const deps = await editor.math.getDependencies(mb.id)
         if (deps?.dependentBlocks && deps.dependentBlocks.length > 0) {
           sourceBlocks.push({
             symbol: mb,
@@ -315,7 +315,7 @@
         for (const depId of deps.dependentBlocks) {
           const depSymbol = mathBlocks.find(s => s.id === depId)
           if (depSymbol) {
-            const depDeps = await editor.getMathDependencies(depId)
+            const depDeps = await editor.math.getDependencies(depId)
             html += `<div class="dependency-info dependent" style="margin-left: 16px; margin-bottom: 4px;">`
             html += `<strong>→ ${depSymbol.label || depId}</strong><br>`
 
@@ -354,12 +354,13 @@
     async function updateVariablesList() {
       allVariables = []
       const mathBlocks = editor.model.getMathBlocks()
-
       for (const mb of mathBlocks) {
         try {
-          const variables = await editor.getMathVariables(mb.id)
+          const variables = await editor.math.getVariables(mb.id)
+          const definition = await editor.math.asVariableDefinition(mb.id)
+
           variables.forEach(v => {
-            if (!allVariables.find(av => av.name === v.name && av.sourceId === v.sourceId)) {
+            if (definition && definition.name !== v.name) {
               allVariables.push({
                 name: v.name,
                 sourceId: v.sourceId,
@@ -402,7 +403,7 @@
         computeElement.disabled = true
         computeElement.textContent = 'Computing...'
 
-        await editor.computeMathNumericalResult(mathStroke.jiixBlockId, editor.drawComputationResult)
+        await editor.math.computeNumericalResult(mathStroke.jiixBlockId, editor.drawComputationResult)
 
         computeElement.textContent = 'Compute'
         computeElement.disabled = false
@@ -429,7 +430,7 @@
         setVariableBtn.disabled = true
         setVariableBtn.textContent = 'Setting...'
 
-        await editor.setMathVariableValue(jiixId, varName, newValue)
+        await editor.math.setVariableValue(jiixId, varName, newValue)
 
         await updateVariablesList()
         await updateDependenciesDisplay()

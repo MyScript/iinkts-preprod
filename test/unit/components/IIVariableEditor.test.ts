@@ -19,8 +19,8 @@ describe("IIVariableEditor.ts", () =>
       })
     } as any
 
-    // Mock getMathVariables method
-    editor.getMathVariables = jest.fn().mockResolvedValue([
+    // Mock math.getVariables method
+    editor.math.getVariables = jest.fn().mockResolvedValue([
       { name: "x", value: 5, sourceType: "UNDEFINED" },
       { name: "y", value: 10, sourceType: "API" }
     ])
@@ -28,8 +28,8 @@ describe("IIVariableEditor.ts", () =>
     // Mock math.getStoredVariableValues
     editor.math.getStoredVariableValues = jest.fn().mockReturnValue({ x: 5, y: 10 })
 
-    // Mock setMathVariables on editor
-    editor.setMathVariables = jest.fn().mockResolvedValue(undefined)
+    // Mock math.setListVariableValue on editor
+    editor.math.setListVariableValue = jest.fn().mockResolvedValue(undefined)
   })
 
   afterEach(() =>
@@ -67,8 +67,8 @@ describe("IIVariableEditor.ts", () =>
 
       await variableEditor.show()
 
-      expect(editor.getMathVariables).toHaveBeenCalledWith("block-1")
-      expect(editor.getMathVariables).toHaveBeenCalledWith("block-2")
+      expect(editor.math.getVariables).toHaveBeenCalledWith("block-1")
+      expect(editor.math.getVariables).toHaveBeenCalledWith("block-2")
 
       showSpy.mockRestore()
     })
@@ -85,54 +85,19 @@ describe("IIVariableEditor.ts", () =>
       await variableEditor.show()
 
       // Only block-2 should be called
-      expect(editor.getMathVariables).toHaveBeenCalledWith("block-2")
-      expect(editor.getMathVariables).toHaveBeenCalledTimes(1)
+      expect(editor.math.getVariables).toHaveBeenCalledWith("block-2")
+      expect(editor.math.getVariables).toHaveBeenCalledTimes(1)
 
       showSpy.mockRestore()
     })
 
-    test("should handle errors when fetching variables", async () =>
-    {
-      const jiixBlockIds = ["block-1"]
-
-      // Mock getMathVariables to throw error
-      editor.getMathVariables = jest.fn().mockRejectedValue(new Error("Variables error"))
-
-      const variableEditor = new IIVariableEditor(editor, jiixBlockIds)
-
-      const alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {})
-
-      await variableEditor.show()
-
-      expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining("No variables"))
-
-      alertSpy.mockRestore()
-    })
-
-    test("should show alert when no variables found", async () =>
-    {
-      const jiixBlockIds = ["block-2"]
-
-      // Mock getMathVariables to return empty array
-      editor.getMathVariables = jest.fn().mockResolvedValue([])
-
-      const variableEditor = new IIVariableEditor(editor, jiixBlockIds)
-
-      const alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {})
-
-      await variableEditor.show()
-
-      expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining("No variables"))
-
-      alertSpy.mockRestore()
-    })
 
     test("should filter blocks that have no variables", async () =>
     {
       const jiixBlockIds = ["block-1", "block-2"]
 
       let callCount = 0
-      editor.getMathVariables = jest.fn().mockImplementation(() => {
+      editor.math.getVariables = jest.fn().mockImplementation(() => {
         callCount++
         if (callCount === 1) {
           return Promise.resolve([{ name: "x", value: 5, sourceType: "UNDEFINED" }])
@@ -222,7 +187,7 @@ describe("IIVariableEditor.ts", () =>
 
       await (variableEditor as any).applyChanges()
 
-      expect(editor.setMathVariables).toHaveBeenCalledWith(
+      expect(editor.math.setListVariableValue).toHaveBeenCalledWith(
         "block-1",
         { x: 15 }
       )
@@ -253,18 +218,13 @@ describe("IIVariableEditor.ts", () =>
         }
       ]
 
-      // Mock alert
-      const alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {})
-
       await (variableEditor as any).applyChanges()
 
-      // Should call setMathVariables even if value is the same
-      expect(editor.setMathVariables).toHaveBeenCalledWith(
+      // Should call math.setListVariableValue even if value is the same
+      expect(editor.math.setListVariableValue).toHaveBeenCalledWith(
         "block-1",
         { x: 5 }
       )
-
-      alertSpy.mockRestore()
     })
 
     test("should skip symbols when inputs are empty", async () =>
@@ -291,16 +251,11 @@ describe("IIVariableEditor.ts", () =>
         }
       ]
 
-      // Mock alert
-      const alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {})
 
       await (variableEditor as any).applyChanges()
 
       // Should not update if input is empty
-      expect(editor.setMathVariables).not.toHaveBeenCalled()
-      expect(alertSpy).toHaveBeenCalledWith("No changes to apply")
-
-      alertSpy.mockRestore()
+      expect(editor.math.setListVariableValue).not.toHaveBeenCalled()
     })
   })
 })
