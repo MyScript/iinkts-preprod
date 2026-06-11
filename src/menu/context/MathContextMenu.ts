@@ -1,7 +1,7 @@
 import { InteractiveInkEditor } from "@/editor"
 import { SubMenuItem, IMenuSubMenu } from "@/menu/items/SubMenuItem"
 import { IIStroke, isRecognizedMath } from "@/symbol"
-import { Modal, ModalField, IIFunctionEvaluator, IIDiagnosticChecker, IINumericalComputationResult, IIVariableEditor } from "@/components"
+import { IIFunctionEvaluator, IIDiagnosticChecker, IINumericalComputationResult, IIVariableEditor } from "@/components"
 import { LoggerCategory, LoggerManager } from "@/logger"
 
 /**
