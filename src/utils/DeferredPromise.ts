@@ -1,6 +1,6 @@
 
 /**
- * @group Utils
+ * @group Utilities
  */
 export class DeferredPromise<T> {
   promise: Promise<T>

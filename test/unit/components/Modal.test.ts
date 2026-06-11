@@ -218,7 +218,7 @@ describe("Modal.ts", () =>
 
   describe("button callbacks", () =>
   {
-    test("should call button callback with field values", () =>
+    test("should call button callback with field values", (done) =>
     {
       const callback = jest.fn()
       const config: ModalConfig = {
@@ -249,13 +249,19 @@ describe("Modal.ts", () =>
       const modal = new Modal(config)
       modal.open()
 
-      const button = document.querySelector("button") as HTMLButtonElement
-      button.click()
+      const buttons = document.querySelectorAll("button")
+      const submitButton = Array.from(buttons).find(btn => btn.textContent === "Submit") as HTMLButtonElement
+      expect(submitButton).toBeTruthy()
+      submitButton.click()
 
-      expect(callback).toHaveBeenCalledWith({
-        name: "John",
-        age: "30"
-      })
+      // Wait for async callback
+      setTimeout(() => {
+        expect(callback).toHaveBeenCalledWith({
+          name: "John",
+          age: "30"
+        })
+        done()
+      }, 0)
     })
 
     test("should handle async button callbacks", async () =>
@@ -276,8 +282,10 @@ describe("Modal.ts", () =>
       const modal = new Modal(config)
       modal.open()
 
-      const button = document.querySelector("button") as HTMLButtonElement
-      button.click()
+      const buttons = document.querySelectorAll("button")
+      const asyncButton = Array.from(buttons).find(btn => btn.textContent === "Async") as HTMLButtonElement
+      expect(asyncButton).toBeTruthy()
+      asyncButton.click()
 
       await new Promise(resolve => setTimeout(resolve, 10))
 
@@ -333,7 +341,7 @@ describe("Modal.ts", () =>
 
   describe("field values", () =>
   {
-    test("should update field values when user types", () =>
+    test("should update field values when user types", (done) =>
     {
       const callback = jest.fn()
       const config: ModalConfig = {
@@ -363,15 +371,21 @@ describe("Modal.ts", () =>
 
       input.value = "test@example.com"
 
-      const button = document.querySelector("button") as HTMLButtonElement
-      button.click()
+      const buttons = document.querySelectorAll("button")
+      const submitButton = Array.from(buttons).find(btn => btn.textContent === "Submit") as HTMLButtonElement
+      expect(submitButton).toBeTruthy()
+      submitButton.click()
 
-      expect(callback).toHaveBeenCalledWith({
-        email: "test@example.com"
-      })
+      // Wait for async callback
+      setTimeout(() => {
+        expect(callback).toHaveBeenCalledWith({
+          email: "test@example.com"
+        })
+        done()
+      }, 0)
     })
 
-    test("should handle select field changes", () =>
+    test("should handle select field changes", (done) =>
     {
       const callback = jest.fn()
       const config: ModalConfig = {
@@ -406,12 +420,18 @@ describe("Modal.ts", () =>
 
       select.value = "inactive"
 
-      const button = document.querySelector("button") as HTMLButtonElement
-      button.click()
+      const buttons = document.querySelectorAll("button")
+      const submitButton = Array.from(buttons).find(btn => btn.textContent === "Submit") as HTMLButtonElement
+      expect(submitButton).toBeTruthy()
+      submitButton.click()
 
-      expect(callback).toHaveBeenCalledWith({
-        status: "inactive"
-      })
+      // Wait for async callback
+      setTimeout(() => {
+        expect(callback).toHaveBeenCalledWith({
+          status: "inactive"
+        })
+        done()
+      }, 0)
     })
   })
 })

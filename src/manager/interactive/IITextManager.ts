@@ -5,7 +5,7 @@ import { SVGRenderer } from "@/renderer"
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 
 /**
- * @group Manager/Interactive
+ * @group Manager
  */
 export class IITextManager
 {

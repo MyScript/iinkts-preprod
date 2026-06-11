@@ -4,7 +4,7 @@ import { DefaultPenStyle, TPenStyle } from "./PenStyle"
 import { DefaultTheme, TTheme } from "./Theme"
 
 /**
- * @group Style
+ * @group Styles
  */
 export class StyleManager
 {

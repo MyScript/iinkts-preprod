@@ -20,7 +20,7 @@ import
 import { computeAngleRadian, convertDegreeToRadian, convertRadianToDegree, computeRotatedPoint } from "@/utils"
 
 /**
- * @group Manager/Interactive
+ * @group Manager
  */
 export class IIRotationManager
 {

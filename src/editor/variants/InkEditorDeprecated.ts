@@ -11,7 +11,7 @@ import { AbstractEditor, EditorOptionsBase } from "@/editor/AbstractEditor"
 import { InkEditorDeprecatedConfiguration, TInkEditorDeprecatedConfiguration } from "./InkEditorDeprecatedConfiguration"
 
 /**
- * @group Editor/variants
+ * @group Editor
  */
 export type TInkEditorDeprecatedOptions = PartialDeep<EditorOptionsBase &
 {
@@ -25,7 +25,7 @@ export type TInkEditorDeprecatedOptions = PartialDeep<EditorOptionsBase &
 }
 
 /**
- * @group Editor/variants
+ * @group Editor
  * @deprecated Use {@link InkEditor} instead.
  */
 export class InkEditorDeprecated extends AbstractEditor

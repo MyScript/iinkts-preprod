@@ -12,7 +12,7 @@ import
   TIIRecognized,
   RecognizedKind,
   SymbolType,
-  convertPartialStrokesToOIStrokes,
+  convertPartialStrokesToIIStrokes,
   isRecognizedMathSymbol
 } from "@/symbol"
 import { RecognizerWebSocket, TMathVariable, TMathEvaluable } from "@/recognizer"
@@ -47,7 +47,7 @@ import { AbstractEditor, EditorOptionsBase } from "@/editor/AbstractEditor"
 import { InteractiveInkEditorConfiguration, TInteractiveInkEditorConfiguration } from "./InteractiveInkEditorConfiguration"
 
 /**
- * @group Editor/variants
+ * @group Editor
  */
 export type TInteractiveInkEditorOptions = PartialDeep<EditorOptionsBase &
 {
@@ -65,7 +65,7 @@ export type TInteractiveInkEditorOptions = PartialDeep<EditorOptionsBase &
 }
 
 /**
- * @group Editor/variants
+ * @group Editor
  */
 export class InteractiveInkEditor extends AbstractEditor
 {
@@ -101,7 +101,7 @@ export class InteractiveInkEditor extends AbstractEditor
   mathDependencies: IIMathDependencyManager
   transientInk: IITransientInkManager
   menu: IIMenuManager
-  mathComputationMode: boolean = true
+  drawComputationResult: boolean = true
 
   constructor(rootElement: HTMLElement, options?: TInteractiveInkEditorOptions)
   {
@@ -889,7 +889,7 @@ export class InteractiveInkEditor extends AbstractEditor
   {
     this.logger.info("importPointEvents", { partialStrokes })
     this.updateLayerState(false)
-    const strokes = convertPartialStrokesToOIStrokes(partialStrokes)
+    const strokes = convertPartialStrokesToIIStrokes(partialStrokes)
     strokes.forEach(s =>
     {
       this.model.addSymbol(s)
@@ -1416,7 +1416,7 @@ export class InteractiveInkEditor extends AbstractEditor
    * Find a math symbol by its JIIX ID
    * @param jiixId - JIIX ID to search for
    * @returns Math symbol if found, undefined otherwise
-   * @group MathSolver
+   * @group Utilities
    */
   findMathSymbolByJiixId(jiixId: string): IIRecognizedMath | undefined
   {
@@ -1427,7 +1427,7 @@ export class InteractiveInkEditor extends AbstractEditor
    * Clear solver output strokes from a math symbol
    * @param mathSymbol - The math symbol to clear solver outputs from
    * @returns Promise that resolves when strokes are removed
-   * @group MathSolver
+   * @group Utilities
    */
   async clearSolverOutputStrokes(mathSymbol: IIRecognizedMath): Promise<void>
   {
@@ -1446,7 +1446,7 @@ export class InteractiveInkEditor extends AbstractEditor
    * Get available math solver actions for a specific math element
    * @param blockId - The ID of the math element (jiixId)
    * @returns Promise with array of available actions
-   * @group MathSolver
+   * @group Utilities
    */
   async getAvailableActions(blockId: string): Promise<string[]>
   {
@@ -1466,7 +1466,7 @@ export class InteractiveInkEditor extends AbstractEditor
    * @param blockId - The ID of the math element (jiixId)
    * @param task - The task to diagnose (e.g., "numerical-computation", "evaluation")
    * @returns Promise with diagnostic result (e.g., "ALLOWED", "NOT_ALLOWED")
-   * @group MathSolver
+   * @group Utilities
    */
   async getDiagnostic(blockId: string, task: string): Promise<string>
   {
@@ -1485,7 +1485,7 @@ export class InteractiveInkEditor extends AbstractEditor
    * Get numerical computation result for a math expression
    * @param blockId - The ID of the math element (jiixId)
    * @returns Promise with JIIX export containing the computed result
-   * @group MathSolver
+   * @group Utilities
    */
   async getNumericalComputation(blockId: string): Promise<TJIIXMathElement>
   {
@@ -1505,7 +1505,7 @@ export class InteractiveInkEditor extends AbstractEditor
    * @param mathSymbol - The math symbol to compute
    * @param drawStrokes - Whether to draw the result as strokes (default: true)
    * @returns Promise with the computation result, number of added strokes, and numeric value
-   * @group MathSolver
+   * @group Utilities
    */
   async computeMathNumericalResult(
     mathSymbol: IIRecognizedMath,
@@ -1560,7 +1560,7 @@ export class InteractiveInkEditor extends AbstractEditor
    * Get variables from a math expression
    * @param blockId - The ID of the math element (jiixId)
    * @returns Promise with array of variables
-   * @group MathSolver
+   * @group Utilities
    */
   async getVariables(blockId: string): Promise<TMathVariable[]>
   {
@@ -1583,7 +1583,7 @@ export class InteractiveInkEditor extends AbstractEditor
    * Get available math solver actions for a specific math element
    * @param blockId - The ID of the math element (jiixId)
    * @returns Promise with the value of the variable
-   * @group MathSolver
+   * @group Utilities
    */
   async getVariableValue(blockId: string, variableName: string): Promise<number>
   {
@@ -1605,7 +1605,7 @@ export class InteractiveInkEditor extends AbstractEditor
    * @param variableValue - Value to assign to the variable
    * @param mathSymbol - Optional math symbol (will be found if not provided)
    * @returns Promise that resolves when the variable is set
-   * @group MathSolver
+   * @group Utilities
    */
   async setVariableValue(blockId: string, variableName: string, variableValue: number, mathSymbol?: IIRecognizedMath): Promise<void>
   {
@@ -1645,7 +1645,7 @@ export class InteractiveInkEditor extends AbstractEditor
    * @param mathSymbol - The math symbol to update
    * @param variableValues - Object with variable names as keys and their values
    * @returns Promise that resolves when all variables are set
-   * @group MathSolver
+   * @group Utilities
    */
   async setMathVariables(mathSymbol: IIRecognizedMath, variableValues: { [name: string]: number }): Promise<void>
   {
@@ -1675,7 +1675,7 @@ export class InteractiveInkEditor extends AbstractEditor
    * Get evaluables from a math expression
    * @param blockId - The ID of the math element (jiixId)
    * @returns Promise with array of evaluables
-   * @group MathSolver
+   * @group Utilities
    */
   async getEvaluables(blockId: string): Promise<TMathEvaluable[]>
   {
@@ -1695,7 +1695,7 @@ export class InteractiveInkEditor extends AbstractEditor
    * @param blockId - The ID of the math element (jiixId)
    * @param evaluation - Evaluation parameters (input/output variables, range, point count)
    * @returns Promise with array of objects { inputVar: value, outputVar: value }
-   * @group MathSolver
+   * @group Utilities
    */
   async evaluate(blockId: string, evaluation: {
     inputVariableName: string,
@@ -1721,7 +1721,7 @@ export class InteractiveInkEditor extends AbstractEditor
    * @param mathSymbol - The math symbol containing the function
    * @param evaluation - Evaluation parameters
    * @returns Promise with evaluation points
-   * @group MathSolver
+   * @group Utilities
    */
   async evaluateMathFunction(
     mathSymbol: IIRecognizedMath,
@@ -1761,7 +1761,7 @@ export class InteractiveInkEditor extends AbstractEditor
    * Recursively searches for solver-output items and extracts their stroke data
    * @param obj - The JIIX export object to search
    * @returns Array of stroke data with X, Y coordinates and optional F (force) and T (time)
-   * @group MathSolver
+   * @group Utilities
    */
   protected extractSolverOutputStrokes(obj: unknown): Array<{ X: number[], Y: number[], F?: number[], T?: number[] }>
   {
@@ -1804,7 +1804,7 @@ export class InteractiveInkEditor extends AbstractEditor
    * @param mathSymbol - Math symbol to add strokes to
    * @param style - Optional style for the strokes
    * @returns Promise resolving to array of added strokes
-   * @group MathSolver
+   * @group Utilities
    */
   async addSolverOutputStrokes(result: TJIIXMathElement, mathSymbol: IIRecognizedMath, style?: TStyle): Promise<IIStroke[]>
   {
@@ -1863,7 +1863,7 @@ export class InteractiveInkEditor extends AbstractEditor
    * Recalculate all blocks that depend on a source block
    * @param sourceBlockId - ID of the source block whose value changed
    * @returns Promise that resolves when all dependents are recalculated
-   * @group MathSolver
+   * @group Utilities
    */
   async recalculateDependentBlocks(sourceBlockId: string): Promise<void>
   {
@@ -1883,7 +1883,7 @@ export class InteractiveInkEditor extends AbstractEditor
    * and which other blocks depend on this block's variables
    * @param blockId - The JIIX ID of the math block
    * @returns Object containing variable sources and dependent blocks
-   * @group MathSolver
+   * @group Utilities
    */
   getMathDependencies(blockId: string): { variableSources?: { [variableName: string]: string }, dependentBlocks?: string[] } | null
   {

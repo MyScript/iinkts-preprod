@@ -2,7 +2,9 @@ import { InteractiveInkEditor } from "@/editor"
 import { SubMenuItem, IMenuSubMenu } from "@/menu/items/SubMenuItem"
 import { IMenuCheckbox } from "@/menu/items/CheckboxMenuItem"
 import { IMenuSelect } from "@/menu/items/SelectMenuItem"
+import { IMenuButton } from "@/menu/items/ButtonMenuItem"
 import { isRecognizedMathSymbol } from "@/symbol"
+import { IIMathCapabilitiesTable } from "@/components"
 import mathIcon from "@/assets/svg/linear-double-arrow.svg"
 
 /**
@@ -13,7 +15,7 @@ export class MathMenuAction extends SubMenuItem
 {
   constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-action")
   {
-    const items: (IMenuCheckbox | IMenuSelect)[] = [
+    const items: (IMenuCheckbox | IMenuSelect | IMenuButton)[] = [
       {
         type: "checkbox",
         id: `${idPrefix}-math-show-block-overlays`,
@@ -27,10 +29,10 @@ export class MathMenuAction extends SubMenuItem
         type: "checkbox",
         id: `${idPrefix}-math-draw-result-strokes`,
         label: "Draw result as strokes",
-        getValue: (editor: InteractiveInkEditor) => editor.mathComputationMode,
+        getValue: (editor: InteractiveInkEditor) => editor.drawComputationResult,
         setValue: async (editor: InteractiveInkEditor, value: boolean) => {
-          const oldMode = editor.mathComputationMode
-          editor.mathComputationMode = value
+          const oldMode = editor.drawComputationResult
+          editor.drawComputationResult = value
 
           if (!value && oldMode) {
             // If switching from drawing strokes to not drawing, clear existing solver strokes
@@ -69,6 +71,17 @@ export class MathMenuAction extends SubMenuItem
         }
       })
     }
+
+    // Add button to show capabilities overview
+    items.push({
+      type: "button",
+      id: `${idPrefix}-math-capabilities-overview`,
+      label: "Show Math Capabilities Overview",
+      action: async (editor: InteractiveInkEditor) => {
+        const capabilitiesTable = new IIMathCapabilitiesTable(editor)
+        await capabilitiesTable.show()
+      }
+    })
 
     const config: IMenuSubMenu = {
       type: "submenu",

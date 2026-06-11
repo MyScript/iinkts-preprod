@@ -20,7 +20,7 @@ describe("IIMathDependencyManager", () =>
         context: {}
       },
       computeMathNumericalResult: jest.fn().mockResolvedValue(undefined),
-      mathComputationMode: true
+      drawComputationResult: true
     }
 
     service = new IIMathDependencyManager(mockEditor as InteractiveInkEditor)

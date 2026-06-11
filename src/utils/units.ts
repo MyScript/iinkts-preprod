@@ -4,7 +4,7 @@ const MM_TO_PX_RATIO = 96 / 25.4
 const PX_TO_MM_RATIO = 25.4 / 96
 
 /**
- * @group Utils
+ * @group Utilities
  */
 export function convertMillimeterToPixel(mm: number): number
 {
@@ -12,7 +12,7 @@ export function convertMillimeterToPixel(mm: number): number
 }
 
 /**
- * @group Utils
+ * @group Utilities
  */
 export function convertPixelToMillimeter(px: number): number
 {
@@ -20,7 +20,7 @@ export function convertPixelToMillimeter(px: number): number
 }
 
 /**
- * @group Utils
+ * @group Utilities
  */
 export function convertBoundingBoxMillimeterToPixel(box?: TBox): TBox
 {
