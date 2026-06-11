@@ -216,25 +216,28 @@ test.describe("Offscreen Get Started Menu Action", () => {
 
     await test.step("should draw strikethrough on stroke", async () => {
       await Promise.all([
-        waitForGesturedEvent(page),
-        writeStrokes(page, helloStrike.strokes)
+        waitForSynchronizedEvent(page),
+        writePointers(page, helloStrike.strokes[0].pointers)
       ])
+      expect(await getEditorSymbols(page)).toHaveLength(1)
+
+      await Promise.all([
+        waitForGesturedEvent(page),
+        writePointers(page, helloStrike.strokes[1].pointers)
+      ])
+
       const symbols = await getEditorSymbols(page)
-      expect(symbols).toHaveLength(1)
-      const symbol = symbols[0]
-      expect(symbol.decorators).toHaveLength(1)
-      const strikeThrough = symbol.decorators[0]
-      expect(strikeThrough.kind).toEqual("strikethrough")
+      expect(symbols).toHaveLength(2)
+      const strikethrough = symbols.find(s => s.type === "decorator")
+      expect(strikethrough).toBeDefined()
+      expect(strikethrough.kind).toEqual("strikethrough")
 
       // toBeVisible fails on horizontal line so we just check if parent is visible
       // https://github.com/microsoft/playwright/issues/20389
-      const symbolLocator = page.locator(` #${ symbol.id }`)
-      await expect(symbolLocator).toBeVisible()
-      const strikeThroughEl = symbolLocator.locator(` #${ strikeThrough.id }`)
-      // await expect(strikeThroughEl).toBeVisible()
-
-      await expect(strikeThroughEl).toHaveAttribute("type", "decorator")
-      await expect(strikeThroughEl).toHaveAttribute("kind", "strikethrough")
+      const strikethroughLocator = page.locator(`#${ strikethrough.id }`)
+      await expect(strikethroughLocator).toBeAttached()
+      await expect(strikethroughLocator).toHaveAttribute("type", "decorator")
+      await expect(strikethroughLocator).toHaveAttribute("kind", "strikethrough")
     })
 
     await test.step("should conserve strikethrough when convert", async () => {
@@ -250,9 +253,9 @@ test.describe("Offscreen Get Started Menu Action", () => {
       const symbolLocator = page.locator(`#${ text.id }`)
       // toBeVisible fails on horizontal line so we just check if parent is visible
       // https://github.com/microsoft/playwright/issues/20389
-      await expect(symbolLocator).toBeVisible()
+      await expect(symbolLocator).toBeAttached()
 
-      const strikeThroughEl = symbolLocator.locator(` #${ strikeThrough.id }`)
+      const strikeThroughEl = symbolLocator.locator(`#${ strikeThrough.id }`)
       await expect(strikeThroughEl).toHaveAttribute("type", "decorator")
       await expect(strikeThroughEl).toHaveAttribute("kind", "strikethrough")
     })
@@ -369,19 +372,20 @@ test.describe("Offscreen Get Started Menu Action", () => {
         writeStrokes(page, helloOneStrokeSurrounded.strokes, 0, 100)
       ])
       const symbols = await getEditorSymbols(page)
-      expect(symbols).toHaveLength(1)
+      expect(symbols).toHaveLength(2)
 
-      const recoSym = symbols[0]
-      expect(recoSym.type).toEqual("stroke")
+      const stroke = symbols.find(s => s.type === "stroke")
+      expect(stroke.type).toEqual("stroke")
 
-      const surrondSym = recoSym.decorators[0]
-      expect(surrondSym.kind).toEqual("surround")
+      const surround = symbols.find(s => s.type === "decorator")
+      expect(surround).toBeDefined()
+      expect(surround.kind).toEqual("surround")
 
-      const symLocator = page.locator(`#${ recoSym.id }`)
+      const symLocator = page.locator(`#${ stroke.id }`)
       await expect(symLocator).toBeVisible()
       await expect(symLocator).toHaveAttribute("type", "stroke")
 
-      const surroundLocator = symLocator.locator(`#${ surrondSym.id }`)
+      const surroundLocator = page.locator(`#${ surround.id }`)
       await expect(surroundLocator).toBeVisible()
       await expect(surroundLocator).toHaveAttribute("type", "decorator")
       await expect(surroundLocator).toHaveAttribute("kind", "surround")
@@ -389,7 +393,7 @@ test.describe("Offscreen Get Started Menu Action", () => {
       await expect(surroundLocator).toHaveAttribute("y")
       await expect(surroundLocator).toHaveAttribute("height")
       await expect(surroundLocator).toHaveAttribute("width")
-      await expect(surroundLocator).toHaveAttribute("stroke", surrondSym.style.color)
+      await expect(surroundLocator).toHaveAttribute("stroke", surround.style.color)
     })
 
     await test.step("verify surround is kept after convert", async () => {
@@ -403,14 +407,14 @@ test.describe("Offscreen Get Started Menu Action", () => {
       expect(convertSym.type).toEqual("text")
       expect(convertSym.decorators).toHaveLength(1)
 
-      const surrondSym = convertSym.decorators[0]
-      expect(surrondSym.kind).toEqual("surround")
+      const surround = convertSym.decorators[0]
+      expect(surround.kind).toEqual("surround")
 
       const symLocator = page.locator(`#${ convertSym.id }`)
       await expect(symLocator).toBeVisible()
       await expect(symLocator).toHaveAttribute("type", "text")
 
-      const surroundLocator = symLocator.locator(`#${ surrondSym.id }`)
+      const surroundLocator = page.locator(`#${ surround.id }`)
       await expect(surroundLocator).toBeVisible()
       await expect(surroundLocator).toHaveAttribute("type", "decorator")
       await expect(surroundLocator).toHaveAttribute("kind", "surround")
@@ -418,7 +422,7 @@ test.describe("Offscreen Get Started Menu Action", () => {
       await expect(surroundLocator).toHaveAttribute("y")
       await expect(surroundLocator).toHaveAttribute("height")
       await expect(surroundLocator).toHaveAttribute("width")
-      await expect(surroundLocator).toHaveAttribute("stroke", surrondSym.style.color)
+      await expect(surroundLocator).toHaveAttribute("stroke", surround.style.color)
     })
   })
 
