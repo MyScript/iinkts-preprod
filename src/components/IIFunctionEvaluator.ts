@@ -98,7 +98,7 @@ export class IIFunctionEvaluator {
     }
 
     if (this.functionsToEvaluate.length === 0) {
-      alert("No evaluable functions found in the selected symbols")
+      this.logger.warn("No evaluable functions found in the selected symbols")
       return
     }
 
@@ -526,7 +526,7 @@ export class IIFunctionEvaluator {
     const pointCount = parseInt(pointCountInput.value)
 
     if (isNaN(from) || isNaN(to) || isNaN(pointCount)) {
-      alert("Invalid input values")
+      this.logger.warn("Invalid input values")
       return
     }
 
@@ -554,7 +554,7 @@ export class IIFunctionEvaluator {
 
     } catch (error) {
       this.logger.error("Error evaluating functions:", error)
-      alert("Error evaluating functions")
+      this.logger.error("Error evaluating functions")
     }
   }
 

@@ -57,7 +57,7 @@ export class IIDiagnosticChecker {
     }
 
     if (diagnostics.length === 0) {
-      alert("No diagnostics could be retrieved for the selected symbols")
+      this.logger.warn("No diagnostics could be retrieved for the selected symbols")
       return
     }
 
