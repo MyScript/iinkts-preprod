@@ -194,6 +194,21 @@ export class IIHistoryManager
         }
       })
     }
+    if (changes.style) {
+      reversedChanges.style = changes.style
+    }
+    if (changes.order) {
+      const positionMap: Record<string, "first" | "last" | "forward" | "backward"> = {
+        first: "last",
+        last: "first",
+        forward: "backward",
+        backward: "forward",
+      }
+      reversedChanges.order = {
+        symbols: changes.order.symbols,
+        position: positionMap[changes.order.position]
+      }
+    }
 
     return reversedChanges
   }
@@ -209,10 +224,13 @@ export class IIHistoryManager
     }
     const previousStackItem = this.stack[this.context.stackIndex]
     this.#logger.debug("undo", previousStackItem)
-    return {
-      model: previousStackItem.model,
-      changes: this.reverseChanges(currentStackItem.changes)
+    const changes = this.reverseChanges(currentStackItem.changes)
+    if (currentStackItem.changes.updated?.length) {
+      changes.updated = currentStackItem.changes.updated
+        .map(sym => previousStackItem.model.symbols.find(s => s.id === sym.id))
+        .filter((s): s is TIISymbol => s !== undefined)
     }
+    return { model: previousStackItem.model, changes }
   }
 
   redo(): TIIHistoryStackItem
