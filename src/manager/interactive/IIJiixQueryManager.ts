@@ -9,7 +9,7 @@ import {
   TJIIXStrokeItem,
   JIIXElementType
 } from "@/model"
-import { Box, IIStroke, TBox, TStrokeJIIXTextWordInfo, TStrokeJIIXTextCharInfo, TStrokeJIIXTextLineInfo } from "@/symbol"
+import { Box, IIStroke, TBox, TIISymbol, TStrokeJIIXTextWordInfo, TStrokeJIIXTextCharInfo, TStrokeJIIXTextLineInfo } from "@/symbol"
 import { convertMillimeterToPixel, convertBoundingBoxMillimeterToPixel } from "@/utils"
 import { IIAbstractManager } from "./IIAbstractManager"
 import { LoggerCategory } from "@/logger"
@@ -599,7 +599,7 @@ export class IIJiixQueryManager extends IIAbstractManager
   {
     this.ensureIndexValid()
 
-    const mathBlocks = this.model.getMathBlocks()
+    const mathBlocks = this.model.mathBlocks
     const result: Array<{
       mathBlock: TJIIXMathElement
       strokeIds: string[]
@@ -632,7 +632,7 @@ export class IIJiixQueryManager extends IIAbstractManager
   {
     this.ensureIndexValid()
 
-    const textBlocks = this.model.getTextBlocks()
+    const textBlocks = this.model.textBlocks
     const result: Array<{
       textBlock: TJIIXTextElement
       strokeIds: string[]
@@ -705,6 +705,17 @@ export class IIJiixQueryManager extends IIAbstractManager
     }
 
     return results
+  }
+
+  getBlocksForSymbols(symbols: TIISymbol[]): TJIIXElement[]
+  {
+    this.ensureIndexValid()
+    if (!this.#index) return []
+    const symbolIds = new Set(symbols.map(s => s.id))
+    return [...this.#index.elementToStrokes.entries()]
+      .filter(([, strokeIds]) => strokeIds.length > 0 && strokeIds.every(id => symbolIds.has(id)))
+      .map(([elementId]) => this.#index!.elementById.get(elementId))
+      .filter((el): el is TJIIXElement => el !== undefined)
   }
 
   /**

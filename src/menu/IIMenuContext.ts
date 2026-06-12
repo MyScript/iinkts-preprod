@@ -1,5 +1,5 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { IIStroke, IIText, TIISymbol, isRecognizedMath, isStroke, isText } from "@/symbol"
+import { IIStroke, IIText, TIISymbol, isStroke, isText } from "@/symbol"
 import { InteractiveInkEditor } from "@/editor"
 import { IIMenuContextConfig, defaultMenuContextConfig } from "./IIMenuContextConfig"
 import {
@@ -65,7 +65,7 @@ export class IIMenuContext
 
   get hasSingleMathSymbol(): boolean
   {
-    return this.symbolsSelected.length > 0 && this.symbolsSelected.every(s => isRecognizedMath(s) && s.jiixBlockId === (this.symbolsSelected[0] as IIStroke)?.jiixBlockId)
+    return this.editor.jiix.getBlocksForSymbols(this.editor.model.symbolsSelected).filter(s => s.type === "Math").length === 1
   }
 
   protected async updateMathMenu(): Promise<void>
