@@ -170,7 +170,7 @@ export class IIMathComputationSubManager extends IIAbstractManager
   {
     this.logger.info("computeAllNumericalResults")
 
-    const jiixBlocks = this.editor.model.getMathBlocks()
+    const jiixBlocks = this.editor.model.mathBlocks
 
     for (const mathSymbol of jiixBlocks) {
       try {
