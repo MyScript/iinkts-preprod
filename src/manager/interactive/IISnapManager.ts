@@ -78,8 +78,8 @@ export class IISnapManager extends IIAbstractManager
 
   get otherSnapPoints(): TPoint[]
   {
-    const selectSymbolIds = this.model.symbolsSelected.map(s => s.id)
-    return this.model.symbols.filter(s => !selectSymbolIds.includes(s.id)).flatMap(s => s.snapPoints)
+    const selectedIds = new Set(this.model.symbolsSelected.map(s => s.id))
+    return this.model.symbols.filter(s => !selectedIds.has(s.id)).flatMap(s => s.snapPoints)
   }
 
   get snapThreshold(): number
@@ -139,42 +139,74 @@ export class IISnapManager extends IIAbstractManager
     this.renderer.clearElements({ attrs: { role: "snap-to-element" } })
   }
 
+  protected buildXBuckets(points: TPoint[], bucketSize: number): Map<number, TPoint[]>
+  {
+    const buckets = new Map<number, TPoint[]>()
+    for (const p of points) {
+      const key = Math.floor(p.x / bucketSize)
+      const bucket = buckets.get(key)
+      if (bucket) bucket.push(p)
+      else buckets.set(key, [p])
+    }
+    return buckets
+  }
+
+  protected buildYBuckets(points: TPoint[], bucketSize: number): Map<number, TPoint[]>
+  {
+    const buckets = new Map<number, TPoint[]>()
+    for (const p of points) {
+      const key = Math.floor(p.y / bucketSize)
+      const bucket = buckets.get(key)
+      if (bucket) bucket.push(p)
+      else buckets.set(key, [p])
+    }
+    return buckets
+  }
+
   protected getSnapLinesInfos(sourcePoints: TPoint[], targetPoints: TPoint[]): TSnapLineInfos
   {
     const infos: TSnapLineInfos = {
-      nudge: {
-        x: Infinity,
-        y: Infinity
-      },
+      nudge: { x: Infinity, y: Infinity },
       verticales: [],
       horizontales: [],
     }
     if (!sourcePoints.length || !targetPoints.length) return infos
 
-    sourcePoints.forEach(p1 =>
-    {
-      targetPoints.forEach(p2 =>
-      {
-        if (this.snapThreshold > Math.abs(p2.x - p1.x)) {
-          if (Math.abs(infos.nudge.x) > Math.abs(p2.x - p1.x)) {
-            infos.nudge.x = p2.x - p1.x
-            infos.verticales = [{ p1: { ...p1 }, p2 }]
-          }
-          else if (infos.nudge.x === p2.x - p1.x) {
-            infos.verticales.push({ p1: { ...p1 }, p2 })
-          }
-        }
-        if (this.snapThreshold > Math.abs(p2.y - p1.y)) {
-          if (Math.abs(infos.nudge.y) > Math.abs(p2.y - p1.y)) {
-            infos.nudge.y = p2.y - p1.y
-            infos.horizontales = [{ p1: { ...p1 }, p2 }]
-          }
-          else if (infos.nudge.y === p2.y - p1.y) {
-            infos.horizontales.push({ p1: { ...p1 }, p2 })
+    const threshold = this.snapThreshold
+    const xBuckets = this.buildXBuckets(targetPoints, threshold)
+    const yBuckets = this.buildYBuckets(targetPoints, threshold)
+
+    for (const p1 of sourcePoints) {
+      const xKey = Math.floor(p1.x / threshold)
+      for (const bKey of [xKey - 1, xKey, xKey + 1]) {
+        for (const p2 of (xBuckets.get(bKey) ?? [])) {
+          if (threshold > Math.abs(p2.x - p1.x)) {
+            if (Math.abs(infos.nudge.x) > Math.abs(p2.x - p1.x)) {
+              infos.nudge.x = p2.x - p1.x
+              infos.verticales = [{ p1: { ...p1 }, p2 }]
+            }
+            else if (infos.nudge.x === p2.x - p1.x) {
+              infos.verticales.push({ p1: { ...p1 }, p2 })
+            }
           }
         }
-      })
-    })
+      }
+
+      const yKey = Math.floor(p1.y / threshold)
+      for (const bKey of [yKey - 1, yKey, yKey + 1]) {
+        for (const p2 of (yBuckets.get(bKey) ?? [])) {
+          if (threshold > Math.abs(p2.y - p1.y)) {
+            if (Math.abs(infos.nudge.y) > Math.abs(p2.y - p1.y)) {
+              infos.nudge.y = p2.y - p1.y
+              infos.horizontales = [{ p1: { ...p1 }, p2 }]
+            }
+            else if (infos.nudge.y === p2.y - p1.y) {
+              infos.horizontales.push({ p1: { ...p1 }, p2 })
+            }
+          }
+        }
+      }
+    }
 
     return infos
   }
