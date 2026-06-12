@@ -74,28 +74,48 @@ export class InteractiveInkEditor extends AbstractEditor
   #recognizeStrokeTimer?: ReturnType<typeof setTimeout>
   #symbolFactory: SymbolFactory
 
+  /** SVG renderer responsible for drawing symbols onto the canvas layer. */
   renderer: SVGRenderer
+  /** WebSocket recognizer handling real-time communication with the MyScript backend. */
   recognizer: RecognizerWebSocket
 
   #penStyle: TStyle
 
+  /** Manages undo/redo history stack for all symbol changes. */
   history: IIHistoryManager
+  /** Handles ink input: captures pointer events and creates strokes. */
   writer: IIWriterManager
+  /** Handles keyboard shortcuts and hotkey-based tool switching. */
   keyboard: IIKeyboardManager
+  /** Handles erasing strokes and symbols via pointer interaction. */
   eraser: EraseManager
+  /** Detects and processes touch/pointer gestures (scratch-out, join, insert, etc.). */
   gesture: IIGestureManager
+  /** Handles interactive resizing of selected symbols. */
   resizer: IIResizeManager
+  /** Handles interactive rotation of selected symbols. */
   rotator: IIRotationManager
+  /** Handles interactive translation (drag) of selected symbols. */
   translator: IITranslateManager
+  /** Converts ink strokes to recognized text, math, or shape symbols. */
   converter: IIConversionManager
+  /** Manages text symbol layout: bounds computation and reflow after edits. */
   texter: IITextManager
+  /** Handles symbol selection, selection group rendering, and hit-testing. */
   selector: IISelectionManager
+  /** Renders debug SVG overlays (bounding boxes, snap guides, etc.). */
   svgDebugger: IIDebugSVGManager
+  /** Manages snapping behavior for symbols during move/resize operations. */
   snaps: IISnapManager
+  /** Handles canvas panning when the Move tool is active. */
   move: IIMoveManager
+  /** Synchronizes the local model with the JIIX export from the backend recognizer. */
   synchronizer: IISynchronizerManager
+  /** Queries and maps JIIX data to local symbols for math/text label resolution. */
   jiix: IIJiixQueryManager
+  /** Manages math recognition: variables, computation, and evaluation rendering. */
   math: IIMathManager
+  /** Manages the floating UI menu (tool selector, style panel, action buttons). */
   menu: IIMenuManager
   #drawComputationResult: boolean = true
 
