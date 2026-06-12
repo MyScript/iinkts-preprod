@@ -277,6 +277,7 @@ export class IIVariableEditor {
         this.logger.info(`Updated variables for ${updates.length} symbol(s)`)
       }
       this.close()
+      this.editor.menu.context.update()
     } catch (error) {
       this.logger.error("Error applying variable changes:", error)
     }

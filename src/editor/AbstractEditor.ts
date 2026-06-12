@@ -40,9 +40,13 @@ export type EditorOptionsBase = {
  */
 export abstract class AbstractEditor
 {
+  /** Logger instance for this editor. */
   logger = LoggerManager.getLogger(LoggerCategory.EDITOR)
+  /** DOM layer manager handling rendering, UI, and modal elements. */
   layers: EditorLayer
+  /** Event bus for subscribing to editor lifecycle and content events. */
   event: EditorEvent
+  /** Server API information (version, etc.) loaded on first connection. */
   info?: TApiInfos
 
   #loggerConfiguration!: TLoggerConfiguration

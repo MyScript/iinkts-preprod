@@ -259,7 +259,7 @@ export class IIMathOverlaySubManager extends IIAbstractManager
 
     this.clearAll()
 
-    this.model.getMathBlocks().forEach(mathBlock => {
+    this.model.mathBlocks.forEach(mathBlock => {
       if (!mathBlock["bounding-box"]) {
         this.logger.warn("refresh", `Math block ${mathBlock.id} has no bounds, skipping overlay`)
         return
