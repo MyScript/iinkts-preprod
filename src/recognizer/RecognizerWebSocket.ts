@@ -20,7 +20,9 @@ import
   TInteractiveInkSessionDescriptionMessage,
   TRecognizerWebSocketMessageMathSolverResult,
   TMathVariable,
-  TMathEvaluable
+  TMathEvaluable,
+  TMathVariableDefinition,
+  TMathVariableDefinitions
 } from "./RecognizerWebSocketMessage"
 import { RecognizerError, mapCloseCodeToMessage } from "./RecognizerError"
 import PingWorker from "web-worker:../worker/ping.worker.ts"
@@ -58,6 +60,10 @@ export class RecognizerWebSocket
   protected pingCount = 0
   protected reconnectionCount = 0
   protected sessionId?: string
+
+  protected boundOpenCallback: () => void
+  protected boundCloseCallback: (evt: CloseEvent) => void
+  protected boundMessageCallback: (message: MessageEvent<string>) => void
   protected currentPartId?: string
   protected currentErrorCode?: string | number
 
@@ -78,6 +84,9 @@ export class RecognizerWebSocket
   protected getVariablesDeferred: Map<string, DeferredPromise<TMathVariable[]>>
   protected setVariableValueDeferred: Map<string, DeferredPromise<void>>
   protected getVariableValueDeferred: Map<string, DeferredPromise<number>>
+  protected removeVariableValueDeferred: Map<string, DeferredPromise<void>>
+  protected asVariableDefinitionDeferred: Map<string, DeferredPromise<TMathVariableDefinition>>
+  protected getVariableDefinitionsDeferred?: DeferredPromise<TMathVariableDefinitions[]>
   protected getEvaluablesDeferred: Map<string, DeferredPromise<TMathEvaluable[]>>
   protected evaluateDeferred: Map<string, DeferredPromise<number[][]>>
 
@@ -95,6 +104,9 @@ export class RecognizerWebSocket
 
     this.event = event || new RecognizerEvent()
     this.initialized = new DeferredPromise<void>()
+    this.boundOpenCallback = this.openCallback.bind(this)
+    this.boundCloseCallback = this.closeCallback.bind(this)
+    this.boundMessageCallback = this.messageCallback.bind(this)
     this.exportDeferredMap = new Map()
     this.contextlessGestureDeferred = new Map()
     this.availableActionsDeferred = new Map()
@@ -103,6 +115,8 @@ export class RecognizerWebSocket
     this.getVariablesDeferred = new Map()
     this.setVariableValueDeferred = new Map()
     this.getVariableValueDeferred = new Map()
+    this.removeVariableValueDeferred = new Map()
+    this.asVariableDefinitionDeferred = new Map()
     this.getEvaluablesDeferred = new Map()
     this.evaluateDeferred = new Map()
   }
@@ -165,15 +179,18 @@ export class RecognizerWebSocket
     this.getVariablesDeferred.clear()
     this.setVariableValueDeferred.clear()
     this.getVariableValueDeferred.clear()
+    this.removeVariableValueDeferred.clear()
+    this.asVariableDefinitionDeferred.clear()
+    this.getVariableDefinitionsDeferred = undefined
     this.getEvaluablesDeferred.clear()
     this.evaluateDeferred.clear()
   }
 
   protected clearSocketListener(): void
   {
-    this.socket.removeEventListener("open", this.openCallback.bind(this))
-    this.socket.removeEventListener("close", this.closeCallback.bind(this))
-    this.socket.removeEventListener("message", this.messageCallback.bind(this))
+    this.socket.removeEventListener("open", this.boundOpenCallback)
+    this.socket.removeEventListener("close", this.boundCloseCallback)
+    this.socket.removeEventListener("message", this.boundMessageCallback)
   }
 
   protected closeCallback(evt: CloseEvent): void
@@ -299,7 +316,7 @@ export class RecognizerWebSocket
     this.clearDeferred?.resolve()
     this.event.emitContentChanged({
       canRedo: contentChangeMessage.canRedo,
-      canUndo: contentChangeMessage.canRedo,
+      canUndo: contentChangeMessage.canUndo,
     } as THistoryContext)
   }
 
@@ -361,95 +378,61 @@ export class RecognizerWebSocket
     this.contextlessGestureDeferred.get(gestureMessage.strokeId)?.resolve(gestureMessage)
   }
 
+  protected resolveDeferredByBlockId<T>(map: Map<string, DeferredPromise<T>>, blockId: string | undefined, value?: T): void
+  {
+    if (blockId && map.has(blockId)) {
+      map.get(blockId)!.resolve(value as T)
+    } else {
+      const firstKey = (map.keys().next().value as string | undefined)
+      if (firstKey) {
+        map.get(firstKey)!.resolve(value as T)
+      }
+    }
+  }
+
   protected manageMathSolverResult(mathSolverMessage: TRecognizerWebSocketMessageMathSolverResult): void
   {
+    if (mathSolverMessage.action === "get-variable-definitions") {
+      this.getVariableDefinitionsDeferred?.resolve(mathSolverMessage.result)
+      this.getVariableDefinitionsDeferred = undefined
+      return
+    }
+
     const blockId = mathSolverMessage.blockId
     if (!blockId) {
       this.#logger.warn("manageMathSolverResult", "Received math solver result without blockId, unable to resolve corresponding promise", mathSolverMessage)
-      // return
     }
 
     switch (mathSolverMessage.action) {
       case "available-actions":
-        if (blockId && this.availableActionsDeferred.has(blockId)) {
-          this.availableActionsDeferred.get(blockId)?.resolve(mathSolverMessage.result)
-        } else {
-          // Fallback: resolve first pending promise (FIFO) if no blockId
-          const firstKey = this.availableActionsDeferred.keys().next().value
-          if (firstKey) {
-            this.availableActionsDeferred.get(firstKey)?.resolve(mathSolverMessage.result)
-          }
-        }
+        this.resolveDeferredByBlockId(this.availableActionsDeferred, blockId, mathSolverMessage.result)
         break;
       case "numerical-computation":
-        if (blockId && this.numericalComputationDeferred.has(blockId)) {
-          this.numericalComputationDeferred.get(blockId)?.resolve(mathSolverMessage.result)
-        } else {
-          const firstKey = this.numericalComputationDeferred.keys().next().value
-          if (firstKey) {
-            this.numericalComputationDeferred.get(firstKey)?.resolve(mathSolverMessage.result)
-          }
-        }
+        this.resolveDeferredByBlockId(this.numericalComputationDeferred, blockId, mathSolverMessage.result)
         break;
       case "get-diagnostic":
-        if (blockId && this.getDiagnosticDeferred.has(blockId)) {
-          this.getDiagnosticDeferred.get(blockId)?.resolve(mathSolverMessage.result)
-        } else {
-          const firstKey = this.getDiagnosticDeferred.keys().next().value
-          if (firstKey) {
-            this.getDiagnosticDeferred.get(firstKey)?.resolve(mathSolverMessage.result)
-          }
-        }
+        this.resolveDeferredByBlockId(this.getDiagnosticDeferred, blockId, mathSolverMessage.result)
         break;
       case "get-variables":
-        if (blockId && this.getVariablesDeferred.has(blockId)) {
-          this.getVariablesDeferred.get(blockId)?.resolve(mathSolverMessage.result)
-        } else {
-          const firstKey = this.getVariablesDeferred.keys().next().value
-          if (firstKey) {
-            this.getVariablesDeferred.get(firstKey)?.resolve(mathSolverMessage.result)
-          }
-        }
+        this.resolveDeferredByBlockId(this.getVariablesDeferred, blockId, mathSolverMessage.result)
         break;
       case "set-variable-value":
-        if (blockId && this.setVariableValueDeferred.has(blockId)) {
-          this.setVariableValueDeferred.get(blockId)?.resolve()
-        } else {
-          const firstKey = this.setVariableValueDeferred.keys().next().value
-          if (firstKey) {
-            this.setVariableValueDeferred.get(firstKey)?.resolve()
-          }
-        }
+        this.resolveDeferredByBlockId(this.setVariableValueDeferred, blockId)
         break;
       case "get-variable-value":
-        if (blockId && this.getVariableValueDeferred.has(blockId)) {
-          this.getVariableValueDeferred.get(blockId)?.resolve(mathSolverMessage.result)
-        } else {
-          const firstKey = this.getVariableValueDeferred.keys().next().value
-          if (firstKey) {
-            this.getVariableValueDeferred.get(firstKey)?.resolve(mathSolverMessage.result)
-          }
-        }
+        this.resolveDeferredByBlockId(this.getVariableValueDeferred, blockId, mathSolverMessage.result)
+        break;
+      case "remove-variable-value":
+        this.resolveDeferredByBlockId(this.removeVariableValueDeferred, blockId)
+        break;
+      case "as-variable-definition":
+        this.resolveDeferredByBlockId(this.asVariableDefinitionDeferred, blockId, mathSolverMessage.result)
         break;
       case "get-evaluables":
-        if (blockId && this.getEvaluablesDeferred.has(blockId)) {
-          this.getEvaluablesDeferred.get(blockId)?.resolve(mathSolverMessage.result)
-        } else {
-          const firstKey = this.getEvaluablesDeferred.keys().next().value
-          if (firstKey) {
-            this.getEvaluablesDeferred.get(firstKey)?.resolve(mathSolverMessage.result)
-          }
-        }
+        this.resolveDeferredByBlockId(this.getEvaluablesDeferred, blockId, mathSolverMessage.result)
         break;
       case "evaluate":
-        if (blockId && this.evaluateDeferred.has(blockId)) {
-          this.evaluateDeferred.get(blockId)?.resolve(mathSolverMessage.result)
-        } else {
-          const firstKey = this.evaluateDeferred.keys().next().value
-          if (firstKey) {
-            this.evaluateDeferred.get(firstKey)?.resolve(mathSolverMessage.result)
-          }
-        }
+        this.resolveDeferredByBlockId(this.evaluateDeferred, blockId, mathSolverMessage.result)
         break;
       default:
         break;
@@ -467,7 +450,7 @@ export class RecognizerWebSocket
       this.pingCount = 0
       switch (websocketMessage.type) {
         case TRecognizerWebSocketMessageType.HMAC_Challenge:
-          this.manageHMACChallenge(websocketMessage)
+          this.manageHMACChallenge(websocketMessage).catch(err => this.event.emitError(err))
           break
         case TRecognizerWebSocketMessageType.Authenticated:
           this.manageAuthenticated()
@@ -534,16 +517,15 @@ export class RecognizerWebSocket
     }
     this.socket = new WebSocket(this.url)
     this.clearSocketListener()
-    this.socket.addEventListener("open", this.openCallback.bind(this))
-    this.socket.addEventListener("close", this.closeCallback.bind(this))
-    this.socket.addEventListener("message", this.messageCallback.bind(this))
+    this.socket.addEventListener("open", this.boundOpenCallback)
+    this.socket.addEventListener("close", this.boundCloseCallback)
+    this.socket.addEventListener("message", this.boundMessageCallback)
     await this.initialized.promise
     if (this.configuration.server.websocket.pingEnabled) {
       this.pingCount = 0
       this.initPing()
     }
     this.event.emitEndtInitialization()
-    return this.initialized.promise
   }
 
   async send(message: TRecognizerWebSocketMessage): Promise<void>
@@ -676,6 +658,44 @@ export class RecognizerWebSocket
     })
     await this.setVariableValueDeferred.get(blockId)!.promise
     this.setVariableValueDeferred.delete(blockId)
+  }
+
+  async removeVariableValue(blockId: string, variableName: string): Promise<void>
+  {
+    this.removeVariableValueDeferred.set(blockId, new DeferredPromise<void>())
+    await this.send({
+      type: "mathSolver",
+      action: "remove-variable-value",
+      blockId,
+      variableName
+    })
+    await this.removeVariableValueDeferred.get(blockId)!.promise
+    this.removeVariableValueDeferred.delete(blockId)
+  }
+
+  async asVariableDefinition(blockId: string): Promise<TMathVariableDefinition>
+  {
+    this.asVariableDefinitionDeferred.set(blockId, new DeferredPromise<TMathVariableDefinition>())
+    await this.send({
+      type: "mathSolver",
+      action: "as-variable-definition",
+      blockId
+    })
+    const result = await this.asVariableDefinitionDeferred.get(blockId)!.promise
+    this.asVariableDefinitionDeferred.delete(blockId)
+    return result
+  }
+
+  async getVariableDefinitions(): Promise<TMathVariableDefinitions[]>
+  {
+    this.getVariableDefinitionsDeferred = new DeferredPromise<TMathVariableDefinitions[]>()
+    await this.send({
+      type: "mathSolver",
+      action: "get-variable-definitions"
+    })
+    const result = await this.getVariableDefinitionsDeferred.promise
+    this.getVariableDefinitionsDeferred = undefined
+    return result
   }
 
   async getEvaluables(blockId: string): Promise<TMathEvaluable[]>

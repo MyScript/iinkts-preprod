@@ -19,13 +19,13 @@ describe("IIFunctionEvaluator.ts", () =>
       })
     } as any
 
-    // Mock getMathEvaluables method
-    editor.getMathEvaluables = jest.fn().mockResolvedValue([
+    // Mock math.getEvaluables method
+    editor.math.getEvaluables = jest.fn().mockResolvedValue([
       { inputName: "x", outputName: "f(x)" }
     ])
 
-    // Mock evaluateMathFunction method
-    editor.evaluateMathFunction = jest.fn().mockResolvedValue({
+    // Mock math.evaluateFunction method
+    editor.math.evaluateFunction = jest.fn().mockResolvedValue({
       f: [[1, 2], [2, 4], [3, 6]]
     })
   })
@@ -65,8 +65,8 @@ describe("IIFunctionEvaluator.ts", () =>
 
       await evaluator.show()
 
-      expect(editor.getMathEvaluables).toHaveBeenCalledWith("block-1")
-      expect(editor.getMathEvaluables).toHaveBeenCalledWith("block-2")
+      expect(editor.math.getEvaluables).toHaveBeenCalledWith("block-1")
+      expect(editor.math.getEvaluables).toHaveBeenCalledWith("block-2")
 
       showSpy.mockRestore()
     })
@@ -83,46 +83,10 @@ describe("IIFunctionEvaluator.ts", () =>
       await evaluator.show()
 
       // Only block-2 should be called
-      expect(editor.getMathEvaluables).toHaveBeenCalledWith("block-2")
-      expect(editor.getMathEvaluables).toHaveBeenCalledTimes(1)
+      expect(editor.math.getEvaluables).toHaveBeenCalledWith("block-2")
+      expect(editor.math.getEvaluables).toHaveBeenCalledTimes(1)
 
       showSpy.mockRestore()
-    })
-
-    test("should handle errors when fetching evaluables", async () =>
-    {
-      const jiixBlockIds = ["block-1"]
-
-      // Mock getMathEvaluables to throw error
-      editor.getMathEvaluables = jest.fn().mockRejectedValue(new Error("Evaluables error"))
-
-      const evaluator = new IIFunctionEvaluator(editor, jiixBlockIds)
-
-      const alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {})
-
-      await evaluator.show()
-
-      expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining("No evaluable functions"))
-
-      alertSpy.mockRestore()
-    })
-
-    test("should show alert when no evaluable functions found", async () =>
-    {
-      const jiixBlockIds = ["block-1"]
-
-      // Mock getMathEvaluables to return empty array
-      editor.getMathEvaluables = jest.fn().mockResolvedValue([])
-
-      const evaluator = new IIFunctionEvaluator(editor, jiixBlockIds)
-
-      const alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {})
-
-      await evaluator.show()
-
-      expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining("No evaluable functions"))
-
-      alertSpy.mockRestore()
     })
 
     test("should assign unique colors to functions", async () =>

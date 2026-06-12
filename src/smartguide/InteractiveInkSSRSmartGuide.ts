@@ -352,7 +352,7 @@ export class InteractiveInkSSRSmartGuide
 
   #removeListeners(): void
   {
-    this.#smartGuideElement.addEventListener("pointerdown", this.#stopPropagation)
+    this.#smartGuideElement.removeEventListener("pointerdown", this.#stopPropagation)
     this.#ellipsisElement.removeEventListener("pointerdown", this.#onClickEllipsis)
     this.#convertElement.removeEventListener("pointerdown", this.#onClickConvert)
     this.#copyElement.removeEventListener("pointerdown", this.#onClickCopy)

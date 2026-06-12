@@ -262,6 +262,7 @@ export class InkEditor extends AbstractEditor
     this.history.push(this.model, { removed: erased })
     this.renderer.clear()
     this.event.emitExported(this.#model.exports as TExport)
+    this.event.emitCleared()
   }
 
   async destroy(): Promise<void>

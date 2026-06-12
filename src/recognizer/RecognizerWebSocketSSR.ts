@@ -337,7 +337,7 @@ export class RecognizerWebSocketSSR
       this.pingCount = 0
       switch (websocketMessage.type) {
         case "ack":
-          this.manageAckMessage(websocketMessage)
+          this.manageAckMessage(websocketMessage).catch(err => this.event.emitError(err))
           break
         case "contentPackageDescription":
           this.manageContentPackageDescriptionMessage()
@@ -394,9 +394,9 @@ export class RecognizerWebSocketSSR
       this.socket.addEventListener("open", this.openCallback.bind(this))
       this.socket.addEventListener("close", this.closeCallback.bind(this))
       this.socket.addEventListener("message", this.messageCallback.bind(this))
-      this.event.emitEndtInitialization()
       await this.connected.promise
       await this.initialized.promise
+      this.event.emitEndtInitialization()
     } catch (err: unknown) {
       this.rejectDeferredPending(err as Error)
       return this.initialized.promise
