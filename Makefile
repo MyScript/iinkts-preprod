@@ -106,6 +106,7 @@ prepare-test-examples-ci: _create-network \
 	_launch-iinkresources-volume \
 	_launch-iinklicenses-volume \
 	_launch-iink-backend \
+	_check-iink-backend \
 	init_examples
 
 test-examples-ci:
