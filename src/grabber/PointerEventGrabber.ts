@@ -175,12 +175,19 @@ export class PointerEventGrabber
 
   protected contextMenuHandler = (evt: MouseEvent) =>
   {
-    const pointerInfo = this.getPointerInfos(evt as PointerEvent)
-    this.#logger.debug("contextMenuHandler", pointerInfo)
-    if (evt.target && this.onContextMenu){
-      if (this.#logger.level === LoggerLevel.INFO) {
-        this.#logger.info("contextMenuHandler", pointerInfo)
+    if (evt.target && this.onContextMenu) {
+      const pointerInfo: PointerInfo = {
+        clientX: evt.clientX,
+        clientY: evt.clientY,
+        isPrimary: true,
+        type: evt.type,
+        target: evt.target as HTMLElement,
+        pointerType: "mouse",
+        pointer: this.extractPointer(evt),
+        button: evt.button,
+        buttons: evt.buttons
       }
+      this.#logger.debug("contextMenuHandler", pointerInfo)
       this.onContextMenu(pointerInfo)
     }
   }

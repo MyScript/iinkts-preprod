@@ -55,7 +55,7 @@ export class CanvasRenderer extends BaseRenderer<CanvasRenderingContext2D, Omit<
       const height = Math.max(this.configuration.minHeight, domElement.clientHeight)
       canvas.width = width * pixelRatio
       canvas.height = height * pixelRatio
-      canvas.getContext("2d")?.scale(pixelRatio, pixelRatio)
+      canvas.getContext("2d")?.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0)
       canvas.style.width = `${ width }px`
       canvas.style.height = `${ height }px`
     })

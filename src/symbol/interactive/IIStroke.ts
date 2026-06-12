@@ -77,9 +77,11 @@ export class IIStroke extends IISymbolBase<SymbolType.Stroke>
   {
     const before = new IIStroke(strokeToSplit.style, strokeToSplit.pointerType)
     before.pointers = strokeToSplit.pointers.slice(0, i)
+    before.length = before.pointers.reduce((sum, ptr, idx, arr) => idx === 0 ? 0 : sum + computeDistance(ptr, arr[idx - 1]), 0)
 
     const after = new IIStroke(strokeToSplit.style, strokeToSplit.pointerType)
     after.pointers = strokeToSplit.pointers.slice(i)
+    after.length = after.pointers.reduce((sum, ptr, idx, arr) => idx === 0 ? 0 : sum + computeDistance(ptr, arr[idx - 1]), 0)
 
     return { before, after }
   }
