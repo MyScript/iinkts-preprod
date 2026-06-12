@@ -49,6 +49,7 @@ export class IIFunctionEvaluator {
   private tabContent?: HTMLDivElement
   private currentTab: "graph" | "table" = "graph"
   private functionsToEvaluate: EvaluableFunction[] = []
+  private tabObservers: MutationObserver[] = []
   private logger = LoggerManager.getLogger(LoggerCategory.MATH)
 
   // Chart colors for multiple functions
@@ -503,6 +504,7 @@ export class IIFunctionEvaluator {
       }
     })
     observer.observe(tab, { attributes: true, attributeFilter: ["class"] })
+    this.tabObservers.push(observer)
 
     return tab
   }
@@ -862,6 +864,8 @@ export class IIFunctionEvaluator {
       this.modal.destroy()
       this.modal = undefined
     }
+    this.tabObservers.forEach(obs => obs.disconnect())
+    this.tabObservers = []
     this.tabContent = undefined
     this.evaluationResults = undefined
     this.currentTab = "graph"
