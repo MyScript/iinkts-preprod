@@ -258,7 +258,7 @@
         return
       }
 
-      const mathBlocks = editor.model.getMathBlocks()
+      const mathBlocks = editor.model.mathBlocks
 
       for (const mb of mathBlocks) {
         const label = mb.label || ''
@@ -279,7 +279,7 @@
     }
 
     async function updateDependenciesDisplay() {
-      const mathBlocks = editor.model.getMathBlocks()
+      const mathBlocks = editor.model.mathBlocks
 
       if (mathBlocks.length === 0) {
         dependenciesList.innerHTML = 'No math blocks yet'
@@ -353,7 +353,7 @@
 
     async function updateVariablesList() {
       allVariables = []
-      const mathBlocks = editor.model.getMathBlocks()
+      const mathBlocks = editor.model.mathBlocks
       for (const mb of mathBlocks) {
         try {
           const variables = await editor.math.getVariables(mb.id)

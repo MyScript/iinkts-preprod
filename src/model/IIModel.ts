@@ -49,6 +49,36 @@ export class IIModel
     return this.symbols.filter(s => s.deleting)
   }
 
+  /**
+   * Get all Text blocks from JIIX export
+   * @returns Array of Text elements from the JIIX export, or empty array if no export available
+   */
+  get textBlocks(): TJIIXTextElement[]
+  {
+    const jiixExport = this.exports?.["application/vnd.myscript.jiix"]
+    if (!jiixExport?.elements) {
+      return []
+    }
+    return jiixExport.elements.filter(
+      (el): el is TJIIXTextElement => el.type === JIIXElementType.Text
+    )
+  }
+
+  /**
+   * Get all Math blocks from JIIX export
+   * @returns Array of Math elements from the JIIX export, or empty array if no export available
+   */
+  get mathBlocks(): TJIIXMathElement[]
+  {
+    const jiixExport = this.exports?.["application/vnd.myscript.jiix"]
+    if (!jiixExport?.elements) {
+      return []
+    }
+    return jiixExport.elements.filter(
+      (el): el is TJIIXMathElement => el.type === JIIXElementType.Math
+    )
+  }
+
   selectSymbol(id: string): void
   {
     this.#syncMap()
@@ -293,35 +323,5 @@ export class IIModel
     this.exports = undefined
     this.idle = true
 
-  }
-
-  /**
-   * Get all Text blocks from JIIX export
-   * @returns Array of Text elements from the JIIX export, or empty array if no export available
-   */
-  getTextBlocks(): TJIIXTextElement[]
-  {
-    const jiixExport = this.exports?.["application/vnd.myscript.jiix"]
-    if (!jiixExport?.elements) {
-      return []
-    }
-    return jiixExport.elements.filter(
-      (el): el is TJIIXTextElement => el.type === JIIXElementType.Text
-    )
-  }
-
-  /**
-   * Get all Math blocks from JIIX export
-   * @returns Array of Math elements from the JIIX export, or empty array if no export available
-   */
-  getMathBlocks(): TJIIXMathElement[]
-  {
-    const jiixExport = this.exports?.["application/vnd.myscript.jiix"]
-    if (!jiixExport?.elements) {
-      return []
-    }
-    return jiixExport.elements.filter(
-      (el): el is TJIIXMathElement => el.type === JIIXElementType.Math
-    )
   }
 }
