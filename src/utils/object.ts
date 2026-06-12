@@ -83,5 +83,5 @@ export const isDeepEqual = (object1: unknown, object2: unknown): boolean =>
  */
 const isObject = (object: unknown): object is Record<string, unknown> =>
 {
-  return typeof object === "object" && object !== null
+  return typeof object === "object" && object !== null && !Array.isArray(object)
 }
