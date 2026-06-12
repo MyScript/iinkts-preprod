@@ -328,6 +328,7 @@ export class IIMathOverlaySubManager extends IIAbstractManager
     this.renderer.clearElements({ attrs: { "data-overlay": "result-panel" } })
     this.renderer.clearElements({ attrs: { "data-overlay": "result-connection" } })
     this.renderer.clearElements({ attrs: { "data-overlay": "hover-zone" } })
+    this.renderer.clearElements({ attrs: { "data-overlay": "arrow" } })
   }
 
   protected sanitizeId(id: string): string {
