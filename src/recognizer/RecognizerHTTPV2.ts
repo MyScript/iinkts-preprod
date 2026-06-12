@@ -137,12 +137,12 @@ export class RecognizerHTTPV2 {
         }
       }
     } catch (error: Error | unknown) {
+      // If there is an error during HMAC computation, log the error and proceed without the HMAC header
       if (error instanceof Error) {
-        this.#logger.error("post.computeHmac", `hmacKey: ${hmacKey}, error: ${error.message}`)
+        this.#logger.error("post.computeHmac", error.message)
       } else {
-        this.#logger.error("post.computeHmac", `hmacKey: ${hmacKey}, error: ${String(error)}`)
+        this.#logger.error("post.computeHmac", String(error))
       }
-      throw error
     }
     headers.append("Content-Type", "application/json")
 
