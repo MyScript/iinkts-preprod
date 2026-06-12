@@ -42,7 +42,7 @@ export class SVGRendererMathUtil
       let currentX = math.point.x
       const baselineY = math.point.y
 
-      math.elements.forEach(e =>
+      math.elements.forEach((e, index) =>
       {
         const textAttrs: { [key: string]: string } = {
           id: e.id,
@@ -66,9 +66,9 @@ export class SVGRendererMathUtil
           x = currentX - e.label.length * e.fontSize * 0.3
         } else {
           // Normal element - advance x position after previous normal elements
-          if (math.elements.indexOf(e) > 0) {
+          if (index > 0) {
             // Advance x after operator and limits
-            const prevElement = math.elements[math.elements.indexOf(e) - 1]
+            const prevElement = math.elements[index - 1]
             if (prevElement.position === "normal") {
               currentX += prevElement.label.length * prevElement.fontSize * 0.6
               x = currentX
