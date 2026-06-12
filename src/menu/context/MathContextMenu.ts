@@ -1,6 +1,5 @@
 import { InteractiveInkEditor } from "@/editor"
 import { SubMenuItem, IMenuSubMenu } from "@/menu/items/SubMenuItem"
-import { IIStroke, isRecognizedMath } from "@/symbol"
 import { IIFunctionEvaluator, IIDiagnosticChecker, IINumericalComputationResult, IIVariableEditor } from "@/components"
 import { LoggerCategory, LoggerManager } from "@/logger"
 
@@ -37,21 +36,14 @@ export class MathContextMenu extends SubMenuItem
           label: "Check diagnostic",
           action: async () => {
             this.logger.info("Check diagnostic clicked")
-
             try {
-              const symbolsSelected = editor.model.symbolsSelected
-              const mathSymbols = symbolsSelected.filter(isRecognizedMath)
-
-              if (mathSymbols.length === 0) {
-                this.logger.warn("No math symbol selected")
+              const jiixBlockIds = editor.jiix.getBlocksForSymbols(editor.model.symbolsSelected).filter(s => s.type === "Math").map(s => s.id)
+              if (jiixBlockIds.length === 0) {
+                this.logger.warn("No block math selected")
                 return
               }
-
-              const jiixBlockIds = mathSymbols.map(s => s.jiixBlockId!).filter(Boolean)
-
               const checker = new IIDiagnosticChecker(editor, jiixBlockIds)
               await checker.show()
-
             } catch (error) {
               this.logger.error("Error checking diagnostic:", error)
             }
@@ -62,12 +54,12 @@ export class MathContextMenu extends SubMenuItem
           type: "button",
           label: "Edit variables",
           action: async () => {
-            const mathSymbol = editor.model.symbolsSelected[0] as IIStroke
-            if (!mathSymbol.jiixBlockId) {
-              this.logger.warn("Selected math symbol does not have jiixId")
+            const jiixBlockIds = editor.jiix.getBlocksForSymbols(editor.model.symbolsSelected).filter(s => s.type === "Math").map(s => s.id)
+            if (jiixBlockIds.length === 0) {
+              this.logger.warn("No block math selected")
               return
             }
-            const variableEditor = new IIVariableEditor(editor, [mathSymbol.jiixBlockId])
+            const variableEditor = new IIVariableEditor(editor, jiixBlockIds)
             await variableEditor.show()
           }
         },
@@ -77,17 +69,12 @@ export class MathContextMenu extends SubMenuItem
           label: "Compute numerical result",
           action: async () => {
             this.logger.info("Compute numerical result clicked")
-            
             try {
-              const symbolsSelected = editor.model.symbolsSelected
-              const mathSymbols = symbolsSelected.filter(isRecognizedMath)
-              
-              if (mathSymbols.length === 0) {
-                this.logger.warn("No math symbol selected")
+              const jiixBlockIds = editor.jiix.getBlocksForSymbols(editor.model.symbolsSelected).filter(s => s.type === "Math").map(s => s.id)
+              if (jiixBlockIds.length === 0) {
+                this.logger.warn("No block math selected")
                 return
               }
-              
-              const jiixBlockIds = mathSymbols.map(s => s.jiixBlockId!).filter(Boolean)
               if (this.editor.drawComputationResult) {
                 await Promise.all(jiixBlockIds.map(jiixBlockId => this.editor.math.computeNumericalResult(jiixBlockId, this.editor.drawComputationResult)))
               } else {
@@ -106,19 +93,14 @@ export class MathContextMenu extends SubMenuItem
           label: "Evaluate function",
           action: async () => {
             this.logger.info("Evaluate function clicked")
-            
             try {
-              const symbolsSelected = editor.model.symbolsSelected
-              const mathSymbols = symbolsSelected.filter(isRecognizedMath)
-              
-              if (mathSymbols.length === 0) {
-                this.logger.warn("No math symbol selected")
+              const jiixBlockIds = editor.jiix.getBlocksForSymbols(editor.model.symbolsSelected).filter(s => s.type === "Math").map(s => s.id)
+              if (jiixBlockIds.length === 0) {
+                this.logger.warn("No block math selected")
                 return
               }
-              const jiixBlockIds = mathSymbols.map(s => s.jiixBlockId!).filter(Boolean)
               const evaluator = new IIFunctionEvaluator(editor, jiixBlockIds)
               await evaluator.show()
-
             } catch (error) {
               this.logger.error("Error evaluating function:", error)
             }
