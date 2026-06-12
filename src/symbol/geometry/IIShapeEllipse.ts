@@ -14,7 +14,8 @@ export class IIShapeEllipse extends IIShapeBase<ShapeKind.Ellipse>
   radiusX: number
   radiusY: number
   orientation: number
-  protected _vertices: Map<string, TPoint[]>
+  protected _cachedVerticesKey?: string
+  protected _cachedVertices?: TPoint[]
 
   constructor(
     center: TPoint,
@@ -29,7 +30,6 @@ export class IIShapeEllipse extends IIShapeBase<ShapeKind.Ellipse>
     this.radiusX = radiusX
     this.radiusY = radiusY
     this.orientation = orientation
-    this._vertices = new Map<string, TPoint[]>()
   }
 
   protected get verticesId(): string
@@ -52,10 +52,12 @@ export class IIShapeEllipse extends IIShapeBase<ShapeKind.Ellipse>
 
   get vertices(): TPoint[]
   {
-    if (!this._vertices.has(this.verticesId)) {
-      this._vertices.set(this.verticesId, this.computedVertices())
+    const key = this.verticesId
+    if (this._cachedVerticesKey !== key) {
+      this._cachedVerticesKey = key
+      this._cachedVertices = this.computedVertices()
     }
-    return this._vertices.get(this.verticesId)!
+    return this._cachedVertices!
   }
 
   overlaps(box: TBox): boolean
