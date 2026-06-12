@@ -548,10 +548,7 @@ export class Chart
     }
 
     // Calculate data bounds from all series (filter out NaN values)
-    const allPoints: number[][] = []
-    for (const series of this.series) {
-      allPoints.push(...series)
-    }
+    const allPoints = this.series.flat()
 
     const xValues = allPoints
       .map((p) => p[0])
@@ -564,10 +561,10 @@ export class Chart
       return null
     }
 
-    const xMin = Math.min(...xValues)
-    const xMax = Math.max(...xValues)
-    const yMin = Math.min(...yValues)
-    const yMax = Math.max(...yValues)
+    const xMin = xValues.reduce((min, v) => v < min ? v : min, Infinity)
+    const xMax = xValues.reduce((max, v) => v > max ? v : max, -Infinity)
+    const yMin = yValues.reduce((min, v) => v < min ? v : min, Infinity)
+    const yMax = yValues.reduce((max, v) => v > max ? v : max, -Infinity)
 
     // Add padding to ranges
     const { min: finalXMin, max: finalXMax } = this.computeRangeWithPadding(xMin, xMax)
