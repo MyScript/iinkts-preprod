@@ -339,7 +339,7 @@ export class IIMathCapabilitiesTable {
    * Show the capabilities overview modal
    */
   async show(): Promise<void> {
-    const mathBlocks = this.editor.model.getMathBlocks()
+    const mathBlocks = this.editor.model.mathBlocks
     if (mathBlocks.length === 0) {
       this.logger.warn("No math symbols found in the model")
       return
