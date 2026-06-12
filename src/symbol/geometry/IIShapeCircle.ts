@@ -12,8 +12,10 @@ export class IIShapeCircle extends IIShapeBase<ShapeKind.Circle>
 {
   center: TPoint
   radius: number
-  protected _vertices: Map<string, TPoint[]>
-  protected _bounds: Map<string, Box>
+  protected _cachedVerticesKey?: string
+  protected _cachedVertices?: TPoint[]
+  protected _cachedBoundsKey?: string
+  protected _cachedBounds?: Box
 
   constructor(
     center: TPoint,
@@ -24,10 +26,6 @@ export class IIShapeCircle extends IIShapeBase<ShapeKind.Circle>
     super(ShapeKind.Circle, style)
     this.center = center
     this.radius = radius
-    this._vertices = new Map<string, TPoint[]>()
-    this._vertices.set(this.verticesId, this.computedVertices())
-    this._bounds = new Map<string, Box>()
-    this._bounds.set(this.verticesId, this.computedBoundingBox())
   }
 
   protected get verticesId(): string
@@ -64,18 +62,22 @@ export class IIShapeCircle extends IIShapeBase<ShapeKind.Circle>
 
   get bounds(): Box
   {
-    if (!this._bounds.has(this.verticesId)) {
-      this._bounds.set(this.verticesId, this.computedBoundingBox())
+    const key = this.verticesId
+    if (this._cachedBoundsKey !== key) {
+      this._cachedBoundsKey = key
+      this._cachedBounds = this.computedBoundingBox()
     }
-    return this._bounds.get(this.verticesId)!
+    return this._cachedBounds!
   }
 
   get vertices(): TPoint[]
   {
-    if (!this._vertices.has(this.verticesId)) {
-      this._vertices.set(this.verticesId, this.computedVertices())
+    const key = this.verticesId
+    if (this._cachedVerticesKey !== key) {
+      this._cachedVerticesKey = key
+      this._cachedVertices = this.computedVertices()
     }
-    return this._vertices.get(this.verticesId)!
+    return this._cachedVertices!
   }
 
   overlaps(box: TBox): boolean
