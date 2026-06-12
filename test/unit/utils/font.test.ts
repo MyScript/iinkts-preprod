@@ -22,7 +22,7 @@ describe("font.ts", () =>
     getAvailableFontList()
       .catch(e =>
       {
-        expect(e).toBe("Failed to get fonts: configuration.server.scheme & configuration.server.host are required!")
+        expect(e.message).toBe("Failed to get fonts: configuration.server.scheme & configuration.server.host are required!")
       })
   })
 
@@ -33,7 +33,7 @@ describe("font.ts", () =>
     getAvailableFontList(conf)
       .catch(e =>
       {
-        expect(e).toBe("Failed to get fonts: configuration.server.scheme & configuration.server.host are required!")
+        expect(e.message).toBe("Failed to get fonts: configuration.server.scheme & configuration.server.host are required!")
       })
   })
 
@@ -44,7 +44,7 @@ describe("font.ts", () =>
     getAvailableFontList(conf)
       .catch(e =>
       {
-        expect(e).toBe("Failed to get fonts: configuration.server.scheme & configuration.server.host are required!")
+        expect(e.message).toBe("Failed to get fonts: configuration.server.scheme & configuration.server.host are required!")
       })
   })
 
@@ -55,7 +55,7 @@ describe("font.ts", () =>
     getAvailableFontList(conf)
       .catch(e =>
       {
-        expect(e).toBe("Failed to get fonts: configuration.server.scheme & configuration.server.host are required!")
+        expect(e.message).toBe("Failed to get fonts: configuration.server.scheme & configuration.server.host are required!")
       })
   })
 
@@ -66,7 +66,7 @@ describe("font.ts", () =>
     getAvailableFontList(conf)
       .catch(e =>
       {
-        expect(e).toBe("Failed to get fonts: configuration.recognition.lang is required!")
+        expect(e.message).toBe("Failed to get fonts: configuration.recognition.lang is required!")
       })
   })
 })

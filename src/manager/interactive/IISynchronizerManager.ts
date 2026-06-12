@@ -155,7 +155,6 @@ export class IISynchronizerManager extends IIAbstractManager
 
     // Mark model modified once instead of N×O(n) via updateSymbol()
     this.model.modificationDate = now
-    this.model.converts = undefined
     this.model.exports = undefined
 
     // Yield to event loop so pointer events can be processed before math enrichment
@@ -169,16 +168,19 @@ export class IISynchronizerManager extends IIAbstractManager
     this.editor.jiix.invalidateIndex()
     this.editor.history.update(this.model)
 
-    // Enrich math blocks with dependencies — one call per unique jiix block
+    // Enrich math blocks with dependencies — parallel with individual timeout to avoid one hanging block stalling the whole sync
     const mathBlockIds = this.model.getMathBlocks().map(mb => mb.id)
-
-    for (const blockId of mathBlockIds) {
+    const ENRICH_TIMEOUT_MS = 5000
+    await Promise.allSettled(mathBlockIds.map(async (blockId) => {
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(`enrichMathDependencies timeout for "${blockId}"`)), ENRICH_TIMEOUT_MS)
+      )
       try {
-        await this.editor.math.enrichMathDependencies(blockId)
+        await Promise.race([this.editor.math.enrichMathDependencies(blockId), timeout])
       } catch (err) {
         this.logger.error("synchronize", "Error enriching math dependencies:", err)
       }
-    }
+    }))
 
     // Cleanup invalid math dependencies
     try {

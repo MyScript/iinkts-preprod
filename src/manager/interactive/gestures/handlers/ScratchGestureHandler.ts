@@ -133,7 +133,6 @@ export class ScratchGestureHandler extends GestureHandler
       return
     }
 
-    const symbolsToUpdate: TIISymbol[] = []
     const symbolsToErase: TIISymbol[] = []
     const symbolsToReplace: { oldSymbols: TIISymbol[], newSymbols: TIISymbol[] } = { oldSymbols: [], newSymbols: [] }
 
@@ -160,7 +159,7 @@ export class ScratchGestureHandler extends GestureHandler
     for (const mathSymbol of affectedMathSymbols) {
       if (!mathSymbol.jiixBlockId) continue
 
-      const deps = await this.editor.getMathDependencies(mathSymbol.jiixBlockId)
+      const deps = await this.editor.math.getDependencies(mathSymbol.jiixBlockId)
       if (deps?.dependentBlocks && deps.dependentBlocks.length > 0) {
         this.logger.info("applyScratch", `Math symbol ${mathSymbol.jiixBlockId} has ${deps.dependentBlocks.length} dependent blocks, clearing their solver outputs`)
         deps.dependentBlocks.forEach(blockId => dependentBlocksToClean.add(blockId))
@@ -174,11 +173,6 @@ export class ScratchGestureHandler extends GestureHandler
 
     const promises: Promise<void | TIISymbol[]>[] = []
     const changes: TIIHistoryChanges = {}
-
-    if (symbolsToUpdate.length) {
-      promises.push(this.editor.updateSymbols(symbolsToUpdate, false))
-      changes.updated = symbolsToUpdate
-    }
 
     if (symbolsToErase.length) {
       promises.push(this.editor.removeSymbols(symbolsToErase.map(s => s.id), false))

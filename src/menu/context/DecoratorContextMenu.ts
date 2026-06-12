@@ -92,9 +92,8 @@ export class DecoratorContextMenu extends BaseMenuItem<HTMLElement>
             s.decorators.splice(decoIndex, 1)
           }
         }
-        this.editor.model.updateSymbol(s)
-        this.editor.renderer.drawSymbol(s)
       })
+      this.editor.updateSymbols(symbolsDecorable)
 
       document.querySelectorAll(`#${idPrefix}-decorator-${kind}-color button`).forEach(b => {
         (b as HTMLButtonElement).disabled = !enable
@@ -145,10 +144,9 @@ export class DecoratorContextMenu extends BaseMenuItem<HTMLElement>
           const deco = s.decorators.find(d => d.kind === kind)
           if (deco) {
             deco.style.color = color
-            this.editor.model.updateSymbol(s)
-            this.editor.renderer.drawSymbol(s)
           }
         })
+        this.editor.updateSymbols(symbolsDecorable.filter(s => s.decorators.some(d => d.kind === kind)))
         colorList.querySelectorAll("*").forEach(e => e.classList.remove("active"))
         btn.classList.add("active")
       })

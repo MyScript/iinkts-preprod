@@ -170,42 +170,42 @@ describe("MathContextMenu.ts", () =>
 
   describe("editor math methods", () =>
   {
-    test("should have getMathVariables method available", () =>
+    test("should have math.getVariables method available", () =>
     {
-      expect(editor.getMathVariables).toBeDefined()
-      expect(typeof editor.getMathVariables).toBe("function")
+      expect(editor.math.getVariables).toBeDefined()
+      expect(typeof editor.math.getVariables).toBe("function")
     })
 
-    test("should have setMathVariables method available", () =>
+    test("should have math.setListVariableValue method available", () =>
     {
-      expect(editor.setMathVariables).toBeDefined()
-      expect(typeof editor.setMathVariables).toBe("function")
+      expect(editor.math.setListVariableValue).toBeDefined()
+      expect(typeof editor.math.setListVariableValue).toBe("function")
     })
 
-    test("should have computeMathNumericalResult method available", () =>
+    test("should have math.computeNumericalResult method available", () =>
     {
-      expect(editor.computeMathNumericalResult).toBeDefined()
-      expect(typeof editor.computeMathNumericalResult).toBe("function")
+      expect(editor.math.computeNumericalResult).toBeDefined()
+      expect(typeof editor.math.computeNumericalResult).toBe("function")
     })
 
-    test("should have getEvaluables method available", () =>
+    test("should have math.getEvaluables method available", () =>
     {
-      expect(editor.getEvaluables).toBeDefined()
-      expect(typeof editor.getEvaluables).toBe("function")
+      expect(editor.math.getEvaluables).toBeDefined()
+      expect(typeof editor.math.getEvaluables).toBe("function")
     })
 
-    test("should have evaluateMathFunction method available", () =>
+    test("should have math.evaluateFunction method available", () =>
     {
-      expect(editor.evaluateMathFunction).toBeDefined()
-      expect(typeof editor.evaluateMathFunction).toBe("function")
+      expect(editor.math.evaluateFunction).toBeDefined()
+      expect(typeof editor.math.evaluateFunction).toBe("function")
     })
 
-    test("getMathVariables returns a promise", async () =>
+    test("math.getVariables returns a promise", async () =>
     {
-      editor.getMathVariables = jest.fn().mockResolvedValue([])
-      const result = await editor.getMathVariables("test-id")
+      editor.math.getVariables = jest.fn().mockResolvedValue([])
+      const result = await editor.math.getVariables("test-id")
       expect(result).toEqual([])
-      expect(editor.getMathVariables).toHaveBeenCalledWith("test-id")
+      expect(editor.math.getVariables).toHaveBeenCalledWith("test-id")
     })
 
     test("getEvaluables returns evaluable functions", async () =>
@@ -214,10 +214,10 @@ describe("MathContextMenu.ts", () =>
         { inputName: "x", outputName: "f" },
         { inputName: "t", outputName: "g" }
       ]
-      editor.getEvaluables = jest.fn().mockResolvedValue(evaluables)
-      const result = await editor.getEvaluables("test-id")
+      editor.math.getEvaluables = jest.fn().mockResolvedValue(evaluables)
+      const result = await editor.math.getEvaluables("test-id")
       expect(result).toEqual(evaluables)
-      expect(editor.getEvaluables).toHaveBeenCalledWith("test-id")
+      expect(editor.math.getEvaluables).toHaveBeenCalledWith("test-id")
     })
 
   })

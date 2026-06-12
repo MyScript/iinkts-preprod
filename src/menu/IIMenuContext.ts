@@ -79,9 +79,9 @@ export class IIMenuContext
           return
         }
         const [actions, variables, evaluables] = await Promise.all([
-          this.editor.getMathAvailableActions(mathSymbol.jiixBlockId),
-          this.editor.getMathVariables(mathSymbol.jiixBlockId),
-          this.editor.getMathEvaluables(mathSymbol.jiixBlockId)
+          this.editor.math.getAvailableActions(mathSymbol.jiixBlockId),
+          this.editor.math.getVariables(mathSymbol.jiixBlockId),
+          this.editor.math.getEvaluables(mathSymbol.jiixBlockId)
         ])
 
         const canEditVariables = Object.keys(variables).length > 0

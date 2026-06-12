@@ -9,8 +9,6 @@ export class ExportContextMenu extends SubMenuItem
 {
   constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-context")
   {
-    const haveSymbolsSelected = editor.model.symbolsSelected.length > 0
-
     const config: IMenuSubMenu = {
       id: `${idPrefix}-export`,
       type: "submenu",
@@ -21,25 +19,25 @@ export class ExportContextMenu extends SubMenuItem
           id: `${idPrefix}-export-json`,
           type: "button",
           label: "json",
-          action: () => editor.downloadAsJson(haveSymbolsSelected)
+          action: () => editor.downloadAsJson(editor.model.symbolsSelected.length > 0)
         },
         {
           id: `${idPrefix}-export-svg`,
           type: "button",
           label: "svg",
-          action: () => editor.downloadAsSVG(haveSymbolsSelected)
+          action: () => editor.downloadAsSVG(editor.model.symbolsSelected.length > 0)
         },
         {
           id: `${idPrefix}-export-png`,
           type: "button",
           label: "png",
-          action: () => editor.downloadAsPNG(haveSymbolsSelected)
+          action: () => editor.downloadAsPNG(editor.model.symbolsSelected.length > 0)
         },
         {
           id: `${idPrefix}-export-text`,
           type: "button",
           label: "text",
-          action: () => editor.downloadAsText(haveSymbolsSelected)
+          action: () => editor.downloadAsText(editor.model.symbolsSelected.length > 0)
         }
       ]
     }

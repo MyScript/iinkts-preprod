@@ -9,8 +9,6 @@ export class ReorderContextMenu extends SubMenuItem
 {
   constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-context")
   {
-    const symbolsSelected = editor.model.symbolsSelected
-
     const config: IMenuSubMenu = {
       id: `${idPrefix}-reorder`,
       type: "submenu",
@@ -22,8 +20,8 @@ export class ReorderContextMenu extends SubMenuItem
           type: "button",
           label: "Bring to front",
           action: () => {
-            editor.changeOrderSymbols(symbolsSelected, "last")
-            editor.selector.resetSelectedGroup(symbolsSelected)
+            editor.changeOrderSymbols(editor.model.symbolsSelected, "last")
+            editor.selector.resetSelectedGroup(editor.model.symbolsSelected)
           }
         },
         {
@@ -31,8 +29,8 @@ export class ReorderContextMenu extends SubMenuItem
           type: "button",
           label: "Bring forward",
           action: () => {
-            editor.changeOrderSymbols(symbolsSelected, "forward")
-            editor.selector.resetSelectedGroup(symbolsSelected)
+            editor.changeOrderSymbols(editor.model.symbolsSelected, "forward")
+            editor.selector.resetSelectedGroup(editor.model.symbolsSelected)
           }
         },
         {
@@ -40,8 +38,8 @@ export class ReorderContextMenu extends SubMenuItem
           type: "button",
           label: "Send backward",
           action: () => {
-            editor.changeOrderSymbols(symbolsSelected, "backward")
-            editor.selector.resetSelectedGroup(symbolsSelected)
+            editor.changeOrderSymbols(editor.model.symbolsSelected, "backward")
+            editor.selector.resetSelectedGroup(editor.model.symbolsSelected)
           }
         },
         {
@@ -49,8 +47,8 @@ export class ReorderContextMenu extends SubMenuItem
           type: "button",
           label: "Send to back",
           action: () => {
-            editor.changeOrderSymbols(symbolsSelected.slice().reverse(), "first")
-            editor.selector.resetSelectedGroup(symbolsSelected)
+            editor.changeOrderSymbols(editor.model.symbolsSelected.slice().reverse(), "first")
+            editor.selector.resetSelectedGroup(editor.model.symbolsSelected)
           }
         }
       ]

@@ -125,10 +125,6 @@ export class PointerEventGrabber
     this.capturing = true
     this.pointerType = evt.pointerType
 
-    if (this.#logger.level === LoggerLevel.INFO) {
-      this.#logger.info("pointerDownHandler", pointerInfo)
-    }
-
     if (this.onPointerDown) {
       this.onPointerDown(pointerInfo)
     }
@@ -139,9 +135,6 @@ export class PointerEventGrabber
     const pointerInfo = this.getPointerInfos(evt)
     this.#logger.debug("pointerMoveHandler", pointerInfo)
     if (this.capturing && this.pointerType === evt.pointerType) {
-      if (this.#logger.level === LoggerLevel.INFO) {
-        this.#logger.info("pointerMoveHandler", pointerInfo)
-      }
       if (this.onPointerMove) {
         this.onPointerMove(pointerInfo)
       }

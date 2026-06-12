@@ -5,7 +5,7 @@ import { IIStroke, TIISymbol, TPoint } from "@/symbol"
 import { TStyle } from "@/style"
 import { MatrixTransform, TMatrixTransform } from "@/transform"
 import { THistoryContext, getInitialHistoryContext } from "./HistoryContext"
-import { PartialDeep, TWO_PI } from "@/utils"
+import { PartialDeep } from "@/utils"
 import { THistoryConfiguration } from "./HistoryConfiguration"
 
 /**
@@ -123,7 +123,7 @@ export class IIHistoryManager
 
   update(model: IIModel): void
   {
-    this.#logger.info("pop")
+    this.#logger.info("update", { model })
     const stackIdx = this.stack.findIndex(s => s.model.modificationDate === model.modificationDate)
     if (stackIdx > -1) {
       this.stack[stackIdx].model = model
@@ -147,6 +147,9 @@ export class IIHistoryManager
     }
     if (changes.erased) {
       reversedChanges.added = changes.erased
+    }
+    if (changes.updated) {
+      reversedChanges.updated = changes.updated
     }
     if (changes.replaced) {
       reversedChanges.replaced = {
@@ -175,7 +178,7 @@ export class IIHistoryManager
       {
         return {
           symbols: tr.symbols,
-          angle: TWO_PI - tr.angle,
+          angle: -tr.angle,
           center: tr.center
         }
       })

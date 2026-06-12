@@ -7,6 +7,8 @@ import { IINumericalComputationResult } from "./IINumericalComputationResult"
 import { IIVariableEditor } from "./IIVariableEditor"
 import { COLORS, flexColumnStyle, flexContainerStyle, SPACING } from "./styles"
 import { createButton, createStatusBadge } from "./ui-utils"
+import { LoggerCategory } from "@/logger/logger"
+import { LoggerManager } from "@/logger/LoggerManager"
 
 /**
  * @group Components
@@ -34,6 +36,7 @@ export class IIMathCapabilitiesTable {
     computeResult?: HTMLButtonElement
     evaluateFunction?: HTMLButtonElement
   } = {}
+  private logger = LoggerManager.getLogger(LoggerCategory.MATH)
 
   constructor(editor: InteractiveInkEditor) {
     this.editor = editor
@@ -51,9 +54,9 @@ export class IIMathCapabilitiesTable {
     if (jiixBlockId) {
       try {
         const [actions, variables, evaluables] = await Promise.all([
-          this.editor.getMathAvailableActions(jiixBlockId),
-          this.editor.getMathVariables(jiixBlockId),
-          this.editor.getMathEvaluables(jiixBlockId)
+          this.editor.math.getAvailableActions(jiixBlockId),
+          this.editor.math.getVariables(jiixBlockId),
+          this.editor.math.getEvaluables(jiixBlockId)
         ])
 
         canCheckDiagnostic = true // Always available if jiixId exists
@@ -338,7 +341,7 @@ export class IIMathCapabilitiesTable {
   async show(): Promise<void> {
     const mathBlocks = this.editor.model.getMathBlocks()
     if (mathBlocks.length === 0) {
-      alert("No math symbols found in the model")
+      this.logger.warn("No math symbols found in the model")
       return
     }
 

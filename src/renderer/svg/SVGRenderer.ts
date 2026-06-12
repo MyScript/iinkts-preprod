@@ -86,7 +86,7 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
   }
 
   protected createFilters(): SVGGElement {
-    const filtersGroup = SVGBuilder.createGroup({ id: "definition-group" })
+    const filtersGroup = SVGBuilder.createGroup({ id: "filters-group" })
     const removalFilter = SVGBuilder.createFilter(SVGRendererConst.removalFilterId)
     const bfeComponentTransfer = SVGBuilder.createComponentTransfert()
     const bfeFuncA = SVGBuilder.createTransfertFunctionTable("feFuncA", "0 0.25")

@@ -49,9 +49,8 @@ export class IWriterManager extends AbstractWriterManager {
       this.#exportTimer = setTimeout(async () => {
         this.editor.export()
       }, this.editor.configuration.triggers.exportContent === "QUIET_PERIOD" ? this.editor.configuration.triggers.exportContentDelay : 0)
-    } else {
-      deferred.resolve()
     }
+    deferred.resolve()
     return deferred.promise
 
   }

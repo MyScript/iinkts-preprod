@@ -91,7 +91,6 @@ export class CanvasRendererStroke
         context2d.fillStyle = color
         context2d.fill()
       }
-      context2d.save()
     }
     catch (error) {
       this.#logger.error("draw", { error })

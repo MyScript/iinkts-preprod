@@ -22,11 +22,11 @@ describe("IIMathCapabilitiesTable.ts", () =>
     } as any
 
     // Mock methods for capabilities checking
-    editor.getMathAvailableActions = jest.fn().mockResolvedValue(["numerical-computation", "evaluation"])
-    editor.getMathVariables = jest.fn().mockResolvedValue([
+    editor.math.getAvailableActions = jest.fn().mockResolvedValue(["numerical-computation", "evaluation"])
+    editor.math.getVariables = jest.fn().mockResolvedValue([
       { name: "x", value: 1, sourceType: "UNDEFINED" }
     ])
-    editor.getMathEvaluables = jest.fn().mockResolvedValue([
+    editor.math.getEvaluables = jest.fn().mockResolvedValue([
       { inputName: "x", outputName: "f(x)" }
     ])
   })
@@ -58,9 +58,9 @@ describe("IIMathCapabilitiesTable.ts", () =>
       expect(capabilities.canCompute).toBe(true)
       expect(capabilities.canEvaluate).toBe(true)
 
-      expect(editor.getMathAvailableActions).toHaveBeenCalledWith("block-1")
-      expect(editor.getMathVariables).toHaveBeenCalledWith("block-1")
-      expect(editor.getMathEvaluables).toHaveBeenCalledWith("block-1")
+      expect(editor.math.getAvailableActions).toHaveBeenCalledWith("block-1")
+      expect(editor.math.getVariables).toHaveBeenCalledWith("block-1")
+      expect(editor.math.getEvaluables).toHaveBeenCalledWith("block-1")
     })
 
     test("should handle symbol without id", async () =>
@@ -82,9 +82,9 @@ describe("IIMathCapabilitiesTable.ts", () =>
       const jiixBlockId = "block-1"
 
       // Mock methods to throw errors
-      editor.getMathAvailableActions = jest.fn().mockRejectedValue(new Error("API error"))
-      editor.getMathVariables = jest.fn().mockRejectedValue(new Error("API error"))
-      editor.getMathEvaluables = jest.fn().mockRejectedValue(new Error("API error"))
+      editor.math.getAvailableActions = jest.fn().mockRejectedValue(new Error("API error"))
+      editor.math.getVariables = jest.fn().mockRejectedValue(new Error("API error"))
+      editor.math.getEvaluables = jest.fn().mockRejectedValue(new Error("API error"))
 
       const capabilities = await (table as any).fetchSymbolCapabilities(jiixBlockId)
 
@@ -100,7 +100,7 @@ describe("IIMathCapabilitiesTable.ts", () =>
       const table = new IIMathCapabilitiesTable(editor)
       const jiixBlockId = "block-2"
 
-      editor.getMathVariables = jest.fn().mockResolvedValue([])
+      editor.math.getVariables = jest.fn().mockResolvedValue([])
 
       const capabilities = await (table as any).fetchSymbolCapabilities(jiixBlockId)
 
@@ -112,7 +112,7 @@ describe("IIMathCapabilitiesTable.ts", () =>
       const table = new IIMathCapabilitiesTable(editor)
       const jiixBlockId = "block-3"
 
-      editor.getMathEvaluables = jest.fn().mockResolvedValue([])
+      editor.math.getEvaluables = jest.fn().mockResolvedValue([])
 
       const capabilities = await (table as any).fetchSymbolCapabilities(jiixBlockId)
 
@@ -124,7 +124,7 @@ describe("IIMathCapabilitiesTable.ts", () =>
       const table = new IIMathCapabilitiesTable(editor)
       const jiixBlockId = "block-4"
 
-      editor.getMathAvailableActions = jest.fn().mockResolvedValue(["evaluation"])
+      editor.math.getAvailableActions = jest.fn().mockResolvedValue(["evaluation"])
 
       const capabilities = await (table as any).fetchSymbolCapabilities(jiixBlockId)
 

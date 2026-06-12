@@ -168,7 +168,7 @@ export function findIntersectionBetween2Segment(seg1: TSegment, seg2: TSegment):
   const ub_t = S1dx * S1S2dy - S1dy * S1S2dx
   const u_b = S2dy * S1dx - S2dx * S1dy
 
-  if (ua_t === 0 || ub_t === 0 || u_b === 0) return
+  if (u_b === 0) return
 
   const ua = ua_t / u_b
   const ub = ub_t / u_b
