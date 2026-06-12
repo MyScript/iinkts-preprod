@@ -63,6 +63,10 @@ export class RecognizerWebSocketSSR
   protected penStyleClasses?: string
   protected theme?: TTheme
 
+  protected boundOpenCallback!: () => void
+  protected boundCloseCallback!: (evt: CloseEvent) => void
+  protected boundMessageCallback!: (message: MessageEvent<string>) => void
+
   protected connected?: DeferredPromise<void>
   protected ackDeferred?: DeferredPromise<void>
   protected addStrokeDeferred?: DeferredPromise<TExport>
@@ -89,6 +93,9 @@ export class RecognizerWebSocketSSR
     this.url = `${ scheme }://${ this.configuration.server.host }/api/v4.0/iink/document?applicationKey=${ this.configuration.server.applicationKey }`
     this.event = new RecognizerEvent()
     this.initialized = new DeferredPromise<void>()
+    this.boundOpenCallback = this.openCallback.bind(this)
+    this.boundCloseCallback = this.closeCallback.bind(this)
+    this.boundMessageCallback = this.messageCallback.bind(this)
   }
 
   get mimeTypes(): string[]
@@ -391,9 +398,9 @@ export class RecognizerWebSocketSSR
         this.infinitePing()
       }
 
-      this.socket.addEventListener("open", this.openCallback.bind(this))
-      this.socket.addEventListener("close", this.closeCallback.bind(this))
-      this.socket.addEventListener("message", this.messageCallback.bind(this))
+      this.socket.addEventListener("open", this.boundOpenCallback)
+      this.socket.addEventListener("close", this.boundCloseCallback)
+      this.socket.addEventListener("message", this.boundMessageCallback)
       await this.connected.promise
       await this.initialized.promise
       this.event.emitEndtInitialization()
@@ -682,9 +689,9 @@ export class RecognizerWebSocketSSR
   {
     if (this.socket.readyState === this.socket.OPEN || this.socket.readyState === this.socket.CONNECTING) {
       this.#logger.info("close", { code, reason })
-      this.socket.removeEventListener("close", this.closeCallback)
-      this.socket.removeEventListener("message", this.messageCallback)
-      this.socket.removeEventListener("open", this.openCallback)
+      this.socket.removeEventListener("close", this.boundCloseCallback)
+      this.socket.removeEventListener("message", this.boundMessageCallback)
+      this.socket.removeEventListener("open", this.boundOpenCallback)
       this.socket.close(code, reason)
     }
   }
@@ -705,9 +712,9 @@ export class RecognizerWebSocketSSR
     this.redoDeferred = undefined
     this.clearDeferred = undefined
     if (this.socket) {
-      this.socket.removeEventListener("close", this.closeCallback)
-      this.socket.removeEventListener("message", this.messageCallback)
-      this.socket.removeEventListener("open", this.openCallback)
+      this.socket.removeEventListener("close", this.boundCloseCallback)
+      this.socket.removeEventListener("message", this.boundMessageCallback)
+      this.socket.removeEventListener("open", this.boundOpenCallback)
       this.close(1000, "Recognizer destroyed")
     }
   }
