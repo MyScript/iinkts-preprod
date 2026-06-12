@@ -153,22 +153,29 @@ export class RecognizerHTTPV1
     const headers = new Headers()
     headers.append("Accept", "application/json," + mimeType)
     headers.append("applicationKey", this.configuration.server.applicationKey)
+    let hmacKey: string | undefined
     try {
-      let hmacKey: string
-      if (typeof this.configuration.server.hmacKey == "string") {
-        hmacKey = this.configuration.server.hmacKey
-      } else if (typeof this.configuration.server.hmacKey == "function") {
-        hmacKey = await this.configuration.server.hmacKey(this.configuration.server.applicationKey)
+      // If an HMAC key is provided, compute the HMAC of the request body and add it to the headers
+      if (this.configuration.server.hmacKey) {
+        if (typeof this.configuration.server.hmacKey == "string") {
+          hmacKey = this.configuration.server.hmacKey
+        } else if (typeof this.configuration.server.hmacKey == "function") {
+          hmacKey = await this.configuration.server.hmacKey(this.configuration.server.applicationKey)
+        }
+        else {
+          throw new Error("HMAC key is not a string nor a function")
+        }
+        if (hmacKey) {
+          const hmac = await computeHmac(JSON.stringify(data), this.configuration.server.applicationKey, hmacKey)
+          headers.append("hmac", hmac)
+        }
       }
-      else {
-        throw new Error("HMAC key is not a string nor a function")
+    } catch (error: Error | unknown) {
+      if (error instanceof Error) {
+        this.#logger.error("post.computeHmac", `hmacKey: ${hmacKey}, error: ${error.message}`)
+      } else {
+        this.#logger.error("post.computeHmac", `hmacKey: ${hmacKey}, error: ${String(error)}`)
       }
-      if (hmacKey) {
-        const hmac = await computeHmac(JSON.stringify(data), this.configuration.server.applicationKey, hmacKey)
-        headers.append("hmac", hmac)
-      }
-    } catch (error) {
-      this.#logger.error("post.computeHmac", error)
       throw error
     }
     headers.append("Content-Type", "application/json")
