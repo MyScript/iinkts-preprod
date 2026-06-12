@@ -172,6 +172,8 @@ export class RecognizerWebSocket
     this.replaceStrokeDeferred = undefined
     this.exportDeferredMap.clear()
     this.waitForIdleDeferred = undefined
+    this.undoDeferred = undefined
+    this.redoDeferred = undefined
     this.closeDeferred = undefined
     this.availableActionsDeferred.clear()
     this.numericalComputationDeferred.clear()
