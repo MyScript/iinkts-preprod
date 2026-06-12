@@ -204,6 +204,57 @@ export type TRecognizerWebSocketMessageMathSolverEvaluate = TRecognizerWebSocket
 /**
  * @group Recognizer
  */
+export type TRecognizerWebSocketMessageMathSolverRemoveVariableValue = TRecognizerWebSocketMessage<TRecognizerWebSocketMessageType.MathSolverResult> & {
+  blockId: string
+  action: "remove-variable-value"
+  result?: undefined
+}
+
+/**
+ * @group Recognizer
+ */
+export type TMathVariableDefinition = {
+  name: string
+  value: number
+}
+
+/**
+ * @group Recognizer
+ */
+export type TRecognizerWebSocketMessageMathSolverAsVariableDefinition = TRecognizerWebSocketMessage<TRecognizerWebSocketMessageType.MathSolverResult> & {
+  blockId: string
+  action: "as-variable-definition"
+  result: TMathVariableDefinition
+}
+
+/**
+ * @group Recognizer
+ */
+export type TMathVariableDefinitionInfo = {
+  value: number
+  sourceType: "UNDEFINED" | "API" | "API_GLOBAL" | "BLOCK" | "PREDIFINED"
+  blockId: string
+}
+
+/**
+ * @group Recognizer
+ */
+export type TMathVariableDefinitions = {
+  name: string
+  definitions: TMathVariableDefinitionInfo[]
+}
+
+/**
+ * @group Recognizer
+ */
+export type TRecognizerWebSocketMessageMathSolverGetVariableDefinitions = TRecognizerWebSocketMessage<TRecognizerWebSocketMessageType.MathSolverResult> & {
+  action: "get-variable-definitions"
+  result: TMathVariableDefinitions[]
+}
+
+/**
+ * @group Recognizer
+ */
 export type TRecognizerWebSocketMessageMathSolverResult =
   | TRecognizerWebSocketMessageMathSolverAvailableActions
   | TRecognizerWebSocketMessageMathSolverGetDiagnostic
@@ -212,6 +263,9 @@ export type TRecognizerWebSocketMessageMathSolverResult =
   | TRecognizerWebSocketMessageMathSolverSetVariableValue
   | TRecognizerWebSocketMessageMathSolverGetVariableValue
   | TRecognizerWebSocketMessageMathSolverGetEvaluables
+  | TRecognizerWebSocketMessageMathSolverRemoveVariableValue
+  | TRecognizerWebSocketMessageMathSolverAsVariableDefinition
+  | TRecognizerWebSocketMessageMathSolverGetVariableDefinitions
   | TRecognizerWebSocketMessageMathSolverEvaluate
 
 /**

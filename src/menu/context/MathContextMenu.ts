@@ -1,7 +1,7 @@
 import { InteractiveInkEditor } from "@/editor"
 import { SubMenuItem, IMenuSubMenu } from "@/menu/items/SubMenuItem"
 import { IIStroke, isRecognizedMath } from "@/symbol"
-import { Modal, ModalField, IIFunctionEvaluator, IIDiagnosticChecker, IINumericalComputationResult } from "@/components"
+import { IIFunctionEvaluator, IIDiagnosticChecker, IINumericalComputationResult, IIVariableEditor } from "@/components"
 import { LoggerCategory, LoggerManager } from "@/logger"
 
 /**
@@ -62,78 +62,13 @@ export class MathContextMenu extends SubMenuItem
           type: "button",
           label: "Edit variables",
           action: async () => {
-            this.logger.info("Edit variables clicked")
-            
-            try {
-              const symbolsSelected = editor.model.symbolsSelected
-              const mathSymbol = symbolsSelected[0] as IIStroke
-              
-              if (!mathSymbol.jiixBlockId) {
-                this.logger.warn("Selected math symbol does not have jiixId")
-                return
-              }
-
-              const variables = await editor.getMathVariables(mathSymbol.jiixBlockId)
-              this.logger.info("Variables extracted:", variables)
-
-              if (variables.length === 0) {
-                alert("No variables found in the expression")
-                return
-              }
-
-              // Create modal fields from variables
-              const fields: ModalField[] = variables.map(variable => {
-                // Get current value from computation manager
-                const storedValues = editor.math.getStoredVariableValues(mathSymbol.jiixBlockId!)
-                return {
-                  id: `var-${variable.name}`,
-                  label: `${variable.name}:`,
-                  type: "number" as const,
-                  defaultValue: storedValues?.[variable.name] ?? variable.value,
-                  placeholder: "Value"
-                }
-              })
-
-              const modal: Modal = new Modal({
-                title: "Variables",
-                fields,
-                buttons: [
-                  {
-                    label: "Set",
-                    type: "primary",
-                    callback: async (values): Promise<void> => {
-                      try {
-                        const variableValues: { [name: string]: number } = {}
-
-                        for (const variable of variables) {
-                          const value = values[`var-${variable.name}`]
-                          if (value && value !== "") {
-                            const numValue = parseFloat(value)
-                            if (!isNaN(numValue)) {
-                              variableValues[variable.name] = numValue
-                            }
-                          }
-                        }
-
-                        await editor.setMathVariables(mathSymbol.jiixBlockId!, variableValues)
-                        modal.destroy()
-                      } catch (error) {
-                        this.logger.error("Error setting variable values:", error)
-                      }
-                    }
-                  },
-                  {
-                    label: "Close",
-                    type: "secondary",
-                    callback: (): void => modal.destroy()
-                  }
-                ]
-              })
-
-              modal.open()
-            } catch (error) {
-              this.logger.error("Error getting variables:", error)
+            const mathSymbol = editor.model.symbolsSelected[0] as IIStroke
+            if (!mathSymbol.jiixBlockId) {
+              this.logger.warn("Selected math symbol does not have jiixId")
+              return
             }
+            const variableEditor = new IIVariableEditor(editor, [mathSymbol.jiixBlockId])
+            await variableEditor.show()
           }
         },
         {
@@ -154,7 +89,7 @@ export class MathContextMenu extends SubMenuItem
               
               const jiixBlockIds = mathSymbols.map(s => s.jiixBlockId!).filter(Boolean)
               if (this.editor.drawComputationResult) {
-                await Promise.all(jiixBlockIds.map(jiixBlockId => this.editor.computeMathNumericalResult(jiixBlockId, this.editor.drawComputationResult)))
+                await Promise.all(jiixBlockIds.map(jiixBlockId => this.editor.math.computeNumericalResult(jiixBlockId, this.editor.drawComputationResult)))
               } else {
                 const computer = new IINumericalComputationResult(editor, jiixBlockIds)
                 await computer.show()

@@ -14,7 +14,6 @@ export class IIModel
   currentSymbol?: TIISymbol
   symbols: TIISymbol[]
   exports?: TExport
-  converts?: TExport
   rowHeight: number
   idle: boolean
 
@@ -25,7 +24,6 @@ export class IIModel
     this.rowHeight = rowHeight
     this.symbols = []
     this.exports = undefined
-    this.converts = undefined
     this.idle = true
   }
 
@@ -177,7 +175,6 @@ export class IIModel
     this.symbols.push(symbol)
     this.#symbolsMap.set(symbol.id, symbol)
     this.modificationDate = Date.now()
-    this.converts = undefined
     this.exports = undefined
     this.#logger.debug("addSymbol", this.symbols)
   }
@@ -191,7 +188,6 @@ export class IIModel
       this.symbols.splice(sIndex, 1, updatedSymbol)
       this.#symbolsMap.set(updatedSymbol.id, updatedSymbol)
       this.modificationDate = Date.now()
-      this.converts = undefined
       this.exports = undefined
     }
     this.#logger.debug("updateSymbol", this.symbols)
@@ -205,7 +201,6 @@ export class IIModel
       this.#symbolsMap.delete(id)
       symbols.forEach(s => this.#symbolsMap.set(s.id, s))
       this.modificationDate = Date.now()
-      this.converts = undefined
       this.exports = undefined
     }
   }
@@ -243,7 +238,6 @@ export class IIModel
       this.symbols.splice(symbolIndex, 1)
       this.#symbolsMap.delete(id)
       this.modificationDate = Date.now()
-      this.converts = undefined
       this.exports = undefined
     }
     this.#logger.debug("removeSymbol", this.symbols)
@@ -297,7 +291,6 @@ export class IIModel
     this.#symbolsMap.clear()
     this.currentSymbol = undefined
     this.exports = undefined
-    this.converts = undefined
     this.idle = true
 
   }

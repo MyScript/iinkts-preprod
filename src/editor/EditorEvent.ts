@@ -236,7 +236,7 @@ export class EditorEvent extends EventTarget
     )
   }
 
-  emitConverted(exports: TExport): void
+  emitConverted(exports?: TExport): void
   {
     this.#logger.info("emitConverted", { exports })
     this.emit(EditorEventName.CONVERTED, exports)
