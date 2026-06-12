@@ -137,8 +137,12 @@ export class Model
     this.#logger.info("removeStroke", { id })
     const strokeIndex = this.symbols.findIndex(s => s.id === id)
     if (strokeIndex !== -1) {
-      this.positions.lastSentPosition--
-      this.positions.lastReceivedPosition--
+      if (strokeIndex < this.positions.lastSentPosition) {
+        this.positions.lastSentPosition = Math.max(0, this.positions.lastSentPosition - 1)
+      }
+      if (strokeIndex < this.positions.lastReceivedPosition) {
+        this.positions.lastReceivedPosition = Math.max(0, this.positions.lastReceivedPosition - 1)
+      }
       this.symbols.splice(strokeIndex, 1)
       this.modificationDate = Date.now()
       this.converts = undefined
