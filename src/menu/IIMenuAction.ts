@@ -33,6 +33,7 @@ export class IIMenuAction
   config: Required<IIMenuActionConfig>
 
   private menuActions: Map<string, BaseMenuItem> = new Map()
+  #documentPointerdownHandler?: (e: PointerEvent) => void
 
   constructor(editor: InteractiveInkEditor, id = "ms-menu-action", config?: IIMenuActionConfig)
   {
@@ -129,11 +130,12 @@ export class IIMenuAction
 
         // Event listeners
         menuTrigger.addEventListener("pointerdown", () => subMenuContent.classList.toggle("open"))
-        document.addEventListener("pointerdown", (e) => {
+        this.#documentPointerdownHandler = (e: PointerEvent) => {
           if (!subMenuElement.contains(e.target as HTMLElement)) {
             subMenuContent.classList.remove("open")
           }
-        })
+        }
+        document.addEventListener("pointerdown", this.#documentPointerdownHandler)
 
         this.wrapper.appendChild(subMenuElement)
       }
@@ -198,6 +200,10 @@ export class IIMenuAction
   destroy(): void
   {
     if (this.wrapper) {
+      if (this.#documentPointerdownHandler) {
+        document.removeEventListener("pointerdown", this.#documentPointerdownHandler)
+        this.#documentPointerdownHandler = undefined
+      }
       this.menuActions.forEach(menuAction => {
         menuAction.destroy()
       })
