@@ -88,6 +88,24 @@ export function isPointInsideBox(point: TPoint, box: TBox): boolean
 }
 
 /**
+ * Returns the point on the box perimeter where a ray from the box center toward `target` exits.
+ * Used to find natural arrow connection points between two boxes.
+ * @group Utilities
+ */
+export function getBoxConnectionPoint(box: TBox, target: TPoint): TPoint
+{
+  const cx = box.x + box.width / 2
+  const cy = box.y + box.height / 2
+  const dx = target.x - cx
+  const dy = target.y - cy
+  if (dx === 0 && dy === 0) return { x: cx, y: cy }
+  const hw = box.width / 2
+  const hh = box.height / 2
+  const t = Math.abs(dx) === 0 ? hh / Math.abs(dy) : Math.abs(dy) === 0 ? hw / Math.abs(dx) : Math.min(hw / Math.abs(dx), hh / Math.abs(dy))
+  return { x: cx + t * dx, y: cy + t * dy }
+}
+
+/**
  * @group Utilities
  */
 export function convertRadianToDegree(radian: number): number
