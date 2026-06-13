@@ -44,11 +44,6 @@ export class IIModel
     return this.symbols.filter(s => s.selected)
   }
 
-  get symbolsToDelete(): TIISymbol[]
-  {
-    return this.symbols.filter(s => s.deleting)
-  }
-
   /**
    * Get all Text blocks from JIIX export
    * @returns Array of Text elements from the JIIX export, or empty array if no export available
