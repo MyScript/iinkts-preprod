@@ -15,6 +15,7 @@ interface IEdgeToolConfig extends IMenuItemBase {
  */
 export class EdgeTool extends BaseMenuItem<HTMLDivElement>
 {
+  #documentPointerdownHandler?: (e: PointerEvent) => void
   private subMenuButtons: Map<EditorWriteTool, HTMLButtonElement> = new Map()
   private triggerButton?: HTMLButtonElement
   private currentIcon: string = lineIcon
@@ -83,13 +84,22 @@ export class EdgeTool extends BaseMenuItem<HTMLDivElement>
 
     // Event listeners
     this.triggerButton.addEventListener("pointerdown", () => content.classList.toggle("open"))
-    document.addEventListener("pointerdown", (e) => {
+    this.#documentPointerdownHandler = (e: PointerEvent) => {
       if (!wrapper.contains(e.target as HTMLElement)) {
         content.classList.remove("open")
       }
-    })
+    }
+    document.addEventListener("pointerdown", this.#documentPointerdownHandler)
 
     return wrapper
+  }
+
+  destroy(): void {
+    if (this.#documentPointerdownHandler) {
+      document.removeEventListener("pointerdown", this.#documentPointerdownHandler)
+      this.#documentPointerdownHandler = undefined
+    }
+    super.destroy()
   }
 
   update(): void
