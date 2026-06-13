@@ -514,7 +514,7 @@ export class InteractiveInkEditor extends AbstractEditor
     this.updateLayerState(false)
     this.updateTextBounds(sym)
 
-    const oldSymbol = this.history.stack.at(-1)?.model.symbols.find(s => s.id === sym.id) || this.model.symbols.find(s => s.id === sym.id)
+    const oldSymbol = this.history.stack.at(-1)?.model.getRootSymbol(sym.id) ?? this.model.getRootSymbol(sym.id)
     const oldStrokes = oldSymbol ? this.extractStrokesFromSymbols([oldSymbol]) : []
 
     this.model.updateSymbol(sym)
@@ -545,7 +545,7 @@ export class InteractiveInkEditor extends AbstractEditor
     const oldSymbolsMap = new Map<string, TIISymbol>()
     symList.forEach(sym =>
     {
-      const oldSymbol = this.history.stack.at(-1)?.model.symbols.find(s => s.id === sym.id) || this.model.symbols.find(s => s.id === sym.id)
+      const oldSymbol = this.history.stack.at(-1)?.model.getRootSymbol(sym.id) ?? this.model.getRootSymbol(sym.id)
       if (oldSymbol) {
         oldSymbolsMap.set(sym.id, oldSymbol)
       }
@@ -802,7 +802,7 @@ export class InteractiveInkEditor extends AbstractEditor
     const strokesIds: string[] = []
     ids.forEach(id =>
     {
-      const sym = this.model.symbols.find(s => s.id === id)
+      const sym = this.model.getRootSymbol(id)
       if (sym) {
         symbolsRemoved.push(sym)
         if (sym.type === SymbolType.Stroke) strokesIds.push(sym.id)
