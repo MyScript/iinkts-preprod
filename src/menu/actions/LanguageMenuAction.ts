@@ -9,6 +9,7 @@ import languageIcon from "@/assets/svg/language.svg"
  */
 export class LanguageMenuAction extends BaseMenuItem<HTMLDivElement>
 {
+  #documentPointerdownHandler?: (e: PointerEvent) => void
   private select!: HTMLSelectElement
   private subMenuWrapper!: HTMLDivElement
   private subMenuContent!: HTMLDivElement
@@ -62,13 +63,22 @@ export class LanguageMenuAction extends BaseMenuItem<HTMLDivElement>
 
     // Event listeners
     triggerBtn.addEventListener("pointerdown", () => this.subMenuContent.classList.toggle("open"))
-    document.addEventListener("pointerdown", (e) => {
+    this.#documentPointerdownHandler = (e: PointerEvent) => {
       if (!this.subMenuWrapper.contains(e.target as HTMLElement)) {
         this.subMenuContent.classList.remove("open")
       }
-    })
+    }
+    document.addEventListener("pointerdown", this.#documentPointerdownHandler)
 
     return this.subMenuWrapper
+  }
+
+  destroy(): void {
+    if (this.#documentPointerdownHandler) {
+      document.removeEventListener("pointerdown", this.#documentPointerdownHandler)
+      this.#documentPointerdownHandler = undefined
+    }
+    super.destroy()
   }
 
   /**
