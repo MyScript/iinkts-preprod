@@ -4,7 +4,7 @@ import { Table, TableRow } from "./Table"
 import { IIMathFunctionEvaluator } from "./IIMathFunctionEvaluator"
 import { IIMathDiagnosticChecker } from "./IIMathDiagnosticChecker"
 import { IIMathNumericalComputationResult } from "./IIMathNumericalComputationResult"
-import { IIMathBlockVariableEditor } from "./IIMathBlockVariableEditor"
+import { IIMathVariablePerBlockEditor } from "./IIMathVariablePerBlockEditor"
 import { COLORS, flexColumnStyle, flexContainerStyle, SPACING } from "./styles"
 import { createButton, createStatusBadge } from "./ui-utils"
 import { LoggerCategory } from "@/logger/logger"
@@ -290,7 +290,7 @@ export class IIMathCapabilitiesTable {
 
     if (selectedBlockIds.length === 0) return
 
-    const variableEditor = new IIMathBlockVariableEditor(this.editor, selectedBlockIds)
+    const variableEditor = new IIMathVariablePerBlockEditor(this.editor, selectedBlockIds)
     await variableEditor.show()
   }
 

@@ -84,7 +84,10 @@ export class IIMathVariableEditor
           name: vd.name,
           initialValue: def?.value,
           sourceType: def?.sourceType,
-          disabled: !editableDef
+          disabled: !editableDef,
+          onDelete: editableDef
+            ? async (name) => { await this.editor.math.removeVariable(editableDef.blockId, name) }
+            : undefined
         }
       })
 
@@ -138,7 +141,7 @@ export class IIMathVariableEditor
   {
     const row = document.createElement("div")
     row.style.cssText = `
-      ${gridContainerStyle("1fr 1fr", SPACING.sm)}
+      ${gridContainerStyle("1fr 1fr 28px", SPACING.sm)}
       align-items: center;
       padding: ${SPACING.sm};
       background: ${COLORS.blue[50]};
@@ -173,6 +176,25 @@ export class IIMathVariableEditor
     valueInput.addEventListener("focus", () => valueInput.style.borderColor = COLORS.primary )
     valueInput.addEventListener("blur", () => valueInput.style.borderColor = COLORS.gray[300] )
     row.appendChild(valueInput)
+
+    const deleteBtn = document.createElement("button")
+    deleteBtn.textContent = "✕"
+    deleteBtn.title = "Remove row"
+    deleteBtn.style.cssText = `
+      padding: 2px 6px;
+      border: 1px solid ${COLORS.danger};
+      background: transparent;
+      color: ${COLORS.danger};
+      border-radius: ${BORDER_RADIUS.sm};
+      cursor: pointer;
+      font-size: 12px;
+      line-height: 1;
+    `
+    deleteBtn.addEventListener("click", () => {
+      this.newRows = this.newRows.filter(r => r.nameInput !== nameInput)
+      row.remove()
+    })
+    row.appendChild(deleteBtn)
 
     return { element: row, nameInput, valueInput }
   }

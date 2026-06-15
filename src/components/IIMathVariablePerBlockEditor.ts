@@ -19,7 +19,7 @@ export interface SymbolVariables {
  * @remarks Modal editor for variables of one or more math block symbols.
  * Fetches variables per jiixBlockId and applies changes via setListVariableValue.
  */
-export class IIMathBlockVariableEditor
+export class IIMathVariablePerBlockEditor
 {
   private editor: InteractiveInkEditor
   private jiixBlockIds: string[]
@@ -118,7 +118,10 @@ export class IIMathBlockVariableEditor
         name: variable.name,
         initialValue,
         sourceType: variable.sourceType,
-        disabled: isDefinition
+        disabled: isDefinition,
+        onDelete: variable.sourceType === "API"
+          ? async (name) => { await this.editor.math.removeVariable(symVar.jiixBlockId, name) }
+          : undefined
       }
     })
 

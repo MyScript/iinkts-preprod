@@ -8,6 +8,7 @@ export type TVariableInputItem = {
   initialValue?: number
   sourceType?: string
   disabled?: boolean
+  onDelete?: (name: string) => Promise<void>
 }
 
 const SOURCE_TYPE_COLORS: Record<string, string> = {
@@ -38,8 +39,9 @@ export class IIMathVariableInputList
   private createRow(item: TVariableInputItem): HTMLDivElement
   {
     const row = document.createElement("div")
+    const columns = item.onDelete ? "120px 1fr 80px 28px" : "120px 1fr 80px"
     row.style.cssText = `
-      ${gridContainerStyle("120px 1fr 80px", SPACING.sm)}
+      ${gridContainerStyle(columns, SPACING.sm)}
       align-items: center;
       padding: ${SPACING.sm};
       background: ${COLORS.gray[50]};
@@ -91,7 +93,37 @@ export class IIMathVariableInputList
     }
     row.appendChild(sourceInfo)
 
+    if (item.onDelete) {
+      const deleteBtn = document.createElement("button")
+      deleteBtn.textContent = "✕"
+      deleteBtn.title = "Delete variable"
+      deleteBtn.style.cssText = `
+        padding: 2px 6px;
+        border: 1px solid ${COLORS.danger};
+        background: transparent;
+        color: ${COLORS.danger};
+        border-radius: ${BORDER_RADIUS.sm};
+        cursor: pointer;
+        font-size: 12px;
+        line-height: 1;
+      `
+      deleteBtn.addEventListener("click", async () => {
+        await item.onDelete!(item.name)
+        this.removeRow(item.name)
+      })
+      row.appendChild(deleteBtn)
+    }
+
     return row
+  }
+
+  removeRow(name: string): void
+  {
+    const input = this.inputs.get(name)
+    if (input) {
+      input.parentElement?.remove()
+      this.inputs.delete(name)
+    }
   }
 
   getValues(): Map<string, number>

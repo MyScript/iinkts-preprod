@@ -1,6 +1,6 @@
 import { InteractiveInkEditor } from "@/editor"
 import { SubMenuItem, IMenuSubMenu } from "@/menu/items/SubMenuItem"
-import { IIMathFunctionEvaluator, IIMathDiagnosticChecker, IIMathNumericalComputationResult, IIMathBlockVariableEditor } from "@/components"
+import { IIMathFunctionEvaluator, IIMathDiagnosticChecker, IIMathNumericalComputationResult, IIMathVariablePerBlockEditor } from "@/components"
 import { LoggerCategory, LoggerManager } from "@/logger"
 
 /**
@@ -59,7 +59,7 @@ export class MathContextMenu extends SubMenuItem
               this.logger.warn("No block math selected")
               return
             }
-            const variableEditor = new IIMathBlockVariableEditor(editor, jiixBlockIds)
+            const variableEditor = new IIMathVariablePerBlockEditor(editor, jiixBlockIds)
             await variableEditor.show()
           }
         },

@@ -99,7 +99,6 @@ export class IIMathManager extends IIAbstractManager
     return this.#computation.getStoredSolverOutputs(jiixBlockId)
   }
 
-
   /**
    * Set value for a specific variable in a math expression
    * @param jiixBlockId - The ID of the math element (jiixId)
