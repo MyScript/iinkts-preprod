@@ -1,6 +1,6 @@
 import { InteractiveInkEditor } from "@/editor"
 import { SubMenuItem, IMenuSubMenu } from "@/menu/items/SubMenuItem"
-import { IIFunctionEvaluator, IIDiagnosticChecker, IINumericalComputationResult, IIMathBlockVariableEditor } from "@/components"
+import { IIMathFunctionEvaluator, IIMathDiagnosticChecker, IIMathNumericalComputationResult, IIMathBlockVariableEditor } from "@/components"
 import { LoggerCategory, LoggerManager } from "@/logger"
 
 /**
@@ -42,7 +42,7 @@ export class MathContextMenu extends SubMenuItem
                 this.logger.warn("No block math selected")
                 return
               }
-              const checker = new IIDiagnosticChecker(editor, jiixBlockIds)
+              const checker = new IIMathDiagnosticChecker(editor, jiixBlockIds)
               await checker.show()
             } catch (error) {
               this.logger.error("Error checking diagnostic:", error)
@@ -78,7 +78,7 @@ export class MathContextMenu extends SubMenuItem
               if (this.editor.drawComputationResult) {
                 await Promise.all(jiixBlockIds.map(jiixBlockId => this.editor.math.computeNumericalResult(jiixBlockId, this.editor.drawComputationResult)))
               } else {
-                const computer = new IINumericalComputationResult(editor, jiixBlockIds)
+                const computer = new IIMathNumericalComputationResult(editor, jiixBlockIds)
                 await computer.show()
               }
 
@@ -99,7 +99,7 @@ export class MathContextMenu extends SubMenuItem
                 this.logger.warn("No block math selected")
                 return
               }
-              const evaluator = new IIFunctionEvaluator(editor, jiixBlockIds)
+              const evaluator = new IIMathFunctionEvaluator(editor, jiixBlockIds)
               await evaluator.show()
             } catch (error) {
               this.logger.error("Error evaluating function:", error)

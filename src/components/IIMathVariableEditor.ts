@@ -6,16 +6,23 @@ import { BORDER_RADIUS, COLORS, SPACING, cardStyle, flexColumnStyle, gridContain
 import { IIMathVariableInputList, TVariableInputItem } from "./IIMathVariableInputList"
 
 /**
- * @group Components
- * @remarks Modal editor for all variable definitions returned by get-variable-definitions.
- * BLOCK variables are shown read-only; API_GLOBAL variables are editable.
- * New global variables can be added via setVariableValue("", name, value).
+ * @group hidden
+ * @remarks Returns true if the sourceType is editable (API_GLOBAL, API, or UNDEFINED).
+ * BLOCK variables are not editable.
+ * @param sourceType The source type of the variable definition.
+ * @returns True if the variable definition is editable; false otherwise.
  */
 function isEditableSourceType(sourceType: string | undefined): boolean
 {
   return sourceType === "API_GLOBAL" || sourceType === "API" || sourceType === "UNDEFINED"
 }
 
+/**
+ * @group Components
+ * @remarks Modal editor for all variable definitions returned by get-variable-definitions.
+ * BLOCK variables are shown read-only; API_GLOBAL variables are editable.
+ * New global variables can be added via setVariableValue("", name, value).
+ */
 export class IIMathVariableEditor
 {
   private editor: InteractiveInkEditor

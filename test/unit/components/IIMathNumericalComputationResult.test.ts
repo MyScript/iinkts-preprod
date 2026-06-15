@@ -1,7 +1,7 @@
 import { InteractiveInkEditorMock } from "../__mocks__/InteractiveInkEditorMock"
-import { IINumericalComputationResult } from "../../../src/iink"
+import { IIMathNumericalComputationResult } from "../../../src/iink"
 
-describe("IINumericalComputationResult.ts", () =>
+describe("IIMathNumericalComputationResult.ts", () =>
 {
   let editor: InteractiveInkEditorMock
 
@@ -39,7 +39,7 @@ describe("IINumericalComputationResult.ts", () =>
   {
     const jiixBlockIds = ["block-1", "block-2"]
 
-    const computationResult = new IINumericalComputationResult(editor, jiixBlockIds)
+    const computationResult = new IIMathNumericalComputationResult(editor, jiixBlockIds)
     expect(computationResult).toBeDefined()
   })
 
@@ -47,7 +47,7 @@ describe("IINumericalComputationResult.ts", () =>
   {
     const jiixBlockIds = ["block-1", "block-1", "block-2"]
 
-    const computationResult = new IINumericalComputationResult(editor, jiixBlockIds)
+    const computationResult = new IIMathNumericalComputationResult(editor, jiixBlockIds)
     expect(computationResult).toBeDefined()
   })
 
@@ -57,7 +57,7 @@ describe("IINumericalComputationResult.ts", () =>
     {
       const jiixBlockIds = ["block-1", "block-2"]
 
-      const computationResult = new IINumericalComputationResult(editor, jiixBlockIds)
+      const computationResult = new IIMathNumericalComputationResult(editor, jiixBlockIds)
       const results = await (computationResult as any).computeResults()
 
       expect(results.length).toBe(2)
@@ -74,7 +74,7 @@ describe("IINumericalComputationResult.ts", () =>
     {
       const jiixBlockIds = ["block-error"]
 
-      const computationResult = new IINumericalComputationResult(editor, jiixBlockIds)
+      const computationResult = new IIMathNumericalComputationResult(editor, jiixBlockIds)
       const results = await (computationResult as any).computeResults()
 
       expect(results.length).toBe(1)
@@ -88,7 +88,7 @@ describe("IINumericalComputationResult.ts", () =>
       editor.drawComputationResult = true
       const jiixBlockIds = ["block-1"]
 
-      const computationResult = new IINumericalComputationResult(editor, jiixBlockIds)
+      const computationResult = new IIMathNumericalComputationResult(editor, jiixBlockIds)
       const results = await (computationResult as any).computeResults()
 
       expect(results.length).toBe(1)
@@ -100,7 +100,7 @@ describe("IINumericalComputationResult.ts", () =>
       editor.drawComputationResult = false
       const jiixBlockIds = ["block-1"]
 
-      const computationResult = new IINumericalComputationResult(editor, jiixBlockIds)
+      const computationResult = new IIMathNumericalComputationResult(editor, jiixBlockIds)
       const results = await (computationResult as any).computeResults()
 
       expect(results.length).toBe(1)
@@ -114,7 +114,7 @@ describe("IINumericalComputationResult.ts", () =>
 
       const jiixBlockIds = ["block-1"]
 
-      const computationResult = new IINumericalComputationResult(editor, jiixBlockIds)
+      const computationResult = new IIMathNumericalComputationResult(editor, jiixBlockIds)
       const results = await (computationResult as any).computeResults()
 
       expect(results.length).toBe(0)
@@ -127,7 +127,7 @@ describe("IINumericalComputationResult.ts", () =>
     {
       const jiixBlockIds = ["block-1"]
 
-      const computationResult = new IINumericalComputationResult(editor, jiixBlockIds)
+      const computationResult = new IIMathNumericalComputationResult(editor, jiixBlockIds)
 
       // Mock createResultsDisplay to prevent actual DOM operations
       const displaySpy = jest.spyOn(computationResult as any, "createResultsDisplay")
@@ -148,7 +148,7 @@ describe("IINumericalComputationResult.ts", () =>
     {
       const jiixBlockIds = ["block-1"]
 
-      const computationResult = new IINumericalComputationResult(editor, jiixBlockIds)
+      const computationResult = new IIMathNumericalComputationResult(editor, jiixBlockIds)
 
       // Create a mock modal
       const mockModal = {
@@ -166,7 +166,7 @@ describe("IINumericalComputationResult.ts", () =>
     {
       const jiixBlockIds = ["block-1"]
 
-      const computationResult = new IINumericalComputationResult(editor, jiixBlockIds)
+      const computationResult = new IIMathNumericalComputationResult(editor, jiixBlockIds)
 
       expect(() => computationResult.close()).not.toThrow()
     })

@@ -1,7 +1,7 @@
 import { InteractiveInkEditorMock } from "../__mocks__/InteractiveInkEditorMock"
-import { IIFunctionEvaluator } from "../../../src/iink"
+import { IIMathFunctionEvaluator } from "../../../src/iink"
 
-describe("IIFunctionEvaluator.ts", () =>
+describe("IIMathFunctionEvaluator.ts", () =>
 {
   let editor: InteractiveInkEditorMock
 
@@ -39,7 +39,7 @@ describe("IIFunctionEvaluator.ts", () =>
   {
     const jiixBlockIds = ["block-1", "block-2"]
 
-    const evaluator = new IIFunctionEvaluator(editor, jiixBlockIds)
+    const evaluator = new IIMathFunctionEvaluator(editor, jiixBlockIds)
     expect(evaluator).toBeDefined()
   })
 
@@ -47,7 +47,7 @@ describe("IIFunctionEvaluator.ts", () =>
   {
     const jiixBlockIds = ["block-1", "block-1", "block-2"]
 
-    const evaluator = new IIFunctionEvaluator(editor, jiixBlockIds)
+    const evaluator = new IIMathFunctionEvaluator(editor, jiixBlockIds)
     expect(evaluator).toBeDefined()
   })
 
@@ -57,7 +57,7 @@ describe("IIFunctionEvaluator.ts", () =>
     {
       const jiixBlockIds = ["block-1", "block-2"]
 
-      const evaluator = new IIFunctionEvaluator(editor, jiixBlockIds)
+      const evaluator = new IIMathFunctionEvaluator(editor, jiixBlockIds)
 
       // Mock modal to prevent actual DOM operations
       const showSpy = jest.spyOn(evaluator as any, "createModalContent")
@@ -75,7 +75,7 @@ describe("IIFunctionEvaluator.ts", () =>
     {
       const jiixBlockIds = ["", "block-2"]
 
-      const evaluator = new IIFunctionEvaluator(editor, jiixBlockIds)
+      const evaluator = new IIMathFunctionEvaluator(editor, jiixBlockIds)
 
       const showSpy = jest.spyOn(evaluator as any, "createModalContent")
       showSpy.mockReturnValue(document.createElement("div"))
@@ -93,7 +93,7 @@ describe("IIFunctionEvaluator.ts", () =>
     {
       const jiixBlockIds = ["block-1", "block-2", "block-3"]
 
-      const evaluator = new IIFunctionEvaluator(editor, jiixBlockIds)
+      const evaluator = new IIMathFunctionEvaluator(editor, jiixBlockIds)
 
       const showSpy = jest.spyOn(evaluator as any, "createModalContent")
       showSpy.mockReturnValue(document.createElement("div"))

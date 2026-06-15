@@ -19,7 +19,7 @@ import { createColorDot, createButton, createLabeledInput, createSelect } from "
 /**
  * @group Components
  */
-export interface EvaluableFunction {
+export interface MathEvaluableFunction {
   jiixBlockId: string
   evaluables: Array<{
     inputName: string
@@ -33,7 +33,7 @@ export interface EvaluableFunction {
  * @group Components
  */
 export interface EvaluationResult {
-  func: EvaluableFunction
+  func: MathEvaluableFunction
   points: { [key: string]: number }[][]
 }
 
@@ -41,14 +41,14 @@ export interface EvaluationResult {
  * @group Components
  * @remarks Component for evaluating and displaying multiple math functions
  */
-export class IIFunctionEvaluator {
+export class IIMathFunctionEvaluator {
   private editor: InteractiveInkEditor
   private jiixBlockIds: string[]
   private modal?: Modal
   private evaluationResults?: EvaluationResult[]
   private tabContent?: HTMLDivElement
   private currentTab: "graph" | "table" = "graph"
-  private functionsToEvaluate: EvaluableFunction[] = []
+  private functionsToEvaluate: MathEvaluableFunction[] = []
   private tabObservers: MutationObserver[] = []
   private logger = LoggerManager.getLogger(LoggerCategory.MATH)
 
@@ -89,7 +89,7 @@ export class IIFunctionEvaluator {
             jiixBlockId,
             evaluables: evaluables,
             selectedEvaluableIndex: 0,
-            color: IIFunctionEvaluator.COLORS[i % IIFunctionEvaluator.COLORS.length]
+            color: IIMathFunctionEvaluator.COLORS[i % IIMathFunctionEvaluator.COLORS.length]
           })
         }
       } catch (error) {
@@ -118,7 +118,7 @@ export class IIFunctionEvaluator {
   /**
    * Create the modal content with inputs and tabs
    */
-  private createModalContent(functions: EvaluableFunction[]): HTMLDivElement {
+  private createModalContent(functions: MathEvaluableFunction[]): HTMLDivElement {
     const container = document.createElement("div")
     container.style.cssText = `
      ${flexColumnStyle(SPACING.lg)}
@@ -141,7 +141,7 @@ export class IIFunctionEvaluator {
   /**
    * Create a single function item for display
    */
-  private createFunctionItem(func: EvaluableFunction): HTMLDivElement {
+  private createFunctionItem(func: MathEvaluableFunction): HTMLDivElement {
     const funcItem = document.createElement("div")
     funcItem.style.cssText = `
       ${flexContainerStyle(SPACING.sm)}
@@ -211,7 +211,7 @@ export class IIFunctionEvaluator {
   /**
    * Create the functions list display
    */
-  private createFunctionsList(functions: EvaluableFunction[]): HTMLDivElement {
+  private createFunctionsList(functions: MathEvaluableFunction[]): HTMLDivElement {
     const functionsDiv = document.createElement("div")
     functionsDiv.style.cssText = `
       ${cardStyle}
@@ -292,7 +292,7 @@ export class IIFunctionEvaluator {
   /**
    * Create the inputs section
    */
-  private createInputsSection(functions: EvaluableFunction[]): HTMLDivElement {
+  private createInputsSection(functions: MathEvaluableFunction[]): HTMLDivElement {
     const section = document.createElement("div")
     section.style.cssText = sectionStyle
 
@@ -513,7 +513,7 @@ export class IIFunctionEvaluator {
    * Evaluate all functions
    */
   private async evaluateFunctions(
-    functions: EvaluableFunction[],
+    functions: MathEvaluableFunction[],
     fromWrapper: HTMLDivElement,
     toWrapper: HTMLDivElement,
     pointCountWrapper: HTMLDivElement
