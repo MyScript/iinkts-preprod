@@ -65,6 +65,15 @@ export const DefaultRecognitionWebSocketConfiguration: TRecognitionWebSocketConf
   gesture: {
     enable: true,
     ignoreGestureStrokes: false,
+  },
+  math: {
+    solver: {
+      "auto-variable-management": {
+        enable: true,
+        "scoping-policy": "closest"
+      },
+      "angle-unit": "deg"
+    }
   }
 }
 

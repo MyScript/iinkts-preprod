@@ -298,11 +298,6 @@ export class IIMathVariableSubManager extends IIAbstractManager
   ): Promise<void>
   {
     this.logger.info("setVariableValue", { jiixBlockId, variableName, variableValue })
-
-    if (!jiixBlockId) {
-      throw new Error("Math block does not have jiixBlockId")
-    }
-
     await this.editor.recognizer.setVariableValue(jiixBlockId, variableName, variableValue)
 
     const existing = this.#variableValues.get(jiixBlockId) ?? {}
@@ -317,11 +312,6 @@ export class IIMathVariableSubManager extends IIAbstractManager
   async removeVariableValue(jiixBlockId: string, variableName: string): Promise<void>
   {
     this.logger.info("removeVariableValue", { jiixBlockId, variableName })
-
-    if (!jiixBlockId) {
-      throw new Error("Math block does not have jiixBlockId")
-    }
-
     await this.editor.recognizer.removeVariableValue(jiixBlockId, variableName)
 
     const existing = this.#variableValues.get(jiixBlockId)

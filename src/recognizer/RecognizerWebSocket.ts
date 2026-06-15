@@ -383,7 +383,7 @@ export class RecognizerWebSocket
 
   protected resolveFirstInQueue<T>(map: Map<string, DeferredPromise<T>[]>, blockId: string | undefined, value?: T): void
   {
-    if (!blockId) return
+    if (blockId === undefined || blockId === null) return
     const queue = map.get(blockId)
     if (!queue?.length) return
     queue.shift()!.resolve(value as T)
@@ -400,7 +400,7 @@ export class RecognizerWebSocket
     }
 
     const blockId = mathSolverMessage.blockId
-    if (!blockId) {
+    if (blockId === undefined || blockId === null) {
       this.#logger.warn("manageMathSolverResult", "Received math solver result without blockId, unable to resolve corresponding promise", mathSolverMessage)
     }
 

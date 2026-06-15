@@ -3,8 +3,7 @@ import { SubMenuItem, IMenuSubMenu } from "@/menu/items/SubMenuItem"
 import { IMenuCheckbox } from "@/menu/items/CheckboxMenuItem"
 import { IMenuSelect } from "@/menu/items/SelectMenuItem"
 import { IMenuButton } from "@/menu/items/ButtonMenuItem"
-import { IIMathCapabilitiesTable } from "@/components"
-import mathIcon from "@/assets/svg/linear-double-arrow.svg"
+import { IIMathCapabilitiesTable, IIMathVariableEditor } from "@/components"
 
 /**
  * @group Menu
@@ -18,7 +17,7 @@ export class MathMenuAction extends SubMenuItem
       {
         type: "checkbox",
         id: `${idPrefix}-math-show-block-overlays`,
-        label: "Show Block Overlays (∑)",
+        label: "Show Block Overlays",
         getValue: (editor: InteractiveInkEditor) => editor.math.getOverlaysConfig().showBlockOverlays,
         setValue: (editor: InteractiveInkEditor, value: boolean) => {
           editor.math.toggleBlockOverlays(value)
@@ -69,7 +68,17 @@ export class MathMenuAction extends SubMenuItem
     }
 
     // Add button to show capabilities overview
-    items.push({
+    items.push(
+      {
+        type: "button",
+        id: `${idPrefix}-math-variables`,
+        label: "Edit Variables",
+        action: async (editor: InteractiveInkEditor) => {
+          const variableEditor = new IIMathVariableEditor(editor)
+          await variableEditor.show()
+        }
+      },
+      {
       type: "button",
       id: `${idPrefix}-math-capabilities-overview`,
       label: "Show Math Capabilities Overview",
@@ -81,10 +90,9 @@ export class MathMenuAction extends SubMenuItem
 
     const config: IMenuSubMenu = {
       type: "submenu",
-      id: `${idPrefix}-math-dependencies`,
-      label: "Math",
-      menuTitle: "Math",
-      icon: mathIcon,
+      id: `${idPrefix}-math`,
+      label: "Math (∑)",
+      menuTitle: "Math (∑)",
       position: "right-top",
       items: items
     }

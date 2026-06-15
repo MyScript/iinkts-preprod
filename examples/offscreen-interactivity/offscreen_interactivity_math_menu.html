@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Math Context Menu Example</title>
+  <title>Math Menu Example</title>
 
   <link rel="stylesheet" href="../assets/style/reset.css" />
   <link rel="stylesheet" href="../assets/style/components.css" />
@@ -65,6 +65,7 @@
       gap: 4px;
       border-bottom: 2px solid #e0e0e0;
       margin-bottom: 0;
+      flex-wrap: wrap;
     }
 
     .tab-button {
@@ -137,44 +138,102 @@
 <body>
   <header class="header-main">
     <button id="showModalBtn" class="btn-keys">Change server configuration</button>
-    <h1 class="header-title">Math Context Menu Example</h1>
+    <h1 class="header-title">Math Menu Example</h1>
   </header>
 
   <div class="info-section">
-    <h3>📋 How to use the Math Context Menu</h3>
+    <h3>📋 Two menus to explore</h3>
     <p>
-      The Math context menu provides powerful operations for mathematical expressions.
-      To access it:
+      This example demonstrates the two math-specific menus:
     </p>
-    <ol>
-      <li><strong>Draw a circle or rectangle around</strong> the expression you want to work with (this selects it)</li>
-      <li>Choose an operation from the menu</li>
-    </ol>
+    <ul>
+      <li><strong>Context menu</strong> — draw a circle or rectangle around an expression to select it, then choose an operation</li>
+      <li><strong>Math action menu (∑)</strong> — click the ≡ menu icon in the toolbar, then select <strong>Math (∑)</strong> to access global settings and variable management</li>
+    </ul>
   </div>
 
-  <div class="flex-container between wrap" style="height: calc(100dvh - 224px);min-height: 450px;">
-    <div class="tabs-container" style="max-width: 400px; flex: 1;">
+  <div class="flex-container between wrap" style="height: calc(100dvh - 236px);min-height: 450px;">
+    <div class="tabs-container" style="max-width: 420px; flex: 1;">
       <div class="tabs-header">
-        <button class="tab-button active" data-tab="examples">✏️ Try these examples</button>
-        <button class="tab-button" data-tab="diagnostic">🔍 Diagnostic Feature</button>
+        <button class="tab-button active" data-tab="examples">✏️ Examples</button>
+        <button class="tab-button" data-tab="action-menu">∑ Action Menu</button>
+        <button class="tab-button" data-tab="diagnostic">🔍 Diagnostic</button>
         <button class="tab-button" data-tab="tips">💡 Tips</button>
       </div>
 
       <div id="tab-examples" class="tab-content active">
+        <h4>Context menu</h4>
         <ul>
-          <li><strong>Computation:</strong> Write <span class="highlight">√16=</span>, draw around it, Compute numerical result</li>
-          <li><strong>Variable substitution:</strong> Write <span class="highlight">x=3</span>, then <span class="highlight">2x+5=</span>, draw around the second expression, Compute numerical result (will use x=3 value)</li>
-          <li><strong>Edit variable &amp; recompute:</strong> Draw around <span class="highlight">2x+5=</span>, Set variable value → change x to another number, then Compute numerical result again to see the updated result</li>
-          <li><strong>Function plot:</strong> Write <span class="highlight">f(x)=x²</span>, draw around it, Evaluate function → Set range from -5 to 5</li>
-          <li><strong>Reversible function plot:</strong> Write <span class="highlight">a=b²</span>, draw around it, Evaluate function → you can choose to plot a = f(b) or b = f(a)</li>
-          <li><strong>Check diagnostic (both tasks):</strong> Write <span class="highlight">y=x²+2x</span>, draw around it, Check diagnostic → See both "Numerical Computation" and "Function Evaluation" diagnostics</li>
-          <li><strong>Division by zero:</strong> Write <span class="highlight">1/0=</span>, draw around it, Check diagnostic → See error message about division by zero</li>
+          <li><strong>Computation:</strong> Write <span class="highlight">√16=</span>, draw around it → Compute numerical result</li>
+          <li><strong>Variable substitution:</strong> Write <span class="highlight">x=3</span>, then <span class="highlight">2x+5=</span>, draw around the second expression → Compute (uses x=3)</li>
+          <li><strong>Edit variable &amp; recompute:</strong> Draw around <span class="highlight">2x+5=</span> → Set variable value, change x, then Compute again</li>
+          <li><strong>Function plot:</strong> Write <span class="highlight">f(x)=x²</span>, draw around it → Evaluate function, set range -5 to 5</li>
+          <li><strong>Check diagnostic:</strong> Write <span class="highlight">y=x²+2x</span>, draw around it → Check diagnostic</li>
+          <li><strong>Division by zero:</strong> Write <span class="highlight">1/0=</span>, draw around it → Check diagnostic</li>
         </ul>
+
+        <h4 style="margin-top: 16px;">∑ Action menu — global variables</h4>
+        <ul>
+          <li>
+            <strong>Override a block variable globally:</strong>
+            Write <span class="highlight">x=3</span> then <span class="highlight">2x=</span>,
+            draw around <span class="highlight">2x=</span> and compute → result is 6.
+            Then open ≡ → <em>Math (∑)</em> → <em>Edit Variables</em> → add global <span class="highlight">x = 10</span> → Apply.
+            Compute again → result is 20 (global x overrides block x=3).
+          </li>
+          <li>
+            <strong>Shared constant:</strong>
+            Open ≡ → <em>Math (∑)</em> → <em>Edit Variables</em> → add global <span class="highlight">PI = 3.14159</span>.
+            Write <span class="highlight">2·PI·r=</span> and compute — PI is resolved globally.
+          </li>
+        </ul>
+      </div>
+
+      <div id="tab-action-menu" class="tab-content">
+        <p>
+          Click the <strong>≡</strong> in the toolbar, then select <strong>Math (∑)</strong>.
+          Settings apply globally to the whole canvas.
+        </p>
+
+        <h4 style="color: #1976d2;">Show Block Overlays (∑)</h4>
+        <p style="margin: 8px 0; font-size: 14px;">
+          Toggles visual overlays on recognized math blocks — shows block boundaries, computed results, and status indicators.
+        </p>
+
+        <h4 style="color: #1976d2;">Draw result as strokes</h4>
+        <p style="margin: 8px 0; font-size: 14px;">
+          When enabled, computed results are drawn as ink strokes next to the expression instead of displayed as an overlay panel.
+        </p>
+
+        <h4 style="color: #1976d2;">Show Dependencies on Hover</h4>
+        <p style="margin: 8px 0; font-size: 14px;">
+          Hovering over a math block highlights its variable sources (green) and dependent blocks (orange) with dependency arrows.
+        </p>
+
+        <h4 style="color: #1976d2;">Highlight on Select</h4>
+        <p style="margin: 8px 0; font-size: 14px;">
+          When a block is selected, related blocks are highlighted and unrelated ones are dimmed.
+        </p>
+
+        <h4 style="color: #7b1fa2; margin-top: 16px;">Edit Variables</h4>
+        <p style="margin: 8px 0; font-size: 14px;">
+          Opens the variable definitions editor showing all variables known by the solver:
+        </p>
+        <ul style="font-size: 14px;">
+          <li><strong style="color: #4CAF50;">BLOCK</strong> — defined by a math expression (e.g. <code>x=3</code>). Read-only here.</li>
+          <li><strong style="color: #1976d2;">API</strong> — set programmatically per block. Editable.</li>
+          <li><strong style="color: #9C27B0;">API_GLOBAL</strong> — set globally (no block scope). Editable. Overrides BLOCK definitions.</li>
+          <li><strong style="color: #9e9e9e;">UNDEFINED</strong> — referenced but not yet defined. Editable — set a value to resolve it.</li>
+        </ul>
+        <p style="margin-top: 12px; padding: 12px; background: #f3e5f5; border-left: 4px solid #9C27B0; border-radius: 4px; font-size: 14px;">
+          <strong>Add Global Variable:</strong> Use the <em>"Add Global Variable"</em> section at the bottom to create a new <code>API_GLOBAL</code> variable by entering a name and a value.
+          It will be available to all expressions on the canvas.
+        </p>
       </div>
 
       <div id="tab-diagnostic" class="tab-content">
         <p>
-          The <strong>Check diagnostic</strong> option analyzes your mathematical expression and provides comprehensive feedback for two different tasks:
+          The <strong>Check diagnostic</strong> option (context menu) analyzes your expression and provides feedback for two tasks:
         </p>
 
         <h4 style="color: #1976d2; margin-top: 16px;">🔢 Numerical Computation</h4>
@@ -188,10 +247,7 @@
         </p>
 
         <h4 style="color: #7b1fa2; margin-top: 20px;">Diagnostic Results:</h4>
-        <p style="margin: 8px 0; font-size: 14px; color: #666;">
-          Each task will show one of these diagnostic codes:
-        </p>
-        <ul>
+        <ul style="font-size: 14px;">
           <li><strong style="color: #2e7d32;">✓ ALLOWED:</strong> The task can be performed successfully</li>
           <li><strong style="color: #f57c00;">⚠ INCOMPLETE_EXPRESSION:</strong> The expression needs to be completed</li>
           <li><strong style="color: #f57c00;">⚠ TOO_MANY_VARIABLES:</strong> Too many undefined variables</li>
@@ -202,7 +258,7 @@
           <li><strong style="color: #1976d2;">ℹ NOT_APPLICABLE:</strong> Task doesn't apply to this expression</li>
         </ul>
         <p style="margin-top: 12px; padding: 12px; background: #e8f5e9; border-left: 4px solid #4caf50; border-radius: 4px; font-size: 14px;">
-          <strong>💡 Pro tip:</strong> Use the diagnostic to understand <em>why</em> a task might fail and which operations are possible for your expression before attempting them.
+          <strong>💡 Pro tip:</strong> Use the diagnostic to understand <em>why</em> a task might fail before attempting it.
         </p>
       </div>
 
@@ -213,10 +269,8 @@
           <li>You can use the same variable in multiple expressions</li>
           <li>The solver supports common math functions: sin, cos, tan, sqrt, exp, log, etc.</li>
           <li>For evaluation, the function must have a clear input-output relationship (e.g., y=f(x))</li>
-          <li><strong>Use "Check diagnostic"</strong> to verify if an expression is ready for both computation and evaluation before attempting either task</li>
-          <li>The diagnostic feature shows results for <strong>two tasks</strong>: Numerical Computation (🔢) and Function Evaluation (📊)</li>
-          <li>Green diagnostic (✓ ALLOWED) means you can safely perform that specific task</li>
-          <li>Each task can have a different diagnostic result - for example, an expression might be evaluable but not computable</li>
+          <li>Global variables (API_GLOBAL) override block-defined variables of the same name</li>
+          <li><strong>Use "Check diagnostic"</strong> to verify if an expression is ready before computing</li>
         </ul>
       </div>
     </div>
@@ -225,7 +279,6 @@
   </div>
 
   <script>
-    // Tab switching functionality
     document.addEventListener('DOMContentLoaded', () => {
       const tabButtons = document.querySelectorAll('.tab-button');
       const tabContents = document.querySelectorAll('.tab-content');
@@ -234,11 +287,9 @@
         button.addEventListener('click', () => {
           const targetTab = button.getAttribute('data-tab');
 
-          // Remove active class from all buttons and contents
           tabButtons.forEach(btn => btn.classList.remove('active'));
           tabContents.forEach(content => content.classList.remove('active'));
 
-          // Add active class to clicked button and corresponding content
           button.classList.add('active');
           document.getElementById(`tab-${targetTab}`).classList.add('active');
         });
@@ -267,16 +318,6 @@
             },
             gestures: ["scratch-out", "surround"]
           },
-          math: {
-            solver: {
-              enable: true,
-              "angle-unit": "rad",
-              "auto-variable-management": {
-                enable: true,
-                "scoping-policy": "closest"
-              }
-            }
-          }
         },
         menu: {
           action: {
@@ -288,6 +329,7 @@
             convert: false,
             debug: false,
             guide: false,
+            math: true
           },
           tool: {
             write: true,
