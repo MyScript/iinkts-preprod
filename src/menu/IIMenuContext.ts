@@ -259,7 +259,7 @@ export class IIMenuContext
     layer.appendChild(this.wrapper)
 
     // Hide context menu when scrolling as the referenced element moves
-    this.#scrollHandler = () => this.hide
+    this.#scrollHandler = () => this.hide()
     this.editor.layers.rendering.addEventListener("scroll", this.#scrollHandler)
   }
 
