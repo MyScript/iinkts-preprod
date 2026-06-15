@@ -17,7 +17,7 @@ export interface SymbolDiagnostic {
  * @group Components
  * @remarks Component for checking and displaying diagnostics for multiple math symbols
  */
-export class IIDiagnosticChecker {
+export class IIMathDiagnosticChecker {
   private editor: InteractiveInkEditor
   private jiixBlockIds: string[]
   private modal?: Modal

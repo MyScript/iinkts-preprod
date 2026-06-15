@@ -1,9 +1,9 @@
 import { InteractiveInkEditor } from "@/editor"
 import { Modal } from "./Modal"
 import { Table, TableRow } from "./Table"
-import { IIFunctionEvaluator } from "./IIFunctionEvaluator"
-import { IIDiagnosticChecker } from "./IIDiagnosticChecker"
-import { IINumericalComputationResult } from "./IINumericalComputationResult"
+import { IIMathFunctionEvaluator } from "./IIMathFunctionEvaluator"
+import { IIMathDiagnosticChecker } from "./IIMathDiagnosticChecker"
+import { IIMathNumericalComputationResult } from "./IIMathNumericalComputationResult"
 import { IIMathBlockVariableEditor } from "./IIMathBlockVariableEditor"
 import { COLORS, flexColumnStyle, flexContainerStyle, SPACING } from "./styles"
 import { createButton, createStatusBadge } from "./ui-utils"
@@ -272,7 +272,7 @@ export class IIMathCapabilitiesTable {
 
     if (selectedBlockIds.length === 0) return
 
-    const checker = new IIDiagnosticChecker(this.editor, selectedBlockIds)
+    const checker = new IIMathDiagnosticChecker(this.editor, selectedBlockIds)
     await checker.show()
   }
 
@@ -308,7 +308,7 @@ export class IIMathCapabilitiesTable {
 
     if (selectedBlockIds.length === 0) return
 
-    const computer = new IINumericalComputationResult(this.editor, selectedBlockIds)
+    const computer = new IIMathNumericalComputationResult(this.editor, selectedBlockIds)
     await computer.show()
   }
 
@@ -326,7 +326,7 @@ export class IIMathCapabilitiesTable {
 
     if (selectedBlockIds.length === 0) return
 
-    const evaluator = new IIFunctionEvaluator(this.editor, selectedBlockIds)
+    const evaluator = new IIMathFunctionEvaluator(this.editor, selectedBlockIds)
     await evaluator.show()
   }
 
