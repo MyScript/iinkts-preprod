@@ -13,7 +13,8 @@ config[0].plugins.push(
     host: "localhost",
     port: 8000,
     headers: {
-      "Access-Control-Allow-Origin": "*"
+      "Access-Control-Allow-Origin": "*",
+      "Cache-Control": "no-cache, no-store, must-revalidate"
     }
   }),
   livereload({
