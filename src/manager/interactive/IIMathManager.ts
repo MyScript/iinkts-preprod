@@ -115,9 +115,13 @@ export class IIMathManager extends IIAbstractManager
   {
     try {
       this.logger.info("setVariableValue", { jiixBlockId, variableName, variableValue })
-      await this.#computation.clearSolverOutputs(jiixBlockId)
+      if (jiixBlockId) {
+        await this.#computation.clearSolverOutputs(jiixBlockId)
+      }
       await this.#variables.setVariableValue(jiixBlockId, variableName, variableValue)
-      await this.recalculateDependentBlocks(jiixBlockId)
+      if (jiixBlockId) {
+        await this.recalculateDependentBlocks(jiixBlockId)
+      }
     }
     catch (error) {
       this.editor.manageError(error as Error)
@@ -138,10 +142,6 @@ export class IIMathManager extends IIAbstractManager
   {
     try {
       this.logger.info("setListVariableValue", { jiixBlockId, variableValues })
-
-      if (!jiixBlockId) {
-        throw new Error("Math block does not have jiixBlockId")
-      }
 
       for (const [variableName, variableValue] of Object.entries(variableValues)) {
         await this.setVariableValue(jiixBlockId, variableName, variableValue)
