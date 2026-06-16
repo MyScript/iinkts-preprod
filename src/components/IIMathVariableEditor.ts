@@ -1,33 +1,22 @@
 import { InteractiveInkEditor } from "@/editor"
 import { Modal } from "./Modal"
-import { TMathVariableDefinitions } from "@/recognizer"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import { BORDER_RADIUS, COLORS, SPACING, cardStyle, flexColumnStyle, gridContainerStyle } from "./styles"
 import { IIMathVariableInputList, TVariableInputItem } from "./IIMathVariableInputList"
-
-/**
- * @group hidden
- * @remarks Returns true if the sourceType is editable (API_GLOBAL, API, or UNDEFINED).
- * BLOCK variables are not editable.
- * @param sourceType The source type of the variable definition.
- * @returns True if the variable definition is editable; false otherwise.
- */
-function isEditableSourceType(sourceType: string | undefined): boolean
-{
-  return sourceType === "API_GLOBAL" || sourceType === "API" || sourceType === "UNDEFINED"
-}
+import { TMathVariableUsage } from "@/manager/interactive/math"
 
 /**
  * @group Components
  * @remarks Modal editor for all variable definitions returned by get-variable-definitions.
- * BLOCK variables are shown read-only; API_GLOBAL variables are editable.
- * New global variables can be added via setVariableValue("", name, value).
+ * Shows one row per (variable, block) usage. Definition rows are read-only;
+ * BLOCK-provided and free (UNDEFINED) variables are editable/deletable.
  */
 export class IIMathVariableEditor
 {
   private editor: InteractiveInkEditor
   private modal?: Modal
-  private variableDefs: TMathVariableDefinitions[] = []
+  private usages: TMathVariableUsage[] = []
+  private usagesById: Map<string, TMathVariableUsage> = new Map()
   private inputList?: IIMathVariableInputList
   private newRows: Array<{ nameInput: HTMLInputElement; valueInput: HTMLInputElement }> = []
   private logger = LoggerManager.getLogger(LoggerCategory.MATH)
@@ -39,15 +28,20 @@ export class IIMathVariableEditor
 
   async show(): Promise<void>
   {
-    this.variableDefs = []
+    this.usages = []
+    this.usagesById = new Map()
     this.inputList = undefined
     this.newRows = []
 
     try {
-      this.variableDefs = await this.editor.math.getVariableDefinitions()
+      this.usages = await this.editor.math.getAllVariableUsages()
     } catch (error) {
-      this.logger.error("show", "Error fetching variable definitions:", error)
+      this.logger.error("show", "Error fetching variable usages:", error)
       return
+    }
+
+    for (const usage of this.usages) {
+      this.usagesById.set(usage.id, usage)
     }
 
     const container = this.createModalContent()
@@ -73,23 +67,23 @@ export class IIMathVariableEditor
       box-sizing: border-box;
     `
 
-    if (this.variableDefs.length > 0) {
+    if (this.usages.length > 0) {
       const section = document.createElement("div")
       section.style.cssText = cardStyle
 
-      const items: TVariableInputItem[] = this.variableDefs.map(vd => {
-        const editableDef = vd.definitions.find(d => isEditableSourceType(d.sourceType))
-        const def = editableDef ?? vd.definitions[0]
-        return {
-          name: vd.name,
-          initialValue: def?.value,
-          sourceType: def?.sourceType,
-          disabled: !editableDef,
-          onDelete: editableDef
-            ? async (name) => { await this.editor.math.removeVariable(editableDef.blockId, name) }
-            : undefined
-        }
-      })
+      const items: TVariableInputItem[] = this.usages.map(usage => ({
+        id: usage.id,
+        name: usage.name,
+        initialValue: usage.value,
+        sourceType: usage.sourceType,
+        sourceLabel: usage.sourceLabel,
+        isDefinition: usage.isDefinition,
+        targetLabel: usage.targetLabel,
+        disabled: !usage.isEditable,
+        onDelete: usage.isEditable
+          ? async (name) => { await this.editor.math.removeVariable(usage.targetBlockId, name) }
+          : undefined
+      }))
 
       this.inputList = new IIMathVariableInputList(items)
       section.appendChild(this.inputList.element)
@@ -206,13 +200,11 @@ export class IIMathVariableEditor
 
       if (this.inputList) {
         const allValues = this.inputList.getValues()
-        for (const [name, newValue] of allValues) {
-          const editableDef = this.variableDefs
-            .find(vd => vd.name === name)
-            ?.definitions.find(d => isEditableSourceType(d.sourceType))
-          if (!editableDef) continue
-          if (editableDef.value !== newValue) {
-            updates.push(this.editor.math.setVariableValue(editableDef.blockId, name, newValue))
+        for (const [id, newValue] of allValues) {
+          const usage = this.usagesById.get(id)
+          if (!usage || !usage.isEditable) continue
+          if (usage.value !== newValue) {
+            updates.push(this.editor.math.setVariableValue(usage.targetBlockId, usage.name, newValue))
           }
         }
       }
@@ -227,7 +219,7 @@ export class IIMathVariableEditor
 
       if (updates.length > 0) {
         await Promise.all(updates)
-        this.logger.info("applyChanges", `Updated ${updates.length} global variable(s)`)
+        this.logger.info("applyChanges", `Updated ${updates.length} variable(s)`)
       }
       this.close()
       this.editor.menu.context.update()
@@ -240,7 +232,8 @@ export class IIMathVariableEditor
   {
     this.modal?.destroy()
     this.modal = undefined
-    this.variableDefs = []
+    this.usages = []
+    this.usagesById = new Map()
     this.inputList = undefined
     this.newRows = []
   }

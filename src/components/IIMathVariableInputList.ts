@@ -4,9 +4,13 @@ import { BORDER_RADIUS, COLORS, SPACING, flexColumnStyle, gridContainerStyle } f
  * @group Components
  */
 export type TVariableInputItem = {
+  id?: string
   name: string
   initialValue?: number
   sourceType?: string
+  sourceLabel?: string   // human-readable label of the definition block (replaces raw sourceId)
+  isDefinition?: boolean
+  targetLabel?: string   // label of the block where this variable is used
   disabled?: boolean
   onDelete?: (name: string) => Promise<void>
 }
@@ -16,7 +20,7 @@ const SOURCE_TYPE_COLORS: Record<string, string> = {
   "API": COLORS.blue[700],
   "API_GLOBAL": COLORS.purple,
   "BLOCK": COLORS.success,
-  "PREDIFINED": COLORS.warning
+  "PREDEFINED": COLORS.warning
 }
 
 /**
@@ -38,10 +42,14 @@ export class IIMathVariableInputList
 
   private createRow(item: TVariableInputItem): HTMLDivElement
   {
+    const hasTarget = !!item.targetLabel
+    const colDefs = hasTarget
+      ? (item.onDelete ? "80px 90px 1fr 1fr 28px" : "80px 90px 1fr 1fr")
+      : (item.onDelete ? "120px 1fr 80px 28px" : "120px 1fr 80px")
+
     const row = document.createElement("div")
-    const columns = item.onDelete ? "120px 1fr 80px 28px" : "120px 1fr 80px"
     row.style.cssText = `
-      ${gridContainerStyle(columns, SPACING.sm)}
+      ${gridContainerStyle(colDefs, SPACING.sm)}
       align-items: center;
       padding: ${SPACING.sm};
       background: ${COLORS.gray[50]};
@@ -79,19 +87,58 @@ export class IIMathVariableInputList
     input.addEventListener("focus", () => input.style.borderColor = COLORS.primary )
     input.addEventListener("blur", () => input.style.borderColor = COLORS.gray[300] )
     row.appendChild(input)
-    this.inputs.set(item.name, input)
+    this.inputs.set(item.id ?? item.name, input)
 
     const sourceInfo = document.createElement("div")
     sourceInfo.style.cssText = `
-      font-size: 11px;
-      color: ${COLORS.gray[600]};
-      text-align: right;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+      overflow: hidden;
     `
     if (item.sourceType) {
-      sourceInfo.style.color = SOURCE_TYPE_COLORS[item.sourceType] ?? COLORS.gray[600]
-      sourceInfo.textContent = item.disabled ? "Definition" : item.sourceType
+      const typeLabel = document.createElement("span")
+      typeLabel.style.cssText = `
+        font-size: 11px;
+        color: ${SOURCE_TYPE_COLORS[item.sourceType] ?? COLORS.gray[600]};
+        font-weight: 600;
+      `
+      typeLabel.textContent = item.isDefinition ? "Definition" : (item.sourceType ?? "")
+      sourceInfo.appendChild(typeLabel)
+    }
+    if (item.sourceLabel) {
+      const labelEl = document.createElement("span")
+      labelEl.title = item.sourceLabel
+      labelEl.style.cssText = `
+        font-size: 10px;
+        color: ${COLORS.gray[400]};
+        font-family: monospace;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 100px;
+      `
+      labelEl.textContent = item.sourceLabel
+      sourceInfo.appendChild(labelEl)
     }
     row.appendChild(sourceInfo)
+
+    if (hasTarget) {
+      const targetEl = document.createElement("div")
+      targetEl.title = item.targetLabel!
+      targetEl.style.cssText = `
+        font-size: 11px;
+        color: ${COLORS.gray[600]};
+        font-family: monospace;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        padding: 0 ${SPACING.sm};
+      `
+      targetEl.textContent = item.targetLabel!
+      row.appendChild(targetEl)
+    }
 
     if (item.onDelete) {
       const deleteBtn = document.createElement("button")
@@ -109,7 +156,7 @@ export class IIMathVariableInputList
       `
       deleteBtn.addEventListener("click", async () => {
         await item.onDelete!(item.name)
-        this.removeRow(item.name)
+        this.removeRow(item.id ?? item.name)
       })
       row.appendChild(deleteBtn)
     }
