@@ -10,7 +10,7 @@ import { IIMathVariableInputList, TVariableInputItem } from "./IIMathVariableInp
  */
 export interface SymbolVariables {
   jiixBlockId: string
-  definition: TMathVariableDefinition
+  definition: TMathVariableDefinition | null
   variables: TMathVariable[]
 }
 
@@ -109,17 +109,19 @@ export class IIMathVariablePerBlockEditor
     expressionDiv.innerHTML = `<strong>Expression:</strong> ${label}`
     section.appendChild(expressionDiv)
 
-    const storedValues = this.editor.math.getStoredVariableValues(symVar.jiixBlockId)
     const items: TVariableInputItem[] = symVar.variables.map(variable => {
-      const isDefinition = symVar.definition.name === variable.name
-      const definitionValue = isDefinition && variable.value == null ? symVar.definition.value : variable.value
-      const initialValue = storedValues?.[variable.name] ?? definitionValue
+      const isDefinition = symVar.definition?.name === variable.name
+      const initialValue = variable.value ?? (isDefinition ? symVar.definition?.value : undefined)
       return {
         name: variable.name,
         initialValue,
         sourceType: variable.sourceType,
-        disabled: isDefinition,
-        onDelete: variable.sourceType === "API"
+        sourceLabel: variable.sourceType === "BLOCK" && variable.sourceId
+          ? this.editor.jiix.getBlockLabel(variable.sourceId) ?? variable.sourceId
+          : undefined,
+        isDefinition,
+        disabled: isDefinition || variable.sourceType === "PREDEFINED",
+        onDelete: variable.sourceType === "API" || variable.sourceType === "API_GLOBAL"
           ? async (name) => { await this.editor.math.removeVariable(symVar.jiixBlockId, name) }
           : undefined
       }
