@@ -55,7 +55,7 @@ export default defineConfig({
   outputDir: "test-results",
   retries: 1,
   timeout: 60 * 1000,
-  workers: process.env.CI ? 1 : undefined,
+  workers: process.env.CI ? 1 : 4,
   use: {
     headless: process.env.HEADLESS === "false" ? false : true,
     baseURL: process.env.BASE_URL || "http://localhost:8000",
