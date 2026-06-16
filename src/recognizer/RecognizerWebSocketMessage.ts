@@ -116,7 +116,7 @@ export type TRecognizerWebSocketMessageIdle = TRecognizerWebSocketMessage<TRecog
 export type TMathVariable = {
   name: string
   value?: number
-  sourceType?: "UNDEFINED" | "API" | "API_GLOBAL" | "BLOCK" | "PREDIFINED"
+  sourceType?: "UNDEFINED" | "API" | "API_GLOBAL" | "BLOCK" | "PREDEFINED"
   sourceId?: string
   occurrenceCount?: number
 }
@@ -232,7 +232,7 @@ export type TRecognizerWebSocketMessageMathSolverAsVariableDefinition = TRecogni
  */
 export type TMathVariableDefinitionInfo = {
   value: number
-  sourceType: "UNDEFINED" | "API" | "API_GLOBAL" | "BLOCK" | "PREDIFINED"
+  sourceType: "UNDEFINED" | "API" | "API_GLOBAL" | "BLOCK" | "PREDEFINED"
   blockId: string
 }
 
