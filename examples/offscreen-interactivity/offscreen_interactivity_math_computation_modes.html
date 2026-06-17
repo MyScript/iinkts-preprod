@@ -12,10 +12,22 @@
   <script type="text/javascript" src="../../dist/iink.min.js"></script>
 
   <style>
+    .info-control-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 12px 0;
+    }
+
+    .info-col {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
     .info-section {
       background: #e3f2fd;
       padding: 12px;
-      margin: 12px 0;
       border-radius: 4px;
       border-left: 4px solid #2196F3;
     }
@@ -94,16 +106,34 @@
 
     #editorEl {
       width: 100%;
-      height: calc(100vh - 500px);
-      min-height: 300px;
+      height: calc(100vh - 360px);
+      min-height: 500px;
     }
 
     .control-section {
       padding: 12px;
       background: #fff9c4;
-      margin: 12px 0;
       border-radius: 4px;
       border-left: 4px solid #fbc02d;
+    }
+
+    #editorEl {
+      height: calc(100vh - 500px);
+    }
+    @media only screen and (max-width: 760px) {
+      .info-control-row {
+        grid-template-columns: 1fr;
+      }
+    }
+    @media only screen and (max-width: 1131px) {
+      #editorEl {
+        height: calc(100vh - 530px);
+      }
+    }
+    @media only screen and (max-width: 930px) {
+      #editorEl {
+        height: calc(100vh - 550px);
+      }
     }
   </style>
 </head>
@@ -140,26 +170,28 @@
       </div>
     </div>
   </div>
+  <div class="info-control-row">
 
-  <div class="info-section">
-    <h3>⚙️ Auto-Compute</h3>
-    <p>
-      Automatically compute expressions when you finish writing them (end with <span class="highlight">=</span> or <span class="highlight">?</span>).
-    </p>
-    <p>
-      <strong>How it works:</strong> After writing a block, synchronized event triggers auto-compute check. If block ends with = or ?, solver computes result.
-    </p>
-    <p>
-      <strong>Why useful:</strong> Real-time feedback without manual "Compute" clicks.
-    </p>
-  </div>
+      <div class="info-section">
+        <h3>⚙️ Auto-Compute</h3>
+        <p>
+          Automatically compute expressions when you finish writing them (end with <span class="highlight">=</span> or <span class="highlight">?</span>).
+        </p>
+        <p>
+          <strong>How it works:</strong> After writing a block, synchronized event triggers auto-compute check. If block ends with = or ?, solver computes result.
+        </p>
+        <p>
+          <strong>Why useful:</strong> Real-time feedback without manual "Compute" clicks.
+        </p>
+      </div>
 
-  <div class="control-section">
-    <strong>📝 Try it:</strong><br>
-    1. Write <span class="highlight">5+3=</span> (with equals sign)<br>
-    2. If auto-compute enabled → result appears instantly<br>
-    3. Toggle "Auto-compute" checkbox to see difference<br>
-    4. Switch "Result mode" to see Draw vs Ghost rendering
+    <div class="control-section">
+      <strong>📝 Try it:</strong><br>
+      1. Write <span class="highlight">5+3=</span> (with equals sign)<br>
+      2. If auto-compute enabled → result appears instantly<br>
+      3. Toggle "Auto-compute" checkbox to see difference<br>
+      4. Switch "Result mode" to see Draw vs Ghost rendering
+    </div>
   </div>
 
   <div id="editorEl"></div>

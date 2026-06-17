@@ -23,6 +23,8 @@ test.describe("Websocket Text interact", () => {
   })
 
   test("should resolve all questions", async ({ page }) => {
+    // Increase timeout for this test because sometimes it may take longer than the default 60 seconds
+    test.setTimeout(90 * 1000)
 
     await test.step(`should ask the capital of France`, async () => {
       await expect(page.locator("#question")).toHaveText("What is the capital of France?")

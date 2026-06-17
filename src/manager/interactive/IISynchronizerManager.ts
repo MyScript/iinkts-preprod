@@ -191,7 +191,7 @@ export class IISynchronizerManager extends IIAbstractManager
 
     // Refresh math overlays
     try {
-      this.editor.math.refreshOverlays()
+      this.editor.overlays.refresh()
     } catch (error) {
       this.logger.error("#doSynchronize", "Failed to refresh math overlays:", error)
     }
