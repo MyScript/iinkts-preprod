@@ -9,6 +9,7 @@ export interface IMenuRange extends IMenuItemBase {
   type: "range"
   min: number
   max: number
+  unit?: string
   step: number
   initValue?: number
   onChange: (value: number, editor: InteractiveInkEditor) => void
@@ -48,7 +49,7 @@ export class RangeMenuItem extends BaseMenuItem<HTMLDivElement>
     wrapper.appendChild(this.input)
 
     this.output = document.createElement("output")
-    this.output.innerHTML = this.currentValue !== undefined ? `${this.currentValue}%` : "-"
+    this.output.innerHTML = this.currentValue !== undefined ? `${this.currentValue}${this.config.unit ?? "%"}` : "-"
     wrapper.appendChild(this.output)
 
     if (this.config.label) {
@@ -64,7 +65,7 @@ export class RangeMenuItem extends BaseMenuItem<HTMLDivElement>
       const value = parseInt((evt.target as HTMLInputElement).value)
       this.currentValue = value
       if (this.output) {
-        this.output.innerHTML = `${value}%`
+        this.output.innerHTML = `${value}${this.config.unit ?? "%"}`
       }
       this.config.onChange(value, this.editor)
     })
@@ -82,7 +83,7 @@ export class RangeMenuItem extends BaseMenuItem<HTMLDivElement>
       this.input.value = value.toString()
     }
     if (this.output) {
-      this.output.innerHTML = `${value}%`
+      this.output.innerHTML = `${value}${this.config.unit ?? "%"}`
     }
   }
 
