@@ -30,6 +30,7 @@ export class OverlayMenuAction extends SubMenuItem
         max: 40,
         step: 2,
         initValue: editor.overlays.getConfig().badgeSize,
+        unit: "px",
         onChange: (value: number, editor: InteractiveInkEditor) => {
           editor.overlays.updateConfig({ badgeSize: value })
         }
@@ -42,6 +43,7 @@ export class OverlayMenuAction extends SubMenuItem
         max: 8,
         step: 1,
         initValue: editor.overlays.getConfig().borderWidth,
+        unit: "px",
         onChange: (value: number, editor: InteractiveInkEditor) => {
           editor.overlays.updateConfig({ borderWidth: value })
         }
@@ -54,6 +56,7 @@ export class OverlayMenuAction extends SubMenuItem
         max: 40,
         step: 1,
         initValue: editor.overlays.getConfig().labelMaxChars,
+        unit: "chars",
         onChange: (value: number, editor: InteractiveInkEditor) => {
           editor.overlays.updateConfig({ labelMaxChars: value })
         }
@@ -66,6 +69,7 @@ export class OverlayMenuAction extends SubMenuItem
         max: 20,
         step: 1,
         initValue: editor.overlays.getConfig().labelFontSize,
+        unit: "px",
         onChange: (value: number, editor: InteractiveInkEditor) => {
           editor.overlays.updateConfig({ labelFontSize: value })
         }
