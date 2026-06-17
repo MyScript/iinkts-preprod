@@ -283,7 +283,7 @@
           if (depSymbol) {
             const depDeps = await editor.math.getDependencies(depId)
             html += `<div class="dependency-info dependent" style="margin-left: 16px; margin-bottom: 4px;">`
-            html += `<strong>→ ${depSymbol.label || depId}</strong><br>`
+            html += `<strong>→ ${depSymbol.label || depId}</strong>`
 
             if (depDeps?.variableSources && Object.keys(depDeps.variableSources).length > 0) {
               html += '<small>Variables: '
@@ -305,7 +305,7 @@
       const remainingBlocks = mathBlocks.filter(s => !processedBlocks.has(s.id))
       if (remainingBlocks.length > 0) {
         html += '<div style="margin-top: 16px; padding-top: 8px; border-top: 1px dashed #ccc;">'
-        html += '<small><strong>Isolated blocks:</strong></small><br>'
+        html += '<small><strong>Isolated blocks:</strong></small>'
         for (const mathBlock of remainingBlocks) {
           html += `<div class="dependency-info" style="margin-top: 4px;">`
           html += `<strong>${mathBlock.label || mathBlock.id}</strong>`
