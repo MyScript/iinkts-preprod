@@ -27,6 +27,8 @@ export class IIMenuContext
   // Context menu instances
   private contextMenus: Map<string, EditContextMenu | DecoratorContextMenu | ReorderContextMenu | ExportContextMenu | ConvertContextMenu | MathContextMenu | DuplicateContextMenu | RemoveContextMenu | SelectAllContextMenu> = new Map()
 
+  #scrollHandler?: () => void
+
   position: {
     x: number,
     y: number
@@ -257,10 +259,8 @@ export class IIMenuContext
     layer.appendChild(this.wrapper)
 
     // Hide context menu when scrolling as the referenced element moves
-    this.editor.layers.rendering.addEventListener("scroll", () =>
-    {
-      this.hide()
-    })
+    this.#scrollHandler = () => this.hide()
+    this.editor.layers.rendering.addEventListener("scroll", this.#scrollHandler)
   }
 
   show(): void
@@ -276,6 +276,10 @@ export class IIMenuContext
 
   destroy(): void
   {
+    if (this.#scrollHandler) {
+      this.editor.layers.rendering.removeEventListener("scroll", this.#scrollHandler)
+      this.#scrollHandler = undefined
+    }
     while (this.wrapper?.lastChild) {
       this.wrapper.removeChild(this.wrapper.lastChild)
     }

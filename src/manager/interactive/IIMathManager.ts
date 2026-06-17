@@ -9,6 +9,7 @@ import {
   TMathBlockComputation,
   TMathInteractionConfig,
   TMathOverlayConfig,
+  TMathVariableUsage,
 } from "./math"
 import { TJIIXMathElement } from "@/model"
 import { TMathEvaluable, TMathVariable, TMathVariableDefinition, TMathVariableDefinitions } from "@/recognizer/RecognizerWebSocketMessage"
@@ -99,7 +100,6 @@ export class IIMathManager extends IIAbstractManager
     return this.#computation.getStoredSolverOutputs(jiixBlockId)
   }
 
-
   /**
    * Set value for a specific variable in a math expression
    * @param jiixBlockId - The ID of the math element (jiixId)
@@ -115,9 +115,13 @@ export class IIMathManager extends IIAbstractManager
   {
     try {
       this.logger.info("setVariableValue", { jiixBlockId, variableName, variableValue })
-      await this.#computation.clearSolverOutputs(jiixBlockId)
+      if (jiixBlockId) {
+        await this.#computation.clearSolverOutputs(jiixBlockId)
+      }
       await this.#variables.setVariableValue(jiixBlockId, variableName, variableValue)
-      await this.recalculateDependentBlocks(jiixBlockId)
+      if (jiixBlockId) {
+        await this.recalculateDependentBlocks(jiixBlockId)
+      }
     }
     catch (error) {
       this.editor.manageError(error as Error)
@@ -138,10 +142,6 @@ export class IIMathManager extends IIAbstractManager
   {
     try {
       this.logger.info("setListVariableValue", { jiixBlockId, variableValues })
-
-      if (!jiixBlockId) {
-        throw new Error("Math block does not have jiixBlockId")
-      }
 
       for (const [variableName, variableValue] of Object.entries(variableValues)) {
         await this.setVariableValue(jiixBlockId, variableName, variableValue)
@@ -176,7 +176,7 @@ export class IIMathManager extends IIAbstractManager
    * @param variableName - Name of the variable
    * @returns Promise with the value of the variable
    */
-  async getVariableValue(jiixBlockId: string, variableName: string): Promise<number>
+  async getVariableValue(jiixBlockId: string, variableName: string): Promise<number | null>
   {
     try {
       return this.#variables.getVariableValue(jiixBlockId, variableName)
@@ -185,11 +185,6 @@ export class IIMathManager extends IIAbstractManager
       this.editor.manageError(error as Error)
       throw error
     }
-  }
-
-  getStoredVariableValues(jiixBlockId: string): Record<string, number> | undefined
-  {
-    return this.#variables.getStoredVariableValues(jiixBlockId)
   }
 
   getDependencies(jiixBlockId: string): MathDependencies | null
@@ -264,7 +259,7 @@ export class IIMathManager extends IIAbstractManager
     await this.recalculateDependentBlocks(jiixBlockId)
   }
 
-  async asVariableDefinition(jiixBlockId: string): Promise<TMathVariableDefinition>
+  async asVariableDefinition(jiixBlockId: string): Promise<TMathVariableDefinition | null>
   {
     return this.#variables.asVariableDefinition(jiixBlockId)
   }
@@ -272,6 +267,11 @@ export class IIMathManager extends IIAbstractManager
   async getVariableDefinitions(): Promise<TMathVariableDefinitions[]>
   {
     return this.#variables.getVariableDefinitions()
+  }
+
+  async getAllVariableUsages(): Promise<TMathVariableUsage[]>
+  {
+    return this.#variables.getAllVariableUsages()
   }
 
   clearVariableInteractions(): void

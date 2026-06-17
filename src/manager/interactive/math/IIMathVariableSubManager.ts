@@ -34,6 +34,19 @@ export type TMathInteractionConfig = {
 }
 
 /**
+ * One display row for a variable in a specific math block context.
+ * @group Manager
+ */
+export type TMathVariableUsage = TMathVariable & {
+  id: string
+  targetBlockId: string    // blockId for set/remove API calls
+  targetLabel: string      // display: label of the block this row represents
+  sourceLabel?: string     // display: label of the block that defines this variable (BLOCK-typed only)
+  isDefinition: boolean    // true if targetBlock IS the definition block for this variable
+  isEditable: boolean      // true if user can set/delete this usage
+}
+
+/**
  * Unified sub-manager for math variable state, dependency tracking, and visual interactions.
  *
  * Responsibilities:
@@ -61,7 +74,9 @@ export class IIMathVariableSubManager extends IIAbstractManager
   }
 
   #dependencies: Map<string, MathDependencies> = new Map()
-  #variableValues: Map<string, Record<string, number>> = new Map()
+  #variableCache: Map<string, TMathVariable[]> = new Map()
+  #variableDefsCache: TMathVariableDefinitions[] | null = null
+  #variableDefinitionCache: Map<string, TMathVariableDefinition | null> = new Map()
 
   #config: TMathInteractionConfig
   #hoveredJiixBlockId: string | null = null
@@ -75,10 +90,6 @@ export class IIMathVariableSubManager extends IIAbstractManager
     this.#config = { ...IIMathVariableSubManager.DEFAULT_CONFIG, ...config }
   }
 
-  // ==========================================
-  // Interaction configuration
-  // ==========================================
-
   updateConfig(config: Partial<TMathInteractionConfig>): void
   {
     this.logger.debug("updateConfig", config)
@@ -89,10 +100,6 @@ export class IIMathVariableSubManager extends IIAbstractManager
   {
     return { ...this.#config }
   }
-
-  // ==========================================
-  // Symbol helpers
-  // ==========================================
 
   private getMathSymbols(): IIStroke[]
   {
@@ -111,6 +118,11 @@ export class IIMathVariableSubManager extends IIAbstractManager
     const strokes = this.findMathSymbolsByJiixId(jiixBlockId)
     if (!strokes.length) return null
     return Box.createFromBoxes(strokes.map(s => s.bounds))
+  }
+
+  private getAllMathBlockIds(): string[]
+  {
+    return this.editor.jiix.getAllMathBlocksWithStrokes().map(b => b.mathBlock.id)
   }
 
   protected findVariableBoxesInExpressions(expressions: TJIIXMathExpression[], variableName: string): TBox[]
@@ -132,10 +144,6 @@ export class IIMathVariableSubManager extends IIAbstractManager
     return boxes
   }
 
-  // ==========================================
-  // Dependency graph
-  // ==========================================
-
   getDependencies(blockId: string): MathDependencies | null
   {
     return this.#dependencies.get(blockId) ?? null
@@ -144,6 +152,7 @@ export class IIMathVariableSubManager extends IIAbstractManager
   async enrichMathDependencies(jiixBlockId: string): Promise<void>
   {
     try {
+      this.invalidateCacheForBlock(jiixBlockId)
       this.logger.info("enrichMathDependencies", `Starting enrichment for "${jiixBlockId}"`)
 
       const variables = await this.getVariables(jiixBlockId)
@@ -201,6 +210,7 @@ export class IIMathVariableSubManager extends IIAbstractManager
 
     for (const [id] of this.#dependencies) {
       if (!existingJiixIds.has(id)) {
+        this.#variableCache.delete(id)
         this.#dependencies.delete(id)
       }
     }
@@ -270,25 +280,36 @@ export class IIMathVariableSubManager extends IIAbstractManager
     }
   }
 
-  // ==========================================
-  // Variable values
-  // ==========================================
-
-  async getVariables(jiixBlockId: string): Promise<TMathVariable[]>
+  invalidateCacheForBlock(jiixBlockId: string): void
   {
-    if (!jiixBlockId) {
-      this.logger.warn("getVariables", "jiixBlockId is empty, returning empty array")
-      return []
-    }
-
-    this.logger.info("getVariables", { jiixBlockId })
-    return await this.editor.recognizer.getVariables(jiixBlockId)
+    this.#variableCache.delete(jiixBlockId)
+    this.#variableDefinitionCache.delete(jiixBlockId)
+    this.#variableDefsCache = null
   }
 
-  async getVariableValue(jiixBlockId: string, variableName: string): Promise<number>
+  async getVariables(jiixBlockId: string = ""): Promise<TMathVariable[]>
+  {
+    const cached = this.#variableCache.get(jiixBlockId)
+    if (cached) {
+      this.logger.debug("getVariables", { jiixBlockId, source: "cache" })
+      return cached
+    }
+    this.logger.info("getVariables", { jiixBlockId })
+    const variables = await this.editor.recognizer.getVariables(jiixBlockId)
+    const definition = await this.asVariableDefinition(jiixBlockId)
+    const enriched: TMathVariable[] = variables.map(v => ({
+      ...v,
+      isDefinition: !!definition && definition.name === v.name
+    }))
+    this.#variableCache.set(jiixBlockId, enriched)
+    return enriched
+  }
+
+  async getVariableValue(jiixBlockId: string, variableName: string): Promise<number | null>
   {
     this.logger.info("getVariableValue", { jiixBlockId, variableName })
-    return await this.editor.recognizer.getVariableValue(jiixBlockId, variableName)
+    const variables = await this.getVariables(jiixBlockId)
+    return variables.find(v => v.name === variableName)?.value ?? null
   }
 
   async setVariableValue(
@@ -298,54 +319,92 @@ export class IIMathVariableSubManager extends IIAbstractManager
   ): Promise<void>
   {
     this.logger.info("setVariableValue", { jiixBlockId, variableName, variableValue })
-
-    if (!jiixBlockId) {
-      throw new Error("Math block does not have jiixBlockId")
-    }
-
     await this.editor.recognizer.setVariableValue(jiixBlockId, variableName, variableValue)
-
-    const existing = this.#variableValues.get(jiixBlockId) ?? {}
-    this.#variableValues.set(jiixBlockId, { ...existing, [variableName]: variableValue })
-  }
-
-  getStoredVariableValues(jiixBlockId: string): Record<string, number> | undefined
-  {
-    return this.#variableValues.get(jiixBlockId)
+    this.invalidateCacheForBlock(jiixBlockId)
   }
 
   async removeVariableValue(jiixBlockId: string, variableName: string): Promise<void>
   {
     this.logger.info("removeVariableValue", { jiixBlockId, variableName })
-
-    if (!jiixBlockId) {
-      throw new Error("Math block does not have jiixBlockId")
-    }
-
     await this.editor.recognizer.removeVariableValue(jiixBlockId, variableName)
-
-    const existing = this.#variableValues.get(jiixBlockId)
-    if (existing) {
-      delete existing[variableName]
-      this.#variableValues.set(jiixBlockId, existing)
-    }
+    this.invalidateCacheForBlock(jiixBlockId)
   }
 
-  async asVariableDefinition(jiixBlockId: string): Promise<TMathVariableDefinition>
+  async asVariableDefinition(jiixBlockId: string): Promise<TMathVariableDefinition | null>
   {
-    this.logger.info("asVariableDefinition", { jiixBlockId })
-    return await this.editor.recognizer.asVariableDefinition(jiixBlockId)
+    if (this.#variableDefinitionCache.has(jiixBlockId)) {
+      this.logger.debug("asVariableDefinition", { jiixBlockId, source: "cache" })
+      return this.#variableDefinitionCache.get(jiixBlockId) ?? null
+    }
+    try {
+      this.logger.info("asVariableDefinition", { jiixBlockId })
+      const definition = await this.editor.recognizer.asVariableDefinition(jiixBlockId)
+      this.#variableDefinitionCache.set(jiixBlockId, definition)
+      return definition
+    } catch {
+      this.#variableDefinitionCache.set(jiixBlockId, null)
+      return null
+    }
   }
 
   async getVariableDefinitions(): Promise<TMathVariableDefinitions[]>
   {
+    if (this.#variableDefsCache) {
+      this.logger.debug("getVariableDefinitions", { source: "cache" })
+      return this.#variableDefsCache
+    }
     this.logger.info("getVariableDefinitions")
-    return await this.editor.recognizer.getVariableDefinitions()
+    const defs = await this.editor.recognizer.getVariableDefinitions()
+    this.#variableDefsCache = defs
+    return defs
   }
 
-  // ==========================================
-  // Recursive source/dependent traversal (jiixBlockId-based)
-  // ==========================================
+  async getAllVariableUsages(): Promise<TMathVariableUsage[]>
+  {
+    const defs = await this.getVariableDefinitions()
+    const blockDefs = new Map<string, { blockId: string; value?: number }>()
+    for (const vd of defs) {
+      for (const d of vd.definitions) {
+        if (d.sourceType === "BLOCK") {
+          blockDefs.set(vd.name, { blockId: d.blockId, value: d.value })
+        }
+      }
+    }
+
+    const allBlockVars = new Map<string, TMathVariable[]>()
+    await Promise.all(this.getAllMathBlockIds().map(async id => {
+      allBlockVars.set(id, await this.getVariables(id))
+    }))
+
+    const usages: TMathVariableUsage[] = []
+
+    for (const [blockId, variables] of allBlockVars) {
+      const targetLabel = this.editor.jiix.getBlockLabel(blockId) ?? blockId
+      for (const variable of variables) {
+        const def = blockDefs.get(variable.name)
+        const isDefinition = variable.sourceType === "UNDEFINED" && def?.blockId === blockId
+        const isEditable = !isDefinition && variable.sourceType !== "PREDEFINED"
+        const sourceLabel = variable.sourceType === "BLOCK" && variable.sourceId
+          ? this.editor.jiix.getBlockLabel(variable.sourceId) ?? variable.sourceId
+          : undefined
+
+        usages.push({
+          id: `${variable.name}|${blockId}`,
+          name: variable.name,
+          value: isDefinition ? def?.value : (variable.value ?? undefined),
+          targetBlockId: blockId,
+          targetLabel,
+          sourceType: variable.sourceType,
+          sourceId: variable.sourceId,
+          sourceLabel,
+          isDefinition,
+          isEditable
+        })
+      }
+    }
+
+    return usages
+  }
 
   getRecursiveSources(jiixBlockId: string, visited: Set<string> = new Set()): Set<string>
   {
@@ -386,10 +445,6 @@ export class IIMathVariableSubManager extends IIAbstractManager
 
     return dependents
   }
-
-  // ==========================================
-  // Interaction visuals
-  // ==========================================
 
   onSymbolHover(jiixBlockId: string | null): void
   {
@@ -599,14 +654,12 @@ export class IIMathVariableSubManager extends IIAbstractManager
     this.#selectedJiixBlockIds.clear()
   }
 
-  // ==========================================
-  // Lifecycle
-  // ==========================================
-
   clear(): void
   {
     this.#dependencies.clear()
-    this.#variableValues.clear()
+    this.#variableCache.clear()
+    this.#variableDefsCache = null
+    this.#variableDefinitionCache.clear()
   }
 
   protected onDestroy(): void

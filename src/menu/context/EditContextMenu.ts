@@ -10,6 +10,7 @@ import { createUUID } from "@/utils"
  */
 export class EditContextMenu extends BaseMenuItem<HTMLElement>
 {
+  #documentPointerdownHandler?: (e: PointerEvent) => void
   protected declare config: TGenericMenuItem
   editInput?: HTMLInputElement
   editSaveBtn?: HTMLButtonElement
@@ -81,13 +82,22 @@ export class EditContextMenu extends BaseMenuItem<HTMLElement>
 
     // Event listeners
     trigger.addEventListener("pointerdown", () => content.classList.toggle("open"))
-    document.addEventListener("pointerdown", (e) => {
+    this.#documentPointerdownHandler = (e: PointerEvent) => {
       if (!wrapper.contains(e.target as HTMLElement)) {
         content.classList.remove("open")
       }
-    })
+    }
+    document.addEventListener("pointerdown", this.#documentPointerdownHandler)
 
     return wrapper
+  }
+
+  destroy(): void {
+    if (this.#documentPointerdownHandler) {
+      document.removeEventListener("pointerdown", this.#documentPointerdownHandler)
+      this.#documentPointerdownHandler = undefined
+    }
+    super.destroy()
   }
 
   update(): void
