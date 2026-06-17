@@ -4,6 +4,7 @@ import { IMenuCheckbox } from "@/menu/items/CheckboxMenuItem"
 import { IMenuSelect } from "@/menu/items/SelectMenuItem"
 import { IMenuButton } from "@/menu/items/ButtonMenuItem"
 import { IIMathCapabilitiesTable, IIMathVariableEditor } from "@/components"
+import { TMathResultMode } from "@/manager/interactive/math"
 
 /**
  * @group Menu
@@ -25,22 +26,37 @@ export class MathMenuAction extends SubMenuItem
       },
       {
         type: "checkbox",
-        id: `${idPrefix}-math-draw-result-strokes`,
-        label: "Draw result as strokes",
-        getValue: (editor: InteractiveInkEditor) => editor.drawComputationResult,
+        id: `${idPrefix}-math-auto-compute`,
+        label: "Auto-compute",
+        getValue: (editor: InteractiveInkEditor) => editor.math.getComputationConfig().autoCompute,
         setValue: async (editor: InteractiveInkEditor, value: boolean) => {
-          editor.drawComputationResult = value
+          editor.math.updateComputationConfig({ autoCompute: value })
+          if (value) {
+            await editor.math.tryAutoCompute()
+          }
+        }
+      },
+      {
+        type: "select",
+        id: `${idPrefix}-math-result-mode`,
+        label: "Result mode",
+        options: [
+          { label: "Draw result", value: "draw" },
+          { label: "Show result", value: "ghost" },
+        ],
+        getValue: (editor: InteractiveInkEditor) => editor.math.getComputationConfig().resultMode,
+        setValue: async (editor: InteractiveInkEditor, value: string) => {
+          const mode = value as TMathResultMode
+          editor.math.updateComputationConfig({ resultMode: mode })
+          await editor.math.clearAllSolverOutputs()
 
-          if (!value) {
-            await editor.math.clearAllSolverOutputs()
-          } else {
+          if (mode === "draw") {
             await editor.math.computeAllNumericalResults()
           }
 
-          // Show result panels when not drawing strokes
-          editor.math.updateOverlaysConfig({ showResultPanels: !value })
+          editor.math.updateOverlaysConfig({ showResultPanels: mode === "ghost" })
         }
-      }
+      },
     ]
     if (editor.configuration.recognition.math?.solver?.["auto-variable-management"]?.enable) {
       items.push(
@@ -67,7 +83,6 @@ export class MathMenuAction extends SubMenuItem
       })
     }
 
-    // Add button to show capabilities overview
     items.push(
       {
         type: "button",
@@ -79,14 +94,15 @@ export class MathMenuAction extends SubMenuItem
         }
       },
       {
-      type: "button",
-      id: `${idPrefix}-math-capabilities-overview`,
-      label: "Show Math Capabilities Overview",
-      action: async (editor: InteractiveInkEditor) => {
-        const capabilitiesTable = new IIMathCapabilitiesTable(editor)
-        await capabilitiesTable.show()
+        type: "button",
+        id: `${idPrefix}-math-capabilities-overview`,
+        label: "Show Math Capabilities Overview",
+        action: async (editor: InteractiveInkEditor) => {
+          const capabilitiesTable = new IIMathCapabilitiesTable(editor)
+          await capabilitiesTable.show()
+        }
       }
-    })
+    )
 
     const config: IMenuSubMenu = {
       type: "submenu",

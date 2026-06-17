@@ -3,7 +3,6 @@ import { Modal } from "./Modal"
 import { Table, TableRow } from "./Table"
 import { IIMathFunctionEvaluator } from "./IIMathFunctionEvaluator"
 import { IIMathDiagnosticChecker } from "./IIMathDiagnosticChecker"
-import { IIMathNumericalComputationResult } from "./IIMathNumericalComputationResult"
 import { IIMathVariablePerBlockEditor } from "./IIMathVariablePerBlockEditor"
 import { COLORS, flexColumnStyle, flexContainerStyle, SPACING } from "./styles"
 import { createButton, createStatusBadge } from "./ui-utils"
@@ -308,8 +307,7 @@ export class IIMathCapabilitiesTable {
 
     if (selectedBlockIds.length === 0) return
 
-    const computer = new IIMathNumericalComputationResult(this.editor, selectedBlockIds)
-    await computer.show()
+    await Promise.all(selectedBlockIds.map(id => this.editor.math.computeNumericalResult(id)))
   }
 
   /**

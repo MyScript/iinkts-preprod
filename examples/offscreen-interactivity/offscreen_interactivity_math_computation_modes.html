@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Math Computation Modes Example</title>
+
+  <link rel="stylesheet" href="../assets/style/reset.css" />
+  <link rel="stylesheet" href="../assets/style/components.css" />
+  <link rel="stylesheet" href="../assets/style/examples.css" />
+
+  <script type="text/javascript" src="../../dist/iink.min.js"></script>
+
+  <style>
+    .info-section {
+      background: #e3f2fd;
+      padding: 12px;
+      margin: 12px 0;
+      border-radius: 4px;
+      border-left: 4px solid #2196F3;
+    }
+
+    .info-section h3 {
+      margin-top: 0;
+      color: #1976D2;
+    }
+
+    .info-section ul {
+      margin: 8px 0;
+      padding-left: 24px;
+    }
+
+    .info-section li {
+      margin: 4px 0;
+      line-height: 1.6;
+    }
+
+    .mode-comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 12px 0;
+    }
+
+    .mode-card {
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 4px;
+      background: #fafafa;
+    }
+
+    .mode-card.draw {
+      border-color: #4caf50;
+      background: #f1f8e9;
+    }
+
+    .mode-card.ghost {
+      border-color: #ff9800;
+      background: #fff3e0;
+    }
+
+    .mode-card h4 {
+      margin: 0 0 8px 0;
+      font-size: 16px;
+    }
+
+    .mode-card ul {
+      margin: 0;
+      padding-left: 20px;
+      font-size: 13px;
+    }
+
+    .mode-card li {
+      margin: 4px 0;
+    }
+
+    .code-example {
+      display: block;
+      background: #f5f5f5;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+      margin: 8px 0;
+      border-left: 3px solid #2196F3;
+    }
+
+    .highlight {
+      background: #fff3cd;
+      padding: 2px 6px;
+      border-radius: 2px;
+      font-weight: bold;
+    }
+
+    #editorEl {
+      width: 100%;
+      height: calc(100vh - 500px);
+      min-height: 300px;
+    }
+
+    .control-section {
+      padding: 12px;
+      background: #fff9c4;
+      margin: 12px 0;
+      border-radius: 4px;
+      border-left: 4px solid #fbc02d;
+    }
+  </style>
+</head>
+
+<body>
+  <header class="header-main">
+    <button id="showModalBtn" class="btn-keys">Change server configuration</button>
+    <h1 class="header-title">Math Computation Modes</h1>
+  </header>
+
+  <div class="info-section">
+    <h3>🎯 What are computation modes?</h3>
+    <p>
+      When solving a math expression, the result can be displayed in two different ways:
+    </p>
+    <div class="mode-comparison">
+      <div class="mode-card draw">
+        <h4>✏️ Draw Result</h4>
+        <ul>
+          <li>Result rendered as actual strokes</li>
+          <li>Sent to backend (recognized ink)</li>
+          <li>Becomes part of document</li>
+          <li>Fully interactive (move, erase, etc.)</li>
+        </ul>
+      </div>
+      <div class="mode-card ghost">
+        <h4>👻 Show Result (Ghost)</h4>
+        <ul>
+          <li>Result shown with 50% opacity</li>
+          <li>Not sent to backend</li>
+          <li>Visual preview only</li>
+          <li>Non-interactive (view-only)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="info-section">
+    <h3>⚙️ Auto-Compute</h3>
+    <p>
+      Automatically compute expressions when you finish writing them (end with <span class="highlight">=</span> or <span class="highlight">?</span>).
+    </p>
+    <p>
+      <strong>How it works:</strong> After writing a block, synchronized event triggers auto-compute check. If block ends with = or ?, solver computes result.
+    </p>
+    <p>
+      <strong>Why useful:</strong> Real-time feedback without manual "Compute" clicks.
+    </p>
+  </div>
+
+  <div class="control-section">
+    <strong>📝 Try it:</strong><br>
+    1. Write <span class="highlight">5+3=</span> (with equals sign)<br>
+    2. If auto-compute enabled → result appears instantly<br>
+    3. Toggle "Auto-compute" checkbox to see difference<br>
+    4. Switch "Result mode" to see Draw vs Ghost rendering
+  </div>
+
+  <div id="editorEl"></div>
+
+  <script type="module">
+    import { Editor } from '../../dist/iink.esm.js'
+    import { ModalEditorOptions } from '../components/modal/modalEditorOptions.js'
+
+    const editorElement = document.getElementById('editorEl')
+
+    let editor
+
+    const editorOptions = {
+      configuration: {
+        recognition: {
+          "raw-content": {
+            recognition: {
+              types: ["math"]
+            },
+            classification: {
+              types: ["math"]
+            },
+            gestures: ["scratch-out", "surround"]
+          },
+        },
+        menu: {
+          action: {
+            language: false,
+            gesture: false,
+            snap: false,
+            export: false,
+            import: false,
+            convert: false,
+            math: true,
+            debug: false,
+            guide: false,
+            selection: false
+          },
+          tool: {
+            write: true,
+            move: true,
+            select: true,
+            erase: true,
+            shape: false,
+            edge: false
+          },
+          style: {
+            strokeColor: true,
+            fillColor: false,
+            thickness: false,
+            fontSize: false,
+            fontWeight: false,
+            opacity: false,
+          }
+        }
+      },
+    }
+
+    async function loadEditor(options) {
+      await editor?.destroy()
+
+      editor = await Editor.load(editorElement, 'INTERACTIVEINK', options)
+
+      return editor
+    }
+
+    showModalBtn.addEventListener('click', () => {
+      ModalEditorOptions.show(loadEditor, editorOptions)
+    })
+
+    ModalEditorOptions.initConfiguration(loadEditor, editorOptions)
+  </script>
+</body>
+</html>
