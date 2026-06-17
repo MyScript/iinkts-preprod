@@ -7,8 +7,10 @@ import {
   IIMathVariableSubManager,
   MathDependencies,
   TMathBlockComputation,
+  TMathComputationConfig,
   TMathInteractionConfig,
   TMathOverlayConfig,
+  TMathResultMode,
   TMathVariableUsage,
 } from "./math"
 import { TJIIXMathElement } from "@/model"
@@ -44,6 +46,12 @@ export class IIMathManager extends IIAbstractManager
     this.#variables = new IIMathVariableSubManager(editor)
     this.#evaluation = new IIMathFunctionEvaluationSubManager(editor)
     this.#overlays = new IIMathOverlaySubManager(editor)
+
+    editor.event.addSynchronizedListener(() => {
+      if (this.#computation.getConfig().autoCompute) {
+        this.tryAutoCompute()
+      }
+    })
   }
 
   /**
@@ -58,16 +66,16 @@ export class IIMathManager extends IIAbstractManager
   /**
    * Compute numerical result for a math symbol
    * @param jiixBlockId - The ID of the math block
-   * @param drawStrokes - Whether to draw the result as strokes (default: true)
+   * @param mode - Result display mode ("draw" or "ghost"). Defaults to editor.mathResultMode
    * @returns Promise with the computation result, number of added strokes, and numeric value
    */
   async computeNumericalResult(
     jiixBlockId: string,
-    drawStrokes?: boolean
+    mode?: TMathResultMode
   ): Promise<{ result: TJIIXMathElement, addedStrokesCount: number, value?: number }>
   {
     try {
-    return this.#computation.computeNumericalResult(jiixBlockId, drawStrokes)
+      return this.#computation.computeNumericalResult(jiixBlockId, mode)
     }
     catch (error) {
       this.editor.manageError(error as Error)
@@ -217,7 +225,7 @@ export class IIMathManager extends IIAbstractManager
     for (const dependentBlockId of deps.dependentBlocks) {
       try {
         this.logger.info("recalculateDependentBlocks", `Computing numerical result for ${dependentBlockId}`)
-        await this.#computation.computeNumericalResult(dependentBlockId, this.editor.drawComputationResult)
+        await this.#computation.computeNumericalResult(dependentBlockId)
       }
       catch (computeError) {
         this.logger.error("recalculateDependentBlocks", `Error computing ${dependentBlockId}:`, computeError)
@@ -356,6 +364,46 @@ export class IIMathManager extends IIAbstractManager
     catch (error) {
       this.editor.manageError(error as Error)
       throw error
+    }
+  }
+
+  // ==========================================
+  // Computation config
+  // ==========================================
+
+  getComputationConfig(): TMathComputationConfig
+  {
+    return this.#computation.getConfig()
+  }
+
+  updateComputationConfig(config: Partial<TMathComputationConfig>): void
+  {
+    this.#computation.updateConfig(config)
+  }
+
+  // ==========================================
+  // Auto-compute
+  // ==========================================
+
+  async tryAutoCompute(): Promise<void>
+  {
+    this.logger.info("tryAutoCompute")
+
+    const mathBlocks = this.editor.model.mathBlocks
+
+    for (const mb of mathBlocks) {
+      const label = mb.label ?? ""
+      if (!(label.endsWith("=") || label.endsWith("?")) || !mb.id) continue
+
+      try {
+        const actions = await this.editor.recognizer.getAvailableActions(mb.id)
+        if (actions?.includes("numerical-computation")) {
+          await this.#computation.computeNumericalResult(mb.id)
+        }
+      }
+      catch (error) {
+        this.logger.debug("tryAutoCompute", `Cannot auto-compute "${label}":`, (error as Error).message)
+      }
     }
   }
 

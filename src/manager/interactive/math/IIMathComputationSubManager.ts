@@ -2,9 +2,30 @@ import { IIAbstractManager } from "../IIAbstractManager"
 import { TJIIXMathElement, TJIIXMathExpression } from "@/model"
 import { IIStroke, isStroke } from "@/symbol"
 import { convertMillimeterToPixel } from "@/utils"
+import { createUUID } from "@/utils/uuid"
 import { TStyle } from "@/style/Style"
+import { SVGBuilder, SVGRendererConst } from "@/renderer"
 import type { InteractiveInkEditor } from "@/editor"
 import { LoggerCategory } from "@/logger"
+
+/**
+ * Result display mode for math solver output
+ * - "draw": add result strokes to the model (sent to backend, interactive)
+ * - "ghost": render result strokes as SVG overlays (not in model, opacity 0.5, non-interactive)
+ * @group Manager
+ */
+export type TMathResultMode = "draw" | "ghost"
+
+/**
+ * Configuration for math computation behavior
+ * @group Manager
+ */
+export type TMathComputationConfig = {
+  /** How solver output is displayed */
+  resultMode: TMathResultMode
+  /** Automatically compute results when blocks end with = or ? */
+  autoCompute: boolean
+}
 
 /**
  * Computation data for a math block
@@ -27,16 +48,31 @@ export class IIMathComputationSubManager extends IIAbstractManager
 {
   protected managerName = "IIMathComputationSubManager"
 
-  #computations = new Map<string, TMathBlockComputation>()
-
-  constructor(editor: InteractiveInkEditor)
-  {
-    super(editor, LoggerCategory.MATH)
+  static readonly DEFAULT_CONFIG: TMathComputationConfig = {
+    resultMode: "draw",
+    autoCompute: false,
   }
 
-  // ==========================================
-  // Computation cache accessors
-  // ==========================================
+  #config: TMathComputationConfig
+  #computations = new Map<string, TMathBlockComputation>()
+  #ghostStrokeElementIds = new Map<string, string[]>()
+
+  constructor(editor: InteractiveInkEditor, config: Partial<TMathComputationConfig> = {})
+  {
+    super(editor, LoggerCategory.MATH)
+    this.#config = { ...IIMathComputationSubManager.DEFAULT_CONFIG, ...config }
+  }
+
+  getConfig(): TMathComputationConfig
+  {
+    return { ...this.#config }
+  }
+
+  updateConfig(config: Partial<TMathComputationConfig>): void
+  {
+    this.logger.debug("updateConfig", config)
+    this.#config = { ...this.#config, ...config }
+  }
 
   get computations(): ReadonlyMap<string, TMathBlockComputation>
   {
@@ -88,9 +124,69 @@ export class IIMathComputationSubManager extends IIAbstractManager
     return this.#computations.get(jiixBlockId)?.solverOutputStrokeIds
   }
 
-  // ==========================================
-  // Solver output stroke management
-  // ==========================================
+  protected buildGhostStrokePath(strokeData: { X: number[], Y: number[], F?: number[], T?: number[] }): string
+  {
+    if (strokeData.X.length === 0) return ""
+
+    const [firstX, ...restX] = strokeData.X
+    const [, ...restY] = strokeData.Y
+
+    const start = `M ${convertMillimeterToPixel(firstX)},${convertMillimeterToPixel(strokeData.Y[0])}`
+    const rest = restX.map((x, i) => `L ${convertMillimeterToPixel(x)},${convertMillimeterToPixel(restY[i])}`).join(" ")
+    return rest.length > 0 ? `${start} ${rest}` : start
+  }
+
+  protected addGhostOutputStrokes(result: TJIIXMathElement, style?: TStyle): string[]
+  {
+    this.logger.info("addGhostOutputStrokes", { result })
+
+    const solverStrokes = this.extractSolverOutputStrokes(result)
+    const elementIds: string[] = []
+    const strokeColor = style?.color ?? "#4caf50"
+    const strokeWidth = style?.width ?? 5
+
+    for (const strokeData of solverStrokes) {
+      if (!strokeData.X || !strokeData.Y) continue
+
+      const pathData = this.buildGhostStrokePath(strokeData)
+      if (!pathData) continue
+
+      const elementId = `ghost-stroke-${createUUID()}`
+      const path = SVGBuilder.createPath({
+        id: elementId,
+        d: pathData,
+        stroke: strokeColor,
+        "stroke-width": String(strokeWidth),
+        fill: "none",
+        opacity: "0.5",
+        style: SVGRendererConst.noSelection
+      })
+
+      this.renderer.layer.appendChild(path)
+      elementIds.push(elementId)
+    }
+
+    this.logger.debug("addGhostOutputStrokes", `Added ${elementIds.length} ghost stroke elements`)
+    return elementIds
+  }
+
+  clearGhostStrokes(jiixBlockId: string): void
+  {
+    this.logger.debug("clearGhostStrokes", { jiixBlockId })
+
+    const elementIds = this.#ghostStrokeElementIds.get(jiixBlockId) ?? []
+    elementIds.forEach(id => this.renderer.removeSymbol(id))
+    this.#ghostStrokeElementIds.delete(jiixBlockId)
+  }
+
+  clearAllGhostStrokes(): void
+  {
+    this.logger.info("clearAllGhostStrokes")
+
+    for (const jiixBlockId of this.#ghostStrokeElementIds.keys()) {
+      this.clearGhostStrokes(jiixBlockId)
+    }
+  }
 
   async clearSolverOutputs(jiixBlockId: string): Promise<void>
   {
@@ -105,6 +201,7 @@ export class IIMathComputationSubManager extends IIAbstractManager
     }
 
     this.updateSolverOutputs(jiixBlockId, [])
+    this.clearGhostStrokes(jiixBlockId)
   }
 
   async clearAllSolverOutputs(): Promise<void>
@@ -120,18 +217,15 @@ export class IIMathComputationSubManager extends IIAbstractManager
     }
 
     this.updateSolverOutputsForAll([])
+    this.clearAllGhostStrokes()
   }
-
-  // ==========================================
-  // Numerical computation
-  // ==========================================
 
   async computeNumericalResult(
     jiixBlockId: string,
-    drawStrokes: boolean = true
+    mode: TMathResultMode = this.#config.resultMode
   ): Promise<{ result: TJIIXMathElement, addedStrokesCount: number, value?: number }>
   {
-    this.logger.info("computeNumericalResult", { jiixBlockId, drawStrokes })
+    this.logger.info("computeNumericalResult", { jiixBlockId, mode })
 
     if (!jiixBlockId) {
       throw new Error("Math block does not have jiixBlockId")
@@ -144,11 +238,17 @@ export class IIMathComputationSubManager extends IIAbstractManager
 
     let addedStrokesCount = 0
 
-    if (drawStrokes) {
+    if (mode === "draw") {
       const addedStrokes = await this.addSolverOutputStrokes(result)
       addedStrokesCount = addedStrokes.length
       this.logger.info("computeNumericalResult", `Added ${addedStrokesCount} solver output strokes`)
       this.updateSolverOutputs(jiixBlockId, addedStrokes.map(s => s.id))
+    }
+    else if (mode === "ghost") {
+      const elementIds = this.addGhostOutputStrokes(result)
+      addedStrokesCount = elementIds.length
+      this.logger.info("computeNumericalResult", `Added ${addedStrokesCount} ghost stroke elements`)
+      this.#ghostStrokeElementIds.set(jiixBlockId, elementIds)
     }
 
     let value: number | undefined
@@ -170,21 +270,18 @@ export class IIMathComputationSubManager extends IIAbstractManager
   {
     this.logger.info("computeAllNumericalResults")
 
+    const { resultMode: mode } = this.#config
     const jiixBlocks = this.editor.model.mathBlocks
 
     for (const mathSymbol of jiixBlocks) {
       try {
-        await this.computeNumericalResult(mathSymbol.id, true)
+        await this.computeNumericalResult(mathSymbol.id, mode)
       }
       catch (error) {
         this.logger.error("computeAllNumericalResults", `Error computing numerical result for block ${mathSymbol.id}:`, error)
       }
     }
   }
-
-  // ==========================================
-  // Solver output stroke helpers
-  // ==========================================
 
   protected extractSolverOutputStrokesFromExpression(expression: TJIIXMathExpression): Array<{ X: number[], Y: number[], F?: number[], T?: number[] }>
   {
@@ -256,13 +353,10 @@ export class IIMathComputationSubManager extends IIAbstractManager
     return addedStrokes
   }
 
-  // ==========================================
-  // Lifecycle
-  // ==========================================
-
   clear(): void
   {
     this.logger.info("clear", "Clearing all math computations")
+    this.clearAllGhostStrokes()
     this.#computations.clear()
   }
 
