@@ -255,6 +255,21 @@ export class IIOverlayManager extends IIAbstractManager
     this.renderer.layer.appendChild(hoverZone)
   }
 
+  private getMathBlockBounds(mathBlock: TJIIXMathElement): TBox | null
+  {
+    if (mathBlock["bounding-box"]) {
+      return convertBoundingBoxMillimeterToPixel(mathBlock["bounding-box"])
+    }
+    const blockStrokes = this.editor.model.symbols.filter(
+      s => isStroke(s) && (s as IIStroke).jiixBlockId === mathBlock.id
+    ) as IIStroke[]
+    if (!blockStrokes.length) {
+      this.logger.warn("getMathBlockBounds", `Math block ${mathBlock.id} has no bounding box and no strokes`)
+      return null
+    }
+    return Box.createFromBoxes(blockStrokes.map(s => s.bounds))
+  }
+
   refresh(): void
   {
     this.logger.info("refresh")
@@ -263,53 +278,42 @@ export class IIOverlayManager extends IIAbstractManager
       return
     }
     this.clearAll()
-    if (!this.#config.showBlockOverlays) return
 
     this.model.mathBlocks.forEach(mathBlock => {
-      if (!mathBlock["bounding-box"]) {
-        this.logger.warn("refresh", `Math block ${mathBlock.id} has no bounds, skipping`)
-        return
-      }
-      this.updateOverlaysForMathSymbol(mathBlock)
+      const bounds = this.getMathBlockBounds(mathBlock)
+      if (bounds) this.createHoverZone(bounds, mathBlock.id)
     })
+
+    if (!this.#config.showBlockOverlays) return
+
+    this.refreshMathOverlays()
     this.refreshTextOverlays()
     this.refreshEdgeNodeOverlays()
   }
 
-  protected updateOverlaysForMathSymbol(mathBlock: TJIIXMathElement): void
+  protected refreshMathOverlays(): void
   {
-    let bounds: TBox
-    if (mathBlock["bounding-box"]) {
-      bounds = convertBoundingBoxMillimeterToPixel(mathBlock["bounding-box"])
-    } else {
-      const blockStrokes = this.editor.model.symbols.filter(
-        s => isStroke(s) && (s as IIStroke).jiixBlockId === mathBlock.id
-      ) as IIStroke[]
-      if (!blockStrokes.length) {
-        this.logger.warn("updateOverlaysForMathSymbol", `Math block ${mathBlock.id} has no bounding box and no strokes`)
-        return
+    this.model.mathBlocks.forEach(mathBlock => {
+      const bounds = this.getMathBlockBounds(mathBlock)
+      if (bounds) {
+        const blockId = mathBlock.id
+        this.drawBadge(bounds, blockId, IIOverlayManager.BADGE_STYLES.MATH)
+        this.drawBorder(bounds, blockId)
+        if (mathBlock.label) this.drawLabel(bounds, blockId, mathBlock.label)
       }
-      bounds = Box.createFromBoxes(blockStrokes.map(s => s.bounds))
-    }
-    const blockId = mathBlock.id
-    this.drawBadge(bounds, blockId, IIOverlayManager.BADGE_STYLES.MATH)
-    this.drawBorder(bounds, blockId)
-    this.createHoverZone(bounds, blockId)
-    if (mathBlock.label) this.drawLabel(bounds, blockId, mathBlock.label)
+    })
   }
 
   protected refreshTextOverlays(): void
   {
     const jiix = this.model.exports?.["application/vnd.myscript.jiix"]
     if (!jiix) return
-    jiix.elements?.forEach((el, elIndex) => {
-      if (el.type === "Text" && el["bounding-box"] && el.label) {
-        const box = convertBoundingBoxMillimeterToPixel(el["bounding-box"])
-        const blockId = `text-${elIndex}`
-        this.drawBadge(box, blockId, IIOverlayManager.BADGE_STYLES.TEXT)
-        this.drawBorder(box, blockId, "#2196F3")
-        this.drawLabel(box, blockId, el.label)
-      }
+    this.model.textBlocks.forEach(textBlock => {
+      const box = convertBoundingBoxMillimeterToPixel(textBlock["bounding-box"])
+      const blockId = `text-${textBlock.id}`
+      this.drawBadge(box, blockId, IIOverlayManager.BADGE_STYLES.TEXT)
+      this.drawBorder(box, blockId, "#2196F3")
+      this.drawLabel(box, blockId, textBlock.label)
     })
   }
 
