@@ -121,7 +121,7 @@ export class IIGestureManager extends IIAbstractManager
 
     // Emit event and update UI
     this.editor.event.emitGestured({ gestureType: gesture.gestureType, stroke: gestureStroke })
-    this.editor.svgDebugger.apply()
+    this.editor.overlays.apply()
     return Promise.resolve()
   }
 

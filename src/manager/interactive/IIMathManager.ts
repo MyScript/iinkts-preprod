@@ -3,13 +3,11 @@ import { IIAbstractManager } from "./IIAbstractManager"
 import {
   IIMathComputationSubManager,
   IIMathFunctionEvaluationSubManager,
-  IIMathOverlaySubManager,
   IIMathVariableSubManager,
   MathDependencies,
   TMathBlockComputation,
   TMathComputationConfig,
   TMathInteractionConfig,
-  TMathOverlayConfig,
   TMathResultMode,
   TMathVariableUsage,
 } from "./math"
@@ -24,7 +22,6 @@ import { LoggerCategory } from "@/logger"
  * - computation: Computation cache, solver I/O, numerical result ops
  * - variables: Variable state, dependency tracking, visual interactions (hover/select)
  * - evaluation: Function evaluation
- * - overlays: Render visual overlays for math blocks
  *
  * @group Manager
  */
@@ -36,7 +33,6 @@ export class IIMathManager extends IIAbstractManager
   #computation: IIMathComputationSubManager
   #variables: IIMathVariableSubManager
   #evaluation: IIMathFunctionEvaluationSubManager
-  #overlays: IIMathOverlaySubManager
 
   constructor(editor: InteractiveInkEditor)
   {
@@ -45,7 +41,6 @@ export class IIMathManager extends IIAbstractManager
     this.#computation = new IIMathComputationSubManager(editor)
     this.#variables = new IIMathVariableSubManager(editor)
     this.#evaluation = new IIMathFunctionEvaluationSubManager(editor)
-    this.#overlays = new IIMathOverlaySubManager(editor)
 
     editor.event.addSynchronizedListener(() => {
       if (this.#computation.getConfig().autoCompute) {
@@ -53,15 +48,6 @@ export class IIMathManager extends IIAbstractManager
       }
     })
   }
-
-  /**
-   * @internal — used only by math sub-managers (variables)
-   */
-  get overlays(): IIMathOverlaySubManager
-  {
-    return this.#overlays
-  }
-
 
   /**
    * Compute numerical result for a math symbol
@@ -407,40 +393,10 @@ export class IIMathManager extends IIAbstractManager
     }
   }
 
-  // ==========================================
-  // Overlay facades
-  // ==========================================
-
-  refreshOverlays(): void
-  {
-    this.#overlays.refresh()
-  }
-
-  clearAllOverlays(): void
-  {
-    this.#overlays.clearAll()
-  }
-
-  getOverlaysConfig(): TMathOverlayConfig
-  {
-    return this.#overlays.getConfig()
-  }
-
-  updateOverlaysConfig(config: Partial<TMathOverlayConfig>): void
-  {
-    this.#overlays.updateConfig(config)
-  }
-
-  toggleBlockOverlays(show: boolean): void
-  {
-    this.#overlays.toggleBlockOverlays(show)
-  }
-
   protected onDestroy(): void
   {
     this.#computation.destroy()
     this.#variables.destroy()
     this.#evaluation.destroy()
-    this.#overlays.destroy()
   }
 }

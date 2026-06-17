@@ -6,7 +6,7 @@ import { DefaultHistoryConfiguration, THistoryConfiguration } from "@/history"
 import { DefaultMenuConfiguration, TMenuConfiguration } from "@/menu"
 import { DefaultRecognizerWebSocketConfiguration, RecognizerWebSocketConfiguration, TRecognitionWebSocketConfiguration, TRecognizerWebSocketConfiguration, TServerWebsocketConfiguration } from "@/recognizer"
 import { DefaultIIRendererConfiguration, TIIRendererConfiguration } from "@/renderer"
-import { DefaultGestureConfiguration, TGestureConfiguration, DefaultSnapConfiguration, SnapConfiguration, TSnapConfiguration } from "@/manager"
+import { DefaultGestureConfiguration, TGestureConfiguration, DefaultSnapConfiguration, SnapConfiguration, TSnapConfiguration, DefaultOverlayConfig, TOverlayConfig } from "@/manager"
 import { TEditorConfiguration } from "@/editor/AbstractEditor"
 
 /**
@@ -42,6 +42,7 @@ export type TInteractiveInkEditorConfiguration = TEditorConfiguration & TRecogni
   }
   gesture: TGestureConfiguration
   snap: TSnapConfiguration
+  overlays: TOverlayConfig
   textSelectionLevel: TTextSelectionLevel
   mathSelectionLevel: TMathSelectionLevel
   shapeSelectionLevel: TShapeSelectionLevel
@@ -67,6 +68,7 @@ export const DefaultInteractiveInkEditorConfiguration: TInteractiveInkEditorConf
   },
   gesture: DefaultGestureConfiguration,
   snap: DefaultSnapConfiguration,
+  overlays: DefaultOverlayConfig,
   textSelectionLevel: "element",
   mathSelectionLevel: "element",
   shapeSelectionLevel: "element",
@@ -92,6 +94,7 @@ export class InteractiveInkEditorConfiguration implements TInteractiveInkEditorC
   }
   gesture: TGestureConfiguration
   snap: TSnapConfiguration
+  overlays: TOverlayConfig
   textSelectionLevel: TTextSelectionLevel
   mathSelectionLevel: TMathSelectionLevel
   shapeSelectionLevel: TShapeSelectionLevel
@@ -129,6 +132,7 @@ export class InteractiveInkEditorConfiguration implements TInteractiveInkEditorC
     }
     this.gesture = mergeDeep({}, DefaultInteractiveInkEditorConfiguration.gesture, configuration?.gesture)
     this.snap = new SnapConfiguration(configuration?.snap)
+    this.overlays = mergeDeep({}, DefaultOverlayConfig, configuration?.overlays)
 
     this.penStyle = mergeDeep({}, DefaultInteractiveInkEditorConfiguration.penStyle, configuration?.penStyle)
     this.fontStyle = mergeDeep({}, DefaultInteractiveInkEditorConfiguration.fontStyle, configuration?.fontStyle)

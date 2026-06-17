@@ -12,8 +12,8 @@ import {
   GestureMenuAction,
   GuideMenuAction,
   SnapMenuAction,
-  DebugMenuAction,
   MathMenuAction,
+  OverlayMenuAction,
   SelectionMenuAction,
   ExportMenuAction,
   ImportMenuAction
@@ -84,16 +84,16 @@ export class IIMenuAction
         subMenuWrapper.appendChild(snapAction.getElement())
       }
 
-      if (this.config.debug) {
-        const debugAction = new DebugMenuAction(this.editor, this.id)
-        this.menuActions.set("debug", debugAction)
-        subMenuWrapper.appendChild(debugAction.getElement())
-      }
-
       if (this.config.math) {
         const mathAction = new MathMenuAction(this.editor, this.id)
         this.menuActions.set("math", mathAction)
         subMenuWrapper.appendChild(mathAction.getElement())
+      }
+
+      if (this.config.overlay) {
+        const overlayAction = new OverlayMenuAction(this.editor, this.id)
+        this.menuActions.set("overlay", overlayAction)
+        subMenuWrapper.appendChild(overlayAction.getElement())
       }
 
       if (this.config.selection) {

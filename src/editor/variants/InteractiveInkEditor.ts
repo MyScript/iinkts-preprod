@@ -29,7 +29,7 @@ import
   IITranslateManager,
   IITextManager,
   EraseManager,
-  IIDebugSVGManager,
+  IIOverlayManager,
   IIMoveManager,
   IIGestureManager,
   IISnapManager,
@@ -103,8 +103,8 @@ export class InteractiveInkEditor extends AbstractEditor
   texter: IITextManager
   /** Handles symbol selection, selection group rendering, and hit-testing. */
   selector: IISelectionManager
-  /** Renders debug SVG overlays (bounding boxes, snap guides, etc.). */
-  svgDebugger: IIDebugSVGManager
+  /** Manages all visual overlays: math/text block indicators, debug visualizations. */
+  overlays: IIOverlayManager
   /** Manages snapping behavior for symbols during move/resize operations. */
   snaps: IISnapManager
   /** Handles canvas panning when the Move tool is active. */
@@ -158,7 +158,7 @@ export class InteractiveInkEditor extends AbstractEditor
     this.translator = new IITranslateManager(this)
     this.converter = new IIConversionManager(this)
     this.texter = new IITextManager(this)
-    this.svgDebugger = new IIDebugSVGManager(this)
+    this.overlays = new IIOverlayManager(this, this.#configuration.overlays)
     this.snaps = new IISnapManager(this, this.#configuration.snap)
     this.synchronizer = new IISynchronizerManager(this)
     this.jiix = new IIJiixQueryManager(this)
@@ -254,7 +254,7 @@ export class InteractiveInkEditor extends AbstractEditor
     this.#layerUITimer = setTimeout(() =>
     {
       this.menu.update()
-      this.svgDebugger.apply()
+      this.overlays.apply()
       this.event.emitUIpdated()
     }, timeout)
   }

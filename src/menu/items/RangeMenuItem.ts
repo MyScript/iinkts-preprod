@@ -52,6 +52,10 @@ export class RangeMenuItem extends BaseMenuItem<HTMLDivElement>
     wrapper.appendChild(this.output)
 
     if (this.config.label) {
+      const label = document.createElement("label")
+      label.htmlFor = `${this.config.id}-input`
+      label.textContent = this.config.label
+      wrapper.insertBefore(label, this.input)
       this.input.setAttribute("name", this.config.label)
       this.output.setAttribute("for", this.config.label)
     }
