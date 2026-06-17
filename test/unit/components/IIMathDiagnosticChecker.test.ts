@@ -1,7 +1,7 @@
 import { InteractiveInkEditorMock } from "../__mocks__/InteractiveInkEditorMock"
-import { IIDiagnosticChecker } from "../../../src/iink"
+import { IIMathDiagnosticChecker } from "../../../src/iink"
 
-describe("IIDiagnosticChecker.ts", () =>
+describe("IIMathDiagnosticChecker.ts", () =>
 {
   let editor: InteractiveInkEditorMock
 
@@ -40,7 +40,7 @@ describe("IIDiagnosticChecker.ts", () =>
   {
     const jiixBlockIds = ["block-1", "block-2"]
 
-    const checker = new IIDiagnosticChecker(editor, jiixBlockIds)
+    const checker = new IIMathDiagnosticChecker(editor, jiixBlockIds)
     expect(checker).toBeDefined()
   })
 
@@ -48,7 +48,7 @@ describe("IIDiagnosticChecker.ts", () =>
   {
     const jiixBlockIds = ["block-1", "block-1", "block-2"]
 
-    const checker = new IIDiagnosticChecker(editor, jiixBlockIds)
+    const checker = new IIMathDiagnosticChecker(editor, jiixBlockIds)
     expect(checker).toBeDefined()
   })
 
@@ -58,7 +58,7 @@ describe("IIDiagnosticChecker.ts", () =>
     {
       const jiixBlockIds = ["block-1", "block-2"]
 
-      const checker = new IIDiagnosticChecker(editor, jiixBlockIds)
+      const checker = new IIMathDiagnosticChecker(editor, jiixBlockIds)
 
       // Mock modal to prevent actual DOM operations
       const showSpy = jest.spyOn(checker as any, "createModalContent")
@@ -78,7 +78,7 @@ describe("IIDiagnosticChecker.ts", () =>
     {
       const jiixBlockIds = ["", "block-2"]
 
-      const checker = new IIDiagnosticChecker(editor, jiixBlockIds)
+      const checker = new IIMathDiagnosticChecker(editor, jiixBlockIds)
 
       const showSpy = jest.spyOn(checker as any, "createModalContent")
       showSpy.mockReturnValue(document.createElement("div"))
@@ -99,7 +99,7 @@ describe("IIDiagnosticChecker.ts", () =>
     {
       const jiixBlockIds = ["block-1"]
 
-      const checker = new IIDiagnosticChecker(editor, jiixBlockIds)
+      const checker = new IIMathDiagnosticChecker(editor, jiixBlockIds)
 
       // Create a mock modal
       const mockModal = {
@@ -117,7 +117,7 @@ describe("IIDiagnosticChecker.ts", () =>
     {
       const jiixBlockIds = ["block-1"]
 
-      const checker = new IIDiagnosticChecker(editor, jiixBlockIds)
+      const checker = new IIMathDiagnosticChecker(editor, jiixBlockIds)
 
       expect(() => checker.close()).not.toThrow()
     })
