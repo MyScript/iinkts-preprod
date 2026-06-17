@@ -117,7 +117,6 @@ export class InteractiveInkEditor extends AbstractEditor
   math: IIMathManager
   /** Manages the floating UI menu (tool selector, style panel, action buttons). */
   menu: IIMenuManager
-  #drawComputationResult: boolean = true
 
   constructor(rootElement: HTMLElement, options?: TInteractiveInkEditorOptions)
   {
@@ -238,18 +237,6 @@ export class InteractiveInkEditor extends AbstractEditor
     this.#penStyle = Object.assign({}, this.#penStyle, penStyle)
   }
 
-  get drawComputationResult(): boolean
-  {
-    return this.#drawComputationResult
-  }
-  set drawComputationResult(flag: boolean)
-  {
-    this.logger.info("set drawComputationResult", { flag })
-    this.#drawComputationResult = flag
-    if (!flag) {
-      this.math.clearAllSolverOutputs()
-    }
-  }
 
   protected updateLayerState(idle: boolean): void
   {
