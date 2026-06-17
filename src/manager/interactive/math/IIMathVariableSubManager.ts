@@ -1,6 +1,6 @@
 import { IIAbstractManager } from "../IIAbstractManager"
 import { IIStroke, TBox, Box, isStroke, isRecognizedMath } from "@/symbol"
-import { convertBoundingBoxMillimeterToPixel } from "@/utils"
+import { convertBoundingBoxMillimeterToPixel, getBoxConnectionPoint } from "@/utils"
 import { TJIIXMathExpression, TJIIXMathElement } from "@/model/ExportMath"
 import { TMathVariable, TMathVariableDefinition, TMathVariableDefinitions } from "@/recognizer"
 import { ColorPaletteManager } from "../../base"
@@ -467,17 +467,17 @@ export class IIMathVariableSubManager extends IIAbstractManager
     const sources = this.getRecursiveSources(jiixBlockId)
     sources.forEach(sourceJiixId => {
       const bounds = this.getBlockBounds(sourceJiixId)
-      if (bounds) this.editor.math.overlays.highlightAsSource(sourceJiixId, bounds)
+      if (bounds) this.editor.overlays.highlightPrimary(sourceJiixId, bounds)
     })
 
     const dependents = this.getRecursiveDependents(jiixBlockId)
     dependents.forEach(dependentJiixId => {
       const bounds = this.getBlockBounds(dependentJiixId)
-      if (bounds) this.editor.math.overlays.highlightAsDependent(dependentJiixId, bounds)
+      if (bounds) this.editor.overlays.highlightLinked(dependentJiixId, bounds)
     })
 
     const hoveredBounds = this.getBlockBounds(jiixBlockId)
-    if (hoveredBounds) this.editor.math.overlays.addHoverGlow(jiixBlockId, hoveredBounds)
+    if (hoveredBounds) this.editor.overlays.addHoverGlow(jiixBlockId, hoveredBounds)
 
     this.drawDependencyArrows(jiixBlockId, sources, dependents)
   }
@@ -485,8 +485,8 @@ export class IIMathVariableSubManager extends IIAbstractManager
   private clearHoverHighlights(): void
   {
     this.logger.debug("clearHoverHighlights")
-    this.editor.math.overlays.clearHighlights()
-    this.editor.math.overlays.clearDependencyArrows()
+    this.editor.overlays.clearHighlights()
+    this.clearDependencyArrows()
   }
 
   selectBlock(jiixBlockId: string): void
@@ -515,18 +515,18 @@ export class IIMathVariableSubManager extends IIAbstractManager
     allJiixIds.forEach(jid => {
       if (!relatedJiixIds.has(jid)) {
         const bounds = this.getBlockBounds(jid)
-        if (bounds) this.editor.math.overlays.dimSymbol(jid, bounds, this.#config.dimOpacity)
+        if (bounds) this.editor.overlays.dimSymbol(jid, bounds, this.#config.dimOpacity)
       }
     })
 
     sources.forEach(sourceJiixId => {
       const bounds = this.getBlockBounds(sourceJiixId)
-      if (bounds) this.editor.math.overlays.highlightAsSource(sourceJiixId, bounds)
+      if (bounds) this.editor.overlays.highlightPrimary(sourceJiixId, bounds)
     })
 
     dependents.forEach(dependentJiixId => {
       const bounds = this.getBlockBounds(dependentJiixId)
-      if (bounds) this.editor.math.overlays.highlightAsDependent(dependentJiixId, bounds)
+      if (bounds) this.editor.overlays.highlightLinked(dependentJiixId, bounds)
     })
 
     this.drawDependencyArrows(jiixBlockId, sources, dependents)
@@ -541,8 +541,63 @@ export class IIMathVariableSubManager extends IIAbstractManager
   private clearSelectionHighlights(): void
   {
     this.logger.debug("clearSelectionHighlights")
-    this.editor.math.overlays.clearHighlights()
-    this.editor.math.overlays.clearDimming()
+    this.editor.overlays.clearHighlights()
+    this.editor.overlays.clearDimming()
+  }
+
+  protected drawDependencyArrowToBox(fromId: string, fromBounds: TBox, toId: string, toBox: TBox, color: string): void
+  {
+    const arrowId = `arrow-${fromId}-${toId}`.replace(/[^a-zA-Z0-9_-]/g, "_")
+    this.renderer.removeSymbol(arrowId)
+
+    const toCenter = { x: toBox.x + toBox.width / 2, y: toBox.y + toBox.height / 2 }
+    const fromCenter = { x: fromBounds.x + fromBounds.width / 2, y: fromBounds.y + fromBounds.height / 2 }
+    const { x: startX, y: startY } = getBoxConnectionPoint(fromBounds, toCenter)
+    const { x: endX, y: endY } = getBoxConnectionPoint(toBox, fromCenter)
+
+    const path = `M ${startX} ${startY} L ${endX} ${endY}`
+    const arrowPath = document.createElementNS("http://www.w3.org/2000/svg", "path")
+    arrowPath.setAttribute("id", arrowId)
+    arrowPath.setAttribute("d", path)
+    const markerId = this.ensureArrowheadMarker(color)
+    arrowPath.setAttribute("stroke", color)
+    arrowPath.setAttribute("stroke-width", "2")
+    arrowPath.setAttribute("fill", "transparent")
+    arrowPath.setAttribute("marker-end", `url(#${markerId})`)
+    arrowPath.setAttribute("data-overlay", "arrow")
+    arrowPath.setAttribute("style", "pointer-events: none;")
+    this.renderer.layer.appendChild(arrowPath)
+  }
+
+  protected ensureArrowheadMarker(color: string): string
+  {
+    const markerId = `arrowhead-${color.replace(/[^a-zA-Z0-9]/g, "_")}`
+    if (this.renderer.layer.querySelector(`#${markerId}`)) {
+      return markerId
+    }
+
+    const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs")
+    const marker = document.createElementNS("http://www.w3.org/2000/svg", "marker")
+    marker.setAttribute("id", markerId)
+    marker.setAttribute("markerWidth", "10")
+    marker.setAttribute("markerHeight", "10")
+    marker.setAttribute("refX", "9")
+    marker.setAttribute("refY", "3")
+    marker.setAttribute("orient", "auto")
+
+    const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon")
+    polygon.setAttribute("points", "0 0, 10 3, 0 6")
+    polygon.setAttribute("fill", color)
+
+    marker.appendChild(polygon)
+    defs.appendChild(marker)
+    this.renderer.layer.appendChild(defs)
+    return markerId
+  }
+
+  clearDependencyArrows(): void
+  {
+    this.renderer.clearElements({ attrs: { "data-overlay": "arrow" } })
   }
 
   protected drawDependencyArrows(
@@ -575,10 +630,10 @@ export class IIMathVariableSubManager extends IIAbstractManager
           const variableBoxes = this.findVariableBoxesInExpressions(mathExpressions, variableName)
           if (variableBoxes.length > 0) {
             const variableColor = this.#colorManager.getColorForVariable(variableName)
-            this.editor.math.overlays.highlightAsSource(sourceJiixId, sourceBounds, variableColor)
+            this.editor.overlays.highlightPrimary(sourceJiixId, sourceBounds, variableColor)
             variableBoxes.forEach((variableBox, i) => {
-              this.editor.math.overlays.highlightVariableBox(variableBox, `${jiixBlockId}-occ${i}`, variableName)
-              this.editor.math.overlays.drawDependencyArrowToBox(
+              this.editor.overlays.highlightWithColor(variableBox, `${jiixBlockId}-occ${i}`, variableName)
+              this.drawDependencyArrowToBox(
                 `${sourceJiixId}-occ${i}`,
                 sourceBounds,
                 `${jiixBlockId}-occ${i}`,
@@ -590,7 +645,7 @@ export class IIMathVariableSubManager extends IIAbstractManager
           }
         }
 
-        this.editor.math.overlays.drawDependencyArrowToBox(
+        this.drawDependencyArrowToBox(
           sourceJiixId,
           sourceBounds,
           jiixBlockId,
@@ -621,8 +676,8 @@ export class IIMathVariableSubManager extends IIAbstractManager
           if (variableBoxes.length > 0) {
             const variableColor = this.#colorManager.getColorForVariable(variableName)
             variableBoxes.forEach((variableBox, i) => {
-              this.editor.math.overlays.highlightVariableBox(variableBox, `${dependentJiixId}-occ${i}`, variableName)
-              this.editor.math.overlays.drawDependencyArrowToBox(
+              this.editor.overlays.highlightWithColor(variableBox, `${dependentJiixId}-occ${i}`, variableName)
+              this.drawDependencyArrowToBox(
                 `${jiixBlockId}-occ${i}`,
                 hoveredBounds,
                 `${dependentJiixId}-occ${i}`,
@@ -634,7 +689,7 @@ export class IIMathVariableSubManager extends IIAbstractManager
           }
         }
 
-        this.editor.math.overlays.drawDependencyArrowToBox(
+        this.drawDependencyArrowToBox(
           jiixBlockId,
           hoveredBounds,
           dependentJiixId,

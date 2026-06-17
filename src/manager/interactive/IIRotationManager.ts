@@ -184,6 +184,6 @@ export class IIRotationManager extends IIAbstractTransformManager<[TPoint, numbe
     this.editor.history.push(this.model, { rotate: [{ symbols: oldSymbols, angle: angleRad, center: {...this.center}, }] })
 
     this.interactElementsGroup = undefined
-    this.editor.svgDebugger.apply()
+    this.editor.overlays.apply()
   }
 }
