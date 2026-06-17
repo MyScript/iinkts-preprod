@@ -18,6 +18,7 @@ export type TOverlayConfig = {
   borderWidth: number
   panelPadding: number
   labelMaxChars: number
+  labelFontSize: number
 }
 
 /**
@@ -30,6 +31,7 @@ export const DefaultOverlayConfig: TOverlayConfig = {
   borderWidth: 2,
   panelPadding: 8,
   labelMaxChars: 10,
+  labelFontSize: 12,
 }
 
 /**
@@ -59,8 +61,6 @@ export class IIOverlayManager extends IIAbstractManager
   }
 
   private static readonly LABEL_STYLES = {
-    FONT_SIZE: 12,
-    CHAR_WIDTH: 7,
     PADDING_H: 4,
     PADDING_V: 2,
     GAP: 4,
@@ -163,8 +163,9 @@ export class IIOverlayManager extends IIAbstractManager
     const labelId = `label-${this.sanitizeId(id)}`
     this.renderer.removeSymbol(labelId)
 
-    const { badgeSize: size, labelMaxChars: maxChars } = this.#config
-    const { FONT_SIZE, CHAR_WIDTH, PADDING_H, PADDING_V, GAP } = IIOverlayManager.LABEL_STYLES
+    const { badgeSize: size, labelMaxChars: maxChars, labelFontSize: FONT_SIZE } = this.#config
+    const CHAR_WIDTH = FONT_SIZE * 0.6
+    const { PADDING_H, PADDING_V, GAP } = IIOverlayManager.LABEL_STYLES
     const offset = IIOverlayManager.BADGE_STYLES.OFFSET
     const chipHeight = FONT_SIZE + PADDING_V * 2
 

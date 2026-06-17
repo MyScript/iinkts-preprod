@@ -57,6 +57,18 @@ export class OverlayMenuAction extends SubMenuItem
         onChange: (value: number, editor: InteractiveInkEditor) => {
           editor.overlays.updateConfig({ labelMaxChars: value })
         }
+      },
+      {
+        type: "range",
+        id: `${idPrefix}-overlay-label-font-size`,
+        label: "Label font size",
+        min: 8,
+        max: 20,
+        step: 1,
+        initValue: editor.overlays.getConfig().labelFontSize,
+        onChange: (value: number, editor: InteractiveInkEditor) => {
+          editor.overlays.updateConfig({ labelFontSize: value })
+        }
       }
     ]
 
