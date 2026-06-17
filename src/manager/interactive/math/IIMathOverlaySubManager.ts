@@ -144,82 +144,6 @@ export class IIMathOverlaySubManager extends IIAbstractManager
     this.renderer.layer.appendChild(rect)
   }
 
-  protected drawResultPanel(box: TBox, id: string, resultText: string): void {
-    const panelId = `result-panel-${id}`.replace(/[^a-zA-Z0-9_-]/g, "_")
-    const connectionId = `result-connection-${id}`.replace(/[^a-zA-Z0-9_-]/g, "_")
-
-    this.renderer.removeSymbol(panelId)
-    this.renderer.removeSymbol(connectionId)
-
-    if (!this.#config.showResultPanels || !resultText) {
-      return
-    }
-
-    const padding = this.#config.panelPadding
-    const fontSize = 14
-    const lineHeight = 18
-
-    const panelX = box.x + box.width + 20
-    const panelY = box.y
-
-    const panelGroup = SVGBuilder.createGroup({
-      id: panelId,
-      "data-overlay": "result-panel",
-      "data-block-id": id
-    })
-
-    const textWidth = resultText.length * fontSize * 0.6
-    const panelWidth = textWidth + padding * 2
-    const panelHeight = lineHeight + padding * 2
-
-    const panelRect = SVGBuilder.createRect(
-      { x: panelX, y: panelY, width: panelWidth, height: panelHeight },
-      {
-        fill: "#f0f8ff",
-        stroke: "#4472C4",
-        "stroke-width": "2",
-        rx: "4",
-        style: SVGRendererConst.noSelection
-      }
-    )
-    panelGroup.appendChild(panelRect)
-
-    const text = SVGBuilder.createText(
-      { x: panelX + padding, y: panelY + padding + fontSize },
-      resultText,
-      {
-        fill: "#000000",
-        "font-size": fontSize.toString(),
-        "font-family": "monospace",
-        style: SVGRendererConst.noSelection
-      }
-    )
-    panelGroup.appendChild(text)
-
-    this.renderer.layer.appendChild(panelGroup)
-
-    const connectionBox = {
-      x: panelX,
-      y: panelY,
-      width: panelWidth,
-      height: panelHeight
-    }
-
-    this.renderer.drawConnectionBetweenBox(
-      connectionId,
-      box,
-      connectionBox,
-      "sides",
-      {
-        stroke: "#4472C4",
-        "stroke-width": "1",
-        "stroke-dasharray": "5 3",
-        "data-overlay": "result-connection",
-        "data-block-id": id
-      }
-    )
-  }
-
   protected createHoverZone(bounds: TBox, blockId: string): void {
     const id = `hover-zone-${blockId}`.replace(/[^a-zA-Z0-9_-]/g, "_")
 
@@ -285,20 +209,6 @@ export class IIMathOverlaySubManager extends IIAbstractManager
     const blockId = mathBlock.id
     this.drawBadge(bounds, blockId)
     this.drawBorder(bounds, blockId)
-
-    // Get computed result and solver outputs from computation manager
-    const computation = this.editor.math.getComputation(blockId)
-    if (computation?.computedResult !== undefined || (computation?.solverOutputStrokeIds && computation.solverOutputStrokeIds.length > 0)) {
-
-      let resultText = "Result = "
-      if (computation?.computedResult !== undefined) {
-        resultText += `${computation.computedResult}`
-      }
-      else {
-        resultText += "N/A"
-      }
-      this.drawResultPanel(bounds, blockId, resultText)
-    }
 
     this.createHoverZone(bounds, blockId)
   }

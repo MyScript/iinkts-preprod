@@ -12,28 +12,68 @@
   <script type="text/javascript" src="../../dist/iink.min.js"></script>
 
   <style>
+    .info-section {
+      background: #e3f2fd;
+      padding: 12px;
+      margin: 12px 0;
+      border-radius: 4px;
+      border-left: 4px solid #2196F3;
+    }
+
+    .info-section h3 {
+      margin-top: 0;
+      color: #1976D2;
+    }
+
+    .info-section ul {
+      margin: 8px 0;
+      padding-left: 24px;
+    }
+
+    .info-section li {
+      margin: 4px 0;
+      line-height: 1.6;
+    }
+
+    .control-section {
+      padding: 12px;
+      background: #fff9c4;
+      margin: 12px 0;
+      border-radius: 4px;
+      border-left: 4px solid #fbc02d;
+    }
+
+    .control-section strong {
+      display: block;
+      margin-bottom: 8px;
+    }
+
     #editor-container {
       display: flex;
       flex-wrap: wrap;
       gap: 12px;
-      height: calc(100dvh - 427px);
+      height: calc(100dvh - 250px);
     }
+
     @media only screen and (max-width: 1010px) {
       #editor-container {
-        height: calc(100dvh - 475px);
+        height: calc(100dvh - 290px);
       }
     }
+
     @media only screen and (max-width: 760px) {
       #editor-container {
-        height: calc(100dvh - 514px);
+        height: calc(100dvh - 330px);
       }
     }
+
     @media only screen and (max-width: 653px) {
       #editor-container {
-        height: calc(100dvh - 581px);
+        height: calc(100dvh - 380px);
         width: 100%;
       }
     }
+
     #editorEl {
       flex: 4;
       min-width: 300px;
@@ -50,6 +90,13 @@
       font-size: 12px;
       overflow-y: auto;
       flex-shrink: 0;
+      border-left: 3px solid #2196F3;
+    }
+
+    #dependencies strong {
+      color: #1976D2;
+      display: block;
+      margin-bottom: 8px;
     }
 
     .dependency-info {
@@ -70,59 +117,28 @@
     <h1 class="header-title">Math Dependencies Example</h1>
   </header>
 
-  <p class="description" style="padding: 6px 12px;">
-    <strong>Instructions:</strong><br>
-    1. Write a variable definition like "x=2"<br>
-    2. Write an expression using that variable like "3x+2="<br>
-    3. The result will be computed automatically when you end with "=" or "?" (if Auto-compute is enabled)<br>
-    4. Uncheck "Auto-compute" to use the "Compute" button for manual calculation<br>
-    5. Change the variable value using the input below<br>
-    6. Watch the dependent expressions recalculate automatically!<br>
-    7. <strong>Hover over math blocks</strong> to see dependencies highlighted (sources in blue, dependents in orange) with arrows showing connections
-  </p>
+  <div class="info-section">
+    <h3>🔗 What are Math Dependencies?</h3>
+    <p>
+      When you write math expressions that use variables, the system tracks which blocks depend on which variables.
+    </p>
+    <ul>
+      <li><strong>Source blocks</strong> define variables (e.g., "x=2")</li>
+      <li><strong>Dependent blocks</strong> use those variables (e.g., "3x+2=")</li>
+      <li>When a variable changes, dependent expressions recalculate automatically</li>
+      <li>Hover over blocks to see dependencies highlighted with colored arrows</li>
+    </ul>
+  </div>
 
-  <div style="background: #fff3cd;">
-    <div class="flex-container between wrap gap" style="padding: 6px 12px;">
-      <div class="flex-container wrap gap">
-        <label>
-          <strong>Set variable value:</strong>
-          <select id="variableSelect" disabled>
-            <option value="">-- No variables --</option>
-          </select>
-          <input type="number" id="variableValue" placeholder="New value" disabled />
-        </label>
-        <button id="setVariable" class="classic-btn" disabled>Set Value</button>
-      </div>
-      <div class="flex-container wrap gap">
-        <label>
-          Auto-compute
-          <input type="checkbox" id="autoCompute" checked />
-        </label>
-        <button class="classic-btn" id="compute" disabled>Compute</button>
-      </div>
-    </div>
-    <div class="flex-container wrap gap" style="padding: 6px 12px; margin-top: 12px;">
-      <label>
-        Show Block Overlays
-        <input type="checkbox" id="showBlockOverlays" checked />
-      </label>
-      <label>
-        Draw result as strokes
-        <input type="checkbox" id="drawResultStrokes" checked />
-      </label>
-      <button id="refreshBtn" class="classic-btn">Refresh Overlays</button>
-    </div>
-    <div class="flex-container wrap gap" style="padding: 6px 12px; margin-top: 12px; border-top: 1px solid #ddd;">
-      <strong style="width: 100%;">Interactions:</strong>
-      <label>
-        Show Dependencies on Hover
-        <input type="checkbox" id="showDependencyOnHover" checked />
-      </label>
-      <label>
-        Highlight on Select
-        <input type="checkbox" id="highlightOnSelect" checked />
-      </label>
-    </div>
+  <div class="control-section">
+    <strong>📝 Try it:</strong><br>
+    1. Write a variable definition like <span style="background: #fff3cd; padding: 2px 6px; border-radius: 2px; font-weight: bold;">x=2</span><br>
+    2. Write an expression using that variable like <span style="background: #fff3cd; padding: 2px 6px; border-radius: 2px; font-weight: bold;">3x+2=</span><br>
+    3. The result computes automatically when you end with <span style="background: #fff3cd; padding: 2px 6px; border-radius: 2px; font-weight: bold;">=</span> or <span style="background: #fff3cd; padding: 2px 6px; border-radius: 2px; font-weight: bold;">?</span> (if Auto-compute is enabled)<br>
+    4. Toggle "Auto-compute" to switch between automatic and manual computation<br>
+    5. Change the variable value using "Edit Variables"<br>
+    6. Watch dependent expressions recalculate in real-time<br>
+    7. <strong>Hover over math blocks</strong> to see dependencies highlighted (sources in green, dependents in orange)
   </div>
 
   <div id="editor-container">
@@ -174,7 +190,7 @@
             export: false,
             import: false,
             convert: false,
-            math: false,
+            math: true,
             debug: false,
             guide: false,
             selection: false
@@ -204,24 +220,9 @@
 
       editor = await Editor.load(editorElement, 'INTERACTIVEINK', options)
 
-      editor.math.updateOverlaysConfig({ showBlockOverlays: showBlockOverlaysCheckbox.checked })
-      editor.drawComputationResult = drawResultStrokesCheckbox.checked
-
-      // Show result panels when not drawing strokes
-      editor.math.updateOverlaysConfig({ showResultPanels: !drawResultStrokesCheckbox.checked })
-
-      editor.math.updateVariablesConfig({ showDependencyOnHover: showDependencyOnHoverCheckbox.checked })
-      editor.math.updateVariablesConfig({ highlightOnSelect: highlightOnSelectCheckbox.checked })
-
       editor.event.addChangedListener(onEditorChanged)
       editor.event.addSynchronizedListener(onSynchronized)
-      editor.event.addSelectedListener(onSelected)
       return editor
-    }
-
-    async function onSelected(symbols) {
-      const hasMath = symbols.some(s => s.jiixBlockType === 'Math')
-      computeElement.disabled = !hasMath
     }
 
     async function onEditorChanged(event) {
@@ -240,34 +241,7 @@
       synchronizeTimeout && clearTimeout(synchronizeTimeout)
       synchronizeTimeout = setTimeout(() => {
         updateDependenciesDisplay()
-        updateVariablesList()
-        tryAutoCompute()
       }, 250)
-    }
-
-    async function tryAutoCompute() {
-      if (!autoComputeCheckbox.checked) {
-        return
-      }
-
-      const mathBlocks = editor.model.mathBlocks
-
-      for (const mb of mathBlocks) {
-        const label = mb.label || ''
-        if ((label.endsWith('=') || label.endsWith('?')) && mb.id) {
-          try {
-            const actions = await editor.math.getAvailableActions(mb.id)
-            const canCompute = actions?.includes('numerical-computation')
-
-            if (canCompute) {
-              await editor.math.computeNumericalResult(mb.id, editor.drawComputationResult)
-            }
-          } catch (e) {
-            // Silently ignore errors - expression might not be computable yet
-            console.debug(`Cannot auto-compute "${label}":`, e.message)
-          }
-        }
-      }
     }
 
     async function updateDependenciesDisplay() {
@@ -342,132 +316,6 @@
 
       dependenciesList.innerHTML = html
     }
-
-    async function updateVariablesList() {
-      allVariables = []
-      const mathBlocks = editor.model.mathBlocks
-      for (const mb of mathBlocks) {
-        try {
-          const variables = await editor.math.getVariables(mb.id)
-          const definition = await editor.math.asVariableDefinition(mb.id)
-
-          variables.forEach(v => {
-            if (definition && definition.name !== v.name) {
-              allVariables.push({
-                name: v.name,
-                sourceId: v.sourceId,
-                value: v.value,
-                label: mb.label,
-                jiixId: mb.id
-              })
-            }
-          })
-        } catch (e) {
-          // Block may have no variables
-        }
-      }
-
-      variableSelect.innerHTML = allVariables.length === 0
-        ? '<option value="">-- No variables --</option>'
-        : allVariables.map(v =>
-            `<option value="${v.sourceId}:${v.name}:${v.jiixId}">${v.name} = ${v.value} (in ${v.label})</option>`
-          ).join('')
-
-      variableSelect.disabled = allVariables.length === 0
-      variableValue.disabled = allVariables.length === 0
-      setVariableBtn.disabled = allVariables.length === 0
-    }
-
-    computeElement.addEventListener('click', async () => {
-      const selectedSymbols = editor.model.symbolsSelected
-      if (selectedSymbols.length === 0) {
-        alert('Please select a math expression first')
-        return
-      }
-
-      const mathStroke = selectedSymbols.find(s => s.jiixBlockType === 'Math')
-      if (!mathStroke) {
-        alert('Please select a math expression')
-        return
-      }
-
-      try {
-        computeElement.disabled = true
-        computeElement.textContent = 'Computing...'
-
-        await editor.math.computeNumericalResult(mathStroke.jiixBlockId, editor.drawComputationResult)
-
-        computeElement.textContent = 'Compute'
-        computeElement.disabled = false
-      } catch (error) {
-        alert('Error computing: ' + error.message)
-        computeElement.textContent = 'Compute'
-        computeElement.disabled = false
-      }
-    })
-
-    setVariableBtn.addEventListener('click', async () => {
-      const selected = variableSelect.value
-      if (!selected) return
-
-      const [sourceId, varName, jiixId] = selected.split(':')
-      const newValue = parseFloat(variableValue.value)
-
-      if (isNaN(newValue)) {
-        alert('Please enter a valid number')
-        return
-      }
-
-      try {
-        setVariableBtn.disabled = true
-        setVariableBtn.textContent = 'Setting...'
-
-        await editor.math.setVariableValue(jiixId, varName, newValue)
-
-        await updateVariablesList()
-        await updateDependenciesDisplay()
-        await tryAutoCompute()
-
-        setVariableBtn.textContent = 'Set Value'
-        setVariableBtn.disabled = false
-        variableValue.value = ''
-      } catch (error) {
-        alert('Error setting variable: ' + error.message)
-        setVariableBtn.textContent = 'Set Value'
-        setVariableBtn.disabled = false
-      }
-    })
-
-    showBlockOverlaysCheckbox.addEventListener('change', (e) => {
-      editor.math.toggleBlockOverlays(e.target.checked)
-    })
-
-    drawResultStrokesCheckbox.addEventListener('change', async (e) => {
-      editor.drawComputationResult = e.target.checked
-      // Show result panels when not drawing strokes
-      editor.math.updateOverlaysConfig({ showResultPanels: !e.target.checked })
-    })
-
-    const refreshBtn = document.getElementById('refreshBtn')
-    refreshBtn.addEventListener('click', () => {
-      editor.math.refreshOverlays()
-    })
-
-
-    showDependencyOnHoverCheckbox.addEventListener('change', (e) => {
-      editor.math.updateVariablesConfig({ showDependencyOnHover: e.target.checked })
-      if (!e.target.checked) {
-        editor.math.clearVariableInteractions()
-      }
-    })
-
-    highlightOnSelectCheckbox.addEventListener('change', (e) => {
-      editor.math.updateVariablesConfig({ highlightOnSelect: e.target.checked })
-    })
-
-    showModalBtn.addEventListener('click', () => {
-      ModalEditorOptions.show(loadEditor, editorOptions)
-    })
 
     ModalEditorOptions.initConfiguration(loadEditor, editorOptions)
   </script>
