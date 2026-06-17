@@ -37,6 +37,7 @@ export interface IMenuSubMenu extends IMenuItemBase {
  */
 export class SubMenuItem extends BaseMenuItem<HTMLDivElement>
 {
+  #documentPointerdownHandler?: (e: PointerEvent) => void
   protected declare config: IMenuSubMenu
   protected subMenuWrapper?: HTMLElement
   protected subMenuContent?: HTMLDivElement
@@ -128,11 +129,12 @@ export class SubMenuItem extends BaseMenuItem<HTMLDivElement>
     wrapper.appendChild(this.subMenuContent)
 
     this.trigger.addEventListener("pointerdown", () => this.toggle())
-    document.addEventListener("pointerdown", (e) => {
+    this.#documentPointerdownHandler = (e: PointerEvent) => {
       if (!wrapper.contains(e.target as HTMLElement)) {
         this.close()
       }
-    })
+    }
+    document.addEventListener("pointerdown", this.#documentPointerdownHandler)
 
     return wrapper
   }
@@ -200,6 +202,10 @@ export class SubMenuItem extends BaseMenuItem<HTMLDivElement>
   }
 
   destroy(): void {
+    if (this.#documentPointerdownHandler) {
+      document.removeEventListener("pointerdown", this.#documentPointerdownHandler)
+      this.#documentPointerdownHandler = undefined
+    }
     this.subMenuItems.forEach(menuItem => {
       menuItem.destroy()
     })

@@ -10,6 +10,8 @@ import { DEFAULT_MENU_COLORS } from "@/menu/MenuConstants"
  */
 export class DecoratorContextMenu extends BaseMenuItem<HTMLElement>
 {
+  #documentPointerdownHandler?: (e: PointerEvent) => void
+  #subMenuPointerdownHandlers: Array<(e: PointerEvent) => void> = []
   protected declare config: TGenericMenuItem & { idPrefix: string }
 
   constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-context")
@@ -167,11 +169,13 @@ export class DecoratorContextMenu extends BaseMenuItem<HTMLElement>
 
     // Event listeners
     trigger.addEventListener("pointerdown", () => content.classList.toggle("open"))
-    document.addEventListener("pointerdown", (e) => {
+    const subMenuHandler = (e: PointerEvent) => {
       if (!wrapper.contains(e.target as HTMLElement)) {
         content.classList.remove("open")
       }
-    })
+    }
+    this.#subMenuPointerdownHandlers.push(subMenuHandler)
+    document.addEventListener("pointerdown", subMenuHandler)
 
     return wrapper
   }
@@ -208,13 +212,24 @@ export class DecoratorContextMenu extends BaseMenuItem<HTMLElement>
 
     // Event listeners
     trigger.addEventListener("pointerdown", () => content.classList.toggle("open"))
-    document.addEventListener("pointerdown", (e) => {
+    this.#documentPointerdownHandler = (e: PointerEvent) => {
       if (!wrapper.contains(e.target as HTMLElement)) {
         content.classList.remove("open")
       }
-    })
+    }
+    document.addEventListener("pointerdown", this.#documentPointerdownHandler)
 
     return wrapper
+  }
+
+  destroy(): void {
+    if (this.#documentPointerdownHandler) {
+      document.removeEventListener("pointerdown", this.#documentPointerdownHandler)
+      this.#documentPointerdownHandler = undefined
+    }
+    this.#subMenuPointerdownHandlers.forEach(h => document.removeEventListener("pointerdown", h))
+    this.#subMenuPointerdownHandlers = []
+    super.destroy()
   }
 
   update(): void

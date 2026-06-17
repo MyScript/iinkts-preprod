@@ -17,7 +17,7 @@ export interface NumericalComputationResult {
  * @group Components
  * @remarks Component for computing and displaying numerical results for multiple math symbols
  */
-export class IINumericalComputationResult {
+export class IIMathNumericalComputationResult {
   private editor: InteractiveInkEditor
   private jiixBlockIds: string[]
   private modal?: Modal

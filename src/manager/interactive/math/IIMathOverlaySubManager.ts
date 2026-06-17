@@ -5,7 +5,7 @@ import { Box, TBox, IIStroke, isStroke } from "@/symbol"
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import { ColorPaletteManager } from "../../base"
 import { COLORS } from "@/components"
-import { convertBoundingBoxMillimeterToPixel } from "@/utils"
+import { convertBoundingBoxMillimeterToPixel, getBoxConnectionPoint } from "@/utils"
 import { LoggerCategory } from "@/logger"
 
 /**
@@ -268,22 +268,6 @@ export class IIMathOverlaySubManager extends IIAbstractManager
     })
   }
 
-  protected getBlockColor(mathBlockId: string, mathBlockLabel?: string): string {
-    const defaultColor = "#cccccc"
-
-    const deps = this.editor.math.getDependencies(mathBlockId)
-    if (deps?.variableSources && Object.keys(deps.variableSources).length > 0) {
-      const variableNames = Object.keys(deps.variableSources)
-      const firstVariable = variableNames[0]
-      const color = this.#colorManager.getColorForVariable(firstVariable)
-      this.logger.debug("getBlockColor", `Block ${mathBlockLabel || mathBlockId} uses variable "${firstVariable}" → ${color}`)
-      return color
-    }
-
-    this.logger.debug("getBlockColor", `Block ${mathBlockLabel || mathBlockId} has no variables → ${defaultColor}`)
-    return defaultColor
-  }
-
   protected updateOverlaysForSymbol(mathBlock: TJIIXMathElement): void {
     let bounds: TBox
     if (mathBlock["bounding-box"]) {
@@ -299,10 +283,8 @@ export class IIMathOverlaySubManager extends IIAbstractManager
       bounds = Box.createFromBoxes(blockStrokes.map(s => s.bounds))
     }
     const blockId = mathBlock.id
-    const blockColor = this.getBlockColor(blockId, mathBlock.label)
-
     this.drawBadge(bounds, blockId)
-    this.drawBorder(bounds, blockId, blockColor)
+    this.drawBorder(bounds, blockId)
 
     // Get computed result and solver outputs from computation manager
     const computation = this.editor.math.getComputation(blockId)
@@ -438,37 +420,36 @@ export class IIMathOverlaySubManager extends IIAbstractManager
     const arrowId = this.sanitizeId(`arrow-${fromId}-${toId}`)
     this.renderer.removeSymbol(arrowId)
 
-    const startX = fromBounds.x + fromBounds.width
-    const startY = fromBounds.y + fromBounds.height / 2
-    const endX = toBox.x
-    const endY = toBox.y + toBox.height / 2
+    const toCenter = { x: toBox.x + toBox.width / 2, y: toBox.y + toBox.height / 2 }
+    const fromCenter = { x: fromBounds.x + fromBounds.width / 2, y: fromBounds.y + fromBounds.height / 2 }
+    const { x: startX, y: startY } = getBoxConnectionPoint(fromBounds, toCenter)
+    const { x: endX, y: endY } = getBoxConnectionPoint(toBox, fromCenter)
 
-    const controlX = (startX + endX) / 2
-    const path = `M ${startX} ${startY} Q ${controlX} ${startY}, ${controlX} ${(startY + endY) / 2} T ${endX} ${endY}`
+    const path = `M ${startX} ${startY} L ${endX} ${endY}`
 
     const arrowPath = document.createElementNS("http://www.w3.org/2000/svg", "path")
     arrowPath.setAttribute("id", arrowId)
     arrowPath.setAttribute("d", path)
+    const markerId = this.ensureArrowheadMarker(color)
     arrowPath.setAttribute("stroke", color)
     arrowPath.setAttribute("stroke-width", "2")
     arrowPath.setAttribute("fill", "transparent")
-    arrowPath.setAttribute("marker-end", "url(#arrowhead)")
+    arrowPath.setAttribute("marker-end", `url(#${markerId})`)
     arrowPath.setAttribute("data-overlay", "arrow")
     arrowPath.setAttribute("style", "pointer-events: none;")
 
     this.renderer.layer.appendChild(arrowPath)
-
-    this.ensureArrowheadMarker()
   }
 
-  protected ensureArrowheadMarker(): void {
-    if (this.renderer.layer.querySelector("#arrowhead")) {
-      return
+  protected ensureArrowheadMarker(color: string): string {
+    const markerId = `arrowhead-${color.replace(/[^a-zA-Z0-9]/g, "_")}`
+    if (this.renderer.layer.querySelector(`#${markerId}`)) {
+      return markerId
     }
 
     const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs")
     const marker = document.createElementNS("http://www.w3.org/2000/svg", "marker")
-    marker.setAttribute("id", "arrowhead")
+    marker.setAttribute("id", markerId)
     marker.setAttribute("markerWidth", "10")
     marker.setAttribute("markerHeight", "10")
     marker.setAttribute("refX", "9")
@@ -477,11 +458,12 @@ export class IIMathOverlaySubManager extends IIAbstractManager
 
     const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon")
     polygon.setAttribute("points", "0 0, 10 3, 0 6")
-    polygon.setAttribute("fill", "currentColor")
+    polygon.setAttribute("fill", color)
 
     marker.appendChild(polygon)
     defs.appendChild(marker)
     this.renderer.layer.appendChild(defs)
+    return markerId
   }
 
   clearHighlights(): void {

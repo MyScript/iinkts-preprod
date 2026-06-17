@@ -30,6 +30,7 @@ export class IIMenuStyle
   subMenuWrapper?: HTMLDivElement
   subMenuContent?: HTMLDivElement
 
+  #documentPointerdownHandler?: (e: PointerEvent) => void
   // Style items
   private styleItems: Map<string, BaseMenuItem> = new Map()
 
@@ -147,11 +148,12 @@ export class IIMenuStyle
 
       // Event listeners
       this.triggerBtn.addEventListener("pointerdown", () => this.subMenuContent?.classList.toggle("open"))
-      document.addEventListener("pointerdown", (e) => {
+      this.#documentPointerdownHandler = (e: PointerEvent) => {
         if (this.subMenuWrapper && !this.subMenuWrapper.contains(e.target as HTMLElement)) {
           this.subMenuContent?.classList.remove("open")
         }
-      })
+      }
+      document.addEventListener("pointerdown", this.#documentPointerdownHandler)
 
       this.wrapper = document.createElement("div")
       this.wrapper.classList.add("ms-menu", "ms-menu-top-right")
@@ -237,6 +239,10 @@ export class IIMenuStyle
 
   destroy(): void
   {
+    if (this.#documentPointerdownHandler) {
+      document.removeEventListener("pointerdown", this.#documentPointerdownHandler)
+      this.#documentPointerdownHandler = undefined
+    }
     if (this.wrapper) {
       // Destroy all style items
       this.styleItems.forEach((item) => item.destroy())

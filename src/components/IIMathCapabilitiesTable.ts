@@ -1,10 +1,10 @@
 import { InteractiveInkEditor } from "@/editor"
 import { Modal } from "./Modal"
 import { Table, TableRow } from "./Table"
-import { IIFunctionEvaluator } from "./IIFunctionEvaluator"
-import { IIDiagnosticChecker } from "./IIDiagnosticChecker"
-import { IINumericalComputationResult } from "./IINumericalComputationResult"
-import { IIVariableEditor } from "./IIVariableEditor"
+import { IIMathFunctionEvaluator } from "./IIMathFunctionEvaluator"
+import { IIMathDiagnosticChecker } from "./IIMathDiagnosticChecker"
+import { IIMathNumericalComputationResult } from "./IIMathNumericalComputationResult"
+import { IIMathVariablePerBlockEditor } from "./IIMathVariablePerBlockEditor"
 import { COLORS, flexColumnStyle, flexContainerStyle, SPACING } from "./styles"
 import { createButton, createStatusBadge } from "./ui-utils"
 import { LoggerCategory } from "@/logger/logger"
@@ -249,7 +249,6 @@ export class IIMathCapabilitiesTable {
       }
     ]
 
-    // Create and append buttons
     buttonConfigs.forEach(config => {
       const button = this.createActionButton(config)
       this.actionButtons[config.key] = button
@@ -273,8 +272,7 @@ export class IIMathCapabilitiesTable {
 
     if (selectedBlockIds.length === 0) return
 
-    // Use IIDiagnosticChecker component
-    const checker = new IIDiagnosticChecker(this.editor, selectedBlockIds)
+    const checker = new IIMathDiagnosticChecker(this.editor, selectedBlockIds)
     await checker.show()
   }
 
@@ -292,8 +290,7 @@ export class IIMathCapabilitiesTable {
 
     if (selectedBlockIds.length === 0) return
 
-    // Use IIVariableEditor component
-    const variableEditor = new IIVariableEditor(this.editor, selectedBlockIds)
+    const variableEditor = new IIMathVariablePerBlockEditor(this.editor, selectedBlockIds)
     await variableEditor.show()
   }
 
@@ -311,8 +308,7 @@ export class IIMathCapabilitiesTable {
 
     if (selectedBlockIds.length === 0) return
 
-    // Use IINumericalComputationResult component
-    const computer = new IINumericalComputationResult(this.editor, selectedBlockIds)
+    const computer = new IIMathNumericalComputationResult(this.editor, selectedBlockIds)
     await computer.show()
   }
 
@@ -330,8 +326,7 @@ export class IIMathCapabilitiesTable {
 
     if (selectedBlockIds.length === 0) return
 
-    // Use IIFunctionEvaluator component
-    const evaluator = new IIFunctionEvaluator(this.editor, selectedBlockIds)
+    const evaluator = new IIMathFunctionEvaluator(this.editor, selectedBlockIds)
     await evaluator.show()
   }
 
@@ -353,13 +348,8 @@ export class IIMathCapabilitiesTable {
       capabilities.push(cap)
     }
 
-    // Create table
     this.table = this.createTable(capabilities)
-
-    // Create action buttons
     const actionButtons = this.createActionButtons()
-
-    // Create container
     const container = document.createElement("div")
     container.style.cssText = `
       ${flexColumnStyle(SPACING.sm)}
