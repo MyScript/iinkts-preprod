@@ -40,10 +40,6 @@ describe("IIMenuAction.ts", () =>
     {
       expect(editor.layers.ui.root.querySelector("#ms-menu-action-snap")).not.toBeNull()
     })
-    test("should render menu debug", () =>
-    {
-      expect(editor.layers.ui.root.querySelector("#ms-menu-action-debug")).not.toBeNull()
-    })
     test("should render menu clear", () =>
     {
       expect(editor.layers.ui.root.querySelector("#ms-menu-action-clear")).not.toBeNull()

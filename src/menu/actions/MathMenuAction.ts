@@ -17,15 +17,6 @@ export class MathMenuAction extends SubMenuItem
     const items: (IMenuCheckbox | IMenuSelect | IMenuButton)[] = [
       {
         type: "checkbox",
-        id: `${idPrefix}-math-show-block-overlays`,
-        label: "Show Block Overlays",
-        getValue: (editor: InteractiveInkEditor) => editor.math.getOverlaysConfig().showBlockOverlays,
-        setValue: (editor: InteractiveInkEditor, value: boolean) => {
-          editor.math.toggleBlockOverlays(value)
-        }
-      },
-      {
-        type: "checkbox",
         id: `${idPrefix}-math-auto-compute`,
         label: "Auto-compute",
         getValue: (editor: InteractiveInkEditor) => editor.math.getComputationConfig().autoCompute,
@@ -53,8 +44,6 @@ export class MathMenuAction extends SubMenuItem
           if (mode === "draw") {
             await editor.math.computeAllNumericalResults()
           }
-
-          editor.math.updateOverlaysConfig({ showResultPanels: mode === "ghost" })
         }
       },
     ]

@@ -16,8 +16,8 @@ export class InteractiveInkEditorMock extends InteractiveInkEditor
     super(document.createElement("div"), options)
     this.event = new EditorEventMock(this.layers.root)
 
-    // Mock math.refreshOverlays to prevent DOM access issues in tests
-    this.math.refreshOverlays = jest.fn()
+    // Mock overlays.refresh to prevent DOM access issues in tests
+    this.overlays.refresh = jest.fn()
   }
 
   init = jest.fn(() => {

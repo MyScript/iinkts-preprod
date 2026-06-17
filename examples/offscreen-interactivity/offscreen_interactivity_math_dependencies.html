@@ -12,10 +12,16 @@
   <script type="text/javascript" src="../../dist/iink.min.js"></script>
 
   <style>
+    .info-control-row {
+      display: flex;
+      gap: 12px;
+      margin: 12px 0;
+    }
+
     .info-section {
+      flex: 1;
       background: #e3f2fd;
       padding: 12px;
-      margin: 12px 0;
       border-radius: 4px;
       border-left: 4px solid #2196F3;
     }
@@ -36,9 +42,9 @@
     }
 
     .control-section {
+      flex: 1;
       padding: 12px;
       background: #fff9c4;
-      margin: 12px 0;
       border-radius: 4px;
       border-left: 4px solid #fbc02d;
     }
@@ -52,16 +58,20 @@
       display: flex;
       flex-wrap: wrap;
       gap: 12px;
-      height: calc(100dvh - 250px);
+      height: calc(100dvh - 180px);
+      min-height: 500px;
     }
 
     @media only screen and (max-width: 1010px) {
       #editor-container {
-        height: calc(100dvh - 290px);
+        height: calc(100dvh - 220px);
       }
     }
 
     @media only screen and (max-width: 760px) {
+      .info-control-row {
+        flex-direction: column;
+      }
       #editor-container {
         height: calc(100dvh - 330px);
       }
@@ -117,28 +127,30 @@
     <h1 class="header-title">Math Dependencies Example</h1>
   </header>
 
-  <div class="info-section">
-    <h3>🔗 What are Math Dependencies?</h3>
-    <p>
-      When you write math expressions that use variables, the system tracks which blocks depend on which variables.
-    </p>
-    <ul>
-      <li><strong>Source blocks</strong> define variables (e.g., "x=2")</li>
-      <li><strong>Dependent blocks</strong> use those variables (e.g., "3x+2=")</li>
-      <li>When a variable changes, dependent expressions recalculate automatically</li>
-      <li>Hover over blocks to see dependencies highlighted with colored arrows</li>
-    </ul>
-  </div>
+  <div class="info-control-row">
+    <div class="info-section">
+      <h3>🔗 What are Math Dependencies?</h3>
+      <p>
+        When you write math expressions that use variables, the system tracks which blocks depend on which variables.
+      </p>
+      <ul>
+        <li><strong>Source blocks</strong> define variables (e.g., "x=2")</li>
+        <li><strong>Dependent blocks</strong> use those variables (e.g., "3x+2=")</li>
+        <li>When a variable changes, dependent expressions recalculate automatically</li>
+        <li>Hover over blocks to see dependencies highlighted with colored arrows</li>
+      </ul>
+    </div>
 
-  <div class="control-section">
-    <strong>📝 Try it:</strong><br>
-    1. Write a variable definition like <span style="background: #fff3cd; padding: 2px 6px; border-radius: 2px; font-weight: bold;">x=2</span><br>
-    2. Write an expression using that variable like <span style="background: #fff3cd; padding: 2px 6px; border-radius: 2px; font-weight: bold;">3x+2=</span><br>
-    3. The result computes automatically when you end with <span style="background: #fff3cd; padding: 2px 6px; border-radius: 2px; font-weight: bold;">=</span> or <span style="background: #fff3cd; padding: 2px 6px; border-radius: 2px; font-weight: bold;">?</span> (if Auto-compute is enabled)<br>
-    4. Toggle "Auto-compute" to switch between automatic and manual computation<br>
-    5. Change the variable value using "Edit Variables"<br>
-    6. Watch dependent expressions recalculate in real-time<br>
-    7. <strong>Hover over math blocks</strong> to see dependencies highlighted (sources in green, dependents in orange)
+    <div class="control-section">
+      <strong>📝 Try it:</strong><br>
+      1. Write a variable definition like <span style="background: #fff3cd; padding: 2px 6px; border-radius: 2px; font-weight: bold;">x=2</span><br>
+      2. Write an expression using that variable like <span style="background: #fff3cd; padding: 2px 6px; border-radius: 2px; font-weight: bold;">3x+2=</span><br>
+      3. The result computes automatically when you end with <span style="background: #fff3cd; padding: 2px 6px; border-radius: 2px; font-weight: bold;">=</span> or <span style="background: #fff3cd; padding: 2px 6px; border-radius: 2px; font-weight: bold;">?</span> (if Auto-compute is enabled)<br>
+      4. Toggle "Auto-compute" to switch between automatic and manual computation<br>
+      5. Change the variable value using "Edit Variables"<br>
+      6. Watch dependent expressions recalculate in real-time<br>
+      7. <strong>Hover over math blocks</strong> to see dependencies highlighted (sources in green, dependents in orange)
+    </div>
   </div>
 
   <div id="editor-container">
@@ -283,7 +295,7 @@
           if (depSymbol) {
             const depDeps = await editor.math.getDependencies(depId)
             html += `<div class="dependency-info dependent" style="margin-left: 16px; margin-bottom: 4px;">`
-            html += `<strong>→ ${depSymbol.label || depId}</strong><br>`
+            html += `<strong>→ ${depSymbol.label || depId}</strong>`
 
             if (depDeps?.variableSources && Object.keys(depDeps.variableSources).length > 0) {
               html += '<small>Variables: '
@@ -305,7 +317,7 @@
       const remainingBlocks = mathBlocks.filter(s => !processedBlocks.has(s.id))
       if (remainingBlocks.length > 0) {
         html += '<div style="margin-top: 16px; padding-top: 8px; border-top: 1px dashed #ccc;">'
-        html += '<small><strong>Isolated blocks:</strong></small><br>'
+        html += '<small><strong>Isolated blocks:</strong></small>'
         for (const mathBlock of remainingBlocks) {
           html += `<div class="dependency-info" style="margin-top: 4px;">`
           html += `<strong>${mathBlock.label || mathBlock.id}</strong>`

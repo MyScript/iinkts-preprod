@@ -184,7 +184,7 @@ export class IITranslateManager extends IIAbstractTransformManager<[number, numb
     this.translate(this.model.symbolsSelected, tx, ty)
 
     this.interactElementsGroup = undefined
-    this.editor.svgDebugger.apply()
+    this.editor.overlays.apply()
   }
 
 }

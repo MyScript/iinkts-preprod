@@ -294,6 +294,6 @@ export class IIResizeManager extends IIAbstractTransformManager<[TPoint, number,
     this.editor.history.push(this.model, { scale: [{ symbols: oldSymbols, origin: {...this.transformOrigin}, scaleX, scaleY }] })
 
     this.interactElementsGroup = undefined
-    this.editor.svgDebugger.apply()
+    this.editor.overlays.apply()
   }
 }

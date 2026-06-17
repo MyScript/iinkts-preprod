@@ -169,7 +169,7 @@ describe("EditorOffscreen.ts", () =>
   {
     const editor = new InteractiveInkEditor(document.createElement("div"), EditorOptions)
     editor.menu.update = jest.fn()
-    editor.svgDebugger.apply = jest.fn()
+    editor.overlays.apply = jest.fn()
     editor.recognizer.waitForIdle = jest.fn()
 
     editor.recognizer.init = jest.fn()
@@ -500,7 +500,7 @@ describe("EditorOffscreen.ts", () =>
       editor.renderer.removeSymbol = jest.fn()
       editor.renderer.drawSymbol = jest.fn()
       editor.menu.update = jest.fn()
-      editor.svgDebugger.apply = jest.fn()
+      editor.overlays.apply = jest.fn()
       editor.recognizer.waitForIdle = jest.fn(() => Promise.resolve())
     })
 
@@ -638,7 +638,7 @@ describe("EditorOffscreen.ts", () =>
       editor.renderer.removeSymbol = jest.fn()
       editor.renderer.drawSymbol = jest.fn()
       editor.menu.update = jest.fn()
-      editor.svgDebugger.apply = jest.fn()
+      editor.overlays.apply = jest.fn()
       editor.recognizer.waitForIdle = jest.fn(() => Promise.resolve())
     })
 
@@ -731,7 +731,7 @@ describe("EditorOffscreen.ts", () =>
   describe("convert", () =>
   {
     const editor = new InteractiveInkEditor(document.createElement("div"), EditorOptions)
-    editor.svgDebugger.apply = jest.fn()
+    editor.overlays.apply = jest.fn()
     editor.event.emitConverted = jest.fn()
     editor.recognizer.waitForIdle = jest.fn(() => Promise.resolve())
     editor.converter.apply = jest.fn(() => Promise.resolve())
@@ -807,7 +807,7 @@ describe("EditorOffscreen.ts", () =>
   describe("clear", () =>
   {
     const editor = new InteractiveInkEditor(document.createElement("div"), EditorOptions)
-    editor.svgDebugger.apply = jest.fn()
+    editor.overlays.apply = jest.fn()
     editor.selector.removeSelectedGroup = jest.fn()
     editor.renderer.clear = jest.fn()
     editor.recognizer.clear = jest.fn(() => Promise.resolve())

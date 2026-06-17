@@ -24,7 +24,7 @@ describe("IIGestureManager.ts", () =>
   describe("apply", () =>
   {
     const editor = new InteractiveInkEditorMock()
-    editor.svgDebugger.apply = jest.fn()
+    editor.overlays.apply = jest.fn()
     const gestMan = new IIGestureManager(editor)
     // Handlers are now private - test behavior instead of implementation
 

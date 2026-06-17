@@ -6,6 +6,7 @@ import { IMenuCheckbox } from "./CheckboxMenuItem"
 import { IMenuSelect } from "./SelectMenuItem"
 import { IMenuButtonList } from "./ButtonListMenuItem"
 import { IMenuFileInput } from "./FileInputMenuItem"
+import { IMenuRange } from "./RangeMenuItem"
 
 /**
  * @group Menu
@@ -17,7 +18,7 @@ export type TMenuPosition = "top" | "left" | "right" | "right-top" | "bottom" | 
  * @group Menu
  * @remarks Union type for submenu items (without recursive submenu to avoid circularity)
  */
-export type TSubMenuItems = IMenuButton | IMenuCheckbox | IMenuSelect | IMenuButtonList | IMenuFileInput
+export type TSubMenuItems = IMenuButton | IMenuCheckbox | IMenuSelect | IMenuButtonList | IMenuFileInput | IMenuRange
 
 /**
  * @group Menu

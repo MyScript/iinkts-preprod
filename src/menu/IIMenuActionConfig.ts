@@ -19,10 +19,10 @@ export interface IIMenuActionConfig {
   guide?: boolean
   /** Enable/disable Snap submenu */
   snap?: boolean
-  /** Enable/disable Debug submenu */
-  debug?: boolean
   /** Enable/disable Math Dependencies submenu */
   math?: boolean
+  /** Enable/disable Overlay configuration submenu */
+  overlay?: boolean
   /** Enable/disable Selection submenu */
   selection?: boolean
   /** Enable/disable Export submenu */
@@ -44,8 +44,8 @@ export const defaultMenuActionConfig: Required<IIMenuActionConfig> = {
   gesture: true,
   guide: true,
   snap: true,
-  debug: true,
   math: true,
+  overlay: true,
   selection: true,
   export: true,
   import: true
