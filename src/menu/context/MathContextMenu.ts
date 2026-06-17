@@ -1,6 +1,6 @@
 import { InteractiveInkEditor } from "@/editor"
 import { SubMenuItem, IMenuSubMenu } from "@/menu/items/SubMenuItem"
-import { IIMathFunctionEvaluator, IIMathDiagnosticChecker, IIMathNumericalComputationResult, IIMathVariablePerBlockEditor } from "@/components"
+import { IIMathFunctionEvaluator, IIMathDiagnosticChecker, IIMathVariablePerBlockEditor } from "@/components"
 import { LoggerCategory, LoggerManager } from "@/logger"
 
 /**
@@ -75,12 +75,7 @@ export class MathContextMenu extends SubMenuItem
                 this.logger.warn("No block math selected")
                 return
               }
-              if (this.editor.drawComputationResult) {
-                await Promise.all(jiixBlockIds.map(jiixBlockId => this.editor.math.computeNumericalResult(jiixBlockId, this.editor.drawComputationResult)))
-              } else {
-                const computer = new IIMathNumericalComputationResult(editor, jiixBlockIds)
-                await computer.show()
-              }
+              await Promise.all(jiixBlockIds.map(jiixBlockId => this.editor.math.computeNumericalResult(jiixBlockId)))
 
             } catch (error) {
               this.logger.error("Error computing numerical result:", error)
