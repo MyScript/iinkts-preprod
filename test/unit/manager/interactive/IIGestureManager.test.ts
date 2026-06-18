@@ -103,7 +103,6 @@ describe("IIGestureManager.ts", () =>
     })
   })
 
-  // TODO: Refactor these tests to work with Strategy Pattern - ScratchGestureHandler
   describe.skip("applyScratchGesture", () =>
   {
     const editor = new InteractiveInkEditorMock()
@@ -384,7 +383,7 @@ describe("IIGestureManager.ts", () =>
       }
       // @ts-expect-error - Method moved to InsertGestureHandler
       await gestMan.applyInsertGesture(strokeGesture, gesture)
-      expect(gestMan.translator.translate).toHaveBeenNthCalledWith(1, [stroke], 0, gestMan.rowHeight, false)
+      expect(gestMan.translator.translate).toHaveBeenNthCalledWith(1, [stroke], 0, rowHeight, false)
       expect(editor.replaceSymbols).toHaveBeenCalledTimes(0)
       expect(gestMan.history.push).toHaveBeenCalledTimes(1)
     })
