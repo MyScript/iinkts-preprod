@@ -1,4 +1,4 @@
-import { InteractiveInkEditorMock } from "../../__mocks__/InteractiveInkEditorMock"
+import { InteractiveInkEditorMock } from "../../../__mocks__/InteractiveInkEditorMock"
 import
 {
   IIEdgeLine,
@@ -8,7 +8,8 @@ import
   IIStroke,
   TPoint,
   SvgElementRole,
-} from "../../../../src/iink"
+} from "../../../../../src/iink"
+import { MatrixTransform } from "../../../../../src/transform"
 
 describe("IITranslateManager.ts", () =>
 {
@@ -29,7 +30,8 @@ describe("IITranslateManager.ts", () =>
       const stroke = new IIStroke()
       stroke.addPointer({ p: 1, t: 1, x: 1, y: 1 })
       stroke.addPointer({ p: 1, t: 10, x: 10, y: 0 })
-      manager.applyToSymbol(stroke, 10, 15)
+      const matrix = MatrixTransform.identity().translate(10, 15)
+      manager.applyToSymbol(stroke, matrix)
       expect(stroke.pointers[0]).toEqual(expect.objectContaining({ x: 11, y: 16 }))
       expect(stroke.pointers[1]).toEqual(expect.objectContaining({ x: 20, y: 15 }))
     })
@@ -38,7 +40,8 @@ describe("IITranslateManager.ts", () =>
       const center: TPoint = { x: 5, y: 5 }
       const radius = 4
       const circle = new IIShapeCircle(center, radius)
-      manager.applyToSymbol(circle, 10, 15)
+      const matrix = MatrixTransform.identity().translate(10, 15)
+      manager.applyToSymbol(circle, matrix)
       expect(circle.radius).toEqual(radius)
       expect(circle.center).toEqual({ x: 15, y: 20 })
     })
@@ -53,14 +56,16 @@ describe("IITranslateManager.ts", () =>
       const poly = new IIShapePolygon(points)
       //@ts-ignore
       poly.kind = "pouet"
-      expect(() => manager.applyToSymbol(poly, 10, 15)).toThrow(expect.objectContaining({ message: expect.stringContaining("Can't apply translate on shape, kind unknown:")}))
+      const matrix = MatrixTransform.identity().translate(10, 15)
+      expect(() => manager.applyToSymbol(poly, matrix)).toThrow(expect.objectContaining({ message: expect.stringContaining("Can't apply translate on shape, kind unknown:")}))
     })
     test("translate edge Line", () =>
     {
       const start: TPoint = { x: 0, y: 0 }
       const end: TPoint = { x: 0, y: 5 }
       const line = new IIEdgeLine(start, end)
-      manager.applyToSymbol(line, 10, 15)
+      const matrix = MatrixTransform.identity().translate(10, 15)
+      manager.applyToSymbol(line, matrix)
       expect(line.start).toEqual(expect.objectContaining({ x: 10, y: 15 }))
       expect(line.end).toEqual(expect.objectContaining({ x: 10, y: 20 }))
     })

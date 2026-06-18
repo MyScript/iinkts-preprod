@@ -1,4 +1,4 @@
-import { InteractiveInkEditorMock } from "../../__mocks__/InteractiveInkEditorMock"
+import { InteractiveInkEditorMock } from "../../../__mocks__/InteractiveInkEditorMock"
 import
 {
   IIEdgeArc,
@@ -14,8 +14,9 @@ import
   SvgElementRole,
   TIISymbolChar,
   TPoint
-} from "../../../../src/iink"
-import { buildIIStroke } from "../../helpers"
+} from "../../../../../src/iink"
+import { MatrixTransform } from "../../../../../src/transform"
+import { buildIIStroke } from "../../../helpers"
 
 describe("IIResizeManager.ts", () =>
 {
@@ -36,7 +37,8 @@ describe("IIResizeManager.ts", () =>
       //@ts-ignore
       stroke.type = "pouet"
       const origin: TPoint = { x: 0, y: 0 }
-      expect(() => manager.applyToSymbol(stroke, origin, 2, 3)).toThrow(expect.objectContaining({ message: expect.stringContaining("Can't apply resize on symbol, type unknown:") }))
+      const matrix = MatrixTransform.identity().scale(2, 3, origin)
+      expect(() => manager.applyToSymbol(stroke, matrix)).toThrow(expect.objectContaining({ message: expect.stringContaining("Can't apply resize on symbol, type unknown:") }))
     })
     test("should resize stroke", () =>
     {
@@ -44,7 +46,8 @@ describe("IIResizeManager.ts", () =>
       const origin: TPoint = { x: 1, y: 2 }
       stroke.addPointer({ p: 1, t: 1, x: 1, y: 2 })
       stroke.addPointer({ p: 1, t: 10, x: 21, y: 42 })
-      manager.applyToSymbol(stroke, origin, 2, 3)
+      const matrix = MatrixTransform.identity().scale(2, 3, origin)
+      manager.applyToSymbol(stroke, matrix)
       expect(stroke.pointers[0]).toEqual(expect.objectContaining({ x: 1, y: 2 }))
       expect(stroke.pointers[1]).toEqual(expect.objectContaining({ x: 41, y: 122 }))
     })
@@ -60,7 +63,8 @@ describe("IIResizeManager.ts", () =>
       //@ts-ignore
       poly.kind = "pouet"
       const origin: TPoint = { x: 0, y: 0 }
-      expect(() => manager.applyToSymbol(poly, origin, 2, 3)).toThrow(expect.objectContaining({ message: expect.stringContaining("Can't apply resize on shape, kind unknown:") }))
+      const matrix = MatrixTransform.identity().scale(2, 3, origin)
+      expect(() => manager.applyToSymbol(poly, matrix)).toThrow(expect.objectContaining({ message: expect.stringContaining("Can't apply resize on shape, kind unknown:") }))
     })
     test("should resize shape Circle", () =>
     {
@@ -68,7 +72,8 @@ describe("IIResizeManager.ts", () =>
       const radius = 4
       const shape = new IIShapeCircle(center, radius)
       const origin: TPoint = { x: 1, y: 2 }
-      manager.applyToSymbol(shape, origin, 2, 4)
+      const matrix = MatrixTransform.identity().scale(2, 4, origin)
+      manager.applyToSymbol(shape, matrix)
       expect(shape.radius).toEqual(12)
       expect(shape.center).toEqual({ x: 9, y: 14 })
     })
@@ -82,7 +87,9 @@ describe("IIResizeManager.ts", () =>
       const scaleX = 2
       const scaleY = 4
       const origin: TPoint = { x: shape.bounds.xMin, y: shape.bounds.yMin }
-      manager.applyToSymbol(shape, origin, scaleX, scaleY)
+      manager.transformOrigin = origin
+      const matrix = MatrixTransform.identity().scale(scaleX, scaleY, origin)
+      manager.applyToSymbol(shape, matrix)
       expect(shape.radiusX).toEqual(radiusX * scaleX)
       expect(shape.radiusY).toEqual(radiusY * scaleY)
       expect(shape.center).toEqual({ x: 49.534, y: 29.931 })
@@ -99,7 +106,8 @@ describe("IIResizeManager.ts", () =>
       const scaleX = 2
       const scaleY = 4
       const origin: TPoint = { x: shape.bounds.xMin, y: shape.bounds.yMin }
-      manager.applyToSymbol(shape, origin, scaleX, scaleY)
+      const matrix = MatrixTransform.identity().scale(scaleX, scaleY, origin)
+      manager.applyToSymbol(shape, matrix)
       expect(shape.points[0].x).toEqual(0)
       expect(shape.points[0].y).toEqual(0)
       expect(shape.points[1].x).toEqual(40)
@@ -117,7 +125,8 @@ describe("IIResizeManager.ts", () =>
       //@ts-ignore
       edge.kind = "pouet"
       const origin: TPoint = { x: 0, y: 0 }
-      expect(() => manager.applyToSymbol(edge, origin, 2, 3)).toThrow(expect.objectContaining({ message: expect.stringContaining("Can't apply resize on edge, kind unknown:") }))
+      const matrix = MatrixTransform.identity().scale(2, 3, origin)
+      expect(() => manager.applyToSymbol(edge, matrix)).toThrow(expect.objectContaining({ message: expect.stringContaining("Can't apply resize on edge, kind unknown:") }))
     })
     test("should resize edge Arc", () =>
     {
@@ -131,7 +140,9 @@ describe("IIResizeManager.ts", () =>
       const origin: TPoint = { x: edge.bounds.xMin, y: edge.bounds.yMin }
       const scaleX = 2
       const scaleY = 3
-      manager.applyToSymbol(edge, origin, scaleX, scaleY)
+      manager.transformOrigin = origin
+      const matrix = MatrixTransform.identity().scale(scaleX, scaleY, origin)
+      manager.applyToSymbol(edge, matrix)
       expect(edge.center).toEqual({ x: 55, y: 29.796 })
       expect(edge.radiusX).toEqual(radiusX * scaleX)
       expect(edge.radiusY).toEqual(radiusY * scaleY)
@@ -142,7 +153,8 @@ describe("IIResizeManager.ts", () =>
       const end: TPoint = { x: 0, y: 5 }
       const edge = new IIEdgeLine(start, end)
       const origin: TPoint = { x: 0, y: 0 }
-      manager.applyToSymbol(edge, origin, 2, 3)
+      const matrix = MatrixTransform.identity().scale(2, 3, origin)
+      manager.applyToSymbol(edge, matrix)
       expect(edge.start).toEqual({ x: 0, y: 0 })
       expect(edge.end).toEqual({ x: 0, y: 15 })
     })
@@ -156,7 +168,8 @@ describe("IIResizeManager.ts", () =>
       ]
       const edge = new IIEdgePolyLine(points)
       const origin: TPoint = { x: 0, y: 0 }
-      manager.applyToSymbol(edge, origin, 2, 3)
+      const matrix = MatrixTransform.identity().scale(2, 3, origin)
+      manager.applyToSymbol(edge, matrix)
       expect(edge.points[0].x).toEqual(0)
       expect(edge.points[0].y).toEqual(0)
       expect(edge.points[1].x).toEqual(40)
@@ -182,7 +195,8 @@ describe("IIResizeManager.ts", () =>
       ]
       const text = new IIText(chars, point, { height: 10, width: 5, x: 0, y: 0 })
       const origin: TPoint = { x: 0, y: 0 }
-      manager.applyToSymbol(text, origin, 2, 3)
+      const matrix = MatrixTransform.identity().scale(2, 3, origin)
+      manager.applyToSymbol(text, matrix)
       expect(text.point).toEqual({ x: 0, y: 0 })
       expect(chars[0].fontSize).toEqual(30)
       expect(editor.texter.updateBounds).toHaveBeenCalledTimes(1)

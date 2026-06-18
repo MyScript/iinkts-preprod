@@ -1,4 +1,4 @@
-import { ResizeDirection, SvgElementRole } from "@/Constants"
+import { ResizeDirection } from "@/Constants"
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import
 {
@@ -16,11 +16,9 @@ import
   isShape,
   isCircleShape
 } from "@/symbol"
+import { MatrixTransform } from "@/transform"
 import { IIAbstractTransformManager } from "./AbstractTransformManager"
 
-/**
- * Helper functions for resize direction checks
- */
 const isEasternResize = (direction: ResizeDirection): boolean =>
   [ResizeDirection.East, ResizeDirection.NorthEast, ResizeDirection.SouthEast].includes(direction)
 
@@ -36,7 +34,7 @@ const isSouthernResize = (direction: ResizeDirection): boolean =>
 /**
  * @group Manager
  */
-export class IIResizeManager extends IIAbstractTransformManager<[TPoint, number, number]>
+export class IIResizeManager extends IIAbstractTransformManager
 {
   protected managerName = "IIResizeManager"
   protected transformName = "resize"
@@ -50,50 +48,41 @@ export class IIResizeManager extends IIAbstractTransformManager<[TPoint, number,
     super(editor)
   }
 
-  protected applyToStroke(stroke: IIStroke, origin: TPoint, scaleX: number, scaleY: number): IIStroke
+  protected applyToStroke(stroke: IIStroke, matrix: MatrixTransform): IIStroke
   {
-    this.logger.debug("applyToStroke", { stroke, origin, scaleX, scaleY })
-
-    // NEW ARCHITECTURE: Skip solver outputs - they should be recalculated
+    this.logger.debug("applyToStroke", { stroke })
     if (stroke.isSolverOutput) {
       this.logger.warn("applyToStroke", "Skipping solver output stroke - it will be recalculated", stroke.id)
       return stroke
     }
-
-    stroke.pointers.forEach(p =>
-    {
-      p.x = +(origin.x + scaleX * (p.x - origin.x)).toFixed(3)
-      p.y = +(origin.y + scaleY * (p.y - origin.y)).toFixed(3)
-    })
-
+    this.applyMatrixToPoints(stroke.pointers, matrix)
     return stroke
   }
 
-  protected applyToShape(shape: TIIShape, origin: TPoint, scaleX: number, scaleY: number): TIIShape
+  protected applyToShape(shape: TIIShape, matrix: MatrixTransform): TIIShape
   {
-    this.logger.debug("applyToShape", { shape, origin, scaleX, scaleY })
+    this.logger.debug("applyToShape", { shape })
     switch (shape.kind) {
       case ShapeKind.Ellipse: {
         const cosPhi = Math.cos(shape.orientation)
         const sinPhi = Math.sin(shape.orientation)
-        shape.center.x = +(shape.center.x + ((scaleX - 1) * cosPhi + (scaleY - 1) * sinPhi) * (shape.center.x - origin.x)).toFixed(3)
-        shape.center.y = +(shape.center.y + ((scaleX - 1) * -sinPhi + (scaleY - 1) * cosPhi) * (shape.center.y - origin.y)).toFixed(3)
+        const scaleX = matrix.xx
+        const scaleY = matrix.yy
+        const ox = this.transformOrigin.x
+        const oy = this.transformOrigin.y
+        shape.center.x = +(shape.center.x + ((scaleX - 1) * cosPhi + (scaleY - 1) * sinPhi) * (shape.center.x - ox)).toFixed(3)
+        shape.center.y = +(shape.center.y + ((scaleX - 1) * -sinPhi + (scaleY - 1) * cosPhi) * (shape.center.y - oy)).toFixed(3)
         shape.radiusX = +(Math.abs(shape.radiusX * (scaleX * cosPhi - scaleY * sinPhi))).toFixed(3)
         shape.radiusY = +(Math.abs(shape.radiusY * (scaleX * sinPhi + scaleY * cosPhi))).toFixed(3)
         return shape
       }
       case ShapeKind.Circle: {
-        shape.radius = +(shape.radius * (scaleX + scaleY) / 2).toFixed(3)
-        shape.center.x = +(origin.x + scaleX * (shape.center.x - origin.x)).toFixed(3)
-        shape.center.y = +(origin.y + scaleY * (shape.center.y - origin.y)).toFixed(3)
+        shape.radius = +(shape.radius * (matrix.xx + matrix.yy) / 2).toFixed(3)
+        shape.center = matrix.applyToPoint(shape.center)
         return shape
       }
       case ShapeKind.Polygon: {
-        shape.points.forEach(p =>
-        {
-          p.x = +(origin.x + scaleX * (p.x - origin.x)).toFixed(3)
-          p.y = +(origin.y + scaleY * (p.y - origin.y)).toFixed(3)
-        })
+        this.applyMatrixToPoints(shape.points, matrix)
         return shape
       }
       default:
@@ -101,18 +90,21 @@ export class IIResizeManager extends IIAbstractTransformManager<[TPoint, number,
     }
   }
 
-  protected applyToEdge(edge: TIIEdge, origin: TPoint, scaleX: number, scaleY: number): TIIEdge
+  protected applyToEdge(edge: TIIEdge, matrix: MatrixTransform): TIIEdge
   {
-    this.logger.debug("applyToEdge", { edge, origin, scaleX, scaleY })
+    this.logger.debug("applyToEdge", { edge })
     switch (edge.kind) {
       case EdgeKind.Arc: {
         const cosPhi = Math.cos(edge.phi)
         const sinPhi = Math.sin(edge.phi)
-        edge.center.x = +(edge.center.x + ((scaleX - 1) * cosPhi + (scaleY - 1) * sinPhi) * (edge.center.x - origin.x)).toFixed(3)
-        edge.center.y = +(edge.center.y + ((scaleX - 1) * -sinPhi + (scaleY - 1) * cosPhi) * (edge.center.y - origin.y)).toFixed(3)
+        const scaleX = matrix.xx
+        const scaleY = matrix.yy
+        const ox = this.transformOrigin.x
+        const oy = this.transformOrigin.y
+        edge.center.x = +(edge.center.x + ((scaleX - 1) * cosPhi + (scaleY - 1) * sinPhi) * (edge.center.x - ox)).toFixed(3)
+        edge.center.y = +(edge.center.y + ((scaleX - 1) * -sinPhi + (scaleY - 1) * cosPhi) * (edge.center.y - oy)).toFixed(3)
         edge.radiusX = +(edge.radiusX * Math.abs(scaleX * cosPhi + scaleY * sinPhi)).toFixed(3)
         edge.radiusY = +(edge.radiusY * Math.abs(scaleX * sinPhi + scaleY * cosPhi)).toFixed(3)
-
         if (scaleX < 0) {
           edge.startAngle = +(Math.PI - edge.startAngle).toFixed(3)
           edge.sweepAngle *= -1
@@ -123,19 +115,11 @@ export class IIResizeManager extends IIAbstractTransformManager<[TPoint, number,
         return edge
       }
       case EdgeKind.Line: {
-        edge.start.x = +(origin.x + scaleX * (edge.start.x - origin.x)).toFixed(3)
-        edge.start.y = +(origin.y + scaleY * (edge.start.y - origin.y)).toFixed(3)
-        edge.end.x = +(origin.x + scaleX * (edge.end.x - origin.x)).toFixed(3)
-        edge.end.y = +(origin.y + scaleY * (edge.end.y - origin.y)).toFixed(3)
+        this.applyMatrixToPoints([edge.start, edge.end], matrix)
         return edge
       }
       case EdgeKind.PolyEdge: {
-        edge.points.forEach(p =>
-        {
-          p.x = +(origin.x + scaleX * (p.x - origin.x)).toFixed(3)
-          p.y = +(origin.y + scaleY * (p.y - origin.y)).toFixed(3)
-          return p
-        })
+        this.applyMatrixToPoints(edge.points, matrix)
         return edge
       }
       default:
@@ -143,44 +127,35 @@ export class IIResizeManager extends IIAbstractTransformManager<[TPoint, number,
     }
   }
 
-  protected applyOnText(text: IIText, origin: TPoint, scaleX: number, scaleY: number): IIText
+  protected applyOnText(text: IIText, matrix: MatrixTransform): IIText
   {
-    text.point.x = +(origin.x + scaleX * (text.point.x - origin.x)).toFixed(3)
-    text.point.y = +(origin.y + scaleY * (text.point.y - origin.y)).toFixed(3)
-
+    const np = matrix.applyToPoint(text.point)
+    text.point.x = +np.x.toFixed(3)
+    text.point.y = +np.y.toFixed(3)
+    const scale = (matrix.xx + matrix.yy) / 2
     text.chars.forEach(c =>
     {
-      c.fontSize = +(c.fontSize * (scaleX + scaleY) / 2).toFixed(3)
+      c.fontSize = +(c.fontSize * scale).toFixed(3)
     })
     return this.editor.texter.updateBounds(text)
   }
 
-  protected applyOnMath(math: IIMath, origin: TPoint, scaleX: number, scaleY: number): IIMath
+  protected applyOnMath(math: IIMath, matrix: MatrixTransform): IIMath
   {
-    math.point.x = +(origin.x + scaleX * (math.point.x - origin.x)).toFixed(3)
-    math.point.y = +(origin.y + scaleY * (math.point.y - origin.y)).toFixed(3)
-
+    const np = matrix.applyToPoint(math.point)
+    math.point.x = +np.x.toFixed(3)
+    math.point.y = +np.y.toFixed(3)
+    const scale = (matrix.xx + matrix.yy) / 2
     math.elements.forEach(e =>
     {
-      e.fontSize = +(e.fontSize * (scaleX + scaleY) / 2).toFixed(3)
+      e.fontSize = +(e.fontSize * scale).toFixed(3)
     })
 
-    // Update bounds based on new point and scaled elements
     const corners = math.elements.map(e => new Box(e.bounds).corners).flat()
-    const scaledCorners = corners.map(p => ({
-      x: +(origin.x + scaleX * (p.x - origin.x)).toFixed(3),
-      y: +(origin.y + scaleY * (p.y - origin.y)).toFixed(3)
-    }))
+    const scaledCorners = corners.map(p => matrix.applyToPoint(p))
     math.bounds = Box.createFromPoints(scaledCorners)
 
     return math
-  }
-
-  // applyOnRecognizedSymbol removed - recognized symbols no longer exist
-
-  setTransformOrigin(id: string, originX: number, originY: number): void
-  {
-    this.editor.renderer.setAttribute(id, "transform-origin", `${ originX }px ${ originY }px`)
   }
 
   scaleElement(id: string, sx: number, sy: number): void
@@ -192,7 +167,7 @@ export class IIResizeManager extends IIAbstractTransformManager<[TPoint, number,
   start(target: Element, origin: TPoint): void
   {
     this.logger.info("start", { target })
-    this.interactElementsGroup = (target.closest(`[role=${ SvgElementRole.InteractElementsGroup }]`) as unknown) as SVGGElement
+    this.interactElementsGroup = this.resolveInteractGroup(target)
     this.direction = target.getAttribute("resize-direction") as ResizeDirection
 
     this.keepRatio = this.model.symbolsSelected.some(s =>
@@ -216,20 +191,12 @@ export class IIResizeManager extends IIAbstractTransformManager<[TPoint, number,
     }
     const localPoint = point
     const horizontalResize = [
-      ResizeDirection.East,
-      ResizeDirection.NorthEast,
-      ResizeDirection.SouthEast,
-      ResizeDirection.West,
-      ResizeDirection.NorthWest,
-      ResizeDirection.SouthWest
+      ResizeDirection.East, ResizeDirection.NorthEast, ResizeDirection.SouthEast,
+      ResizeDirection.West, ResizeDirection.NorthWest, ResizeDirection.SouthWest
     ].includes(this.direction)
     const verticalResize = [
-      ResizeDirection.North,
-      ResizeDirection.NorthEast,
-      ResizeDirection.NorthWest,
-      ResizeDirection.South,
-      ResizeDirection.SouthEast,
-      ResizeDirection.SouthWest
+      ResizeDirection.North, ResizeDirection.NorthEast, ResizeDirection.NorthWest,
+      ResizeDirection.South, ResizeDirection.SouthEast, ResizeDirection.SouthWest
     ].includes(this.direction)
     const { x, y } = this.editor.snaps.snapResize(point, horizontalResize, verticalResize)
     localPoint.x = x
@@ -242,7 +209,6 @@ export class IIResizeManager extends IIAbstractTransformManager<[TPoint, number,
     else if (isWesternResize(this.direction)) {
       deltaX = this.boundingBox.xMin - localPoint.x
     }
-
     if (isNorthernResize(this.direction)) {
       deltaY = this.boundingBox.yMin - localPoint.y
     }
@@ -270,10 +236,7 @@ export class IIResizeManager extends IIAbstractTransformManager<[TPoint, number,
     {
       this.scaleElement(s.id, scaleX, scaleY)
     })
-    return {
-      scaleX,
-      scaleY
-    }
+    return { scaleX, scaleY }
   }
 
   async end(point: TPoint): Promise<void>
@@ -282,18 +245,11 @@ export class IIResizeManager extends IIAbstractTransformManager<[TPoint, number,
     const { scaleX, scaleY } = this.continue(point)
     this.editor.snaps.clearSnapToElementLines()
     const oldSymbols = this.model.symbolsSelected.map(s => s.clone())
-    this.model.symbolsSelected.forEach(s =>
-    {
-      this.applyToSymbol(s, this.transformOrigin, scaleX, scaleY)
-      this.editor.renderer.drawSymbol(s)
-      this.model.updateSymbol(s)
-    })
-
+    const matrix = MatrixTransform.identity().scale(scaleX, scaleY, this.transformOrigin)
+    this.applyAndDraw(this.model.symbolsSelected, matrix)
     const strokesFromSymbols = this.editor.extractStrokesFromSymbols(this.model.symbolsSelected)
     this.editor.recognizer.transformScale(strokesFromSymbols.map(s => s.id), scaleX, scaleY, this.transformOrigin.x, this.transformOrigin.y)
     this.editor.history.push(this.model, { scale: [{ symbols: oldSymbols, origin: {...this.transformOrigin}, scaleX, scaleY }] })
-
-    this.interactElementsGroup = undefined
-    this.editor.overlays.apply()
+    this.finalizeTransform()
   }
 }
