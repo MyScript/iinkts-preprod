@@ -90,16 +90,6 @@ export class IIGestureManager extends IIAbstractManager
     return this.editor.history
   }
 
-  get rowHeight(): number
-  {
-    return this.editor.configuration.rendering.guides.gap
-  }
-
-  get strokeSpaceWidth(): number
-  {
-    return this.editor.configuration.rendering.guides.gap * 2
-  }
-
   /**
    * Apply a detected gesture using the appropriate handler
    * @param gestureStroke - The stroke that represents the gesture
