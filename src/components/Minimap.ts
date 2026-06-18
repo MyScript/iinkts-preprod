@@ -121,12 +121,24 @@ export class Minimap
     }
   }
 
+  #stripIds(node: Node): void
+  {
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      (node as Element).removeAttribute("id")
+      node.childNodes.forEach(child => this.#stripIds(child))
+    }
+  }
+
   #syncContent(): void
   {
     const mainLayer = this.#editor.renderer.getRenderingContext()
     const clones = Array.from(mainLayer.children)
       .filter(el => el.tagName.toLowerCase() !== "defs")
-      .map(el => el.cloneNode(true))
+      .map(el => {
+        const clone = el.cloneNode(true)
+        this.#stripIds(clone)
+        return clone
+      })
     this.#contentGroup.replaceChildren(...clones)
   }
 
