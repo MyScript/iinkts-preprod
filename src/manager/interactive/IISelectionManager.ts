@@ -3,9 +3,9 @@ import { Box, IIDecorator, IIStroke, SymbolType, TBox, TIIEdge, TIISymbol, TPoin
 import { SVGBuilder } from "@/renderer"
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import { PointerEventGrabber, PointerInfo } from "@/grabber"
-import { IIResizeManager } from "./IIResizeManager"
-import { IIRotationManager } from "./IIRotationManager"
-import { IITranslateManager } from "./IITranslateManager"
+import { IIResizeManager } from "./transform/IIResizeManager"
+import { IIRotationManager } from "./transform/IIRotationManager"
+import { IITranslateManager } from "./transform/IITranslateManager"
 import { IIAbstractManager } from "./IIAbstractManager"
 import { LoggerCategory } from "@/logger"
 
@@ -34,19 +34,19 @@ export class IISelectionManager extends IIAbstractManager
     this.grabber.onContextMenu = this.onContextMenu.bind(this)
   }
 
-  get rotator(): IIRotationManager
+  get rotation(): IIRotationManager
   {
-    return this.editor.rotator
+    return this.editor.transform.rotation
   }
 
-  get translator(): IITranslateManager
+  get translate(): IITranslateManager
   {
-    return this.editor.translator
+    return this.editor.transform.translate
   }
 
-  get resizer(): IIResizeManager
+  get resize(): IIResizeManager
   {
-    return this.editor.resizer
+    return this.editor.transform.resize
   }
 
   get selectionBox(): Box | undefined
@@ -130,13 +130,13 @@ export class IISelectionManager extends IIAbstractManager
     {
       ev.preventDefault()
       ev.stopPropagation()
-      this.translator.continue(this.getPoint(ev))
+      this.translate.continue(this.getPoint(ev))
     }
     const endHandler = (ev: PointerEvent) =>
     {
       ev.preventDefault()
       ev.stopPropagation()
-      this.translator.end(this.getPoint(ev))
+      this.translate.end(this.getPoint(ev))
       this.renderer.layer.removeEventListener("pointermove", handler)
       this.renderer.layer.removeEventListener("pointercancel", endHandler)
       this.renderer.layer.removeEventListener("pointerleave", endHandler)
@@ -153,7 +153,7 @@ export class IISelectionManager extends IIAbstractManager
       ev.preventDefault()
       ev.stopPropagation()
       this.hideInteractElements()
-      this.translator.start(ev.target as Element, this.getPoint(ev))
+      this.translate.start(ev.target as Element, this.getPoint(ev))
       this.renderer.layer.addEventListener("pointermove", handler)
       this.renderer.layer.addEventListener("pointercancel", endHandler)
       this.renderer.layer.addEventListener("pointerleave", endHandler)
@@ -202,13 +202,13 @@ export class IISelectionManager extends IIAbstractManager
     {
       ev.preventDefault()
       ev.stopPropagation()
-      this.rotator.continue(this.getPoint(ev))
+      this.rotation.continue(this.getPoint(ev))
     }
     const endHandler = (ev: PointerEvent) =>
     {
       ev.preventDefault()
       ev.stopPropagation()
-      this.rotator.end(this.getPoint(ev))
+      this.rotation.end(this.getPoint(ev))
       this.renderer.layer.removeEventListener("pointermove", handler)
       this.renderer.layer.removeEventListener("pointercancel", endHandler)
       this.renderer.layer.removeEventListener("pointerleave", endHandler)
@@ -224,7 +224,7 @@ export class IISelectionManager extends IIAbstractManager
       ev.preventDefault()
       ev.stopPropagation()
       this.hideInteractElements()
-      this.rotator.start(ev.target as Element, this.getPoint(ev))
+      this.rotation.start(ev.target as Element, this.getPoint(ev))
       this.renderer.layer.addEventListener("pointermove", handler)
       this.renderer.layer.addEventListener("pointercancel", endHandler)
       this.renderer.layer.addEventListener("pointerleave", endHandler)
@@ -252,13 +252,13 @@ export class IISelectionManager extends IIAbstractManager
       {
         ev.preventDefault()
         ev.stopPropagation()
-        this.resizer.continue(this.getPoint(ev))
+        this.resize.continue(this.getPoint(ev))
       }
       const endHandler = (ev: PointerEvent) =>
       {
         ev.preventDefault()
         ev.stopPropagation()
-        this.resizer.end(this.getPoint(ev))
+        this.resize.end(this.getPoint(ev))
         this.renderer.layer.removeEventListener("pointermove", handler)
         this.renderer.layer.removeEventListener("pointercancel", endHandler)
         this.renderer.layer.removeEventListener("pointerleave", endHandler)
@@ -277,7 +277,7 @@ export class IISelectionManager extends IIAbstractManager
         ev.stopPropagation()
         this.hideInteractElements()
         this.renderer.layer.style.cursor = cursor
-        this.resizer.start(ev.target as Element, transformOrigin)
+        this.resize.start(ev.target as Element, transformOrigin)
         this.renderer.layer.addEventListener("pointermove", handler)
         this.renderer.layer.addEventListener("pointercancel", endHandler)
         this.renderer.layer.addEventListener("pointerleave", endHandler)
