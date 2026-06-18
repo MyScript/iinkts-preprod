@@ -89,7 +89,6 @@ export abstract class BaseMenuItem<T extends HTMLElement = HTMLElement>
    */
   destroy(): void {
     if (this.element) {
-      this.element.replaceWith(this.element.cloneNode(false))
       this.element.remove()
       this.element = undefined
     }
