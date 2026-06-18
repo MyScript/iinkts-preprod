@@ -29,6 +29,14 @@
   border-radius: 0 0 5px 5px;
 }
 
+.ms-editor .ms-menu-minimap {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  border-radius: 6px;
+  padding: 0;
+}
+
 .ms-editor .ms-menu .ms-menu-title {
   margin-top: 0px;
   margin-bottom: 8px;
