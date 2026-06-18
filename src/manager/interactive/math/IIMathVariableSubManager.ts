@@ -69,7 +69,6 @@ export class IIMathVariableSubManager extends IIAbstractManager
   private static readonly HIGHLIGHT_STYLES = {
     SOURCE_COLOR: "#4CAF50",
     DEPENDENT_COLOR: "#FF9800",
-    HOVER_GLOW: "0 0 8px rgba(33, 150, 243, 0.6)",
     DASH_ARRAY: "5 3",
   }
 

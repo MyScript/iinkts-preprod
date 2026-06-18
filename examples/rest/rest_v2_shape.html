@@ -155,10 +155,9 @@
           while (resultElement.firstChild) {
             resultElement.firstChild.remove()
           }
-          resultElement.appendChild(renderjson(event.detail))
-        })
-
-      }
+          resultElement.appendChild(renderjson(evt.detail))
+        });
+      };
 
       clearElement.addEventListener("click", () => {
         editor?.clear();
