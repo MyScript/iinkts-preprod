@@ -12,7 +12,23 @@ describe("IIKeyboardManager", () =>
   beforeEach(() =>
   {
     mockEditor = {
-      tool: EditorTool.Write
+      tool: EditorTool.Write,
+      model: { symbolsSelected: [] },
+      copy: jest.fn(),
+      paste: jest.fn(() => Promise.resolve()),
+      cut: jest.fn(() => Promise.resolve()),
+      undo: jest.fn(() => Promise.resolve()),
+      redo: jest.fn(() => Promise.resolve()),
+      removeSymbols: jest.fn(() => Promise.resolve()),
+      renderer: {
+        getZoom: jest.fn(() => 1),
+        setZoom: jest.fn(),
+        pan: jest.fn(),
+        parent: { clientWidth: 800, clientHeight: 600 },
+      },
+      menu: {
+        action: { update: jest.fn() },
+      },
     }
 
     manager = new IIKeyboardManager(mockEditor as InteractiveInkEditor)
@@ -77,6 +93,28 @@ describe("IIKeyboardManager", () =>
     it("should not switch if already in Move mode", () =>
     {
       mockEditor.tool = EditorTool.Move
+
+      const event = new KeyboardEvent("keydown", { ctrlKey: true })
+      window.dispatchEvent(event)
+
+      expect(mockEditor.tool).toBe(EditorTool.Move)
+    })
+
+    it("should not switch to Move when symbols are selected", () =>
+    {
+      mockEditor.tool = EditorTool.Select
+      mockEditor.model.symbolsSelected = [{ id: "sym-1" }]
+
+      const event = new KeyboardEvent("keydown", { ctrlKey: true })
+      window.dispatchEvent(event)
+
+      expect(mockEditor.tool).toBe(EditorTool.Select)
+    })
+
+    it("should switch to Move when Ctrl pressed and no selection", () =>
+    {
+      mockEditor.tool = EditorTool.Write
+      mockEditor.model.symbolsSelected = []
 
       const event = new KeyboardEvent("keydown", { ctrlKey: true })
       window.dispatchEvent(event)
@@ -204,6 +242,235 @@ describe("IIKeyboardManager", () =>
       const keyup = new KeyboardEvent("keyup", { ctrlKey: false })
       window.dispatchEvent(keyup)
       expect(mockEditor.tool).toBe(EditorTool.Select)
+    })
+  })
+
+  describe("undo / redo shortcuts", () =>
+  {
+    beforeEach(() =>
+    {
+      manager.attach()
+    })
+
+    it("should call editor.undo on Ctrl+Z", () =>
+    {
+      const event = new KeyboardEvent("keydown", { ctrlKey: true, key: "z" })
+      window.dispatchEvent(event)
+      expect(mockEditor.undo).toHaveBeenCalledTimes(1)
+      expect(mockEditor.redo).not.toHaveBeenCalled()
+    })
+
+    it("should call editor.redo on Ctrl+Shift+Z", () =>
+    {
+      const event = new KeyboardEvent("keydown", { ctrlKey: true, shiftKey: true, key: "z" })
+      window.dispatchEvent(event)
+      expect(mockEditor.redo).toHaveBeenCalledTimes(1)
+      expect(mockEditor.undo).not.toHaveBeenCalled()
+    })
+
+    it("should call editor.redo on Ctrl+Y", () =>
+    {
+      const event = new KeyboardEvent("keydown", { ctrlKey: true, key: "y" })
+      window.dispatchEvent(event)
+      expect(mockEditor.redo).toHaveBeenCalledTimes(1)
+    })
+
+    it("should call editor.undo on Meta+Z (Mac)", () =>
+    {
+      const event = new KeyboardEvent("keydown", { metaKey: true, key: "z" })
+      window.dispatchEvent(event)
+      expect(mockEditor.undo).toHaveBeenCalledTimes(1)
+    })
+
+    it("should call editor.redo on Meta+Shift+Z (Mac)", () =>
+    {
+      const event = new KeyboardEvent("keydown", { metaKey: true, shiftKey: true, key: "z" })
+      window.dispatchEvent(event)
+      expect(mockEditor.redo).toHaveBeenCalledTimes(1)
+    })
+
+    it("should NOT switch to Move tool on Ctrl+Z", () =>
+    {
+      mockEditor.tool = EditorTool.Write
+      const event = new KeyboardEvent("keydown", { ctrlKey: true, key: "z" })
+      window.dispatchEvent(event)
+      expect(mockEditor.tool).toBe(EditorTool.Write)
+    })
+  })
+
+  describe("copy / paste / cut shortcuts", () =>
+  {
+    beforeEach(() =>
+    {
+      manager.attach()
+    })
+
+    it("should call editor.copy on Ctrl+C", () =>
+    {
+      const event = new KeyboardEvent("keydown", { ctrlKey: true, key: "c" })
+      window.dispatchEvent(event)
+      expect(mockEditor.copy).toHaveBeenCalledTimes(1)
+    })
+
+    it("should call editor.copy on Meta+C (Mac)", () =>
+    {
+      const event = new KeyboardEvent("keydown", { metaKey: true, key: "c" })
+      window.dispatchEvent(event)
+      expect(mockEditor.copy).toHaveBeenCalledTimes(1)
+    })
+
+    it("should call editor.paste on Ctrl+V", () =>
+    {
+      const event = new KeyboardEvent("keydown", { ctrlKey: true, key: "v" })
+      window.dispatchEvent(event)
+      expect(mockEditor.paste).toHaveBeenCalledTimes(1)
+    })
+
+    it("should call editor.cut on Ctrl+X", () =>
+    {
+      const event = new KeyboardEvent("keydown", { ctrlKey: true, key: "x" })
+      window.dispatchEvent(event)
+      expect(mockEditor.cut).toHaveBeenCalledTimes(1)
+    })
+
+    it("should NOT switch to Move tool on Ctrl+C", () =>
+    {
+      mockEditor.tool = EditorTool.Write
+      const event = new KeyboardEvent("keydown", { ctrlKey: true, key: "c" })
+      window.dispatchEvent(event)
+      expect(mockEditor.tool).toBe(EditorTool.Write)
+    })
+
+    it("should switch to Select tool on Ctrl+V and not restore previous tool on keyup", () =>
+    {
+      mockEditor.tool = EditorTool.Write
+
+      // Ctrl held → Move
+      window.dispatchEvent(new KeyboardEvent("keydown", { ctrlKey: true }))
+      expect(mockEditor.tool).toBe(EditorTool.Move)
+
+      // Ctrl+V → Select immediately, clears #toolBeforeCtrl
+      window.dispatchEvent(new KeyboardEvent("keydown", { ctrlKey: true, key: "v" }))
+      expect(mockEditor.tool).toBe(EditorTool.Select)
+
+      // Ctrl released → #toolBeforeCtrl is cleared → no restore
+      window.dispatchEvent(new KeyboardEvent("keyup", { ctrlKey: false }))
+      expect(mockEditor.tool).toBe(EditorTool.Select)
+    })
+  })
+
+  describe("zoom shortcuts", () =>
+  {
+    beforeEach(() => { manager.attach() })
+
+    it("should zoom in on Ctrl++", () =>
+    {
+      mockEditor.renderer.getZoom.mockReturnValue(1)
+      window.dispatchEvent(new KeyboardEvent("keydown", { ctrlKey: true, key: "+" }))
+      expect(mockEditor.renderer.setZoom).toHaveBeenCalledWith(IIKeyboardManager.ZOOM_STEP, 400, 300)
+      expect(mockEditor.menu.action.update).toHaveBeenCalledTimes(1)
+    })
+
+    it("should zoom in on Ctrl+= (same physical key as +)", () =>
+    {
+      mockEditor.renderer.getZoom.mockReturnValue(1)
+      window.dispatchEvent(new KeyboardEvent("keydown", { ctrlKey: true, key: "=" }))
+      expect(mockEditor.renderer.setZoom).toHaveBeenCalledWith(IIKeyboardManager.ZOOM_STEP, 400, 300)
+    })
+
+    it("should zoom out on Ctrl+-", () =>
+    {
+      mockEditor.renderer.getZoom.mockReturnValue(1)
+      window.dispatchEvent(new KeyboardEvent("keydown", { ctrlKey: true, key: "-" }))
+      expect(mockEditor.renderer.setZoom).toHaveBeenCalledWith(1 / IIKeyboardManager.ZOOM_STEP, 400, 300)
+      expect(mockEditor.menu.action.update).toHaveBeenCalledTimes(1)
+    })
+
+    it("should compound zoom level correctly", () =>
+    {
+      mockEditor.renderer.getZoom.mockReturnValue(2)
+      window.dispatchEvent(new KeyboardEvent("keydown", { ctrlKey: true, key: "+" }))
+      expect(mockEditor.renderer.setZoom).toHaveBeenCalledWith(2 * IIKeyboardManager.ZOOM_STEP, 400, 300)
+    })
+  })
+
+  describe("pan shortcuts", () =>
+  {
+    beforeEach(() => { manager.attach() })
+
+    it("should pan up on Ctrl+ArrowUp", () =>
+    {
+      mockEditor.renderer.getZoom.mockReturnValue(1)
+      window.dispatchEvent(new KeyboardEvent("keydown", { ctrlKey: true, key: "ArrowUp" }))
+      expect(mockEditor.renderer.pan).toHaveBeenCalledWith(0, -IIKeyboardManager.PAN_STEP)
+    })
+
+    it("should pan down on Ctrl+ArrowDown", () =>
+    {
+      mockEditor.renderer.getZoom.mockReturnValue(1)
+      window.dispatchEvent(new KeyboardEvent("keydown", { ctrlKey: true, key: "ArrowDown" }))
+      expect(mockEditor.renderer.pan).toHaveBeenCalledWith(0, IIKeyboardManager.PAN_STEP)
+    })
+
+    it("should pan left on Ctrl+ArrowLeft", () =>
+    {
+      mockEditor.renderer.getZoom.mockReturnValue(1)
+      window.dispatchEvent(new KeyboardEvent("keydown", { ctrlKey: true, key: "ArrowLeft" }))
+      expect(mockEditor.renderer.pan).toHaveBeenCalledWith(-IIKeyboardManager.PAN_STEP, 0)
+    })
+
+    it("should pan right on Ctrl+ArrowRight", () =>
+    {
+      mockEditor.renderer.getZoom.mockReturnValue(1)
+      window.dispatchEvent(new KeyboardEvent("keydown", { ctrlKey: true, key: "ArrowRight" }))
+      expect(mockEditor.renderer.pan).toHaveBeenCalledWith(IIKeyboardManager.PAN_STEP, 0)
+    })
+
+    it("should adjust pan step by zoom level", () =>
+    {
+      mockEditor.renderer.getZoom.mockReturnValue(2)
+      window.dispatchEvent(new KeyboardEvent("keydown", { ctrlKey: true, key: "ArrowRight" }))
+      expect(mockEditor.renderer.pan).toHaveBeenCalledWith(IIKeyboardManager.PAN_STEP / 2, 0)
+    })
+  })
+
+  describe("delete shortcuts", () =>
+  {
+    beforeEach(() =>
+    {
+      manager.attach()
+    })
+
+    it("should call removeSymbols on Delete when symbols are selected", () =>
+    {
+      const fakeSymbol = { id: "sym-1" }
+      mockEditor.model.symbolsSelected = [fakeSymbol]
+
+      const event = new KeyboardEvent("keydown", { key: "Delete" })
+      window.dispatchEvent(event)
+
+      expect(mockEditor.removeSymbols).toHaveBeenCalledWith(["sym-1"])
+    })
+
+    it("should call removeSymbols on Backspace when symbols are selected", () =>
+    {
+      const fakeSymbol = { id: "sym-2" }
+      mockEditor.model.symbolsSelected = [fakeSymbol]
+
+      const event = new KeyboardEvent("keydown", { key: "Backspace" })
+      window.dispatchEvent(event)
+
+      expect(mockEditor.removeSymbols).toHaveBeenCalledWith(["sym-2"])
+    })
+
+    it("should not call removeSymbols on Delete when nothing selected", () =>
+    {
+      mockEditor.model.symbolsSelected = []
+
+      const event = new KeyboardEvent("keydown", { key: "Delete" })
+      window.dispatchEvent(event)
+
+      expect(mockEditor.removeSymbols).not.toHaveBeenCalled()
     })
   })
 })
