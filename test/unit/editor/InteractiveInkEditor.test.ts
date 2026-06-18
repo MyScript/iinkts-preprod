@@ -1,5 +1,5 @@
 import { jiixText } from "../__dataset__/exports.dataset"
-import { buildIICircle, buildIIStroke, buildIIText, buildIIMath, delay } from "../helpers"
+import { buildIICircle, buildIIStroke, buildIIText, buildIIMath, buildIIDecorator, delay } from "../helpers"
 import
 {
   InteractiveInkEditor,
@@ -13,6 +13,7 @@ import
   IIShapeCircle,
   ShapeKind,
   TIISymbol,
+  DecoratorKind,
 } from "../../../src/iink"
 
 describe("EditorOffscreen.ts", () =>
@@ -886,5 +887,205 @@ describe("EditorOffscreen.ts", () =>
       await expect(editor.recognizer.destroy).toHaveBeenCalledTimes(1)
     })
 
+  })
+
+  describe("copy / paste / cut", () =>
+  {
+    let editor: InteractiveInkEditor
+
+    beforeEach(() =>
+    {
+      editor = new InteractiveInkEditor(document.createElement("div"), EditorOptions)
+      editor.recognizer.addStrokes = jest.fn(() => Promise.resolve(undefined))
+      editor.recognizer.eraseStrokes = jest.fn(() => Promise.resolve())
+      editor.renderer.drawSymbol = jest.fn()
+      editor.renderer.removeSymbol = jest.fn()
+      editor.renderer.updateSymbolSelection = jest.fn()
+      editor.menu.update = jest.fn()
+      editor.overlays.apply = jest.fn()
+      editor.selector.drawSelectedGroup = jest.fn()
+      editor.selector.removeSelectedGroup = jest.fn()
+      editor.math.selectBlock = jest.fn()
+      editor.math.clearBlockSelection = jest.fn()
+    })
+
+    describe("copy", () =>
+    {
+      test("should copy selected symbols to clipboard", async () =>
+      {
+        const stroke1 = buildIIStroke()
+        const stroke2 = buildIIStroke()
+        editor.model.addSymbol(stroke1)
+        editor.model.addSymbol(stroke2)
+        stroke1.selected = true
+
+        editor.copy()
+
+        await editor.paste()
+        expect(editor.recognizer.addStrokes).toHaveBeenCalledWith([expect.objectContaining({ type: SymbolType.Stroke })], false)
+        const addedStrokes = (editor.recognizer.addStrokes as jest.Mock).mock.calls[0][0] as IIStroke[]
+        expect(addedStrokes).toHaveLength(1)
+        expect(addedStrokes[0].id).not.toBe(stroke1.id)
+      })
+
+      test("should copy all symbols when nothing selected", async () =>
+      {
+        const stroke1 = buildIIStroke()
+        const stroke2 = buildIIStroke()
+        editor.model.addSymbol(stroke1)
+        editor.model.addSymbol(stroke2)
+
+        editor.copy()
+
+        await editor.paste()
+        const addedStrokes = (editor.recognizer.addStrokes as jest.Mock).mock.calls[0][0] as IIStroke[]
+        expect(addedStrokes).toHaveLength(2)
+      })
+
+      test("should filter out decorators from clipboard", async () =>
+      {
+        const stroke = buildIIStroke()
+        const decorator = buildIIDecorator(DecoratorKind.Highlight)
+        editor.model.addSymbol(stroke)
+        editor.model.addSymbol(decorator)
+        stroke.selected = true
+        decorator.selected = true
+
+        editor.copy()
+
+        await editor.paste()
+        const addedStrokes = (editor.recognizer.addStrokes as jest.Mock).mock.calls[0][0] as TIISymbol[]
+        expect(addedStrokes).toHaveLength(1)
+      })
+
+      test("should filter out solver output strokes from clipboard", async () =>
+      {
+        const stroke = buildIIStroke()
+        const solverStroke = buildIIStroke()
+        solverStroke.isSolverOutput = true
+        editor.model.addSymbol(stroke)
+        editor.model.addSymbol(solverStroke)
+        stroke.selected = true
+        solverStroke.selected = true
+
+        editor.copy()
+
+        await editor.paste()
+        const addedStrokes = (editor.recognizer.addStrokes as jest.Mock).mock.calls[0][0] as TIISymbol[]
+        expect(addedStrokes).toHaveLength(1)
+      })
+    })
+
+    describe("paste", () =>
+    {
+      test("should do nothing when clipboard is empty", async () =>
+      {
+        await editor.paste()
+        expect(editor.recognizer.addStrokes).not.toHaveBeenCalled()
+        expect(editor.renderer.drawSymbol).not.toHaveBeenCalled()
+      })
+
+      test("should paste clones with new IDs", async () =>
+      {
+        const stroke = buildIIStroke()
+        editor.model.addSymbol(stroke)
+        editor.copy()
+
+        await editor.paste()
+
+        expect(editor.renderer.drawSymbol).toHaveBeenCalledTimes(1)
+        const drawn = (editor.renderer.drawSymbol as jest.Mock).mock.calls[0][0] as IIStroke
+        expect(drawn.id).not.toBe(stroke.id)
+        expect(drawn.type).toBe(SymbolType.Stroke)
+      })
+
+      test("should paste clones offset by PASTE_OFFSET", async () =>
+      {
+        const stroke = buildIIStroke({ box: { x: 100, y: 100, width: 10, height: 10 } })
+        editor.model.addSymbol(stroke)
+        editor.copy()
+
+        await editor.paste()
+
+        const drawn = (editor.renderer.drawSymbol as jest.Mock).mock.calls[0][0] as IIStroke
+        const offset = InteractiveInkEditor.PASTE_OFFSET
+        drawn.pointers.forEach((p, i) =>
+        {
+          expect(p.x).toBeCloseTo(stroke.pointers[i].x + offset)
+          expect(p.y).toBeCloseTo(stroke.pointers[i].y + offset)
+        })
+      })
+
+      test("should select pasted symbols", async () =>
+      {
+        const stroke = buildIIStroke()
+        editor.model.addSymbol(stroke)
+        editor.copy()
+
+        await editor.paste()
+
+        expect(editor.selector.drawSelectedGroup).toHaveBeenCalled()
+      })
+
+      test("should allow multiple independent pastes", async () =>
+      {
+        const stroke = buildIIStroke()
+        editor.model.addSymbol(stroke)
+        editor.copy()
+
+        await editor.paste()
+        await editor.paste()
+
+        const calls = (editor.renderer.drawSymbol as jest.Mock).mock.calls
+        expect(calls).toHaveLength(2)
+        const id1 = (calls[0][0] as IIStroke).id
+        const id2 = (calls[1][0] as IIStroke).id
+        expect(id1).not.toBe(id2)
+        expect(id1).not.toBe(stroke.id)
+        expect(id2).not.toBe(stroke.id)
+      })
+    })
+
+    describe("cut", () =>
+    {
+      test("should remove selected symbols", async () =>
+      {
+        const stroke = buildIIStroke()
+        editor.model.addSymbol(stroke)
+        stroke.selected = true
+
+        await editor.cut()
+
+        expect(editor.recognizer.eraseStrokes).toHaveBeenCalledWith([stroke.id])
+        expect(editor.renderer.removeSymbol).toHaveBeenCalledWith(stroke.id)
+      })
+
+      test("should copy symbols before removing", async () =>
+      {
+        const stroke = buildIIStroke()
+        editor.model.addSymbol(stroke)
+        stroke.selected = true
+
+        await editor.cut()
+
+        expect(editor.recognizer.eraseStrokes).toHaveBeenCalledTimes(1)
+        jest.clearAllMocks()
+
+        await editor.paste()
+        expect(editor.renderer.drawSymbol).toHaveBeenCalledTimes(1)
+        const drawn = (editor.renderer.drawSymbol as jest.Mock).mock.calls[0][0] as IIStroke
+        expect(drawn.id).not.toBe(stroke.id)
+      })
+
+      test("should do nothing when nothing selected", async () =>
+      {
+        const stroke = buildIIStroke()
+        editor.model.addSymbol(stroke)
+
+        await editor.cut()
+
+        expect(editor.recognizer.eraseStrokes).not.toHaveBeenCalled()
+      })
+    })
   })
 })
