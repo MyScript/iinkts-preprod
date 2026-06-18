@@ -20,6 +20,7 @@ describe("IIKeyboardManager", () =>
       undo: jest.fn(() => Promise.resolve()),
       redo: jest.fn(() => Promise.resolve()),
       removeSymbols: jest.fn(() => Promise.resolve()),
+      zoomToFit: jest.fn(),
       renderer: {
         getZoom: jest.fn(() => 1),
         setZoom: jest.fn(),
@@ -362,6 +363,20 @@ describe("IIKeyboardManager", () =>
   describe("zoom shortcuts", () =>
   {
     beforeEach(() => { manager.attach() })
+
+    it("should call zoomToFit on Ctrl+0", () =>
+    {
+      window.dispatchEvent(new KeyboardEvent("keydown", { ctrlKey: true, key: "0" }))
+      expect(mockEditor.zoomToFit).toHaveBeenCalledTimes(1)
+      expect(mockEditor.menu.action.update).toHaveBeenCalledTimes(1)
+    })
+
+    it("should call zoomToFit on Ctrl+à (AZERTY unshifted 0)", () =>
+    {
+      window.dispatchEvent(new KeyboardEvent("keydown", { ctrlKey: true, key: "à" }))
+      expect(mockEditor.zoomToFit).toHaveBeenCalledTimes(1)
+      expect(mockEditor.menu.action.update).toHaveBeenCalledTimes(1)
+    })
 
     it("should zoom in on Ctrl++", () =>
     {
