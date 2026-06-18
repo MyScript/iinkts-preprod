@@ -3,7 +3,6 @@ import { PointerInfo } from "@/grabber";
 import { IModel } from "@/model";
 import { TStyle } from "@/style";
 import { IIStroke, TIISymbol, TPointer, isStroke } from "@/symbol";
-import { DeferredPromise } from "@/utils";
 import { AbstractWriterManager } from "@/manager/base/AbstractWriterManager";
 
 /**
@@ -42,16 +41,11 @@ export class IWriterManager extends AbstractWriterManager {
     this.renderer.drawSymbol(localSymbol)
     this.model.addStroke(localSymbol)
     this.editor.history.push(this.model, { added: [localSymbol] })
-    const deferred = new DeferredPromise<void>()
-
     if (this.editor.configuration.triggers.exportContent !== "DEMAND") {
       clearTimeout(this.#exportTimer)
       this.#exportTimer = setTimeout(async () => {
         this.editor.export()
       }, this.editor.configuration.triggers.exportContent === "QUIET_PERIOD" ? this.editor.configuration.triggers.exportContentDelay : 0)
     }
-    deferred.resolve()
-    return deferred.promise
-
   }
 }
