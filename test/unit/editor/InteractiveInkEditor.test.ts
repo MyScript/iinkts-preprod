@@ -14,6 +14,7 @@ import
   ShapeKind,
   TIISymbol,
   DecoratorKind,
+  Box,
 } from "../../../src/iink"
 
 describe("EditorOffscreen.ts", () =>
@@ -887,6 +888,76 @@ describe("EditorOffscreen.ts", () =>
       await expect(editor.recognizer.destroy).toHaveBeenCalledTimes(1)
     })
 
+  })
+
+  describe("zoomToFit", () =>
+  {
+    let editor: InteractiveInkEditor
+
+    beforeEach(() =>
+    {
+      editor = new InteractiveInkEditor(document.createElement("div"), EditorOptions)
+      editor.renderer.setZoom = jest.fn()
+      editor.renderer.setViewBox = jest.fn()
+      const mockParent = document.createElement("div")
+      Object.defineProperty(mockParent, "clientWidth", { value: 800 })
+      Object.defineProperty(mockParent, "clientHeight", { value: 600 })
+      editor.renderer.parent = mockParent
+    })
+
+    test("should reset to zoom 1 and origin viewBox when no symbols", () =>
+    {
+      editor.zoomToFit()
+
+      expect(editor.renderer.setZoom).toHaveBeenCalledWith(1)
+      expect(editor.renderer.setViewBox).toHaveBeenCalledWith(0, 0, 800, 600)
+    })
+
+    test("should zoom and center on symbols", () =>
+    {
+      const stroke = buildIIStroke()
+      editor.model.addSymbol(stroke)
+      editor.getSymbolsBounds = jest.fn(() => new Box({ x: 10, y: 20, width: 200, height: 100 }))
+
+      editor.zoomToFit()
+
+      // zoom = Math.min((800-80)/200, (600-80)/100) = Math.min(3.6, 5.2) = 3.6
+      expect(editor.renderer.setZoom).toHaveBeenCalledWith(3.6)
+      // vbW=800/3.6, vbH=600/3.6, centered on cx=110, cy=70
+      const vbW = 800 / 3.6
+      const vbH = 600 / 3.6
+      expect(editor.renderer.setViewBox).toHaveBeenCalledWith(
+        expect.closeTo(110 - vbW / 2, 5),
+        expect.closeTo(70 - vbH / 2, 5),
+        expect.closeTo(vbW, 5),
+        expect.closeTo(vbH, 5)
+      )
+    })
+
+    test("should fit only the provided symbols subset", () =>
+    {
+      const stroke1 = buildIIStroke()
+      const stroke2 = buildIIStroke()
+      editor.model.addSymbol(stroke1)
+      editor.model.addSymbol(stroke2)
+      const getSymbolsBoundsSpy = jest.spyOn(editor, "getSymbolsBounds").mockReturnValue(new Box({ x: 0, y: 0, width: 100, height: 100 }))
+
+      editor.zoomToFit([stroke1])
+
+      expect(getSymbolsBoundsSpy).toHaveBeenCalledWith([stroke1], 0)
+    })
+
+    test("should clamp zoom to minimum 0.1 for very large content", () =>
+    {
+      const stroke = buildIIStroke()
+      editor.model.addSymbol(stroke)
+      editor.getSymbolsBounds = jest.fn(() => new Box({ x: 0, y: 0, width: 100000, height: 100000 }))
+
+      editor.zoomToFit()
+
+      const [zoom] = (editor.renderer.setZoom as jest.Mock).mock.calls[0]
+      expect(zoom).toBeCloseTo(0.1, 5)
+    })
   })
 
   describe("copy / paste / cut", () =>
