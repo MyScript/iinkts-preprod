@@ -1,5 +1,91 @@
 
 
+# [v4.0.0](https://github.com/MyScript/iinkTS/tree/v4.0.0)
+
+## Features
+
+### Math (IIC-1633)
+- feat(math): implement comprehensive math dependencies visualization (variables, overlays, computation, evaluation)
+- feat(math): add Math Diagnostic menu and function evaluator UI component
+- feat(math): introduce TMathVariableUsage and variable cache layer
+- feat(math): add numerical computation result display with graph rendering
+- feat(math): add auto variable management option in menu (IIC-1660)
+- feat(math): include math equations in downloadAsText export (IIC-1652)
+- feat(math): add Power and Underoverscript expression types
+
+### Chart (IIC-1639 / IIC-1640 / IIC-1642)
+- feat(chart): support multiple data series with per-series colors
+- feat(chart): add zoom and pan functionality with control buttons
+- feat(chart): add toggle button for graph points visibility
+
+### Editor
+- feat(keyboard): add keyboard shortcuts — copy/paste/cut (Ctrl+C/V/X), undo/redo (Ctrl+Z/Y), zoom (Ctrl+±), pan (Ctrl+Arrows), fit (Ctrl+0) (IIC-1679)
+- feat(editor): add zoomToFit(symbols?) to center view on content (IIC-1680)
+- feat(minimap): add Minimap component with MutationObserver sync and click/drag navigation
+- feat(menu): add minimap toggle button in action menu bar (shown in editor UI layer)
+
+### Gestures & Input
+- feat(gesture): add underline action options and integrate into gesture menu
+- feat(gesture): enhance insert action for line breaks and horizontal inserts
+- feat(erase): enhance stroke and character deletion logic
+- feat(writer): add margin parameter to ensurePointVisible
+
+### Other
+- feat(selection): add selection granularity configuration (block/element)
+- feat(jiix): add getBlocksForSymbols to IIJiixQueryManager
+- feat(menu): add text export option to menu actions and context menu
+- feat(dev-env): implement dev environment auto-loader for examples
+- feat(gesture): join and insert gestures disabled by default
+
+## Performance
+- perf(chart): fix O(n²) spread accumulation in Chart
+- perf(snap): use Set.has() for id lookup and coordinate bucketing
+- perf(symbol): replace unbounded Map cache with single-value cache for bounds
+- perf(synchronizer): parallelize math enrichment with per-block timeout
+- perf(renderer): eliminate double indexOf call in SVGRendererMathUtil
+- perf(model): remove unused symbolsToDelete getter
+
+## Bugs fix
+- fix(history): undo is no-op for style, order, and updated changes
+- fix(history): carry through updated symbols in reverseChanges for undo
+- fix(history): use -angle for rotation reversal
+- fix(recognizer): HMAC challenge and computation errors surfaced via emitError
+- fix(recognizer): undoDeferred and redoDeferred not reset after connection reset
+- fix(recognizer): WebSocketSSR listeners never removed on reconnect
+- fix(recognizer): emit EndInitialization after WebSocket handshake completes
+- fix(renderer): canvas transform accumulates on each resize
+- fix(renderer): remove spurious context2d.save() unbalancing canvas state
+- fix(math): arrow SVG elements leak on each overlay refresh
+- fix(math): hover zone not created if showOverlay is disabled
+- fix(math): reset jiixId and variableValues on symbol duplication
+- fix(menu): context menu positioning within rendering layer bounds (IIC-1659)
+- fix(menu): refresh context menu after editing variables
+- fix(menu): remove document/scroll listener leaks on destroy
+- fix(symbol): IIStroke.split() leaves length=0 on result strokes
+- fix(symbol): IIEdgePolyLine.create validation never fired
+- fix(utils): isDeepEqual incorrectly treats arrays as plain objects
+- fix(utils): correct segment intersection endpoint guard
+- fix(grabber): contextMenuHandler unsafe cast MouseEvent to PointerEvent
+- fix(editor): destroy all existing instances before creating a new editor
+- fix(editor): filter invalid strokes in importPointEvents
+- fix(BaseMenuItem): remove replaceWith(cloneNode) causing DOM node leak on destroy
+- fix(smartguide): correct event listener removal in removeListeners
+- fix(security): force js-yaml ≥4.2.0 to fix CVE DoS audit
+
+## Refactor
+- refactor(math): split IIMathManager into sub-managers — variables, computation, evaluation (IIC-1633)
+- refactor(overlay): replace math overlays with unified IIOverlayManager (IIC-1633)
+- refactor(manager): introduce AbstractTransformManager base class for translate/rotate/resize
+- refactor(gesture): implement Strategy Pattern for IIGestureManager with GestureHandler base
+- refactor(core): extract IIKeyboardManager, MathDependencyService, SymbolFactory from InteractiveInkEditor
+- refactor(editor): move editor variants to dedicated folder
+- refactor(selection): rename selection granularity levels from "block" to "element"
+- refactor(symbol): remove group symbol handling and related utilities (IIC-1647)
+- refactor(utils): centralize coordinate validation and constants
+- refactor(renderer): remove duplicate SVG utility files
+- refactor(recognizer): extract resolveDeferredByBlockId, mapCloseCodeToMessage
+- refactor(chart): centralize dimension and range calculations
+
 # [v3.3.0](https://github.com/MyScript/iinkTS/tree/v3.3.0)
 
 ## Features
