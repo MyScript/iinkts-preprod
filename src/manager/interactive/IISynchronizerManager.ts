@@ -123,8 +123,6 @@ export class IISynchronizerManager extends IIAbstractManager
       return
     }
 
-    // Collect all stroke IDs present in JIIX
-    const jiixStrokeIds = new Set<string>()
     const now = Date.now()
 
     // Process each element — strokes are reference types, so in-place mutation is
@@ -132,11 +130,6 @@ export class IISynchronizerManager extends IIAbstractManager
     for (const el of jiix.elements || []) {
       try {
         const items = this.#getElementItems(el)
-        items.forEach(item => {
-          if (item["full-id"]) {
-            jiixStrokeIds.add(item["full-id"])
-          }
-        })
 
         const strokes = this.#getStrokesFromItems(items)
         for (const stroke of strokes) {
@@ -159,9 +152,6 @@ export class IISynchronizerManager extends IIAbstractManager
 
     // Yield to event loop so pointer events can be processed before math enrichment
     await Promise.resolve()
-
-    // Delete strokes not present in JIIX
-    // this.#deleteOrphanedStrokes(jiixStrokeIds)
 
     // Save JIIX export and update history
     this.model.mergeExport({ "application/vnd.myscript.jiix": jiix })
@@ -322,28 +312,4 @@ export class IISynchronizerManager extends IIAbstractManager
 
     this.logger.debug("#updateBlockMetadata", `Updated ${stroke.id}: jiixBlockId=${element.id}, jiixBlockType=${stroke.jiixBlockType}`)
   }
-
-  // TODO broken when jiix is not up to date
-  // /**
-  //  * Delete strokes that are not present in JIIX
-  //  */
-  // #deleteOrphanedStrokes(jiixStrokeIds: Set<string>): void
-  // {
-  //   const strokesToDelete: string[] = []
-
-  //   this.model.symbols.forEach(symbol => {
-  //     if (isStroke(symbol) && !jiixStrokeIds.has(symbol.id)) {
-  //       // This stroke is not in JIIX - mark for deletion
-  //       strokesToDelete.push(symbol.id)
-  //     }
-  //   })
-
-  //   if (strokesToDelete.length > 0) {
-  //     this.logger.info("#deleteOrphanedStrokes", `Deleting ${strokesToDelete.length} strokes not present in JIIX`)
-  //     strokesToDelete.forEach(strokeId => {
-  //       this.model.removeSymbol(strokeId)
-  //       this.editor.renderer.removeSymbol(strokeId)
-  //     })
-  //   }
-  // }
 }
