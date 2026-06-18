@@ -14,6 +14,7 @@ import
   isText,
   isMath,
   isStroke,
+  isStrokeSolverOutput,
 } from "@/symbol"
 import { RecognizerWebSocket } from "@/recognizer"
 import { SVGRenderer, SVGBuilder, TIIRendererConfiguration } from "@/renderer"
@@ -38,7 +39,7 @@ import
   IIJiixQueryManager,
 } from "@/manager"
 import { IIHistoryManager, TIIHistoryBackendChanges, TIIHistoryChanges, THistoryContext } from "@/history"
-import { PartialDeep, mergeDeep } from "@/utils"
+import { PartialDeep, mergeDeep, createUUID } from "@/utils"
 import { IIMenuAction, IIMenuManager, IIMenuStyle, IIMenuTool } from "@/menu"
 import { SymbolFactory } from "@/factories"
 import { AbstractEditor, EditorOptionsBase } from "@/editor/AbstractEditor"
@@ -67,12 +68,15 @@ export type TInteractiveInkEditorOptions = PartialDeep<EditorOptionsBase &
  */
 export class InteractiveInkEditor extends AbstractEditor
 {
+  static readonly PASTE_OFFSET = 20
+
   #configuration: InteractiveInkEditorConfiguration
   #model: IIModel
   #tool: EditorTool = EditorTool.Write
   #layerUITimer?: ReturnType<typeof setTimeout>
   #recognizeStrokeTimer?: ReturnType<typeof setTimeout>
   #symbolFactory: SymbolFactory
+  #clipboard: TIISymbol[] = []
 
   /** SVG renderer responsible for drawing symbols onto the canvas layer. */
   renderer: SVGRenderer
@@ -774,6 +778,7 @@ export class InteractiveInkEditor extends AbstractEditor
       this.renderer.removeSymbol(id)
       this.recognizer.eraseStrokes([id])
     }
+    this.selector.removeSelectedGroup()
   }
 
   /**
@@ -810,6 +815,7 @@ export class InteractiveInkEditor extends AbstractEditor
       this.updateLayerUI()
     }
     this.updateLayerState(false)
+    this.selector.removeSelectedGroup()
     return symbolsRemoved
   }
 
@@ -1340,6 +1346,62 @@ export class InteractiveInkEditor extends AbstractEditor
       this.event.emitCleared()
     } catch (error) {
       this.manageError(error as Error)
+    }
+  }
+
+  #isCopyableSymbol(symbol: TIISymbol): boolean
+  {
+    if (isDecorator(symbol)) return false
+    if (isStrokeSolverOutput(symbol)) return false
+    return true
+  }
+
+  #cloneSymbolForPaste(symbol: TIISymbol, tx: number, ty: number): TIISymbol
+  {
+    const clone = symbol.clone()
+    clone.id = `${ clone.type }-${ createUUID() }`
+    clone.selected = false
+    this.translator.applyToSymbol(clone, tx, ty)
+    return clone
+  }
+
+  /**
+   * Copy selected symbols (or all symbols if nothing selected) to the internal clipboard
+   */
+  copy(): void
+  {
+    this.logger.info("copy")
+    const symbols = this.model.symbolsSelected.length
+      ? this.model.symbolsSelected
+      : this.model.symbols
+    this.#clipboard = symbols.filter(s => this.#isCopyableSymbol(s)).map(s => s.clone())
+  }
+
+  /**
+   * Paste clipboard symbols at an offset and select them
+   */
+  async paste(): Promise<void>
+  {
+    if (!this.#clipboard.length) return
+    this.logger.info("paste", { count: this.#clipboard.length })
+    const clones = this.#clipboard.map(s =>
+      this.#cloneSymbolForPaste(s, InteractiveInkEditor.PASTE_OFFSET, InteractiveInkEditor.PASTE_OFFSET)
+    )
+    this.unselectAll()
+    await this.addSymbols(clones)
+    this.select(clones.map(c => c.id))
+  }
+
+  /**
+   * Cut selected symbols: copy them to clipboard, then remove from model
+   */
+  async cut(): Promise<void>
+  {
+    this.logger.info("cut")
+    this.copy()
+    const ids = this.model.symbolsSelected.map(s => s.id)
+    if (ids.length) {
+      await this.removeSymbols(ids)
     }
   }
 
