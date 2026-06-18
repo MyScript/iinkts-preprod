@@ -214,6 +214,12 @@
             </span>
           </div>
           <div class="shortcut-row">
+            <span class="shortcut-label">Fit to content</span>
+            <span class="shortcut-keys">
+              <kbd>Ctrl</kbd><span class="shortcut-separator">+</span><kbd>0</kbd>
+            </span>
+          </div>
+          <div class="shortcut-row">
             <span class="shortcut-label">Pan canvas</span>
             <span class="shortcut-keys">
               <kbd>Ctrl</kbd><span class="shortcut-separator">+</span><kbd>↑↓←→</kbd>
@@ -377,6 +383,14 @@
           if (count > 0) log('selected', `${count} symbol(s)`)
           updateStatus()
         })
+
+        // Patch zoomToFit to log
+        const origZoomToFit = editor.zoomToFit.bind(editor)
+        editor.zoomToFit = (symbols) => {
+          origZoomToFit(symbols)
+          log('fit', Math.round(editor.renderer.getZoom() * 100) + '%')
+          updateStatus()
+        }
 
         // Patch renderer to track zoom/pan
         const origSetZoom = editor.renderer.setZoom.bind(editor.renderer)
