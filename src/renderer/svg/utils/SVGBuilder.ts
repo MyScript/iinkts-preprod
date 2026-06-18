@@ -48,17 +48,6 @@ export class SVGBuilder
     return document.createElementNS(XMLNS, "feComponentTransfer")
   }
 
-  static createDropShadow({ dx = 0, dy = 0, deviation = 0, color = "#3e68ff", opacity = 1 }): SVGFEDropShadowElement
-  {
-    const shadow = document.createElementNS(XMLNS, "feDropShadow")
-    shadow.setAttribute("dx", dx.toString())
-    shadow.setAttribute("dy", dy.toString())
-    shadow.setAttribute("stdDeviation", deviation.toString())
-    shadow.setAttribute("flood-color", color)
-    shadow.setAttribute("flood-opacity", opacity.toString())
-    return shadow
-  }
-
   static createTransfertFunctionTable(type: "feFuncA" | "feFuncB" | "feFuncG" | "feFuncR", values: string): SVGFEFuncAElement
   {
     const feFunc = document.createElementNS(XMLNS, type)
@@ -141,20 +130,6 @@ export class SVGBuilder
       tSpanEl.setAttribute(k, attrs[k])
     }
     return tSpanEl
-  }
-
-  static createForeignObject(box: TBox, node: HTMLElement, attrs: { [key: string]: string } = {}): SVGForeignObjectElement
-  {
-    const objEl = document.createElementNS(XMLNS, "foreignObject")
-    objEl.setAttribute("x", box.x.toString())
-    objEl.setAttribute("y", box.y.toString())
-    objEl.setAttribute("width", box.width.toString())
-    objEl.setAttribute("height", box.height.toString())
-    for (const k in attrs) {
-      objEl.setAttribute(k, attrs[k])
-    }
-    objEl.appendChild(node)
-    return objEl
   }
 
   static createText(p: TPoint, text: string, attrs: { [key: string]: string } = {}): SVGTextElement

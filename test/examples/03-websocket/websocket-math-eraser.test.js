@@ -1,4 +1,4 @@
-import { test as base, expect } from "@playwright/test"
+import { test, expect } from "@playwright/test"
 import {
   callEditorIdle,
   waitForExportedEvent,
@@ -6,14 +6,7 @@ import {
   writeStrokes,
   passModalKey,
 } from "../helper"
-import MathNavAction from "../_partials/math-nav-actions"
 import equation from "../__dataset__/equation"
-
-const test = base.extend({
-  todoPage: async ({ page }, use) => {
-    await use(new MathNavAction())
-  },
-})
 
 test.describe("Websocket Math Eraser", () => {
   test.beforeEach(async ({ page }) => {
@@ -43,6 +36,4 @@ test.describe("Websocket Math Eraser", () => {
     ])
     await expect(page.locator("#result .katex-html")).toHaveText("=3x+2")
   })
-
-  MathNavAction.test()
 })
