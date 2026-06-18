@@ -16,7 +16,8 @@ import {
   OverlayMenuAction,
   SelectionMenuAction,
   ExportMenuAction,
-  ImportMenuAction
+  ImportMenuAction,
+  MinimapMenuAction
 } from "./actions"
 import { IIMenuActionConfig, defaultMenuActionConfig } from "./IIMenuActionConfig"
 
@@ -168,6 +169,12 @@ export class IIMenuAction
         const zoomAction = new ZoomMenuAction(this.editor, this.id)
         this.menuActions.set("zoom", zoomAction)
         this.wrapper.appendChild(zoomAction.getElement())
+      }
+
+      if (this.config.minimap) {
+        const minimapAction = new MinimapMenuAction(this.editor, layer, this.id)
+        this.menuActions.set("minimap", minimapAction)
+        this.wrapper.appendChild(minimapAction.getElement())
       }
 
       layer.appendChild(this.wrapper)
