@@ -92,6 +92,12 @@ export class IIKeyboardManager extends IIAbstractManager
         event.preventDefault()
         this.editor.cut()
         return true
+      case "0":
+      case "à": // AZERTY: unshifted value of the 0 key
+        event.preventDefault()
+        this.editor.zoomToFit()
+        this.editor.menu.action.update()
+        return true
       case "+":
       case "=":
         event.preventDefault()

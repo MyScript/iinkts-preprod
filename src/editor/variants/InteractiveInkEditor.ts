@@ -69,6 +69,7 @@ export type TInteractiveInkEditorOptions = PartialDeep<EditorOptionsBase &
 export class InteractiveInkEditor extends AbstractEditor
 {
   static readonly PASTE_OFFSET = 20
+  static readonly ZOOM_FIT_MARGIN = 40
 
   #configuration: InteractiveInkEditorConfiguration
   #model: IIModel
@@ -938,6 +939,39 @@ export class InteractiveInkEditor extends AbstractEditor
     box.width += margin * 2
     box.height += margin * 2
     return box
+  }
+
+  /**
+   * Zoom and pan the view to fit the given symbols (or all symbols) within the viewport.
+   * Resets to zoom 1 if there are no symbols.
+   * @param symbols - Symbols to fit (default: all model symbols)
+   */
+  zoomToFit(symbols?: TIISymbol[]): void
+  {
+    const targets = symbols ?? this.model.symbols
+    const vpW = this.renderer.parent.clientWidth
+    const vpH = this.renderer.parent.clientHeight
+
+    if (!targets.length) {
+      this.renderer.setZoom(1)
+      this.renderer.setViewBox(0, 0, vpW, vpH)
+      return
+    }
+
+    const bounds = this.getSymbolsBounds(targets, 0)
+    const margin = InteractiveInkEditor.ZOOM_FIT_MARGIN
+    const zoom = Math.max(0.1, Math.min(
+      (vpW - margin * 2) / bounds.width,
+      (vpH - margin * 2) / bounds.height
+    ))
+
+    const vbW = vpW / zoom
+    const vbH = vpH / zoom
+    const vbX = bounds.x + bounds.width / 2 - vbW / 2
+    const vbY = bounds.y + bounds.height / 2 - vbH / 2
+
+    this.renderer.setZoom(zoom)
+    this.renderer.setViewBox(vbX, vbY, vbW, vbH)
   }
 
   protected buildBlobFromSymbols(symbols: TIISymbol[], box: Box): Blob
