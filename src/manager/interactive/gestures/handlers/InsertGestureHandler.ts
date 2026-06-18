@@ -232,19 +232,19 @@ export class InsertGestureHandler extends GestureHandler
 
       switch (this.manager.insertAction) {
         case InsertAction.LineBreak:
-          translate.push({ symbols: symbolsAfterGestureInRow, tx: translateX, ty: this.manager.rowHeight })
+          translate.push({ symbols: symbolsAfterGestureInRow, tx: translateX, ty: this.rowHeight })
           if (symbolsBelow.length) {
-            translate.push({ symbols: symbolsBelow, tx: 0, ty: this.manager.rowHeight })
+            translate.push({ symbols: symbolsBelow, tx: 0, ty: this.rowHeight })
           }
           break
         case InsertAction.Insert:
-          translate.push({ symbols: symbolsAfterGestureInRow, tx: this.manager.strokeSpaceWidth * 2, ty: 0 })
+          translate.push({ symbols: symbolsAfterGestureInRow, tx: this.strokeSpaceWidth * 2, ty: 0 })
           break
       }
       changes = { translate }
     }
     else if (symbolsBeforeGestureInRow.length && symbolsBelow.length && this.manager.insertAction === InsertAction.LineBreak) {
-      changes = { translate: [{ symbols: symbolsBelow, tx: 0, ty: this.manager.rowHeight }] }
+      changes = { translate: [{ symbols: symbolsBelow, tx: 0, ty: this.rowHeight }] }
     }
 
     if (changes) {

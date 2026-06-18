@@ -75,40 +75,40 @@ export class JoinGestureHandler extends GestureHandler
       const lastSymbolBeforeGesture = this.model.getLastSymbol(symbolsBeforeGestureInRow)!
       const firstSymbolAfterGesture = this.model.getFirstSymbol(symbolsBelow)
       if (firstSymbolAfterGesture) {
-        if (this.model.roundToLineGuide(lastSymbolBeforeGesture.bounds.yMid) >= this.model.roundToLineGuide(firstSymbolAfterGesture.bounds.yMid - this.manager.rowHeight)) {
+        if (this.model.roundToLineGuide(lastSymbolBeforeGesture.bounds.yMid) >= this.model.roundToLineGuide(firstSymbolAfterGesture.bounds.yMid - this.rowHeight)) {
           const symbolInNextRow = symbolsBelow.filter(s => this.model.isSymbolInRow(firstSymbolAfterGesture, s))
           if (symbolInNextRow.length) {
-            const translateX = lastSymbolBeforeGesture.bounds.xMax + this.manager.strokeSpaceWidth - firstSymbolAfterGesture.bounds.xMin
-            translate.push({ symbols: symbolInNextRow, tx: translateX, ty: -this.manager.rowHeight })
+            const translateX = lastSymbolBeforeGesture.bounds.xMax + this.strokeSpaceWidth - firstSymbolAfterGesture.bounds.xMin
+            translate.push({ symbols: symbolInNextRow, tx: translateX, ty: -this.rowHeight })
           }
           const symbolsAfterNextRow = symbolsBelow.filter(s => this.model.isSymbolBelow(firstSymbolAfterGesture, s))
           if (symbolsAfterNextRow.length) {
-            translate.push({ symbols: symbolsAfterNextRow, tx: 0, ty: -this.manager.rowHeight })
+            translate.push({ symbols: symbolsAfterNextRow, tx: 0, ty: -this.rowHeight })
           }
         }
       }
       else {
-        translate.push({ symbols: symbolsBelow, tx: 0, ty: -this.manager.rowHeight })
+        translate.push({ symbols: symbolsBelow, tx: 0, ty: -this.rowHeight })
       }
     }
     else if (symbolsAfterGestureInRow.length) {
       const firstSymbolAfterGesture = this.model.getFirstSymbol(symbolsAfterGestureInRow)!
       const lastSymbolAbove = this.model.getLastSymbol(symbolsAbove)
       if (lastSymbolAbove) {
-        if (this.model.roundToLineGuide(lastSymbolAbove.bounds.yMid) >= this.model.roundToLineGuide(firstSymbolAfterGesture.bounds.yMid - this.manager.rowHeight)) {
-          const translateX = lastSymbolAbove.bounds.xMax + this.manager.strokeSpaceWidth - firstSymbolAfterGesture.bounds.xMin
-          translate.push({ symbols: symbolsAfterGestureInRow, tx: translateX, ty: -this.manager.rowHeight })
+        if (this.model.roundToLineGuide(lastSymbolAbove.bounds.yMid) >= this.model.roundToLineGuide(firstSymbolAfterGesture.bounds.yMid - this.rowHeight)) {
+          const translateX = lastSymbolAbove.bounds.xMax + this.strokeSpaceWidth - firstSymbolAfterGesture.bounds.xMin
+          translate.push({ symbols: symbolsAfterGestureInRow, tx: translateX, ty: -this.rowHeight })
         }
         else {
-          translate.push({ symbols: symbolsAfterGestureInRow, tx: 0, ty: -this.manager.rowHeight })
+          translate.push({ symbols: symbolsAfterGestureInRow, tx: 0, ty: -this.rowHeight })
         }
 
         if (symbolsBelow.length) {
-          translate.push({ symbols: symbolsBelow, tx: 0, ty: -this.manager.rowHeight })
+          translate.push({ symbols: symbolsBelow, tx: 0, ty: -this.rowHeight })
         }
       }
       else {
-        translate.push({ symbols: symbolsAfterGestureInRow.concat(...symbolsBelow), tx: 0, ty: -this.manager.rowHeight })
+        translate.push({ symbols: symbolsAfterGestureInRow.concat(...symbolsBelow), tx: 0, ty: -this.rowHeight })
       }
 
     }
