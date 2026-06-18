@@ -3,7 +3,6 @@ import { TBox } from "@/symbol/base/Box"
 import { TPoint, TSegment } from "@/symbol/base/Point"
 import { SymbolType, TSymbol } from "@/symbol/base/Symbol"
 import { DefaultStyle, TStyle } from "@/style"
-import { MatrixTransform } from "@/transform"
 
 /**
  * @group Symbol
@@ -19,8 +18,6 @@ export abstract class IISymbolBase<T extends string = SymbolType> implements TSy
   modificationDate: number
   selected: boolean
   deleting: boolean
-  transform: MatrixTransform
-
   constructor(type: T, style?: PartialDeep<TStyle>)
   {
     this.type = type
@@ -30,8 +27,6 @@ export abstract class IISymbolBase<T extends string = SymbolType> implements TSy
     this.modificationDate = this.creationTime
     this.selected = false
     this.deleting = false
-
-    this.transform = MatrixTransform.identity()
 
     this.style = Object.assign({}, DefaultStyle, style)
     if (this.style.opacity) {

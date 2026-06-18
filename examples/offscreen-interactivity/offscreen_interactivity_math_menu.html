@@ -357,10 +357,6 @@
       return editor
     }
 
-    const modal = new ModalEditorOptions(editorOptions, (options) => {
-      loadEditor(options)
-    })
-
     showModalBtn.addEventListener('click', () => {
       ModalEditorOptions.show(loadEditor, editorOptions)
     })
