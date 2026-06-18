@@ -154,15 +154,15 @@ describe("IISelectionManager.ts", () =>
       }),
     })
     const editor = new InteractiveInkEditorMock()
-    editor.translator.start = jest.fn()
-    editor.translator.continue = jest.fn()
-    editor.translator.end = jest.fn()
-    editor.rotator.start = jest.fn()
-    editor.rotator.continue = jest.fn()
-    editor.rotator.end = jest.fn()
-    editor.resizer.start = jest.fn()
-    editor.resizer.continue = jest.fn()
-    editor.resizer.end = jest.fn()
+    editor.transform.translate.start = jest.fn()
+    editor.transform.translate.continue = jest.fn()
+    editor.transform.translate.end = jest.fn()
+    editor.transform.rotation.start = jest.fn()
+    editor.transform.rotation.continue = jest.fn()
+    editor.transform.rotation.end = jest.fn()
+    editor.transform.resize.start = jest.fn()
+    editor.transform.resize.continue = jest.fn()
+    editor.transform.resize.end = jest.fn()
     const manager = new IISelectionManager(editor)
     manager.resetSelectedGroup = jest.fn()
     const stroke = buildIIStroke()
@@ -175,7 +175,7 @@ describe("IISelectionManager.ts", () =>
       manager.drawSelectedGroup([stroke])
     })
 
-    test("should not call translator.start on right pointerdown on translateEl", () =>
+    test("should not call translate.start on right pointerdown on translateEl", () =>
     {
       const translateEl = editor.renderer.layer.querySelector(`[role=${ SvgElementRole.Translate }]`)
       const pointerDown = new RightClickEventMock("pointerdown", {
@@ -186,9 +186,9 @@ describe("IISelectionManager.ts", () =>
         pointerId: 1
       }) as PointerEvent
       translateEl?.dispatchEvent(pointerDown)
-      expect(editor.translator.start).not.toHaveBeenCalled()
+      expect(editor.transform.translate.start).not.toHaveBeenCalled()
     })
-    test("should call translator.start on pointerdown on translateEl", () =>
+    test("should call translate.start on pointerdown on translateEl", () =>
     {
       const translateEl = editor.renderer.layer.querySelector(`[role=${ SvgElementRole.Translate }]`)
       const pointerDown = new LeftClickEventMock("pointerdown", {
@@ -199,9 +199,9 @@ describe("IISelectionManager.ts", () =>
         pointerId: 1
       }) as PointerEvent
       translateEl?.dispatchEvent(pointerDown)
-      expect(editor.translator.start).toHaveBeenNthCalledWith(1, translateEl, { x: 1, y: 2 })
+      expect(editor.transform.translate.start).toHaveBeenNthCalledWith(1, translateEl, { x: 1, y: 2 })
     })
-    test("should call translator.continue on pointermove on render layer", () =>
+    test("should call translate.continue on pointermove on render layer", () =>
     {
       const pointerMove = new LeftClickEventMock("pointermove", {
         pointerType: "pen",
@@ -211,9 +211,9 @@ describe("IISelectionManager.ts", () =>
         pointerId: 1
       }) as PointerEvent
       editor.renderer.layer.dispatchEvent(pointerMove)
-      expect(editor.translator.continue).toHaveBeenNthCalledWith(1, { x: 3, y: 4 })
+      expect(editor.transform.translate.continue).toHaveBeenNthCalledWith(1, { x: 3, y: 4 })
     })
-    test("should call translator.end on pointerup on render layer", () =>
+    test("should call translate.end on pointerup on render layer", () =>
     {
       const pointerUp = new LeftClickEventMock("pointerup", {
         pointerType: "pen",
@@ -223,11 +223,11 @@ describe("IISelectionManager.ts", () =>
         pointerId: 1
       }) as PointerEvent
       editor.renderer.layer.dispatchEvent(pointerUp)
-      expect(editor.translator.end).toHaveBeenNthCalledWith(1, { x: 5, y: 6 })
+      expect(editor.transform.translate.end).toHaveBeenNthCalledWith(1, { x: 5, y: 6 })
       expect(manager.resetSelectedGroup).toHaveBeenCalledTimes(1)
     })
 
-    test("should not call rotator.start on right pointerdown on rotateEl", () =>
+    test("should not call rotation.start on right pointerdown on rotateEl", () =>
     {
       const rotateEl = editor.renderer.layer.querySelector(`[role=${ SvgElementRole.Rotate }]`)
       const pointerDown = new RightClickEventMock("pointerdown", {
@@ -238,9 +238,9 @@ describe("IISelectionManager.ts", () =>
         pointerId: 1
       }) as PointerEvent
       rotateEl?.dispatchEvent(pointerDown)
-      expect(editor.rotator.start).not.toHaveBeenCalled()
+      expect(editor.transform.rotation.start).not.toHaveBeenCalled()
     })
-    test("should call rotator.start on pointerdown on rotateEl", () =>
+    test("should call rotation.start on pointerdown on rotateEl", () =>
     {
       const rotateEl = editor.renderer.layer.querySelector(`[role=${ SvgElementRole.Rotate }]`)
       const pointerDown = new LeftClickEventMock("pointerdown", {
@@ -251,9 +251,9 @@ describe("IISelectionManager.ts", () =>
         pointerId: 1
       }) as PointerEvent
       rotateEl?.dispatchEvent(pointerDown)
-      expect(editor.rotator.start).toHaveBeenNthCalledWith(1, rotateEl, { x: 1, y: 2 })
+      expect(editor.transform.rotation.start).toHaveBeenNthCalledWith(1, rotateEl, { x: 1, y: 2 })
     })
-    test("should call rotator.continue on pointermove on render layer", () =>
+    test("should call rotation.continue on pointermove on render layer", () =>
     {
       const pointerMove = new LeftClickEventMock("pointermove", {
         pointerType: "pen",
@@ -263,9 +263,9 @@ describe("IISelectionManager.ts", () =>
         pointerId: 1
       }) as PointerEvent
       editor.renderer.layer.dispatchEvent(pointerMove)
-      expect(editor.rotator.continue).toHaveBeenNthCalledWith(1, { x: 3, y: 4 })
+      expect(editor.transform.rotation.continue).toHaveBeenNthCalledWith(1, { x: 3, y: 4 })
     })
-    test("should call rotator.end on pointerup on render layer", () =>
+    test("should call rotation.end on pointerup on render layer", () =>
     {
       const pointerUp = new LeftClickEventMock("pointerup", {
         pointerType: "pen",
@@ -275,11 +275,11 @@ describe("IISelectionManager.ts", () =>
         pointerId: 1
       }) as PointerEvent
       editor.renderer.layer.dispatchEvent(pointerUp)
-      expect(editor.rotator.end).toHaveBeenNthCalledWith(1, { x: 5, y: 6 })
+      expect(editor.transform.rotation.end).toHaveBeenNthCalledWith(1, { x: 5, y: 6 })
       expect(manager.resetSelectedGroup).toHaveBeenCalledTimes(1)
     })
 
-    test("should not call resizer.start on right pointerdown on north resizeEl", () =>
+    test("should not call resize.start on right pointerdown on north resizeEl", () =>
     {
       const resizeEl = editor.renderer.layer.querySelector(`[role=${ SvgElementRole.Resize }][resize-direction=${ResizeDirection.North}]`)
       const pointerDown = new RightClickEventMock("pointerdown", {
@@ -290,9 +290,9 @@ describe("IISelectionManager.ts", () =>
         pointerId: 1
       }) as PointerEvent
       resizeEl?.dispatchEvent(pointerDown)
-      expect(editor.resizer.start).not.toHaveBeenCalled()
+      expect(editor.transform.resize.start).not.toHaveBeenCalled()
     })
-    test("should call resizer.start on pointerdown on north resizeEl", () =>
+    test("should call resize.start on pointerdown on north resizeEl", () =>
     {
       const resizeEl = editor.renderer.layer.querySelector(`[role=${ SvgElementRole.Resize }][resize-direction=${ResizeDirection.North}]`)
       const pointerDown = new LeftClickEventMock("pointerdown", {
@@ -303,9 +303,9 @@ describe("IISelectionManager.ts", () =>
         pointerId: 1
       }) as PointerEvent
       resizeEl?.dispatchEvent(pointerDown)
-      expect(editor.resizer.start).toHaveBeenNthCalledWith(1, resizeEl, { x: 6, y: 13 })
+      expect(editor.transform.resize.start).toHaveBeenNthCalledWith(1, resizeEl, { x: 6, y: 13 })
     })
-    test("should call resizer.continue on pointermove on render layer", () =>
+    test("should call resize.continue on pointermove on render layer", () =>
     {
       const pointerMove = new LeftClickEventMock("pointermove", {
         pointerType: "pen",
@@ -315,9 +315,9 @@ describe("IISelectionManager.ts", () =>
         pointerId: 1
       }) as PointerEvent
       editor.renderer.layer.dispatchEvent(pointerMove)
-      expect(editor.resizer.continue).toHaveBeenNthCalledWith(1, { x: 3, y: 4 })
+      expect(editor.transform.resize.continue).toHaveBeenNthCalledWith(1, { x: 3, y: 4 })
     })
-    test("should call resizer.end on pointerup on render layer", () =>
+    test("should call resize.end on pointerup on render layer", () =>
     {
       const pointerUp = new LeftClickEventMock("pointerup", {
         pointerType: "pen",
@@ -327,7 +327,7 @@ describe("IISelectionManager.ts", () =>
         pointerId: 1
       }) as PointerEvent
       editor.renderer.layer.dispatchEvent(pointerUp)
-      expect(editor.resizer.end).toHaveBeenNthCalledWith(1, { x: 5, y: 6 })
+      expect(editor.transform.resize.end).toHaveBeenNthCalledWith(1, { x: 5, y: 6 })
       expect(manager.resetSelectedGroup).toHaveBeenCalledTimes(1)
     })
 

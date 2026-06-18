@@ -25,9 +25,7 @@ import
   IIKeyboardManager,
   IIWriterManager,
   IISelectionManager,
-  IIResizeManager,
-  IIRotationManager,
-  IITranslateManager,
+  IITransformManager,
   IITextManager,
   EraseManager,
   IIOverlayManager,
@@ -38,6 +36,7 @@ import
   IIMathManager,
   IIJiixQueryManager,
 } from "@/manager"
+import { MatrixTransform } from "@/transform"
 import { IIHistoryManager, TIIHistoryBackendChanges, TIIHistoryChanges, THistoryContext } from "@/history"
 import { PartialDeep, mergeDeep, createUUID } from "@/utils"
 import { IIMenuAction, IIMenuManager, IIMenuStyle, IIMenuTool } from "@/menu"
@@ -96,12 +95,8 @@ export class InteractiveInkEditor extends AbstractEditor
   eraser: EraseManager
   /** Detects and processes touch/pointer gestures (scratch-out, join, insert, etc.). */
   gesture: IIGestureManager
-  /** Handles interactive resizing of selected symbols. */
-  resizer: IIResizeManager
-  /** Handles interactive rotation of selected symbols. */
-  rotator: IIRotationManager
-  /** Handles interactive translation (drag) of selected symbols. */
-  translator: IITranslateManager
+  /** Orchestrates translate, resize, and rotation transforms on selected symbols. */
+  transform: IITransformManager
   /** Converts ink strokes to recognized text, math, or shape symbols. */
   converter: IIConversionManager
   /** Manages text symbol layout: bounds computation and reflow after edits. */
@@ -158,9 +153,7 @@ export class InteractiveInkEditor extends AbstractEditor
     this.move = new IIMoveManager(this)
 
     this.gesture = new IIGestureManager(this, this.#configuration.gesture)
-    this.resizer = new IIResizeManager(this)
-    this.rotator = new IIRotationManager(this)
-    this.translator = new IITranslateManager(this)
+    this.transform = new IITransformManager(this)
     this.converter = new IIConversionManager(this)
     this.texter = new IITextManager(this)
     this.overlays = new IIOverlayManager(this, this.#configuration.overlays)
@@ -1395,7 +1388,8 @@ export class InteractiveInkEditor extends AbstractEditor
     const clone = symbol.clone()
     clone.id = `${ clone.type }-${ createUUID() }`
     clone.selected = false
-    this.translator.applyToSymbol(clone, tx, ty)
+    const matrix = MatrixTransform.identity().translate(tx, ty)
+    this.transform.translate.applyToSymbol(clone, matrix)
     return clone
   }
 

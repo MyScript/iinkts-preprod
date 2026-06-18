@@ -1,4 +1,3 @@
-import { SvgElementRole } from "@/Constants"
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import
 {
@@ -12,12 +11,13 @@ import
   TIISymbol,
   TPoint
 } from "@/symbol"
+import { MatrixTransform } from "@/transform"
 import { IIAbstractTransformManager } from "./AbstractTransformManager"
 
 /**
  * @group Manager
  */
-export class IITranslateManager extends IIAbstractTransformManager<[number, number]>
+export class IITranslateManager extends IIAbstractTransformManager
 {
   protected managerName = "IITranslateManager"
   protected transformName = "translate"
@@ -28,32 +28,22 @@ export class IITranslateManager extends IIAbstractTransformManager<[number, numb
     super(editor)
   }
 
-  protected applyToStroke(stroke: IIStroke, tx: number, ty: number): IIStroke
+  protected applyToStroke(stroke: IIStroke, matrix: MatrixTransform): IIStroke
   {
-    stroke.pointers.forEach(p =>
-    {
-      p.x += tx
-      p.y += ty
-    })
-
+    this.applyMatrixToPoints(stroke.pointers, matrix)
     return stroke
   }
 
-  protected applyToShape(shape: TIIShape, tx: number, ty: number): TIIShape
+  protected applyToShape(shape: TIIShape, matrix: MatrixTransform): TIIShape
   {
     switch (shape.kind) {
       case ShapeKind.Ellipse:
       case ShapeKind.Circle: {
-        shape.center.x += tx
-        shape.center.y += ty
+        shape.center = matrix.applyToPoint(shape.center)
         return shape
       }
       case ShapeKind.Polygon: {
-        shape.points.forEach(p =>
-        {
-          p.x += tx
-          p.y += ty
-        })
+        this.applyMatrixToPoints(shape.points, matrix)
         return shape
       }
       default:
@@ -61,76 +51,65 @@ export class IITranslateManager extends IIAbstractTransformManager<[number, numb
     }
   }
 
-  protected applyToEdge(edge: TIIEdge, tx: number, ty: number): TIIEdge
+  protected applyToEdge(edge: TIIEdge, matrix: MatrixTransform): TIIEdge
   {
     switch (edge.kind) {
       case EdgeKind.Arc: {
-        edge.center.x += tx
-        edge.center.y += ty
+        edge.center = matrix.applyToPoint(edge.center)
         return edge
       }
       case EdgeKind.Line: {
-        edge.start.x += tx
-        edge.start.y += ty
-        edge.end.x += tx
-        edge.end.y += ty
+        edge.start = matrix.applyToPoint(edge.start)
+        edge.end = matrix.applyToPoint(edge.end)
         return edge
       }
       case EdgeKind.PolyEdge: {
-        edge.points.forEach(p =>
-        {
-          p.x += tx
-          p.y += ty
-        })
+        this.applyMatrixToPoints(edge.points, matrix)
         return edge
       }
     }
-
     return edge
   }
 
-  protected applyOnText(text: IIText, tx: number, ty: number): IIText
+  protected applyOnText(text: IIText, matrix: MatrixTransform): IIText
   {
     if (text.rotation) {
-      text.rotation.center = { x: text.rotation.center.x + tx, y: text.rotation.center.y + ty }
+      text.rotation.center = matrix.applyToPoint(text.rotation.center)
     }
-    text.point.x += tx
-    text.point.y += ty
+    const np = matrix.applyToPoint(text.point)
+    text.point.x = +np.x.toFixed(3)
+    text.point.y = +np.y.toFixed(3)
     return this.editor.texter.updateBounds(text)
   }
 
-  protected applyOnMath(math: IIMath, tx: number, ty: number): IIMath
+  protected applyOnMath(math: IIMath, matrix: MatrixTransform): IIMath
   {
     if (math.rotation) {
-      math.rotation.center = { x: math.rotation.center.x + tx, y: math.rotation.center.y + ty }
+      math.rotation.center = matrix.applyToPoint(math.rotation.center)
     }
-    math.point.x += tx
-    math.point.y += ty
+    const np = matrix.applyToPoint(math.point)
+    math.point.x = +np.x.toFixed(3)
+    math.point.y = +np.y.toFixed(3)
 
-    // Update bounds
-    math.bounds.x += tx
-    math.bounds.y += ty
+    const bp = matrix.applyToPoint({ x: math.bounds.x, y: math.bounds.y })
+    math.bounds.x = +bp.x.toFixed(3)
+    math.bounds.y = +bp.y.toFixed(3)
 
-    // Update element bounds
-    math.elements.forEach(e => {
-      e.bounds.x += tx
-      e.bounds.y += ty
+    math.elements.forEach(e =>
+    {
+      const ep = matrix.applyToPoint({ x: e.bounds.x, y: e.bounds.y })
+      e.bounds.x = +ep.x.toFixed(3)
+      e.bounds.y = +ep.y.toFixed(3)
     })
 
     return math
   }
 
-  // applyOnRecognizedSymbol removed - recognized symbols no longer exist
-
   translate(symbols: TIISymbol[], tx: number, ty: number, addToHistory = true): Promise<void>
   {
     this.logger.info("translate", { symbols, tx, ty })
-    symbols.forEach(s =>
-    {
-      this.applyToSymbol(s, tx, ty)
-      this.model.updateSymbol(s)
-      this.editor.renderer.drawSymbol(s)
-    })
+    const matrix = MatrixTransform.identity().translate(tx, ty)
+    this.applyAndDraw(symbols, matrix)
     if (addToHistory) {
       this.editor.history.push(this.model, { translate: [{ symbols: this.model.symbolsSelected, tx, ty }] })
     }
@@ -147,7 +126,7 @@ export class IITranslateManager extends IIAbstractTransformManager<[number, numb
   start(target: Element, origin: TPoint): void
   {
     this.logger.info("start", { origin })
-    this.interactElementsGroup = (target.closest(`[role=${ SvgElementRole.InteractElementsGroup }]`) as unknown) as SVGGElement
+    this.interactElementsGroup = this.resolveInteractGroup(target)
     this.transformOrigin = origin
   }
 
@@ -170,10 +149,7 @@ export class IITranslateManager extends IIAbstractTransformManager<[number, numb
     {
       this.translateElement(s.id as string, tx, ty)
     })
-    return {
-      tx,
-      ty
-    }
+    return { tx, ty }
   }
 
   async end(point: TPoint): Promise<void>
@@ -182,9 +158,6 @@ export class IITranslateManager extends IIAbstractTransformManager<[number, numb
     const { tx, ty } = this.continue(point)
     this.editor.snaps.clearSnapToElementLines()
     this.translate(this.model.symbolsSelected, tx, ty)
-
-    this.interactElementsGroup = undefined
-    this.editor.overlays.apply()
+    this.finalizeTransform()
   }
-
 }
