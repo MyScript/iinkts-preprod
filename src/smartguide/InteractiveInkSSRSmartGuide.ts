@@ -340,14 +340,14 @@ export class InteractiveInkSSRSmartGuide
 
   #addListeners(): void
   {
-    this.#smartGuideElement.addEventListener("pointerdown", this.#stopPropagation.bind(this))
-    this.#ellipsisElement.addEventListener("pointerdown", this.#onClickEllipsis.bind(this))
-    this.#convertElement.addEventListener("pointerdown", this.#onClickConvert.bind(this))
-    this.#copyElement.addEventListener("pointerdown", this.#onClickCopy.bind(this))
-    this.#deleteElement.addEventListener("pointerdown", this.#onClickDelete.bind(this))
-    this.#prompterTextElement.addEventListener("pointerdown", this.#onClickPrompter.bind(this))
-    this.#candidatesElement.addEventListener("pointerdown", this.#onClickCandidate.bind(this))
-    document.addEventListener("pointerdown", this.#onClickOutSide.bind(this))
+    this.#smartGuideElement.addEventListener("pointerdown", this.#stopPropagation)
+    this.#ellipsisElement.addEventListener("pointerdown", this.#onClickEllipsis)
+    this.#convertElement.addEventListener("pointerdown", this.#onClickConvert)
+    this.#copyElement.addEventListener("pointerdown", this.#onClickCopy)
+    this.#deleteElement.addEventListener("pointerdown", this.#onClickDelete)
+    this.#prompterTextElement.addEventListener("pointerdown", this.#onClickPrompter)
+    this.#candidatesElement.addEventListener("pointerdown", this.#onClickCandidate)
+    document.addEventListener("pointerdown", this.#onClickOutSide)
   }
 
   #removeListeners(): void
