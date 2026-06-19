@@ -9,7 +9,35 @@ import {
   ShapeTool,
   EdgeTool
 } from "./tools"
-import { IIMenuToolConfig, defaultMenuToolConfig } from "./IIMenuToolConfig"
+
+/**
+ * @group Menu
+ * @remarks Configuration to enable/disable each tool individually
+ */
+export interface IIMenuToolConfig {
+  /** Enable/disable Write tool (Pencil) */
+  write?: boolean
+  /** Enable/disable Move tool (Hand) */
+  move?: boolean
+  /** Enable/disable Select tool (Cursor) */
+  select?: boolean
+  /** Enable/disable Erase tool */
+  erase?: boolean
+  /** Enable/disable Shape submenu (Rectangle, Circle, etc.) */
+  shape?: boolean
+  /** Enable/disable Edge submenu (Line, Arrow, etc.) */
+  edge?: boolean
+}
+
+/** @group Menu */
+export const DefaultMenuToolConfig: Required<IIMenuToolConfig> = {
+  write: true,
+  move: true,
+  select: true,
+  erase: true,
+  shape: true,
+  edge: true
+}
 
 /**
  * @group Menu
@@ -31,7 +59,7 @@ export class IIMenuTool
     this.id = id
     this.#logger.info("constructor")
     this.editor = editor
-    this.config = { ...defaultMenuToolConfig, ...config }
+    this.config = { ...DefaultMenuToolConfig, ...config }
   }
 
   render(layer: HTMLElement): void
