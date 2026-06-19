@@ -25,6 +25,8 @@ export type TMathComputationConfig = {
   resultMode: TMathResultMode
   /** Automatically compute results when blocks end with = or ? */
   autoCompute: boolean
+  /** Color applied to result strokes (both draw and ghost modes) */
+  resultColor: string
 }
 
 /**
@@ -51,6 +53,7 @@ export class IIMathComputationSubManager extends IIAbstractManager
   static readonly DEFAULT_CONFIG: TMathComputationConfig = {
     resultMode: "draw",
     autoCompute: false,
+    resultColor: "#4caf50",
   }
 
   #config: TMathComputationConfig
@@ -142,7 +145,7 @@ export class IIMathComputationSubManager extends IIAbstractManager
 
     const solverStrokes = this.extractSolverOutputStrokes(result)
     const elementIds: string[] = []
-    const strokeColor = style?.color ?? "#4caf50"
+    const strokeColor = style?.color ?? this.#config.resultColor
     const strokeWidth = style?.width ?? 5
 
     for (const strokeData of solverStrokes) {
@@ -325,7 +328,7 @@ export class IIMathComputationSubManager extends IIAbstractManager
     this.logger.debug("addSolverOutputStrokes", `Found ${ solverStrokes.length } solver output strokes`)
 
     const addedStrokes: IIStroke[] = []
-    const defaultStyle = style || { color: "#4caf50", width: 5 }
+    const defaultStyle = style || { color: this.#config.resultColor, width: 5 }
 
     for (const strokeData of solverStrokes) {
       if (!strokeData.X || !strokeData.Y) {

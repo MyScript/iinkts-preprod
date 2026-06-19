@@ -1,6 +1,17 @@
 import { InteractiveInkEditor } from "@/editor"
 import { SubMenuItem, IMenuSubMenu } from "@/menu/items/SubMenuItem"
 import { EditorTool, EditorWriteTool } from "@/Constants"
+
+/** @group Menu */
+export type TGestureActionItemsConfig = {
+  detect?: boolean
+  surround?: boolean
+  strikethrough?: boolean
+  underline?: boolean
+  insert?: boolean
+}
+/** @group Menu */
+export type TGestureActionConfig = boolean | TGestureActionItemsConfig
 import { InsertAction, StrikeThroughAction, SurroundAction, UnderlineAction } from "@/manager"
 import gestureIcon from "@/assets/svg/spock-hand-gesture.svg"
 
@@ -10,8 +21,10 @@ import gestureIcon from "@/assets/svg/spock-hand-gesture.svg"
  */
 export class GestureMenuAction extends SubMenuItem
 {
-  constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-action")
+  constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-action", itemsConfig?: TGestureActionItemsConfig)
   {
+    const enabled = (key: keyof TGestureActionItemsConfig) => itemsConfig?.[key] !== false
+
     const surroundActionValues: { label: string, value: string }[] = []
     for (const key in SurroundAction) {
       const value = SurroundAction[key as keyof typeof SurroundAction]
@@ -43,21 +56,24 @@ export class GestureMenuAction extends SubMenuItem
       menuTitle: "Gesture",
       icon: gestureIcon,
       position: "right-top",
-      items: [
-        {
-          type: "checkbox",
-          id: `${idPrefix}-gesture-detect`,
-          label: "Detect gesture",
-          getValue: (editor) => editor.writer.detectGesture,
-          setValue: (editor, value) => {
-            editor.writer.detectGesture = value
-            editor.tool = EditorTool.Write
-            editor.writer.tool = EditorWriteTool.Pencil
-          }
-        }
-      ]
+      items: []
     }
-    if (editor.configuration.recognition["raw-content"]?.gestures?.includes("surround")) {
+
+    if (enabled("detect")) {
+      config.items.push({
+        type: "checkbox",
+        id: `${idPrefix}-gesture-detect`,
+        label: "Detect gesture",
+        getValue: (editor) => editor.writer.detectGesture,
+        setValue: (editor, value) => {
+          editor.writer.detectGesture = value
+          editor.tool = EditorTool.Write
+          editor.writer.tool = EditorWriteTool.Pencil
+        }
+      })
+    }
+
+    if (enabled("surround") && editor.configuration.recognition["raw-content"]?.gestures?.includes("surround")) {
       config.items.push({
         type: "select",
         id: `${idPrefix}-gesture-surround`,
@@ -71,7 +87,8 @@ export class GestureMenuAction extends SubMenuItem
         }
       })
     }
-    if (editor.configuration.recognition["raw-content"]?.gestures?.includes("strike-through")) {
+
+    if (enabled("strikethrough") && editor.configuration.recognition["raw-content"]?.gestures?.includes("strike-through")) {
       config.items.push({
         type: "select",
         id: `${idPrefix}-gesture-strikethrough`,
@@ -85,7 +102,8 @@ export class GestureMenuAction extends SubMenuItem
         }
       })
     }
-    if (editor.configuration.recognition["raw-content"]?.gestures?.includes("underline")) {
+
+    if (enabled("underline") && editor.configuration.recognition["raw-content"]?.gestures?.includes("underline")) {
       config.items.push({
         type: "select",
         id: `${idPrefix}-gesture-underline`,
@@ -99,7 +117,8 @@ export class GestureMenuAction extends SubMenuItem
         }
       })
     }
-    if (editor.configuration.recognition["raw-content"]?.gestures?.includes("insert")) {
+
+    if (enabled("insert") && editor.configuration.recognition["raw-content"]?.gestures?.includes("insert")) {
       config.items.push({
         type: "select",
         id: `${idPrefix}-gesture-insert`,

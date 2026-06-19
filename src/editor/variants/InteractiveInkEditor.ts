@@ -160,7 +160,7 @@ export class InteractiveInkEditor extends AbstractEditor
     this.snaps = new IISnapManager(this, this.#configuration.snap)
     this.synchronizer = new IISynchronizerManager(this)
     this.jiix = new IIJiixQueryManager(this)
-    this.math = new IIMathManager(this)
+    this.math = new IIMathManager(this, this.#configuration.math)
     this.menu = new IIMenuManager(this, options?.override?.menu)
   }
 

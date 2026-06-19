@@ -4,16 +4,31 @@ import { IMenuCheckbox } from "@/menu/items/CheckboxMenuItem"
 import { IMenuRange } from "@/menu/items/RangeMenuItem"
 import rectangleIcon from "@/assets/svg/rectangle.svg"
 
+/** @group Menu */
+export type TOverlayActionItemsConfig = {
+  showBlockOverlays?: boolean
+  badgeSize?: boolean
+  borderWidth?: boolean
+  labelMaxChars?: boolean
+  labelFontSize?: boolean
+}
+/** @group Menu */
+export type TOverlayActionConfig = boolean | TOverlayActionItemsConfig
+
 /**
  * @group Menu
  * @remarks Menu action for overlay configuration (block overlays badge/border)
  */
 export class OverlayMenuAction extends SubMenuItem
 {
-  constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-action")
+  constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-action", itemsConfig?: TOverlayActionItemsConfig)
   {
-    const items: (IMenuCheckbox | IMenuRange)[] = [
-      {
+    const enabled = (key: keyof TOverlayActionItemsConfig) => itemsConfig?.[key] !== false
+
+    const items: (IMenuCheckbox | IMenuRange)[] = []
+
+    if (enabled("showBlockOverlays")) {
+      items.push({
         type: "checkbox",
         id: `${idPrefix}-overlay-show-block-overlays`,
         label: "Show block overlays",
@@ -21,8 +36,11 @@ export class OverlayMenuAction extends SubMenuItem
         setValue: (editor: InteractiveInkEditor, value: boolean) => {
           editor.overlays.updateConfig({ showBlockOverlays: value })
         }
-      },
-      {
+      })
+    }
+
+    if (enabled("badgeSize")) {
+      items.push({
         type: "range",
         id: `${idPrefix}-overlay-badge-size`,
         label: "Badge size",
@@ -34,8 +52,11 @@ export class OverlayMenuAction extends SubMenuItem
         onChange: (value: number, editor: InteractiveInkEditor) => {
           editor.overlays.updateConfig({ badgeSize: value })
         }
-      },
-      {
+      })
+    }
+
+    if (enabled("borderWidth")) {
+      items.push({
         type: "range",
         id: `${idPrefix}-overlay-border-width`,
         label: "Border width",
@@ -47,8 +68,11 @@ export class OverlayMenuAction extends SubMenuItem
         onChange: (value: number, editor: InteractiveInkEditor) => {
           editor.overlays.updateConfig({ borderWidth: value })
         }
-      },
-      {
+      })
+    }
+
+    if (enabled("labelMaxChars")) {
+      items.push({
         type: "range",
         id: `${idPrefix}-overlay-label-max-chars`,
         label: "Label max chars",
@@ -60,8 +84,11 @@ export class OverlayMenuAction extends SubMenuItem
         onChange: (value: number, editor: InteractiveInkEditor) => {
           editor.overlays.updateConfig({ labelMaxChars: value })
         }
-      },
-      {
+      })
+    }
+
+    if (enabled("labelFontSize")) {
+      items.push({
         type: "range",
         id: `${idPrefix}-overlay-label-font-size`,
         label: "Label font size",
@@ -73,8 +100,8 @@ export class OverlayMenuAction extends SubMenuItem
         onChange: (value: number, editor: InteractiveInkEditor) => {
           editor.overlays.updateConfig({ labelFontSize: value })
         }
-      }
-    ]
+      })
+    }
 
     const config: IMenuSubMenu = {
       type: "submenu",

@@ -16,6 +16,18 @@ import { TMathEvaluable, TMathVariable, TMathVariableDefinition, TMathVariableDe
 import { LoggerCategory } from "@/logger"
 
 /**
+ * Configuration passed to {@link IIMathManager} at load time.
+ * Forwarded to the relevant sub-managers.
+ * @group Manager
+ */
+export type TMathConfig = {
+  /** Override defaults for the computation sub-manager (resultMode, autoCompute) */
+  computation?: Partial<TMathComputationConfig>
+  /** Override defaults for the variable/interaction sub-manager (showDependencyOnHover, highlightOnSelect, dimOpacity) */
+  interaction?: Partial<TMathInteractionConfig>
+}
+
+/**
  * Main Math manager that orchestrates all math-related sub-managers.
  *
  * Sub-managers:
@@ -34,12 +46,12 @@ export class IIMathManager extends IIAbstractManager
   #variables: IIMathVariableSubManager
   #evaluation: IIMathFunctionEvaluationSubManager
 
-  constructor(editor: InteractiveInkEditor)
+  constructor(editor: InteractiveInkEditor, config?: TMathConfig)
   {
     super(editor, LoggerCategory.MATH)
 
-    this.#computation = new IIMathComputationSubManager(editor)
-    this.#variables = new IIMathVariableSubManager(editor)
+    this.#computation = new IIMathComputationSubManager(editor, config?.computation)
+    this.#variables = new IIMathVariableSubManager(editor, config?.interaction)
     this.#evaluation = new IIMathFunctionEvaluationSubManager(editor)
 
     editor.event.addSynchronizedListener(() => {
