@@ -29,6 +29,8 @@ export interface IIMenuActionConfig {
   export?: boolean
   /** Enable/disable Import submenu */
   import?: boolean
+  /** Enable/disable Minimap toggle button */
+  minimap?: boolean
 }
 
 /**
@@ -48,5 +50,6 @@ export const defaultMenuActionConfig: Required<IIMenuActionConfig> = {
   overlay: true,
   selection: true,
   export: true,
-  import: true
+  import: true,
+  minimap: true
 }
