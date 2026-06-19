@@ -51,6 +51,11 @@ export abstract class IIEdgeBase<K = EdgeKind> extends IISymbolBase<SymbolType.E
 
   abstract get vertices(): TPoint[]
 
+  get resizePoints(): { point: TPoint, vertexIndex: number }[]
+  {
+    return this.vertices.map((point, vertexIndex) => ({ point, vertexIndex }))
+  }
+
   get bounds(): Box
   {
     const bb = Box.createFromPoints(this.vertices)
