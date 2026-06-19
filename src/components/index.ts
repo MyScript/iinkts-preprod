@@ -1,3 +1,4 @@
+export * from "./Minimap"
 export * from "./Modal"
 export * from "./Chart"
 export * from "./Table"
