@@ -81,6 +81,17 @@ export class IIEdgeArc extends IIEdgeBase<EdgeKind.Arc>
     ]
   }
 
+  override get resizePoints(): { point: TPoint, vertexIndex: number }[]
+  {
+    const v = this.vertices
+    const mid = Math.floor(v.length / 2)
+    return [
+      { point: v[0], vertexIndex: 0 },
+      { point: v[mid], vertexIndex: mid },
+      { point: v[v.length - 1], vertexIndex: v.length - 1 },
+    ]
+  }
+
   clone(): IIEdgeArc
   {
     const clone = new IIEdgeArc(
