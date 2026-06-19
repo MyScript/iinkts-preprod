@@ -1,4 +1,3 @@
-import { SvgElementRole } from "@/Constants"
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import
 {
@@ -12,13 +11,14 @@ import
   TIIShape,
   TPoint
 } from "@/symbol"
-import { computeAngleRadian, convertDegreeToRadian, convertRadianToDegree, computeRotatedPoint, TWO_PI } from "@/utils"
+import { computeAngleRadian, convertDegreeToRadian, convertRadianToDegree, TWO_PI } from "@/utils"
+import { MatrixTransform } from "@/transform"
 import { IIAbstractTransformManager } from "./AbstractTransformManager"
 
 /**
  * @group Manager
  */
-export class IIRotationManager extends IIAbstractTransformManager<[TPoint, number]>
+export class IIRotationManager extends IIAbstractTransformManager
 {
   protected managerName = "IIRotationManager"
   protected transformName = "rotate"
@@ -30,43 +30,30 @@ export class IIRotationManager extends IIAbstractTransformManager<[TPoint, numbe
     super(editor)
   }
 
-  protected applyToStroke(stroke: IIStroke, center: TPoint, angleRad: number): IIStroke
+  protected applyToStroke(stroke: IIStroke, matrix: MatrixTransform): IIStroke
   {
-    // NEW ARCHITECTURE: Skip solver outputs - they should be recalculated
     if (stroke.isSolverOutput) {
       this.logger.warn("applyToStroke", "Skipping solver output stroke - it will be recalculated", stroke.id)
       return stroke
     }
-
-    stroke.pointers.forEach(p =>
-    {
-      const { x, y } = computeRotatedPoint(p, center, angleRad)
-      p.x = x
-      p.y = y
-    })
-
+    this.applyMatrixToPoints(stroke.pointers, matrix)
     return stroke
   }
 
-  protected applyToShape(shape: TIIShape, center: TPoint, angleRad: number): TIIShape
+  protected applyToShape(shape: TIIShape, matrix: MatrixTransform): TIIShape
   {
     switch (shape.kind) {
       case ShapeKind.Ellipse: {
-        shape.center = computeRotatedPoint(shape.center, center, angleRad)
-        shape.orientation = (shape.orientation + angleRad) % TWO_PI
+        shape.center = matrix.applyToPoint(shape.center)
+        shape.orientation = (shape.orientation + MatrixTransform.rotation(matrix)) % TWO_PI
         return shape
       }
       case ShapeKind.Circle: {
-        shape.center = computeRotatedPoint(shape.center, center, angleRad)
+        shape.center = matrix.applyToPoint(shape.center)
         return shape
       }
       case ShapeKind.Polygon: {
-        shape.points.forEach(p =>
-        {
-          const { x, y } = computeRotatedPoint(p, center, angleRad)
-          p.x = x
-          p.y = y
-        })
+        this.applyMatrixToPoints(shape.points, matrix)
         return shape
       }
       default:
@@ -74,21 +61,21 @@ export class IIRotationManager extends IIAbstractTransformManager<[TPoint, numbe
     }
   }
 
-  protected applyToEdge(edge: TIIEdge, center: TPoint, angleRad: number): TIIEdge
+  protected applyToEdge(edge: TIIEdge, matrix: MatrixTransform): TIIEdge
   {
     switch (edge.kind) {
       case EdgeKind.Arc: {
-        edge.phi = (edge.phi - angleRad) % TWO_PI
-        edge.center = computeRotatedPoint(edge.center, center, angleRad)
+        edge.phi = (edge.phi - MatrixTransform.rotation(matrix)) % TWO_PI
+        edge.center = matrix.applyToPoint(edge.center)
         return edge
       }
       case EdgeKind.Line: {
-        edge.start = computeRotatedPoint(edge.start, center, angleRad)
-        edge.end = computeRotatedPoint(edge.end, center, angleRad)
+        edge.start = matrix.applyToPoint(edge.start)
+        edge.end = matrix.applyToPoint(edge.end)
         return edge
       }
       case EdgeKind.PolyEdge: {
-        edge.points = edge.points.map(p => computeRotatedPoint(p, center, angleRad))
+        edge.points = edge.points.map(p => matrix.applyToPoint(p))
         return edge
       }
       default:
@@ -96,29 +83,22 @@ export class IIRotationManager extends IIAbstractTransformManager<[TPoint, numbe
     }
   }
 
-  protected applyOnText(text: IIText, center: TPoint, angleRad: number): IIText
+  protected applyOnText(text: IIText, matrix: MatrixTransform): IIText
   {
     text.rotation = {
-      degree: convertRadianToDegree(angleRad) + (text.rotation?.degree || 0),
-      center: center
+      degree: convertRadianToDegree(MatrixTransform.rotation(matrix)) + (text.rotation?.degree || 0),
+      center: this.center
     }
     return this.editor.texter.updateBounds(text)
   }
 
-  protected applyOnMath(math: IIMath, center: TPoint, angleRad: number): IIMath
+  protected applyOnMath(math: IIMath, matrix: MatrixTransform): IIMath
   {
     math.rotation = {
-      degree: convertRadianToDegree(angleRad) + (math.rotation?.degree || 0),
-      center: center
+      degree: convertRadianToDegree(MatrixTransform.rotation(matrix)) + (math.rotation?.degree || 0),
+      center: this.center
     }
     return math
-  }
-
-  // applyOnRecognizedSymbol removed - recognized symbols no longer exist
-
-  setTransformOrigin(id: string, originX: number, originY: number): void
-  {
-    this.editor.renderer.setAttribute(id, "transform-origin", `${ originX }px ${ originY }px`)
   }
 
   rotateElement(id: string, degree: number): void
@@ -130,7 +110,7 @@ export class IIRotationManager extends IIAbstractTransformManager<[TPoint, numbe
   start(target: Element, origin: TPoint): void
   {
     this.logger.info("start", { target })
-    this.interactElementsGroup = (target.closest(`[role=${ SvgElementRole.InteractElementsGroup }]`) as unknown) as SVGGElement
+    this.interactElementsGroup = this.resolveInteractGroup(target)
     const boundingBox = Box.createFromPoints(this.model.symbolsSelected.flatMap(s => s.vertices))
 
     this.center = {
@@ -173,17 +153,11 @@ export class IIRotationManager extends IIAbstractTransformManager<[TPoint, numbe
     const angleDegree = this.continue(point)
     const angleRad = convertDegreeToRadian(angleDegree) % TWO_PI
     const oldSymbols = this.model.symbolsSelected.map(s => s.clone())
-    this.model.symbolsSelected.forEach(s =>
-    {
-      this.applyToSymbol(s, this.center, angleRad)
-      this.editor.renderer.drawSymbol(s)
-      this.model.updateSymbol(s)
-    })
+    const matrix = MatrixTransform.identity().rotate(angleRad, this.center)
+    this.applyAndDraw(this.model.symbolsSelected, matrix)
     const strokesFromSymbols = this.editor.extractStrokesFromSymbols(this.model.symbolsSelected)
     this.editor.recognizer.transformRotate(strokesFromSymbols.map(s => s.id), angleRad, this.center.x, this.center.y)
-    this.editor.history.push(this.model, { rotate: [{ symbols: oldSymbols, angle: angleRad, center: {...this.center}, }] })
-
-    this.interactElementsGroup = undefined
-    this.editor.overlays.apply()
+    this.editor.history.push(this.model, { rotate: [{ symbols: oldSymbols, angle: angleRad, center: {...this.center} }] })
+    this.finalizeTransform()
   }
 }

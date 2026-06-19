@@ -4,6 +4,7 @@ import type { InteractiveInkEditor } from "@/editor"
 import type { TGesture } from "@/manager/interactive/gestures/GestureTypes"
 import { GestureHandler } from "@/manager/interactive/gestures/GestureHandler"
 import type { GestureHelpers } from "@/manager/interactive/gestures/GestureHelpers"
+import { MatrixTransform } from "@/transform"
 
 /**
  * Handler for JOIN gesture type
@@ -54,7 +55,7 @@ export class JoinGestureHandler extends GestureHandler
 
       const lastSymbBeforeClone = lastSymbBefore.clone()
       const firstSymbolAfterClone = firstSymbolAfter.clone()
-      this.manager.translator.applyToSymbol(firstSymbolAfterClone, translateX, 0)
+      this.manager.translator.applyToSymbol(firstSymbolAfterClone, MatrixTransform.identity().translate(translateX, 0))
 
       if (isText(lastSymbBefore) && isText(firstSymbolAfter)) {
         const texts = [lastSymbBeforeClone as IIText, firstSymbolAfterClone as IIText]

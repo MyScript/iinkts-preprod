@@ -44,7 +44,8 @@ export default {
     "**/unit/**/**.test.ts"
   ],
   testPathIgnorePatterns: [
-    "/node_modules/"
+    "/node_modules/",
+    "/.claude/worktrees/"
   ],
   transform: {
     "^.+\\.css$": "jest-transform-css",
