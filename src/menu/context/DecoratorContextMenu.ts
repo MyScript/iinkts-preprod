@@ -4,6 +4,16 @@ import ArrowDown from "@/assets/svg/nav-arrow-down.svg"
 import { DecoratorKind, IIDecorator, IIText, isRecognizedMath, isText } from "@/symbol"
 import { DEFAULT_MENU_COLORS } from "@/menu/MenuConstants"
 
+/** @group Menu */
+export type TContextDecoratorItemsConfig = {
+  highlight?: boolean
+  surround?: boolean
+  underline?: boolean
+  strikethrough?: boolean
+}
+/** @group Menu */
+export type TContextDecoratorConfig = boolean | TContextDecoratorItemsConfig
+
 /**
  * @group Menu
  * @remarks Menu contextuel Decorator - Décore les symboles sélectionnés
@@ -13,8 +23,9 @@ export class DecoratorContextMenu extends BaseMenuItem<HTMLElement>
   #documentPointerdownHandler?: (e: PointerEvent) => void
   #subMenuPointerdownHandlers: Array<(e: PointerEvent) => void> = []
   protected declare config: TGenericMenuItem & { idPrefix: string }
+  #itemsConfig?: TContextDecoratorItemsConfig
 
-  constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-context")
+  constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-context", itemsConfig?: TContextDecoratorItemsConfig)
   {
     const config: TGenericMenuItem & { idPrefix: string } = {
       type: "custom",
@@ -23,6 +34,7 @@ export class DecoratorContextMenu extends BaseMenuItem<HTMLElement>
       idPrefix
     }
     super(config, editor)
+    this.#itemsConfig = itemsConfig
   }
 
   get symbolsDecorable(): IIText[]
@@ -174,6 +186,8 @@ export class DecoratorContextMenu extends BaseMenuItem<HTMLElement>
 
   createElement(): HTMLElement
   {
+    const enabled = (key: keyof TContextDecoratorItemsConfig) => this.#itemsConfig?.[key] !== false
+
     const trigger = document.createElement("button")
     trigger.id = this.config.id
     trigger.classList.add("ms-menu-button")
@@ -188,10 +202,11 @@ export class DecoratorContextMenu extends BaseMenuItem<HTMLElement>
 
     const subMenuWrapper = document.createElement("div")
     subMenuWrapper.classList.add("ms-menu-column")
-    subMenuWrapper.appendChild(this.createDecoratorSubMenu("Hightlight", DecoratorKind.Highlight))
-    subMenuWrapper.appendChild(this.createDecoratorSubMenu("Surround", DecoratorKind.Surround))
-    subMenuWrapper.appendChild(this.createDecoratorSubMenu("Underline", DecoratorKind.Underline))
-    subMenuWrapper.appendChild(this.createDecoratorSubMenu("Strikethrough", DecoratorKind.Strikethrough))
+
+    if (enabled("highlight")) subMenuWrapper.appendChild(this.createDecoratorSubMenu("Hightlight", DecoratorKind.Highlight))
+    if (enabled("surround")) subMenuWrapper.appendChild(this.createDecoratorSubMenu("Surround", DecoratorKind.Surround))
+    if (enabled("underline")) subMenuWrapper.appendChild(this.createDecoratorSubMenu("Underline", DecoratorKind.Underline))
+    if (enabled("strikethrough")) subMenuWrapper.appendChild(this.createDecoratorSubMenu("Strikethrough", DecoratorKind.Strikethrough))
 
     const wrapper = document.createElement("div")
     wrapper.classList.add("sub-menu")
@@ -231,7 +246,7 @@ export class DecoratorContextMenu extends BaseMenuItem<HTMLElement>
 
     const idPrefix = this.config.idPrefix
     const wrapper = this.getElement()
-    
+
     if (this.showDecorator && !this.hasSingleMathSymbol) {
       wrapper.style.removeProperty("display")
 

@@ -9,17 +9,74 @@ import {
   UndoRedoMenuAction,
   ZoomMenuAction,
   ConvertMenuAction,
-  GestureMenuAction,
-  GuideMenuAction,
-  SnapMenuAction,
-  MathMenuAction,
-  OverlayMenuAction,
-  SelectionMenuAction,
-  ExportMenuAction,
+  GestureMenuAction, TGestureActionConfig,
+  GuideMenuAction, TGuideActionConfig,
+  SnapMenuAction, TSnapActionConfig,
+  MathMenuAction, TMathActionConfig,
+  OverlayMenuAction, TOverlayActionConfig,
+  SelectionMenuAction, TSelectionActionConfig,
+  ExportMenuAction, TExportActionConfig,
   ImportMenuAction,
   MinimapMenuAction
 } from "./actions"
-import { IIMenuActionConfig, defaultMenuActionConfig } from "./IIMenuActionConfig"
+
+/**
+ * @group Menu
+ * @remarks Configuration to enable/disable each action menu individually.
+ * Sub-menus accept `boolean` to show/hide entirely, or an object to configure individual items.
+ */
+export interface IIMenuActionConfig {
+  /** Enable/disable Clear menu */
+  clear?: boolean
+  /** Enable/disable Language menu */
+  language?: boolean
+  /** Enable/disable Undo/Redo menus */
+  undoRedo?: boolean
+  /** Enable/disable Zoom menus */
+  zoom?: boolean
+  /** Enable/disable Convert menu */
+  convert?: boolean
+  /** Enable/disable Gesture submenu. Pass an object to configure individual gesture items. */
+  gesture?: TGestureActionConfig
+  /** Enable/disable Guide submenu. Pass an object to configure individual guide items. */
+  guide?: TGuideActionConfig
+  /** Enable/disable Snap submenu. Pass an object to configure individual snap items. */
+  snap?: TSnapActionConfig
+  /** Enable/disable Math submenu. Pass an object to configure individual math items. */
+  math?: TMathActionConfig
+  /** Enable/disable Overlay submenu. Pass an object to configure individual overlay items. */
+  overlay?: TOverlayActionConfig
+  /** Enable/disable Selection submenu. Pass an object to configure individual selection items. */
+  selection?: TSelectionActionConfig
+  /** Enable/disable Export submenu. Pass an object to configure individual export formats. */
+  export?: TExportActionConfig
+  /** Enable/disable Import submenu */
+  import?: boolean
+  /** Enable/disable Minimap toggle button */
+  minimap?: boolean
+}
+
+/** @group Menu */
+export const DefaultMenuActionConfig: Required<IIMenuActionConfig> = {
+  clear: true,
+  language: true,
+  undoRedo: true,
+  zoom: true,
+  convert: true,
+  gesture: true,
+  guide: true,
+  snap: true,
+  math: true,
+  overlay: true,
+  selection: true,
+  export: true,
+  import: true,
+  minimap: true
+}
+
+function extractSubConfig<T>(config: boolean | T): T | undefined {
+  return typeof config === "object" && config !== null ? config : undefined
+}
 
 /**
  * @group Menu
@@ -40,7 +97,7 @@ export class IIMenuAction
   {
     this.id = id
     this.editor = editor
-    this.config = { ...defaultMenuActionConfig, ...config }
+    this.config = { ...DefaultMenuActionConfig, ...config }
   }
 
   get model(): IIModel
@@ -68,37 +125,37 @@ export class IIMenuAction
       subMenuWrapper.classList.add("ms-menu-column")
 
       if (this.config.gesture) {
-        const gestureAction = new GestureMenuAction(this.editor, this.id)
+        const gestureAction = new GestureMenuAction(this.editor, this.id, extractSubConfig(this.config.gesture))
         this.menuActions.set("gesture", gestureAction)
         subMenuWrapper.appendChild(gestureAction.getElement())
       }
 
       if (this.config.guide) {
-        const guideAction = new GuideMenuAction(this.editor, this.id)
+        const guideAction = new GuideMenuAction(this.editor, this.id, extractSubConfig(this.config.guide))
         this.menuActions.set("guide", guideAction)
         subMenuWrapper.appendChild(guideAction.getElement())
       }
 
       if (this.config.snap) {
-        const snapAction = new SnapMenuAction(this.editor, this.id)
+        const snapAction = new SnapMenuAction(this.editor, this.id, extractSubConfig(this.config.snap))
         this.menuActions.set("snap", snapAction)
         subMenuWrapper.appendChild(snapAction.getElement())
       }
 
-      if (this.config.math) {
-        const mathAction = new MathMenuAction(this.editor, this.id)
+      if (this.config.math && this.editor.configuration.recognition["raw-content"].recognition?.types.includes("math")) {
+        const mathAction = new MathMenuAction(this.editor, this.id, extractSubConfig(this.config.math))
         this.menuActions.set("math", mathAction)
         subMenuWrapper.appendChild(mathAction.getElement())
       }
 
       if (this.config.overlay) {
-        const overlayAction = new OverlayMenuAction(this.editor, this.id)
+        const overlayAction = new OverlayMenuAction(this.editor, this.id, extractSubConfig(this.config.overlay))
         this.menuActions.set("overlay", overlayAction)
         subMenuWrapper.appendChild(overlayAction.getElement())
       }
 
       if (this.config.selection) {
-        const selectionAction = new SelectionMenuAction(this.editor, this.id)
+        const selectionAction = new SelectionMenuAction(this.editor, this.id, extractSubConfig(this.config.selection))
         this.menuActions.set("selection", selectionAction)
         subMenuWrapper.appendChild(selectionAction.getElement())
       }
@@ -110,7 +167,7 @@ export class IIMenuAction
       }
 
       if (this.config.export) {
-        const exportAction = new ExportMenuAction(this.editor, this.id)
+        const exportAction = new ExportMenuAction(this.editor, this.id, extractSubConfig(this.config.export))
         this.menuActions.set("export", exportAction)
         subMenuWrapper.appendChild(exportAction.getElement())
       }

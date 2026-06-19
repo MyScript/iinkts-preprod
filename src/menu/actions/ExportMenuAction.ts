@@ -2,14 +2,26 @@ import { InteractiveInkEditor } from "@/editor"
 import { SubMenuItem, IMenuSubMenu } from "@/menu/items/SubMenuItem"
 import downloadIcon from "@/assets/svg/download.svg"
 
+/** @group Menu */
+export type TExportActionItemsConfig = {
+  json?: boolean
+  svg?: boolean
+  png?: boolean
+  text?: boolean
+}
+/** @group Menu */
+export type TExportActionConfig = boolean | TExportActionItemsConfig
+
 /**
  * @group Menu
  * @remarks Menu action Export - Export en différents formats
  */
 export class ExportMenuAction extends SubMenuItem
 {
-  constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-action")
+  constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-action", itemsConfig?: TExportActionItemsConfig)
   {
+    const enabled = (key: keyof TExportActionItemsConfig) => itemsConfig?.[key] !== false
+
     const config: IMenuSubMenu = {
       type: "submenu",
       id: `${idPrefix}-export`,
@@ -17,32 +29,20 @@ export class ExportMenuAction extends SubMenuItem
       menuTitle: "Export",
       icon: downloadIcon,
       position: "right-top",
-      items: [
-        {
-          type: "button",
-          id: `${idPrefix}-export-json`,
-          label: "JSON",
-          action: (editor) => editor.downloadAsJson()
-        },
-        {
-          type: "button",
-          id: `${idPrefix}-export-svg`,
-          label: "SVG",
-          action: (editor) => editor.downloadAsSVG()
-        },
-        {
-          type: "button",
-          id: `${idPrefix}-export-png`,
-          label: "PNG",
-          action: (editor) => editor.downloadAsPNG()
-        },
-        {
-          type: "button",
-          id: `${idPrefix}-export-text`,
-          label: "Text",
-          action: (editor) => editor.downloadAsText()
-        }
-      ]
+      items: []
+    }
+
+    if (enabled("json")) {
+      config.items.push({ type: "button", id: `${idPrefix}-export-json`, label: "JSON", action: (e) => e.downloadAsJson() })
+    }
+    if (enabled("svg")) {
+      config.items.push({ type: "button", id: `${idPrefix}-export-svg`, label: "SVG", action: (e) => e.downloadAsSVG() })
+    }
+    if (enabled("png")) {
+      config.items.push({ type: "button", id: `${idPrefix}-export-png`, label: "PNG", action: (e) => e.downloadAsPNG() })
+    }
+    if (enabled("text")) {
+      config.items.push({ type: "button", id: `${idPrefix}-export-text`, label: "Text", action: (e) => e.downloadAsText() })
     }
 
     super(config, editor)
