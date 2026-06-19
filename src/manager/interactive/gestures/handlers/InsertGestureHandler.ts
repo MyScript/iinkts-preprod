@@ -6,6 +6,7 @@ import type { TGesture } from "../GestureTypes"
 import { InsertAction } from "../GestureTypes"
 import { GestureHandler } from "../GestureHandler"
 import type { GestureHelpers } from "../GestureHelpers"
+import { MatrixTransform } from "@/transform"
 
 /**
  * Handler for INSERT gesture type
@@ -80,7 +81,7 @@ export class InsertGestureHandler extends GestureHandler
 
     if (newStrokes[1]) {
       after = newStrokes[1]
-      this.translator.applyToSymbol(after, this.strokeSpaceWidth, 0)
+      this.translator.applyToSymbol(after, MatrixTransform.identity().translate(this.strokeSpaceWidth, 0))
     }
     return {
       before: newStrokes[0],

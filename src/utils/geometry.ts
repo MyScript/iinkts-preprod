@@ -154,6 +154,22 @@ export function computePointOnEllipse(center: TPoint, radiusX: number, radiusY: 
 }
 
 /**
+ * Inverse of computePointOnEllipse: compute angle θ such that the point on the ellipse
+ * nearest to the given position corresponds to that angle. Projects the point onto the ellipse.
+ * @group Utilities
+ */
+export function computeAngleFromPointOnEllipse(center: TPoint, radiusX: number, radiusY: number, phi: number, point: TPoint): number
+{
+  const dx = point.x - center.x
+  const dy = point.y - center.y
+  const cosPhi = Math.cos(phi)
+  const sinPhi = Math.sin(phi)
+  const rotatedX = cosPhi * dx + sinPhi * dy
+  const rotatedY = -sinPhi * dx + cosPhi * dy
+  return Math.atan2(rotatedY / radiusY, rotatedX / radiusX)
+}
+
+/**
  * @group Utilities
  */
 export function computeDistanceBetweenPointAndSegment(p: TPoint, seg: TSegment): number

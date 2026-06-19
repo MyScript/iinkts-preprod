@@ -1,4 +1,4 @@
-import { InteractiveInkEditorMock } from "../../__mocks__/InteractiveInkEditorMock"
+import { InteractiveInkEditorMock } from "../../../__mocks__/InteractiveInkEditorMock"
 import
 {
   IIEdgeLine,
@@ -10,7 +10,8 @@ import
   TPoint,
   computeRotatedPoint,
   convertDegreeToRadian,
-} from "../../../../src/iink"
+} from "../../../../../src/iink"
+import { MatrixTransform } from "../../../../../src/transform"
 
 describe("IIRotationManager.ts", () =>
 {
@@ -40,7 +41,8 @@ describe("IIRotationManager.ts", () =>
       //@ts-ignore
       poly.kind = "pouet"
       const origin: TPoint = { x: 0, y: 0 }
-      expect(() => manager.applyToSymbol(poly, origin, Math.PI / 2)).toThrow(expect.objectContaining({ message: expect.stringContaining("Can't apply rotate on shape, kind unknown: ") }))
+      const matrix = MatrixTransform.identity().rotate(Math.PI / 2, origin)
+      expect(() => manager.applyToSymbol(poly, matrix)).toThrow(expect.objectContaining({ message: expect.stringContaining("Can't apply rotate on shape, kind unknown: ") }))
     })
     test("rotate stroke", () =>
     {
@@ -48,12 +50,12 @@ describe("IIRotationManager.ts", () =>
       const origin: TPoint = { x: 0, y: 0 }
       stroke.addPointer({ p: 1, t: 1, x: 1, y: 1 })
       stroke.addPointer({ p: 1, t: 10, x: 10, y: 0 })
-      manager.applyToSymbol(stroke, origin, Math.PI / 2)
+      const matrix = MatrixTransform.identity().rotate(Math.PI / 2, origin)
+      manager.applyToSymbol(stroke, matrix)
       expect(stroke.pointers[0].x.toFixed(0)).toEqual("-1")
       expect(stroke.pointers[0].y.toFixed(0)).toEqual("1")
       expect(stroke.pointers[1].x.toFixed(0)).toEqual("0")
       expect(stroke.pointers[1].y.toFixed(0)).toEqual("10")
-
     })
     test("rotate shape Circle", () =>
     {
@@ -61,7 +63,8 @@ describe("IIRotationManager.ts", () =>
       const radius = 4
       const circle = new IIShapeCircle(center, radius)
       const origin: TPoint = { x: 1, y: 2 }
-      manager.applyToSymbol(circle, origin, Math.PI / 2)
+      const matrix = MatrixTransform.identity().rotate(Math.PI / 2, origin)
+      manager.applyToSymbol(circle, matrix)
       expect(circle.radius).toEqual(radius)
       expect(circle.center).toEqual({ x: -2, y: 6 })
     })
@@ -71,7 +74,8 @@ describe("IIRotationManager.ts", () =>
       const end: TPoint = { x: 0, y: 5 }
       const line = new IIEdgeLine(start, end)
       const origin: TPoint = { x: 0, y: 0 }
-      manager.applyToSymbol(line, origin, Math.PI / 2)
+      const matrix = MatrixTransform.identity().rotate(Math.PI / 2, origin)
+      manager.applyToSymbol(line, matrix)
       expect(line.start.x.toFixed(0)).toEqual("0")
       expect(line.start.y.toFixed(0)).toEqual("0")
       expect(line.end.x.toFixed(0)).toEqual("-5")
