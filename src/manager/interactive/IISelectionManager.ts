@@ -1,5 +1,6 @@
 import { ResizeDirection, SELECTION_MARGIN, SvgElementRole } from "@/Constants"
-import { Box, IIDecorator, IIStroke, SymbolType, TBox, TIIEdge, TIISymbol, TPoint, isDecorator, isRecognizedMath, isEdge } from "@/symbol"
+import { Box, EdgeKind, IIDecorator, IIEdgeArc, IIStroke, SymbolType, TBox, TIIEdge, TIISymbol, TPoint, isDecorator, isRecognizedMath, isEdge } from "@/symbol"
+import { computeAngleFromPointOnEllipse, computeDistance } from "@/utils"
 import { SVGBuilder } from "@/renderer"
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import { PointerEventGrabber, PointerInfo } from "@/grabber"
@@ -420,12 +421,88 @@ export class IISelectionManager extends IIAbstractManager
         this.renderer.layer.addEventListener("pointerup", endHandler)
       })
     }
-    edge.vertices.forEach((p, i) =>
-    {
-      const pointEl = SVGBuilder.createCircle(p, radius, attrs)
-      bindEl(pointEl, i)
-      group.appendChild(pointEl)
-    })
+    if (edge.kind === EdgeKind.Arc) {
+      const arc = edge as IIEdgeArc
+      const bindArcEl = (el: SVGCircleElement, isStart: boolean, isEnd: boolean) =>
+      {
+        const updateArc = (x: number, y: number) =>
+        {
+          if (isStart) {
+            const endAngle = arc.startAngle + arc.sweepAngle
+            arc.startAngle = computeAngleFromPointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, { x, y })
+            arc.sweepAngle = endAngle - arc.startAngle
+          } else if (isEnd) {
+            const newEndAngle = computeAngleFromPointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, { x, y })
+            arc.sweepAngle = newEndAngle - arc.startAngle
+          } else {
+            const midVertex = arc.vertices[Math.floor(arc.vertices.length / 2)]
+            const oldDist = computeDistance(arc.center, midVertex)
+            const newDist = computeDistance(arc.center, { x, y })
+            if (oldDist > 0) {
+              const scale = newDist / oldDist
+              arc.radiusX *= scale
+              arc.radiusY *= scale
+            }
+          }
+        }
+        const handler = (ev: PointerEvent) =>
+        {
+          ev.preventDefault()
+          ev.stopPropagation()
+          const point = this.getPoint(ev)
+          const { x, y } = this.editor.snaps.snapResize(point)
+          updateArc(x, y)
+          this.model.updateSymbol(arc)
+          this.renderer.drawSymbol(arc)
+        }
+        const endHandler = (ev: PointerEvent) =>
+        {
+          ev.preventDefault()
+          ev.stopPropagation()
+          const point = this.getPoint(ev)
+          const { x, y } = this.editor.snaps.snapResize(point)
+          updateArc(x, y)
+          this.renderer.layer.style.cursor = ""
+          this.editor.updateSymbol(arc)
+          this.renderer.layer.removeEventListener("pointermove", handler)
+          this.renderer.layer.removeEventListener("pointercancel", endHandler)
+          this.renderer.layer.removeEventListener("pointerleave", endHandler)
+          this.renderer.layer.removeEventListener("pointerup", endHandler)
+          this.editor.snaps.clearSnapToElementLines()
+          this.resetSelectedGroup(this.model.symbolsSelected)
+        }
+        el.addEventListener("pointerdown", (ev) =>
+        {
+          if (ev.button !== 0 || ev.buttons !== 1) {
+            return
+          }
+          this.renderer.layer.style.cursor = "grabbing"
+          this.hideInteractElements()
+          ev.preventDefault()
+          ev.stopPropagation()
+          this.renderer.layer.addEventListener("pointermove", handler)
+          this.renderer.layer.addEventListener("pointercancel", endHandler)
+          this.renderer.layer.addEventListener("pointerleave", endHandler)
+          this.renderer.layer.addEventListener("pointerup", endHandler)
+        })
+      }
+      arc.resizePoints.forEach(({ point, vertexIndex }) =>
+      {
+        const initialVertexCount = arc.vertices.length
+        const isStart = vertexIndex === 0
+        const isEnd = vertexIndex === initialVertexCount - 1
+        const pointEl = SVGBuilder.createCircle(point, radius, attrs)
+        bindArcEl(pointEl, isStart, isEnd)
+        group.appendChild(pointEl)
+      })
+    } else {
+      edge.resizePoints.forEach(({ point, vertexIndex }) =>
+      {
+        const pointEl = SVGBuilder.createCircle(point, radius, attrs)
+        bindEl(pointEl, vertexIndex)
+        group.appendChild(pointEl)
+      })
+    }
 
     return group
   }
