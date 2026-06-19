@@ -7,6 +7,7 @@ import { DefaultMenuConfiguration, TMenuConfiguration } from "@/menu"
 import { DefaultRecognizerWebSocketConfiguration, RecognizerWebSocketConfiguration, TRecognitionWebSocketConfiguration, TRecognizerWebSocketConfiguration, TServerWebsocketConfiguration } from "@/recognizer"
 import { DefaultIIRendererConfiguration, TIIRendererConfiguration } from "@/renderer"
 import { DefaultGestureConfiguration, TGestureConfiguration, DefaultSnapConfiguration, SnapConfiguration, TSnapConfiguration, DefaultOverlayConfig, TOverlayConfig } from "@/manager"
+import type { TMathConfig } from "@/manager"
 import { TEditorConfiguration } from "@/editor/AbstractEditor"
 
 /**
@@ -46,6 +47,8 @@ export type TInteractiveInkEditorConfiguration = TEditorConfiguration & TRecogni
   textSelectionLevel: TTextSelectionLevel
   mathSelectionLevel: TMathSelectionLevel
   shapeSelectionLevel: TShapeSelectionLevel
+  /** Math manager configuration (computation behavior and visual interactions) */
+  math: TMathConfig
 }
 
 /**
@@ -72,6 +75,7 @@ export const DefaultInteractiveInkEditorConfiguration: TInteractiveInkEditorConf
   textSelectionLevel: "element",
   mathSelectionLevel: "element",
   shapeSelectionLevel: "element",
+  math: {},
 }
 
 /**
@@ -98,6 +102,7 @@ export class InteractiveInkEditorConfiguration implements TInteractiveInkEditorC
   textSelectionLevel: TTextSelectionLevel
   mathSelectionLevel: TMathSelectionLevel
   shapeSelectionLevel: TShapeSelectionLevel
+  math: TMathConfig
 
   constructor(configuration?: PartialDeep<TInteractiveInkEditorConfiguration>)
   {
@@ -139,5 +144,6 @@ export class InteractiveInkEditorConfiguration implements TInteractiveInkEditorC
     this.textSelectionLevel = configuration?.textSelectionLevel ?? DefaultInteractiveInkEditorConfiguration.textSelectionLevel
     this.mathSelectionLevel = configuration?.mathSelectionLevel ?? DefaultInteractiveInkEditorConfiguration.mathSelectionLevel
     this.shapeSelectionLevel = configuration?.shapeSelectionLevel ?? DefaultInteractiveInkEditorConfiguration.shapeSelectionLevel
+    this.math = mergeDeep({}, DefaultInteractiveInkEditorConfiguration.math, configuration?.math)
   }
 }
