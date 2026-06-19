@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Menu Configuration</title>
+    <link rel="stylesheet" href="../assets/style/reset.css" />
+    <link rel="stylesheet" href="../assets/style/components.css" />
+    <link rel="stylesheet" href="../assets/style/examples.css" />
+    <style>
+      body {
+        display: flex;
+        flex-direction: column;
+        height: 100dvh;
+        overflow: hidden;
+      }
+
+      .layout {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+      }
+
+      #editorEl {
+        flex: 1;
+        min-width: 0;
+        height: 100%;
+      }
+
+      /* Config panel */
+      #config-panel {
+        width: 280px;
+        min-width: 240px;
+        overflow-y: auto;
+        background: #f8f9fa;
+        border-left: 1px solid #dee2e6;
+        padding: 12px;
+        font-size: 13px;
+      }
+
+      #config-panel h2 {
+        font-size: 14px;
+        font-weight: 700;
+        margin: 0 0 10px;
+        color: #333;
+      }
+
+      .config-section {
+        margin-bottom: 12px;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        overflow: hidden;
+      }
+
+      .config-section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 10px;
+        background: #e9ecef;
+        cursor: pointer;
+        user-select: none;
+        font-weight: 600;
+        color: #495057;
+      }
+
+      .config-section-header:hover {
+        background: #dee2e6;
+      }
+
+      .config-section-body {
+        padding: 8px 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .config-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 2px 0;
+      }
+
+      .config-row label {
+        color: #495057;
+        cursor: pointer;
+        flex: 1;
+      }
+
+      .config-subsection {
+        margin-left: 12px;
+        border-left: 2px solid #dee2e6;
+        padding-left: 8px;
+        margin-top: 2px;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+
+      .config-subsection-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: #868e96;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin: 4px 0 2px;
+      }
+
+      /* Toggle switch */
+      .toggle {
+        position: relative;
+        width: 34px;
+        height: 18px;
+        flex-shrink: 0;
+      }
+
+      .toggle input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      .toggle-slider {
+        position: absolute;
+        inset: 0;
+        background: #ced4da;
+        border-radius: 18px;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+
+      .toggle-slider::before {
+        content: "";
+        position: absolute;
+        width: 12px;
+        height: 12px;
+        left: 3px;
+        top: 3px;
+        background: white;
+        border-radius: 50%;
+        transition: 0.2s;
+      }
+
+      .toggle input:checked + .toggle-slider {
+        background: #4c6ef5;
+      }
+
+      .toggle input:checked + .toggle-slider::before {
+        transform: translateX(16px);
+      }
+
+      .toggle input:disabled + .toggle-slider {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+
+      /* Global action buttons */
+      .panel-actions {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 12px;
+      }
+
+      .panel-actions button {
+        flex: 1;
+        padding: 6px;
+        font-size: 12px;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        background: white;
+        cursor: pointer;
+      }
+
+      .panel-actions button:hover {
+        background: #e9ecef;
+      }
+    </style>
+  </head>
+
+  <body>
+    <header class="header-main">
+      <button id="showModalBtn" class="btn-keys">Change server configuration</button>
+      <h1 class="header-title">Menu Configuration</h1>
+    </header>
+
+    <div class="layout">
+      <div id="editorEl"></div>
+
+      <div id="config-panel">
+        <h2>Menu Configuration</h2>
+
+        <div class="panel-actions">
+          <button id="btn-enable-all">Enable all</button>
+          <button id="btn-disable-all">Disable all</button>
+        </div>
+
+        <!-- Action menu section -->
+        <div class="config-section">
+          <div class="config-section-header">
+            <span>Action menu</span>
+            <label class="toggle" onclick="event.stopPropagation()">
+              <input type="checkbox" id="toggle-action-enable" checked />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="config-section-body">
+            <div class="config-row">
+              <label>Clear</label>
+              <label class="toggle"><input type="checkbox" id="toggle-action-clear" checked /><span class="toggle-slider"></span></label>
+            </div>
+            <div class="config-row">
+              <label>Undo / Redo</label>
+              <label class="toggle"><input type="checkbox" id="toggle-action-undoRedo" checked /><span class="toggle-slider"></span></label>
+            </div>
+            <div class="config-row">
+              <label>Convert</label>
+              <label class="toggle"><input type="checkbox" id="toggle-action-convert" checked /><span class="toggle-slider"></span></label>
+            </div>
+            <div class="config-row">
+              <label>Language</label>
+              <label class="toggle"><input type="checkbox" id="toggle-action-language" checked /><span class="toggle-slider"></span></label>
+            </div>
+            <div class="config-row">
+              <label>Zoom</label>
+              <label class="toggle"><input type="checkbox" id="toggle-action-zoom" checked /><span class="toggle-slider"></span></label>
+            </div>
+            <div class="config-row">
+              <label>Minimap</label>
+              <label class="toggle"><input type="checkbox" id="toggle-action-minimap" checked /><span class="toggle-slider"></span></label>
+            </div>
+            <div class="config-row">
+              <label>Import</label>
+              <label class="toggle"><input type="checkbox" id="toggle-action-import" checked /><span class="toggle-slider"></span></label>
+            </div>
+
+            <!-- Export sub-menu -->
+            <div class="config-row">
+              <label><strong>Export</strong></label>
+              <label class="toggle"><input type="checkbox" id="toggle-action-export" checked /><span class="toggle-slider"></span></label>
+            </div>
+            <div class="config-subsection" id="subsection-export">
+              <span class="config-subsection-label">Formats</span>
+              <div class="config-row"><label>JSON</label><label class="toggle"><input type="checkbox" id="toggle-export-json" checked /><span class="toggle-slider"></span></label></div>
+              <div class="config-row"><label>SVG</label><label class="toggle"><input type="checkbox" id="toggle-export-svg" checked /><span class="toggle-slider"></span></label></div>
+              <div class="config-row"><label>PNG</label><label class="toggle"><input type="checkbox" id="toggle-export-png" checked /><span class="toggle-slider"></span></label></div>
+              <div class="config-row"><label>Text</label><label class="toggle"><input type="checkbox" id="toggle-export-text" checked /><span class="toggle-slider"></span></label></div>
+            </div>
+
+            <!-- Gesture sub-menu -->
+            <div class="config-row">
+              <label><strong>Gesture</strong></label>
+              <label class="toggle"><input type="checkbox" id="toggle-action-gesture" checked /><span class="toggle-slider"></span></label>
+            </div>
+            <div class="config-subsection" id="subsection-gesture">
+              <div class="config-row"><label>Detect gesture</label><label class="toggle"><input type="checkbox" id="toggle-gesture-detect" checked /><span class="toggle-slider"></span></label></div>
+              <div class="config-row"><label>On surround</label><label class="toggle"><input type="checkbox" id="toggle-gesture-surround" checked /><span class="toggle-slider"></span></label></div>
+              <div class="config-row"><label>On strikethrough</label><label class="toggle"><input type="checkbox" id="toggle-gesture-strikethrough" checked /><span class="toggle-slider"></span></label></div>
+              <div class="config-row"><label>On underline</label><label class="toggle"><input type="checkbox" id="toggle-gesture-underline" checked /><span class="toggle-slider"></span></label></div>
+              <div class="config-row"><label>On insert</label><label class="toggle"><input type="checkbox" id="toggle-gesture-insert" checked /><span class="toggle-slider"></span></label></div>
+            </div>
+
+            <!-- Guide sub-menu -->
+            <div class="config-row">
+              <label><strong>Guide</strong></label>
+              <label class="toggle"><input type="checkbox" id="toggle-action-guide" checked /><span class="toggle-slider"></span></label>
+            </div>
+            <div class="config-subsection" id="subsection-guide">
+              <div class="config-row"><label>Show guide</label><label class="toggle"><input type="checkbox" id="toggle-guide-enable" checked /><span class="toggle-slider"></span></label></div>
+              <div class="config-row"><label>Guide style</label><label class="toggle"><input type="checkbox" id="toggle-guide-type" checked /><span class="toggle-slider"></span></label></div>
+              <div class="config-row"><label>Guide size</label><label class="toggle"><input type="checkbox" id="toggle-guide-size" checked /><span class="toggle-slider"></span></label></div>
+            </div>
+
+            <!-- Snap sub-menu -->
+            <div class="config-row">
+              <label><strong>Snap</strong></label>
+              <label class="toggle"><input type="checkbox" id="toggle-action-snap" checked /><span class="toggle-slider"></span></label>
+            </div>
+            <div class="config-subsection" id="subsection-snap">
+              <div class="config-row"><label>Snap to guide</label><label class="toggle"><input type="checkbox" id="toggle-snap-guide" checked /><span class="toggle-slider"></span></label></div>
+              <div class="config-row"><label>Snap to element</label><label class="toggle"><input type="checkbox" id="toggle-snap-element" checked /><span class="toggle-slider"></span></label></div>
+              <div class="config-row"><label>Snap angle</label><label class="toggle"><input type="checkbox" id="toggle-snap-angle" checked /><span class="toggle-slider"></span></label></div>
+            </div>
+
+            <!-- Math sub-menu -->
+            <div class="config-row">
+              <label><strong>Math</strong></label>
+              <label class="toggle"><input type="checkbox" id="toggle-action-math" checked /><span class="toggle-slider"></span></label>
+            </div>
+            <div class="config-subsection" id="subsection-math">
+              <div class="config-row"><label>Auto-compute</label><label class="toggle"><input type="checkbox" id="toggle-math-autoCompute" checked /><span class="toggle-slider"></span></label></div>
+              <div class="config-row"><label>Result mode</label><label class="toggle"><input type="checkbox" id="toggle-math-resultMode" checked /><span class="toggle-slider"></span></label></div>
+              <div class="config-row"><label>Show dependencies</label><label class="toggle"><input type="checkbox" id="toggle-math-showDependencies" checked /><span class="toggle-slider"></span></label></div>
+              <div class="config-row"><label>Highlight on select</label><label class="toggle"><input type="checkbox" id="toggle-math-highlightOnSelect" checked /><span class="toggle-slider"></span></label></div>
+              <div class="config-row"><label>Edit variables</label><label class="toggle"><input type="checkbox" id="toggle-math-editVariables" checked /><span class="toggle-slider"></span></label></div>
+              <div class="config-row"><label>Capabilities</label><label class="toggle"><input type="checkbox" id="toggle-math-capabilities" checked /><span class="toggle-slider"></span></label></div>
+            </div>
+
+            <!-- Overlay sub-menu -->
+            <div class="config-row">
+              <label><strong>Overlay</strong></label>
+              <label class="toggle"><input type="checkbox" id="toggle-action-overlay" checked /><span class="toggle-slider"></span></label>
+            </div>
+            <div class="config-subsection" id="subsection-overlay">
+              <div class="config-row"><label>Show block overlays</label><label class="toggle"><input type="checkbox" id="toggle-overlay-showBlockOverlays" checked /><span class="toggle-slider"></span></label></div>
+              <div class="config-row"><label>Badge size</label><label class="toggle"><input type="checkbox" id="toggle-overlay-badgeSize" checked /><span class="toggle-slider"></span></label></div>
+              <div class="config-row"><label>Border width</label><label class="toggle"><input type="checkbox" id="toggle-overlay-borderWidth" checked /><span class="toggle-slider"></span></label></div>
+              <div class="config-row"><label>Label max chars</label><label class="toggle"><input type="checkbox" id="toggle-overlay-labelMaxChars" checked /><span class="toggle-slider"></span></label></div>
+              <div class="config-row"><label>Label font size</label><label class="toggle"><input type="checkbox" id="toggle-overlay-labelFontSize" checked /><span class="toggle-slider"></span></label></div>
+            </div>
+
+            <!-- Selection sub-menu -->
+            <div class="config-row">
+              <label><strong>Selection</strong></label>
+              <label class="toggle"><input type="checkbox" id="toggle-action-selection" checked /><span class="toggle-slider"></span></label>
+            </div>
+            <div class="config-subsection" id="subsection-selection">
+              <div class="config-row"><label>Text level</label><label class="toggle"><input type="checkbox" id="toggle-selection-text" checked /><span class="toggle-slider"></span></label></div>
+              <div class="config-row"><label>Math level</label><label class="toggle"><input type="checkbox" id="toggle-selection-math" checked /><span class="toggle-slider"></span></label></div>
+              <div class="config-row"><label>Shape level</label><label class="toggle"><input type="checkbox" id="toggle-selection-shape" checked /><span class="toggle-slider"></span></label></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tool menu section -->
+        <div class="config-section">
+          <div class="config-section-header">
+            <span>Tool menu</span>
+            <label class="toggle" onclick="event.stopPropagation()">
+              <input type="checkbox" id="toggle-tool-enable" checked />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="config-section-body">
+            <div class="config-row"><label>Write</label><label class="toggle"><input type="checkbox" id="toggle-tool-write" checked /><span class="toggle-slider"></span></label></div>
+            <div class="config-row"><label>Move</label><label class="toggle"><input type="checkbox" id="toggle-tool-move" checked /><span class="toggle-slider"></span></label></div>
+            <div class="config-row"><label>Select</label><label class="toggle"><input type="checkbox" id="toggle-tool-select" checked /><span class="toggle-slider"></span></label></div>
+            <div class="config-row"><label>Erase</label><label class="toggle"><input type="checkbox" id="toggle-tool-erase" checked /><span class="toggle-slider"></span></label></div>
+            <div class="config-row"><label>Shape</label><label class="toggle"><input type="checkbox" id="toggle-tool-shape" checked /><span class="toggle-slider"></span></label></div>
+            <div class="config-row"><label>Edge</label><label class="toggle"><input type="checkbox" id="toggle-tool-edge" checked /><span class="toggle-slider"></span></label></div>
+          </div>
+        </div>
+
+        <!-- Style menu section -->
+        <div class="config-section">
+          <div class="config-section-header">
+            <span>Style menu</span>
+            <label class="toggle" onclick="event.stopPropagation()">
+              <input type="checkbox" id="toggle-style-enable" checked />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="config-section-body">
+            <div class="config-row"><label>Stroke color</label><label class="toggle"><input type="checkbox" id="toggle-style-strokeColor" checked /><span class="toggle-slider"></span></label></div>
+            <div class="config-row"><label>Fill color</label><label class="toggle"><input type="checkbox" id="toggle-style-fillColor" checked /><span class="toggle-slider"></span></label></div>
+            <div class="config-row"><label>Thickness</label><label class="toggle"><input type="checkbox" id="toggle-style-thickness" checked /><span class="toggle-slider"></span></label></div>
+            <div class="config-row"><label>Font size</label><label class="toggle"><input type="checkbox" id="toggle-style-fontSize" checked /><span class="toggle-slider"></span></label></div>
+            <div class="config-row"><label>Font weight</label><label class="toggle"><input type="checkbox" id="toggle-style-fontWeight" checked /><span class="toggle-slider"></span></label></div>
+            <div class="config-row"><label>Opacity</label><label class="toggle"><input type="checkbox" id="toggle-style-opacity" checked /><span class="toggle-slider"></span></label></div>
+          </div>
+        </div>
+
+        <!-- Context menu section -->
+        <div class="config-section">
+          <div class="config-section-header">
+            <span>Context menu</span>
+            <label class="toggle" onclick="event.stopPropagation()">
+              <input type="checkbox" id="toggle-context-enable" checked />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="config-section-body">
+            <div class="config-row"><label>Edit text</label><label class="toggle"><input type="checkbox" id="toggle-context-edit" checked /><span class="toggle-slider"></span></label></div>
+            <div class="config-row"><label>Convert</label><label class="toggle"><input type="checkbox" id="toggle-context-convert" checked /><span class="toggle-slider"></span></label></div>
+            <div class="config-row"><label>Duplicate</label><label class="toggle"><input type="checkbox" id="toggle-context-duplicate" checked /><span class="toggle-slider"></span></label></div>
+            <div class="config-row"><label>Remove</label><label class="toggle"><input type="checkbox" id="toggle-context-remove" checked /><span class="toggle-slider"></span></label></div>
+            <div class="config-row"><label>Select all</label><label class="toggle"><input type="checkbox" id="toggle-context-selectAll" checked /><span class="toggle-slider"></span></label></div>
+
+            <!-- Context export -->
+            <div class="config-row">
+              <label><strong>Export</strong></label>
+              <label class="toggle"><input type="checkbox" id="toggle-context-export" checked /><span class="toggle-slider"></span></label>
+            </div>
+            <div class="config-subsection">
+              <div class="config-row"><label>JSON</label><label class="toggle"><input type="checkbox" id="toggle-ctx-export-json" checked /><span class="toggle-slider"></span></label></div>
+              <div class="config-row"><label>SVG</label><label class="toggle"><input type="checkbox" id="toggle-ctx-export-svg" checked /><span class="toggle-slider"></span></label></div>
+              <div class="config-row"><label>PNG</label><label class="toggle"><input type="checkbox" id="toggle-ctx-export-png" checked /><span class="toggle-slider"></span></label></div>
+              <div class="config-row"><label>Text</label><label class="toggle"><input type="checkbox" id="toggle-ctx-export-text" checked /><span class="toggle-slider"></span></label></div>
+            </div>
+
+            <!-- Decorator -->
+            <div class="config-row">
+              <label><strong>Decorator</strong></label>
+              <label class="toggle"><input type="checkbox" id="toggle-context-decorator" checked /><span class="toggle-slider"></span></label>
+            </div>
+            <div class="config-subsection">
+              <div class="config-row"><label>Highlight</label><label class="toggle"><input type="checkbox" id="toggle-deco-highlight" checked /><span class="toggle-slider"></span></label></div>
+              <div class="config-row"><label>Surround</label><label class="toggle"><input type="checkbox" id="toggle-deco-surround" checked /><span class="toggle-slider"></span></label></div>
+              <div class="config-row"><label>Underline</label><label class="toggle"><input type="checkbox" id="toggle-deco-underline" checked /><span class="toggle-slider"></span></label></div>
+              <div class="config-row"><label>Strikethrough</label><label class="toggle"><input type="checkbox" id="toggle-deco-strikethrough" checked /><span class="toggle-slider"></span></label></div>
+            </div>
+
+            <!-- Reorder -->
+            <div class="config-row">
+              <label><strong>Reorder</strong></label>
+              <label class="toggle"><input type="checkbox" id="toggle-context-reorder" checked /><span class="toggle-slider"></span></label>
+            </div>
+            <div class="config-subsection">
+              <div class="config-row"><label>Bring to front</label><label class="toggle"><input type="checkbox" id="toggle-reorder-front" checked /><span class="toggle-slider"></span></label></div>
+              <div class="config-row"><label>Bring forward</label><label class="toggle"><input type="checkbox" id="toggle-reorder-forward" checked /><span class="toggle-slider"></span></label></div>
+              <div class="config-row"><label>Send backward</label><label class="toggle"><input type="checkbox" id="toggle-reorder-backward" checked /><span class="toggle-slider"></span></label></div>
+              <div class="config-row"><label>Send to back</label><label class="toggle"><input type="checkbox" id="toggle-reorder-back" checked /><span class="toggle-slider"></span></label></div>
+            </div>
+
+            <!-- Context math -->
+            <div class="config-row">
+              <label><strong>Math</strong></label>
+              <label class="toggle"><input type="checkbox" id="toggle-context-math" checked /><span class="toggle-slider"></span></label>
+            </div>
+            <div class="config-subsection">
+              <div class="config-row"><label>Check diagnostic</label><label class="toggle"><input type="checkbox" id="toggle-ctx-math-checkDiagnostic" checked /><span class="toggle-slider"></span></label></div>
+              <div class="config-row"><label>Edit variables</label><label class="toggle"><input type="checkbox" id="toggle-ctx-math-editVariables" checked /><span class="toggle-slider"></span></label></div>
+              <div class="config-row"><label>Compute</label><label class="toggle"><input type="checkbox" id="toggle-ctx-math-compute" checked /><span class="toggle-slider"></span></label></div>
+              <div class="config-row"><label>Evaluate</label><label class="toggle"><input type="checkbox" id="toggle-ctx-math-evaluate" checked /><span class="toggle-slider"></span></label></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <script type="module">
+      import { Editor } from '../../dist/iink.esm.js'
+      import { ModalEditorOptions } from '../components/modal/modalEditorOptions.js'
+
+      const editorElement = document.getElementById('editorEl')
+      const showModalBtn = document.getElementById('showModalBtn')
+
+      const editorOptions = {
+        configuration: {
+          recognition: {
+            lang: 'en_US',
+            'raw-content': {
+              recognition: { types: ['text', 'shape', 'math'] },
+              // menu gestures are disabled if the gesture recognition is disabled 
+              gestures: ['surround', 'strike-through', 'underline', 'insert']
+            }
+          }
+        }
+      }
+
+      let editor
+
+      async function loadEditor(options) {
+        await editor?.destroy()
+        editor = await Editor.load(editorElement, 'INTERACTIVEINK', options)
+        window.editor = editor
+      }
+
+      // --- helpers to read toggles ---
+
+      function checked(id) {
+        return document.getElementById(id).checked
+      }
+
+      function buildConfig() {
+        return {
+          action: {
+            enable: checked('toggle-action-enable'),
+            clear: checked('toggle-action-clear'),
+            undoRedo: checked('toggle-action-undoRedo'),
+            convert: checked('toggle-action-convert'),
+            language: checked('toggle-action-language'),
+            zoom: checked('toggle-action-zoom'),
+            minimap: checked('toggle-action-minimap'),
+            import: checked('toggle-action-import'),
+            export: checked('toggle-action-export')
+              ? {
+                  json: checked('toggle-export-json'),
+                  svg:  checked('toggle-export-svg'),
+                  png:  checked('toggle-export-png'),
+                  text: checked('toggle-export-text'),
+                }
+              : false,
+            gesture: checked('toggle-action-gesture')
+              ? {
+                  detect:        checked('toggle-gesture-detect'),
+                  surround:      checked('toggle-gesture-surround'),
+                  strikethrough: checked('toggle-gesture-strikethrough'),
+                  underline:     checked('toggle-gesture-underline'),
+                  insert:        checked('toggle-gesture-insert'),
+                }
+              : false,
+            guide: checked('toggle-action-guide')
+              ? {
+                  enable: checked('toggle-guide-enable'),
+                  type:   checked('toggle-guide-type'),
+                  size:   checked('toggle-guide-size'),
+                }
+              : false,
+            snap: checked('toggle-action-snap')
+              ? {
+                  guide:   checked('toggle-snap-guide'),
+                  element: checked('toggle-snap-element'),
+                  angle:   checked('toggle-snap-angle'),
+                }
+              : false,
+            math: checked('toggle-action-math')
+              ? {
+                  autoCompute:       checked('toggle-math-autoCompute'),
+                  resultMode:        checked('toggle-math-resultMode'),
+                  showDependencies:  checked('toggle-math-showDependencies'),
+                  highlightOnSelect: checked('toggle-math-highlightOnSelect'),
+                  editVariables:     checked('toggle-math-editVariables'),
+                  capabilities:      checked('toggle-math-capabilities'),
+                }
+              : false,
+            overlay: checked('toggle-action-overlay')
+              ? {
+                  showBlockOverlays: checked('toggle-overlay-showBlockOverlays'),
+                  badgeSize:         checked('toggle-overlay-badgeSize'),
+                  borderWidth:       checked('toggle-overlay-borderWidth'),
+                  labelMaxChars:     checked('toggle-overlay-labelMaxChars'),
+                  labelFontSize:     checked('toggle-overlay-labelFontSize'),
+                }
+              : false,
+            selection: checked('toggle-action-selection')
+              ? {
+                  text:  checked('toggle-selection-text'),
+                  math:  checked('toggle-selection-math'),
+                  shape: checked('toggle-selection-shape'),
+                }
+              : false,
+          },
+          tool: {
+            enable: checked('toggle-tool-enable'),
+            write:  checked('toggle-tool-write'),
+            move:   checked('toggle-tool-move'),
+            select: checked('toggle-tool-select'),
+            erase:  checked('toggle-tool-erase'),
+            shape:  checked('toggle-tool-shape'),
+            edge:   checked('toggle-tool-edge'),
+          },
+          style: {
+            enable:      checked('toggle-style-enable'),
+            strokeColor: checked('toggle-style-strokeColor'),
+            fillColor:   checked('toggle-style-fillColor'),
+            thickness:   checked('toggle-style-thickness'),
+            fontSize:    checked('toggle-style-fontSize'),
+            fontWeight:  checked('toggle-style-fontWeight'),
+            opacity:     checked('toggle-style-opacity'),
+          },
+          context: {
+            enable:     checked('toggle-context-enable'),
+            edit:       checked('toggle-context-edit'),
+            convert:    checked('toggle-context-convert'),
+            duplicate:  checked('toggle-context-duplicate'),
+            remove:     checked('toggle-context-remove'),
+            selectAll:  checked('toggle-context-selectAll'),
+            export: checked('toggle-context-export')
+              ? {
+                  json: checked('toggle-ctx-export-json'),
+                  svg:  checked('toggle-ctx-export-svg'),
+                  png:  checked('toggle-ctx-export-png'),
+                  text: checked('toggle-ctx-export-text'),
+                }
+              : false,
+            decorator: checked('toggle-context-decorator')
+              ? {
+                  highlight:     checked('toggle-deco-highlight'),
+                  surround:      checked('toggle-deco-surround'),
+                  underline:     checked('toggle-deco-underline'),
+                  strikethrough: checked('toggle-deco-strikethrough'),
+                }
+              : false,
+            reorder: checked('toggle-context-reorder')
+              ? {
+                  front:    checked('toggle-reorder-front'),
+                  forward:  checked('toggle-reorder-forward'),
+                  backward: checked('toggle-reorder-backward'),
+                  back:     checked('toggle-reorder-back'),
+                }
+              : false,
+            math: checked('toggle-context-math')
+              ? {
+                  checkDiagnostic: checked('toggle-ctx-math-checkDiagnostic'),
+                  editVariables:   checked('toggle-ctx-math-editVariables'),
+                  compute:         checked('toggle-ctx-math-compute'),
+                  evaluate:        checked('toggle-ctx-math-evaluate'),
+                }
+              : false,
+          }
+        }
+      }
+
+      function setAllToggles(value) {
+        document.querySelectorAll('#config-panel input[type=checkbox]').forEach(cb => {
+          cb.checked = value
+        })
+      }
+
+      document.getElementById('config-panel').addEventListener('change', () => {
+        if (!editor) return
+        editor.menu.setConfig(buildConfig())
+      })
+
+      document.getElementById('btn-enable-all').addEventListener('click', () => {
+        setAllToggles(true)
+        if (editor) editor.menu.setConfig(buildConfig())
+      })
+
+      document.getElementById('btn-disable-all').addEventListener('click', () => {
+        setAllToggles(false)
+        if (editor) editor.menu.setConfig(buildConfig())
+      })
+
+      showModalBtn.addEventListener('click', () => {
+        ModalEditorOptions.show(loadEditor, editorOptions)
+      })
+
+      window.addEventListener('resize', () => editor?.resize())
+
+      ModalEditorOptions.initConfiguration(loadEditor, editorOptions)
+    </script>
+  </body>
+
+</html>
