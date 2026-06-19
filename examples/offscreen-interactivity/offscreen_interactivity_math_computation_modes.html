@@ -247,6 +247,17 @@
             fontWeight: false,
             opacity: false,
           }
+        },
+        math: {
+          computation: {
+            // "draw"  → result is added to the canvas as ink strokes
+            // "ghost" → result is shown as a semi-transparent SVG overlay (not sent to backend)
+            resultMode: "ghost",
+            // Automatically compute when a block ends with = or ?
+            autoCompute: true,
+            // Color applied to result strokes (both draw and ghost modes)
+            resultColor: "#9c27b0"
+          },
         }
       },
     }

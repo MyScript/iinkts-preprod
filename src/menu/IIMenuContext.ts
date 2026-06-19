@@ -1,18 +1,63 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
 import { IIStroke, IIText, TIISymbol, isStroke, isText } from "@/symbol"
 import { InteractiveInkEditor } from "@/editor"
-import { IIMenuContextConfig, defaultMenuContextConfig } from "./IIMenuContextConfig"
 import {
   EditContextMenu,
-  DecoratorContextMenu,
-  ReorderContextMenu,
-  ExportContextMenu,
+  DecoratorContextMenu, TContextDecoratorConfig,
+  ReorderContextMenu, TContextReorderConfig,
+  ExportContextMenu, TContextExportConfig,
   ConvertContextMenu,
-  MathContextMenu,
+  MathContextMenu, TContextMathConfig,
   DuplicateContextMenu,
   RemoveContextMenu,
   SelectAllContextMenu
 } from "./context"
+
+/**
+ * @group Menu
+ * @remarks Configuration to enable/disable each context menu individually.
+ * Sub-menus accept `boolean` to show/hide entirely, or an object to configure individual items.
+ */
+export interface IIMenuContextConfig {
+  /** Enable/disable Edit menu */
+  edit?: boolean
+  /** Enable/disable Decorator menu. Pass an object to configure individual decorator types. */
+  decorator?: TContextDecoratorConfig
+  /** Enable/disable Reorder menu. Pass an object to configure individual reorder actions. */
+  reorder?: TContextReorderConfig
+  /** Enable/disable Export menu. Pass an object to configure individual export formats. */
+  export?: TContextExportConfig
+  /** Enable/disable Convert menu */
+  convert?: boolean
+  /** Enable/disable Math menu. Pass an object to configure individual math operations. */
+  math?: TContextMathConfig
+  /** Enable/disable Group menu */
+  group?: boolean
+  /** Enable/disable Duplicate menu */
+  duplicate?: boolean
+  /** Enable/disable Remove menu */
+  remove?: boolean
+  /** Enable/disable Select All menu */
+  selectAll?: boolean
+}
+
+/** @group Menu */
+export const DefaultMenuContextConfig: Required<IIMenuContextConfig> = {
+  edit: true,
+  decorator: true,
+  reorder: true,
+  export: true,
+  convert: true,
+  math: true,
+  group: true,
+  duplicate: true,
+  remove: true,
+  selectAll: true
+}
+
+function extractSubConfig<T>(config: boolean | T): T | undefined {
+  return typeof config === "object" && config !== null ? config : undefined
+}
 /**
  * @group Menu
  */
@@ -39,7 +84,7 @@ export class IIMenuContext
     this.id = id
     this.#logger.info("constructor")
     this.editor = editor
-    this.config = { ...defaultMenuContextConfig, ...config }
+    this.config = { ...DefaultMenuContextConfig, ...config }
     this.position = { x: 0, y: 0 }
   }
 
@@ -208,19 +253,19 @@ export class IIMenuContext
     }
 
     if (this.config.decorator) {
-      const decoratorMenuInstance = new DecoratorContextMenu(this.editor, this.id)
+      const decoratorMenuInstance = new DecoratorContextMenu(this.editor, this.id, extractSubConfig(this.config.decorator))
       this.contextMenus.set("decorator", decoratorMenuInstance)
       this.wrapper.appendChild(decoratorMenuInstance.getElement())
     }
 
     if (this.config.reorder) {
-      const reorderMenuInstance = new ReorderContextMenu(this.editor, this.id)
+      const reorderMenuInstance = new ReorderContextMenu(this.editor, this.id, extractSubConfig(this.config.reorder))
       this.contextMenus.set("reorder", reorderMenuInstance)
       this.wrapper.appendChild(reorderMenuInstance.getElement())
     }
 
     if (this.config.export) {
-      const exportMenuInstance = new ExportContextMenu(this.editor, this.id)
+      const exportMenuInstance = new ExportContextMenu(this.editor, this.id, extractSubConfig(this.config.export))
       this.contextMenus.set("export", exportMenuInstance)
       this.wrapper.appendChild(exportMenuInstance.getElement())
     }
@@ -232,7 +277,7 @@ export class IIMenuContext
     }
 
     if (this.config.math) {
-      const mathMenuInstance = new MathContextMenu(this.editor, this.id)
+      const mathMenuInstance = new MathContextMenu(this.editor, this.id, extractSubConfig(this.config.math))
       this.contextMenus.set("math", mathMenuInstance)
       this.wrapper.appendChild(mathMenuInstance.getElement())
     }
