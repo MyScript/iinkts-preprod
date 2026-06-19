@@ -77,7 +77,7 @@ export class IIGestureManager extends IIAbstractManager
 
   get translator(): IITranslateManager
   {
-    return this.editor.translator
+    return this.editor.transform.translate
   }
 
   get texter(): IITextManager

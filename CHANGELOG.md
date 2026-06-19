@@ -75,7 +75,9 @@
 ## Refactor
 - refactor(math): split IIMathManager into sub-managers — variables, computation, evaluation (IIC-1633)
 - refactor(overlay): replace math overlays with unified IIOverlayManager (IIC-1633)
-- refactor(manager): introduce AbstractTransformManager base class for translate/rotate/resize
+- refactor(transform): unify transform managers under IITransformManager orchestrator (editor.transform.translate/.resize/.rotation)
+- refactor(transform): rewrite AbstractTransformManager — drop TParams generics, all apply*() take MatrixTransform; add applyMatrixToPoints, setTransformOrigin, resolveInteractGroup, applyAndDraw, finalizeTransform helpers
+- refactor(transform): move sub-managers to src/manager/interactive/transform/ (mirrors math/ structure)
 - refactor(gesture): implement Strategy Pattern for IIGestureManager with GestureHandler base
 - refactor(core): extract IIKeyboardManager, MathDependencyService, SymbolFactory from InteractiveInkEditor
 - refactor(editor): move editor variants to dedicated folder

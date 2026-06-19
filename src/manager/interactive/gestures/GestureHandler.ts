@@ -6,7 +6,7 @@ import { IIModel } from "@/model"
 import { SVGRenderer } from "@/renderer"
 import { IIHistoryManager } from "@/history"
 import { RecognizerWebSocket } from "@/recognizer"
-import { IITranslateManager } from "@/manager/interactive/IITranslateManager"
+import { IITranslateManager } from "@/manager/interactive/transform/IITranslateManager"
 import { IITextManager } from "@/manager/interactive/IITextManager"
 import { IIGestureManager } from "../IIGestureManager"
 import { LoggerManager, LoggerCategory, type Logger } from "@/logger"
@@ -101,7 +101,7 @@ export abstract class GestureHandler implements IGestureHandler
    */
   protected get translator(): IITranslateManager
   {
-    return this.editor.translator
+    return this.editor.transform.translate
   }
 
   /**

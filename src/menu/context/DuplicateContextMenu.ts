@@ -2,6 +2,7 @@ import { InteractiveInkEditor } from "@/editor"
 import { BaseMenuItem, TGenericMenuItem } from "@/menu/items/BaseMenuItem"
 import { SELECTION_MARGIN } from "@/Constants"
 import { createUUID } from "@/utils"
+import { MatrixTransform } from "@/transform"
 
 /**
  * @group Menu
@@ -40,7 +41,8 @@ export class DuplicateContextMenu extends BaseMenuItem<HTMLButtonElement>
         }
 
         clone.selected = true
-        this.editor.translator.applyToSymbol(clone, SELECTION_MARGIN, clone.bounds.height + SELECTION_MARGIN)
+        const matrix = MatrixTransform.identity().translate(SELECTION_MARGIN, clone.bounds.height + SELECTION_MARGIN)
+        this.editor.transform.translate.applyToSymbol(clone, matrix)
         return clone
       })
 
