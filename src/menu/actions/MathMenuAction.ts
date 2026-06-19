@@ -10,6 +10,7 @@ import { TMathResultMode } from "@/manager/interactive/math"
 export type TMathActionItemsConfig = {
   autoCompute?: boolean
   resultMode?: boolean
+  resultColor?: boolean
   showDependencies?: boolean
   highlightOnSelect?: boolean
   editVariables?: boolean
@@ -63,6 +64,28 @@ export class MathMenuAction extends SubMenuItem
           if (mode === "draw") {
             await editor.math.computeAllNumericalResults()
           }
+        }
+      })
+    }
+
+    if (enabled("resultColor")) {
+      items.push({
+        type: "select",
+        id: `${idPrefix}-math-result-color`,
+        label: "Result color",
+        options: [
+          { label: "Green", value: "#4caf50" },
+          { label: "Blue", value: "#1976d2" },
+          { label: "Red", value: "#e53935" },
+          { label: "Orange", value: "#ff9800" },
+          { label: "Purple", value: "#9c27b0" },
+          { label: "Black", value: "#000000" },
+        ],
+        getValue: (editor: InteractiveInkEditor) => editor.math.getComputationConfig().resultColor,
+        setValue: async (editor: InteractiveInkEditor, value: string) => {
+          editor.math.updateComputationConfig({ resultColor: value })
+          await editor.math.clearAllSolverOutputs()
+          await editor.math.computeAllNumericalResults()
         }
       })
     }
