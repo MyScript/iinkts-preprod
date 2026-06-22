@@ -26,14 +26,18 @@ export class LanguageMenuAction extends BaseMenuItem<HTMLDivElement>
 
   createElement(): HTMLDivElement
   {
-    const triggerBtn = document.createElement("button")
+    const triggerBtn = this.dom.button({ className: "square", html: languageIcon })
     triggerBtn.id = `${this.config.id}-trigger`
-    triggerBtn.classList.add("ms-menu-button", "square")
-    triggerBtn.innerHTML = languageIcon
 
-    this.select = document.createElement("select")
-    this.select.classList.add("select-language")
-    this.select.id = this.config.id
+    this.select = this.dom.select({
+      id: this.config.id,
+      options: [],
+      className: "select-language",
+      onChange: (value) => {
+        this.logger.info(`${this.config.id}.change`)
+        this.editor.changeLanguage(value)
+      },
+    })
 
     // Chargement asynchrone des langues disponibles
     getAvailableLanguageList(this.editor.configuration)
@@ -46,18 +50,10 @@ export class LanguageMenuAction extends BaseMenuItem<HTMLDivElement>
         }
       })
 
-    this.select.addEventListener("change", (e) => {
-      this.logger.info(`${this.config.id}.change`)
-      const value = (e.target as HTMLSelectElement).value
-      this.editor.changeLanguage(value)
-    })
-
-    this.subMenuWrapper = document.createElement("div")
-    this.subMenuWrapper.classList.add("sub-menu")
+    this.subMenuWrapper = this.dom.div({ className: "sub-menu" })
     this.subMenuWrapper.appendChild(triggerBtn)
 
-    this.subMenuContent = document.createElement("div")
-    this.subMenuContent.classList.add("sub-menu-content", "bottom-right")
+    this.subMenuContent = this.dom.div({ className: ["sub-menu-content", "bottom-right"] })
     this.subMenuContent.appendChild(this.select)
     this.subMenuWrapper.appendChild(this.subMenuContent)
 

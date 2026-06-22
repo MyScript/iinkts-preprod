@@ -1,7 +1,7 @@
 import { InteractiveInkEditor } from "@/editor"
 import { Modal } from "./Modal"
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { BORDER_RADIUS, COLORS, SPACING, cardStyle, flexColumnStyle, gridContainerStyle } from "./styles"
+import { DOMFactory } from "@/components/dom"
 import { IIMathVariableInputList, TVariableInputItem } from "./IIMathVariableInputList"
 import { TMathVariableUsage } from "@/manager/interactive/math"
 
@@ -50,7 +50,8 @@ export class IIMathVariableEditor
       title: "Variable Definitions",
       fields: [],
       customContent: container,
-      buttons: [{ label: "Apply", type: "primary", callback: async () => this.applyChanges() }]
+      container: this.editor.layers.root,
+      buttons: [{ label: "Apply", variant: "primary", onClick: () => this.applyChanges() }],
     })
 
     this.modal.open()
@@ -58,18 +59,12 @@ export class IIMathVariableEditor
 
   private createModalContent(): HTMLDivElement
   {
-    const container = document.createElement("div")
-    container.style.cssText = `
-      ${flexColumnStyle(SPACING.lg)}
-      width: 100%;
-      overflow-y: auto;
-      padding: ${SPACING.md};
-      box-sizing: border-box;
-    `
+    
+
+    const container = DOMFactory.div({ className: "ms-var-editor-content" })
 
     if (this.usages.length > 0) {
-      const section = document.createElement("div")
-      section.style.cssText = cardStyle
+      const section = DOMFactory.div({ className: "ms-card" })
 
       const items: TVariableInputItem[] = this.usages.map(usage => ({
         id: usage.id,
@@ -96,30 +91,20 @@ export class IIMathVariableEditor
 
   private createAddSection(): HTMLDivElement
   {
-    const section = document.createElement("div")
-    section.style.cssText = cardStyle
+    
 
-    const title = document.createElement("div")
-    title.style.cssText = `font-size: 14px; font-weight: 600; color: ${COLORS.gray[700]}; margin-bottom: ${SPACING.sm};`
-    title.textContent = "Add Global Variable"
+    const section = DOMFactory.div({ className: "ms-card" })
+
+    const title = DOMFactory.div({
+      text: "Add Global Variable",
+      className: "ms-var-section-title"
+    })
     section.appendChild(title)
 
-    const newVarsContainer = document.createElement("div")
-    newVarsContainer.style.cssText = flexColumnStyle(SPACING.sm)
+    const newVarsContainer = DOMFactory.div({ className: "ms-flex-col ms-gap-sm" })
     section.appendChild(newVarsContainer)
 
-    const addButton = document.createElement("button")
-    addButton.textContent = "+ Add"
-    addButton.style.cssText = `
-      padding: ${SPACING.sm} ${SPACING.md};
-      border: 1px dashed ${COLORS.primary};
-      background: transparent;
-      color: ${COLORS.primary};
-      border-radius: ${BORDER_RADIUS.sm};
-      cursor: pointer;
-      font-size: 13px;
-      margin-top: ${SPACING.sm};
-    `
+    const addButton = DOMFactory.button({ label: "+ Add", className: "ms-add-var-btn" })
     addButton.addEventListener("click", () => {
       const { element, nameInput, valueInput } = this.createNewVariableRow()
       newVarsContainer.appendChild(element)
@@ -133,57 +118,17 @@ export class IIMathVariableEditor
 
   private createNewVariableRow(): { element: HTMLDivElement; nameInput: HTMLInputElement; valueInput: HTMLInputElement }
   {
-    const row = document.createElement("div")
-    row.style.cssText = `
-      ${gridContainerStyle("1fr 1fr 28px", SPACING.sm)}
-      align-items: center;
-      padding: ${SPACING.sm};
-      background: ${COLORS.blue[50]};
-      border-radius: ${BORDER_RADIUS.sm};
-      border: 1px solid ${COLORS.blue[100]};
-    `
+    
 
-    const inputStyle = `
-      padding: ${SPACING.sm} ${SPACING.md};
-      border: 1px solid ${COLORS.gray[300]};
-      border-radius: ${BORDER_RADIUS.sm};
-      font-size: 14px;
-      font-family: monospace;
-      outline: none;
-      width: 100%;
-      box-sizing: border-box;
-    `
+    const row = DOMFactory.div({ className: "ms-new-var-row" })
 
-    const nameInput = document.createElement("input")
-    nameInput.type = "text"
-    nameInput.placeholder = "Variable name"
-    nameInput.style.cssText = inputStyle
-    nameInput.addEventListener("focus", () => nameInput.style.borderColor = COLORS.primary )
-    nameInput.addEventListener("blur", () => nameInput.style.borderColor = COLORS.gray[300] )
+    const nameInput = DOMFactory.textInput({ placeholder: "Variable name" })
     row.appendChild(nameInput)
 
-    const valueInput = document.createElement("input")
-    valueInput.type = "number"
-    valueInput.step = "any"
-    valueInput.placeholder = "Value"
-    valueInput.style.cssText = inputStyle
-    valueInput.addEventListener("focus", () => valueInput.style.borderColor = COLORS.primary )
-    valueInput.addEventListener("blur", () => valueInput.style.borderColor = COLORS.gray[300] )
+    const valueInput = DOMFactory.numberInput({ placeholder: "Value", step: "any" })
     row.appendChild(valueInput)
 
-    const deleteBtn = document.createElement("button")
-    deleteBtn.textContent = "✕"
-    deleteBtn.title = "Remove row"
-    deleteBtn.style.cssText = `
-      padding: 2px 6px;
-      border: 1px solid ${COLORS.danger};
-      background: transparent;
-      color: ${COLORS.danger};
-      border-radius: ${BORDER_RADIUS.sm};
-      cursor: pointer;
-      font-size: 12px;
-      line-height: 1;
-    `
+    const deleteBtn = DOMFactory.button({ label: "✕", title: "Remove row", variant: "danger" })
     deleteBtn.addEventListener("click", () => {
       this.newRows = this.newRows.filter(r => r.nameInput !== nameInput)
       row.remove()

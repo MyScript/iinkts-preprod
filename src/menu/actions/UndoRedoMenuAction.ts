@@ -24,15 +24,10 @@ export class UndoRedoMenuAction extends BaseMenuItem<HTMLDivElement>
 
   createElement(): HTMLDivElement
   {
-    const wrapper = document.createElement("div")
-    wrapper.id = this.config.id
-    wrapper.classList.add("ms-menu-undoredo-group", "ms-menu-row")
+    const wrapper = this.dom.div({ id: this.config.id, className: ["ms-menu-undoredo-group", "ms-menu-row"] })
 
     // Bouton Undo
-    this.undoButton = document.createElement("button")
-    this.undoButton.id = `${this.config.id}-undo`
-    this.undoButton.classList.add("ms-menu-button", "square")
-    this.undoButton.innerHTML = undoIcon
+    this.undoButton = this.dom.button({ id: `${this.config.id}-undo`, className: "square", html: undoIcon })
     this.undoButton.disabled = !this.editor.history.context.canUndo
     this.undoButton.addEventListener("pointerup", async () => {
       this.logger.info(`${this.config.id}-undo.click`)
@@ -40,10 +35,7 @@ export class UndoRedoMenuAction extends BaseMenuItem<HTMLDivElement>
     })
 
     // Bouton Redo
-    this.redoButton = document.createElement("button")
-    this.redoButton.id = `${this.config.id}-redo`
-    this.redoButton.classList.add("ms-menu-button", "square")
-    this.redoButton.innerHTML = redoIcon
+    this.redoButton = this.dom.button({ id: `${this.config.id}-redo`, className: "square", html: redoIcon })
     this.redoButton.disabled = !this.editor.history.context.canRedo
     this.redoButton.addEventListener("pointerup", async () => {
       this.logger.info(`${this.config.id}-redo.click`)

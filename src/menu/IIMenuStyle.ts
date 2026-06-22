@@ -4,6 +4,7 @@ import { LoggerCategory, LoggerManager } from "@/logger"
 import { IIModel } from "@/model"
 import { TIISymbol, isShape } from "@/symbol"
 import { InteractiveInkEditor } from "@/editor"
+import { DOMFactory } from "@/components/dom"
 import { DEFAULT_MENU_COLORS, DEFAULT_THICKNESS_LIST, DEFAULT_FONT_SIZE_LIST, DEFAULT_FONT_WEIGHT_LIST } from "./MenuConstants"
 import { BaseMenuItem } from "./items"
 
@@ -133,13 +134,10 @@ export class IIMenuStyle
     if (this.editor.configuration.menu.style.enable) {
       this.#logger.info("Rendering menu styles with config", this.config)
 
-      this.triggerBtn = document.createElement("button")
-      this.triggerBtn.id = this.id
-      this.triggerBtn.classList.add("ms-menu-button", "square")
-      this.triggerBtn.innerHTML = styleIcon
+      
+      this.triggerBtn = DOMFactory.button({ id: this.id, className: "square", html: styleIcon })
 
-      const subMenuContent = document.createElement("div")
-      subMenuContent.classList.add("ms-menu-column")
+      const subMenuContent = DOMFactory.div({ className: "ms-menu-column" })
 
       // Add style elements conditionally using new style classes
       if (this.config.strokeColor) {
@@ -178,12 +176,10 @@ export class IIMenuStyle
         subMenuContent.appendChild(opacityStyle.getElement())
       }
 
-      this.subMenuWrapper = document.createElement("div")
-      this.subMenuWrapper.classList.add("sub-menu")
+      this.subMenuWrapper = DOMFactory.div({ className: "sub-menu" })
       this.subMenuWrapper.appendChild(this.triggerBtn)
 
-      this.subMenuContent = document.createElement("div")
-      this.subMenuContent.classList.add("sub-menu-content", "bottom-left")
+      this.subMenuContent = DOMFactory.div({ className: ["sub-menu-content", "bottom-left"] })
       this.subMenuContent.appendChild(subMenuContent)
       this.subMenuWrapper.appendChild(this.subMenuContent)
 
@@ -196,8 +192,7 @@ export class IIMenuStyle
       }
       document.addEventListener("pointerdown", this.#documentPointerdownHandler)
 
-      this.wrapper = document.createElement("div")
-      this.wrapper.classList.add("ms-menu", "ms-menu-top-right")
+      this.wrapper = DOMFactory.div({ className: ["ms-menu", "ms-menu-top-right"] })
       this.wrapper.appendChild(this.subMenuWrapper)
       layer.appendChild(this.wrapper)
       this.update()

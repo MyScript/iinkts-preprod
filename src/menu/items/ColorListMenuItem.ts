@@ -28,18 +28,14 @@ export class ColorListMenuItem extends BaseMenuItem<HTMLDivElement>
   }
 
   createElement(): HTMLDivElement {
-    const wrapper = document.createElement("div")
-    wrapper.id = this.config.id
-    wrapper.classList.add("ms-menu-row", "color-list")
+    const wrapper = this.dom.div({ id: this.config.id, className: ["ms-menu-row", "list"] })
 
     this.config.colors.forEach((color) => {
-      const btn = document.createElement("button")
       const colorId = color.replace("#", "")
+      const btn = this.dom.button({ className: "square" })
       btn.id = `${this.config.id}-${colorId}`
-      btn.classList.add("ms-menu-button", "square")
 
-      const colorEl = document.createElement("div")
-      colorEl.classList.add("color")
+      const colorEl = this.dom.div({ className: ["color"] })
 
       if (this.config.fill) {
         colorEl.style.setProperty("background-color", color)

@@ -21,6 +21,7 @@ describe("IIMathVariablePerBlockEditor.ts", () =>
   {
     editor = new InteractiveInkEditorMock()
     editor.init()
+    document.body.appendChild(editor.layers.root)
 
     editor.math.asVariableDefinition = jest.fn().mockResolvedValue(null)
     editor.math.getVariables = jest.fn().mockResolvedValue([makeVariable()])
@@ -78,7 +79,7 @@ describe("IIMathVariablePerBlockEditor.ts", () =>
       editor.math.getVariables = jest.fn().mockResolvedValue([])
       const component = new IIMathVariablePerBlockEditor(editor, ["block-1"])
       await component.show()
-      const backdrop = document.querySelector("div[style*='position: fixed']")
+      const backdrop = document.querySelector(".ms-modal-backdrop")
       expect(backdrop).toBeNull()
     })
 
@@ -86,7 +87,7 @@ describe("IIMathVariablePerBlockEditor.ts", () =>
     {
       const component = new IIMathVariablePerBlockEditor(editor, ["block-1"])
       await component.show()
-      const backdrop = document.querySelector("div[style*='position: fixed']")
+      const backdrop = document.querySelector(".ms-modal-backdrop")
       expect(backdrop).not.toBeNull()
     })
 
@@ -114,7 +115,7 @@ describe("IIMathVariablePerBlockEditor.ts", () =>
       const component = new IIMathVariablePerBlockEditor(editor, ["block-1", "block-2"])
       await component.show()
       // block-2 succeeded, modal should open
-      const backdrop = document.querySelector("div[style*='position: fixed']")
+      const backdrop = document.querySelector(".ms-modal-backdrop")
       expect(backdrop).not.toBeNull()
     })
 
@@ -177,9 +178,9 @@ describe("IIMathVariablePerBlockEditor.ts", () =>
     {
       const component = new IIMathVariablePerBlockEditor(editor, ["block-1"])
       await component.show()
-      expect(document.querySelector("div[style*='position: fixed']")).not.toBeNull()
+      expect(document.querySelector(".ms-modal-backdrop")).not.toBeNull()
       component.close()
-      expect(document.querySelector("div[style*='position: fixed']")).toBeNull()
+      expect(document.querySelector(".ms-modal-backdrop")).toBeNull()
     })
 
     test("should be safe to call before show()", () =>

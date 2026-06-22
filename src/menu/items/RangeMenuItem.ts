@@ -32,33 +32,28 @@ export class RangeMenuItem extends BaseMenuItem<HTMLDivElement>
   }
 
   createElement(): HTMLDivElement {
-    const wrapper = document.createElement("div")
-    wrapper.id = `${this.config.id}-wrapper`
+    const wrapper = this.dom.div({ id: `${this.config.id}-wrapper`, className: ["ms-menu-item", "range"] })
 
-    this.input = document.createElement("input")
-    this.input.id = `${this.config.id}-input`
-    this.input.setAttribute("type", "range")
-    this.input.setAttribute("step", this.config.step.toString())
-    this.input.setAttribute("min", this.config.min.toString())
-    this.input.setAttribute("max", this.config.max.toString())
-
-    if (this.currentValue !== undefined) {
-      this.input.setAttribute("value", this.currentValue.toString())
-    }
+    this.input = this.dom.range({
+      id: `${this.config.id}-input`,
+      min: this.config.min,
+      max: this.config.max,
+      step: this.config.step,
+      value: this.currentValue,
+      name: this.config.label,
+    })
 
     wrapper.appendChild(this.input)
 
-    this.output = document.createElement("output")
-    this.output.innerHTML = this.currentValue !== undefined ? `${this.currentValue}${this.config.unit ?? "%"}` : "-"
+    this.output = this.dom.output({
+      text: this.currentValue !== undefined ? `${this.currentValue}${this.config.unit ?? "%"}` : "-",
+      htmlFor: this.config.label,
+    })
     wrapper.appendChild(this.output)
 
     if (this.config.label) {
-      const label = document.createElement("label")
-      label.htmlFor = `${this.config.id}-input`
-      label.textContent = this.config.label
+      const label = this.dom.label({ text: this.config.label, htmlFor: `${this.config.id}-input` })
       wrapper.insertBefore(label, this.input)
-      this.input.setAttribute("name", this.config.label)
-      this.output.setAttribute("for", this.config.label)
     }
 
     this.input.addEventListener("input", (evt) => {

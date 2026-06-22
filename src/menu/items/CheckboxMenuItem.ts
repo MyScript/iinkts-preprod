@@ -20,20 +20,21 @@ export class CheckboxMenuItem extends BaseMenuItem<HTMLDivElement>
   protected declare config: IMenuCheckbox
 
   createElement(): HTMLDivElement {
-    const wrapper = document.createElement("div")
-    wrapper.id = this.config.id
-    wrapper.classList.add("ms-menu-item", "checkbox")
+    const wrapper = this.dom.div({ id: this.config.id, className: ["ms-menu-item", "checkbox"] })
 
     if (this.config.label) {
-      const label = document.createElement("span")
-      label.textContent = this.config.label
-      wrapper.appendChild(label)
+      wrapper.appendChild(this.dom.span({ text: this.config.label }))
     }
 
-    const checkbox = document.createElement("input")
-    checkbox.type = "checkbox"
-    checkbox.id = `${this.config.id}-input`
-    checkbox.checked = this.config.getValue(this.editor)
+    const isDisabled = typeof this.config.disabled === "function"
+      ? this.config.disabled(this.editor)
+      : (this.config.disabled ?? false)
+
+    const checkbox = this.dom.checkbox({
+      id: `${this.config.id}-input`,
+      checked: this.config.getValue(this.editor),
+      disabled: isDisabled,
+    })
 
     checkbox.addEventListener("change", () => {
       this.logger.info(`${this.config.id}.change`, { value: checkbox.checked })
@@ -41,13 +42,6 @@ export class CheckboxMenuItem extends BaseMenuItem<HTMLDivElement>
     })
 
     wrapper.appendChild(checkbox)
-
-    // Apply initial disabled state
-    if (typeof this.config.disabled === "function") {
-      checkbox.disabled = this.config.disabled(this.editor)
-    } else if (this.config.disabled) {
-      checkbox.disabled = true
-    }
 
     return wrapper
   }
