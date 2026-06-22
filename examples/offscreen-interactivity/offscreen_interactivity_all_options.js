@@ -1,7 +1,7 @@
 import { Editor } from '../../dist/iink.esm.js'
 import shakespeareQuotes from '../assets/datas/shakespeare-quotes.json' with { type: 'json' }
 import { ModalEditorOptions } from '../components/modal/modalEditorOptions.js'
-const editorElement = document.getElementById('editor')
+const editorElement = document.getElementById('editorEl')
 const showModalBtn = document.getElementById('showModalBtn')
 
 const importBtn = document.getElementById('import')
