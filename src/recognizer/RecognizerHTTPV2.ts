@@ -185,9 +185,18 @@ export class RecognizerHTTPV2 {
       this.#logger.debug("post", { result })
       return result
     } else {
-      const err = await response.json() as ApiError
-      this.#logger.error("post", { err })
-      throw err
+      if (response.headers.get("content-type")?.includes("application/json")) {
+        const err = await response.json() as ApiError
+        this.#logger.error("post", { err })
+        throw err
+      } else {
+        const err: ApiError = {
+          code: response.status.toString(),
+          message: await response.text()
+        }
+        this.#logger.error("post", { err })
+        throw err
+      }
     }
   }
 
