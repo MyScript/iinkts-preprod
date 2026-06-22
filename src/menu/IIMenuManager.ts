@@ -1,6 +1,7 @@
 import style from "./menu.css"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import { InteractiveInkEditor } from "@/editor"
+import { DOMFactory } from "@/components/dom"
 import { mergeDeep } from "@/utils"
 import { IIMenuAction } from "./IIMenuAction"
 import { IIMenuTool } from "./IIMenuTool"
@@ -76,9 +77,7 @@ export class IIMenuManager
     if (this.editor.configuration.menu.enable) {
       this.layer = layer
 
-      const styleElement = document.createElement("style")
-      styleElement.setAttribute("data-ms-menu-style", "")
-      styleElement.appendChild(document.createTextNode(style as string))
+      const styleElement = DOMFactory.style(style as string, { "ms-menu-style": "" })
       this.layer.prepend(styleElement)
 
       if (this.editor.configuration.menu.action.enable) {

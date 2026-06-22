@@ -30,7 +30,6 @@ export class FontSizeStyle extends BaseMenuItem<HTMLDivElement>
     const fontSizeConfig: IMenuButtonList = {
       type: "buttonlist",
       id: this.config.id,
-      buttonType: "square",
       options: this.fontSizeList.map(f => ({ label: f.label, value: f.value.toString() })),
       getValue: (editor) => editor.configuration.fontStyle.size.toString(),
       setValue: (editor, value) => {

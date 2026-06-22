@@ -1,6 +1,7 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
 import { IIStroke, IIText, TIISymbol, isStroke, isText } from "@/symbol"
 import { InteractiveInkEditor } from "@/editor"
+import { DOMFactory } from "@/components/dom"
 import {
   EditContextMenu,
   DecoratorContextMenu, TContextDecoratorConfig,
@@ -242,9 +243,8 @@ export class IIMenuContext
   {
     this.#logger.info("Rendering context menu with config", this.config)
 
-    this.wrapper = document.createElement("div")
-    this.wrapper.id = `${ this.id }-wrapper`
-    this.wrapper.classList.add("ms-menu", "ms-menu-context")
+    
+    this.wrapper = DOMFactory.div({ id: `${ this.id }-wrapper`, className: ["ms-menu", "ms-menu-context"] })
 
     if (this.config.edit) {
       const editMenuInstance = new EditContextMenu(this.editor, this.id)

@@ -1,4 +1,4 @@
-import { BORDER_RADIUS, COLORS, SPACING, flexColumnStyle, gridContainerStyle } from "./styles"
+import { DOMFactory } from "@/components/dom"
 
 /**
  * @group Components
@@ -16,11 +16,11 @@ export type TVariableInputItem = {
 }
 
 const SOURCE_TYPE_COLORS: Record<string, string> = {
-  "UNDEFINED": COLORS.gray[500],
-  "API": COLORS.blue[700],
-  "API_GLOBAL": COLORS.purple,
-  "BLOCK": COLORS.success,
-  "PREDEFINED": COLORS.warning
+  "UNDEFINED": "var(--iink-secondary)",
+  "API": "var(--iink-info)",
+  "API_GLOBAL": "var(--iink-primary)",
+  "BLOCK": "var(--iink-success)",
+  "PREDEFINED": "var(--iink-warning)"
 }
 
 /**
@@ -35,8 +35,7 @@ export class IIMathVariableInputList
 
   constructor(items: TVariableInputItem[])
   {
-    this.element = document.createElement("div")
-    this.element.style.cssText = flexColumnStyle(SPACING.md)
+    this.element = DOMFactory.div({ className: "ms-flex-col ms-gap-md" })
     items.forEach(item => this.element.appendChild(this.createRow(item)))
   }
 
@@ -47,113 +46,64 @@ export class IIMathVariableInputList
       ? (item.onDelete ? "80px 90px 1fr 1fr 28px" : "80px 90px 1fr 1fr")
       : (item.onDelete ? "120px 1fr 80px 28px" : "120px 1fr 80px")
 
-    const row = document.createElement("div")
-    row.style.cssText = `
-      ${gridContainerStyle(colDefs, SPACING.sm)}
-      align-items: center;
-      padding: ${SPACING.sm};
-      background: ${COLORS.gray[50]};
-      border-radius: ${BORDER_RADIUS.sm};
-      border: 1px solid ${COLORS.gray[200]};
-    `
+    const row = DOMFactory.div({
+      className: "ms-var-row",
+      style: `display: grid; grid-template-columns: ${colDefs}; gap: var(--iink-spacing-sm);`
+    })
 
-    const nameLabel = document.createElement("div")
-    nameLabel.style.cssText = `
-      font-weight: 600;
-      font-family: monospace;
-      font-size: 16px;
-      color: ${COLORS.gray[800]};
-    `
-    nameLabel.textContent = item.name
+    const nameLabel = DOMFactory.div({
+      text: item.name,
+      className: "ms-var-name-label"
+    })
     row.appendChild(nameLabel)
 
-    const input = document.createElement("input")
-    input.type = "number"
-    input.step = "any"
-    input.placeholder = "Enter value"
-    input.disabled = item.disabled ?? false
-    if (item.initialValue != null) {
-      input.value = item.initialValue.toString()
-    }
-    input.style.cssText = `
-      padding: ${SPACING.sm} ${SPACING.md};
-      border: 1px solid ${COLORS.gray[300]};
-      border-radius: ${BORDER_RADIUS.sm};
-      font-size: 14px;
-      font-family: monospace;
-      outline: none;
-      transition: border-color 0.2s;
-    `
-    input.addEventListener("focus", () => input.style.borderColor = COLORS.primary )
-    input.addEventListener("blur", () => input.style.borderColor = COLORS.gray[300] )
+    const input = DOMFactory.numberInput({
+      id: item.id ?? item.name,
+      value: item.initialValue,
+      step: "any",
+      placeholder: "Enter value",
+      disabled: item.disabled ?? false,
+    })
     row.appendChild(input)
     this.inputs.set(item.id ?? item.name, input)
 
-    const sourceInfo = document.createElement("div")
-    sourceInfo.style.cssText = `
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 2px;
-      overflow: hidden;
-    `
+    const sourceInfo = DOMFactory.div({
+      className: "ms-source-info"
+    })
     if (item.sourceType) {
-      const typeLabel = document.createElement("span")
-      typeLabel.style.cssText = `
-        font-size: 11px;
-        color: ${SOURCE_TYPE_COLORS[item.sourceType] ?? COLORS.gray[600]};
-        font-weight: 600;
-      `
-      typeLabel.textContent = item.isDefinition ? "Definition" : (item.sourceType ?? "")
+      const typeLabel = DOMFactory.span({
+        text: item.isDefinition ? "Definition" : (item.sourceType ?? ""),
+        className: "ms-type-label",
+        style: `color: ${SOURCE_TYPE_COLORS[item.sourceType] ?? "var(--iink-text-muted)"};`
+      })
       sourceInfo.appendChild(typeLabel)
     }
     if (item.sourceLabel) {
-      const labelEl = document.createElement("span")
-      labelEl.title = item.sourceLabel
-      labelEl.style.cssText = `
-        font-size: 10px;
-        color: ${COLORS.gray[400]};
-        font-family: monospace;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        max-width: 100px;
-      `
-      labelEl.textContent = item.sourceLabel
+      const labelEl = DOMFactory.span({
+        text: item.sourceLabel,
+        title: item.sourceLabel,
+        className: "ms-source-label"
+      })
       sourceInfo.appendChild(labelEl)
     }
     row.appendChild(sourceInfo)
 
     if (hasTarget) {
-      const targetEl = document.createElement("div")
-      targetEl.title = item.targetLabel!
-      targetEl.style.cssText = `
-        font-size: 11px;
-        color: ${COLORS.gray[600]};
-        font-family: monospace;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        padding: 0 ${SPACING.sm};
-      `
-      targetEl.textContent = item.targetLabel!
+      const targetEl = DOMFactory.div({
+        text: item.targetLabel!,
+        title: item.targetLabel!,
+        className: "ms-target-label"
+      })
       row.appendChild(targetEl)
     }
 
     if (item.onDelete) {
-      const deleteBtn = document.createElement("button")
-      deleteBtn.textContent = "✕"
-      deleteBtn.title = "Delete variable"
-      deleteBtn.style.cssText = `
-        padding: 2px 6px;
-        border: 1px solid ${COLORS.danger};
-        background: transparent;
-        color: ${COLORS.danger};
-        border-radius: ${BORDER_RADIUS.sm};
-        cursor: pointer;
-        font-size: 12px;
-        line-height: 1;
-      `
+      const deleteBtn = DOMFactory.button({
+        label: "✕",
+        title: "Delete variable",
+        type: "button",
+        variant: "danger",
+      })
       deleteBtn.addEventListener("click", async () => {
         await item.onDelete!(item.name)
         this.removeRow(item.id ?? item.name)

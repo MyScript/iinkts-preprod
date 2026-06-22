@@ -10,7 +10,7 @@ import zoomOutIcon from "@/assets/svg/zoom-out.svg"
 export class ZoomMenuAction extends BaseMenuItem<HTMLDivElement>
 {
   private zoomInButton!: HTMLButtonElement
-  private zoomLevelSpan!: HTMLSpanElement
+  private zoomLevelButton!: HTMLButtonElement
   private zoomOutButton!: HTMLButtonElement
 
   constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-action")
@@ -25,15 +25,10 @@ export class ZoomMenuAction extends BaseMenuItem<HTMLDivElement>
 
   createElement(): HTMLDivElement
   {
-    const wrapper = document.createElement("div")
-    wrapper.id = this.config.id
-    wrapper.classList.add("ms-menu-zoom-group", "ms-menu-row")
+    const wrapper = this.dom.div({ id: this.config.id, className: ["ms-menu-zoom-group", "ms-menu-row"] })
 
     // Bouton Zoom In
-    this.zoomInButton = document.createElement("button")
-    this.zoomInButton.id = `${this.config.id}-in`
-    this.zoomInButton.classList.add("ms-menu-button", "square")
-    this.zoomInButton.innerHTML = zoomInIcon
+    this.zoomInButton = this.dom.button({ id: `${this.config.id}-in`, className: "square", html: zoomInIcon })
     this.zoomInButton.addEventListener("pointerup", () => {
       const currentZoom = this.editor.renderer.getZoom()
       this.editor.renderer.setZoom(currentZoom * 1.2)
@@ -41,20 +36,15 @@ export class ZoomMenuAction extends BaseMenuItem<HTMLDivElement>
     })
 
     // Affichage du niveau de zoom
-    this.zoomLevelSpan = document.createElement("span")
-    this.zoomLevelSpan.id = `${this.config.id}-level`
-    this.zoomLevelSpan.classList.add("ms-menu-zoom-level")
-    this.zoomLevelSpan.addEventListener("click", () => {
+    this.zoomLevelButton = this.dom.button({ id: `${this.config.id}-level`, className: "ms-menu-zoom-level" })
+    this.zoomLevelButton.addEventListener("click", () => {
       this.editor.renderer.setZoom(1)
       this.updateZoomLevel()
     })
     this.updateZoomLevel()
 
     // Bouton Zoom Out
-    this.zoomOutButton = document.createElement("button")
-    this.zoomOutButton.id = `${this.config.id}-out`
-    this.zoomOutButton.classList.add("ms-menu-button", "square")
-    this.zoomOutButton.innerHTML = zoomOutIcon
+    this.zoomOutButton = this.dom.button({ id: `${this.config.id}-out`, className: "square", html: zoomOutIcon })
     this.zoomOutButton.addEventListener("pointerup", () => {
       const currentZoom = this.editor.renderer.getZoom()
       this.editor.renderer.setZoom(currentZoom / 1.2)
@@ -62,7 +52,7 @@ export class ZoomMenuAction extends BaseMenuItem<HTMLDivElement>
     })
 
     wrapper.appendChild(this.zoomInButton)
-    wrapper.appendChild(this.zoomLevelSpan)
+    wrapper.appendChild(this.zoomLevelButton)
     wrapper.appendChild(this.zoomOutButton)
 
     return wrapper
@@ -70,9 +60,9 @@ export class ZoomMenuAction extends BaseMenuItem<HTMLDivElement>
 
   private updateZoomLevel(): void
   {
-    if (this.zoomLevelSpan) {
+    if (this.zoomLevelButton) {
       const zoom = this.editor.renderer.getZoom()
-      this.zoomLevelSpan.textContent = `${Math.round(zoom * 100)}%`
+      this.zoomLevelButton.textContent = `${Math.round(zoom * 100)}%`
     }
   }
 

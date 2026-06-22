@@ -24,10 +24,7 @@ export class DuplicateContextMenu extends BaseMenuItem<HTMLButtonElement>
 
   createElement(): HTMLButtonElement
   {
-    const button = document.createElement("button")
-    button.id = this.config.id
-    button.classList.add("ms-menu-button")
-    button.textContent = this.config.label || "Duplicate"
+    const button = this.dom.button({ id: this.config.id, label: this.config.label || "Duplicate" })
     
     button.addEventListener("pointerup", async () => {
       const symbolsToDuplicate = this.editor.model.symbolsSelected.slice()

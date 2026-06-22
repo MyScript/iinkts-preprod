@@ -62,35 +62,28 @@ export class SubMenuItem extends BaseMenuItem<HTMLDivElement>
 
   createElement(): HTMLDivElement {
     // Wrapper principal
-    const wrapper = document.createElement("div")
-    wrapper.id = this.config.id
-    wrapper.classList.add("sub-menu")
+    const wrapper = this.dom.div({ id: this.config.id, className: "sub-menu" })
 
     // Bouton trigger
-    this.trigger = document.createElement("button")
-    this.trigger.classList.add("ms-menu-button")
+    this.trigger = this.dom.button({ id: `${this.config.id}-trigger`, className: ["between", "full-width"] })
     const position = this.config.position || "right-top"
 
     this.closedRotation = this.getArrowRotationForPosition(position)
     this.openedRotation = this.closedRotation + 180
 
-    this.arrowSpan = document.createElement("span")
-    this.arrowSpan.innerHTML = ArrowDown
+    this.arrowSpan = this.dom.span({ html: ArrowDown })
     this.arrowSpan.style.transition = "transform 0.2s ease"
     this.arrowSpan.style.transform = `rotate(${this.closedRotation}deg)`
 
     if (this.config.icon && this.config.label) {
-      const labelSpan = document.createElement("span")
-      labelSpan.textContent = this.config.label
+      const labelSpan = this.dom.span({ text: this.config.label })
       this.trigger.appendChild(labelSpan)
-      const iconSpan = document.createElement("span")
+      const iconSpan = this.dom.span({ html: this.config.icon })
       iconSpan.style.setProperty("width", "32px")
-      iconSpan.innerHTML = this.config.icon
       this.trigger.appendChild(iconSpan)
     } else if (this.config.icon) {
-      const iconSpan = document.createElement("span")
+      const iconSpan = this.dom.span({ html: this.config.icon })
       iconSpan.style.setProperty("width", "32px")
-      iconSpan.innerHTML = this.config.icon
       this.trigger.appendChild(iconSpan)
     } else if (this.config.label) {
       this.trigger.textContent = this.config.label
@@ -104,18 +97,14 @@ export class SubMenuItem extends BaseMenuItem<HTMLDivElement>
 
     wrapper.appendChild(this.trigger)
 
-    this.subMenuContent = document.createElement("div")
-    this.subMenuContent.classList.add("sub-menu-content", position)
+    this.subMenuContent = this.dom.div({ className: ["sub-menu-content", position] })
 
     if (this.config.menuTitle) {
-      const menuTitleElement = document.createElement("h3")
-      menuTitleElement.classList.add("ms-menu-title")
-      menuTitleElement.textContent = this.config.menuTitle
+      const menuTitleElement = this.dom.h3({ text: this.config.menuTitle, className: "ms-menu-title" })
       this.subMenuContent.appendChild(menuTitleElement)
     }
 
-    this.subMenuWrapper = document.createElement("div")
-    this.subMenuWrapper.classList.add("ms-menu-column")
+    this.subMenuWrapper = this.dom.div({ className: "ms-menu-column" })
 
     this.config.items.forEach(item => {
       const menuItem = createMenuItemInstance(item, this.editor)
