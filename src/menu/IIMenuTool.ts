@@ -1,5 +1,6 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
 import { InteractiveInkEditor } from "@/editor"
+import { DOMFactory } from "@/components/dom"
 import { BaseMenuItem } from "./items"
 import {
   WriteTool,
@@ -67,8 +68,8 @@ export class IIMenuTool
     if (this.editor.configuration.menu.tool.enable) {
       this.#logger.info("Rendering menu tools with config", this.config)
 
-      this.wrapper = document.createElement("div")
-      this.wrapper.classList.add("ms-menu", "ms-menu-bottom", "ms-menu-row")
+      
+      this.wrapper = DOMFactory.div({ className: ["ms-menu", "ms-menu-bottom", "ms-menu-row"] })
 
       // Ajouter les outils conditionnellement
       if (this.config.write) {

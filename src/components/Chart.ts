@@ -1,6 +1,5 @@
-import { BORDER_RADIUS, flexColumnStyle, flexContainerStyle, SPACING } from "./styles"
-import { createButton } from "./ui-utils"
 import { TWO_PI, areValidCoordinates } from "@/utils"
+import { DOMFactory } from "@/components/dom"
 
 /**
  * @group Components
@@ -102,23 +101,15 @@ export class Chart
     } as Required<ChartConfig>
 
     // Create container
-    this.container = document.createElement("div")
-    this.container.style.cssText = flexColumnStyle("16px")
+    this.container = DOMFactory.div({ className: "ms-chart" })
 
     // Create controls
     this.createControls()
 
-    this.canvas = document.createElement("canvas")
+    this.canvas = DOMFactory.canvas()
     this.canvas.width = this.config.width
     this.canvas.height = this.config.height
-    this.canvas.style.cssText = `
-      border: 1px solid #ddd;
-      border-radius: ${BORDER_RADIUS.sm};
-      background: white;
-      display: block;
-      max-width: 100%;
-      cursor: grab;
-    `
+    this.canvas.className = "ms-chart-canvas"
 
     const ctx = this.canvas.getContext("2d")
     if (!ctx) {
@@ -134,28 +125,11 @@ export class Chart
 
   private createControls(): void
   {
-    this.controlsContainer = document.createElement("div")
-    this.controlsContainer.style.cssText = `
-     ${flexContainerStyle(SPACING.md)}
-      padding: 8px;
-      background: #f5f5f5;
-      border-radius: ${BORDER_RADIUS.sm};
-    `
+    this.controlsContainer = DOMFactory.div({ className: "ms-chart-controls" })
 
     const createChartButton = (label: string, onClick: () => void): HTMLButtonElement =>
     {
-      const btn = createButton({ label, onClick })
-      btn.style.cssText = `
-        padding: 4px 12px;
-        border: 1px solid #ccc;
-        border-radius: ${BORDER_RADIUS.sm};
-        background: white;
-        cursor: pointer;
-        font-size: 12px;
-      `
-      btn.onmouseenter = () => (btn.style.background = "#e0e0e0")
-      btn.onmouseleave = () => (btn.style.background = "white")
-      return btn
+      return DOMFactory.button({ label, onClick, className: "ms-chart-btn" })
     }
 
     const zoomInBtn = createChartButton("Zoom +", () => this.zoom(1.2))
@@ -171,13 +145,8 @@ export class Chart
       }
     )
 
-    const label = document.createElement("span")
-    label.textContent = "Zoom: "
-    label.style.cssText = "font-size: 12px; color: #666; margin-left: auto;"
-
-    const info = document.createElement("span")
-    info.textContent = "Use mouse wheel to zoom, drag to pan"
-    info.style.cssText = "font-size: 11px; color: #999; font-style: italic;"
+    const label = DOMFactory.span({ text: "Zoom: ", className: "ms-chart-zoom-label" })
+    const info = DOMFactory.span({ text: "Use mouse wheel to zoom, drag to pan", className: "ms-chart-info" })
 
     this.controlsContainer.appendChild(zoomInBtn)
     this.controlsContainer.appendChild(zoomOutBtn)

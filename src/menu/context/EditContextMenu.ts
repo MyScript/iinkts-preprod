@@ -27,27 +27,20 @@ export class EditContextMenu extends BaseMenuItem<HTMLElement>
 
   createElement(): HTMLElement
   {
-    const trigger = document.createElement("button")
-    trigger.id = `${this.config.id}-trigger`
-    trigger.classList.add("ms-menu-button")
-    const label = document.createElement("span")
-    label.innerText = "Edit"
+    const trigger = this.dom.button({ id: `${this.config.id}-trigger` })
+    const label = this.dom.span({ text: "Edit" })
     trigger.appendChild(label)
-    const icon = document.createElement("span")
+    const icon = this.dom.span({ html: ArrowDown })
     icon.style.setProperty("width", "32px")
     icon.style.setProperty("transform", "rotate(270deg)")
-    icon.innerHTML = ArrowDown
     trigger.appendChild(icon)
 
-    const subMenuWrapper = document.createElement("div")
-    subMenuWrapper.classList.add("ms-menu-column")
-    
-    this.editInput = document.createElement("input")
+    const subMenuWrapper = this.dom.div({ className: "ms-menu-column" })
+
+    this.editInput = this.dom.textInput({})
     subMenuWrapper.appendChild(this.editInput)
-    
-    this.editSaveBtn = document.createElement("button")
-    this.editSaveBtn.classList.add("ms-menu-button")
-    this.editSaveBtn.innerText = "Save"
+
+    this.editSaveBtn = this.dom.button({ label: "Save" })
     subMenuWrapper.appendChild(this.editSaveBtn)
     
     this.editSaveBtn.addEventListener("pointerdown", async (e) => {
@@ -71,12 +64,10 @@ export class EditContextMenu extends BaseMenuItem<HTMLElement>
       }
     })
 
-    const wrapper = document.createElement("div")
-    wrapper.classList.add("sub-menu")
+    const wrapper = this.dom.div({ className: "sub-menu" })
     wrapper.appendChild(trigger)
 
-    const content = document.createElement("div")
-    content.classList.add("sub-menu-content", "right")
+    const content = this.dom.div({ className: ["sub-menu-content", "right"] })
     content.appendChild(subMenuWrapper)
     wrapper.appendChild(content)
 

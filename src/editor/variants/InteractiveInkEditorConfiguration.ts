@@ -49,6 +49,8 @@ export type TInteractiveInkEditorConfiguration = TEditorConfiguration & TRecogni
   shapeSelectionLevel: TShapeSelectionLevel
   /** Math manager configuration (computation behavior and visual interactions) */
   math: TMathConfig
+  /** CSS custom property overrides applied to the editor root element (e.g. `{ "--iink-primary": "#ff0" }`) */
+  cssVars?: Record<string, string>
 }
 
 /**
@@ -76,6 +78,7 @@ export const DefaultInteractiveInkEditorConfiguration: TInteractiveInkEditorConf
   mathSelectionLevel: "element",
   shapeSelectionLevel: "element",
   math: {},
+  cssVars: undefined,
 }
 
 /**
@@ -103,6 +106,7 @@ export class InteractiveInkEditorConfiguration implements TInteractiveInkEditorC
   mathSelectionLevel: TMathSelectionLevel
   shapeSelectionLevel: TShapeSelectionLevel
   math: TMathConfig
+  cssVars?: Record<string, string>
 
   constructor(configuration?: PartialDeep<TInteractiveInkEditorConfiguration>)
   {
@@ -145,5 +149,6 @@ export class InteractiveInkEditorConfiguration implements TInteractiveInkEditorC
     this.mathSelectionLevel = configuration?.mathSelectionLevel ?? DefaultInteractiveInkEditorConfiguration.mathSelectionLevel
     this.shapeSelectionLevel = configuration?.shapeSelectionLevel ?? DefaultInteractiveInkEditorConfiguration.shapeSelectionLevel
     this.math = mergeDeep({}, DefaultInteractiveInkEditorConfiguration.math, configuration?.math)
+    this.cssVars = configuration?.cssVars as Record<string, string> | undefined
   }
 }

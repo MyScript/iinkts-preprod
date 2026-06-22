@@ -1,4 +1,5 @@
 import ArrowDown from "@/assets/svg/nav-arrow-down.svg"
+import { DOMFactory } from "@/components/dom"
 
 /**
  * @group Menu
@@ -12,24 +13,20 @@ export class CollapsibleWrapper {
   }
 
   private createWrapper(content: HTMLElement, title: string, id?: string): HTMLDivElement {
-    const wrapper = document.createElement("div")
-    wrapper.classList.add("collapsible-wrapper")
+    
+
+    const wrapper = DOMFactory.div({ className: "collapsible-wrapper" })
     if (id) {
       wrapper.id = id
     }
 
-    const head = document.createElement("div")
-    head.classList.add("collapsible-header")
-    head.textContent = title
+    const head = DOMFactory.div({ className: "collapsible-header", text: title })
 
-    const btn = document.createElement("span")
-    btn.classList.add("collapsible-header-icon")
-    btn.innerHTML = ArrowDown
+    const btn = DOMFactory.span({ className: "collapsible-header-icon", html: ArrowDown })
     head.appendChild(btn)
     head.style.setProperty("cursor", "pointer")
 
-    const contentWrapper = document.createElement("div")
-    contentWrapper.classList.add("collapsible-content")
+    const contentWrapper = DOMFactory.div({ className: "collapsible-content" })
 
     head.addEventListener("click", () => wrapper.classList.toggle("active"))
 

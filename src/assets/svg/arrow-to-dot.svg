@@ -13,5 +13,11 @@
     stroke-linecap="round"
     stroke-linejoin="round"
   ></path>
-  <path d="M 4 12 H 17 M 17 12 L 14 9 M 17 12 L 14 15" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"></path>
+  <path
+    d="M 4 12 H 17 M 17 12 L 14 9 M 17 12 L 14 15"
+    stroke="currentColor"
+    stroke-width="1"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  ></path>
 </svg>

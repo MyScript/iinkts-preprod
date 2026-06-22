@@ -28,6 +28,18 @@
     stroke-linecap="round"
     stroke-linejoin="round"
   ></path>
-  <path d="M2.62964 15.5H21.3704" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"></path>
-  <path d="M2.62964 8.5H21.3704" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"></path>
+  <path
+    d="M2.62964 15.5H21.3704"
+    stroke="currentColor"
+    stroke-width="1"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  ></path>
+  <path
+    d="M2.62964 8.5H21.3704"
+    stroke="currentColor"
+    stroke-width="1"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  ></path>
 </svg>

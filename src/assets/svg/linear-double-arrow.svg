@@ -6,7 +6,25 @@
   xmlns="http://www.w3.org/2000/svg"
   color="currentColor"
 >
-  <path d="M3 20L21 4" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"></path>
-  <path d="M9 19L3 20L 4 14" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"></path>
-  <path d="M15 5L21 4L 20 10" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"></path>
+  <path
+    d="M3 20L21 4"
+    stroke="currentColor"
+    stroke-width="1"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  ></path>
+  <path
+    d="M9 19L3 20L 4 14"
+    stroke="currentColor"
+    stroke-width="1"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  ></path>
+  <path
+    d="M15 5L21 4L 20 10"
+    stroke="currentColor"
+    stroke-width="1"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  ></path>
 </svg>

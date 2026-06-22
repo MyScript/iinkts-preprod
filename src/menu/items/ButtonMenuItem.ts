@@ -20,9 +20,7 @@ export class ButtonMenuItem extends BaseMenuItem<HTMLButtonElement>
   protected declare config: IMenuButton
 
   createElement(): HTMLButtonElement {
-    const button = document.createElement("button")
-    button.id = this.config.id
-    button.classList.add("ms-menu-button")
+    const button = this.dom.button({ id: this.config.id, className: "ms-menu-item" })
 
     if (this.config.label) {
       button.textContent = this.config.label
