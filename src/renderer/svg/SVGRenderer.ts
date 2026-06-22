@@ -42,6 +42,7 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
     this.layer = SVGBuilder.createLayer({ x: 0, y: 0, width, height })
     this.layer.style.setProperty("height", "auto")
     this.layer.style.setProperty("width", "auto")
+    this.layer.style.setProperty("display", "block")
     this.#viewBox = { x: 0, y: 0, width, height }
     this.layer.appendChild(this.createSVGTools())
     this.parent.appendChild(this.layer)

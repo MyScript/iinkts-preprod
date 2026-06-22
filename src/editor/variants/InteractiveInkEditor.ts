@@ -320,6 +320,7 @@ export class InteractiveInkEditor extends AbstractEditor
 
       this.keyboard.attach()
       this.layers.root.addEventListener("wheel", this.handleWheel)
+      this.startResizeObserver()
 
       this.model.rowHeight = this.configuration.rendering.guides.gap
       this.history.init(this.model)
@@ -1464,6 +1465,7 @@ export class InteractiveInkEditor extends AbstractEditor
 
     this.keyboard.detach()
     this.layers.root.removeEventListener("wheel", this.handleWheel)
+    this.stopResizeObserver()
 
     this.layers.root.classList.remove("draw")
     this.layers.root.classList.remove("erase")
