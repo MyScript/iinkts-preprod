@@ -195,8 +195,8 @@ export class InteractiveInkSSRSVGRenderer
     this.#logger.info("resize", { model })
     const rect = this.context.parent.getBoundingClientRect()
     const svgList = this.context.parent.querySelectorAll("svg")
-    const width = Math.max(rect.width, model.width)
-    const height = Math.max(rect.height, model.height)
+    const width = Math.max(rect.width, model.width, this.config.minWidth)
+    const height = Math.max(rect.height, model.height, this.config.minHeight)
     svgList.forEach(svg =>
     {
       svg.setAttribute("viewBox", `0 0 ${ width }, ${ height }`)
