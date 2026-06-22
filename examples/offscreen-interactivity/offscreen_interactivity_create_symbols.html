@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="../assets/style/components.css" />
     <link rel="stylesheet" href="../assets/style/examples.css" />
     <style>
-      #editor {
+      #editorEl {
         width: calc(100vw - 300px);
         height: calc(100dvh - 112px);
       }
@@ -73,7 +73,7 @@
           overflow: auto;
         }
 
-        #editor {
+        #editorEl {
           height: calc(100dvh - 112px);
           width: 100dvw;
         }
@@ -99,7 +99,7 @@
     </nav>
     <div class="flex-container">
       <div id="symbols-to-create"></div>
-      <div id="editor"></div>
+      <div id="editorEl"></div>
     </div>
 
     <script type="module">
@@ -107,7 +107,7 @@
       import { ModalEditorOptions } from '../components/modal/modalEditorOptions.js'
       import symbols from '../assets/datas/diagram-with-shape.json' with { type: 'json' }
 
-      const editorElement = document.getElementById('editor')
+      const editorElement = document.getElementById('editorEl')
       const showSymbolBtn = document.getElementById('show-create')
       const createAllBtn = document.getElementById('create-all-btn')
       const symbolsToCreate = document.getElementById('symbols-to-create')
@@ -137,8 +137,7 @@
         inputsWrapper.appendChild(btn)
         btn.addEventListener('pointerup', async () => {
           symbolsCreated.push(
-            await document
-              .getElementById('editor')
+            await editorElement
               .editor.createSymbol(JSON.parse(textarea.value))
           )
           createAllBtn.disabled = true
