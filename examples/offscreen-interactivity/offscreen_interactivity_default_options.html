@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="../assets/style/components.css" />
     <link rel="stylesheet" href="../assets/style/examples.css" />
     <style>
-      #editor {
+      #editorEl {
         width: 100vw;
         height: 100dvh;
       }
@@ -29,7 +29,7 @@
       <h1 class="header-title">Offscreen Interactivity - Override default options</h1>
     </header>
 
-    <div id="editor"></div>
+    <div id="editorEl"></div>
 
     <script type="module">
       import {
@@ -40,7 +40,7 @@
       } from '../../dist/iink.esm.js'
       import { ModalEditorOptions } from '../components/modal/modalEditorOptions.js'
 
-      const editorElement = document.getElementById('editor')
+      const editorElement = document.getElementById('editorEl')
       const showModalBtn = document.getElementById('showModalBtn')
 
       let editor
