@@ -9,13 +9,13 @@
     <link rel="stylesheet" href="../assets/style/components.css" />
     <link rel="stylesheet" href="../assets/style/examples.css" />
     <style>
-      #editor {
+      #editorEl {
         width: 100vw;
         height: calc(100dvh - 50px);
       }
 
       @media only screen and (max-width: 631px) {
-        #editor {
+        #editorEl {
           height: calc(100dvh - 102px);
         }
       }
@@ -66,7 +66,7 @@
       <h1 class="header-title">Offscreen Interactivity — Override menus</h1>
     </header>
 
-    <div id="editor"></div>
+    <div id="editorEl"></div>
     <div id="toast"></div>
 
     <script type="module">
@@ -231,7 +231,7 @@
 
       // ─── Editor setup ─────────────────────────────────────────────────────────────
 
-      const editorElement = document.getElementById('editor')
+      const editorElement = document.getElementById('editorEl')
       const showModalBtn = document.getElementById('showModalBtn')
 
       const editorOptions = {
