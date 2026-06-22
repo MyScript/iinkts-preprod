@@ -50,6 +50,8 @@ export abstract class AbstractEditor
   info?: TApiInfos
 
   #loggerConfiguration!: TLoggerConfiguration
+  #resizeObserver?: ResizeObserver
+  #resizeDebounceTimer?: ReturnType<typeof setTimeout>
 
   constructor(rootElement: HTMLElement, options?: PartialDeep<EditorOptionsBase>)
   {
@@ -79,6 +81,24 @@ export abstract class AbstractEditor
   abstract clear(): Promise<void>
 
   abstract destroy(): Promise<void>
+
+  abstract resize(dims?: { height?: number; width?: number }): Promise<void>
+
+  protected startResizeObserver(): void
+  {
+    this.#resizeObserver = new ResizeObserver(() => {
+      clearTimeout(this.#resizeDebounceTimer)
+      this.#resizeDebounceTimer = setTimeout(() => this.resize(), 150)
+    })
+    this.#resizeObserver.observe(this.layers.root)
+  }
+
+  protected stopResizeObserver(): void
+  {
+    clearTimeout(this.#resizeDebounceTimer)
+    this.#resizeObserver?.disconnect()
+    this.#resizeObserver = undefined
+  }
 
   async loadInfo(server: TServerHTTPConfiguration): Promise<TApiInfos>
   {

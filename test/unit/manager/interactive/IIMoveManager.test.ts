@@ -1,5 +1,5 @@
 import { InteractiveInkEditorMock } from "../../__mocks__/InteractiveInkEditorMock"
-import { IIMoveManager, PointerInfo } from "../../../../src/iink"
+import { DefaultIIRendererConfiguration, IIMoveManager, PointerInfo } from "../../../../src/iink"
 
 
 describe("IIMoveManager.ts", () =>
@@ -37,8 +37,8 @@ describe("IIMoveManager.ts", () =>
       expect(manager.renderer.getViewBox()).toEqual({
         x: 0,
         y: 0,
-        width: 100,
-        height: 100,
+        width: DefaultIIRendererConfiguration.minWidth,
+        height: DefaultIIRendererConfiguration.minHeight,
       })
     })
 
@@ -52,8 +52,8 @@ describe("IIMoveManager.ts", () =>
       expect(manager.renderer.getViewBox()).toEqual({
         x: -74,
         y: -100,
-        width: 100,
-        height: 100,
+        width: DefaultIIRendererConfiguration.minWidth,
+        height: DefaultIIRendererConfiguration.minHeight,
       })
       expect(manager.renderer.parent.scrollLeft).toEqual(0)
       expect(manager.renderer.parent.scrollTop).toEqual(0)
@@ -70,8 +70,8 @@ describe("IIMoveManager.ts", () =>
       expect(manager.renderer.getViewBox()).toEqual({
         x: 43,
         y: 98,
-        width: 100,
-        height: 100,
+        width: DefaultIIRendererConfiguration.minWidth,
+        height: DefaultIIRendererConfiguration.minHeight,
       })
       expect(manager.renderer.parent.scrollLeft).toEqual(0)
       expect(manager.renderer.parent.scrollTop).toEqual(0)

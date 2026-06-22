@@ -31,8 +31,8 @@ export type TRendererConfiguration = {
  */
 export const DefaultRendererConfiguration: TRendererConfiguration = {
   guides: DefaultGuidesConfiguration,
-  minHeight: 100,
-  minWidth: 100,
+  minHeight: 400,
+  minWidth: 400,
 }
 
 /**
@@ -54,6 +54,6 @@ export const DefaultIIRendererConfiguration: TIIRendererConfiguration = {
     gap: 50,
     type: "point"
   },
-  minHeight: 100,
-  minWidth: 100,
+  minHeight: 400,
+  minWidth: 400,
 }

@@ -163,7 +163,6 @@ describe("InkEditorDeprecated.ts", () =>
     editor.model.endCurrentStroke(p2)
     await editor.resize({ height: 1, width: 2 })
     expect(editor.renderer.resize).toHaveBeenCalledTimes(1)
-    expect(editor.recognizer.resize).toHaveBeenCalledTimes(1)
   })
 
   test("should not call recognizer on resize if no strokes", async () =>

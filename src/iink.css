@@ -68,6 +68,7 @@
     --iink-modal-primary: var(--iink-primary);
 
     position: relative;
+    display: block;
     z-index: 10;
     color: var(--iink-primary);
     background: var(--iink-editor-bg);
@@ -105,10 +106,8 @@
 }
 
 .ms-editor .ms-layer-rendering {
-    position: absolute;
-    left: 0;
-    top: 0;
-    z-index: 20;
+    position: relative;
+    display: block;
     height: 100%;
     width: 100%;
     touch-action: none;
@@ -139,7 +138,7 @@
 
 /** layer infos **/
 .ms-editor .ms-layer-ui {
-    position: sticky;
+    position: absolute;
     z-index: 25;
     left: 0;
     top: 0;
