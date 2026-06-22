@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="../assets/style/components.css" />
     <link rel="stylesheet" href="../assets/style/examples.css" />
     <style>
-      #editor {
+      #editorEl {
         min-height: 500px;
         width: calc(100vw - 240px);
         height: calc(100dvh - 60px);
@@ -77,7 +77,7 @@
       </ul>
     </div>
     <div class="flex-container">
-      <div id="editor"></div>
+      <div id="editorEl"></div>
 
       <div id="minimap-container">
         <span id="minimap-label">Minimap</span>
@@ -88,7 +88,7 @@
       import { Editor, Minimap } from '../../dist/iink.esm.js'
       import { ModalEditorOptions } from '../components/modal/modalEditorOptions.js'
 
-      const editorElement = document.getElementById('editor')
+      const editorElement = document.getElementById('editorEl')
       const showModalBtn = document.getElementById('showModalBtn')
       const minimapContainer = document.getElementById('minimap-container')
 
