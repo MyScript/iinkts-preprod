@@ -526,7 +526,7 @@ export class RecognizerWebSocket
       this.pingCount = 0
       this.initPing()
     }
-    this.event.emitEndtInitialization()
+    this.event.emitEndInitialization()
   }
 
   async send(message: TRecognizerWebSocketMessage): Promise<void>

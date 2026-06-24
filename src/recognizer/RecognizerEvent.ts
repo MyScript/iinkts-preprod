@@ -94,7 +94,7 @@ export class RecognizerEvent extends EventTarget
     )
   }
 
-  emitEndtInitialization(): void
+  emitEndInitialization(): void
   {
     this.emit(RecognizerEventName.END_INITIALIZATION)
   }
