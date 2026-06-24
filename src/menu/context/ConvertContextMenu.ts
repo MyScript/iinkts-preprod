@@ -15,7 +15,7 @@ export class ConvertContextMenu extends ButtonMenuItem
       label: "Convert",
       action: (editor: InteractiveInkEditor) => {
         const symbolsSelected = editor.model.symbolsSelected
-        editor.convertSymbols(symbolsSelected)
+        editor.convert(symbolsSelected)
       }
     }
     super(config, editor)
