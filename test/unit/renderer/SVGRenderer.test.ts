@@ -49,6 +49,8 @@ describe("SVGRenderer.ts", () =>
     {
       const divElement: HTMLDivElement = document.createElement("div")
       const customConf = JSON.parse(JSON.stringify(DefaultIIRendererConfiguration)) as TIIRendererConfiguration
+      customConf.minHeight = 100
+      customConf.minWidth = 100
       customConf.guides.gap = 5
       const rendererCustom = new SVGRenderer(customConf)
       rendererCustom.init(divElement)
@@ -381,13 +383,13 @@ describe("SVGRenderer.ts", () =>
 
     test("should update height, width & viewbox", () =>
     {
-      expect(renderer.layer.getAttribute("width")).toEqual("100px")
-      expect(renderer.layer.getAttribute("height")).toEqual("100px")
-      expect(renderer.layer.getAttribute("viewBox")).toEqual("0, 0, 100, 100")
-      renderer.resize(200, 400)
       expect(renderer.layer.getAttribute("width")).toEqual("400px")
-      expect(renderer.layer.getAttribute("height")).toEqual("200px")
-      expect(renderer.layer.getAttribute("viewBox")).toEqual("0, 0, 400, 200")
+      expect(renderer.layer.getAttribute("height")).toEqual("400px")
+      expect(renderer.layer.getAttribute("viewBox")).toEqual("0, 0, 400, 400")
+      renderer.resize(450, 475)
+      expect(renderer.layer.getAttribute("width")).toEqual("475px")
+      expect(renderer.layer.getAttribute("height")).toEqual("450px")
+      expect(renderer.layer.getAttribute("viewBox")).toEqual("0, 0, 475, 450")
     })
 
     test("should update guides", () =>

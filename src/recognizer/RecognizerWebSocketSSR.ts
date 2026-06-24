@@ -574,6 +574,9 @@ export class RecognizerWebSocketSSR
   {
     this.#logger.info("resize", { model })
     await this.initialized.promise
+    if (isNaN(model.height) || isNaN(model.width)) {
+      return model
+    }
     this.resizeDeferred = new DeferredPromise<void>()
     const localModel = model.clone()
     this.viewSizeHeight = localModel.height
