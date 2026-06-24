@@ -2,7 +2,9 @@ import menuIcon from "@/assets/svg/menu.svg"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import { IIModel } from "@/model"
 import { InteractiveInkEditor } from "@/editor"
+import { DOMFactory } from "@/components/dom"
 import { BaseMenuItem } from "./items"
+import { IEditorTheme } from "@/editor/EditorThemes"
 import {
   ClearMenuAction,
   LanguageMenuAction,
@@ -17,7 +19,8 @@ import {
   SelectionMenuAction, TSelectionActionConfig,
   ExportMenuAction, TExportActionConfig,
   ImportMenuAction,
-  MinimapMenuAction
+  MinimapMenuAction,
+  ThemeMenuAction
 } from "./actions"
 
 /**
@@ -54,10 +57,14 @@ export interface IIMenuActionConfig {
   import?: boolean
   /** Enable/disable Minimap toggle button */
   minimap?: boolean
+  /** Enable/disable Theme picker */
+  theme?: boolean
+  /** Override predefined themes shown in the theme picker */
+  themes?: IEditorTheme[]
 }
 
 /** @group Menu */
-export const DefaultMenuActionConfig: Required<IIMenuActionConfig> = {
+export const DefaultMenuActionConfig: Required<Omit<IIMenuActionConfig, "themes">> = {
   clear: true,
   language: true,
   undoRedo: true,
@@ -71,7 +78,8 @@ export const DefaultMenuActionConfig: Required<IIMenuActionConfig> = {
   selection: true,
   export: true,
   import: true,
-  minimap: true
+  minimap: true,
+  theme: true
 }
 
 function extractSubConfig<T>(config: boolean | T): T | undefined {
@@ -88,7 +96,7 @@ export class IIMenuAction
   editor: InteractiveInkEditor
   id: string
   wrapper?: HTMLElement
-  config: Required<IIMenuActionConfig>
+  config: Required<Omit<IIMenuActionConfig, "themes">> & Pick<IIMenuActionConfig, "themes">
 
   private menuActions: Map<string, BaseMenuItem> = new Map()
   #documentPointerdownHandler?: (e: PointerEvent) => void
@@ -116,13 +124,16 @@ export class IIMenuAction
     if (this.editor.configuration.menu.action.enable) {
       this.#logger.info("Rendering menu actions with config", this.config)
 
-      const menuTrigger = document.createElement("button")
-      menuTrigger.id = this.id
-      menuTrigger.classList.add("ms-menu-button", "square")
-      menuTrigger.innerHTML = menuIcon
+      
+      const menuTrigger = DOMFactory.button({ id: this.id, className: "square", html: menuIcon })
 
-      const subMenuWrapper = document.createElement("div")
-      subMenuWrapper.classList.add("ms-menu-column")
+      const subMenuWrapper = DOMFactory.div({ className: "ms-menu-column" })
+
+      if (this.config.theme) {
+        const themeAction = new ThemeMenuAction(this.editor, this.id, this.config.themes)
+        this.menuActions.set("theme", themeAction)
+        subMenuWrapper.appendChild(themeAction.getElement())
+      }
 
       if (this.config.gesture) {
         const gestureAction = new GestureMenuAction(this.editor, this.id, extractSubConfig(this.config.gesture))
@@ -172,17 +183,14 @@ export class IIMenuAction
         subMenuWrapper.appendChild(exportAction.getElement())
       }
 
-      this.wrapper = document.createElement("div")
-      this.wrapper.classList.add("ms-menu", "ms-menu-top-left", "ms-menu-row")
+      this.wrapper = DOMFactory.div({ className: ["ms-menu", "ms-menu-top-left", "ms-menu-row"] })
 
       // Only add submenu if there are items
       if (subMenuWrapper.children.length > 0) {
-        const subMenuElement = document.createElement("div")
-        subMenuElement.classList.add("sub-menu")
+        const subMenuElement = DOMFactory.div({ className: "sub-menu" })
         subMenuElement.appendChild(menuTrigger)
 
-        const subMenuContent = document.createElement("div")
-        subMenuContent.classList.add("sub-menu-content", "bottom-right")
+        const subMenuContent = DOMFactory.div({ className: ["sub-menu-content", "bottom-right"] })
         subMenuContent.appendChild(subMenuWrapper)
         subMenuElement.appendChild(subMenuContent)
 

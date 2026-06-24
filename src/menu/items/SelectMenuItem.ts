@@ -21,41 +21,34 @@ export class SelectMenuItem extends BaseMenuItem<HTMLDivElement>
   protected declare config: IMenuSelect
 
   createElement(): HTMLDivElement {
-    const wrapper = document.createElement("div")
-    wrapper.id = this.config.id
-    wrapper.classList.add("ms-menu-item", "select")
+    const wrapper = this.dom.div({ id: this.config.id, className: ["ms-menu-item", "select"] })
 
     if (this.config.label) {
-      const label = document.createElement("span")
-      label.textContent = this.config.label
-      wrapper.appendChild(label)
+      wrapper.appendChild(this.dom.span({ text: this.config.label }))
     }
 
-    const select = document.createElement("select")
-    select.id = `${this.config.id}-input`
+    const isDisabled = typeof this.config.disabled === "function"
+      ? this.config.disabled(this.editor)
+      : (this.config.disabled ?? false)
 
     const currentValue = this.config.getValue(this.editor)
-    this.config.options.forEach(option => {
-      const opt = document.createElement("option")
-      opt.value = option.value
-      opt.textContent = option.label
-      opt.selected = option.value === currentValue
-      select.appendChild(opt)
-    })
 
-    select.addEventListener("change", () => {
-      this.logger.info(`${this.config.id}.change`, { value: select.value })
-      this.config.setValue(this.editor, select.value)
+    const select = this.dom.select({
+      id: `${this.config.id}-input`,
+      options: this.config.options.map(o => ({
+        value: o.value,
+        label: o.label,
+        selected: o.value === currentValue,
+      })),
+      defaultValue: currentValue,
+      disabled: isDisabled,
+      onChange: (value) => {
+        this.logger.info(`${this.config.id}.change`, { value })
+        this.config.setValue(this.editor, value)
+      },
     })
 
     wrapper.appendChild(select)
-
-    // Apply initial disabled state
-    if (typeof this.config.disabled === "function") {
-      select.disabled = this.config.disabled(this.editor)
-    } else if (this.config.disabled) {
-      select.disabled = true
-    }
 
     return wrapper
   }

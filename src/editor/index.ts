@@ -11,3 +11,6 @@ export { EditorFactory, type EditorVariantMap, type EditorOptionsMap } from "./E
 
 // Editor variants
 export * from "./variants"
+
+// Theming
+export * from "./EditorThemes"

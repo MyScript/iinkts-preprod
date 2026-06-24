@@ -26,6 +26,7 @@ describe("IIMathVariableEditor.ts", () =>
   {
     editor = new InteractiveInkEditorMock()
     editor.init()
+    document.body.appendChild(editor.layers.root)
 
     editor.math.getAllVariableUsages = jest.fn().mockResolvedValue([])
     editor.math.setVariableValue = jest.fn().mockResolvedValue(undefined)
@@ -62,7 +63,7 @@ describe("IIMathVariableEditor.ts", () =>
       const component = new IIMathVariableEditor(editor)
       await expect(component.show()).resolves.toBeUndefined()
       // no modal backdrop in DOM
-      const backdrop = document.querySelector("div[style*='position: fixed']")
+      const backdrop = document.querySelector(".ms-modal-backdrop")
       expect(backdrop).toBeNull()
     })
 
@@ -71,7 +72,7 @@ describe("IIMathVariableEditor.ts", () =>
       editor.math.getAllVariableUsages = jest.fn().mockResolvedValue([makeUsage()])
       const component = new IIMathVariableEditor(editor)
       await component.show()
-      const backdrop = document.querySelector("div[style*='position: fixed']")
+      const backdrop = document.querySelector(".ms-modal-backdrop")
       expect(backdrop).not.toBeNull()
     })
 
@@ -79,7 +80,7 @@ describe("IIMathVariableEditor.ts", () =>
     {
       const component = new IIMathVariableEditor(editor)
       await component.show()
-      const backdrop = document.querySelector("div[style*='position: fixed']")
+      const backdrop = document.querySelector(".ms-modal-backdrop")
       expect(backdrop).not.toBeNull()
     })
 
@@ -110,9 +111,9 @@ describe("IIMathVariableEditor.ts", () =>
       const component = new IIMathVariableEditor(editor)
       await component.show()
 
-      expect(document.querySelector("div[style*='position: fixed']")).not.toBeNull()
+      expect(document.querySelector(".ms-modal-backdrop")).not.toBeNull()
       component.close()
-      expect(document.querySelector("div[style*='position: fixed']")).toBeNull()
+      expect(document.querySelector(".ms-modal-backdrop")).toBeNull()
     })
 
     test("should be safe to call before show()", () =>

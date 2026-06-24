@@ -57,31 +57,22 @@ export class DecoratorContextMenu extends BaseMenuItem<HTMLElement>
   {
     const idPrefix = this.config.idPrefix
 
-    const trigger = document.createElement("button")
-    trigger.id = `${idPrefix}-decorator-${kind}`
-    trigger.classList.add("ms-menu-button")
-    const labelEL = document.createElement("span")
-    labelEL.innerText = label
+    const trigger = this.dom.button({ id: `${idPrefix}-decorator-${kind}` })
+    const labelEL = this.dom.span({ text: label })
     trigger.appendChild(labelEL)
-    const icon = document.createElement("span")
+    const icon = this.dom.span({})
     icon.style.setProperty("width", "32px")
     icon.style.setProperty("transform", "rotate(270deg)")
     icon.innerHTML = ArrowDown
     trigger.appendChild(icon)
 
-    const subMenuWrapper = document.createElement("div")
-    subMenuWrapper.classList.add("ms-menu-column")
+    const subMenuWrapper = this.dom.div({ className: "ms-menu-column" })
 
     // Enable checkbox
-    const enableWrapper = document.createElement("div")
-    enableWrapper.classList.add("ms-menu-item", "checkbox")
-    const enableLabel = document.createElement("span")
-    enableLabel.textContent = "Enable"
+    const enableWrapper = this.dom.div({ className: ["ms-menu-item", "checkbox"] })
+    const enableLabel = this.dom.span({ text: "Enable" })
     enableWrapper.appendChild(enableLabel)
-    const checkbox = document.createElement("input")
-    checkbox.id = `${idPrefix}-decorator-${kind}-enable`
-    checkbox.setAttribute("type", "checkbox")
-    checkbox.checked = false
+    const checkbox = this.dom.checkbox({ id: `${idPrefix}-decorator-${kind}-enable`, checked: false })
     checkbox.addEventListener("change", (e) => {
       const enable = (e.target as HTMLInputElement).checked
       const symbolsDecorable = this.symbolsDecorable
@@ -113,25 +104,17 @@ export class DecoratorContextMenu extends BaseMenuItem<HTMLElement>
     subMenuWrapper.appendChild(enableWrapper)
 
     // Color list
-    const colorWrapper = document.createElement("div")
-    colorWrapper.classList.add("ms-menu-item", "colors")
-    colorWrapper.id = `${idPrefix}-decorator-${kind}-color`
-    const colorLabel = document.createElement("span")
-    colorLabel.textContent = "Colors"
+    const colorWrapper = this.dom.div({ id: `${idPrefix}-decorator-${kind}-color`, className: ["ms-menu-item", "colors"] })
+    const colorLabel = this.dom.span({ text: "Colors" })
     colorWrapper.appendChild(colorLabel)
 
-    const colorList = document.createElement("div")
-    colorList.id = `${idPrefix}-decorator-${kind}-color-list`
-    colorList.classList.add("ms-menu-row", "color-list")
+    const colorList = this.dom.div({ id: `${idPrefix}-decorator-${kind}-color-list`, className: ["ms-menu-row", "list"] })
 
     const colors = DEFAULT_MENU_COLORS.filter((_c, i) => !(i % 4))
     colors.forEach((color) => {
-      const btn = document.createElement("button")
+      const btn = this.dom.button({ id: `${idPrefix}-decorator-${kind}-color-${color.replace("#", "")}-btn`, className: "square" })
       btn.disabled = true
-      btn.id = `${idPrefix}-decorator-${kind}-color-${color.replace("#", "")}-btn`
-      btn.classList.add("ms-menu-button", "square")
-      const colorEl = document.createElement("div")
-      colorEl.classList.add("color")
+      const colorEl = this.dom.div({ className: "color" })
       colorEl.style.setProperty("background-color", "transparent")
       colorEl.style.setProperty("border", `3px solid ${color}`)
       if (color === "#ffffff") {
@@ -162,12 +145,10 @@ export class DecoratorContextMenu extends BaseMenuItem<HTMLElement>
     colorWrapper.appendChild(colorList)
     subMenuWrapper.appendChild(colorWrapper)
 
-    const wrapper = document.createElement("div")
-    wrapper.classList.add("sub-menu")
+    const wrapper = this.dom.div({ className: "sub-menu" })
     wrapper.appendChild(trigger)
 
-    const content = document.createElement("div")
-    content.classList.add("sub-menu-content", "right")
+    const content = this.dom.div({ className: ["sub-menu-content", "right"] })
     content.appendChild(subMenuWrapper)
     wrapper.appendChild(content)
 
@@ -188,32 +169,26 @@ export class DecoratorContextMenu extends BaseMenuItem<HTMLElement>
   {
     const enabled = (key: keyof TContextDecoratorItemsConfig) => this.#itemsConfig?.[key] !== false
 
-    const trigger = document.createElement("button")
-    trigger.id = this.config.id
-    trigger.classList.add("ms-menu-button")
-    const label = document.createElement("span")
-    label.innerText = "Decorator"
+    const trigger = this.dom.button({ id: this.config.id })
+    const label = this.dom.span({ text: "Decorator" })
     trigger.appendChild(label)
-    const icon = document.createElement("span")
+    const icon = this.dom.span({})
     icon.style.setProperty("width", "32px")
     icon.style.setProperty("transform", "rotate(270deg)")
     icon.innerHTML = ArrowDown
     trigger.appendChild(icon)
 
-    const subMenuWrapper = document.createElement("div")
-    subMenuWrapper.classList.add("ms-menu-column")
+    const subMenuWrapper = this.dom.div({ className: "ms-menu-column" })
 
     if (enabled("highlight")) subMenuWrapper.appendChild(this.createDecoratorSubMenu("Hightlight", DecoratorKind.Highlight))
     if (enabled("surround")) subMenuWrapper.appendChild(this.createDecoratorSubMenu("Surround", DecoratorKind.Surround))
     if (enabled("underline")) subMenuWrapper.appendChild(this.createDecoratorSubMenu("Underline", DecoratorKind.Underline))
     if (enabled("strikethrough")) subMenuWrapper.appendChild(this.createDecoratorSubMenu("Strikethrough", DecoratorKind.Strikethrough))
 
-    const wrapper = document.createElement("div")
-    wrapper.classList.add("sub-menu")
+    const wrapper = this.dom.div({ className: "sub-menu" })
     wrapper.appendChild(trigger)
 
-    const content = document.createElement("div")
-    content.classList.add("sub-menu-content", "right")
+    const content = this.dom.div({ className: ["sub-menu-content", "right"] })
     content.appendChild(subMenuWrapper)
     wrapper.appendChild(content)
 

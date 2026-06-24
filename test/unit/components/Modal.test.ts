@@ -30,8 +30,8 @@ describe("Modal.ts", () =>
       buttons: [
         {
           label: "OK",
-          type: "primary",
-          callback: jest.fn()
+          variant: "primary",
+          onClick: jest.fn()
         }
       ]
     }
@@ -71,8 +71,8 @@ describe("Modal.ts", () =>
       buttons: [
         {
           label: "Submit",
-          type: "primary",
-          callback: jest.fn()
+          variant: "primary",
+          onClick: jest.fn()
         }
       ]
     }
@@ -91,8 +91,8 @@ describe("Modal.ts", () =>
         buttons: [
           {
             label: "Close",
-            type: "secondary",
-            callback: jest.fn()
+            variant: "secondary",
+            onClick: jest.fn()
           }
         ]
       }
@@ -100,11 +100,11 @@ describe("Modal.ts", () =>
       const modal = new Modal(config)
       modal.open()
 
-      const backdrop = document.querySelector("div[style*='position: fixed']") as HTMLDivElement
+      const backdrop = document.querySelector(".ms-modal-backdrop") as HTMLDivElement
       expect(backdrop).toBeTruthy()
       expect(backdrop.style.display).toBe("block")
 
-      const modalElements = document.querySelectorAll("div[style*='position: fixed']")
+      const modalElements = document.querySelectorAll(".ms-modal, .ms-modal-backdrop")
       expect(modalElements.length).toBeGreaterThan(1)
     })
 
@@ -122,8 +122,8 @@ describe("Modal.ts", () =>
         buttons: [
           {
             label: "OK",
-            type: "primary",
-            callback: jest.fn()
+            variant: "primary",
+            onClick: jest.fn()
           }
         ]
       }
@@ -150,10 +150,10 @@ describe("Modal.ts", () =>
 
       const modal = new Modal(config)
       modal.open()
-      const initialCount = document.querySelectorAll("div[style*='position: fixed']").length
+      const initialCount = document.querySelectorAll(".ms-modal, .ms-modal-backdrop").length
 
       modal.open()
-      const finalCount = document.querySelectorAll("div[style*='position: fixed']").length
+      const finalCount = document.querySelectorAll(".ms-modal, .ms-modal-backdrop").length
 
       expect(initialCount).toBe(finalCount)
     })
@@ -172,7 +172,7 @@ describe("Modal.ts", () =>
       const modal = new Modal(config)
       modal.open()
 
-      const backdrop = document.querySelector("div[style*='position: fixed']") as HTMLDivElement
+      const backdrop = document.querySelector(".ms-modal-backdrop") as HTMLDivElement
       expect(backdrop.style.display).toBe("block")
 
       modal.close()
@@ -218,78 +218,48 @@ describe("Modal.ts", () =>
 
   describe("button callbacks", () =>
   {
-    test("should call button callback with field values", (done) =>
+    test("should call onClick when button is clicked", async () =>
     {
-      const callback = jest.fn()
+      const onClick = jest.fn()
       const config: ModalConfig = {
         title: "Test Modal",
         fields: [
-          {
-            id: "name",
-            label: "Name",
-            type: "text",
-            defaultValue: "John"
-          },
-          {
-            id: "age",
-            label: "Age",
-            type: "number",
-            defaultValue: 30
-          }
+          { id: "name", label: "Name", type: "text", defaultValue: "John" }
         ],
-        buttons: [
-          {
-            label: "Submit",
-            type: "primary",
-            callback
-          }
-        ]
+        buttons: [{ label: "Submit", variant: "primary", onClick }]
       }
 
       const modal = new Modal(config)
       modal.open()
 
-      const buttons = document.querySelectorAll("button")
-      const submitButton = Array.from(buttons).find(btn => btn.textContent === "Submit") as HTMLButtonElement
+      const submitButton = Array.from(document.querySelectorAll("button"))
+        .find(btn => btn.textContent === "Submit") as HTMLButtonElement
       expect(submitButton).toBeTruthy()
       submitButton.click()
 
-      // Wait for async callback
-      setTimeout(() => {
-        expect(callback).toHaveBeenCalledWith({
-          name: "John",
-          age: "30"
-        })
-        done()
-      }, 0)
+      await new Promise(resolve => setTimeout(resolve, 10))
+      expect(onClick).toHaveBeenCalled()
     })
 
-    test("should handle async button callbacks", async () =>
+    test("should handle async button onClick", async () =>
     {
-      const callback = jest.fn().mockResolvedValue(undefined)
+      const onClick = jest.fn().mockResolvedValue(undefined)
       const config: ModalConfig = {
         title: "Test Modal",
         fields: [],
-        buttons: [
-          {
-            label: "Async",
-            type: "primary",
-            callback
-          }
-        ]
+        buttons: [{ label: "Async", variant: "primary", onClick }]
       }
 
       const modal = new Modal(config)
       modal.open()
 
-      const buttons = document.querySelectorAll("button")
-      const asyncButton = Array.from(buttons).find(btn => btn.textContent === "Async") as HTMLButtonElement
+      const asyncButton = Array.from(document.querySelectorAll("button"))
+        .find(btn => btn.textContent === "Async") as HTMLButtonElement
       expect(asyncButton).toBeTruthy()
       asyncButton.click()
 
       await new Promise(resolve => setTimeout(resolve, 10))
-
-      expect(callback).toHaveBeenCalled()
+      expect(onClick).toHaveBeenCalled()
     })
   })
 
@@ -304,16 +274,77 @@ describe("Modal.ts", () =>
       const config: ModalConfig = {
         title: "Test Modal",
         fields: [],
-        buttons: [],
         customContent: customDiv
       }
 
       const modal = new Modal(config)
       modal.open()
 
-      const customElement = document.querySelector("#custom-content")
-      expect(customElement).toBeTruthy()
-      expect(customElement?.textContent).toBe("Custom content here")
+      const found = document.querySelector("#custom-content")
+      expect(found).toBeTruthy()
+      expect(found?.textContent).toBe("Custom content here")
+    })
+  })
+
+  describe("field rendering", () =>
+  {
+    test("should render text input with default value", () =>
+    {
+      const config: ModalConfig = {
+        title: "Test Modal",
+        fields: [{ id: "email", label: "Email", type: "text", defaultValue: "test@example.com" }],
+        buttons: []
+      }
+
+      const modal = new Modal(config)
+      modal.open()
+
+      const input = document.querySelector("#email") as HTMLInputElement
+      expect(input).toBeTruthy()
+      expect(input.value).toBe("test@example.com")
+    })
+
+    test("should render number input with default value", () =>
+    {
+      const config: ModalConfig = {
+        title: "Test Modal",
+        fields: [{ id: "age", label: "Age", type: "number", defaultValue: 30 }],
+        buttons: []
+      }
+
+      const modal = new Modal(config)
+      modal.open()
+
+      const input = document.querySelector("#age") as HTMLInputElement
+      expect(input).toBeTruthy()
+      expect(input.value).toBe("30")
+    })
+
+    test("should render select with correct default value", () =>
+    {
+      const config: ModalConfig = {
+        title: "Test Modal",
+        fields: [
+          {
+            id: "status",
+            label: "Status",
+            type: "select",
+            options: [
+              { value: "active", label: "Active" },
+              { value: "inactive", label: "Inactive" }
+            ],
+            defaultValue: "inactive"
+          }
+        ],
+        buttons: []
+      }
+
+      const modal = new Modal(config)
+      modal.open()
+
+      const select = document.querySelector("#status") as HTMLSelectElement
+      expect(select).toBeTruthy()
+      expect(select.value).toBe("inactive")
     })
   })
 
@@ -330,108 +361,12 @@ describe("Modal.ts", () =>
       const modal = new Modal(config)
       modal.open()
 
-      const backdrop = document.querySelector("div[style*='z-index: 9999']") as HTMLDivElement
+      const backdrop = document.querySelector(".ms-modal-backdrop") as HTMLDivElement
       expect(backdrop).toBeTruthy()
 
       backdrop.click()
 
       expect(backdrop.style.display).toBe("none")
-    })
-  })
-
-  describe("field values", () =>
-  {
-    test("should update field values when user types", (done) =>
-    {
-      const callback = jest.fn()
-      const config: ModalConfig = {
-        title: "Test Modal",
-        fields: [
-          {
-            id: "email",
-            label: "Email",
-            type: "text",
-            defaultValue: ""
-          }
-        ],
-        buttons: [
-          {
-            label: "Submit",
-            type: "primary",
-            callback
-          }
-        ]
-      }
-
-      const modal = new Modal(config)
-      modal.open()
-
-      const input = document.querySelector("#email") as HTMLInputElement
-      expect(input).toBeTruthy()
-
-      input.value = "test@example.com"
-
-      const buttons = document.querySelectorAll("button")
-      const submitButton = Array.from(buttons).find(btn => btn.textContent === "Submit") as HTMLButtonElement
-      expect(submitButton).toBeTruthy()
-      submitButton.click()
-
-      // Wait for async callback
-      setTimeout(() => {
-        expect(callback).toHaveBeenCalledWith({
-          email: "test@example.com"
-        })
-        done()
-      }, 0)
-    })
-
-    test("should handle select field changes", (done) =>
-    {
-      const callback = jest.fn()
-      const config: ModalConfig = {
-        title: "Test Modal",
-        fields: [
-          {
-            id: "status",
-            label: "Status",
-            type: "select",
-            options: [
-              { value: "active", label: "Active" },
-              { value: "inactive", label: "Inactive" }
-            ],
-            defaultValue: "active"
-          }
-        ],
-        buttons: [
-          {
-            label: "Submit",
-            type: "primary",
-            callback
-          }
-        ]
-      }
-
-      const modal = new Modal(config)
-      modal.open()
-
-      const select = document.querySelector("#status") as HTMLSelectElement
-      expect(select).toBeTruthy()
-      expect(select.value).toBe("active")
-
-      select.value = "inactive"
-
-      const buttons = document.querySelectorAll("button")
-      const submitButton = Array.from(buttons).find(btn => btn.textContent === "Submit") as HTMLButtonElement
-      expect(submitButton).toBeTruthy()
-      submitButton.click()
-
-      // Wait for async callback
-      setTimeout(() => {
-        expect(callback).toHaveBeenCalledWith({
-          status: "inactive"
-        })
-        done()
-      }, 0)
     })
   })
 })

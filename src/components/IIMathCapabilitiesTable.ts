@@ -4,10 +4,9 @@ import { Table, TableRow } from "./Table"
 import { IIMathFunctionEvaluator } from "./IIMathFunctionEvaluator"
 import { IIMathDiagnosticChecker } from "./IIMathDiagnosticChecker"
 import { IIMathVariablePerBlockEditor } from "./IIMathVariablePerBlockEditor"
-import { COLORS, flexColumnStyle, flexContainerStyle, SPACING } from "./styles"
-import { createButton, createStatusBadge } from "./ui-utils"
 import { LoggerCategory } from "@/logger/logger"
 import { LoggerManager } from "@/logger/LoggerManager"
+import { ButtonElConfig, DOMFactory } from "@/components/dom"
 
 /**
  * @group Components
@@ -39,6 +38,7 @@ export class IIMathCapabilitiesTable {
 
   constructor(editor: InteractiveInkEditor) {
     this.editor = editor
+    this.logger.debug("IIMathCapabilitiesTable initialized")
   }
 
   /**
@@ -65,7 +65,7 @@ export class IIMathCapabilitiesTable {
         canCompute = actions?.includes("numerical-computation")
         canEvaluate = evaluables?.length ? true : false
       } catch (error) {
-        console.error("Error fetching capabilities for blockId:", jiixBlockId, error)
+        this.logger.error("Error fetching capabilities for blockId:", jiixBlockId, error)
       }
     }
 
@@ -84,21 +84,13 @@ export class IIMathCapabilitiesTable {
   private createTable(capabilities: MathSymbolCapabilities[]): Table {
     // Store capabilities for action buttons
     this.capabilities = capabilities
+    this.logger.debug("Creating capabilities table with capabilities:", capabilities)
 
     // Prepare rows
     const rows: TableRow[] = capabilities.map(cap => {
       // Symbol label cell
-      const symbolCell = document.createElement("span")
-      symbolCell.textContent = this.editor.jiix.getBlockLabel(cap.jiixBlockId) || "Unknown Symbol"
+      const symbolCell = DOMFactory.span({ className: "ms-symbol-cell", text: this.editor.jiix.getBlockLabel(cap.jiixBlockId) || "Unknown Symbol" })
       symbolCell.title = this.editor.jiix.getBlockLabel(cap.jiixBlockId) || ""
-      symbolCell.style.cssText = `
-        font-family: monospace;
-        max-width: 200px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        display: block;
-      `
 
       // Create capability marks
       const capabilityValues = [
@@ -109,7 +101,7 @@ export class IIMathCapabilitiesTable {
       ]
 
       const capabilityCells = capabilityValues.map(canDo => {
-        return createStatusBadge(canDo)
+        return DOMFactory.statusBadge(canDo)
       })
 
       return {
@@ -142,6 +134,7 @@ export class IIMathCapabilitiesTable {
    * Handle row selection
    */
   private handleRowSelection(): void {
+    this.logger.debug("Row selection changed", this.table?.getSelectedRows())
     if (!this.table) return
 
     // Get selected symbols from table
@@ -190,67 +183,48 @@ export class IIMathCapabilitiesTable {
   }
 
   /**
-   * Create a single action button
-   */
-  private createActionButton(config: {
-    label: string
-    backgroundColor: string
-    onClick: () => void
-  }): HTMLButtonElement {
-    const button = createButton({
-      label: config.label,
-      backgroundColor: config.backgroundColor,
-      onClick: config.onClick,
-      disabled: true,
-      className: "ms-menu-button"
-    })
-    return button
-  }
-
-  /**
    * Create action buttons container
    */
   private createActionButtons(): HTMLDivElement {
-    const container = document.createElement("div")
-    container.style.cssText = `
-      ${flexContainerStyle(SPACING.sm)}
-      padding: ${SPACING.lg};
-      border-top: 2px solid #ddd;
-      background: ${COLORS.gray[100]};
-      flex-wrap: wrap;
-    `
+    const container = DOMFactory.div({ className: "ms-capabilities-actions" })
 
     // Define button configurations
-    const buttonConfigs = [
+    const buttonConfigs: ButtonElConfig[] = [
       {
         label: "Check Diagnostic",
-        backgroundColor: COLORS.primary,
+        variant: "primary",
         onClick: () => this.executeCheckDiagnostic(),
-        key: "checkDiagnostic" as const
+        id: "checkDiagnostic"
       },
       {
         label: "Edit Variables",
-        backgroundColor: COLORS.secondary,
+        variant: "secondary",
         onClick: () => this.executeEditVariables(),
-        key: "editVariables" as const
+        id: "editVariables"
       },
       {
         label: "Compute Result",
-        backgroundColor: COLORS.success,
+        variant: "success",
         onClick: () => this.executeComputeResult(),
-        key: "computeResult" as const
+        id: "computeResult"
       },
       {
         label: "Evaluate Function",
-        backgroundColor: COLORS.purple,
+        variant: "info",
         onClick: () => this.executeEvaluateFunction(),
-        key: "evaluateFunction" as const
+        id: "evaluateFunction"
       }
     ]
 
     buttonConfigs.forEach(config => {
-      const button = this.createActionButton(config)
-      this.actionButtons[config.key] = button
+      const button = DOMFactory.button({
+        id: `btn-${config.id}`,
+        label: config.label,
+        variant: config.variant || "primary",
+        disabled: true,
+        onClick: config.onClick,
+      })
+      this.actionButtons[config.id! as keyof typeof this.actionButtons] = button
       container.appendChild(button)
     })
 
@@ -261,6 +235,7 @@ export class IIMathCapabilitiesTable {
    * Execute Check Diagnostic action for selected rows
    */
   private async executeCheckDiagnostic(): Promise<void> {
+    this.logger.debug("Executing Check Diagnostic for selected rows")
     if (!this.table) return
 
     const selectedIndices = this.table.getSelectedRows()
@@ -279,6 +254,7 @@ export class IIMathCapabilitiesTable {
    * Execute Edit Variables action for selected rows
    */
   private async executeEditVariables(): Promise<void> {
+    this.logger.debug("Executing Edit Variables for selected rows")
     if (!this.table) return
 
     const selectedIndices = this.table.getSelectedRows()
@@ -297,6 +273,7 @@ export class IIMathCapabilitiesTable {
    * Execute Compute Result action for selected rows
    */
   private async executeComputeResult(): Promise<void> {
+    this.logger.debug("Executing Compute Result for selected rows")
     if (!this.table) return
 
     const selectedIndices = this.table.getSelectedRows()
@@ -314,6 +291,7 @@ export class IIMathCapabilitiesTable {
    * Execute Evaluate Function action for selected rows
    */
   private async executeEvaluateFunction(): Promise<void> {
+    this.logger.debug("Executing Evaluate Function for selected rows")
     if (!this.table) return
 
     const selectedIndices = this.table.getSelectedRows()
@@ -332,12 +310,8 @@ export class IIMathCapabilitiesTable {
    * Show the capabilities overview modal
    */
   async show(): Promise<void> {
+    this.logger.debug("Showing Math Capabilities Overview modal")
     const mathBlocks = this.editor.model.mathBlocks
-    if (mathBlocks.length === 0) {
-      this.logger.warn("No math symbols found in the model")
-      return
-    }
-
 
     // Fetch capabilities for all symbols
     const capabilities: MathSymbolCapabilities[] = []
@@ -348,20 +322,9 @@ export class IIMathCapabilitiesTable {
 
     this.table = this.createTable(capabilities)
     const actionButtons = this.createActionButtons()
-    const container = document.createElement("div")
-    container.style.cssText = `
-      ${flexColumnStyle(SPACING.sm)}
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      box-sizing: border-box;
-    `
+    const container = DOMFactory.div({ className: "ms-capabilities-content" })
 
-    const tableWrapper = document.createElement("div")
-    tableWrapper.style.cssText = `
-      overflow: auto;
-      flex: 1;
-    `
+    const tableWrapper = DOMFactory.div({ className: "ms-capabilities-table-wrapper" })
     tableWrapper.appendChild(this.table.getElement())
 
     container.appendChild(tableWrapper)
@@ -372,6 +335,7 @@ export class IIMathCapabilitiesTable {
       title: `Math Symbols Capabilities (${mathBlocks.length} symbols)`,
       fields: [],
       customContent: container,
+      container: this.editor.layers.root,
     })
     this.modal.open()
   }
@@ -380,6 +344,7 @@ export class IIMathCapabilitiesTable {
    * Close the modal
    */
   close(): void {
+    this.logger.debug("Closing Math Capabilities Overview modal")
     if (this.modal) {
       this.modal.destroy()
       this.modal = undefined

@@ -16,9 +16,61 @@
 }
 
 .ms-editor {
+    /* ── Design tokens ──────────────────────────────────────────────────── */
+    --iink-primary: #1A9FFF;
+    --iink-success: #4CAF50;
+    --iink-info: #2196F3;
+    --iink-secondary: #9E9E9E;
+    --iink-tertiary: #d6d6d6;
+    --iink-warning: #FFC107;
+    --iink-error: #f44336;
+  
+    --iink-color: #000000;
+    --iink-editor-bg: white;
+    --iink-surface: #F5F6F7;
+    --iink-text-muted: #717171;
+    --iink-guide-color: #c8c8c8;
+
+    --iink-menu-bg: #ffffff;
+    --iink-menu-title-bg: #b3dfff;
+    --iink-menu-hover: rgb(239, 239, 239);
+
+    --iink-input-bg: #ffffff;
+    --iink-input-color: #131F26;
+    --iink-input-border: #CED5D9;
+
+    --iink-spacing-xs: 4px;
+    --iink-spacing-sm: 8px;
+    --iink-spacing-md: 12px;
+    --iink-spacing-lg: 16px;
+
+    --iink-radius-sm: 4px;
+    --iink-radius-md: 6px;
+    --iink-radius-lg: 8px;
+    --iink-radius-full: 50%;
+
+    --iink-section-bg: #f5f5f5;
+    --iink-border-color: #e0e0e0;
+
+    /* Modal tokens — fallback to editor tokens, overridable independently */
+    --iink-modal-backdrop: rgba(0, 0, 0, 0.3);
+    --iink-modal-bg: var(--iink-section-bg);
+    --iink-modal-radius: var(--iink-radius-lg);
+    --iink-modal-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    --iink-modal-width: auto;
+    --iink-modal-title-bg: var(--iink-menu-title-bg);
+    --iink-modal-title-color: var(--iink-color);
+    --iink-modal-title-size: 18px;
+    --iink-modal-icon-btn-hover: var(--iink-menu-hover);
+    --iink-modal-content-bg: var(--iink-editor-bg);
+    --iink-modal-content-color: var(--iink-color);
+    --iink-modal-padding: 20px;
+    --iink-modal-primary: var(--iink-primary);
+
     position: relative;
     z-index: 10;
-    color: #1A9FFF;
+    color: var(--iink-primary);
+    background: var(--iink-editor-bg);
     font-family: sans-serif;
     width: 100%;
     height: 100%;
@@ -76,12 +128,12 @@
 }
 
 .ms-editor .ms-layer-rendering.text .ms-rendering-canvas {
-    background-image: linear-gradient(to bottom, #c8c8c8 1px, transparent 1px);
+    background-image: linear-gradient(to bottom, var(--iink-guide-color) 1px, transparent 1px);
 }
 .ms-editor .ms-layer-rendering.diagram .ms-rendering-canvas,
 .ms-editor .ms-layer-rendering.shape .ms-rendering-canvas,
 .ms-editor .ms-layer-rendering.raw-content .ms-rendering-canvas {
-    background-image: linear-gradient(to right, #c8c8c8 1px, transparent 1px), linear-gradient(to bottom, #c8c8c8 1px, transparent 1px);
+    background-image: linear-gradient(to right, var(--iink-guide-color) 1px, transparent 1px), linear-gradient(to bottom, var(--iink-guide-color) 1px, transparent 1px);
     background-size: 40px 40px;
 }
 
@@ -113,9 +165,9 @@
     height: 120px;
     top: calc(50% - 60px);
     left: calc(50% - 60px);
-    border: 16px solid #F5F6F7;
+    border: 16px solid var(--iink-surface);
     border-radius: 50%;
-    border-top-color: #1A9FFF;
+    border-top-color: var(--iink-primary);
     -webkit-animation: spin 2s linear infinite;
     animation: spin 2s linear infinite;
 }
@@ -148,9 +200,9 @@
     height: 42px;
     bottom: 8px;
     left: 0px;
-    background-color: #F5F6F7;
+    background-color: var(--iink-surface);
     cursor: auto;
-    color: #717171;
+    color: var(--iink-text-muted);
     box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.25), -1px -1px 5px rgba(0, 0, 0, 0.25);
 }
 
@@ -159,114 +211,141 @@
     margin-left: 6px;
     height: 30px;
     width: 30px;
-    color: #717171;
-    border: 4px solid #F5F6F7;
+    color: var(--iink-text-muted);
+    border: 4px solid var(--iink-surface);
     border-radius: 100%;
-    border-top-color: #1A9FFF;
-    border-left-color: #1A9FFF;
-    border-bottom-color: #1A9FFF;
+    border-top-color: var(--iink-primary);
+    border-left-color: var(--iink-primary);
+    border-bottom-color: var(--iink-primary);
     -webkit-animation: spin 2s linear infinite;
     animation: spin 2s linear infinite;
 }
-/** message **/
-.ms-editor .message-container {
+/** modal **/
+.ms-editor .ms-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: var(--iink-modal-backdrop, rgba(0, 0, 0, 0.3));
+    z-index: 9999;
+}
+
+.ms-editor .ms-modal-backdrop {
     position: absolute;
-    width: 100%;
-    height: 100%;
 }
 
-.ms-editor .message-overlay {
-    z-index: 99;
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(186, 186, 186, 0.25);
+.ms-editor .ms-modal {
+    display: flex;
+    flex-direction: column;
+    background: var(--iink-modal-bg, white);
+    border-radius: var(--iink-modal-radius, 8px);
+    box-shadow: var(--iink-modal-shadow, 0 4px 12px rgba(0, 0, 0, 0.15));
+    z-index: 10000;
+    min-width: 300px;
+    max-width: 90vw;
+    max-height: 90vh;
+    width: var(--iink-modal-width, auto);
+    overflow: hidden;
+    transition: border-radius 0.3s ease;
 }
 
-.ms-editor .message-modal {
-    z-index: 999;
-    position: absolute;
-    max-height: calc(100% - 100px);
-    max-width: calc(100% - 8px);
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    overflow: auto;
-    font-size: 16px;
-    text-align: center;
-    word-wrap: break-word;
-    background-color: white;
-    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.25), -1px -1px 5px rgba(0, 0, 0, 0.25);
-    padding: 12px;
+.ms-editor .ms-modal {
+    max-width: calc(100% - 16px);
+    max-height: calc(100% - 16px);
 }
 
-@container editor (max-width: 400px) {
-    .ms-editor .message-modal {
-        width: 100%;
-    }
-}
-@container editor (min-width: 401px) and (max-width: 800px) {
-    .ms-editor .message-modal {
-        width: 66%;
-    }
-}
-@container editor (min-width: 801px) {
-    .ms-editor .message-modal {
-        width: 50%;
-    }
+.ms-editor .ms-modal.ms-modal--fullscreen {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    top: 0 !important;
+    left: 0 !important;
+    transform: none !important;
+    border-radius: 0 !important;
 }
 
-.ms-editor .message-modal.error-msg::before {
-    display: block;
-    width: 100px;
-    margin: auto;
-    content: url("data:image/svg+xml;base64,PHN2ZyB2ZXJzaW9uPSIxLjEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgdmlld0JveD0iMCA3Ni41IDYxMiA0NTkiIHByZXNlcnZlQXNwZWN0UmF0aW89InhNaW5ZTWluIG1lZXQiPgogICAgPHBhdGggZmlsbD0iIzFBOUZGRiIgZD0iTTQ5NC43LDIyOS41Yy0xNy44NTEtODYuNy05NC4zNTEtMTUzLTE4OC43LTE1M2MtMzguMjUsMC03My45NSwxMC4yLTEwMiwzMC42bDM4LjI1LDM4LjI1IGMxNy44NS0xMi43NSw0MC44LTE3Ljg1LDYzLjc1LTE3Ljg1Yzc2LjUsMCwxNDAuMjUsNjMuNzUsMTQwLjI1LDE0MC4yNXYxMi43NWgzOC4yNWM0My4zNSwwLDc2LjUsMzMuMTUsNzYuNSw3Ni41IGMwLDI4LjA1LTE1LjMsNTMuNTUtNDAuOCw2Ni4zbDM4LjI1LDM4LjI1QzU5MS42LDQzOC42LDYxMiw0MDAuMzUsNjEyLDM1N0M2MTIsMjkwLjcsNTU4LjQ1LDIzNC42LDQ5NC43LDIyOS41eiBNNzYuNSwxMDkuNjUgbDcxLjQsNjguODVDNjYuMywxODMuNiwwLDI0OS45LDAsMzMxLjVjMCw4NC4xNSw2OC44NSwxNTMsMTUzLDE1M2gyOTguMzVsNTEsNTFsMzMuMTUtMzMuMTVMMTA5LjY1LDc2LjVMNzYuNSwxMDkuNjV6IE0xOTYuMzUsMjI5LjVsMjA0LDIwNEgxNTNjLTU2LjEsMC0xMDItNDUuOS0xMDItMTAyYzAtNTYuMSw0NS45LTEwMiwxMDItMTAySDE5Ni4zNXoiIC8+Cjwvc3ZnPgo=");
+.ms-editor .ms-modal-title-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--iink-modal-title-bg, #f5f5f5);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    cursor: move;
+    user-select: none;
+    flex-shrink: 0;
+    color: var(--iink-modal-title-color, inherit);
 }
 
-.ms-editor .message-modal.info-msg::before {
-    content: "";
-    background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciCiAgdmlld0JveD0iMCAwIDI0IDI0IgogIGZpbGw9Im5vbmUiCiAgc3Ryb2tlPSIjMUE5RkZGIgogIHN0cm9rZS13aWR0aD0iMiIKICBzdHJva2UtbGluZWNhcD0icm91bmQiCiAgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIKPgogIDxjaXJjbGUgY3g9IjEyIiBjeT0iMTIiIHI9IjEwIiAvPgogIDxsaW5lIHgxPSIxMiIgeTE9IjE2IiB4Mj0iMTIiIHkyPSIxMiIgLz4KICA8bGluZSB4MT0iMTIiIHkxPSI4IiB4Mj0iMTIuMDEiIHkyPSI4IiAvPgo8L3N2Zz4=");
-    background-size: 100% 100%;
-    display: block;
-    margin: auto;
-    padding-bottom: 10px;
-    height: 25px;
-    width: 25px;
+.ms-editor .ms-modal--fullscreen .ms-modal-title-bar {
+    cursor: default;
 }
 
-.ms-editor .message-modal .ms-button {
-    position: absolute;
-    top: 0px;
-    right: 0px;
-    cursor: pointer;
-    height: 32px;
-    width: 32px;
-    background-image: url('data:image/svg+xml,<%3Fxml version="1.0" encoding="UTF-8"%3F><svg width="24px" height="24px" stroke-width="1" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" color="%23000000"><path d="M9.17218 14.8284L12.0006 12M14.829 9.17157L12.0006 12M12.0006 12L9.17218 9.17157M12.0006 12L14.829 14.8284" stroke="%23000000" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"></path><path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="%23000000" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"></path></svg>');
-    background-repeat: no-repeat;
-    background-position: center;
-    border-radius: 4px;
+.ms-editor .ms-modal-title {
+    margin: 0;
+    font-size: var(--iink-modal-title-size, 18px);
+    font-weight: 600;
+    flex: 1;
+}
+
+.ms-editor .ms-modal-title-buttons {
+    display: flex;
+    gap: 4px;
+}
+
+.ms-editor .ms-modal-icon-btn {
+    background: none;
     border: none;
-    font-size: inherit;
-    padding: 0;
-    background-color: rgba(255, 255, 255, 1);
-    color: rgba(0, 0, 0, 1);
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 0.2s;
+    line-height: 1;
+    color: inherit;
+    height: 2rem;
+    width: 2rem;
 }
 
-.ms-editor .message-modal .ms-button:hover {
-    background-color: #EEEEEE;
+.ms-editor .ms-modal-icon-btn:hover {
+    background: var(--iink-modal-icon-btn-hover, #e0e0e0);
 }
+
+.ms-editor .ms-modal-content {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: var(--iink-modal-padding, 20px);
+    background: var(--iink-modal-content-bg, white);
+    color: var(--iink-modal-content-color, inherit);
+}
+
+.ms-editor .ms-modal-field-label {
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.ms-editor .ms-modal-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+    justify-content: flex-end;
+}
+
 
 /** collapsible */
+.ms-editor .collapsible-wrapper {
+  color: var(--iink-color);
+}
+
 .ms-editor .collapsible-wrapper .collapsible-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     cursor: pointer;
-    color: rgb(66, 66, 66);
 }
 
 .ms-editor .collapsible-wrapper .collapsible-header:hover {
-    background-color: rgb(239, 239, 239, 1);
+    background-color: var(--iink-menu-hover);
 }
 
 .ms-editor .collapsible-wrapper .collapsible-header .collapsible-header-icon {
@@ -298,4 +377,780 @@
 .ms-editor .removed-stroke {
     opacity: 0;
     transition: opacity 0.1s ease-in-out;
+}
+
+/** inputs **/
+.ms-editor input:not([type="checkbox"]):not([type="color"]):not([type="range"]),
+.ms-editor select {
+  width: auto;
+  height: 2rem;
+  padding: 0 10px;
+  border-radius: 3px;
+  color: var(--iink-input-color);
+  background-color: var(--iink-input-bg);
+  font: 600 14px "Source Sans Pro", sans-serif;
+  border: 1px solid var(--iink-input-border);
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ms-editor input:not([type="checkbox"]):not([type="color"]):not([type="range"]):not([type="file"]):focus,
+.ms-editor select:focus {
+  outline: 0;
+  border: 1px solid var(--iink-primary);
+  box-shadow: 0 1px 1px 0 rgba(0, 0, 0, .16);
+}
+
+.ms-editor input:disabled,
+.ms-editor select:disabled {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.ms-editor button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  cursor: pointer;
+  height: 2rem;
+  min-width: 2rem;
+  border-radius: var(--iink-radius-sm);
+  border: 1px solid transparent;
+  font-size: inherit;
+  padding: 0 var(--iink-spacing-sm);
+  background-color: transparent;
+  color: var(--iink-color);
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.ms-editor button.square {
+  width: 2rem;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/** Primary — filled with brand color */
+.ms-editor button.primary {
+  padding: 0 var(--iink-spacing-lg);
+  background-color: var(--iink-primary);
+  border-color: var(--iink-primary);
+  color: white;
+}
+
+.ms-editor button.primary:hover {
+  background-color: color-mix(in srgb, var(--iink-primary) 82%, black);
+  border-color: color-mix(in srgb, var(--iink-primary) 82%, black);
+}
+
+.ms-editor button.primary:focus,
+.ms-editor button.primary:active {
+  background-color: color-mix(in srgb, var(--iink-primary) 70%, black);
+  border-color: color-mix(in srgb, var(--iink-primary) 70%, black);
+  outline: none;
+}
+
+/** Secondary — outlined */
+.ms-editor button.secondary {
+  padding: 0 var(--iink-spacing-lg);
+  background-color: transparent;
+  border-color: var(--iink-border-color);
+  color: var(--iink-color);
+}
+
+.ms-editor button.secondary:hover {
+  background-color: var(--iink-menu-hover);
+  border-color: var(--iink-secondary);
+}
+
+.ms-editor button.secondary:focus,
+.ms-editor button.secondary:active {
+  background-color: var(--iink-menu-hover);
+  outline: none;
+}
+
+/** Tertiary — ghost text */
+.ms-editor button.tertiary {
+  padding: 0 var(--iink-spacing-lg);
+  background-color: transparent;
+  border-color: transparent;
+  color: var(--iink-tertiary);
+}
+
+.ms-editor button.tertiary:hover {
+  background-color: color-mix(in srgb, var(--iink-tertiary) 10%, transparent);
+}
+
+.ms-editor button.tertiary:focus,
+.ms-editor button.tertiary:active {
+  background-color: color-mix(in srgb, var(--iink-tertiary) 18%, transparent);
+  outline: none;
+}
+
+/** Semantic variants */
+.ms-editor button.success {
+  padding: 0 var(--iink-spacing-lg);
+  background-color: var(--iink-success);
+  border-color: var(--iink-success);
+  color: white;
+  font-weight: 600;
+}
+.ms-editor button.success:hover {
+  background-color: color-mix(in srgb, var(--iink-success) 82%, black);
+  border-color: color-mix(in srgb, var(--iink-success) 82%, black);
+}
+.ms-editor button.success:focus,
+.ms-editor button.success:active {
+  background-color: color-mix(in srgb, var(--iink-success) 70%, black);
+  border-color: color-mix(in srgb, var(--iink-success) 70%, black);
+  outline: none;
+}
+
+.ms-editor button.danger {
+  padding: 0 var(--iink-spacing-lg);
+  background-color: var(--iink-error);
+  border-color: var(--iink-error);
+  color: white;
+  font-weight: 600;
+}
+.ms-editor button.danger:hover {
+  background-color: color-mix(in srgb, var(--iink-error) 82%, black);
+  border-color: color-mix(in srgb, var(--iink-error) 82%, black);
+}
+.ms-editor button.danger:focus,
+.ms-editor button.danger:active {
+  background-color: color-mix(in srgb, var(--iink-error) 70%, black);
+  border-color: color-mix(in srgb, var(--iink-error) 70%, black);
+  outline: none;
+}
+
+.ms-editor button.warning {
+  padding: 0 var(--iink-spacing-lg);
+  background-color: var(--iink-warning);
+  border-color: var(--iink-warning);
+  color: white;
+  font-weight: 600;
+}
+.ms-editor button.warning:hover {
+  background-color: color-mix(in srgb, var(--iink-warning) 82%, black);
+  border-color: color-mix(in srgb, var(--iink-warning) 82%, black);
+}
+.ms-editor button.warning:focus,
+.ms-editor button.warning:active {
+  background-color: color-mix(in srgb, var(--iink-warning) 70%, black);
+  border-color: color-mix(in srgb, var(--iink-warning) 70%, black);
+  outline: none;
+}
+
+.ms-editor button.info {
+  padding: 0 var(--iink-spacing-lg);
+  background-color: var(--iink-info);
+  border-color: var(--iink-info);
+  color: white;
+  font-weight: 600;
+}
+.ms-editor button.info:hover {
+  background-color: color-mix(in srgb, var(--iink-info) 82%, black);
+  border-color: color-mix(in srgb, var(--iink-info) 82%, black);
+}
+.ms-editor button.info:focus,
+.ms-editor button.info:active {
+  background-color: color-mix(in srgb, var(--iink-info) 70%, black);
+  border-color: color-mix(in srgb, var(--iink-info) 70%, black);
+  outline: none;
+}
+
+/** Base hover / states (toolbar buttons without a variant class) */
+.ms-editor button:hover:not(.primary):not(.secondary):not(.tertiary):not(.success):not(.danger):not(.warning):not(.info):not(.active) {
+  background-color: var(--iink-menu-hover);
+}
+
+.ms-editor button.active {
+  border-color: var(--iink-primary);
+  color: var(--iink-primary);
+  background-color: color-mix(in srgb, var(--iink-primary) 10%, transparent);
+}
+
+.ms-editor button:focus:not(.primary):not(.secondary):not(.tertiary):not(.success):not(.danger):not(.warning):not(.info),
+.ms-editor button:active:not(.primary):not(.secondary):not(.tertiary):not(.success):not(.danger):not(.warning):not(.info) {
+  background-color: color-mix(in srgb, var(--iink-primary) 15%, transparent);
+  outline: none;
+}
+
+.ms-editor button:disabled {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.ms-editor output {
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, -100%);
+  white-space: nowrap;
+  background-color: var(--iink-color);
+  color: var(--iink-color);
+  box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.225);
+  font-weight: bold;
+  width: auto;
+  padding: 5px;
+  border-radius: 5px;
+  display: none;
+}
+
+.ms-editor input:hover+output,
+.ms-editor input:focus+output,
+.ms-editor input:focus-visible+output {
+  display: block;
+}
+
+
+.ms-editor input[type="range"] {
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  accent-color: var(--iink-primary);
+}
+
+.ms-editor input[type="checkbox"] {
+  accent-color: var(--iink-primary);
+}
+
+.ms-editor input[type="file"] {
+  border: none !important;
+}
+
+.ms-editor input[type="file"]:focus {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.ms-editor input[type="file"]:focus::file-selector-button {
+  border: 1px solid var(--iink-primary) !important;
+}
+
+.ms-editor input[type="file"]::file-selector-button {
+  border-radius: 4px;
+  padding: 0 16px;
+  margin: 0 8px;
+  cursor: pointer;
+  background-color: var(--iink-input-bg);
+  color: var(--iink-input-color);
+  border: 1px solid var(--iink-input-border);
+  box-shadow: 0px 1px 0px rgba(0, 0, 0, 0.05);
+  margin-right: auto;
+  height: 2rem;
+  transition: background-color 200ms;
+}
+
+.ms-editor input[type="file"]::file-selector-button:hover {
+  background-color: color-mix(in srgb, var(--iink-input-bg) 85%, var(--iink-input-color));
+}
+
+.ms-editor input[type="file"]::file-selector-button:active {
+  background-color: color-mix(in srgb, var(--iink-input-bg) 70%, var(--iink-input-color));
+}
+
+/** layout **/
+.between {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+}
+.center {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
+.full-width {
+  width: 100% !important;
+}
+
+/** component layout utilities **/
+.ms-editor .ms-flex-row {
+  display: flex;
+  align-items: center;
+}
+.ms-editor .ms-flex-col {
+  display: flex;
+  flex-direction: column;
+}
+.ms-editor .ms-gap-xs { gap: var(--iink-spacing-xs); }
+.ms-editor .ms-gap-sm { gap: var(--iink-spacing-sm); }
+.ms-editor .ms-gap-md { gap: var(--iink-spacing-md); }
+.ms-editor .ms-gap-lg { gap: var(--iink-spacing-lg); }
+
+.ms-editor .ms-card {
+  padding: var(--iink-spacing-md);
+  background: var(--iink-card-bg);
+  border-radius: var(--iink-radius-md);
+  border: 1px solid var(--iink-border-color);
+}
+
+.ms-editor .ms-section {
+  padding: var(--iink-spacing-lg);
+  background: var(--iink-section-bg);
+  border-radius: var(--iink-radius-lg);
+  border: 1px solid var(--iink-border-color);
+}
+
+/** chart component **/
+.ms-editor .ms-chart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--iink-spacing-lg);
+}
+
+.ms-editor .ms-chart-canvas {
+  border: 1px solid var(--iink-border-color);
+  border-radius: var(--iink-radius-sm);
+  background: var(--iink-editor-bg);
+  display: block;
+  max-width: 100%;
+  cursor: grab;
+}
+
+.ms-editor .ms-chart-canvas:active {
+  cursor: grabbing;
+}
+
+.ms-editor .ms-chart-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--iink-spacing-md);
+  padding: var(--iink-spacing-sm);
+  background: var(--iink-section-bg);
+  border-radius: var(--iink-radius-sm);
+}
+
+.ms-editor .ms-chart-btn {
+  padding: 4px 12px;
+  border: 1px solid var(--iink-border-color);
+  border-radius: var(--iink-radius-sm);
+  background: var(--iink-editor-bg);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.ms-editor .ms-chart-btn:hover {
+  background: var(--iink-menu-hover);
+}
+
+.ms-editor .ms-chart-zoom-label {
+  font-size: 12px;
+  color: var(--iink-text-muted);
+  margin-left: auto;
+}
+
+.ms-editor .ms-chart-info {
+  font-size: 11px;
+  color: var(--iink-secondary);
+  font-style: italic;
+}
+
+/** evaluator component **/
+.ms-editor .ms-evaluator-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--iink-spacing-lg);
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.ms-editor .ms-function-item {
+  display: flex;
+  align-items: center;
+  gap: var(--iink-spacing-sm);
+  margin: var(--iink-spacing-xs) 0;
+  font-size: 14px;
+}
+
+.ms-editor .ms-symbol-label {
+  color: var(--iink-text-muted);
+  flex-shrink: 0;
+}
+
+.ms-editor .ms-select-wrapper {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--iink-spacing-xs);
+}
+
+.ms-editor .ms-select-label {
+  font-size: 12px;
+  color: var(--iink-text-muted);
+}
+
+.ms-editor .ms-functions-card {
+  padding: var(--iink-spacing-md);
+  background: var(--iink-card-bg);
+  border-radius: var(--iink-radius-md);
+  border: 1px solid var(--iink-border-color);
+  margin-bottom: var(--iink-spacing-lg);
+}
+
+.ms-editor .ms-functions-title {
+  font-weight: 600;
+  margin-bottom: var(--iink-spacing-sm);
+  color: var(--iink-color);
+}
+
+.ms-editor .ms-input-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--iink-spacing-md);
+}
+
+.ms-editor .ms-tabs-section {
+  border: 1px solid var(--iink-border-color);
+  border-radius: var(--iink-radius-lg);
+  overflow: hidden;
+}
+
+.ms-editor .ms-tab-headers {
+  display: flex;
+  align-items: center;
+  background: var(--iink-section-bg);
+  border-bottom: 2px solid var(--iink-border-color);
+}
+
+.ms-editor .ms-tab-content {
+  padding: var(--iink-spacing-lg);
+  background: var(--iink-editor-bg);
+  min-height: 400px;
+}
+
+.ms-editor .ms-tab-header {
+  flex: 1;
+  padding: 12px var(--iink-spacing-lg);
+  border: none;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--iink-text-muted);
+  transition: all 0.2s;
+  height: auto;
+}
+
+.ms-editor .ms-tab-header:hover:not(.active) {
+  background: var(--iink-menu-hover);
+}
+
+.ms-editor .ms-tab-header.active {
+  color: var(--iink-primary);
+  border-bottom: 3px solid var(--iink-primary);
+  font-weight: 600;
+}
+
+.ms-editor .ms-tab-header:focus,
+.ms-editor .ms-tab-header:active {
+  background: transparent;
+}
+
+.ms-editor .ms-tab-empty {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--iink-secondary);
+  font-size: 16px;
+}
+
+.ms-editor .ms-table-title-header {
+  font-weight: 600;
+  font-size: 16px;
+  margin-bottom: 12px;
+  color: var(--iink-info);
+  padding: 8px 12px;
+  background: var(--iink-section-bg);
+  border-radius: var(--iink-radius-sm);
+}
+
+.ms-editor .ms-table-wrapper {
+  max-height: 400px;
+  overflow: auto;
+  margin-bottom: 24px;
+}
+
+/** diagnostic component **/
+.ms-editor .ms-diagnostic-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  padding: var(--iink-spacing-lg);
+  box-sizing: border-box;
+}
+
+.ms-editor .ms-diagnostic-section {
+  border: 2px solid var(--iink-border-color);
+  border-radius: var(--iink-radius-lg);
+  padding: var(--iink-spacing-lg);
+  background: var(--iink-surface);
+}
+
+.ms-editor .ms-diagnostic-expression {
+  font-size: 18px;
+  margin-bottom: 20px;
+  font-weight: 600;
+  color: var(--iink-primary);
+  padding: 12px;
+  background: var(--iink-section-bg);
+  border-radius: var(--iink-radius-sm);
+}
+
+.ms-editor .ms-diagnostic-subsection {
+  margin-bottom: 20px;
+  padding: var(--iink-spacing-lg);
+  background: var(--iink-editor-bg);
+  border-radius: var(--iink-radius-md);
+  border: 1px solid var(--iink-border-color);
+}
+
+.ms-editor .ms-diagnostic-task-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--iink-color);
+}
+
+.ms-editor .ms-diagnostic-code {
+  font-size: 13px;
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  background: var(--iink-section-bg);
+  border-radius: var(--iink-radius-sm);
+  font-family: monospace;
+  border: 1px solid var(--iink-border-color);
+}
+
+.ms-editor .ms-diagnostic-status {
+  font-size: 16px;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border-radius: var(--iink-radius-sm);
+  font-weight: bold;
+}
+
+.ms-editor .ms-diagnostic-message {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--iink-text-muted);
+}
+
+/** variable editor components **/
+.ms-editor .ms-var-editor-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--iink-spacing-lg);
+  width: 100%;
+  overflow-y: auto;
+  padding: var(--iink-spacing-md);
+  box-sizing: border-box;
+}
+
+.ms-editor .ms-var-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--iink-color);
+  margin-bottom: var(--iink-spacing-sm);
+}
+
+.ms-editor .ms-add-var-btn {
+  padding: var(--iink-spacing-sm) var(--iink-spacing-md);
+  border: 1px dashed var(--iink-primary);
+  background: transparent;
+  color: var(--iink-primary);
+  border-radius: var(--iink-radius-sm);
+  cursor: pointer;
+  font-size: 13px;
+  margin-top: var(--iink-spacing-sm);
+  height: auto;
+}
+
+.ms-editor .ms-add-var-btn:hover {
+  background: color-mix(in srgb, var(--iink-primary) 10%, transparent);
+}
+
+.ms-editor .ms-new-var-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 28px;
+  gap: var(--iink-spacing-sm);
+  align-items: center;
+  padding: var(--iink-spacing-sm);
+  background: var(--iink-section-bg);
+  border-radius: var(--iink-radius-sm);
+  border: 1px solid var(--iink-input-border);
+}
+
+
+.ms-editor .ms-expression-header {
+  font-size: 18px;
+  margin-bottom: var(--iink-spacing-lg);
+  font-weight: 600;
+  color: var(--iink-primary);
+  padding: var(--iink-spacing-md);
+  background: var(--iink-section-bg);
+  border-radius: var(--iink-radius-sm);
+}
+
+.ms-editor .ms-var-row {
+  align-items: center;
+  padding: var(--iink-spacing-sm);
+  background: var(--iink-surface);
+  border-radius: var(--iink-radius-sm);
+  border: 1px solid var(--iink-border-color);
+}
+
+.ms-editor .ms-var-name-label {
+  font-weight: 600;
+  font-family: monospace;
+  font-size: 16px;
+  color: var(--iink-color);
+}
+
+.ms-editor .ms-source-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.ms-editor .ms-type-label {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.ms-editor .ms-source-label {
+  font-size: 10px;
+  color: var(--iink-secondary);
+  font-family: monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100px;
+}
+
+.ms-editor .ms-target-label {
+  font-size: 11px;
+  color: var(--iink-text-muted);
+  font-family: monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 var(--iink-spacing-sm);
+}
+
+/** capabilities table component **/
+.ms-editor .ms-symbol-cell {
+  font-family: monospace;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}
+
+.ms-editor .ms-capabilities-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--iink-spacing-sm);
+  padding: var(--iink-spacing-lg);
+  border-top: 2px solid var(--iink-border-color);
+  background: var(--iink-surface);
+  flex-wrap: wrap;
+}
+
+.ms-editor .ms-capabilities-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--iink-spacing-sm);
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.ms-editor .ms-capabilities-table-wrapper {
+  overflow: auto;
+  flex: 1;
+}
+
+/** minimap component **/
+.ms-editor .ms-minimap {
+  overflow: hidden;
+  background: var(--iink-section-bg);
+  border: 1px solid var(--iink-border-color);
+  border-radius: var(--iink-radius-sm);
+  cursor: crosshair;
+}
+
+/** table component **/
+.ms-editor .ms-table {
+  border-collapse: collapse;
+}
+
+.ms-editor .ms-table-header-row {
+  background: var(--iink-surface);
+  border-bottom: 2px solid var(--iink-border-color);
+}
+
+.ms-editor .ms-table-th {
+  padding: 12px 8px;
+  font-weight: 600;
+  border-bottom: 2px solid var(--iink-border-color);
+}
+
+.ms-editor .ms-table-td {
+  padding: 10px 8px;
+  border: 1px solid var(--iink-border-color);
+}
+
+/** modal form **/
+.ms-editor .ms-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--iink-spacing-md);
+}
+
+.ms-editor .ms-modal-field-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--iink-spacing-xs);
+}
+
+/** Theme picker items (rendered inside SubMenuItem's sub-menu-content) */
+.ms-editor .ms-theme-item {
+  display: flex;
+  align-items: center;
+  gap: var(--iink-spacing-sm);
+  padding: var(--iink-spacing-xs) var(--iink-spacing-md);
+  cursor: pointer;
+  color: var(--iink-color);
+  font-size: 13px;
+  transition: background-color 0.1s;
+}
+
+.ms-editor .ms-theme-item:hover {
+  background-color: var(--iink-menu-hover);
+}
+
+.ms-editor .ms-theme-item.active {
+  color: var(--iink-primary);
+  font-weight: 600;
+}
+
+.ms-editor .ms-theme-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--iink-radius-full);
+  flex-shrink: 0;
+  border: 1px solid rgba(0, 0, 0, 0.15);
 }

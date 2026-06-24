@@ -25,24 +25,19 @@ export class FileInputMenuItem extends BaseMenuItem<HTMLDivElement>
 
   createElement(): HTMLDivElement
   {
-    const wrapper = document.createElement("div")
-    wrapper.id = this.config.id
-    wrapper.classList.add("ms-menu-file-input")
+    const wrapper = this.dom.div({ id: this.config.id, className: "ms-menu-file-input" })
 
-    // Input file
-    this.inputElement = document.createElement("input")
-    this.inputElement.type = "file"
-    this.inputElement.accept = this.config.accept || "*"
-    this.inputElement.multiple = this.config.multiple || false
+    this.inputElement = this.dom.fileInput({
+      id: `${this.config.id}-input`,
+      accept: this.config.accept,
+      multiple: this.config.multiple,
+    })
     this.inputElement.addEventListener("change", () => {
       this.buttonElement.disabled = !this.inputElement.files?.length
     })
     wrapper.appendChild(this.inputElement)
 
-    // Validation button
-    this.buttonElement = document.createElement("button")
-    this.buttonElement.classList.add("ms-menu-button")
-    this.buttonElement.innerText = this.config.buttonLabel || this.config.label || "Upload"
+    this.buttonElement = this.dom.button({ label: this.config.buttonLabel || this.config.label || "Upload" })
     this.buttonElement.disabled = true
     this.buttonElement.addEventListener("pointerup", async (e) => {
       e.preventDefault()
