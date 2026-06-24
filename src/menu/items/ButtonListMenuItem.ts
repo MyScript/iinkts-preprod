@@ -22,38 +22,30 @@ export class ButtonListMenuItem extends BaseMenuItem<HTMLDivElement>
   protected declare config: IMenuButtonList
 
   createElement(): HTMLDivElement {
-    const wrapper = document.createElement("div")
-    wrapper.id = this.config.id
-    wrapper.classList.add("ms-menu-item", "list")
+    const wrapper = this.dom.div({ id: this.config.id, className: ["ms-menu-item", "list"] })
 
     if (this.config.label) {
-      const label = document.createElement("span")
-      label.textContent = this.config.label
-      wrapper.appendChild(label)
+      wrapper.appendChild(this.dom.span({ text: this.config.label }))
     }
 
     const currentValue = this.config.getValue(this.editor)
 
     this.config.options.forEach(option => {
-      const button = document.createElement("button")
-      button.id = `${this.config.id}-${option.value}`
-      button.textContent = option.label
+      const button = this.dom.button({
+        id: `${this.config.id}-${option.value}`,
+        label: option.label,
+        className: [
+          this.config.buttonType || "",
+          option.value === currentValue ? "active" : ""
+        ],
+        onPointerUp: () => {
+          this.logger.info(`${this.config.id}.change`, { value: option.value })
+          this.config.setValue(this.editor, option.value)
 
-      if (option.value === currentValue) {
-        button.classList.add("active")
-      }
-      if (this.config.buttonType) {
-        button.classList.add(this.config.buttonType)
-      }
-
-      button.addEventListener("pointerup", () => {
-        this.logger.info(`${this.config.id}.change`, { value: option.value })
-        this.config.setValue(this.editor, option.value)
-
-        wrapper.querySelectorAll("button").forEach(btn => btn.classList.remove("active"))
-        button.classList.add("active")
+          wrapper.querySelectorAll("button").forEach(btn => btn.classList.remove("active"))
+          button.classList.add("active")
+        }
       })
-
       wrapper.appendChild(button)
     })
 

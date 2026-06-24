@@ -4,7 +4,6 @@ import { TJIIXMathElement } from "@/model"
 import { Box, TBox, IIStroke, isStroke } from "@/symbol"
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import { ColorPaletteManager } from "../base"
-import { COLORS } from "@/components"
 import { convertBoundingBoxMillimeterToPixel } from "@/utils"
 import { LoggerCategory } from "@/logger"
 
@@ -381,7 +380,7 @@ export class IIOverlayManager extends IIAbstractManager
   highlightPrimary(id: string, bounds: TBox, color?: string): void
   {
     this.drawOverlayRect(id, bounds, "highlight-source", {
-      stroke: color || "#4CAF50",
+      stroke: color || "var(--iink-success)",
       "stroke-width": "3",
       "stroke-dasharray": "5 3",
       "data-overlay": "highlight"
@@ -391,7 +390,7 @@ export class IIOverlayManager extends IIAbstractManager
   highlightLinked(id: string, bounds: TBox): void
   {
     this.drawOverlayRect(id, bounds, "highlight-dependent", {
-      stroke: "#FF9800",
+      stroke: "var(--iink-warning)",
       "stroke-width": "3",
       "stroke-dasharray": "5 3",
       "data-overlay": "highlight"
@@ -412,17 +411,17 @@ export class IIOverlayManager extends IIAbstractManager
   addHoverGlow(id: string, bounds: TBox): void
   {
     this.drawOverlayRect(id, bounds, "glow", {
-      stroke: COLORS.primary,
+      stroke: "var(--iink-primary)",
       "stroke-width": "2",
       "data-overlay": "glow",
-      style: "pointer-events: none; filter: drop-shadow(0 0 8px rgba(33, 150, 243, 0.6));"
+      style: "pointer-events: none; filter: drop-shadow(0 0 8px color-mix(in srgb, var(--iink-primary) 60%, transparent));"
     })
   }
 
   dimSymbol(id: string, bounds: TBox, opacity: number = 0.3): void
   {
     this.drawOverlayRect(id, bounds, "dim", {
-      fill: "#ffffff",
+      fill: "var(--iink-editor-bg)",
       opacity: (1 - opacity).toString(),
       "data-overlay": "dim"
     })
