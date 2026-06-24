@@ -176,7 +176,7 @@ export const callEditorExport = async (page, type) => {
  */
 export const callEditorSynchronize = async (page) => {
   await page.waitForFunction(() => !!editorEl?.editor)
-  return page.evaluate(`editorEl.editor.synchronizeStrokesWithJIIX()`)
+  return page.evaluate(`editorEl.editor.synchronize()`)
 }
 
 /**
