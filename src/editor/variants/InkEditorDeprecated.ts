@@ -32,7 +32,6 @@ export class InkEditorDeprecated extends AbstractEditor
 {
   #configuration: InkEditorDeprecatedConfiguration
   #model: Model
-  #resizeTimer?: ReturnType<typeof setTimeout>
   #exportTimer?: ReturnType<typeof setTimeout>
 
   grabber: PointerEventGrabber
@@ -229,6 +228,7 @@ export class InkEditorDeprecated extends AbstractEditor
       this.layers.rendering.classList.add(this.configuration.recognition.type.toLowerCase().replace(" ", "-"))
       this.renderer.init(this.layers.rendering, { x: 50, y: 50 })
       this.grabber.attach(this.layers.rendering)
+      this.startResizeObserver()
     } catch (error) {
       this.logger.error("initialize", error)
       this.layers.showMessageError(error as Error)
@@ -370,24 +370,10 @@ export class InkEditorDeprecated extends AbstractEditor
   async resize({ height, width }: { height?: number, width?: number } = {}): Promise<void>
   {
     this.logger.info("resize", { height, width })
-    const deferredResize = new DeferredPromise<Model>()
     const compStyles = window.getComputedStyle(this.layers.root)
     this.model.height = height || Math.max(parseInt(compStyles.height.replace("px", "")), this.configuration.rendering.minHeight)
     this.model.width = width || Math.max(parseInt(compStyles.width.replace("px", "")), this.configuration.rendering.minWidth)
     this.renderer.resize(this.model)
-    if (this.model.symbols.length) {
-      clearTimeout(this.#resizeTimer)
-      this.#resizeTimer = setTimeout(async () =>
-      {
-        const resizeModel = await this.recognizer.resize(this.model)
-        deferredResize.resolve(resizeModel)
-      }, this.#configuration.triggers.resizeTriggerDelay)
-    } else {
-      deferredResize.resolve(this.model)
-    }
-    this.#model = await deferredResize.promise
-    this.logger.debug("resize", { model: this.model })
-    this.event.emitExported(this.model.exports as TExport)
   }
 
   async undo(): Promise<void>
@@ -426,6 +412,7 @@ export class InkEditorDeprecated extends AbstractEditor
   async destroy(): Promise<void>
   {
     this.logger.info("destroy")
+    this.stopResizeObserver()
     this.event.removeAllListeners()
     this.grabber.detach()
     this.layers.destroy()
