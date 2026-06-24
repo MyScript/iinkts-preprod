@@ -254,6 +254,7 @@ export class InteractiveInkSSREditor extends AbstractEditor
       this.grabber.onPointerUp = this.onPointerUp.bind(this)
 
       this.initializeSmartGuide()
+      this.startResizeObserver()
 
       if(!this.recognizer.configuration.server.version) {
         await this.loadInfo(this.configuration.server)
@@ -426,10 +427,16 @@ export class InteractiveInkSSREditor extends AbstractEditor
   async resize({ height, width }: { height?: number, width?: number } = {}): Promise<void>
   {
     this.logger.info("resize", { height, width })
-    const deferredResize = new DeferredPromise<Model>()
     const compStyles = window.getComputedStyle(this.layers.root)
-    this.model.height = height || Math.max(parseInt(compStyles.height.replace("px", "")), this.configuration.rendering.minHeight)
-    this.model.width = width || Math.max(parseInt(compStyles.width.replace("px", "")), this.configuration.rendering.minWidth)
+    const heightValue = height || Math.max(parseInt(compStyles.height.replace("px", "")), this.configuration.rendering.minHeight)
+    const widthValue = width || Math.max(parseInt(compStyles.width.replace("px", "")), this.configuration.rendering.minWidth)
+    if (heightValue === this.model.height && widthValue === this.model.width) {
+      this.logger.debug("resize", "no change")
+      return
+    }
+    const deferredResize = new DeferredPromise<Model>()
+    this.model.height = heightValue
+    this.model.width = widthValue
     const clonedModel = this.model.clone()
     this.renderer.resize(clonedModel)
     clearTimeout(this.#resizeTimer)
@@ -487,6 +494,7 @@ export class InteractiveInkSSREditor extends AbstractEditor
   async destroy(): Promise<void>
   {
     this.logger.info("destroy")
+    this.stopResizeObserver()
     this.event.removeAllListeners()
     this.grabber.detach()
     this.layers.destroy()

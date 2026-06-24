@@ -139,6 +139,7 @@ export class InkEditor extends AbstractEditor
       this.model.height = Math.max(parseInt(compStyles.height.replace("px", "")), this.#configuration.rendering.minHeight)
       this.model.rowHeight = this.configuration.rendering.guides.gap
       this.history.init(this.model)
+      this.startResizeObserver()
 
       if (!this.recognizer.configuration.server.version) {
         await this.loadInfo(this.configuration.server)
@@ -207,7 +208,6 @@ export class InkEditor extends AbstractEditor
     this.model.width = width || Math.max(parseInt(compStyles.width.replace("px", "")), this.configuration.rendering.minWidth)
     this.renderer.resize(this.model.height, this.model.width)
     this.logger.debug("resize", { model: this.model })
-    this.event.emitExported(this.model.exports || {})
   }
 
   async removeStrokes(strokeIds: string[]): Promise<void>
@@ -268,6 +268,7 @@ export class InkEditor extends AbstractEditor
   async destroy(): Promise<void>
   {
     this.logger.info("destroy")
+    this.stopResizeObserver()
     this.event.removeAllListeners()
     this.writer.detach()
     this.layers.destroy()

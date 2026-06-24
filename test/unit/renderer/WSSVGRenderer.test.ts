@@ -497,7 +497,7 @@ describe("InteractiveInkSSRSVGRenderer.ts", () =>
 
   test('should resize', () =>
   {
-    const width = 100, height = 50
+    const width = DefaultRendererConfiguration.minWidth, height = DefaultRendererConfiguration.minHeight
     const domElement = document.createElement('div') as HTMLElement
     const renderer = new InteractiveInkSSRSVGRenderer(DefaultRendererConfiguration)
     const model = new Model(width, height)
