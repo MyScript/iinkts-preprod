@@ -8,6 +8,7 @@ function buildMockEditor(overrides: Partial<any> = {}): InteractiveInkEditor
 
   return {
     model: { symbols: [] },
+    configuration: { cssVars: undefined },
     renderer: {
       getRenderingContext: jest.fn(() => mockMainLayer),
       getViewBox: jest.fn(() => ({ x: 0, y: 0, width: 800, height: 600 })),

@@ -1,5 +1,6 @@
 import { InteractiveInkEditor } from "@/editor"
 import { LoggerCategory, LoggerManager } from "@/logger"
+import { DOMFactory } from "@/components/dom"
 
 /**
  * @group Menu
@@ -28,6 +29,10 @@ export abstract class BaseMenuItem<T extends HTMLElement = HTMLElement>
   protected config: TGenericMenuItem
   protected editor: InteractiveInkEditor
   protected element?: T
+
+  protected get dom(): typeof DOMFactory {
+    return this.editor.dom
+  }
 
   constructor(config: TGenericMenuItem, editor: InteractiveInkEditor) {
     this.config = config

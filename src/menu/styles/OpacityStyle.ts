@@ -29,7 +29,6 @@ export class OpacityStyle extends BaseMenuItem<HTMLDivElement>
     const opacityConfig: IMenuRange = {
       type: "range",
       id: this.config.id,
-      label: "opacity",
       min: 1,
       max: 100,
       step: 1,

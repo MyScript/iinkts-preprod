@@ -3,18 +3,7 @@ import { Modal } from "./Modal"
 import { Chart } from "./Chart"
 import { Table, TableRow } from "./Table"
 import { LoggerCategory, LoggerManager } from "@/logger"
-import {
-  COLORS,
-  flexContainerStyle,
-  SPACING,
-  sectionStyle,
-  cardStyle,
-  selectStyle,
-  gridContainerStyle,
-  flexColumnStyle,
-  BORDER_RADIUS
-} from "./styles"
-import { createColorDot, createButton, createLabeledInput, createSelect } from "./ui-utils"
+import { DOMFactory } from "@/components/dom"
 
 /**
  * @group Components
@@ -49,7 +38,6 @@ export class IIMathFunctionEvaluator {
   private tabContent?: HTMLDivElement
   private currentTab: "graph" | "table" = "graph"
   private functionsToEvaluate: MathEvaluableFunction[] = []
-  private tabObservers: MutationObserver[] = []
   private logger = LoggerManager.getLogger(LoggerCategory.MATH)
 
   // Chart colors for multiple functions
@@ -110,6 +98,7 @@ export class IIMathFunctionEvaluator {
       title: "Evaluate Function",
       fields: [],
       customContent: container,
+      container: this.editor.layers.root,
     })
 
     this.modal.open()
@@ -119,13 +108,8 @@ export class IIMathFunctionEvaluator {
    * Create the modal content with inputs and tabs
    */
   private createModalContent(functions: MathEvaluableFunction[]): HTMLDivElement {
-    const container = document.createElement("div")
-    container.style.cssText = `
-     ${flexColumnStyle(SPACING.lg)}
-      width: 100%;
-      height: 100%;
-      box-sizing: border-box;
-    `
+    
+    const container = DOMFactory.div({ className: "ms-evaluator-content" })
 
     // Inputs section
     const inputsSection = this.createInputsSection(functions)
@@ -142,26 +126,22 @@ export class IIMathFunctionEvaluator {
    * Create a single function item for display
    */
   private createFunctionItem(func: MathEvaluableFunction): HTMLDivElement {
-    const funcItem = document.createElement("div")
-    funcItem.style.cssText = `
-      ${flexContainerStyle(SPACING.sm)}
-      margin: ${SPACING.xs} 0;
-      font-size: 14px;
-    `
+    
+    const funcItem = DOMFactory.div({ className: "ms-function-item" })
 
-    const colorDot = createColorDot(func.color)
+    const colorDot = DOMFactory.colorDot(func.color)
 
-    const label = document.createElement("span")
     const selectedEvaluable = func.evaluables[func.selectedEvaluableIndex]
-    label.textContent = `${selectedEvaluable.outputName} = f(${selectedEvaluable.inputName})`
-    label.style.fontFamily = "monospace"
-    label.style.flexShrink = "0"
+    const label = DOMFactory.span({
+      text: `${selectedEvaluable.outputName} = f(${selectedEvaluable.inputName})`,
+      style: `font-family: monospace; flex-shrink: 0;`
+    })
 
-    const symbolLabel = document.createElement("span")
     const blockLabel = this.editor.jiix.getBlockLabel(func.jiixBlockId) || "N/A"
-    symbolLabel.textContent = ` - ${blockLabel}`
-    symbolLabel.style.color = "#666"
-    symbolLabel.style.flexShrink = "0"
+    const symbolLabel = DOMFactory.span({
+      text: ` - ${blockLabel}`,
+      className: "ms-symbol-label"
+    })
 
     funcItem.appendChild(colorDot)
     funcItem.appendChild(label)
@@ -169,22 +149,16 @@ export class IIMathFunctionEvaluator {
 
     // Add select dropdown if multiple evaluables
     if (func.evaluables.length > 1) {
-      const selectWrapper = document.createElement("div")
-      selectWrapper.style.cssText = `
-        margin-left: auto;
-        ${flexContainerStyle(SPACING.xs)}
-      `
+      const selectWrapper = DOMFactory.div({ className: "ms-select-wrapper" })
 
-      const selectLabel = document.createElement("span")
-      selectLabel.textContent = "Variant:"
-      selectLabel.style.cssText = `
-        font-size: 12px;
-        color: ${COLORS.gray[600]};
-      `
+      const selectLabel = DOMFactory.span({
+        text: "Variant:",
+        className: "ms-select-label"
+      })
 
-      const select = createSelect({
+      const select = DOMFactory.select({
         id: `evaluable-select-${func.jiixBlockId}`,
-        customStyle: selectStyle,
+        className: "ms-menu-input",
         options: func.evaluables.map((ev, evIndex) => ({
           value: String(evIndex),
           label: `${ev.outputName} = f(${ev.inputName})`,
@@ -212,19 +186,13 @@ export class IIMathFunctionEvaluator {
    * Create the functions list display
    */
   private createFunctionsList(functions: MathEvaluableFunction[]): HTMLDivElement {
-    const functionsDiv = document.createElement("div")
-    functionsDiv.style.cssText = `
-      ${cardStyle}
-      margin-bottom: ${SPACING.lg};
-    `
+    
+    const functionsDiv = DOMFactory.div({ className: "ms-functions-card" })
 
-    const functionsTitle = document.createElement("div")
-    functionsTitle.style.cssText = `
-      font-weight: 600;
-      margin-bottom: ${SPACING.sm};
-      color: ${COLORS.gray[800]};
-    `
-    functionsTitle.textContent = "Functions to evaluate:"
+    const functionsTitle = DOMFactory.div({
+      text: "Functions to evaluate:",
+      className: "ms-functions-title"
+    })
     functionsDiv.appendChild(functionsTitle)
 
     functions.forEach(func => {
@@ -247,13 +215,13 @@ export class IIMathFunctionEvaluator {
       step: HTMLDivElement
     }
   } {
-    const inputGrid = document.createElement("div")
-    inputGrid.style.cssText = gridContainerStyle("repeat(4, 1fr)", SPACING.md)
+    
+    const inputGrid = DOMFactory.div({ className: "ms-input-grid-4" })
 
-    const fromInput = createLabeledInput({ id: "from", label: "From:", defaultValue: -10 }).wrapper
-    const toInput = createLabeledInput({ id: "to", label: "To:", defaultValue: 10 }).wrapper
-    const pointCountInput = createLabeledInput({ id: "pointCount", label: "Points:", defaultValue: 21 }).wrapper
-    const stepInput = createLabeledInput({ id: "step", label: "Step:", defaultValue: 1 }).wrapper
+    const fromInput = DOMFactory.labeledInput({ id: "from", label: "From:", defaultValue: -10 }).wrapper
+    const toInput = DOMFactory.labeledInput({ id: "to", label: "To:", defaultValue: 10 }).wrapper
+    const pointCountInput = DOMFactory.labeledInput({ id: "pointCount", label: "Points:", defaultValue: 21 }).wrapper
+    const stepInput = DOMFactory.labeledInput({ id: "step", label: "Step:", defaultValue: 1 }).wrapper
 
     inputGrid.appendChild(fromInput)
     inputGrid.appendChild(toInput)
@@ -274,18 +242,15 @@ export class IIMathFunctionEvaluator {
     toInput: HTMLDivElement,
     pointCountInput: HTMLDivElement
   ): HTMLButtonElement {
-    const evaluateBtn = createButton({
+    
+    const evaluateBtn = DOMFactory.button({
       label: "Evaluate",
-      backgroundColor: COLORS.primary,
-      className: "ms-menu-button",
       onClick: () => {
         this.evaluateFunctions(this.functionsToEvaluate, fromInput, toInput, pointCountInput)
       }
     })
-    evaluateBtn.style.cssText += `
-      margin-top: ${SPACING.lg};
-      width: 100%;
-    `
+    evaluateBtn.style.marginTop = "var(--iink-spacing-lg)"
+    evaluateBtn.style.width = "100%"
     return evaluateBtn
   }
 
@@ -293,8 +258,8 @@ export class IIMathFunctionEvaluator {
    * Create the inputs section
    */
   private createInputsSection(functions: MathEvaluableFunction[]): HTMLDivElement {
-    const section = document.createElement("div")
-    section.style.cssText = sectionStyle
+    
+    const section = DOMFactory.div({ className: "ms-section" })
 
     // Functions list
     const functionsList = this.createFunctionsList(functions)
@@ -391,20 +356,11 @@ export class IIMathFunctionEvaluator {
    * Create the tabs section (Graph and Table)
    */
   private createTabsSection(): HTMLDivElement {
-    const section = document.createElement("div")
-    section.style.cssText = `
-      border: 1px solid #ddd;
-      border-radius: ${BORDER_RADIUS.lg};
-      overflow: hidden;
-    `
+    
+    const section = DOMFactory.div({ className: "ms-tabs-section" })
 
     // Tab headers
-    const tabHeaders = document.createElement("div")
-    tabHeaders.style.cssText = `
-      ${flexContainerStyle(SPACING.sm)}
-      background: #f5f5f5;
-      border-bottom: 2px solid #ddd;
-    `
+    const tabHeaders = DOMFactory.div({ className: "ms-tab-headers" })
 
     const graphTab = this.createTabHeader("Graph", true)
     const tableTab = this.createTabHeader("Table", false)
@@ -414,26 +370,17 @@ export class IIMathFunctionEvaluator {
     section.appendChild(tabHeaders)
 
     // Tab content
-    const tabContent = document.createElement("div")
-    tabContent.style.cssText = `
-      padding: 16px;
-      background: white;
-      min-height: 400px;
-    `
+    const tabContent = DOMFactory.div({ className: "ms-tab-content" })
     section.appendChild(tabContent)
 
     // Store reference
     this.tabContent = tabContent
 
     // Initial message
-    const initialMessage = document.createElement("div")
-    initialMessage.style.cssText = `
-      text-align: center;
-      padding: 80px 20px;
-      color: #999;
-      font-size: 16px;
-    `
-    initialMessage.textContent = "Click 'Evaluate' to display results"
+    const initialMessage = DOMFactory.div({
+      text: "Click 'Evaluate' to display results",
+      className: "ms-tab-empty"
+    })
     tabContent.appendChild(initialMessage)
 
     // Tab switching
@@ -460,52 +407,10 @@ export class IIMathFunctionEvaluator {
    * Create a tab header
    */
   private createTabHeader(label: string, active: boolean): HTMLButtonElement {
-    const tab = document.createElement("button")
-    tab.textContent = label
-    tab.className = active ? "active" : ""
-    tab.style.cssText = `
-      flex: 1;
-      padding: 12px 16px;
-      border: none;
-      background: transparent;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 500;
-      color: #666;
-      transition: all 0.2s;
-    `
-
-    if (active) {
-      tab.style.color = COLORS.primary
-      tab.style.borderBottom = `3px solid ${COLORS.primary}`
-      tab.style.fontWeight = "600"
-    }
-
-    tab.addEventListener("pointerenter", () => {
-      if (!tab.classList.contains("active")) {
-        tab.style.background = "#f0f0f0"
-      }
+    const tab = DOMFactory.button({
+      label,
+      className: active ? "ms-tab-header active" : "ms-tab-header",
     })
-
-    tab.addEventListener("pointerleave", () => {
-      tab.style.background = "transparent"
-    })
-
-    // Update styles when active class changes
-    const observer = new MutationObserver(() => {
-      if (tab.classList.contains("active")) {
-        tab.style.color = COLORS.primary
-        tab.style.borderBottom = `3px solid ${COLORS.primary}`
-        tab.style.fontWeight = "600"
-      } else {
-        tab.style.color = "#666"
-        tab.style.borderBottom = "none"
-        tab.style.fontWeight = "500"
-      }
-    })
-    observer.observe(tab, { attributes: true, attributeFilter: ["class"] })
-    this.tabObservers.push(observer)
-
     return tab
   }
 
@@ -571,14 +476,11 @@ export class IIMathFunctionEvaluator {
     const results = this.evaluationResults
 
     if (!results || results.length === 0) {
-      const message = document.createElement("div")
-      message.style.cssText = `
-        text-align: center;
-        padding: 80px 20px;
-        color: #999;
-        font-size: 16px;
-      `
-      message.textContent = "Click 'Evaluate' to display results"
+      
+      const message = DOMFactory.div({
+        text: "Click 'Evaluate' to display results",
+        className: "ms-tab-empty"
+      })
       this.tabContent.appendChild(message)
       return
     }
@@ -597,6 +499,7 @@ export class IIMathFunctionEvaluator {
     results: EvaluationResult[]
   ): void {
     if (!this.tabContent) return
+    
     const tabContent = this.tabContent
 
     const groupedByInput = this.groupResultsByInputName(results)
@@ -642,7 +545,7 @@ export class IIMathFunctionEvaluator {
         title: chartTitle,
         xLabel: inputName,
         yLabel: outputNamesStr,
-        lineColor: COLORS.primary,
+        lineColor: "var(--iink-primary)",
         showGrid: true,
         showPoints: true,
         seriesColors: seriesColors
@@ -653,8 +556,7 @@ export class IIMathFunctionEvaluator {
 
       // Add spacing between charts
       if (groupedByInput.size > 1) {
-        const spacer = document.createElement("div")
-        spacer.style.height = "20px"
+        const spacer = DOMFactory.div({ style: "height: 20px;" })
         tabContent.appendChild(spacer)
       }
     })
@@ -683,18 +585,11 @@ export class IIMathFunctionEvaluator {
    * Create table title element
    */
   private createTableTitle(inputName: string): HTMLDivElement {
-    const tableTitle = document.createElement("div")
-    tableTitle.style.cssText = `
-      font-weight: 600;
-      font-size: 16px;
-      margin-bottom: 12px;
-      color: #1976d2;
-      padding: 8px 12px;
-      background: #e3f2fd;
-      border-radius: ${BORDER_RADIUS.sm};
-    `
-    tableTitle.textContent = `Input: ${inputName}`
-    return tableTitle
+    
+    return DOMFactory.div({
+      text: `Input: ${inputName}`,
+      className: "ms-table-title-header"
+    })
   }
 
   /**
@@ -704,6 +599,7 @@ export class IIMathFunctionEvaluator {
     groupResults: EvaluationResult[],
     inputName: string
   ): (string | { header: string | HTMLElement; align?: "left" | "center" | "right"; width?: string })[] {
+    
     const columns: (string | { header: string | HTMLElement; align?: "left" | "center" | "right"; width?: string })[] = [
       { header: "#", align: "center" as const },
       { header: inputName, align: "center" as const }
@@ -717,12 +613,10 @@ export class IIMathFunctionEvaluator {
 
       if (result.points.length === 1) {
         // Single series: one column
-        const header = document.createElement("span")
-        header.textContent = outputName
-        header.style.cssText = `
-          color: ${color};
-          font-weight: 600;
-        `
+        const header = DOMFactory.span({
+          text: outputName,
+          style: `color: ${color}; font-weight: 600;`
+        })
         columns.push({
           header: header,
           align: "center" as const
@@ -730,12 +624,10 @@ export class IIMathFunctionEvaluator {
       } else {
         // Multiple series: multiple columns
         result.points.forEach((_, seriesIndex) => {
-          const header = document.createElement("span")
-          header.textContent = `${outputName} #${seriesIndex + 1}`
-          header.style.cssText = `
-            color: ${color};
-            font-weight: 600;
-          `
+          const header = DOMFactory.span({
+            text: `${outputName} #${seriesIndex + 1}`,
+            style: `color: ${color}; font-weight: 600;`
+          })
           columns.push({
             header: header,
             align: "center" as const
@@ -754,23 +646,26 @@ export class IIMathFunctionEvaluator {
     groupResults: EvaluationResult[],
     numPoints: number
   ): TableRow[] {
+    
     const rows: TableRow[] = []
 
     for (let i = 0; i < numPoints; i++) {
       const cells: HTMLElement[] = []
 
       // Row number
-      const indexCell = document.createElement("span")
-      indexCell.textContent = String(i + 1)
-      indexCell.style.fontWeight = "500"
+      const indexCell = DOMFactory.span({
+        text: String(i + 1),
+        style: "font-weight: 500;"
+      })
       cells.push(indexCell)
 
       // Input value - get from first result's first series
       const firstEvalSelected = groupResults[0].func.evaluables[groupResults[0].func.selectedEvaluableIndex]
       const xValue = groupResults[0].points[0][i][firstEvalSelected.inputName]
-      const xCell = document.createElement("span")
-      xCell.textContent = typeof xValue === "number" ? xValue.toFixed(4) : String(xValue)
-      xCell.style.fontFamily = "monospace"
+      const xCell = DOMFactory.span({
+        text: typeof xValue === "number" ? xValue.toFixed(4) : String(xValue),
+        style: "font-family: monospace;"
+      })
       cells.push(xCell)
 
       // Output values for each function and each series
@@ -780,7 +675,7 @@ export class IIMathFunctionEvaluator {
 
         result.points.forEach(pointSeries => {
           const yValue = pointSeries[i][evalSelected.outputName]
-          const yCell = document.createElement("span")
+          const yCell = DOMFactory.span()
 
           if (typeof yValue === "number") {
             if (isNaN(yValue)) {
@@ -817,6 +712,7 @@ export class IIMathFunctionEvaluator {
     results: EvaluationResult[]
   ): void {
     if (!this.tabContent) return
+    
     const tabContent = this.tabContent
 
     // Group results by inputName
@@ -845,12 +741,7 @@ export class IIMathFunctionEvaluator {
         hoverEffect: true
       })
 
-      const tableWrapper = document.createElement("div")
-      tableWrapper.style.cssText = `
-        max-height: 400px;
-        overflow: auto;
-        margin-bottom: 24px;
-      `
+      const tableWrapper = DOMFactory.div({ className: "ms-table-wrapper" })
       tableWrapper.appendChild(table.getElement())
       tabContent.appendChild(tableWrapper)
     })
@@ -864,8 +755,6 @@ export class IIMathFunctionEvaluator {
       this.modal.destroy()
       this.modal = undefined
     }
-    this.tabObservers.forEach(obs => obs.disconnect())
-    this.tabObservers = []
     this.tabContent = undefined
     this.evaluationResults = undefined
     this.currentTab = "graph"

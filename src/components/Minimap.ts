@@ -1,18 +1,20 @@
 import type { InteractiveInkEditor } from "@/editor"
+import { DOMFactory } from "@/components/dom"
 
+/**
+ * @group Components
+ */
 export type TMinimapOptions = {
   width?: number
   height?: number
 }
-
-type TBounds = { x: number; y: number; width: number; height: number }
 
 const SVG_NS = "http://www.w3.org/2000/svg"
 
 /**
  * Minimap component showing a scaled-down overview of the editor canvas.
  * Click or drag to navigate the editor viewport.
- * @group Component
+ * @group Components
  */
 export class Minimap
 {
@@ -26,7 +28,7 @@ export class Minimap
   #contentSvg: SVGSVGElement
   #contentGroup: SVGGElement
   #viewportRect: SVGRectElement
-  #docBounds: TBounds = { x: 0, y: 0, width: 1, height: 1 }
+  #docBounds: { x: number; y: number; width: number; height: number } = { x: 0, y: 0, width: 1, height: 1 }
   #isDragging = false
   #observer: MutationObserver
 
@@ -46,9 +48,7 @@ export class Minimap
 
   #createContainer(): HTMLDivElement
   {
-    const div = document.createElement("div")
-    div.style.cssText = `width:${this.#width}px;height:${this.#height}px;overflow:hidden;background:#f5f5f5;border:1px solid #ccc;border-radius:4px;cursor:crosshair;`
-    return div
+    return DOMFactory.div({ className: "ms-minimap", style: `width:${this.#width}px;height:${this.#height}px;` })
   }
 
   #createContentSvg(): SVGSVGElement
@@ -104,7 +104,7 @@ export class Minimap
     this.#container.addEventListener("pointercancel", this.#handlePointerUp)
   }
 
-  #computeDocBounds(): TBounds
+  #computeDocBounds(): { x: number; y: number; width: number; height: number }
   {
     const rb = this.#editor.renderer.getBounds()
     const symbols = this.#editor.model.symbols

@@ -26,10 +26,7 @@ export class WriteTool extends ButtonMenuItem
 
   createElement(): HTMLButtonElement
   {
-    const button = document.createElement("button")
-    button.id = this.config.id
-    button.classList.add("ms-menu-button", "square")
-    button.innerHTML = this.config.icon || ""
+    const button = this.dom.button({ id: this.config.id, html: this.config.icon || "", className: "square" })
     button.addEventListener("click", () => {
       this.unselectAll()
       button.classList.add("active")

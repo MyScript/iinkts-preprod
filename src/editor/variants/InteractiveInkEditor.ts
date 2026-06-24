@@ -43,6 +43,7 @@ import { IIMenuAction, IIMenuManager, IIMenuStyle, IIMenuTool } from "@/menu"
 import { SymbolFactory } from "@/factories"
 import { AbstractEditor, EditorOptionsBase } from "@/editor/AbstractEditor"
 import { InteractiveInkEditorConfiguration, TInteractiveInkEditorConfiguration } from "./InteractiveInkEditorConfiguration"
+import { DOMFactory } from "@/components/dom"
 
 /**
  * @group Editor
@@ -117,6 +118,8 @@ export class InteractiveInkEditor extends AbstractEditor
   math: IIMathManager
   /** Manages the floating UI menu (tool selector, style panel, action buttons). */
   menu: IIMenuManager
+  /** Static utility class for creating DOM elements. */
+  readonly dom = DOMFactory
 
   constructor(rootElement: HTMLElement, options?: TInteractiveInkEditorOptions)
   {
@@ -137,7 +140,7 @@ export class InteractiveInkEditor extends AbstractEditor
     this.recognizer.event.addExportedListener(this.event.emitExported.bind(this.event))
     this.recognizer.event.addContentChangedListener(this.onContentChanged.bind(this))
     this.recognizer.event.addSessionOpenedListener(this.event.emitSessionOpened.bind(this.event))
-    this.recognizer.event.addEndInitialization(this.layers.hideMessageModal.bind(this.layers))
+    this.recognizer.event.addEndInitialization(this.layers.clearModal.bind(this.layers))
     this.recognizer.event.addIdleListener(this.updateLayerState.bind(this))
 
     this.renderer = new SVGRenderer(this.#configuration.rendering)
@@ -313,6 +316,7 @@ export class InteractiveInkEditor extends AbstractEditor
       this.tool = EditorTool.Write
       this.renderer.init(this.layers.rendering)
       this.menu.render(this.layers.ui.root)
+      this.setCssVars(this.#configuration.cssVars)
 
       this.keyboard.attach()
       this.layers.root.addEventListener("wheel", this.handleWheel)
@@ -1349,6 +1353,23 @@ export class InteractiveInkEditor extends AbstractEditor
     } catch (error) {
       this.manageError(error as Error)
     }
+  }
+
+  /**
+   * Apply or replace CSS custom properties on the editor root element.
+   * Clears all existing `--iink-*` properties first, then sets the provided vars.
+   * Does not reinitialize — current model and session are preserved.
+   * Pass `undefined` to reset to stylesheet defaults.
+   * @group Editor
+   */
+  setCssVars(vars: Record<string, string> | undefined): void
+  {
+    const rootStyle = this.layers.root.style
+    Array.from(rootStyle).filter(p => p.startsWith("--iink-")).forEach(p => rootStyle.removeProperty(p))
+    if (vars) {
+      Object.entries(vars).forEach(([key, value]) => rootStyle.setProperty(key, value))
+    }
+    this.#configuration.cssVars = vars
   }
 
   /**

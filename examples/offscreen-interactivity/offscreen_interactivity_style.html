@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="HandheldFriendly" content="true" />
+
+    <title>Interactive Ink Editor - CSS Variables Themes</title>
+
+    <link rel="stylesheet" href="../assets/style/reset.css" />
+    <link rel="stylesheet" href="../assets/style/components.css" />
+    <link rel="stylesheet" href="../assets/style/examples.css" />
+
+    <style>
+      #editor {
+        width: 100%;
+        height: calc(100dvh - 375px);
+        min-height: 400px;
+      }
+
+      .theme-bar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        padding: 10px 16px;
+        background: #fff9c4;
+        border-bottom: 1px solid #f0e68c;
+      }
+
+      .theme-bar-label {
+        font-size: 13px;
+        font-weight: 700;
+        color: #555;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .theme-btn {
+        height: 32px;
+        padding: 0 14px;
+        font-size: 13px;
+        font-weight: 600;
+        border: 2px solid #e0e0e0;
+        border-radius: 4px;
+        background: white;
+        cursor: pointer;
+        transition: border-color 0.15s, background 0.15s, color 0.15s;
+      }
+
+      .theme-btn.active {
+        border-color: #1a9fff;
+        background: #e8f4ff;
+        color: #1a9fff;
+      }
+
+      .theme-btn:hover:not(.active) {
+        background: #f5f5f5;
+        border-color: #bbb;
+      }
+
+      .code-bar {
+        padding: 8px 16px;
+        background: #f5f5f5;
+        border-bottom: 1px solid #e0e0e0;
+      }
+
+      .code-example {
+        display: block;
+        background: #fff;
+        padding: 8px 12px;
+        border-radius: 4px;
+        font-family: monospace;
+        font-size: 12px;
+        border-left: 3px solid #2196F3;
+        white-space: pre;
+        max-height: 175px;
+        overflow-x: auto;
+        margin: 0;
+      }
+    </style>
+  </head>
+
+  <body>
+    <header class="header-main">
+      <button id="showModalBtn" class="btn-keys">Change server configuration</button>
+      <h1 class="header-title">Interactive Ink Editor - CSS Variables Themes</h1>
+    </header>
+
+    <div class="info-section" style="margin: 0; border-radius: 0; padding: 10px 16px;">
+      <strong>cssVars</strong> — Pass a <code>Record&lt;string, string&gt;</code> to override <code>--iink-*</code> CSS custom properties on the editor root element.
+      All colors, spacing, and radius tokens flow from <code>iink.css</code> through the entire UI.
+      Switching themes reinitializes the editor.
+    </div>
+
+    <div class="theme-bar">
+      <span class="theme-bar-label">Theme:</span>
+      <button class="theme-btn active" data-theme="default">Default</button>
+      <button class="theme-btn" data-theme="ink">Ink Studio</button>
+      <button class="theme-btn" data-theme="neon">Neon Lab</button>
+    </div>
+
+    <div class="code-bar">
+      <pre id="codeDisplay" class="code-example"></pre>
+    </div>
+
+    <div id="editor"></div>
+
+    <script type="module">
+      import { Editor, Modal } from "../../dist/iink.esm.js"
+      import { ModalEditorOptions } from "../components/modal/modalEditorOptions.js"
+
+      const THEMES = {
+        default: {
+          label: "Default",
+          cssVars: undefined,
+          code:
+`// No cssVars — library defaults apply
+Editor.load(el, "INTERACTIVEINK", {
+  configuration: { server: { ... } }
+})`
+        },
+
+        ink: {
+          label: "Ink Studio",
+          cssVars: {
+            // Editor canvas
+            "--iink-editor-bg":      "#1a1a2e",
+            "--iink-surface":        "#252547",
+            "--iink-section-bg":     "#1c1c3a",
+            "--iink-border-color":   "#3a3a6e",
+            "--iink-text-muted":     "#a08c5a",
+            // Menu / UI chrome
+            "--iink-menu-bg":        "#12122a",
+            "--iink-color":          "#fbbf24",
+            "--iink-menu-title-bg":  "#1c1c3e",
+            "--iink-menu-hover":     "rgba(251, 191, 36, 0.1)",
+            // Brand
+            "--iink-primary":        "#fbbf24",
+            "--iink-secondary":      "#78716c",
+            "--iink-tertiary":       "#3a3a6e",
+            "--iink-info":           "#60a5fa",
+            "--iink-success":        "#34d399",
+            "--iink-warning":        "#fb923c",
+            "--iink-error":          "#f87171",
+            // Inputs
+            "--iink-input-bg":       "#252547",
+            "--iink-input-color":    "#fbbf24",
+            "--iink-input-border":   "#374151",
+            // Modal
+            "--iink-modal-radius":   "12px",
+            "--iink-modal-shadow":   "0 8px 32px rgba(251, 191, 36, 0.2)",
+            "--iink-modal-width":    "55%",
+          },
+          code:
+`Editor.load(el, "INTERACTIVEINK", {
+  configuration: {
+    server: { ... },
+    cssVars: {
+      // Editor canvas
+      "--iink-editor-bg":      "#1a1a2e",
+      "--iink-surface":        "#252547",
+      "--iink-section-bg":     "#1c1c3a",
+      "--iink-border-color":   "#3a3a6e",
+      "--iink-text-muted":     "#a08c5a",
+      // Menu / UI chrome
+      "--iink-menu-bg":        "#12122a",
+      "--iink-color":          "#fbbf24",
+      "--iink-menu-title-bg":  "#1c1c3e",
+      "--iink-menu-hover":     "rgba(251, 191, 36, 0.1)",
+      // Brand
+      "--iink-primary":        "#fbbf24",
+      "--iink-secondary":      "#78716c",
+      "--iink-tertiary":       "#3a3a6e",
+      "--iink-info":           "#60a5fa",
+      "--iink-success":        "#34d399",
+      "--iink-warning":        "#fb923c",
+      "--iink-error":          "#f87171",
+      // Inputs
+      "--iink-input-bg":       "#252547",
+      "--iink-input-color":    "#fbbf24",
+      "--iink-input-border":   "#374151",
+      // Modal
+      "--iink-modal-radius":   "12px",
+      "--iink-modal-shadow":   "0 8px 32px rgba(251, 191, 36, 0.2)",
+      "--iink-modal-width":    "55%",
+    }
+  }
+})`
+        },
+
+        neon: {
+          label: "Neon Lab",
+          cssVars: {
+            // Editor canvas
+            "--iink-editor-bg":      "#0f0e1a",
+            "--iink-surface":        "#1e1c2e",
+            "--iink-section-bg":     "#161526",
+            "--iink-border-color":   "#312e5c",
+            "--iink-text-muted":     "#7c7aa8",
+            // Menu / UI chrome
+            "--iink-menu-bg":        "#1a1933",
+            "--iink-color":          "#818cf8",
+            "--iink-menu-title-bg":  "#2d2b6e",
+            "--iink-menu-hover":     "rgba(129, 140, 248, 0.1)",
+            // Brand
+            "--iink-primary":        "#818cf8",
+            "--iink-secondary":      "#6b7280",
+            "--iink-tertiary":       "#312e5c",
+            "--iink-info":           "#38bdf8",
+            "--iink-success":        "#4ade80",
+            "--iink-warning":        "#facc15",
+            "--iink-error":          "#f87171",
+            // Inputs
+            "--iink-input-bg":       "#1e1b4b",
+            "--iink-input-color":    "#e0e7ff",
+            "--iink-input-border":   "#4338ca",
+            // Modal
+            "--iink-modal-radius":   "0px",
+            "--iink-modal-shadow":   "0 0 24px rgba(129, 140, 248, 0.4)",
+            "--iink-modal-backdrop": "rgba(15, 14, 26, 0.8)",
+            "--iink-modal-width":    "60%",
+          },
+          code:
+`Editor.load(el, "INTERACTIVEINK", {
+  configuration: {
+    server: { ... },
+    cssVars: {
+      // Editor canvas
+      "--iink-editor-bg":      "#0f0e1a",
+      "--iink-surface":        "#1e1c2e",
+      "--iink-section-bg":     "#161526",
+      "--iink-border-color":   "#312e5c",
+      "--iink-text-muted":     "#7c7aa8",
+      // Menu / UI chrome
+      "--iink-menu-bg":        "#1a1933",
+      "--iink-color":          "#818cf8",
+      "--iink-menu-title-bg":  "#2d2b6e",
+      "--iink-menu-hover":     "rgba(129, 140, 248, 0.1)",
+      // Brand
+      "--iink-primary":        "#818cf8",
+      "--iink-secondary":      "#6b7280",
+      "--iink-tertiary":       "#312e5c",
+      "--iink-info":           "#38bdf8",
+      "--iink-success":        "#4ade80",
+      "--iink-warning":        "#facc15",
+      "--iink-error":          "#f87171",
+      // Inputs
+      "--iink-input-bg":       "#1e1b4b",
+      "--iink-input-color":    "#e0e7ff",
+      "--iink-input-border":   "#4338ca",
+      // Modal
+      "--iink-modal-radius":   "0px",
+      "--iink-modal-shadow":   "0 0 24px rgba(129, 140, 248, 0.4)",
+      "--iink-modal-backdrop": "rgba(15, 14, 26, 0.8)",
+      "--iink-modal-width":    "60%",
+    }
+  }
+})`
+        },
+      }
+
+      let currentTheme = "default"
+      let serverConfig = null
+      let editor = null
+
+      const editorElement = document.getElementById("editor")
+      const showModalBtn = document.getElementById("showModalBtn")
+      const codeDisplay = document.getElementById("codeDisplay")
+      const themeBtns = document.querySelectorAll(".theme-btn")
+
+      const editorOptions = {}
+
+      function renderCode(themeKey) {
+        codeDisplay.textContent = THEMES[themeKey].code
+      }
+
+      async function loadEditor(options) {
+        if (options?.configuration?.server) {
+          serverConfig = options.configuration.server
+        }
+        if (!serverConfig) return
+
+        if (editor) {
+          try { await editor.destroy() } catch (_) {}
+          editor = null
+        }
+
+        const theme = THEMES[currentTheme]
+        editor = await Editor.load(editorElement, "INTERACTIVEINK", {
+          configuration: {
+            server: serverConfig,
+            cssVars: theme.cssVars,
+          }
+        })
+      }
+
+      function activateTheme(themeKey) {
+        currentTheme = themeKey
+
+        themeBtns.forEach(btn => {
+          btn.classList.toggle("active", btn.dataset.theme === themeKey)
+        })
+
+        renderCode(themeKey)
+
+        if (editor) {
+          editor.setCssVars(THEMES[themeKey].cssVars)
+        }
+      }
+
+      themeBtns.forEach(btn => {
+        btn.addEventListener("click", () => activateTheme(btn.dataset.theme))
+        btn.addEventListener("keydown", e => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault()
+            activateTheme(btn.dataset.theme)
+          }
+        })
+      })
+
+      window.addEventListener("resize", () => {
+        editor?.resize()
+      })
+
+      showModalBtn.addEventListener("click", () => {
+        ModalEditorOptions.show(loadEditor, editorOptions)
+      })
+
+      ModalEditorOptions.initConfiguration(loadEditor, editorOptions)
+
+      renderCode(currentTheme)
+
+      window.editorOptions = editorOptions
+      window.loadEditor = loadEditor
+    </script>
+  </body>
+
+</html>

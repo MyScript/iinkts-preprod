@@ -32,10 +32,7 @@ export class EdgeTool extends BaseMenuItem<HTMLDivElement>
 
   private createEdgeButton(icon: string, tool: EditorWriteTool, label: string): HTMLButtonElement
   {
-    const button = document.createElement("button")
-    button.id = `${this.config.id}-${tool}`
-    button.classList.add("ms-menu-button", "square")
-    button.innerHTML = icon
+    const button = this.dom.button({ id: `${this.config.id}-${tool}`, className: "square", html: icon })
     button.title = label
 
     button.addEventListener("click", () => {
@@ -60,26 +57,18 @@ export class EdgeTool extends BaseMenuItem<HTMLDivElement>
 
   createElement(): HTMLDivElement
   {
-    this.triggerButton = document.createElement("button")
-    this.triggerButton.id = this.config.id
-    this.triggerButton.classList.add("ms-menu-button", "square")
-    this.triggerButton.innerHTML = this.currentIcon
+    this.triggerButton = this.dom.button({ id: this.config.id, className: "square", html: this.currentIcon })
 
-    const subMenuContent = document.createElement("div")
-    subMenuContent.id = `${this.config.id}-list`
-    subMenuContent.classList.add("ms-menu-row", "sub-menu-content-edge")
-
+    const subMenuContent = this.dom.div({ id: `${this.config.id}-list`, className: ["ms-menu-row", "sub-menu-content-edge"] })
     subMenuContent.appendChild(this.createEdgeButton(lineIcon, EditorWriteTool.Line, "Line"))
     subMenuContent.appendChild(this.createEdgeButton(arrowIcon, EditorWriteTool.Arrow, "Arrow"))
     subMenuContent.appendChild(this.createEdgeButton(doubleArrowIcon, EditorWriteTool.DoubleArrow, "Double Arrow"))
 
-    const wrapper = document.createElement("div")
-    wrapper.classList.add("sub-menu")
-    wrapper.appendChild(this.triggerButton)
-
-    const content = document.createElement("div")
-    content.classList.add("sub-menu-content", "top")
+    const content = this.dom.div({ className: ["sub-menu-content", "top"] })
     content.appendChild(subMenuContent)
+
+    const wrapper = this.dom.div({ className: "sub-menu" })
+    wrapper.appendChild(this.triggerButton)
     wrapper.appendChild(content)
 
     // Event listeners

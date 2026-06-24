@@ -2,7 +2,7 @@ import { InteractiveInkEditor } from "@/editor"
 import { Modal } from "./Modal"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import { getMathDiagnosticMessage } from "@/constants/MathDiagnosticMessages"
-import { BORDER_RADIUS, flexColumnStyle } from "./styles"
+import { DOMFactory } from "@/components/dom"
 
 /**
  * @group Components
@@ -69,6 +69,7 @@ export class IIMathDiagnosticChecker {
       title: `Math Diagnostic${diagnostics.length > 1 ? "s" : ""} (${diagnostics.length} symbol${diagnostics.length > 1 ? "s" : ""})`,
       fields: [],
       customContent: container,
+      container: this.editor.layers.root,
     })
 
     this.modal.open()
@@ -78,15 +79,7 @@ export class IIMathDiagnosticChecker {
    * Create the modal content with diagnostics
    */
   private createModalContent(diagnostics: SymbolDiagnostic[]): HTMLDivElement {
-    const container = document.createElement("div")
-    container.style.cssText = `
-      ${flexColumnStyle("20px")}
-      width: 100%;
-      height: 100%;
-      overflow-y: auto;
-      padding: 16px;
-      box-sizing: border-box;
-    `
+    const container = DOMFactory.div({ className: "ms-diagnostic-content" })
 
     // Create a section for each symbol
     diagnostics.forEach(diagnostic => {
@@ -101,35 +94,19 @@ export class IIMathDiagnosticChecker {
    * Create a diagnostic section for a single symbol
    */
   private createSymbolDiagnosticSection(diagnostic: SymbolDiagnostic): HTMLDivElement {
-    const section = document.createElement("div")
-    section.style.cssText = `
-      border: 2px solid #e0e0e0;
-      border-radius: ${BORDER_RADIUS.lg};
-      padding: 16px;
-      background: white;
-    `
+    const section = DOMFactory.div({ className: "ms-diagnostic-section" })
 
     // Expression header
-    const expressionDiv = document.createElement("div")
-    expressionDiv.style.cssText = `
-      font-size: 18px;
-      margin-bottom: 20px;
-      font-weight: 600;
-      color: #1976d2;
-      padding: 12px;
-      background: #e3f2fd;
-      border-radius: ${BORDER_RADIUS.sm};
-    `
     const label = this.editor.jiix.getBlockLabel(diagnostic.jiixBlockId) || "N/A"
-    expressionDiv.innerHTML = `<strong>Expression:</strong> ${label}`
+    const expressionDiv = DOMFactory.div({ className: "ms-diagnostic-expression", html: `<strong>Expression:</strong> ${label}` })
     section.appendChild(expressionDiv)
 
     // Severity colors configuration
     const severityColors = {
-      success: { bg: "#e8f5e9", color: "#2e7d32", icon: "✓" },
-      warning: { bg: "#fff3e0", color: "#f57c00", icon: "⚠" },
-      error: { bg: "#ffebee", color: "#c62828", icon: "✗" },
-      info: { bg: "#e3f2fd", color: "#1976d2", icon: "ℹ" }
+      success: { bg: "color-mix(in srgb, var(--iink-success) 15%, transparent)", color: "var(--iink-success)", icon: "✓" },
+      warning: { bg: "color-mix(in srgb, var(--iink-warning) 15%, transparent)", color: "var(--iink-warning)", icon: "⚠" },
+      error:   { bg: "color-mix(in srgb, var(--iink-error)   15%, transparent)", color: "var(--iink-error)",   icon: "✗" },
+      info:    { bg: "color-mix(in srgb, var(--iink-info)    15%, transparent)", color: "var(--iink-info)",    icon: "ℹ" }
     }
 
     // Get diagnostic info
@@ -164,64 +141,27 @@ export class IIMathDiagnosticChecker {
     diagnosticInfo: { title: string, message: string, severity: "success" | "warning" | "error" | "info" },
     severityColors: { [key: string]: { bg: string, color: string, icon: string } }
   ): HTMLDivElement {
-    const subSection = document.createElement("div")
-    subSection.style.cssText = `
-      margin-bottom: 20px;
-      padding: 16px;
-      background: #fafafa;
-      border-radius: ${BORDER_RADIUS.md};
-      border: 1px solid #e0e0e0;
-    `
+    const subSection = DOMFactory.div({ className: "ms-diagnostic-subsection" })
 
     // Task title
-    const taskTitle = document.createElement("div")
-    taskTitle.style.cssText = `
-      font-size: 15px;
-      font-weight: 600;
-      margin-bottom: 12px;
-      color: #424242;
-    `
-    taskTitle.textContent = taskName
+    const taskTitle = DOMFactory.div({ className: "ms-diagnostic-task-title", text: taskName })
     subSection.appendChild(taskTitle)
 
     // Diagnostic code
-    const codeDiv = document.createElement("div")
-    codeDiv.style.cssText = `
-      font-size: 13px;
-      margin-bottom: 12px;
-      padding: 8px 10px;
-      background: #f5f5f5;
-      border-radius: ${BORDER_RADIUS.sm};
-      font-family: monospace;
-      border: 1px solid #e0e0e0;
-    `
-    codeDiv.innerHTML = `<strong>Code:</strong> ${diagnosticCode}`
+    const codeDiv = DOMFactory.div({ className: "ms-diagnostic-code", html: `<strong>Code:</strong> ${diagnosticCode}` })
     subSection.appendChild(codeDiv)
 
     // Status indicator
-    const statusDiv = document.createElement("div")
-    statusDiv.style.cssText = `
-      font-size: 16px;
-      margin-bottom: 10px;
-      padding: 10px 12px;
-      border-radius: ${BORDER_RADIUS.sm};
-      font-weight: bold;
-    `
-
     const colors = severityColors[diagnosticInfo.severity]
-    statusDiv.style.background = colors.bg
-    statusDiv.style.color = colors.color
-    statusDiv.innerHTML = `${colors.icon} ${diagnosticInfo.title}`
+    const statusDiv = DOMFactory.div({
+      className: "ms-diagnostic-status",
+      style: `background: ${colors.bg}; color: ${colors.color};`,
+      html: `${colors.icon} ${diagnosticInfo.title}`
+    })
     subSection.appendChild(statusDiv)
 
     // Message
-    const messageDiv = document.createElement("div")
-    messageDiv.style.cssText = `
-      font-size: 14px;
-      line-height: 1.5;
-      color: #555;
-    `
-    messageDiv.textContent = diagnosticInfo.message
+    const messageDiv = DOMFactory.div({ className: "ms-diagnostic-message", text: diagnosticInfo.message })
     subSection.appendChild(messageDiv)
 
     return subSection

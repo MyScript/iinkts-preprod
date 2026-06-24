@@ -2,8 +2,8 @@ import { InteractiveInkEditor } from "@/editor"
 import { Modal } from "./Modal"
 import { TMathVariable, TMathVariableDefinition } from "@/recognizer"
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { BORDER_RADIUS, COLORS, SPACING, cardStyle, flexColumnStyle } from "./styles"
 import { IIMathVariableInputList, TVariableInputItem } from "./IIMathVariableInputList"
+import { DOMFactory } from "@/components/dom"
 
 /**
  * @group Components
@@ -69,7 +69,8 @@ export class IIMathVariablePerBlockEditor
       title,
       fields: [],
       customContent: container,
-      buttons: [{ label: "Apply", type: "primary", callback: async () => this.applyChanges() }]
+      container: this.editor.layers.root,
+      buttons: [{ label: "Apply", variant: "primary", onClick: () => this.applyChanges() }],
     })
 
     this.modal.open()
@@ -77,36 +78,17 @@ export class IIMathVariablePerBlockEditor
 
   private createModalContent(): HTMLDivElement
   {
-    const container = document.createElement("div")
-    container.style.cssText = `
-      ${flexColumnStyle(SPACING.lg)}
-      width: 100%;
-      height: 100%;
-      overflow-y: auto;
-      padding: ${SPACING.md};
-      box-sizing: border-box;
-    `
+    const container = DOMFactory.div({ className: "ms-var-editor-content" })
     this.blockVariables.forEach(symVar => container.appendChild(this.createSymbolSection(symVar)))
     return container
   }
 
   private createSymbolSection(symVar: SymbolVariables): HTMLDivElement
   {
-    const section = document.createElement("div")
-    section.style.cssText = cardStyle
+    const section = DOMFactory.div({ className: "ms-card" })
 
-    const expressionDiv = document.createElement("div")
-    expressionDiv.style.cssText = `
-      font-size: 18px;
-      margin-bottom: ${SPACING.lg};
-      font-weight: 600;
-      color: ${COLORS.primary};
-      padding: ${SPACING.md};
-      background: ${COLORS.blue[50]};
-      border-radius: ${BORDER_RADIUS.sm};
-    `
     const label = this.editor.jiix.getBlockLabel(symVar.jiixBlockId) || "N/A"
-    expressionDiv.innerHTML = `<strong>Expression:</strong> ${label}`
+    const expressionDiv = DOMFactory.div({ className: "ms-expression-header", html: `<strong>Expression:</strong> ${label}` })
     section.appendChild(expressionDiv)
 
     const items: TVariableInputItem[] = symVar.variables.map(variable => {

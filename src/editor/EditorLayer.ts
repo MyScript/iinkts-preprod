@@ -1,21 +1,7 @@
 
 import style from "@/iink.css"
-/**
- * @group Editor
- */
-export type EditorLayerUIInfoModal = {
-  root: HTMLDivElement,
-  text: HTMLParagraphElement
-}
-
-/**
- * @group Editor
- */
-export type EditorLayerUIMessage = {
-  root: HTMLDivElement
-  overlay: HTMLDivElement
-  modal: EditorLayerUIInfoModal
-}
+import { DOMFactory } from "@/components/dom"
+import { Modal } from "@/components/Modal"
 
 /**
  * @group Editor
@@ -31,7 +17,6 @@ export type EditorLayerUIState = {
 export type EditorLayerUI = {
   root: HTMLDivElement
   loader: HTMLDivElement
-  message: EditorLayerUIMessage
   state: EditorLayerUIState
 }
 
@@ -46,6 +31,8 @@ export class EditorLayer
 
   onCloseModal?: (inError?: boolean) => void
 
+  #modal?: Modal
+
   constructor(root: HTMLElement, rootClassCss: string = "ms-editor")
   {
     this.root = root
@@ -56,8 +43,7 @@ export class EditorLayer
 
   render(): void
   {
-    const styleElement = document.createElement("style")
-    styleElement.appendChild(document.createTextNode(style as string))
+    const styleElement = DOMFactory.style(style as string)
     this.root.prepend(styleElement)
 
     this.root.appendChild(this.rendering)
@@ -66,10 +52,7 @@ export class EditorLayer
 
   createLoader(): HTMLDivElement
   {
-    const loaderHTML = document.createElement("div")
-    loaderHTML.classList.add("loader")
-    loaderHTML.style.display = "none"
-    return loaderHTML
+    return DOMFactory.div({ className: "loader", style: "display: none" })
   }
   showLoader(): void
   {
@@ -80,87 +63,48 @@ export class EditorLayer
     this.ui.loader.style.display = "none"
   }
 
-  createMessageOverlay(): HTMLDivElement
+  clearModal(): void
   {
-    const overlay = document.createElement("div")
-    overlay.classList.add("message-overlay")
-    return overlay
-  }
-  closeMessageModal(): void
-  {
-    this.onCloseModal?.(this.ui.message.modal.root.classList.contains("error-msg"))
-    this.hideMessageModal()
+    this.#modal?.destroySilent()
+    this.#modal = undefined
   }
 
-  hideMessageModal(): void
+  showMessageInfo(notif: { message: string, timeout?: number }): void
   {
-    this.ui.message.root.style.display = "none"
-    this.ui.message.modal.text.innerText = ""
-    this.ui.message.modal.root.classList.remove("error-msg")
-    this.ui.message.modal.root.classList.remove("info-msg")
+    this.#modal?.destroySilent()
+    this.#modal = new Modal({
+      title: "Info",
+      type: "info",
+      fields: [],
+      customContent: DOMFactory.p({ text: notif.message }),
+      container: this.root,
+      onClose: () => this.onCloseModal?.(false)
+    })
+    this.#modal.open()
+    setTimeout(() => this.#modal?.close(), notif.timeout ?? 2500)
   }
-  createMessageModal(): EditorLayerUIInfoModal
+
+  showMessageError(err: Error | string): void
   {
-    const element = document.createElement("div")
-    element.classList.add("message-modal")
-
-    const closeBtn = document.createElement("button")
-    closeBtn.classList.add("ms-button", "close")
-    closeBtn.addEventListener("pointerup", this.closeMessageModal.bind(this))
-    element.appendChild(closeBtn)
-
-    const text = document.createElement("p")
-    element.appendChild(text)
-    return { root: element, text }
-  }
-  createMessage(): EditorLayerUIMessage
-  {
-    const root = document.createElement("div")
-    root.classList.add("message-container")
-    root.style.display = "none"
-
-    const overlay = this.createMessageOverlay()
-    root.appendChild(overlay)
-
-    const modal = this.createMessageModal()
-    root.appendChild(modal.root)
-
-    return {
-      root,
-      overlay,
-      modal
-    }
-  }
-  showMessageInfo(notif: { message: string, timeout?: number })
-  {
-    this.ui.message.modal.root.classList.add("info-msg")
-    this.ui.message.modal.root.classList.remove("error-msg")
-    this.ui.message.root.style.display = "block"
-    this.ui.message.modal.text.innerText = notif.message
-    setTimeout(() =>
-    {
-      this.closeMessageModal()
-    }, notif.timeout || 2500)
-  }
-  showMessageError(err: Error | string)
-  {
-    this.ui.message.modal.root.classList.add("error-msg")
-    this.ui.message.modal.root.classList.remove("info-msg")
-    this.ui.message.root.style.display = "block"
-    this.ui.message.modal.text.innerText = typeof err === "string" ? err : err.message
+    this.#modal?.destroySilent()
+    this.#modal = new Modal({
+      title: "Error",
+      type: "error",
+      fields: [],
+      customContent: DOMFactory.p({ text: typeof err === "string" ? err : err.message }),
+      container: this.root,
+      onClose: () => this.onCloseModal?.(true)
+    })
+    this.#modal.open()
   }
 
   createBusy(): HTMLDivElement
   {
-    const busy = document.createElement("div")
-    busy.classList.add("busy")
-    return busy
+    return DOMFactory.div({ className: "busy" })
   }
   createState(): EditorLayerUIState
   {
-    const root = document.createElement("div")
-    root.classList.add("state")
-    root.style.display = "none"
+    const root = DOMFactory.div({ className: "state", style: "display: none" })
 
     const busy = this.createBusy()
     root.appendChild(busy)
@@ -190,14 +134,10 @@ export class EditorLayer
 
   createLayerUI(): EditorLayerUI
   {
-    const root = document.createElement("div")
-    root.classList.add("ms-layer-ui")
+    const root = DOMFactory.div({ className: "ms-layer-ui" })
 
     const loader = this.createLoader()
     root.appendChild(loader)
-
-    const message = this.createMessage()
-    root.appendChild(message.root)
 
     const state = this.createState()
     root.appendChild(state.root)
@@ -205,20 +145,18 @@ export class EditorLayer
     return {
       root,
       loader,
-      message,
       state
     }
   }
 
   createLayerRender(): HTMLDivElement
   {
-    const render = document.createElement("div")
-    render.classList.add("ms-layer-rendering")
-    return render
+    return DOMFactory.div({ className: "ms-layer-rendering" })
   }
 
   destroy(): void
   {
+    this.#modal = undefined
     while (this.root.lastChild) {
       this.root.removeChild(this.root.lastChild)
     }

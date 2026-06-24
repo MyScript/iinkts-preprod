@@ -42,6 +42,8 @@ export interface TableConfig {
   onRowClick?: (rowIndex: number, rowData?: unknown, isSelected?: boolean) => void
 }
 
+import { DOMFactory } from "@/components/dom"
+
 /**
  * @group Components
  * @remarks Generic table component for displaying data in a structured format
@@ -66,23 +68,14 @@ export class Table {
   }
 
   private createTable(): HTMLTableElement {
-    const table = document.createElement("table")
-
-    let tableStyle = `
-      width: ${this.config.width};
-      border-collapse: collapse;
-      font-size: ${this.config.fontSize};
-    `
-
+    const table = DOMFactory.table({ className: "ms-table" })
+    table.style.width = this.config.width!
+    table.style.fontSize = this.config.fontSize!
     if (this.config.maxHeight) {
-      tableStyle += `
-        max-height: ${this.config.maxHeight};
-        overflow-y: auto;
-        display: block;
-      `
+      table.style.maxHeight = this.config.maxHeight
+      table.style.overflowY = "auto"
+      table.style.display = "block"
     }
-
-    table.style.cssText = tableStyle
 
     // Create header
     const thead = this.createHeader()
@@ -96,30 +89,22 @@ export class Table {
   }
 
   private createHeader(): HTMLTableSectionElement {
-    const thead = document.createElement("thead")
+    const thead = DOMFactory.thead()
 
     if (this.config.stickyHeader) {
-      thead.style.cssText = "position: sticky; top: 0; background: white; font-weight: bold;"
+      thead.style.cssText = "position: sticky; top: 0; background: var(--iink-editor-bg); font-weight: bold;"
     }
 
-    const headerRow = document.createElement("tr")
-    headerRow.style.cssText = `
-      background: #f5f5f5;
-      border-bottom: 2px solid #ddd;
-    `
+    const headerRow = DOMFactory.tr({ className: "ms-table-header-row" })
 
     this.config.columns.forEach(column => {
-      const th = document.createElement("th")
+      let th: HTMLTableCellElement
 
       if (typeof column === "string") {
-        th.textContent = column
-        th.style.cssText = `
-          padding: 12px 8px;
-          text-align: left;
-          font-weight: 600;
-          border-bottom: 2px solid #ddd;
-        `
+        th = DOMFactory.th({ className: "ms-table-th", style: "text-align: left;", text: column })
       } else {
+        th = DOMFactory.th({ className: "ms-table-th", style: `text-align: ${column.align || "left"};` })
+
         // Handle both string and HTMLElement headers
         if (typeof column.header === "string") {
           th.textContent = column.header
@@ -127,12 +112,6 @@ export class Table {
           th.appendChild(column.header)
         }
 
-        th.style.cssText = `
-          padding: 12px 8px;
-          text-align: ${column.align || "left"};
-          font-weight: 600;
-          border-bottom: 2px solid #ddd;
-        `
         if (column.width) {
           th.style.width = column.width
         }
@@ -146,18 +125,15 @@ export class Table {
   }
 
   private createBody(): HTMLTableSectionElement {
-    const tbody = document.createElement("tbody")
+    const tbody = DOMFactory.tbody()
     this.rowElements.clear()
 
     this.config.rows.forEach((rowConfig, rowIndex) => {
-      const row = document.createElement("tr")
+      const baseStyle = rowConfig.style || "border-bottom: 1px solid var(--iink-surface);"
+      const row = DOMFactory.tr({ style: baseStyle })
 
       // Store row element reference
       this.rowElements.set(rowIndex, row)
-
-      // Apply row styles
-      const baseStyle = rowConfig.style || "border-bottom: 1px solid #eee;"
-      row.style.cssText = baseStyle
 
       // Add selectable cursor
       if (this.config.selectable) {
@@ -166,13 +142,13 @@ export class Table {
 
       // Add hover effect if enabled
       if (this.config.hoverEffect) {
-        const hoverStyle = rowConfig.hoverStyle || "#f9f9f9"
-        row.addEventListener("mouseenter", () => {
+        const hoverStyle = rowConfig.hoverStyle || "var(--iink-menu-hover)"
+        row.addEventListener("pointerenter", () => {
           if (!this.selectedRows.has(rowIndex)) {
             row.style.background = hoverStyle
           }
         })
-        row.addEventListener("mouseleave", () => {
+        row.addEventListener("pointerleave", () => {
           if (!this.selectedRows.has(rowIndex)) {
             row.style.cssText = baseStyle
           }
@@ -181,53 +157,34 @@ export class Table {
 
       // Add click handler for selectable rows
       if (this.config.selectable) {
-        row.addEventListener("click", (event) => {
+        row.addEventListener("pointerup", (event) => {
           this.handleRowClick(rowIndex, rowConfig.data, event)
         })
       }
 
       // Create cells
       rowConfig.cells.forEach((cellData, index) => {
-        const cell = document.createElement("td")
-
         // Get column alignment
         const column = this.config.columns[index]
         const columnAlign = typeof column === "string" ? "left" : (column.align || "left")
 
+        let cell: HTMLTableCellElement
+
         if (typeof cellData === "string") {
-          cell.textContent = cellData
-          cell.style.cssText = `
-            padding: 10px 8px;
-            text-align: ${columnAlign};
-            border: 1px solid #ddd;
-          `
+          cell = DOMFactory.td({ className: "ms-table-td", style: `text-align: ${columnAlign};`, text: cellData })
         } else if (cellData instanceof HTMLElement) {
+          cell = DOMFactory.td({ className: "ms-table-td", style: `text-align: ${columnAlign};` })
           cell.appendChild(cellData)
-          cell.style.cssText = `
-            padding: 10px 8px;
-            text-align: ${columnAlign};
-            border: 1px solid #ddd;
-          `
         } else {
           // TableCellConfig
+          const align = cellData.align || columnAlign
+          cell = DOMFactory.td({ className: "ms-table-td", style: `text-align: ${align};${cellData.style || ""}` })
+
           if (typeof cellData.content === "string") {
             cell.textContent = cellData.content
           } else {
             cell.appendChild(cellData.content)
           }
-
-          const align = cellData.align || columnAlign
-          let cellStyle = `
-            padding: 10px 8px;
-            text-align: ${align};
-            border: 1px solid #ddd;
-          `
-
-          if (cellData.style) {
-            cellStyle += cellData.style
-          }
-
-          cell.style.cssText = cellStyle
         }
 
         row.appendChild(cell)
@@ -310,10 +267,10 @@ export class Table {
     if (!row) return
 
     const rowConfig = this.config.rows[rowIndex]
-    const baseStyle = rowConfig?.style || "border-bottom: 1px solid #eee;"
+    const baseStyle = rowConfig?.style || "border-bottom: 1px solid var(--iink-surface);"
 
     if (selected) {
-      row.style.cssText = baseStyle + " background: #e3f2fd; font-weight: 500;"
+      row.style.cssText = baseStyle + " background: var(--iink-info); font-weight: 500;"
     } else {
       row.style.cssText = baseStyle
     }

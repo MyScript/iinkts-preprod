@@ -54,7 +54,7 @@ describe("Chart.ts", () =>
       const element = chart.getElement()
 
       expect(element).toBeInstanceOf(HTMLDivElement)
-      expect(element.style.display).toContain("flex")
+      expect(element.classList.contains("ms-chart")).toBe(true)
     })
 
     test("should contain canvas element", () =>
@@ -321,22 +321,13 @@ describe("Chart.ts", () =>
       // Width is applied during rendering
     })
 
-    test("should have border on canvas", () =>
+    test("should have ms-chart-canvas class on canvas", () =>
     {
       const chart = new Chart()
       const element = chart.getElement()
 
       const canvas = element.querySelector("canvas") as HTMLCanvasElement
-      expect(canvas.style.border).toContain("1px")
-    })
-
-    test("should have white background", () =>
-    {
-      const chart = new Chart()
-      const element = chart.getElement()
-
-      const canvas = element.querySelector("canvas") as HTMLCanvasElement
-      expect(canvas.style.background).toBe("white")
+      expect(canvas.classList.contains("ms-chart-canvas")).toBe(true)
     })
   })
 })

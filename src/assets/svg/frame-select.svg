@@ -22,9 +22,30 @@
     stroke-linecap="round"
     stroke-linejoin="round"
   ></path>
-  <path d="M3.5 4.99854V19.0005" stroke="currentColor" stroke-width="1" stroke-miterlimit="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-  <path d="M20.4978 5V19.002" stroke="currentColor" stroke-width="1" stroke-miterlimit="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-  <path d="M4.99854 20.501H18.9987" stroke="currentColor" stroke-width="1" stroke-miterlimit="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+  <path
+    d="M3.5 4.99854V19.0005"
+    stroke="currentColor"
+    stroke-width="1"
+    stroke-miterlimit="1.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  ></path>
+  <path
+    d="M20.4978 5V19.002"
+    stroke="currentColor"
+    stroke-width="1"
+    stroke-miterlimit="1.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  ></path>
+  <path
+    d="M4.99854 20.501H18.9987"
+    stroke="currentColor"
+    stroke-width="1"
+    stroke-miterlimit="1.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  ></path>
   <path
     d="M4.9984 19H2V21.9984H4.9984V19Z"
     stroke="currentColor"
