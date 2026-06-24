@@ -736,7 +736,7 @@ describe("EditorOffscreen.ts", () =>
     editor.overlays.apply = jest.fn()
     editor.event.emitConverted = jest.fn()
     editor.recognizer.waitForIdle = jest.fn(() => Promise.resolve())
-    editor.converter.apply = jest.fn(() => Promise.resolve())
+    editor.converter.apply = jest.fn(() => Promise.resolve([]))
 
     test("should call converter.apply", async () =>
     {

@@ -403,7 +403,7 @@ export class RecognizerWebSocketSSR
       this.socket.addEventListener("message", this.boundMessageCallback)
       await this.connected.promise
       await this.initialized.promise
-      this.event.emitEndtInitialization()
+      this.event.emitEndInitialization()
     } catch (err: unknown) {
       this.rejectDeferredPending(err as Error)
       return this.initialized.promise

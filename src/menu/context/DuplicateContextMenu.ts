@@ -1,59 +1,23 @@
 import { InteractiveInkEditor } from "@/editor"
-import { BaseMenuItem, TGenericMenuItem } from "@/menu/items/BaseMenuItem"
-import { SELECTION_MARGIN } from "@/Constants"
-import { createUUID } from "@/utils"
-import { MatrixTransform } from "@/transform"
+import { ButtonMenuItem, IMenuButton } from "../items"
 
 /**
  * @group Menu
  * @remarks Menu contextuel Duplicate - Duplique les symboles sélectionnés
  */
-export class DuplicateContextMenu extends BaseMenuItem<HTMLButtonElement>
+export class DuplicateContextMenu extends ButtonMenuItem
 {
-  protected declare config: TGenericMenuItem
-
   constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-context")
   {
-    const config: TGenericMenuItem = {
+    const config: IMenuButton = {
       type: "button",
       id: `${idPrefix}-duplicate`,
-      label: "Duplicate"
+      label: "Duplicate",
+      action: async () => {
+        const symbolsToDuplicate = this.editor.model.symbolsSelected.slice()
+        await this.editor.duplicate(symbolsToDuplicate)
+      }
     }
     super(config, editor)
-  }
-
-  createElement(): HTMLButtonElement
-  {
-    const button = this.dom.button({ id: this.config.id, label: this.config.label || "Duplicate" })
-    
-    button.addEventListener("pointerup", async () => {
-      const symbolsToDuplicate = this.editor.model.symbolsSelected.slice()
-
-      const duplicatedSymbols = symbolsToDuplicate.map(s => {
-        const clone = s.clone()
-
-        // Generate unique ID for cloned symbols
-        while (this.editor.model.symbols.find(sym => sym.id === clone.id)) {
-          clone.id = `${clone.type}-${createUUID()}`
-        }
-
-        clone.selected = true
-        const matrix = MatrixTransform.identity().translate(SELECTION_MARGIN, clone.bounds.height + SELECTION_MARGIN)
-        this.editor.transform.translate.applyToSymbol(clone, matrix)
-        return clone
-      })
-
-      this.editor.unselectAll()
-      await this.editor.addSymbols(duplicatedSymbols)
-      this.editor.selector.drawSelectedGroup(duplicatedSymbols)
-    })
-
-    return button
-  }
-
-  update(): void
-  {
-    this.updateDisabled()
-    this.updateVisible()
   }
 }
