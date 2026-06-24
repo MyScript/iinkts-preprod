@@ -301,7 +301,7 @@ export class InteractiveInkEditor extends AbstractEditor
     clearTimeout(this.#recognizeStrokeTimer)
     this.#recognizeStrokeTimer = setTimeout(async () =>
     {
-      await this.synchronizeStrokesWithJIIX()
+      await this.synchronize()
       this.updateLayerUI(0)
       this.event.emitChanged(undoRedoContext)
     }, 500)
@@ -714,9 +714,12 @@ export class InteractiveInkEditor extends AbstractEditor
   /**
    * Synchronize strokes with JIIX export
    */
-  async synchronizeStrokesWithJIIX(): Promise<void>
+  async synchronize(): Promise<void>
   {
     await this.synchronizer.synchronize()
+    if (this.model.symbolsSelected.length > 0) {
+      this.selector.resetSelectedGroup(this.model.symbolsSelected)
+    }
   }
 
   /**
@@ -1295,28 +1298,60 @@ export class InteractiveInkEditor extends AbstractEditor
   }
 
   /**
-   * Convert all symbols
-   * @returns Promise that resolves when conversion is complete
-   */
-  async convert(): Promise<void>
-  {
-    await this.convertSymbols()
-  }
-
-  /**
-   * Convert specific symbols
+   * Convert specific symbols, or all symbols if none specified
    * @param symbols - Symbols to convert (defaults to all symbols)
    * @returns Promise that resolves when conversion is complete
    */
-  async convertSymbols(symbols?: TIISymbol[]): Promise<void>
+  async convert(symbols?: TIISymbol[]): Promise<void>
   {
     try {
       this.updateLayerState(false)
-      await this.converter.apply(symbols)
+      const addedSymbols = await this.converter.apply(symbols)
+      this.select(addedSymbols.map(s => s.id))
       this.event.emitConverted()
     }
     catch (error) {
       this.logger.error("convert", error)
+      this.manageError(error as Error)
+      throw error
+    }
+    finally {
+      this.updateLayerUI()
+    }
+  }
+
+  /**
+   * Duplicate specific symbols, or all symbols if none specified
+   * @param symbols - Symbols to duplicate (defaults to all symbols)
+   * @returns Promise resolving with duplicated symbols
+   */
+  async duplicate(symbols?: TIISymbol[]): Promise<TIISymbol[]>
+  {
+    try {
+      this.updateLayerState(false)
+      const symbolsToDuplicate = symbols ?? this.model.symbols
+      const bounds = Box.createFromBoxes(symbolsToDuplicate.map(s => s.bounds))
+
+      const duplicatedSymbols = symbolsToDuplicate.map(s => {
+        const clone = s.clone()
+
+        // Generate unique ID for cloned symbols
+        while (this.model.symbols.find(sym => sym.id === clone.id)) {
+          clone.id = `${clone.type}-${createUUID()}`
+        }
+
+        clone.selected = true
+        const matrix = MatrixTransform.identity().translate(SELECTION_MARGIN, bounds.height + SELECTION_MARGIN)
+        this.transform.translate.applyToSymbol(clone, matrix)
+        return clone
+      })
+      this.unselectAll()
+      const syms = await this.addSymbols(duplicatedSymbols)
+      this.select(syms.map(s => s.id))
+      return syms
+    }
+    catch (error) {
+      this.logger.error("duplicate", error)
       this.manageError(error as Error)
       throw error
     }

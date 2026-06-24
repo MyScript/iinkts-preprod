@@ -45,7 +45,7 @@ export class InteractiveInkEditorMock extends InteractiveInkEditor
   changeOrderSymbols = jest.fn()
   groupSymbols = jest.fn()
   ungroupSymbol = jest.fn()
-  synchronizeStrokesWithJIIX = jest.fn()
+  synchronize = jest.fn()
 
   removeSymbol = jest.fn()
   removeSymbols = jest.fn()

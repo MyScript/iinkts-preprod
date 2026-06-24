@@ -464,7 +464,7 @@ test.describe("Offscreen Get Started Menu Action", () => {
         writePointers(page, helloInsert.strokes[1].pointers, 0, 100)
       ])
       // necessary to ensure that recognition is completed
-      await page.evaluate("editorEl.editor.synchronizeStrokesWithJIIX()")
+      await page.evaluate("editorEl.editor.synchronize()")
       const symbols = await getEditorSymbols(page)
       expect(symbols).toHaveLength(1)
       expect(symbols[0].words[0].label).toEqual("hel")
@@ -502,7 +502,7 @@ test.describe("Offscreen Get Started Menu Action", () => {
 
       //write again and convert
       await writePointers(page, helloInsert.strokes[0].pointers)
-      await page.evaluate("editorEl.editor.synchronizeStrokesWithJIIX()")
+      await page.evaluate("editorEl.editor.synchronize()")
       await Promise.all([
         waitForConvertedEvent(page),
         page.locator(locator.menu.action.convertBtn).click()
