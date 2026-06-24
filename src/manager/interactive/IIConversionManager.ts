@@ -671,7 +671,7 @@ export class IIConversionManager extends IIAbstractManager
     }
   }
 
-  async apply(symbols: TIISymbol[] = []): Promise<void>
+  async apply(symbols: TIISymbol[] = []): Promise<TIISymbol[]>
   {
     this.logger.info("convert")
     if (!this.model.exports?.["application/vnd.myscript.jiix"]) {
@@ -814,5 +814,6 @@ export class IIConversionManager extends IIAbstractManager
         erased: allErasedStrokes
       })
     }
+    return allAddedSymbols
   }
 }
