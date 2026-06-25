@@ -22,7 +22,7 @@ describe("IIEraser.ts", () =>
       "color": "grey",
       "fill": "none",
       "opacity": 0.2,
-      "width": 12,
+      "width": 5,
     })
   })
 

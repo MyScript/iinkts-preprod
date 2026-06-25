@@ -31,9 +31,9 @@ export class SVGRendererEraserUtil
     const attrs: { [key: string]: string } = {
       "id": eraser.id,
       "type": "eraser",
-      "stroke-width": "12",
-      "stroke": "grey",
-      "opacity": "0.2",
+      "stroke-width": String(eraser.style.width),
+      "stroke": eraser.style.color,
+      "opacity": String(eraser.style.opacity),
       "shadowBlur": "5",
       "stroke-linecap": "round",
       "fill": "transparent",

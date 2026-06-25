@@ -3,14 +3,6 @@ import { TPoint, TPointer } from "@/symbol/base/Point"
 import { Box, TBox } from "@/symbol/base/Box"
 import { SymbolType } from "@/symbol/base/Symbol"
 import { IISymbolBase } from "./IISymbolBase"
-import { TStyle } from "@/style"
-
-const style: TStyle = {
-  color: "grey",
-  fill: "none",
-  width: 12,
-  opacity: 0.2
-}
 
 /**
  * @group Symbol
@@ -20,9 +12,14 @@ export class IIEraser extends IISymbolBase<SymbolType.Eraser>
   readonly isClosed = false
   pointers: TPointer[]
 
-  constructor()
+  constructor(width = 5)
   {
-    super(SymbolType.Eraser, style)
+    super(SymbolType.Eraser, {
+      color: "grey",
+      fill: "none",
+      opacity: 0.2,
+      width
+    })
     this.pointers = []
   }
 
@@ -43,7 +40,7 @@ export class IIEraser extends IISymbolBase<SymbolType.Eraser>
 
   clone(): IISymbolBase
   {
-    const clone = new IIEraser()
+    const clone = new IIEraser(this.style.width)
     clone.id = this.id
     clone.creationTime = this.creationTime
     clone.modificationDate = this.modificationDate
