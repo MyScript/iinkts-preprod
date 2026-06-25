@@ -1,4 +1,4 @@
-import { PartialDeep, createUUID, findIntersectionBetween2Segment } from "@/utils"
+import { PartialDeep, createUUID } from "@/utils"
 import { TBox } from "@/symbol/base/Box"
 import { TPoint, TSegment } from "@/symbol/base/Point"
 import { SymbolType, TSymbol } from "@/symbol/base/Symbol"
@@ -66,11 +66,4 @@ export abstract class IISymbolBase<T extends string = SymbolType> implements TSy
 
   abstract toJSON(): PartialDeep<IISymbolBase>
 
-  isIntersected(seg: TSegment): boolean
-  {
-    return this.edges.some(edge =>
-    {
-      return findIntersectionBetween2Segment(edge, seg)
-    })
-  }
 }
