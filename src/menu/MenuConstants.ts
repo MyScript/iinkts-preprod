@@ -27,6 +27,17 @@ export const DEFAULT_THICKNESS_LIST = [
 
 /**
  * @group Menu
+ * @remarks Default eraser size values (diameter in px)
+ */
+export const DEFAULT_ERASER_SIZE_LIST = [
+  { label: "S", value: 5 },
+  { label: "M", value: 10 },
+  { label: "L", value: 20 },
+  { label: "XL", value: 40 },
+]
+
+/**
+ * @group Menu
  * @remarks Default font size values
  */
 export const DEFAULT_FONT_SIZE_LIST: { label: string, value: "auto" | number }[] = [

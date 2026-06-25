@@ -1,33 +1,15 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { IIEraser, TSegment, Box, isText } from "@/symbol"
+import { IIEraser, TPoint, TSegment, TBox, Box, isText } from "@/symbol"
 import { SVGRenderer } from "@/renderer"
 import { PointerEventGrabber, PointerInfo } from "@/grabber"
-import { findIntersectionBetween2Segment } from "@/utils"
+import { computeDistanceBetweenPointAndSegment, computeDistanceSquared } from "@/utils"
 import type { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import type { InkEditor } from "@/editor/variants/InkEditor"
 
 /**
  * @group Manager
  */
-function isInteractiveInkEditor(editor: InteractiveInkEditor | InkEditor): editor is InteractiveInkEditor
-{
-  return "removeSymbols" in editor && typeof editor.removeSymbols === "function"
-}
-
-function segmentIntersectsBox(segment: TSegment, box: Box): boolean
-{
-  // Check if either point is inside the box
-  if (Box.containsPoint(box, segment.p1) || Box.containsPoint(box, segment.p2)) {
-    return true
-  }
-
-  // Check if segment intersects any side of the box
-  const sides = Box.getSides(box)
-  return sides.some(side => {
-    const intersection = findIntersectionBetween2Segment(segment, side)
-    return intersection !== null
-  })
-}
+type THittable = { bounds: TBox; vertices: TPoint[]; edges: TSegment[] }
 
 /**
  * @group Manager
@@ -38,8 +20,27 @@ export class EraseManager
   grabber: PointerEventGrabber
   editor: InteractiveInkEditor | InkEditor
 
+  eraserWidth = 5
   currentEraser?: IIEraser
-  charsToDelete: Map<string, Set<string>> = new Map() // Map<symbolId, Set<charId>>
+  charsToDelete: Map<string, Set<string>> = new Map()
+
+  #isInteractiveInkEditor(editor: InteractiveInkEditor | InkEditor): editor is InteractiveInkEditor
+  {
+    return "removeSymbols" in editor && typeof editor.removeSymbols === "function"
+  }
+
+  #isHitByPoint(symbol: THittable, point: TPoint, radius: number): boolean
+  {
+    const { x, y, width, height } = symbol.bounds
+    const expanded = { x: x - radius, y: y - radius, width: width + 2 * radius, height: height + 2 * radius }
+    if (!Box.containsPoint(expanded, point)) return false
+    const edges = symbol.edges
+    if (edges.length === 0) {
+      const squaredRadius = radius * radius
+      return symbol.vertices.some(v => computeDistanceSquared(point, v) <= squaredRadius)
+    }
+    return edges.some(edge => computeDistanceBetweenPointAndSegment(point, edge) < radius)
+  }
 
   constructor(editor: InteractiveInkEditor | InkEditor)
   {
@@ -69,7 +70,7 @@ export class EraseManager
   start(info: PointerInfo): void
   {
     this.#logger.info("startErase", { info })
-    this.currentEraser = new IIEraser()
+    this.currentEraser = new IIEraser(this.eraserWidth)
     this.currentEraser.pointers.push(info.pointer)
     this.charsToDelete.clear()
     this.renderer.drawSymbol(this.currentEraser!)
@@ -83,33 +84,30 @@ export class EraseManager
     }
     this.currentEraser.pointers.push(info.pointer)
     this.renderer.drawSymbol(this.currentEraser)
-    const lastSeg: TSegment = {
-      p1: this.currentEraser.pointers.at(-1)!,
-      p2: this.currentEraser.pointers.at(-2)!
-    }
-    if (isInteractiveInkEditor(this.editor)) {
+    const currentPoint = info.pointer
+    const radius = (this.currentEraser.style.width as number) / 2
+    if (this.#isInteractiveInkEditor(this.editor)) {
       this.editor.model.symbols.forEach(s =>
       {
         if (isText(s)) {
-          // For text symbols, mark only intersected characters
-          let hasIntersectedChar = false
+          let hasHitChar = false
           s.chars.forEach(char => {
-            const charBox = new Box(char.bounds)
-            if (segmentIntersectsBox(lastSeg, charBox)) {
+            const { x, y, width, height } = char.bounds
+            const expanded = { x: x - radius, y: y - radius, width: width + 2 * radius, height: height + 2 * radius }
+            if (Box.containsPoint(expanded, currentPoint)) {
               if (!this.charsToDelete.has(s.id)) {
                 this.charsToDelete.set(s.id, new Set())
               }
               this.charsToDelete.get(s.id)!.add(char.id)
-              hasIntersectedChar = true
+              hasHitChar = true
             }
           })
-          if (hasIntersectedChar) {
+          if (hasHitChar) {
             s.deleting = true
             this.renderer.drawSymbol(s)
           }
         }
-        else if (s.isIntersected(lastSeg)) {
-          // For other symbols, mark the entire symbol as deleting
+        else if (this.#isHitByPoint(s, currentPoint, radius)) {
           s.deleting = true
           this.renderer.drawSymbol(s)
         }
@@ -118,7 +116,7 @@ export class EraseManager
     else {
       this.editor.model.strokes.forEach(s =>
       {
-        if (s.isIntersected(lastSeg)) {
+        if (this.#isHitByPoint(s, currentPoint, radius)) {
           s.deleting = true
           this.renderer.drawSymbol(s)
         }
@@ -132,7 +130,7 @@ export class EraseManager
     this.continue(info)
 
     this.renderer.removeSymbol(this.currentEraser!.id)
-    if (isInteractiveInkEditor(this.editor)) {
+    if (this.#isInteractiveInkEditor(this.editor)) {
       const editor = this.editor as InteractiveInkEditor
       const symbolsToRemove: string[] = []
 
