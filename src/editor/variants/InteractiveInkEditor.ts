@@ -78,6 +78,8 @@ export class InteractiveInkEditor extends AbstractEditor
   #recognizeStrokeTimer?: ReturnType<typeof setTimeout>
   #symbolFactory: SymbolFactory
   #clipboard: TIISymbol[] = []
+  #renderedWidth = 0
+  #renderedHeight = 0
 
   /** SVG renderer responsible for drawing symbols onto the canvas layer. */
   renderer: SVGRenderer
@@ -121,6 +123,12 @@ export class InteractiveInkEditor extends AbstractEditor
   /** Static utility class for creating DOM elements. */
   readonly dom = DOMFactory
 
+  /**
+   * Create and attach an InteractiveInk editor to the given DOM element.
+   * Use `Editor.load()` instead of calling this constructor directly.
+   * @param rootElement - Host DOM element that will contain the editor layers
+   * @param options - Editor options: configuration, CSS vars, manager overrides
+   */
   constructor(rootElement: HTMLElement, options?: TInteractiveInkEditorOptions)
   {
     super(rootElement, options)
@@ -167,11 +175,20 @@ export class InteractiveInkEditor extends AbstractEditor
     this.menu = new IIMenuManager(this, options?.override?.menu)
   }
 
+  /**
+   * Promise that resolves when the WebSocket session is fully initialized.
+   * Await this before calling any recognition methods.
+   */
   get initializationPromise(): Promise<void>
   {
     return this.recognizer.initialized.promise
   }
 
+  /**
+   * Active editing tool.
+   * Setting this switches cursor style, attaches/detaches the corresponding manager,
+   * clears selection, and emits a `toolChanged` event.
+   */
   get tool(): EditorTool
   {
     return this.#tool
@@ -208,15 +225,26 @@ export class InteractiveInkEditor extends AbstractEditor
     this.event.emitToolChanged(i)
   }
 
+  /**
+   * Current symbol model containing all ink, text, math, and shape symbols.
+   */
   get model(): IIModel
   {
     return this.#model
   }
 
+  /**
+   * Active editor configuration (recognition, rendering, menu, math, etc.).
+   */
   get configuration(): InteractiveInkEditorConfiguration
   {
     return this.#configuration
   }
+  /**
+   * Apply a partial rendering configuration at runtime.
+   * Triggers a resize and guide-row recompute.
+   * @param renderingConfiguration - Partial rendering config to merge
+   */
   set renderingConfiguration(renderingConfiguration: TIIRendererConfiguration)
   {
     this.configuration.rendering = mergeDeep(this.configuration.rendering, renderingConfiguration)
@@ -228,6 +256,10 @@ export class InteractiveInkEditor extends AbstractEditor
     this.event.emitUIpdated()
   }
 
+  /**
+   * Current pen style applied to new strokes.
+   * Setting this merges the provided partial style with the current style.
+   */
   get penStyle(): TStyle
   {
     return this.#penStyle
@@ -237,7 +269,6 @@ export class InteractiveInkEditor extends AbstractEditor
     this.logger.info("set penStyle", { penStyle })
     this.#penStyle = Object.assign({}, this.#penStyle, penStyle)
   }
-
 
   protected updateLayerState(idle: boolean): void
   {
@@ -260,6 +291,10 @@ export class InteractiveInkEditor extends AbstractEditor
     }, timeout)
   }
 
+  /**
+   * Display an error in the editor overlay and emit an `error` event.
+   * @param error - Error to display and emit
+   */
   manageError(error: Error): void
   {
     this.layers.showMessageError(error)
@@ -307,6 +342,12 @@ export class InteractiveInkEditor extends AbstractEditor
     }, 500)
   }
 
+  /**
+   * Initialize the editor: render layers, attach input handlers, connect to the
+   * WebSocket recognizer, and load the initial session.
+   * Called automatically by `Editor.load()` — do not call manually.
+   * @throws If the recognizer connection or session setup fails
+   */
   async initialize(): Promise<void>
   {
     try {
@@ -342,6 +383,12 @@ export class InteractiveInkEditor extends AbstractEditor
     }
   }
 
+  /**
+   * Switch the recognition language without destroying the editor.
+   * Opens a new backend session and re-sends all existing strokes.
+   * @param code - BCP 47 language code (e.g. `"en_US"`, `"fr_FR"`)
+   * @throws If the new session fails to open
+   */
   async changeLanguage(code: string): Promise<void>
   {
     try {
@@ -943,6 +990,17 @@ export class InteractiveInkEditor extends AbstractEditor
   }
 
   /**
+   * Set the viewport zoom level, optionally anchored to a point.
+   * @param zoom - Target zoom factor (e.g. 1.5 = 150 %)
+   * @param centerX - X coordinate to zoom around (pixels, default: viewport center)
+   * @param centerY - Y coordinate to zoom around (pixels, default: viewport center)
+   */
+  zoom(zoom: number, centerX?: number, centerY?: number): void
+  {
+    this.renderer.setZoom(zoom, centerX, centerY)
+  }
+
+  /**
    * Zoom and pan the view to fit the given symbols (or all symbols) within the viewport.
    * Resets to zoom 1 if there are no symbols.
    * @param symbols - Symbols to fit (default: all model symbols)
@@ -973,6 +1031,25 @@ export class InteractiveInkEditor extends AbstractEditor
 
     this.renderer.setZoom(zoom)
     this.renderer.setViewBox(vbX, vbY, vbW, vbH)
+  }
+
+  /**
+   * Get the current viewport zoom level.
+   * @returns Current zoom factor (1.0 = 100 %)
+   */
+  getZoom(): number
+  {
+    return this.renderer.getZoom()
+  }
+
+  /**
+   * Shift the viewport by the given pixel delta without changing zoom.
+   * @param dx - Horizontal offset in pixels (positive = pan right)
+   * @param dy - Vertical offset in pixels (positive = pan down)
+   */
+  pan(dx: number, dy: number): void
+  {
+    this.renderer.pan(dx, dy)
   }
 
   protected buildBlobFromSymbols(symbols: TIISymbol[], box: Box): Blob
@@ -1381,6 +1458,13 @@ export class InteractiveInkEditor extends AbstractEditor
       const compStyles = window.getComputedStyle(this.layers.root)
       height = height || Math.max(parseInt(compStyles.height.replace("px", "")), this.configuration.rendering.minHeight)
       width = width || Math.max(parseInt(compStyles.width.replace("px", "")), this.configuration.rendering.minWidth)
+
+      if (height === this.#renderedHeight && width === this.#renderedWidth) {
+        this.logger.debug("resize", "no change")
+        return
+      }
+      this.#renderedHeight = height
+      this.#renderedWidth = width
 
       this.updateLayerState(false)
       this.renderer.resize(height, width)
