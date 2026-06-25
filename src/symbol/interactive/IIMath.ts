@@ -1,23 +1,17 @@
-import { TStyle } from "@/style"
-import { PartialDeep, convertDegreeToRadian, findIntersectionBetween2Segment, isPointInsidePolygon, computeRotatedPoint } from "@/utils"
+import { PartialDeep } from "@/utils"
 import { TPoint } from "@/symbol/base/Point"
 import { SymbolType } from "@/symbol/base/Symbol"
-import { Box, TBox } from "@/symbol/base/Box"
+import { TBox } from "@/symbol/base/Box"
+import { TStyle } from "@/style"
 import { IIDecorator } from "./IIDecorator"
-import { IISymbolBase } from "./IISymbolBase"
+import { IITypeset, TIITypesetChild } from "./IITypeset"
 
 /**
  * @group Symbol
  * @remarks Individual math element (number, operator, variable, etc.)
  */
-export type TIIMathElement = {
-  id: string
-  label: string
-  fontSize: number
-  fontWeight: "normal" | "bold"
+export type TIIMathElement = TIITypesetChild & {
   fontFamily: string
-  color: string
-  bounds: TBox
   position?: "superscript" | "subscript" | "normal"
 }
 
@@ -25,18 +19,9 @@ export type TIIMathElement = {
  * @group Symbol
  * @remarks Represents a converted mathematical expression with native rendering
  */
-export class IIMath extends IISymbolBase<SymbolType.Math>
+export class IIMath extends IITypeset<SymbolType.Math, TIIMathElement>
 {
-  readonly isClosed = true
-
-  point: TPoint
   elements: TIIMathElement[]
-  decorators: IIDecorator[]
-  bounds: Box
-  rotation?: {
-    degree: number,
-    center: TPoint
-  }
 
   constructor(
     elements: TIIMathElement[],
@@ -45,110 +30,21 @@ export class IIMath extends IISymbolBase<SymbolType.Math>
     style?: PartialDeep<TStyle>
   )
   {
-    super(SymbolType.Math, style)
-    this.point = point
-    this.bounds = new Box(bounds)
+    super(SymbolType.Math, point, bounds, style)
     this.elements = elements
-    this.decorators = []
   }
 
-  get label(): string
+  get children(): TIIMathElement[]
   {
-    return this.elements.map(e => e.label).join("")
+    return this.elements
   }
 
-  get vertices(): TPoint[]
+  override updateChildrenFont({ fontSize, fontWeight, fontFamily }: { fontSize?: number, fontWeight?: "normal" | "bold", fontFamily?: string }): void
   {
-    if (this.rotation) {
-      const center = this.rotation.center
-      const rad = convertDegreeToRadian(-this.rotation.degree)
-      return this.bounds.corners
-        .map(p =>
-        {
-          return computeRotatedPoint(p, center, rad)
-        })
+    super.updateChildrenFont({ fontSize, fontWeight })
+    if (fontFamily) {
+      this.elements.forEach(e => e.fontFamily = fontFamily)
     }
-    else {
-      return this.bounds.corners
-    }
-  }
-
-  get snapPoints(): TPoint[]
-  {
-    const offsetY = this.bounds.yMax - this.point.y
-    const points = [
-      { x: this.bounds.x, y: this.bounds.yMin + offsetY },
-      { x: this.bounds.xMax, y: this.bounds.yMin + offsetY },
-      { x: this.bounds.xMax, y: this.bounds.yMax - offsetY },
-      { x: this.bounds.x, y: this.bounds.yMax - offsetY },
-      this.bounds.center
-    ]
-    if (this.rotation) {
-      const center = this.rotation.center
-      const rad = convertDegreeToRadian(-this.rotation.degree)
-      return points
-        .map(p =>
-        {
-          return computeRotatedPoint(p, center, rad)
-        })
-    }
-    return points
-  }
-
-  protected getElementCorners(element: TIIMathElement): TPoint[]
-  {
-    const boxBox = new Box(element.bounds)
-    if (this.rotation) {
-      const center = this.rotation.center
-      const rad = convertDegreeToRadian(-this.rotation.degree)
-      return boxBox.corners
-        .map(p =>
-        {
-          return computeRotatedPoint(p, center, rad)
-        })
-    }
-    return boxBox.corners
-  }
-
-  updateChildrenStyle(): void
-  {
-    this.elements.forEach(e => {
-      if (this.style.color) {
-        e.color = this.style.color
-      }
-    })
-    this.modificationDate = Date.now()
-  }
-
-  updateChildrenFont({ fontSize, fontWeight, fontFamily }: { fontSize?: number, fontWeight?: "normal" | "bold", fontFamily?: string }): void
-  {
-    this.elements.forEach(e => {
-      if (fontSize) {
-        e.fontSize = fontSize
-      }
-      if (fontWeight) {
-        e.fontWeight = fontWeight
-      }
-      if (fontFamily) {
-        e.fontFamily = fontFamily
-      }
-    })
-    this.modificationDate = Date.now()
-  }
-
-  getElementsOverlaps(points: TPoint[]): TIIMathElement[]
-  {
-    return this.elements.filter(e =>
-    {
-      const elementCorners = this.getElementCorners(e)
-      return points.some(p => isPointInsidePolygon(p, elementCorners))
-    })
-  }
-
-  overlaps(box: TBox): boolean
-  {
-    return this.vertices.some(p => Box.containsPoint(box, p)) ||
-      this.edges.some(e1 => Box.getSides(box).some(e2 => !!findIntersectionBetween2Segment(e1, e2)))
   }
 
   clone(): IIMath
@@ -182,15 +78,9 @@ export class IIMath extends IISymbolBase<SymbolType.Math>
 
   static create(partial: PartialDeep<IIMath>): IIMath
   {
-    if (!partial.elements?.length) {
-      throw new Error(`IIMath requires elements`)
-    }
-    if (!partial.point) {
-      throw new Error(`IIMath requires point`)
-    }
-    if (!partial.bounds) {
-      throw new Error(`IIMath requires bounds`)
-    }
+    if (!partial.elements?.length) throw new Error(`IIMath requires elements`)
+    if (!partial.point) throw new Error(`IIMath requires point`)
+    if (!partial.bounds) throw new Error(`IIMath requires bounds`)
 
     const elements: TIIMathElement[] = partial.elements.map(e => ({
       id: e!.id!,
@@ -209,9 +99,7 @@ export class IIMath extends IISymbolBase<SymbolType.Math>
 
     const math = new IIMath(elements, partial.point as TPoint, partial.bounds as TBox, partial.style)
 
-    if (partial.id) {
-      math.id = partial.id
-    }
+    if (partial.id) math.id = partial.id
     if (partial.decorators) {
       math.decorators = partial.decorators
         .filter(d => d?.kind && d?.style)

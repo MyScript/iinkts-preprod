@@ -79,7 +79,7 @@ export class IITranslateManager extends IIAbstractTransformManager
     const np = matrix.applyToPoint(text.point)
     text.point.x = +np.x.toFixed(3)
     text.point.y = +np.y.toFixed(3)
-    return this.editor.texter.updateBounds(text)
+    return this.editor.typeset.updateBounds(text)
   }
 
   protected applyOnMath(math: IIMath, matrix: MatrixTransform): IIMath

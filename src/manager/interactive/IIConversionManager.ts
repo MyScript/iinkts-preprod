@@ -46,7 +46,7 @@ import
   isRecognizedMath,
   isDecorator,
 } from "@/symbol"
-import { computeAngleAxeRadian, computeAverage, convertBoundingBoxMillimeterToPixel, convertMillimeterToPixel, convertPixelToMillimeter, createUUID } from "@/utils"
+import { computeAngleAxeRadian, computeAverage, convertBoundingBoxMillimeterToPixel, convertMillimeterToPixel, createUUID } from "@/utils"
 import { LoggerCategory } from "@/logger"
 
 /**
@@ -183,7 +183,7 @@ export class IIConversionManager extends IIAbstractManager
     jiixWords.forEach(word =>
     {
       if (word.label === " ") {
-        currentX += this.editor.texter.getSpaceWidth(result.at(-1)?.symbol.chars[0].fontSize|| (this.rowHeight / 2))
+        currentX += this.editor.typeset.getSpaceWidth(result.at(-1)?.symbol.chars[0].fontSize|| (this.rowHeight / 2))
         return
       }
       const wordStrokes = strokes.filter(s => word.items?.some(i => i["full-id"] === s.id)) as IIStroke[]
@@ -207,7 +207,7 @@ export class IIConversionManager extends IIAbstractManager
           wordSymbol.point.y = this.model.roundToLineGuide(currentY)
         }
 
-        this.editor.texter.setBounds(wordSymbol)
+        this.editor.typeset.setBounds(wordSymbol)
         currentX += wordSymbol.bounds.width
         result.push({
           symbol: wordSymbol,
@@ -699,52 +699,46 @@ export class IIConversionManager extends IIAbstractManager
       }
     }
 
-    // Convert each math block (with all its strokes) - process sequentially with visual updates
+    // Pre-fetch all math block conversion data before any model modifications.
+    // Index lookups must happen synchronously before removeSymbols/addSymbols calls,
+    // which clear model.exports and can trigger async JIIX index invalidation.
+    const mathConversions: Array<{ symbol: IIMath, strokes: IIStroke[] }> = []
+
     for (const [blockId, blockStrokes] of mathStrokesByBlock.entries()) {
-      // Get metadata from first stroke (all strokes in block share same metadata)
       const firstStroke = blockStrokes[0]
       const jiixMathElement = this.editor.jiix.getElementForStroke(firstStroke.id) as TJIIXMathElement | undefined
-      const label = this.editor.jiix.getLabelForStroke(firstStroke.id)
 
-      if (jiixMathElement?.expressions && label) {
-        // Calculate bounding box that contains all strokes
-        const allBounds = blockStrokes.map(s => s.bounds).filter(b => b !== undefined)
-        if (allBounds.length > 0) {
-          const combinedBounds = Box.createFromBoxes(allBounds)
-          const boundsMM = {
-            x: convertPixelToMillimeter(combinedBounds.x),
-            y: convertPixelToMillimeter(combinedBounds.y),
-            width: convertPixelToMillimeter(combinedBounds.width),
-            height: convertPixelToMillimeter(combinedBounds.height)
-          }
+      if (jiixMathElement?.expressions && jiixMathElement.label && jiixMathElement["bounding-box"]) {
+        const mathElement: TJIIXMathElement = {
+          type: JIIXElementType.Math,
+          id: blockId,
+          label: jiixMathElement.label,
+          expressions: jiixMathElement.expressions,
+          "bounding-box": jiixMathElement["bounding-box"],
+          items: blockStrokes.map(s => ({
+            type: "stroke" as const,
+            id: s.id,
+            "full-id": s.id
+          }))
+        }
 
-          const mathElement: TJIIXMathElement = {
-            type: JIIXElementType.Math,
-            id: blockId,
-            label: label,
-            expressions: jiixMathElement.expressions,
-            "bounding-box": boundsMM,
-            items: blockStrokes.map(s => ({
-              type: "stroke" as const,
-              id: s.id,
-              "full-id": s.id
-            }))
-          }
-
-          const conversion = this.convertMath(mathElement, blockStrokes)
-          if (conversion) {
-            // Progressive rendering: remove strokes then add typeset symbol
-            await this.editor.removeSymbols(conversion.strokes.map(s => s.id), false)
-            await this.editor.addSymbols([conversion.symbol], false)
-
-            allAddedSymbols.push(conversion.symbol)
-            allErasedStrokes.push(...conversion.strokes)
-
-            // Allow browser to render between blocks
-            await new Promise(resolve => requestAnimationFrame(resolve))
-          }
+        const conversion = this.convertMath(mathElement, blockStrokes)
+        if (conversion) {
+          this.editor.typeset.setBounds(conversion.symbol)
+          mathConversions.push(conversion)
         }
       }
+    }
+
+    // Apply all pre-fetched conversions with progressive rendering
+    for (const conversion of mathConversions) {
+      await this.editor.removeSymbols(conversion.strokes.map(s => s.id), false)
+      await this.editor.addSymbols([conversion.symbol], false)
+
+      allAddedSymbols.push(conversion.symbol)
+      allErasedStrokes.push(...conversion.strokes)
+
+      await new Promise(resolve => requestAnimationFrame(resolve))
     }
 
     // Also convert from JIIX export if available - process sequentially

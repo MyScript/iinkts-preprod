@@ -26,7 +26,7 @@ import
   IIWriterManager,
   IISelectionManager,
   IITransformManager,
-  IITextManager,
+  IITypesetManager,
   EraseManager,
   IIOverlayManager,
   IIMoveManager,
@@ -102,8 +102,8 @@ export class InteractiveInkEditor extends AbstractEditor
   transform: IITransformManager
   /** Converts ink strokes to recognized text, math, or shape symbols. */
   converter: IIConversionManager
-  /** Manages text symbol layout: bounds computation and reflow after edits. */
-  texter: IITextManager
+  /** Manages text and math symbol layout: bounds computation and reflow after edits. */
+  typeset: IITypesetManager
   /** Handles symbol selection, selection group rendering, and hit-testing. */
   selector: IISelectionManager
   /** Manages all visual overlays: math/text block indicators, debug visualizations. */
@@ -166,7 +166,7 @@ export class InteractiveInkEditor extends AbstractEditor
     this.gesture = new IIGestureManager(this, this.#configuration.gesture)
     this.transform = new IITransformManager(this)
     this.converter = new IIConversionManager(this)
-    this.texter = new IITextManager(this)
+    this.typeset = new IITypesetManager(this)
     this.overlays = new IIOverlayManager(this, this.#configuration.overlays)
     this.snaps = new IISnapManager(this, this.#configuration.snap)
     this.synchronizer = new IISynchronizerManager(this)
@@ -488,10 +488,10 @@ export class InteractiveInkEditor extends AbstractEditor
   }
 
   /** @hidden */
-  protected updateTextBounds(symbol: TIISymbol): void
+  protected updateTypesetBounds(symbol: TIISymbol): void
   {
-    if (isText(symbol)) {
-      this.texter.updateBounds(symbol)
+    if (isText(symbol) || isMath(symbol)) {
+      this.typeset.setBounds(symbol)
     }
   }
 
@@ -500,7 +500,7 @@ export class InteractiveInkEditor extends AbstractEditor
   {
     this.logger.info("addSymbol", { sym })
     this.updateLayerState(false)
-    this.updateTextBounds(sym)
+    this.updateTypesetBounds(sym)
     this.model.addSymbol(sym)
     this.renderer.drawSymbol(sym)
 
@@ -526,7 +526,7 @@ export class InteractiveInkEditor extends AbstractEditor
     this.updateLayerState(false)
     symList.forEach(s =>
     {
-      this.updateTextBounds(s)
+      this.updateTypesetBounds(s)
       this.model.addSymbol(s)
       this.renderer.drawSymbol(s)
     })
@@ -549,7 +549,7 @@ export class InteractiveInkEditor extends AbstractEditor
   {
     this.logger.info("updateSymbol", { sym })
     this.updateLayerState(false)
-    this.updateTextBounds(sym)
+    this.updateTypesetBounds(sym)
 
     const oldSymbol = this.history.stack.at(-1)?.model.getRootSymbol(sym.id) ?? this.model.getRootSymbol(sym.id)
     const oldStrokes = oldSymbol ? this.extractStrokesFromSymbols([oldSymbol]) : []
@@ -591,7 +591,7 @@ export class InteractiveInkEditor extends AbstractEditor
 
     symList.forEach(s =>
     {
-      this.updateTextBounds(s)
+      this.updateTypesetBounds(s)
       this.model.updateSymbol(s)
       this.renderer.drawSymbol(s)
     })
@@ -634,10 +634,10 @@ export class InteractiveInkEditor extends AbstractEditor
       {
         if (isText(s)) {
           const lastWidth = s.bounds.width
-          this.texter.updateBounds(s)
+          this.typeset.updateBounds(s)
           const tx = s.bounds.width - lastWidth
           if (tx !== 0) {
-            this.texter.moveTextAfter(s, tx)
+            this.typeset.moveTextAfter(s, tx)
           }
         }
       })
@@ -663,11 +663,11 @@ export class InteractiveInkEditor extends AbstractEditor
         if (isText(s)) {
           s.updateChildrenFont({ fontSize, fontWeight: fontWeight === "auto" ? undefined : fontWeight })
           const lastWidth = s.bounds.width
-          this.texter.updateBounds(s)
+          this.typeset.updateBounds(s)
           this.renderer.drawSymbol(s)
           const tx = s.bounds.width - lastWidth
           if (tx !== 0) {
-            const symbolsTranslated = this.texter.moveTextAfter(s, tx)
+            const symbolsTranslated = this.typeset.moveTextAfter(s, tx)
             if (symbolsTranslated?.length) {
               translate.push({
                 symbols: symbolsTranslated,
