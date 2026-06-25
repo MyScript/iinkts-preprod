@@ -205,7 +205,7 @@ describe("SVGRenderer.ts", () =>
       expect(el.getAttribute("type")).toEqual(eraser.type)
       expect(el.getAttribute("stroke")).toEqual("grey")
       expect(el.getAttribute("opacity")).toEqual("0.2")
-      expect(el.getAttribute("stroke-width")).toEqual("12")
+      expect(el.getAttribute("stroke-width")).toEqual("5")
     })
     test("should draw stroke", () =>
     {
