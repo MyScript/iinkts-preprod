@@ -55,7 +55,7 @@ export abstract class IIAbstractManager
    * Name of the manager for logging purposes
    * Must be overridden in concrete classes
    *
-   * @example "IITextManager", "IIMathManager"
+   * @example "IITypesetManager", "IIMathManager"
    */
   protected abstract managerName: string
 

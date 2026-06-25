@@ -25,7 +25,7 @@ describe("IIRotationManager.ts", () =>
   describe("should applyToSymbol", () =>
   {
     const editor = new InteractiveInkEditorMock()
-    editor.texter.updateBounds = jest.fn()
+    editor.typeset.updateBounds = jest.fn()
     editor.renderer.setAttribute = jest.fn()
     const manager = new IIRotationManager(editor)
 

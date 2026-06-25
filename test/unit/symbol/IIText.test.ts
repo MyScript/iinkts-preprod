@@ -126,7 +126,7 @@ describe("IIText.ts", () =>
     })
   })
 
-  describe("getCharsOverlaps", () =>
+  describe("getChildrenOverlaps", () =>
   {
     test(`should return only first char without rotation`, () =>
     {
@@ -136,7 +136,7 @@ describe("IIText.ts", () =>
         { x: 2, y: 3 },
         { x: 4, y: 7 },
       ]
-      expect(text.getCharsOverlaps(points)).toEqual([chars[0]])
+      expect(text.getChildrenOverlaps(points)).toEqual([chars[0]])
     })
     test(`should return all char without rotation`, () =>
     {
@@ -148,7 +148,7 @@ describe("IIText.ts", () =>
         { x: 8, y: 7 },
         { x: 10, y: 6 },
       ]
-      expect(text.getCharsOverlaps(points)).toEqual(chars)
+      expect(text.getChildrenOverlaps(points)).toEqual(chars)
     })
     test(`should return false if box is outside without rotation`, () =>
     {
@@ -158,7 +158,7 @@ describe("IIText.ts", () =>
         { x: 12, y: 3 },
         { x: 14, y: 7 },
       ]
-      expect(text.getCharsOverlaps(points)).toEqual([])
+      expect(text.getChildrenOverlaps(points)).toEqual([])
     })
     test(`should return only second char with rotation 180°`, () =>
     {
@@ -172,7 +172,7 @@ describe("IIText.ts", () =>
         { x: 2, y: 3 },
         { x: 4, y: 7 },
       ]
-      expect(text.getCharsOverlaps(points)).toEqual([chars[1]])
+      expect(text.getChildrenOverlaps(points)).toEqual([chars[1]])
     })
     test(`should return all char with rotation 180°`, () =>
     {
@@ -188,7 +188,7 @@ describe("IIText.ts", () =>
         { x: 8, y: 7 },
         { x: 10, y: 6 },
       ]
-      expect(text.getCharsOverlaps(points)).toEqual(chars)
+      expect(text.getChildrenOverlaps(points)).toEqual(chars)
     })
     test(`should return false if box is outside with rotation 180°`, () =>
     {
@@ -202,7 +202,7 @@ describe("IIText.ts", () =>
         { x: 12, y: 3 },
         { x: 14, y: 7 },
       ]
-      expect(text.getCharsOverlaps(points)).toEqual([])
+      expect(text.getChildrenOverlaps(points)).toEqual([])
     })
   })
 

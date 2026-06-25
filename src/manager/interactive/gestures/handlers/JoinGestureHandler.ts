@@ -60,7 +60,7 @@ export class JoinGestureHandler extends GestureHandler
       if (isText(lastSymbBefore) && isText(firstSymbolAfter)) {
         const texts = [lastSymbBeforeClone as IIText, firstSymbolAfterClone as IIText]
         const text = new IIText(texts.flatMap(s => s.chars), texts[0].point, Box.createFromBoxes(texts.map(t => t.bounds)))
-        this.editor.texter.setBounds(text)
+        this.editor.typeset.setBounds(text)
         changes.replaced = {
           oldSymbols: [lastSymbBefore, firstSymbolAfter],
           newSymbols: [text]
