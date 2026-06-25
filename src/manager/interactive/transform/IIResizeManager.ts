@@ -137,7 +137,7 @@ export class IIResizeManager extends IIAbstractTransformManager
     {
       c.fontSize = +(c.fontSize * scale).toFixed(3)
     })
-    return this.editor.texter.updateBounds(text)
+    return this.editor.typeset.updateBounds(text)
   }
 
   protected applyOnMath(math: IIMath, matrix: MatrixTransform): IIMath
