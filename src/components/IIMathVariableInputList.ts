@@ -23,6 +23,14 @@ const SOURCE_TYPE_COLORS: Record<string, string> = {
   "PREDEFINED": "var(--iink-warning)"
 }
 
+const SOURCE_TYPE_LABELS: Record<string, string> = {
+  "UNDEFINED": "Undefined",
+  "API": "API",
+  "API_GLOBAL": "Global",
+  "BLOCK": "Block",
+  "PREDEFINED": "Predefined"
+}
+
 /**
  * @group Components
  * @remarks Pure UI component — renders a list of variable input rows.
@@ -43,12 +51,12 @@ export class IIMathVariableInputList
   {
     const hasTarget = !!item.targetLabel
     const colDefs = hasTarget
-      ? (item.onDelete ? "80px 90px 1fr 1fr 28px" : "80px 90px 1fr 1fr")
-      : (item.onDelete ? "120px 1fr 80px 28px" : "120px 1fr 80px")
+      ? (item.onDelete ? "80px 90px 70px 1fr 1fr 28px" : "80px 90px 70px 1fr 1fr")
+      : (item.onDelete ? "120px 1fr 70px 1fr 28px" : "120px 1fr 70px 1fr")
 
     const row = DOMFactory.div({
       className: "ms-var-row",
-      style: `display: grid; grid-template-columns: ${colDefs}; gap: var(--iink-spacing-sm);`
+      style: `display: grid; grid-template-columns: ${ colDefs }; gap: var(--iink-spacing-sm);`
     })
 
     const nameLabel = DOMFactory.div({
@@ -67,17 +75,18 @@ export class IIMathVariableInputList
     row.appendChild(input)
     this.inputs.set(item.id ?? item.name, input)
 
-    const sourceInfo = DOMFactory.div({
-      className: "ms-source-info"
-    })
+    const typeCell = DOMFactory.div({ className: "ms-type-cell" })
     if (item.sourceType) {
       const typeLabel = DOMFactory.span({
-        text: item.isDefinition ? "Definition" : (item.sourceType ?? ""),
+        text: SOURCE_TYPE_LABELS[item.sourceType] ?? item.sourceType,
         className: "ms-type-label",
-        style: `color: ${SOURCE_TYPE_COLORS[item.sourceType] ?? "var(--iink-text-muted)"};`
+        style: `color: ${ SOURCE_TYPE_COLORS[item.sourceType] ?? "var(--iink-text-muted)" };`
       })
-      sourceInfo.appendChild(typeLabel)
+      typeCell.appendChild(typeLabel)
     }
+    row.appendChild(typeCell)
+
+    const sourceInfo = DOMFactory.div({ className: "ms-source-info" })
     if (item.sourceLabel) {
       const labelEl = DOMFactory.span({
         text: item.sourceLabel,
@@ -104,7 +113,8 @@ export class IIMathVariableInputList
         type: "button",
         variant: "danger",
       })
-      deleteBtn.addEventListener("click", async () => {
+      deleteBtn.addEventListener("click", async () =>
+      {
         await item.onDelete!(item.name)
         this.removeRow(item.id ?? item.name)
       })
