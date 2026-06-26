@@ -1,7 +1,8 @@
-import { TText, TMath, TSymbol, TSymbolChar, TBox, isText } from "@/symbol"
+import type { TText, TMath, TSymbol, TSymbolChar, TBox} from "@/symbol";
+import { isText } from "@/symbol"
 import { IITextHelper } from "@/symbol/helpers/IITextHelper"
 import { IIMathHelper } from "@/symbol/helpers/IIMathHelper"
-import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import type { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import { IIAbstractManager } from "./IIAbstractManager"
 import { LoggerCategory } from "@/logger"
 

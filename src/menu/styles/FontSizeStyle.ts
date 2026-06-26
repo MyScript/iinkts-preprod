@@ -1,6 +1,7 @@
-import { InteractiveInkEditor } from "@/editor"
+import type { InteractiveInkEditor } from "@/editor"
 import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
-import { ButtonListMenuItem, IMenuButtonList, CollapsibleWrapper } from "@/menu/items"
+import type { TMenuButtonList} from "@/menu/items";
+import { ButtonListMenuItem, CollapsibleWrapper } from "@/menu/items"
 import { isText } from "@/symbol"
 
 /**
@@ -27,7 +28,7 @@ export class FontSizeStyle extends BaseMenuItem<HTMLDivElement>
 
   createElement(): HTMLDivElement
   {
-    const fontSizeConfig: IMenuButtonList = {
+    const fontSizeConfig: TMenuButtonList = {
       type: "buttonlist",
       id: this.config.id,
       options: this.fontSizeList.map(f => ({ label: f.label, value: f.value.toString() })),

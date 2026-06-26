@@ -1,6 +1,6 @@
 
 /** @group DOM */
-export interface InputElConfig {
+export type TInputElConfig = {
   id?: string
   value?: string | number
   placeholder?: string
@@ -13,7 +13,7 @@ export interface InputElConfig {
 }
 
 /** @group DOM */
-export interface CheckboxElConfig {
+export type TCheckboxElConfig = {
   id?: string
   checked?: boolean
   disabled?: boolean
@@ -22,7 +22,7 @@ export interface CheckboxElConfig {
 }
 
 /** @group DOM */
-export interface RangeElConfig {
+export type TRangeElConfig = {
   id?: string
   min: number
   max: number
@@ -32,7 +32,7 @@ export interface RangeElConfig {
 }
 
 /** @group DOM */
-export interface FileInputElConfig {
+export type TFileInputElConfig = {
   id?: string
   accept?: string
   multiple?: boolean
@@ -47,7 +47,7 @@ const DEFAULT_INPUT_STYLE = `
 `
 
 /** @group DOM */
-export function buildTextInput(config: InputElConfig): HTMLInputElement {
+export function buildTextInput(config: TInputElConfig): HTMLInputElement {
   const input = document.createElement("input")
   input.type = "text"
   if (config.id) input.id = config.id
@@ -64,7 +64,7 @@ export function buildTextInput(config: InputElConfig): HTMLInputElement {
 }
 
 /** @group DOM */
-export function buildNumberInput(config: InputElConfig): HTMLInputElement {
+export function buildNumberInput(config: TInputElConfig): HTMLInputElement {
   const input = document.createElement("input")
   input.type = "number"
   if (config.id) input.id = config.id
@@ -80,7 +80,7 @@ export function buildNumberInput(config: InputElConfig): HTMLInputElement {
 }
 
 /** @group DOM */
-export function buildCheckbox(config: CheckboxElConfig): HTMLInputElement {
+export function buildCheckbox(config: TCheckboxElConfig): HTMLInputElement {
   const checkbox = document.createElement("input")
   checkbox.type = "checkbox"
   if (config.id) checkbox.id = config.id
@@ -92,7 +92,7 @@ export function buildCheckbox(config: CheckboxElConfig): HTMLInputElement {
 }
 
 /** @group DOM */
-export function buildRange(config: RangeElConfig): HTMLInputElement {
+export function buildRange(config: TRangeElConfig): HTMLInputElement {
   const input = document.createElement("input")
   input.type = "range"
   if (config.id) input.id = config.id
@@ -105,7 +105,7 @@ export function buildRange(config: RangeElConfig): HTMLInputElement {
 }
 
 /** @group DOM */
-export function buildFileInput(config: FileInputElConfig): HTMLInputElement {
+export function buildFileInput(config: TFileInputElConfig): HTMLInputElement {
   const input = document.createElement("input")
   input.type = "file"
   if (config.id) input.id = config.id

@@ -1,9 +1,9 @@
 import { SELECTION_MARGIN } from "@/Constants"
-import { TStyle } from "@/style"
-import { TPoint } from "@/symbol/base/Point"
-import { TBox } from "@/symbol/base/Box"
+import type { TStyle } from "@/style"
+import type { TPoint } from "@/symbol/base/Point"
+import type { TBox } from "@/symbol/base/Box"
 import { BoxHelper } from "./BoxHelper"
-import { EdgeDecoration } from "@/symbol/geometry/IIEdge"
+import type { EdgeDecoration } from "@/symbol/geometry/IIEdge"
 
 export function computeEdgeBounds(vertices: TPoint[], style: TStyle, startDecoration?: EdgeDecoration, endDecoration?: EdgeDecoration): TBox
 {

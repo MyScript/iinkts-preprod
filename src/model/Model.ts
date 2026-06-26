@@ -1,8 +1,9 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { TPenStyle } from "@/style"
+import type { TPenStyle } from "@/style"
 import { computeDistance, computeDistanceSquared, isBetween } from "@/utils"
-import { TExport } from "./Export"
-import { Stroke, TPoint, TPointer } from "@/symbol"
+import type { TExport } from "./Export"
+import type { TPoint, TPointer } from "@/symbol";
+import { Stroke } from "@/symbol"
 
 /**
  * @group Model

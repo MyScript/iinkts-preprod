@@ -1,6 +1,7 @@
 
-import { DefaultEraserConfiguration, TEraserConfiguration } from "./EraserConfiguration"
-import { TTextConfConfiguration } from "./TextConfiguration"
+import type { TEraserConfiguration } from "./EraserConfiguration";
+import { DefaultEraserConfiguration } from "./EraserConfiguration"
+import type { TTextConfConfiguration } from "./TextConfiguration"
 
 /**
  * @group Recognizer

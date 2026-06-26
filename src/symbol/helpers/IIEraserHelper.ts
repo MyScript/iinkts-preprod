@@ -1,7 +1,7 @@
 import { createUUID } from "@/utils"
 import { DefaultStyle } from "@/style"
 import { SymbolType } from "@/symbol/base/Symbol"
-import { TBox } from "@/symbol/base/Box"
+import type { TBox } from "@/symbol/base/Box"
 import { BoxHelper } from "./BoxHelper"
 import type { TEraser } from "@/symbol/interactive/IIEraser"
 

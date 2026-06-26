@@ -1,20 +1,20 @@
-import JsonCSS from "json-css"
-import { TTheme } from "./Theme"
-import { TPenStyle } from "./PenStyle"
+import TJsonCSS from "json-css"
+import type { TTheme } from "./Theme"
+import type { TPenStyle } from "./PenStyle"
 
 /**
- * Interface for JsonCSS parser
+ * Interface for TJsonCSS parser
  */
-interface IJsonCSSParser {
+type TJsonCSSParser = {
   toCSS(json: Record<string, unknown>): string
   toJSON(css: string): Record<string, unknown>
 }
 
-// Lazy initialize JsonCSS parser to improve bundle load time
-let parserInstance: IJsonCSSParser | null = null
-const getParser = (): IJsonCSSParser => {
+// Lazy initialize TJsonCSS parser to improve bundle load time
+let parserInstance: TJsonCSSParser | null = null
+const getParser = (): TJsonCSSParser => {
   if (!parserInstance) {
-    parserInstance = new JsonCSS() as IJsonCSSParser
+    parserInstance = new TJsonCSS() as TJsonCSSParser
   }
   return parserInstance
 }

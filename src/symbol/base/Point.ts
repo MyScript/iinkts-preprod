@@ -1,4 +1,5 @@
-import { PartialDeep, isValidNumber } from "@/utils"
+import type { TPartialDeep} from "@/utils";
+import { isValidNumber } from "@/utils"
 
 /**
  * @group Symbol
@@ -27,7 +28,7 @@ export type TSegment = {
 /**
  * @group Symbol
  */
-export function isValidPoint(p?: PartialDeep<TPoint>): boolean
+export function isValidPoint(p?: TPartialDeep<TPoint>): boolean
 {
   if (!p) return false
   if (!isValidNumber(p.x)) return false

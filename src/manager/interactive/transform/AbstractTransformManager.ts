@@ -1,19 +1,20 @@
 import { SvgElementRole } from "@/Constants"
-import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
-import
-{
+import type { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import type {
   TStroke,
   TText,
   TMath,
-  SymbolType,
   TEdge,
   TShape,
   TSymbol,
-  TPoint,
+  TPoint} from "@/symbol";
+import
+{
+  SymbolType,
   isStroke
 } from "@/symbol"
 import { LoggerCategory } from "@/logger"
-import { MatrixTransform } from "@/transform"
+import type { MatrixTransform } from "@/transform"
 import { IIAbstractManager } from "../IIAbstractManager"
 
 /**

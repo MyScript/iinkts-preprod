@@ -1,11 +1,12 @@
-import { InteractiveInkEditor } from "@/editor"
-import { BaseMenuItem, IMenuItemBase } from "./BaseMenuItem"
+import type { InteractiveInkEditor } from "@/editor"
+import type { TMenuItemBase } from "./BaseMenuItem";
+import { BaseMenuItem } from "./BaseMenuItem"
 
 /**
  * @group Menu
  * @remarks Configuration for a range input menu item
  */
-export interface IMenuRange extends IMenuItemBase {
+export type TMenuRange = TMenuItemBase & {
   type: "range"
   min: number
   max: number
@@ -21,12 +22,12 @@ export interface IMenuRange extends IMenuItemBase {
  */
 export class RangeMenuItem extends BaseMenuItem<HTMLDivElement>
 {
-  protected declare config: IMenuRange
+  protected declare config: TMenuRange
   private currentValue: number
   private input?: HTMLInputElement
   private output?: HTMLOutputElement
 
-  constructor(config: IMenuRange, editor: InteractiveInkEditor) {
+  constructor(config: TMenuRange, editor: InteractiveInkEditor) {
     super(config, editor)
     this.currentValue = config.initValue ?? config.min
   }

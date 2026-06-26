@@ -1,23 +1,27 @@
-import { isVersionSuperiorOrEqual, mergeDeep, PartialDeep } from "@/utils"
-import {
-  DefaultExportConfiguration,
-  DefaultMathConfiguration,
-  DefaultRecognitionRendererConfiguration,
-  DefaultTextConfiguration,
+import type { TPartialDeep } from "@/utils";
+import { isVersionSuperiorOrEqual, mergeDeep } from "@/utils"
+import type {
   TConvertionConfiguration,
   TExportConfiguration,
   TMathConfiguration,
   TRecognitionRendererConfiguration,
   TTextConfiguration
+} from "./recognition";
+import {
+  DefaultExportConfiguration,
+  DefaultMathConfiguration,
+  DefaultRecognitionRendererConfiguration,
+  DefaultTextConfiguration
 } from "./recognition"
-import { TRecognitionType } from "./RecognitionConfiguration"
-import { DefaultServerWebsocketConfiguration, TServerWebsocketConfiguration } from "./ServerConfiguration"
+import type { TRecognitionTypeV1 } from "./RecognitionConfiguration"
+import type { TServerWebsocketConfiguration } from "./ServerConfiguration";
+import { DefaultServerWebsocketConfiguration } from "./ServerConfiguration"
 
 /**
  * @group Recognizer
  */
 export type TRecognizerWebSocketSSRRecognitionConfiguration = {
-  type: Omit<TRecognitionType, "DIAGRAM" | "Raw Content">
+  type: Omit<TRecognitionTypeV1, "DIAGRAM" | "Raw Content">
   lang: string
   math: TMathConfiguration
   text: TTextConfiguration
@@ -65,7 +69,7 @@ export class RecognizerWebSocketSSRConfiguration implements TRecognizerWebSocket
   recognition: TRecognizerWebSocketSSRRecognitionConfiguration
   server: TServerWebsocketConfiguration
 
-  constructor(configuration?: PartialDeep<TRecognizerWebSocketSSRConfiguration>) {
+  constructor(configuration?: TPartialDeep<TRecognizerWebSocketSSRConfiguration>) {
     this.server = mergeDeep({}, DefaultRecognizerWebSocketSSRConfiguration.server, configuration?.server)
     this.recognition = mergeDeep({}, DefaultRecognizerWebSocketSSRConfiguration.recognition, configuration?.recognition)
 

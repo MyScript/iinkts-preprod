@@ -1,7 +1,8 @@
-import { InteractiveInkEditor } from "@/editor"
-import { SubMenuItem, IMenuSubMenu } from "@/menu/items/SubMenuItem"
-import { IMenuCheckbox } from "@/menu/items/CheckboxMenuItem"
-import { IMenuRange } from "@/menu/items/RangeMenuItem"
+import type { InteractiveInkEditor } from "@/editor"
+import type { TMenuSubMenu } from "@/menu/items/SubMenuItem";
+import { SubMenuItem } from "@/menu/items/SubMenuItem"
+import type { TMenuCheckbox } from "@/menu/items/CheckboxMenuItem"
+import type { TMenuRange } from "@/menu/items/RangeMenuItem"
 import rectangleIcon from "@/assets/svg/rectangle.svg"
 
 /** @group Menu */
@@ -25,7 +26,7 @@ export class OverlayMenuAction extends SubMenuItem
   {
     const enabled = (key: keyof TOverlayActionItemsConfig) => itemsConfig?.[key] !== false
 
-    const items: (IMenuCheckbox | IMenuRange)[] = []
+    const items: (TMenuCheckbox | TMenuRange)[] = []
 
     if (enabled("showBlockOverlays")) {
       items.push({
@@ -103,7 +104,7 @@ export class OverlayMenuAction extends SubMenuItem
       })
     }
 
-    const config: IMenuSubMenu = {
+    const config: TMenuSubMenu = {
       type: "submenu",
       id: `${idPrefix}-overlay`,
       label: "Overlay",

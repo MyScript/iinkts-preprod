@@ -1,6 +1,6 @@
 /**
  * @group Utilities
  */
-export type PartialDeep<T> = T extends object ? {
-  [P in keyof T]?: PartialDeep<T[P]>;
+export type TPartialDeep<T> = T extends object ? {
+  [P in keyof T]?: TPartialDeep<T[P]>;
 } : T;

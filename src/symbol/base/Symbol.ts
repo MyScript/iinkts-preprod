@@ -1,5 +1,5 @@
-import { TStyle } from "@/style"
-import { PartialDeep } from "@/utils"
+import type { TStyle } from "@/style"
+import type { TPartialDeep } from "@/utils"
 
 /**
  * @group Symbol
@@ -19,10 +19,10 @@ export enum SymbolType
 /**
  * @group Symbol
  */
-export interface TBaseSymbol {
+export type TBaseSymbol = {
   id: string
   creationTime: number
   modificationDate: number
   type: string
-  style: PartialDeep<TStyle>
+  style: TPartialDeep<TStyle>
 }

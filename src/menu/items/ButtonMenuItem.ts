@@ -1,11 +1,12 @@
-import { InteractiveInkEditor } from "@/editor"
-import { BaseMenuItem, IMenuItemBase } from "./BaseMenuItem"
+import type { InteractiveInkEditor } from "@/editor"
+import type { TMenuItemBase } from "./BaseMenuItem";
+import { BaseMenuItem } from "./BaseMenuItem"
 
 /**
  * @group Menu
  * @remarks Configuration for a simple button
  */
-export interface IMenuButton extends IMenuItemBase {
+export type TMenuButton = TMenuItemBase & {
   type: "button"
   icon?: string
   action: (editor: InteractiveInkEditor) => void | Promise<void>
@@ -17,7 +18,7 @@ export interface IMenuButton extends IMenuItemBase {
  */
 export class ButtonMenuItem extends BaseMenuItem<HTMLButtonElement>
 {
-  protected declare config: IMenuButton
+  protected declare config: TMenuButton
 
   createElement(): HTMLButtonElement {
     const button = this.dom.button({ id: this.config.id, className: "ms-menu-item" })

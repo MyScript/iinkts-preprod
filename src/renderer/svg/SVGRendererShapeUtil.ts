@@ -1,4 +1,5 @@
-import { TShapeCircle, TShapeEllipse, TShapePolygon, ShapeKind, TShape } from "@/symbol"
+import type { TShapeCircle, TShapeEllipse, TShapePolygon, TShape } from "@/symbol";
+import { ShapeKind } from "@/symbol"
 import { DefaultStyle } from "@/style"
 import { convertRadianToDegree } from "@/utils"
 import { SVGRendererConst } from "./utils/SVGRendererConst"

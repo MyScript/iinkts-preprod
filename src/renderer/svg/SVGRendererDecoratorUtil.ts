@@ -1,4 +1,5 @@
-import { DecoratorKind, TDecorator, TBox, TSymbol } from "@/symbol"
+import type { TDecorator, TBox, TSymbol } from "@/symbol";
+import { DecoratorKind } from "@/symbol"
 import { DefaultStyle } from "@/style"
 import { SVGBuilder } from "./utils/SVGBuilder"
 

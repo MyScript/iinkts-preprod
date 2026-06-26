@@ -1,9 +1,9 @@
-import { EditorTool } from "@/Constants"
+import type { EditorTool } from "@/Constants"
 import { LoggerManager, LoggerCategory } from "@/logger"
-import { TExport, TExportV2 } from "@/model"
-import { TStroke, TSymbol, TBaseSymbol } from "@/symbol"
-import { THistoryContext } from "@/history"
-import { TGestureType } from "@/manager"
+import type { TExport, TExportV2 } from "@/model"
+import type { TStroke, TSymbol, TBaseSymbol } from "@/symbol"
+import type { THistoryContext } from "@/history"
+import type { TGestureType } from "@/manager"
 
 /**
  * @group Editor

@@ -1,7 +1,9 @@
+import type {
+  TEraserConfiguration
+} from "./EraserConfiguration";
 import
 {
-  DefaultEraserConfiguration,
-  TEraserConfiguration
+  DefaultEraserConfiguration
 } from "./EraserConfiguration"
 
 /**

@@ -1,4 +1,4 @@
-import { InteractiveInkEditor } from "@/editor"
+import type { InteractiveInkEditor } from "@/editor"
 import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
 import { getAvailableLanguageList } from "@/utils"
 import languageIcon from "@/assets/svg/language.svg"

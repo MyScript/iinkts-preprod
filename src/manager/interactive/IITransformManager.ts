@@ -1,4 +1,4 @@
-import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import type { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import { LoggerCategory } from "@/logger"
 import { IIAbstractManager } from "./IIAbstractManager"
 import { IITranslateManager } from "./transform/IITranslateManager"

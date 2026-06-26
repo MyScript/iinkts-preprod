@@ -1,6 +1,7 @@
-import { InteractiveInkEditor } from "@/editor"
+import type { InteractiveInkEditor } from "@/editor"
 import { Minimap } from "@/components"
-import { ButtonMenuItem, IMenuButton } from "@/menu/items/ButtonMenuItem"
+import type { TMenuButton } from "@/menu/items/ButtonMenuItem";
+import { ButtonMenuItem } from "@/menu/items/ButtonMenuItem"
 import minimapIcon from "@/assets/svg/minimap.svg"
 
 /**
@@ -14,7 +15,7 @@ export class MinimapMenuAction extends ButtonMenuItem
 
   constructor(editor: InteractiveInkEditor, layer: HTMLElement, idPrefix = "ms-menu-action")
   {
-    const config: IMenuButton = {
+    const config: TMenuButton = {
       type: "button",
       id: `${idPrefix}-minimap`,
       label: "Minimap",

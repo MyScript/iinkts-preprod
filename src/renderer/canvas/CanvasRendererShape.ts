@@ -1,5 +1,5 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { TPoint, TCanvasShapeEllipseSymbol, TCanvasShapeLineSymbol, TCanvasShapeTableSymbol, TBaseSymbol } from "@/symbol"
+import type { TPoint, TCanvasShapeEllipseSymbol, TCanvasShapeLineSymbol, TCanvasShapeTableSymbol, TBaseSymbol } from "@/symbol"
 import { normalizeAngle, computeEllipseArcPoints } from "@/utils"
 
 /**

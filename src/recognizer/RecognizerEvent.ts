@@ -1,6 +1,6 @@
-import { THistoryContext } from "@/history"
-import { TExport } from "@/model"
-import { TRecognizerWebSocketSSRMessageSVGPatch } from "./RecognizerWebSocketSSRMessage"
+import type { THistoryContext } from "@/history"
+import type { TExport } from "@/model"
+import type { TRecognizerWebSocketSSRMessageSVGPatch } from "./RecognizerWebSocketSSRMessage"
 
 /**
  * @group Recognizer

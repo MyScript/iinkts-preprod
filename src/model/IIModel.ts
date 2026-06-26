@@ -1,6 +1,8 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { TSymbol, cloneSymbol } from "@/symbol"
-import { TExport, TJIIXTextElement, TJIIXMathElement, JIIXElementType } from "./Export"
+import type { TSymbol} from "@/symbol";
+import { cloneSymbol } from "@/symbol"
+import type { TExport, TJIIXTextElement, TJIIXMathElement} from "./Export";
+import { JIIXElementType } from "./Export"
 
 /**
  * @group Model

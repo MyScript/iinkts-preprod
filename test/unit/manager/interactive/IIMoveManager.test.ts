@@ -1,5 +1,5 @@
 import { InteractiveInkEditorMock } from "../../__mocks__/InteractiveInkEditorMock"
-import { DefaultIIRendererConfiguration, IIMoveManager, PointerInfo } from "../../../../src/iink"
+import { DefaultIIRendererConfiguration, IIMoveManager, TPointerInfo } from "../../../../src/iink"
 
 
 describe("IIMoveManager.ts", () =>
@@ -24,7 +24,7 @@ describe("IIMoveManager.ts", () =>
       const info = {
         clientX: 1,
         clientY: 2,
-      } as PointerInfo
+      } as TPointerInfo
 
       manager.start(info)
       expect(manager.origin).toBeDefined()
@@ -47,7 +47,7 @@ describe("IIMoveManager.ts", () =>
       const info = {
         clientX: 75,
         clientY: 102,
-      } as PointerInfo
+      } as TPointerInfo
       manager.continue(info)
       expect(manager.renderer.getViewBox()).toEqual({
         x: -74,
@@ -64,7 +64,7 @@ describe("IIMoveManager.ts", () =>
       const info = {
         clientX: -42,
         clientY: -96,
-      } as PointerInfo
+      } as TPointerInfo
 
       manager.end(info)
       expect(manager.renderer.getViewBox()).toEqual({

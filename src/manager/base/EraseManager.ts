@@ -1,9 +1,11 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { TEraser, TPoint, TSegment, TBox, isText } from "@/symbol"
+import type { TEraser, TPoint, TSegment, TBox} from "@/symbol";
+import { isText } from "@/symbol"
 import { BoxHelper } from "@/symbol/helpers/BoxHelper"
 import { IIEraserHelper } from "@/symbol/helpers/IIEraserHelper"
-import { SVGRenderer } from "@/renderer"
-import { PointerEventGrabber, PointerInfo } from "@/grabber"
+import type { SVGRenderer } from "@/renderer"
+import type { TPointerInfo } from "@/grabber";
+import { PointerEventGrabber } from "@/grabber"
 import { computeDistanceBetweenPointAndSegment, computeDistanceSquared } from "@/utils"
 import type { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import type { InkEditor } from "@/editor/variants/InkEditor"
@@ -69,7 +71,7 @@ export class EraseManager
     this.grabber.detach()
   }
 
-  start(info: PointerInfo): void
+  start(info: TPointerInfo): void
   {
     this.#logger.info("startErase", { info })
     this.currentEraser = IIEraserHelper.create(this.eraserWidth)
@@ -78,7 +80,7 @@ export class EraseManager
     this.renderer.drawSymbol(this.currentEraser!)
   }
 
-  continue(info: PointerInfo): void
+  continue(info: TPointerInfo): void
   {
     this.#logger.info("continueErase", { info })
     if (!this.currentEraser) {
@@ -126,7 +128,7 @@ export class EraseManager
     }
   }
 
-  async end(info: PointerInfo): Promise<void>
+  async end(info: TPointerInfo): Promise<void>
   {
     this.#logger.info("finishErasing", { info })
     this.continue(info)

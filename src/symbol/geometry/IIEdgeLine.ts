@@ -1,8 +1,8 @@
-import { SymbolType } from "@/symbol/base/Symbol"
-import { TPoint, TSegment } from "@/symbol/base/Point"
-import { TBox } from "@/symbol/base/Box"
-import { TStyle } from "@/style"
-import { EdgeKind, EdgeDecoration } from "./IIEdge"
+import type { SymbolType } from "@/symbol/base/Symbol"
+import type { TPoint, TSegment } from "@/symbol/base/Point"
+import type { TBox } from "@/symbol/base/Box"
+import type { TStyle } from "@/style"
+import type { EdgeKind, EdgeDecoration } from "./IIEdge"
 
 /**
  * @group Symbol

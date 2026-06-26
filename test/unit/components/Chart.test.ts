@@ -1,4 +1,4 @@
-import { Chart, ChartConfig } from "../../../src/iink"
+import { Chart, TChartConfig } from "../../../src/iink"
 
 describe("Chart.ts", () =>
 {
@@ -27,7 +27,7 @@ describe("Chart.ts", () =>
 
   test("should create chart with custom config", () =>
   {
-    const config: ChartConfig = {
+    const config: TChartConfig = {
       width: 800,
       height: 600,
       title: "Test Chart",

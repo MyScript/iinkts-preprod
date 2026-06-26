@@ -1,5 +1,5 @@
-import { TPoint } from "./Point"
-import { TBaseSymbol } from "./Symbol"
+import type { TPoint } from "./Point"
+import type { TBaseSymbol } from "./Symbol"
 
 /**
  * @group Symbol

@@ -1,4 +1,4 @@
-import { TPoint, TPointer } from "@/symbol"
+import type { TPoint, TPointer } from "@/symbol"
 
 /**
  * @group Utilities

@@ -1,5 +1,6 @@
-import { InteractiveInkEditor } from "@/editor"
-import { SubMenuItem, IMenuSubMenu } from "@/menu/items/SubMenuItem"
+import type { InteractiveInkEditor } from "@/editor"
+import type { TMenuSubMenu } from "@/menu/items/SubMenuItem";
+import { SubMenuItem } from "@/menu/items/SubMenuItem"
 import { EditorTool, EditorWriteTool } from "@/Constants"
 
 /** @group Menu */
@@ -49,7 +50,7 @@ export class GestureMenuAction extends SubMenuItem
       splitActionValues.push({ label: key, value })
     }
 
-    const config: IMenuSubMenu = {
+    const config: TMenuSubMenu = {
       type: "submenu",
       id: `${idPrefix}-gesture`,
       label: "Gesture",
