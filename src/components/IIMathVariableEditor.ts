@@ -59,8 +59,6 @@ export class IIMathVariableEditor
 
   private createModalContent(): HTMLDivElement
   {
-    
-
     const container = DOMFactory.div({ className: "ms-var-editor-content" })
 
     if (this.usages.length > 0) {
@@ -91,8 +89,6 @@ export class IIMathVariableEditor
 
   private createAddSection(): HTMLDivElement
   {
-    
-
     const section = DOMFactory.div({ className: "ms-card" })
 
     const title = DOMFactory.div({
@@ -105,7 +101,8 @@ export class IIMathVariableEditor
     section.appendChild(newVarsContainer)
 
     const addButton = DOMFactory.button({ label: "+ Add", className: "ms-add-var-btn" })
-    addButton.addEventListener("click", () => {
+    addButton.addEventListener("click", () =>
+    {
       const { element, nameInput, valueInput } = this.createNewVariableRow()
       newVarsContainer.appendChild(element)
       this.newRows.push({ nameInput, valueInput })
@@ -118,8 +115,6 @@ export class IIMathVariableEditor
 
   private createNewVariableRow(): { element: HTMLDivElement; nameInput: HTMLInputElement; valueInput: HTMLInputElement }
   {
-    
-
     const row = DOMFactory.div({ className: "ms-new-var-row" })
 
     const nameInput = DOMFactory.textInput({ placeholder: "Variable name" })
@@ -129,7 +124,8 @@ export class IIMathVariableEditor
     row.appendChild(valueInput)
 
     const deleteBtn = DOMFactory.button({ label: "✕", title: "Remove row", variant: "danger" })
-    deleteBtn.addEventListener("click", () => {
+    deleteBtn.addEventListener("click", () =>
+    {
       this.newRows = this.newRows.filter(r => r.nameInput !== nameInput)
       row.remove()
     })
@@ -164,7 +160,7 @@ export class IIMathVariableEditor
 
       if (updates.length > 0) {
         await Promise.all(updates)
-        this.logger.info("applyChanges", `Updated ${updates.length} variable(s)`)
+        this.logger.info("applyChanges", `Updated ${ updates.length } variable(s)`)
       }
       this.close()
       this.editor.menu.context.update()
