@@ -123,6 +123,7 @@ export class IIRotationManager extends IIAbstractTransformManager
     {
       this.setTransformOrigin(s.id, this.center.x, this.center.y)
     })
+    this.clearGhostStrokesForSelectedMath()
   }
 
   continue(point: TPoint): number

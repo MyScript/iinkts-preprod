@@ -181,6 +181,7 @@ export class IIResizeManager extends IIAbstractTransformManager
     {
       this.setTransformOrigin(s.id, this.transformOrigin.x, this.transformOrigin.y)
     })
+    this.clearGhostStrokesForSelectedMath()
   }
 
   continue(point: TPoint): { scaleX: number, scaleY: number }

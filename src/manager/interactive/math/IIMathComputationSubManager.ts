@@ -1,7 +1,8 @@
 import { IIAbstractManager } from "../IIAbstractManager"
 import { TJIIXMathElement, TJIIXMathExpression } from "@/model"
-import { IIStroke, isStroke } from "@/symbol"
+import { IIStroke, TPoint, isStroke } from "@/symbol"
 import { convertMillimeterToPixel } from "@/utils"
+import { isDeepEqual } from "@/utils/object"
 import { createUUID } from "@/utils/uuid"
 import { TStyle } from "@/style/Style"
 import { SVGBuilder, SVGRendererConst } from "@/renderer"
@@ -59,6 +60,7 @@ export class IIMathComputationSubManager extends IIAbstractManager
   #config: TMathComputationConfig
   #computations = new Map<string, TMathBlockComputation>()
   #ghostStrokeElementIds = new Map<string, string[]>()
+  #lastComputationResult = new Map<string, TJIIXMathElement>()
 
   constructor(editor: InteractiveInkEditor, config: Partial<TMathComputationConfig> = {})
   {
@@ -127,16 +129,13 @@ export class IIMathComputationSubManager extends IIAbstractManager
     return this.#computations.get(jiixBlockId)?.solverOutputStrokeIds
   }
 
-  protected buildGhostStrokePath(strokeData: { X: number[], Y: number[], F?: number[], T?: number[] }): string
+  protected buildGhostStrokePath(points: TPoint[]): string
   {
-    if (strokeData.X.length === 0) return ""
-
-    const [firstX, ...restX] = strokeData.X
-    const [, ...restY] = strokeData.Y
-
-    const start = `M ${convertMillimeterToPixel(firstX)},${convertMillimeterToPixel(strokeData.Y[0])}`
-    const rest = restX.map((x, i) => `L ${convertMillimeterToPixel(x)},${convertMillimeterToPixel(restY[i])}`).join(" ")
-    return rest.length > 0 ? `${start} ${rest}` : start
+    if (points.length === 0) return ""
+    const [first, ...rest] = points
+    const start = `M ${first.x},${first.y}`
+    const tail = rest.map(p => `L ${p.x},${p.y}`).join(" ")
+    return tail.length > 0 ? `${start} ${tail}` : start
   }
 
   protected addGhostOutputStrokes(result: TJIIXMathElement, style?: TStyle): string[]
@@ -151,7 +150,11 @@ export class IIMathComputationSubManager extends IIAbstractManager
     for (const strokeData of solverStrokes) {
       if (!strokeData.X || !strokeData.Y) continue
 
-      const pathData = this.buildGhostStrokePath(strokeData)
+      const points: TPoint[] = strokeData.X.map((x, i) => ({
+        x: convertMillimeterToPixel(x),
+        y: convertMillimeterToPixel(strokeData.Y[i])
+      }))
+      const pathData = this.buildGhostStrokePath(points)
       if (!pathData) continue
 
       const elementId = `ghost-stroke-${createUUID()}`
@@ -180,6 +183,7 @@ export class IIMathComputationSubManager extends IIAbstractManager
     const elementIds = this.#ghostStrokeElementIds.get(jiixBlockId) ?? []
     elementIds.forEach(id => this.renderer.removeSymbol(id))
     this.#ghostStrokeElementIds.delete(jiixBlockId)
+    this.#lastComputationResult.delete(jiixBlockId)
   }
 
   clearAllGhostStrokes(): void
@@ -204,6 +208,7 @@ export class IIMathComputationSubManager extends IIAbstractManager
     }
 
     this.updateSolverOutputs(jiixBlockId, [])
+    // clearGhostStrokes also invalidates #lastComputationResult
     this.clearGhostStrokes(jiixBlockId)
   }
 
@@ -234,10 +239,21 @@ export class IIMathComputationSubManager extends IIAbstractManager
       throw new Error("Math block does not have jiixBlockId")
     }
 
-    await this.clearSolverOutputs(jiixBlockId)
-
     const result = await this.editor.recognizer.getNumericalComputation(jiixBlockId)
     this.logger.info("computeNumericalResult", "Numerical computation completed successfully", result)
+
+    const lastResult = this.#lastComputationResult.get(jiixBlockId)
+    if (lastResult && isDeepEqual(lastResult, result)) {
+      this.logger.debug("computeNumericalResult", "Result unchanged, skipping re-render", { jiixBlockId })
+      const addedStrokesCount = mode === "ghost"
+        ? (this.#ghostStrokeElementIds.get(jiixBlockId)?.length ?? 0)
+        : (this.#computations.get(jiixBlockId)?.solverOutputStrokeIds?.length ?? 0)
+      const value = this.#computations.get(jiixBlockId)?.computedResult as number | undefined
+      return { result, addedStrokesCount, value }
+    }
+
+    await this.clearSolverOutputs(jiixBlockId)
+    this.#lastComputationResult.set(jiixBlockId, result)
 
     let addedStrokesCount = 0
 
@@ -361,6 +377,7 @@ export class IIMathComputationSubManager extends IIAbstractManager
     this.logger.info("clear", "Clearing all math computations")
     this.clearAllGhostStrokes()
     this.#computations.clear()
+    this.#lastComputationResult.clear()
   }
 
   protected onDestroy(): void
