@@ -1,6 +1,6 @@
 import { isBetween } from "@/utils"
-import { TPoint, TSegment } from "@/symbol/base/Point"
-import { TBox } from "@/symbol/base/Box"
+import type { TPoint, TSegment } from "@/symbol/base/Point"
+import type { TBox } from "@/symbol/base/Box"
 
 export const BoxHelper = {
   createFromBoxes(boxes: TBox[]): TBox

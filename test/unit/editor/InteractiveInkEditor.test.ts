@@ -7,7 +7,7 @@ import
   EditorTool,
   TInteractiveInkEditorOptions,
   TStyle,
-  PartialDeep,
+  TPartialDeep,
   TStroke,
   SymbolType,
   TShapeCircle,
@@ -207,7 +207,7 @@ describe("EditorOffscreen.ts", () =>
     })
     test("create stroke", async () =>
     {
-      const stroke: PartialDeep<TStroke> = {
+      const stroke: TPartialDeep<TStroke> = {
         type: SymbolType.Stroke,
         pointers: [{ x: 0, y: 1, t: 1, p: 1 }]
       }
@@ -218,7 +218,7 @@ describe("EditorOffscreen.ts", () =>
     })
     test("create shape", async () =>
     {
-      const shape: PartialDeep<TShapeCircle> = {
+      const shape: TPartialDeep<TShapeCircle> = {
         type: SymbolType.Shape,
         kind: ShapeKind.Circle,
         center: { x: 5, y: 5 },
@@ -314,7 +314,7 @@ describe("EditorOffscreen.ts", () =>
 
   describe("importPointsEvent", () =>
   {
-    const pStrokes: PartialDeep<TStroke>[] = [
+    const pStrokes: TPartialDeep<TStroke>[] = [
       {
         pointers: [
           { x: 254, y: 37, t: 1, p: 1 },

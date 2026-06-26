@@ -1,19 +1,22 @@
-import { TStyle, DefaultStyle } from "@/style"
-import { PartialDeep, findIntersectionBetween2Segment } from "@/utils"
+import type { TStyle} from "@/style";
+import { DefaultStyle } from "@/style"
+import type { TPartialDeep} from "@/utils";
+import { findIntersectionBetween2Segment } from "@/utils"
 import { createUUID } from "@/utils/uuid"
-import { TPoint, isValidPoint } from "@/symbol/base/Point"
+import type { TPoint} from "@/symbol/base/Point";
+import { isValidPoint } from "@/symbol/base/Point"
 import { SymbolType } from "@/symbol/base/Symbol"
-import { TBox } from "@/symbol/base/Box"
+import type { TBox } from "@/symbol/base/Box"
 import { BoxHelper } from "./BoxHelper"
 import { ShapeKind } from "@/symbol/geometry/IIShape"
-import { TShapePolygon } from "@/symbol/geometry/IIShapePolygon"
+import type { TShapePolygon } from "@/symbol/geometry/IIShapePolygon"
 
 /**
  * Helper functions for TShapePolygon plain type
  * @group Symbol
  */
 export const IIShapePolygonHelper = {
-  create(points: TPoint[], style?: PartialDeep<TStyle>): TShapePolygon
+  create(points: TPoint[], style?: TPartialDeep<TStyle>): TShapePolygon
   {
     const mergedStyle = Object.assign({}, DefaultStyle, style) as TStyle
     if (mergedStyle.opacity) mergedStyle.opacity = +mergedStyle.opacity
@@ -39,7 +42,7 @@ export const IIShapePolygonHelper = {
     return polygon
   },
 
-  createFromPartial(partial: PartialDeep<TShapePolygon>): TShapePolygon
+  createFromPartial(partial: TPartialDeep<TShapePolygon>): TShapePolygon
   {
     if (!partial?.points || partial?.points?.length < 3) throw new Error(`Unable to create polygon at least 3 points required`)
     if (partial?.points?.some(p => !isValidPoint(p))) throw new Error(`Unable to create a polygon, one or more points are invalid`)
@@ -62,7 +65,7 @@ export const IIShapePolygonHelper = {
       polygon.edges.some(e1 => BoxHelper.getSides(box).some(e2 => !!findIntersectionBetween2Segment(e1, e2)))
   },
 
-  createTriangleBetweenPoints(origin: TPoint, target: TPoint, style?: PartialDeep<TStyle>): TShapePolygon
+  createTriangleBetweenPoints(origin: TPoint, target: TPoint, style?: TPartialDeep<TStyle>): TShapePolygon
   {
     const points: TPoint[] = [
       { x: origin.x, y: origin.y },
@@ -83,7 +86,7 @@ export const IIShapePolygonHelper = {
     IIShapePolygonHelper.updateDerivedFields(poly)
   },
 
-  createParallelogramBetweenPoints(origin: TPoint, target: TPoint, style?: PartialDeep<TStyle>): TShapePolygon
+  createParallelogramBetweenPoints(origin: TPoint, target: TPoint, style?: TPartialDeep<TStyle>): TShapePolygon
   {
     const points: TPoint[] = [
       { x: origin.x, y: origin.y },
@@ -106,7 +109,7 @@ export const IIShapePolygonHelper = {
     IIShapePolygonHelper.updateDerivedFields(poly)
   },
 
-  createRectangleBetweenPoints(origin: TPoint, target: TPoint, style?: PartialDeep<TStyle>): TShapePolygon
+  createRectangleBetweenPoints(origin: TPoint, target: TPoint, style?: TPartialDeep<TStyle>): TShapePolygon
   {
     const box = BoxHelper.createFromPoints([origin, target])
     const points: TPoint[] = [
@@ -131,7 +134,7 @@ export const IIShapePolygonHelper = {
     IIShapePolygonHelper.updateDerivedFields(poly)
   },
 
-  createRhombusBetweenPoints(origin: TPoint, target: TPoint, style?: PartialDeep<TStyle>): TShapePolygon
+  createRhombusBetweenPoints(origin: TPoint, target: TPoint, style?: TPartialDeep<TStyle>): TShapePolygon
   {
     const box = BoxHelper.createFromPoints([origin, target])
     const points: TPoint[] = [

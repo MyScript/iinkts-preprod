@@ -1,15 +1,17 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { TStroke, TText, TSymbol, isStroke, isText } from "@/symbol"
+import type { TStroke, TText, TSymbol} from "@/symbol";
+import { isStroke, isText } from "@/symbol"
 import { IITextHelper } from "@/symbol/helpers/IITextHelper"
-import { InteractiveInkEditor } from "@/editor"
+import type { InteractiveInkEditor } from "@/editor"
 import { DOMFactory } from "@/components/dom"
+import type { TContextDecoratorConfig, TContextReorderConfig, TContextExportConfig, TContextMathConfig} from "./context";
 import {
   EditContextMenu,
-  DecoratorContextMenu, TContextDecoratorConfig,
-  ReorderContextMenu, TContextReorderConfig,
-  ExportContextMenu, TContextExportConfig,
+  DecoratorContextMenu,
+  ReorderContextMenu,
+  ExportContextMenu,
   ConvertContextMenu,
-  MathContextMenu, TContextMathConfig,
+  MathContextMenu,
   DuplicateContextMenu,
   RemoveContextMenu,
   SelectAllContextMenu
@@ -20,7 +22,7 @@ import {
  * @remarks Configuration to enable/disable each context menu individually.
  * Sub-menus accept `boolean` to show/hide entirely, or an object to configure individual items.
  */
-export interface IIMenuContextConfig {
+export type TMenuContextConfig = {
   /** Enable/disable Edit menu */
   edit?: boolean
   /** Enable/disable Decorator menu. Pass an object to configure individual decorator types. */
@@ -44,7 +46,7 @@ export interface IIMenuContextConfig {
 }
 
 /** @group Menu */
-export const DefaultMenuContextConfig: Required<IIMenuContextConfig> = {
+export const DefaultMenuContextConfig: Required<TMenuContextConfig> = {
   edit: true,
   decorator: true,
   reorder: true,
@@ -69,7 +71,7 @@ export class IIMenuContext
   editor: InteractiveInkEditor
   id: string
   wrapper?: HTMLElement
-  config: Required<IIMenuContextConfig>
+  config: Required<TMenuContextConfig>
 
   // Context menu instances
   private contextMenus: Map<string, EditContextMenu | DecoratorContextMenu | ReorderContextMenu | ExportContextMenu | ConvertContextMenu | MathContextMenu | DuplicateContextMenu | RemoveContextMenu | SelectAllContextMenu> = new Map()
@@ -81,7 +83,7 @@ export class IIMenuContext
     y: number
   }
 
-  constructor(editor: InteractiveInkEditor, id = "ms-menu-context", config?: IIMenuContextConfig)
+  constructor(editor: InteractiveInkEditor, id = "ms-menu-context", config?: TMenuContextConfig)
   {
     this.id = id
     this.#logger.info("constructor")

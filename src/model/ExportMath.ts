@@ -1,6 +1,6 @@
-import { TBox } from "@/symbol"
-import { TJIIXBase, TJIIXElementBase } from "./ExportCommon"
-import { JIIXElementType } from "./Export"
+import type { TBox } from "@/symbol"
+import type { TJIIXBase, TJIIXElementBase } from "./ExportCommon"
+import type { JIIXElementType } from "./Export"
 
 /**
  * @group Exports

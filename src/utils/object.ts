@@ -2,13 +2,13 @@
 /**
  * @group Utilities
  */
-type Mergeable = Record<string, unknown> | unknown[] | unknown
+type TMergeable = Record<string, unknown> | unknown[] | unknown
 
 /**
  * @group Utilities
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const mergeDeep = (target: any, ...sources: Mergeable[]): any =>
+export const mergeDeep = (target: any, ...sources: TMergeable[]): any =>
 {
   const isObject = (item: unknown): item is Record<string, unknown> =>
   {

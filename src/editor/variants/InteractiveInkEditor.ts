@@ -1,13 +1,15 @@
 import { EditorTool, SELECTION_MARGIN } from "@/Constants"
-import { IIModel, TExport } from "@/model"
-import
-{
+import type { TExport } from "@/model";
+import { IIModel } from "@/model"
+import type {
   TDecorator,
   TStroke,
   TText,
   TMath,
   TBox,
-  TSymbol,
+  TSymbol} from "@/symbol";
+import
+{
   SymbolType,
   convertPartialStrokesToIIStrokes,
   isDecorator,
@@ -22,8 +24,9 @@ import { IIDecoratorHelper } from "@/symbol/helpers/IIDecoratorHelper"
 import { IITextHelper } from "@/symbol/helpers/IITextHelper"
 import { IIMathHelper } from "@/symbol/helpers/IIMathHelper"
 import { RecognizerWebSocket } from "@/recognizer"
-import { SVGRenderer, SVGBuilder, TIIRendererConfiguration } from "@/renderer"
-import { TStyle } from "@/style"
+import type { TIIRendererConfiguration } from "@/renderer";
+import { SVGRenderer, SVGBuilder } from "@/renderer"
+import type { TStyle } from "@/style"
 import
 {
   IIConversionManager,
@@ -42,18 +45,23 @@ import
   IIJiixQueryManager,
 } from "@/manager"
 import { MatrixTransform } from "@/transform"
-import { IIHistoryManager, TIIHistoryBackendChanges, TIIHistoryChanges, THistoryContext } from "@/history"
-import { PartialDeep, mergeDeep, createUUID } from "@/utils"
-import { IIMenuAction, IIMenuManager, IIMenuStyle, IIMenuTool } from "@/menu"
+import type { TIIHistoryBackendChanges, TIIHistoryChanges, THistoryContext } from "@/history";
+import { IIHistoryManager } from "@/history"
+import type { TPartialDeep} from "@/utils";
+import { mergeDeep, createUUID } from "@/utils"
+import type { IIMenuAction, IIMenuStyle, IIMenuTool } from "@/menu";
+import { IIMenuManager } from "@/menu"
 import { createSymbolFromPartial, createSymbolsFromPartial } from "@/symbol"
-import { AbstractEditor, EditorOptionsBase } from "@/editor/AbstractEditor"
-import { InteractiveInkEditorConfiguration, TInteractiveInkEditorConfiguration } from "./InteractiveInkEditorConfiguration"
+import type { TEditorOptionsBase } from "@/editor/AbstractEditor";
+import { AbstractEditor } from "@/editor/AbstractEditor"
+import type { TInteractiveInkEditorConfiguration } from "./InteractiveInkEditorConfiguration";
+import { InteractiveInkEditorConfiguration } from "./InteractiveInkEditorConfiguration"
 import { DOMFactory } from "@/components/dom"
 
 /**
  * @group Editor
  */
-export type TInteractiveInkEditorOptions = PartialDeep<EditorOptionsBase &
+export type TInteractiveInkEditorOptions = TPartialDeep<TEditorOptionsBase &
 {
   configuration: TInteractiveInkEditorConfiguration
 }> &
@@ -266,7 +274,7 @@ export class InteractiveInkEditor extends AbstractEditor
   {
     return this.#penStyle
   }
-  set penStyle(penStyle: PartialDeep<TStyle>)
+  set penStyle(penStyle: TPartialDeep<TStyle>)
   {
     this.logger.info("set penStyle", { penStyle })
     this.#penStyle = Object.assign({}, this.#penStyle, penStyle)
@@ -417,7 +425,7 @@ export class InteractiveInkEditor extends AbstractEditor
    * @param partialSymbol - Partial symbol data
    * @returns Complete symbol instance
    */
-  protected buildSymbol(partialSymbol: PartialDeep<TSymbol>): TSymbol
+  protected buildSymbol(partialSymbol: TPartialDeep<TSymbol>): TSymbol
   {
     try {
       return createSymbolFromPartial(partialSymbol)
@@ -457,7 +465,7 @@ export class InteractiveInkEditor extends AbstractEditor
    * @param partialSymbol - Partial symbol data
    * @returns Promise resolving to created symbol
    */
-  async createSymbol(partialSymbol: PartialDeep<TSymbol>): Promise<TSymbol>
+  async createSymbol(partialSymbol: TPartialDeep<TSymbol>): Promise<TSymbol>
   {
     try {
       return await this.addSymbol(this.buildSymbol(partialSymbol))
@@ -477,7 +485,7 @@ export class InteractiveInkEditor extends AbstractEditor
    * @param partialSymbols - Array of partial symbol data
    * @returns Promise resolving to array of created symbols
    */
-  async createSymbols(partialSymbols: PartialDeep<TSymbol>[]): Promise<TSymbol[]>
+  async createSymbols(partialSymbols: TPartialDeep<TSymbol>[]): Promise<TSymbol[]>
   {
     try {
       const symbols = createSymbolsFromPartial(partialSymbols)
@@ -614,7 +622,7 @@ export class InteractiveInkEditor extends AbstractEditor
    * @param style - Partial style to apply
    * @param addToHistory - Whether to add to history (default: true)
    */
-  updateSymbolsStyle(symbolIds: string[], style: PartialDeep<TStyle>, addToHistory = true): void
+  updateSymbolsStyle(symbolIds: string[], style: TPartialDeep<TStyle>, addToHistory = true): void
   {
     this.logger.info("updateSymbolsStyle", { symbolIds, style })
     const symbols: TSymbol[] = []
@@ -961,7 +969,7 @@ export class InteractiveInkEditor extends AbstractEditor
    * @param partialStrokes - Array of partial stroke data
    * @returns Promise resolving to updated model
    */
-  async importPointEvents(partialStrokes: PartialDeep<TStroke>[]): Promise<IIModel>
+  async importPointEvents(partialStrokes: TPartialDeep<TStroke>[]): Promise<IIModel>
   {
     this.logger.info("importPointEvents", { partialStrokes })
     this.updateLayerState(false)
@@ -992,7 +1000,7 @@ export class InteractiveInkEditor extends AbstractEditor
   /**
    * Get bounding box for a list of symbols
    * @param symbols - Symbols to calculate bounds for
-   * @param margin - Margin to add around bounds (default: SELECTION_MARGIN)
+   * @param margin - TMargin to add around bounds (default: SELECTION_MARGIN)
    * @returns Bounding box containing all symbols
    */
   getSymbolsBounds(symbols: TSymbol[], margin: number = SELECTION_MARGIN): TBox

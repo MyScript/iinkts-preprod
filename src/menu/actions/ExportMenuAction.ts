@@ -1,5 +1,6 @@
-import { InteractiveInkEditor } from "@/editor"
-import { SubMenuItem, IMenuSubMenu } from "@/menu/items/SubMenuItem"
+import type { InteractiveInkEditor } from "@/editor"
+import type { TMenuSubMenu } from "@/menu/items/SubMenuItem";
+import { SubMenuItem } from "@/menu/items/SubMenuItem"
 import downloadIcon from "@/assets/svg/download.svg"
 
 /** @group Menu */
@@ -22,7 +23,7 @@ export class ExportMenuAction extends SubMenuItem
   {
     const enabled = (key: keyof TExportActionItemsConfig) => itemsConfig?.[key] !== false
 
-    const config: IMenuSubMenu = {
+    const config: TMenuSubMenu = {
       type: "submenu",
       id: `${idPrefix}-export`,
       label: "Export",

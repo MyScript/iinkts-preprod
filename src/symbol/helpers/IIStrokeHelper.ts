@@ -1,11 +1,13 @@
-import { PartialDeep, computeDistance, getClosestPoint, createUUID } from "@/utils"
-import { TStyle, DefaultStyle } from "@/style"
-import { TBox } from "@/symbol/base/Box"
-import { TPointer } from "@/symbol/base/Point"
+import type { TPartialDeep} from "@/utils";
+import { computeDistance, getClosestPoint, createUUID } from "@/utils"
+import type { TStyle} from "@/style";
+import { DefaultStyle } from "@/style"
+import type { TBox } from "@/symbol/base/Box"
+import type { TPointer } from "@/symbol/base/Point"
 import { SymbolType } from "@/symbol/base/Symbol"
-import { TStrokeToSend } from "@/symbol/base/Stroke"
+import type { TStrokeToSend } from "@/symbol/base/Stroke"
 import { BoxHelper } from "@/symbol/helpers/BoxHelper"
-import { TStroke } from "@/symbol/interactive/IIStroke"
+import type { TStroke } from "@/symbol/interactive/IIStroke"
 
 /**
  * Helper functions for TStroke plain type
@@ -13,7 +15,7 @@ import { TStroke } from "@/symbol/interactive/IIStroke"
  * @group Utilities
  */
 export const IIStrokeHelper = {
-  create(style?: PartialDeep<TStyle>, pointerType = "pen"): TStroke
+  create(style?: TPartialDeep<TStyle>, pointerType = "pen"): TStroke
   {
     const mergedStyle = Object.assign({}, DefaultStyle, style) as TStyle
     if (mergedStyle.opacity) mergedStyle.opacity = +mergedStyle.opacity
@@ -150,7 +152,7 @@ export const IIStrokeHelper = {
     return result
   },
 
-  createFromPartial(partial: PartialDeep<TStroke>): TStroke
+  createFromPartial(partial: TPartialDeep<TStroke>): TStroke
   {
     if (!partial.pointers?.length) throw new Error(`not pointers`)
     const stroke = IIStrokeHelper.create(partial.style, partial.pointerType)

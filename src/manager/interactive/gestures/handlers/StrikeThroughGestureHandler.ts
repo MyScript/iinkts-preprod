@@ -1,4 +1,5 @@
-import { DecoratorKind, TStroke } from "@/symbol"
+import type { TStroke } from "@/symbol";
+import { DecoratorKind } from "@/symbol"
 import type { InteractiveInkEditor } from "@/editor"
 import type { TGesture } from "@/manager/interactive/gestures/GestureTypes"
 import { StrikeThroughAction } from "@/manager/interactive/gestures/GestureTypes"

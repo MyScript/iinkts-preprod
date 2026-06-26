@@ -1,5 +1,5 @@
 import { DefaultEraserConfiguration } from "./EraserConfiguration";
-import { TRawContentConfiguration } from "./RawContentConfiguration";
+import type { TRawContentConfiguration } from "./RawContentConfiguration";
 
 /**
  * @group Recognizer

@@ -1,13 +1,15 @@
-import { createUUID, PartialDeep } from "@/utils"
-import { DefaultStyle, TStyle } from "@/style"
+import type { TPartialDeep } from "@/utils";
+import { createUUID } from "@/utils"
+import type { TStyle } from "@/style";
+import { DefaultStyle } from "@/style"
 import { SymbolType } from "@/symbol/base/Symbol"
-import { TPoint } from "@/symbol/base/Point"
-import { TBox } from "@/symbol/base/Box"
+import type { TPoint } from "@/symbol/base/Point"
+import type { TBox } from "@/symbol/base/Box"
 import { BoxHelper } from "./BoxHelper"
-import { DecoratorKind, TDecorator } from "@/symbol/interactive/IIDecorator"
+import type { DecoratorKind, TDecorator } from "@/symbol/interactive/IIDecorator"
 
 export const IIDecoratorHelper = {
-  create(kind: DecoratorKind, style: PartialDeep<TStyle>, targetIds: string[] = [], bounds?: TBox): TDecorator
+  create(kind: DecoratorKind, style: TPartialDeep<TStyle>, targetIds: string[] = [], bounds?: TBox): TDecorator
   {
     const mergedStyle = Object.assign({}, DefaultStyle, style) as TStyle
     if (mergedStyle.opacity) mergedStyle.opacity = +mergedStyle.opacity

@@ -1,5 +1,6 @@
-import { InteractiveInkEditor } from "@/editor"
-import { SubMenuItem, IMenuSubMenu } from "@/menu/items/SubMenuItem"
+import type { InteractiveInkEditor } from "@/editor"
+import type { TMenuSubMenu } from "@/menu/items/SubMenuItem";
+import { SubMenuItem } from "@/menu/items/SubMenuItem"
 import guideIcon from "@/assets/svg/orthogonal-view.svg"
 
 /** @group Menu */
@@ -28,7 +29,7 @@ export class GuideMenuAction extends SubMenuItem
       { label: "XL", value: "150" }
     ]
 
-    const config: IMenuSubMenu = {
+    const config: TMenuSubMenu = {
       type: "submenu",
       id: `${idPrefix}-guide`,
       label: "Guide",

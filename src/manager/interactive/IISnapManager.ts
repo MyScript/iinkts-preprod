@@ -1,8 +1,8 @@
-import { TPoint, TSegment } from "@/symbol"
+import type { TPoint, TSegment } from "@/symbol"
 import { BoxHelper } from "@/symbol/helpers/BoxHelper"
 import { SVGRendererConst } from "@/renderer/svg/utils/SVGRendererConst"
-import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
-import { PartialDeep } from "@/utils"
+import type { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import type { TPartialDeep } from "@/utils"
 import { IIAbstractManager } from "./IIAbstractManager"
 import { LoggerCategory } from "@/logger"
 
@@ -34,7 +34,7 @@ export class SnapConfiguration implements TSnapConfiguration
   symbol: boolean
   angle: number
 
-  constructor(config? : PartialDeep<TSnapConfiguration>)
+  constructor(config? : TPartialDeep<TSnapConfiguration>)
   {
     this.symbol = config?.symbol !== undefined ? config.symbol : DefaultSnapConfiguration.symbol
     this.guide = config?.guide !== undefined ? config.guide : DefaultSnapConfiguration.guide
@@ -65,7 +65,7 @@ export class IISnapManager extends IIAbstractManager
 
   snapConfiguration: SnapConfiguration
 
-  constructor(editor: InteractiveInkEditor, config?: PartialDeep<TSnapConfiguration>)
+  constructor(editor: InteractiveInkEditor, config?: TPartialDeep<TSnapConfiguration>)
   {
     super(editor, LoggerCategory.SNAP)
     this.logger.info("constructor")

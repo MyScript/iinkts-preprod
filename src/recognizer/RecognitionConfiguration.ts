@@ -1,12 +1,17 @@
 /**
  * @group Recognizer
  */
-export type TRecognitionType = "TEXT" | "MATH" | "DIAGRAM" | "Raw Content"
+export type TRecognitionTypeBase = "TEXT" | "MATH" | "Raw Content"
 
 /**
  * @group Recognizer
  */
-export type TRecognitionV2Type = "TEXT" | "MATH" | "Raw Content" | "SHAPE"
+export type TRecognitionTypeV1 = TRecognitionTypeBase | "DIAGRAM"
+
+/**
+ * @group Recognizer
+ */
+export type TRecognitionTypeV2 = TRecognitionTypeBase | "SHAPE"
 
 /**
  * @group Recognizer

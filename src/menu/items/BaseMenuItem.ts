@@ -1,12 +1,12 @@
-import { InteractiveInkEditor } from "@/editor"
+import type { InteractiveInkEditor } from "@/editor"
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { DOMFactory } from "@/components/dom"
+import type { DOMFactory } from "@/components/dom"
 
 /**
  * @group Menu
  * @remarks Base type for menu items
  */
-export interface IMenuItemBase {
+export type TMenuItemBase = {
   id: string
   label?: string
   disabled?: boolean | ((editor: InteractiveInkEditor) => boolean)
@@ -17,7 +17,7 @@ export interface IMenuItemBase {
  * @group Menu
  * @remarks Union type for all menu types
  */
-export type TGenericMenuItem = IMenuItemBase & { type: string }
+export type TGenericMenuItem = TMenuItemBase & { type: string }
 
 /**
  * @group Menu

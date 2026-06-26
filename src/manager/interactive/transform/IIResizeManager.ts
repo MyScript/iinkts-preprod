@@ -1,24 +1,25 @@
 import { IIStrokeHelper } from "@/symbol/helpers"
 import { ResizeDirection } from "@/Constants"
-import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
-import
-{
-  EdgeKind,
+import type { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import type {
   TStroke,
   TText,
   TMath,
-  ShapeKind,
   TEdge,
   TShape,
   TPoint,
+  TBox} from "@/symbol";
+import
+{
+  EdgeKind,
+  ShapeKind,
   isText,
   isMath,
   isShape,
   isCircleShape,
   updateShapeDerivedFields,
   updateEdgeDerivedFields,
-  cloneSymbol,
-  TBox,
+  cloneSymbol
 } from "@/symbol"
 import { BoxHelper } from "@/symbol/helpers/BoxHelper"
 import { MatrixTransform } from "@/transform"

@@ -1,11 +1,12 @@
-import { InteractiveInkEditor } from "@/editor"
-import { BaseMenuItem, IMenuItemBase } from "@/menu/items/BaseMenuItem"
+import type { InteractiveInkEditor } from "@/editor"
+import type { TMenuItemBase } from "@/menu/items/BaseMenuItem";
+import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
 import { EditorTool, EditorWriteTool } from "@/Constants"
 import lineIcon from "@/assets/svg/linear.svg"
 import arrowIcon from "@/assets/svg/linear-arrow.svg"
 import doubleArrowIcon from "@/assets/svg/linear-double-arrow.svg"
 
-interface IEdgeToolConfig extends IMenuItemBase {
+type TEdgeToolConfig = TMenuItemBase & {
   type: "edge"
 }
 
@@ -22,7 +23,7 @@ export class EdgeTool extends BaseMenuItem<HTMLDivElement>
 
   constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-tool")
   {
-    const config: IEdgeToolConfig = {
+    const config: TEdgeToolConfig = {
       type: "edge",
       id: `${idPrefix}-write-edge`,
       label: "Edge"

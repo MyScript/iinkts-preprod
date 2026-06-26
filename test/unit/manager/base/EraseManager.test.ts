@@ -1,6 +1,6 @@
 import { buildIICircle, buildIIStroke } from "../../helpers"
 import { InteractiveInkEditorMock } from "../../__mocks__/InteractiveInkEditorMock"
-import { EraseManager, PointerInfo, SymbolType } from "../../../../src/iink"
+import { EraseManager, TPointerInfo, SymbolType } from "../../../../src/iink"
 
 
 describe("EraseManager.ts", () =>
@@ -31,7 +31,7 @@ describe("EraseManager.ts", () =>
       const info = {
         pointer: { t: 1, p: 0.5, x: 1, y: 1 }
 
-      } as PointerInfo
+      } as TPointerInfo
       manager.start(info)
       expect(manager.currentEraser).toBeDefined()
       expect(manager.currentEraser?.type).toBe(SymbolType.Eraser)
@@ -44,7 +44,7 @@ describe("EraseManager.ts", () =>
       const info = {
         pointer: { t: 1, p: 0.5, x: 15, y: 15 }
 
-      } as PointerInfo
+      } as TPointerInfo
       manager.continue(info)
       expect(manager.currentEraser).toBeDefined()
       expect(manager.currentEraser?.type).toBe(SymbolType.Eraser)
@@ -66,7 +66,7 @@ describe("EraseManager.ts", () =>
       const info = {
         pointer: { t: 1, p: 0.5, x: 20, y: 20 }
 
-      } as PointerInfo
+      } as TPointerInfo
       await manager.end(info)
       expect(manager.currentEraser).toBeUndefined()
       expect(manager.renderer.removeSymbol).toHaveBeenCalledTimes(1)
@@ -78,7 +78,7 @@ describe("EraseManager.ts", () =>
     {
       const info = {
         pointer: { t: 1, p: 0.5, x: 20, y: 20 }
-      } as PointerInfo
+      } as TPointerInfo
       expect(manager.currentEraser).toBeUndefined()
       expect(() => manager.continue(info)).toThrow("Can't update current eraser because currentEraser is undefined")
     })

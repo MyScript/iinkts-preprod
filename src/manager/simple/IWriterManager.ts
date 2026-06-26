@@ -1,8 +1,9 @@
-import { InkEditor } from "@/editor";
-import { PointerInfo } from "@/grabber";
-import { IModel } from "@/model";
-import { TStyle } from "@/style";
-import { TStroke, TSymbol, TPointer, isStroke } from "@/symbol";
+import type { InkEditor } from "@/editor";
+import type { TPointerInfo } from "@/grabber";
+import type { IModel } from "@/model";
+import type { TStyle } from "@/style";
+import type { TStroke, TSymbol, TPointer} from "@/symbol";
+import { isStroke } from "@/symbol";
 import { IIStrokeHelper } from "@/symbol/helpers";
 import { AbstractWriterManager } from "@/manager/base/AbstractWriterManager";
 
@@ -35,7 +36,7 @@ export class IWriterManager extends AbstractWriterManager {
     return this.model.currentStroke!
   }
 
-  async end(info: PointerInfo): Promise<void> {
+  async end(info: TPointerInfo): Promise<void> {
     const localPointer = info.pointer
     const localSymbol = this.updateCurrentSymbol(localPointer)
     this.model.currentStroke = undefined

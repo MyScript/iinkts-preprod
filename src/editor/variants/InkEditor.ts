@@ -1,19 +1,22 @@
 import { EditorTool } from "@/Constants"
-import { PointerEventGrabber } from "@/grabber"
-import { IModel, TExport, TExportV2 } from "@/model"
+import type { PointerEventGrabber } from "@/grabber"
+import type { TExport, TExportV2 } from "@/model";
+import { IModel } from "@/model"
 import { RecognizerHTTPV2 } from "@/recognizer"
 import { SVGRenderer } from "@/renderer"
-import { TStyle } from "@/style"
+import type { TStyle } from "@/style"
 import { IHistoryManager } from "@/history"
-import { PartialDeep } from "@/utils"
+import type { TPartialDeep } from "@/utils"
 import { IWriterManager, IDebugSVGManager, EraseManager } from "@/manager"
-import { AbstractEditor, EditorOptionsBase } from "@/editor/AbstractEditor"
-import { InkEditorConfiguration, TInkEditorConfiguration } from "./InkEditorConfiguration"
+import type { TEditorOptionsBase } from "@/editor/AbstractEditor";
+import { AbstractEditor } from "@/editor/AbstractEditor"
+import type { TInkEditorConfiguration } from "./InkEditorConfiguration";
+import { InkEditorConfiguration } from "./InkEditorConfiguration"
 
 /**
  * @group Editor
  */
-export type TInkEditorOptions = PartialDeep<EditorOptionsBase &
+export type TInkEditorOptions = TPartialDeep<TEditorOptionsBase &
 {
   configuration: TInkEditorConfiguration
 }> &
@@ -79,7 +82,7 @@ export class InkEditor extends AbstractEditor
   {
     return this.#penStyle
   }
-  set penStyle(penStyle: PartialDeep<TStyle>)
+  set penStyle(penStyle: TPartialDeep<TStyle>)
   {
     this.logger.info("set penStyle", { penStyle })
     this.#penStyle = Object.assign({}, this.#penStyle, penStyle)
@@ -157,7 +160,7 @@ export class InkEditor extends AbstractEditor
     }
   }
 
-  updateSymbolsStyle(symbolIds: string[], style: PartialDeep<TStyle>): void
+  updateSymbolsStyle(symbolIds: string[], style: TPartialDeep<TStyle>): void
   {
     this.logger.info("updateSymbolsStyle", { symbolIds, style })
     const symbolIdSet = new Set(symbolIds)

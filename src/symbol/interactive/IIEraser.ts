@@ -1,6 +1,6 @@
-import { TPointer } from "@/symbol/base/Point"
-import { TStyle } from "@/style"
-import { SymbolType } from "@/symbol/base/Symbol"
+import type { TPointer } from "@/symbol/base/Point"
+import type { TStyle } from "@/style"
+import type { SymbolType } from "@/symbol/base/Symbol"
 
 /**
  * @group Symbol

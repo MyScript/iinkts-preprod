@@ -1,11 +1,11 @@
-import { TServerHTTPConfiguration } from "@/recognizer"
-import { PartialDeep } from "./types"
+import type { TServerHTTPConfiguration } from "@/recognizer"
+import type { TPartialDeep } from "./types"
 import { assertServerConfig } from "./validation"
 
 /**
  * @group Utilities
  */
-export async function getAvailableFontList(configuration: PartialDeep<{ server: TServerHTTPConfiguration, recognition: { lang: string }}>): Promise<Array<string>>
+export async function getAvailableFontList(configuration: TPartialDeep<{ server: TServerHTTPConfiguration, recognition: { lang: string }}>): Promise<Array<string>>
 {
   assertServerConfig(configuration?.server, "Failed to get fonts")
   if (!configuration?.recognition?.lang) {

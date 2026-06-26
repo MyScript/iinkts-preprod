@@ -1,7 +1,8 @@
-import { TStroke, TText, isRecognizedMath, SymbolType, type TSymbol } from "@/symbol"
+import type { TStroke, TText} from "@/symbol";
+import { isRecognizedMath, SymbolType, type TSymbol } from "@/symbol"
 import { IITextHelper } from "@/symbol/helpers/IITextHelper"
 import { IIStrokeHelper } from "@/symbol/helpers"
-import { TIIHistoryChanges } from "@/history"
+import type { TIIHistoryChanges } from "@/history"
 import type { InteractiveInkEditor } from "@/editor"
 import type { TGesture } from "@/manager/interactive/gestures/GestureTypes"
 import { GestureHandler } from "@/manager/interactive/gestures/GestureHandler"

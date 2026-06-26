@@ -1,7 +1,7 @@
-import { TPoint, TSegment } from "@/symbol/base/Point"
-import { TBox } from "@/symbol/base/Box"
-import { TStyle } from "@/style"
-import { SymbolType } from "@/symbol/base/Symbol"
+import type { TPoint, TSegment } from "@/symbol/base/Point"
+import type { TBox } from "@/symbol/base/Box"
+import type { TStyle } from "@/style"
+import type { SymbolType } from "@/symbol/base/Symbol"
 
 /**
  * @group Symbol

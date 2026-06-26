@@ -1,9 +1,9 @@
-import { TStyle } from "@/style"
-import { TPoint, TSegment } from "@/symbol/base/Point"
-import { SymbolType } from "@/symbol/base/Symbol"
-import { TBox } from "@/symbol/base/Box"
-import { TDecorator } from "./IIDecorator"
-import { TTypesetChild, TRotation } from "./IITypeset"
+import type { TStyle } from "@/style"
+import type { TPoint, TSegment } from "@/symbol/base/Point"
+import type { SymbolType } from "@/symbol/base/Symbol"
+import type { TBox } from "@/symbol/base/Box"
+import type { TDecorator } from "./IIDecorator"
+import type { TTypesetChild, TRotation } from "./IITypeset"
 
 /**
  * @group Symbol

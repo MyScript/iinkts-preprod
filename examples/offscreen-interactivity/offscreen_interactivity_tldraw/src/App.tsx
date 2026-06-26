@@ -19,7 +19,7 @@ import { ContextMenu } from "./components/ContextMenu"
 import { TopZone } from "./components/TopZone"
 import { Modal } from "./components/Modal"
 import { KeyForms } from "./components/KeyForms"
-import { PartialDeep, TServerWebsocketConfiguration } from "iink-ts"
+import { TPartialDeep, TServerWebsocketConfiguration } from "iink-ts"
 import { SharePanel } from "./components/SharePanel"
 
 type TabName = "HTML" | "JIIX" | "Shapes" | "Messages"
@@ -33,7 +33,7 @@ export default function App()
   const [leftColumnWidthPercent, setLeftColumnWidthPercent] = useState<number>(60)
   const [cachedShapes, setCachedShapes] = useState<object>({})
 
-  const [serverConfiguration, setServerConfiguration] = useState<PartialDeep<TServerWebsocketConfiguration>>()
+  const [serverConfiguration, setServerConfiguration] = useState<TPartialDeep<TServerWebsocketConfiguration>>()
   const exports = useSelector((state: RootState) => state.exports.value)
   const errors = useSelector((state: RootState) => state.errors.value)
   const dispatch = useDispatch()
@@ -58,7 +58,7 @@ export default function App()
   const SYNC_BATCH_DELAY = 200
   const AUTO_CONVERT_DELAY = 1000
 
-  const loadRecognizer = async (serverConfig: PartialDeep<TServerWebsocketConfiguration>) =>
+  const loadRecognizer = async (serverConfig: TPartialDeep<TServerWebsocketConfiguration>) =>
   {
     try {
       setLoading(true)
@@ -264,11 +264,11 @@ export default function App()
       {
         const serverKeys = JSON.stringify(keys)
         window.localStorage.setItem("server", serverKeys)
-        setServerConfiguration(keys as PartialDeep<TServerWebsocketConfiguration>)
+        setServerConfiguration(keys as TPartialDeep<TServerWebsocketConfiguration>)
       }} />
     }
     else {
-      setServerConfiguration(JSON.parse(window.localStorage.getItem("server")!) as PartialDeep<TServerWebsocketConfiguration>)
+      setServerConfiguration(JSON.parse(window.localStorage.getItem("server")!) as TPartialDeep<TServerWebsocketConfiguration>)
     }
   }
 

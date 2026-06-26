@@ -1,6 +1,6 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { TStroke } from "@/symbol"
-import { TExportV2 } from "./ExportV2"
+import type { TStroke } from "@/symbol"
+import type { TExportV2 } from "./ExportV2"
 
 /**
  * @group Model

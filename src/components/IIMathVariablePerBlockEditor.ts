@@ -1,14 +1,15 @@
-import { InteractiveInkEditor } from "@/editor"
+import type { InteractiveInkEditor } from "@/editor"
 import { Modal } from "./Modal"
-import { TMathVariable, TMathVariableDefinition } from "@/recognizer"
+import type { TMathVariable, TMathVariableDefinition } from "@/recognizer"
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { IIMathVariableInputList, TVariableInputItem } from "./IIMathVariableInputList"
+import type { TVariableInputItem } from "./IIMathVariableInputList";
+import { IIMathVariableInputList } from "./IIMathVariableInputList"
 import { DOMFactory } from "@/components/dom"
 
 /**
  * @group Components
  */
-export interface SymbolVariables {
+export type TSymbolVariables = {
   jiixBlockId: string
   definition: TMathVariableDefinition | null
   variables: TMathVariable[]
@@ -24,7 +25,7 @@ export class IIMathVariablePerBlockEditor
   private editor: InteractiveInkEditor
   private jiixBlockIds: string[]
   private modal?: Modal
-  private blockVariables: SymbolVariables[] = []
+  private blockVariables: TSymbolVariables[] = []
   private inputLists: Map<string, IIMathVariableInputList> = new Map()
   private logger = LoggerManager.getLogger(LoggerCategory.MATH)
 
@@ -83,7 +84,7 @@ export class IIMathVariablePerBlockEditor
     return container
   }
 
-  private createSymbolSection(symVar: SymbolVariables): HTMLDivElement
+  private createSymbolSection(symVar: TSymbolVariables): HTMLDivElement
   {
     const section = DOMFactory.div({ className: "ms-card" })
 

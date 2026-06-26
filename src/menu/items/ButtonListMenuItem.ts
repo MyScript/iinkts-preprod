@@ -1,11 +1,12 @@
-import { InteractiveInkEditor } from "@/editor"
-import { BaseMenuItem, IMenuItemBase } from "./BaseMenuItem"
+import type { InteractiveInkEditor } from "@/editor"
+import type { TMenuItemBase } from "./BaseMenuItem";
+import { BaseMenuItem } from "./BaseMenuItem"
 
 /**
  * @group Menu
  * @remarks Configuration for a button list (S, M, L, XL)
  */
-export interface IMenuButtonList extends IMenuItemBase {
+export type TMenuButtonList = TMenuItemBase & {
   type: "buttonlist"
   buttonType?: "square" | "round"
   options: Array<{ label: string, value: string }>
@@ -19,7 +20,7 @@ export interface IMenuButtonList extends IMenuItemBase {
  */
 export class ButtonListMenuItem extends BaseMenuItem<HTMLDivElement>
 {
-  protected declare config: IMenuButtonList
+  protected declare config: TMenuButtonList
 
   createElement(): HTMLDivElement {
     const wrapper = this.dom.div({ id: this.config.id, className: ["ms-menu-item", "list"] })

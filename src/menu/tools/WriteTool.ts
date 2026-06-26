@@ -1,5 +1,6 @@
-import { InteractiveInkEditor } from "@/editor"
-import { ButtonMenuItem, IMenuButton } from "@/menu/items/ButtonMenuItem"
+import type { InteractiveInkEditor } from "@/editor"
+import type { TMenuButton } from "@/menu/items/ButtonMenuItem";
+import { ButtonMenuItem } from "@/menu/items/ButtonMenuItem"
 import { EditorTool, EditorWriteTool } from "@/Constants"
 import pencilIcon from "@/assets/svg/edit-pencil.svg"
 
@@ -11,7 +12,7 @@ export class WriteTool extends ButtonMenuItem
 {
   constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-tool")
   {
-    const config: IMenuButton = {
+    const config: TMenuButton = {
       type: "button",
       id: `${idPrefix}-write-pencil`,
       label: "Write",

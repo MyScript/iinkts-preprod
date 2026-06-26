@@ -1,6 +1,7 @@
-import { InteractiveInkEditor } from "@/editor"
+import type { InteractiveInkEditor } from "@/editor"
 import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
-import { ColorListMenuItem, IMenuColorList, CollapsibleWrapper } from "@/menu/items"
+import type { TMenuColorList} from "@/menu/items";
+import { ColorListMenuItem, CollapsibleWrapper } from "@/menu/items"
 
 /**
  * @group Menu
@@ -28,7 +29,7 @@ export class StrokeColorStyle extends BaseMenuItem<HTMLDivElement>
     const hasUniqColor = symbolsStyles.length && symbolsStyles.every(st => st.color === symbolsStyles[0]?.color)
     const color = hasUniqColor && symbolsStyles[0]?.color ? symbolsStyles[0]?.color : this.editor.penStyle.color as string
 
-    const colorConfig: IMenuColorList = {
+    const colorConfig: TMenuColorList = {
       type: "colorlist",
       id: `${this.config.id}-list`,
       label: "Colors",

@@ -1,11 +1,13 @@
-import { TStroke, SymbolType, isDecorator } from "@/symbol"
+import type { TStroke} from "@/symbol";
+import { SymbolType, isDecorator } from "@/symbol"
 import { BoxHelper } from "@/symbol/helpers/BoxHelper"
-import { IIHistoryManager } from "@/history"
-import { isBetween, PartialDeep } from "@/utils"
-import { IITranslateManager, IITypesetManager } from "."
-import { InteractiveInkEditor } from "@/editor"
+import type { IIHistoryManager } from "@/history"
+import type { TPartialDeep } from "@/utils";
+import { isBetween } from "@/utils"
+import type { IITranslateManager, IITypesetManager } from "."
+import type { InteractiveInkEditor } from "@/editor"
 import { IIAbstractManager } from "./IIAbstractManager"
-import type { IGestureHandler } from "./gestures"
+import type { TGestureHandler } from "./gestures"
 import {
   GestureHelpers,
   SurroundGestureHandler,
@@ -15,14 +17,15 @@ import {
   JoinGestureHandler,
   InsertGestureHandler
 } from "./gestures"
-import {
+import type {
   TGestureType,
   TGesture,
+  TGestureConfiguration} from "./gestures/GestureTypes";
+import {
   SurroundAction,
   StrikeThroughAction,
   UnderlineAction,
   InsertAction,
-  TGestureConfiguration,
   DefaultGestureConfiguration
 } from "./gestures/GestureTypes"
 import { LoggerCategory } from "@/logger"
@@ -35,7 +38,7 @@ export class IIGestureManager extends IIAbstractManager
 {
   protected managerName = "IIGestureManager"
 
-  #handlers: Map<TGestureType, IGestureHandler> = new Map()
+  #handlers: Map<TGestureType, TGestureHandler> = new Map()
   #helpers: GestureHelpers
 
   static readonly #TEXT_STROKE_GROUP_TYPES = new Set([SymbolType.Text, SymbolType.Stroke, SymbolType.Group])
@@ -48,7 +51,7 @@ export class IIGestureManager extends IIAbstractManager
   strikeThroughAction: StrikeThroughAction = StrikeThroughAction.Draw
   underlineAction: UnderlineAction = UnderlineAction.Draw
 
-  constructor(editor: InteractiveInkEditor, gestureAction?: PartialDeep<TGestureConfiguration>)
+  constructor(editor: InteractiveInkEditor, gestureAction?: TPartialDeep<TGestureConfiguration>)
   {
     super(editor, LoggerCategory.GESTURE)
     this.logger.info("constructor")

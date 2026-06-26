@@ -1,7 +1,7 @@
 /**
  * @group Components
  */
-export interface TableColumn {
+export type TTableColumn = {
   header: string | HTMLElement
   align?: "left" | "center" | "right"
   width?: string
@@ -10,7 +10,7 @@ export interface TableColumn {
 /**
  * @group Components
  */
-export interface TableCellConfig {
+export type TTableCellConfig = {
   content: string | HTMLElement
   align?: "left" | "center" | "right"
   style?: string
@@ -19,8 +19,8 @@ export interface TableCellConfig {
 /**
  * @group Components
  */
-export interface TableRow {
-  cells: (string | HTMLElement | TableCellConfig)[]
+export type TTableRow = {
+  cells: (string | HTMLElement | TTableCellConfig)[]
   style?: string
   hoverStyle?: string
   data?: unknown
@@ -29,9 +29,9 @@ export interface TableRow {
 /**
  * @group Components
  */
-export interface TableConfig {
-  columns: (string | TableColumn)[]
-  rows: TableRow[]
+export type TTableConfig = {
+  columns: (string | TTableColumn)[]
+  rows: TTableRow[]
   stickyHeader?: boolean
   hoverEffect?: boolean
   fontSize?: string
@@ -50,11 +50,11 @@ import { DOMFactory } from "@/components/dom"
  */
 export class Table {
   private table: HTMLTableElement
-  private config: TableConfig
+  private config: TTableConfig
   private rowElements: Map<number, HTMLTableRowElement> = new Map()
   private selectedRows: Set<number> = new Set()
 
-  constructor(config: TableConfig) {
+  constructor(config: TTableConfig) {
     this.config = {
       stickyHeader: true,
       hoverEffect: true,
@@ -176,7 +176,7 @@ export class Table {
           cell = DOMFactory.td({ className: "ms-table-td", style: `text-align: ${columnAlign};` })
           cell.appendChild(cellData)
         } else {
-          // TableCellConfig
+          // TTableCellConfig
           const align = cellData.align || columnAlign
           cell = DOMFactory.td({ className: "ms-table-td", style: `text-align: ${align};${cellData.style || ""}` })
 
@@ -300,7 +300,7 @@ export class Table {
   /**
    * Update table data and redraw
    */
-  update(rows: TableRow[]): void {
+  update(rows: TTableRow[]): void {
     this.config.rows = rows
 
     // Remove old tbody

@@ -1,12 +1,20 @@
-import { DefaultGrabberConfiguration, TGrabberConfiguration } from "@/grabber"
-import { DefaultHistoryConfiguration, THistoryConfiguration } from "@/history"
-import { DefaultLoggerConfiguration, TLoggerConfiguration } from "@/logger"
-import { DefaultRecognizerWebSocketSSRConfiguration, TRecognizerWebSocketSSRRecognitionConfiguration, TRecognizerWebSocketSSRConfiguration, RecognizerWebSocketSSRConfiguration, TServerWebsocketConfiguration } from "@/recognizer"
-import { DefaultRendererConfiguration, TRendererConfiguration } from "@/renderer"
-import { DefaultTheme, TPenStyle, TTheme } from "@/style"
-import { mergeDeep, PartialDeep } from "@/utils"
-import { TEditorConfiguration } from "@/editor/AbstractEditor"
-import { DefaultEditorTriggerConfiguration, TEditorTriggerConfiguration } from "@/editor/EditorTriggerConfiguration"
+import type { TGrabberConfiguration } from "@/grabber";
+import { DefaultGrabberConfiguration } from "@/grabber"
+import type { THistoryConfiguration } from "@/history";
+import { DefaultHistoryConfiguration } from "@/history"
+import type { TLoggerConfiguration } from "@/logger";
+import { DefaultLoggerConfiguration } from "@/logger"
+import type { TRecognizerWebSocketSSRRecognitionConfiguration, TRecognizerWebSocketSSRConfiguration, TServerWebsocketConfiguration } from "@/recognizer";
+import { DefaultRecognizerWebSocketSSRConfiguration, RecognizerWebSocketSSRConfiguration } from "@/recognizer"
+import type { TRendererConfiguration } from "@/renderer";
+import { DefaultRendererConfiguration } from "@/renderer"
+import type { TPenStyle, TTheme } from "@/style";
+import { DefaultTheme } from "@/style"
+import type { TPartialDeep } from "@/utils";
+import { mergeDeep } from "@/utils"
+import type { TEditorConfiguration } from "@/editor/AbstractEditor"
+import type { TEditorTriggerConfiguration } from "@/editor/EditorTriggerConfiguration";
+import { DefaultEditorTriggerConfiguration } from "@/editor/EditorTriggerConfiguration"
 
 /**
  * @group Editor
@@ -63,7 +71,7 @@ export class InteractiveInkSSREditorConfiguration implements TInteractiveInkSSRE
   penStyleClasses?: string
   theme: TTheme
 
-  constructor(configuration?: PartialDeep<TInteractiveInkSSREditorConfiguration>)
+  constructor(configuration?: TPartialDeep<TInteractiveInkSSREditorConfiguration>)
   {
     const { server, recognition } = new RecognizerWebSocketSSRConfiguration(configuration)
     this.server = server

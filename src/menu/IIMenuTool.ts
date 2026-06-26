@@ -1,7 +1,7 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { InteractiveInkEditor } from "@/editor"
+import type { InteractiveInkEditor } from "@/editor"
 import { DOMFactory } from "@/components/dom"
-import { BaseMenuItem } from "./items"
+import type { BaseMenuItem } from "./items"
 import {
   WriteTool,
   MoveTool,
@@ -15,7 +15,7 @@ import {
  * @group Menu
  * @remarks Configuration to enable/disable each tool individually
  */
-export interface IIMenuToolConfig {
+export type TMenuToolConfig = {
   /** Enable/disable Write tool (Pencil) */
   write?: boolean
   /** Enable/disable Move tool (Hand) */
@@ -31,7 +31,7 @@ export interface IIMenuToolConfig {
 }
 
 /** @group Menu */
-export const DefaultMenuToolConfig: Required<IIMenuToolConfig> = {
+export const DefaultMenuToolConfig: Required<TMenuToolConfig> = {
   write: true,
   move: true,
   select: true,
@@ -50,12 +50,12 @@ export class IIMenuTool
   editor: InteractiveInkEditor
   id: string
   wrapper?: HTMLDivElement
-  config: Required<IIMenuToolConfig>
+  config: Required<TMenuToolConfig>
 
   // Instances des classes d'outils
   private menuTools: Map<string, BaseMenuItem> = new Map()
 
-  constructor(editor: InteractiveInkEditor, id = "ms-menu-tool", config?: IIMenuToolConfig)
+  constructor(editor: InteractiveInkEditor, id = "ms-menu-tool", config?: TMenuToolConfig)
   {
     this.id = id
     this.#logger.info("constructor")

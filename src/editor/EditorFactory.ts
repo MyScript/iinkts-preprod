@@ -1,15 +1,19 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { EditorType } from "./AbstractEditor"
-import { InteractiveInkEditor, TInteractiveInkEditorOptions } from "./variants/InteractiveInkEditor"
-import { InkEditorDeprecated, TInkEditorDeprecatedOptions } from "./variants/InkEditorDeprecated"
-import { InteractiveInkSSREditor, TInteractiveInkSSREditorOptions } from "./variants/InteractiveInkSSREditor"
-import { InkEditor, TInkEditorOptions } from "./variants/InkEditor"
+import type { TEditorType } from "./AbstractEditor"
+import type { TInteractiveInkEditorOptions } from "./variants/InteractiveInkEditor";
+import { InteractiveInkEditor } from "./variants/InteractiveInkEditor"
+import type { TInkEditorDeprecatedOptions } from "./variants/InkEditorDeprecated";
+import { InkEditorDeprecated } from "./variants/InkEditorDeprecated"
+import type { TInteractiveInkSSREditorOptions } from "./variants/InteractiveInkSSREditor";
+import { InteractiveInkSSREditor } from "./variants/InteractiveInkSSREditor"
+import type { TInkEditorOptions } from "./variants/InkEditor";
+import { InkEditor } from "./variants/InkEditor"
 
 /**
  * @group Editor
  * @hidden
  */
-export type EditorVariantMap = {
+export type TEditorVariantMap = {
   "INTERACTIVEINK": InteractiveInkEditor
   "INKV1": InkEditorDeprecated
   "INTERACTIVEINKSSR": InteractiveInkSSREditor
@@ -20,7 +24,7 @@ export type EditorVariantMap = {
  * @group Editor
  * @hidden
  */
-export type EditorOptionsMap = {
+export type TEditorOptionsMap = {
   "INTERACTIVEINK": TInteractiveInkEditorOptions
   "INKV1": TInkEditorDeprecatedOptions
   "INTERACTIVEINKSSR": TInteractiveInkSSREditorOptions
@@ -34,7 +38,7 @@ export type EditorOptionsMap = {
 export class EditorFactory
 {
   private static logger = LoggerManager.getLogger(LoggerCategory.EDITOR)
-  private static instances = new Map<string, EditorVariantMap[EditorType]>()
+  private static instances = new Map<string, TEditorVariantMap[TEditorType]>()
 
   /**
    * Creates and initializes an editor instance based on the specified type
@@ -46,11 +50,11 @@ export class EditorFactory
    * @param options - Configuration options specific to the editor type
    * @returns Promise resolving to the initialized editor instance
    */
-  static async createEditor<T extends EditorType>(
+  static async createEditor<T extends TEditorType>(
     rootElement: HTMLElement,
     type: T,
-    options: EditorOptionsMap[T]
-  ): Promise<EditorVariantMap[T]>
+    options: TEditorOptionsMap[T]
+  ): Promise<TEditorVariantMap[T]>
   {
     EditorFactory.logger.info("createEditor", { type, options })
 
@@ -61,7 +65,7 @@ export class EditorFactory
     // Cleanup any existing instances before creating a new one
     await EditorFactory.clearInstances()
 
-    let instance: EditorVariantMap[EditorType]
+    let instance: TEditorVariantMap[TEditorType]
 
     // Create appropriate editor variant based on type
     switch (type) {
@@ -90,7 +94,7 @@ export class EditorFactory
     // Store instance for reference
     EditorFactory.instances.set(type, instance)
 
-    return instance as EditorVariantMap[T]
+    return instance as TEditorVariantMap[T]
   }
 
   /**
@@ -98,7 +102,7 @@ export class EditorFactory
    *
    * @returns The current editor instance or undefined if none exists
    */
-  static getInstance(): EditorVariantMap[EditorType] | undefined
+  static getInstance(): TEditorVariantMap[TEditorType] | undefined
   {
     // Return the most recently created instance
     return Array.from(EditorFactory.instances.values()).pop()
@@ -110,9 +114,9 @@ export class EditorFactory
    * @param type - The editor type to retrieve
    * @returns The editor instance of the specified type or undefined
    */
-  static getInstanceByType<T extends EditorType>(type: T): EditorVariantMap[T] | undefined
+  static getInstanceByType<T extends TEditorType>(type: T): TEditorVariantMap[T] | undefined
   {
-    return EditorFactory.instances.get(type) as EditorVariantMap[T] | undefined
+    return EditorFactory.instances.get(type) as TEditorVariantMap[T] | undefined
   }
 
   /**

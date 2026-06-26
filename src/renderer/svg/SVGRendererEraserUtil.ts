@@ -1,4 +1,4 @@
-import { TEraser, TPointer } from "@/symbol"
+import type { TEraser, TPointer } from "@/symbol"
 import { SVGBuilder } from "./utils/SVGBuilder"
 
 /**

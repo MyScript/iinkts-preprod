@@ -1,6 +1,6 @@
 
 /** @group DOM */
-export interface ButtonElConfig {
+export type TButtonElConfig = {
   id?: string
   label?: string
   html?: string
@@ -15,7 +15,7 @@ export interface ButtonElConfig {
   onPointerDown?: (e: PointerEvent) => void
 }
 
-function applyButton(btn: HTMLButtonElement, config: ButtonElConfig, extraClasses: string[] = []): void {
+function applyButton(btn: HTMLButtonElement, config: TButtonElConfig, extraClasses: string[] = []): void {
   if (config.id) btn.id = config.id
   if (config.label) btn.textContent = config.label
   if (config.html) btn.innerHTML = config.html
@@ -37,7 +37,7 @@ function applyButton(btn: HTMLButtonElement, config: ButtonElConfig, extraClasse
 }
 
 /** @group DOM */
-export function buildButton(config: ButtonElConfig): HTMLButtonElement {
+export function buildButton(config: TButtonElConfig): HTMLButtonElement {
   const btn = document.createElement("button")
   applyButton(btn, config)
   return btn

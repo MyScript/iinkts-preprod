@@ -1,20 +1,22 @@
-import { PartialDeep, createUUID, findIntersectionBetween2Segment, isPointInsidePolygon, convertDegreeToRadian, computeRotatedPoint } from "@/utils"
-import { DefaultStyle, TStyle } from "@/style"
-import { TPoint } from "@/symbol/base/Point"
+import type { TPartialDeep} from "@/utils";
+import { createUUID, findIntersectionBetween2Segment, isPointInsidePolygon, convertDegreeToRadian, computeRotatedPoint } from "@/utils"
+import type { TStyle } from "@/style";
+import { DefaultStyle } from "@/style"
+import type { TPoint } from "@/symbol/base/Point"
 import { SymbolType } from "@/symbol/base/Symbol"
-import { TBox } from "@/symbol/base/Box"
+import type { TBox } from "@/symbol/base/Box"
 import { BoxHelper } from "./BoxHelper"
 import { computeTypesetVertices, computeTypesetSnapPoints, computeClosedEdges } from "./_typesetDerivedFields"
-import { TRotation } from "@/symbol/interactive/IITypeset"
+import type { TRotation } from "@/symbol/interactive/IITypeset"
 import { IIDecoratorHelper } from "./IIDecoratorHelper"
-import { TSymbolChar, TText } from "@/symbol/interactive/IIText"
+import type { TSymbolChar, TText } from "@/symbol/interactive/IIText"
 import { isValidPoint } from "@/symbol/base/Point"
 
 /**
  * @group Symbol
  */
 export const IITextHelper = {
-  create(chars: TSymbolChar[], point: TPoint, bounds: TBox, style?: PartialDeep<TStyle>): TText
+  create(chars: TSymbolChar[], point: TPoint, bounds: TBox, style?: TPartialDeep<TStyle>): TText
   {
     const mergedStyle = Object.assign({}, DefaultStyle, style) as TStyle
     if (mergedStyle.opacity) mergedStyle.opacity = +mergedStyle.opacity
@@ -43,7 +45,7 @@ export const IITextHelper = {
     }
   },
 
-  createFromPartial(partial: PartialDeep<TText>): TText
+  createFromPartial(partial: TPartialDeep<TText>): TText
   {
     if (!isValidPoint(partial?.point)) throw new Error(`Unable to create a IIText, point are invalid`)
     if (!partial.chars?.length) throw new Error(`Unable to create a IIText, no chars`)
@@ -117,7 +119,7 @@ export const IITextHelper = {
     return text.chars.map(c => c.label).join("")
   },
 
-  toJSON(text: TText): PartialDeep<TText>
+  toJSON(text: TText): TPartialDeep<TText>
   {
     return {
       id: text.id,
@@ -138,4 +140,3 @@ export const IITextHelper = {
  * (not `new IIText(…)`) continues to compile transparently.
  * @deprecated Use `TText` instead.
  */
-export type IIText = TText
