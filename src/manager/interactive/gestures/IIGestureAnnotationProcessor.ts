@@ -1,7 +1,6 @@
 import { Box, IIDecorator, IIStroke, IIText, SymbolType, DecoratorKind, isDecorator, isRecognizedText, isText, type TIISymbol } from "@/symbol"
 import type { TIIHistoryChanges } from "@/history"
 import type { InteractiveInkEditor } from "@/editor"
-import { EditorTool } from "@/Constants"
 import type { TGestureAnnotation } from "./GestureAnnotation"
 
 /**
@@ -153,7 +152,6 @@ export class IIGestureAnnotationProcessor
   #applySelect(ids: string[]): void
   {
     if (ids.length) {
-      this.editor.tool = EditorTool.Select
       this.editor.select(ids)
     }
   }
