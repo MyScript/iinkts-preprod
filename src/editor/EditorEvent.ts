@@ -1,7 +1,7 @@
 import { EditorTool } from "@/Constants"
 import { LoggerManager, LoggerCategory } from "@/logger"
 import { TExport, TExportV2 } from "@/model"
-import { IIStroke, TIISymbol, TSymbol } from "@/symbol"
+import { TStroke, TSymbol, TBaseSymbol } from "@/symbol"
 import { THistoryContext } from "@/history"
 import { TGestureType } from "@/manager"
 
@@ -266,17 +266,17 @@ export class EditorEvent extends EventTarget
     )
   }
 
-  emitSelected(symbols: TSymbol[]): void
+  emitSelected(symbols: TBaseSymbol[]): void
   {
     this.#logger.info("emitSelected")
     this.emit(EditorEventName.SELECTED, symbols)
   }
-  addSelectedListener(callback: (symbols: TIISymbol[]) => void): void
+  addSelectedListener(callback: (symbols: TSymbol[]) => void): void
   {
     this.#logger.info("addSelectedListener", { callback })
     this.addEventListener(
       EditorEventName.SELECTED,
-      (evt: unknown) => callback((evt as CustomEvent).detail as TIISymbol[]),
+      (evt: unknown) => callback((evt as CustomEvent).detail as TSymbol[]),
       { signal: this.abortController.signal }
     )
   }
@@ -326,17 +326,17 @@ export class EditorEvent extends EventTarget
     )
   }
 
-  emitGestured(gesture: { gestureType: TGestureType, stroke: IIStroke }): void
+  emitGestured(gesture: { gestureType: TGestureType, stroke: TStroke }): void
   {
     this.#logger.info("emitGestured")
     this.emit(EditorEventName.GESTURED, gesture)
   }
-  addGesturedListener(callback: (gesture: { gestureType: TGestureType, stroke: IIStroke }) => void): void
+  addGesturedListener(callback: (gesture: { gestureType: TGestureType, stroke: TStroke }) => void): void
   {
     this.#logger.info("addGesturedListener", { callback })
     this.addEventListener(
       EditorEventName.GESTURED,
-      (evt) => callback((evt as CustomEvent).detail as { gestureType: TGestureType, stroke: IIStroke }),
+      (evt) => callback((evt as CustomEvent).detail as { gestureType: TGestureType, stroke: TStroke }),
       { signal: this.abortController.signal }
     )
   }

@@ -1,4 +1,4 @@
-import { TPointer, TStroke } from "@/symbol"
+import { TPointer, TLegacyStroke } from "@/symbol"
 import { computeAngleAxeRadian, computeLinksPointers, computeMiddlePointer } from "@/utils"
 
 /**
@@ -59,7 +59,7 @@ export class SVGStroker
     return svgPath
   }
 
-  protected buildSVGPath(stroke: TStroke): string
+  protected buildSVGPath(stroke: TLegacyStroke): string
   {
     const STROKE_LENGTH = stroke.pointers.length
     const STROKE_WIDTH = (stroke.style.width as number)
@@ -88,7 +88,7 @@ export class SVGStroker
     return parts.join(" ")
   }
 
-  drawStroke(svgElement: SVGElement, stroke: TStroke, attrs?: { name: string, value: string }[]): void
+  drawStroke(svgElement: SVGElement, stroke: TLegacyStroke, attrs?: { name: string, value: string }[]): void
   {
     const svgPathElement = document.createElementNS("http://www.w3.org/2000/svg", "path")
     svgPathElement.classList.add("pending-stroke")

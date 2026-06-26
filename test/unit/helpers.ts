@@ -5,19 +5,26 @@ import
   TBox,
   TStyle,
   Stroke,
-  IIStroke,
-  IIDecorator,
-  IIShapeCircle,
-  IIEdgeLine,
-  IIText,
-  TIISymbolChar,
+  TStroke,
+  IIStrokeHelper,
+  TDecorator,
+  TShapeCircle,
+  TEdgeLine,
+  TText,
+  TSymbolChar,
   TPoint,
   DecoratorKind,
-  IIEraser,
-  IIMath,
-  TIIMathElement,
+  TEraser,
+  IIEraserHelper,
+  TMath,
+  TMathElement,
   PartialDeep,
 } from "../../src/iink"
+import { IIDecoratorHelper } from "../../src/symbol/helpers/IIDecoratorHelper"
+import { IITextHelper } from "../../src/symbol/helpers/IITextHelper"
+import { IIMathHelper } from "../../src/symbol/helpers/IIMathHelper"
+import { IIShapeCircleHelper } from "../../src/symbol/helpers/IIShapeCircleHelper"
+import { IIEdgeLineHelper } from "../../src/symbol/helpers/IIEdgeLineHelper"
 
 export const delay = (delayInms: number) =>
 {
@@ -50,9 +57,9 @@ export function buildStroke({ box = defaultBox, style = DefaultPenStyle, nbPoint
   return stroke
 }
 
-export function buildStrokeV2({ box = defaultBox, style = DefaultPenStyle, nbPoint = 5, pointerType = "pen" } = {}): IIStroke
+export function buildStrokeV2({ box = defaultBox, style = DefaultPenStyle, nbPoint = 5, pointerType = "pen" } = {}): TStroke
 {
-  const stroke = new IIStroke(style, pointerType)
+  const stroke = IIStrokeHelper.create(style, pointerType)
   for (let i = 0; i < nbPoint; i++) {
     stroke.pointers.push({
       p: Math.random(),
@@ -64,13 +71,13 @@ export function buildStrokeV2({ box = defaultBox, style = DefaultPenStyle, nbPoi
   return stroke
 }
 
-export function buildIIStroke({ box = defaultBox, style = DefaultStyle, nbPoint = 5, pointerType = "pen" } = {}): IIStroke
+export function buildIIStroke({ box = defaultBox, style = DefaultStyle, nbPoint = 5, pointerType = "pen" } = {}): TStroke
 {
-  const stroke = new IIStroke(style, pointerType)
+  const stroke = IIStrokeHelper.create(style, pointerType)
   const stepX = box.width / (nbPoint - 1)
   const stepY = box.height / (nbPoint - 1)
   for (let i = 0; i < nbPoint; i++) {
-    stroke.addPointer({
+    IIStrokeHelper.addPointer(stroke, {
       p: Math.random(),
       t: Date.now() + i,
       x: box.x + stepX * i,
@@ -80,9 +87,9 @@ export function buildIIStroke({ box = defaultBox, style = DefaultStyle, nbPoint 
   return stroke
 }
 
-export function buildIIEraser({ box = defaultBox, nbPoint = 5 } = {}): IIEraser
+export function buildIIEraser({ box = defaultBox, nbPoint = 5 } = {}): TEraser
 {
-  const eraser = new IIEraser()
+  const eraser = IIEraserHelper.create()
   const stepX = box.width / (nbPoint - 1)
   const stepY = box.height / (nbPoint - 1)
   for (let i = 0; i < nbPoint; i++) {
@@ -96,36 +103,36 @@ export function buildIIEraser({ box = defaultBox, nbPoint = 5 } = {}): IIEraser
   return eraser
 }
 
-export function buildIIDecorator(kind: DecoratorKind, style: PartialDeep<TStyle> = DefaultStyle): IIDecorator
+export function buildIIDecorator(kind: DecoratorKind, style: PartialDeep<TStyle> = DefaultStyle): TDecorator
 {
-  return new IIDecorator(kind, style)
+  return IIDecoratorHelper.create(kind, style)
 }
 
-export function buildIICircle({ center = { x: 0, y: 0 }, radius = 5, style = DefaultStyle }: { center?: TPoint, radius?: number, style?: PartialDeep<TStyle> } = {}): IIShapeCircle
+export function buildIICircle({ center = { x: 0, y: 0 }, radius = 5, style = DefaultStyle }: { center?: TPoint, radius?: number, style?: PartialDeep<TStyle> } = {}): TShapeCircle
 {
-  return new IIShapeCircle(center, radius, style)
+  return IIShapeCircleHelper.create(center, radius, style)
 }
 
-export function buildIILine({ start = { x: 0, y: 0 }, end = { x: 5, y: 5 }, style = DefaultStyle }: { start?: TPoint, end?: TPoint, style?: PartialDeep<TStyle> } = {}): IIEdgeLine
+export function buildIILine({ start = { x: 0, y: 0 }, end = { x: 5, y: 5 }, style = DefaultStyle }: { start?: TPoint, end?: TPoint, style?: PartialDeep<TStyle> } = {}): TEdgeLine
 {
-  return new IIEdgeLine(start, end, undefined, undefined, style)
+  return IIEdgeLineHelper.create(start, end, undefined, undefined, style)
 }
 
 export function buildIIText(
   { chars = [], point = { x: 0, y: 0 }, boundingBox = { x: 0, y: 10, width: 20, height: 30 }, style = DefaultStyle }:
-    { chars?: TIISymbolChar[], point?: TPoint, boundingBox?: TBox, style?: PartialDeep<TStyle> } = {}
-): IIText
+    { chars?: TSymbolChar[], point?: TPoint, boundingBox?: TBox, style?: PartialDeep<TStyle> } = {}
+): TText
 {
-  return new IIText(chars, point, boundingBox, style)
+  return IITextHelper.create(chars, point, boundingBox, style)
 }
 
 export function buildIIMath(
   label: string = "y=3x+2",
   { point = { x: 0, y: 0 }, boundingBox = { x: 0, y: 10, width: 50, height: 30 }, style = DefaultStyle }:
     { point?: TPoint, boundingBox?: TBox, style?: PartialDeep<TStyle> } = {}
-): IIMath
+): TMath
 {
-  const elements: TIIMathElement[] = [{
+  const elements: TMathElement[] = [{
     id: "math-elem-1",
     label,
     fontSize: 16,
@@ -134,5 +141,5 @@ export function buildIIMath(
     color: "#000000",
     bounds: boundingBox
   }]
-  return new IIMath(elements, point, boundingBox, style)
+  return IIMathHelper.create(elements, point, boundingBox, style)
 }

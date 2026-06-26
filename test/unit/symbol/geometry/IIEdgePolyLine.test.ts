@@ -1,6 +1,6 @@
+import { IIEdgePolyLineHelper } from "../../../../src/symbol/helpers/IIEdgePolyLineHelper"
 import
 {
-  IIEdgePolyLine,
   TPoint,
   DefaultStyle,
   TStyle,
@@ -18,7 +18,7 @@ describe("IIEdgePolyLine.ts", () =>
         color: "blue",
         width: 20,
       }
-      const line = new IIEdgePolyLine(points, undefined, undefined, style)
+      const line = IIEdgePolyLineHelper.create(points, undefined, undefined, style)
       expect(line).toBeDefined()
       expect(line.creationTime).toBeLessThanOrEqual(Date.now())
       expect(line.creationTime).toEqual(line.modificationDate)
@@ -34,28 +34,28 @@ describe("IIEdgePolyLine.ts", () =>
     test("should create with default style", () =>
     {
       const points: TPoint[] = [{ x: 0, y: 0 }, { x: 5, y: 0 }, { x: 5, y: 5 }]
-      const line = new IIEdgePolyLine(points)
+      const line = IIEdgePolyLineHelper.create(points)
       expect(line.style).toEqual(DefaultStyle)
     })
   })
   describe("overlaps", () =>
   {
     const middles: TPoint[] = [{ x: 0, y: 0 }, { x: 15, y: 15 }, { x: 0, y: 25 }]
-    const line = new IIEdgePolyLine(middles)
+    const line = IIEdgePolyLineHelper.create(middles)
     test(`should return true if partially wrap`, () =>
     {
       const boundaries: TBox = { height: 10, width: 10, x: -5, y: -5 }
-      expect(line.overlaps(boundaries)).toEqual(true)
+      expect(IIEdgePolyLineHelper.overlaps(line, boundaries)).toEqual(true)
     })
     test(`should return true if totally wrap`, () =>
     {
       const boundaries: TBox = { height: 50, width: 50, x: -25, y: -25 }
-      expect(line.overlaps(boundaries)).toEqual(true)
+      expect(IIEdgePolyLineHelper.overlaps(line, boundaries)).toEqual(true)
     })
     test(`should return false if box is outside`, () =>
     {
       const boundaries: TBox = { height: 2, width: 2, x: 50, y: 50 }
-      expect(line.overlaps(boundaries)).toEqual(false)
+      expect(IIEdgePolyLineHelper.overlaps(line, boundaries)).toEqual(false)
     })
   })
   describe("clone", () =>
@@ -63,8 +63,8 @@ describe("IIEdgePolyLine.ts", () =>
     test("should return clone", () =>
     {
       const middles: TPoint[] = [{ x: 0, y: 0 }, { x: 15, y: 15 }, { x: 0, y: 25 }]
-      const line = new IIEdgePolyLine(middles)
-      const clone = line.clone()
+      const line = IIEdgePolyLineHelper.create(middles)
+      const clone = structuredClone(line)
       expect(clone).toEqual(line)
       expect(clone).not.toBe(line)
     })

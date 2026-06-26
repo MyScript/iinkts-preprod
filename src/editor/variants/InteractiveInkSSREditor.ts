@@ -7,7 +7,7 @@ import { InteractiveInkSSRSVGRenderer } from "@/renderer"
 import { DefaultPenStyle, StyleManager, TPenStyle, TTheme } from "@/style"
 import { HistoryManager, THistoryContext } from "@/history"
 import { DeferredPromise, PartialDeep } from "@/utils"
-import { Stroke, TStroke, TPointer } from "@/symbol"
+import { Stroke, TLegacyStroke, TPointer } from "@/symbol"
 import { AbstractEditor, EditorOptionsBase } from "@/editor/AbstractEditor"
 import { InteractiveInkSSREditorConfiguration } from "./InteractiveInkSSREditorConfiguration"
 
@@ -366,7 +366,7 @@ export class InteractiveInkSSREditor extends AbstractEditor
     return this.model
   }
 
-  async importPointEvents(strokes: PartialDeep<TStroke>[]): Promise<Model>
+  async importPointEvents(strokes: PartialDeep<TLegacyStroke>[]): Promise<Model>
   {
     this.logger.info("importPointEvents", { strokes })
     const errors: string[] = []

@@ -1,18 +1,18 @@
 import {
   DecoratorKind,
-  IIDecorator,
-  IIText,
   SymbolType,
   TBox,
-  TIISymbolChar,
+  TSymbolChar,
   TPoint,
   SVGRendererConst,
   SVGRendererTextUtil
 } from "../../../src/iink"
+import { IIDecoratorHelper } from "../../../src/symbol/helpers/IIDecoratorHelper"
+import { IITextHelper } from "../../../src/symbol/helpers/IITextHelper"
 
 describe("SVGRendererTextUtil.ts", () =>
   {
-    const chars: TIISymbolChar[] = [
+    const chars: TSymbolChar[] = [
       {
         color: "blue",
         fontSize: 18,
@@ -42,7 +42,7 @@ describe("SVGRendererTextUtil.ts", () =>
     ]
     const point: TPoint = { x: 0, y: 0 }
     const boundingBox: TBox = { height: 100, width: 100, x: 0, y: 0 }
-    const text = new IIText(chars, point, boundingBox)
+    const text = IITextHelper.create(chars, point, boundingBox)
 
     test("should getSymbolElement with style for each char", () =>
     {
@@ -110,8 +110,8 @@ describe("SVGRendererTextUtil.ts", () =>
       expect(elWithoutDecorator.getAttribute("id")).toEqual(text.id)
       expect(elWithoutDecorator.querySelectorAll("[type=decorator]")).toHaveLength(0)
 
-      text.decorators.push(new IIDecorator(DecoratorKind.Highlight, { color: "red"}))
-      text.decorators.push(new IIDecorator(DecoratorKind.Underline, { color: "blue", width: 12}))
+      text.decorators.push(IIDecoratorHelper.create(DecoratorKind.Highlight, { color: "red"}))
+      text.decorators.push(IIDecoratorHelper.create(DecoratorKind.Underline, { color: "blue", width: 12}))
 
       const elDecorated = SVGRendererTextUtil.getSVGElement(text)!
       expect(elDecorated.getAttribute("id")).toEqual(text.id)

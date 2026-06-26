@@ -4,23 +4,31 @@ import
 {
   EdgeDecoration,
   EdgeKind,
-  IIEdgeLine,
-  IIShapePolygon,
-  IIShapeCircle,
-  IIShapeEllipse,
-  IIStroke,
+  TEdgeLine,
+  TShapePolygon,
+  TShapeCircle,
+  TShapeEllipse,
+  TStroke,
   SymbolType,
-  TIIEdge,
-  TIISymbol,
+  TEdge,
+  TSymbol,
   TPoint,
   TPointer,
-  isStroke
+  isStroke,
+  cloneSymbol
 } from "@/symbol"
 import { RecognizerWebSocket } from "@/recognizer"
 import { SVGRenderer } from "@/renderer"
 import { TStyle } from "@/style"
 import { IIHistoryManager } from "@/history"
 import { PointerInfo } from "@/grabber"
+import { IIShapeCircleHelper } from "@/symbol/helpers/IIShapeCircleHelper"
+import { IIShapeEllipseHelper } from "@/symbol/helpers/IIShapeEllipseHelper"
+import { IIShapePolygonHelper } from "@/symbol/helpers/IIShapePolygonHelper"
+import { IIEdgeLineHelper } from "@/symbol/helpers/IIEdgeLineHelper"
+import { updateEdgeDerivedFields } from "@/symbol"
+import { IIStrokeHelper } from "@/symbol/helpers/IIStrokeHelper"
+import { BoxHelper } from "@/symbol/helpers/BoxHelper"
 import { IIGestureManager } from "./IIGestureManager"
 import { TGesture } from "./gestures"
 import { IISnapManager } from "./IISnapManager"
@@ -102,35 +110,35 @@ export class IIWriterManager extends AbstractWriterManager
     this.grabber.detach()
   }
 
-  protected needContextLessGesture(stroke: IIStroke): boolean
+  protected needContextLessGesture(stroke: TStroke): boolean
   {
     const strokeBoundsWithMargin = this.editor.getSymbolsBounds([stroke], 2 * SELECTION_MARGIN)
-    return this.detectGesture && this.model.symbols.some(s => !isStroke(s) && s.bounds.overlaps(strokeBoundsWithMargin))
+    return this.detectGesture && this.model.symbols.some(s => !isStroke(s) && BoxHelper.overlaps(s.bounds, strokeBoundsWithMargin))
   }
 
-  protected createCurrentSymbol(pointer: TPointer, style: TStyle, pointerType: string): TIISymbol
+  protected createCurrentSymbol(pointer: TPointer, style: TStyle, pointerType: string): TSymbol
   {
     switch (this.tool) {
       case EditorWriteTool.Pencil:
-        this.model.currentSymbol = new IIStroke(style, pointerType)
+        this.model.currentSymbol = IIStrokeHelper.create(style, pointerType)
         break
       case EditorWriteTool.Rectangle:
-        this.model.currentSymbol = IIShapePolygon.createRectangleBetweenPoints(pointer, pointer, style)
+        this.model.currentSymbol = IIShapePolygonHelper.createRectangleBetweenPoints(pointer, pointer, style)
         break
       case EditorWriteTool.Triangle:
-        this.model.currentSymbol = IIShapePolygon.createTriangleBetweenPoints(pointer, pointer, style)
+        this.model.currentSymbol = IIShapePolygonHelper.createTriangleBetweenPoints(pointer, pointer, style)
         break
       case EditorWriteTool.Parallelogram:
-        this.model.currentSymbol = IIShapePolygon.createParallelogramBetweenPoints(pointer, pointer, style)
+        this.model.currentSymbol = IIShapePolygonHelper.createParallelogramBetweenPoints(pointer, pointer, style)
         break
       case EditorWriteTool.Rhombus:
-        this.model.currentSymbol = IIShapePolygon.createRhombusBetweenPoints(pointer, pointer, style)
+        this.model.currentSymbol = IIShapePolygonHelper.createRhombusBetweenPoints(pointer, pointer, style)
         break
       case EditorWriteTool.Circle:
-        this.model.currentSymbol = IIShapeCircle.createBetweenPoints(pointer, pointer, style)
+        this.model.currentSymbol = IIShapeCircleHelper.createBetweenPoints(pointer, pointer, style)
         break
       case EditorWriteTool.Ellipse:
-        this.model.currentSymbol = IIShapeEllipse.createBetweenPoints(pointer, pointer, style)
+        this.model.currentSymbol = IIShapeEllipseHelper.createBetweenPoints(pointer, pointer, style)
         break
       case EditorWriteTool.Line:
       case EditorWriteTool.Arrow:
@@ -143,7 +151,7 @@ export class IIWriterManager extends AbstractWriterManager
           startDecoration = EdgeDecoration.Arrow
           endDecoration = EdgeDecoration.Arrow
         }
-        this.model.currentSymbol = new IIEdgeLine(pointer, pointer, startDecoration, endDecoration, style)
+        this.model.currentSymbol = IIEdgeLineHelper.create(pointer, pointer, startDecoration, endDecoration, style)
         break
       }
       default:
@@ -156,37 +164,38 @@ export class IIWriterManager extends AbstractWriterManager
   {
     switch (this.tool) {
       case EditorWriteTool.Rectangle:
-        IIShapePolygon.updateRectangleBetweenPoints(this.model.currentSymbol as IIShapePolygon, this.currentSymbolOrigin!, pointer)
+        IIShapePolygonHelper.updateRectangleBetweenPoints(this.model.currentSymbol as TShapePolygon, this.currentSymbolOrigin!, pointer)
         break
       case EditorWriteTool.Triangle:
-        IIShapePolygon.updateTriangleBetweenPoints(this.model.currentSymbol as IIShapePolygon, this.currentSymbolOrigin!, pointer)
+        IIShapePolygonHelper.updateTriangleBetweenPoints(this.model.currentSymbol as TShapePolygon, this.currentSymbolOrigin!, pointer)
         break
       case EditorWriteTool.Parallelogram:
-        IIShapePolygon.updateParallelogramBetweenPoints(this.model.currentSymbol as IIShapePolygon, this.currentSymbolOrigin!, pointer)
+        IIShapePolygonHelper.updateParallelogramBetweenPoints(this.model.currentSymbol as TShapePolygon, this.currentSymbolOrigin!, pointer)
         break
       case EditorWriteTool.Rhombus:
-        IIShapePolygon.updateRhombusBetweenPoints(this.model.currentSymbol as IIShapePolygon, this.currentSymbolOrigin!, pointer)
+        IIShapePolygonHelper.updateRhombusBetweenPoints(this.model.currentSymbol as TShapePolygon, this.currentSymbolOrigin!, pointer)
         break
       case EditorWriteTool.Circle:
-        IIShapeCircle.updateBetweenPoints(this.model.currentSymbol as IIShapeCircle, this.currentSymbolOrigin!, pointer)
+        IIShapeCircleHelper.updateBetweenPoints(this.model.currentSymbol as TShapeCircle, this.currentSymbolOrigin!, pointer)
         break
       case EditorWriteTool.Ellipse:
-        IIShapeEllipse.updateBetweenPoints(this.model.currentSymbol as IIShapeEllipse, this.currentSymbolOrigin!, pointer)
+        IIShapeEllipseHelper.updateBetweenPoints(this.model.currentSymbol as TShapeEllipse, this.currentSymbolOrigin!, pointer)
         break
     }
   }
 
   protected updateCurrentSymbolEdge(pointer: TPointer): void
   {
-    const edge = this.model.currentSymbol as TIIEdge
+    const edge = this.model.currentSymbol as TEdge
     switch (edge.kind) {
       case EdgeKind.Line:
-        edge.end = pointer
+        (edge as TEdgeLine).end = pointer
+        updateEdgeDerivedFields(edge)
         break
     }
   }
 
-  protected updateCurrentSymbol(pointer: TPointer): TIISymbol
+  protected updateCurrentSymbol(pointer: TPointer): TSymbol
   {
     if (!this.model.currentSymbol) {
       throw new Error("Can't update current symbol because currentSymbol is undefined")
@@ -194,7 +203,7 @@ export class IIWriterManager extends AbstractWriterManager
 
     switch (this.model.currentSymbol.type) {
       case SymbolType.Stroke:
-        this.model.currentSymbol!.addPointer(pointer)
+        IIStrokeHelper.addPointer(this.model.currentSymbol as TStroke, pointer)
         break
       case SymbolType.Shape:
         this.updateCurrentSymbolShape(pointer)
@@ -234,9 +243,9 @@ export class IIWriterManager extends AbstractWriterManager
     this.renderer.drawSymbol(this.model.currentSymbol!)
   }
 
-  protected async interactWithBackend(stroke: IIStroke): Promise<void>
+  protected async interactWithBackend(stroke: TStroke): Promise<void>
   {
-    const localStroke = stroke.clone()
+    const localStroke = cloneSymbol(stroke) as TStroke
     let gestureFromContextLess: TGesture | undefined
     if (this.needContextLessGesture(stroke)) {
       gestureFromContextLess = await this.gestureManager.getGestureFromContextLess(localStroke)

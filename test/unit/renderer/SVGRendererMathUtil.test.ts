@@ -1,18 +1,18 @@
 import { buildIIDecorator } from "../helpers"
 import {
-  IIMath,
   SymbolType,
-  TIIMathElement,
+  TMathElement,
   TPoint,
   TBox,
   DecoratorKind,
   SVGRendererConst,
   SVGRendererMathUtil
 } from "../../../src/iink"
+import { IIMathHelper } from "../../../src/symbol/helpers/IIMathHelper"
 
 describe("SVGRendererMathUtil.ts", () =>
 {
-  const elements: TIIMathElement[] = [
+  const elements: TMathElement[] = [
     {
       id: "elem-1",
       label: "x",
@@ -43,7 +43,7 @@ describe("SVGRendererMathUtil.ts", () =>
   ]
   const point: TPoint = { x: 10, y: 20 }
   const boundingBox: TBox = { x: 10, y: 10, width: 36, height: 16 }
-  const math = new IIMath(elements, point, boundingBox)
+  const math = IIMathHelper.create(elements, point, boundingBox)
 
   test("should getSVGElement with style for each element", () =>
   {
@@ -111,7 +111,7 @@ describe("SVGRendererMathUtil.ts", () =>
 
   test("should handle superscript and subscript positions", () =>
   {
-    const elementsWithLimits: TIIMathElement[] = [
+    const elementsWithLimits: TMathElement[] = [
       {
         id: "elem-op",
         label: "∑",
@@ -144,7 +144,7 @@ describe("SVGRendererMathUtil.ts", () =>
       }
     ]
 
-    const mathWithLimits = new IIMath(elementsWithLimits, point, boundingBox)
+    const mathWithLimits = IIMathHelper.create(elementsWithLimits, point, boundingBox)
     const el = SVGRendererMathUtil.getSVGElement(mathWithLimits)!
 
     expect(el.getAttribute("id")).toEqual(mathWithLimits.id)

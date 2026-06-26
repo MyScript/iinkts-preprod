@@ -8,13 +8,12 @@ import
   TInteractiveInkEditorOptions,
   TStyle,
   PartialDeep,
-  IIStroke,
+  TStroke,
   SymbolType,
-  IIShapeCircle,
+  TShapeCircle,
   ShapeKind,
-  TIISymbol,
+  TSymbol,
   DecoratorKind,
-  Box,
 } from "../../../src/iink"
 
 describe("EditorOffscreen.ts", () =>
@@ -208,7 +207,7 @@ describe("EditorOffscreen.ts", () =>
     })
     test("create stroke", async () =>
     {
-      const stroke: PartialDeep<IIStroke> = {
+      const stroke: PartialDeep<TStroke> = {
         type: SymbolType.Stroke,
         pointers: [{ x: 0, y: 1, t: 1, p: 1 }]
       }
@@ -219,7 +218,7 @@ describe("EditorOffscreen.ts", () =>
     })
     test("create shape", async () =>
     {
-      const shape: PartialDeep<IIShapeCircle> = {
+      const shape: PartialDeep<TShapeCircle> = {
         type: SymbolType.Shape,
         kind: ShapeKind.Circle,
         center: { x: 5, y: 5 },
@@ -315,7 +314,7 @@ describe("EditorOffscreen.ts", () =>
 
   describe("importPointsEvent", () =>
   {
-    const pStrokes: PartialDeep<IIStroke>[] = [
+    const pStrokes: PartialDeep<TStroke>[] = [
       {
         pointers: [
           { x: 254, y: 37, t: 1, p: 1 },
@@ -474,7 +473,7 @@ describe("EditorOffscreen.ts", () =>
     const text2 = buildIIText()
     const stroke1 = buildIIStroke()
     const stroke2 = buildIIStroke()
-    const symbols: TIISymbol[] = [
+    const symbols: TSymbol[] = [
       stroke1,
       text1,
       stroke2,
@@ -917,7 +916,7 @@ describe("EditorOffscreen.ts", () =>
     {
       const stroke = buildIIStroke()
       editor.model.addSymbol(stroke)
-      editor.getSymbolsBounds = jest.fn(() => new Box({ x: 10, y: 20, width: 200, height: 100 }))
+      editor.getSymbolsBounds = jest.fn(() => ({ x: 10, y: 20, width: 200, height: 100 }))
 
       editor.zoomToFit()
 
@@ -940,7 +939,7 @@ describe("EditorOffscreen.ts", () =>
       const stroke2 = buildIIStroke()
       editor.model.addSymbol(stroke1)
       editor.model.addSymbol(stroke2)
-      const getSymbolsBoundsSpy = jest.spyOn(editor, "getSymbolsBounds").mockReturnValue(new Box({ x: 0, y: 0, width: 100, height: 100 }))
+      const getSymbolsBoundsSpy = jest.spyOn(editor, "getSymbolsBounds").mockReturnValue({ x: 0, y: 0, width: 100, height: 100 })
 
       editor.zoomToFit([stroke1])
 
@@ -951,7 +950,7 @@ describe("EditorOffscreen.ts", () =>
     {
       const stroke = buildIIStroke()
       editor.model.addSymbol(stroke)
-      editor.getSymbolsBounds = jest.fn(() => new Box({ x: 0, y: 0, width: 100000, height: 100000 }))
+      editor.getSymbolsBounds = jest.fn(() => ({ x: 0, y: 0, width: 100000, height: 100000 }))
 
       editor.zoomToFit()
 
@@ -994,7 +993,7 @@ describe("EditorOffscreen.ts", () =>
 
         await editor.paste()
         expect(editor.recognizer.addStrokes).toHaveBeenCalledWith([expect.objectContaining({ type: SymbolType.Stroke })], false)
-        const addedStrokes = (editor.recognizer.addStrokes as jest.Mock).mock.calls[0][0] as IIStroke[]
+        const addedStrokes = (editor.recognizer.addStrokes as jest.Mock).mock.calls[0][0] as TStroke[]
         expect(addedStrokes).toHaveLength(1)
         expect(addedStrokes[0].id).not.toBe(stroke1.id)
       })
@@ -1009,7 +1008,7 @@ describe("EditorOffscreen.ts", () =>
         editor.copy()
 
         await editor.paste()
-        const addedStrokes = (editor.recognizer.addStrokes as jest.Mock).mock.calls[0][0] as IIStroke[]
+        const addedStrokes = (editor.recognizer.addStrokes as jest.Mock).mock.calls[0][0] as TStroke[]
         expect(addedStrokes).toHaveLength(2)
       })
 
@@ -1025,7 +1024,7 @@ describe("EditorOffscreen.ts", () =>
         editor.copy()
 
         await editor.paste()
-        const addedStrokes = (editor.recognizer.addStrokes as jest.Mock).mock.calls[0][0] as TIISymbol[]
+        const addedStrokes = (editor.recognizer.addStrokes as jest.Mock).mock.calls[0][0] as TSymbol[]
         expect(addedStrokes).toHaveLength(1)
       })
 
@@ -1042,7 +1041,7 @@ describe("EditorOffscreen.ts", () =>
         editor.copy()
 
         await editor.paste()
-        const addedStrokes = (editor.recognizer.addStrokes as jest.Mock).mock.calls[0][0] as TIISymbol[]
+        const addedStrokes = (editor.recognizer.addStrokes as jest.Mock).mock.calls[0][0] as TSymbol[]
         expect(addedStrokes).toHaveLength(1)
       })
     })
@@ -1065,7 +1064,7 @@ describe("EditorOffscreen.ts", () =>
         await editor.paste()
 
         expect(editor.renderer.drawSymbol).toHaveBeenCalledTimes(1)
-        const drawn = (editor.renderer.drawSymbol as jest.Mock).mock.calls[0][0] as IIStroke
+        const drawn = (editor.renderer.drawSymbol as jest.Mock).mock.calls[0][0] as TStroke
         expect(drawn.id).not.toBe(stroke.id)
         expect(drawn.type).toBe(SymbolType.Stroke)
       })
@@ -1078,7 +1077,7 @@ describe("EditorOffscreen.ts", () =>
 
         await editor.paste()
 
-        const drawn = (editor.renderer.drawSymbol as jest.Mock).mock.calls[0][0] as IIStroke
+        const drawn = (editor.renderer.drawSymbol as jest.Mock).mock.calls[0][0] as TStroke
         const offset = InteractiveInkEditor.PASTE_OFFSET
         drawn.pointers.forEach((p, i) =>
         {
@@ -1109,8 +1108,8 @@ describe("EditorOffscreen.ts", () =>
 
         const calls = (editor.renderer.drawSymbol as jest.Mock).mock.calls
         expect(calls).toHaveLength(2)
-        const id1 = (calls[0][0] as IIStroke).id
-        const id2 = (calls[1][0] as IIStroke).id
+        const id1 = (calls[0][0] as TStroke).id
+        const id2 = (calls[1][0] as TStroke).id
         expect(id1).not.toBe(id2)
         expect(id1).not.toBe(stroke.id)
         expect(id2).not.toBe(stroke.id)
@@ -1144,7 +1143,7 @@ describe("EditorOffscreen.ts", () =>
 
         await editor.paste()
         expect(editor.renderer.drawSymbol).toHaveBeenCalledTimes(1)
-        const drawn = (editor.renderer.drawSymbol as jest.Mock).mock.calls[0][0] as IIStroke
+        const drawn = (editor.renderer.drawSymbol as jest.Mock).mock.calls[0][0] as TStroke
         expect(drawn.id).not.toBe(stroke.id)
       })
 

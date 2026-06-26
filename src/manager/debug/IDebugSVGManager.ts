@@ -1,6 +1,7 @@
 import { LoggerManager, LoggerCategory } from "@/logger"
 import { IModel } from "@/model"
-import { Box, IIStroke, TBox, TIISymbol, isText } from "@/symbol"
+import { TStroke, TBox, TSymbol, isText } from "@/symbol"
+import { BoxHelper } from "@/symbol/helpers/BoxHelper"
 import { SVGRenderer, SVGRendererConst, SVGBuilder } from "@/renderer"
 import { createUUID } from "@/utils"
 import { InkEditor } from "@/editor"
@@ -48,7 +49,7 @@ export class IDebugSVGManager {
     this.debugRecognitionBoxItems()
   }
 
-  protected drawBoundingBox(symbols: TIISymbol[]): void {
+  protected drawBoundingBox(symbols: TSymbol[]): void {
     const symbolAttrs = {
       style: "pointer-events: none",
       fill: "transparent",
@@ -198,11 +199,11 @@ export class IDebugSVGManager {
         switch (el.type) {
           case "Drawing":
           case "Shape": {
-            const associatedStrokes: IIStroke[] = []
+            const associatedStrokes: TStroke[] = []
             el.range?.forEach(r => {
               associatedStrokes.push(...this.model.strokes.slice(r.from.stroke, r.to.stroke + 1))
             })
-            const box = Box.createFromBoxes(associatedStrokes.map(s => s.bounds))
+            const box = BoxHelper.createFromBoxes(associatedStrokes.map(s => s.bounds))
             let infos: string[] = [`type: ${el.type}`]
             infos.push(...this.buildInfos(el))
             const hideProperties = ["bounding-box", "primitives", "range", "candidates"]
@@ -212,20 +213,20 @@ export class IDebugSVGManager {
             break
           }
           case "Text": {
-            const associatedStrokes: IIStroke[] = []
+            const associatedStrokes: TStroke[] = []
             el.range?.forEach(r => {
               associatedStrokes.push(...this.model.strokes.slice(r.from.stroke, r.to.stroke + 1))
             })
-            const box = Box.createFromBoxes(associatedStrokes.map(s => s.bounds))
+            const box = BoxHelper.createFromBoxes(associatedStrokes.map(s => s.bounds))
             this.drawRecognitionBox(box, [`type: ${el.type}`, `label: ${JSON.stringify(el.label || [])}`], "blue", "recognition-box")
             break
           }
           case "Math": {
-            const associatedStrokes: IIStroke[] = []
+            const associatedStrokes: TStroke[] = []
             el.range?.forEach(r => {
               associatedStrokes.push(...this.model.strokes.slice(r.from.stroke, r.to.stroke + 1))
             })
-            const box = Box.createFromBoxes(associatedStrokes.map(s => s.bounds))
+            const box = BoxHelper.createFromBoxes(associatedStrokes.map(s => s.bounds))
             let infos: string[] = [`type: ${el.type}`]
             infos.push(...this.buildInfos(el))
             const hideProperties = ["bounding-box", "primitives", "range", "candidates"]
@@ -258,11 +259,11 @@ export class IDebugSVGManager {
         switch (el.type) {
           case "Shape": {
             el.elements.forEach(e => {
-              const associatedStrokes: IIStroke[] = []
+              const associatedStrokes: TStroke[] = []
               e.range?.forEach(r => {
                 associatedStrokes.push(...this.model.strokes.slice(r.from.stroke, r.to.stroke + 1))
               })
-              const box = Box.createFromBoxes(associatedStrokes.map(s => s.bounds))
+              const box = BoxHelper.createFromBoxes(associatedStrokes.map(s => s.bounds))
               let infos: string[] = [`type: ${el.type}`]
               infos.push(...this.buildInfos(e))
               const hideProperties = ["bounding-box", "primitives", "range", "candidates"]
@@ -275,12 +276,12 @@ export class IDebugSVGManager {
           case "Text": {
             el.lines?.forEach(e => {
               e.spans?.forEach(s => {
-                const associatedStrokes: IIStroke[] = []
+                const associatedStrokes: TStroke[] = []
                 s.range.forEach(r => {
                   associatedStrokes.push(...this.model.strokes.slice(r.from.stroke, r.to.stroke + 1))
                 })
                 const color = s.type === "Math" ? "#ff6565" : "#099df7"
-                const box = Box.createFromBoxes(associatedStrokes.map(s => s.bounds))
+                const box = BoxHelper.createFromBoxes(associatedStrokes.map(s => s.bounds))
                 this.drawRecognitionBox(box, [`type: ${s.type}`, `label: ${JSON.stringify(s.label || [])}`], color, "recognition-box-items")
               })
             })

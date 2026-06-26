@@ -1,5 +1,5 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { TIISymbol } from "@/symbol"
+import { TSymbol, cloneSymbol } from "@/symbol"
 import { TExport, TJIIXTextElement, TJIIXMathElement, JIIXElementType } from "./Export"
 
 /**
@@ -8,11 +8,11 @@ import { TExport, TJIIXTextElement, TJIIXMathElement, JIIXElementType } from "./
 export class IIModel
 {
   #logger = LoggerManager.getLogger(LoggerCategory.MODEL)
-  #symbolsMap = new Map<string, TIISymbol>()
+  #symbolsMap = new Map<string, TSymbol>()
   readonly creationTime: number
   modificationDate: number
-  currentSymbol?: TIISymbol
-  symbols: TIISymbol[]
+  currentSymbol?: TSymbol
+  symbols: TSymbol[]
   exports?: TExport
   rowHeight: number
   idle: boolean
@@ -39,7 +39,7 @@ export class IIModel
     }
   }
 
-  get symbolsSelected(): TIISymbol[]
+  get symbolsSelected(): TSymbol[]
   {
     return this.symbols.filter(s => s.selected)
   }
@@ -97,7 +97,7 @@ export class IIModel
     this.symbols.forEach(s => s.selected = false)
   }
 
-  getRootSymbol(id: string): TIISymbol | undefined
+  getRootSymbol(id: string): TSymbol | undefined
   {
     this.#syncMap()
     const directMatch = this.#symbolsMap.get(id)
@@ -105,15 +105,15 @@ export class IIModel
     return undefined
   }
 
-  getSymbolRowIndex(symbol: TIISymbol): number
+  getSymbolRowIndex(symbol: TSymbol): number
   {
     // Use symbol bounds yMid for row calculation
-    return Math.round(symbol.bounds.yMid / this.rowHeight)
+    return Math.round((symbol.bounds.y + symbol.bounds.height / 2) / this.rowHeight)
   }
 
-  getSymbolsByRowOrdered(): { rowIndex: number, symbols: TIISymbol[] }[]
+  getSymbolsByRowOrdered(): { rowIndex: number, symbols: TSymbol[] }[]
   {
-    const rowsMap = new Map<number, TIISymbol[]>()
+    const rowsMap = new Map<number, TSymbol[]>()
 
     for (const s of this.symbols) {
       const rowIndex = this.getSymbolRowIndex(s)
@@ -125,9 +125,9 @@ export class IIModel
       }
     }
 
-    const rows: { rowIndex: number, symbols: TIISymbol[] }[] = []
+    const rows: { rowIndex: number, symbols: TSymbol[] }[] = []
     rowsMap.forEach((symbols, rowIndex) => {
-      symbols.sort((s1, s2) => s1.bounds.xMid - s2.bounds.xMid)
+      symbols.sort((s1, s2) => (s1.bounds.x + s1.bounds.width / 2) - (s2.bounds.x + s2.bounds.width / 2))
       rows.push({ rowIndex, symbols })
     })
 
@@ -139,22 +139,22 @@ export class IIModel
     return Math.round(y / this.rowHeight) * this.rowHeight
   }
 
-  isSymbolAbove(source: TIISymbol, target: TIISymbol): boolean
+  isSymbolAbove(source: TSymbol, target: TSymbol): boolean
   {
     return this.getSymbolRowIndex(source) > this.getSymbolRowIndex(target)
   }
 
-  isSymbolInRow(source: TIISymbol, target: TIISymbol): boolean
+  isSymbolInRow(source: TSymbol, target: TSymbol): boolean
   {
     return this.getSymbolRowIndex(source) === this.getSymbolRowIndex(target)
   }
 
-  isSymbolBelow(source: TIISymbol, target: TIISymbol): boolean
+  isSymbolBelow(source: TSymbol, target: TSymbol): boolean
   {
     return this.getSymbolRowIndex(source) < this.getSymbolRowIndex(target)
   }
 
-  getFirstSymbol(symbols: TIISymbol[]): TIISymbol | undefined
+  getFirstSymbol(symbols: TSymbol[]): TSymbol | undefined
   {
     if (!symbols.length) return
     return symbols.reduce((previous, current) =>
@@ -163,7 +163,7 @@ export class IIModel
         if (this.getSymbolRowIndex(previous) < this.getSymbolRowIndex(current)) {
           return previous
         }
-        else if (this.getSymbolRowIndex(previous) == this.getSymbolRowIndex(current) && previous.bounds.xMid < current.bounds.xMid) {
+        else if (this.getSymbolRowIndex(previous) == this.getSymbolRowIndex(current) && (previous.bounds.x + previous.bounds.width / 2) < (current.bounds.x + current.bounds.width / 2)) {
           return previous
         }
       }
@@ -171,7 +171,7 @@ export class IIModel
     })
   }
 
-  getLastSymbol(symbols: TIISymbol[]): TIISymbol | undefined
+  getLastSymbol(symbols: TSymbol[]): TSymbol | undefined
   {
     if (!symbols.length) return
     return symbols.reduce((previous, current) =>
@@ -183,7 +183,7 @@ export class IIModel
         if (this.getSymbolRowIndex(previous) < this.getSymbolRowIndex(current)) {
           return current
         }
-        else if (previous.bounds.xMid > current.bounds.xMid) {
+        else if ((previous.bounds.x + previous.bounds.width / 2) > (current.bounds.x + current.bounds.width / 2)) {
           return previous
         }
       }
@@ -191,7 +191,7 @@ export class IIModel
     })
   }
 
-  addSymbol(symbol: TIISymbol): void
+  addSymbol(symbol: TSymbol): void
   {
     this.#logger.info("addSymbol", { symbol })
     if (this.#symbolsMap.has(symbol.id)) {
@@ -204,7 +204,7 @@ export class IIModel
     this.#logger.debug("addSymbol", this.symbols)
   }
 
-  updateSymbol(updatedSymbol: TIISymbol): void
+  updateSymbol(updatedSymbol: TSymbol): void
   {
     this.#logger.info("updateSymbol", { updatedSymbol })
     const sIndex = this.symbols.findIndex(s => s.id === updatedSymbol.id)
@@ -218,7 +218,7 @@ export class IIModel
     this.#logger.debug("updateSymbol", this.symbols)
   }
 
-  replaceSymbol(id: string, symbols: TIISymbol[]): void
+  replaceSymbol(id: string, symbols: TSymbol[]): void
   {
     const sIndex = this.symbols.findIndex(s => s.id === id)
     if (sIndex !== -1) {
@@ -268,7 +268,7 @@ export class IIModel
     this.#logger.debug("removeSymbol", this.symbols)
   }
 
-  extractDifferenceSymbols(model: IIModel): { added: TIISymbol[], removed: TIISymbol[] }
+  extractDifferenceSymbols(model: IIModel): { added: TSymbol[], removed: TSymbol[] }
   {
     const modelKeys = new Set(model.symbols.map(s => `${s.id}:${s.modificationDate}`))
     const thisKeys = new Set(this.symbols.map(s => `${s.id}:${s.modificationDate}`))
@@ -297,7 +297,7 @@ export class IIModel
     clonedModel.modificationDate = this.modificationDate
     clonedModel.symbols = this.symbols.map(s =>
     {
-      const c = s.clone()
+      const c = cloneSymbol(s)
       c.selected = false
       clonedModel.#symbolsMap.set(c.id, c)
       return c

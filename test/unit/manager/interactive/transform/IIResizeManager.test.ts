@@ -1,22 +1,22 @@
 import { InteractiveInkEditorMock } from "../../../__mocks__/InteractiveInkEditorMock"
 import
 {
-  IIEdgeArc,
-  IIEdgeLine,
-  IIEdgePolyLine,
+  IIEdgeArcHelper,
+  IIEdgeLineHelper,
+  IIEdgePolyLineHelper,
   IIResizeManager,
-  IIShapeCircle,
-  IIShapeEllipse,
-  IIShapePolygon,
-  IIStroke,
-  IIText,
+  IIShapeCircleHelper,
+  IIShapeEllipseHelper,
+  IIShapePolygonHelper,
+  IIStrokeHelper,
   ResizeDirection,
   SvgElementRole,
-  TIISymbolChar,
+  TSymbolChar,
   TPoint
 } from "../../../../../src/iink"
 import { MatrixTransform } from "../../../../../src/transform"
 import { buildIIStroke } from "../../../helpers"
+import { IITextHelper } from "../../../../../src/symbol/helpers/IITextHelper"
 
 describe("IIResizeManager.ts", () =>
 {
@@ -42,10 +42,10 @@ describe("IIResizeManager.ts", () =>
     })
     test("should resize stroke", () =>
     {
-      const stroke = new IIStroke()
+      const stroke = IIStrokeHelper.create()
       const origin: TPoint = { x: 1, y: 2 }
-      stroke.addPointer({ p: 1, t: 1, x: 1, y: 2 })
-      stroke.addPointer({ p: 1, t: 10, x: 21, y: 42 })
+      IIStrokeHelper.addPointer(stroke, { p: 1, t: 1, x: 1, y: 2 })
+      IIStrokeHelper.addPointer(stroke, { p: 1, t: 10, x: 21, y: 42 })
       const matrix = MatrixTransform.identity().scale(2, 3, origin)
       manager.applyToSymbol(stroke, matrix)
       expect(stroke.pointers[0]).toEqual(expect.objectContaining({ x: 1, y: 2 }))
@@ -59,7 +59,7 @@ describe("IIResizeManager.ts", () =>
         { x: 5, y: 5 },
         { x: 5, y: 0 }
       ]
-      const poly = new IIShapePolygon(points)
+      const poly = IIShapePolygonHelper.create(points)
       //@ts-ignore
       poly.kind = "pouet"
       const origin: TPoint = { x: 0, y: 0 }
@@ -70,7 +70,7 @@ describe("IIResizeManager.ts", () =>
     {
       const center: TPoint = { x: 5, y: 5 }
       const radius = 4
-      const shape = new IIShapeCircle(center, radius)
+      const shape = IIShapeCircleHelper.create(center, radius)
       const origin: TPoint = { x: 1, y: 2 }
       const matrix = MatrixTransform.identity().scale(2, 4, origin)
       manager.applyToSymbol(shape, matrix)
@@ -83,10 +83,10 @@ describe("IIResizeManager.ts", () =>
       const radiusX = 50
       const radiusY = 10
       const orientation = 0
-      const shape = new IIShapeEllipse(center, radiusX, radiusY, orientation)
+      const shape = IIShapeEllipseHelper.create(center, radiusX, radiusY, orientation)
       const scaleX = 2
       const scaleY = 4
-      const origin: TPoint = { x: shape.bounds.xMin, y: shape.bounds.yMin }
+      const origin: TPoint = { x: shape.bounds.x, y: shape.bounds.y }
       manager.transformOrigin = origin
       const matrix = MatrixTransform.identity().scale(scaleX, scaleY, origin)
       manager.applyToSymbol(shape, matrix)
@@ -102,10 +102,10 @@ describe("IIResizeManager.ts", () =>
         { x: 20, y: 10 },
         { x: 0, y: 10 },
       ]
-      const shape = new IIShapePolygon(points)
+      const shape = IIShapePolygonHelper.create(points)
       const scaleX = 2
       const scaleY = 4
-      const origin: TPoint = { x: shape.bounds.xMin, y: shape.bounds.yMin }
+      const origin: TPoint = { x: shape.bounds.x, y: shape.bounds.y }
       const matrix = MatrixTransform.identity().scale(scaleX, scaleY, origin)
       manager.applyToSymbol(shape, matrix)
       expect(shape.points[0].x).toEqual(0)
@@ -121,7 +121,7 @@ describe("IIResizeManager.ts", () =>
     {
       const start: TPoint = { x: 0, y: 0 }
       const end: TPoint = { x: 0, y: 5 }
-      const edge = new IIEdgeLine(start, end)
+      const edge = IIEdgeLineHelper.create(start, end)
       //@ts-ignore
       edge.kind = "pouet"
       const origin: TPoint = { x: 0, y: 0 }
@@ -136,8 +136,8 @@ describe("IIResizeManager.ts", () =>
       const radiusX = 50
       const radiusY = 10
       const phi = 0
-      const edge = new IIEdgeArc(center, startAngle, sweepAngle, radiusX, radiusY, phi)
-      const origin: TPoint = { x: edge.bounds.xMin, y: edge.bounds.yMin }
+      const edge = IIEdgeArcHelper.create(center, startAngle, sweepAngle, radiusX, radiusY, phi)
+      const origin: TPoint = { x: edge.bounds.x, y: edge.bounds.y }
       const scaleX = 2
       const scaleY = 3
       manager.transformOrigin = origin
@@ -151,7 +151,7 @@ describe("IIResizeManager.ts", () =>
     {
       const start: TPoint = { x: 0, y: 0 }
       const end: TPoint = { x: 0, y: 5 }
-      const edge = new IIEdgeLine(start, end)
+      const edge = IIEdgeLineHelper.create(start, end)
       const origin: TPoint = { x: 0, y: 0 }
       const matrix = MatrixTransform.identity().scale(2, 3, origin)
       manager.applyToSymbol(edge, matrix)
@@ -166,7 +166,7 @@ describe("IIResizeManager.ts", () =>
         { x: 20, y: 10 },
         { x: 0, y: 10 },
       ]
-      const edge = new IIEdgePolyLine(points)
+      const edge = IIEdgePolyLineHelper.create(points)
       const origin: TPoint = { x: 0, y: 0 }
       const matrix = MatrixTransform.identity().scale(2, 3, origin)
       manager.applyToSymbol(edge, matrix)
@@ -183,7 +183,7 @@ describe("IIResizeManager.ts", () =>
     {
       editor.typeset.updateBounds = jest.fn()
       const point: TPoint = { x: 0, y: 0 }
-      const chars: TIISymbolChar[] = [
+      const chars: TSymbolChar[] = [
         {
           bounds: { height: 10, width: 5, x: 0, y: 0 },
           color: "black",
@@ -193,7 +193,7 @@ describe("IIResizeManager.ts", () =>
           label: "A"
         }
       ]
-      const text = new IIText(chars, point, { height: 10, width: 5, x: 0, y: 0 })
+      const text = IITextHelper.create(chars, point, { height: 10, width: 5, x: 0, y: 0 })
       const origin: TPoint = { x: 0, y: 0 }
       const matrix = MatrixTransform.identity().scale(2, 3, origin)
       manager.applyToSymbol(text, matrix)
@@ -216,105 +216,105 @@ describe("IIResizeManager.ts", () =>
     const manager = new IIResizeManager(editor)
     manager.applyToSymbol = jest.fn()
 
-    const stroke = new IIStroke({})
-    stroke.addPointer({ p: 1, t: 1, x: 0, y: 0 })
-    stroke.addPointer({ p: 1, t: 1, x: 10, y: 50 })
-    const strokeNotResized = stroke.clone()
+    const stroke = IIStrokeHelper.create({})
+    IIStrokeHelper.addPointer(stroke, { p: 1, t: 1, x: 0, y: 0 })
+    IIStrokeHelper.addPointer(stroke, { p: 1, t: 1, x: 10, y: 50 })
+    const strokeNotResized = structuredClone(stroke)
     stroke.selected = true
     editor.model.addSymbol(stroke)
 
     const resizeToPoint: TPoint = {
-      x: (stroke.bounds.xMax + stroke.bounds.xMin) / 4,
-      y: (stroke.bounds.yMax + stroke.bounds.yMin) / 4
+      x: (stroke.bounds.x + stroke.bounds.width + stroke.bounds.x) / 4,
+      y: (stroke.bounds.y + stroke.bounds.height + stroke.bounds.y) / 4
     }
 
     const testDatas = [
       {
         direction: ResizeDirection.North,
         transformOrigin: {
-          x: stroke.bounds.xMid,
-          y: stroke.bounds.yMax
+          x: stroke.bounds.x + stroke.bounds.width / 2,
+          y: stroke.bounds.y + stroke.bounds.height
         },
         scale: {
           x: 1,
-          y: 1 + (stroke.bounds.yMin - resizeToPoint.y) / stroke.bounds.height
+          y: 1 + (stroke.bounds.y - resizeToPoint.y) / stroke.bounds.height
         }
       },
       {
         direction: ResizeDirection.East,
         transformOrigin: {
-          x: stroke.bounds.xMin,
-          y: stroke.bounds.yMid
+          x: stroke.bounds.x,
+          y: stroke.bounds.y + stroke.bounds.height / 2
         },
         scale: {
-          x: 1 + (resizeToPoint.x - stroke.bounds.xMax) / stroke.bounds.width,
+          x: 1 + (resizeToPoint.x - (stroke.bounds.x + stroke.bounds.width)) / stroke.bounds.width,
           y: 1
         }
       },
       {
         direction: ResizeDirection.South,
         transformOrigin: {
-          x: stroke.bounds.xMid,
-          y: stroke.bounds.yMin
+          x: stroke.bounds.x + stroke.bounds.width / 2,
+          y: stroke.bounds.y
         },
         scale: {
           x: 1,
-          y: 1 + (resizeToPoint.y - stroke.bounds.yMax) / stroke.bounds.height,
+          y: 1 + (resizeToPoint.y - (stroke.bounds.y + stroke.bounds.height)) / stroke.bounds.height,
         }
       },
       {
         direction: ResizeDirection.West,
         transformOrigin: {
-          x: stroke.bounds.xMax,
-          y: stroke.bounds.yMid
+          x: stroke.bounds.x + stroke.bounds.width,
+          y: stroke.bounds.y + stroke.bounds.height / 2
         },
         scale: {
-          x: 1 + (stroke.bounds.xMin - resizeToPoint.x) / stroke.bounds.width,
+          x: 1 + (stroke.bounds.x - resizeToPoint.x) / stroke.bounds.width,
           y: 1
         }
       },
       {
         direction: ResizeDirection.NorthEast,
         transformOrigin: {
-          x: stroke.bounds.xMin,
-          y: stroke.bounds.yMax
+          x: stroke.bounds.x,
+          y: stroke.bounds.y + stroke.bounds.height
         },
         scale: {
-          x: 1 + (resizeToPoint.x - stroke.bounds.xMax) / stroke.bounds.width,
-          y: 1 + (stroke.bounds.yMin - resizeToPoint.y) / stroke.bounds.height
+          x: 1 + (resizeToPoint.x - (stroke.bounds.x + stroke.bounds.width)) / stroke.bounds.width,
+          y: 1 + (stroke.bounds.y - resizeToPoint.y) / stroke.bounds.height
         }
       },
       {
         direction: ResizeDirection.NorthWest,
         transformOrigin: {
-          x: stroke.bounds.xMax,
-          y: stroke.bounds.yMax
+          x: stroke.bounds.x + stroke.bounds.width,
+          y: stroke.bounds.y + stroke.bounds.height
         },
         scale: {
-          x: 1 + (stroke.bounds.xMin - resizeToPoint.x) / stroke.bounds.width,
-          y: 1 + (stroke.bounds.yMin - resizeToPoint.y) / stroke.bounds.height
+          x: 1 + (stroke.bounds.x - resizeToPoint.x) / stroke.bounds.width,
+          y: 1 + (stroke.bounds.y - resizeToPoint.y) / stroke.bounds.height
         }
       },
       {
         direction: ResizeDirection.SouthEast,
         transformOrigin: {
-          x: stroke.bounds.xMin,
-          y: stroke.bounds.yMin
+          x: stroke.bounds.x,
+          y: stroke.bounds.y
         },
         scale: {
-          x: 1 + (resizeToPoint.x - stroke.bounds.xMax) / stroke.bounds.width,
-          y: 1 + (resizeToPoint.y - stroke.bounds.yMax) / stroke.bounds.height,
+          x: 1 + (resizeToPoint.x - (stroke.bounds.x + stroke.bounds.width)) / stroke.bounds.width,
+          y: 1 + (resizeToPoint.y - (stroke.bounds.y + stroke.bounds.height)) / stroke.bounds.height,
         }
       },
       {
         direction: ResizeDirection.SouthWest,
         transformOrigin: {
-          x: stroke.bounds.xMax,
-          y: stroke.bounds.yMin
+          x: stroke.bounds.x + stroke.bounds.width,
+          y: stroke.bounds.y
         },
         scale: {
-          x: 1 + (stroke.bounds.xMin - resizeToPoint.x) / stroke.bounds.width,
-          y: 1 + (resizeToPoint.y - stroke.bounds.yMax) / stroke.bounds.height,
+          x: 1 + (stroke.bounds.x - resizeToPoint.x) / stroke.bounds.width,
+          y: 1 + (resizeToPoint.y - (stroke.bounds.y + stroke.bounds.height)) / stroke.bounds.height,
         }
       },
     ]

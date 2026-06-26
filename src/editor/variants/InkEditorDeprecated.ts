@@ -1,7 +1,7 @@
 import { EditorTool } from "@/Constants"
 import { PointerEventGrabber, PointerInfo } from "@/grabber"
 import { Model, TExport } from "@/model"
-import { Stroke, TStroke, TPointer } from "@/symbol"
+import { Stroke, TLegacyStroke, TPointer } from "@/symbol"
 import { RecognizerHTTPV1, TConverstionState } from "@/recognizer"
 import { CanvasRenderer } from "@/renderer"
 import { DefaultPenStyle, StyleManager, TPenStyle, TTheme } from "@/style"
@@ -303,7 +303,7 @@ export class InkEditorDeprecated extends AbstractEditor
     return this.model
   }
 
-  async importPointEvents(strokes: PartialDeep<TStroke>[]): Promise<Model>
+  async importPointEvents(strokes: PartialDeep<TLegacyStroke>[]): Promise<Model>
   {
     const errors: string[] = []
     strokes.forEach((s, strokeIndex) =>

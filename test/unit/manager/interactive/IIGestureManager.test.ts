@@ -4,11 +4,12 @@ import
 {
   DefaultIIRendererConfiguration,
   TGesture,
-  TIISymbolChar,
+  TSymbolChar,
   IIGestureManager,
-  IIStroke,
+  TStroke,
   TRecognizerWebSocketMessageType
 } from "../../../../src/iink"
+import { BoxHelper } from "../../../../src/iink"
 
 describe("IIGestureManager.ts", () =>
 {
@@ -163,7 +164,7 @@ describe("IIGestureManager.ts", () =>
 
     test("should erase text symbol", async () =>
     {
-      const chars: TIISymbolChar[] = [
+      const chars: TSymbolChar[] = [
         {
           bounds: { height: 10, width: 5, x: 0, y: 10 },
           color: "black",
@@ -200,7 +201,7 @@ describe("IIGestureManager.ts", () =>
 
     test("should partially erase text symbol", async () =>
     {
-      const chars: TIISymbolChar[] = [
+      const chars: TSymbolChar[] = [
         {
           bounds: { height: 10, width: 5, x: 0, y: 10 },
           color: "black",
@@ -319,7 +320,7 @@ describe("IIGestureManager.ts", () =>
       }
       // @ts-expect-error - Method moved to JoinGestureHandler
       await gestMan.applyJoinGesture(strokeGesture, gesture)
-      expect(gestMan.translator.translate).toHaveBeenNthCalledWith(1, [stroke21], stroke12.bounds.xMax - stroke21.bounds.xMin + rowHeight * 2, -rowHeight, false)
+      expect(gestMan.translator.translate).toHaveBeenNthCalledWith(1, [stroke21], (stroke12.bounds.x + stroke12.bounds.width) - stroke21.bounds.x + rowHeight * 2, -rowHeight, false)
       expect(gestMan.history.push).toHaveBeenCalledTimes(1)
     })
 
@@ -373,7 +374,7 @@ describe("IIGestureManager.ts", () =>
 
     test("should go down stroke", async () =>
     {
-      const strokeGesture = buildIIStroke({ box: { height: stroke.bounds.height, width: 5, x: stroke.bounds.xMin - 10, y: stroke.bounds.yMin } })
+      const strokeGesture = buildIIStroke({ box: { height: stroke.bounds.height, width: 5, x: stroke.bounds.x - 10, y: stroke.bounds.y } })
       const gesture: TGesture = {
         gestureType: "JOIN",
         gestureStrokeId: strokeGesture.id,
@@ -408,7 +409,7 @@ describe("IIGestureManager.ts", () =>
 
     test("should return undefined when recognizeGesture return nothing", async () =>
     {
-      gestMan.recognizer.recognizeGesture = jest.fn((stroke: IIStroke) => Promise.resolve({
+      gestMan.recognizer.recognizeGesture = jest.fn((stroke: TStroke) => Promise.resolve({
         type: TRecognizerWebSocketMessageType.ContextlessGesture,
         gestureType: "none",
         strokeId: stroke.id
@@ -422,7 +423,7 @@ describe("IIGestureManager.ts", () =>
 
       beforeAll(() =>
       {
-        gestMan.recognizer.recognizeGesture = jest.fn((stroke: IIStroke) => Promise.resolve({
+        gestMan.recognizer.recognizeGesture = jest.fn((stroke: TStroke) => Promise.resolve({
           type: TRecognizerWebSocketMessageType.ContextlessGesture,
           gestureType: "surround",
           strokeId: stroke.id
@@ -437,13 +438,13 @@ describe("IIGestureManager.ts", () =>
       test("should return undefined when the gesture stroke contains no symbols", async () =>
       {
         const gestureStroke = buildIIStroke({ box: { height: 10, width: 10, x: 0, y: 0 } })
-        editor.model.addSymbol(buildIICircle({ center: gestureStroke.bounds.center, radius: Math.max(gestureStroke.bounds.width * 2, gestureStroke.bounds.height * 2) }))
+        editor.model.addSymbol(buildIICircle({ center: BoxHelper.getCenter(gestureStroke.bounds), radius: Math.max(gestureStroke.bounds.width * 2, gestureStroke.bounds.height * 2) }))
         expect(await gestMan.getGestureFromContextLess(gestureStroke)).toBeUndefined()
       })
       test("should return gesture when the gesture stroke contains symbol", async () =>
       {
         const gestureStroke = buildIIStroke({ box: { height: 10, width: 10, x: 0, y: 0 } })
-        editor.model.addSymbol(buildIICircle({ center: gestureStroke.bounds.center, radius: Math.min(gestureStroke.bounds.width / 2, gestureStroke.bounds.height / 2) }))
+        editor.model.addSymbol(buildIICircle({ center: BoxHelper.getCenter(gestureStroke.bounds), radius: Math.min(gestureStroke.bounds.width / 2, gestureStroke.bounds.height / 2) }))
         expect(await gestMan.getGestureFromContextLess(gestureStroke)).toEqual(expect.objectContaining({
           gestureType: "SURROUND",
           gestureStrokeId: gestureStroke.id
@@ -455,7 +456,7 @@ describe("IIGestureManager.ts", () =>
     {
       beforeAll(() =>
       {
-        gestMan.recognizer.recognizeGesture = jest.fn((stroke: IIStroke) => Promise.resolve({
+        gestMan.recognizer.recognizeGesture = jest.fn((stroke: TStroke) => Promise.resolve({
           type: TRecognizerWebSocketMessageType.ContextlessGesture,
           gestureType: "left-right",
           strokeId: stroke.id
@@ -501,7 +502,7 @@ describe("IIGestureManager.ts", () =>
 
       beforeAll(() =>
       {
-        gestMan.recognizer.recognizeGesture = jest.fn((stroke: IIStroke) => Promise.resolve({
+        gestMan.recognizer.recognizeGesture = jest.fn((stroke: TStroke) => Promise.resolve({
           type: TRecognizerWebSocketMessageType.ContextlessGesture,
           gestureType: "scratch",
           strokeId: stroke.id
@@ -531,7 +532,7 @@ describe("IIGestureManager.ts", () =>
     {
       beforeAll(() =>
       {
-        gestMan.recognizer.recognizeGesture = jest.fn((stroke: IIStroke) => Promise.resolve({
+        gestMan.recognizer.recognizeGesture = jest.fn((stroke: TStroke) => Promise.resolve({
           type: TRecognizerWebSocketMessageType.ContextlessGesture,
           gestureType: "bottom-top",
           strokeId: stroke.id
@@ -560,7 +561,7 @@ describe("IIGestureManager.ts", () =>
     {
       beforeAll(() =>
       {
-        gestMan.recognizer.recognizeGesture = jest.fn((stroke: IIStroke) => Promise.resolve({
+        gestMan.recognizer.recognizeGesture = jest.fn((stroke: TStroke) => Promise.resolve({
           type: TRecognizerWebSocketMessageType.ContextlessGesture,
           gestureType: "top-bottom",
           strokeId: stroke.id

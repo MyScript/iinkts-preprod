@@ -1,5 +1,5 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { TPoint, TCanvasShapeEllipseSymbol, TCanvasShapeLineSymbol, TCanvasShapeTableSymbol, TSymbol } from "@/symbol"
+import { TPoint, TCanvasShapeEllipseSymbol, TCanvasShapeLineSymbol, TCanvasShapeTableSymbol, TBaseSymbol } from "@/symbol"
 import { normalizeAngle, computeEllipseArcPoints } from "@/utils"
 
 /**
@@ -109,7 +109,7 @@ export class CanvasRendererShape
     }
   }
 
-  draw(context2D: CanvasRenderingContext2D, symbol: TSymbol)
+  draw(context2D: CanvasRenderingContext2D, symbol: TBaseSymbol)
   {
     this.#logger.info("draw", { context2D, symbol })
     context2D.save()

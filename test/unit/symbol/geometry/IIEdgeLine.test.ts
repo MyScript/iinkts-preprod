@@ -1,6 +1,6 @@
+import { IIEdgeLineHelper } from "../../../../src/symbol/helpers/IIEdgeLineHelper"
 import
 {
-  IIEdgeLine,
   TPoint,
   DefaultStyle,
   TStyle,
@@ -19,7 +19,7 @@ describe("IIEdgeLine.ts", () =>
         color: "blue",
         width: 20,
       }
-      const line = new IIEdgeLine(start, end, undefined, undefined, style)
+      const line = IIEdgeLineHelper.create(start, end, undefined, undefined, style)
       expect(line).toBeDefined()
       expect(line.creationTime).toBeLessThanOrEqual(Date.now())
       expect(line.creationTime).toEqual(line.modificationDate)
@@ -37,7 +37,7 @@ describe("IIEdgeLine.ts", () =>
     {
       const start: TPoint = { x: 0, y: 0 }
       const end: TPoint = { x: 5, y: 5 }
-      const line = new IIEdgeLine(start, end)
+      const line = IIEdgeLineHelper.create(start, end)
       expect(line.style).toEqual(DefaultStyle)
     })
   })
@@ -45,21 +45,21 @@ describe("IIEdgeLine.ts", () =>
   {
     const start: TPoint = { x: 0, y: 0 }
     const end: TPoint = { x: 0, y: 25 }
-    const line = new IIEdgeLine(start, end)
+    const line = IIEdgeLineHelper.create(start, end)
     test(`should return true if partially wrap`, () =>
     {
       const boundaries: TBox = { height: 10, width: 10, x: -5, y: -5 }
-      expect(line.overlaps(boundaries)).toEqual(true)
+      expect(IIEdgeLineHelper.overlaps(line, boundaries)).toEqual(true)
     })
     test(`should return true if totally wrap`, () =>
     {
       const boundaries: TBox = { height: 50, width: 50, x: -25, y: -25 }
-      expect(line.overlaps(boundaries)).toEqual(true)
+      expect(IIEdgeLineHelper.overlaps(line, boundaries)).toEqual(true)
     })
     test(`should return false if box is outside`, () =>
     {
       const boundaries: TBox = { height: 2, width: 2, x: 50, y: 50 }
-      expect(line.overlaps(boundaries)).toEqual(false)
+      expect(IIEdgeLineHelper.overlaps(line, boundaries)).toEqual(false)
     })
   })
   describe("clone", () =>
@@ -72,8 +72,8 @@ describe("IIEdgeLine.ts", () =>
         color: "blue",
         width: 20
       }
-      const line = new IIEdgeLine(start, end, undefined, undefined, style)
-      const clone = line.clone()
+      const line = IIEdgeLineHelper.create(start, end, undefined, undefined, style)
+      const clone = structuredClone(line)
       expect(clone).toEqual(line)
       expect(clone).not.toBe(line)
     })

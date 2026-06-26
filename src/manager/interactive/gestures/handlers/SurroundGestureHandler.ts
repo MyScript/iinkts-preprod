@@ -1,4 +1,5 @@
-import { IIStroke, DecoratorKind } from "@/symbol"
+import { TStroke, DecoratorKind } from "@/symbol"
+import { BoxHelper } from "@/symbol/helpers/BoxHelper"
 import type { InteractiveInkEditor } from "@/editor"
 import type { TGesture } from "@/manager/interactive/gestures/GestureTypes"
 import { SurroundAction } from "@/manager/interactive/gestures/GestureTypes"
@@ -19,10 +20,10 @@ export class SurroundGestureHandler extends GestureHandler
     super(editor, helpers)
   }
 
-  async apply(gestureStroke: IIStroke, gesture: TGesture): Promise<void>
+  async apply(gestureStroke: TStroke, gesture: TGesture): Promise<void>
   {
     this.logger.info("applySurroundGesture", { gestureStroke, gesture })
-    const ids = this.model.symbols.filter(s => gestureStroke.bounds.contains(s.bounds)).map(s => s.id)
+    const ids = this.model.symbols.filter(s => BoxHelper.contains(gestureStroke.bounds, s.bounds)).map(s => s.id)
 
     switch (this.manager.surroundAction) {
       case SurroundAction.Select:

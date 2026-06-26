@@ -1,15 +1,18 @@
+import { IIStrokeHelper } from "@/symbol/helpers"
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import
 {
   EdgeKind,
-  IIStroke,
-  IIText,
-  IIMath,
+  TStroke,
+  TText,
+  TMath,
   ShapeKind,
-  TIIEdge,
-  TIIShape,
-  TIISymbol,
-  TPoint
+  TEdge,
+  TShape,
+  TSymbol,
+  TPoint,
+  updateShapeDerivedFields,
+  updateEdgeDerivedFields,
 } from "@/symbol"
 import { MatrixTransform } from "@/transform"
 import { IIAbstractTransformManager } from "./AbstractTransformManager"
@@ -28,22 +31,25 @@ export class IITranslateManager extends IIAbstractTransformManager
     super(editor)
   }
 
-  protected applyToStroke(stroke: IIStroke, matrix: MatrixTransform): IIStroke
+  protected applyToStroke(stroke: TStroke, matrix: MatrixTransform): TStroke
   {
     this.applyMatrixToPoints(stroke.pointers, matrix)
+    IIStrokeHelper.updateBounds(stroke)
     return stroke
   }
 
-  protected applyToShape(shape: TIIShape, matrix: MatrixTransform): TIIShape
+  protected applyToShape(shape: TShape, matrix: MatrixTransform): TShape
   {
     switch (shape.kind) {
       case ShapeKind.Ellipse:
       case ShapeKind.Circle: {
         shape.center = matrix.applyToPoint(shape.center)
+        updateShapeDerivedFields(shape)
         return shape
       }
       case ShapeKind.Polygon: {
         this.applyMatrixToPoints(shape.points, matrix)
+        updateShapeDerivedFields(shape)
         return shape
       }
       default:
@@ -51,27 +57,30 @@ export class IITranslateManager extends IIAbstractTransformManager
     }
   }
 
-  protected applyToEdge(edge: TIIEdge, matrix: MatrixTransform): TIIEdge
+  protected applyToEdge(edge: TEdge, matrix: MatrixTransform): TEdge
   {
     switch (edge.kind) {
       case EdgeKind.Arc: {
         edge.center = matrix.applyToPoint(edge.center)
+        updateEdgeDerivedFields(edge)
         return edge
       }
       case EdgeKind.Line: {
         edge.start = matrix.applyToPoint(edge.start)
         edge.end = matrix.applyToPoint(edge.end)
+        updateEdgeDerivedFields(edge)
         return edge
       }
       case EdgeKind.PolyEdge: {
         this.applyMatrixToPoints(edge.points, matrix)
+        updateEdgeDerivedFields(edge)
         return edge
       }
     }
     return edge
   }
 
-  protected applyOnText(text: IIText, matrix: MatrixTransform): IIText
+  protected applyOnText(text: TText, matrix: MatrixTransform): TText
   {
     if (text.rotation) {
       text.rotation.center = matrix.applyToPoint(text.rotation.center)
@@ -82,7 +91,7 @@ export class IITranslateManager extends IIAbstractTransformManager
     return this.editor.typeset.updateBounds(text)
   }
 
-  protected applyOnMath(math: IIMath, matrix: MatrixTransform): IIMath
+  protected applyOnMath(math: TMath, matrix: MatrixTransform): TMath
   {
     if (math.rotation) {
       math.rotation.center = matrix.applyToPoint(math.rotation.center)
@@ -105,7 +114,7 @@ export class IITranslateManager extends IIAbstractTransformManager
     return math
   }
 
-  translate(symbols: TIISymbol[], tx: number, ty: number, addToHistory = true): Promise<void>
+  translate(symbols: TSymbol[], tx: number, ty: number, addToHistory = true): Promise<void>
   {
     this.logger.info("translate", { symbols, tx, ty })
     const matrix = MatrixTransform.identity().translate(tx, ty)

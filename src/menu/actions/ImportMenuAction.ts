@@ -1,7 +1,7 @@
 import { InteractiveInkEditor } from "@/editor"
 import { SubMenuItem, IMenuSubMenu } from "@/menu/items/SubMenuItem"
 import { PartialDeep } from "@/utils"
-import { TIISymbol } from "@/symbol"
+import { TSymbol } from "@/symbol"
 import uploadIcon from "@/assets/svg/upload.svg"
 
 /**
@@ -30,7 +30,7 @@ export class ImportMenuAction extends SubMenuItem
           action: async (editor, files) => {
             if (files.length) {
               const fileString = await this.readFileAsText(files[0])
-              const symbols = JSON.parse(fileString) as PartialDeep<TIISymbol>[]
+              const symbols = JSON.parse(fileString) as PartialDeep<TSymbol>[]
               await editor.createSymbols(symbols)
             }
           }
