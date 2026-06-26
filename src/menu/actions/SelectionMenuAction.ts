@@ -1,6 +1,7 @@
-import { InteractiveInkEditor } from "@/editor"
-import { SubMenuItem, IMenuSubMenu } from "@/menu/items/SubMenuItem"
-import { IMenuSelect } from "@/menu/items/SelectMenuItem"
+import type { InteractiveInkEditor } from "@/editor"
+import type { TMenuSubMenu } from "@/menu/items/SubMenuItem";
+import { SubMenuItem } from "@/menu/items/SubMenuItem"
+import type { TMenuSelect } from "@/menu/items/SelectMenuItem"
 import frameSelectIcon from "@/assets/svg/frame-select.svg"
 
 /** @group Menu */
@@ -22,7 +23,7 @@ export class SelectionMenuAction extends SubMenuItem
   {
     const enabled = (key: keyof TSelectionActionItemsConfig) => itemsConfig?.[key] !== false
 
-    const items: IMenuSelect[] = []
+    const items: TMenuSelect[] = []
 
     if (enabled("text") && editor.configuration.recognition["raw-content"].recognition?.types.includes("text")) {
       items.push({
@@ -73,7 +74,7 @@ export class SelectionMenuAction extends SubMenuItem
       })
     }
 
-    const config: IMenuSubMenu = {
+    const config: TMenuSubMenu = {
       type: "submenu",
       id: `${idPrefix}-selection`,
       label: "Selection",

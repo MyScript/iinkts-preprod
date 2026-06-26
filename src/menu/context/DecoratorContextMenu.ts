@@ -1,7 +1,9 @@
-import { InteractiveInkEditor } from "@/editor"
-import { BaseMenuItem, TGenericMenuItem } from "@/menu/items/BaseMenuItem"
+import type { InteractiveInkEditor } from "@/editor"
+import type { TGenericMenuItem } from "@/menu/items/BaseMenuItem";
+import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
 import ArrowDown from "@/assets/svg/nav-arrow-down.svg"
-import { DecoratorKind, TText, isRecognizedMath, isText } from "@/symbol"
+import type { TText} from "@/symbol";
+import { DecoratorKind, isRecognizedMath, isText } from "@/symbol"
 import { IIDecoratorHelper } from "@/symbol/helpers/IIDecoratorHelper"
 import { DEFAULT_MENU_COLORS } from "@/menu/MenuConstants"
 

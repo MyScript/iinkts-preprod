@@ -1,6 +1,8 @@
-import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
-import { TJIIXStrokeItem, TJIIXMathElement, TJIIXMathExpression, TJIIXTextElement, TJIIXNodeElement, TJIIXEdgeElement, TJIIXEdgeLine, JIIXElementType, JIIXEdgeKind } from "@/model"
-import { TStroke, isStroke } from "@/symbol"
+import type { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import type { TJIIXStrokeItem, TJIIXMathElement, TJIIXMathExpression, TJIIXTextElement, TJIIXNodeElement, TJIIXEdgeElement, TJIIXEdgeLine} from "@/model";
+import { JIIXElementType, JIIXEdgeKind } from "@/model"
+import type { TStroke} from "@/symbol";
+import { isStroke } from "@/symbol"
 import { IIAbstractManager } from "./IIAbstractManager"
 import { LoggerCategory } from "@/logger"
 

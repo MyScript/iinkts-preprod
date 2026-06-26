@@ -1,16 +1,17 @@
 import { IIStrokeHelper } from "@/symbol/helpers"
-import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
-import
-{
-  EdgeKind,
+import type { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import type {
   TStroke,
   TText,
   TMath,
-  ShapeKind,
   TEdge,
   TShape,
   TSymbol,
-  TPoint,
+  TPoint} from "@/symbol";
+import
+{
+  EdgeKind,
+  ShapeKind,
   updateShapeDerivedFields,
   updateEdgeDerivedFields,
 } from "@/symbol"

@@ -1,12 +1,20 @@
-import { DefaultGrabberConfiguration, TGrabberConfiguration } from "@/grabber"
-import { DefaultHistoryConfiguration, THistoryConfiguration } from "@/history"
-import { DefaultLoggerConfiguration, TLoggerConfiguration } from "@/logger"
-import { DefaultRecognizerHTTPV2Configuration, RecognizerHTTPV2Configuration, TRecognizerHTTPV2Configuration, TRecognizerHTTPV2RecognitionConfiguration, TServerHTTPConfiguration } from "@/recognizer"
-import { DefaultIIRendererConfiguration, TIIRendererConfiguration } from "@/renderer"
-import { DefaultStyle, TStyle } from "@/style"
-import { convertPixelToMillimeter, mergeDeep, PartialDeep } from "@/utils"
-import { TEditorConfiguration } from "@/editor/AbstractEditor"
-import { DefaultEditorTriggerConfiguration, TEditorTriggerConfiguration } from "@/editor/EditorTriggerConfiguration"
+import type { TGrabberConfiguration } from "@/grabber";
+import { DefaultGrabberConfiguration } from "@/grabber"
+import type { THistoryConfiguration } from "@/history";
+import { DefaultHistoryConfiguration } from "@/history"
+import type { TLoggerConfiguration } from "@/logger";
+import { DefaultLoggerConfiguration } from "@/logger"
+import type { TRecognizerHTTPV2Configuration, TRecognizerHTTPV2RecognitionConfiguration, TServerHTTPConfiguration } from "@/recognizer";
+import { DefaultRecognizerHTTPV2Configuration, RecognizerHTTPV2Configuration } from "@/recognizer"
+import type { TIIRendererConfiguration } from "@/renderer";
+import { DefaultIIRendererConfiguration } from "@/renderer"
+import type { TStyle } from "@/style";
+import { DefaultStyle } from "@/style"
+import type { TPartialDeep } from "@/utils";
+import { convertPixelToMillimeter, mergeDeep } from "@/utils"
+import type { TEditorConfiguration } from "@/editor/AbstractEditor"
+import type { TEditorTriggerConfiguration } from "@/editor/EditorTriggerConfiguration";
+import { DefaultEditorTriggerConfiguration } from "@/editor/EditorTriggerConfiguration"
 
 
 /**
@@ -50,7 +58,7 @@ export class InkEditorConfiguration implements TInkEditorConfiguration
   logger: TLoggerConfiguration
   penStyle: TStyle
 
-  constructor(configuration?: PartialDeep<InkEditorConfiguration>)
+  constructor(configuration?: TPartialDeep<InkEditorConfiguration>)
   {
     const { server, recognition } = new RecognizerHTTPV2Configuration(configuration)
     this.server = server

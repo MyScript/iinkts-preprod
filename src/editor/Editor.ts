@@ -1,5 +1,6 @@
-import { EditorType } from "./AbstractEditor"
-import { EditorFactory, EditorVariantMap, EditorOptionsMap } from "./EditorFactory"
+import type { TEditorType } from "./AbstractEditor"
+import type { TEditorVariantMap, TEditorOptionsMap } from "./EditorFactory";
+import { EditorFactory } from "./EditorFactory"
 
 /**
  * @group Editor
@@ -33,11 +34,11 @@ export class Editor
    * This method will destroy any previously loaded editor instance before creating a new one.
    * Use {@link getInstance} to access the currently active editor.
    */
-  static async load<T extends EditorType>(
+  static async load<T extends TEditorType>(
     rootElement: HTMLElement,
     type: T,
-    options: EditorOptionsMap[T]
-  ): Promise<EditorVariantMap[T]>
+    options: TEditorOptionsMap[T]
+  ): Promise<TEditorVariantMap[T]>
   {
     return EditorFactory.createEditor(rootElement, type, options)
   }
@@ -47,7 +48,7 @@ export class Editor
    *
    * @returns The current editor instance or undefined if none exists
    */
-  static getInstance(): EditorVariantMap[EditorType] | undefined
+  static getInstance(): TEditorVariantMap[TEditorType] | undefined
   {
     return EditorFactory.getInstance()
   }
@@ -59,7 +60,7 @@ export class Editor
    * @param type - The editor type to retrieve
    * @returns The editor instance of the specified type or undefined
    */
-  static getInstanceByType<T extends EditorType>(type: T): EditorVariantMap[T] | undefined
+  static getInstanceByType<T extends TEditorType>(type: T): TEditorVariantMap[T] | undefined
   {
     return EditorFactory.getInstanceByType(type)
   }

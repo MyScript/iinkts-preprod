@@ -1,4 +1,5 @@
-import { DecoratorKind, TMath } from "@/symbol"
+import type { TMath } from "@/symbol";
+import { DecoratorKind } from "@/symbol"
 import { SVGRendererDecoratorUtil } from "./SVGRendererDecoratorUtil"
 import { SVGRendererConst } from "./utils/SVGRendererConst"
 import { SVGBuilder } from "./utils/SVGBuilder"

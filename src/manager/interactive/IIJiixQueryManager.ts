@@ -1,15 +1,16 @@
-import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
-import {
+import type { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import type {
   TJIIXElement,
   TJIIXTextElement,
   TJIIXMathElement,
   TJIIXNodeElement,
   TJIIXEdgeElement,
   TJIIXMathExpression,
-  TJIIXStrokeItem,
+  TJIIXStrokeItem} from "@/model";
+import {
   JIIXElementType
 } from "@/model"
-import { TStroke, TBox, TSymbol } from "@/symbol"
+import type { TStroke, TBox, TSymbol } from "@/symbol"
 import { BoxHelper } from "@/symbol/helpers/BoxHelper"
 import { convertMillimeterToPixel, convertBoundingBoxMillimeterToPixel } from "@/utils"
 import { IIAbstractManager } from "./IIAbstractManager"

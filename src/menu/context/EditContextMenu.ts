@@ -1,7 +1,9 @@
-import { InteractiveInkEditor } from "@/editor"
-import { BaseMenuItem, TGenericMenuItem } from "@/menu/items/BaseMenuItem"
+import type { InteractiveInkEditor } from "@/editor"
+import type { TGenericMenuItem } from "@/menu/items/BaseMenuItem";
+import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
 import ArrowDown from "@/assets/svg/nav-arrow-down.svg"
-import { TText, isText } from "@/symbol"
+import type { TText} from "@/symbol";
+import { isText } from "@/symbol"
 import { createUUID } from "@/utils"
 
 /**

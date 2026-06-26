@@ -11,7 +11,7 @@ import type {
 } from "./index"
 import type { TShapeCircle, TShapeEllipse, TShapePolygon } from "./geometry"
 import type { TEdgeArc, TEdgeLine, TEdgePolyLine } from "./geometry"
-import { PartialDeep } from "@/utils"
+import type { TPartialDeep } from "@/utils"
 import { SymbolType } from "./base/Symbol"
 import { ShapeKind } from "./geometry/IIShape"
 import { EdgeKind } from "./geometry/IIEdge"
@@ -284,15 +284,15 @@ export function getEdgeResizePoints(edge: TEdge): { point: TPoint, vertexIndex: 
  * @group Symbol
  * @summary Create a TShape from partial data — dispatches by kind.
  */
-export function createShapeFromPartial(partial: PartialDeep<TShape>): TShape
+export function createShapeFromPartial(partial: TPartialDeep<TShape>): TShape
 {
   switch (partial.kind) {
     case ShapeKind.Circle:
-      return IIShapeCircleHelper.createFromPartial(partial as PartialDeep<TShapeCircle>)
+      return IIShapeCircleHelper.createFromPartial(partial as TPartialDeep<TShapeCircle>)
     case ShapeKind.Ellipse:
-      return IIShapeEllipseHelper.createFromPartial(partial as PartialDeep<TShapeEllipse>)
+      return IIShapeEllipseHelper.createFromPartial(partial as TPartialDeep<TShapeEllipse>)
     case ShapeKind.Polygon:
-      return IIShapePolygonHelper.createFromPartial(partial as PartialDeep<TShapePolygon>)
+      return IIShapePolygonHelper.createFromPartial(partial as TPartialDeep<TShapePolygon>)
     default:
       throw new Error(`Unable to create shape, kind: "${ partial.kind }" is unknown`)
   }
@@ -302,15 +302,15 @@ export function createShapeFromPartial(partial: PartialDeep<TShape>): TShape
  * @group Symbol
  * @summary Create a TEdge from partial data — dispatches by kind.
  */
-export function createEdgeFromPartial(partial: PartialDeep<TEdge>): TEdge
+export function createEdgeFromPartial(partial: TPartialDeep<TEdge>): TEdge
 {
   switch (partial.kind) {
     case EdgeKind.Arc:
-      return IIEdgeArcHelper.createFromPartial(partial as PartialDeep<TEdgeArc>)
+      return IIEdgeArcHelper.createFromPartial(partial as TPartialDeep<TEdgeArc>)
     case EdgeKind.Line:
-      return IIEdgeLineHelper.createFromPartial(partial as PartialDeep<TEdgeLine>)
+      return IIEdgeLineHelper.createFromPartial(partial as TPartialDeep<TEdgeLine>)
     case EdgeKind.PolyEdge:
-      return IIEdgePolyLineHelper.createFromPartial(partial as PartialDeep<TEdgePolyLine>)
+      return IIEdgePolyLineHelper.createFromPartial(partial as TPartialDeep<TEdgePolyLine>)
     default:
       throw new Error(`Unable to create edge, kind: "${ partial.kind }" is unknown`)
   }
@@ -320,19 +320,19 @@ export function createEdgeFromPartial(partial: PartialDeep<TEdge>): TEdge
  * @group Symbol
  * @summary Create any TSymbol from partial data — dispatches by type.
  */
-export function createSymbolFromPartial(partial: PartialDeep<TSymbol>): TSymbol
+export function createSymbolFromPartial(partial: TPartialDeep<TSymbol>): TSymbol
 {
   switch (partial.type) {
     case SymbolType.Stroke:
-      return IIStrokeHelper.createFromPartial(partial as PartialDeep<TStroke>)
+      return IIStrokeHelper.createFromPartial(partial as TPartialDeep<TStroke>)
     case SymbolType.Shape:
-      return createShapeFromPartial(partial as PartialDeep<TShape>)
+      return createShapeFromPartial(partial as TPartialDeep<TShape>)
     case SymbolType.Edge:
-      return createEdgeFromPartial(partial as PartialDeep<TEdge>)
+      return createEdgeFromPartial(partial as TPartialDeep<TEdge>)
     case SymbolType.Text:
-      return IITextHelper.createFromPartial(partial as PartialDeep<TText>)
+      return IITextHelper.createFromPartial(partial as TPartialDeep<TText>)
     case SymbolType.Math:
-      return IIMathHelper.createFromPartial(partial as PartialDeep<TMath>)
+      return IIMathHelper.createFromPartial(partial as TPartialDeep<TMath>)
     default:
       throw new Error(`Unable to create symbol, type: "${ partial.type }" is unknown`)
   }
@@ -342,7 +342,7 @@ export function createSymbolFromPartial(partial: PartialDeep<TSymbol>): TSymbol
  * @group Symbol
  * @summary Create multiple TSymbols from partial data — accumulates errors.
  */
-export function createSymbolsFromPartial(partials: PartialDeep<TSymbol>[]): TSymbol[]
+export function createSymbolsFromPartial(partials: TPartialDeep<TSymbol>[]): TSymbol[]
 {
   const errors: string[] = []
   const symbols: TSymbol[] = []

@@ -1,18 +1,19 @@
 import styleIcon from "@/assets/svg/palette.svg"
 import { EditorTool, EditorWriteTool } from "@/Constants"
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { IIModel } from "@/model"
-import { TSymbol, isShape } from "@/symbol"
-import { InteractiveInkEditor } from "@/editor"
+import type { IIModel } from "@/model"
+import type { TSymbol} from "@/symbol";
+import { isShape } from "@/symbol"
+import type { InteractiveInkEditor } from "@/editor"
 import { DOMFactory } from "@/components/dom"
 import { DEFAULT_MENU_COLORS, DEFAULT_THICKNESS_LIST, DEFAULT_FONT_SIZE_LIST, DEFAULT_FONT_WEIGHT_LIST } from "./MenuConstants"
-import { BaseMenuItem } from "./items"
+import type { BaseMenuItem } from "./items"
 
 /**
  * @group Menu
  * @remarks Configuration to enable/disable each style element individually
  */
-export interface IIMenuStyleConfig {
+export type TMenuStyleConfig = {
   /** Enable/disable stroke color picker */
   strokeColor?: boolean
   /** Enable/disable fill color picker */
@@ -36,7 +37,7 @@ export interface IIMenuStyleConfig {
 }
 
 /** @group Menu */
-export const DefaultMenuStyleConfig: Required<IIMenuStyleConfig> = {
+export const DefaultMenuStyleConfig: Required<TMenuStyleConfig> = {
   strokeColor: true,
   fillColor: true,
   thickness: true,
@@ -67,7 +68,7 @@ export class IIMenuStyle
   editor: InteractiveInkEditor
   id: string
   wrapper?: HTMLDivElement
-  config: Required<IIMenuStyleConfig>
+  config: Required<TMenuStyleConfig>
   triggerBtn?: HTMLButtonElement
   subMenuWrapper?: HTMLDivElement
   subMenuContent?: HTMLDivElement
@@ -76,7 +77,7 @@ export class IIMenuStyle
   // Style items
   private styleItems: Map<string, BaseMenuItem> = new Map()
 
-  constructor(editor: InteractiveInkEditor, id = "ms-menu-style", config?: IIMenuStyleConfig)
+  constructor(editor: InteractiveInkEditor, id = "ms-menu-style", config?: TMenuStyleConfig)
   {
     this.id = id
     this.#logger.info("constructor")

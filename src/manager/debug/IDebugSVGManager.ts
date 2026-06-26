@@ -1,10 +1,12 @@
 import { LoggerManager, LoggerCategory } from "@/logger"
-import { IModel } from "@/model"
-import { TStroke, TBox, TSymbol, isText } from "@/symbol"
+import type { IModel } from "@/model"
+import type { TStroke, TBox, TSymbol} from "@/symbol";
+import { isText } from "@/symbol"
 import { BoxHelper } from "@/symbol/helpers/BoxHelper"
-import { SVGRenderer, SVGRendererConst, SVGBuilder } from "@/renderer"
+import type { SVGRenderer} from "@/renderer";
+import { SVGRendererConst, SVGBuilder } from "@/renderer"
 import { createUUID } from "@/utils"
-import { InkEditor } from "@/editor"
+import type { InkEditor } from "@/editor"
 
 /**
  * @group Manager

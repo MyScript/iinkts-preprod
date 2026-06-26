@@ -1,7 +1,8 @@
-import { TStroke, TText, type TSymbol, isText, cloneSymbol } from "@/symbol"
+import type { TStroke, TText} from "@/symbol";
+import { type TSymbol, isText, cloneSymbol } from "@/symbol"
 import { IITextHelper } from "@/symbol/helpers/IITextHelper"
 import { BoxHelper } from "@/symbol/helpers/BoxHelper"
-import { TIIHistoryChanges } from "@/history"
+import type { TIIHistoryChanges } from "@/history"
 import type { InteractiveInkEditor } from "@/editor"
 import type { TGesture } from "@/manager/interactive/gestures/GestureTypes"
 import { GestureHandler } from "@/manager/interactive/gestures/GestureHandler"

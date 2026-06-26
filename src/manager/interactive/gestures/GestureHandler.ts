@@ -2,13 +2,13 @@ import type { TStroke, TSymbol } from "@/symbol"
 import type { InteractiveInkEditor } from "@/editor"
 import type { TGesture, TGestureType } from "@/manager/interactive/gestures/GestureTypes"
 import type { GestureHelpers } from "./GestureHelpers"
-import { IIModel } from "@/model"
-import { SVGRenderer } from "@/renderer"
-import { IIHistoryManager } from "@/history"
-import { RecognizerWebSocket } from "@/recognizer"
-import { IITranslateManager } from "@/manager/interactive/transform/IITranslateManager"
-import { IITypesetManager } from "@/manager/interactive/IITypesetManager"
-import { IIGestureManager } from "../IIGestureManager"
+import type { IIModel } from "@/model"
+import type { SVGRenderer } from "@/renderer"
+import type { IIHistoryManager } from "@/history"
+import type { RecognizerWebSocket } from "@/recognizer"
+import type { IITranslateManager } from "@/manager/interactive/transform/IITranslateManager"
+import type { IITypesetManager } from "@/manager/interactive/IITypesetManager"
+import type { IIGestureManager } from "../IIGestureManager"
 import { LoggerManager, LoggerCategory, type Logger } from "@/logger"
 import { IIGestureAnnotationProcessor } from "./IIGestureAnnotationProcessor"
 
@@ -17,7 +17,7 @@ import { IIGestureAnnotationProcessor } from "./IIGestureAnnotationProcessor"
  * Each handler is responsible for applying a specific gesture type
  * @group Manager
  */
-export interface IGestureHandler
+export type TGestureHandler =
 {
   /**
    * The type of gesture this handler manages
@@ -40,7 +40,7 @@ export interface IGestureHandler
  */
 export type { TGestureAnnotation } from "./GestureAnnotation"
 
-export abstract class GestureHandler implements IGestureHandler
+export abstract class GestureHandler implements TGestureHandler
 {
   protected readonly logger: Logger
   protected readonly processor: IIGestureAnnotationProcessor

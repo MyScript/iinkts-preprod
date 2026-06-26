@@ -1,16 +1,16 @@
 import style from "./menu.css"
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { InteractiveInkEditor } from "@/editor"
+import type { InteractiveInkEditor } from "@/editor"
 import { DOMFactory } from "@/components/dom"
 import { mergeDeep } from "@/utils"
 import { IIMenuAction } from "./IIMenuAction"
 import { IIMenuTool } from "./IIMenuTool"
 import { IIMenuContext } from "./IIMenuContext"
 import { IIMenuStyle } from "./IIMenuStyle"
-import type { IIMenuStyleConfig } from "./IIMenuStyle"
-import type { IIMenuToolConfig } from "./IIMenuTool"
-import type { IIMenuActionConfig } from "./IIMenuAction"
-import type { IIMenuContextConfig } from "./IIMenuContext"
+import type { TMenuStyleConfig } from "./IIMenuStyle"
+import type { TMenuToolConfig } from "./IIMenuTool"
+import type { TMenuActionConfig } from "./IIMenuAction"
+import type { TMenuContextConfig } from "./IIMenuContext"
 
 /**
  * @group Menu
@@ -18,10 +18,10 @@ import type { IIMenuContextConfig } from "./IIMenuContext"
  */
 export type TMenuConfigUpdate = {
   enable?: boolean
-  style?: IIMenuStyleConfig & { enable?: boolean }
-  tool?: IIMenuToolConfig & { enable?: boolean }
-  action?: IIMenuActionConfig & { enable?: boolean }
-  context?: IIMenuContextConfig & { enable?: boolean }
+  style?: TMenuStyleConfig & { enable?: boolean }
+  tool?: TMenuToolConfig & { enable?: boolean }
+  action?: TMenuActionConfig & { enable?: boolean }
+  context?: TMenuContextConfig & { enable?: boolean }
 }
 
 /**

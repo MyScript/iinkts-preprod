@@ -1,12 +1,12 @@
-import { TIIHistoryBackendChanges, THistoryContext } from "@/history"
+import type { TIIHistoryBackendChanges, THistoryContext } from "@/history"
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { TExport, TJIIXExport, TJIIXMathElement } from "@/model"
-import { TStroke } from "@/symbol"
+import type { TExport, TJIIXExport, TJIIXMathElement } from "@/model"
+import type { TStroke } from "@/symbol"
 import { IIStrokeHelper } from "@/symbol/helpers"
-import { TMatrixTransform } from "@/transform"
-import { computeHmac, mergeDeep, DeferredPromise, PartialDeep, isVersionSuperiorOrEqual, getApiInfos } from "@/utils"
-import
-{
+import type { TMatrixTransform } from "@/transform"
+import type { TPartialDeep} from "@/utils";
+import { computeHmac, mergeDeep, DeferredPromise, isVersionSuperiorOrEqual, getApiInfos } from "@/utils"
+import type {
   TRecognizerWebSocketMessage,
   TRecognizerWebSocketMessageContentChange,
   TRecognizerWebSocketMessageContextlessGesture,
@@ -17,18 +17,22 @@ import
   TRecognizerWebSocketMessageNewPart,
   TRecognizerWebSocketMessagePartChange,
   TRecognizerWebSocketMessageReceived,
-  TRecognizerWebSocketMessageType,
   TInteractiveInkSessionDescriptionMessage,
   TRecognizerWebSocketMessageMathSolverResult,
   TMathVariable,
   TMathEvaluable,
   TMathVariableDefinition,
   TMathVariableDefinitions
+} from "./RecognizerWebSocketMessage";
+import
+{
+  TRecognizerWebSocketMessageType
 } from "./RecognizerWebSocketMessage"
 import { RecognizerError, mapCloseCodeToMessage } from "./RecognizerError"
 import PingWorker from "web-worker:../worker/ping.worker.ts"
 import { RecognizerEvent } from "./RecognizerEvent"
-import { RecognizerWebSocketConfiguration, TRecognizerWebSocketConfiguration } from "./RecognizerWebSocketConfiguration"
+import type { TRecognizerWebSocketConfiguration } from "./RecognizerWebSocketConfiguration";
+import { RecognizerWebSocketConfiguration } from "./RecognizerWebSocketConfiguration"
 
 /**
  * A websocket dialog have this sequence :
@@ -96,7 +100,7 @@ export class RecognizerWebSocket
   url: string
   event: RecognizerEvent
 
-  constructor(config: PartialDeep<TRecognizerWebSocketConfiguration>, event?: RecognizerEvent)
+  constructor(config: TPartialDeep<TRecognizerWebSocketConfiguration>, event?: RecognizerEvent)
   {
     this.#logger.info("constructor", { config })
     this.configuration = new RecognizerWebSocketConfiguration(config)
@@ -497,7 +501,7 @@ export class RecognizerWebSocket
     }
   }
 
-  async newSession(config: PartialDeep<TRecognizerWebSocketConfiguration>): Promise<void>
+  async newSession(config: TPartialDeep<TRecognizerWebSocketConfiguration>): Promise<void>
   {
     await this.close(1000, "new-session")
     this.configuration = mergeDeep({}, this.configuration, config)

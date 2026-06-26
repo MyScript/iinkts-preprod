@@ -1,19 +1,21 @@
-import { PartialDeep, createUUID, findIntersectionBetween2Segment, isPointInsidePolygon, convertDegreeToRadian, computeRotatedPoint } from "@/utils"
-import { DefaultStyle, TStyle } from "@/style"
-import { TPoint } from "@/symbol/base/Point"
+import type { TPartialDeep} from "@/utils";
+import { createUUID, findIntersectionBetween2Segment, isPointInsidePolygon, convertDegreeToRadian, computeRotatedPoint } from "@/utils"
+import type { TStyle } from "@/style";
+import { DefaultStyle } from "@/style"
+import type { TPoint } from "@/symbol/base/Point"
 import { SymbolType } from "@/symbol/base/Symbol"
-import { TBox } from "@/symbol/base/Box"
+import type { TBox } from "@/symbol/base/Box"
 import { BoxHelper } from "./BoxHelper"
 import { computeTypesetVertices, computeTypesetSnapPoints, computeClosedEdges } from "./_typesetDerivedFields"
-import { TRotation } from "@/symbol/interactive/IITypeset"
+import type { TRotation } from "@/symbol/interactive/IITypeset"
 import { IIDecoratorHelper } from "./IIDecoratorHelper"
-import { TMath, TMathElement } from "@/symbol/interactive/IIMath"
+import type { TMath, TMathElement } from "@/symbol/interactive/IIMath"
 
 /**
  * @group Symbol
  */
 export const IIMathHelper = {
-  create(elements: TMathElement[], point: TPoint, bounds: TBox, style?: PartialDeep<TStyle>): TMath
+  create(elements: TMathElement[], point: TPoint, bounds: TBox, style?: TPartialDeep<TStyle>): TMath
   {
     const mergedStyle = Object.assign({}, DefaultStyle, style) as TStyle
     if (mergedStyle.opacity) mergedStyle.opacity = +mergedStyle.opacity
@@ -42,7 +44,7 @@ export const IIMathHelper = {
     }
   },
 
-  createFromPartial(partial: PartialDeep<TMath>): TMath
+  createFromPartial(partial: TPartialDeep<TMath>): TMath
   {
     if (!partial.elements?.length) throw new Error(`IIMath requires elements`)
     if (!partial.point) throw new Error(`IIMath requires point`)
@@ -131,7 +133,7 @@ export const IIMathHelper = {
     return math.elements.map(e => e.label).join("")
   },
 
-  toJSON(math: TMath): PartialDeep<TMath>
+  toJSON(math: TMath): TPartialDeep<TMath>
   {
     return {
       id: math.id,
@@ -150,4 +152,3 @@ export const IIMathHelper = {
  * @internal Keep backward-compat alias.
  * @deprecated Use `TMath` instead.
  */
-export type IIMath = TMath

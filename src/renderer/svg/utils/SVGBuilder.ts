@@ -1,4 +1,4 @@
-import { TBox, TPoint } from "@/symbol"
+import type { TBox, TPoint } from "@/symbol"
 
 const XMLNS = "http://www.w3.org/2000/svg"
 /**

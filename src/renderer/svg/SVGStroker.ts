@@ -1,4 +1,4 @@
-import { TPointer, TLegacyStroke } from "@/symbol"
+import type { TPointer, TLegacyStroke } from "@/symbol"
 import { computeAngleAxeRadian, computeLinksPointers, computeMiddlePointer } from "@/utils"
 
 /**

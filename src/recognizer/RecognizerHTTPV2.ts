@@ -1,12 +1,14 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { TExportV2, TJIIXExport } from "@/model"
-import { TLegacyStroke, TStrokeToSend } from "@/symbol"
-import { computeHmac, getApiInfos, isVersionSuperiorOrEqual, PartialDeep } from "@/utils"
+import type { TExportV2, TJIIXExport } from "@/model"
+import type { TLegacyStroke, TStrokeToSend } from "@/symbol"
+import type { TPartialDeep } from "@/utils";
+import { computeHmac, getApiInfos, isVersionSuperiorOrEqual } from "@/utils"
 import { RecognizerError } from "./RecognizerError"
-import { RecognizerHTTPV2Configuration, TRecognizerHTTPV2Configuration } from "./RecognizerHTTPV2Configuration"
-import { TDiagramConfiguration, TExportConfiguration, TMathConfiguration, TRawContentConfiguration, TTextConfiguration } from "./recognition"
+import type { TRecognizerHTTPV2Configuration } from "./RecognizerHTTPV2Configuration";
+import { RecognizerHTTPV2Configuration } from "./RecognizerHTTPV2Configuration"
+import type { TDiagramConfiguration, TExportConfiguration, TMathConfiguration, TRawContentConfiguration, TTextConfiguration } from "./recognition"
 
-type ApiError = {
+type TApiError = {
   code?: string
   message: string
 }
@@ -42,7 +44,7 @@ export class RecognizerHTTPV2 {
 
   configuration: RecognizerHTTPV2Configuration
 
-  constructor(config: PartialDeep<TRecognizerHTTPV2Configuration>) {
+  constructor(config: TPartialDeep<TRecognizerHTTPV2Configuration>) {
     this.#logger.info("constructor", { config })
     this.configuration = new RecognizerHTTPV2Configuration(config)
   }
@@ -186,11 +188,11 @@ export class RecognizerHTTPV2 {
       return result
     } else {
       if (response.headers.get("content-type")?.includes("application/json")) {
-        const err = await response.json() as ApiError
+        const err = await response.json() as TApiError
         this.#logger.error("post", { err })
         throw err
       } else {
-        const err: ApiError = {
+        const err: TApiError = {
           code: response.status.toString(),
           message: await response.text()
         }

@@ -18,7 +18,7 @@ import
   IIEraserHelper,
   TMath,
   TMathElement,
-  PartialDeep,
+  TPartialDeep,
 } from "../../src/iink"
 import { IIDecoratorHelper } from "../../src/symbol/helpers/IIDecoratorHelper"
 import { IITextHelper } from "../../src/symbol/helpers/IITextHelper"
@@ -103,24 +103,24 @@ export function buildIIEraser({ box = defaultBox, nbPoint = 5 } = {}): TEraser
   return eraser
 }
 
-export function buildIIDecorator(kind: DecoratorKind, style: PartialDeep<TStyle> = DefaultStyle): TDecorator
+export function buildIIDecorator(kind: DecoratorKind, style: TPartialDeep<TStyle> = DefaultStyle): TDecorator
 {
   return IIDecoratorHelper.create(kind, style)
 }
 
-export function buildIICircle({ center = { x: 0, y: 0 }, radius = 5, style = DefaultStyle }: { center?: TPoint, radius?: number, style?: PartialDeep<TStyle> } = {}): TShapeCircle
+export function buildIICircle({ center = { x: 0, y: 0 }, radius = 5, style = DefaultStyle }: { center?: TPoint, radius?: number, style?: TPartialDeep<TStyle> } = {}): TShapeCircle
 {
   return IIShapeCircleHelper.create(center, radius, style)
 }
 
-export function buildIILine({ start = { x: 0, y: 0 }, end = { x: 5, y: 5 }, style = DefaultStyle }: { start?: TPoint, end?: TPoint, style?: PartialDeep<TStyle> } = {}): TEdgeLine
+export function buildIILine({ start = { x: 0, y: 0 }, end = { x: 5, y: 5 }, style = DefaultStyle }: { start?: TPoint, end?: TPoint, style?: TPartialDeep<TStyle> } = {}): TEdgeLine
 {
   return IIEdgeLineHelper.create(start, end, undefined, undefined, style)
 }
 
 export function buildIIText(
   { chars = [], point = { x: 0, y: 0 }, boundingBox = { x: 0, y: 10, width: 20, height: 30 }, style = DefaultStyle }:
-    { chars?: TSymbolChar[], point?: TPoint, boundingBox?: TBox, style?: PartialDeep<TStyle> } = {}
+    { chars?: TSymbolChar[], point?: TPoint, boundingBox?: TBox, style?: TPartialDeep<TStyle> } = {}
 ): TText
 {
   return IITextHelper.create(chars, point, boundingBox, style)
@@ -129,7 +129,7 @@ export function buildIIText(
 export function buildIIMath(
   label: string = "y=3x+2",
   { point = { x: 0, y: 0 }, boundingBox = { x: 0, y: 10, width: 50, height: 30 }, style = DefaultStyle }:
-    { point?: TPoint, boundingBox?: TBox, style?: PartialDeep<TStyle> } = {}
+    { point?: TPoint, boundingBox?: TBox, style?: TPartialDeep<TStyle> } = {}
 ): TMath
 {
   const elements: TMathElement[] = [{

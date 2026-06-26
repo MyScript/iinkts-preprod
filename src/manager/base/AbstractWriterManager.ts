@@ -1,12 +1,13 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
-import
+import type
 {
   TSymbol,
   TPointer,
 } from "@/symbol"
-import { SVGRenderer } from "@/renderer"
-import { TStyle } from "@/style"
-import { PointerEventGrabber, PointerInfo } from "@/grabber"
+import type { SVGRenderer } from "@/renderer"
+import type { TStyle } from "@/style"
+import type { TPointerInfo } from "@/grabber";
+import { PointerEventGrabber } from "@/grabber"
 import type { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import type { InkEditor } from "@/editor/variants/InkEditor"
 
@@ -51,7 +52,7 @@ export abstract class AbstractWriterManager
   protected abstract createCurrentSymbol(pointer: TPointer, style: TStyle, pointerType: string): TSymbol
   protected abstract updateCurrentSymbol(pointer: TPointer): TSymbol
 
-  start(info: PointerInfo): void
+  start(info: TPointerInfo): void
   {
     this.#logger.info("startWriting", { info })
     const localPointer = info.pointer
@@ -59,7 +60,7 @@ export abstract class AbstractWriterManager
     this.renderer.drawSymbol(this.currentSymbol!)
   }
 
-  continue(info: PointerInfo): void
+  continue(info: TPointerInfo): void
   {
     this.#logger.info("continueWriting", { info })
     const localPointer = info.pointer
@@ -67,5 +68,5 @@ export abstract class AbstractWriterManager
     this.renderer.drawSymbol(this.currentSymbol!)
   }
 
-  abstract end(info: PointerInfo): Promise<void>
+  abstract end(info: TPointerInfo): Promise<void>
 }

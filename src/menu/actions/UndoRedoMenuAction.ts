@@ -1,4 +1,4 @@
-import { InteractiveInkEditor } from "@/editor"
+import type { InteractiveInkEditor } from "@/editor"
 import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
 import undoIcon from "@/assets/svg/undo.svg"
 import redoIcon from "@/assets/svg/redo.svg"

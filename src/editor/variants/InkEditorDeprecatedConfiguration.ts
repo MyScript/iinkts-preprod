@@ -1,12 +1,20 @@
-import { DefaultGrabberConfiguration, TGrabberConfiguration } from "@/grabber"
-import { DefaultHistoryConfiguration, THistoryConfiguration } from "@/history"
-import { DefaultLoggerConfiguration, TLoggerConfiguration } from "@/logger"
-import { DefaultRecognizerHTTPV1Configuration, RecognizerHTTPV1Configuration, TRecognitionHTTPV1Configuration, TRecognizerHTTPV1Configuration, TServerHTTPConfiguration } from "@/recognizer"
-import { DefaultRendererConfiguration, TRendererConfiguration } from "@/renderer"
-import { DefaultTheme, TPenStyle, TTheme } from "@/style"
-import { mergeDeep, PartialDeep } from "@/utils"
-import { TEditorConfiguration } from "@/editor/AbstractEditor"
-import { DefaultEditorTriggerConfiguration, TEditorTriggerConfiguration } from "@/editor/EditorTriggerConfiguration"
+import type { TGrabberConfiguration } from "@/grabber";
+import { DefaultGrabberConfiguration } from "@/grabber"
+import type { THistoryConfiguration } from "@/history";
+import { DefaultHistoryConfiguration } from "@/history"
+import type { TLoggerConfiguration } from "@/logger";
+import { DefaultLoggerConfiguration } from "@/logger"
+import type { TRecognitionHTTPV1Configuration, TRecognizerHTTPV1Configuration, TServerHTTPConfiguration } from "@/recognizer";
+import { DefaultRecognizerHTTPV1Configuration, RecognizerHTTPV1Configuration } from "@/recognizer"
+import type { TRendererConfiguration } from "@/renderer";
+import { DefaultRendererConfiguration } from "@/renderer"
+import type { TPenStyle, TTheme } from "@/style";
+import { DefaultTheme } from "@/style"
+import type { TPartialDeep } from "@/utils";
+import { mergeDeep } from "@/utils"
+import type { TEditorConfiguration } from "@/editor/AbstractEditor"
+import type { TEditorTriggerConfiguration } from "@/editor/EditorTriggerConfiguration";
+import { DefaultEditorTriggerConfiguration } from "@/editor/EditorTriggerConfiguration"
 
 
 /**
@@ -55,7 +63,7 @@ export class InkEditorDeprecatedConfiguration implements TInkEditorDeprecatedCon
   penStyleClasses?: string
   theme: TTheme
 
-  constructor(configuration?: PartialDeep<TInkEditorDeprecatedConfiguration>)
+  constructor(configuration?: TPartialDeep<TInkEditorDeprecatedConfiguration>)
   {
     const { server, recognition } = new RecognizerHTTPV1Configuration(configuration)
     this.server = server

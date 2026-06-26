@@ -1,4 +1,4 @@
-import { TStroke, TPointer } from "@/symbol"
+import type { TStroke, TPointer } from "@/symbol"
 import { DefaultStyle } from "@/style"
 import { computeAngleAxeRadian, computeLinksPointers, computeMiddlePointer } from "@/utils"
 import { SVGRendererConst } from "./utils/SVGRendererConst"

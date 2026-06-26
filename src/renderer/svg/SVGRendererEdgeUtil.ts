@@ -1,4 +1,5 @@
-import { EdgeDecoration, EdgeKind, TEdgeArc, TEdgeLine, TEdgePolyLine, TEdge } from "@/symbol"
+import type { TEdgeArc, TEdgeLine, TEdgePolyLine, TEdge } from "@/symbol";
+import { EdgeDecoration, EdgeKind } from "@/symbol"
 import { DefaultStyle } from "@/style"
 import { SVGRendererConst } from "./utils/SVGRendererConst"
 import { SVGBuilder } from "./utils/SVGBuilder"

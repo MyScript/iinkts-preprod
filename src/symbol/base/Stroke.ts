@@ -1,7 +1,10 @@
-import { DefaultPenStyle, TPenStyle } from "@/style"
-import { PartialDeep, createUUID } from "@/utils"
-import { TPointer } from "./Point"
-import { SymbolType, TBaseSymbol } from "./Symbol"
+import type { TPenStyle } from "@/style";
+import { DefaultPenStyle } from "@/style"
+import type { TPartialDeep} from "@/utils";
+import { createUUID } from "@/utils"
+import type { TPointer } from "./Point"
+import type { TBaseSymbol } from "./Symbol";
+import { SymbolType } from "./Symbol"
 
 /**
  * @group Symbol
@@ -101,7 +104,7 @@ export class Stroke implements TLegacyStroke
  * @group Symbol
  * @group Utilities
  */
-export function convertPartialStrokesToStrokes(json: PartialDeep<TLegacyStroke>[]): Stroke[]
+export function convertPartialStrokesToStrokes(json: TPartialDeep<TLegacyStroke>[]): Stroke[]
 {
   const errors: string[] = []
   const strokes: Stroke[] = []

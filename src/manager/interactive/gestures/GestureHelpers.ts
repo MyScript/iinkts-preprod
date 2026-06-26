@@ -1,7 +1,8 @@
+import type {
+  TSymbol} from "@/symbol";
 import
 {
   SymbolType,
-  TSymbol,
   isRecognizedText,
 } from "@/symbol"
 import type { InteractiveInkEditor } from "@/editor"

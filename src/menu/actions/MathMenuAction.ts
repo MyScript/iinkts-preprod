@@ -1,10 +1,11 @@
-import { InteractiveInkEditor } from "@/editor"
-import { SubMenuItem, IMenuSubMenu } from "@/menu/items/SubMenuItem"
-import { IMenuCheckbox } from "@/menu/items/CheckboxMenuItem"
-import { IMenuSelect } from "@/menu/items/SelectMenuItem"
-import { IMenuButton } from "@/menu/items/ButtonMenuItem"
+import type { InteractiveInkEditor } from "@/editor"
+import type { TMenuSubMenu } from "@/menu/items/SubMenuItem";
+import { SubMenuItem } from "@/menu/items/SubMenuItem"
+import type { TMenuCheckbox } from "@/menu/items/CheckboxMenuItem"
+import type { TMenuSelect } from "@/menu/items/SelectMenuItem"
+import type { TMenuButton } from "@/menu/items/ButtonMenuItem"
 import { IIMathCapabilitiesTable, IIMathVariableEditor } from "@/components"
-import { TMathResultMode } from "@/manager/interactive/math"
+import type { TMathResultMode } from "@/manager/interactive/math"
 
 /** @group Menu */
 export type TMathActionItemsConfig = {
@@ -29,7 +30,7 @@ export class MathMenuAction extends SubMenuItem
   {
     const enabled = (key: keyof TMathActionItemsConfig) => itemsConfig?.[key] !== false
 
-    const items: (IMenuCheckbox | IMenuSelect | IMenuButton)[] = []
+    const items: (TMenuCheckbox | TMenuSelect | TMenuButton)[] = []
 
     if (enabled("autoCompute")) {
       items.push({
@@ -143,7 +144,7 @@ export class MathMenuAction extends SubMenuItem
       })
     }
 
-    const config: IMenuSubMenu = {
+    const config: TMenuSubMenu = {
       type: "submenu",
       id: `${idPrefix}-math`,
       label: "Math (∑)",

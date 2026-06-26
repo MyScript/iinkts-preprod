@@ -1,8 +1,9 @@
-import { EditorEvent } from "@/editor/EditorEvent"
+import type { EditorEvent } from "@/editor/EditorEvent"
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { Model } from "@/model"
-import { THistoryConfiguration } from "./HistoryConfiguration"
-import { THistoryContext, getInitialHistoryContext } from "./HistoryContext"
+import type { Model } from "@/model"
+import type { THistoryConfiguration } from "./HistoryConfiguration"
+import type { THistoryContext} from "./HistoryContext";
+import { getInitialHistoryContext } from "./HistoryContext"
 
 /**
  * @group History

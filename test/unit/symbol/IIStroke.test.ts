@@ -5,7 +5,7 @@ import {
   TPointer,
   TLegacyStroke,
   convertPartialStrokesToIIStrokes,
-  PartialDeep
+  TPartialDeep
 } from "../../../src/iink"
 
 describe("TStroke / IIStrokeHelper", () =>
@@ -182,7 +182,7 @@ describe("TStroke / IIStrokeHelper", () =>
   describe("convertPartialStrokesToIIStrokes", () =>
   {
     test("should convert", () => {
-      const pStrokes: PartialDeep<TLegacyStroke>[] = [
+      const pStrokes: TPartialDeep<TLegacyStroke>[] = [
         {
           pointers: [
             { x: 254, y: 37, t: 1, p: 1 },
@@ -205,14 +205,14 @@ describe("TStroke / IIStrokeHelper", () =>
       expect(strokes[1].style).toEqual(expect.objectContaining(pStrokes[1]?.style))
     })
     test("should throw error if no pointers", () => {
-      const pStrokes: PartialDeep<TLegacyStroke>[] = [
+      const pStrokes: TPartialDeep<TLegacyStroke>[] = [
         {
         },
       ]
       expect(() => convertPartialStrokesToIIStrokes(pStrokes)).toThrow("stroke 1 has not pointers")
     })
     test("should throw error if pointers have empty object", () => {
-      const pStrokes: PartialDeep<TLegacyStroke>[] = [
+      const pStrokes: TPartialDeep<TLegacyStroke>[] = [
         {
           pointers: [undefined]
         },
@@ -220,7 +220,7 @@ describe("TStroke / IIStrokeHelper", () =>
       expect(() => convertPartialStrokesToIIStrokes(pStrokes)).toThrow("stroke 1 has no pointer at 0")
     })
     test("should throw an error if an x ​​is missing on pointers ", () => {
-      const pStrokes: PartialDeep<TLegacyStroke>[] = [
+      const pStrokes: TPartialDeep<TLegacyStroke>[] = [
         {
           pointers: [
             { x: 254, y: 37, t: 1, p: 0.5 },
@@ -231,7 +231,7 @@ describe("TStroke / IIStrokeHelper", () =>
       expect(() => convertPartialStrokesToIIStrokes(pStrokes)).toThrow("stroke 1 has no x at pointer at 1")
     })
     test("should throw an error if an y ​​is missing on pointers ", () => {
-      const pStrokes: PartialDeep<TLegacyStroke>[] = [
+      const pStrokes: TPartialDeep<TLegacyStroke>[] = [
         {
           pointers: [
             { x: 254, y: 37, t: 1, p: 0.5 },

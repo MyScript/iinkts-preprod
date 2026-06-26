@@ -1,9 +1,10 @@
-import { InteractiveInkEditor } from "@/editor"
+import type { InteractiveInkEditor } from "@/editor"
 import { Modal } from "./Modal"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import { DOMFactory } from "@/components/dom"
-import { IIMathVariableInputList, TVariableInputItem } from "./IIMathVariableInputList"
-import { TMathVariableUsage } from "@/manager/interactive/math"
+import type { TVariableInputItem } from "./IIMathVariableInputList";
+import { IIMathVariableInputList } from "./IIMathVariableInputList"
+import type { TMathVariableUsage } from "@/manager/interactive/math"
 
 /**
  * @group Components

@@ -1,8 +1,9 @@
-import { TStroke, TText, type TSymbol, isText, SymbolType, TPoint } from "@/symbol"
+import type { TStroke, TText, TPoint } from "@/symbol";
+import { type TSymbol, isText, SymbolType } from "@/symbol"
 import { IITextHelper } from "@/symbol/helpers/IITextHelper"
 import { IIStrokeHelper } from "@/symbol/helpers"
 import { BoxHelper } from "@/symbol/helpers/BoxHelper"
-import { TIIHistoryChanges } from "@/history"
+import type { TIIHistoryChanges } from "@/history"
 import { computeAverage, isBetween } from "@/utils"
 import type { InteractiveInkEditor } from "@/editor"
 import type { TGesture } from "../GestureTypes"

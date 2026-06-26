@@ -1,4 +1,5 @@
-import { ButtonElConfig, DOMFactory } from "@/components/dom"
+import type { TButtonElConfig} from "@/components/dom";
+import { DOMFactory } from "@/components/dom"
 
 /** @group Components */
 export type TModalType = "info" | "success" | "warning" | "error" | "primary"
@@ -19,7 +20,7 @@ function getModalTitleStyle(type?: TModalType): { bg: string; color: string; ico
 /**
  * @group Components
  */
-export interface ModalFieldOption {
+export type TModalFieldOption = {
   value: string
   label: string
 }
@@ -27,23 +28,23 @@ export interface ModalFieldOption {
 /**
  * @group Components
  */
-export interface ModalField {
+export type TModalField = {
   id: string
   label: string
   type: "text" | "number" | "select"
   defaultValue?: string | number
   placeholder?: string
-  options?: ModalFieldOption[]
+  options?: TModalFieldOption[]
 }
 
 /**
  * @group Components
  */
-export interface ModalConfig {
+export type TModalConfig = {
   title: string
-  fields: ModalField[]
+  fields: TModalField[]
   type?: TModalType
-  buttons?: ButtonElConfig[]
+  buttons?: TButtonElConfig[]
   customContent?: HTMLElement
   /** Element to mount the modal into. Defaults to document.body (viewport-fixed). */
   container?: HTMLElement
@@ -76,7 +77,7 @@ export class Modal {
     return !!this.config.container && this.config.container !== document.body
   }
 
-  constructor(private config: ModalConfig) {
+  constructor(private config: TModalConfig) {
     this.backdrop = this.createBackdrop()
     this.modal = this.createModal()
     this.setupDragging()
@@ -166,7 +167,7 @@ export class Modal {
     return form
   }
 
-  private createFormField(field: ModalField): HTMLDivElement {
+  private createFormField(field: TModalField): HTMLDivElement {
     const wrapper = DOMFactory.div({ className: "ms-modal-field-wrapper" })
     const label = DOMFactory.label({ text: field.label, htmlFor: field.id, className: "ms-modal-field-label" })
     const input = field.type === "select"
@@ -177,7 +178,7 @@ export class Modal {
     return wrapper
   }
 
-  private createSelectInput(field: ModalField): HTMLSelectElement {
+  private createSelectInput(field: TModalField): HTMLSelectElement {
     return DOMFactory.select({
       id: field.id,
       className: "ms-menu-input",
@@ -186,7 +187,7 @@ export class Modal {
     })
   }
 
-  private createTextInput(field: ModalField): HTMLInputElement {
+  private createTextInput(field: TModalField): HTMLInputElement {
     const input = field.type === "number"
       ? DOMFactory.numberInput({ id: field.id, value: field.defaultValue, placeholder: field.placeholder })
       : DOMFactory.textInput({ id: field.id, value: field.defaultValue, placeholder: field.placeholder })
@@ -200,7 +201,7 @@ export class Modal {
     return wrapper
   }
 
-  private createActionButton(button: ButtonElConfig): HTMLButtonElement {
+  private createActionButton(button: TButtonElConfig): HTMLButtonElement {
     return DOMFactory.button({ type: "button", ...button })
   }
 

@@ -6,7 +6,7 @@ import
   TBox,
   SvgElementRole,
   ResizeDirection,
-  PointerInfo,
+  TPointerInfo,
 } from "../../../../src/iink"
 import { LeftClickEventMock, RightClickEventMock } from "../../__mocks__/EventMock"
 
@@ -351,7 +351,7 @@ describe("IISelectionManager.ts", () =>
     {
       const info = {
         pointer: { x: 1, y: 2 }
-      } as PointerInfo
+      } as TPointerInfo
       manager.start(info)
       expect(manager.drawSelectingRect).toHaveBeenCalledTimes(1)
     })
@@ -360,7 +360,7 @@ describe("IISelectionManager.ts", () =>
     {
       const info = {
         pointer: { x: 20, y: 20 }
-      } as PointerInfo
+      } as TPointerInfo
       manager.continue(info)
       expect(manager.drawSelectingRect).toHaveBeenCalledTimes(1)
       expect(manager.renderer.updateSymbolSelection).toHaveBeenCalledTimes(1)
@@ -372,7 +372,7 @@ describe("IISelectionManager.ts", () =>
     {
       const info = {
         pointer: { x: 20, y: 20 }
-      } as PointerInfo
+      } as TPointerInfo
       manager.end(info)
       expect(manager.drawSelectingRect).toHaveBeenCalledTimes(1)
       expect(manager.clearSelectingRect).toHaveBeenCalledTimes(1)
@@ -389,7 +389,7 @@ describe("IISelectionManager.ts", () =>
     {
       const info = {
         pointer: { x: 20, y: 20 }
-      } as PointerInfo
+      } as TPointerInfo
       expect(() => manager.continue(info)).toThrow("You need to call startSelectionByBox before")
     })
   })

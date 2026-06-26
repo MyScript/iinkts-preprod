@@ -1,5 +1,5 @@
 import { IIAbstractManager } from "../IIAbstractManager"
-import { TMathEvaluable } from "@/recognizer"
+import type { TMathEvaluable } from "@/recognizer"
 import type { InteractiveInkEditor } from "@/editor"
 import { LoggerCategory } from "@/logger"
 

@@ -1,10 +1,10 @@
-import { PartialDeep } from "@/utils"
-import { TStyle } from "@/style"
-import { TLegacyStroke } from "@/symbol/base/Stroke"
-import { TPoint, TPointer, TSegment } from "@/symbol/base/Point"
-import { TBox } from "@/symbol/base/Box"
-import { SymbolType, TBaseSymbol } from "@/symbol/base/Symbol"
-import { DecoratorKind } from "./IIDecorator"
+import type { TPartialDeep } from "@/utils"
+import type { TStyle } from "@/style"
+import type { TLegacyStroke } from "@/symbol/base/Stroke"
+import type { TPoint, TPointer, TSegment } from "@/symbol/base/Point"
+import type { TBox } from "@/symbol/base/Box"
+import type { SymbolType, TBaseSymbol } from "@/symbol/base/Symbol"
+import type { DecoratorKind } from "./IIDecorator"
 import { IIStrokeHelper } from "@/symbol/helpers/IIStrokeHelper"
 
 /**
@@ -39,14 +39,14 @@ export type TStroke = TBaseSymbol & {
  * @group Symbol
  * @group Utilities
  */
-export function convertPartialStrokesToIIStrokes(json: PartialDeep<TLegacyStroke>[]): TStroke[]
+export function convertPartialStrokesToIIStrokes(json: TPartialDeep<TLegacyStroke>[]): TStroke[]
 {
   const errors: string[] = []
   const strokes: TStroke[] = []
   json.forEach((j, i) =>
   {
     try {
-      strokes.push(IIStrokeHelper.createFromPartial(j as PartialDeep<TStroke>))
+      strokes.push(IIStrokeHelper.createFromPartial(j as TPartialDeep<TStroke>))
     } catch (e) {
       errors.push(`stroke ${ i + 1 } has ${ (e as Error).message }`)
     }

@@ -1,12 +1,16 @@
-import { TStyle, DefaultStyle } from "@/style"
-import { PartialDeep, findIntersectionBetween2Segment } from "@/utils"
+import type { TStyle} from "@/style";
+import { DefaultStyle } from "@/style"
+import type { TPartialDeep} from "@/utils";
+import { findIntersectionBetween2Segment } from "@/utils"
 import { createUUID } from "@/utils/uuid"
-import { TPoint, isValidPoint } from "@/symbol/base/Point"
+import type { TPoint} from "@/symbol/base/Point";
+import { isValidPoint } from "@/symbol/base/Point"
 import { SymbolType } from "@/symbol/base/Symbol"
-import { TBox } from "@/symbol/base/Box"
+import type { TBox } from "@/symbol/base/Box"
 import { BoxHelper } from "./BoxHelper"
-import { EdgeKind, EdgeDecoration } from "@/symbol/geometry/IIEdge"
-import { TEdgeLine } from "@/symbol/geometry/IIEdgeLine"
+import type { EdgeDecoration } from "@/symbol/geometry/IIEdge";
+import { EdgeKind } from "@/symbol/geometry/IIEdge"
+import type { TEdgeLine } from "@/symbol/geometry/IIEdgeLine"
 import { computeEdgeBounds } from "./_edgeDerivedFields"
 
 /**
@@ -14,7 +18,7 @@ import { computeEdgeBounds } from "./_edgeDerivedFields"
  * @group Symbol
  */
 export const IIEdgeLineHelper = {
-  create(start: TPoint, end: TPoint, startDecoration?: EdgeDecoration, endDecoration?: EdgeDecoration, style?: PartialDeep<TStyle>): TEdgeLine
+  create(start: TPoint, end: TPoint, startDecoration?: EdgeDecoration, endDecoration?: EdgeDecoration, style?: TPartialDeep<TStyle>): TEdgeLine
   {
     const mergedStyle = Object.assign({}, DefaultStyle, style) as TStyle
     if (mergedStyle.opacity) mergedStyle.opacity = +mergedStyle.opacity
@@ -43,7 +47,7 @@ export const IIEdgeLineHelper = {
     return line
   },
 
-  createFromPartial(partial: PartialDeep<TEdgeLine>): TEdgeLine
+  createFromPartial(partial: TPartialDeep<TEdgeLine>): TEdgeLine
   {
     if (!isValidPoint(partial?.start)) throw new Error(`Unable to create a line, start point is invalid`)
     if (!isValidPoint(partial?.end)) throw new Error(`Unable to create a line, end point is invalid`)

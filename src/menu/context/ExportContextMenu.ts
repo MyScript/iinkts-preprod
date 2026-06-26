@@ -1,5 +1,6 @@
-import { InteractiveInkEditor } from "@/editor"
-import { SubMenuItem, IMenuSubMenu } from "@/menu/items/SubMenuItem"
+import type { InteractiveInkEditor } from "@/editor"
+import type { TMenuSubMenu } from "@/menu/items/SubMenuItem";
+import { SubMenuItem } from "@/menu/items/SubMenuItem"
 
 /** @group Menu */
 export type TContextExportItemsConfig = {
@@ -21,7 +22,7 @@ export class ExportContextMenu extends SubMenuItem
   {
     const enabled = (key: keyof TContextExportItemsConfig) => itemsConfig?.[key] !== false
 
-    const config: IMenuSubMenu = {
+    const config: TMenuSubMenu = {
       id: `${idPrefix}-export`,
       type: "submenu",
       label: "Export",

@@ -1,9 +1,10 @@
 import { IIAbstractManager } from "../IIAbstractManager"
-import { TStroke, TBox, isStroke, isRecognizedMath } from "@/symbol"
+import type { TStroke, TBox} from "@/symbol";
+import { isStroke, isRecognizedMath } from "@/symbol"
 import { BoxHelper } from "@/symbol/helpers/BoxHelper"
 import { convertBoundingBoxMillimeterToPixel, getBoxConnectionPoint } from "@/utils"
-import { TJIIXMathExpression, TJIIXMathElement } from "@/model/ExportMath"
-import { TMathVariable, TMathVariableDefinition, TMathVariableDefinitions } from "@/recognizer"
+import type { TJIIXMathExpression, TJIIXMathElement } from "@/model/ExportMath"
+import type { TMathVariable, TMathVariableDefinition, TMathVariableDefinitions } from "@/recognizer"
 import { ColorPaletteManager } from "../../base"
 import type { InteractiveInkEditor } from "@/editor"
 import { LoggerCategory } from "@/logger"
@@ -12,7 +13,7 @@ import { LoggerCategory } from "@/logger"
  * Type representing math symbol dependencies
  * @group Manager
  */
-export type MathDependencies = {
+export type TMathDependencies = {
   /**
    * Map of variable names to their source block IDs
    */
@@ -73,7 +74,7 @@ export class IIMathVariableSubManager extends IIAbstractManager
     DASH_ARRAY: "5 3",
   }
 
-  #dependencies: Map<string, MathDependencies> = new Map()
+  #dependencies: Map<string, TMathDependencies> = new Map()
   #variableCache: Map<string, TMathVariable[]> = new Map()
   #variableDefsCache: TMathVariableDefinitions[] | null = null
   #variableDefinitionCache: Map<string, TMathVariableDefinition | null> = new Map()
@@ -144,7 +145,7 @@ export class IIMathVariableSubManager extends IIAbstractManager
     return boxes
   }
 
-  getDependencies(blockId: string): MathDependencies | null
+  getDependencies(blockId: string): TMathDependencies | null
   {
     return this.#dependencies.get(blockId) ?? null
   }

@@ -1,18 +1,15 @@
-import { InteractiveInkEditor } from "@/editor"
+import type { InteractiveInkEditor } from "@/editor"
 import { IIAbstractManager } from "./IIAbstractManager"
-import
-{
+import type {
   TJIIXChar,
   TJIIXEdgeArc,
   TJIIXEdgeElement,
-  JIIXEdgeKind,
   TJIIXEdgeLine,
   TJIIXEdgePolyEdge,
   TJIIXExport,
   TJIIXNodeCircle,
   TJIIXNodeElement,
   TJIIXNodeEllipse,
-  JIIXNodeKind,
   TJIIXNodeParallelogram,
   TJIIXNodePolygon,
   TJIIXNodeRectangle,
@@ -20,11 +17,14 @@ import
   TJIIXNodeTriangle,
   TJIIXTextElement,
   TJIIXWord,
-  TJIIXMathElement,
-  JIIXElementType
-} from "@/model"
+  TJIIXMathElement} from "@/model";
 import
 {
+  JIIXEdgeKind,
+  JIIXNodeKind,
+  JIIXElementType
+} from "@/model"
+import type {
   DecoratorKind,
   TDecorator,
   TEdgeArc,
@@ -41,7 +41,9 @@ import
   TSymbol,
   TSymbolChar,
   TPoint,
-  TMathElement,
+  TMathElement} from "@/symbol";
+import
+{
   isRecognizedMath,
   isDecorator,
 } from "@/symbol"
@@ -648,7 +650,6 @@ export class IIConversionManager extends IIAbstractManager
         y: superscriptTop,
         width: finalWidth,
         height: subscriptBottom - superscriptTop,
-
       }
     }
 

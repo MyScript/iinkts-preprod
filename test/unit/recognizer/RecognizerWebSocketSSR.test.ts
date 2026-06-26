@@ -7,7 +7,7 @@ import
 {
   RecognizerWebSocketSSR,
   RecognizerError,
-  TRecognitionType,
+  TRecognitionTypeV1,
   TPenStyle,
   TTheme,
   Model,
@@ -19,7 +19,7 @@ describe("RecognizerWebSocketSSR.ts", () =>
 {
   const height = 100, width = 100
 
-  const testDatas: { type: TRecognitionType, config: TRecognizerWebSocketSSRConfiguration }[] = [
+  const testDatas: { type: TRecognitionTypeV1, config: TRecognizerWebSocketSSRConfiguration }[] = [
     {
       type: "TEXT",
       config: RecognizerWebSocketSSRTextConfiguration as TRecognizerWebSocketSSRConfiguration

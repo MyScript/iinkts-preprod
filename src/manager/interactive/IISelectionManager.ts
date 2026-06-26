@@ -1,14 +1,16 @@
 import { ResizeDirection, SELECTION_MARGIN, SvgElementRole } from "@/Constants"
-import { EdgeKind, TDecorator, TEdgeArc, TStroke, SymbolType, TBox, TEdge, TSymbol, TPoint, isDecorator, isRecognizedMath, isEdge, getEdgeResizePoints, updateEdgeDerivedFields, overlapsSymbol } from "@/symbol"
+import type { TDecorator, TEdgeArc, TStroke, TBox, TEdge, TSymbol, TPoint} from "@/symbol";
+import { EdgeKind, SymbolType, isDecorator, isRecognizedMath, isEdge, getEdgeResizePoints, updateEdgeDerivedFields, overlapsSymbol } from "@/symbol"
 import { BoxHelper } from "@/symbol/helpers/BoxHelper"
 import { computeAngleFromPointOnEllipse, computeDistance } from "@/utils"
 import { IIEdgeArcHelper } from "@/symbol/helpers/IIEdgeArcHelper"
 import { SVGBuilder } from "@/renderer"
-import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
-import { PointerEventGrabber, PointerInfo } from "@/grabber"
-import { IIResizeManager } from "./transform/IIResizeManager"
-import { IIRotationManager } from "./transform/IIRotationManager"
-import { IITranslateManager } from "./transform/IITranslateManager"
+import type { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import type { TPointerInfo } from "@/grabber";
+import { PointerEventGrabber } from "@/grabber"
+import type { IIResizeManager } from "./transform/IIResizeManager"
+import type { IIRotationManager } from "./transform/IIRotationManager"
+import type { IITranslateManager } from "./transform/IITranslateManager"
 import { IIAbstractManager } from "./IIAbstractManager"
 import { LoggerCategory } from "@/logger"
 
@@ -655,7 +657,7 @@ export class IISelectionManager extends IIAbstractManager
     return { selected, covered }
   }
 
-  start(info: PointerInfo): void
+  start(info: TPointerInfo): void
   {
     this.removeSelectedGroup()
     this.startSelectionPoint = info.pointer
@@ -663,7 +665,7 @@ export class IISelectionManager extends IIAbstractManager
     this.drawSelectingRect(this.selectionBox!)
   }
 
-  continue(info: PointerInfo): TSymbol[]
+  continue(info: TPointerInfo): TSymbol[]
   {
     if (!this.startSelectionPoint) {
       throw new Error("You need to call startSelectionByBox before")
@@ -760,7 +762,7 @@ export class IISelectionManager extends IIAbstractManager
     return qualifyingBlockIds.length === 1 ? qualifyingBlockIds[0] : undefined
   }
 
-  end(info: PointerInfo): TSymbol[]
+  end(info: TPointerInfo): TSymbol[]
   {
     const updatedSymbols = this.continue(info)
     this.startSelectionPoint = undefined
@@ -783,7 +785,7 @@ export class IISelectionManager extends IIAbstractManager
     return updatedSymbols
   }
 
-  protected async onContextMenu(info: PointerInfo): Promise<void>
+  protected async onContextMenu(info: TPointerInfo): Promise<void>
   {
     let found = false
     let currentEl = info.target as HTMLElement | null

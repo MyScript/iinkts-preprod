@@ -1,27 +1,28 @@
 import { SELECTION_MARGIN, EditorWriteTool } from "@/Constants"
-import { IIModel } from "@/model"
-import
-{
-  EdgeDecoration,
-  EdgeKind,
+import type { IIModel } from "@/model"
+import type {
   TEdgeLine,
   TShapePolygon,
   TShapeCircle,
   TShapeEllipse,
   TStroke,
-  SymbolType,
   TEdge,
   TSymbol,
   TPoint,
-  TPointer,
+  TPointer} from "@/symbol";
+import
+{
+  EdgeDecoration,
+  EdgeKind,
+  SymbolType,
   isStroke,
   cloneSymbol
 } from "@/symbol"
-import { RecognizerWebSocket } from "@/recognizer"
-import { SVGRenderer } from "@/renderer"
-import { TStyle } from "@/style"
-import { IIHistoryManager } from "@/history"
-import { PointerInfo } from "@/grabber"
+import type { RecognizerWebSocket } from "@/recognizer"
+import type { SVGRenderer } from "@/renderer"
+import type { TStyle } from "@/style"
+import type { IIHistoryManager } from "@/history"
+import type { TPointerInfo } from "@/grabber"
 import { IIShapeCircleHelper } from "@/symbol/helpers/IIShapeCircleHelper"
 import { IIShapeEllipseHelper } from "@/symbol/helpers/IIShapeEllipseHelper"
 import { IIShapePolygonHelper } from "@/symbol/helpers/IIShapePolygonHelper"
@@ -29,10 +30,10 @@ import { IIEdgeLineHelper } from "@/symbol/helpers/IIEdgeLineHelper"
 import { updateEdgeDerivedFields } from "@/symbol"
 import { IIStrokeHelper } from "@/symbol/helpers/IIStrokeHelper"
 import { BoxHelper } from "@/symbol/helpers/BoxHelper"
-import { IIGestureManager } from "./IIGestureManager"
-import { TGesture } from "./gestures"
-import { IISnapManager } from "./IISnapManager"
-import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import type { IIGestureManager } from "./IIGestureManager"
+import type { TGesture } from "./gestures"
+import type { IISnapManager } from "./IISnapManager"
+import type { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import { AbstractWriterManager } from "@/manager/base/AbstractWriterManager"
 
 /**
@@ -215,7 +216,7 @@ export class IIWriterManager extends AbstractWriterManager
     return this.model.currentSymbol
   }
 
-  start(info: PointerInfo): void
+  start(info: TPointerInfo): void
   {
     const localPointer = info.pointer
     if (this.tool !== EditorWriteTool.Pencil) {
@@ -228,7 +229,7 @@ export class IIWriterManager extends AbstractWriterManager
     this.renderer.drawSymbol(this.model.currentSymbol!)
   }
 
-  continue(info: PointerInfo): void
+  continue(info: TPointerInfo): void
   {
     const localPointer = info.pointer
     if (this.tool !== EditorWriteTool.Pencil) {
@@ -264,7 +265,7 @@ export class IIWriterManager extends AbstractWriterManager
     }
   }
 
-  async end(info: PointerInfo): Promise<void>
+  async end(info: TPointerInfo): Promise<void>
   {
     const localPointer = info.pointer
     if (this.tool !== EditorWriteTool.Pencil) {

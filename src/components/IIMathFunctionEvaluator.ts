@@ -1,14 +1,15 @@
-import { InteractiveInkEditor } from "@/editor"
+import type { InteractiveInkEditor } from "@/editor"
 import { Modal } from "./Modal"
 import { Chart } from "./Chart"
-import { Table, TableRow } from "./Table"
+import type { TTableRow } from "./Table";
+import { Table } from "./Table"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import { DOMFactory } from "@/components/dom"
 
 /**
  * @group Components
  */
-export interface MathEvaluableFunction {
+export type TMathEvaluableFunction = {
   jiixBlockId: string
   evaluables: Array<{
     inputName: string
@@ -21,8 +22,8 @@ export interface MathEvaluableFunction {
 /**
  * @group Components
  */
-export interface EvaluationResult {
-  func: MathEvaluableFunction
+export type TEvaluationResult = {
+  func: TMathEvaluableFunction
   points: { [key: string]: number }[][]
 }
 
@@ -34,10 +35,10 @@ export class IIMathFunctionEvaluator {
   private editor: InteractiveInkEditor
   private jiixBlockIds: string[]
   private modal?: Modal
-  private evaluationResults?: EvaluationResult[]
+  private evaluationResults?: TEvaluationResult[]
   private tabContent?: HTMLDivElement
   private currentTab: "graph" | "table" = "graph"
-  private functionsToEvaluate: MathEvaluableFunction[] = []
+  private functionsToEvaluate: TMathEvaluableFunction[] = []
   private logger = LoggerManager.getLogger(LoggerCategory.MATH)
 
   // Chart colors for multiple functions
@@ -107,7 +108,7 @@ export class IIMathFunctionEvaluator {
   /**
    * Create the modal content with inputs and tabs
    */
-  private createModalContent(functions: MathEvaluableFunction[]): HTMLDivElement {
+  private createModalContent(functions: TMathEvaluableFunction[]): HTMLDivElement {
     
     const container = DOMFactory.div({ className: "ms-evaluator-content" })
 
@@ -125,7 +126,7 @@ export class IIMathFunctionEvaluator {
   /**
    * Create a single function item for display
    */
-  private createFunctionItem(func: MathEvaluableFunction): HTMLDivElement {
+  private createFunctionItem(func: TMathEvaluableFunction): HTMLDivElement {
     
     const funcItem = DOMFactory.div({ className: "ms-function-item" })
 
@@ -185,7 +186,7 @@ export class IIMathFunctionEvaluator {
   /**
    * Create the functions list display
    */
-  private createFunctionsList(functions: MathEvaluableFunction[]): HTMLDivElement {
+  private createFunctionsList(functions: TMathEvaluableFunction[]): HTMLDivElement {
     
     const functionsDiv = DOMFactory.div({ className: "ms-functions-card" })
 
@@ -257,7 +258,7 @@ export class IIMathFunctionEvaluator {
   /**
    * Create the inputs section
    */
-  private createInputsSection(functions: MathEvaluableFunction[]): HTMLDivElement {
+  private createInputsSection(functions: TMathEvaluableFunction[]): HTMLDivElement {
     
     const section = DOMFactory.div({ className: "ms-section" })
 
@@ -418,7 +419,7 @@ export class IIMathFunctionEvaluator {
    * Evaluate all functions
    */
   private async evaluateFunctions(
-    functions: MathEvaluableFunction[],
+    functions: TMathEvaluableFunction[],
     fromWrapper: HTMLDivElement,
     toWrapper: HTMLDivElement,
     pointCountWrapper: HTMLDivElement
@@ -438,7 +439,7 @@ export class IIMathFunctionEvaluator {
 
     try {
       // Evaluate all functions
-      const allResults: EvaluationResult[] = []
+      const allResults: TEvaluationResult[] = []
 
       for (const func of functions) {
         const selectedEvaluable = func.evaluables[func.selectedEvaluableIndex]
@@ -496,7 +497,7 @@ export class IIMathFunctionEvaluator {
    * Render the graph tab
    */
   private renderGraph(
-    results: EvaluationResult[]
+    results: TEvaluationResult[]
   ): void {
     if (!this.tabContent) return
     
@@ -565,8 +566,8 @@ export class IIMathFunctionEvaluator {
   /**
    * Group evaluation results by input variable name
    */
-  private groupResultsByInputName(results: EvaluationResult[]): Map<string, EvaluationResult[]> {
-    const groupedByInput = new Map<string, EvaluationResult[]>()
+  private groupResultsByInputName(results: TEvaluationResult[]): Map<string, TEvaluationResult[]> {
+    const groupedByInput = new Map<string, TEvaluationResult[]>()
 
     results.forEach(result => {
       const evalSelected = result.func.evaluables[result.func.selectedEvaluableIndex]
@@ -596,7 +597,7 @@ export class IIMathFunctionEvaluator {
    * Create table columns for a group of results
    */
   private createTableColumns(
-    groupResults: EvaluationResult[],
+    groupResults: TEvaluationResult[],
     inputName: string
   ): (string | { header: string | HTMLElement; align?: "left" | "center" | "right"; width?: string })[] {
     
@@ -643,11 +644,11 @@ export class IIMathFunctionEvaluator {
    * Create table rows for a group of results
    */
   private createTableRows(
-    groupResults: EvaluationResult[],
+    groupResults: TEvaluationResult[],
     numPoints: number
-  ): TableRow[] {
+  ): TTableRow[] {
     
-    const rows: TableRow[] = []
+    const rows: TTableRow[] = []
 
     for (let i = 0; i < numPoints; i++) {
       const cells: HTMLElement[] = []
@@ -709,7 +710,7 @@ export class IIMathFunctionEvaluator {
    * Render the table tab
    */
   private renderTable(
-    results: EvaluationResult[]
+    results: TEvaluationResult[]
   ): void {
     if (!this.tabContent) return
     

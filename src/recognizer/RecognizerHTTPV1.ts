@@ -1,14 +1,17 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { Model, TExport, TJIIXExport } from "@/model"
-import { TStrokeGroup, TStrokeGroupToSend } from "@/symbol"
-import { StyleHelper, TPenStyle } from "@/style"
-import { computeHmac, getApiInfos, isVersionSuperiorOrEqual, PartialDeep } from "@/utils"
+import type { Model, TExport, TJIIXExport } from "@/model"
+import type { TStrokeGroup, TStrokeGroupToSend } from "@/symbol"
+import type { TPenStyle } from "@/style";
+import { StyleHelper } from "@/style"
+import type { TPartialDeep } from "@/utils";
+import { computeHmac, getApiInfos, isVersionSuperiorOrEqual } from "@/utils"
 import { RecognizerError } from "./RecognizerError"
-import { RecognizerHTTPV1Configuration, TRecognizerHTTPV1Configuration } from "./RecognizerHTTPV1Configuration"
-import { TConverstionState } from "./RecognitionConfiguration"
-import { TDiagramConfiguration, TExportConfiguration, TMathConfiguration, TRawContentConfiguration, TTextConfiguration } from "./recognition"
+import type { TRecognizerHTTPV1Configuration } from "./RecognizerHTTPV1Configuration";
+import { RecognizerHTTPV1Configuration } from "./RecognizerHTTPV1Configuration"
+import type { TConverstionState } from "./RecognitionConfiguration"
+import type { TDiagramConfiguration, TExportConfiguration, TMathConfiguration, TRawContentConfiguration, TTextConfiguration } from "./recognition"
 
-type ApiError = {
+type TApiError = {
   code?: string
   message: string
 }
@@ -49,7 +52,7 @@ export class RecognizerHTTPV1
 
   configuration: RecognizerHTTPV1Configuration
 
-  constructor(config: PartialDeep<TRecognizerHTTPV1Configuration>)
+  constructor(config: TPartialDeep<TRecognizerHTTPV1Configuration>)
   {
     this.#logger.info("constructor", { config })
     this.configuration = new RecognizerHTTPV1Configuration(config)
@@ -224,7 +227,7 @@ export class RecognizerHTTPV1
       this.#logger.debug("post", { result })
       return result
     } else {
-      const err = await response.json() as ApiError
+      const err = await response.json() as TApiError
       this.#logger.error("post", { err })
       throw err
     }

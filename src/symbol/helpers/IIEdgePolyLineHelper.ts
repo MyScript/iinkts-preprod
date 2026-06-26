@@ -1,12 +1,16 @@
-import { TStyle, DefaultStyle } from "@/style"
-import { PartialDeep, findIntersectionBetween2Segment } from "@/utils"
+import type { TStyle} from "@/style";
+import { DefaultStyle } from "@/style"
+import type { TPartialDeep} from "@/utils";
+import { findIntersectionBetween2Segment } from "@/utils"
 import { createUUID } from "@/utils/uuid"
-import { TPoint, isValidPoint } from "@/symbol/base/Point"
+import type { TPoint} from "@/symbol/base/Point";
+import { isValidPoint } from "@/symbol/base/Point"
 import { SymbolType } from "@/symbol/base/Symbol"
-import { TBox } from "@/symbol/base/Box"
+import type { TBox } from "@/symbol/base/Box"
 import { BoxHelper } from "./BoxHelper"
-import { EdgeKind, EdgeDecoration } from "@/symbol/geometry/IIEdge"
-import { TEdgePolyLine } from "@/symbol/geometry/IIEdgePolyLine"
+import type { EdgeDecoration } from "@/symbol/geometry/IIEdge";
+import { EdgeKind } from "@/symbol/geometry/IIEdge"
+import type { TEdgePolyLine } from "@/symbol/geometry/IIEdgePolyLine"
 import { computeEdgeBounds } from "./_edgeDerivedFields"
 
 /**
@@ -14,7 +18,7 @@ import { computeEdgeBounds } from "./_edgeDerivedFields"
  * @group Symbol
  */
 export const IIEdgePolyLineHelper = {
-  create(points: TPoint[], startDecoration?: EdgeDecoration, endDecoration?: EdgeDecoration, style?: PartialDeep<TStyle>): TEdgePolyLine
+  create(points: TPoint[], startDecoration?: EdgeDecoration, endDecoration?: EdgeDecoration, style?: TPartialDeep<TStyle>): TEdgePolyLine
   {
     const mergedStyle = Object.assign({}, DefaultStyle, style) as TStyle
     if (mergedStyle.opacity) mergedStyle.opacity = +mergedStyle.opacity
@@ -42,7 +46,7 @@ export const IIEdgePolyLineHelper = {
     return polyline
   },
 
-  createFromPartial(partial: PartialDeep<TEdgePolyLine>): TEdgePolyLine
+  createFromPartial(partial: TPartialDeep<TEdgePolyLine>): TEdgePolyLine
   {
     if (partial?.points?.some(p => !isValidPoint(p))) throw new Error(`Unable to create a PolyLine, points are invalid`)
     const polyline = IIEdgePolyLineHelper.create(partial?.points as TPoint[], partial.startDecoration, partial.endDecoration, partial.style)

@@ -1,6 +1,6 @@
 //@ts-nocheck
 import {
-  PartialDeep,
+  TPartialDeep,
   TInteractiveInkEditorConfiguration,
   TInteractiveInkSSREditorConfiguration,
   TRecognizerHTTPV1Configuration,

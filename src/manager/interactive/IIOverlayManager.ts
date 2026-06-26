@@ -1,9 +1,10 @@
 import { IIAbstractManager } from "./IIAbstractManager"
 import { SVGBuilder, SVGRendererConst } from "@/renderer"
-import { TJIIXMathElement } from "@/model"
-import { TBox, TStroke, isStroke } from "@/symbol"
+import type { TJIIXMathElement } from "@/model"
+import type { TBox, TStroke} from "@/symbol";
+import { isStroke } from "@/symbol"
 import { BoxHelper } from "@/symbol/helpers/BoxHelper"
-import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import type { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import { ColorPaletteManager } from "../base"
 import { convertBoundingBoxMillimeterToPixel } from "@/utils"
 import { LoggerCategory } from "@/logger"

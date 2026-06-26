@@ -1,5 +1,6 @@
-import { InteractiveInkEditor } from "@/editor"
-import { BaseMenuItem, IMenuItemBase } from "@/menu/items/BaseMenuItem"
+import type { InteractiveInkEditor } from "@/editor"
+import type { TMenuItemBase } from "@/menu/items/BaseMenuItem";
+import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
 import { EditorTool, EditorWriteTool } from "@/Constants"
 import rectangleIcon from "@/assets/svg/rectangle.svg"
 import circleIcon from "@/assets/svg/circle.svg"
@@ -7,7 +8,7 @@ import ellipseIcon from "@/assets/svg/ellipse.svg"
 import triangleIcon from "@/assets/svg/triangle.svg"
 import rhombusIcon from "@/assets/svg/rhombus.svg"
 
-interface IShapeToolConfig extends IMenuItemBase {
+type TShapeToolConfig = TMenuItemBase & {
   type: "shape"
 }
 
@@ -24,7 +25,7 @@ export class ShapeTool extends BaseMenuItem<HTMLDivElement>
 
   constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-tool")
   {
-    const config: IShapeToolConfig = {
+    const config: TShapeToolConfig = {
       type: "shape",
       id: `${idPrefix}-write-shape`,
       label: "Shape"

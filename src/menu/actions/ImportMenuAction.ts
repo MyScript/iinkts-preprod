@@ -1,7 +1,8 @@
-import { InteractiveInkEditor } from "@/editor"
-import { SubMenuItem, IMenuSubMenu } from "@/menu/items/SubMenuItem"
-import { PartialDeep } from "@/utils"
-import { TSymbol } from "@/symbol"
+import type { InteractiveInkEditor } from "@/editor"
+import type { TMenuSubMenu } from "@/menu/items/SubMenuItem";
+import { SubMenuItem } from "@/menu/items/SubMenuItem"
+import type { TPartialDeep } from "@/utils"
+import type { TSymbol } from "@/symbol"
 import uploadIcon from "@/assets/svg/upload.svg"
 
 /**
@@ -12,7 +13,7 @@ export class ImportMenuAction extends SubMenuItem
 {
   constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-action")
   {
-    const config: IMenuSubMenu = {
+    const config: TMenuSubMenu = {
       type: "submenu",
       id: `${idPrefix}-import`,
       label: "Import",
@@ -30,7 +31,7 @@ export class ImportMenuAction extends SubMenuItem
           action: async (editor, files) => {
             if (files.length) {
               const fileString = await this.readFileAsText(files[0])
-              const symbols = JSON.parse(fileString) as PartialDeep<TSymbol>[]
+              const symbols = JSON.parse(fileString) as TPartialDeep<TSymbol>[]
               await editor.createSymbols(symbols)
             }
           }

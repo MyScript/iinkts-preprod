@@ -1,4 +1,4 @@
-import { Modal, ModalConfig } from "../../../src/iink"
+import { Modal, TModalConfig } from "../../../src/iink"
 
 describe("Modal.ts", () =>
 {
@@ -17,7 +17,7 @@ describe("Modal.ts", () =>
 
   test("should create modal with basic config", () =>
   {
-    const config: ModalConfig = {
+    const config: TModalConfig = {
       title: "Test Modal",
       fields: [
         {
@@ -42,7 +42,7 @@ describe("Modal.ts", () =>
 
   test("should create modal with multiple field types", () =>
   {
-    const config: ModalConfig = {
+    const config: TModalConfig = {
       title: "Test Modal",
       fields: [
         {
@@ -85,7 +85,7 @@ describe("Modal.ts", () =>
   {
     test("should open modal and add to DOM", () =>
     {
-      const config: ModalConfig = {
+      const config: TModalConfig = {
         title: "Test Modal",
         fields: [],
         buttons: [
@@ -110,7 +110,7 @@ describe("Modal.ts", () =>
 
     test("should focus first input after opening", (done) =>
     {
-      const config: ModalConfig = {
+      const config: TModalConfig = {
         title: "Test Modal",
         fields: [
           {
@@ -142,7 +142,7 @@ describe("Modal.ts", () =>
 
     test("should not open if already open", () =>
     {
-      const config: ModalConfig = {
+      const config: TModalConfig = {
         title: "Test Modal",
         fields: [],
         buttons: []
@@ -163,7 +163,7 @@ describe("Modal.ts", () =>
   {
     test("should close modal", () =>
     {
-      const config: ModalConfig = {
+      const config: TModalConfig = {
         title: "Test Modal",
         fields: [],
         buttons: []
@@ -181,7 +181,7 @@ describe("Modal.ts", () =>
 
     test("should not close if already closed", () =>
     {
-      const config: ModalConfig = {
+      const config: TModalConfig = {
         title: "Test Modal",
         fields: [],
         buttons: []
@@ -199,7 +199,7 @@ describe("Modal.ts", () =>
   {
     test("should remove modal from DOM", () =>
     {
-      const config: ModalConfig = {
+      const config: TModalConfig = {
         title: "Test Modal",
         fields: [],
         buttons: []
@@ -221,7 +221,7 @@ describe("Modal.ts", () =>
     test("should call onClick when button is clicked", async () =>
     {
       const onClick = jest.fn()
-      const config: ModalConfig = {
+      const config: TModalConfig = {
         title: "Test Modal",
         fields: [
           { id: "name", label: "Name", type: "text", defaultValue: "John" }
@@ -244,7 +244,7 @@ describe("Modal.ts", () =>
     test("should handle async button onClick", async () =>
     {
       const onClick = jest.fn().mockResolvedValue(undefined)
-      const config: ModalConfig = {
+      const config: TModalConfig = {
         title: "Test Modal",
         fields: [],
         buttons: [{ label: "Async", variant: "primary", onClick }]
@@ -271,7 +271,7 @@ describe("Modal.ts", () =>
       customDiv.id = "custom-content"
       customDiv.textContent = "Custom content here"
 
-      const config: ModalConfig = {
+      const config: TModalConfig = {
         title: "Test Modal",
         fields: [],
         customContent: customDiv
@@ -290,7 +290,7 @@ describe("Modal.ts", () =>
   {
     test("should render text input with default value", () =>
     {
-      const config: ModalConfig = {
+      const config: TModalConfig = {
         title: "Test Modal",
         fields: [{ id: "email", label: "Email", type: "text", defaultValue: "test@example.com" }],
         buttons: []
@@ -306,7 +306,7 @@ describe("Modal.ts", () =>
 
     test("should render number input with default value", () =>
     {
-      const config: ModalConfig = {
+      const config: TModalConfig = {
         title: "Test Modal",
         fields: [{ id: "age", label: "Age", type: "number", defaultValue: 30 }],
         buttons: []
@@ -322,7 +322,7 @@ describe("Modal.ts", () =>
 
     test("should render select with correct default value", () =>
     {
-      const config: ModalConfig = {
+      const config: TModalConfig = {
         title: "Test Modal",
         fields: [
           {
@@ -352,7 +352,7 @@ describe("Modal.ts", () =>
   {
     test("should close modal when clicking backdrop", () =>
     {
-      const config: ModalConfig = {
+      const config: TModalConfig = {
         title: "Test Modal",
         fields: [],
         buttons: []

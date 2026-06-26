@@ -1,4 +1,5 @@
-import { TDecorator, TStroke, TText, SymbolType, TBox, DecoratorKind, isDecorator, isRecognizedText, isText, type TSymbol } from "@/symbol"
+import type { TDecorator, TStroke, TText, TBox, DecoratorKind} from "@/symbol";
+import { SymbolType, isDecorator, isRecognizedText, isText, type TSymbol } from "@/symbol"
 import { BoxHelper } from "@/symbol/helpers/BoxHelper"
 import { IIDecoratorHelper } from "@/symbol/helpers/IIDecoratorHelper"
 import type { TIIHistoryChanges } from "@/history"

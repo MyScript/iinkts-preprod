@@ -1,20 +1,28 @@
 import { EditorTool } from "@/Constants"
-import { PointerEventGrabber, PointerInfo } from "@/grabber"
-import { Model, TExport, TJIIXExport } from "@/model"
-import { TRecognizerWebSocketSSRMessageSVGPatch, RecognizerWebSocketSSR, DefaultMarginConfiguration, TConverstionState, TMarginConfiguration } from "@/recognizer"
+import type { TPointerInfo } from "@/grabber";
+import { PointerEventGrabber } from "@/grabber"
+import type { TExport, TJIIXExport } from "@/model";
+import { Model } from "@/model"
+import type { TRecognizerWebSocketSSRMessageSVGPatch, TConverstionState, TMarginConfiguration } from "@/recognizer";
+import { RecognizerWebSocketSSR, DefaultMarginConfiguration } from "@/recognizer"
 import { InteractiveInkSSRSmartGuide } from "@/smartguide"
 import { InteractiveInkSSRSVGRenderer } from "@/renderer"
-import { DefaultPenStyle, StyleManager, TPenStyle, TTheme } from "@/style"
-import { HistoryManager, THistoryContext } from "@/history"
-import { DeferredPromise, PartialDeep } from "@/utils"
-import { Stroke, TLegacyStroke, TPointer } from "@/symbol"
-import { AbstractEditor, EditorOptionsBase } from "@/editor/AbstractEditor"
+import type { TPenStyle, TTheme } from "@/style";
+import { DefaultPenStyle, StyleManager } from "@/style"
+import type { THistoryContext } from "@/history";
+import { HistoryManager } from "@/history"
+import type { TPartialDeep } from "@/utils";
+import { DeferredPromise } from "@/utils"
+import type { TLegacyStroke, TPointer } from "@/symbol";
+import { Stroke } from "@/symbol"
+import type { TEditorOptionsBase } from "@/editor/AbstractEditor";
+import { AbstractEditor } from "@/editor/AbstractEditor"
 import { InteractiveInkSSREditorConfiguration } from "./InteractiveInkSSREditorConfiguration"
 
 /**
  * @group Editor
  */
-export type TInteractiveInkSSREditorOptions = PartialDeep<EditorOptionsBase &
+export type TInteractiveInkSSREditorOptions = TPartialDeep<TEditorOptionsBase &
   {
     configuration: InteractiveInkSSREditorConfiguration
   }> &
@@ -120,7 +128,7 @@ export class InteractiveInkSSREditor extends AbstractEditor
   {
     return this.styleManager.penStyle
   }
-  set penStyle(penStyle: PartialDeep<TPenStyle>)
+  set penStyle(penStyle: TPartialDeep<TPenStyle>)
   {
     this.logger.info("setPenStyle", { penStyle })
     this.styleManager.setPenStyle(penStyle)
@@ -144,7 +152,7 @@ export class InteractiveInkSSREditor extends AbstractEditor
   {
     return this.styleManager.theme
   }
-  set theme(theme: PartialDeep<TTheme>)
+  set theme(theme: TPartialDeep<TTheme>)
   {
     this.logger.info("setTheme", { theme })
     this.styleManager.setTheme(theme)
@@ -172,7 +180,7 @@ export class InteractiveInkSSREditor extends AbstractEditor
     this.event.emitExported(exports)
   }
 
-  protected onPointerDown(info: PointerInfo): void
+  protected onPointerDown(info: TPointerInfo): void
   {
     this.logger.info("onPointerDown", { tool: this.tool, info })
     const style: TPenStyle = Object.assign({}, this.theme?.ink, this.currentPenStyle)
@@ -180,14 +188,14 @@ export class InteractiveInkSSREditor extends AbstractEditor
     this.drawCurrentStroke()
   }
 
-  protected onPointerMove(info: PointerInfo): void
+  protected onPointerMove(info: TPointerInfo): void
   {
     this.logger.info("onPointerMove", { tool: this.tool, info })
     this.model.appendToCurrentStroke(info.pointer)
     this.drawCurrentStroke()
   }
 
-  protected async onPointerUp(info: PointerInfo): Promise<void>
+  protected async onPointerUp(info: TPointerInfo): Promise<void>
   {
     try {
       this.logger.info("onPointerUp", { tool: this.tool, info })
@@ -366,7 +374,7 @@ export class InteractiveInkSSREditor extends AbstractEditor
     return this.model
   }
 
-  async importPointEvents(strokes: PartialDeep<TLegacyStroke>[]): Promise<Model>
+  async importPointEvents(strokes: TPartialDeep<TLegacyStroke>[]): Promise<Model>
   {
     this.logger.info("importPointEvents", { strokes })
     const errors: string[] = []

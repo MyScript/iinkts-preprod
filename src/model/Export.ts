@@ -1,6 +1,6 @@
-import { EdgeDecoration, TBox } from "@/symbol"
-import { TJIIXElementBase, TJIIXWord, TJIIXChar, TJIIXLine } from "./ExportCommon"
-import { TJIIXMathElement } from "./ExportMath"
+import type { EdgeDecoration, TBox } from "@/symbol"
+import type { TJIIXElementBase, TJIIXWord, TJIIXChar, TJIIXLine } from "./ExportCommon"
+import type { TJIIXMathElement } from "./ExportMath"
 
 /**
  * @group Exports
@@ -260,7 +260,7 @@ export type TJIIXExport = {
  * @remarks
  * List all supported MIME types for export.
  *
- * Attention the MIME types supported depend on the {@link TRecognitionType | type of recognition}
+ * Attention the MIME types supported depend on the {@link TRecognitionTypeV1 | type of recognition}
  *
  * {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/jiix | Documentation}
  */

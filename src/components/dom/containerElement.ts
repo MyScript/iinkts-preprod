@@ -1,5 +1,5 @@
 /** @group DOM */
-export interface ContainerElConfig {
+export type TContainerElConfig = {
   id?: string
   className?: string | string[]
   style?: string
@@ -8,7 +8,7 @@ export interface ContainerElConfig {
   title?: string
 }
 
-function apply(el: HTMLElement, config?: ContainerElConfig): void {
+function apply(el: HTMLElement, config?: TContainerElConfig): void {
   if (!config) return
   if (config.id) el.id = config.id
   if (config.style) el.style.cssText = config.style
@@ -24,35 +24,35 @@ function apply(el: HTMLElement, config?: ContainerElConfig): void {
 }
 
 /** @group DOM */
-export function buildDiv(config?: ContainerElConfig): HTMLDivElement {
+export function buildDiv(config?: TContainerElConfig): HTMLDivElement {
   const el = document.createElement("div")
   apply(el, config)
   return el
 }
 
 /** @group DOM */
-export function buildSpan(config?: ContainerElConfig): HTMLSpanElement {
+export function buildSpan(config?: TContainerElConfig): HTMLSpanElement {
   const el = document.createElement("span")
   apply(el, config)
   return el
 }
 
 /** @group DOM */
-export function buildP(config?: ContainerElConfig): HTMLParagraphElement {
+export function buildP(config?: TContainerElConfig): HTMLParagraphElement {
   const el = document.createElement("p")
   apply(el, config)
   return el
 }
 
 /** @group DOM */
-export function buildH3(config?: ContainerElConfig): HTMLHeadingElement {
+export function buildH3(config?: TContainerElConfig): HTMLHeadingElement {
   const el = document.createElement("h3") as HTMLHeadingElement
   apply(el, config)
   return el
 }
 
 /** @group DOM */
-export function buildSection(config?: ContainerElConfig): HTMLElement {
+export function buildSection(config?: TContainerElConfig): HTMLElement {
   const el = document.createElement("section")
   apply(el, config)
   return el

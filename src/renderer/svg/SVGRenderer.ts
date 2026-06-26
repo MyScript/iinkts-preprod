@@ -1,9 +1,10 @@
 import { SvgElementRole } from "@/Constants"
 import { getClosestPoints } from "@/utils"
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { TSymbol, TPoint, TBox, TEraser, TDecorator, SymbolType } from "@/symbol"
+import type { TSymbol, TPoint, TBox, TEraser, TDecorator} from "@/symbol";
+import { SymbolType } from "@/symbol"
 import { BoxHelper } from "@/symbol/helpers/BoxHelper"
-import { TIIRendererConfiguration } from "@/renderer/RendererConfiguration"
+import type { TIIRendererConfiguration } from "@/renderer/RendererConfiguration"
 import { BaseRenderer } from "@/renderer/base"
 import { SVGRendererConst, GUIDE_PATH_ATTRS, SUB_GUIDE_PATH_ATTRS } from "./utils/SVGRendererConst"
 import { SVGRendererDecoratorUtil } from "./SVGRendererDecoratorUtil"

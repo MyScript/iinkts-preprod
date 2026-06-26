@@ -1,13 +1,17 @@
 import { SELECTION_MARGIN } from "@/Constants"
-import { TStyle, DefaultStyle } from "@/style"
-import { PartialDeep, computePointOnEllipse, computeEllipseRadiusAverage, findIntersectionBetween2Segment, isValidNumber } from "@/utils"
+import type { TStyle} from "@/style";
+import { DefaultStyle } from "@/style"
+import type { TPartialDeep} from "@/utils";
+import { computePointOnEllipse, computeEllipseRadiusAverage, findIntersectionBetween2Segment, isValidNumber } from "@/utils"
 import { createUUID } from "@/utils/uuid"
-import { TPoint, isValidPoint } from "@/symbol/base/Point"
+import type { TPoint} from "@/symbol/base/Point";
+import { isValidPoint } from "@/symbol/base/Point"
 import { SymbolType } from "@/symbol/base/Symbol"
-import { TBox } from "@/symbol/base/Box"
+import type { TBox } from "@/symbol/base/Box"
 import { BoxHelper } from "./BoxHelper"
-import { EdgeKind, EdgeDecoration } from "@/symbol/geometry/IIEdge"
-import { TEdgeArc } from "@/symbol/geometry/IIEdgeArc"
+import type { EdgeDecoration } from "@/symbol/geometry/IIEdge";
+import { EdgeKind } from "@/symbol/geometry/IIEdge"
+import type { TEdgeArc } from "@/symbol/geometry/IIEdgeArc"
 import { computeEdgeBounds } from "./_edgeDerivedFields"
 
 /**
@@ -24,7 +28,7 @@ export const IIEdgeArcHelper = {
     phi: number,
     startDecoration?: EdgeDecoration,
     endDecoration?: EdgeDecoration,
-    style?: PartialDeep<TStyle>
+    style?: TPartialDeep<TStyle>
   ): TEdgeArc
   {
     const mergedStyle = Object.assign({}, DefaultStyle, style) as TStyle
@@ -58,7 +62,7 @@ export const IIEdgeArcHelper = {
     return arc
   },
 
-  createFromPartial(partial: PartialDeep<TEdgeArc>): TEdgeArc
+  createFromPartial(partial: TPartialDeep<TEdgeArc>): TEdgeArc
   {
     if (!isValidPoint(partial?.center)) throw new Error(`Unable to create a arc, center point is invalid`)
     if (!isValidNumber(partial?.startAngle)) throw new Error(`Unable to create a arc, startAngle is invalid`)

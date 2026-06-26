@@ -1,4 +1,4 @@
-import { Stroke, convertPartialStrokesToStrokes, DefaultPenStyle, TPenStyle, PartialDeep, TLegacyStroke } from "../../../src/iink"
+import { Stroke, convertPartialStrokesToStrokes, DefaultPenStyle, TPenStyle, TPartialDeep, TLegacyStroke } from "../../../src/iink"
 
 describe("Stroke.ts", () =>
 {
@@ -45,7 +45,7 @@ describe("Stroke.ts", () =>
   {
     test("should convert", () =>
     {
-      const pStrokes: PartialDeep<TLegacyStroke>[] = [
+      const pStrokes: TPartialDeep<TLegacyStroke>[] = [
         {
           pointers: [
             { x: 254, y: 37, t: 1, p: 1 },
@@ -69,7 +69,7 @@ describe("Stroke.ts", () =>
     })
     test("should throw error if no pointers", () =>
     {
-      const pStrokes: PartialDeep<TLegacyStroke>[] = [
+      const pStrokes: TPartialDeep<TLegacyStroke>[] = [
         {
         },
       ]
@@ -77,7 +77,7 @@ describe("Stroke.ts", () =>
     })
     test("should throw error if pointers have empty object", () =>
     {
-      const pStrokes: PartialDeep<TLegacyStroke>[] = [
+      const pStrokes: TPartialDeep<TLegacyStroke>[] = [
         {
           pointers: [undefined]
         },
@@ -86,7 +86,7 @@ describe("Stroke.ts", () =>
     })
     test("should throw an error if an x ​​is missing on pointers ", () =>
     {
-      const pStrokes: PartialDeep<TLegacyStroke>[] = [
+      const pStrokes: TPartialDeep<TLegacyStroke>[] = [
         {
           pointers: [
             { x: 254, y: 37, t: 1, p: 0.5 },
@@ -98,7 +98,7 @@ describe("Stroke.ts", () =>
     })
     test("should throw an error if an y ​​is missing on pointers ", () =>
     {
-      const pStrokes: PartialDeep<TLegacyStroke>[] = [
+      const pStrokes: TPartialDeep<TLegacyStroke>[] = [
         {
           pointers: [
             { x: 254, y: 37, t: 1, p: 0.5 },

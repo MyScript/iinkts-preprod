@@ -1,6 +1,6 @@
 
 /** @group DOM */
-export interface LabelElConfig {
+export type TLabelElConfig = {
   text: string
   htmlFor?: string
   className?: string | string[]
@@ -8,7 +8,7 @@ export interface LabelElConfig {
 }
 
 /** @group DOM */
-export function buildLabel(config: LabelElConfig): HTMLLabelElement {
+export function buildLabel(config: TLabelElConfig): HTMLLabelElement {
   const el = document.createElement("label")
   el.textContent = config.text
   if (config.htmlFor) el.htmlFor = config.htmlFor
