@@ -152,12 +152,12 @@ export class IIMathVariableSubManager extends IIAbstractManager
   {
     try {
       this.invalidateCacheForBlock(jiixBlockId)
-      this.logger.info("enrichMathDependencies", `Starting enrichment for "${jiixBlockId}"`)
+      this.logger.info("enrichMathDependencies", `Starting enrichment for "${ jiixBlockId }"`)
 
       const variables = await this.getVariables(jiixBlockId)
 
       if (!variables || variables.length === 0) {
-        this.logger.debug("enrichMathDependencies", `No variables in "${jiixBlockId}"`)
+        this.logger.debug("enrichMathDependencies", `No variables in "${ jiixBlockId }"`)
 
         const existing = this.#dependencies.get(jiixBlockId)
         if (existing?.variableSources && Object.keys(existing.variableSources).length > 0) {
@@ -166,7 +166,7 @@ export class IIMathVariableSubManager extends IIAbstractManager
         return
       }
 
-      this.logger.info("enrichMathDependencies", `Found ${variables.length} variables:`, variables.map(v => `${v.name} (sourceType: ${v.sourceType}, sourceId: ${v.sourceId})`))
+      this.logger.info("enrichMathDependencies", `Found ${ variables.length } variables:`, variables.map(v => `${ v.name } (sourceType: ${ v.sourceType }, sourceId: ${ v.sourceId })`))
 
       const newVariableSources: { [variableName: string]: string } = {}
 
@@ -182,10 +182,10 @@ export class IIMathVariableSubManager extends IIAbstractManager
               ...sourceDeps,
               dependentBlocks: [...currentDependentBlocks, jiixBlockId]
             })
-            this.logger.info("enrichMathDependencies", `Added "${jiixBlockId}" to dependentBlocks of source block ${variable.sourceId}`)
+            this.logger.info("enrichMathDependencies", `Added "${ jiixBlockId }" to dependentBlocks of source block ${ variable.sourceId }`)
           }
         } else {
-          this.logger.debug("enrichMathDependencies", `Variable "${variable.name}" sourceType "${variable.sourceType}", skipping`)
+          this.logger.debug("enrichMathDependencies", `Variable "${ variable.name }" sourceType "${ variable.sourceType }", skipping`)
         }
       }
 
@@ -195,7 +195,7 @@ export class IIMathVariableSubManager extends IIAbstractManager
         variableSources: newVariableSources
       })
 
-      this.logger.info("enrichMathDependencies", `Enriched "${jiixBlockId}" with variableSources:`, newVariableSources)
+      this.logger.info("enrichMathDependencies", `Enriched "${ jiixBlockId }" with variableSources:`, newVariableSources)
       this.editor.event.emitChanged(this.editor.history.context)
     }
     catch (error) {
@@ -226,7 +226,7 @@ export class IIMathVariableSubManager extends IIAbstractManager
         const filtered = deps.dependentBlocks.filter(id => existingJiixIds.has(id))
         const removedCount = deps.dependentBlocks.length - filtered.length
         if (removedCount > 0) {
-          this.logger.info("cleanupMathDependencies", `Removed ${removedCount} deleted dependent(s) from block ${jiixBlockId}`)
+          this.logger.info("cleanupMathDependencies", `Removed ${ removedCount } deleted dependent(s) from block ${ jiixBlockId }`)
           updatedDependentBlocks = filtered
           needsUpdate = true
         }
@@ -239,7 +239,7 @@ export class IIMathVariableSubManager extends IIAbstractManager
         if (stale.length > 0) {
           updatedVariableSources = { ...deps.variableSources }
           stale.forEach(varName => delete updatedVariableSources![varName])
-          this.logger.info("cleanupMathDependencies", `Removed ${stale.length} stale variable source(s) from block ${jiixBlockId}`)
+          this.logger.info("cleanupMathDependencies", `Removed ${ stale.length } stale variable source(s) from block ${ jiixBlockId }`)
           needsUpdate = true
         }
       }
@@ -262,10 +262,11 @@ export class IIMathVariableSubManager extends IIAbstractManager
       const deps = this.#dependencies.get(jiixBlockId)
       if (!deps?.dependentBlocks || deps.dependentBlocks.length === 0) continue
 
-      const filtered = deps.dependentBlocks.filter(depId => {
+      const filtered = deps.dependentBlocks.filter(depId =>
+      {
         const sources = blockToSources.get(depId)
         if (!sources) {
-          this.logger.warn("cleanupMathDependencies", `Dependent block "${depId}" not in blockToSources, keeping`)
+          this.logger.warn("cleanupMathDependencies", `Dependent block "${ depId }" not in blockToSources, keeping`)
           return true
         }
         return sources.has(jiixBlockId)
@@ -273,7 +274,7 @@ export class IIMathVariableSubManager extends IIAbstractManager
 
       const removedCount = deps.dependentBlocks.length - filtered.length
       if (removedCount > 0) {
-        this.logger.info("cleanupMathDependencies", `Removed ${removedCount} inconsistent dependent(s) from block ${jiixBlockId}`)
+        this.logger.info("cleanupMathDependencies", `Removed ${ removedCount } inconsistent dependent(s) from block ${ jiixBlockId }`)
         this.#dependencies.set(jiixBlockId, { ...deps, dependentBlocks: filtered })
       }
     }
@@ -281,8 +282,13 @@ export class IIMathVariableSubManager extends IIAbstractManager
 
   invalidateCacheForBlock(jiixBlockId: string): void
   {
-    this.#variableCache.delete(jiixBlockId)
-    this.#variableDefinitionCache.delete(jiixBlockId)
+    if (jiixBlockId === "") {
+      this.#variableCache.clear()
+      this.#variableDefinitionCache.clear()
+    } else {
+      this.#variableCache.delete(jiixBlockId)
+      this.#variableDefinitionCache.delete(jiixBlockId)
+    }
     this.#variableDefsCache = null
   }
 
@@ -295,7 +301,7 @@ export class IIMathVariableSubManager extends IIAbstractManager
     }
     this.logger.info("getVariables", { jiixBlockId })
     const variables = await this.editor.recognizer.getVariables(jiixBlockId)
-    const definition = await this.asVariableDefinition(jiixBlockId)
+    const definition = jiixBlockId ? await this.asVariableDefinition(jiixBlockId) : null
     const enriched: TMathVariable[] = variables.map(v => ({
       ...v,
       isDefinition: !!definition && definition.name === v.name
@@ -361,43 +367,60 @@ export class IIMathVariableSubManager extends IIAbstractManager
   async getAllVariableUsages(): Promise<TMathVariableUsage[]>
   {
     const defs = await this.getVariableDefinitions()
-    const blockDefs = new Map<string, { blockId: string; value?: number }>()
+    const usages: TMathVariableUsage[] = []
+
+    // One row per definition entry (authoritative source of truth)
     for (const vd of defs) {
       for (const d of vd.definitions) {
-        if (d.sourceType === "BLOCK") {
-          blockDefs.set(vd.name, { blockId: d.blockId, value: d.value })
-        }
+        const targetLabel = d.blockId
+          ? (this.editor.jiix.getBlockLabel(d.blockId) ?? d.blockId)
+          : "Global"
+        usages.push({
+          id: `${ vd.name }|def|${ d.blockId || "global" }|${ d.sourceType }`,
+          name: vd.name,
+          value: d.value,
+          targetBlockId: d.blockId,
+          targetLabel,
+          sourceType: d.sourceType,
+          sourceId: d.blockId || undefined,
+          sourceLabel: undefined,
+          isDefinition: true,
+          isEditable: d.sourceType === "API_GLOBAL" || d.sourceType === "API"
+        })
       }
     }
 
+    // Usage rows: blocks that consume variables from elsewhere
+    const defKeys = new Set(usages.map(u => `${ u.name }|${ u.targetBlockId }`))
+
     const allBlockVars = new Map<string, TMathVariable[]>()
-    await Promise.all(this.getAllMathBlockIds().map(async id => {
+    await Promise.all(this.getAllMathBlockIds().map(async id =>
+    {
       allBlockVars.set(id, await this.getVariables(id))
     }))
-
-    const usages: TMathVariableUsage[] = []
 
     for (const [blockId, variables] of allBlockVars) {
       const targetLabel = this.editor.jiix.getBlockLabel(blockId) ?? blockId
       for (const variable of variables) {
-        const def = blockDefs.get(variable.name)
-        const isDefinition = variable.sourceType === "UNDEFINED" && def?.blockId === blockId
-        const isEditable = !isDefinition && variable.sourceType !== "PREDEFINED"
+        if (variable.sourceType === "UNDEFINED") continue
+        if (variable.sourceType === "PREDEFINED") continue
+        if (defKeys.has(`${ variable.name }|${ blockId }`)) continue
+
         const sourceLabel = variable.sourceType === "BLOCK" && variable.sourceId
           ? this.editor.jiix.getBlockLabel(variable.sourceId) ?? variable.sourceId
           : undefined
 
         usages.push({
-          id: `${variable.name}|${blockId}`,
+          id: `${ variable.name }|${ blockId }`,
           name: variable.name,
-          value: isDefinition ? def?.value : (variable.value ?? undefined),
+          value: variable.value ?? undefined,
           targetBlockId: blockId,
           targetLabel,
           sourceType: variable.sourceType,
           sourceId: variable.sourceId,
           sourceLabel,
-          isDefinition,
-          isEditable
+          isDefinition: false,
+          isEditable: true
         })
       }
     }
@@ -415,7 +438,8 @@ export class IIMathVariableSubManager extends IIAbstractManager
     const deps = this.getDependencies(jiixBlockId)
     if (!deps?.variableSources) return sources
 
-    Object.values(deps.variableSources).forEach(sourceJiixId => {
+    Object.values(deps.variableSources).forEach(sourceJiixId =>
+    {
       if (!visited.has(sourceJiixId)) {
         sources.add(sourceJiixId)
         this.getRecursiveSources(sourceJiixId, visited).forEach(id => sources.add(id))
@@ -435,7 +459,8 @@ export class IIMathVariableSubManager extends IIAbstractManager
     const deps = this.getDependencies(jiixBlockId)
     if (!deps?.dependentBlocks) return dependents
 
-    deps.dependentBlocks.forEach(dependentJiixId => {
+    deps.dependentBlocks.forEach(dependentJiixId =>
+    {
       if (!visited.has(dependentJiixId)) {
         dependents.add(dependentJiixId)
         this.getRecursiveDependents(dependentJiixId, visited).forEach(id => dependents.add(id))
@@ -464,13 +489,15 @@ export class IIMathVariableSubManager extends IIAbstractManager
     this.logger.debug("onSymbolHover", { jiixBlockId })
 
     const sources = this.getRecursiveSources(jiixBlockId)
-    sources.forEach(sourceJiixId => {
+    sources.forEach(sourceJiixId =>
+    {
       const bounds = this.getBlockBounds(sourceJiixId)
       if (bounds) this.editor.overlays.highlightPrimary(sourceJiixId, bounds)
     })
 
     const dependents = this.getRecursiveDependents(jiixBlockId)
-    dependents.forEach(dependentJiixId => {
+    dependents.forEach(dependentJiixId =>
+    {
       const bounds = this.getBlockBounds(dependentJiixId)
       if (bounds) this.editor.overlays.highlightLinked(dependentJiixId, bounds)
     })
@@ -508,22 +535,26 @@ export class IIMathVariableSubManager extends IIAbstractManager
     dependents.forEach(id => relatedJiixIds.add(id))
 
     const allJiixIds = new Set<string>()
-    this.getMathSymbols().forEach(s => {
+    this.getMathSymbols().forEach(s =>
+    {
       if (s.jiixBlockId) allJiixIds.add(s.jiixBlockId)
     })
-    allJiixIds.forEach(jid => {
+    allJiixIds.forEach(jid =>
+    {
       if (!relatedJiixIds.has(jid)) {
         const bounds = this.getBlockBounds(jid)
         if (bounds) this.editor.overlays.dimSymbol(jid, bounds, this.#config.dimOpacity)
       }
     })
 
-    sources.forEach(sourceJiixId => {
+    sources.forEach(sourceJiixId =>
+    {
       const bounds = this.getBlockBounds(sourceJiixId)
       if (bounds) this.editor.overlays.highlightPrimary(sourceJiixId, bounds)
     })
 
-    dependents.forEach(dependentJiixId => {
+    dependents.forEach(dependentJiixId =>
+    {
       const bounds = this.getBlockBounds(dependentJiixId)
       if (bounds) this.editor.overlays.highlightLinked(dependentJiixId, bounds)
     })
@@ -546,7 +577,7 @@ export class IIMathVariableSubManager extends IIAbstractManager
 
   protected drawDependencyArrowToBox(fromId: string, fromBounds: TBox, toId: string, toBox: TBox, color: string): void
   {
-    const arrowId = `arrow-${fromId}-${toId}`.replace(/[^a-zA-Z0-9_-]/g, "_")
+    const arrowId = `arrow-${ fromId }-${ toId }`.replace(/[^a-zA-Z0-9_-]/g, "_")
     this.renderer.removeSymbol(arrowId)
 
     const toCenter = { x: toBox.x + toBox.width / 2, y: toBox.y + toBox.height / 2 }
@@ -554,7 +585,7 @@ export class IIMathVariableSubManager extends IIAbstractManager
     const { x: startX, y: startY } = getBoxConnectionPoint(fromBounds, toCenter)
     const { x: endX, y: endY } = getBoxConnectionPoint(toBox, fromCenter)
 
-    const path = `M ${startX} ${startY} L ${endX} ${endY}`
+    const path = `M ${ startX } ${ startY } L ${ endX } ${ endY }`
     const arrowPath = document.createElementNS("http://www.w3.org/2000/svg", "path")
     arrowPath.setAttribute("id", arrowId)
     arrowPath.setAttribute("d", path)
@@ -562,7 +593,7 @@ export class IIMathVariableSubManager extends IIAbstractManager
     arrowPath.setAttribute("stroke", color)
     arrowPath.setAttribute("stroke-width", "2")
     arrowPath.setAttribute("fill", "transparent")
-    arrowPath.setAttribute("marker-end", `url(#${markerId})`)
+    arrowPath.setAttribute("marker-end", `url(#${ markerId })`)
     arrowPath.setAttribute("data-overlay", "arrow")
     arrowPath.setAttribute("style", "pointer-events: none;")
     this.renderer.layer.appendChild(arrowPath)
@@ -570,8 +601,8 @@ export class IIMathVariableSubManager extends IIAbstractManager
 
   protected ensureArrowheadMarker(color: string): string
   {
-    const markerId = `arrowhead-${color.replace(/[^a-zA-Z0-9]/g, "_")}`
-    if (this.renderer.layer.querySelector(`#${markerId}`)) {
+    const markerId = `arrowhead-${ color.replace(/[^a-zA-Z0-9]/g, "_") }`
+    if (this.renderer.layer.querySelector(`#${ markerId }`)) {
       return markerId
     }
 
@@ -611,7 +642,8 @@ export class IIMathVariableSubManager extends IIAbstractManager
     // Any stroke of the hovered block shares the same JIIX — use first for expression lookup
     const hoveredFirstStroke = this.findMathSymbolsByJiixId(jiixBlockId)[0]
 
-    sources.forEach(sourceJiixId => {
+    sources.forEach(sourceJiixId =>
+    {
       const sourceBounds = this.getBlockBounds(sourceJiixId)
       if (!sourceBounds) return
 
@@ -630,12 +662,13 @@ export class IIMathVariableSubManager extends IIAbstractManager
           if (variableBoxes.length > 0) {
             const variableColor = this.#colorManager.getColorForVariable(variableName)
             this.editor.overlays.highlightPrimary(sourceJiixId, sourceBounds, variableColor)
-            variableBoxes.forEach((variableBox, i) => {
-              this.editor.overlays.highlightWithColor(variableBox, `${jiixBlockId}-occ${i}`, variableName)
+            variableBoxes.forEach((variableBox, i) =>
+            {
+              this.editor.overlays.highlightWithColor(variableBox, `${ jiixBlockId }-occ${ i }`, variableName)
               this.drawDependencyArrowToBox(
-                `${sourceJiixId}-occ${i}`,
+                `${ sourceJiixId }-occ${ i }`,
                 sourceBounds,
-                `${jiixBlockId}-occ${i}`,
+                `${ jiixBlockId }-occ${ i }`,
                 variableBox,
                 variableColor
               )
@@ -654,7 +687,8 @@ export class IIMathVariableSubManager extends IIAbstractManager
       }
     })
 
-    dependents.forEach(dependentJiixId => {
+    dependents.forEach(dependentJiixId =>
+    {
       const depBounds = this.getBlockBounds(dependentJiixId)
       if (!depBounds) return
 
@@ -674,12 +708,13 @@ export class IIMathVariableSubManager extends IIAbstractManager
           const variableBoxes = this.findVariableBoxesInExpressions(depMathExpressions, variableName)
           if (variableBoxes.length > 0) {
             const variableColor = this.#colorManager.getColorForVariable(variableName)
-            variableBoxes.forEach((variableBox, i) => {
-              this.editor.overlays.highlightWithColor(variableBox, `${dependentJiixId}-occ${i}`, variableName)
+            variableBoxes.forEach((variableBox, i) =>
+            {
+              this.editor.overlays.highlightWithColor(variableBox, `${ dependentJiixId }-occ${ i }`, variableName)
               this.drawDependencyArrowToBox(
-                `${jiixBlockId}-occ${i}`,
+                `${ jiixBlockId }-occ${ i }`,
                 hoveredBounds,
-                `${dependentJiixId}-occ${i}`,
+                `${ dependentJiixId }-occ${ i }`,
                 variableBox,
                 variableColor
               )

@@ -133,10 +133,9 @@ describe("IIMathVariablePerBlockEditor.ts", () =>
       editor.math.getVariables = jest.fn().mockResolvedValue([makeVariable({ name: "x" })])
       const component = new IIMathVariablePerBlockEditor(editor, ["block-1"])
       await component.show()
-      // definition variable should render as "Definition"
-      const spans = document.querySelectorAll("span")
-      const defSpan = Array.from(spans).find(s => s.textContent === "Definition")
-      expect(defSpan).toBeDefined()
+      // definition variable should be disabled (isDefinition → disabled: true)
+      const input = document.querySelector("input") as HTMLInputElement
+      expect(input.disabled).toBe(true)
     })
 
     test("should render onDelete button for API-typed variable", async () =>
