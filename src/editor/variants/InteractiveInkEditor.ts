@@ -874,6 +874,7 @@ export class InteractiveInkEditor extends AbstractEditor
    */
   select(ids: string[]): void
   {
+    this.tool = EditorTool.Select
     this.selector.removeSelectedGroup()
     this.model.symbols.forEach(s =>
     {
@@ -891,7 +892,6 @@ export class InteractiveInkEditor extends AbstractEditor
     else {
       this.math.clearBlockSelection()
     }
-
     this.updateLayerUI()
     this.event.emitSelected(this.model.symbolsSelected)
   }
@@ -901,6 +901,7 @@ export class InteractiveInkEditor extends AbstractEditor
    */
   selectAll(): void
   {
+    this.tool = EditorTool.Select
     this.selector.removeSelectedGroup()
     this.model.symbols.forEach(s =>
     {
@@ -916,7 +917,6 @@ export class InteractiveInkEditor extends AbstractEditor
     else {
       this.math.clearBlockSelection()
     }
-
     this.updateLayerUI()
     this.event.emitSelected(this.model.symbolsSelected)
   }
