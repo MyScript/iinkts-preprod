@@ -7,6 +7,7 @@
  */
 export * from "./IISymbol"
 export * from "./IISymbolBase"
+export * from "./IITypeset"
 export * from "./IIStroke"
 export * from "./IIText"
 export * from "./IIMath"

@@ -123,7 +123,7 @@ describe("IIMath.ts", () =>
     test("should find elements that overlap with points", () =>
     {
       const math = new IIMath(elements, point, box)
-      const overlappingElements = math.getElementsOverlaps([{ x: 12, y: 12 }])
+      const overlappingElements = math.getChildrenOverlaps([{ x: 12, y: 12 }])
 
       expect(overlappingElements.length).toBe(1)
       expect(overlappingElements[0].id).toBe("elem-1")
@@ -132,7 +132,7 @@ describe("IIMath.ts", () =>
     test("should find no elements when point is outside", () =>
     {
       const math = new IIMath(elements, point, box)
-      const overlappingElements = math.getElementsOverlaps([{ x: 100, y: 100 }])
+      const overlappingElements = math.getChildrenOverlaps([{ x: 100, y: 100 }])
 
       expect(overlappingElements.length).toBe(0)
     })
