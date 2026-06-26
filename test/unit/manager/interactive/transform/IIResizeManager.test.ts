@@ -181,7 +181,7 @@ describe("IIResizeManager.ts", () =>
     })
     test("resize edge Text", () =>
     {
-      editor.texter.updateBounds = jest.fn()
+      editor.typeset.updateBounds = jest.fn()
       const point: TPoint = { x: 0, y: 0 }
       const chars: TIISymbolChar[] = [
         {
@@ -199,7 +199,7 @@ describe("IIResizeManager.ts", () =>
       manager.applyToSymbol(text, matrix)
       expect(text.point).toEqual({ x: 0, y: 0 })
       expect(chars[0].fontSize).toEqual(30)
-      expect(editor.texter.updateBounds).toHaveBeenCalledTimes(1)
+      expect(editor.typeset.updateBounds).toHaveBeenCalledTimes(1)
     })
   })
 

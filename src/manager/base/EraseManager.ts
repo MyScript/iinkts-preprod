@@ -145,7 +145,7 @@ export class EraseManager
           } else {
             // Some chars deleted, update the symbol directly
             s.chars = remainingChars
-            editor.texter.setBounds(s)
+            editor.typeset.setBounds(s)
             this.renderer.drawSymbol(s)
           }
         } else if (s.deleting) {

@@ -1,4 +1,4 @@
-import { Box, IIText, TIISymbol, TIISymbolChar, isText } from "@/symbol"
+import { Box, IIText, IIMath, TIISymbol, TIISymbolChar, isText } from "@/symbol"
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import { IIAbstractManager } from "./IIAbstractManager"
 import { LoggerCategory } from "@/logger"
@@ -6,9 +6,9 @@ import { LoggerCategory } from "@/logger"
 /**
  * @group Manager
  */
-export class IITextManager extends IIAbstractManager
+export class IITypesetManager extends IIAbstractManager
 {
-  protected managerName = "IITextManager"
+  protected managerName = "IITypesetManager"
 
   constructor(editor: InteractiveInkEditor)
   {
@@ -21,17 +21,19 @@ export class IITextManager extends IIAbstractManager
     return this.editor.configuration.rendering.guides.gap
   }
 
-  protected drawSymbolHidden(text: IIText): SVGGElement
+  protected drawSymbolHidden(symbol: IIText | IIMath): SVGGElement
   {
-    const clone = text.clone()
-    clone.id = "text-to-measure"
-    clone.chars.forEach(c => c.id += "-to-measure")
+    const clone = symbol.clone() as IIText | IIMath
+    clone.id = "symbol-to-measure"
+    if (clone instanceof IIText) {
+      clone.chars.forEach(c => c.id += "-to-measure")
+    }
     clone.decorators = []
     this.renderer.layer.querySelector(`#${ clone.id }`)?.remove()
     const el = this.renderer.buildElementFromSymbol(clone)!
     el.setAttribute("visibility", "hidden")
     this.renderer.prependElement(el)
-    return el
+    return el as SVGGElement
   }
 
   setCharsBounds(text: IIText, textGroupEl: SVGGElement): IIText
@@ -49,11 +51,16 @@ export class IITextManager extends IIAbstractManager
     return text
   }
 
-  setBounds(text: IIText): void
+  setBounds(symbol: IIText | IIMath): void
   {
-    const element = this.drawSymbolHidden(text)
-    text.bounds = this.getElementBoundingBox(element)
-    this.setCharsBounds(text, element)
+    const el = this.drawSymbolHidden(symbol)
+    if (symbol instanceof IIText) {
+      symbol.bounds = this.getElementBoundingBox(el)
+      this.setCharsBounds(symbol, el)
+    }
+    else {
+      symbol.bounds = new Box(el.getBBox())
+    }
   }
 
   getElementBoundingBox(textElement: SVGElement): Box

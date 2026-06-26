@@ -7,7 +7,7 @@ import { SVGRenderer } from "@/renderer"
 import { IIHistoryManager } from "@/history"
 import { RecognizerWebSocket } from "@/recognizer"
 import { IITranslateManager } from "@/manager/interactive/transform/IITranslateManager"
-import { IITextManager } from "@/manager/interactive/IITextManager"
+import { IITypesetManager } from "@/manager/interactive/IITypesetManager"
 import { IIGestureManager } from "../IIGestureManager"
 import { LoggerManager, LoggerCategory, type Logger } from "@/logger"
 import { IIGestureAnnotationProcessor } from "./IIGestureAnnotationProcessor"
@@ -105,11 +105,11 @@ export abstract class GestureHandler implements IGestureHandler
   }
 
   /**
-   * Get the editor's text manager
+   * Get the editor's typeset manager
    */
-  protected get texter(): IITextManager
+  protected get typeset(): IITypesetManager
   {
-    return this.editor.texter
+    return this.editor.typeset
   }
 
   /**

@@ -1,38 +1,22 @@
-import { TStyle } from "@/style"
-import { PartialDeep, convertDegreeToRadian, findIntersectionBetween2Segment, isPointInsidePolygon, computeRotatedPoint } from "@/utils"
+import { PartialDeep } from "@/utils"
 import { TPoint, isValidPoint } from "@/symbol/base/Point"
 import { SymbolType } from "@/symbol/base/Symbol"
-import { Box, TBox } from "@/symbol/base/Box"
+import { TBox } from "@/symbol/base/Box"
+import { TStyle } from "@/style"
 import { IIDecorator } from "./IIDecorator"
-import { IISymbolBase } from "./IISymbolBase"
+import { IITypeset, TIITypesetChild } from "./IITypeset"
 
 /**
  * @group Symbol
  */
-export type TIISymbolChar = {
-  id: string
-  label: string
-  fontSize: number
-  fontWeight: "normal" | "bold"
-  color: string
-  bounds: TBox
-}
+export type TIISymbolChar = TIITypesetChild
 
 /**
  * @group Symbol
  */
-export class IIText extends IISymbolBase<SymbolType.Text>
+export class IIText extends IITypeset<SymbolType.Text, TIISymbolChar>
 {
-  readonly isClosed = true
-
-  point: TPoint
   chars: TIISymbolChar[]
-  decorators: IIDecorator[]
-  bounds: Box
-  rotation?: {
-    degree: number,
-    center: TPoint
-  }
 
   constructor(
     chars: TIISymbolChar[],
@@ -41,107 +25,13 @@ export class IIText extends IISymbolBase<SymbolType.Text>
     style?: PartialDeep<TStyle>
   )
   {
-    super(SymbolType.Text, style)
-    this.point = point
-    this.bounds = new Box(bounds)
+    super(SymbolType.Text, point, bounds, style)
     this.chars = chars
-    this.decorators = []
   }
 
-  get label(): string
+  get children(): TIISymbolChar[]
   {
-    return this.chars.map(c => c.label).join("")
-  }
-
-  get vertices(): TPoint[]
-  {
-    if (this.rotation) {
-      const center = this.rotation.center
-      const rad = convertDegreeToRadian(-this.rotation.degree)
-      return this.bounds.corners
-        .map(p =>
-        {
-          return computeRotatedPoint(p, center, rad)
-        })
-    }
-    else {
-      return this.bounds.corners
-    }
-  }
-
-  get snapPoints(): TPoint[]
-  {
-    const offsetY = this.bounds.yMax - this.point.y
-    const points = [
-      { x: this.bounds.x, y: this.bounds.yMin + offsetY },
-      { x: this.bounds.xMax, y: this.bounds.yMin + offsetY },
-      { x: this.bounds.xMax, y: this.bounds.yMax - offsetY },
-      { x: this.bounds.x, y: this.bounds.yMax - offsetY },
-      this.bounds.center
-    ]
-    if (this.rotation) {
-      const center = this.rotation.center
-      const rad = convertDegreeToRadian(-this.rotation.degree)
-      return points
-        .map(p =>
-        {
-          return computeRotatedPoint(p, center, rad)
-        })
-    }
-    return points
-  }
-
-  protected getCharCorners(char: TIISymbolChar): TPoint[]
-  {
-    const boxBox = new Box(char.bounds)
-    if (this.rotation) {
-      const center = this.rotation.center
-      const rad = convertDegreeToRadian(-this.rotation.degree)
-      return boxBox.corners
-        .map(p =>
-        {
-          return computeRotatedPoint(p, center, rad)
-        })
-    }
-    return boxBox.corners
-  }
-
-  updateChildrenStyle(): void
-  {
-    this.chars.forEach(c => {
-      if (this.style.color) {
-        c.color = this.style.color
-      }
-    })
-    this.modificationDate = Date.now()
-  }
-
-  updateChildrenFont( { fontSize, fontWeight }: { fontSize?: number, fontWeight?: "normal" | "bold" }): void
-  {
-    this.chars.forEach(c => {
-      if (fontSize) {
-        c.fontSize = fontSize
-      }
-      if (fontWeight) {
-        c.fontWeight = fontWeight
-      }
-    })
-    this.modificationDate = Date.now()
-  }
-
-  getCharsOverlaps(points: TPoint[]): TIISymbolChar[]
-  {
-    return this.chars.filter(c =>
-    {
-      const charCorners = this.getCharCorners(c)
-      return points.some(p => isPointInsidePolygon(p, charCorners))
-    })
-  }
-
-  overlaps(box: TBox): boolean
-  {
-    return this.vertices.some(p => Box.containsPoint(box, p)) ||
-      this.edges.some(e1 => Box.getSides(box).some(e2 => !!findIntersectionBetween2Segment(e1, e2)))
+    return this.chars
   }
 
   clone(): IIText
@@ -180,7 +70,7 @@ export class IIText extends IISymbolBase<SymbolType.Text>
     if (partial.id) text.id = partial.id
     if (partial.decorators?.length) {
       partial.decorators.forEach(d => {
-        if(d?.kind) {
+        if (d?.kind) {
           text.decorators.push(new IIDecorator(d.kind, Object.assign({}, text.style, d.style)))
         }
       })

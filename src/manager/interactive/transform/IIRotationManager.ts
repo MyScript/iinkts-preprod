@@ -89,7 +89,7 @@ export class IIRotationManager extends IIAbstractTransformManager
       degree: convertRadianToDegree(MatrixTransform.rotation(matrix)) + (text.rotation?.degree || 0),
       center: this.center
     }
-    return this.editor.texter.updateBounds(text)
+    return this.editor.typeset.updateBounds(text)
   }
 
   protected applyOnMath(math: IIMath, matrix: MatrixTransform): IIMath
