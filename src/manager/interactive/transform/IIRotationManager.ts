@@ -1,16 +1,20 @@
+import { IIStrokeHelper } from "@/symbol/helpers"
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import
 {
-  Box,
   EdgeKind,
-  IIStroke,
-  IIText,
-  IIMath,
+  TStroke,
+  TText,
+  TMath,
   ShapeKind,
-  TIIEdge,
-  TIIShape,
-  TPoint
+  TEdge,
+  TShape,
+  TPoint,
+  updateShapeDerivedFields,
+  updateEdgeDerivedFields,
+  cloneSymbol,
 } from "@/symbol"
+import { BoxHelper } from "@/symbol/helpers/BoxHelper"
 import { computeAngleRadian, convertDegreeToRadian, convertRadianToDegree, TWO_PI } from "@/utils"
 import { MatrixTransform } from "@/transform"
 import { IIAbstractTransformManager } from "./AbstractTransformManager"
@@ -30,30 +34,34 @@ export class IIRotationManager extends IIAbstractTransformManager
     super(editor)
   }
 
-  protected applyToStroke(stroke: IIStroke, matrix: MatrixTransform): IIStroke
+  protected applyToStroke(stroke: TStroke, matrix: MatrixTransform): TStroke
   {
     if (stroke.isSolverOutput) {
       this.logger.warn("applyToStroke", "Skipping solver output stroke - it will be recalculated", stroke.id)
       return stroke
     }
     this.applyMatrixToPoints(stroke.pointers, matrix)
+    IIStrokeHelper.updateBounds(stroke)
     return stroke
   }
 
-  protected applyToShape(shape: TIIShape, matrix: MatrixTransform): TIIShape
+  protected applyToShape(shape: TShape, matrix: MatrixTransform): TShape
   {
     switch (shape.kind) {
       case ShapeKind.Ellipse: {
         shape.center = matrix.applyToPoint(shape.center)
         shape.orientation = (shape.orientation + MatrixTransform.rotation(matrix)) % TWO_PI
+        updateShapeDerivedFields(shape)
         return shape
       }
       case ShapeKind.Circle: {
         shape.center = matrix.applyToPoint(shape.center)
+        updateShapeDerivedFields(shape)
         return shape
       }
       case ShapeKind.Polygon: {
         this.applyMatrixToPoints(shape.points, matrix)
+        updateShapeDerivedFields(shape)
         return shape
       }
       default:
@@ -61,21 +69,24 @@ export class IIRotationManager extends IIAbstractTransformManager
     }
   }
 
-  protected applyToEdge(edge: TIIEdge, matrix: MatrixTransform): TIIEdge
+  protected applyToEdge(edge: TEdge, matrix: MatrixTransform): TEdge
   {
     switch (edge.kind) {
       case EdgeKind.Arc: {
         edge.phi = (edge.phi - MatrixTransform.rotation(matrix)) % TWO_PI
         edge.center = matrix.applyToPoint(edge.center)
+        updateEdgeDerivedFields(edge)
         return edge
       }
       case EdgeKind.Line: {
         edge.start = matrix.applyToPoint(edge.start)
         edge.end = matrix.applyToPoint(edge.end)
+        updateEdgeDerivedFields(edge)
         return edge
       }
       case EdgeKind.PolyEdge: {
         edge.points = edge.points.map(p => matrix.applyToPoint(p))
+        updateEdgeDerivedFields(edge)
         return edge
       }
       default:
@@ -83,7 +94,7 @@ export class IIRotationManager extends IIAbstractTransformManager
     }
   }
 
-  protected applyOnText(text: IIText, matrix: MatrixTransform): IIText
+  protected applyOnText(text: TText, matrix: MatrixTransform): TText
   {
     text.rotation = {
       degree: convertRadianToDegree(MatrixTransform.rotation(matrix)) + (text.rotation?.degree || 0),
@@ -92,7 +103,7 @@ export class IIRotationManager extends IIAbstractTransformManager
     return this.editor.typeset.updateBounds(text)
   }
 
-  protected applyOnMath(math: IIMath, matrix: MatrixTransform): IIMath
+  protected applyOnMath(math: TMath, matrix: MatrixTransform): TMath
   {
     math.rotation = {
       degree: convertRadianToDegree(MatrixTransform.rotation(matrix)) + (math.rotation?.degree || 0),
@@ -111,11 +122,11 @@ export class IIRotationManager extends IIAbstractTransformManager
   {
     this.logger.info("start", { target })
     this.interactElementsGroup = this.resolveInteractGroup(target)
-    const boundingBox = Box.createFromPoints(this.model.symbolsSelected.flatMap(s => s.vertices))
+    const boundingBox = BoxHelper.createFromPoints(this.model.symbolsSelected.flatMap(s => s.vertices))
 
     this.center = {
-      x: boundingBox.xMin + boundingBox.width / 2,
-      y: boundingBox.yMid
+      x: boundingBox.x + boundingBox.width / 2,
+      y: boundingBox.y + boundingBox.height / 2
     }
     this.origin = origin
     this.setTransformOrigin(this.interactElementsGroup.id, this.center.x, this.center.y)
@@ -153,7 +164,7 @@ export class IIRotationManager extends IIAbstractTransformManager
     this.logger.info("end", { point })
     const angleDegree = this.continue(point)
     const angleRad = convertDegreeToRadian(angleDegree) % TWO_PI
-    const oldSymbols = this.model.symbolsSelected.map(s => s.clone())
+    const oldSymbols = this.model.symbolsSelected.map(s => cloneSymbol(s))
     const matrix = MatrixTransform.identity().rotate(angleRad, this.center)
     this.applyAndDraw(this.model.symbolsSelected, matrix)
     const strokesFromSymbols = this.editor.extractStrokesFromSymbols(this.model.symbolsSelected)

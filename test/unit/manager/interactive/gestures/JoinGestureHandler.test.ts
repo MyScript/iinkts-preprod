@@ -3,7 +3,8 @@ import { InteractiveInkEditorMock } from "../../../__mocks__/InteractiveInkEdito
 import {
   JoinGestureHandler,
   GestureHelpers,
-  TGesture
+  TGesture,
+  IIStrokeHelper,
 } from "../../../../../src/iink"
 
 describe("JoinGestureHandler.ts", () =>
@@ -31,8 +32,8 @@ describe("JoinGestureHandler.ts", () =>
     test("should handle empty gesture", async () =>
     {
       const gestureStroke = buildIIStroke()
-      gestureStroke.addPointer({ x: 50, y: 50, p: 1, t: 100 })
-      gestureStroke.addPointer({ x: 50, y: 100, p: 1, t: 200 })
+      IIStrokeHelper.addPointer(gestureStroke, { x: 50, y: 50, p: 1, t: 100 })
+      IIStrokeHelper.addPointer(gestureStroke, { x: 50, y: 100, p: 1, t: 200 })
 
       const gesture: TGesture = {
         gestureType: "JOIN",
@@ -82,8 +83,8 @@ describe("JoinGestureHandler.ts", () =>
       editor.model.addSymbol(text2)
 
       const gestureStroke = buildIIStroke()
-      gestureStroke.addPointer({ x: 45, y: 10, p: 1, t: 100 })
-      gestureStroke.addPointer({ x: 45, y: 26, p: 1, t: 200 })
+      IIStrokeHelper.addPointer(gestureStroke, { x: 45, y: 10, p: 1, t: 100 })
+      IIStrokeHelper.addPointer(gestureStroke, { x: 45, y: 26, p: 1, t: 200 })
 
       const gesture: TGesture = {
         gestureType: "JOIN",
@@ -102,19 +103,19 @@ describe("JoinGestureHandler.ts", () =>
     test("should handle symbols above and below", async () =>
     {
       const stroke1 = buildIIStroke()
-      stroke1.addPointer({ x: 10, y: 10, p: 1, t: 100 })
-      stroke1.addPointer({ x: 20, y: 20, p: 1, t: 200 })
+      IIStrokeHelper.addPointer(stroke1, { x: 10, y: 10, p: 1, t: 100 })
+      IIStrokeHelper.addPointer(stroke1, { x: 20, y: 20, p: 1, t: 200 })
 
       const stroke2 = buildIIStroke()
-      stroke2.addPointer({ x: 10, y: 50, p: 1, t: 300 })
-      stroke2.addPointer({ x: 20, y: 60, p: 1, t: 400 })
+      IIStrokeHelper.addPointer(stroke2, { x: 10, y: 50, p: 1, t: 300 })
+      IIStrokeHelper.addPointer(stroke2, { x: 20, y: 60, p: 1, t: 400 })
 
       editor.model.addSymbol(stroke1)
       editor.model.addSymbol(stroke2)
 
       const gestureStroke = buildIIStroke()
-      gestureStroke.addPointer({ x: 15, y: 30, p: 1, t: 500 })
-      gestureStroke.addPointer({ x: 15, y: 45, p: 1, t: 600 })
+      IIStrokeHelper.addPointer(gestureStroke, { x: 15, y: 30, p: 1, t: 500 })
+      IIStrokeHelper.addPointer(gestureStroke, { x: 15, y: 45, p: 1, t: 600 })
 
       const gesture: TGesture = {
         gestureType: "JOIN",

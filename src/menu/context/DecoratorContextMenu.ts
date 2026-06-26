@@ -1,7 +1,8 @@
 import { InteractiveInkEditor } from "@/editor"
 import { BaseMenuItem, TGenericMenuItem } from "@/menu/items/BaseMenuItem"
 import ArrowDown from "@/assets/svg/nav-arrow-down.svg"
-import { DecoratorKind, IIDecorator, IIText, isRecognizedMath, isText } from "@/symbol"
+import { DecoratorKind, TText, isRecognizedMath, isText } from "@/symbol"
+import { IIDecoratorHelper } from "@/symbol/helpers/IIDecoratorHelper"
 import { DEFAULT_MENU_COLORS } from "@/menu/MenuConstants"
 
 /** @group Menu */
@@ -37,9 +38,9 @@ export class DecoratorContextMenu extends BaseMenuItem<HTMLElement>
     this.#itemsConfig = itemsConfig
   }
 
-  get symbolsDecorable(): IIText[]
+  get symbolsDecorable(): TText[]
   {
-    return this.editor.model.symbolsSelected.filter(isText) as IIText[]
+    return this.editor.model.symbolsSelected.filter(isText) as TText[]
   }
 
   get showDecorator(): boolean
@@ -80,7 +81,7 @@ export class DecoratorContextMenu extends BaseMenuItem<HTMLElement>
       symbolsDecorable.forEach(s => {
         if (enable) {
           if (!s.decorators.some(d => d.kind === kind)) {
-            s.decorators.push(new IIDecorator(kind, this.editor.penStyle))
+            s.decorators.push(IIDecoratorHelper.create(kind, this.editor.penStyle))
           }
         }
         else {

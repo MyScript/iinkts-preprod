@@ -1,4 +1,4 @@
-import { IIEraser, TPointer } from "@/symbol"
+import { TEraser, TPointer } from "@/symbol"
 import { SVGBuilder } from "./utils/SVGBuilder"
 
 /**
@@ -6,7 +6,7 @@ import { SVGBuilder } from "./utils/SVGBuilder"
  */
 export class SVGRendererEraserUtil
 {
-  static getSVGPath(eraser: IIEraser): string
+  static getSVGPath(eraser: TEraser): string
   {
     if (eraser.pointers.length < 1) return ""
 
@@ -21,12 +21,12 @@ export class SVGRendererEraserUtil
 
     const middlePoints = eraser.pointers.slice(1)
 
-    return middlePoints.reduce((acc, point) => {
+    return middlePoints.reduce((acc: string, point: TPointer) => {
       return `${ acc } L ${ point.x } ${ point.y }`
     }, startPath)
   }
 
-  static getSVGElement(eraser: IIEraser): SVGPathElement
+  static getSVGElement(eraser: TEraser): SVGPathElement
   {
     const attrs: { [key: string]: string } = {
       "id": eraser.id,

@@ -1,4 +1,4 @@
-import { Box, DecoratorKind, IIDecorator, TBox, TIISymbol } from "@/symbol"
+import { DecoratorKind, TDecorator, TBox, TSymbol } from "@/symbol"
 import { DefaultStyle } from "@/style"
 import { SVGBuilder } from "./utils/SVGBuilder"
 
@@ -7,7 +7,7 @@ import { SVGBuilder } from "./utils/SVGBuilder"
  */
 export class SVGRendererDecoratorUtil
 {
-  static getSVGElementFromBounds(decorator: IIDecorator, bounds: Box, baseline?: number, xHeight?: number, symbolStyle?: { width?: number, color?: string }, deleting: boolean = false): SVGGeometryElement | undefined
+  static getSVGElementFromBounds(decorator: TDecorator, bounds: TBox, baseline?: number, xHeight?: number, symbolStyle?: { width?: number, color?: string }, deleting: boolean = false): SVGGeometryElement | undefined
   {
     const attrs: { [key: string]: string } = {
       "id": decorator.id,
@@ -60,12 +60,12 @@ export class SVGRendererDecoratorUtil
         attrs["stroke"] = decorator.style.color || DefaultStyle.color!
         attrs["stroke-width"] = (decorator.style.width || DefaultStyle.width).toString()
         const p1 = {
-          x: bounds.xMin,
-          y: bounds.yMid
+          x: bounds.x,
+          y: bounds.y + bounds.height / 2
         }
         const p2 = {
-          x: bounds.xMax,
-          y: bounds.yMid
+          x: bounds.x + bounds.width,
+          y: bounds.y + bounds.height / 2
         }
         if (baseline !== undefined && xHeight !== undefined) {
           // Strikethrough should go through the middle of the text
@@ -80,12 +80,12 @@ export class SVGRendererDecoratorUtil
         attrs["stroke"] = decorator.style.color || DefaultStyle.color!
         attrs["stroke-width"] = (decorator.style.width || DefaultStyle.width).toString()
         const p1 = {
-          x: bounds.xMin,
-          y: bounds.yMax + +strokeWidth
+          x: bounds.x,
+          y: bounds.y + bounds.height + +strokeWidth
         }
         const p2 = {
-          x: bounds.xMax,
-          y: bounds.yMax + +strokeWidth
+          x: bounds.x + bounds.width,
+          y: bounds.y + bounds.height + +strokeWidth
         }
         if (baseline !== undefined && xHeight !== undefined) {
           // Underline should be below the baseline
@@ -100,7 +100,7 @@ export class SVGRendererDecoratorUtil
     return element
   }
 
-  static getSVGElement(decorator: IIDecorator, symbol: TIISymbol): SVGGeometryElement | undefined
+  static getSVGElement(decorator: TDecorator, symbol: TSymbol): SVGGeometryElement | undefined
   {
     const bounds = decorator.hasBounds ? decorator.bounds : symbol.bounds
     return this.getSVGElementFromBounds(
@@ -113,7 +113,7 @@ export class SVGRendererDecoratorUtil
     )
   }
 
-  static getSVGElementForSymbol(decorator: IIDecorator): SVGGeometryElement | undefined
+  static getSVGElementForSymbol(decorator: TDecorator): SVGGeometryElement | undefined
   {
     return this.getSVGElementFromBounds(
       decorator,

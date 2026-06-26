@@ -2,7 +2,8 @@ import { InkEditor } from "@/editor";
 import { PointerInfo } from "@/grabber";
 import { IModel } from "@/model";
 import { TStyle } from "@/style";
-import { IIStroke, TIISymbol, TPointer, isStroke } from "@/symbol";
+import { TStroke, TSymbol, TPointer, isStroke } from "@/symbol";
+import { IIStrokeHelper } from "@/symbol/helpers";
 import { AbstractWriterManager } from "@/manager/base/AbstractWriterManager";
 
 /**
@@ -21,15 +22,15 @@ export class IWriterManager extends AbstractWriterManager {
     return this.editor.model
   }
 
-  protected createCurrentSymbol(pointer: TPointer, style: TStyle, pointerType: string): TIISymbol {
-    this.model.currentStroke = new IIStroke(style, pointerType)
-    this.model.currentStroke.addPointer(pointer)
+  protected createCurrentSymbol(pointer: TPointer, style: TStyle, pointerType: string): TSymbol {
+    this.model.currentStroke = IIStrokeHelper.create(style, pointerType)
+    IIStrokeHelper.addPointer(this.model.currentStroke, pointer)
     return this.model.currentStroke
   }
 
-  protected updateCurrentSymbol(pointer: TPointer): IIStroke {
+  protected updateCurrentSymbol(pointer: TPointer): TStroke {
     if (this.model.currentStroke && isStroke(this.model.currentStroke)) {
-      this.model.currentStroke.addPointer(pointer)
+      IIStrokeHelper.addPointer(this.model.currentStroke, pointer)
     }
     return this.model.currentStroke!
   }

@@ -1,4 +1,4 @@
-import { EdgeDecoration, EdgeKind, IIEdgeArc, IIEdgeLine, IIEdgePolyLine, TIIEdge } from "@/symbol"
+import { EdgeDecoration, EdgeKind, TEdgeArc, TEdgeLine, TEdgePolyLine, TEdge } from "@/symbol"
 import { DefaultStyle } from "@/style"
 import { SVGRendererConst } from "./utils/SVGRendererConst"
 import { SVGBuilder } from "./utils/SVGBuilder"
@@ -8,12 +8,12 @@ import { SVGBuilder } from "./utils/SVGBuilder"
  */
 export class SVGRendererEdgeUtil
 {
-  static getLinePath(line: IIEdgeLine): string
+  static getLinePath(line: TEdgeLine): string
   {
     return `M ${ line.start.x } ${ line.start.y } L ${ line.end.x } ${ line.end.y }`
   }
 
-  static getPolyLinePath(line: IIEdgePolyLine): string
+  static getPolyLinePath(line: TEdgePolyLine): string
   {
     let path = `M ${ line.vertices[0].x } ${ line.vertices[0].y }`
     for (let i = 0; i < line.vertices.length; i++) {
@@ -22,7 +22,7 @@ export class SVGRendererEdgeUtil
     return path
   }
 
-  static getArcPath(arc: IIEdgeArc): string
+  static getArcPath(arc: TEdgeArc): string
   {
     let path = `M ${ arc.vertices[0].x } ${ arc.vertices[0].y } Q`
     for (let i = 0; i < arc.vertices.length; i++) {
@@ -31,21 +31,21 @@ export class SVGRendererEdgeUtil
     return path
   }
 
-  static getSVGPath(edge: TIIEdge): string
+  static getSVGPath(edge: TEdge): string
   {
     switch (edge.kind) {
       case EdgeKind.Line:
-        return SVGRendererEdgeUtil.getLinePath(edge)
+        return SVGRendererEdgeUtil.getLinePath(edge as TEdgeLine)
       case EdgeKind.PolyEdge:
-        return SVGRendererEdgeUtil.getPolyLinePath(edge)
+        return SVGRendererEdgeUtil.getPolyLinePath(edge as TEdgePolyLine)
       case EdgeKind.Arc:
-        return SVGRendererEdgeUtil.getArcPath(edge)
+        return SVGRendererEdgeUtil.getArcPath(edge as TEdgeArc)
       default:
         throw new Error(`Can't getSVGPath for edge cause kind is unknown: "${ JSON.stringify(edge) }"`)
     }
   }
 
-  static getSVGElement(edge: TIIEdge): SVGGraphicsElement
+  static getSVGElement(edge: TEdge): SVGGraphicsElement
   {
     const attrs: { [key: string]: string } = {
       "id": edge.id,
@@ -93,6 +93,4 @@ export class SVGRendererEdgeUtil
     group.appendChild(SVGBuilder.createPath(pathAttrs))
     return group
   }
-
-
 }

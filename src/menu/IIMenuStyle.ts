@@ -2,7 +2,7 @@ import styleIcon from "@/assets/svg/palette.svg"
 import { EditorTool, EditorWriteTool } from "@/Constants"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import { IIModel } from "@/model"
-import { TIISymbol, isShape } from "@/symbol"
+import { TSymbol, isShape } from "@/symbol"
 import { InteractiveInkEditor } from "@/editor"
 import { DOMFactory } from "@/components/dom"
 import { DEFAULT_MENU_COLORS, DEFAULT_THICKNESS_LIST, DEFAULT_FONT_SIZE_LIST, DEFAULT_FONT_WEIGHT_LIST } from "./MenuConstants"
@@ -109,7 +109,7 @@ export class IIMenuStyle
     return this.editor.model
   }
 
-  get symbolsSelected(): TIISymbol[]
+  get symbolsSelected(): TSymbol[]
   {
     return this.model.symbolsSelected
   }

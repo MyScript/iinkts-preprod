@@ -1,70 +1,28 @@
+import { SymbolType } from "@/symbol/base/Symbol"
+import { TPoint, TSegment } from "@/symbol/base/Point"
+import { TBox } from "@/symbol/base/Box"
 import { TStyle } from "@/style"
-import { PartialDeep } from "@/utils"
-import { EdgeDecoration, EdgeKind, IIEdgeBase } from "./IIEdge"
-import { TPoint, isValidPoint } from "@/symbol/base/Point"
+import { EdgeKind, EdgeDecoration } from "./IIEdge"
 
 /**
  * @group Symbol
  */
-export class IIEdgeLine extends IIEdgeBase<EdgeKind.Line>
-{
+export type TEdgeLine = {
+  id: string
+  type: SymbolType.Edge
+  kind: EdgeKind.Line
+  isClosed: false
+  style: TStyle
+  creationTime: number
+  modificationDate: number
+  selected: boolean
+  deleting: boolean
+  startDecoration?: EdgeDecoration
+  endDecoration?: EdgeDecoration
   start: TPoint
   end: TPoint
-
-  constructor(
-    start: TPoint,
-    end: TPoint,
-    startDecoration?: EdgeDecoration,
-    endDecoration?: EdgeDecoration,
-    style?: PartialDeep<TStyle>
-  )
-  {
-    super(EdgeKind.Line, startDecoration, endDecoration, style)
-    this.start = start
-    this.end = end
-  }
-
-  get vertices(): TPoint[]
-  {
-    return [
-      this.start,
-      this.end
-    ]
-  }
-
-  clone(): IIEdgeLine
-  {
-    const clone = new IIEdgeLine(structuredClone(this.start), structuredClone(this.end), this.startDecoration, this.endDecoration, structuredClone(this.style))
-    clone.id = this.id
-    clone.selected = this.selected
-    clone.deleting = this.deleting
-    clone.creationTime = this.creationTime
-    clone.modificationDate = this.modificationDate
-    return clone
-  }
-
-  toJSON(): PartialDeep<IIEdgeLine>
-  {
-    return {
-      id: this.id,
-      type: this.type,
-      kind: this.kind,
-      start: this.start,
-      end: this.end,
-      style: this.style,
-      startDecoration: this.startDecoration,
-      endDecoration: this.endDecoration,
-    }
-  }
-
-  static create(partial: PartialDeep<IIEdgeLine>): IIEdgeLine
-  {
-    if (!isValidPoint(partial?.start)) throw new Error(`Unable to create a line, start point is invalid`)
-    if (!isValidPoint(partial?.end)) throw new Error(`Unable to create a line, end point is invalid`)
-    const line = new IIEdgeLine(partial?.start as TPoint, partial?.end as TPoint, partial.startDecoration, partial.endDecoration, partial.style)
-    if (partial.id) {
-      line.id = partial.id
-    }
-    return line
-  }
+  vertices: TPoint[]
+  bounds: TBox
+  snapPoints: TPoint[]
+  edges: TSegment[]
 }
