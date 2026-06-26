@@ -9,7 +9,8 @@ import
   TIIEdge,
   TIIShape,
   TIISymbol,
-  TPoint
+  TPoint,
+  isStroke
 } from "@/symbol"
 import { LoggerCategory } from "@/logger"
 import { MatrixTransform } from "@/transform"
@@ -63,6 +64,17 @@ export abstract class IIAbstractTransformManager extends IIAbstractManager
   {
     this.interactElementsGroup = undefined
     this.editor.overlays.apply()
+  }
+
+  protected clearGhostStrokesForSelectedMath(): void
+  {
+    const ids = new Set<string>()
+    this.model.symbolsSelected.forEach(s => {
+      if (isStroke(s) && s.jiixBlockType === "Math" && s.jiixBlockId) {
+        ids.add(s.jiixBlockId)
+      }
+    })
+    ids.forEach(id => this.editor.math.clearGhostStrokes(id))
   }
 
   protected abstract applyToStroke(stroke: IIStroke, matrix: MatrixTransform): IIStroke

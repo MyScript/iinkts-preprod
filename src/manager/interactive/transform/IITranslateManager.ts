@@ -128,6 +128,7 @@ export class IITranslateManager extends IIAbstractTransformManager
     this.logger.info("start", { origin })
     this.interactElementsGroup = this.resolveInteractGroup(target)
     this.transformOrigin = origin
+    this.clearGhostStrokesForSelectedMath()
   }
 
   continue(point: TPoint): { tx: number, ty: number }

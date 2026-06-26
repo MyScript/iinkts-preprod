@@ -106,6 +106,11 @@ export class IIMathManager extends IIAbstractManager
     return this.#computation.getStoredSolverOutputs(jiixBlockId)
   }
 
+  clearGhostStrokes(jiixBlockId: string): void
+  {
+    this.#computation.clearGhostStrokes(jiixBlockId)
+  }
+
   /**
    * Set value for a specific variable in a math expression
    * @param jiixBlockId - The ID of the math element (jiixId)

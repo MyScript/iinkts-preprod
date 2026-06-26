@@ -853,6 +853,20 @@ export class InteractiveInkEditor extends AbstractEditor
     })
     this.recognizer.eraseStrokes(strokesIds)
 
+    const mathBlockIds = new Set<string>()
+    symbolsRemoved.forEach(s =>
+    {
+      if (s.type === SymbolType.Stroke) {
+        const stroke = s as IIStroke
+        if (stroke.jiixBlockType === "Math" && stroke.jiixBlockId && !stroke.isSolverOutput) {
+          mathBlockIds.add(stroke.jiixBlockId)
+        }
+      }
+    })
+    for (const blockId of mathBlockIds) {
+      await this.math.clearSolverOutputs(blockId)
+    }
+
     const removedIds = new Set(symbolsRemoved.map(s => s.id))
     const { erased: decErased, updated: decUpdated } = this.#cleanupDecoratorsForRemovedIds(removedIds)
 
