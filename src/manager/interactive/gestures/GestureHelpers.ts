@@ -1,7 +1,7 @@
 import
 {
   SymbolType,
-  TIISymbol,
+  TSymbol,
   isRecognizedText,
 } from "@/symbol"
 import type { InteractiveInkEditor } from "@/editor"
@@ -22,7 +22,7 @@ export class GestureHelpers
    * @param symbol - The symbol to check
    * @returns true if symbol is Stroke, Text, or RecognizedText
    */
-  isDecorable(symbol: TIISymbol): boolean
+  isDecorable(symbol: TSymbol): boolean
   {
     return symbol.type === SymbolType.Stroke ||
            symbol.type === SymbolType.Text ||

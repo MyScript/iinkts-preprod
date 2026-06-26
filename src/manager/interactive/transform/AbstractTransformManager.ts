@@ -2,13 +2,13 @@ import { SvgElementRole } from "@/Constants"
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import
 {
-  IIStroke,
-  IIText,
-  IIMath,
+  TStroke,
+  TText,
+  TMath,
   SymbolType,
-  TIIEdge,
-  TIIShape,
-  TIISymbol,
+  TEdge,
+  TShape,
+  TSymbol,
   TPoint,
   isStroke
 } from "@/symbol"
@@ -50,7 +50,7 @@ export abstract class IIAbstractTransformManager extends IIAbstractManager
     return (target.closest(`[role=${ SvgElementRole.InteractElementsGroup }]`) as unknown) as SVGGElement
   }
 
-  protected applyAndDraw(symbols: TIISymbol[], matrix: MatrixTransform): void
+  protected applyAndDraw(symbols: TSymbol[], matrix: MatrixTransform): void
   {
     symbols.forEach(s =>
     {
@@ -77,13 +77,13 @@ export abstract class IIAbstractTransformManager extends IIAbstractManager
     ids.forEach(id => this.editor.math.clearGhostStrokes(id))
   }
 
-  protected abstract applyToStroke(stroke: IIStroke, matrix: MatrixTransform): IIStroke
-  protected abstract applyToShape(shape: TIIShape, matrix: MatrixTransform): TIIShape
-  protected abstract applyToEdge(edge: TIIEdge, matrix: MatrixTransform): TIIEdge
-  protected abstract applyOnText(text: IIText, matrix: MatrixTransform): IIText
-  protected abstract applyOnMath(math: IIMath, matrix: MatrixTransform): IIMath
+  protected abstract applyToStroke(stroke: TStroke, matrix: MatrixTransform): TStroke
+  protected abstract applyToShape(shape: TShape, matrix: MatrixTransform): TShape
+  protected abstract applyToEdge(edge: TEdge, matrix: MatrixTransform): TEdge
+  protected abstract applyOnText(text: TText, matrix: MatrixTransform): TText
+  protected abstract applyOnMath(math: TMath, matrix: MatrixTransform): TMath
 
-  applyToSymbol(symbol: TIISymbol, matrix: MatrixTransform): TIISymbol
+  applyToSymbol(symbol: TSymbol, matrix: MatrixTransform): TSymbol
   {
     this.logger.info("applyToSymbol", { symbol })
     switch (symbol.type) {

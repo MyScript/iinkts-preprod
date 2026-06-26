@@ -7,9 +7,10 @@ import
 } from "tldraw"
 import
 {
-  IIStroke,
   TStyle,
-  TGesture
+  TGesture,
+  TStroke,
+  IIStrokeHelper
 } from "iink-ts"
 import
 {
@@ -41,16 +42,14 @@ export class Synchronizer
     this.gestureManager = useGestureManager(editor)
   }
 
-  protected formatDrawShapeToSend(shape: TLDrawShape): IIStroke
+  protected formatDrawShapeToSend(shape: TLDrawShape): TStroke
   {
     const style: TStyle = {
       color: shape.props.color,
       fill: shape.props.fill,
       width: 1
     }
-    const stroke = new IIStroke(style, shape.props.isPen ? "pen" : "mouse")
-    stroke.id = shape.id
-
+    const stroke = IIStrokeHelper.create(style, shape.props.isPen ? "pen" : "mouse")
     const baseTime = Date.now()
     let pointIndex = 0
 
@@ -58,7 +57,7 @@ export class Synchronizer
     {
       seg.points.forEach((p) =>
       {
-        stroke.addPointer({
+        IIStrokeHelper.addPointer(stroke, {
           p: 1,
           t: baseTime + pointIndex * 20,
           x: p.x + shape.x,

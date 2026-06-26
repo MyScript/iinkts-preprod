@@ -1,4 +1,5 @@
-import { IIStroke, SymbolType, isDecorator } from "@/symbol"
+import { TStroke, SymbolType, isDecorator } from "@/symbol"
+import { BoxHelper } from "@/symbol/helpers/BoxHelper"
 import { IIHistoryManager } from "@/history"
 import { isBetween, PartialDeep } from "@/utils"
 import { IITranslateManager, IITypesetManager } from "."
@@ -95,7 +96,7 @@ export class IIGestureManager extends IIAbstractManager
    * @param gestureStroke - The stroke that represents the gesture
    * @param gesture - The detected gesture with metadata
    */
-  async apply(gestureStroke: IIStroke, gesture: TGesture): Promise<void>
+  async apply(gestureStroke: TStroke, gesture: TGesture): Promise<void>
   {
     this.logger.info("apply", { gestureStroke, gesture })
 
@@ -120,7 +121,7 @@ export class IIGestureManager extends IIAbstractManager
    * @param gestureStroke - The stroke to analyze
    * @returns The detected gesture or undefined
    */
-  async getGestureFromContextLess(gestureStroke: IIStroke): Promise<TGesture | undefined>
+  async getGestureFromContextLess(gestureStroke: TStroke): Promise<TGesture | undefined>
   {
     const gesture = await this.recognizer.recognizeGesture(gestureStroke)
     if (!gesture) return
@@ -128,7 +129,7 @@ export class IIGestureManager extends IIAbstractManager
       case "surround": {
         const hasSymbolsToSurrond = this.model.symbols.some(s =>
         {
-          if (s.id !== gestureStroke.id && !isDecorator(s) && gestureStroke.bounds.contains(s.bounds)) {
+          if (s.id !== gestureStroke.id && !isDecorator(s) && BoxHelper.contains(gestureStroke.bounds, s.bounds)) {
             return this.surroundAction === SurroundAction.Select || IIGestureManager.#SURROUND_SELECT_TYPES.has(s.type)
           }
           return false
@@ -149,8 +150,8 @@ export class IIGestureManager extends IIAbstractManager
         const symbolsToUnderline = this.model.symbols.filter(s =>
         {
           return s.id !== gestureStroke.id && IIGestureManager.#TEXT_STROKE_GROUP_TYPES.has(s.type) &&
-            isBetween(s.bounds.xMid, gestureStroke.bounds.xMin, gestureStroke.bounds.xMax) &&
-            isBetween(gestureStroke.bounds.yMid, s.bounds.y + s.bounds.height * 3 / 4, s.bounds.y + s.bounds.height * 5 / 4)
+            isBetween(s.bounds.x + s.bounds.width / 2, gestureStroke.bounds.x, gestureStroke.bounds.x + gestureStroke.bounds.width) &&
+            isBetween(gestureStroke.bounds.y + gestureStroke.bounds.height / 2, s.bounds.y + s.bounds.height * 3 / 4, s.bounds.y + s.bounds.height * 5 / 4)
         })
         if (symbolsToUnderline.length) {
           return {
@@ -164,8 +165,8 @@ export class IIGestureManager extends IIAbstractManager
         const symbolsToStrikeThrough = this.model.symbols.filter(s =>
         {
           return s.id !== gestureStroke.id && IIGestureManager.#TEXT_STROKE_GROUP_TYPES.has(s.type) &&
-            isBetween(s.bounds.xMid, gestureStroke.bounds.xMin, gestureStroke.bounds.xMax) &&
-            isBetween(gestureStroke.bounds.yMid, s.bounds.y + s.bounds.height / 4, s.bounds.y + s.bounds.height * 3 / 4)
+            isBetween(s.bounds.x + s.bounds.width / 2, gestureStroke.bounds.x, gestureStroke.bounds.x + gestureStroke.bounds.width) &&
+            isBetween(gestureStroke.bounds.y + gestureStroke.bounds.height / 2, s.bounds.y + s.bounds.height / 4, s.bounds.y + s.bounds.height * 3 / 4)
         })
         if (symbolsToStrikeThrough.length) {
           return {
@@ -183,8 +184,8 @@ export class IIGestureManager extends IIAbstractManager
         {
           return s.id !== gestureStroke.id &&
             (
-              gestureStroke.bounds.overlaps(s.bounds) && IIGestureManager.#ERASE_OVERLAY_TYPES.has(s.type) ||
-              gestureStroke.bounds.contains(s.bounds) && IIGestureManager.#ERASE_CONTAIN_TYPES.has(s.type)
+              BoxHelper.overlaps(gestureStroke.bounds, s.bounds) && IIGestureManager.#ERASE_OVERLAY_TYPES.has(s.type) ||
+              BoxHelper.contains(gestureStroke.bounds, s.bounds) && IIGestureManager.#ERASE_CONTAIN_TYPES.has(s.type)
             )
         })
 
@@ -203,7 +204,7 @@ export class IIGestureManager extends IIAbstractManager
         const hasSymbolsInRow = this.model.symbols.some(s =>
           s.id !== gestureStroke.id &&
           IIGestureManager.#TEXT_STROKE_GROUP_TYPES.has(s.type) &&
-          isBetween(s.bounds.yMid, gestureStroke.bounds.yMin, gestureStroke.bounds.yMax)
+          isBetween(s.bounds.y + s.bounds.height / 2, gestureStroke.bounds.y, gestureStroke.bounds.y + gestureStroke.bounds.height)
         )
         if (hasSymbolsInRow) {
           return {
@@ -220,7 +221,7 @@ export class IIGestureManager extends IIAbstractManager
         const hasSymbolsInRow = this.model.symbols.some(s =>
           s.id !== gestureStroke.id &&
           IIGestureManager.#TEXT_STROKE_GROUP_TYPES.has(s.type) &&
-          isBetween(s.bounds.yMid, gestureStroke.bounds.yMin, gestureStroke.bounds.yMax)
+          isBetween(s.bounds.y + s.bounds.height / 2, gestureStroke.bounds.y, gestureStroke.bounds.y + gestureStroke.bounds.height)
         )
         if (hasSymbolsInRow) {
           return {

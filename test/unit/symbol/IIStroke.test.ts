@@ -1,16 +1,16 @@
 import {
-  IIStroke,
+  IIStrokeHelper,
   DefaultStyle,
   TStyle,
   TPointer,
-  TStroke,
+  TLegacyStroke,
   convertPartialStrokesToIIStrokes,
   PartialDeep
 } from "../../../src/iink"
 
-describe("IIStroke.ts", () =>
+describe("TStroke / IIStrokeHelper", () =>
 {
-  describe("instanciate", () =>
+  describe("create", () =>
   {
     test("should create with custom style", () =>
     {
@@ -18,7 +18,7 @@ describe("IIStroke.ts", () =>
         color: "blue",
         width: 20
       }
-      const stroke = new IIStroke(style)
+      const stroke = IIStrokeHelper.create(style)
       expect(stroke).toBeDefined()
       expect(stroke.creationTime).toBeLessThanOrEqual(Date.now())
       expect(stroke.creationTime).toEqual(stroke.modificationDate)
@@ -33,7 +33,7 @@ describe("IIStroke.ts", () =>
     })
     test("should create with default style", () =>
     {
-      const stroke = new IIStroke()
+      const stroke = IIStrokeHelper.create()
       expect(stroke.style).toEqual(DefaultStyle)
     })
     test("should create and cast opacity and width to number", () =>
@@ -41,7 +41,7 @@ describe("IIStroke.ts", () =>
       //@ts-ignore
       const style = { opacity: "1", width: "1" }
       //@ts-ignore
-      const stroke = new IIStroke(style)
+      const stroke = IIStrokeHelper.create(style)
       expect(stroke.style.opacity).toEqual(+style.width)
       expect(stroke.style.width).toEqual(+style.width)
     })
@@ -49,7 +49,7 @@ describe("IIStroke.ts", () =>
 
   describe("addPointer", () =>
   {
-    const stroke = new IIStroke(DefaultStyle)
+    const stroke = IIStrokeHelper.create(DefaultStyle)
 
     test("should add first pointer and update modification date", () =>
     {
@@ -59,7 +59,7 @@ describe("IIStroke.ts", () =>
         x: 0,
         y: 0
       }
-      stroke.addPointer(pointer)
+      IIStrokeHelper.addPointer(stroke, pointer)
       expect(stroke.pointers).toHaveLength(1)
       expect(stroke.pointers[0]).toEqual(pointer)
     })
@@ -72,7 +72,7 @@ describe("IIStroke.ts", () =>
         x: 1.1,
         y: 1.1
       }
-      stroke.addPointer(pointer)
+      IIStrokeHelper.addPointer(stroke, pointer)
       expect(stroke.pointers).toHaveLength(1)
     })
 
@@ -84,7 +84,7 @@ describe("IIStroke.ts", () =>
         x: 5,
         y: 5
       }
-      stroke.addPointer(pointer)
+      IIStrokeHelper.addPointer(stroke, pointer)
       expect(stroke.modificationDate).toBeGreaterThan(stroke.creationTime)
     })
 
@@ -96,7 +96,7 @@ describe("IIStroke.ts", () =>
         x: 50,
         y: 50
       }
-      stroke.addPointer(pointer)
+      IIStrokeHelper.addPointer(stroke, pointer)
       expect(stroke.length).toEqual(Math.sqrt(2 * Math.pow(50, 2)))
     })
   })
@@ -105,7 +105,7 @@ describe("IIStroke.ts", () =>
   {
     test("should get without pointers", () =>
     {
-      const stroke = new IIStroke(DefaultStyle)
+      const stroke = IIStrokeHelper.create(DefaultStyle)
       expect(stroke.bounds.height).toEqual(0)
       expect(stroke.bounds.width).toEqual(0)
       expect(stroke.bounds.x).toEqual(0)
@@ -113,9 +113,9 @@ describe("IIStroke.ts", () =>
     })
     test("should get with pointers", () =>
     {
-      const stroke = new IIStroke(DefaultStyle)
-      stroke.addPointer({ p: 1, t: 1, x: 1, y: 1 })
-      stroke.addPointer({ p: 1, t: 1, x: 11, y: 11 })
+      const stroke = IIStrokeHelper.create(DefaultStyle)
+      IIStrokeHelper.addPointer(stroke, { p: 1, t: 1, x: 1, y: 1 })
+      IIStrokeHelper.addPointer(stroke, { p: 1, t: 1, x: 11, y: 11 })
       expect(stroke.bounds.height).toEqual(10)
       expect(stroke.bounds.width).toEqual(10)
       expect(stroke.bounds.x).toEqual(1)
@@ -127,11 +127,11 @@ describe("IIStroke.ts", () =>
   {
     test("should return array of x, y, t, and p", () =>
     {
-      const stroke = new IIStroke(DefaultStyle)
-      stroke.addPointer({ p: 1, t: 1, x: 1, y: 1 })
-      stroke.addPointer({ p: 1, t: 1, x: 11, y: 11 })
+      const stroke = IIStrokeHelper.create(DefaultStyle)
+      IIStrokeHelper.addPointer(stroke, { p: 1, t: 1, x: 1, y: 1 })
+      IIStrokeHelper.addPointer(stroke, { p: 1, t: 1, x: 11, y: 11 })
 
-      const jsonToSend = stroke.formatToSend()
+      const jsonToSend = IIStrokeHelper.formatToSend(stroke)
       expect(jsonToSend).toEqual({
         id: stroke.id,
         pointerType: stroke.pointerType,
@@ -151,11 +151,11 @@ describe("IIStroke.ts", () =>
         color: "blue",
         width: 20
       }
-      const stroke = new IIStroke(style)
-      stroke.addPointer({ p: 1, t: 1, x: 1, y: 1 })
-      stroke.addPointer({ p: 1, t: 1, x: 11, y: 11 })
+      const stroke = IIStrokeHelper.create(style)
+      IIStrokeHelper.addPointer(stroke, { p: 1, t: 1, x: 1, y: 1 })
+      IIStrokeHelper.addPointer(stroke, { p: 1, t: 1, x: 11, y: 11 })
 
-      const clone = stroke.clone()
+      const clone = structuredClone(stroke)
       expect(clone).toEqual(stroke)
       expect(clone).not.toBe(stroke)
     })
@@ -165,11 +165,11 @@ describe("IIStroke.ts", () =>
         color: "blue",
         width: 20
       }
-      const stroke = new IIStroke(style)
-      stroke.addPointer({ p: 1, t: 1, x: 1, y: 1 })
-      stroke.addPointer({ p: 1, t: 1, x: 11, y: 11 })
+      const stroke = IIStrokeHelper.create(style)
+      IIStrokeHelper.addPointer(stroke, { p: 1, t: 1, x: 1, y: 1 })
+      IIStrokeHelper.addPointer(stroke, { p: 1, t: 1, x: 11, y: 11 })
 
-      const clone = stroke.clone()
+      const clone = structuredClone(stroke)
       clone.pointers.forEach(p => {
         p.x += 10
         p.y += 10
@@ -182,7 +182,7 @@ describe("IIStroke.ts", () =>
   describe("convertPartialStrokesToIIStrokes", () =>
   {
     test("should convert", () => {
-      const pStrokes: PartialDeep<TStroke>[] = [
+      const pStrokes: PartialDeep<TLegacyStroke>[] = [
         {
           pointers: [
             { x: 254, y: 37, t: 1, p: 1 },
@@ -205,14 +205,14 @@ describe("IIStroke.ts", () =>
       expect(strokes[1].style).toEqual(expect.objectContaining(pStrokes[1]?.style))
     })
     test("should throw error if no pointers", () => {
-      const pStrokes: PartialDeep<TStroke>[] = [
+      const pStrokes: PartialDeep<TLegacyStroke>[] = [
         {
         },
       ]
       expect(() => convertPartialStrokesToIIStrokes(pStrokes)).toThrow("stroke 1 has not pointers")
     })
     test("should throw error if pointers have empty object", () => {
-      const pStrokes: PartialDeep<TStroke>[] = [
+      const pStrokes: PartialDeep<TLegacyStroke>[] = [
         {
           pointers: [undefined]
         },
@@ -220,7 +220,7 @@ describe("IIStroke.ts", () =>
       expect(() => convertPartialStrokesToIIStrokes(pStrokes)).toThrow("stroke 1 has no pointer at 0")
     })
     test("should throw an error if an x ​​is missing on pointers ", () => {
-      const pStrokes: PartialDeep<TStroke>[] = [
+      const pStrokes: PartialDeep<TLegacyStroke>[] = [
         {
           pointers: [
             { x: 254, y: 37, t: 1, p: 0.5 },
@@ -231,7 +231,7 @@ describe("IIStroke.ts", () =>
       expect(() => convertPartialStrokesToIIStrokes(pStrokes)).toThrow("stroke 1 has no x at pointer at 1")
     })
     test("should throw an error if an y ​​is missing on pointers ", () => {
-      const pStrokes: PartialDeep<TStroke>[] = [
+      const pStrokes: PartialDeep<TLegacyStroke>[] = [
         {
           pointers: [
             { x: 254, y: 37, t: 1, p: 0.5 },

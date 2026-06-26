@@ -1,4 +1,4 @@
-import { Minimap, Box } from "../../../src/iink"
+import { Minimap } from "../../../src/iink"
 import type { InteractiveInkEditor } from "../../../src/iink"
 import { LeftClickEventMock } from "../__mocks__/EventMock"
 
@@ -15,7 +15,7 @@ function buildMockEditor(overrides: Partial<any> = {}): InteractiveInkEditor
       getBounds: jest.fn(() => ({ x: 0, y: 0, width: 1000, height: 1000 })),
       setViewBox: jest.fn(),
     },
-    getSymbolsBounds: jest.fn(() => new Box({ x: 10, y: 20, width: 200, height: 100 })),
+    getSymbolsBounds: jest.fn(() => ({ x: 10, y: 20, width: 200, height: 100 })),
     ...overrides,
   } as unknown as InteractiveInkEditor
 }

@@ -25,27 +25,36 @@ import
 } from "@/model"
 import
 {
-  Box,
   DecoratorKind,
-  IIDecorator,
-  IIEdgeArc,
-  IIEdgeLine,
-  IIEdgePolyLine,
-  IIShapeCircle,
-  IIShapeEllipse,
-  IIShapePolygon,
-  IIStroke,
-  IIText,
-  IIMath,
-  TIIEdge,
-  TIIShape,
-  TIISymbol,
-  TIISymbolChar,
+  TDecorator,
+  TEdgeArc,
+  TEdgeLine,
+  TEdgePolyLine,
+  TShapeCircle,
+  TShapeEllipse,
+  TShapePolygon,
+  TStroke,
+  TText,
+  TMath,
+  TEdge,
+  TShape,
+  TSymbol,
+  TSymbolChar,
   TPoint,
-  TIIMathElement,
+  TMathElement,
   isRecognizedMath,
   isDecorator,
 } from "@/symbol"
+import { IIShapeCircleHelper } from "@/symbol/helpers/IIShapeCircleHelper"
+import { IIShapeEllipseHelper } from "@/symbol/helpers/IIShapeEllipseHelper"
+import { IIShapePolygonHelper } from "@/symbol/helpers/IIShapePolygonHelper"
+import { IIEdgeLineHelper } from "@/symbol/helpers/IIEdgeLineHelper"
+import { IIEdgePolyLineHelper } from "@/symbol/helpers/IIEdgePolyLineHelper"
+import { IIEdgeArcHelper } from "@/symbol/helpers/IIEdgeArcHelper"
+import { IIDecoratorHelper } from "@/symbol/helpers/IIDecoratorHelper"
+import { IITextHelper } from "@/symbol/helpers/IITextHelper"
+import { IIMathHelper } from "@/symbol/helpers/IIMathHelper"
+import { BoxHelper } from "@/symbol/helpers/BoxHelper"
 import { computeAngleAxeRadian, computeAverage, convertBoundingBoxMillimeterToPixel, convertMillimeterToPixel, createUUID } from "@/utils"
 import { LoggerCategory } from "@/logger"
 
@@ -80,7 +89,7 @@ export class IIConversionManager extends IIAbstractManager
     return Math.round(this.rowHeight / 2)
   }
 
-  buildChar(char: TJIIXChar, strokes: IIStroke[], fontSize: number): TIISymbolChar
+  buildChar(char: TJIIXChar, strokes: TStroke[], fontSize: number): TSymbolChar
   {
     const points = char.grid.map(p => ({
       x: convertMillimeterToPixel(p.x),
@@ -98,43 +107,43 @@ export class IIConversionManager extends IIAbstractManager
       color,
       fontSize,
       fontWeight,
-      bounds: Box.createFromPoints(points)
+      bounds: BoxHelper.createFromPoints(points)
     }
   }
 
-  buildText(word: TJIIXWord, chars: TJIIXChar[], strokes: IIStroke[], size: number | "auto"): IIText
+  buildText(word: TJIIXWord, chars: TJIIXChar[], strokes: TStroke[], size: number | "auto"): TText
   {
-    const boundingBox = Box.createFromBoxes([convertBoundingBoxMillimeterToPixel(word["bounding-box"])])
-    const charSymbols: TIISymbolChar[] = []
+    const boundingBox = BoxHelper.createFromBoxes([convertBoundingBoxMillimeterToPixel(word["bounding-box"])])
+    const charSymbols: TSymbolChar[] = []
     const charFontSize = size === "auto" ? this.computeFontSize(chars) : size
 
     chars.forEach(char =>
     {
-      const charStrokes = strokes.filter(s => char.items?.some(i => i["full-id"] === s.id)) as IIStroke[]
+      const charStrokes = strokes.filter(s => char.items?.some(i => i["full-id"] === s.id))
       if (charStrokes.length) {
         charSymbols.push(this.buildChar(char, charStrokes, charFontSize))
       }
     })
     const point: TPoint = {
-      x: boundingBox.xMin,
-      y: boundingBox.yMax
+      x: boundingBox.x,
+      y: boundingBox.y + boundingBox.height
     }
-    const text = new IIText(charSymbols, point, boundingBox, strokes[0].style)
+    const text = IITextHelper.create(charSymbols, point, boundingBox, strokes[0].style)
     const strokeIds = new Set(strokes.map(s => s.id))
 
     // Find standalone IIDecorator symbols in model whose targets overlap with converted strokes
     const appliedKinds = new Set<DecoratorKind>()
-    const decoratorsToRemove: IIDecorator[] = []
+    const decoratorsToRemove: TDecorator[] = []
 
     for (const sym of this.model.symbols) {
       if (!isDecorator(sym)) continue
-      const dec = sym as IIDecorator
+      const dec = sym as TDecorator
       const hasOverlap = dec.targetIds.some(id => strokeIds.has(id))
       if (!hasOverlap) continue
       decoratorsToRemove.push(dec)
       if (!appliedKinds.has(dec.kind)) {
         appliedKinds.add(dec.kind)
-        text.decorators.push(new IIDecorator(dec.kind, dec.style))
+        text.decorators.push(IIDecoratorHelper.create(dec.kind, dec.style))
       }
     }
 
@@ -147,7 +156,7 @@ export class IIConversionManager extends IIAbstractManager
     return text
   }
 
-  convertText(text: TJIIXTextElement, strokes: IIStroke[], onlyText: boolean): { symbol: IIText, strokes: IIStroke[] }[] | undefined
+  convertText(text: TJIIXTextElement, strokes: TStroke[], onlyText: boolean): { symbol: TText, strokes: TStroke[] }[] | undefined
   {
     if (!text.lines) {
       throw new Error("You need to active configuration.recognition.export.jiix.text.lines = true")
@@ -165,7 +174,7 @@ export class IIConversionManager extends IIAbstractManager
     const jiixWords = text.words as TJIIXWord[]
     const jiixChars = text.chars as TJIIXChar[]
 
-    const result: { symbol: IIText, strokes: IIStroke[] }[] = []
+    const result: { symbol: TText, strokes: TStroke[] }[] = []
 
 
     let textFontSize = this.fontStyleConfiguration.size
@@ -186,7 +195,7 @@ export class IIConversionManager extends IIAbstractManager
         currentX += this.editor.typeset.getSpaceWidth(result.at(-1)?.symbol.chars[0].fontSize|| (this.rowHeight / 2))
         return
       }
-      const wordStrokes = strokes.filter(s => word.items?.some(i => i["full-id"] === s.id)) as IIStroke[]
+      const wordStrokes = strokes.filter(s => word.items?.some(i => i["full-id"] === s.id))
       if (wordStrokes.length) {
         const chars = jiixChars.slice(word["first-char"] as number, (word["last-char"] || 0) + 1)
         const wordSymbol = this.buildText(word, chars, wordStrokes, textFontSize)
@@ -220,25 +229,25 @@ export class IIConversionManager extends IIAbstractManager
     return result
   }
 
-  buildCircle(circle: TJIIXNodeCircle, strokes: IIStroke[]): IIShapeCircle
+  buildCircle(circle: TJIIXNodeCircle, strokes: TStroke[]): TShapeCircle
   {
     const center: TPoint = {
       x: convertMillimeterToPixel(circle.cx),
       y: convertMillimeterToPixel(circle.cy)
     }
-    return new IIShapeCircle(center, convertMillimeterToPixel(circle.r), strokes[0]?.style)
+    return IIShapeCircleHelper.create(center, convertMillimeterToPixel(circle.r), strokes[0]?.style)
   }
 
-  buildEllipse(ellipse: TJIIXNodeEllipse, strokes: IIStroke[]): IIShapeEllipse
+  buildEllipse(ellipse: TJIIXNodeEllipse, strokes: TStroke[]): TShapeEllipse
   {
     const center: TPoint = {
       x: convertMillimeterToPixel(ellipse.cx),
       y: convertMillimeterToPixel(ellipse.cy),
     }
-    return new IIShapeEllipse(center, convertMillimeterToPixel(ellipse.rx), convertMillimeterToPixel(ellipse.ry), ellipse.orientation, strokes[0]?.style)
+    return IIShapeEllipseHelper.create(center, convertMillimeterToPixel(ellipse.rx), convertMillimeterToPixel(ellipse.ry), ellipse.orientation, strokes[0]?.style)
   }
 
-  buildRectangle(rectangle: TJIIXNodeRectangle, strokes: IIStroke[]): IIShapePolygon
+  buildRectangle(rectangle: TJIIXNodeRectangle, strokes: TStroke[]): TShapePolygon
   {
     const height = convertMillimeterToPixel(rectangle.height)
     const width = convertMillimeterToPixel(rectangle.width)
@@ -250,10 +259,10 @@ export class IIConversionManager extends IIAbstractManager
       { x: x + width, y: y + height },
       { x, y: y + height }
     ]
-    return new IIShapePolygon(points, strokes[0]?.style)
+    return IIShapePolygonHelper.create(points, strokes[0]?.style)
   }
 
-  #buildPolygonFromPoints(polygon: { points: number[] }, strokes: IIStroke[]): IIShapePolygon
+  #buildPolygonFromPoints(polygon: { points: number[] }, strokes: TStroke[]): TShapePolygon
   {
     const points: TPoint[] = []
     for (let i = 0; i < polygon.points.length; i += 2) {
@@ -262,37 +271,37 @@ export class IIConversionManager extends IIAbstractManager
         y: convertMillimeterToPixel(polygon.points[i + 1])
       })
     }
-    return new IIShapePolygon(points, strokes[0]?.style)
+    return IIShapePolygonHelper.create(points, strokes[0]?.style)
   }
 
-  buildPolygon(polygon: TJIIXNodePolygon, strokes: IIStroke[]): IIShapePolygon
+  buildPolygon(polygon: TJIIXNodePolygon, strokes: TStroke[]): TShapePolygon
   {
     return this.#buildPolygonFromPoints(polygon, strokes)
   }
 
-  buildRhombus(polygon: TJIIXNodeRhombus, strokes: IIStroke[]): IIShapePolygon
+  buildRhombus(polygon: TJIIXNodeRhombus, strokes: TStroke[]): TShapePolygon
   {
     return this.#buildPolygonFromPoints(polygon, strokes)
   }
 
-  buildTriangle(polygon: TJIIXNodeTriangle, strokes: IIStroke[]): IIShapePolygon
+  buildTriangle(polygon: TJIIXNodeTriangle, strokes: TStroke[]): TShapePolygon
   {
     return this.#buildPolygonFromPoints(polygon, strokes)
   }
 
-  buildParallelogram(polygon: TJIIXNodeParallelogram, strokes: IIStroke[]): IIShapePolygon
+  buildParallelogram(polygon: TJIIXNodeParallelogram, strokes: TStroke[]): TShapePolygon
   {
     return this.#buildPolygonFromPoints(polygon, strokes)
   }
 
-  convertNode(node: TJIIXNodeElement, strokes: IIStroke[]): { symbol: TIIShape, strokes: IIStroke[] } | undefined
+  convertNode(node: TJIIXNodeElement, strokes: TStroke[]): { symbol: TShape, strokes: TStroke[] } | undefined
   {
     const associatedStroke = strokes.filter(s => node.items?.some(i => i["full-id"] === s.id))
     if (!associatedStroke.length) return
 
     const uniqStrokes = associatedStroke.filter((a, i) => associatedStroke.findIndex((s) => a.id === s.id) === i)
 
-    let shape: TIIShape
+    let shape: TShape
     switch (node.kind) {
       case JIIXNodeKind.Circle:
         shape = this.buildCircle(node, uniqStrokes)
@@ -322,7 +331,7 @@ export class IIConversionManager extends IIAbstractManager
     return { symbol: shape, strokes: uniqStrokes }
   }
 
-  buildLine(line: TJIIXEdgeLine, strokes: IIStroke[]): IIEdgeLine
+  buildLine(line: TJIIXEdgeLine, strokes: TStroke[]): TEdgeLine
   {
     const point1: TPoint = { x: convertMillimeterToPixel(line.x1), y: convertMillimeterToPixel(line.y1) }
     const point2: TPoint = { x: convertMillimeterToPixel(line.x2), y: convertMillimeterToPixel(line.y2) }
@@ -338,10 +347,10 @@ export class IIConversionManager extends IIAbstractManager
       point1.x = +((point1.x + point2.x) / 2).toFixed(3)
       point2.x = point1.x
     }
-    return new IIEdgeLine(point1, point2, line.p1Decoration, line.p2Decoration, strokes[0]?.style)
+    return IIEdgeLineHelper.create(point1, point2, line.p1Decoration, line.p2Decoration, strokes[0]?.style)
   }
 
-  buildPolyEdge(polyline: TJIIXEdgePolyEdge, strokes: IIStroke[]): IIEdgePolyLine
+  buildPolyEdge(polyline: TJIIXEdgePolyEdge, strokes: TStroke[]): TEdgePolyLine
   {
     const start: TPoint = { x: convertMillimeterToPixel(polyline.edges[0].x1), y: convertMillimeterToPixel(polyline.edges[0].y1) }
     const points = polyline.edges.map(e => ({ x: convertMillimeterToPixel(e.x2), y: convertMillimeterToPixel(e.y2) }))
@@ -360,18 +369,18 @@ export class IIConversionManager extends IIAbstractManager
       }
     }
 
-    return new IIEdgePolyLine(points, polyline.edges[0].p1Decoration, polyline.edges.at(-1)!.p2Decoration, strokes[0]?.style)
+    return IIEdgePolyLineHelper.create(points, polyline.edges[0].p1Decoration, polyline.edges.at(-1)!.p2Decoration, strokes[0]?.style)
   }
 
-  buildArc(arc: TJIIXEdgeArc, strokes: IIStroke[]): IIEdgeArc
+  buildArc(arc: TJIIXEdgeArc, strokes: TStroke[]): TEdgeArc
   {
     const center: TPoint = { x: convertMillimeterToPixel(arc.cx), y: convertMillimeterToPixel(arc.cy) }
     const radiusX = convertMillimeterToPixel(arc.rx)
     const radiusY = convertMillimeterToPixel(arc.ry)
-    return new IIEdgeArc(center, arc.startAngle, arc.sweepAngle, radiusX, radiusY, arc.phi, arc.startDecoration, arc.endDecoration, strokes[0]?.style)
+    return IIEdgeArcHelper.create(center, arc.startAngle, arc.sweepAngle, radiusX, radiusY, arc.phi, arc.startDecoration, arc.endDecoration, strokes[0]?.style)
   }
 
-  convertEdge(edge: TJIIXEdgeElement, strokes: IIStroke[]): { symbol: TIIEdge, strokes: IIStroke[] } | undefined
+  convertEdge(edge: TJIIXEdgeElement, strokes: TStroke[]): { symbol: TEdge, strokes: TStroke[] } | undefined
   {
     switch (edge.kind) {
       case JIIXEdgeKind.Line: {
@@ -476,9 +485,9 @@ export class IIConversionManager extends IIAbstractManager
     return result
   }
 
-  buildMath(mathElement: TJIIXMathElement, strokes: IIStroke[], fontSize: number): IIMath
+  buildMath(mathElement: TJIIXMathElement, strokes: TStroke[], fontSize: number): TMath
   {
-    const boundingBox = Box.createFromBoxes([convertBoundingBoxMillimeterToPixel(mathElement["bounding-box"])])
+    const boundingBox = BoxHelper.createFromBoxes([convertBoundingBoxMillimeterToPixel(mathElement["bounding-box"])])
 
     // Get font family with comprehensive fallbacks for math symbols
     const fontFamily = "'STIX Two Math', STIXGeneral, STIX, 'Cambria Math', 'Latin Modern Math', 'DejaVu Math', serif"
@@ -490,7 +499,7 @@ export class IIConversionManager extends IIAbstractManager
     const color = strokes[0]?.style.color || "black"
 
     const label = mathElement.label || ""
-    const mathElements: TIIMathElement[] = []
+    const mathElements: TMathElement[] = []
 
     // Check for operators with bounds (like \sum ^{...}_{...} or \sum _{...}^{...})
     // Support both orders: ^{...}_{...} and _{...}^{...}
@@ -596,8 +605,8 @@ export class IIConversionManager extends IIAbstractManager
     }
 
     const point: TPoint = {
-      x: boundingBox.xMin,
-      y: boundingBox.yMax
+      x: boundingBox.x,
+      y: boundingBox.y + boundingBox.height
     }
 
     // Calculate adjusted bounding box for operators with superscript/subscript limits
@@ -606,7 +615,7 @@ export class IIConversionManager extends IIAbstractManager
       // When we have superscript/subscript, the renderer positions them vertically
       // superscript: y = baselineY - fontSize * 1.5 (this is baseline position)
       // subscript: y = baselineY + fontSize * 1.2 (this is baseline position)
-      const baselineY = boundingBox.yMax
+      const baselineY = boundingBox.y + boundingBox.height
       const limitFontSize = fontSize * 0.5
 
       // Calculate vertical extent
@@ -634,27 +643,28 @@ export class IIConversionManager extends IIAbstractManager
       const finalWidth = Math.max(totalWidth, maxLimitWidth)
 
       // Extend bounding box to include superscript and subscript
-      adjustedBounds = new Box({
+      adjustedBounds = {
         x: boundingBox.x,
         y: superscriptTop,
         width: finalWidth,
-        height: subscriptBottom - superscriptTop
-      })
+        height: subscriptBottom - superscriptTop,
+
+      }
     }
 
-    const math = new IIMath(mathElements, point, adjustedBounds, strokes[0]?.style)
+    const math = IIMathHelper.create(mathElements, point, adjustedBounds, strokes[0]?.style)
 
     return math
   }
 
-  convertMath(mathElement: TJIIXMathElement, strokes: IIStroke[]): { symbol: IIMath, strokes: IIStroke[] } | undefined
+  convertMath(mathElement: TJIIXMathElement, strokes: TStroke[]): { symbol: TMath, strokes: TStroke[] } | undefined
   {
     if (!mathElement["bounding-box"]) {
       this.logger.warn("convertMath", "Math element missing bounding-box")
       return undefined
     }
 
-    const mathStrokes = strokes.filter(s => mathElement.items?.some(i => i["full-id"] === s.id)) as IIStroke[]
+    const mathStrokes = strokes.filter(s => mathElement.items?.some(i => i["full-id"] === s.id))
     if (!mathStrokes.length) {
       return undefined
     }
@@ -671,7 +681,7 @@ export class IIConversionManager extends IIAbstractManager
     }
   }
 
-  async apply(symbols: TIISymbol[] = []): Promise<TIISymbol[]>
+  async apply(symbols: TSymbol[] = []): Promise<TSymbol[]>
   {
     this.logger.info("convert")
     if (!this.model.exports?.["application/vnd.myscript.jiix"]) {
@@ -683,12 +693,12 @@ export class IIConversionManager extends IIAbstractManager
     const strokesToConvert = this.editor.extractStrokesFromSymbols(symbols.length ? symbols : this.model.symbols)
 
     // Track all changes for history (batch at the end for performance)
-    const allAddedSymbols: TIISymbol[] = []
-    const allErasedStrokes: IIStroke[] = []
+    const allAddedSymbols: TSymbol[] = []
+    const allErasedStrokes: TStroke[] = []
 
     // Convert symbols directly - group by jiixBlockId first
     const symbolsToProcess = symbols.length ? symbols : this.model.symbols
-    const mathStrokesByBlock = new Map<string, IIStroke[]>()
+    const mathStrokesByBlock = new Map<string, TStroke[]>()
 
     for (const sym of symbolsToProcess) {
       if (isRecognizedMath(sym)) {
@@ -702,7 +712,7 @@ export class IIConversionManager extends IIAbstractManager
     // Pre-fetch all math block conversion data before any model modifications.
     // Index lookups must happen synchronously before removeSymbols/addSymbols calls,
     // which clear model.exports and can trigger async JIIX index invalidation.
-    const mathConversions: Array<{ symbol: IIMath, strokes: IIStroke[] }> = []
+    const mathConversions: Array<{ symbol: TMath, strokes: TStroke[] }> = []
 
     for (const [blockId, blockStrokes] of mathStrokesByBlock.entries()) {
       const firstStroke = blockStrokes[0]
@@ -746,7 +756,7 @@ export class IIConversionManager extends IIAbstractManager
       const onlyText = !jiix.elements?.some(e => e.type !== "Text")
 
       for (const el of jiix.elements) {
-        let conversionResults: { symbol: TIISymbol, strokes: IIStroke[] }[] = []
+        let conversionResults: { symbol: TSymbol, strokes: TStroke[] }[] = []
 
         switch (el.type) {
           case JIIXElementType.Text: {

@@ -1,7 +1,8 @@
 import { IIAbstractManager } from "./IIAbstractManager"
 import { SVGBuilder, SVGRendererConst } from "@/renderer"
 import { TJIIXMathElement } from "@/model"
-import { Box, TBox, IIStroke, isStroke } from "@/symbol"
+import { TBox, TStroke, isStroke } from "@/symbol"
+import { BoxHelper } from "@/symbol/helpers/BoxHelper"
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import { ColorPaletteManager } from "../base"
 import { convertBoundingBoxMillimeterToPixel } from "@/utils"
@@ -260,13 +261,13 @@ export class IIOverlayManager extends IIAbstractManager
       return convertBoundingBoxMillimeterToPixel(mathBlock["bounding-box"])
     }
     const blockStrokes = this.editor.model.symbols.filter(
-      s => isStroke(s) && (s as IIStroke).jiixBlockId === mathBlock.id
-    ) as IIStroke[]
+      s => isStroke(s) && (s as TStroke).jiixBlockId === mathBlock.id
+    ) as TStroke[]
     if (!blockStrokes.length) {
       this.logger.warn("getMathBlockBounds", `Math block ${mathBlock.id} has no bounding box and no strokes`)
       return null
     }
-    return Box.createFromBoxes(blockStrokes.map(s => s.bounds))
+    return BoxHelper.createFromBoxes(blockStrokes.map(s => s.bounds))
   }
 
   refresh(): void

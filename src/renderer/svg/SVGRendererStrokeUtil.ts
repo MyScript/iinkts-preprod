@@ -1,4 +1,4 @@
-import { IIStroke, TPointer } from "@/symbol"
+import { TStroke, TPointer } from "@/symbol"
 import { DefaultStyle } from "@/style"
 import { computeAngleAxeRadian, computeLinksPointers, computeMiddlePointer } from "@/utils"
 import { SVGRendererConst } from "./utils/SVGRendererConst"
@@ -64,7 +64,7 @@ export class SVGRendererStrokeUtil
     return svgPath
   }
 
-  static getSVGPath(stroke: IIStroke): string
+  static getSVGPath(stroke: TStroke): string
   {
     const STROKE_LENGTH = stroke.pointers.length
     if (!STROKE_LENGTH) return ""
@@ -94,7 +94,7 @@ export class SVGRendererStrokeUtil
     return parts.join(" ")
   }
 
-  static getSVGElement(stroke: IIStroke): SVGGraphicsElement
+  static getSVGElement(stroke: TStroke): SVGGraphicsElement
   {
     const attrs: { [key: string]: string } = {
       "id": stroke.id,

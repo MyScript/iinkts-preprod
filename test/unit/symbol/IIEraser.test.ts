@@ -1,81 +1,88 @@
-import
-{
-  IIEraser,
-} from "../../../src/iink"
+import { TEraser, IIEraserHelper } from "../../../src/iink"
 
-describe("IIEraser.ts", () =>
+describe("TEraser", () =>
 {
-  test("constructor", () =>
+  test("is plain object", () =>
   {
-    const eraser = new IIEraser()
+    const eraser = IIEraserHelper.create()
     expect(eraser).toBeDefined()
-    expect(eraser.creationTime).toBeLessThanOrEqual(Date.now())
-    expect(eraser.creationTime).toEqual(eraser.modificationDate)
-    expect(eraser.pointers).toHaveLength(0)
-    expect(eraser.selected).toEqual(false)
-    expect(eraser.bounds.x).toEqual(0)
-    expect(eraser.bounds.y).toEqual(0)
-    expect(eraser.bounds.height).toEqual(0)
-    expect(eraser.bounds.width).toEqual(0)
-    expect(eraser.snapPoints).toHaveLength(0)
-    expect(eraser.style).toEqual({
-      "color": "grey",
-      "fill": "none",
-      "opacity": 0.2,
-      "width": 5,
+    expect(Object.getPrototypeOf(eraser)).toBe(Object.prototype)
+  })
+})
+
+describe("IIEraserHelper", () =>
+{
+  describe("create", () =>
+  {
+    test("default width = 5", () =>
+    {
+      const eraser = IIEraserHelper.create()
+      expect(eraser.style.width).toBe(5)
+    })
+
+    test("custom width", () =>
+    {
+      const eraser = IIEraserHelper.create(10)
+      expect(eraser.style.width).toBe(10)
+    })
+
+    test("default style values", () =>
+    {
+      const eraser = IIEraserHelper.create()
+      expect(eraser.style.color).toBe("grey")
+      expect(eraser.style.fill).toBe("none")
+      expect(eraser.style.opacity).toBe(0.2)
+    })
+
+    test("starts with empty pointers", () =>
+    {
+      const eraser = IIEraserHelper.create()
+      expect(eraser.pointers).toHaveLength(0)
+    })
+
+    test("unique ids", () =>
+    {
+      const e1 = IIEraserHelper.create()
+      const e2 = IIEraserHelper.create()
+      expect(e1.id).not.toBe(e2.id)
+    })
+
+    test("type is eraser", () =>
+    {
+      const eraser = IIEraserHelper.create()
+      expect(eraser.type).toBe("eraser")
     })
   })
 
-  describe("boundingBox", () =>
+  describe("getBounds", () =>
   {
-    test("should get without pointers", () =>
+    test("empty pointers returns zero box", () =>
     {
-      const eraser = new IIEraser()
-      expect(eraser.bounds.height).toEqual(0)
-      expect(eraser.bounds.width).toEqual(0)
-      expect(eraser.bounds.x).toEqual(0)
-      expect(eraser.bounds.y).toEqual(0)
+      const eraser = IIEraserHelper.create()
+      const bounds = IIEraserHelper.getBounds(eraser)
+      expect(bounds).toEqual({ x: 0, y: 0, width: 0, height: 0 })
     })
-    test("should get with pointers", () =>
+
+    test("with pointers returns bounding box", () =>
     {
-      const eraser = new IIEraser()
+      const eraser = IIEraserHelper.create()
       eraser.pointers.push({ p: 1, t: 1, x: 1, y: 1 })
       eraser.pointers.push({ p: 1, t: 1, x: 11, y: 11 })
-      expect(eraser.bounds.height).toEqual(10)
-      expect(eraser.bounds.width).toEqual(10)
-      expect(eraser.bounds.x).toEqual(1)
-      expect(eraser.bounds.y).toEqual(1)
+      const bounds = IIEraserHelper.getBounds(eraser)
+      expect(bounds).toEqual({ x: 1, y: 1, width: 10, height: 10 })
     })
   })
 
-  describe("overlaps", () =>
+  describe("clone via structuredClone", () =>
   {
-    const eraser = new IIEraser()
-    eraser.pointers.push({ p: 1, t: 1, x: 1, y: 1 })
-    eraser.pointers.push({ p: 1, t: 1, x: 11, y: 11 })
-    test("should return true", () =>
+    test("deep copy, different reference", () =>
     {
-      expect(eraser.overlaps({ height: 10, width: 10, x: 0, y: 0 })).toEqual(true)
-    })
-    test("should return false", () =>
-    {
-      expect(eraser.overlaps({ height: 10, width: 10, x: 100, y: 0 })).toEqual(false)
-    })
-  })
-
-
-
-  describe("clone", () =>
-  {
-    test("should return clone", () =>
-    {
-      const eraser = new IIEraser()
+      const eraser = IIEraserHelper.create()
       eraser.pointers.push({ p: 1, t: 1, x: 1, y: 1 })
-      eraser.pointers.push({ p: 1, t: 1, x: 11, y: 11 })
-
-      const clone = eraser.clone()
+      const clone: TEraser = structuredClone(eraser)
       expect(clone).toEqual(eraser)
       expect(clone).not.toBe(eraser)
+      expect(clone.pointers).not.toBe(eraser.pointers)
     })
   })
 })

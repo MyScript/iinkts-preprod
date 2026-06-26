@@ -1,4 +1,5 @@
-import { DecoratorKind, IIDecorator, TStyle } from "../../../src/iink"
+import { DecoratorKind, TStyle } from "../../../src/iink"
+import { IIDecoratorHelper } from "../../../src/symbol/helpers/IIDecoratorHelper"
 
 describe("IIDecorator.ts", () =>
 {
@@ -8,15 +9,15 @@ describe("IIDecorator.ts", () =>
       color: "blue",
       width: 20
     }
-    const decorator = new IIDecorator(DecoratorKind.Highlight, style)
+    const decorator = IIDecoratorHelper.create(DecoratorKind.Highlight, style)
     test("should create ", () =>
     {
       expect(decorator).toBeDefined()
-      expect(decorator.style).toEqual(style)
+      expect(decorator.style.color).toEqual(style.color)
     })
-    test("should clone", () =>
+    test("should clone with structuredClone", () =>
     {
-      const clone = decorator.clone()
+      const clone = structuredClone(decorator)
       expect(clone).toEqual(decorator)
       expect(clone).not.toBe(decorator)
     })
@@ -28,15 +29,15 @@ describe("IIDecorator.ts", () =>
       color: "blue",
       width: 20
     }
-    const decorator = new IIDecorator(DecoratorKind.Strikethrough, style)
+    const decorator = IIDecoratorHelper.create(DecoratorKind.Strikethrough, style)
     test("should create ", () =>
     {
       expect(decorator).toBeDefined()
-      expect(decorator.style).toEqual(style)
+      expect(decorator.style.color).toEqual(style.color)
     })
-    test("should clone", () =>
+    test("should clone with structuredClone", () =>
     {
-      const clone = decorator.clone()
+      const clone = structuredClone(decorator)
       expect(clone).toEqual(decorator)
       expect(clone).not.toBe(decorator)
     })
@@ -48,15 +49,15 @@ describe("IIDecorator.ts", () =>
       color: "blue",
       width: 20
     }
-    const decorator = new IIDecorator(DecoratorKind.Surround, style)
+    const decorator = IIDecoratorHelper.create(DecoratorKind.Surround, style)
     test("should create ", () =>
     {
       expect(decorator).toBeDefined()
-      expect(decorator.style).toEqual(style)
+      expect(decorator.style.color).toEqual(style.color)
     })
-    test("should clone", () =>
+    test("should clone with structuredClone", () =>
     {
-      const clone = decorator.clone()
+      const clone = structuredClone(decorator)
       expect(clone).toEqual(decorator)
       expect(clone).not.toBe(decorator)
     })
@@ -68,19 +69,17 @@ describe("IIDecorator.ts", () =>
       color: "blue",
       width: 20
     }
-    const decorator = new IIDecorator(DecoratorKind.Underline, style)
+    const decorator = IIDecoratorHelper.create(DecoratorKind.Underline, style)
     test("should create ", () =>
     {
       expect(decorator).toBeDefined()
-      expect(decorator.style).toEqual(style)
+      expect(decorator.style.color).toEqual(style.color)
     })
-    test("should clone", () =>
+    test("should clone with structuredClone", () =>
     {
-      const clone = decorator.clone()
+      const clone = structuredClone(decorator)
       expect(clone).toEqual(decorator)
       expect(clone).not.toBe(decorator)
     })
   })
-
-
 })

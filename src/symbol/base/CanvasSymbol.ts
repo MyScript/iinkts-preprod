@@ -1,10 +1,10 @@
 import { TPoint } from "./Point"
-import { TSymbol } from "./Symbol"
+import { TBaseSymbol } from "./Symbol"
 
 /**
  * @group Symbol
  */
-export type TCanvasShapeEllipseSymbol = TSymbol & {
+export type TCanvasShapeEllipseSymbol = TBaseSymbol & {
   centerPoint: TPoint
   maxRadius: number
   minRadius: number
@@ -20,7 +20,7 @@ export type TCanvasShapeEllipseSymbol = TSymbol & {
 /**
  * @group Symbol
  */
-export type TCanvasShapeLineSymbol = TSymbol & {
+export type TCanvasShapeLineSymbol = TBaseSymbol & {
   firstPoint: TPoint
   lastPoint: TPoint
   beginDecoration?: string
@@ -40,14 +40,14 @@ export type TCanvasShapeTableLineSymbol = {
 /**
  * @group Symbol
  */
-export type TCanvasShapeTableSymbol = TSymbol & {
+export type TCanvasShapeTableSymbol = TBaseSymbol & {
   lines: TCanvasShapeTableLineSymbol[]
 }
 
 /**
  * @group Symbol
  */
-export type TCanvasUnderLineSymbol = TSymbol & {
+export type TCanvasUnderLineSymbol = TBaseSymbol & {
   data: {
     firstCharacter: number
     lastCharacter: number
@@ -57,7 +57,7 @@ export type TCanvasUnderLineSymbol = TSymbol & {
 /**
  * @group Symbol
  */
-export type TCanvasTextSymbol = TSymbol & {
+export type TCanvasTextSymbol = TBaseSymbol & {
   label: string,
   data: {
     topLeftPoint: TPoint

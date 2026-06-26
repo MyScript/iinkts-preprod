@@ -1,6 +1,6 @@
+import { IIEdgeArcHelper } from "../../../../src/symbol/helpers/IIEdgeArcHelper"
 import
 {
-  IIEdgeArc,
   TPoint,
   DefaultStyle,
   TStyle,
@@ -24,7 +24,7 @@ describe("IIEdgeArc.ts", () =>
         color: "blue",
         width: 20,
       }
-      const arc = new IIEdgeArc(center, startAngle, sweepAngle, radiusX, radiusY, phi, undefined, undefined, style)
+      const arc = IIEdgeArcHelper.create(center, startAngle, sweepAngle, radiusX, radiusY, phi, undefined, undefined, style)
       expect(arc).toBeDefined()
       expect(arc.creationTime).toBeLessThanOrEqual(Date.now())
       expect(arc.creationTime).toEqual(arc.modificationDate)
@@ -44,7 +44,7 @@ describe("IIEdgeArc.ts", () =>
       const radiusX = 10
       const radiusY = 50
       const phi = 0
-      const arc = new IIEdgeArc(center, startAngle, sweepAngle, radiusX, radiusY, phi)
+      const arc = IIEdgeArcHelper.create(center, startAngle, sweepAngle, radiusX, radiusY, phi)
       expect(arc.style).toEqual(DefaultStyle)
     })
   })
@@ -52,10 +52,10 @@ describe("IIEdgeArc.ts", () =>
   describe("properties", () =>
   {
     const center: TPoint = { x: 0, y: 0 }
-    const smallClockwiseArc = new IIEdgeArc(center, Math.PI / 4, Math.PI / 4, 5, 5, 0)
-    const largeClockwiseArc = new IIEdgeArc(center, Math.PI / 4, 3 * Math.PI / 4, 50, 50, 0)
-    const smallCounterClockwiseArc = new IIEdgeArc(center, Math.PI / 4, -Math.PI / 4, 5, 5, 0)
-    const largeCounterClockwiseArc = new IIEdgeArc(center, Math.PI / 4, -3 * Math.PI / 4, 50, 50, 0)
+    const smallClockwiseArc = IIEdgeArcHelper.create(center, Math.PI / 4, Math.PI / 4, 5, 5, 0)
+    const largeClockwiseArc = IIEdgeArcHelper.create(center, Math.PI / 4, 3 * Math.PI / 4, 50, 50, 0)
+    const smallCounterClockwiseArc = IIEdgeArcHelper.create(center, Math.PI / 4, -Math.PI / 4, 5, 5, 0)
+    const largeCounterClockwiseArc = IIEdgeArcHelper.create(center, Math.PI / 4, -3 * Math.PI / 4, 50, 50, 0)
 
     test(`should get vertices for small clockwise arc`, () =>
     {
@@ -119,21 +119,21 @@ describe("IIEdgeArc.ts", () =>
     const radiusX = 10
     const radiusY = 50
     const phi = 0
-    const arc = new IIEdgeArc(center, startAngle, sweepAngle, radiusX, radiusY, phi)
+    const arc = IIEdgeArcHelper.create(center, startAngle, sweepAngle, radiusX, radiusY, phi)
     test(`should return true if partially wrap`, () =>
     {
       const boundaries: TBox = { height: 20, width: 20, x: 0, y: 45 }
-      expect(arc.overlaps(boundaries)).toEqual(true)
+      expect(IIEdgeArcHelper.overlaps(arc, boundaries)).toEqual(true)
     })
     test(`should return true if totally wrap`, () =>
     {
       const boundaries: TBox = { height: 200, width: 100, x: -50, y: -5 }
-      expect(arc.overlaps(boundaries)).toEqual(true)
+      expect(IIEdgeArcHelper.overlaps(arc, boundaries)).toEqual(true)
     })
     test(`should return false if box is outside`, () =>
     {
       const boundaries: TBox = { height: 2, width: 2, x: 50, y: 50 }
-      expect(arc.overlaps(boundaries)).toEqual(false)
+      expect(IIEdgeArcHelper.overlaps(arc, boundaries)).toEqual(false)
     })
   })
 
@@ -151,8 +151,8 @@ describe("IIEdgeArc.ts", () =>
         color: "blue",
         width: 20
       }
-      const arc = new IIEdgeArc(center, startAngle, sweepAngle, radiusX, radiusY, phi, undefined, undefined, style)
-      const clone = arc.clone()
+      const arc = IIEdgeArcHelper.create(center, startAngle, sweepAngle, radiusX, radiusY, phi, undefined, undefined, style)
+      const clone = structuredClone(arc)
       expect(clone).toEqual(arc)
       expect(clone).not.toBe(arc)
     })

@@ -6,7 +6,6 @@
  * providing advanced features like decorators, groups, and text support.
  */
 export * from "./IISymbol"
-export * from "./IISymbolBase"
 export * from "./IITypeset"
 export * from "./IIStroke"
 export * from "./IIText"

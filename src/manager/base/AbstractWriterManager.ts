@@ -1,7 +1,7 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
 import
 {
-  TIISymbol,
+  TSymbol,
   TPointer,
 } from "@/symbol"
 import { SVGRenderer } from "@/renderer"
@@ -19,7 +19,7 @@ export abstract class AbstractWriterManager
   #logger = LoggerManager.getLogger(LoggerCategory.WRITE)
   grabber: PointerEventGrabber
   editor: InteractiveInkEditor | InkEditor
-  currentSymbol?: TIISymbol
+  currentSymbol?: TSymbol
 
   detectGesture: boolean = true
 
@@ -48,8 +48,8 @@ export abstract class AbstractWriterManager
     this.grabber.detach()
   }
 
-  protected abstract createCurrentSymbol(pointer: TPointer, style: TStyle, pointerType: string): TIISymbol
-  protected abstract updateCurrentSymbol(pointer: TPointer): TIISymbol
+  protected abstract createCurrentSymbol(pointer: TPointer, style: TStyle, pointerType: string): TSymbol
+  protected abstract updateCurrentSymbol(pointer: TPointer): TSymbol
 
   start(info: PointerInfo): void
   {

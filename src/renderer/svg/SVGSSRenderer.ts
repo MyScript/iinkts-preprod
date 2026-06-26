@@ -1,6 +1,6 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
 import { Model } from "@/model"
-import { TStroke } from "@/symbol"
+import { TLegacyStroke } from "@/symbol"
 import { TRendererConfiguration } from "@/renderer/RendererConfiguration"
 import { TUpdatePatch, TUpdatePatchAppendChild, TUpdatePatchInsertBefore, TUpdatePatchRemoveAttribut, TUpdatePatchRemoveChild, TUpdatePatchRemoveElement, TUpdatePatchReplaceAll, TUpdatePatchReplaceELement, TUpdatePatchSetAttribut } from "@/recognizer"
 import { SVGStroker } from "./SVGStroker"
@@ -34,7 +34,7 @@ export class InteractiveInkSSRSVGRenderer
     }
   }
 
-  protected drawStroke(svgElement: SVGElement, stroke: TStroke)
+  protected drawStroke(svgElement: SVGElement, stroke: TLegacyStroke)
   {
     let style: string
     if (stroke.pointerType === "eraser") {
@@ -167,7 +167,7 @@ export class InteractiveInkSSRSVGRenderer
     }
   }
 
-  drawPendingStroke(stroke: TStroke): void
+  drawPendingStroke(stroke: TLegacyStroke): void
   {
     this.#logger.info("drawPendingStroke", { stroke })
     if (stroke) {

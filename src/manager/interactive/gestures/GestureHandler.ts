@@ -1,4 +1,4 @@
-import type { IIStroke, TIISymbol } from "@/symbol"
+import type { TStroke, TSymbol } from "@/symbol"
 import type { InteractiveInkEditor } from "@/editor"
 import type { TGesture, TGestureType } from "@/manager/interactive/gestures/GestureTypes"
 import type { GestureHelpers } from "./GestureHelpers"
@@ -30,7 +30,7 @@ export interface IGestureHandler
    * @param gesture - The detected gesture information
    * @returns Promise that resolves when the gesture is applied
    */
-  apply(gestureStroke: IIStroke, gesture: TGesture): Promise<void | TIISymbol[]>
+  apply(gestureStroke: TStroke, gesture: TGesture): Promise<void | TSymbol[]>
 }
 
 /**
@@ -55,7 +55,7 @@ export abstract class GestureHandler implements IGestureHandler
   }
 
   abstract readonly gestureType: TGestureType
-  abstract apply(gestureStroke: IIStroke, gesture: TGesture): Promise<void | TIISymbol[]>
+  abstract apply(gestureStroke: TStroke, gesture: TGesture): Promise<void | TSymbol[]>
 
   /**
    * Get the editor's model

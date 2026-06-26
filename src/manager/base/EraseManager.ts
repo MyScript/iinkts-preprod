@@ -1,5 +1,7 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { IIEraser, TPoint, TSegment, TBox, Box, isText } from "@/symbol"
+import { TEraser, TPoint, TSegment, TBox, isText } from "@/symbol"
+import { BoxHelper } from "@/symbol/helpers/BoxHelper"
+import { IIEraserHelper } from "@/symbol/helpers/IIEraserHelper"
 import { SVGRenderer } from "@/renderer"
 import { PointerEventGrabber, PointerInfo } from "@/grabber"
 import { computeDistanceBetweenPointAndSegment, computeDistanceSquared } from "@/utils"
@@ -21,7 +23,7 @@ export class EraseManager
   editor: InteractiveInkEditor | InkEditor
 
   eraserWidth = 5
-  currentEraser?: IIEraser
+  currentEraser?: TEraser
   charsToDelete: Map<string, Set<string>> = new Map()
 
   #isInteractiveInkEditor(editor: InteractiveInkEditor | InkEditor): editor is InteractiveInkEditor
@@ -33,7 +35,7 @@ export class EraseManager
   {
     const { x, y, width, height } = symbol.bounds
     const expanded = { x: x - radius, y: y - radius, width: width + 2 * radius, height: height + 2 * radius }
-    if (!Box.containsPoint(expanded, point)) return false
+    if (!BoxHelper.containsPoint(expanded, point)) return false
     const edges = symbol.edges
     if (edges.length === 0) {
       const squaredRadius = radius * radius
@@ -70,7 +72,7 @@ export class EraseManager
   start(info: PointerInfo): void
   {
     this.#logger.info("startErase", { info })
-    this.currentEraser = new IIEraser(this.eraserWidth)
+    this.currentEraser = IIEraserHelper.create(this.eraserWidth)
     this.currentEraser.pointers.push(info.pointer)
     this.charsToDelete.clear()
     this.renderer.drawSymbol(this.currentEraser!)
@@ -94,7 +96,7 @@ export class EraseManager
           s.chars.forEach(char => {
             const { x, y, width, height } = char.bounds
             const expanded = { x: x - radius, y: y - radius, width: width + 2 * radius, height: height + 2 * radius }
-            if (Box.containsPoint(expanded, currentPoint)) {
+            if (BoxHelper.containsPoint(expanded, currentPoint)) {
               if (!this.charsToDelete.has(s.id)) {
                 this.charsToDelete.set(s.id, new Set())
               }

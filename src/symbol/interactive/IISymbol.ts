@@ -1,28 +1,25 @@
-import
-{
-  IIEdgeArc,
-  IIEdgeLine,
-  IIEdgePolyLine,
-  IIShapeCircle,
-  IIShapeEllipse,
-  IIShapePolygon
-} from "@/symbol/geometry"
-import { IIStroke } from "./IIStroke"
-import { IIText } from "./IIText"
-import { IIMath } from "./IIMath"
-import { IIDecorator } from "./IIDecorator"
+import { TEdgeArc } from "@/symbol/geometry/IIEdgeArc"
+import { TEdgeLine } from "@/symbol/geometry/IIEdgeLine"
+import { TEdgePolyLine } from "@/symbol/geometry/IIEdgePolyLine"
+import { TShapeCircle } from "@/symbol/geometry/IIShapeCircle"
+import { TShapeEllipse } from "@/symbol/geometry/IIShapeEllipse"
+import { TShapePolygon } from "@/symbol/geometry/IIShapePolygon"
+import { TStroke } from "./IIStroke"
+import { TText } from "./IIText"
+import { TMath } from "./IIMath"
+import { TDecorator } from "./IIDecorator"
 
 /**
  * @group Symbol
  */
-export type TIIEdge = IIEdgeArc | IIEdgeLine | IIEdgePolyLine
+export type TEdge = TEdgeArc | TEdgeLine | TEdgePolyLine
 
 /**
  * @group Symbol
  */
-export type TIIShape = IIShapeCircle | IIShapeEllipse | IIShapePolygon
+export type TShape = TShapeCircle | TShapeEllipse | TShapePolygon
 
 /**
  * @group Symbol
  */
-export type TIISymbol = TIIEdge | TIIShape | IIStroke | IIText | IIMath | IIDecorator
+export type TSymbol = TEdge | TShape | TStroke | TText | TMath | TDecorator

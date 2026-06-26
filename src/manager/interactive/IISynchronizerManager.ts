@@ -1,6 +1,6 @@
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import { TJIIXStrokeItem, TJIIXMathElement, TJIIXMathExpression, TJIIXTextElement, TJIIXNodeElement, TJIIXEdgeElement, TJIIXEdgeLine, JIIXElementType, JIIXEdgeKind } from "@/model"
-import { IIStroke, isStroke } from "@/symbol"
+import { TStroke, isStroke } from "@/symbol"
 import { IIAbstractManager } from "./IIAbstractManager"
 import { LoggerCategory } from "@/logger"
 
@@ -267,9 +267,9 @@ export class IISynchronizerManager extends IIAbstractManager
   /**
    * Get strokes from JIIX items
    */
-  #getStrokesFromItems(items: TJIIXStrokeItem[]): IIStroke[]
+  #getStrokesFromItems(items: TJIIXStrokeItem[]): TStroke[]
   {
-    const strokes: IIStroke[] = []
+    const strokes: TStroke[] = []
     const seen = new Set<string>()
 
     for (const item of items) {
@@ -289,7 +289,7 @@ export class IISynchronizerManager extends IIAbstractManager
    * Update block metadata (jiixBlockId, jiixBlockType ONLY)
    */
   #updateBlockMetadata(
-    stroke: IIStroke,
+    stroke: TStroke,
     element: TJIIXTextElement | TJIIXMathElement | TJIIXNodeElement | TJIIXEdgeElement
   ): void
   {

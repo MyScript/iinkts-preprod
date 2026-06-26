@@ -1,4 +1,6 @@
-import { Box, IIDecorator, IIStroke, IIText, SymbolType, DecoratorKind, isDecorator, isRecognizedText, isText, type TIISymbol } from "@/symbol"
+import { TDecorator, TStroke, TText, SymbolType, TBox, DecoratorKind, isDecorator, isRecognizedText, isText, type TSymbol } from "@/symbol"
+import { BoxHelper } from "@/symbol/helpers/BoxHelper"
+import { IIDecoratorHelper } from "@/symbol/helpers/IIDecoratorHelper"
 import type { TIIHistoryChanges } from "@/history"
 import type { InteractiveInkEditor } from "@/editor"
 import type { TGestureAnnotation } from "./GestureAnnotation"
@@ -33,8 +35,8 @@ export class IIGestureAnnotationProcessor
   #applyDecorator(ids: string[], kind: DecoratorKind): TIIHistoryChanges | undefined
   {
     const seenWordKeys = new Set<string>()
-    const added: IIDecorator[] = []
-    const erased: IIDecorator[] = []
+    const added: TDecorator[] = []
+    const erased: TDecorator[] = []
 
     for (const id of ids) {
       const sym = this.editor.model.getRootSymbol(id)
@@ -45,7 +47,7 @@ export class IIGestureAnnotationProcessor
         continue
       }
 
-      if (!isRecognizedText(sym as IIStroke)) continue
+      if (!isRecognizedText(sym as TStroke)) continue
 
       const wordGroup = this.editor.jiix.getWordGroupForStroke(sym.id)
       if (wordGroup) {
@@ -69,12 +71,12 @@ export class IIGestureAnnotationProcessor
 
   #toggleWordDecorator(
     targetIds: string[],
-    wordBounds: Box | null,
+    wordBounds: TBox | null,
     baseline: number | null,
     xHeight: number | null,
     kind: DecoratorKind,
-    added: IIDecorator[],
-    erased: IIDecorator[]
+    added: TDecorator[],
+    erased: TDecorator[]
   ): void
   {
     const existing = this.editor.model.symbols
@@ -86,11 +88,11 @@ export class IIGestureAnnotationProcessor
       this.editor.renderer.removeElement(existing.id)
       erased.push(existing)
     } else {
-      const decorator = new IIDecorator(kind, this.editor.penStyle, targetIds)
-      if (wordBounds) decorator.bounds = wordBounds
+      const decorator = IIDecoratorHelper.create(kind, this.editor.penStyle, targetIds)
+      if (wordBounds) IIDecoratorHelper.setBounds(decorator, wordBounds)
       else {
         const bounds = this.#computeBoundsFromTargets(targetIds)
-        if (bounds) decorator.bounds = bounds
+        if (bounds) IIDecoratorHelper.setBounds(decorator, bounds)
       }
       if (baseline !== null) decorator.baseline = baseline
       if (xHeight !== null) decorator.xHeight = xHeight
@@ -100,7 +102,7 @@ export class IIGestureAnnotationProcessor
     }
   }
 
-  #toggleTextDecorator(sym: IIText, kind: DecoratorKind, added: IIDecorator[], erased: IIDecorator[]): void
+  #toggleTextDecorator(sym: TText, kind: DecoratorKind, added: TDecorator[], erased: TDecorator[]): void
   {
     const index = sym.decorators.findIndex(d => d.kind === kind)
     if (index !== -1) {
@@ -109,7 +111,7 @@ export class IIGestureAnnotationProcessor
       this.editor.renderer.drawSymbol(sym)
       erased.push(removed)
     } else {
-      const decorator = new IIDecorator(kind, this.editor.penStyle)
+      const decorator = IIDecoratorHelper.create(kind, this.editor.penStyle)
       sym.decorators.push(decorator)
       this.editor.model.updateSymbol(sym)
       this.editor.renderer.drawSymbol(sym)
@@ -124,24 +126,24 @@ export class IIGestureAnnotationProcessor
     return b.every(id => setA.has(id))
   }
 
-  #computeBoundsFromTargets(targetIds: string[]): Box | null
+  #computeBoundsFromTargets(targetIds: string[]): TBox | null
   {
     const syms = targetIds
       .map(id => this.editor.model.getRootSymbol(id))
-      .filter((s): s is TIISymbol => !!s)
+      .filter((s): s is TSymbol => !!s)
     if (!syms.length) return null
-    return Box.createFromBoxes(syms.map(s => s.bounds))
+    return BoxHelper.createFromBoxes(syms.map(s => s.bounds))
   }
 
-  #applyThicken(ids: string[], factor: number): IIStroke[]
+  #applyThicken(ids: string[], factor: number): TStroke[]
   {
-    const changed: IIStroke[] = []
+    const changed: TStroke[] = []
     const seen = new Set<string>()
     for (const id of ids) {
       const sym = this.editor.model.getRootSymbol(id)
       if (!sym || sym.type !== SymbolType.Stroke || seen.has(sym.id)) continue
       seen.add(sym.id)
-      const stroke = sym as IIStroke
+      const stroke = sym as TStroke
       const newWidth = (stroke.style.width || 1) * factor
       this.editor.updateSymbolsStyle([stroke.id], { width: newWidth }, false)
       changed.push(stroke)

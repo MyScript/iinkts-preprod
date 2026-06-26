@@ -1,5 +1,6 @@
 import { IIAbstractManager } from "../IIAbstractManager"
-import { IIStroke, TBox, Box, isStroke, isRecognizedMath } from "@/symbol"
+import { TStroke, TBox, isStroke, isRecognizedMath } from "@/symbol"
+import { BoxHelper } from "@/symbol/helpers/BoxHelper"
 import { convertBoundingBoxMillimeterToPixel, getBoxConnectionPoint } from "@/utils"
 import { TJIIXMathExpression, TJIIXMathElement } from "@/model/ExportMath"
 import { TMathVariable, TMathVariableDefinition, TMathVariableDefinitions } from "@/recognizer"
@@ -100,23 +101,23 @@ export class IIMathVariableSubManager extends IIAbstractManager
     return { ...this.#config }
   }
 
-  private getMathSymbols(): IIStroke[]
+  private getMathSymbols(): TStroke[]
   {
     return this.editor.model.symbols.filter(isRecognizedMath)
   }
 
-  findMathSymbolsByJiixId(jiixId: string): IIStroke[]
+  findMathSymbolsByJiixId(jiixId: string): TStroke[]
   {
     return this.editor.model.symbols.filter(s =>
       isStroke(s) && s.jiixBlockId === jiixId && s.jiixBlockType === "Math"
-    ) as IIStroke[]
+    ) as TStroke[]
   }
 
   private getBlockBounds(jiixBlockId: string): TBox | null
   {
     const strokes = this.findMathSymbolsByJiixId(jiixBlockId)
     if (!strokes.length) return null
-    return Box.createFromBoxes(strokes.map(s => s.bounds))
+    return BoxHelper.createFromBoxes(strokes.map(s => s.bounds))
   }
 
   private getAllMathBlockIds(): string[]

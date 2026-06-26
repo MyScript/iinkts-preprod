@@ -1,6 +1,7 @@
 import { IIAbstractManager } from "../IIAbstractManager"
 import { TJIIXMathElement, TJIIXMathExpression } from "@/model"
-import { IIStroke, TPoint, isStroke } from "@/symbol"
+import { TStroke, TPoint, isStroke } from "@/symbol"
+import { IIStrokeHelper } from "@/symbol/helpers"
 import { convertMillimeterToPixel } from "@/utils"
 import { isDeepEqual } from "@/utils/object"
 import { createUUID } from "@/utils/uuid"
@@ -343,14 +344,14 @@ export class IIMathComputationSubManager extends IIAbstractManager
     return strokes
   }
 
-  async addSolverOutputStrokes(result: TJIIXMathElement, style?: TStyle): Promise<IIStroke[]>
+  async addSolverOutputStrokes(result: TJIIXMathElement, style?: TStyle): Promise<TStroke[]>
   {
     this.logger.info("addSolverOutputStrokes", { result })
 
     const solverStrokes = this.extractSolverOutputStrokes(result)
     this.logger.debug("addSolverOutputStrokes", `Found ${ solverStrokes.length } solver output strokes`)
 
-    const addedStrokes: IIStroke[] = []
+    const addedStrokes: TStroke[] = []
     const defaultStyle = style || { color: this.#config.resultColor, width: 5 }
 
     for (const strokeData of solverStrokes) {
@@ -366,7 +367,7 @@ export class IIMathComputationSubManager extends IIAbstractManager
         t: strokeData.T?.[i] || i
       }))
 
-      const stroke = IIStroke.create({
+      const stroke = IIStrokeHelper.createFromPartial({
         pointers,
         style: defaultStyle,
         isSolverOutput: true,

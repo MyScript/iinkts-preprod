@@ -1,7 +1,8 @@
 import { TIIHistoryBackendChanges, THistoryContext } from "@/history"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import { TExport, TJIIXExport, TJIIXMathElement } from "@/model"
-import { IIStroke } from "@/symbol"
+import { TStroke } from "@/symbol"
+import { IIStrokeHelper } from "@/symbol/helpers"
 import { TMatrixTransform } from "@/transform"
 import { computeHmac, mergeDeep, DeferredPromise, PartialDeep, isVersionSuperiorOrEqual, getApiInfos } from "@/utils"
 import
@@ -561,15 +562,15 @@ export class RecognizerWebSocket
     }
   }
 
-  protected buildAddStrokesMessage(strokes: IIStroke[], processGestures = true): TRecognizerWebSocketMessage
+  protected buildAddStrokesMessage(strokes: TStroke[], processGestures = true): TRecognizerWebSocketMessage
   {
     return {
       type: "addStrokes",
       processGestures,
-      strokes: strokes.map(s => s.formatToSend())
+      strokes: strokes.map(s => IIStrokeHelper.formatToSend(s))
     }
   }
-  async addStrokes(strokes: IIStroke[], processGestures = true): Promise<TRecognizerWebSocketMessageGesture | undefined>
+  async addStrokes(strokes: TStroke[], processGestures = true): Promise<TRecognizerWebSocketMessageGesture | undefined>
   {
     this.addStrokeDeferred = new DeferredPromise<TRecognizerWebSocketMessageGesture | undefined>()
     if (strokes.length === 0) {
@@ -779,15 +780,15 @@ export class RecognizerWebSocket
     return allSeries
   }
 
-  protected buildReplaceStrokesMessage(oldStrokeIds: string[], newStrokes: IIStroke[]): TRecognizerWebSocketMessage
+  protected buildReplaceStrokesMessage(oldStrokeIds: string[], newStrokes: TStroke[]): TRecognizerWebSocketMessage
   {
     return {
       type: "replaceStrokes",
       oldStrokeIds,
-      newStrokes: newStrokes.map(s => s.formatToSend())
+      newStrokes: newStrokes.map(s => IIStrokeHelper.formatToSend(s))
     }
   }
-  async replaceStrokes(oldStrokeIds: string[], newStrokes: IIStroke[]): Promise<void>
+  async replaceStrokes(oldStrokeIds: string[], newStrokes: TStroke[]): Promise<void>
   {
     this.replaceStrokeDeferred = new DeferredPromise<void>()
     if (oldStrokeIds.length === 0) {
@@ -902,7 +903,7 @@ export class RecognizerWebSocket
     return this.eraseStrokeDeferred?.promise
   }
 
-  async recognizeGesture(stroke: IIStroke): Promise<TRecognizerWebSocketMessageContextlessGesture | undefined>
+  async recognizeGesture(stroke: TStroke): Promise<TRecognizerWebSocketMessageContextlessGesture | undefined>
   {
     if (!stroke) {
       return
@@ -913,7 +914,7 @@ export class RecognizerWebSocket
       type: "contextlessGesture",
       scaleX: pixelTomm,
       scaleY: pixelTomm,
-      stroke: stroke.formatToSend()
+      stroke: IIStrokeHelper.formatToSend(stroke)
     })
     return this.contextlessGestureDeferred.get(stroke.id)!.promise
   }

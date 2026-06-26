@@ -1,5 +1,6 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { IIStroke, IIText, TIISymbol, isStroke, isText } from "@/symbol"
+import { TStroke, TText, TSymbol, isStroke, isText } from "@/symbol"
+import { IITextHelper } from "@/symbol/helpers/IITextHelper"
 import { InteractiveInkEditor } from "@/editor"
 import { DOMFactory } from "@/components/dom"
 import {
@@ -89,7 +90,7 @@ export class IIMenuContext
     this.position = { x: 0, y: 0 }
   }
 
-  get symbolsSelected(): TIISymbol[]
+  get symbolsSelected(): TSymbol[]
   {
     return this.editor.model.symbolsSelected
   }
@@ -99,11 +100,11 @@ export class IIMenuContext
     return this.symbolsSelected.length > 0
   }
 
-  get symbolsDecorable(): (IIStroke | IIText)[]
+  get symbolsDecorable(): (TStroke | TText)[]
   {
     return this.symbolsSelected.filter(s => {
       return isStroke(s) || isText(s)
-    }) as (IIStroke | IIText)[]
+    }) as (TStroke | TText)[]
   }
 
   get showDecorator(): boolean
@@ -121,7 +122,7 @@ export class IIMenuContext
     const mathMenuInstance = this.contextMenus.get("math") as MathContextMenu | undefined
     if (mathMenuInstance) {
       if (this.hasSingleMathSymbol) {
-        const mathSymbol = this.symbolsSelected[0] as IIStroke
+        const mathSymbol = this.symbolsSelected[0] as TStroke
         if (!mathSymbol.jiixBlockId) {
           mathMenuInstance.setMenuVisibility(false, { canEditVariables: false, canCompute: false, canEvaluate: false })
           return
@@ -202,7 +203,7 @@ export class IIMenuContext
       if (editMenuInstance) {
         const textSymbol = this.editor.model.symbolsSelected.find(s => isText(s))
         if (editMenuInstance.editInput && this.editor.model.symbolsSelected.length === 1 && textSymbol) {
-          editMenuInstance.editInput.value = (textSymbol as IIText).label
+          editMenuInstance.editInput.value = IITextHelper.getLabel(textSymbol as TText)
           editMenuInstance.getElement().style.removeProperty("display")
         }
         else {

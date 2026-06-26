@@ -1,7 +1,8 @@
 import { SvgElementRole } from "@/Constants"
 import { getClosestPoints } from "@/utils"
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { TIISymbol, TPoint, TBox, Box, IIEraser, IIDecorator, SymbolType } from "@/symbol"
+import { TSymbol, TPoint, TBox, TEraser, TDecorator, SymbolType } from "@/symbol"
+import { BoxHelper } from "@/symbol/helpers/BoxHelper"
 import { TIIRendererConfiguration } from "@/renderer/RendererConfiguration"
 import { BaseRenderer } from "@/renderer/base"
 import { SVGRendererConst, GUIDE_PATH_ATTRS, SUB_GUIDE_PATH_ATTRS } from "./utils/SVGRendererConst"
@@ -300,7 +301,7 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
     element?.setAttribute(name, value)
   }
 
-  buildElementFromSymbol(symbol: TIISymbol | IIEraser): SVGGraphicsElement | undefined {
+  buildElementFromSymbol(symbol: TSymbol | TEraser): SVGGraphicsElement | undefined {
     let element: SVGGraphicsElement | undefined
     switch (symbol.type) {
       case SymbolType.Stroke:
@@ -322,7 +323,7 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
         element = SVGRendererMathUtil.getSVGElement(symbol)
         break
       case SymbolType.Decorator:
-        element = SVGRendererDecoratorUtil.getSVGElementForSymbol(symbol as IIDecorator)
+        element = SVGRendererDecoratorUtil.getSVGElementForSymbol(symbol as TDecorator)
         break
       default:
         this.#logger.error("buildElementFromSymbol", `symbol unknown: "${JSON.stringify(symbol)}"`)
@@ -334,7 +335,7 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
     this.layer.prepend(el)
   }
 
-  changeOrderSymbol(symbolToMove: TIISymbol, position: "first" | "last" | "forward" | "backward"): void {
+  changeOrderSymbol(symbolToMove: TSymbol, position: "first" | "last" | "forward" | "backward"): void {
     const moveEl = this.getElementById(symbolToMove.id)
     if (!moveEl) return
     switch (position) {
@@ -368,7 +369,7 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
     this.getElementById(id)?.remove()
   }
 
-  drawSymbol(symbol: TIISymbol | IIEraser): SVGGraphicsElement | undefined {
+  drawSymbol(symbol: TSymbol | TEraser): SVGGraphicsElement | undefined {
     this.#logger.debug("drawSymbol", { symbol })
     const oldNode = this.getElementById(symbol?.id)
     const svgEl = this.buildElementFromSymbol(symbol)
@@ -388,7 +389,7 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
     return svgEl
   }
 
-  updateSymbolSelection(symbol: TIISymbol): void {
+  updateSymbolSelection(symbol: TSymbol): void {
     // Edge selection adds/removes a child outline path — full redraw needed
     if (symbol.type === SymbolType.Edge) {
       this.drawSymbol(symbol)
@@ -405,7 +406,7 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
     }
   }
 
-  replaceSymbol(id: string, symbols: TIISymbol[]): SVGGraphicsElement[] | undefined {
+  replaceSymbol(id: string, symbols: TSymbol[]): SVGGraphicsElement[] | undefined {
     this.#logger.debug("drawSymbol", { symbols })
     const oldNode = this.getElementById(id)
     const elements = symbols.map(s => this.buildElementFromSymbol(s)).filter(x => !!x) as SVGGraphicsElement[]
@@ -443,11 +444,11 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
   }
 
   drawConnectionBetweenBox(id: string, box1: TBox, box2: TBox, position: "corners" | "sides", attrs?: { [key: string]: string }): void {
-    let points1: TPoint[] = new Box(box1).corners
-    let points2: TPoint[] = new Box(box2).corners
+    let points1: TPoint[] = BoxHelper.getCorners(box1)
+    let points2: TPoint[] = BoxHelper.getCorners(box2)
     if (position === "sides") {
-      points1 = new Box(box1).side
-      points2 = new Box(box2).side
+      points1 = BoxHelper.getSide(box1)
+      points2 = BoxHelper.getSide(box2)
     }
     const { p1, p2 } = getClosestPoints(points1, points2)
     const attrsLine = {

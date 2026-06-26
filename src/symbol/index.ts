@@ -9,11 +9,11 @@
  * - {@link Stroke} - Collection of pointers representing a stroke
  * - {@link CanvasSymbol} - Symbol for canvas rendering
  * - {@link Point} - 2D point representation
- * - {@link Box} - Bounding box representation
+ * - {@link TBox} - Bounding box type
  *
  * **Interactive Symbols** (`./interactive`)
  * - {@link IISymbol} - Rich symbol with advanced features
- * - {@link IIStroke} - Stroke with decorators and style
+ * - {@link TStroke} - Stroke with decorators and style
  * - {@link IIText} - Text symbol with font styling
  * - {@link IIEraser} - Eraser tool marker
  *
@@ -34,3 +34,4 @@ export * from "./geometry"
 
 // Symbol helpers
 export * from "./SymbolHelpers"
+export * from "./helpers"

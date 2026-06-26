@@ -1,4 +1,4 @@
-import { DecoratorKind, IIText } from "@/symbol"
+import { DecoratorKind, TText } from "@/symbol"
 import { SVGRendererDecoratorUtil } from "./SVGRendererDecoratorUtil"
 import { SVGRendererConst } from "./utils/SVGRendererConst"
 import { SVGBuilder } from "./utils/SVGBuilder"
@@ -8,7 +8,7 @@ import { SVGBuilder } from "./utils/SVGBuilder"
  */
 export class SVGRendererTextUtil
 {
-  static getSVGElement(text: IIText): SVGGraphicsElement
+  static getSVGElement(text: TText): SVGGraphicsElement
   {
     const attrs: { [key: string]: string } = {
       "id": text.id,

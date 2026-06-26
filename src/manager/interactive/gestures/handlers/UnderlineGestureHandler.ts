@@ -1,4 +1,4 @@
-import { IIStroke, DecoratorKind } from "@/symbol"
+import { TStroke, DecoratorKind } from "@/symbol"
 import type { InteractiveInkEditor } from "@/editor"
 import type { TGesture } from "@/manager/interactive/gestures/GestureTypes"
 import { UnderlineAction } from "@/manager/interactive/gestures/GestureTypes"
@@ -19,7 +19,7 @@ export class UnderlineGestureHandler extends GestureHandler
     super(editor, helpers)
   }
 
-  async apply(gestureStroke: IIStroke, gesture: TGesture): Promise<void>
+  async apply(gestureStroke: TStroke, gesture: TGesture): Promise<void>
   {
     this.logger.debug("applyUnderlineGesture", { gestureStroke, gesture })
     if (!gesture.strokeIds.length) {

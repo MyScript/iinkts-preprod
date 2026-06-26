@@ -1,4 +1,7 @@
-import { IIStroke, IIText, type TIISymbol, isText, SymbolType, Box, TPoint } from "@/symbol"
+import { TStroke, TText, type TSymbol, isText, SymbolType, TPoint } from "@/symbol"
+import { IITextHelper } from "@/symbol/helpers/IITextHelper"
+import { IIStrokeHelper } from "@/symbol/helpers"
+import { BoxHelper } from "@/symbol/helpers/BoxHelper"
 import { TIIHistoryChanges } from "@/history"
 import { computeAverage, isBetween } from "@/utils"
 import type { InteractiveInkEditor } from "@/editor"
@@ -32,11 +35,11 @@ export class InsertGestureHandler extends GestureHandler
    * @param subStrokes - Array of substroke data (x,y coordinates)
    * @returns Array of new strokes
    */
-  createStrokesFromGestureSubStroke(strokeOrigin: IIStroke, subStrokes: { x: number[], y: number[] }[]): IIStroke[]
+  createStrokesFromGestureSubStroke(strokeOrigin: TStroke, subStrokes: { x: number[], y: number[] }[]): TStroke[]
   {
-    const strokes: IIStroke[] = []
+    const strokes: TStroke[] = []
     if (subStrokes[0]) {
-      const subStroke = new IIStroke(strokeOrigin.style)
+      const subStroke = IIStrokeHelper.create(strokeOrigin.style)
       subStrokes[0].x.forEach((x, i) =>
       {
         subStroke.pointers.push({
@@ -46,10 +49,11 @@ export class InsertGestureHandler extends GestureHandler
           t: strokeOrigin.pointers.at(i)?.t || Math.max(...subStroke.pointers.map(p => p.t + 20))
         })
       })
+      IIStrokeHelper.updateBounds(subStroke)
       strokes.push(subStroke)
     }
     if (subStrokes[1]) {
-      const subStroke = new IIStroke(strokeOrigin.style)
+      const subStroke = IIStrokeHelper.create(strokeOrigin.style)
       subStrokes[1].x.forEach((x, i) =>
       {
         subStroke.pointers.push({
@@ -59,6 +63,7 @@ export class InsertGestureHandler extends GestureHandler
           t: strokeOrigin.pointers.at(subStroke.pointers.length + i)?.t || Math.max(...subStroke.pointers.map(p => p.t + 20))
         })
       })
+      IIStrokeHelper.updateBounds(subStroke)
       strokes.push(subStroke)
     }
     return strokes
@@ -72,11 +77,11 @@ export class InsertGestureHandler extends GestureHandler
    * @returns Object with optional before and after strokes
    */
   computeSplitStroke(
-    strokeOrigin: IIStroke,
+    strokeOrigin: TStroke,
     subStrokes: { x: number[], y: number[] }[]
-  ): { before?: IIStroke, after?: IIStroke }
+  ): { before?: TStroke, after?: TStroke }
   {
-    let after: IIStroke | undefined
+    let after: TStroke | undefined
     const newStrokes = this.createStrokesFromGestureSubStroke(strokeOrigin, subStrokes)
 
     if (newStrokes[1]) {
@@ -98,18 +103,18 @@ export class InsertGestureHandler extends GestureHandler
    * @returns History changes object with translate and replaced arrays
    */
   computeChangesOnSplitStroke(
-    gestureStroke: IIStroke,
+    gestureStroke: TStroke,
     strokeIdToSplit: string,
     subStrokes: { fullStrokeId: string, x: number[], y: number[] }[]
   ): TIIHistoryChanges
   {
-    const translate: { symbols: TIISymbol[], tx: number, ty: number }[] = []
-    const replaced: { oldSymbols: TIISymbol[], newSymbols: TIISymbol[] } = { oldSymbols: [], newSymbols: [] }
+    const translate: { symbols: TSymbol[], tx: number, ty: number }[] = []
+    const replaced: { oldSymbols: TSymbol[], newSymbols: TSymbol[] } = { oldSymbols: [], newSymbols: [] }
 
     const symbolsAfterGestureInRow = this.model.symbols.filter(s =>
       gestureStroke.id !== s.id &&
       this.model.isSymbolInRow(gestureStroke, s) &&
-      gestureStroke.bounds.xMid < s.bounds.xMin
+      gestureStroke.bounds.x + gestureStroke.bounds.width / 2 < s.bounds.x
     )
 
     const symbolToSplit = this.model.getRootSymbol(strokeIdToSplit)
@@ -141,26 +146,26 @@ export class InsertGestureHandler extends GestureHandler
    * @returns History changes object
    */
   computeChangesOnSplitText(
-    gestureStroke: IIStroke,
-    textToSplit: IIText,
+    gestureStroke: TStroke,
+    textToSplit: TText,
     insertAction: InsertAction
   ): TIIHistoryChanges
   {
-    const translate: { symbols: TIISymbol[], tx: number, ty: number }[] = []
-    const replaced: { oldSymbols: TIISymbol[], newSymbols: TIISymbol[] } = { oldSymbols: [], newSymbols: [] }
+    const translate: { symbols: TSymbol[], tx: number, ty: number }[] = []
+    const replaced: { oldSymbols: TSymbol[], newSymbols: TSymbol[] } = { oldSymbols: [], newSymbols: [] }
 
     const symbolsAfterGestureInRow = this.model.symbols.filter(s =>
       gestureStroke.id !== s.id &&
       this.model.isSymbolInRow(gestureStroke, s) &&
-      gestureStroke.bounds.xMid < s.bounds.xMin
+      gestureStroke.bounds.x + gestureStroke.bounds.width / 2 < s.bounds.x
     )
     const symbolsBelow = this.model.symbols.filter(s => this.model.isSymbolBelow(gestureStroke, s))
 
-    const charsBefore = textToSplit.chars.filter(c => c.bounds.x + c.bounds.width / 2 <= gestureStroke.bounds.xMid)
-    const charsAfter = textToSplit.chars.filter(c => c.bounds.x + c.bounds.width / 2 > gestureStroke.bounds.xMid)
-    const newTexts: IIText[] = []
+    const charsBefore = textToSplit.chars.filter(c => c.bounds.x + c.bounds.width / 2 <= gestureStroke.bounds.x + gestureStroke.bounds.width / 2)
+    const charsAfter = textToSplit.chars.filter(c => c.bounds.x + c.bounds.width / 2 > gestureStroke.bounds.x + gestureStroke.bounds.width / 2)
+    const newTexts: TText[] = []
     if (charsBefore.length && charsAfter.length) {
-      const textBefore = new IIText(charsBefore, textToSplit.point, Box.createFromBoxes(charsBefore.map(c => c.bounds)))
+      const textBefore = IITextHelper.create(charsBefore, textToSplit.point, BoxHelper.createFromBoxes(charsBefore.map(c => c.bounds)))
       this.typeset.setBounds(textBefore)
       newTexts.push(textBefore)
 
@@ -178,7 +183,7 @@ export class InsertGestureHandler extends GestureHandler
           y: textBefore.point.y
         }
       }
-      const textAfter = new IIText(charsAfter, pointAfter, Box.createFromBoxes(charsAfter.map(c => c.bounds)))
+      const textAfter = IITextHelper.create(charsAfter, pointAfter, BoxHelper.createFromBoxes(charsAfter.map(c => c.bounds)))
       this.typeset.setBounds(textAfter)
       newTexts.push(textAfter)
       replaced.newSymbols = newTexts
@@ -205,14 +210,14 @@ export class InsertGestureHandler extends GestureHandler
     }
   }
 
-  async apply(gestureStroke: IIStroke, gesture: TGesture): Promise<void>
+  async apply(gestureStroke: TStroke, gesture: TGesture): Promise<void>
   {
     this.logger.debug("applyInsertGesture", { gestureStroke, gesture })
 
     const symbolsRow = this.model.symbols.filter(s => gestureStroke.id !== s.id && this.model.isSymbolInRow(gestureStroke, s))
-    const textToSplit = symbolsRow.find(s => isText(s) && isBetween(gestureStroke.bounds.xMid, s.bounds.xMin, s.bounds.xMax)) as IIText | undefined
-    const symbolsBeforeGestureInRow = symbolsRow.filter(s => gestureStroke.bounds.xMid > s.bounds.xMax)
-    const symbolsAfterGestureInRow = symbolsRow.filter(s => gestureStroke.bounds.xMid < s.bounds.xMin)
+    const textToSplit = symbolsRow.find(s => isText(s) && isBetween(gestureStroke.bounds.x + gestureStroke.bounds.width / 2, s.bounds.x, s.bounds.x + s.bounds.width)) as TText | undefined
+    const symbolsBeforeGestureInRow = symbolsRow.filter(s => gestureStroke.bounds.x + gestureStroke.bounds.width / 2 > s.bounds.x + s.bounds.width)
+    const symbolsAfterGestureInRow = symbolsRow.filter(s => gestureStroke.bounds.x + gestureStroke.bounds.width / 2 < s.bounds.x)
 
     const symbolsBelow = this.model.symbols.filter(s => this.model.isSymbolBelow(gestureStroke, s))
 
@@ -225,10 +230,10 @@ export class InsertGestureHandler extends GestureHandler
       changes = this.computeChangesOnSplitText(gestureStroke, textToSplit, this.manager.insertAction)
     }
     else if (symbolsAfterGestureInRow.length) {
-      const translate: { symbols: TIISymbol[], tx: number, ty: number }[] = []
+      const translate: { symbols: TSymbol[], tx: number, ty: number }[] = []
       let translateX = 0
       if (symbolsBeforeGestureInRow.length) {
-        translateX = Math.min(...symbolsBeforeGestureInRow.map(s => s.bounds.xMin)) - Math.min(...symbolsAfterGestureInRow.map(s => s.bounds.xMin))
+        translateX = Math.min(...symbolsBeforeGestureInRow.map(s => s.bounds.x)) - Math.min(...symbolsAfterGestureInRow.map(s => s.bounds.x))
       }
 
       switch (this.manager.insertAction) {

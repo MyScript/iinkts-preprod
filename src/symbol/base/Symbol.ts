@@ -19,7 +19,7 @@ export enum SymbolType
 /**
  * @group Symbol
  */
-export interface TSymbol {
+export interface TBaseSymbol {
   id: string
   creationTime: number
   modificationDate: number

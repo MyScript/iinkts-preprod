@@ -1,4 +1,4 @@
-import { DecoratorKind, IIMath } from "@/symbol"
+import { DecoratorKind, TMath } from "@/symbol"
 import { SVGRendererDecoratorUtil } from "./SVGRendererDecoratorUtil"
 import { SVGRendererConst } from "./utils/SVGRendererConst"
 import { SVGBuilder } from "./utils/SVGBuilder"
@@ -8,7 +8,7 @@ import { SVGBuilder } from "./utils/SVGBuilder"
  */
 export class SVGRendererMathUtil
 {
-  static getSVGElement(math: IIMath): SVGGraphicsElement
+  static getSVGElement(math: TMath): SVGGraphicsElement
   {
     const attrs: { [key: string]: string } = {
       "id": math.id,

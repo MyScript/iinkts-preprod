@@ -2,12 +2,12 @@ import { EditorTool, SELECTION_MARGIN } from "@/Constants"
 import { IIModel, TExport } from "@/model"
 import
 {
-  Box,
-  IIDecorator,
-  IIStroke,
-  IIText,
-  IIMath,
-  TIISymbol,
+  TDecorator,
+  TStroke,
+  TText,
+  TMath,
+  TBox,
+  TSymbol,
   SymbolType,
   convertPartialStrokesToIIStrokes,
   isDecorator,
@@ -15,7 +15,12 @@ import
   isMath,
   isStroke,
   isStrokeSolverOutput,
+  cloneSymbol,
 } from "@/symbol"
+import { BoxHelper } from "@/symbol/helpers/BoxHelper"
+import { IIDecoratorHelper } from "@/symbol/helpers/IIDecoratorHelper"
+import { IITextHelper } from "@/symbol/helpers/IITextHelper"
+import { IIMathHelper } from "@/symbol/helpers/IIMathHelper"
 import { RecognizerWebSocket } from "@/recognizer"
 import { SVGRenderer, SVGBuilder, TIIRendererConfiguration } from "@/renderer"
 import { TStyle } from "@/style"
@@ -40,7 +45,7 @@ import { MatrixTransform } from "@/transform"
 import { IIHistoryManager, TIIHistoryBackendChanges, TIIHistoryChanges, THistoryContext } from "@/history"
 import { PartialDeep, mergeDeep, createUUID } from "@/utils"
 import { IIMenuAction, IIMenuManager, IIMenuStyle, IIMenuTool } from "@/menu"
-import { SymbolFactory } from "@/factories"
+import { createSymbolFromPartial, createSymbolsFromPartial } from "@/symbol"
 import { AbstractEditor, EditorOptionsBase } from "@/editor/AbstractEditor"
 import { InteractiveInkEditorConfiguration, TInteractiveInkEditorConfiguration } from "./InteractiveInkEditorConfiguration"
 import { DOMFactory } from "@/components/dom"
@@ -76,8 +81,7 @@ export class InteractiveInkEditor extends AbstractEditor
   #tool: EditorTool = EditorTool.Write
   #layerUITimer?: ReturnType<typeof setTimeout>
   #recognizeStrokeTimer?: ReturnType<typeof setTimeout>
-  #symbolFactory: SymbolFactory
-  #clipboard: TIISymbol[] = []
+  #clipboard: TSymbol[] = []
   #renderedWidth = 0
   #renderedHeight = 0
 
@@ -135,8 +139,6 @@ export class InteractiveInkEditor extends AbstractEditor
 
     this.#configuration = new InteractiveInkEditorConfiguration(options?.configuration)
     this.#penStyle = Object.assign({}, this.#configuration.penStyle)
-    this.#symbolFactory = new SymbolFactory()
-
     if (options?.override?.recognizer) {
       const CustomRecognizer = options?.override.recognizer as unknown as typeof RecognizerWebSocket
       this.recognizer = new CustomRecognizer(this.#configuration)
@@ -415,10 +417,10 @@ export class InteractiveInkEditor extends AbstractEditor
    * @param partialSymbol - Partial symbol data
    * @returns Complete symbol instance
    */
-  protected buildSymbol(partialSymbol: PartialDeep<TIISymbol>): TIISymbol
+  protected buildSymbol(partialSymbol: PartialDeep<TSymbol>): TSymbol
   {
     try {
-      return this.#symbolFactory.buildSymbol(partialSymbol)
+      return createSymbolFromPartial(partialSymbol)
     }
     catch (error) {
       this.logger.error("buildSymbol", error)
@@ -433,7 +435,7 @@ export class InteractiveInkEditor extends AbstractEditor
    * @param oldStrokes - Strokes before the change
    * @param newStrokes - Strokes after the change
    */
-  #optimizeRecognizerCall(oldStrokes: IIStroke[], newStrokes: IIStroke[]): void
+  #optimizeRecognizerCall(oldStrokes: TStroke[], newStrokes: TStroke[]): void
   {
     const oldStrokeIds = new Set(oldStrokes.map(s => s.id))
     const newStrokeIds = new Set(newStrokes.map(s => s.id))
@@ -455,7 +457,7 @@ export class InteractiveInkEditor extends AbstractEditor
    * @param partialSymbol - Partial symbol data
    * @returns Promise resolving to created symbol
    */
-  async createSymbol(partialSymbol: PartialDeep<TIISymbol>): Promise<TIISymbol>
+  async createSymbol(partialSymbol: PartialDeep<TSymbol>): Promise<TSymbol>
   {
     try {
       return await this.addSymbol(this.buildSymbol(partialSymbol))
@@ -475,10 +477,10 @@ export class InteractiveInkEditor extends AbstractEditor
    * @param partialSymbols - Array of partial symbol data
    * @returns Promise resolving to array of created symbols
    */
-  async createSymbols(partialSymbols: PartialDeep<TIISymbol>[]): Promise<TIISymbol[]>
+  async createSymbols(partialSymbols: PartialDeep<TSymbol>[]): Promise<TSymbol[]>
   {
     try {
-      const symbols = this.#symbolFactory.buildSymbols(partialSymbols)
+      const symbols = createSymbolsFromPartial(partialSymbols)
       return await this.addSymbols(symbols)
     } catch (error) {
       this.logger.error("createSymbols", error)
@@ -488,7 +490,7 @@ export class InteractiveInkEditor extends AbstractEditor
   }
 
   /** @hidden */
-  protected updateTypesetBounds(symbol: TIISymbol): void
+  protected updateTypesetBounds(symbol: TSymbol): void
   {
     if (isText(symbol) || isMath(symbol)) {
       this.typeset.setBounds(symbol)
@@ -496,7 +498,7 @@ export class InteractiveInkEditor extends AbstractEditor
   }
 
   /** @hidden */
-  async addSymbol(sym: TIISymbol, addToHistory = true): Promise<TIISymbol>
+  async addSymbol(sym: TSymbol, addToHistory = true): Promise<TSymbol>
   {
     this.logger.info("addSymbol", { sym })
     this.updateLayerState(false)
@@ -520,7 +522,7 @@ export class InteractiveInkEditor extends AbstractEditor
    * @param addToHistory - Whether to add to history (default: true)
    * @returns Promise resolving to array of added symbols
    */
-  async addSymbols(symList: TIISymbol[], addToHistory = true): Promise<TIISymbol[]>
+  async addSymbols(symList: TSymbol[], addToHistory = true): Promise<TSymbol[]>
   {
     this.logger.info("addSymbol", { symList })
     this.updateLayerState(false)
@@ -545,7 +547,7 @@ export class InteractiveInkEditor extends AbstractEditor
    * @param addToHistory - Whether to add to history (default: true)
    * @returns Promise resolving to updated symbol
    */
-  async updateSymbol(sym: TIISymbol, addToHistory = true): Promise<TIISymbol>
+  async updateSymbol(sym: TSymbol, addToHistory = true): Promise<TSymbol>
   {
     this.logger.info("updateSymbol", { sym })
     this.updateLayerState(false)
@@ -574,12 +576,12 @@ export class InteractiveInkEditor extends AbstractEditor
    * @param addToHistory - Whether to add to history (default: true)
    * @returns Promise resolving to array of updated symbols
    */
-  async updateSymbols(symList: TIISymbol[], addToHistory = true): Promise<TIISymbol[]>
+  async updateSymbols(symList: TSymbol[], addToHistory = true): Promise<TSymbol[]>
   {
     this.logger.info("updateSymbol", { symList })
     this.updateLayerState(false)
 
-    const oldSymbolsMap = new Map<string, TIISymbol>()
+    const oldSymbolsMap = new Map<string, TSymbol>()
     symList.forEach(sym =>
     {
       const oldSymbol = this.history.stack.at(-1)?.model.getRootSymbol(sym.id) ?? this.model.getRootSymbol(sym.id)
@@ -615,13 +617,13 @@ export class InteractiveInkEditor extends AbstractEditor
   updateSymbolsStyle(symbolIds: string[], style: PartialDeep<TStyle>, addToHistory = true): void
   {
     this.logger.info("updateSymbolsStyle", { symbolIds, style })
-    const symbols: TIISymbol[] = []
+    const symbols: TSymbol[] = []
     this.model.symbols.forEach(s =>
     {
       if (symbolIds.includes(s.id)) {
         s.style = Object.assign({}, s.style, style)
-        if (SymbolType.Text === s.type) {
-          s.updateChildrenStyle()
+        if (isText(s)) {
+          IITextHelper.updateChildrenStyle(s)
         }
         this.renderer.drawSymbol(s)
         this.model.updateSymbol(s)
@@ -655,13 +657,13 @@ export class InteractiveInkEditor extends AbstractEditor
   updateTextFontStyle(textIds: string[], { fontSize, fontWeight }: { fontSize?: number, fontWeight?: "normal" | "bold" | "auto" }): void
   {
     this.logger.info("updateTextFontStyle", { textIds, fontSize, fontWeight })
-    const symbols: (IIText)[] = []
-    const translate: { symbols: TIISymbol[], tx: number, ty: number }[] = []
+    const symbols: TText[] = []
+    const translate: { symbols: TSymbol[], tx: number, ty: number }[] = []
     this.model.symbols.forEach(s =>
     {
       if (textIds.includes(s.id)) {
         if (isText(s)) {
-          s.updateChildrenFont({ fontSize, fontWeight: fontWeight === "auto" ? undefined : fontWeight })
+          IITextHelper.updateChildrenFont(s, { fontSize, fontWeight: fontWeight === "auto" ? undefined : fontWeight })
           const lastWidth = s.bounds.width
           this.typeset.updateBounds(s)
           this.renderer.drawSymbol(s)
@@ -692,7 +694,7 @@ export class InteractiveInkEditor extends AbstractEditor
    * @param newSymbols - Array of new symbols to replace with
    * @param addToHistory - Whether to add this operation to history (default: true)
    */
-  async replaceSymbols(oldSymbols: TIISymbol[], newSymbols: TIISymbol[], addToHistory = true): Promise<void>
+  async replaceSymbols(oldSymbols: TSymbol[], newSymbols: TSymbol[], addToHistory = true): Promise<void>
   {
     this.logger.info("replaceSymbol", { oldSymbols, newSymbols })
     this.updateLayerState(false)
@@ -736,7 +738,7 @@ export class InteractiveInkEditor extends AbstractEditor
    * @param symbol - Symbol to reorder
    * @param position - New position (first, last, forward, backward)
    */
-  changeOrderSymbol(symbol: TIISymbol, position: "first" | "last" | "forward" | "backward"): void
+  changeOrderSymbol(symbol: TSymbol, position: "first" | "last" | "forward" | "backward"): void
   {
     this.model.changeOrderSymbol(symbol.id, position)
     this.renderer.changeOrderSymbol(symbol, position)
@@ -748,7 +750,7 @@ export class InteractiveInkEditor extends AbstractEditor
    * @param symbols - Symbols to reorder
    * @param position - New position (first, last, forward, backward)
    */
-  changeOrderSymbols(symbols: TIISymbol[], position: "first" | "last" | "forward" | "backward")
+  changeOrderSymbols(symbols: TSymbol[], position: "first" | "last" | "forward" | "backward")
   {
     symbols.forEach(s =>
     {
@@ -773,14 +775,14 @@ export class InteractiveInkEditor extends AbstractEditor
    * After removing strokes, clean up orphaned/partial standalone decorators.
    * Returns erased and updated decorators so callers can include them in history.
    */
-  #cleanupDecoratorsForRemovedIds(removedIds: Set<string>): { erased: IIDecorator[], updated: IIDecorator[] }
+  #cleanupDecoratorsForRemovedIds(removedIds: Set<string>): { erased: TDecorator[], updated: TDecorator[] }
   {
-    const erased: IIDecorator[] = []
-    const updated: IIDecorator[] = []
+    const erased: TDecorator[] = []
+    const updated: TDecorator[] = []
 
     for (const sym of [...this.model.symbols]) {
       if (!isDecorator(sym)) continue
-      const dec = sym as IIDecorator
+      const dec = sym as TDecorator
       const remaining = dec.targetIds.filter(id => !removedIds.has(id))
       if (remaining.length === 0) {
         this.model.removeSymbol(dec.id)
@@ -788,8 +790,8 @@ export class InteractiveInkEditor extends AbstractEditor
         erased.push(dec)
       } else if (remaining.length < dec.targetIds.length) {
         dec.targetIds = remaining
-        const targetSyms = remaining.map(id => this.model.getRootSymbol(id)).filter((s): s is TIISymbol => !!s)
-        if (targetSyms.length) dec.bounds = Box.createFromBoxes(targetSyms.map(s => s.bounds))
+        const targetSyms = remaining.map(id => this.model.getRootSymbol(id)).filter((s): s is TSymbol => !!s)
+        if (targetSyms.length) IIDecoratorHelper.setBounds(dec, BoxHelper.createFromBoxes(targetSyms.map(s => s.bounds)))
         this.model.updateSymbol(dec)
         this.renderer.drawSymbol(dec)
         updated.push(dec)
@@ -836,10 +838,10 @@ export class InteractiveInkEditor extends AbstractEditor
    * @param addToHistory - Whether to add to history (default: true)
    * @returns Promise that resolves when symbols are removed
    */
-  async removeSymbols(ids: string[], addToHistory = true): Promise<TIISymbol[]>
+  async removeSymbols(ids: string[], addToHistory = true): Promise<TSymbol[]>
   {
     this.logger.info("removeSymbols", { ids })
-    const symbolsRemoved: TIISymbol[] = []
+    const symbolsRemoved: TSymbol[] = []
     const strokesIds: string[] = []
     ids.forEach(id =>
     {
@@ -857,7 +859,7 @@ export class InteractiveInkEditor extends AbstractEditor
     symbolsRemoved.forEach(s =>
     {
       if (s.type === SymbolType.Stroke) {
-        const stroke = s as IIStroke
+        const stroke = s as TStroke
         if (stroke.jiixBlockType === "Math" && stroke.jiixBlockId && !stroke.isSolverOutput) {
           mathBlockIds.add(stroke.jiixBlockId)
         }
@@ -959,7 +961,7 @@ export class InteractiveInkEditor extends AbstractEditor
    * @param partialStrokes - Array of partial stroke data
    * @returns Promise resolving to updated model
    */
-  async importPointEvents(partialStrokes: PartialDeep<IIStroke>[]): Promise<IIModel>
+  async importPointEvents(partialStrokes: PartialDeep<TStroke>[]): Promise<IIModel>
   {
     this.logger.info("importPointEvents", { partialStrokes })
     this.updateLayerState(false)
@@ -993,9 +995,9 @@ export class InteractiveInkEditor extends AbstractEditor
    * @param margin - Margin to add around bounds (default: SELECTION_MARGIN)
    * @returns Bounding box containing all symbols
    */
-  getSymbolsBounds(symbols: TIISymbol[], margin: number = SELECTION_MARGIN): Box
+  getSymbolsBounds(symbols: TSymbol[], margin: number = SELECTION_MARGIN): TBox
   {
-    const box = Box.createFromBoxes(symbols.map(s => s.bounds))
+    const box = BoxHelper.createFromBoxes(symbols.map(s => s.bounds))
     box.x -= margin
     box.y -= margin
     box.width += margin * 2
@@ -1019,7 +1021,7 @@ export class InteractiveInkEditor extends AbstractEditor
    * Resets to zoom 1 if there are no symbols.
    * @param symbols - Symbols to fit (default: all model symbols)
    */
-  zoomToFit(symbols?: TIISymbol[]): void
+  zoomToFit(symbols?: TSymbol[]): void
   {
     const targets = symbols ?? this.model.symbols
     const vpW = this.renderer.parent.clientWidth
@@ -1066,7 +1068,7 @@ export class InteractiveInkEditor extends AbstractEditor
     this.renderer.pan(dx, dy)
   }
 
-  protected buildBlobFromSymbols(symbols: TIISymbol[], box: Box): Blob
+  protected buildBlobFromSymbols(symbols: TSymbol[], box: TBox): Blob
   {
     const svgNode = SVGBuilder.createLayer(box)
     symbols.forEach(s =>
@@ -1147,7 +1149,7 @@ export class InteractiveInkEditor extends AbstractEditor
   {
     const symbolsToExport = selection ? this.model.symbolsSelected : this.model.symbols
 
-    const clonedSymbols = symbolsToExport.map(s => s.clone())
+    const clonedSymbols = symbolsToExport.map(s => cloneSymbol(s))
     const filteredSymbols = clonedSymbols
 
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(filteredSymbols, null, 2))
@@ -1166,14 +1168,19 @@ export class InteractiveInkEditor extends AbstractEditor
     this.triggerDownload(this.getExportName("txt"), dataStr)
   }
 
-  protected extractTextFromSymbols(symbols: TIISymbol[]): string
+  protected extractTextFromSymbols(symbols: TSymbol[]): string
   {
     const textParts: string[] = []
 
     symbols.forEach(s =>
     {
-      if (isText(s) || isMath(s)) {
-        const content = s.label
+      if (isText(s)) {
+        const content = IITextHelper.getLabel(s)
+        if (content) {
+          textParts.push(content)
+        }
+      } else if (isMath(s)) {
+        const content = IIMathHelper.getLabel(s)
         if (content) {
           textParts.push(content)
         }
@@ -1194,7 +1201,7 @@ export class InteractiveInkEditor extends AbstractEditor
    * @param symbols - Symbols to extract strokes from
    * @returns Array of extracted strokes
    */
-  extractStrokesFromSymbols(symbols: TIISymbol[] | undefined): IIStroke[]
+  extractStrokesFromSymbols(symbols: TSymbol[] | undefined): TStroke[]
   {
     if (!symbols?.length) return []
     return symbols.filter(isStroke)
@@ -1205,7 +1212,7 @@ export class InteractiveInkEditor extends AbstractEditor
    * @param symbols - Symbols to extract maths from
    * @returns Array of extracted math symbols
    */
-  extractMathsFromSymbols(symbols: TIISymbol[] | undefined): IIMath[]
+  extractMathsFromSymbols(symbols: TSymbol[] | undefined): TMath[]
   {
     if (!symbols?.length) return []
     return symbols.filter(isMath)
@@ -1393,7 +1400,7 @@ export class InteractiveInkEditor extends AbstractEditor
    * @param symbols - Symbols to convert (defaults to all symbols)
    * @returns Promise that resolves when conversion is complete
    */
-  async convert(symbols?: TIISymbol[]): Promise<void>
+  async convert(symbols?: TSymbol[]): Promise<void>
   {
     try {
       this.updateLayerState(false)
@@ -1416,15 +1423,15 @@ export class InteractiveInkEditor extends AbstractEditor
    * @param symbols - Symbols to duplicate (defaults to all symbols)
    * @returns Promise resolving with duplicated symbols
    */
-  async duplicate(symbols?: TIISymbol[]): Promise<TIISymbol[]>
+  async duplicate(symbols?: TSymbol[]): Promise<TSymbol[]>
   {
     try {
       this.updateLayerState(false)
       const symbolsToDuplicate = symbols ?? this.model.symbols
-      const bounds = Box.createFromBoxes(symbolsToDuplicate.map(s => s.bounds))
+      const bounds = BoxHelper.createFromBoxes(symbolsToDuplicate.map(s => s.bounds))
 
       const duplicatedSymbols = symbolsToDuplicate.map(s => {
-        const clone = s.clone()
+        const clone = cloneSymbol(s)
 
         // Generate unique ID for cloned symbols
         while (this.model.symbols.find(sym => sym.id === clone.id)) {
@@ -1531,16 +1538,16 @@ export class InteractiveInkEditor extends AbstractEditor
     }
   }
 
-  #isCopyableSymbol(symbol: TIISymbol): boolean
+  #isCopyableSymbol(symbol: TSymbol): boolean
   {
     if (isDecorator(symbol)) return false
     if (isStrokeSolverOutput(symbol)) return false
     return true
   }
 
-  #cloneSymbolForPaste(symbol: TIISymbol, tx: number, ty: number): TIISymbol
+  #cloneSymbolForPaste(symbol: TSymbol, tx: number, ty: number): TSymbol
   {
-    const clone = symbol.clone()
+    const clone = cloneSymbol(symbol)
     clone.id = `${ clone.type }-${ createUUID() }`
     clone.selected = false
     const matrix = MatrixTransform.identity().translate(tx, ty)
@@ -1557,7 +1564,7 @@ export class InteractiveInkEditor extends AbstractEditor
     const symbols = this.model.symbolsSelected.length
       ? this.model.symbolsSelected
       : this.model.symbols
-    this.#clipboard = symbols.filter(s => this.#isCopyableSymbol(s)).map(s => s.clone())
+    this.#clipboard = symbols.filter(s => this.#isCopyableSymbol(s)).map(s => cloneSymbol(s))
   }
 
   /**

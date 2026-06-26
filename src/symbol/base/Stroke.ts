@@ -1,7 +1,7 @@
 import { DefaultPenStyle, TPenStyle } from "@/style"
 import { PartialDeep, createUUID } from "@/utils"
 import { TPointer } from "./Point"
-import { SymbolType, TSymbol } from "./Symbol"
+import { SymbolType, TBaseSymbol } from "./Symbol"
 
 /**
  * @group Symbol
@@ -26,7 +26,7 @@ export type TStrokeGroupToSend = {
 /**
  * @group Symbol
  */
-export type TStroke = TSymbol & {
+export type TLegacyStroke = TBaseSymbol & {
   style: TPenStyle
   pointerType: string
   pointers: TPointer[]
@@ -44,7 +44,7 @@ export type TStrokeGroup = {
 /**
  * @group Symbol
  */
-export class Stroke implements TStroke
+export class Stroke implements TLegacyStroke
 {
   type = SymbolType.Stroke
   id: string
@@ -101,7 +101,7 @@ export class Stroke implements TStroke
  * @group Symbol
  * @group Utilities
  */
-export function convertPartialStrokesToStrokes(json: PartialDeep<TStroke>[]): Stroke[]
+export function convertPartialStrokesToStrokes(json: PartialDeep<TLegacyStroke>[]): Stroke[]
 {
   const errors: string[] = []
   const strokes: Stroke[] = []

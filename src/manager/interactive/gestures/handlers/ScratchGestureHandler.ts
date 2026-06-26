@@ -1,4 +1,6 @@
-import { IIStroke, IIText, isRecognizedMath, SymbolType, type TIISymbol } from "@/symbol"
+import { TStroke, TText, isRecognizedMath, SymbolType, type TSymbol } from "@/symbol"
+import { IITextHelper } from "@/symbol/helpers/IITextHelper"
+import { IIStrokeHelper } from "@/symbol/helpers"
 import { TIIHistoryChanges } from "@/history"
 import type { InteractiveInkEditor } from "@/editor"
 import type { TGesture } from "@/manager/interactive/gestures/GestureTypes"
@@ -28,14 +30,14 @@ export class ScratchGestureHandler extends GestureHandler
    * @param stroke - The stroke to scratch
    * @returns Array of resulting strokes (before/after the scratch)
    */
-  computeScratchOnStrokes(gesture: TGesture, stroke: IIStroke): IIStroke[]
+  computeScratchOnStrokes(gesture: TGesture, stroke: TStroke): TStroke[]
   {
-    const newStrokes: IIStroke[] = []
+    const newStrokes: TStroke[] = []
     const partPointersToRemove = gesture.subStrokes?.find(ss => ss.fullStrokeId === stroke.id)
     if (partPointersToRemove) {
-      const strokePartToErase = new IIStroke()
-      partPointersToRemove.x.forEach((x, i) => strokePartToErase.addPointer({ x, y: partPointersToRemove.y[i], p: 1, t: 1 }))
-      const subStrokes = IIStroke.substract(stroke, strokePartToErase)
+      const strokePartToErase = IIStrokeHelper.create()
+      partPointersToRemove.x.forEach((x, i) => IIStrokeHelper.addPointer(strokePartToErase, { x, y: partPointersToRemove.y[i], p: 1, t: 1 }))
+      const subStrokes = IIStrokeHelper.substract(stroke, strokePartToErase)
       if (subStrokes.before && subStrokes.before.pointers.length > 1) newStrokes.push(subStrokes.before)
       if (subStrokes.after && subStrokes.after.pointers.length > 1) newStrokes.push(subStrokes.after)
     }
@@ -48,9 +50,9 @@ export class ScratchGestureHandler extends GestureHandler
    * @param textSymbol - The text symbol to scratch
    * @returns Updated text symbol, or undefined if all characters removed
    */
-  computeScratchOnText(gestureStroke: IIStroke, textSymbol: IIText): IIText | undefined
+  computeScratchOnText(gestureStroke: TStroke, textSymbol: TText): TText | undefined
   {
-    const charsToRemove = textSymbol.getChildrenOverlaps(gestureStroke.pointers)
+    const charsToRemove = IITextHelper.getChildrenOverlaps(textSymbol, gestureStroke.pointers)
     if (textSymbol.chars.length == charsToRemove.length) {
       return
     }
@@ -80,10 +82,10 @@ export class ScratchGestureHandler extends GestureHandler
    * @returns Object with 'erased' flag or 'replaced' array of new symbols
    */
   computeScratchOnSymbol(
-    gestureStroke: IIStroke,
+    gestureStroke: TStroke,
     gesture: TGesture,
-    symbol: TIISymbol
-  ): { erased?: boolean, replaced?: TIISymbol[] }
+    symbol: TSymbol
+  ): { erased?: boolean, replaced?: TSymbol[] }
   {
     switch (symbol.type) {
       case SymbolType.Stroke: {
@@ -125,7 +127,7 @@ export class ScratchGestureHandler extends GestureHandler
       }
     }
   }
-  async apply(gestureStroke: IIStroke, gesture: TGesture): Promise<void>
+  async apply(gestureStroke: TStroke, gesture: TGesture): Promise<void>
   {
     this.logger.debug("applyScratchGesture", { gestureStroke, gesture })
     if (!gesture.strokeIds.length) {
@@ -133,8 +135,8 @@ export class ScratchGestureHandler extends GestureHandler
       return
     }
 
-    const symbolsToErase: TIISymbol[] = []
-    const symbolsToReplace: { oldSymbols: TIISymbol[], newSymbols: TIISymbol[] } = { oldSymbols: [], newSymbols: [] }
+    const symbolsToErase: TSymbol[] = []
+    const symbolsToReplace: { oldSymbols: TSymbol[], newSymbols: TSymbol[] } = { oldSymbols: [], newSymbols: [] }
 
     gesture.strokeIds.forEach(id =>
     {
@@ -171,7 +173,7 @@ export class ScratchGestureHandler extends GestureHandler
       this.logger.info("applyScratch", `Cleared solver outputs from dependent block ${blockId}`)
     }
 
-    const promises: Promise<void | TIISymbol[]>[] = []
+    const promises: Promise<void | TSymbol[]>[] = []
     const changes: TIIHistoryChanges = {}
 
     if (symbolsToErase.length) {
