@@ -57,19 +57,19 @@ describe("IIMathVariableInputList.ts", () =>
       expect(input.disabled).toBe(false)
     })
 
-    test("should show 'Definition' text when isDefinition is true", () =>
+    test("should show sourceType label when isDefinition is true", () =>
     {
       const list = new IIMathVariableInputList([{ name: "x", sourceType: "API", isDefinition: true }])
       const spans = list.element.querySelectorAll("span")
-      const defSpan = Array.from(spans).find(s => s.textContent === "Definition")
-      expect(defSpan).toBeDefined()
+      const typeSpan = Array.from(spans).find(s => s.textContent === "API")
+      expect(typeSpan).toBeDefined()
     })
 
-    test("should show sourceType text when isDefinition is false", () =>
+    test("should show sourceType label when isDefinition is false", () =>
     {
       const list = new IIMathVariableInputList([{ name: "x", sourceType: "BLOCK", isDefinition: false }])
       const spans = list.element.querySelectorAll("span")
-      const typeSpan = Array.from(spans).find(s => s.textContent === "BLOCK")
+      const typeSpan = Array.from(spans).find(s => s.textContent === "Block")
       expect(typeSpan).toBeDefined()
     })
 

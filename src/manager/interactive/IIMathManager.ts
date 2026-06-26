@@ -1,16 +1,17 @@
 import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import { IIAbstractManager } from "./IIAbstractManager"
-import {
-  IIMathComputationSubManager,
-  IIMathFunctionEvaluationSubManager,
-  IIMathVariableSubManager,
-  MathDependencies,
-  TMathBlockComputation,
-  TMathComputationConfig,
-  TMathInteractionConfig,
-  TMathResultMode,
-  TMathVariableUsage,
-} from "./math"
+import
+  {
+    IIMathComputationSubManager,
+    IIMathFunctionEvaluationSubManager,
+    IIMathVariableSubManager,
+    MathDependencies,
+    TMathBlockComputation,
+    TMathComputationConfig,
+    TMathInteractionConfig,
+    TMathResultMode,
+    TMathVariableUsage,
+  } from "./math"
 import { TJIIXMathElement } from "@/model"
 import { TMathEvaluable, TMathVariable, TMathVariableDefinition, TMathVariableDefinitions } from "@/recognizer/RecognizerWebSocketMessage"
 import { LoggerCategory } from "@/logger"
@@ -54,7 +55,8 @@ export class IIMathManager extends IIAbstractManager
     this.#variables = new IIMathVariableSubManager(editor, config?.interaction)
     this.#evaluation = new IIMathFunctionEvaluationSubManager(editor)
 
-    editor.event.addSynchronizedListener(() => {
+    editor.event.addSynchronizedListener(() =>
+    {
       if (this.#computation.getConfig().autoCompute) {
         this.tryAutoCompute()
       }
@@ -223,15 +225,15 @@ export class IIMathManager extends IIAbstractManager
       return
     }
 
-    this.logger.info("recalculateDependentBlocks", `Found ${deps.dependentBlocks.length} dependent blocks`)
+    this.logger.info("recalculateDependentBlocks", `Found ${ deps.dependentBlocks.length } dependent blocks`)
 
     for (const dependentBlockId of deps.dependentBlocks) {
       try {
-        this.logger.info("recalculateDependentBlocks", `Computing numerical result for ${dependentBlockId}`)
+        this.logger.info("recalculateDependentBlocks", `Computing numerical result for ${ dependentBlockId }`)
         await this.#computation.computeNumericalResult(dependentBlockId)
       }
       catch (computeError) {
-        this.logger.error("recalculateDependentBlocks", `Error computing ${dependentBlockId}:`, computeError)
+        this.logger.error("recalculateDependentBlocks", `Error computing ${ dependentBlockId }:`, computeError)
       }
     }
 
@@ -361,8 +363,8 @@ export class IIMathManager extends IIAbstractManager
   async getAvailableActions(jiixBlockId: string): Promise<string[]>
   {
     try {
-    this.logger.info("getAvailableActions", { jiixBlockId })
-    return await this.editor.recognizer.getAvailableActions(jiixBlockId)
+      this.logger.info("getAvailableActions", { jiixBlockId })
+      return await this.editor.recognizer.getAvailableActions(jiixBlockId)
     }
     catch (error) {
       this.editor.manageError(error as Error)
@@ -395,8 +397,15 @@ export class IIMathManager extends IIAbstractManager
     const mathBlocks = this.editor.model.mathBlocks
 
     for (const mb of mathBlocks) {
+      if (!mb.id) continue
       const label = mb.label ?? ""
-      if (!(label.endsWith("=") || label.endsWith("?")) || !mb.id) continue
+
+      if (!(label.endsWith("=") || label.endsWith("?"))) {
+        if (this.#computation.hasSolverOutputs(mb.id)) {
+          await this.#computation.clearSolverOutputs(mb.id)
+        }
+        continue
+      }
 
       try {
         const actions = await this.editor.recognizer.getAvailableActions(mb.id)
@@ -405,7 +414,7 @@ export class IIMathManager extends IIAbstractManager
         }
       }
       catch (error) {
-        this.logger.debug("tryAutoCompute", `Cannot auto-compute "${label}":`, (error as Error).message)
+        this.logger.debug("tryAutoCompute", `Cannot auto-compute "${ label }":`, (error as Error).message)
       }
     }
   }

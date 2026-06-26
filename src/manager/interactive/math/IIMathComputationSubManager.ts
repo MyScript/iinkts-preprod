@@ -133,9 +133,9 @@ export class IIMathComputationSubManager extends IIAbstractManager
   {
     if (points.length === 0) return ""
     const [first, ...rest] = points
-    const start = `M ${first.x},${first.y}`
-    const tail = rest.map(p => `L ${p.x},${p.y}`).join(" ")
-    return tail.length > 0 ? `${start} ${tail}` : start
+    const start = `M ${ first.x },${ first.y }`
+    const tail = rest.map(p => `L ${ p.x },${ p.y }`).join(" ")
+    return tail.length > 0 ? `${ start } ${ tail }` : start
   }
 
   protected addGhostOutputStrokes(result: TJIIXMathElement, style?: TStyle): string[]
@@ -157,7 +157,7 @@ export class IIMathComputationSubManager extends IIAbstractManager
       const pathData = this.buildGhostStrokePath(points)
       if (!pathData) continue
 
-      const elementId = `ghost-stroke-${createUUID()}`
+      const elementId = `ghost-stroke-${ createUUID() }`
       const path = SVGBuilder.createPath({
         id: elementId,
         d: pathData,
@@ -172,8 +172,15 @@ export class IIMathComputationSubManager extends IIAbstractManager
       elementIds.push(elementId)
     }
 
-    this.logger.debug("addGhostOutputStrokes", `Added ${elementIds.length} ghost stroke elements`)
+    this.logger.debug("addGhostOutputStrokes", `Added ${ elementIds.length } ghost stroke elements`)
     return elementIds
+  }
+
+  hasSolverOutputs(jiixBlockId: string): boolean
+  {
+    const ghostIds = this.#ghostStrokeElementIds.get(jiixBlockId)
+    if (ghostIds && ghostIds.length > 0) return true
+    return !!(this.#computations.get(jiixBlockId)?.solverOutputStrokeIds?.length)
   }
 
   clearGhostStrokes(jiixBlockId: string): void
@@ -260,13 +267,13 @@ export class IIMathComputationSubManager extends IIAbstractManager
     if (mode === "draw") {
       const addedStrokes = await this.addSolverOutputStrokes(result)
       addedStrokesCount = addedStrokes.length
-      this.logger.info("computeNumericalResult", `Added ${addedStrokesCount} solver output strokes`)
+      this.logger.info("computeNumericalResult", `Added ${ addedStrokesCount } solver output strokes`)
       this.updateSolverOutputs(jiixBlockId, addedStrokes.map(s => s.id))
     }
     else if (mode === "ghost") {
       const elementIds = this.addGhostOutputStrokes(result)
       addedStrokesCount = elementIds.length
-      this.logger.info("computeNumericalResult", `Added ${addedStrokesCount} ghost stroke elements`)
+      this.logger.info("computeNumericalResult", `Added ${ addedStrokesCount } ghost stroke elements`)
       this.#ghostStrokeElementIds.set(jiixBlockId, elementIds)
     }
 
@@ -297,7 +304,7 @@ export class IIMathComputationSubManager extends IIAbstractManager
         await this.computeNumericalResult(mathSymbol.id, mode)
       }
       catch (error) {
-        this.logger.error("computeAllNumericalResults", `Error computing numerical result for block ${mathSymbol.id}:`, error)
+        this.logger.error("computeAllNumericalResults", `Error computing numerical result for block ${ mathSymbol.id }:`, error)
       }
     }
   }
@@ -332,7 +339,7 @@ export class IIMathComputationSubManager extends IIAbstractManager
       })
     }
 
-    this.logger.debug("extractSolverOutputStrokes", `Found ${strokes.length} solver output stroke(s)`)
+    this.logger.debug("extractSolverOutputStrokes", `Found ${ strokes.length } solver output stroke(s)`)
     return strokes
   }
 
