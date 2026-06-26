@@ -22,7 +22,7 @@
  * - {@link IIResizeManager} - Handles resizing symbols
  * - {@link IIRotationManager} - Handles rotation of symbols
  * - {@link IITranslateManager} - Handles movement/translation
- * - {@link IITextManager} - Handles text editing
+ * - {@link IITypesetManager} - Handles text and math layout (bounds, reflow)
  * - {@link IIMoveManager} - Manages move operations
  * - {@link IISynchronizerManager} - Synchronizes strokes with JIIX recognition results
  * - {@link IIMathOverlayManager} - Visual overlays (badges, borders, result panels)

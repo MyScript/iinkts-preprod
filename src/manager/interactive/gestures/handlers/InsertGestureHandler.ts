@@ -161,7 +161,7 @@ export class InsertGestureHandler extends GestureHandler
     const newTexts: IIText[] = []
     if (charsBefore.length && charsAfter.length) {
       const textBefore = new IIText(charsBefore, textToSplit.point, Box.createFromBoxes(charsBefore.map(c => c.bounds)))
-      this.texter.setBounds(textBefore)
+      this.typeset.setBounds(textBefore)
       newTexts.push(textBefore)
 
       let pointAfter: TPoint
@@ -174,12 +174,12 @@ export class InsertGestureHandler extends GestureHandler
       } else {
         // For insert, add horizontal space
         pointAfter = {
-          x: textBefore.point.x + textBefore.bounds.width + this.texter.getSpaceWidth(computeAverage(textBefore.chars.map(c => c.fontSize))),
+          x: textBefore.point.x + textBefore.bounds.width + this.typeset.getSpaceWidth(computeAverage(textBefore.chars.map(c => c.fontSize))),
           y: textBefore.point.y
         }
       }
       const textAfter = new IIText(charsAfter, pointAfter, Box.createFromBoxes(charsAfter.map(c => c.bounds)))
-      this.texter.setBounds(textAfter)
+      this.typeset.setBounds(textAfter)
       newTexts.push(textAfter)
       replaced.newSymbols = newTexts
       replaced.oldSymbols = [textToSplit]

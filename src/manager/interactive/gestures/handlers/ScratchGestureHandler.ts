@@ -50,7 +50,7 @@ export class ScratchGestureHandler extends GestureHandler
    */
   computeScratchOnText(gestureStroke: IIStroke, textSymbol: IIText): IIText | undefined
   {
-    const charsToRemove = textSymbol.getCharsOverlaps(gestureStroke.pointers)
+    const charsToRemove = textSymbol.getChildrenOverlaps(gestureStroke.pointers)
     if (textSymbol.chars.length == charsToRemove.length) {
       return
     }
@@ -60,7 +60,7 @@ export class ScratchGestureHandler extends GestureHandler
         const cIndex = textSymbol.chars.findIndex(c1 => c1.id === c.id)
         textSymbol.chars.splice(cIndex, 1)
       })
-      this.texter.updateBounds(textSymbol)
+      this.typeset.updateBounds(textSymbol)
       return textSymbol
     }
   }

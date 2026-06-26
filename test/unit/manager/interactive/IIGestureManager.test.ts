@@ -107,7 +107,7 @@ describe("IIGestureManager.ts", () =>
   {
     const editor = new InteractiveInkEditorMock()
     const manager = new IIGestureManager(editor)
-    manager.texter.updateBounds = jest.fn()
+    manager.typeset.updateBounds = jest.fn()
     manager.renderer.drawSymbol = jest.fn()
     manager.renderer.removeSymbol = jest.fn()
     manager.renderer.replaceSymbol = jest.fn()

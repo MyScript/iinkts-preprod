@@ -1,7 +1,7 @@
 import { IIStroke, SymbolType, isDecorator } from "@/symbol"
 import { IIHistoryManager } from "@/history"
 import { isBetween, PartialDeep } from "@/utils"
-import { IITranslateManager, IITextManager } from "."
+import { IITranslateManager, IITypesetManager } from "."
 import { InteractiveInkEditor } from "@/editor"
 import { IIAbstractManager } from "./IIAbstractManager"
 import type { IGestureHandler } from "./gestures"
@@ -80,9 +80,9 @@ export class IIGestureManager extends IIAbstractManager
     return this.editor.transform.translate
   }
 
-  get texter(): IITextManager
+  get typeset(): IITypesetManager
   {
-    return this.editor.texter
+    return this.editor.typeset
   }
 
   get history(): IIHistoryManager
