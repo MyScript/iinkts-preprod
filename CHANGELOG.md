@@ -87,6 +87,12 @@
 - refactor(renderer): remove duplicate SVG utility files
 - refactor(recognizer): extract resolveDeferredByBlockId, mapCloseCodeToMessage
 - refactor(chart): centralize dimension and range calculations
+- refactor(symbol): reorganize src/symbol/ into logical categories — stroke/, text/, math/, typeset/, decorator/, eraser/, shape/, edge/, primitives/, legacy/ (IIC-1703)
+- refactor(symbol): **BREAKING** remove II-prefix from all symbol types — IIStroke→TStroke, IIText→TText, IIMath→TMath, IIDecorator→TDecorator, IIEraser→TEraser, IIShapeCircle→TShapeCircle, IIEdgeLine→TEdgeLine, etc. (IIC-1703)
+- refactor(symbol): **BREAKING** convert all symbol interfaces to type aliases with T* naming convention (IIC-1703)
+- refactor(symbol): **BREAKING** remove SymbolFactory — creation dispatchers moved to SymbolHelpers (IIC-1703)
+- refactor(symbol): apply TBaseSymbol intersection to all full symbol types (IIC-1703)
+- refactor(symbol): rename convertPartialStrokesToIIStrokes → convertLegacyStrokesToStrokes (internal)
 
 # [v3.3.0](https://github.com/MyScript/iinkTS/tree/v3.3.0)
 
