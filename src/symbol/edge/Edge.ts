@@ -13,7 +13,6 @@ import { EdgeKind, type EdgeDecoration, computeEdgeBounds } from "./Edge-enum"
  */
 export type TEdge = TEdgeArc | TEdgeLine | TEdgePolyLine
 
-
 /**
  * @group Symbol
  */

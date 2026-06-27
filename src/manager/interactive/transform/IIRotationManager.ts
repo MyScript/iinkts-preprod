@@ -6,7 +6,8 @@ import type {
   TMath,
   TEdge,
   TShape,
-  TPoint
+  TPoint,
+  TBox
 } from "@/symbol"
 import
 {
@@ -158,6 +159,9 @@ export class IIRotationManager extends IIAbstractTransformManager
     {
       this.rotateElement(s.id, angleDegree)
     })
+    const angleRad = convertDegreeToRadian(angleDegree)
+    const matrix = MatrixTransform.identity().rotate(angleRad, this.center)
+    this.editor.connector.drawAnchoredEdgesForMatrix(this.model.symbolsSelected.map(s => s.id), matrix)
     return angleDegree
   }
 
@@ -168,7 +172,14 @@ export class IIRotationManager extends IIAbstractTransformManager
     const angleRad = convertDegreeToRadian(angleDegree) % TWO_PI
     const oldSymbols = this.model.symbolsSelected.map(s => cloneSymbol(s))
     const matrix = MatrixTransform.identity().rotate(angleRad, this.center)
+    const preTransformBoundsById = new Map<string, TBox>()
+    this.model.symbolsSelected.forEach(s =>
+    {
+      const bounds = (s as unknown as { bounds?: TBox }).bounds
+      if (bounds) preTransformBoundsById.set(s.id, { ...bounds })
+    })
     this.applyAndDraw(this.model.symbolsSelected, matrix)
+    this.editor.connector.updateAnchoredEdges(this.model.symbolsSelected.map(s => s.id), matrix, preTransformBoundsById)
     const strokesFromSymbols = this.editor.extractStrokesFromSymbols(this.model.symbolsSelected)
     this.editor.recognizer.transformRotate(strokesFromSymbols.map(s => s.id), angleRad, this.center.x, this.center.y)
     this.editor.history.push(this.model, { rotate: [{ symbols: oldSymbols, angle: angleRad, center: {...this.center} }] })

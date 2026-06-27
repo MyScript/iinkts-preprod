@@ -18,7 +18,7 @@
  *
  * **Shape** — {@link TShape}, {@link TShapeCircle}, {@link TShapeEllipse}, {@link TShapePolygon}
  *
- * **Edge** — {@link TEdge}, {@link TEdgeArc}, {@link TEdgeLine}, {@link TEdgePolyLine}
+ * **Edge** — {@link TEdge}, {@link TEdgeArc}, {@link TEdgeLine}, {@link TEdgePolyLine}, {@link TAnchor}
  *
  * **Legacy** (deprecated v1) — {@link Stroke}, {@link TLegacyStroke}
  */
@@ -41,10 +41,6 @@ export * from "./Symbol"
 
 // Cross-type dispatchers
 export * from "./SymbolHelpers"
-
-// Symbol plugin system
-export * from "./SymbolUtil"
-export * from "./SymbolRegistry"
 
 // Legacy v1 symbols (deprecated)
 export * from "./legacy"
