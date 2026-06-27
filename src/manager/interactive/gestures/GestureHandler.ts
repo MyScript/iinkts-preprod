@@ -10,7 +10,7 @@ import type { IITranslateManager } from "@/manager/interactive/transform/IITrans
 import type { IITypesetManager } from "@/manager/interactive/IITypesetManager"
 import type { IIGestureManager } from "../IIGestureManager"
 import { LoggerManager, LoggerCategory, type Logger } from "@/logger"
-import { IIGestureAnnotationProcessor } from "./IIGestureAnnotationProcessor"
+import { IIGestureAnnotationProcessor } from "./GestureAnnotation"
 
 /**
  * Base interface for gesture handlers
@@ -38,8 +38,6 @@ export type TGestureHandler =
  * Provides common functionality and access to editor services via helpers
  * @group Manager
  */
-export type { TGestureAnnotation } from "./GestureAnnotation"
-
 export abstract class GestureHandler implements TGestureHandler
 {
   protected readonly logger: Logger

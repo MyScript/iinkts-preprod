@@ -2,7 +2,7 @@ import { LoggerManager, LoggerCategory } from "@/logger"
 import type { IModel } from "@/model"
 import type { TStroke, TBox, TSymbol} from "@/symbol";
 import { isText } from "@/symbol"
-import { BoxHelper } from "@/symbol/helpers/BoxHelper"
+import { BoxHelper } from "@/symbol/primitives/Box"
 import type { SVGRenderer} from "@/renderer";
 import { SVGRendererConst, SVGBuilder } from "@/renderer"
 import { createUUID } from "@/utils"

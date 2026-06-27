@@ -11,18 +11,18 @@ import type {
 import
 {
   SymbolType,
-  convertPartialStrokesToIIStrokes,
   isDecorator,
   isText,
   isMath,
   isStroke,
   isStrokeSolverOutput,
   cloneSymbol,
+  StrokeHelper,
 } from "@/symbol"
-import { BoxHelper } from "@/symbol/helpers/BoxHelper"
-import { IIDecoratorHelper } from "@/symbol/helpers/IIDecoratorHelper"
-import { IITextHelper } from "@/symbol/helpers/IITextHelper"
-import { IIMathHelper } from "@/symbol/helpers/IIMathHelper"
+import { BoxHelper } from "@/symbol/primitives/Box"
+import { DecoratorHelper } from "@/symbol/decorator/Decorator"
+import { TextHelper } from "@/symbol/text/Text"
+import { MathHelper } from "@/symbol/math/Math"
 import { RecognizerWebSocket } from "@/recognizer"
 import type { TIIRendererConfiguration } from "@/renderer";
 import { SVGRenderer, SVGBuilder } from "@/renderer"
@@ -631,7 +631,7 @@ export class InteractiveInkEditor extends AbstractEditor
       if (symbolIds.includes(s.id)) {
         s.style = Object.assign({}, s.style, style)
         if (isText(s)) {
-          IITextHelper.updateChildrenStyle(s)
+          TextHelper.updateChildrenStyle(s)
         }
         this.renderer.drawSymbol(s)
         this.model.updateSymbol(s)
@@ -671,7 +671,7 @@ export class InteractiveInkEditor extends AbstractEditor
     {
       if (textIds.includes(s.id)) {
         if (isText(s)) {
-          IITextHelper.updateChildrenFont(s, { fontSize, fontWeight: fontWeight === "auto" ? undefined : fontWeight })
+          TextHelper.updateChildrenFont(s, { fontSize, fontWeight: fontWeight === "auto" ? undefined : fontWeight })
           const lastWidth = s.bounds.width
           this.typeset.updateBounds(s)
           this.renderer.drawSymbol(s)
@@ -799,7 +799,7 @@ export class InteractiveInkEditor extends AbstractEditor
       } else if (remaining.length < dec.targetIds.length) {
         dec.targetIds = remaining
         const targetSyms = remaining.map(id => this.model.getRootSymbol(id)).filter((s): s is TSymbol => !!s)
-        if (targetSyms.length) IIDecoratorHelper.setBounds(dec, BoxHelper.createFromBoxes(targetSyms.map(s => s.bounds)))
+        if (targetSyms.length) DecoratorHelper.setBounds(dec, BoxHelper.createFromBoxes(targetSyms.map(s => s.bounds)))
         this.model.updateSymbol(dec)
         this.renderer.drawSymbol(dec)
         updated.push(dec)
@@ -973,7 +973,7 @@ export class InteractiveInkEditor extends AbstractEditor
   {
     this.logger.info("importPointEvents", { partialStrokes })
     this.updateLayerState(false)
-    const strokes = convertPartialStrokesToIIStrokes(partialStrokes)
+    const strokes = partialStrokes.map(StrokeHelper.createFromPartial)
     strokes.forEach(s =>
     {
       this.model.addSymbol(s)
@@ -1183,12 +1183,12 @@ export class InteractiveInkEditor extends AbstractEditor
     symbols.forEach(s =>
     {
       if (isText(s)) {
-        const content = IITextHelper.getLabel(s)
+        const content = TextHelper.getLabel(s)
         if (content) {
           textParts.push(content)
         }
       } else if (isMath(s)) {
-        const content = IIMathHelper.getLabel(s)
+        const content = MathHelper.getLabel(s)
         if (content) {
           textParts.push(content)
         }

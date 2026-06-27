@@ -1,0 +1,162 @@
+import type { TPartialDeep } from "@/utils"
+import { createUUID, findIntersectionBetween2Segment, isPointInsidePolygon, convertDegreeToRadian, computeRotatedPoint } from "@/utils"
+import type { TStyle } from "@/style"
+import { DefaultStyle } from "@/style"
+import type { TPoint, TSegment } from "@/symbol/primitives/Point"
+import { isValidPoint } from "@/symbol/primitives/Point"
+import { SymbolType } from "@/symbol/Symbol"
+import type { TBaseSymbol } from "@/symbol/Symbol"
+import type { TBox } from "@/symbol/primitives/Box"
+import { BoxHelper } from "@/symbol/primitives/Box"
+import type { TRotation } from "@/symbol/typeset/Typeset"
+import { computeTypesetVertices, computeTypesetSnapPoints, computeClosedEdges } from "@/symbol/typeset/Typeset"
+import type { TDecorator } from "@/symbol/decorator/Decorator"
+import { DecoratorHelper } from "@/symbol/decorator/Decorator"
+import type { TTypesetChild } from "@/symbol/typeset/Typeset"
+
+/**
+ * @group Symbol
+ */
+export type TSymbolChar = TTypesetChild
+
+/**
+ * @group Symbol
+ */
+export type TText = TBaseSymbol & {
+  type: SymbolType.Text
+  isClosed: true
+  style: TStyle
+  selected: boolean
+  deleting: boolean
+  point: TPoint
+  chars: TSymbolChar[]
+  decorators: TDecorator[]
+  bounds: TBox
+  rotation?: TRotation
+  vertices: TPoint[]
+  snapPoints: TPoint[]
+  edges: TSegment[]
+}
+
+/**
+ * @group Symbol
+ * @group Utilities
+ */
+export const TextHelper = {
+  create(chars: TSymbolChar[], point: TPoint, bounds: TBox, style?: TPartialDeep<TStyle>): TText
+  {
+    const mergedStyle = Object.assign({}, DefaultStyle, style) as TStyle
+    if (mergedStyle.opacity) mergedStyle.opacity = +mergedStyle.opacity
+    mergedStyle.width = +mergedStyle.width
+    const now = Date.now()
+    const vertices = computeTypesetVertices(bounds)
+    const snapPoints = computeTypesetSnapPoints(bounds, point)
+    const edges = computeClosedEdges(vertices)
+    return {
+      type: SymbolType.Text,
+      id: `${ SymbolType.Text }-${ createUUID() }`,
+      isClosed: true,
+      style: mergedStyle,
+      creationTime: now,
+      modificationDate: now,
+      selected: false,
+      deleting: false,
+      point,
+      chars,
+      decorators: [],
+      bounds,
+      rotation: undefined,
+      vertices,
+      snapPoints,
+      edges,
+    }
+  },
+
+  createFromPartial(partial: TPartialDeep<TText>): TText
+  {
+    if (!isValidPoint(partial?.point)) throw new Error(`Unable to create TText, point are invalid`)
+    if (!partial.chars?.length) throw new Error(`Unable to create TText, no chars`)
+    if (!partial.bounds) throw new Error(`Unable to create TText, no boundingBox`)
+    const text = TextHelper.create(partial.chars as TSymbolChar[], partial.point as TPoint, partial.bounds as TBox, partial.style)
+    if (partial.id) text.id = partial.id
+    if (partial.rotation) text.rotation = partial.rotation as TRotation
+    if (partial.decorators?.length) {
+      partial.decorators.forEach(d => {
+        if (d?.kind) {
+          text.decorators.push(DecoratorHelper.create(d.kind, Object.assign({}, text.style, d.style)))
+        }
+      })
+    }
+    TextHelper.updateDerivedFields(text)
+    return text
+  },
+
+  updateDerivedFields(text: TText): void
+  {
+    text.vertices = computeTypesetVertices(text.bounds, text.rotation)
+    text.snapPoints = computeTypesetSnapPoints(text.bounds, text.point, text.rotation)
+    text.edges = computeClosedEdges(text.vertices)
+  },
+
+  overlaps(text: TText, box: TBox): boolean
+  {
+    return text.vertices.some(p => BoxHelper.containsPoint(box, p)) ||
+      text.edges.some(e1 => BoxHelper.getSides(box).some(e2 => !!findIntersectionBetween2Segment(e1, e2)))
+  },
+
+  getChildrenOverlaps(text: TText, points: TPoint[]): TSymbolChar[]
+  {
+    return text.chars.filter(c =>
+    {
+      let corners: TPoint[]
+      if (text.rotation) {
+        const rad = convertDegreeToRadian(-text.rotation.degree)
+        corners = BoxHelper.getCorners(c.bounds).map(p => computeRotatedPoint(p, text.rotation!.center, rad))
+      }
+      else {
+        corners = BoxHelper.getCorners(c.bounds)
+      }
+      return points.some(p => isPointInsidePolygon(p, corners))
+    })
+  },
+
+  updateChildrenStyle(text: TText): void
+  {
+    text.chars.forEach(c =>
+    {
+      if (text.style.color) {
+        c.color = text.style.color
+      }
+    })
+    text.modificationDate = Date.now()
+  },
+
+  updateChildrenFont(text: TText, { fontSize, fontWeight }: { fontSize?: number, fontWeight?: "normal" | "bold" }): void
+  {
+    text.chars.forEach(c =>
+    {
+      if (fontSize) c.fontSize = fontSize
+      if (fontWeight) c.fontWeight = fontWeight
+    })
+    text.modificationDate = Date.now()
+  },
+
+  getLabel(text: TText): string
+  {
+    return text.chars.map(c => c.label).join("")
+  },
+
+  toJSON(text: TText): TPartialDeep<TText>
+  {
+    return {
+      id: text.id,
+      type: text.type,
+      point: text.point,
+      chars: text.chars,
+      style: text.style,
+      rotation: text.rotation,
+      bounds: text.bounds,
+      decorators: text.decorators.length ? text.decorators : undefined
+    }
+  },
+}

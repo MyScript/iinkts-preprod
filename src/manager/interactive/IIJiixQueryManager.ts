@@ -11,7 +11,7 @@ import {
   JIIXElementType
 } from "@/model"
 import type { TStroke, TBox, TSymbol } from "@/symbol"
-import { BoxHelper } from "@/symbol/helpers/BoxHelper"
+import { BoxHelper } from "@/symbol/primitives/Box"
 import { convertMillimeterToPixel, convertBoundingBoxMillimeterToPixel } from "@/utils"
 import { IIAbstractManager } from "./IIAbstractManager"
 import { LoggerCategory } from "@/logger"

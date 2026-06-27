@@ -1,6 +1,5 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { Model, TExport, TJIIXExport } from "@/model"
-import type { TStrokeGroup, TStrokeGroupToSend } from "@/symbol"
 import type { TPenStyle } from "@/style";
 import { StyleHelper } from "@/style"
 import type { TPartialDeep } from "@/utils";
@@ -10,6 +9,7 @@ import type { TRecognizerHTTPV1Configuration } from "./RecognizerHTTPV1Configura
 import { RecognizerHTTPV1Configuration } from "./RecognizerHTTPV1Configuration"
 import type { TConverstionState } from "./RecognitionConfiguration"
 import type { TDiagramConfiguration, TExportConfiguration, TMathConfiguration, TRawContentConfiguration, TTextConfiguration } from "./recognition"
+import { StrokeHelper, type Stroke } from "@/symbol"
 
 type TApiError = {
   code?: string
@@ -17,7 +17,27 @@ type TApiError = {
 }
 
 /**
+ * @group Symbol
+ * @deprecated Use {@link TStroke} from stroke/ for new code
+ */
+export type TStrokeGroup = {
+  penStyle: TPenStyle
+  strokes: Stroke[]
+}
+
+/**
+ * @group Symbol
+ * @deprecated Use {@link TStroke} with {@link RecognizerHTTPV2}
+ */
+export type TStrokeGroupToSend = {
+  penStyle?: string
+  strokes: { id: string, pointerType: string, x: number[], y: number[], t: number[], p: number[]}[]
+}
+
+
+/**
  * @group Recognizer
+ * @deprecated Use {@link RecognizerHTTPV2} instead.
  */
 export type TRecognizerHTTPV1PostConfiguration = {
   lang: string,
@@ -128,7 +148,7 @@ export class RecognizerHTTPV1
       const newPenStyle = JSON.stringify(group.penStyle) === "{}" ? undefined : StyleHelper.penStyleToCSS(group.penStyle as TPenStyle)
       const newGroup = {
         penStyle: newPenStyle,
-        strokes: group.strokes.map(s => s.formatToSend())
+        strokes: group.strokes.map(s => StrokeHelper.formatToSend(s))
       }
       strokeGroupsToSend.push(newGroup)
     })

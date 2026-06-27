@@ -21,6 +21,7 @@
     "alphabetical",
   ],
   "excludeExternals": true,
+  "intentionallyNotExported": ["AbstractEditor.resize"],
   "readme": "README.md",
   "includeVersion": true,
   "disableSources": false,
