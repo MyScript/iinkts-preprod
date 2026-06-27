@@ -6,7 +6,7 @@ import
   TStyle,
   Stroke,
   TStroke,
-  StrokeHelper,
+  StrokeOps,
   TDecorator,
   TShapeCircle,
   TEdgeLine,
@@ -15,16 +15,16 @@ import
   TPoint,
   DecoratorKind,
   TEraser,
-  EraserHelper,
+  EraserOps,
   TMath,
   TMathElement,
   TPartialDeep,
 } from "../../src/iink"
-import { DecoratorHelper } from "../../src/symbol/decorator/Decorator"
-import { TextHelper } from "../../src/symbol/text/Text"
-import { MathHelper } from "../../src/symbol/math/Math"
-import { ShapeCircleHelper } from "../../src/symbol/shape/Circle"
-import { EdgeLineHelper } from "../../src/symbol/edge/Line"
+import { DecoratorOps } from "../../src/symbol/decorator/Decorator"
+import { TextOps } from "../../src/symbol/text/Text"
+import { MathOps } from "../../src/symbol/math/Math"
+import { ShapeCircleOps } from "../../src/symbol/shape/Circle"
+import { EdgeLineOps } from "../../src/symbol/edge/Line"
 
 export const delay = (delayInms: number) =>
 {
@@ -59,7 +59,7 @@ export function buildStroke({ box = defaultBox, style = DefaultPenStyle, nbPoint
 
 export function buildStrokeV2({ box = defaultBox, style = DefaultPenStyle, nbPoint = 5, pointerType = "pen" } = {}): TStroke
 {
-  const stroke = StrokeHelper.create(style, pointerType)
+  const stroke = StrokeOps.create(style, pointerType)
   for (let i = 0; i < nbPoint; i++) {
     stroke.pointers.push({
       p: Math.random(),
@@ -73,11 +73,11 @@ export function buildStrokeV2({ box = defaultBox, style = DefaultPenStyle, nbPoi
 
 export function buildIIStroke({ box = defaultBox, style = DefaultStyle, nbPoint = 5, pointerType = "pen" } = {}): TStroke
 {
-  const stroke = StrokeHelper.create(style, pointerType)
+  const stroke = StrokeOps.create(style, pointerType)
   const stepX = box.width / (nbPoint - 1)
   const stepY = box.height / (nbPoint - 1)
   for (let i = 0; i < nbPoint; i++) {
-    StrokeHelper.addPointer(stroke, {
+    StrokeOps.addPointer(stroke, {
       p: Math.random(),
       t: Date.now() + i,
       x: box.x + stepX * i,
@@ -89,7 +89,7 @@ export function buildIIStroke({ box = defaultBox, style = DefaultStyle, nbPoint 
 
 export function buildIIEraser({ box = defaultBox, nbPoint = 5 } = {}): TEraser
 {
-  const eraser = EraserHelper.create()
+  const eraser = EraserOps.create()
   const stepX = box.width / (nbPoint - 1)
   const stepY = box.height / (nbPoint - 1)
   for (let i = 0; i < nbPoint; i++) {
@@ -105,17 +105,17 @@ export function buildIIEraser({ box = defaultBox, nbPoint = 5 } = {}): TEraser
 
 export function buildIIDecorator(kind: DecoratorKind, style: TPartialDeep<TStyle> = DefaultStyle): TDecorator
 {
-  return DecoratorHelper.create(kind, style)
+  return DecoratorOps.create(kind, style)
 }
 
 export function buildIICircle({ center = { x: 0, y: 0 }, radius = 5, style = DefaultStyle }: { center?: TPoint, radius?: number, style?: TPartialDeep<TStyle> } = {}): TShapeCircle
 {
-  return ShapeCircleHelper.create(center, radius, style)
+  return ShapeCircleOps.create(center, radius, style)
 }
 
 export function buildIILine({ start = { x: 0, y: 0 }, end = { x: 5, y: 5 }, style = DefaultStyle }: { start?: TPoint, end?: TPoint, style?: TPartialDeep<TStyle> } = {}): TEdgeLine
 {
-  return EdgeLineHelper.create(start, end, undefined, undefined, style)
+  return EdgeLineOps.create(start, end, undefined, undefined, style)
 }
 
 export function buildIIText(
@@ -123,7 +123,7 @@ export function buildIIText(
     { chars?: TSymbolChar[], point?: TPoint, boundingBox?: TBox, style?: TPartialDeep<TStyle> } = {}
 ): TText
 {
-  return TextHelper.create(chars, point, boundingBox, style)
+  return TextOps.create(chars, point, boundingBox, style)
 }
 
 export function buildIIMath(
@@ -141,5 +141,5 @@ export function buildIIMath(
     color: "#000000",
     bounds: boundingBox
   }]
-  return MathHelper.create(elements, point, boundingBox, style)
+  return MathOps.create(elements, point, boundingBox, style)
 }

@@ -2,7 +2,7 @@ import { IIAbstractManager } from "../IIAbstractManager"
 import type { TJIIXMathElement, TJIIXMathExpression } from "@/model"
 import type { TStroke, TPoint} from "@/symbol";
 import { isStroke } from "@/symbol"
-import { StrokeHelper } from "@/symbol/stroke/Stroke"
+import { StrokeOps } from "@/symbol/stroke/Stroke"
 import { convertMillimeterToPixel } from "@/utils"
 import { isDeepEqual } from "@/utils/object"
 import { createUUID } from "@/utils/uuid"
@@ -368,7 +368,7 @@ export class IIMathComputationSubManager extends IIAbstractManager
         t: strokeData.T?.[i] || i
       }))
 
-      const stroke = StrokeHelper.createFromPartial({
+      const stroke = StrokeOps.createFromPartial({
         pointers,
         style: defaultStyle,
         isSolverOutput: true,

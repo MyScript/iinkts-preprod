@@ -1,4 +1,4 @@
-import { StrokeHelper } from "@/symbol/stroke/Stroke"
+import { StrokeOps } from "@/symbol/stroke/Stroke"
 import { ResizeDirection } from "@/Constants"
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type {
@@ -8,20 +8,19 @@ import type {
   TEdge,
   TShape,
   TPoint,
-  TBox} from "@/symbol";
+  TBox
+} from "@/symbol"
 import
 {
   EdgeKind,
   ShapeKind,
   isText,
   isMath,
-  isShape,
-  isCircleShape,
-  updateShapeDerivedFields,
-  updateEdgeDerivedFields,
   cloneSymbol
 } from "@/symbol"
-import { BoxHelper } from "@/symbol/primitives/Box"
+import { EdgeOps } from "@/symbol/edge/Edge"
+import { ShapeOps } from "@/symbol/shape/Shape"
+import { BoxOps } from "@/symbol/primitives/Box"
 import { MatrixTransform } from "@/transform"
 import { IIAbstractTransformManager } from "./AbstractTransformManager"
 
@@ -62,7 +61,7 @@ export class IIResizeManager extends IIAbstractTransformManager
       return stroke
     }
     this.applyMatrixToPoints(stroke.pointers, matrix)
-    StrokeHelper.updateBounds(stroke)
+    StrokeOps.updateBounds(stroke)
     return stroke
   }
 
@@ -81,18 +80,18 @@ export class IIResizeManager extends IIAbstractTransformManager
         shape.center.y = +(shape.center.y + ((scaleX - 1) * -sinPhi + (scaleY - 1) * cosPhi) * (shape.center.y - oy)).toFixed(3)
         shape.radiusX = +(Math.abs(shape.radiusX * (scaleX * cosPhi - scaleY * sinPhi))).toFixed(3)
         shape.radiusY = +(Math.abs(shape.radiusY * (scaleX * sinPhi + scaleY * cosPhi))).toFixed(3)
-        updateShapeDerivedFields(shape)
+        ShapeOps.updateShapeDerivedFields(shape)
         return shape
       }
       case ShapeKind.Circle: {
         shape.radius = +(shape.radius * (matrix.xx + matrix.yy) / 2).toFixed(3)
         shape.center = matrix.applyToPoint(shape.center)
-        updateShapeDerivedFields(shape)
+        ShapeOps.updateShapeDerivedFields(shape)
         return shape
       }
       case ShapeKind.Polygon: {
         this.applyMatrixToPoints(shape.points, matrix)
-        updateShapeDerivedFields(shape)
+        ShapeOps.updateShapeDerivedFields(shape)
         return shape
       }
       default:
@@ -122,17 +121,17 @@ export class IIResizeManager extends IIAbstractTransformManager
         else if (scaleY < 0) {
           edge.sweepAngle *= -1
         }
-        updateEdgeDerivedFields(edge)
+        EdgeOps.updateEdgeDerivedFields(edge)
         return edge
       }
       case EdgeKind.Line: {
         this.applyMatrixToPoints([edge.start, edge.end], matrix)
-        updateEdgeDerivedFields(edge)
+        EdgeOps.updateEdgeDerivedFields(edge)
         return edge
       }
       case EdgeKind.PolyEdge: {
         this.applyMatrixToPoints(edge.points, matrix)
-        updateEdgeDerivedFields(edge)
+        EdgeOps.updateEdgeDerivedFields(edge)
         return edge
       }
       default:
@@ -164,9 +163,9 @@ export class IIResizeManager extends IIAbstractTransformManager
       e.fontSize = +(e.fontSize * scale).toFixed(3)
     })
 
-    const corners = math.elements.map(e => BoxHelper.getCorners(e.bounds)).flat()
+    const corners = math.elements.map(e => BoxOps.getCorners(e.bounds)).flat()
     const scaledCorners = corners.map(p => matrix.applyToPoint(p))
-    math.bounds = BoxHelper.createFromPoints(scaledCorners)
+    math.bounds = BoxOps.createFromPoints(scaledCorners)
 
     return math
   }
@@ -184,11 +183,11 @@ export class IIResizeManager extends IIAbstractTransformManager
     this.direction = target.getAttribute("resize-direction") as ResizeDirection
 
     this.keepRatio = this.model.symbolsSelected.some(s =>
-      isText(s) || isMath(s) || (isShape(s) && isCircleShape(s))
+      isText(s) || isMath(s) || (ShapeOps.isShape(s) && ShapeOps.isCircleShape(s))
     )
 
     this.transformOrigin = origin
-    this.boundingBox = BoxHelper.createFromPoints(this.model.symbolsSelected.flatMap(s => s.vertices))
+    this.boundingBox = BoxOps.createFromPoints(this.model.symbolsSelected.flatMap(s => s.vertices))
     this.setTransformOrigin(this.interactElementsGroup!.id, this.transformOrigin.x, this.transformOrigin.y)
     this.model.symbolsSelected.forEach(s =>
     {

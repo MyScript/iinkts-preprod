@@ -3,7 +3,7 @@ import type { IIHistoryManager } from "@/history"
 import type { TExport, IIModel } from "@/model"
 import type { RecognizerWebSocket } from "@/recognizer"
 import type { SVGRenderer } from "@/renderer"
-import type { TBox, TStroke, TSymbol } from "@/symbol"
+import type { TBaseSymbol, TBox, TStroke, TSymbol } from "@/symbol"
 import type { TStyle } from "@/style"
 import type { TPartialDeep } from "@/utils"
 import type {
@@ -28,6 +28,7 @@ import type { DOMFactory } from "@/components/dom"
 import type { InteractiveInkEditorConfiguration } from "./variants/InteractiveInkEditorConfiguration"
 import type { EditorEvent } from "./EditorEvent"
 import type { EditorLayer } from "./EditorLayer"
+import type { SymbolUtil } from "@/symbol-utils/SymbolUtil"
 
 /**
  * Structural type for InteractiveInkEditor used by all managers.
@@ -111,6 +112,10 @@ export type TInteractiveInkEditor = {
   downloadAsPNG(selection?: boolean): void
   downloadAsJson(selection?: boolean): void
   downloadAsText(selection?: boolean): void
+
+  // ── Symbol plugin registry ────────────────────────────────────────
+  registerSymbolUtil<T extends TBaseSymbol>(util: SymbolUtil<T>): void
+  getSymbolUtil<T extends TBaseSymbol>(type: string): SymbolUtil<T> | undefined
 
   // ── Lifecycle / error handling ────────────────────────────────────
   clear(): Promise<void>

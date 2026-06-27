@@ -1,4 +1,4 @@
-import { EdgeLineHelper } from "../../../../src/symbol/edge/Line"
+import { EdgeLineOps } from "../../../../src/symbol/edge/Line"
 import
 {
   TPoint,
@@ -19,7 +19,7 @@ describe("Line.ts", () =>
         color: "blue",
         width: 20,
       }
-      const line = EdgeLineHelper.create(start, end, undefined, undefined, style)
+      const line = EdgeLineOps.create(start, end, undefined, undefined, style)
       expect(line).toBeDefined()
       expect(line.creationTime).toBeLessThanOrEqual(Date.now())
       expect(line.creationTime).toEqual(line.modificationDate)
@@ -37,7 +37,7 @@ describe("Line.ts", () =>
     {
       const start: TPoint = { x: 0, y: 0 }
       const end: TPoint = { x: 5, y: 5 }
-      const line = EdgeLineHelper.create(start, end)
+      const line = EdgeLineOps.create(start, end)
       expect(line.style).toEqual(DefaultStyle)
     })
   })
@@ -45,21 +45,21 @@ describe("Line.ts", () =>
   {
     const start: TPoint = { x: 0, y: 0 }
     const end: TPoint = { x: 0, y: 25 }
-    const line = EdgeLineHelper.create(start, end)
+    const line = EdgeLineOps.create(start, end)
     test(`should return true if partially wrap`, () =>
     {
       const boundaries: TBox = { height: 10, width: 10, x: -5, y: -5 }
-      expect(EdgeLineHelper.overlaps(line, boundaries)).toEqual(true)
+      expect(EdgeLineOps.overlaps(line, boundaries)).toEqual(true)
     })
     test(`should return true if totally wrap`, () =>
     {
       const boundaries: TBox = { height: 50, width: 50, x: -25, y: -25 }
-      expect(EdgeLineHelper.overlaps(line, boundaries)).toEqual(true)
+      expect(EdgeLineOps.overlaps(line, boundaries)).toEqual(true)
     })
     test(`should return false if box is outside`, () =>
     {
       const boundaries: TBox = { height: 2, width: 2, x: 50, y: 50 }
-      expect(EdgeLineHelper.overlaps(line, boundaries)).toEqual(false)
+      expect(EdgeLineOps.overlaps(line, boundaries)).toEqual(false)
     })
   })
   describe("clone", () =>
@@ -72,7 +72,7 @@ describe("Line.ts", () =>
         color: "blue",
         width: 20
       }
-      const line = EdgeLineHelper.create(start, end, undefined, undefined, style)
+      const line = EdgeLineOps.create(start, end, undefined, undefined, style)
       const clone = structuredClone(line)
       expect(clone).toEqual(line)
       expect(clone).not.toBe(line)

@@ -56,8 +56,7 @@ export class Stroke implements TLegacyStroke
 
 /**
  * @group Symbol
- * @group Utilities
- * @deprecated Use {@link StrokeHelper.createFromPartial} from stroke/ for new code
+ * @deprecated Use {@link StrokeOps.createFromPartial} from stroke/ for new code
  */
 export function convertPartialStrokesToStrokes(json: TPartialDeep<TLegacyStroke>[]): Stroke[]
 {

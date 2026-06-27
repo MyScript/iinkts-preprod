@@ -1,4 +1,4 @@
-import { StrokeHelper } from "@/symbol/stroke/Stroke"
+import { StrokeOps } from "@/symbol/stroke/Stroke"
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type {
   TStroke,
@@ -6,16 +6,17 @@ import type {
   TMath,
   TEdge,
   TShape,
-  TPoint} from "@/symbol";
+  TPoint
+} from "@/symbol"
 import
 {
   EdgeKind,
   ShapeKind,
-  updateShapeDerivedFields,
-  updateEdgeDerivedFields,
   cloneSymbol,
 } from "@/symbol"
-import { BoxHelper } from "@/symbol/primitives/Box"
+import { EdgeOps } from "@/symbol/edge/Edge"
+import { ShapeOps } from "@/symbol/shape/Shape"
+import { BoxOps } from "@/symbol/primitives/Box"
 import { computeAngleRadian, convertDegreeToRadian, convertRadianToDegree, TWO_PI } from "@/utils"
 import { MatrixTransform } from "@/transform"
 import { IIAbstractTransformManager } from "./AbstractTransformManager"
@@ -42,7 +43,7 @@ export class IIRotationManager extends IIAbstractTransformManager
       return stroke
     }
     this.applyMatrixToPoints(stroke.pointers, matrix)
-    StrokeHelper.updateBounds(stroke)
+    StrokeOps.updateBounds(stroke)
     return stroke
   }
 
@@ -52,17 +53,17 @@ export class IIRotationManager extends IIAbstractTransformManager
       case ShapeKind.Ellipse: {
         shape.center = matrix.applyToPoint(shape.center)
         shape.orientation = (shape.orientation + MatrixTransform.rotation(matrix)) % TWO_PI
-        updateShapeDerivedFields(shape)
+        ShapeOps.updateShapeDerivedFields(shape)
         return shape
       }
       case ShapeKind.Circle: {
         shape.center = matrix.applyToPoint(shape.center)
-        updateShapeDerivedFields(shape)
+        ShapeOps.updateShapeDerivedFields(shape)
         return shape
       }
       case ShapeKind.Polygon: {
         this.applyMatrixToPoints(shape.points, matrix)
-        updateShapeDerivedFields(shape)
+        ShapeOps.updateShapeDerivedFields(shape)
         return shape
       }
       default:
@@ -76,18 +77,18 @@ export class IIRotationManager extends IIAbstractTransformManager
       case EdgeKind.Arc: {
         edge.phi = (edge.phi - MatrixTransform.rotation(matrix)) % TWO_PI
         edge.center = matrix.applyToPoint(edge.center)
-        updateEdgeDerivedFields(edge)
+        EdgeOps.updateEdgeDerivedFields(edge)
         return edge
       }
       case EdgeKind.Line: {
         edge.start = matrix.applyToPoint(edge.start)
         edge.end = matrix.applyToPoint(edge.end)
-        updateEdgeDerivedFields(edge)
+        EdgeOps.updateEdgeDerivedFields(edge)
         return edge
       }
       case EdgeKind.PolyEdge: {
         edge.points = edge.points.map(p => matrix.applyToPoint(p))
-        updateEdgeDerivedFields(edge)
+        EdgeOps.updateEdgeDerivedFields(edge)
         return edge
       }
       default:
@@ -123,7 +124,7 @@ export class IIRotationManager extends IIAbstractTransformManager
   {
     this.logger.info("start", { target })
     this.interactElementsGroup = this.resolveInteractGroup(target)
-    const boundingBox = BoxHelper.createFromPoints(this.model.symbolsSelected.flatMap(s => s.vertices))
+    const boundingBox = BoxOps.createFromPoints(this.model.symbolsSelected.flatMap(s => s.vertices))
 
     this.center = {
       x: boundingBox.x + boundingBox.width / 2,

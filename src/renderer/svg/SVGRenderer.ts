@@ -1,20 +1,14 @@
 import { SvgElementRole } from "@/Constants"
 import { getClosestPoints } from "@/utils"
 import { LoggerCategory, LoggerManager } from "@/logger"
-import type { TSymbol, TPoint, TBox, TEraser, TDecorator} from "@/symbol";
+import type { TSymbol, TPoint, TBox, TEraser, TPointer } from "@/symbol"
 import { SymbolType } from "@/symbol"
-import { BoxHelper } from "@/symbol/primitives/Box"
+import { BoxOps } from "@/symbol/primitives/Box"
 import type { TIIRendererConfiguration } from "@/renderer/RendererConfiguration"
 import { BaseRenderer } from "@/renderer/base"
 import { SVGRendererConst, GUIDE_PATH_ATTRS, SUB_GUIDE_PATH_ATTRS } from "./utils/SVGRendererConst"
-import { SVGRendererDecoratorUtil } from "./SVGRendererDecoratorUtil"
-import { SVGRendererEdgeUtil } from "./SVGRendererEdgeUtil"
-import { SVGRendererEraserUtil } from "./SVGRendererEraserUtil"
-import { SVGRendererShapeUtil } from "./SVGRendererShapeUtil"
-import { SVGRendererStrokeUtil } from "./SVGRendererStrokeUtil"
-import { SVGRendererTextUtil } from "./SVGRendererTextUtil"
-import { SVGRendererMathUtil } from "./SVGRendererMathUtil"
 import { SVGBuilder } from "./utils/SVGBuilder"
+import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 
 /**
  * @group Renderer
@@ -302,34 +296,39 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
     element?.setAttribute(name, value)
   }
 
-  buildElementFromSymbol(symbol: TSymbol | TEraser): SVGGraphicsElement | undefined {
-    let element: SVGGraphicsElement | undefined
-    switch (symbol.type) {
-      case SymbolType.Stroke:
-        element = SVGRendererStrokeUtil.getSVGElement(symbol)
-        break
-      case SymbolType.Eraser:
-        element = SVGRendererEraserUtil.getSVGElement(symbol)
-        break
-      case SymbolType.Shape:
-        element = SVGRendererShapeUtil.getSVGElement(symbol)
-        break
-      case SymbolType.Edge:
-        element = SVGRendererEdgeUtil.getSVGElement(symbol)
-        break
-      case SymbolType.Text:
-        element = SVGRendererTextUtil.getSVGElement(symbol)
-        break
-      case SymbolType.Math:
-        element = SVGRendererMathUtil.getSVGElement(symbol)
-        break
-      case SymbolType.Decorator:
-        element = SVGRendererDecoratorUtil.getSVGElementForSymbol(symbol as TDecorator)
-        break
-      default:
-        this.#logger.error("buildElementFromSymbol", `symbol unknown: "${JSON.stringify(symbol)}"`)
+  #buildEraserElement(eraser: TEraser): SVGPathElement
+  {
+    const firstPoint = eraser.pointers.at(0) as TPointer
+    let d = `M ${ firstPoint.x } ${ firstPoint.y }`
+
+    if (eraser.pointers.length === 1) {
+      const w = eraser.style.width || 4
+      d += ` L ${ firstPoint.x + w / 2 } ${ firstPoint.y }`
+    } else {
+      eraser.pointers.slice(1).forEach((p: TPointer) => d += ` L ${ p.x } ${ p.y }` )
     }
-    return element
+
+    return SVGBuilder.createPath({
+      "id": eraser.id,
+      "type": "eraser",
+      "stroke-width": String(eraser.style.width),
+      "stroke": eraser.style.color,
+      "opacity": String(eraser.style.opacity),
+      "shadowBlur": "5",
+      "stroke-linecap": "round",
+      "fill": "transparent",
+      "d": d,
+    })
+  }
+
+  buildElementFromSymbol(symbol: TSymbol): SVGGraphicsElement | undefined
+  {
+    const util = symbolRegistry.getUtil(symbol.type)
+    if (util?.getSVGElement) {
+      return util.getSVGElement(symbol)
+    }
+    this.#logger.error("buildElementFromSymbol", `no util for symbol: "${ JSON.stringify(symbol) }"`)
+    return undefined
   }
 
   prependElement(el: Element): void {
@@ -373,7 +372,9 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
   drawSymbol(symbol: TSymbol | TEraser): SVGGraphicsElement | undefined {
     this.#logger.debug("drawSymbol", { symbol })
     const oldNode = this.getElementById(symbol?.id)
-    const svgEl = this.buildElementFromSymbol(symbol)
+    const svgEl = symbol.type === SymbolType.Eraser
+      ? this.#buildEraserElement(symbol as TEraser)
+      : this.buildElementFromSymbol(symbol as TSymbol)
 
     if (svgEl) {
       if (oldNode) {
@@ -445,11 +446,11 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
   }
 
   drawConnectionBetweenBox(id: string, box1: TBox, box2: TBox, position: "corners" | "sides", attrs?: { [key: string]: string }): void {
-    let points1: TPoint[] = BoxHelper.getCorners(box1)
-    let points2: TPoint[] = BoxHelper.getCorners(box2)
+    let points1: TPoint[] = BoxOps.getCorners(box1)
+    let points2: TPoint[] = BoxOps.getCorners(box2)
     if (position === "sides") {
-      points1 = BoxHelper.getSide(box1)
-      points2 = BoxHelper.getSide(box2)
+      points1 = BoxOps.getSide(box1)
+      points2 = BoxOps.getSide(box2)
     }
     const { p1, p2 } = getClosestPoints(points1, points2)
     const attrsLine = {

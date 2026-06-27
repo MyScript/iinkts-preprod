@@ -1,6 +1,6 @@
 import { TMathElement, TPoint } from "../../../../src/iink"
-import { BoxHelper } from "../../../../src/iink"
-import { MathHelper } from "../../../../src/symbol/math/Math"
+import { BoxOps } from "../../../../src/iink"
+import { MathOps } from "../../../../src/symbol/math/Math"
 
 describe("Math.ts", () =>
 {
@@ -34,11 +34,11 @@ describe("Math.ts", () =>
     }
   ]
   const point: TPoint = { x: 10, y: 20 }
-  const box = BoxHelper.createFromBoxes(elements.map(e => e.bounds))
+  const box = BoxOps.createFromBoxes(elements.map(e => e.bounds))
 
   test("should instantiate", () =>
   {
-    const math = MathHelper.create(elements, point, box)
+    const math = MathOps.create(elements, point, box)
     expect(math).toBeDefined()
   })
 
@@ -46,24 +46,24 @@ describe("Math.ts", () =>
   {
     test("should get label", () =>
     {
-      const math = MathHelper.create(elements, point, box)
-      expect(MathHelper.getLabel(math)).toEqual("x+1")
+      const math = MathOps.create(elements, point, box)
+      expect(MathOps.getLabel(math)).toEqual("x+1")
     })
 
     test("should get vertices without rotation", () =>
     {
-      const math = MathHelper.create(elements, point, box)
-      expect(math.vertices).toEqual(BoxHelper.getCorners(box))
+      const math = MathOps.create(elements, point, box)
+      expect(math.vertices).toEqual(BoxOps.getCorners(box))
     })
 
     test("should get vertices with rotation 90°", () =>
     {
-      const math = MathHelper.create(elements, point, box)
+      const math = MathOps.create(elements, point, box)
       math.rotation = {
         degree: 90,
         center: { x: 0, y: 0 }
       }
-      MathHelper.updateDerivedFields(math)
+      MathOps.updateDerivedFields(math)
       const vertices = math.vertices
       expect(vertices.length).toBe(4)
       expect(vertices[0].x).toBeCloseTo(10, 1)
@@ -72,20 +72,20 @@ describe("Math.ts", () =>
 
     test("should get snapPoints without rotation", () =>
     {
-      const math = MathHelper.create(elements, point, box)
+      const math = MathOps.create(elements, point, box)
       const snapPoints = math.snapPoints
       expect(snapPoints.length).toBe(5)
-      expect(snapPoints[4]).toEqual(BoxHelper.getCenter(box))
+      expect(snapPoints[4]).toEqual(BoxOps.getCenter(box))
     })
 
     test("should get snapPoints with rotation 90°", () =>
     {
-      const math = MathHelper.create(elements, point, box)
+      const math = MathOps.create(elements, point, box)
       math.rotation = {
         degree: 90,
         center: { x: 0, y: 0 }
       }
-      MathHelper.updateDerivedFields(math)
+      MathOps.updateDerivedFields(math)
       const snapPoints = math.snapPoints
       expect(snapPoints.length).toBe(5)
     })
@@ -95,9 +95,9 @@ describe("Math.ts", () =>
   {
     test("should update children style", () =>
     {
-      const math = MathHelper.create(structuredClone(elements), point, box)
+      const math = MathOps.create(structuredClone(elements), point, box)
       math.style.color = "#FF0000"
-      MathHelper.updateChildrenStyle(math)
+      MathOps.updateChildrenStyle(math)
 
       expect(math.elements[0].color).toBe("#FF0000")
       expect(math.elements[1].color).toBe("#FF0000")
@@ -106,8 +106,8 @@ describe("Math.ts", () =>
 
     test("should update children font", () =>
     {
-      const math = MathHelper.create(structuredClone(elements), point, box)
-      MathHelper.updateChildrenFont(math, { fontSize: 20, fontWeight: "bold", fontFamily: "Times" })
+      const math = MathOps.create(structuredClone(elements), point, box)
+      MathOps.updateChildrenFont(math, { fontSize: 20, fontWeight: "bold", fontFamily: "Times" })
 
       expect(math.elements[0].fontSize).toBe(20)
       expect(math.elements[0].fontWeight).toBe("bold")
@@ -116,8 +116,8 @@ describe("Math.ts", () =>
 
     test("should update children font partially", () =>
     {
-      const math = MathHelper.create(structuredClone(elements), point, box)
-      MathHelper.updateChildrenFont(math, { fontSize: 18 })
+      const math = MathOps.create(structuredClone(elements), point, box)
+      MathOps.updateChildrenFont(math, { fontSize: 18 })
 
       expect(math.elements[0].fontSize).toBe(18)
       expect(math.elements[0].fontWeight).toBe("normal")
@@ -126,8 +126,8 @@ describe("Math.ts", () =>
 
     test("should find elements that overlap with points", () =>
     {
-      const math = MathHelper.create(elements, point, box)
-      const overlappingElements = MathHelper.getChildrenOverlaps(math, [{ x: 12, y: 12 }])
+      const math = MathOps.create(elements, point, box)
+      const overlappingElements = MathOps.getChildrenOverlaps(math, [{ x: 12, y: 12 }])
 
       expect(overlappingElements.length).toBe(1)
       expect(overlappingElements[0].id).toBe("elem-1")
@@ -135,26 +135,26 @@ describe("Math.ts", () =>
 
     test("should find no elements when point is outside", () =>
     {
-      const math = MathHelper.create(elements, point, box)
-      const overlappingElements = MathHelper.getChildrenOverlaps(math, [{ x: 100, y: 100 }])
+      const math = MathOps.create(elements, point, box)
+      const overlappingElements = MathOps.getChildrenOverlaps(math, [{ x: 100, y: 100 }])
 
       expect(overlappingElements.length).toBe(0)
     })
 
     test("should check overlap with box", () =>
     {
-      const math = MathHelper.create(elements, point, box)
+      const math = MathOps.create(elements, point, box)
       const overlappingBox = { x: 5, y: 5, width: 10, height: 10 }
 
-      expect(MathHelper.overlaps(math, overlappingBox)).toBe(true)
+      expect(MathOps.overlaps(math, overlappingBox)).toBe(true)
     })
 
     test("should check no overlap with distant box", () =>
     {
-      const math = MathHelper.create(elements, point, box)
+      const math = MathOps.create(elements, point, box)
       const distantBox = { x: 100, y: 100, width: 10, height: 10 }
 
-      expect(MathHelper.overlaps(math, distantBox)).toBe(false)
+      expect(MathOps.overlaps(math, distantBox)).toBe(false)
     })
   })
 
@@ -162,11 +162,11 @@ describe("Math.ts", () =>
   {
     test("should clone math symbol", () =>
     {
-      const math = MathHelper.create(elements, point, box)
+      const math = MathOps.create(elements, point, box)
       const clone = structuredClone(math)
 
       expect(clone.id).toBe(math.id)
-      expect(MathHelper.getLabel(clone)).toBe(MathHelper.getLabel(math))
+      expect(MathOps.getLabel(clone)).toBe(MathOps.getLabel(math))
       expect(clone.elements.length).toBe(math.elements.length)
       expect(clone.point).toEqual(math.point)
     })

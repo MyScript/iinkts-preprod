@@ -17,12 +17,12 @@ import
   isStroke,
   isStrokeSolverOutput,
   cloneSymbol,
-  StrokeHelper,
+  StrokeOps,
 } from "@/symbol"
-import { BoxHelper } from "@/symbol/primitives/Box"
-import { DecoratorHelper } from "@/symbol/decorator/Decorator"
-import { TextHelper } from "@/symbol/text/Text"
-import { MathHelper } from "@/symbol/math/Math"
+import { BoxOps } from "@/symbol/primitives/Box"
+import { DecoratorOps } from "@/symbol/decorator/Decorator"
+import { TextOps } from "@/symbol/text/Text"
+import { MathOps } from "@/symbol/math/Math"
 import { RecognizerWebSocket } from "@/recognizer"
 import type { TIIRendererConfiguration } from "@/renderer";
 import { SVGRenderer, SVGBuilder } from "@/renderer"
@@ -46,16 +46,19 @@ import
 } from "@/manager"
 import { MatrixTransform } from "@/transform"
 import type { TIIHistoryBackendChanges, TIIHistoryChanges, THistoryContext } from "@/history";
-import { IIHistoryManager } from "@/history"
 import type { TPartialDeep} from "@/utils";
-import { mergeDeep, createUUID } from "@/utils"
 import type { IIMenuAction, IIMenuStyle, IIMenuTool } from "@/menu";
-import { IIMenuManager } from "@/menu"
-import { createSymbolFromPartial, createSymbolsFromPartial } from "@/symbol"
+import type { TBaseSymbol } from "@/symbol"
 import type { TEditorOptionsBase } from "@/editor/AbstractEditor";
-import { AbstractEditor } from "@/editor/AbstractEditor"
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { TInteractiveInkEditorConfiguration } from "./InteractiveInkEditorConfiguration";
+import type { SymbolUtil } from "@/symbol-utils/SymbolUtil"
+import { IIHistoryManager } from "@/history"
+import { mergeDeep, createUUID } from "@/utils"
+import { IIMenuManager } from "@/menu"
+import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
+import { createSymbolFromPartial, createSymbolsFromPartial, registerBuiltinSymbolUtils } from "@/symbol-utils"
+import { AbstractEditor } from "@/editor/AbstractEditor"
 import { InteractiveInkEditorConfiguration } from "./InteractiveInkEditorConfiguration"
 import { DOMFactory } from "@/components/dom"
 
@@ -146,6 +149,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
   {
     super(rootElement, options)
 
+    registerBuiltinSymbolUtils()
     this.#configuration = new InteractiveInkEditorConfiguration(options?.configuration)
     this.#penStyle = Object.assign({}, this.#configuration.penStyle)
     if (options?.override?.recognizer) {
@@ -310,6 +314,16 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
   {
     this.layers.showMessageError(error)
     this.event.emitError(error)
+  }
+
+  registerSymbolUtil<T extends TBaseSymbol>(util: SymbolUtil<T>): void
+  {
+    symbolRegistry.register(util)
+  }
+
+  getSymbolUtil<T extends TBaseSymbol>(type: string): SymbolUtil<T> | undefined
+  {
+    return symbolRegistry.getUtil<T>(type)
   }
 
   protected setCursorStyle(): void
@@ -632,7 +646,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
       if (symbolIds.includes(s.id)) {
         s.style = Object.assign({}, s.style, style)
         if (isText(s)) {
-          TextHelper.updateChildrenStyle(s)
+          TextOps.updateChildrenStyle(s)
         }
         this.renderer.drawSymbol(s)
         this.model.updateSymbol(s)
@@ -672,7 +686,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
     {
       if (textIds.includes(s.id)) {
         if (isText(s)) {
-          TextHelper.updateChildrenFont(s, { fontSize, fontWeight: fontWeight === "auto" ? undefined : fontWeight })
+          TextOps.updateChildrenFont(s, { fontSize, fontWeight: fontWeight === "auto" ? undefined : fontWeight })
           const lastWidth = s.bounds.width
           this.typeset.updateBounds(s)
           this.renderer.drawSymbol(s)
@@ -800,7 +814,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
       } else if (remaining.length < dec.targetIds.length) {
         dec.targetIds = remaining
         const targetSyms = remaining.map(id => this.model.getRootSymbol(id)).filter((s): s is TSymbol => !!s)
-        if (targetSyms.length) DecoratorHelper.setBounds(dec, BoxHelper.createFromBoxes(targetSyms.map(s => s.bounds)))
+        if (targetSyms.length) DecoratorOps.setBounds(dec, BoxOps.createFromBoxes(targetSyms.map(s => s.bounds)))
         this.model.updateSymbol(dec)
         this.renderer.drawSymbol(dec)
         updated.push(dec)
@@ -974,7 +988,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
   {
     this.logger.info("importPointEvents", { partialStrokes })
     this.updateLayerState(false)
-    const strokes = partialStrokes.map(StrokeHelper.createFromPartial)
+    const strokes = partialStrokes.map(StrokeOps.createFromPartial)
     strokes.forEach(s =>
     {
       this.model.addSymbol(s)
@@ -1006,7 +1020,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    */
   getSymbolsBounds(symbols: TSymbol[], margin: number = SELECTION_MARGIN): TBox
   {
-    const box = BoxHelper.createFromBoxes(symbols.map(s => s.bounds))
+    const box = BoxOps.createFromBoxes(symbols.map(s => s.bounds))
     box.x -= margin
     box.y -= margin
     box.width += margin * 2
@@ -1184,12 +1198,12 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
     symbols.forEach(s =>
     {
       if (isText(s)) {
-        const content = TextHelper.getLabel(s)
+        const content = TextOps.getLabel(s)
         if (content) {
           textParts.push(content)
         }
       } else if (isMath(s)) {
-        const content = MathHelper.getLabel(s)
+        const content = MathOps.getLabel(s)
         if (content) {
           textParts.push(content)
         }
@@ -1437,7 +1451,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
     try {
       this.updateLayerState(false)
       const symbolsToDuplicate = symbols ?? this.model.symbols
-      const bounds = BoxHelper.createFromBoxes(symbolsToDuplicate.map(s => s.bounds))
+      const bounds = BoxOps.createFromBoxes(symbolsToDuplicate.map(s => s.bounds))
 
       const duplicatedSymbols = symbolsToDuplicate.map(s => {
         const clone = cloneSymbol(s)
