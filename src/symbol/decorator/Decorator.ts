@@ -6,7 +6,7 @@ import { SymbolType } from "@/symbol/Symbol"
 import type { TBaseSymbol } from "@/symbol/Symbol"
 import type { TPoint, TSegment } from "@/symbol/primitives/Point"
 import type { TBox } from "@/symbol/primitives/Box"
-import { BoxHelper } from "@/symbol/primitives/Box"
+import { BoxOps } from "@/symbol/primitives/Box"
 
 /**
  * @group Symbol
@@ -46,9 +46,17 @@ export type TDecorator = TBaseSymbol & {
 
 /**
  * @group Symbol
- * @group Utilities
+ * @summary Check if symbol is a standalone decorator
  */
-export const DecoratorHelper = {
+export function isDecorator(symbol: TBaseSymbol): symbol is TDecorator
+{
+  return symbol.type === SymbolType.Decorator
+}
+
+/**
+ * @group Symbol
+ */
+export const DecoratorOps = {
   create(kind: DecoratorKind, style: TPartialDeep<TStyle>, targetIds: string[] = [], bounds?: TBox): TDecorator
   {
     const mergedStyle = Object.assign({}, DefaultStyle, style) as TStyle
@@ -72,7 +80,7 @@ export const DecoratorHelper = {
       snapPoints: [],
       edges: [],
     }
-    if (bounds) DecoratorHelper.setBounds(decorator, bounds)
+    if (bounds) DecoratorOps.setBounds(decorator, bounds)
     return decorator
   },
 
@@ -92,6 +100,6 @@ export const DecoratorHelper = {
 
   overlaps(decorator: TDecorator, box: TBox): boolean
   {
-    return decorator.hasBounds ? BoxHelper.overlaps(decorator.bounds, box) : false
+    return decorator.hasBounds ? BoxOps.overlaps(decorator.bounds, box) : false
   },
 }

@@ -1,6 +1,6 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { TExportV2, TJIIXExport } from "@/model"
-import { StrokeHelper, type TLegacyStroke } from "@/symbol"
+import { StrokeOps, type TStrokeMinimal } from "@/symbol"
 import type { TPartialDeep } from "@/utils";
 import { computeHmac, getApiInfos, isVersionSuperiorOrEqual } from "@/utils"
 import { RecognizerError } from "./RecognizerError"
@@ -85,7 +85,7 @@ export class RecognizerHTTPV2 {
     }
   }
 
-  protected buildData(strokes: TLegacyStroke[]): TRecognizerHTTPV2PostData {
+  protected buildData(strokes: TStrokeMinimal[]): TRecognizerHTTPV2PostData {
     this.#logger.info("buildData", { strokes })
 
     const contentType: string = this.configuration.recognition.type === "Raw Content" ?
@@ -97,7 +97,7 @@ export class RecognizerHTTPV2 {
       scaleX: 0.265,
       scaleY: 0.265,
       contentType,
-      strokes: strokes.map(s => StrokeHelper.formatToSend(s))
+      strokes: strokes.map(s => StrokeOps.formatToSend(s))
     }
     this.#logger.debug("buildData", { data })
     return data
@@ -236,7 +236,7 @@ export class RecognizerHTTPV2 {
     return mimeTypes
   }
 
-  async send(strokes: TLegacyStroke[], requestedMimeTypes?: string[]): Promise<TExportV2> {
+  async send(strokes: TStrokeMinimal[], requestedMimeTypes?: string[]): Promise<TExportV2> {
     this.#logger.info("send", strokes)
 
     const recognition: TExportV2 = {}

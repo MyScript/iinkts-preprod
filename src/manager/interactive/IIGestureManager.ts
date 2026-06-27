@@ -1,6 +1,6 @@
 import type { TStroke} from "@/symbol";
 import { SymbolType, isDecorator } from "@/symbol"
-import { BoxHelper } from "@/symbol/primitives/Box"
+import { BoxOps } from "@/symbol/primitives/Box"
 import type { IIHistoryManager } from "@/history"
 import type { TPartialDeep } from "@/utils";
 import { isBetween } from "@/utils"
@@ -132,7 +132,7 @@ export class IIGestureManager extends IIAbstractManager
       case "surround": {
         const hasSymbolsToSurrond = this.model.symbols.some(s =>
         {
-          if (s.id !== gestureStroke.id && !isDecorator(s) && BoxHelper.contains(gestureStroke.bounds, s.bounds)) {
+          if (s.id !== gestureStroke.id && !isDecorator(s) && BoxOps.contains(gestureStroke.bounds, s.bounds)) {
             return this.surroundAction === SurroundAction.Select || IIGestureManager.#SURROUND_SELECT_TYPES.has(s.type)
           }
           return false
@@ -187,8 +187,8 @@ export class IIGestureManager extends IIAbstractManager
         {
           return s.id !== gestureStroke.id &&
             (
-              BoxHelper.overlaps(gestureStroke.bounds, s.bounds) && IIGestureManager.#ERASE_OVERLAY_TYPES.has(s.type) ||
-              BoxHelper.contains(gestureStroke.bounds, s.bounds) && IIGestureManager.#ERASE_CONTAIN_TYPES.has(s.type)
+              BoxOps.overlaps(gestureStroke.bounds, s.bounds) && IIGestureManager.#ERASE_OVERLAY_TYPES.has(s.type) ||
+              BoxOps.contains(gestureStroke.bounds, s.bounds) && IIGestureManager.#ERASE_CONTAIN_TYPES.has(s.type)
             )
         })
 

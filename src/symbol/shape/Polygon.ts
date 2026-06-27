@@ -8,8 +8,8 @@ import { isValidPoint } from "@/symbol/primitives/Point"
 import { SymbolType } from "@/symbol/Symbol"
 import type { TBaseSymbol } from "@/symbol/Symbol"
 import type { TBox } from "@/symbol/primitives/Box"
-import { BoxHelper } from "@/symbol/primitives/Box"
-import { ShapeKind } from "./Shape"
+import { BoxOps } from "@/symbol/primitives/Box"
+import { ShapeKind } from "./Shape-enum"
 
 /**
  * @group Symbol
@@ -30,9 +30,8 @@ export type TShapePolygon = TBaseSymbol & {
 
 /**
  * @group Symbol
- * @group Utilities
  */
-export const ShapePolygonHelper = {
+export const ShapePolygonOps = {
   create(points: TPoint[], style?: TPartialDeep<TStyle>): TShapePolygon
   {
     const mergedStyle = Object.assign({}, DefaultStyle, style) as TStyle
@@ -55,7 +54,7 @@ export const ShapePolygonHelper = {
       snapPoints: [],
       edges: [],
     }
-    ShapePolygonHelper.updateDerivedFields(polygon)
+    ShapePolygonOps.updateDerivedFields(polygon)
     return polygon
   },
 
@@ -63,7 +62,7 @@ export const ShapePolygonHelper = {
   {
     if (!partial?.points || partial?.points?.length < 3) throw new Error(`Unable to create polygon at least 3 points required`)
     if (partial?.points?.some(p => !isValidPoint(p))) throw new Error(`Unable to create a polygon, one or more points are invalid`)
-    const polygon = ShapePolygonHelper.create(partial.points as TPoint[], partial.style)
+    const polygon = ShapePolygonOps.create(partial.points as TPoint[], partial.style)
     if (partial.id) polygon.id = partial.id
     return polygon
   },
@@ -71,15 +70,15 @@ export const ShapePolygonHelper = {
   updateDerivedFields(polygon: TShapePolygon): void
   {
     polygon.vertices = polygon.points
-    polygon.bounds = BoxHelper.createFromPoints(polygon.points)
-    polygon.snapPoints = BoxHelper.getSnapPoints(polygon.bounds)
+    polygon.bounds = BoxOps.createFromPoints(polygon.points)
+    polygon.snapPoints = BoxOps.getSnapPoints(polygon.bounds)
     polygon.edges = polygon.points.map((p, i) => ({ p1: p, p2: polygon.points[(i + 1) % polygon.points.length] }))
   },
 
   overlaps(polygon: TShapePolygon, box: TBox): boolean
   {
-    return BoxHelper.isContained(polygon.bounds, box) ||
-      polygon.edges.some(e1 => BoxHelper.getSides(box).some(e2 => !!findIntersectionBetween2Segment(e1, e2)))
+    return BoxOps.isContained(polygon.bounds, box) ||
+      polygon.edges.some(e1 => BoxOps.getSides(box).some(e2 => !!findIntersectionBetween2Segment(e1, e2)))
   },
 
   createTriangleBetweenPoints(origin: TPoint, target: TPoint, style?: TPartialDeep<TStyle>): TShapePolygon
@@ -89,7 +88,7 @@ export const ShapePolygonHelper = {
       { x: target.x, y: origin.y },
       { x: (origin.x + target.x) / 2, y: target.y }
     ]
-    return ShapePolygonHelper.create(points, style)
+    return ShapePolygonOps.create(points, style)
   },
 
   updateTriangleBetweenPoints(poly: TShapePolygon, origin: TPoint, target: TPoint): void
@@ -100,7 +99,7 @@ export const ShapePolygonHelper = {
       { x: (origin.x + target.x) / 2, y: target.y }
     ]
     poly.modificationDate = Date.now()
-    ShapePolygonHelper.updateDerivedFields(poly)
+    ShapePolygonOps.updateDerivedFields(poly)
   },
 
   createParallelogramBetweenPoints(origin: TPoint, target: TPoint, style?: TPartialDeep<TStyle>): TShapePolygon
@@ -111,7 +110,7 @@ export const ShapePolygonHelper = {
       { x: target.x, y: target.y },
       { x: origin.x + (target.x - origin.x) * 0.25, y: target.y },
     ]
-    return ShapePolygonHelper.create(points, style)
+    return ShapePolygonOps.create(points, style)
   },
 
   updateParallelogramBetweenPoints(poly: TShapePolygon, origin: TPoint, target: TPoint): void
@@ -123,24 +122,24 @@ export const ShapePolygonHelper = {
       { x: origin.x + (target.x - origin.x) * 0.25, y: target.y },
     ]
     poly.modificationDate = Date.now()
-    ShapePolygonHelper.updateDerivedFields(poly)
+    ShapePolygonOps.updateDerivedFields(poly)
   },
 
   createRectangleBetweenPoints(origin: TPoint, target: TPoint, style?: TPartialDeep<TStyle>): TShapePolygon
   {
-    const box = BoxHelper.createFromPoints([origin, target])
+    const box = BoxOps.createFromPoints([origin, target])
     const points: TPoint[] = [
       { x: box.x, y: box.y },
       { x: box.x + box.width, y: box.y },
       { x: box.x + box.width, y: box.y + box.height },
       { x: box.x, y: box.y + box.height },
     ]
-    return ShapePolygonHelper.create(points, style)
+    return ShapePolygonOps.create(points, style)
   },
 
   updateRectangleBetweenPoints(poly: TShapePolygon, origin: TPoint, target: TPoint): void
   {
-    const box = BoxHelper.createFromPoints([origin, target])
+    const box = BoxOps.createFromPoints([origin, target])
     poly.points = [
       { x: box.x, y: box.y },
       { x: box.x + box.width, y: box.y },
@@ -148,24 +147,24 @@ export const ShapePolygonHelper = {
       { x: box.x, y: box.y + box.height },
     ]
     poly.modificationDate = Date.now()
-    ShapePolygonHelper.updateDerivedFields(poly)
+    ShapePolygonOps.updateDerivedFields(poly)
   },
 
   createRhombusBetweenPoints(origin: TPoint, target: TPoint, style?: TPartialDeep<TStyle>): TShapePolygon
   {
-    const box = BoxHelper.createFromPoints([origin, target])
+    const box = BoxOps.createFromPoints([origin, target])
     const points: TPoint[] = [
       { x: box.x + box.width / 2, y: box.y },
       { x: box.x + box.width, y: box.y + box.height / 2 },
       { x: box.x + box.width / 2, y: box.y + box.height },
       { x: box.x, y: box.y + box.height / 2 },
     ]
-    return ShapePolygonHelper.create(points, style)
+    return ShapePolygonOps.create(points, style)
   },
 
   updateRhombusBetweenPoints(poly: TShapePolygon, origin: TPoint, target: TPoint): void
   {
-    const box = BoxHelper.createFromPoints([origin, target])
+    const box = BoxOps.createFromPoints([origin, target])
     poly.points = [
       { x: box.x + box.width / 2, y: box.y },
       { x: box.x + box.width, y: box.y + box.height / 2 },
@@ -173,6 +172,15 @@ export const ShapePolygonHelper = {
       { x: box.x, y: box.y + box.height / 2 },
     ]
     poly.modificationDate = Date.now()
-    ShapePolygonHelper.updateDerivedFields(poly)
+    ShapePolygonOps.updateDerivedFields(poly)
+  },
+
+  getSVGPath(polygon: TShapePolygon): string
+  {
+    let path = `M ${polygon.points[0].x} ${polygon.points[0].y}`
+    for (let i = 1; i < polygon.points.length; i++) {
+      path += ` L ${polygon.points[i].x} ${polygon.points[i].y}`
+    }
+    return path + " Z"
   },
 }

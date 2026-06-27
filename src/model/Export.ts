@@ -1,4 +1,5 @@
-import type { EdgeDecoration, TBox } from "@/symbol"
+import type { EdgeDecoration } from "@/symbol/edge/Edge-enum"
+import type { TBox } from "@/symbol/primitives/Box"
 import type { TJIIXElementBase, TJIIXWord, TJIIXChar, TJIIXLine } from "./ExportCommon"
 import type { TJIIXMathElement } from "./ExportMath"
 

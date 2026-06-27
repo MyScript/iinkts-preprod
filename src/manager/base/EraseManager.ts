@@ -1,8 +1,8 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { TEraser, TPoint, TSegment, TBox} from "@/symbol";
 import { isText } from "@/symbol"
-import { BoxHelper } from "@/symbol/primitives/Box"
-import { EraserHelper } from "@/symbol/eraser/Eraser"
+import { BoxOps } from "@/symbol/primitives/Box"
+import { EraserOps } from "@/symbol/eraser/Eraser"
 import type { SVGRenderer } from "@/renderer"
 import type { TPointerInfo } from "@/grabber";
 import { PointerEventGrabber } from "@/grabber"
@@ -37,7 +37,7 @@ export class EraseManager
   {
     const { x, y, width, height } = symbol.bounds
     const expanded = { x: x - radius, y: y - radius, width: width + 2 * radius, height: height + 2 * radius }
-    if (!BoxHelper.containsPoint(expanded, point)) return false
+    if (!BoxOps.containsPoint(expanded, point)) return false
     const edges = symbol.edges
     if (edges.length === 0) {
       const squaredRadius = radius * radius
@@ -74,7 +74,7 @@ export class EraseManager
   start(info: TPointerInfo): void
   {
     this.#logger.info("startErase", { info })
-    this.currentEraser = EraserHelper.create(this.eraserWidth)
+    this.currentEraser = EraserOps.create(this.eraserWidth)
     this.currentEraser.pointers.push(info.pointer)
     this.charsToDelete.clear()
     this.renderer.drawSymbol(this.currentEraser!)
@@ -98,7 +98,7 @@ export class EraseManager
           s.chars.forEach(char => {
             const { x, y, width, height } = char.bounds
             const expanded = { x: x - radius, y: y - radius, width: width + 2 * radius, height: height + 2 * radius }
-            if (BoxHelper.containsPoint(expanded, currentPoint)) {
+            if (BoxOps.containsPoint(expanded, currentPoint)) {
               if (!this.charsToDelete.has(s.id)) {
                 this.charsToDelete.set(s.id, new Set())
               }

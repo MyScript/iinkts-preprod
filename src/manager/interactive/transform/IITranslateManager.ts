@@ -1,4 +1,4 @@
-import { StrokeHelper } from "@/symbol/stroke/Stroke"
+import { StrokeOps } from "@/symbol/stroke/Stroke"
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type {
   TStroke,
@@ -7,14 +7,15 @@ import type {
   TEdge,
   TShape,
   TSymbol,
-  TPoint} from "@/symbol";
+  TPoint
+} from "@/symbol"
 import
 {
   EdgeKind,
   ShapeKind,
-  updateShapeDerivedFields,
-  updateEdgeDerivedFields,
 } from "@/symbol"
+import { EdgeOps } from "@/symbol/edge/Edge"
+import { ShapeOps } from "@/symbol/shape/Shape"
 import { MatrixTransform } from "@/transform"
 import { IIAbstractTransformManager } from "./AbstractTransformManager"
 
@@ -35,7 +36,7 @@ export class IITranslateManager extends IIAbstractTransformManager
   protected applyToStroke(stroke: TStroke, matrix: MatrixTransform): TStroke
   {
     this.applyMatrixToPoints(stroke.pointers, matrix)
-    StrokeHelper.updateBounds(stroke)
+    StrokeOps.updateBounds(stroke)
     return stroke
   }
 
@@ -45,12 +46,12 @@ export class IITranslateManager extends IIAbstractTransformManager
       case ShapeKind.Ellipse:
       case ShapeKind.Circle: {
         shape.center = matrix.applyToPoint(shape.center)
-        updateShapeDerivedFields(shape)
+        ShapeOps.updateShapeDerivedFields(shape)
         return shape
       }
       case ShapeKind.Polygon: {
         this.applyMatrixToPoints(shape.points, matrix)
-        updateShapeDerivedFields(shape)
+        ShapeOps.updateShapeDerivedFields(shape)
         return shape
       }
       default:
@@ -63,18 +64,18 @@ export class IITranslateManager extends IIAbstractTransformManager
     switch (edge.kind) {
       case EdgeKind.Arc: {
         edge.center = matrix.applyToPoint(edge.center)
-        updateEdgeDerivedFields(edge)
+        EdgeOps.updateEdgeDerivedFields(edge)
         return edge
       }
       case EdgeKind.Line: {
         edge.start = matrix.applyToPoint(edge.start)
         edge.end = matrix.applyToPoint(edge.end)
-        updateEdgeDerivedFields(edge)
+        EdgeOps.updateEdgeDerivedFields(edge)
         return edge
       }
       case EdgeKind.PolyEdge: {
         this.applyMatrixToPoints(edge.points, matrix)
-        updateEdgeDerivedFields(edge)
+        EdgeOps.updateEdgeDerivedFields(edge)
         return edge
       }
     }

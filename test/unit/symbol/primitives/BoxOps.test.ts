@@ -1,13 +1,13 @@
 import { describe, test, expect } from "@jest/globals"
-import { BoxHelper, TBox, TPoint } from "../../../../src/iink"
+import { BoxOps, TBox, TPoint } from "../../../../src/iink"
 
-describe("BoxHelper", () =>
+describe("BoxOps", () =>
 {
   describe("createFromPoints", () =>
   {
     test("should return empty box when no points", () =>
     {
-      const box = BoxHelper.createFromPoints([])
+      const box = BoxOps.createFromPoints([])
       expect(box).toEqual({ x: 0, y: 0, width: 0, height: 0 })
     })
 
@@ -20,7 +20,7 @@ describe("BoxHelper", () =>
           points.push({ x, y })
         }
       }
-      const box = BoxHelper.createFromPoints(points)
+      const box = BoxOps.createFromPoints(points)
       expect(box.x).toEqual(xMin)
       expect(box.y).toEqual(yMin)
       expect(box.width).toEqual(xMax - xMin)
@@ -32,7 +32,7 @@ describe("BoxHelper", () =>
   {
     test("should return empty box when no boxes", () =>
     {
-      const box = BoxHelper.createFromBoxes([])
+      const box = BoxOps.createFromBoxes([])
       expect(box).toEqual({ x: 0, y: 0, width: 0, height: 0 })
     })
 
@@ -42,7 +42,7 @@ describe("BoxHelper", () =>
         { height: 1, width: 2, x: 3, y: 4 },
         { height: 5, width: 6, x: 7, y: 8 },
       ]
-      const box = BoxHelper.createFromBoxes(boxes)
+      const box = BoxOps.createFromBoxes(boxes)
       expect(box.x).toEqual(3)
       expect(box.y).toEqual(4)
       expect(box.width).toEqual(10)
@@ -55,7 +55,7 @@ describe("BoxHelper", () =>
     test("should return 4 corners", () =>
     {
       const box: TBox = { x: 1, y: 2, width: 4, height: 6 }
-      const corners = BoxHelper.getCorners(box)
+      const corners = BoxOps.getCorners(box)
       expect(corners).toHaveLength(4)
       expect(corners[0]).toEqual({ x: 1, y: 2 })
       expect(corners[1]).toEqual({ x: 5, y: 2 })
@@ -69,7 +69,7 @@ describe("BoxHelper", () =>
     test("should return 4 side midpoints", () =>
     {
       const box: TBox = { x: 0, y: 0, width: 4, height: 6 }
-      const sides = BoxHelper.getSide(box)
+      const sides = BoxOps.getSide(box)
       expect(sides).toHaveLength(4)
       expect(sides[0]).toEqual({ x: 2, y: 0 })
       expect(sides[1]).toEqual({ x: 4, y: 3 })
@@ -83,7 +83,7 @@ describe("BoxHelper", () =>
     test("should return center point", () =>
     {
       const box: TBox = { x: 0, y: 0, width: 4, height: 6 }
-      expect(BoxHelper.getCenter(box)).toEqual({ x: 2, y: 3 })
+      expect(BoxOps.getCenter(box)).toEqual({ x: 2, y: 3 })
     })
   })
 
@@ -92,7 +92,7 @@ describe("BoxHelper", () =>
     test("should return 4 segments forming the box perimeter", () =>
     {
       const box: TBox = { x: 0, y: 0, width: 4, height: 4 }
-      const sides = BoxHelper.getSides(box)
+      const sides = BoxOps.getSides(box)
       expect(sides).toHaveLength(4)
     })
   })
@@ -102,9 +102,9 @@ describe("BoxHelper", () =>
     test("should return 5 points (4 corners + center)", () =>
     {
       const box: TBox = { x: 0, y: 0, width: 4, height: 4 }
-      const snaps = BoxHelper.getSnapPoints(box)
+      const snaps = BoxOps.getSnapPoints(box)
       expect(snaps).toHaveLength(5)
-      expect(snaps[4]).toEqual(BoxHelper.getCenter(box))
+      expect(snaps[4]).toEqual(BoxOps.getCenter(box))
     })
   })
 
@@ -114,14 +114,14 @@ describe("BoxHelper", () =>
     {
       const box: TBox = { x: 1, y: 1, width: 2, height: 2 }
       const wrapper: TBox = { x: 0, y: 0, width: 10, height: 10 }
-      expect(BoxHelper.isContained(box, wrapper)).toBe(true)
+      expect(BoxOps.isContained(box, wrapper)).toBe(true)
     })
 
     test("should return false when box is outside wrapper", () =>
     {
       const box: TBox = { x: 0, y: 0, width: 20, height: 20 }
       const wrapper: TBox = { x: 1, y: 1, width: 2, height: 2 }
-      expect(BoxHelper.isContained(box, wrapper)).toBe(false)
+      expect(BoxOps.isContained(box, wrapper)).toBe(false)
     })
   })
 
@@ -130,13 +130,13 @@ describe("BoxHelper", () =>
     test("should return true when point is inside box", () =>
     {
       const box: TBox = { x: 0, y: 0, width: 10, height: 10 }
-      expect(BoxHelper.containsPoint(box, { x: 5, y: 5 })).toBe(true)
+      expect(BoxOps.containsPoint(box, { x: 5, y: 5 })).toBe(true)
     })
 
     test("should return false when point is outside box", () =>
     {
       const box: TBox = { x: 0, y: 0, width: 10, height: 10 }
-      expect(BoxHelper.containsPoint(box, { x: 15, y: 5 })).toBe(false)
+      expect(BoxOps.containsPoint(box, { x: 15, y: 5 })).toBe(false)
     })
   })
 
@@ -146,14 +146,14 @@ describe("BoxHelper", () =>
     {
       const box: TBox = { x: 0, y: 0, width: 10, height: 10 }
       const child: TBox = { x: 1, y: 1, width: 2, height: 2 }
-      expect(BoxHelper.contains(box, child)).toBe(true)
+      expect(BoxOps.contains(box, child)).toBe(true)
     })
 
     test("should return false when child is outside box", () =>
     {
       const box: TBox = { x: 0, y: 0, width: 10, height: 10 }
       const child: TBox = { x: 9, y: 9, width: 5, height: 5 }
-      expect(BoxHelper.contains(box, child)).toBe(false)
+      expect(BoxOps.contains(box, child)).toBe(false)
     })
   })
 
@@ -163,21 +163,21 @@ describe("BoxHelper", () =>
     {
       const box1: TBox = { x: 0, y: 0, width: 10, height: 10 }
       const box2: TBox = { x: 5, y: 5, width: 10, height: 10 }
-      expect(BoxHelper.overlaps(box1, box2)).toBe(true)
+      expect(BoxOps.overlaps(box1, box2)).toBe(true)
     })
 
     test("should return false when boxes do not overlap", () =>
     {
       const box1: TBox = { x: 0, y: 0, width: 4, height: 4 }
       const box2: TBox = { x: 5, y: 5, width: 4, height: 4 }
-      expect(BoxHelper.overlaps(box1, box2)).toBe(false)
+      expect(BoxOps.overlaps(box1, box2)).toBe(false)
     })
 
     test("should return false when box is to the right", () =>
     {
       const box1: TBox = { x: 0, y: 0, width: 4, height: 10 }
       const box2: TBox = { x: 10, y: 0, width: 4, height: 10 }
-      expect(BoxHelper.overlaps(box1, box2)).toBe(false)
+      expect(BoxOps.overlaps(box1, box2)).toBe(false)
     })
   })
 })

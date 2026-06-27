@@ -1,5 +1,5 @@
 import { round } from "../../helpers"
-import { ShapeCircleHelper } from "../../../../src/symbol/shape/Circle"
+import { ShapeCircleOps } from "../../../../src/symbol/shape/Circle"
 import
 {
   TPoint,
@@ -20,7 +20,7 @@ describe("Circle.ts", () =>
         color: "blue",
         width: 20
       }
-      const circle = ShapeCircleHelper.create(center, radius, style)
+      const circle = ShapeCircleOps.create(center, radius, style)
       expect(circle).toBeDefined()
       expect(circle.creationTime).toBeLessThanOrEqual(Date.now())
       expect(circle.creationTime).toEqual(circle.modificationDate)
@@ -38,14 +38,14 @@ describe("Circle.ts", () =>
     {
       const center: TPoint = { x: 5, y: 0 }
       const radius = 5
-      const circle = ShapeCircleHelper.create(center, radius)
+      const circle = ShapeCircleOps.create(center, radius)
       expect(circle.style).toEqual(DefaultStyle)
     })
     test("should create and have many vertices", () =>
     {
       const center: TPoint = { x: 5, y: 0 }
       const radius = 50
-      const circle = ShapeCircleHelper.create(center, radius)
+      const circle = ShapeCircleOps.create(center, radius)
       expect(circle.vertices).toHaveLength(31)
     })
   })
@@ -54,26 +54,26 @@ describe("Circle.ts", () =>
   {
     const center: TPoint = { x: 10, y: 10 }
     const radius = 10
-    const circle = ShapeCircleHelper.create(center, radius)
+    const circle = ShapeCircleOps.create(center, radius)
     test(`should return true if partially wrap`, () =>
     {
       const boundaries: TBox = { height: 10, width: 10, x: -5, y: -5 }
-      expect(ShapeCircleHelper.overlaps(circle, boundaries)).toEqual(true)
+      expect(ShapeCircleOps.overlaps(circle, boundaries)).toEqual(true)
     })
     test(`should return true if totally wrap`, () =>
     {
       const boundaries: TBox = { height: 50, width: 50, x: -25, y: -25 }
-      expect(ShapeCircleHelper.overlaps(circle, boundaries)).toEqual(true)
+      expect(ShapeCircleOps.overlaps(circle, boundaries)).toEqual(true)
     })
     test(`should return false if box is outside`, () =>
     {
       const boundaries: TBox = { height: 2, width: 2, x: 50, y: 50 }
-      expect(ShapeCircleHelper.overlaps(circle, boundaries)).toEqual(false)
+      expect(ShapeCircleOps.overlaps(circle, boundaries)).toEqual(false)
     })
     test(`should return false if box is inside`, () =>
     {
       const boundaries: TBox = { height: 2, width: 2, x: 9, y: 9 }
-      expect(ShapeCircleHelper.overlaps(circle, boundaries)).toEqual(false)
+      expect(ShapeCircleOps.overlaps(circle, boundaries)).toEqual(false)
     })
   })
 
@@ -87,7 +87,7 @@ describe("Circle.ts", () =>
         color: "blue",
         width: 20
       }
-      const circle = ShapeCircleHelper.create(center, radius, style)
+      const circle = ShapeCircleOps.create(center, radius, style)
       const clone = structuredClone(circle)
       expect(clone).toEqual(circle)
       expect(clone).not.toBe(circle)
@@ -104,7 +104,7 @@ describe("Circle.ts", () =>
         color: "blue",
         width: 20
       }
-      const circle = ShapeCircleHelper.createBetweenPoints(origin, target, style)
+      const circle = ShapeCircleOps.createBetweenPoints(origin, target, style)
       expect(circle).toBeDefined()
       expect(circle.creationTime).toBeLessThanOrEqual(Date.now())
       expect(circle.creationTime).toEqual(circle.modificationDate)
@@ -115,14 +115,14 @@ describe("Circle.ts", () =>
     {
       const origin: TPoint = { x: 1, y: 2 }
       const target: TPoint = { x: 4, y: 6 }
-      const circle = ShapeCircleHelper.createBetweenPoints(origin, target)
+      const circle = ShapeCircleOps.createBetweenPoints(origin, target)
       expect(circle.style).toEqual(DefaultStyle)
     })
     test("should create when origin is equal to target", () =>
     {
       const origin: TPoint = { x: 1, y: 2 }
       const target: TPoint = { x: 1, y: 2 }
-      const circle = ShapeCircleHelper.createBetweenPoints(origin, target)
+      const circle = ShapeCircleOps.createBetweenPoints(origin, target)
       expect(circle.center).toEqual(origin)
       expect(circle.radius).toEqual(0)
       expect(circle.bounds.height).toEqual(0)
@@ -135,7 +135,7 @@ describe("Circle.ts", () =>
     {
       const origin: TPoint = { x: 1, y: 2 }
       const target: TPoint = { x: 11, y: 22 }
-      const circle = ShapeCircleHelper.createBetweenPoints(origin, target)
+      const circle = ShapeCircleOps.createBetweenPoints(origin, target)
       expect(circle.center).toEqual(origin)
       expect(round(circle.radius, 0)).toEqual(22)
       expect(round(circle.bounds.width, 0)).toEqual(45)
@@ -147,7 +147,7 @@ describe("Circle.ts", () =>
     {
       const origin: TPoint = { x: 11, y: 2 }
       const target: TPoint = { x: 1, y: 22 }
-      const circle = ShapeCircleHelper.createBetweenPoints(origin, target)
+      const circle = ShapeCircleOps.createBetweenPoints(origin, target)
       expect(circle.center).toEqual(origin)
       expect(round(circle.radius, 0)).toEqual(22)
       expect(round(circle.bounds.width, 0)).toEqual(45)
@@ -159,7 +159,7 @@ describe("Circle.ts", () =>
     {
       const origin: TPoint = { x: 11, y: 22 }
       const target: TPoint = { x: 1, y: 2 }
-      const circle = ShapeCircleHelper.createBetweenPoints(origin, target)
+      const circle = ShapeCircleOps.createBetweenPoints(origin, target)
       expect(circle.center).toEqual(origin)
       expect(round(circle.radius, 0)).toEqual(22)
       expect(round(circle.bounds.width, 0)).toEqual(45)
@@ -171,7 +171,7 @@ describe("Circle.ts", () =>
     {
       const origin: TPoint = { x: 1, y: 22 }
       const target: TPoint = { x: 11, y: 2 }
-      const circle = ShapeCircleHelper.createBetweenPoints(origin, target)
+      const circle = ShapeCircleOps.createBetweenPoints(origin, target)
       expect(circle.center).toEqual(origin)
       expect(round(circle.radius, 0)).toEqual(22)
       expect(round(circle.bounds.width, 0)).toEqual(45)
@@ -185,7 +185,7 @@ describe("Circle.ts", () =>
   {
     const origin: TPoint = { x: 1, y: 2 }
     const target: TPoint = { x: 4, y: 6 }
-    const circle = ShapeCircleHelper.createBetweenPoints(origin, target)
+    const circle = ShapeCircleOps.createBetweenPoints(origin, target)
     test("should updateBetweenPoints when target x increas", () =>
     {
       expect(circle.center).toEqual(origin)
@@ -194,7 +194,7 @@ describe("Circle.ts", () =>
       expect(round(circle.bounds.height, 0)).toEqual(10)
       expect(round(circle.bounds.x, 0)).toEqual(-4)
       expect(round(circle.bounds.y, 0)).toEqual(-3)
-      ShapeCircleHelper.updateBetweenPoints(circle, origin, { x: target.x + 6, y: target.y })
+      ShapeCircleOps.updateBetweenPoints(circle, origin, { x: target.x + 6, y: target.y })
       expect(circle.center).toEqual(origin)
       expect(round(circle.radius, 0)).toEqual(10)
       expect(round(circle.bounds.width, 0)).toEqual(20)
@@ -204,7 +204,7 @@ describe("Circle.ts", () =>
     })
     test("should updateBetweenPoints when target y increase", () =>
     {
-      ShapeCircleHelper.updateBetweenPoints(circle, origin, { x: target.x, y: target.y + 4 })
+      ShapeCircleOps.updateBetweenPoints(circle, origin, { x: target.x, y: target.y + 4 })
       expect(circle.center).toEqual(origin)
       expect(round(circle.radius, 0)).toEqual(9)
       expect(round(circle.bounds.width, 0)).toEqual(17)

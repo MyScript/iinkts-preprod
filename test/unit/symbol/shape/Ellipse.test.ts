@@ -1,4 +1,4 @@
-import { ShapeEllipseHelper } from "../../../../src/symbol/shape/Ellipse"
+import { ShapeEllipseOps } from "../../../../src/symbol/shape/Ellipse"
 import
 {
   TPoint,
@@ -21,7 +21,7 @@ describe("Ellipse.ts", () =>
         width: 20
       }
       const phi = 0
-      const ellipse = ShapeEllipseHelper.create(center, radiusX, radiusY, phi, style)
+      const ellipse = ShapeEllipseOps.create(center, radiusX, radiusY, phi, style)
       expect(ellipse).toBeDefined()
       expect(ellipse.creationTime).toBeLessThanOrEqual(Date.now())
       expect(ellipse.creationTime).toEqual(ellipse.modificationDate)
@@ -42,7 +42,7 @@ describe("Ellipse.ts", () =>
       const radiusX = 5
       const radiusY = 10
       const phi = 0
-      const ellipse = ShapeEllipseHelper.create(center, radiusX, radiusY, phi)
+      const ellipse = ShapeEllipseOps.create(center, radiusX, radiusY, phi)
       expect(ellipse.style).toEqual(DefaultStyle)
     })
     test("should create and have many vertices", () =>
@@ -51,7 +51,7 @@ describe("Ellipse.ts", () =>
       const radiusX = 50
       const radiusY = 100
       const phi = 0
-      const ellipse = ShapeEllipseHelper.create(center, radiusX, radiusY, phi)
+      const ellipse = ShapeEllipseOps.create(center, radiusX, radiusY, phi)
       expect(ellipse.vertices).toHaveLength(50)
     })
   })
@@ -66,7 +66,7 @@ describe("Ellipse.ts", () =>
         color: "blue",
         width: 20
       }
-      const ellipse = ShapeEllipseHelper.createBetweenPoints(origin, target, style)
+      const ellipse = ShapeEllipseOps.createBetweenPoints(origin, target, style)
       expect(ellipse).toBeDefined()
       expect(ellipse.creationTime).toBeLessThanOrEqual(Date.now())
       expect(ellipse.creationTime).toEqual(ellipse.modificationDate)
@@ -80,14 +80,14 @@ describe("Ellipse.ts", () =>
     {
       const origin: TPoint = { x: 1, y: 2 }
       const target: TPoint = { x: 4, y: 6 }
-      const ellipse = ShapeEllipseHelper.createBetweenPoints(origin, target)
+      const ellipse = ShapeEllipseOps.createBetweenPoints(origin, target)
       expect(ellipse.style).toEqual(DefaultStyle)
     })
     test("should create when origin is equal to target", () =>
     {
       const origin: TPoint = { x: 1, y: 2 }
       const target: TPoint = { x: 1, y: 2 }
-      const ellipse = ShapeEllipseHelper.createBetweenPoints(origin, target)
+      const ellipse = ShapeEllipseOps.createBetweenPoints(origin, target)
       expect(ellipse.center).toEqual(origin)
       expect(ellipse.radiusX).toEqual(0)
       expect(ellipse.radiusY).toEqual(0)
@@ -101,7 +101,7 @@ describe("Ellipse.ts", () =>
     {
       const origin: TPoint = { x: 1, y: 2 }
       const target: TPoint = { x: 11, y: 22 }
-      const ellipse = ShapeEllipseHelper.createBetweenPoints(origin, target)
+      const ellipse = ShapeEllipseOps.createBetweenPoints(origin, target)
       expect(ellipse.center).toEqual({ x: 6, y: 12 })
       expect(ellipse.radiusX).toEqual(5)
       expect(ellipse.radiusY).toEqual(10)
@@ -114,7 +114,7 @@ describe("Ellipse.ts", () =>
     {
       const origin: TPoint = { x: 11, y: 2 }
       const target: TPoint = { x: 1, y: 22 }
-      const ellipse = ShapeEllipseHelper.createBetweenPoints(origin, target)
+      const ellipse = ShapeEllipseOps.createBetweenPoints(origin, target)
       expect(ellipse.center).toEqual({ x: 6, y: 12 })
       expect(ellipse.radiusX).toEqual(5)
       expect(ellipse.radiusY).toEqual(10)
@@ -127,7 +127,7 @@ describe("Ellipse.ts", () =>
     {
       const origin: TPoint = { x: 11, y: 22 }
       const target: TPoint = { x: 1, y: 2 }
-      const ellipse = ShapeEllipseHelper.createBetweenPoints(origin, target)
+      const ellipse = ShapeEllipseOps.createBetweenPoints(origin, target)
       expect(ellipse.center).toEqual({ x: 6, y: 12 })
       expect(ellipse.radiusX).toEqual(5)
       expect(ellipse.radiusY).toEqual(10)
@@ -140,7 +140,7 @@ describe("Ellipse.ts", () =>
     {
       const origin: TPoint = { x: 1, y: 22 }
       const target: TPoint = { x: 11, y: 2 }
-      const ellipse = ShapeEllipseHelper.createBetweenPoints(origin, target)
+      const ellipse = ShapeEllipseOps.createBetweenPoints(origin, target)
       expect(ellipse.center).toEqual({ x: 6, y: 12 })
       expect(ellipse.radiusX).toEqual(5)
       expect(ellipse.radiusY).toEqual(10)
@@ -159,7 +159,7 @@ describe("Ellipse.ts", () =>
       color: "blue",
       width: 20
     }
-    const ellipse = ShapeEllipseHelper.createBetweenPoints(origin, target, style)
+    const ellipse = ShapeEllipseOps.createBetweenPoints(origin, target, style)
     test("should updateBetweenPoints when target x increas", () =>
     {
       expect(ellipse.center).toEqual({ x: 2.5, y: 4 })
@@ -169,7 +169,7 @@ describe("Ellipse.ts", () =>
       expect(ellipse.bounds.height).toEqual(4)
       expect(ellipse.bounds.x).toEqual(1)
       expect(ellipse.bounds.y).toEqual(2)
-      ShapeEllipseHelper.updateBetweenPoints(ellipse, origin, { x: target.x + 6, y: target.y })
+      ShapeEllipseOps.updateBetweenPoints(ellipse, origin, { x: target.x + 6, y: target.y })
       expect(ellipse.center).toEqual({ x: 5.5, y: 4 })
       expect(ellipse.radiusX).toEqual(4.5)
       expect(ellipse.radiusY).toEqual(2)
@@ -180,7 +180,7 @@ describe("Ellipse.ts", () =>
     })
     test("should updateBetweenPoints when target y increase", () =>
     {
-      ShapeEllipseHelper.updateBetweenPoints(ellipse, origin, { x: target.x, y: target.y + 4 })
+      ShapeEllipseOps.updateBetweenPoints(ellipse, origin, { x: target.x, y: target.y + 4 })
       expect(ellipse.center).toEqual({ x: 2.5, y: 6 })
       expect(ellipse.radiusX).toEqual(1.5)
       expect(ellipse.radiusY).toEqual(4)
@@ -197,26 +197,26 @@ describe("Ellipse.ts", () =>
     const radiusX = 5
     const radiusY = 10
     const phi = 0
-    const ellipse = ShapeEllipseHelper.create(center, radiusX, radiusY, phi)
+    const ellipse = ShapeEllipseOps.create(center, radiusX, radiusY, phi)
     test(`should return true if partially wrap`, () =>
     {
       const boundaries: TBox = { height: 10, width: 10, x: -5, y: -5 }
-      expect(ShapeEllipseHelper.overlaps(ellipse, boundaries)).toEqual(true)
+      expect(ShapeEllipseOps.overlaps(ellipse, boundaries)).toEqual(true)
     })
     test(`should return true if totally wrap`, () =>
     {
       const boundaries: TBox = { height: 50, width: 50, x: -25, y: -25 }
-      expect(ShapeEllipseHelper.overlaps(ellipse, boundaries)).toEqual(true)
+      expect(ShapeEllipseOps.overlaps(ellipse, boundaries)).toEqual(true)
     })
     test(`should return false if box is outside`, () =>
     {
       const boundaries: TBox = { height: 2, width: 2, x: 50, y: 50 }
-      expect(ShapeEllipseHelper.overlaps(ellipse, boundaries)).toEqual(false)
+      expect(ShapeEllipseOps.overlaps(ellipse, boundaries)).toEqual(false)
     })
     test(`should return false if box is inside`, () =>
     {
       const boundaries: TBox = { height: 2, width: 2, x: 9, y: 9 }
-      expect(ShapeEllipseHelper.overlaps(ellipse, boundaries)).toEqual(false)
+      expect(ShapeEllipseOps.overlaps(ellipse, boundaries)).toEqual(false)
     })
   })
 
@@ -228,7 +228,7 @@ describe("Ellipse.ts", () =>
       const radiusX = 5
       const radiusY = 10
       const phi = 0
-      const ellipse = ShapeEllipseHelper.create(center, radiusX, radiusY, phi)
+      const ellipse = ShapeEllipseOps.create(center, radiusX, radiusY, phi)
       const clone = structuredClone(ellipse)
       expect(clone).toEqual(ellipse)
       expect(clone).not.toBe(ellipse)

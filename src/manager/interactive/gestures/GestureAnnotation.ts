@@ -1,7 +1,7 @@
 import type { TDecorator, TStroke, TText, TBox, DecoratorKind} from "@/symbol";
 import { SymbolType, isDecorator, isRecognizedText, isText, type TSymbol } from "@/symbol"
-import { BoxHelper } from "@/symbol/primitives/Box"
-import { DecoratorHelper } from "@/symbol/decorator/Decorator"
+import { BoxOps } from "@/symbol/primitives/Box"
+import { DecoratorOps } from "@/symbol/decorator/Decorator"
 import type { TIIHistoryChanges } from "@/history"
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 
@@ -99,11 +99,11 @@ export class IIGestureAnnotationProcessor
       this.editor.renderer.removeElement(existing.id)
       erased.push(existing)
     } else {
-      const decorator = DecoratorHelper.create(kind, this.editor.penStyle, targetIds)
-      if (wordBounds) DecoratorHelper.setBounds(decorator, wordBounds)
+      const decorator = DecoratorOps.create(kind, this.editor.penStyle, targetIds)
+      if (wordBounds) DecoratorOps.setBounds(decorator, wordBounds)
       else {
         const bounds = this.#computeBoundsFromTargets(targetIds)
-        if (bounds) DecoratorHelper.setBounds(decorator, bounds)
+        if (bounds) DecoratorOps.setBounds(decorator, bounds)
       }
       if (baseline !== null) decorator.baseline = baseline
       if (xHeight !== null) decorator.xHeight = xHeight
@@ -122,7 +122,7 @@ export class IIGestureAnnotationProcessor
       this.editor.renderer.drawSymbol(sym)
       erased.push(removed)
     } else {
-      const decorator = DecoratorHelper.create(kind, this.editor.penStyle)
+      const decorator = DecoratorOps.create(kind, this.editor.penStyle)
       sym.decorators.push(decorator)
       this.editor.model.updateSymbol(sym)
       this.editor.renderer.drawSymbol(sym)
@@ -143,7 +143,7 @@ export class IIGestureAnnotationProcessor
       .map(id => this.editor.model.getRootSymbol(id))
       .filter((s): s is TSymbol => !!s)
     if (!syms.length) return null
-    return BoxHelper.createFromBoxes(syms.map(s => s.bounds))
+    return BoxOps.createFromBoxes(syms.map(s => s.bounds))
   }
 
   #applyThicken(ids: string[], factor: number): TStroke[]

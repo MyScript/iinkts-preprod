@@ -2,7 +2,7 @@ import { arcJIIX, circleJIIX, ellipseJIIX, hTextJIIX, lineJIIX, parallelogramJII
 import { buildIIStroke } from "../../helpers"
 import { createEditorMock, asEditor } from "../../__mocks__/createEditorMock"
 import { IIConversionManager, TJIIXEdgeElement, TJIIXNodeElement, TJIIXTextElement } from "../../../../src/iink"
-import { TextHelper } from "../../../../src/symbol/text/Text"
+import { TextOps } from "../../../../src/symbol/text/Text"
 
 describe("IIConversionManager.ts", () =>
 {
@@ -98,7 +98,7 @@ describe("IIConversionManager.ts", () =>
       const result = manager.convertText(hTextJIIXElement, [helloStroke], false)!
       expect(result).toHaveLength(1)
       expect(result[0].strokes).toEqual([helloStroke])
-      expect(TextHelper.getLabel(result[0].symbol)).toEqual("h")
+      expect(TextOps.getLabel(result[0].symbol)).toEqual("h")
     })
   })
 

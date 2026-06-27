@@ -9,7 +9,7 @@ import
   TStroke,
   TRecognizerWebSocketMessageType
 } from "../../../../src/iink"
-import { BoxHelper } from "../../../../src/iink"
+import { BoxOps } from "../../../../src/iink"
 
 describe("IIGestureManager.ts", () =>
 {
@@ -438,13 +438,13 @@ describe("IIGestureManager.ts", () =>
       test("should return undefined when the gesture stroke contains no symbols", async () =>
       {
         const gestureStroke = buildIIStroke({ box: { height: 10, width: 10, x: 0, y: 0 } })
-        editor.model.addSymbol(buildIICircle({ center: BoxHelper.getCenter(gestureStroke.bounds), radius: Math.max(gestureStroke.bounds.width * 2, gestureStroke.bounds.height * 2) }))
+        editor.model.addSymbol(buildIICircle({ center: BoxOps.getCenter(gestureStroke.bounds), radius: Math.max(gestureStroke.bounds.width * 2, gestureStroke.bounds.height * 2) }))
         expect(await gestMan.getGestureFromContextLess(gestureStroke)).toBeUndefined()
       })
       test("should return gesture when the gesture stroke contains symbol", async () =>
       {
         const gestureStroke = buildIIStroke({ box: { height: 10, width: 10, x: 0, y: 0 } })
-        editor.model.addSymbol(buildIICircle({ center: BoxHelper.getCenter(gestureStroke.bounds), radius: Math.min(gestureStroke.bounds.width / 2, gestureStroke.bounds.height / 2) }))
+        editor.model.addSymbol(buildIICircle({ center: BoxOps.getCenter(gestureStroke.bounds), radius: Math.min(gestureStroke.bounds.width / 2, gestureStroke.bounds.height / 2) }))
         expect(await gestMan.getGestureFromContextLess(gestureStroke)).toEqual(expect.objectContaining({
           gestureType: "SURROUND",
           gestureStrokeId: gestureStroke.id
