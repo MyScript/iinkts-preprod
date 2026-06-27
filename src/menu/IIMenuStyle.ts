@@ -4,7 +4,7 @@ import { LoggerCategory, LoggerManager } from "@/logger"
 import type { IIModel } from "@/model"
 import type { TSymbol} from "@/symbol";
 import { isShape } from "@/symbol"
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { DOMFactory } from "@/components/dom"
 import { DEFAULT_MENU_COLORS, DEFAULT_THICKNESS_LIST, DEFAULT_FONT_SIZE_LIST, DEFAULT_FONT_WEIGHT_LIST } from "./MenuConstants"
 import type { BaseMenuItem } from "./items"
@@ -65,7 +65,7 @@ export class IIMenuStyle
 {
   #logger = LoggerManager.getLogger(LoggerCategory.MENU)
 
-  editor: InteractiveInkEditor
+  editor: TInteractiveInkEditor
   id: string
   wrapper?: HTMLDivElement
   config: Required<TMenuStyleConfig>
@@ -77,7 +77,7 @@ export class IIMenuStyle
   // Style items
   private styleItems: Map<string, BaseMenuItem> = new Map()
 
-  constructor(editor: InteractiveInkEditor, id = "ms-menu-style", config?: TMenuStyleConfig)
+  constructor(editor: TInteractiveInkEditor, id = "ms-menu-style", config?: TMenuStyleConfig)
   {
     this.id = id
     this.#logger.info("constructor")

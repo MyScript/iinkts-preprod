@@ -1,4 +1,4 @@
-import { InteractiveInkEditorMock } from "../../../__mocks__/InteractiveInkEditorMock"
+import { createEditorMock, asEditor } from "../../../__mocks__/createEditorMock"
 import { buildIIStroke, buildIIText } from "../../../helpers"
 import {
   ScratchGestureHandler,
@@ -9,16 +9,15 @@ import {
 
 describe("ScratchGestureHandler.ts", () =>
 {
-  let editor: InteractiveInkEditorMock
+  let editor: ReturnType<typeof createEditorMock>
   let helpers: GestureHelpers
   let handler: ScratchGestureHandler
 
   beforeEach(() =>
   {
-    editor = new InteractiveInkEditorMock()
-    editor.init()
-    helpers = new GestureHelpers(editor)
-    handler = new ScratchGestureHandler(editor, helpers)
+    editor = createEditorMock()
+    helpers = new GestureHelpers(asEditor(editor))
+    handler = new ScratchGestureHandler(asEditor(editor), helpers)
   })
 
   test("should instantiate", () =>

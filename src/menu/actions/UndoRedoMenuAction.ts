@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
 import undoIcon from "@/assets/svg/undo.svg"
 import redoIcon from "@/assets/svg/redo.svg"
@@ -12,7 +12,7 @@ export class UndoRedoMenuAction extends BaseMenuItem<HTMLDivElement>
   private undoButton!: HTMLButtonElement
   private redoButton!: HTMLButtonElement
 
-  constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-action")
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-action")
   {
     const config = {
       type: "undoredo" as const,

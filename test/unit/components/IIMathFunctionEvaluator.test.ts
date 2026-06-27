@@ -1,23 +1,22 @@
-import { InteractiveInkEditorMock } from "../__mocks__/InteractiveInkEditorMock"
+import { createEditorMock, asEditor } from "../__mocks__/createEditorMock"
+import type { IIJiixQueryManager } from "../../../src/iink"
 import { IIMathFunctionEvaluator } from "../../../src/iink"
 
 describe("IIMathFunctionEvaluator.ts", () =>
 {
-  let editor: InteractiveInkEditorMock
+  let editor: ReturnType<typeof createEditorMock>
 
   beforeEach(() =>
   {
-    editor = new InteractiveInkEditorMock()
-    editor.init()
-
-    // Mock jiix.getBlockLabel method
-    editor.jiix = {
-      getBlockLabel: jest.fn().mockImplementation((id: string) => {
-        if (id === "block-1") return "f(x) = x + 1"
-        if (id === "block-2") return "g(x) = 2x"
-        return "Unknown"
-      })
-    } as any
+    editor = createEditorMock({
+      jiix: {
+        getBlockLabel: jest.fn().mockImplementation((id: string) => {
+          if (id === "block-1") return "f(x) = x + 1"
+          if (id === "block-2") return "g(x) = 2x"
+          return "Unknown"
+        })
+      } as unknown as IIJiixQueryManager
+    })
 
     // Mock math.getEvaluables method
     editor.math.getEvaluables = jest.fn().mockResolvedValue([
@@ -39,7 +38,7 @@ describe("IIMathFunctionEvaluator.ts", () =>
   {
     const jiixBlockIds = ["block-1", "block-2"]
 
-    const evaluator = new IIMathFunctionEvaluator(editor, jiixBlockIds)
+    const evaluator = new IIMathFunctionEvaluator(asEditor(editor), jiixBlockIds)
     expect(evaluator).toBeDefined()
   })
 
@@ -47,7 +46,7 @@ describe("IIMathFunctionEvaluator.ts", () =>
   {
     const jiixBlockIds = ["block-1", "block-1", "block-2"]
 
-    const evaluator = new IIMathFunctionEvaluator(editor, jiixBlockIds)
+    const evaluator = new IIMathFunctionEvaluator(asEditor(editor), jiixBlockIds)
     expect(evaluator).toBeDefined()
   })
 
@@ -57,7 +56,7 @@ describe("IIMathFunctionEvaluator.ts", () =>
     {
       const jiixBlockIds = ["block-1", "block-2"]
 
-      const evaluator = new IIMathFunctionEvaluator(editor, jiixBlockIds)
+      const evaluator = new IIMathFunctionEvaluator(asEditor(editor), jiixBlockIds)
 
       // Mock modal to prevent actual DOM operations
       const showSpy = jest.spyOn(evaluator as any, "createModalContent")
@@ -75,7 +74,7 @@ describe("IIMathFunctionEvaluator.ts", () =>
     {
       const jiixBlockIds = ["", "block-2"]
 
-      const evaluator = new IIMathFunctionEvaluator(editor, jiixBlockIds)
+      const evaluator = new IIMathFunctionEvaluator(asEditor(editor), jiixBlockIds)
 
       const showSpy = jest.spyOn(evaluator as any, "createModalContent")
       showSpy.mockReturnValue(document.createElement("div"))
@@ -93,7 +92,7 @@ describe("IIMathFunctionEvaluator.ts", () =>
     {
       const jiixBlockIds = ["block-1", "block-2", "block-3"]
 
-      const evaluator = new IIMathFunctionEvaluator(editor, jiixBlockIds)
+      const evaluator = new IIMathFunctionEvaluator(asEditor(editor), jiixBlockIds)
 
       const showSpy = jest.spyOn(evaluator as any, "createModalContent")
       showSpy.mockReturnValue(document.createElement("div"))

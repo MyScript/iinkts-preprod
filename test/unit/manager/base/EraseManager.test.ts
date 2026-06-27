@@ -1,5 +1,5 @@
 import { buildIICircle, buildIIStroke } from "../../helpers"
-import { InteractiveInkEditorMock } from "../../__mocks__/InteractiveInkEditorMock"
+import { createEditorMock, asEditor } from "../../__mocks__/createEditorMock"
 import { EraseManager, TPointerInfo, SymbolType } from "../../../../src/iink"
 
 
@@ -7,20 +7,20 @@ describe("EraseManager.ts", () =>
 {
   test("should create", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    const manager = new EraseManager(editor)
+    const editor = createEditorMock()
+    const manager = new EraseManager(asEditor(editor))
     expect(manager).toBeDefined()
     expect(manager.currentEraser).toBeUndefined()
   })
 
   describe("writing process", () =>
   {
-    const editor = new InteractiveInkEditorMock()
+    const editor = createEditorMock()
     editor.recognizer.init = jest.fn(() => Promise.resolve())
     editor.recognizer.addStrokes = jest.fn(() => Promise.resolve(undefined))
     editor.recognizer.eraseStrokes = jest.fn(() => Promise.resolve())
 
-    const manager = new EraseManager(editor)
+    const manager = new EraseManager(asEditor(editor))
     manager.renderer.drawSymbol = jest.fn()
     manager.renderer.removeSymbol = jest.fn()
     editor.init()

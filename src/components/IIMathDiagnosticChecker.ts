@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { Modal } from "./Modal"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import { getMathDiagnosticMessage } from "@/constants/MathDiagnosticMessages"
@@ -18,12 +18,12 @@ export type TSymbolDiagnostic = {
  * @remarks Component for checking and displaying diagnostics for multiple math symbols
  */
 export class IIMathDiagnosticChecker {
-  private editor: InteractiveInkEditor
+  private editor: TInteractiveInkEditor
   private jiixBlockIds: string[]
   private modal?: Modal
   private logger = LoggerManager.getLogger(LoggerCategory.MATH)
 
-  constructor(editor: InteractiveInkEditor, jiixBlockIds: string[]) {
+  constructor(editor: TInteractiveInkEditor, jiixBlockIds: string[]) {
     this.editor = editor
     this.jiixBlockIds = [...new Set(jiixBlockIds)]
   }

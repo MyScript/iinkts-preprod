@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
 import type { TMenuRange} from "@/menu/items";
 import { RangeMenuItem, CollapsibleWrapper } from "@/menu/items"
@@ -11,7 +11,7 @@ export class OpacityStyle extends BaseMenuItem<HTMLDivElement>
 {
   private opacityItem?: RangeMenuItem
 
-  constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-style")
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-style")
   {
     const config = {
       type: "opacity" as const,

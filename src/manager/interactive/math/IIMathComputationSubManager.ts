@@ -8,7 +8,7 @@ import { isDeepEqual } from "@/utils/object"
 import { createUUID } from "@/utils/uuid"
 import type { TStyle } from "@/style/Style"
 import { SVGBuilder, SVGRendererConst } from "@/renderer"
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { LoggerCategory } from "@/logger"
 
 /**
@@ -64,7 +64,7 @@ export class IIMathComputationSubManager extends IIAbstractManager
   #ghostStrokeElementIds = new Map<string, string[]>()
   #lastComputationResult = new Map<string, TJIIXMathElement>()
 
-  constructor(editor: InteractiveInkEditor, config: Partial<TMathComputationConfig> = {})
+  constructor(editor: TInteractiveInkEditor, config: Partial<TMathComputationConfig> = {})
   {
     super(editor, LoggerCategory.MATH)
     this.#config = { ...IIMathComputationSubManager.DEFAULT_CONFIG, ...config }

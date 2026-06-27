@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { IIAbstractManager } from "./IIAbstractManager"
 import type {
   TJIIXChar,
@@ -67,7 +67,7 @@ export class IIConversionManager extends IIAbstractManager
 {
   protected managerName = "IIConversionManager"
 
-  constructor(editor: InteractiveInkEditor)
+  constructor(editor: TInteractiveInkEditor)
   {
     super(editor, LoggerCategory.CONVERTER)
     this.logger.info("constructor")

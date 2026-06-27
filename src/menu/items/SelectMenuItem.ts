@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { TMenuItemBase } from "./BaseMenuItem";
 import { BaseMenuItem } from "./BaseMenuItem"
 
@@ -9,8 +9,8 @@ import { BaseMenuItem } from "./BaseMenuItem"
 export type TMenuSelect = TMenuItemBase & {
   type: "select"
   options: Array<{ label: string, value: string }>
-  getValue: (editor: InteractiveInkEditor) => string
-  setValue: (editor: InteractiveInkEditor, value: string) => void
+  getValue: (editor: TInteractiveInkEditor) => string
+  setValue: (editor: TInteractiveInkEditor, value: string) => void
 }
 
 /**

@@ -7,7 +7,7 @@ import type { SVGRenderer } from "@/renderer"
 import type { TPointerInfo } from "@/grabber";
 import { PointerEventGrabber } from "@/grabber"
 import { computeDistanceBetweenPointAndSegment, computeDistanceSquared } from "@/utils"
-import type { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { InkEditor } from "@/editor/variants/InkEditor"
 
 /**
@@ -22,13 +22,13 @@ export class EraseManager
 {
   #logger = LoggerManager.getLogger(LoggerCategory.WRITE)
   grabber: PointerEventGrabber
-  editor: InteractiveInkEditor | InkEditor
+  editor: TInteractiveInkEditor | InkEditor
 
   eraserWidth = 5
   currentEraser?: TEraser
   charsToDelete: Map<string, Set<string>> = new Map()
 
-  #isInteractiveInkEditor(editor: InteractiveInkEditor | InkEditor): editor is InteractiveInkEditor
+  #isTInteractiveInkEditor(editor: TInteractiveInkEditor | InkEditor): editor is TInteractiveInkEditor
   {
     return "removeSymbols" in editor && typeof editor.removeSymbols === "function"
   }
@@ -46,7 +46,7 @@ export class EraseManager
     return edges.some(edge => computeDistanceBetweenPointAndSegment(point, edge) < radius)
   }
 
-  constructor(editor: InteractiveInkEditor | InkEditor)
+  constructor(editor: TInteractiveInkEditor | InkEditor)
   {
     this.#logger.info("constructor")
     this.editor = editor
@@ -90,7 +90,7 @@ export class EraseManager
     this.renderer.drawSymbol(this.currentEraser)
     const currentPoint = info.pointer
     const radius = (this.currentEraser.style.width as number) / 2
-    if (this.#isInteractiveInkEditor(this.editor)) {
+    if (this.#isTInteractiveInkEditor(this.editor)) {
       this.editor.model.symbols.forEach(s =>
       {
         if (isText(s)) {
@@ -134,8 +134,8 @@ export class EraseManager
     this.continue(info)
 
     this.renderer.removeSymbol(this.currentEraser!.id)
-    if (this.#isInteractiveInkEditor(this.editor)) {
-      const editor = this.editor as InteractiveInkEditor
+    if (this.#isTInteractiveInkEditor(this.editor)) {
+      const editor = this.editor as TInteractiveInkEditor
       const symbolsToRemove: string[] = []
 
       editor.model.symbols.forEach(s => {

@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { TMenuSubMenu } from "@/menu/items/SubMenuItem";
 import { SubMenuItem } from "@/menu/items/SubMenuItem"
 
@@ -18,7 +18,7 @@ export type TContextReorderConfig = boolean | TContextReorderItemsConfig
  */
 export class ReorderContextMenu extends SubMenuItem
 {
-  constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-context", itemsConfig?: TContextReorderItemsConfig)
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-context", itemsConfig?: TContextReorderItemsConfig)
   {
     const enabled = (key: keyof TContextReorderItemsConfig) => itemsConfig?.[key] !== false
 

@@ -5,7 +5,7 @@ import { BoxHelper } from "@/symbol/primitives/Box"
 import { computeAngleFromPointOnEllipse, computeDistance } from "@/utils"
 import { EdgeArcHelper } from "@/symbol/edge/Arc"
 import { SVGBuilder } from "@/renderer"
-import type { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { TPointerInfo } from "@/grabber";
 import { PointerEventGrabber } from "@/grabber"
 import type { IIResizeManager } from "./transform/IIResizeManager"
@@ -28,7 +28,7 @@ export class IISelectionManager extends IIAbstractManager
   endSelectionPoint?: TPoint
   selectedGroup?: SVGGElement
 
-  constructor(editor: InteractiveInkEditor)
+  constructor(editor: TInteractiveInkEditor)
   {
     super(editor, LoggerCategory.SELECTION)
     this.logger.info("constructor")

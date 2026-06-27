@@ -1,6 +1,6 @@
 import { arcJIIX, circleJIIX, ellipseJIIX, hTextJIIX, lineJIIX, parallelogramJIIX, polygonJIIX, rectangleJIIX, rhombusJIIX, triangleJIIX } from "../../__dataset__/jiix.dataset"
 import { buildIIStroke } from "../../helpers"
-import { InteractiveInkEditorMock } from "../../__mocks__/InteractiveInkEditorMock"
+import { createEditorMock, asEditor } from "../../__mocks__/createEditorMock"
 import { IIConversionManager, TJIIXEdgeElement, TJIIXNodeElement, TJIIXTextElement } from "../../../../src/iink"
 import { TextHelper } from "../../../../src/symbol/text/Text"
 
@@ -8,17 +8,16 @@ describe("IIConversionManager.ts", () =>
 {
   test("should create", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    const manager = new IIConversionManager(editor)
+    const editor = createEditorMock()
+    const manager = new IIConversionManager(asEditor(editor))
     expect(manager).toBeDefined()
   })
 
   describe("apply", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    editor.export = jest.fn(() => Promise.resolve(editor.model))
+    const editor = createEditorMock()
     editor.selector.removeSelectedGroup = jest.fn()
-    const manager = new IIConversionManager(editor)
+    const manager = new IIConversionManager(asEditor(editor))
     manager.convertText = jest.fn()
     manager.convertNode = jest.fn()
     manager.convertEdge = jest.fn()
@@ -58,15 +57,12 @@ describe("IIConversionManager.ts", () =>
   describe("convertText", () =>
   {
     const symEl = document.createElementNS("http://www.w3.org/2000/svg", "path")
-    const editor = new InteractiveInkEditorMock()
-    editor.export = jest.fn(() => Promise.resolve(editor.model))
-    editor.typeset.setBounds = jest.fn()
-    editor.typeset.getSpaceWidth = jest.fn(() => 10)
+    const editor = createEditorMock()
     editor.renderer.drawSymbol = jest.fn(() => symEl)
-    editor.renderer.removeSymbol = jest.fn()
+    editor.typeset.getSpaceWidth = jest.fn(() => 10)
     editor.model.addSymbol = jest.fn()
     editor.model.removeSymbol = jest.fn()
-    const manager = new IIConversionManager(editor)
+    const manager = new IIConversionManager(asEditor(editor))
 
     const hTextJIIXElement = hTextJIIX.elements?.[0] as TJIIXTextElement
 
@@ -108,9 +104,8 @@ describe("IIConversionManager.ts", () =>
 
   describe("convertNode", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    editor.export = jest.fn(() => Promise.resolve(editor.model))
-    const manager = new IIConversionManager(editor)
+    const editor = createEditorMock()
+    const manager = new IIConversionManager(asEditor(editor))
 
     const jiixNodeRect = rectangleJIIX.elements?.[0] as TJIIXNodeElement
     const jiixNodeCircle = circleJIIX.elements?.[0] as TJIIXNodeElement
@@ -196,11 +191,9 @@ describe("IIConversionManager.ts", () =>
   describe("convertEdge", () =>
   {
     const symEl = document.createElementNS("http://www.w3.org/2000/svg", "path")
-    const editor = new InteractiveInkEditorMock()
-    editor.export = jest.fn(() => Promise.resolve(editor.model))
+    const editor = createEditorMock()
     editor.renderer.drawSymbol = jest.fn(() => symEl)
-    editor.renderer.removeSymbol = jest.fn()
-    const manager = new IIConversionManager(editor)
+    const manager = new IIConversionManager(asEditor(editor))
 
     const jiixEdgeLine = lineJIIX.elements?.[0] as TJIIXEdgeElement
     const jiixEdgeArc = arcJIIX.elements?.[0] as TJIIXEdgeElement

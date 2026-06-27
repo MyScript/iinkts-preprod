@@ -1,6 +1,6 @@
 import { StrokeHelper } from "@/symbol/stroke/Stroke"
 import { ResizeDirection } from "@/Constants"
-import type { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type {
   TStroke,
   TText,
@@ -49,7 +49,7 @@ export class IIResizeManager extends IIAbstractTransformManager
   transformOrigin!: TPoint
   keepRatio = false
 
-  constructor(editor: InteractiveInkEditor)
+  constructor(editor: TInteractiveInkEditor)
   {
     super(editor)
   }
