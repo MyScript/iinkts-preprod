@@ -43,6 +43,7 @@ import
   IISynchronizerManager,
   IIMathManager,
   IIJiixQueryManager,
+  IIConnectorManager,
 } from "@/manager"
 import { MatrixTransform } from "@/transform"
 import type { TIIHistoryBackendChanges, TIIHistoryChanges, THistoryContext } from "@/history";
@@ -134,6 +135,8 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
   jiix: IIJiixQueryManager
   /** Manages math recognition: variables, computation, and evaluation rendering. */
   math: IIMathManager
+  /** Manages smart connectors and anchor-based endpoint updates. */
+  connector: IIConnectorManager
   /** Manages the floating UI menu (tool selector, style panel, action buttons). */
   menu: IIMenuManager
   /** Static utility class for creating DOM elements. */
@@ -187,6 +190,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
     this.synchronizer = new IISynchronizerManager(this)
     this.jiix = new IIJiixQueryManager(this)
     this.math = new IIMathManager(this, this.#configuration.math)
+    this.connector = new IIConnectorManager(this)
     this.menu = new IIMenuManager(this, options?.override?.menu)
   }
 

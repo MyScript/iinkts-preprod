@@ -198,6 +198,7 @@ export function createEditorMock(overrides: Partial<TEditorMock> = {}): TEditorM
       ;(m as unknown as Record<string, unknown>).getVariablesConfig = jest.fn().mockReturnValue({ showDependencyOnHover: false, highlightOnSelect: false })
       return m
     })(),
+    connector: overrides.connector ?? stubManager(),
     menu: overrides.menu ?? (() => {
       const m = stubManager()
       ;(m as unknown as Record<string, unknown>).context = {

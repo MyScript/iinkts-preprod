@@ -1,5 +1,5 @@
 import { ResizeDirection, SELECTION_MARGIN, SvgElementRole } from "@/Constants"
-import type { TDecorator, TEdgeArc, TStroke, TBox, TEdge, TSymbol, TPoint} from "@/symbol"
+import type { TDecorator, TEdgeArc, TStroke, TBox, TEdge, TSymbol, TPoint, TEdgeLine, TEdgePolyLine } from "@/symbol"
 import { EdgeKind, SymbolType, isDecorator, isRecognizedMath, StrokeOps } from "@/symbol"
 import { EdgeOps } from "@/symbol/edge/Edge"
 import { BoxOps } from "@/symbol/primitives/Box"
@@ -394,6 +394,7 @@ export class IISelectionManager extends IIAbstractManager
         EdgeOps.updateEdgeDerivedFields(edge)
         this.model.updateSymbol(edge)
         this.renderer.drawSymbol(edge)
+        this.editor.connector.showAnchorHint({ x, y }, edge.id)
       }
       const endHandler = (ev: PointerEvent) =>
       {
@@ -404,6 +405,8 @@ export class IISelectionManager extends IIAbstractManager
         edge.vertices[pointIndex].x = x
         edge.vertices[pointIndex].y = y
         EdgeOps.updateEdgeDerivedFields(edge)
+        this.editor.connector.clearAnchorHint()
+        this.editor.connector.applyEndpointAnchor(edge, pointIndex, { x, y })
         this.renderer.layer.style.cursor = ""
         this.editor.updateSymbol(edge)
         this.renderer.layer.removeEventListener("pointermove", handler)
@@ -517,6 +520,67 @@ export class IISelectionManager extends IIAbstractManager
     return group
   }
 
+  /**
+   * Path-based hit area for line/polyline edges — narrow stroke aligned with edge geometry,
+   * avoiding the AABB problem where diagonal edges have an oversized clickable rectangle.
+   */
+  protected createEdgeTranslatePath(edge: TEdgeLine | TEdgePolyLine): SVGPathElement
+  {
+    let d: string
+    if (edge.kind === EdgeKind.Line) {
+      const start = edge.startAnchor?.entryPoint ?? edge.start
+      const end = edge.endAnchor?.entryPoint ?? edge.end
+      d = `M ${ start.x } ${ start.y } L ${ end.x } ${ end.y }`
+    }
+    else {
+      const pts = [...edge.points]
+      if (edge.startAnchor?.entryPoint) pts[0] = edge.startAnchor.entryPoint
+      if (edge.endAnchor?.entryPoint) pts[pts.length - 1] = edge.endAnchor.entryPoint
+      d = `M ${ pts[0].x } ${ pts[0].y }` + pts.slice(1).map(p => ` L ${ p.x } ${ p.y }`).join("")
+    }
+    const translateEl = SVGBuilder.createPath({
+      role: SvgElementRole.Translate,
+      style: "cursor:move",
+      fill: "none",
+      stroke: "transparent",
+      "stroke-width": "16",
+      "stroke-linecap": "round",
+      d,
+    })
+    const handler = (ev: PointerEvent) =>
+    {
+      ev.preventDefault()
+      ev.stopPropagation()
+      this.translate.continue(this.getPoint(ev))
+    }
+    const endHandler = (ev: PointerEvent) =>
+    {
+      ev.preventDefault()
+      ev.stopPropagation()
+      this.translate.end(this.getPoint(ev))
+      this.renderer.layer.removeEventListener("pointermove", handler)
+      this.renderer.layer.removeEventListener("pointercancel", endHandler)
+      this.renderer.layer.removeEventListener("pointerleave", endHandler)
+      this.renderer.layer.removeEventListener("pointerup", endHandler)
+      this.renderer.layer.style.cursor = ""
+      this.resetSelectedGroup(this.model.symbolsSelected)
+    }
+    translateEl.addEventListener("pointerdown", (ev) =>
+    {
+      if (ev.button !== 0 || ev.buttons !== 1) return
+      ev.preventDefault()
+      ev.stopPropagation()
+      this.hideInteractElements()
+      this.translate.start(ev.target as Element, this.getPoint(ev))
+      this.renderer.layer.addEventListener("pointermove", handler)
+      this.renderer.layer.addEventListener("pointercancel", endHandler)
+      this.renderer.layer.addEventListener("pointerleave", endHandler)
+      this.renderer.layer.addEventListener("pointerup", endHandler)
+      this.renderer.layer.style.cursor = "move"
+    })
+    return translateEl
+  }
+
   protected createInteractEdgeGroup(edge: TEdge): SVGGElement | undefined
   {
     this.logger.info("createInteractEdgeGroup", { edge })
@@ -525,7 +589,10 @@ export class IISelectionManager extends IIAbstractManager
       role: SvgElementRole.InteractElementsGroup,
     }
     const surroundGroup = SVGBuilder.createGroup(attrs)
-    surroundGroup.appendChild(this.createTranslateRect(edge.bounds))
+    const translateEl = (edge.kind === EdgeKind.Line || edge.kind === EdgeKind.PolyEdge)
+      ? this.createEdgeTranslatePath(edge as TEdgeLine | TEdgePolyLine)
+      : this.createTranslateRect(edge.bounds)
+    surroundGroup.appendChild(translateEl)
     surroundGroup.appendChild(this.createEdgeResizeGroup(structuredClone(edge)))
     return surroundGroup
   }

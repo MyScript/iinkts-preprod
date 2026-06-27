@@ -7,6 +7,7 @@ import { isValidPoint, type TPoint, type TSegment } from "@/symbol/primitives/Po
 import { SymbolType, type TBaseSymbol } from "@/symbol/Symbol"
 import { BoxOps, type TBox } from "@/symbol/primitives/Box"
 import { EdgeKind, type EdgeDecoration, computeEdgeBounds } from "./Edge-enum"
+import type { TAnchor } from "./Anchor"
 
 /**
  * @group Symbol
@@ -20,6 +21,8 @@ export type TEdgeLine = TBaseSymbol & {
   deleting: boolean
   startDecoration?: EdgeDecoration
   endDecoration?: EdgeDecoration
+  startAnchor?: TAnchor
+  endAnchor?: TAnchor
   start: TPoint
   end: TPoint
   vertices: TPoint[]
@@ -91,6 +94,8 @@ export const EdgeLineOps = {
 
   getSVGPath(line: TEdgeLine): string
   {
-    return `M ${ line.start.x } ${ line.start.y } L ${ line.end.x } ${ line.end.y }`
+    const start = line.startAnchor?.entryPoint ?? line.start
+    const end = line.endAnchor?.entryPoint ?? line.end
+    return `M ${ start.x } ${ start.y } L ${ end.x } ${ end.y }`
   },
 }

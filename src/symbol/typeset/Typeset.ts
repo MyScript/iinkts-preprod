@@ -23,6 +23,9 @@ export type TTypesetChild = {
   fontWeight: "normal" | "bold"
 }
 
+/**
+ * @group Symbol
+ */
 export function computeTypesetVertices(bounds: TBox, rotation?: TRotation): TPoint[]
 {
   if (rotation) {
@@ -32,6 +35,9 @@ export function computeTypesetVertices(bounds: TBox, rotation?: TRotation): TPoi
   return BoxOps.getCorners(bounds)
 }
 
+/**
+ * @group Symbol
+ */
 export function computeTypesetSnapPoints(bounds: TBox, point: TPoint, rotation?: TRotation): TPoint[]
 {
   const yMax = bounds.y + bounds.height
@@ -51,6 +57,9 @@ export function computeTypesetSnapPoints(bounds: TBox, point: TPoint, rotation?:
   return points
 }
 
+/**
+ * @group Symbol
+ */
 export function computeClosedEdges(vertices: TPoint[]): TSegment[]
 {
   return vertices.map((p, i) => ({ p1: p, p2: vertices[(i + 1) % vertices.length] }))

@@ -249,6 +249,8 @@ export class IIResizeManager extends IIAbstractTransformManager
     {
       this.scaleElement(s.id, scaleX, scaleY)
     })
+    const matrix = MatrixTransform.identity().scale(scaleX, scaleY, this.transformOrigin)
+    this.editor.connector.drawAnchoredEdgesForMatrix(this.model.symbolsSelected.map(s => s.id), matrix)
     return { scaleX, scaleY }
   }
 
@@ -260,6 +262,7 @@ export class IIResizeManager extends IIAbstractTransformManager
     const oldSymbols = this.model.symbolsSelected.map(s => cloneSymbol(s))
     const matrix = MatrixTransform.identity().scale(scaleX, scaleY, this.transformOrigin)
     this.applyAndDraw(this.model.symbolsSelected, matrix)
+    this.editor.connector.updateAnchoredEdges(this.model.symbolsSelected.map(s => s.id))
     const strokesFromSymbols = this.editor.extractStrokesFromSymbols(this.model.symbolsSelected)
     this.editor.recognizer.transformScale(strokesFromSymbols.map(s => s.id), scaleX, scaleY, this.transformOrigin.x, this.transformOrigin.y)
     this.editor.history.push(this.model, { scale: [{ symbols: oldSymbols, origin: {...this.transformOrigin}, scaleX, scaleY }] })

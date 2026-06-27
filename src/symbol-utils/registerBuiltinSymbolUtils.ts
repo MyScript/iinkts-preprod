@@ -6,6 +6,9 @@ import { ShapeUtil } from "./shape/ShapeUtil"
 import { EdgeUtil } from "./edge/EdgeUtil"
 import { DecoratorUtil } from "./decorator/DecoratorUtil"
 
+/**
+ * @group Symbol
+ */
 export function registerBuiltinSymbolUtils(): void
 {
   symbolRegistry

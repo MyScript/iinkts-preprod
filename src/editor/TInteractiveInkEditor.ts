@@ -8,6 +8,7 @@ import type { TStyle } from "@/style"
 import type { TPartialDeep } from "@/utils"
 import type {
   IIConversionManager,
+  IIConnectorManager,
   IIGestureManager,
   IIJiixQueryManager,
   IIKeyboardManager,
@@ -66,6 +67,7 @@ export type TInteractiveInkEditor = {
   readonly synchronizer: IISynchronizerManager
   readonly jiix: IIJiixQueryManager
   readonly math: IIMathManager
+  readonly connector: IIConnectorManager
   readonly menu: IIMenuManager
 
   // ── Symbol mutation ────────────────────────────────────────────────
