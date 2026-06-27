@@ -9,7 +9,7 @@ import type { TRecognizerHTTPV1Configuration } from "./RecognizerHTTPV1Configura
 import { RecognizerHTTPV1Configuration } from "./RecognizerHTTPV1Configuration"
 import type { TConverstionState } from "./RecognitionConfiguration"
 import type { TDiagramConfiguration, TExportConfiguration, TMathConfiguration, TRawContentConfiguration, TTextConfiguration } from "./recognition"
-import { StrokeHelper, type Stroke } from "@/symbol"
+import { StrokeOps, type Stroke } from "@/symbol"
 
 type TApiError = {
   code?: string
@@ -148,7 +148,7 @@ export class RecognizerHTTPV1
       const newPenStyle = JSON.stringify(group.penStyle) === "{}" ? undefined : StyleHelper.penStyleToCSS(group.penStyle as TPenStyle)
       const newGroup = {
         penStyle: newPenStyle,
-        strokes: group.strokes.map(s => StrokeHelper.formatToSend(s))
+        strokes: group.strokes.map(s => StrokeOps.formatToSend(s))
       }
       strokeGroupsToSend.push(newGroup)
     })

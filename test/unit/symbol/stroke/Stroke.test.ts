@@ -1,11 +1,11 @@
 import {
-  StrokeHelper,
+  StrokeOps,
   DefaultStyle,
   TStyle,
   TPointer,
 } from "../../../../src/iink"
 
-describe("TStroke / StrokeHelper", () =>
+describe("TStroke / StrokeOps", () =>
 {
   describe("create", () =>
   {
@@ -15,7 +15,7 @@ describe("TStroke / StrokeHelper", () =>
         color: "blue",
         width: 20
       }
-      const stroke = StrokeHelper.create(style)
+      const stroke = StrokeOps.create(style)
       expect(stroke).toBeDefined()
       expect(stroke.creationTime).toBeLessThanOrEqual(Date.now())
       expect(stroke.creationTime).toEqual(stroke.modificationDate)
@@ -30,7 +30,7 @@ describe("TStroke / StrokeHelper", () =>
     })
     test("should create with default style", () =>
     {
-      const stroke = StrokeHelper.create()
+      const stroke = StrokeOps.create()
       expect(stroke.style).toEqual(DefaultStyle)
     })
     test("should create and cast opacity and width to number", () =>
@@ -38,7 +38,7 @@ describe("TStroke / StrokeHelper", () =>
       //@ts-ignore
       const style = { opacity: "1", width: "1" }
       //@ts-ignore
-      const stroke = StrokeHelper.create(style)
+      const stroke = StrokeOps.create(style)
       expect(stroke.style.opacity).toEqual(+style.width)
       expect(stroke.style.width).toEqual(+style.width)
     })
@@ -46,7 +46,7 @@ describe("TStroke / StrokeHelper", () =>
 
   describe("addPointer", () =>
   {
-    const stroke = StrokeHelper.create(DefaultStyle)
+    const stroke = StrokeOps.create(DefaultStyle)
 
     test("should add first pointer and update modification date", () =>
     {
@@ -56,7 +56,7 @@ describe("TStroke / StrokeHelper", () =>
         x: 0,
         y: 0
       }
-      StrokeHelper.addPointer(stroke, pointer)
+      StrokeOps.addPointer(stroke, pointer)
       expect(stroke.pointers).toHaveLength(1)
       expect(stroke.pointers[0]).toEqual(pointer)
     })
@@ -69,7 +69,7 @@ describe("TStroke / StrokeHelper", () =>
         x: 1.1,
         y: 1.1
       }
-      StrokeHelper.addPointer(stroke, pointer)
+      StrokeOps.addPointer(stroke, pointer)
       expect(stroke.pointers).toHaveLength(1)
     })
 
@@ -81,7 +81,7 @@ describe("TStroke / StrokeHelper", () =>
         x: 5,
         y: 5
       }
-      StrokeHelper.addPointer(stroke, pointer)
+      StrokeOps.addPointer(stroke, pointer)
       expect(stroke.modificationDate).toBeGreaterThan(stroke.creationTime)
     })
 
@@ -93,7 +93,7 @@ describe("TStroke / StrokeHelper", () =>
         x: 50,
         y: 50
       }
-      StrokeHelper.addPointer(stroke, pointer)
+      StrokeOps.addPointer(stroke, pointer)
       expect(stroke.length).toEqual(Math.sqrt(2 * Math.pow(50, 2)))
     })
   })
@@ -102,7 +102,7 @@ describe("TStroke / StrokeHelper", () =>
   {
     test("should get without pointers", () =>
     {
-      const stroke = StrokeHelper.create(DefaultStyle)
+      const stroke = StrokeOps.create(DefaultStyle)
       expect(stroke.bounds.height).toEqual(0)
       expect(stroke.bounds.width).toEqual(0)
       expect(stroke.bounds.x).toEqual(0)
@@ -110,9 +110,9 @@ describe("TStroke / StrokeHelper", () =>
     })
     test("should get with pointers", () =>
     {
-      const stroke = StrokeHelper.create(DefaultStyle)
-      StrokeHelper.addPointer(stroke, { p: 1, t: 1, x: 1, y: 1 })
-      StrokeHelper.addPointer(stroke, { p: 1, t: 1, x: 11, y: 11 })
+      const stroke = StrokeOps.create(DefaultStyle)
+      StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 1, y: 1 })
+      StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 11, y: 11 })
       expect(stroke.bounds.height).toEqual(10)
       expect(stroke.bounds.width).toEqual(10)
       expect(stroke.bounds.x).toEqual(1)
@@ -124,11 +124,11 @@ describe("TStroke / StrokeHelper", () =>
   {
     test("should return array of x, y, t, and p", () =>
     {
-      const stroke = StrokeHelper.create(DefaultStyle)
-      StrokeHelper.addPointer(stroke, { p: 1, t: 1, x: 1, y: 1 })
-      StrokeHelper.addPointer(stroke, { p: 1, t: 1, x: 11, y: 11 })
+      const stroke = StrokeOps.create(DefaultStyle)
+      StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 1, y: 1 })
+      StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 11, y: 11 })
 
-      const jsonToSend = StrokeHelper.formatToSend(stroke)
+      const jsonToSend = StrokeOps.formatToSend(stroke)
       expect(jsonToSend).toEqual({
         id: stroke.id,
         pointerType: stroke.pointerType,
@@ -148,9 +148,9 @@ describe("TStroke / StrokeHelper", () =>
         color: "blue",
         width: 20
       }
-      const stroke = StrokeHelper.create(style)
-      StrokeHelper.addPointer(stroke, { p: 1, t: 1, x: 1, y: 1 })
-      StrokeHelper.addPointer(stroke, { p: 1, t: 1, x: 11, y: 11 })
+      const stroke = StrokeOps.create(style)
+      StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 1, y: 1 })
+      StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 11, y: 11 })
 
       const clone = structuredClone(stroke)
       expect(clone).toEqual(stroke)
@@ -162,9 +162,9 @@ describe("TStroke / StrokeHelper", () =>
         color: "blue",
         width: 20
       }
-      const stroke = StrokeHelper.create(style)
-      StrokeHelper.addPointer(stroke, { p: 1, t: 1, x: 1, y: 1 })
-      StrokeHelper.addPointer(stroke, { p: 1, t: 1, x: 11, y: 11 })
+      const stroke = StrokeOps.create(style)
+      StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 1, y: 1 })
+      StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 11, y: 11 })
 
       const clone = structuredClone(stroke)
       clone.pointers.forEach(p => {

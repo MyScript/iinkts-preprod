@@ -3,14 +3,10 @@ import { DefaultStyle } from "@/style"
 import type { TPartialDeep } from "@/utils"
 import { findIntersectionBetween2Segment } from "@/utils"
 import { createUUID } from "@/utils/uuid"
-import type { TPoint, TSegment } from "@/symbol/primitives/Point"
-import { isValidPoint } from "@/symbol/primitives/Point"
-import { SymbolType } from "@/symbol/Symbol"
-import type { TBaseSymbol } from "@/symbol/Symbol"
-import type { TBox } from "@/symbol/primitives/Box"
-import { BoxHelper } from "@/symbol/primitives/Box"
-import type { EdgeDecoration} from "./Edge"
-import { EdgeKind, computeEdgeBounds } from "./Edge"
+import { isValidPoint, type TPoint, type TSegment } from "@/symbol/primitives/Point"
+import { SymbolType, type TBaseSymbol } from "@/symbol/Symbol"
+import { BoxOps, type TBox } from "@/symbol/primitives/Box"
+import { EdgeKind, type EdgeDecoration, computeEdgeBounds } from "./Edge-enum"
 
 /**
  * @group Symbol
@@ -34,9 +30,8 @@ export type TEdgeLine = TBaseSymbol & {
 
 /**
  * @group Symbol
- * @group Utilities
  */
-export const EdgeLineHelper = {
+export const EdgeLineOps = {
   create(start: TPoint, end: TPoint, startDecoration?: EdgeDecoration, endDecoration?: EdgeDecoration, style?: TPartialDeep<TStyle>): TEdgeLine
   {
     const mergedStyle = Object.assign({}, DefaultStyle, style) as TStyle
@@ -62,7 +57,7 @@ export const EdgeLineHelper = {
       snapPoints: [],
       edges: [],
     }
-    EdgeLineHelper.updateDerivedFields(line)
+    EdgeLineOps.updateDerivedFields(line)
     return line
   },
 
@@ -70,7 +65,7 @@ export const EdgeLineHelper = {
   {
     if (!isValidPoint(partial?.start)) throw new Error(`Unable to create a line, start point is invalid`)
     if (!isValidPoint(partial?.end)) throw new Error(`Unable to create a line, end point is invalid`)
-    const line = EdgeLineHelper.create(partial.start as TPoint, partial.end as TPoint, partial.startDecoration, partial.endDecoration, partial.style)
+    const line = EdgeLineOps.create(partial.start as TPoint, partial.end as TPoint, partial.startDecoration, partial.endDecoration, partial.style)
     if (partial.id) line.id = partial.id
     return line
   },
@@ -90,7 +85,12 @@ export const EdgeLineHelper = {
 
   overlaps(line: TEdgeLine, box: TBox): boolean
   {
-    return BoxHelper.isContained(line.bounds, box) ||
-      line.edges.some(e1 => BoxHelper.getSides(box).some(e2 => !!findIntersectionBetween2Segment(e1, e2)))
+    return BoxOps.isContained(line.bounds, box) ||
+      line.edges.some(e1 => BoxOps.getSides(box).some(e2 => !!findIntersectionBetween2Segment(e1, e2)))
+  },
+
+  getSVGPath(line: TEdgeLine): string
+  {
+    return `M ${ line.start.x } ${ line.start.y } L ${ line.end.x } ${ line.end.y }`
   },
 }

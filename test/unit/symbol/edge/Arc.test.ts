@@ -1,4 +1,4 @@
-import { EdgeArcHelper } from "../../../../src/symbol/edge/Arc"
+import { EdgeArcOps } from "../../../../src/symbol/edge/Arc"
 import
 {
   TPoint,
@@ -24,7 +24,7 @@ describe("Arc.ts", () =>
         color: "blue",
         width: 20,
       }
-      const arc = EdgeArcHelper.create(center, startAngle, sweepAngle, radiusX, radiusY, phi, undefined, undefined, style)
+      const arc = EdgeArcOps.create(center, startAngle, sweepAngle, radiusX, radiusY, phi, undefined, undefined, style)
       expect(arc).toBeDefined()
       expect(arc.creationTime).toBeLessThanOrEqual(Date.now())
       expect(arc.creationTime).toEqual(arc.modificationDate)
@@ -44,7 +44,7 @@ describe("Arc.ts", () =>
       const radiusX = 10
       const radiusY = 50
       const phi = 0
-      const arc = EdgeArcHelper.create(center, startAngle, sweepAngle, radiusX, radiusY, phi)
+      const arc = EdgeArcOps.create(center, startAngle, sweepAngle, radiusX, radiusY, phi)
       expect(arc.style).toEqual(DefaultStyle)
     })
   })
@@ -52,10 +52,10 @@ describe("Arc.ts", () =>
   describe("properties", () =>
   {
     const center: TPoint = { x: 0, y: 0 }
-    const smallClockwiseArc = EdgeArcHelper.create(center, Math.PI / 4, Math.PI / 4, 5, 5, 0)
-    const largeClockwiseArc = EdgeArcHelper.create(center, Math.PI / 4, 3 * Math.PI / 4, 50, 50, 0)
-    const smallCounterClockwiseArc = EdgeArcHelper.create(center, Math.PI / 4, -Math.PI / 4, 5, 5, 0)
-    const largeCounterClockwiseArc = EdgeArcHelper.create(center, Math.PI / 4, -3 * Math.PI / 4, 50, 50, 0)
+    const smallClockwiseArc = EdgeArcOps.create(center, Math.PI / 4, Math.PI / 4, 5, 5, 0)
+    const largeClockwiseArc = EdgeArcOps.create(center, Math.PI / 4, 3 * Math.PI / 4, 50, 50, 0)
+    const smallCounterClockwiseArc = EdgeArcOps.create(center, Math.PI / 4, -Math.PI / 4, 5, 5, 0)
+    const largeCounterClockwiseArc = EdgeArcOps.create(center, Math.PI / 4, -3 * Math.PI / 4, 50, 50, 0)
 
     test(`should get vertices for small clockwise arc`, () =>
     {
@@ -119,21 +119,21 @@ describe("Arc.ts", () =>
     const radiusX = 10
     const radiusY = 50
     const phi = 0
-    const arc = EdgeArcHelper.create(center, startAngle, sweepAngle, radiusX, radiusY, phi)
+    const arc = EdgeArcOps.create(center, startAngle, sweepAngle, radiusX, radiusY, phi)
     test(`should return true if partially wrap`, () =>
     {
       const boundaries: TBox = { height: 20, width: 20, x: 0, y: 45 }
-      expect(EdgeArcHelper.overlaps(arc, boundaries)).toEqual(true)
+      expect(EdgeArcOps.overlaps(arc, boundaries)).toEqual(true)
     })
     test(`should return true if totally wrap`, () =>
     {
       const boundaries: TBox = { height: 200, width: 100, x: -50, y: -5 }
-      expect(EdgeArcHelper.overlaps(arc, boundaries)).toEqual(true)
+      expect(EdgeArcOps.overlaps(arc, boundaries)).toEqual(true)
     })
     test(`should return false if box is outside`, () =>
     {
       const boundaries: TBox = { height: 2, width: 2, x: 50, y: 50 }
-      expect(EdgeArcHelper.overlaps(arc, boundaries)).toEqual(false)
+      expect(EdgeArcOps.overlaps(arc, boundaries)).toEqual(false)
     })
   })
 
@@ -151,7 +151,7 @@ describe("Arc.ts", () =>
         color: "blue",
         width: 20
       }
-      const arc = EdgeArcHelper.create(center, startAngle, sweepAngle, radiusX, radiusY, phi, undefined, undefined, style)
+      const arc = EdgeArcOps.create(center, startAngle, sweepAngle, radiusX, radiusY, phi, undefined, undefined, style)
       const clone = structuredClone(arc)
       expect(clone).toEqual(arc)
       expect(clone).not.toBe(arc)

@@ -1,17 +1,12 @@
 import { SELECTION_MARGIN } from "@/Constants"
-import type { TStyle } from "@/style"
-import { DefaultStyle } from "@/style"
+import { DefaultStyle, type TStyle} from "@/style"
 import type { TPartialDeep } from "@/utils"
 import { computePointOnEllipse, computeEllipseRadiusAverage, findIntersectionBetween2Segment, isValidNumber } from "@/utils"
 import { createUUID } from "@/utils/uuid"
-import type { TPoint, TSegment } from "@/symbol/primitives/Point"
-import { isValidPoint } from "@/symbol/primitives/Point"
-import { SymbolType } from "@/symbol/Symbol"
-import type { TBaseSymbol } from "@/symbol/Symbol"
-import type { TBox } from "@/symbol/primitives/Box"
-import { BoxHelper } from "@/symbol/primitives/Box"
-import type { EdgeDecoration} from "./Edge"
-import { EdgeKind, computeEdgeBounds } from "./Edge"
+import { isValidPoint, type TPoint, type TSegment } from "@/symbol/primitives/Point"
+import { SymbolType, type TBaseSymbol } from "@/symbol/Symbol"
+import { BoxOps, type TBox } from "@/symbol/primitives/Box"
+import { EdgeKind, type EdgeDecoration, computeEdgeBounds } from "./Edge-enum"
 
 /**
  * @group Symbol
@@ -39,9 +34,8 @@ export type TEdgeArc = TBaseSymbol & {
 
 /**
  * @group Symbol
- * @group Utilities
  */
-export const EdgeArcHelper = {
+export const EdgeArcOps = {
   create(
     center: TPoint,
     startAngle: number,
@@ -81,7 +75,7 @@ export const EdgeArcHelper = {
       snapPoints: [],
       edges: [],
     }
-    EdgeArcHelper.updateDerivedFields(arc)
+    EdgeArcOps.updateDerivedFields(arc)
     return arc
   },
 
@@ -92,7 +86,7 @@ export const EdgeArcHelper = {
     if (!isValidNumber(partial?.sweepAngle)) throw new Error(`Unable to create a arc, sweepAngle is invalid`)
     if (!isValidNumber(partial?.radiusX)) throw new Error(`Unable to create a arc, radiusX is invalid`)
     if (!isValidNumber(partial?.radiusY)) throw new Error(`Unable to create a arc, radiusY is invalid`)
-    const arc = EdgeArcHelper.create(
+    const arc = EdgeArcOps.create(
       partial.center as TPoint,
       partial.startAngle!,
       partial.sweepAngle!,
@@ -129,7 +123,7 @@ export const EdgeArcHelper = {
 
   updateDerivedFields(arc: TEdgeArc): void
   {
-    const vertices = EdgeArcHelper.computeVertices(arc)
+    const vertices = EdgeArcOps.computeVertices(arc)
     arc.vertices = vertices
     arc.bounds = computeEdgeBounds(vertices, arc.style, arc.startDecoration, arc.endDecoration)
     arc.snapPoints = [vertices[0], vertices.at(-1)!]
@@ -149,7 +143,16 @@ export const EdgeArcHelper = {
 
   overlaps(arc: TEdgeArc, box: TBox): boolean
   {
-    return BoxHelper.isContained(arc.bounds, box) ||
-      arc.edges.some(e1 => BoxHelper.getSides(box).some(e2 => !!findIntersectionBetween2Segment(e1, e2)))
+    return BoxOps.isContained(arc.bounds, box) ||
+      arc.edges.some(e1 => BoxOps.getSides(box).some(e2 => !!findIntersectionBetween2Segment(e1, e2)))
+  },
+
+  getSVGPath(arc: TEdgeArc): string
+  {
+    let path = `M ${ arc.vertices[0].x } ${ arc.vertices[0].y } Q`
+    for (let i = 0; i < arc.vertices.length; i++) {
+      path += ` ${ arc.vertices[i].x } ${ arc.vertices[i].y }`
+    }
+    return path
   },
 }

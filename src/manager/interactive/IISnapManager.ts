@@ -1,5 +1,5 @@
 import type { TPoint, TSegment } from "@/symbol"
-import { BoxHelper } from "@/symbol/primitives/Box"
+import { BoxOps } from "@/symbol/primitives/Box"
 import { SVGRendererConst } from "@/renderer/svg/utils/SVGRendererConst"
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { TPartialDeep } from "@/utils"
@@ -74,7 +74,7 @@ export class IISnapManager extends IIAbstractManager
 
   get selectionSnapPoints(): TPoint[]
   {
-    return BoxHelper.getSnapPoints(BoxHelper.createFromPoints(this.model.symbolsSelected.flatMap(s => s.snapPoints)))
+    return BoxOps.getSnapPoints(BoxOps.createFromPoints(this.model.symbolsSelected.flatMap(s => s.snapPoints)))
   }
 
   get otherSnapPoints(): TPoint[]

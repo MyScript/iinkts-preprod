@@ -9,8 +9,8 @@ import { isValidPoint } from "@/symbol/primitives/Point"
 import { SymbolType } from "@/symbol/Symbol"
 import type { TBaseSymbol } from "@/symbol/Symbol"
 import type { TBox } from "@/symbol/primitives/Box"
-import { BoxHelper } from "@/symbol/primitives/Box"
-import { ShapeKind } from "./Shape"
+import { BoxOps } from "@/symbol/primitives/Box"
+import { ShapeKind } from "./Shape-enum"
 
 /**
  * @group Symbol
@@ -34,9 +34,8 @@ export type TShapeEllipse = TBaseSymbol & {
 
 /**
  * @group Symbol
- * @group Utilities
  */
-export const ShapeEllipseHelper = {
+export const ShapeEllipseOps = {
   create(center: TPoint, radiusX: number, radiusY: number, orientation: number, style?: TPartialDeep<TStyle>): TShapeEllipse
   {
     const mergedStyle = Object.assign({}, DefaultStyle, style) as TStyle
@@ -62,7 +61,7 @@ export const ShapeEllipseHelper = {
       snapPoints: [],
       edges: [],
     }
-    ShapeEllipseHelper.updateDerivedFields(ellipse)
+    ShapeEllipseOps.updateDerivedFields(ellipse)
     return ellipse
   },
 
@@ -71,7 +70,7 @@ export const ShapeEllipseHelper = {
     if (!isValidPoint(partial.center)) throw new Error(`Unable to create ellipse, center is undefined`)
     if (!isValidNumber(partial.radiusX)) throw new Error(`Unable to create ellipse, radiusX is undefined`)
     if (!isValidNumber(partial.radiusY)) throw new Error(`Unable to create ellipse, radiusY is undefined`)
-    const ellipse = ShapeEllipseHelper.create(partial.center as TPoint, partial.radiusX!, partial.radiusY!, partial.orientation || 0, partial.style)
+    const ellipse = ShapeEllipseOps.create(partial.center as TPoint, partial.radiusX!, partial.radiusY!, partial.orientation || 0, partial.style)
     if (partial.id) ellipse.id = partial.id
     return ellipse
   },
@@ -86,15 +85,15 @@ export const ShapeEllipseHelper = {
       vertices.push(computePointOnEllipse(ellipse.center, ellipse.radiusX, ellipse.radiusY, ellipse.orientation, theta))
     }
     ellipse.vertices = vertices
-    ellipse.bounds = BoxHelper.createFromPoints(vertices)
-    ellipse.snapPoints = BoxHelper.getSnapPoints(ellipse.bounds)
+    ellipse.bounds = BoxOps.createFromPoints(vertices)
+    ellipse.snapPoints = BoxOps.getSnapPoints(ellipse.bounds)
     ellipse.edges = vertices.map((p, i) => ({ p1: p, p2: vertices[(i + 1) % vertices.length] }))
   },
 
   overlaps(ellipse: TShapeEllipse, box: TBox): boolean
   {
-    return BoxHelper.isContained(ellipse.bounds, box) ||
-      ellipse.edges.some(e1 => BoxHelper.getSides(box).some(e2 => !!findIntersectionBetween2Segment(e1, e2)))
+    return BoxOps.isContained(ellipse.bounds, box) ||
+      ellipse.edges.some(e1 => BoxOps.getSides(box).some(e2 => !!findIntersectionBetween2Segment(e1, e2)))
   },
 
   createBetweenPoints(origin: TPoint, target: TPoint, style?: TPartialDeep<TStyle>): TShapeEllipse
@@ -105,7 +104,7 @@ export const ShapeEllipseHelper = {
     }
     const radiusX = Math.abs(origin.x - target.x) / 2
     const radiusY = Math.abs(origin.y - target.y) / 2
-    return ShapeEllipseHelper.create(center, radiusX, radiusY, 0, style)
+    return ShapeEllipseOps.create(center, radiusX, radiusY, 0, style)
   },
 
   updateBetweenPoints(ellipse: TShapeEllipse, origin: TPoint, target: TPoint): void
@@ -116,6 +115,11 @@ export const ShapeEllipseHelper = {
     }
     ellipse.radiusX = Math.abs(origin.x - target.x) / 2
     ellipse.radiusY = Math.abs(origin.y - target.y) / 2
-    ShapeEllipseHelper.updateDerivedFields(ellipse)
+    ShapeEllipseOps.updateDerivedFields(ellipse)
+  },
+
+  getSVGPath(ellipse: TShapeEllipse): string
+  {
+    return `M ${ellipse.center.x - ellipse.radiusX} ${ellipse.center.y} a ${ellipse.radiusX} ${ellipse.radiusY} 0 1 1 ${ellipse.radiusX * 2} 0 a ${ellipse.radiusX} ${ellipse.radiusY} 0 1 1 -${ellipse.radiusX * 2} 0 Z`
   },
 }

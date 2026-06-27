@@ -38,6 +38,7 @@ export default [
       "@typescript-eslint/ban-ts-comment": "off",
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/no-var-requires": "error",
+      "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
       "@typescript-eslint/consistent-type-imports": [
         "error",
         { prefer: "type-imports", disallowTypeAnnotations: false }

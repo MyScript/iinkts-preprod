@@ -3,7 +3,7 @@ import { EditorTool, EditorWriteTool } from "@/Constants"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { IIModel } from "@/model"
 import type { TSymbol} from "@/symbol";
-import { isShape } from "@/symbol"
+import { ShapeOps } from "@/symbol/shape/Shape"
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { DOMFactory } from "@/components/dom"
 import { DEFAULT_MENU_COLORS, DEFAULT_THICKNESS_LIST, DEFAULT_FONT_SIZE_LIST, DEFAULT_FONT_WEIGHT_LIST } from "./MenuConstants"
@@ -239,7 +239,7 @@ export class IIMenuStyle
     }
     else if (this.editor.tool === EditorTool.Select) {
       this.show()
-      const shapeSelected = this.model.symbolsSelected.length && this.model.symbolsSelected.some(s => isShape(s))
+      const shapeSelected = this.model.symbolsSelected.length && this.model.symbolsSelected.some(s => ShapeOps.isShape(s))
 
       const strokeColorEl = this.styleItems.get("strokeColor")?.getElement()
       const fillColorEl = this.styleItems.get("fillColor")?.getElement()

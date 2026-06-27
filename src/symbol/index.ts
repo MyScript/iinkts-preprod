@@ -2,19 +2,19 @@
  * @group Symbol
  * @summary Symbol types organized by category
  *
- * **Primitives** — {@link TPoint}, {@link TBox}, {@link BoxHelper}
+ * **Primitives** — {@link TPoint}, {@link TBox}, {@link BoxOps}
  *
- * **Stroke** — {@link TStroke}, {@link StrokeHelper}
+ * **Stroke** — {@link TStroke}, {@link StrokeOps}
  *
- * **Text** — {@link TText}, {@link TextHelper}
+ * **Text** — {@link TText}, {@link TextOps}
  *
- * **Math** — {@link TMath}, {@link MathHelper}
+ * **Math** — {@link TMath}, {@link MathOps}
  *
  * **Typeset** — {@link TTypesetChild}, {@link TRotation}
  *
- * **Decorator** — {@link TDecorator}, {@link DecoratorHelper}
+ * **Decorator** — {@link TDecorator}, {@link DecoratorOps}
  *
- * **Eraser** — {@link TEraser}, {@link EraserHelper}
+ * **Eraser** — {@link TEraser}, {@link EraserOps}
  *
  * **Shape** — {@link TShape}, {@link TShapeCircle}, {@link TShapeEllipse}, {@link TShapePolygon}
  *

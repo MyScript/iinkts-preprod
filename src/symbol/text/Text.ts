@@ -7,11 +7,11 @@ import { isValidPoint } from "@/symbol/primitives/Point"
 import { SymbolType } from "@/symbol/Symbol"
 import type { TBaseSymbol } from "@/symbol/Symbol"
 import type { TBox } from "@/symbol/primitives/Box"
-import { BoxHelper } from "@/symbol/primitives/Box"
+import { BoxOps } from "@/symbol/primitives/Box"
 import type { TRotation } from "@/symbol/typeset/Typeset"
 import { computeTypesetVertices, computeTypesetSnapPoints, computeClosedEdges } from "@/symbol/typeset/Typeset"
 import type { TDecorator } from "@/symbol/decorator/Decorator"
-import { DecoratorHelper } from "@/symbol/decorator/Decorator"
+import { DecoratorOps } from "@/symbol/decorator/Decorator"
 import type { TTypesetChild } from "@/symbol/typeset/Typeset"
 
 /**
@@ -40,9 +40,19 @@ export type TText = TBaseSymbol & {
 
 /**
  * @group Symbol
- * @group Utilities
+ * @summary Check if symbol is text
+ * @param symbol - Symbol to check
+ * @returns True if symbol is text
  */
-export const TextHelper = {
+export function isText(symbol: TBaseSymbol): symbol is TText
+{
+  return symbol.type === SymbolType.Text
+}
+
+/**
+ * @group Symbol
+ */
+export const TextOps = {
   create(chars: TSymbolChar[], point: TPoint, bounds: TBox, style?: TPartialDeep<TStyle>): TText
   {
     const mergedStyle = Object.assign({}, DefaultStyle, style) as TStyle
@@ -77,17 +87,17 @@ export const TextHelper = {
     if (!isValidPoint(partial?.point)) throw new Error(`Unable to create TText, point are invalid`)
     if (!partial.chars?.length) throw new Error(`Unable to create TText, no chars`)
     if (!partial.bounds) throw new Error(`Unable to create TText, no boundingBox`)
-    const text = TextHelper.create(partial.chars as TSymbolChar[], partial.point as TPoint, partial.bounds as TBox, partial.style)
+    const text = TextOps.create(partial.chars as TSymbolChar[], partial.point as TPoint, partial.bounds as TBox, partial.style)
     if (partial.id) text.id = partial.id
     if (partial.rotation) text.rotation = partial.rotation as TRotation
     if (partial.decorators?.length) {
       partial.decorators.forEach(d => {
         if (d?.kind) {
-          text.decorators.push(DecoratorHelper.create(d.kind, Object.assign({}, text.style, d.style)))
+          text.decorators.push(DecoratorOps.create(d.kind, Object.assign({}, text.style, d.style)))
         }
       })
     }
-    TextHelper.updateDerivedFields(text)
+    TextOps.updateDerivedFields(text)
     return text
   },
 
@@ -100,8 +110,8 @@ export const TextHelper = {
 
   overlaps(text: TText, box: TBox): boolean
   {
-    return text.vertices.some(p => BoxHelper.containsPoint(box, p)) ||
-      text.edges.some(e1 => BoxHelper.getSides(box).some(e2 => !!findIntersectionBetween2Segment(e1, e2)))
+    return text.vertices.some(p => BoxOps.containsPoint(box, p)) ||
+      text.edges.some(e1 => BoxOps.getSides(box).some(e2 => !!findIntersectionBetween2Segment(e1, e2)))
   },
 
   getChildrenOverlaps(text: TText, points: TPoint[]): TSymbolChar[]
@@ -111,10 +121,10 @@ export const TextHelper = {
       let corners: TPoint[]
       if (text.rotation) {
         const rad = convertDegreeToRadian(-text.rotation.degree)
-        corners = BoxHelper.getCorners(c.bounds).map(p => computeRotatedPoint(p, text.rotation!.center, rad))
+        corners = BoxOps.getCorners(c.bounds).map(p => computeRotatedPoint(p, text.rotation!.center, rad))
       }
       else {
-        corners = BoxHelper.getCorners(c.bounds)
+        corners = BoxOps.getCorners(c.bounds)
       }
       return points.some(p => isPointInsidePolygon(p, corners))
     })

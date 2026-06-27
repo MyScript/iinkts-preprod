@@ -1,8 +1,8 @@
 import type { TStroke, TText, TPoint } from "@/symbol";
 import { type TSymbol, isText, SymbolType } from "@/symbol"
-import { TextHelper } from "@/symbol/text/Text"
-import { StrokeHelper } from "@/symbol/stroke/Stroke"
-import { BoxHelper } from "@/symbol/primitives/Box"
+import { TextOps } from "@/symbol/text/Text"
+import { StrokeOps } from "@/symbol/stroke/Stroke"
+import { BoxOps } from "@/symbol/primitives/Box"
 import type { TIIHistoryChanges } from "@/history"
 import { computeAverage, isBetween } from "@/utils"
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
@@ -40,7 +40,7 @@ export class InsertGestureHandler extends GestureHandler
   {
     const strokes: TStroke[] = []
     if (subStrokes[0]) {
-      const subStroke = StrokeHelper.create(strokeOrigin.style)
+      const subStroke = StrokeOps.create(strokeOrigin.style)
       subStrokes[0].x.forEach((x, i) =>
       {
         subStroke.pointers.push({
@@ -50,11 +50,11 @@ export class InsertGestureHandler extends GestureHandler
           t: strokeOrigin.pointers.at(i)?.t || Math.max(...subStroke.pointers.map(p => p.t + 20))
         })
       })
-      StrokeHelper.updateBounds(subStroke)
+      StrokeOps.updateBounds(subStroke)
       strokes.push(subStroke)
     }
     if (subStrokes[1]) {
-      const subStroke = StrokeHelper.create(strokeOrigin.style)
+      const subStroke = StrokeOps.create(strokeOrigin.style)
       subStrokes[1].x.forEach((x, i) =>
       {
         subStroke.pointers.push({
@@ -64,7 +64,7 @@ export class InsertGestureHandler extends GestureHandler
           t: strokeOrigin.pointers.at(subStroke.pointers.length + i)?.t || Math.max(...subStroke.pointers.map(p => p.t + 20))
         })
       })
-      StrokeHelper.updateBounds(subStroke)
+      StrokeOps.updateBounds(subStroke)
       strokes.push(subStroke)
     }
     return strokes
@@ -166,7 +166,7 @@ export class InsertGestureHandler extends GestureHandler
     const charsAfter = textToSplit.chars.filter(c => c.bounds.x + c.bounds.width / 2 > gestureStroke.bounds.x + gestureStroke.bounds.width / 2)
     const newTexts: TText[] = []
     if (charsBefore.length && charsAfter.length) {
-      const textBefore = TextHelper.create(charsBefore, textToSplit.point, BoxHelper.createFromBoxes(charsBefore.map(c => c.bounds)))
+      const textBefore = TextOps.create(charsBefore, textToSplit.point, BoxOps.createFromBoxes(charsBefore.map(c => c.bounds)))
       this.typeset.setBounds(textBefore)
       newTexts.push(textBefore)
 
@@ -184,7 +184,7 @@ export class InsertGestureHandler extends GestureHandler
           y: textBefore.point.y
         }
       }
-      const textAfter = TextHelper.create(charsAfter, pointAfter, BoxHelper.createFromBoxes(charsAfter.map(c => c.bounds)))
+      const textAfter = TextOps.create(charsAfter, pointAfter, BoxOps.createFromBoxes(charsAfter.map(c => c.bounds)))
       this.typeset.setBounds(textAfter)
       newTexts.push(textAfter)
       replaced.newSymbols = newTexts

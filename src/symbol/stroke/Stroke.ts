@@ -1,9 +1,9 @@
 import type { TPartialDeep } from "@/utils"
-import { computeDistance, getClosestPoint, createUUID } from "@/utils"
+import { computeDistance, getClosestPoint, createUUID, computeAngleAxeRadian, computeLinksPointers, computeMiddlePointer } from "@/utils"
 import type { TStyle } from "@/style"
 import { DefaultStyle } from "@/style"
 import type { TBox } from "@/symbol/primitives/Box"
-import { BoxHelper } from "@/symbol/primitives/Box"
+import { BoxOps } from "@/symbol/primitives/Box"
 import type { TPointer } from "@/symbol/primitives/Point"
 import { SymbolType } from "@/symbol/Symbol"
 import type { TBaseSymbol } from "@/symbol/Symbol"
@@ -47,9 +47,52 @@ export type TStroke = TBaseSymbol & TStrokeMinimal &{
 
 /**
  * @group Symbol
- * @group Utilities
+ * @summary Check if symbol is a stroke
+ * @param symbol - Symbol to check
+ * @returns True if symbol is a stroke
  */
-export const StrokeHelper = {
+export function isStroke(symbol: TBaseSymbol): symbol is TStroke
+{
+  return symbol.type === SymbolType.Stroke
+}
+
+/**
+ * @group Symbol
+ * @summary Check if symbol is a stroke with Math JIIX metadata
+ * @param symbol - Symbol to check
+ * @returns True if symbol is a stroke with Math JIIX block type
+ */
+export function isRecognizedMath(symbol: TBaseSymbol): symbol is TStroke
+{
+  return isStroke(symbol) && symbol.jiixBlockType === "Math"
+}
+
+/**
+ * @group Symbol
+ * @summary Check if symbol is a stroke with Solver Output JIIX metadata
+ * @param symbol - Symbol to check
+ * @returns True if symbol is a stroke with Solver Output JIIX block type
+ */
+export function isStrokeSolverOutput(symbol: TBaseSymbol): symbol is TStroke
+{
+  return isStroke(symbol) && symbol.isSolverOutput === true
+}
+
+/**
+ * @group Symbol
+ * @summary Check if symbol is a stroke with Text JIIX metadata
+ * @param symbol - Symbol to check
+ * @returns True if symbol is a stroke with Text JIIX block type
+ */
+export function isRecognizedText(symbol: TBaseSymbol): symbol is TStroke
+{
+  return isStroke(symbol) && symbol.jiixBlockType === "Text"
+}
+
+/**
+ * @group Symbol
+ */
+export const StrokeOps = {
   create(style?: TPartialDeep<TStyle>, pointerType = "pen"): TStroke
   {
     const mergedStyle = Object.assign({}, DefaultStyle, style) as TStyle
@@ -78,8 +121,8 @@ export const StrokeHelper = {
 
   updateBounds(stroke: TStroke): void
   {
-    stroke.bounds = BoxHelper.createFromPoints(stroke.pointers)
-    stroke.snapPoints = BoxHelper.getSnapPoints(stroke.bounds)
+    stroke.bounds = BoxOps.createFromPoints(stroke.pointers)
+    stroke.snapPoints = BoxOps.getSnapPoints(stroke.bounds)
     stroke.edges = stroke.pointers.slice(0, -1).map((p, i) => ({ p1: p, p2: stroke.pointers[i + 1] }))
   },
 
@@ -108,14 +151,14 @@ export const StrokeHelper = {
 
   addPointer(stroke: TStroke, pointer: TPointer): void
   {
-    if (StrokeHelper._filterPointByAcquisitionDelta(stroke, pointer)) {
+    if (StrokeOps._filterPointByAcquisitionDelta(stroke, pointer)) {
       const lastPointer = stroke.pointers.at(-1)
       const distance = lastPointer ? computeDistance(pointer, lastPointer) : 0
       stroke.length += distance
-      pointer.p = StrokeHelper._computePressure(stroke, distance)
+      pointer.p = StrokeOps._computePressure(stroke, distance)
       stroke.pointers.push(pointer)
       stroke.modificationDate = Date.now()
-      StrokeHelper.updateBounds(stroke)
+      StrokeOps.updateBounds(stroke)
     }
   },
 
@@ -129,17 +172,17 @@ export const StrokeHelper = {
 
   split(strokeToSplit: TStroke, i: number): { before: TStroke, after: TStroke }
   {
-    const before = StrokeHelper.create(strokeToSplit.style, strokeToSplit.pointerType)
+    const before = StrokeOps.create(strokeToSplit.style, strokeToSplit.pointerType)
     before.pointers.push(...strokeToSplit.pointers.slice(0, i))
     before.length = before.pointers.reduce((sum, ptr, idx, arr) =>
       idx === 0 ? 0 : sum + computeDistance(ptr, arr[idx - 1]), 0)
-    StrokeHelper.updateBounds(before)
+    StrokeOps.updateBounds(before)
 
-    const after = StrokeHelper.create(strokeToSplit.style, strokeToSplit.pointerType)
+    const after = StrokeOps.create(strokeToSplit.style, strokeToSplit.pointerType)
     after.pointers.push(...strokeToSplit.pointers.slice(i))
     after.length = after.pointers.reduce((sum, ptr, idx, arr) =>
       idx === 0 ? 0 : sum + computeDistance(ptr, arr[idx - 1]), 0)
-    StrokeHelper.updateBounds(after)
+    StrokeOps.updateBounds(after)
 
     return { before, after }
   },
@@ -151,7 +194,7 @@ export const StrokeHelper = {
     const lastPointBeforeStroke = { x: partStroke.pointers[0].x, y: partStroke.pointers[0].y }
     const closestLastPointBeforeStroke = getClosestPoint(stroke.pointers, lastPointBeforeStroke)
     if (closestLastPointBeforeStroke.index > -1) {
-      const newStrokes = StrokeHelper.split(stroke, closestLastPointBeforeStroke.index)
+      const newStrokes = StrokeOps.split(stroke, closestLastPointBeforeStroke.index)
       result.before = newStrokes.before
       result.after = newStrokes.after
     }
@@ -159,7 +202,7 @@ export const StrokeHelper = {
     const firstPointAfterStroke = { x: partStroke.pointers.at(-1)!.x, y: partStroke.pointers.at(-1)!.y }
     const closestFirstPointStrokeAfter = getClosestPoint(strokeAfter.pointers, firstPointAfterStroke)
     if (closestFirstPointStrokeAfter.index > -1) {
-      const newStrokes = StrokeHelper.split(strokeAfter, closestFirstPointStrokeAfter.index)
+      const newStrokes = StrokeOps.split(strokeAfter, closestFirstPointStrokeAfter.index)
       result.after = newStrokes.after
     }
     if (!result.before?.pointers.length) result.before = undefined
@@ -170,7 +213,7 @@ export const StrokeHelper = {
   createFromPartial(partial: TPartialDeep<TStroke>): TStroke
   {
     if (!partial.pointers?.length) throw new Error(`not pointers`)
-    const stroke = StrokeHelper.create(partial.style, partial.pointerType)
+    const stroke = StrokeOps.create(partial.style, partial.pointerType)
     if (partial.id) stroke.id = partial.id
     stroke.isSolverOutput = partial.isSolverOutput
     const errors: string[] = []
@@ -193,12 +236,89 @@ export const StrokeHelper = {
         flag = false
         return
       } else pointer.y = pp.y
-      if (flag) StrokeHelper.addPointer(stroke, pointer)
+      if (flag) StrokeOps.addPointer(stroke, pointer)
     })
     if (errors.length) throw new Error(errors.join(" and "))
     return stroke
   },
 
+
+  _getArcPath(center: TPointer, radius: number): string
+  {
+    return [
+      `M ${ center.x } ${ center.y }`,
+      `m ${ -radius } 0`,
+      `a ${ radius } ${ radius } 0 1 0 ${ radius * 2 } 0`,
+      `a ${ radius } ${ radius } 0 1 0 ${ -(radius * 2) } 0`
+    ].join(" ")
+  },
+
+  _getLinePath(begin: TPointer, end: TPointer, width: number): string
+  {
+    const linkPoints1 = computeLinksPointers(begin, computeAngleAxeRadian(begin, end), width)
+    const linkPoints2 = computeLinksPointers(end, computeAngleAxeRadian(begin, end), width)
+    return [
+      `M ${ linkPoints1[0].x } ${ linkPoints1[0].y }`,
+      `L ${ linkPoints2[0].x } ${ linkPoints2[0].y }`,
+      `L ${ linkPoints2[1].x } ${ linkPoints2[1].y }`,
+      `L ${ linkPoints1[1].x } ${ linkPoints1[1].y }`
+    ].join(" ")
+  },
+
+  _getFinalPath(begin: TPointer, end: TPointer, width: number): string
+  {
+    const ARCSPLIT = 6
+    const angle = computeAngleAxeRadian(begin, end)
+    const linkPoints = computeLinksPointers(end, angle, width)
+    const parts = [`M ${ linkPoints[0].x } ${ linkPoints[0].y }`]
+    for (let i = 1; i <= ARCSPLIT; i++) {
+      const newAngle = angle - (i * (Math.PI / ARCSPLIT))
+      const x = +(end.x - (end.p * width * Math.sin(newAngle))).toFixed(3)
+      const y = +(end.y + (end.p * width * Math.cos(newAngle))).toFixed(3)
+      parts.push(`L ${ x } ${ y }`)
+    }
+    return parts.join(" ")
+  },
+
+  _getQuadraticPath(begin: TPointer, end: TPointer, central: TPointer, width: number): string
+  {
+    const linkPoints1 = computeLinksPointers(begin, computeAngleAxeRadian(begin, central), width)
+    const linkPoints2 = computeLinksPointers(end, computeAngleAxeRadian(central, end), width)
+    const linkPoints3 = computeLinksPointers(central, computeAngleAxeRadian(begin, end), width)
+    return [
+      `M ${ linkPoints1[0].x } ${ linkPoints1[0].y }`,
+      `Q ${ linkPoints3[0].x } ${ linkPoints3[0].y } ${ linkPoints2[0].x } ${ linkPoints2[0].y }`,
+      `L ${ linkPoints2[1].x } ${ linkPoints2[1].y }`,
+      `Q ${ linkPoints3[1].x } ${ linkPoints3[1].y } ${ linkPoints1[1].x } ${ linkPoints1[1].y }`
+    ].join(" ")
+  },
+
+  getSVGPath(stroke: TStroke): string
+  {
+    const STROKE_LENGTH = stroke.pointers.length
+    if (!STROKE_LENGTH) return ""
+    const STROKE_WIDTH = stroke.style.width as number
+    const NB_QUADRATICS = STROKE_LENGTH - 2
+    const firstPoint = stroke.pointers[0]
+    const parts = []
+    if (STROKE_LENGTH < 3) {
+      parts.push(StrokeOps._getArcPath(firstPoint, STROKE_WIDTH * 0.6))
+    } else {
+      parts.push(StrokeOps._getArcPath(firstPoint, STROKE_WIDTH * firstPoint.p))
+      parts.push(StrokeOps._getLinePath(firstPoint, computeMiddlePointer(firstPoint, stroke.pointers[1]), STROKE_WIDTH))
+      for (let i = 0; i < NB_QUADRATICS; i++) {
+        const begin = computeMiddlePointer(stroke.pointers[i], stroke.pointers[i + 1])
+        const end = computeMiddlePointer(stroke.pointers[i + 1], stroke.pointers[i + 2])
+        const central = stroke.pointers[i + 1]
+        parts.push(StrokeOps._getQuadraticPath(begin, end, central, STROKE_WIDTH))
+      }
+      const beforeLastPoint = stroke.pointers[STROKE_LENGTH - 2]
+      const lastPoint = stroke.pointers[STROKE_LENGTH - 1]
+      parts.push(StrokeOps._getLinePath(computeMiddlePointer(beforeLastPoint, lastPoint), lastPoint, STROKE_WIDTH))
+      parts.push(StrokeOps._getFinalPath(beforeLastPoint, lastPoint, STROKE_WIDTH))
+    }
+    return parts.join(" ")
+  },
 
   formatToSend(stroke: TStrokeMinimal): { id: string, pointerType: string, p: number[], t: number[], x: number[], y: number[] }
   {

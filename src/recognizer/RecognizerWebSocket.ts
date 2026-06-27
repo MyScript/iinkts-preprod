@@ -2,7 +2,7 @@ import type { TIIHistoryBackendChanges, THistoryContext } from "@/history"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { TExport, TJIIXExport, TJIIXMathElement } from "@/model"
 import type { TStroke } from "@/symbol"
-import { StrokeHelper } from "@/symbol/stroke/Stroke"
+import { StrokeOps } from "@/symbol/stroke/Stroke"
 import type { TMatrixTransform } from "@/transform"
 import type { TPartialDeep} from "@/utils";
 import { computeHmac, mergeDeep, DeferredPromise, isVersionSuperiorOrEqual, getApiInfos } from "@/utils"
@@ -571,7 +571,7 @@ export class RecognizerWebSocket
     return {
       type: "addStrokes",
       processGestures,
-      strokes: strokes.map(s => StrokeHelper.formatToSend(s))
+      strokes: strokes.map(s => StrokeOps.formatToSend(s))
     }
   }
   async addStrokes(strokes: TStroke[], processGestures = true): Promise<TRecognizerWebSocketMessageGesture | undefined>
@@ -789,7 +789,7 @@ export class RecognizerWebSocket
     return {
       type: "replaceStrokes",
       oldStrokeIds,
-      newStrokes: newStrokes.map(s => StrokeHelper.formatToSend(s))
+      newStrokes: newStrokes.map(s => StrokeOps.formatToSend(s))
     }
   }
   async replaceStrokes(oldStrokeIds: string[], newStrokes: TStroke[]): Promise<void>
@@ -918,7 +918,7 @@ export class RecognizerWebSocket
       type: "contextlessGesture",
       scaleX: pixelTomm,
       scaleY: pixelTomm,
-      stroke: StrokeHelper.formatToSend(stroke)
+      stroke: StrokeOps.formatToSend(stroke)
     })
     return this.contextlessGestureDeferred.get(stroke.id)!.promise
   }

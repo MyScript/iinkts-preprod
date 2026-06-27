@@ -1,17 +1,11 @@
 import type { TStyle } from "@/style"
 import { DefaultStyle } from "@/style"
-import type { TPartialDeep } from "@/utils"
-import { findIntersectionBetween2Segment } from "@/utils"
+import { findIntersectionBetween2Segment, type TPartialDeep } from "@/utils"
 import { createUUID } from "@/utils/uuid"
-import type { TPoint, TSegment } from "@/symbol/primitives/Point"
-import { isValidPoint } from "@/symbol/primitives/Point"
-import { SymbolType } from "@/symbol/Symbol"
-import type { TBaseSymbol } from "@/symbol/Symbol"
-import type { TBox } from "@/symbol/primitives/Box"
-import { BoxHelper } from "@/symbol/primitives/Box"
-import type { EdgeDecoration} from "./Edge"
-import { EdgeKind, computeEdgeBounds } from "./Edge"
-
+import { isValidPoint, type TPoint, type TSegment } from "@/symbol/primitives/Point"
+import { SymbolType, type TBaseSymbol } from "@/symbol/Symbol"
+import { BoxOps, type TBox } from "@/symbol/primitives/Box"
+import { EdgeKind, type EdgeDecoration, computeEdgeBounds } from "./Edge-enum"
 /**
  * @group Symbol
  */
@@ -33,9 +27,8 @@ export type TEdgePolyLine = TBaseSymbol & {
 
 /**
  * @group Symbol
- * @group Utilities
  */
-export const EdgePolyLineHelper = {
+export const EdgePolyLineOps = {
   create(points: TPoint[], startDecoration?: EdgeDecoration, endDecoration?: EdgeDecoration, style?: TPartialDeep<TStyle>): TEdgePolyLine
   {
     const mergedStyle = Object.assign({}, DefaultStyle, style) as TStyle
@@ -60,14 +53,14 @@ export const EdgePolyLineHelper = {
       snapPoints: [],
       edges: [],
     }
-    EdgePolyLineHelper.updateDerivedFields(polyline)
+    EdgePolyLineOps.updateDerivedFields(polyline)
     return polyline
   },
 
   createFromPartial(partial: TPartialDeep<TEdgePolyLine>): TEdgePolyLine
   {
     if (partial?.points?.some(p => !isValidPoint(p))) throw new Error(`Unable to create a PolyLine, points are invalid`)
-    const polyline = EdgePolyLineHelper.create(partial?.points as TPoint[], partial.startDecoration, partial.endDecoration, partial.style)
+    const polyline = EdgePolyLineOps.create(partial?.points as TPoint[], partial.startDecoration, partial.endDecoration, partial.style)
     if (partial.id) polyline.id = partial.id
     return polyline
   },
@@ -87,7 +80,16 @@ export const EdgePolyLineHelper = {
 
   overlaps(polyline: TEdgePolyLine, box: TBox): boolean
   {
-    return BoxHelper.isContained(polyline.bounds, box) ||
-      polyline.edges.some(e1 => BoxHelper.getSides(box).some(e2 => !!findIntersectionBetween2Segment(e1, e2)))
+    return BoxOps.isContained(polyline.bounds, box) ||
+      polyline.edges.some(e1 => BoxOps.getSides(box).some(e2 => !!findIntersectionBetween2Segment(e1, e2)))
+  },
+
+  getSVGPath(polyline: TEdgePolyLine): string
+  {
+    let path = `M ${ polyline.vertices[0].x } ${ polyline.vertices[0].y }`
+    for (let i = 0; i < polyline.vertices.length; i++) {
+      path += ` L ${ polyline.vertices[i].x } ${ polyline.vertices[i].y }`
+    }
+    return path
   },
 }

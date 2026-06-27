@@ -13,9 +13,8 @@ export type TBox = {
 
 /**
  * @group Symbol
- * @group Utilities
  */
-export const BoxHelper = {
+export const BoxOps = {
   createFromBoxes(boxes: TBox[]): TBox
   {
     if (!boxes?.length) {
@@ -81,7 +80,7 @@ export const BoxHelper = {
 
   getSides(box: TBox): TSegment[]
   {
-    const vertices = BoxHelper.getCorners(box)
+    const vertices = BoxOps.getCorners(box)
     return vertices.map((p, i) =>
     {
       if (i === 3) {
@@ -93,7 +92,7 @@ export const BoxHelper = {
 
   getSnapPoints(box: TBox): TPoint[]
   {
-    return [...BoxHelper.getCorners(box), BoxHelper.getCenter(box)]
+    return [...BoxOps.getCorners(box), BoxOps.getCenter(box)]
   },
 
   isContained(box: TBox, wrapper: TBox): boolean

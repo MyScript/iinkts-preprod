@@ -1,3 +1,4 @@
+import { beforeAll, describe, test, expect } from "@jest/globals"
 import { buildIICircle, buildIIEraser, buildIILine, buildIIStroke, buildIIText } from "../helpers"
 import
 {
@@ -6,8 +7,11 @@ import
   TIIRendererConfiguration,
   TSymbol,
   TSymbolChar,
+  StrokeOps,
+  registerBuiltinSymbolUtils,
+} from "../../../src/iink"
 
-  StrokeHelper,} from "../../../src/iink"
+beforeAll(() => { registerBuiltinSymbolUtils() })
 
 describe("SVGRenderer.ts", () =>
 {
@@ -282,7 +286,7 @@ describe("SVGRenderer.ts", () =>
       renderer.drawSymbol(stroke)
       const oldPath = divElement.querySelector(`#${ stroke.id }`)!.querySelector("path")!.getAttribute("d")
       for (let x = 0; x < 10; x++) {
-        StrokeHelper.addPointer(stroke, {
+        StrokeOps.addPointer(stroke, {
           x,
           y: x * 2,
           p: 1,

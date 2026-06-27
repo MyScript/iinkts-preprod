@@ -1,6 +1,6 @@
 import
 {
-  EdgeLineHelper,
+  EdgeLineOps,
   TPoint,
   DefaultStyle,
   TStyle,
@@ -8,7 +8,7 @@ import
   EdgeDecoration
 } from "../../../../src/iink"
 
-describe("EdgeLineHelper", () =>
+describe("EdgeLineOps", () =>
 {
   describe("create", () =>
   {
@@ -16,7 +16,7 @@ describe("EdgeLineHelper", () =>
     {
       const start: TPoint = { x: 0, y: 0 }
       const end: TPoint = { x: 10, y: 10 }
-      const line = EdgeLineHelper.create(start, end)
+      const line = EdgeLineOps.create(start, end)
       expect(line.style).toEqual(DefaultStyle)
       expect(line.selected).toEqual(false)
       expect(line.deleting).toEqual(false)
@@ -27,31 +27,31 @@ describe("EdgeLineHelper", () =>
     test("should create with custom style", () =>
     {
       const style: TStyle = { color: "blue", width: 5 }
-      const line = EdgeLineHelper.create({ x: 0, y: 0 }, { x: 5, y: 5 }, undefined, undefined, style)
+      const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 5, y: 5 }, undefined, undefined, style)
       expect(line.style).toEqual(expect.objectContaining(style))
     })
     test("should create with decorations", () =>
     {
-      const line = EdgeLineHelper.create({ x: 0, y: 0 }, { x: 5, y: 5 }, EdgeDecoration.Arrow, EdgeDecoration.Arrow)
+      const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 5, y: 5 }, EdgeDecoration.Arrow, EdgeDecoration.Arrow)
       expect(line.startDecoration).toEqual(EdgeDecoration.Arrow)
       expect(line.endDecoration).toEqual(EdgeDecoration.Arrow)
     })
     test("should compute 2 vertices", () =>
     {
-      const line = EdgeLineHelper.create({ x: 0, y: 0 }, { x: 5, y: 5 })
+      const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 5, y: 5 })
       expect(line.vertices).toHaveLength(2)
     })
     test("vertices[0] same ref as start", () =>
     {
       const start: TPoint = { x: 0, y: 0 }
       const end: TPoint = { x: 5, y: 5 }
-      const line = EdgeLineHelper.create(start, end)
+      const line = EdgeLineOps.create(start, end)
       expect(line.vertices[0]).toBe(line.start)
       expect(line.vertices[1]).toBe(line.end)
     })
     test("should compute bounds with margin", () =>
     {
-      const line = EdgeLineHelper.create({ x: 0, y: 0 }, { x: 5, y: 5 }, undefined, undefined, { width: 20 })
+      const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 5, y: 5 }, undefined, undefined, { width: 20 })
       expect(line.bounds.x).toEqual(-5)
       expect(line.bounds.y).toEqual(-5)
       expect(line.bounds.width).toEqual(15)
@@ -59,8 +59,8 @@ describe("EdgeLineHelper", () =>
     })
     test("should generate unique ids", () =>
     {
-      const l1 = EdgeLineHelper.create({ x: 0, y: 0 }, { x: 1, y: 1 })
-      const l2 = EdgeLineHelper.create({ x: 0, y: 0 }, { x: 1, y: 1 })
+      const l1 = EdgeLineOps.create({ x: 0, y: 0 }, { x: 1, y: 1 })
+      const l2 = EdgeLineOps.create({ x: 0, y: 0 }, { x: 1, y: 1 })
       expect(l1.id).not.toEqual(l2.id)
     })
   })
@@ -70,23 +70,23 @@ describe("EdgeLineHelper", () =>
     test("should create from valid partial", () =>
     {
       const partial = { start: { x: 0, y: 0 }, end: { x: 5, y: 5 } }
-      const line = EdgeLineHelper.createFromPartial(partial)
+      const line = EdgeLineOps.createFromPartial(partial)
       expect(line.start).toEqual(partial.start)
       expect(line.end).toEqual(partial.end)
     })
     test("should preserve id", () =>
     {
       const partial = { id: "line-id", start: { x: 0, y: 0 }, end: { x: 5, y: 5 } }
-      const line = EdgeLineHelper.createFromPartial(partial)
+      const line = EdgeLineOps.createFromPartial(partial)
       expect(line.id).toEqual("line-id")
     })
     test("should throw if start missing", () =>
     {
-      expect(() => EdgeLineHelper.createFromPartial({ end: { x: 5, y: 5 } })).toThrow()
+      expect(() => EdgeLineOps.createFromPartial({ end: { x: 5, y: 5 } })).toThrow()
     })
     test("should throw if end missing", () =>
     {
-      expect(() => EdgeLineHelper.createFromPartial({ start: { x: 0, y: 0 } })).toThrow()
+      expect(() => EdgeLineOps.createFromPartial({ start: { x: 0, y: 0 } })).toThrow()
     })
   })
 
@@ -94,9 +94,9 @@ describe("EdgeLineHelper", () =>
   {
     test("should recompute vertices and bounds after end change", () =>
     {
-      const line = EdgeLineHelper.create({ x: 0, y: 0 }, { x: 5, y: 5 })
+      const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 5, y: 5 })
       line.end = { x: 50, y: 50 }
-      EdgeLineHelper.updateDerivedFields(line)
+      EdgeLineOps.updateDerivedFields(line)
       expect(line.vertices[1]).toBe(line.end)
       expect(line.bounds.width).toBeGreaterThan(20)
     })
@@ -106,8 +106,8 @@ describe("EdgeLineHelper", () =>
   {
     test("should return 2 resize points", () =>
     {
-      const line = EdgeLineHelper.create({ x: 0, y: 0 }, { x: 10, y: 10 })
-      const pts = EdgeLineHelper.getResizePoints(line)
+      const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 10, y: 10 })
+      const pts = EdgeLineOps.getResizePoints(line)
       expect(pts).toHaveLength(2)
       expect(pts[0].vertexIndex).toEqual(0)
       expect(pts[1].vertexIndex).toEqual(1)
@@ -116,21 +116,21 @@ describe("EdgeLineHelper", () =>
 
   describe("overlaps", () =>
   {
-    const line = EdgeLineHelper.create({ x: 0, y: 0 }, { x: 0, y: 25 })
+    const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 0, y: 25 })
     test("should return true if partially intersects", () =>
     {
       const box: TBox = { height: 10, width: 10, x: -5, y: -5 }
-      expect(EdgeLineHelper.overlaps(line, box)).toEqual(true)
+      expect(EdgeLineOps.overlaps(line, box)).toEqual(true)
     })
     test("should return true if totally wraps", () =>
     {
       const box: TBox = { height: 50, width: 50, x: -25, y: -25 }
-      expect(EdgeLineHelper.overlaps(line, box)).toEqual(true)
+      expect(EdgeLineOps.overlaps(line, box)).toEqual(true)
     })
     test("should return false if box is outside", () =>
     {
       const box: TBox = { height: 2, width: 2, x: 50, y: 50 }
-      expect(EdgeLineHelper.overlaps(line, box)).toEqual(false)
+      expect(EdgeLineOps.overlaps(line, box)).toEqual(false)
     })
   })
 })

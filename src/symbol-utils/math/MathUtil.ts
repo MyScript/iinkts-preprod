@@ -1,15 +1,43 @@
-import type { TMath } from "@/symbol";
-import { DecoratorKind } from "@/symbol"
-import { SVGRendererDecoratorUtil } from "./SVGRendererDecoratorUtil"
-import { SVGRendererConst } from "./utils/SVGRendererConst"
-import { SVGBuilder } from "./utils/SVGBuilder"
+import type { TPartialDeep } from "@/utils"
+import type { TBox } from "@/symbol/primitives/Box"
+import type { TPoint } from "@/symbol/primitives/Point"
+import { SymbolType } from "@/symbol/Symbol"
+import { MathOps, type TMath } from "@/symbol/math/Math"
+import { DecoratorKind } from "@/symbol/decorator/Decorator"
+import { SymbolUtil } from "../SymbolUtil"
+import { SVGBuilder } from "../SVGBuilder"
+import { DecoratorUtil } from "../decorator/DecoratorUtil"
+
+const noSelection = "pointer-events: none; -webkit-touch-callout: none; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;"
 
 /**
- * @group Renderer
+ * @group SymbolUtils
  */
-export class SVGRendererMathUtil
+export class MathUtil extends SymbolUtil<TMath>
 {
-  static getSVGElement(math: TMath): SVGGraphicsElement
+  readonly type = SymbolType.Math
+
+  create(partial: TPartialDeep<TMath>): TMath
+  {
+    return MathOps.createFromPartial(partial)
+  }
+
+  updateDerivedFields(math: TMath): void
+  {
+    MathOps.updateDerivedFields(math)
+  }
+
+  overlaps(math: TMath, box: TBox): boolean
+  {
+    return MathOps.overlaps(math, box)
+  }
+
+  getSnapPoints(math: TMath): TPoint[]
+  {
+    return math.snapPoints
+  }
+
+  getSVGElement(math: TMath): SVGGraphicsElement
   {
     const attrs: { [key: string]: string } = {
       "id": math.id,
@@ -17,7 +45,7 @@ export class SVGRendererMathUtil
       "vector-effect": "non-scaling-stroke",
       "stroke-linecap": "round",
       "stroke-linejoin": "round",
-      "style": SVGRendererConst.noSelection,
+      "style": noSelection,
     }
     if (math.style.opacity) {
       attrs.opacity = math.style.opacity.toString()
@@ -25,21 +53,13 @@ export class SVGRendererMathUtil
     if (math.rotation) {
       attrs.transform = `rotate(${ math.rotation.degree }, ${ math.rotation.center.x }, ${ math.rotation.center.y })`
     }
-    if (math.selected) {
-      attrs["filter"] = `url(#${ SVGRendererConst.selectionFilterId })`
-    }
-    if (math.deleting) {
-      attrs["filter"] = `url(#${ SVGRendererConst.removalFilterId })`
-    }
 
     const mathGroup = SVGBuilder.createGroup(attrs)
 
-    // Check if we have elements with superscript/subscript positions (limits on operators)
     const hasSuperscript = math.elements.some(e => e.position === "superscript")
     const hasSubscript = math.elements.some(e => e.position === "subscript")
 
     if (hasSuperscript || hasSubscript) {
-      // Create separate text elements for operator, superscript, subscript, and rest
       let currentX = math.point.x
       const baselineY = math.point.y
 
@@ -56,19 +76,14 @@ export class SVGRendererMathUtil
         let x = currentX
         let y = baselineY
 
-        // Position based on element type
         if (e.position === "superscript") {
-          // Above the operator, shifted left to center over it
           y = baselineY - e.fontSize * 1.5
           x = currentX - e.label.length * e.fontSize * 0.3
         } else if (e.position === "subscript") {
-          // Below the operator, shifted left to center under it
           y = baselineY + e.fontSize * 1.2
           x = currentX - e.label.length * e.fontSize * 0.3
         } else {
-          // Normal element - advance x position after previous normal elements
           if (index > 0) {
-            // Advance x after operator and limits
             const prevElement = math.elements[index - 1]
             if (prevElement.position === "normal") {
               currentX += prevElement.label.length * prevElement.fontSize * 0.6
@@ -83,13 +98,11 @@ export class SVGRendererMathUtil
         })
         mathGroup.appendChild(textElement)
 
-        // Update currentX for the next normal element
         if (e.position === "normal") {
           currentX = x + e.label.length * e.fontSize * 0.6
         }
       })
     } else {
-      // Simple case: single text element with tspan
       const mathElement = SVGBuilder.createText(math.point, "")
 
       math.elements.forEach(e =>
@@ -109,7 +122,7 @@ export class SVGRendererMathUtil
 
     math.decorators.forEach(d =>
     {
-      const deco = SVGRendererDecoratorUtil.getSVGElement(d, math)
+      const deco = DecoratorUtil.renderForSymbol(d, math)
       if (deco) {
         if (d.kind === DecoratorKind.Highlight) {
           mathGroup.prepend(deco)

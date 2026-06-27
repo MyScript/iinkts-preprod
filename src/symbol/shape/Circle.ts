@@ -1,18 +1,12 @@
 import { SELECTION_MARGIN } from "@/Constants"
-import type { TStyle } from "@/style"
-import { DefaultStyle } from "@/style"
-import type { TPartialDeep } from "@/utils"
-import { findIntersectBetweenSegmentAndCircle, computeRotatedPoint, computeDistance, TWO_PI } from "@/utils"
+import { DefaultStyle, type TStyle } from "@/style"
+import { findIntersectBetweenSegmentAndCircle, computeRotatedPoint, computeDistance, TWO_PI, type TPartialDeep } from "@/utils"
 import { isValidNumber } from "@/utils"
 import { createUUID } from "@/utils/uuid"
-import type { TPoint } from "@/symbol/primitives/Point"
-import { isValidPoint } from "@/symbol/primitives/Point"
-import { SymbolType } from "@/symbol/Symbol"
-import type { TBaseSymbol } from "@/symbol/Symbol"
-import type { TBox } from "@/symbol/primitives/Box"
-import { BoxHelper } from "@/symbol/primitives/Box"
-import { ShapeKind } from "./Shape"
-import type { TSegment } from "@/symbol/primitives/Point"
+import { isValidPoint, type TPoint, type TSegment } from "@/symbol/primitives/Point"
+import { SymbolType, type TBaseSymbol } from "@/symbol/Symbol"
+import { BoxOps, type TBox } from "@/symbol/primitives/Box"
+import { ShapeKind } from "./Shape-enum"
 
 /**
  * @group Symbol
@@ -34,9 +28,8 @@ export type TShapeCircle = TBaseSymbol & {
 
 /**
  * @group Symbol
- * @group Utilities
  */
-export const ShapeCircleHelper = {
+export const ShapeCircleOps = {
   create(center: TPoint, radius: number, style?: TPartialDeep<TStyle>): TShapeCircle
   {
     const mergedStyle = Object.assign({}, DefaultStyle, style) as TStyle
@@ -60,7 +53,7 @@ export const ShapeCircleHelper = {
       snapPoints: [],
       edges: [],
     }
-    ShapeCircleHelper.updateDerivedFields(circle)
+    ShapeCircleOps.updateDerivedFields(circle)
     return circle
   },
 
@@ -68,7 +61,7 @@ export const ShapeCircleHelper = {
   {
     if (!isValidPoint(partial.center)) throw new Error(`Unable to create circle, center is invalid`)
     if (!isValidNumber(partial.radius)) throw new Error(`Unable to create circle, radius is undefined`)
-    const circle = ShapeCircleHelper.create(partial.center as TPoint, partial.radius!, partial.style)
+    const circle = ShapeCircleOps.create(partial.center as TPoint, partial.radius!, partial.style)
     if (partial.id) circle.id = partial.id
     return circle
   },
@@ -90,27 +83,32 @@ export const ShapeCircleHelper = {
       vertices.push(computeRotatedPoint(firstPoint, circle.center, rad))
     }
     circle.vertices = vertices
-    circle.snapPoints = BoxHelper.getSnapPoints(circle.bounds)
+    circle.snapPoints = BoxOps.getSnapPoints(circle.bounds)
     circle.edges = vertices.map((p, i) => ({ p1: p, p2: vertices[(i + 1) % vertices.length] }))
   },
 
   overlaps(circle: TShapeCircle, box: TBox): boolean
   {
-    return BoxHelper.isContained(circle.bounds, box) ||
-      BoxHelper.getSides(box).some(seg => findIntersectBetweenSegmentAndCircle(seg, circle.center, circle.radius).length > 0)
+    return BoxOps.isContained(circle.bounds, box) ||
+      BoxOps.getSides(box).some(seg => findIntersectBetweenSegmentAndCircle(seg, circle.center, circle.radius).length > 0)
   },
 
   createBetweenPoints(origin: TPoint, target: TPoint, style?: TPartialDeep<TStyle>): TShapeCircle
   {
-    const circle = ShapeCircleHelper.create(origin, 0, style)
+    const circle = ShapeCircleOps.create(origin, 0, style)
     circle.radius = computeDistance(circle.center, target)
-    ShapeCircleHelper.updateDerivedFields(circle)
+    ShapeCircleOps.updateDerivedFields(circle)
     return circle
   },
 
   updateBetweenPoints(circle: TShapeCircle, _origin: TPoint, target: TPoint): void
   {
     circle.radius = computeDistance(circle.center, target)
-    ShapeCircleHelper.updateDerivedFields(circle)
+    ShapeCircleOps.updateDerivedFields(circle)
+  },
+
+  getSVGPath(circle: TShapeCircle): string
+  {
+    return `M ${circle.center.x - circle.radius} ${circle.center.y} a ${circle.radius} ${circle.radius} 0 1 1 ${circle.radius * 2} 0 a ${circle.radius} ${circle.radius} 0 1 1 -${circle.radius * 2} 0 Z`
   },
 }

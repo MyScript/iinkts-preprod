@@ -6,11 +6,11 @@ import type { TPoint, TSegment } from "@/symbol/primitives/Point"
 import { SymbolType } from "@/symbol/Symbol"
 import type { TBaseSymbol } from "@/symbol/Symbol"
 import type { TBox } from "@/symbol/primitives/Box"
-import { BoxHelper } from "@/symbol/primitives/Box"
+import { BoxOps } from "@/symbol/primitives/Box"
 import type { TRotation, TTypesetChild } from "@/symbol/typeset/Typeset"
 import { computeTypesetVertices, computeTypesetSnapPoints, computeClosedEdges } from "@/symbol/typeset/Typeset"
 import type { TDecorator } from "@/symbol/decorator/Decorator"
-import { DecoratorHelper } from "@/symbol/decorator/Decorator"
+import { DecoratorOps } from "@/symbol/decorator/Decorator"
 
 /**
  * @group Symbol
@@ -43,9 +43,19 @@ export type TMath = TBaseSymbol & {
 
 /**
  * @group Symbol
- * @group Utilities
+ * @summary Check if symbol is math
+ * @param symbol - Symbol to check
+ * @returns True if symbol is math
  */
-export const MathHelper = {
+export function isMath(symbol: TBaseSymbol): symbol is TMath
+{
+  return symbol.type === SymbolType.Math
+}
+
+/**
+ * @group Symbol
+ */
+export const MathOps = {
   create(elements: TMathElement[], point: TPoint, bounds: TBox, style?: TPartialDeep<TStyle>): TMath
   {
     const mergedStyle = Object.assign({}, DefaultStyle, style) as TStyle
@@ -96,15 +106,15 @@ export const MathHelper = {
       }
     }))
 
-    const math = MathHelper.create(elements, partial.point as TPoint, partial.bounds as TBox, partial.style)
+    const math = MathOps.create(elements, partial.point as TPoint, partial.bounds as TBox, partial.style)
     if (partial.id) math.id = partial.id
     if (partial.rotation) math.rotation = partial.rotation as TRotation
     if (partial.decorators) {
       math.decorators = partial.decorators
         .filter(d => d?.kind && d?.style)
-        .map(d => DecoratorHelper.create(d!.kind!, d!.style!))
+        .map(d => DecoratorOps.create(d!.kind!, d!.style!))
     }
-    MathHelper.updateDerivedFields(math)
+    MathOps.updateDerivedFields(math)
     return math
   },
 
@@ -117,8 +127,8 @@ export const MathHelper = {
 
   overlaps(math: TMath, box: TBox): boolean
   {
-    return math.vertices.some(p => BoxHelper.containsPoint(box, p)) ||
-      math.edges.some(e1 => BoxHelper.getSides(box).some(e2 => !!findIntersectionBetween2Segment(e1, e2)))
+    return math.vertices.some(p => BoxOps.containsPoint(box, p)) ||
+      math.edges.some(e1 => BoxOps.getSides(box).some(e2 => !!findIntersectionBetween2Segment(e1, e2)))
   },
 
   getChildrenOverlaps(math: TMath, points: TPoint[]): TMathElement[]
@@ -128,10 +138,10 @@ export const MathHelper = {
       let corners: TPoint[]
       if (math.rotation) {
         const rad = convertDegreeToRadian(-math.rotation.degree)
-        corners = BoxHelper.getCorners(e.bounds).map(p => computeRotatedPoint(p, math.rotation!.center, rad))
+        corners = BoxOps.getCorners(e.bounds).map(p => computeRotatedPoint(p, math.rotation!.center, rad))
       }
       else {
-        corners = BoxHelper.getCorners(e.bounds)
+        corners = BoxOps.getCorners(e.bounds)
       }
       return points.some(p => isPointInsidePolygon(p, corners))
     })

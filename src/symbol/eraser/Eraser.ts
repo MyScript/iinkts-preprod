@@ -4,7 +4,7 @@ import { DefaultStyle } from "@/style"
 import { SymbolType } from "@/symbol/Symbol"
 import type { TPointer } from "@/symbol/primitives/Point"
 import type { TBox } from "@/symbol/primitives/Box"
-import { BoxHelper } from "@/symbol/primitives/Box"
+import { BoxOps } from "@/symbol/primitives/Box"
 
 /**
  * @group Symbol
@@ -18,9 +18,8 @@ export type TEraser = {
 
 /**
  * @group Symbol
- * @group Utilities
  */
-export const EraserHelper = {
+export const EraserOps = {
   create(width = 5): TEraser
   {
     const style = Object.assign({}, DefaultStyle, { color: "grey", fill: "none", opacity: 0.2, width })
@@ -36,6 +35,6 @@ export const EraserHelper = {
 
   getBounds(eraser: TEraser): TBox
   {
-    return BoxHelper.createFromPoints(eraser.pointers)
+    return BoxOps.createFromPoints(eraser.pointers)
   },
 }

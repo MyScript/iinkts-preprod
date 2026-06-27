@@ -1,5 +1,5 @@
 import { DecoratorKind, TStyle } from "../../../../src/iink"
-import { DecoratorHelper } from "../../../../src/symbol/decorator/Decorator"
+import { DecoratorOps } from "../../../../src/symbol/decorator/Decorator"
 
 describe("Decorator.ts", () =>
 {
@@ -9,7 +9,7 @@ describe("Decorator.ts", () =>
       color: "blue",
       width: 20
     }
-    const decorator = DecoratorHelper.create(DecoratorKind.Highlight, style)
+    const decorator = DecoratorOps.create(DecoratorKind.Highlight, style)
     test("should create ", () =>
     {
       expect(decorator).toBeDefined()
@@ -29,7 +29,7 @@ describe("Decorator.ts", () =>
       color: "blue",
       width: 20
     }
-    const decorator = DecoratorHelper.create(DecoratorKind.Strikethrough, style)
+    const decorator = DecoratorOps.create(DecoratorKind.Strikethrough, style)
     test("should create ", () =>
     {
       expect(decorator).toBeDefined()
@@ -49,7 +49,7 @@ describe("Decorator.ts", () =>
       color: "blue",
       width: 20
     }
-    const decorator = DecoratorHelper.create(DecoratorKind.Surround, style)
+    const decorator = DecoratorOps.create(DecoratorKind.Surround, style)
     test("should create ", () =>
     {
       expect(decorator).toBeDefined()
@@ -69,7 +69,7 @@ describe("Decorator.ts", () =>
       color: "blue",
       width: 20
     }
-    const decorator = DecoratorHelper.create(DecoratorKind.Underline, style)
+    const decorator = DecoratorOps.create(DecoratorKind.Underline, style)
     test("should create ", () =>
     {
       expect(decorator).toBeDefined()

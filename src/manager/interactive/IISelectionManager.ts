@@ -1,9 +1,10 @@
 import { ResizeDirection, SELECTION_MARGIN, SvgElementRole } from "@/Constants"
-import type { TDecorator, TEdgeArc, TStroke, TBox, TEdge, TSymbol, TPoint} from "@/symbol";
-import { EdgeKind, SymbolType, isDecorator, isRecognizedMath, isEdge, getEdgeResizePoints, updateEdgeDerivedFields, overlapsSymbol } from "@/symbol"
-import { BoxHelper } from "@/symbol/primitives/Box"
+import type { TDecorator, TEdgeArc, TStroke, TBox, TEdge, TSymbol, TPoint} from "@/symbol"
+import { EdgeKind, SymbolType, isDecorator, isRecognizedMath, StrokeOps } from "@/symbol"
+import { EdgeOps } from "@/symbol/edge/Edge"
+import { BoxOps } from "@/symbol/primitives/Box"
 import { computeAngleFromPointOnEllipse, computeDistance } from "@/utils"
-import { EdgeArcHelper } from "@/symbol/edge/Arc"
+import { EdgeArcOps } from "@/symbol/edge/Arc"
 import { SVGBuilder } from "@/renderer"
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { TPointerInfo } from "@/grabber";
@@ -13,6 +14,7 @@ import type { IIRotationManager } from "./transform/IIRotationManager"
 import type { IITranslateManager } from "./transform/IITranslateManager"
 import { IIAbstractManager } from "./IIAbstractManager"
 import { LoggerCategory } from "@/logger"
+import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 
 /**
  * @group Manager
@@ -57,7 +59,7 @@ export class IISelectionManager extends IIAbstractManager
   get selectionBox(): TBox | undefined
   {
     if (this.startSelectionPoint && this.endSelectionPoint) {
-      return BoxHelper.createFromPoints([this.startSelectionPoint, this.endSelectionPoint])
+      return BoxOps.createFromPoints([this.startSelectionPoint, this.endSelectionPoint])
     }
     return
   }
@@ -338,7 +340,7 @@ export class IISelectionManager extends IIAbstractManager
 
     if (!symbols.length) return
 
-    const box1 = BoxHelper.createFromBoxes(symbols.map(s =>
+    const box1 = BoxOps.createFromBoxes(symbols.map(s =>
     {
       return {
         x: s.bounds.x - (s.style.width || 1),
@@ -348,8 +350,8 @@ export class IISelectionManager extends IIAbstractManager
       }
     }))
 
-    const box2 = BoxHelper.createFromPoints(symbols.flatMap(s => s.vertices))
-    const box = BoxHelper.createFromBoxes([box1, box2])
+    const box2 = BoxOps.createFromPoints(symbols.flatMap(s => s.vertices))
+    const box = BoxOps.createFromBoxes([box1, box2])
 
     const attrs = {
       id: `selected-${ Date.now() }`,
@@ -389,7 +391,7 @@ export class IISelectionManager extends IIAbstractManager
         const { x, y } = this.editor.snaps.snapResize(point)
         edge.vertices[pointIndex].x = x
         edge.vertices[pointIndex].y = y
-        updateEdgeDerivedFields(edge)
+        EdgeOps.updateEdgeDerivedFields(edge)
         this.model.updateSymbol(edge)
         this.renderer.drawSymbol(edge)
       }
@@ -401,7 +403,7 @@ export class IISelectionManager extends IIAbstractManager
         const { x, y } = this.editor.snaps.snapResize(point)
         edge.vertices[pointIndex].x = x
         edge.vertices[pointIndex].y = y
-        updateEdgeDerivedFields(edge)
+        EdgeOps.updateEdgeDerivedFields(edge)
         this.renderer.layer.style.cursor = ""
         this.editor.updateSymbol(edge)
         this.renderer.layer.removeEventListener("pointermove", handler)
@@ -458,7 +460,7 @@ export class IISelectionManager extends IIAbstractManager
           const point = this.getPoint(ev)
           const { x, y } = this.editor.snaps.snapResize(point)
           updateArc(x, y)
-          EdgeArcHelper.updateDerivedFields(arc)
+          EdgeArcOps.updateDerivedFields(arc)
           this.model.updateSymbol(arc)
           this.renderer.drawSymbol(arc)
         }
@@ -469,7 +471,7 @@ export class IISelectionManager extends IIAbstractManager
           const point = this.getPoint(ev)
           const { x, y } = this.editor.snaps.snapResize(point)
           updateArc(x, y)
-          EdgeArcHelper.updateDerivedFields(arc)
+          EdgeArcOps.updateDerivedFields(arc)
           this.renderer.layer.style.cursor = ""
           this.editor.updateSymbol(arc)
           this.renderer.layer.removeEventListener("pointermove", handler)
@@ -494,7 +496,7 @@ export class IISelectionManager extends IIAbstractManager
           this.renderer.layer.addEventListener("pointerup", endHandler)
         })
       }
-      EdgeArcHelper.getResizePoints(arc).forEach(({ point, vertexIndex }) =>
+      EdgeArcOps.getResizePoints(arc).forEach(({ point, vertexIndex }) =>
       {
         const initialVertexCount = arc.vertices.length
         const isStart = vertexIndex === 0
@@ -504,7 +506,7 @@ export class IISelectionManager extends IIAbstractManager
         group.appendChild(pointEl)
       })
     } else {
-      getEdgeResizePoints(edge).forEach(({ point, vertexIndex }) =>
+      EdgeOps.getEdgeResizePoints(edge).forEach(({ point, vertexIndex }) =>
       {
         const pointEl = SVGBuilder.createCircle(point, radius, attrs)
         bindEl(pointEl, vertexIndex)
@@ -531,7 +533,7 @@ export class IISelectionManager extends IIAbstractManager
   drawSelectedGroup(symbols: TSymbol[]): void
   {
     if (!symbols.length) return
-    if (symbols.length === 1 && isEdge(symbols[0])) {
+    if (symbols.length === 1 && EdgeOps.isEdge(symbols[0])) {
       this.selectedGroup = this.createInteractEdgeGroup(symbols[0])
     }
     else {
@@ -605,7 +607,7 @@ export class IISelectionManager extends IIAbstractManager
 
     for (const group of groups) {
       group.strokeIds.forEach(id => covered.add(id))
-      if (BoxHelper.overlaps(group.bounds, selectionBox)) {
+      if (BoxOps.overlaps(group.bounds, selectionBox)) {
         group.strokeIds.forEach(id => selected.add(id))
       }
     }
@@ -627,7 +629,7 @@ export class IISelectionManager extends IIAbstractManager
 
     for (const group of groups) {
       group.strokeIds.forEach(id => covered.add(id))
-      if (BoxHelper.overlaps(group.bounds, selectionBox)) {
+      if (BoxOps.overlaps(group.bounds, selectionBox)) {
         group.strokeIds.forEach(id => selected.add(id))
       }
     }
@@ -649,7 +651,7 @@ export class IISelectionManager extends IIAbstractManager
 
     for (const group of groups) {
       group.strokeIds.forEach(id => covered.add(id))
-      if (BoxHelper.overlaps(group.bounds, selectionBox)) {
+      if (BoxOps.overlaps(group.bounds, selectionBox)) {
         group.strokeIds.forEach(id => selected.add(id))
       }
     }
@@ -688,29 +690,29 @@ export class IISelectionManager extends IIAbstractManager
           if (textSets && textSets.covered.has(stroke.id)) {
             shouldBeSelected = textSets.selected.has(stroke.id)
           } else {
-            shouldBeSelected = overlapsSymbol(s, selectionBox)
+            shouldBeSelected = StrokeOps.overlaps(s, selectionBox)
           }
         }
         else if (stroke.jiixBlockType === "Math") {
           if (mathSets && mathSets.covered.has(stroke.id)) {
             shouldBeSelected = mathSets.selected.has(stroke.id)
           } else {
-            shouldBeSelected = overlapsSymbol(s, selectionBox)
+            shouldBeSelected = StrokeOps.overlaps(s, selectionBox)
           }
         }
         else if (stroke.jiixBlockType === "Node" || stroke.jiixBlockType === "Edge") {
           if (shapeSets && shapeSets.covered.has(stroke.id)) {
             shouldBeSelected = shapeSets.selected.has(stroke.id)
           } else {
-            shouldBeSelected = overlapsSymbol(s, selectionBox)
+            shouldBeSelected = StrokeOps.overlaps(s, selectionBox)
           }
         }
         else {
-          shouldBeSelected = overlapsSymbol(s, selectionBox)
+          shouldBeSelected = StrokeOps.overlaps(s, selectionBox)
         }
       }
       else {
-        shouldBeSelected = overlapsSymbol(s, selectionBox)
+        shouldBeSelected = symbolRegistry.getUtil(s.type)?.overlaps(s, selectionBox) ?? false
       }
 
       if (s.selected !== shouldBeSelected) {

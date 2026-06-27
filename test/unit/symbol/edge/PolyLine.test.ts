@@ -1,4 +1,4 @@
-import { EdgePolyLineHelper } from "../../../../src/symbol/edge/PolyLine"
+import { EdgePolyLineOps } from "../../../../src/symbol/edge/PolyLine"
 import
 {
   TPoint,
@@ -18,7 +18,7 @@ describe("PolyLine.ts", () =>
         color: "blue",
         width: 20,
       }
-      const line = EdgePolyLineHelper.create(points, undefined, undefined, style)
+      const line = EdgePolyLineOps.create(points, undefined, undefined, style)
       expect(line).toBeDefined()
       expect(line.creationTime).toBeLessThanOrEqual(Date.now())
       expect(line.creationTime).toEqual(line.modificationDate)
@@ -34,28 +34,28 @@ describe("PolyLine.ts", () =>
     test("should create with default style", () =>
     {
       const points: TPoint[] = [{ x: 0, y: 0 }, { x: 5, y: 0 }, { x: 5, y: 5 }]
-      const line = EdgePolyLineHelper.create(points)
+      const line = EdgePolyLineOps.create(points)
       expect(line.style).toEqual(DefaultStyle)
     })
   })
   describe("overlaps", () =>
   {
     const middles: TPoint[] = [{ x: 0, y: 0 }, { x: 15, y: 15 }, { x: 0, y: 25 }]
-    const line = EdgePolyLineHelper.create(middles)
+    const line = EdgePolyLineOps.create(middles)
     test(`should return true if partially wrap`, () =>
     {
       const boundaries: TBox = { height: 10, width: 10, x: -5, y: -5 }
-      expect(EdgePolyLineHelper.overlaps(line, boundaries)).toEqual(true)
+      expect(EdgePolyLineOps.overlaps(line, boundaries)).toEqual(true)
     })
     test(`should return true if totally wrap`, () =>
     {
       const boundaries: TBox = { height: 50, width: 50, x: -25, y: -25 }
-      expect(EdgePolyLineHelper.overlaps(line, boundaries)).toEqual(true)
+      expect(EdgePolyLineOps.overlaps(line, boundaries)).toEqual(true)
     })
     test(`should return false if box is outside`, () =>
     {
       const boundaries: TBox = { height: 2, width: 2, x: 50, y: 50 }
-      expect(EdgePolyLineHelper.overlaps(line, boundaries)).toEqual(false)
+      expect(EdgePolyLineOps.overlaps(line, boundaries)).toEqual(false)
     })
   })
   describe("clone", () =>
@@ -63,7 +63,7 @@ describe("PolyLine.ts", () =>
     test("should return clone", () =>
     {
       const middles: TPoint[] = [{ x: 0, y: 0 }, { x: 15, y: 15 }, { x: 0, y: 25 }]
-      const line = EdgePolyLineHelper.create(middles)
+      const line = EdgePolyLineOps.create(middles)
       const clone = structuredClone(line)
       expect(clone).toEqual(line)
       expect(clone).not.toBe(line)
