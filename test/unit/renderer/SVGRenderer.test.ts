@@ -7,7 +7,7 @@ import
   TSymbol,
   TSymbolChar,
 
-  IIStrokeHelper,} from "../../../src/iink"
+  StrokeHelper,} from "../../../src/iink"
 
 describe("SVGRenderer.ts", () =>
 {
@@ -282,7 +282,7 @@ describe("SVGRenderer.ts", () =>
       renderer.drawSymbol(stroke)
       const oldPath = divElement.querySelector(`#${ stroke.id }`)!.querySelector("path")!.getAttribute("d")
       for (let x = 0; x < 10; x++) {
-        IIStrokeHelper.addPointer(stroke, {
+        StrokeHelper.addPointer(stroke, {
           x,
           y: x * 2,
           p: 1,

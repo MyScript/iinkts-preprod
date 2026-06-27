@@ -1,6 +1,6 @@
 import type { TStroke} from "@/symbol";
 import { DecoratorKind } from "@/symbol"
-import { BoxHelper } from "@/symbol/helpers/BoxHelper"
+import { BoxHelper } from "@/symbol/primitives/Box"
 import type { InteractiveInkEditor } from "@/editor"
 import type { TGesture } from "@/manager/interactive/gestures/GestureTypes"
 import { SurroundAction } from "@/manager/interactive/gestures/GestureTypes"

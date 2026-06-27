@@ -1,7 +1,7 @@
 import {
-  IIShapeCircleHelper,
-  IIShapeEllipseHelper,
-  IIShapePolygonHelper,
+  ShapeCircleHelper,
+  ShapeEllipseHelper,
+  ShapePolygonHelper,
   ShapeKind,
   SymbolType,
   TPoint,
@@ -21,12 +21,12 @@ describe("SVGRendererShapeUtil.ts", () =>
 
   test("should getSVGPath for circle", () =>
   {
-    const circle = IIShapeCircleHelper.create({ x: 0, y: 5 }, 5)
+    const circle = ShapeCircleHelper.create({ x: 0, y: 5 }, 5)
     expect(SVGRendererShapeUtil.getSVGPath(circle)).toEqual("M -5 5 a 5 5 0 1 1 10 0 a 5 5 0 1 1 -10 0 Z")
   })
   test("should getSVGPath for ellipse", () =>
   {
-    const ellipse = IIShapeEllipseHelper.create({ x: 0, y: 0 }, 5, 10, 0)
+    const ellipse = ShapeEllipseHelper.create({ x: 0, y: 0 }, 5, 10, 0)
     expect(SVGRendererShapeUtil.getSVGPath(ellipse)).toEqual("M -5 0 a 5 10 0 1 1 10 0 a 5 10 0 1 1 -10 0 Z")
   })
   test("should getSVGPath for polygon", () =>
@@ -36,7 +36,7 @@ describe("SVGRendererShapeUtil.ts", () =>
       { x: 10, y: 20 },
       { x: 20, y: 20 },
     ]
-    const polygon = IIShapePolygonHelper.create(points)
+    const polygon = ShapePolygonHelper.create(points)
     expect(SVGRendererShapeUtil.getSVGPath(polygon)).toEqual("M 0 0 L 10 20 L 20 20 Z")
   })
 
@@ -45,7 +45,7 @@ describe("SVGRendererShapeUtil.ts", () =>
   {
     test("should get circle with default style", () =>
     {
-      const circle = IIShapeCircleHelper.create({ x: 0, y: 0 }, 5)
+      const circle = ShapeCircleHelper.create({ x: 0, y: 0 }, 5)
       const el = SVGRendererShapeUtil.getSVGElement(circle)!
       expect(el.getAttribute("id")).toEqual(circle.id)
       expect(el.getAttribute("type")).toEqual(SymbolType.Shape)
@@ -60,7 +60,7 @@ describe("SVGRendererShapeUtil.ts", () =>
         color: "blue",
         width: 20
       }
-      const circle = IIShapeCircleHelper.create({ x: 0, y: 0 }, 5, style)
+      const circle = ShapeCircleHelper.create({ x: 0, y: 0 }, 5, style)
       const el = SVGRendererShapeUtil.getSVGElement(circle)!
       expect(el.getAttribute("id")).toEqual(circle.id)
       const path = el.querySelector("path")!
@@ -69,7 +69,7 @@ describe("SVGRendererShapeUtil.ts", () =>
     })
     test("should get circle when selected", () =>
     {
-      const circle = IIShapeCircleHelper.create({ x: 0, y: 0 }, 5)
+      const circle = ShapeCircleHelper.create({ x: 0, y: 0 }, 5)
       const elNotSelected = SVGRendererShapeUtil.getSVGElement(circle)!
       expect(elNotSelected.getAttribute("id")).toEqual(circle.id)
       expect(elNotSelected.getAttribute("type")).toEqual(SymbolType.Shape)
@@ -84,7 +84,7 @@ describe("SVGRendererShapeUtil.ts", () =>
     })
     test("should get circle when deleting", () =>
     {
-      const circle = IIShapeCircleHelper.create({ x: 0, y: 0 }, 5)
+      const circle = ShapeCircleHelper.create({ x: 0, y: 0 }, 5)
       const elNotSelected = SVGRendererShapeUtil.getSVGElement(circle)!
       expect(elNotSelected.getAttribute("id")).toEqual(circle.id)
       expect(elNotSelected.getAttribute("type")).toEqual(SymbolType.Shape)
@@ -100,7 +100,7 @@ describe("SVGRendererShapeUtil.ts", () =>
 
     test("should get polygon with default style", () =>
     {
-      const polygon = IIShapePolygonHelper.create([{ x: 1, y: 1 }, { x: 11, y: 11 }])
+      const polygon = ShapePolygonHelper.create([{ x: 1, y: 1 }, { x: 11, y: 11 }])
       const el = SVGRendererShapeUtil.getSVGElement(polygon)!
       expect(el.getAttribute("id")).toEqual(polygon.id)
       expect(el.getAttribute("type")).toEqual(SymbolType.Shape)
@@ -115,7 +115,7 @@ describe("SVGRendererShapeUtil.ts", () =>
         color: "blue",
         width: 20
       }
-      const polygon = IIShapePolygonHelper.create([{ x: 1, y: 1 }, { x: 11, y: 11 }], style)
+      const polygon = ShapePolygonHelper.create([{ x: 1, y: 1 }, { x: 11, y: 11 }], style)
       const el = SVGRendererShapeUtil.getSVGElement(polygon)!
       expect(el.getAttribute("id")).toEqual(polygon.id)
       const path = el.querySelector("path")!
@@ -124,7 +124,7 @@ describe("SVGRendererShapeUtil.ts", () =>
     })
     test("should get polygon when selected", () =>
     {
-      const polygon = IIShapePolygonHelper.create([{ x: 1, y: 1 }, { x: 11, y: 11 }])
+      const polygon = ShapePolygonHelper.create([{ x: 1, y: 1 }, { x: 11, y: 11 }])
       const elNotSelected = SVGRendererShapeUtil.getSVGElement(polygon)!
       expect(elNotSelected.getAttribute("id")).toEqual(polygon.id)
       expect(elNotSelected.getAttribute("filter")).toBeFalsy()
@@ -135,7 +135,7 @@ describe("SVGRendererShapeUtil.ts", () =>
     })
     test("should get polygon when deleting", () =>
     {
-      const polygon = IIShapePolygonHelper.create([{ x: 1, y: 1 }, { x: 11, y: 11 }])
+      const polygon = ShapePolygonHelper.create([{ x: 1, y: 1 }, { x: 11, y: 11 }])
       const elNotSelected = SVGRendererShapeUtil.getSVGElement(polygon)!
       expect(elNotSelected.getAttribute("id")).toEqual(polygon.id)
       expect(elNotSelected.getAttribute("filter")).toBeFalsy()

@@ -1,4 +1,4 @@
-import { IIStrokeHelper } from "@/symbol/helpers"
+import { StrokeHelper } from "@/symbol/stroke/Stroke"
 import type { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import type {
   TStroke,
@@ -15,7 +15,7 @@ import
   updateEdgeDerivedFields,
   cloneSymbol,
 } from "@/symbol"
-import { BoxHelper } from "@/symbol/helpers/BoxHelper"
+import { BoxHelper } from "@/symbol/primitives/Box"
 import { computeAngleRadian, convertDegreeToRadian, convertRadianToDegree, TWO_PI } from "@/utils"
 import { MatrixTransform } from "@/transform"
 import { IIAbstractTransformManager } from "./AbstractTransformManager"
@@ -42,7 +42,7 @@ export class IIRotationManager extends IIAbstractTransformManager
       return stroke
     }
     this.applyMatrixToPoints(stroke.pointers, matrix)
-    IIStrokeHelper.updateBounds(stroke)
+    StrokeHelper.updateBounds(stroke)
     return stroke
   }
 

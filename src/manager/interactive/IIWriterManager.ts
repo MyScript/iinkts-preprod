@@ -23,13 +23,13 @@ import type { SVGRenderer } from "@/renderer"
 import type { TStyle } from "@/style"
 import type { IIHistoryManager } from "@/history"
 import type { TPointerInfo } from "@/grabber"
-import { IIShapeCircleHelper } from "@/symbol/helpers/IIShapeCircleHelper"
-import { IIShapeEllipseHelper } from "@/symbol/helpers/IIShapeEllipseHelper"
-import { IIShapePolygonHelper } from "@/symbol/helpers/IIShapePolygonHelper"
-import { IIEdgeLineHelper } from "@/symbol/helpers/IIEdgeLineHelper"
+import { ShapeCircleHelper } from "@/symbol/shape/Circle"
+import { ShapeEllipseHelper } from "@/symbol/shape/Ellipse"
+import { ShapePolygonHelper } from "@/symbol/shape/Polygon"
+import { EdgeLineHelper } from "@/symbol/edge/Line"
 import { updateEdgeDerivedFields } from "@/symbol"
-import { IIStrokeHelper } from "@/symbol/helpers/IIStrokeHelper"
-import { BoxHelper } from "@/symbol/helpers/BoxHelper"
+import { StrokeHelper } from "@/symbol/stroke/Stroke"
+import { BoxHelper } from "@/symbol/primitives/Box"
 import type { IIGestureManager } from "./IIGestureManager"
 import type { TGesture } from "./gestures"
 import type { IISnapManager } from "./IISnapManager"
@@ -121,25 +121,25 @@ export class IIWriterManager extends AbstractWriterManager
   {
     switch (this.tool) {
       case EditorWriteTool.Pencil:
-        this.model.currentSymbol = IIStrokeHelper.create(style, pointerType)
+        this.model.currentSymbol = StrokeHelper.create(style, pointerType)
         break
       case EditorWriteTool.Rectangle:
-        this.model.currentSymbol = IIShapePolygonHelper.createRectangleBetweenPoints(pointer, pointer, style)
+        this.model.currentSymbol = ShapePolygonHelper.createRectangleBetweenPoints(pointer, pointer, style)
         break
       case EditorWriteTool.Triangle:
-        this.model.currentSymbol = IIShapePolygonHelper.createTriangleBetweenPoints(pointer, pointer, style)
+        this.model.currentSymbol = ShapePolygonHelper.createTriangleBetweenPoints(pointer, pointer, style)
         break
       case EditorWriteTool.Parallelogram:
-        this.model.currentSymbol = IIShapePolygonHelper.createParallelogramBetweenPoints(pointer, pointer, style)
+        this.model.currentSymbol = ShapePolygonHelper.createParallelogramBetweenPoints(pointer, pointer, style)
         break
       case EditorWriteTool.Rhombus:
-        this.model.currentSymbol = IIShapePolygonHelper.createRhombusBetweenPoints(pointer, pointer, style)
+        this.model.currentSymbol = ShapePolygonHelper.createRhombusBetweenPoints(pointer, pointer, style)
         break
       case EditorWriteTool.Circle:
-        this.model.currentSymbol = IIShapeCircleHelper.createBetweenPoints(pointer, pointer, style)
+        this.model.currentSymbol = ShapeCircleHelper.createBetweenPoints(pointer, pointer, style)
         break
       case EditorWriteTool.Ellipse:
-        this.model.currentSymbol = IIShapeEllipseHelper.createBetweenPoints(pointer, pointer, style)
+        this.model.currentSymbol = ShapeEllipseHelper.createBetweenPoints(pointer, pointer, style)
         break
       case EditorWriteTool.Line:
       case EditorWriteTool.Arrow:
@@ -152,7 +152,7 @@ export class IIWriterManager extends AbstractWriterManager
           startDecoration = EdgeDecoration.Arrow
           endDecoration = EdgeDecoration.Arrow
         }
-        this.model.currentSymbol = IIEdgeLineHelper.create(pointer, pointer, startDecoration, endDecoration, style)
+        this.model.currentSymbol = EdgeLineHelper.create(pointer, pointer, startDecoration, endDecoration, style)
         break
       }
       default:
@@ -165,22 +165,22 @@ export class IIWriterManager extends AbstractWriterManager
   {
     switch (this.tool) {
       case EditorWriteTool.Rectangle:
-        IIShapePolygonHelper.updateRectangleBetweenPoints(this.model.currentSymbol as TShapePolygon, this.currentSymbolOrigin!, pointer)
+        ShapePolygonHelper.updateRectangleBetweenPoints(this.model.currentSymbol as TShapePolygon, this.currentSymbolOrigin!, pointer)
         break
       case EditorWriteTool.Triangle:
-        IIShapePolygonHelper.updateTriangleBetweenPoints(this.model.currentSymbol as TShapePolygon, this.currentSymbolOrigin!, pointer)
+        ShapePolygonHelper.updateTriangleBetweenPoints(this.model.currentSymbol as TShapePolygon, this.currentSymbolOrigin!, pointer)
         break
       case EditorWriteTool.Parallelogram:
-        IIShapePolygonHelper.updateParallelogramBetweenPoints(this.model.currentSymbol as TShapePolygon, this.currentSymbolOrigin!, pointer)
+        ShapePolygonHelper.updateParallelogramBetweenPoints(this.model.currentSymbol as TShapePolygon, this.currentSymbolOrigin!, pointer)
         break
       case EditorWriteTool.Rhombus:
-        IIShapePolygonHelper.updateRhombusBetweenPoints(this.model.currentSymbol as TShapePolygon, this.currentSymbolOrigin!, pointer)
+        ShapePolygonHelper.updateRhombusBetweenPoints(this.model.currentSymbol as TShapePolygon, this.currentSymbolOrigin!, pointer)
         break
       case EditorWriteTool.Circle:
-        IIShapeCircleHelper.updateBetweenPoints(this.model.currentSymbol as TShapeCircle, this.currentSymbolOrigin!, pointer)
+        ShapeCircleHelper.updateBetweenPoints(this.model.currentSymbol as TShapeCircle, this.currentSymbolOrigin!, pointer)
         break
       case EditorWriteTool.Ellipse:
-        IIShapeEllipseHelper.updateBetweenPoints(this.model.currentSymbol as TShapeEllipse, this.currentSymbolOrigin!, pointer)
+        ShapeEllipseHelper.updateBetweenPoints(this.model.currentSymbol as TShapeEllipse, this.currentSymbolOrigin!, pointer)
         break
     }
   }
@@ -204,7 +204,7 @@ export class IIWriterManager extends AbstractWriterManager
 
     switch (this.model.currentSymbol.type) {
       case SymbolType.Stroke:
-        IIStrokeHelper.addPointer(this.model.currentSymbol as TStroke, pointer)
+        StrokeHelper.addPointer(this.model.currentSymbol as TStroke, pointer)
         break
       case SymbolType.Shape:
         this.updateCurrentSymbolShape(pointer)

@@ -1,4 +1,4 @@
-import { IIStrokeHelper } from "@/symbol/helpers"
+import { StrokeHelper } from "@/symbol/stroke/Stroke"
 import { ResizeDirection } from "@/Constants"
 import type { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import type {
@@ -21,7 +21,7 @@ import
   updateEdgeDerivedFields,
   cloneSymbol
 } from "@/symbol"
-import { BoxHelper } from "@/symbol/helpers/BoxHelper"
+import { BoxHelper } from "@/symbol/primitives/Box"
 import { MatrixTransform } from "@/transform"
 import { IIAbstractTransformManager } from "./AbstractTransformManager"
 
@@ -62,7 +62,7 @@ export class IIResizeManager extends IIAbstractTransformManager
       return stroke
     }
     this.applyMatrixToPoints(stroke.pointers, matrix)
-    IIStrokeHelper.updateBounds(stroke)
+    StrokeHelper.updateBounds(stroke)
     return stroke
   }
 

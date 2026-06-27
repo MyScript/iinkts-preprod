@@ -1,7 +1,7 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { TStroke, TText, TSymbol} from "@/symbol";
 import { isStroke, isText } from "@/symbol"
-import { IITextHelper } from "@/symbol/helpers/IITextHelper"
+import { TextHelper } from "@/symbol/text/Text"
 import type { InteractiveInkEditor } from "@/editor"
 import { DOMFactory } from "@/components/dom"
 import type { TContextDecoratorConfig, TContextReorderConfig, TContextExportConfig, TContextMathConfig} from "./context";
@@ -205,7 +205,7 @@ export class IIMenuContext
       if (editMenuInstance) {
         const textSymbol = this.editor.model.symbolsSelected.find(s => isText(s))
         if (editMenuInstance.editInput && this.editor.model.symbolsSelected.length === 1 && textSymbol) {
-          editMenuInstance.editInput.value = IITextHelper.getLabel(textSymbol as TText)
+          editMenuInstance.editInput.value = TextHelper.getLabel(textSymbol as TText)
           editMenuInstance.getElement().style.removeProperty("display")
         }
         else {

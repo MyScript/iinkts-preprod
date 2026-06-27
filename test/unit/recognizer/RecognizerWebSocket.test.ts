@@ -11,7 +11,7 @@ import
 {
   RecognizerWebSocket,
   RecognizerError,
-  IIStrokeHelper,
+  StrokeHelper,
   TMatrixTransform,
   MatrixTransform,
   TIIHistoryBackendChanges,
@@ -308,7 +308,7 @@ describe("RecognizerWebSocket.ts", () =>
       const messageSent = JSON.parse(mockServer.getLastMessage() as string)
       const messageSentExpected = {
         type: "addStrokes",
-        strokes: strokes.map(s => IIStrokeHelper.formatToSend(s))
+        strokes: strokes.map(s => StrokeHelper.formatToSend(s))
       }
       await expect(messageSent).toMatchObject(messageSentExpected)
     })
@@ -811,7 +811,7 @@ describe("RecognizerWebSocket.ts", () =>
       const messageSent = JSON.parse(mockServer.getLastMessage() as string)
       const messageSentExpected = {
         type: "contextlessGesture",
-        stroke: IIStrokeHelper.formatToSend(stroke)
+        stroke: StrokeHelper.formatToSend(stroke)
       }
       await expect(messageSent).toMatchObject(messageSentExpected)
     })
@@ -944,7 +944,7 @@ describe("RecognizerWebSocket.ts", () =>
         expect.arrayContaining([
           expect.objectContaining({
             type: "addStrokes",
-            strokes: changes.added!.map(s => IIStrokeHelper.formatToSend(s)),
+            strokes: changes.added!.map(s => StrokeHelper.formatToSend(s)),
             processGestures: false
           })
         ])
@@ -962,7 +962,7 @@ describe("RecognizerWebSocket.ts", () =>
           expect.objectContaining({
             type: "replaceStrokes",
             oldStrokeIds: changes.replaced!.oldStrokes.map(s => s.id),
-            newStrokes: changes.replaced!.newStrokes.map(s => IIStrokeHelper.formatToSend(s))
+            newStrokes: changes.replaced!.newStrokes.map(s => StrokeHelper.formatToSend(s))
           })
         ])
       )

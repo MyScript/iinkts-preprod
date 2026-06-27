@@ -3,7 +3,7 @@ import { SVGBuilder, SVGRendererConst } from "@/renderer"
 import type { TJIIXMathElement } from "@/model"
 import type { TBox, TStroke} from "@/symbol";
 import { isStroke } from "@/symbol"
-import { BoxHelper } from "@/symbol/helpers/BoxHelper"
+import { BoxHelper } from "@/symbol/primitives/Box"
 import type { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import { ColorPaletteManager } from "../base"
 import { convertBoundingBoxMillimeterToPixel } from "@/utils"

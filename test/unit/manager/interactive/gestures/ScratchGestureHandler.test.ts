@@ -4,7 +4,7 @@ import {
   ScratchGestureHandler,
   GestureHelpers,
   TGesture,
-  IIStrokeHelper,
+  StrokeHelper,
 } from "../../../../../src/iink"
 
 describe("ScratchGestureHandler.ts", () =>
@@ -32,10 +32,10 @@ describe("ScratchGestureHandler.ts", () =>
     test("should split stroke when scratched in middle", () =>
     {
       const stroke = buildIIStroke()
-      IIStrokeHelper.addPointer(stroke, { x: 0, y: 0, p: 1, t: 100 })
-      IIStrokeHelper.addPointer(stroke, { x: 5, y: 5, p: 1, t: 200 })
-      IIStrokeHelper.addPointer(stroke, { x: 10, y: 10, p: 1, t: 300 })
-      IIStrokeHelper.addPointer(stroke, { x: 15, y: 15, p: 1, t: 400 })
+      StrokeHelper.addPointer(stroke, { x: 0, y: 0, p: 1, t: 100 })
+      StrokeHelper.addPointer(stroke, { x: 5, y: 5, p: 1, t: 200 })
+      StrokeHelper.addPointer(stroke, { x: 10, y: 10, p: 1, t: 300 })
+      StrokeHelper.addPointer(stroke, { x: 15, y: 15, p: 1, t: 400 })
 
       const gesture: TGesture = {
         gestureType: "SCRATCH",
@@ -60,7 +60,7 @@ describe("ScratchGestureHandler.ts", () =>
     test("should handle empty substroke data", () =>
     {
       const stroke = buildIIStroke()
-      IIStrokeHelper.addPointer(stroke, { x: 0, y: 0, p: 1, t: 100 })
+      StrokeHelper.addPointer(stroke, { x: 0, y: 0, p: 1, t: 100 })
 
       const gesture: TGesture = {
         gestureType: "SCRATCH",
@@ -94,11 +94,11 @@ describe("ScratchGestureHandler.ts", () =>
     test("should erase stroke when fully scratched", () =>
     {
       const stroke = buildIIStroke()
-      IIStrokeHelper.addPointer(stroke, { x: 0, y: 0, p: 1, t: 100 })
-      IIStrokeHelper.addPointer(stroke, { x: 10, y: 10, p: 1, t: 200 })
+      StrokeHelper.addPointer(stroke, { x: 0, y: 0, p: 1, t: 100 })
+      StrokeHelper.addPointer(stroke, { x: 10, y: 10, p: 1, t: 200 })
 
       const gestureStroke = buildIIStroke()
-      IIStrokeHelper.addPointer(gestureStroke, { x: 5, y: 5, p: 1, t: 300 })
+      StrokeHelper.addPointer(gestureStroke, { x: 5, y: 5, p: 1, t: 300 })
 
       const gesture: TGesture = {
         gestureType: "SCRATCH",
@@ -138,7 +138,7 @@ describe("ScratchGestureHandler.ts", () =>
       })
 
       const gestureStroke = buildIIStroke()
-      IIStrokeHelper.addPointer(gestureStroke, { x: 15, y: 15, p: 1, t: 100 })
+      StrokeHelper.addPointer(gestureStroke, { x: 15, y: 15, p: 1, t: 100 })
 
       const gesture: TGesture = {
         gestureType: "SCRATCH",
@@ -159,7 +159,7 @@ describe("ScratchGestureHandler.ts", () =>
     test("should handle empty strokeIds", async () =>
     {
       const gestureStroke = buildIIStroke()
-      IIStrokeHelper.addPointer(gestureStroke, { x: 10, y: 10, p: 1, t: 100 })
+      StrokeHelper.addPointer(gestureStroke, { x: 10, y: 10, p: 1, t: 100 })
 
       const gesture: TGesture = {
         gestureType: "SCRATCH",
@@ -178,13 +178,13 @@ describe("ScratchGestureHandler.ts", () =>
     test("should scratch and erase strokes", async () =>
     {
       const stroke = buildIIStroke()
-      IIStrokeHelper.addPointer(stroke, { x: 10, y: 10, p: 1, t: 100 })
-      IIStrokeHelper.addPointer(stroke, { x: 20, y: 20, p: 1, t: 200 })
+      StrokeHelper.addPointer(stroke, { x: 10, y: 10, p: 1, t: 100 })
+      StrokeHelper.addPointer(stroke, { x: 20, y: 20, p: 1, t: 200 })
 
       editor.model.addSymbol(stroke)
 
       const gestureStroke = buildIIStroke()
-      IIStrokeHelper.addPointer(gestureStroke, { x: 15, y: 15, p: 1, t: 300 })
+      StrokeHelper.addPointer(gestureStroke, { x: 15, y: 15, p: 1, t: 300 })
 
       const gesture: TGesture = {
         gestureType: "SCRATCH",

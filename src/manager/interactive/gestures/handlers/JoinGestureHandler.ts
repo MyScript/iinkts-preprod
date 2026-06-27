@@ -1,7 +1,7 @@
 import type { TStroke, TText} from "@/symbol";
 import { type TSymbol, isText, cloneSymbol } from "@/symbol"
-import { IITextHelper } from "@/symbol/helpers/IITextHelper"
-import { BoxHelper } from "@/symbol/helpers/BoxHelper"
+import { TextHelper } from "@/symbol/text/Text"
+import { BoxHelper } from "@/symbol/primitives/Box"
 import type { TIIHistoryChanges } from "@/history"
 import type { InteractiveInkEditor } from "@/editor"
 import type { TGesture } from "@/manager/interactive/gestures/GestureTypes"
@@ -62,7 +62,7 @@ export class JoinGestureHandler extends GestureHandler
 
       if (isText(lastSymbBefore) && isText(firstSymbolAfter)) {
         const texts = [lastSymbBeforeClone as TText, firstSymbolAfterClone as TText]
-        const text = IITextHelper.create(texts.flatMap(s => s.chars), texts[0].point, BoxHelper.createFromBoxes(texts.map(t => t.bounds)))
+        const text = TextHelper.create(texts.flatMap(s => s.chars), texts[0].point, BoxHelper.createFromBoxes(texts.map(t => t.bounds)))
         this.editor.typeset.setBounds(text)
         changes.replaced = {
           oldSymbols: [lastSymbBefore, firstSymbolAfter],

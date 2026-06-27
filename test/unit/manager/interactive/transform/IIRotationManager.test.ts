@@ -1,11 +1,11 @@
 import { InteractiveInkEditorMock } from "../../../__mocks__/InteractiveInkEditorMock"
 import
 {
-  IIEdgeLineHelper,
+  EdgeLineHelper,
   IIRotationManager,
-  IIShapeCircleHelper,
-  IIShapePolygonHelper,
-  IIStrokeHelper,
+  ShapeCircleHelper,
+  ShapePolygonHelper,
+  StrokeHelper,
   SvgElementRole,
   TPoint,
   computeRotatedPoint,
@@ -37,7 +37,7 @@ describe("IIRotationManager.ts", () =>
         { x: 5, y: 5 },
         { x: 5, y: 0 }
       ]
-      const poly = IIShapePolygonHelper.create(points)
+      const poly = ShapePolygonHelper.create(points)
       //@ts-ignore
       poly.kind = "pouet"
       const origin: TPoint = { x: 0, y: 0 }
@@ -46,10 +46,10 @@ describe("IIRotationManager.ts", () =>
     })
     test("rotate stroke", () =>
     {
-      const stroke = IIStrokeHelper.create()
+      const stroke = StrokeHelper.create()
       const origin: TPoint = { x: 0, y: 0 }
-      IIStrokeHelper.addPointer(stroke, { p: 1, t: 1, x: 1, y: 1 })
-      IIStrokeHelper.addPointer(stroke, { p: 1, t: 10, x: 10, y: 0 })
+      StrokeHelper.addPointer(stroke, { p: 1, t: 1, x: 1, y: 1 })
+      StrokeHelper.addPointer(stroke, { p: 1, t: 10, x: 10, y: 0 })
       const matrix = MatrixTransform.identity().rotate(Math.PI / 2, origin)
       manager.applyToSymbol(stroke, matrix)
       expect(stroke.pointers[0].x.toFixed(0)).toEqual("-1")
@@ -61,7 +61,7 @@ describe("IIRotationManager.ts", () =>
     {
       const center: TPoint = { x: 5, y: 5 }
       const radius = 4
-      const circle = IIShapeCircleHelper.create(center, radius)
+      const circle = ShapeCircleHelper.create(center, radius)
       const origin: TPoint = { x: 1, y: 2 }
       const matrix = MatrixTransform.identity().rotate(Math.PI / 2, origin)
       manager.applyToSymbol(circle, matrix)
@@ -72,7 +72,7 @@ describe("IIRotationManager.ts", () =>
     {
       const start: TPoint = { x: 0, y: 0 }
       const end: TPoint = { x: 0, y: 5 }
-      const line = IIEdgeLineHelper.create(start, end)
+      const line = EdgeLineHelper.create(start, end)
       const origin: TPoint = { x: 0, y: 0 }
       const matrix = MatrixTransform.identity().rotate(Math.PI / 2, origin)
       manager.applyToSymbol(line, matrix)
@@ -94,9 +94,9 @@ describe("IIRotationManager.ts", () =>
     const manager = new IIRotationManager(editor)
     manager.applyToSymbol = jest.fn()
 
-    const stroke = IIStrokeHelper.create({})
-    IIStrokeHelper.addPointer(stroke, { p: 1, t: 1, x: 0, y: 0 })
-    IIStrokeHelper.addPointer(stroke, { p: 1, t: 1, x: 10, y: 50 })
+    const stroke = StrokeHelper.create({})
+    StrokeHelper.addPointer(stroke, { p: 1, t: 1, x: 0, y: 0 })
+    StrokeHelper.addPointer(stroke, { p: 1, t: 1, x: 10, y: 50 })
     stroke.selected = true
     const strokeNotRotate = structuredClone(stroke)
     editor.model.addSymbol(stroke)

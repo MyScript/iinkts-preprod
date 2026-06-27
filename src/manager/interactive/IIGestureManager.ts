@@ -1,6 +1,6 @@
 import type { TStroke} from "@/symbol";
 import { SymbolType, isDecorator } from "@/symbol"
-import { BoxHelper } from "@/symbol/helpers/BoxHelper"
+import { BoxHelper } from "@/symbol/primitives/Box"
 import type { IIHistoryManager } from "@/history"
 import type { TPartialDeep } from "@/utils";
 import { isBetween } from "@/utils"

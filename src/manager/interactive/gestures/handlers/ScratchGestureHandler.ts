@@ -1,7 +1,7 @@
 import type { TStroke, TText} from "@/symbol";
 import { isRecognizedMath, SymbolType, type TSymbol } from "@/symbol"
-import { IITextHelper } from "@/symbol/helpers/IITextHelper"
-import { IIStrokeHelper } from "@/symbol/helpers"
+import { TextHelper } from "@/symbol/text/Text"
+import { StrokeHelper } from "@/symbol/stroke/Stroke"
 import type { TIIHistoryChanges } from "@/history"
 import type { InteractiveInkEditor } from "@/editor"
 import type { TGesture } from "@/manager/interactive/gestures/GestureTypes"
@@ -36,9 +36,9 @@ export class ScratchGestureHandler extends GestureHandler
     const newStrokes: TStroke[] = []
     const partPointersToRemove = gesture.subStrokes?.find(ss => ss.fullStrokeId === stroke.id)
     if (partPointersToRemove) {
-      const strokePartToErase = IIStrokeHelper.create()
-      partPointersToRemove.x.forEach((x, i) => IIStrokeHelper.addPointer(strokePartToErase, { x, y: partPointersToRemove.y[i], p: 1, t: 1 }))
-      const subStrokes = IIStrokeHelper.substract(stroke, strokePartToErase)
+      const strokePartToErase = StrokeHelper.create()
+      partPointersToRemove.x.forEach((x, i) => StrokeHelper.addPointer(strokePartToErase, { x, y: partPointersToRemove.y[i], p: 1, t: 1 }))
+      const subStrokes = StrokeHelper.substract(stroke, strokePartToErase)
       if (subStrokes.before && subStrokes.before.pointers.length > 1) newStrokes.push(subStrokes.before)
       if (subStrokes.after && subStrokes.after.pointers.length > 1) newStrokes.push(subStrokes.after)
     }
@@ -53,7 +53,7 @@ export class ScratchGestureHandler extends GestureHandler
    */
   computeScratchOnText(gestureStroke: TStroke, textSymbol: TText): TText | undefined
   {
-    const charsToRemove = IITextHelper.getChildrenOverlaps(textSymbol, gestureStroke.pointers)
+    const charsToRemove = TextHelper.getChildrenOverlaps(textSymbol, gestureStroke.pointers)
     if (textSymbol.chars.length == charsToRemove.length) {
       return
     }

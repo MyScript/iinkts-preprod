@@ -4,7 +4,7 @@ import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
 import ArrowDown from "@/assets/svg/nav-arrow-down.svg"
 import type { TText} from "@/symbol";
 import { DecoratorKind, isRecognizedMath, isText } from "@/symbol"
-import { IIDecoratorHelper } from "@/symbol/helpers/IIDecoratorHelper"
+import { DecoratorHelper } from "@/symbol/decorator/Decorator"
 import { DEFAULT_MENU_COLORS } from "@/menu/MenuConstants"
 
 /** @group Menu */
@@ -83,7 +83,7 @@ export class DecoratorContextMenu extends BaseMenuItem<HTMLElement>
       symbolsDecorable.forEach(s => {
         if (enable) {
           if (!s.decorators.some(d => d.kind === kind)) {
-            s.decorators.push(IIDecoratorHelper.create(kind, this.editor.penStyle))
+            s.decorators.push(DecoratorHelper.create(kind, this.editor.penStyle))
           }
         }
         else {

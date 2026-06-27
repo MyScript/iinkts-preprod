@@ -1,4 +1,4 @@
-import { DefaultStyle, EdgeDecoration, EdgeKind, IIEdgeArcHelper, IIEdgeLineHelper, IIEdgePolyLineHelper, SVGRendererConst, SVGRendererEdgeUtil, SymbolType, TPoint, TStyle } from "../../../src/iink"
+import { DefaultStyle, EdgeDecoration, EdgeKind, EdgeArcHelper, EdgeLineHelper, EdgePolyLineHelper, SVGRendererConst, SVGRendererEdgeUtil, SymbolType, TPoint, TStyle } from "../../../src/iink"
 
 describe("SVGRendererEdgeUtil.ts", () =>
 {
@@ -12,7 +12,7 @@ describe("SVGRendererEdgeUtil.ts", () =>
   {
     const start: TPoint = { x: 1, y: 1 }
     const end: TPoint = { x: 11, y: 11 }
-    const line = IIEdgeLineHelper.create(start, end)
+    const line = EdgeLineHelper.create(start, end)
     expect(SVGRendererEdgeUtil.getSVGPath(line)).toEqual("M 1 1 L 11 11")
   })
 
@@ -23,7 +23,7 @@ describe("SVGRendererEdgeUtil.ts", () =>
       { x: 11, y: 11 },
       { x: 111, y: 111 },
     ]
-    const line = IIEdgePolyLineHelper.create(points)
+    const line = EdgePolyLineHelper.create(points)
     expect(SVGRendererEdgeUtil.getSVGPath(line)).toEqual("M 1 1 L 1 1 L 11 11 L 111 111")
   })
 
@@ -35,7 +35,7 @@ describe("SVGRendererEdgeUtil.ts", () =>
     const radiusX = 10
     const radiusY = 50
     const phi = 0
-    const arc = IIEdgeArcHelper.create(center, startAngle, sweepAngle, radiusX, radiusY, phi)
+    const arc = EdgeArcHelper.create(center, startAngle, sweepAngle, radiusX, radiusY, phi)
     expect(SVGRendererEdgeUtil.getSVGPath(arc)).toEqual("M 8.071 36.355 Q 8.071 36.355 5.792 44.884 3.126 49.857 0.287 50.873 -2.495 47.847 -4.993 41.027 -7.005 30.964 -8.369 18.473 -8.975 4.567 -8.771 -9.628 -7.777 -22.962 -6.071 -34.355 -6.071 -34.355")
   })
 
@@ -49,7 +49,7 @@ describe("SVGRendererEdgeUtil.ts", () =>
       }
       const start: TPoint = { x: 1, y: 1 }
       const end: TPoint = { x: 11, y: 11 }
-      const line = IIEdgeLineHelper.create(start, end, undefined, undefined, style)
+      const line = EdgeLineHelper.create(start, end, undefined, undefined, style)
       const el = SVGRendererEdgeUtil.getSVGElement(line)!
       expect(el.getAttribute("id")).toEqual(line.id)
       expect(el.getAttribute("type")).toEqual(SymbolType.Edge)
@@ -62,7 +62,7 @@ describe("SVGRendererEdgeUtil.ts", () =>
     {
       const start: TPoint = { x: 1, y: 1 }
       const end: TPoint = { x: 11, y: 11 }
-      const line = IIEdgeLineHelper.create(start, end)
+      const line = EdgeLineHelper.create(start, end)
       const el = SVGRendererEdgeUtil.getSVGElement(line)!
       expect(el.getAttribute("id")).toEqual(line.id)
       expect(el.getAttribute("type")).toEqual(SymbolType.Edge)
@@ -74,7 +74,7 @@ describe("SVGRendererEdgeUtil.ts", () =>
     {
       const start: TPoint = { x: 1, y: 1 }
       const end: TPoint = { x: 11, y: 11 }
-      const line = IIEdgeLineHelper.create(start, end, EdgeDecoration.Arrow)
+      const line = EdgeLineHelper.create(start, end, EdgeDecoration.Arrow)
       const el = SVGRendererEdgeUtil.getSVGElement(line)!
       expect(el.getAttribute("id")).toEqual(line.id)
       expect(el.getAttribute("type")).toEqual(SymbolType.Edge)
@@ -85,7 +85,7 @@ describe("SVGRendererEdgeUtil.ts", () =>
     {
       const start: TPoint = { x: 1, y: 1 }
       const end: TPoint = { x: 11, y: 11 }
-      const line = IIEdgeLineHelper.create(start, end, undefined, EdgeDecoration.Arrow)
+      const line = EdgeLineHelper.create(start, end, undefined, EdgeDecoration.Arrow)
       const el = SVGRendererEdgeUtil.getSVGElement(line)!
       expect(el.getAttribute("id")).toEqual(line.id)
       expect(el.getAttribute("type")).toEqual(SymbolType.Edge)
@@ -96,7 +96,7 @@ describe("SVGRendererEdgeUtil.ts", () =>
     {
       const start: TPoint = { x: 1, y: 1 }
       const end: TPoint = { x: 11, y: 11 }
-      const line = IIEdgeLineHelper.create(start, end, EdgeDecoration.Arrow, EdgeDecoration.Arrow)
+      const line = EdgeLineHelper.create(start, end, EdgeDecoration.Arrow, EdgeDecoration.Arrow)
       const el = SVGRendererEdgeUtil.getSVGElement(line)!
       expect(el.getAttribute("id")).toEqual(line.id)
       expect(el.getAttribute("type")).toEqual(SymbolType.Edge)
@@ -108,7 +108,7 @@ describe("SVGRendererEdgeUtil.ts", () =>
     {
       const start: TPoint = { x: 1, y: 1 }
       const end: TPoint = { x: 11, y: 11 }
-      const line = IIEdgeLineHelper.create(start, end)
+      const line = EdgeLineHelper.create(start, end)
       const elNotSelected = SVGRendererEdgeUtil.getSVGElement(line)!
       expect(elNotSelected.getAttribute("id")).toEqual(line.id)
       expect(elNotSelected.getAttribute("type")).toEqual(SymbolType.Edge)
@@ -123,7 +123,7 @@ describe("SVGRendererEdgeUtil.ts", () =>
     {
       const start: TPoint = { x: 1, y: 1 }
       const end: TPoint = { x: 11, y: 11 }
-      const line = IIEdgeLineHelper.create(start, end)
+      const line = EdgeLineHelper.create(start, end)
       const elNotSelected = SVGRendererEdgeUtil.getSVGElement(line)!
       expect(elNotSelected.getAttribute("id")).toEqual(line.id)
       expect(elNotSelected.getAttribute("type")).toEqual(SymbolType.Edge)
@@ -146,7 +146,7 @@ describe("SVGRendererEdgeUtil.ts", () =>
       const radiusX = 10
       const radiusY = 50
       const phi = 0
-      const arc = IIEdgeArcHelper.create(center, startAngle, sweepAngle, radiusX, radiusY, phi, undefined, undefined, style)
+      const arc = EdgeArcHelper.create(center, startAngle, sweepAngle, radiusX, radiusY, phi, undefined, undefined, style)
       const el = SVGRendererEdgeUtil.getSVGElement(arc)!
       expect(el.getAttribute("id")).toEqual(arc.id)
       expect(el.getAttribute("type")).toEqual(SymbolType.Edge)
@@ -157,7 +157,7 @@ describe("SVGRendererEdgeUtil.ts", () =>
     })
     test("should get arc with default style", () =>
     {
-      const arc = IIEdgeArcHelper.create({ x: 1, y: 1 }, Math.PI / 4, Math.PI, 10, 50, 0)
+      const arc = EdgeArcHelper.create({ x: 1, y: 1 }, Math.PI / 4, Math.PI, 10, 50, 0)
       const el = SVGRendererEdgeUtil.getSVGElement(arc)!
       expect(el.getAttribute("id")).toEqual(arc.id)
       expect(el.getAttribute("type")).toEqual(SymbolType.Edge)
@@ -167,7 +167,7 @@ describe("SVGRendererEdgeUtil.ts", () =>
     })
     test("should get arc with startDecoration", () =>
     {
-      const arc = IIEdgeArcHelper.create({ x: 1, y: 1 }, Math.PI / 4, Math.PI, 10, 50, 0, EdgeDecoration.Arrow)
+      const arc = EdgeArcHelper.create({ x: 1, y: 1 }, Math.PI / 4, Math.PI, 10, 50, 0, EdgeDecoration.Arrow)
       const el = SVGRendererEdgeUtil.getSVGElement(arc)!
       expect(el.getAttribute("id")).toEqual(arc.id)
       expect(el.getAttribute("type")).toEqual(SymbolType.Edge)
@@ -176,7 +176,7 @@ describe("SVGRendererEdgeUtil.ts", () =>
     })
     test("should get arc with endDecoration", () =>
     {
-      const arc = IIEdgeArcHelper.create({ x: 1, y: 1 }, Math.PI / 4, Math.PI, 10, 50, 0, undefined, EdgeDecoration.Arrow)
+      const arc = EdgeArcHelper.create({ x: 1, y: 1 }, Math.PI / 4, Math.PI, 10, 50, 0, undefined, EdgeDecoration.Arrow)
       const el = SVGRendererEdgeUtil.getSVGElement(arc)!
       expect(el.getAttribute("id")).toEqual(arc.id)
       expect(el.getAttribute("type")).toEqual(SymbolType.Edge)
@@ -185,7 +185,7 @@ describe("SVGRendererEdgeUtil.ts", () =>
     })
     test("should get arc with startDecoration & endDecoration", () =>
     {
-      const arc = IIEdgeArcHelper.create({ x: 1, y: 1 }, Math.PI / 4, Math.PI, 10, 50, 0, EdgeDecoration.Arrow, EdgeDecoration.Arrow)
+      const arc = EdgeArcHelper.create({ x: 1, y: 1 }, Math.PI / 4, Math.PI, 10, 50, 0, EdgeDecoration.Arrow, EdgeDecoration.Arrow)
       const el = SVGRendererEdgeUtil.getSVGElement(arc)!
       expect(el.getAttribute("id")).toEqual(arc.id)
       expect(el.getAttribute("type")).toEqual(SymbolType.Edge)
@@ -195,7 +195,7 @@ describe("SVGRendererEdgeUtil.ts", () =>
     })
     test("should get arc when selected", () =>
     {
-      const arc = IIEdgeArcHelper.create({ x: 1, y: 1 }, Math.PI / 4, Math.PI, 10, 50, 0)
+      const arc = EdgeArcHelper.create({ x: 1, y: 1 }, Math.PI / 4, Math.PI, 10, 50, 0)
       const elNotSelected = SVGRendererEdgeUtil.getSVGElement(arc)!
       expect(elNotSelected.getAttribute("id")).toEqual(arc.id)
       expect(elNotSelected.getAttribute("type")).toEqual(SymbolType.Edge)
@@ -208,7 +208,7 @@ describe("SVGRendererEdgeUtil.ts", () =>
     })
     test("should get arc when deleting", () =>
     {
-      const arc = IIEdgeArcHelper.create({ x: 1, y: 1 }, Math.PI / 4, Math.PI, 10, 50, 0)
+      const arc = EdgeArcHelper.create({ x: 1, y: 1 }, Math.PI / 4, Math.PI, 10, 50, 0)
       const elNotSelected = SVGRendererEdgeUtil.getSVGElement(arc)!
       expect(elNotSelected.getAttribute("id")).toEqual(arc.id)
       expect(elNotSelected.getAttribute("type")).toEqual(SymbolType.Edge)

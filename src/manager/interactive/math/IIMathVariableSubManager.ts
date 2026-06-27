@@ -1,7 +1,7 @@
 import { IIAbstractManager } from "../IIAbstractManager"
 import type { TStroke, TBox} from "@/symbol";
 import { isStroke, isRecognizedMath } from "@/symbol"
-import { BoxHelper } from "@/symbol/helpers/BoxHelper"
+import { BoxHelper } from "@/symbol/primitives/Box"
 import { convertBoundingBoxMillimeterToPixel, getBoxConnectionPoint } from "@/utils"
 import type { TJIIXMathExpression, TJIIXMathElement } from "@/model/ExportMath"
 import type { TMathVariable, TMathVariableDefinition, TMathVariableDefinitions } from "@/recognizer"

@@ -13,6 +13,7 @@ import
   Model,
   TConverstionState,
   TRecognizerWebSocketSSRConfiguration,
+  StrokeHelper,
 } from "../../../src/iink"
 
 describe("RecognizerWebSocketSSR.ts", () =>
@@ -301,7 +302,7 @@ describe("RecognizerWebSocketSSR.ts", () =>
       const addStrokesMessageSent = JSON.parse(mockServer.getLastMessage() as string)
       const addStrokesMessageSentToTest = {
         type: "addStrokes",
-        strokes: [stroke.formatToSend()]
+        strokes: [StrokeHelper.formatToSend(stroke)]
       }
       await expect(addStrokesMessageSent).toMatchObject(addStrokesMessageSentToTest)
     })

@@ -1,8 +1,8 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { TEraser, TPoint, TSegment, TBox} from "@/symbol";
 import { isText } from "@/symbol"
-import { BoxHelper } from "@/symbol/helpers/BoxHelper"
-import { IIEraserHelper } from "@/symbol/helpers/IIEraserHelper"
+import { BoxHelper } from "@/symbol/primitives/Box"
+import { EraserHelper } from "@/symbol/eraser/Eraser"
 import type { SVGRenderer } from "@/renderer"
 import type { TPointerInfo } from "@/grabber";
 import { PointerEventGrabber } from "@/grabber"
@@ -13,7 +13,7 @@ import type { InkEditor } from "@/editor/variants/InkEditor"
 /**
  * @group Manager
  */
-type THittable = { bounds: TBox; vertices: TPoint[]; edges: TSegment[] }
+export type THittable = { bounds: TBox; vertices: TPoint[]; edges: TSegment[] }
 
 /**
  * @group Manager
@@ -74,7 +74,7 @@ export class EraseManager
   start(info: TPointerInfo): void
   {
     this.#logger.info("startErase", { info })
-    this.currentEraser = IIEraserHelper.create(this.eraserWidth)
+    this.currentEraser = EraserHelper.create(this.eraserWidth)
     this.currentEraser.pointers.push(info.pointer)
     this.charsToDelete.clear()
     this.renderer.drawSymbol(this.currentEraser!)

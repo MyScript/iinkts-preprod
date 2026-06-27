@@ -47,16 +47,16 @@ import
   isRecognizedMath,
   isDecorator,
 } from "@/symbol"
-import { IIShapeCircleHelper } from "@/symbol/helpers/IIShapeCircleHelper"
-import { IIShapeEllipseHelper } from "@/symbol/helpers/IIShapeEllipseHelper"
-import { IIShapePolygonHelper } from "@/symbol/helpers/IIShapePolygonHelper"
-import { IIEdgeLineHelper } from "@/symbol/helpers/IIEdgeLineHelper"
-import { IIEdgePolyLineHelper } from "@/symbol/helpers/IIEdgePolyLineHelper"
-import { IIEdgeArcHelper } from "@/symbol/helpers/IIEdgeArcHelper"
-import { IIDecoratorHelper } from "@/symbol/helpers/IIDecoratorHelper"
-import { IITextHelper } from "@/symbol/helpers/IITextHelper"
-import { IIMathHelper } from "@/symbol/helpers/IIMathHelper"
-import { BoxHelper } from "@/symbol/helpers/BoxHelper"
+import { ShapeCircleHelper } from "@/symbol/shape/Circle"
+import { ShapeEllipseHelper } from "@/symbol/shape/Ellipse"
+import { ShapePolygonHelper } from "@/symbol/shape/Polygon"
+import { EdgeLineHelper } from "@/symbol/edge/Line"
+import { EdgePolyLineHelper } from "@/symbol/edge/PolyLine"
+import { EdgeArcHelper } from "@/symbol/edge/Arc"
+import { DecoratorHelper } from "@/symbol/decorator/Decorator"
+import { TextHelper } from "@/symbol/text/Text"
+import { MathHelper } from "@/symbol/math/Math"
+import { BoxHelper } from "@/symbol/primitives/Box"
 import { computeAngleAxeRadian, computeAverage, convertBoundingBoxMillimeterToPixel, convertMillimeterToPixel, createUUID } from "@/utils"
 import { LoggerCategory } from "@/logger"
 
@@ -130,7 +130,7 @@ export class IIConversionManager extends IIAbstractManager
       x: boundingBox.x,
       y: boundingBox.y + boundingBox.height
     }
-    const text = IITextHelper.create(charSymbols, point, boundingBox, strokes[0].style)
+    const text = TextHelper.create(charSymbols, point, boundingBox, strokes[0].style)
     const strokeIds = new Set(strokes.map(s => s.id))
 
     // Find standalone IIDecorator symbols in model whose targets overlap with converted strokes
@@ -145,7 +145,7 @@ export class IIConversionManager extends IIAbstractManager
       decoratorsToRemove.push(dec)
       if (!appliedKinds.has(dec.kind)) {
         appliedKinds.add(dec.kind)
-        text.decorators.push(IIDecoratorHelper.create(dec.kind, dec.style))
+        text.decorators.push(DecoratorHelper.create(dec.kind, dec.style))
       }
     }
 
@@ -237,7 +237,7 @@ export class IIConversionManager extends IIAbstractManager
       x: convertMillimeterToPixel(circle.cx),
       y: convertMillimeterToPixel(circle.cy)
     }
-    return IIShapeCircleHelper.create(center, convertMillimeterToPixel(circle.r), strokes[0]?.style)
+    return ShapeCircleHelper.create(center, convertMillimeterToPixel(circle.r), strokes[0]?.style)
   }
 
   buildEllipse(ellipse: TJIIXNodeEllipse, strokes: TStroke[]): TShapeEllipse
@@ -246,7 +246,7 @@ export class IIConversionManager extends IIAbstractManager
       x: convertMillimeterToPixel(ellipse.cx),
       y: convertMillimeterToPixel(ellipse.cy),
     }
-    return IIShapeEllipseHelper.create(center, convertMillimeterToPixel(ellipse.rx), convertMillimeterToPixel(ellipse.ry), ellipse.orientation, strokes[0]?.style)
+    return ShapeEllipseHelper.create(center, convertMillimeterToPixel(ellipse.rx), convertMillimeterToPixel(ellipse.ry), ellipse.orientation, strokes[0]?.style)
   }
 
   buildRectangle(rectangle: TJIIXNodeRectangle, strokes: TStroke[]): TShapePolygon
@@ -261,7 +261,7 @@ export class IIConversionManager extends IIAbstractManager
       { x: x + width, y: y + height },
       { x, y: y + height }
     ]
-    return IIShapePolygonHelper.create(points, strokes[0]?.style)
+    return ShapePolygonHelper.create(points, strokes[0]?.style)
   }
 
   #buildPolygonFromPoints(polygon: { points: number[] }, strokes: TStroke[]): TShapePolygon
@@ -273,7 +273,7 @@ export class IIConversionManager extends IIAbstractManager
         y: convertMillimeterToPixel(polygon.points[i + 1])
       })
     }
-    return IIShapePolygonHelper.create(points, strokes[0]?.style)
+    return ShapePolygonHelper.create(points, strokes[0]?.style)
   }
 
   buildPolygon(polygon: TJIIXNodePolygon, strokes: TStroke[]): TShapePolygon
@@ -349,7 +349,7 @@ export class IIConversionManager extends IIAbstractManager
       point1.x = +((point1.x + point2.x) / 2).toFixed(3)
       point2.x = point1.x
     }
-    return IIEdgeLineHelper.create(point1, point2, line.p1Decoration, line.p2Decoration, strokes[0]?.style)
+    return EdgeLineHelper.create(point1, point2, line.p1Decoration, line.p2Decoration, strokes[0]?.style)
   }
 
   buildPolyEdge(polyline: TJIIXEdgePolyEdge, strokes: TStroke[]): TEdgePolyLine
@@ -371,7 +371,7 @@ export class IIConversionManager extends IIAbstractManager
       }
     }
 
-    return IIEdgePolyLineHelper.create(points, polyline.edges[0].p1Decoration, polyline.edges.at(-1)!.p2Decoration, strokes[0]?.style)
+    return EdgePolyLineHelper.create(points, polyline.edges[0].p1Decoration, polyline.edges.at(-1)!.p2Decoration, strokes[0]?.style)
   }
 
   buildArc(arc: TJIIXEdgeArc, strokes: TStroke[]): TEdgeArc
@@ -379,7 +379,7 @@ export class IIConversionManager extends IIAbstractManager
     const center: TPoint = { x: convertMillimeterToPixel(arc.cx), y: convertMillimeterToPixel(arc.cy) }
     const radiusX = convertMillimeterToPixel(arc.rx)
     const radiusY = convertMillimeterToPixel(arc.ry)
-    return IIEdgeArcHelper.create(center, arc.startAngle, arc.sweepAngle, radiusX, radiusY, arc.phi, arc.startDecoration, arc.endDecoration, strokes[0]?.style)
+    return EdgeArcHelper.create(center, arc.startAngle, arc.sweepAngle, radiusX, radiusY, arc.phi, arc.startDecoration, arc.endDecoration, strokes[0]?.style)
   }
 
   convertEdge(edge: TJIIXEdgeElement, strokes: TStroke[]): { symbol: TEdge, strokes: TStroke[] } | undefined
@@ -653,7 +653,7 @@ export class IIConversionManager extends IIAbstractManager
       }
     }
 
-    const math = IIMathHelper.create(mathElements, point, adjustedBounds, strokes[0]?.style)
+    const math = MathHelper.create(mathElements, point, adjustedBounds, strokes[0]?.style)
 
     return math
   }

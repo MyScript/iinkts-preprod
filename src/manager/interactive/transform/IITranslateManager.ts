@@ -1,4 +1,4 @@
-import { IIStrokeHelper } from "@/symbol/helpers"
+import { StrokeHelper } from "@/symbol/stroke/Stroke"
 import type { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import type {
   TStroke,
@@ -35,7 +35,7 @@ export class IITranslateManager extends IIAbstractTransformManager
   protected applyToStroke(stroke: TStroke, matrix: MatrixTransform): TStroke
   {
     this.applyMatrixToPoints(stroke.pointers, matrix)
-    IIStrokeHelper.updateBounds(stroke)
+    StrokeHelper.updateBounds(stroke)
     return stroke
   }
 
