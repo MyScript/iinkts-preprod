@@ -3,7 +3,7 @@ import { SymbolType, isDecorator, isRecognizedText, isText, type TSymbol } from 
 import { BoxHelper } from "@/symbol/primitives/Box"
 import { DecoratorHelper } from "@/symbol/decorator/Decorator"
 import type { TIIHistoryChanges } from "@/history"
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 
 /**
  * Unified representation of a gesture's intent on a set of target strokes.
@@ -23,7 +23,7 @@ export type TGestureAnnotation =
  */
 export class IIGestureAnnotationProcessor
 {
-  constructor(private editor: InteractiveInkEditor) {}
+  constructor(private editor: TInteractiveInkEditor) {}
 
   async apply(ids: string[], annotation: TGestureAnnotation): Promise<TIIHistoryChanges | undefined>
   {

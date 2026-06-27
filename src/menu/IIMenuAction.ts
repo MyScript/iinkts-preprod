@@ -1,7 +1,7 @@
 import menuIcon from "@/assets/svg/menu.svg"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { IIModel } from "@/model"
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { DOMFactory } from "@/components/dom"
 import type { BaseMenuItem } from "./items"
 import type { TEditorTheme } from "@/editor/EditorThemes"
@@ -94,7 +94,7 @@ export class IIMenuAction
 {
   #logger = LoggerManager.getLogger(LoggerCategory.MENU)
 
-  editor: InteractiveInkEditor
+  editor: TInteractiveInkEditor
   id: string
   wrapper?: HTMLElement
   config: Required<Omit<TMenuActionConfig, "themes">> & Pick<TMenuActionConfig, "themes">
@@ -102,7 +102,7 @@ export class IIMenuAction
   private menuActions: Map<string, BaseMenuItem> = new Map()
   #documentPointerdownHandler?: (e: PointerEvent) => void
 
-  constructor(editor: InteractiveInkEditor, id = "ms-menu-action", config?: TMenuActionConfig)
+  constructor(editor: TInteractiveInkEditor, id = "ms-menu-action", config?: TMenuActionConfig)
   {
     this.id = id
     this.editor = editor

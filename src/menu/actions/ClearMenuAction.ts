@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { TMenuButton } from "@/menu/items/ButtonMenuItem";
 import { ButtonMenuItem } from "@/menu/items/ButtonMenuItem"
 import trashIcon from "@/assets/svg/trash.svg"
@@ -9,7 +9,7 @@ import trashIcon from "@/assets/svg/trash.svg"
  */
 export class ClearMenuAction extends ButtonMenuItem
 {
-  constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-action")
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-action")
   {
     const config: TMenuButton = {
       type: "button",

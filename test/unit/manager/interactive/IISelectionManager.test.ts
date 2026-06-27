@@ -1,5 +1,5 @@
 import { buildIIStroke } from "../../helpers"
-import { InteractiveInkEditorMock } from "../../__mocks__/InteractiveInkEditorMock"
+import { createEditorMock, asEditor } from "../../__mocks__/createEditorMock"
 import
 {
   IISelectionManager,
@@ -47,7 +47,7 @@ describe("IISelectionManager.ts", () =>
     value: jest.fn().mockReturnValue({
       x: 0,
       y: 0,
-      matrixTransform: jest.fn(function(this: any, _matrix: any) {
+      matrixTransform: jest.fn(function(this: { x: number; y: number }, _matrix: unknown) {
         return {
           x: this.x,
           y: this.y
@@ -57,15 +57,15 @@ describe("IISelectionManager.ts", () =>
   })
   test("should create", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    const manager = new IISelectionManager(editor)
+    const editor = createEditorMock()
+    const manager = new IISelectionManager(asEditor(editor))
     expect(manager).toBeDefined()
   })
 
   test("should draw selecting rect", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    const manager = new IISelectionManager(editor)
+    const editor = createEditorMock()
+    const manager = new IISelectionManager(asEditor(editor))
     manager.renderer.clearElements = jest.fn()
     manager.renderer.appendElement = jest.fn()
     const box: TBox = {
@@ -81,8 +81,8 @@ describe("IISelectionManager.ts", () =>
 
   test("should clear selecting rect", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    const manager = new IISelectionManager(editor)
+    const editor = createEditorMock()
+    const manager = new IISelectionManager(asEditor(editor))
     manager.renderer.clearElements = jest.fn()
     manager.clearSelectingRect()
     expect(manager.renderer.clearElements).toHaveBeenCalledTimes(1)
@@ -90,9 +90,9 @@ describe("IISelectionManager.ts", () =>
 
   describe("selected group", () =>
   {
-    const editor = new InteractiveInkEditorMock()
+    const editor = createEditorMock()
     editor.menu.context.hide = jest.fn()
-    const manager = new IISelectionManager(editor)
+    const manager = new IISelectionManager(asEditor(editor))
     const stroke = buildIIStroke()
 
     beforeAll(async () =>
@@ -153,7 +153,7 @@ describe("IISelectionManager.ts", () =>
         height: 10
       }),
     })
-    const editor = new InteractiveInkEditorMock()
+    const editor = createEditorMock()
     editor.transform.translate.start = jest.fn()
     editor.transform.translate.continue = jest.fn()
     editor.transform.translate.end = jest.fn()
@@ -163,7 +163,7 @@ describe("IISelectionManager.ts", () =>
     editor.transform.resize.start = jest.fn()
     editor.transform.resize.continue = jest.fn()
     editor.transform.resize.end = jest.fn()
-    const manager = new IISelectionManager(editor)
+    const manager = new IISelectionManager(asEditor(editor))
     manager.resetSelectedGroup = jest.fn()
     const stroke = buildIIStroke()
 
@@ -335,8 +335,8 @@ describe("IISelectionManager.ts", () =>
 
   describe("process", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    const manager = new IISelectionManager(editor)
+    const editor = createEditorMock()
+    const manager = new IISelectionManager(asEditor(editor))
     const strokeToSelect = buildIIStroke({ box: { height: 10, width: 10, x: 10, y: 10 } })
     manager.model.addSymbol(strokeToSelect)
     const otherStroke = buildIIStroke({ box: { height: 10, width: 10, x: 100, y: 100 } })

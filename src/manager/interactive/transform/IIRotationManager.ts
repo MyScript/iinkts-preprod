@@ -1,5 +1,5 @@
 import { StrokeHelper } from "@/symbol/stroke/Stroke"
-import type { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type {
   TStroke,
   TText,
@@ -30,7 +30,7 @@ export class IIRotationManager extends IIAbstractTransformManager
   center!: TPoint
   origin!: TPoint
 
-  constructor(editor: InteractiveInkEditor)
+  constructor(editor: TInteractiveInkEditor)
   {
     super(editor)
   }

@@ -1,5 +1,5 @@
 import { buildIIStroke, buildIIText } from "../../../helpers"
-import { InteractiveInkEditorMock } from "../../../__mocks__/InteractiveInkEditorMock"
+import { createEditorMock, asEditor } from "../../../__mocks__/createEditorMock"
 import {
   JoinGestureHandler,
   GestureHelpers,
@@ -9,16 +9,15 @@ import {
 
 describe("JoinGestureHandler.ts", () =>
 {
-  let editor: InteractiveInkEditorMock
+  let editor: ReturnType<typeof createEditorMock>
   let helpers: GestureHelpers
   let handler: JoinGestureHandler
 
   beforeEach(() =>
   {
-    editor = new InteractiveInkEditorMock()
-    editor.init()
-    helpers = new GestureHelpers(editor)
-    handler = new JoinGestureHandler(editor, helpers)
+    editor = createEditorMock()
+    helpers = new GestureHelpers(asEditor(editor))
+    handler = new JoinGestureHandler(asEditor(editor), helpers)
   })
 
   test("should instantiate", () =>

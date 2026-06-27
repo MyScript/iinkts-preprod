@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { TMenuButton } from "@/menu/items/ButtonMenuItem";
 import { ButtonMenuItem } from "@/menu/items/ButtonMenuItem"
 import { EditorTool } from "@/Constants"
@@ -10,14 +10,14 @@ import cursorIcon from "@/assets/svg/frame-select.svg"
  */
 export class SelectTool extends ButtonMenuItem
 {
-  constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-tool")
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-tool")
   {
     const config: TMenuButton = {
       type: "button",
       id: `${idPrefix}-select`,
       label: "Select",
       icon: cursorIcon,
-      action: (editor: InteractiveInkEditor) => {
+      action: (editor: TInteractiveInkEditor) => {
         editor.tool = EditorTool.Select
       }
     }

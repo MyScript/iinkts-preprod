@@ -1,7 +1,7 @@
 import type { TPoint, TSegment } from "@/symbol"
 import { BoxHelper } from "@/symbol/primitives/Box"
 import { SVGRendererConst } from "@/renderer/svg/utils/SVGRendererConst"
-import type { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { TPartialDeep } from "@/utils"
 import { IIAbstractManager } from "./IIAbstractManager"
 import { LoggerCategory } from "@/logger"
@@ -65,7 +65,7 @@ export class IISnapManager extends IIAbstractManager
 
   snapConfiguration: SnapConfiguration
 
-  constructor(editor: InteractiveInkEditor, config?: TPartialDeep<TSnapConfiguration>)
+  constructor(editor: TInteractiveInkEditor, config?: TPartialDeep<TSnapConfiguration>)
   {
     super(editor, LoggerCategory.SNAP)
     this.logger.info("constructor")

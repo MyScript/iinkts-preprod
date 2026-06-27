@@ -6,7 +6,7 @@ import { convertBoundingBoxMillimeterToPixel, getBoxConnectionPoint } from "@/ut
 import type { TJIIXMathExpression, TJIIXMathElement } from "@/model/ExportMath"
 import type { TMathVariable, TMathVariableDefinition, TMathVariableDefinitions } from "@/recognizer"
 import { ColorPaletteManager } from "../../base"
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { LoggerCategory } from "@/logger"
 
 /**
@@ -84,7 +84,7 @@ export class IIMathVariableSubManager extends IIAbstractManager
   #selectedJiixBlockIds: Set<string> = new Set()
   #colorManager: ColorPaletteManager
 
-  constructor(editor: InteractiveInkEditor, config: Partial<TMathInteractionConfig> = {})
+  constructor(editor: TInteractiveInkEditor, config: Partial<TMathInteractionConfig> = {})
   {
     super(editor, LoggerCategory.MATH)
     this.#colorManager = ColorPaletteManager.getInstance()

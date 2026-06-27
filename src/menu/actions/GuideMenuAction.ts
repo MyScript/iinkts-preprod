@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { TMenuSubMenu } from "@/menu/items/SubMenuItem";
 import { SubMenuItem } from "@/menu/items/SubMenuItem"
 import guideIcon from "@/assets/svg/orthogonal-view.svg"
@@ -18,7 +18,7 @@ export type TGuideActionConfig = boolean | TGuideActionItemsConfig
  */
 export class GuideMenuAction extends SubMenuItem
 {
-  constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-action", itemsConfig?: TGuideActionItemsConfig)
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-action", itemsConfig?: TGuideActionItemsConfig)
   {
     const enabled = (key: keyof TGuideActionItemsConfig) => itemsConfig?.[key] !== false
 

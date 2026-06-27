@@ -2,7 +2,7 @@ import { LoggerCategory, LoggerManager } from "@/logger"
 import type { TStroke, TText, TSymbol} from "@/symbol";
 import { isStroke, isText } from "@/symbol"
 import { TextHelper } from "@/symbol/text/Text"
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { DOMFactory } from "@/components/dom"
 import type { TContextDecoratorConfig, TContextReorderConfig, TContextExportConfig, TContextMathConfig} from "./context";
 import {
@@ -68,7 +68,7 @@ function extractSubConfig<T>(config: boolean | T): T | undefined {
 export class IIMenuContext
 {
   #logger = LoggerManager.getLogger(LoggerCategory.MENU)
-  editor: InteractiveInkEditor
+  editor: TInteractiveInkEditor
   id: string
   wrapper?: HTMLElement
   config: Required<TMenuContextConfig>
@@ -83,7 +83,7 @@ export class IIMenuContext
     y: number
   }
 
-  constructor(editor: InteractiveInkEditor, id = "ms-menu-context", config?: TMenuContextConfig)
+  constructor(editor: TInteractiveInkEditor, id = "ms-menu-context", config?: TMenuContextConfig)
   {
     this.id = id
     this.#logger.info("constructor")

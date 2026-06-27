@@ -1,5 +1,5 @@
 import type { TStroke, TSymbol } from "@/symbol"
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { TGesture, TGestureType } from "@/manager/interactive/gestures/GestureTypes"
 import type { GestureHelpers } from "./GestureHelpers"
 import type { IIModel } from "@/model"
@@ -44,7 +44,7 @@ export abstract class GestureHandler implements TGestureHandler
   protected readonly processor: IIGestureAnnotationProcessor
 
   constructor(
-    protected editor: InteractiveInkEditor,
+    protected editor: TInteractiveInkEditor,
     protected helpers: GestureHelpers
   )
   {

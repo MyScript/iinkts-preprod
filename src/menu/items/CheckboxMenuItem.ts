@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { TMenuItemBase } from "./BaseMenuItem";
 import { BaseMenuItem } from "./BaseMenuItem"
 
@@ -8,8 +8,8 @@ import { BaseMenuItem } from "./BaseMenuItem"
  */
 export type TMenuCheckbox = TMenuItemBase & {
   type: "checkbox"
-  getValue: (editor: InteractiveInkEditor) => boolean
-  setValue: (editor: InteractiveInkEditor, value: boolean) => void
+  getValue: (editor: TInteractiveInkEditor) => boolean
+  setValue: (editor: TInteractiveInkEditor, value: boolean) => void
 }
 
 /**

@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { DOMFactory } from "@/components/dom"
 
@@ -9,8 +9,8 @@ import type { DOMFactory } from "@/components/dom"
 export type TMenuItemBase = {
   id: string
   label?: string
-  disabled?: boolean | ((editor: InteractiveInkEditor) => boolean)
-  visible?: boolean | ((editor: InteractiveInkEditor) => boolean)
+  disabled?: boolean | ((editor: TInteractiveInkEditor) => boolean)
+  visible?: boolean | ((editor: TInteractiveInkEditor) => boolean)
 }
 
 /**
@@ -27,14 +27,14 @@ export abstract class BaseMenuItem<T extends HTMLElement = HTMLElement>
 {
   protected logger = LoggerManager.getLogger(LoggerCategory.MENU)
   protected config: TGenericMenuItem
-  protected editor: InteractiveInkEditor
+  protected editor: TInteractiveInkEditor
   protected element?: T
 
   protected get dom(): typeof DOMFactory {
     return this.editor.dom
   }
 
-  constructor(config: TGenericMenuItem, editor: InteractiveInkEditor) {
+  constructor(config: TGenericMenuItem, editor: TInteractiveInkEditor) {
     this.config = config
     this.editor = editor
   }

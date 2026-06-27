@@ -4,7 +4,7 @@ import type { TJIIXMathElement } from "@/model"
 import type { TBox, TStroke} from "@/symbol";
 import { isStroke } from "@/symbol"
 import { BoxHelper } from "@/symbol/primitives/Box"
-import type { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { ColorPaletteManager } from "../base"
 import { convertBoundingBoxMillimeterToPixel } from "@/utils"
 import { LoggerCategory } from "@/logger"
@@ -73,7 +73,7 @@ export class IIOverlayManager extends IIAbstractManager
   #config: TOverlayConfig
   #colorManager: ColorPaletteManager
 
-  constructor(editor: InteractiveInkEditor, config: Partial<TOverlayConfig> = {})
+  constructor(editor: TInteractiveInkEditor, config: Partial<TOverlayConfig> = {})
   {
     super(editor, LoggerCategory.SVGDEBUG)
     this.#config = { ...DefaultOverlayConfig, ...config }

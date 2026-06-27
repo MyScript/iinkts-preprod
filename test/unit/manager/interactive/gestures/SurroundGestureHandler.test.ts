@@ -1,28 +1,24 @@
-import { InteractiveInkEditorMock } from "../../../__mocks__/InteractiveInkEditorMock"
+import { createEditorMock, asEditor } from "../../../__mocks__/createEditorMock"
 import { buildIIStroke, buildIIText } from "../../../helpers"
 import {
   SurroundGestureHandler,
   GestureHelpers,
   TGesture,
   SurroundAction,
-  IIGestureManager,
   StrokeHelper,
 } from "../../../../../src/iink"
 
 describe("SurroundGestureHandler.ts", () =>
 {
-  let editor: InteractiveInkEditorMock
+  let editor: ReturnType<typeof createEditorMock>
   let helpers: GestureHelpers
   let handler: SurroundGestureHandler
 
   beforeEach(() =>
   {
-    editor = new InteractiveInkEditorMock();
-    editor.init();
-    // Create a minimal gesture manager for testing
-    (editor as any).gesture = new IIGestureManager(editor);
-    helpers = new GestureHelpers(editor);
-    handler = new SurroundGestureHandler(editor, helpers);
+    editor = createEditorMock()
+    helpers = new GestureHelpers(asEditor(editor))
+    handler = new SurroundGestureHandler(asEditor(editor), helpers)
   })
 
   test("should instantiate", () =>

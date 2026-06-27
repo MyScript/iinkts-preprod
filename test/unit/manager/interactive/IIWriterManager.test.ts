@@ -1,4 +1,4 @@
-import { InteractiveInkEditorMock } from "../../__mocks__/InteractiveInkEditorMock"
+import { createEditorMock, asEditor } from "../../__mocks__/createEditorMock"
 import
 {
   IIWriterManager,
@@ -19,18 +19,18 @@ describe("IIWriterManager.ts", () =>
 {
   test("should create", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    const manager = new IIWriterManager(editor)
+    const editor = createEditorMock()
+    const manager = new IIWriterManager(asEditor(editor))
     expect(manager).toBeDefined()
   })
 
   describe("writing process", () =>
   {
-    const editor = new InteractiveInkEditorMock()
+    const editor = createEditorMock()
     editor.recognizer.init = jest.fn(() => Promise.resolve())
     editor.recognizer.addStrokes = jest.fn(() => Promise.resolve(undefined))
 
-    const manager = new IIWriterManager(editor)
+    const manager = new IIWriterManager(asEditor(editor))
     manager.renderer.drawSymbol = jest.fn()
 
     editor.init()

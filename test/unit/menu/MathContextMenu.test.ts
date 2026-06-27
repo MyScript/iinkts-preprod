@@ -1,16 +1,15 @@
-import { InteractiveInkEditorMock } from "../__mocks__/InteractiveInkEditorMock"
+import { createEditorMock, asEditor } from "../__mocks__/createEditorMock"
 import { MathContextMenu } from "../../../src/iink"
 
 describe("MathContextMenu.ts", () =>
 {
-  let editor: InteractiveInkEditorMock
+  let editor: ReturnType<typeof createEditorMock>
   let mathMenu: MathContextMenu
 
   beforeEach(() =>
   {
-    editor = new InteractiveInkEditorMock()
-    editor.init()
-    mathMenu = new MathContextMenu(editor)
+    editor = createEditorMock()
+    mathMenu = new MathContextMenu(asEditor(editor))
     document.body.innerHTML = ""
   })
 
@@ -33,7 +32,7 @@ describe("MathContextMenu.ts", () =>
 
     test("should create with custom id prefix", () =>
     {
-      const customMenu = new MathContextMenu(editor, "custom-prefix")
+      const customMenu = new MathContextMenu(asEditor(editor), "custom-prefix")
       expect(customMenu.id).toBe("custom-prefix-math")
       expect(customMenu.idEditVariables).toBe("custom-prefix-math-variables")
       expect(customMenu.idNumericalComputation).toBe("custom-prefix-math-numerical-computation")
@@ -239,7 +238,7 @@ describe("MathContextMenu.ts", () =>
 
     test("should not use default prefix with custom prefix", () =>
     {
-      const customMenu = new MathContextMenu(editor, "test")
+      const customMenu = new MathContextMenu(asEditor(editor), "test")
       expect(customMenu.id).toBe("test-math")
       expect(customMenu.id).not.toContain("ms-menu-context")
     })

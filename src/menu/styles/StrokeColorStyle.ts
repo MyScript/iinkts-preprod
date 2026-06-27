@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
 import type { TMenuColorList} from "@/menu/items";
 import { ColorListMenuItem, CollapsibleWrapper } from "@/menu/items"
@@ -12,7 +12,7 @@ export class StrokeColorStyle extends BaseMenuItem<HTMLDivElement>
   private colorItem?: ColorListMenuItem
   private colors: string[]
 
-  constructor(editor: InteractiveInkEditor, colors: string[], idPrefix = "ms-menu-style")
+  constructor(editor: TInteractiveInkEditor, colors: string[], idPrefix = "ms-menu-style")
   {
     const config = {
       type: "strokecolor" as const,

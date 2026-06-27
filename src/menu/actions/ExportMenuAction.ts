@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { TMenuSubMenu } from "@/menu/items/SubMenuItem";
 import { SubMenuItem } from "@/menu/items/SubMenuItem"
 import downloadIcon from "@/assets/svg/download.svg"
@@ -19,7 +19,7 @@ export type TExportActionConfig = boolean | TExportActionItemsConfig
  */
 export class ExportMenuAction extends SubMenuItem
 {
-  constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-action", itemsConfig?: TExportActionItemsConfig)
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-action", itemsConfig?: TExportActionItemsConfig)
   {
     const enabled = (key: keyof TExportActionItemsConfig) => itemsConfig?.[key] !== false
 

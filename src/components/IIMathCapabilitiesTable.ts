@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { Modal } from "./Modal"
 import type { TTableRow } from "./Table";
 import { Table } from "./Table"
@@ -26,7 +26,7 @@ export type TMathSymbolCapabilities = {
  * @remarks Component for displaying math symbols capabilities in a table
  */
 export class IIMathCapabilitiesTable {
-  private editor: InteractiveInkEditor
+  private editor: TInteractiveInkEditor
   private modal?: Modal
   private table?: Table
   private capabilities: TMathSymbolCapabilities[] = []
@@ -38,7 +38,7 @@ export class IIMathCapabilitiesTable {
   } = {}
   private logger = LoggerManager.getLogger(LoggerCategory.MATH)
 
-  constructor(editor: InteractiveInkEditor) {
+  constructor(editor: TInteractiveInkEditor) {
     this.editor = editor
     this.logger.debug("IIMathCapabilitiesTable initialized")
   }

@@ -1,4 +1,4 @@
-import { InteractiveInkEditorMock } from "../../../__mocks__/InteractiveInkEditorMock"
+import { createEditorMock, asEditor } from "../../../__mocks__/createEditorMock"
 import
 {
   EdgeLineHelper,
@@ -17,17 +17,17 @@ describe("IIRotationManager.ts", () =>
 {
   test("should create", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    const manager = new IIRotationManager(editor)
+    const editor = createEditorMock()
+    const manager = new IIRotationManager(asEditor(editor))
     expect(manager).toBeDefined()
   })
 
   describe("should applyToSymbol", () =>
   {
-    const editor = new InteractiveInkEditorMock()
+    const editor = createEditorMock()
     editor.typeset.updateBounds = jest.fn()
     editor.renderer.setAttribute = jest.fn()
-    const manager = new IIRotationManager(editor)
+    const manager = new IIRotationManager(asEditor(editor))
 
     test("not rotate shape with kind unknown", () =>
     {
@@ -85,13 +85,13 @@ describe("IIRotationManager.ts", () =>
 
   describe("rotate process on stroke", () =>
   {
-    const editor = new InteractiveInkEditorMock()
+    const editor = createEditorMock()
     editor.recognizer.init = jest.fn(() => Promise.resolve())
     editor.recognizer.transformRotate = jest.fn(() => Promise.resolve())
     editor.renderer.setAttribute = jest.fn()
     editor.renderer.drawSymbol = jest.fn()
 
-    const manager = new IIRotationManager(editor)
+    const manager = new IIRotationManager(asEditor(editor))
     manager.applyToSymbol = jest.fn()
 
     const stroke = StrokeHelper.create({})

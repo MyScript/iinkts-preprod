@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { BaseMenuItem, TGenericMenuItem } from "./BaseMenuItem"
 import { ButtonMenuItem } from "./ButtonMenuItem"
 import { CheckboxMenuItem } from "./CheckboxMenuItem"
@@ -23,7 +23,7 @@ export type TAllMenuItems = TSubMenuItems | TMenuSubMenu | TMenuColorList | TMen
  * @group Menu
  * @remarks Factory function to create an instance of the appropriate menu item class
  */
-export function createMenuItemInstance(config: TAllMenuItems, editor: InteractiveInkEditor): BaseMenuItem {
+export function createMenuItemInstance(config: TAllMenuItems, editor: TInteractiveInkEditor): BaseMenuItem {
   switch (config.type) {
     case "button":
       return new ButtonMenuItem(config, editor)

@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { TMenuItemBase } from "@/menu/items/BaseMenuItem";
 import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
 import { EditorTool, EditorWriteTool } from "@/Constants"
@@ -23,7 +23,7 @@ export class ShapeTool extends BaseMenuItem<HTMLDivElement>
   private triggerButton?: HTMLButtonElement
   private currentIcon: string = rectangleIcon
 
-  constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-tool")
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-tool")
   {
     const config: TShapeToolConfig = {
       type: "shape",

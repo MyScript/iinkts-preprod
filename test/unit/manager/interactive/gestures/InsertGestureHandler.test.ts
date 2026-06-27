@@ -1,23 +1,35 @@
-import { InteractiveInkEditorMock } from "../../../__mocks__/InteractiveInkEditorMock"
+import { createEditorMock, asEditor } from "../../../__mocks__/createEditorMock"
 import { buildIIStroke } from "../../../helpers"
 import {
   InsertGestureHandler,
   GestureHelpers,
   StrokeHelper,
 } from "../../../../../src/iink"
+import { MatrixTransform } from "../../../../../src/transform/Matrix"
+import type { TStroke } from "../../../../../src/iink"
 
 describe("InsertGestureHandler.ts", () =>
 {
-  let editor: InteractiveInkEditorMock
+  let editor: ReturnType<typeof createEditorMock>
   let helpers: GestureHelpers
   let handler: InsertGestureHandler
 
   beforeEach(() =>
   {
-    editor = new InteractiveInkEditorMock()
-    editor.init()
-    helpers = new GestureHelpers(editor)
-    handler = new InsertGestureHandler(editor, helpers)
+    editor = createEditorMock()
+    ;(editor.transform as unknown as Record<string, unknown>).translate = {
+      applyToSymbol: jest.fn().mockImplementation((sym: TStroke, matrix: MatrixTransform) => {
+        sym.pointers.forEach(p => {
+          const np = MatrixTransform.applyToPoint(matrix, p)
+          p.x = +np.x.toFixed(3)
+          p.y = +np.y.toFixed(3)
+        })
+        StrokeHelper.updateBounds(sym)
+        return sym
+      })
+    }
+    helpers = new GestureHelpers(asEditor(editor))
+    handler = new InsertGestureHandler(asEditor(editor), helpers)
   })
 
   test("should instantiate", () =>

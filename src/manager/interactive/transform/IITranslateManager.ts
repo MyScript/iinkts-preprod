@@ -1,5 +1,5 @@
 import { StrokeHelper } from "@/symbol/stroke/Stroke"
-import type { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type {
   TStroke,
   TText,
@@ -27,7 +27,7 @@ export class IITranslateManager extends IIAbstractTransformManager
   protected transformName = "translate"
   transformOrigin!: TPoint
 
-  constructor(editor: InteractiveInkEditor)
+  constructor(editor: TInteractiveInkEditor)
   {
     super(editor)
   }

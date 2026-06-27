@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { Minimap } from "@/components"
 import type { TMenuButton } from "@/menu/items/ButtonMenuItem";
 import { ButtonMenuItem } from "@/menu/items/ButtonMenuItem"
@@ -13,7 +13,7 @@ export class MinimapMenuAction extends ButtonMenuItem
   #minimap: Minimap
   #visible = false
 
-  constructor(editor: InteractiveInkEditor, layer: HTMLElement, idPrefix = "ms-menu-action")
+  constructor(editor: TInteractiveInkEditor, layer: HTMLElement, idPrefix = "ms-menu-action")
   {
     const config: TMenuButton = {
       type: "button",

@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { TMenuItemBase } from "./BaseMenuItem";
 import { BaseMenuItem } from "./BaseMenuItem"
 
@@ -11,7 +11,7 @@ export type TMenuColorList = TMenuItemBase & {
   colors: string[]
   fill: boolean
   initValue?: string
-  onChange: (color: string, editor: InteractiveInkEditor) => void
+  onChange: (color: string, editor: TInteractiveInkEditor) => void
 }
 
 /**
@@ -23,7 +23,7 @@ export class ColorListMenuItem extends BaseMenuItem<HTMLDivElement>
   protected declare config: TMenuColorList
   private currentValue: string
 
-  constructor(config: TMenuColorList, editor: InteractiveInkEditor) {
+  constructor(config: TMenuColorList, editor: TInteractiveInkEditor) {
     super(config, editor)
     this.currentValue = config.initValue || config.colors[0] || "#000000"
   }

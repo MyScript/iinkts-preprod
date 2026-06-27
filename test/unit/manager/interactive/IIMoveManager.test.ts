@@ -1,4 +1,4 @@
-import { InteractiveInkEditorMock } from "../../__mocks__/InteractiveInkEditorMock"
+import { createEditorMock, asEditor } from "../../__mocks__/createEditorMock"
 import { DefaultIIRendererConfiguration, IIMoveManager, TPointerInfo } from "../../../../src/iink"
 
 
@@ -6,18 +6,18 @@ describe("IIMoveManager.ts", () =>
 {
   test("should instanciate", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    const manager = new IIMoveManager(editor)
+    const editor = createEditorMock()
+    const manager = new IIMoveManager(asEditor(editor))
     expect(manager).toBeDefined()
     expect(manager.origin).toBeUndefined()
   })
 
   describe("move process", () =>
   {
-    const editor = new InteractiveInkEditorMock()
+    const editor = createEditorMock()
     editor.init()
 
-    const manager = new IIMoveManager(editor)
+    const manager = new IIMoveManager(asEditor(editor))
 
     test("should init origin on start", async () =>
     {

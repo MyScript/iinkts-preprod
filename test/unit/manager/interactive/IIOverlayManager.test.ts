@@ -2,14 +2,14 @@ import
 {
   IIOverlayManager,
 } from "../../../../src/iink"
-import { InteractiveInkEditorMock } from "../../__mocks__/InteractiveInkEditorMock"
+import { createEditorMock, asEditor } from "../../__mocks__/createEditorMock"
 
 describe("IIOverlayManager.ts", () =>
 {
   test("should create", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    const manager = new IIOverlayManager(editor)
+    const editor = createEditorMock()
+    const manager = new IIOverlayManager(asEditor(editor))
     expect(manager).toBeDefined()
   })
 })

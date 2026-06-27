@@ -1,6 +1,7 @@
 
 // Core
 export * from "./AbstractEditor"
+export * from "./TInteractiveInkEditor"
 export * from "./Editor"
 export * from "./EditorEvent"
 export * from "./EditorLayer"

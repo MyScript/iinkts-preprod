@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
 import type { TMenuButtonList} from "@/menu/items";
 import { ButtonListMenuItem, CollapsibleWrapper } from "@/menu/items"
@@ -12,7 +12,7 @@ export class ThicknessStyle extends BaseMenuItem<HTMLDivElement>
   private thicknessItem?: ButtonListMenuItem
   private thicknessList: { label: string, value: number }[]
 
-  constructor(editor: InteractiveInkEditor, thicknessList: { label: string, value: number }[], idPrefix = "ms-menu-style")
+  constructor(editor: TInteractiveInkEditor, thicknessList: { label: string, value: number }[], idPrefix = "ms-menu-style")
   {
     const config = {
       type: "thickness" as const,

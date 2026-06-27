@@ -1,4 +1,4 @@
-import { InteractiveInkEditorMock } from "../__mocks__/InteractiveInkEditorMock"
+import { createEditorMock, asEditor } from "../__mocks__/createEditorMock"
 import { LeftClickEventMock } from "../__mocks__/EventMock"
 import { EditorTool, IIMenuTool, EditorWriteTool } from "../../../src/iink"
 
@@ -6,16 +6,16 @@ describe("IIMenuTool.ts", () =>
 {
   test("should create", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    const menu = new IIMenuTool(editor)
+    const editor = createEditorMock()
+    const menu = new IIMenuTool(asEditor(editor))
     expect(menu).toBeDefined()
   })
 
   describe("render", () =>
   {
     const layer = document.createElement("div")
-    const editor = new InteractiveInkEditorMock()
-    const menu = new IIMenuTool(editor)
+    const editor = createEditorMock()
+    const menu = new IIMenuTool(asEditor(editor))
     menu.render(layer)
     test("should display menu write pencil", () =>
     {
@@ -41,9 +41,8 @@ describe("IIMenuTool.ts", () =>
 
   describe("change tool", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    editor.init()
-    const menu = new IIMenuTool(editor)
+    const editor = createEditorMock()
+    const menu = new IIMenuTool(asEditor(editor))
     const clickEvt = new LeftClickEventMock("click", {
       pointerType: "pen",
       clientX: 10,
@@ -163,9 +162,8 @@ describe("IIMenuTool.ts", () =>
 
   describe("update", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    editor.init()
-    const menu = new IIMenuTool(editor)
+    const editor = createEditorMock()
+    const menu = new IIMenuTool(asEditor(editor))
     menu.render(editor.layers.ui.root)
     test("should set menu select activated", () =>
     {
@@ -260,9 +258,8 @@ describe("IIMenuTool.ts", () =>
 
   describe("show/hide", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    editor.init()
-    const menu = new IIMenuTool(editor)
+    const editor = createEditorMock()
+    const menu = new IIMenuTool(asEditor(editor))
     menu.render(editor.layers.ui.root)
     test("should hide", () =>
     {
@@ -280,9 +277,8 @@ describe("IIMenuTool.ts", () =>
 
   describe("destroy", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    editor.init()
-    const menu = new IIMenuTool(editor)
+    const editor = createEditorMock()
+    const menu = new IIMenuTool(asEditor(editor))
     menu.render(editor.layers.ui.root)
     test("should remove elements", () =>
     {

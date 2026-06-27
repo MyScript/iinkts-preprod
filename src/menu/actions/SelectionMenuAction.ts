@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { TMenuSubMenu } from "@/menu/items/SubMenuItem";
 import { SubMenuItem } from "@/menu/items/SubMenuItem"
 import type { TMenuSelect } from "@/menu/items/SelectMenuItem"
@@ -19,7 +19,7 @@ export type TSelectionActionConfig = boolean | TSelectionActionItemsConfig
  */
 export class SelectionMenuAction extends SubMenuItem
 {
-  constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-action", itemsConfig?: TSelectionActionItemsConfig)
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-action", itemsConfig?: TSelectionActionItemsConfig)
   {
     const enabled = (key: keyof TSelectionActionItemsConfig) => itemsConfig?.[key] !== false
 
@@ -35,8 +35,8 @@ export class SelectionMenuAction extends SubMenuItem
           { label: "Word", value: "word" },
           { label: "Character", value: "char" },
         ],
-        getValue: (editor: InteractiveInkEditor) => editor.configuration.textSelectionLevel,
-        setValue: (editor: InteractiveInkEditor, value: string) => {
+        getValue: (editor: TInteractiveInkEditor) => editor.configuration.textSelectionLevel,
+        setValue: (editor: TInteractiveInkEditor, value: string) => {
           editor.configuration.textSelectionLevel = value as "element" | "word" | "char"
         }
       })
@@ -51,8 +51,8 @@ export class SelectionMenuAction extends SubMenuItem
           { label: "Element", value: "element" },
           { label: "Operand", value: "operand" },
         ],
-        getValue: (editor: InteractiveInkEditor) => editor.configuration.mathSelectionLevel,
-        setValue: (editor: InteractiveInkEditor, value: string) => {
+        getValue: (editor: TInteractiveInkEditor) => editor.configuration.mathSelectionLevel,
+        setValue: (editor: TInteractiveInkEditor, value: string) => {
           editor.configuration.mathSelectionLevel = value as "element" | "operand"
         }
       })
@@ -67,8 +67,8 @@ export class SelectionMenuAction extends SubMenuItem
           { label: "Element", value: "element" },
           { label: "Stroke", value: "stroke" },
         ],
-        getValue: (editor: InteractiveInkEditor) => editor.configuration.shapeSelectionLevel,
-        setValue: (editor: InteractiveInkEditor, value: string) => {
+        getValue: (editor: TInteractiveInkEditor) => editor.configuration.shapeSelectionLevel,
+        setValue: (editor: TInteractiveInkEditor, value: string) => {
           editor.configuration.shapeSelectionLevel = value as "element" | "stroke"
         }
       })

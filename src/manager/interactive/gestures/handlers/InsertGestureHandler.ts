@@ -5,7 +5,7 @@ import { StrokeHelper } from "@/symbol/stroke/Stroke"
 import { BoxHelper } from "@/symbol/primitives/Box"
 import type { TIIHistoryChanges } from "@/history"
 import { computeAverage, isBetween } from "@/utils"
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { TGesture } from "../GestureTypes"
 import { InsertAction } from "../GestureTypes"
 import { GestureHandler } from "../GestureHandler"
@@ -22,7 +22,7 @@ export class InsertGestureHandler extends GestureHandler
   readonly gestureType = "INSERT" as const
 
   constructor(
-    editor: InteractiveInkEditor,
+    editor: TInteractiveInkEditor,
     helpers: GestureHelpers
   )
   {

@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { TGenericMenuItem } from "@/menu/items/BaseMenuItem";
 import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
 import ArrowDown from "@/assets/svg/nav-arrow-down.svg"
@@ -28,7 +28,7 @@ export class DecoratorContextMenu extends BaseMenuItem<HTMLElement>
   protected declare config: TGenericMenuItem & { idPrefix: string }
   #itemsConfig?: TContextDecoratorItemsConfig
 
-  constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-context", itemsConfig?: TContextDecoratorItemsConfig)
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-context", itemsConfig?: TContextDecoratorItemsConfig)
   {
     const config: TGenericMenuItem & { idPrefix: string } = {
       type: "custom",

@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { TMenuItemBase } from "./BaseMenuItem";
 import { BaseMenuItem } from "./BaseMenuItem"
 
@@ -13,7 +13,7 @@ export type TMenuRange = TMenuItemBase & {
   unit?: string
   step: number
   initValue?: number
-  onChange: (value: number, editor: InteractiveInkEditor) => void
+  onChange: (value: number, editor: TInteractiveInkEditor) => void
 }
 
 /**
@@ -27,7 +27,7 @@ export class RangeMenuItem extends BaseMenuItem<HTMLDivElement>
   private input?: HTMLInputElement
   private output?: HTMLOutputElement
 
-  constructor(config: TMenuRange, editor: InteractiveInkEditor) {
+  constructor(config: TMenuRange, editor: TInteractiveInkEditor) {
     super(config, editor)
     this.currentValue = config.initValue ?? config.min
   }

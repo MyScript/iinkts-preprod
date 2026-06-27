@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { Modal } from "./Modal"
 import type { TMathVariable, TMathVariableDefinition } from "@/recognizer"
 import { LoggerCategory, LoggerManager } from "@/logger"
@@ -22,14 +22,14 @@ export type TSymbolVariables = {
  */
 export class IIMathVariablePerBlockEditor
 {
-  private editor: InteractiveInkEditor
+  private editor: TInteractiveInkEditor
   private jiixBlockIds: string[]
   private modal?: Modal
   private blockVariables: TSymbolVariables[] = []
   private inputLists: Map<string, IIMathVariableInputList> = new Map()
   private logger = LoggerManager.getLogger(LoggerCategory.MATH)
 
-  constructor(editor: InteractiveInkEditor, jiixBlockIds: string[])
+  constructor(editor: TInteractiveInkEditor, jiixBlockIds: string[])
   {
     this.editor = editor
     this.jiixBlockIds = [...new Set(jiixBlockIds)]

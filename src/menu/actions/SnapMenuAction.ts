@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { TMenuSubMenu } from "@/menu/items/SubMenuItem";
 import { SubMenuItem } from "@/menu/items/SubMenuItem"
 import snapIcon from "@/assets/svg/arrow-to-dot.svg"
@@ -18,7 +18,7 @@ export type TSnapActionConfig = boolean | TSnapActionItemsConfig
  */
 export class SnapMenuAction extends SubMenuItem
 {
-  constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-action", itemsConfig?: TSnapActionItemsConfig)
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-action", itemsConfig?: TSnapActionItemsConfig)
   {
     const enabled = (key: keyof TSnapActionItemsConfig) => itemsConfig?.[key] !== false
 

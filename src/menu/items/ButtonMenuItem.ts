@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { TMenuItemBase } from "./BaseMenuItem";
 import { BaseMenuItem } from "./BaseMenuItem"
 
@@ -9,7 +9,7 @@ import { BaseMenuItem } from "./BaseMenuItem"
 export type TMenuButton = TMenuItemBase & {
   type: "button"
   icon?: string
-  action: (editor: InteractiveInkEditor) => void | Promise<void>
+  action: (editor: TInteractiveInkEditor) => void | Promise<void>
 }
 
 /**

@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { IIAbstractManager } from "./IIAbstractManager"
 import type {
     TMathDependencies,
@@ -48,7 +48,7 @@ export class IIMathManager extends IIAbstractManager
   #variables: IIMathVariableSubManager
   #evaluation: IIMathFunctionEvaluationSubManager
 
-  constructor(editor: InteractiveInkEditor, config?: TMathConfig)
+  constructor(editor: TInteractiveInkEditor, config?: TMathConfig)
   {
     super(editor, LoggerCategory.MATH)
 

@@ -1,6 +1,6 @@
 import type { TMenuItemBase } from "./BaseMenuItem";
 import { BaseMenuItem } from "./BaseMenuItem"
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 
 /**
  * @group Menu
@@ -11,7 +11,7 @@ export type TMenuFileInput = TMenuItemBase & {
   accept?: string
   multiple?: boolean
   buttonLabel?: string
-  action: (editor: InteractiveInkEditor, files: FileList) => void | Promise<void>
+  action: (editor: TInteractiveInkEditor, files: FileList) => void | Promise<void>
 }
 
 /**

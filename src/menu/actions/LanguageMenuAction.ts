@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
 import { getAvailableLanguageList } from "@/utils"
 import languageIcon from "@/assets/svg/language.svg"
@@ -14,7 +14,7 @@ export class LanguageMenuAction extends BaseMenuItem<HTMLDivElement>
   private subMenuWrapper!: HTMLDivElement
   private subMenuContent!: HTMLDivElement
 
-  constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-action")
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-action")
   {
     const config = {
       type: "language" as const,

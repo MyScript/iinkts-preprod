@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type {
   TJIIXElement,
   TJIIXTextElement,
@@ -87,7 +87,7 @@ export class IIJiixQueryManager extends IIAbstractManager
   /** Text metadata per stroke ID (pixel-converted, set during sync) */
   #textMetadata = new Map<string, TBlockTextMetadata>()
 
-  constructor(editor: InteractiveInkEditor)
+  constructor(editor: TInteractiveInkEditor)
   {
     super(editor, LoggerCategory.JIIX_QUERY)
     this.logger.info("constructor", this.managerName)

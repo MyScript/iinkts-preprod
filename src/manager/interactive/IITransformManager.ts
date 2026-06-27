@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { LoggerCategory } from "@/logger"
 import { IIAbstractManager } from "./IIAbstractManager"
 import { IITranslateManager } from "./transform/IITranslateManager"
@@ -18,7 +18,7 @@ export class IITransformManager extends IIAbstractManager
   readonly resize: IIResizeManager
   readonly rotation: IIRotationManager
 
-  constructor(editor: InteractiveInkEditor)
+  constructor(editor: TInteractiveInkEditor)
   {
     super(editor, LoggerCategory.TRANSFORMER)
     this.translate = new IITranslateManager(editor)

@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { TMenuSubMenu } from "@/menu/items/SubMenuItem";
 import { SubMenuItem } from "@/menu/items/SubMenuItem"
 import type { TEditorTheme} from "@/editor/EditorThemes";
@@ -18,7 +18,7 @@ export class ThemeMenuAction extends SubMenuItem
   private currentThemeId: string
   private themeItems: Map<string, HTMLElement> = new Map()
 
-  constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-action", themes?: TEditorTheme[])
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-action", themes?: TEditorTheme[])
   {
     const config: TMenuSubMenu = {
       type: "submenu",

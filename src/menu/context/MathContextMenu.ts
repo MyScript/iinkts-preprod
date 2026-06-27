@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { TMenuSubMenu } from "@/menu/items/SubMenuItem";
 import { SubMenuItem } from "@/menu/items/SubMenuItem"
 import { IIMathFunctionEvaluator, IIMathDiagnosticChecker, IIMathVariablePerBlockEditor } from "@/components"
@@ -28,7 +28,7 @@ export class MathContextMenu extends SubMenuItem
   readonly idCheckDiagnostic: string
   readonly idEvaluate: string
 
-  constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-context", itemsConfig?: TContextMathItemsConfig)
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-context", itemsConfig?: TContextMathItemsConfig)
   {
     const enabled = (key: keyof TContextMathItemsConfig) => itemsConfig?.[key] !== false
 
