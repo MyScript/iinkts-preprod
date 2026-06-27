@@ -119,8 +119,10 @@ export class IITranslateManager extends IIAbstractTransformManager
   translate(symbols: TSymbol[], tx: number, ty: number, addToHistory = true): Promise<void>
   {
     this.logger.info("translate", { symbols, tx, ty })
+    this.editor.connector.clearAnchoredEdgesFor(symbols)
     const matrix = MatrixTransform.identity().translate(tx, ty)
     this.applyAndDraw(symbols, matrix)
+    this.editor.connector.updateAnchoredEdges(symbols.map(s => s.id))
     if (addToHistory) {
       this.editor.history.push(this.model, { translate: [{ symbols: this.model.symbolsSelected, tx, ty }] })
     }
@@ -161,6 +163,8 @@ export class IITranslateManager extends IIAbstractTransformManager
     {
       this.translateElement(s.id as string, tx, ty)
     })
+    const matrix = MatrixTransform.identity().translate(tx, ty)
+    this.editor.connector.drawAnchoredEdgesForMatrix(this.model.symbolsSelected.map(s => s.id), matrix)
     return { tx, ty }
   }
 

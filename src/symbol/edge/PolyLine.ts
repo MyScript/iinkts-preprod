@@ -6,6 +6,7 @@ import { isValidPoint, type TPoint, type TSegment } from "@/symbol/primitives/Po
 import { SymbolType, type TBaseSymbol } from "@/symbol/Symbol"
 import { BoxOps, type TBox } from "@/symbol/primitives/Box"
 import { EdgeKind, type EdgeDecoration, computeEdgeBounds } from "./Edge-enum"
+import type { TAnchor } from "./Anchor"
 /**
  * @group Symbol
  */
@@ -18,6 +19,8 @@ export type TEdgePolyLine = TBaseSymbol & {
   deleting: boolean
   startDecoration?: EdgeDecoration
   endDecoration?: EdgeDecoration
+  startAnchor?: TAnchor
+  endAnchor?: TAnchor
   points: TPoint[]
   vertices: TPoint[]
   bounds: TBox
@@ -86,9 +89,14 @@ export const EdgePolyLineOps = {
 
   getSVGPath(polyline: TEdgePolyLine): string
   {
-    let path = `M ${ polyline.vertices[0].x } ${ polyline.vertices[0].y }`
-    for (let i = 0; i < polyline.vertices.length; i++) {
-      path += ` L ${ polyline.vertices[i].x } ${ polyline.vertices[i].y }`
+    const entry1 = polyline.startAnchor?.entryPoint
+    const entry2 = polyline.endAnchor?.entryPoint
+    const lastIdx = polyline.vertices.length - 1
+    const firstPt = entry1 ?? polyline.vertices[0]
+    let path = `M ${ firstPt.x } ${ firstPt.y }`
+    for (let i = entry1 ? 1 : 0; i <= lastIdx; i++) {
+      const pt = (entry2 && i === lastIdx) ? entry2 : polyline.vertices[i]
+      path += ` L ${ pt.x } ${ pt.y }`
     }
     return path
   },
