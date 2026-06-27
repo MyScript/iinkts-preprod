@@ -3,7 +3,7 @@ import { type TSymbol, isText, cloneSymbol } from "@/symbol"
 import { TextHelper } from "@/symbol/text/Text"
 import { BoxHelper } from "@/symbol/primitives/Box"
 import type { TIIHistoryChanges } from "@/history"
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { TGesture } from "@/manager/interactive/gestures/GestureTypes"
 import { GestureHandler } from "@/manager/interactive/gestures/GestureHandler"
 import type { GestureHelpers } from "@/manager/interactive/gestures/GestureHelpers"
@@ -19,7 +19,7 @@ export class JoinGestureHandler extends GestureHandler
   readonly gestureType = "JOIN" as const
 
   constructor(
-    editor: InteractiveInkEditor,
+    editor: TInteractiveInkEditor,
     helpers: GestureHelpers
   )
   {

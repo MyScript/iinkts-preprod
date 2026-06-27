@@ -1,4 +1,4 @@
-import { InteractiveInkEditorMock } from "../__mocks__/InteractiveInkEditorMock"
+import { createEditorMock, asEditor } from "../__mocks__/createEditorMock"
 import {
   IIMathVariableEditor,
   TMathVariableUsage
@@ -20,12 +20,11 @@ function makeUsage(overrides: Partial<TMathVariableUsage> = {}): TMathVariableUs
 
 describe("IIMathVariableEditor.ts", () =>
 {
-  let editor: InteractiveInkEditorMock
+  let editor: ReturnType<typeof createEditorMock>
 
   beforeEach(() =>
   {
-    editor = new InteractiveInkEditorMock()
-    editor.init()
+    editor = createEditorMock()
     document.body.appendChild(editor.layers.root)
 
     editor.math.getAllVariableUsages = jest.fn().mockResolvedValue([])
@@ -43,7 +42,7 @@ describe("IIMathVariableEditor.ts", () =>
   {
     test("should instantiate with editor", () =>
     {
-      const component = new IIMathVariableEditor(editor)
+      const component = new IIMathVariableEditor(asEditor(editor))
       expect(component).toBeDefined()
     })
   })
@@ -52,7 +51,7 @@ describe("IIMathVariableEditor.ts", () =>
   {
     test("should call getAllVariableUsages", async () =>
     {
-      const component = new IIMathVariableEditor(editor)
+      const component = new IIMathVariableEditor(asEditor(editor))
       await component.show()
       expect(editor.math.getAllVariableUsages).toHaveBeenCalledTimes(1)
     })
@@ -60,7 +59,7 @@ describe("IIMathVariableEditor.ts", () =>
     test("should return early and not open modal on fetch error", async () =>
     {
       editor.math.getAllVariableUsages = jest.fn().mockRejectedValue(new Error("network error"))
-      const component = new IIMathVariableEditor(editor)
+      const component = new IIMathVariableEditor(asEditor(editor))
       await expect(component.show()).resolves.toBeUndefined()
       // no modal backdrop in DOM
       const backdrop = document.querySelector(".ms-modal-backdrop")
@@ -70,7 +69,7 @@ describe("IIMathVariableEditor.ts", () =>
     test("should open modal when usages are fetched", async () =>
     {
       editor.math.getAllVariableUsages = jest.fn().mockResolvedValue([makeUsage()])
-      const component = new IIMathVariableEditor(editor)
+      const component = new IIMathVariableEditor(asEditor(editor))
       await component.show()
       const backdrop = document.querySelector(".ms-modal-backdrop")
       expect(backdrop).not.toBeNull()
@@ -78,7 +77,7 @@ describe("IIMathVariableEditor.ts", () =>
 
     test("should open modal even with empty usages", async () =>
     {
-      const component = new IIMathVariableEditor(editor)
+      const component = new IIMathVariableEditor(asEditor(editor))
       await component.show()
       const backdrop = document.querySelector(".ms-modal-backdrop")
       expect(backdrop).not.toBeNull()
@@ -88,7 +87,7 @@ describe("IIMathVariableEditor.ts", () =>
     {
       const usage = makeUsage({ id: "uid-99", name: "k" })
       editor.math.getAllVariableUsages = jest.fn().mockResolvedValue([usage])
-      const component = new IIMathVariableEditor(editor)
+      const component = new IIMathVariableEditor(asEditor(editor))
       await component.show()
       // usagesById is private — verify indirectly via applyChanges
       const input = document.querySelector("input[type='number']") as HTMLInputElement
@@ -108,7 +107,7 @@ describe("IIMathVariableEditor.ts", () =>
     test("should destroy modal and reset state", async () =>
     {
       editor.math.getAllVariableUsages = jest.fn().mockResolvedValue([makeUsage()])
-      const component = new IIMathVariableEditor(editor)
+      const component = new IIMathVariableEditor(asEditor(editor))
       await component.show()
 
       expect(document.querySelector(".ms-modal-backdrop")).not.toBeNull()
@@ -118,7 +117,7 @@ describe("IIMathVariableEditor.ts", () =>
 
     test("should be safe to call before show()", () =>
     {
-      const component = new IIMathVariableEditor(editor)
+      const component = new IIMathVariableEditor(asEditor(editor))
       expect(() => component.close()).not.toThrow()
     })
   })
@@ -129,7 +128,7 @@ describe("IIMathVariableEditor.ts", () =>
     {
       const usage = makeUsage({ id: "u1", name: "x", value: 1, isEditable: true, targetBlockId: "block-1" })
       editor.math.getAllVariableUsages = jest.fn().mockResolvedValue([usage])
-      const component = new IIMathVariableEditor(editor)
+      const component = new IIMathVariableEditor(asEditor(editor))
       await component.show()
 
       const input = document.querySelector("input[type='number']") as HTMLInputElement
@@ -147,7 +146,7 @@ describe("IIMathVariableEditor.ts", () =>
     {
       const usage = makeUsage({ id: "u1", name: "x", value: 1, isEditable: false })
       editor.math.getAllVariableUsages = jest.fn().mockResolvedValue([usage])
-      const component = new IIMathVariableEditor(editor)
+      const component = new IIMathVariableEditor(asEditor(editor))
       await component.show()
 
       const input = document.querySelector("input[type='number']") as HTMLInputElement
@@ -166,7 +165,7 @@ describe("IIMathVariableEditor.ts", () =>
     {
       const usage = makeUsage({ id: "u1", name: "x", value: 42, isEditable: true })
       editor.math.getAllVariableUsages = jest.fn().mockResolvedValue([usage])
-      const component = new IIMathVariableEditor(editor)
+      const component = new IIMathVariableEditor(asEditor(editor))
       await component.show()
 
       // input already has value=42; do not change it
@@ -180,7 +179,7 @@ describe("IIMathVariableEditor.ts", () =>
 
     test("should add new global variable via setVariableValue('', name, value)", async () =>
     {
-      const component = new IIMathVariableEditor(editor)
+      const component = new IIMathVariableEditor(asEditor(editor))
       await component.show()
 
       // click "+ Add"
@@ -204,7 +203,7 @@ describe("IIMathVariableEditor.ts", () =>
 
     test("should skip new row with empty name", async () =>
     {
-      const component = new IIMathVariableEditor(editor)
+      const component = new IIMathVariableEditor(asEditor(editor))
       await component.show()
 
       const addBtn = Array.from(document.querySelectorAll("button"))
@@ -228,7 +227,7 @@ describe("IIMathVariableEditor.ts", () =>
     {
       const usage = makeUsage({ id: "u1", name: "x", value: 1, isEditable: true })
       editor.math.getAllVariableUsages = jest.fn().mockResolvedValue([usage])
-      const component = new IIMathVariableEditor(editor)
+      const component = new IIMathVariableEditor(asEditor(editor))
       await component.show()
 
       const input = document.querySelector("input[type='number']") as HTMLInputElement
@@ -244,7 +243,7 @@ describe("IIMathVariableEditor.ts", () =>
 
     test("should remove new row when its delete button is clicked", async () =>
     {
-      const component = new IIMathVariableEditor(editor)
+      const component = new IIMathVariableEditor(asEditor(editor))
       await component.show()
 
       const addBtn = Array.from(document.querySelectorAll("button"))

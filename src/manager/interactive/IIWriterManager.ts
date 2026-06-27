@@ -33,7 +33,7 @@ import { BoxHelper } from "@/symbol/primitives/Box"
 import type { IIGestureManager } from "./IIGestureManager"
 import type { TGesture } from "./gestures"
 import type { IISnapManager } from "./IISnapManager"
-import type { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { AbstractWriterManager } from "@/manager/base/AbstractWriterManager"
 
 /**
@@ -43,10 +43,10 @@ export class IIWriterManager extends AbstractWriterManager
 {
   #tool: EditorWriteTool = EditorWriteTool.Pencil
   detectGesture: boolean = true
-  editor: InteractiveInkEditor
+  editor: TInteractiveInkEditor
   currentSymbolOrigin?: TPoint
 
-  constructor(editor: InteractiveInkEditor)
+  constructor(editor: TInteractiveInkEditor)
   {
     super(editor)
     this.editor = editor

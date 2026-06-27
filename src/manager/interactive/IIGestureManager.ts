@@ -5,7 +5,7 @@ import type { IIHistoryManager } from "@/history"
 import type { TPartialDeep } from "@/utils";
 import { isBetween } from "@/utils"
 import type { IITranslateManager, IITypesetManager } from "."
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { IIAbstractManager } from "./IIAbstractManager"
 import type { TGestureHandler } from "./gestures"
 import {
@@ -51,7 +51,7 @@ export class IIGestureManager extends IIAbstractManager
   strikeThroughAction: StrikeThroughAction = StrikeThroughAction.Draw
   underlineAction: UnderlineAction = UnderlineAction.Draw
 
-  constructor(editor: InteractiveInkEditor, gestureAction?: TPartialDeep<TGestureConfiguration>)
+  constructor(editor: TInteractiveInkEditor, gestureAction?: TPartialDeep<TGestureConfiguration>)
   {
     super(editor, LoggerCategory.GESTURE)
     this.logger.info("constructor")

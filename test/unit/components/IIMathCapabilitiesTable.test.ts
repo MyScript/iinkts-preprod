@@ -1,25 +1,24 @@
-import { InteractiveInkEditorMock } from "../__mocks__/InteractiveInkEditorMock"
+import { createEditorMock, asEditor } from "../__mocks__/createEditorMock"
+import type { IIJiixQueryManager } from "../../../src/iink"
 import { IIMathCapabilitiesTable } from "../../../src/iink"
 
 describe("IIMathCapabilitiesTable.ts", () =>
 {
-  let editor: InteractiveInkEditorMock
+  let editor: ReturnType<typeof createEditorMock>
 
   beforeEach(() =>
   {
-    editor = new InteractiveInkEditorMock()
-    editor.init()
-
-    // Mock jiix.getBlockLabel method
-    editor.jiix = {
-      getBlockLabel: jest.fn().mockImplementation((id: string) => {
-        if (id === "block-1") return "f(x) = x + 1"
-        if (id === "block-2") return "2 + 3"
-        if (id === "block-3") return "x = 5"
-        if (id === "block-4") return "f(x)"
-        return "Unknown"
-      })
-    } as any
+    editor = createEditorMock({
+      jiix: {
+        getBlockLabel: jest.fn().mockImplementation((id: string) => {
+          if (id === "block-1") return "f(x) = x + 1"
+          if (id === "block-2") return "2 + 3"
+          if (id === "block-3") return "x = 5"
+          if (id === "block-4") return "f(x)"
+          return "Unknown"
+        })
+      } as unknown as IIJiixQueryManager
+    })
 
     // Mock methods for capabilities checking
     editor.math.getAvailableActions = jest.fn().mockResolvedValue(["numerical-computation", "evaluation"])
@@ -38,7 +37,7 @@ describe("IIMathCapabilitiesTable.ts", () =>
 
   test("should instantiate with editor", () =>
   {
-    const table = new IIMathCapabilitiesTable(editor)
+    const table = new IIMathCapabilitiesTable(asEditor(editor))
     expect(table).toBeDefined()
   })
 
@@ -46,7 +45,7 @@ describe("IIMathCapabilitiesTable.ts", () =>
   {
     test("should fetch all capabilities for a symbol", async () =>
     {
-      const table = new IIMathCapabilitiesTable(editor)
+      const table = new IIMathCapabilitiesTable(asEditor(editor))
       const jiixBlockId = "block-1"
 
       const capabilities = await (table as any).fetchSymbolCapabilities(jiixBlockId)
@@ -65,7 +64,7 @@ describe("IIMathCapabilitiesTable.ts", () =>
 
     test("should handle symbol without id", async () =>
     {
-      const table = new IIMathCapabilitiesTable(editor)
+      const table = new IIMathCapabilitiesTable(asEditor(editor))
       const jiixBlockId = ""
 
       const capabilities = await (table as any).fetchSymbolCapabilities(jiixBlockId)
@@ -78,7 +77,7 @@ describe("IIMathCapabilitiesTable.ts", () =>
 
     test("should handle errors gracefully", async () =>
     {
-      const table = new IIMathCapabilitiesTable(editor)
+      const table = new IIMathCapabilitiesTable(asEditor(editor))
       const jiixBlockId = "block-1"
 
       // Mock methods to throw errors
@@ -97,7 +96,7 @@ describe("IIMathCapabilitiesTable.ts", () =>
 
     test("should detect when no variables available", async () =>
     {
-      const table = new IIMathCapabilitiesTable(editor)
+      const table = new IIMathCapabilitiesTable(asEditor(editor))
       const jiixBlockId = "block-2"
 
       editor.math.getVariables = jest.fn().mockResolvedValue([])
@@ -109,7 +108,7 @@ describe("IIMathCapabilitiesTable.ts", () =>
 
     test("should detect when no evaluables available", async () =>
     {
-      const table = new IIMathCapabilitiesTable(editor)
+      const table = new IIMathCapabilitiesTable(asEditor(editor))
       const jiixBlockId = "block-3"
 
       editor.math.getEvaluables = jest.fn().mockResolvedValue([])
@@ -121,7 +120,7 @@ describe("IIMathCapabilitiesTable.ts", () =>
 
     test("should detect when numerical-computation not available", async () =>
     {
-      const table = new IIMathCapabilitiesTable(editor)
+      const table = new IIMathCapabilitiesTable(asEditor(editor))
       const jiixBlockId = "block-4"
 
       editor.math.getAvailableActions = jest.fn().mockResolvedValue(["evaluation"])
@@ -136,7 +135,7 @@ describe("IIMathCapabilitiesTable.ts", () =>
   {
     test("should create table with capabilities data", () =>
     {
-      const table = new IIMathCapabilitiesTable(editor)
+      const table = new IIMathCapabilitiesTable(asEditor(editor))
       const capabilities = [
         {
           jiixBlockId: "block-1",
@@ -154,7 +153,7 @@ describe("IIMathCapabilitiesTable.ts", () =>
 
     test("should create table with multiple capabilities", () =>
     {
-      const table = new IIMathCapabilitiesTable(editor)
+      const table = new IIMathCapabilitiesTable(asEditor(editor))
       const capabilities = [
         {
           jiixBlockId: "block-1",
@@ -179,7 +178,7 @@ describe("IIMathCapabilitiesTable.ts", () =>
 
     test("should store capabilities for later use", () =>
     {
-      const table = new IIMathCapabilitiesTable(editor)
+      const table = new IIMathCapabilitiesTable(asEditor(editor))
       const capabilities = [
         {
           jiixBlockId: "block-1",

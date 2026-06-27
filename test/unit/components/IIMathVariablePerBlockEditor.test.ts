@@ -1,4 +1,5 @@
-import { InteractiveInkEditorMock } from "../__mocks__/InteractiveInkEditorMock"
+import { createEditorMock, asEditor } from "../__mocks__/createEditorMock"
+import type { IIJiixQueryManager } from "../../../src/iink"
 import {
   IIMathVariablePerBlockEditor,
   TMathVariable,
@@ -15,12 +16,15 @@ function makeDefinition(overrides: Partial<TMathVariableDefinition> = {}): TMath
 
 describe("IIMathVariablePerBlockEditor.ts", () =>
 {
-  let editor: InteractiveInkEditorMock
+  let editor: ReturnType<typeof createEditorMock>
 
   beforeEach(() =>
   {
-    editor = new InteractiveInkEditorMock()
-    editor.init()
+    editor = createEditorMock({
+      jiix: {
+        getBlockLabel: jest.fn().mockImplementation((id: string) => `label(${id})`)
+      } as unknown as IIJiixQueryManager
+    })
     document.body.appendChild(editor.layers.root)
 
     editor.math.asVariableDefinition = jest.fn().mockResolvedValue(null)
@@ -28,10 +32,6 @@ describe("IIMathVariablePerBlockEditor.ts", () =>
     editor.math.setListVariableValue = jest.fn().mockResolvedValue(undefined)
     editor.math.removeVariable = jest.fn().mockResolvedValue(undefined)
     editor.menu.context = { update: jest.fn() } as any
-
-    editor.jiix = {
-      getBlockLabel: jest.fn().mockImplementation((id: string) => `label(${id})`)
-    } as any
   })
 
   afterEach(() =>
@@ -43,13 +43,13 @@ describe("IIMathVariablePerBlockEditor.ts", () =>
   {
     test("should instantiate with editor and blockIds", () =>
     {
-      const component = new IIMathVariablePerBlockEditor(editor, ["block-1"])
+      const component = new IIMathVariablePerBlockEditor(asEditor(editor), ["block-1"])
       expect(component).toBeDefined()
     })
 
     test("should deduplicate jiixBlockIds", async () =>
     {
-      const component = new IIMathVariablePerBlockEditor(editor, ["block-1", "block-1", "block-2"])
+      const component = new IIMathVariablePerBlockEditor(asEditor(editor), ["block-1", "block-1", "block-2"])
       await component.show()
       // getVariables called once per unique block
       expect(editor.math.getVariables).toHaveBeenCalledTimes(2)
@@ -60,7 +60,7 @@ describe("IIMathVariablePerBlockEditor.ts", () =>
   {
     test("should call getVariables and asVariableDefinition for each block", async () =>
     {
-      const component = new IIMathVariablePerBlockEditor(editor, ["block-1"])
+      const component = new IIMathVariablePerBlockEditor(asEditor(editor), ["block-1"])
       await component.show()
       expect(editor.math.asVariableDefinition).toHaveBeenCalledWith("block-1")
       expect(editor.math.getVariables).toHaveBeenCalledWith("block-1")
@@ -68,7 +68,7 @@ describe("IIMathVariablePerBlockEditor.ts", () =>
 
     test("should skip empty jiixBlockId", async () =>
     {
-      const component = new IIMathVariablePerBlockEditor(editor, ["", "block-1"])
+      const component = new IIMathVariablePerBlockEditor(asEditor(editor), ["", "block-1"])
       await component.show()
       expect(editor.math.getVariables).toHaveBeenCalledTimes(1)
       expect(editor.math.getVariables).toHaveBeenCalledWith("block-1")
@@ -77,7 +77,7 @@ describe("IIMathVariablePerBlockEditor.ts", () =>
     test("should return early when no variables found in any block", async () =>
     {
       editor.math.getVariables = jest.fn().mockResolvedValue([])
-      const component = new IIMathVariablePerBlockEditor(editor, ["block-1"])
+      const component = new IIMathVariablePerBlockEditor(asEditor(editor), ["block-1"])
       await component.show()
       const backdrop = document.querySelector(".ms-modal-backdrop")
       expect(backdrop).toBeNull()
@@ -85,7 +85,7 @@ describe("IIMathVariablePerBlockEditor.ts", () =>
 
     test("should open modal when variables are found", async () =>
     {
-      const component = new IIMathVariablePerBlockEditor(editor, ["block-1"])
+      const component = new IIMathVariablePerBlockEditor(asEditor(editor), ["block-1"])
       await component.show()
       const backdrop = document.querySelector(".ms-modal-backdrop")
       expect(backdrop).not.toBeNull()
@@ -93,7 +93,7 @@ describe("IIMathVariablePerBlockEditor.ts", () =>
 
     test("should set modal title with singular form for one block", async () =>
     {
-      const component = new IIMathVariablePerBlockEditor(editor, ["block-1"])
+      const component = new IIMathVariablePerBlockEditor(asEditor(editor), ["block-1"])
       await component.show()
       const allText = document.body.textContent ?? ""
       expect(allText).toContain("Edit Variable (1 symbol)")
@@ -101,7 +101,7 @@ describe("IIMathVariablePerBlockEditor.ts", () =>
 
     test("should set modal title with plural form for multiple blocks", async () =>
     {
-      const component = new IIMathVariablePerBlockEditor(editor, ["block-1", "block-2"])
+      const component = new IIMathVariablePerBlockEditor(asEditor(editor), ["block-1", "block-2"])
       await component.show()
       const allText = document.body.textContent ?? ""
       expect(allText).toContain("Edit Variables (2 symbols)")
@@ -112,7 +112,7 @@ describe("IIMathVariablePerBlockEditor.ts", () =>
       editor.math.getVariables = jest.fn()
         .mockRejectedValueOnce(new Error("fail"))
         .mockResolvedValueOnce([makeVariable({ name: "y" })])
-      const component = new IIMathVariablePerBlockEditor(editor, ["block-1", "block-2"])
+      const component = new IIMathVariablePerBlockEditor(asEditor(editor), ["block-1", "block-2"])
       await component.show()
       // block-2 succeeded, modal should open
       const backdrop = document.querySelector(".ms-modal-backdrop")
@@ -121,7 +121,7 @@ describe("IIMathVariablePerBlockEditor.ts", () =>
 
     test("should display block label in expression section", async () =>
     {
-      const component = new IIMathVariablePerBlockEditor(editor, ["block-1"])
+      const component = new IIMathVariablePerBlockEditor(asEditor(editor), ["block-1"])
       await component.show()
       const allText = document.body.textContent ?? ""
       expect(allText).toContain("label(block-1)")
@@ -131,7 +131,7 @@ describe("IIMathVariablePerBlockEditor.ts", () =>
     {
       editor.math.asVariableDefinition = jest.fn().mockResolvedValue(makeDefinition({ name: "x" }))
       editor.math.getVariables = jest.fn().mockResolvedValue([makeVariable({ name: "x" })])
-      const component = new IIMathVariablePerBlockEditor(editor, ["block-1"])
+      const component = new IIMathVariablePerBlockEditor(asEditor(editor), ["block-1"])
       await component.show()
       // definition variable should be disabled (isDefinition → disabled: true)
       const input = document.querySelector("input") as HTMLInputElement
@@ -141,7 +141,7 @@ describe("IIMathVariablePerBlockEditor.ts", () =>
     test("should render onDelete button for API-typed variable", async () =>
     {
       editor.math.getVariables = jest.fn().mockResolvedValue([makeVariable({ name: "x", sourceType: "API" })])
-      const component = new IIMathVariablePerBlockEditor(editor, ["block-1"])
+      const component = new IIMathVariablePerBlockEditor(asEditor(editor), ["block-1"])
       await component.show()
       const buttons = Array.from(document.querySelectorAll("button"))
         .filter(b => b.title === "Delete variable")
@@ -151,7 +151,7 @@ describe("IIMathVariablePerBlockEditor.ts", () =>
     test("should not render onDelete button for BLOCK-typed variable", async () =>
     {
       editor.math.getVariables = jest.fn().mockResolvedValue([makeVariable({ name: "x", sourceType: "BLOCK" })])
-      const component = new IIMathVariablePerBlockEditor(editor, ["block-1"])
+      const component = new IIMathVariablePerBlockEditor(asEditor(editor), ["block-1"])
       await component.show()
       const buttons = Array.from(document.querySelectorAll("button"))
         .filter(b => b.title === "Delete variable")
@@ -163,7 +163,7 @@ describe("IIMathVariablePerBlockEditor.ts", () =>
       editor.math.getVariables = jest.fn().mockResolvedValue([
         makeVariable({ name: "x", sourceType: "BLOCK", sourceId: "src-block" })
       ])
-      const component = new IIMathVariablePerBlockEditor(editor, ["block-1"])
+      const component = new IIMathVariablePerBlockEditor(asEditor(editor), ["block-1"])
       await component.show()
       expect(editor.jiix.getBlockLabel).toHaveBeenCalledWith("src-block")
       const allText = document.body.textContent ?? ""
@@ -175,7 +175,7 @@ describe("IIMathVariablePerBlockEditor.ts", () =>
   {
     test("should destroy modal and reset state", async () =>
     {
-      const component = new IIMathVariablePerBlockEditor(editor, ["block-1"])
+      const component = new IIMathVariablePerBlockEditor(asEditor(editor), ["block-1"])
       await component.show()
       expect(document.querySelector(".ms-modal-backdrop")).not.toBeNull()
       component.close()
@@ -184,7 +184,7 @@ describe("IIMathVariablePerBlockEditor.ts", () =>
 
     test("should be safe to call before show()", () =>
     {
-      const component = new IIMathVariablePerBlockEditor(editor, ["block-1"])
+      const component = new IIMathVariablePerBlockEditor(asEditor(editor), ["block-1"])
       expect(() => component.close()).not.toThrow()
     })
   })
@@ -194,7 +194,7 @@ describe("IIMathVariablePerBlockEditor.ts", () =>
     test("should call setListVariableValue for blocks with changed variable values", async () =>
     {
       editor.math.getVariables = jest.fn().mockResolvedValue([makeVariable({ name: "x", value: 1 })])
-      const component = new IIMathVariablePerBlockEditor(editor, ["block-1"])
+      const component = new IIMathVariablePerBlockEditor(asEditor(editor), ["block-1"])
       await component.show()
 
       const input = document.querySelector("input[type='number']") as HTMLInputElement
@@ -211,7 +211,7 @@ describe("IIMathVariablePerBlockEditor.ts", () =>
     test("should not call setListVariableValue when value is unchanged", async () =>
     {
       editor.math.getVariables = jest.fn().mockResolvedValue([makeVariable({ name: "x", value: 42 })])
-      const component = new IIMathVariablePerBlockEditor(editor, ["block-1"])
+      const component = new IIMathVariablePerBlockEditor(asEditor(editor), ["block-1"])
       await component.show()
 
       // input has value=42, do not change
@@ -226,7 +226,7 @@ describe("IIMathVariablePerBlockEditor.ts", () =>
     test("should call menu.context.update() after applying", async () =>
     {
       editor.math.getVariables = jest.fn().mockResolvedValue([makeVariable({ name: "x", value: 1 })])
-      const component = new IIMathVariablePerBlockEditor(editor, ["block-1"])
+      const component = new IIMathVariablePerBlockEditor(asEditor(editor), ["block-1"])
       await component.show()
 
       const input = document.querySelector("input[type='number']") as HTMLInputElement

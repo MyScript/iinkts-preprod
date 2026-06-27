@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { Modal } from "./Modal"
 import { Chart } from "./Chart"
 import type { TTableRow } from "./Table";
@@ -32,7 +32,7 @@ export type TEvaluationResult = {
  * @remarks Component for evaluating and displaying multiple math functions
  */
 export class IIMathFunctionEvaluator {
-  private editor: InteractiveInkEditor
+  private editor: TInteractiveInkEditor
   private jiixBlockIds: string[]
   private modal?: Modal
   private evaluationResults?: TEvaluationResult[]
@@ -55,7 +55,7 @@ export class IIMathFunctionEvaluator {
     "#795548"  // Brown
   ]
 
-  constructor(editor: InteractiveInkEditor, jiixBlockIds: string[]) {
+  constructor(editor: TInteractiveInkEditor, jiixBlockIds: string[]) {
     this.editor = editor
     this.jiixBlockIds = [...new Set(jiixBlockIds)]
   }

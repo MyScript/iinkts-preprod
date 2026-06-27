@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { TMenuSubMenu } from "@/menu/items/SubMenuItem";
 import { SubMenuItem } from "@/menu/items/SubMenuItem"
 import type { TMenuCheckbox } from "@/menu/items/CheckboxMenuItem"
@@ -22,7 +22,7 @@ export type TOverlayActionConfig = boolean | TOverlayActionItemsConfig
  */
 export class OverlayMenuAction extends SubMenuItem
 {
-  constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-action", itemsConfig?: TOverlayActionItemsConfig)
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-action", itemsConfig?: TOverlayActionItemsConfig)
   {
     const enabled = (key: keyof TOverlayActionItemsConfig) => itemsConfig?.[key] !== false
 
@@ -33,8 +33,8 @@ export class OverlayMenuAction extends SubMenuItem
         type: "checkbox",
         id: `${idPrefix}-overlay-show-block-overlays`,
         label: "Show block overlays",
-        getValue: (editor: InteractiveInkEditor) => editor.overlays.getConfig().showBlockOverlays,
-        setValue: (editor: InteractiveInkEditor, value: boolean) => {
+        getValue: (editor: TInteractiveInkEditor) => editor.overlays.getConfig().showBlockOverlays,
+        setValue: (editor: TInteractiveInkEditor, value: boolean) => {
           editor.overlays.updateConfig({ showBlockOverlays: value })
         }
       })
@@ -50,7 +50,7 @@ export class OverlayMenuAction extends SubMenuItem
         step: 2,
         initValue: editor.overlays.getConfig().badgeSize,
         unit: "px",
-        onChange: (value: number, editor: InteractiveInkEditor) => {
+        onChange: (value: number, editor: TInteractiveInkEditor) => {
           editor.overlays.updateConfig({ badgeSize: value })
         }
       })
@@ -66,7 +66,7 @@ export class OverlayMenuAction extends SubMenuItem
         step: 1,
         initValue: editor.overlays.getConfig().borderWidth,
         unit: "px",
-        onChange: (value: number, editor: InteractiveInkEditor) => {
+        onChange: (value: number, editor: TInteractiveInkEditor) => {
           editor.overlays.updateConfig({ borderWidth: value })
         }
       })
@@ -82,7 +82,7 @@ export class OverlayMenuAction extends SubMenuItem
         step: 1,
         initValue: editor.overlays.getConfig().labelMaxChars,
         unit: "chars",
-        onChange: (value: number, editor: InteractiveInkEditor) => {
+        onChange: (value: number, editor: TInteractiveInkEditor) => {
           editor.overlays.updateConfig({ labelMaxChars: value })
         }
       })
@@ -98,7 +98,7 @@ export class OverlayMenuAction extends SubMenuItem
         step: 1,
         initValue: editor.overlays.getConfig().labelFontSize,
         unit: "px",
-        onChange: (value: number, editor: InteractiveInkEditor) => {
+        onChange: (value: number, editor: TInteractiveInkEditor) => {
           editor.overlays.updateConfig({ labelFontSize: value })
         }
       })

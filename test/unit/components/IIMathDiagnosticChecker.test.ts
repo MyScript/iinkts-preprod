@@ -1,23 +1,22 @@
-import { InteractiveInkEditorMock } from "../__mocks__/InteractiveInkEditorMock"
+import { createEditorMock, asEditor } from "../__mocks__/createEditorMock"
+import type { IIJiixQueryManager } from "../../../src/iink"
 import { IIMathDiagnosticChecker } from "../../../src/iink"
 
 describe("IIMathDiagnosticChecker.ts", () =>
 {
-  let editor: InteractiveInkEditorMock
+  let editor: ReturnType<typeof createEditorMock>
 
   beforeEach(() =>
   {
-    editor = new InteractiveInkEditorMock()
-    editor.init()
-
-    // Mock jiix.getBlockLabel method
-    editor.jiix = {
-      getBlockLabel: jest.fn().mockImplementation((id: string) => {
-        if (id === "block-1") return "x + 1"
-        if (id === "block-2") return "2y"
-        return "Unknown"
-      })
-    } as any
+    editor = createEditorMock({
+      jiix: {
+        getBlockLabel: jest.fn().mockImplementation((id: string) => {
+          if (id === "block-1") return "x + 1"
+          if (id === "block-2") return "2y"
+          return "Unknown"
+        })
+      } as unknown as IIJiixQueryManager
+    })
 
     // Mock getDiagnostic method
     editor.math.getDiagnostic = jest.fn().mockImplementation((_id: string, type: string) => {
@@ -40,7 +39,7 @@ describe("IIMathDiagnosticChecker.ts", () =>
   {
     const jiixBlockIds = ["block-1", "block-2"]
 
-    const checker = new IIMathDiagnosticChecker(editor, jiixBlockIds)
+    const checker = new IIMathDiagnosticChecker(asEditor(editor), jiixBlockIds)
     expect(checker).toBeDefined()
   })
 
@@ -48,7 +47,7 @@ describe("IIMathDiagnosticChecker.ts", () =>
   {
     const jiixBlockIds = ["block-1", "block-1", "block-2"]
 
-    const checker = new IIMathDiagnosticChecker(editor, jiixBlockIds)
+    const checker = new IIMathDiagnosticChecker(asEditor(editor), jiixBlockIds)
     expect(checker).toBeDefined()
   })
 
@@ -58,7 +57,7 @@ describe("IIMathDiagnosticChecker.ts", () =>
     {
       const jiixBlockIds = ["block-1", "block-2"]
 
-      const checker = new IIMathDiagnosticChecker(editor, jiixBlockIds)
+      const checker = new IIMathDiagnosticChecker(asEditor(editor), jiixBlockIds)
 
       // Mock modal to prevent actual DOM operations
       const showSpy = jest.spyOn(checker as any, "createModalContent")
@@ -78,7 +77,7 @@ describe("IIMathDiagnosticChecker.ts", () =>
     {
       const jiixBlockIds = ["", "block-2"]
 
-      const checker = new IIMathDiagnosticChecker(editor, jiixBlockIds)
+      const checker = new IIMathDiagnosticChecker(asEditor(editor), jiixBlockIds)
 
       const showSpy = jest.spyOn(checker as any, "createModalContent")
       showSpy.mockReturnValue(document.createElement("div"))
@@ -99,7 +98,7 @@ describe("IIMathDiagnosticChecker.ts", () =>
     {
       const jiixBlockIds = ["block-1"]
 
-      const checker = new IIMathDiagnosticChecker(editor, jiixBlockIds)
+      const checker = new IIMathDiagnosticChecker(asEditor(editor), jiixBlockIds)
 
       // Create a mock modal
       const mockModal = {
@@ -117,7 +116,7 @@ describe("IIMathDiagnosticChecker.ts", () =>
     {
       const jiixBlockIds = ["block-1"]
 
-      const checker = new IIMathDiagnosticChecker(editor, jiixBlockIds)
+      const checker = new IIMathDiagnosticChecker(asEditor(editor), jiixBlockIds)
 
       expect(() => checker.close()).not.toThrow()
     })

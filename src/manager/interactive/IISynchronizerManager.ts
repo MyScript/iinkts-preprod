@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { TJIIXStrokeItem, TJIIXMathElement, TJIIXMathExpression, TJIIXTextElement, TJIIXNodeElement, TJIIXEdgeElement, TJIIXEdgeLine} from "@/model";
 import { JIIXElementType, JIIXEdgeKind } from "@/model"
 import type { TStroke} from "@/symbol";
@@ -22,7 +22,7 @@ export class IISynchronizerManager extends IIAbstractManager
   static readonly SYNCHRONIZE_TIMEOUT = 30000
   static readonly MAX_RETRY_ATTEMPTS = 3
 
-  constructor(editor: InteractiveInkEditor)
+  constructor(editor: TInteractiveInkEditor)
   {
     super(editor, LoggerCategory.SYNCHRONIZER)
     this.logger.info("constructor", "IISynchronizerManager")

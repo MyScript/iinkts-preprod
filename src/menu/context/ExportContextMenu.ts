@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { TMenuSubMenu } from "@/menu/items/SubMenuItem";
 import { SubMenuItem } from "@/menu/items/SubMenuItem"
 
@@ -18,7 +18,7 @@ export type TContextExportConfig = boolean | TContextExportItemsConfig
  */
 export class ExportContextMenu extends SubMenuItem
 {
-  constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-context", itemsConfig?: TContextExportItemsConfig)
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-context", itemsConfig?: TContextExportItemsConfig)
   {
     const enabled = (key: keyof TContextExportItemsConfig) => itemsConfig?.[key] !== false
 

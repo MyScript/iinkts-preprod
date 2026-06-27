@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { TMenuButton } from "@/menu/items/ButtonMenuItem";
 import { ButtonMenuItem } from "@/menu/items/ButtonMenuItem"
 import { EditorTool } from "@/Constants"
@@ -10,14 +10,14 @@ import handIcon from "@/assets/svg/drag-hand-gesture.svg"
  */
 export class MoveTool extends ButtonMenuItem
 {
-  constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-tool")
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-tool")
   {
     const config: TMenuButton = {
       type: "button",
       id: `${idPrefix}-move`,
       label: "Move",
       icon: handIcon,
-      action: (editor: InteractiveInkEditor) => {
+      action: (editor: TInteractiveInkEditor) => {
         editor.tool = EditorTool.Move
       }
     }

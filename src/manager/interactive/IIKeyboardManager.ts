@@ -1,5 +1,5 @@
 import { EditorTool } from "@/Constants"
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { IIAbstractManager } from "./IIAbstractManager"
 import { LoggerCategory } from "@/logger"
 
@@ -17,7 +17,7 @@ export class IIKeyboardManager extends IIAbstractManager
 
   #toolBeforeCtrl?: EditorTool
 
-  constructor(editor: InteractiveInkEditor)
+  constructor(editor: TInteractiveInkEditor)
   {
     super(editor, LoggerCategory.KEYBOARD)
     this.handleKeyDown = this.handleKeyDown.bind(this)

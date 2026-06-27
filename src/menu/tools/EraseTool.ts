@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { TMenuItemBase } from "@/menu/items/BaseMenuItem";
 import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
 import { EditorTool } from "@/Constants"
@@ -22,7 +22,7 @@ export class EraseTool extends BaseMenuItem<HTMLDivElement>
   private sizeButtons: Map<number, HTMLButtonElement> = new Map()
   private triggerButton?: HTMLButtonElement
 
-  constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-tool")
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-tool")
   {
     const config: TEraseToolConfig = {
       type: "erase",

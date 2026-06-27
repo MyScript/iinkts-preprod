@@ -5,7 +5,7 @@ import
   SymbolType,
   isRecognizedText,
 } from "@/symbol"
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 
 /**
  * Helper class containing all shared utility methods for gesture handlers
@@ -14,7 +14,7 @@ import type { InteractiveInkEditor } from "@/editor"
  */
 export class GestureHelpers
 {
-  constructor(protected editor: InteractiveInkEditor)
+  constructor(protected editor: TInteractiveInkEditor)
   {
   }
 

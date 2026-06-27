@@ -1,5 +1,5 @@
 import { buildIICircle, buildIIStroke, buildIIText } from "../../helpers"
-import { InteractiveInkEditorMock } from "../../__mocks__/InteractiveInkEditorMock"
+import { createEditorMock, asEditor } from "../../__mocks__/createEditorMock"
 import
 {
   DefaultIIRendererConfiguration,
@@ -17,16 +17,16 @@ describe("IIGestureManager.ts", () =>
 
   test("should create", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    const gestMan = new IIGestureManager(editor)
+    const editor = createEditorMock()
+    const gestMan = new IIGestureManager(asEditor(editor))
     expect(gestMan).toBeDefined()
   })
 
   describe("apply", () =>
   {
-    const editor = new InteractiveInkEditorMock()
+    const editor = createEditorMock()
     editor.overlays.apply = jest.fn()
-    const gestMan = new IIGestureManager(editor)
+    const gestMan = new IIGestureManager(asEditor(editor))
     // Handlers are now private - test behavior instead of implementation
 
     const gestureStroke = buildIIStroke()
@@ -106,8 +106,8 @@ describe("IIGestureManager.ts", () =>
 
   describe.skip("applyScratchGesture", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    const manager = new IIGestureManager(editor)
+    const editor = createEditorMock()
+    const manager = new IIGestureManager(asEditor(editor))
     manager.typeset.updateBounds = jest.fn()
     manager.renderer.drawSymbol = jest.fn()
     manager.renderer.removeSymbol = jest.fn()
@@ -281,14 +281,14 @@ describe("IIGestureManager.ts", () =>
   // TODO: Refactor these tests to work with Strategy Pattern - JoinGestureHandler
   describe.skip("applyJoinGesture", () =>
   {
-    const editor = new InteractiveInkEditorMock()
+    const editor = createEditorMock()
     const stroke11 = buildIIStroke({ box: { height: 9, width: 10, x: 0, y: 0.6 * rowHeight } })
     editor.model.addSymbol(stroke11)
     const stroke12 = buildIIStroke({ box: { height: 9, width: 10, x: 100, y: 0.6 * rowHeight } })
     editor.model.addSymbol(stroke12)
     const stroke21 = buildIIStroke({ box: { height: 9, width: 10, x: 100, y: 1.6 * rowHeight } })
     editor.model.addSymbol(stroke21)
-    const gestMan = new IIGestureManager(editor)
+    const gestMan = new IIGestureManager(asEditor(editor))
     gestMan.translator.translate = jest.fn((() => Promise.resolve()))
     gestMan.history.push = jest.fn()
 
@@ -347,10 +347,10 @@ describe("IIGestureManager.ts", () =>
   // TODO: Refactor these tests to work with Strategy Pattern - InsertGestureHandler
   describe.skip("applyInsertGesture", () =>
   {
-    const editor = new InteractiveInkEditorMock()
+    const editor = createEditorMock()
     const stroke = buildIIStroke()
     editor.model.addSymbol(stroke)
-    const gestMan = new IIGestureManager(editor)
+    const gestMan = new IIGestureManager(asEditor(editor))
     gestMan.translator.translate = jest.fn((() => Promise.resolve()))
     gestMan.history.push = jest.fn()
 
@@ -392,9 +392,9 @@ describe("IIGestureManager.ts", () =>
 
   describe("getGestureFromContextLess", () =>
   {
-    const editor = new InteractiveInkEditorMock()
+    const editor = createEditorMock()
     // editor.model.addSymbol(stroke)
-    const gestMan = new IIGestureManager(editor)
+    const gestMan = new IIGestureManager(asEditor(editor))
 
     beforeEach(() => {
       editor.model.clear()

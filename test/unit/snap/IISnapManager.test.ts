@@ -1,5 +1,5 @@
 import { buildIILine } from "../helpers"
-import { InteractiveInkEditorMock } from "../__mocks__/InteractiveInkEditorMock"
+import { createEditorMock, asEditor } from "../__mocks__/createEditorMock"
 import
 {
   IISnapManager,
@@ -13,15 +13,15 @@ describe("IISnapManager.ts", () =>
 {
   test("should create", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    const manager = new IISnapManager(editor)
+    const editor = createEditorMock()
+    const manager = new IISnapManager(asEditor(editor))
     expect(manager).toBeDefined()
   })
 
   test("should call renderer.drawLine when drawSnapToElementLines", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    const manager = new IISnapManager(editor)
+    const editor = createEditorMock()
+    const manager = new IISnapManager(asEditor(editor))
     manager.renderer.drawLine = jest.fn()
     const lines: TSegment[] = [
       { p1: { x: 0, y: 0 }, p2: { x: 0, y: 20 } },
@@ -43,8 +43,8 @@ describe("IISnapManager.ts", () =>
 
   test("should call renderer.clearElements when clearSnapToElementLines", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    const manager = new IISnapManager(editor)
+    const editor = createEditorMock()
+    const manager = new IISnapManager(asEditor(editor))
     manager.renderer.clearElements = jest.fn()
     manager.clearSnapToElementLines()
     expect(manager.renderer.clearElements).toHaveBeenCalledTimes(1)
@@ -53,10 +53,10 @@ describe("IISnapManager.ts", () =>
 
   describe("snapResize", () =>
   {
-    const editor = new InteractiveInkEditorMock()
+    const editor = createEditorMock()
     editor.recognizer.init = jest.fn(() => Promise.resolve())
     editor.configuration.rendering.guides.gap = 10
-    const manager = new IISnapManager(editor)
+    const manager = new IISnapManager(asEditor(editor))
     manager.renderer.drawLine = jest.fn()
     manager.renderer.clearElements = jest.fn()
 
@@ -178,10 +178,10 @@ describe("IISnapManager.ts", () =>
 
   describe("snapTranslate", () =>
   {
-    const editor = new InteractiveInkEditorMock()
+    const editor = createEditorMock()
     editor.recognizer.init = jest.fn(() => Promise.resolve())
     editor.configuration.rendering.guides.gap = 10
-    const manager = new IISnapManager(editor)
+    const manager = new IISnapManager(asEditor(editor))
     const selectionSnapPointMock = { x: 25, y: 30 }
     Object.defineProperty(manager, "selectionSnapPoints",
       {
@@ -309,8 +309,8 @@ describe("IISnapManager.ts", () =>
 
   describe("snapRotation", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    const manager = new IISnapManager(editor)
+    const editor = createEditorMock()
+    const manager = new IISnapManager(asEditor(editor))
 
     test("should do nothing if configuration.symbol & configuration.guide are equal to false", () =>
     {

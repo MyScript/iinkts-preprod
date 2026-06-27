@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { TMenuButton } from "@/menu/items/ButtonMenuItem";
 import { ButtonMenuItem } from "@/menu/items/ButtonMenuItem"
 
@@ -8,13 +8,13 @@ import { ButtonMenuItem } from "@/menu/items/ButtonMenuItem"
  */
 export class SelectAllContextMenu extends ButtonMenuItem
 {
-  constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-context")
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-context")
   {
     const config: TMenuButton = {
       type: "button",
       id: `${idPrefix}-select-all`,
       label: "Select all",
-      action: async (editor: InteractiveInkEditor) => {
+      action: async (editor: TInteractiveInkEditor) => {
         await editor.selectAll()
       }
     }

@@ -1,4 +1,4 @@
-import { InteractiveInkEditorMock } from "../../../__mocks__/InteractiveInkEditorMock"
+import { createEditorMock, asEditor } from "../../../__mocks__/createEditorMock"
 import
 {
   EdgeArcHelper,
@@ -22,15 +22,15 @@ describe("IIResizeManager.ts", () =>
 {
   test("should create", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    const manager = new IIResizeManager(editor)
+    const editor = createEditorMock()
+    const manager = new IIResizeManager(asEditor(editor))
     expect(manager).toBeDefined()
   })
 
   describe("applyToSymbol", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    const manager = new IIResizeManager(editor)
+    const editor = createEditorMock()
+    const manager = new IIResizeManager(asEditor(editor))
     test("should not resize symbol with type unknown", () =>
     {
       const stroke = buildIIStroke()
@@ -205,7 +205,7 @@ describe("IIResizeManager.ts", () =>
 
   describe("resize process on stroke without snap", () =>
   {
-    const editor = new InteractiveInkEditorMock()
+    const editor = createEditorMock()
     editor.recognizer.init = jest.fn(() => Promise.resolve())
     editor.recognizer.transformScale = jest.fn(() => Promise.resolve())
     editor.renderer.setAttribute = jest.fn()
@@ -213,7 +213,7 @@ describe("IIResizeManager.ts", () =>
     editor.snaps.snapConfiguration.guide = false
     editor.snaps.snapConfiguration.symbol = false
 
-    const manager = new IIResizeManager(editor)
+    const manager = new IIResizeManager(asEditor(editor))
     manager.applyToSymbol = jest.fn()
 
     const stroke = StrokeHelper.create({})

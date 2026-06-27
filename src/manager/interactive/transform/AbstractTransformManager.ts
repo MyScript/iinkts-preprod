@@ -1,5 +1,5 @@
 import { SvgElementRole } from "@/Constants"
-import type { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type {
   TStroke,
   TText,
@@ -26,7 +26,7 @@ export abstract class IIAbstractTransformManager extends IIAbstractManager
   protected abstract transformName: string
   interactElementsGroup?: SVGElement
 
-  constructor(editor: InteractiveInkEditor)
+  constructor(editor: TInteractiveInkEditor)
   {
     super(editor, LoggerCategory.TRANSFORMER)
   }

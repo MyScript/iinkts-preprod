@@ -1,4 +1,4 @@
-import { InteractiveInkEditorMock } from "../../../__mocks__/InteractiveInkEditorMock"
+import { createEditorMock, asEditor } from "../../../__mocks__/createEditorMock"
 import
 {
   EdgeLineHelper,
@@ -15,15 +15,15 @@ describe("IITranslateManager.ts", () =>
 {
   test("should create", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    const manager = new IITranslateManager(editor)
+    const editor = createEditorMock()
+    const manager = new IITranslateManager(asEditor(editor))
     expect(manager).toBeDefined()
   })
 
   describe("should applyToSymbol", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    const manager = new IITranslateManager(editor)
+    const editor = createEditorMock()
+    const manager = new IITranslateManager(asEditor(editor))
 
     test("translate stroke", () =>
     {
@@ -73,7 +73,7 @@ describe("IITranslateManager.ts", () =>
 
   describe("translate process on stroke without snap", () =>
   {
-    const editor = new InteractiveInkEditorMock()
+    const editor = createEditorMock()
     editor.snaps.snapConfiguration.guide = false
     editor.snaps.snapConfiguration.symbol = false
     editor.recognizer.init = jest.fn(() => Promise.resolve())
@@ -81,7 +81,7 @@ describe("IITranslateManager.ts", () =>
     editor.renderer.setAttribute = jest.fn()
     editor.renderer.drawSymbol = jest.fn()
 
-    const manager = new IITranslateManager(editor)
+    const manager = new IITranslateManager(asEditor(editor))
     manager.applyToSymbol = jest.fn()
 
     const stroke = StrokeHelper.create({})

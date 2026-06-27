@@ -1,5 +1,5 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { DOMFactory } from "@/components/dom"
 import type { BaseMenuItem } from "./items"
 import {
@@ -47,7 +47,7 @@ export class IIMenuTool
 {
   #logger = LoggerManager.getLogger(LoggerCategory.MENU)
 
-  editor: InteractiveInkEditor
+  editor: TInteractiveInkEditor
   id: string
   wrapper?: HTMLDivElement
   config: Required<TMenuToolConfig>
@@ -55,7 +55,7 @@ export class IIMenuTool
   // Instances des classes d'outils
   private menuTools: Map<string, BaseMenuItem> = new Map()
 
-  constructor(editor: InteractiveInkEditor, id = "ms-menu-tool", config?: TMenuToolConfig)
+  constructor(editor: TInteractiveInkEditor, id = "ms-menu-tool", config?: TMenuToolConfig)
   {
     this.id = id
     this.#logger.info("constructor")

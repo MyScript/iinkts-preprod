@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { TMenuSubMenu } from "@/menu/items/SubMenuItem";
 import { SubMenuItem } from "@/menu/items/SubMenuItem"
 import type { TPartialDeep } from "@/utils"
@@ -11,7 +11,7 @@ import uploadIcon from "@/assets/svg/upload.svg"
  */
 export class ImportMenuAction extends SubMenuItem
 {
-  constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-action")
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-action")
   {
     const config: TMenuSubMenu = {
       type: "submenu",

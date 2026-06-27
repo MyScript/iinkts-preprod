@@ -1,7 +1,7 @@
 import type { TStroke} from "@/symbol";
 import { DecoratorKind } from "@/symbol"
 import { BoxHelper } from "@/symbol/primitives/Box"
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { TGesture } from "@/manager/interactive/gestures/GestureTypes"
 import { SurroundAction } from "@/manager/interactive/gestures/GestureTypes"
 import { GestureHandler } from "@/manager/interactive/gestures/GestureHandler"
@@ -16,7 +16,7 @@ export class SurroundGestureHandler extends GestureHandler
 {
   readonly gestureType = "SURROUND" as const
 
-  constructor(editor: InteractiveInkEditor, helpers: GestureHelpers)
+  constructor(editor: TInteractiveInkEditor, helpers: GestureHelpers)
   {
     super(editor, helpers)
   }

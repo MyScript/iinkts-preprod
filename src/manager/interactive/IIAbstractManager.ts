@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { InteractiveInkEditorConfiguration } from "@/editor/variants/InteractiveInkEditorConfiguration"
 import type { LoggerCategory, Logger } from "@/logger";
 import { LoggerManager } from "@/logger"
@@ -64,7 +64,7 @@ export abstract class IIAbstractManager
    * Create a new manager
    * @param editor - The Interactive Ink Editor instance
    */
-  constructor(protected editor: InteractiveInkEditor, logger: LoggerCategory)
+  constructor(protected editor: TInteractiveInkEditor, logger: LoggerCategory)
   {
     this.logger = LoggerManager.getLogger(logger)
 

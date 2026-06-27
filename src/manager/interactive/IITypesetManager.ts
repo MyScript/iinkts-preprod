@@ -2,7 +2,7 @@ import type { TText, TMath, TSymbol, TSymbolChar, TBox} from "@/symbol";
 import { isText } from "@/symbol"
 import { TextHelper } from "@/symbol/text/Text"
 import { MathHelper } from "@/symbol/math/Math"
-import type { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { IIAbstractManager } from "./IIAbstractManager"
 import { LoggerCategory } from "@/logger"
 
@@ -13,7 +13,7 @@ export class IITypesetManager extends IIAbstractManager
 {
   protected managerName = "IITypesetManager"
 
-  constructor(editor: InteractiveInkEditor)
+  constructor(editor: TInteractiveInkEditor)
   {
     super(editor, LoggerCategory.TEXT)
     this.logger.info("constructor")

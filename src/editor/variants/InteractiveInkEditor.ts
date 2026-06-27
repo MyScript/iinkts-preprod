@@ -54,6 +54,7 @@ import { IIMenuManager } from "@/menu"
 import { createSymbolFromPartial, createSymbolsFromPartial } from "@/symbol"
 import type { TEditorOptionsBase } from "@/editor/AbstractEditor";
 import { AbstractEditor } from "@/editor/AbstractEditor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { TInteractiveInkEditorConfiguration } from "./InteractiveInkEditorConfiguration";
 import { InteractiveInkEditorConfiguration } from "./InteractiveInkEditorConfiguration"
 import { DOMFactory } from "@/components/dom"
@@ -79,7 +80,7 @@ export type TInteractiveInkEditorOptions = TPartialDeep<TEditorOptionsBase &
 /**
  * @group Editor
  */
-export class InteractiveInkEditor extends AbstractEditor
+export class InteractiveInkEditor extends AbstractEditor implements TInteractiveInkEditor
 {
   static readonly PASTE_OFFSET = 20
   static readonly ZOOM_FIT_MARGIN = 40

@@ -8,7 +8,7 @@ import type { SVGRenderer } from "@/renderer"
 import type { TStyle } from "@/style"
 import type { TPointerInfo } from "@/grabber";
 import { PointerEventGrabber } from "@/grabber"
-import type { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { InkEditor } from "@/editor/variants/InkEditor"
 
 
@@ -19,12 +19,12 @@ export abstract class AbstractWriterManager
 {
   #logger = LoggerManager.getLogger(LoggerCategory.WRITE)
   grabber: PointerEventGrabber
-  editor: InteractiveInkEditor | InkEditor
+  editor: TInteractiveInkEditor | InkEditor
   currentSymbol?: TSymbol
 
   detectGesture: boolean = true
 
-  constructor(editor: InteractiveInkEditor | InkEditor)
+  constructor(editor: TInteractiveInkEditor | InkEditor)
   {
     this.#logger.info("constructor")
     this.editor = editor
