@@ -8,7 +8,7 @@ import {
   SVGRendererConst,
   SVGRendererMathUtil
 } from "../../../src/iink"
-import { IIMathHelper } from "../../../src/symbol/helpers/IIMathHelper"
+import { MathHelper } from "../../../src/symbol/math/Math"
 
 describe("SVGRendererMathUtil.ts", () =>
 {
@@ -43,7 +43,7 @@ describe("SVGRendererMathUtil.ts", () =>
   ]
   const point: TPoint = { x: 10, y: 20 }
   const boundingBox: TBox = { x: 10, y: 10, width: 36, height: 16 }
-  const math = IIMathHelper.create(elements, point, boundingBox)
+  const math = MathHelper.create(elements, point, boundingBox)
 
   test("should getSVGElement with style for each element", () =>
   {
@@ -144,7 +144,7 @@ describe("SVGRendererMathUtil.ts", () =>
       }
     ]
 
-    const mathWithLimits = IIMathHelper.create(elementsWithLimits, point, boundingBox)
+    const mathWithLimits = MathHelper.create(elementsWithLimits, point, boundingBox)
     const el = SVGRendererMathUtil.getSVGElement(mathWithLimits)!
 
     expect(el.getAttribute("id")).toEqual(mathWithLimits.id)

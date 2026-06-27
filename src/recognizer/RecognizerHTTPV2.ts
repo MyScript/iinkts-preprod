@@ -1,6 +1,6 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { TExportV2, TJIIXExport } from "@/model"
-import type { TLegacyStroke, TStrokeToSend } from "@/symbol"
+import { StrokeHelper, type TLegacyStroke } from "@/symbol"
 import type { TPartialDeep } from "@/utils";
 import { computeHmac, getApiInfos, isVersionSuperiorOrEqual } from "@/utils"
 import { RecognizerError } from "./RecognizerError"
@@ -33,7 +33,7 @@ export type TRecognizerHTTPV2PostData = {
   scaleY: number,
   configuration: TRecognizerHTTPV2PostConfiguration,
   contentType: string,
-  strokes: TStrokeToSend[]
+  strokes: { id: string, pointerType: string, x: number[], y: number[], t: number[], p: number[]}[]
 }
 
 /**
@@ -85,19 +85,6 @@ export class RecognizerHTTPV2 {
     }
   }
 
-  protected formatStrokes(strokes: TLegacyStroke[]): TStrokeToSend[] {
-    return strokes.map(s => {
-      return {
-        id: s.id,
-        pointerType: s.pointerType,
-        p: s.pointers.map(p => p.p),
-        t: s.pointers.map(p => p.t),
-        x: s.pointers.map(p => p.x),
-        y: s.pointers.map(p => p.y)
-      }
-    })
-  }
-
   protected buildData(strokes: TLegacyStroke[]): TRecognizerHTTPV2PostData {
     this.#logger.info("buildData", { strokes })
 
@@ -110,7 +97,7 @@ export class RecognizerHTTPV2 {
       scaleX: 0.265,
       scaleY: 0.265,
       contentType,
-      strokes: this.formatStrokes(strokes)
+      strokes: strokes.map(s => StrokeHelper.formatToSend(s))
     }
     this.#logger.debug("buildData", { data })
     return data

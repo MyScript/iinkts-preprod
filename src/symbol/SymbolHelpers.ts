@@ -1,32 +1,30 @@
-import type {
-  TBaseSymbol,
-  TSymbol,
-  TShape,
-  TEdge,
-  TStroke,
-  TText,
-  TMath,
-  TEraser,
-  TDecorator
-} from "./index"
-import type { TShapeCircle, TShapeEllipse, TShapePolygon } from "./geometry"
-import type { TEdgeArc, TEdgeLine, TEdgePolyLine } from "./geometry"
+import type { TBaseSymbol } from "./Symbol"
+import type { TSymbol } from "./Symbol"
+import type { TShape } from "./shape/Shape"
+import type { TShapeCircle, TShapeEllipse, TShapePolygon } from "./shape"
+import type { TEdge } from "./edge/Edge"
+import type { TEdgeArc, TEdgeLine, TEdgePolyLine } from "./edge"
+import type { TStroke } from "./stroke/Stroke"
+import type { TText } from "./text/Text"
+import type { TMath } from "./math/Math"
+import type { TDecorator } from "./decorator/Decorator"
+import type { TEraser } from "./eraser/Eraser"
 import type { TPartialDeep } from "@/utils"
-import { SymbolType } from "./base/Symbol"
-import { ShapeKind } from "./geometry/IIShape"
-import { EdgeKind } from "./geometry/IIEdge"
-import type { TBox } from "./base/Box"
-import type { TPoint } from "./base/Point"
-import { IIDecoratorHelper } from "./helpers/IIDecoratorHelper"
-import { IIStrokeHelper } from "./helpers/IIStrokeHelper"
-import { IITextHelper } from "./helpers/IITextHelper"
-import { IIMathHelper } from "./helpers/IIMathHelper"
-import { IIShapeCircleHelper } from "./helpers/IIShapeCircleHelper"
-import { IIShapeEllipseHelper } from "./helpers/IIShapeEllipseHelper"
-import { IIShapePolygonHelper } from "./helpers/IIShapePolygonHelper"
-import { IIEdgeLineHelper } from "./helpers/IIEdgeLineHelper"
-import { IIEdgePolyLineHelper } from "./helpers/IIEdgePolyLineHelper"
-import { IIEdgeArcHelper } from "./helpers/IIEdgeArcHelper"
+import { SymbolType } from "./Symbol"
+import { ShapeKind } from "./shape/Shape"
+import { EdgeKind } from "./edge/Edge"
+import type { TBox } from "./primitives/Box"
+import type { TPoint } from "./primitives/Point"
+import { DecoratorHelper } from "./decorator/Decorator"
+import { StrokeHelper } from "./stroke/Stroke"
+import { TextHelper } from "./text/Text"
+import { MathHelper } from "./math/Math"
+import { ShapeCircleHelper } from "./shape/Circle"
+import { ShapeEllipseHelper } from "./shape/Ellipse"
+import { ShapePolygonHelper } from "./shape/Polygon"
+import { EdgeLineHelper } from "./edge/Line"
+import { EdgePolyLineHelper } from "./edge/PolyLine"
+import { EdgeArcHelper } from "./edge/Arc"
 
 /**
  * @group Symbol
@@ -229,19 +227,19 @@ export function cloneSymbol(symbol: TSymbol): TSymbol
  */
 export function overlapsSymbol(symbol: TSymbol, box: TBox): boolean
 {
-  if (isStroke(symbol)) return IIStrokeHelper.overlaps(symbol, box)
-  if (isDecorator(symbol)) return IIDecoratorHelper.overlaps(symbol, box)
-  if (isText(symbol)) return IITextHelper.overlaps(symbol, box)
-  if (isMath(symbol)) return IIMathHelper.overlaps(symbol, box)
+  if (isStroke(symbol)) return StrokeHelper.overlaps(symbol, box)
+  if (isDecorator(symbol)) return DecoratorHelper.overlaps(symbol, box)
+  if (isText(symbol)) return TextHelper.overlaps(symbol, box)
+  if (isMath(symbol)) return MathHelper.overlaps(symbol, box)
   if (isShape(symbol)) {
-    if (isCircleShape(symbol)) return IIShapeCircleHelper.overlaps(symbol, box)
-    if (isEllipseShape(symbol)) return IIShapeEllipseHelper.overlaps(symbol, box)
-    if (isPolygonShape(symbol)) return IIShapePolygonHelper.overlaps(symbol, box)
+    if (isCircleShape(symbol)) return ShapeCircleHelper.overlaps(symbol, box)
+    if (isEllipseShape(symbol)) return ShapeEllipseHelper.overlaps(symbol, box)
+    if (isPolygonShape(symbol)) return ShapePolygonHelper.overlaps(symbol, box)
   }
   if (isEdge(symbol)) {
-    if (isLineEdge(symbol)) return IIEdgeLineHelper.overlaps(symbol, box)
-    if (isPolyEdge(symbol)) return IIEdgePolyLineHelper.overlaps(symbol, box)
-    if (isArcEdge(symbol)) return IIEdgeArcHelper.overlaps(symbol, box)
+    if (isLineEdge(symbol)) return EdgeLineHelper.overlaps(symbol, box)
+    if (isPolyEdge(symbol)) return EdgePolyLineHelper.overlaps(symbol, box)
+    if (isArcEdge(symbol)) return EdgeArcHelper.overlaps(symbol, box)
   }
   return false
 }
@@ -252,9 +250,9 @@ export function overlapsSymbol(symbol: TSymbol, box: TBox): boolean
  */
 export function updateShapeDerivedFields(shape: TShape): void
 {
-  if (isCircleShape(shape)) IIShapeCircleHelper.updateDerivedFields(shape)
-  else if (isEllipseShape(shape)) IIShapeEllipseHelper.updateDerivedFields(shape)
-  else if (isPolygonShape(shape)) IIShapePolygonHelper.updateDerivedFields(shape)
+  if (isCircleShape(shape)) ShapeCircleHelper.updateDerivedFields(shape)
+  else if (isEllipseShape(shape)) ShapeEllipseHelper.updateDerivedFields(shape)
+  else if (isPolygonShape(shape)) ShapePolygonHelper.updateDerivedFields(shape)
 }
 
 /**
@@ -263,9 +261,9 @@ export function updateShapeDerivedFields(shape: TShape): void
  */
 export function updateEdgeDerivedFields(edge: TEdge): void
 {
-  if (isLineEdge(edge)) IIEdgeLineHelper.updateDerivedFields(edge)
-  else if (isPolyEdge(edge)) IIEdgePolyLineHelper.updateDerivedFields(edge)
-  else if (isArcEdge(edge)) IIEdgeArcHelper.updateDerivedFields(edge)
+  if (isLineEdge(edge)) EdgeLineHelper.updateDerivedFields(edge)
+  else if (isPolyEdge(edge)) EdgePolyLineHelper.updateDerivedFields(edge)
+  else if (isArcEdge(edge)) EdgeArcHelper.updateDerivedFields(edge)
 }
 
 /**
@@ -274,9 +272,9 @@ export function updateEdgeDerivedFields(edge: TEdge): void
  */
 export function getEdgeResizePoints(edge: TEdge): { point: TPoint, vertexIndex: number }[]
 {
-  if (isLineEdge(edge)) return IIEdgeLineHelper.getResizePoints(edge)
-  if (isPolyEdge(edge)) return IIEdgePolyLineHelper.getResizePoints(edge)
-  if (isArcEdge(edge)) return IIEdgeArcHelper.getResizePoints(edge)
+  if (isLineEdge(edge)) return EdgeLineHelper.getResizePoints(edge)
+  if (isPolyEdge(edge)) return EdgePolyLineHelper.getResizePoints(edge)
+  if (isArcEdge(edge)) return EdgeArcHelper.getResizePoints(edge)
   return []
 }
 
@@ -288,11 +286,11 @@ export function createShapeFromPartial(partial: TPartialDeep<TShape>): TShape
 {
   switch (partial.kind) {
     case ShapeKind.Circle:
-      return IIShapeCircleHelper.createFromPartial(partial as TPartialDeep<TShapeCircle>)
+      return ShapeCircleHelper.createFromPartial(partial as TPartialDeep<TShapeCircle>)
     case ShapeKind.Ellipse:
-      return IIShapeEllipseHelper.createFromPartial(partial as TPartialDeep<TShapeEllipse>)
+      return ShapeEllipseHelper.createFromPartial(partial as TPartialDeep<TShapeEllipse>)
     case ShapeKind.Polygon:
-      return IIShapePolygonHelper.createFromPartial(partial as TPartialDeep<TShapePolygon>)
+      return ShapePolygonHelper.createFromPartial(partial as TPartialDeep<TShapePolygon>)
     default:
       throw new Error(`Unable to create shape, kind: "${ partial.kind }" is unknown`)
   }
@@ -306,11 +304,11 @@ export function createEdgeFromPartial(partial: TPartialDeep<TEdge>): TEdge
 {
   switch (partial.kind) {
     case EdgeKind.Arc:
-      return IIEdgeArcHelper.createFromPartial(partial as TPartialDeep<TEdgeArc>)
+      return EdgeArcHelper.createFromPartial(partial as TPartialDeep<TEdgeArc>)
     case EdgeKind.Line:
-      return IIEdgeLineHelper.createFromPartial(partial as TPartialDeep<TEdgeLine>)
+      return EdgeLineHelper.createFromPartial(partial as TPartialDeep<TEdgeLine>)
     case EdgeKind.PolyEdge:
-      return IIEdgePolyLineHelper.createFromPartial(partial as TPartialDeep<TEdgePolyLine>)
+      return EdgePolyLineHelper.createFromPartial(partial as TPartialDeep<TEdgePolyLine>)
     default:
       throw new Error(`Unable to create edge, kind: "${ partial.kind }" is unknown`)
   }
@@ -324,15 +322,15 @@ export function createSymbolFromPartial(partial: TPartialDeep<TSymbol>): TSymbol
 {
   switch (partial.type) {
     case SymbolType.Stroke:
-      return IIStrokeHelper.createFromPartial(partial as TPartialDeep<TStroke>)
+      return StrokeHelper.createFromPartial(partial as TPartialDeep<TStroke>)
     case SymbolType.Shape:
       return createShapeFromPartial(partial as TPartialDeep<TShape>)
     case SymbolType.Edge:
       return createEdgeFromPartial(partial as TPartialDeep<TEdge>)
     case SymbolType.Text:
-      return IITextHelper.createFromPartial(partial as TPartialDeep<TText>)
+      return TextHelper.createFromPartial(partial as TPartialDeep<TText>)
     case SymbolType.Math:
-      return IIMathHelper.createFromPartial(partial as TPartialDeep<TMath>)
+      return MathHelper.createFromPartial(partial as TPartialDeep<TMath>)
     default:
       throw new Error(`Unable to create symbol, type: "${ partial.type }" is unknown`)
   }

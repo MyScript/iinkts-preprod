@@ -1,14 +1,14 @@
 import { InteractiveInkEditorMock } from "../../../__mocks__/InteractiveInkEditorMock"
 import
 {
-  IIEdgeArcHelper,
-  IIEdgeLineHelper,
-  IIEdgePolyLineHelper,
+  EdgeArcHelper,
+  EdgeLineHelper,
+  EdgePolyLineHelper,
   IIResizeManager,
-  IIShapeCircleHelper,
-  IIShapeEllipseHelper,
-  IIShapePolygonHelper,
-  IIStrokeHelper,
+  ShapeCircleHelper,
+  ShapeEllipseHelper,
+  ShapePolygonHelper,
+  StrokeHelper,
   ResizeDirection,
   SvgElementRole,
   TSymbolChar,
@@ -16,7 +16,7 @@ import
 } from "../../../../../src/iink"
 import { MatrixTransform } from "../../../../../src/transform"
 import { buildIIStroke } from "../../../helpers"
-import { IITextHelper } from "../../../../../src/symbol/helpers/IITextHelper"
+import { TextHelper } from "../../../../../src/symbol/text/Text"
 
 describe("IIResizeManager.ts", () =>
 {
@@ -42,10 +42,10 @@ describe("IIResizeManager.ts", () =>
     })
     test("should resize stroke", () =>
     {
-      const stroke = IIStrokeHelper.create()
+      const stroke = StrokeHelper.create()
       const origin: TPoint = { x: 1, y: 2 }
-      IIStrokeHelper.addPointer(stroke, { p: 1, t: 1, x: 1, y: 2 })
-      IIStrokeHelper.addPointer(stroke, { p: 1, t: 10, x: 21, y: 42 })
+      StrokeHelper.addPointer(stroke, { p: 1, t: 1, x: 1, y: 2 })
+      StrokeHelper.addPointer(stroke, { p: 1, t: 10, x: 21, y: 42 })
       const matrix = MatrixTransform.identity().scale(2, 3, origin)
       manager.applyToSymbol(stroke, matrix)
       expect(stroke.pointers[0]).toEqual(expect.objectContaining({ x: 1, y: 2 }))
@@ -59,7 +59,7 @@ describe("IIResizeManager.ts", () =>
         { x: 5, y: 5 },
         { x: 5, y: 0 }
       ]
-      const poly = IIShapePolygonHelper.create(points)
+      const poly = ShapePolygonHelper.create(points)
       //@ts-ignore
       poly.kind = "pouet"
       const origin: TPoint = { x: 0, y: 0 }
@@ -70,7 +70,7 @@ describe("IIResizeManager.ts", () =>
     {
       const center: TPoint = { x: 5, y: 5 }
       const radius = 4
-      const shape = IIShapeCircleHelper.create(center, radius)
+      const shape = ShapeCircleHelper.create(center, radius)
       const origin: TPoint = { x: 1, y: 2 }
       const matrix = MatrixTransform.identity().scale(2, 4, origin)
       manager.applyToSymbol(shape, matrix)
@@ -83,7 +83,7 @@ describe("IIResizeManager.ts", () =>
       const radiusX = 50
       const radiusY = 10
       const orientation = 0
-      const shape = IIShapeEllipseHelper.create(center, radiusX, radiusY, orientation)
+      const shape = ShapeEllipseHelper.create(center, radiusX, radiusY, orientation)
       const scaleX = 2
       const scaleY = 4
       const origin: TPoint = { x: shape.bounds.x, y: shape.bounds.y }
@@ -102,7 +102,7 @@ describe("IIResizeManager.ts", () =>
         { x: 20, y: 10 },
         { x: 0, y: 10 },
       ]
-      const shape = IIShapePolygonHelper.create(points)
+      const shape = ShapePolygonHelper.create(points)
       const scaleX = 2
       const scaleY = 4
       const origin: TPoint = { x: shape.bounds.x, y: shape.bounds.y }
@@ -121,7 +121,7 @@ describe("IIResizeManager.ts", () =>
     {
       const start: TPoint = { x: 0, y: 0 }
       const end: TPoint = { x: 0, y: 5 }
-      const edge = IIEdgeLineHelper.create(start, end)
+      const edge = EdgeLineHelper.create(start, end)
       //@ts-ignore
       edge.kind = "pouet"
       const origin: TPoint = { x: 0, y: 0 }
@@ -136,7 +136,7 @@ describe("IIResizeManager.ts", () =>
       const radiusX = 50
       const radiusY = 10
       const phi = 0
-      const edge = IIEdgeArcHelper.create(center, startAngle, sweepAngle, radiusX, radiusY, phi)
+      const edge = EdgeArcHelper.create(center, startAngle, sweepAngle, radiusX, radiusY, phi)
       const origin: TPoint = { x: edge.bounds.x, y: edge.bounds.y }
       const scaleX = 2
       const scaleY = 3
@@ -151,7 +151,7 @@ describe("IIResizeManager.ts", () =>
     {
       const start: TPoint = { x: 0, y: 0 }
       const end: TPoint = { x: 0, y: 5 }
-      const edge = IIEdgeLineHelper.create(start, end)
+      const edge = EdgeLineHelper.create(start, end)
       const origin: TPoint = { x: 0, y: 0 }
       const matrix = MatrixTransform.identity().scale(2, 3, origin)
       manager.applyToSymbol(edge, matrix)
@@ -166,7 +166,7 @@ describe("IIResizeManager.ts", () =>
         { x: 20, y: 10 },
         { x: 0, y: 10 },
       ]
-      const edge = IIEdgePolyLineHelper.create(points)
+      const edge = EdgePolyLineHelper.create(points)
       const origin: TPoint = { x: 0, y: 0 }
       const matrix = MatrixTransform.identity().scale(2, 3, origin)
       manager.applyToSymbol(edge, matrix)
@@ -193,7 +193,7 @@ describe("IIResizeManager.ts", () =>
           label: "A"
         }
       ]
-      const text = IITextHelper.create(chars, point, { height: 10, width: 5, x: 0, y: 0 })
+      const text = TextHelper.create(chars, point, { height: 10, width: 5, x: 0, y: 0 })
       const origin: TPoint = { x: 0, y: 0 }
       const matrix = MatrixTransform.identity().scale(2, 3, origin)
       manager.applyToSymbol(text, matrix)
@@ -216,9 +216,9 @@ describe("IIResizeManager.ts", () =>
     const manager = new IIResizeManager(editor)
     manager.applyToSymbol = jest.fn()
 
-    const stroke = IIStrokeHelper.create({})
-    IIStrokeHelper.addPointer(stroke, { p: 1, t: 1, x: 0, y: 0 })
-    IIStrokeHelper.addPointer(stroke, { p: 1, t: 1, x: 10, y: 50 })
+    const stroke = StrokeHelper.create({})
+    StrokeHelper.addPointer(stroke, { p: 1, t: 1, x: 0, y: 0 })
+    StrokeHelper.addPointer(stroke, { p: 1, t: 1, x: 10, y: 50 })
     const strokeNotResized = structuredClone(stroke)
     stroke.selected = true
     editor.model.addSymbol(stroke)

@@ -1,7 +1,7 @@
 import type { TText, TMath, TSymbol, TSymbolChar, TBox} from "@/symbol";
 import { isText } from "@/symbol"
-import { IITextHelper } from "@/symbol/helpers/IITextHelper"
-import { IIMathHelper } from "@/symbol/helpers/IIMathHelper"
+import { TextHelper } from "@/symbol/text/Text"
+import { MathHelper } from "@/symbol/math/Math"
 import type { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import { IIAbstractManager } from "./IIAbstractManager"
 import { LoggerCategory } from "@/logger"
@@ -60,12 +60,12 @@ export class IITypesetManager extends IIAbstractManager
     if (isText(symbol)) {
       symbol.bounds = this.getElementBoundingBox(el)
       this.setCharsBounds(symbol, el)
-      IITextHelper.updateDerivedFields(symbol)
+      TextHelper.updateDerivedFields(symbol)
     }
     else {
       const bbox = el.getBBox()
       symbol.bounds = { x: bbox.x, y: bbox.y, width: bbox.width, height: bbox.height } as TBox
-      IIMathHelper.updateDerivedFields(symbol)
+      MathHelper.updateDerivedFields(symbol)
     }
   }
 
@@ -92,7 +92,7 @@ export class IITypesetManager extends IIAbstractManager
       fontWeight: "normal",
       bounds: boundingBox
     }
-    return this.getBoundingBox(IITextHelper.create([charSymbol], { x: 0, y: 0 }, boundingBox))?.width as number
+    return this.getBoundingBox(TextHelper.create([charSymbol], { x: 0, y: 0 }, boundingBox))?.width as number
   }
 
   updateBounds(textSymbol: TText): TText

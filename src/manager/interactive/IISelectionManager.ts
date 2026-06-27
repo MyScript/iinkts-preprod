@@ -1,9 +1,9 @@
 import { ResizeDirection, SELECTION_MARGIN, SvgElementRole } from "@/Constants"
 import type { TDecorator, TEdgeArc, TStroke, TBox, TEdge, TSymbol, TPoint} from "@/symbol";
 import { EdgeKind, SymbolType, isDecorator, isRecognizedMath, isEdge, getEdgeResizePoints, updateEdgeDerivedFields, overlapsSymbol } from "@/symbol"
-import { BoxHelper } from "@/symbol/helpers/BoxHelper"
+import { BoxHelper } from "@/symbol/primitives/Box"
 import { computeAngleFromPointOnEllipse, computeDistance } from "@/utils"
-import { IIEdgeArcHelper } from "@/symbol/helpers/IIEdgeArcHelper"
+import { EdgeArcHelper } from "@/symbol/edge/Arc"
 import { SVGBuilder } from "@/renderer"
 import type { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import type { TPointerInfo } from "@/grabber";
@@ -458,7 +458,7 @@ export class IISelectionManager extends IIAbstractManager
           const point = this.getPoint(ev)
           const { x, y } = this.editor.snaps.snapResize(point)
           updateArc(x, y)
-          IIEdgeArcHelper.updateDerivedFields(arc)
+          EdgeArcHelper.updateDerivedFields(arc)
           this.model.updateSymbol(arc)
           this.renderer.drawSymbol(arc)
         }
@@ -469,7 +469,7 @@ export class IISelectionManager extends IIAbstractManager
           const point = this.getPoint(ev)
           const { x, y } = this.editor.snaps.snapResize(point)
           updateArc(x, y)
-          IIEdgeArcHelper.updateDerivedFields(arc)
+          EdgeArcHelper.updateDerivedFields(arc)
           this.renderer.layer.style.cursor = ""
           this.editor.updateSymbol(arc)
           this.renderer.layer.removeEventListener("pointermove", handler)
@@ -494,7 +494,7 @@ export class IISelectionManager extends IIAbstractManager
           this.renderer.layer.addEventListener("pointerup", endHandler)
         })
       }
-      IIEdgeArcHelper.getResizePoints(arc).forEach(({ point, vertexIndex }) =>
+      EdgeArcHelper.getResizePoints(arc).forEach(({ point, vertexIndex }) =>
       {
         const initialVertexCount = arc.vertices.length
         const isStart = vertexIndex === 0

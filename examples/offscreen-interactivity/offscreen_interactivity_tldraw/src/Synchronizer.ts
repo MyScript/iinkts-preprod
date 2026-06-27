@@ -10,7 +10,8 @@ import
   TStyle,
   TGesture,
   TStroke,
-  IIStrokeHelper
+  StrokeHelper,
+  TServerWebsocketConfiguration,
 } from "iink-ts"
 import
 {
@@ -49,7 +50,9 @@ export class Synchronizer
       fill: shape.props.fill,
       width: 1
     }
-    const stroke = IIStrokeHelper.create(style, shape.props.isPen ? "pen" : "mouse")
+    const stroke = StrokeHelper.create(style, shape.props.isPen ? "pen" : "mouse")
+    stroke.id = shape.id
+
     const baseTime = Date.now()
     let pointIndex = 0
 
@@ -57,7 +60,7 @@ export class Synchronizer
     {
       seg.points.forEach((p) =>
       {
-        IIStrokeHelper.addPointer(stroke, {
+        StrokeHelper.addPointer(stroke, {
           p: 1,
           t: baseTime + pointIndex * 20,
           x: p.x + shape.x,
@@ -129,7 +132,7 @@ export class Synchronizer
     const strokesToSend = [...this.pendingStrokes]
     this.pendingStrokes = []
 
-    const serverConfiguration = JSON.parse(window.localStorage.getItem("server") || "{}") as Partial<import("iink-ts").TServerWebsocketConfiguration>
+    const serverConfiguration = JSON.parse(window.localStorage.getItem("server") || "{}") as Partial<TServerWebsocketConfiguration>
     const recognizer = Recognizer.instance || await useRecognizer(serverConfiguration)
 
     const shouldDetectGesture = this.processGestures && strokesToSend.length === 1
@@ -170,7 +173,7 @@ export class Synchronizer
       return
     }
 
-    const serverConfiguration = JSON.parse(window.localStorage.getItem("server") || "{}") as Partial<import("iink-ts").TServerWebsocketConfiguration>
+    const serverConfiguration = JSON.parse(window.localStorage.getItem("server") || "{}") as Partial<TServerWebsocketConfiguration>
     const recognizer = Recognizer.instance || await useRecognizer(serverConfiguration)
 
     if (completedShapes.length > 0) {

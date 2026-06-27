@@ -1,5 +1,5 @@
 import type { TPoint, TSegment } from "@/symbol"
-import { BoxHelper } from "@/symbol/helpers/BoxHelper"
+import { BoxHelper } from "@/symbol/primitives/Box"
 import { SVGRendererConst } from "@/renderer/svg/utils/SVGRendererConst"
 import type { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
 import type { TPartialDeep } from "@/utils"

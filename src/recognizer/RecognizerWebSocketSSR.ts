@@ -1,6 +1,6 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { Model, TExport, TJIIXExport } from "@/model"
-import type { Stroke } from "@/symbol"
+import { StrokeHelper, type Stroke } from "@/symbol"
 import type { TPenStyle, TTheme } from "@/style";
 import { StyleHelper } from "@/style"
 import type { THistoryContext } from "@/history"
@@ -452,7 +452,7 @@ export class RecognizerWebSocketSSR
     else {
       await this.send({
         type: "addStrokes",
-        strokes: strokes.map(s => s.formatToSend())
+        strokes: strokes.map(s => StrokeHelper.formatToSend(s))
       })
     }
     return this.addStrokeDeferred?.promise
@@ -601,7 +601,7 @@ export class RecognizerWebSocketSSR
     this.importPointEventsDeferred = new DeferredPromise<TExport>()
     const message: TRecognizerWebSocketSSRMessage = {
       type: "pointerEvents",
-      events: strokes.map(s => s.formatToSend())
+      events: strokes.map(s => StrokeHelper.formatToSend(s))
     }
     await this.send(message)
     return this.importPointEventsDeferred?.promise

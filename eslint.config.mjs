@@ -23,10 +23,7 @@ export default [
     },
 
     languageOptions: {
-      globals: {
-        ...globals.browser,
-        ...globals.node
-      },
+      globals: globals.browser,
 
       parser: tsParser,
       ecmaVersion: 5,
