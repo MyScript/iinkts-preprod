@@ -1,10 +1,11 @@
-import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
-import { Modal } from "./Modal"
-import type { TMathVariable, TMathVariableDefinition } from "@/recognizer"
-import { LoggerCategory, LoggerManager } from "@/logger"
-import type { TVariableInputItem } from "./IIMathVariableInputList";
-import { IIMathVariableInputList } from "./IIMathVariableInputList"
 import { DOMFactory } from "@/components/dom"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import { LoggerCategory, LoggerManager } from "@/logger"
+import type { TMathVariable, TMathVariableDefinition } from "@/recognizer"
+
+import type { TVariableInputItem } from "./IIMathVariableInputList"
+import { IIMathVariableInputList } from "./IIMathVariableInputList"
+import { Modal } from "./Modal"
 
 /**
  * @group Components
@@ -20,8 +21,7 @@ export type TSymbolVariables = {
  * @remarks Modal editor for variables of one or more math block symbols.
  * Fetches variables per jiixBlockId and applies changes via setListVariableValue.
  */
-export class IIMathVariablePerBlockEditor
-{
+export class IIMathVariablePerBlockEditor {
   private editor: TInteractiveInkEditor
   private jiixBlockIds: string[]
   private modal?: Modal
@@ -29,14 +29,12 @@ export class IIMathVariablePerBlockEditor
   private inputLists: Map<string, IIMathVariableInputList> = new Map()
   private logger = LoggerManager.getLogger(LoggerCategory.MATH)
 
-  constructor(editor: TInteractiveInkEditor, jiixBlockIds: string[])
-  {
+  constructor(editor: TInteractiveInkEditor, jiixBlockIds: string[]) {
     this.editor = editor
     this.jiixBlockIds = [...new Set(jiixBlockIds)]
   }
 
-  async show(): Promise<void>
-  {
+  async show(): Promise<void> {
     this.blockVariables = []
     this.inputLists.clear()
 
@@ -49,7 +47,11 @@ export class IIMathVariablePerBlockEditor
         const definition = await this.editor.math.asVariableDefinition(jiixBlockId)
         const variables = await this.editor.math.getVariables(jiixBlockId)
         if (variables.length > 0) {
-          this.blockVariables.push({ jiixBlockId, definition, variables })
+          this.blockVariables.push({
+            jiixBlockId,
+            definition,
+            variables,
+          })
         }
       } catch (error) {
         const label = this.editor.jiix.getBlockLabel(jiixBlockId)
@@ -71,42 +73,57 @@ export class IIMathVariablePerBlockEditor
       fields: [],
       customContent: container,
       container: this.editor.layers.root,
-      buttons: [{ label: "Apply", variant: "primary", onClick: () => this.applyChanges() }],
+      buttons: [
+        {
+          label: "Apply",
+          variant: "primary",
+          onClick: () => this.applyChanges(),
+        },
+      ],
     })
 
     this.modal.open()
   }
 
-  private createModalContent(): HTMLDivElement
-  {
-    const container = DOMFactory.div({ className: "ms-var-editor-content" })
-    this.blockVariables.forEach(symVar => container.appendChild(this.createSymbolSection(symVar)))
+  private createModalContent(): HTMLDivElement {
+    const container = DOMFactory.div({
+      className: "ms-var-editor-content",
+    })
+    this.blockVariables.forEach((symVar) => container.appendChild(this.createSymbolSection(symVar)))
     return container
   }
 
-  private createSymbolSection(symVar: TSymbolVariables): HTMLDivElement
-  {
-    const section = DOMFactory.div({ className: "ms-card" })
+  private createSymbolSection(symVar: TSymbolVariables): HTMLDivElement {
+    const section = DOMFactory.div({
+      className: "ms-card",
+    })
 
     const label = this.editor.jiix.getBlockLabel(symVar.jiixBlockId) || "N/A"
-    const expressionDiv = DOMFactory.div({ className: "ms-expression-header", html: `<strong>Expression:</strong> ${label}` })
+    const expressionDiv = DOMFactory.div({
+      className: "ms-expression-header",
+      html: `<strong>Expression:</strong> ${label}`,
+    })
     section.appendChild(expressionDiv)
 
-    const items: TVariableInputItem[] = symVar.variables.map(variable => {
+    const items: TVariableInputItem[] = symVar.variables.map((variable) => {
       const isDefinition = symVar.definition?.name === variable.name
       const initialValue = variable.value ?? (isDefinition ? symVar.definition?.value : undefined)
       return {
         name: variable.name,
         initialValue,
         sourceType: variable.sourceType,
-        sourceLabel: variable.sourceType === "BLOCK" && variable.sourceId
-          ? this.editor.jiix.getBlockLabel(variable.sourceId) ?? variable.sourceId
-          : undefined,
+        sourceLabel:
+          variable.sourceType === "BLOCK" && variable.sourceId
+            ? (this.editor.jiix.getBlockLabel(variable.sourceId) ?? variable.sourceId)
+            : undefined,
         isDefinition,
         disabled: isDefinition || variable.sourceType === "PREDEFINED",
-        onDelete: variable.sourceType === "API" || variable.sourceType === "API_GLOBAL"
-          ? async (name) => { await this.editor.math.removeVariable(symVar.jiixBlockId, name) }
-          : undefined
+        onDelete:
+          variable.sourceType === "API" || variable.sourceType === "API_GLOBAL"
+            ? async (name) => {
+                await this.editor.math.removeVariable(symVar.jiixBlockId, name)
+              }
+            : undefined,
       }
     })
 
@@ -117,14 +134,15 @@ export class IIMathVariablePerBlockEditor
     return section
   }
 
-  private async applyChanges(): Promise<void>
-  {
+  private async applyChanges(): Promise<void> {
     try {
       const updates: Promise<void>[] = []
 
       for (const symVar of this.blockVariables) {
         const inputList = this.inputLists.get(symVar.jiixBlockId)
-        if (!inputList) continue
+        if (!inputList) {
+          continue
+        }
 
         const allValues = inputList.getValues()
         const variableValues: Record<string, number> = {}
@@ -154,8 +172,7 @@ export class IIMathVariablePerBlockEditor
     }
   }
 
-  close(): void
-  {
+  close(): void {
     this.modal?.destroy()
     this.modal = undefined
     this.blockVariables = []

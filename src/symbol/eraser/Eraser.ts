@@ -1,10 +1,10 @@
-import { createUUID } from "@/utils"
 import type { TStyle } from "@/style"
 import { DefaultStyle } from "@/style"
-import { SymbolType } from "@/symbol/Symbol"
-import type { TPointer } from "@/symbol/primitives/Point"
 import type { TBox } from "@/symbol/primitives/Box"
 import { BoxOps } from "@/symbol/primitives/Box"
+import type { TPointer } from "@/symbol/primitives/Point"
+import { SymbolType } from "@/symbol/Symbol"
+import { createUUID } from "@/utils"
 
 /**
  * @group Symbol
@@ -20,21 +20,24 @@ export type TEraser = {
  * @group Symbol
  */
 export const EraserOps = {
-  create(width = 5): TEraser
-  {
-    const style = Object.assign({}, DefaultStyle, { color: "grey", fill: "none", opacity: 0.2, width })
+  create(width = 5): TEraser {
+    const style = Object.assign({}, DefaultStyle, {
+      color: "grey",
+      fill: "none",
+      opacity: 0.2,
+      width,
+    })
     style.opacity = +style.opacity
     style.width = +style.width
     return {
       type: SymbolType.Eraser,
-      id: `${ SymbolType.Eraser }-${ createUUID() }`,
+      id: `${SymbolType.Eraser}-${createUUID()}`,
       style,
       pointers: [],
     }
   },
 
-  getBounds(eraser: TEraser): TBox
-  {
+  getBounds(eraser: TEraser): TBox {
     return BoxOps.createFromPoints(eraser.pointers)
   },
 }

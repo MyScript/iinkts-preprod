@@ -1,41 +1,38 @@
-import type { TStroke} from "@/symbol";
-import { SymbolType, isDecorator } from "@/symbol"
-import { OBBOps } from "@/symbol/primitives/OBB"
-import type { IIHistoryManager } from "@/history"
-import type { TPartialDeep } from "@/utils";
-import { isBetween } from "@/utils"
-import type { IITranslateManager, IITypesetManager } from "."
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
-import { IIAbstractManager } from "./IIAbstractManager"
+import type { IIHistoryManager } from "@/history"
+import { LoggerCategory } from "@/logger"
+import type { TStroke } from "@/symbol"
+import { isDecorator, SymbolType } from "@/symbol"
+import { OBBOps } from "@/symbol/primitives/OBB"
+import type { TPartialDeep } from "@/utils"
+import { isBetween } from "@/utils"
+
+import type { IITranslateManager, IITypesetManager } from "."
 import type { TGestureHandler } from "./gestures"
 import {
   GestureHelpers,
-  SurroundGestureHandler,
-  StrikeThroughGestureHandler,
-  UnderlineGestureHandler,
-  ScratchGestureHandler,
+  InsertGestureHandler,
   JoinGestureHandler,
-  InsertGestureHandler
+  ScratchGestureHandler,
+  StrikeThroughGestureHandler,
+  SurroundGestureHandler,
+  UnderlineGestureHandler,
 } from "./gestures"
-import type {
-  TGestureType,
-  TGesture,
-  TGestureConfiguration} from "./gestures/GestureTypes";
+import type { TGesture, TGestureConfiguration, TGestureType } from "./gestures/GestureTypes"
 import {
-  SurroundAction,
-  StrikeThroughAction,
-  UnderlineAction,
+  DefaultGestureConfiguration,
   InsertAction,
-  DefaultGestureConfiguration
+  StrikeThroughAction,
+  SurroundAction,
+  UnderlineAction,
 } from "./gestures/GestureTypes"
-import { LoggerCategory } from "@/logger"
+import { IIAbstractManager } from "./IIAbstractManager"
 
 /**
  * @group Manager
  * @remarks Orchestrator for gesture recognition and handling using Strategy Pattern
  */
-export class IIGestureManager extends IIAbstractManager
-{
+export class IIGestureManager extends IIAbstractManager {
   protected managerName = "IIGestureManager"
 
   #handlers: Map<TGestureType, TGestureHandler> = new Map()
@@ -51,8 +48,7 @@ export class IIGestureManager extends IIAbstractManager
   strikeThroughAction: StrikeThroughAction = StrikeThroughAction.Draw
   underlineAction: UnderlineAction = UnderlineAction.Draw
 
-  constructor(editor: TInteractiveInkEditor, gestureAction?: TPartialDeep<TGestureConfiguration>)
-  {
+  constructor(editor: TInteractiveInkEditor, gestureAction?: TPartialDeep<TGestureConfiguration>) {
     super(editor, LoggerCategory.GESTURE)
     this.logger.info("constructor")
     this.surroundAction = gestureAction?.surround || DefaultGestureConfiguration.surround
@@ -69,8 +65,7 @@ export class IIGestureManager extends IIAbstractManager
    * Register all gesture handlers using Strategy Pattern
    * @private
    */
-  #registerHandlers(): void
-  {
+  #registerHandlers(): void {
     this.#handlers.set("SURROUND", new SurroundGestureHandler(this.editor, this.#helpers))
     this.#handlers.set("STRIKETHROUGH", new StrikeThroughGestureHandler(this.editor, this.#helpers))
     this.#handlers.set("UNDERLINE", new UnderlineGestureHandler(this.editor, this.#helpers))
@@ -79,18 +74,15 @@ export class IIGestureManager extends IIAbstractManager
     this.#handlers.set("INSERT", new InsertGestureHandler(this.editor, this.#helpers))
   }
 
-  get translator(): IITranslateManager
-  {
+  get translator(): IITranslateManager {
     return this.editor.transform.translate
   }
 
-  get typeset(): IITypesetManager
-  {
+  get typeset(): IITypesetManager {
     return this.editor.typeset
   }
 
-  get history(): IIHistoryManager
-  {
+  get history(): IIHistoryManager {
     return this.editor.history
   }
 
@@ -99,9 +91,11 @@ export class IIGestureManager extends IIAbstractManager
    * @param gestureStroke - The stroke that represents the gesture
    * @param gesture - The detected gesture with metadata
    */
-  async apply(gestureStroke: TStroke, gesture: TGesture): Promise<void>
-  {
-    this.logger.info("apply", { gestureStroke, gesture })
+  async apply(gestureStroke: TStroke, gesture: TGesture): Promise<void> {
+    this.logger.info("apply", {
+      gestureStroke,
+      gesture,
+    })
 
     this.editor.removeSymbol(gestureStroke.id, false)
 
@@ -114,7 +108,10 @@ export class IIGestureManager extends IIAbstractManager
     }
 
     // Emit event and update UI
-    this.editor.event.emitGestured({ gestureType: gesture.gestureType, stroke: gestureStroke })
+    this.editor.event.emitGestured({
+      gestureType: gesture.gestureType,
+      stroke: gestureStroke,
+    })
     this.editor.overlays.apply()
     return Promise.resolve()
   }
@@ -124,14 +121,14 @@ export class IIGestureManager extends IIAbstractManager
    * @param gestureStroke - The stroke to analyze
    * @returns The detected gesture or undefined
    */
-  async getGestureFromContextLess(gestureStroke: TStroke): Promise<TGesture | undefined>
-  {
+  async getGestureFromContextLess(gestureStroke: TStroke): Promise<TGesture | undefined> {
     const gesture = await this.recognizer.recognizeGesture(gestureStroke)
-    if (!gesture) return
+    if (!gesture) {
+      return
+    }
     switch (gesture.gestureType) {
       case "surround": {
-        const hasSymbolsToSurrond = this.model.symbols.some(s =>
-        {
+        const hasSymbolsToSurrond = this.model.symbols.some((s) => {
           if (s.id !== gestureStroke.id && !isDecorator(s) && OBBOps.contains(gestureStroke.bounds, s.bounds)) {
             return this.surroundAction === SurroundAction.Select || IIGestureManager.#SURROUND_SELECT_TYPES.has(s.type)
           }
@@ -150,11 +147,21 @@ export class IIGestureManager extends IIAbstractManager
       }
       case "left-right":
       case "right-left": {
-        const symbolsToUnderline = this.model.symbols.filter(s =>
-        {
-          return s.id !== gestureStroke.id && IIGestureManager.#TEXT_STROKE_GROUP_TYPES.has(s.type) &&
-            isBetween(s.bounds.center.x, gestureStroke.bounds.center.x - gestureStroke.bounds.width / 2, gestureStroke.bounds.center.x + gestureStroke.bounds.width / 2) &&
-            isBetween(gestureStroke.bounds.center.y, s.bounds.center.y + s.bounds.height / 4, s.bounds.center.y + s.bounds.height * 3 / 4)
+        const symbolsToUnderline = this.model.symbols.filter((s) => {
+          return (
+            s.id !== gestureStroke.id &&
+            IIGestureManager.#TEXT_STROKE_GROUP_TYPES.has(s.type) &&
+            isBetween(
+              s.bounds.center.x,
+              gestureStroke.bounds.center.x - gestureStroke.bounds.width / 2,
+              gestureStroke.bounds.center.x + gestureStroke.bounds.width / 2
+            ) &&
+            isBetween(
+              gestureStroke.bounds.center.y,
+              s.bounds.center.y + s.bounds.height / 4,
+              s.bounds.center.y + (s.bounds.height * 3) / 4
+            )
+          )
         })
         if (symbolsToUnderline.length) {
           return {
@@ -162,14 +169,24 @@ export class IIGestureManager extends IIAbstractManager
             gestureStrokeId: gestureStroke.id,
             strokeAfterIds: [],
             strokeBeforeIds: [],
-            strokeIds: symbolsToUnderline.map(s => s.id),
+            strokeIds: symbolsToUnderline.map((s) => s.id),
           }
         }
-        const symbolsToStrikeThrough = this.model.symbols.filter(s =>
-        {
-          return s.id !== gestureStroke.id && IIGestureManager.#TEXT_STROKE_GROUP_TYPES.has(s.type) &&
-            isBetween(s.bounds.center.x, gestureStroke.bounds.center.x - gestureStroke.bounds.width / 2, gestureStroke.bounds.center.x + gestureStroke.bounds.width / 2) &&
-            isBetween(gestureStroke.bounds.center.y, s.bounds.center.y - s.bounds.height / 4, s.bounds.center.y + s.bounds.height / 4)
+        const symbolsToStrikeThrough = this.model.symbols.filter((s) => {
+          return (
+            s.id !== gestureStroke.id &&
+            IIGestureManager.#TEXT_STROKE_GROUP_TYPES.has(s.type) &&
+            isBetween(
+              s.bounds.center.x,
+              gestureStroke.bounds.center.x - gestureStroke.bounds.width / 2,
+              gestureStroke.bounds.center.x + gestureStroke.bounds.width / 2
+            ) &&
+            isBetween(
+              gestureStroke.bounds.center.y,
+              s.bounds.center.y - s.bounds.height / 4,
+              s.bounds.center.y + s.bounds.height / 4
+            )
+          )
         })
         if (symbolsToStrikeThrough.length) {
           return {
@@ -177,19 +194,18 @@ export class IIGestureManager extends IIAbstractManager
             gestureStrokeId: gestureStroke.id,
             strokeAfterIds: [],
             strokeBeforeIds: [],
-            strokeIds: symbolsToStrikeThrough.map(s => s.id),
+            strokeIds: symbolsToStrikeThrough.map((s) => s.id),
           }
         }
         return
       }
       case "scratch": {
-        const symbolsToErase = this.model.symbols.filter(s =>
-        {
-          return s.id !== gestureStroke.id &&
-            (
-              OBBOps.overlaps(gestureStroke.bounds, s.bounds) && IIGestureManager.#ERASE_OVERLAY_TYPES.has(s.type) ||
-              OBBOps.contains(gestureStroke.bounds, s.bounds) && IIGestureManager.#ERASE_CONTAIN_TYPES.has(s.type)
-            )
+        const symbolsToErase = this.model.symbols.filter((s) => {
+          return (
+            s.id !== gestureStroke.id &&
+            ((OBBOps.overlaps(gestureStroke.bounds, s.bounds) && IIGestureManager.#ERASE_OVERLAY_TYPES.has(s.type)) ||
+              (OBBOps.contains(gestureStroke.bounds, s.bounds) && IIGestureManager.#ERASE_CONTAIN_TYPES.has(s.type)))
+          )
         })
 
         if (symbolsToErase.length) {
@@ -198,16 +214,21 @@ export class IIGestureManager extends IIAbstractManager
             gestureStrokeId: gestureStroke.id,
             strokeAfterIds: [],
             strokeBeforeIds: [],
-            strokeIds: symbolsToErase.map(s => s.id),
+            strokeIds: symbolsToErase.map((s) => s.id),
           }
         }
         return
       }
       case "bottom-top": {
-        const hasSymbolsInRow = this.model.symbols.some(s =>
-          s.id !== gestureStroke.id &&
-          IIGestureManager.#TEXT_STROKE_GROUP_TYPES.has(s.type) &&
-          isBetween(s.bounds.center.y, gestureStroke.bounds.center.y - gestureStroke.bounds.height / 2, gestureStroke.bounds.center.y + gestureStroke.bounds.height / 2)
+        const hasSymbolsInRow = this.model.symbols.some(
+          (s) =>
+            s.id !== gestureStroke.id &&
+            IIGestureManager.#TEXT_STROKE_GROUP_TYPES.has(s.type) &&
+            isBetween(
+              s.bounds.center.y,
+              gestureStroke.bounds.center.y - gestureStroke.bounds.height / 2,
+              gestureStroke.bounds.center.y + gestureStroke.bounds.height / 2
+            )
         )
         if (hasSymbolsInRow) {
           return {
@@ -221,10 +242,15 @@ export class IIGestureManager extends IIAbstractManager
         return
       }
       case "top-bottom": {
-        const hasSymbolsInRow = this.model.symbols.some(s =>
-          s.id !== gestureStroke.id &&
-          IIGestureManager.#TEXT_STROKE_GROUP_TYPES.has(s.type) &&
-          isBetween(s.bounds.center.y, gestureStroke.bounds.center.y - gestureStroke.bounds.height / 2, gestureStroke.bounds.center.y + gestureStroke.bounds.height / 2)
+        const hasSymbolsInRow = this.model.symbols.some(
+          (s) =>
+            s.id !== gestureStroke.id &&
+            IIGestureManager.#TEXT_STROKE_GROUP_TYPES.has(s.type) &&
+            isBetween(
+              s.bounds.center.y,
+              gestureStroke.bounds.center.y - gestureStroke.bounds.height / 2,
+              gestureStroke.bounds.center.y + gestureStroke.bounds.height / 2
+            )
         )
         if (hasSymbolsInRow) {
           return {

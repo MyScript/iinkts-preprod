@@ -1,9 +1,7 @@
 import { isValidPoint } from "@/iink"
 
-describe("Point.ts", () =>
-{
-  describe("isValidPoint", () =>
-  {
+describe("Point.ts", () => {
+  describe("isValidPoint", () => {
     const testDatas = [
       { p: undefined, expected: false },
       { p: { x: 0 }, expected: false },
@@ -11,10 +9,8 @@ describe("Point.ts", () =>
       { p: { x: -50, y: 0 }, expected: true },
       { p: { x: 0, y: 0 }, expected: true },
     ]
-    testDatas.forEach(d =>
-    {
-      test(`should return ${ d.expected } `, () =>
-      {
+    testDatas.forEach((d) => {
+      test(`should return ${d.expected} `, () => {
         expect(isValidPoint(d.p)).toEqual(d.expected)
       })
     })

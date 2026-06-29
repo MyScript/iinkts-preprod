@@ -1,55 +1,43 @@
 import { createEditorMock, asEditor } from "../../../__mocks__/createEditorMock"
 import { buildIIStroke } from "../../../helpers"
-import {
-  type TStroke,
-  InsertGestureHandler,
-  GestureHelpers,
-  OBBOps,
-  StrokeOps,
-  MatrixTransform
-} from "@/iink"
+import { type TStroke, InsertGestureHandler, GestureHelpers, OBBOps, StrokeOps, MatrixTransform } from "@/iink"
 
-describe("InsertGestureHandler.ts", () =>
-{
+describe("InsertGestureHandler.ts", () => {
   let editor: ReturnType<typeof createEditorMock>
   let helpers: GestureHelpers
   let handler: InsertGestureHandler
 
-  beforeEach(() =>
-  {
+  beforeEach(() => {
     editor = createEditorMock()
     ;(editor.transform as unknown as Record<string, unknown>).translate = {
       applyToSymbol: jest.fn().mockImplementation((sym: TStroke, matrix: MatrixTransform) => {
-        sym.pointers.forEach(p => {
+        sym.pointers.forEach((p) => {
           const np = MatrixTransform.applyToPoint(matrix, p)
           p.x = +np.x.toFixed(3)
           p.y = +np.y.toFixed(3)
         })
         StrokeOps.updateBounds(sym)
         return sym
-      })
+      }),
     }
     helpers = new GestureHelpers(asEditor(editor))
     handler = new InsertGestureHandler(asEditor(editor), helpers)
   })
 
-  test("should instantiate", () =>
-  {
+  test("should instantiate", () => {
     expect(handler).toBeDefined()
     expect(handler.gestureType).toBe("INSERT")
   })
 
-  describe("createStrokesFromGestureSubStroke", () =>
-  {
-    test("should create strokes from substroke data", () =>
-    {
+  describe("createStrokesFromGestureSubStroke", () => {
+    test("should create strokes from substroke data", () => {
       const strokeOrigin = buildIIStroke()
       StrokeOps.addPointer(strokeOrigin, { x: 0, y: 0, p: 1, t: 100 })
       StrokeOps.addPointer(strokeOrigin, { x: 5, y: 5, p: 0.8, t: 200 })
 
       const subStrokes = [
         { x: [0, 1], y: [0, 1] },
-        { x: [5, 6], y: [5, 6] }
+        { x: [5, 6], y: [5, 6] },
       ]
 
       const strokes = handler.createStrokesFromGestureSubStroke(strokeOrigin, subStrokes)
@@ -59,14 +47,11 @@ describe("InsertGestureHandler.ts", () =>
       expect(strokes[1].pointers.length).toBe(2)
     })
 
-    test("should handle single substroke", () =>
-    {
+    test("should handle single substroke", () => {
       const strokeOrigin = buildIIStroke()
       StrokeOps.addPointer(strokeOrigin, { x: 0, y: 0, p: 1, t: 100 })
 
-      const subStrokes = [
-        { x: [0, 1], y: [0, 1] }
-      ]
+      const subStrokes = [{ x: [0, 1], y: [0, 1] }]
 
       const strokes = handler.createStrokesFromGestureSubStroke(strokeOrigin, subStrokes)
 
@@ -74,10 +59,8 @@ describe("InsertGestureHandler.ts", () =>
     })
   })
 
-  describe("computeSplitStroke", () =>
-  {
-    test("should split stroke into before and after parts", () =>
-    {
+  describe("computeSplitStroke", () => {
+    test("should split stroke into before and after parts", () => {
       const strokeOrigin = buildIIStroke()
       StrokeOps.addPointer(strokeOrigin, { x: 0, y: 0, p: 1, t: 100 })
       StrokeOps.addPointer(strokeOrigin, { x: 5, y: 5, p: 0.8, t: 200 })
@@ -85,7 +68,7 @@ describe("InsertGestureHandler.ts", () =>
 
       const subStrokes = [
         { x: [0, 1], y: [0, 1] },
-        { x: [5, 6], y: [5, 6] }
+        { x: [5, 6], y: [5, 6] },
       ]
 
       const result = handler.computeSplitStroke(strokeOrigin, subStrokes)
@@ -94,15 +77,14 @@ describe("InsertGestureHandler.ts", () =>
       expect(result.after).toBeDefined()
     })
 
-    test("should translate after stroke", () =>
-    {
+    test("should translate after stroke", () => {
       const strokeOrigin = buildIIStroke()
       StrokeOps.addPointer(strokeOrigin, { x: 0, y: 0, p: 1, t: 100 })
       StrokeOps.addPointer(strokeOrigin, { x: 5, y: 5, p: 0.8, t: 200 })
 
       const subStrokes = [
         { x: [0, 1], y: [0, 1] },
-        { x: [5, 6], y: [5, 6] }
+        { x: [5, 6], y: [5, 6] },
       ]
 
       const result = handler.computeSplitStroke(strokeOrigin, subStrokes)
@@ -115,10 +97,8 @@ describe("InsertGestureHandler.ts", () =>
     })
   })
 
-  describe("computeChangesOnSplitStroke", () =>
-  {
-    test("should return changes with replaced symbols", () =>
-    {
+  describe("computeChangesOnSplitStroke", () => {
+    test("should return changes with replaced symbols", () => {
       const gestureStroke = buildIIStroke()
       StrokeOps.addPointer(gestureStroke, { x: 5, y: 5, p: 1, t: 100 })
 
@@ -130,7 +110,7 @@ describe("InsertGestureHandler.ts", () =>
 
       const subStrokes = [
         { fullStrokeId: strokeToSplit.id, x: [0, 1], y: [0, 1] },
-        { fullStrokeId: strokeToSplit.id, x: [5, 6], y: [5, 6] }
+        { fullStrokeId: strokeToSplit.id, x: [5, 6], y: [5, 6] },
       ]
 
       const changes = handler.computeChangesOnSplitStroke(gestureStroke, strokeToSplit.id, subStrokes)

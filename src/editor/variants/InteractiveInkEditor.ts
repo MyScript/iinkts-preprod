@@ -1,77 +1,70 @@
+import { DOMFactory } from "@/components/dom"
 import { EditorTool, SELECTION_MARGIN } from "@/Constants"
-import type { TExport } from "@/model";
+import type { TEditorOptionsBase } from "@/editor/AbstractEditor"
+import { AbstractEditor } from "@/editor/AbstractEditor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import type { THistoryContext, TIIHistoryBackendChanges, TIIHistoryChanges } from "@/history"
+import { IIHistoryManager } from "@/history"
+import {
+  EraseManager,
+  IIConnectorManager,
+  IIConversionManager,
+  IIGestureManager,
+  IIJiixQueryManager,
+  IIKeyboardManager,
+  IIMathManager,
+  IIMoveManager,
+  IIOverlayManager,
+  IISelectionManager,
+  IISnapManager,
+  IISynchronizerManager,
+  IITransformManager,
+  IITypesetManager,
+  IIWriterManager,
+} from "@/manager"
+import type { IIMenuAction, IIMenuStyle, IIMenuTool } from "@/menu"
+import { IIMenuManager } from "@/menu"
+import type { TExport } from "@/model"
 import { IIModel } from "@/model"
-import type {
-  TDecorator,
-  TStroke,
-  TText,
-  TMath,
-  TBox,
-  TSymbol} from "@/symbol";
-import
-{
-  SymbolType,
+import { RecognizerWebSocket } from "@/recognizer"
+import type { TIIRendererConfiguration } from "@/renderer"
+import { SVGBuilder, SVGRenderer } from "@/renderer"
+import type { TStyle } from "@/style"
+import type { TBox, TDecorator, TMath, TStroke, TSymbol, TText } from "@/symbol"
+import type { TBaseSymbol } from "@/symbol"
+import {
+  cloneSymbol,
   isDecorator,
-  isText,
   isMath,
   isStroke,
   isStrokeSolverOutput,
-  cloneSymbol,
+  isText,
   StrokeOps,
+  SymbolType,
 } from "@/symbol"
+import { DecoratorOps } from "@/symbol/decorator/Decorator"
+import { MathOps } from "@/symbol/math/Math"
 import { BoxOps } from "@/symbol/primitives/Box"
 import { OBBOps } from "@/symbol/primitives/OBB"
-import { DecoratorOps } from "@/symbol/decorator/Decorator"
 import { TextOps } from "@/symbol/text/Text"
-import { MathOps } from "@/symbol/math/Math"
-import { RecognizerWebSocket } from "@/recognizer"
-import type { TIIRendererConfiguration } from "@/renderer";
-import { SVGRenderer, SVGBuilder } from "@/renderer"
-import type { TStyle } from "@/style"
-import
-{
-  IIConversionManager,
-  IIKeyboardManager,
-  IIWriterManager,
-  IISelectionManager,
-  IITransformManager,
-  IITypesetManager,
-  EraseManager,
-  IIOverlayManager,
-  IIMoveManager,
-  IIGestureManager,
-  IISnapManager,
-  IISynchronizerManager,
-  IIMathManager,
-  IIJiixQueryManager,
-  IIConnectorManager,
-} from "@/manager"
-import { MatrixTransform } from "@/transform"
-import type { TIIHistoryBackendChanges, TIIHistoryChanges, THistoryContext } from "@/history";
-import type { TPartialDeep} from "@/utils";
-import type { IIMenuAction, IIMenuStyle, IIMenuTool } from "@/menu";
-import type { TBaseSymbol } from "@/symbol"
-import type { TEditorOptionsBase } from "@/editor/AbstractEditor";
-import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
-import type { TInteractiveInkEditorConfiguration } from "./InteractiveInkEditorConfiguration";
-import type { SymbolUtil } from "@/symbol-utils/SymbolUtil"
-import { IIHistoryManager } from "@/history"
-import { mergeDeep, createUUID } from "@/utils"
-import { IIMenuManager } from "@/menu"
-import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 import { createSymbolFromPartial, createSymbolsFromPartial, registerBuiltinSymbolUtils } from "@/symbol-utils"
-import { AbstractEditor } from "@/editor/AbstractEditor"
+import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
+import type { SymbolUtil } from "@/symbol-utils/SymbolUtil"
+import { MatrixTransform } from "@/transform"
+import type { TPartialDeep } from "@/utils"
+import { createUUID, mergeDeep } from "@/utils"
+
+import type { TInteractiveInkEditorConfiguration } from "./InteractiveInkEditorConfiguration"
 import { InteractiveInkEditorConfiguration } from "./InteractiveInkEditorConfiguration"
-import { DOMFactory } from "@/components/dom"
 
 /**
  * @group Editor
  */
-export type TInteractiveInkEditorOptions = TPartialDeep<TEditorOptionsBase &
-{
-  configuration: TInteractiveInkEditorConfiguration
-}> &
-{
+export type TInteractiveInkEditorOptions = TPartialDeep<
+  TEditorOptionsBase & {
+    configuration: TInteractiveInkEditorConfiguration
+  }
+> & {
   override?: {
     recognizer?: RecognizerWebSocket
     menu?: {
@@ -85,8 +78,7 @@ export type TInteractiveInkEditorOptions = TPartialDeep<TEditorOptionsBase &
 /**
  * @group Editor
  */
-export class InteractiveInkEditor extends AbstractEditor implements TInteractiveInkEditor
-{
+export class InteractiveInkEditor extends AbstractEditor implements TInteractiveInkEditor {
   static readonly PASTE_OFFSET = 20
   static readonly ZOOM_FIT_MARGIN = 40
 
@@ -149,8 +141,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * @param rootElement - Host DOM element that will contain the editor layers
    * @param options - Editor options: configuration, CSS vars, manager overrides
    */
-  constructor(rootElement: HTMLElement, options?: TInteractiveInkEditorOptions)
-  {
+  constructor(rootElement: HTMLElement, options?: TInteractiveInkEditorOptions) {
     super(rootElement, options)
 
     registerBuiltinSymbolUtils()
@@ -159,8 +150,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
     if (options?.override?.recognizer) {
       const CustomRecognizer = options?.override.recognizer as unknown as typeof RecognizerWebSocket
       this.recognizer = new CustomRecognizer(this.#configuration)
-    }
-    else {
+    } else {
       this.recognizer = new RecognizerWebSocket(this.#configuration)
     }
     this.recognizer.event.addErrorListener(this.manageError.bind(this))
@@ -199,8 +189,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * Promise that resolves when the WebSocket session is fully initialized.
    * Await this before calling any recognition methods.
    */
-  get initializationPromise(): Promise<void>
-  {
+  get initializationPromise(): Promise<void> {
     return this.recognizer.initialized.promise
   }
 
@@ -209,12 +198,10 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * Setting this switches cursor style, attaches/detaches the corresponding manager,
    * clears selection, and emits a `toolChanged` event.
    */
-  get tool(): EditorTool
-  {
+  get tool(): EditorTool {
     return this.#tool
   }
-  set tool(i: EditorTool)
-  {
+  set tool(i: EditorTool) {
     this.#tool = i
     this.menu.tool.update()
     this.setCursorStyle()
@@ -248,16 +235,14 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
   /**
    * Current symbol model containing all ink, text, math, and shape symbols.
    */
-  get model(): IIModel
-  {
+  get model(): IIModel {
     return this.#model
   }
 
   /**
    * Active editor configuration (recognition, rendering, menu, math, etc.).
    */
-  get configuration(): InteractiveInkEditorConfiguration
-  {
+  get configuration(): InteractiveInkEditorConfiguration {
     return this.#configuration
   }
   /**
@@ -265,14 +250,13 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * Triggers a resize and guide-row recompute.
    * @param renderingConfiguration - Partial rendering config to merge
    */
-  set renderingConfiguration(renderingConfiguration: TIIRendererConfiguration)
-  {
+  set renderingConfiguration(renderingConfiguration: TIIRendererConfiguration) {
     this.configuration.rendering = mergeDeep(this.configuration.rendering, renderingConfiguration)
     const height = Math.max(this.renderer.parent.clientHeight, this.configuration.rendering.minHeight)
     const width = Math.max(this.renderer.parent.clientWidth, this.configuration.rendering.minWidth)
     this.renderer.resize(height, width)
     this.model.rowHeight = this.configuration.rendering.guides.gap
-    this.history.stack.forEach(i => i.model.rowHeight = this.model.rowHeight)
+    this.history.stack.forEach((i) => (i.model.rowHeight = this.model.rowHeight))
     this.event.emitUIpdated()
   }
 
@@ -280,18 +264,15 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * Current pen style applied to new strokes.
    * Setting this merges the provided partial style with the current style.
    */
-  get penStyle(): TStyle
-  {
+  get penStyle(): TStyle {
     return this.#penStyle
   }
-  set penStyle(penStyle: TPartialDeep<TStyle>)
-  {
+  set penStyle(penStyle: TPartialDeep<TStyle>) {
     this.logger.info("set penStyle", { penStyle })
     this.#penStyle = Object.assign({}, this.#penStyle, penStyle)
   }
 
-  protected updateLayerState(idle: boolean): void
-  {
+  protected updateLayerState(idle: boolean): void {
     this.event.emitIdle(idle)
     this.layers.updateState(idle)
   }
@@ -300,11 +281,9 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * Update layer UI with debouncing
    * @param timeout - Debounce timeout in milliseconds (default: 500ms)
    */
-  updateLayerUI(timeout: number = 500): void
-  {
+  updateLayerUI(timeout: number = 500): void {
     clearTimeout(this.#layerUITimer)
-    this.#layerUITimer = setTimeout(() =>
-    {
+    this.#layerUITimer = setTimeout(() => {
       this.menu.update()
       this.overlays.apply()
       this.event.emitUIpdated()
@@ -315,24 +294,20 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * Display an error in the editor overlay and emit an `error` event.
    * @param error - Error to display and emit
    */
-  manageError(error: Error): void
-  {
+  manageError(error: Error): void {
     this.layers.showMessageError(error)
     this.event.emitError(error)
   }
 
-  registerSymbolUtil<T extends TBaseSymbol>(util: SymbolUtil<T>): void
-  {
+  registerSymbolUtil<T extends TBaseSymbol>(util: SymbolUtil<T>): void {
     symbolRegistry.register(util)
   }
 
-  getSymbolUtil<T extends TBaseSymbol>(type: string): SymbolUtil<T> | undefined
-  {
+  getSymbolUtil<T extends TBaseSymbol>(type: string): SymbolUtil<T> | undefined {
     return symbolRegistry.getUtil<T>(type)
   }
 
-  protected setCursorStyle(): void
-  {
+  protected setCursorStyle(): void {
     switch (this.#tool) {
       case EditorTool.Erase:
         this.layers.root.classList.remove("draw")
@@ -361,11 +336,9 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
     }
   }
 
-  protected async onContentChanged(undoRedoContext: THistoryContext): Promise<void>
-  {
+  protected async onContentChanged(undoRedoContext: THistoryContext): Promise<void> {
     clearTimeout(this.#recognizeStrokeTimer)
-    this.#recognizeStrokeTimer = setTimeout(async () =>
-    {
+    this.#recognizeStrokeTimer = setTimeout(async () => {
       await this.synchronize()
       this.updateLayerUI(0)
       this.event.emitChanged(undoRedoContext)
@@ -378,8 +351,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * Called automatically by `Editor.load()` — do not call manually.
    * @throws If the recognizer connection or session setup fails
    */
-  async initialize(): Promise<void>
-  {
+  async initialize(): Promise<void> {
     try {
       this.logger.info("initialize")
       this.layers.render()
@@ -405,8 +377,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
       this.logger.error("initialize", error)
       this.layers.showMessageError(error as Error)
       throw error
-    }
-    finally {
+    } finally {
       this.logger.debug("initialize", "finally")
       this.layers.hideLoader()
       this.layers.updateState(true)
@@ -419,8 +390,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * @param code - BCP 47 language code (e.g. `"en_US"`, `"fr_FR"`)
    * @throws If the new session fails to open
    */
-  async changeLanguage(code: string): Promise<void>
-  {
+  async changeLanguage(code: string): Promise<void> {
     try {
       this.logger.info("changeLanguage", { code })
       this.updateLayerState(false)
@@ -429,13 +399,11 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
       this.recognizer.addStrokes(this.extractStrokesFromSymbols(this.model.symbols), false)
       this.layers.hideLoader()
       this.event.emitLoaded()
-    }
-    catch (error) {
+    } catch (error) {
       this.logger.error("changeLanguage", error)
       this.manageError(error as Error)
       throw error
-    }
-    finally {
+    } finally {
       this.updateLayerUI()
     }
   }
@@ -445,12 +413,10 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * @param partialSymbol - Partial symbol data
    * @returns Complete symbol instance
    */
-  protected buildSymbol(partialSymbol: TPartialDeep<TSymbol>): TSymbol
-  {
+  protected buildSymbol(partialSymbol: TPartialDeep<TSymbol>): TSymbol {
     try {
       return createSymbolFromPartial(partialSymbol)
-    }
-    catch (error) {
+    } catch (error) {
       this.logger.error("buildSymbol", error)
       this.manageError(error as Error)
       throw error
@@ -463,13 +429,12 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * @param oldStrokes - Strokes before the change
    * @param newStrokes - Strokes after the change
    */
-  #optimizeRecognizerCall(oldStrokes: TStroke[], newStrokes: TStroke[]): void
-  {
-    const oldStrokeIds = new Set(oldStrokes.map(s => s.id))
-    const newStrokeIds = new Set(newStrokes.map(s => s.id))
+  #optimizeRecognizerCall(oldStrokes: TStroke[], newStrokes: TStroke[]): void {
+    const oldStrokeIds = new Set(oldStrokes.map((s) => s.id))
+    const newStrokeIds = new Set(newStrokes.map((s) => s.id))
 
-    const addedStrokes = newStrokes.filter(s => !oldStrokeIds.has(s.id))
-    const removedStrokeIds = oldStrokes.filter(s => !newStrokeIds.has(s.id)).map(s => s.id)
+    const addedStrokes = newStrokes.filter((s) => !oldStrokeIds.has(s.id))
+    const removedStrokeIds = oldStrokes.filter((s) => !newStrokeIds.has(s.id)).map((s) => s.id)
 
     if (removedStrokeIds.length > 0 && addedStrokes.length > 0) {
       this.recognizer.replaceStrokes(removedStrokeIds, addedStrokes)
@@ -485,17 +450,14 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * @param partialSymbol - Partial symbol data
    * @returns Promise resolving to created symbol
    */
-  async createSymbol(partialSymbol: TPartialDeep<TSymbol>): Promise<TSymbol>
-  {
+  async createSymbol(partialSymbol: TPartialDeep<TSymbol>): Promise<TSymbol> {
     try {
       return await this.addSymbol(this.buildSymbol(partialSymbol))
-    }
-    catch (error) {
+    } catch (error) {
       this.logger.error("createSymbol", error)
       this.manageError(error as Error)
       throw error
-    }
-    finally {
+    } finally {
       this.updateLayerUI()
     }
   }
@@ -505,8 +467,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * @param partialSymbols - Array of partial symbol data
    * @returns Promise resolving to array of created symbols
    */
-  async createSymbols(partialSymbols: TPartialDeep<TSymbol>[]): Promise<TSymbol[]>
-  {
+  async createSymbols(partialSymbols: TPartialDeep<TSymbol>[]): Promise<TSymbol[]> {
     try {
       const symbols = createSymbolsFromPartial(partialSymbols)
       return await this.addSymbols(symbols)
@@ -518,16 +479,14 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
   }
 
   /** @hidden */
-  protected updateTypesetBounds(symbol: TSymbol): void
-  {
+  protected updateTypesetBounds(symbol: TSymbol): void {
     if (isText(symbol) || isMath(symbol)) {
       this.typeset.setBounds(symbol)
     }
   }
 
   /** @hidden */
-  async addSymbol(sym: TSymbol, addToHistory = true): Promise<TSymbol>
-  {
+  async addSymbol(sym: TSymbol, addToHistory = true): Promise<TSymbol> {
     this.logger.info("addSymbol", { sym })
     this.updateLayerState(false)
     this.updateTypesetBounds(sym)
@@ -538,7 +497,9 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
     this.recognizer.addStrokes(strokes, false)
 
     if (addToHistory) {
-      this.history.push(this.model, { added: [sym] })
+      this.history.push(this.model, {
+        added: [sym],
+      })
     }
     this.updateLayerUI()
     return sym
@@ -550,12 +511,10 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * @param addToHistory - Whether to add to history (default: true)
    * @returns Promise resolving to array of added symbols
    */
-  async addSymbols(symList: TSymbol[], addToHistory = true): Promise<TSymbol[]>
-  {
+  async addSymbols(symList: TSymbol[], addToHistory = true): Promise<TSymbol[]> {
     this.logger.info("addSymbol", { symList })
     this.updateLayerState(false)
-    symList.forEach(s =>
-    {
+    symList.forEach((s) => {
       this.updateTypesetBounds(s)
       this.model.addSymbol(s)
       this.renderer.drawSymbol(s)
@@ -563,7 +522,9 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
     const strokes = this.extractStrokesFromSymbols(symList)
     this.recognizer.addStrokes(strokes, false)
     if (addToHistory) {
-      this.history.push(this.model, { added: symList })
+      this.history.push(this.model, {
+        added: symList,
+      })
     }
     this.updateLayerUI()
     return symList
@@ -575,8 +536,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * @param addToHistory - Whether to add to history (default: true)
    * @returns Promise resolving to updated symbol
    */
-  async updateSymbol(sym: TSymbol, addToHistory = true): Promise<TSymbol>
-  {
+  async updateSymbol(sym: TSymbol, addToHistory = true): Promise<TSymbol> {
     this.logger.info("updateSymbol", { sym })
     this.updateLayerState(false)
     this.updateTypesetBounds(sym)
@@ -592,7 +552,9 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
     this.#optimizeRecognizerCall(oldStrokes, newStrokes)
 
     if (addToHistory) {
-      this.history.push(this.model, { updated: [sym] })
+      this.history.push(this.model, {
+        updated: [sym],
+      })
     }
     this.updateLayerUI()
     return sym
@@ -604,14 +566,12 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * @param addToHistory - Whether to add to history (default: true)
    * @returns Promise resolving to array of updated symbols
    */
-  async updateSymbols(symList: TSymbol[], addToHistory = true): Promise<TSymbol[]>
-  {
+  async updateSymbols(symList: TSymbol[], addToHistory = true): Promise<TSymbol[]> {
     this.logger.info("updateSymbol", { symList })
     this.updateLayerState(false)
 
     const oldSymbolsMap = new Map<string, TSymbol>()
-    symList.forEach(sym =>
-    {
+    symList.forEach((sym) => {
       const oldSymbol = this.history.stack.at(-1)?.model.getRootSymbol(sym.id) ?? this.model.getRootSymbol(sym.id)
       if (oldSymbol) {
         oldSymbolsMap.set(sym.id, oldSymbol)
@@ -619,8 +579,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
     })
     const oldStrokes = this.extractStrokesFromSymbols(Array.from(oldSymbolsMap.values()))
 
-    symList.forEach(s =>
-    {
+    symList.forEach((s) => {
       this.updateTypesetBounds(s)
       this.model.updateSymbol(s)
       this.renderer.drawSymbol(s)
@@ -630,7 +589,9 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
     this.#optimizeRecognizerCall(oldStrokes, newStrokes)
 
     if (addToHistory) {
-      this.history.push(this.model, { updated: symList })
+      this.history.push(this.model, {
+        updated: symList,
+      })
     }
     this.updateLayerUI()
     return symList
@@ -642,12 +603,13 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * @param style - Partial style to apply
    * @param addToHistory - Whether to add to history (default: true)
    */
-  updateSymbolsStyle(symbolIds: string[], style: TPartialDeep<TStyle>, addToHistory = true): void
-  {
-    this.logger.info("updateSymbolsStyle", { symbolIds, style })
+  updateSymbolsStyle(symbolIds: string[], style: TPartialDeep<TStyle>, addToHistory = true): void {
+    this.logger.info("updateSymbolsStyle", {
+      symbolIds,
+      style,
+    })
     const symbols: TSymbol[] = []
-    this.model.symbols.forEach(s =>
-    {
+    this.model.symbols.forEach((s) => {
       if (symbolIds.includes(s.id)) {
         s.style = Object.assign({}, s.style, style)
         if (isText(s)) {
@@ -660,8 +622,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
       }
     })
     if (symbols.length) {
-      symbols.forEach(s =>
-      {
+      symbols.forEach((s) => {
         if (isText(s)) {
           const lastWidth = s.bounds.width
           this.typeset.updateBounds(s)
@@ -673,7 +634,9 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
       })
     }
     if (addToHistory && symbols.length) {
-      this.history.push(this.model, { style: { symbols, style } })
+      this.history.push(this.model, {
+        style: { symbols, style },
+      })
     }
   }
 
@@ -682,16 +645,34 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * @param textIds - Array of text symbol IDs
    * @param options - Font style options (fontSize, fontWeight)
    */
-  updateTextFontStyle(textIds: string[], { fontSize, fontWeight }: { fontSize?: number, fontWeight?: "normal" | "bold" | "auto" }): void
-  {
-    this.logger.info("updateTextFontStyle", { textIds, fontSize, fontWeight })
-    const symbols: TText[] = []
-    const translate: { symbols: TSymbol[], tx: number, ty: number }[] = []
-    this.model.symbols.forEach(s =>
+  updateTextFontStyle(
+    textIds: string[],
     {
+      fontSize,
+      fontWeight,
+    }: {
+      fontSize?: number
+      fontWeight?: "normal" | "bold" | "auto"
+    }
+  ): void {
+    this.logger.info("updateTextFontStyle", {
+      textIds,
+      fontSize,
+      fontWeight,
+    })
+    const symbols: TText[] = []
+    const translate: {
+      symbols: TSymbol[]
+      tx: number
+      ty: number
+    }[] = []
+    this.model.symbols.forEach((s) => {
       if (textIds.includes(s.id)) {
         if (isText(s)) {
-          TextOps.updateChildrenFont(s, { fontSize, fontWeight: fontWeight === "auto" ? undefined : fontWeight })
+          TextOps.updateChildrenFont(s, {
+            fontSize,
+            fontWeight: fontWeight === "auto" ? undefined : fontWeight,
+          })
           const lastWidth = s.bounds.width
           this.typeset.updateBounds(s)
           this.renderer.drawSymbol(s)
@@ -702,7 +683,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
               translate.push({
                 symbols: symbolsTranslated,
                 tx,
-                ty: 0
+                ty: 0,
               })
             }
           }
@@ -712,7 +693,10 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
       }
     })
     if (symbols.length) {
-      this.history.push(this.model, { style: { symbols, fontSize }, translate })
+      this.history.push(this.model, {
+        style: { symbols, fontSize },
+        translate,
+      })
     }
   }
 
@@ -722,9 +706,11 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * @param newSymbols - Array of new symbols to replace with
    * @param addToHistory - Whether to add this operation to history (default: true)
    */
-  async replaceSymbols(oldSymbols: TSymbol[], newSymbols: TSymbol[], addToHistory = true): Promise<void>
-  {
-    this.logger.info("replaceSymbol", { oldSymbols, newSymbols })
+  async replaceSymbols(oldSymbols: TSymbol[], newSymbols: TSymbol[], addToHistory = true): Promise<void> {
+    this.logger.info("replaceSymbol", {
+      oldSymbols,
+      newSymbols,
+    })
     this.updateLayerState(false)
 
     const oldStrokes = this.extractStrokesFromSymbols(oldSymbols)
@@ -733,8 +719,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
     const symToReplace = oldSymbols.shift()
 
     if (symToReplace) {
-      oldSymbols.forEach(s =>
-      {
+      oldSymbols.forEach((s) => {
         this.renderer.removeSymbol(s.id)
         this.model.removeSymbol(s.id)
       })
@@ -745,16 +730,25 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
       this.#optimizeRecognizerCall(oldStrokes, newStrokes)
 
       // All old symbols (including symToReplace) are gone; new symbols replace them
-      const allOldIds = new Set([symToReplace.id, ...oldSymbols.map(s => s.id)])
-      const newIds = new Set(newSymbols.map(s => s.id))
+      const allOldIds = new Set([symToReplace.id, ...oldSymbols.map((s) => s.id)])
+      const newIds = new Set(newSymbols.map((s) => s.id))
       // Only clean up decorators whose targets are fully gone (not re-created by newSymbols)
-      const removedIds = new Set([...allOldIds].filter(id => !newIds.has(id)))
+      const removedIds = new Set([...allOldIds].filter((id) => !newIds.has(id)))
       const { erased: decErased, updated: decUpdated } = this.#cleanupDecoratorsForRemovedIds(removedIds)
 
       if (addToHistory) {
-        const changes: TIIHistoryChanges = { replaced: { oldSymbols: [symToReplace, ...oldSymbols], newSymbols } }
-        if (decErased.length) changes.erased = decErased
-        if (decUpdated.length) changes.updated = decUpdated
+        const changes: TIIHistoryChanges = {
+          replaced: {
+            oldSymbols: [symToReplace, ...oldSymbols],
+            newSymbols,
+          },
+        }
+        if (decErased.length) {
+          changes.erased = decErased
+        }
+        if (decUpdated.length) {
+          changes.updated = decUpdated
+        }
         this.history.push(this.model, changes)
       }
       this.updateLayerUI()
@@ -766,11 +760,12 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * @param symbol - Symbol to reorder
    * @param position - New position (first, last, forward, backward)
    */
-  changeOrderSymbol(symbol: TSymbol, position: "first" | "last" | "forward" | "backward"): void
-  {
+  changeOrderSymbol(symbol: TSymbol, position: "first" | "last" | "forward" | "backward"): void {
     this.model.changeOrderSymbol(symbol.id, position)
     this.renderer.changeOrderSymbol(symbol, position)
-    this.history.push(this.model, { order: { symbols: [symbol], position } })
+    this.history.push(this.model, {
+      order: { symbols: [symbol], position },
+    })
   }
 
   /**
@@ -778,21 +773,20 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * @param symbols - Symbols to reorder
    * @param position - New position (first, last, forward, backward)
    */
-  changeOrderSymbols(symbols: TSymbol[], position: "first" | "last" | "forward" | "backward")
-  {
-    symbols.forEach(s =>
-    {
+  changeOrderSymbols(symbols: TSymbol[], position: "first" | "last" | "forward" | "backward") {
+    symbols.forEach((s) => {
       this.model.changeOrderSymbol(s.id, position)
       this.renderer.changeOrderSymbol(s, position)
     })
-    this.history.push(this.model, { order: { symbols, position } })
+    this.history.push(this.model, {
+      order: { symbols, position },
+    })
   }
 
   /**
    * Synchronize strokes with JIIX export
    */
-  async synchronize(): Promise<void>
-  {
+  async synchronize(): Promise<void> {
     await this.synchronizer.synchronize()
     if (this.model.symbolsSelected.length > 0) {
       this.selector.resetSelectedGroup(this.model.symbolsSelected)
@@ -803,23 +797,29 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * After removing strokes, clean up orphaned/partial standalone decorators.
    * Returns erased and updated decorators so callers can include them in history.
    */
-  #cleanupDecoratorsForRemovedIds(removedIds: Set<string>): { erased: TDecorator[], updated: TDecorator[] }
-  {
+  #cleanupDecoratorsForRemovedIds(removedIds: Set<string>): {
+    erased: TDecorator[]
+    updated: TDecorator[]
+  } {
     const erased: TDecorator[] = []
     const updated: TDecorator[] = []
 
     for (const sym of [...this.model.symbols]) {
-      if (!isDecorator(sym)) continue
+      if (!isDecorator(sym)) {
+        continue
+      }
       const dec = sym as TDecorator
-      const remaining = dec.targetIds.filter(id => !removedIds.has(id))
+      const remaining = dec.targetIds.filter((id) => !removedIds.has(id))
       if (remaining.length === 0) {
         this.model.removeSymbol(dec.id)
         this.renderer.removeElement(dec.id)
         erased.push(dec)
       } else if (remaining.length < dec.targetIds.length) {
         dec.targetIds = remaining
-        const targetSyms = remaining.map(id => this.model.getRootSymbol(id)).filter((s): s is TSymbol => !!s)
-        if (targetSyms.length) DecoratorOps.setBounds(dec, OBBOps.createFromOBBs(targetSyms.map(s => s.bounds)))
+        const targetSyms = remaining.map((id) => this.model.getRootSymbol(id)).filter((s): s is TSymbol => !!s)
+        if (targetSyms.length) {
+          DecoratorOps.setBounds(dec, OBBOps.createFromOBBs(targetSyms.map((s) => s.bounds)))
+        }
         this.model.updateSymbol(dec)
         this.renderer.drawSymbol(dec)
         updated.push(dec)
@@ -835,8 +835,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * @param addToHistory - Whether to add to history (default: true)
    * @returns Promise that resolves when symbol is removed
    */
-  async removeSymbol(id: string, addToHistory = true): Promise<void>
-  {
+  async removeSymbol(id: string, addToHistory = true): Promise<void> {
     this.logger.info("removeSymbol", { id })
     const symbol = this.model.getRootSymbol(id)
     if (symbol) {
@@ -846,14 +845,19 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
       this.renderer.removeSymbol(symbol.id)
       const { erased: decErased, updated: decUpdated } = this.#cleanupDecoratorsForRemovedIds(new Set([id]))
       if (addToHistory) {
-        const changes: TIIHistoryChanges = { erased: [symbol] }
-        if (decErased.length) changes.erased = [...changes.erased!, ...decErased]
-        if (decUpdated.length) changes.updated = decUpdated
+        const changes: TIIHistoryChanges = {
+          erased: [symbol],
+        }
+        if (decErased.length) {
+          changes.erased = [...changes.erased!, ...decErased]
+        }
+        if (decUpdated.length) {
+          changes.updated = decUpdated
+        }
         this.history.push(this.model, changes)
       }
       this.updateLayerUI()
-    }
-    else {
+    } else {
       this.renderer.removeSymbol(id)
       this.recognizer.eraseStrokes([id])
     }
@@ -866,17 +870,17 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * @param addToHistory - Whether to add to history (default: true)
    * @returns Promise that resolves when symbols are removed
    */
-  async removeSymbols(ids: string[], addToHistory = true): Promise<TSymbol[]>
-  {
+  async removeSymbols(ids: string[], addToHistory = true): Promise<TSymbol[]> {
     this.logger.info("removeSymbols", { ids })
     const symbolsRemoved: TSymbol[] = []
     const strokesIds: string[] = []
-    ids.forEach(id =>
-    {
+    ids.forEach((id) => {
       const sym = this.model.getRootSymbol(id)
       if (sym) {
         symbolsRemoved.push(sym)
-        if (sym.type === SymbolType.Stroke) strokesIds.push(sym.id)
+        if (sym.type === SymbolType.Stroke) {
+          strokesIds.push(sym.id)
+        }
         this.model.removeSymbol(sym.id)
         this.renderer.removeSymbol(sym.id)
       }
@@ -884,8 +888,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
     this.recognizer.eraseStrokes(strokesIds)
 
     const mathBlockIds = new Set<string>()
-    symbolsRemoved.forEach(s =>
-    {
+    symbolsRemoved.forEach((s) => {
       if (s.type === SymbolType.Stroke) {
         const stroke = s as TStroke
         if (stroke.jiixBlockType === "Math" && stroke.jiixBlockId && !stroke.isSolverOutput) {
@@ -897,13 +900,19 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
       await this.math.clearSolverOutputs(blockId)
     }
 
-    const removedIds = new Set(symbolsRemoved.map(s => s.id))
+    const removedIds = new Set(symbolsRemoved.map((s) => s.id))
     const { erased: decErased, updated: decUpdated } = this.#cleanupDecoratorsForRemovedIds(removedIds)
 
     if (addToHistory && symbolsRemoved.length) {
-      const changes: TIIHistoryChanges = { erased: symbolsRemoved }
-      if (decErased.length) changes.erased = [...changes.erased!, ...decErased]
-      if (decUpdated.length) changes.updated = decUpdated
+      const changes: TIIHistoryChanges = {
+        erased: symbolsRemoved,
+      }
+      if (decErased.length) {
+        changes.erased = [...changes.erased!, ...decErased]
+      }
+      if (decUpdated.length) {
+        changes.updated = decUpdated
+      }
       this.history.push(this.model, changes)
       this.updateLayerUI()
     }
@@ -916,12 +925,10 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * Select symbols by their IDs
    * @param ids - Array of symbol IDs to select
    */
-  select(ids: string[]): void
-  {
+  select(ids: string[]): void {
     this.tool = EditorTool.Select
     this.selector.removeSelectedGroup()
-    this.model.symbols.forEach(s =>
-    {
+    this.model.symbols.forEach((s) => {
       const shouldBeSelected = ids.includes(s.id)
       const wasSelected = this.model.selectedIds.has(s.id)
       if (wasSelected !== shouldBeSelected) {
@@ -938,8 +945,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
     const selectedMathJiixBlockId = this.selector.getSelectedMathJiixBlockId()
     if (selectedMathJiixBlockId) {
       this.math.selectBlock(selectedMathJiixBlockId)
-    }
-    else {
+    } else {
       this.math.clearBlockSelection()
     }
     this.updateLayerUI()
@@ -949,12 +955,10 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
   /**
    * Select all symbols
    */
-  selectAll(): void
-  {
+  selectAll(): void {
     this.tool = EditorTool.Select
     this.selector.removeSelectedGroup()
-    this.model.symbols.forEach(s =>
-    {
+    this.model.symbols.forEach((s) => {
       this.model.selectedIds.add(s.id)
       this.renderer.updateSelectedState(s, true)
     })
@@ -963,8 +967,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
     const selectedMathJiixBlockId = this.selector.getSelectedMathJiixBlockId()
     if (selectedMathJiixBlockId) {
       this.math.selectBlock(selectedMathJiixBlockId)
-    }
-    else {
+    } else {
       this.math.clearBlockSelection()
     }
     this.updateLayerUI()
@@ -974,11 +977,9 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
   /**
    * Unselect all currently selected symbols
    */
-  unselectAll(): void
-  {
+  unselectAll(): void {
     if (this.model.symbolsSelected.length) {
-      this.model.symbolsSelected.forEach(s =>
-      {
+      this.model.symbolsSelected.forEach((s) => {
         this.renderer.updateSelectedState(s, false)
       })
       this.model.resetSelection()
@@ -995,26 +996,27 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * @param partialStrokes - Array of partial stroke data
    * @returns Promise resolving to updated model
    */
-  async importPointEvents(partialStrokes: TPartialDeep<TStroke>[]): Promise<IIModel>
-  {
-    this.logger.info("importPointEvents", { partialStrokes })
+  async importPointEvents(partialStrokes: TPartialDeep<TStroke>[]): Promise<IIModel> {
+    this.logger.info("importPointEvents", {
+      partialStrokes,
+    })
     this.updateLayerState(false)
     const strokes = partialStrokes.map(StrokeOps.createFromPartial)
-    strokes.forEach(s =>
-    {
+    strokes.forEach((s) => {
       this.model.addSymbol(s)
       this.renderer.drawSymbol(s)
     })
     this.recognizer.addStrokes(strokes, false)
-    this.history.push(this.model, { added: strokes })
+    this.history.push(this.model, {
+      added: strokes,
+    })
     this.logger.debug("importPointEvents", this.model)
     this.updateLayerUI()
     this.event.emitImported(this.model.exports as TExport)
     return this.model
   }
 
-  protected triggerDownload(fileName: string, urlData: string): void
-  {
+  protected triggerDownload(fileName: string, urlData: string): void {
     const downloadAnchorNode = document.createElement("a")
     downloadAnchorNode.setAttribute("href", urlData)
     downloadAnchorNode.setAttribute("download", fileName)
@@ -1029,9 +1031,8 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * @param margin - TMargin to add around bounds (default: SELECTION_MARGIN)
    * @returns Bounding box containing all symbols
    */
-  getSymbolsBounds(symbols: TSymbol[], margin: number = SELECTION_MARGIN): TBox
-  {
-    const box = BoxOps.createFromBoxes(symbols.map(s => OBBOps.toBox(s.bounds)))
+  getSymbolsBounds(symbols: TSymbol[], margin: number = SELECTION_MARGIN): TBox {
+    const box = BoxOps.createFromBoxes(symbols.map((s) => OBBOps.toBox(s.bounds)))
     box.x -= margin
     box.y -= margin
     box.width += margin * 2
@@ -1045,8 +1046,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * @param centerX - X coordinate to zoom around (pixels, default: viewport center)
    * @param centerY - Y coordinate to zoom around (pixels, default: viewport center)
    */
-  zoom(zoom: number, centerX?: number, centerY?: number): void
-  {
+  zoom(zoom: number, centerX?: number, centerY?: number): void {
     this.renderer.setZoom(zoom, centerX, centerY)
   }
 
@@ -1055,8 +1055,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * Resets to zoom 1 if there are no symbols.
    * @param symbols - Symbols to fit (default: all model symbols)
    */
-  zoomToFit(symbols?: TSymbol[]): void
-  {
+  zoomToFit(symbols?: TSymbol[]): void {
     const targets = symbols ?? this.model.symbols
     const vpW = this.renderer.parent.clientWidth
     const vpH = this.renderer.parent.clientHeight
@@ -1069,10 +1068,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
 
     const bounds = this.getSymbolsBounds(targets, 0)
     const margin = InteractiveInkEditor.ZOOM_FIT_MARGIN
-    const zoom = Math.max(0.1, Math.min(
-      (vpW - margin * 2) / bounds.width,
-      (vpH - margin * 2) / bounds.height
-    ))
+    const zoom = Math.max(0.1, Math.min((vpW - margin * 2) / bounds.width, (vpH - margin * 2) / bounds.height))
 
     const vbW = vpW / zoom
     const vbH = vpH / zoom
@@ -1087,8 +1083,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * Get the current viewport zoom level.
    * @returns Current zoom factor (1.0 = 100 %)
    */
-  getZoom(): number
-  {
+  getZoom(): number {
     return this.renderer.getZoom()
   }
 
@@ -1097,37 +1092,39 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * @param dx - Horizontal offset in pixels (positive = pan right)
    * @param dy - Vertical offset in pixels (positive = pan down)
    */
-  pan(dx: number, dy: number): void
-  {
+  pan(dx: number, dy: number): void {
     this.renderer.pan(dx, dy)
   }
 
-  protected buildBlobFromSymbols(symbols: TSymbol[], box: TBox): Blob
-  {
+  protected buildBlobFromSymbols(symbols: TSymbol[], box: TBox): Blob {
     const svgNode = SVGBuilder.createLayer(box)
-    symbols.forEach(s =>
-    {
+    symbols.forEach((s) => {
       const el = this.renderer.getElementById(s.id)?.cloneNode(true)
       if (el) {
         svgNode.appendChild(el)
       }
     })
 
-    const svgString = (new XMLSerializer()).serializeToString(svgNode)
+    const svgString = new XMLSerializer().serializeToString(svgNode)
 
     return new Blob([svgString], {
-      type: "image/svg+xml;charset=utf-8"
+      type: "image/svg+xml;charset=utf-8",
     })
   }
 
-  protected getExportName(extension: string): string
-  {
-    const options: Intl.DateTimeFormatOptions = { year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" }
-    try {
-      return `iink-ts-${ new Date().toLocaleDateString(navigator.language, options) }.${ extension }`
+  protected getExportName(extension: string): string {
+    const options: Intl.DateTimeFormatOptions = {
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
     }
-    catch {
-      return `iink-ts-${ new Date().toLocaleDateString("en-US", options) }.${ extension }`
+    try {
+      return `iink-ts-${new Date().toLocaleDateString(navigator.language, options)}.${extension}`
+    } catch {
+      return `iink-ts-${new Date().toLocaleDateString("en-US", options)}.${extension}`
     }
   }
 
@@ -1135,8 +1132,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * Download symbols as SVG file, either all symbols or only selected ones
    * @param selection - Whether to download only selected symbols (default: false, downloads all symbols)
    */
-  downloadAsSVG(selection = false)
-  {
+  downloadAsSVG(selection = false) {
     const symbols = selection ? this.model.symbolsSelected : this.model.symbols
     const box = this.getSymbolsBounds(symbols)
     const svgBlob = this.buildBlobFromSymbols(symbols, box)
@@ -1148,8 +1144,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * Download symbols as PNG file, either all symbols or only selected ones
    * @param selection - Whether to download only selected symbols (default: false, downloads all symbols)
    */
-  downloadAsPNG(selection = false)
-  {
+  downloadAsPNG(selection = false) {
     const symbols = selection ? this.model.symbolsSelected : this.model.symbols
     const box = this.getSymbolsBounds(symbols)
     const svgBlob = this.buildBlobFromSymbols(symbols, box)
@@ -1157,8 +1152,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
     const url = URL.createObjectURL(svgBlob)
     const image = new Image(box.width, box.height)
     image.src = url
-    image.onload = () =>
-    {
+    image.onload = () => {
       const canvas = document.createElement("canvas")
       canvas.width = image.width
       canvas.height = image.height
@@ -1167,9 +1161,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
       ctx.drawImage(image, 0, 0)
       URL.revokeObjectURL(url)
 
-      const imgURI = canvas
-        .toDataURL("image/png")
-        .replace("image/png", "image/octet-stream")
+      const imgURI = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream")
 
       this.triggerDownload(this.getExportName("png"), imgURI)
     }
@@ -1179,11 +1171,10 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * Download symbols as JSON file, either all symbols or only selected ones
    * @param selection - Whether to download only selected symbols (default: false, downloads all symbols)
    */
-  downloadAsJson(selection = false)
-  {
+  downloadAsJson(selection = false) {
     const symbolsToExport = selection ? this.model.symbolsSelected : this.model.symbols
 
-    const clonedSymbols = symbolsToExport.map(s => cloneSymbol(s))
+    const clonedSymbols = symbolsToExport.map((s) => cloneSymbol(s))
     const filteredSymbols = clonedSymbols
 
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(filteredSymbols, null, 2))
@@ -1194,20 +1185,17 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * Download symbols as plain text file, either all symbols or only selected ones
    * @param selection - Whether to download only selected symbols (default: false, downloads all symbols)
    */
-  downloadAsText(selection = false)
-  {
+  downloadAsText(selection = false) {
     const symbolsToExport = selection ? this.model.symbolsSelected : this.model.symbols
     const text = this.extractTextFromSymbols(symbolsToExport)
     const dataStr = "data:text/plain;charset=utf-8," + encodeURIComponent(text)
     this.triggerDownload(this.getExportName("txt"), dataStr)
   }
 
-  protected extractTextFromSymbols(symbols: TSymbol[]): string
-  {
+  protected extractTextFromSymbols(symbols: TSymbol[]): string {
     const textParts: string[] = []
 
-    symbols.forEach(s =>
-    {
+    symbols.forEach((s) => {
       if (isText(s)) {
         const content = TextOps.getLabel(s)
         if (content) {
@@ -1235,9 +1223,10 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * @param symbols - Symbols to extract strokes from
    * @returns Array of extracted strokes
    */
-  extractStrokesFromSymbols(symbols: TSymbol[] | undefined): TStroke[]
-  {
-    if (!symbols?.length) return []
+  extractStrokesFromSymbols(symbols: TSymbol[] | undefined): TStroke[] {
+    if (!symbols?.length) {
+      return []
+    }
     return symbols.filter(isStroke)
   }
 
@@ -1246,14 +1235,14 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * @param symbols - Symbols to extract maths from
    * @returns Array of extracted math symbols
    */
-  extractMathsFromSymbols(symbols: TSymbol[] | undefined): TMath[]
-  {
-    if (!symbols?.length) return []
+  extractMathsFromSymbols(symbols: TSymbol[] | undefined): TMath[] {
+    if (!symbols?.length) {
+      return []
+    }
     return symbols.filter(isMath)
   }
 
-  protected extractBackendChanges(changes: TIIHistoryChanges): TIIHistoryBackendChanges
-  {
+  protected extractBackendChanges(changes: TIIHistoryChanges): TIIHistoryBackendChanges {
     const backendChanges: TIIHistoryBackendChanges = {}
     backendChanges.added = this.extractStrokesFromSymbols(changes.added)
     backendChanges.erased = this.extractStrokesFromSymbols(changes.erased)
@@ -1265,10 +1254,9 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
     if (oldStrokes.length && newStrokes.length) {
       backendChanges.replaced = {
         oldStrokes,
-        newStrokes
+        newStrokes,
       }
-    }
-    else {
+    } else {
       backendChanges.added.push(...newStrokes)
       backendChanges.erased.push(...oldStrokes)
     }
@@ -1282,43 +1270,40 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
 
     if (changes.translate?.length) {
       backendChanges.translate = []
-      changes.translate.forEach(tr =>
-      {
+      changes.translate.forEach((tr) => {
         const strokes = this.extractStrokesFromSymbols(tr.symbols)
         if (strokes.length) {
           backendChanges.translate!.push({
             strokes,
             tx: tr.tx,
-            ty: tr.ty
+            ty: tr.ty,
           })
         }
       })
     }
     if (changes.scale?.length) {
       backendChanges.scale = []
-      changes.scale.forEach(tr =>
-      {
+      changes.scale.forEach((tr) => {
         const strokes = this.extractStrokesFromSymbols(tr.symbols)
         if (strokes.length) {
           backendChanges.scale!.push({
             strokes,
             origin: tr.origin,
             scaleX: tr.scaleX,
-            scaleY: tr.scaleY
+            scaleY: tr.scaleY,
           })
         }
       })
     }
     if (changes.rotate?.length) {
       backendChanges.rotate = []
-      changes.rotate.forEach(tr =>
-      {
+      changes.rotate.forEach((tr) => {
         const strokes = this.extractStrokesFromSymbols(tr.symbols)
         if (strokes.length) {
           backendChanges.rotate!.push({
             strokes,
             center: tr.center,
-            angle: tr.angle
+            angle: tr.angle,
           })
         }
       })
@@ -1326,8 +1311,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
     return backendChanges
   }
 
-  protected handleWheel = (event: WheelEvent): void =>
-  {
+  protected handleWheel = (event: WheelEvent): void => {
     if (event.ctrlKey || event.metaKey) {
       event.preventDefault()
       event.stopPropagation()
@@ -1345,8 +1329,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * Undo the last action
    * @returns Promise resolving to updated model
    */
-  async undo(): Promise<IIModel>
-  {
+  async undo(): Promise<IIModel> {
     this.logger.info("undo")
     if (this.history.context.canUndo) {
       this.updateLayerState(false)
@@ -1354,10 +1337,12 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
       const previousStackItem = this.history.undo()
       const modifications = previousStackItem.model.extractDifferenceSymbols(this.model)
       this.#model = previousStackItem.model.clone()
-      this.logger.debug("undo", { previousStackItem })
+      this.logger.debug("undo", {
+        previousStackItem,
+      })
       const actionsToBackend = this.extractBackendChanges(previousStackItem.changes)
-      modifications.removed.forEach(s => this.renderer.removeSymbol(s.id))
-      modifications.added.forEach(s => this.renderer.drawSymbol(s))
+      modifications.removed.forEach((s) => this.renderer.removeSymbol(s.id))
+      modifications.added.forEach((s) => this.renderer.drawSymbol(s))
       if (
         actionsToBackend.added?.length ||
         actionsToBackend.erased?.length ||
@@ -1378,8 +1363,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * Redo the previously undone action
    * @returns Promise resolving to updated model
    */
-  async redo(): Promise<IIModel>
-  {
+  async redo(): Promise<IIModel> {
     this.logger.info("redo")
 
     if (this.history.context.canRedo) {
@@ -1390,8 +1374,8 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
       this.#model = nextStackItem.model.clone()
       this.logger.debug("redo", { modifications })
       const actionsToBackend = this.extractBackendChanges(nextStackItem.changes)
-      modifications.removed.forEach(s => this.renderer.removeSymbol(s.id))
-      modifications.added.forEach(s => this.renderer.drawSymbol(s))
+      modifications.removed.forEach((s) => this.renderer.removeSymbol(s.id))
+      modifications.added.forEach((s) => this.renderer.drawSymbol(s))
       if (
         actionsToBackend.added?.length ||
         actionsToBackend.erased?.length ||
@@ -1414,15 +1398,13 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * @param mimeTypes - Array of MIME types to export
    * @returns Promise resolving with exports
    */
-  async export(mimeTypes?: string[]): Promise<TExport>
-  {
+  async export(mimeTypes?: string[]): Promise<TExport> {
     try {
       this.logger.info("export", { mimeTypes })
       const exports = await this.recognizer.export(mimeTypes)
       this.model.mergeExport(exports as TExport)
       return exports
-    }
-    catch (error) {
+    } catch (error) {
       this.logger.error("export", { error })
       this.manageError(error as Error)
       throw error
@@ -1434,20 +1416,17 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * @param symbols - Symbols to convert (defaults to all symbols)
    * @returns Promise that resolves when conversion is complete
    */
-  async convert(symbols?: TSymbol[]): Promise<void>
-  {
+  async convert(symbols?: TSymbol[]): Promise<void> {
     try {
       this.updateLayerState(false)
       const addedSymbols = await this.converter.apply(symbols)
-      this.select(addedSymbols.map(s => s.id))
+      this.select(addedSymbols.map((s) => s.id))
       this.event.emitConverted()
-    }
-    catch (error) {
+    } catch (error) {
       this.logger.error("convert", error)
       this.manageError(error as Error)
       throw error
-    }
-    finally {
+    } finally {
       this.updateLayerUI()
     }
   }
@@ -1457,18 +1436,17 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * @param symbols - Symbols to duplicate (defaults to all symbols)
    * @returns Promise resolving with duplicated symbols
    */
-  async duplicate(symbols?: TSymbol[]): Promise<TSymbol[]>
-  {
+  async duplicate(symbols?: TSymbol[]): Promise<TSymbol[]> {
     try {
       this.updateLayerState(false)
       const symbolsToDuplicate = symbols ?? this.model.symbols
-      const bounds = BoxOps.createFromBoxes(symbolsToDuplicate.map(s => OBBOps.toBox(s.bounds)))
+      const bounds = BoxOps.createFromBoxes(symbolsToDuplicate.map((s) => OBBOps.toBox(s.bounds)))
 
-      const duplicatedSymbols = symbolsToDuplicate.map(s => {
+      const duplicatedSymbols = symbolsToDuplicate.map((s) => {
         const clone = cloneSymbol(s)
 
         // Generate unique ID for cloned symbols
-        while (this.model.symbols.find(sym => sym.id === clone.id)) {
+        while (this.model.symbols.find((sym) => sym.id === clone.id)) {
           clone.id = `${clone.type}-${createUUID()}`
         }
 
@@ -1478,15 +1456,13 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
       })
       this.unselectAll()
       const syms = await this.addSymbols(duplicatedSymbols)
-      this.select(syms.map(s => s.id))
+      this.select(syms.map((s) => s.id))
       return syms
-    }
-    catch (error) {
+    } catch (error) {
       this.logger.error("duplicate", error)
       this.manageError(error as Error)
       throw error
-    }
-    finally {
+    } finally {
       this.updateLayerUI()
     }
   }
@@ -1495,8 +1471,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * Wait for the recognizer to become idle
    * @returns Promise that resolves when idle
    */
-  async waitForIdle(): Promise<void>
-  {
+  async waitForIdle(): Promise<void> {
     return this.recognizer.waitForIdle()
   }
 
@@ -1505,10 +1480,18 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * @param dimensions - New height and/or width
    * @returns Promise that resolves when resize is complete
    */
-  async resize({ height, width }: { height?: number, width?: number } = {}): Promise<void>
-  {
+  async resize({
+    height,
+    width,
+  }: {
+    height?: number
+    width?: number
+  } = {}): Promise<void> {
     try {
-      this.logger.info("resize", { height, width })
+      this.logger.info("resize", {
+        height,
+        width,
+      })
       const compStyles = window.getComputedStyle(this.layers.root)
       height = height || Math.max(parseInt(compStyles.height.replace("px", "")), this.configuration.rendering.minHeight)
       width = width || Math.max(parseInt(compStyles.width.replace("px", "")), this.configuration.rendering.minWidth)
@@ -1536,10 +1519,11 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * Pass `undefined` to reset to stylesheet defaults.
    * @group Editor
    */
-  setCssVars(vars: Record<string, string> | undefined): void
-  {
+  setCssVars(vars: Record<string, string> | undefined): void {
     const rootStyle = this.layers.root.style
-    Array.from(rootStyle).filter(p => p.startsWith("--iink-")).forEach(p => rootStyle.removeProperty(p))
+    Array.from(rootStyle)
+      .filter((p) => p.startsWith("--iink-"))
+      .forEach((p) => rootStyle.removeProperty(p))
     if (vars) {
       Object.entries(vars).forEach(([key, value]) => rootStyle.setProperty(key, value))
     }
@@ -1550,8 +1534,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * Clear all content from the editor
    * @returns Promise that resolves when cleared
    */
-  async clear(): Promise<void>
-  {
+  async clear(): Promise<void> {
     try {
       this.logger.info("clear")
       this.updateLayerState(false)
@@ -1571,17 +1554,19 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
     }
   }
 
-  #isCopyableSymbol(symbol: TSymbol): boolean
-  {
-    if (isDecorator(symbol)) return false
-    if (isStrokeSolverOutput(symbol)) return false
+  #isCopyableSymbol(symbol: TSymbol): boolean {
+    if (isDecorator(symbol)) {
+      return false
+    }
+    if (isStrokeSolverOutput(symbol)) {
+      return false
+    }
     return true
   }
 
-  #cloneSymbolForPaste(symbol: TSymbol, tx: number, ty: number): TSymbol
-  {
+  #cloneSymbolForPaste(symbol: TSymbol, tx: number, ty: number): TSymbol {
     const clone = cloneSymbol(symbol)
-    clone.id = `${ clone.type }-${ createUUID() }`
+    clone.id = `${clone.type}-${createUUID()}`
     const matrix = MatrixTransform.identity().translate(tx, ty)
     this.transform.translate.applyToSymbol(clone, matrix)
     return clone
@@ -1590,38 +1575,37 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
   /**
    * Copy selected symbols (or all symbols if nothing selected) to the internal clipboard
    */
-  copy(): void
-  {
+  copy(): void {
     this.logger.info("copy")
-    const symbols = this.model.symbolsSelected.length
-      ? this.model.symbolsSelected
-      : this.model.symbols
-    this.#clipboard = symbols.filter(s => this.#isCopyableSymbol(s)).map(s => cloneSymbol(s))
+    const symbols = this.model.symbolsSelected.length ? this.model.symbolsSelected : this.model.symbols
+    this.#clipboard = symbols.filter((s) => this.#isCopyableSymbol(s)).map((s) => cloneSymbol(s))
   }
 
   /**
    * Paste clipboard symbols at an offset and select them
    */
-  async paste(): Promise<void>
-  {
-    if (!this.#clipboard.length) return
-    this.logger.info("paste", { count: this.#clipboard.length })
-    const clones = this.#clipboard.map(s =>
+  async paste(): Promise<void> {
+    if (!this.#clipboard.length) {
+      return
+    }
+    this.logger.info("paste", {
+      count: this.#clipboard.length,
+    })
+    const clones = this.#clipboard.map((s) =>
       this.#cloneSymbolForPaste(s, InteractiveInkEditor.PASTE_OFFSET, InteractiveInkEditor.PASTE_OFFSET)
     )
     this.unselectAll()
     await this.addSymbols(clones)
-    this.select(clones.map(c => c.id))
+    this.select(clones.map((c) => c.id))
   }
 
   /**
    * Cut selected symbols: copy them to clipboard, then remove from model
    */
-  async cut(): Promise<void>
-  {
+  async cut(): Promise<void> {
     this.logger.info("cut")
     this.copy()
-    const ids = this.model.symbolsSelected.map(s => s.id)
+    const ids = this.model.symbolsSelected.map((s) => s.id)
     if (ids.length) {
       await this.removeSymbols(ids)
     }
@@ -1631,8 +1615,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    * Destroy the editor and clean up resources
    * @returns Promise that resolves when destruction is complete
    */
-  async destroy(): Promise<void>
-  {
+  async destroy(): Promise<void> {
     this.logger.info("destroy")
 
     this.keyboard.detach()

@@ -1,17 +1,25 @@
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
-import type { TJIIXStrokeItem, TJIIXMathElement, TJIIXMathExpression, TJIIXTextElement, TJIIXNodeElement, TJIIXEdgeElement, TJIIXEdgeLine} from "@/model";
-import { JIIXElementType, JIIXEdgeKind } from "@/model"
-import type { TStroke} from "@/symbol";
-import { isStroke } from "@/symbol"
-import { IIAbstractManager } from "./IIAbstractManager"
 import { LoggerCategory } from "@/logger"
+import type {
+  TJIIXEdgeElement,
+  TJIIXEdgeLine,
+  TJIIXMathElement,
+  TJIIXMathExpression,
+  TJIIXNodeElement,
+  TJIIXStrokeItem,
+  TJIIXTextElement,
+} from "@/model"
+import { JIIXEdgeKind, JIIXElementType } from "@/model"
+import type { TStroke } from "@/symbol"
+import { isStroke } from "@/symbol"
+
+import { IIAbstractManager } from "./IIAbstractManager"
 
 /**
  * @group Manager
  * @remarks Simplified synchronizer that only manages JIIX block IDs and stroke lifecycle
  */
-export class IISynchronizerManager extends IIAbstractManager
-{
+export class IISynchronizerManager extends IIAbstractManager {
   protected managerName = "IISynchronizerManager"
 
   #synchronizePromise?: Promise<void>
@@ -22,14 +30,12 @@ export class IISynchronizerManager extends IIAbstractManager
   static readonly SYNCHRONIZE_TIMEOUT = 30000
   static readonly MAX_RETRY_ATTEMPTS = 3
 
-  constructor(editor: TInteractiveInkEditor)
-  {
+  constructor(editor: TInteractiveInkEditor) {
     super(editor, LoggerCategory.SYNCHRONIZER)
     this.logger.info("constructor", "IISynchronizerManager")
   }
 
-  #createTimeoutPromise(timeoutMs: number): Promise<never>
-  {
+  #createTimeoutPromise(timeoutMs: number): Promise<never> {
     return new Promise((_, reject) => {
       setTimeout(() => {
         reject(new Error(`Synchronization timeout after ${timeoutMs}ms`))
@@ -37,8 +43,7 @@ export class IISynchronizerManager extends IIAbstractManager
     })
   }
 
-  async synchronize(): Promise<void>
-  {
+  async synchronize(): Promise<void> {
     if (this.#synchronizePromise) {
       this.logger.debug("synchronize", "Synchronization already in progress, will re-run after")
       this.#dirtyDuringSync = true
@@ -57,16 +62,14 @@ export class IISynchronizerManager extends IIAbstractManager
     }
   }
 
-  async #syncLoop(): Promise<void>
-  {
+  async #syncLoop(): Promise<void> {
     do {
       this.#dirtyDuringSync = false
       await this.#synchronizeWithRetry()
     } while (this.#dirtyDuringSync)
   }
 
-  async #synchronizeWithRetry(): Promise<void>
-  {
+  async #synchronizeWithRetry(): Promise<void> {
     let lastError: Error | undefined
 
     for (let attempt = 1; attempt <= IISynchronizerManager.MAX_RETRY_ATTEMPTS; attempt++) {
@@ -77,23 +80,29 @@ export class IISynchronizerManager extends IIAbstractManager
 
         await Promise.race([
           this.#doSynchronize(),
-          this.#createTimeoutPromise(IISynchronizerManager.SYNCHRONIZE_TIMEOUT)
+          this.#createTimeoutPromise(IISynchronizerManager.SYNCHRONIZE_TIMEOUT),
         ])
 
         if (attempt > 1) {
           this.logger.info("synchronize", `Synchronization succeeded on attempt ${attempt}`)
         }
         return
-
       } catch (error) {
         lastError = error as Error
         const isTimeout = error instanceof Error && error.message.includes("timeout")
 
         if (isTimeout) {
-          this.logger.error("synchronize", `Timeout on attempt ${attempt}/${IISynchronizerManager.MAX_RETRY_ATTEMPTS}:`, error)
+          this.logger.error(
+            "synchronize",
+            `Timeout on attempt ${attempt}/${IISynchronizerManager.MAX_RETRY_ATTEMPTS}:`,
+            error
+          )
           if (attempt < IISynchronizerManager.MAX_RETRY_ATTEMPTS) {
-            this.logger.warn("synchronize", `Will retry synchronization (attempt ${attempt + 1}/${IISynchronizerManager.MAX_RETRY_ATTEMPTS})`)
-            await new Promise(resolve => setTimeout(resolve, 500))
+            this.logger.warn(
+              "synchronize",
+              `Will retry synchronization (attempt ${attempt + 1}/${IISynchronizerManager.MAX_RETRY_ATTEMPTS})`
+            )
+            await new Promise((resolve) => setTimeout(resolve, 500))
             continue
           }
         } else {
@@ -104,12 +113,14 @@ export class IISynchronizerManager extends IIAbstractManager
       }
     }
 
-    this.logger.error("synchronize", `Synchronization failed after ${IISynchronizerManager.MAX_RETRY_ATTEMPTS} attempts`)
+    this.logger.error(
+      "synchronize",
+      `Synchronization failed after ${IISynchronizerManager.MAX_RETRY_ATTEMPTS} attempts`
+    )
     throw lastError || new Error(`Synchronization failed after ${IISynchronizerManager.MAX_RETRY_ATTEMPTS} attempts`)
   }
 
-  async #doSynchronize(): Promise<void>
-  {
+  async #doSynchronize(): Promise<void> {
     try {
       await this.editor.export(["application/vnd.myscript.jiix"])
     } catch (error) {
@@ -156,23 +167,27 @@ export class IISynchronizerManager extends IIAbstractManager
     await Promise.resolve()
 
     // Save JIIX export and update history
-    this.model.mergeExport({ "application/vnd.myscript.jiix": jiix })
+    this.model.mergeExport({
+      "application/vnd.myscript.jiix": jiix,
+    })
     this.editor.jiix.invalidateIndex()
     this.editor.history.update(this.model)
 
     // Enrich math blocks with dependencies — parallel with individual timeout to avoid one hanging block stalling the whole sync
-    const mathBlockIds = this.model.mathBlocks.map(mb => mb.id)
+    const mathBlockIds = this.model.mathBlocks.map((mb) => mb.id)
     const ENRICH_TIMEOUT_MS = 5000
-    await Promise.allSettled(mathBlockIds.map(async (blockId) => {
-      const timeout = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error(`enrichMathDependencies timeout for "${blockId}"`)), ENRICH_TIMEOUT_MS)
-      )
-      try {
-        await Promise.race([this.editor.math.enrichMathDependencies(blockId), timeout])
-      } catch (err) {
-        this.logger.error("synchronize", "Error enriching math dependencies:", err)
-      }
-    }))
+    await Promise.allSettled(
+      mathBlockIds.map(async (blockId) => {
+        const timeout = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error(`enrichMathDependencies timeout for "${blockId}"`)), ENRICH_TIMEOUT_MS)
+        )
+        try {
+          await Promise.race([this.editor.math.enrichMathDependencies(blockId), timeout])
+        } catch (err) {
+          this.logger.error("synchronize", "Error enriching math dependencies:", err)
+        }
+      })
+    )
 
     // Cleanup invalid math dependencies
     try {
@@ -194,14 +209,15 @@ export class IISynchronizerManager extends IIAbstractManager
   /**
    * Get all stroke items from a JIIX element
    */
-  #getElementItems(element: TJIIXTextElement | TJIIXMathElement | TJIIXNodeElement | TJIIXEdgeElement): TJIIXStrokeItem[]
-  {
+  #getElementItems(
+    element: TJIIXTextElement | TJIIXMathElement | TJIIXNodeElement | TJIIXEdgeElement
+  ): TJIIXStrokeItem[] {
     const items: TJIIXStrokeItem[] = []
 
     switch (element.type) {
       case JIIXElementType.Text:
         // Collect all word items (including those with refs - embedded math)
-        element.words?.forEach(word => {
+        element.words?.forEach((word) => {
           if (word.items) {
             items.push(...word.items)
           }
@@ -214,7 +230,7 @@ export class IISynchronizerManager extends IIAbstractManager
           items.push(...element.items)
         }
         if (element.expressions) {
-          element.expressions.forEach(expr => {
+          element.expressions.forEach((expr) => {
             items.push(...this.#collectMathExpressionItems(expr))
           })
         }
@@ -245,8 +261,7 @@ export class IISynchronizerManager extends IIAbstractManager
   /**
    * Recursively collect items from math expressions
    */
-  #collectMathExpressionItems(expr: TJIIXMathExpression): TJIIXStrokeItem[]
-  {
+  #collectMathExpressionItems(expr: TJIIXMathExpression): TJIIXStrokeItem[] {
     const items: TJIIXStrokeItem[] = []
 
     if (!expr) {
@@ -269,14 +284,15 @@ export class IISynchronizerManager extends IIAbstractManager
   /**
    * Get strokes from JIIX items
    */
-  #getStrokesFromItems(items: TJIIXStrokeItem[]): TStroke[]
-  {
+  #getStrokesFromItems(items: TJIIXStrokeItem[]): TStroke[] {
     const strokes: TStroke[] = []
     const seen = new Set<string>()
 
     for (const item of items) {
       const strokeId = item["full-id"]
-      if (!strokeId || seen.has(strokeId)) continue
+      if (!strokeId || seen.has(strokeId)) {
+        continue
+      }
       seen.add(strokeId)
       const symbol = this.model.getRootSymbol(strokeId)
       if (symbol && isStroke(symbol)) {
@@ -293,8 +309,7 @@ export class IISynchronizerManager extends IIAbstractManager
   #updateBlockMetadata(
     stroke: TStroke,
     element: TJIIXTextElement | TJIIXMathElement | TJIIXNodeElement | TJIIXEdgeElement
-  ): void
-  {
+  ): void {
     stroke.jiixBlockId = element.id
 
     switch (element.type) {
@@ -312,6 +327,9 @@ export class IISynchronizerManager extends IIAbstractManager
         break
     }
 
-    this.logger.debug("#updateBlockMetadata", `Updated ${stroke.id}: jiixBlockId=${element.id}, jiixBlockType=${stroke.jiixBlockType}`)
+    this.logger.debug(
+      "#updateBlockMetadata",
+      `Updated ${stroke.id}: jiixBlockId=${element.id}, jiixBlockType=${stroke.jiixBlockType}`
+    )
   }
 }

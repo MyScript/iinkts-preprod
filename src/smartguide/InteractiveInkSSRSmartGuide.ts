@@ -1,16 +1,16 @@
-import style from "./InteractiveInkSSRSmartGuide.css"
 import type { InteractiveInkSSREditor } from "@/editor"
 import { LoggerCategory, LoggerManager } from "@/logger"
-import type { TJIIXExport, TJIIXWord } from "@/model";
+import type { TJIIXExport, TJIIXWord } from "@/model"
 import { ExportType } from "@/model"
-import { convertMillimeterToPixel, createUUID } from "@/utils"
 import type { TMarginConfiguration } from "@/recognizer"
+import { convertMillimeterToPixel, createUUID } from "@/utils"
+
+import style from "./InteractiveInkSSRSmartGuide.css"
 
 /**
  * @group SmartGuide
  */
-export class InteractiveInkSSRSmartGuide
-{
+export class InteractiveInkSSRSmartGuide {
   uuid: string
   #smartGuideElement!: HTMLDivElement
   #wrapperElement!: HTMLDivElement
@@ -31,8 +31,7 @@ export class InteractiveInkSSRSmartGuide
   wordToChange?: TJIIXWord
   #logger = LoggerManager.getLogger(LoggerCategory.SMARTGUIDE)
 
-  constructor(editor: InteractiveInkSSREditor)
-  {
+  constructor(editor: InteractiveInkSSREditor) {
     this.#logger.info("constructor")
     this.uuid = createUUID()
     this.editor = editor
@@ -40,7 +39,7 @@ export class InteractiveInkSSRSmartGuide
       bottom: 0,
       left: 0,
       right: 0,
-      top: 0
+      top: 0,
     }
     this.#createRootElement()
     this.#createWrapperElement()
@@ -55,101 +54,91 @@ export class InteractiveInkSSRSmartGuide
     this.#createDeleteElement()
   }
 
-  #createRootElement(): void
-  {
+  #createRootElement(): void {
     this.#smartGuideElement = document.createElement("div")
-    this.#smartGuideElement.id = `smartguide-${ this.uuid }`
+    this.#smartGuideElement.id = `smartguide-${this.uuid}`
     this.#smartGuideElement.classList.add("smartguide")
-    this.#smartGuideElement.addEventListener("pointerdown", e => {
+    this.#smartGuideElement.addEventListener("pointerdown", (e) => {
       e.preventDefault()
       e.stopPropagation()
     })
   }
 
-  #createWrapperElement(): void
-  {
+  #createWrapperElement(): void {
     this.#wrapperElement = document.createElement("div")
-    this.#wrapperElement.id = `smartguide-wrapper-${ this.uuid }`
+    this.#wrapperElement.id = `smartguide-wrapper-${this.uuid}`
     this.#wrapperElement.classList.add("smartguide-wrapper")
   }
 
-  #createPrompterContainerElement(): void
-  {
+  #createPrompterContainerElement(): void {
     this.#prompterContainerElement = document.createElement("div")
-    this.#prompterContainerElement.id = `prompter-container-${ this.uuid }`
+    this.#prompterContainerElement.id = `prompter-container-${this.uuid}`
     this.#prompterContainerElement.classList.add("prompter-container")
   }
 
-  #createPrompterTextElement(): void
-  {
+  #createPrompterTextElement(): void {
     this.#prompterTextElement = document.createElement("div")
-    this.#prompterTextElement.id = `prompter-text-${ this.uuid }`
+    this.#prompterTextElement.id = `prompter-text-${this.uuid}`
     this.#prompterTextElement.classList.add("prompter-text")
     this.#prompterTextElement.setAttribute("touch-action", "none")
   }
 
-  #createEllipsisElement(): void
-  {
+  #createEllipsisElement(): void {
     this.#ellipsisElement = document.createElement("div")
-    this.#ellipsisElement.id = `ellipsis-${ this.uuid }`
+    this.#ellipsisElement.id = `ellipsis-${this.uuid}`
     this.#ellipsisElement.classList.add("ellipsis")
     this.#ellipsisElement.innerHTML = "..."
   }
 
-  #createTagElement(): void
-  {
+  #createTagElement(): void {
     this.#tagElement = document.createElement("div")
-    this.#tagElement.id = `tag-icon-${ this.uuid }`
+    this.#tagElement.id = `tag-icon-${this.uuid}`
     this.#tagElement.classList.add("tag-icon")
     this.#tagElement.innerHTML = "&#182;"
   }
 
-  #createCandidatesElement(): void
-  {
+  #createCandidatesElement(): void {
     this.#candidatesElement = document.createElement("div")
-    this.#candidatesElement.id = `candidates-${ this.uuid }`
+    this.#candidatesElement.id = `candidates-${this.uuid}`
     this.#candidatesElement.classList.add("candidates")
   }
 
-  #createMoreMenuElement(): void
-  {
+  #createMoreMenuElement(): void {
     this.#menuElement = document.createElement("div")
-    this.#menuElement.id = `more-menu-${ this.uuid }`
+    this.#menuElement.id = `more-menu-${this.uuid}`
     this.#menuElement.classList.add("more-menu")
   }
 
-  #createConvertElement(): void
-  {
+  #createConvertElement(): void {
     this.#convertElement = document.createElement("button")
-    this.#convertElement.id = `convert-${ this.uuid }`
+    this.#convertElement.id = `convert-${this.uuid}`
     this.#convertElement.classList.add("options-label-button")
     this.#convertElement.innerHTML = "Convert"
   }
 
-  #createCopyElement(): void
-  {
+  #createCopyElement(): void {
     this.#copyElement = document.createElement("button")
-    this.#copyElement.id = `copy-${ this.uuid }`
+    this.#copyElement.id = `copy-${this.uuid}`
     this.#copyElement.classList.add("options-label-button")
     this.#copyElement.innerHTML = "Copy"
   }
 
-  #createDeleteElement(): void
-  {
+  #createDeleteElement(): void {
     this.#deleteElement = document.createElement("button")
-    this.#deleteElement.id = `delete-${ this.uuid }`
+    this.#deleteElement.id = `delete-${this.uuid}`
     this.#deleteElement.classList.add("options-label-button")
     this.#deleteElement.innerHTML = "Delete"
   }
 
-  init(domElement: HTMLElement, margin: TMarginConfiguration): void
-  {
-    this.#logger.info("init", { domElement, margin })
+  init(domElement: HTMLElement, margin: TMarginConfiguration): void {
+    this.#logger.info("init", {
+      domElement,
+      margin,
+    })
 
     const styleElement = document.createElement("style")
     styleElement.appendChild(document.createTextNode(style as string))
     domElement.appendChild(styleElement)
-
 
     domElement.appendChild(this.#smartGuideElement)
     this.#smartGuideElement.appendChild(this.#wrapperElement)
@@ -176,9 +165,10 @@ export class InteractiveInkSSRSmartGuide
     this.resize()
   }
 
-  #showCandidates = (target: HTMLElement) =>
-  {
-    this.#logger.info("showCandidates", { target })
+  #showCandidates = (target: HTMLElement) => {
+    this.#logger.info("showCandidates", {
+      target,
+    })
     const wordId = parseInt(target.id.replace("word-", "").replace(this.uuid, ""))
     const words = this.jiix?.words as TJIIXWord[]
     this.wordToChange = words[wordId]
@@ -187,12 +177,11 @@ export class InteractiveInkSSRSmartGuide
       this.#candidatesElement.innerHTML = ""
       if (this.wordToChange?.candidates) {
         this.#candidatesElement.style.display = "flex"
-        this.wordToChange.candidates.forEach((word, index) =>
-        {
+        this.wordToChange.candidates.forEach((word, index) => {
           if (this.wordToChange?.label === word) {
-            this.#candidatesElement.innerHTML += `<span id="cdt-${ index }${ this.uuid }" class="selected-word">${ word }</span>`
+            this.#candidatesElement.innerHTML += `<span id="cdt-${index}${this.uuid}" class="selected-word">${word}</span>`
           } else {
-            this.#candidatesElement.innerHTML += `<span id="cdt-${ index }${ this.uuid }">${ word }</span>`
+            this.#candidatesElement.innerHTML += `<span id="cdt-${index}${this.uuid}">${word}</span>`
           }
         })
 
@@ -200,26 +189,22 @@ export class InteractiveInkSSRSmartGuide
       }
     }
   }
-  #hideCandidates(): void
-  {
+  #hideCandidates(): void {
     this.#candidatesElement.style.display = "none"
   }
 
-  #openMenu(): void
-  {
+  #openMenu(): void {
     this.#menuElement.classList.add("open")
     this.#menuElement.classList.remove("close")
     this.#isMenuOpen = true
   }
-  #closeMenu(): void
-  {
+  #closeMenu(): void {
     this.#menuElement.classList.add("close")
     this.#menuElement.classList.remove("open")
     this.#isMenuOpen = false
   }
 
-  #onClickEllipsis = (evt: Event) =>
-  {
+  #onClickEllipsis = (evt: Event) => {
     this.#logger.info("onClickEllipsis", { evt })
     evt.preventDefault()
     evt.stopPropagation()
@@ -228,8 +213,7 @@ export class InteractiveInkSSRSmartGuide
     this.#hideCandidates()
   }
 
-  #onClickConvert = (evt: Event) =>
-  {
+  #onClickConvert = (evt: Event) => {
     this.#logger.info("onClickConvert", { evt })
     evt.preventDefault()
     evt.stopPropagation()
@@ -237,22 +221,20 @@ export class InteractiveInkSSRSmartGuide
     this.#closeMenu()
   }
 
-  #createTextAreaElement(value: string): HTMLTextAreaElement
-  {
+  #createTextAreaElement(value: string): HTMLTextAreaElement {
     const isRTL = document.documentElement.getAttribute("dir") === "rtl"
     const textArea = document.createElement("textarea")
     textArea.style.fontSize = "12pt"
     textArea.style.display = "absolute"
     textArea.style[isRTL ? "right" : "left"] = "-9999px"
     const yPosition = window.pageYOffset || document.documentElement.scrollTop
-    textArea.style.top = `${ yPosition }px`
+    textArea.style.top = `${yPosition}px`
     textArea.setAttribute("readonly", "")
     textArea.value = value
     return textArea
   }
 
-  #selectText(textArea: HTMLTextAreaElement)
-  {
+  #selectText(textArea: HTMLTextAreaElement) {
     if (navigator.userAgent.match(/ipad|iphone/i)) {
       const range = document.createRange()
       range.selectNodeContents(textArea)
@@ -267,8 +249,7 @@ export class InteractiveInkSSRSmartGuide
     }
   }
 
-  #onClickCopy = async (evt: Event): Promise<void> =>
-  {
+  #onClickCopy = async (evt: Event): Promise<void> => {
     this.#logger.info("onClickCopy", { evt })
     evt.preventDefault()
     evt.stopPropagation()
@@ -276,22 +257,24 @@ export class InteractiveInkSSRSmartGuide
       this.#closeMenu()
       let message = "Nothing to copy"
       if (this.#prompterTextElement.innerText) {
-        message = `"${ this.#prompterTextElement.innerText }" copied to clipboard`
+        message = `"${this.#prompterTextElement.innerText}" copied to clipboard`
         const fakeEl = this.#createTextAreaElement(this.#prompterTextElement.innerText)
         this.#prompterContainerElement.appendChild(fakeEl)
         this.#selectText(fakeEl)
         document.execCommand("copy")
         fakeEl.remove()
       }
-      this.editor.event.emitNotif({ message, timeout: 1500 })
+      this.editor.event.emitNotif({
+        message,
+        timeout: 1500,
+      })
     } catch (error) {
       this.#logger.error("onClickCopy", error)
       this.editor.event.emitError(error as Error)
     }
   }
 
-  #onClickDelete = (evt: Event) =>
-  {
+  #onClickDelete = (evt: Event) => {
     this.#logger.info("onClickDelete", { evt })
     evt.preventDefault()
     evt.stopPropagation()
@@ -299,22 +282,29 @@ export class InteractiveInkSSRSmartGuide
     this.#closeMenu()
   }
 
-  #onClickCandidate = (evt: Event) =>
-  {
+  #onClickCandidate = (evt: Event) => {
     this.#logger.info("onClickCandidate", { evt })
     evt.preventDefault()
     evt.stopPropagation()
     const target = evt.target as HTMLElement
     const candidate = target.innerText
-    if (this.jiix?.words && candidate !== this.wordToChange?.label && this.wordToChange?.candidates?.includes(candidate)) {
+    if (
+      this.jiix?.words &&
+      candidate !== this.wordToChange?.label &&
+      this.wordToChange?.candidates?.includes(candidate)
+    ) {
       this.jiix.words[parseInt(this.wordToChange?.id as string)].label = candidate
-      this.editor.import(new Blob([JSON.stringify(this.jiix)], { type: ExportType.JIIX }), ExportType.JIIX)
+      this.editor.import(
+        new Blob([JSON.stringify(this.jiix)], {
+          type: ExportType.JIIX,
+        }),
+        ExportType.JIIX
+      )
     }
     this.#candidatesElement.style.display = "none"
   }
 
-  #onClickPrompter = (evt: Event): void =>
-  {
+  #onClickPrompter = (evt: Event): void => {
     this.#logger.info("onClickPrompter", { evt })
     evt.preventDefault()
     evt.stopPropagation()
@@ -327,20 +317,17 @@ export class InteractiveInkSSRSmartGuide
     }
   }
 
-  #stopPropagation = (evt: Event) =>
-  {
+  #stopPropagation = (evt: Event) => {
     evt.preventDefault()
     evt.stopPropagation()
   }
 
-  #onClickOutSide = () =>
-  {
+  #onClickOutSide = () => {
     this.#hideCandidates()
     this.#closeMenu()
   }
 
-  #addListeners(): void
-  {
+  #addListeners(): void {
     this.#smartGuideElement.addEventListener("pointerdown", this.#stopPropagation)
     this.#ellipsisElement.addEventListener("pointerdown", this.#onClickEllipsis)
     this.#convertElement.addEventListener("pointerdown", this.#onClickConvert)
@@ -351,8 +338,7 @@ export class InteractiveInkSSRSmartGuide
     document.addEventListener("pointerdown", this.#onClickOutSide)
   }
 
-  #removeListeners(): void
-  {
+  #removeListeners(): void {
     this.#smartGuideElement.removeEventListener("pointerdown", this.#stopPropagation)
     this.#ellipsisElement.removeEventListener("pointerdown", this.#onClickEllipsis)
     this.#convertElement.removeEventListener("pointerdown", this.#onClickConvert)
@@ -363,23 +349,20 @@ export class InteractiveInkSSRSmartGuide
     document.removeEventListener("pointerdown", this.#onClickOutSide)
   }
 
-  resize(): void
-  {
+  resize(): void {
     this.#logger.info("resize")
     const marginLeft = convertMillimeterToPixel(this.margin.left)
     const marginRight = convertMillimeterToPixel(this.margin.right)
-    this.#wrapperElement.style.marginLeft = `${ marginLeft }px`
-    this.#wrapperElement.style.marginRight = `${ marginRight }px`
+    this.#wrapperElement.style.marginLeft = `${marginLeft}px`
+    this.#wrapperElement.style.marginRight = `${marginRight}px`
   }
 
-  update(exports: TJIIXExport): void
-  {
+  update(exports: TJIIXExport): void {
     this.#logger.info("update", { exports })
     this.jiix = exports
-    const createWordSpan = (index: number, word?: TJIIXWord) =>
-    {
+    const createWordSpan = (index: number, word?: TJIIXWord) => {
       const span = document.createElement("span")
-      span.id = `word-${ index }${ this.uuid }`
+      span.id = `word-${index}${this.uuid}`
       if (word) {
         span.textContent = word.label
       } else {
@@ -389,15 +372,13 @@ export class InteractiveInkSSRSmartGuide
       return span
     }
 
-    const populatePrompter = () =>
-    {
+    const populatePrompter = () => {
       this.#logger.info("populatePrompter")
       this.#prompterTextElement.innerHTML = ""
       if (this.jiix?.words) {
         const words = this.jiix.words as TJIIXWord[]
         const myFragment = document.createDocumentFragment()
-        words.forEach((word, index) =>
-        {
+        words.forEach((word, index) => {
           if (word.label === " " || word.label.includes("\n")) {
             myFragment.appendChild(createWordSpan(index))
           } else if (index !== words.length - 1) {
@@ -409,14 +390,13 @@ export class InteractiveInkSSRSmartGuide
             }
             const span = createWordSpan(index, word)
 
-            if ((this.lastWord?.candidates !== word.candidates) && (this.lastWord?.label !== word.label)) {
+            if (this.lastWord?.candidates !== word.candidates && this.lastWord?.label !== word.label) {
               this.lastWord = word
             }
             if (this.wordToChange?.id === index.toString()) {
               span.classList.add("modified-word")
               this.wordToChange = undefined
-            }
-            else {
+            } else {
               span.classList.add("added-word")
             }
             this.#prompterTextElement.appendChild(span)
@@ -429,21 +409,18 @@ export class InteractiveInkSSRSmartGuide
     populatePrompter()
     if (this.jiix?.words?.length) {
       this.#ellipsisElement.style.setProperty("pointer-events", "auto")
-    }
-    else {
+    } else {
       this.#ellipsisElement.style.setProperty("pointer-events", "none")
     }
   }
 
-  clear(): void
-  {
+  clear(): void {
     this.#logger.info("clear")
     this.#prompterTextElement.innerHTML = ""
     this.#candidatesElement.innerHTML = ""
   }
 
-  destroy(): void
-  {
+  destroy(): void {
     this.#logger.info("destroy")
     this.#removeListeners()
     this.#smartGuideElement.remove()

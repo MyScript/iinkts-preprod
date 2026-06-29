@@ -1,7 +1,7 @@
-import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
-import type { TMenuSubMenu } from "@/menu/items/SubMenuItem";
-import { SubMenuItem } from "@/menu/items/SubMenuItem"
 import downloadIcon from "@/assets/svg/download.svg"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import type { TMenuSubMenu } from "@/menu/items/SubMenuItem"
+import { SubMenuItem } from "@/menu/items/SubMenuItem"
 
 /** @group Menu */
 export type TExportActionItemsConfig = {
@@ -17,10 +17,8 @@ export type TExportActionConfig = boolean | TExportActionItemsConfig
  * @group Menu
  * @remarks Menu action Export - Export en différents formats
  */
-export class ExportMenuAction extends SubMenuItem
-{
-  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-action", itemsConfig?: TExportActionItemsConfig)
-  {
+export class ExportMenuAction extends SubMenuItem {
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-action", itemsConfig?: TExportActionItemsConfig) {
     const enabled = (key: keyof TExportActionItemsConfig) => itemsConfig?.[key] !== false
 
     const config: TMenuSubMenu = {
@@ -30,20 +28,40 @@ export class ExportMenuAction extends SubMenuItem
       menuTitle: "Export",
       icon: downloadIcon,
       position: "right-top",
-      items: []
+      items: [],
     }
 
     if (enabled("json")) {
-      config.items.push({ type: "button", id: `${idPrefix}-export-json`, label: "JSON", action: (e) => e.downloadAsJson() })
+      config.items.push({
+        type: "button",
+        id: `${idPrefix}-export-json`,
+        label: "JSON",
+        action: (e) => e.downloadAsJson(),
+      })
     }
     if (enabled("svg")) {
-      config.items.push({ type: "button", id: `${idPrefix}-export-svg`, label: "SVG", action: (e) => e.downloadAsSVG() })
+      config.items.push({
+        type: "button",
+        id: `${idPrefix}-export-svg`,
+        label: "SVG",
+        action: (e) => e.downloadAsSVG(),
+      })
     }
     if (enabled("png")) {
-      config.items.push({ type: "button", id: `${idPrefix}-export-png`, label: "PNG", action: (e) => e.downloadAsPNG() })
+      config.items.push({
+        type: "button",
+        id: `${idPrefix}-export-png`,
+        label: "PNG",
+        action: (e) => e.downloadAsPNG(),
+      })
     }
     if (enabled("text")) {
-      config.items.push({ type: "button", id: `${idPrefix}-export-text`, label: "Text", action: (e) => e.downloadAsText() })
+      config.items.push({
+        type: "button",
+        id: `${idPrefix}-export-text`,
+        label: "Text",
+        action: (e) => e.downloadAsText(),
+      })
     }
 
     super(config, editor)

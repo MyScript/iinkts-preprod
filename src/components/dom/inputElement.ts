@@ -1,4 +1,3 @@
-
 /** @group DOM */
 export type TInputElConfig = {
   id?: string
@@ -50,16 +49,30 @@ const DEFAULT_INPUT_STYLE = `
 export function buildTextInput(config: TInputElConfig): HTMLInputElement {
   const input = document.createElement("input")
   input.type = "text"
-  if (config.id) input.id = config.id
-  if (config.value !== undefined) input.value = String(config.value)
+  if (config.id) {
+    input.id = config.id
+  }
+  if (config.value !== undefined) {
+    input.value = String(config.value)
+  }
   input.placeholder = config.placeholder ?? ""
   input.disabled = config.disabled ?? false
-  if (config.name) input.name = config.name
-  if (config.step !== undefined) input.step = String(config.step)
-  if (config.min !== undefined) input.min = String(config.min)
-  if (config.max !== undefined) input.max = String(config.max)
+  if (config.name) {
+    input.name = config.name
+  }
+  if (config.step !== undefined) {
+    input.step = String(config.step)
+  }
+  if (config.min !== undefined) {
+    input.min = String(config.min)
+  }
+  if (config.max !== undefined) {
+    input.max = String(config.max)
+  }
   input.style.cssText = DEFAULT_INPUT_STYLE
-  if (config.fullWidth) input.style.width = "100%"
+  if (config.fullWidth) {
+    input.style.width = "100%"
+  }
   return input
 }
 
@@ -67,15 +80,25 @@ export function buildTextInput(config: TInputElConfig): HTMLInputElement {
 export function buildNumberInput(config: TInputElConfig): HTMLInputElement {
   const input = document.createElement("input")
   input.type = "number"
-  if (config.id) input.id = config.id
-  if (config.value !== undefined) input.value = String(config.value)
+  if (config.id) {
+    input.id = config.id
+  }
+  if (config.value !== undefined) {
+    input.value = String(config.value)
+  }
   input.placeholder = config.placeholder ?? ""
   input.disabled = config.disabled ?? false
   input.step = config.step !== undefined ? String(config.step) : "any"
-  if (config.min !== undefined) input.min = String(config.min)
-  if (config.max !== undefined) input.max = String(config.max)
+  if (config.min !== undefined) {
+    input.min = String(config.min)
+  }
+  if (config.max !== undefined) {
+    input.max = String(config.max)
+  }
   input.style.cssText = DEFAULT_INPUT_STYLE
-  if (config.fullWidth) input.style.width = "100%"
+  if (config.fullWidth) {
+    input.style.width = "100%"
+  }
   return input
 }
 
@@ -83,11 +106,17 @@ export function buildNumberInput(config: TInputElConfig): HTMLInputElement {
 export function buildCheckbox(config: TCheckboxElConfig): HTMLInputElement {
   const checkbox = document.createElement("input")
   checkbox.type = "checkbox"
-  if (config.id) checkbox.id = config.id
+  if (config.id) {
+    checkbox.id = config.id
+  }
   checkbox.checked = config.checked ?? false
   checkbox.disabled = config.disabled ?? false
-  if (config.indeterminate) checkbox.indeterminate = true
-  if (config.name) checkbox.name = config.name
+  if (config.indeterminate) {
+    checkbox.indeterminate = true
+  }
+  if (config.name) {
+    checkbox.name = config.name
+  }
   return checkbox
 }
 
@@ -95,12 +124,18 @@ export function buildCheckbox(config: TCheckboxElConfig): HTMLInputElement {
 export function buildRange(config: TRangeElConfig): HTMLInputElement {
   const input = document.createElement("input")
   input.type = "range"
-  if (config.id) input.id = config.id
+  if (config.id) {
+    input.id = config.id
+  }
   input.min = String(config.min)
   input.max = String(config.max)
   input.step = String(config.step)
-  if (config.value !== undefined) input.value = String(config.value)
-  if (config.name) input.name = config.name
+  if (config.value !== undefined) {
+    input.value = String(config.value)
+  }
+  if (config.name) {
+    input.name = config.name
+  }
   return input
 }
 
@@ -108,7 +143,9 @@ export function buildRange(config: TRangeElConfig): HTMLInputElement {
 export function buildFileInput(config: TFileInputElConfig): HTMLInputElement {
   const input = document.createElement("input")
   input.type = "file"
-  if (config.id) input.id = config.id
+  if (config.id) {
+    input.id = config.id
+  }
   input.accept = config.accept ?? "*"
   input.multiple = config.multiple ?? false
   input.disabled = config.disabled ?? false

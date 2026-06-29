@@ -1,22 +1,23 @@
-import type { TPartialDeep } from "@/utils";
-import { mergeDeep, isVersionSuperiorOrEqual } from "@/utils"
+import type { TPartialDeep } from "@/utils"
+import { isVersionSuperiorOrEqual, mergeDeep } from "@/utils"
+
 import type {
   TConvertionConfiguration,
-  TShapeConfiguration,
   TExportConfiguration,
   TMathConfiguration,
   TRawContentConfiguration,
-  TTextRecognizerHTTPV2Configuration
-} from "./recognition";
+  TShapeConfiguration,
+  TTextRecognizerHTTPV2Configuration,
+} from "./recognition"
 import {
-  DefaultShapeConfiguration,
   DefaultExportConfiguration,
   DefaultMathV2Configuration,
   DefaultRawContentV2Configuration,
-  DefaultTexConfigurationV2
+  DefaultShapeConfiguration,
+  DefaultTexConfigurationV2,
 } from "./recognition"
 import type { TRecognitionTypeV2 } from "./RecognitionConfiguration"
-import type { TServerHTTPConfiguration } from "./ServerConfiguration";
+import type { TServerHTTPConfiguration } from "./ServerConfiguration"
 import { DefaultServerHTTPConfiguration } from "./ServerConfiguration"
 
 /**
@@ -58,10 +59,9 @@ export type TRecognizerHTTPV2Configuration = {
 /**
  * @group Recognizer
  */
-export const DefaultRecognizerHTTPV2Configuration: TRecognizerHTTPV2Configuration =
-{
+export const DefaultRecognizerHTTPV2Configuration: TRecognizerHTTPV2Configuration = {
   server: DefaultServerHTTPConfiguration,
-  recognition: DefaultRecognizerHTTPV2RecognitionConfiguration
+  recognition: DefaultRecognizerHTTPV2RecognitionConfiguration,
 }
 
 /**
@@ -72,31 +72,34 @@ export class RecognizerHTTPV2Configuration implements TRecognizerHTTPV2Configura
   recognition: TRecognizerHTTPV2RecognitionConfiguration
   server: TServerHTTPConfiguration
 
-  constructor(configuration?: TPartialDeep<TRecognizerHTTPV2Configuration>)
-  {
+  constructor(configuration?: TPartialDeep<TRecognizerHTTPV2Configuration>) {
     this.server = mergeDeep({}, DefaultRecognizerHTTPV2Configuration.server, configuration?.server)
     this.recognition = mergeDeep({}, DefaultRecognizerHTTPV2Configuration.recognition, configuration?.recognition)
 
     if (configuration?.recognition?.text?.mimeTypes) {
-      this.recognition.text.mimeTypes = configuration.recognition.text.mimeTypes.filter(t => !!t)
+      this.recognition.text.mimeTypes = configuration.recognition.text.mimeTypes.filter((t) => !!t)
     }
     this.recognition.text.mimeTypes = [...new Set(this.recognition.text.mimeTypes)]
 
     if (configuration?.recognition?.math?.mimeTypes) {
-      this.recognition.math.mimeTypes = configuration.recognition.math.mimeTypes.filter(t => !!t)
+      this.recognition.math.mimeTypes = configuration.recognition.math.mimeTypes.filter((t) => !!t)
     }
     this.recognition.math.mimeTypes = [...new Set(this.recognition.math.mimeTypes)]
 
     if (configuration?.recognition?.shape?.mimeTypes) {
-      this.recognition.shape.mimeTypes = configuration.recognition.shape.mimeTypes.filter(t => !!t)
+      this.recognition.shape.mimeTypes = configuration.recognition.shape.mimeTypes.filter((t) => !!t)
     }
     this.recognition.shape.mimeTypes = [...new Set(this.recognition.shape.mimeTypes)]
 
     if (configuration?.recognition?.["raw-content"]?.recognition?.types) {
-      this.recognition["raw-content"].recognition!.types = configuration?.recognition?.["raw-content"]?.recognition?.types.filter(t => !!t)
+      this.recognition["raw-content"].recognition!.types = configuration?.recognition?.[
+        "raw-content"
+      ]?.recognition?.types.filter((t) => !!t)
     }
     if (configuration?.recognition?.["raw-content"]?.classification?.types) {
-      this.recognition["raw-content"].classification!.types = configuration?.recognition?.["raw-content"]?.classification?.types.filter(t => !!t)
+      this.recognition["raw-content"].classification!.types = configuration?.recognition?.[
+        "raw-content"
+      ]?.classification?.types.filter((t) => !!t)
     }
 
     if (this.server.version) {

@@ -1,12 +1,19 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { TExportV2, TJIIXExport } from "@/model"
 import { StrokeOps, type TStrokeMinimal } from "@/symbol"
-import type { TPartialDeep } from "@/utils";
+import type { TPartialDeep } from "@/utils"
 import { computeHmac, getApiInfos, isVersionSuperiorOrEqual } from "@/utils"
+
+import type {
+  TDiagramConfiguration,
+  TExportConfiguration,
+  TMathConfiguration,
+  TRawContentConfiguration,
+  TTextConfiguration,
+} from "./recognition"
 import { RecognizerError } from "./RecognizerError"
-import type { TRecognizerHTTPV2Configuration } from "./RecognizerHTTPV2Configuration";
+import type { TRecognizerHTTPV2Configuration } from "./RecognizerHTTPV2Configuration"
 import { RecognizerHTTPV2Configuration } from "./RecognizerHTTPV2Configuration"
-import type { TDiagramConfiguration, TExportConfiguration, TMathConfiguration, TRawContentConfiguration, TTextConfiguration } from "./recognition"
 
 type TApiError = {
   code?: string
@@ -17,11 +24,11 @@ type TApiError = {
  * @group Recognizer
  */
 export type TRecognizerHTTPV2PostConfiguration = {
-  lang: string,
-  diagram?: TDiagramConfiguration,
-  math?: TMathConfiguration,
-  "raw-content"?: TRawContentConfiguration,
-  text?: TTextConfiguration,
+  lang: string
+  diagram?: TDiagramConfiguration
+  math?: TMathConfiguration
+  "raw-content"?: TRawContentConfiguration
+  text?: TTextConfiguration
   export: TExportConfiguration
 }
 
@@ -29,11 +36,18 @@ export type TRecognizerHTTPV2PostConfiguration = {
  * @group Recognizer
  */
 export type TRecognizerHTTPV2PostData = {
-  scaleX: number,
-  scaleY: number,
-  configuration: TRecognizerHTTPV2PostConfiguration,
-  contentType: string,
-  strokes: { id: string, pointerType: string, x: number[], y: number[], t: number[], p: number[]}[]
+  scaleX: number
+  scaleY: number
+  configuration: TRecognizerHTTPV2PostConfiguration
+  contentType: string
+  strokes: {
+    id: string
+    pointerType: string
+    x: number[]
+    y: number[]
+    t: number[]
+    p: number[]
+  }[]
 }
 
 /**
@@ -59,25 +73,25 @@ export class RecognizerHTTPV2 {
         return {
           lang: this.configuration.recognition.lang,
           diagram: this.configuration.recognition.shape,
-          export: this.configuration.recognition.export
+          export: this.configuration.recognition.export,
         }
       case "MATH":
         return {
           lang: this.configuration.recognition.lang,
           math: this.configuration.recognition.math,
-          export: this.configuration.recognition.export
+          export: this.configuration.recognition.export,
         }
       case "Raw Content":
         return {
           lang: this.configuration.recognition.lang,
           "raw-content": this.configuration.recognition["raw-content"],
-          export: this.configuration.recognition.export
+          export: this.configuration.recognition.export,
         }
       case "TEXT":
         return {
           lang: this.configuration.recognition.lang,
           text: this.configuration.recognition.text,
-          export: this.configuration.recognition.export
+          export: this.configuration.recognition.export,
         }
       default:
         throw new Error(`get postConfig error Recognition type unkow "${this.configuration.recognition.type}"`)
@@ -88,16 +102,18 @@ export class RecognizerHTTPV2 {
   protected buildData(strokes: TStrokeMinimal[]): TRecognizerHTTPV2PostData {
     this.#logger.info("buildData", { strokes })
 
-    const contentType: string = this.configuration.recognition.type === "Raw Content" ?
-      "Raw Content" :
-      this.configuration.recognition.type.charAt(0).toUpperCase() + this.configuration.recognition.type.slice(1).toLowerCase()
+    const contentType: string =
+      this.configuration.recognition.type === "Raw Content"
+        ? "Raw Content"
+        : this.configuration.recognition.type.charAt(0).toUpperCase() +
+          this.configuration.recognition.type.slice(1).toLowerCase()
 
     const data = {
       configuration: this.postConfig,
       scaleX: 0.265,
       scaleY: 0.265,
       contentType,
-      strokes: strokes.map(s => StrokeOps.formatToSend(s))
+      strokes: strokes.map((s) => StrokeOps.formatToSend(s)),
     }
     this.#logger.debug("buildData", { data })
     return data
@@ -116,8 +132,7 @@ export class RecognizerHTTPV2 {
           hmacKey = this.configuration.server.hmacKey
         } else if (typeof this.configuration.server.hmacKey == "function") {
           hmacKey = await this.configuration.server.hmacKey(this.configuration.server.applicationKey)
-        }
-        else {
+        } else {
           throw new Error("HMAC key is not a string nor a function")
         }
         if (hmacKey) {
@@ -148,7 +163,7 @@ export class RecognizerHTTPV2 {
       method: "POST",
       headers,
       body: JSON.stringify(data),
-      credentials: "omit"
+      credentials: "omit",
     }
     const request = new Request(this.url, reqInit)
     const response: Response = await fetch(request)
@@ -165,7 +180,10 @@ export class RecognizerHTTPV2 {
           result = await response.json()
           break
         case "application/vnd.myscript.jiix":
-          result = await response.clone().json().catch(async () => await response.text())
+          result = await response
+            .clone()
+            .json()
+            .catch(async () => await response.text())
           break
         default:
           result = await response.text()
@@ -175,13 +193,13 @@ export class RecognizerHTTPV2 {
       return result
     } else {
       if (response.headers.get("content-type")?.includes("application/json")) {
-        const err = await response.json() as TApiError
+        const err = (await response.json()) as TApiError
         this.#logger.error("post", { err })
         throw err
       } else {
         const err: TApiError = {
           code: response.status.toString(),
-          message: await response.text()
+          message: await response.text(),
         }
         this.#logger.error("post", { err })
         throw err
@@ -190,16 +208,25 @@ export class RecognizerHTTPV2 {
   }
 
   protected async tryFetch(data: TRecognizerHTTPV2PostData, mimeType: string): Promise<TExportV2 | never> {
-    this.#logger.debug("tryFetch", { data, mimeType })
+    this.#logger.debug("tryFetch", {
+      data,
+      mimeType,
+    })
     return this.post(data, mimeType)
       .then((res) => {
         const exports: TExportV2 = {}
         exports[mimeType] = res as TJIIXExport | string | Blob
-        this.#logger.debug("tryFetch", { exports })
+        this.#logger.debug("tryFetch", {
+          exports,
+        })
         return exports
       })
       .catch((err) => {
-        this.#logger.error("tryFetch", { data, mimeType, err })
+        this.#logger.error("tryFetch", {
+          data,
+          mimeType,
+          err,
+        })
         let message = err.message || RecognizerError.UNKNOWN
         if (!err.code) {
           message = RecognizerError.CANT_ESTABLISH
@@ -212,7 +239,9 @@ export class RecognizerHTTPV2 {
   }
 
   protected getMimeTypes(requestedMimeTypes?: string[]): string[] {
-    this.#logger.info("getMimeTypes", { requestedMimeTypes })
+    this.#logger.info("getMimeTypes", {
+      requestedMimeTypes,
+    })
     let mimeTypes: string[] = requestedMimeTypes || []
     if (!mimeTypes.length) {
       switch (this.configuration.recognition.type) {
@@ -229,7 +258,9 @@ export class RecognizerHTTPV2 {
           mimeTypes = this.configuration.recognition.text.mimeTypes
           break
         default:
-          throw new Error(`Recognition type "${this.configuration.recognition.type}" is unknown.\n Possible types are:\n -DIAGRAM\n -MATH\n -Raw Content\n -TEXT\n -SHAPE`)
+          throw new Error(
+            `Recognition type "${this.configuration.recognition.type}" is unknown.\n Possible types are:\n -DIAGRAM\n -MATH\n -Raw Content\n -TEXT\n -SHAPE`
+          )
           break
       }
     }
@@ -246,10 +277,10 @@ export class RecognizerHTTPV2 {
     const mimeTypes = requestedMimeTypes || this.getMimeTypes()
 
     const data = this.buildData(strokes)
-    const exports: TExportV2[] = await Promise.all(mimeTypes.map(mimeType => this.tryFetch(data, mimeType)))
-      exports.forEach(e => {
-        Object.assign(recognition, e)
-      })
+    const exports: TExportV2[] = await Promise.all(mimeTypes.map((mimeType) => this.tryFetch(data, mimeType)))
+    exports.forEach((e) => {
+      Object.assign(recognition, e)
+    })
 
     this.#logger.debug("send", recognition)
     return recognition

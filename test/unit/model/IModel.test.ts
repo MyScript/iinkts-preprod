@@ -1,20 +1,18 @@
 import { buildStrokeV2 } from "../helpers"
 import { IModel, StrokeOps, DefaultPenStyle, TExportV2 } from "@/iink"
 
-describe("IModel.ts", () =>
-{
-  const width = 100, height = 100, rowHeight = 10
-  test("should create", () =>
-  {
-    const model= new IModel(width, height, rowHeight)
+describe("IModel.ts", () => {
+  const width = 100,
+    height = 100,
+    rowHeight = 10
+  test("should create", () => {
+    const model = new IModel(width, height, rowHeight)
     expect(model).toBeDefined()
   })
 
-  describe("mergeExport", () =>
-  {
-    test("should initialize export if toBeUndefined", () =>
-    {
-      const model= new IModel(width, height, rowHeight)
+  describe("mergeExport", () => {
+    test("should initialize export if toBeUndefined", () => {
+      const model = new IModel(width, height, rowHeight)
       const e: TExportV2 = { "text/plain": "poney" }
       expect(model.exports).toBeUndefined()
       model.mergeExport(e)
@@ -22,18 +20,16 @@ describe("IModel.ts", () =>
     })
   })
 
-  describe("updateStroke", () =>
-  {
-    test("should updateStroke", () =>
-    {
-      const model= new IModel(width, height, rowHeight)
+  describe("updateStroke", () => {
+    test("should updateStroke", () => {
+      const model = new IModel(width, height, rowHeight)
       const stroke = StrokeOps.create(DefaultPenStyle)
       for (let index = 0; index < 10; index++) {
         stroke.pointers.push({
           p: 1,
           t: index,
           x: index,
-          y: index
+          y: index,
         })
       }
       model.addStroke(stroke)
@@ -46,16 +42,15 @@ describe("IModel.ts", () =>
       expect(model.strokes).toHaveLength(1)
       expect(model.strokes[0]).toStrictEqual(strokeUpdated)
     })
-    test("should not updateStroke if id not exist", () =>
-    {
-      const model= new IModel(width, height, rowHeight)
+    test("should not updateStroke if id not exist", () => {
+      const model = new IModel(width, height, rowHeight)
       const stroke = StrokeOps.create(DefaultPenStyle)
       for (let index = 0; index < 10; index++) {
         stroke.pointers.push({
           p: 1,
           t: index,
           x: index,
-          y: index
+          y: index,
         })
       }
       model.addStroke(stroke)
@@ -71,20 +66,17 @@ describe("IModel.ts", () =>
     })
   })
 
-  describe("strokes", () =>
-  {
-    test("should addStrokes", () =>
-    {
-      const model= new IModel(width, height, rowHeight)
+  describe("strokes", () => {
+    test("should addStrokes", () => {
+      const model = new IModel(width, height, rowHeight)
       const stroke = StrokeOps.create(DefaultPenStyle)
       model.addStroke(stroke)
       expect(model.strokes).toHaveLength(1)
       expect(model.strokes[0]).toStrictEqual(stroke)
     })
 
-    test("should extractUnsentStrokes", () =>
-    {
-      const model= new IModel(width, height, rowHeight)
+    test("should extractUnsentStrokes", () => {
+      const model = new IModel(width, height, rowHeight)
       const stroke = StrokeOps.create(DefaultPenStyle)
       model.addStroke(stroke)
       expect(model.strokes).toHaveLength(1)
@@ -92,15 +84,13 @@ describe("IModel.ts", () =>
     })
   })
 
-  describe("clone", () =>
-  {
-    const model= new IModel(27, 5)
+  describe("clone", () => {
+    const model = new IModel(27, 5)
     const stroke = buildStrokeV2()
     model.addStroke(stroke)
     model.currentStroke = stroke
     model.exports = { "text/plain": "M" }
-    test("should clone", () =>
-    {
+    test("should clone", () => {
       const clone = structuredClone(model)
       expect(clone != model).toBeTruthy()
       expect(clone.currentStroke).not.toBe(model.currentStroke)
@@ -119,11 +109,9 @@ describe("IModel.ts", () =>
     })
   })
 
-  describe("clear", () =>
-  {
-    test("should clear model", () =>
-    {
-      const model= new IModel(width, height, rowHeight)
+  describe("clear", () => {
+    test("should clear model", () => {
+      const model = new IModel(width, height, rowHeight)
       const stroke = buildStrokeV2()
       model.addStroke(stroke)
 
@@ -136,5 +124,4 @@ describe("IModel.ts", () =>
       expect(model.strokes).toHaveLength(0)
     })
   })
-
 })

@@ -1,22 +1,18 @@
 import { Chart, TChartConfig } from "@/iink"
 
-describe("Chart.ts", () =>
-{
+describe("Chart.ts", () => {
   let container: HTMLDivElement
 
-  beforeEach(() =>
-  {
+  beforeEach(() => {
     container = document.createElement("div")
     document.body.appendChild(container)
   })
 
-  afterEach(() =>
-  {
+  afterEach(() => {
     document.body.innerHTML = ""
   })
 
-  test("should create chart with default config", () =>
-  {
+  test("should create chart with default config", () => {
     const chart = new Chart()
     expect(chart).toBeDefined()
 
@@ -25,8 +21,7 @@ describe("Chart.ts", () =>
     expect(element).toBeInstanceOf(HTMLDivElement)
   })
 
-  test("should create chart with custom config", () =>
-  {
+  test("should create chart with custom config", () => {
     const config: TChartConfig = {
       width: 800,
       height: 600,
@@ -36,7 +31,7 @@ describe("Chart.ts", () =>
       lineColor: "#ff0000",
       lineWidth: 3,
       showGrid: false,
-      showPoints: false
+      showPoints: false,
     }
 
     const chart = new Chart(config)
@@ -46,10 +41,8 @@ describe("Chart.ts", () =>
     expect(element).toBeDefined()
   })
 
-  describe("getElement()", () =>
-  {
-    test("should return HTMLDivElement", () =>
-    {
+  describe("getElement()", () => {
+    test("should return HTMLDivElement", () => {
       const chart = new Chart()
       const element = chart.getElement()
 
@@ -57,8 +50,7 @@ describe("Chart.ts", () =>
       expect(element.classList.contains("ms-chart")).toBe(true)
     })
 
-    test("should contain canvas element", () =>
-    {
+    test("should contain canvas element", () => {
       const chart = new Chart({ width: 400, height: 300 })
       const element = chart.getElement()
 
@@ -68,8 +60,7 @@ describe("Chart.ts", () =>
       expect(canvas?.height).toBe(300)
     })
 
-    test("should contain control buttons", () =>
-    {
+    test("should contain control buttons", () => {
       const chart = new Chart()
       const element = chart.getElement()
 
@@ -78,90 +69,90 @@ describe("Chart.ts", () =>
     })
   })
 
-  describe("setData()", () =>
-  {
-    test("should accept array of [x, y] pairs", () =>
-    {
+  describe("setData()", () => {
+    test("should accept array of [x, y] pairs", () => {
       const chart = new Chart()
       const data = [
         [1, 10],
         [2, 20],
         [3, 15],
-        [4, 25]
+        [4, 25],
       ]
 
       expect(() => chart.setData(data)).not.toThrow()
     })
 
-    test("should accept array of objects with x and y", () =>
-    {
+    test("should accept array of objects with x and y", () => {
       const chart = new Chart({ xLabel: "x", yLabel: "y" })
       const data = [
         { x: 1, y: 10 },
         { x: 2, y: 20 },
         { x: 3, y: 15 },
-        { x: 4, y: 25 }
+        { x: 4, y: 25 },
       ]
 
       expect(() => chart.setData(data)).not.toThrow()
     })
 
-    test("should accept transposed format [[x values], [y values]]", () =>
-    {
+    test("should accept transposed format [[x values], [y values]]", () => {
       const chart = new Chart()
       const data = [
         [1, 2, 3, 4],
-        [10, 20, 15, 25]
+        [10, 20, 15, 25],
       ]
 
       expect(() => chart.setData(data)).not.toThrow()
     })
 
-    test("should accept multiple series as array of arrays", () =>
-    {
+    test("should accept multiple series as array of arrays", () => {
       const chart = new Chart()
       const data = [
-        [[1, 10], [2, 20], [3, 15]],
-        [[1, 5], [2, 15], [3, 10]]
+        [
+          [1, 10],
+          [2, 20],
+          [3, 15],
+        ],
+        [
+          [1, 5],
+          [2, 15],
+          [3, 10],
+        ],
       ]
 
       expect(() => chart.setData(data)).not.toThrow()
     })
 
-    test("should accept multiple series as array of object arrays", () =>
-    {
+    test("should accept multiple series as array of object arrays", () => {
       const chart = new Chart({ xLabel: "x", yLabel: "y" })
       const data = [
         [
           { x: 1, y: 10 },
-          { x: 2, y: 20 }
+          { x: 2, y: 20 },
         ],
         [
           { x: 1, y: 5 },
-          { x: 2, y: 15 }
-        ]
+          { x: 2, y: 15 },
+        ],
       ]
 
       expect(() => chart.setData(data)).not.toThrow()
     })
 
-    test("should handle empty data", () =>
-    {
+    test("should handle empty data", () => {
       const chart = new Chart()
       const data: number[][] = []
 
       expect(() => chart.setData(data)).not.toThrow()
     })
 
-    test("should show canvas after setting data", () =>
-    {
+    test("should show canvas after setting data", () => {
       const chart = new Chart()
       container.appendChild(chart.getElement())
 
       const data = [
         [1, 10],
         [2, 20],
-        [3, 30]
+        [3, 30],
       ]
 
       chart.setData(data)
@@ -173,10 +164,8 @@ describe("Chart.ts", () =>
     })
   })
 
-  describe("updateConfig()", () =>
-  {
-    test("should update config without errors", () =>
-    {
+  describe("updateConfig()", () => {
+    test("should update config without errors", () => {
       const chart = new Chart({ width: 500, height: 400 })
 
       // updateConfig only updates internal config and redraws
@@ -184,8 +173,7 @@ describe("Chart.ts", () =>
       expect(() => chart.updateConfig({ width: 600, height: 500 })).not.toThrow()
     })
 
-    test("should update title", () =>
-    {
+    test("should update title", () => {
       const chart = new Chart({ title: "Initial Title" })
 
       chart.updateConfig({ title: "Updated Title" })
@@ -194,48 +182,41 @@ describe("Chart.ts", () =>
       expect(() => chart.updateConfig({ title: "Updated Title" })).not.toThrow()
     })
 
-    test("should update line color", () =>
-    {
+    test("should update line color", () => {
       const chart = new Chart({ lineColor: "#0000ff" })
 
       expect(() => chart.updateConfig({ lineColor: "#ff0000" })).not.toThrow()
     })
 
-    test("should update grid visibility", () =>
-    {
+    test("should update grid visibility", () => {
       const chart = new Chart({ showGrid: true })
 
       expect(() => chart.updateConfig({ showGrid: false })).not.toThrow()
     })
 
-    test("should update points visibility", () =>
-    {
+    test("should update points visibility", () => {
       const chart = new Chart({ showPoints: true })
 
       expect(() => chart.updateConfig({ showPoints: false })).not.toThrow()
     })
 
-    test("should update multiple config options at once", () =>
-    {
+    test("should update multiple config options at once", () => {
       const chart = new Chart()
 
-      expect(() =>
-      {
+      expect(() => {
         chart.updateConfig({
           width: 700,
           height: 600,
           lineColor: "#00ff00",
           lineWidth: 4,
-          showGrid: false
+          showGrid: false,
         })
       }).not.toThrow()
     })
   })
 
-  describe("canvas rendering", () =>
-  {
-    test("should have canvas with 2d context", () =>
-    {
+  describe("canvas rendering", () => {
+    test("should have canvas with 2d context", () => {
       const chart = new Chart()
       const element = chart.getElement()
 
@@ -246,13 +227,12 @@ describe("Chart.ts", () =>
       expect(ctx).toBeTruthy()
     })
 
-    test("should render data on canvas", () =>
-    {
+    test("should render data on canvas", () => {
       const chart = new Chart({ width: 500, height: 400 })
       const data = [
         [1, 10],
         [2, 20],
-        [3, 15]
+        [3, 15],
       ]
 
       chart.setData(data)
@@ -267,62 +247,56 @@ describe("Chart.ts", () =>
     })
   })
 
-  describe("interaction controls", () =>
-  {
-    test("should have zoom in button", () =>
-    {
+  describe("interaction controls", () => {
+    test("should have zoom in button", () => {
       const chart = new Chart()
       const element = chart.getElement()
 
       const buttons = Array.from(element.querySelectorAll("button"))
-      const zoomInBtn = buttons.find(btn => btn.textContent?.includes("Zoom") && btn.textContent?.includes("+"))
+      const zoomInBtn = buttons.find((btn) => btn.textContent?.includes("Zoom") && btn.textContent?.includes("+"))
 
       expect(zoomInBtn).toBeTruthy()
     })
 
-    test("should have zoom out button", () =>
-    {
+    test("should have zoom out button", () => {
       const chart = new Chart()
       const element = chart.getElement()
 
       const buttons = Array.from(element.querySelectorAll("button"))
-      const zoomOutBtn = buttons.find(btn => btn.textContent?.includes("Zoom") && (btn.textContent?.includes("−") || btn.textContent?.includes("-")))
+      const zoomOutBtn = buttons.find(
+        (btn) => btn.textContent?.includes("Zoom") && (btn.textContent?.includes("−") || btn.textContent?.includes("-"))
+      )
 
       expect(zoomOutBtn).toBeTruthy()
     })
 
-    test("should have reset button", () =>
-    {
+    test("should have reset button", () => {
       const chart = new Chart()
       const element = chart.getElement()
 
       const buttons = Array.from(element.querySelectorAll("button"))
-      const resetBtn = buttons.find(btn => btn.textContent?.includes("Reset") || btn.textContent?.includes("↻"))
+      const resetBtn = buttons.find((btn) => btn.textContent?.includes("Reset") || btn.textContent?.includes("↻"))
 
       expect(resetBtn).toBeTruthy()
     })
   })
 
-  describe("chart styles", () =>
-  {
-    test("should apply custom line color", () =>
-    {
+  describe("chart styles", () => {
+    test("should apply custom line color", () => {
       const chart = new Chart({ lineColor: "#ff0000" })
 
       expect(chart).toBeDefined()
       // Color is applied during rendering, no direct DOM attribute to test
     })
 
-    test("should apply custom line width", () =>
-    {
+    test("should apply custom line width", () => {
       const chart = new Chart({ lineWidth: 5 })
 
       expect(chart).toBeDefined()
       // Width is applied during rendering
     })
 
-    test("should have ms-chart-canvas class on canvas", () =>
-    {
+    test("should have ms-chart-canvas class on canvas", () => {
       const chart = new Chart()
       const element = chart.getElement()
 

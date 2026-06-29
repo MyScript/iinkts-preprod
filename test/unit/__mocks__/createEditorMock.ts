@@ -1,5 +1,8 @@
 import { IIModel } from "@/model"
-import { DefaultInteractiveInkEditorConfiguration, InteractiveInkEditorConfiguration } from "@/editor/variants/InteractiveInkEditorConfiguration"
+import {
+  DefaultInteractiveInkEditorConfiguration,
+  InteractiveInkEditorConfiguration,
+} from "@/editor/variants/InteractiveInkEditorConfiguration"
 import { DefaultStyle } from "@/style/Style"
 import { EditorTool, EditorWriteTool } from "@/Constants"
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
@@ -30,7 +33,7 @@ function stubManager<T>(): T {
     set: (target, prop, value) => {
       target[prop] = value
       return true
-    }
+    },
   }) as unknown as T
 }
 
@@ -94,13 +97,19 @@ function createRendererStub(): TRendererStub {
     getRenderingContext: jest.fn().mockReturnValue(renderingContext),
     getBounds: jest.fn().mockReturnValue({ x: 0, y: 0, width: 800, height: 600 }),
     getViewBox: jest.fn().mockImplementation(() => ({ ..._viewBox })),
-    setViewBox: jest.fn().mockImplementation((x: number, y: number, width: number, height: number) => { _viewBox = { x, y, width, height } }),
+    setViewBox: jest.fn().mockImplementation((x: number, y: number, width: number, height: number) => {
+      _viewBox = { x, y, width, height }
+    }),
     pan: jest.fn(),
     ensurePointVisible: jest.fn(),
     redrawGuides: jest.fn(),
     setAttribute: jest.fn(),
-    appendElement: jest.fn().mockImplementation((el: Element) => { layer.appendChild(el) }),
-    prependElement: jest.fn().mockImplementation((el: Element) => { layer.prepend(el) }),
+    appendElement: jest.fn().mockImplementation((el: Element) => {
+      layer.appendChild(el)
+    }),
+    prependElement: jest.fn().mockImplementation((el: Element) => {
+      layer.prepend(el)
+    }),
     buildElementFromSymbol: jest.fn().mockImplementation(() => {
       const g = document.createElementNS("http://www.w3.org/2000/svg", "g")
       const text = document.createElementNS("http://www.w3.org/2000/svg", "text")
@@ -142,8 +151,9 @@ export type TEditorMock = Omit<TInteractiveInkEditor, "renderer"> & {
  * const editor = createEditorMock({ model })
  */
 export function createEditorMock(overrides: Partial<TEditorMock> = {}): TEditorMock {
-  const configuration = overrides.configuration
-    ?? new InteractiveInkEditorConfiguration(JSON.parse(JSON.stringify(DefaultInteractiveInkEditorConfiguration)))
+  const configuration =
+    overrides.configuration ??
+    new InteractiveInkEditorConfiguration(JSON.parse(JSON.stringify(DefaultInteractiveInkEditorConfiguration)))
   const model = overrides.model ?? new IIModel(configuration.rendering.guides.gap)
   const renderer = overrides.renderer ?? createRendererStub()
   const event = overrides.event ?? new EditorEventMock(document.createElement("div"))
@@ -160,11 +170,13 @@ export function createEditorMock(overrides: Partial<TEditorMock> = {}): TEditorM
     layers: overrides.layers ?? new EditorLayer(document.createElement("div")),
     dom: overrides.dom ?? DOMFactory,
     history: overrides.history ?? stubManager(),
-    writer: overrides.writer ?? (() => {
-      const w = stubManager()
-      ;(w as unknown as Record<string, unknown>).tool = EditorWriteTool.Pencil
-      return w
-    })(),
+    writer:
+      overrides.writer ??
+      (() => {
+        const w = stubManager()
+        ;(w as unknown as Record<string, unknown>).tool = EditorWriteTool.Pencil
+        return w
+      })(),
     keyboard: overrides.keyboard ?? stubManager(),
     eraser: overrides.eraser ?? stubManager(),
     selector: overrides.selector ?? stubManager(),
@@ -173,55 +185,88 @@ export function createEditorMock(overrides: Partial<TEditorMock> = {}): TEditorM
     transform: overrides.transform ?? stubManager(),
     converter: overrides.converter ?? stubManager(),
     typeset: overrides.typeset ?? stubManager(),
-    overlays: overrides.overlays ?? (() => {
-      const o = stubManager()
-      ;(o as unknown as Record<string, unknown>).getConfig = jest.fn().mockReturnValue({ showBlockOverlays: false, badgeSize: 20, borderWidth: 2, panelPadding: 8, labelMaxChars: 10, labelFontSize: 12 })
-      return o
-    })(),
-    snaps: overrides.snaps ?? (() => {
-      const s = stubManager()
-      ;(s as unknown as Record<string, unknown>).snapConfiguration = { angle: 0, guide: true, symbol: true }
-      ;(s as unknown as Record<string, unknown>).snapResize = jest.fn().mockImplementation((point: { x: number; y: number }) => point)
-      ;(s as unknown as Record<string, unknown>).snapTranslate = jest.fn().mockImplementation((x: number, y: number) => ({ x, y }))
-      ;(s as unknown as Record<string, unknown>).snapRotation = jest.fn().mockImplementation((angle: number) => angle)
-      return s
-    })(),
+    overlays:
+      overrides.overlays ??
+      (() => {
+        const o = stubManager()
+        ;(o as unknown as Record<string, unknown>).getConfig = jest.fn().mockReturnValue({
+          showBlockOverlays: false,
+          badgeSize: 20,
+          borderWidth: 2,
+          panelPadding: 8,
+          labelMaxChars: 10,
+          labelFontSize: 12,
+        })
+        return o
+      })(),
+    snaps:
+      overrides.snaps ??
+      (() => {
+        const s = stubManager()
+        ;(s as unknown as Record<string, unknown>).snapConfiguration = { angle: 0, guide: true, symbol: true }
+        ;(s as unknown as Record<string, unknown>).snapResize = jest
+          .fn()
+          .mockImplementation((point: { x: number; y: number }) => point)
+        ;(s as unknown as Record<string, unknown>).snapTranslate = jest
+          .fn()
+          .mockImplementation((x: number, y: number) => ({ x, y }))
+        ;(s as unknown as Record<string, unknown>).snapRotation = jest.fn().mockImplementation((angle: number) => angle)
+        return s
+      })(),
     synchronizer: overrides.synchronizer ?? stubManager(),
-    jiix: overrides.jiix ?? (() => {
-      const j = stubManager()
-      ;(j as unknown as Record<string, unknown>).getTextSelectionGroups = jest.fn().mockReturnValue([])
-      ;(j as unknown as Record<string, unknown>).getMathSelectionGroups = jest.fn().mockReturnValue([])
-      ;(j as unknown as Record<string, unknown>).getShapeSelectionGroups = jest.fn().mockReturnValue([])
-      return j
-    })(),
-    math: overrides.math ?? (() => {
-      const m = stubManager()
-      ;(m as unknown as Record<string, unknown>).getComputationConfig = jest.fn().mockReturnValue({ resultMode: "draw", autoCompute: false, resultColor: "#4caf50" })
-      ;(m as unknown as Record<string, unknown>).getVariablesConfig = jest.fn().mockReturnValue({ showDependencyOnHover: false, highlightOnSelect: false })
-      return m
-    })(),
+    jiix:
+      overrides.jiix ??
+      (() => {
+        const j = stubManager()
+        ;(j as unknown as Record<string, unknown>).getTextSelectionGroups = jest.fn().mockReturnValue([])
+        ;(j as unknown as Record<string, unknown>).getMathSelectionGroups = jest.fn().mockReturnValue([])
+        ;(j as unknown as Record<string, unknown>).getShapeSelectionGroups = jest.fn().mockReturnValue([])
+        return j
+      })(),
+    math:
+      overrides.math ??
+      (() => {
+        const m = stubManager()
+        ;(m as unknown as Record<string, unknown>).getComputationConfig = jest
+          .fn()
+          .mockReturnValue({ resultMode: "draw", autoCompute: false, resultColor: "#4caf50" })
+        ;(m as unknown as Record<string, unknown>).getVariablesConfig = jest
+          .fn()
+          .mockReturnValue({ showDependencyOnHover: false, highlightOnSelect: false })
+        return m
+      })(),
     connector: overrides.connector ?? stubManager(),
-    menu: overrides.menu ?? (() => {
-      const m = stubManager()
-      ;(m as unknown as Record<string, unknown>).context = {
-        wrapper: undefined,
-        position: { x: 0, y: 0 },
-        hide: jest.fn(),
-        show: jest.fn(),
-        update: jest.fn(),
-      }
-      ;(m as unknown as Record<string, unknown>).style = {
-        update: jest.fn(),
-        show: jest.fn(),
-        hide: jest.fn(),
-      }
-      return m
-    })(),
+    menu:
+      overrides.menu ??
+      (() => {
+        const m = stubManager()
+        ;(m as unknown as Record<string, unknown>).context = {
+          wrapper: undefined,
+          position: { x: 0, y: 0 },
+          hide: jest.fn(),
+          show: jest.fn(),
+          update: jest.fn(),
+        }
+        ;(m as unknown as Record<string, unknown>).style = {
+          update: jest.fn(),
+          show: jest.fn(),
+          hide: jest.fn(),
+        }
+        return m
+      })(),
 
-    get penStyle(): TStyle { return _penStyle },
-    set penStyle(v: Partial<TStyle>) { _penStyle = { ..._penStyle, ...v } },
-    get tool(): EditorTool { return _tool },
-    set tool(v: EditorTool) { _tool = v },
+    get penStyle(): TStyle {
+      return _penStyle
+    },
+    set penStyle(v: Partial<TStyle>) {
+      _penStyle = { ..._penStyle, ...v }
+    },
+    get tool(): EditorTool {
+      return _tool
+    },
+    set tool(v: EditorTool) {
+      _tool = v
+    },
 
     init: jest.fn().mockImplementation(() => {
       model.rowHeight = configuration.rendering.guides.gap
@@ -250,9 +295,11 @@ export function createEditorMock(overrides: Partial<TEditorMock> = {}): TEditorM
     changeOrderSymbols: jest.fn(),
     removeSymbol: jest.fn().mockResolvedValue(undefined),
     removeSymbols: jest.fn().mockResolvedValue([]),
-    extractStrokesFromSymbols: jest.fn().mockImplementation((syms: TSymbol[] | undefined) =>
-      (syms ?? []).filter((s): s is TStroke => s.type === SymbolType.Stroke)
-    ),
+    extractStrokesFromSymbols: jest
+      .fn()
+      .mockImplementation((syms: TSymbol[] | undefined) =>
+        (syms ?? []).filter((s): s is TStroke => s.type === SymbolType.Stroke)
+      ),
     duplicate: jest.fn().mockResolvedValue([]),
     select: jest.fn(),
     selectAll: jest.fn(),

@@ -1,17 +1,13 @@
 import { StyleManager, DefaultPenStyle, DefaultTheme } from "@/iink"
 
-describe("StyleManager.ts", () =>
-{
-  describe("constructor", () =>
-  {
-    test("should instanciate with DefaultPenStyle & DefaultTheme", () =>
-    {
+describe("StyleManager.ts", () => {
+  describe("constructor", () => {
+    test("should instanciate with DefaultPenStyle & DefaultTheme", () => {
       const styleManager = new StyleManager()
       expect(styleManager.penStyle).toStrictEqual(DefaultPenStyle)
       expect(styleManager.theme).toStrictEqual(DefaultTheme)
     })
-    test("should instanciate and override DefaultPenStyle", () =>
-    {
+    test("should instanciate and override DefaultPenStyle", () => {
       const customPenStyle = { ...DefaultPenStyle }
       customPenStyle["-myscript-pen-fill-color"] = "yellow"
       customPenStyle["-myscript-pen-width"] = 12
@@ -20,8 +16,7 @@ describe("StyleManager.ts", () =>
       const styleManager = new StyleManager(customPenStyle, undefined)
       expect(styleManager.penStyle).toStrictEqual(customPenStyle)
     })
-    test("should instanciate and override DefaultTheme", () =>
-    {
+    test("should instanciate and override DefaultTheme", () => {
       const customTheme = { ...DefaultTheme }
       customTheme[".math"]["font-family"] = "math"
       customTheme[".math-solved"].color = "yellow"
@@ -36,10 +31,8 @@ describe("StyleManager.ts", () =>
     })
   })
 
-  describe("penStyle", () =>
-  {
-    test("should override DefaultPenStyle", () =>
-    {
+  describe("penStyle", () => {
+    test("should override DefaultPenStyle", () => {
       const styleManager = new StyleManager()
       const customPenStyle = { ...DefaultPenStyle }
       customPenStyle["-myscript-pen-fill-color"] = "yellow"
@@ -50,8 +43,7 @@ describe("StyleManager.ts", () =>
       expect(styleManager.penStyle).toStrictEqual(customPenStyle)
     })
 
-    test("should define currentPenStyle", () =>
-    {
+    test("should define currentPenStyle", () => {
       const styleManager = new StyleManager()
       const customPenStyle = { ...DefaultPenStyle }
       customPenStyle["-myscript-pen-fill-color"] = "yellow"
@@ -63,10 +55,8 @@ describe("StyleManager.ts", () =>
     })
   })
 
-  describe("theme", () =>
-  {
-    test("should override DefaultTheme", () =>
-    {
+  describe("theme", () => {
+    test("should override DefaultTheme", () => {
       const styleManager = new StyleManager()
       const customTheme = { ...DefaultTheme }
       customTheme[".math"]["font-family"] = "math"
@@ -82,16 +72,13 @@ describe("StyleManager.ts", () =>
     })
   })
 
-  describe("penStyleClasses", () =>
-  {
-    test("should set penStyleClasses", () =>
-    {
+  describe("penStyleClasses", () => {
+    test("should set penStyleClasses", () => {
       const styleManager = new StyleManager()
       styleManager.setPenStyleClasses("pouet")
       expect(styleManager.penStyleClasses).toStrictEqual("pouet")
     })
-    test("should define currentPenStyle", () =>
-    {
+    test("should define currentPenStyle", () => {
       const styleManager = new StyleManager()
       const customTheme = { ...DefaultTheme }
       customTheme[".math"]["font-family"] = "math"
@@ -106,6 +93,4 @@ describe("StyleManager.ts", () =>
       expect(styleManager.currentPenStyle).toStrictEqual(customTheme[".math"])
     })
   })
-
-
 })

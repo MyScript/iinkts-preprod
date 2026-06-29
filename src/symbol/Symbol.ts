@@ -1,17 +1,17 @@
 import type { TStyle } from "@/style"
 import type { TPartialDeep } from "@/utils"
+
+import type { TDecorator } from "./decorator/Decorator"
 import type { TEdge } from "./edge/Edge"
+import type { TMath } from "./math/Math"
 import type { TShape } from "./shape/Shape"
 import type { TStroke } from "./stroke/Stroke"
 import type { TText } from "./text/Text"
-import type { TMath } from "./math/Math"
-import type { TDecorator } from "./decorator/Decorator"
 
 /**
  * @group Symbol
  */
-export enum SymbolType
-{
+export enum SymbolType {
   Stroke = "stroke",
   Group = "group",
   Shape = "shape",
@@ -19,7 +19,7 @@ export enum SymbolType
   Text = "text",
   Math = "math",
   Eraser = "eraser",
-  Decorator = "decorator"
+  Decorator = "decorator",
 }
 
 /**
