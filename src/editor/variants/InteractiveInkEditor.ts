@@ -923,7 +923,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
     {
       if (ids.includes(s.id) !== s.selected) {
         s.selected = ids.includes(s.id)
-        this.renderer.updateSymbolSelection(s)
+        this.renderer.updateSelectedState(s)
       }
     })
     this.selector.drawSelectedGroup(this.model.symbolsSelected)
@@ -949,7 +949,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
     this.model.symbols.forEach(s =>
     {
       s.selected = true
-      this.renderer.updateSymbolSelection(s)
+      this.renderer.updateSelectedState(s)
     })
     this.selector.drawSelectedGroup(this.model.symbolsSelected)
 
@@ -973,7 +973,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
       this.model.symbolsSelected.forEach(s =>
       {
         s.selected = false
-        this.renderer.updateSymbolSelection(s)
+        this.renderer.updateSelectedState(s)
       })
       this.selector.removeSelectedGroup()
       this.updateLayerUI()
