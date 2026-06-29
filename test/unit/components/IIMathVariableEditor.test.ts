@@ -2,7 +2,7 @@ import { createEditorMock, asEditor } from "../__mocks__/createEditorMock"
 import {
   IIMathVariableEditor,
   TMathVariableUsage
-} from "../../../src/iink"
+} from "@/iink"
 
 function makeUsage(overrides: Partial<TMathVariableUsage> = {}): TMathVariableUsage {
   return {

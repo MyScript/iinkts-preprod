@@ -10,7 +10,7 @@ import
   TSymbolChar,
   StrokeOps,
   registerBuiltinSymbolUtils,
-} from "../../../src/iink"
+} from "@/iink"
 
 beforeAll(() => { registerBuiltinSymbolUtils() })
 

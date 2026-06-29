@@ -1,9 +1,11 @@
 import { describe, test, expect, beforeEach } from "@jest/globals"
-import { DecoratorUtil } from "../../../../src/symbol-utils/decorator/DecoratorUtil"
-import { DecoratorKind } from "../../../../src/symbol/decorator/Decorator"
-import { OBBOps } from "../../../../src/symbol/primitives/OBB"
-import { SymbolType } from "../../../../src/symbol/Symbol"
 import { buildIIDecorator } from "../../helpers"
+import {
+  DecoratorUtil,
+  DecoratorKind,
+  OBBOps,
+  SymbolType
+} from "@/iink"
 
 describe("DecoratorUtil", () =>
 {

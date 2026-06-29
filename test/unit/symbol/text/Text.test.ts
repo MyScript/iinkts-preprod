@@ -1,6 +1,10 @@
-import { TBox, TSymbolChar, TPoint } from "../../../../src/iink"
-import { BoxOps } from "../../../../src/iink"
-import { TextOps } from "../../../../src/symbol/text/Text"
+import {
+  TBox,
+  TSymbolChar,
+  TPoint,
+  BoxOps,
+  TextOps
+} from "@/iink"
 
 describe("Text.ts", () =>
 {

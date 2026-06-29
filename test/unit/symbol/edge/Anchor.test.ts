@@ -1,5 +1,5 @@
 import { describe, test, expect } from "@jest/globals"
-import { resolveAnchorPoint, computeNormalizedAnchor } from "@/symbol/edge/Anchor"
+import { resolveAnchorPoint, computeNormalizedAnchor } from "@/iink"
 
 const bounds = { x: 10, y: 20, width: 100, height: 80 }
 

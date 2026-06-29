@@ -6,7 +6,7 @@ import
   OBBOps,
   TSymbolChar,
   SVGBuilder
-} from "../../../../src/iink"
+} from "@/iink"
 
 describe("IITypesetManager.ts", () =>
 {

@@ -3,7 +3,7 @@ import
   computeAverage,
   isBetween,
   isValidNumber,
-} from "../../../src/iink"
+} from "@/iink"
 
 
 describe("math.ts", () =>

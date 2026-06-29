@@ -1,5 +1,5 @@
 import { RecognizerWebSocketSSRTextConfiguration } from "../__dataset__/configuration.dataset"
-import { getAvailableFontList } from "../../../src/iink"
+import { getAvailableFontList } from "@/iink"
 
 describe("font.ts", () =>
 {

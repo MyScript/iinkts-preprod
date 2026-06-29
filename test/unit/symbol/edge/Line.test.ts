@@ -1,12 +1,12 @@
-import { EdgeLineOps } from "../../../../src/symbol/edge/Line"
-import { OBBOps } from "../../../../src/symbol/primitives/OBB"
 import
 {
+  EdgeLineOps,
+  OBBOps,
   TPoint,
   DefaultStyle,
   TStyle,
   TBox,
-} from "../../../../src/iink"
+} from "@/iink"
 
 describe("Line.ts", () =>
 {

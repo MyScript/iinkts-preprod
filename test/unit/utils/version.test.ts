@@ -1,4 +1,4 @@
-import { isVersionSuperiorOrEqual } from "../../../src/iink"
+import { isVersionSuperiorOrEqual } from "@/iink"
 
 describe("version", () =>
 {

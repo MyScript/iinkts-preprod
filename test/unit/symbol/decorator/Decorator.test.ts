@@ -1,5 +1,4 @@
-import { DecoratorKind, TStyle } from "../../../../src/iink"
-import { DecoratorOps } from "../../../../src/symbol/decorator/Decorator"
+import { DecoratorKind, DecoratorOps, TStyle } from "@/iink"
 
 describe("Decorator.ts", () =>
 {

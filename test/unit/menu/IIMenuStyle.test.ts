@@ -1,7 +1,7 @@
 import { LeftClickEventMock } from "../__mocks__/EventMock"
 import { createEditorMock, asEditor } from "../__mocks__/createEditorMock"
 import { buildIICircle, buildIIStroke } from "../helpers"
-import { EditorTool, IIMenuStyle, EditorWriteTool } from "../../../src/iink"
+import { EditorTool, IIMenuStyle, EditorWriteTool } from "@/iink"
 
 describe("IIMenuStyle.ts", () =>
 {

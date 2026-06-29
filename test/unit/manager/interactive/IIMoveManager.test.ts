@@ -1,5 +1,5 @@
 import { createEditorMock, asEditor } from "../../__mocks__/createEditorMock"
-import { DefaultIIRendererConfiguration, IIMoveManager, TPointerInfo } from "../../../../src/iink"
+import { DefaultIIRendererConfiguration, IIMoveManager, TPointerInfo } from "@/iink"
 
 
 describe("IIMoveManager.ts", () =>

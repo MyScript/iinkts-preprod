@@ -5,9 +5,9 @@ import
   DefaultStyle,
   TStyle,
   TBox,
-  EdgeDecoration
-} from "../../../../src/iink"
-import { OBBOps } from "../../../../src/symbol/primitives/OBB"
+  EdgeDecoration,
+  OBBOps
+} from "@/iink"
 
 describe("EdgePolyLineOps", () =>
 {

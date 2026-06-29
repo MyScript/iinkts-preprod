@@ -5,7 +5,7 @@ import
   IIMenuStyle,
   IIMenuTool,
   IIMenuAction
-} from "../../../src/iink"
+} from "@/iink"
 
 describe("IIMenuManager.ts", () =>
 {

@@ -1,5 +1,5 @@
 import { buildStroke, delay } from "../helpers"
-import { Model, Stroke, DefaultPenStyle, TExport, TPointer } from "../../../src/iink"
+import { Model, Stroke, DefaultPenStyle, TExport, TPointer } from "@/iink"
 
 describe("Model.ts", () =>
 {

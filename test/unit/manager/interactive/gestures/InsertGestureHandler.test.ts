@@ -1,13 +1,13 @@
 import { createEditorMock, asEditor } from "../../../__mocks__/createEditorMock"
 import { buildIIStroke } from "../../../helpers"
 import {
+  type TStroke,
   InsertGestureHandler,
   GestureHelpers,
   OBBOps,
   StrokeOps,
-} from "../../../../../src/iink"
-import { MatrixTransform } from "../../../../../src/transform/Matrix"
-import type { TStroke } from "../../../../../src/iink"
+  MatrixTransform
+} from "@/iink"
 
 describe("InsertGestureHandler.ts", () =>
 {

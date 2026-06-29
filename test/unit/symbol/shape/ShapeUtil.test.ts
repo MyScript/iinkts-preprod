@@ -1,10 +1,12 @@
 import { describe, test, expect, beforeEach } from "@jest/globals"
-import { ShapeUtil } from "../../../../src/symbol-utils/shape/ShapeUtil"
-import { ShapeKind } from "../../../../src/symbol/shape/Shape-enum"
-import { SymbolType } from "../../../../src/symbol/Symbol"
 import { buildIICircle } from "../../helpers"
-import { OBBOps } from "../../../../src/symbol/primitives/OBB"
-import type { TShape } from "../../../../src/iink"
+import {
+  ShapeUtil,
+  ShapeKind,
+  SymbolType,
+  OBBOps,
+  type TShape
+} from "@/iink"
 
 describe("ShapeUtil", () =>
 {

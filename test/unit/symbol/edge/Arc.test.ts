@@ -1,12 +1,12 @@
-import { EdgeArcOps } from "../../../../src/symbol/edge/Arc"
-import { OBBOps } from "../../../../src/symbol/primitives/OBB"
+import { EdgeArcOps } from "@/symbol/edge/Arc"
 import
 {
+  OBBOps,
   TPoint,
   DefaultStyle,
   TStyle,
   TBox,
-} from "../../../../src/iink"
+} from "@/iink"
 
 describe("Arc.ts", () =>
 {

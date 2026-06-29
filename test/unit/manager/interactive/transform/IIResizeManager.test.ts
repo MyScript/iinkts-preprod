@@ -1,5 +1,5 @@
 import { createEditorMock, asEditor } from "../../../__mocks__/createEditorMock"
-import { OBBOps } from "../../../../../src/symbol/primitives/OBB"
+import { buildIIStroke } from "../../../helpers"
 import
 {
   EdgeArcOps,
@@ -13,11 +13,11 @@ import
   ResizeDirection,
   SvgElementRole,
   TSymbolChar,
-  TPoint
-} from "../../../../../src/iink"
-import { MatrixTransform } from "../../../../../src/transform"
-import { buildIIStroke } from "../../../helpers"
-import { TextOps } from "../../../../../src/symbol/text/Text"
+  TPoint,
+  TextOps,
+  MatrixTransform,
+  OBBOps
+} from "@/iink"
 
 describe("IIResizeManager.ts", () =>
 {

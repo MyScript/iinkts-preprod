@@ -1,13 +1,12 @@
 import { round } from "../../helpers"
-import { ShapeCircleOps } from "../../../../src/symbol/shape/Circle"
-import { OBBOps } from "../../../../src/symbol/primitives/OBB"
-import
-{
+import {
+  ShapeCircleOps,
+  OBBOps,
   TPoint,
   DefaultStyle,
   TStyle,
   TBox
-} from "../../../../src/iink"
+} from "@/iink"
 
 describe("Circle.ts", () =>
 {

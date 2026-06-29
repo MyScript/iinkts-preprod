@@ -14,7 +14,7 @@ import
   ShapeKind,
   TSymbol,
   DecoratorKind,
-} from "../../../src/iink"
+} from "@/iink"
 
 describe("EditorOffscreen.ts", () =>
 {

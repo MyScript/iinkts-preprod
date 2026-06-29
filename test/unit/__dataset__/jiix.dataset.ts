@@ -1,5 +1,5 @@
 //@ts-nocheck
-import { TJIIXExport } from "../../../src/iink"
+import { TJIIXExport } from "@/iink"
 
 export const hTextJIIX: TJIIXExport = {
   "type":"Raw Content",

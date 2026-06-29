@@ -1,9 +1,11 @@
 import { describe, test, expect, beforeEach } from "@jest/globals"
-import { StrokeUtil } from "../../../../src/symbol-utils/stroke/StrokeUtil"
-import { StrokeOps } from "../../../../src/iink"
-import { OBBOps } from "../../../../src/symbol/primitives/OBB"
-import { SymbolType } from "../../../../src/symbol/Symbol"
 import { buildIIStroke } from "../../helpers"
+import {
+  StrokeUtil,
+  StrokeOps,
+  OBBOps,
+  SymbolType
+} from "@/iink"
 
 describe("StrokeUtil", () =>
 {

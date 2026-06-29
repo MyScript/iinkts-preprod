@@ -4,9 +4,9 @@ import
   TPoint,
   DefaultStyle,
   TStyle,
-  TBox
-} from "../../../../src/iink"
-import { OBBOps } from "../../../../src/symbol/primitives/OBB"
+  TBox,
+  OBBOps
+} from "@/iink"
 
 describe("ShapePolygonOps", () =>
 {

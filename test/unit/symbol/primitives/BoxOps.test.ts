@@ -1,5 +1,5 @@
 import { describe, test, expect } from "@jest/globals"
-import { BoxOps, TBox, TPoint } from "../../../../src/iink"
+import { BoxOps, TBox, TPoint } from "@/iink"
 
 describe("BoxOps", () =>
 {

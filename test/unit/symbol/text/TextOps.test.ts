@@ -1,7 +1,11 @@
-import { TSymbolChar, TPoint, TBox } from "../../../../src/iink"
-import { BoxOps } from "../../../../src/symbol/primitives/Box"
-import { OBBOps } from "../../../../src/symbol/primitives/OBB"
-import { TextOps } from "../../../../src/symbol/text/Text"
+import {
+  TSymbolChar,
+  TPoint,
+  TBox,
+  BoxOps,
+  OBBOps,
+  TextOps
+} from "@/iink"
 
 const chars: TSymbolChar[] = [
   {

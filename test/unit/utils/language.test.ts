@@ -1,5 +1,5 @@
 import { RecognizerWebSocketSSRTextConfiguration } from "../__dataset__/configuration.dataset"
-import { getAvailableLanguageList } from "../../../src/iink"
+import { getAvailableLanguageList } from "@/iink"
 
 describe("language.ts", () =>
 {

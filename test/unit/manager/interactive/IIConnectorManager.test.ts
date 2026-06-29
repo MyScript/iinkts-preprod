@@ -1,14 +1,16 @@
 import { describe, test, expect, jest, beforeEach } from "@jest/globals"
 import { createEditorMock, asEditor } from "../../__mocks__/createEditorMock"
-import { IIConnectorManager } from "@/manager/interactive/IIConnectorManager"
-import { EdgeLineOps } from "@/symbol/edge/Line"
-import { EdgePolyLineOps } from "@/symbol/edge/PolyLine"
-import { EdgeArcOps } from "@/symbol/edge/Arc"
-import { StrokeOps } from "@/symbol/stroke/Stroke"
-import { ShapeCircleOps } from "@/symbol/shape/Circle"
-import { ShapePolygonOps } from "@/symbol/shape/Polygon"
-import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
-import { MatrixTransform } from "@/transform"
+import {
+  IIConnectorManager,
+  EdgeLineOps ,
+  EdgePolyLineOps,
+  EdgeArcOps,
+  StrokeOps,
+  ShapeCircleOps,
+  ShapePolygonOps,
+  OBBOps, type TOBB,
+  MatrixTransform
+} from "@/iink"
 
 const TARGET_BOUNDS = OBBOps.fromBox({ x: 10, y: 20, width: 100, height: 80 })
 const TARGET_ID = "target-symbol"

@@ -1,8 +1,11 @@
 import { describe, test, expect } from "@jest/globals"
-import { symbolRegistry, registerBuiltinSymbolUtils } from "../../../src/iink"
-import { StrokeUtil } from "../../../src/symbol-utils/stroke/StrokeUtil"
-import { TextUtil } from "../../../src/symbol-utils/text/TextUtil"
-import { SymbolType } from "../../../src/symbol/Symbol"
+import {
+  symbolRegistry,
+  registerBuiltinSymbolUtils,
+  StrokeUtil,
+  TextUtil,
+  SymbolType
+} from "@/iink"
 
 // SymbolRegistryClass is only exported as a type (not a value), so we test via the singleton.
 // Each test registers into the singleton — the registry is additive across all tests.

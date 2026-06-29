@@ -13,7 +13,7 @@ import {
   TUpdatePatchReplaceAll,
   TUpdatePatchReplaceELement,
   TUpdatePatchSetAttribut
-} from "../../../src/iink"
+} from "@/iink"
 
 describe("InteractiveInkSSRSVGRenderer.ts", () =>
 {

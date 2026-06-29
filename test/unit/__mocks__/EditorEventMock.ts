@@ -1,4 +1,4 @@
-import { EditorEvent} from "../../../src/iink"
+import { EditorEvent} from "@/iink"
 
 export class EditorEventMock extends EditorEvent
 {
