@@ -5,12 +5,14 @@ import { ShapeEllipseOps, type TShapeEllipse } from "./Ellipse"
 import { ShapePolygonOps, type TShapePolygon } from "./Polygon"
 import { ShapeKind } from "./Shape-enum"
 
-
 /**
  * @group Symbol
  */
 export type TShape = TShapeCircle | TShapeEllipse | TShapePolygon
 
+/**
+ * @group Symbol
+ */
 export const ShapeOps = {
   /**
    * @group Symbol

@@ -2,7 +2,7 @@ import type { TBaseSymbol } from "@/symbol/Symbol"
 import type { SymbolUtil } from "./SymbolUtil"
 
 /**
- * @group Symbol
+ * @group SymbolUtils
  * @summary Registry for SymbolUtil implementations.
  *
  * Built-in types are registered via `registerBuiltinSymbolUtils()`, which the
@@ -34,5 +34,12 @@ class SymbolRegistryClass
   }
 }
 
+/**
+ * @group SymbolUtils
+ */
 export const symbolRegistry = new SymbolRegistryClass()
+
+/**
+ * @group SymbolUtils
+ */
 export type { SymbolRegistryClass }

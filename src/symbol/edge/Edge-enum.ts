@@ -22,6 +22,9 @@ export enum EdgeDecoration
   Arrow = "arrow-head"
 }
 
+/**
+ * @group Symbol
+ */
 export function computeEdgeBounds(vertices: TPoint[], style: TStyle, startDecoration?: EdgeDecoration, endDecoration?: EdgeDecoration): TOBB
 {
   const bb = BoxOps.createFromPoints(vertices)

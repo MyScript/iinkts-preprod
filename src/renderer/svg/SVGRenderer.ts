@@ -9,6 +9,7 @@ import { BaseRenderer } from "@/renderer/base"
 import { SVGRendererConst, GUIDE_PATH_ATTRS, SUB_GUIDE_PATH_ATTRS } from "./utils/SVGRendererConst"
 import { SVGBuilder } from "./utils/SVGBuilder"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
+import { arrowHeadEndMarkerId, arrowHeadStartMarkerId } from "@/symbol-utils/edge/EdgeRenderOptions"
 
 /**
  * @group Renderer
@@ -58,11 +59,11 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
       refY: REFY.toString(),
     }
 
-    const arrowHeadStart = SVGBuilder.createMarker(SVGRendererConst.arrowHeadStartMarker, { ...arrowHeadMarkerAttrs, orient: "auto-start-reverse" })
+    const arrowHeadStart = SVGBuilder.createMarker(arrowHeadStartMarkerId, { ...arrowHeadMarkerAttrs, orient: "auto-start-reverse" })
     arrowHeadStart.appendChild(SVGBuilder.createPolygon([0, 0, SIZE, REFY, 0, SIZE], arrowHeadMarkerAttrs))
     defs.appendChild(arrowHeadStart)
 
-    const arrowHeadEnd = SVGBuilder.createMarker(SVGRendererConst.arrowHeadEndMaker, { ...arrowHeadMarkerAttrs, orient: "auto" })
+    const arrowHeadEnd = SVGBuilder.createMarker(arrowHeadEndMarkerId, { ...arrowHeadMarkerAttrs, orient: "auto" })
     arrowHeadEnd.appendChild(SVGBuilder.createPolygon([0, 0, SIZE, REFY, 0, SIZE], arrowHeadMarkerAttrs))
     defs.appendChild(arrowHeadEnd)
 
@@ -528,7 +529,6 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
   {
     return this.layer
   }
-
 
   getZoom(): number {
     return this.#zoom
