@@ -20,7 +20,6 @@ describe("EdgeLineOps", () =>
       expect(line.style).toEqual(DefaultStyle)
       expect(line.selected).toEqual(false)
       expect(line.deleting).toEqual(false)
-      expect(line.isClosed).toEqual(false)
       expect(line.start).toEqual(start)
       expect(line.end).toEqual(end)
     })

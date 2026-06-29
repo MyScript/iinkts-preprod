@@ -24,7 +24,6 @@ export type TSymbolChar = TTypesetChild
  */
 export type TText = TBaseSymbol & {
   type: SymbolType.Text
-  isClosed: true
   style: TStyle
   selected: boolean
   deleting: boolean
@@ -65,7 +64,6 @@ export const TextOps = {
     return {
       type: SymbolType.Text,
       id: `${ SymbolType.Text }-${ createUUID() }`,
-      isClosed: true,
       style: mergedStyle,
       creationTime: now,
       modificationDate: now,

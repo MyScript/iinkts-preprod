@@ -18,7 +18,6 @@ describe("ShapePolygonOps", () =>
       expect(polygon.style).toEqual(DefaultStyle)
       expect(polygon.selected).toEqual(false)
       expect(polygon.deleting).toEqual(false)
-      expect(polygon.isClosed).toEqual(true)
     })
     test("should create with custom style", () =>
     {

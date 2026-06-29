@@ -14,7 +14,6 @@ import { EdgeKind, type EdgeDecoration, computeEdgeBounds } from "./Edge-enum"
 export type TEdgeArc = TBaseSymbol & {
   type: SymbolType.Edge
   kind: EdgeKind.Arc
-  isClosed: false
   style: TStyle
   selected: boolean
   deleting: boolean
@@ -55,7 +54,6 @@ export const EdgeArcOps = {
     const arc: TEdgeArc = {
       type: SymbolType.Edge,
       kind: EdgeKind.Arc,
-      isClosed: false,
       id: `${ SymbolType.Edge }-${ createUUID() }`,
       style: mergedStyle,
       creationTime: now,

@@ -27,7 +27,6 @@ export type TMathElement = TTypesetChild & {
  */
 export type TMath = TBaseSymbol & {
   type: SymbolType.Math
-  isClosed: true
   style: TStyle
   selected: boolean
   deleting: boolean
@@ -68,7 +67,6 @@ export const MathOps = {
     return {
       type: SymbolType.Math,
       id: `${ SymbolType.Math }-${ createUUID() }`,
-      isClosed: true,
       style: mergedStyle,
       creationTime: now,
       modificationDate: now,

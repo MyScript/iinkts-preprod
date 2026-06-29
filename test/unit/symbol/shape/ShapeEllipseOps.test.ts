@@ -17,7 +17,6 @@ describe("ShapeEllipseOps", () =>
       expect(ellipse.style).toEqual(DefaultStyle)
       expect(ellipse.selected).toEqual(false)
       expect(ellipse.deleting).toEqual(false)
-      expect(ellipse.isClosed).toEqual(true)
       expect(ellipse.creationTime).toBeLessThanOrEqual(Date.now())
     })
     test("should create with custom style", () =>

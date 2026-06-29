@@ -18,7 +18,6 @@ import { ShapeKind } from "./Shape-enum"
 export type TShapeEllipse = TBaseSymbol & {
   type: SymbolType.Shape
   kind: ShapeKind.Ellipse
-  isClosed: true
   style: TStyle
   selected: boolean
   deleting: boolean
@@ -45,7 +44,6 @@ export const ShapeEllipseOps = {
     const ellipse: TShapeEllipse = {
       type: SymbolType.Shape,
       kind: ShapeKind.Ellipse,
-      isClosed: true,
       id: `${ SymbolType.Shape }-${ createUUID() }`,
       style: mergedStyle,
       creationTime: now,
