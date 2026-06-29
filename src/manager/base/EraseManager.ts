@@ -108,12 +108,12 @@ export class EraseManager
           })
           if (hasHitChar) {
             s.deleting = true
-            this.renderer.drawSymbol(s)
+            this.renderer.updateDeletingState(s)
           }
         }
         else if (this.#isHitByPoint(s, currentPoint, radius)) {
           s.deleting = true
-          this.renderer.drawSymbol(s)
+          this.renderer.updateDeletingState(s)
         }
       })
     }
@@ -122,7 +122,7 @@ export class EraseManager
       {
         if (this.#isHitByPoint(s, currentPoint, radius)) {
           s.deleting = true
-          this.renderer.drawSymbol(s)
+          this.renderer.updateDeletingState(s)
         }
       })
     }

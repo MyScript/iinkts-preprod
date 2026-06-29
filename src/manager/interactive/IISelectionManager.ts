@@ -785,7 +785,7 @@ export class IISelectionManager extends IIAbstractManager
       if (s.selected !== shouldBeSelected) {
         s.selected = shouldBeSelected
         updatedSymbols.push(s)
-        this.renderer.updateSymbolSelection(s)
+        this.renderer.updateSelectedState(s)
       }
     })
 
