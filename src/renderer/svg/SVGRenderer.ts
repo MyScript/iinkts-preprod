@@ -391,7 +391,7 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
     return svgEl
   }
 
-  updateSymbolSelection(symbol: TSymbol): void {
+  updateSelectedState(symbol: TSymbol): void {
     // Edge selection adds/removes a child outline path — full redraw needed
     if (symbol.type === SymbolType.Edge) {
       this.drawSymbol(symbol)
@@ -399,10 +399,18 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
     }
     const el = this.getElementById(symbol.id)
     if (!el) return
+    if (symbol.selected) {
+      el.setAttribute("filter", `url(#${ SVGRendererConst.selectionFilterId })`)
+    } else {
+      el.removeAttribute("filter")
+    }
+  }
+
+  updateDeletingState(symbol: TSymbol): void {
+    const el = this.getElementById(symbol.id)
+    if (!el) return
     if (symbol.deleting) {
       el.setAttribute("filter", `url(#${ SVGRendererConst.removalFilterId })`)
-    } else if (symbol.selected) {
-      el.setAttribute("filter", `url(#${ SVGRendererConst.selectionFilterId })`)
     } else {
       el.removeAttribute("filter")
     }
