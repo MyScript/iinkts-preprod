@@ -7,18 +7,6 @@ import { ShapeOps, type TShape } from "@/symbol/shape/Shape"
 import { EdgeOps, type TEdge } from "@/symbol/edge/Edge"
 import { symbolRegistry } from "./SymbolRegistry"
 
-/** @group SymbolUtils */
-export function createShapeFromPartial(partial: TPartialDeep<TShape>): TShape
-{
-  return ShapeOps.createShapeFromPartial(partial)
-}
-
-/** @group SymbolUtils */
-export function createEdgeFromPartial(partial: TPartialDeep<TEdge>): TEdge
-{
-  return EdgeOps.createEdgeFromPartial(partial)
-}
-
 /**
  * @group SymbolUtils
  * @summary Create any TSymbol from partial data — dispatches by type using the registry for custom types.
