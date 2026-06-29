@@ -1,5 +1,5 @@
 //@ts-nocheck
-import { TPartialDeep, TJIIXExport } from "../../../src/@types"
+import { TPartialDeep, TJIIXExport } from "@/@types"
 
 export const jiixText: TPartialDeep<TJIIXExport> = {
   "type": "Raw Content",

@@ -9,8 +9,8 @@ import
   StrokeOps,
   TPoint,
   SvgElementRole,
-} from "../../../../../src/iink"
-import { MatrixTransform } from "../../../../../src/transform"
+  MatrixTransform
+} from "@/iink"
 
 describe("IITranslateManager.ts", () =>
 {

@@ -1,12 +1,12 @@
-import { EdgePolyLineOps } from "../../../../src/symbol/edge/PolyLine"
-import { OBBOps } from "../../../../src/symbol/primitives/OBB"
 import
 {
+  EdgePolyLineOps,
+  OBBOps,
   TPoint,
   DefaultStyle,
   TStyle,
   TBox,
-} from "../../../../src/iink"
+} from "@/iink"
 
 describe("PolyLine.ts", () =>
 {

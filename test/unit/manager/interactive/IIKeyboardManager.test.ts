@@ -2,7 +2,7 @@ import {
   IIKeyboardManager,
   InteractiveInkEditor,
   EditorTool
-} from "../../../../src/iink"
+} from "@/iink"
 
 describe("IIKeyboardManager", () =>
 {

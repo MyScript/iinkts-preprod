@@ -1,5 +1,5 @@
 import { buildStroke } from "../helpers"
-import { CanvasRendererStroke } from "../../../src/iink"
+import { CanvasRendererStroke } from "@/iink"
 
 describe("CanvasRendererStroke.ts", () =>
 {

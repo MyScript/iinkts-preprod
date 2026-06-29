@@ -1,6 +1,6 @@
 import { buildIICircle, buildIIStroke } from "../../helpers"
 import { createEditorMock, asEditor } from "../../__mocks__/createEditorMock"
-import { EraseManager, TPointerInfo, SymbolType } from "../../../../src/iink"
+import { EraseManager, TPointerInfo, SymbolType } from "@/iink"
 
 
 describe("EraseManager.ts", () =>

@@ -1,6 +1,9 @@
-import { TMathElement, TPoint } from "../../../../src/iink"
-import { BoxOps } from "../../../../src/iink"
-import { MathOps } from "../../../../src/symbol/math/Math"
+import {
+  TMathElement,
+  TPoint,
+  BoxOps,
+  MathOps
+} from "@/iink"
 
 describe("Math.ts", () =>
 {

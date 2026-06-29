@@ -1,12 +1,11 @@
-import { ShapeEllipseOps } from "../../../../src/symbol/shape/Ellipse"
-import { OBBOps } from "../../../../src/symbol/primitives/OBB"
-import
-{
+import { ShapeEllipseOps } from "@/symbol/shape/Ellipse"
+import {
+  OBBOps,
   TPoint,
   DefaultStyle,
   TStyle,
   TBox
-} from "../../../../src/iink"
+} from "@/iink"
 
 describe("Ellipse.ts", () =>
 {

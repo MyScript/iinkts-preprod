@@ -1,4 +1,5 @@
 import fetchMock from "jest-fetch-mock"
+import { RecognizerHTTPV1MathConfiguration, RecognizerHTTPV1TextConfiguration, RecognizerHTTPV1DiagramConfiguration, RecognizerHTTPV1RawContentConfiguration } from "../__dataset__/configuration.dataset"
 import
 {
   RecognizerHTTPV2,
@@ -8,8 +9,7 @@ import
   TRecognitionTypeV2,
   TRecognizerHTTPV2Configuration,
   DefaultRecognizerHTTPV2Configuration
-} from "../../../src/iink"
-import { RecognizerHTTPV1MathConfiguration, RecognizerHTTPV1TextConfiguration, RecognizerHTTPV1DiagramConfiguration, RecognizerHTTPV1RawContentConfiguration } from "../__dataset__/configuration.dataset"
+} from "@/iink"
 
 describe("RecognizerHTTPV2.ts", () =>
 {

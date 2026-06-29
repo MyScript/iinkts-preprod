@@ -1,8 +1,8 @@
-jest.mock('../../../src/editor/variants/InkEditorDeprecated')
-jest.mock('../../../src/editor/variants/InteractiveInkSSREditor')
-jest.mock('../../../src/editor/variants/InteractiveInkEditor')
+jest.mock('@/editor/variants/InkEditorDeprecated')
+jest.mock('@/editor/variants/InteractiveInkSSREditor')
+jest.mock('@/editor/variants/InteractiveInkEditor')
 
-import { Editor, InteractiveInkEditor, InkEditorDeprecated, InteractiveInkSSREditor } from "../../../src/iink"
+import { Editor, InteractiveInkEditor, InkEditorDeprecated, InteractiveInkSSREditor } from "@/iink"
 
 describe('Editor.ts', () =>
 {

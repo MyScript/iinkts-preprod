@@ -5,7 +5,7 @@ import
   IITranslateManager,
   IIResizeManager,
   IIRotationManager,
-} from "../../../../src/iink"
+} from "@/iink"
 
 describe("IITransformManager.ts", () =>
 {

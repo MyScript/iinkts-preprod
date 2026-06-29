@@ -4,7 +4,7 @@ import {
   TCanvasShapeEllipseSymbol,
   TCanvasShapeLineSymbol,
   TCanvasShapeTableSymbol
-} from "../../../src/iink"
+} from "@/iink"
 
 describe("CanvasRendererShape.ts", () =>
 {

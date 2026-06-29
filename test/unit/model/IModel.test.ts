@@ -1,5 +1,5 @@
 import { buildStrokeV2 } from "../helpers"
-import { IModel, StrokeOps, DefaultPenStyle, TExportV2 } from "../../../src/iink"
+import { IModel, StrokeOps, DefaultPenStyle, TExportV2 } from "@/iink"
 
 describe("IModel.ts", () =>
 {

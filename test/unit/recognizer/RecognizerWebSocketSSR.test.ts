@@ -14,7 +14,7 @@ import
   TConverstionState,
   TRecognizerWebSocketSSRConfiguration,
   StrokeOps,
-} from "../../../src/iink"
+} from "@/iink"
 
 describe("RecognizerWebSocketSSR.ts", () =>
 {

@@ -1,6 +1,6 @@
 import { buildIICircle, buildIIStroke } from "../helpers"
 
-import { IIModel, TExport, } from "../../../src/iink"
+import { IIModel, TExport, } from "@/iink"
 
 describe("IIModel.ts", () =>
 {

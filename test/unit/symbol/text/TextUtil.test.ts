@@ -1,9 +1,12 @@
 import { describe, test, expect, beforeEach } from "@jest/globals"
-import { TextUtil } from "../../../../src/symbol-utils/text/TextUtil"
-import { SymbolType } from "../../../../src/symbol/Symbol"
-import { OBBOps } from "../../../../src/symbol/primitives/OBB"
 import { buildIIText } from "../../helpers"
-import type { TSymbolChar, TBox } from "../../../../src/iink"
+import {
+  TextUtil,
+  SymbolType,
+  OBBOps,
+  type TSymbolChar,
+  type  TBox
+} from "@/iink"
 
 const makeChar = (label: string, bounds: TBox): TSymbolChar => ({
   id: `char-${ label }`,
