@@ -14,7 +14,6 @@ import { ShapeKind } from "./Shape-enum"
 export type TShapeCircle = TBaseSymbol & {
   type: SymbolType.Shape
   kind: ShapeKind.Circle
-  isClosed: true
   style: TStyle
   selected: boolean
   deleting: boolean
@@ -39,7 +38,6 @@ export const ShapeCircleOps = {
     const circle: TShapeCircle = {
       type: SymbolType.Shape,
       kind: ShapeKind.Circle,
-      isClosed: true,
       id: `${ SymbolType.Shape }-${ createUUID() }`,
       style: mergedStyle,
       creationTime: now,

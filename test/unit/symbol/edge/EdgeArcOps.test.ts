@@ -19,7 +19,6 @@ describe("EdgeArcOps", () =>
       expect(arc.style).toEqual(DefaultStyle)
       expect(arc.selected).toEqual(false)
       expect(arc.deleting).toEqual(false)
-      expect(arc.isClosed).toEqual(false)
       expect(arc.center).toEqual(center)
       expect(arc.startAngle).toEqual(Math.PI / 4)
       expect(arc.sweepAngle).toEqual(Math.PI / 2)

@@ -17,7 +17,6 @@ import { ShapeKind } from "./Shape-enum"
 export type TShapePolygon = TBaseSymbol & {
   type: SymbolType.Shape
   kind: ShapeKind.Polygon
-  isClosed: true
   style: TStyle
   selected: boolean
   deleting: boolean
@@ -41,7 +40,6 @@ export const ShapePolygonOps = {
     const polygon: TShapePolygon = {
       type: SymbolType.Shape,
       kind: ShapeKind.Polygon,
-      isClosed: true,
       id: `${ SymbolType.Shape }-${ createUUID() }`,
       style: mergedStyle,
       creationTime: now,

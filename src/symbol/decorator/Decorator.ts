@@ -29,7 +29,6 @@ export enum DecoratorKind
  */
 export type TDecorator = TBaseSymbol & {
   type: SymbolType.Decorator
-  isClosed: false
   style: TStyle
   selected: boolean
   deleting: boolean
@@ -66,7 +65,6 @@ export const DecoratorOps = {
     const decorator: TDecorator = {
       id: `${ kind }-${ createUUID() }`,
       type: SymbolType.Decorator,
-      isClosed: false,
       style: mergedStyle,
       creationTime: now,
       modificationDate: now,

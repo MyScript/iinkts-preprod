@@ -51,12 +51,6 @@ describe("TextOps", () =>
       expect(text.edges).toHaveLength(4)
     })
 
-    test("should set isClosed to true", () =>
-    {
-      const text = TextOps.create(chars, point, bounds)
-      expect(text.isClosed).toBe(true)
-    })
-
     test("should set selected and deleting to false", () =>
     {
       const text = TextOps.create(chars, point, bounds)
