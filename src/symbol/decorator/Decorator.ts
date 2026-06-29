@@ -30,8 +30,6 @@ export enum DecoratorKind
 export type TDecorator = TBaseSymbol & {
   type: SymbolType.Decorator
   style: TStyle
-  selected: boolean
-  deleting: boolean
   kind: DecoratorKind
   targetIds: string[]
   bounds: TBox
@@ -68,8 +66,6 @@ export const DecoratorOps = {
       style: mergedStyle,
       creationTime: now,
       modificationDate: now,
-      selected: false,
-      deleting: false,
       kind,
       targetIds,
       bounds: { x: 0, y: 0, width: 0, height: 0 },

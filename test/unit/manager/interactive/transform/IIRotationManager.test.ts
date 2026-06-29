@@ -97,9 +97,9 @@ describe("IIRotationManager.ts", () =>
     const stroke = StrokeOps.create({})
     StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 0, y: 0 })
     StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 10, y: 50 })
-    stroke.selected = true
     const strokeNotRotate = structuredClone(stroke)
     editor.model.addSymbol(stroke)
+    editor.model.selectedIds.add(stroke.id)
 
     const rotateCenter: TPoint = {
       x: stroke.bounds.x + stroke.bounds.width / 2,

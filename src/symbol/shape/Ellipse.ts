@@ -19,8 +19,6 @@ export type TShapeEllipse = TBaseSymbol & {
   type: SymbolType.Shape
   kind: ShapeKind.Ellipse
   style: TStyle
-  selected: boolean
-  deleting: boolean
   center: TPoint
   radiusX: number
   radiusY: number
@@ -48,8 +46,6 @@ export const ShapeEllipseOps = {
       style: mergedStyle,
       creationTime: now,
       modificationDate: now,
-      selected: false,
-      deleting: false,
       center,
       radiusX,
       radiusY,

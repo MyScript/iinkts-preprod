@@ -25,7 +25,6 @@ describe("Circle.ts", () =>
       expect(circle.creationTime).toBeLessThanOrEqual(Date.now())
       expect(circle.creationTime).toEqual(circle.modificationDate)
       expect(circle.style).toEqual(expect.objectContaining(style))
-      expect(circle.selected).toEqual(false)
       expect(circle.center).toEqual(center)
       expect(circle.radius).toEqual(radius)
       expect(circle.bounds.x).toEqual(0)
@@ -109,7 +108,6 @@ describe("Circle.ts", () =>
       expect(circle.creationTime).toBeLessThanOrEqual(Date.now())
       expect(circle.creationTime).toEqual(circle.modificationDate)
       expect(circle.style).toEqual(expect.objectContaining(style))
-      expect(circle.selected).toEqual(false)
     })
     test("should create with default style", () =>
     {

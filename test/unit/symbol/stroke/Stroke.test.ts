@@ -22,7 +22,6 @@ describe("TStroke / StrokeOps", () =>
       expect(stroke.style).toEqual(expect.objectContaining(style))
       expect(stroke.pointerType).toEqual("pen")
       expect(stroke.pointers).toHaveLength(0)
-      expect(stroke.selected).toEqual(false)
       expect(stroke.bounds.x).toEqual(0)
       expect(stroke.bounds.y).toEqual(0)
       expect(stroke.bounds.height).toEqual(0)

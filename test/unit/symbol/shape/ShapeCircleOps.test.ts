@@ -20,8 +20,6 @@ describe("ShapeCircleOps", () =>
       expect(circle.creationTime).toBeLessThanOrEqual(Date.now())
       expect(circle.creationTime).toEqual(circle.modificationDate)
       expect(circle.style).toEqual(DefaultStyle)
-      expect(circle.selected).toEqual(false)
-      expect(circle.deleting).toEqual(false)
       expect(circle.center).toEqual(center)
       expect(circle.radius).toEqual(radius)
     })
