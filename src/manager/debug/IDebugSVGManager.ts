@@ -3,6 +3,7 @@ import type { IModel } from "@/model"
 import type { TStroke, TBox, TSymbol} from "@/symbol";
 import { isText } from "@/symbol"
 import { BoxOps } from "@/symbol/primitives/Box"
+import { OBBOps } from "@/symbol/primitives/OBB"
 import type { SVGRenderer} from "@/renderer";
 import { SVGRendererConst, SVGBuilder } from "@/renderer"
 import { createUUID } from "@/utils"
@@ -91,14 +92,14 @@ export class IDebugSVGManager {
             symbol: s.id,
             transform
           }
-          symEl.insertAdjacentElement("beforebegin", SVGBuilder.createRect(s.bounds, sa))
+          symEl.insertAdjacentElement("beforebegin", SVGBuilder.createRect(OBBOps.toBox(s.bounds), sa))
         }
         else {
           const sa = {
             ...symbolAttrs,
             symbol: s.id,
           }
-          symEl.insertAdjacentElement("beforebegin", SVGBuilder.createRect(s.bounds, sa))
+          symEl.insertAdjacentElement("beforebegin", SVGBuilder.createRect(OBBOps.toBox(s.bounds), sa))
         }
       }
     })
@@ -205,7 +206,7 @@ export class IDebugSVGManager {
             el.range?.forEach(r => {
               associatedStrokes.push(...this.model.strokes.slice(r.from.stroke, r.to.stroke + 1))
             })
-            const box = BoxOps.createFromBoxes(associatedStrokes.map(s => s.bounds))
+            const box = BoxOps.createFromBoxes(associatedStrokes.map(s => OBBOps.toBox(s.bounds)))
             let infos: string[] = [`type: ${el.type}`]
             infos.push(...this.buildInfos(el))
             const hideProperties = ["bounding-box", "primitives", "range", "candidates"]
@@ -219,7 +220,7 @@ export class IDebugSVGManager {
             el.range?.forEach(r => {
               associatedStrokes.push(...this.model.strokes.slice(r.from.stroke, r.to.stroke + 1))
             })
-            const box = BoxOps.createFromBoxes(associatedStrokes.map(s => s.bounds))
+            const box = BoxOps.createFromBoxes(associatedStrokes.map(s => OBBOps.toBox(s.bounds)))
             this.drawRecognitionBox(box, [`type: ${el.type}`, `label: ${JSON.stringify(el.label || [])}`], "blue", "recognition-box")
             break
           }
@@ -228,7 +229,7 @@ export class IDebugSVGManager {
             el.range?.forEach(r => {
               associatedStrokes.push(...this.model.strokes.slice(r.from.stroke, r.to.stroke + 1))
             })
-            const box = BoxOps.createFromBoxes(associatedStrokes.map(s => s.bounds))
+            const box = BoxOps.createFromBoxes(associatedStrokes.map(s => OBBOps.toBox(s.bounds)))
             let infos: string[] = [`type: ${el.type}`]
             infos.push(...this.buildInfos(el))
             const hideProperties = ["bounding-box", "primitives", "range", "candidates"]
@@ -265,7 +266,7 @@ export class IDebugSVGManager {
               e.range?.forEach(r => {
                 associatedStrokes.push(...this.model.strokes.slice(r.from.stroke, r.to.stroke + 1))
               })
-              const box = BoxOps.createFromBoxes(associatedStrokes.map(s => s.bounds))
+              const box = BoxOps.createFromBoxes(associatedStrokes.map(s => OBBOps.toBox(s.bounds)))
               let infos: string[] = [`type: ${el.type}`]
               infos.push(...this.buildInfos(e))
               const hideProperties = ["bounding-box", "primitives", "range", "candidates"]
@@ -283,7 +284,7 @@ export class IDebugSVGManager {
                   associatedStrokes.push(...this.model.strokes.slice(r.from.stroke, r.to.stroke + 1))
                 })
                 const color = s.type === "Math" ? "#ff6565" : "#099df7"
-                const box = BoxOps.createFromBoxes(associatedStrokes.map(s => s.bounds))
+                const box = BoxOps.createFromBoxes(associatedStrokes.map(s => OBBOps.toBox(s.bounds)))
                 this.drawRecognitionBox(box, [`type: ${s.type}`, `label: ${JSON.stringify(s.label || [])}`], color, "recognition-box-items")
               })
             })

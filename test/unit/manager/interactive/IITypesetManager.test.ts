@@ -3,6 +3,7 @@ import { createEditorMock, asEditor } from "../../__mocks__/createEditorMock"
 import
 {
   IITypesetManager,
+  OBBOps,
   TSymbolChar,
   SVGBuilder
 } from "../../../../src/iink"
@@ -104,7 +105,7 @@ describe("IITypesetManager.ts", () =>
     manager.setCharsBounds = jest.fn()
     const text = buildIIText({ chars })
     manager.updateBounds(text)
-    expect(text.bounds).toEqual({ x: 1989, y: 27, width: 5, height: 42 })
+    expect(OBBOps.toBox(text.bounds)).toEqual({ x: 1989, y: 27, width: 5, height: 42 })
     expect(manager.getElementBoundingBox).toHaveBeenCalledTimes(1)
     expect(manager.setCharsBounds).toHaveBeenCalledTimes(1)
   })

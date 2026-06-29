@@ -3,6 +3,7 @@ import { createEditorMock, asEditor } from "../../__mocks__/createEditorMock"
 import
 {
   IISelectionManager,
+  OBBOps,
   TBox,
   SvgElementRole,
   ResizeDirection,
@@ -108,8 +109,8 @@ describe("IISelectionManager.ts", () =>
       const group = editor.renderer.layer.querySelector(`[role=${ SvgElementRole.InteractElementsGroup }]`) as SVGGElement
       expect(group).not.toBeNull()
       const translateRect = group?.querySelector(`[role=${ SvgElementRole.Translate }]`)
-      expect(translateRect?.getAttribute("x")).toEqual((stroke.bounds.x - (stroke.style.width || 1)).toString())
-      expect(translateRect?.getAttribute("y")).toEqual((stroke.bounds.y - (stroke.style.width || 1)).toString())
+      expect(translateRect?.getAttribute("x")).toEqual((OBBOps.toBox(stroke.bounds).x - (stroke.style.width || 1)).toString())
+      expect(translateRect?.getAttribute("y")).toEqual((OBBOps.toBox(stroke.bounds).y - (stroke.style.width || 1)).toString())
       expect(translateRect?.getAttribute("width")).toEqual((stroke.bounds.width + 2 * (stroke.style.width || 1)).toString())
       expect(translateRect?.getAttribute("height")).toEqual((stroke.bounds.height + 2 * (stroke.style.width || 1)).toString())
 

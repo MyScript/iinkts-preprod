@@ -7,6 +7,7 @@ import { SymbolType } from "@/symbol/Symbol"
 import type { TBaseSymbol } from "@/symbol/Symbol"
 import type { TBox } from "@/symbol/primitives/Box"
 import { BoxOps } from "@/symbol/primitives/Box"
+import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
 import type { TRotation, TTypesetChild } from "@/symbol/typeset/Typeset"
 import { computeTypesetVertices, computeTypesetSnapPoints, computeClosedEdges } from "@/symbol/typeset/Typeset"
 import type { TDecorator } from "@/symbol/decorator/Decorator"
@@ -31,7 +32,7 @@ export type TMath = TBaseSymbol & {
   point: TPoint
   elements: TMathElement[]
   decorators: TDecorator[]
-  bounds: TBox
+  bounds: TOBB
   rotation?: TRotation
   vertices: TPoint[]
   snapPoints: TPoint[]
@@ -53,14 +54,14 @@ export function isMath(symbol: TBaseSymbol): symbol is TMath
  * @group Symbol
  */
 export const MathOps = {
-  create(elements: TMathElement[], point: TPoint, bounds: TBox, style?: TPartialDeep<TStyle>): TMath
+  create(elements: TMathElement[], point: TPoint, boundsBox: TBox, style?: TPartialDeep<TStyle>): TMath
   {
     const mergedStyle = Object.assign({}, DefaultStyle, style) as TStyle
     if (mergedStyle.opacity) mergedStyle.opacity = +mergedStyle.opacity
     mergedStyle.width = +mergedStyle.width
     const now = Date.now()
-    const vertices = computeTypesetVertices(bounds)
-    const snapPoints = computeTypesetSnapPoints(bounds, point)
+    const vertices = computeTypesetVertices(boundsBox)
+    const snapPoints = computeTypesetSnapPoints(boundsBox, point)
     const edges = computeClosedEdges(vertices)
     return {
       type: SymbolType.Math,
@@ -71,7 +72,7 @@ export const MathOps = {
       point,
       elements,
       decorators: [],
-      bounds,
+      bounds: OBBOps.fromBox(boundsBox),
       rotation: undefined,
       vertices,
       snapPoints,
@@ -100,7 +101,11 @@ export const MathOps = {
       }
     }))
 
-    const math = MathOps.create(elements, partial.point as TPoint, partial.bounds as TBox, partial.style)
+    const rawBounds = partial.bounds as unknown
+    const boundsBox: TBox = rawBounds && typeof rawBounds === "object" && "center" in rawBounds
+      ? OBBOps.toBox(rawBounds as TOBB)
+      : rawBounds as TBox
+    const math = MathOps.create(elements, partial.point as TPoint, boundsBox, partial.style)
     if (partial.id) math.id = partial.id
     if (partial.rotation) math.rotation = partial.rotation as TRotation
     if (partial.decorators) {
@@ -114,8 +119,9 @@ export const MathOps = {
 
   updateDerivedFields(math: TMath): void
   {
-    math.vertices = computeTypesetVertices(math.bounds, math.rotation)
-    math.snapPoints = computeTypesetSnapPoints(math.bounds, math.point, math.rotation)
+    const boundsBox = OBBOps.toBox(math.bounds)
+    math.vertices = computeTypesetVertices(boundsBox, math.rotation)
+    math.snapPoints = computeTypesetSnapPoints(boundsBox, math.point, math.rotation)
     math.edges = computeClosedEdges(math.vertices)
   },
 
@@ -176,7 +182,7 @@ export const MathOps = {
       point: math.point,
       elements: math.elements,
       decorators: math.decorators,
-      bounds: math.bounds,
+      bounds: OBBOps.toBox(math.bounds),
       rotation: math.rotation,
       style: math.style
     }

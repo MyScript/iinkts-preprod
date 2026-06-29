@@ -1,4 +1,5 @@
 import { EdgeArcOps } from "../../../../src/symbol/edge/Arc"
+import { OBBOps } from "../../../../src/symbol/primitives/OBB"
 import
 {
   TPoint,
@@ -30,8 +31,8 @@ describe("Arc.ts", () =>
       expect(arc.creationTime).toEqual(arc.modificationDate)
       expect(arc.style).toEqual(expect.objectContaining(style))
       expect(arc.center).toEqual(center)
-      expect(arc.bounds.x).toEqual(-15)
-      expect(arc.bounds.y).toEqual(-5)
+      expect(OBBOps.toBox(arc.bounds).x).toEqual(-15)
+      expect(OBBOps.toBox(arc.bounds).y).toEqual(-5)
       expect(+arc.bounds.width.toFixed(0)).toEqual(27)
       expect(+arc.bounds.height.toFixed(0)).toEqual(60)
     })

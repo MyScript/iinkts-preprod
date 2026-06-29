@@ -3,6 +3,7 @@ import
 {
   EdgeLineOps,
   IITranslateManager,
+  OBBOps,
   ShapeCircleOps,
   ShapePolygonOps,
   StrokeOps,
@@ -92,8 +93,8 @@ describe("IITranslateManager.ts", () =>
     editor.model.selectedIds.add(stroke.id)
 
     const translationOrigin: TPoint = {
-      x: stroke.bounds.x + stroke.bounds.width / 2,
-      y: stroke.bounds.y + stroke.bounds.height / 2
+      x: OBBOps.toBox(stroke.bounds).x + stroke.bounds.width / 2,
+      y: OBBOps.toBox(stroke.bounds).y + stroke.bounds.height / 2
     }
 
     const testDatas = [

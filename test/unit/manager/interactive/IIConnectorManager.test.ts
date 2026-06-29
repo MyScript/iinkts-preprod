@@ -7,9 +7,10 @@ import { EdgeArcOps } from "@/symbol/edge/Arc"
 import { StrokeOps } from "@/symbol/stroke/Stroke"
 import { ShapeCircleOps } from "@/symbol/shape/Circle"
 import { ShapePolygonOps } from "@/symbol/shape/Polygon"
+import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
 import { MatrixTransform } from "@/transform"
 
-const TARGET_BOUNDS = { x: 10, y: 20, width: 100, height: 80 }
+const TARGET_BOUNDS = OBBOps.fromBox({ x: 10, y: 20, width: 100, height: 80 })
 const TARGET_ID = "target-symbol"
 
 function buildLineWithStartAnchor() {
@@ -197,7 +198,7 @@ describe("IIConnectorManager", () =>
 
     describe("with matrix and preTransformBoundsById (rotation case)", () =>
     {
-      const POST_BOUNDS = { x: 50, y: 50, width: 200, height: 200 }
+      const POST_BOUNDS = OBBOps.fromBox({ x: 50, y: 50, width: 200, height: 200 })
 
       beforeEach(() =>
       {
@@ -251,7 +252,7 @@ describe("IIConnectorManager", () =>
         const line = buildLineWithStartAnchor()
         setupSymbols(mock, [line])
         const matrix = MatrixTransform.identity().translate(10, 5)
-        const emptyMap = new Map<string, { x: number; y: number; width: number; height: number }>()
+        const emptyMap = new Map<string, TOBB>()
 
         manager.updateAnchoredEdges([TARGET_ID], matrix, emptyMap)
 

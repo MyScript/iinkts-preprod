@@ -20,6 +20,7 @@ import
   StrokeOps,
 } from "@/symbol"
 import { BoxOps } from "@/symbol/primitives/Box"
+import { OBBOps } from "@/symbol/primitives/OBB"
 import { DecoratorOps } from "@/symbol/decorator/Decorator"
 import { TextOps } from "@/symbol/text/Text"
 import { MathOps } from "@/symbol/math/Math"
@@ -818,7 +819,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
       } else if (remaining.length < dec.targetIds.length) {
         dec.targetIds = remaining
         const targetSyms = remaining.map(id => this.model.getRootSymbol(id)).filter((s): s is TSymbol => !!s)
-        if (targetSyms.length) DecoratorOps.setBounds(dec, BoxOps.createFromBoxes(targetSyms.map(s => s.bounds)))
+        if (targetSyms.length) DecoratorOps.setBounds(dec, OBBOps.createFromOBBs(targetSyms.map(s => s.bounds)))
         this.model.updateSymbol(dec)
         this.renderer.drawSymbol(dec)
         updated.push(dec)
@@ -1030,7 +1031,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
    */
   getSymbolsBounds(symbols: TSymbol[], margin: number = SELECTION_MARGIN): TBox
   {
-    const box = BoxOps.createFromBoxes(symbols.map(s => s.bounds))
+    const box = BoxOps.createFromBoxes(symbols.map(s => OBBOps.toBox(s.bounds)))
     box.x -= margin
     box.y -= margin
     box.width += margin * 2
@@ -1461,7 +1462,7 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
     try {
       this.updateLayerState(false)
       const symbolsToDuplicate = symbols ?? this.model.symbols
-      const bounds = BoxOps.createFromBoxes(symbolsToDuplicate.map(s => s.bounds))
+      const bounds = BoxOps.createFromBoxes(symbolsToDuplicate.map(s => OBBOps.toBox(s.bounds)))
 
       const duplicatedSymbols = symbolsToDuplicate.map(s => {
         const clone = cloneSymbol(s)

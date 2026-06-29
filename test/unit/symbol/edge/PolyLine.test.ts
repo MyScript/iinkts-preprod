@@ -1,4 +1,5 @@
 import { EdgePolyLineOps } from "../../../../src/symbol/edge/PolyLine"
+import { OBBOps } from "../../../../src/symbol/primitives/OBB"
 import
 {
   TPoint,
@@ -24,8 +25,8 @@ describe("PolyLine.ts", () =>
       expect(line.creationTime).toEqual(line.modificationDate)
       expect(line.style).toEqual(expect.objectContaining(style))
       expect(line.points).toEqual(points)
-      expect(line.bounds.x).toEqual(-5)
-      expect(line.bounds.y).toEqual(-5)
+      expect(OBBOps.toBox(line.bounds).x).toEqual(-5)
+      expect(OBBOps.toBox(line.bounds).y).toEqual(-5)
       expect(line.bounds.width).toEqual(15)
       expect(line.bounds.height).toEqual(15)
       expect(line.vertices).toHaveLength(3)
