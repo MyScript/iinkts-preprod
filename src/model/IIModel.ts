@@ -18,6 +18,8 @@ export class IIModel
   exports?: TExport
   rowHeight: number
   idle: boolean
+  selectedIds: Set<string>
+  deletingIds: Set<string>
 
   constructor(rowHeight = 0, creationDate = Date.now())
   {
@@ -27,6 +29,8 @@ export class IIModel
     this.symbols = []
     this.exports = undefined
     this.idle = true
+    this.selectedIds = new Set()
+    this.deletingIds = new Set()
   }
 
   /**
@@ -43,7 +47,12 @@ export class IIModel
 
   get symbolsSelected(): TSymbol[]
   {
-    return this.symbols.filter(s => s.selected)
+    return this.symbols.filter(s => this.selectedIds.has(s.id))
+  }
+
+  get symbolsDeleting(): TSymbol[]
+  {
+    return this.symbols.filter(s => this.deletingIds.has(s.id))
   }
 
   /**
@@ -78,25 +87,17 @@ export class IIModel
 
   selectSymbol(id: string): void
   {
-    this.#syncMap()
-    const symbol = this.#symbolsMap.get(id)
-    if (symbol) {
-      symbol.selected = true
-    }
+    this.selectedIds.add(id)
   }
 
   unselectSymbol(id: string): void
   {
-    this.#syncMap()
-    const symbol = this.#symbolsMap.get(id)
-    if (symbol) {
-      symbol.selected = false
-    }
+    this.selectedIds.delete(id)
   }
 
   resetSelection(): void
   {
-    this.symbols.forEach(s => s.selected = false)
+    this.selectedIds.clear()
   }
 
   getRootSymbol(id: string): TSymbol | undefined
@@ -300,7 +301,6 @@ export class IIModel
     clonedModel.symbols = this.symbols.map(s =>
     {
       const c = cloneSymbol(s)
-      c.selected = false
       clonedModel.#symbolsMap.set(c.id, c)
       return c
     })

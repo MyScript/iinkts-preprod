@@ -107,22 +107,23 @@ export class EraseManager
             }
           })
           if (hasHitChar) {
-            s.deleting = true
-            this.renderer.updateDeletingState(s)
+            this.editor.model.deletingIds.add(s.id)
+            this.renderer.updateDeletingState(s, true)
           }
         }
         else if (this.#isHitByPoint(s, currentPoint, radius)) {
-          s.deleting = true
-          this.renderer.updateDeletingState(s)
+          this.editor.model.deletingIds.add(s.id)
+          this.renderer.updateDeletingState(s, true)
         }
       })
     }
     else {
-      this.editor.model.strokes.forEach(s =>
+      const inkEditor = this.editor as InkEditor
+      inkEditor.model.strokes.forEach(s =>
       {
         if (this.#isHitByPoint(s, currentPoint, radius)) {
-          s.deleting = true
-          this.renderer.updateDeletingState(s)
+          inkEditor.model.deletingIds.add(s.id)
+          this.renderer.updateDeletingState(s, true)
         }
       })
     }
@@ -152,21 +153,22 @@ export class EraseManager
             editor.typeset.setBounds(s)
             this.renderer.drawSymbol(s)
           }
-        } else if (s.deleting) {
-          // For other symbol types, mark for deletion if deleting flag is set
+        } else if (editor.model.deletingIds.has(s.id)) {
           symbolsToRemove.push(s.id)
         }
       })
 
-      // Remove complete symbols
       if (symbolsToRemove.length > 0) {
         await editor.removeSymbols(symbolsToRemove)
       }
 
+      editor.model.deletingIds.clear()
       this.charsToDelete.clear()
     }
     else {
-      this.editor.removeStrokes(this.editor.model.strokesToDelete.map(s => s.id))
+      const inkEditor = this.editor as InkEditor
+      inkEditor.removeStrokes(inkEditor.model.strokesToDelete.map(s => s.id))
+      inkEditor.model.deletingIds.clear()
     }
     this.currentEraser = undefined
   }

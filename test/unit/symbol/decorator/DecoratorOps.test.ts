@@ -12,8 +12,6 @@ describe("DecoratorOps", () =>
       const d = DecoratorOps.create(DecoratorKind.Underline, { color: "red", width: 2 })
       expect(d.type).toBe(SymbolType.Decorator)
       expect(d.kind).toBe(DecoratorKind.Underline)
-      expect(d.selected).toBe(false)
-      expect(d.deleting).toBe(false)
       expect(d.targetIds).toEqual([])
       expect(d.hasBounds).toBe(false)
       expect(d.vertices).toEqual([])

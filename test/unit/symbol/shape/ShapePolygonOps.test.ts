@@ -16,8 +16,6 @@ describe("ShapePolygonOps", () =>
     {
       const polygon = ShapePolygonOps.create(points)
       expect(polygon.style).toEqual(DefaultStyle)
-      expect(polygon.selected).toEqual(false)
-      expect(polygon.deleting).toEqual(false)
     })
     test("should create with custom style", () =>
     {

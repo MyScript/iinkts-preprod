@@ -25,8 +25,6 @@ export type TStrokeMinimal = {
 export type TStroke = TBaseSymbol & TStrokeMinimal &{
   readonly type: SymbolType.Stroke
   style: TStyle
-  selected: boolean
-  deleting: boolean
   length: number
   bounds: TBox
   snapPoints: TPoint[]
@@ -105,8 +103,6 @@ export const StrokeOps = {
       style: mergedStyle,
       creationTime: now,
       modificationDate: now,
-      selected: false,
-      deleting: false,
       pointerType,
       pointers,
       length: 0,

@@ -28,8 +28,6 @@ export type TMathElement = TTypesetChild & {
 export type TMath = TBaseSymbol & {
   type: SymbolType.Math
   style: TStyle
-  selected: boolean
-  deleting: boolean
   point: TPoint
   elements: TMathElement[]
   decorators: TDecorator[]
@@ -70,8 +68,6 @@ export const MathOps = {
       style: mergedStyle,
       creationTime: now,
       modificationDate: now,
-      selected: false,
-      deleting: false,
       point,
       elements,
       decorators: [],
