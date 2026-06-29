@@ -1,12 +1,14 @@
 import { IIAbstractManager } from "../IIAbstractManager"
-import { TJIIXMathElement, TJIIXMathExpression } from "@/model"
-import { IIStroke, TPoint, isStroke } from "@/symbol"
+import type { TJIIXMathElement, TJIIXMathExpression } from "@/model"
+import type { TStroke, TPoint} from "@/symbol";
+import { isStroke } from "@/symbol"
+import { StrokeOps } from "@/symbol/stroke/Stroke"
 import { convertMillimeterToPixel } from "@/utils"
 import { isDeepEqual } from "@/utils/object"
 import { createUUID } from "@/utils/uuid"
-import { TStyle } from "@/style/Style"
+import type { TStyle } from "@/style/Style"
 import { SVGBuilder, SVGRendererConst } from "@/renderer"
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { LoggerCategory } from "@/logger"
 
 /**
@@ -62,7 +64,7 @@ export class IIMathComputationSubManager extends IIAbstractManager
   #ghostStrokeElementIds = new Map<string, string[]>()
   #lastComputationResult = new Map<string, TJIIXMathElement>()
 
-  constructor(editor: InteractiveInkEditor, config: Partial<TMathComputationConfig> = {})
+  constructor(editor: TInteractiveInkEditor, config: Partial<TMathComputationConfig> = {})
   {
     super(editor, LoggerCategory.MATH)
     this.#config = { ...IIMathComputationSubManager.DEFAULT_CONFIG, ...config }
@@ -343,14 +345,14 @@ export class IIMathComputationSubManager extends IIAbstractManager
     return strokes
   }
 
-  async addSolverOutputStrokes(result: TJIIXMathElement, style?: TStyle): Promise<IIStroke[]>
+  async addSolverOutputStrokes(result: TJIIXMathElement, style?: TStyle): Promise<TStroke[]>
   {
     this.logger.info("addSolverOutputStrokes", { result })
 
     const solverStrokes = this.extractSolverOutputStrokes(result)
     this.logger.debug("addSolverOutputStrokes", `Found ${ solverStrokes.length } solver output strokes`)
 
-    const addedStrokes: IIStroke[] = []
+    const addedStrokes: TStroke[] = []
     const defaultStyle = style || { color: this.#config.resultColor, width: 5 }
 
     for (const strokeData of solverStrokes) {
@@ -366,7 +368,7 @@ export class IIMathComputationSubManager extends IIAbstractManager
         t: strokeData.T?.[i] || i
       }))
 
-      const stroke = IIStroke.create({
+      const stroke = StrokeOps.createFromPartial({
         pointers,
         style: defaultStyle,
         isSolverOutput: true,

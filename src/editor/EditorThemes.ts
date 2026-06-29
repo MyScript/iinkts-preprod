@@ -3,7 +3,7 @@
  * `vars: undefined` resets to the stylesheet defaults.
  * @group Editor
  */
-export interface IEditorTheme
+export type TEditorTheme =
 {
   id: string
   label: string
@@ -15,7 +15,7 @@ export interface IEditorTheme
 }
 
 /** @group hidden */
-const EDITOR_THEMES: IEditorTheme[] = [
+const EDITOR_THEMES: TEditorTheme[] = [
   {
     id: "default",
     label: "Default",
@@ -161,7 +161,7 @@ export class EditorThemes
       // ignore (private browsing)
     }
   }
-  static getThemeById(id: string): IEditorTheme
+  static getThemeById(id: string): TEditorTheme
   {
     return EDITOR_THEMES.find(t => t.id === id) ?? EDITOR_THEMES[0]
   }

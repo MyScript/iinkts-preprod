@@ -1,30 +1,30 @@
-import { InteractiveInkEditorMock } from "../../__mocks__/InteractiveInkEditorMock"
-import { DefaultIIRendererConfiguration, IIMoveManager, PointerInfo } from "../../../../src/iink"
+import { createEditorMock, asEditor } from "../../__mocks__/createEditorMock"
+import { DefaultIIRendererConfiguration, IIMoveManager, TPointerInfo } from "../../../../src/iink"
 
 
 describe("IIMoveManager.ts", () =>
 {
   test("should instanciate", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    const manager = new IIMoveManager(editor)
+    const editor = createEditorMock()
+    const manager = new IIMoveManager(asEditor(editor))
     expect(manager).toBeDefined()
     expect(manager.origin).toBeUndefined()
   })
 
   describe("move process", () =>
   {
-    const editor = new InteractiveInkEditorMock()
+    const editor = createEditorMock()
     editor.init()
 
-    const manager = new IIMoveManager(editor)
+    const manager = new IIMoveManager(asEditor(editor))
 
     test("should init origin on start", async () =>
     {
       const info = {
         clientX: 1,
         clientY: 2,
-      } as PointerInfo
+      } as TPointerInfo
 
       manager.start(info)
       expect(manager.origin).toBeDefined()
@@ -47,7 +47,7 @@ describe("IIMoveManager.ts", () =>
       const info = {
         clientX: 75,
         clientY: 102,
-      } as PointerInfo
+      } as TPointerInfo
       manager.continue(info)
       expect(manager.renderer.getViewBox()).toEqual({
         x: -74,
@@ -64,7 +64,7 @@ describe("IIMoveManager.ts", () =>
       const info = {
         clientX: -42,
         clientY: -96,
-      } as PointerInfo
+      } as TPointerInfo
 
       manager.end(info)
       expect(manager.renderer.getViewBox()).toEqual({

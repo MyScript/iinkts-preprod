@@ -1,7 +1,8 @@
-import { Box, TPoint, TSegment } from "@/symbol"
+import type { TPoint, TSegment } from "@/symbol"
+import { BoxOps } from "@/symbol/primitives/Box"
 import { SVGRendererConst } from "@/renderer/svg/utils/SVGRendererConst"
-import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
-import { PartialDeep } from "@/utils"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import type { TPartialDeep } from "@/utils"
 import { IIAbstractManager } from "./IIAbstractManager"
 import { LoggerCategory } from "@/logger"
 
@@ -33,7 +34,7 @@ export class SnapConfiguration implements TSnapConfiguration
   symbol: boolean
   angle: number
 
-  constructor(config? : PartialDeep<TSnapConfiguration>)
+  constructor(config? : TPartialDeep<TSnapConfiguration>)
   {
     this.symbol = config?.symbol !== undefined ? config.symbol : DefaultSnapConfiguration.symbol
     this.guide = config?.guide !== undefined ? config.guide : DefaultSnapConfiguration.guide
@@ -64,7 +65,7 @@ export class IISnapManager extends IIAbstractManager
 
   snapConfiguration: SnapConfiguration
 
-  constructor(editor: InteractiveInkEditor, config?: PartialDeep<TSnapConfiguration>)
+  constructor(editor: TInteractiveInkEditor, config?: TPartialDeep<TSnapConfiguration>)
   {
     super(editor, LoggerCategory.SNAP)
     this.logger.info("constructor")
@@ -73,7 +74,7 @@ export class IISnapManager extends IIAbstractManager
 
   get selectionSnapPoints(): TPoint[]
   {
-    return Box.createFromPoints(this.model.symbolsSelected.flatMap(s => s.snapPoints)).snapPoints
+    return BoxOps.getSnapPoints(BoxOps.createFromPoints(this.model.symbolsSelected.flatMap(s => s.snapPoints)))
   }
 
   get otherSnapPoints(): TPoint[]

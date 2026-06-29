@@ -1,14 +1,17 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { IIStroke, IIText, TIISymbol, isStroke, isText } from "@/symbol"
-import { InteractiveInkEditor } from "@/editor"
+import type { TStroke, TText, TSymbol} from "@/symbol";
+import { isStroke, isText } from "@/symbol"
+import { TextOps } from "@/symbol/text/Text"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { DOMFactory } from "@/components/dom"
+import type { TContextDecoratorConfig, TContextReorderConfig, TContextExportConfig, TContextMathConfig} from "./context";
 import {
   EditContextMenu,
-  DecoratorContextMenu, TContextDecoratorConfig,
-  ReorderContextMenu, TContextReorderConfig,
-  ExportContextMenu, TContextExportConfig,
+  DecoratorContextMenu,
+  ReorderContextMenu,
+  ExportContextMenu,
   ConvertContextMenu,
-  MathContextMenu, TContextMathConfig,
+  MathContextMenu,
   DuplicateContextMenu,
   RemoveContextMenu,
   SelectAllContextMenu
@@ -19,7 +22,7 @@ import {
  * @remarks Configuration to enable/disable each context menu individually.
  * Sub-menus accept `boolean` to show/hide entirely, or an object to configure individual items.
  */
-export interface IIMenuContextConfig {
+export type TMenuContextConfig = {
   /** Enable/disable Edit menu */
   edit?: boolean
   /** Enable/disable Decorator menu. Pass an object to configure individual decorator types. */
@@ -43,7 +46,7 @@ export interface IIMenuContextConfig {
 }
 
 /** @group Menu */
-export const DefaultMenuContextConfig: Required<IIMenuContextConfig> = {
+export const DefaultMenuContextConfig: Required<TMenuContextConfig> = {
   edit: true,
   decorator: true,
   reorder: true,
@@ -65,10 +68,10 @@ function extractSubConfig<T>(config: boolean | T): T | undefined {
 export class IIMenuContext
 {
   #logger = LoggerManager.getLogger(LoggerCategory.MENU)
-  editor: InteractiveInkEditor
+  editor: TInteractiveInkEditor
   id: string
   wrapper?: HTMLElement
-  config: Required<IIMenuContextConfig>
+  config: Required<TMenuContextConfig>
 
   // Context menu instances
   private contextMenus: Map<string, EditContextMenu | DecoratorContextMenu | ReorderContextMenu | ExportContextMenu | ConvertContextMenu | MathContextMenu | DuplicateContextMenu | RemoveContextMenu | SelectAllContextMenu> = new Map()
@@ -80,7 +83,7 @@ export class IIMenuContext
     y: number
   }
 
-  constructor(editor: InteractiveInkEditor, id = "ms-menu-context", config?: IIMenuContextConfig)
+  constructor(editor: TInteractiveInkEditor, id = "ms-menu-context", config?: TMenuContextConfig)
   {
     this.id = id
     this.#logger.info("constructor")
@@ -89,7 +92,7 @@ export class IIMenuContext
     this.position = { x: 0, y: 0 }
   }
 
-  get symbolsSelected(): TIISymbol[]
+  get symbolsSelected(): TSymbol[]
   {
     return this.editor.model.symbolsSelected
   }
@@ -99,11 +102,11 @@ export class IIMenuContext
     return this.symbolsSelected.length > 0
   }
 
-  get symbolsDecorable(): (IIStroke | IIText)[]
+  get symbolsDecorable(): (TStroke | TText)[]
   {
     return this.symbolsSelected.filter(s => {
       return isStroke(s) || isText(s)
-    }) as (IIStroke | IIText)[]
+    }) as (TStroke | TText)[]
   }
 
   get showDecorator(): boolean
@@ -121,7 +124,7 @@ export class IIMenuContext
     const mathMenuInstance = this.contextMenus.get("math") as MathContextMenu | undefined
     if (mathMenuInstance) {
       if (this.hasSingleMathSymbol) {
-        const mathSymbol = this.symbolsSelected[0] as IIStroke
+        const mathSymbol = this.symbolsSelected[0] as TStroke
         if (!mathSymbol.jiixBlockId) {
           mathMenuInstance.setMenuVisibility(false, { canEditVariables: false, canCompute: false, canEvaluate: false })
           return
@@ -202,7 +205,7 @@ export class IIMenuContext
       if (editMenuInstance) {
         const textSymbol = this.editor.model.symbolsSelected.find(s => isText(s))
         if (editMenuInstance.editInput && this.editor.model.symbolsSelected.length === 1 && textSymbol) {
-          editMenuInstance.editInput.value = (textSymbol as IIText).label
+          editMenuInstance.editInput.value = TextOps.getLabel(textSymbol as TText)
           editMenuInstance.getElement().style.removeProperty("display")
         }
         else {

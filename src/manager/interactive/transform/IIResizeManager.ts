@@ -1,21 +1,26 @@
+import { StrokeOps } from "@/symbol/stroke/Stroke"
 import { ResizeDirection } from "@/Constants"
-import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import type {
+  TStroke,
+  TText,
+  TMath,
+  TEdge,
+  TShape,
+  TPoint,
+  TBox
+} from "@/symbol"
 import
 {
-  Box,
   EdgeKind,
-  IIStroke,
-  IIText,
-  IIMath,
   ShapeKind,
-  TIIEdge,
-  TIIShape,
-  TPoint,
   isText,
   isMath,
-  isShape,
-  isCircleShape
+  cloneSymbol
 } from "@/symbol"
+import { EdgeOps } from "@/symbol/edge/Edge"
+import { ShapeOps } from "@/symbol/shape/Shape"
+import { BoxOps } from "@/symbol/primitives/Box"
 import { MatrixTransform } from "@/transform"
 import { IIAbstractTransformManager } from "./AbstractTransformManager"
 
@@ -39,16 +44,16 @@ export class IIResizeManager extends IIAbstractTransformManager
   protected managerName = "IIResizeManager"
   protected transformName = "resize"
   direction!: ResizeDirection
-  boundingBox!: Box
+  boundingBox!: TBox
   transformOrigin!: TPoint
   keepRatio = false
 
-  constructor(editor: InteractiveInkEditor)
+  constructor(editor: TInteractiveInkEditor)
   {
     super(editor)
   }
 
-  protected applyToStroke(stroke: IIStroke, matrix: MatrixTransform): IIStroke
+  protected applyToStroke(stroke: TStroke, matrix: MatrixTransform): TStroke
   {
     this.logger.debug("applyToStroke", { stroke })
     if (stroke.isSolverOutput) {
@@ -56,10 +61,11 @@ export class IIResizeManager extends IIAbstractTransformManager
       return stroke
     }
     this.applyMatrixToPoints(stroke.pointers, matrix)
+    StrokeOps.updateBounds(stroke)
     return stroke
   }
 
-  protected applyToShape(shape: TIIShape, matrix: MatrixTransform): TIIShape
+  protected applyToShape(shape: TShape, matrix: MatrixTransform): TShape
   {
     this.logger.debug("applyToShape", { shape })
     switch (shape.kind) {
@@ -74,15 +80,18 @@ export class IIResizeManager extends IIAbstractTransformManager
         shape.center.y = +(shape.center.y + ((scaleX - 1) * -sinPhi + (scaleY - 1) * cosPhi) * (shape.center.y - oy)).toFixed(3)
         shape.radiusX = +(Math.abs(shape.radiusX * (scaleX * cosPhi - scaleY * sinPhi))).toFixed(3)
         shape.radiusY = +(Math.abs(shape.radiusY * (scaleX * sinPhi + scaleY * cosPhi))).toFixed(3)
+        ShapeOps.updateShapeDerivedFields(shape)
         return shape
       }
       case ShapeKind.Circle: {
         shape.radius = +(shape.radius * (matrix.xx + matrix.yy) / 2).toFixed(3)
         shape.center = matrix.applyToPoint(shape.center)
+        ShapeOps.updateShapeDerivedFields(shape)
         return shape
       }
       case ShapeKind.Polygon: {
         this.applyMatrixToPoints(shape.points, matrix)
+        ShapeOps.updateShapeDerivedFields(shape)
         return shape
       }
       default:
@@ -90,7 +99,7 @@ export class IIResizeManager extends IIAbstractTransformManager
     }
   }
 
-  protected applyToEdge(edge: TIIEdge, matrix: MatrixTransform): TIIEdge
+  protected applyToEdge(edge: TEdge, matrix: MatrixTransform): TEdge
   {
     this.logger.debug("applyToEdge", { edge })
     switch (edge.kind) {
@@ -112,14 +121,17 @@ export class IIResizeManager extends IIAbstractTransformManager
         else if (scaleY < 0) {
           edge.sweepAngle *= -1
         }
+        EdgeOps.updateEdgeDerivedFields(edge)
         return edge
       }
       case EdgeKind.Line: {
         this.applyMatrixToPoints([edge.start, edge.end], matrix)
+        EdgeOps.updateEdgeDerivedFields(edge)
         return edge
       }
       case EdgeKind.PolyEdge: {
         this.applyMatrixToPoints(edge.points, matrix)
+        EdgeOps.updateEdgeDerivedFields(edge)
         return edge
       }
       default:
@@ -127,7 +139,7 @@ export class IIResizeManager extends IIAbstractTransformManager
     }
   }
 
-  protected applyOnText(text: IIText, matrix: MatrixTransform): IIText
+  protected applyOnText(text: TText, matrix: MatrixTransform): TText
   {
     const np = matrix.applyToPoint(text.point)
     text.point.x = +np.x.toFixed(3)
@@ -140,7 +152,7 @@ export class IIResizeManager extends IIAbstractTransformManager
     return this.editor.typeset.updateBounds(text)
   }
 
-  protected applyOnMath(math: IIMath, matrix: MatrixTransform): IIMath
+  protected applyOnMath(math: TMath, matrix: MatrixTransform): TMath
   {
     const np = matrix.applyToPoint(math.point)
     math.point.x = +np.x.toFixed(3)
@@ -151,9 +163,9 @@ export class IIResizeManager extends IIAbstractTransformManager
       e.fontSize = +(e.fontSize * scale).toFixed(3)
     })
 
-    const corners = math.elements.map(e => new Box(e.bounds).corners).flat()
+    const corners = math.elements.map(e => BoxOps.getCorners(e.bounds)).flat()
     const scaledCorners = corners.map(p => matrix.applyToPoint(p))
-    math.bounds = Box.createFromPoints(scaledCorners)
+    math.bounds = BoxOps.createFromPoints(scaledCorners)
 
     return math
   }
@@ -171,11 +183,11 @@ export class IIResizeManager extends IIAbstractTransformManager
     this.direction = target.getAttribute("resize-direction") as ResizeDirection
 
     this.keepRatio = this.model.symbolsSelected.some(s =>
-      isText(s) || isMath(s) || (isShape(s) && isCircleShape(s))
+      isText(s) || isMath(s) || (ShapeOps.isShape(s) && ShapeOps.isCircleShape(s))
     )
 
     this.transformOrigin = origin
-    this.boundingBox = Box.createFromPoints(this.model.symbolsSelected.flatMap(s => s.vertices))
+    this.boundingBox = BoxOps.createFromPoints(this.model.symbolsSelected.flatMap(s => s.vertices))
     this.setTransformOrigin(this.interactElementsGroup!.id, this.transformOrigin.x, this.transformOrigin.y)
     this.model.symbolsSelected.forEach(s =>
     {
@@ -205,16 +217,16 @@ export class IIResizeManager extends IIAbstractTransformManager
 
     let deltaX = 0, deltaY = 0
     if (isEasternResize(this.direction)) {
-      deltaX = localPoint.x - this.boundingBox.xMax
+      deltaX = localPoint.x - (this.boundingBox.x + this.boundingBox.width)
     }
     else if (isWesternResize(this.direction)) {
-      deltaX = this.boundingBox.xMin - localPoint.x
+      deltaX = this.boundingBox.x - localPoint.x
     }
     if (isNorthernResize(this.direction)) {
-      deltaY = this.boundingBox.yMin - localPoint.y
+      deltaY = this.boundingBox.y - localPoint.y
     }
     else if (isSouthernResize(this.direction)) {
-      deltaY = localPoint.y - this.boundingBox.yMax
+      deltaY = localPoint.y - (this.boundingBox.y + this.boundingBox.height)
     }
 
     let scaleX = this.boundingBox.width ? 1 + (deltaX / this.boundingBox.width) : 1
@@ -237,6 +249,8 @@ export class IIResizeManager extends IIAbstractTransformManager
     {
       this.scaleElement(s.id, scaleX, scaleY)
     })
+    const matrix = MatrixTransform.identity().scale(scaleX, scaleY, this.transformOrigin)
+    this.editor.connector.drawAnchoredEdgesForMatrix(this.model.symbolsSelected.map(s => s.id), matrix)
     return { scaleX, scaleY }
   }
 
@@ -245,9 +259,10 @@ export class IIResizeManager extends IIAbstractTransformManager
     this.logger.info("end", { point })
     const { scaleX, scaleY } = this.continue(point)
     this.editor.snaps.clearSnapToElementLines()
-    const oldSymbols = this.model.symbolsSelected.map(s => s.clone())
+    const oldSymbols = this.model.symbolsSelected.map(s => cloneSymbol(s))
     const matrix = MatrixTransform.identity().scale(scaleX, scaleY, this.transformOrigin)
     this.applyAndDraw(this.model.symbolsSelected, matrix)
+    this.editor.connector.updateAnchoredEdges(this.model.symbolsSelected.map(s => s.id))
     const strokesFromSymbols = this.editor.extractStrokesFromSymbols(this.model.symbolsSelected)
     this.editor.recognizer.transformScale(strokesFromSymbols.map(s => s.id), scaleX, scaleY, this.transformOrigin.x, this.transformOrigin.y)
     this.editor.history.push(this.model, { scale: [{ symbols: oldSymbols, origin: {...this.transformOrigin}, scaleX, scaleY }] })

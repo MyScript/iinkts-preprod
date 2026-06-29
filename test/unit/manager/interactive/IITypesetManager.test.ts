@@ -1,16 +1,15 @@
 import { buildIIText } from "../../helpers"
-import { InteractiveInkEditorMock } from "../../__mocks__/InteractiveInkEditorMock"
+import { createEditorMock, asEditor } from "../../__mocks__/createEditorMock"
 import
 {
   IITypesetManager,
-  TIISymbolChar,
-  Box,
+  TSymbolChar,
   SVGBuilder
 } from "../../../../src/iink"
 
 describe("IITypesetManager.ts", () =>
 {
-  const chars: TIISymbolChar[] = [
+  const chars: TSymbolChar[] = [
     {
       bounds: { height: 0, width: 0, x: 0, y: 0 },
       color: "black",
@@ -48,15 +47,15 @@ describe("IITypesetManager.ts", () =>
 
   test("should create", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    const manager = new IITypesetManager(editor)
+    const editor = createEditorMock()
+    const manager = new IITypesetManager(asEditor(editor))
     expect(manager).toBeDefined()
   })
 
   test("should set chars BoundingBox", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    const manager = new IITypesetManager(editor)
+    const editor = createEditorMock()
+    const manager = new IITypesetManager(asEditor(editor))
     const text = buildIIText({ chars })
     const textEl = manager.renderer.buildElementFromSymbol(text) as SVGGElement
     manager.setCharsBounds(text, textEl)
@@ -67,8 +66,8 @@ describe("IITypesetManager.ts", () =>
 
   test("should get element BoundingBox", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    const manager = new IITypesetManager(editor)
+    const editor = createEditorMock()
+    const manager = new IITypesetManager(asEditor(editor))
     const text = buildIIText({ chars })
     const textEl = manager.renderer.buildElementFromSymbol(text) as SVGGElement
     expect(manager.getElementBoundingBox(textEl)).toEqual({ x: 0, y: 0, width: 10, height: 10 })
@@ -76,32 +75,32 @@ describe("IITypesetManager.ts", () =>
 
   test("should get BoundingBox", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    const manager = new IITypesetManager(editor)
+    const editor = createEditorMock()
+    const manager = new IITypesetManager(asEditor(editor))
     manager.renderer.layer = SVGBuilder.createLayer({ x: 0, y: 0, width: 100, height: 100 })
     manager.renderer.prependElement = jest.fn()
     const text = buildIIText({ chars })
-    manager.getElementBoundingBox = jest.fn(() => new Box({ x: 1, y: 2, width: 3, height: 4 }))
+    manager.getElementBoundingBox = jest.fn(() => ({ x: 1, y: 2, width: 3, height: 4 }))
     expect(manager.getBoundingBox(text)).toEqual({ x: 1, y: 2, width: 3, height: 4 })
     expect(manager.getElementBoundingBox).toHaveBeenCalledTimes(1)
   })
 
   test("shoud get Space Width", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    const manager = new IITypesetManager(editor)
-    manager.getBoundingBox = jest.fn(() => new Box({ height: 12, width: 42, x: 0, y: 0 }))
+    const editor = createEditorMock()
+    const manager = new IITypesetManager(asEditor(editor))
+    manager.getBoundingBox = jest.fn(() => ({ height: 12, width: 42, x: 0, y: 0 }))
     expect(manager.getSpaceWidth(12)).toEqual(42)
     expect(manager.getBoundingBox).toHaveBeenCalledTimes(1)
   })
 
   test("should update Text BoundingBox", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    const manager = new IITypesetManager(editor)
+    const editor = createEditorMock()
+    const manager = new IITypesetManager(asEditor(editor))
     manager.renderer.layer = SVGBuilder.createLayer({ x: 0, y: 0, width: 100, height: 100 })
     manager.renderer.prependElement = jest.fn()
-    manager.getElementBoundingBox = jest.fn(() => new Box({ x: 1989, y: 27, width: 5, height: 42 }))
+    manager.getElementBoundingBox = jest.fn(() => ({ x: 1989, y: 27, width: 5, height: 42 }))
     manager.setCharsBounds = jest.fn()
     const text = buildIIText({ chars })
     manager.updateBounds(text)

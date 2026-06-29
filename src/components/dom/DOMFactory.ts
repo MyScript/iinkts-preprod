@@ -1,19 +1,28 @@
-import { buildButton, ButtonElConfig } from "./buttonElement"
+import type { TButtonElConfig } from "./buttonElement";
+import { buildButton } from "./buttonElement"
+import type {
+    TCheckboxElConfig,
+    TFileInputElConfig,
+    TRangeElConfig,
+    TInputElConfig
+  } from "./inputElement";
 import
   {
     buildCheckbox,
-    CheckboxElConfig,
     buildFileInput,
-    FileInputElConfig,
     buildNumberInput,
     buildRange,
-    RangeElConfig,
-    buildTextInput,
-    InputElConfig
+    buildTextInput
   } from "./inputElement"
-import { buildSelect, buildOption, SelectElConfig, SelectElOption } from "./selectElement"
-import { buildLabel, LabelElConfig } from "./labelElement"
-import { buildOutput, OutputElConfig } from "./outputElement"
+import type { TSelectElConfig, TSelectElOption } from "./selectElement";
+import { buildSelect, buildOption } from "./selectElement"
+import type { TLabelElConfig } from "./labelElement";
+import { buildLabel } from "./labelElement"
+import type { TOutputElConfig } from "./outputElement";
+import { buildOutput } from "./outputElement"
+import type {
+    TContainerElConfig
+  } from "./containerElement";
 import
   {
     buildDiv,
@@ -21,9 +30,12 @@ import
     buildP,
     buildSection,
     buildSpan,
-    buildStyle,
-    ContainerElConfig
+    buildStyle
   } from "./containerElement"
+import type {
+    TTableBaseElConfig,
+    TTableCellElConfig
+  } from "./tableElement";
 import
   {
     buildTable,
@@ -31,9 +43,7 @@ import
     buildTd,
     buildTh,
     buildTHead,
-    buildTr,
-    TableBaseElConfig,
-    TableCellElConfig
+    buildTr
   } from "./tableElement"
 import { buildCanvas } from "./miscElement"
 
@@ -45,23 +55,23 @@ export class DOMFactory
 {
   private constructor() { }
 
-  static div(config?: ContainerElConfig): HTMLDivElement
+  static div(config?: TContainerElConfig): HTMLDivElement
   {
     return buildDiv(config)
   }
-  static span(config?: ContainerElConfig): HTMLSpanElement
+  static span(config?: TContainerElConfig): HTMLSpanElement
   {
     return buildSpan(config)
   }
-  static p(config?: ContainerElConfig): HTMLParagraphElement
+  static p(config?: TContainerElConfig): HTMLParagraphElement
   {
     return buildP(config)
   }
-  static h3(config?: ContainerElConfig): HTMLHeadingElement
+  static h3(config?: TContainerElConfig): HTMLHeadingElement
   {
     return buildH3(config)
   }
-  static section(config?: ContainerElConfig): HTMLElement
+  static section(config?: TContainerElConfig): HTMLElement
   {
     return buildSection(config)
   }
@@ -74,76 +84,76 @@ export class DOMFactory
     return buildCanvas(config)
   }
 
-  static label(config: LabelElConfig): HTMLLabelElement
+  static label(config: TLabelElConfig): HTMLLabelElement
   {
     return buildLabel(config)
   }
 
-  static button(config: ButtonElConfig): HTMLButtonElement
+  static button(config: TButtonElConfig): HTMLButtonElement
   {
     return buildButton(config)
   }
 
-  static textInput(config: InputElConfig): HTMLInputElement
+  static textInput(config: TInputElConfig): HTMLInputElement
   {
     return buildTextInput(config)
   }
 
-  static numberInput(config: InputElConfig): HTMLInputElement
+  static numberInput(config: TInputElConfig): HTMLInputElement
   {
     return buildNumberInput(config)
   }
 
-  static checkbox(config: CheckboxElConfig): HTMLInputElement
+  static checkbox(config: TCheckboxElConfig): HTMLInputElement
   {
     return buildCheckbox(config)
   }
 
-  static range(config: RangeElConfig): HTMLInputElement
+  static range(config: TRangeElConfig): HTMLInputElement
   {
     return buildRange(config)
   }
 
-  static fileInput(config: FileInputElConfig): HTMLInputElement
+  static fileInput(config: TFileInputElConfig): HTMLInputElement
   {
     return buildFileInput(config)
   }
 
-  static select(config: SelectElConfig): HTMLSelectElement
+  static select(config: TSelectElConfig): HTMLSelectElement
   {
     return buildSelect(config)
   }
-  static option(opt: SelectElOption): HTMLOptionElement
+  static option(opt: TSelectElOption): HTMLOptionElement
   {
     return buildOption(opt)
   }
 
-  static output(config?: OutputElConfig): HTMLOutputElement
+  static output(config?: TOutputElConfig): HTMLOutputElement
   {
     return buildOutput(config)
   }
 
-  static table(config?: TableBaseElConfig): HTMLTableElement
+  static table(config?: TTableBaseElConfig): HTMLTableElement
   {
     return buildTable(config)
   }
-  static thead(config?: TableBaseElConfig): HTMLTableSectionElement
+  static thead(config?: TTableBaseElConfig): HTMLTableSectionElement
   {
     return buildTHead(config)
   }
-  static tbody(config?: TableBaseElConfig): HTMLTableSectionElement
+  static tbody(config?: TTableBaseElConfig): HTMLTableSectionElement
   {
     return buildTBody(config)
   }
-  static tr(config?: TableBaseElConfig): HTMLTableRowElement
+  static tr(config?: TTableBaseElConfig): HTMLTableRowElement
   {
     return buildTr(config)
   }
-  static td(config?: TableCellElConfig): HTMLTableCellElement
+  static td(config?: TTableCellElConfig): HTMLTableCellElement
   {
     return buildTd(config)
   }
-  static th(config?: TableCellElConfig): HTMLTableCellElement
+  static th(config?: TTableCellElConfig): HTMLTableCellElement
   {
     return buildTh(config)
   }

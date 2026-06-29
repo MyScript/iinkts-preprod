@@ -1,4 +1,4 @@
-import { TBox, TPoint, TSegment } from "@/symbol"
+import type { TBox, TPoint, TSegment } from "@/symbol"
 import { isBetween } from "./math"
 
 /**

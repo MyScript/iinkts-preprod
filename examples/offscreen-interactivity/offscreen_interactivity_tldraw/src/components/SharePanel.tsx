@@ -1,8 +1,8 @@
 import { useDialogs } from "tldraw"
 import { KeyForms } from "./KeyForms"
-import { PartialDeep, TServerWebsocketConfiguration } from "iink-ts"
+import { TPartialDeep, TServerWebsocketConfiguration } from "iink-ts"
 
-export  function SharePanel({ loadRecognizer }: { loadRecognizer: (keys: PartialDeep<TServerWebsocketConfiguration>) => Promise<void> }) {
+export  function SharePanel({ loadRecognizer }: { loadRecognizer: (keys: TPartialDeep<TServerWebsocketConfiguration>) => Promise<void> }) {
   const { addDialog } = useDialogs()
 
   function ModalKeys({ onClose }: { onClose(): void }) {
@@ -23,7 +23,7 @@ export  function SharePanel({ loadRecognizer }: { loadRecognizer: (keys: Partial
           <KeyForms
             onSubmit={(keys) => {
               localStorage.setItem("server", JSON.stringify(keys))
-              loadRecognizer(keys as PartialDeep<TServerWebsocketConfiguration>)
+              loadRecognizer(keys as TPartialDeep<TServerWebsocketConfiguration>)
               onClose()
             }}
           />

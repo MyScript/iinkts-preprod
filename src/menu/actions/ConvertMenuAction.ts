@@ -1,5 +1,6 @@
-import { InteractiveInkEditor } from "@/editor"
-import { ButtonMenuItem, IMenuButton } from "@/menu/items/ButtonMenuItem"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import type { TMenuButton } from "@/menu/items/ButtonMenuItem";
+import { ButtonMenuItem } from "@/menu/items/ButtonMenuItem"
 import translateIcon from "@/assets/svg/translate.svg"
 
 /**
@@ -8,9 +9,9 @@ import translateIcon from "@/assets/svg/translate.svg"
  */
 export class ConvertMenuAction extends ButtonMenuItem
 {
-  constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-action")
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-action")
   {
-    const config: IMenuButton = {
+    const config: TMenuButton = {
       type: "button",
       id: `${idPrefix}-convert`,
       label: "Convert",

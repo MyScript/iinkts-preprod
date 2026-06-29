@@ -1,5 +1,6 @@
-import { InteractiveInkEditor } from "@/editor"
-import { SubMenuItem, IMenuSubMenu } from "@/menu/items/SubMenuItem"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import type { TMenuSubMenu } from "@/menu/items/SubMenuItem";
+import { SubMenuItem } from "@/menu/items/SubMenuItem"
 import { EditorTool, EditorWriteTool } from "@/Constants"
 
 /** @group Menu */
@@ -21,7 +22,7 @@ import gestureIcon from "@/assets/svg/spock-hand-gesture.svg"
  */
 export class GestureMenuAction extends SubMenuItem
 {
-  constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-action", itemsConfig?: TGestureActionItemsConfig)
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-action", itemsConfig?: TGestureActionItemsConfig)
   {
     const enabled = (key: keyof TGestureActionItemsConfig) => itemsConfig?.[key] !== false
 
@@ -49,7 +50,7 @@ export class GestureMenuAction extends SubMenuItem
       splitActionValues.push({ label: key, value })
     }
 
-    const config: IMenuSubMenu = {
+    const config: TMenuSubMenu = {
       type: "submenu",
       id: `${idPrefix}-gesture`,
       label: "Gesture",

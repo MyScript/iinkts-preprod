@@ -1,4 +1,4 @@
-import { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
 import zoomInIcon from "@/assets/svg/zoom-in.svg"
 import zoomOutIcon from "@/assets/svg/zoom-out.svg"
@@ -13,7 +13,7 @@ export class ZoomMenuAction extends BaseMenuItem<HTMLDivElement>
   private zoomLevelButton!: HTMLButtonElement
   private zoomOutButton!: HTMLButtonElement
 
-  constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-action")
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-action")
   {
     const config = {
       type: "zoom" as const,

@@ -1,11 +1,11 @@
-import { InteractiveInkEditorMock } from "../../../__mocks__/InteractiveInkEditorMock"
+import { createEditorMock, asEditor } from "../../../__mocks__/createEditorMock"
 import
 {
-  IIEdgeLine,
+  EdgeLineOps,
   IITranslateManager,
-  IIShapeCircle,
-  IIShapePolygon,
-  IIStroke,
+  ShapeCircleOps,
+  ShapePolygonOps,
+  StrokeOps,
   TPoint,
   SvgElementRole,
 } from "../../../../../src/iink"
@@ -15,21 +15,21 @@ describe("IITranslateManager.ts", () =>
 {
   test("should create", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    const manager = new IITranslateManager(editor)
+    const editor = createEditorMock()
+    const manager = new IITranslateManager(asEditor(editor))
     expect(manager).toBeDefined()
   })
 
   describe("should applyToSymbol", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    const manager = new IITranslateManager(editor)
+    const editor = createEditorMock()
+    const manager = new IITranslateManager(asEditor(editor))
 
     test("translate stroke", () =>
     {
-      const stroke = new IIStroke()
-      stroke.addPointer({ p: 1, t: 1, x: 1, y: 1 })
-      stroke.addPointer({ p: 1, t: 10, x: 10, y: 0 })
+      const stroke = StrokeOps.create()
+      StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 1, y: 1 })
+      StrokeOps.addPointer(stroke, { p: 1, t: 10, x: 10, y: 0 })
       const matrix = MatrixTransform.identity().translate(10, 15)
       manager.applyToSymbol(stroke, matrix)
       expect(stroke.pointers[0]).toEqual(expect.objectContaining({ x: 11, y: 16 }))
@@ -39,7 +39,7 @@ describe("IITranslateManager.ts", () =>
     {
       const center: TPoint = { x: 5, y: 5 }
       const radius = 4
-      const circle = new IIShapeCircle(center, radius)
+      const circle = ShapeCircleOps.create(center, radius)
       const matrix = MatrixTransform.identity().translate(10, 15)
       manager.applyToSymbol(circle, matrix)
       expect(circle.radius).toEqual(radius)
@@ -53,7 +53,7 @@ describe("IITranslateManager.ts", () =>
         { x: 5, y: 5 },
         { x: 5, y: 0 }
       ]
-      const poly = new IIShapePolygon(points)
+      const poly = ShapePolygonOps.create(points)
       //@ts-ignore
       poly.kind = "pouet"
       const matrix = MatrixTransform.identity().translate(10, 15)
@@ -63,7 +63,7 @@ describe("IITranslateManager.ts", () =>
     {
       const start: TPoint = { x: 0, y: 0 }
       const end: TPoint = { x: 0, y: 5 }
-      const line = new IIEdgeLine(start, end)
+      const line = EdgeLineOps.create(start, end)
       const matrix = MatrixTransform.identity().translate(10, 15)
       manager.applyToSymbol(line, matrix)
       expect(line.start).toEqual(expect.objectContaining({ x: 10, y: 15 }))
@@ -73,7 +73,7 @@ describe("IITranslateManager.ts", () =>
 
   describe("translate process on stroke without snap", () =>
   {
-    const editor = new InteractiveInkEditorMock()
+    const editor = createEditorMock()
     editor.snaps.snapConfiguration.guide = false
     editor.snaps.snapConfiguration.symbol = false
     editor.recognizer.init = jest.fn(() => Promise.resolve())
@@ -81,19 +81,19 @@ describe("IITranslateManager.ts", () =>
     editor.renderer.setAttribute = jest.fn()
     editor.renderer.drawSymbol = jest.fn()
 
-    const manager = new IITranslateManager(editor)
+    const manager = new IITranslateManager(asEditor(editor))
     manager.applyToSymbol = jest.fn()
 
-    const stroke = new IIStroke({})
-    stroke.addPointer({ p: 1, t: 1, x: 0, y: 0 })
-    stroke.addPointer({ p: 1, t: 1, x: 10, y: 50 })
+    const stroke = StrokeOps.create({})
+    StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 0, y: 0 })
+    StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 10, y: 50 })
     stroke.selected = true
-    const strokeNotTranslate = stroke.clone()
+    const strokeNotTranslate = structuredClone(stroke)
     editor.model.addSymbol(stroke)
 
     const translationOrigin: TPoint = {
-      x: (stroke.bounds.xMax + stroke.bounds.xMin) / 2,
-      y: (stroke.bounds.yMin + stroke.bounds.yMax) / 2
+      x: stroke.bounds.x + stroke.bounds.width / 2,
+      y: stroke.bounds.y + stroke.bounds.height / 2
     }
 
     const testDatas = [

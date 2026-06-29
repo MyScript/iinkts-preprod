@@ -1,9 +1,10 @@
-import { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { Modal } from "./Modal"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import { DOMFactory } from "@/components/dom"
-import { IIMathVariableInputList, TVariableInputItem } from "./IIMathVariableInputList"
-import { TMathVariableUsage } from "@/manager/interactive/math"
+import type { TVariableInputItem } from "./IIMathVariableInputList";
+import { IIMathVariableInputList } from "./IIMathVariableInputList"
+import type { TMathVariableUsage } from "@/manager/interactive/math"
 
 /**
  * @group Components
@@ -13,7 +14,7 @@ import { TMathVariableUsage } from "@/manager/interactive/math"
  */
 export class IIMathVariableEditor
 {
-  private editor: InteractiveInkEditor
+  private editor: TInteractiveInkEditor
   private modal?: Modal
   private usages: TMathVariableUsage[] = []
   private usagesById: Map<string, TMathVariableUsage> = new Map()
@@ -21,7 +22,7 @@ export class IIMathVariableEditor
   private newRows: Array<{ nameInput: HTMLInputElement; valueInput: HTMLInputElement }> = []
   private logger = LoggerManager.getLogger(LoggerCategory.MATH)
 
-  constructor(editor: InteractiveInkEditor)
+  constructor(editor: TInteractiveInkEditor)
   {
     this.editor = editor
   }
