@@ -7,7 +7,7 @@ import
   TPoint,
   TSnapNudge,
   SVGRendererConst,
-} from "../../../src/iink"
+} from "@/iink"
 
 describe("IISnapManager.ts", () =>
 {

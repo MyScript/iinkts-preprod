@@ -1,5 +1,5 @@
-import { CanvasRenderer, DefaultRendererConfiguration } from "../../../src/iink"
 import { buildStroke } from "../helpers"
+import { CanvasRenderer, DefaultRendererConfiguration } from "@/iink"
 
 describe("CanvasRenderer.ts", () =>
 {

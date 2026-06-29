@@ -3,8 +3,8 @@ import {
   DefaultStyle,
   TStyle,
   TPointer,
-} from "../../../../src/iink"
-import { OBBOps } from "../../../../src/symbol/primitives/OBB"
+  OBBOps
+} from "@/iink"
 
 describe("TStroke / StrokeOps", () =>
 {

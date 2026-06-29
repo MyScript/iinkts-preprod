@@ -1,7 +1,11 @@
-import { TMathElement, TPoint, TBox } from "../../../../src/iink"
-import { BoxOps } from "../../../../src/symbol/primitives/Box"
-import { OBBOps } from "../../../../src/symbol/primitives/OBB"
-import { MathOps } from "../../../../src/symbol/math/Math"
+import {
+  TMathElement,
+  TPoint,
+  TBox,
+  BoxOps,
+  OBBOps,
+  MathOps
+} from "@/iink"
 
 const elements: TMathElement[] = [
   {

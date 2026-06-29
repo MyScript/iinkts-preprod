@@ -1,8 +1,10 @@
 import { describe, test, expect } from "@jest/globals"
-import { DecoratorKind } from "../../../../src/iink"
-import { DecoratorOps } from "../../../../src/symbol/decorator/Decorator"
-import { OBBOps } from "../../../../src/symbol/primitives/OBB"
-import { SymbolType } from "../../../../src/symbol/Symbol"
+import {
+  DecoratorOps,
+  OBBOps,
+  SymbolType,
+  DecoratorKind
+} from "@/iink"
 
 describe("DecoratorOps", () =>
 {

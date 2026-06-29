@@ -13,7 +13,7 @@ import
   EdgeKind,
   TStroke,
   TPointerInfo
-} from "../../../../src/iink"
+} from "@/iink"
 
 describe("IIWriterManager.ts", () =>
 {

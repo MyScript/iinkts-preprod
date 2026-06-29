@@ -1,9 +1,11 @@
 import { describe, test, expect, beforeEach } from "@jest/globals"
-import { MathUtil } from "../../../../src/symbol-utils/math/MathUtil"
-import { SymbolType } from "../../../../src/symbol/Symbol"
-import { OBBOps } from "../../../../src/symbol/primitives/OBB"
 import { buildIIMath } from "../../helpers"
-import type { TMathElement } from "../../../../src/iink"
+import {
+  MathUtil,
+  SymbolType,
+  OBBOps,
+  type TMathElement
+} from "@/iink"
 
 const makeMathElement = (label: string, bounds = { x: 0, y: 0, width: 50, height: 30 }): TMathElement => ({
   id: "e1",

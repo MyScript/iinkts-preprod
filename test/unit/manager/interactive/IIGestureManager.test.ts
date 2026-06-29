@@ -7,9 +7,10 @@ import
   TSymbolChar,
   IIGestureManager,
   TStroke,
-  TRecognizerWebSocketMessageType
-} from "../../../../src/iink"
-import { BoxOps, OBBOps } from "../../../../src/iink"
+  TRecognizerWebSocketMessageType,
+  BoxOps,
+  OBBOps
+} from "@/iink"
 
 describe("IIGestureManager.ts", () =>
 {

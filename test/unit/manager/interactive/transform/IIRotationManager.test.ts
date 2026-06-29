@@ -11,8 +11,8 @@ import
   TPoint,
   computeRotatedPoint,
   convertDegreeToRadian,
-} from "../../../../../src/iink"
-import { MatrixTransform } from "../../../../../src/transform"
+  MatrixTransform
+} from "@/iink"
 
 describe("IIRotationManager.ts", () =>
 {
