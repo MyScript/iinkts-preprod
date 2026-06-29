@@ -7,6 +7,7 @@ import
   TBox,
   EdgeDecoration
 } from "../../../../src/iink"
+import { OBBOps } from "../../../../src/symbol/primitives/OBB"
 
 describe("EdgeArcOps", () =>
 {
@@ -36,8 +37,8 @@ describe("EdgeArcOps", () =>
     test("should compute bounds", () =>
     {
       const arc = EdgeArcOps.create({ x: 0, y: 0 }, Math.PI / 4, 3 * Math.PI / 4, 10, 50, 0, undefined, undefined, { width: 20 })
-      expect(arc.bounds.x).toEqual(-15)
-      expect(arc.bounds.y).toEqual(-5)
+      expect(OBBOps.toBox(arc.bounds).x).toEqual(-15)
+      expect(OBBOps.toBox(arc.bounds).y).toEqual(-5)
       expect(+arc.bounds.width.toFixed(0)).toEqual(27)
       expect(+arc.bounds.height.toFixed(0)).toEqual(60)
     })
@@ -118,7 +119,7 @@ describe("EdgeArcOps", () =>
       const prevBounds = { ...arc.bounds }
       arc.center = { x: 50, y: 50 }
       EdgeArcOps.updateDerivedFields(arc)
-      expect(arc.bounds.x).not.toEqual(prevBounds.x)
+      expect(OBBOps.toBox(arc.bounds).x).not.toEqual(OBBOps.toBox(prevBounds).x)
     })
   })
 

@@ -7,6 +7,7 @@ import
   TBox,
   EdgeDecoration
 } from "../../../../src/iink"
+import { OBBOps } from "../../../../src/symbol/primitives/OBB"
 
 describe("EdgeLineOps", () =>
 {
@@ -49,8 +50,8 @@ describe("EdgeLineOps", () =>
     test("should compute bounds with margin", () =>
     {
       const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 5, y: 5 }, undefined, undefined, { width: 20 })
-      expect(line.bounds.x).toEqual(-5)
-      expect(line.bounds.y).toEqual(-5)
+      expect(OBBOps.toBox(line.bounds).x).toEqual(-5)
+      expect(OBBOps.toBox(line.bounds).y).toEqual(-5)
       expect(line.bounds.width).toEqual(15)
       expect(line.bounds.height).toEqual(15)
     })

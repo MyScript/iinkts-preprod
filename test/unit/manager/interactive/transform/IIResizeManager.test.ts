@@ -1,4 +1,5 @@
 import { createEditorMock, asEditor } from "../../../__mocks__/createEditorMock"
+import { OBBOps } from "../../../../../src/symbol/primitives/OBB"
 import
 {
   EdgeArcOps,
@@ -86,7 +87,8 @@ describe("IIResizeManager.ts", () =>
       const shape = ShapeEllipseOps.create(center, radiusX, radiusY, orientation)
       const scaleX = 2
       const scaleY = 4
-      const origin: TPoint = { x: shape.bounds.x, y: shape.bounds.y }
+      const shapeBoundsBox = OBBOps.toBox(shape.bounds)
+      const origin: TPoint = { x: shapeBoundsBox.x, y: shapeBoundsBox.y }
       manager.transformOrigin = origin
       const matrix = MatrixTransform.identity().scale(scaleX, scaleY, origin)
       manager.applyToSymbol(shape, matrix)
@@ -105,7 +107,8 @@ describe("IIResizeManager.ts", () =>
       const shape = ShapePolygonOps.create(points)
       const scaleX = 2
       const scaleY = 4
-      const origin: TPoint = { x: shape.bounds.x, y: shape.bounds.y }
+      const polyBoundsBox = OBBOps.toBox(shape.bounds)
+      const origin: TPoint = { x: polyBoundsBox.x, y: polyBoundsBox.y }
       const matrix = MatrixTransform.identity().scale(scaleX, scaleY, origin)
       manager.applyToSymbol(shape, matrix)
       expect(shape.points[0].x).toEqual(0)
@@ -137,7 +140,8 @@ describe("IIResizeManager.ts", () =>
       const radiusY = 10
       const phi = 0
       const edge = EdgeArcOps.create(center, startAngle, sweepAngle, radiusX, radiusY, phi)
-      const origin: TPoint = { x: edge.bounds.x, y: edge.bounds.y }
+      const edgeBoundsBox = OBBOps.toBox(edge.bounds)
+      const origin: TPoint = { x: edgeBoundsBox.x, y: edgeBoundsBox.y }
       const scaleX = 2
       const scaleY = 3
       manager.transformOrigin = origin
@@ -181,7 +185,6 @@ describe("IIResizeManager.ts", () =>
     })
     test("resize edge Text", () =>
     {
-      editor.typeset.updateBounds = jest.fn()
       const point: TPoint = { x: 0, y: 0 }
       const chars: TSymbolChar[] = [
         {
@@ -199,7 +202,7 @@ describe("IIResizeManager.ts", () =>
       manager.applyToSymbol(text, matrix)
       expect(text.point).toEqual({ x: 0, y: 0 })
       expect(chars[0].fontSize).toEqual(30)
-      expect(editor.typeset.updateBounds).toHaveBeenCalledTimes(1)
+      expect(text.bounds).toEqual(OBBOps.fromBox({ x: 0, y: 0, width: 10, height: 30 }))
     })
   })
 
@@ -223,98 +226,99 @@ describe("IIResizeManager.ts", () =>
     editor.model.addSymbol(stroke)
     editor.model.selectedIds.add(stroke.id)
 
+    const sb = OBBOps.toBox(stroke.bounds)
     const resizeToPoint: TPoint = {
-      x: (stroke.bounds.x + stroke.bounds.width + stroke.bounds.x) / 4,
-      y: (stroke.bounds.y + stroke.bounds.height + stroke.bounds.y) / 4
+      x: (sb.x + stroke.bounds.width + sb.x) / 4,
+      y: (sb.y + stroke.bounds.height + sb.y) / 4
     }
 
     const testDatas = [
       {
         direction: ResizeDirection.North,
         transformOrigin: {
-          x: stroke.bounds.x + stroke.bounds.width / 2,
-          y: stroke.bounds.y + stroke.bounds.height
+          x: sb.x + stroke.bounds.width / 2,
+          y: sb.y + stroke.bounds.height
         },
         scale: {
           x: 1,
-          y: 1 + (stroke.bounds.y - resizeToPoint.y) / stroke.bounds.height
+          y: 1 + (sb.y - resizeToPoint.y) / stroke.bounds.height
         }
       },
       {
         direction: ResizeDirection.East,
         transformOrigin: {
-          x: stroke.bounds.x,
-          y: stroke.bounds.y + stroke.bounds.height / 2
+          x: sb.x,
+          y: sb.y + stroke.bounds.height / 2
         },
         scale: {
-          x: 1 + (resizeToPoint.x - (stroke.bounds.x + stroke.bounds.width)) / stroke.bounds.width,
+          x: 1 + (resizeToPoint.x - (sb.x + stroke.bounds.width)) / stroke.bounds.width,
           y: 1
         }
       },
       {
         direction: ResizeDirection.South,
         transformOrigin: {
-          x: stroke.bounds.x + stroke.bounds.width / 2,
-          y: stroke.bounds.y
+          x: sb.x + stroke.bounds.width / 2,
+          y: sb.y
         },
         scale: {
           x: 1,
-          y: 1 + (resizeToPoint.y - (stroke.bounds.y + stroke.bounds.height)) / stroke.bounds.height,
+          y: 1 + (resizeToPoint.y - (sb.y + stroke.bounds.height)) / stroke.bounds.height,
         }
       },
       {
         direction: ResizeDirection.West,
         transformOrigin: {
-          x: stroke.bounds.x + stroke.bounds.width,
-          y: stroke.bounds.y + stroke.bounds.height / 2
+          x: sb.x + stroke.bounds.width,
+          y: sb.y + stroke.bounds.height / 2
         },
         scale: {
-          x: 1 + (stroke.bounds.x - resizeToPoint.x) / stroke.bounds.width,
+          x: 1 + (sb.x - resizeToPoint.x) / stroke.bounds.width,
           y: 1
         }
       },
       {
         direction: ResizeDirection.NorthEast,
         transformOrigin: {
-          x: stroke.bounds.x,
-          y: stroke.bounds.y + stroke.bounds.height
+          x: sb.x,
+          y: sb.y + stroke.bounds.height
         },
         scale: {
-          x: 1 + (resizeToPoint.x - (stroke.bounds.x + stroke.bounds.width)) / stroke.bounds.width,
-          y: 1 + (stroke.bounds.y - resizeToPoint.y) / stroke.bounds.height
+          x: 1 + (resizeToPoint.x - (sb.x + stroke.bounds.width)) / stroke.bounds.width,
+          y: 1 + (sb.y - resizeToPoint.y) / stroke.bounds.height
         }
       },
       {
         direction: ResizeDirection.NorthWest,
         transformOrigin: {
-          x: stroke.bounds.x + stroke.bounds.width,
-          y: stroke.bounds.y + stroke.bounds.height
+          x: sb.x + stroke.bounds.width,
+          y: sb.y + stroke.bounds.height
         },
         scale: {
-          x: 1 + (stroke.bounds.x - resizeToPoint.x) / stroke.bounds.width,
-          y: 1 + (stroke.bounds.y - resizeToPoint.y) / stroke.bounds.height
+          x: 1 + (sb.x - resizeToPoint.x) / stroke.bounds.width,
+          y: 1 + (sb.y - resizeToPoint.y) / stroke.bounds.height
         }
       },
       {
         direction: ResizeDirection.SouthEast,
         transformOrigin: {
-          x: stroke.bounds.x,
-          y: stroke.bounds.y
+          x: sb.x,
+          y: sb.y
         },
         scale: {
-          x: 1 + (resizeToPoint.x - (stroke.bounds.x + stroke.bounds.width)) / stroke.bounds.width,
-          y: 1 + (resizeToPoint.y - (stroke.bounds.y + stroke.bounds.height)) / stroke.bounds.height,
+          x: 1 + (resizeToPoint.x - (sb.x + stroke.bounds.width)) / stroke.bounds.width,
+          y: 1 + (resizeToPoint.y - (sb.y + stroke.bounds.height)) / stroke.bounds.height,
         }
       },
       {
         direction: ResizeDirection.SouthWest,
         transformOrigin: {
-          x: stroke.bounds.x + stroke.bounds.width,
-          y: stroke.bounds.y
+          x: sb.x + stroke.bounds.width,
+          y: sb.y
         },
         scale: {
-          x: 1 + (stroke.bounds.x - resizeToPoint.x) / stroke.bounds.width,
-          y: 1 + (resizeToPoint.y - (stroke.bounds.y + stroke.bounds.height)) / stroke.bounds.height,
+          x: 1 + (sb.x - resizeToPoint.x) / stroke.bounds.width,
+          y: 1 + (resizeToPoint.y - (sb.y + stroke.bounds.height)) / stroke.bounds.height,
         }
       },
     ]
@@ -337,7 +341,7 @@ describe("IIResizeManager.ts", () =>
       {
         manager.start(resizeElement, data.transformOrigin)
         expect(manager.interactElementsGroup).toEqual(group)
-        expect(manager.boundingBox).toEqual(stroke.bounds)
+        expect(manager.boundingBox).toEqual(OBBOps.toBox(stroke.bounds))
         expect(manager.direction).toEqual(data.direction)
         expect(manager.transformOrigin).toEqual(data.transformOrigin)
         expect(editor.renderer.setAttribute).toHaveBeenNthCalledWith(1, group.id, "transform-origin", `${ data.transformOrigin.x }px ${ data.transformOrigin.y }px`)

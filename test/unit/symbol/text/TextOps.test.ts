@@ -1,5 +1,6 @@
 import { TSymbolChar, TPoint, TBox } from "../../../../src/iink"
 import { BoxOps } from "../../../../src/symbol/primitives/Box"
+import { OBBOps } from "../../../../src/symbol/primitives/OBB"
 import { TextOps } from "../../../../src/symbol/text/Text"
 
 const chars: TSymbolChar[] = [
@@ -34,7 +35,7 @@ describe("TextOps", () =>
       expect(typeof text).toBe("object")
       expect(text.chars).toBe(chars)
       expect(text.point).toBe(point)
-      expect(text.bounds).toBe(bounds)
+      expect(text.bounds).toEqual(OBBOps.fromBox(bounds))
     })
 
     test("should initialize with empty decorators", () =>
@@ -112,7 +113,7 @@ describe("TextOps", () =>
     {
       const text = TextOps.create(chars, point, bounds)
       const newBounds: TBox = { x: 100, y: 100, width: 50, height: 30 }
-      text.bounds = newBounds
+      text.bounds = OBBOps.fromBox(newBounds)
       TextOps.updateDerivedFields(text)
       expect(text.vertices).toEqual(BoxOps.getCorners(newBounds))
     })

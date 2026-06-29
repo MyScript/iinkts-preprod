@@ -102,9 +102,9 @@ export class IITranslateManager extends IIAbstractTransformManager
     math.point.x = +np.x.toFixed(3)
     math.point.y = +np.y.toFixed(3)
 
-    const bp = matrix.applyToPoint({ x: math.bounds.x, y: math.bounds.y })
-    math.bounds.x = +bp.x.toFixed(3)
-    math.bounds.y = +bp.y.toFixed(3)
+    const bp = matrix.applyToPoint(math.bounds.center)
+    math.bounds.center.x = +bp.x.toFixed(3)
+    math.bounds.center.y = +bp.y.toFixed(3)
 
     math.elements.forEach(e =>
     {

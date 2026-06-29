@@ -1,6 +1,7 @@
 import type { TPartialDeep } from "@/utils"
 import { DefaultStyle } from "@/style"
 import type { TBox } from "@/symbol/primitives/Box"
+import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
 import type { TPoint } from "@/symbol/primitives/Point"
 import { SymbolType } from "@/symbol/Symbol"
 import { DecoratorOps, DecoratorKind, type TDecorator } from "@/symbol/decorator/Decorator"
@@ -60,7 +61,7 @@ export class DecoratorUtil extends SymbolUtil<TDecorator>
     )
   }
 
-  static renderForSymbol(decorator: TDecorator, symbol: { bounds: TBox; style: { width?: number; color?: string } }): SVGGeometryElement | undefined
+  static renderForSymbol(decorator: TDecorator, symbol: { bounds: TOBB; style: { width?: number; color?: string } }): SVGGeometryElement | undefined
   {
     const bounds = decorator.hasBounds ? decorator.bounds : symbol.bounds
     return DecoratorUtil.renderFromBounds(
@@ -72,8 +73,9 @@ export class DecoratorUtil extends SymbolUtil<TDecorator>
     )
   }
 
-  static renderFromBounds(decorator: TDecorator, bounds: TBox, baseline?: number, xHeight?: number, symbolStyle?: { width?: number; color?: string }): SVGGeometryElement | undefined
+  static renderFromBounds(decorator: TDecorator, bounds: TOBB, baseline?: number, xHeight?: number, symbolStyle?: { width?: number; color?: string }): SVGGeometryElement | undefined
   {
+    const { x, y, width, height } = OBBOps.toBox(bounds)
     const attrs: { [key: string]: string } = {
       "id": decorator.id,
       "type": "decorator",
@@ -94,10 +96,10 @@ export class DecoratorUtil extends SymbolUtil<TDecorator>
         attrs["stroke"] = "transparent"
         attrs["fill"] = decorator.style.color || DefaultStyle.color!
         const boundingBox: TBox = {
-          x: bounds.x - +strokeWidth,
-          y: bounds.y - +strokeWidth,
-          height: bounds.height + +strokeWidth * 2,
-          width: bounds.width + +strokeWidth * 2,
+          x: x - +strokeWidth,
+          y: y - +strokeWidth,
+          height: height + +strokeWidth * 2,
+          width: width + +strokeWidth * 2,
         }
         return SVGBuilder.createRect(boundingBox, attrs)
       }
@@ -106,10 +108,10 @@ export class DecoratorUtil extends SymbolUtil<TDecorator>
         attrs["stroke"] = decorator.style.color || DefaultStyle.color!
         attrs["stroke-width"] = (decorator.style.width || DefaultStyle.width).toString()
         const boundingBox: TBox = {
-          x: bounds.x - +strokeWidth,
-          y: bounds.y - +strokeWidth,
-          height: bounds.height + +strokeWidth * 2,
-          width: bounds.width + +strokeWidth * 2,
+          x: x - +strokeWidth,
+          y: y - +strokeWidth,
+          height: height + +strokeWidth * 2,
+          width: width + +strokeWidth * 2,
         }
         return SVGBuilder.createRect(boundingBox, attrs)
       }
@@ -117,8 +119,8 @@ export class DecoratorUtil extends SymbolUtil<TDecorator>
         attrs["fill"] = "transparent"
         attrs["stroke"] = decorator.style.color || DefaultStyle.color!
         attrs["stroke-width"] = (decorator.style.width || DefaultStyle.width).toString()
-        const p1 = { x: bounds.x, y: bounds.y + bounds.height / 2 }
-        const p2 = { x: bounds.x + bounds.width, y: bounds.y + bounds.height / 2 }
+        const p1 = { x, y: y + height / 2 }
+        const p2 = { x: x + width, y: y + height / 2 }
         if (baseline !== undefined && xHeight !== undefined) {
           p1.y = baseline - xHeight
           p2.y = baseline - xHeight
@@ -129,8 +131,8 @@ export class DecoratorUtil extends SymbolUtil<TDecorator>
         attrs["fill"] = "transparent"
         attrs["stroke"] = decorator.style.color || DefaultStyle.color!
         attrs["stroke-width"] = (decorator.style.width || DefaultStyle.width).toString()
-        const p1 = { x: bounds.x, y: bounds.y + bounds.height + +strokeWidth }
-        const p2 = { x: bounds.x + bounds.width, y: bounds.y + bounds.height + +strokeWidth }
+        const p1 = { x, y: y + height + +strokeWidth }
+        const p2 = { x: x + width, y: y + height + +strokeWidth }
         if (baseline !== undefined && xHeight !== undefined) {
           p1.y = baseline + xHeight
           p2.y = baseline + xHeight
