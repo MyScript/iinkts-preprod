@@ -15,7 +15,6 @@ import type { TAnchor } from "./Anchor"
 export type TEdgeLine = TBaseSymbol & {
   type: SymbolType.Edge
   kind: EdgeKind.Line
-  isClosed: false
   style: TStyle
   selected: boolean
   deleting: boolean
@@ -44,7 +43,6 @@ export const EdgeLineOps = {
     const line: TEdgeLine = {
       type: SymbolType.Edge,
       kind: EdgeKind.Line,
-      isClosed: false,
       id: `${ SymbolType.Edge }-${ createUUID() }`,
       style: mergedStyle,
       creationTime: now,

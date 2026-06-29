@@ -13,7 +13,6 @@ import type { TAnchor } from "./Anchor"
 export type TEdgePolyLine = TBaseSymbol & {
   type: SymbolType.Edge
   kind: EdgeKind.PolyEdge
-  isClosed: false
   style: TStyle
   selected: boolean
   deleting: boolean
@@ -41,7 +40,6 @@ export const EdgePolyLineOps = {
     const polyline: TEdgePolyLine = {
       type: SymbolType.Edge,
       kind: EdgeKind.PolyEdge,
-      isClosed: false,
       id: `${ SymbolType.Edge }-${ createUUID() }`,
       style: mergedStyle,
       creationTime: now,

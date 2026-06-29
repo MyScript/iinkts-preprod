@@ -19,7 +19,6 @@ describe("EdgePolyLineOps", () =>
       expect(line.style).toEqual(DefaultStyle)
       expect(line.selected).toEqual(false)
       expect(line.deleting).toEqual(false)
-      expect(line.isClosed).toEqual(false)
       expect(line.points).toEqual(points)
     })
     test("should create with custom style", () =>
