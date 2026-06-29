@@ -345,7 +345,7 @@ describe("IISelectionManager.ts", () =>
     manager.clearSelectingRect = jest.fn()
     manager.drawSelectedGroup = jest.fn()
     manager.renderer.drawSymbol = jest.fn()
-    manager.renderer.updateSymbolSelection = jest.fn()
+    manager.renderer.updateSelectedState = jest.fn()
 
     test("start", () =>
     {
@@ -363,8 +363,8 @@ describe("IISelectionManager.ts", () =>
       } as TPointerInfo
       manager.continue(info)
       expect(manager.drawSelectingRect).toHaveBeenCalledTimes(1)
-      expect(manager.renderer.updateSymbolSelection).toHaveBeenCalledTimes(1)
-      expect(manager.renderer.updateSymbolSelection).toHaveBeenCalledWith(strokeToSelect)
+      expect(manager.renderer.updateSelectedState).toHaveBeenCalledTimes(1)
+      expect(manager.renderer.updateSelectedState).toHaveBeenCalledWith(strokeToSelect)
       expect(manager.model.symbolsSelected).toEqual([strokeToSelect])
     })
 

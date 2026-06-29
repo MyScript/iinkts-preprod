@@ -970,7 +970,7 @@ describe("EditorOffscreen.ts", () =>
       editor.recognizer.eraseStrokes = jest.fn(() => Promise.resolve())
       editor.renderer.drawSymbol = jest.fn()
       editor.renderer.removeSymbol = jest.fn()
-      editor.renderer.updateSymbolSelection = jest.fn()
+      editor.renderer.updateSelectedState = jest.fn()
       editor.menu.update = jest.fn()
       editor.overlays.apply = jest.fn()
       editor.selector.drawSelectedGroup = jest.fn()
