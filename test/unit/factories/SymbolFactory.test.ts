@@ -1,12 +1,15 @@
 import {
   createSymbolFromPartial,
   createSymbolsFromPartial,
-  createShapeFromPartial,
-  createEdgeFromPartial,
   SymbolType,
   ShapeKind,
   EdgeKind
 } from "../../../src/iink"
+import { ShapeOps } from "../../../src/symbol/shape/Shape"
+import { EdgeOps } from "../../../src/symbol/edge/Edge"
+
+const createShapeFromPartial = ShapeOps.createShapeFromPartial.bind(ShapeOps)
+const createEdgeFromPartial = EdgeOps.createEdgeFromPartial.bind(EdgeOps)
 
 describe("createSymbolFromPartial", () =>
 {
