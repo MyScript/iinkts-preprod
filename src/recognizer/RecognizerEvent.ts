@@ -1,5 +1,6 @@
 import type { THistoryContext } from "@/history"
 import type { TExport } from "@/model"
+
 import type { TRecognizerWebSocketSSRMessageSVGPatch } from "./RecognizerWebSocketSSRMessage"
 
 /**
@@ -12,8 +13,7 @@ import type { TRecognizerWebSocketSSRMessageSVGPatch } from "./RecognizerWebSock
  * recognizer.events.addEventListener(RecognizerEventName.CONTENT_CHANGED, (evt) => console.log(evt.detail))
  * ```
  */
-export enum RecognizerEventName
-{
+export enum RecognizerEventName {
   /**
    * @summary event emitted at the start of connection initialization
    */
@@ -53,66 +53,54 @@ export enum RecognizerEventName
    * @summary event emitted session opened
    */
   SESSION_OPENED = "session-opened",
-
 }
 
 /**
  * @group Recognizer
  */
-export class RecognizerEvent extends EventTarget
-{
+export class RecognizerEvent extends EventTarget {
   protected abortController: AbortController
 
-  constructor()
-  {
+  constructor() {
     super()
     this.abortController = new AbortController()
   }
 
-  removeAllListeners(): void
-  {
+  removeAllListeners(): void {
     this.abortController.abort()
     this.abortController = new AbortController()
   }
 
-  protected emit(type: string, data?: unknown): void
-  {
-    const evt = new CustomEvent(type, Object.assign({ bubbles: true, composed: true }, data ? { detail: data } : undefined))
+  protected emit(type: string, data?: unknown): void {
+    const evt = new CustomEvent(
+      type,
+      Object.assign({ bubbles: true, composed: true }, data ? { detail: data } : undefined)
+    )
     this.dispatchEvent(evt)
   }
 
-  emitStartInitialization(): void
-  {
+  emitStartInitialization(): void {
     this.emit(RecognizerEventName.START_INITIALIZATION)
   }
-  addStartInitialization(callback: () => void): void
-  {
-    this.addEventListener(
-      RecognizerEventName.START_INITIALIZATION,
-      () => callback(),
-      { signal: this.abortController.signal }
-    )
+  addStartInitialization(callback: () => void): void {
+    this.addEventListener(RecognizerEventName.START_INITIALIZATION, () => callback(), {
+      signal: this.abortController.signal,
+    })
   }
 
-  emitEndInitialization(): void
-  {
+  emitEndInitialization(): void {
     this.emit(RecognizerEventName.END_INITIALIZATION)
   }
-  addEndInitialization(callback: () => void): void
-  {
-    this.addEventListener(
-      RecognizerEventName.END_INITIALIZATION,
-      () => callback(),
-      { signal: this.abortController.signal }
-    )
+  addEndInitialization(callback: () => void): void {
+    this.addEventListener(RecognizerEventName.END_INITIALIZATION, () => callback(), {
+      signal: this.abortController.signal,
+    })
   }
 
-  emitSessionOpened(sessionId: string): void
-  {
+  emitSessionOpened(sessionId: string): void {
     this.emit(RecognizerEventName.SESSION_OPENED, sessionId)
   }
-  addSessionOpenedListener(callback: (sessionId: string) => void): void
-  {
+  addSessionOpenedListener(callback: (sessionId: string) => void): void {
     this.addEventListener(
       RecognizerEventName.SESSION_OPENED,
       (evt: unknown) => callback((evt as CustomEvent).detail as string),
@@ -120,15 +108,13 @@ export class RecognizerEvent extends EventTarget
     )
   }
 
-  emitContentChanged(undoRedoContext: THistoryContext): void
-  {
+  emitContentChanged(undoRedoContext: THistoryContext): void {
     this.emit(RecognizerEventName.CONTENT_CHANGED, {
       ...undoRedoContext,
-      canClear: !undoRedoContext.empty
+      canClear: !undoRedoContext.empty,
     })
   }
-  addContentChangedListener(callback: (context: THistoryContext) => void): void
-  {
+  addContentChangedListener(callback: (context: THistoryContext) => void): void {
     this.addEventListener(
       RecognizerEventName.CONTENT_CHANGED,
       (evt: unknown) => callback((evt as CustomEvent).detail as THistoryContext),
@@ -136,12 +122,10 @@ export class RecognizerEvent extends EventTarget
     )
   }
 
-  emitIdle(idle: boolean): void
-  {
+  emitIdle(idle: boolean): void {
     this.emit(RecognizerEventName.IDLE, idle)
   }
-  addIdleListener(callback: (idle: boolean) => void): void
-  {
+  addIdleListener(callback: (idle: boolean) => void): void {
     this.addEventListener(
       RecognizerEventName.IDLE,
       (evt: unknown) => callback((evt as CustomEvent).detail as boolean),
@@ -149,12 +133,10 @@ export class RecognizerEvent extends EventTarget
     )
   }
 
-  emitExported(exports: TExport): void
-  {
+  emitExported(exports: TExport): void {
     this.emit(RecognizerEventName.EXPORTED, exports)
   }
-  addExportedListener(callback: (exports: TExport) => void): void
-  {
+  addExportedListener(callback: (exports: TExport) => void): void {
     this.addEventListener(
       RecognizerEventName.EXPORTED,
       (evt: unknown) => callback((evt as CustomEvent).detail as TExport),
@@ -162,28 +144,28 @@ export class RecognizerEvent extends EventTarget
     )
   }
 
-  emitError(err: Error): void
-  {
+  emitError(err: Error): void {
     this.emit(RecognizerEventName.ERROR, err)
   }
-  addErrorListener(callback: (err: Error) => void): void
-  {
-    this.addEventListener(
-      RecognizerEventName.ERROR,
-      (evt: unknown) => callback((evt as CustomEvent).detail as Error),
-      { signal: this.abortController.signal }
-    )
+  addErrorListener(callback: (err: Error) => void): void {
+    this.addEventListener(RecognizerEventName.ERROR, (evt: unknown) => callback((evt as CustomEvent).detail as Error), {
+      signal: this.abortController.signal,
+    })
   }
 
-  emitConnectionClose({ code, message }: { code: number, message?: string }): void
-  {
+  emitConnectionClose({ code, message }: { code: number; message?: string }): void {
     this.emit(RecognizerEventName.CONNECTION_CLOSE, { code, message })
   }
-  addConnectionCloseListener(callback: ({ code, message }: { code: number, message?: string }) => void): void
-  {
+  addConnectionCloseListener(callback: ({ code, message }: { code: number; message?: string }) => void): void {
     this.addEventListener(
       RecognizerEventName.CONNECTION_CLOSE,
-      (evt: unknown) => callback((evt as CustomEvent).detail as { code: number, message?: string }),
+      (evt: unknown) =>
+        callback(
+          (evt as CustomEvent).detail as {
+            code: number
+            message?: string
+          }
+        ),
       { signal: this.abortController.signal }
     )
   }
@@ -191,15 +173,13 @@ export class RecognizerEvent extends EventTarget
   /**
    * @remarks only use in the case of websocket
    */
-  emitSVGPatch(svgPatch: TRecognizerWebSocketSSRMessageSVGPatch): void
-  {
+  emitSVGPatch(svgPatch: TRecognizerWebSocketSSRMessageSVGPatch): void {
     this.emit(RecognizerEventName.SVG_PATCH, svgPatch)
   }
   /**
    * @remarks only usable in the case of websocket
    */
-  addSVGPatchListener(callback:  (svgPatch: TRecognizerWebSocketSSRMessageSVGPatch) => void): void
-  {
+  addSVGPatchListener(callback: (svgPatch: TRecognizerWebSocketSSRMessageSVGPatch) => void): void {
     this.addEventListener(
       RecognizerEventName.SVG_PATCH,
       (evt: unknown) => callback((evt as CustomEvent).detail as TRecognizerWebSocketSSRMessageSVGPatch),

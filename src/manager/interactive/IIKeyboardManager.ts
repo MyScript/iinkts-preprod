@@ -1,15 +1,15 @@
 import { EditorTool } from "@/Constants"
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
-import { IIAbstractManager } from "./IIAbstractManager"
 import { LoggerCategory } from "@/logger"
+
+import { IIAbstractManager } from "./IIAbstractManager"
 
 /**
  * Manages keyboard input for the Interactive Ink editor
  * Handles tool switching via modifier keys (Ctrl/Cmd for Move mode)
  * @group Manager
  */
-export class IIKeyboardManager extends IIAbstractManager
-{
+export class IIKeyboardManager extends IIAbstractManager {
   protected managerName = "IIKeyboardManager"
 
   static readonly ZOOM_STEP = 1.2
@@ -17,8 +17,7 @@ export class IIKeyboardManager extends IIAbstractManager
 
   #toolBeforeCtrl?: EditorTool
 
-  constructor(editor: TInteractiveInkEditor)
-  {
+  constructor(editor: TInteractiveInkEditor) {
     super(editor, LoggerCategory.KEYBOARD)
     this.handleKeyDown = this.handleKeyDown.bind(this)
     this.handleKeyUp = this.handleKeyUp.bind(this)
@@ -27,8 +26,7 @@ export class IIKeyboardManager extends IIAbstractManager
   /**
    * Attach keyboard event listeners to the window
    */
-  attach(): void
-  {
+  attach(): void {
     this.logger.info("attach")
     window.addEventListener("keydown", this.handleKeyDown)
     window.addEventListener("keyup", this.handleKeyUp)
@@ -37,8 +35,7 @@ export class IIKeyboardManager extends IIAbstractManager
   /**
    * Detach keyboard event listeners from the window
    */
-  detach(): void
-  {
+  detach(): void {
     this.logger.info("detach")
     window.removeEventListener("keydown", this.handleKeyDown)
     window.removeEventListener("keyup", this.handleKeyUp)
@@ -48,23 +45,20 @@ export class IIKeyboardManager extends IIAbstractManager
    * Reset the stored tool when user manually changes tool
    * Called by the editor when tool changes programmatically
    */
-  resetStoredTool(): void
-  {
+  resetStoredTool(): void {
     if (this.#toolBeforeCtrl) {
       this.#toolBeforeCtrl = undefined
     }
   }
 
-  #zoomAtCenter(factor: number): void
-  {
+  #zoomAtCenter(factor: number): void {
     const cx = this.editor.renderer.parent.clientWidth / 2
     const cy = this.editor.renderer.parent.clientHeight / 2
     this.editor.renderer.setZoom(this.editor.renderer.getZoom() * factor, cx, cy)
     this.editor.menu.action.update()
   }
 
-  #handleCtrlShortcut(event: KeyboardEvent): boolean
-  {
+  #handleCtrlShortcut(event: KeyboardEvent): boolean {
     switch (event.key.toLowerCase()) {
       case "z":
         event.preventDefault()
@@ -128,12 +122,11 @@ export class IIKeyboardManager extends IIAbstractManager
     }
   }
 
-  #handleDelete(event: KeyboardEvent): void
-  {
+  #handleDelete(event: KeyboardEvent): void {
     const selected = this.editor.model.symbolsSelected
     if (selected.length) {
       event.preventDefault()
-      this.editor.removeSymbols(selected.map(s => s.id))
+      this.editor.removeSymbols(selected.map((s) => s.id))
     }
   }
 
@@ -141,15 +134,16 @@ export class IIKeyboardManager extends IIAbstractManager
    * Handle keydown events
    * Handles copy/paste/cut shortcuts and Delete key; switches to Move tool when Ctrl/Cmd is pressed
    */
-  protected handleKeyDown = (event: KeyboardEvent): void =>
-  {
+  protected handleKeyDown = (event: KeyboardEvent): void => {
     const target = event.target as HTMLElement
     if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) {
       return
     }
 
     if (event.ctrlKey || event.metaKey) {
-      if (this.#handleCtrlShortcut(event)) return
+      if (this.#handleCtrlShortcut(event)) {
+        return
+      }
     }
 
     if (event.key === "Delete" || event.key === "Backspace") {
@@ -158,7 +152,12 @@ export class IIKeyboardManager extends IIAbstractManager
     }
 
     const hasSelection = this.editor.model.symbolsSelected.length > 0
-    if ((event.ctrlKey || event.metaKey) && this.editor.tool !== EditorTool.Move && !this.#toolBeforeCtrl && !hasSelection) {
+    if (
+      (event.ctrlKey || event.metaKey) &&
+      this.editor.tool !== EditorTool.Move &&
+      !this.#toolBeforeCtrl &&
+      !hasSelection
+    ) {
       this.logger.debug("handleKeyDown", "Switching to Move mode")
       this.#toolBeforeCtrl = this.editor.tool
       this.editor.tool = EditorTool.Move
@@ -169,8 +168,7 @@ export class IIKeyboardManager extends IIAbstractManager
    * Handle keyup events
    * Restores previous tool when Ctrl/Cmd is released
    */
-  protected handleKeyUp = (event: KeyboardEvent): void =>
-  {
+  protected handleKeyUp = (event: KeyboardEvent): void => {
     if (!event.ctrlKey && !event.metaKey && this.#toolBeforeCtrl) {
       this.logger.debug("handleKeyUp", "Restoring previous tool")
       this.editor.tool = this.#toolBeforeCtrl

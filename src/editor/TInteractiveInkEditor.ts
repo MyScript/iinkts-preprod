@@ -1,14 +1,10 @@
+import type { DOMFactory } from "@/components/dom"
 import type { EditorTool } from "@/Constants"
 import type { IIHistoryManager } from "@/history"
-import type { TExport, IIModel } from "@/model"
-import type { RecognizerWebSocket } from "@/recognizer"
-import type { SVGRenderer } from "@/renderer"
-import type { TBaseSymbol, TBox, TStroke, TSymbol } from "@/symbol"
-import type { TStyle } from "@/style"
-import type { TPartialDeep } from "@/utils"
 import type {
-  IIConversionManager,
+  EraseManager,
   IIConnectorManager,
+  IIConversionManager,
   IIGestureManager,
   IIJiixQueryManager,
   IIKeyboardManager,
@@ -21,15 +17,20 @@ import type {
   IITransformManager,
   IITypesetManager,
   IIWriterManager,
-  EraseManager,
 } from "@/manager"
 import type { IIMenuManager } from "@/menu"
+import type { IIModel, TExport } from "@/model"
+import type { RecognizerWebSocket } from "@/recognizer"
+import type { SVGRenderer } from "@/renderer"
 import type { TIIRendererConfiguration } from "@/renderer"
-import type { DOMFactory } from "@/components/dom"
-import type { InteractiveInkEditorConfiguration } from "./variants/InteractiveInkEditorConfiguration"
+import type { TStyle } from "@/style"
+import type { TBaseSymbol, TBox, TStroke, TSymbol } from "@/symbol"
+import type { SymbolUtil } from "@/symbol-utils/SymbolUtil"
+import type { TPartialDeep } from "@/utils"
+
 import type { EditorEvent } from "./EditorEvent"
 import type { EditorLayer } from "./EditorLayer"
-import type { SymbolUtil } from "@/symbol-utils/SymbolUtil"
+import type { InteractiveInkEditorConfiguration } from "./variants/InteractiveInkEditorConfiguration"
 
 /**
  * Structural type for InteractiveInkEditor used by all managers.
@@ -77,7 +78,13 @@ export type TInteractiveInkEditor = {
   updateSymbol(sym: TSymbol, addToHistory?: boolean): Promise<TSymbol>
   updateSymbols(symList: TSymbol[], addToHistory?: boolean): Promise<TSymbol[]>
   updateSymbolsStyle(symbolIds: string[], style: TPartialDeep<TStyle>, addToHistory?: boolean): void
-  updateTextFontStyle(textIds: string[], opts: { fontSize?: number; fontWeight?: "normal" | "bold" | "auto" }): void
+  updateTextFontStyle(
+    textIds: string[],
+    opts: {
+      fontSize?: number
+      fontWeight?: "normal" | "bold" | "auto"
+    }
+  ): void
   replaceSymbols(oldSymbols: TSymbol[], newSymbols: TSymbol[], addToHistory?: boolean): Promise<void>
   changeOrderSymbols(symbols: TSymbol[], position: "first" | "last" | "forward" | "backward"): void
   removeSymbol(id: string, addToHistory?: boolean): Promise<void>

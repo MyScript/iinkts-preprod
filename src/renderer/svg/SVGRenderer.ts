@@ -1,15 +1,16 @@
 import { SvgElementRole } from "@/Constants"
-import { getClosestPoints } from "@/utils"
 import { LoggerCategory, LoggerManager } from "@/logger"
-import type { TSymbol, TPoint, TBox, TEraser, TPointer } from "@/symbol"
+import { BaseRenderer } from "@/renderer/base"
+import type { TIIRendererConfiguration } from "@/renderer/RendererConfiguration"
+import type { TBox, TEraser, TPoint, TPointer, TSymbol } from "@/symbol"
 import { SymbolType } from "@/symbol"
 import { BoxOps } from "@/symbol/primitives/Box"
-import type { TIIRendererConfiguration } from "@/renderer/RendererConfiguration"
-import { BaseRenderer } from "@/renderer/base"
-import { SVGRendererConst, GUIDE_PATH_ATTRS, SUB_GUIDE_PATH_ATTRS } from "./utils/SVGRendererConst"
-import { SVGBuilder } from "./utils/SVGBuilder"
-import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 import { arrowHeadEndMarkerId, arrowHeadStartMarkerId } from "@/symbol-utils/edge/EdgeRenderOptions"
+import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
+import { getClosestPoints } from "@/utils"
+
+import { SVGBuilder } from "./utils/SVGBuilder"
+import { GUIDE_PATH_ATTRS, SUB_GUIDE_PATH_ATTRS, SVGRendererConst } from "./utils/SVGRendererConst"
 
 /**
  * @group Renderer
@@ -25,18 +26,30 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
   horizontalGuides: number[] = []
 
   #zoom: number = 1
-  #viewBox: { x: number, y: number, width: number, height: number } = { x: 0, y: 0, width: 0, height: 0 }
+  #viewBox: {
+    x: number
+    y: number
+    width: number
+    height: number
+  } = { x: 0, y: 0, width: 0, height: 0 }
 
   constructor(configuration: TIIRendererConfiguration) {
     super(configuration)
-    this.#logger.info("constructor", { configuration })
+    this.#logger.info("constructor", {
+      configuration,
+    })
     this.configuration = configuration
   }
 
   protected initLayer(): void {
     const width = Math.max(this.configuration.minWidth, this.parent.clientWidth)
     const height = Math.max(this.configuration.minHeight, this.parent.clientHeight)
-    this.layer = SVGBuilder.createLayer({ x: 0, y: 0, width, height })
+    this.layer = SVGBuilder.createLayer({
+      x: 0,
+      y: 0,
+      width,
+      height,
+    })
     this.layer.style.setProperty("height", "auto")
     this.layer.style.setProperty("width", "auto")
     this.layer.style.setProperty("display", "block")
@@ -49,7 +62,8 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
     const defs = SVGBuilder.createDefs()
 
     const SIZE = 5
-    const REFX = SIZE - 1, REFY = SIZE / 2
+    const REFX = SIZE - 1,
+      REFY = SIZE / 2
     const arrowHeadMarkerAttrs = {
       style: SVGRendererConst.noSelection,
       fill: "context-stroke",
@@ -59,7 +73,10 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
       refY: REFY.toString(),
     }
 
-    const arrowHeadStart = SVGBuilder.createMarker(arrowHeadStartMarkerId, { ...arrowHeadMarkerAttrs, orient: "auto-start-reverse" })
+    const arrowHeadStart = SVGBuilder.createMarker(arrowHeadStartMarkerId, {
+      ...arrowHeadMarkerAttrs,
+      orient: "auto-start-reverse",
+    })
     arrowHeadStart.appendChild(SVGBuilder.createPolygon([0, 0, SIZE, REFY, 0, SIZE], arrowHeadMarkerAttrs))
     defs.appendChild(arrowHeadStart)
 
@@ -73,18 +90,32 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
       markerHeight: "5",
       refX: "0",
       refY: "0",
-      viewBox: "-5 -5 10 10"
+      viewBox: "-5 -5 10 10",
     }
     const cross = SVGBuilder.createMarker(SVGRendererConst.crossMarker, crossMarkerAttrs)
-    cross.appendChild(SVGBuilder.createPath({ d: "M -4,-4 L 4,4 M -4,4 L 4,-4", stroke: "white", "stroke-width": "3" }))
-    cross.appendChild(SVGBuilder.createPath({ d: "M -4,-4 L 4,4 M -4,4 L 4,-4", stroke: "context-stroke", "stroke-width": "2" }))
+    cross.appendChild(
+      SVGBuilder.createPath({
+        d: "M -4,-4 L 4,4 M -4,4 L 4,-4",
+        stroke: "white",
+        "stroke-width": "3",
+      })
+    )
+    cross.appendChild(
+      SVGBuilder.createPath({
+        d: "M -4,-4 L 4,4 M -4,4 L 4,-4",
+        stroke: "context-stroke",
+        "stroke-width": "2",
+      })
+    )
     defs.appendChild(cross)
 
     return defs
   }
 
   protected createFilters(): SVGGElement {
-    const filtersGroup = SVGBuilder.createGroup({ id: "filters-group" })
+    const filtersGroup = SVGBuilder.createGroup({
+      id: "filters-group",
+    })
     const removalFilter = SVGBuilder.createFilter(SVGRendererConst.removalFilterId)
     const bfeComponentTransfer = SVGBuilder.createComponentTransfert()
     const bfeFuncA = SVGBuilder.createTransfertFunctionTable("feFuncA", "0 0.25")
@@ -96,7 +127,7 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
       x: "-50%",
       y: "-50%",
       width: "200%",
-      height: "200%"
+      height: "200%",
     })
 
     const feMorphology = document.createElementNS("http://www.w3.org/2000/svg", "feMorphology")
@@ -150,7 +181,7 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
       stroke: "grey",
       opacity: "0.5",
       style: SVGRendererConst.noSelection,
-      role: SvgElementRole.Guide
+      role: SvgElementRole.Guide,
     }
     const guidesGroup = SVGBuilder.createGroup(attrs)
 
@@ -163,7 +194,11 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
           pathData += `M ${startX + offSet} ${y} L ${endX - offSet} ${y} `
         }
         if (pathData) {
-          const path = SVGBuilder.createPath({ ...GUIDE_PATH_ATTRS, d: pathData, style: SVGRendererConst.noSelection })
+          const path = SVGBuilder.createPath({
+            ...GUIDE_PATH_ATTRS,
+            d: pathData,
+            style: SVGRendererConst.noSelection,
+          })
           guidesGroup.appendChild(path)
         }
         break
@@ -198,11 +233,19 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
         }
 
         if (mainPathData) {
-          const mainPath = SVGBuilder.createPath({ ...GUIDE_PATH_ATTRS, d: mainPathData, style: SVGRendererConst.noSelection })
+          const mainPath = SVGBuilder.createPath({
+            ...GUIDE_PATH_ATTRS,
+            d: mainPathData,
+            style: SVGRendererConst.noSelection,
+          })
           guidesGroup.appendChild(mainPath)
         }
         if (subPathData) {
-          const subPath = SVGBuilder.createPath({ ...SUB_GUIDE_PATH_ATTRS, d: subPathData, style: SVGRendererConst.noSelection })
+          const subPath = SVGBuilder.createPath({
+            ...SUB_GUIDE_PATH_ATTRS,
+            d: subPathData,
+            style: SVGRendererConst.noSelection,
+          })
           guidesGroup.appendChild(subPath)
         }
         break
@@ -243,7 +286,12 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
         }
 
         if (pathData) {
-          const pointsPath = SVGBuilder.createPath({ d: pathData, fill: "grey", stroke: "none", style: SVGRendererConst.noSelection })
+          const pointsPath = SVGBuilder.createPath({
+            d: pathData,
+            fill: "grey",
+            stroke: "none",
+            style: SVGRendererConst.noSelection,
+          })
           guidesGroup.appendChild(pointsPath)
         }
         break
@@ -297,38 +345,36 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
     element?.setAttribute(name, value)
   }
 
-  #buildEraserElement(eraser: TEraser): SVGPathElement
-  {
+  #buildEraserElement(eraser: TEraser): SVGPathElement {
     const firstPoint = eraser.pointers.at(0) as TPointer
-    let d = `M ${ firstPoint.x } ${ firstPoint.y }`
+    let d = `M ${firstPoint.x} ${firstPoint.y}`
 
     if (eraser.pointers.length === 1) {
       const w = eraser.style.width || 4
-      d += ` L ${ firstPoint.x + w / 2 } ${ firstPoint.y }`
+      d += ` L ${firstPoint.x + w / 2} ${firstPoint.y}`
     } else {
-      eraser.pointers.slice(1).forEach((p: TPointer) => d += ` L ${ p.x } ${ p.y }` )
+      eraser.pointers.slice(1).forEach((p: TPointer) => (d += ` L ${p.x} ${p.y}`))
     }
 
     return SVGBuilder.createPath({
-      "id": eraser.id,
-      "type": "eraser",
+      id: eraser.id,
+      type: "eraser",
       "stroke-width": String(eraser.style.width),
-      "stroke": eraser.style.color,
-      "opacity": String(eraser.style.opacity),
-      "shadowBlur": "5",
+      stroke: eraser.style.color,
+      opacity: String(eraser.style.opacity),
+      shadowBlur: "5",
       "stroke-linecap": "round",
-      "fill": "transparent",
-      "d": d,
+      fill: "transparent",
+      d: d,
     })
   }
 
-  buildElementFromSymbol(symbol: TSymbol): SVGGraphicsElement | undefined
-  {
+  buildElementFromSymbol(symbol: TSymbol): SVGGraphicsElement | undefined {
     const util = symbolRegistry.getUtil(symbol.type)
     if (util?.getSVGElement) {
       return util.getSVGElement(symbol)
     }
-    this.#logger.error("buildElementFromSymbol", `no util for symbol: "${ JSON.stringify(symbol) }"`)
+    this.#logger.error("buildElementFromSymbol", `no util for symbol: "${JSON.stringify(symbol)}"`)
     return undefined
   }
 
@@ -338,7 +384,9 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
 
   changeOrderSymbol(symbolToMove: TSymbol, position: "first" | "last" | "forward" | "backward"): void {
     const moveEl = this.getElementById(symbolToMove.id)
-    if (!moveEl) return
+    if (!moveEl) {
+      return
+    }
     switch (position) {
       case "first":
         this.definitionGroup.insertAdjacentElement("afterend", moveEl)
@@ -373,19 +421,18 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
   drawSymbol(symbol: TSymbol | TEraser): SVGGraphicsElement | undefined {
     this.#logger.debug("drawSymbol", { symbol })
     const oldNode = this.getElementById(symbol?.id)
-    const svgEl = symbol.type === SymbolType.Eraser
-      ? this.#buildEraserElement(symbol as TEraser)
-      : this.buildElementFromSymbol(symbol as TSymbol)
+    const svgEl =
+      symbol.type === SymbolType.Eraser
+        ? this.#buildEraserElement(symbol as TEraser)
+        : this.buildElementFromSymbol(symbol as TSymbol)
 
     if (svgEl) {
       if (oldNode) {
         oldNode.replaceWith(svgEl)
-      }
-      else if (symbol.type === SymbolType.Decorator) {
+      } else if (symbol.type === SymbolType.Decorator) {
         // Decorators render behind all other symbols
         this.definitionGroup.insertAdjacentElement("afterend", svgEl)
-      }
-      else {
+      } else {
         this.layer.appendChild(svgEl)
       }
     }
@@ -399,9 +446,11 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
       return
     }
     const el = this.getElementById(symbol.id)
-    if (!el) return
+    if (!el) {
+      return
+    }
     if (isSelected) {
-      el.setAttribute("filter", `url(#${ SVGRendererConst.selectionFilterId })`)
+      el.setAttribute("filter", `url(#${SVGRendererConst.selectionFilterId})`)
     } else {
       el.removeAttribute("filter")
     }
@@ -409,9 +458,11 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
 
   updateDeletingState(symbol: TSymbol, isDeleting: boolean): void {
     const el = this.getElementById(symbol.id)
-    if (!el) return
+    if (!el) {
+      return
+    }
     if (isDeleting) {
-      el.setAttribute("filter", `url(#${ SVGRendererConst.removalFilterId })`)
+      el.setAttribute("filter", `url(#${SVGRendererConst.removalFilterId})`)
     } else {
       el.removeAttribute("filter")
     }
@@ -420,15 +471,14 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
   replaceSymbol(id: string, symbols: TSymbol[]): SVGGraphicsElement[] | undefined {
     this.#logger.debug("drawSymbol", { symbols })
     const oldNode = this.getElementById(id)
-    const elements = symbols.map(s => this.buildElementFromSymbol(s)).filter(x => !!x) as SVGGraphicsElement[]
+    const elements = symbols.map((s) => this.buildElementFromSymbol(s)).filter((x) => !!x) as SVGGraphicsElement[]
 
     if (elements.length) {
       if (oldNode) {
-        elements.forEach(e => oldNode.insertAdjacentElement("beforebegin", e))
+        elements.forEach((e) => oldNode.insertAdjacentElement("beforebegin", e))
         oldNode.remove()
-      }
-      else {
-        elements.forEach(e => this.layer.appendChild(e))
+      } else {
+        elements.forEach((e) => this.layer.appendChild(e))
       }
     }
     return elements
@@ -440,7 +490,11 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
   }
 
   drawCircle(point: TPoint, radius: number, attrs: { [key: string]: string } = {}): void {
-    this.#logger.info("drawCircle", { point, radius, attrs })
+    this.#logger.info("drawCircle", {
+      point,
+      radius,
+      attrs,
+    })
     this.layer.appendChild(SVGBuilder.createCircle(point, radius, attrs))
   }
 
@@ -450,11 +504,21 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
   }
 
   drawLine(p1: TPoint, p2: TPoint, attrs: { [key: string]: string } = {}): void {
-    this.#logger.info("drawLine", { p1, p2, attrs })
+    this.#logger.info("drawLine", {
+      p1,
+      p2,
+      attrs,
+    })
     this.layer.appendChild(SVGBuilder.createLine(p1, p2, attrs))
   }
 
-  drawConnectionBetweenBox(id: string, box1: TBox, box2: TBox, position: "corners" | "sides", attrs?: { [key: string]: string }): void {
+  drawConnectionBetweenBox(
+    id: string,
+    box1: TBox,
+    box2: TBox,
+    position: "corners" | "sides",
+    attrs?: { [key: string]: string }
+  ): void {
     let points1: TPoint[] = BoxOps.getCorners(box1)
     let points2: TPoint[] = BoxOps.getCorners(box2)
     if (position === "sides") {
@@ -466,7 +530,7 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
       id,
       fill: "transparent",
       style: SVGRendererConst.noSelection,
-      ...attrs
+      ...attrs,
     }
     this.drawLine(p1, p2, attrsLine)
   }
@@ -477,7 +541,10 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
     this.layer.setAttribute("height", `${height}px`)
     this.#viewBox.width = width
     this.#viewBox.height = height
-    this.layer.setAttribute("viewBox", `${this.#viewBox.x}, ${this.#viewBox.y}, ${this.#viewBox.width}, ${this.#viewBox.height}`)
+    this.layer.setAttribute(
+      "viewBox",
+      `${this.#viewBox.x}, ${this.#viewBox.y}, ${this.#viewBox.width}, ${this.#viewBox.height}`
+    )
     this.removeGuides()
     if (this.configuration.guides.enable) {
       this.drawGuides()
@@ -491,8 +558,11 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
     return this.layer.querySelector(`#${id}`) as SVGGraphicsElement | null
   }
 
-  getElements({ tagName, attrs }: { tagName?: string, attrs?: { [key: string]: string } }): NodeListOf<Element> {
-    this.#logger.info("getElements", { tagName, attrs })
+  getElements({ tagName, attrs }: { tagName?: string; attrs?: { [key: string]: string } }): NodeListOf<Element> {
+    this.#logger.info("getElements", {
+      tagName,
+      attrs,
+    })
     if (!this.layer) {
       return document.querySelectorAll("never-match") // Return empty NodeList
     }
@@ -505,14 +575,16 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
     return this.layer.querySelectorAll(query)
   }
 
-  clearElements({ tagName, attrs }: { tagName?: string, attrs?: { [key: string]: string } }): void {
-    this.#logger.info("clearElements", { tagName, attrs })
+  clearElements({ tagName, attrs }: { tagName?: string; attrs?: { [key: string]: string } }): void {
+    this.#logger.info("clearElements", {
+      tagName,
+      attrs,
+    })
     if (!this.layer) {
       this.#logger.debug("clearElements: layer not initialized yet, skipping")
       return
     }
-    this.getElements({ tagName, attrs })
-      .forEach(e => e.remove())
+    this.getElements({ tagName, attrs }).forEach((e) => e.remove())
   }
 
   clear(): void {
@@ -525,8 +597,7 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
     }
   }
 
-  getRenderingContext(): SVGSVGElement
-  {
+  getRenderingContext(): SVGSVGElement {
     return this.layer
   }
 
@@ -535,7 +606,11 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
   }
 
   setZoom(zoom: number, centerX?: number, centerY?: number): void {
-    this.#logger.info("setZoom", { zoom, centerX, centerY })
+    this.#logger.info("setZoom", {
+      zoom,
+      centerX,
+      centerY,
+    })
 
     if (zoom <= 0) {
       this.#logger.warn("setZoom", "Zoom must be greater than 0")
@@ -562,7 +637,10 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
     this.#viewBox.width = newWidth
     this.#viewBox.height = newHeight
 
-    this.layer.setAttribute("viewBox", `${this.#viewBox.x}, ${this.#viewBox.y}, ${this.#viewBox.width}, ${this.#viewBox.height}`)
+    this.layer.setAttribute(
+      "viewBox",
+      `${this.#viewBox.x}, ${this.#viewBox.y}, ${this.#viewBox.width}, ${this.#viewBox.height}`
+    )
 
     if (this.configuration.guides.enable) {
       this.removeGuides()
@@ -574,7 +652,12 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
    * Get current viewBox
    * @returns Current viewBox {x, y, width, height}
    */
-  getViewBox(): { x: number, y: number, width: number, height: number } {
+  getViewBox(): {
+    x: number
+    y: number
+    width: number
+    height: number
+  } {
     return { ...this.#viewBox }
   }
 
@@ -587,7 +670,13 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
    * @param redrawGuides Whether to redraw guides (default: true)
    */
   setViewBox(x: number, y: number, width: number, height: number, redrawGuides: boolean = true): void {
-    this.#logger.debug("setViewBox", { x, y, width, height, redrawGuides })
+    this.#logger.debug("setViewBox", {
+      x,
+      y,
+      width,
+      height,
+      redrawGuides,
+    })
     this.#viewBox = { x, y, width, height }
     this.layer.setAttribute("viewBox", `${x}, ${y}, ${width}, ${height}`)
 
@@ -604,10 +693,17 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
    * @param redrawGuides Whether to redraw guides (default: true)
    */
   pan(dx: number, dy: number, redrawGuides: boolean = true): void {
-    this.#logger.debug("pan", { dx, dy, redrawGuides })
+    this.#logger.debug("pan", {
+      dx,
+      dy,
+      redrawGuides,
+    })
     this.#viewBox.x += dx
     this.#viewBox.y += dy
-    this.layer.setAttribute("viewBox", `${this.#viewBox.x}, ${this.#viewBox.y}, ${this.#viewBox.width}, ${this.#viewBox.height}`)
+    this.layer.setAttribute(
+      "viewBox",
+      `${this.#viewBox.x}, ${this.#viewBox.y}, ${this.#viewBox.width}, ${this.#viewBox.height}`
+    )
 
     if (redrawGuides && this.configuration.guides.enable) {
       this.removeGuides()
@@ -626,18 +722,18 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
     let dy = 0
 
     if (point.x < this.#viewBox.x + margin) {
-      dx = (this.#viewBox.x + margin) - point.x
+      dx = this.#viewBox.x + margin - point.x
       needsPan = true
     } else if (point.x > this.#viewBox.x + this.#viewBox.width - margin) {
-      dx = (this.#viewBox.x + this.#viewBox.width - margin) - point.x
+      dx = this.#viewBox.x + this.#viewBox.width - margin - point.x
       needsPan = true
     }
 
     if (point.y < this.#viewBox.y + margin) {
-      dy = (this.#viewBox.y + margin) - point.y
+      dy = this.#viewBox.y + margin - point.y
       needsPan = true
     } else if (point.y > this.#viewBox.y + this.#viewBox.height - margin) {
-      dy = (this.#viewBox.y + this.#viewBox.height - margin) - point.y
+      dy = this.#viewBox.y + this.#viewBox.height - margin - point.y
       needsPan = true
     }
 

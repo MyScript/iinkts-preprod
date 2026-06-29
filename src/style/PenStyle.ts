@@ -1,4 +1,5 @@
 import type { TPartialDeep } from "@/utils"
+
 import type { TStyle } from "./Style"
 
 /**
@@ -17,5 +18,4 @@ export type TPenStyle = TPartialDeep<TStyle> & {
  * @group Styles
  * @source
  */
-export const DefaultPenStyle: TPenStyle = {
-}
+export const DefaultPenStyle: TPenStyle = {}

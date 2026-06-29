@@ -1,11 +1,10 @@
-
 /**
  * @group Recognizer
  */
 export type TConvertionConfiguration = {
-    force?: {
-        "on-stylesheet-change": boolean
-    }
+  force?: {
+    "on-stylesheet-change": boolean
+  }
 }
 
 /**
@@ -13,7 +12,7 @@ export type TConvertionConfiguration = {
  * @source
  */
 export const DefaultConvertionConfiguration: TConvertionConfiguration = {
-    force: {
-        "on-stylesheet-change": false
-    }
+  force: {
+    "on-stylesheet-change": false,
+  },
 }

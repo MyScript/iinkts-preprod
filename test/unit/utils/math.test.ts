@@ -1,15 +1,7 @@
-import
-{
-  computeAverage,
-  isBetween,
-  isValidNumber,
-} from "@/iink"
+import { computeAverage, isBetween, isValidNumber } from "@/iink"
 
-
-describe("math.ts", () =>
-{
-  describe("isValidNumber", () =>
-  {
+describe("math.ts", () => {
+  describe("isValidNumber", () => {
     const testDatas = [
       { value: "", expect: false },
       { value: "x", expect: false },
@@ -24,30 +16,24 @@ describe("math.ts", () =>
       { value: Infinity, expect: false },
       { value: -Infinity, expect: false },
     ]
-    testDatas.forEach(d =>
-    {
-      test(`should return ${ d.expect } from "${ d.value }"`, () =>
-      {
+    testDatas.forEach((d) => {
+      test(`should return ${d.expect} from "${d.value}"`, () => {
         expect(isValidNumber(d.value)).toEqual(d.expect)
       })
     })
   })
 
-  describe("isBetween", () =>
-  {
-    test("should return true", () =>
-    {
+  describe("isBetween", () => {
+    test("should return true", () => {
       expect(isBetween(1, 0, 2)).toEqual(true)
     })
-    test("should return false", () =>
-    {
+    test("should return false", () => {
       expect(isBetween(3, 0, 2)).toEqual(false)
     })
   })
 })
 
-describe("Average", () =>
-{
+describe("Average", () => {
   const testDatas = [
     { values: [0, 1, 2, 3], expected: 1.5 },
     { values: [10, 1, 2, 3], expected: 4 },
@@ -56,10 +42,8 @@ describe("Average", () =>
     { values: [8], expected: 8 },
     { values: [], expected: 0 },
   ]
-  testDatas.forEach(data =>
-  {
-    test(`should computeAverage of ${ JSON.stringify(data.values) } equal to ${ data.expected }`, () =>
-    {
+  testDatas.forEach((data) => {
+    test(`should computeAverage of ${JSON.stringify(data.values)} equal to ${data.expected}`, () => {
       expect(computeAverage(data.values)).toEqual(data.expected)
     })
   })

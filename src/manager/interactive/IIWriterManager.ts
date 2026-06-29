@@ -1,124 +1,107 @@
-import { SELECTION_MARGIN, EditorWriteTool } from "@/Constants"
+import { EditorWriteTool, SELECTION_MARGIN } from "@/Constants"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import type { TPointerInfo } from "@/grabber"
+import type { IIHistoryManager } from "@/history"
+import { AbstractWriterManager } from "@/manager/base/AbstractWriterManager"
 import type { IIModel } from "@/model"
-import type {
-  TEdgeLine,
-  TShapePolygon,
-  TShapeCircle,
-  TShapeEllipse,
-  TStroke,
-  TEdge,
-  TSymbol,
-  TPoint,
-  TPointer} from "@/symbol";
-import
-{
-  EdgeDecoration,
-  EdgeKind,
-  SymbolType,
-  isStroke,
-  cloneSymbol
-} from "@/symbol"
 import type { RecognizerWebSocket } from "@/recognizer"
 import type { SVGRenderer } from "@/renderer"
 import type { TStyle } from "@/style"
-import type { IIHistoryManager } from "@/history"
-import type { TPointerInfo } from "@/grabber"
+import type {
+  TEdge,
+  TEdgeLine,
+  TPoint,
+  TPointer,
+  TShapeCircle,
+  TShapeEllipse,
+  TShapePolygon,
+  TStroke,
+  TSymbol,
+} from "@/symbol"
+import { cloneSymbol, EdgeDecoration, EdgeKind, isStroke, SymbolType } from "@/symbol"
+import { EdgeOps } from "@/symbol/edge/Edge"
+import { EdgeLineOps } from "@/symbol/edge/Line"
+import { OBBOps } from "@/symbol/primitives/OBB"
 import { ShapeCircleOps } from "@/symbol/shape/Circle"
 import { ShapeEllipseOps } from "@/symbol/shape/Ellipse"
 import { ShapePolygonOps } from "@/symbol/shape/Polygon"
-import { EdgeLineOps } from "@/symbol/edge/Line"
-import { EdgeOps } from "@/symbol/edge/Edge"
 import { StrokeOps } from "@/symbol/stroke/Stroke"
-import { OBBOps } from "@/symbol/primitives/OBB"
-import type { IIGestureManager } from "./IIGestureManager"
+
 import type { TGesture } from "./gestures"
+import type { IIGestureManager } from "./IIGestureManager"
 import type { IISnapManager } from "./IISnapManager"
-import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
-import { AbstractWriterManager } from "@/manager/base/AbstractWriterManager"
 
 /**
  * @group Manager
  */
-export class IIWriterManager extends AbstractWriterManager
-{
+export class IIWriterManager extends AbstractWriterManager {
   #tool: EditorWriteTool = EditorWriteTool.Pencil
   detectGesture: boolean = true
   editor: TInteractiveInkEditor
   currentSymbolOrigin?: TPoint
 
-  constructor(editor: TInteractiveInkEditor)
-  {
+  constructor(editor: TInteractiveInkEditor) {
     super(editor)
     this.editor = editor
   }
 
-  get tool(): EditorWriteTool
-  {
+  get tool(): EditorWriteTool {
     return this.#tool
   }
-  set tool(wt: EditorWriteTool)
-  {
+  set tool(wt: EditorWriteTool) {
     this.#tool = wt
     if (wt !== EditorWriteTool.Pencil) {
       this.editor.layers.root.classList.add("shape")
-    }
-    else {
+    } else {
       this.editor.layers.root.classList.remove("shape")
     }
     this.editor.unselectAll()
   }
 
-  get model(): IIModel
-  {
+  get model(): IIModel {
     return this.editor.model
   }
 
-  get renderer(): SVGRenderer
-  {
+  get renderer(): SVGRenderer {
     return this.editor.renderer
   }
 
-  get history(): IIHistoryManager
-  {
+  get history(): IIHistoryManager {
     return this.editor.history
   }
 
-  get gestureManager(): IIGestureManager
-  {
+  get gestureManager(): IIGestureManager {
     return this.editor.gesture
   }
 
-  get snaps(): IISnapManager
-  {
+  get snaps(): IISnapManager {
     return this.editor.snaps
   }
 
-  get recognizer(): RecognizerWebSocket
-  {
+  get recognizer(): RecognizerWebSocket {
     return this.editor.recognizer
   }
 
-  attach(layer: HTMLElement): void
-  {
+  attach(layer: HTMLElement): void {
     this.grabber.attach(layer)
     this.grabber.onPointerDown = this.start.bind(this)
     this.grabber.onPointerMove = this.continue.bind(this)
     this.grabber.onPointerUp = this.end.bind(this)
   }
 
-  detach(): void
-  {
+  detach(): void {
     this.grabber.detach()
   }
 
-  protected needContextLessGesture(stroke: TStroke): boolean
-  {
+  protected needContextLessGesture(stroke: TStroke): boolean {
     const strokeBoundsWithMargin = this.editor.getSymbolsBounds([stroke], 2 * SELECTION_MARGIN)
-    return this.detectGesture && this.model.symbols.some(s => !isStroke(s) && OBBOps.overlapsBox(s.bounds, strokeBoundsWithMargin))
+    return (
+      this.detectGesture &&
+      this.model.symbols.some((s) => !isStroke(s) && OBBOps.overlapsBox(s.bounds, strokeBoundsWithMargin))
+    )
   }
 
-  protected createCurrentSymbol(pointer: TPointer, style: TStyle, pointerType: string): TSymbol
-  {
+  protected createCurrentSymbol(pointer: TPointer, style: TStyle, pointerType: string): TSymbol {
     switch (this.tool) {
       case EditorWriteTool.Pencil:
         this.model.currentSymbol = StrokeOps.create(style, pointerType)
@@ -147,8 +130,7 @@ export class IIWriterManager extends AbstractWriterManager
         let startDecoration, endDecoration
         if (this.tool === EditorWriteTool.Arrow) {
           endDecoration = EdgeDecoration.Arrow
-        }
-        else if (this.tool === EditorWriteTool.DoubleArrow) {
+        } else if (this.tool === EditorWriteTool.DoubleArrow) {
           startDecoration = EdgeDecoration.Arrow
           endDecoration = EdgeDecoration.Arrow
         }
@@ -156,48 +138,65 @@ export class IIWriterManager extends AbstractWriterManager
         break
       }
       default:
-        throw new Error(`Can't create symbol, tool is unknown: "${ this.tool }"`)
+        throw new Error(`Can't create symbol, tool is unknown: "${this.tool}"`)
     }
     return this.updateCurrentSymbol(pointer)
   }
 
-  protected updateCurrentSymbolShape(pointer: TPointer): void
-  {
+  protected updateCurrentSymbolShape(pointer: TPointer): void {
     switch (this.tool) {
       case EditorWriteTool.Rectangle:
-        ShapePolygonOps.updateRectangleBetweenPoints(this.model.currentSymbol as TShapePolygon, this.currentSymbolOrigin!, pointer)
+        ShapePolygonOps.updateRectangleBetweenPoints(
+          this.model.currentSymbol as TShapePolygon,
+          this.currentSymbolOrigin!,
+          pointer
+        )
         break
       case EditorWriteTool.Triangle:
-        ShapePolygonOps.updateTriangleBetweenPoints(this.model.currentSymbol as TShapePolygon, this.currentSymbolOrigin!, pointer)
+        ShapePolygonOps.updateTriangleBetweenPoints(
+          this.model.currentSymbol as TShapePolygon,
+          this.currentSymbolOrigin!,
+          pointer
+        )
         break
       case EditorWriteTool.Parallelogram:
-        ShapePolygonOps.updateParallelogramBetweenPoints(this.model.currentSymbol as TShapePolygon, this.currentSymbolOrigin!, pointer)
+        ShapePolygonOps.updateParallelogramBetweenPoints(
+          this.model.currentSymbol as TShapePolygon,
+          this.currentSymbolOrigin!,
+          pointer
+        )
         break
       case EditorWriteTool.Rhombus:
-        ShapePolygonOps.updateRhombusBetweenPoints(this.model.currentSymbol as TShapePolygon, this.currentSymbolOrigin!, pointer)
+        ShapePolygonOps.updateRhombusBetweenPoints(
+          this.model.currentSymbol as TShapePolygon,
+          this.currentSymbolOrigin!,
+          pointer
+        )
         break
       case EditorWriteTool.Circle:
         ShapeCircleOps.updateBetweenPoints(this.model.currentSymbol as TShapeCircle, this.currentSymbolOrigin!, pointer)
         break
       case EditorWriteTool.Ellipse:
-        ShapeEllipseOps.updateBetweenPoints(this.model.currentSymbol as TShapeEllipse, this.currentSymbolOrigin!, pointer)
+        ShapeEllipseOps.updateBetweenPoints(
+          this.model.currentSymbol as TShapeEllipse,
+          this.currentSymbolOrigin!,
+          pointer
+        )
         break
     }
   }
 
-  protected updateCurrentSymbolEdge(pointer: TPointer): void
-  {
+  protected updateCurrentSymbolEdge(pointer: TPointer): void {
     const edge = this.model.currentSymbol as TEdge
     switch (edge.kind) {
       case EdgeKind.Line:
-        (edge as TEdgeLine).end = pointer
+        ;(edge as TEdgeLine).end = pointer
         EdgeOps.updateEdgeDerivedFields(edge)
         break
     }
   }
 
-  protected updateCurrentSymbol(pointer: TPointer): TSymbol
-  {
+  protected updateCurrentSymbol(pointer: TPointer): TSymbol {
     if (!this.model.currentSymbol) {
       throw new Error("Can't update current symbol because currentSymbol is undefined")
     }
@@ -216,8 +215,7 @@ export class IIWriterManager extends AbstractWriterManager
     return this.model.currentSymbol
   }
 
-  start(info: TPointerInfo): void
-  {
+  start(info: TPointerInfo): void {
     const localPointer = info.pointer
     if (this.tool !== EditorWriteTool.Pencil) {
       const { x, y } = this.snaps.snapResize(localPointer)
@@ -229,8 +227,7 @@ export class IIWriterManager extends AbstractWriterManager
     this.renderer.drawSymbol(this.model.currentSymbol!)
   }
 
-  continue(info: TPointerInfo): void
-  {
+  continue(info: TPointerInfo): void {
     const localPointer = info.pointer
     if (this.tool !== EditorWriteTool.Pencil) {
       const { x, y } = this.snaps.snapResize(localPointer)
@@ -244,8 +241,7 @@ export class IIWriterManager extends AbstractWriterManager
     this.renderer.drawSymbol(this.model.currentSymbol!)
   }
 
-  protected async interactWithBackend(stroke: TStroke): Promise<void>
-  {
+  protected async interactWithBackend(stroke: TStroke): Promise<void> {
     const localStroke = cloneSymbol(stroke) as TStroke
     let gestureFromContextLess: TGesture | undefined
     if (this.needContextLessGesture(stroke)) {
@@ -255,8 +251,7 @@ export class IIWriterManager extends AbstractWriterManager
       this.history.pop()
       this.recognizer.addStrokes([localStroke], this.detectGesture)
       await this.gestureManager.apply(localStroke, gestureFromContextLess)
-    }
-    else {
+    } else {
       const gesture = await this.recognizer.addStrokes([localStroke], this.detectGesture)
       if (gesture) {
         this.history.pop()
@@ -265,8 +260,7 @@ export class IIWriterManager extends AbstractWriterManager
     }
   }
 
-  async end(info: TPointerInfo): Promise<void>
-  {
+  async end(info: TPointerInfo): Promise<void> {
     const localPointer = info.pointer
     if (this.tool !== EditorWriteTool.Pencil) {
       const { x, y } = this.snaps.snapResize(localPointer)
@@ -280,7 +274,9 @@ export class IIWriterManager extends AbstractWriterManager
 
     this.renderer.drawSymbol(localSymbol!)
     this.model.addSymbol(localSymbol)
-    this.history.push(this.model, { added: [localSymbol] })
+    this.history.push(this.model, {
+      added: [localSymbol],
+    })
 
     this.renderer.redrawGuides()
 

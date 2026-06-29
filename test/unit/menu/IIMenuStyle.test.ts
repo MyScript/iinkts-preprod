@@ -3,65 +3,54 @@ import { createEditorMock, asEditor } from "../__mocks__/createEditorMock"
 import { buildIICircle, buildIIStroke } from "../helpers"
 import { EditorTool, IIMenuStyle, EditorWriteTool } from "@/iink"
 
-describe("IIMenuStyle.ts", () =>
-{
-  test("should create", () =>
-  {
+describe("IIMenuStyle.ts", () => {
+  test("should create", () => {
     const editor = createEditorMock()
     const menu = new IIMenuStyle(asEditor(editor))
     expect(menu).toBeDefined()
   })
 
-  describe("render", () =>
-  {
+  describe("render", () => {
     const editor = createEditorMock()
     const menu = new IIMenuStyle(asEditor(editor))
-    describe("isMobile", () =>
-    {
+    describe("isMobile", () => {
       const layer = document.createElement("div")
-      beforeAll(() =>
-      {
-        Object.defineProperty(HTMLElement.prototype, 'clientWidth', { configurable: true, value: 500 })
+      beforeAll(() => {
+        Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, value: 500 })
         menu.render(layer)
       })
-      test("should isMobile to be true", () =>
-      {
+      test("should isMobile to be true", () => {
         expect(menu.isMobile).toBe(true)
       })
-      test("should render menu stroke color", () =>
-      {
+      test("should render menu stroke color", () => {
         const menuColor = layer.querySelector("#ms-menu-style-color") as HTMLElement
         expect(menuColor).not.toBeNull()
         expect(menuColor.style.display).toEqual("block")
         const list = menuColor.querySelector("#ms-menu-style-color-list") as HTMLElement
         expect(list.childElementCount).toEqual(menu.config.colors.length)
       })
-      test("should render menu fill color and not display", () =>
-      {
+      test("should render menu fill color and not display", () => {
         const menuFill = layer.querySelector("#ms-menu-style-fill") as HTMLElement
         expect(menuFill).not.toBeNull()
         expect(menuFill.style.display).toEqual("none")
         const list = menuFill.querySelector("#ms-menu-style-fill-list") as HTMLElement
         expect(list.childElementCount).toEqual(menu.config.colors.length)
       })
-      test("should render menu thickness", () =>
-      {
+      test("should render menu thickness", () => {
         const menuThickness = layer.querySelector("#ms-menu-style-thickness") as HTMLElement
         expect(menuThickness).not.toBeNull()
         expect(menuThickness.style.display).toEqual("block")
         const buttons = menuThickness.querySelectorAll("button")
         expect(buttons.length).toEqual(menu.config.thicknessList.length)
       })
-      test("should render menu font-size", () =>
-      {
+      test("should render menu font-size", () => {
         const menuFontSize = layer.querySelector("#ms-menu-style-font-size") as HTMLElement
         expect(menuFontSize).not.toBeNull()
         expect(menuFontSize.style.display).toEqual("block")
         const buttons = menuFontSize.querySelectorAll("button")
         expect(buttons.length).toEqual(menu.config.fontSizeList.length)
       })
-      test("should render menu opacity", () =>
-      {
+      test("should render menu opacity", () => {
         const menuOpacity = layer.querySelector("#ms-menu-style-opacity") as HTMLElement
         expect(menuOpacity).not.toBeNull()
         expect(menuOpacity.style.display).toEqual("block")
@@ -69,57 +58,48 @@ describe("IIMenuStyle.ts", () =>
         expect(input.getAttribute("type")).toEqual("range")
       })
     })
-    describe("desktop", () =>
-    {
+    describe("desktop", () => {
       const layer = document.createElement("div")
-      beforeAll(() =>
-      {
-        Object.defineProperty(HTMLElement.prototype, 'clientWidth', { configurable: true, value: 700 })
+      beforeAll(() => {
+        Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, value: 700 })
         menu.render(layer)
       })
-      test("should isMobile to be false", () =>
-      {
+      test("should isMobile to be false", () => {
         expect(menu.isMobile).toBe(false)
       })
-      test("should render ms-menu-style and not display", () =>
-      {
+      test("should render ms-menu-style and not display", () => {
         const btn = layer.querySelector("#ms-menu-style") as HTMLButtonElement
         expect(btn.parentElement?.style.display).toEqual("none")
       })
-      test("should render menu stroke color", () =>
-      {
+      test("should render menu stroke color", () => {
         const menuColor = layer.querySelector("#ms-menu-style-color") as HTMLElement
         expect(menuColor).not.toBeNull()
         expect(menuColor.style.display).toEqual("block")
         const list = menuColor.querySelector("#ms-menu-style-color-list") as HTMLElement
         expect(list.childElementCount).toEqual(menu.config.colors.length)
       })
-      test("should render menu fill color and not display", () =>
-      {
+      test("should render menu fill color and not display", () => {
         const menuFill = layer.querySelector("#ms-menu-style-fill") as HTMLElement
         expect(menuFill).not.toBeNull()
         expect(menuFill.style.display).toEqual("none")
         const list = menuFill.querySelector("#ms-menu-style-fill-list") as HTMLElement
         expect(list.childElementCount).toEqual(menu.config.colors.length)
       })
-      test("should render menu thickness", () =>
-      {
+      test("should render menu thickness", () => {
         const menuThickness = layer.querySelector("#ms-menu-style-thickness") as HTMLElement
         expect(menuThickness).not.toBeNull()
         expect(menuThickness.style.display).toEqual("block")
         const buttons = menuThickness.querySelectorAll("button")
         expect(buttons.length).toEqual(menu.config.thicknessList.length)
       })
-      test("should render menu font-size", () =>
-      {
+      test("should render menu font-size", () => {
         const menuFontSize = layer.querySelector("#ms-menu-style-font-size") as HTMLElement
         expect(menuFontSize).not.toBeNull()
         expect(menuFontSize.style.display).toEqual("block")
         const buttons = menuFontSize.querySelectorAll("button")
         expect(buttons.length).toEqual(menu.config.fontSizeList.length)
       })
-      test("should render menu opacity", () =>
-      {
+      test("should render menu opacity", () => {
         const menuOpacity = layer.querySelector("#ms-menu-style-opacity") as HTMLElement
         expect(menuOpacity).not.toBeNull()
         expect(menuOpacity.style.display).toEqual("block")
@@ -129,19 +109,18 @@ describe("IIMenuStyle.ts", () =>
     })
   })
 
-  describe("update style", () =>
-  {
+  describe("update style", () => {
     const pointerUpEvt = new LeftClickEventMock("pointerup", {
       pointerType: "pen",
       clientX: 10,
       clientY: 10,
-      pressure: 1
+      pressure: 1,
     })
     const clickEvt = new LeftClickEventMock("click", {
       pointerType: "pen",
       clientX: 10,
       clientY: 10,
-      pressure: 1
+      pressure: 1,
     })
     const layer = document.createElement("div")
     const editor = createEditorMock()
@@ -150,19 +129,16 @@ describe("IIMenuStyle.ts", () =>
     const menu = new IIMenuStyle(asEditor(editor))
     menu.render(layer)
 
-    beforeEach(() =>
-    {
+    beforeEach(() => {
       editor.model.clear()
     })
 
-    test("should update style color", () =>
-    {
+    test("should update style color", () => {
       const btn = layer.querySelector("#ms-menu-style-color-list-808080") as HTMLButtonElement
       btn.dispatchEvent(clickEvt)
       expect(editor.penStyle.color).toEqual("#808080")
     })
-    test("should update color of selected symbols", () =>
-    {
+    test("should update color of selected symbols", () => {
       const stroke = buildIIStroke()
       editor.model.addSymbol(stroke)
       editor.model.selectedIds.add(stroke.id)
@@ -171,8 +147,7 @@ describe("IIMenuStyle.ts", () =>
       expect(editor.updateSymbolsStyle).toHaveBeenCalledTimes(1)
       expect(editor.updateSymbolsStyle).toHaveBeenCalledWith([stroke.id], { color: "#808080" })
     })
-    test("should update fill of selected symbols", () =>
-    {
+    test("should update fill of selected symbols", () => {
       const stroke = buildIIStroke()
       editor.model.addSymbol(stroke)
       editor.model.selectedIds.add(stroke.id)
@@ -181,14 +156,12 @@ describe("IIMenuStyle.ts", () =>
       expect(editor.updateSymbolsStyle).toHaveBeenCalledTimes(1)
       expect(editor.updateSymbolsStyle).toHaveBeenCalledWith([stroke.id], { fill: "#ffff00" })
     })
-    test("should update style thickness", () =>
-    {
+    test("should update style thickness", () => {
       const btn = layer.querySelector("#ms-menu-style-thickness-8") as HTMLButtonElement
       btn.dispatchEvent(pointerUpEvt)
       expect(editor.penStyle.width).toEqual(8)
     })
-    test("should update thickness of selected symbols", () =>
-    {
+    test("should update thickness of selected symbols", () => {
       const stroke = buildIIStroke()
       editor.model.addSymbol(stroke)
       editor.model.selectedIds.add(stroke.id)
@@ -198,122 +171,103 @@ describe("IIMenuStyle.ts", () =>
       expect(editor.updateSymbolsStyle).toHaveBeenCalledWith([stroke.id], { width: 8 })
       expect(editor.selector.resetSelectedGroup).toHaveBeenNthCalledWith(1, [stroke])
     })
-    test("should update style opacity", () =>
-    {
+    test("should update style opacity", () => {
       const input = layer.querySelector("#ms-menu-style-opacity-input") as HTMLInputElement
       input.value = "42"
       //@ts-ignore
-      input.dispatchEvent(new Event('input', { target: input }))
+      input.dispatchEvent(new Event("input", { target: input }))
       expect(editor.penStyle.opacity).toEqual(0.42)
     })
-    test("should update opacity of selected symbols", () =>
-    {
+    test("should update opacity of selected symbols", () => {
       const stroke = buildIIStroke()
       editor.model.addSymbol(stroke)
       editor.model.selectedIds.add(stroke.id)
       const input = layer.querySelector("#ms-menu-style-opacity-input") as HTMLInputElement
       input.value = "42"
-      input.dispatchEvent(new Event('input'))
+      input.dispatchEvent(new Event("input"))
       expect(editor.updateSymbolsStyle).toHaveBeenCalledTimes(1)
       expect(editor.updateSymbolsStyle).toHaveBeenCalledWith([stroke.id], { opacity: 0.42 })
     })
   })
 
-  describe("update", () =>
-  {
+  describe("update", () => {
     const layer = document.createElement("div")
     const editor = createEditorMock()
     const menu = new IIMenuStyle(asEditor(editor))
     menu.render(layer)
 
-    describe("when tool == write with pencil", () =>
-    {
+    describe("when tool == write with pencil", () => {
       beforeAll(() => {
         editor.tool = EditorTool.Write
         editor.writer.tool = EditorWriteTool.Pencil
         menu.update()
       })
-      test("should display menu color", () =>
-      {
+      test("should display menu color", () => {
         const m = layer.querySelector("#ms-menu-style-color") as HTMLElement
         expect(m.style.display).toEqual("block")
       })
-      test("should not display menu fill", () =>
-      {
+      test("should not display menu fill", () => {
         const m = layer.querySelector("#ms-menu-style-fill") as HTMLElement
         expect(m.style.display).toEqual("none")
       })
-      test("should display menu thickness", () =>
-      {
+      test("should display menu thickness", () => {
         const m = layer.querySelector("#ms-menu-style-thickness") as HTMLElement
         expect(m.style.display).toEqual("block")
       })
-      test("should display menu opacity", () =>
-      {
+      test("should display menu opacity", () => {
         const m = layer.querySelector("#ms-menu-style-opacity") as HTMLElement
         expect(m.style.display).toEqual("block")
       })
     })
 
-    describe("when tool == write with circle", () =>
-    {
+    describe("when tool == write with circle", () => {
       beforeAll(() => {
         editor.tool = EditorTool.Write
         editor.writer.tool = EditorWriteTool.Circle
         menu.update()
       })
-      test("should display menu color", () =>
-      {
+      test("should display menu color", () => {
         const m = layer.querySelector("#ms-menu-style-color") as HTMLElement
         expect(m.style.display).toEqual("block")
       })
-      test("should display menu fill", () =>
-      {
+      test("should display menu fill", () => {
         const m = layer.querySelector("#ms-menu-style-fill") as HTMLElement
         expect(m.style.display).toEqual("block")
       })
-      test("should display menu thickness", () =>
-      {
+      test("should display menu thickness", () => {
         const m = layer.querySelector("#ms-menu-style-thickness") as HTMLElement
         expect(m.style.display).toEqual("block")
       })
-      test("should display menu opacity", () =>
-      {
+      test("should display menu opacity", () => {
         const m = layer.querySelector("#ms-menu-style-opacity") as HTMLElement
         expect(m.style.display).toEqual("block")
       })
     })
 
-    describe("when tool == select", () =>
-    {
+    describe("when tool == select", () => {
       beforeAll(() => {
         editor.tool = EditorTool.Select
         menu.update()
       })
-      test("should display menu color", () =>
-      {
+      test("should display menu color", () => {
         const m = layer.querySelector("#ms-menu-style-color") as HTMLElement
         expect(m.style.display).toEqual("block")
       })
-      test("should not display menu fill", () =>
-      {
+      test("should not display menu fill", () => {
         const m = layer.querySelector("#ms-menu-style-fill") as HTMLElement
         expect(m.style.display).toEqual("none")
       })
-      test("should display menu thickness", () =>
-      {
+      test("should display menu thickness", () => {
         const m = layer.querySelector("#ms-menu-style-thickness") as HTMLElement
         expect(m.style.display).toEqual("block")
       })
-      test("should display menu opacity", () =>
-      {
+      test("should display menu opacity", () => {
         const m = layer.querySelector("#ms-menu-style-opacity") as HTMLElement
         expect(m.style.display).toEqual("block")
       })
     })
 
-    describe("when tool == select and shape selected", () =>
-    {
+    describe("when tool == select and shape selected", () => {
       beforeAll(() => {
         editor.tool = EditorTool.Select
         const shape = buildIICircle()
@@ -321,70 +275,59 @@ describe("IIMenuStyle.ts", () =>
         editor.model.selectedIds.add(shape.id)
         menu.update()
       })
-      test("should display menu color", () =>
-      {
+      test("should display menu color", () => {
         const m = layer.querySelector("#ms-menu-style-color") as HTMLElement
         expect(m.style.display).toEqual("block")
       })
-      test("should display menu fill", () =>
-      {
+      test("should display menu fill", () => {
         const m = layer.querySelector("#ms-menu-style-fill") as HTMLElement
         expect(m.style.display).toEqual("block")
       })
-      test("should display menu thickness", () =>
-      {
+      test("should display menu thickness", () => {
         const m = layer.querySelector("#ms-menu-style-thickness") as HTMLElement
         expect(m.style.display).toEqual("block")
       })
-      test("should display menu opacity", () =>
-      {
+      test("should display menu opacity", () => {
         const m = layer.querySelector("#ms-menu-style-opacity") as HTMLElement
         expect(m.style.display).toEqual("block")
       })
     })
 
-    describe("when tool == select and shape selected", () =>
-    {
+    describe("when tool == select and shape selected", () => {
       beforeAll(() => {
         editor.tool = EditorTool.Move
         menu.update()
       })
-      test("should hide", () =>
-      {
+      test("should hide", () => {
         const m = layer.querySelector(".ms-menu") as HTMLElement
         expect(m.style.visibility).toEqual("hidden")
       })
     })
   })
 
-  describe("show/hide", () =>
-  {
+  describe("show/hide", () => {
     const layer = document.createElement("div")
     const editor = createEditorMock()
     const menu = new IIMenuStyle(asEditor(editor))
     menu.render(layer)
-    test("should hide", () =>
-    {
+    test("should hide", () => {
       expect(menu.wrapper?.style.visibility).toEqual("visible")
       menu.hide()
       expect(menu.wrapper?.style.visibility).toEqual("hidden")
     })
-    test("should show", () =>
-    {
+    test("should show", () => {
       expect(menu.wrapper?.style.visibility).toEqual("hidden")
       menu.show()
       expect(menu.wrapper?.style.visibility).toEqual("visible")
     })
   })
 
-  describe("destroy", () =>
-  {
+  describe("destroy", () => {
     const layer = document.createElement("div")
     const editor = createEditorMock()
     const menu = new IIMenuStyle(asEditor(editor))
     menu.render(layer)
-    test("should remove elements", () =>
-    {
+    test("should remove elements", () => {
       expect(layer.childElementCount).toEqual(1)
       expect(menu.wrapper?.childElementCount).toEqual(1)
       menu.destroy()

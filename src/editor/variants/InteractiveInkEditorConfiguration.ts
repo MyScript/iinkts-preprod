@@ -1,22 +1,31 @@
-import type { TPartialDeep } from "@/utils";
-import { mergeDeep } from "@/utils"
-import type { TStyle } from "@/style";
-import { DefaultStyle } from "@/style"
-import type { TLoggerConfiguration } from "@/logger";
-import { DefaultLoggerConfiguration } from "@/logger"
-import type { TGrabberConfiguration } from "@/grabber";
-import { DefaultGrabberConfiguration } from "@/grabber"
-import type { THistoryConfiguration } from "@/history";
-import { DefaultHistoryConfiguration } from "@/history"
-import type { TMenuConfiguration } from "@/menu";
-import { DefaultMenuConfiguration } from "@/menu"
-import type { TRecognitionWebSocketConfiguration, TRecognizerWebSocketConfiguration, TServerWebsocketConfiguration } from "@/recognizer";
-import { DefaultRecognizerWebSocketConfiguration, RecognizerWebSocketConfiguration } from "@/recognizer"
-import type { TIIRendererConfiguration } from "@/renderer";
-import { DefaultIIRendererConfiguration } from "@/renderer"
-import { DefaultGestureConfiguration, DefaultSnapConfiguration, SnapConfiguration, DefaultOverlayConfig } from "@/manager"
-import type { TMathConfig , TGestureConfiguration, TSnapConfiguration, TOverlayConfig } from "@/manager"
 import type { TEditorConfiguration } from "@/editor/AbstractEditor"
+import type { TGrabberConfiguration } from "@/grabber"
+import { DefaultGrabberConfiguration } from "@/grabber"
+import type { THistoryConfiguration } from "@/history"
+import { DefaultHistoryConfiguration } from "@/history"
+import type { TLoggerConfiguration } from "@/logger"
+import { DefaultLoggerConfiguration } from "@/logger"
+import type { TGestureConfiguration, TMathConfig, TOverlayConfig, TSnapConfiguration } from "@/manager"
+import {
+  DefaultGestureConfiguration,
+  DefaultOverlayConfig,
+  DefaultSnapConfiguration,
+  SnapConfiguration,
+} from "@/manager"
+import type { TMenuConfiguration } from "@/menu"
+import { DefaultMenuConfiguration } from "@/menu"
+import type {
+  TRecognitionWebSocketConfiguration,
+  TRecognizerWebSocketConfiguration,
+  TServerWebsocketConfiguration,
+} from "@/recognizer"
+import { DefaultRecognizerWebSocketConfiguration, RecognizerWebSocketConfiguration } from "@/recognizer"
+import type { TIIRendererConfiguration } from "@/renderer"
+import { DefaultIIRendererConfiguration } from "@/renderer"
+import type { TStyle } from "@/style"
+import { DefaultStyle } from "@/style"
+import type { TPartialDeep } from "@/utils"
+import { mergeDeep } from "@/utils"
 
 /**
  * @group Editor
@@ -39,27 +48,28 @@ export type TShapeSelectionLevel = "element" | "stroke"
 /**
  * @group Editor
  */
-export type TInteractiveInkEditorConfiguration = TEditorConfiguration & TRecognizerWebSocketConfiguration & {
- "undo-redo": THistoryConfiguration
-  rendering: TIIRendererConfiguration
-  grabber: TGrabberConfiguration
-  menu: TMenuConfiguration
-  penStyle: TStyle,
-  fontStyle: {
-    size: number | "auto"
-    weight: "bold" | "normal" | "auto"
+export type TInteractiveInkEditorConfiguration = TEditorConfiguration &
+  TRecognizerWebSocketConfiguration & {
+    "undo-redo": THistoryConfiguration
+    rendering: TIIRendererConfiguration
+    grabber: TGrabberConfiguration
+    menu: TMenuConfiguration
+    penStyle: TStyle
+    fontStyle: {
+      size: number | "auto"
+      weight: "bold" | "normal" | "auto"
+    }
+    gesture: TGestureConfiguration
+    snap: TSnapConfiguration
+    overlays: TOverlayConfig
+    textSelectionLevel: TTextSelectionLevel
+    mathSelectionLevel: TMathSelectionLevel
+    shapeSelectionLevel: TShapeSelectionLevel
+    /** Math manager configuration (computation behavior and visual interactions) */
+    math: TMathConfig
+    /** CSS custom property overrides applied to the editor root element (e.g. `{ "--iink-primary": "#ff0" }`) */
+    cssVars?: Record<string, string>
   }
-  gesture: TGestureConfiguration
-  snap: TSnapConfiguration
-  overlays: TOverlayConfig
-  textSelectionLevel: TTextSelectionLevel
-  mathSelectionLevel: TMathSelectionLevel
-  shapeSelectionLevel: TShapeSelectionLevel
-  /** Math manager configuration (computation behavior and visual interactions) */
-  math: TMathConfig
-  /** CSS custom property overrides applied to the editor root element (e.g. `{ "--iink-primary": "#ff0" }`) */
-  cssVars?: Record<string, string>
-}
 
 /**
  * @group Editor
@@ -92,8 +102,7 @@ export const DefaultInteractiveInkEditorConfiguration: TInteractiveInkEditorConf
 /**
  * @group Editor
  */
-export class InteractiveInkEditorConfiguration implements TInteractiveInkEditorConfiguration
-{
+export class InteractiveInkEditorConfiguration implements TInteractiveInkEditorConfiguration {
   grabber: TGrabberConfiguration
   logger: TLoggerConfiguration
   server: TServerWebsocketConfiguration
@@ -116,29 +125,53 @@ export class InteractiveInkEditorConfiguration implements TInteractiveInkEditorC
   math: TMathConfig
   cssVars?: Record<string, string>
 
-  constructor(configuration?: TPartialDeep<TInteractiveInkEditorConfiguration>)
-  {
-    const { server, recognition } =  new RecognizerWebSocketConfiguration(configuration)
+  constructor(configuration?: TPartialDeep<TInteractiveInkEditorConfiguration>) {
+    const { server, recognition } = new RecognizerWebSocketConfiguration(configuration)
     this.recognition = recognition
     this.server = server
 
     this.grabber = mergeDeep({}, DefaultInteractiveInkEditorConfiguration.grabber, configuration?.grabber)
     this.logger = mergeDeep({}, DefaultInteractiveInkEditorConfiguration.logger, configuration?.logger)
     this.rendering = mergeDeep({}, DefaultInteractiveInkEditorConfiguration.rendering, configuration?.rendering)
-    this["undo-redo"] = mergeDeep({}, DefaultInteractiveInkEditorConfiguration["undo-redo"], configuration?.["undo-redo"])
+    this["undo-redo"] = mergeDeep(
+      {},
+      DefaultInteractiveInkEditorConfiguration["undo-redo"],
+      configuration?.["undo-redo"]
+    )
     this.menu = mergeDeep({}, DefaultInteractiveInkEditorConfiguration.menu, configuration?.menu)
     if (configuration?.menu?.style) {
       if (configuration.menu.style.colors) {
         this.menu.style.colors = configuration.menu.style.colors.filter((color): color is string => color !== undefined)
       }
       if (configuration.menu.style.thicknessList) {
-        this.menu.style.thicknessList = configuration.menu.style.thicknessList.filter((item): item is { label: string, value: number } => item !== undefined)
+        this.menu.style.thicknessList = configuration.menu.style.thicknessList.filter(
+          (
+            item
+          ): item is {
+            label: string
+            value: number
+          } => item !== undefined
+        )
       }
       if (configuration.menu.style.fontSizeList) {
-        this.menu.style.fontSizeList = configuration.menu.style.fontSizeList.filter((item): item is { label: string, value: "auto" | number } => item !== undefined)
+        this.menu.style.fontSizeList = configuration.menu.style.fontSizeList.filter(
+          (
+            item
+          ): item is {
+            label: string
+            value: "auto" | number
+          } => item !== undefined
+        )
       }
       if (configuration.menu.style.fontWeightList) {
-        this.menu.style.fontWeightList = configuration.menu.style.fontWeightList.filter((item): item is { label: string, value: "auto" | "normal" | "bold" } => item !== undefined)
+        this.menu.style.fontWeightList = configuration.menu.style.fontWeightList.filter(
+          (
+            item
+          ): item is {
+            label: string
+            value: "auto" | "normal" | "bold"
+          } => item !== undefined
+        )
       }
       this.menu.style.strokeColor = configuration.menu.style.strokeColor ?? this.menu.style.strokeColor
       this.menu.style.fillColor = configuration.menu.style.fillColor ?? this.menu.style.fillColor
@@ -153,9 +186,12 @@ export class InteractiveInkEditorConfiguration implements TInteractiveInkEditorC
 
     this.penStyle = mergeDeep({}, DefaultInteractiveInkEditorConfiguration.penStyle, configuration?.penStyle)
     this.fontStyle = mergeDeep({}, DefaultInteractiveInkEditorConfiguration.fontStyle, configuration?.fontStyle)
-    this.textSelectionLevel = configuration?.textSelectionLevel ?? DefaultInteractiveInkEditorConfiguration.textSelectionLevel
-    this.mathSelectionLevel = configuration?.mathSelectionLevel ?? DefaultInteractiveInkEditorConfiguration.mathSelectionLevel
-    this.shapeSelectionLevel = configuration?.shapeSelectionLevel ?? DefaultInteractiveInkEditorConfiguration.shapeSelectionLevel
+    this.textSelectionLevel =
+      configuration?.textSelectionLevel ?? DefaultInteractiveInkEditorConfiguration.textSelectionLevel
+    this.mathSelectionLevel =
+      configuration?.mathSelectionLevel ?? DefaultInteractiveInkEditorConfiguration.mathSelectionLevel
+    this.shapeSelectionLevel =
+      configuration?.shapeSelectionLevel ?? DefaultInteractiveInkEditorConfiguration.shapeSelectionLevel
     this.math = mergeDeep({}, DefaultInteractiveInkEditorConfiguration.math, configuration?.math)
     this.cssVars = configuration?.cssVars as Record<string, string> | undefined
   }

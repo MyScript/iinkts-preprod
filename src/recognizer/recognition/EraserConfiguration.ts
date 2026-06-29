@@ -1,4 +1,3 @@
-
 /**
  * @group Recognizer
  */
@@ -11,5 +10,5 @@ export type TEraserConfiguration = {
  * @source
  */
 export const DefaultEraserConfiguration: TEraserConfiguration = {
-  "erase-precisely": false
+  "erase-precisely": false,
 }

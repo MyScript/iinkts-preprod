@@ -1,4 +1,3 @@
-
 /**
  * @group Recognizer
  */
@@ -17,5 +16,5 @@ export const DefaultMarginConfiguration: TMarginConfiguration = {
   top: 20,
   left: 10,
   right: 10,
-  bottom: 10
+  bottom: 10,
 }

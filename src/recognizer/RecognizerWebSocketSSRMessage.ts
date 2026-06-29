@@ -15,7 +15,7 @@ export type TRecognizerWebSocketSSRMessageError = {
   type: string
   code?: number | string
   message?: string
-  data? : {
+  data?: {
     code: number | string
     message: string
   }
@@ -68,7 +68,15 @@ export type TRecognizerWebSocketSSRMessageExport = TRecognizerWebSocketSSRMessag
 /**
  * @group Recognizer
  */
-export type TUpdatePatchType = "REPLACE_ALL" | "REMOVE_ELEMENT" | "REPLACE_ELEMENT" | "REMOVE_CHILD" | "APPEND_CHILD" | "INSERT_BEFORE" | "REMOVE_ATTRIBUTE" | "SET_ATTRIBUTE"
+export type TUpdatePatchType =
+  | "REPLACE_ALL"
+  | "REMOVE_ELEMENT"
+  | "REPLACE_ELEMENT"
+  | "REMOVE_CHILD"
+  | "APPEND_CHILD"
+  | "INSERT_BEFORE"
+  | "REMOVE_ATTRIBUTE"
+  | "SET_ATTRIBUTE"
 
 /**
  * @group Recognizer
@@ -81,7 +89,7 @@ export type TUpdatePatch = {
  * @group Recognizer
  */
 export type TUpdatePatchReplaceAll = TUpdatePatch & {
-  type: "REPLACE_ALL",
+  type: "REPLACE_ALL"
   svg: string
 }
 
@@ -89,7 +97,7 @@ export type TUpdatePatchReplaceAll = TUpdatePatch & {
  * @group Recognizer
  */
 export type TUpdatePatchReplaceELement = TUpdatePatch & {
-  type: "REPLACE_ELEMENT",
+  type: "REPLACE_ELEMENT"
   id: string
   svg: string
 }
@@ -98,7 +106,7 @@ export type TUpdatePatchReplaceELement = TUpdatePatch & {
  * @group Recognizer
  */
 export type TUpdatePatchInsertBefore = TUpdatePatch & {
-  type: "INSERT_BEFORE",
+  type: "INSERT_BEFORE"
   refId: string
   svg: string
 }
@@ -107,7 +115,7 @@ export type TUpdatePatchInsertBefore = TUpdatePatch & {
  * @group Recognizer
  */
 export type TUpdatePatchRemoveElement = TUpdatePatch & {
-  type: "REMOVE_ELEMENT",
+  type: "REMOVE_ELEMENT"
   id: string
 }
 
@@ -115,7 +123,7 @@ export type TUpdatePatchRemoveElement = TUpdatePatch & {
  * @group Recognizer
  */
 export type TUpdatePatchAppendChild = TUpdatePatch & {
-  type: "APPEND_CHILD",
+  type: "APPEND_CHILD"
   parentId?: string
   svg: string
 }
@@ -124,7 +132,7 @@ export type TUpdatePatchAppendChild = TUpdatePatch & {
  * @group Recognizer
  */
 export type TUpdatePatchRemoveChild = TUpdatePatch & {
-  type: "REMOVE_CHILD",
+  type: "REMOVE_CHILD"
   parentId: string
   index: number
 }
@@ -133,7 +141,7 @@ export type TUpdatePatchRemoveChild = TUpdatePatch & {
  * @group Recognizer
  */
 export type TUpdatePatchRemoveAttribut = TUpdatePatch & {
-  type: "REMOVE_ATTRIBUTE",
+  type: "REMOVE_ATTRIBUTE"
   id?: string
   name: string
 }
@@ -142,7 +150,7 @@ export type TUpdatePatchRemoveAttribut = TUpdatePatch & {
  * @group Recognizer
  */
 export type TUpdatePatchSetAttribut = TUpdatePatch & {
-  type: "SET_ATTRIBUTE",
+  type: "SET_ATTRIBUTE"
   id?: string
   name: string
   value: string
@@ -153,5 +161,5 @@ export type TUpdatePatchSetAttribut = TUpdatePatch & {
  */
 export type TRecognizerWebSocketSSRMessageSVGPatch = TRecognizerWebSocketSSRMessage & {
   updates: TUpdatePatch[]
-  layer: ("MODEL" | "CAPTURE")
+  layer: "MODEL" | "CAPTURE"
 }

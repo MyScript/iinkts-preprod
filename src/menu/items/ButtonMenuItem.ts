@@ -1,5 +1,6 @@
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
-import type { TMenuItemBase } from "./BaseMenuItem";
+
+import type { TMenuItemBase } from "./BaseMenuItem"
 import { BaseMenuItem } from "./BaseMenuItem"
 
 /**
@@ -16,12 +17,14 @@ export type TMenuButton = TMenuItemBase & {
  * @group Menu
  * @remarks Class for buttons
  */
-export class ButtonMenuItem extends BaseMenuItem<HTMLButtonElement>
-{
-  protected declare config: TMenuButton
+export class ButtonMenuItem extends BaseMenuItem<HTMLButtonElement> {
+  declare protected config: TMenuButton
 
   createElement(): HTMLButtonElement {
-    const button = this.dom.button({ id: this.config.id, className: "ms-menu-item" })
+    const button = this.dom.button({
+      id: this.config.id,
+      className: "ms-menu-item",
+    })
 
     if (this.config.label) {
       button.textContent = this.config.label

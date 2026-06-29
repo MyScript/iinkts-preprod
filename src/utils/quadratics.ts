@@ -3,26 +3,24 @@ import type { TPoint, TPointer } from "@/symbol"
 /**
  * @group Utilities
  */
-export function computeLinksPointers(point: TPointer, angle: number, width: number): TPoint[]
-{
+export function computeLinksPointers(point: TPointer, angle: number, width: number): TPoint[] {
   const radius = point.p * width
   return [
     {
-      x: +(point.x - (Math.sin(angle) * radius)).toFixed(3),
-      y: +(point.y + (Math.cos(angle) * radius)).toFixed(3)
+      x: +(point.x - Math.sin(angle) * radius).toFixed(3),
+      y: +(point.y + Math.cos(angle) * radius).toFixed(3),
     },
     {
-      x: +(point.x + (Math.sin(angle) * radius)).toFixed(3),
-      y: +(point.y - (Math.cos(angle) * radius)).toFixed(3),
-    }
+      x: +(point.x + Math.sin(angle) * radius).toFixed(3),
+      y: +(point.y - Math.cos(angle) * radius).toFixed(3),
+    },
   ]
 }
 
 /**
  * @group Utilities
  */
-export function computeMiddlePointer(point1: TPointer, point2: TPointer): TPointer
-{
+export function computeMiddlePointer(point1: TPointer, point2: TPointer): TPointer {
   return {
     x: +((point2.x + point1.x) / 2).toFixed(3),
     y: +((point2.y + point1.y) / 2).toFixed(3),

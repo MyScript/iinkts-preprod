@@ -1,14 +1,15 @@
+import type { TButtonElConfig } from "@/components/dom"
+import { DOMFactory } from "@/components/dom"
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
-import { Modal } from "./Modal"
-import type { TTableRow } from "./Table";
-import { Table } from "./Table"
-import { IIMathFunctionEvaluator } from "./IIMathFunctionEvaluator"
-import { IIMathDiagnosticChecker } from "./IIMathDiagnosticChecker"
-import { IIMathVariablePerBlockEditor } from "./IIMathVariablePerBlockEditor"
 import { LoggerCategory } from "@/logger/logger"
 import { LoggerManager } from "@/logger/LoggerManager"
-import type { TButtonElConfig} from "@/components/dom";
-import { DOMFactory } from "@/components/dom"
+
+import { IIMathDiagnosticChecker } from "./IIMathDiagnosticChecker"
+import { IIMathFunctionEvaluator } from "./IIMathFunctionEvaluator"
+import { IIMathVariablePerBlockEditor } from "./IIMathVariablePerBlockEditor"
+import { Modal } from "./Modal"
+import type { TTableRow } from "./Table"
+import { Table } from "./Table"
 
 /**
  * @group Components
@@ -57,7 +58,7 @@ export class IIMathCapabilitiesTable {
         const [actions, variables, evaluables] = await Promise.all([
           this.editor.math.getAvailableActions(jiixBlockId),
           this.editor.math.getVariables(jiixBlockId),
-          this.editor.math.getEvaluables(jiixBlockId)
+          this.editor.math.getEvaluables(jiixBlockId),
         ])
 
         canCheckDiagnostic = true // Always available if jiixId exists
@@ -76,7 +77,7 @@ export class IIMathCapabilitiesTable {
       canCheckDiagnostic,
       canEditVariables,
       canCompute,
-      canEvaluate
+      canEvaluate,
     }
   }
 
@@ -89,26 +90,24 @@ export class IIMathCapabilitiesTable {
     this.logger.debug("Creating capabilities table with capabilities:", capabilities)
 
     // Prepare rows
-    const rows: TTableRow[] = capabilities.map(cap => {
+    const rows: TTableRow[] = capabilities.map((cap) => {
       // Symbol label cell
-      const symbolCell = DOMFactory.span({ className: "ms-symbol-cell", text: this.editor.jiix.getBlockLabel(cap.jiixBlockId) || "Unknown Symbol" })
+      const symbolCell = DOMFactory.span({
+        className: "ms-symbol-cell",
+        text: this.editor.jiix.getBlockLabel(cap.jiixBlockId) || "Unknown Symbol",
+      })
       symbolCell.title = this.editor.jiix.getBlockLabel(cap.jiixBlockId) || ""
 
       // Create capability marks
-      const capabilityValues = [
-        cap.canCheckDiagnostic,
-        cap.canEditVariables,
-        cap.canCompute,
-        cap.canEvaluate
-      ]
+      const capabilityValues = [cap.canCheckDiagnostic, cap.canEditVariables, cap.canCompute, cap.canEvaluate]
 
-      const capabilityCells = capabilityValues.map(canDo => {
+      const capabilityCells = capabilityValues.map((canDo) => {
         return DOMFactory.statusBadge(canDo)
       })
 
       return {
         cells: [symbolCell, ...capabilityCells],
-        data: cap.jiixBlockId // Store jiixBlockId reference in row data
+        data: cap.jiixBlockId, // Store jiixBlockId reference in row data
       }
     })
 
@@ -116,17 +115,29 @@ export class IIMathCapabilitiesTable {
     const table = new Table({
       columns: [
         { header: "Symbol", align: "left" },
-        { header: "Check Diagnostic", align: "center" },
-        { header: "Edit Variables", align: "center" },
-        { header: "Compute Result", align: "center" },
-        { header: "Evaluate Function", align: "center" }
+        {
+          header: "Check Diagnostic",
+          align: "center",
+        },
+        {
+          header: "Edit Variables",
+          align: "center",
+        },
+        {
+          header: "Compute Result",
+          align: "center",
+        },
+        {
+          header: "Evaluate Function",
+          align: "center",
+        },
       ],
       rows,
       stickyHeader: false,
       hoverEffect: true,
       selectable: true,
       multiSelect: true,
-      onRowClick: this.handleRowSelection.bind(this)
+      onRowClick: this.handleRowSelection.bind(this),
     })
 
     return table
@@ -137,11 +148,16 @@ export class IIMathCapabilitiesTable {
    */
   private handleRowSelection(): void {
     this.logger.debug("Row selection changed", this.table?.getSelectedRows())
-    if (!this.table) return
+    if (!this.table) {
+      return
+    }
 
     // Get selected symbols from table
-    const selectedBlocks = this.table.getSelectedRowsData() as { id: string, label: string }[]
-    const selectedIds = selectedBlocks.map(s => s.id)
+    const selectedBlocks = this.table.getSelectedRowsData() as {
+      id: string
+      label: string
+    }[]
+    const selectedIds = selectedBlocks.map((s) => s.id)
 
     // Update editor selection
     this.editor.select(selectedIds)
@@ -154,16 +170,18 @@ export class IIMathCapabilitiesTable {
    * Update action buttons enabled/disabled state based on selected rows
    */
   private updateActionButtons(): void {
-    if (!this.table) return
+    if (!this.table) {
+      return
+    }
 
     const selectedIndices = this.table.getSelectedRows()
-    const selectedCapabilities = selectedIndices.map(index => this.capabilities[index])
+    const selectedCapabilities = selectedIndices.map((index) => this.capabilities[index])
 
     // Check if any selected row can perform each action
-    const canCheckDiagnostic = selectedCapabilities.some(cap => cap.canCheckDiagnostic)
-    const canEditVariables = selectedCapabilities.some(cap => cap.canEditVariables)
-    const canCompute = selectedCapabilities.some(cap => cap.canCompute)
-    const canEvaluate = selectedCapabilities.some(cap => cap.canEvaluate)
+    const canCheckDiagnostic = selectedCapabilities.some((cap) => cap.canCheckDiagnostic)
+    const canEditVariables = selectedCapabilities.some((cap) => cap.canEditVariables)
+    const canCompute = selectedCapabilities.some((cap) => cap.canCompute)
+    const canEvaluate = selectedCapabilities.some((cap) => cap.canEvaluate)
 
     // Update button states
     if (this.actionButtons.checkDiagnostic) {
@@ -188,7 +206,9 @@ export class IIMathCapabilitiesTable {
    * Create action buttons container
    */
   private createActionButtons(): HTMLDivElement {
-    const container = DOMFactory.div({ className: "ms-capabilities-actions" })
+    const container = DOMFactory.div({
+      className: "ms-capabilities-actions",
+    })
 
     // Define button configurations
     const buttonConfigs: TButtonElConfig[] = [
@@ -196,29 +216,29 @@ export class IIMathCapabilitiesTable {
         label: "Check Diagnostic",
         variant: "primary",
         onClick: () => this.executeCheckDiagnostic(),
-        id: "checkDiagnostic"
+        id: "checkDiagnostic",
       },
       {
         label: "Edit Variables",
         variant: "secondary",
         onClick: () => this.executeEditVariables(),
-        id: "editVariables"
+        id: "editVariables",
       },
       {
         label: "Compute Result",
         variant: "success",
         onClick: () => this.executeComputeResult(),
-        id: "computeResult"
+        id: "computeResult",
       },
       {
         label: "Evaluate Function",
         variant: "info",
         onClick: () => this.executeEvaluateFunction(),
-        id: "evaluateFunction"
-      }
+        id: "evaluateFunction",
+      },
     ]
 
-    buttonConfigs.forEach(config => {
+    buttonConfigs.forEach((config) => {
       const button = DOMFactory.button({
         id: `btn-${config.id}`,
         label: config.label,
@@ -238,15 +258,19 @@ export class IIMathCapabilitiesTable {
    */
   private async executeCheckDiagnostic(): Promise<void> {
     this.logger.debug("Executing Check Diagnostic for selected rows")
-    if (!this.table) return
+    if (!this.table) {
+      return
+    }
 
     const selectedIndices = this.table.getSelectedRows()
     const selectedBlockIds = selectedIndices
-      .map(index => this.capabilities[index])
-      .filter(cap => cap.canCheckDiagnostic)
-      .map(cap => cap.jiixBlockId)
+      .map((index) => this.capabilities[index])
+      .filter((cap) => cap.canCheckDiagnostic)
+      .map((cap) => cap.jiixBlockId)
 
-    if (selectedBlockIds.length === 0) return
+    if (selectedBlockIds.length === 0) {
+      return
+    }
 
     const checker = new IIMathDiagnosticChecker(this.editor, selectedBlockIds)
     await checker.show()
@@ -257,15 +281,19 @@ export class IIMathCapabilitiesTable {
    */
   private async executeEditVariables(): Promise<void> {
     this.logger.debug("Executing Edit Variables for selected rows")
-    if (!this.table) return
+    if (!this.table) {
+      return
+    }
 
     const selectedIndices = this.table.getSelectedRows()
     const selectedBlockIds = selectedIndices
-      .map(index => this.capabilities[index])
-      .filter(cap => cap.canEditVariables)
-      .map(cap => cap.jiixBlockId)
+      .map((index) => this.capabilities[index])
+      .filter((cap) => cap.canEditVariables)
+      .map((cap) => cap.jiixBlockId)
 
-    if (selectedBlockIds.length === 0) return
+    if (selectedBlockIds.length === 0) {
+      return
+    }
 
     const variableEditor = new IIMathVariablePerBlockEditor(this.editor, selectedBlockIds)
     await variableEditor.show()
@@ -276,17 +304,21 @@ export class IIMathCapabilitiesTable {
    */
   private async executeComputeResult(): Promise<void> {
     this.logger.debug("Executing Compute Result for selected rows")
-    if (!this.table) return
+    if (!this.table) {
+      return
+    }
 
     const selectedIndices = this.table.getSelectedRows()
     const selectedBlockIds = selectedIndices
-      .map(index => this.capabilities[index])
-      .filter(cap => cap.canCompute)
-      .map(cap => cap.jiixBlockId)
+      .map((index) => this.capabilities[index])
+      .filter((cap) => cap.canCompute)
+      .map((cap) => cap.jiixBlockId)
 
-    if (selectedBlockIds.length === 0) return
+    if (selectedBlockIds.length === 0) {
+      return
+    }
 
-    await Promise.all(selectedBlockIds.map(id => this.editor.math.computeNumericalResult(id)))
+    await Promise.all(selectedBlockIds.map((id) => this.editor.math.computeNumericalResult(id)))
   }
 
   /**
@@ -294,15 +326,19 @@ export class IIMathCapabilitiesTable {
    */
   private async executeEvaluateFunction(): Promise<void> {
     this.logger.debug("Executing Evaluate Function for selected rows")
-    if (!this.table) return
+    if (!this.table) {
+      return
+    }
 
     const selectedIndices = this.table.getSelectedRows()
     const selectedBlockIds = selectedIndices
-      .map(index => this.capabilities[index])
-      .filter(cap => cap.canEvaluate)
-      .map(cap => cap.jiixBlockId)
+      .map((index) => this.capabilities[index])
+      .filter((cap) => cap.canEvaluate)
+      .map((cap) => cap.jiixBlockId)
 
-    if (selectedBlockIds.length === 0) return
+    if (selectedBlockIds.length === 0) {
+      return
+    }
 
     const evaluator = new IIMathFunctionEvaluator(this.editor, selectedBlockIds)
     await evaluator.show()
@@ -324,9 +360,13 @@ export class IIMathCapabilitiesTable {
 
     this.table = this.createTable(capabilities)
     const actionButtons = this.createActionButtons()
-    const container = DOMFactory.div({ className: "ms-capabilities-content" })
+    const container = DOMFactory.div({
+      className: "ms-capabilities-content",
+    })
 
-    const tableWrapper = DOMFactory.div({ className: "ms-capabilities-table-wrapper" })
+    const tableWrapper = DOMFactory.div({
+      className: "ms-capabilities-table-wrapper",
+    })
     tableWrapper.appendChild(this.table.getElement())
 
     container.appendChild(tableWrapper)

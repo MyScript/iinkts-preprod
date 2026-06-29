@@ -1,33 +1,37 @@
-import type { TGrabberConfiguration } from "@/grabber";
-import { DefaultGrabberConfiguration } from "@/grabber"
-import type { THistoryConfiguration } from "@/history";
-import { DefaultHistoryConfiguration } from "@/history"
-import type { TLoggerConfiguration } from "@/logger";
-import { DefaultLoggerConfiguration } from "@/logger"
-import type { TRecognizerHTTPV2Configuration, TRecognizerHTTPV2RecognitionConfiguration, TServerHTTPConfiguration } from "@/recognizer";
-import { DefaultRecognizerHTTPV2Configuration, RecognizerHTTPV2Configuration } from "@/recognizer"
-import type { TIIRendererConfiguration } from "@/renderer";
-import { DefaultIIRendererConfiguration } from "@/renderer"
-import type { TStyle } from "@/style";
-import { DefaultStyle } from "@/style"
-import type { TPartialDeep } from "@/utils";
-import { convertPixelToMillimeter, mergeDeep } from "@/utils"
 import type { TEditorConfiguration } from "@/editor/AbstractEditor"
-import type { TEditorTriggerConfiguration } from "@/editor/EditorTriggerConfiguration";
+import type { TEditorTriggerConfiguration } from "@/editor/EditorTriggerConfiguration"
 import { DefaultEditorTriggerConfiguration } from "@/editor/EditorTriggerConfiguration"
-
+import type { TGrabberConfiguration } from "@/grabber"
+import { DefaultGrabberConfiguration } from "@/grabber"
+import type { THistoryConfiguration } from "@/history"
+import { DefaultHistoryConfiguration } from "@/history"
+import type { TLoggerConfiguration } from "@/logger"
+import { DefaultLoggerConfiguration } from "@/logger"
+import type {
+  TRecognizerHTTPV2Configuration,
+  TRecognizerHTTPV2RecognitionConfiguration,
+  TServerHTTPConfiguration,
+} from "@/recognizer"
+import { DefaultRecognizerHTTPV2Configuration, RecognizerHTTPV2Configuration } from "@/recognizer"
+import type { TIIRendererConfiguration } from "@/renderer"
+import { DefaultIIRendererConfiguration } from "@/renderer"
+import type { TStyle } from "@/style"
+import { DefaultStyle } from "@/style"
+import type { TPartialDeep } from "@/utils"
+import { convertPixelToMillimeter, mergeDeep } from "@/utils"
 
 /**
  * @group Editor
  */
-export type TInkEditorConfiguration = TEditorConfiguration & TRecognizerHTTPV2Configuration & {
-  rendering: TIIRendererConfiguration
-  "undo-redo": THistoryConfiguration
-  grabber: TGrabberConfiguration
-  triggers: TEditorTriggerConfiguration
-  logger: TLoggerConfiguration
-  penStyle: TStyle
-}
+export type TInkEditorConfiguration = TEditorConfiguration &
+  TRecognizerHTTPV2Configuration & {
+    rendering: TIIRendererConfiguration
+    "undo-redo": THistoryConfiguration
+    grabber: TGrabberConfiguration
+    triggers: TEditorTriggerConfiguration
+    logger: TLoggerConfiguration
+    penStyle: TStyle
+  }
 
 /**
  * @group Editor
@@ -47,8 +51,7 @@ export const DefaultInkEditorConfiguration: TInkEditorConfiguration = {
 /**
  * @group Editor
  */
-export class InkEditorConfiguration implements TInkEditorConfiguration
-{
+export class InkEditorConfiguration implements TInkEditorConfiguration {
   server: TServerHTTPConfiguration
   recognition: TRecognizerHTTPV2RecognitionConfiguration
   rendering: TIIRendererConfiguration
@@ -58,15 +61,13 @@ export class InkEditorConfiguration implements TInkEditorConfiguration
   logger: TLoggerConfiguration
   penStyle: TStyle
 
-  constructor(configuration?: TPartialDeep<InkEditorConfiguration>)
-  {
+  constructor(configuration?: TPartialDeep<InkEditorConfiguration>) {
     const { server, recognition } = new RecognizerHTTPV2Configuration(configuration)
     this.server = server
     this.recognition = recognition
     this.rendering = mergeDeep({}, DefaultInkEditorConfiguration.rendering, configuration?.rendering)
     this.recognition.text.guides.enable = this.rendering.guides.enable
-    if (this.rendering.guides.enable)
-    {
+    if (this.rendering.guides.enable) {
       this.recognition.text.guides["line-gap-mm"] = convertPixelToMillimeter(this.rendering.guides.gap)
     }
     this.grabber = mergeDeep({}, DefaultInkEditorConfiguration.grabber, configuration?.grabber)

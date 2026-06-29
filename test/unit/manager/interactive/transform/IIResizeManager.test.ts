@@ -1,7 +1,6 @@
 import { createEditorMock, asEditor } from "../../../__mocks__/createEditorMock"
 import { buildIIStroke } from "../../../helpers"
-import
-{
+import {
   EdgeArcOps,
   EdgeLineOps,
   EdgePolyLineOps,
@@ -16,33 +15,30 @@ import
   TPoint,
   TextOps,
   MatrixTransform,
-  OBBOps
+  OBBOps,
 } from "@/iink"
 
-describe("IIResizeManager.ts", () =>
-{
-  test("should create", () =>
-  {
+describe("IIResizeManager.ts", () => {
+  test("should create", () => {
     const editor = createEditorMock()
     const manager = new IIResizeManager(asEditor(editor))
     expect(manager).toBeDefined()
   })
 
-  describe("applyToSymbol", () =>
-  {
+  describe("applyToSymbol", () => {
     const editor = createEditorMock()
     const manager = new IIResizeManager(asEditor(editor))
-    test("should not resize symbol with type unknown", () =>
-    {
+    test("should not resize symbol with type unknown", () => {
       const stroke = buildIIStroke()
       //@ts-ignore
       stroke.type = "pouet"
       const origin: TPoint = { x: 0, y: 0 }
       const matrix = MatrixTransform.identity().scale(2, 3, origin)
-      expect(() => manager.applyToSymbol(stroke, matrix)).toThrow(expect.objectContaining({ message: expect.stringContaining("Can't apply resize on symbol, type unknown:") }))
+      expect(() => manager.applyToSymbol(stroke, matrix)).toThrow(
+        expect.objectContaining({ message: expect.stringContaining("Can't apply resize on symbol, type unknown:") })
+      )
     })
-    test("should resize stroke", () =>
-    {
+    test("should resize stroke", () => {
       const stroke = StrokeOps.create()
       const origin: TPoint = { x: 1, y: 2 }
       StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 1, y: 2 })
@@ -52,23 +48,23 @@ describe("IIResizeManager.ts", () =>
       expect(stroke.pointers[0]).toEqual(expect.objectContaining({ x: 1, y: 2 }))
       expect(stroke.pointers[1]).toEqual(expect.objectContaining({ x: 41, y: 122 }))
     })
-    test("should not resize shape with kind unknown", () =>
-    {
+    test("should not resize shape with kind unknown", () => {
       const points: TPoint[] = [
         { x: 0, y: 0 },
         { x: 0, y: 5 },
         { x: 5, y: 5 },
-        { x: 5, y: 0 }
+        { x: 5, y: 0 },
       ]
       const poly = ShapePolygonOps.create(points)
       //@ts-ignore
       poly.kind = "pouet"
       const origin: TPoint = { x: 0, y: 0 }
       const matrix = MatrixTransform.identity().scale(2, 3, origin)
-      expect(() => manager.applyToSymbol(poly, matrix)).toThrow(expect.objectContaining({ message: expect.stringContaining("Can't apply resize on shape, kind unknown:") }))
+      expect(() => manager.applyToSymbol(poly, matrix)).toThrow(
+        expect.objectContaining({ message: expect.stringContaining("Can't apply resize on shape, kind unknown:") })
+      )
     })
-    test("should resize shape Circle", () =>
-    {
+    test("should resize shape Circle", () => {
       const center: TPoint = { x: 5, y: 5 }
       const radius = 4
       const shape = ShapeCircleOps.create(center, radius)
@@ -78,8 +74,7 @@ describe("IIResizeManager.ts", () =>
       expect(shape.radius).toEqual(12)
       expect(shape.center).toEqual({ x: 9, y: 14 })
     })
-    test("should resize shape Ellipse", () =>
-    {
+    test("should resize shape Ellipse", () => {
       const center: TPoint = { x: 0, y: 0 }
       const radiusX = 50
       const radiusY = 10
@@ -96,8 +91,7 @@ describe("IIResizeManager.ts", () =>
       expect(shape.radiusY).toEqual(radiusY * scaleY)
       expect(shape.center).toEqual({ x: 49.534, y: 29.931 })
     })
-    test("should resize shape Polygon", () =>
-    {
+    test("should resize shape Polygon", () => {
       const points: TPoint[] = [
         { x: 0, y: 0 },
         { x: 20, y: 0 },
@@ -120,8 +114,7 @@ describe("IIResizeManager.ts", () =>
       expect(shape.points[3].x).toEqual(0)
       expect(shape.points[3].y).toEqual(40)
     })
-    test("should not resize edge with kind unknown", () =>
-    {
+    test("should not resize edge with kind unknown", () => {
       const start: TPoint = { x: 0, y: 0 }
       const end: TPoint = { x: 0, y: 5 }
       const edge = EdgeLineOps.create(start, end)
@@ -129,10 +122,11 @@ describe("IIResizeManager.ts", () =>
       edge.kind = "pouet"
       const origin: TPoint = { x: 0, y: 0 }
       const matrix = MatrixTransform.identity().scale(2, 3, origin)
-      expect(() => manager.applyToSymbol(edge, matrix)).toThrow(expect.objectContaining({ message: expect.stringContaining("Can't apply resize on edge, kind unknown:") }))
+      expect(() => manager.applyToSymbol(edge, matrix)).toThrow(
+        expect.objectContaining({ message: expect.stringContaining("Can't apply resize on edge, kind unknown:") })
+      )
     })
-    test("should resize edge Arc", () =>
-    {
+    test("should resize edge Arc", () => {
       const center: TPoint = { x: 0, y: 0 }
       const startAngle = -Math.PI
       const sweepAngle = Math.PI
@@ -151,8 +145,7 @@ describe("IIResizeManager.ts", () =>
       expect(edge.radiusX).toEqual(radiusX * scaleX)
       expect(edge.radiusY).toEqual(radiusY * scaleY)
     })
-    test("resize edge Line", () =>
-    {
+    test("resize edge Line", () => {
       const start: TPoint = { x: 0, y: 0 }
       const end: TPoint = { x: 0, y: 5 }
       const edge = EdgeLineOps.create(start, end)
@@ -162,8 +155,7 @@ describe("IIResizeManager.ts", () =>
       expect(edge.start).toEqual({ x: 0, y: 0 })
       expect(edge.end).toEqual({ x: 0, y: 15 })
     })
-    test("resize edge PolyEdge", () =>
-    {
+    test("resize edge PolyEdge", () => {
       const points: TPoint[] = [
         { x: 0, y: 0 },
         { x: 20, y: 0 },
@@ -183,8 +175,7 @@ describe("IIResizeManager.ts", () =>
       expect(edge.points[3].x).toEqual(0)
       expect(edge.points[3].y).toEqual(30)
     })
-    test("resize edge Text", () =>
-    {
+    test("resize edge Text", () => {
       const point: TPoint = { x: 0, y: 0 }
       const chars: TSymbolChar[] = [
         {
@@ -193,8 +184,8 @@ describe("IIResizeManager.ts", () =>
           fontSize: 12,
           fontWeight: "normal",
           id: "char-1",
-          label: "A"
-        }
+          label: "A",
+        },
       ]
       const text = TextOps.create(chars, point, { height: 10, width: 5, x: 0, y: 0 })
       const origin: TPoint = { x: 0, y: 0 }
@@ -206,8 +197,7 @@ describe("IIResizeManager.ts", () =>
     })
   })
 
-  describe("resize process on stroke without snap", () =>
-  {
+  describe("resize process on stroke without snap", () => {
     const editor = createEditorMock()
     editor.recognizer.init = jest.fn(() => Promise.resolve())
     editor.recognizer.transformScale = jest.fn(() => Promise.resolve())
@@ -229,7 +219,7 @@ describe("IIResizeManager.ts", () =>
     const sb = OBBOps.toBox(stroke.bounds)
     const resizeToPoint: TPoint = {
       x: (sb.x + stroke.bounds.width + sb.x) / 4,
-      y: (sb.y + stroke.bounds.height + sb.y) / 4
+      y: (sb.y + stroke.bounds.height + sb.y) / 4,
     }
 
     const testDatas = [
@@ -237,99 +227,97 @@ describe("IIResizeManager.ts", () =>
         direction: ResizeDirection.North,
         transformOrigin: {
           x: sb.x + stroke.bounds.width / 2,
-          y: sb.y + stroke.bounds.height
+          y: sb.y + stroke.bounds.height,
         },
         scale: {
           x: 1,
-          y: 1 + (sb.y - resizeToPoint.y) / stroke.bounds.height
-        }
+          y: 1 + (sb.y - resizeToPoint.y) / stroke.bounds.height,
+        },
       },
       {
         direction: ResizeDirection.East,
         transformOrigin: {
           x: sb.x,
-          y: sb.y + stroke.bounds.height / 2
+          y: sb.y + stroke.bounds.height / 2,
         },
         scale: {
           x: 1 + (resizeToPoint.x - (sb.x + stroke.bounds.width)) / stroke.bounds.width,
-          y: 1
-        }
+          y: 1,
+        },
       },
       {
         direction: ResizeDirection.South,
         transformOrigin: {
           x: sb.x + stroke.bounds.width / 2,
-          y: sb.y
+          y: sb.y,
         },
         scale: {
           x: 1,
           y: 1 + (resizeToPoint.y - (sb.y + stroke.bounds.height)) / stroke.bounds.height,
-        }
+        },
       },
       {
         direction: ResizeDirection.West,
         transformOrigin: {
           x: sb.x + stroke.bounds.width,
-          y: sb.y + stroke.bounds.height / 2
+          y: sb.y + stroke.bounds.height / 2,
         },
         scale: {
           x: 1 + (sb.x - resizeToPoint.x) / stroke.bounds.width,
-          y: 1
-        }
+          y: 1,
+        },
       },
       {
         direction: ResizeDirection.NorthEast,
         transformOrigin: {
           x: sb.x,
-          y: sb.y + stroke.bounds.height
+          y: sb.y + stroke.bounds.height,
         },
         scale: {
           x: 1 + (resizeToPoint.x - (sb.x + stroke.bounds.width)) / stroke.bounds.width,
-          y: 1 + (sb.y - resizeToPoint.y) / stroke.bounds.height
-        }
+          y: 1 + (sb.y - resizeToPoint.y) / stroke.bounds.height,
+        },
       },
       {
         direction: ResizeDirection.NorthWest,
         transformOrigin: {
           x: sb.x + stroke.bounds.width,
-          y: sb.y + stroke.bounds.height
+          y: sb.y + stroke.bounds.height,
         },
         scale: {
           x: 1 + (sb.x - resizeToPoint.x) / stroke.bounds.width,
-          y: 1 + (sb.y - resizeToPoint.y) / stroke.bounds.height
-        }
+          y: 1 + (sb.y - resizeToPoint.y) / stroke.bounds.height,
+        },
       },
       {
         direction: ResizeDirection.SouthEast,
         transformOrigin: {
           x: sb.x,
-          y: sb.y
+          y: sb.y,
         },
         scale: {
           x: 1 + (resizeToPoint.x - (sb.x + stroke.bounds.width)) / stroke.bounds.width,
           y: 1 + (resizeToPoint.y - (sb.y + stroke.bounds.height)) / stroke.bounds.height,
-        }
+        },
       },
       {
         direction: ResizeDirection.SouthWest,
         transformOrigin: {
           x: sb.x + stroke.bounds.width,
-          y: sb.y
+          y: sb.y,
         },
         scale: {
           x: 1 + (sb.x - resizeToPoint.x) / stroke.bounds.width,
           y: 1 + (resizeToPoint.y - (sb.y + stroke.bounds.height)) / stroke.bounds.height,
-        }
+        },
       },
     ]
 
-    beforeAll(async () =>
-    {
+    beforeAll(async () => {
       await editor.init()
     })
 
-    testDatas.forEach(data =>
-    {
+    testDatas.forEach((data) => {
       const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
       group.setAttribute("id", "group-id")
       group.setAttribute("role", SvgElementRole.InteractElementsGroup)
@@ -337,33 +325,55 @@ describe("IIResizeManager.ts", () =>
       resizeElement.setAttribute("resize-direction", data.direction)
       group.appendChild(resizeElement)
 
-      test(`should start with direction: "${ data.direction }" `, () =>
-      {
+      test(`should start with direction: "${data.direction}" `, () => {
         manager.start(resizeElement, data.transformOrigin)
         expect(manager.interactElementsGroup).toEqual(group)
         expect(manager.boundingBox).toEqual(OBBOps.toBox(stroke.bounds))
         expect(manager.direction).toEqual(data.direction)
         expect(manager.transformOrigin).toEqual(data.transformOrigin)
-        expect(editor.renderer.setAttribute).toHaveBeenNthCalledWith(1, group.id, "transform-origin", `${ data.transformOrigin.x }px ${ data.transformOrigin.y }px`)
-        expect(editor.renderer.setAttribute).toHaveBeenNthCalledWith(2, stroke.id, "transform-origin", `${ data.transformOrigin.x }px ${ data.transformOrigin.y }px`)
+        expect(editor.renderer.setAttribute).toHaveBeenNthCalledWith(
+          1,
+          group.id,
+          "transform-origin",
+          `${data.transformOrigin.x}px ${data.transformOrigin.y}px`
+        )
+        expect(editor.renderer.setAttribute).toHaveBeenNthCalledWith(
+          2,
+          stroke.id,
+          "transform-origin",
+          `${data.transformOrigin.x}px ${data.transformOrigin.y}px`
+        )
       })
-      test(`shoud continu with direction: "${ data.direction }"`, () =>
-      {
+      test(`shoud continu with direction: "${data.direction}"`, () => {
         expect(manager.continue(resizeToPoint)).toEqual({ scaleX: data.scale.x, scaleY: data.scale.y })
-        expect(editor.renderer.setAttribute).toHaveBeenNthCalledWith(1, group.id, "transform", `scale(${ data.scale.x },${ data.scale.y })`)
-        expect(editor.renderer.setAttribute).toHaveBeenNthCalledWith(2, stroke.id, "transform", `scale(${ data.scale.x },${ data.scale.y })`)
+        expect(editor.renderer.setAttribute).toHaveBeenNthCalledWith(
+          1,
+          group.id,
+          "transform",
+          `scale(${data.scale.x},${data.scale.y})`
+        )
+        expect(editor.renderer.setAttribute).toHaveBeenNthCalledWith(
+          2,
+          stroke.id,
+          "transform",
+          `scale(${data.scale.x},${data.scale.y})`
+        )
       })
-      test(`shoud end with direction: "${ data.direction }"`, async () =>
-      {
+      test(`shoud end with direction: "${data.direction}"`, async () => {
         await manager.end(resizeToPoint)
         expect(manager.applyToSymbol).toHaveBeenCalledTimes(1)
         expect(editor.renderer.drawSymbol).toHaveBeenCalledTimes(1)
         expect(editor.renderer.drawSymbol).toHaveBeenCalledWith(stroke)
         expect(editor.recognizer.transformScale).toHaveBeenCalledTimes(1)
-        expect(editor.recognizer.transformScale).toHaveBeenCalledWith([stroke.id], data.scale.x, data.scale.y, data.transformOrigin.x, data.transformOrigin.y)
+        expect(editor.recognizer.transformScale).toHaveBeenCalledWith(
+          [stroke.id],
+          data.scale.x,
+          data.scale.y,
+          data.transformOrigin.x,
+          data.transformOrigin.y
+        )
         expect(stroke).not.toEqual(strokeNotResized)
       })
     })
   })
-
 })

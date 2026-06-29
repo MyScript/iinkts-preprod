@@ -1,20 +1,11 @@
-import
-{
-  Model,
-  TExport,
-  RecognizerWebSocketSSR,
-  DefaultInteractiveInkSSREditorConfiguration
-} from "@/iink"
+import { Model, TExport, RecognizerWebSocketSSR, DefaultInteractiveInkSSREditorConfiguration } from "@/iink"
 
-export class RecognizerWebSocketSSRMock extends RecognizerWebSocketSSR
-{
-  constructor()
-  {
+export class RecognizerWebSocketSSRMock extends RecognizerWebSocketSSR {
+  constructor() {
     super(DefaultInteractiveInkSSREditorConfiguration)
   }
   //@ts-ignore
-  init = jest.fn((height: number, width: number) =>
-  {
+  init = jest.fn((height: number, width: number) => {
     this.initialized.resolve()
     return this.initialized.promise
   })

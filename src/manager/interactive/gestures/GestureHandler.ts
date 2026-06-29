@@ -1,24 +1,24 @@
-import type { TStroke, TSymbol } from "@/symbol"
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
-import type { TGesture, TGestureType } from "@/manager/interactive/gestures/GestureTypes"
-import type { GestureHelpers } from "./GestureHelpers"
-import type { IIModel } from "@/model"
-import type { SVGRenderer } from "@/renderer"
 import type { IIHistoryManager } from "@/history"
-import type { RecognizerWebSocket } from "@/recognizer"
-import type { IITranslateManager } from "@/manager/interactive/transform/IITranslateManager"
+import { type Logger, LoggerCategory, LoggerManager } from "@/logger"
+import type { TGesture, TGestureType } from "@/manager/interactive/gestures/GestureTypes"
 import type { IITypesetManager } from "@/manager/interactive/IITypesetManager"
+import type { IITranslateManager } from "@/manager/interactive/transform/IITranslateManager"
+import type { IIModel } from "@/model"
+import type { RecognizerWebSocket } from "@/recognizer"
+import type { SVGRenderer } from "@/renderer"
+import type { TStroke, TSymbol } from "@/symbol"
+
 import type { IIGestureManager } from "../IIGestureManager"
-import { LoggerManager, LoggerCategory, type Logger } from "@/logger"
 import { IIGestureAnnotationProcessor } from "./GestureAnnotation"
+import type { GestureHelpers } from "./GestureHelpers"
 
 /**
  * Base interface for gesture handlers
  * Each handler is responsible for applying a specific gesture type
  * @group Manager
  */
-export type TGestureHandler =
-{
+export type TGestureHandler = {
   /**
    * The type of gesture this handler manages
    */
@@ -38,16 +38,14 @@ export type TGestureHandler =
  * Provides common functionality and access to editor services via helpers
  * @group Manager
  */
-export abstract class GestureHandler implements TGestureHandler
-{
+export abstract class GestureHandler implements TGestureHandler {
   protected readonly logger: Logger
   protected readonly processor: IIGestureAnnotationProcessor
 
   constructor(
     protected editor: TInteractiveInkEditor,
     protected helpers: GestureHelpers
-  )
-  {
+  ) {
     this.logger = LoggerManager.getLogger(LoggerCategory.GESTURE)
     this.processor = new IIGestureAnnotationProcessor(editor)
   }
@@ -58,71 +56,62 @@ export abstract class GestureHandler implements TGestureHandler
   /**
    * Get the editor's model
    */
-  protected get model(): IIModel
-  {
+  protected get model(): IIModel {
     return this.editor.model
   }
   /**
    * Get the editor's model
    */
-  protected get manager(): IIGestureManager
-  {
+  protected get manager(): IIGestureManager {
     return this.editor.gesture
   }
 
   /**
    * Get the editor's renderer
    */
-  protected get renderer(): SVGRenderer
-  {
+  protected get renderer(): SVGRenderer {
     return this.editor.renderer
   }
 
   /**
    * Get the editor's history manager
    */
-  protected get history(): IIHistoryManager
-  {
+  protected get history(): IIHistoryManager {
     return this.editor.history
   }
 
   /**
    * Get the editor's recognizer
    */
-  protected get recognizer(): RecognizerWebSocket
-  {
+  protected get recognizer(): RecognizerWebSocket {
     return this.editor.recognizer
   }
 
   /**
    * Get the editor's translator manager
    */
-  protected get translator(): IITranslateManager
-  {
+  protected get translator(): IITranslateManager {
     return this.editor.transform.translate
   }
 
   /**
    * Get the editor's typeset manager
    */
-  protected get typeset(): IITypesetManager
-  {
+  protected get typeset(): IITypesetManager {
     return this.editor.typeset
   }
 
   /**
    * Get the row height from configuration
    */
-  protected get rowHeight(): number
-  {
+  protected get rowHeight(): number {
     return this.editor.configuration.rendering.guides.gap
   }
 
   /**
    * Get the stroke space width from configuration
    */
-  protected get strokeSpaceWidth(): number
-  {
+  protected get strokeSpaceWidth(): number {
     return this.editor.configuration.rendering.guides.gap * 2
   }
 }

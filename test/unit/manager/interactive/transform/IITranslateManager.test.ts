@@ -1,6 +1,5 @@
 import { createEditorMock, asEditor } from "../../../__mocks__/createEditorMock"
-import
-{
+import {
   EdgeLineOps,
   IITranslateManager,
   OBBOps,
@@ -9,25 +8,21 @@ import
   StrokeOps,
   TPoint,
   SvgElementRole,
-  MatrixTransform
+  MatrixTransform,
 } from "@/iink"
 
-describe("IITranslateManager.ts", () =>
-{
-  test("should create", () =>
-  {
+describe("IITranslateManager.ts", () => {
+  test("should create", () => {
     const editor = createEditorMock()
     const manager = new IITranslateManager(asEditor(editor))
     expect(manager).toBeDefined()
   })
 
-  describe("should applyToSymbol", () =>
-  {
+  describe("should applyToSymbol", () => {
     const editor = createEditorMock()
     const manager = new IITranslateManager(asEditor(editor))
 
-    test("translate stroke", () =>
-    {
+    test("translate stroke", () => {
       const stroke = StrokeOps.create()
       StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 1, y: 1 })
       StrokeOps.addPointer(stroke, { p: 1, t: 10, x: 10, y: 0 })
@@ -36,8 +31,7 @@ describe("IITranslateManager.ts", () =>
       expect(stroke.pointers[0]).toEqual(expect.objectContaining({ x: 11, y: 16 }))
       expect(stroke.pointers[1]).toEqual(expect.objectContaining({ x: 20, y: 15 }))
     })
-    test("translate shape Circle", () =>
-    {
+    test("translate shape Circle", () => {
       const center: TPoint = { x: 5, y: 5 }
       const radius = 4
       const circle = ShapeCircleOps.create(center, radius)
@@ -46,22 +40,22 @@ describe("IITranslateManager.ts", () =>
       expect(circle.radius).toEqual(radius)
       expect(circle.center).toEqual({ x: 15, y: 20 })
     })
-    test("translate shape with kind unknown", () =>
-    {
+    test("translate shape with kind unknown", () => {
       const points: TPoint[] = [
         { x: 0, y: 0 },
         { x: 0, y: 5 },
         { x: 5, y: 5 },
-        { x: 5, y: 0 }
+        { x: 5, y: 0 },
       ]
       const poly = ShapePolygonOps.create(points)
       //@ts-ignore
       poly.kind = "pouet"
       const matrix = MatrixTransform.identity().translate(10, 15)
-      expect(() => manager.applyToSymbol(poly, matrix)).toThrow(expect.objectContaining({ message: expect.stringContaining("Can't apply translate on shape, kind unknown:")}))
+      expect(() => manager.applyToSymbol(poly, matrix)).toThrow(
+        expect.objectContaining({ message: expect.stringContaining("Can't apply translate on shape, kind unknown:") })
+      )
     })
-    test("translate edge Line", () =>
-    {
+    test("translate edge Line", () => {
       const start: TPoint = { x: 0, y: 0 }
       const end: TPoint = { x: 0, y: 5 }
       const line = EdgeLineOps.create(start, end)
@@ -72,8 +66,7 @@ describe("IITranslateManager.ts", () =>
     })
   })
 
-  describe("translate process on stroke without snap", () =>
-  {
+  describe("translate process on stroke without snap", () => {
     const editor = createEditorMock()
     editor.snaps.snapConfiguration.guide = false
     editor.snaps.snapConfiguration.symbol = false
@@ -94,56 +87,61 @@ describe("IITranslateManager.ts", () =>
 
     const translationOrigin: TPoint = {
       x: OBBOps.toBox(stroke.bounds).x + stroke.bounds.width / 2,
-      y: OBBOps.toBox(stroke.bounds).y + stroke.bounds.height / 2
+      y: OBBOps.toBox(stroke.bounds).y + stroke.bounds.height / 2,
     }
 
     const testDatas = [
       {
         translateToPoint: { x: translationOrigin.x, y: translationOrigin.y + 10 },
         tx: 0,
-        ty: 10
+        ty: 10,
       },
       {
         translateToPoint: { x: translationOrigin.x + 10, y: translationOrigin.y },
         tx: 10,
-        ty: 0
+        ty: 0,
       },
       {
         translateToPoint: { x: translationOrigin.x + 20, y: translationOrigin.y + 25 },
         tx: 20,
         ty: 25,
-      }
+      },
     ]
 
-    beforeAll(async () =>
-    {
+    beforeAll(async () => {
       await editor.init()
     })
 
-    testDatas.forEach(data =>
-    {
+    testDatas.forEach((data) => {
       const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
       group.setAttribute("id", "group-id")
       group.setAttribute("role", SvgElementRole.InteractElementsGroup)
       const translateElement = document.createElementNS("http://www.w3.org/2000/svg", "circle")
       group.appendChild(translateElement)
 
-      test(`should start with tx: "${ data.tx } & ty ${ data.ty }`, () =>
-      {
+      test(`should start with tx: "${data.tx} & ty ${data.ty}`, () => {
         manager.start(translateElement, translationOrigin)
 
         expect(manager.interactElementsGroup).toEqual(group)
         expect(manager.transformOrigin).toEqual(translationOrigin)
       })
-      test(`shoud continu with tx: "${ data.tx } & ty ${ data.ty }`, () =>
-      {
+      test(`shoud continu with tx: "${data.tx} & ty ${data.ty}`, () => {
         expect(manager.continue(data.translateToPoint)).toEqual({ tx: data.tx, ty: data.ty })
 
-        expect(editor.renderer.setAttribute).toHaveBeenNthCalledWith(1, group.id, "transform", `translate(${ data.tx },${ data.ty })`)
-        expect(editor.renderer.setAttribute).toHaveBeenNthCalledWith(2, stroke.id, "transform", `translate(${ data.tx },${ data.ty })`)
+        expect(editor.renderer.setAttribute).toHaveBeenNthCalledWith(
+          1,
+          group.id,
+          "transform",
+          `translate(${data.tx},${data.ty})`
+        )
+        expect(editor.renderer.setAttribute).toHaveBeenNthCalledWith(
+          2,
+          stroke.id,
+          "transform",
+          `translate(${data.tx},${data.ty})`
+        )
       })
-      test(`shoud end with tx: "${ data.tx } & ty ${ data.ty }`, async () =>
-      {
+      test(`shoud end with tx: "${data.tx} & ty ${data.ty}`, async () => {
         await manager.end(data.translateToPoint)
 
         expect(manager.applyToSymbol).toHaveBeenCalledTimes(1)

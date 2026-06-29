@@ -19,6 +19,6 @@ export type TStyle = {
 export const DefaultStyle: TStyle = {
   width: 2,
   color: "#000000",
-//   opacity: 1,
-//   fill: "transparent",
+  //   opacity: 1,
+  //   fill: "transparent",
 } as const

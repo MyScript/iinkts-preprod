@@ -1,7 +1,6 @@
 import { jiixText } from "../__dataset__/exports.dataset"
 import { buildIICircle, buildIIStroke, buildIIText, buildIIMath, buildIIDecorator, delay } from "../helpers"
-import
-{
+import {
   InteractiveInkEditor,
   DefaultInteractiveInkEditorConfiguration,
   EditorTool,
@@ -16,45 +15,39 @@ import
   DecoratorKind,
 } from "@/iink"
 
-describe("EditorOffscreen.ts", () =>
-{
+describe("EditorOffscreen.ts", () => {
   global.fetch = jest.fn(() =>
     Promise.resolve({
       json: () => Promise.resolve({ result: { fr: "fr_FR" } }),
-    }),
+    })
   ) as jest.Mock
   const EditorOptions: TInteractiveInkEditorOptions = {
-    configuration: JSON.parse(JSON.stringify(DefaultInteractiveInkEditorConfiguration))
+    configuration: JSON.parse(JSON.stringify(DefaultInteractiveInkEditorConfiguration)),
   }
   EditorOptions.configuration!.server!.version = "3.0.0"
 
-  test("should instanciate", () =>
-  {
+  test("should instanciate", () => {
     const editor = new InteractiveInkEditor(document.createElement("div"), EditorOptions)
     expect(editor).toBeDefined()
   })
 
-  describe("Style", () =>
-  {
+  describe("Style", () => {
     const customEditorOptions: TInteractiveInkEditorOptions = JSON.parse(JSON.stringify(EditorOptions))
     const initCustomStyle: TStyle = { color: "#d1d1d1", width: 42 }
     customEditorOptions.configuration!.penStyle = initCustomStyle
     const editor = new InteractiveInkEditor(document.createElement("div"), customEditorOptions)
 
-    test("should define style", async () =>
-    {
+    test("should define style", async () => {
       expect(editor.penStyle).toEqual(expect.objectContaining(initCustomStyle))
     })
-    test("should change Style", async () =>
-    {
+    test("should change Style", async () => {
       const customStyle: TStyle = { color: "red", width: 51, fill: "black", opacity: 0.5 }
       editor.penStyle = customStyle
       expect(editor.penStyle).toEqual(expect.objectContaining(customStyle))
     })
   })
 
-  describe("Tool", () =>
-  {
+  describe("Tool", () => {
     const editor = new InteractiveInkEditor(document.createElement("div"), EditorOptions)
     editor.recognizer.init = jest.fn(() => Promise.resolve())
     editor.menu.render = jest.fn()
@@ -69,8 +62,7 @@ describe("EditorOffscreen.ts", () =>
     editor.move.detach = jest.fn()
     editor.eraser.detach = jest.fn()
 
-    test("should set tool to write on init", async () =>
-    {
+    test("should set tool to write on init", async () => {
       editor.initialize()
       expect(editor.writer.detach).toHaveBeenCalledTimes(1)
       expect(editor.selector.detach).toHaveBeenCalledTimes(1)
@@ -82,8 +74,7 @@ describe("EditorOffscreen.ts", () =>
       expect(editor.move.attach).toHaveBeenCalledTimes(0)
       expect(editor.eraser.attach).toHaveBeenCalledTimes(0)
     })
-    test("should set tool to erase", async () =>
-    {
+    test("should set tool to erase", async () => {
       editor.tool = EditorTool.Erase
       expect(editor.writer.detach).toHaveBeenCalledTimes(1)
       expect(editor.selector.detach).toHaveBeenCalledTimes(1)
@@ -95,8 +86,7 @@ describe("EditorOffscreen.ts", () =>
       expect(editor.move.attach).toHaveBeenCalledTimes(0)
       expect(editor.eraser.attach).toHaveBeenCalledTimes(1)
     })
-    test("should set tool to move", async () =>
-    {
+    test("should set tool to move", async () => {
       editor.tool = EditorTool.Move
       expect(editor.writer.detach).toHaveBeenCalledTimes(1)
       expect(editor.selector.detach).toHaveBeenCalledTimes(1)
@@ -108,8 +98,7 @@ describe("EditorOffscreen.ts", () =>
       expect(editor.move.attach).toHaveBeenCalledTimes(1)
       expect(editor.eraser.attach).toHaveBeenCalledTimes(0)
     })
-    test("should set tool to select", async () =>
-    {
+    test("should set tool to select", async () => {
       editor.tool = EditorTool.Select
       expect(editor.writer.detach).toHaveBeenCalledTimes(1)
       expect(editor.selector.detach).toHaveBeenCalledTimes(1)
@@ -121,8 +110,7 @@ describe("EditorOffscreen.ts", () =>
       expect(editor.move.attach).toHaveBeenCalledTimes(0)
       expect(editor.eraser.attach).toHaveBeenCalledTimes(0)
     })
-    test("should set tool to write", async () =>
-    {
+    test("should set tool to write", async () => {
       editor.tool = EditorTool.Write
       expect(editor.writer.detach).toHaveBeenCalledTimes(1)
       expect(editor.selector.detach).toHaveBeenCalledTimes(1)
@@ -136,15 +124,13 @@ describe("EditorOffscreen.ts", () =>
     })
   })
 
-  describe("init", () =>
-  {
+  describe("init", () => {
     const editor = new InteractiveInkEditor(document.createElement("div"), EditorOptions)
     editor.menu.render = jest.fn()
     editor.renderer.init = jest.fn()
     editor.recognizer.init = jest.fn(() => Promise.resolve())
 
-    test("should init grabber, renderer & recognizer & context", async () =>
-    {
+    test("should init grabber, renderer & recognizer & context", async () => {
       editor.initialize()
       expect(editor.history.context.canRedo).toEqual(false)
       expect(editor.history.context.canUndo).toEqual(false)
@@ -154,20 +140,17 @@ describe("EditorOffscreen.ts", () =>
       await expect(editor.renderer.init).toHaveBeenCalledTimes(1)
       await expect(editor.recognizer.init).toHaveBeenCalledTimes(1)
     })
-    test("should resolve init when recognizer.init is resolve", async () =>
-    {
+    test("should resolve init when recognizer.init is resolve", async () => {
       await editor.initialize()
       await expect(editor.recognizer.init).toHaveBeenCalledTimes(1)
     })
-    test("should reject init when recognizer.init is reject", async () =>
-    {
+    test("should reject init when recognizer.init is reject", async () => {
       editor.recognizer.init = jest.fn(() => Promise.reject("pouet"))
       await expect(editor.initialize()).rejects.toEqual("pouet")
     })
   })
 
-  describe("CRUD", () =>
-  {
+  describe("CRUD", () => {
     const editor = new InteractiveInkEditor(document.createElement("div"), EditorOptions)
     editor.menu.update = jest.fn()
     editor.overlays.apply = jest.fn()
@@ -189,48 +172,43 @@ describe("EditorOffscreen.ts", () =>
     editor.model.replaceSymbol = jest.fn()
     editor.model.removeSymbol = jest.fn()
 
-    test("add stroke", async () =>
-    {
+    test("add stroke", async () => {
       const stroke = buildIIStroke()
       await editor.addSymbol(stroke)
       expect(editor.model.addSymbol).toHaveBeenNthCalledWith(1, stroke)
       expect(editor.renderer.drawSymbol).toHaveBeenNthCalledWith(1, stroke)
       expect(editor.recognizer.addStrokes).toHaveBeenNthCalledWith(1, [stroke], false)
     })
-    test("add shape", async () =>
-    {
+    test("add shape", async () => {
       const shape = buildIICircle()
       await editor.addSymbol(shape)
       expect(editor.model.addSymbol).toHaveBeenNthCalledWith(1, shape)
       expect(editor.renderer.drawSymbol).toHaveBeenNthCalledWith(1, shape)
       expect(editor.recognizer.addStrokes).toHaveBeenNthCalledWith(1, [], false)
     })
-    test("create stroke", async () =>
-    {
+    test("create stroke", async () => {
       const stroke: TPartialDeep<TStroke> = {
         type: SymbolType.Stroke,
-        pointers: [{ x: 0, y: 1, t: 1, p: 1 }]
+        pointers: [{ x: 0, y: 1, t: 1, p: 1 }],
       }
       await editor.createSymbol(stroke)
       expect(editor.model.addSymbol).toHaveBeenNthCalledWith(1, expect.objectContaining(stroke))
       expect(editor.renderer.drawSymbol).toHaveBeenNthCalledWith(1, expect.objectContaining(stroke))
       expect(editor.recognizer.addStrokes).toHaveBeenNthCalledWith(1, [expect.objectContaining(stroke)], false)
     })
-    test("create shape", async () =>
-    {
+    test("create shape", async () => {
       const shape: TPartialDeep<TShapeCircle> = {
         type: SymbolType.Shape,
         kind: ShapeKind.Circle,
         center: { x: 5, y: 5 },
-        radius: 5
+        radius: 5,
       }
       await editor.createSymbol(shape)
       expect(editor.model.addSymbol).toHaveBeenNthCalledWith(1, expect.objectContaining(shape))
       expect(editor.renderer.drawSymbol).toHaveBeenNthCalledWith(1, expect.objectContaining(shape))
       expect(editor.recognizer.addStrokes).toHaveBeenNthCalledWith(1, [], false)
     })
-    test("replace stroke by stroke", async () =>
-    {
+    test("replace stroke by stroke", async () => {
       const stroke1 = buildIIStroke()
       const stroke2 = buildIIStroke()
       await editor.replaceSymbols([stroke1], [stroke2])
@@ -238,8 +216,7 @@ describe("EditorOffscreen.ts", () =>
       expect(editor.renderer.replaceSymbol).toHaveBeenNthCalledWith(1, stroke1.id, [stroke2])
       expect(editor.recognizer.replaceStrokes).toHaveBeenNthCalledWith(1, [stroke1.id], [stroke2])
     })
-    test("replace stroke by shape", async () =>
-    {
+    test("replace stroke by shape", async () => {
       const stroke = buildIIStroke()
       const shape = buildIICircle()
       await editor.replaceSymbols([stroke], [shape])
@@ -247,8 +224,7 @@ describe("EditorOffscreen.ts", () =>
       expect(editor.renderer.replaceSymbol).toHaveBeenNthCalledWith(1, stroke.id, [shape])
       expect(editor.recognizer.eraseStrokes).toHaveBeenNthCalledWith(1, [stroke.id])
     })
-    test("replace shape by stroke", async () =>
-    {
+    test("replace shape by stroke", async () => {
       const stroke = buildIIStroke()
       const shape = buildIICircle()
       await editor.replaceSymbols([shape], [stroke])
@@ -256,15 +232,13 @@ describe("EditorOffscreen.ts", () =>
       expect(editor.renderer.replaceSymbol).toHaveBeenNthCalledWith(1, shape.id, [stroke])
       expect(editor.recognizer.addStrokes).toHaveBeenNthCalledWith(1, [stroke], false)
     })
-    test("change order symbol", async () =>
-    {
+    test("change order symbol", async () => {
       const stroke = buildIIStroke()
       await editor.changeOrderSymbol(stroke, "last")
       expect(editor.model.changeOrderSymbol).toHaveBeenNthCalledWith(1, stroke.id, "last")
       expect(editor.renderer.changeOrderSymbol).toHaveBeenNthCalledWith(1, stroke, "last")
     })
-    test("remove stroke", async () =>
-    {
+    test("remove stroke", async () => {
       const stroke = buildIIStroke()
       editor.model.symbols.push(stroke)
       await editor.removeSymbol(stroke.id)
@@ -272,8 +246,7 @@ describe("EditorOffscreen.ts", () =>
       expect(editor.renderer.removeSymbol).toHaveBeenNthCalledWith(1, stroke.id)
       expect(editor.recognizer.eraseStrokes).toHaveBeenNthCalledWith(1, [stroke.id])
     })
-    test("remove shape", async () =>
-    {
+    test("remove shape", async () => {
       const shape = buildIICircle()
       editor.model.symbols.push(shape)
       await editor.removeSymbol(shape.id)
@@ -282,8 +255,7 @@ describe("EditorOffscreen.ts", () =>
     })
   })
 
-  describe("updateSymbolsStyle", () =>
-  {
+  describe("updateSymbolsStyle", () => {
     const editor = new InteractiveInkEditor(document.createElement("div"), EditorOptions)
     editor.recognizer.init = jest.fn()
     editor.recognizer.waitForIdle = jest.fn(() => Promise.resolve())
@@ -292,8 +264,7 @@ describe("EditorOffscreen.ts", () =>
     editor.model.addSymbol(stroke1)
     const stroke2 = buildIIStroke()
     editor.model.addSymbol(stroke2)
-    test("should update symbol color and draw", async () =>
-    {
+    test("should update symbol color and draw", async () => {
       await editor.initialize()
       expect(editor.model.symbols[0].style.color).toEqual("#000000")
       editor.updateSymbolsStyle([stroke1.id], { color: "red" })
@@ -301,8 +272,7 @@ describe("EditorOffscreen.ts", () =>
       expect(editor.renderer.drawSymbol).toHaveBeenCalledTimes(1)
       expect(editor.renderer.drawSymbol).toHaveBeenCalledWith(stroke1)
     })
-    test("should update symbol width and draw", async () =>
-    {
+    test("should update symbol width and draw", async () => {
       await editor.initialize()
       expect(editor.model.symbols[1].style.width).toEqual(2)
       editor.updateSymbolsStyle([stroke2.id], { width: 42 })
@@ -312,22 +282,21 @@ describe("EditorOffscreen.ts", () =>
     })
   })
 
-  describe("importPointsEvent", () =>
-  {
+  describe("importPointsEvent", () => {
     const pStrokes: TPartialDeep<TStroke>[] = [
       {
         pointers: [
           { x: 254, y: 37, t: 1, p: 1 },
           { x: 253, y: 42, t: 2, p: 0.7 },
-        ]
+        ],
       },
       {
         pointers: [
           { x: 222, y: 386, t: 3, p: 0.5 },
           { x: 226, y: 385, t: 4, p: 0.8 },
         ],
-        style: { width: 3, color: "#1A8CFF" }
-      }
+        style: { width: 3, color: "#1A8CFF" },
+      },
     ]
 
     const editor = new InteractiveInkEditor(document.createElement("div"), EditorOptions)
@@ -338,38 +307,32 @@ describe("EditorOffscreen.ts", () =>
     editor.updateLayerUI = jest.fn()
     editor.event.emitImported = jest.fn()
 
-    test("should update layer state", async () =>
-    {
+    test("should update layer state", async () => {
       await editor.importPointEvents(pStrokes)
       expect(editor.event.emitIdle).toHaveBeenNthCalledWith(1, false)
       expect(editor.layers.updateState).toHaveBeenNthCalledWith(1, false)
     })
-    test("should call recognizer.addStrokes", async () =>
-    {
+    test("should call recognizer.addStrokes", async () => {
       await editor.importPointEvents(pStrokes)
       expect(editor.recognizer.addStrokes).toHaveBeenCalledTimes(1)
     })
-    test("should add symbols to model and draw", async () =>
-    {
+    test("should add symbols to model and draw", async () => {
       editor.model.symbols = []
       await editor.importPointEvents(pStrokes)
       expect(editor.model.symbols).toHaveLength(pStrokes.length)
       expect(editor.renderer.drawSymbol).toHaveBeenCalledTimes(2)
     })
-    test("should update layer UI", async () =>
-    {
+    test("should update layer UI", async () => {
       await editor.importPointEvents(pStrokes)
       expect(editor.updateLayerUI).toHaveBeenCalledTimes(1)
     })
-    test("should emit Imported", async () =>
-    {
+    test("should emit Imported", async () => {
       await editor.importPointEvents(pStrokes)
       expect(editor.event.emitImported).toHaveBeenCalledTimes(1)
     })
   })
 
-  describe("Download", () =>
-  {
+  describe("Download", () => {
     const editor = new InteractiveInkEditor(document.createElement("div"), EditorOptions)
     const stroke1 = buildIIStroke()
     editor.model.addSymbol(stroke1)
@@ -377,15 +340,13 @@ describe("EditorOffscreen.ts", () =>
     const stroke2 = buildIIStroke()
     editor.model.addSymbol(stroke2)
 
-    editor.renderer.getElementById = jest.fn((id) =>
-    {
+    editor.renderer.getElementById = jest.fn((id) => {
       const p = document.createElementNS("http://www.w3.org/2000/svg", "path")
       p.id = id
       return p
     })
 
-    test("should call trigger download svg file", async () =>
-    {
+    test("should call trigger download svg file", async () => {
       global.URL.createObjectURL = jest.fn(() => "download-svg-url")
       const link = document.createElement("a")
       link.click = jest.fn()
@@ -397,19 +358,15 @@ describe("EditorOffscreen.ts", () =>
       expect(link.click).toHaveBeenCalledTimes(1)
     })
     // //fix canvas.getContext
-    test.skip("should call trigger download png file", async () =>
-    {
+    test.skip("should call trigger download png file", async () => {
       global.URL.createObjectURL = jest.fn(() => "download-png-url")
       //@ts-ignore
-      global.Image = class
-      {
+      global.Image = class {
         onload: () => void
         //@ts-ignore
-        constructor()
-        {
+        constructor() {
           this.onload = jest.fn()
-          setTimeout(() =>
-          {
+          setTimeout(() => {
             this.onload()
           }, 50)
         }
@@ -422,8 +379,7 @@ describe("EditorOffscreen.ts", () =>
       expect(link.href).toContain("download-png-url")
       expect(link.click).toHaveBeenCalledTimes(1)
     })
-    test("should call trigger download json file", async () =>
-    {
+    test("should call trigger download json file", async () => {
       const link = document.createElement("a")
       link.click = jest.fn()
       jest.spyOn(document, "createElement").mockImplementationOnce(() => link)
@@ -435,8 +391,7 @@ describe("EditorOffscreen.ts", () =>
       expect(link.download).toContain(".json")
       expect(link.click).toHaveBeenCalledTimes(1)
     })
-    test("should call trigger download json file with only selected files", async () =>
-    {
+    test("should call trigger download json file with only selected files", async () => {
       const link = document.createElement("a")
       link.click = jest.fn()
       jest.spyOn(document, "createElement").mockImplementationOnce(() => link)
@@ -448,8 +403,7 @@ describe("EditorOffscreen.ts", () =>
       expect(link.download).toContain(".json")
       expect(link.click).toHaveBeenCalledTimes(1)
     })
-    test("should call trigger download text file", async () =>
-    {
+    test("should call trigger download text file", async () => {
       const oiMath = buildIIMath("a=b+c")
       editor.model.addSymbol(oiMath)
 
@@ -466,33 +420,23 @@ describe("EditorOffscreen.ts", () =>
     })
   })
 
-  describe("extract symbols", () =>
-  {
+  describe("extract symbols", () => {
     const editor = new InteractiveInkEditor(document.createElement("div"), EditorOptions)
     const text1 = buildIIText()
     const text2 = buildIIText()
     const stroke1 = buildIIStroke()
     const stroke2 = buildIIStroke()
-    const symbols: TSymbol[] = [
-      stroke1,
-      text1,
-      stroke2,
-      text2,
-      buildIICircle()
-    ]
-    test("should extract strokes", () =>
-    {
+    const symbols: TSymbol[] = [stroke1, text1, stroke2, text2, buildIICircle()]
+    test("should extract strokes", () => {
       const strokes = editor.extractStrokesFromSymbols(symbols)
       expect(strokes).toEqual([stroke1, stroke2])
     })
   })
 
-  describe("undo", () =>
-  {
+  describe("undo", () => {
     let editor!: InteractiveInkEditor
 
-    beforeEach(() =>
-    {
+    beforeEach(() => {
       editor = new InteractiveInkEditor(document.createElement("div"), EditorOptions)
       editor.event.emitIdle = jest.fn()
       editor.unselectAll = jest.fn()
@@ -505,16 +449,14 @@ describe("EditorOffscreen.ts", () =>
       editor.recognizer.waitForIdle = jest.fn(() => Promise.resolve())
     })
 
-    test("should do nothing if canUndo = false", async () =>
-    {
+    test("should do nothing if canUndo = false", async () => {
       editor.history.context.canUndo = false
       await editor.undo()
       expect(editor.recognizer.undo).toHaveBeenCalledTimes(0)
       expect(editor.renderer.drawSymbol).toHaveBeenCalledTimes(0)
       expect(editor.renderer.removeSymbol).toHaveBeenCalledTimes(0)
     })
-    test("should call recognizer.undo & renderer.drawSymbol when history.undo return added stroke", async () =>
-    {
+    test("should call recognizer.undo & renderer.drawSymbol when history.undo return added stroke", async () => {
       const stroke1 = buildIIStroke()
       const firstModel = editor.model.clone()
       firstModel.addSymbol(stroke1)
@@ -527,8 +469,7 @@ describe("EditorOffscreen.ts", () =>
       expect(editor.renderer.drawSymbol).toHaveBeenCalledWith(stroke1)
       expect(editor.renderer.removeSymbol).toHaveBeenCalledTimes(0)
     })
-    test("should not call recognizer.undo & call renderer.drawSymbol when history.undo return added shape", async () =>
-    {
+    test("should not call recognizer.undo & call renderer.drawSymbol when history.undo return added shape", async () => {
       const circle = buildIICircle()
       const firstModel = editor.model.clone()
       firstModel.addSymbol(circle)
@@ -540,8 +481,7 @@ describe("EditorOffscreen.ts", () =>
       expect(editor.renderer.drawSymbol).toHaveBeenCalledWith(circle)
       expect(editor.renderer.removeSymbol).toHaveBeenCalledTimes(0)
     })
-    test("should call recognizer.undo & renderer.removeSymbol when history.undo return erased stroke", async () =>
-    {
+    test("should call recognizer.undo & renderer.removeSymbol when history.undo return erased stroke", async () => {
       const stroke1 = buildIIStroke()
       const firstModel = editor.model.clone()
       editor.model.addSymbol(stroke1)
@@ -554,83 +494,103 @@ describe("EditorOffscreen.ts", () =>
       expect(editor.renderer.removeSymbol).toHaveBeenCalledTimes(1)
       expect(editor.renderer.removeSymbol).toHaveBeenCalledWith(stroke1.id)
     })
-    test("should call recognizer.undo & renderer.drawSymbol & renderer.removeSymbol when history.undo return replaced stroke", async () =>
-    {
+    test("should call recognizer.undo & renderer.drawSymbol & renderer.removeSymbol when history.undo return replaced stroke", async () => {
       const stroke1 = buildIIStroke()
       const stroke2 = buildIIStroke()
       const firstModel = editor.model.clone()
       firstModel.addSymbol(stroke1)
       editor.model.addSymbol(stroke2)
-      editor.history.undo = jest.fn(() => ({ model: firstModel, changes: { replaced: { newSymbols: [stroke2], oldSymbols: [stroke1] } } }))
+      editor.history.undo = jest.fn(() => ({
+        model: firstModel,
+        changes: { replaced: { newSymbols: [stroke2], oldSymbols: [stroke1] } },
+      }))
       editor.history.context.canUndo = true
       await editor.undo()
       expect(editor.recognizer.undo).toHaveBeenCalledTimes(1)
-      expect(editor.recognizer.undo).toHaveBeenCalledWith(expect.objectContaining({ replaced: { newStrokes: [stroke2], oldStrokes: [stroke1] } }))
+      expect(editor.recognizer.undo).toHaveBeenCalledWith(
+        expect.objectContaining({ replaced: { newStrokes: [stroke2], oldStrokes: [stroke1] } })
+      )
       expect(editor.renderer.drawSymbol).toHaveBeenCalledTimes(1)
       expect(editor.renderer.drawSymbol).toHaveBeenCalledWith(stroke1)
       expect(editor.renderer.removeSymbol).toHaveBeenCalledTimes(1)
       expect(editor.renderer.removeSymbol).toHaveBeenCalledWith(stroke2.id)
     })
-    test("should call recognizer.undo & renderer.drawSymbol & renderer.removeSymbol when history.undo return matrix", async () =>
-    {
+    test("should call recognizer.undo & renderer.drawSymbol & renderer.removeSymbol when history.undo return matrix", async () => {
       const stroke1 = buildIIStroke()
       const firstModel = editor.model.clone()
       firstModel.addSymbol(stroke1)
-      editor.history.undo = jest.fn(() => ({ model: firstModel, changes: { matrix: { matrix: { tx: 2, ty: 3, xx: 4, xy: 5, yx: 6, yy: 7 }, symbols: [stroke1] } } }))
+      editor.history.undo = jest.fn(() => ({
+        model: firstModel,
+        changes: { matrix: { matrix: { tx: 2, ty: 3, xx: 4, xy: 5, yx: 6, yy: 7 }, symbols: [stroke1] } },
+      }))
       editor.history.context.canUndo = true
       await editor.undo()
       expect(editor.recognizer.undo).toHaveBeenCalledTimes(1)
-      expect(editor.recognizer.undo).toHaveBeenCalledWith(expect.objectContaining({ matrix: { matrix: { tx: 2, ty: 3, xx: 4, xy: 5, yx: 6, yy: 7 }, strokes: [stroke1] } }))
+      expect(editor.recognizer.undo).toHaveBeenCalledWith(
+        expect.objectContaining({
+          matrix: { matrix: { tx: 2, ty: 3, xx: 4, xy: 5, yx: 6, yy: 7 }, strokes: [stroke1] },
+        })
+      )
       expect(editor.renderer.drawSymbol).toHaveBeenCalledTimes(1)
       expect(editor.renderer.drawSymbol).toHaveBeenCalledWith(stroke1)
     })
-    test("should call recognizer.undo & renderer.drawSymbol & renderer.removeSymbol when history.undo return translate", async () =>
-    {
+    test("should call recognizer.undo & renderer.drawSymbol & renderer.removeSymbol when history.undo return translate", async () => {
       const stroke1 = buildIIStroke()
       const firstModel = editor.model.clone()
       firstModel.addSymbol(stroke1)
-      editor.history.undo = jest.fn(() => ({ model: firstModel, changes: { translate: [{ tx: 1, ty: 2, symbols: [stroke1] }] } }))
+      editor.history.undo = jest.fn(() => ({
+        model: firstModel,
+        changes: { translate: [{ tx: 1, ty: 2, symbols: [stroke1] }] },
+      }))
       editor.history.context.canUndo = true
       await editor.undo()
       expect(editor.recognizer.undo).toHaveBeenCalledTimes(1)
-      expect(editor.recognizer.undo).toHaveBeenCalledWith(expect.objectContaining({ translate: [{ tx: 1, ty: 2, strokes: [stroke1] }] }))
+      expect(editor.recognizer.undo).toHaveBeenCalledWith(
+        expect.objectContaining({ translate: [{ tx: 1, ty: 2, strokes: [stroke1] }] })
+      )
       expect(editor.renderer.drawSymbol).toHaveBeenCalledTimes(1)
       expect(editor.renderer.drawSymbol).toHaveBeenCalledWith(stroke1)
     })
-    test("should call recognizer.undo & renderer.drawSymbol & renderer.removeSymbol when history.undo return scale", async () =>
-    {
+    test("should call recognizer.undo & renderer.drawSymbol & renderer.removeSymbol when history.undo return scale", async () => {
       const stroke1 = buildIIStroke()
       const firstModel = editor.model.clone()
       firstModel.addSymbol(stroke1)
-      editor.history.undo = jest.fn(() => ({ model: firstModel, changes: { scale: [{ origin: { x: 1, y: 2 }, scaleX: 2, scaleY: 4, symbols: [stroke1] }] } }))
+      editor.history.undo = jest.fn(() => ({
+        model: firstModel,
+        changes: { scale: [{ origin: { x: 1, y: 2 }, scaleX: 2, scaleY: 4, symbols: [stroke1] }] },
+      }))
       editor.history.context.canUndo = true
       await editor.undo()
       expect(editor.recognizer.undo).toHaveBeenCalledTimes(1)
-      expect(editor.recognizer.undo).toHaveBeenCalledWith(expect.objectContaining({ scale: [{ origin: { x: 1, y: 2 }, scaleX: 2, scaleY: 4, strokes: [stroke1] }] }))
+      expect(editor.recognizer.undo).toHaveBeenCalledWith(
+        expect.objectContaining({ scale: [{ origin: { x: 1, y: 2 }, scaleX: 2, scaleY: 4, strokes: [stroke1] }] })
+      )
       expect(editor.renderer.drawSymbol).toHaveBeenCalledTimes(1)
       expect(editor.renderer.drawSymbol).toHaveBeenCalledWith(stroke1)
     })
-    test("should call recognizer.undo & renderer.drawSymbol & renderer.removeSymbol when history.undo return rotate", async () =>
-    {
+    test("should call recognizer.undo & renderer.drawSymbol & renderer.removeSymbol when history.undo return rotate", async () => {
       const stroke1 = buildIIStroke()
       const firstModel = editor.model.clone()
       firstModel.addSymbol(stroke1)
-      editor.history.undo = jest.fn(() => ({ model: firstModel, changes: { rotate: [{ angle: 42, center: { x: 1, y: 2 }, symbols: [stroke1] }] } }))
+      editor.history.undo = jest.fn(() => ({
+        model: firstModel,
+        changes: { rotate: [{ angle: 42, center: { x: 1, y: 2 }, symbols: [stroke1] }] },
+      }))
       editor.history.context.canUndo = true
       await editor.undo()
       expect(editor.recognizer.undo).toHaveBeenCalledTimes(1)
-      expect(editor.recognizer.undo).toHaveBeenCalledWith(expect.objectContaining({ rotate: [{ angle: 42, center: { x: 1, y: 2 }, strokes: [stroke1] }] }))
+      expect(editor.recognizer.undo).toHaveBeenCalledWith(
+        expect.objectContaining({ rotate: [{ angle: 42, center: { x: 1, y: 2 }, strokes: [stroke1] }] })
+      )
       expect(editor.renderer.drawSymbol).toHaveBeenCalledTimes(1)
       expect(editor.renderer.drawSymbol).toHaveBeenCalledWith(stroke1)
     })
   })
 
-  describe("redo", () =>
-  {
+  describe("redo", () => {
     let editor!: InteractiveInkEditor
 
-    beforeEach(() =>
-    {
+    beforeEach(() => {
       editor = new InteractiveInkEditor(document.createElement("div"), EditorOptions)
       editor.event.emitIdle = jest.fn()
       editor.unselectAll = jest.fn()
@@ -643,16 +603,14 @@ describe("EditorOffscreen.ts", () =>
       editor.recognizer.waitForIdle = jest.fn(() => Promise.resolve())
     })
 
-    test("should do nothing if canRedo = false", async () =>
-    {
+    test("should do nothing if canRedo = false", async () => {
       editor.history.context.canRedo = false
       await editor.redo()
       expect(editor.recognizer.redo).toHaveBeenCalledTimes(0)
       expect(editor.renderer.drawSymbol).toHaveBeenCalledTimes(0)
       expect(editor.renderer.removeSymbol).toHaveBeenCalledTimes(0)
     })
-    test("should call recognizer.redo & renderer.drawSymbol when history.redo return added stroke", async () =>
-    {
+    test("should call recognizer.redo & renderer.drawSymbol when history.redo return added stroke", async () => {
       const stroke1 = buildIIStroke()
       const secondModel = editor.model.clone()
       secondModel.addSymbol(stroke1)
@@ -664,8 +622,7 @@ describe("EditorOffscreen.ts", () =>
       expect(editor.renderer.drawSymbol).toHaveBeenCalledWith(stroke1)
       expect(editor.renderer.removeSymbol).toHaveBeenCalledTimes(0)
     })
-    test("should not call recognizer.redo & call renderer.drawSymbol when history.redo return added shape", async () =>
-    {
+    test("should not call recognizer.redo & call renderer.drawSymbol when history.redo return added shape", async () => {
       const circle = buildIICircle()
       const firstModel = editor.model.clone()
       firstModel.addSymbol(circle)
@@ -677,8 +634,7 @@ describe("EditorOffscreen.ts", () =>
       expect(editor.renderer.drawSymbol).toHaveBeenCalledWith(circle)
       expect(editor.renderer.removeSymbol).toHaveBeenCalledTimes(0)
     })
-    test("should call recognizer.redo & renderer.removeSymbol when history.redo return erased stroke", async () =>
-    {
+    test("should call recognizer.redo & renderer.removeSymbol when history.redo return erased stroke", async () => {
       const stroke1 = buildIIStroke()
       const firstModel = editor.model.clone()
       editor.model.addSymbol(stroke1)
@@ -691,18 +647,22 @@ describe("EditorOffscreen.ts", () =>
       expect(editor.renderer.removeSymbol).toHaveBeenCalledTimes(1)
       expect(editor.renderer.removeSymbol).toHaveBeenCalledWith(stroke1.id)
     })
-    test("should call recognizer.redo & renderer.drawSymbol & renderer.removeSymbol when history.redo return replaced stroke", async () =>
-    {
+    test("should call recognizer.redo & renderer.drawSymbol & renderer.removeSymbol when history.redo return replaced stroke", async () => {
       const stroke1 = buildIIStroke()
       const stroke2 = buildIIStroke()
       const firstModel = editor.model.clone()
       firstModel.addSymbol(stroke1)
       editor.model.addSymbol(stroke2)
-      editor.history.redo = jest.fn(() => ({ model: firstModel, changes: { replaced: { newSymbols: [stroke2], oldSymbols: [stroke1] } } }))
+      editor.history.redo = jest.fn(() => ({
+        model: firstModel,
+        changes: { replaced: { newSymbols: [stroke2], oldSymbols: [stroke1] } },
+      }))
       editor.history.context.canRedo = true
       await editor.redo()
       expect(editor.recognizer.redo).toHaveBeenCalledTimes(1)
-      expect(editor.recognizer.redo).toHaveBeenCalledWith(expect.objectContaining({ replaced: { newStrokes: [stroke2], oldStrokes: [stroke1] } }))
+      expect(editor.recognizer.redo).toHaveBeenCalledWith(
+        expect.objectContaining({ replaced: { newStrokes: [stroke2], oldStrokes: [stroke1] } })
+      )
       expect(editor.renderer.drawSymbol).toHaveBeenCalledTimes(1)
       expect(editor.renderer.drawSymbol).toHaveBeenCalledWith(stroke1)
       expect(editor.renderer.removeSymbol).toHaveBeenCalledTimes(1)
@@ -710,18 +670,15 @@ describe("EditorOffscreen.ts", () =>
     })
   })
 
-  describe("export", () =>
-  {
+  describe("export", () => {
     const editor = new InteractiveInkEditor(document.createElement("div"), EditorOptions)
 
-    test("should call recognizer.export", async () =>
-    {
+    test("should call recognizer.export", async () => {
       editor.recognizer.export = jest.fn(() => Promise.resolve(jiixText))
       await editor.export()
       await expect(editor.recognizer.export).toHaveBeenCalledTimes(1)
     })
-    test("should reject if recognizer.export rejected", async () =>
-    {
+    test("should reject if recognizer.export rejected", async () => {
       editor.recognizer.export = jest.fn(() => Promise.reject("export-error"))
       editor.event.emitError = jest.fn()
       await expect(async () => await editor.export()).rejects.toEqual("export-error")
@@ -729,26 +686,22 @@ describe("EditorOffscreen.ts", () =>
     })
   })
 
-  describe("convert", () =>
-  {
+  describe("convert", () => {
     const editor = new InteractiveInkEditor(document.createElement("div"), EditorOptions)
     editor.overlays.apply = jest.fn()
     editor.event.emitConverted = jest.fn()
     editor.recognizer.waitForIdle = jest.fn(() => Promise.resolve())
     editor.converter.apply = jest.fn(() => Promise.resolve([]))
 
-    test("should call converter.apply", async () =>
-    {
+    test("should call converter.apply", async () => {
       await editor.convert()
       await expect(editor.converter.apply).toHaveBeenCalledTimes(1)
     })
-    test("should emitConverted", async () =>
-    {
+    test("should emitConverted", async () => {
       await editor.convert()
       expect(editor.event.emitConverted).toHaveBeenCalledTimes(1)
     })
-    test("should emit error if converter.apply is rejected", async () =>
-    {
+    test("should emit error if converter.apply is rejected", async () => {
       editor.recognizer.waitForIdle = jest.fn(() => Promise.resolve())
       editor.converter.apply = jest.fn(() => Promise.reject("convert-error"))
       editor.event.emitError = jest.fn()
@@ -758,55 +711,47 @@ describe("EditorOffscreen.ts", () =>
     })
   })
 
-  describe("idle", () =>
-  {
+  describe("idle", () => {
     const editor = new InteractiveInkEditor(document.createElement("div"), EditorOptions)
     editor.recognizer.init = jest.fn(() => Promise.resolve())
     editor.recognizer.waitForIdle = jest.fn(() => Promise.resolve())
     editor.event.emitIdle = jest.fn()
     editor.layers.updateState = jest.fn()
 
-    beforeAll(async () =>
-    {
+    beforeAll(async () => {
       await editor.initialize()
     })
 
-    test("should call recognizer.waitForIdle", async () =>
-    {
+    test("should call recognizer.waitForIdle", async () => {
       await editor.waitForIdle()
       await expect(editor.recognizer.waitForIdle).toHaveBeenCalledTimes(1)
     })
-    test("should emit idle & call layers.updateState when recognizer emit idle", async () =>
-    {
+    test("should emit idle & call layers.updateState when recognizer emit idle", async () => {
       editor.recognizer.event.emitIdle(true)
       expect(editor.event.emitIdle).toHaveBeenNthCalledWith(1, true)
       expect(editor.layers.updateState).toHaveBeenNthCalledWith(1, true)
     })
   })
 
-  describe("resize", () =>
-  {
+  describe("resize", () => {
     const editor = new InteractiveInkEditor(document.createElement("div"), EditorOptions)
     editor.menu.render = jest.fn()
     editor.menu.style.update = jest.fn()
     editor.renderer.resize = jest.fn()
     editor.recognizer.init = jest.fn(() => Promise.resolve())
 
-    beforeAll(async () =>
-    {
+    beforeAll(async () => {
       await editor.initialize()
     })
 
-    test("should call renderer.resize", async () =>
-    {
+    test("should call renderer.resize", async () => {
       await editor.initialize()
-      await editor.resize({ height: 1, width: 2})
+      await editor.resize({ height: 1, width: 2 })
       await expect(editor.renderer.resize).toHaveBeenCalledTimes(1)
     })
   })
 
-  describe("clear", () =>
-  {
+  describe("clear", () => {
     const editor = new InteractiveInkEditor(document.createElement("div"), EditorOptions)
     editor.overlays.apply = jest.fn()
     editor.selector.removeSelectedGroup = jest.fn()
@@ -814,49 +759,42 @@ describe("EditorOffscreen.ts", () =>
     editor.recognizer.clear = jest.fn(() => Promise.resolve())
     editor.recognizer.init = jest.fn(() => Promise.resolve())
 
-    beforeAll(async () =>
-    {
+    beforeAll(async () => {
       await editor.initialize()
     })
 
-    test("should call renderer.clear", async () =>
-    {
+    test("should call renderer.clear", async () => {
       const stroke = buildIIStroke()
       editor.model.addSymbol(stroke)
       await editor.clear()
       await expect(editor.renderer.clear).toHaveBeenCalledTimes(1)
     })
-    test("should call selector.removeSelectedGroup", async () =>
-    {
+    test("should call selector.removeSelectedGroup", async () => {
       const stroke = buildIIStroke()
       editor.model.addSymbol(stroke)
       await editor.clear()
       await expect(editor.selector.removeSelectedGroup).toHaveBeenCalledTimes(1)
     })
-    test("should call recognizer.clear", async () =>
-    {
+    test("should call recognizer.clear", async () => {
       const stroke = buildIIStroke()
       editor.model.addSymbol(stroke)
       editor.clear()
       await expect(editor.recognizer.clear).toHaveBeenCalledTimes(1)
     })
-    test("should clear model", async () =>
-    {
+    test("should clear model", async () => {
       const stroke = buildIIStroke()
       editor.model.addSymbol(stroke)
       await editor.clear()
       expect(editor.model.symbols).toHaveLength(0)
     })
-    test("should do nothing if strokes empty", async () =>
-    {
+    test("should do nothing if strokes empty", async () => {
       await editor.clear()
       await expect(editor.renderer.clear).toHaveBeenCalledTimes(0)
       await expect(editor.recognizer.clear).toHaveBeenCalledTimes(0)
     })
   })
 
-  describe("destroy", () =>
-  {
+  describe("destroy", () => {
     const editor = new InteractiveInkEditor(document.createElement("div"), EditorOptions)
     editor.eraser.detach = jest.fn()
     editor.selector.detach = jest.fn()
@@ -866,8 +804,7 @@ describe("EditorOffscreen.ts", () =>
     editor.renderer.destroy = jest.fn()
     editor.recognizer.destroy = jest.fn()
 
-    test("should detach all.managers", async () =>
-    {
+    test("should detach all.managers", async () => {
       editor.destroy()
       await expect(editor.eraser.detach).toHaveBeenCalledTimes(1)
       await expect(editor.selector.detach).toHaveBeenCalledTimes(1)
@@ -875,26 +812,21 @@ describe("EditorOffscreen.ts", () =>
       await expect(editor.writer.detach).toHaveBeenCalledTimes(1)
     })
 
-    test("should call renderer.destroy", async () =>
-    {
+    test("should call renderer.destroy", async () => {
       editor.destroy()
       await expect(editor.renderer.destroy).toHaveBeenCalledTimes(1)
     })
 
-    test("should call recognizer.destroy", async () =>
-    {
+    test("should call recognizer.destroy", async () => {
       editor.destroy()
       await expect(editor.recognizer.destroy).toHaveBeenCalledTimes(1)
     })
-
   })
 
-  describe("zoomToFit", () =>
-  {
+  describe("zoomToFit", () => {
     let editor: InteractiveInkEditor
 
-    beforeEach(() =>
-    {
+    beforeEach(() => {
       editor = new InteractiveInkEditor(document.createElement("div"), EditorOptions)
       editor.renderer.setZoom = jest.fn()
       editor.renderer.setViewBox = jest.fn()
@@ -904,16 +836,14 @@ describe("EditorOffscreen.ts", () =>
       editor.renderer.parent = mockParent
     })
 
-    test("should reset to zoom 1 and origin viewBox when no symbols", () =>
-    {
+    test("should reset to zoom 1 and origin viewBox when no symbols", () => {
       editor.zoomToFit()
 
       expect(editor.renderer.setZoom).toHaveBeenCalledWith(1)
       expect(editor.renderer.setViewBox).toHaveBeenCalledWith(0, 0, 800, 600)
     })
 
-    test("should zoom and center on symbols", () =>
-    {
+    test("should zoom and center on symbols", () => {
       const stroke = buildIIStroke()
       editor.model.addSymbol(stroke)
       editor.getSymbolsBounds = jest.fn(() => ({ x: 10, y: 20, width: 200, height: 100 }))
@@ -933,21 +863,21 @@ describe("EditorOffscreen.ts", () =>
       )
     })
 
-    test("should fit only the provided symbols subset", () =>
-    {
+    test("should fit only the provided symbols subset", () => {
       const stroke1 = buildIIStroke()
       const stroke2 = buildIIStroke()
       editor.model.addSymbol(stroke1)
       editor.model.addSymbol(stroke2)
-      const getSymbolsBoundsSpy = jest.spyOn(editor, "getSymbolsBounds").mockReturnValue({ x: 0, y: 0, width: 100, height: 100 })
+      const getSymbolsBoundsSpy = jest
+        .spyOn(editor, "getSymbolsBounds")
+        .mockReturnValue({ x: 0, y: 0, width: 100, height: 100 })
 
       editor.zoomToFit([stroke1])
 
       expect(getSymbolsBoundsSpy).toHaveBeenCalledWith([stroke1], 0)
     })
 
-    test("should clamp zoom to minimum 0.1 for very large content", () =>
-    {
+    test("should clamp zoom to minimum 0.1 for very large content", () => {
       const stroke = buildIIStroke()
       editor.model.addSymbol(stroke)
       editor.getSymbolsBounds = jest.fn(() => ({ x: 0, y: 0, width: 100000, height: 100000 }))
@@ -959,12 +889,10 @@ describe("EditorOffscreen.ts", () =>
     })
   })
 
-  describe("copy / paste / cut", () =>
-  {
+  describe("copy / paste / cut", () => {
     let editor: InteractiveInkEditor
 
-    beforeEach(() =>
-    {
+    beforeEach(() => {
       editor = new InteractiveInkEditor(document.createElement("div"), EditorOptions)
       editor.recognizer.addStrokes = jest.fn(() => Promise.resolve(undefined))
       editor.recognizer.eraseStrokes = jest.fn(() => Promise.resolve())
@@ -979,10 +907,8 @@ describe("EditorOffscreen.ts", () =>
       editor.math.clearBlockSelection = jest.fn()
     })
 
-    describe("copy", () =>
-    {
-      test("should copy selected symbols to clipboard", async () =>
-      {
+    describe("copy", () => {
+      test("should copy selected symbols to clipboard", async () => {
         const stroke1 = buildIIStroke()
         const stroke2 = buildIIStroke()
         editor.model.addSymbol(stroke1)
@@ -992,14 +918,16 @@ describe("EditorOffscreen.ts", () =>
         editor.copy()
 
         await editor.paste()
-        expect(editor.recognizer.addStrokes).toHaveBeenCalledWith([expect.objectContaining({ type: SymbolType.Stroke })], false)
+        expect(editor.recognizer.addStrokes).toHaveBeenCalledWith(
+          [expect.objectContaining({ type: SymbolType.Stroke })],
+          false
+        )
         const addedStrokes = (editor.recognizer.addStrokes as jest.Mock).mock.calls[0][0] as TStroke[]
         expect(addedStrokes).toHaveLength(1)
         expect(addedStrokes[0].id).not.toBe(stroke1.id)
       })
 
-      test("should copy all symbols when nothing selected", async () =>
-      {
+      test("should copy all symbols when nothing selected", async () => {
         const stroke1 = buildIIStroke()
         const stroke2 = buildIIStroke()
         editor.model.addSymbol(stroke1)
@@ -1012,8 +940,7 @@ describe("EditorOffscreen.ts", () =>
         expect(addedStrokes).toHaveLength(2)
       })
 
-      test("should filter out decorators from clipboard", async () =>
-      {
+      test("should filter out decorators from clipboard", async () => {
         const stroke = buildIIStroke()
         const decorator = buildIIDecorator(DecoratorKind.Highlight)
         editor.model.addSymbol(stroke)
@@ -1028,8 +955,7 @@ describe("EditorOffscreen.ts", () =>
         expect(addedStrokes).toHaveLength(1)
       })
 
-      test("should filter out solver output strokes from clipboard", async () =>
-      {
+      test("should filter out solver output strokes from clipboard", async () => {
         const stroke = buildIIStroke()
         const solverStroke = buildIIStroke()
         solverStroke.isSolverOutput = true
@@ -1046,17 +972,14 @@ describe("EditorOffscreen.ts", () =>
       })
     })
 
-    describe("paste", () =>
-    {
-      test("should do nothing when clipboard is empty", async () =>
-      {
+    describe("paste", () => {
+      test("should do nothing when clipboard is empty", async () => {
         await editor.paste()
         expect(editor.recognizer.addStrokes).not.toHaveBeenCalled()
         expect(editor.renderer.drawSymbol).not.toHaveBeenCalled()
       })
 
-      test("should paste clones with new IDs", async () =>
-      {
+      test("should paste clones with new IDs", async () => {
         const stroke = buildIIStroke()
         editor.model.addSymbol(stroke)
         editor.copy()
@@ -1069,8 +992,7 @@ describe("EditorOffscreen.ts", () =>
         expect(drawn.type).toBe(SymbolType.Stroke)
       })
 
-      test("should paste clones offset by PASTE_OFFSET", async () =>
-      {
+      test("should paste clones offset by PASTE_OFFSET", async () => {
         const stroke = buildIIStroke({ box: { x: 100, y: 100, width: 10, height: 10 } })
         editor.model.addSymbol(stroke)
         editor.copy()
@@ -1079,15 +1001,13 @@ describe("EditorOffscreen.ts", () =>
 
         const drawn = (editor.renderer.drawSymbol as jest.Mock).mock.calls[0][0] as TStroke
         const offset = InteractiveInkEditor.PASTE_OFFSET
-        drawn.pointers.forEach((p, i) =>
-        {
+        drawn.pointers.forEach((p, i) => {
           expect(p.x).toBeCloseTo(stroke.pointers[i].x + offset)
           expect(p.y).toBeCloseTo(stroke.pointers[i].y + offset)
         })
       })
 
-      test("should select pasted symbols", async () =>
-      {
+      test("should select pasted symbols", async () => {
         const stroke = buildIIStroke()
         editor.model.addSymbol(stroke)
         editor.copy()
@@ -1097,8 +1017,7 @@ describe("EditorOffscreen.ts", () =>
         expect(editor.selector.drawSelectedGroup).toHaveBeenCalled()
       })
 
-      test("should allow multiple independent pastes", async () =>
-      {
+      test("should allow multiple independent pastes", async () => {
         const stroke = buildIIStroke()
         editor.model.addSymbol(stroke)
         editor.copy()
@@ -1116,10 +1035,8 @@ describe("EditorOffscreen.ts", () =>
       })
     })
 
-    describe("cut", () =>
-    {
-      test("should remove selected symbols", async () =>
-      {
+    describe("cut", () => {
+      test("should remove selected symbols", async () => {
         const stroke = buildIIStroke()
         editor.model.addSymbol(stroke)
         editor.model.selectedIds.add(stroke.id)
@@ -1130,8 +1047,7 @@ describe("EditorOffscreen.ts", () =>
         expect(editor.renderer.removeSymbol).toHaveBeenCalledWith(stroke.id)
       })
 
-      test("should copy symbols before removing", async () =>
-      {
+      test("should copy symbols before removing", async () => {
         const stroke = buildIIStroke()
         editor.model.addSymbol(stroke)
         editor.model.selectedIds.add(stroke.id)
@@ -1147,8 +1063,7 @@ describe("EditorOffscreen.ts", () =>
         expect(drawn.id).not.toBe(stroke.id)
       })
 
-      test("should do nothing when nothing selected", async () =>
-      {
+      test("should do nothing when nothing selected", async () => {
         const stroke = buildIIStroke()
         editor.model.addSymbol(stroke)
 

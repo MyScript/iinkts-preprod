@@ -1,17 +1,18 @@
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+
 import type { BaseMenuItem, TGenericMenuItem } from "./BaseMenuItem"
+import { ButtonListMenuItem } from "./ButtonListMenuItem"
 import { ButtonMenuItem } from "./ButtonMenuItem"
 import { CheckboxMenuItem } from "./CheckboxMenuItem"
-import { SelectMenuItem } from "./SelectMenuItem"
-import { ButtonListMenuItem } from "./ButtonListMenuItem"
-import type { TMenuSubMenu, TSubMenuItems } from "./SubMenuItem";
-import { SubMenuItem } from "./SubMenuItem"
-import type { TMenuColorList } from "./ColorListMenuItem";
+import type { TMenuColorList } from "./ColorListMenuItem"
 import { ColorListMenuItem } from "./ColorListMenuItem"
-import type { TMenuRange } from "./RangeMenuItem";
-import { RangeMenuItem } from "./RangeMenuItem"
-import type { TMenuFileInput } from "./FileInputMenuItem";
+import type { TMenuFileInput } from "./FileInputMenuItem"
 import { FileInputMenuItem } from "./FileInputMenuItem"
+import type { TMenuRange } from "./RangeMenuItem"
+import { RangeMenuItem } from "./RangeMenuItem"
+import { SelectMenuItem } from "./SelectMenuItem"
+import type { TMenuSubMenu, TSubMenuItems } from "./SubMenuItem"
+import { SubMenuItem } from "./SubMenuItem"
 
 /**
  * @group Menu

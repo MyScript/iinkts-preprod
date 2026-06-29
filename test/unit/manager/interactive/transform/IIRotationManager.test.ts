@@ -1,6 +1,5 @@
 import { createEditorMock, asEditor } from "../../../__mocks__/createEditorMock"
-import
-{
+import {
   EdgeLineOps,
   IIRotationManager,
   OBBOps,
@@ -11,42 +10,39 @@ import
   TPoint,
   computeRotatedPoint,
   convertDegreeToRadian,
-  MatrixTransform
+  MatrixTransform,
 } from "@/iink"
 
-describe("IIRotationManager.ts", () =>
-{
-  test("should create", () =>
-  {
+describe("IIRotationManager.ts", () => {
+  test("should create", () => {
     const editor = createEditorMock()
     const manager = new IIRotationManager(asEditor(editor))
     expect(manager).toBeDefined()
   })
 
-  describe("should applyToSymbol", () =>
-  {
+  describe("should applyToSymbol", () => {
     const editor = createEditorMock()
     editor.typeset.updateBounds = jest.fn()
     editor.renderer.setAttribute = jest.fn()
     const manager = new IIRotationManager(asEditor(editor))
 
-    test("not rotate shape with kind unknown", () =>
-    {
+    test("not rotate shape with kind unknown", () => {
       const points: TPoint[] = [
         { x: 0, y: 0 },
         { x: 0, y: 5 },
         { x: 5, y: 5 },
-        { x: 5, y: 0 }
+        { x: 5, y: 0 },
       ]
       const poly = ShapePolygonOps.create(points)
       //@ts-ignore
       poly.kind = "pouet"
       const origin: TPoint = { x: 0, y: 0 }
       const matrix = MatrixTransform.identity().rotate(Math.PI / 2, origin)
-      expect(() => manager.applyToSymbol(poly, matrix)).toThrow(expect.objectContaining({ message: expect.stringContaining("Can't apply rotate on shape, kind unknown: ") }))
+      expect(() => manager.applyToSymbol(poly, matrix)).toThrow(
+        expect.objectContaining({ message: expect.stringContaining("Can't apply rotate on shape, kind unknown: ") })
+      )
     })
-    test("rotate stroke", () =>
-    {
+    test("rotate stroke", () => {
       const stroke = StrokeOps.create()
       const origin: TPoint = { x: 0, y: 0 }
       StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 1, y: 1 })
@@ -58,8 +54,7 @@ describe("IIRotationManager.ts", () =>
       expect(stroke.pointers[1].x.toFixed(0)).toEqual("0")
       expect(stroke.pointers[1].y.toFixed(0)).toEqual("10")
     })
-    test("rotate shape Circle", () =>
-    {
+    test("rotate shape Circle", () => {
       const center: TPoint = { x: 5, y: 5 }
       const radius = 4
       const circle = ShapeCircleOps.create(center, radius)
@@ -69,8 +64,7 @@ describe("IIRotationManager.ts", () =>
       expect(circle.radius).toEqual(radius)
       expect(circle.center).toEqual({ x: -2, y: 6 })
     })
-    test("rotate edge Line", () =>
-    {
+    test("rotate edge Line", () => {
       const start: TPoint = { x: 0, y: 0 }
       const end: TPoint = { x: 0, y: 5 }
       const line = EdgeLineOps.create(start, end)
@@ -84,8 +78,7 @@ describe("IIRotationManager.ts", () =>
     })
   })
 
-  describe("rotate process on stroke", () =>
-  {
+  describe("rotate process on stroke", () => {
     const editor = createEditorMock()
     editor.recognizer.init = jest.fn(() => Promise.resolve())
     editor.recognizer.transformRotate = jest.fn(() => Promise.resolve())
@@ -104,11 +97,11 @@ describe("IIRotationManager.ts", () =>
 
     const rotateCenter: TPoint = {
       x: OBBOps.toBox(stroke.bounds).x + stroke.bounds.width / 2,
-      y: OBBOps.toBox(stroke.bounds).y + stroke.bounds.height / 2
+      y: OBBOps.toBox(stroke.bounds).y + stroke.bounds.height / 2,
     }
     const rotateOrigin: TPoint = {
       x: OBBOps.toBox(stroke.bounds).x + stroke.bounds.width / 2,
-      y: OBBOps.toBox(stroke.bounds).y + stroke.bounds.height
+      y: OBBOps.toBox(stroke.bounds).y + stroke.bounds.height,
     }
 
     const testDatas = [
@@ -130,13 +123,11 @@ describe("IIRotationManager.ts", () =>
       },
     ]
 
-    beforeAll(async () =>
-    {
+    beforeAll(async () => {
       await editor.init()
     })
 
-    testDatas.forEach(data =>
-    {
+    testDatas.forEach((data) => {
       const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
       group.setAttribute("id", "group-id")
       group.setAttribute("role", SvgElementRole.InteractElementsGroup)
@@ -145,32 +136,44 @@ describe("IIRotationManager.ts", () =>
       rotateElement.setAttribute("cy", rotateOrigin.y.toString())
       group.appendChild(rotateElement)
 
-      test(`should start with angle: "${ data.angle }° `, () =>
-      {
+      test(`should start with angle: "${data.angle}° `, () => {
         manager.start(rotateElement, rotateOrigin)
 
         expect(manager.interactElementsGroup).toEqual(group)
         expect(manager.center).toEqual(rotateCenter)
         expect(manager.origin).toEqual(rotateOrigin)
-        expect(editor.renderer.setAttribute).toHaveBeenNthCalledWith(1, group.id, "transform-origin", `${ rotateCenter.x }px ${ rotateCenter.y }px`)
-        expect(editor.renderer.setAttribute).toHaveBeenNthCalledWith(2, stroke.id, "transform-origin", `${ rotateCenter.x }px ${ rotateCenter.y }px`)
+        expect(editor.renderer.setAttribute).toHaveBeenNthCalledWith(
+          1,
+          group.id,
+          "transform-origin",
+          `${rotateCenter.x}px ${rotateCenter.y}px`
+        )
+        expect(editor.renderer.setAttribute).toHaveBeenNthCalledWith(
+          2,
+          stroke.id,
+          "transform-origin",
+          `${rotateCenter.x}px ${rotateCenter.y}px`
+        )
       })
-      test(`shoud continu with angle: "${ data.angle }°`, () =>
-      {
+      test(`shoud continu with angle: "${data.angle}°`, () => {
         expect(manager.continue(data.rotateToPoint)).toEqual(data.angle)
 
-        expect(editor.renderer.setAttribute).toHaveBeenNthCalledWith(1, group.id, "transform", `rotate(${ data.angle })`)
-        expect(editor.renderer.setAttribute).toHaveBeenNthCalledWith(2, stroke.id, "transform", `rotate(${ data.angle })`)
+        expect(editor.renderer.setAttribute).toHaveBeenNthCalledWith(1, group.id, "transform", `rotate(${data.angle})`)
+        expect(editor.renderer.setAttribute).toHaveBeenNthCalledWith(2, stroke.id, "transform", `rotate(${data.angle})`)
       })
-      test(`shoud end with angle: "${ data.angle }°`, async () =>
-      {
+      test(`shoud end with angle: "${data.angle}°`, async () => {
         await manager.end(data.rotateToPoint)
 
         expect(manager.applyToSymbol).toHaveBeenCalledTimes(1)
         expect(editor.renderer.drawSymbol).toHaveBeenCalledTimes(1)
         expect(editor.renderer.drawSymbol).toHaveBeenCalledWith(stroke)
         expect(editor.recognizer.transformRotate).toHaveBeenCalledTimes(1)
-        expect(editor.recognizer.transformRotate).toHaveBeenCalledWith([stroke.id], convertDegreeToRadian(data.angle), rotateCenter.x, rotateCenter.y)
+        expect(editor.recognizer.transformRotate).toHaveBeenCalledWith(
+          [stroke.id],
+          convertDegreeToRadian(data.angle),
+          rotateCenter.x,
+          rotateCenter.y
+        )
         expect(stroke).not.toEqual(strokeNotRotate)
       })
     })

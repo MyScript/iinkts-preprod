@@ -60,24 +60,30 @@ export class Converter
 
     for (const element of this.jiixExport.elements) {
       const shapeIds = new Set<string>()
-      element.items?.forEach(i => {
+      element.items?.forEach(i =>
+      {
         if (i["full-id"]) shapeIds.add(i["full-id"])
       })
 
       const textElement = element as TJIIXTextElement
-      textElement.words?.forEach(w => {
-        w.items?.forEach(i => {
+      textElement.words?.forEach(w =>
+      {
+        w.items?.forEach(i =>
+        {
           if (i["full-id"]) shapeIds.add(i["full-id"])
         })
       })
 
-      textElement.chars?.forEach(c => {
-        c.items?.forEach(i => {
+      textElement.chars?.forEach(c =>
+      {
+        c.items?.forEach(i =>
+        {
           if (i["full-id"]) shapeIds.add(i["full-id"])
         })
       })
 
-      shapeIds.forEach(shapeId => {
+      shapeIds.forEach(shapeId =>
+      {
         if (!this.jiixElementsCache.has(shapeId)) {
           this.jiixElementsCache.set(shapeId, [])
         }
@@ -342,17 +348,22 @@ export class Converter
 
         if (shapeConverted) {
           toConvert.push(shapeConverted)
-          e.items?.forEach(i => {
+          e.items?.forEach(i =>
+          {
             if (i["full-id"]) toRemove.add(i["full-id"] as TLShapeId)
           })
           const textElement = e as TJIIXTextElement
-          textElement.words?.forEach(w => {
-            w.items?.forEach(i => {
+          textElement.words?.forEach(w =>
+          {
+            w.items?.forEach(i =>
+            {
               if (i["full-id"]) toRemove.add(i["full-id"] as TLShapeId)
             })
           })
-          textElement.chars?.forEach(c => {
-            c.items?.forEach(i => {
+          textElement.chars?.forEach(c =>
+          {
+            c.items?.forEach(i =>
+            {
               if (i["full-id"]) toRemove.add(i["full-id"] as TLShapeId)
             })
           })

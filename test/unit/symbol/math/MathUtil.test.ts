@@ -1,11 +1,6 @@
 import { describe, test, expect, beforeEach } from "@jest/globals"
 import { buildIIMath } from "../../helpers"
-import {
-  MathUtil,
-  SymbolType,
-  OBBOps,
-  type TMathElement
-} from "@/iink"
+import { MathUtil, SymbolType, OBBOps, type TMathElement } from "@/iink"
 
 const makeMathElement = (label: string, bounds = { x: 0, y: 0, width: 50, height: 30 }): TMathElement => ({
   id: "e1",
@@ -17,24 +12,19 @@ const makeMathElement = (label: string, bounds = { x: 0, y: 0, width: 50, height
   bounds,
 })
 
-describe("MathUtil", () =>
-{
+describe("MathUtil", () => {
   let util: MathUtil
 
-  beforeEach(() =>
-  {
+  beforeEach(() => {
     util = new MathUtil()
   })
 
-  test("should have type math", () =>
-  {
+  test("should have type math", () => {
     expect(util.type).toBe(SymbolType.Math)
   })
 
-  describe("create", () =>
-  {
-    test("should create a math from partial", () =>
-    {
+  describe("create", () => {
+    test("should create a math from partial", () => {
       const point = { x: 5, y: 10 }
       const boundsBox = { x: 5, y: 10, width: 80, height: 40 }
       const elements = [makeMathElement("x=1", boundsBox)]
@@ -43,8 +33,7 @@ describe("MathUtil", () =>
       expect(math.point).toEqual(point)
     })
 
-    test("should generate a unique id each call", () =>
-    {
+    test("should generate a unique id each call", () => {
       const boundsBox2 = { x: 0, y: 0, width: 50, height: 30 }
       const elements = [makeMathElement("x=1", boundsBox2)]
       const m1 = util.create({ elements, point: { x: 0, y: 0 }, bounds: OBBOps.fromBox(boundsBox2) })
@@ -53,41 +42,33 @@ describe("MathUtil", () =>
     })
   })
 
-  describe("updateDerivedFields", () =>
-  {
-    test("should not throw on valid math", () =>
-    {
+  describe("updateDerivedFields", () => {
+    test("should not throw on valid math", () => {
       const math = buildIIMath()
       expect(() => util.updateDerivedFields(math)).not.toThrow()
     })
 
-    test("should update snapPoints after call", () =>
-    {
+    test("should update snapPoints after call", () => {
       const math = buildIIMath()
       util.updateDerivedFields(math)
       expect(Array.isArray(math.snapPoints)).toBe(true)
     })
   })
 
-  describe("overlaps", () =>
-  {
-    test("should return true when math overlaps given box", () =>
-    {
+  describe("overlaps", () => {
+    test("should return true when math overlaps given box", () => {
       const math = buildIIMath("y=x", { boundingBox: { x: 5, y: 5, width: 20, height: 10 } })
       expect(util.overlaps(math, { x: 0, y: 0, width: 30, height: 30 })).toBe(true)
     })
 
-    test("should return false when math is outside given box", () =>
-    {
+    test("should return false when math is outside given box", () => {
       const math = buildIIMath("y=x", { boundingBox: { x: 100, y: 100, width: 20, height: 10 } })
       expect(util.overlaps(math, { x: 0, y: 0, width: 5, height: 5 })).toBe(false)
     })
   })
 
-  describe("getSnapPoints", () =>
-  {
-    test("should return the math snapPoints reference", () =>
-    {
+  describe("getSnapPoints", () => {
+    test("should return the math snapPoints reference", () => {
       const math = buildIIMath()
       util.updateDerivedFields(math)
       const result = util.getSnapPoints(math)
@@ -95,25 +76,20 @@ describe("MathUtil", () =>
     })
   })
 
-  describe("capability flags (defaults)", () =>
-  {
-    test("canSelect should return true", () =>
-    {
+  describe("capability flags (defaults)", () => {
+    test("canSelect should return true", () => {
       expect(util.canSelect(buildIIMath())).toBe(true)
     })
 
-    test("canTransform should return true", () =>
-    {
+    test("canTransform should return true", () => {
       expect(util.canTransform(buildIIMath())).toBe(true)
     })
 
-    test("canResize should return true", () =>
-    {
+    test("canResize should return true", () => {
       expect(util.canResize(buildIIMath())).toBe(true)
     })
 
-    test("canRotate should return true", () =>
-    {
+    test("canRotate should return true", () => {
       expect(util.canRotate(buildIIMath())).toBe(true)
     })
   })

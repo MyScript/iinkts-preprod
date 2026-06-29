@@ -1,5 +1,6 @@
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
-import type { TMenuItemBase } from "./BaseMenuItem";
+
+import type { TMenuItemBase } from "./BaseMenuItem"
 import { BaseMenuItem } from "./BaseMenuItem"
 
 /**
@@ -20,9 +21,8 @@ export type TMenuRange = TMenuItemBase & {
  * @group Menu
  * @remarks Class for range input menu items (slider)
  */
-export class RangeMenuItem extends BaseMenuItem<HTMLDivElement>
-{
-  protected declare config: TMenuRange
+export class RangeMenuItem extends BaseMenuItem<HTMLDivElement> {
+  declare protected config: TMenuRange
   private currentValue: number
   private input?: HTMLInputElement
   private output?: HTMLOutputElement
@@ -33,7 +33,10 @@ export class RangeMenuItem extends BaseMenuItem<HTMLDivElement>
   }
 
   createElement(): HTMLDivElement {
-    const wrapper = this.dom.div({ id: `${this.config.id}-wrapper`, className: ["ms-menu-item", "range"] })
+    const wrapper = this.dom.div({
+      id: `${this.config.id}-wrapper`,
+      className: ["ms-menu-item", "range"],
+    })
 
     this.input = this.dom.range({
       id: `${this.config.id}-input`,
@@ -53,7 +56,10 @@ export class RangeMenuItem extends BaseMenuItem<HTMLDivElement>
     wrapper.appendChild(this.output)
 
     if (this.config.label) {
-      const label = this.dom.label({ text: this.config.label, htmlFor: `${this.config.id}-input` })
+      const label = this.dom.label({
+        text: this.config.label,
+        htmlFor: `${this.config.id}-input`,
+      })
       wrapper.insertBefore(label, this.input)
     }
 

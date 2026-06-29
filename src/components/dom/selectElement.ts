@@ -30,7 +30,9 @@ export function buildOption(opt: TSelectElOption): HTMLOptionElement {
   const el = document.createElement("option")
   el.value = opt.value
   el.textContent = opt.label
-  if (opt.selected) el.selected = true
+  if (opt.selected) {
+    el.selected = true
+  }
   return el
 }
 
@@ -39,10 +41,16 @@ export function buildSelect(config: TSelectElConfig): HTMLSelectElement {
   const select = document.createElement("select")
   select.id = config.id
   select.style.cssText = config.customStyle ?? DEFAULT_SELECT_STYLE
-  if (config.className) select.classList.add(config.className)
-  if (config.disabled) select.disabled = true
-  config.options?.forEach(opt => select.appendChild(buildOption(opt)))
-  if (config.defaultValue !== undefined) select.value = config.defaultValue
+  if (config.className) {
+    select.classList.add(config.className)
+  }
+  if (config.disabled) {
+    select.disabled = true
+  }
+  config.options?.forEach((opt) => select.appendChild(buildOption(opt)))
+  if (config.defaultValue !== undefined) {
+    select.value = config.defaultValue
+  }
   if (config.onChange) {
     select.addEventListener("change", () => config.onChange!(select.value))
   }

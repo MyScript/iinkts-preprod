@@ -4,11 +4,10 @@ import {
   contextlessGestureMessage,
   gestureDetectedMessage,
   hTextJIIX,
-  partChangeMessage
+  partChangeMessage,
 } from "../__mocks__/ServerWebSocketMock"
 import { buildIIStroke, delay } from "../helpers"
-import
-{
+import {
   RecognizerWebSocket,
   RecognizerError,
   StrokeOps,
@@ -18,61 +17,50 @@ import
   TRecognizerWebSocketConfiguration,
 } from "@/iink"
 
-import { toResolve } from 'jest-extended'
+import { toResolve } from "jest-extended"
 expect.extend({ toResolve })
 
-describe("RecognizerWebSocket.ts", () =>
-{
+describe("RecognizerWebSocket.ts", () => {
   const configuration: TRecognizerWebSocketConfiguration = {
     recognition: InteractiveInkEditorOverrideConfiguration.recognition,
-    server: InteractiveInkEditorOverrideConfiguration.server
+    server: InteractiveInkEditorOverrideConfiguration.server,
   }
 
-  test("should instanciate RecognizerWebSocket", () =>
-  {
+  test("should instanciate RecognizerWebSocket", () => {
     const oiRecognizer = new RecognizerWebSocket(configuration)
     expect(oiRecognizer).toBeDefined()
   })
 
-  describe("Properties", () =>
-  {
+  describe("Properties", () => {
     const conf = structuredClone(configuration)
-    conf.server.scheme = "http",
-    conf.server.host = "pony",
-    conf.server.applicationKey = "applicationKey"
-    test("should get url", () =>
-    {
+    ;((conf.server.scheme = "http"), (conf.server.host = "pony"), (conf.server.applicationKey = "applicationKey"))
+    test("should get url", () => {
       const oiRecognizer = new RecognizerWebSocket(conf)
       expect(oiRecognizer.url).toEqual("ws://pony/api/v4.0/iink/offscreen?applicationKey=applicationKey")
     })
 
-    test(`should get mimeTypes`, () =>
-    {
+    test(`should get mimeTypes`, () => {
       const oiRecognizer = new RecognizerWebSocket(conf)
       expect(oiRecognizer.mimeTypes).toEqual(["application/vnd.myscript.jiix"])
     })
   })
 
-  describe("init", () =>
-  {
+  describe("init", () => {
     const conf = structuredClone(configuration)
     conf.server.host = "init-test"
     let mockServer: ServerWebSocketMock
     let oiRecognizer: RecognizerWebSocket
 
-    beforeEach(() =>
-    {
+    beforeEach(() => {
       oiRecognizer = new RecognizerWebSocket(conf)
       mockServer = new ServerWebSocketMock(oiRecognizer.url)
     })
-    afterEach(async () =>
-    {
+    afterEach(async () => {
       await oiRecognizer.destroy()
       mockServer.close()
     })
 
-    test("should have dialog sequence with hmacChallenge", async () =>
-    {
+    test("should have dialog sequence with hmacChallenge", async () => {
       expect(mockServer.getMessages("authenticate")).toHaveLength(0)
       const promise = oiRecognizer.init()
       //¯\_(ツ)_/¯  required to wait server received message
@@ -101,8 +89,7 @@ describe("RecognizerWebSocket.ts", () =>
       await promise
       expect(1).toEqual(1)
     })
-    test("should have dialog sequence without hmacChallenge", async () =>
-    {
+    test("should have dialog sequence without hmacChallenge", async () => {
       expect(mockServer.getMessages("authenticate")).toHaveLength(0)
       const promise = oiRecognizer.init()
       //¯\_(ツ)_/¯  required to wait server received message
@@ -125,8 +112,7 @@ describe("RecognizerWebSocket.ts", () =>
       await promise
       expect(1).toEqual(1)
     })
-    test("should have dialog sequence with newPart", async () =>
-    {
+    test("should have dialog sequence with newPart", async () => {
       expect(mockServer.getMessages("authenticate")).toHaveLength(0)
       const promise = oiRecognizer.init()
       //¯\_(ツ)_/¯  required to wait server received message
@@ -149,8 +135,7 @@ describe("RecognizerWebSocket.ts", () =>
       await promise
       expect(1).toEqual(1)
     })
-    test("should reject if receive error message", async () =>
-    {
+    test("should reject if receive error message", async () => {
       const spyEmitError: jest.SpyInstance = jest.spyOn(oiRecognizer.event, "emitError")
       expect.assertions(3)
       const promise = oiRecognizer.init()
@@ -164,29 +149,25 @@ describe("RecognizerWebSocket.ts", () =>
   })
 
   //TODO fix mock web worker
-  describe.skip("Ping", () =>
-  {
+  describe.skip("Ping", () => {
     const conf = structuredClone(configuration)
     conf.server.host = "ping-test"
     let mockServer: ServerWebSocketMock
     let oiRecognizer: RecognizerWebSocket
 
-    beforeEach(() =>
-    {
+    beforeEach(() => {
       oiRecognizer = new RecognizerWebSocket(conf)
 
       mockServer = new ServerWebSocketMock(oiRecognizer.url)
       mockServer.init()
     })
 
-    afterEach(async () =>
-    {
+    afterEach(async () => {
       await oiRecognizer.destroy()
       mockServer.close()
     })
 
-    test("should send ping message", async () =>
-    {
+    test("should send ping message", async () => {
       expect.assertions(2)
       conf.server.websocket.pingEnabled = true
       const oiRecognizer = new RecognizerWebSocket(conf)
@@ -197,8 +178,7 @@ describe("RecognizerWebSocket.ts", () =>
       expect(mockServer.getMessages("ping")).toHaveLength(2)
       await oiRecognizer.destroy()
     })
-    test("should not send ping message", async () =>
-    {
+    test("should not send ping message", async () => {
       expect.assertions(2)
       conf.server.websocket.pingEnabled = false
       const oiRecognizer = new RecognizerWebSocket(conf)
@@ -209,8 +189,7 @@ describe("RecognizerWebSocket.ts", () =>
       expect(mockServer.getMessages("ping")).toHaveLength(0)
       await oiRecognizer.destroy()
     })
-    test("should close the connection when maxPingLostCount is reached", async () =>
-    {
+    test("should close the connection when maxPingLostCount is reached", async () => {
       expect.assertions(3)
       conf.server.websocket.pingEnabled = true
       conf.server.websocket.maxPingLostCount = 2
@@ -224,28 +203,24 @@ describe("RecognizerWebSocket.ts", () =>
     })
   })
 
-  describe("send", () =>
-  {
+  describe("send", () => {
     const conf = structuredClone(configuration)
     conf.server.host = "send-test"
     conf.server.websocket.autoReconnect = true
     let mockServer: ServerWebSocketMock
     let oiRecognizer: RecognizerWebSocket
 
-    beforeEach(() =>
-    {
+    beforeEach(() => {
       oiRecognizer = new RecognizerWebSocket(conf)
       mockServer = new ServerWebSocketMock(oiRecognizer.url)
       mockServer.init()
     })
-    afterEach(async () =>
-    {
+    afterEach(async () => {
       await oiRecognizer.destroy()
       mockServer.close()
     })
 
-    test("should send message", async () =>
-    {
+    test("should send message", async () => {
       expect.assertions(1)
       await oiRecognizer.init()
       const testDataToSend = { type: "test", data: "test-data" }
@@ -255,8 +230,7 @@ describe("RecognizerWebSocket.ts", () =>
       const messageSent = JSON.parse(mockServer.getLastMessage() as string)
       expect(messageSent).toEqual(testDataToSend)
     })
-    test("should reconnect before send message", async () =>
-    {
+    test("should reconnect before send message", async () => {
       expect.assertions(1)
       await oiRecognizer.init()
       await oiRecognizer.close(1000, "CLOSE_RECOGNIZER")
@@ -269,28 +243,24 @@ describe("RecognizerWebSocket.ts", () =>
     })
   })
 
-  describe("addStrokes", () =>
-  {
+  describe("addStrokes", () => {
     const conf = structuredClone(configuration)
     conf.server.host = "add-strokes-test"
     let mockServer: ServerWebSocketMock
     let oiRecognizer: RecognizerWebSocket
     const strokes = [buildIIStroke()]
 
-    beforeEach(() =>
-    {
+    beforeEach(() => {
       oiRecognizer = new RecognizerWebSocket(conf)
       mockServer = new ServerWebSocketMock(oiRecognizer.url)
       mockServer.init()
     })
-    afterEach(async () =>
-    {
+    afterEach(async () => {
       await oiRecognizer.destroy()
       mockServer.close()
     })
 
-    test("should not send addStrokes message if 0 strokes", async () =>
-    {
+    test("should not send addStrokes message if 0 strokes", async () => {
       expect.assertions(1)
       await oiRecognizer.init()
       await oiRecognizer.addStrokes([])
@@ -299,8 +269,7 @@ describe("RecognizerWebSocket.ts", () =>
       const messageSent = JSON.parse(mockServer.getLastMessage() as string)
       await expect(messageSent.type).not.toEqual("addStrokes")
     })
-    test("should send addStrokes message", async () =>
-    {
+    test("should send addStrokes message", async () => {
       expect.assertions(1)
       await oiRecognizer.init()
       oiRecognizer.addStrokes(strokes)
@@ -309,12 +278,11 @@ describe("RecognizerWebSocket.ts", () =>
       const messageSent = JSON.parse(mockServer.getLastMessage() as string)
       const messageSentExpected = {
         type: "addStrokes",
-        strokes: strokes.map(s => StrokeOps.formatToSend(s))
+        strokes: strokes.map((s) => StrokeOps.formatToSend(s)),
       }
       await expect(messageSent).toMatchObject(messageSentExpected)
     })
-    test("should resolve addStrokes when received gestureDetected", async () =>
-    {
+    test("should resolve addStrokes when received gestureDetected", async () => {
       expect.assertions(1)
       await oiRecognizer.init()
       const promise = oiRecognizer.addStrokes(strokes)
@@ -323,8 +291,7 @@ describe("RecognizerWebSocket.ts", () =>
       mockServer.sendGestureDetectedMessage()
       await expect(promise).resolves.toEqual(gestureDetectedMessage)
     })
-    test("should reject if receive error message", async () =>
-    {
+    test("should reject if receive error message", async () => {
       const spyEmitError: jest.SpyInstance = jest.spyOn(oiRecognizer.event, "emitError")
       expect.assertions(3)
       await oiRecognizer.init()
@@ -338,8 +305,7 @@ describe("RecognizerWebSocket.ts", () =>
     })
   })
 
-  describe("replaceStrokes", () =>
-  {
+  describe("replaceStrokes", () => {
     const conf = structuredClone(configuration)
     conf.server.host = "replace-strokes-test"
     let mockServer: ServerWebSocketMock
@@ -347,20 +313,17 @@ describe("RecognizerWebSocket.ts", () =>
     const strokes = [buildIIStroke()]
     const oldStrokeIds = ["id-1", "id-2"]
 
-    beforeEach(() =>
-    {
+    beforeEach(() => {
       oiRecognizer = new RecognizerWebSocket(conf)
       mockServer = new ServerWebSocketMock(oiRecognizer.url)
       mockServer.init()
     })
-    afterEach(async () =>
-    {
+    afterEach(async () => {
       await oiRecognizer.destroy()
       mockServer.close()
     })
 
-    test("should not send replaceStrokes message if 0 strokes", async () =>
-    {
+    test("should not send replaceStrokes message if 0 strokes", async () => {
       expect.assertions(1)
       await oiRecognizer.init()
       await oiRecognizer.replaceStrokes([], [])
@@ -369,8 +332,7 @@ describe("RecognizerWebSocket.ts", () =>
       const messageSent = JSON.parse(mockServer.getLastMessage() as string)
       await expect(messageSent.type).not.toEqual("replaceStrokes")
     })
-    test("should send replaceStrokes message", async () =>
-    {
+    test("should send replaceStrokes message", async () => {
       expect.assertions(1)
       await oiRecognizer.init()
       oiRecognizer.replaceStrokes(oldStrokeIds, strokes)
@@ -383,8 +345,7 @@ describe("RecognizerWebSocket.ts", () =>
       }
       await expect(messageSent).toMatchObject(messageSentExpected)
     })
-    test("should resolve replaceStrokes when received contentChanged", async () =>
-    {
+    test("should resolve replaceStrokes when received contentChanged", async () => {
       expect.assertions(1)
       await oiRecognizer.init()
       const promise = oiRecognizer.replaceStrokes(oldStrokeIds, strokes)
@@ -393,8 +354,7 @@ describe("RecognizerWebSocket.ts", () =>
       mockServer.sendContentChangeMessage()
       await expect(promise).toResolve()
     })
-    test("should reject if receive error message", async () =>
-    {
+    test("should reject if receive error message", async () => {
       const spyEmitError: jest.SpyInstance = jest.spyOn(oiRecognizer.event, "emitError")
       expect.assertions(3)
       await oiRecognizer.init()
@@ -408,29 +368,26 @@ describe("RecognizerWebSocket.ts", () =>
     })
   })
 
-  describe("transformTranslate", () =>
-  {
+  describe("transformTranslate", () => {
     const conf = structuredClone(configuration)
     conf.server.host = "transform-translate-test"
     let mockServer: ServerWebSocketMock
     let oiRecognizer: RecognizerWebSocket
     const strokeIds = ["id-1", "id-2"]
-    const tx = 5, ty = 10
+    const tx = 5,
+      ty = 10
 
-    beforeEach(() =>
-    {
+    beforeEach(() => {
       oiRecognizer = new RecognizerWebSocket(conf)
       mockServer = new ServerWebSocketMock(oiRecognizer.url)
       mockServer.init()
     })
-    afterEach(async () =>
-    {
+    afterEach(async () => {
       await oiRecognizer.destroy()
       mockServer.close()
     })
 
-    test("should not send transformTranslate message if 0 strokes", async () =>
-    {
+    test("should not send transformTranslate message if 0 strokes", async () => {
       expect.assertions(1)
       await oiRecognizer.init()
       await oiRecognizer.transformTranslate([], tx, ty)
@@ -439,8 +396,7 @@ describe("RecognizerWebSocket.ts", () =>
       const messageSent = JSON.parse(mockServer.getLastMessage() as string)
       await expect(messageSent.type).not.toEqual("transformTranslate")
     })
-    test("should send transformTranslate message", async () =>
-    {
+    test("should send transformTranslate message", async () => {
       expect.assertions(1)
       await oiRecognizer.init()
       oiRecognizer.transformTranslate(strokeIds, tx, ty)
@@ -452,12 +408,11 @@ describe("RecognizerWebSocket.ts", () =>
         transformationType: "TRANSLATE",
         strokeIds,
         tx,
-        ty
+        ty,
       }
       await expect(messageSent).toMatchObject(messageSentExpected)
     })
-    test("should resolve transformTranslate when received contentChanged", async () =>
-    {
+    test("should resolve transformTranslate when received contentChanged", async () => {
       expect.assertions(1)
       await oiRecognizer.init()
       const promise = oiRecognizer.transformTranslate(strokeIds, tx, ty)
@@ -466,8 +421,7 @@ describe("RecognizerWebSocket.ts", () =>
       mockServer.sendContentChangeMessage()
       await expect(promise).toResolve()
     })
-    test("should reject if receive error message", async () =>
-    {
+    test("should reject if receive error message", async () => {
       const spyEmitError: jest.SpyInstance = jest.spyOn(oiRecognizer.event, "emitError")
       expect.assertions(3)
       await oiRecognizer.init()
@@ -481,29 +435,27 @@ describe("RecognizerWebSocket.ts", () =>
     })
   })
 
-  describe("transformRotate", () =>
-  {
+  describe("transformRotate", () => {
     const conf = structuredClone(configuration)
     conf.server.host = "transform-rotate-test"
     let mockServer: ServerWebSocketMock
     let oiRecognizer: RecognizerWebSocket
     const strokeIds = ["id-1", "id-2"]
-    const angle = Math.PI / 2, x0 = 10, y0 = 20
+    const angle = Math.PI / 2,
+      x0 = 10,
+      y0 = 20
 
-    beforeEach(() =>
-    {
+    beforeEach(() => {
       oiRecognizer = new RecognizerWebSocket(conf)
       mockServer = new ServerWebSocketMock(oiRecognizer.url)
       mockServer.init()
     })
-    afterEach(async () =>
-    {
+    afterEach(async () => {
       await oiRecognizer.destroy()
       mockServer.close()
     })
 
-    test("should not send transformRotate message if 0 strokes", async () =>
-    {
+    test("should not send transformRotate message if 0 strokes", async () => {
       expect.assertions(1)
       await oiRecognizer.init()
       await oiRecognizer.transformRotate([], angle, x0, y0)
@@ -512,8 +464,7 @@ describe("RecognizerWebSocket.ts", () =>
       const messageSent = JSON.parse(mockServer.getLastMessage() as string)
       await expect(messageSent.type).not.toEqual("transformRotate")
     })
-    test("should send transformRotate message", async () =>
-    {
+    test("should send transformRotate message", async () => {
       expect.assertions(1)
       await oiRecognizer.init()
       oiRecognizer.transformRotate(strokeIds, angle, x0, y0)
@@ -526,12 +477,11 @@ describe("RecognizerWebSocket.ts", () =>
         strokeIds,
         angle,
         x0,
-        y0
+        y0,
       }
       await expect(messageSent).toMatchObject(messageSentExpected)
     })
-    test("should resolve transformRotate when received contentChanged", async () =>
-    {
+    test("should resolve transformRotate when received contentChanged", async () => {
       expect.assertions(1)
       await oiRecognizer.init()
       const promise = oiRecognizer.transformRotate(strokeIds, angle, x0, y0)
@@ -540,8 +490,7 @@ describe("RecognizerWebSocket.ts", () =>
       mockServer.sendContentChangeMessage()
       await expect(promise).toResolve()
     })
-    test("should reject if receive error message", async () =>
-    {
+    test("should reject if receive error message", async () => {
       const spyEmitError: jest.SpyInstance = jest.spyOn(oiRecognizer.event, "emitError")
       expect.assertions(3)
       await oiRecognizer.init()
@@ -555,29 +504,28 @@ describe("RecognizerWebSocket.ts", () =>
     })
   })
 
-  describe("transformScale", () =>
-  {
+  describe("transformScale", () => {
     const conf = structuredClone(configuration)
     conf.server.host = "transform-scale-test"
     let mockServer: ServerWebSocketMock
     let oiRecognizer: RecognizerWebSocket
     const strokeIds = ["id-1", "id-2"]
-    const scaleX = 2, scaleY = 2, x0 = 10, y0 = 20
+    const scaleX = 2,
+      scaleY = 2,
+      x0 = 10,
+      y0 = 20
 
-    beforeEach(() =>
-    {
+    beforeEach(() => {
       oiRecognizer = new RecognizerWebSocket(conf)
       mockServer = new ServerWebSocketMock(oiRecognizer.url)
       mockServer.init()
     })
-    afterEach(async () =>
-    {
+    afterEach(async () => {
       await oiRecognizer.destroy()
       mockServer.close()
     })
 
-    test("should not send transformScale message if 0 strokes", async () =>
-    {
+    test("should not send transformScale message if 0 strokes", async () => {
       expect.assertions(1)
       await oiRecognizer.init()
       await oiRecognizer.transformScale([], scaleX, scaleY, x0, y0)
@@ -586,8 +534,7 @@ describe("RecognizerWebSocket.ts", () =>
       const messageSent = JSON.parse(mockServer.getLastMessage() as string)
       await expect(messageSent.type).not.toEqual("transformScale")
     })
-    test("should send transformScale message", async () =>
-    {
+    test("should send transformScale message", async () => {
       expect.assertions(1)
       await oiRecognizer.init()
       oiRecognizer.transformScale(strokeIds, scaleX, scaleY, x0, y0)
@@ -601,12 +548,11 @@ describe("RecognizerWebSocket.ts", () =>
         scaleX,
         scaleY,
         x0,
-        y0
+        y0,
       }
       await expect(messageSent).toMatchObject(messageSentExpected)
     })
-    test("should resolve transformScale when received contentChanged", async () =>
-    {
+    test("should resolve transformScale when received contentChanged", async () => {
       expect.assertions(1)
       await oiRecognizer.init()
       const promise = oiRecognizer.transformScale(strokeIds, scaleX, scaleY, x0, y0)
@@ -615,8 +561,7 @@ describe("RecognizerWebSocket.ts", () =>
       mockServer.sendContentChangeMessage()
       await expect(promise).toResolve()
     })
-    test("should reject if receive error message", async () =>
-    {
+    test("should reject if receive error message", async () => {
       const spyEmitError: jest.SpyInstance = jest.spyOn(oiRecognizer.event, "emitError")
       expect.assertions(3)
       await oiRecognizer.init()
@@ -630,8 +575,7 @@ describe("RecognizerWebSocket.ts", () =>
     })
   })
 
-  describe("transformMatrix", () =>
-  {
+  describe("transformMatrix", () => {
     const conf = structuredClone(configuration)
     conf.server.host = "transform-matrix-test"
     let mockServer: ServerWebSocketMock
@@ -639,20 +583,17 @@ describe("RecognizerWebSocket.ts", () =>
     const strokeIds = ["id-1", "id-2"]
     const matrix: TMatrixTransform = new MatrixTransform(6, 5, 4, 3, 2, 1)
 
-    beforeEach(() =>
-    {
+    beforeEach(() => {
       oiRecognizer = new RecognizerWebSocket(conf)
       mockServer = new ServerWebSocketMock(oiRecognizer.url)
       mockServer.init()
     })
-    afterEach(async () =>
-    {
+    afterEach(async () => {
       await oiRecognizer.destroy()
       mockServer.close()
     })
 
-    test("should not send transformMatrix message if 0 strokes", async () =>
-    {
+    test("should not send transformMatrix message if 0 strokes", async () => {
       expect.assertions(1)
       await oiRecognizer.init()
       await oiRecognizer.transformMatrix([], matrix)
@@ -661,8 +602,7 @@ describe("RecognizerWebSocket.ts", () =>
       const messageSent = JSON.parse(mockServer.getLastMessage() as string)
       await expect(messageSent.type).not.toEqual("transformMatrix")
     })
-    test("should send transformMatrix message", async () =>
-    {
+    test("should send transformMatrix message", async () => {
       expect.assertions(1)
       await oiRecognizer.init()
       oiRecognizer.transformMatrix(strokeIds, matrix)
@@ -673,12 +613,11 @@ describe("RecognizerWebSocket.ts", () =>
         type: "transform",
         transformationType: "MATRIX",
         strokeIds,
-        ...matrix
+        ...matrix,
       }
       await expect(messageSent).toMatchObject(messageSentExpected)
     })
-    test("should resolve transformMatrix when received contentChanged", async () =>
-    {
+    test("should resolve transformMatrix when received contentChanged", async () => {
       expect.assertions(1)
       await oiRecognizer.init()
       const promise = oiRecognizer.transformMatrix(strokeIds, matrix)
@@ -687,8 +626,7 @@ describe("RecognizerWebSocket.ts", () =>
       mockServer.sendContentChangeMessage()
       await expect(promise).toResolve()
     })
-    test("should reject if receive error message", async () =>
-    {
+    test("should reject if receive error message", async () => {
       const spyEmitError: jest.SpyInstance = jest.spyOn(oiRecognizer.event, "emitError")
       expect.assertions(3)
       await oiRecognizer.init()
@@ -702,28 +640,24 @@ describe("RecognizerWebSocket.ts", () =>
     })
   })
 
-  describe("eraseStrokes", () =>
-  {
+  describe("eraseStrokes", () => {
     const conf = structuredClone(configuration)
     conf.server.host = "erase-strokes-test"
     let mockServer: ServerWebSocketMock
     let oiRecognizer: RecognizerWebSocket
     const strokeIds = ["erase-1"]
 
-    beforeEach(() =>
-    {
+    beforeEach(() => {
       oiRecognizer = new RecognizerWebSocket(conf)
       mockServer = new ServerWebSocketMock(oiRecognizer.url)
       mockServer.init()
     })
-    afterEach(async () =>
-    {
+    afterEach(async () => {
       await oiRecognizer.destroy()
       mockServer.close()
     })
 
-    test("should not send eraseStrokes message if 0 strokes", async () =>
-    {
+    test("should not send eraseStrokes message if 0 strokes", async () => {
       expect.assertions(1)
       await oiRecognizer.init()
       await oiRecognizer.eraseStrokes([])
@@ -732,8 +666,7 @@ describe("RecognizerWebSocket.ts", () =>
       const messageSent = JSON.parse(mockServer.getLastMessage() as string)
       await expect(messageSent.type).not.toEqual("eraseStrokes")
     })
-    test("should send eraseStrokes message", async () =>
-    {
+    test("should send eraseStrokes message", async () => {
       expect.assertions(1)
       await oiRecognizer.init()
       oiRecognizer.eraseStrokes(strokeIds)
@@ -742,12 +675,11 @@ describe("RecognizerWebSocket.ts", () =>
       const messageSent = JSON.parse(mockServer.getLastMessage() as string)
       const messageSentExpected = {
         type: "eraseStrokes",
-        strokeIds
+        strokeIds,
       }
       await expect(messageSent).toMatchObject(messageSentExpected)
     })
-    test("should resolve eraseStrokes when received contentChanged", async () =>
-    {
+    test("should resolve eraseStrokes when received contentChanged", async () => {
       expect.assertions(1)
       await oiRecognizer.init()
       const promise = oiRecognizer.eraseStrokes(strokeIds)
@@ -756,8 +688,7 @@ describe("RecognizerWebSocket.ts", () =>
       mockServer.sendContentChangeMessage()
       await expect(promise).toResolve()
     })
-    test("should reject if receive error message", async () =>
-    {
+    test("should reject if receive error message", async () => {
       const spyEmitError: jest.SpyInstance = jest.spyOn(oiRecognizer.event, "emitError")
       expect.assertions(3)
       await oiRecognizer.init()
@@ -771,28 +702,24 @@ describe("RecognizerWebSocket.ts", () =>
     })
   })
 
-  describe("recognizeGesture", () =>
-  {
+  describe("recognizeGesture", () => {
     const conf = structuredClone(configuration)
     conf.server.host = "recognize-gesture-test"
     let mockServer: ServerWebSocketMock
     let oiRecognizer: RecognizerWebSocket
     const stroke = buildIIStroke()
 
-    beforeEach(() =>
-    {
+    beforeEach(() => {
       oiRecognizer = new RecognizerWebSocket(conf)
       mockServer = new ServerWebSocketMock(oiRecognizer.url)
       mockServer.init()
     })
-    afterEach(async () =>
-    {
+    afterEach(async () => {
       await oiRecognizer.destroy()
       mockServer.close()
     })
 
-    test("should not send recognizeGesture message if 0 strokes", async () =>
-    {
+    test("should not send recognizeGesture message if 0 strokes", async () => {
       expect.assertions(1)
       await oiRecognizer.init()
       //@ts-ignore
@@ -802,8 +729,7 @@ describe("RecognizerWebSocket.ts", () =>
       const messageSent = JSON.parse(mockServer.getLastMessage() as string)
       await expect(messageSent.type).not.toEqual("recognizeGesture")
     })
-    test("should send recognizeGesture message", async () =>
-    {
+    test("should send recognizeGesture message", async () => {
       expect.assertions(1)
       await oiRecognizer.init()
       oiRecognizer.recognizeGesture(stroke)
@@ -812,12 +738,11 @@ describe("RecognizerWebSocket.ts", () =>
       const messageSent = JSON.parse(mockServer.getLastMessage() as string)
       const messageSentExpected = {
         type: "contextlessGesture",
-        stroke: StrokeOps.formatToSend(stroke)
+        stroke: StrokeOps.formatToSend(stroke),
       }
       await expect(messageSent).toMatchObject(messageSentExpected)
     })
-    test("should resolve recognizeGesture when received contextlessGesture", async () =>
-    {
+    test("should resolve recognizeGesture when received contextlessGesture", async () => {
       expect.assertions(1)
       await oiRecognizer.init()
       stroke.id = contextlessGestureMessage.strokeId
@@ -827,8 +752,7 @@ describe("RecognizerWebSocket.ts", () =>
       mockServer.sendContextlessGestureMessage()
       await expect(promise).toResolve()
     })
-    test("should reject if receive error message", async () =>
-    {
+    test("should reject if receive error message", async () => {
       const spyEmitError: jest.SpyInstance = jest.spyOn(oiRecognizer.event, "emitError")
       expect.assertions(3)
       await oiRecognizer.init()
@@ -842,27 +766,23 @@ describe("RecognizerWebSocket.ts", () =>
     })
   })
 
-  describe("waitForIdle", () =>
-  {
+  describe("waitForIdle", () => {
     const conf = structuredClone(configuration)
     conf.server.host = "wait-for-idle-test"
     let mockServer: ServerWebSocketMock
     let oiRecognizer: RecognizerWebSocket
 
-    beforeEach(() =>
-    {
+    beforeEach(() => {
       oiRecognizer = new RecognizerWebSocket(conf)
       mockServer = new ServerWebSocketMock(oiRecognizer.url)
       mockServer.init({ withIdle: false })
     })
-    afterEach(async () =>
-    {
+    afterEach(async () => {
       await oiRecognizer.destroy()
       mockServer.close()
     })
 
-    test("should send waitForIdle & resolve when receive idle message", async () =>
-    {
+    test("should send waitForIdle & resolve when receive idle message", async () => {
       expect.assertions(2)
       await oiRecognizer.init()
       const promise = oiRecognizer.waitForIdle()
@@ -876,8 +796,7 @@ describe("RecognizerWebSocket.ts", () =>
       await delay(100)
       await expect(promise).resolves.toBeUndefined()
     })
-    test("should reject if receive error message", async () =>
-    {
+    test("should reject if receive error message", async () => {
       const spyEmitError: jest.SpyInstance = jest.spyOn(oiRecognizer.event, "emitError")
       expect.assertions(3)
       await oiRecognizer.init()
@@ -891,27 +810,23 @@ describe("RecognizerWebSocket.ts", () =>
     })
   })
 
-  describe("undo", () =>
-  {
+  describe("undo", () => {
     const conf = structuredClone(configuration)
     conf.server.host = "undo-test"
     let mockServer: ServerWebSocketMock
     let oiRecognizer: RecognizerWebSocket
 
-    beforeEach(() =>
-    {
+    beforeEach(() => {
       oiRecognizer = new RecognizerWebSocket(conf)
       mockServer = new ServerWebSocketMock(oiRecognizer.url)
       mockServer.init()
     })
-    afterEach(async () =>
-    {
+    afterEach(async () => {
       await oiRecognizer.destroy()
       mockServer.close()
     })
 
-    test("should not send message if no changes", async () =>
-    {
+    test("should not send message if no changes", async () => {
       expect.assertions(2)
       await oiRecognizer.init()
       oiRecognizer.send = jest.fn()
@@ -923,8 +838,7 @@ describe("RecognizerWebSocket.ts", () =>
       await delay(100)
       expect(oiRecognizer.send).toHaveBeenCalledTimes(1)
     })
-    test("should send undo message with changes", async () =>
-    {
+    test("should send undo message with changes", async () => {
       await oiRecognizer.init()
       const changes: TIIHistoryBackendChanges = {
         added: [buildIIStroke()],
@@ -933,7 +847,7 @@ describe("RecognizerWebSocket.ts", () =>
         matrix: { matrix: new MatrixTransform(1, 2, 3, 4, 5, 6), strokes: [buildIIStroke()] },
         rotate: [{ angle: Math.PI / 2, center: { x: 5, y: 10 }, strokes: [buildIIStroke()] }],
         scale: [{ origin: { x: 2, y: 4 }, scaleX: 2, scaleY: 3, strokes: [buildIIStroke()] }],
-        translate: [{ strokes: [buildIIStroke()], tx: 12, ty: 42 }]
+        translate: [{ strokes: [buildIIStroke()], tx: 12, ty: 42 }],
       }
       oiRecognizer.undo(changes)
       //¯\_(ツ)_/¯  required to wait for the instantiation of the promise of the recognizer
@@ -945,26 +859,26 @@ describe("RecognizerWebSocket.ts", () =>
         expect.arrayContaining([
           expect.objectContaining({
             type: "addStrokes",
-            strokes: changes.added!.map(s => StrokeOps.formatToSend(s)),
-            processGestures: false
-          })
+            strokes: changes.added!.map((s) => StrokeOps.formatToSend(s)),
+            processGestures: false,
+          }),
         ])
       )
       expect(messageSent.changes).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             type: "eraseStrokes",
-            strokeIds: changes.erased!.map(s => s.id)
-          })
+            strokeIds: changes.erased!.map((s) => s.id),
+          }),
         ])
       )
       expect(messageSent.changes).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             type: "replaceStrokes",
-            oldStrokeIds: changes.replaced!.oldStrokes.map(s => s.id),
-            newStrokes: changes.replaced!.newStrokes.map(s => StrokeOps.formatToSend(s))
-          })
+            oldStrokeIds: changes.replaced!.oldStrokes.map((s) => s.id),
+            newStrokes: changes.replaced!.newStrokes.map((s) => StrokeOps.formatToSend(s)),
+          }),
         ])
       )
       expect(messageSent.changes).toEqual(
@@ -972,9 +886,9 @@ describe("RecognizerWebSocket.ts", () =>
           expect.objectContaining({
             type: "transform",
             transformationType: "MATRIX",
-            strokeIds: changes.matrix!.strokes.map(s => s.id),
-            ...changes.matrix!.matrix
-          })
+            strokeIds: changes.matrix!.strokes.map((s) => s.id),
+            ...changes.matrix!.matrix,
+          }),
         ])
       )
       expect(messageSent.changes).toEqual(
@@ -982,11 +896,11 @@ describe("RecognizerWebSocket.ts", () =>
           expect.objectContaining({
             type: "transform",
             transformationType: "ROTATE",
-            strokeIds: changes.rotate![0].strokes.map(s => s.id),
+            strokeIds: changes.rotate![0].strokes.map((s) => s.id),
             angle: changes.rotate![0].angle,
             x0: changes.rotate![0].center.x,
-            y0: changes.rotate![0].center.y
-          })
+            y0: changes.rotate![0].center.y,
+          }),
         ])
       )
       expect(messageSent.changes).toEqual(
@@ -994,12 +908,12 @@ describe("RecognizerWebSocket.ts", () =>
           expect.objectContaining({
             type: "transform",
             transformationType: "SCALE",
-            strokeIds: changes.scale![0].strokes.map(s => s.id),
+            strokeIds: changes.scale![0].strokes.map((s) => s.id),
             scaleX: changes.scale![0].scaleX,
             scaleY: changes.scale![0].scaleY,
             x0: changes.scale![0].origin.x,
-            y0: changes.scale![0].origin.y
-          })
+            y0: changes.scale![0].origin.y,
+          }),
         ])
       )
       expect(messageSent.changes).toEqual(
@@ -1007,15 +921,14 @@ describe("RecognizerWebSocket.ts", () =>
           expect.objectContaining({
             type: "transform",
             transformationType: "TRANSLATE",
-            strokeIds: changes.translate![0].strokes.map(s => s.id),
+            strokeIds: changes.translate![0].strokes.map((s) => s.id),
             tx: changes.translate![0].tx,
-            ty: changes.translate![0].ty
-          })
+            ty: changes.translate![0].ty,
+          }),
         ])
       )
     })
-    test("should resolve undo when received contentChanged", async () =>
-    {
+    test("should resolve undo when received contentChanged", async () => {
       expect.assertions(1)
       await oiRecognizer.init()
       const changes: TIIHistoryBackendChanges = { added: [buildIIStroke()] }
@@ -1025,8 +938,7 @@ describe("RecognizerWebSocket.ts", () =>
       mockServer.sendContentChangeMessage()
       await expect(promise).toResolve()
     })
-    test("should reject if receive error message", async () =>
-    {
+    test("should reject if receive error message", async () => {
       const spyEmitError: jest.SpyInstance = jest.spyOn(oiRecognizer.event, "emitError")
       expect.assertions(3)
       await oiRecognizer.init()
@@ -1041,27 +953,23 @@ describe("RecognizerWebSocket.ts", () =>
     })
   })
 
-  describe("redo", () =>
-  {
+  describe("redo", () => {
     const conf = structuredClone(configuration)
     conf.server.host = "redo-test"
     let mockServer: ServerWebSocketMock
     let oiRecognizer: RecognizerWebSocket
 
-    beforeEach(() =>
-    {
+    beforeEach(() => {
       oiRecognizer = new RecognizerWebSocket(conf)
       mockServer = new ServerWebSocketMock(oiRecognizer.url)
       mockServer.init()
     })
-    afterEach(async () =>
-    {
+    afterEach(async () => {
       await oiRecognizer.destroy()
       mockServer.close()
     })
 
-    test("should send redo message", async () =>
-    {
+    test("should send redo message", async () => {
       expect.assertions(1)
       await oiRecognizer.init()
       const changes: TIIHistoryBackendChanges = { added: [buildIIStroke()] }
@@ -1072,8 +980,7 @@ describe("RecognizerWebSocket.ts", () =>
       const messageSentExpected = { type: "redo" }
       await expect(messageSent).toMatchObject(messageSentExpected)
     })
-    test("should resolve redo when received contentChanged", async () =>
-    {
+    test("should resolve redo when received contentChanged", async () => {
       expect.assertions(1)
       await oiRecognizer.init()
       const changes: TIIHistoryBackendChanges = { added: [buildIIStroke()] }
@@ -1083,8 +990,7 @@ describe("RecognizerWebSocket.ts", () =>
       mockServer.sendContentChangeMessage()
       await expect(promise).toResolve()
     })
-    test("should reject if receive error message", async () =>
-    {
+    test("should reject if receive error message", async () => {
       const spyEmitError: jest.SpyInstance = jest.spyOn(oiRecognizer.event, "emitError")
       expect.assertions(3)
       await oiRecognizer.init()
@@ -1099,27 +1005,23 @@ describe("RecognizerWebSocket.ts", () =>
     })
   })
 
-  describe("clear", () =>
-  {
+  describe("clear", () => {
     const conf = structuredClone(configuration)
     conf.server.host = "clear-test"
     let mockServer: ServerWebSocketMock
     let oiRecognizer: RecognizerWebSocket
 
-    beforeEach(() =>
-    {
+    beforeEach(() => {
       oiRecognizer = new RecognizerWebSocket(conf)
       mockServer = new ServerWebSocketMock(oiRecognizer.url)
       mockServer.init()
     })
-    afterEach(async () =>
-    {
+    afterEach(async () => {
       await oiRecognizer.destroy()
       mockServer.close()
     })
 
-    test("should send clear message", async () =>
-    {
+    test("should send clear message", async () => {
       expect.assertions(1)
       await oiRecognizer.init()
       oiRecognizer.clear()
@@ -1129,8 +1031,7 @@ describe("RecognizerWebSocket.ts", () =>
       const messageSentExpected = { type: "clear" }
       await expect(messageSent).toMatchObject(messageSentExpected)
     })
-    test("should resolve clear when received contentChanged", async () =>
-    {
+    test("should resolve clear when received contentChanged", async () => {
       expect.assertions(1)
       await oiRecognizer.init()
       const promise = oiRecognizer.clear()
@@ -1139,8 +1040,7 @@ describe("RecognizerWebSocket.ts", () =>
       mockServer.sendContentChangeMessage()
       await expect(promise).toResolve()
     })
-    test("should reject if receive error message", async () =>
-    {
+    test("should reject if receive error message", async () => {
       const spyEmitError: jest.SpyInstance = jest.spyOn(oiRecognizer.event, "emitError")
       expect.assertions(3)
       await oiRecognizer.init()
@@ -1154,27 +1054,23 @@ describe("RecognizerWebSocket.ts", () =>
     })
   })
 
-  describe("export", () =>
-  {
+  describe("export", () => {
     const conf = structuredClone(configuration)
     conf.server.host = "export-test"
     let mockServer: ServerWebSocketMock
     let oiRecognizer: RecognizerWebSocket
 
-    beforeEach(() =>
-    {
+    beforeEach(() => {
       oiRecognizer = new RecognizerWebSocket(conf)
       mockServer = new ServerWebSocketMock(oiRecognizer.url)
       mockServer.init()
     })
-    afterEach(async () =>
-    {
+    afterEach(async () => {
       await oiRecognizer.destroy()
       mockServer.close()
     })
 
-    test("should send export", async () =>
-    {
+    test("should send export", async () => {
       await oiRecognizer.init()
       const promise = oiRecognizer.export()
       //¯\_(ツ)_/¯  required to wait server received message
@@ -1186,7 +1082,7 @@ describe("RecognizerWebSocket.ts", () =>
       const exportmessageSentExpected = JSON.stringify({
         type: "export",
         partId: partChangeMessage.partId,
-        mimeTypes: ["application/vnd.myscript.jiix"]
+        mimeTypes: ["application/vnd.myscript.jiix"],
       })
       //¯\_(ツ)_/¯  required to wait for the instantiation of the promise of the recognizer
       await delay(100)
@@ -1194,13 +1090,12 @@ describe("RecognizerWebSocket.ts", () =>
       expect(exportMessageSent).toContain(exportmessageSentExpected)
       await expect(promise).resolves.toEqual(
         expect.objectContaining({
-          "application/vnd.myscript.jiix": hTextJIIX
+          "application/vnd.myscript.jiix": hTextJIIX,
         })
       )
       oiRecognizer.destroy()
     })
-    test("should resolve when receive fileChunckAck message", async () =>
-    {
+    test("should resolve when receive fileChunckAck message", async () => {
       expect.assertions(1)
 
       await oiRecognizer.init()
@@ -1210,13 +1105,12 @@ describe("RecognizerWebSocket.ts", () =>
       mockServer.sendHExportMessage()
       await expect(promise).resolves.toEqual(
         expect.objectContaining({
-          "application/vnd.myscript.jiix": hTextJIIX
+          "application/vnd.myscript.jiix": hTextJIIX,
         })
       )
       oiRecognizer.destroy()
     })
-    test("should reject if receive error message", async () =>
-    {
+    test("should reject if receive error message", async () => {
       const spyEmitError: jest.SpyInstance = jest.spyOn(oiRecognizer.event, "emitError")
       expect.assertions(3)
       await oiRecognizer.init()
@@ -1230,21 +1124,18 @@ describe("RecognizerWebSocket.ts", () =>
     })
   })
 
-  describe("Connection lost", () =>
-  {
+  describe("Connection lost", () => {
     const conf = structuredClone(configuration)
     conf.server.host = "close-test"
     let mockServer: ServerWebSocketMock
     let oiRecognizer: RecognizerWebSocket
 
-    beforeEach(() =>
-    {
+    beforeEach(() => {
       oiRecognizer = new RecognizerWebSocket(conf)
       mockServer = new ServerWebSocketMock(oiRecognizer.url)
       mockServer.init()
     })
-    afterEach(async () =>
-    {
+    afterEach(async () => {
       await oiRecognizer.destroy()
       mockServer.close()
     })
@@ -1264,10 +1155,8 @@ describe("RecognizerWebSocket.ts", () =>
       { code: 1015, message: RecognizerError.TLS_HANDSHAKE },
       { code: 42, message: RecognizerError.CANT_ESTABLISH },
     ]
-    closeMessageOptions.forEach(async (closeEvent) =>
-    {
-      test(`should emit error if the server closes the connection abnormally code == ${ closeEvent.code }`, async () =>
-      {
+    closeMessageOptions.forEach(async (closeEvent) => {
+      test(`should emit error if the server closes the connection abnormally code == ${closeEvent.code}`, async () => {
         const spyEmitError: jest.SpyInstance = jest.spyOn(oiRecognizer.event, "emitError")
         expect.assertions(2)
         await oiRecognizer.init()
@@ -1278,14 +1167,12 @@ describe("RecognizerWebSocket.ts", () =>
     })
   })
 
-  describe("destroy", () =>
-  {
+  describe("destroy", () => {
     const conf = structuredClone(configuration)
     conf.server.host = "destroy-test"
     let mockServer: ServerWebSocketMock
 
-    test("should close socket", async () =>
-    {
+    test("should close socket", async () => {
       const oiRecognizer = new RecognizerWebSocket(conf)
       mockServer = new ServerWebSocketMock(oiRecognizer.url)
       mockServer.init()
@@ -1299,5 +1186,4 @@ describe("RecognizerWebSocket.ts", () =>
       mockServer.close()
     })
   })
-
 })
