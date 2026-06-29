@@ -1,11 +1,14 @@
-import { getApiInfos, PartialDeep, TApiInfos } from "@/utils"
+import type { TPartialDeep, TApiInfos } from "@/utils";
+import { getApiInfos } from "@/utils"
+import type {
+  TLoggerConfiguration
+} from "@/logger";
 import {
   LoggerCategory,
   LoggerManager,
-  DefaultLoggerConfiguration,
-  TLoggerConfiguration
+  DefaultLoggerConfiguration
 } from "@/logger"
-import { TServerHTTPConfiguration } from "@/recognizer"
+import type { TServerHTTPConfiguration } from "@/recognizer"
 import { EditorEvent } from "./EditorEvent"
 import { EditorLayer } from "./EditorLayer"
 
@@ -21,13 +24,13 @@ export type TEditorConfiguration = {
  * @group Editor
  * @remarks "INKV1" is deprecated use "INKV2" instead.
  */
-export type EditorType = "INTERACTIVEINK" | "INKV1" | "INTERACTIVEINKSSR" | "INKV2"
+export type TEditorType = "INTERACTIVEINK" | "INKV1" | "INTERACTIVEINKSSR" | "INKV2"
 
 /**
  * @hidden
  * @group Editor
  */
-export type EditorOptionsBase = {
+export type TEditorOptionsBase = {
   configuration: TEditorConfiguration
   override?: {
     cssClass?: string
@@ -53,7 +56,7 @@ export abstract class AbstractEditor
   #resizeObserver?: ResizeObserver
   #resizeDebounceTimer?: ReturnType<typeof setTimeout>
 
-  constructor(rootElement: HTMLElement, options?: PartialDeep<EditorOptionsBase>)
+  constructor(rootElement: HTMLElement, options?: TPartialDeep<TEditorOptionsBase>)
   {
     this.loggerConfiguration = { ...DefaultLoggerConfiguration, ...options?.configuration?.logger }
     this.logger.info("constructor", { rootElement, options })

@@ -1,5 +1,5 @@
-import { TServerHTTPConfiguration } from "@/recognizer"
-import { PartialDeep } from "./types"
+import type { TServerHTTPConfiguration } from "@/recognizer"
+import type { TPartialDeep } from "./types"
 import { assertServerConfig } from "./validation"
 
 /**
@@ -14,7 +14,7 @@ export type TApiInfos = {
 /**
  * @group Utilities
  */
-export async function getApiInfos(configuration?: PartialDeep<{ server: TServerHTTPConfiguration }>): Promise<TApiInfos>
+export async function getApiInfos(configuration?: TPartialDeep<{ server: TServerHTTPConfiguration }>): Promise<TApiInfos>
 {
   try {
     assertServerConfig(configuration?.server, "Failed to get infos")

@@ -1,23 +1,24 @@
 import menuIcon from "@/assets/svg/menu.svg"
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { IIModel } from "@/model"
-import { InteractiveInkEditor } from "@/editor"
+import type { IIModel } from "@/model"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { DOMFactory } from "@/components/dom"
-import { BaseMenuItem } from "./items"
-import { IEditorTheme } from "@/editor/EditorThemes"
+import type { BaseMenuItem } from "./items"
+import type { TEditorTheme } from "@/editor/EditorThemes"
+import type { TGestureActionConfig, TGuideActionConfig, TSnapActionConfig, TMathActionConfig, TOverlayActionConfig, TSelectionActionConfig, TExportActionConfig} from "./actions";
 import {
   ClearMenuAction,
   LanguageMenuAction,
   UndoRedoMenuAction,
   ZoomMenuAction,
   ConvertMenuAction,
-  GestureMenuAction, TGestureActionConfig,
-  GuideMenuAction, TGuideActionConfig,
-  SnapMenuAction, TSnapActionConfig,
-  MathMenuAction, TMathActionConfig,
-  OverlayMenuAction, TOverlayActionConfig,
-  SelectionMenuAction, TSelectionActionConfig,
-  ExportMenuAction, TExportActionConfig,
+  GestureMenuAction,
+  GuideMenuAction,
+  SnapMenuAction,
+  MathMenuAction,
+  OverlayMenuAction,
+  SelectionMenuAction,
+  ExportMenuAction,
   ImportMenuAction,
   MinimapMenuAction,
   ThemeMenuAction
@@ -28,7 +29,7 @@ import {
  * @remarks Configuration to enable/disable each action menu individually.
  * Sub-menus accept `boolean` to show/hide entirely, or an object to configure individual items.
  */
-export interface IIMenuActionConfig {
+export type TMenuActionConfig = {
   /** Enable/disable Clear menu */
   clear?: boolean
   /** Enable/disable Language menu */
@@ -60,11 +61,11 @@ export interface IIMenuActionConfig {
   /** Enable/disable Theme picker */
   theme?: boolean
   /** Override predefined themes shown in the theme picker */
-  themes?: IEditorTheme[]
+  themes?: TEditorTheme[]
 }
 
 /** @group Menu */
-export const DefaultMenuActionConfig: Required<Omit<IIMenuActionConfig, "themes">> = {
+export const DefaultMenuActionConfig: Required<Omit<TMenuActionConfig, "themes">> = {
   clear: true,
   language: true,
   undoRedo: true,
@@ -93,15 +94,15 @@ export class IIMenuAction
 {
   #logger = LoggerManager.getLogger(LoggerCategory.MENU)
 
-  editor: InteractiveInkEditor
+  editor: TInteractiveInkEditor
   id: string
   wrapper?: HTMLElement
-  config: Required<Omit<IIMenuActionConfig, "themes">> & Pick<IIMenuActionConfig, "themes">
+  config: Required<Omit<TMenuActionConfig, "themes">> & Pick<TMenuActionConfig, "themes">
 
   private menuActions: Map<string, BaseMenuItem> = new Map()
   #documentPointerdownHandler?: (e: PointerEvent) => void
 
-  constructor(editor: InteractiveInkEditor, id = "ms-menu-action", config?: IIMenuActionConfig)
+  constructor(editor: TInteractiveInkEditor, id = "ms-menu-action", config?: TMenuActionConfig)
   {
     this.id = id
     this.editor = editor

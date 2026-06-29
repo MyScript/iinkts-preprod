@@ -1,10 +1,11 @@
+import type {
+  TSymbol} from "@/symbol";
 import
 {
   SymbolType,
-  TIISymbol,
   isRecognizedText,
 } from "@/symbol"
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 
 /**
  * Helper class containing all shared utility methods for gesture handlers
@@ -13,7 +14,7 @@ import type { InteractiveInkEditor } from "@/editor"
  */
 export class GestureHelpers
 {
-  constructor(protected editor: InteractiveInkEditor)
+  constructor(protected editor: TInteractiveInkEditor)
   {
   }
 
@@ -22,7 +23,7 @@ export class GestureHelpers
    * @param symbol - The symbol to check
    * @returns true if symbol is Stroke, Text, or RecognizedText
    */
-  isDecorable(symbol: TIISymbol): boolean
+  isDecorable(symbol: TSymbol): boolean
   {
     return symbol.type === SymbolType.Stroke ||
            symbol.type === SymbolType.Text ||

@@ -1,36 +1,47 @@
 /**
  * @group Symbol
- * @summary Symbol types and geometries
+ * @summary Symbol types organized by category
  *
- * The symbol module provides:
+ * **Primitives** — {@link TPoint}, {@link TBox}, {@link BoxOps}
  *
- * **Base Symbols** (`./base`)
- * - {@link Symbol} - Base symbol abstraction
- * - {@link Stroke} - Collection of pointers representing a stroke
- * - {@link CanvasSymbol} - Symbol for canvas rendering
- * - {@link Point} - 2D point representation
- * - {@link Box} - Bounding box representation
+ * **Stroke** — {@link TStroke}, {@link StrokeOps}
  *
- * **Interactive Symbols** (`./interactive`)
- * - {@link IISymbol} - Rich symbol with advanced features
- * - {@link IIStroke} - Stroke with decorators and style
- * - {@link IIText} - Text symbol with font styling
- * - {@link IIEraser} - Eraser tool marker
+ * **Text** — {@link TText}, {@link TextOps}
  *
- * **Geometry** (`./geometry`)
- * - Shapes (Circle, Ellipse, Polygon)
- * - Edges (Line, Arc, PolyLine)
- * - Shape utilities
+ * **Math** — {@link TMath}, {@link MathOps}
+ *
+ * **Typeset** — {@link TTypesetChild}, {@link TRotation}
+ *
+ * **Decorator** — {@link TDecorator}, {@link DecoratorOps}
+ *
+ * **Eraser** — {@link TEraser}, {@link EraserOps}
+ *
+ * **Shape** — {@link TShape}, {@link TShapeCircle}, {@link TShapeEllipse}, {@link TShapePolygon}
+ *
+ * **Edge** — {@link TEdge}, {@link TEdgeArc}, {@link TEdgeLine}, {@link TEdgePolyLine}, {@link TAnchor}
+ *
+ * **Legacy** (deprecated v1) — {@link Stroke}, {@link TLegacyStroke}
  */
 
-// Base symbols
-export * from "./base"
+// Primitives
+export * from "./primitives"
 
-// Interactive symbols
-export * from "./interactive"
+// Symbol categories
+export * from "./stroke"
+export * from "./text"
+export * from "./math"
+export * from "./typeset"
+export * from "./decorator"
+export * from "./eraser"
+export * from "./shape"
+export * from "./edge"
 
-// Geometry
-export * from "./geometry"
+// Root union type + enum re-exports
+export * from "./Symbol"
 
-// Symbol helpers
+// Cross-type dispatchers
 export * from "./SymbolHelpers"
+
+// Legacy v1 symbols (deprecated)
+export * from "./legacy"
+

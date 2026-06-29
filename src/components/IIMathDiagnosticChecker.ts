@@ -1,4 +1,4 @@
-import { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { Modal } from "./Modal"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import { getMathDiagnosticMessage } from "@/constants/MathDiagnosticMessages"
@@ -7,7 +7,7 @@ import { DOMFactory } from "@/components/dom"
 /**
  * @group Components
  */
-export interface SymbolDiagnostic {
+export type TSymbolDiagnostic = {
   jiixBlockId: string
   computeDiagnostic: string
   evaluationDiagnostic: string
@@ -18,12 +18,12 @@ export interface SymbolDiagnostic {
  * @remarks Component for checking and displaying diagnostics for multiple math symbols
  */
 export class IIMathDiagnosticChecker {
-  private editor: InteractiveInkEditor
+  private editor: TInteractiveInkEditor
   private jiixBlockIds: string[]
   private modal?: Modal
   private logger = LoggerManager.getLogger(LoggerCategory.MATH)
 
-  constructor(editor: InteractiveInkEditor, jiixBlockIds: string[]) {
+  constructor(editor: TInteractiveInkEditor, jiixBlockIds: string[]) {
     this.editor = editor
     this.jiixBlockIds = [...new Set(jiixBlockIds)]
   }
@@ -33,7 +33,7 @@ export class IIMathDiagnosticChecker {
    */
   async show(): Promise<void> {
     // Fetch diagnostics for all symbols
-    const diagnostics: SymbolDiagnostic[] = []
+    const diagnostics: TSymbolDiagnostic[] = []
 
     for (const jiixBlockId of this.jiixBlockIds) {
       if (!jiixBlockId) {
@@ -78,7 +78,7 @@ export class IIMathDiagnosticChecker {
   /**
    * Create the modal content with diagnostics
    */
-  private createModalContent(diagnostics: SymbolDiagnostic[]): HTMLDivElement {
+  private createModalContent(diagnostics: TSymbolDiagnostic[]): HTMLDivElement {
     const container = DOMFactory.div({ className: "ms-diagnostic-content" })
 
     // Create a section for each symbol
@@ -93,7 +93,7 @@ export class IIMathDiagnosticChecker {
   /**
    * Create a diagnostic section for a single symbol
    */
-  private createSymbolDiagnosticSection(diagnostic: SymbolDiagnostic): HTMLDivElement {
+  private createSymbolDiagnosticSection(diagnostic: TSymbolDiagnostic): HTMLDivElement {
     const section = DOMFactory.div({ className: "ms-diagnostic-section" })
 
     // Expression header

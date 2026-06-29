@@ -1,4 +1,4 @@
-type JsonCSS = {
+type TJsonCSS = {
   toCSS(json): string
   toJSON(style): TTheme
 }

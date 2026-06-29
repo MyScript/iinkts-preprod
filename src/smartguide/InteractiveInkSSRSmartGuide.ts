@@ -1,9 +1,10 @@
 import style from "./InteractiveInkSSRSmartGuide.css"
-import { InteractiveInkSSREditor } from "@/editor"
+import type { InteractiveInkSSREditor } from "@/editor"
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { ExportType, TJIIXExport, TJIIXWord } from "@/model"
+import type { TJIIXExport, TJIIXWord } from "@/model";
+import { ExportType } from "@/model"
 import { convertMillimeterToPixel, createUUID } from "@/utils"
-import { TMarginConfiguration } from "@/recognizer"
+import type { TMarginConfiguration } from "@/recognizer"
 
 /**
  * @group SmartGuide

@@ -1,10 +1,13 @@
-import { IIStroke, SymbolType, isDecorator } from "@/symbol"
-import { IIHistoryManager } from "@/history"
-import { isBetween, PartialDeep } from "@/utils"
-import { IITranslateManager, IITypesetManager } from "."
-import { InteractiveInkEditor } from "@/editor"
+import type { TStroke} from "@/symbol";
+import { SymbolType, isDecorator } from "@/symbol"
+import { BoxOps } from "@/symbol/primitives/Box"
+import type { IIHistoryManager } from "@/history"
+import type { TPartialDeep } from "@/utils";
+import { isBetween } from "@/utils"
+import type { IITranslateManager, IITypesetManager } from "."
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { IIAbstractManager } from "./IIAbstractManager"
-import type { IGestureHandler } from "./gestures"
+import type { TGestureHandler } from "./gestures"
 import {
   GestureHelpers,
   SurroundGestureHandler,
@@ -14,14 +17,15 @@ import {
   JoinGestureHandler,
   InsertGestureHandler
 } from "./gestures"
-import {
+import type {
   TGestureType,
   TGesture,
+  TGestureConfiguration} from "./gestures/GestureTypes";
+import {
   SurroundAction,
   StrikeThroughAction,
   UnderlineAction,
   InsertAction,
-  TGestureConfiguration,
   DefaultGestureConfiguration
 } from "./gestures/GestureTypes"
 import { LoggerCategory } from "@/logger"
@@ -34,7 +38,7 @@ export class IIGestureManager extends IIAbstractManager
 {
   protected managerName = "IIGestureManager"
 
-  #handlers: Map<TGestureType, IGestureHandler> = new Map()
+  #handlers: Map<TGestureType, TGestureHandler> = new Map()
   #helpers: GestureHelpers
 
   static readonly #TEXT_STROKE_GROUP_TYPES = new Set([SymbolType.Text, SymbolType.Stroke, SymbolType.Group])
@@ -47,7 +51,7 @@ export class IIGestureManager extends IIAbstractManager
   strikeThroughAction: StrikeThroughAction = StrikeThroughAction.Draw
   underlineAction: UnderlineAction = UnderlineAction.Draw
 
-  constructor(editor: InteractiveInkEditor, gestureAction?: PartialDeep<TGestureConfiguration>)
+  constructor(editor: TInteractiveInkEditor, gestureAction?: TPartialDeep<TGestureConfiguration>)
   {
     super(editor, LoggerCategory.GESTURE)
     this.logger.info("constructor")
@@ -95,7 +99,7 @@ export class IIGestureManager extends IIAbstractManager
    * @param gestureStroke - The stroke that represents the gesture
    * @param gesture - The detected gesture with metadata
    */
-  async apply(gestureStroke: IIStroke, gesture: TGesture): Promise<void>
+  async apply(gestureStroke: TStroke, gesture: TGesture): Promise<void>
   {
     this.logger.info("apply", { gestureStroke, gesture })
 
@@ -120,7 +124,7 @@ export class IIGestureManager extends IIAbstractManager
    * @param gestureStroke - The stroke to analyze
    * @returns The detected gesture or undefined
    */
-  async getGestureFromContextLess(gestureStroke: IIStroke): Promise<TGesture | undefined>
+  async getGestureFromContextLess(gestureStroke: TStroke): Promise<TGesture | undefined>
   {
     const gesture = await this.recognizer.recognizeGesture(gestureStroke)
     if (!gesture) return
@@ -128,7 +132,7 @@ export class IIGestureManager extends IIAbstractManager
       case "surround": {
         const hasSymbolsToSurrond = this.model.symbols.some(s =>
         {
-          if (s.id !== gestureStroke.id && !isDecorator(s) && gestureStroke.bounds.contains(s.bounds)) {
+          if (s.id !== gestureStroke.id && !isDecorator(s) && BoxOps.contains(gestureStroke.bounds, s.bounds)) {
             return this.surroundAction === SurroundAction.Select || IIGestureManager.#SURROUND_SELECT_TYPES.has(s.type)
           }
           return false
@@ -149,8 +153,8 @@ export class IIGestureManager extends IIAbstractManager
         const symbolsToUnderline = this.model.symbols.filter(s =>
         {
           return s.id !== gestureStroke.id && IIGestureManager.#TEXT_STROKE_GROUP_TYPES.has(s.type) &&
-            isBetween(s.bounds.xMid, gestureStroke.bounds.xMin, gestureStroke.bounds.xMax) &&
-            isBetween(gestureStroke.bounds.yMid, s.bounds.y + s.bounds.height * 3 / 4, s.bounds.y + s.bounds.height * 5 / 4)
+            isBetween(s.bounds.x + s.bounds.width / 2, gestureStroke.bounds.x, gestureStroke.bounds.x + gestureStroke.bounds.width) &&
+            isBetween(gestureStroke.bounds.y + gestureStroke.bounds.height / 2, s.bounds.y + s.bounds.height * 3 / 4, s.bounds.y + s.bounds.height * 5 / 4)
         })
         if (symbolsToUnderline.length) {
           return {
@@ -164,8 +168,8 @@ export class IIGestureManager extends IIAbstractManager
         const symbolsToStrikeThrough = this.model.symbols.filter(s =>
         {
           return s.id !== gestureStroke.id && IIGestureManager.#TEXT_STROKE_GROUP_TYPES.has(s.type) &&
-            isBetween(s.bounds.xMid, gestureStroke.bounds.xMin, gestureStroke.bounds.xMax) &&
-            isBetween(gestureStroke.bounds.yMid, s.bounds.y + s.bounds.height / 4, s.bounds.y + s.bounds.height * 3 / 4)
+            isBetween(s.bounds.x + s.bounds.width / 2, gestureStroke.bounds.x, gestureStroke.bounds.x + gestureStroke.bounds.width) &&
+            isBetween(gestureStroke.bounds.y + gestureStroke.bounds.height / 2, s.bounds.y + s.bounds.height / 4, s.bounds.y + s.bounds.height * 3 / 4)
         })
         if (symbolsToStrikeThrough.length) {
           return {
@@ -183,8 +187,8 @@ export class IIGestureManager extends IIAbstractManager
         {
           return s.id !== gestureStroke.id &&
             (
-              gestureStroke.bounds.overlaps(s.bounds) && IIGestureManager.#ERASE_OVERLAY_TYPES.has(s.type) ||
-              gestureStroke.bounds.contains(s.bounds) && IIGestureManager.#ERASE_CONTAIN_TYPES.has(s.type)
+              BoxOps.overlaps(gestureStroke.bounds, s.bounds) && IIGestureManager.#ERASE_OVERLAY_TYPES.has(s.type) ||
+              BoxOps.contains(gestureStroke.bounds, s.bounds) && IIGestureManager.#ERASE_CONTAIN_TYPES.has(s.type)
             )
         })
 
@@ -203,7 +207,7 @@ export class IIGestureManager extends IIAbstractManager
         const hasSymbolsInRow = this.model.symbols.some(s =>
           s.id !== gestureStroke.id &&
           IIGestureManager.#TEXT_STROKE_GROUP_TYPES.has(s.type) &&
-          isBetween(s.bounds.yMid, gestureStroke.bounds.yMin, gestureStroke.bounds.yMax)
+          isBetween(s.bounds.y + s.bounds.height / 2, gestureStroke.bounds.y, gestureStroke.bounds.y + gestureStroke.bounds.height)
         )
         if (hasSymbolsInRow) {
           return {
@@ -220,7 +224,7 @@ export class IIGestureManager extends IIAbstractManager
         const hasSymbolsInRow = this.model.symbols.some(s =>
           s.id !== gestureStroke.id &&
           IIGestureManager.#TEXT_STROKE_GROUP_TYPES.has(s.type) &&
-          isBetween(s.bounds.yMid, gestureStroke.bounds.yMin, gestureStroke.bounds.yMax)
+          isBetween(s.bounds.y + s.bounds.height / 2, gestureStroke.bounds.y, gestureStroke.bounds.y + gestureStroke.bounds.height)
         )
         if (hasSymbolsInRow) {
           return {

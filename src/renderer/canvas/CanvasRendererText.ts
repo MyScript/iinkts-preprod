@@ -1,5 +1,5 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { TSymbol, TCanvasTextSymbol, TCanvasTextUnderlineSymbol, TCanvasUnderLineSymbol, TPoint } from "@/symbol"
+import type { TBaseSymbol, TCanvasTextSymbol, TCanvasTextUnderlineSymbol, TCanvasUnderLineSymbol, TPoint } from "@/symbol"
 
 /**
  * @group Renderer
@@ -66,7 +66,7 @@ export class CanvasRendererText
     })
   }
 
-  draw(context2D: CanvasRenderingContext2D, symbol: TSymbol)
+  draw(context2D: CanvasRenderingContext2D, symbol: TBaseSymbol)
   {
     this.#logger.info("draw", { context2D, symbol })
     context2D.lineWidth = (symbol.style.width as number)

@@ -1,7 +1,10 @@
-import { InteractiveInkEditor } from "@/editor"
-import { BaseMenuItem, TGenericMenuItem } from "@/menu/items/BaseMenuItem"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import type { TGenericMenuItem } from "@/menu/items/BaseMenuItem";
+import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
 import ArrowDown from "@/assets/svg/nav-arrow-down.svg"
-import { DecoratorKind, IIDecorator, IIText, isRecognizedMath, isText } from "@/symbol"
+import type { TText} from "@/symbol";
+import { DecoratorKind, isRecognizedMath, isText } from "@/symbol"
+import { DecoratorOps } from "@/symbol/decorator/Decorator"
 import { DEFAULT_MENU_COLORS } from "@/menu/MenuConstants"
 
 /** @group Menu */
@@ -25,7 +28,7 @@ export class DecoratorContextMenu extends BaseMenuItem<HTMLElement>
   protected declare config: TGenericMenuItem & { idPrefix: string }
   #itemsConfig?: TContextDecoratorItemsConfig
 
-  constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-context", itemsConfig?: TContextDecoratorItemsConfig)
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-context", itemsConfig?: TContextDecoratorItemsConfig)
   {
     const config: TGenericMenuItem & { idPrefix: string } = {
       type: "custom",
@@ -37,9 +40,9 @@ export class DecoratorContextMenu extends BaseMenuItem<HTMLElement>
     this.#itemsConfig = itemsConfig
   }
 
-  get symbolsDecorable(): IIText[]
+  get symbolsDecorable(): TText[]
   {
-    return this.editor.model.symbolsSelected.filter(isText) as IIText[]
+    return this.editor.model.symbolsSelected.filter(isText) as TText[]
   }
 
   get showDecorator(): boolean
@@ -80,7 +83,7 @@ export class DecoratorContextMenu extends BaseMenuItem<HTMLElement>
       symbolsDecorable.forEach(s => {
         if (enable) {
           if (!s.decorators.some(d => d.kind === kind)) {
-            s.decorators.push(new IIDecorator(kind, this.editor.penStyle))
+            s.decorators.push(DecoratorOps.create(kind, this.editor.penStyle))
           }
         }
         else {

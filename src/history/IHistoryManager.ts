@@ -1,16 +1,17 @@
-import { EditorEvent } from "@/editor/EditorEvent"
+import type { EditorEvent } from "@/editor/EditorEvent"
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { IModel } from "@/model"
-import { TIISymbol } from "@/symbol"
-import { THistoryContext, getInitialHistoryContext } from "./HistoryContext"
-import { THistoryConfiguration } from "./HistoryConfiguration"
+import type { IModel } from "@/model"
+import type { TSymbol } from "@/symbol"
+import type { THistoryContext} from "./HistoryContext";
+import { getInitialHistoryContext } from "./HistoryContext"
+import type { THistoryConfiguration } from "./HistoryConfiguration"
 
 /**
  * @group History
  */
 export type TIHistoryChanges = {
-  added?: TIISymbol[]
-  removed?: TIISymbol[]
+  added?: TSymbol[]
+  removed?: TSymbol[]
 }
 
 /**

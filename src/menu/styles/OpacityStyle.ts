@@ -1,6 +1,7 @@
-import { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
-import { RangeMenuItem, IMenuRange, CollapsibleWrapper } from "@/menu/items"
+import type { TMenuRange} from "@/menu/items";
+import { RangeMenuItem, CollapsibleWrapper } from "@/menu/items"
 
 /**
  * @group Menu
@@ -10,7 +11,7 @@ export class OpacityStyle extends BaseMenuItem<HTMLDivElement>
 {
   private opacityItem?: RangeMenuItem
 
-  constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-style")
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-style")
   {
     const config = {
       type: "opacity" as const,
@@ -26,7 +27,7 @@ export class OpacityStyle extends BaseMenuItem<HTMLDivElement>
     const hasUniqOpacity = symbolsStyles.length && symbolsStyles.every(st => st.opacity === symbolsStyles[0]?.opacity)
     const currentOpacity = Math.round((hasUniqOpacity && symbolsStyles[0]?.opacity ? symbolsStyles[0]?.opacity : (this.editor.penStyle.opacity || 1)) * 100)
 
-    const opacityConfig: IMenuRange = {
+    const opacityConfig: TMenuRange = {
       type: "range",
       id: this.config.id,
       min: 1,

@@ -1,16 +1,17 @@
-import { BaseMenuItem, IMenuItemBase } from "./BaseMenuItem"
-import { InteractiveInkEditor } from "@/editor"
+import type { TMenuItemBase } from "./BaseMenuItem";
+import { BaseMenuItem } from "./BaseMenuItem"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 
 /**
  * @group Menu
  * @remarks Configuration for a file input with a validation button
  */
-export interface IMenuFileInput extends IMenuItemBase {
+export type TMenuFileInput = TMenuItemBase & {
   type: "fileinput"
   accept?: string
   multiple?: boolean
   buttonLabel?: string
-  action: (editor: InteractiveInkEditor, files: FileList) => void | Promise<void>
+  action: (editor: TInteractiveInkEditor, files: FileList) => void | Promise<void>
 }
 
 /**
@@ -19,7 +20,7 @@ export interface IMenuFileInput extends IMenuItemBase {
  */
 export class FileInputMenuItem extends BaseMenuItem<HTMLDivElement>
 {
-  protected declare config: IMenuFileInput
+  protected declare config: TMenuFileInput
   private inputElement!: HTMLInputElement
   private buttonElement!: HTMLButtonElement
 

@@ -1,19 +1,19 @@
 
 import { DEFAULT_MENU_COLORS, DEFAULT_THICKNESS_LIST, DEFAULT_FONT_SIZE_LIST, DEFAULT_FONT_WEIGHT_LIST } from "./MenuConstants"
-import type { IIMenuStyleConfig } from "./IIMenuStyle"
-import type { IIMenuToolConfig } from "./IIMenuTool"
-import type { IIMenuActionConfig } from "./IIMenuAction"
-import type { IIMenuContextConfig } from "./IIMenuContext"
+import type { TMenuStyleConfig } from "./IIMenuStyle"
+import type { TMenuToolConfig } from "./IIMenuTool"
+import type { TMenuActionConfig } from "./IIMenuAction"
+import type { TMenuContextConfig } from "./IIMenuContext"
 
 /**
  * @group Menu
  */
 export type TMenuConfiguration = {
   enable: boolean,
-  style: IIMenuStyleConfig & { enable: boolean }
-  tool: IIMenuToolConfig & { enable: boolean }
-  action: IIMenuActionConfig & { enable: boolean }
-  context: IIMenuContextConfig & { enable: boolean }
+  style: TMenuStyleConfig & { enable: boolean }
+  tool: TMenuToolConfig & { enable: boolean }
+  action: TMenuActionConfig & { enable: boolean }
+  context: TMenuContextConfig & { enable: boolean }
 }
 
 /**

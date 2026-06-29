@@ -1,29 +1,31 @@
-import { EditorEvent } from "@/editor/EditorEvent"
+import type { EditorEvent } from "@/editor/EditorEvent"
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { IIModel } from "@/model"
-import { IIStroke, TIISymbol, TPoint } from "@/symbol"
-import { TStyle } from "@/style"
-import { MatrixTransform, TMatrixTransform } from "@/transform"
-import { THistoryContext, getInitialHistoryContext } from "./HistoryContext"
-import { PartialDeep } from "@/utils"
-import { THistoryConfiguration } from "./HistoryConfiguration"
+import type { IIModel } from "@/model"
+import type { TStroke, TSymbol, TPoint } from "@/symbol"
+import type { TStyle } from "@/style"
+import type { TMatrixTransform } from "@/transform";
+import { MatrixTransform } from "@/transform"
+import type { THistoryContext} from "./HistoryContext";
+import { getInitialHistoryContext } from "./HistoryContext"
+import type { TPartialDeep } from "@/utils"
+import type { THistoryConfiguration } from "./HistoryConfiguration"
 
 /**
  * @group History
  */
 export type TIIHistoryChanges = {
-  added?: TIISymbol[]
-  updated?: TIISymbol[]
-  erased?: TIISymbol[]
-  replaced?: { oldSymbols: TIISymbol[], newSymbols: TIISymbol[] }
-  matrix?: { symbols: TIISymbol[], matrix: TMatrixTransform }
-  translate?: { symbols: TIISymbol[], tx: number, ty: number }[]
-  scale?: { symbols: TIISymbol[], scaleX: number, scaleY: number, origin: TPoint }[]
-  rotate?: { symbols: TIISymbol[], angle: number, center: TPoint }[]
-  style?: { symbols: TIISymbol[], style?: PartialDeep<TStyle>, fontSize?: number }
-  order?: { symbols: TIISymbol[], position: "first" | "last" | "forward" | "backward" }
-  group?: { symbols: TIISymbol[] }
-  ungroup?: { group: TIISymbol }
+  added?: TSymbol[]
+  updated?: TSymbol[]
+  erased?: TSymbol[]
+  replaced?: { oldSymbols: TSymbol[], newSymbols: TSymbol[] }
+  matrix?: { symbols: TSymbol[], matrix: TMatrixTransform }
+  translate?: { symbols: TSymbol[], tx: number, ty: number }[]
+  scale?: { symbols: TSymbol[], scaleX: number, scaleY: number, origin: TPoint }[]
+  rotate?: { symbols: TSymbol[], angle: number, center: TPoint }[]
+  style?: { symbols: TSymbol[], style?: TPartialDeep<TStyle>, fontSize?: number }
+  order?: { symbols: TSymbol[], position: "first" | "last" | "forward" | "backward" }
+  group?: { symbols: TSymbol[] }
+  ungroup?: { group: TSymbol }
 }
 
 /**
@@ -31,13 +33,13 @@ export type TIIHistoryChanges = {
  * @remarks used to send messages to the backend on undo or redo
  */
 export type TIIHistoryBackendChanges = {
-  added?: IIStroke[]
-  erased?: IIStroke[]
-  replaced?: { oldStrokes: IIStroke[], newStrokes: IIStroke[] }
-  matrix?: { strokes: IIStroke[], matrix: TMatrixTransform },
-  translate?: { strokes: IIStroke[], tx: number, ty: number }[]
-  scale?: { strokes: IIStroke[], scaleX: number, scaleY: number, origin: TPoint }[]
-  rotate?: { strokes: IIStroke[], angle: number, center: TPoint }[]
+  added?: TStroke[]
+  erased?: TStroke[]
+  replaced?: { oldStrokes: TStroke[], newStrokes: TStroke[] }
+  matrix?: { strokes: TStroke[], matrix: TMatrixTransform },
+  translate?: { strokes: TStroke[], tx: number, ty: number }[]
+  scale?: { strokes: TStroke[], scaleX: number, scaleY: number, origin: TPoint }[]
+  rotate?: { strokes: TStroke[], angle: number, center: TPoint }[]
 }
 
 /**
@@ -228,7 +230,7 @@ export class IIHistoryManager
     if (currentStackItem.changes.updated?.length) {
       changes.updated = currentStackItem.changes.updated
         .map(sym => previousStackItem.model.symbols.find(s => s.id === sym.id))
-        .filter((s): s is TIISymbol => s !== undefined)
+        .filter((s): s is TSymbol => s !== undefined)
     }
     return { model: previousStackItem.model, changes }
   }

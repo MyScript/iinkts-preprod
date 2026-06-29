@@ -1,13 +1,17 @@
+import { beforeAll, describe, test, expect } from "@jest/globals"
 import { buildIICircle, buildIIEraser, buildIILine, buildIIStroke, buildIIText } from "../helpers"
 import
 {
   SVGRenderer,
   DefaultIIRendererConfiguration,
   TIIRendererConfiguration,
-  TIISymbol,
-  Box,
-  TIISymbolChar,
+  TSymbol,
+  TSymbolChar,
+  StrokeOps,
+  registerBuiltinSymbolUtils,
 } from "../../../src/iink"
+
+beforeAll(() => { registerBuiltinSymbolUtils() })
 
 describe("SVGRenderer.ts", () =>
 {
@@ -178,10 +182,10 @@ describe("SVGRenderer.ts", () =>
     test("should write error if symbol type unknow", () =>
     {
       //@ts-ignore
-      const unknowSym: TIISymbol = {
+      const unknowSym: TSymbol = {
         //@ts-ignore
         type: "unknow",
-        bounds: new Box({ height: 0, width: 0, x: 0, y: 0 }),
+        bounds: { height: 0, width: 0, x: 0, y: 0 },
         creationTime: Date.now(),
         modificationDate: Date.now(),
         clone: jest.fn(),
@@ -245,7 +249,7 @@ describe("SVGRenderer.ts", () =>
     })
     test("should draw text", () =>
     {
-      const chars: TIISymbolChar[] = [
+      const chars: TSymbolChar[] = [
         {
           bounds: { height: 10, width: 5, x: 0, y: 10 },
           color: "black",
@@ -282,7 +286,7 @@ describe("SVGRenderer.ts", () =>
       renderer.drawSymbol(stroke)
       const oldPath = divElement.querySelector(`#${ stroke.id }`)!.querySelector("path")!.getAttribute("d")
       for (let x = 0; x < 10; x++) {
-        stroke.addPointer({
+        StrokeOps.addPointer(stroke, {
           x,
           y: x * 2,
           p: 1,

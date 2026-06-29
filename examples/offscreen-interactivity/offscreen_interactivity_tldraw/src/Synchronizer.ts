@@ -7,9 +7,11 @@ import
 } from "tldraw"
 import
 {
-  IIStroke,
   TStyle,
-  TGesture
+  TGesture,
+  TStroke,
+  StrokeOps,
+  TServerWebsocketConfiguration,
 } from "iink-ts"
 import
 {
@@ -41,14 +43,14 @@ export class Synchronizer
     this.gestureManager = useGestureManager(editor)
   }
 
-  protected formatDrawShapeToSend(shape: TLDrawShape): IIStroke
+  protected formatDrawShapeToSend(shape: TLDrawShape): TStroke
   {
     const style: TStyle = {
       color: shape.props.color,
       fill: shape.props.fill,
       width: 1
     }
-    const stroke = new IIStroke(style, shape.props.isPen ? "pen" : "mouse")
+    const stroke = StrokeOps.create(style, shape.props.isPen ? "pen" : "mouse")
     stroke.id = shape.id
 
     const baseTime = Date.now()
@@ -58,7 +60,7 @@ export class Synchronizer
     {
       seg.points.forEach((p) =>
       {
-        stroke.addPointer({
+        StrokeOps.addPointer(stroke, {
           p: 1,
           t: baseTime + pointIndex * 20,
           x: p.x + shape.x,
@@ -130,7 +132,7 @@ export class Synchronizer
     const strokesToSend = [...this.pendingStrokes]
     this.pendingStrokes = []
 
-    const serverConfiguration = JSON.parse(window.localStorage.getItem("server") || "{}") as Partial<import("iink-ts").TServerWebsocketConfiguration>
+    const serverConfiguration = JSON.parse(window.localStorage.getItem("server") || "{}") as Partial<TServerWebsocketConfiguration>
     const recognizer = Recognizer.instance || await useRecognizer(serverConfiguration)
 
     const shouldDetectGesture = this.processGestures && strokesToSend.length === 1
@@ -171,7 +173,7 @@ export class Synchronizer
       return
     }
 
-    const serverConfiguration = JSON.parse(window.localStorage.getItem("server") || "{}") as Partial<import("iink-ts").TServerWebsocketConfiguration>
+    const serverConfiguration = JSON.parse(window.localStorage.getItem("server") || "{}") as Partial<TServerWebsocketConfiguration>
     const recognizer = Recognizer.instance || await useRecognizer(serverConfiguration)
 
     if (completedShapes.length > 0) {

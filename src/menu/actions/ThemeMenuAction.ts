@@ -1,6 +1,8 @@
-import { InteractiveInkEditor } from "@/editor"
-import { SubMenuItem, IMenuSubMenu } from "@/menu/items/SubMenuItem"
-import { IEditorTheme, EditorThemes } from "@/editor/EditorThemes"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import type { TMenuSubMenu } from "@/menu/items/SubMenuItem";
+import { SubMenuItem } from "@/menu/items/SubMenuItem"
+import type { TEditorTheme} from "@/editor/EditorThemes";
+import { EditorThemes } from "@/editor/EditorThemes"
 import styleIcon from "@/assets/svg/palette.svg"
 
 const STORAGE_KEY_ATTR = "data-theme-id"
@@ -12,13 +14,13 @@ const STORAGE_KEY_ATTR = "data-theme-id"
  */
 export class ThemeMenuAction extends SubMenuItem
 {
-  private themes: IEditorTheme[]
+  private themes: TEditorTheme[]
   private currentThemeId: string
   private themeItems: Map<string, HTMLElement> = new Map()
 
-  constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-action", themes?: IEditorTheme[])
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-action", themes?: TEditorTheme[])
   {
-    const config: IMenuSubMenu = {
+    const config: TMenuSubMenu = {
       type: "submenu",
       id: `${idPrefix}-theme`,
       label: "Theme",

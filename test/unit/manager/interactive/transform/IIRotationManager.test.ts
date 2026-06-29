@@ -1,11 +1,11 @@
-import { InteractiveInkEditorMock } from "../../../__mocks__/InteractiveInkEditorMock"
+import { createEditorMock, asEditor } from "../../../__mocks__/createEditorMock"
 import
 {
-  IIEdgeLine,
+  EdgeLineOps,
   IIRotationManager,
-  IIShapeCircle,
-  IIShapePolygon,
-  IIStroke,
+  ShapeCircleOps,
+  ShapePolygonOps,
+  StrokeOps,
   SvgElementRole,
   TPoint,
   computeRotatedPoint,
@@ -17,17 +17,17 @@ describe("IIRotationManager.ts", () =>
 {
   test("should create", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    const manager = new IIRotationManager(editor)
+    const editor = createEditorMock()
+    const manager = new IIRotationManager(asEditor(editor))
     expect(manager).toBeDefined()
   })
 
   describe("should applyToSymbol", () =>
   {
-    const editor = new InteractiveInkEditorMock()
+    const editor = createEditorMock()
     editor.typeset.updateBounds = jest.fn()
     editor.renderer.setAttribute = jest.fn()
-    const manager = new IIRotationManager(editor)
+    const manager = new IIRotationManager(asEditor(editor))
 
     test("not rotate shape with kind unknown", () =>
     {
@@ -37,7 +37,7 @@ describe("IIRotationManager.ts", () =>
         { x: 5, y: 5 },
         { x: 5, y: 0 }
       ]
-      const poly = new IIShapePolygon(points)
+      const poly = ShapePolygonOps.create(points)
       //@ts-ignore
       poly.kind = "pouet"
       const origin: TPoint = { x: 0, y: 0 }
@@ -46,10 +46,10 @@ describe("IIRotationManager.ts", () =>
     })
     test("rotate stroke", () =>
     {
-      const stroke = new IIStroke()
+      const stroke = StrokeOps.create()
       const origin: TPoint = { x: 0, y: 0 }
-      stroke.addPointer({ p: 1, t: 1, x: 1, y: 1 })
-      stroke.addPointer({ p: 1, t: 10, x: 10, y: 0 })
+      StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 1, y: 1 })
+      StrokeOps.addPointer(stroke, { p: 1, t: 10, x: 10, y: 0 })
       const matrix = MatrixTransform.identity().rotate(Math.PI / 2, origin)
       manager.applyToSymbol(stroke, matrix)
       expect(stroke.pointers[0].x.toFixed(0)).toEqual("-1")
@@ -61,7 +61,7 @@ describe("IIRotationManager.ts", () =>
     {
       const center: TPoint = { x: 5, y: 5 }
       const radius = 4
-      const circle = new IIShapeCircle(center, radius)
+      const circle = ShapeCircleOps.create(center, radius)
       const origin: TPoint = { x: 1, y: 2 }
       const matrix = MatrixTransform.identity().rotate(Math.PI / 2, origin)
       manager.applyToSymbol(circle, matrix)
@@ -72,7 +72,7 @@ describe("IIRotationManager.ts", () =>
     {
       const start: TPoint = { x: 0, y: 0 }
       const end: TPoint = { x: 0, y: 5 }
-      const line = new IIEdgeLine(start, end)
+      const line = EdgeLineOps.create(start, end)
       const origin: TPoint = { x: 0, y: 0 }
       const matrix = MatrixTransform.identity().rotate(Math.PI / 2, origin)
       manager.applyToSymbol(line, matrix)
@@ -85,29 +85,29 @@ describe("IIRotationManager.ts", () =>
 
   describe("rotate process on stroke", () =>
   {
-    const editor = new InteractiveInkEditorMock()
+    const editor = createEditorMock()
     editor.recognizer.init = jest.fn(() => Promise.resolve())
     editor.recognizer.transformRotate = jest.fn(() => Promise.resolve())
     editor.renderer.setAttribute = jest.fn()
     editor.renderer.drawSymbol = jest.fn()
 
-    const manager = new IIRotationManager(editor)
+    const manager = new IIRotationManager(asEditor(editor))
     manager.applyToSymbol = jest.fn()
 
-    const stroke = new IIStroke({})
-    stroke.addPointer({ p: 1, t: 1, x: 0, y: 0 })
-    stroke.addPointer({ p: 1, t: 1, x: 10, y: 50 })
+    const stroke = StrokeOps.create({})
+    StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 0, y: 0 })
+    StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 10, y: 50 })
     stroke.selected = true
-    const strokeNotRotate = stroke.clone()
+    const strokeNotRotate = structuredClone(stroke)
     editor.model.addSymbol(stroke)
 
     const rotateCenter: TPoint = {
-      x: (stroke.bounds.xMax + stroke.bounds.xMin) / 2,
-      y: (stroke.bounds.yMin + stroke.bounds.yMax) / 2
+      x: stroke.bounds.x + stroke.bounds.width / 2,
+      y: stroke.bounds.y + stroke.bounds.height / 2
     }
     const rotateOrigin: TPoint = {
-      x: (stroke.bounds.xMax + stroke.bounds.xMin) / 2,
-      y: stroke.bounds.yMax
+      x: stroke.bounds.x + stroke.bounds.width / 2,
+      y: stroke.bounds.y + stroke.bounds.height
     }
 
     const testDatas = [

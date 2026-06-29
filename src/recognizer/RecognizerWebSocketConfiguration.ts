@@ -1,6 +1,8 @@
-import { mergeDeep, isVersionSuperiorOrEqual, PartialDeep } from "@/utils"
-import { TExportConfiguration, TTextConfConfiguration } from "./recognition"
-import { DefaultServerWebsocketConfiguration, TServerWebsocketConfiguration } from "./ServerConfiguration"
+import type { TPartialDeep } from "@/utils";
+import { mergeDeep, isVersionSuperiorOrEqual } from "@/utils"
+import type { TExportConfiguration, TTextConfConfiguration } from "./recognition"
+import type { TServerWebsocketConfiguration } from "./ServerConfiguration";
+import { DefaultServerWebsocketConfiguration } from "./ServerConfiguration"
 
 /**
  * @group Recognizer
@@ -103,7 +105,7 @@ export class RecognizerWebSocketConfiguration implements TRecognizerWebSocketCon
   server: TServerWebsocketConfiguration
   recognition: TRecognitionWebSocketConfiguration
 
-  constructor(configuration?: PartialDeep<TRecognizerWebSocketConfiguration>)
+  constructor(configuration?: TPartialDeep<TRecognizerWebSocketConfiguration>)
   {
     this.server = mergeDeep({}, DefaultRecognizerWebSocketConfiguration.server, configuration?.server)
 

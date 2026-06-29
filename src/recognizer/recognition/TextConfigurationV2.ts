@@ -1,5 +1,7 @@
-import { DefaultMarginConfiguration, TMarginConfiguration } from "./MarginConfiguration"
-import { DefaultEraserConfiguration, TEraserConfiguration } from "./EraserConfiguration"
+import type { TMarginConfiguration } from "./MarginConfiguration";
+import { DefaultMarginConfiguration } from "./MarginConfiguration"
+import type { TEraserConfiguration } from "./EraserConfiguration";
+import { DefaultEraserConfiguration } from "./EraserConfiguration"
 
 /**
  * @group Recognizer

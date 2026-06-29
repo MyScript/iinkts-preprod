@@ -1,6 +1,8 @@
-import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
-import { TJIIXStrokeItem, TJIIXMathElement, TJIIXMathExpression, TJIIXTextElement, TJIIXNodeElement, TJIIXEdgeElement, TJIIXEdgeLine, JIIXElementType, JIIXEdgeKind } from "@/model"
-import { IIStroke, isStroke } from "@/symbol"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import type { TJIIXStrokeItem, TJIIXMathElement, TJIIXMathExpression, TJIIXTextElement, TJIIXNodeElement, TJIIXEdgeElement, TJIIXEdgeLine} from "@/model";
+import { JIIXElementType, JIIXEdgeKind } from "@/model"
+import type { TStroke} from "@/symbol";
+import { isStroke } from "@/symbol"
 import { IIAbstractManager } from "./IIAbstractManager"
 import { LoggerCategory } from "@/logger"
 
@@ -20,7 +22,7 @@ export class IISynchronizerManager extends IIAbstractManager
   static readonly SYNCHRONIZE_TIMEOUT = 30000
   static readonly MAX_RETRY_ATTEMPTS = 3
 
-  constructor(editor: InteractiveInkEditor)
+  constructor(editor: TInteractiveInkEditor)
   {
     super(editor, LoggerCategory.SYNCHRONIZER)
     this.logger.info("constructor", "IISynchronizerManager")
@@ -267,9 +269,9 @@ export class IISynchronizerManager extends IIAbstractManager
   /**
    * Get strokes from JIIX items
    */
-  #getStrokesFromItems(items: TJIIXStrokeItem[]): IIStroke[]
+  #getStrokesFromItems(items: TJIIXStrokeItem[]): TStroke[]
   {
-    const strokes: IIStroke[] = []
+    const strokes: TStroke[] = []
     const seen = new Set<string>()
 
     for (const item of items) {
@@ -289,7 +291,7 @@ export class IISynchronizerManager extends IIAbstractManager
    * Update block metadata (jiixBlockId, jiixBlockType ONLY)
    */
   #updateBlockMetadata(
-    stroke: IIStroke,
+    stroke: TStroke,
     element: TJIIXTextElement | TJIIXMathElement | TJIIXNodeElement | TJIIXEdgeElement
   ): void
   {

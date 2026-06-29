@@ -1,16 +1,17 @@
-import { InteractiveInkEditor } from "@/editor"
-import { BaseMenuItem, IMenuItemBase } from "./BaseMenuItem"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import type { TMenuItemBase } from "./BaseMenuItem";
+import { BaseMenuItem } from "./BaseMenuItem"
 
 /**
  * @group Menu
  * @remarks Configuration for a color list menu item
  */
-export interface IMenuColorList extends IMenuItemBase {
+export type TMenuColorList = TMenuItemBase & {
   type: "colorlist"
   colors: string[]
   fill: boolean
   initValue?: string
-  onChange: (color: string, editor: InteractiveInkEditor) => void
+  onChange: (color: string, editor: TInteractiveInkEditor) => void
 }
 
 /**
@@ -19,10 +20,10 @@ export interface IMenuColorList extends IMenuItemBase {
  */
 export class ColorListMenuItem extends BaseMenuItem<HTMLDivElement>
 {
-  protected declare config: IMenuColorList
+  protected declare config: TMenuColorList
   private currentValue: string
 
-  constructor(config: IMenuColorList, editor: InteractiveInkEditor) {
+  constructor(config: TMenuColorList, editor: TInteractiveInkEditor) {
     super(config, editor)
     this.currentValue = config.initValue || config.colors[0] || "#000000"
   }

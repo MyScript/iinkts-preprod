@@ -1,6 +1,9 @@
-import { IIStroke, IIText, Box, type TIISymbol, isText } from "@/symbol"
-import { TIIHistoryChanges } from "@/history"
-import type { InteractiveInkEditor } from "@/editor"
+import type { TStroke, TText} from "@/symbol";
+import { type TSymbol, isText, cloneSymbol } from "@/symbol"
+import { TextOps } from "@/symbol/text/Text"
+import { BoxOps } from "@/symbol/primitives/Box"
+import type { TIIHistoryChanges } from "@/history"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { TGesture } from "@/manager/interactive/gestures/GestureTypes"
 import { GestureHandler } from "@/manager/interactive/gestures/GestureHandler"
 import type { GestureHelpers } from "@/manager/interactive/gestures/GestureHelpers"
@@ -16,50 +19,50 @@ export class JoinGestureHandler extends GestureHandler
   readonly gestureType = "JOIN" as const
 
   constructor(
-    editor: InteractiveInkEditor,
+    editor: TInteractiveInkEditor,
     helpers: GestureHelpers
   )
   {
     super(editor, helpers)
   }
 
-  async apply(gestureStroke: IIStroke, gesture: TGesture): Promise<void>
+  async apply(gestureStroke: TStroke, gesture: TGesture): Promise<void>
   {
     this.logger.debug("applyJoinGesture", { gestureStroke, gesture })
 
     const symbolsAbove = this.model.symbols.filter(s => this.model.isSymbolAbove(gestureStroke, s))
     const symbolsRow = this.model.symbols.filter(s => gestureStroke.id !== s.id && this.model.isSymbolInRow(gestureStroke, s))
 
-    const symbolsBeforeGestureInRow = symbolsRow.filter(s => s.bounds.xMax <= gestureStroke.bounds.xMid)
-    const symbolsAfterGestureInRow = symbolsRow.filter(s => s.bounds.xMin > gestureStroke.bounds.xMid)
+    const symbolsBeforeGestureInRow = symbolsRow.filter(s => s.bounds.x + s.bounds.width <= gestureStroke.bounds.x + gestureStroke.bounds.width / 2)
+    const symbolsAfterGestureInRow = symbolsRow.filter(s => s.bounds.x > gestureStroke.bounds.x + gestureStroke.bounds.width / 2)
     const symbolsBelow = this.model.symbols.filter(s => this.model.isSymbolBelow(gestureStroke, s))
 
     const changes: TIIHistoryChanges = {}
-    const translate: { symbols: TIISymbol[], tx: number, ty: number }[] = []
+    const translate: { symbols: TSymbol[], tx: number, ty: number }[] = []
 
     if (symbolsBeforeGestureInRow.length && symbolsAfterGestureInRow.length) {
       const lastSymbBefore = this.model.getLastSymbol(symbolsBeforeGestureInRow)!
       const firstSymbolAfter = this.model.getFirstSymbol(symbolsAfterGestureInRow)!
 
-      let lastXBefore = symbolsBeforeGestureInRow[0].bounds.xMax
+      let lastXBefore = symbolsBeforeGestureInRow[0].bounds.x + symbolsBeforeGestureInRow[0].bounds.width
       for (let i = 1; i < symbolsBeforeGestureInRow.length; i++) {
-        const xMax = symbolsBeforeGestureInRow[i].bounds.xMax
+        const xMax = symbolsBeforeGestureInRow[i].bounds.x + symbolsBeforeGestureInRow[i].bounds.width
         if (xMax > lastXBefore) lastXBefore = xMax
       }
-      let firstXAfter = symbolsAfterGestureInRow[0].bounds.xMin
+      let firstXAfter = symbolsAfterGestureInRow[0].bounds.x
       for (let i = 1; i < symbolsAfterGestureInRow.length; i++) {
-        const xMin = symbolsAfterGestureInRow[i].bounds.xMin
+        const xMin = symbolsAfterGestureInRow[i].bounds.x
         if (xMin < firstXAfter) firstXAfter = xMin
       }
       const translateX = lastXBefore - firstXAfter
 
-      const lastSymbBeforeClone = lastSymbBefore.clone()
-      const firstSymbolAfterClone = firstSymbolAfter.clone()
+      const lastSymbBeforeClone = cloneSymbol(lastSymbBefore)
+      const firstSymbolAfterClone = cloneSymbol(firstSymbolAfter)
       this.manager.translator.applyToSymbol(firstSymbolAfterClone, MatrixTransform.identity().translate(translateX, 0))
 
       if (isText(lastSymbBefore) && isText(firstSymbolAfter)) {
-        const texts = [lastSymbBeforeClone as IIText, firstSymbolAfterClone as IIText]
-        const text = new IIText(texts.flatMap(s => s.chars), texts[0].point, Box.createFromBoxes(texts.map(t => t.bounds)))
+        const texts = [lastSymbBeforeClone as TText, firstSymbolAfterClone as TText]
+        const text = TextOps.create(texts.flatMap(s => s.chars), texts[0].point, BoxOps.createFromBoxes(texts.map(t => t.bounds)))
         this.editor.typeset.setBounds(text)
         changes.replaced = {
           oldSymbols: [lastSymbBefore, firstSymbolAfter],
@@ -76,10 +79,10 @@ export class JoinGestureHandler extends GestureHandler
       const lastSymbolBeforeGesture = this.model.getLastSymbol(symbolsBeforeGestureInRow)!
       const firstSymbolAfterGesture = this.model.getFirstSymbol(symbolsBelow)
       if (firstSymbolAfterGesture) {
-        if (this.model.roundToLineGuide(lastSymbolBeforeGesture.bounds.yMid) >= this.model.roundToLineGuide(firstSymbolAfterGesture.bounds.yMid - this.rowHeight)) {
+        if (this.model.roundToLineGuide(lastSymbolBeforeGesture.bounds.y + lastSymbolBeforeGesture.bounds.height / 2) >= this.model.roundToLineGuide(firstSymbolAfterGesture.bounds.y + firstSymbolAfterGesture.bounds.height / 2 - this.rowHeight)) {
           const symbolInNextRow = symbolsBelow.filter(s => this.model.isSymbolInRow(firstSymbolAfterGesture, s))
           if (symbolInNextRow.length) {
-            const translateX = lastSymbolBeforeGesture.bounds.xMax + this.strokeSpaceWidth - firstSymbolAfterGesture.bounds.xMin
+            const translateX = lastSymbolBeforeGesture.bounds.x + lastSymbolBeforeGesture.bounds.width + this.strokeSpaceWidth - firstSymbolAfterGesture.bounds.x
             translate.push({ symbols: symbolInNextRow, tx: translateX, ty: -this.rowHeight })
           }
           const symbolsAfterNextRow = symbolsBelow.filter(s => this.model.isSymbolBelow(firstSymbolAfterGesture, s))
@@ -96,8 +99,8 @@ export class JoinGestureHandler extends GestureHandler
       const firstSymbolAfterGesture = this.model.getFirstSymbol(symbolsAfterGestureInRow)!
       const lastSymbolAbove = this.model.getLastSymbol(symbolsAbove)
       if (lastSymbolAbove) {
-        if (this.model.roundToLineGuide(lastSymbolAbove.bounds.yMid) >= this.model.roundToLineGuide(firstSymbolAfterGesture.bounds.yMid - this.rowHeight)) {
-          const translateX = lastSymbolAbove.bounds.xMax + this.strokeSpaceWidth - firstSymbolAfterGesture.bounds.xMin
+        if (this.model.roundToLineGuide(lastSymbolAbove.bounds.y + lastSymbolAbove.bounds.height / 2) >= this.model.roundToLineGuide(firstSymbolAfterGesture.bounds.y + firstSymbolAfterGesture.bounds.height / 2 - this.rowHeight)) {
+          const translateX = lastSymbolAbove.bounds.x + lastSymbolAbove.bounds.width + this.strokeSpaceWidth - firstSymbolAfterGesture.bounds.x
           translate.push({ symbols: symbolsAfterGestureInRow, tx: translateX, ty: -this.rowHeight })
         }
         else {

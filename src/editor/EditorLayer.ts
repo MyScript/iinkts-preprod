@@ -6,7 +6,7 @@ import { Modal } from "@/components/Modal"
 /**
  * @group Editor
  */
-export type EditorLayerUIState = {
+export type TEditorLayerUIState = {
   root: HTMLDivElement
   busy: HTMLDivElement
 }
@@ -14,10 +14,10 @@ export type EditorLayerUIState = {
 /**
  * @group Editor
  */
-export type EditorLayerUI = {
+export type TEditorLayerUI = {
   root: HTMLDivElement
   loader: HTMLDivElement
-  state: EditorLayerUIState
+  state: TEditorLayerUIState
 }
 
 /**
@@ -26,7 +26,7 @@ export type EditorLayerUI = {
 export class EditorLayer
 {
   root: HTMLElement
-  ui: EditorLayerUI
+  ui: TEditorLayerUI
   rendering: HTMLElement
 
   onCloseModal?: (inError?: boolean) => void
@@ -102,7 +102,7 @@ export class EditorLayer
   {
     return DOMFactory.div({ className: "busy" })
   }
-  createState(): EditorLayerUIState
+  createState(): TEditorLayerUIState
   {
     const root = DOMFactory.div({ className: "state", style: "display: none" })
 
@@ -132,7 +132,7 @@ export class EditorLayer
     }
   }
 
-  createLayerUI(): EditorLayerUI
+  createLayerUI(): TEditorLayerUI
   {
     const root = DOMFactory.div({ className: "ms-layer-ui" })
 

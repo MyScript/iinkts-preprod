@@ -1,19 +1,21 @@
-import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { IIAbstractManager } from "./IIAbstractManager"
+import type {
+  TMathDependencies,
+  TMathBlockComputation,
+  TMathComputationConfig,
+  TMathInteractionConfig,
+  TMathResultMode,
+  TMathVariableUsage
+} from "./math"
 import
-  {
-    IIMathComputationSubManager,
-    IIMathFunctionEvaluationSubManager,
-    IIMathVariableSubManager,
-    MathDependencies,
-    TMathBlockComputation,
-    TMathComputationConfig,
-    TMathInteractionConfig,
-    TMathResultMode,
-    TMathVariableUsage,
-  } from "./math"
-import { TJIIXMathElement } from "@/model"
-import { TMathEvaluable, TMathVariable, TMathVariableDefinition, TMathVariableDefinitions } from "@/recognizer/RecognizerWebSocketMessage"
+{
+  IIMathComputationSubManager,
+  IIMathFunctionEvaluationSubManager,
+  IIMathVariableSubManager
+} from "./math"
+import type { TJIIXMathElement } from "@/model"
+import type { TMathEvaluable, TMathVariable, TMathVariableDefinition, TMathVariableDefinitions } from "@/recognizer/RecognizerWebSocketMessage"
 import { LoggerCategory } from "@/logger"
 
 /**
@@ -47,7 +49,7 @@ export class IIMathManager extends IIAbstractManager
   #variables: IIMathVariableSubManager
   #evaluation: IIMathFunctionEvaluationSubManager
 
-  constructor(editor: InteractiveInkEditor, config?: TMathConfig)
+  constructor(editor: TInteractiveInkEditor, config?: TMathConfig)
   {
     super(editor, LoggerCategory.MATH)
 
@@ -200,7 +202,7 @@ export class IIMathManager extends IIAbstractManager
     }
   }
 
-  getDependencies(jiixBlockId: string): MathDependencies | null
+  getDependencies(jiixBlockId: string): TMathDependencies | null
   {
     return this.#variables.getDependencies(jiixBlockId)
   }
@@ -358,7 +360,6 @@ export class IIMathManager extends IIAbstractManager
    * Get available math solver actions for a specific math element
    * @param jiixBlockId - The ID of the math element (jiixId)
    * @returns Promise with array of available actions
-   * @group Utilities
    */
   async getAvailableActions(jiixBlockId: string): Promise<string[]>
   {

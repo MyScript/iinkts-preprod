@@ -1,19 +1,27 @@
 import { EditorTool } from "@/Constants"
-import { PointerEventGrabber, PointerInfo } from "@/grabber"
-import { Model, TExport } from "@/model"
-import { Stroke, TStroke, TPointer } from "@/symbol"
-import { RecognizerHTTPV1, TConverstionState } from "@/recognizer"
+import type { TPointerInfo } from "@/grabber";
+import { PointerEventGrabber } from "@/grabber"
+import type { TExport } from "@/model";
+import { Model } from "@/model"
+import type { TLegacyStroke, TPointer } from "@/symbol";
+import { Stroke } from "@/symbol"
+import type { TConverstionState } from "@/recognizer";
+import { RecognizerHTTPV1 } from "@/recognizer"
 import { CanvasRenderer } from "@/renderer"
-import { DefaultPenStyle, StyleManager, TPenStyle, TTheme } from "@/style"
+import type { TPenStyle, TTheme } from "@/style";
+import { DefaultPenStyle, StyleManager } from "@/style"
 import { HistoryManager } from "@/history"
-import { DeferredPromise, PartialDeep } from "@/utils"
-import { AbstractEditor, EditorOptionsBase } from "@/editor/AbstractEditor"
-import { InkEditorDeprecatedConfiguration, TInkEditorDeprecatedConfiguration } from "./InkEditorDeprecatedConfiguration"
+import type { TPartialDeep } from "@/utils";
+import { DeferredPromise } from "@/utils"
+import type { TEditorOptionsBase } from "@/editor/AbstractEditor";
+import { AbstractEditor } from "@/editor/AbstractEditor"
+import type { TInkEditorDeprecatedConfiguration } from "./InkEditorDeprecatedConfiguration";
+import { InkEditorDeprecatedConfiguration } from "./InkEditorDeprecatedConfiguration"
 
 /**
  * @group Editor
  */
-export type TInkEditorDeprecatedOptions = PartialDeep<EditorOptionsBase &
+export type TInkEditorDeprecatedOptions = TPartialDeep<TEditorOptionsBase &
 {
   configuration: TInkEditorDeprecatedConfiguration
 }> &
@@ -73,7 +81,7 @@ export class InkEditorDeprecated extends AbstractEditor
     this.history = new HistoryManager(this.#configuration["undo-redo"], this.event)
   }
 
-  protected onPointerDown(info: PointerInfo): void
+  protected onPointerDown(info: TPointerInfo): void
   {
     this.logger.info("onPointerDown", { tool: this.tool, info })
     const style: TPenStyle = Object.assign({}, this.theme?.ink, this.currentPenStyle)
@@ -94,7 +102,7 @@ export class InkEditorDeprecated extends AbstractEditor
     }
   }
 
-  protected onPointerMove(info: PointerInfo): void
+  protected onPointerMove(info: TPointerInfo): void
   {
     this.logger.info("onPointerMove", { tool: this.tool, info })
     switch (this.tool) {
@@ -114,7 +122,7 @@ export class InkEditorDeprecated extends AbstractEditor
     }
   }
 
-  protected async onPointerUp(info: PointerInfo): Promise<void>
+  protected async onPointerUp(info: TPointerInfo): Promise<void>
   {
     try {
       this.logger.info("onPointerUp", { tool: this.tool, info })
@@ -203,7 +211,7 @@ export class InkEditorDeprecated extends AbstractEditor
   {
     return this.styleManager.theme
   }
-  set theme(theme: PartialDeep<TTheme>)
+  set theme(theme: TPartialDeep<TTheme>)
   {
     this.logger.info("setTheme", { theme })
     this.styleManager.setTheme(theme)
@@ -303,7 +311,7 @@ export class InkEditorDeprecated extends AbstractEditor
     return this.model
   }
 
-  async importPointEvents(strokes: PartialDeep<TStroke>[]): Promise<Model>
+  async importPointEvents(strokes: TPartialDeep<TLegacyStroke>[]): Promise<Model>
   {
     const errors: string[] = []
     strokes.forEach((s, strokeIndex) =>
