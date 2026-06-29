@@ -1,22 +1,14 @@
-import
-{
-  DefaultInteractiveInkSSREditorConfiguration,
-  InteractiveInkSSREditor
-} from "@/iink"
+import { DefaultInteractiveInkSSREditorConfiguration, InteractiveInkSSREditor } from "@/iink"
 import { EditorEventMock } from "./EditorEventMock"
 
-
-export class InteractiveInkSSREditorMock extends InteractiveInkSSREditor
-{
-  constructor()
-  {
+export class InteractiveInkSSREditorMock extends InteractiveInkSSREditor {
+  constructor() {
     //@ts-ignore
     super(document.createElement("div"), { configuration: DefaultInteractiveInkSSREditorConfiguration })
     this.event = new EditorEventMock(this.layers.root)
   }
 
-  init = jest.fn(() =>
-  {
+  init = jest.fn(() => {
     this.model.width = Math.max(this.layers.root.clientWidth, this.configuration.rendering.minWidth)
     this.model.height = Math.max(this.layers.root.clientHeight, this.configuration.rendering.minHeight)
     this.history.push(this.model)

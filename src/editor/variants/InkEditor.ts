@@ -1,26 +1,27 @@
 import { EditorTool } from "@/Constants"
+import type { TEditorOptionsBase } from "@/editor/AbstractEditor"
+import { AbstractEditor } from "@/editor/AbstractEditor"
 import type { PointerEventGrabber } from "@/grabber"
-import type { TExport, TExportV2 } from "@/model";
+import { IHistoryManager } from "@/history"
+import { EraseManager, IDebugSVGManager, IWriterManager } from "@/manager"
+import type { TExport, TExportV2 } from "@/model"
 import { IModel } from "@/model"
 import { RecognizerHTTPV2 } from "@/recognizer"
 import { SVGRenderer } from "@/renderer"
 import type { TStyle } from "@/style"
-import { IHistoryManager } from "@/history"
 import type { TPartialDeep } from "@/utils"
-import { IWriterManager, IDebugSVGManager, EraseManager } from "@/manager"
-import type { TEditorOptionsBase } from "@/editor/AbstractEditor";
-import { AbstractEditor } from "@/editor/AbstractEditor"
-import type { TInkEditorConfiguration } from "./InkEditorConfiguration";
+
+import type { TInkEditorConfiguration } from "./InkEditorConfiguration"
 import { InkEditorConfiguration } from "./InkEditorConfiguration"
 
 /**
  * @group Editor
  */
-export type TInkEditorOptions = TPartialDeep<TEditorOptionsBase &
-{
-  configuration: TInkEditorConfiguration
-}> &
-{
+export type TInkEditorOptions = TPartialDeep<
+  TEditorOptionsBase & {
+    configuration: TInkEditorConfiguration
+  }
+> & {
   override?: {
     grabber?: PointerEventGrabber
     recognizer?: RecognizerHTTPV2
@@ -40,8 +41,7 @@ export type TInkEditorOptions = TPartialDeep<TEditorOptionsBase &
  *
  * The InkEditor is designed for extensibility, allowing developers to override core components like the recognizer or input grabber for custom behavior.
  */
-export class InkEditor extends AbstractEditor
-{
+export class InkEditor extends AbstractEditor {
   #configuration: InkEditorConfiguration
   #model: IModel
   #penStyle: TStyle
@@ -53,8 +53,7 @@ export class InkEditor extends AbstractEditor
   debugger: IDebugSVGManager
   #tool: EditorTool = EditorTool.Write
 
-  constructor(rootElement: HTMLElement, options?: TInkEditorOptions)
-  {
+  constructor(rootElement: HTMLElement, options?: TInkEditorOptions) {
     super(rootElement, options)
 
     this.#configuration = new InkEditorConfiguration(options?.configuration)
@@ -64,8 +63,7 @@ export class InkEditor extends AbstractEditor
     if (options?.override?.recognizer) {
       const CustomRecognizer = options.override.recognizer as unknown as typeof RecognizerHTTPV2
       this.recognizer = new CustomRecognizer(this.#configuration)
-    }
-    else {
+    } else {
       this.recognizer = new RecognizerHTTPV2(this.#configuration)
     }
     this.renderer = new SVGRenderer(this.#configuration.rendering)
@@ -78,27 +76,22 @@ export class InkEditor extends AbstractEditor
     this.history = new IHistoryManager(this.#configuration["undo-redo"], this.event)
   }
 
-  get penStyle(): TStyle
-  {
+  get penStyle(): TStyle {
     return this.#penStyle
   }
-  set penStyle(penStyle: TPartialDeep<TStyle>)
-  {
+  set penStyle(penStyle: TPartialDeep<TStyle>) {
     this.logger.info("set penStyle", { penStyle })
     this.#penStyle = Object.assign({}, this.#penStyle, penStyle)
   }
 
-  get initializationPromise(): Promise<void>
-  {
+  get initializationPromise(): Promise<void> {
     return Promise.resolve()
   }
 
-  get tool(): EditorTool
-  {
+  get tool(): EditorTool {
     return this.#tool
   }
-  set tool(i: EditorTool)
-  {
+  set tool(i: EditorTool) {
     this.#tool = i
     this.writer.detach()
     this.eraser.detach()
@@ -115,21 +108,17 @@ export class InkEditor extends AbstractEditor
         this.layers.root.classList.remove("erase")
         break
     }
-
   }
 
-  get model(): IModel
-  {
+  get model(): IModel {
     return this.#model
   }
 
-  get configuration(): InkEditorConfiguration
-  {
+  get configuration(): InkEditorConfiguration {
     return this.#configuration
   }
 
-  async initialize(): Promise<void>
-  {
+  async initialize(): Promise<void> {
     try {
       this.logger.info("initialize")
       this.layers.render()
@@ -139,7 +128,10 @@ export class InkEditor extends AbstractEditor
 
       const compStyles = window.getComputedStyle(this.layers.root)
       this.model.width = Math.max(parseInt(compStyles.width.replace("px", "")), this.#configuration.rendering.minWidth)
-      this.model.height = Math.max(parseInt(compStyles.height.replace("px", "")), this.#configuration.rendering.minHeight)
+      this.model.height = Math.max(
+        parseInt(compStyles.height.replace("px", "")),
+        this.#configuration.rendering.minHeight
+      )
       this.model.rowHeight = this.configuration.rendering.guides.gap
       this.history.init(this.model)
       this.startResizeObserver()
@@ -152,20 +144,20 @@ export class InkEditor extends AbstractEditor
       this.logger.error("initialize", error)
       this.layers.showMessageError(error as Error)
       throw error
-    }
-    finally {
+    } finally {
       this.logger.debug("initialize", "finally")
       this.layers.hideLoader()
       this.layers.updateState(true)
     }
   }
 
-  updateSymbolsStyle(symbolIds: string[], style: TPartialDeep<TStyle>): void
-  {
-    this.logger.info("updateSymbolsStyle", { symbolIds, style })
+  updateSymbolsStyle(symbolIds: string[], style: TPartialDeep<TStyle>): void {
+    this.logger.info("updateSymbolsStyle", {
+      symbolIds,
+      style,
+    })
     const symbolIdSet = new Set(symbolIds)
-    this.model.strokes.forEach(s =>
-    {
+    this.model.strokes.forEach((s) => {
       if (symbolIdSet.has(s.id)) {
         s.style = Object.assign({}, s.style, style)
         this.renderer.drawSymbol(s)
@@ -175,8 +167,7 @@ export class InkEditor extends AbstractEditor
     })
   }
 
-  async export(requestedMimeTypes?: string[]): Promise<TExportV2>
-  {
+  async export(requestedMimeTypes?: string[]): Promise<TExportV2> {
     try {
       this.logger.info("export")
       const currentModel = this.model.clone()
@@ -203,73 +194,85 @@ export class InkEditor extends AbstractEditor
     }
   }
 
-  async resize({ height, width }: { height?: number, width?: number } = {}): Promise<void>
-  {
+  async resize({
+    height,
+    width,
+  }: {
+    height?: number
+    width?: number
+  } = {}): Promise<void> {
     this.logger.info("resize", { height, width })
     const compStyles = window.getComputedStyle(this.layers.root)
-    this.model.height = height || Math.max(parseInt(compStyles.height.replace("px", "")), this.configuration.rendering.minHeight)
-    this.model.width = width || Math.max(parseInt(compStyles.width.replace("px", "")), this.configuration.rendering.minWidth)
+    this.model.height =
+      height || Math.max(parseInt(compStyles.height.replace("px", "")), this.configuration.rendering.minHeight)
+    this.model.width =
+      width || Math.max(parseInt(compStyles.width.replace("px", "")), this.configuration.rendering.minWidth)
     this.renderer.resize(this.model.height, this.model.width)
-    this.logger.debug("resize", { model: this.model })
+    this.logger.debug("resize", {
+      model: this.model,
+    })
   }
 
-  async removeStrokes(strokeIds: string[]): Promise<void>
-  {
-    this.logger.info("removeStrokes", { strokeIds })
+  async removeStrokes(strokeIds: string[]): Promise<void> {
+    this.logger.info("removeStrokes", {
+      strokeIds,
+    })
     const strokeIdSet = new Set(strokeIds)
-    const removedStrokes = this.model.strokes.filter(s => strokeIdSet.has(s.id))
+    const removedStrokes = this.model.strokes.filter((s) => strokeIdSet.has(s.id))
     if (removedStrokes.length === 0) {
       this.logger.warn("removeStrokes", "No strokes found to remove")
       return
     }
     this.#model = this.model.clone()
-    removedStrokes.forEach(s => {
+    removedStrokes.forEach((s) => {
       this.renderer.removeSymbol(s.id)
       this.model.removeStroke(s.id)
     })
-    this.history.push(this.#model, { removed: removedStrokes })
+    this.history.push(this.#model, {
+      removed: removedStrokes,
+    })
     const exports = await this.recognizer.send(this.model.strokes)
     this.model.mergeExport(exports)
     this.history.updateModelStack(this.model)
     this.event.emitExported(this.#model.exports as TExport)
-    this.logger.debug("removeStrokes", { model: this.#model })
+    this.logger.debug("removeStrokes", {
+      model: this.#model,
+    })
   }
 
-  async undo(): Promise<void>
-  {
+  async undo(): Promise<void> {
     this.logger.info("undo")
     const previousStackItem = this.history.undo()
     const modifications = previousStackItem.model.extractDifferenceStrokes(this.model)
     this.#model = previousStackItem.model.clone()
-    modifications.removed.forEach(s => this.renderer.removeSymbol(s.id))
-    modifications.added.forEach(s => this.renderer.drawSymbol(s))
+    modifications.removed.forEach((s) => this.renderer.removeSymbol(s.id))
+    modifications.added.forEach((s) => this.renderer.drawSymbol(s))
     await this.export()
   }
 
-  async redo(): Promise<void>
-  {
+  async redo(): Promise<void> {
     this.logger.info("redo")
     const previousStackItem = this.history.redo()
     const modifications = previousStackItem.model.extractDifferenceStrokes(this.model)
     this.#model = previousStackItem.model.clone()
-    modifications.removed.forEach(s => this.renderer.removeSymbol(s.id))
-    modifications.added.forEach(s => this.renderer.drawSymbol(s))
+    modifications.removed.forEach((s) => this.renderer.removeSymbol(s.id))
+    modifications.added.forEach((s) => this.renderer.drawSymbol(s))
     await this.export()
   }
 
-  async clear(): Promise<void>
-  {
+  async clear(): Promise<void> {
     this.logger.info("clear")
     const erased = this.model.strokes
     this.model.clear()
-    this.history.push(this.model, { removed: erased })
+    this.history.push(this.model, {
+      removed: erased,
+    })
     this.renderer.clear()
     this.event.emitExported(this.#model.exports as TExport)
     this.event.emitCleared()
   }
 
-  async destroy(): Promise<void>
-  {
+  async destroy(): Promise<void> {
     this.logger.info("destroy")
     this.stopResizeObserver()
     this.event.removeAllListeners()

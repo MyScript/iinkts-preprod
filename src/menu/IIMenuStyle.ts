@@ -1,13 +1,19 @@
 import styleIcon from "@/assets/svg/palette.svg"
+import { DOMFactory } from "@/components/dom"
 import { EditorTool, EditorWriteTool } from "@/Constants"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { IIModel } from "@/model"
-import type { TSymbol} from "@/symbol";
+import type { TSymbol } from "@/symbol"
 import { ShapeOps } from "@/symbol/shape/Shape"
-import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
-import { DOMFactory } from "@/components/dom"
-import { DEFAULT_MENU_COLORS, DEFAULT_THICKNESS_LIST, DEFAULT_FONT_SIZE_LIST, DEFAULT_FONT_WEIGHT_LIST } from "./MenuConstants"
+
 import type { BaseMenuItem } from "./items"
+import {
+  DEFAULT_FONT_SIZE_LIST,
+  DEFAULT_FONT_WEIGHT_LIST,
+  DEFAULT_MENU_COLORS,
+  DEFAULT_THICKNESS_LIST,
+} from "./MenuConstants"
 
 /**
  * @group Menu
@@ -29,11 +35,20 @@ export type TMenuStyleConfig = {
   /** Custom color palette */
   colors?: string[]
   /** Custom thickness list */
-  thicknessList?: { label: string, value: number }[]
+  thicknessList?: {
+    label: string
+    value: number
+  }[]
   /** Custom font size list */
-  fontSizeList?: { label: string, value: "auto" | number }[]
+  fontSizeList?: {
+    label: string
+    value: "auto" | number
+  }[]
   /** Custom font weight list */
-  fontWeightList?: { label: string, value: "auto" | "normal" | "bold" }[]
+  fontWeightList?: {
+    label: string
+    value: "auto" | "normal" | "bold"
+  }[]
 }
 
 /** @group Menu */
@@ -47,22 +62,21 @@ export const DefaultMenuStyleConfig: Required<TMenuStyleConfig> = {
   colors: DEFAULT_MENU_COLORS,
   thicknessList: DEFAULT_THICKNESS_LIST,
   fontSizeList: DEFAULT_FONT_SIZE_LIST,
-  fontWeightList: DEFAULT_FONT_WEIGHT_LIST
+  fontWeightList: DEFAULT_FONT_WEIGHT_LIST,
 }
 import {
-  StrokeColorStyle,
   FillColorStyle,
-  ThicknessStyle,
   FontSizeStyle,
   FontWeightStyle,
-  OpacityStyle
+  OpacityStyle,
+  StrokeColorStyle,
+  ThicknessStyle,
 } from "./styles"
 
 /**
  * @group Menu
  */
-export class IIMenuStyle
-{
+export class IIMenuStyle {
   #logger = LoggerManager.getLogger(LoggerCategory.MENU)
 
   editor: TInteractiveInkEditor
@@ -77,8 +91,7 @@ export class IIMenuStyle
   // Style items
   private styleItems: Map<string, BaseMenuItem> = new Map()
 
-  constructor(editor: TInteractiveInkEditor, id = "ms-menu-style", config?: TMenuStyleConfig)
-  {
+  constructor(editor: TInteractiveInkEditor, id = "ms-menu-style", config?: TMenuStyleConfig) {
     this.id = id
     this.#logger.info("constructor")
     this.editor = editor
@@ -105,40 +118,41 @@ export class IIMenuStyle
     }
   }
 
-  get model(): IIModel
-  {
+  get model(): IIModel {
     return this.editor.model
   }
 
-  get symbolsSelected(): TSymbol[]
-  {
+  get symbolsSelected(): TSymbol[] {
     return this.model.symbolsSelected
   }
 
-  get writeShape(): boolean
-  {
-    return ![EditorWriteTool.Arrow, EditorWriteTool.DoubleArrow, EditorWriteTool.Line, EditorWriteTool.Pencil].includes(this.editor.writer.tool)
+  get writeShape(): boolean {
+    return ![EditorWriteTool.Arrow, EditorWriteTool.DoubleArrow, EditorWriteTool.Line, EditorWriteTool.Pencil].includes(
+      this.editor.writer.tool
+    )
   }
 
-  get rowHeight(): number
-  {
+  get rowHeight(): number {
     return this.editor.configuration.rendering.guides.gap
   }
 
-  get isMobile(): boolean
-  {
+  get isMobile(): boolean {
     return this.editor.renderer.parent.clientWidth < 700
   }
 
-  render(layer: HTMLElement): void
-  {
+  render(layer: HTMLElement): void {
     if (this.editor.configuration.menu.style.enable) {
       this.#logger.info("Rendering menu styles with config", this.config)
 
-      
-      this.triggerBtn = DOMFactory.button({ id: this.id, className: "square", html: styleIcon })
+      this.triggerBtn = DOMFactory.button({
+        id: this.id,
+        className: "square",
+        html: styleIcon,
+      })
 
-      const subMenuContent = DOMFactory.div({ className: "ms-menu-column" })
+      const subMenuContent = DOMFactory.div({
+        className: "ms-menu-column",
+      })
 
       // Add style elements conditionally using new style classes
       if (this.config.strokeColor) {
@@ -177,10 +191,14 @@ export class IIMenuStyle
         subMenuContent.appendChild(opacityStyle.getElement())
       }
 
-      this.subMenuWrapper = DOMFactory.div({ className: "sub-menu" })
+      this.subMenuWrapper = DOMFactory.div({
+        className: "sub-menu",
+      })
       this.subMenuWrapper.appendChild(this.triggerBtn)
 
-      this.subMenuContent = DOMFactory.div({ className: ["sub-menu-content", "bottom-left"] })
+      this.subMenuContent = DOMFactory.div({
+        className: ["sub-menu-content", "bottom-left"],
+      })
       this.subMenuContent.appendChild(subMenuContent)
       this.subMenuWrapper.appendChild(this.subMenuContent)
 
@@ -193,15 +211,16 @@ export class IIMenuStyle
       }
       document.addEventListener("pointerdown", this.#documentPointerdownHandler)
 
-      this.wrapper = DOMFactory.div({ className: ["ms-menu", "ms-menu-top-right"] })
+      this.wrapper = DOMFactory.div({
+        className: ["ms-menu", "ms-menu-top-right"],
+      })
       this.wrapper.appendChild(this.subMenuWrapper)
       layer.appendChild(this.wrapper)
       this.update()
     }
   }
 
-  update(): void
-  {
+  update(): void {
     if (this.subMenuContent && this.subMenuWrapper) {
       if (this.isMobile) {
         // wrap — only if not already inside subMenuWrapper
@@ -230,16 +249,28 @@ export class IIMenuStyle
       const fontWeightEl = this.styleItems.get("fontWeight")?.getElement()
       const opacityEl = this.styleItems.get("opacity")?.getElement()
 
-      if (strokeColorEl) strokeColorEl.style.display = "block"
-      if (fillColorEl) fillColorEl.style.display = this.writeShape ? "block" : "none"
-      if (thicknessEl) thicknessEl.style.display = "block"
-      if (fontSizeEl) fontSizeEl.style.display = "block"
-      if (fontWeightEl) fontWeightEl.style.display = "block"
-      if (opacityEl) opacityEl.style.display = "block"
-    }
-    else if (this.editor.tool === EditorTool.Select) {
+      if (strokeColorEl) {
+        strokeColorEl.style.display = "block"
+      }
+      if (fillColorEl) {
+        fillColorEl.style.display = this.writeShape ? "block" : "none"
+      }
+      if (thicknessEl) {
+        thicknessEl.style.display = "block"
+      }
+      if (fontSizeEl) {
+        fontSizeEl.style.display = "block"
+      }
+      if (fontWeightEl) {
+        fontWeightEl.style.display = "block"
+      }
+      if (opacityEl) {
+        opacityEl.style.display = "block"
+      }
+    } else if (this.editor.tool === EditorTool.Select) {
       this.show()
-      const shapeSelected = this.model.symbolsSelected.length && this.model.symbolsSelected.some(s => ShapeOps.isShape(s))
+      const shapeSelected =
+        this.model.symbolsSelected.length && this.model.symbolsSelected.some((s) => ShapeOps.isShape(s))
 
       const strokeColorEl = this.styleItems.get("strokeColor")?.getElement()
       const fillColorEl = this.styleItems.get("fillColor")?.getElement()
@@ -248,34 +279,42 @@ export class IIMenuStyle
       const fontWeightEl = this.styleItems.get("fontWeight")?.getElement()
       const opacityEl = this.styleItems.get("opacity")?.getElement()
 
-      if (strokeColorEl) strokeColorEl.style.display = "block"
-      if (fillColorEl) fillColorEl.style.display = shapeSelected ? "block" : "none"
-      if (thicknessEl) thicknessEl.style.display = "block"
-      if (fontSizeEl) fontSizeEl.style.display = "block"
-      if (fontWeightEl) fontWeightEl.style.display = "block"
-      if (opacityEl) opacityEl.style.display = "block"
-    }
-    else {
+      if (strokeColorEl) {
+        strokeColorEl.style.display = "block"
+      }
+      if (fillColorEl) {
+        fillColorEl.style.display = shapeSelected ? "block" : "none"
+      }
+      if (thicknessEl) {
+        thicknessEl.style.display = "block"
+      }
+      if (fontSizeEl) {
+        fontSizeEl.style.display = "block"
+      }
+      if (fontWeightEl) {
+        fontWeightEl.style.display = "block"
+      }
+      if (opacityEl) {
+        opacityEl.style.display = "block"
+      }
+    } else {
       this.hide()
     }
   }
 
-  show(): void
-  {
+  show(): void {
     if (this.wrapper) {
       this.wrapper.style.visibility = "visible"
     }
   }
 
-  hide(): void
-  {
+  hide(): void {
     if (this.wrapper) {
       this.wrapper.style.visibility = "hidden"
     }
   }
 
-  destroy(): void
-  {
+  destroy(): void {
     if (this.#documentPointerdownHandler) {
       document.removeEventListener("pointerdown", this.#documentPointerdownHandler)
       this.#documentPointerdownHandler = undefined

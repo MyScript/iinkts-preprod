@@ -1,5 +1,6 @@
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
-import type { TMenuItemBase } from "./BaseMenuItem";
+
+import type { TMenuItemBase } from "./BaseMenuItem"
 import { BaseMenuItem } from "./BaseMenuItem"
 
 /**
@@ -18,9 +19,8 @@ export type TMenuColorList = TMenuItemBase & {
  * @group Menu
  * @remarks Class for color list menu items
  */
-export class ColorListMenuItem extends BaseMenuItem<HTMLDivElement>
-{
-  protected declare config: TMenuColorList
+export class ColorListMenuItem extends BaseMenuItem<HTMLDivElement> {
+  declare protected config: TMenuColorList
   private currentValue: string
 
   constructor(config: TMenuColorList, editor: TInteractiveInkEditor) {
@@ -29,14 +29,21 @@ export class ColorListMenuItem extends BaseMenuItem<HTMLDivElement>
   }
 
   createElement(): HTMLDivElement {
-    const wrapper = this.dom.div({ id: this.config.id, className: ["ms-menu-row", "list"] })
+    const wrapper = this.dom.div({
+      id: this.config.id,
+      className: ["ms-menu-row", "list"],
+    })
 
     this.config.colors.forEach((color) => {
       const colorId = color.replace("#", "")
-      const btn = this.dom.button({ className: "square" })
+      const btn = this.dom.button({
+        className: "square",
+      })
       btn.id = `${this.config.id}-${colorId}`
 
-      const colorEl = this.dom.div({ className: ["color"] })
+      const colorEl = this.dom.div({
+        className: ["color"],
+      })
 
       if (this.config.fill) {
         colorEl.style.setProperty("background-color", color)
@@ -51,7 +58,10 @@ export class ColorListMenuItem extends BaseMenuItem<HTMLDivElement>
       }
 
       if (color === "transparent") {
-        colorEl.style.setProperty("background-image", "linear-gradient(45deg, #AAA 10%, transparent 20%, #AAA 30%, transparent 40%, #AAA 50%, transparent 60%, #AAA 70%, transparent 80%, #AAA 90%, transparent 100%)")
+        colorEl.style.setProperty(
+          "background-image",
+          "linear-gradient(45deg, #AAA 10%, transparent 20%, #AAA 30%, transparent 40%, #AAA 50%, transparent 60%, #AAA 70%, transparent 80%, #AAA 90%, transparent 100%)"
+        )
       }
 
       if (this.currentValue === color) {
@@ -64,7 +74,7 @@ export class ColorListMenuItem extends BaseMenuItem<HTMLDivElement>
         e.stopPropagation()
         this.currentValue = color
         this.config.onChange(color, this.editor)
-        wrapper.querySelectorAll("button").forEach(b => b.classList.remove("active"))
+        wrapper.querySelectorAll("button").forEach((b) => b.classList.remove("active"))
         btn.classList.add("active")
       })
 
@@ -79,11 +89,13 @@ export class ColorListMenuItem extends BaseMenuItem<HTMLDivElement>
   }
 
   setValue(color: string): void {
-    if (!this.element) return
+    if (!this.element) {
+      return
+    }
 
     this.currentValue = color
     const buttons = this.element.querySelectorAll("button")
-    buttons.forEach(btn => {
+    buttons.forEach((btn) => {
       const colorId = color.replace("#", "")
       if (btn.id === `${this.config.id}-${colorId}`) {
         btn.classList.add("active")

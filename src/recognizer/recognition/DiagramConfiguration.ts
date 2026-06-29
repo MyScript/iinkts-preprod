@@ -1,5 +1,4 @@
-
-import type { TEraserConfiguration } from "./EraserConfiguration";
+import type { TEraserConfiguration } from "./EraserConfiguration"
 import { DefaultEraserConfiguration } from "./EraserConfiguration"
 import type { TTextConfConfiguration } from "./TextConfiguration"
 
@@ -15,7 +14,11 @@ export type TDiagramConvertConfiguration = {
  * @group Recognizer
  */
 export type TDiagramConfiguration = {
-  mimeTypes: ("application/vnd.myscript.jiix" | "application/vnd.openxmlformats-officedocument.presentationml.presentation" | "image/svg+xml")[]
+  mimeTypes: (
+    | "application/vnd.myscript.jiix"
+    | "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+    | "image/svg+xml"
+  )[]
   "enable-sub-blocks"?: boolean
   text?: TTextConfConfiguration
   convert?: TDiagramConvertConfiguration
@@ -29,7 +32,7 @@ export type TDiagramConfiguration = {
  */
 export const DefaultDiagramConvertConfiguration: TDiagramConvertConfiguration = {
   types: ["text", "shape"],
-  "match-text-size": true
+  "match-text-size": true,
 }
 
 /**

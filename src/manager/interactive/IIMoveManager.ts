@@ -1,33 +1,31 @@
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
-import type { TPointerInfo } from "@/grabber";
+import type { TPointerInfo } from "@/grabber"
 import { PointerEventGrabber } from "@/grabber"
-import { IIAbstractManager } from "./IIAbstractManager"
 import { LoggerCategory } from "@/logger"
+
+import { IIAbstractManager } from "./IIAbstractManager"
 
 /**
  * @group Manager
  */
-export class IIMoveManager extends IIAbstractManager
-{
+export class IIMoveManager extends IIAbstractManager {
   protected managerName = "IIMoveManager"
 
   grabber: PointerEventGrabber
 
   origin?: {
-    viewBoxX: number,
-    viewBoxY: number,
-    clientX: number,
+    viewBoxX: number
+    viewBoxY: number
+    clientX: number
     clientY: number
   }
 
-  constructor(editor: TInteractiveInkEditor)
-  {
+  constructor(editor: TInteractiveInkEditor) {
     super(editor, LoggerCategory.MOVE)
     this.grabber = new PointerEventGrabber(editor.configuration.grabber)
   }
 
-  protected updateViewBox(info: TPointerInfo, redrawGuide: boolean): void
-  {
+  protected updateViewBox(info: TPointerInfo, redrawGuide: boolean): void {
     if (!this.origin) {
       this.logger.error("Can't move cause origin is undefined")
       return
@@ -50,8 +48,7 @@ export class IIMoveManager extends IIAbstractManager
     )
   }
 
-  attach(layer: HTMLElement): void
-  {
+  attach(layer: HTMLElement): void {
     this.logger.info("attach", { layer })
     this.grabber.attach(layer)
     this.grabber.onPointerDown = this.start.bind(this)
@@ -59,14 +56,12 @@ export class IIMoveManager extends IIAbstractManager
     this.grabber.onPointerUp = this.end.bind(this)
   }
 
-  detach(): void
-  {
+  detach(): void {
     this.logger.info("detach")
     this.grabber.detach()
   }
 
-  start(info: TPointerInfo): void
-  {
+  start(info: TPointerInfo): void {
     const viewBox = this.renderer.getViewBox()
     this.origin = {
       viewBoxX: viewBox.x,
@@ -74,17 +69,17 @@ export class IIMoveManager extends IIAbstractManager
       clientX: info.clientX,
       clientY: info.clientY,
     }
-    this.logger.info("start", { origin: this.origin })
+    this.logger.info("start", {
+      origin: this.origin,
+    })
   }
 
-  continue(info: TPointerInfo): void
-  {
+  continue(info: TPointerInfo): void {
     this.logger.info("continue", { info })
     this.updateViewBox(info, false)
   }
 
-  end(info: TPointerInfo): void
-  {
+  end(info: TPointerInfo): void {
     this.logger.info("end", { info })
     this.updateViewBox(info, true)
     this.origin = undefined

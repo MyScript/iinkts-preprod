@@ -2,14 +2,15 @@ import { describe, test, expect, jest, beforeEach } from "@jest/globals"
 import { createEditorMock, asEditor } from "../../__mocks__/createEditorMock"
 import {
   IIConnectorManager,
-  EdgeLineOps ,
+  EdgeLineOps,
   EdgePolyLineOps,
   EdgeArcOps,
   StrokeOps,
   ShapeCircleOps,
   ShapePolygonOps,
-  OBBOps, type TOBB,
-  MatrixTransform
+  OBBOps,
+  type TOBB,
+  MatrixTransform,
 } from "@/iink"
 
 const TARGET_BOUNDS = OBBOps.fromBox({ x: 10, y: 20, width: 100, height: 80 })
@@ -35,13 +36,21 @@ function buildLineWithBothAnchors() {
 }
 
 function buildPolyLineWithStartAnchor() {
-  const poly = EdgePolyLineOps.create([{ x: 0, y: 0 }, { x: 50, y: 50 }, { x: 100, y: 100 }])
+  const poly = EdgePolyLineOps.create([
+    { x: 0, y: 0 },
+    { x: 50, y: 50 },
+    { x: 100, y: 100 },
+  ])
   poly.startAnchor = { symbolId: TARGET_ID, normalizedX: 0.25, normalizedY: 0.25 }
   return poly
 }
 
 function buildPolyLineWithEndAnchor() {
-  const poly = EdgePolyLineOps.create([{ x: 0, y: 0 }, { x: 50, y: 50 }, { x: 100, y: 100 }])
+  const poly = EdgePolyLineOps.create([
+    { x: 0, y: 0 },
+    { x: 50, y: 50 },
+    { x: 100, y: 100 },
+  ])
   poly.endAnchor = { symbolId: TARGET_ID, normalizedX: 0.75, normalizedY: 0.75 }
   return poly
 }
@@ -53,36 +62,32 @@ function setupSymbols(mock: ReturnType<typeof createEditorMock>, symbols: unknow
   })
 }
 
-describe("IIConnectorManager", () =>
-{
+describe("IIConnectorManager", () => {
   let mock: ReturnType<typeof createEditorMock>
   let manager: IIConnectorManager
 
-  beforeEach(() =>
-  {
+  beforeEach(() => {
     mock = createEditorMock()
     manager = new IIConnectorManager(asEditor(mock))
-    jest.spyOn(mock.model, "getRootSymbol").mockReturnValue(
-      { id: TARGET_ID, bounds: TARGET_BOUNDS } as unknown as ReturnType<typeof mock.model.getRootSymbol>
-    )
+    jest
+      .spyOn(mock.model, "getRootSymbol")
+      .mockReturnValue({ id: TARGET_ID, bounds: TARGET_BOUNDS } as unknown as ReturnType<
+        typeof mock.model.getRootSymbol
+      >)
   })
 
-  test("should instantiate", () =>
-  {
+  test("should instantiate", () => {
     expect(manager).toBeDefined()
   })
 
-  describe("updateAnchoredEdges", () =>
-  {
-    test("empty symbolIds → model.updateSymbol never called", () =>
-    {
+  describe("updateAnchoredEdges", () => {
+    test("empty symbolIds → model.updateSymbol never called", () => {
       const updateSpy = jest.spyOn(mock.model, "updateSymbol")
       manager.updateAnchoredEdges([])
       expect(updateSpy).not.toHaveBeenCalled()
     })
 
-    test("line with startAnchor for moved symbol → start recomputed", () =>
-    {
+    test("line with startAnchor for moved symbol → start recomputed", () => {
       const line = buildLineWithStartAnchor()
       setupSymbols(mock, [line])
       const updateSpy = jest.spyOn(mock.model, "updateSymbol")
@@ -96,8 +101,7 @@ describe("IIConnectorManager", () =>
       expect(updateSpy).toHaveBeenCalledWith(line)
     })
 
-    test("line with endAnchor for moved symbol → end recomputed", () =>
-    {
+    test("line with endAnchor for moved symbol → end recomputed", () => {
       const line = buildLineWithEndAnchor()
       setupSymbols(mock, [line])
       const updateSpy = jest.spyOn(mock.model, "updateSymbol")
@@ -111,8 +115,7 @@ describe("IIConnectorManager", () =>
       expect(updateSpy).toHaveBeenCalledWith(line)
     })
 
-    test("line with both anchors → both recomputed, updateSymbol called once", () =>
-    {
+    test("line with both anchors → both recomputed, updateSymbol called once", () => {
       const line = buildLineWithBothAnchors()
       setupSymbols(mock, [line])
       const updateSpy = jest.spyOn(mock.model, "updateSymbol")
@@ -126,8 +129,7 @@ describe("IIConnectorManager", () =>
       expect(updateSpy).toHaveBeenCalledTimes(1)
     })
 
-    test("edge anchored to symbol NOT in movedIds → not updated", () =>
-    {
+    test("edge anchored to symbol NOT in movedIds → not updated", () => {
       const line = buildLineWithStartAnchor()
       const originalStart = { ...line.start }
       setupSymbols(mock, [line])
@@ -139,8 +141,7 @@ describe("IIConnectorManager", () =>
       expect(updateSpy).not.toHaveBeenCalled()
     })
 
-    test("line edge with no anchors → not updated", () =>
-    {
+    test("line edge with no anchors → not updated", () => {
       const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 100, y: 100 })
       const originalStart = { ...line.start }
       const originalEnd = { ...line.end }
@@ -154,8 +155,7 @@ describe("IIConnectorManager", () =>
       expect(updateSpy).not.toHaveBeenCalled()
     })
 
-    test("target not found (getRootSymbol returns undefined) → not updated", () =>
-    {
+    test("target not found (getRootSymbol returns undefined) → not updated", () => {
       jest.spyOn(mock.model, "getRootSymbol").mockReturnValue(undefined)
       const line = buildLineWithStartAnchor()
       const originalStart = { ...line.start }
@@ -168,8 +168,7 @@ describe("IIConnectorManager", () =>
       expect(updateSpy).not.toHaveBeenCalled()
     })
 
-    test("polyline with startAnchor → points[0] updated", () =>
-    {
+    test("polyline with startAnchor → points[0] updated", () => {
       const poly = buildPolyLineWithStartAnchor()
       setupSymbols(mock, [poly])
       const updateSpy = jest.spyOn(mock.model, "updateSymbol")
@@ -183,8 +182,7 @@ describe("IIConnectorManager", () =>
       expect(updateSpy).toHaveBeenCalledWith(poly)
     })
 
-    test("polyline with endAnchor → points[last] updated", () =>
-    {
+    test("polyline with endAnchor → points[last] updated", () => {
       const poly = buildPolyLineWithEndAnchor()
       setupSymbols(mock, [poly])
       const updateSpy = jest.spyOn(mock.model, "updateSymbol")
@@ -198,19 +196,18 @@ describe("IIConnectorManager", () =>
       expect(updateSpy).toHaveBeenCalledWith(poly)
     })
 
-    describe("with matrix and preTransformBoundsById (rotation case)", () =>
-    {
+    describe("with matrix and preTransformBoundsById (rotation case)", () => {
       const POST_BOUNDS = OBBOps.fromBox({ x: 50, y: 50, width: 200, height: 200 })
 
-      beforeEach(() =>
-      {
-        jest.spyOn(mock.model, "getRootSymbol").mockReturnValue(
-          { id: TARGET_ID, bounds: POST_BOUNDS } as unknown as ReturnType<typeof mock.model.getRootSymbol>
-        )
+      beforeEach(() => {
+        jest
+          .spyOn(mock.model, "getRootSymbol")
+          .mockReturnValue({ id: TARGET_ID, bounds: POST_BOUNDS } as unknown as ReturnType<
+            typeof mock.model.getRootSymbol
+          >)
       })
 
-      test("line startAnchor → world point from matrix+preBounds, not postBounds", () =>
-      {
+      test("line startAnchor → world point from matrix+preBounds, not postBounds", () => {
         const line = buildLineWithStartAnchor() // normalizedX:0.5, normalizedY:0.5
         setupSymbols(mock, [line])
         const matrix = MatrixTransform.identity().translate(10, 5)
@@ -223,8 +220,7 @@ describe("IIConnectorManager", () =>
         expect(line.start).toEqual({ x: 70, y: 65 })
       })
 
-      test("normalizedXY updated to reflect position in post-transform bounds", () =>
-      {
+      test("normalizedXY updated to reflect position in post-transform bounds", () => {
         const line = buildLineWithStartAnchor() // normalizedX:0.5, normalizedY:0.5
         setupSymbols(mock, [line])
         const matrix = MatrixTransform.identity().translate(10, 5)
@@ -238,8 +234,7 @@ describe("IIConnectorManager", () =>
         expect(line.startAnchor!.normalizedY).toBeCloseTo(0.075)
       })
 
-      test("without matrix → falls back to current bounds (backward compat)", () =>
-      {
+      test("without matrix → falls back to current bounds (backward compat)", () => {
         const line = buildLineWithStartAnchor() // normalizedX:0.5, normalizedY:0.5
         setupSymbols(mock, [line])
 
@@ -249,8 +244,7 @@ describe("IIConnectorManager", () =>
         expect(line.start).toEqual({ x: 150, y: 150 })
       })
 
-      test("matrix present but no preBounds entry → falls back to current bounds", () =>
-      {
+      test("matrix present but no preBounds entry → falls back to current bounds", () => {
         const line = buildLineWithStartAnchor()
         setupSymbols(mock, [line])
         const matrix = MatrixTransform.identity().translate(10, 5)
@@ -263,8 +257,7 @@ describe("IIConnectorManager", () =>
       })
     })
 
-    test("non-edge symbols (stroke) → ignored", () =>
-    {
+    test("non-edge symbols (stroke) → ignored", () => {
       const stroke = StrokeOps.create()
       setupSymbols(mock, [stroke])
       const updateSpy = jest.spyOn(mock.model, "updateSymbol")
@@ -276,13 +269,11 @@ describe("IIConnectorManager", () =>
     })
   })
 
-  describe("findSymbolAtPoint", () =>
-  {
+  describe("findSymbolAtPoint", () => {
     const CIRCLE_CENTER = { x: 50, y: 50 }
     const CIRCLE_RADIUS = 30
 
-    test("returns symbol whose bounds contain point", () =>
-    {
+    test("returns symbol whose bounds contain point", () => {
       const circle = ShapeCircleOps.create(CIRCLE_CENTER, CIRCLE_RADIUS)
       setupSymbols(mock, [circle])
 
@@ -291,8 +282,7 @@ describe("IIConnectorManager", () =>
       expect(result).toBe(circle)
     })
 
-    test("returns undefined when point outside all symbol bounds", () =>
-    {
+    test("returns undefined when point outside all symbol bounds", () => {
       const circle = ShapeCircleOps.create(CIRCLE_CENTER, CIRCLE_RADIUS)
       setupSymbols(mock, [circle])
 
@@ -301,8 +291,7 @@ describe("IIConnectorManager", () =>
       expect(result).toBeUndefined()
     })
 
-    test("excludes symbol with matching excludeId", () =>
-    {
+    test("excludes symbol with matching excludeId", () => {
       const circle = ShapeCircleOps.create(CIRCLE_CENTER, CIRCLE_RADIUS)
       setupSymbols(mock, [circle])
 
@@ -311,18 +300,17 @@ describe("IIConnectorManager", () =>
       expect(result).toBeUndefined()
     })
 
-    test("rotated polygon: point inside AABB but outside actual polygon → no match", () =>
-    {
+    test("rotated polygon: point inside AABB but outside actual polygon → no match", () => {
       // Simulate a square rotated 45°: becomes a diamond.
       // Original 100x100 square centered at (50,50), rotated 45° → diamond with vertices at
       // top(50,0), right(100,50), bottom(50,100), left(0,50).
       // AABB = {x:0,y:0,w:100,h:100} (unchanged for a square).
       // Corner (5,5) is inside the AABB but outside the diamond.
       const diamond = ShapePolygonOps.create([
-        { x: 50, y: 0 },   // top
+        { x: 50, y: 0 }, // top
         { x: 100, y: 50 }, // right
         { x: 50, y: 100 }, // bottom
-        { x: 0, y: 50 },   // left
+        { x: 0, y: 50 }, // left
       ])
       setupSymbols(mock, [diamond])
 
@@ -332,8 +320,7 @@ describe("IIConnectorManager", () =>
       expect(result).toBeUndefined()
     })
 
-    test("rotated polygon: point inside actual polygon → match", () =>
-    {
+    test("rotated polygon: point inside actual polygon → match", () => {
       const diamond = ShapePolygonOps.create([
         { x: 50, y: 0 },
         { x: 100, y: 50 },
@@ -348,8 +335,7 @@ describe("IIConnectorManager", () =>
       expect(result).toBe(diamond)
     })
 
-    test("excludes edges from anchor targets", () =>
-    {
+    test("excludes edges from anchor targets", () => {
       const line = EdgeLineOps.create({ x: 20, y: 20 }, { x: 80, y: 80 })
       setupSymbols(mock, [line])
 
@@ -359,12 +345,13 @@ describe("IIConnectorManager", () =>
     })
   })
 
-  describe("applyEndpointAnchor", () =>
-  {
-    test("sets startAnchor at center when pointIndex=0 and point hits shape", () =>
-    {
+  describe("applyEndpointAnchor", () => {
+    test("sets startAnchor at center when pointIndex=0 and point hits shape", () => {
       const square = ShapePolygonOps.create([
-        { x: 0, y: 0 }, { x: 100, y: 0 }, { x: 100, y: 100 }, { x: 0, y: 100 },
+        { x: 0, y: 0 },
+        { x: 100, y: 0 },
+        { x: 100, y: 100 },
+        { x: 0, y: 100 },
       ])
       setupSymbols(mock, [square])
       const line = EdgeLineOps.create({ x: 55, y: 55 }, { x: 200, y: 200 })
@@ -379,10 +366,12 @@ describe("IIConnectorManager", () =>
       expect(line.endAnchor).toBeUndefined()
     })
 
-    test("sets endAnchor at center when pointIndex=last and point hits shape", () =>
-    {
+    test("sets endAnchor at center when pointIndex=last and point hits shape", () => {
       const square = ShapePolygonOps.create([
-        { x: 0, y: 0 }, { x: 100, y: 0 }, { x: 100, y: 100 }, { x: 0, y: 100 },
+        { x: 0, y: 0 },
+        { x: 100, y: 0 },
+        { x: 100, y: 100 },
+        { x: 0, y: 100 },
       ])
       setupSymbols(mock, [square])
       const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 55, y: 55 })
@@ -398,19 +387,21 @@ describe("IIConnectorManager", () =>
       expect(line.startAnchor).toBeUndefined()
     })
 
-    test("endAnchor has entryPoint set (intersection with polygon border)", () =>
-    {
+    test("endAnchor has entryPoint set (intersection with polygon border)", () => {
       // Square (0,0)→(100,100), center=(50,50). Free end at (200,50).
       // Edge goes from (200,50) to center (50,50): horizontal line y=50.
       // Right border: x=100, y in [0,100] → entry at (100, 50).
       const square = ShapePolygonOps.create([
-        { x: 0, y: 0 }, { x: 100, y: 0 }, { x: 100, y: 100 }, { x: 0, y: 100 },
+        { x: 0, y: 0 },
+        { x: 100, y: 0 },
+        { x: 100, y: 100 },
+        { x: 0, y: 100 },
       ])
       setupSymbols(mock, [square])
       // getRootSymbol must return the real shape so isShape + vertices work
-      jest.spyOn(mock.model, "getRootSymbol").mockReturnValue(
-        square as unknown as ReturnType<typeof mock.model.getRootSymbol>
-      )
+      jest
+        .spyOn(mock.model, "getRootSymbol")
+        .mockReturnValue(square as unknown as ReturnType<typeof mock.model.getRootSymbol>)
       const line = EdgeLineOps.create({ x: 200, y: 50 }, { x: 55, y: 55 })
       EdgeLineOps.updateDerivedFields(line)
 
@@ -421,8 +412,7 @@ describe("IIConnectorManager", () =>
       expect(line.endAnchor?.entryPoint?.y).toBeCloseTo(50)
     })
 
-    test("clears startAnchor when point hits no symbol", () =>
-    {
+    test("clears startAnchor when point hits no symbol", () => {
       setupSymbols(mock, [])
       const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 100, y: 100 })
       line.startAnchor = { symbolId: "old", normalizedX: 0.5, normalizedY: 0.5 }
@@ -432,11 +422,14 @@ describe("IIConnectorManager", () =>
       expect(line.startAnchor).toBeUndefined()
     })
 
-    test("ignores mid-vertex pointIndex (not start or end)", () =>
-    {
+    test("ignores mid-vertex pointIndex (not start or end)", () => {
       const circle = ShapeCircleOps.create({ x: 50, y: 50 }, 30)
       setupSymbols(mock, [circle])
-      const poly = EdgePolyLineOps.create([{ x: 0, y: 0 }, { x: 55, y: 55 }, { x: 100, y: 100 }])
+      const poly = EdgePolyLineOps.create([
+        { x: 0, y: 0 },
+        { x: 55, y: 55 },
+        { x: 100, y: 100 },
+      ])
 
       manager.applyEndpointAnchor(poly, 1, { x: 55, y: 55 })
 
@@ -444,8 +437,7 @@ describe("IIConnectorManager", () =>
       expect(poly.endAnchor).toBeUndefined()
     })
 
-    test("ignores Arc edges", () =>
-    {
+    test("ignores Arc edges", () => {
       const circle = ShapeCircleOps.create({ x: 50, y: 50 }, 30)
       setupSymbols(mock, [circle])
       const arc = EdgeArcOps.create({ x: 50, y: 50 }, 0, Math.PI, 20, 20, 0)
@@ -456,10 +448,8 @@ describe("IIConnectorManager", () =>
     })
   })
 
-  describe("showAnchorHint", () =>
-  {
-    test("draws rect and returns target when point inside symbol", () =>
-    {
+  describe("showAnchorHint", () => {
+    test("draws rect and returns target when point inside symbol", () => {
       const circle = ShapeCircleOps.create({ x: 50, y: 50 }, 30)
       setupSymbols(mock, [circle])
 
@@ -469,8 +459,7 @@ describe("IIConnectorManager", () =>
       expect(mock.renderer.drawRect).toHaveBeenCalledTimes(1)
     })
 
-    test("returns undefined and skips drawRect when no symbol at point", () =>
-    {
+    test("returns undefined and skips drawRect when no symbol at point", () => {
       setupSymbols(mock, [])
 
       const result = manager.showAnchorHint({ x: 55, y: 55 }, "other-id")
@@ -479,8 +468,7 @@ describe("IIConnectorManager", () =>
       expect(mock.renderer.drawRect).not.toHaveBeenCalled()
     })
 
-    test("clears previous hint before drawing new one", () =>
-    {
+    test("clears previous hint before drawing new one", () => {
       const circle = ShapeCircleOps.create({ x: 50, y: 50 }, 30)
       setupSymbols(mock, [circle])
 
@@ -491,16 +479,13 @@ describe("IIConnectorManager", () =>
     })
   })
 
-  describe("drawAnchoredEdgesForMatrix", () =>
-  {
-    test("empty symbolIds → renderer.drawSymbol never called", () =>
-    {
+  describe("drawAnchoredEdgesForMatrix", () => {
+    test("empty symbolIds → renderer.drawSymbol never called", () => {
       manager.drawAnchoredEdgesForMatrix([], MatrixTransform.identity())
       expect(mock.renderer.drawSymbol).not.toHaveBeenCalled()
     })
 
-    test("line startAnchor → start moved by matrix", () =>
-    {
+    test("line startAnchor → start moved by matrix", () => {
       const line = buildLineWithStartAnchor()
       setupSymbols(mock, [line])
       const matrix = MatrixTransform.identity().translate(10, 5)
@@ -514,8 +499,7 @@ describe("IIConnectorManager", () =>
       expect(drawn.start).toEqual({ x: 70, y: 65 })
     })
 
-    test("original line is not mutated by drawAnchoredEdgesForMatrix", () =>
-    {
+    test("original line is not mutated by drawAnchoredEdgesForMatrix", () => {
       const line = buildLineWithStartAnchor()
       const originalStart = { ...line.start }
       setupSymbols(mock, [line])
@@ -525,8 +509,7 @@ describe("IIConnectorManager", () =>
       expect(line.start).toEqual(originalStart)
     })
 
-    test("polyline endAnchor → last point moved by matrix", () =>
-    {
+    test("polyline endAnchor → last point moved by matrix", () => {
       const poly = buildPolyLineWithEndAnchor()
       setupSymbols(mock, [poly])
       const matrix = MatrixTransform.identity().translate(0, 10)
@@ -540,8 +523,7 @@ describe("IIConnectorManager", () =>
       expect(last).toEqual({ x: 85, y: 90 })
     })
 
-    test("edge anchored to symbol NOT in symbolIds → not redrawn", () =>
-    {
+    test("edge anchored to symbol NOT in symbolIds → not redrawn", () => {
       const line = buildLineWithStartAnchor()
       setupSymbols(mock, [line])
 

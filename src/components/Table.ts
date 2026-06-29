@@ -62,13 +62,15 @@ export class Table {
       width: "100%",
       selectable: false,
       multiSelect: false,
-      ...config
+      ...config,
     }
     this.table = this.createTable()
   }
 
   private createTable(): HTMLTableElement {
-    const table = DOMFactory.table({ className: "ms-table" })
+    const table = DOMFactory.table({
+      className: "ms-table",
+    })
     table.style.width = this.config.width!
     table.style.fontSize = this.config.fontSize!
     if (this.config.maxHeight) {
@@ -95,15 +97,24 @@ export class Table {
       thead.style.cssText = "position: sticky; top: 0; background: var(--iink-editor-bg); font-weight: bold;"
     }
 
-    const headerRow = DOMFactory.tr({ className: "ms-table-header-row" })
+    const headerRow = DOMFactory.tr({
+      className: "ms-table-header-row",
+    })
 
-    this.config.columns.forEach(column => {
+    this.config.columns.forEach((column) => {
       let th: HTMLTableCellElement
 
       if (typeof column === "string") {
-        th = DOMFactory.th({ className: "ms-table-th", style: "text-align: left;", text: column })
+        th = DOMFactory.th({
+          className: "ms-table-th",
+          style: "text-align: left;",
+          text: column,
+        })
       } else {
-        th = DOMFactory.th({ className: "ms-table-th", style: `text-align: ${column.align || "left"};` })
+        th = DOMFactory.th({
+          className: "ms-table-th",
+          style: `text-align: ${column.align || "left"};`,
+        })
 
         // Handle both string and HTMLElement headers
         if (typeof column.header === "string") {
@@ -130,7 +141,9 @@ export class Table {
 
     this.config.rows.forEach((rowConfig, rowIndex) => {
       const baseStyle = rowConfig.style || "border-bottom: 1px solid var(--iink-surface);"
-      const row = DOMFactory.tr({ style: baseStyle })
+      const row = DOMFactory.tr({
+        style: baseStyle,
+      })
 
       // Store row element reference
       this.rowElements.set(rowIndex, row)
@@ -166,19 +179,29 @@ export class Table {
       rowConfig.cells.forEach((cellData, index) => {
         // Get column alignment
         const column = this.config.columns[index]
-        const columnAlign = typeof column === "string" ? "left" : (column.align || "left")
+        const columnAlign = typeof column === "string" ? "left" : column.align || "left"
 
         let cell: HTMLTableCellElement
 
         if (typeof cellData === "string") {
-          cell = DOMFactory.td({ className: "ms-table-td", style: `text-align: ${columnAlign};`, text: cellData })
+          cell = DOMFactory.td({
+            className: "ms-table-td",
+            style: `text-align: ${columnAlign};`,
+            text: cellData,
+          })
         } else if (cellData instanceof HTMLElement) {
-          cell = DOMFactory.td({ className: "ms-table-td", style: `text-align: ${columnAlign};` })
+          cell = DOMFactory.td({
+            className: "ms-table-td",
+            style: `text-align: ${columnAlign};`,
+          })
           cell.appendChild(cellData)
         } else {
           // TTableCellConfig
           const align = cellData.align || columnAlign
-          cell = DOMFactory.td({ className: "ms-table-td", style: `text-align: ${align};${cellData.style || ""}` })
+          cell = DOMFactory.td({
+            className: "ms-table-td",
+            style: `text-align: ${align};${cellData.style || ""}`,
+          })
 
           if (typeof cellData.content === "string") {
             cell.textContent = cellData.content
@@ -253,7 +276,7 @@ export class Table {
    * Clear all selections
    */
   clearSelection(): void {
-    this.selectedRows.forEach(rowIndex => {
+    this.selectedRows.forEach((rowIndex) => {
       this.updateRowStyle(rowIndex, false)
     })
     this.selectedRows.clear()
@@ -264,7 +287,9 @@ export class Table {
    */
   private updateRowStyle(rowIndex: number, selected: boolean): void {
     const row = this.rowElements.get(rowIndex)
-    if (!row) return
+    if (!row) {
+      return
+    }
 
     const rowConfig = this.config.rows[rowIndex]
     const baseStyle = rowConfig?.style || "border-bottom: 1px solid var(--iink-surface);"
@@ -287,7 +312,9 @@ export class Table {
    * Get selected row data
    */
   getSelectedRowsData(): unknown[] {
-    return Array.from(this.selectedRows).map(index => this.config.rows[index]?.data).filter(data => data !== undefined)
+    return Array.from(this.selectedRows)
+      .map((index) => this.config.rows[index]?.data)
+      .filter((data) => data !== undefined)
   }
 
   /**

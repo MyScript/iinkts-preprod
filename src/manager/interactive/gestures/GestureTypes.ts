@@ -16,7 +16,11 @@ export type TGesture = {
   strokeIds: string[]
   strokeBeforeIds: string[]
   strokeAfterIds: string[]
-  subStrokes?: { fullStrokeId: string, x: number[], y: number[] }[]
+  subStrokes?: {
+    fullStrokeId: string
+    x: number[]
+    y: number[]
+  }[]
 }
 
 /**
@@ -26,11 +30,10 @@ export type TGesture = {
  * @remarks
  * only usable in the case of offscreen
  */
-export enum SurroundAction
-{
+export enum SurroundAction {
   Select = "select",
   Surround = "surround",
-  Highlight = "highlight"
+  Highlight = "highlight",
 }
 
 /**
@@ -40,10 +43,9 @@ export enum SurroundAction
  * @remarks
  * only usable in the case of offscreen
  */
-export enum StrikeThroughAction
-{
+export enum StrikeThroughAction {
   Erase = "erase",
-  Draw = "draw"
+  Draw = "draw",
 }
 
 /**
@@ -53,10 +55,9 @@ export enum StrikeThroughAction
  * @remarks
  * only usable in the case of offscreen
  */
-export enum UnderlineAction
-{
+export enum UnderlineAction {
   Draw = "draw",
-  Thicken = "thicken"
+  Thicken = "thicken",
 }
 
 /**
@@ -66,8 +67,7 @@ export enum UnderlineAction
  * @remarks
  * only usable in the case of offscreen
  */
-export enum InsertAction
-{
+export enum InsertAction {
   /**
    * @remarks Add line break on gesture place
    */
@@ -75,7 +75,7 @@ export enum InsertAction
   /**
    * @remarks Insert place in gesture place
    */
-  Insert = "insert"
+  Insert = "insert",
 }
 
 /**
@@ -97,5 +97,5 @@ export const DefaultGestureConfiguration: TGestureConfiguration = {
   surround: SurroundAction.Select,
   strikeThrough: StrikeThroughAction.Draw,
   underline: UnderlineAction.Draw,
-  insert: InsertAction.LineBreak
+  insert: InsertAction.LineBreak,
 }

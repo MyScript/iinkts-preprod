@@ -11,14 +11,13 @@ type CompleteEventMockProps = EventMockProps & {
   buttons: number
 }
 
-type TouchListFake = ({ clientX: number, clientY: number })[]
+type TouchListFake = { clientX: number; clientY: number }[]
 
 type EventChangeFakeProps = {
   target: EventTarget
 }
 
-export class EventMock extends Event
-{
+export class EventMock extends Event {
   clientX: number
   clientY: number
   pressure: number
@@ -26,8 +25,7 @@ export class EventMock extends Event
   button: number
   buttons: number
   pointerId: number
-  constructor(type: string, props: CompleteEventMockProps)
-  {
+  constructor(type: string, props: CompleteEventMockProps) {
     super(type, props as EventInit)
     this.clientX = props.clientX
     this.clientY = props.clientY
@@ -39,79 +37,71 @@ export class EventMock extends Event
   }
 }
 
-export class LeftClickEventMock extends EventMock
-{
-  constructor(type: string, props: EventMockProps)
-  {
+export class LeftClickEventMock extends EventMock {
+  constructor(type: string, props: EventMockProps) {
     super(type, {
       ...props,
       button: 0,
-      buttons: 1
+      buttons: 1,
     })
   }
 }
 
-export class ContextMenuEventMock extends EventMock
-{
-  constructor(props: EventMockProps)
-  {
+export class ContextMenuEventMock extends EventMock {
+  constructor(props: EventMockProps) {
     super("contextmenu", {
       ...props,
       button: 2,
-      buttons: 2
+      buttons: 2,
     })
   }
 }
 
-export class RightClickEventMock extends EventMock
-{
-  constructor(type: string, props: EventMockProps)
-  {
+export class RightClickEventMock extends EventMock {
+  constructor(type: string, props: EventMockProps) {
     super(type, {
       ...props,
       button: 1,
-      buttons: 1
+      buttons: 1,
     })
   }
 }
 
-export class TouchEventMock extends EventMock
-{
+export class TouchEventMock extends EventMock {
   changedTouches: TouchListFake
-  constructor(type: string, props: EventMockProps)
-  {
+  constructor(type: string, props: EventMockProps) {
     super(type, {
       ...props,
       button: 0,
-      buttons: 1
+      buttons: 1,
     })
-    this.changedTouches = [{
-      clientX: props.clientX,
-      clientY: props.clientY,
-    }]
+    this.changedTouches = [
+      {
+        clientX: props.clientX,
+        clientY: props.clientY,
+      },
+    ]
   }
 }
 
-export class DoubleTouchEventMock extends EventMock
-{
+export class DoubleTouchEventMock extends EventMock {
   changedTouches: TouchListFake
-  constructor(type: string, props: EventMockProps)
-  {
+  constructor(type: string, props: EventMockProps) {
     super(type, {
       ...props,
       button: 0,
-      buttons: 2
+      buttons: 2,
     })
-    this.changedTouches = [{
-      clientX: props.clientX,
-      clientY: props.clientY,
-    }]
+    this.changedTouches = [
+      {
+        clientX: props.clientX,
+        clientY: props.clientY,
+      },
+    ]
   }
 }
-export class ChangeEventMock extends Event
-{
-  constructor(props: EventChangeFakeProps)
-  {
+export class ChangeEventMock extends Event {
+  constructor(props: EventChangeFakeProps) {
     super("change", props as EventInit)
   }
 }

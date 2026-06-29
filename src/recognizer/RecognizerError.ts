@@ -26,22 +26,35 @@ export enum RecognizerError {
 /**
  * @group Recognizer
  */
-export function mapCloseCodeToMessage(code: number): string | null
-{
+export function mapCloseCodeToMessage(code: number): string | null {
   switch (code) {
-    case 1000: return ""
-    case 1001: return RecognizerError.GOING_AWAY
-    case 1002: return RecognizerError.PROTOCOL_ERROR
-    case 1003: return RecognizerError.UNSUPPORTED_DATA
-    case 1006: return RecognizerError.ABNORMAL_CLOSURE
-    case 1007: return RecognizerError.INVALID_FRAME_PAYLOAD
-    case 1008: return RecognizerError.POLICY_VIOLATION
-    case 1009: return RecognizerError.MESSAGE_TOO_BIG
-    case 1011: return RecognizerError.INTERNAL_ERROR
-    case 1012: return RecognizerError.SERVICE_RESTART
-    case 1013: return RecognizerError.TRY_AGAIN
-    case 1014: return RecognizerError.BAD_GATEWAY
-    case 1015: return RecognizerError.TLS_HANDSHAKE
-    default: return null
+    case 1000:
+      return ""
+    case 1001:
+      return RecognizerError.GOING_AWAY
+    case 1002:
+      return RecognizerError.PROTOCOL_ERROR
+    case 1003:
+      return RecognizerError.UNSUPPORTED_DATA
+    case 1006:
+      return RecognizerError.ABNORMAL_CLOSURE
+    case 1007:
+      return RecognizerError.INVALID_FRAME_PAYLOAD
+    case 1008:
+      return RecognizerError.POLICY_VIOLATION
+    case 1009:
+      return RecognizerError.MESSAGE_TOO_BIG
+    case 1011:
+      return RecognizerError.INTERNAL_ERROR
+    case 1012:
+      return RecognizerError.SERVICE_RESTART
+    case 1013:
+      return RecognizerError.TRY_AGAIN
+    case 1014:
+      return RecognizerError.BAD_GATEWAY
+    case 1015:
+      return RecognizerError.TLS_HANDSHAKE
+    default:
+      return null
   }
 }

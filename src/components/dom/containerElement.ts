@@ -9,17 +9,29 @@ export type TContainerElConfig = {
 }
 
 function apply(el: HTMLElement, config?: TContainerElConfig): void {
-  if (!config) return
-  if (config.id) el.id = config.id
-  if (config.style) el.style.cssText = config.style
-  if (config.text) el.textContent = config.text
-  if (config.html) el.innerHTML = config.html
-  if (config.title) el.title = config.title
+  if (!config) {
+    return
+  }
+  if (config.id) {
+    el.id = config.id
+  }
+  if (config.style) {
+    el.style.cssText = config.style
+  }
+  if (config.text) {
+    el.textContent = config.text
+  }
+  if (config.html) {
+    el.innerHTML = config.html
+  }
+  if (config.title) {
+    el.title = config.title
+  }
   if (config.className) {
     const list = Array.isArray(config.className)
-      ? config.className.flatMap(c => c.split(" "))
+      ? config.className.flatMap((c) => c.split(" "))
       : config.className.split(" ")
-    el.classList.add(...list.filter(c => c.length > 0))
+    el.classList.add(...list.filter((c) => c.length > 0))
   }
 }
 

@@ -1,58 +1,57 @@
 import fetchMock from "jest-fetch-mock"
-import { RecognizerHTTPV1DiagramConfiguration, RecognizerHTTPV1MathConfiguration, RecognizerHTTPV1RawContentConfiguration, RecognizerHTTPV1TextConfiguration } from "../__dataset__/configuration.dataset"
-import
-{
+import {
+  RecognizerHTTPV1DiagramConfiguration,
+  RecognizerHTTPV1MathConfiguration,
+  RecognizerHTTPV1RawContentConfiguration,
+  RecognizerHTTPV1TextConfiguration,
+} from "../__dataset__/configuration.dataset"
+import {
   RecognizerHTTPV1,
   DefaultPenStyle,
   Model,
   TPointer,
   TRecognitionTypeV1,
   TRecognizerHTTPV1Configuration,
-  DefaultRecognizerHTTPV1Configuration
+  DefaultRecognizerHTTPV1Configuration,
 } from "@/iink"
 
-describe("RecognizerHTTPV1.ts", () =>
-{
-  const height = 100, width = 100
+describe("RecognizerHTTPV1.ts", () => {
+  const height = 100,
+    width = 100
 
-  beforeAll(() =>
-  {
+  beforeAll(() => {
     fetchMock.enableMocks()
   })
-  afterEach(() =>
-  {
+  afterEach(() => {
     fetchMock.resetMocks()
   })
 
-  test("should instanciate RecognizerHTTPV1", () =>
-  {
+  test("should instanciate RecognizerHTTPV1", () => {
     const rr = new RecognizerHTTPV1(DefaultRecognizerHTTPV1Configuration)
     expect(rr).toBeDefined()
   })
 
-  const testDatas: { type: TRecognitionTypeV1, config: TRecognizerHTTPV1Configuration }[] = [
+  const testDatas: { type: TRecognitionTypeV1; config: TRecognizerHTTPV1Configuration }[] = [
     {
       type: "TEXT",
-      config: RecognizerHTTPV1TextConfiguration as TRecognizerHTTPV1Configuration
+      config: RecognizerHTTPV1TextConfiguration as TRecognizerHTTPV1Configuration,
     },
     {
       type: "DIAGRAM",
-      config: RecognizerHTTPV1DiagramConfiguration as TRecognizerHTTPV1Configuration
+      config: RecognizerHTTPV1DiagramConfiguration as TRecognizerHTTPV1Configuration,
     },
     {
       type: "MATH",
-      config: RecognizerHTTPV1MathConfiguration as TRecognizerHTTPV1Configuration
+      config: RecognizerHTTPV1MathConfiguration as TRecognizerHTTPV1Configuration,
     },
     {
       type: "Raw Content",
-      config: RecognizerHTTPV1RawContentConfiguration as TRecognizerHTTPV1Configuration
+      config: RecognizerHTTPV1RawContentConfiguration as TRecognizerHTTPV1Configuration,
     },
   ]
 
-  testDatas.forEach(({ type, config }) =>
-  {
-    test(`should export ${ type }`, async () =>
-    {
+  testDatas.forEach(({ type, config }) => {
+    test(`should export ${type}`, async () => {
       const model = new Model(width, height)
       const p1: TPointer = { t: 1, p: 1, x: 1, y: 1 }
       const p2: TPointer = { t: 10, p: 1, x: 100, y: 1 }
@@ -84,17 +83,14 @@ describe("RecognizerHTTPV1.ts", () =>
       }
       expect(fetchMock).toHaveBeenCalledTimes(mimeTypes.length)
       expect(model.exports).toBeUndefined()
-      mimeTypes.forEach(m =>
-      {
+      mimeTypes.forEach((m) => {
         expect(newModel.exports![m]).toBeDefined()
       })
     })
   })
 
-  testDatas.forEach(({ type, config }) =>
-  {
-    test(`should convert ${ type }`, async () =>
-    {
+  testDatas.forEach(({ type, config }) => {
+    test(`should convert ${type}`, async () => {
       const model = new Model(width, height)
       const p1: TPointer = { t: 1, p: 1, x: 1, y: 1 }
       const p2: TPointer = { t: 10, p: 1, x: 100, y: 1 }
@@ -125,11 +121,9 @@ describe("RecognizerHTTPV1.ts", () =>
 
       expect(fetchMock).toHaveBeenCalledTimes(mimeTypes.length)
       expect(model.converts).toBeUndefined()
-      mimeTypes.forEach(m =>
-      {
+      mimeTypes.forEach((m) => {
         expect(newModel.converts![m]).toBeDefined()
       })
     })
   })
-
 })

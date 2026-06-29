@@ -1,7 +1,6 @@
 import { isVersionSuperiorOrEqual } from "@/iink"
 
-describe("version", () =>
-{
+describe("version", () => {
   const testDatas = [
     { source: "1.0.1", target: "1.0.0", expected: true },
     { source: "1.1.0", target: "1.0.0", expected: true },
@@ -13,10 +12,8 @@ describe("version", () =>
     { source: "2.11.9", target: "2.12.88", expected: false },
     { source: "1.0.0", target: "1.0.0", expected: true },
   ]
-  testDatas.forEach(d =>
-  {
-    test(`shoud get ${ d.source } is ${ d.expected ? "higher" : "lower" } than ${ d.target }`, () =>
-    {
+  testDatas.forEach((d) => {
+    test(`shoud get ${d.source} is ${d.expected ? "higher" : "lower"} than ${d.target}`, () => {
       expect(isVersionSuperiorOrEqual(d.source, d.target)).toEqual(d.expected)
     })
   })

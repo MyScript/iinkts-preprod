@@ -1,4 +1,5 @@
 import type { TBox, TPoint, TSegment } from "@/symbol"
+
 import { isBetween } from "./math"
 
 /**
@@ -10,8 +11,7 @@ export const TWO_PI = 2 * Math.PI
 /**
  * @group Utilities
  */
-export function computeDistance(p1: TPoint, p2: TPoint): number
-{
+export function computeDistance(p1: TPoint, p2: TPoint): number {
   const distance = Math.hypot(p2.y - p1.y, p2.x - p1.x)
   return isNaN(distance) ? 0 : distance
 }
@@ -20,8 +20,7 @@ export function computeDistance(p1: TPoint, p2: TPoint): number
  * @group Utilities
  * @remarks Faster than computeDistance when comparing distances (avoids sqrt)
  */
-export function computeDistanceSquared(p1: TPoint, p2: TPoint): number
-{
+export function computeDistanceSquared(p1: TPoint, p2: TPoint): number {
   const dx = p2.x - p1.x
   const dy = p2.y - p1.y
   return dx * dx + dy * dy
@@ -30,23 +29,21 @@ export function computeDistanceSquared(p1: TPoint, p2: TPoint): number
 /**
  * @group Utilities
  */
-export function computeAngleAxeRadian(begin: TPoint, end: TPoint): number
-{
+export function computeAngleAxeRadian(begin: TPoint, end: TPoint): number {
   return Math.atan2(end.y - begin.y, end.x - begin.x)
 }
 
 /**
  * @group Utilities
  */
-export function createPointsOnSegment(p1: TPoint, p2: TPoint, spaceBetweenPoint = 1): TPoint[]
-{
+export function createPointsOnSegment(p1: TPoint, p2: TPoint, spaceBetweenPoint = 1): TPoint[] {
   const points: TPoint[] = []
   const globalDistance = computeDistance(p1, p2)
   let spaceWithP1 = spaceBetweenPoint
   while (spaceWithP1 < globalDistance) {
     const p = {
       x: p1.x + (spaceWithP1 * (p2.x - p1.x)) / globalDistance,
-      y: p1.y + (spaceWithP1 * (p2.y - p1.y)) / globalDistance
+      y: p1.y + (spaceWithP1 * (p2.y - p1.y)) / globalDistance,
     }
     points.push(p)
     spaceWithP1 += spaceBetweenPoint
@@ -57,18 +54,22 @@ export function createPointsOnSegment(p1: TPoint, p2: TPoint, spaceBetweenPoint 
 /**
  * @group Utilities
  */
-export function scalaire(v1: TPoint, v2: TPoint): number
-{
+export function scalaire(v1: TPoint, v2: TPoint): number {
   return v1.x * v2.x + v1.y * v2.y
 }
 
 /**
  * @group Utilities
  */
-export function computeNearestPointOnSegment(p: TPoint, seg: TSegment): TPoint
-{
-  const vectP1P = { x: p.x - seg.p1.x, y: p.y - seg.p1.y }
-  const vectP1P2 = { x: seg.p2.x - seg.p1.x, y: seg.p2.y - seg.p1.y }
+export function computeNearestPointOnSegment(p: TPoint, seg: TSegment): TPoint {
+  const vectP1P = {
+    x: p.x - seg.p1.x,
+    y: p.y - seg.p1.y,
+  }
+  const vectP1P2 = {
+    x: seg.p2.x - seg.p1.x,
+    y: seg.p2.y - seg.p1.y,
+  }
   if (vectP1P2.x === 0 && vectP1P2.y === 0) {
     return seg.p1
   }
@@ -76,14 +77,16 @@ export function computeNearestPointOnSegment(p: TPoint, seg: TSegment): TPoint
   const scalaireP1P2_P1P2 = scalaire(vectP1P2, vectP1P2)
 
   const t = Math.min(1, Math.max(0, scalaireP1P_P1P2 / scalaireP1P2_P1P2))
-  return { x: seg.p1.x + (vectP1P2.x * t), y: seg.p1.y + (vectP1P2.y * t) }
+  return {
+    x: seg.p1.x + vectP1P2.x * t,
+    y: seg.p1.y + vectP1P2.y * t,
+  }
 }
 
 /**
  * @group Utilities
  */
-export function isPointInsideBox(point: TPoint, box: TBox): boolean
-{
+export function isPointInsideBox(point: TPoint, box: TBox): boolean {
   return isBetween(point.x, box.x, box.x + box.width) && isBetween(point.y, box.y, box.y + box.height)
 }
 
@@ -92,55 +95,63 @@ export function isPointInsideBox(point: TPoint, box: TBox): boolean
  * Used to find natural arrow connection points between two boxes.
  * @group Utilities
  */
-export function getBoxConnectionPoint(box: TBox, target: TPoint): TPoint
-{
+export function getBoxConnectionPoint(box: TBox, target: TPoint): TPoint {
   const cx = box.x + box.width / 2
   const cy = box.y + box.height / 2
   const dx = target.x - cx
   const dy = target.y - cy
-  if (dx === 0 && dy === 0) return { x: cx, y: cy }
+  if (dx === 0 && dy === 0) {
+    return { x: cx, y: cy }
+  }
   const hw = box.width / 2
   const hh = box.height / 2
-  const t = Math.abs(dx) === 0 ? hh / Math.abs(dy) : Math.abs(dy) === 0 ? hw / Math.abs(dx) : Math.min(hw / Math.abs(dx), hh / Math.abs(dy))
+  const t =
+    Math.abs(dx) === 0
+      ? hh / Math.abs(dy)
+      : Math.abs(dy) === 0
+        ? hw / Math.abs(dx)
+        : Math.min(hw / Math.abs(dx), hh / Math.abs(dy))
   return { x: cx + t * dx, y: cy + t * dy }
 }
 
 /**
  * @group Utilities
  */
-export function convertRadianToDegree(radian: number): number
-{
-  return +((radian % TWO_PI) / Math.PI * 180).toFixed(4)
+export function convertRadianToDegree(radian: number): number {
+  return +(((radian % TWO_PI) / Math.PI) * 180).toFixed(4)
 }
 
 /**
  * @group Utilities
  */
-export function convertDegreeToRadian(degree: number): number
-{
-  return +((degree % 360) / 180 * Math.PI).toFixed(4)
+export function convertDegreeToRadian(degree: number): number {
+  return +(((degree % 360) / 180) * Math.PI).toFixed(4)
 }
 
 /**
  * @group Utilities
  */
-export function computeRotatedPoint(point: TPoint, center: TPoint, radian: number): TPoint
-{
+export function computeRotatedPoint(point: TPoint, center: TPoint, radian: number): TPoint {
   const dx = point.x - center.x
   const dy = point.y - center.y
   const cos = Math.cos(radian)
   const sin = Math.sin(radian)
   return {
     x: +(center.x + cos * dx - sin * dy).toFixed(3),
-    y: +(center.y + sin * dx + cos * dy).toFixed(3)
+    y: +(center.y + sin * dx + cos * dy).toFixed(3),
   }
 }
 
 /**
  * @group Utilities
  */
-export function computePointOnEllipse(center: TPoint, radiusX: number, radiusY: number, phi: number, theta: number): TPoint
-{
+export function computePointOnEllipse(
+  center: TPoint,
+  radiusX: number,
+  radiusY: number,
+  phi: number,
+  theta: number
+): TPoint {
   const cosPhi = Math.cos(phi)
   const sinPhi = Math.sin(phi)
 
@@ -149,7 +160,7 @@ export function computePointOnEllipse(center: TPoint, radiusX: number, radiusY: 
 
   return {
     x: +(center.x + cosPhi * M - sinPhi * N).toFixed(3),
-    y: +(center.y + sinPhi * M + cosPhi * N).toFixed(3)
+    y: +(center.y + sinPhi * M + cosPhi * N).toFixed(3),
   }
 }
 
@@ -158,8 +169,13 @@ export function computePointOnEllipse(center: TPoint, radiusX: number, radiusY: 
  * nearest to the given position corresponds to that angle. Projects the point onto the ellipse.
  * @group Utilities
  */
-export function computeAngleFromPointOnEllipse(center: TPoint, radiusX: number, radiusY: number, phi: number, point: TPoint): number
-{
+export function computeAngleFromPointOnEllipse(
+  center: TPoint,
+  radiusX: number,
+  radiusY: number,
+  phi: number,
+  point: TPoint
+): number {
   const dx = point.x - center.x
   const dy = point.y - center.y
   const cosPhi = Math.cos(phi)
@@ -172,22 +188,27 @@ export function computeAngleFromPointOnEllipse(center: TPoint, radiusX: number, 
 /**
  * @group Utilities
  */
-export function computeDistanceBetweenPointAndSegment(p: TPoint, seg: TSegment): number
-{
+export function computeDistanceBetweenPointAndSegment(p: TPoint, seg: TSegment): number {
   return computeDistance(p, computeNearestPointOnSegment(p, seg))
 }
 
 /**
  * @group Utilities
  */
-export function findIntersectionBetween2Segment(seg1: TSegment, seg2: TSegment): TPoint | undefined
-{
+export function findIntersectionBetween2Segment(seg1: TSegment, seg2: TSegment): TPoint | undefined {
+  if (seg1.p1.x === seg2.p1.x && seg1.p1.y === seg2.p1.y) {
+    return seg1.p1
+  }
+  if (seg1.p1.x === seg2.p2.x && seg1.p1.y === seg2.p2.y) {
+    return seg1.p1
+  }
 
-  if (seg1.p1.x === seg2.p1.x && seg1.p1.y === seg2.p1.y) return seg1.p1
-  if (seg1.p1.x === seg2.p2.x && seg1.p1.y === seg2.p2.y) return seg1.p1
-
-  if (seg1.p2.x === seg2.p1.x && seg1.p2.y === seg2.p1.y) return seg1.p2
-  if (seg1.p2.x === seg2.p2.x && seg1.p2.y === seg2.p2.y) return seg1.p2
+  if (seg1.p2.x === seg2.p1.x && seg1.p2.y === seg2.p1.y) {
+    return seg1.p2
+  }
+  if (seg1.p2.x === seg2.p2.x && seg1.p2.y === seg2.p2.y) {
+    return seg1.p2
+  }
 
   const S1dx = seg1.p2.x - seg1.p1.x
   const S1dy = seg1.p2.y - seg1.p1.y
@@ -202,14 +223,16 @@ export function findIntersectionBetween2Segment(seg1: TSegment, seg2: TSegment):
   const ub_t = S1dx * S1S2dy - S1dy * S1S2dx
   const u_b = S2dy * S1dx - S2dx * S1dy
 
-  if (u_b === 0) return
+  if (u_b === 0) {
+    return
+  }
 
   const ua = ua_t / u_b
   const ub = ub_t / u_b
   if (isBetween(ua, 0, 1) && isBetween(ub, 0, 1)) {
     return {
       x: seg1.p1.x + ua * S1dx,
-      y: seg1.p1.y + ua * S1dy
+      y: seg1.p1.y + ua * S1dy,
     }
   }
   return
@@ -218,8 +241,7 @@ export function findIntersectionBetween2Segment(seg1: TSegment, seg2: TSegment):
 /**
  * @group Utilities
  */
-export function findIntersectBetweenSegmentAndCircle(seg: TSegment, c: TPoint, r: number): TPoint[]
-{
+export function findIntersectBetweenSegmentAndCircle(seg: TSegment, c: TPoint, r: number): TPoint[] {
   const result: TPoint[] = []
 
   const dx = seg.p2.x - seg.p1.x
@@ -232,7 +254,9 @@ export function findIntersectBetweenSegmentAndCircle(seg: TSegment, c: TPoint, r
   const cc = fx * fx + fy * fy - r * r
   const deter = Math.pow(b, 2) - 4 * a * cc
 
-  if (deter <= 0) return []
+  if (deter <= 0) {
+    return []
+  }
 
   const e = Math.sqrt(deter)
   const u1 = (-b + e) / (2 * a)
@@ -245,14 +269,14 @@ export function findIntersectBetweenSegmentAndCircle(seg: TSegment, c: TPoint, r
   if (isBetween(u1, 0, 1)) {
     result.push({
       x: (seg.p2.x - seg.p1.x) * u1 + seg.p1.x,
-      y: (seg.p2.y - seg.p1.y) * u1 + seg.p1.y
+      y: (seg.p2.y - seg.p1.y) * u1 + seg.p1.y,
     })
   }
 
   if (isBetween(u2, 0, 1)) {
     result.push({
       x: (seg.p2.x - seg.p1.x) * u2 + seg.p1.x,
-      y: (seg.p2.y - seg.p1.y) * u2 + seg.p1.y
+      y: (seg.p2.y - seg.p1.y) * u2 + seg.p1.y,
     })
   }
 
@@ -262,8 +286,7 @@ export function findIntersectBetweenSegmentAndCircle(seg: TSegment, c: TPoint, r
 /**
  * @group Utilities
  */
-export function computeAngleRadian(p1: TPoint, center: TPoint, p2: TPoint): number
-{
+export function computeAngleRadian(p1: TPoint, center: TPoint, p2: TPoint): number {
   const p1c = Math.hypot(center.x - p1.x, center.y - p1.y)
   const p2c = Math.hypot(center.x - p2.x, center.y - p2.y)
   const p1p2 = Math.hypot(p2.x - p1.x, p2.y - p1.y)
@@ -273,8 +296,7 @@ export function computeAngleRadian(p1: TPoint, center: TPoint, p2: TPoint): numb
 /**
  * @group Utilities
  */
-export function getClosestPoints(points1: TPoint[], points2: TPoint[]): { p1: TPoint, p2: TPoint }
-{
+export function getClosestPoints(points1: TPoint[], points2: TPoint[]): { p1: TPoint; p2: TPoint } {
   let minDistanceSquared = Number.MAX_SAFE_INTEGER
   let result = { p1: points1[0], p2: points2[0] }
 
@@ -293,8 +315,7 @@ export function getClosestPoints(points1: TPoint[], points2: TPoint[]): { p1: TP
 /**
  * @group Utilities
  */
-export function getClosestPoint(points: TPoint[], point: TPoint): { point?: TPoint, index: number }
-{
+export function getClosestPoint(points: TPoint[], point: TPoint): { point?: TPoint; index: number } {
   let minDistanceSquared = Number.MAX_SAFE_INTEGER
   let closest: TPoint | undefined
   let index = -1
@@ -313,15 +334,16 @@ export function getClosestPoint(points: TPoint[], point: TPoint): { point?: TPoi
 /**
  * @group Utilities
  */
-export function isPointInsidePolygon(point: TPoint, points: TPoint[])
-{
+export function isPointInsidePolygon(point: TPoint, points: TPoint[]) {
   let inside = false
   for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
     const p1 = points[i]
     const p2 = points[j]
-    const intersect = ((p1.y > point.y) != (p2.y > point.y))
-      && (point.x < (p2.x - p1.x) * (point.y - p1.y) / (p2.y - p1.y) + p1.x)
-    if (intersect) inside = !inside
+    const intersect =
+      p1.y > point.y != p2.y > point.y && point.x < ((p2.x - p1.x) * (point.y - p1.y)) / (p2.y - p1.y) + p1.x
+    if (intersect) {
+      inside = !inside
+    }
   }
 
   return inside
@@ -333,8 +355,7 @@ export function isPointInsidePolygon(point: TPoint, points: TPoint[])
  * @param angle - The angle in radians
  * @returns Normalized angle
  */
-export function normalizeAngle(angle: number): number
-{
+export function normalizeAngle(angle: number): number {
   let returnedAngle = ((angle + Math.PI) % TWO_PI) - Math.PI
   if (returnedAngle < -Math.PI) {
     returnedAngle += TWO_PI
@@ -361,8 +382,7 @@ export function computeEllipseArcPoints(
   startAngle: number,
   sweepAngle: number,
   angleStep: number = 0.02
-): TPoint[]
-{
+): TPoint[] {
   const z1 = Math.cos(orientation) * maxRadius
   const z2 = Math.cos(orientation) * minRadius
   const z3 = Math.sin(orientation) * maxRadius
@@ -371,12 +391,12 @@ export function computeEllipseArcPoints(
   const points: TPoint[] = []
 
   for (let i = 0; i <= n; i++) {
-    const angle = startAngle + ((i / n) * sweepAngle)
+    const angle = startAngle + (i / n) * sweepAngle
     const alpha = Math.atan2(Math.sin(angle) / minRadius, Math.cos(angle) / maxRadius)
     const cosAlpha = Math.cos(alpha)
     const sinAlpha = Math.sin(alpha)
-    const x = (centerPoint.x + (z1 * cosAlpha)) - (z4 * sinAlpha)
-    const y = (centerPoint.y + (z2 * sinAlpha)) + (z3 * cosAlpha)
+    const x = centerPoint.x + z1 * cosAlpha - z4 * sinAlpha
+    const y = centerPoint.y + z2 * sinAlpha + z3 * cosAlpha
     points.push({ x, y })
   }
 

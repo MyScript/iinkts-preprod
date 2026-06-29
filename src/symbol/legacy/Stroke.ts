@@ -1,27 +1,28 @@
-import type { TPenStyle } from "@/style";
+import type { TPenStyle } from "@/style"
 import { DefaultPenStyle } from "@/style"
-import type { TPartialDeep} from "@/utils";
+import type { TPartialDeep } from "@/utils"
 import { createUUID } from "@/utils"
+
 import type { TPointer } from "../primitives/Point"
-import type { TBaseSymbol } from "../Symbol";
-import { SymbolType } from "../Symbol"
 import type { TStrokeMinimal } from "../stroke"
+import type { TBaseSymbol } from "../Symbol"
+import { SymbolType } from "../Symbol"
 
 /**
  * @group Symbol
  * @deprecated Use {@link TStroke} from stroke/ for new code
  */
-export type TLegacyStroke = TBaseSymbol & TStrokeMinimal & {
-  style: TPenStyle
-  length: number
-}
+export type TLegacyStroke = TBaseSymbol &
+  TStrokeMinimal & {
+    style: TPenStyle
+    length: number
+  }
 
 /**
  * @group Symbol
  * @deprecated Use {@link TStroke} from stroke/ for new code
  */
-export class Stroke implements TLegacyStroke
-{
+export class Stroke implements TLegacyStroke {
   type = SymbolType.Stroke
   id: string
   creationTime: number
@@ -31,8 +32,7 @@ export class Stroke implements TLegacyStroke
   pointers: TPointer[]
   length: number
 
-  constructor(style: TPenStyle, pointerType = "pen")
-  {
+  constructor(style: TPenStyle, pointerType = "pen") {
     this.id = `${this.type}-${createUUID()}`
     this.creationTime = Date.now()
     this.modificationDate = this.creationTime
@@ -42,8 +42,7 @@ export class Stroke implements TLegacyStroke
     this.length = 0
   }
 
-  clone(): Stroke
-  {
+  clone(): Stroke {
     const clone = new Stroke(this.style, this.pointerType)
     clone.id = this.id
     clone.creationTime = this.creationTime
@@ -58,14 +57,15 @@ export class Stroke implements TLegacyStroke
  * @group Symbol
  * @deprecated Use {@link StrokeOps.createFromPartial} from stroke/ for new code
  */
-export function convertPartialStrokesToStrokes(json: TPartialDeep<TLegacyStroke>[]): Stroke[]
-{
+export function convertPartialStrokesToStrokes(json: TPartialDeep<TLegacyStroke>[]): Stroke[] {
   const errors: string[] = []
   const strokes: Stroke[] = []
   json.forEach((j, ji) => {
     let flag = true
     const stroke = new Stroke(j.style || DefaultPenStyle, j.pointerType)
-    if (j.id) stroke.id = j.id
+    if (j.id) {
+      stroke.id = j.id
+    }
     if (!j.pointers?.length) {
       errors.push(`stroke ${ji + 1} has not pointers`)
       flag = false
@@ -81,22 +81,20 @@ export function convertPartialStrokesToStrokes(json: TPartialDeep<TLegacyStroke>
         p: pp.p || 1,
         t: pp.t || pIndex,
         x: 0,
-        y: 0
+        y: 0,
       }
       if (pp?.x == undefined || pp?.x == null) {
         errors.push(`stroke ${ji + 1} has no x at pointer at ${pIndex}`)
         flag = false
         return
-      }
-      else {
+      } else {
         pointer.x = pp.x
       }
       if (pp?.y == undefined || pp?.y == null) {
         errors.push(`stroke ${ji + 1} has no y at pointer at ${pIndex}`)
         flag = false
         return
-      }
-      else {
+      } else {
         pointer.y = pp.y
       }
       if (flag) {

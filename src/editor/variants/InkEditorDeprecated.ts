@@ -1,31 +1,32 @@
 import { EditorTool } from "@/Constants"
-import type { TPointerInfo } from "@/grabber";
+import type { TEditorOptionsBase } from "@/editor/AbstractEditor"
+import { AbstractEditor } from "@/editor/AbstractEditor"
+import type { TPointerInfo } from "@/grabber"
 import { PointerEventGrabber } from "@/grabber"
-import type { TExport } from "@/model";
+import { HistoryManager } from "@/history"
+import type { TExport } from "@/model"
 import { Model } from "@/model"
-import type { TLegacyStroke, TPointer } from "@/symbol";
-import { Stroke } from "@/symbol"
-import type { TConverstionState } from "@/recognizer";
+import type { TConverstionState } from "@/recognizer"
 import { RecognizerHTTPV1 } from "@/recognizer"
 import { CanvasRenderer } from "@/renderer"
-import type { TPenStyle, TTheme } from "@/style";
+import type { TPenStyle, TTheme } from "@/style"
 import { DefaultPenStyle, StyleManager } from "@/style"
-import { HistoryManager } from "@/history"
-import type { TPartialDeep } from "@/utils";
+import type { TLegacyStroke, TPointer } from "@/symbol"
+import { Stroke } from "@/symbol"
+import type { TPartialDeep } from "@/utils"
 import { DeferredPromise } from "@/utils"
-import type { TEditorOptionsBase } from "@/editor/AbstractEditor";
-import { AbstractEditor } from "@/editor/AbstractEditor"
-import type { TInkEditorDeprecatedConfiguration } from "./InkEditorDeprecatedConfiguration";
+
+import type { TInkEditorDeprecatedConfiguration } from "./InkEditorDeprecatedConfiguration"
 import { InkEditorDeprecatedConfiguration } from "./InkEditorDeprecatedConfiguration"
 
 /**
  * @group Editor
  */
-export type TInkEditorDeprecatedOptions = TPartialDeep<TEditorOptionsBase &
-{
-  configuration: TInkEditorDeprecatedConfiguration
-}> &
-{
+export type TInkEditorDeprecatedOptions = TPartialDeep<
+  TEditorOptionsBase & {
+    configuration: TInkEditorDeprecatedConfiguration
+  }
+> & {
   override?: {
     grabber?: PointerEventGrabber
     recognizer?: RecognizerHTTPV1
@@ -36,8 +37,7 @@ export type TInkEditorDeprecatedOptions = TPartialDeep<TEditorOptionsBase &
  * @group Editor
  * @deprecated Use {@link InkEditor} instead.
  */
-export class InkEditorDeprecated extends AbstractEditor
-{
+export class InkEditorDeprecated extends AbstractEditor {
   #configuration: InkEditorDeprecatedConfiguration
   #model: Model
   #exportTimer?: ReturnType<typeof setTimeout>
@@ -49,8 +49,7 @@ export class InkEditorDeprecated extends AbstractEditor
   styleManager: StyleManager
   #tool: EditorTool = EditorTool.Write
 
-  constructor(rootElement: HTMLElement, options?: TInkEditorDeprecatedOptions)
-  {
+  constructor(rootElement: HTMLElement, options?: TInkEditorDeprecatedOptions) {
     super(rootElement, options)
 
     this.#configuration = new InkEditorDeprecatedConfiguration(options?.configuration)
@@ -59,8 +58,7 @@ export class InkEditorDeprecated extends AbstractEditor
     if (options?.override?.grabber) {
       const CustomGrabber = options.override.grabber as unknown as typeof PointerEventGrabber
       this.grabber = new CustomGrabber(this.#configuration.grabber)
-    }
-    else {
+    } else {
       this.grabber = new PointerEventGrabber(this.#configuration.grabber)
     }
     this.grabber.onPointerDown = this.onPointerDown.bind(this)
@@ -70,8 +68,7 @@ export class InkEditorDeprecated extends AbstractEditor
     if (options?.override?.recognizer) {
       const CustomRecognizer = options.override.recognizer as unknown as typeof RecognizerHTTPV1
       this.recognizer = new CustomRecognizer(this.#configuration)
-    }
-    else {
+    } else {
       this.recognizer = new RecognizerHTTPV1(this.#configuration)
     }
     this.renderer = new CanvasRenderer(this.#configuration.rendering)
@@ -81,9 +78,11 @@ export class InkEditorDeprecated extends AbstractEditor
     this.history = new HistoryManager(this.#configuration["undo-redo"], this.event)
   }
 
-  protected onPointerDown(info: TPointerInfo): void
-  {
-    this.logger.info("onPointerDown", { tool: this.tool, info })
+  protected onPointerDown(info: TPointerInfo): void {
+    this.logger.info("onPointerDown", {
+      tool: this.tool,
+      info,
+    })
     const style: TPenStyle = Object.assign({}, this.theme?.ink, this.currentPenStyle)
     switch (this.tool) {
       case EditorTool.Erase: {
@@ -97,14 +96,16 @@ export class InkEditorDeprecated extends AbstractEditor
         this.drawCurrentStroke()
         break
       default:
-        this.logger.warn("#onPointerDown", `onPointerDown tool unknown: "${ this.tool }"`)
+        this.logger.warn("#onPointerDown", `onPointerDown tool unknown: "${this.tool}"`)
         break
     }
   }
 
-  protected onPointerMove(info: TPointerInfo): void
-  {
-    this.logger.info("onPointerMove", { tool: this.tool, info })
+  protected onPointerMove(info: TPointerInfo): void {
+    this.logger.info("onPointerMove", {
+      tool: this.tool,
+      info,
+    })
     switch (this.tool) {
       case EditorTool.Erase: {
         if (this.model.removeStrokesFromPoint(info.pointer).length > 0) {
@@ -117,15 +118,17 @@ export class InkEditorDeprecated extends AbstractEditor
         this.drawCurrentStroke()
         break
       default:
-        this.logger.warn("#onPointerMove", `onPointerMove tool unknown: "${ this.tool }"`)
+        this.logger.warn("#onPointerMove", `onPointerMove tool unknown: "${this.tool}"`)
         break
     }
   }
 
-  protected async onPointerUp(info: TPointerInfo): Promise<void>
-  {
+  protected async onPointerUp(info: TPointerInfo): Promise<void> {
     try {
-      this.logger.info("onPointerUp", { tool: this.tool, info })
+      this.logger.info("onPointerUp", {
+        tool: this.tool,
+        info,
+      })
       switch (this.tool) {
         case EditorTool.Erase:
           this.model.removeStrokesFromPoint(info.pointer)
@@ -138,7 +141,7 @@ export class InkEditorDeprecated extends AbstractEditor
           await this.updateModelRendering()
           break
         default:
-          this.logger.warn("#onPointerUp", `onPointerUp tool unknown: "${ this.tool }"`)
+          this.logger.warn("#onPointerUp", `onPointerUp tool unknown: "${this.tool}"`)
           break
       }
     } catch (error) {
@@ -148,23 +151,19 @@ export class InkEditorDeprecated extends AbstractEditor
     }
   }
 
-  get initializationPromise(): Promise<void>
-  {
+  get initializationPromise(): Promise<void> {
     return Promise.resolve()
   }
 
-  get tool(): EditorTool
-  {
+  get tool(): EditorTool {
     return this.#tool
   }
-  set tool(i: EditorTool)
-  {
+  set tool(i: EditorTool) {
     this.#tool = i
     this.setCursorStyle()
   }
 
-  protected setCursorStyle(): void
-  {
+  protected setCursorStyle(): void {
     switch (this.tool) {
       case EditorTool.Erase:
         this.layers.root.classList.remove("draw")
@@ -177,53 +176,45 @@ export class InkEditorDeprecated extends AbstractEditor
     }
   }
 
-  get model(): Model
-  {
+  get model(): Model {
     return this.#model
   }
 
-  get currentPenStyle(): TPenStyle
-  {
+  get currentPenStyle(): TPenStyle {
     return this.styleManager.currentPenStyle
   }
 
-  get penStyle(): TPenStyle
-  {
+  get penStyle(): TPenStyle {
     return this.styleManager.penStyle
   }
-  set penStyle(penStyle: TPenStyle | undefined)
-  {
+  set penStyle(penStyle: TPenStyle | undefined) {
     this.logger.info("setPenStyle", { penStyle })
     this.styleManager.setPenStyle(penStyle)
   }
 
-  get penStyleClasses(): string
-  {
+  get penStyleClasses(): string {
     return this.styleManager.penStyleClasses
   }
-  set penStyleClasses(penStyleClasses: string | undefined)
-  {
-    this.logger.info("setPenStyleClasses", { penStyleClasses })
+  set penStyleClasses(penStyleClasses: string | undefined) {
+    this.logger.info("setPenStyleClasses", {
+      penStyleClasses,
+    })
     this.styleManager.setPenStyleClasses(penStyleClasses)
   }
 
-  get theme(): TTheme
-  {
+  get theme(): TTheme {
     return this.styleManager.theme
   }
-  set theme(theme: TPartialDeep<TTheme>)
-  {
+  set theme(theme: TPartialDeep<TTheme>) {
     this.logger.info("setTheme", { theme })
     this.styleManager.setTheme(theme)
   }
 
-  get configuration(): InkEditorDeprecatedConfiguration
-  {
+  get configuration(): InkEditorDeprecatedConfiguration {
     return this.#configuration
   }
 
-  async initialize(): Promise<void>
-  {
+  async initialize(): Promise<void> {
     try {
       this.logger.info("initialize")
       this.layers.render()
@@ -231,32 +222,37 @@ export class InkEditorDeprecated extends AbstractEditor
 
       const compStyles = window.getComputedStyle(this.layers.root)
       this.model.width = Math.max(parseInt(compStyles.width.replace("px", "")), this.#configuration.rendering.minWidth)
-      this.model.height = Math.max(parseInt(compStyles.height.replace("px", "")), this.#configuration.rendering.minHeight)
+      this.model.height = Math.max(
+        parseInt(compStyles.height.replace("px", "")),
+        this.#configuration.rendering.minHeight
+      )
       this.history.push(this.model)
       this.layers.rendering.classList.add(this.configuration.recognition.type.toLowerCase().replace(" ", "-"))
-      this.renderer.init(this.layers.rendering, { x: 50, y: 50 })
+      this.renderer.init(this.layers.rendering, {
+        x: 50,
+        y: 50,
+      })
       this.grabber.attach(this.layers.rendering)
       this.startResizeObserver()
     } catch (error) {
       this.logger.error("initialize", error)
       this.layers.showMessageError(error as Error)
       throw error
-    }
-    finally {
+    } finally {
       this.logger.debug("initialize", "finally")
       this.layers.hideLoader()
       this.layers.updateState(true)
     }
   }
 
-  drawCurrentStroke(): void
-  {
-    this.logger.debug("drawCurrentStroke", { stroke: this.model.currentSymbol })
+  drawCurrentStroke(): void {
+    this.logger.debug("drawCurrentStroke", {
+      stroke: this.model.currentSymbol,
+    })
     this.renderer.drawPendingStroke(this.model.currentSymbol)
   }
 
-  async updateModelRendering(): Promise<Model>
-  {
+  async updateModelRendering(): Promise<Model> {
     this.logger.info("updateModelRendering")
     this.renderer.drawModel(this.model)
     const deferred = new DeferredPromise<Model>()
@@ -264,21 +260,25 @@ export class InkEditorDeprecated extends AbstractEditor
     if (this.#configuration.triggers.exportContent !== "DEMAND") {
       clearTimeout(this.#exportTimer)
       let currentModel = this.model.clone()
-      this.#exportTimer = setTimeout(async () =>
-      {
-        try {
-          currentModel = await this.recognizer.export(currentModel)
-          this.history.updateStack(currentModel)
-          if (this.model.modificationDate === currentModel.modificationDate) {
-            this.model.exports = currentModel.exports
+      this.#exportTimer = setTimeout(
+        async () => {
+          try {
+            currentModel = await this.recognizer.export(currentModel)
+            this.history.updateStack(currentModel)
+            if (this.model.modificationDate === currentModel.modificationDate) {
+              this.model.exports = currentModel.exports
+            }
+            deferred.resolve(this.model)
+          } catch (error) {
+            this.logger.error("updateModelRendering", { error })
+            this.event.emitError(error as Error)
+            deferred.reject(error as Error)
           }
-          deferred.resolve(this.model)
-        } catch (error) {
-          this.logger.error("updateModelRendering", { error })
-          this.event.emitError(error as Error)
-          deferred.reject(error as Error)
-        }
-      }, this.#configuration.triggers.exportContent === "QUIET_PERIOD" ? this.#configuration.triggers.exportContentDelay : 0)
+        },
+        this.#configuration.triggers.exportContent === "QUIET_PERIOD"
+          ? this.#configuration.triggers.exportContentDelay
+          : 0
+      )
     } else {
       deferred.resolve(this.model)
     }
@@ -288,8 +288,7 @@ export class InkEditorDeprecated extends AbstractEditor
     return deferred.promise
   }
 
-  async export(mimeTypes?: string[]): Promise<Model>
-  {
+  async export(mimeTypes?: string[]): Promise<Model> {
     this.logger.info("export", { mimeTypes })
     const newModel = await this.recognizer.export(this.model.clone(), mimeTypes)
     if (this.model.modificationDate === newModel.modificationDate) {
@@ -301,8 +300,7 @@ export class InkEditorDeprecated extends AbstractEditor
     return this.model
   }
 
-  async convert(params?: { conversionState?: TConverstionState, mimeTypes?: string[] }): Promise<Model>
-  {
+  async convert(params?: { conversionState?: TConverstionState; mimeTypes?: string[] }): Promise<Model> {
     this.logger.info("convert", { params })
     const newModel = await this.recognizer.convert(this.model, params?.conversionState, params?.mimeTypes)
     Object.assign(this.#model, newModel)
@@ -311,23 +309,22 @@ export class InkEditorDeprecated extends AbstractEditor
     return this.model
   }
 
-  async importPointEvents(strokes: TPartialDeep<TLegacyStroke>[]): Promise<Model>
-  {
+  async importPointEvents(strokes: TPartialDeep<TLegacyStroke>[]): Promise<Model> {
     const errors: string[] = []
-    strokes.forEach((s, strokeIndex) =>
-    {
+    strokes.forEach((s, strokeIndex) => {
       let flag = true
       const stroke = new Stroke(s.style || DefaultPenStyle, s.pointerType)
-      if (s.id) stroke.id = s.id
+      if (s.id) {
+        stroke.id = s.id
+      }
       if (!s.pointers?.length) {
-        errors.push(`stroke ${ strokeIndex + 1 } has not pointers`)
+        errors.push(`stroke ${strokeIndex + 1} has not pointers`)
         flag = false
         return
       }
-      s.pointers?.forEach((pp, pIndex) =>
-      {
+      s.pointers?.forEach((pp, pIndex) => {
         if (!pp) {
-          errors.push(`stroke ${ strokeIndex + 1 } has no pointer at ${ pIndex }`)
+          errors.push(`stroke ${strokeIndex + 1} has no pointer at ${pIndex}`)
           flag = false
           return
         }
@@ -335,22 +332,20 @@ export class InkEditorDeprecated extends AbstractEditor
           p: pp.p || 1,
           t: pp.t || pIndex,
           x: 0,
-          y: 0
+          y: 0,
         }
         if (pp?.x == undefined || pp?.x == null) {
-          errors.push(`stroke ${ strokeIndex + 1 } has no x at pointer at ${ pIndex }`)
+          errors.push(`stroke ${strokeIndex + 1} has no x at pointer at ${pIndex}`)
           flag = false
           return
-        }
-        else {
+        } else {
           pointer.x = pp.x
         }
         if (pp?.y == undefined || pp?.y == null) {
-          errors.push(`stroke ${ strokeIndex + 1 } has no y at pointer at ${ pIndex }`)
+          errors.push(`stroke ${strokeIndex + 1} has no y at pointer at ${pIndex}`)
           flag = false
           return
-        }
-        else {
+        } else {
           pointer.y = pp.y
         }
         if (flag) {
@@ -375,17 +370,23 @@ export class InkEditorDeprecated extends AbstractEditor
       throw error as Error
     }
   }
-  async resize({ height, width }: { height?: number, width?: number } = {}): Promise<void>
-  {
+  async resize({
+    height,
+    width,
+  }: {
+    height?: number
+    width?: number
+  } = {}): Promise<void> {
     this.logger.info("resize", { height, width })
     const compStyles = window.getComputedStyle(this.layers.root)
-    this.model.height = height || Math.max(parseInt(compStyles.height.replace("px", "")), this.configuration.rendering.minHeight)
-    this.model.width = width || Math.max(parseInt(compStyles.width.replace("px", "")), this.configuration.rendering.minWidth)
+    this.model.height =
+      height || Math.max(parseInt(compStyles.height.replace("px", "")), this.configuration.rendering.minHeight)
+    this.model.width =
+      width || Math.max(parseInt(compStyles.width.replace("px", "")), this.configuration.rendering.minWidth)
     this.renderer.resize(this.model)
   }
 
-  async undo(): Promise<void>
-  {
+  async undo(): Promise<void> {
     this.logger.info("undo")
     this.#model = this.history.undo() as Model
     this.renderer.drawModel(this.#model)
@@ -395,8 +396,7 @@ export class InkEditorDeprecated extends AbstractEditor
     this.logger.debug("undo", this.#model)
   }
 
-  async redo(): Promise<void>
-  {
+  async redo(): Promise<void> {
     this.logger.info("redo")
     this.#model = this.history.redo() as Model
     this.renderer.drawModel(this.#model)
@@ -406,8 +406,7 @@ export class InkEditorDeprecated extends AbstractEditor
     this.logger.debug("redo", this.#model)
   }
 
-  async clear(): Promise<void>
-  {
+  async clear(): Promise<void> {
     this.logger.info("clear")
     this.model.clear()
     this.history.push(this.model)
@@ -417,8 +416,7 @@ export class InkEditorDeprecated extends AbstractEditor
     this.logger.debug("clear", this.model)
   }
 
-  async destroy(): Promise<void>
-  {
+  async destroy(): Promise<void> {
     this.logger.info("destroy")
     this.stopResizeObserver()
     this.event.removeAllListeners()

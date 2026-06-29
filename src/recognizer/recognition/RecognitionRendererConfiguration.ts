@@ -1,4 +1,3 @@
-
 /**
  * @group Recognizer
  */
@@ -13,7 +12,7 @@ export type TRecognitionRendererDebugConfiguration = {
  */
 export const DefaultDebugConfiguration: TRecognitionRendererDebugConfiguration = {
   "draw-text-boxes": false,
-  "draw-image-boxes": false
+  "draw-image-boxes": false,
 }
 
 /**
@@ -28,5 +27,5 @@ export type TRecognitionRendererConfiguration = {
  * @source
  */
 export const DefaultRecognitionRendererConfiguration: TRecognitionRendererConfiguration = {
-  debug: DefaultDebugConfiguration
+  debug: DefaultDebugConfiguration,
 }

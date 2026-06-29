@@ -1,4 +1,3 @@
-
 /**
  * @group History
  */
@@ -11,5 +10,5 @@ export type THistoryConfiguration = {
  * @source
  */
 export const DefaultHistoryConfiguration: THistoryConfiguration = {
-  maxStackSize: 100
+  maxStackSize: 100,
 }

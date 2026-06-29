@@ -1,10 +1,10 @@
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { InteractiveInkEditorConfiguration } from "@/editor/variants/InteractiveInkEditorConfiguration"
-import type { LoggerCategory, Logger } from "@/logger";
+import type { Logger, LoggerCategory } from "@/logger"
 import { LoggerManager } from "@/logger"
 import type { IIModel } from "@/model"
-import type { SVGRenderer } from "@/renderer"
 import type { RecognizerWebSocket } from "@/recognizer"
+import type { SVGRenderer } from "@/renderer"
 
 /**
  * Base abstract class for all Interactive Ink managers
@@ -44,8 +44,7 @@ import type { RecognizerWebSocket } from "@/recognizer"
  *
  * @group Manager
  */
-export abstract class IIAbstractManager
-{
+export abstract class IIAbstractManager {
   /**
    * Logger instance for this manager
    * Automatically uses LoggerCategory.MANAGER
@@ -64,8 +63,10 @@ export abstract class IIAbstractManager
    * Create a new manager
    * @param editor - The Interactive Ink Editor instance
    */
-  constructor(protected editor: TInteractiveInkEditor, logger: LoggerCategory)
-  {
+  constructor(
+    protected editor: TInteractiveInkEditor,
+    logger: LoggerCategory
+  ) {
     this.logger = LoggerManager.getLogger(logger)
 
     // Call optional initialization hook
@@ -78,8 +79,7 @@ export abstract class IIAbstractManager
    * Get the model from the editor
    * Convenience getter to avoid accessing editor.model everywhere
    */
-  get model(): IIModel
-  {
+  get model(): IIModel {
     return this.editor.model
   }
 
@@ -87,8 +87,7 @@ export abstract class IIAbstractManager
    * Get the renderer from the editor
    * Convenience getter to avoid accessing editor.renderer everywhere
    */
-  get renderer(): SVGRenderer
-  {
+  get renderer(): SVGRenderer {
     return this.editor.renderer
   }
 
@@ -96,8 +95,7 @@ export abstract class IIAbstractManager
    * Get the recognizer from the editor
    * Convenience getter to avoid accessing editor.recognizer everywhere
    */
-  get recognizer(): RecognizerWebSocket
-  {
+  get recognizer(): RecognizerWebSocket {
     return this.editor.recognizer
   }
 
@@ -105,8 +103,7 @@ export abstract class IIAbstractManager
    * Get the configuration from the editor
    * Convenience getter to avoid accessing editor.configuration everywhere
    */
-  get configuration(): InteractiveInkEditorConfiguration
-  {
+  get configuration(): InteractiveInkEditorConfiguration {
     return this.editor.configuration
   }
 
@@ -146,8 +143,7 @@ export abstract class IIAbstractManager
    * Destroy the manager and cleanup resources
    * Calls the onDestroy hook if defined
    */
-  destroy(): void
-  {
+  destroy(): void {
     if (this.onDestroy) {
       this.onDestroy()
     }

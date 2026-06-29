@@ -1,28 +1,37 @@
 import menuIcon from "@/assets/svg/menu.svg"
+import { DOMFactory } from "@/components/dom"
+import type { TEditorTheme } from "@/editor/EditorThemes"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { IIModel } from "@/model"
-import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
-import { DOMFactory } from "@/components/dom"
-import type { BaseMenuItem } from "./items"
-import type { TEditorTheme } from "@/editor/EditorThemes"
-import type { TGestureActionConfig, TGuideActionConfig, TSnapActionConfig, TMathActionConfig, TOverlayActionConfig, TSelectionActionConfig, TExportActionConfig} from "./actions";
+
+import type {
+  TExportActionConfig,
+  TGestureActionConfig,
+  TGuideActionConfig,
+  TMathActionConfig,
+  TOverlayActionConfig,
+  TSelectionActionConfig,
+  TSnapActionConfig,
+} from "./actions"
 import {
   ClearMenuAction,
-  LanguageMenuAction,
-  UndoRedoMenuAction,
-  ZoomMenuAction,
   ConvertMenuAction,
+  ExportMenuAction,
   GestureMenuAction,
   GuideMenuAction,
-  SnapMenuAction,
+  ImportMenuAction,
+  LanguageMenuAction,
   MathMenuAction,
+  MinimapMenuAction,
   OverlayMenuAction,
   SelectionMenuAction,
-  ExportMenuAction,
-  ImportMenuAction,
-  MinimapMenuAction,
-  ThemeMenuAction
+  SnapMenuAction,
+  ThemeMenuAction,
+  UndoRedoMenuAction,
+  ZoomMenuAction,
 } from "./actions"
+import type { BaseMenuItem } from "./items"
 
 /**
  * @group Menu
@@ -80,7 +89,7 @@ export const DefaultMenuActionConfig: Required<Omit<TMenuActionConfig, "themes">
   export: true,
   import: true,
   minimap: true,
-  theme: true
+  theme: true,
 }
 
 function extractSubConfig<T>(config: boolean | T): T | undefined {
@@ -90,8 +99,7 @@ function extractSubConfig<T>(config: boolean | T): T | undefined {
 /**
  * @group Menu
  */
-export class IIMenuAction
-{
+export class IIMenuAction {
   #logger = LoggerManager.getLogger(LoggerCategory.MENU)
 
   editor: TInteractiveInkEditor
@@ -102,33 +110,36 @@ export class IIMenuAction
   private menuActions: Map<string, BaseMenuItem> = new Map()
   #documentPointerdownHandler?: (e: PointerEvent) => void
 
-  constructor(editor: TInteractiveInkEditor, id = "ms-menu-action", config?: TMenuActionConfig)
-  {
+  constructor(editor: TInteractiveInkEditor, id = "ms-menu-action", config?: TMenuActionConfig) {
     this.id = id
     this.editor = editor
-    this.config = { ...DefaultMenuActionConfig, ...config }
+    this.config = {
+      ...DefaultMenuActionConfig,
+      ...config,
+    }
   }
 
-  get model(): IIModel
-  {
+  get model(): IIModel {
     return this.editor.model
   }
 
-  get isMobile(): boolean
-  {
+  get isMobile(): boolean {
     return this.editor.renderer.parent.clientWidth < 700
   }
 
-
-  render(layer: HTMLElement): void
-  {
+  render(layer: HTMLElement): void {
     if (this.editor.configuration.menu.action.enable) {
       this.#logger.info("Rendering menu actions with config", this.config)
 
-      
-      const menuTrigger = DOMFactory.button({ id: this.id, className: "square", html: menuIcon })
+      const menuTrigger = DOMFactory.button({
+        id: this.id,
+        className: "square",
+        html: menuIcon,
+      })
 
-      const subMenuWrapper = DOMFactory.div({ className: "ms-menu-column" })
+      const subMenuWrapper = DOMFactory.div({
+        className: "ms-menu-column",
+      })
 
       if (this.config.theme) {
         const themeAction = new ThemeMenuAction(this.editor, this.id, this.config.themes)
@@ -154,7 +165,10 @@ export class IIMenuAction
         subMenuWrapper.appendChild(snapAction.getElement())
       }
 
-      if (this.config.math && this.editor.configuration.recognition["raw-content"].recognition?.types.includes("math")) {
+      if (
+        this.config.math &&
+        this.editor.configuration.recognition["raw-content"].recognition?.types.includes("math")
+      ) {
         const mathAction = new MathMenuAction(this.editor, this.id, extractSubConfig(this.config.math))
         this.menuActions.set("math", mathAction)
         subMenuWrapper.appendChild(mathAction.getElement())
@@ -184,14 +198,20 @@ export class IIMenuAction
         subMenuWrapper.appendChild(exportAction.getElement())
       }
 
-      this.wrapper = DOMFactory.div({ className: ["ms-menu", "ms-menu-top-left", "ms-menu-row"] })
+      this.wrapper = DOMFactory.div({
+        className: ["ms-menu", "ms-menu-top-left", "ms-menu-row"],
+      })
 
       // Only add submenu if there are items
       if (subMenuWrapper.children.length > 0) {
-        const subMenuElement = DOMFactory.div({ className: "sub-menu" })
+        const subMenuElement = DOMFactory.div({
+          className: "sub-menu",
+        })
         subMenuElement.appendChild(menuTrigger)
 
-        const subMenuContent = DOMFactory.div({ className: ["sub-menu-content", "bottom-right"] })
+        const subMenuContent = DOMFactory.div({
+          className: ["sub-menu-content", "bottom-right"],
+        })
         subMenuContent.appendChild(subMenuWrapper)
         subMenuElement.appendChild(subMenuContent)
 
@@ -249,35 +269,31 @@ export class IIMenuAction
     }
   }
 
-  update(): void
-  {
-    this.menuActions.forEach(menuAction => {
+  update(): void {
+    this.menuActions.forEach((menuAction) => {
       menuAction.update()
     })
   }
 
-  show(): void
-  {
+  show(): void {
     if (this.wrapper) {
       this.wrapper.style.visibility = "visible"
     }
   }
 
-  hide(): void
-  {
+  hide(): void {
     if (this.wrapper) {
       this.wrapper.style.visibility = "hidden"
     }
   }
 
-  destroy(): void
-  {
+  destroy(): void {
     if (this.wrapper) {
       if (this.#documentPointerdownHandler) {
         document.removeEventListener("pointerdown", this.#documentPointerdownHandler)
         this.#documentPointerdownHandler = undefined
       }
-      this.menuActions.forEach(menuAction => {
+      this.menuActions.forEach((menuAction) => {
         menuAction.destroy()
       })
       this.menuActions.clear()

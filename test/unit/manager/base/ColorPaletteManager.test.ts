@@ -1,49 +1,40 @@
 import { ColorPaletteManager } from "@/iink"
 
-describe("ColorPaletteManager", () =>
-{
-  beforeEach(() =>
-  {
+describe("ColorPaletteManager", () => {
+  beforeEach(() => {
     const manager = ColorPaletteManager.getInstance()
     manager.clear() // Reset for each test
   })
 
-  afterEach(() =>
-  {
+  afterEach(() => {
     const manager = ColorPaletteManager.getInstance()
     manager.clear()
   })
 
-  describe("Singleton pattern", () =>
-  {
-    test("should return same instance", () =>
-    {
+  describe("Singleton pattern", () => {
+    test("should return same instance", () => {
       const instance1 = ColorPaletteManager.getInstance()
       const instance2 = ColorPaletteManager.getInstance()
       expect(instance1).toBe(instance2)
     })
   })
 
-  describe("getColorForVariable", () =>
-  {
-    test("should return consistent color for same variable", () =>
-    {
+  describe("getColorForVariable", () => {
+    test("should return consistent color for same variable", () => {
       const manager = ColorPaletteManager.getInstance()
       const color1 = manager.getColorForVariable("x")
       const color2 = manager.getColorForVariable("x")
       expect(color1).toBe(color2)
     })
 
-    test("should return different colors for different variables", () =>
-    {
+    test("should return different colors for different variables", () => {
       const manager = ColorPaletteManager.getInstance()
       const colorX = manager.getColorForVariable("x")
       const colorY = manager.getColorForVariable("y")
       expect(colorX).not.toBe(colorY)
     })
 
-    test("should cycle through palette when variables exceed palette size", () =>
-    {
+    test("should cycle through palette when variables exceed palette size", () => {
       const manager = ColorPaletteManager.getInstance()
       const palette = ColorPaletteManager.getPalette()
       const colors = []
@@ -58,25 +49,21 @@ describe("ColorPaletteManager", () =>
       expect(colors[1]).toBe(colors[palette.length + 1])
     })
 
-    test("should return valid hex colors", () =>
-    {
+    test("should return valid hex colors", () => {
       const manager = ColorPaletteManager.getInstance()
       const color = manager.getColorForVariable("test")
       expect(color).toMatch(/^#[0-9A-Fa-f]{6}$/)
     })
   })
 
-  describe("getAllVariableColors", () =>
-  {
-    test("should return empty map initially", () =>
-    {
+  describe("getAllVariableColors", () => {
+    test("should return empty map initially", () => {
       const manager = ColorPaletteManager.getInstance()
       const colors = manager.getAllVariableColors()
       expect(colors.size).toBe(0)
     })
 
-    test("should return all assigned variable colors", () =>
-    {
+    test("should return all assigned variable colors", () => {
       const manager = ColorPaletteManager.getInstance()
       manager.getColorForVariable("x")
       manager.getColorForVariable("y")
@@ -89,8 +76,7 @@ describe("ColorPaletteManager", () =>
       expect(colors.has("z")).toBe(true)
     })
 
-    test("should return copy not reference", () =>
-    {
+    test("should return copy not reference", () => {
       const manager = ColorPaletteManager.getInstance()
       manager.getColorForVariable("x")
       const colors = manager.getAllVariableColors()
@@ -102,10 +88,8 @@ describe("ColorPaletteManager", () =>
     })
   })
 
-  describe("clear", () =>
-  {
-    test("should remove all variable color assignments", () =>
-    {
+  describe("clear", () => {
+    test("should remove all variable color assignments", () => {
       const manager = ColorPaletteManager.getInstance()
       manager.getColorForVariable("x")
       manager.getColorForVariable("y")
@@ -115,8 +99,7 @@ describe("ColorPaletteManager", () =>
       expect(manager.getAllVariableColors().size).toBe(0)
     })
 
-    test("should reset color index", () =>
-    {
+    test("should reset color index", () => {
       const manager = ColorPaletteManager.getInstance()
       const firstColor = manager.getColorForVariable("x")
       manager.clear()
@@ -127,10 +110,8 @@ describe("ColorPaletteManager", () =>
     })
   })
 
-  describe("removeVariable", () =>
-  {
-    test("should remove specific variable", () =>
-    {
+  describe("removeVariable", () => {
+    test("should remove specific variable", () => {
       const manager = ColorPaletteManager.getInstance()
       manager.getColorForVariable("x")
       manager.getColorForVariable("y")
@@ -142,8 +123,7 @@ describe("ColorPaletteManager", () =>
       expect(colors.has("y")).toBe(true)
     })
 
-    test("should allow reassignment after removal", () =>
-    {
+    test("should allow reassignment after removal", () => {
       const manager = ColorPaletteManager.getInstance()
       manager.getColorForVariable("x")
       manager.removeVariable("x")
@@ -154,25 +134,20 @@ describe("ColorPaletteManager", () =>
     })
   })
 
-  describe("getPalette", () =>
-  {
-    test("should return non-empty palette", () =>
-    {
+  describe("getPalette", () => {
+    test("should return non-empty palette", () => {
       const palette = ColorPaletteManager.getPalette()
       expect(palette.length).toBeGreaterThan(0)
     })
 
-    test("should return array of valid hex colors", () =>
-    {
+    test("should return array of valid hex colors", () => {
       const palette = ColorPaletteManager.getPalette()
-      palette.forEach(color =>
-      {
+      palette.forEach((color) => {
         expect(color).toMatch(/^#[0-9A-Fa-f]{6}$/)
       })
     })
 
-    test("should return copy not reference", () =>
-    {
+    test("should return copy not reference", () => {
       const palette1 = ColorPaletteManager.getPalette()
       palette1.push("#000000")
 

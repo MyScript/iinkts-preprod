@@ -1,12 +1,12 @@
 /**
  * @group Renderer
  */
-export const SVGRendererConst =
-{
+export const SVGRendererConst = {
   selectionFilterId: "selection-filter",
   removalFilterId: "removal-filter",
   crossMarker: "cross-marker",
-  noSelection: "pointer-events: none; -webkit-touch-callout: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;",
+  noSelection:
+    "pointer-events: none; -webkit-touch-callout: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;",
 }
 
 /**
@@ -16,7 +16,7 @@ export const SVGRendererConst =
 export const GUIDE_PATH_ATTRS = {
   "stroke-width": "1",
   stroke: "grey",
-  fill: "none"
+  fill: "none",
 } as const
 
 /**
@@ -26,5 +26,5 @@ export const GUIDE_PATH_ATTRS = {
 export const SUB_GUIDE_PATH_ATTRS = {
   "stroke-width": "0.25",
   stroke: "grey",
-  fill: "none"
+  fill: "none",
 } as const

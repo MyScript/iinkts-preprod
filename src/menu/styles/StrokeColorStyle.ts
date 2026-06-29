@@ -1,33 +1,31 @@
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import type { TMenuColorList } from "@/menu/items"
+import { CollapsibleWrapper, ColorListMenuItem } from "@/menu/items"
 import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
-import type { TMenuColorList} from "@/menu/items";
-import { ColorListMenuItem, CollapsibleWrapper } from "@/menu/items"
 
 /**
  * @group Menu
  * @remarks Stroke color style menu
  */
-export class StrokeColorStyle extends BaseMenuItem<HTMLDivElement>
-{
+export class StrokeColorStyle extends BaseMenuItem<HTMLDivElement> {
   private colorItem?: ColorListMenuItem
   private colors: string[]
 
-  constructor(editor: TInteractiveInkEditor, colors: string[], idPrefix = "ms-menu-style")
-  {
+  constructor(editor: TInteractiveInkEditor, colors: string[], idPrefix = "ms-menu-style") {
     const config = {
       type: "strokecolor" as const,
       id: `${idPrefix}-color`,
-      label: "Stroke Color"
+      label: "Stroke Color",
     }
     super(config, editor)
     this.colors = colors
   }
 
-  createElement(): HTMLDivElement
-  {
-    const symbolsStyles = this.editor.model.symbolsSelected.map(s => s.style)
-    const hasUniqColor = symbolsStyles.length && symbolsStyles.every(st => st.color === symbolsStyles[0]?.color)
-    const color = hasUniqColor && symbolsStyles[0]?.color ? symbolsStyles[0]?.color : this.editor.penStyle.color as string
+  createElement(): HTMLDivElement {
+    const symbolsStyles = this.editor.model.symbolsSelected.map((s) => s.style)
+    const hasUniqColor = symbolsStyles.length && symbolsStyles.every((st) => st.color === symbolsStyles[0]?.color)
+    const color =
+      hasUniqColor && symbolsStyles[0]?.color ? symbolsStyles[0]?.color : (this.editor.penStyle.color as string)
 
     const colorConfig: TMenuColorList = {
       type: "colorlist",
@@ -38,8 +36,11 @@ export class StrokeColorStyle extends BaseMenuItem<HTMLDivElement>
       initValue: color,
       onChange: (color, editor) => {
         editor.penStyle = { color }
-        editor.updateSymbolsStyle(editor.model.symbolsSelected.map(s => s.id), { color })
-      }
+        editor.updateSymbolsStyle(
+          editor.model.symbolsSelected.map((s) => s.id),
+          { color }
+        )
+      },
     }
 
     this.colorItem = new ColorListMenuItem(colorConfig, this.editor)
@@ -48,14 +49,12 @@ export class StrokeColorStyle extends BaseMenuItem<HTMLDivElement>
     return wrapper.getElement()
   }
 
-  update(): void
-  {
+  update(): void {
     this.updateDisabled()
     this.updateVisible()
   }
 
-  destroy(): void
-  {
+  destroy(): void {
     if (this.colorItem) {
       this.colorItem.destroy()
       this.colorItem = undefined

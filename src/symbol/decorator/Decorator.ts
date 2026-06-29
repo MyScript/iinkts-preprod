@@ -1,18 +1,17 @@
-import type { TPartialDeep } from "@/utils"
-import { createUUID } from "@/utils"
 import type { TStyle } from "@/style"
 import { DefaultStyle } from "@/style"
-import { SymbolType } from "@/symbol/Symbol"
-import type { TBaseSymbol } from "@/symbol/Symbol"
-import type { TPoint, TSegment } from "@/symbol/primitives/Point"
 import type { TBox } from "@/symbol/primitives/Box"
 import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
+import type { TPoint, TSegment } from "@/symbol/primitives/Point"
+import type { TBaseSymbol } from "@/symbol/Symbol"
+import { SymbolType } from "@/symbol/Symbol"
+import type { TPartialDeep } from "@/utils"
+import { createUUID } from "@/utils"
 
 /**
  * @group Symbol
  */
-export enum DecoratorKind
-{
+export enum DecoratorKind {
   Highlight = "highlight",
   Surround = "surround",
   Underline = "underline",
@@ -45,8 +44,7 @@ export type TDecorator = TBaseSymbol & {
  * @group Symbol
  * @summary Check if symbol is a standalone decorator
  */
-export function isDecorator(symbol: TBaseSymbol): symbol is TDecorator
-{
+export function isDecorator(symbol: TBaseSymbol): symbol is TDecorator {
   return symbol.type === SymbolType.Decorator
 }
 
@@ -54,14 +52,15 @@ export function isDecorator(symbol: TBaseSymbol): symbol is TDecorator
  * @group Symbol
  */
 export const DecoratorOps = {
-  create(kind: DecoratorKind, style: TPartialDeep<TStyle>, targetIds: string[] = [], bounds?: TBox): TDecorator
-  {
+  create(kind: DecoratorKind, style: TPartialDeep<TStyle>, targetIds: string[] = [], bounds?: TBox): TDecorator {
     const mergedStyle = Object.assign({}, DefaultStyle, style) as TStyle
-    if (mergedStyle.opacity) mergedStyle.opacity = +mergedStyle.opacity
+    if (mergedStyle.opacity) {
+      mergedStyle.opacity = +mergedStyle.opacity
+    }
     mergedStyle.width = +mergedStyle.width
     const now = Date.now()
     const decorator: TDecorator = {
-      id: `${ kind }-${ createUUID() }`,
+      id: `${kind}-${createUUID()}`,
       type: SymbolType.Decorator,
       style: mergedStyle,
       creationTime: now,
@@ -74,12 +73,13 @@ export const DecoratorOps = {
       snapPoints: [],
       edges: [],
     }
-    if (bounds) DecoratorOps.setBounds(decorator, OBBOps.fromBox(bounds))
+    if (bounds) {
+      DecoratorOps.setBounds(decorator, OBBOps.fromBox(bounds))
+    }
     return decorator
   },
 
-  setBounds(decorator: TDecorator, bounds: TOBB): void
-  {
+  setBounds(decorator: TDecorator, bounds: TOBB): void {
     decorator.bounds = bounds
     decorator.hasBounds = true
     const yMid = bounds.center.y
@@ -93,8 +93,7 @@ export const DecoratorOps = {
     decorator.edges = [{ p1: vertices[0], p2: vertices[1] }]
   },
 
-  overlaps(decorator: TDecorator, box: TBox): boolean
-  {
+  overlaps(decorator: TDecorator, box: TBox): boolean {
     return decorator.hasBounds ? OBBOps.overlapsBox(decorator.bounds, box) : false
   },
 }

@@ -1,9 +1,8 @@
-
 /**
  * @group Renderer
  */
 export type TGuidesConfiguration = {
-  enable: boolean,
+  enable: boolean
   gap: number
 }
 
@@ -41,7 +40,7 @@ export const DefaultRendererConfiguration: TRendererConfiguration = {
 export type TIIRendererConfiguration = TRendererConfiguration & {
   guides: TGuidesConfiguration & {
     type: "line" | "grid" | "point"
-  },
+  }
 }
 
 /**
@@ -52,7 +51,7 @@ export const DefaultIIRendererConfiguration: TIIRendererConfiguration = {
   guides: {
     enable: true,
     gap: 50,
-    type: "point"
+    type: "point",
   },
   minHeight: 400,
   minWidth: 400,

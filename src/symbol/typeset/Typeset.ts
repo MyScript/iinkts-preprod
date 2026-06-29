@@ -1,7 +1,7 @@
-import { convertDegreeToRadian, computeRotatedPoint } from "@/utils"
-import type { TPoint, TSegment } from "@/symbol/primitives/Point"
 import type { TBox } from "@/symbol/primitives/Box"
 import { BoxOps } from "@/symbol/primitives/Box"
+import type { TPoint, TSegment } from "@/symbol/primitives/Point"
+import { computeRotatedPoint, convertDegreeToRadian } from "@/utils"
 
 /**
  * @group Symbol
@@ -26,11 +26,10 @@ export type TTypesetChild = {
 /**
  * @group Symbol
  */
-export function computeTypesetVertices(bounds: TBox, rotation?: TRotation): TPoint[]
-{
+export function computeTypesetVertices(bounds: TBox, rotation?: TRotation): TPoint[] {
   if (rotation) {
     const rad = convertDegreeToRadian(-rotation.degree)
-    return BoxOps.getCorners(bounds).map(p => computeRotatedPoint(p, rotation.center, rad))
+    return BoxOps.getCorners(bounds).map((p) => computeRotatedPoint(p, rotation.center, rad))
   }
   return BoxOps.getCorners(bounds)
 }
@@ -38,8 +37,7 @@ export function computeTypesetVertices(bounds: TBox, rotation?: TRotation): TPoi
 /**
  * @group Symbol
  */
-export function computeTypesetSnapPoints(bounds: TBox, point: TPoint, rotation?: TRotation): TPoint[]
-{
+export function computeTypesetSnapPoints(bounds: TBox, point: TPoint, rotation?: TRotation): TPoint[] {
   const yMax = bounds.y + bounds.height
   const xMax = bounds.x + bounds.width
   const offsetY = yMax - point.y
@@ -48,11 +46,11 @@ export function computeTypesetSnapPoints(bounds: TBox, point: TPoint, rotation?:
     { x: xMax, y: bounds.y + offsetY },
     { x: xMax, y: yMax - offsetY },
     { x: bounds.x, y: yMax - offsetY },
-    BoxOps.getCenter(bounds)
+    BoxOps.getCenter(bounds),
   ]
   if (rotation) {
     const rad = convertDegreeToRadian(-rotation.degree)
-    return points.map(p => computeRotatedPoint(p, rotation.center, rad))
+    return points.map((p) => computeRotatedPoint(p, rotation.center, rad))
   }
   return points
 }
@@ -60,7 +58,9 @@ export function computeTypesetSnapPoints(bounds: TBox, point: TPoint, rotation?:
 /**
  * @group Symbol
  */
-export function computeClosedEdges(vertices: TPoint[]): TSegment[]
-{
-  return vertices.map((p, i) => ({ p1: p, p2: vertices[(i + 1) % vertices.length] }))
+export function computeClosedEdges(vertices: TPoint[]): TSegment[] {
+  return vertices.map((p, i) => ({
+    p1: p,
+    p2: vertices[(i + 1) % vertices.length],
+  }))
 }

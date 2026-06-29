@@ -1,81 +1,61 @@
 import { SvgElementRole } from "@/Constants"
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
-import type {
-  TStroke,
-  TText,
-  TMath,
-  TEdge,
-  TShape,
-  TSymbol,
-  TPoint} from "@/symbol";
-import
-{
-  SymbolType,
-  isStroke
-} from "@/symbol"
 import { LoggerCategory } from "@/logger"
+import type { TEdge, TMath, TPoint, TShape, TStroke, TSymbol, TText } from "@/symbol"
+import { isStroke, SymbolType } from "@/symbol"
 import type { MatrixTransform } from "@/transform"
+
 import { IIAbstractManager } from "../IIAbstractManager"
 
 /**
  * Abstract base class for transform managers (translate, rotate, resize)
  * @group Manager
  */
-export abstract class IIAbstractTransformManager extends IIAbstractManager
-{
+export abstract class IIAbstractTransformManager extends IIAbstractManager {
   protected abstract transformName: string
   interactElementsGroup?: SVGElement
 
-  constructor(editor: TInteractiveInkEditor)
-  {
+  constructor(editor: TInteractiveInkEditor) {
     super(editor, LoggerCategory.TRANSFORMER)
   }
 
-  protected applyMatrixToPoints(points: TPoint[], matrix: MatrixTransform): void
-  {
-    points.forEach(p =>
-    {
+  protected applyMatrixToPoints(points: TPoint[], matrix: MatrixTransform): void {
+    points.forEach((p) => {
       const np = matrix.applyToPoint(p)
       p.x = +np.x.toFixed(3)
       p.y = +np.y.toFixed(3)
     })
   }
 
-  setTransformOrigin(id: string, originX: number, originY: number): void
-  {
-    this.editor.renderer.setAttribute(id, "transform-origin", `${ originX }px ${ originY }px`)
+  setTransformOrigin(id: string, originX: number, originY: number): void {
+    this.editor.renderer.setAttribute(id, "transform-origin", `${originX}px ${originY}px`)
   }
 
-  protected resolveInteractGroup(target: Element): SVGGElement
-  {
-    return (target.closest(`[role=${ SvgElementRole.InteractElementsGroup }]`) as unknown) as SVGGElement
+  protected resolveInteractGroup(target: Element): SVGGElement {
+    return target.closest(`[role=${SvgElementRole.InteractElementsGroup}]`) as unknown as SVGGElement
   }
 
-  protected applyAndDraw(symbols: TSymbol[], matrix: MatrixTransform): void
-  {
-    symbols.forEach(s =>
-    {
+  protected applyAndDraw(symbols: TSymbol[], matrix: MatrixTransform): void {
+    symbols.forEach((s) => {
       this.applyToSymbol(s, matrix)
       this.editor.renderer.drawSymbol(s)
       this.model.updateSymbol(s)
     })
   }
 
-  protected finalizeTransform(): void
-  {
+  protected finalizeTransform(): void {
     this.interactElementsGroup = undefined
     this.editor.overlays.apply()
   }
 
-  protected clearGhostStrokesForSelectedMath(): void
-  {
+  protected clearGhostStrokesForSelectedMath(): void {
     const ids = new Set<string>()
-    this.model.symbolsSelected.forEach(s => {
+    this.model.symbolsSelected.forEach((s) => {
       if (isStroke(s) && s.jiixBlockType === "Math" && s.jiixBlockId) {
         ids.add(s.jiixBlockId)
       }
     })
-    ids.forEach(id => this.editor.math.clearGhostStrokes(id))
+    ids.forEach((id) => this.editor.math.clearGhostStrokes(id))
   }
 
   protected abstract applyToStroke(stroke: TStroke, matrix: MatrixTransform): TStroke
@@ -84,8 +64,7 @@ export abstract class IIAbstractTransformManager extends IIAbstractManager
   protected abstract applyOnText(text: TText, matrix: MatrixTransform): TText
   protected abstract applyOnMath(math: TMath, matrix: MatrixTransform): TMath
 
-  applyToSymbol(symbol: TSymbol, matrix: MatrixTransform): TSymbol
-  {
+  applyToSymbol(symbol: TSymbol, matrix: MatrixTransform): TSymbol {
     this.logger.info("applyToSymbol", { symbol })
     switch (symbol.type) {
       case SymbolType.Stroke:
@@ -99,7 +78,7 @@ export abstract class IIAbstractTransformManager extends IIAbstractManager
       case SymbolType.Math:
         return this.applyOnMath(symbol, matrix)
       default:
-        throw new Error(`Can't apply ${ this.transformName } on symbol, type unknown: ${ JSON.stringify(symbol) }`)
+        throw new Error(`Can't apply ${this.transformName} on symbol, type unknown: ${JSON.stringify(symbol)}`)
     }
   }
 }

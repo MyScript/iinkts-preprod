@@ -1,4 +1,3 @@
-
 /**
  * @group Grabber
  */
@@ -13,7 +12,7 @@ export type TListenerConfiguration = {
  */
 export const DefaultListenerConfiguration: TListenerConfiguration = {
   capture: false,
-  passive: true
+  passive: true,
 }
 
 /**
@@ -34,5 +33,5 @@ export const DefaultGrabberConfiguration: TGrabberConfiguration = {
   listenerOptions: DefaultListenerConfiguration,
   xyFloatPrecision: 0,
   timestampFloatPrecision: 0,
-  delayLongTouch: 500
+  delayLongTouch: 500,
 }

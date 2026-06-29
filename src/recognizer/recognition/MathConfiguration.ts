@@ -1,7 +1,7 @@
-import type { TMarginConfiguration } from "./MarginConfiguration";
-import { DefaultMarginConfiguration } from "./MarginConfiguration"
-import type { TEraserConfiguration } from "./EraserConfiguration";
+import type { TEraserConfiguration } from "./EraserConfiguration"
 import { DefaultEraserConfiguration } from "./EraserConfiguration"
+import type { TMarginConfiguration } from "./MarginConfiguration"
+import { DefaultMarginConfiguration } from "./MarginConfiguration"
 
 /**
  * @group Recognizer
@@ -39,7 +39,7 @@ export const DefaultSolverConfiguration: TSolverConfiguration = {
   "fractional-part-digits": 3,
   "decimal-separator": ".",
   "rounding-mode": "half up",
-  "angle-unit": "deg"
+  "angle-unit": "deg",
 }
 
 /**
@@ -59,7 +59,7 @@ export type TMathUndoRedoConfiguration = {
  * @source
  */
 export const DefaultMathUndoRedoConfiguration: TMathUndoRedoConfiguration = {
-  mode: "stroke"
+  mode: "stroke",
 }
 
 /**

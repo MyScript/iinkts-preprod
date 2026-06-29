@@ -1,10 +1,11 @@
-import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
-import { Modal } from "./Modal"
-import { Chart } from "./Chart"
-import type { TTableRow } from "./Table";
-import { Table } from "./Table"
-import { LoggerCategory, LoggerManager } from "@/logger"
 import { DOMFactory } from "@/components/dom"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import { LoggerCategory, LoggerManager } from "@/logger"
+
+import { Chart } from "./Chart"
+import { Modal } from "./Modal"
+import type { TTableRow } from "./Table"
+import { Table } from "./Table"
 
 /**
  * @group Components
@@ -52,7 +53,7 @@ export class IIMathFunctionEvaluator {
     "#FFC107", // Amber
     "#E91E63", // Pink
     "#009688", // Teal
-    "#795548"  // Brown
+    "#795548", // Brown
   ]
 
   constructor(editor: TInteractiveInkEditor, jiixBlockIds: string[]) {
@@ -69,7 +70,9 @@ export class IIMathFunctionEvaluator {
 
     for (let i = 0; i < this.jiixBlockIds.length; i++) {
       const jiixBlockId = this.jiixBlockIds[i]
-      if (!jiixBlockId) continue
+      if (!jiixBlockId) {
+        continue
+      }
 
       try {
         const evaluables = await this.editor.math.getEvaluables(jiixBlockId)
@@ -78,7 +81,7 @@ export class IIMathFunctionEvaluator {
             jiixBlockId,
             evaluables: evaluables,
             selectedEvaluableIndex: 0,
-            color: IIMathFunctionEvaluator.COLORS[i % IIMathFunctionEvaluator.COLORS.length]
+            color: IIMathFunctionEvaluator.COLORS[i % IIMathFunctionEvaluator.COLORS.length],
           })
         }
       } catch (error) {
@@ -109,8 +112,9 @@ export class IIMathFunctionEvaluator {
    * Create the modal content with inputs and tabs
    */
   private createModalContent(functions: TMathEvaluableFunction[]): HTMLDivElement {
-    
-    const container = DOMFactory.div({ className: "ms-evaluator-content" })
+    const container = DOMFactory.div({
+      className: "ms-evaluator-content",
+    })
 
     // Inputs section
     const inputsSection = this.createInputsSection(functions)
@@ -127,21 +131,22 @@ export class IIMathFunctionEvaluator {
    * Create a single function item for display
    */
   private createFunctionItem(func: TMathEvaluableFunction): HTMLDivElement {
-    
-    const funcItem = DOMFactory.div({ className: "ms-function-item" })
+    const funcItem = DOMFactory.div({
+      className: "ms-function-item",
+    })
 
     const colorDot = DOMFactory.colorDot(func.color)
 
     const selectedEvaluable = func.evaluables[func.selectedEvaluableIndex]
     const label = DOMFactory.span({
       text: `${selectedEvaluable.outputName} = f(${selectedEvaluable.inputName})`,
-      style: `font-family: monospace; flex-shrink: 0;`
+      style: `font-family: monospace; flex-shrink: 0;`,
     })
 
     const blockLabel = this.editor.jiix.getBlockLabel(func.jiixBlockId) || "N/A"
     const symbolLabel = DOMFactory.span({
       text: ` - ${blockLabel}`,
-      className: "ms-symbol-label"
+      className: "ms-symbol-label",
     })
 
     funcItem.appendChild(colorDot)
@@ -150,11 +155,13 @@ export class IIMathFunctionEvaluator {
 
     // Add select dropdown if multiple evaluables
     if (func.evaluables.length > 1) {
-      const selectWrapper = DOMFactory.div({ className: "ms-select-wrapper" })
+      const selectWrapper = DOMFactory.div({
+        className: "ms-select-wrapper",
+      })
 
       const selectLabel = DOMFactory.span({
         text: "Variant:",
-        className: "ms-select-label"
+        className: "ms-select-label",
       })
 
       const select = DOMFactory.select({
@@ -163,7 +170,7 @@ export class IIMathFunctionEvaluator {
         options: func.evaluables.map((ev, evIndex) => ({
           value: String(evIndex),
           label: `${ev.outputName} = f(${ev.inputName})`,
-          selected: evIndex === func.selectedEvaluableIndex
+          selected: evIndex === func.selectedEvaluableIndex,
         })),
         onChange: (value) => {
           func.selectedEvaluableIndex = parseInt(value)
@@ -172,7 +179,7 @@ export class IIMathFunctionEvaluator {
           // Clear evaluation results when changing evaluable
           this.evaluationResults = undefined
           this.renderCurrentTab()
-        }
+        },
       })
 
       selectWrapper.appendChild(selectLabel)
@@ -187,16 +194,17 @@ export class IIMathFunctionEvaluator {
    * Create the functions list display
    */
   private createFunctionsList(functions: TMathEvaluableFunction[]): HTMLDivElement {
-    
-    const functionsDiv = DOMFactory.div({ className: "ms-functions-card" })
+    const functionsDiv = DOMFactory.div({
+      className: "ms-functions-card",
+    })
 
     const functionsTitle = DOMFactory.div({
       text: "Functions to evaluate:",
-      className: "ms-functions-title"
+      className: "ms-functions-title",
     })
     functionsDiv.appendChild(functionsTitle)
 
-    functions.forEach(func => {
+    functions.forEach((func) => {
       const funcItem = this.createFunctionItem(func)
       functionsDiv.appendChild(funcItem)
     })
@@ -216,13 +224,30 @@ export class IIMathFunctionEvaluator {
       step: HTMLDivElement
     }
   } {
-    
-    const inputGrid = DOMFactory.div({ className: "ms-input-grid-4" })
+    const inputGrid = DOMFactory.div({
+      className: "ms-input-grid-4",
+    })
 
-    const fromInput = DOMFactory.labeledInput({ id: "from", label: "From:", defaultValue: -10 }).wrapper
-    const toInput = DOMFactory.labeledInput({ id: "to", label: "To:", defaultValue: 10 }).wrapper
-    const pointCountInput = DOMFactory.labeledInput({ id: "pointCount", label: "Points:", defaultValue: 21 }).wrapper
-    const stepInput = DOMFactory.labeledInput({ id: "step", label: "Step:", defaultValue: 1 }).wrapper
+    const fromInput = DOMFactory.labeledInput({
+      id: "from",
+      label: "From:",
+      defaultValue: -10,
+    }).wrapper
+    const toInput = DOMFactory.labeledInput({
+      id: "to",
+      label: "To:",
+      defaultValue: 10,
+    }).wrapper
+    const pointCountInput = DOMFactory.labeledInput({
+      id: "pointCount",
+      label: "Points:",
+      defaultValue: 21,
+    }).wrapper
+    const stepInput = DOMFactory.labeledInput({
+      id: "step",
+      label: "Step:",
+      defaultValue: 1,
+    }).wrapper
 
     inputGrid.appendChild(fromInput)
     inputGrid.appendChild(toInput)
@@ -231,7 +256,12 @@ export class IIMathFunctionEvaluator {
 
     return {
       grid: inputGrid,
-      inputs: { from: fromInput, to: toInput, pointCount: pointCountInput, step: stepInput }
+      inputs: {
+        from: fromInput,
+        to: toInput,
+        pointCount: pointCountInput,
+        step: stepInput,
+      },
     }
   }
 
@@ -243,12 +273,11 @@ export class IIMathFunctionEvaluator {
     toInput: HTMLDivElement,
     pointCountInput: HTMLDivElement
   ): HTMLButtonElement {
-    
     const evaluateBtn = DOMFactory.button({
       label: "Evaluate",
       onClick: () => {
         this.evaluateFunctions(this.functionsToEvaluate, fromInput, toInput, pointCountInput)
-      }
+      },
     })
     evaluateBtn.style.marginTop = "var(--iink-spacing-lg)"
     evaluateBtn.style.width = "100%"
@@ -259,8 +288,9 @@ export class IIMathFunctionEvaluator {
    * Create the inputs section
    */
   private createInputsSection(functions: TMathEvaluableFunction[]): HTMLDivElement {
-    
-    const section = DOMFactory.div({ className: "ms-section" })
+    const section = DOMFactory.div({
+      className: "ms-section",
+    })
 
     // Functions list
     const functionsList = this.createFunctionsList(functions)
@@ -299,7 +329,9 @@ export class IIMathFunctionEvaluator {
     let lastModified: "step" | "pointCount" = "pointCount"
 
     const updateStep = () => {
-      if (isUpdatingStep) return
+      if (isUpdatingStep) {
+        return
+      }
       isUpdatingPointCount = true
 
       const from = parseFloat(fromInput.value)
@@ -315,7 +347,9 @@ export class IIMathFunctionEvaluator {
     }
 
     const updatePointCount = () => {
-      if (isUpdatingPointCount) return
+      if (isUpdatingPointCount) {
+        return
+      }
       isUpdatingStep = true
 
       const from = parseFloat(fromInput.value)
@@ -357,11 +391,14 @@ export class IIMathFunctionEvaluator {
    * Create the tabs section (Graph and Table)
    */
   private createTabsSection(): HTMLDivElement {
-    
-    const section = DOMFactory.div({ className: "ms-tabs-section" })
+    const section = DOMFactory.div({
+      className: "ms-tabs-section",
+    })
 
     // Tab headers
-    const tabHeaders = DOMFactory.div({ className: "ms-tab-headers" })
+    const tabHeaders = DOMFactory.div({
+      className: "ms-tab-headers",
+    })
 
     const graphTab = this.createTabHeader("Graph", true)
     const tableTab = this.createTabHeader("Table", false)
@@ -371,7 +408,9 @@ export class IIMathFunctionEvaluator {
     section.appendChild(tabHeaders)
 
     // Tab content
-    const tabContent = DOMFactory.div({ className: "ms-tab-content" })
+    const tabContent = DOMFactory.div({
+      className: "ms-tab-content",
+    })
     section.appendChild(tabContent)
 
     // Store reference
@@ -380,13 +419,15 @@ export class IIMathFunctionEvaluator {
     // Initial message
     const initialMessage = DOMFactory.div({
       text: "Click 'Evaluate' to display results",
-      className: "ms-tab-empty"
+      className: "ms-tab-empty",
     })
     tabContent.appendChild(initialMessage)
 
     // Tab switching
     graphTab.addEventListener("click", () => {
-      if (this.currentTab === "graph") return
+      if (this.currentTab === "graph") {
+        return
+      }
       this.currentTab = "graph"
       graphTab.classList.add("active")
       tableTab.classList.remove("active")
@@ -394,7 +435,9 @@ export class IIMathFunctionEvaluator {
     })
 
     tableTab.addEventListener("click", () => {
-      if (this.currentTab === "table") return
+      if (this.currentTab === "table") {
+        return
+      }
       this.currentTab = "table"
       tableTab.classList.add("active")
       graphTab.classList.remove("active")
@@ -448,7 +491,7 @@ export class IIMathFunctionEvaluator {
           outputVariableName: selectedEvaluable.outputName,
           from,
           to,
-          pointCount
+          pointCount,
         })
         allResults.push({ func, points })
       }
@@ -458,7 +501,6 @@ export class IIMathFunctionEvaluator {
 
       // Render current tab
       this.renderCurrentTab()
-
     } catch (error) {
       this.logger.error("Error evaluating functions:", error)
       this.logger.error("Error evaluating functions")
@@ -469,7 +511,9 @@ export class IIMathFunctionEvaluator {
    * Render the current tab content
    */
   private renderCurrentTab(): void {
-    if (!this.tabContent) return
+    if (!this.tabContent) {
+      return
+    }
 
     // Clear container
     this.tabContent.innerHTML = ""
@@ -477,10 +521,9 @@ export class IIMathFunctionEvaluator {
     const results = this.evaluationResults
 
     if (!results || results.length === 0) {
-      
       const message = DOMFactory.div({
         text: "Click 'Evaluate' to display results",
-        className: "ms-tab-empty"
+        className: "ms-tab-empty",
       })
       this.tabContent.appendChild(message)
       return
@@ -496,11 +539,11 @@ export class IIMathFunctionEvaluator {
   /**
    * Render the graph tab
    */
-  private renderGraph(
-    results: TEvaluationResult[]
-  ): void {
-    if (!this.tabContent) return
-    
+  private renderGraph(results: TEvaluationResult[]): void {
+    if (!this.tabContent) {
+      return
+    }
+
     const tabContent = this.tabContent
 
     const groupedByInput = this.groupResultsByInputName(results)
@@ -509,7 +552,7 @@ export class IIMathFunctionEvaluator {
     groupedByInput.forEach((groupResults, inputName) => {
       // Collect all output names for this group
       const outputNames = new Set<string>()
-      groupResults.forEach(result => {
+      groupResults.forEach((result) => {
         const evalSelected = result.func.evaluables[result.func.selectedEvaluableIndex]
         outputNames.add(evalSelected.outputName)
       })
@@ -518,18 +561,15 @@ export class IIMathFunctionEvaluator {
       const normalizedData: number[][][] = []
       const seriesColors: string[] = []
 
-      groupResults.forEach(result => {
+      groupResults.forEach((result) => {
         const evalSelected = result.func.evaluables[result.func.selectedEvaluableIndex]
         const inputVarName = evalSelected.inputName
         const outputVarName = evalSelected.outputName
 
         // Process each series of points
         // Normalize to [[x, y], [x, y], ...] format
-        result.points.forEach(pointSeries => {
-          const normalizedSeries = pointSeries.map(point => [
-            point[inputVarName],
-            point[outputVarName]
-          ])
+        result.points.forEach((pointSeries) => {
+          const normalizedSeries = pointSeries.map((point) => [point[inputVarName], point[outputVarName]])
           normalizedData.push(normalizedSeries)
           seriesColors.push(result.func.color)
         })
@@ -549,7 +589,7 @@ export class IIMathFunctionEvaluator {
         lineColor: "var(--iink-primary)",
         showGrid: true,
         showPoints: true,
-        seriesColors: seriesColors
+        seriesColors: seriesColors,
       })
 
       chart.setData(normalizedData)
@@ -557,7 +597,9 @@ export class IIMathFunctionEvaluator {
 
       // Add spacing between charts
       if (groupedByInput.size > 1) {
-        const spacer = DOMFactory.div({ style: "height: 20px;" })
+        const spacer = DOMFactory.div({
+          style: "height: 20px;",
+        })
         tabContent.appendChild(spacer)
       }
     })
@@ -569,7 +611,7 @@ export class IIMathFunctionEvaluator {
   private groupResultsByInputName(results: TEvaluationResult[]): Map<string, TEvaluationResult[]> {
     const groupedByInput = new Map<string, TEvaluationResult[]>()
 
-    results.forEach(result => {
+    results.forEach((result) => {
       const evalSelected = result.func.evaluables[result.func.selectedEvaluableIndex]
       const inputName = evalSelected.inputName
 
@@ -586,10 +628,9 @@ export class IIMathFunctionEvaluator {
    * Create table title element
    */
   private createTableTitle(inputName: string): HTMLDivElement {
-    
     return DOMFactory.div({
       text: `Input: ${inputName}`,
-      className: "ms-table-title-header"
+      className: "ms-table-title-header",
     })
   }
 
@@ -599,15 +640,31 @@ export class IIMathFunctionEvaluator {
   private createTableColumns(
     groupResults: TEvaluationResult[],
     inputName: string
-  ): (string | { header: string | HTMLElement; align?: "left" | "center" | "right"; width?: string })[] {
-    
-    const columns: (string | { header: string | HTMLElement; align?: "left" | "center" | "right"; width?: string })[] = [
+  ): (
+    | string
+    | {
+        header: string | HTMLElement
+        align?: "left" | "center" | "right"
+        width?: string
+      }
+  )[] {
+    const columns: (
+      | string
+      | {
+          header: string | HTMLElement
+          align?: "left" | "center" | "right"
+          width?: string
+        }
+    )[] = [
       { header: "#", align: "center" as const },
-      { header: inputName, align: "center" as const }
+      {
+        header: inputName,
+        align: "center" as const,
+      },
     ]
 
     // Add columns for each function and each series
-    groupResults.forEach(result => {
+    groupResults.forEach((result) => {
       const evalSelected = result.func.evaluables[result.func.selectedEvaluableIndex]
       const outputName = evalSelected.outputName || "y"
       const color = result.func.color
@@ -616,22 +673,22 @@ export class IIMathFunctionEvaluator {
         // Single series: one column
         const header = DOMFactory.span({
           text: outputName,
-          style: `color: ${color}; font-weight: 600;`
+          style: `color: ${color}; font-weight: 600;`,
         })
         columns.push({
           header: header,
-          align: "center" as const
+          align: "center" as const,
         })
       } else {
         // Multiple series: multiple columns
         result.points.forEach((_, seriesIndex) => {
           const header = DOMFactory.span({
             text: `${outputName} #${seriesIndex + 1}`,
-            style: `color: ${color}; font-weight: 600;`
+            style: `color: ${color}; font-weight: 600;`,
           })
           columns.push({
             header: header,
-            align: "center" as const
+            align: "center" as const,
           })
         })
       }
@@ -643,11 +700,7 @@ export class IIMathFunctionEvaluator {
   /**
    * Create table rows for a group of results
    */
-  private createTableRows(
-    groupResults: TEvaluationResult[],
-    numPoints: number
-  ): TTableRow[] {
-    
+  private createTableRows(groupResults: TEvaluationResult[], numPoints: number): TTableRow[] {
     const rows: TTableRow[] = []
 
     for (let i = 0; i < numPoints; i++) {
@@ -656,7 +709,7 @@ export class IIMathFunctionEvaluator {
       // Row number
       const indexCell = DOMFactory.span({
         text: String(i + 1),
-        style: "font-weight: 500;"
+        style: "font-weight: 500;",
       })
       cells.push(indexCell)
 
@@ -665,16 +718,16 @@ export class IIMathFunctionEvaluator {
       const xValue = groupResults[0].points[0][i][firstEvalSelected.inputName]
       const xCell = DOMFactory.span({
         text: typeof xValue === "number" ? xValue.toFixed(4) : String(xValue),
-        style: "font-family: monospace;"
+        style: "font-family: monospace;",
       })
       cells.push(xCell)
 
       // Output values for each function and each series
-      groupResults.forEach(result => {
+      groupResults.forEach((result) => {
         const evalSelected = result.func.evaluables[result.func.selectedEvaluableIndex]
         const color = result.func.color
 
-        result.points.forEach(pointSeries => {
+        result.points.forEach((pointSeries) => {
           const yValue = pointSeries[i][evalSelected.outputName]
           const yCell = DOMFactory.span()
 
@@ -709,11 +762,11 @@ export class IIMathFunctionEvaluator {
   /**
    * Render the table tab
    */
-  private renderTable(
-    results: TEvaluationResult[]
-  ): void {
-    if (!this.tabContent) return
-    
+  private renderTable(results: TEvaluationResult[]): void {
+    if (!this.tabContent) {
+      return
+    }
+
     const tabContent = this.tabContent
 
     // Group results by inputName
@@ -739,10 +792,12 @@ export class IIMathFunctionEvaluator {
         columns,
         rows,
         stickyHeader: true,
-        hoverEffect: true
+        hoverEffect: true,
       })
 
-      const tableWrapper = DOMFactory.div({ className: "ms-table-wrapper" })
+      const tableWrapper = DOMFactory.div({
+        className: "ms-table-wrapper",
+      })
       tableWrapper.appendChild(table.getElement())
       tabContent.appendChild(tableWrapper)
     })

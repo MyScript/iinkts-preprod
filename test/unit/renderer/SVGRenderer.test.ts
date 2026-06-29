@@ -1,7 +1,6 @@
 import { beforeAll, describe, test, expect } from "@jest/globals"
 import { buildIICircle, buildIIEraser, buildIILine, buildIIStroke, buildIIText } from "../helpers"
-import
-{
+import {
   SVGRenderer,
   DefaultIIRendererConfiguration,
   OBBOps,
@@ -12,31 +11,28 @@ import
   registerBuiltinSymbolUtils,
 } from "@/iink"
 
-beforeAll(() => { registerBuiltinSymbolUtils() })
+beforeAll(() => {
+  registerBuiltinSymbolUtils()
+})
 
-describe("SVGRenderer.ts", () =>
-{
-  test("should instanciate", () =>
-  {
+describe("SVGRenderer.ts", () => {
+  test("should instanciate", () => {
     const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
     expect(renderer).toBeDefined()
     expect(renderer.configuration).toEqual(DefaultIIRendererConfiguration)
   })
 
-  describe("init", () =>
-  {
+  describe("init", () => {
     const divElement: HTMLDivElement = document.createElement("div")
     const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
     renderer.init(divElement)
-    test("should create layer", () =>
-    {
+    test("should create layer", () => {
       const elements = divElement.getElementsByTagName("svg")
       expect(elements).toHaveLength(1)
       const layer = elements.item(0) as SVGElement
       expect(renderer.layer).toBe(layer)
     })
-    test("should create guides with default gap", () =>
-    {
+    test("should create guides with default gap", () => {
       const divElement: HTMLDivElement = document.createElement("div")
       const customConf = JSON.parse(JSON.stringify(DefaultIIRendererConfiguration)) as TIIRendererConfiguration
       customConf.minHeight = customConf.guides.gap * 2
@@ -48,10 +44,9 @@ describe("SVGRenderer.ts", () =>
       expect(guidesGroup).toBeDefined()
       const guideLines = guidesGroup.getElementsByTagName("path")
       expect(guideLines).toHaveLength(1)
-      expect( guideLines.item(0)?.getAttribute("d")?.split("M")).toHaveLength(82)
+      expect(guideLines.item(0)?.getAttribute("d")?.split("M")).toHaveLength(82)
     })
-    test("should create guides with custom gap", () =>
-    {
+    test("should create guides with custom gap", () => {
       const divElement: HTMLDivElement = document.createElement("div")
       const customConf = JSON.parse(JSON.stringify(DefaultIIRendererConfiguration)) as TIIRendererConfiguration
       customConf.minHeight = 100
@@ -63,10 +58,9 @@ describe("SVGRenderer.ts", () =>
       expect(guidesGroup).toBeDefined()
       const guideLines = guidesGroup.getElementsByTagName("path")
       expect(guideLines).toHaveLength(1)
-      expect( guideLines.item(0)?.getAttribute("d")?.split("M")).toHaveLength(2501)
+      expect(guideLines.item(0)?.getAttribute("d")?.split("M")).toHaveLength(2501)
     })
-    test("should create guides line", () =>
-    {
+    test("should create guides line", () => {
       const divElement: HTMLDivElement = document.createElement("div")
       const customConf = JSON.parse(JSON.stringify(DefaultIIRendererConfiguration)) as TIIRendererConfiguration
       customConf.guides.type = "line"
@@ -78,10 +72,9 @@ describe("SVGRenderer.ts", () =>
       expect(guidesGroup).toBeDefined()
       const guideLines = guidesGroup.getElementsByTagName("path")
       expect(guideLines).toHaveLength(1)
-      expect( guideLines.item(0)?.getAttribute("d")?.split("M")).toHaveLength(10)
+      expect(guideLines.item(0)?.getAttribute("d")?.split("M")).toHaveLength(10)
     })
-    test("should create guides grid", () =>
-    {
+    test("should create guides grid", () => {
       const divElement: HTMLDivElement = document.createElement("div")
       const customConf = JSON.parse(JSON.stringify(DefaultIIRendererConfiguration)) as TIIRendererConfiguration
       customConf.guides.type = "grid"
@@ -93,21 +86,23 @@ describe("SVGRenderer.ts", () =>
       expect(guidesGroup).toBeDefined()
       const guideLines = guidesGroup.getElementsByTagName("path")
       expect(guideLines).toHaveLength(2)
-      expect( guideLines.item(0)?.getAttribute("d")?.split("M")).toHaveLength(21)
-      expect( guideLines.item(1)?.getAttribute("d")?.split("M")).toHaveLength(81)
+      expect(guideLines.item(0)?.getAttribute("d")?.split("M")).toHaveLength(21)
+      expect(guideLines.item(1)?.getAttribute("d")?.split("M")).toHaveLength(81)
     })
-    test("should write error if guides.type unknow", () =>
-    {
+    test("should write error if guides.type unknow", () => {
       const divElement: HTMLDivElement = document.createElement("div")
       const customConf = JSON.parse(JSON.stringify(DefaultIIRendererConfiguration))
       customConf.guides.type = "test"
       const rendererCustom = new SVGRenderer(customConf)
       rendererCustom.init(divElement)
       expect(console.error).toHaveBeenCalledTimes(1)
-      expect(console.error).toHaveBeenCalledWith({ level: "error", message: ["Guide type unknown: test"], "from": "RENDERER.drawGuides" })
+      expect(console.error).toHaveBeenCalledWith({
+        level: "error",
+        message: ["Guide type unknown: test"],
+        from: "RENDERER.drawGuides",
+      })
     })
-    test("should not create guides", () =>
-    {
+    test("should not create guides", () => {
       const divElement: HTMLDivElement = document.createElement("div")
       const customConf = JSON.parse(JSON.stringify(DefaultIIRendererConfiguration))
       customConf.guides.enable = false
@@ -118,8 +113,7 @@ describe("SVGRenderer.ts", () =>
     })
   })
 
-  describe("attribute", () =>
-  {
+  describe("attribute", () => {
     const divElement: HTMLDivElement = document.createElement("div")
     const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
     renderer.init(divElement)
@@ -128,23 +122,20 @@ describe("SVGRenderer.ts", () =>
     renderer.layer.appendChild(element)
     const attr = { name: "attribut-test-name", value: "attribut-test-value" }
 
-    test("should set & get attribut", () =>
-    {
+    test("should set & get attribut", () => {
       expect(renderer.getAttribute(element.id, attr.name)).toBeFalsy()
 
       renderer.setAttribute(element.id, attr.name, attr.value)
       expect(renderer.getAttribute(element.id, attr.name)).toEqual(attr.value)
     })
 
-    test("should do nothing if element not exist in layer", () =>
-    {
+    test("should do nothing if element not exist in layer", () => {
       renderer.setAttribute("unknow-id", attr.name, attr.value)
       expect(renderer.getAttribute("unknow-id", attr.name)).toBeFalsy()
     })
   })
 
-  describe("element", () =>
-  {
+  describe("element", () => {
     const divElement: HTMLDivElement = document.createElement("div")
     const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
     renderer.init(divElement)
@@ -155,8 +146,7 @@ describe("SVGRenderer.ts", () =>
     const elementToAppend = document.createElement("path")
     elementToAppend.id = "append-id"
 
-    test("should prependElement", () =>
-    {
+    test("should prependElement", () => {
       const nbChild = renderer.layer.childElementCount
       expect(renderer.layer.firstElementChild?.getAttribute("id")).not.toEqual(elementToPreprend.id)
       renderer.prependElement(elementToPreprend)
@@ -164,8 +154,7 @@ describe("SVGRenderer.ts", () =>
       expect(renderer.layer.firstElementChild?.getAttribute("id")).toEqual(elementToPreprend.id)
     })
 
-    test("should appendElement", () =>
-    {
+    test("should appendElement", () => {
       const nbChild = renderer.layer.childElementCount
       expect(renderer.layer.lastElementChild?.getAttribute("id")).not.toEqual(elementToAppend.id)
       renderer.appendElement(elementToAppend)
@@ -174,14 +163,12 @@ describe("SVGRenderer.ts", () =>
     })
   })
 
-  describe("symbol", () =>
-  {
+  describe("symbol", () => {
     const divElement: HTMLDivElement = document.createElement("div")
     const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
     renderer.init(divElement)
 
-    test("should write error if symbol type unknow", () =>
-    {
+    test("should write error if symbol type unknow", () => {
       //@ts-ignore
       const unknowSym: TSymbol = {
         //@ts-ignore
@@ -191,20 +178,17 @@ describe("SVGRenderer.ts", () =>
         modificationDate: Date.now(),
         clone: jest.fn(),
         overlaps: jest.fn(),
-        id: "unknow"
-
+        id: "unknow",
       }
       renderer.drawSymbol(unknowSym)
-      const el = divElement.querySelector(`#${ unknowSym.id }`)!
+      const el = divElement.querySelector(`#${unknowSym.id}`)!
       expect(el).toBeNull()
       expect(console.error).toHaveBeenCalledTimes(1)
-
     })
-    test("should draw eraser", () =>
-    {
+    test("should draw eraser", () => {
       const eraser = buildIIEraser()
       renderer.drawSymbol(eraser)
-      const el = divElement.querySelector(`#${ eraser.id }`)!
+      const el = divElement.querySelector(`#${eraser.id}`)!
       expect(el).toBeDefined()
       expect(el.getAttribute("id")).toEqual(eraser.id)
       expect(el.getAttribute("type")).toEqual(eraser.type)
@@ -212,11 +196,10 @@ describe("SVGRenderer.ts", () =>
       expect(el.getAttribute("opacity")).toEqual("0.2")
       expect(el.getAttribute("stroke-width")).toEqual("5")
     })
-    test("should draw stroke", () =>
-    {
+    test("should draw stroke", () => {
       const stroke = buildIIStroke()
       renderer.drawSymbol(stroke)
-      const el = divElement.querySelector(`#${ stroke.id }`)!
+      const el = divElement.querySelector(`#${stroke.id}`)!
       expect(el).toBeDefined()
       expect(el.getAttribute("id")).toEqual(stroke.id)
       expect(el.getAttribute("type")).toEqual("stroke")
@@ -224,11 +207,10 @@ describe("SVGRenderer.ts", () =>
       expect(path.getAttribute("fill")).toEqual(stroke.style.color)
       expect(path.getAttribute("stroke-width")).toEqual(stroke.style.width?.toString())
     })
-    test("should draw circle", () =>
-    {
+    test("should draw circle", () => {
       const circle = buildIICircle()
       renderer.drawSymbol(circle)
-      const el = divElement.querySelector(`#${ circle.id }`)!
+      const el = divElement.querySelector(`#${circle.id}`)!
       expect(el).toBeDefined()
       expect(el.getAttribute("id")).toEqual(circle.id)
       expect(el.getAttribute("type")).toEqual("shape")
@@ -236,11 +218,10 @@ describe("SVGRenderer.ts", () =>
       expect(path.getAttribute("stroke")).toEqual(circle.style.color)
       expect(path.getAttribute("stroke-width")).toEqual(circle.style.width?.toString())
     })
-    test("should draw line", () =>
-    {
+    test("should draw line", () => {
       const line = buildIILine()
       renderer.drawSymbol(line)
-      const el = divElement.querySelector(`#${ line.id }`)!
+      const el = divElement.querySelector(`#${line.id}`)!
       expect(el).toBeDefined()
       expect(el.getAttribute("id")).toEqual(line.id)
       expect(el.getAttribute("type")).toEqual("edge")
@@ -248,8 +229,7 @@ describe("SVGRenderer.ts", () =>
       expect(path.getAttribute("stroke")).toEqual(line.style.color)
       expect(path.getAttribute("stroke-width")).toEqual(line.style.width?.toString())
     })
-    test("should draw text", () =>
-    {
+    test("should draw text", () => {
       const chars: TSymbolChar[] = [
         {
           bounds: { height: 10, width: 5, x: 0, y: 10 },
@@ -257,7 +237,7 @@ describe("SVGRenderer.ts", () =>
           fontSize: 16,
           fontWeight: "normal",
           id: "char-1",
-          label: "A"
+          label: "A",
         },
         {
           bounds: { height: 10, width: 5, x: 5, y: 10 },
@@ -265,12 +245,12 @@ describe("SVGRenderer.ts", () =>
           fontSize: 16,
           fontWeight: "bold",
           id: "char-2",
-          label: "b"
-        }
+          label: "b",
+        },
       ]
       const text = buildIIText({ chars, boundingBox: { height: 10, width: 10, x: 0, y: 10 } })
       renderer.drawSymbol(text)
-      const el = divElement.querySelector(`#${ text.id }`)!
+      const el = divElement.querySelector(`#${text.id}`)!
       expect(el).toBeDefined()
       expect(el.getAttribute("id")).toEqual(text.id)
       expect(el.getAttribute("type")).toEqual(text.type)
@@ -281,57 +261,51 @@ describe("SVGRenderer.ts", () =>
       expect(charsElements[0].getAttribute("font-size")).toEqual(chars[0].fontSize + "px")
       expect(charsElements[0].getAttribute("font-weight")).toEqual(chars[0].fontWeight)
     })
-    test("should draw stroke already renderer", () =>
-    {
+    test("should draw stroke already renderer", () => {
       const stroke = buildIIStroke()
       renderer.drawSymbol(stroke)
-      const oldPath = divElement.querySelector(`#${ stroke.id }`)!.querySelector("path")!.getAttribute("d")
+      const oldPath = divElement.querySelector(`#${stroke.id}`)!.querySelector("path")!.getAttribute("d")
       for (let x = 0; x < 10; x++) {
         StrokeOps.addPointer(stroke, {
           x,
           y: x * 2,
           p: 1,
-          t: x
+          t: x,
         })
       }
       renderer.drawSymbol(stroke)
-      expect(divElement.querySelector(`#${ stroke.id }`)!.querySelector("path")!.getAttribute("d")!).not.toEqual(oldPath)
+      expect(divElement.querySelector(`#${stroke.id}`)!.querySelector("path")!.getAttribute("d")!).not.toEqual(oldPath)
     })
-    test("should replace stroke by circle", () =>
-    {
+    test("should replace stroke by circle", () => {
       const stroke = buildIIStroke()
       renderer.drawSymbol(stroke)
-      const oldEl = divElement.querySelector(`#${ stroke.id }`)!
+      const oldEl = divElement.querySelector(`#${stroke.id}`)!
       expect(oldEl).toBeDefined()
 
       const circle = buildIICircle()
       renderer.replaceSymbol(stroke.id, [circle])
-      const el = divElement.querySelector(`#${ circle.id }`)!
+      const el = divElement.querySelector(`#${circle.id}`)!
       expect(el).toBeDefined()
       expect(oldEl).not.toEqual(el)
-      expect(divElement.querySelector(`#${ stroke.id }`)).toBeNull()
+      expect(divElement.querySelector(`#${stroke.id}`)).toBeNull()
     })
-    test("should append circle if replace symbol not rendered", () =>
-    {
+    test("should append circle if replace symbol not rendered", () => {
       const circle = buildIICircle()
       renderer.replaceSymbol("not-rendered", [circle])
-      const el = divElement.querySelector(`#${ circle.id }`)!
+      const el = divElement.querySelector(`#${circle.id}`)!
       expect(el).toBeDefined()
-
     })
-    test("should removeSymbol stroke", () =>
-    {
+    test("should removeSymbol stroke", () => {
       const stroke = buildIIStroke()
       renderer.drawSymbol(stroke)
-      expect(divElement.querySelector(`#${ stroke.id }`)).toBeDefined()
+      expect(divElement.querySelector(`#${stroke.id}`)).toBeDefined()
       renderer.removeSymbol(stroke.id)
-      const el = divElement.querySelector(`#${ stroke.id }`)!
+      const el = divElement.querySelector(`#${stroke.id}`)!
       expect(el).toBeNull()
     })
   })
 
-  test("should drawCircle", () =>
-  {
+  test("should drawCircle", () => {
     const divElement: HTMLDivElement = document.createElement("div")
     const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
     renderer.init(divElement)
@@ -346,8 +320,7 @@ describe("SVGRenderer.ts", () =>
     expect(el.getAttribute("fill")).toEqual("red")
   })
 
-  test("should drawRect", () =>
-  {
+  test("should drawRect", () => {
     const divElement: HTMLDivElement = document.createElement("div")
     const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
     renderer.init(divElement)
@@ -363,8 +336,7 @@ describe("SVGRenderer.ts", () =>
     expect(el.getAttribute("stroke")).toEqual("blue")
   })
 
-  test("should drawLine", () =>
-  {
+  test("should drawLine", () => {
     const divElement: HTMLDivElement = document.createElement("div")
     const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
     renderer.init(divElement)
@@ -380,14 +352,12 @@ describe("SVGRenderer.ts", () =>
     expect(el.getAttribute("stroke")).toEqual("blue")
   })
 
-  describe("resize", () =>
-  {
+  describe("resize", () => {
     const divElement: HTMLDivElement = document.createElement("div")
     const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
     renderer.init(divElement)
 
-    test("should update height, width & viewbox", () =>
-    {
+    test("should update height, width & viewbox", () => {
       expect(renderer.layer.getAttribute("width")).toEqual("400px")
       expect(renderer.layer.getAttribute("height")).toEqual("400px")
       expect(renderer.layer.getAttribute("viewBox")).toEqual("0, 0, 400, 400")
@@ -397,23 +367,30 @@ describe("SVGRenderer.ts", () =>
       expect(renderer.layer.getAttribute("viewBox")).toEqual("0, 0, 475, 450")
     })
 
-    test("should update guides", () =>
-    {
-      const nbGuideBefore = renderer.layer.querySelector(`#${ renderer.groupGuidesId }`)?.getElementsByTagName("path").item(0)?.getAttribute("d")?.split("M").length
+    test("should update guides", () => {
+      const nbGuideBefore = renderer.layer
+        .querySelector(`#${renderer.groupGuidesId}`)
+        ?.getElementsByTagName("path")
+        .item(0)
+        ?.getAttribute("d")
+        ?.split("M").length
       renderer.resize(2000, 2000)
-      const nbGuideAfter = renderer.layer.querySelector(`#${ renderer.groupGuidesId }`)?.getElementsByTagName("path").item(0)?.getAttribute("d")?.split("M").length
+      const nbGuideAfter = renderer.layer
+        .querySelector(`#${renderer.groupGuidesId}`)
+        ?.getElementsByTagName("path")
+        .item(0)
+        ?.getAttribute("d")
+        ?.split("M").length
       expect(nbGuideBefore).not.toEqual(nbGuideAfter)
     })
   })
 
-  describe("clearElements", () =>
-  {
+  describe("clearElements", () => {
     const divElement: HTMLDivElement = document.createElement("div")
     const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
     renderer.init(divElement)
 
-    test("should clearElements by tagName", () =>
-    {
+    test("should clearElements by tagName", () => {
       const nbPath = renderer.layer.querySelectorAll("path").length
       const stroke1 = buildIIStroke()
       renderer.drawSymbol(stroke1)
@@ -423,8 +400,7 @@ describe("SVGRenderer.ts", () =>
       renderer.clearElements({ tagName: "path" })
       expect(renderer.layer.querySelectorAll("path")).toHaveLength(0)
     })
-    test("should clearElements by attrs", () =>
-    {
+    test("should clearElements by attrs", () => {
       expect(renderer.layer.querySelectorAll("path")).toHaveLength(0)
       const stroke1 = buildIIStroke()
       renderer.drawSymbol(stroke1)
@@ -434,8 +410,7 @@ describe("SVGRenderer.ts", () =>
       renderer.clearElements({ attrs: { id: stroke2.id } })
       expect(renderer.layer.querySelectorAll("path")).toHaveLength(1)
     })
-    test("should clearElements by tagName and attrs", () =>
-    {
+    test("should clearElements by tagName and attrs", () => {
       renderer.clearElements({ tagName: "path" })
       const stroke1 = buildIIStroke()
       renderer.drawSymbol(stroke1)
@@ -447,8 +422,7 @@ describe("SVGRenderer.ts", () =>
     })
   })
 
-  test("should clear", () =>
-  {
+  test("should clear", () => {
     const divElement: HTMLDivElement = document.createElement("div")
     const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
     renderer.init(divElement)
@@ -460,8 +434,7 @@ describe("SVGRenderer.ts", () =>
     expect(renderer.layer.childElementCount).toEqual(initChildNumber)
   })
 
-  test("should destroy", () =>
-  {
+  test("should destroy", () => {
     const divElement: HTMLDivElement = document.createElement("div")
     const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
     renderer.init(divElement)

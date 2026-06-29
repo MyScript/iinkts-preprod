@@ -1,22 +1,18 @@
 import { Modal, TModalConfig } from "@/iink"
 
-describe("Modal.ts", () =>
-{
+describe("Modal.ts", () => {
   let container: HTMLDivElement
 
-  beforeEach(() =>
-  {
+  beforeEach(() => {
     container = document.createElement("div")
     document.body.appendChild(container)
   })
 
-  afterEach(() =>
-  {
+  afterEach(() => {
     document.body.innerHTML = ""
   })
 
-  test("should create modal with basic config", () =>
-  {
+  test("should create modal with basic config", () => {
     const config: TModalConfig = {
       title: "Test Modal",
       fields: [
@@ -24,24 +20,23 @@ describe("Modal.ts", () =>
           id: "name",
           label: "Name",
           type: "text",
-          placeholder: "Enter name"
-        }
+          placeholder: "Enter name",
+        },
       ],
       buttons: [
         {
           label: "OK",
           variant: "primary",
-          onClick: jest.fn()
-        }
-      ]
+          onClick: jest.fn(),
+        },
+      ],
     }
 
     const modal = new Modal(config)
     expect(modal).toBeDefined()
   })
 
-  test("should create modal with multiple field types", () =>
-  {
+  test("should create modal with multiple field types", () => {
     const config: TModalConfig = {
       title: "Test Modal",
       fields: [
@@ -49,13 +44,13 @@ describe("Modal.ts", () =>
           id: "name",
           label: "Name",
           type: "text",
-          defaultValue: "John"
+          defaultValue: "John",
         },
         {
           id: "age",
           label: "Age",
           type: "number",
-          defaultValue: 25
+          defaultValue: 25,
         },
         {
           id: "country",
@@ -63,28 +58,26 @@ describe("Modal.ts", () =>
           type: "select",
           options: [
             { value: "fr", label: "France" },
-            { value: "us", label: "USA" }
+            { value: "us", label: "USA" },
           ],
-          defaultValue: "fr"
-        }
+          defaultValue: "fr",
+        },
       ],
       buttons: [
         {
           label: "Submit",
           variant: "primary",
-          onClick: jest.fn()
-        }
-      ]
+          onClick: jest.fn(),
+        },
+      ],
     }
 
     const modal = new Modal(config)
     expect(modal).toBeDefined()
   })
 
-  describe("open()", () =>
-  {
-    test("should open modal and add to DOM", () =>
-    {
+  describe("open()", () => {
+    test("should open modal and add to DOM", () => {
       const config: TModalConfig = {
         title: "Test Modal",
         fields: [],
@@ -92,9 +85,9 @@ describe("Modal.ts", () =>
           {
             label: "Close",
             variant: "secondary",
-            onClick: jest.fn()
-          }
-        ]
+            onClick: jest.fn(),
+          },
+        ],
       }
 
       const modal = new Modal(config)
@@ -108,31 +101,29 @@ describe("Modal.ts", () =>
       expect(modalElements.length).toBeGreaterThan(1)
     })
 
-    test("should focus first input after opening", (done) =>
-    {
+    test("should focus first input after opening", (done) => {
       const config: TModalConfig = {
         title: "Test Modal",
         fields: [
           {
             id: "name",
             label: "Name",
-            type: "text"
-          }
+            type: "text",
+          },
         ],
         buttons: [
           {
             label: "OK",
             variant: "primary",
-            onClick: jest.fn()
-          }
-        ]
+            onClick: jest.fn(),
+          },
+        ],
       }
 
       const modal = new Modal(config)
       modal.open()
 
-      setTimeout(() =>
-      {
+      setTimeout(() => {
         const input = document.querySelector("#name") as HTMLInputElement
         expect(input).toBeTruthy()
         expect(document.activeElement).toBe(input)
@@ -140,12 +131,11 @@ describe("Modal.ts", () =>
       }, 100)
     })
 
-    test("should not open if already open", () =>
-    {
+    test("should not open if already open", () => {
       const config: TModalConfig = {
         title: "Test Modal",
         fields: [],
-        buttons: []
+        buttons: [],
       }
 
       const modal = new Modal(config)
@@ -159,14 +149,12 @@ describe("Modal.ts", () =>
     })
   })
 
-  describe("close()", () =>
-  {
-    test("should close modal", () =>
-    {
+  describe("close()", () => {
+    test("should close modal", () => {
       const config: TModalConfig = {
         title: "Test Modal",
         fields: [],
-        buttons: []
+        buttons: [],
       }
 
       const modal = new Modal(config)
@@ -179,12 +167,11 @@ describe("Modal.ts", () =>
       expect(backdrop.style.display).toBe("none")
     })
 
-    test("should not close if already closed", () =>
-    {
+    test("should not close if already closed", () => {
       const config: TModalConfig = {
         title: "Test Modal",
         fields: [],
-        buttons: []
+        buttons: [],
       }
 
       const modal = new Modal(config)
@@ -195,14 +182,12 @@ describe("Modal.ts", () =>
     })
   })
 
-  describe("destroy()", () =>
-  {
-    test("should remove modal from DOM", () =>
-    {
+  describe("destroy()", () => {
+    test("should remove modal from DOM", () => {
       const config: TModalConfig = {
         title: "Test Modal",
         fields: [],
-        buttons: []
+        buttons: [],
       }
 
       const modal = new Modal(config)
@@ -216,57 +201,52 @@ describe("Modal.ts", () =>
     })
   })
 
-  describe("button callbacks", () =>
-  {
-    test("should call onClick when button is clicked", async () =>
-    {
+  describe("button callbacks", () => {
+    test("should call onClick when button is clicked", async () => {
       const onClick = jest.fn()
       const config: TModalConfig = {
         title: "Test Modal",
-        fields: [
-          { id: "name", label: "Name", type: "text", defaultValue: "John" }
-        ],
-        buttons: [{ label: "Submit", variant: "primary", onClick }]
+        fields: [{ id: "name", label: "Name", type: "text", defaultValue: "John" }],
+        buttons: [{ label: "Submit", variant: "primary", onClick }],
       }
 
       const modal = new Modal(config)
       modal.open()
 
-      const submitButton = Array.from(document.querySelectorAll("button"))
-        .find(btn => btn.textContent === "Submit") as HTMLButtonElement
+      const submitButton = Array.from(document.querySelectorAll("button")).find(
+        (btn) => btn.textContent === "Submit"
+      ) as HTMLButtonElement
       expect(submitButton).toBeTruthy()
       submitButton.click()
 
-      await new Promise(resolve => setTimeout(resolve, 10))
+      await new Promise((resolve) => setTimeout(resolve, 10))
       expect(onClick).toHaveBeenCalled()
     })
 
-    test("should handle async button onClick", async () =>
-    {
+    test("should handle async button onClick", async () => {
       const onClick = jest.fn().mockResolvedValue(undefined)
       const config: TModalConfig = {
         title: "Test Modal",
         fields: [],
-        buttons: [{ label: "Async", variant: "primary", onClick }]
+        buttons: [{ label: "Async", variant: "primary", onClick }],
       }
 
       const modal = new Modal(config)
       modal.open()
 
-      const asyncButton = Array.from(document.querySelectorAll("button"))
-        .find(btn => btn.textContent === "Async") as HTMLButtonElement
+      const asyncButton = Array.from(document.querySelectorAll("button")).find(
+        (btn) => btn.textContent === "Async"
+      ) as HTMLButtonElement
       expect(asyncButton).toBeTruthy()
       asyncButton.click()
 
-      await new Promise(resolve => setTimeout(resolve, 10))
+      await new Promise((resolve) => setTimeout(resolve, 10))
       expect(onClick).toHaveBeenCalled()
     })
   })
 
-  describe("custom content", () =>
-  {
-    test("should render custom content", () =>
-    {
+  describe("custom content", () => {
+    test("should render custom content", () => {
       const customDiv = document.createElement("div")
       customDiv.id = "custom-content"
       customDiv.textContent = "Custom content here"
@@ -274,7 +254,7 @@ describe("Modal.ts", () =>
       const config: TModalConfig = {
         title: "Test Modal",
         fields: [],
-        customContent: customDiv
+        customContent: customDiv,
       }
 
       const modal = new Modal(config)
@@ -286,14 +266,12 @@ describe("Modal.ts", () =>
     })
   })
 
-  describe("field rendering", () =>
-  {
-    test("should render text input with default value", () =>
-    {
+  describe("field rendering", () => {
+    test("should render text input with default value", () => {
       const config: TModalConfig = {
         title: "Test Modal",
         fields: [{ id: "email", label: "Email", type: "text", defaultValue: "test@example.com" }],
-        buttons: []
+        buttons: [],
       }
 
       const modal = new Modal(config)
@@ -304,12 +282,11 @@ describe("Modal.ts", () =>
       expect(input.value).toBe("test@example.com")
     })
 
-    test("should render number input with default value", () =>
-    {
+    test("should render number input with default value", () => {
       const config: TModalConfig = {
         title: "Test Modal",
         fields: [{ id: "age", label: "Age", type: "number", defaultValue: 30 }],
-        buttons: []
+        buttons: [],
       }
 
       const modal = new Modal(config)
@@ -320,8 +297,7 @@ describe("Modal.ts", () =>
       expect(input.value).toBe("30")
     })
 
-    test("should render select with correct default value", () =>
-    {
+    test("should render select with correct default value", () => {
       const config: TModalConfig = {
         title: "Test Modal",
         fields: [
@@ -331,12 +307,12 @@ describe("Modal.ts", () =>
             type: "select",
             options: [
               { value: "active", label: "Active" },
-              { value: "inactive", label: "Inactive" }
+              { value: "inactive", label: "Inactive" },
             ],
-            defaultValue: "inactive"
-          }
+            defaultValue: "inactive",
+          },
         ],
-        buttons: []
+        buttons: [],
       }
 
       const modal = new Modal(config)
@@ -348,14 +324,12 @@ describe("Modal.ts", () =>
     })
   })
 
-  describe("backdrop interaction", () =>
-  {
-    test("should close modal when clicking backdrop", () =>
-    {
+  describe("backdrop interaction", () => {
+    test("should close modal when clicking backdrop", () => {
       const config: TModalConfig = {
         title: "Test Modal",
         fields: [],
-        buttons: []
+        buttons: [],
       }
 
       const modal = new Modal(config)

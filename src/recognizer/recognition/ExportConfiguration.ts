@@ -1,4 +1,3 @@
-
 /**
  * @group Recognizer
  */
@@ -45,7 +44,7 @@ export const DefaultJiixConfiguration: TJiixConfiguration = {
   text: {
     chars: false,
     words: true,
-    lines: false
+    lines: false,
   },
 }
 
@@ -79,5 +78,5 @@ export type TExportConfiguration = {
  */
 export const DefaultExportConfiguration: TExportConfiguration = {
   "image-resolution": 300,
-  jiix: DefaultJiixConfiguration
+  jiix: DefaultJiixConfiguration,
 }

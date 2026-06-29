@@ -7,7 +7,7 @@ export type TScheme = "https" | "http"
  * @group Recognizer
  */
 export type TServerHTTPConfiguration = {
-  scheme: TScheme,
+  scheme: TScheme
   host: string
   applicationKey: string
   hmacKey: string | ((applicationKey: string) => Promise<string>)
@@ -23,7 +23,7 @@ export const DefaultServerHTTPConfiguration: TServerHTTPConfiguration = {
   host: "cloud.myscript.com",
   applicationKey: "",
   hmacKey: "",
-  version: ""
+  version: "",
 }
 
 /**
@@ -52,6 +52,6 @@ export const DefaultServerWebsocketConfiguration: TServerWebsocketConfiguration 
     maxPingLostCount: 20,
     autoReconnect: true,
     maxRetryCount: 2,
-    fileChunkSize: 300000
-  }
+    fileChunkSize: 300000,
+  },
 }

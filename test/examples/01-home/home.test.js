@@ -16,9 +16,9 @@ test.describe("Home Page", () => {
   test("each table of contents link must be associated with a detail", async ({ page }) => {
     const links = page.locator("#table-of-content li")
     const sectionParts = page.locator("details")
-    const linksCount = await links.count()
+    const linksCount = links
     const secctionPartsCount = await sectionParts.count()
-    expect(linksCount).toBe(secctionPartsCount)
+    await expect(linksCount).toHaveCount(secctionPartsCount)
 
     for (let i = 0; i < linksCount; i++) {
       const sectionPartName = await sectionParts.nth(i).getAttribute("name")
@@ -35,7 +35,7 @@ test.describe("Home Page", () => {
 
       for (let i = 0; i < await exampleItems.count(); i++) {
         const links = exampleItems.nth(i).locator("a")
-        expect(await links.count()).toBe(2)
+        await expect(links).toHaveCount(2)
 
         const exampleLink = links.nth(0)
         await expect(exampleLink).toBeVisible()

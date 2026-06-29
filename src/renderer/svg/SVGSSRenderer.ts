@@ -1,15 +1,25 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { Model } from "@/model"
-import type { TLegacyStroke } from "@/symbol"
+import type {
+  TUpdatePatch,
+  TUpdatePatchAppendChild,
+  TUpdatePatchInsertBefore,
+  TUpdatePatchRemoveAttribut,
+  TUpdatePatchRemoveChild,
+  TUpdatePatchRemoveElement,
+  TUpdatePatchReplaceAll,
+  TUpdatePatchReplaceELement,
+  TUpdatePatchSetAttribut,
+} from "@/recognizer"
 import type { TRendererConfiguration } from "@/renderer/RendererConfiguration"
-import type { TUpdatePatch, TUpdatePatchAppendChild, TUpdatePatchInsertBefore, TUpdatePatchRemoveAttribut, TUpdatePatchRemoveChild, TUpdatePatchRemoveElement, TUpdatePatchReplaceAll, TUpdatePatchReplaceELement, TUpdatePatchSetAttribut } from "@/recognizer"
+import type { TLegacyStroke } from "@/symbol"
+
 import { SVGStroker } from "./SVGStroker"
 
 /**
  * @group Renderer
  */
-export class InteractiveInkSSRSVGRenderer
-{
+export class InteractiveInkSSRSVGRenderer {
   #logger = LoggerManager.getLogger(LoggerCategory.RENDERER)
 
   config: TRendererConfiguration
@@ -18,40 +28,36 @@ export class InteractiveInkSSRSVGRenderer
     parent: HTMLElement
   }
 
-  constructor(config: TRendererConfiguration)
-  {
+  constructor(config: TRendererConfiguration) {
     this.#logger.info("constructor", { config })
     this.config = config
     this.stroker = new SVGStroker()
   }
 
-  init(element: HTMLElement): void
-  {
+  init(element: HTMLElement): void {
     this.#logger.info("init", { element })
     element.style.fontSize = "10px"
     this.context = {
-      parent: element
+      parent: element,
     }
   }
 
-  protected drawStroke(svgElement: SVGElement, stroke: TLegacyStroke)
-  {
+  protected drawStroke(svgElement: SVGElement, stroke: TLegacyStroke) {
     let style: string
     if (stroke.pointerType === "eraser") {
       stroke.style.width = 12
       style = "fill:grey;stroke:transparent;shadowBlur:5;opacity:0.2;"
     } else {
-      style = `fill:${ stroke.style.color };stroke:transparent;`
+      style = `fill:${stroke.style.color};stroke:transparent;`
     }
     this.stroker.drawStroke(svgElement, stroke, [{ name: "style", value: style }])
   }
 
-  protected replaceAll(layerName: string, update: TUpdatePatchReplaceAll): void
-  {
-    const oldLayer = this.context.parent.querySelector(`svg[data-layer="${ layerName }"]`) as SVGElement | null
+  protected replaceAll(layerName: string, update: TUpdatePatchReplaceAll): void {
+    const oldLayer = this.context.parent.querySelector(`svg[data-layer="${layerName}"]`) as SVGElement | null
     oldLayer?.remove()
     this.context.parent.insertAdjacentHTML("beforeend", update.svg)
-    const layer = this.context.parent.querySelector(`svg[data-layer="${ layerName }"]`) as SVGElement
+    const layer = this.context.parent.querySelector(`svg[data-layer="${layerName}"]`) as SVGElement
     if (layerName === "MODEL") {
       const pendingStrokesGroup = document.createElementNS("http://www.w3.org/2000/svg", "g")
       pendingStrokesGroup.id = "pendingStrokes"
@@ -59,9 +65,8 @@ export class InteractiveInkSSRSVGRenderer
     }
   }
 
-  protected replaceElement(update: TUpdatePatchReplaceELement): void
-  {
-    const elementToRemove = this.context.parent.querySelector(`#${ update.id }`) as HTMLElement | null
+  protected replaceElement(update: TUpdatePatchReplaceELement): void {
+    const elementToRemove = this.context.parent.querySelector(`#${update.id}`) as HTMLElement | null
     if (elementToRemove) {
       const parent = elementToRemove.parentNode as HTMLElement | null | undefined
       elementToRemove?.remove()
@@ -69,57 +74,52 @@ export class InteractiveInkSSRSVGRenderer
     }
   }
 
-  protected appendChild(layerName: string, update: TUpdatePatchAppendChild): void
-  {
-    const parentSelector = update.parentId ? `#${ update.parentId }` : `svg[data-layer="${ layerName }"]`
+  protected appendChild(layerName: string, update: TUpdatePatchAppendChild): void {
+    const parentSelector = update.parentId ? `#${update.parentId}` : `svg[data-layer="${layerName}"]`
     const parent = this.context.parent.querySelector(parentSelector) as HTMLElement
     parent?.insertAdjacentHTML("beforeend", update.svg)
   }
 
-  protected removeChild(update: TUpdatePatchRemoveChild): void
-  {
-    this.context.parent.querySelector(`#${ update.parentId } > *:nth-child(${ update.index + 1 })`)?.remove()
+  protected removeChild(update: TUpdatePatchRemoveChild): void {
+    this.context.parent.querySelector(`#${update.parentId} > *:nth-child(${update.index + 1})`)?.remove()
   }
 
-  protected removeElement(update: TUpdatePatchRemoveElement): void
-  {
-    const elementToRemove = this.context.parent.querySelector(`#${ update.id }`)
+  protected removeElement(update: TUpdatePatchRemoveElement): void {
+    const elementToRemove = this.context.parent.querySelector(`#${update.id}`)
     if (elementToRemove) {
       if (update.id.includes("s") || update.id.includes("MODEL")) {
         elementToRemove.remove()
       } else {
         elementToRemove.setAttribute("class", "removed-stroke")
-        setTimeout(() =>
-        {
+        setTimeout(() => {
           elementToRemove?.remove()
         }, 100)
       }
     }
   }
 
-  protected insertBefore(update: TUpdatePatchInsertBefore): void
-  {
-    const parent = this.context.parent.querySelector(`#${ update.refId }`) as HTMLElement | null
+  protected insertBefore(update: TUpdatePatchInsertBefore): void {
+    const parent = this.context.parent.querySelector(`#${update.refId}`) as HTMLElement | null
     parent?.insertAdjacentHTML("beforebegin", update.svg)
   }
 
-  protected setAttribute(update: TUpdatePatchSetAttribut): void
-  {
-    const selector = update.id ? `#${ update.id }` : "svg"
+  protected setAttribute(update: TUpdatePatchSetAttribut): void {
+    const selector = update.id ? `#${update.id}` : "svg"
     const element = this.context.parent.querySelector(selector) as HTMLElement | null
     element?.setAttribute(update.name, update.value)
   }
 
-  protected removeAttribute(update: TUpdatePatchRemoveAttribut): void
-  {
-    const selector = update.id ? `#${ update.id }` : "svg"
+  protected removeAttribute(update: TUpdatePatchRemoveAttribut): void {
+    const selector = update.id ? `#${update.id}` : "svg"
     const element = this.context.parent.querySelector(selector) as HTMLElement | null
     element?.removeAttribute(update.name)
   }
 
-  updateLayer(layerName: string, update: TUpdatePatch): void
-  {
-    this.#logger.info("updateLayer", { layerName, update })
+  updateLayer(layerName: string, update: TUpdatePatch): void {
+    this.#logger.info("updateLayer", {
+      layerName,
+      update,
+    })
     switch (update.type) {
       case "REPLACE_ALL":
         this.replaceAll(layerName, update as TUpdatePatchReplaceAll)
@@ -151,15 +151,16 @@ export class InteractiveInkSSRSVGRenderer
     }
   }
 
-  updatesLayer(layerName: string, updates: TUpdatePatch[]): void
-  {
-    this.#logger.info("updatesLayer", { layerName, updates })
-    updates.forEach(u => this.updateLayer(layerName, u))
+  updatesLayer(layerName: string, updates: TUpdatePatch[]): void {
+    this.#logger.info("updatesLayer", {
+      layerName,
+      updates,
+    })
+    updates.forEach((u) => this.updateLayer(layerName, u))
     this.clearPendingStroke()
   }
 
-  clearPendingStroke(): void
-  {
+  clearPendingStroke(): void {
     this.#logger.info("clearPendingStroke")
     const pendingStrokeGroup = this.context.parent.querySelector("#pendingStrokes") as SVGElement
     if (pendingStrokeGroup) {
@@ -167,13 +168,14 @@ export class InteractiveInkSSRSVGRenderer
     }
   }
 
-  drawPendingStroke(stroke: TLegacyStroke): void
-  {
-    this.#logger.info("drawPendingStroke", { stroke })
+  drawPendingStroke(stroke: TLegacyStroke): void {
+    this.#logger.info("drawPendingStroke", {
+      stroke,
+    })
     if (stroke) {
       const pendingStrokeGroup = this.context.parent.querySelector("#pendingStrokes") as SVGElement
       if (pendingStrokeGroup) {
-        const oldStroke = pendingStrokeGroup.querySelector(`#${ stroke?.id }`)
+        const oldStroke = pendingStrokeGroup.querySelector(`#${stroke?.id}`)
         if (oldStroke) {
           oldStroke.remove()
         }
@@ -182,34 +184,32 @@ export class InteractiveInkSSRSVGRenderer
     }
   }
 
-  clearErasingStrokes(): void
-  {
+  clearErasingStrokes(): void {
     const erasingStrokeList = this.context.parent.querySelectorAll("[type=eraser]") as NodeListOf<SVGElement>
-    erasingStrokeList.forEach(erasingStroke => {
+    erasingStrokeList.forEach((erasingStroke) => {
       erasingStroke.remove()
     })
   }
 
-  resize(model: Model): void
-  {
+  resize(model: Model): void {
     this.#logger.info("resize", { model })
     const rect = this.context.parent.getBoundingClientRect()
     const svgList = this.context.parent.querySelectorAll("svg")
     const width = Math.max(rect.width, model.width, this.config.minWidth)
     const height = Math.max(rect.height, model.height, this.config.minHeight)
-    svgList.forEach(svg =>
-    {
-      svg.setAttribute("viewBox", `0 0 ${ width }, ${ height }`)
-      svg.setAttribute("width", `${ width }px`)
-      svg.setAttribute("height", `${ height }px`)
+    svgList.forEach((svg) => {
+      svg.setAttribute("viewBox", `0 0 ${width}, ${height}`)
+      svg.setAttribute("width", `${width}px`)
+      svg.setAttribute("height", `${height}px`)
     })
   }
 
-  destroy(): void
-  {
-    this.#logger.info("destroy", { context: this.context })
+  destroy(): void {
+    this.#logger.info("destroy", {
+      context: this.context,
+    })
     if (this.context?.parent) {
-      this.context.parent.querySelectorAll("svg").forEach(n => n.remove())
+      this.context.parent.querySelectorAll("svg").forEach((n) => n.remove())
     }
   }
 }

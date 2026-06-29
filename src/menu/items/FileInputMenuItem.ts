@@ -1,6 +1,7 @@
-import type { TMenuItemBase } from "./BaseMenuItem";
-import { BaseMenuItem } from "./BaseMenuItem"
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+
+import type { TMenuItemBase } from "./BaseMenuItem"
+import { BaseMenuItem } from "./BaseMenuItem"
 
 /**
  * @group Menu
@@ -18,15 +19,16 @@ export type TMenuFileInput = TMenuItemBase & {
  * @group Menu
  * @remarks Menu item for selecting and validating a file
  */
-export class FileInputMenuItem extends BaseMenuItem<HTMLDivElement>
-{
-  protected declare config: TMenuFileInput
+export class FileInputMenuItem extends BaseMenuItem<HTMLDivElement> {
+  declare protected config: TMenuFileInput
   private inputElement!: HTMLInputElement
   private buttonElement!: HTMLButtonElement
 
-  createElement(): HTMLDivElement
-  {
-    const wrapper = this.dom.div({ id: this.config.id, className: "ms-menu-file-input" })
+  createElement(): HTMLDivElement {
+    const wrapper = this.dom.div({
+      id: this.config.id,
+      className: "ms-menu-file-input",
+    })
 
     this.inputElement = this.dom.fileInput({
       id: `${this.config.id}-input`,
@@ -38,7 +40,9 @@ export class FileInputMenuItem extends BaseMenuItem<HTMLDivElement>
     })
     wrapper.appendChild(this.inputElement)
 
-    this.buttonElement = this.dom.button({ label: this.config.buttonLabel || this.config.label || "Upload" })
+    this.buttonElement = this.dom.button({
+      label: this.config.buttonLabel || this.config.label || "Upload",
+    })
     this.buttonElement.disabled = true
     this.buttonElement.addEventListener("pointerup", async (e) => {
       e.preventDefault()
@@ -54,8 +58,7 @@ export class FileInputMenuItem extends BaseMenuItem<HTMLDivElement>
     return wrapper
   }
 
-  update(): void
-  {
+  update(): void {
     this.updateDisabled()
     this.updateVisible()
   }

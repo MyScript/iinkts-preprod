@@ -4,11 +4,7 @@ export class ModalEditorOptions {
     this.#loadCSS()
 
     const createElement = (t, p = {}, ...c) =>
-      Object.assign(
-        document.createElement(t),
-        p,
-        c.length ? { appendChild: c[0] } : {}
-      )
+      Object.assign(document.createElement(t), p, c.length ? { appendChild: c[0] } : {})
     const getItemStorage = (k) => {
       return JSON.parse(window.localStorage.getItem("server") || "{}")[k]
     }
@@ -64,23 +60,15 @@ export class ModalEditorOptions {
         type: "text",
         id,
         className: "app-key-input",
-        placeholder: 'XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX',
+        placeholder: "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
         value: getItemStorage(def) || "",
       })
       lbl.appendChild(inp)
       return [lbl, inp]
     }
 
-    ;[this.labelAppKey, this.inputField] = mkInput(
-      "Application Key:",
-      "appKeyInput",
-      "applicationKey"
-    )
-    ;[this.labelHmacKey, this.inputFieldHmac] = mkInput(
-      "HMAC Key:",
-      "appKeyInputHmac",
-      "hmacKey"
-    )
+    ;[this.labelAppKey, this.inputField] = mkInput("Application Key:", "appKeyInput", "applicationKey")
+    ;[this.labelHmacKey, this.inputFieldHmac] = mkInput("HMAC Key:", "appKeyInputHmac", "hmacKey")
 
     this.saveBtn = createElement("button", {
       id: "saveBtn",
@@ -89,13 +77,7 @@ export class ModalEditorOptions {
       onclick: () => this.setSave(),
     })
 
-    this.inputContainer.append(
-      schemeLabel,
-      hostLabel,
-      this.labelAppKey,
-      this.labelHmacKey,
-      this.saveBtn
-    )
+    this.inputContainer.append(schemeLabel, hostLabel, this.labelAppKey, this.labelHmacKey, this.saveBtn)
 
     this.container.appendChild(this.inputContainer)
     this.messageFooter = createElement("a", {
@@ -103,8 +85,7 @@ export class ModalEditorOptions {
       target: "_blank",
       rel: "noopener noreferrer",
       className: "modal-footer-message",
-      innerText:
-        "Already have an Application Key and HMAC Key? Go to MyScript Cloud to retrieve them.",
+      innerText: "Already have an Application Key and HMAC Key? Go to MyScript Cloud to retrieve them.",
     })
     this.container.appendChild(this.messageFooter)
     this.modal.appendChild(createElement("div", { className: "modal-content" }))
@@ -162,10 +143,7 @@ export class ModalEditorOptions {
     this.options.configuration.server.hmacKey = this.inputFieldHmac.value
     this.options.configuration.server.host = this.host.value
     this.options.configuration.server.scheme = this.scheme.value
-    window.localStorage.setItem(
-      "server",
-      JSON.stringify(this.options.configuration.server)
-    )
+    window.localStorage.setItem("server", JSON.stringify(this.options.configuration.server))
     this.callback?.(this.options)
     this.hide()
   }

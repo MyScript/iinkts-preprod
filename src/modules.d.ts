@@ -10,6 +10,6 @@ declare module "json-css"
 declare module "*.svg"
 
 declare module "web-worker:*" {
-  const WorkerFactory: new () => Worker;
-  export default WorkerFactory;
+  const WorkerFactory: new () => Worker
+  export default WorkerFactory
 }

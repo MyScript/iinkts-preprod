@@ -1,15 +1,16 @@
-import { IIAbstractManager } from "../IIAbstractManager"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import { LoggerCategory } from "@/logger"
 import type { TJIIXMathElement, TJIIXMathExpression } from "@/model"
-import type { TStroke, TPoint} from "@/symbol";
+import { SVGBuilder, SVGRendererConst } from "@/renderer"
+import type { TStyle } from "@/style/Style"
+import type { TPoint, TStroke } from "@/symbol"
 import { isStroke } from "@/symbol"
 import { StrokeOps } from "@/symbol/stroke/Stroke"
 import { convertMillimeterToPixel } from "@/utils"
 import { isDeepEqual } from "@/utils/object"
 import { createUUID } from "@/utils/uuid"
-import type { TStyle } from "@/style/Style"
-import { SVGBuilder, SVGRendererConst } from "@/renderer"
-import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
-import { LoggerCategory } from "@/logger"
+
+import { IIAbstractManager } from "../IIAbstractManager"
 
 /**
  * Result display mode for math solver output
@@ -49,8 +50,7 @@ export type TMathBlockComputation = {
  * Sub-manager responsible for tracking math block computations and running numerical solver operations
  * @group Manager
  */
-export class IIMathComputationSubManager extends IIAbstractManager
-{
+export class IIMathComputationSubManager extends IIAbstractManager {
   protected managerName = "IIMathComputationSubManager"
 
   static readonly DEFAULT_CONFIG: TMathComputationConfig = {
@@ -64,85 +64,94 @@ export class IIMathComputationSubManager extends IIAbstractManager
   #ghostStrokeElementIds = new Map<string, string[]>()
   #lastComputationResult = new Map<string, TJIIXMathElement>()
 
-  constructor(editor: TInteractiveInkEditor, config: Partial<TMathComputationConfig> = {})
-  {
+  constructor(editor: TInteractiveInkEditor, config: Partial<TMathComputationConfig> = {}) {
     super(editor, LoggerCategory.MATH)
-    this.#config = { ...IIMathComputationSubManager.DEFAULT_CONFIG, ...config }
+    this.#config = {
+      ...IIMathComputationSubManager.DEFAULT_CONFIG,
+      ...config,
+    }
   }
 
-  getConfig(): TMathComputationConfig
-  {
+  getConfig(): TMathComputationConfig {
     return { ...this.#config }
   }
 
-  updateConfig(config: Partial<TMathComputationConfig>): void
-  {
+  updateConfig(config: Partial<TMathComputationConfig>): void {
     this.logger.debug("updateConfig", config)
     this.#config = { ...this.#config, ...config }
   }
 
-  get computations(): ReadonlyMap<string, TMathBlockComputation>
-  {
+  get computations(): ReadonlyMap<string, TMathBlockComputation> {
     return this.#computations
   }
 
-  updateComputationResult(jiixBlockId: string, result: unknown): void
-  {
-    this.logger.debug("updateComputationResult", { jiixBlockId, result })
+  updateComputationResult(jiixBlockId: string, result: unknown): void {
+    this.logger.debug("updateComputationResult", {
+      jiixBlockId,
+      result,
+    })
 
     const computation = this.#computations.get(jiixBlockId) ?? {}
     this.#computations.set(jiixBlockId, {
       ...computation,
       computedResult: result,
-      lastComputedAt: Date.now()
+      lastComputedAt: Date.now(),
     })
   }
 
-  updateSolverOutputs(jiixBlockId: string, solverOutputStrokeIds: string[]): void
-  {
-    this.logger.debug("updateSolverOutputs", { jiixBlockId, count: solverOutputStrokeIds.length })
+  updateSolverOutputs(jiixBlockId: string, solverOutputStrokeIds: string[]): void {
+    this.logger.debug("updateSolverOutputs", {
+      jiixBlockId,
+      count: solverOutputStrokeIds.length,
+    })
 
     const computation = this.#computations.get(jiixBlockId) ?? {}
-    this.#computations.set(jiixBlockId, { ...computation, solverOutputStrokeIds })
+    this.#computations.set(jiixBlockId, {
+      ...computation,
+      solverOutputStrokeIds,
+    })
   }
 
-  updateSolverOutputsForAll(solverOutputStrokeIds: string[]): void
-  {
+  updateSolverOutputsForAll(solverOutputStrokeIds: string[]): void {
     this.logger.debug("updateSolverOutputsForAll", { count: solverOutputStrokeIds.length })
 
     for (const [id, computation] of this.#computations) {
-      this.#computations.set(id, { ...computation, solverOutputStrokeIds })
+      this.#computations.set(id, {
+        ...computation,
+        solverOutputStrokeIds,
+      })
     }
   }
 
-  getMathBlock(jiixBlockId: string): TMathBlockComputation | undefined
-  {
+  getMathBlock(jiixBlockId: string): TMathBlockComputation | undefined {
     return this.#computations.get(jiixBlockId)
   }
 
-  removeMathBlock(jiixBlockId: string): void
-  {
-    this.logger.debug("removeMathBlock", { jiixBlockId })
+  removeMathBlock(jiixBlockId: string): void {
+    this.logger.debug("removeMathBlock", {
+      jiixBlockId,
+    })
     this.#computations.delete(jiixBlockId)
   }
 
-  getStoredSolverOutputs(jiixBlockId: string): string[] | undefined
-  {
+  getStoredSolverOutputs(jiixBlockId: string): string[] | undefined {
     return this.#computations.get(jiixBlockId)?.solverOutputStrokeIds
   }
 
-  protected buildGhostStrokePath(points: TPoint[]): string
-  {
-    if (points.length === 0) return ""
+  protected buildGhostStrokePath(points: TPoint[]): string {
+    if (points.length === 0) {
+      return ""
+    }
     const [first, ...rest] = points
-    const start = `M ${ first.x },${ first.y }`
-    const tail = rest.map(p => `L ${ p.x },${ p.y }`).join(" ")
-    return tail.length > 0 ? `${ start } ${ tail }` : start
+    const start = `M ${first.x},${first.y}`
+    const tail = rest.map((p) => `L ${p.x},${p.y}`).join(" ")
+    return tail.length > 0 ? `${start} ${tail}` : start
   }
 
-  protected addGhostOutputStrokes(result: TJIIXMathElement, style?: TStyle): string[]
-  {
-    this.logger.info("addGhostOutputStrokes", { result })
+  protected addGhostOutputStrokes(result: TJIIXMathElement, style?: TStyle): string[] {
+    this.logger.info("addGhostOutputStrokes", {
+      result,
+    })
 
     const solverStrokes = this.extractSolverOutputStrokes(result)
     const elementIds: string[] = []
@@ -150,16 +159,20 @@ export class IIMathComputationSubManager extends IIAbstractManager
     const strokeWidth = style?.width ?? 5
 
     for (const strokeData of solverStrokes) {
-      if (!strokeData.X || !strokeData.Y) continue
+      if (!strokeData.X || !strokeData.Y) {
+        continue
+      }
 
       const points: TPoint[] = strokeData.X.map((x, i) => ({
         x: convertMillimeterToPixel(x),
-        y: convertMillimeterToPixel(strokeData.Y[i])
+        y: convertMillimeterToPixel(strokeData.Y[i]),
       }))
       const pathData = this.buildGhostStrokePath(points)
-      if (!pathData) continue
+      if (!pathData) {
+        continue
+      }
 
-      const elementId = `ghost-stroke-${ createUUID() }`
+      const elementId = `ghost-stroke-${createUUID()}`
       const path = SVGBuilder.createPath({
         id: elementId,
         d: pathData,
@@ -167,36 +180,37 @@ export class IIMathComputationSubManager extends IIAbstractManager
         "stroke-width": String(strokeWidth),
         fill: "none",
         opacity: "0.5",
-        style: SVGRendererConst.noSelection
+        style: SVGRendererConst.noSelection,
       })
 
       this.renderer.layer.appendChild(path)
       elementIds.push(elementId)
     }
 
-    this.logger.debug("addGhostOutputStrokes", `Added ${ elementIds.length } ghost stroke elements`)
+    this.logger.debug("addGhostOutputStrokes", `Added ${elementIds.length} ghost stroke elements`)
     return elementIds
   }
 
-  hasSolverOutputs(jiixBlockId: string): boolean
-  {
+  hasSolverOutputs(jiixBlockId: string): boolean {
     const ghostIds = this.#ghostStrokeElementIds.get(jiixBlockId)
-    if (ghostIds && ghostIds.length > 0) return true
-    return !!(this.#computations.get(jiixBlockId)?.solverOutputStrokeIds?.length)
+    if (ghostIds && ghostIds.length > 0) {
+      return true
+    }
+    return !!this.#computations.get(jiixBlockId)?.solverOutputStrokeIds?.length
   }
 
-  clearGhostStrokes(jiixBlockId: string): void
-  {
-    this.logger.debug("clearGhostStrokes", { jiixBlockId })
+  clearGhostStrokes(jiixBlockId: string): void {
+    this.logger.debug("clearGhostStrokes", {
+      jiixBlockId,
+    })
 
     const elementIds = this.#ghostStrokeElementIds.get(jiixBlockId) ?? []
-    elementIds.forEach(id => this.renderer.removeSymbol(id))
+    elementIds.forEach((id) => this.renderer.removeSymbol(id))
     this.#ghostStrokeElementIds.delete(jiixBlockId)
     this.#lastComputationResult.delete(jiixBlockId)
   }
 
-  clearAllGhostStrokes(): void
-  {
+  clearAllGhostStrokes(): void {
     this.logger.info("clearAllGhostStrokes")
 
     for (const jiixBlockId of this.#ghostStrokeElementIds.keys()) {
@@ -204,16 +218,20 @@ export class IIMathComputationSubManager extends IIAbstractManager
     }
   }
 
-  async clearSolverOutputs(jiixBlockId: string): Promise<void>
-  {
-    this.logger.info("clearSolverOutputs", { jiixBlockId })
+  async clearSolverOutputs(jiixBlockId: string): Promise<void> {
+    this.logger.info("clearSolverOutputs", {
+      jiixBlockId,
+    })
 
     const solverOutputStrokes = this.editor.model.symbols.filter(
-      s => isStroke(s) && s.jiixBlockId === jiixBlockId && s.isSolverOutput
+      (s) => isStroke(s) && s.jiixBlockId === jiixBlockId && s.isSolverOutput
     )
 
     if (solverOutputStrokes.length > 0) {
-      await this.editor.removeSymbols(solverOutputStrokes.map(s => s.id), false)
+      await this.editor.removeSymbols(
+        solverOutputStrokes.map((s) => s.id),
+        false
+      )
     }
 
     this.updateSolverOutputs(jiixBlockId, [])
@@ -221,16 +239,16 @@ export class IIMathComputationSubManager extends IIAbstractManager
     this.clearGhostStrokes(jiixBlockId)
   }
 
-  async clearAllSolverOutputs(): Promise<void>
-  {
+  async clearAllSolverOutputs(): Promise<void> {
     this.logger.info("clearAllSolverOutputs")
 
-    const solverOutputStrokes = this.editor.model.symbols.filter(
-      s => isStroke(s) && s.isSolverOutput
-    )
+    const solverOutputStrokes = this.editor.model.symbols.filter((s) => isStroke(s) && s.isSolverOutput)
 
     if (solverOutputStrokes.length > 0) {
-      await this.editor.removeSymbols(solverOutputStrokes.map(s => s.id), false)
+      await this.editor.removeSymbols(
+        solverOutputStrokes.map((s) => s.id),
+        false
+      )
     }
 
     this.updateSolverOutputsForAll([])
@@ -240,9 +258,15 @@ export class IIMathComputationSubManager extends IIAbstractManager
   async computeNumericalResult(
     jiixBlockId: string,
     mode: TMathResultMode = this.#config.resultMode
-  ): Promise<{ result: TJIIXMathElement, addedStrokesCount: number, value?: number }>
-  {
-    this.logger.info("computeNumericalResult", { jiixBlockId, mode })
+  ): Promise<{
+    result: TJIIXMathElement
+    addedStrokesCount: number
+    value?: number
+  }> {
+    this.logger.info("computeNumericalResult", {
+      jiixBlockId,
+      mode,
+    })
 
     if (!jiixBlockId) {
       throw new Error("Math block does not have jiixBlockId")
@@ -254,9 +278,10 @@ export class IIMathComputationSubManager extends IIAbstractManager
     const lastResult = this.#lastComputationResult.get(jiixBlockId)
     if (lastResult && isDeepEqual(lastResult, result)) {
       this.logger.debug("computeNumericalResult", "Result unchanged, skipping re-render", { jiixBlockId })
-      const addedStrokesCount = mode === "ghost"
-        ? (this.#ghostStrokeElementIds.get(jiixBlockId)?.length ?? 0)
-        : (this.#computations.get(jiixBlockId)?.solverOutputStrokeIds?.length ?? 0)
+      const addedStrokesCount =
+        mode === "ghost"
+          ? (this.#ghostStrokeElementIds.get(jiixBlockId)?.length ?? 0)
+          : (this.#computations.get(jiixBlockId)?.solverOutputStrokeIds?.length ?? 0)
       const value = this.#computations.get(jiixBlockId)?.computedResult as number | undefined
       return { result, addedStrokesCount, value }
     }
@@ -269,20 +294,23 @@ export class IIMathComputationSubManager extends IIAbstractManager
     if (mode === "draw") {
       const addedStrokes = await this.addSolverOutputStrokes(result)
       addedStrokesCount = addedStrokes.length
-      this.logger.info("computeNumericalResult", `Added ${ addedStrokesCount } solver output strokes`)
-      this.updateSolverOutputs(jiixBlockId, addedStrokes.map(s => s.id))
-    }
-    else if (mode === "ghost") {
+      this.logger.info("computeNumericalResult", `Added ${addedStrokesCount} solver output strokes`)
+      this.updateSolverOutputs(
+        jiixBlockId,
+        addedStrokes.map((s) => s.id)
+      )
+    } else if (mode === "ghost") {
       const elementIds = this.addGhostOutputStrokes(result)
       addedStrokesCount = elementIds.length
-      this.logger.info("computeNumericalResult", `Added ${ addedStrokesCount } ghost stroke elements`)
+      this.logger.info("computeNumericalResult", `Added ${addedStrokesCount} ghost stroke elements`)
       this.#ghostStrokeElementIds.set(jiixBlockId, elementIds)
     }
 
     let value: number | undefined
     if (result.expressions && Array.isArray(result.expressions)) {
-      const equalExpression = result.expressions.find((expr) =>
-        expr && expr.type === "=" && "value" in expr && typeof (expr as { value?: unknown }).value === "number"
+      const equalExpression = result.expressions.find(
+        (expr) =>
+          expr && expr.type === "=" && "value" in expr && typeof (expr as { value?: unknown }).value === "number"
       )
       if (equalExpression && "value" in equalExpression) {
         value = (equalExpression as { value: number }).value
@@ -294,8 +322,7 @@ export class IIMathComputationSubManager extends IIAbstractManager
     return { result, addedStrokesCount, value }
   }
 
-  async computeAllNumericalResults(): Promise<void>
-  {
+  async computeAllNumericalResults(): Promise<void> {
     this.logger.info("computeAllNumericalResults")
 
     const { resultMode: mode } = this.#config
@@ -304,56 +331,95 @@ export class IIMathComputationSubManager extends IIAbstractManager
     for (const mathSymbol of jiixBlocks) {
       try {
         await this.computeNumericalResult(mathSymbol.id, mode)
-      }
-      catch (error) {
-        this.logger.error("computeAllNumericalResults", `Error computing numerical result for block ${ mathSymbol.id }:`, error)
+      } catch (error) {
+        this.logger.error(
+          "computeAllNumericalResults",
+          `Error computing numerical result for block ${mathSymbol.id}:`,
+          error
+        )
       }
     }
   }
 
-  protected extractSolverOutputStrokesFromExpression(expression: TJIIXMathExpression): Array<{ X: number[], Y: number[], F?: number[], T?: number[] }>
-  {
-    const items: Array<{ X: number[], Y: number[], F?: number[], T?: number[] }> = []
+  protected extractSolverOutputStrokesFromExpression(expression: TJIIXMathExpression): Array<{
+    X: number[]
+    Y: number[]
+    F?: number[]
+    T?: number[]
+  }> {
+    const items: Array<{
+      X: number[]
+      Y: number[]
+      F?: number[]
+      T?: number[]
+    }> = []
 
     const exprRecord = expression as Record<string, unknown>
-    if (expression?.type === "number" && exprRecord["solver-output"] === true && exprRecord.items && Array.isArray(exprRecord.items)) {
-      items.push(...exprRecord.items as Array<{ X: number[], Y: number[], F?: number[], T?: number[] }>)
+    if (
+      expression?.type === "number" &&
+      exprRecord["solver-output"] === true &&
+      exprRecord.items &&
+      Array.isArray(exprRecord.items)
+    ) {
+      items.push(
+        ...(exprRecord.items as Array<{
+          X: number[]
+          Y: number[]
+          F?: number[]
+          T?: number[]
+        }>)
+      )
     }
 
     if ("operands" in expression && expression.operands && Array.isArray(expression.operands)) {
-      expression.operands.forEach((operand: TJIIXMathExpression) =>
-      {
+      expression.operands.forEach((operand: TJIIXMathExpression) => {
         items.push(...this.extractSolverOutputStrokesFromExpression(operand))
       })
     }
     return items
   }
 
-  protected extractSolverOutputStrokes(mathElement: TJIIXMathElement): Array<{ X: number[], Y: number[], F?: number[], T?: number[] }>
-  {
-    this.logger.debug("extractSolverOutputStrokes", "Extracting solver output strokes from math element", mathElement.id)
-    const strokes: Array<{ X: number[], Y: number[], F?: number[], T?: number[] }> = []
+  protected extractSolverOutputStrokes(mathElement: TJIIXMathElement): Array<{
+    X: number[]
+    Y: number[]
+    F?: number[]
+    T?: number[]
+  }> {
+    this.logger.debug(
+      "extractSolverOutputStrokes",
+      "Extracting solver output strokes from math element",
+      mathElement.id
+    )
+    const strokes: Array<{
+      X: number[]
+      Y: number[]
+      F?: number[]
+      T?: number[]
+    }> = []
 
     if (mathElement.expressions && Array.isArray(mathElement.expressions)) {
-      mathElement.expressions.forEach((expression: TJIIXMathExpression) =>
-      {
+      mathElement.expressions.forEach((expression: TJIIXMathExpression) => {
         strokes.push(...this.extractSolverOutputStrokesFromExpression(expression))
       })
     }
 
-    this.logger.debug("extractSolverOutputStrokes", `Found ${ strokes.length } solver output stroke(s)`)
+    this.logger.debug("extractSolverOutputStrokes", `Found ${strokes.length} solver output stroke(s)`)
     return strokes
   }
 
-  async addSolverOutputStrokes(result: TJIIXMathElement, style?: TStyle): Promise<TStroke[]>
-  {
-    this.logger.info("addSolverOutputStrokes", { result })
+  async addSolverOutputStrokes(result: TJIIXMathElement, style?: TStyle): Promise<TStroke[]> {
+    this.logger.info("addSolverOutputStrokes", {
+      result,
+    })
 
     const solverStrokes = this.extractSolverOutputStrokes(result)
-    this.logger.debug("addSolverOutputStrokes", `Found ${ solverStrokes.length } solver output strokes`)
+    this.logger.debug("addSolverOutputStrokes", `Found ${solverStrokes.length} solver output strokes`)
 
     const addedStrokes: TStroke[] = []
-    const defaultStyle = style || { color: this.#config.resultColor, width: 5 }
+    const defaultStyle = style || {
+      color: this.#config.resultColor,
+      width: 5,
+    }
 
     for (const strokeData of solverStrokes) {
       if (!strokeData.X || !strokeData.Y) {
@@ -365,7 +431,7 @@ export class IIMathComputationSubManager extends IIAbstractManager
         x: convertMillimeterToPixel(x),
         y: convertMillimeterToPixel(strokeData.Y[i]),
         p: strokeData.F?.[i] || 1,
-        t: strokeData.T?.[i] || i
+        t: strokeData.T?.[i] || i,
       }))
 
       const stroke = StrokeOps.createFromPartial({
@@ -381,16 +447,14 @@ export class IIMathComputationSubManager extends IIAbstractManager
     return addedStrokes
   }
 
-  clear(): void
-  {
+  clear(): void {
     this.logger.info("clear", "Clearing all math computations")
     this.clearAllGhostStrokes()
     this.#computations.clear()
     this.#lastComputationResult.clear()
   }
 
-  protected onDestroy(): void
-  {
+  protected onDestroy(): void {
     this.clear()
   }
 }

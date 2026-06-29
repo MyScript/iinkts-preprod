@@ -25,7 +25,7 @@ test.describe("Websocket Math Eraser", () => {
       equation.exports.LATEX.at(-1)
     )
 
-    await page.click("#eraser")
+    await page.locator("#eraser").click()
 
     await Promise.all([
       waitForExportedEvent(page),
