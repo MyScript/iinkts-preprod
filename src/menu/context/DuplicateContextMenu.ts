@@ -1,5 +1,6 @@
-import { InteractiveInkEditor } from "@/editor"
-import { ButtonMenuItem, IMenuButton } from "../items"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import type { TMenuButton } from "../items";
+import { ButtonMenuItem } from "../items"
 
 /**
  * @group Menu
@@ -7,9 +8,9 @@ import { ButtonMenuItem, IMenuButton } from "../items"
  */
 export class DuplicateContextMenu extends ButtonMenuItem
 {
-  constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-context")
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-context")
   {
-    const config: IMenuButton = {
+    const config: TMenuButton = {
       type: "button",
       id: `${idPrefix}-duplicate`,
       label: "Duplicate",

@@ -1,6 +1,7 @@
 import { DefaultEraserConfiguration } from "./EraserConfiguration"
 import { DefaultMarginConfiguration } from "./MarginConfiguration"
-import { DefaultMathUndoRedoConfiguration, DefaultSolverConfiguration, TMathConfiguration } from "./MathConfiguration"
+import type { TMathConfiguration } from "./MathConfiguration";
+import { DefaultMathUndoRedoConfiguration, DefaultSolverConfiguration } from "./MathConfiguration"
 
 /**
  * @group Recognizer

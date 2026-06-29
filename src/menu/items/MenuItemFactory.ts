@@ -1,25 +1,29 @@
-import { InteractiveInkEditor } from "@/editor"
-import { BaseMenuItem, TGenericMenuItem } from "./BaseMenuItem"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import type { BaseMenuItem, TGenericMenuItem } from "./BaseMenuItem"
 import { ButtonMenuItem } from "./ButtonMenuItem"
 import { CheckboxMenuItem } from "./CheckboxMenuItem"
 import { SelectMenuItem } from "./SelectMenuItem"
 import { ButtonListMenuItem } from "./ButtonListMenuItem"
-import { SubMenuItem, IMenuSubMenu, TSubMenuItems } from "./SubMenuItem"
-import { ColorListMenuItem, IMenuColorList } from "./ColorListMenuItem"
-import { RangeMenuItem, IMenuRange } from "./RangeMenuItem"
-import { FileInputMenuItem, IMenuFileInput } from "./FileInputMenuItem"
+import type { TMenuSubMenu, TSubMenuItems } from "./SubMenuItem";
+import { SubMenuItem } from "./SubMenuItem"
+import type { TMenuColorList } from "./ColorListMenuItem";
+import { ColorListMenuItem } from "./ColorListMenuItem"
+import type { TMenuRange } from "./RangeMenuItem";
+import { RangeMenuItem } from "./RangeMenuItem"
+import type { TMenuFileInput } from "./FileInputMenuItem";
+import { FileInputMenuItem } from "./FileInputMenuItem"
 
 /**
  * @group Menu
  * @remarks Type union enriched with all menu item types
  */
-export type TAllMenuItems = TSubMenuItems | IMenuSubMenu | IMenuColorList | IMenuRange | IMenuFileInput
+export type TAllMenuItems = TSubMenuItems | TMenuSubMenu | TMenuColorList | TMenuRange | TMenuFileInput
 
 /**
  * @group Menu
  * @remarks Factory function to create an instance of the appropriate menu item class
  */
-export function createMenuItemInstance(config: TAllMenuItems, editor: InteractiveInkEditor): BaseMenuItem {
+export function createMenuItemInstance(config: TAllMenuItems, editor: TInteractiveInkEditor): BaseMenuItem {
   switch (config.type) {
     case "button":
       return new ButtonMenuItem(config, editor)

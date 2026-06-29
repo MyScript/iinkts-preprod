@@ -1,30 +1,39 @@
 import { SELECTION_MARGIN, EditorWriteTool } from "@/Constants"
-import { IIModel } from "@/model"
+import type { IIModel } from "@/model"
+import type {
+  TEdgeLine,
+  TShapePolygon,
+  TShapeCircle,
+  TShapeEllipse,
+  TStroke,
+  TEdge,
+  TSymbol,
+  TPoint,
+  TPointer} from "@/symbol";
 import
 {
   EdgeDecoration,
   EdgeKind,
-  IIEdgeLine,
-  IIShapePolygon,
-  IIShapeCircle,
-  IIShapeEllipse,
-  IIStroke,
   SymbolType,
-  TIIEdge,
-  TIISymbol,
-  TPoint,
-  TPointer,
-  isStroke
+  isStroke,
+  cloneSymbol
 } from "@/symbol"
-import { RecognizerWebSocket } from "@/recognizer"
-import { SVGRenderer } from "@/renderer"
-import { TStyle } from "@/style"
-import { IIHistoryManager } from "@/history"
-import { PointerInfo } from "@/grabber"
-import { IIGestureManager } from "./IIGestureManager"
-import { TGesture } from "./gestures"
-import { IISnapManager } from "./IISnapManager"
-import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import type { RecognizerWebSocket } from "@/recognizer"
+import type { SVGRenderer } from "@/renderer"
+import type { TStyle } from "@/style"
+import type { IIHistoryManager } from "@/history"
+import type { TPointerInfo } from "@/grabber"
+import { ShapeCircleOps } from "@/symbol/shape/Circle"
+import { ShapeEllipseOps } from "@/symbol/shape/Ellipse"
+import { ShapePolygonOps } from "@/symbol/shape/Polygon"
+import { EdgeLineOps } from "@/symbol/edge/Line"
+import { EdgeOps } from "@/symbol/edge/Edge"
+import { StrokeOps } from "@/symbol/stroke/Stroke"
+import { BoxOps } from "@/symbol/primitives/Box"
+import type { IIGestureManager } from "./IIGestureManager"
+import type { TGesture } from "./gestures"
+import type { IISnapManager } from "./IISnapManager"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { AbstractWriterManager } from "@/manager/base/AbstractWriterManager"
 
 /**
@@ -34,10 +43,10 @@ export class IIWriterManager extends AbstractWriterManager
 {
   #tool: EditorWriteTool = EditorWriteTool.Pencil
   detectGesture: boolean = true
-  editor: InteractiveInkEditor
+  editor: TInteractiveInkEditor
   currentSymbolOrigin?: TPoint
 
-  constructor(editor: InteractiveInkEditor)
+  constructor(editor: TInteractiveInkEditor)
   {
     super(editor)
     this.editor = editor
@@ -102,35 +111,35 @@ export class IIWriterManager extends AbstractWriterManager
     this.grabber.detach()
   }
 
-  protected needContextLessGesture(stroke: IIStroke): boolean
+  protected needContextLessGesture(stroke: TStroke): boolean
   {
     const strokeBoundsWithMargin = this.editor.getSymbolsBounds([stroke], 2 * SELECTION_MARGIN)
-    return this.detectGesture && this.model.symbols.some(s => !isStroke(s) && s.bounds.overlaps(strokeBoundsWithMargin))
+    return this.detectGesture && this.model.symbols.some(s => !isStroke(s) && BoxOps.overlaps(s.bounds, strokeBoundsWithMargin))
   }
 
-  protected createCurrentSymbol(pointer: TPointer, style: TStyle, pointerType: string): TIISymbol
+  protected createCurrentSymbol(pointer: TPointer, style: TStyle, pointerType: string): TSymbol
   {
     switch (this.tool) {
       case EditorWriteTool.Pencil:
-        this.model.currentSymbol = new IIStroke(style, pointerType)
+        this.model.currentSymbol = StrokeOps.create(style, pointerType)
         break
       case EditorWriteTool.Rectangle:
-        this.model.currentSymbol = IIShapePolygon.createRectangleBetweenPoints(pointer, pointer, style)
+        this.model.currentSymbol = ShapePolygonOps.createRectangleBetweenPoints(pointer, pointer, style)
         break
       case EditorWriteTool.Triangle:
-        this.model.currentSymbol = IIShapePolygon.createTriangleBetweenPoints(pointer, pointer, style)
+        this.model.currentSymbol = ShapePolygonOps.createTriangleBetweenPoints(pointer, pointer, style)
         break
       case EditorWriteTool.Parallelogram:
-        this.model.currentSymbol = IIShapePolygon.createParallelogramBetweenPoints(pointer, pointer, style)
+        this.model.currentSymbol = ShapePolygonOps.createParallelogramBetweenPoints(pointer, pointer, style)
         break
       case EditorWriteTool.Rhombus:
-        this.model.currentSymbol = IIShapePolygon.createRhombusBetweenPoints(pointer, pointer, style)
+        this.model.currentSymbol = ShapePolygonOps.createRhombusBetweenPoints(pointer, pointer, style)
         break
       case EditorWriteTool.Circle:
-        this.model.currentSymbol = IIShapeCircle.createBetweenPoints(pointer, pointer, style)
+        this.model.currentSymbol = ShapeCircleOps.createBetweenPoints(pointer, pointer, style)
         break
       case EditorWriteTool.Ellipse:
-        this.model.currentSymbol = IIShapeEllipse.createBetweenPoints(pointer, pointer, style)
+        this.model.currentSymbol = ShapeEllipseOps.createBetweenPoints(pointer, pointer, style)
         break
       case EditorWriteTool.Line:
       case EditorWriteTool.Arrow:
@@ -143,7 +152,7 @@ export class IIWriterManager extends AbstractWriterManager
           startDecoration = EdgeDecoration.Arrow
           endDecoration = EdgeDecoration.Arrow
         }
-        this.model.currentSymbol = new IIEdgeLine(pointer, pointer, startDecoration, endDecoration, style)
+        this.model.currentSymbol = EdgeLineOps.create(pointer, pointer, startDecoration, endDecoration, style)
         break
       }
       default:
@@ -156,37 +165,38 @@ export class IIWriterManager extends AbstractWriterManager
   {
     switch (this.tool) {
       case EditorWriteTool.Rectangle:
-        IIShapePolygon.updateRectangleBetweenPoints(this.model.currentSymbol as IIShapePolygon, this.currentSymbolOrigin!, pointer)
+        ShapePolygonOps.updateRectangleBetweenPoints(this.model.currentSymbol as TShapePolygon, this.currentSymbolOrigin!, pointer)
         break
       case EditorWriteTool.Triangle:
-        IIShapePolygon.updateTriangleBetweenPoints(this.model.currentSymbol as IIShapePolygon, this.currentSymbolOrigin!, pointer)
+        ShapePolygonOps.updateTriangleBetweenPoints(this.model.currentSymbol as TShapePolygon, this.currentSymbolOrigin!, pointer)
         break
       case EditorWriteTool.Parallelogram:
-        IIShapePolygon.updateParallelogramBetweenPoints(this.model.currentSymbol as IIShapePolygon, this.currentSymbolOrigin!, pointer)
+        ShapePolygonOps.updateParallelogramBetweenPoints(this.model.currentSymbol as TShapePolygon, this.currentSymbolOrigin!, pointer)
         break
       case EditorWriteTool.Rhombus:
-        IIShapePolygon.updateRhombusBetweenPoints(this.model.currentSymbol as IIShapePolygon, this.currentSymbolOrigin!, pointer)
+        ShapePolygonOps.updateRhombusBetweenPoints(this.model.currentSymbol as TShapePolygon, this.currentSymbolOrigin!, pointer)
         break
       case EditorWriteTool.Circle:
-        IIShapeCircle.updateBetweenPoints(this.model.currentSymbol as IIShapeCircle, this.currentSymbolOrigin!, pointer)
+        ShapeCircleOps.updateBetweenPoints(this.model.currentSymbol as TShapeCircle, this.currentSymbolOrigin!, pointer)
         break
       case EditorWriteTool.Ellipse:
-        IIShapeEllipse.updateBetweenPoints(this.model.currentSymbol as IIShapeEllipse, this.currentSymbolOrigin!, pointer)
+        ShapeEllipseOps.updateBetweenPoints(this.model.currentSymbol as TShapeEllipse, this.currentSymbolOrigin!, pointer)
         break
     }
   }
 
   protected updateCurrentSymbolEdge(pointer: TPointer): void
   {
-    const edge = this.model.currentSymbol as TIIEdge
+    const edge = this.model.currentSymbol as TEdge
     switch (edge.kind) {
       case EdgeKind.Line:
-        edge.end = pointer
+        (edge as TEdgeLine).end = pointer
+        EdgeOps.updateEdgeDerivedFields(edge)
         break
     }
   }
 
-  protected updateCurrentSymbol(pointer: TPointer): TIISymbol
+  protected updateCurrentSymbol(pointer: TPointer): TSymbol
   {
     if (!this.model.currentSymbol) {
       throw new Error("Can't update current symbol because currentSymbol is undefined")
@@ -194,7 +204,7 @@ export class IIWriterManager extends AbstractWriterManager
 
     switch (this.model.currentSymbol.type) {
       case SymbolType.Stroke:
-        this.model.currentSymbol!.addPointer(pointer)
+        StrokeOps.addPointer(this.model.currentSymbol as TStroke, pointer)
         break
       case SymbolType.Shape:
         this.updateCurrentSymbolShape(pointer)
@@ -206,7 +216,7 @@ export class IIWriterManager extends AbstractWriterManager
     return this.model.currentSymbol
   }
 
-  start(info: PointerInfo): void
+  start(info: TPointerInfo): void
   {
     const localPointer = info.pointer
     if (this.tool !== EditorWriteTool.Pencil) {
@@ -219,7 +229,7 @@ export class IIWriterManager extends AbstractWriterManager
     this.renderer.drawSymbol(this.model.currentSymbol!)
   }
 
-  continue(info: PointerInfo): void
+  continue(info: TPointerInfo): void
   {
     const localPointer = info.pointer
     if (this.tool !== EditorWriteTool.Pencil) {
@@ -234,9 +244,9 @@ export class IIWriterManager extends AbstractWriterManager
     this.renderer.drawSymbol(this.model.currentSymbol!)
   }
 
-  protected async interactWithBackend(stroke: IIStroke): Promise<void>
+  protected async interactWithBackend(stroke: TStroke): Promise<void>
   {
-    const localStroke = stroke.clone()
+    const localStroke = cloneSymbol(stroke) as TStroke
     let gestureFromContextLess: TGesture | undefined
     if (this.needContextLessGesture(stroke)) {
       gestureFromContextLess = await this.gestureManager.getGestureFromContextLess(localStroke)
@@ -255,7 +265,7 @@ export class IIWriterManager extends AbstractWriterManager
     }
   }
 
-  async end(info: PointerInfo): Promise<void>
+  async end(info: TPointerInfo): Promise<void>
   {
     const localPointer = info.pointer
     if (this.tool !== EditorWriteTool.Pencil) {

@@ -1,20 +1,43 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { Model, TExport, TJIIXExport } from "@/model"
-import { TStrokeGroup, TStrokeGroupToSend } from "@/symbol"
-import { StyleHelper, TPenStyle } from "@/style"
-import { computeHmac, getApiInfos, isVersionSuperiorOrEqual, PartialDeep } from "@/utils"
+import type { Model, TExport, TJIIXExport } from "@/model"
+import type { TPenStyle } from "@/style";
+import { StyleHelper } from "@/style"
+import type { TPartialDeep } from "@/utils";
+import { computeHmac, getApiInfos, isVersionSuperiorOrEqual } from "@/utils"
 import { RecognizerError } from "./RecognizerError"
-import { RecognizerHTTPV1Configuration, TRecognizerHTTPV1Configuration } from "./RecognizerHTTPV1Configuration"
-import { TConverstionState } from "./RecognitionConfiguration"
-import { TDiagramConfiguration, TExportConfiguration, TMathConfiguration, TRawContentConfiguration, TTextConfiguration } from "./recognition"
+import type { TRecognizerHTTPV1Configuration } from "./RecognizerHTTPV1Configuration";
+import { RecognizerHTTPV1Configuration } from "./RecognizerHTTPV1Configuration"
+import type { TConverstionState } from "./RecognitionConfiguration"
+import type { TDiagramConfiguration, TExportConfiguration, TMathConfiguration, TRawContentConfiguration, TTextConfiguration } from "./recognition"
+import { StrokeOps, type Stroke } from "@/symbol"
 
-type ApiError = {
+type TApiError = {
   code?: string
   message: string
 }
 
 /**
+ * @group Symbol
+ * @deprecated Use {@link TStroke} from stroke/ for new code
+ */
+export type TStrokeGroup = {
+  penStyle: TPenStyle
+  strokes: Stroke[]
+}
+
+/**
+ * @group Symbol
+ * @deprecated Use {@link TStroke} with {@link RecognizerHTTPV2}
+ */
+export type TStrokeGroupToSend = {
+  penStyle?: string
+  strokes: { id: string, pointerType: string, x: number[], y: number[], t: number[], p: number[]}[]
+}
+
+
+/**
  * @group Recognizer
+ * @deprecated Use {@link RecognizerHTTPV2} instead.
  */
 export type TRecognizerHTTPV1PostConfiguration = {
   lang: string,
@@ -49,7 +72,7 @@ export class RecognizerHTTPV1
 
   configuration: RecognizerHTTPV1Configuration
 
-  constructor(config: PartialDeep<TRecognizerHTTPV1Configuration>)
+  constructor(config: TPartialDeep<TRecognizerHTTPV1Configuration>)
   {
     this.#logger.info("constructor", { config })
     this.configuration = new RecognizerHTTPV1Configuration(config)
@@ -125,7 +148,7 @@ export class RecognizerHTTPV1
       const newPenStyle = JSON.stringify(group.penStyle) === "{}" ? undefined : StyleHelper.penStyleToCSS(group.penStyle as TPenStyle)
       const newGroup = {
         penStyle: newPenStyle,
-        strokes: group.strokes.map(s => s.formatToSend())
+        strokes: group.strokes.map(s => StrokeOps.formatToSend(s))
       }
       strokeGroupsToSend.push(newGroup)
     })
@@ -224,7 +247,7 @@ export class RecognizerHTTPV1
       this.#logger.debug("post", { result })
       return result
     } else {
-      const err = await response.json() as ApiError
+      const err = await response.json() as TApiError
       this.#logger.error("post", { err })
       throw err
     }

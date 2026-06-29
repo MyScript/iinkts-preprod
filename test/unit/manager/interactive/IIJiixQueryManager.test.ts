@@ -1,5 +1,6 @@
 import { buildIIStroke } from "../../helpers"
-import { InteractiveInkEditorMock } from "../../__mocks__/InteractiveInkEditorMock"
+import { createEditorMock, asEditor } from "../../__mocks__/createEditorMock"
+import { IIJiixQueryManager } from "../../../../src/iink"
 
 describe("IIJiixQueryManager.ts", () =>
 {
@@ -7,15 +8,17 @@ describe("IIJiixQueryManager.ts", () =>
   {
     test("should return empty array when no exports", () =>
     {
-      const editor = new InteractiveInkEditorMock()
+      const editor = createEditorMock()
+      const jiix = new IIJiixQueryManager(asEditor(editor))
       const stroke = buildIIStroke()
       editor.model.addSymbol(stroke)
-      expect(editor.jiix.getBlocksForSymbols([stroke])).toEqual([])
+      expect(jiix.getBlocksForSymbols([stroke])).toEqual([])
     })
 
     test("should return empty array when no symbol matches any block", () =>
     {
-      const editor = new InteractiveInkEditorMock()
+      const editor = createEditorMock()
+      const jiix = new IIJiixQueryManager(asEditor(editor))
       const stroke = buildIIStroke()
       editor.model.addSymbol(stroke)
       editor.model.mergeExport({
@@ -24,13 +27,14 @@ describe("IIJiixQueryManager.ts", () =>
           elements: [{ id: "block-1", type: "Math" as never, items: [{ type: "stroke", id: "s1", "full-id": "other-id" }] }]
         }
       })
-      editor.jiix.invalidateIndex()
-      expect(editor.jiix.getBlocksForSymbols([stroke])).toEqual([])
+      jiix.invalidateIndex()
+      expect(jiix.getBlocksForSymbols([stroke])).toEqual([])
     })
 
     test("should return block when all its strokes are in symbols", () =>
     {
-      const editor = new InteractiveInkEditorMock()
+      const editor = createEditorMock()
+      const jiix = new IIJiixQueryManager(asEditor(editor))
       const stroke = buildIIStroke()
       editor.model.addSymbol(stroke)
       editor.model.mergeExport({
@@ -39,14 +43,15 @@ describe("IIJiixQueryManager.ts", () =>
           elements: [{ id: "block-1", type: "Math" as never, items: [{ type: "stroke", id: "s1", "full-id": stroke.id }] }]
         }
       })
-      editor.jiix.invalidateIndex()
-      const result = editor.jiix.getBlocksForSymbols([stroke])
+      jiix.invalidateIndex()
+      const result = jiix.getBlocksForSymbols([stroke])
       expect(result.map(el => el.id)).toEqual(["block-1"])
     })
 
     test("should not return block when only some strokes are in symbols", () =>
     {
-      const editor = new InteractiveInkEditorMock()
+      const editor = createEditorMock()
+      const jiix = new IIJiixQueryManager(asEditor(editor))
       const stroke1 = buildIIStroke()
       const stroke2 = buildIIStroke()
       editor.model.addSymbol(stroke1)
@@ -60,13 +65,14 @@ describe("IIJiixQueryManager.ts", () =>
           }]
         }
       })
-      editor.jiix.invalidateIndex()
-      expect(editor.jiix.getBlocksForSymbols([stroke1])).toEqual([])
+      jiix.invalidateIndex()
+      expect(jiix.getBlocksForSymbols([stroke1])).toEqual([])
     })
 
     test("should return only fully-covered blocks among multiple", () =>
     {
-      const editor = new InteractiveInkEditorMock()
+      const editor = createEditorMock()
+      const jiix = new IIJiixQueryManager(asEditor(editor))
       const stroke1 = buildIIStroke()
       const stroke2 = buildIIStroke()
       const stroke3 = buildIIStroke()
@@ -82,8 +88,8 @@ describe("IIJiixQueryManager.ts", () =>
           ]
         }
       })
-      editor.jiix.invalidateIndex()
-      const result = editor.jiix.getBlocksForSymbols([stroke1, stroke2])
+      jiix.invalidateIndex()
+      const result = jiix.getBlocksForSymbols([stroke1, stroke2])
       expect(result.map(el => el.id)).toEqual(["block-full"])
     })
   })
@@ -92,7 +98,8 @@ describe("IIJiixQueryManager.ts", () =>
   {
     test("should return blocks for selected symbols", () =>
     {
-      const editor = new InteractiveInkEditorMock()
+      const editor = createEditorMock()
+      const jiix = new IIJiixQueryManager(asEditor(editor))
       const stroke = buildIIStroke()
       editor.model.addSymbol(stroke)
       editor.model.selectSymbol(stroke.id)
@@ -102,13 +109,14 @@ describe("IIJiixQueryManager.ts", () =>
           elements: [{ id: "block-selected", type: "Math" as never, items: [{ type: "stroke", id: "s1", "full-id": stroke.id }] }]
         }
       })
-      editor.jiix.invalidateIndex()
-      expect(editor.jiix.getBlocksForSymbols(editor.model.symbolsSelected).map(el => el.id)).toEqual(["block-selected"])
+      jiix.invalidateIndex()
+      expect(jiix.getBlocksForSymbols(editor.model.symbolsSelected).map(el => el.id)).toEqual(["block-selected"])
     })
 
     test("should return empty when no symbols selected", () =>
     {
-      const editor = new InteractiveInkEditorMock()
+      const editor = createEditorMock()
+      const jiix = new IIJiixQueryManager(asEditor(editor))
       const stroke = buildIIStroke()
       editor.model.addSymbol(stroke)
       editor.model.mergeExport({
@@ -117,8 +125,8 @@ describe("IIJiixQueryManager.ts", () =>
           elements: [{ id: "block-1", type: "Math" as never, items: [{ type: "stroke", id: "s1", "full-id": stroke.id }] }]
         }
       })
-      editor.jiix.invalidateIndex()
-      expect(editor.jiix.getBlocksForSymbols(editor.model.symbolsSelected)).toEqual([])
+      jiix.invalidateIndex()
+      expect(jiix.getBlocksForSymbols(editor.model.symbolsSelected)).toEqual([])
     })
   })
 })

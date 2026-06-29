@@ -1,14 +1,15 @@
-import { InteractiveInkEditor } from "@/editor"
-import { BaseMenuItem, IMenuItemBase } from "./BaseMenuItem"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import type { TMenuItemBase } from "./BaseMenuItem";
+import { BaseMenuItem } from "./BaseMenuItem"
 
 /**
  * @group Menu
  * @remarks Configuration for a checkbox
  */
-export interface IMenuCheckbox extends IMenuItemBase {
+export type TMenuCheckbox = TMenuItemBase & {
   type: "checkbox"
-  getValue: (editor: InteractiveInkEditor) => boolean
-  setValue: (editor: InteractiveInkEditor, value: boolean) => void
+  getValue: (editor: TInteractiveInkEditor) => boolean
+  setValue: (editor: TInteractiveInkEditor, value: boolean) => void
 }
 
 /**
@@ -17,7 +18,7 @@ export interface IMenuCheckbox extends IMenuItemBase {
  */
 export class CheckboxMenuItem extends BaseMenuItem<HTMLDivElement>
 {
-  protected declare config: IMenuCheckbox
+  protected declare config: TMenuCheckbox
 
   createElement(): HTMLDivElement {
     const wrapper = this.dom.div({ id: this.config.id, className: ["ms-menu-item", "checkbox"] })

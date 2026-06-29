@@ -1,11 +1,6 @@
-import { isVersionSuperiorOrEqual, mergeDeep, PartialDeep } from "@/utils"
-import {
-  DefaultDiagramConfiguration,
-  DefaultExportConfiguration,
-  DefaultMathConfiguration,
-  DefaultRawContentConfiguration,
-  DefaultRecognitionRendererConfiguration,
-  DefaultTextConfiguration,
+import type { TPartialDeep } from "@/utils";
+import { isVersionSuperiorOrEqual, mergeDeep } from "@/utils"
+import type {
   TConvertionConfiguration,
   TDiagramConfiguration,
   TExportConfiguration,
@@ -13,15 +8,24 @@ import {
   TRawContentConfiguration,
   TRecognitionRendererConfiguration,
   TTextConfiguration
+} from "./recognition";
+import {
+  DefaultDiagramConfiguration,
+  DefaultExportConfiguration,
+  DefaultMathConfiguration,
+  DefaultRawContentConfiguration,
+  DefaultRecognitionRendererConfiguration,
+  DefaultTextConfiguration
 } from "./recognition"
-import { TRecognitionType } from "./RecognitionConfiguration"
-import { DefaultServerHTTPConfiguration, TServerHTTPConfiguration } from "./ServerConfiguration"
+import type { TRecognitionTypeV1 } from "./RecognitionConfiguration"
+import type { TServerHTTPConfiguration } from "./ServerConfiguration";
+import { DefaultServerHTTPConfiguration } from "./ServerConfiguration"
 
 /**
  * @group Recognizer
  */
 export type TRecognitionHTTPV1Configuration = {
-  type: TRecognitionType
+  type: TRecognitionTypeV1
   lang: string
   math: TMathConfiguration
   text: TTextConfiguration
@@ -72,7 +76,7 @@ export class RecognizerHTTPV1Configuration implements TRecognizerHTTPV1Configura
   recognition: TRecognitionHTTPV1Configuration
   server: TServerHTTPConfiguration
 
-  constructor(configuration?: PartialDeep<TRecognizerHTTPV1Configuration>)
+  constructor(configuration?: TPartialDeep<TRecognizerHTTPV1Configuration>)
   {
     this.server = mergeDeep({}, DefaultRecognizerHTTPV1Configuration.server, configuration?.server)
     this.recognition = mergeDeep({}, DefaultRecognizerHTTPV1Configuration.recognition, configuration?.recognition)

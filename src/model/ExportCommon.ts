@@ -1,4 +1,4 @@
-import { TBox, TPoint } from "@/symbol"
+import type { TBox, TPoint } from "@/symbol"
 
 /**
  * @group Exports

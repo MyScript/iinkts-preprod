@@ -1,25 +1,29 @@
-import { mergeDeep, isVersionSuperiorOrEqual, PartialDeep } from "@/utils"
-import {
-  DefaultShapeConfiguration,
-  DefaultExportConfiguration,
-  DefaultMathV2Configuration,
-  DefaultRawContentV2Configuration,
-  DefaultTexConfigurationV2,
+import type { TPartialDeep } from "@/utils";
+import { mergeDeep, isVersionSuperiorOrEqual } from "@/utils"
+import type {
   TConvertionConfiguration,
   TShapeConfiguration,
   TExportConfiguration,
   TMathConfiguration,
   TRawContentConfiguration,
   TTextRecognizerHTTPV2Configuration
+} from "./recognition";
+import {
+  DefaultShapeConfiguration,
+  DefaultExportConfiguration,
+  DefaultMathV2Configuration,
+  DefaultRawContentV2Configuration,
+  DefaultTexConfigurationV2
 } from "./recognition"
-import { TRecognitionV2Type } from "./RecognitionConfiguration"
-import { DefaultServerHTTPConfiguration, TServerHTTPConfiguration } from "./ServerConfiguration"
+import type { TRecognitionTypeV2 } from "./RecognitionConfiguration"
+import type { TServerHTTPConfiguration } from "./ServerConfiguration";
+import { DefaultServerHTTPConfiguration } from "./ServerConfiguration"
 
 /**
  * @group Recognizer
  */
 export type TRecognizerHTTPV2RecognitionConfiguration = {
-  type: TRecognitionV2Type
+  type: TRecognitionTypeV2
   lang: string
   math: TMathConfiguration
   text: TTextRecognizerHTTPV2Configuration
@@ -68,7 +72,7 @@ export class RecognizerHTTPV2Configuration implements TRecognizerHTTPV2Configura
   recognition: TRecognizerHTTPV2RecognitionConfiguration
   server: TServerHTTPConfiguration
 
-  constructor(configuration?: PartialDeep<TRecognizerHTTPV2Configuration>)
+  constructor(configuration?: TPartialDeep<TRecognizerHTTPV2Configuration>)
   {
     this.server = mergeDeep({}, DefaultRecognizerHTTPV2Configuration.server, configuration?.server)
     this.recognition = mergeDeep({}, DefaultRecognizerHTTPV2Configuration.recognition, configuration?.recognition)

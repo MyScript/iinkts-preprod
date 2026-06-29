@@ -1,5 +1,6 @@
-import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
-import { PointerEventGrabber, PointerInfo } from "@/grabber"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import type { TPointerInfo } from "@/grabber";
+import { PointerEventGrabber } from "@/grabber"
 import { IIAbstractManager } from "./IIAbstractManager"
 import { LoggerCategory } from "@/logger"
 
@@ -19,13 +20,13 @@ export class IIMoveManager extends IIAbstractManager
     clientY: number
   }
 
-  constructor(editor: InteractiveInkEditor)
+  constructor(editor: TInteractiveInkEditor)
   {
     super(editor, LoggerCategory.MOVE)
     this.grabber = new PointerEventGrabber(editor.configuration.grabber)
   }
 
-  protected updateViewBox(info: PointerInfo, redrawGuide: boolean): void
+  protected updateViewBox(info: TPointerInfo, redrawGuide: boolean): void
   {
     if (!this.origin) {
       this.logger.error("Can't move cause origin is undefined")
@@ -64,7 +65,7 @@ export class IIMoveManager extends IIAbstractManager
     this.grabber.detach()
   }
 
-  start(info: PointerInfo): void
+  start(info: TPointerInfo): void
   {
     const viewBox = this.renderer.getViewBox()
     this.origin = {
@@ -76,13 +77,13 @@ export class IIMoveManager extends IIAbstractManager
     this.logger.info("start", { origin: this.origin })
   }
 
-  continue(info: PointerInfo): void
+  continue(info: TPointerInfo): void
   {
     this.logger.info("continue", { info })
     this.updateViewBox(info, false)
   }
 
-  end(info: PointerInfo): void
+  end(info: TPointerInfo): void
   {
     this.logger.info("end", { info })
     this.updateViewBox(info, true)

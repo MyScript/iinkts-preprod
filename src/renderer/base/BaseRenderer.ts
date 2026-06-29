@@ -4,7 +4,7 @@
  *
  * Common configuration properties required by all renderer implementations.
  */
-export interface TBaseRendererConfiguration
+export type TBaseRendererConfiguration =
 {
   minWidth: number
   minHeight: number

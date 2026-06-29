@@ -1,5 +1,5 @@
-import { TGesture } from "@/manager"
-import { TExport } from "@/model"
+import type { TGesture } from "@/manager"
+import type { TExport } from "@/model"
 
 /**
  * @group Recognizer

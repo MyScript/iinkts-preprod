@@ -1,6 +1,7 @@
-import { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
-import { ButtonListMenuItem, IMenuButtonList, CollapsibleWrapper } from "@/menu/items"
+import type { TMenuButtonList} from "@/menu/items";
+import { ButtonListMenuItem, CollapsibleWrapper } from "@/menu/items"
 import { isText } from "@/symbol"
 
 /**
@@ -13,7 +14,7 @@ export class FontSizeStyle extends BaseMenuItem<HTMLDivElement>
   private fontSizeList: { label: string, value: "auto" | number }[]
   private rowHeight: number
 
-  constructor(editor: InteractiveInkEditor, fontSizeList: { label: string, value: "auto" | number }[], rowHeight: number, idPrefix = "ms-menu-style")
+  constructor(editor: TInteractiveInkEditor, fontSizeList: { label: string, value: "auto" | number }[], rowHeight: number, idPrefix = "ms-menu-style")
   {
     const config = {
       type: "fontsize" as const,
@@ -27,7 +28,7 @@ export class FontSizeStyle extends BaseMenuItem<HTMLDivElement>
 
   createElement(): HTMLDivElement
   {
-    const fontSizeConfig: IMenuButtonList = {
+    const fontSizeConfig: TMenuButtonList = {
       type: "buttonlist",
       id: this.config.id,
       options: this.fontSizeList.map(f => ({ label: f.label, value: f.value.toString() })),

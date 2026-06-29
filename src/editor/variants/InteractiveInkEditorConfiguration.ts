@@ -1,14 +1,22 @@
-import { mergeDeep, PartialDeep } from "@/utils"
-import { DefaultStyle, TStyle } from "@/style"
-import { DefaultLoggerConfiguration, TLoggerConfiguration } from "@/logger"
-import { DefaultGrabberConfiguration, TGrabberConfiguration } from "@/grabber"
-import { DefaultHistoryConfiguration, THistoryConfiguration } from "@/history"
-import { DefaultMenuConfiguration, TMenuConfiguration } from "@/menu"
-import { DefaultRecognizerWebSocketConfiguration, RecognizerWebSocketConfiguration, TRecognitionWebSocketConfiguration, TRecognizerWebSocketConfiguration, TServerWebsocketConfiguration } from "@/recognizer"
-import { DefaultIIRendererConfiguration, TIIRendererConfiguration } from "@/renderer"
-import { DefaultGestureConfiguration, TGestureConfiguration, DefaultSnapConfiguration, SnapConfiguration, TSnapConfiguration, DefaultOverlayConfig, TOverlayConfig } from "@/manager"
-import type { TMathConfig } from "@/manager"
-import { TEditorConfiguration } from "@/editor/AbstractEditor"
+import type { TPartialDeep } from "@/utils";
+import { mergeDeep } from "@/utils"
+import type { TStyle } from "@/style";
+import { DefaultStyle } from "@/style"
+import type { TLoggerConfiguration } from "@/logger";
+import { DefaultLoggerConfiguration } from "@/logger"
+import type { TGrabberConfiguration } from "@/grabber";
+import { DefaultGrabberConfiguration } from "@/grabber"
+import type { THistoryConfiguration } from "@/history";
+import { DefaultHistoryConfiguration } from "@/history"
+import type { TMenuConfiguration } from "@/menu";
+import { DefaultMenuConfiguration } from "@/menu"
+import type { TRecognitionWebSocketConfiguration, TRecognizerWebSocketConfiguration, TServerWebsocketConfiguration } from "@/recognizer";
+import { DefaultRecognizerWebSocketConfiguration, RecognizerWebSocketConfiguration } from "@/recognizer"
+import type { TIIRendererConfiguration } from "@/renderer";
+import { DefaultIIRendererConfiguration } from "@/renderer"
+import { DefaultGestureConfiguration, DefaultSnapConfiguration, SnapConfiguration, DefaultOverlayConfig } from "@/manager"
+import type { TMathConfig , TGestureConfiguration, TSnapConfiguration, TOverlayConfig } from "@/manager"
+import type { TEditorConfiguration } from "@/editor/AbstractEditor"
 
 /**
  * @group Editor
@@ -108,7 +116,7 @@ export class InteractiveInkEditorConfiguration implements TInteractiveInkEditorC
   math: TMathConfig
   cssVars?: Record<string, string>
 
-  constructor(configuration?: PartialDeep<TInteractiveInkEditorConfiguration>)
+  constructor(configuration?: TPartialDeep<TInteractiveInkEditorConfiguration>)
   {
     const { server, recognition } =  new RecognizerWebSocketConfiguration(configuration)
     this.recognition = recognition

@@ -1,4 +1,4 @@
-import { TPenStyle } from "./PenStyle"
+import type { TPenStyle } from "./PenStyle"
 
 /**
  * @group Styles

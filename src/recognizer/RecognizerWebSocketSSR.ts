@@ -1,10 +1,12 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { Model, TExport, TJIIXExport } from "@/model"
-import { Stroke } from "@/symbol"
-import { StyleHelper, TPenStyle, TTheme } from "@/style"
-import { THistoryContext } from "@/history"
-import { DeferredPromise, PartialDeep, computeHmac, getApiInfos, isVersionSuperiorOrEqual } from "@/utils"
-import
+import type { Model, TExport, TJIIXExport } from "@/model"
+import { StrokeOps, type Stroke } from "@/symbol"
+import type { TPenStyle, TTheme } from "@/style";
+import { StyleHelper } from "@/style"
+import type { THistoryContext } from "@/history"
+import type { TPartialDeep} from "@/utils";
+import { DeferredPromise, computeHmac, getApiInfos, isVersionSuperiorOrEqual } from "@/utils"
+import type
 {
   TRecognizerWebSocketSSRMessage,
   TRecognizerWebSocketSSRMessageContentChange,
@@ -16,8 +18,9 @@ import
 } from "./RecognizerWebSocketSSRMessage"
 import { RecognizerError, mapCloseCodeToMessage } from "./RecognizerError"
 import { RecognizerEvent } from "./RecognizerEvent"
-import { TRecognizerWebSocketSSRConfiguration, RecognizerWebSocketSSRConfiguration } from "./RecognizerWebSocketSSRConfiguration"
-import { TConverstionState } from "./RecognitionConfiguration"
+import type { TRecognizerWebSocketSSRConfiguration} from "./RecognizerWebSocketSSRConfiguration";
+import { RecognizerWebSocketSSRConfiguration } from "./RecognizerWebSocketSSRConfiguration"
+import type { TConverstionState } from "./RecognitionConfiguration"
 
 /**
  * A websocket dialog have this sequence :
@@ -85,7 +88,7 @@ export class RecognizerWebSocketSSR
   url: string
   event: RecognizerEvent
 
-  constructor(config?: PartialDeep<TRecognizerWebSocketSSRConfiguration>)
+  constructor(config?: TPartialDeep<TRecognizerWebSocketSSRConfiguration>)
   {
     this.#logger.info("constructor", { config })
     this.configuration = new RecognizerWebSocketSSRConfiguration(config)
@@ -449,7 +452,7 @@ export class RecognizerWebSocketSSR
     else {
       await this.send({
         type: "addStrokes",
-        strokes: strokes.map(s => s.formatToSend())
+        strokes: strokes.map(s => StrokeOps.formatToSend(s))
       })
     }
     return this.addStrokeDeferred?.promise
@@ -598,7 +601,7 @@ export class RecognizerWebSocketSSR
     this.importPointEventsDeferred = new DeferredPromise<TExport>()
     const message: TRecognizerWebSocketSSRMessage = {
       type: "pointerEvents",
-      events: strokes.map(s => s.formatToSend())
+      events: strokes.map(s => StrokeOps.formatToSend(s))
     }
     await this.send(message)
     return this.importPointEventsDeferred?.promise

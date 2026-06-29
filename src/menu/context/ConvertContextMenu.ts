@@ -1,5 +1,6 @@
-import { InteractiveInkEditor } from "@/editor"
-import { ButtonMenuItem, IMenuButton } from "@/menu/items/ButtonMenuItem"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import type { TMenuButton } from "@/menu/items/ButtonMenuItem";
+import { ButtonMenuItem } from "@/menu/items/ButtonMenuItem"
 
 /**
  * @group Menu
@@ -7,13 +8,13 @@ import { ButtonMenuItem, IMenuButton } from "@/menu/items/ButtonMenuItem"
  */
 export class ConvertContextMenu extends ButtonMenuItem
 {
-  constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-context")
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-context")
   {
-    const config: IMenuButton = {
+    const config: TMenuButton = {
       type: "button",
       id: `${idPrefix}-convert`,
       label: "Convert",
-      action: (editor: InteractiveInkEditor) => {
+      action: (editor: TInteractiveInkEditor) => {
         const symbolsSelected = editor.model.symbolsSelected
         editor.convert(symbolsSelected)
       }

@@ -1,5 +1,6 @@
-import { InteractiveInkEditor } from "@/editor"
-import { BaseMenuItem, IMenuItemBase } from "@/menu/items/BaseMenuItem"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import type { TMenuItemBase } from "@/menu/items/BaseMenuItem";
+import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
 import { EditorTool } from "@/Constants"
 import { DEFAULT_ERASER_SIZE_LIST } from "@/menu/MenuConstants"
 import eraseIcon from "@/assets/svg/erase.svg"
@@ -7,7 +8,7 @@ import eraseIcon from "@/assets/svg/erase.svg"
 /**
  * @group Menu
  */
-interface IEraseToolConfig extends IMenuItemBase {
+type TEraseToolConfig = TMenuItemBase & {
   type: "erase"
 }
 
@@ -21,9 +22,9 @@ export class EraseTool extends BaseMenuItem<HTMLDivElement>
   private sizeButtons: Map<number, HTMLButtonElement> = new Map()
   private triggerButton?: HTMLButtonElement
 
-  constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-tool")
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-tool")
   {
-    const config: IEraseToolConfig = {
+    const config: TEraseToolConfig = {
       type: "erase",
       id: `${idPrefix}-erase`,
       label: "Erase"

@@ -1,5 +1,8 @@
-import { Box, IIText, IIMath, TIISymbol, TIISymbolChar, isText } from "@/symbol"
-import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
+import type { TText, TMath, TSymbol, TSymbolChar, TBox} from "@/symbol";
+import { isText } from "@/symbol"
+import { TextOps } from "@/symbol/text/Text"
+import { MathOps } from "@/symbol/math/Math"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { IIAbstractManager } from "./IIAbstractManager"
 import { LoggerCategory } from "@/logger"
 
@@ -10,7 +13,7 @@ export class IITypesetManager extends IIAbstractManager
 {
   protected managerName = "IITypesetManager"
 
-  constructor(editor: InteractiveInkEditor)
+  constructor(editor: TInteractiveInkEditor)
   {
     super(editor, LoggerCategory.TEXT)
     this.logger.info("constructor")
@@ -21,11 +24,11 @@ export class IITypesetManager extends IIAbstractManager
     return this.editor.configuration.rendering.guides.gap
   }
 
-  protected drawSymbolHidden(symbol: IIText | IIMath): SVGGElement
+  protected drawSymbolHidden(symbol: TText | TMath): SVGGElement
   {
-    const clone = symbol.clone() as IIText | IIMath
+    const clone = structuredClone(symbol) as TText | TMath
     clone.id = "symbol-to-measure"
-    if (clone instanceof IIText) {
+    if (isText(clone)) {
       clone.chars.forEach(c => c.id += "-to-measure")
     }
     clone.decorators = []
@@ -36,7 +39,7 @@ export class IITypesetManager extends IIAbstractManager
     return el as SVGGElement
   }
 
-  setCharsBounds(text: IIText, textGroupEl: SVGGElement): IIText
+  setCharsBounds(text: TText, textGroupEl: SVGGElement): TText
   {
     const textEl = textGroupEl.querySelector("text")
     if (textEl) {
@@ -44,31 +47,35 @@ export class IITypesetManager extends IIAbstractManager
         const char = text.chars.at(i)
         if (char) {
           const ext = textEl.getExtentOfChar(i)
-          char.bounds = new Box(ext)
+          char.bounds = { x: ext.x, y: ext.y, width: ext.width, height: ext.height }
         }
       }
     }
     return text
   }
 
-  setBounds(symbol: IIText | IIMath): void
+  setBounds(symbol: TText | TMath): void
   {
     const el = this.drawSymbolHidden(symbol)
-    if (symbol instanceof IIText) {
+    if (isText(symbol)) {
       symbol.bounds = this.getElementBoundingBox(el)
       this.setCharsBounds(symbol, el)
+      TextOps.updateDerivedFields(symbol)
     }
     else {
-      symbol.bounds = new Box(el.getBBox())
+      const bbox = el.getBBox()
+      symbol.bounds = { x: bbox.x, y: bbox.y, width: bbox.width, height: bbox.height } as TBox
+      MathOps.updateDerivedFields(symbol)
     }
   }
 
-  getElementBoundingBox(textElement: SVGElement): Box
+  getElementBoundingBox(textElement: SVGElement): TBox
   {
-    return new Box(textElement.querySelector("text")!.getBBox({ stroke: true, markers: true, clipped: true, fill: true }))
+    const bbox = textElement.querySelector("text")!.getBBox({ stroke: true, markers: true, clipped: true, fill: true })
+    return { x: bbox.x, y: bbox.y, width: bbox.width, height: bbox.height } as TBox
   }
 
-  getBoundingBox(text: IIText): Box
+  getBoundingBox(text: TText): TBox
   {
     const element = this.drawSymbolHidden(text)
     return this.getElementBoundingBox(element)
@@ -76,8 +83,8 @@ export class IITypesetManager extends IIAbstractManager
 
   getSpaceWidth(fontSize: number): number
   {
-    const boundingBox = new Box({ height: 0, width: 0, x: 0, y: 0 })
-    const charSymbol: TIISymbolChar = {
+    const boundingBox: TBox = { height: 0, width: 0, x: 0, y: 0 }
+    const charSymbol: TSymbolChar = {
       id: `text-char-space`,
       label: "-",
       color: "",
@@ -85,21 +92,21 @@ export class IITypesetManager extends IIAbstractManager
       fontWeight: "normal",
       bounds: boundingBox
     }
-    return this.getBoundingBox(new IIText([charSymbol], { x: 0, y: 0 }, boundingBox))?.width as number
+    return this.getBoundingBox(TextOps.create([charSymbol], { x: 0, y: 0 }, boundingBox))?.width as number
   }
 
-  updateBounds(textSymbol: IIText): IIText
+  updateBounds(textSymbol: TText): TText
   {
     this.setBounds(textSymbol)
     this.model.updateSymbol(textSymbol)
     return textSymbol
   }
 
-  moveTextAfter(text: IIText, tx: number): TIISymbol[] | undefined
+  moveTextAfter(text: TText, tx: number): TSymbol[] | undefined
   {
     const row = this.model.getSymbolsByRowOrdered().find(r => r.rowIndex === this.model.getSymbolRowIndex(text))
     if (row) {
-      const textsAfter = row.symbols.filter(s => isText(s) && s.bounds.xMid > text.bounds.xMid) as IIText[]
+      const textsAfter = row.symbols.filter(s => isText(s) && s.bounds.x + s.bounds.width / 2 > text.bounds.x + text.bounds.width / 2) as TText[]
       textsAfter.forEach(symbol => {
         symbol.point.x += tx
         this.updateBounds(symbol)

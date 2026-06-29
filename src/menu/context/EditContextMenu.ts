@@ -1,7 +1,9 @@
-import { InteractiveInkEditor } from "@/editor"
-import { BaseMenuItem, TGenericMenuItem } from "@/menu/items/BaseMenuItem"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import type { TGenericMenuItem } from "@/menu/items/BaseMenuItem";
+import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
 import ArrowDown from "@/assets/svg/nav-arrow-down.svg"
-import { IIText, isText } from "@/symbol"
+import type { TText} from "@/symbol";
+import { isText } from "@/symbol"
 import { createUUID } from "@/utils"
 
 /**
@@ -15,7 +17,7 @@ export class EditContextMenu extends BaseMenuItem<HTMLElement>
   editInput?: HTMLInputElement
   editSaveBtn?: HTMLButtonElement
 
-  constructor(editor: InteractiveInkEditor, idPrefix = "ms-menu-context")
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-context")
   {
     const config: TGenericMenuItem = {
       type: "custom",
@@ -45,7 +47,7 @@ export class EditContextMenu extends BaseMenuItem<HTMLElement>
     
     this.editSaveBtn.addEventListener("pointerdown", async (e) => {
       e.stopPropagation()
-      const textSymbol = this.editor.model.symbolsSelected.find(s => isText(s)) as IIText
+      const textSymbol = this.editor.model.symbolsSelected.find(s => isText(s)) as TText
       if (textSymbol) {
         const firstChar = textSymbol.chars[0]
         textSymbol.chars = []

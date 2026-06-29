@@ -3,7 +3,7 @@ import
   RecognizerWebSocket,
   TRecognizerWebSocketConfiguration,
   TRecognizerWebSocketMessage,
-  PartialDeep,
+  TPartialDeep,
   TServerWebsocketConfiguration,
   TRecognitionWebSocketConfiguration
 } from 'iink-ts'
@@ -15,7 +15,7 @@ export class Recognizer extends RecognizerWebSocket
   messages: { state: "Sent" | "Received", message: TRecognizerWebSocketMessage }[]
   private static readonly MAX_MESSAGES = 100
 
-  constructor(config: PartialDeep<TRecognizerWebSocketConfiguration>)
+  constructor(config: TPartialDeep<TRecognizerWebSocketConfiguration>)
   {
     super(config)
     this.messages = []
@@ -47,11 +47,11 @@ export class Recognizer extends RecognizerWebSocket
   }
 }
 
-export const useRecognizer = async (serverConfiguration: PartialDeep<TServerWebsocketConfiguration>): Promise<Recognizer> =>
+export const useRecognizer = async (serverConfiguration: TPartialDeep<TServerWebsocketConfiguration>): Promise<Recognizer> =>
   {
   if (!Recognizer.initializing) {
     Recognizer.initializing = true
-    const recognition: PartialDeep<TRecognitionWebSocketConfiguration> = {
+    const recognition: TPartialDeep<TRecognitionWebSocketConfiguration> = {
       "raw-content": {
         gestures: ["underline", "scratch-out", "join", "insert", "strike-through", "surround"]
       },

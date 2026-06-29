@@ -1,4 +1,4 @@
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { DOMFactory } from "@/components/dom"
 
 /**
@@ -21,7 +21,7 @@ export class Minimap
   static readonly DEFAULT_WIDTH = 200
   static readonly DEFAULT_HEIGHT = 150
 
-  #editor: InteractiveInkEditor
+  #editor: TInteractiveInkEditor
   #width: number
   #height: number
   #container: HTMLDivElement
@@ -32,7 +32,7 @@ export class Minimap
   #isDragging = false
   #observer: MutationObserver
 
-  constructor(editor: InteractiveInkEditor, options?: TMinimapOptions)
+  constructor(editor: TInteractiveInkEditor, options?: TMinimapOptions)
   {
     this.#editor = editor
     this.#width = options?.width ?? Minimap.DEFAULT_WIDTH

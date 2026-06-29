@@ -1,15 +1,16 @@
-import { InteractiveInkEditor } from "@/editor"
-import { BaseMenuItem, IMenuItemBase } from "./BaseMenuItem"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import type { TMenuItemBase } from "./BaseMenuItem";
+import { BaseMenuItem } from "./BaseMenuItem"
 
 /**
  * @group Menu
  * @remarks Configuration for a select/dropdown menu item
  */
-export interface IMenuSelect extends IMenuItemBase {
+export type TMenuSelect = TMenuItemBase & {
   type: "select"
   options: Array<{ label: string, value: string }>
-  getValue: (editor: InteractiveInkEditor) => string
-  setValue: (editor: InteractiveInkEditor, value: string) => void
+  getValue: (editor: TInteractiveInkEditor) => string
+  setValue: (editor: TInteractiveInkEditor, value: string) => void
 }
 
 /**
@@ -18,7 +19,7 @@ export interface IMenuSelect extends IMenuItemBase {
  */
 export class SelectMenuItem extends BaseMenuItem<HTMLDivElement>
 {
-  protected declare config: IMenuSelect
+  protected declare config: TMenuSelect
 
   createElement(): HTMLDivElement {
     const wrapper = this.dom.div({ id: this.config.id, className: ["ms-menu-item", "select"] })

@@ -1,12 +1,13 @@
 import ArrowDown from "@/assets/svg/nav-arrow-down.svg"
-import { BaseMenuItem, IMenuItemBase } from "./BaseMenuItem"
+import type { TMenuItemBase } from "./BaseMenuItem";
+import { BaseMenuItem } from "./BaseMenuItem"
 import { createMenuItemInstance } from "./MenuItemFactory"
-import { IMenuButton } from "./ButtonMenuItem"
-import { IMenuCheckbox } from "./CheckboxMenuItem"
-import { IMenuSelect } from "./SelectMenuItem"
-import { IMenuButtonList } from "./ButtonListMenuItem"
-import { IMenuFileInput } from "./FileInputMenuItem"
-import { IMenuRange } from "./RangeMenuItem"
+import type { TMenuButton } from "./ButtonMenuItem"
+import type { TMenuCheckbox } from "./CheckboxMenuItem"
+import type { TMenuSelect } from "./SelectMenuItem"
+import type { TMenuButtonList } from "./ButtonListMenuItem"
+import type { TMenuFileInput } from "./FileInputMenuItem"
+import type { TMenuRange } from "./RangeMenuItem"
 
 /**
  * @group Menu
@@ -18,18 +19,18 @@ export type TMenuPosition = "top" | "left" | "right" | "right-top" | "bottom" | 
  * @group Menu
  * @remarks Union type for submenu items (without recursive submenu to avoid circularity)
  */
-export type TSubMenuItems = IMenuButton | IMenuCheckbox | IMenuSelect | IMenuButtonList | IMenuFileInput | IMenuRange
+export type TSubMenuItems = TMenuButton | TMenuCheckbox | TMenuSelect | TMenuButtonList | TMenuFileInput | TMenuRange
 
 /**
  * @group Menu
  * @remarks Submenu configuration
  */
-export interface IMenuSubMenu extends IMenuItemBase {
+export type TMenuSubMenu = TMenuItemBase & {
   type: "submenu"
   icon?: string
   position?: TMenuPosition
   menuTitle?: string
-  items: (TSubMenuItems | IMenuSubMenu)[]
+  items: (TSubMenuItems | TMenuSubMenu)[]
 }
 
 /**
@@ -39,7 +40,7 @@ export interface IMenuSubMenu extends IMenuItemBase {
 export class SubMenuItem extends BaseMenuItem<HTMLDivElement>
 {
   #documentPointerdownHandler?: (e: PointerEvent) => void
-  protected declare config: IMenuSubMenu
+  protected declare config: TMenuSubMenu
   protected subMenuWrapper?: HTMLElement
   protected subMenuContent?: HTMLDivElement
   protected trigger?: HTMLButtonElement

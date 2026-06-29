@@ -7,19 +7,20 @@ import
 {
   RecognizerWebSocketSSR,
   RecognizerError,
-  TRecognitionType,
+  TRecognitionTypeV1,
   TPenStyle,
   TTheme,
   Model,
   TConverstionState,
   TRecognizerWebSocketSSRConfiguration,
+  StrokeOps,
 } from "../../../src/iink"
 
 describe("RecognizerWebSocketSSR.ts", () =>
 {
   const height = 100, width = 100
 
-  const testDatas: { type: TRecognitionType, config: TRecognizerWebSocketSSRConfiguration }[] = [
+  const testDatas: { type: TRecognitionTypeV1, config: TRecognizerWebSocketSSRConfiguration }[] = [
     {
       type: "TEXT",
       config: RecognizerWebSocketSSRTextConfiguration as TRecognizerWebSocketSSRConfiguration
@@ -301,7 +302,7 @@ describe("RecognizerWebSocketSSR.ts", () =>
       const addStrokesMessageSent = JSON.parse(mockServer.getLastMessage() as string)
       const addStrokesMessageSentToTest = {
         type: "addStrokes",
-        strokes: [stroke.formatToSend()]
+        strokes: [StrokeOps.formatToSend(stroke)]
       }
       await expect(addStrokesMessageSent).toMatchObject(addStrokesMessageSentToTest)
     })

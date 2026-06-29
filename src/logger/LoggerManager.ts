@@ -1,5 +1,6 @@
-import { TLoggerConfiguration } from "./LoggerConfiguration"
-import { Logger, LoggerCategory, LoggerLevel } from "./logger"
+import type { TLoggerConfiguration } from "./LoggerConfiguration"
+import type { LoggerCategory} from "./logger";
+import { Logger, LoggerLevel } from "./logger"
 
 /**
  * @group Logger

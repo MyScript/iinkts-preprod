@@ -1,6 +1,7 @@
-import { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
-import { ButtonListMenuItem, IMenuButtonList, CollapsibleWrapper } from "@/menu/items"
+import type { TMenuButtonList} from "@/menu/items";
+import { ButtonListMenuItem, CollapsibleWrapper } from "@/menu/items"
 import { isText } from "@/symbol"
 
 /**
@@ -12,7 +13,7 @@ export class FontWeightStyle extends BaseMenuItem<HTMLDivElement>
   private fontWeightItem?: ButtonListMenuItem
   private fontWeightList: { label: string, value: "auto" | "normal" | "bold" }[]
 
-  constructor(editor: InteractiveInkEditor, fontWeightList: { label: string, value: "auto" | "normal" | "bold" }[], idPrefix = "ms-menu-style")
+  constructor(editor: TInteractiveInkEditor, fontWeightList: { label: string, value: "auto" | "normal" | "bold" }[], idPrefix = "ms-menu-style")
   {
     const config = {
       type: "fontweight" as const,
@@ -25,7 +26,7 @@ export class FontWeightStyle extends BaseMenuItem<HTMLDivElement>
 
   createElement(): HTMLDivElement
   {
-    const fontWeightConfig: IMenuButtonList = {
+    const fontWeightConfig: TMenuButtonList = {
       type: "buttonlist",
       id: this.config.id,
       options: this.fontWeightList.map(f => ({ label: f.label, value: f.value })),

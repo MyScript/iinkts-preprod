@@ -1,4 +1,4 @@
-import { InteractiveInkEditorMock } from "../__mocks__/InteractiveInkEditorMock"
+import { createEditorMock, asEditor } from "../__mocks__/createEditorMock"
 import
 {
   IIMenuManager,
@@ -11,8 +11,8 @@ describe("IIMenuManager.ts", () =>
 {
   test("should instanciate", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    const manager = new IIMenuManager(editor)
+    const editor = createEditorMock()
+    const manager = new IIMenuManager(asEditor(editor))
     expect(manager).toBeDefined()
   })
 
@@ -24,9 +24,9 @@ describe("IIMenuManager.ts", () =>
       {
         name = "override-style"
       }
-      const editor = new InteractiveInkEditorMock()
+      const editor = createEditorMock()
       //@ts-ignore
-      const manager = new IIMenuManager(editor, { style: CustomMenuStyle })
+      const manager = new IIMenuManager(asEditor(editor), { style: CustomMenuStyle })
       //@ts-ignore
       expect(manager.style.name).toEqual("override-style")
     })
@@ -36,9 +36,9 @@ describe("IIMenuManager.ts", () =>
       {
         name = "override-tool"
       }
-      const editor = new InteractiveInkEditorMock()
+      const editor = createEditorMock()
       //@ts-ignore
-      const manager = new IIMenuManager(editor, { tool: CustomMenuTool })
+      const manager = new IIMenuManager(asEditor(editor), { tool: CustomMenuTool })
       //@ts-ignore
       expect(manager.tool.name).toEqual("override-tool")
     })
@@ -48,9 +48,9 @@ describe("IIMenuManager.ts", () =>
       {
         name = "override-action"
       }
-      const editor = new InteractiveInkEditorMock()
+      const editor = createEditorMock()
       //@ts-ignore
-      const manager = new IIMenuManager(editor, { action: CustomMenuAction })
+      const manager = new IIMenuManager(asEditor(editor), { action: CustomMenuAction })
       //@ts-ignore
       expect(manager.action.name).toEqual("override-action")
     })
@@ -59,9 +59,8 @@ describe("IIMenuManager.ts", () =>
   describe("render", () =>
   {
     const layer = document.createElement("div")
-    const editor = new InteractiveInkEditorMock()
-    //@ts-ignore
-    const manager = new IIMenuManager(editor)
+    const editor = createEditorMock()
+    const manager = new IIMenuManager(asEditor(editor))
     manager.action.render = jest.fn()
     manager.style.render = jest.fn()
     manager.tool.render = jest.fn()
@@ -110,9 +109,8 @@ describe("IIMenuManager.ts", () =>
 
   describe("update", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    //@ts-ignore
-    const manager = new IIMenuManager(editor)
+    const editor = createEditorMock()
+    const manager = new IIMenuManager(asEditor(editor))
     manager.action.update = jest.fn()
     manager.style.update = jest.fn()
     manager.tool.update = jest.fn()
@@ -128,9 +126,8 @@ describe("IIMenuManager.ts", () =>
 
   describe("show/hide", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    //@ts-ignore
-    const manager = new IIMenuManager(editor)
+    const editor = createEditorMock()
+    const manager = new IIMenuManager(asEditor(editor))
     manager.action.show = jest.fn()
     manager.action.hide = jest.fn()
     manager.style.show = jest.fn()
@@ -156,9 +153,8 @@ describe("IIMenuManager.ts", () =>
 
   describe("destroy", () =>
   {
-    const editor = new InteractiveInkEditorMock()
-    //@ts-ignore
-    const manager = new IIMenuManager(editor)
+    const editor = createEditorMock()
+    const manager = new IIMenuManager(asEditor(editor))
     manager.action.destroy = jest.fn()
     manager.style.destroy = jest.fn()
     manager.tool.destroy = jest.fn()

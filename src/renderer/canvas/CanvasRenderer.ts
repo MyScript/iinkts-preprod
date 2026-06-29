@@ -1,7 +1,8 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { Model } from "@/model"
-import { isStroke, Stroke, TSymbol } from "@/symbol"
-import { TRendererConfiguration } from "@/renderer/RendererConfiguration"
+import type { Model } from "@/model"
+import type { Stroke, TBaseSymbol } from "@/symbol";
+import { isStroke } from "@/symbol"
+import type { TRendererConfiguration } from "@/renderer/RendererConfiguration"
 import { BaseRenderer } from "@/renderer/base"
 import { CanvasRendererShape } from "./CanvasRendererShape"
 import { CanvasRendererStroke } from "./CanvasRendererStroke"
@@ -61,12 +62,12 @@ export class CanvasRenderer extends BaseRenderer<CanvasRenderingContext2D, Omit<
     })
   }
 
-  protected drawSymbol(context2D: CanvasRenderingContext2D, symbol: TSymbol)
+  protected drawSymbol(context2D: CanvasRenderingContext2D, symbol: TBaseSymbol)
   {
     this.#logger.debug("drawSymbol", { symbol })
     if (isStroke(symbol)) {
       if (symbol.pointerType !== "eraser") {
-        this.strokeRenderer.draw(context2D, symbol)
+        this.strokeRenderer.draw(context2D, symbol as unknown as Stroke)
       }
     } else if (Object.keys(this.textRenderer.symbols).includes(symbol.type)) {
       this.textRenderer.draw(context2D, symbol)

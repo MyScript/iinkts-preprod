@@ -1,17 +1,19 @@
-import { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { Modal } from "./Modal"
-import { Table, TableRow } from "./Table"
+import type { TTableRow } from "./Table";
+import { Table } from "./Table"
 import { IIMathFunctionEvaluator } from "./IIMathFunctionEvaluator"
 import { IIMathDiagnosticChecker } from "./IIMathDiagnosticChecker"
 import { IIMathVariablePerBlockEditor } from "./IIMathVariablePerBlockEditor"
 import { LoggerCategory } from "@/logger/logger"
 import { LoggerManager } from "@/logger/LoggerManager"
-import { ButtonElConfig, DOMFactory } from "@/components/dom"
+import type { TButtonElConfig} from "@/components/dom";
+import { DOMFactory } from "@/components/dom"
 
 /**
  * @group Components
  */
-export interface MathSymbolCapabilities {
+export type TMathSymbolCapabilities = {
   jiixBlockId: string
   canCheckDiagnostic: boolean
   canEditVariables: boolean
@@ -24,10 +26,10 @@ export interface MathSymbolCapabilities {
  * @remarks Component for displaying math symbols capabilities in a table
  */
 export class IIMathCapabilitiesTable {
-  private editor: InteractiveInkEditor
+  private editor: TInteractiveInkEditor
   private modal?: Modal
   private table?: Table
-  private capabilities: MathSymbolCapabilities[] = []
+  private capabilities: TMathSymbolCapabilities[] = []
   private actionButtons: {
     checkDiagnostic?: HTMLButtonElement
     editVariables?: HTMLButtonElement
@@ -36,7 +38,7 @@ export class IIMathCapabilitiesTable {
   } = {}
   private logger = LoggerManager.getLogger(LoggerCategory.MATH)
 
-  constructor(editor: InteractiveInkEditor) {
+  constructor(editor: TInteractiveInkEditor) {
     this.editor = editor
     this.logger.debug("IIMathCapabilitiesTable initialized")
   }
@@ -44,7 +46,7 @@ export class IIMathCapabilitiesTable {
   /**
    * Fetch capabilities for a single math symbol
    */
-  private async fetchSymbolCapabilities(jiixBlockId: string): Promise<MathSymbolCapabilities> {
+  private async fetchSymbolCapabilities(jiixBlockId: string): Promise<TMathSymbolCapabilities> {
     let canCheckDiagnostic = false
     let canEditVariables = false
     let canCompute = false
@@ -81,13 +83,13 @@ export class IIMathCapabilitiesTable {
   /**
    * Create the table element
    */
-  private createTable(capabilities: MathSymbolCapabilities[]): Table {
+  private createTable(capabilities: TMathSymbolCapabilities[]): Table {
     // Store capabilities for action buttons
     this.capabilities = capabilities
     this.logger.debug("Creating capabilities table with capabilities:", capabilities)
 
     // Prepare rows
-    const rows: TableRow[] = capabilities.map(cap => {
+    const rows: TTableRow[] = capabilities.map(cap => {
       // Symbol label cell
       const symbolCell = DOMFactory.span({ className: "ms-symbol-cell", text: this.editor.jiix.getBlockLabel(cap.jiixBlockId) || "Unknown Symbol" })
       symbolCell.title = this.editor.jiix.getBlockLabel(cap.jiixBlockId) || ""
@@ -189,7 +191,7 @@ export class IIMathCapabilitiesTable {
     const container = DOMFactory.div({ className: "ms-capabilities-actions" })
 
     // Define button configurations
-    const buttonConfigs: ButtonElConfig[] = [
+    const buttonConfigs: TButtonElConfig[] = [
       {
         label: "Check Diagnostic",
         variant: "primary",
@@ -314,7 +316,7 @@ export class IIMathCapabilitiesTable {
     const mathBlocks = this.editor.model.mathBlocks
 
     // Fetch capabilities for all symbols
-    const capabilities: MathSymbolCapabilities[] = []
+    const capabilities: TMathSymbolCapabilities[] = []
     for (const mb of mathBlocks) {
       const cap = await this.fetchSymbolCapabilities(mb.id)
       capabilities.push(cap)

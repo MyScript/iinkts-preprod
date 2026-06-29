@@ -1,6 +1,6 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { IIStroke } from "@/symbol"
-import { TExportV2 } from "./ExportV2"
+import type { TStroke } from "@/symbol"
+import type { TExportV2 } from "./ExportV2"
 
 /**
  * @group Model
@@ -10,8 +10,8 @@ export class IModel
   #logger = LoggerManager.getLogger(LoggerCategory.MODEL)
   readonly creationTime: number
   modificationDate: number
-  currentStroke?: IIStroke
-  strokes: IIStroke[]
+  currentStroke?: TStroke
+  strokes: TStroke[]
   exports?: TExportV2
   converts?: TExportV2
   width: number
@@ -32,12 +32,12 @@ export class IModel
     this.idle = true
   }
 
-  get strokesToDelete(): IIStroke[]
+  get strokesToDelete(): TStroke[]
   {
     return this.strokes.filter(s => s.deleting)
   }
 
-  addStroke(stroke: IIStroke): void
+  addStroke(stroke: TStroke): void
   {
     this.#logger.info("addStroke", { stroke })
     const sIndex = this.strokes.findIndex(s => s.id === stroke.id)
@@ -51,7 +51,7 @@ export class IModel
     this.#logger.debug("addStroke", this.strokes)
   }
 
-  updateStroke(updatedStroke: IIStroke): void
+  updateStroke(updatedStroke: TStroke): void
   {
     this.#logger.info("updateStroke", { updatedStroke })
     const sIndex = this.strokes.findIndex(s => s.id === updatedStroke.id)
@@ -78,7 +78,7 @@ export class IModel
     this.#logger.debug("removeSymbol", this.strokes)
   }
 
-  extractDifferenceStrokes(model: IModel): { added: IIStroke[], removed: IIStroke[] }
+  extractDifferenceStrokes(model: IModel): { added: TStroke[], removed: TStroke[] }
   {
     const modelStrokeKeys = new Set(model.strokes.map(s => `${s.id}-${s.modificationDate}`))
     const thisStrokeKeys = new Set(this.strokes.map(s => `${s.id}-${s.modificationDate}`))
@@ -107,7 +107,7 @@ export class IModel
     clonedModel.modificationDate = this.modificationDate
     clonedModel.strokes = this.strokes.map(s =>
     {
-      const c = s.clone()
+      const c = structuredClone(s)
       c.selected = false
       return c
     })

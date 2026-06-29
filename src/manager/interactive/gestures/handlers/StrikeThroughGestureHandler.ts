@@ -1,5 +1,6 @@
-import { DecoratorKind, IIStroke } from "@/symbol"
-import type { InteractiveInkEditor } from "@/editor"
+import type { TStroke } from "@/symbol";
+import { DecoratorKind } from "@/symbol"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { TGesture } from "@/manager/interactive/gestures/GestureTypes"
 import { StrikeThroughAction } from "@/manager/interactive/gestures/GestureTypes"
 import { GestureHandler } from "@/manager/interactive/gestures/GestureHandler"
@@ -14,12 +15,12 @@ export class StrikeThroughGestureHandler extends GestureHandler
 {
   readonly gestureType = "STRIKETHROUGH" as const
 
-  constructor(editor: InteractiveInkEditor, helpers: GestureHelpers)
+  constructor(editor: TInteractiveInkEditor, helpers: GestureHelpers)
   {
     super(editor, helpers)
   }
 
-  async apply(gestureStroke: IIStroke, gesture: TGesture): Promise<void>
+  async apply(gestureStroke: TStroke, gesture: TGesture): Promise<void>
   {
     this.logger.debug("applyStrikeThroughGesture", { gestureStroke, gesture })
     if (!gesture.strokeIds.length) {

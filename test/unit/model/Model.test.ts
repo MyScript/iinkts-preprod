@@ -437,7 +437,7 @@ describe("Model.ts", () =>
     model.exports = { "text/plain": "M" }
     test("should clone", () =>
     {
-      const clone = model.clone()
+      const clone = structuredClone(model)
       expect(clone != model).toBeTruthy()
       expect(clone.currentSymbol).toEqual(model.currentSymbol)
       expect(clone.currentSymbol).not.toBe(model.currentSymbol)

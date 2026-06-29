@@ -1,5 +1,9 @@
 export default {
   rootDir: "../../",
+  roots: [
+    "<rootDir>/src",
+    "<rootDir>/test/unit"
+  ],
   clearMocks: true,
   // collectCoverage: true,
   collectCoverageFrom: [

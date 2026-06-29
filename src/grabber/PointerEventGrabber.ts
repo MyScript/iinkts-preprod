@@ -1,11 +1,11 @@
 import { LoggerCategory, LoggerLevel, LoggerManager } from "@/logger"
-import { TPointer } from "@/symbol"
-import { TGrabberConfiguration } from "./GrabberConfiguration"
+import type { TPointer } from "@/symbol"
+import type { TGrabberConfiguration } from "./GrabberConfiguration"
 
 /**
  * @group Grabber
  */
-export type PointerInfo = {
+export type TPointerInfo = {
   clientX: number,
   clientY: number,
   isPrimary: boolean,
@@ -30,10 +30,10 @@ export class PointerEventGrabber
   protected pointerType?: string
   protected prevent = (e: Event) => e.preventDefault()
 
-  onPointerDown?: (info: PointerInfo) => void
-  onPointerMove?: (info: PointerInfo) => void
-  onPointerUp?: (info: PointerInfo) => void
-  onContextMenu?: (info: PointerInfo) => void
+  onPointerDown?: (info: TPointerInfo) => void
+  onPointerMove?: (info: TPointerInfo) => void
+  onPointerUp?: (info: TPointerInfo) => void
+  onContextMenu?: (info: TPointerInfo) => void
 
   constructor(configuration: TGrabberConfiguration)
   {
@@ -98,7 +98,7 @@ export class PointerEventGrabber
     return pointer
   }
 
-  protected getPointerInfos(evt: PointerEvent): PointerInfo
+  protected getPointerInfos(evt: PointerEvent): TPointerInfo
   {
     return {
       clientX: evt.clientX,
@@ -176,7 +176,7 @@ export class PointerEventGrabber
   protected contextMenuHandler = (evt: MouseEvent) =>
   {
     if (evt.target && this.onContextMenu) {
-      const pointerInfo: PointerInfo = {
+      const pointerInfo: TPointerInfo = {
         clientX: evt.clientX,
         clientY: evt.clientY,
         isPrimary: true,

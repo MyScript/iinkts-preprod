@@ -1,9 +1,10 @@
-import { InteractiveInkEditor } from "@/editor/variants/InteractiveInkEditor"
-import { InteractiveInkEditorConfiguration } from "@/editor/variants/InteractiveInkEditorConfiguration"
-import { LoggerCategory, LoggerManager, Logger } from "@/logger"
-import { IIModel } from "@/model"
-import { SVGRenderer } from "@/renderer"
-import { RecognizerWebSocket } from "@/recognizer"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import type { InteractiveInkEditorConfiguration } from "@/editor/variants/InteractiveInkEditorConfiguration"
+import type { LoggerCategory, Logger } from "@/logger";
+import { LoggerManager } from "@/logger"
+import type { IIModel } from "@/model"
+import type { SVGRenderer } from "@/renderer"
+import type { RecognizerWebSocket } from "@/recognizer"
 
 /**
  * Base abstract class for all Interactive Ink managers
@@ -63,7 +64,7 @@ export abstract class IIAbstractManager
    * Create a new manager
    * @param editor - The Interactive Ink Editor instance
    */
-  constructor(protected editor: InteractiveInkEditor, logger: LoggerCategory)
+  constructor(protected editor: TInteractiveInkEditor, logger: LoggerCategory)
   {
     this.logger = LoggerManager.getLogger(logger)
 

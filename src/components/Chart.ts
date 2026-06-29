@@ -4,7 +4,7 @@ import { DOMFactory } from "@/components/dom"
 /**
  * @group Components
  */
-export interface ChartConfig
+export type TChartConfig =
 {
   width?: number
   height?: number
@@ -21,7 +21,7 @@ export interface ChartConfig
 /**
  * @hidden
  */
-interface ViewPort
+type TViewPort =
 {
   xMin: number
   xMax: number
@@ -32,7 +32,7 @@ interface ViewPort
 /**
  * @hidden
  */
-interface Margin
+type TMargin =
 {
   top: number
   right: number
@@ -43,7 +43,7 @@ interface Margin
 /**
  * @hidden
  */
-interface ScaleFunctions
+type TScaleFunctions =
 {
   scaleX: (x: number) => number
   scaleY: (y: number) => number
@@ -52,7 +52,7 @@ interface ScaleFunctions
 /**
  * @hidden
  */
-interface AxisPositions
+type TAxisPositions =
 {
   xAxisY: number
   yAxisX: number
@@ -63,7 +63,7 @@ interface AxisPositions
  */
 export class Chart
 {
-  private static readonly CHART_MARGIN: Margin = { top: 40, right: 40, bottom: 60, left: 60 }
+  private static readonly CHART_MARGIN: TMargin = { top: 40, right: 40, bottom: 60, left: 60 }
   private static readonly SERIES_COLORS = [
     "#2196F3", // Blue
     "#FF5722", // Red
@@ -76,16 +76,16 @@ export class Chart
 
   private canvas: HTMLCanvasElement
   private ctx: CanvasRenderingContext2D
-  private config: Required<ChartConfig>
+  private config: Required<TChartConfig>
   private series: number[][][] = [] // Array of series, each series is an array of [x, y] points
   private container: HTMLDivElement
-  private viewport: ViewPort | null = null
-  private defaultViewport: ViewPort | null = null
+  private viewport: TViewPort | null = null
+  private defaultViewport: TViewPort | null = null
   private isDragging = false
   private lastMousePos = { x: 0, y: 0 }
   private controlsContainer?: HTMLDivElement
 
-  constructor(config: ChartConfig = {})
+  constructor(config: TChartConfig = {})
   {
     this.config = {
       width: config.width ?? 500,
@@ -98,7 +98,7 @@ export class Chart
       showGrid: config.showGrid ?? true,
       showPoints: config.showPoints ?? true,
       seriesColors: config.seriesColors
-    } as Required<ChartConfig>
+    } as Required<TChartConfig>
 
     // Create container
     this.container = DOMFactory.div({ className: "ms-chart" })
@@ -291,7 +291,7 @@ export class Chart
   /**
    * Get chart dimensions accounting for margins
    */
-  private getChartDimensions(): { chartWidth: number; chartHeight: number; margin: Margin }
+  private getChartDimensions(): { chartWidth: number; chartHeight: number; margin: TMargin }
   {
     const margin = Chart.CHART_MARGIN
     const chartWidth = this.config.width - margin.left - margin.right
@@ -335,7 +335,7 @@ export class Chart
   /**
    * Calculate default viewport based on median values
    */
-  private calculateDefaultViewport(): ViewPort | null
+  private calculateDefaultViewport(): TViewPort | null
   {
     // Collect all points from all series
     const allPoints: number[][] = []
@@ -510,7 +510,7 @@ export class Chart
   /**
    * Calculate viewport bounds (with or without custom viewport)
    */
-  private calculateViewportBounds(): ViewPort | null
+  private calculateViewportBounds(): TViewPort | null
   {
     if (this.viewport) {
       return this.viewport
@@ -550,10 +550,10 @@ export class Chart
     xMax: number,
     yMin: number,
     yMax: number,
-    margin: Margin,
+    margin: TMargin,
     chartWidth: number,
     chartHeight: number
-  ): ScaleFunctions
+  ): TScaleFunctions
   {
     const scaleX = (x: number) =>
       margin.left + ((x - xMin) / (xMax - xMin)) * chartWidth
@@ -573,10 +573,10 @@ export class Chart
     yMax: number,
     scaleY: (y: number) => number,
     scaleX: (x: number) => number,
-    margin: Margin,
+    margin: TMargin,
     chartHeight: number,
     chartWidth: number
-  ): AxisPositions
+  ): TAxisPositions
   {
     let xAxisY: number
     let yAxisX: number
@@ -619,7 +619,7 @@ export class Chart
   /**
    * Draw grid lines
    */
-  private drawGrid(margin: Margin, chartWidth: number, chartHeight: number): void
+  private drawGrid(margin: TMargin, chartWidth: number, chartHeight: number): void
   {
     if (!this.config.showGrid) return
 
@@ -651,7 +651,7 @@ export class Chart
   /**
    * Draw chart border
    */
-  private drawChartBorder(margin: Margin, chartWidth: number, chartHeight: number): void
+  private drawChartBorder(margin: TMargin, chartWidth: number, chartHeight: number): void
   {
     const ctx = this.ctx
     ctx.strokeStyle = "#ccc"
@@ -665,7 +665,7 @@ export class Chart
   private drawAxes(
     xAxisY: number,
     yAxisX: number,
-    margin: Margin,
+    margin: TMargin,
     chartWidth: number,
     chartHeight: number
   ): void
@@ -716,7 +716,7 @@ export class Chart
     xMax: number,
     xAxisY: number,
     scaleX: (x: number) => number,
-    margin: Margin,
+    margin: TMargin,
     chartHeight: number
   ): void
   {
@@ -764,7 +764,7 @@ export class Chart
     yMax: number,
     yAxisX: number,
     scaleY: (y: number) => number,
-    margin: Margin,
+    margin: TMargin,
     chartWidth: number
   ): void
   {
@@ -812,7 +812,7 @@ export class Chart
   private drawCurves(
     scaleX: (x: number) => number,
     scaleY: (y: number) => number,
-    margin: Margin,
+    margin: TMargin,
     chartWidth: number,
     chartHeight: number
   ): void
@@ -862,7 +862,7 @@ export class Chart
   private drawPoints(
     scaleX: (x: number) => number,
     scaleY: (y: number) => number,
-    margin: Margin,
+    margin: TMargin,
     chartWidth: number,
     chartHeight: number
   ): void
@@ -909,7 +909,7 @@ export class Chart
   /**
    * Update chart configuration and redraw
    */
-  updateConfig(config: Partial<ChartConfig>): void
+  updateConfig(config: Partial<TChartConfig>): void
   {
     Object.assign(this.config, config)
     this.draw()

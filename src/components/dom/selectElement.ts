@@ -1,14 +1,14 @@
 /** @group DOM */
-export interface SelectElOption {
+export type TSelectElOption = {
   value: string
   label: string
   selected?: boolean
 }
 
 /** @group DOM */
-export interface SelectElConfig {
+export type TSelectElConfig = {
   id: string
-  options?: SelectElOption[]
+  options?: TSelectElOption[]
   defaultValue?: string
   disabled?: boolean
   className?: string
@@ -26,7 +26,7 @@ const DEFAULT_SELECT_STYLE = `
 `
 
 /** @group DOM */
-export function buildOption(opt: SelectElOption): HTMLOptionElement {
+export function buildOption(opt: TSelectElOption): HTMLOptionElement {
   const el = document.createElement("option")
   el.value = opt.value
   el.textContent = opt.label
@@ -35,7 +35,7 @@ export function buildOption(opt: SelectElOption): HTMLOptionElement {
 }
 
 /** @group DOM */
-export function buildSelect(config: SelectElConfig): HTMLSelectElement {
+export function buildSelect(config: TSelectElConfig): HTMLSelectElement {
   const select = document.createElement("select")
   select.id = config.id
   select.style.cssText = config.customStyle ?? DEFAULT_SELECT_STYLE

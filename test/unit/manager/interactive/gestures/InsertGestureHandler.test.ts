@@ -1,22 +1,35 @@
-import { InteractiveInkEditorMock } from "../../../__mocks__/InteractiveInkEditorMock"
+import { createEditorMock, asEditor } from "../../../__mocks__/createEditorMock"
 import { buildIIStroke } from "../../../helpers"
 import {
   InsertGestureHandler,
-  GestureHelpers
+  GestureHelpers,
+  StrokeOps,
 } from "../../../../../src/iink"
+import { MatrixTransform } from "../../../../../src/transform/Matrix"
+import type { TStroke } from "../../../../../src/iink"
 
 describe("InsertGestureHandler.ts", () =>
 {
-  let editor: InteractiveInkEditorMock
+  let editor: ReturnType<typeof createEditorMock>
   let helpers: GestureHelpers
   let handler: InsertGestureHandler
 
   beforeEach(() =>
   {
-    editor = new InteractiveInkEditorMock()
-    editor.init()
-    helpers = new GestureHelpers(editor)
-    handler = new InsertGestureHandler(editor, helpers)
+    editor = createEditorMock()
+    ;(editor.transform as unknown as Record<string, unknown>).translate = {
+      applyToSymbol: jest.fn().mockImplementation((sym: TStroke, matrix: MatrixTransform) => {
+        sym.pointers.forEach(p => {
+          const np = MatrixTransform.applyToPoint(matrix, p)
+          p.x = +np.x.toFixed(3)
+          p.y = +np.y.toFixed(3)
+        })
+        StrokeOps.updateBounds(sym)
+        return sym
+      })
+    }
+    helpers = new GestureHelpers(asEditor(editor))
+    handler = new InsertGestureHandler(asEditor(editor), helpers)
   })
 
   test("should instantiate", () =>
@@ -30,8 +43,8 @@ describe("InsertGestureHandler.ts", () =>
     test("should create strokes from substroke data", () =>
     {
       const strokeOrigin = buildIIStroke()
-      strokeOrigin.addPointer({ x: 0, y: 0, p: 1, t: 100 })
-      strokeOrigin.addPointer({ x: 5, y: 5, p: 0.8, t: 200 })
+      StrokeOps.addPointer(strokeOrigin, { x: 0, y: 0, p: 1, t: 100 })
+      StrokeOps.addPointer(strokeOrigin, { x: 5, y: 5, p: 0.8, t: 200 })
 
       const subStrokes = [
         { x: [0, 1], y: [0, 1] },
@@ -48,7 +61,7 @@ describe("InsertGestureHandler.ts", () =>
     test("should handle single substroke", () =>
     {
       const strokeOrigin = buildIIStroke()
-      strokeOrigin.addPointer({ x: 0, y: 0, p: 1, t: 100 })
+      StrokeOps.addPointer(strokeOrigin, { x: 0, y: 0, p: 1, t: 100 })
 
       const subStrokes = [
         { x: [0, 1], y: [0, 1] }
@@ -65,9 +78,9 @@ describe("InsertGestureHandler.ts", () =>
     test("should split stroke into before and after parts", () =>
     {
       const strokeOrigin = buildIIStroke()
-      strokeOrigin.addPointer({ x: 0, y: 0, p: 1, t: 100 })
-      strokeOrigin.addPointer({ x: 5, y: 5, p: 0.8, t: 200 })
-      strokeOrigin.addPointer({ x: 10, y: 10, p: 0.9, t: 300 })
+      StrokeOps.addPointer(strokeOrigin, { x: 0, y: 0, p: 1, t: 100 })
+      StrokeOps.addPointer(strokeOrigin, { x: 5, y: 5, p: 0.8, t: 200 })
+      StrokeOps.addPointer(strokeOrigin, { x: 10, y: 10, p: 0.9, t: 300 })
 
       const subStrokes = [
         { x: [0, 1], y: [0, 1] },
@@ -83,8 +96,8 @@ describe("InsertGestureHandler.ts", () =>
     test("should translate after stroke", () =>
     {
       const strokeOrigin = buildIIStroke()
-      strokeOrigin.addPointer({ x: 0, y: 0, p: 1, t: 100 })
-      strokeOrigin.addPointer({ x: 5, y: 5, p: 0.8, t: 200 })
+      StrokeOps.addPointer(strokeOrigin, { x: 0, y: 0, p: 1, t: 100 })
+      StrokeOps.addPointer(strokeOrigin, { x: 5, y: 5, p: 0.8, t: 200 })
 
       const subStrokes = [
         { x: [0, 1], y: [0, 1] },
@@ -106,11 +119,11 @@ describe("InsertGestureHandler.ts", () =>
     test("should return changes with replaced symbols", () =>
     {
       const gestureStroke = buildIIStroke()
-      gestureStroke.addPointer({ x: 5, y: 5, p: 1, t: 100 })
+      StrokeOps.addPointer(gestureStroke, { x: 5, y: 5, p: 1, t: 100 })
 
       const strokeToSplit = buildIIStroke()
-      strokeToSplit.addPointer({ x: 0, y: 0, p: 1, t: 100 })
-      strokeToSplit.addPointer({ x: 10, y: 10, p: 1, t: 200 })
+      StrokeOps.addPointer(strokeToSplit, { x: 0, y: 0, p: 1, t: 100 })
+      StrokeOps.addPointer(strokeToSplit, { x: 10, y: 10, p: 1, t: 200 })
 
       editor.model.addSymbol(strokeToSplit)
 

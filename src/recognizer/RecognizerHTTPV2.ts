@@ -1,12 +1,14 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
-import { TExportV2, TJIIXExport } from "@/model"
-import { TStroke, TStrokeToSend } from "@/symbol"
-import { computeHmac, getApiInfos, isVersionSuperiorOrEqual, PartialDeep } from "@/utils"
+import type { TExportV2, TJIIXExport } from "@/model"
+import { StrokeOps, type TStrokeMinimal } from "@/symbol"
+import type { TPartialDeep } from "@/utils";
+import { computeHmac, getApiInfos, isVersionSuperiorOrEqual } from "@/utils"
 import { RecognizerError } from "./RecognizerError"
-import { RecognizerHTTPV2Configuration, TRecognizerHTTPV2Configuration } from "./RecognizerHTTPV2Configuration"
-import { TDiagramConfiguration, TExportConfiguration, TMathConfiguration, TRawContentConfiguration, TTextConfiguration } from "./recognition"
+import type { TRecognizerHTTPV2Configuration } from "./RecognizerHTTPV2Configuration";
+import { RecognizerHTTPV2Configuration } from "./RecognizerHTTPV2Configuration"
+import type { TDiagramConfiguration, TExportConfiguration, TMathConfiguration, TRawContentConfiguration, TTextConfiguration } from "./recognition"
 
-type ApiError = {
+type TApiError = {
   code?: string
   message: string
 }
@@ -31,7 +33,7 @@ export type TRecognizerHTTPV2PostData = {
   scaleY: number,
   configuration: TRecognizerHTTPV2PostConfiguration,
   contentType: string,
-  strokes: TStrokeToSend[]
+  strokes: { id: string, pointerType: string, x: number[], y: number[], t: number[], p: number[]}[]
 }
 
 /**
@@ -42,7 +44,7 @@ export class RecognizerHTTPV2 {
 
   configuration: RecognizerHTTPV2Configuration
 
-  constructor(config: PartialDeep<TRecognizerHTTPV2Configuration>) {
+  constructor(config: TPartialDeep<TRecognizerHTTPV2Configuration>) {
     this.#logger.info("constructor", { config })
     this.configuration = new RecognizerHTTPV2Configuration(config)
   }
@@ -83,20 +85,7 @@ export class RecognizerHTTPV2 {
     }
   }
 
-  protected formatStrokes(strokes: TStroke[]): TStrokeToSend[] {
-    return strokes.map(s => {
-      return {
-        id: s.id,
-        pointerType: s.pointerType,
-        p: s.pointers.map(p => p.p),
-        t: s.pointers.map(p => p.t),
-        x: s.pointers.map(p => p.x),
-        y: s.pointers.map(p => p.y)
-      }
-    })
-  }
-
-  protected buildData(strokes: TStroke[]): TRecognizerHTTPV2PostData {
+  protected buildData(strokes: TStrokeMinimal[]): TRecognizerHTTPV2PostData {
     this.#logger.info("buildData", { strokes })
 
     const contentType: string = this.configuration.recognition.type === "Raw Content" ?
@@ -108,7 +97,7 @@ export class RecognizerHTTPV2 {
       scaleX: 0.265,
       scaleY: 0.265,
       contentType,
-      strokes: this.formatStrokes(strokes)
+      strokes: strokes.map(s => StrokeOps.formatToSend(s))
     }
     this.#logger.debug("buildData", { data })
     return data
@@ -186,11 +175,11 @@ export class RecognizerHTTPV2 {
       return result
     } else {
       if (response.headers.get("content-type")?.includes("application/json")) {
-        const err = await response.json() as ApiError
+        const err = await response.json() as TApiError
         this.#logger.error("post", { err })
         throw err
       } else {
-        const err: ApiError = {
+        const err: TApiError = {
           code: response.status.toString(),
           message: await response.text()
         }
@@ -247,7 +236,7 @@ export class RecognizerHTTPV2 {
     return mimeTypes
   }
 
-  async send(strokes: TStroke[], requestedMimeTypes?: string[]): Promise<TExportV2> {
+  async send(strokes: TStrokeMinimal[], requestedMimeTypes?: string[]): Promise<TExportV2> {
     this.#logger.info("send", strokes)
 
     const recognition: TExportV2 = {}

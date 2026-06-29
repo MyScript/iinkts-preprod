@@ -1,17 +1,19 @@
 import { IIAbstractManager } from "../IIAbstractManager"
-import { IIStroke, TBox, Box, isStroke, isRecognizedMath } from "@/symbol"
+import type { TStroke, TBox} from "@/symbol";
+import { isStroke, isRecognizedMath } from "@/symbol"
+import { BoxOps } from "@/symbol/primitives/Box"
 import { convertBoundingBoxMillimeterToPixel, getBoxConnectionPoint } from "@/utils"
-import { TJIIXMathExpression, TJIIXMathElement } from "@/model/ExportMath"
-import { TMathVariable, TMathVariableDefinition, TMathVariableDefinitions } from "@/recognizer"
+import type { TJIIXMathExpression, TJIIXMathElement } from "@/model/ExportMath"
+import type { TMathVariable, TMathVariableDefinition, TMathVariableDefinitions } from "@/recognizer"
 import { ColorPaletteManager } from "../../base"
-import type { InteractiveInkEditor } from "@/editor"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { LoggerCategory } from "@/logger"
 
 /**
  * Type representing math symbol dependencies
  * @group Manager
  */
-export type MathDependencies = {
+export type TMathDependencies = {
   /**
    * Map of variable names to their source block IDs
    */
@@ -72,7 +74,7 @@ export class IIMathVariableSubManager extends IIAbstractManager
     DASH_ARRAY: "5 3",
   }
 
-  #dependencies: Map<string, MathDependencies> = new Map()
+  #dependencies: Map<string, TMathDependencies> = new Map()
   #variableCache: Map<string, TMathVariable[]> = new Map()
   #variableDefsCache: TMathVariableDefinitions[] | null = null
   #variableDefinitionCache: Map<string, TMathVariableDefinition | null> = new Map()
@@ -82,7 +84,7 @@ export class IIMathVariableSubManager extends IIAbstractManager
   #selectedJiixBlockIds: Set<string> = new Set()
   #colorManager: ColorPaletteManager
 
-  constructor(editor: InteractiveInkEditor, config: Partial<TMathInteractionConfig> = {})
+  constructor(editor: TInteractiveInkEditor, config: Partial<TMathInteractionConfig> = {})
   {
     super(editor, LoggerCategory.MATH)
     this.#colorManager = ColorPaletteManager.getInstance()
@@ -100,23 +102,23 @@ export class IIMathVariableSubManager extends IIAbstractManager
     return { ...this.#config }
   }
 
-  private getMathSymbols(): IIStroke[]
+  private getMathSymbols(): TStroke[]
   {
     return this.editor.model.symbols.filter(isRecognizedMath)
   }
 
-  findMathSymbolsByJiixId(jiixId: string): IIStroke[]
+  findMathSymbolsByJiixId(jiixId: string): TStroke[]
   {
     return this.editor.model.symbols.filter(s =>
       isStroke(s) && s.jiixBlockId === jiixId && s.jiixBlockType === "Math"
-    ) as IIStroke[]
+    ) as TStroke[]
   }
 
   private getBlockBounds(jiixBlockId: string): TBox | null
   {
     const strokes = this.findMathSymbolsByJiixId(jiixBlockId)
     if (!strokes.length) return null
-    return Box.createFromBoxes(strokes.map(s => s.bounds))
+    return BoxOps.createFromBoxes(strokes.map(s => s.bounds))
   }
 
   private getAllMathBlockIds(): string[]
@@ -143,7 +145,7 @@ export class IIMathVariableSubManager extends IIAbstractManager
     return boxes
   }
 
-  getDependencies(blockId: string): MathDependencies | null
+  getDependencies(blockId: string): TMathDependencies | null
   {
     return this.#dependencies.get(blockId) ?? null
   }
