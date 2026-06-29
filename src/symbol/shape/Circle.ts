@@ -15,8 +15,6 @@ export type TShapeCircle = TBaseSymbol & {
   type: SymbolType.Shape
   kind: ShapeKind.Circle
   style: TStyle
-  selected: boolean
-  deleting: boolean
   center: TPoint
   radius: number
   vertices: TPoint[]
@@ -42,8 +40,6 @@ export const ShapeCircleOps = {
       style: mergedStyle,
       creationTime: now,
       modificationDate: now,
-      selected: false,
-      deleting: false,
       center,
       radius,
       vertices: [],

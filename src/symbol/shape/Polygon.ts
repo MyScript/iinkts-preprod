@@ -18,8 +18,6 @@ export type TShapePolygon = TBaseSymbol & {
   type: SymbolType.Shape
   kind: ShapeKind.Polygon
   style: TStyle
-  selected: boolean
-  deleting: boolean
   points: TPoint[]
   vertices: TPoint[]
   bounds: TBox
@@ -44,8 +42,6 @@ export const ShapePolygonOps = {
       style: mergedStyle,
       creationTime: now,
       modificationDate: now,
-      selected: false,
-      deleting: false,
       points,
       vertices: points,
       bounds: { x: 0, y: 0, width: 0, height: 0 },

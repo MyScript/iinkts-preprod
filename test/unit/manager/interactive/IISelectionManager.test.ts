@@ -364,7 +364,7 @@ describe("IISelectionManager.ts", () =>
       manager.continue(info)
       expect(manager.drawSelectingRect).toHaveBeenCalledTimes(1)
       expect(manager.renderer.updateSelectedState).toHaveBeenCalledTimes(1)
-      expect(manager.renderer.updateSelectedState).toHaveBeenCalledWith(strokeToSelect)
+      expect(manager.renderer.updateSelectedState).toHaveBeenCalledWith(strokeToSelect, true)
       expect(manager.model.symbolsSelected).toEqual([strokeToSelect])
     })
 

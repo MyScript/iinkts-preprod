@@ -29,7 +29,6 @@ describe("Arc.ts", () =>
       expect(arc.creationTime).toBeLessThanOrEqual(Date.now())
       expect(arc.creationTime).toEqual(arc.modificationDate)
       expect(arc.style).toEqual(expect.objectContaining(style))
-      expect(arc.selected).toEqual(false)
       expect(arc.center).toEqual(center)
       expect(arc.bounds.x).toEqual(-15)
       expect(arc.bounds.y).toEqual(-5)

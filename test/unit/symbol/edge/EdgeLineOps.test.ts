@@ -18,8 +18,6 @@ describe("EdgeLineOps", () =>
       const end: TPoint = { x: 10, y: 10 }
       const line = EdgeLineOps.create(start, end)
       expect(line.style).toEqual(DefaultStyle)
-      expect(line.selected).toEqual(false)
-      expect(line.deleting).toEqual(false)
       expect(line.start).toEqual(start)
       expect(line.end).toEqual(end)
     })

@@ -14,8 +14,6 @@ export type TEdgePolyLine = TBaseSymbol & {
   type: SymbolType.Edge
   kind: EdgeKind.PolyEdge
   style: TStyle
-  selected: boolean
-  deleting: boolean
   startDecoration?: EdgeDecoration
   endDecoration?: EdgeDecoration
   startAnchor?: TAnchor
@@ -44,8 +42,6 @@ export const EdgePolyLineOps = {
       style: mergedStyle,
       creationTime: now,
       modificationDate: now,
-      selected: false,
-      deleting: false,
       startDecoration,
       endDecoration,
       points,

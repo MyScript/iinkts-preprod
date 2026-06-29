@@ -220,8 +220,8 @@ describe("IIResizeManager.ts", () =>
     StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 0, y: 0 })
     StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 10, y: 50 })
     const strokeNotResized = structuredClone(stroke)
-    stroke.selected = true
     editor.model.addSymbol(stroke)
+    editor.model.selectedIds.add(stroke.id)
 
     const resizeToPoint: TPoint = {
       x: (stroke.bounds.x + stroke.bounds.width + stroke.bounds.x) / 4,

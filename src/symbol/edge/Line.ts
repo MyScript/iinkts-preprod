@@ -16,8 +16,6 @@ export type TEdgeLine = TBaseSymbol & {
   type: SymbolType.Edge
   kind: EdgeKind.Line
   style: TStyle
-  selected: boolean
-  deleting: boolean
   startDecoration?: EdgeDecoration
   endDecoration?: EdgeDecoration
   startAnchor?: TAnchor
@@ -47,8 +45,6 @@ export const EdgeLineOps = {
       style: mergedStyle,
       creationTime: now,
       modificationDate: now,
-      selected: false,
-      deleting: false,
       startDecoration,
       endDecoration,
       start,

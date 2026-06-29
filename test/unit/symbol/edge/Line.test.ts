@@ -24,7 +24,6 @@ describe("Line.ts", () =>
       expect(line.creationTime).toBeLessThanOrEqual(Date.now())
       expect(line.creationTime).toEqual(line.modificationDate)
       expect(line.style).toEqual(expect.objectContaining(style))
-      expect(line.selected).toEqual(false)
       expect(line.start).toEqual(start)
       expect(line.end).toEqual(end)
       expect(line.bounds.x).toEqual(-5)

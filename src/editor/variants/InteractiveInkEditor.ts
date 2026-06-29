@@ -921,9 +921,15 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
     this.selector.removeSelectedGroup()
     this.model.symbols.forEach(s =>
     {
-      if (ids.includes(s.id) !== s.selected) {
-        s.selected = ids.includes(s.id)
-        this.renderer.updateSelectedState(s)
+      const shouldBeSelected = ids.includes(s.id)
+      const wasSelected = this.model.selectedIds.has(s.id)
+      if (wasSelected !== shouldBeSelected) {
+        if (shouldBeSelected) {
+          this.model.selectedIds.add(s.id)
+        } else {
+          this.model.selectedIds.delete(s.id)
+        }
+        this.renderer.updateSelectedState(s, shouldBeSelected)
       }
     })
     this.selector.drawSelectedGroup(this.model.symbolsSelected)
@@ -948,8 +954,8 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
     this.selector.removeSelectedGroup()
     this.model.symbols.forEach(s =>
     {
-      s.selected = true
-      this.renderer.updateSelectedState(s)
+      this.model.selectedIds.add(s.id)
+      this.renderer.updateSelectedState(s, true)
     })
     this.selector.drawSelectedGroup(this.model.symbolsSelected)
 
@@ -972,9 +978,9 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
     if (this.model.symbolsSelected.length) {
       this.model.symbolsSelected.forEach(s =>
       {
-        s.selected = false
-        this.renderer.updateSelectedState(s)
+        this.renderer.updateSelectedState(s, false)
       })
+      this.model.resetSelection()
       this.selector.removeSelectedGroup()
       this.updateLayerUI()
 
@@ -1465,7 +1471,6 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
           clone.id = `${clone.type}-${createUUID()}`
         }
 
-        clone.selected = true
         const matrix = MatrixTransform.identity().translate(SELECTION_MARGIN, bounds.height + SELECTION_MARGIN)
         this.transform.translate.applyToSymbol(clone, matrix)
         return clone
@@ -1576,7 +1581,6 @@ export class InteractiveInkEditor extends AbstractEditor implements TInteractive
   {
     const clone = cloneSymbol(symbol)
     clone.id = `${ clone.type }-${ createUUID() }`
-    clone.selected = false
     const matrix = MatrixTransform.identity().translate(tx, ty)
     this.transform.translate.applyToSymbol(clone, matrix)
     return clone

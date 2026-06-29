@@ -15,8 +15,6 @@ export type TEdgeArc = TBaseSymbol & {
   type: SymbolType.Edge
   kind: EdgeKind.Arc
   style: TStyle
-  selected: boolean
-  deleting: boolean
   center: TPoint
   startAngle: number
   sweepAngle: number
@@ -58,8 +56,6 @@ export const EdgeArcOps = {
       style: mergedStyle,
       creationTime: now,
       modificationDate: now,
-      selected: false,
-      deleting: false,
       center,
       startAngle,
       sweepAngle,

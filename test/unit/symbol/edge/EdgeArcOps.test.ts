@@ -17,8 +17,6 @@ describe("EdgeArcOps", () =>
       const center: TPoint = { x: 0, y: 0 }
       const arc = EdgeArcOps.create(center, Math.PI / 4, Math.PI / 2, 10, 10, 0)
       expect(arc.style).toEqual(DefaultStyle)
-      expect(arc.selected).toEqual(false)
-      expect(arc.deleting).toEqual(false)
       expect(arc.center).toEqual(center)
       expect(arc.startAngle).toEqual(Math.PI / 4)
       expect(arc.sweepAngle).toEqual(Math.PI / 2)

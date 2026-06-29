@@ -51,13 +51,6 @@ describe("TextOps", () =>
       expect(text.edges).toHaveLength(4)
     })
 
-    test("should set selected and deleting to false", () =>
-    {
-      const text = TextOps.create(chars, point, bounds)
-      expect(text.selected).toBe(false)
-      expect(text.deleting).toBe(false)
-    })
-
     test("should have no rotation by default", () =>
     {
       const text = TextOps.create(chars, point, bounds)

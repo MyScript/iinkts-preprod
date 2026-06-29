@@ -53,12 +53,6 @@ describe("MathOps", () =>
       expect(math.edges).toHaveLength(4)
     })
 
-    test("should set selected and deleting to false", () =>
-    {
-      const math = MathOps.create(elements, point, bounds)
-      expect(math.selected).toBe(false)
-      expect(math.deleting).toBe(false)
-    })
 
     test("should have no rotation by default", () =>
     {

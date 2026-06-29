@@ -25,8 +25,6 @@ export type TSymbolChar = TTypesetChild
 export type TText = TBaseSymbol & {
   type: SymbolType.Text
   style: TStyle
-  selected: boolean
-  deleting: boolean
   point: TPoint
   chars: TSymbolChar[]
   decorators: TDecorator[]
@@ -67,8 +65,6 @@ export const TextOps = {
       style: mergedStyle,
       creationTime: now,
       modificationDate: now,
-      selected: false,
-      deleting: false,
       point,
       chars,
       decorators: [],

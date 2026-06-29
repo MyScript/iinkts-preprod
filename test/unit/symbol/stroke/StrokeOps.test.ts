@@ -15,8 +15,6 @@ describe("StrokeOps", () =>
       expect(stroke.style).toEqual(DefaultStyle)
       expect(stroke.pointerType).toEqual("pen")
       expect(stroke.pointers).toHaveLength(0)
-      expect(stroke.selected).toEqual(false)
-      expect(stroke.deleting).toEqual(false)
       expect(stroke.length).toEqual(0)
       expect(stroke.bounds).toEqual({ x: 0, y: 0, width: 0, height: 0 })
     })

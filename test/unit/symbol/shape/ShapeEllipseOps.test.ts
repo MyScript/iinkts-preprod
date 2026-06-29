@@ -15,8 +15,6 @@ describe("ShapeEllipseOps", () =>
     {
       const ellipse = ShapeEllipseOps.create({ x: 0, y: 0 }, 5, 10, 0)
       expect(ellipse.style).toEqual(DefaultStyle)
-      expect(ellipse.selected).toEqual(false)
-      expect(ellipse.deleting).toEqual(false)
       expect(ellipse.creationTime).toBeLessThanOrEqual(Date.now())
     })
     test("should create with custom style", () =>

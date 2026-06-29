@@ -782,10 +782,15 @@ export class IISelectionManager extends IIAbstractManager
         shouldBeSelected = symbolRegistry.getUtil(s.type)?.overlaps(s, selectionBox) ?? false
       }
 
-      if (s.selected !== shouldBeSelected) {
-        s.selected = shouldBeSelected
+      const wasSelected = this.model.selectedIds.has(s.id)
+      if (wasSelected !== shouldBeSelected) {
+        if (shouldBeSelected) {
+          this.model.selectedIds.add(s.id)
+        } else {
+          this.model.selectedIds.delete(s.id)
+        }
         updatedSymbols.push(s)
-        this.renderer.updateSelectedState(s)
+        this.renderer.updateSelectedState(s, shouldBeSelected)
       }
     })
 

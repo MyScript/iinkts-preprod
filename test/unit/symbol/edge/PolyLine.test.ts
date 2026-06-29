@@ -23,7 +23,6 @@ describe("PolyLine.ts", () =>
       expect(line.creationTime).toBeLessThanOrEqual(Date.now())
       expect(line.creationTime).toEqual(line.modificationDate)
       expect(line.style).toEqual(expect.objectContaining(style))
-      expect(line.selected).toEqual(false)
       expect(line.points).toEqual(points)
       expect(line.bounds.x).toEqual(-5)
       expect(line.bounds.y).toEqual(-5)
