@@ -1,6 +1,7 @@
 import { describe, test, expect, beforeEach } from "@jest/globals"
 import { TextUtil } from "../../../../src/symbol-utils/text/TextUtil"
 import { SymbolType } from "../../../../src/symbol/Symbol"
+import { OBBOps } from "../../../../src/symbol/primitives/OBB"
 import { buildIIText } from "../../helpers"
 import type { TSymbolChar, TBox } from "../../../../src/iink"
 
@@ -32,12 +33,12 @@ describe("TextUtil", () =>
     test("should create a text from partial with required fields", () =>
     {
       const point = { x: 10, y: 20 }
-      const bounds = { x: 10, y: 20, width: 100, height: 30 }
-      const chars = [makeChar("A", bounds)]
-      const text = util.create({ chars, point, bounds })
+      const boundsBox = { x: 10, y: 20, width: 100, height: 30 }
+      const chars = [makeChar("A", boundsBox)]
+      const text = util.create({ chars, point, bounds: OBBOps.fromBox(boundsBox) })
       expect(text.type).toBe(SymbolType.Text)
       expect(text.point).toEqual(point)
-      expect(text.bounds).toEqual(bounds)
+      expect(text.bounds).toEqual(OBBOps.fromBox(boundsBox))
     })
 
     test("should throw when bounds are missing", () =>
@@ -49,15 +50,15 @@ describe("TextUtil", () =>
 
     test("should throw when chars are empty", () =>
     {
-      expect(() => util.create({ chars: [], point: { x: 0, y: 0 }, bounds: { x: 0, y: 0, width: 10, height: 10 } })).toThrow()
+      expect(() => util.create({ chars: [], point: { x: 0, y: 0 }, bounds: OBBOps.fromBox({ x: 0, y: 0, width: 10, height: 10 }) })).toThrow()
     })
 
     test("should generate a unique id each call", () =>
     {
-      const bounds = { x: 0, y: 0, width: 10, height: 10 }
-      const chars = [makeChar("A", bounds)]
-      const t1 = util.create({ chars, point: { x: 0, y: 0 }, bounds })
-      const t2 = util.create({ chars, point: { x: 0, y: 0 }, bounds })
+      const boundsBox2 = { x: 0, y: 0, width: 10, height: 10 }
+      const chars = [makeChar("A", boundsBox2)]
+      const t1 = util.create({ chars, point: { x: 0, y: 0 }, bounds: OBBOps.fromBox(boundsBox2) })
+      const t2 = util.create({ chars, point: { x: 0, y: 0 }, bounds: OBBOps.fromBox(boundsBox2) })
       expect(t1.id).not.toBe(t2.id)
     })
   })

@@ -6,6 +6,7 @@ import
   TStyle,
   TBox
 } from "../../../../src/iink"
+import { OBBOps } from "../../../../src/symbol/primitives/OBB"
 
 describe("ShapePolygonOps", () =>
 {
@@ -31,8 +32,8 @@ describe("ShapePolygonOps", () =>
     test("should compute bounds from points", () =>
     {
       const polygon = ShapePolygonOps.create(points)
-      expect(polygon.bounds.x).toBeLessThanOrEqual(0)
-      expect(polygon.bounds.y).toBeLessThanOrEqual(0)
+      expect(OBBOps.toBox(polygon.bounds).x).toBeLessThanOrEqual(0)
+      expect(OBBOps.toBox(polygon.bounds).y).toBeLessThanOrEqual(0)
       expect(polygon.bounds.width).toBeGreaterThan(0)
       expect(polygon.bounds.height).toBeGreaterThan(0)
     })

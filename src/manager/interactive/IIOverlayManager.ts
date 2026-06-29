@@ -4,6 +4,7 @@ import type { TJIIXMathElement } from "@/model"
 import type { TBox, TStroke} from "@/symbol";
 import { isStroke } from "@/symbol"
 import { BoxOps } from "@/symbol/primitives/Box"
+import { OBBOps } from "@/symbol/primitives/OBB"
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { ColorPaletteManager } from "../base"
 import { convertBoundingBoxMillimeterToPixel } from "@/utils"
@@ -268,7 +269,7 @@ export class IIOverlayManager extends IIAbstractManager
       this.logger.warn("getMathBlockBounds", `Math block ${mathBlock.id} has no bounding box and no strokes`)
       return null
     }
-    return BoxOps.createFromBoxes(blockStrokes.map(s => s.bounds))
+    return BoxOps.createFromBoxes(blockStrokes.map(s => OBBOps.toBox(s.bounds)))
   }
 
   refresh(): void

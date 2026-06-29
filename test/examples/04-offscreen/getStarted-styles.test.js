@@ -145,8 +145,8 @@ test.describe("Offscreen Get Started Menu Style", () => {
         expect(char.fontSize).toBeLessThan(boundsHeight)
       }
       //verify place is correct
-      const startXGap = Math.abs(minX - symbolsAfterConvert[0].bounds.x)
-      const startYGap = Math.abs(minY - symbolsAfterConvert[0].bounds.y)
+      const startXGap = Math.abs(minX - (symbolsAfterConvert[0].bounds.center.x - symbolsAfterConvert[0].bounds.width / 2))
+      const startYGap = Math.abs(minY - (symbolsAfterConvert[0].bounds.center.y - symbolsAfterConvert[0].bounds.height / 2))
       expect(startXGap).toBeLessThanOrEqual(20)
       expect(startYGap).toBeLessThanOrEqual(30)
     })

@@ -21,6 +21,8 @@ import
 import { EdgeOps } from "@/symbol/edge/Edge"
 import { ShapeOps } from "@/symbol/shape/Shape"
 import { BoxOps } from "@/symbol/primitives/Box"
+import { TextOps } from "@/symbol/text/Text"
+import { MathOps } from "@/symbol/math/Math"
 import { MatrixTransform } from "@/transform"
 import { IIAbstractTransformManager } from "./AbstractTransformManager"
 
@@ -139,35 +141,38 @@ export class IIResizeManager extends IIAbstractTransformManager
     }
   }
 
+  private applyOnTypeset(symbol: TText | TMath, matrix: MatrixTransform): TText | TMath
+  {
+    const np = matrix.applyToPoint(symbol.point)
+    symbol.point.x = +np.x.toFixed(3)
+    symbol.point.y = +np.y.toFixed(3)
+    const scale = (matrix.xx + matrix.yy) / 2
+    if (isText(symbol)) {
+      symbol.chars.forEach(c => c.fontSize = +(c.fontSize * scale).toFixed(3))
+    }
+    else {
+      symbol.elements.forEach(e => e.fontSize = +(e.fontSize * scale).toFixed(3))
+    }
+    const newCenter = matrix.applyToPoint(symbol.bounds.center)
+    symbol.bounds = {
+      center: { x: +newCenter.x.toFixed(3), y: +newCenter.y.toFixed(3) },
+      width: +(symbol.bounds.width * Math.abs(matrix.xx)).toFixed(3),
+      height: +(symbol.bounds.height * Math.abs(matrix.yy)).toFixed(3),
+      angle: 0,
+    }
+    if (isText(symbol)) TextOps.updateDerivedFields(symbol)
+    else MathOps.updateDerivedFields(symbol)
+    return symbol
+  }
+
   protected applyOnText(text: TText, matrix: MatrixTransform): TText
   {
-    const np = matrix.applyToPoint(text.point)
-    text.point.x = +np.x.toFixed(3)
-    text.point.y = +np.y.toFixed(3)
-    const scale = (matrix.xx + matrix.yy) / 2
-    text.chars.forEach(c =>
-    {
-      c.fontSize = +(c.fontSize * scale).toFixed(3)
-    })
-    return this.editor.typeset.updateBounds(text)
+    return this.applyOnTypeset(text, matrix) as TText
   }
 
   protected applyOnMath(math: TMath, matrix: MatrixTransform): TMath
   {
-    const np = matrix.applyToPoint(math.point)
-    math.point.x = +np.x.toFixed(3)
-    math.point.y = +np.y.toFixed(3)
-    const scale = (matrix.xx + matrix.yy) / 2
-    math.elements.forEach(e =>
-    {
-      e.fontSize = +(e.fontSize * scale).toFixed(3)
-    })
-
-    const corners = math.elements.map(e => BoxOps.getCorners(e.bounds)).flat()
-    const scaledCorners = corners.map(p => matrix.applyToPoint(p))
-    math.bounds = BoxOps.createFromPoints(scaledCorners)
-
-    return math
+    return this.applyOnTypeset(math, matrix) as TMath
   }
 
   scaleElement(id: string, sx: number, sy: number): void

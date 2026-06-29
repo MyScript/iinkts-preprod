@@ -1,5 +1,6 @@
 import { round } from "../../helpers"
 import { ShapeCircleOps } from "../../../../src/symbol/shape/Circle"
+import { OBBOps } from "../../../../src/symbol/primitives/OBB"
 import
 {
   TPoint,
@@ -27,8 +28,8 @@ describe("Circle.ts", () =>
       expect(circle.style).toEqual(expect.objectContaining(style))
       expect(circle.center).toEqual(center)
       expect(circle.radius).toEqual(radius)
-      expect(circle.bounds.x).toEqual(0)
-      expect(circle.bounds.y).toEqual(-5)
+      expect(OBBOps.toBox(circle.bounds).x).toEqual(0)
+      expect(OBBOps.toBox(circle.bounds).y).toEqual(-5)
       expect(circle.bounds.width).toEqual(10)
       expect(circle.bounds.height).toEqual(10)
       expect(circle.vertices).toHaveLength(8)
@@ -125,8 +126,8 @@ describe("Circle.ts", () =>
       expect(circle.radius).toEqual(0)
       expect(circle.bounds.height).toEqual(0)
       expect(circle.bounds.width).toEqual(0)
-      expect(circle.bounds.x).toEqual(1)
-      expect(circle.bounds.y).toEqual(2)
+      expect(OBBOps.toBox(circle.bounds).x).toEqual(1)
+      expect(OBBOps.toBox(circle.bounds).y).toEqual(2)
       expect(circle.vertices).toHaveLength(8)
     })
     test("should create when origin is at the top left", () =>
@@ -138,8 +139,8 @@ describe("Circle.ts", () =>
       expect(round(circle.radius, 0)).toEqual(22)
       expect(round(circle.bounds.width, 0)).toEqual(45)
       expect(round(circle.bounds.height, 0)).toEqual(45)
-      expect(round(circle.bounds.x, 0)).toEqual(-21)
-      expect(round(circle.bounds.y, 0)).toEqual(-20)
+      expect(round(OBBOps.toBox(circle.bounds).x, 0)).toEqual(-21)
+      expect(round(OBBOps.toBox(circle.bounds).y, 0)).toEqual(-20)
     })
     test("should create when origin is at the top right", () =>
     {
@@ -150,8 +151,8 @@ describe("Circle.ts", () =>
       expect(round(circle.radius, 0)).toEqual(22)
       expect(round(circle.bounds.width, 0)).toEqual(45)
       expect(round(circle.bounds.height, 0)).toEqual(45)
-      expect(round(circle.bounds.x, 0)).toEqual(-11)
-      expect(round(circle.bounds.y, 0)).toEqual(-20)
+      expect(round(OBBOps.toBox(circle.bounds).x, 0)).toEqual(-11)
+      expect(round(OBBOps.toBox(circle.bounds).y, 0)).toEqual(-20)
     })
     test("should create when origin is at the bottom right", () =>
     {
@@ -162,8 +163,8 @@ describe("Circle.ts", () =>
       expect(round(circle.radius, 0)).toEqual(22)
       expect(round(circle.bounds.width, 0)).toEqual(45)
       expect(round(circle.bounds.height, 0)).toEqual(45)
-      expect(round(circle.bounds.x, 0)).toEqual(-11)
-      expect(round(circle.bounds.y, 0)).toEqual(-0)
+      expect(round(OBBOps.toBox(circle.bounds).x, 0)).toEqual(-11)
+      expect(round(OBBOps.toBox(circle.bounds).y, 0)).toEqual(-0)
     })
     test("should create when origin is at the bottom left", () =>
     {
@@ -174,8 +175,8 @@ describe("Circle.ts", () =>
       expect(round(circle.radius, 0)).toEqual(22)
       expect(round(circle.bounds.width, 0)).toEqual(45)
       expect(round(circle.bounds.height, 0)).toEqual(45)
-      expect(round(circle.bounds.x, 0)).toEqual(-21)
-      expect(round(circle.bounds.y, 0)).toEqual(-0)
+      expect(round(OBBOps.toBox(circle.bounds).x, 0)).toEqual(-21)
+      expect(round(OBBOps.toBox(circle.bounds).y, 0)).toEqual(-0)
     })
   })
 
@@ -190,15 +191,15 @@ describe("Circle.ts", () =>
       expect(round(circle.radius, 0)).toEqual(5)
       expect(round(circle.bounds.width, 0)).toEqual(10)
       expect(round(circle.bounds.height, 0)).toEqual(10)
-      expect(round(circle.bounds.x, 0)).toEqual(-4)
-      expect(round(circle.bounds.y, 0)).toEqual(-3)
+      expect(round(OBBOps.toBox(circle.bounds).x, 0)).toEqual(-4)
+      expect(round(OBBOps.toBox(circle.bounds).y, 0)).toEqual(-3)
       ShapeCircleOps.updateBetweenPoints(circle, origin, { x: target.x + 6, y: target.y })
       expect(circle.center).toEqual(origin)
       expect(round(circle.radius, 0)).toEqual(10)
       expect(round(circle.bounds.width, 0)).toEqual(20)
       expect(round(circle.bounds.height, 0)).toEqual(20)
-      expect(round(circle.bounds.x, 0)).toEqual(-9)
-      expect(round(circle.bounds.y, 0)).toEqual(-8)
+      expect(round(OBBOps.toBox(circle.bounds).x, 0)).toEqual(-9)
+      expect(round(OBBOps.toBox(circle.bounds).y, 0)).toEqual(-8)
     })
     test("should updateBetweenPoints when target y increase", () =>
     {
@@ -207,8 +208,8 @@ describe("Circle.ts", () =>
       expect(round(circle.radius, 0)).toEqual(9)
       expect(round(circle.bounds.width, 0)).toEqual(17)
       expect(round(circle.bounds.height, 0)).toEqual(17)
-      expect(round(circle.bounds.x, 0)).toEqual(-8)
-      expect(round(circle.bounds.y, 0)).toEqual(-7)
+      expect(round(OBBOps.toBox(circle.bounds).x, 0)).toEqual(-8)
+      expect(round(OBBOps.toBox(circle.bounds).y, 0)).toEqual(-7)
     })
   })
 

@@ -4,7 +4,9 @@ import { findIntersectionBetween2Segment, type TPartialDeep } from "@/utils"
 import { createUUID } from "@/utils/uuid"
 import { isValidPoint, type TPoint, type TSegment } from "@/symbol/primitives/Point"
 import { SymbolType, type TBaseSymbol } from "@/symbol/Symbol"
-import { BoxOps, type TBox } from "@/symbol/primitives/Box"
+import type { TBox } from "@/symbol/primitives/Box"
+import { BoxOps } from "@/symbol/primitives/Box"
+import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
 import { EdgeKind, type EdgeDecoration, computeEdgeBounds } from "./Edge-enum"
 import type { TAnchor } from "./Anchor"
 /**
@@ -20,7 +22,7 @@ export type TEdgePolyLine = TBaseSymbol & {
   endAnchor?: TAnchor
   points: TPoint[]
   vertices: TPoint[]
-  bounds: TBox
+  bounds: TOBB
   snapPoints: TPoint[]
   edges: TSegment[]
 }
@@ -46,7 +48,7 @@ export const EdgePolyLineOps = {
       endDecoration,
       points,
       vertices: points,
-      bounds: { x: 0, y: 0, width: 0, height: 0 },
+      bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0),
       snapPoints: [],
       edges: [],
     }
@@ -77,7 +79,7 @@ export const EdgePolyLineOps = {
 
   overlaps(polyline: TEdgePolyLine, box: TBox): boolean
   {
-    return BoxOps.isContained(polyline.bounds, box) ||
+    return OBBOps.isContained(polyline.bounds, box) ||
       polyline.edges.some(e1 => BoxOps.getSides(box).some(e2 => !!findIntersectionBetween2Segment(e1, e2)))
   },
 

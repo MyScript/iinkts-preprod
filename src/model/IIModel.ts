@@ -111,7 +111,7 @@ export class IIModel
   getSymbolRowIndex(symbol: TSymbol): number
   {
     // Use symbol bounds yMid for row calculation
-    return Math.round((symbol.bounds.y + symbol.bounds.height / 2) / this.rowHeight)
+    return Math.round(symbol.bounds.center.y / this.rowHeight)
   }
 
   getSymbolsByRowOrdered(): { rowIndex: number, symbols: TSymbol[] }[]
@@ -130,7 +130,7 @@ export class IIModel
 
     const rows: { rowIndex: number, symbols: TSymbol[] }[] = []
     rowsMap.forEach((symbols, rowIndex) => {
-      symbols.sort((s1, s2) => (s1.bounds.x + s1.bounds.width / 2) - (s2.bounds.x + s2.bounds.width / 2))
+      symbols.sort((s1, s2) => s1.bounds.center.x - s2.bounds.center.x)
       rows.push({ rowIndex, symbols })
     })
 
@@ -166,7 +166,7 @@ export class IIModel
         if (this.getSymbolRowIndex(previous) < this.getSymbolRowIndex(current)) {
           return previous
         }
-        else if (this.getSymbolRowIndex(previous) == this.getSymbolRowIndex(current) && (previous.bounds.x + previous.bounds.width / 2) < (current.bounds.x + current.bounds.width / 2)) {
+        else if (this.getSymbolRowIndex(previous) == this.getSymbolRowIndex(current) && previous.bounds.center.x < current.bounds.center.x) {
           return previous
         }
       }
@@ -186,7 +186,7 @@ export class IIModel
         if (this.getSymbolRowIndex(previous) < this.getSymbolRowIndex(current)) {
           return current
         }
-        else if ((previous.bounds.x + previous.bounds.width / 2) > (current.bounds.x + current.bounds.width / 2)) {
+        else if (previous.bounds.center.x > current.bounds.center.x) {
           return previous
         }
       }

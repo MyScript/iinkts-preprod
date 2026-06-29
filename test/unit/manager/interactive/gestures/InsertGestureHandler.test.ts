@@ -3,6 +3,7 @@ import { buildIIStroke } from "../../../helpers"
 import {
   InsertGestureHandler,
   GestureHelpers,
+  OBBOps,
   StrokeOps,
 } from "../../../../../src/iink"
 import { MatrixTransform } from "../../../../../src/transform/Matrix"
@@ -109,7 +110,7 @@ describe("InsertGestureHandler.ts", () =>
       expect(result.after).toBeDefined()
       if (result.after) {
         // After stroke should be translated
-        expect(result.after.bounds.x).not.toBe(5)
+        expect(OBBOps.toBox(result.after.bounds).x).not.toBe(5)
       }
     })
   })

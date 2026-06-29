@@ -4,6 +4,7 @@ import {
   TStyle,
   TPointer,
 } from "../../../../src/iink"
+import { OBBOps } from "../../../../src/symbol/primitives/OBB"
 
 describe("TStroke / StrokeOps", () =>
 {
@@ -22,8 +23,8 @@ describe("TStroke / StrokeOps", () =>
       expect(stroke.style).toEqual(expect.objectContaining(style))
       expect(stroke.pointerType).toEqual("pen")
       expect(stroke.pointers).toHaveLength(0)
-      expect(stroke.bounds.x).toEqual(0)
-      expect(stroke.bounds.y).toEqual(0)
+      expect(OBBOps.toBox(stroke.bounds).x).toEqual(0)
+      expect(OBBOps.toBox(stroke.bounds).y).toEqual(0)
       expect(stroke.bounds.height).toEqual(0)
       expect(stroke.bounds.width).toEqual(0)
     })
@@ -104,8 +105,8 @@ describe("TStroke / StrokeOps", () =>
       const stroke = StrokeOps.create(DefaultStyle)
       expect(stroke.bounds.height).toEqual(0)
       expect(stroke.bounds.width).toEqual(0)
-      expect(stroke.bounds.x).toEqual(0)
-      expect(stroke.bounds.y).toEqual(0)
+      expect(OBBOps.toBox(stroke.bounds).x).toEqual(0)
+      expect(OBBOps.toBox(stroke.bounds).y).toEqual(0)
     })
     test("should get with pointers", () =>
     {
@@ -114,8 +115,8 @@ describe("TStroke / StrokeOps", () =>
       StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 11, y: 11 })
       expect(stroke.bounds.height).toEqual(10)
       expect(stroke.bounds.width).toEqual(10)
-      expect(stroke.bounds.x).toEqual(1)
-      expect(stroke.bounds.y).toEqual(1)
+      expect(OBBOps.toBox(stroke.bounds).x).toEqual(1)
+      expect(OBBOps.toBox(stroke.bounds).y).toEqual(1)
     })
   })
 

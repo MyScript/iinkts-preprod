@@ -1,7 +1,7 @@
 import type { TStyle } from "@/style"
 import type { TPartialDeep } from "@/utils/types"
 import type { TPoint } from "@/symbol/primitives/Point"
-import type { TBox } from "@/symbol/primitives/Box"
+import type { TOBB } from "@/symbol/primitives/OBB"
 import { EdgeArcOps, type TEdgeArc } from "./Arc"
 import { EdgeLineOps, type TEdgeLine } from "./Line"
 import { EdgePolyLineOps, type TEdgePolyLine } from "./PolyLine"
@@ -104,7 +104,7 @@ export const EdgeOps = {
   },
 
 
-  computeEdgeBounds(vertices: TPoint[], style: TStyle, startDecoration?: EdgeDecoration, endDecoration?: EdgeDecoration): TBox
+  computeEdgeBounds(vertices: TPoint[], style: TStyle, startDecoration?: EdgeDecoration, endDecoration?: EdgeDecoration): TOBB
   {
     return computeEdgeBounds(vertices, style, startDecoration, endDecoration)
   },

@@ -1,5 +1,6 @@
 import { TMathElement, TPoint, TBox } from "../../../../src/iink"
 import { BoxOps } from "../../../../src/symbol/primitives/Box"
+import { OBBOps } from "../../../../src/symbol/primitives/OBB"
 import { MathOps } from "../../../../src/symbol/math/Math"
 
 const elements: TMathElement[] = [
@@ -36,7 +37,7 @@ describe("MathOps", () =>
       expect(typeof math).toBe("object")
       expect(math.elements).toBe(elements)
       expect(math.point).toBe(point)
-      expect(math.bounds).toBe(bounds)
+      expect(math.bounds).toEqual(OBBOps.fromBox(bounds))
     })
 
     test("should initialize with empty decorators", () =>
@@ -114,7 +115,7 @@ describe("MathOps", () =>
     {
       const math = MathOps.create(elements, point, bounds)
       const newBounds: TBox = { x: 100, y: 100, width: 50, height: 30 }
-      math.bounds = newBounds
+      math.bounds = OBBOps.fromBox(newBounds)
       MathOps.updateDerivedFields(math)
       expect(math.vertices).toEqual(BoxOps.getCorners(newBounds))
     })

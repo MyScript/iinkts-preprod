@@ -1,4 +1,5 @@
 import { EdgeLineOps } from "../../../../src/symbol/edge/Line"
+import { OBBOps } from "../../../../src/symbol/primitives/OBB"
 import
 {
   TPoint,
@@ -26,8 +27,8 @@ describe("Line.ts", () =>
       expect(line.style).toEqual(expect.objectContaining(style))
       expect(line.start).toEqual(start)
       expect(line.end).toEqual(end)
-      expect(line.bounds.x).toEqual(-5)
-      expect(line.bounds.y).toEqual(-5)
+      expect(OBBOps.toBox(line.bounds).x).toEqual(-5)
+      expect(OBBOps.toBox(line.bounds).y).toEqual(-5)
       expect(line.bounds.width).toEqual(15)
       expect(line.bounds.height).toEqual(15)
       expect(line.vertices).toHaveLength(2)

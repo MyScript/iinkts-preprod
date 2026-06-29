@@ -6,7 +6,7 @@ import { SymbolType } from "@/symbol/Symbol"
 import type { TBaseSymbol } from "@/symbol/Symbol"
 import type { TPoint, TSegment } from "@/symbol/primitives/Point"
 import type { TBox } from "@/symbol/primitives/Box"
-import { BoxOps } from "@/symbol/primitives/Box"
+import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
 
 /**
  * @group Symbol
@@ -32,7 +32,7 @@ export type TDecorator = TBaseSymbol & {
   style: TStyle
   kind: DecoratorKind
   targetIds: string[]
-  bounds: TBox
+  bounds: TOBB
   hasBounds: boolean
   vertices: TPoint[]
   snapPoints: TPoint[]
@@ -68,24 +68,25 @@ export const DecoratorOps = {
       modificationDate: now,
       kind,
       targetIds,
-      bounds: { x: 0, y: 0, width: 0, height: 0 },
+      bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0),
       hasBounds: false,
       vertices: [],
       snapPoints: [],
       edges: [],
     }
-    if (bounds) DecoratorOps.setBounds(decorator, bounds)
+    if (bounds) DecoratorOps.setBounds(decorator, OBBOps.fromBox(bounds))
     return decorator
   },
 
-  setBounds(decorator: TDecorator, bounds: TBox): void
+  setBounds(decorator: TDecorator, bounds: TOBB): void
   {
     decorator.bounds = bounds
     decorator.hasBounds = true
-    const yMid = bounds.y + bounds.height / 2
+    const yMid = bounds.center.y
+    const hw = bounds.width / 2
     const vertices: TPoint[] = [
-      { x: bounds.x, y: yMid },
-      { x: bounds.x + bounds.width, y: yMid },
+      { x: bounds.center.x - hw, y: yMid },
+      { x: bounds.center.x + hw, y: yMid },
     ]
     decorator.vertices = vertices
     decorator.snapPoints = vertices
@@ -94,6 +95,6 @@ export const DecoratorOps = {
 
   overlaps(decorator: TDecorator, box: TBox): boolean
   {
-    return decorator.hasBounds ? BoxOps.overlaps(decorator.bounds, box) : false
+    return decorator.hasBounds ? OBBOps.overlapsBox(decorator.bounds, box) : false
   },
 }

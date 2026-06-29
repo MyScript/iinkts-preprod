@@ -1,6 +1,7 @@
 import { describe, test, expect, beforeEach } from "@jest/globals"
 import { MathUtil } from "../../../../src/symbol-utils/math/MathUtil"
 import { SymbolType } from "../../../../src/symbol/Symbol"
+import { OBBOps } from "../../../../src/symbol/primitives/OBB"
 import { buildIIMath } from "../../helpers"
 import type { TMathElement } from "../../../../src/iink"
 
@@ -33,19 +34,19 @@ describe("MathUtil", () =>
     test("should create a math from partial", () =>
     {
       const point = { x: 5, y: 10 }
-      const bounds = { x: 5, y: 10, width: 80, height: 40 }
-      const elements = [makeMathElement("x=1", bounds)]
-      const math = util.create({ elements, point, bounds })
+      const boundsBox = { x: 5, y: 10, width: 80, height: 40 }
+      const elements = [makeMathElement("x=1", boundsBox)]
+      const math = util.create({ elements, point, bounds: OBBOps.fromBox(boundsBox) })
       expect(math.type).toBe(SymbolType.Math)
       expect(math.point).toEqual(point)
     })
 
     test("should generate a unique id each call", () =>
     {
-      const bounds = { x: 0, y: 0, width: 50, height: 30 }
-      const elements = [makeMathElement("x=1", bounds)]
-      const m1 = util.create({ elements, point: { x: 0, y: 0 }, bounds })
-      const m2 = util.create({ elements, point: { x: 0, y: 0 }, bounds })
+      const boundsBox2 = { x: 0, y: 0, width: 50, height: 30 }
+      const elements = [makeMathElement("x=1", boundsBox2)]
+      const m1 = util.create({ elements, point: { x: 0, y: 0 }, bounds: OBBOps.fromBox(boundsBox2) })
+      const m2 = util.create({ elements, point: { x: 0, y: 0 }, bounds: OBBOps.fromBox(boundsBox2) })
       expect(m1.id).not.toBe(m2.id)
     })
   })

@@ -6,6 +6,7 @@ import
   TStyle,
   TBox
 } from "../../../../src/iink"
+import { OBBOps } from "../../../../src/symbol/primitives/OBB"
 
 describe("ShapeCircleOps", () =>
 {
@@ -32,8 +33,8 @@ describe("ShapeCircleOps", () =>
     test("should compute bounds as center±radius", () =>
     {
       const circle = ShapeCircleOps.create({ x: 5, y: 0 }, 5)
-      expect(circle.bounds.x).toEqual(0)
-      expect(circle.bounds.y).toEqual(-5)
+      expect(OBBOps.toBox(circle.bounds).x).toEqual(0)
+      expect(OBBOps.toBox(circle.bounds).y).toEqual(-5)
       expect(circle.bounds.width).toEqual(10)
       expect(circle.bounds.height).toEqual(10)
     })
@@ -87,8 +88,8 @@ describe("ShapeCircleOps", () =>
       const circle = ShapeCircleOps.create({ x: 0, y: 0 }, 10)
       circle.center = { x: 5, y: 5 }
       ShapeCircleOps.updateDerivedFields(circle)
-      expect(circle.bounds.x).toEqual(-5)
-      expect(circle.bounds.y).toEqual(-5)
+      expect(OBBOps.toBox(circle.bounds).x).toEqual(-5)
+      expect(OBBOps.toBox(circle.bounds).y).toEqual(-5)
     })
     test("should recompute vertices after radius change", () =>
     {

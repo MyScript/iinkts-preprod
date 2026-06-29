@@ -1,7 +1,8 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
-import type { TEraser, TPoint, TSegment, TBox} from "@/symbol";
+import type { TEraser, TPoint, TSegment } from "@/symbol";
 import { isText } from "@/symbol"
 import { BoxOps } from "@/symbol/primitives/Box"
+import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
 import { EraserOps } from "@/symbol/eraser/Eraser"
 import type { SVGRenderer } from "@/renderer"
 import type { TPointerInfo } from "@/grabber";
@@ -13,7 +14,7 @@ import type { InkEditor } from "@/editor/variants/InkEditor"
 /**
  * @group Manager
  */
-export type THittable = { bounds: TBox; vertices: TPoint[]; edges: TSegment[] }
+export type THittable = { bounds: TOBB; vertices: TPoint[]; edges: TSegment[] }
 
 /**
  * @group Manager
@@ -35,7 +36,7 @@ export class EraseManager
 
   #isHitByPoint(symbol: THittable, point: TPoint, radius: number): boolean
   {
-    const { x, y, width, height } = symbol.bounds
+    const { x, y, width, height } = OBBOps.toBox(symbol.bounds)
     const expanded = { x: x - radius, y: y - radius, width: width + 2 * radius, height: height + 2 * radius }
     if (!BoxOps.containsPoint(expanded, point)) return false
     const edges = symbol.edges

@@ -2,6 +2,7 @@ import { IIAbstractManager } from "../IIAbstractManager"
 import type { TStroke, TBox} from "@/symbol";
 import { isStroke, isRecognizedMath } from "@/symbol"
 import { BoxOps } from "@/symbol/primitives/Box"
+import { OBBOps } from "@/symbol/primitives/OBB"
 import { convertBoundingBoxMillimeterToPixel, getBoxConnectionPoint } from "@/utils"
 import type { TJIIXMathExpression, TJIIXMathElement } from "@/model/ExportMath"
 import type { TMathVariable, TMathVariableDefinition, TMathVariableDefinitions } from "@/recognizer"
@@ -118,7 +119,7 @@ export class IIMathVariableSubManager extends IIAbstractManager
   {
     const strokes = this.findMathSymbolsByJiixId(jiixBlockId)
     if (!strokes.length) return null
-    return BoxOps.createFromBoxes(strokes.map(s => s.bounds))
+    return BoxOps.createFromBoxes(strokes.map(s => OBBOps.toBox(s.bounds)))
   }
 
   private getAllMathBlockIds(): string[]

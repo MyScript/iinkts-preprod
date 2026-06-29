@@ -6,6 +6,7 @@ import
   TStyle,
   TBox
 } from "../../../../src/iink"
+import { OBBOps } from "../../../../src/symbol/primitives/OBB"
 
 describe("ShapeEllipseOps", () =>
 {
@@ -26,8 +27,8 @@ describe("ShapeEllipseOps", () =>
     test("should compute bounds from vertices", () =>
     {
       const ellipse = ShapeEllipseOps.create({ x: 5, y: 0 }, 5, 10, 0)
-      expect(ellipse.bounds.x).toBeCloseTo(0, 0)
-      expect(ellipse.bounds.y).toBeCloseTo(-10, 0)
+      expect(OBBOps.toBox(ellipse.bounds).x).toBeCloseTo(0, 0)
+      expect(OBBOps.toBox(ellipse.bounds).y).toBeCloseTo(-10, 0)
       expect(ellipse.bounds.width).toBeCloseTo(10, 0)
       expect(ellipse.bounds.height).toBeCloseTo(20, 0)
     })

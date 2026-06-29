@@ -3,6 +3,7 @@ import
 {
   EdgeLineOps,
   IIRotationManager,
+  OBBOps,
   ShapeCircleOps,
   ShapePolygonOps,
   StrokeOps,
@@ -102,12 +103,12 @@ describe("IIRotationManager.ts", () =>
     editor.model.selectedIds.add(stroke.id)
 
     const rotateCenter: TPoint = {
-      x: stroke.bounds.x + stroke.bounds.width / 2,
-      y: stroke.bounds.y + stroke.bounds.height / 2
+      x: OBBOps.toBox(stroke.bounds).x + stroke.bounds.width / 2,
+      y: OBBOps.toBox(stroke.bounds).y + stroke.bounds.height / 2
     }
     const rotateOrigin: TPoint = {
-      x: stroke.bounds.x + stroke.bounds.width / 2,
-      y: stroke.bounds.y + stroke.bounds.height
+      x: OBBOps.toBox(stroke.bounds).x + stroke.bounds.width / 2,
+      y: OBBOps.toBox(stroke.bounds).y + stroke.bounds.height
     }
 
     const testDatas = [
