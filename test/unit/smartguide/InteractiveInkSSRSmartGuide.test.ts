@@ -1,9 +1,9 @@
 import { LeftClickEventMock } from "../__mocks__/EventMock"
+import { InteractiveInkSSREditorMock } from "../__mocks__/InteractiveInkSSREditorMock"
 import {
   InteractiveInkSSRSmartGuide,
   TMarginConfiguration
-} from "../../../src/iink"
-import { InteractiveInkSSREditorMock } from "../__mocks__/InteractiveInkSSREditorMock"
+} from "@/iink"
 
 describe("InteractiveInkSSRSmartGuide.ts", () =>
 {

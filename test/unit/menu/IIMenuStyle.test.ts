@@ -1,7 +1,7 @@
 import { LeftClickEventMock } from "../__mocks__/EventMock"
 import { createEditorMock, asEditor } from "../__mocks__/createEditorMock"
 import { buildIICircle, buildIIStroke } from "../helpers"
-import { EditorTool, IIMenuStyle, EditorWriteTool } from "../../../src/iink"
+import { EditorTool, IIMenuStyle, EditorWriteTool } from "@/iink"
 
 describe("IIMenuStyle.ts", () =>
 {
@@ -164,8 +164,8 @@ describe("IIMenuStyle.ts", () =>
     test("should update color of selected symbols", () =>
     {
       const stroke = buildIIStroke()
-      stroke.selected = true
       editor.model.addSymbol(stroke)
+      editor.model.selectedIds.add(stroke.id)
       const btn = layer.querySelector("#ms-menu-style-color-list-808080") as HTMLButtonElement
       btn.dispatchEvent(clickEvt)
       expect(editor.updateSymbolsStyle).toHaveBeenCalledTimes(1)
@@ -174,8 +174,8 @@ describe("IIMenuStyle.ts", () =>
     test("should update fill of selected symbols", () =>
     {
       const stroke = buildIIStroke()
-      stroke.selected = true
       editor.model.addSymbol(stroke)
+      editor.model.selectedIds.add(stroke.id)
       const btn = layer.querySelector("#ms-menu-style-fill-list-ffff00") as HTMLButtonElement
       btn.dispatchEvent(clickEvt)
       expect(editor.updateSymbolsStyle).toHaveBeenCalledTimes(1)
@@ -190,8 +190,8 @@ describe("IIMenuStyle.ts", () =>
     test("should update thickness of selected symbols", () =>
     {
       const stroke = buildIIStroke()
-      stroke.selected = true
       editor.model.addSymbol(stroke)
+      editor.model.selectedIds.add(stroke.id)
       const btn = layer.querySelector("#ms-menu-style-thickness-8") as HTMLButtonElement
       btn.dispatchEvent(pointerUpEvt)
       expect(editor.updateSymbolsStyle).toHaveBeenCalledTimes(1)
@@ -209,8 +209,8 @@ describe("IIMenuStyle.ts", () =>
     test("should update opacity of selected symbols", () =>
     {
       const stroke = buildIIStroke()
-      stroke.selected = true
       editor.model.addSymbol(stroke)
+      editor.model.selectedIds.add(stroke.id)
       const input = layer.querySelector("#ms-menu-style-opacity-input") as HTMLInputElement
       input.value = "42"
       input.dispatchEvent(new Event('input'))
@@ -317,8 +317,8 @@ describe("IIMenuStyle.ts", () =>
       beforeAll(() => {
         editor.tool = EditorTool.Select
         const shape = buildIICircle()
-        shape.selected = true
         editor.model.addSymbol(shape)
+        editor.model.selectedIds.add(shape.id)
         menu.update()
       })
       test("should display menu color", () =>

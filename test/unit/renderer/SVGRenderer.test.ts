@@ -4,12 +4,13 @@ import
 {
   SVGRenderer,
   DefaultIIRendererConfiguration,
+  OBBOps,
   TIIRendererConfiguration,
   TSymbol,
   TSymbolChar,
   StrokeOps,
   registerBuiltinSymbolUtils,
-} from "../../../src/iink"
+} from "@/iink"
 
 beforeAll(() => { registerBuiltinSymbolUtils() })
 
@@ -185,7 +186,7 @@ describe("SVGRenderer.ts", () =>
       const unknowSym: TSymbol = {
         //@ts-ignore
         type: "unknow",
-        bounds: { height: 0, width: 0, x: 0, y: 0 },
+        bounds: OBBOps.fromBox({ height: 0, width: 0, x: 0, y: 0 }),
         creationTime: Date.now(),
         modificationDate: Date.now(),
         clone: jest.fn(),

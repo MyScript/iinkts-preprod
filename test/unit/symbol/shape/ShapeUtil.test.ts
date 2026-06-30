@@ -1,9 +1,12 @@
 import { describe, test, expect, beforeEach } from "@jest/globals"
-import { ShapeUtil } from "../../../../src/symbol-utils/shape/ShapeUtil"
-import { ShapeKind } from "../../../../src/symbol/shape/Shape-enum"
-import { SymbolType } from "../../../../src/symbol/Symbol"
 import { buildIICircle } from "../../helpers"
-import type { TShape } from "../../../../src/iink"
+import {
+  ShapeUtil,
+  ShapeKind,
+  SymbolType,
+  OBBOps,
+  type TShape
+} from "@/iink"
 
 describe("ShapeUtil", () =>
 {
@@ -61,7 +64,7 @@ describe("ShapeUtil", () =>
     {
       const circle = buildIICircle({ center: { x: 10, y: 10 }, radius: 5 })
       util.updateDerivedFields(circle)
-      expect(circle.bounds).toMatchObject({ x: 5, y: 5, width: 10, height: 10 })
+      expect(OBBOps.toBox(circle.bounds)).toMatchObject({ x: 5, y: 5, width: 10, height: 10 })
     })
 
     test("should not throw for ellipse", () =>

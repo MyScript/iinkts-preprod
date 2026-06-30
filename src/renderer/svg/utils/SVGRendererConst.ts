@@ -3,8 +3,6 @@
  */
 export const SVGRendererConst =
 {
-  arrowHeadStartMarker: "arrow-head-start",
-  arrowHeadEndMaker: "arrow-head-end",
   selectionFilterId: "selection-filter",
   removalFilterId: "removal-filter",
   crossMarker: "cross-marker",

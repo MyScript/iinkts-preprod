@@ -3,7 +3,8 @@ import {
   DefaultStyle,
   TStyle,
   TPointer,
-} from "../../../../src/iink"
+  OBBOps
+} from "@/iink"
 
 describe("StrokeOps", () =>
 {
@@ -15,11 +16,8 @@ describe("StrokeOps", () =>
       expect(stroke.style).toEqual(DefaultStyle)
       expect(stroke.pointerType).toEqual("pen")
       expect(stroke.pointers).toHaveLength(0)
-      expect(stroke.selected).toEqual(false)
-      expect(stroke.deleting).toEqual(false)
-      expect(stroke.isClosed).toEqual(false)
       expect(stroke.length).toEqual(0)
-      expect(stroke.bounds).toEqual({ x: 0, y: 0, width: 0, height: 0 })
+      expect(OBBOps.toBox(stroke.bounds)).toEqual({ x: 0, y: 0, width: 0, height: 0 })
     })
     test("should create with custom style", () =>
     {
@@ -89,8 +87,8 @@ describe("StrokeOps", () =>
       const stroke = StrokeOps.create(DefaultStyle)
       StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 1, y: 1 })
       StrokeOps.addPointer(stroke, { p: 1, t: 2, x: 11, y: 11 })
-      expect(stroke.bounds.x).toEqual(1)
-      expect(stroke.bounds.y).toEqual(1)
+      expect(OBBOps.toBox(stroke.bounds).x).toEqual(1)
+      expect(OBBOps.toBox(stroke.bounds).y).toEqual(1)
       expect(stroke.bounds.width).toEqual(10)
       expect(stroke.bounds.height).toEqual(10)
     })
@@ -104,7 +102,7 @@ describe("StrokeOps", () =>
       stroke.pointers.push({ p: 1, t: 1, x: 5, y: 10 })
       stroke.pointers.push({ p: 1, t: 2, x: 15, y: 20 })
       StrokeOps.updateBounds(stroke)
-      expect(stroke.bounds).toEqual({ x: 5, y: 10, width: 10, height: 10 })
+      expect(OBBOps.toBox(stroke.bounds)).toEqual({ x: 5, y: 10, width: 10, height: 10 })
     })
     test("should compute edges from pointers", () =>
     {

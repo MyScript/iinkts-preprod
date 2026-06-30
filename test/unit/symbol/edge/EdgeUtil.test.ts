@@ -1,9 +1,11 @@
 import { describe, test, expect, beforeEach } from "@jest/globals"
-import { EdgeUtil } from "../../../../src/symbol-utils/edge/EdgeUtil"
-import { EdgeKind } from "../../../../src/symbol/edge/Edge-enum"
-import { SymbolType } from "../../../../src/symbol/Symbol"
 import { buildIILine } from "../../helpers"
-import type { TEdge } from "../../../../src/iink"
+import {
+  EdgeUtil,
+  EdgeKind,
+  SymbolType,
+  type TEdge
+} from "@/iink"
 
 describe("EdgeUtil", () =>
 {

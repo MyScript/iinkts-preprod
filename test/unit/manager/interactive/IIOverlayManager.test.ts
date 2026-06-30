@@ -1,8 +1,8 @@
+import { createEditorMock, asEditor } from "../../__mocks__/createEditorMock"
 import
 {
   IIOverlayManager,
-} from "../../../../src/iink"
-import { createEditorMock, asEditor } from "../../__mocks__/createEditorMock"
+} from "@/iink"
 
 describe("IIOverlayManager.ts", () =>
 {

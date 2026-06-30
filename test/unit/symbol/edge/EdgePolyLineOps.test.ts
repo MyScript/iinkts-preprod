@@ -5,8 +5,9 @@ import
   DefaultStyle,
   TStyle,
   TBox,
-  EdgeDecoration
-} from "../../../../src/iink"
+  EdgeDecoration,
+  OBBOps
+} from "@/iink"
 
 describe("EdgePolyLineOps", () =>
 {
@@ -17,9 +18,6 @@ describe("EdgePolyLineOps", () =>
     {
       const line = EdgePolyLineOps.create(points)
       expect(line.style).toEqual(DefaultStyle)
-      expect(line.selected).toEqual(false)
-      expect(line.deleting).toEqual(false)
-      expect(line.isClosed).toEqual(false)
       expect(line.points).toEqual(points)
     })
     test("should create with custom style", () =>
@@ -47,8 +45,8 @@ describe("EdgePolyLineOps", () =>
     test("should compute bounds with margin", () =>
     {
       const line = EdgePolyLineOps.create(points, undefined, undefined, { width: 20 })
-      expect(line.bounds.x).toEqual(-5)
-      expect(line.bounds.y).toEqual(-5)
+      expect(OBBOps.toBox(line.bounds).x).toEqual(-5)
+      expect(OBBOps.toBox(line.bounds).y).toEqual(-5)
       expect(line.bounds.width).toEqual(15)
       expect(line.bounds.height).toEqual(15)
     })

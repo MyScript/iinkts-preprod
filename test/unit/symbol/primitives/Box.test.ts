@@ -1,4 +1,4 @@
-import { TBox } from "../../../../src/iink"
+import { TBox } from "@/iink"
 
 test("TBox is a plain object", () =>
 {

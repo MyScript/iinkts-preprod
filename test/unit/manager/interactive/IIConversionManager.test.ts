@@ -1,8 +1,13 @@
 import { arcJIIX, circleJIIX, ellipseJIIX, hTextJIIX, lineJIIX, parallelogramJIIX, polygonJIIX, rectangleJIIX, rhombusJIIX, triangleJIIX } from "../../__dataset__/jiix.dataset"
 import { buildIIStroke } from "../../helpers"
 import { createEditorMock, asEditor } from "../../__mocks__/createEditorMock"
-import { IIConversionManager, TJIIXEdgeElement, TJIIXNodeElement, TJIIXTextElement } from "../../../../src/iink"
-import { TextOps } from "../../../../src/symbol/text/Text"
+import {
+  IIConversionManager,
+  TJIIXEdgeElement,
+  TJIIXNodeElement,
+  TJIIXTextElement,
+  TextOps
+} from "@/iink"
 
 describe("IIConversionManager.ts", () =>
 {

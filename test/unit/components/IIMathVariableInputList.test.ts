@@ -1,4 +1,4 @@
-import { IIMathVariableInputList, TVariableInputItem } from "../../../src/iink"
+import { IIMathVariableInputList, TVariableInputItem } from "@/iink"
 
 describe("IIMathVariableInputList.ts", () =>
 {

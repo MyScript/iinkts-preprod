@@ -1,6 +1,6 @@
 import { createEditorMock, asEditor } from "../__mocks__/createEditorMock"
 import { LeftClickEventMock } from "../__mocks__/EventMock"
-import { EditorTool, IIMenuTool, EditorWriteTool } from "../../../src/iink"
+import { EditorTool, IIMenuTool, EditorWriteTool } from "@/iink"
 
 describe("IIMenuTool.ts", () =>
 {

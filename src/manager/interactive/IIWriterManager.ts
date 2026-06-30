@@ -29,7 +29,7 @@ import { ShapePolygonOps } from "@/symbol/shape/Polygon"
 import { EdgeLineOps } from "@/symbol/edge/Line"
 import { EdgeOps } from "@/symbol/edge/Edge"
 import { StrokeOps } from "@/symbol/stroke/Stroke"
-import { BoxOps } from "@/symbol/primitives/Box"
+import { OBBOps } from "@/symbol/primitives/OBB"
 import type { IIGestureManager } from "./IIGestureManager"
 import type { TGesture } from "./gestures"
 import type { IISnapManager } from "./IISnapManager"
@@ -114,7 +114,7 @@ export class IIWriterManager extends AbstractWriterManager
   protected needContextLessGesture(stroke: TStroke): boolean
   {
     const strokeBoundsWithMargin = this.editor.getSymbolsBounds([stroke], 2 * SELECTION_MARGIN)
-    return this.detectGesture && this.model.symbols.some(s => !isStroke(s) && BoxOps.overlaps(s.bounds, strokeBoundsWithMargin))
+    return this.detectGesture && this.model.symbols.some(s => !isStroke(s) && OBBOps.overlapsBox(s.bounds, strokeBoundsWithMargin))
   }
 
   protected createCurrentSymbol(pointer: TPointer, style: TStyle, pointerType: string): TSymbol

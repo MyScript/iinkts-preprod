@@ -5,8 +5,9 @@ import
   DefaultStyle,
   TStyle,
   TBox,
-  EdgeDecoration
-} from "../../../../src/iink"
+  EdgeDecoration,
+  OBBOps
+} from "@/iink"
 
 describe("EdgeArcOps", () =>
 {
@@ -17,9 +18,6 @@ describe("EdgeArcOps", () =>
       const center: TPoint = { x: 0, y: 0 }
       const arc = EdgeArcOps.create(center, Math.PI / 4, Math.PI / 2, 10, 10, 0)
       expect(arc.style).toEqual(DefaultStyle)
-      expect(arc.selected).toEqual(false)
-      expect(arc.deleting).toEqual(false)
-      expect(arc.isClosed).toEqual(false)
       expect(arc.center).toEqual(center)
       expect(arc.startAngle).toEqual(Math.PI / 4)
       expect(arc.sweepAngle).toEqual(Math.PI / 2)
@@ -39,8 +37,8 @@ describe("EdgeArcOps", () =>
     test("should compute bounds", () =>
     {
       const arc = EdgeArcOps.create({ x: 0, y: 0 }, Math.PI / 4, 3 * Math.PI / 4, 10, 50, 0, undefined, undefined, { width: 20 })
-      expect(arc.bounds.x).toEqual(-15)
-      expect(arc.bounds.y).toEqual(-5)
+      expect(OBBOps.toBox(arc.bounds).x).toEqual(-15)
+      expect(OBBOps.toBox(arc.bounds).y).toEqual(-5)
       expect(+arc.bounds.width.toFixed(0)).toEqual(27)
       expect(+arc.bounds.height.toFixed(0)).toEqual(60)
     })
@@ -121,7 +119,7 @@ describe("EdgeArcOps", () =>
       const prevBounds = { ...arc.bounds }
       arc.center = { x: 50, y: 50 }
       EdgeArcOps.updateDerivedFields(arc)
-      expect(arc.bounds.x).not.toEqual(prevBounds.x)
+      expect(OBBOps.toBox(arc.bounds).x).not.toEqual(OBBOps.toBox(prevBounds).x)
     })
   })
 

@@ -5,7 +5,9 @@ import { isValidNumber } from "@/utils"
 import { createUUID } from "@/utils/uuid"
 import { isValidPoint, type TPoint, type TSegment } from "@/symbol/primitives/Point"
 import { SymbolType, type TBaseSymbol } from "@/symbol/Symbol"
-import { BoxOps, type TBox } from "@/symbol/primitives/Box"
+import type { TBox } from "@/symbol/primitives/Box"
+import { BoxOps } from "@/symbol/primitives/Box"
+import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
 import { ShapeKind } from "./Shape-enum"
 
 /**
@@ -14,14 +16,11 @@ import { ShapeKind } from "./Shape-enum"
 export type TShapeCircle = TBaseSymbol & {
   type: SymbolType.Shape
   kind: ShapeKind.Circle
-  isClosed: true
   style: TStyle
-  selected: boolean
-  deleting: boolean
   center: TPoint
   radius: number
   vertices: TPoint[]
-  bounds: TBox
+  bounds: TOBB
   snapPoints: TPoint[]
   edges: TSegment[]
 }
@@ -39,17 +38,14 @@ export const ShapeCircleOps = {
     const circle: TShapeCircle = {
       type: SymbolType.Shape,
       kind: ShapeKind.Circle,
-      isClosed: true,
       id: `${ SymbolType.Shape }-${ createUUID() }`,
       style: mergedStyle,
       creationTime: now,
       modificationDate: now,
-      selected: false,
-      deleting: false,
       center,
       radius,
       vertices: [],
-      bounds: { x: 0, y: 0, width: 0, height: 0 },
+      bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0),
       snapPoints: [],
       edges: [],
     }
@@ -68,12 +64,7 @@ export const ShapeCircleOps = {
 
   updateDerivedFields(circle: TShapeCircle): void
   {
-    circle.bounds = {
-      x: circle.center.x - circle.radius,
-      y: circle.center.y - circle.radius,
-      height: circle.radius * 2,
-      width: circle.radius * 2
-    }
+    circle.bounds = OBBOps.create(circle.center, circle.radius * 2, circle.radius * 2)
     const firstPoint: TPoint = { x: circle.center.x, y: circle.radius + circle.center.y }
     const perimeter = TWO_PI * circle.radius
     const nbPoint = Math.max(8, Math.round(perimeter / SELECTION_MARGIN))
@@ -83,13 +74,13 @@ export const ShapeCircleOps = {
       vertices.push(computeRotatedPoint(firstPoint, circle.center, rad))
     }
     circle.vertices = vertices
-    circle.snapPoints = BoxOps.getSnapPoints(circle.bounds)
+    circle.snapPoints = OBBOps.getSnapPoints(circle.bounds)
     circle.edges = vertices.map((p, i) => ({ p1: p, p2: vertices[(i + 1) % vertices.length] }))
   },
 
   overlaps(circle: TShapeCircle, box: TBox): boolean
   {
-    return BoxOps.isContained(circle.bounds, box) ||
+    return OBBOps.isContained(circle.bounds, box) ||
       BoxOps.getSides(box).some(seg => findIntersectBetweenSegmentAndCircle(seg, circle.center, circle.radius).length > 0)
   },
 

@@ -5,8 +5,9 @@ import
   DefaultStyle,
   TStyle,
   TBox,
-  EdgeDecoration
-} from "../../../../src/iink"
+  EdgeDecoration,
+  OBBOps
+} from "@/iink"
 
 describe("EdgeLineOps", () =>
 {
@@ -18,9 +19,6 @@ describe("EdgeLineOps", () =>
       const end: TPoint = { x: 10, y: 10 }
       const line = EdgeLineOps.create(start, end)
       expect(line.style).toEqual(DefaultStyle)
-      expect(line.selected).toEqual(false)
-      expect(line.deleting).toEqual(false)
-      expect(line.isClosed).toEqual(false)
       expect(line.start).toEqual(start)
       expect(line.end).toEqual(end)
     })
@@ -52,8 +50,8 @@ describe("EdgeLineOps", () =>
     test("should compute bounds with margin", () =>
     {
       const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 5, y: 5 }, undefined, undefined, { width: 20 })
-      expect(line.bounds.x).toEqual(-5)
-      expect(line.bounds.y).toEqual(-5)
+      expect(OBBOps.toBox(line.bounds).x).toEqual(-5)
+      expect(OBBOps.toBox(line.bounds).y).toEqual(-5)
       expect(line.bounds.width).toEqual(15)
       expect(line.bounds.height).toEqual(15)
     })

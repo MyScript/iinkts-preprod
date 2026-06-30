@@ -8,6 +8,7 @@ import { SymbolType } from "@/symbol/Symbol"
 import type { TBaseSymbol } from "@/symbol/Symbol"
 import type { TBox } from "@/symbol/primitives/Box"
 import { BoxOps } from "@/symbol/primitives/Box"
+import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
 import type { TRotation } from "@/symbol/typeset/Typeset"
 import { computeTypesetVertices, computeTypesetSnapPoints, computeClosedEdges } from "@/symbol/typeset/Typeset"
 import type { TDecorator } from "@/symbol/decorator/Decorator"
@@ -24,14 +25,11 @@ export type TSymbolChar = TTypesetChild
  */
 export type TText = TBaseSymbol & {
   type: SymbolType.Text
-  isClosed: true
   style: TStyle
-  selected: boolean
-  deleting: boolean
   point: TPoint
   chars: TSymbolChar[]
   decorators: TDecorator[]
-  bounds: TBox
+  bounds: TOBB
   rotation?: TRotation
   vertices: TPoint[]
   snapPoints: TPoint[]
@@ -53,28 +51,25 @@ export function isText(symbol: TBaseSymbol): symbol is TText
  * @group Symbol
  */
 export const TextOps = {
-  create(chars: TSymbolChar[], point: TPoint, bounds: TBox, style?: TPartialDeep<TStyle>): TText
+  create(chars: TSymbolChar[], point: TPoint, boundsBox: TBox, style?: TPartialDeep<TStyle>): TText
   {
     const mergedStyle = Object.assign({}, DefaultStyle, style) as TStyle
     if (mergedStyle.opacity) mergedStyle.opacity = +mergedStyle.opacity
     mergedStyle.width = +mergedStyle.width
     const now = Date.now()
-    const vertices = computeTypesetVertices(bounds)
-    const snapPoints = computeTypesetSnapPoints(bounds, point)
+    const vertices = computeTypesetVertices(boundsBox)
+    const snapPoints = computeTypesetSnapPoints(boundsBox, point)
     const edges = computeClosedEdges(vertices)
     return {
       type: SymbolType.Text,
       id: `${ SymbolType.Text }-${ createUUID() }`,
-      isClosed: true,
       style: mergedStyle,
       creationTime: now,
       modificationDate: now,
-      selected: false,
-      deleting: false,
       point,
       chars,
       decorators: [],
-      bounds,
+      bounds: OBBOps.fromBox(boundsBox),
       rotation: undefined,
       vertices,
       snapPoints,
@@ -87,7 +82,11 @@ export const TextOps = {
     if (!isValidPoint(partial?.point)) throw new Error(`Unable to create TText, point are invalid`)
     if (!partial.chars?.length) throw new Error(`Unable to create TText, no chars`)
     if (!partial.bounds) throw new Error(`Unable to create TText, no boundingBox`)
-    const text = TextOps.create(partial.chars as TSymbolChar[], partial.point as TPoint, partial.bounds as TBox, partial.style)
+    const rawBounds = partial.bounds as unknown
+    const boundsBox: TBox = rawBounds && typeof rawBounds === "object" && "center" in rawBounds
+      ? OBBOps.toBox(rawBounds as TOBB)
+      : rawBounds as TBox
+    const text = TextOps.create(partial.chars as TSymbolChar[], partial.point as TPoint, boundsBox, partial.style)
     if (partial.id) text.id = partial.id
     if (partial.rotation) text.rotation = partial.rotation as TRotation
     if (partial.decorators?.length) {
@@ -103,8 +102,9 @@ export const TextOps = {
 
   updateDerivedFields(text: TText): void
   {
-    text.vertices = computeTypesetVertices(text.bounds, text.rotation)
-    text.snapPoints = computeTypesetSnapPoints(text.bounds, text.point, text.rotation)
+    const boundsBox = OBBOps.toBox(text.bounds)
+    text.vertices = computeTypesetVertices(boundsBox, text.rotation)
+    text.snapPoints = computeTypesetSnapPoints(boundsBox, text.point, text.rotation)
     text.edges = computeClosedEdges(text.vertices)
   },
 
@@ -165,7 +165,7 @@ export const TextOps = {
       chars: text.chars,
       style: text.style,
       rotation: text.rotation,
-      bounds: text.bounds,
+      bounds: OBBOps.toBox(text.bounds),
       decorators: text.decorators.length ? text.decorators : undefined
     }
   },

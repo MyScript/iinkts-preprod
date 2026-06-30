@@ -9,6 +9,7 @@ import { SymbolType } from "@/symbol/Symbol"
 import type { TBaseSymbol } from "@/symbol/Symbol"
 import type { TBox } from "@/symbol/primitives/Box"
 import { BoxOps } from "@/symbol/primitives/Box"
+import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
 import { ShapeKind } from "./Shape-enum"
 
 /**
@@ -17,13 +18,10 @@ import { ShapeKind } from "./Shape-enum"
 export type TShapePolygon = TBaseSymbol & {
   type: SymbolType.Shape
   kind: ShapeKind.Polygon
-  isClosed: true
   style: TStyle
-  selected: boolean
-  deleting: boolean
   points: TPoint[]
   vertices: TPoint[]
-  bounds: TBox
+  bounds: TOBB
   snapPoints: TPoint[]
   edges: TSegment[]
 }
@@ -41,16 +39,13 @@ export const ShapePolygonOps = {
     const polygon: TShapePolygon = {
       type: SymbolType.Shape,
       kind: ShapeKind.Polygon,
-      isClosed: true,
       id: `${ SymbolType.Shape }-${ createUUID() }`,
       style: mergedStyle,
       creationTime: now,
       modificationDate: now,
-      selected: false,
-      deleting: false,
       points,
       vertices: points,
-      bounds: { x: 0, y: 0, width: 0, height: 0 },
+      bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0),
       snapPoints: [],
       edges: [],
     }
@@ -70,14 +65,14 @@ export const ShapePolygonOps = {
   updateDerivedFields(polygon: TShapePolygon): void
   {
     polygon.vertices = polygon.points
-    polygon.bounds = BoxOps.createFromPoints(polygon.points)
-    polygon.snapPoints = BoxOps.getSnapPoints(polygon.bounds)
+    polygon.bounds = OBBOps.createFromPoints(polygon.points)
+    polygon.snapPoints = OBBOps.getSnapPoints(polygon.bounds)
     polygon.edges = polygon.points.map((p, i) => ({ p1: p, p2: polygon.points[(i + 1) % polygon.points.length] }))
   },
 
   overlaps(polygon: TShapePolygon, box: TBox): boolean
   {
-    return BoxOps.isContained(polygon.bounds, box) ||
+    return OBBOps.isContained(polygon.bounds, box) ||
       polygon.edges.some(e1 => BoxOps.getSides(box).some(e2 => !!findIntersectionBetween2Segment(e1, e2)))
   },
 

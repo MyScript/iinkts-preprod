@@ -1,4 +1,4 @@
-import { getInitialHistoryContext } from "../../../src/iink"
+import { getInitialHistoryContext } from "@/iink"
 
 describe("HistoryContext.ts", () =>
 {

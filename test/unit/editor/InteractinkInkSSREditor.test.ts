@@ -1,3 +1,4 @@
+import { RecognizerWebSocketSSRMock } from "../__mocks__/RecognizerWebSocketSSRMock"
 import { buildStroke, delay } from "../helpers"
 import
 {
@@ -15,8 +16,7 @@ import
   PointerEventGrabber,
   EditorTool,
   TInteractiveInkSSREditorOptions
-} from "../../../src/iink"
-import { RecognizerWebSocketSSRMock } from "../__mocks__/RecognizerWebSocketSSRMock"
+} from "@/iink"
 
 describe("InteractiveInkSSREditor.ts", () =>
 {

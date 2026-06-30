@@ -1,5 +1,5 @@
 import { DoubleTouchEventMock, LeftClickEventMock, RightClickEventMock, TouchEventMock } from "../__mocks__/EventMock"
-import { DefaultGrabberConfiguration, PointerEventGrabber, TGrabberConfiguration } from "../../../src/iink"
+import { DefaultGrabberConfiguration, PointerEventGrabber, TGrabberConfiguration } from "@/iink"
 
 describe("PointerEventGrabber.ts", () =>
 {
