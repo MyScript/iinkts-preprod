@@ -1,4 +1,5 @@
 import type { TBaseSymbol } from "@/symbol/Symbol"
+
 import type { SymbolUtil } from "./SymbolUtil"
 
 /**
@@ -13,23 +14,19 @@ import type { SymbolUtil } from "./SymbolUtil"
  * import { symbolRegistry } from "iink-ts"
  * symbolRegistry.register(new StickyNoteUtil())
  */
-class SymbolRegistryClass
-{
+class SymbolRegistryClass {
   readonly #utils = new Map<string, SymbolUtil<TBaseSymbol>>()
 
-  register<T extends TBaseSymbol>(util: SymbolUtil<T>): this
-  {
+  register<T extends TBaseSymbol>(util: SymbolUtil<T>): this {
     this.#utils.set(util.type, util as SymbolUtil<TBaseSymbol>)
     return this
   }
 
-  getUtil<T extends TBaseSymbol>(type: string): SymbolUtil<T> | undefined
-  {
+  getUtil<T extends TBaseSymbol>(type: string): SymbolUtil<T> | undefined {
     return this.#utils.get(type) as SymbolUtil<T> | undefined
   }
 
-  has(type: string): boolean
-  {
+  has(type: string): boolean {
     return this.#utils.has(type)
   }
 }

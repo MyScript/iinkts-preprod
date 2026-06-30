@@ -1,11 +1,11 @@
-import type { InkEditor } from "@/editor";
-import type { TPointerInfo } from "@/grabber";
-import type { IModel } from "@/model";
-import type { TStyle } from "@/style";
-import type { TStroke, TSymbol, TPointer} from "@/symbol";
-import { isStroke } from "@/symbol";
-import { StrokeOps } from "@/symbol/stroke/Stroke";
-import { AbstractWriterManager } from "@/manager/base/AbstractWriterManager";
+import type { InkEditor } from "@/editor"
+import type { TPointerInfo } from "@/grabber"
+import { AbstractWriterManager } from "@/manager/base/AbstractWriterManager"
+import type { IModel } from "@/model"
+import type { TStyle } from "@/style"
+import type { TPointer, TStroke, TSymbol } from "@/symbol"
+import { isStroke } from "@/symbol"
+import { StrokeOps } from "@/symbol/stroke/Stroke"
 
 /**
  * @group Manager
@@ -42,12 +42,19 @@ export class IWriterManager extends AbstractWriterManager {
     this.model.currentStroke = undefined
     this.renderer.drawSymbol(localSymbol)
     this.model.addStroke(localSymbol)
-    this.editor.history.push(this.model, { added: [localSymbol] })
+    this.editor.history.push(this.model, {
+      added: [localSymbol],
+    })
     if (this.editor.configuration.triggers.exportContent !== "DEMAND") {
       clearTimeout(this.#exportTimer)
-      this.#exportTimer = setTimeout(async () => {
-        this.editor.export()
-      }, this.editor.configuration.triggers.exportContent === "QUIET_PERIOD" ? this.editor.configuration.triggers.exportContentDelay : 0)
+      this.#exportTimer = setTimeout(
+        async () => {
+          this.editor.export()
+        },
+        this.editor.configuration.triggers.exportContent === "QUIET_PERIOD"
+          ? this.editor.configuration.triggers.exportContentDelay
+          : 0
+      )
     }
   }
 }

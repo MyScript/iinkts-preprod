@@ -1,33 +1,37 @@
+import redoIcon from "@/assets/svg/redo.svg"
+import undoIcon from "@/assets/svg/undo.svg"
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
-import undoIcon from "@/assets/svg/undo.svg"
-import redoIcon from "@/assets/svg/redo.svg"
 
 /**
  * @group Menu
  * @remarks Menu action Undo/Redo groupé
  */
-export class UndoRedoMenuAction extends BaseMenuItem<HTMLDivElement>
-{
+export class UndoRedoMenuAction extends BaseMenuItem<HTMLDivElement> {
   private undoButton!: HTMLButtonElement
   private redoButton!: HTMLButtonElement
 
-  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-action")
-  {
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-action") {
     const config = {
       type: "undoredo" as const,
       id: `${idPrefix}-undoredo`,
-      label: "Undo/Redo"
+      label: "Undo/Redo",
     }
     super(config, editor)
   }
 
-  createElement(): HTMLDivElement
-  {
-    const wrapper = this.dom.div({ id: this.config.id, className: ["ms-menu-undoredo-group", "ms-menu-row"] })
+  createElement(): HTMLDivElement {
+    const wrapper = this.dom.div({
+      id: this.config.id,
+      className: ["ms-menu-undoredo-group", "ms-menu-row"],
+    })
 
     // Bouton Undo
-    this.undoButton = this.dom.button({ id: `${this.config.id}-undo`, className: "square", html: undoIcon })
+    this.undoButton = this.dom.button({
+      id: `${this.config.id}-undo`,
+      className: "square",
+      html: undoIcon,
+    })
     this.undoButton.disabled = !this.editor.history.context.canUndo
     this.undoButton.addEventListener("pointerup", async () => {
       this.logger.info(`${this.config.id}-undo.click`)
@@ -35,7 +39,11 @@ export class UndoRedoMenuAction extends BaseMenuItem<HTMLDivElement>
     })
 
     // Bouton Redo
-    this.redoButton = this.dom.button({ id: `${this.config.id}-redo`, className: "square", html: redoIcon })
+    this.redoButton = this.dom.button({
+      id: `${this.config.id}-redo`,
+      className: "square",
+      html: redoIcon,
+    })
     this.redoButton.disabled = !this.editor.history.context.canRedo
     this.redoButton.addEventListener("pointerup", async () => {
       this.logger.info(`${this.config.id}-redo.click`)
@@ -48,8 +56,7 @@ export class UndoRedoMenuAction extends BaseMenuItem<HTMLDivElement>
     return wrapper
   }
 
-  update(): void
-  {
+  update(): void {
     if (this.undoButton) {
       this.undoButton.disabled = !this.editor.history.context.canUndo
     }

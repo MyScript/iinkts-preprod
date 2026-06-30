@@ -1,4 +1,4 @@
-import { LoggerManager, LoggerCategory } from "@/logger"
+import { LoggerCategory, LoggerManager } from "@/logger"
 
 /**
  * @group Manager
@@ -47,7 +47,10 @@ export class ColorPaletteManager {
     this.#variableColorMap.set(variableName, color)
     this.#colorIndex++
 
-    this.#logger.debug("getColorForVariable", { variableName, color })
+    this.#logger.debug("getColorForVariable", {
+      variableName,
+      color,
+    })
     return color
   }
 
@@ -71,7 +74,9 @@ export class ColorPaletteManager {
    * Remove color assignment for a specific variable
    */
   removeVariable(variableName: string): void {
-    this.#logger.debug("removeVariable", { variableName })
+    this.#logger.debug("removeVariable", {
+      variableName,
+    })
     this.#variableColorMap.delete(variableName)
   }
 

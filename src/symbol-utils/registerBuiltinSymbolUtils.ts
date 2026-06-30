@@ -1,16 +1,15 @@
-import { symbolRegistry } from "./SymbolRegistry"
-import { StrokeUtil } from "./stroke/StrokeUtil"
-import { TextUtil } from "./text/TextUtil"
+import { DecoratorUtil } from "./decorator/DecoratorUtil"
+import { EdgeUtil } from "./edge/EdgeUtil"
 import { MathUtil } from "./math/MathUtil"
 import { ShapeUtil } from "./shape/ShapeUtil"
-import { EdgeUtil } from "./edge/EdgeUtil"
-import { DecoratorUtil } from "./decorator/DecoratorUtil"
+import { StrokeUtil } from "./stroke/StrokeUtil"
+import { symbolRegistry } from "./SymbolRegistry"
+import { TextUtil } from "./text/TextUtil"
 
 /**
  * @group SymbolUtils
  */
-export function registerBuiltinSymbolUtils(): void
-{
+export function registerBuiltinSymbolUtils(): void {
   symbolRegistry
     .register(new StrokeUtil())
     .register(new TextUtil())

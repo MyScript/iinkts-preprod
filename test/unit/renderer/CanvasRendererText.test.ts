@@ -1,7 +1,6 @@
 import { CanvasRendererText, DefaultPenStyle, TCanvasTextSymbol, TCanvasTextUnderlineSymbol } from "@/iink"
 
-describe("CanvasRendererText.ts", () =>
-{
+describe("CanvasRendererText.ts", () => {
   const canvas: HTMLCanvasElement = document.createElement("canvas")
   const canvasContext = canvas.getContext("2d") as CanvasRenderingContext2D
   const canvasRendererText = new CanvasRendererText()
@@ -10,8 +9,7 @@ describe("CanvasRendererText.ts", () =>
   canvasContext.moveTo = jest.fn()
   canvasContext.lineTo = jest.fn()
 
-  test("should draw text type char", () =>
-  {
+  test("should draw text type char", () => {
     const text: TCanvasTextSymbol = {
       creationTime: Date.now(),
       id: "id",
@@ -21,19 +19,22 @@ describe("CanvasRendererText.ts", () =>
         justificationType: "CENTER",
         textHeight: 8,
         topLeftPoint: { x: 1, y: 2 },
-        width: 20
+        width: 20,
       },
       label: "a",
       style: DefaultPenStyle,
-      type: canvasRendererText.symbols.char
+      type: canvasRendererText.symbols.char,
     }
     canvasRendererText.draw(canvasContext, text)
     expect(canvasContext.fillText).toHaveBeenCalledTimes(1)
-    expect(canvasContext.fillText).toHaveBeenCalledWith(text.label, text.data.topLeftPoint.x, text.data.topLeftPoint.y + text.data.height)
+    expect(canvasContext.fillText).toHaveBeenCalledWith(
+      text.label,
+      text.data.topLeftPoint.x,
+      text.data.topLeftPoint.y + text.data.height
+    )
   })
 
-  test("should draw text type string", () =>
-  {
+  test("should draw text type string", () => {
     const text: TCanvasTextSymbol = {
       creationTime: Date.now(),
       id: "id",
@@ -43,19 +44,22 @@ describe("CanvasRendererText.ts", () =>
         justificationType: "CENTER",
         textHeight: 8,
         topLeftPoint: { x: 1, y: 2 },
-        width: 20
+        width: 20,
       },
       label: "hello",
       style: DefaultPenStyle,
-      type: canvasRendererText.symbols.string
+      type: canvasRendererText.symbols.string,
     }
     canvasRendererText.draw(canvasContext, text)
     expect(canvasContext.fillText).toHaveBeenCalledTimes(1)
-    expect(canvasContext.fillText).toHaveBeenCalledWith(text.label, text.data.topLeftPoint.x, text.data.topLeftPoint.y + text.data.height)
+    expect(canvasContext.fillText).toHaveBeenCalledWith(
+      text.label,
+      text.data.topLeftPoint.x,
+      text.data.topLeftPoint.y + text.data.height
+    )
   })
 
-  test("should draw text type string", () =>
-  {
+  test("should draw text type string", () => {
     const text: TCanvasTextUnderlineSymbol = {
       creationTime: Date.now(),
       id: "id",
@@ -66,7 +70,7 @@ describe("CanvasRendererText.ts", () =>
         justificationType: "CENTER",
         textHeight: 8,
         topLeftPoint: { x: 1, y: 2 },
-        width: 20
+        width: 20,
       },
       label: "hello",
       style: DefaultPenStyle,
@@ -77,16 +81,20 @@ describe("CanvasRendererText.ts", () =>
           modificationDate: Date.now(),
           data: {
             firstCharacter: 1,
-            lastCharacter: 3
+            lastCharacter: 3,
           },
           style: DefaultPenStyle,
-          type: "pouet"
-        }
-      ]
+          type: "pouet",
+        },
+      ],
     }
     canvasRendererText.draw(canvasContext, text)
     expect(canvasContext.fillText).toHaveBeenCalledTimes(1)
-    expect(canvasContext.fillText).toHaveBeenCalledWith(text.label, text.data.topLeftPoint.x, text.data.topLeftPoint.y + text.data.height)
+    expect(canvasContext.fillText).toHaveBeenCalledWith(
+      text.label,
+      text.data.topLeftPoint.x,
+      text.data.topLeftPoint.y + text.data.height
+    )
     expect(canvasContext.moveTo).toHaveBeenCalledTimes(1)
     expect(canvasContext.moveTo).toHaveBeenCalledWith(5, text.data.topLeftPoint.y + text.data.height)
     expect(canvasContext.lineTo).toHaveBeenCalledTimes(1)

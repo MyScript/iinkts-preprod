@@ -1,5 +1,5 @@
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
-import type { TMenuSubMenu } from "@/menu/items/SubMenuItem";
+import type { TMenuSubMenu } from "@/menu/items/SubMenuItem"
 import { SubMenuItem } from "@/menu/items/SubMenuItem"
 
 /** @group Menu */
@@ -16,10 +16,8 @@ export type TContextReorderConfig = boolean | TContextReorderItemsConfig
  * @group Menu
  * @remarks Menu contextuel Reorder - Réordonne les symboles sélectionnés
  */
-export class ReorderContextMenu extends SubMenuItem
-{
-  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-context", itemsConfig?: TContextReorderItemsConfig)
-  {
+export class ReorderContextMenu extends SubMenuItem {
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-context", itemsConfig?: TContextReorderItemsConfig) {
     const enabled = (key: keyof TContextReorderItemsConfig) => itemsConfig?.[key] !== false
 
     const config: TMenuSubMenu = {
@@ -27,7 +25,7 @@ export class ReorderContextMenu extends SubMenuItem
       type: "submenu",
       label: "Reorder",
       position: "right",
-      items: []
+      items: [],
     }
 
     if (enabled("front")) {
@@ -38,7 +36,7 @@ export class ReorderContextMenu extends SubMenuItem
         action: () => {
           editor.changeOrderSymbols(editor.model.symbolsSelected, "last")
           editor.selector.resetSelectedGroup(editor.model.symbolsSelected)
-        }
+        },
       })
     }
 
@@ -50,7 +48,7 @@ export class ReorderContextMenu extends SubMenuItem
         action: () => {
           editor.changeOrderSymbols(editor.model.symbolsSelected, "forward")
           editor.selector.resetSelectedGroup(editor.model.symbolsSelected)
-        }
+        },
       })
     }
 
@@ -62,7 +60,7 @@ export class ReorderContextMenu extends SubMenuItem
         action: () => {
           editor.changeOrderSymbols(editor.model.symbolsSelected, "backward")
           editor.selector.resetSelectedGroup(editor.model.symbolsSelected)
-        }
+        },
       })
     }
 
@@ -74,7 +72,7 @@ export class ReorderContextMenu extends SubMenuItem
         action: () => {
           editor.changeOrderSymbols(editor.model.symbolsSelected.slice().reverse(), "first")
           editor.selector.resetSelectedGroup(editor.model.symbolsSelected)
-        }
+        },
       })
     }
 

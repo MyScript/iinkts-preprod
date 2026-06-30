@@ -1,9 +1,7 @@
-
 /**
  * @group Utilities
  */
-export function createUUID(): string
-{
+export function createUUID(): string {
   const getRandomBytes = (): Uint8Array => {
     if (typeof crypto !== "undefined" && crypto.getRandomValues) {
       return crypto.getRandomValues(new Uint8Array(16))
@@ -20,7 +18,9 @@ export function createUUID(): string
   randomValues[8] = (randomValues[8]! & 0x3f) | 0x80
 
   return Array.from(randomValues, (byte, i) => {
-    if (i === 4 || i === 6 || i === 8 || i === 10) return "-"
+    if (i === 4 || i === 6 || i === 8 || i === 10) {
+      return "-"
+    }
     return byte.toString(16).padStart(2, "0")
   }).join("")
 }

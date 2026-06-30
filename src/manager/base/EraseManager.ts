@@ -1,26 +1,29 @@
-import { LoggerCategory, LoggerManager } from "@/logger"
-import type { TEraser, TPoint, TSegment } from "@/symbol";
-import { isText } from "@/symbol"
-import { BoxOps } from "@/symbol/primitives/Box"
-import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
-import { EraserOps } from "@/symbol/eraser/Eraser"
-import type { SVGRenderer } from "@/renderer"
-import type { TPointerInfo } from "@/grabber";
-import { PointerEventGrabber } from "@/grabber"
-import { computeDistanceBetweenPointAndSegment, computeDistanceSquared } from "@/utils"
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import type { InkEditor } from "@/editor/variants/InkEditor"
+import type { TPointerInfo } from "@/grabber"
+import { PointerEventGrabber } from "@/grabber"
+import { LoggerCategory, LoggerManager } from "@/logger"
+import type { SVGRenderer } from "@/renderer"
+import type { TEraser, TPoint, TSegment } from "@/symbol"
+import { isText } from "@/symbol"
+import { EraserOps } from "@/symbol/eraser/Eraser"
+import { BoxOps } from "@/symbol/primitives/Box"
+import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
+import { computeDistanceBetweenPointAndSegment, computeDistanceSquared } from "@/utils"
 
 /**
  * @group Manager
  */
-export type THittable = { bounds: TOBB; vertices: TPoint[]; edges: TSegment[] }
+export type THittable = {
+  bounds: TOBB
+  vertices: TPoint[]
+  edges: TSegment[]
+}
 
 /**
  * @group Manager
  */
-export class EraseManager
-{
+export class EraseManager {
   #logger = LoggerManager.getLogger(LoggerCategory.WRITE)
   grabber: PointerEventGrabber
   editor: TInteractiveInkEditor | InkEditor
@@ -29,51 +32,51 @@ export class EraseManager
   currentEraser?: TEraser
   charsToDelete: Map<string, Set<string>> = new Map()
 
-  #isTInteractiveInkEditor(editor: TInteractiveInkEditor | InkEditor): editor is TInteractiveInkEditor
-  {
+  #isTInteractiveInkEditor(editor: TInteractiveInkEditor | InkEditor): editor is TInteractiveInkEditor {
     return "removeSymbols" in editor && typeof editor.removeSymbols === "function"
   }
 
-  #isHitByPoint(symbol: THittable, point: TPoint, radius: number): boolean
-  {
+  #isHitByPoint(symbol: THittable, point: TPoint, radius: number): boolean {
     const { x, y, width, height } = OBBOps.toBox(symbol.bounds)
-    const expanded = { x: x - radius, y: y - radius, width: width + 2 * radius, height: height + 2 * radius }
-    if (!BoxOps.containsPoint(expanded, point)) return false
+    const expanded = {
+      x: x - radius,
+      y: y - radius,
+      width: width + 2 * radius,
+      height: height + 2 * radius,
+    }
+    if (!BoxOps.containsPoint(expanded, point)) {
+      return false
+    }
     const edges = symbol.edges
     if (edges.length === 0) {
       const squaredRadius = radius * radius
-      return symbol.vertices.some(v => computeDistanceSquared(point, v) <= squaredRadius)
+      return symbol.vertices.some((v) => computeDistanceSquared(point, v) <= squaredRadius)
     }
-    return edges.some(edge => computeDistanceBetweenPointAndSegment(point, edge) < radius)
+    return edges.some((edge) => computeDistanceBetweenPointAndSegment(point, edge) < radius)
   }
 
-  constructor(editor: TInteractiveInkEditor | InkEditor)
-  {
+  constructor(editor: TInteractiveInkEditor | InkEditor) {
     this.#logger.info("constructor")
     this.editor = editor
     this.grabber = new PointerEventGrabber(editor.configuration.grabber)
   }
 
-  get renderer(): SVGRenderer
-  {
+  get renderer(): SVGRenderer {
     return this.editor.renderer
   }
 
-  attach(layer: HTMLElement): void
-  {
+  attach(layer: HTMLElement): void {
     this.grabber.attach(layer)
     this.grabber.onPointerDown = this.start.bind(this)
     this.grabber.onPointerMove = this.continue.bind(this)
     this.grabber.onPointerUp = this.end.bind(this)
   }
 
-  detach(): void
-  {
+  detach(): void {
     this.grabber.detach()
   }
 
-  start(info: TPointerInfo): void
-  {
+  start(info: TPointerInfo): void {
     this.#logger.info("startErase", { info })
     this.currentEraser = EraserOps.create(this.eraserWidth)
     this.currentEraser.pointers.push(info.pointer)
@@ -81,8 +84,7 @@ export class EraseManager
     this.renderer.drawSymbol(this.currentEraser!)
   }
 
-  continue(info: TPointerInfo): void
-  {
+  continue(info: TPointerInfo): void {
     this.#logger.info("continueErase", { info })
     if (!this.currentEraser) {
       throw new Error("Can't update current eraser because currentEraser is undefined")
@@ -92,13 +94,17 @@ export class EraseManager
     const currentPoint = info.pointer
     const radius = (this.currentEraser.style.width as number) / 2
     if (this.#isTInteractiveInkEditor(this.editor)) {
-      this.editor.model.symbols.forEach(s =>
-      {
+      this.editor.model.symbols.forEach((s) => {
         if (isText(s)) {
           let hasHitChar = false
-          s.chars.forEach(char => {
+          s.chars.forEach((char) => {
             const { x, y, width, height } = char.bounds
-            const expanded = { x: x - radius, y: y - radius, width: width + 2 * radius, height: height + 2 * radius }
+            const expanded = {
+              x: x - radius,
+              y: y - radius,
+              width: width + 2 * radius,
+              height: height + 2 * radius,
+            }
             if (BoxOps.containsPoint(expanded, currentPoint)) {
               if (!this.charsToDelete.has(s.id)) {
                 this.charsToDelete.set(s.id, new Set())
@@ -111,17 +117,14 @@ export class EraseManager
             this.editor.model.deletingIds.add(s.id)
             this.renderer.updateDeletingState(s, true)
           }
-        }
-        else if (this.#isHitByPoint(s, currentPoint, radius)) {
+        } else if (this.#isHitByPoint(s, currentPoint, radius)) {
           this.editor.model.deletingIds.add(s.id)
           this.renderer.updateDeletingState(s, true)
         }
       })
-    }
-    else {
+    } else {
       const inkEditor = this.editor as InkEditor
-      inkEditor.model.strokes.forEach(s =>
-      {
+      inkEditor.model.strokes.forEach((s) => {
         if (this.#isHitByPoint(s, currentPoint, radius)) {
           inkEditor.model.deletingIds.add(s.id)
           this.renderer.updateDeletingState(s, true)
@@ -130,8 +133,7 @@ export class EraseManager
     }
   }
 
-  async end(info: TPointerInfo): Promise<void>
-  {
+  async end(info: TPointerInfo): Promise<void> {
     this.#logger.info("finishErasing", { info })
     this.continue(info)
 
@@ -140,10 +142,10 @@ export class EraseManager
       const editor = this.editor as TInteractiveInkEditor
       const symbolsToRemove: string[] = []
 
-      editor.model.symbols.forEach(s => {
+      editor.model.symbols.forEach((s) => {
         if (isText(s) && this.charsToDelete.has(s.id)) {
           const charIdsToDelete = this.charsToDelete.get(s.id)!
-          const remainingChars = s.chars.filter(char => !charIdsToDelete.has(char.id))
+          const remainingChars = s.chars.filter((char) => !charIdsToDelete.has(char.id))
 
           if (remainingChars.length === 0) {
             // All chars deleted, remove the symbol
@@ -165,10 +167,9 @@ export class EraseManager
 
       editor.model.deletingIds.clear()
       this.charsToDelete.clear()
-    }
-    else {
+    } else {
       const inkEditor = this.editor as InkEditor
-      inkEditor.removeStrokes(inkEditor.model.strokesToDelete.map(s => s.id))
+      inkEditor.removeStrokes(inkEditor.model.strokesToDelete.map((s) => s.id))
       inkEditor.model.deletingIds.clear()
     }
     this.currentEraser = undefined

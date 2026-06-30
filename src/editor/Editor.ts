@@ -1,5 +1,5 @@
 import type { TEditorType } from "./AbstractEditor"
-import type { TEditorVariantMap, TEditorOptionsMap } from "./EditorFactory";
+import type { TEditorOptionsMap, TEditorVariantMap } from "./EditorFactory"
 import { EditorFactory } from "./EditorFactory"
 
 /**
@@ -19,8 +19,7 @@ import { EditorFactory } from "./EditorFactory"
  * ```
  * @hideconstructor
  */
-export class Editor
-{
+export class Editor {
   /**
    * Loads and initializes an editor instance
    *
@@ -38,8 +37,7 @@ export class Editor
     rootElement: HTMLElement,
     type: T,
     options: TEditorOptionsMap[T]
-  ): Promise<TEditorVariantMap[T]>
-  {
+  ): Promise<TEditorVariantMap[T]> {
     return EditorFactory.createEditor(rootElement, type, options)
   }
 
@@ -48,8 +46,7 @@ export class Editor
    *
    * @returns The current editor instance or undefined if none exists
    */
-  static getInstance(): TEditorVariantMap[TEditorType] | undefined
-  {
+  static getInstance(): TEditorVariantMap[TEditorType] | undefined {
     return EditorFactory.getInstance()
   }
 
@@ -60,8 +57,7 @@ export class Editor
    * @param type - The editor type to retrieve
    * @returns The editor instance of the specified type or undefined
    */
-  static getInstanceByType<T extends TEditorType>(type: T): TEditorVariantMap[T] | undefined
-  {
+  static getInstanceByType<T extends TEditorType>(type: T): TEditorVariantMap[T] | undefined {
     return EditorFactory.getInstanceByType(type)
   }
 }

@@ -1,11 +1,7 @@
 import { LeftClickEventMock } from "../__mocks__/EventMock"
-import {
-  type InteractiveInkEditor,
-  Minimap
-} from "@/iink"
+import { type InteractiveInkEditor, Minimap } from "@/iink"
 
-function buildMockEditor(overrides: Partial<any> = {}): InteractiveInkEditor
-{
+function buildMockEditor(overrides: Partial<any> = {}): InteractiveInkEditor {
   const mockMainLayer = document.createElementNS("http://www.w3.org/2000/svg", "svg")
 
   return {
@@ -22,47 +18,38 @@ function buildMockEditor(overrides: Partial<any> = {}): InteractiveInkEditor
   } as unknown as InteractiveInkEditor
 }
 
-describe("Minimap", () =>
-{
-  describe("constructor", () =>
-  {
-    it("should create container with default dimensions", () =>
-    {
+describe("Minimap", () => {
+  describe("constructor", () => {
+    it("should create container with default dimensions", () => {
       const minimap = new Minimap(buildMockEditor())
       const el = minimap.getElement()
       expect(el.style.width).toBe(`${Minimap.DEFAULT_WIDTH}px`)
       expect(el.style.height).toBe(`${Minimap.DEFAULT_HEIGHT}px`)
     })
 
-    it("should create container with custom dimensions", () =>
-    {
+    it("should create container with custom dimensions", () => {
       const minimap = new Minimap(buildMockEditor(), { width: 300, height: 200 })
       const el = minimap.getElement()
       expect(el.style.width).toBe("300px")
       expect(el.style.height).toBe("200px")
     })
 
-    it("should contain an SVG element", () =>
-    {
+    it("should contain an SVG element", () => {
       const minimap = new Minimap(buildMockEditor())
       const svg = minimap.getElement().querySelector("svg")
       expect(svg).not.toBeNull()
     })
   })
 
-  describe("getElement", () =>
-  {
-    it("should return the same container element each time", () =>
-    {
+  describe("getElement", () => {
+    it("should return the same container element each time", () => {
       const minimap = new Minimap(buildMockEditor())
       expect(minimap.getElement()).toBe(minimap.getElement())
     })
   })
 
-  describe("attach", () =>
-  {
-    it("should append element to the given parent", () =>
-    {
+  describe("attach", () => {
+    it("should append element to the given parent", () => {
       const parent = document.createElement("div")
       document.body.appendChild(parent)
       const minimap = new Minimap(buildMockEditor())
@@ -73,8 +60,7 @@ describe("Minimap", () =>
       parent.remove()
     })
 
-    it("should call getViewBox and getBounds on attach", () =>
-    {
+    it("should call getViewBox and getBounds on attach", () => {
       const parent = document.createElement("div")
       document.body.appendChild(parent)
       const editor = buildMockEditor()
@@ -88,10 +74,8 @@ describe("Minimap", () =>
     })
   })
 
-  describe("detach", () =>
-  {
-    it("should remove element from DOM", () =>
-    {
+  describe("detach", () => {
+    it("should remove element from DOM", () => {
       const parent = document.createElement("div")
       document.body.appendChild(parent)
       const minimap = new Minimap(buildMockEditor())
@@ -104,10 +88,8 @@ describe("Minimap", () =>
     })
   })
 
-  describe("destroy", () =>
-  {
-    it("should remove element from DOM", () =>
-    {
+  describe("destroy", () => {
+    it("should remove element from DOM", () => {
       const parent = document.createElement("div")
       document.body.appendChild(parent)
       const minimap = new Minimap(buildMockEditor())
@@ -120,10 +102,8 @@ describe("Minimap", () =>
     })
   })
 
-  describe("navigation", () =>
-  {
-    it("should call setViewBox when clicking the minimap", () =>
-    {
+  describe("navigation", () => {
+    it("should call setViewBox when clicking the minimap", () => {
       const parent = document.createElement("div")
       document.body.appendChild(parent)
       const editor = buildMockEditor()
@@ -131,7 +111,12 @@ describe("Minimap", () =>
       minimap.attach(parent)
 
       const el = minimap.getElement()
-      const event = new LeftClickEventMock("pointerdown", { clientX: 100, clientY: 75, pressure: 1, pointerType: "mouse" })
+      const event = new LeftClickEventMock("pointerdown", {
+        clientX: 100,
+        clientY: 75,
+        pressure: 1,
+        pointerType: "mouse",
+      })
       el.dispatchEvent(event)
 
       expect(editor.renderer.setViewBox).toHaveBeenCalled()
@@ -139,10 +124,8 @@ describe("Minimap", () =>
     })
   })
 
-  describe("DEFAULT_WIDTH / DEFAULT_HEIGHT", () =>
-  {
-    it("should have sensible defaults", () =>
-    {
+  describe("DEFAULT_WIDTH / DEFAULT_HEIGHT", () => {
+    it("should have sensible defaults", () => {
       expect(Minimap.DEFAULT_WIDTH).toBeGreaterThan(0)
       expect(Minimap.DEFAULT_HEIGHT).toBeGreaterThan(0)
     })

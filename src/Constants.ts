@@ -3,8 +3,7 @@
  * @summary
  * List the possibilities of interactions
  */
-export enum EditorTool
-{
+export enum EditorTool {
   Write = "write",
   Erase = "erase",
   /**
@@ -14,7 +13,7 @@ export enum EditorTool
   /**
    * @remarks only usable in the case of offscreen
    */
-  Move = "move"
+  Move = "move",
 }
 
 /**
@@ -24,8 +23,7 @@ export enum EditorTool
  * @remarks
  * only usable in the case of offscreen
  */
-export enum EditorWriteTool
-{
+export enum EditorWriteTool {
   Pencil = "pencil",
   Rectangle = "rectangle",
   Rhombus = "rhombus",
@@ -45,8 +43,7 @@ export enum EditorWriteTool
  * @remarks
  * only usable in the case of offscreen
  */
-export enum SvgElementRole
-{
+export enum SvgElementRole {
   Guide = "guide",
   InteractElementsGroup = "interact-elements-group",
   Translate = "translate",
@@ -61,8 +58,7 @@ export enum SvgElementRole
  * @remarks
  * only usable in the case of offscreen
  */
-export const enum ResizeDirection
-{
+export const enum ResizeDirection {
   North = "n-resize",
   East = "e-resize",
   South = "s-resize",
@@ -70,7 +66,7 @@ export const enum ResizeDirection
   NorthEast = "ne-resize",
   NorthWest = "nw-resize",
   SouthEast = "se-resize",
-  SouthWest = "sw-resize"
+  SouthWest = "sw-resize",
 }
 
 /**

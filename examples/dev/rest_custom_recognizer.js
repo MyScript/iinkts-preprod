@@ -1,15 +1,15 @@
-import { RecognizerHTTPV1 } from '../../dist/iink.esm.js'
+import { RecognizerHTTPV1 } from "../../dist/iink.esm.js"
 
 export class CustomRestRecognizer extends RecognizerHTTPV1 {
   constructor(config) {
     super(config)
-    this.urlElement = document.getElementById('recognizer-url')
-    this.sentElement = document.getElementById('recognizer-sent')
-    this.receivedElement = document.getElementById('recognizer-received')
+    this.urlElement = document.getElementById("recognizer-url")
+    this.sentElement = document.getElementById("recognizer-sent")
+    this.receivedElement = document.getElementById("recognizer-received")
 
     this.urlElement.textContent = `Server url: ${this.url}`
-    this.sentElement.textContent = 'Message sent:'
-    this.receivedElement.textContent = 'Message received:'
+    this.sentElement.textContent = "Message sent:"
+    this.receivedElement.textContent = "Message received:"
   }
 
   async post(data, mimeType) {

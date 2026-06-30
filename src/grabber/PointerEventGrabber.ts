@@ -1,27 +1,27 @@
 import { LoggerCategory, LoggerLevel, LoggerManager } from "@/logger"
 import type { TPointer } from "@/symbol"
+
 import type { TGrabberConfiguration } from "./GrabberConfiguration"
 
 /**
  * @group Grabber
  */
 export type TPointerInfo = {
-  clientX: number,
-  clientY: number,
-  isPrimary: boolean,
-  type: string,
-  pointerType: string,
-  target: HTMLElement,
-  pointer: TPointer,
-  button: number,
+  clientX: number
+  clientY: number
+  isPrimary: boolean
+  type: string
+  pointerType: string
+  target: HTMLElement
+  pointer: TPointer
+  button: number
   buttons: number
 }
 
 /**
  * @group Grabber
  */
-export class PointerEventGrabber
-{
+export class PointerEventGrabber {
   #logger = LoggerManager.getLogger(LoggerCategory.GRABBER)
 
   protected configuration: TGrabberConfiguration
@@ -35,38 +35,37 @@ export class PointerEventGrabber
   onPointerUp?: (info: TPointerInfo) => void
   onContextMenu?: (info: TPointerInfo) => void
 
-  constructor(configuration: TGrabberConfiguration)
-  {
-    this.#logger.info("constructor", { configuration })
+  constructor(configuration: TGrabberConfiguration) {
+    this.#logger.info("constructor", {
+      configuration,
+    })
     this.configuration = configuration
   }
 
-  protected roundFloat(oneFloat: number, requestedFloatPrecision: number): number
-  {
+  protected roundFloat(oneFloat: number, requestedFloatPrecision: number): number {
     if (requestedFloatPrecision >= 0) {
       const floatPrecision: number = Math.pow(10, requestedFloatPrecision)
       return Math.round(oneFloat / floatPrecision) * floatPrecision
     }
-    this.#logger.debug("roundFloat", { oneFloat, requestedFloatPrecision })
+    this.#logger.debug("roundFloat", {
+      oneFloat,
+      requestedFloatPrecision,
+    })
     return oneFloat
   }
 
-  protected extractPointer(event: MouseEvent | TouchEvent): TPointer
-  {
+  protected extractPointer(event: MouseEvent | TouchEvent): TPointer {
     let clientX: number, clientY: number
     if ("changedTouches" in event) {
-      ({ clientX, clientY } = event.changedTouches[0])
+      ;({ clientX, clientY } = event.changedTouches[0])
     } else {
-      ({ clientX, clientY } = event)
+      ;({ clientX, clientY } = event)
     }
 
     let x: number, y: number
 
     const svgElement: SVGSVGElement | null =
-      this.layerCapture instanceof SVGSVGElement
-        ? this.layerCapture
-        : this.layerCapture.querySelector("svg")
-
+      this.layerCapture instanceof SVGSVGElement ? this.layerCapture : this.layerCapture.querySelector("svg")
 
     if (svgElement) {
       const ctm = svgElement.getScreenCTM()
@@ -94,12 +93,14 @@ export class PointerEventGrabber
       t: this.roundFloat(Date.now(), this.configuration.timestampFloatPrecision),
       p: (event as PointerEvent).pressure,
     }
-    this.#logger.debug("extractPointer", { event, pointer })
+    this.#logger.debug("extractPointer", {
+      event,
+      pointer,
+    })
     return pointer
   }
 
-  protected getPointerInfos(evt: PointerEvent): TPointerInfo
-  {
+  protected getPointerInfos(evt: PointerEvent): TPointerInfo {
     return {
       clientX: evt.clientX,
       clientY: evt.clientY,
@@ -109,12 +110,11 @@ export class PointerEventGrabber
       pointerType: evt.pointerType,
       pointer: this.extractPointer(evt),
       button: evt.button,
-      buttons: evt.buttons
+      buttons: evt.buttons,
     }
   }
 
-  protected pointerDownHandler = (evt: PointerEvent) =>
-  {
+  protected pointerDownHandler = (evt: PointerEvent) => {
     const pointerInfo = this.getPointerInfos(evt)
     this.#logger.debug("pointerDownHandler", pointerInfo)
 
@@ -130,8 +130,7 @@ export class PointerEventGrabber
     }
   }
 
-  protected pointerMoveHandler = (evt: PointerEvent) =>
-  {
+  protected pointerMoveHandler = (evt: PointerEvent) => {
     const pointerInfo = this.getPointerInfos(evt)
     this.#logger.debug("pointerMoveHandler", pointerInfo)
     if (this.capturing && this.pointerType === evt.pointerType) {
@@ -141,8 +140,7 @@ export class PointerEventGrabber
     }
   }
 
-  protected pointerUpHandler = (evt: PointerEvent) =>
-  {
+  protected pointerUpHandler = (evt: PointerEvent) => {
     const pointerInfo = this.getPointerInfos(evt)
     this.#logger.debug("pointerUpHandler", pointerInfo)
     if (this.capturing && this.pointerType === evt.pointerType) {
@@ -157,11 +155,14 @@ export class PointerEventGrabber
     }
   }
 
-  protected pointerOutHandler = (evt: PointerEvent) =>
-  {
+  protected pointerOutHandler = (evt: PointerEvent) => {
     const pointerInfo = this.getPointerInfos(evt)
     this.#logger.debug("pointerOutHandler", pointerInfo)
-    if (this.capturing && this.pointerType === evt.pointerType && !this.layerCapture.contains(evt.target as HTMLElement)) {
+    if (
+      this.capturing &&
+      this.pointerType === evt.pointerType &&
+      !this.layerCapture.contains(evt.target as HTMLElement)
+    ) {
       if (this.#logger.level === LoggerLevel.INFO) {
         this.#logger.info("pointerOutHandler", pointerInfo)
       }
@@ -173,8 +174,7 @@ export class PointerEventGrabber
     }
   }
 
-  protected contextMenuHandler = (evt: MouseEvent) =>
-  {
+  protected contextMenuHandler = (evt: MouseEvent) => {
     if (evt.target && this.onContextMenu) {
       const pointerInfo: TPointerInfo = {
         clientX: evt.clientX,
@@ -185,22 +185,22 @@ export class PointerEventGrabber
         pointerType: "mouse",
         pointer: this.extractPointer(evt),
         button: evt.button,
-        buttons: evt.buttons
+        buttons: evt.buttons,
       }
       this.#logger.debug("contextMenuHandler", pointerInfo)
       this.onContextMenu(pointerInfo)
     }
   }
 
-  stopPointerEvent(): void
-  {
+  stopPointerEvent(): void {
     this.capturing = false
     this.pointerType = undefined
   }
 
-  attach(layerCapture: HTMLElement)
-  {
-    this.#logger.info("attach", { domElement: layerCapture })
+  attach(layerCapture: HTMLElement) {
+    this.#logger.info("attach", {
+      domElement: layerCapture,
+    })
     if (this.layerCapture) {
       this.detach()
     }
@@ -217,8 +217,7 @@ export class PointerEventGrabber
     this.layerCapture.addEventListener("contextmenu", this.contextMenuHandler)
   }
 
-  detach()
-  {
+  detach() {
     this.#logger.info("detach")
     this.layerCapture?.style.removeProperty("touch-action")
     this.layerCapture?.removeEventListener("pointerdown", this.pointerDownHandler, this.configuration.listenerOptions)

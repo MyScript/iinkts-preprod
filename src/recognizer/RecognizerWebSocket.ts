@@ -1,12 +1,24 @@
-import type { TIIHistoryBackendChanges, THistoryContext } from "@/history"
+import PingWorker from "web-worker:../worker/ping.worker.ts"
+
+import type { THistoryContext, TIIHistoryBackendChanges } from "@/history"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { TExport, TJIIXExport, TJIIXMathElement } from "@/model"
 import type { TStroke } from "@/symbol"
 import { StrokeOps } from "@/symbol/stroke/Stroke"
 import type { TMatrixTransform } from "@/transform"
-import type { TPartialDeep} from "@/utils";
-import { computeHmac, mergeDeep, DeferredPromise, isVersionSuperiorOrEqual, getApiInfos } from "@/utils"
+import type { TPartialDeep } from "@/utils"
+import { computeHmac, DeferredPromise, getApiInfos, isVersionSuperiorOrEqual, mergeDeep } from "@/utils"
+
+import { mapCloseCodeToMessage, RecognizerError } from "./RecognizerError"
+import { RecognizerEvent } from "./RecognizerEvent"
+import type { TRecognizerWebSocketConfiguration } from "./RecognizerWebSocketConfiguration"
+import { RecognizerWebSocketConfiguration } from "./RecognizerWebSocketConfiguration"
 import type {
+  TInteractiveInkSessionDescriptionMessage,
+  TMathEvaluable,
+  TMathVariable,
+  TMathVariableDefinition,
+  TMathVariableDefinitions,
   TRecognizerWebSocketMessage,
   TRecognizerWebSocketMessageContentChange,
   TRecognizerWebSocketMessageContextlessGesture,
@@ -14,25 +26,12 @@ import type {
   TRecognizerWebSocketMessageExport,
   TRecognizerWebSocketMessageGesture,
   TRecognizerWebSocketMessageHMACChallenge,
+  TRecognizerWebSocketMessageMathSolverResult,
   TRecognizerWebSocketMessageNewPart,
   TRecognizerWebSocketMessagePartChange,
   TRecognizerWebSocketMessageReceived,
-  TInteractiveInkSessionDescriptionMessage,
-  TRecognizerWebSocketMessageMathSolverResult,
-  TMathVariable,
-  TMathEvaluable,
-  TMathVariableDefinition,
-  TMathVariableDefinitions
-} from "./RecognizerWebSocketMessage";
-import
-{
-  TRecognizerWebSocketMessageType
 } from "./RecognizerWebSocketMessage"
-import { RecognizerError, mapCloseCodeToMessage } from "./RecognizerError"
-import PingWorker from "web-worker:../worker/ping.worker.ts"
-import { RecognizerEvent } from "./RecognizerEvent"
-import type { TRecognizerWebSocketConfiguration } from "./RecognizerWebSocketConfiguration";
-import { RecognizerWebSocketConfiguration } from "./RecognizerWebSocketConfiguration"
+import { TRecognizerWebSocketMessageType } from "./RecognizerWebSocketMessage"
 
 /**
  * A websocket dialog have this sequence :
@@ -56,8 +55,7 @@ import { RecognizerWebSocketConfiguration } from "./RecognizerWebSocketConfigura
 /**
  * @group Recognizer
  */
-export class RecognizerWebSocket
-{
+export class RecognizerWebSocket {
   #logger = LoggerManager.getLogger(LoggerCategory.RECOGNIZER)
 
   protected socket!: WebSocket
@@ -100,12 +98,11 @@ export class RecognizerWebSocket
   url: string
   event: RecognizerEvent
 
-  constructor(config: TPartialDeep<TRecognizerWebSocketConfiguration>, event?: RecognizerEvent)
-  {
+  constructor(config: TPartialDeep<TRecognizerWebSocketConfiguration>, event?: RecognizerEvent) {
     this.#logger.info("constructor", { config })
     this.configuration = new RecognizerWebSocketConfiguration(config)
-    const scheme = (this.configuration.server.scheme === "https") ? "wss" : "ws"
-    this.url = `${ scheme }://${ this.configuration.server.host }/api/v4.0/iink/offscreen?applicationKey=${ this.configuration.server.applicationKey }`
+    const scheme = this.configuration.server.scheme === "https" ? "wss" : "ws"
+    this.url = `${scheme}://${this.configuration.server.host}/api/v4.0/iink/offscreen?applicationKey=${this.configuration.server.applicationKey}`
 
     this.event = event || new RecognizerEvent()
     this.initialized = new DeferredPromise<void>()
@@ -127,26 +124,22 @@ export class RecognizerWebSocket
     this.evaluateDeferred = new Map()
   }
 
-  get mimeTypes(): string[]
-  {
+  get mimeTypes(): string[] {
     return ["application/vnd.myscript.jiix"]
   }
 
-  async #send(message: TRecognizerWebSocketMessage): Promise<void>
-  {
+  async #send(message: TRecognizerWebSocketMessage): Promise<void> {
     if (!this.socket) {
       throw new Error("Recognizer must be initilized")
     }
     if (this.socket.readyState === this.socket.OPEN) {
       this.socket.send(JSON.stringify(message))
-    }
-    else {
-      throw new Error(`Can not send message: ${message.type}, connection not ready, state: ${ this.socket.readyState }`)
+    } else {
+      throw new Error(`Can not send message: ${message.type}, connection not ready, state: ${this.socket.readyState}`)
     }
   }
 
-  protected rejectDeferredPending(error: Error | string): void
-  {
+  protected rejectDeferredPending(error: Error | string): void {
     this.initialized.reject(error)
     this.addStrokeDeferred?.reject(error)
     this.transformStrokeDeferred?.reject(error)
@@ -155,21 +148,16 @@ export class RecognizerWebSocket
     this.undoDeferred?.reject(error)
     this.redoDeferred?.reject(error)
     this.clearDeferred?.reject(error)
-    Array.from(this.contextlessGestureDeferred.values())
-      .forEach(v =>
-      {
-        v.reject(error)
-      })
-    Array.from(this.exportDeferredMap.values())
-      .forEach(v =>
-      {
-        v.reject(error)
-      })
+    Array.from(this.contextlessGestureDeferred.values()).forEach((v) => {
+      v.reject(error)
+    })
+    Array.from(this.exportDeferredMap.values()).forEach((v) => {
+      v.reject(error)
+    })
     this.waitForIdleDeferred?.reject(error)
   }
 
-  protected resetAllDeferred(): void
-  {
+  protected resetAllDeferred(): void {
     this.initialized = new DeferredPromise<void>()
     this.addStrokeDeferred = undefined
     this.contextlessGestureDeferred.clear()
@@ -194,15 +182,13 @@ export class RecognizerWebSocket
     this.evaluateDeferred.clear()
   }
 
-  protected clearSocketListener(): void
-  {
+  protected clearSocketListener(): void {
     this.socket.removeEventListener("open", this.boundOpenCallback)
     this.socket.removeEventListener("close", this.boundCloseCallback)
     this.socket.removeEventListener("message", this.boundMessageCallback)
   }
 
-  protected closeCallback(evt: CloseEvent): void
-  {
+  protected closeCallback(evt: CloseEvent): void {
     this.#logger.info("closeCallback", { evt })
     let message = evt.reason
     if (!this.currentErrorCode) {
@@ -220,8 +206,7 @@ export class RecognizerWebSocket
     this.resetAllDeferred()
   }
 
-  protected openCallback(): void
-  {
+  protected openCallback(): void {
     this.reconnectionCount = 0
     this.#send({
       type: "authenticate",
@@ -230,15 +215,13 @@ export class RecognizerWebSocket
     })
   }
 
-  protected async manageHMACChallenge(hmacChallengeMessage: TRecognizerWebSocketMessageHMACChallenge): Promise<void>
-  {
+  protected async manageHMACChallenge(hmacChallengeMessage: TRecognizerWebSocketMessageHMACChallenge): Promise<void> {
     let hmacKey: string
     if (typeof this.configuration.server.hmacKey == "string") {
       hmacKey = this.configuration.server.hmacKey
     } else if (typeof this.configuration.server.hmacKey == "function") {
       hmacKey = await this.configuration.server.hmacKey(this.configuration.server.applicationKey)
-    }
-    else {
+    } else {
       return this.initialized.reject(new Error("HMAC key is not a string nor a function"))
     }
     if (!hmacKey) {
@@ -246,23 +229,20 @@ export class RecognizerWebSocket
     }
     this.#send({
       type: "hmac",
-      hmac: await computeHmac(hmacChallengeMessage.hmacChallenge, this.configuration.server.applicationKey, hmacKey)
+      hmac: await computeHmac(hmacChallengeMessage.hmacChallenge, this.configuration.server.applicationKey, hmacKey),
     })
   }
 
-  protected initPing(): void
-  {
+  protected initPing(): void {
     this.pingWorker = new PingWorker()
     this.pingWorker.postMessage({
       pingDelay: this.configuration.server.websocket.pingDelay,
     })
-    this.pingWorker.onmessage = () =>
-    {
+    this.pingWorker.onmessage = () => {
       if (this.socket.readyState <= 1) {
         if (this.pingCount < this.configuration.server.websocket.maxPingLostCount) {
           this.send({ type: "ping" })
-        }
-        else {
+        } else {
           this.close(1000, "MAXIMUM_PING_REACHED")
           this.pingWorker?.terminate()
         }
@@ -271,8 +251,7 @@ export class RecognizerWebSocket
     }
   }
 
-  protected manageAuthenticated(): void
-  {
+  protected manageAuthenticated(): void {
     if (!isVersionSuperiorOrEqual(this.configuration.server.version!, "3.2.0")) {
       delete this.configuration.recognition.export.jiix.text.lines
       delete this.configuration.recognition["raw-content"].classification
@@ -283,38 +262,40 @@ export class RecognizerWebSocket
       iinkSessionId: this.sessionId,
       scaleX: pixelTomm,
       scaleY: pixelTomm,
-      configuration: this.configuration.recognition
+      configuration: this.configuration.recognition,
     })
   }
 
-  protected manageSessionDescriptionMessage(sessionDescriptionMessage: TInteractiveInkSessionDescriptionMessage): void
-  {
+  protected manageSessionDescriptionMessage(sessionDescriptionMessage: TInteractiveInkSessionDescriptionMessage): void {
     if (sessionDescriptionMessage.iinkSessionId) {
       this.sessionId = sessionDescriptionMessage.iinkSessionId
       this.event.emitSessionOpened(this.sessionId)
     }
     if (this.currentPartId) {
-      this.#send({ type: "openContentPart", id: this.currentPartId })
-    }
-    else {
-      this.#send({ type: "newContentPart", contentType: "Raw Content", mimeTypes: this.mimeTypes })
+      this.#send({
+        type: "openContentPart",
+        id: this.currentPartId,
+      })
+    } else {
+      this.#send({
+        type: "newContentPart",
+        contentType: "Raw Content",
+        mimeTypes: this.mimeTypes,
+      })
     }
   }
 
-  protected manageNewPartMessage(newPartMessage: TRecognizerWebSocketMessageNewPart): void
-  {
+  protected manageNewPartMessage(newPartMessage: TRecognizerWebSocketMessageNewPart): void {
     this.initialized.resolve()
     this.currentPartId = newPartMessage.id
   }
 
-  protected managePartChangeMessage(partChangeMessage: TRecognizerWebSocketMessagePartChange): void
-  {
+  protected managePartChangeMessage(partChangeMessage: TRecognizerWebSocketMessagePartChange): void {
     this.initialized.resolve()
     this.currentPartId = partChangeMessage.partId
   }
 
-  protected manageContentChangedMessage(contentChangeMessage: TRecognizerWebSocketMessageContentChange): void
-  {
+  protected manageContentChangedMessage(contentChangeMessage: TRecognizerWebSocketMessageContentChange): void {
     this.initialized.resolve()
     this.replaceStrokeDeferred?.resolve()
     this.transformStrokeDeferred?.resolve()
@@ -328,38 +309,37 @@ export class RecognizerWebSocket
     } as THistoryContext)
   }
 
-  protected manageExportMessage(exportMessage: TRecognizerWebSocketMessageExport): void
-  {
+  protected manageExportMessage(exportMessage: TRecognizerWebSocketMessageExport): void {
     if (exportMessage.exports["application/vnd.myscript.jiix"]) {
-      exportMessage.exports["application/vnd.myscript.jiix"] = JSON.parse(exportMessage.exports["application/vnd.myscript.jiix"].toString()) as TJIIXExport
+      exportMessage.exports["application/vnd.myscript.jiix"] = JSON.parse(
+        exportMessage.exports["application/vnd.myscript.jiix"].toString()
+      ) as TJIIXExport
     }
 
-    Object.keys(exportMessage.exports)
-      .forEach(key =>
-      {
-        if (this.exportDeferredMap.has(key)) {
-          this.exportDeferredMap.get(key)!.resolve(exportMessage.exports)
-        }
-      })
+    Object.keys(exportMessage.exports).forEach((key) => {
+      if (this.exportDeferredMap.has(key)) {
+        this.exportDeferredMap.get(key)!.resolve(exportMessage.exports)
+      }
+    })
     this.event.emitExported(exportMessage.exports)
   }
 
-  protected manageWaitForIdle(): void
-  {
+  protected manageWaitForIdle(): void {
     this.waitForIdleDeferred?.resolve()
     this.event.emitIdle(true)
   }
 
-  protected manageErrorMessage(errorMessage: TRecognizerWebSocketMessageError): void
-  {
+  protected manageErrorMessage(errorMessage: TRecognizerWebSocketMessageError): void {
     this.currentErrorCode = errorMessage.data?.code || errorMessage.code
     let message = errorMessage.data?.message || errorMessage.message || RecognizerError.UNKNOWN
 
     if (this.currentErrorCode === "no.activity") {
       this.rejectDeferredPending(message)
-      this.event.emitConnectionClose({ code: 1000,  message: RecognizerError.NO_ACTIVITY })
-    }
-    else {
+      this.event.emitConnectionClose({
+        code: 1000,
+        message: RecognizerError.NO_ACTIVITY,
+      })
+    } else {
       switch (this.currentErrorCode) {
         case "access.not.granted":
           message = RecognizerError.WRONG_CREDENTIALS
@@ -376,27 +356,33 @@ export class RecognizerWebSocket
     }
   }
 
-  protected manageGestureDetected(gestureMessage: TRecognizerWebSocketMessageGesture): void
-  {
+  protected manageGestureDetected(gestureMessage: TRecognizerWebSocketMessageGesture): void {
     this.addStrokeDeferred?.resolve(gestureMessage)
   }
 
-  protected manageContextlessGesture(gestureMessage: TRecognizerWebSocketMessageContextlessGesture): void
-  {
+  protected manageContextlessGesture(gestureMessage: TRecognizerWebSocketMessageContextlessGesture): void {
     this.contextlessGestureDeferred.get(gestureMessage.strokeId)?.resolve(gestureMessage)
   }
 
-  protected resolveFirstInQueue<T>(map: Map<string, DeferredPromise<T>[]>, blockId: string | undefined, value?: T): void
-  {
-    if (blockId === undefined || blockId === null) return
+  protected resolveFirstInQueue<T>(
+    map: Map<string, DeferredPromise<T>[]>,
+    blockId: string | undefined,
+    value?: T
+  ): void {
+    if (blockId === undefined || blockId === null) {
+      return
+    }
     const queue = map.get(blockId)
-    if (!queue?.length) return
+    if (!queue?.length) {
+      return
+    }
     queue.shift()!.resolve(value as T)
-    if (queue.length === 0) map.delete(blockId)
+    if (queue.length === 0) {
+      map.delete(blockId)
+    }
   }
 
-  protected manageMathSolverResult(mathSolverMessage: TRecognizerWebSocketMessageMathSolverResult): void
-  {
+  protected manageMathSolverResult(mathSolverMessage: TRecognizerWebSocketMessageMathSolverResult): void {
     if (mathSolverMessage.action === "get-variable-definitions") {
       if (this.getVariableDefinitionsDeferred.length) {
         this.getVariableDefinitionsDeferred.shift()!.resolve(mathSolverMessage.result)
@@ -406,47 +392,50 @@ export class RecognizerWebSocket
 
     const blockId = mathSolverMessage.blockId
     if (blockId === undefined || blockId === null) {
-      this.#logger.warn("manageMathSolverResult", "Received math solver result without blockId, unable to resolve corresponding promise", mathSolverMessage)
+      this.#logger.warn(
+        "manageMathSolverResult",
+        "Received math solver result without blockId, unable to resolve corresponding promise",
+        mathSolverMessage
+      )
     }
 
     switch (mathSolverMessage.action) {
       case "available-actions":
         this.resolveFirstInQueue(this.availableActionsDeferred, blockId, mathSolverMessage.result)
-        break;
+        break
       case "numerical-computation":
         this.resolveFirstInQueue(this.numericalComputationDeferred, blockId, mathSolverMessage.result)
-        break;
+        break
       case "get-diagnostic":
         this.resolveFirstInQueue(this.getDiagnosticDeferred, blockId, mathSolverMessage.result)
-        break;
+        break
       case "get-variables":
         this.resolveFirstInQueue(this.getVariablesDeferred, blockId, mathSolverMessage.result)
-        break;
+        break
       case "set-variable-value":
         this.resolveFirstInQueue(this.setVariableValueDeferred, blockId)
-        break;
+        break
       case "get-variable-value":
         this.resolveFirstInQueue(this.getVariableValueDeferred, blockId, mathSolverMessage.result)
-        break;
+        break
       case "remove-variable-value":
         this.resolveFirstInQueue(this.removeVariableValueDeferred, blockId)
-        break;
+        break
       case "as-variable-definition":
         this.resolveFirstInQueue(this.asVariableDefinitionDeferred, blockId, mathSolverMessage.result)
-        break;
+        break
       case "get-evaluables":
         this.resolveFirstInQueue(this.getEvaluablesDeferred, blockId, mathSolverMessage.result)
-        break;
+        break
       case "evaluate":
         this.resolveFirstInQueue(this.evaluateDeferred, blockId, mathSolverMessage.result)
-        break;
+        break
       default:
-        break;
+        break
     }
   }
 
-  protected messageCallback(message: MessageEvent<string>): void
-  {
+  protected messageCallback(message: MessageEvent<string>): void {
     this.currentErrorCode = undefined
     try {
       const websocketMessage: TRecognizerWebSocketMessageReceived = JSON.parse(message.data)
@@ -456,7 +445,7 @@ export class RecognizerWebSocket
       this.pingCount = 0
       switch (websocketMessage.type) {
         case TRecognizerWebSocketMessageType.HMAC_Challenge:
-          this.manageHMACChallenge(websocketMessage).catch(err => this.event.emitError(err))
+          this.manageHMACChallenge(websocketMessage).catch((err) => this.event.emitError(err))
           break
         case TRecognizerWebSocketMessageType.Authenticated:
           this.manageAuthenticated()
@@ -492,17 +481,15 @@ export class RecognizerWebSocket
           this.manageWaitForIdle()
           break
         default:
-          this.#logger.warn("messageCallback", `Message type unknown: "${ websocketMessage }".`)
+          this.#logger.warn("messageCallback", `Message type unknown: "${websocketMessage}".`)
           break
       }
-    }
-    catch {
+    } catch {
       this.event.emitError(new Error(message.data))
     }
   }
 
-  async newSession(config: TPartialDeep<TRecognizerWebSocketConfiguration>): Promise<void>
-  {
+  async newSession(config: TPartialDeep<TRecognizerWebSocketConfiguration>): Promise<void> {
     await this.close(1000, "new-session")
     this.configuration = mergeDeep({}, this.configuration, config)
     this.sessionId = undefined
@@ -510,8 +497,7 @@ export class RecognizerWebSocket
     await this.init()
   }
 
-  async init(): Promise<void>
-  {
+  async init(): Promise<void> {
     this.event.emitStartInitialization()
     if (this.currentErrorCode === "restore.session.not.found") {
       this.currentErrorCode = undefined
@@ -534,8 +520,7 @@ export class RecognizerWebSocket
     this.event.emitEndInitialization()
   }
 
-  async send(message: TRecognizerWebSocketMessage): Promise<void>
-  {
+  async send(message: TRecognizerWebSocketMessage): Promise<void> {
     if (!this.socket) {
       return Promise.reject(new Error("Recognizer must be initilized"))
     }
@@ -554,28 +539,31 @@ export class RecognizerWebSocket
             await this.init()
             await this.waitForIdle()
             return this.#send(message)
+          } else {
+            return Promise.reject(
+              new Error("Unable to send message. The maximum number of connection attempts has been reached.")
+            )
           }
-          else {
-            return Promise.reject(new Error("Unable to send message. The maximum number of connection attempts has been reached."))
-          }
-        }
-        else {
-          return Promise.reject(new Error("Unable to send message. Connection closed and automatic reconnection disabled"))
+        } else {
+          return Promise.reject(
+            new Error("Unable to send message. Connection closed and automatic reconnection disabled")
+          )
         }
         break
     }
   }
 
-  protected buildAddStrokesMessage(strokes: TStroke[], processGestures = true): TRecognizerWebSocketMessage
-  {
+  protected buildAddStrokesMessage(strokes: TStroke[], processGestures = true): TRecognizerWebSocketMessage {
     return {
       type: "addStrokes",
       processGestures,
-      strokes: strokes.map(s => StrokeOps.formatToSend(s))
+      strokes: strokes.map((s) => StrokeOps.formatToSend(s)),
     }
   }
-  async addStrokes(strokes: TStroke[], processGestures = true): Promise<TRecognizerWebSocketMessageGesture | undefined>
-  {
+  async addStrokes(
+    strokes: TStroke[],
+    processGestures = true
+  ): Promise<TRecognizerWebSocketMessageGesture | undefined> {
     this.addStrokeDeferred = new DeferredPromise<TRecognizerWebSocketMessageGesture | undefined>()
     if (strokes.length === 0) {
       this.addStrokeDeferred.resolve(undefined)
@@ -585,8 +573,7 @@ export class RecognizerWebSocket
     return this.addStrokeDeferred?.promise
   }
 
-  async getAvailableActions(blockId: string): Promise<string[]>
-  {
+  async getAvailableActions(blockId: string): Promise<string[]> {
     const deferred = new DeferredPromise<string[]>()
     const queue = this.availableActionsDeferred.get(blockId) ?? []
     queue.push(deferred)
@@ -599,8 +586,7 @@ export class RecognizerWebSocket
     return deferred.promise
   }
 
-  async getNumericalComputation(blockId: string): Promise<TJIIXMathElement>
-  {
+  async getNumericalComputation(blockId: string): Promise<TJIIXMathElement> {
     const deferred = new DeferredPromise<string>()
     const queue = this.numericalComputationDeferred.get(blockId) ?? []
     queue.push(deferred)
@@ -608,13 +594,12 @@ export class RecognizerWebSocket
     await this.send({
       type: "mathSolver",
       action: "numerical-computation",
-      blockId: blockId
+      blockId: blockId,
     })
     return JSON.parse(await deferred.promise) as TJIIXMathElement
   }
 
-  async getDiagnostic(blockId: string, task: string): Promise<string>
-  {
+  async getDiagnostic(blockId: string, task: string): Promise<string> {
     const deferred = new DeferredPromise<string>()
     const queue = this.getDiagnosticDeferred.get(blockId) ?? []
     queue.push(deferred)
@@ -623,13 +608,12 @@ export class RecognizerWebSocket
       type: "mathSolver",
       action: "get-diagnostic",
       task,
-      blockId
+      blockId,
     })
     return deferred.promise
   }
 
-  async getVariables(blockId: string): Promise<TMathVariable[]>
-  {
+  async getVariables(blockId: string): Promise<TMathVariable[]> {
     const deferred = new DeferredPromise<TMathVariable[]>()
     const queue = this.getVariablesDeferred.get(blockId) ?? []
     queue.push(deferred)
@@ -637,13 +621,12 @@ export class RecognizerWebSocket
     await this.send({
       type: "mathSolver",
       action: "get-variables",
-      blockId
+      blockId,
     })
     return deferred.promise
   }
 
-  async getVariableValue(blockId: string, variableName: string): Promise<number>
-  {
+  async getVariableValue(blockId: string, variableName: string): Promise<number> {
     const deferred = new DeferredPromise<number>()
     const queue = this.getVariableValueDeferred.get(blockId) ?? []
     queue.push(deferred)
@@ -652,13 +635,12 @@ export class RecognizerWebSocket
       type: "mathSolver",
       action: "get-variable-value",
       blockId,
-      variableName
+      variableName,
     })
     return deferred.promise
   }
 
-  async setVariableValue(blockId: string, variableName: string, variableValue: number): Promise<void>
-  {
+  async setVariableValue(blockId: string, variableName: string, variableValue: number): Promise<void> {
     const deferred = new DeferredPromise<void>()
     const queue = this.setVariableValueDeferred.get(blockId) ?? []
     queue.push(deferred)
@@ -668,13 +650,12 @@ export class RecognizerWebSocket
       action: "set-variable-value",
       blockId,
       variableName,
-      variableValue
+      variableValue,
     })
     await deferred.promise
   }
 
-  async removeVariableValue(blockId: string, variableName: string): Promise<void>
-  {
+  async removeVariableValue(blockId: string, variableName: string): Promise<void> {
     const deferred = new DeferredPromise<void>()
     const queue = this.removeVariableValueDeferred.get(blockId) ?? []
     queue.push(deferred)
@@ -683,13 +664,12 @@ export class RecognizerWebSocket
       type: "mathSolver",
       action: "remove-variable-value",
       blockId,
-      variableName
+      variableName,
     })
     await deferred.promise
   }
 
-  async asVariableDefinition(blockId: string): Promise<TMathVariableDefinition>
-  {
+  async asVariableDefinition(blockId: string): Promise<TMathVariableDefinition> {
     const deferred = new DeferredPromise<TMathVariableDefinition>()
     const queue = this.asVariableDefinitionDeferred.get(blockId) ?? []
     queue.push(deferred)
@@ -697,24 +677,22 @@ export class RecognizerWebSocket
     await this.send({
       type: "mathSolver",
       action: "as-variable-definition",
-      blockId
+      blockId,
     })
     return deferred.promise
   }
 
-  async getVariableDefinitions(): Promise<TMathVariableDefinitions[]>
-  {
+  async getVariableDefinitions(): Promise<TMathVariableDefinitions[]> {
     const deferred = new DeferredPromise<TMathVariableDefinitions[]>()
     this.getVariableDefinitionsDeferred.push(deferred)
     await this.send({
       type: "mathSolver",
-      action: "get-variable-definitions"
+      action: "get-variable-definitions",
     })
     return deferred.promise
   }
 
-  async getEvaluables(blockId: string): Promise<TMathEvaluable[]>
-  {
+  async getEvaluables(blockId: string): Promise<TMathEvaluable[]> {
     const deferred = new DeferredPromise<TMathEvaluable[]>()
     const queue = this.getEvaluablesDeferred.get(blockId) ?? []
     queue.push(deferred)
@@ -722,19 +700,21 @@ export class RecognizerWebSocket
     await this.send({
       type: "mathSolver",
       action: "get-evaluables",
-      blockId
+      blockId,
     })
     return deferred.promise
   }
 
-  async evaluate(blockId: string, evaluation: {
-    inputVariableName: string,
-    outputVariableName: string,
-    from: number,
-    to: number,
-    pointCount: number
-  }): Promise<{ [key: string]: number }[][]>
-  {
+  async evaluate(
+    blockId: string,
+    evaluation: {
+      inputVariableName: string
+      outputVariableName: string
+      from: number
+      to: number
+      pointCount: number
+    }
+  ): Promise<{ [key: string]: number }[][]> {
     const deferred = new DeferredPromise<number[][]>()
     const queue = this.evaluateDeferred.get(blockId) ?? []
     queue.push(deferred)
@@ -743,13 +723,15 @@ export class RecognizerWebSocket
       type: "mathSolver",
       action: "evaluate",
       blockId,
-      evaluation
+      evaluation,
     })
     const result = await deferred.promise
 
     // Transform result arrays to series of points
     // Result format: [[x1, y1, x2, y2, ...], [x1, y1, x2, y2, ...]] for multiple curves
-    const allSeries: { [key: string]: number }[][] = []
+    const allSeries: {
+      [key: string]: number
+    }[][] = []
 
     for (const flatArray of result) {
       const points: { [key: string]: number }[] = []
@@ -765,7 +747,7 @@ export class RecognizerWebSocket
 
           points.push({
             [xKey]: xVal,
-            [yKey]: yVal
+            [yKey]: yVal,
           })
         }
       }
@@ -777,23 +759,21 @@ export class RecognizerWebSocket
       inputVar: evaluation.inputVariableName || "x",
       outputVar: evaluation.outputVariableName || "?",
       seriesCount: allSeries.length,
-      totalPoints: allSeries.reduce((sum, series) => sum + series.length, 0)
+      totalPoints: allSeries.reduce((sum, series) => sum + series.length, 0),
     })
 
     this.evaluateDeferred.delete(blockId)
     return allSeries
   }
 
-  protected buildReplaceStrokesMessage(oldStrokeIds: string[], newStrokes: TStroke[]): TRecognizerWebSocketMessage
-  {
+  protected buildReplaceStrokesMessage(oldStrokeIds: string[], newStrokes: TStroke[]): TRecognizerWebSocketMessage {
     return {
       type: "replaceStrokes",
       oldStrokeIds,
-      newStrokes: newStrokes.map(s => StrokeOps.formatToSend(s))
+      newStrokes: newStrokes.map((s) => StrokeOps.formatToSend(s)),
     }
   }
-  async replaceStrokes(oldStrokeIds: string[], newStrokes: TStroke[]): Promise<void>
-  {
+  async replaceStrokes(oldStrokeIds: string[], newStrokes: TStroke[]): Promise<void> {
     this.replaceStrokeDeferred = new DeferredPromise<void>()
     if (oldStrokeIds.length === 0) {
       this.replaceStrokeDeferred.resolve()
@@ -803,18 +783,16 @@ export class RecognizerWebSocket
     return this.replaceStrokeDeferred?.promise
   }
 
-  protected buildTransformTranslateMessage(strokeIds: string[], tx: number, ty: number): TRecognizerWebSocketMessage
-  {
+  protected buildTransformTranslateMessage(strokeIds: string[], tx: number, ty: number): TRecognizerWebSocketMessage {
     return {
       type: "transform",
       transformationType: "TRANSLATE",
       strokeIds,
       tx,
-      ty
+      ty,
     }
   }
-  async transformTranslate(strokeIds: string[], tx: number, ty: number): Promise<void>
-  {
+  async transformTranslate(strokeIds: string[], tx: number, ty: number): Promise<void> {
     this.transformStrokeDeferred = new DeferredPromise<void>()
     if (strokeIds.length === 0) {
       this.transformStrokeDeferred.resolve()
@@ -824,19 +802,22 @@ export class RecognizerWebSocket
     return this.transformStrokeDeferred?.promise
   }
 
-  protected buildTransformRotateMessage(strokeIds: string[], angle: number, x0: number = 0, y0: number = 0): TRecognizerWebSocketMessage
-  {
+  protected buildTransformRotateMessage(
+    strokeIds: string[],
+    angle: number,
+    x0: number = 0,
+    y0: number = 0
+  ): TRecognizerWebSocketMessage {
     return {
       type: "transform",
       transformationType: "ROTATE",
       strokeIds,
       angle,
       x0,
-      y0
+      y0,
     }
   }
-  async transformRotate(strokeIds: string[], angle: number, x0: number = 0, y0: number = 0): Promise<void>
-  {
+  async transformRotate(strokeIds: string[], angle: number, x0: number = 0, y0: number = 0): Promise<void> {
     this.transformStrokeDeferred = new DeferredPromise<void>()
     if (strokeIds.length === 0) {
       this.transformStrokeDeferred.resolve()
@@ -846,8 +827,13 @@ export class RecognizerWebSocket
     return this.transformStrokeDeferred?.promise
   }
 
-  protected buildTransformScaleMessage(strokeIds: string[], scaleX: number, scaleY: number, x0: number = 0, y0: number = 0): TRecognizerWebSocketMessage
-  {
+  protected buildTransformScaleMessage(
+    strokeIds: string[],
+    scaleX: number,
+    scaleY: number,
+    x0: number = 0,
+    y0: number = 0
+  ): TRecognizerWebSocketMessage {
     return {
       type: "transform",
       transformationType: "SCALE",
@@ -855,11 +841,16 @@ export class RecognizerWebSocket
       scaleX,
       scaleY,
       x0,
-      y0
+      y0,
     }
   }
-  async transformScale(strokeIds: string[], scaleX: number, scaleY: number, x0: number = 0, y0: number = 0): Promise<void>
-  {
+  async transformScale(
+    strokeIds: string[],
+    scaleX: number,
+    scaleY: number,
+    x0: number = 0,
+    y0: number = 0
+  ): Promise<void> {
     this.transformStrokeDeferred = new DeferredPromise<void>()
     if (strokeIds.length === 0) {
       this.transformStrokeDeferred.resolve()
@@ -869,17 +860,15 @@ export class RecognizerWebSocket
     return this.transformStrokeDeferred?.promise
   }
 
-  protected buildTransformMatrixMessage(strokeIds: string[], matrix: TMatrixTransform): TRecognizerWebSocketMessage
-  {
+  protected buildTransformMatrixMessage(strokeIds: string[], matrix: TMatrixTransform): TRecognizerWebSocketMessage {
     return {
       type: "transform",
       transformationType: "MATRIX",
       strokeIds,
-      ...matrix
+      ...matrix,
     }
   }
-  async transformMatrix(strokeIds: string[], matrix: TMatrixTransform): Promise<void>
-  {
+  async transformMatrix(strokeIds: string[], matrix: TMatrixTransform): Promise<void> {
     this.transformStrokeDeferred = new DeferredPromise<void>()
     if (strokeIds.length === 0) {
       this.transformStrokeDeferred.resolve()
@@ -889,15 +878,13 @@ export class RecognizerWebSocket
     return this.transformStrokeDeferred?.promise
   }
 
-  protected buildEraseStrokesMessage(strokeIds: string[]): TRecognizerWebSocketMessage
-  {
+  protected buildEraseStrokesMessage(strokeIds: string[]): TRecognizerWebSocketMessage {
     return {
       type: "eraseStrokes",
-      strokeIds
+      strokeIds,
     }
   }
-  async eraseStrokes(strokeIds: string[]): Promise<void>
-  {
+  async eraseStrokes(strokeIds: string[]): Promise<void> {
     this.eraseStrokeDeferred = new DeferredPromise<void>()
     if (strokeIds.length === 0) {
       this.eraseStrokeDeferred.resolve()
@@ -907,8 +894,7 @@ export class RecognizerWebSocket
     return this.eraseStrokeDeferred?.promise
   }
 
-  async recognizeGesture(stroke: TStroke): Promise<TRecognizerWebSocketMessageContextlessGesture | undefined>
-  {
+  async recognizeGesture(stroke: TStroke): Promise<TRecognizerWebSocketMessageContextlessGesture | undefined> {
     if (!stroke) {
       return
     }
@@ -918,13 +904,12 @@ export class RecognizerWebSocket
       type: "contextlessGesture",
       scaleX: pixelTomm,
       scaleY: pixelTomm,
-      stroke: StrokeOps.formatToSend(stroke)
+      stroke: StrokeOps.formatToSend(stroke),
     })
     return this.contextlessGestureDeferred.get(stroke.id)!.promise
   }
 
-  async waitForIdle(): Promise<void>
-  {
+  async waitForIdle(): Promise<void> {
     if (!this.waitForIdleDeferred || this.waitForIdleDeferred.isFullFilled) {
       this.waitForIdleDeferred = new DeferredPromise<void>()
     }
@@ -935,44 +920,70 @@ export class RecognizerWebSocket
     return this.waitForIdleDeferred?.promise
   }
 
-  protected buildUndoRedoChanges(changes: TIIHistoryBackendChanges): TRecognizerWebSocketMessage[]
-  {
+  protected buildUndoRedoChanges(changes: TIIHistoryBackendChanges): TRecognizerWebSocketMessage[] {
     const changesMessages: TRecognizerWebSocketMessage[] = []
     if (changes.added?.length) {
       changesMessages.push(this.buildAddStrokesMessage(changes.added, false))
     }
     if (changes.erased?.length) {
-      changesMessages.push(this.buildEraseStrokesMessage(changes.erased.map(s => s.id)))
+      changesMessages.push(this.buildEraseStrokesMessage(changes.erased.map((s) => s.id)))
     }
     if (changes.replaced?.newStrokes.length) {
-      changesMessages.push(this.buildReplaceStrokesMessage(changes.replaced.oldStrokes.map(s => s.id), changes.replaced.newStrokes))
+      changesMessages.push(
+        this.buildReplaceStrokesMessage(
+          changes.replaced.oldStrokes.map((s) => s.id),
+          changes.replaced.newStrokes
+        )
+      )
     }
     if (changes.matrix?.strokes.length) {
-      changesMessages.push(this.buildTransformMatrixMessage(changes.matrix.strokes.map(s => s.id), changes.matrix.matrix))
+      changesMessages.push(
+        this.buildTransformMatrixMessage(
+          changes.matrix.strokes.map((s) => s.id),
+          changes.matrix.matrix
+        )
+      )
     }
     if (changes.translate?.length) {
-      changes.translate.forEach(tr =>
-      {
-        changesMessages.push(this.buildTransformTranslateMessage(tr.strokes.map(s => s.id), tr.tx, tr.ty))
+      changes.translate.forEach((tr) => {
+        changesMessages.push(
+          this.buildTransformTranslateMessage(
+            tr.strokes.map((s) => s.id),
+            tr.tx,
+            tr.ty
+          )
+        )
       })
     }
     if (changes.rotate?.length) {
-      changes.rotate.forEach(tr =>
-      {
-        changesMessages.push(this.buildTransformRotateMessage(tr.strokes.map(s => s.id), tr.angle, tr.center.x, tr.center.y))
+      changes.rotate.forEach((tr) => {
+        changesMessages.push(
+          this.buildTransformRotateMessage(
+            tr.strokes.map((s) => s.id),
+            tr.angle,
+            tr.center.x,
+            tr.center.y
+          )
+        )
       })
     }
     if (changes.scale?.length) {
-      changes.scale.forEach(tr =>
-      {
-        changesMessages.push(this.buildTransformScaleMessage(tr.strokes.map(s => s.id), tr.scaleX, tr.scaleY, tr.origin.x, tr.origin.y))
+      changes.scale.forEach((tr) => {
+        changesMessages.push(
+          this.buildTransformScaleMessage(
+            tr.strokes.map((s) => s.id),
+            tr.scaleX,
+            tr.scaleY,
+            tr.origin.x,
+            tr.origin.y
+          )
+        )
       })
     }
     return changesMessages
   }
 
-  async undo(actions: TIIHistoryBackendChanges): Promise<void>
-  {
+  async undo(actions: TIIHistoryBackendChanges): Promise<void> {
     const changes = this.buildUndoRedoChanges(actions)
     if (changes.length === 0) {
       return
@@ -980,14 +991,13 @@ export class RecognizerWebSocket
     this.undoDeferred = new DeferredPromise<void>()
     const message: TRecognizerWebSocketMessage = {
       type: "undo",
-      changes
+      changes,
     }
     await this.send(message)
     return this.undoDeferred?.promise
   }
 
-  async redo(actions: TIIHistoryBackendChanges): Promise<void>
-  {
+  async redo(actions: TIIHistoryBackendChanges): Promise<void> {
     const changes = this.buildUndoRedoChanges(actions)
     if (changes.length === 0) {
       return
@@ -996,55 +1006,49 @@ export class RecognizerWebSocket
 
     const message: TRecognizerWebSocketMessage = {
       type: "redo",
-      changes
+      changes,
     }
     await this.send(message)
     return this.redoDeferred?.promise
   }
 
-  async export(requestedMimeTypes?: string[]): Promise<TExport>
-  {
+  async export(requestedMimeTypes?: string[]): Promise<TExport> {
     const mimeTypes: string[] = requestedMimeTypes || this.mimeTypes.slice()
-    await Promise.all(mimeTypes.map(mt => this.exportDeferredMap.get(mt)?.promise))
-    mimeTypes.forEach(mt =>
-    {
+    await Promise.all(mimeTypes.map((mt) => this.exportDeferredMap.get(mt)?.promise))
+    mimeTypes.forEach((mt) => {
       this.exportDeferredMap.set(mt, new DeferredPromise<TExport>())
     })
 
     const message: TRecognizerWebSocketMessage = {
       type: "export",
       partId: this.currentPartId,
-      mimeTypes
+      mimeTypes,
     }
     await this.send(message)
-    const exports = await Promise.all(mimeTypes.map(mt => this.exportDeferredMap.get(mt)!.promise))
+    const exports = await Promise.all(mimeTypes.map((mt) => this.exportDeferredMap.get(mt)!.promise))
     return Object.assign({}, ...exports)
   }
 
-  async clear(): Promise<void>
-  {
+  async clear(): Promise<void> {
     this.clearDeferred = new DeferredPromise<void>()
     await this.send({
-      type: "clear"
+      type: "clear",
     })
     return this.clearDeferred?.promise
   }
 
-  async close(code: number, reason: string): Promise<void>
-  {
+  async close(code: number, reason: string): Promise<void> {
     this.resetAllDeferred()
     this.closeDeferred = new DeferredPromise<void>()
     if (this.socket.readyState === this.socket.OPEN || this.socket.readyState === this.socket.CONNECTING) {
       this.socket.close(code, reason)
-    }
-    else {
+    } else {
       this.closeDeferred.resolve()
     }
     await this.closeDeferred.promise
   }
 
-  async destroy(): Promise<void>
-  {
+  async destroy(): Promise<void> {
     if (this.socket) {
       await this.close(1000, "Recognizer destroyed")
     }

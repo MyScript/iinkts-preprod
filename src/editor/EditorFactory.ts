@@ -1,23 +1,24 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
+
 import type { TEditorType } from "./AbstractEditor"
-import type { TInteractiveInkEditorOptions } from "./variants/InteractiveInkEditor";
-import { InteractiveInkEditor } from "./variants/InteractiveInkEditor"
-import type { TInkEditorDeprecatedOptions } from "./variants/InkEditorDeprecated";
-import { InkEditorDeprecated } from "./variants/InkEditorDeprecated"
-import type { TInteractiveInkSSREditorOptions } from "./variants/InteractiveInkSSREditor";
-import { InteractiveInkSSREditor } from "./variants/InteractiveInkSSREditor"
-import type { TInkEditorOptions } from "./variants/InkEditor";
+import type { TInkEditorOptions } from "./variants/InkEditor"
 import { InkEditor } from "./variants/InkEditor"
+import type { TInkEditorDeprecatedOptions } from "./variants/InkEditorDeprecated"
+import { InkEditorDeprecated } from "./variants/InkEditorDeprecated"
+import type { TInteractiveInkEditorOptions } from "./variants/InteractiveInkEditor"
+import { InteractiveInkEditor } from "./variants/InteractiveInkEditor"
+import type { TInteractiveInkSSREditorOptions } from "./variants/InteractiveInkSSREditor"
+import { InteractiveInkSSREditor } from "./variants/InteractiveInkSSREditor"
 
 /**
  * @group Editor
  * @hidden
  */
 export type TEditorVariantMap = {
-  "INTERACTIVEINK": InteractiveInkEditor
-  "INKV1": InkEditorDeprecated
-  "INTERACTIVEINKSSR": InteractiveInkSSREditor
-  "INKV2": InkEditor
+  INTERACTIVEINK: InteractiveInkEditor
+  INKV1: InkEditorDeprecated
+  INTERACTIVEINKSSR: InteractiveInkSSREditor
+  INKV2: InkEditor
 }
 
 /**
@@ -25,18 +26,17 @@ export type TEditorVariantMap = {
  * @hidden
  */
 export type TEditorOptionsMap = {
-  "INTERACTIVEINK": TInteractiveInkEditorOptions
-  "INKV1": TInkEditorDeprecatedOptions
-  "INTERACTIVEINKSSR": TInteractiveInkSSREditorOptions
-  "INKV2": TInkEditorOptions
+  INTERACTIVEINK: TInteractiveInkEditorOptions
+  INKV1: TInkEditorDeprecatedOptions
+  INTERACTIVEINKSSR: TInteractiveInkSSREditorOptions
+  INKV2: TInkEditorOptions
 }
 
 /**
  * @group Editor
  * @hidden
  */
-export class EditorFactory
-{
+export class EditorFactory {
   private static logger = LoggerManager.getLogger(LoggerCategory.EDITOR)
   private static instances = new Map<string, TEditorVariantMap[TEditorType]>()
 
@@ -54,9 +54,11 @@ export class EditorFactory
     rootElement: HTMLElement,
     type: T,
     options: TEditorOptionsMap[T]
-  ): Promise<TEditorVariantMap[T]>
-  {
-    EditorFactory.logger.info("createEditor", { type, options })
+  ): Promise<TEditorVariantMap[T]> {
+    EditorFactory.logger.info("createEditor", {
+      type,
+      options,
+    })
 
     if (!options) {
       throw new Error(`Param 'options' missing`)
@@ -102,8 +104,7 @@ export class EditorFactory
    *
    * @returns The current editor instance or undefined if none exists
    */
-  static getInstance(): TEditorVariantMap[TEditorType] | undefined
-  {
+  static getInstance(): TEditorVariantMap[TEditorType] | undefined {
     // Return the most recently created instance
     return Array.from(EditorFactory.instances.values()).pop()
   }
@@ -114,16 +115,14 @@ export class EditorFactory
    * @param type - The editor type to retrieve
    * @returns The editor instance of the specified type or undefined
    */
-  static getInstanceByType<T extends TEditorType>(type: T): TEditorVariantMap[T] | undefined
-  {
+  static getInstanceByType<T extends TEditorType>(type: T): TEditorVariantMap[T] | undefined {
     return EditorFactory.instances.get(type) as TEditorVariantMap[T] | undefined
   }
 
   /**
    * Clears all stored editor instances
    */
-  static async clearInstances(): Promise<void>
-  {
+  static async clearInstances(): Promise<void> {
     for (const instance of EditorFactory.instances.values()) {
       await instance.destroy()
     }

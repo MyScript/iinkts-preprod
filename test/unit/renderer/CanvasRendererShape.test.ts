@@ -3,11 +3,10 @@ import {
   DefaultPenStyle,
   TCanvasShapeEllipseSymbol,
   TCanvasShapeLineSymbol,
-  TCanvasShapeTableSymbol
+  TCanvasShapeTableSymbol,
 } from "@/iink"
 
-describe("CanvasRendererShape.ts", () =>
-{
+describe("CanvasRendererShape.ts", () => {
   const canvas: HTMLCanvasElement = document.createElement("canvas")
   const canvasContext = canvas.getContext("2d") as CanvasRenderingContext2D
   const canvasRendererShape = new CanvasRendererShape()
@@ -17,15 +16,14 @@ describe("CanvasRendererShape.ts", () =>
   const p1 = { x: 1, y: 2 }
   const p2 = { x: 3, y: 4 }
 
-  test("should draw a table symbol", () =>
-  {
+  test("should draw a table symbol", () => {
     const table: TCanvasShapeTableSymbol = {
       creationTime: Date.now(),
       id: "id",
       modificationDate: Date.now(),
       type: canvasRendererShape.symbols.table,
       style: DefaultPenStyle,
-      lines: [{ p1, p2 }]
+      lines: [{ p1, p2 }],
     }
     canvasRendererShape.draw(canvasContext, table)
     expect(canvasContext.moveTo).toHaveBeenCalledTimes(1)
@@ -35,8 +33,7 @@ describe("CanvasRendererShape.ts", () =>
     expect(canvasContext.lineTo).toHaveBeenCalledWith(p2.x, p2.y)
   })
 
-  test("should draw a ellipse symbol", () =>
-  {
+  test("should draw a ellipse symbol", () => {
     const table: TCanvasShapeEllipseSymbol = {
       creationTime: Date.now(),
       id: "id",
@@ -50,15 +47,14 @@ describe("CanvasRendererShape.ts", () =>
       orientation: 12,
       startAngle: 0,
       style: DefaultPenStyle,
-      sweepAngle: 1
+      sweepAngle: 1,
     }
     canvasRendererShape.draw(canvasContext, table)
     expect(canvasContext.moveTo).toHaveBeenCalledTimes(1)
     expect(canvasContext.lineTo).toHaveBeenCalledTimes(50)
   })
 
-  test("should draw a line symbol", () =>
-  {
+  test("should draw a line symbol", () => {
     const line: TCanvasShapeLineSymbol = {
       creationTime: Date.now(),
       id: "id",
@@ -77,5 +73,4 @@ describe("CanvasRendererShape.ts", () =>
     expect(canvasContext.lineTo).toHaveBeenCalledTimes(1)
     expect(canvasContext.lineTo).toHaveBeenCalledWith(p2.x, p2.y)
   })
-
 })

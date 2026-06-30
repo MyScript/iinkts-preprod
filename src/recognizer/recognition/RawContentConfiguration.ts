@@ -1,5 +1,4 @@
-
-import type { TEraserConfiguration } from "./EraserConfiguration";
+import type { TEraserConfiguration } from "./EraserConfiguration"
 import { DefaultEraserConfiguration } from "./EraserConfiguration"
 import type { TTextConfConfiguration } from "./TextConfiguration"
 
@@ -24,10 +23,10 @@ export type TRawContentConfiguration = {
  */
 export const DefaultRawContentConfiguration: TRawContentConfiguration = {
   recognition: {
-    types: [ "text", "math", "shape", "decoration"]
+    types: ["text", "math", "shape", "decoration"],
   },
   classification: {
-    types: [ "text", "math", "shape", "decoration", "drawing"]
+    types: ["text", "math", "shape", "decoration", "drawing"],
   },
   eraser: DefaultEraserConfiguration,
 }

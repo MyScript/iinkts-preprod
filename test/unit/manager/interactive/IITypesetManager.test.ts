@@ -1,15 +1,8 @@
 import { buildIIText } from "../../helpers"
 import { createEditorMock, asEditor } from "../../__mocks__/createEditorMock"
-import
-{
-  IITypesetManager,
-  OBBOps,
-  TSymbolChar,
-  SVGBuilder
-} from "@/iink"
+import { IITypesetManager, OBBOps, TSymbolChar, SVGBuilder } from "@/iink"
 
-describe("IITypesetManager.ts", () =>
-{
+describe("IITypesetManager.ts", () => {
   const chars: TSymbolChar[] = [
     {
       bounds: { height: 0, width: 0, x: 0, y: 0 },
@@ -17,7 +10,7 @@ describe("IITypesetManager.ts", () =>
       fontSize: 12,
       fontWeight: "normal",
       id: "char-1",
-      label: "A"
+      label: "A",
     },
     {
       bounds: { height: 0, width: 0, x: 0, y: 0 },
@@ -25,36 +18,34 @@ describe("IITypesetManager.ts", () =>
       fontSize: 16,
       fontWeight: "normal",
       id: "char-1",
-      label: "A"
+      label: "A",
     },
   ]
-  Object.defineProperty(global.SVGElement.prototype, 'getNumberOfChars', {
+  Object.defineProperty(global.SVGElement.prototype, "getNumberOfChars", {
     writable: true,
     value: jest.fn().mockReturnValue(chars.length),
   })
-  Object.defineProperty(global.SVGElement.prototype, 'getExtentOfChar', {
+  Object.defineProperty(global.SVGElement.prototype, "getExtentOfChar", {
     writable: true,
-    value: jest.fn((i) => ({ x: i, y: i * 2, height: i * 3, width: i * 4})),
+    value: jest.fn((i) => ({ x: i, y: i * 2, height: i * 3, width: i * 4 })),
   })
-  Object.defineProperty(global.SVGElement.prototype, 'getBBox', {
+  Object.defineProperty(global.SVGElement.prototype, "getBBox", {
     writable: true,
     value: jest.fn().mockReturnValue({
       x: 0,
       y: 0,
       width: 10,
-      height: 10
+      height: 10,
     }),
   })
 
-  test("should create", () =>
-  {
+  test("should create", () => {
     const editor = createEditorMock()
     const manager = new IITypesetManager(asEditor(editor))
     expect(manager).toBeDefined()
   })
 
-  test("should set chars BoundingBox", () =>
-  {
+  test("should set chars BoundingBox", () => {
     const editor = createEditorMock()
     const manager = new IITypesetManager(asEditor(editor))
     const text = buildIIText({ chars })
@@ -65,8 +56,7 @@ describe("IITypesetManager.ts", () =>
     expect(chars[1].bounds).toEqual({ height: 3, width: 4, x: 1, y: 2 })
   })
 
-  test("should get element BoundingBox", () =>
-  {
+  test("should get element BoundingBox", () => {
     const editor = createEditorMock()
     const manager = new IITypesetManager(asEditor(editor))
     const text = buildIIText({ chars })
@@ -74,8 +64,7 @@ describe("IITypesetManager.ts", () =>
     expect(manager.getElementBoundingBox(textEl)).toEqual({ x: 0, y: 0, width: 10, height: 10 })
   })
 
-  test("should get BoundingBox", () =>
-  {
+  test("should get BoundingBox", () => {
     const editor = createEditorMock()
     const manager = new IITypesetManager(asEditor(editor))
     manager.renderer.layer = SVGBuilder.createLayer({ x: 0, y: 0, width: 100, height: 100 })
@@ -86,8 +75,7 @@ describe("IITypesetManager.ts", () =>
     expect(manager.getElementBoundingBox).toHaveBeenCalledTimes(1)
   })
 
-  test("shoud get Space Width", () =>
-  {
+  test("shoud get Space Width", () => {
     const editor = createEditorMock()
     const manager = new IITypesetManager(asEditor(editor))
     manager.getBoundingBox = jest.fn(() => ({ height: 12, width: 42, x: 0, y: 0 }))
@@ -95,8 +83,7 @@ describe("IITypesetManager.ts", () =>
     expect(manager.getBoundingBox).toHaveBeenCalledTimes(1)
   })
 
-  test("should update Text BoundingBox", () =>
-  {
+  test("should update Text BoundingBox", () => {
     const editor = createEditorMock()
     const manager = new IITypesetManager(asEditor(editor))
     manager.renderer.layer = SVGBuilder.createLayer({ x: 0, y: 0, width: 100, height: 100 })
@@ -109,5 +96,4 @@ describe("IITypesetManager.ts", () =>
     expect(manager.getElementBoundingBox).toHaveBeenCalledTimes(1)
     expect(manager.setCharsBounds).toHaveBeenCalledTimes(1)
   })
-
 })

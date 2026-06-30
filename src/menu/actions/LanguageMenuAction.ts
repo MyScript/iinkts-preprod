@@ -1,32 +1,32 @@
+import languageIcon from "@/assets/svg/language.svg"
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
 import { getAvailableLanguageList } from "@/utils"
-import languageIcon from "@/assets/svg/language.svg"
 
 /**
  * @group Menu
  * @remarks Menu action Language - Sélection de la langue
  */
-export class LanguageMenuAction extends BaseMenuItem<HTMLDivElement>
-{
+export class LanguageMenuAction extends BaseMenuItem<HTMLDivElement> {
   #documentPointerdownHandler?: (e: PointerEvent) => void
   private select!: HTMLSelectElement
   private subMenuWrapper!: HTMLDivElement
   private subMenuContent!: HTMLDivElement
 
-  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-action")
-  {
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-action") {
     const config = {
       type: "language" as const,
       id: `${idPrefix}-language`,
-      label: "Language"
+      label: "Language",
     }
     super(config, editor)
   }
 
-  createElement(): HTMLDivElement
-  {
-    const triggerBtn = this.dom.button({ className: "square", html: languageIcon })
+  createElement(): HTMLDivElement {
+    const triggerBtn = this.dom.button({
+      className: "square",
+      html: languageIcon,
+    })
     triggerBtn.id = `${this.config.id}-trigger`
 
     this.select = this.dom.select({
@@ -40,20 +40,25 @@ export class LanguageMenuAction extends BaseMenuItem<HTMLDivElement>
     })
 
     // Chargement asynchrone des langues disponibles
-    getAvailableLanguageList(this.editor.configuration)
-      .then(json => {
-        const languages = json.result as { [key: string]: string }
-        for (const key in languages) {
-          const selected = key === this.editor.configuration.recognition.lang
-          const opt = new Option(languages[key], key, selected, selected)
-          this.select.appendChild(opt)
-        }
-      })
+    getAvailableLanguageList(this.editor.configuration).then((json) => {
+      const languages = json.result as {
+        [key: string]: string
+      }
+      for (const key in languages) {
+        const selected = key === this.editor.configuration.recognition.lang
+        const opt = new Option(languages[key], key, selected, selected)
+        this.select.appendChild(opt)
+      }
+    })
 
-    this.subMenuWrapper = this.dom.div({ className: "sub-menu" })
+    this.subMenuWrapper = this.dom.div({
+      className: "sub-menu",
+    })
     this.subMenuWrapper.appendChild(triggerBtn)
 
-    this.subMenuContent = this.dom.div({ className: ["sub-menu-content", "bottom-right"] })
+    this.subMenuContent = this.dom.div({
+      className: ["sub-menu-content", "bottom-right"],
+    })
     this.subMenuContent.appendChild(this.select)
     this.subMenuWrapper.appendChild(this.subMenuContent)
 
@@ -80,8 +85,7 @@ export class LanguageMenuAction extends BaseMenuItem<HTMLDivElement>
   /**
    * Wraps/unwraps according to screen size (mobile)
    */
-  wrap(): void
-  {
+  wrap(): void {
     if (this.subMenuContent && this.subMenuWrapper) {
       this.subMenuContent.classList.add("sub-menu-content")
       this.subMenuWrapper.appendChild(this.subMenuContent)
@@ -89,8 +93,7 @@ export class LanguageMenuAction extends BaseMenuItem<HTMLDivElement>
     }
   }
 
-  unwrap(): void
-  {
+  unwrap(): void {
     if (this.subMenuContent && this.subMenuWrapper) {
       this.subMenuContent.classList.remove("sub-menu-content")
       this.subMenuWrapper.insertAdjacentElement("beforebegin", this.subMenuContent)
@@ -98,8 +101,7 @@ export class LanguageMenuAction extends BaseMenuItem<HTMLDivElement>
     }
   }
 
-  update(): void
-  {
+  update(): void {
     if (this.select) {
       this.select.value = this.editor.configuration.recognition.lang
     }

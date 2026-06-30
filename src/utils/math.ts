@@ -1,16 +1,14 @@
 /**
  * @group Utilities
  */
-export function isBetween(val: number, min: number, max: number): boolean
-{
+export function isBetween(val: number, min: number, max: number): boolean {
   return val >= min && val <= max
 }
 
 /**
  * @group Utilities
  */
-export function computeAverage(arr: number[]): number
-{
+export function computeAverage(arr: number[]): number {
   return arr.reduce((p, c) => p + c, 0) / (arr.length || 1)
 }
 
@@ -23,7 +21,6 @@ export function computeAverage(arr: number[]): number
  * @param radiusY - Vertical radius
  * @returns Approximate average radius
  */
-export function computeEllipseRadiusAverage(radiusX: number, radiusY: number): number
-{
+export function computeEllipseRadiusAverage(radiusX: number, radiusY: number): number {
   return Math.sqrt((radiusX ** 2 + radiusY ** 2) / 2)
 }

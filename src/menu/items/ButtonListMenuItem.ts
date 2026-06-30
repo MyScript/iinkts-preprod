@@ -1,5 +1,6 @@
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
-import type { TMenuItemBase } from "./BaseMenuItem";
+
+import type { TMenuItemBase } from "./BaseMenuItem"
 import { BaseMenuItem } from "./BaseMenuItem"
 
 /**
@@ -9,7 +10,7 @@ import { BaseMenuItem } from "./BaseMenuItem"
 export type TMenuButtonList = TMenuItemBase & {
   type: "buttonlist"
   buttonType?: "square" | "round"
-  options: Array<{ label: string, value: string }>
+  options: Array<{ label: string; value: string }>
   getValue: (editor: TInteractiveInkEditor) => string
   setValue: (editor: TInteractiveInkEditor, value: string) => void
 }
@@ -18,12 +19,14 @@ export type TMenuButtonList = TMenuItemBase & {
  * @group Menu
  * @remarks Class for button lists
  */
-export class ButtonListMenuItem extends BaseMenuItem<HTMLDivElement>
-{
-  protected declare config: TMenuButtonList
+export class ButtonListMenuItem extends BaseMenuItem<HTMLDivElement> {
+  declare protected config: TMenuButtonList
 
   createElement(): HTMLDivElement {
-    const wrapper = this.dom.div({ id: this.config.id, className: ["ms-menu-item", "list"] })
+    const wrapper = this.dom.div({
+      id: this.config.id,
+      className: ["ms-menu-item", "list"],
+    })
 
     if (this.config.label) {
       wrapper.appendChild(this.dom.span({ text: this.config.label }))
@@ -31,33 +34,30 @@ export class ButtonListMenuItem extends BaseMenuItem<HTMLDivElement>
 
     const currentValue = this.config.getValue(this.editor)
 
-    this.config.options.forEach(option => {
+    this.config.options.forEach((option) => {
       const button = this.dom.button({
         id: `${this.config.id}-${option.value}`,
         label: option.label,
-        className: [
-          this.config.buttonType || "",
-          option.value === currentValue ? "active" : ""
-        ],
+        className: [this.config.buttonType || "", option.value === currentValue ? "active" : ""],
         onPointerUp: () => {
           this.logger.info(`${this.config.id}.change`, { value: option.value })
           this.config.setValue(this.editor, option.value)
 
-          wrapper.querySelectorAll("button").forEach(btn => btn.classList.remove("active"))
+          wrapper.querySelectorAll("button").forEach((btn) => btn.classList.remove("active"))
           button.classList.add("active")
-        }
+        },
       })
       wrapper.appendChild(button)
     })
 
     if (typeof this.config.disabled === "function") {
       const isDisabled = this.config.disabled(this.editor)
-      wrapper.querySelectorAll("button").forEach(btn => {
-        (btn as HTMLButtonElement).disabled = isDisabled
+      wrapper.querySelectorAll("button").forEach((btn) => {
+        ;(btn as HTMLButtonElement).disabled = isDisabled
       })
     } else if (this.config.disabled) {
-      wrapper.querySelectorAll("button").forEach(btn => {
-        (btn as HTMLButtonElement).disabled = true
+      wrapper.querySelectorAll("button").forEach((btn) => {
+        ;(btn as HTMLButtonElement).disabled = true
       })
     }
 
@@ -65,10 +65,12 @@ export class ButtonListMenuItem extends BaseMenuItem<HTMLDivElement>
   }
 
   update(): void {
-    if (!this.element) return
+    if (!this.element) {
+      return
+    }
 
     const currentValue = this.config.getValue(this.editor)
-    this.element.querySelectorAll("button").forEach(btn => {
+    this.element.querySelectorAll("button").forEach((btn) => {
       const value = btn.id.replace(`${this.config.id}-`, "")
       if (value === currentValue) {
         btn.classList.add("active")

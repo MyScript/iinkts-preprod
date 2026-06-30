@@ -1,26 +1,21 @@
 import { createEditorMock, asEditor } from "../../__mocks__/createEditorMock"
 import { DefaultIIRendererConfiguration, IIMoveManager, TPointerInfo } from "@/iink"
 
-
-describe("IIMoveManager.ts", () =>
-{
-  test("should instanciate", () =>
-  {
+describe("IIMoveManager.ts", () => {
+  test("should instanciate", () => {
     const editor = createEditorMock()
     const manager = new IIMoveManager(asEditor(editor))
     expect(manager).toBeDefined()
     expect(manager.origin).toBeUndefined()
   })
 
-  describe("move process", () =>
-  {
+  describe("move process", () => {
     const editor = createEditorMock()
     editor.init()
 
     const manager = new IIMoveManager(asEditor(editor))
 
-    test("should init origin on start", async () =>
-    {
+    test("should init origin on start", async () => {
       const info = {
         clientX: 1,
         clientY: 2,
@@ -29,10 +24,10 @@ describe("IIMoveManager.ts", () =>
       manager.start(info)
       expect(manager.origin).toBeDefined()
       expect(manager.origin).toEqual({
-       clientX: 1,
-       clientY: 2,
-       viewBoxX: 0,
-       viewBoxY: 0,
+        clientX: 1,
+        clientY: 2,
+        viewBoxX: 0,
+        viewBoxY: 0,
       })
       expect(manager.renderer.getViewBox()).toEqual({
         x: 0,
@@ -42,8 +37,7 @@ describe("IIMoveManager.ts", () =>
       })
     })
 
-    test("should update viewbox on renderer.parent on continu", async () =>
-    {
+    test("should update viewbox on renderer.parent on continu", async () => {
       const info = {
         clientX: 75,
         clientY: 102,
@@ -59,8 +53,7 @@ describe("IIMoveManager.ts", () =>
       expect(manager.renderer.parent.scrollTop).toEqual(0)
     })
 
-    test("should update viewbox on renderer.parent and clear origin on end", async () =>
-    {
+    test("should update viewbox on renderer.parent and clear origin on end", async () => {
       const info = {
         clientX: -42,
         clientY: -96,

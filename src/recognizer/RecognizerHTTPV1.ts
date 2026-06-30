@@ -1,15 +1,22 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { Model, TExport, TJIIXExport } from "@/model"
-import type { TPenStyle } from "@/style";
+import type { TPenStyle } from "@/style"
 import { StyleHelper } from "@/style"
-import type { TPartialDeep } from "@/utils";
+import { type Stroke, StrokeOps } from "@/symbol"
+import type { TPartialDeep } from "@/utils"
 import { computeHmac, getApiInfos, isVersionSuperiorOrEqual } from "@/utils"
-import { RecognizerError } from "./RecognizerError"
-import type { TRecognizerHTTPV1Configuration } from "./RecognizerHTTPV1Configuration";
-import { RecognizerHTTPV1Configuration } from "./RecognizerHTTPV1Configuration"
+
+import type {
+  TDiagramConfiguration,
+  TExportConfiguration,
+  TMathConfiguration,
+  TRawContentConfiguration,
+  TTextConfiguration,
+} from "./recognition"
 import type { TConverstionState } from "./RecognitionConfiguration"
-import type { TDiagramConfiguration, TExportConfiguration, TMathConfiguration, TRawContentConfiguration, TTextConfiguration } from "./recognition"
-import { StrokeOps, type Stroke } from "@/symbol"
+import { RecognizerError } from "./RecognizerError"
+import type { TRecognizerHTTPV1Configuration } from "./RecognizerHTTPV1Configuration"
+import { RecognizerHTTPV1Configuration } from "./RecognizerHTTPV1Configuration"
 
 type TApiError = {
   code?: string
@@ -31,20 +38,26 @@ export type TStrokeGroup = {
  */
 export type TStrokeGroupToSend = {
   penStyle?: string
-  strokes: { id: string, pointerType: string, x: number[], y: number[], t: number[], p: number[]}[]
+  strokes: {
+    id: string
+    pointerType: string
+    x: number[]
+    y: number[]
+    t: number[]
+    p: number[]
+  }[]
 }
-
 
 /**
  * @group Recognizer
  * @deprecated Use {@link RecognizerHTTPV2} instead.
  */
 export type TRecognizerHTTPV1PostConfiguration = {
-  lang: string,
-  diagram?: TDiagramConfiguration,
-  math?: TMathConfiguration,
-  "raw-content"?: TRawContentConfiguration,
-  text?: TTextConfiguration,
+  lang: string
+  diagram?: TDiagramConfiguration
+  math?: TMathConfiguration
+  "raw-content"?: TRawContentConfiguration
+  text?: TTextConfiguration
   export: TExportConfiguration
 }
 
@@ -52,13 +65,13 @@ export type TRecognizerHTTPV1PostConfiguration = {
  * @group Recognizer
  */
 export type TRecognizerHTTPV1PostData = {
-  configuration: TRecognizerHTTPV1PostConfiguration,
-  xDPI: number,
-  yDPI: number,
-  contentType: string,
+  configuration: TRecognizerHTTPV1PostConfiguration
+  xDPI: number
+  yDPI: number
+  contentType: string
   conversionState?: TConverstionState
-  height: number,
-  width: number,
+  height: number
+  width: number
   strokeGroups: TStrokeGroupToSend[]
 }
 
@@ -66,96 +79,95 @@ export type TRecognizerHTTPV1PostData = {
  * @deprecated Use {@link RecognizerHTTPV2} instead.
  * @group Recognizer
  */
-export class RecognizerHTTPV1
-{
+export class RecognizerHTTPV1 {
   #logger = LoggerManager.getLogger(LoggerCategory.RECOGNIZER)
 
   configuration: RecognizerHTTPV1Configuration
 
-  constructor(config: TPartialDeep<TRecognizerHTTPV1Configuration>)
-  {
+  constructor(config: TPartialDeep<TRecognizerHTTPV1Configuration>) {
     this.#logger.info("constructor", { config })
     this.configuration = new RecognizerHTTPV1Configuration(config)
   }
 
-  get url()
-  {
-    return `${ this.configuration.server.scheme }://${ this.configuration.server.host }/api/v4.0/iink/batch`
+  get url() {
+    return `${this.configuration.server.scheme}://${this.configuration.server.host}/api/v4.0/iink/batch`
   }
 
-  get postConfig(): TRecognizerHTTPV1PostConfiguration
-  {
+  get postConfig(): TRecognizerHTTPV1PostConfiguration {
     switch (this.configuration.recognition.type) {
       case "DIAGRAM":
         return {
           lang: this.configuration.recognition.lang,
           diagram: this.configuration.recognition.diagram,
-          export: this.configuration.recognition.export
+          export: this.configuration.recognition.export,
         }
       case "MATH":
         return {
           lang: this.configuration.recognition.lang,
           math: this.configuration.recognition.math,
-          export: this.configuration.recognition.export
+          export: this.configuration.recognition.export,
         }
       case "Raw Content":
         return {
           lang: this.configuration.recognition.lang,
           "raw-content": this.configuration.recognition["raw-content"],
-          export: this.configuration.recognition.export
+          export: this.configuration.recognition.export,
         }
       case "TEXT":
         return {
           lang: this.configuration.recognition.lang,
           text: this.configuration.recognition.text,
-          export: this.configuration.recognition.export
+          export: this.configuration.recognition.export,
         }
       default:
-        throw new Error(`get postConfig error Recognition type unkow "${ this.configuration.recognition.type }"`)
+        throw new Error(`get postConfig error Recognition type unkow "${this.configuration.recognition.type}"`)
         break
     }
   }
 
-  protected buildData(model: Model): TRecognizerHTTPV1PostData
-  {
+  protected buildData(model: Model): TRecognizerHTTPV1PostData {
     this.#logger.info("buildData", { model })
-    const isPenStyleEqual = (ps1: TPenStyle, ps2: TPenStyle) =>
-    {
-      return ps1 && ps2 && ps1["-myscript-pen-fill-color"] === ps2["-myscript-pen-fill-color"] &&
+    const isPenStyleEqual = (ps1: TPenStyle, ps2: TPenStyle) => {
+      return (
+        ps1 &&
+        ps2 &&
+        ps1["-myscript-pen-fill-color"] === ps2["-myscript-pen-fill-color"] &&
         ps1["-myscript-pen-fill-style"] === ps2["-myscript-pen-fill-style"] &&
         ps1["-myscript-pen-width"] === ps2["-myscript-pen-width"] &&
         ps1.color === ps2.color &&
         ps1.width === ps2.width
+      )
     }
 
     const strokeGroupByPenStyle: TStrokeGroup[] = []
-    model.symbols.forEach((s) =>
-    {
-      const groupIndex = strokeGroupByPenStyle.findIndex(sg => isPenStyleEqual(sg.penStyle, s.style))
+    model.symbols.forEach((s) => {
+      const groupIndex = strokeGroupByPenStyle.findIndex((sg) => isPenStyleEqual(sg.penStyle, s.style))
       if (groupIndex > -1) {
         strokeGroupByPenStyle[groupIndex].strokes.push(s)
       } else {
         strokeGroupByPenStyle.push({
           penStyle: s.style,
-          strokes: [s]
+          strokes: [s],
         })
       }
     })
 
     const strokeGroupsToSend: TStrokeGroupToSend[] = []
-    strokeGroupByPenStyle.forEach((group: TStrokeGroup) =>
-    {
-      const newPenStyle = JSON.stringify(group.penStyle) === "{}" ? undefined : StyleHelper.penStyleToCSS(group.penStyle as TPenStyle)
+    strokeGroupByPenStyle.forEach((group: TStrokeGroup) => {
+      const newPenStyle =
+        JSON.stringify(group.penStyle) === "{}" ? undefined : StyleHelper.penStyleToCSS(group.penStyle as TPenStyle)
       const newGroup = {
         penStyle: newPenStyle,
-        strokes: group.strokes.map(s => StrokeOps.formatToSend(s))
+        strokes: group.strokes.map((s) => StrokeOps.formatToSend(s)),
       }
       strokeGroupsToSend.push(newGroup)
     })
 
-    const contentType: string = this.configuration.recognition.type === "Raw Content" ?
-      "Raw Content" :
-      this.configuration.recognition.type.charAt(0).toUpperCase() + this.configuration.recognition.type.slice(1).toLowerCase()
+    const contentType: string =
+      this.configuration.recognition.type === "Raw Content"
+        ? "Raw Content"
+        : this.configuration.recognition.type.charAt(0).toUpperCase() +
+          this.configuration.recognition.type.slice(1).toLowerCase()
 
     const data = {
       configuration: this.postConfig,
@@ -164,14 +176,13 @@ export class RecognizerHTTPV1
       contentType,
       height: model.height,
       width: model.width,
-      strokeGroups: strokeGroupsToSend
+      strokeGroups: strokeGroupsToSend,
     }
     this.#logger.debug("buildData", { data })
     return data
   }
 
-  protected async post(data: unknown, mimeType: string): Promise<unknown>
-  {
+  protected async post(data: unknown, mimeType: string): Promise<unknown> {
     this.#logger.info("post", { data, mimeType })
     const headers = new Headers()
     headers.append("Accept", "application/json," + mimeType)
@@ -184,8 +195,7 @@ export class RecognizerHTTPV1
           hmacKey = this.configuration.server.hmacKey
         } else if (typeof this.configuration.server.hmacKey == "function") {
           hmacKey = await this.configuration.server.hmacKey(this.configuration.server.applicationKey)
-        }
-        else {
+        } else {
           throw new Error("HMAC key is not a string nor a function")
         }
         if (hmacKey) {
@@ -221,7 +231,7 @@ export class RecognizerHTTPV1
       method: "POST",
       headers,
       body: JSON.stringify(data),
-      credentials: "omit"
+      credentials: "omit",
     }
     const request = new Request(this.url, reqInit)
     const response: Response = await fetch(request)
@@ -238,7 +248,10 @@ export class RecognizerHTTPV1
           result = await response.json()
           break
         case "application/vnd.myscript.jiix":
-          result = await response.clone().json().catch(async () => await response.text())
+          result = await response
+            .clone()
+            .json()
+            .catch(async () => await response.text())
           break
         default:
           result = await response.text()
@@ -247,26 +260,32 @@ export class RecognizerHTTPV1
       this.#logger.debug("post", { result })
       return result
     } else {
-      const err = await response.json() as TApiError
+      const err = (await response.json()) as TApiError
       this.#logger.error("post", { err })
       throw err
     }
   }
 
-  protected async tryFetch(data: TRecognizerHTTPV1PostData, mimeType: string): Promise<TExport | never>
-  {
-    this.#logger.debug("tryFetch", { data, mimeType })
+  protected async tryFetch(data: TRecognizerHTTPV1PostData, mimeType: string): Promise<TExport | never> {
+    this.#logger.debug("tryFetch", {
+      data,
+      mimeType,
+    })
     return this.post(data, mimeType)
-      .then((res) =>
-      {
+      .then((res) => {
         const exports: TExport = {}
         exports[mimeType] = res as TJIIXExport | string | Blob
-        this.#logger.debug("tryFetch", { exports })
+        this.#logger.debug("tryFetch", {
+          exports,
+        })
         return exports
       })
-      .catch((err) =>
-      {
-        this.#logger.error("tryFetch", { data, mimeType, err })
+      .catch((err) => {
+        this.#logger.error("tryFetch", {
+          data,
+          mimeType,
+          err,
+        })
         let message = err.message || RecognizerError.UNKNOWN
         if (!err.code) {
           message = RecognizerError.CANT_ESTABLISH
@@ -278,9 +297,10 @@ export class RecognizerHTTPV1
       })
   }
 
-  protected getMimeTypes(requestedMimeTypes?: string[]): string[]
-  {
-    this.#logger.info("getMimeTypes", { requestedMimeTypes })
+  protected getMimeTypes(requestedMimeTypes?: string[]): string[] {
+    this.#logger.info("getMimeTypes", {
+      requestedMimeTypes,
+    })
     let mimeTypes: string[] = requestedMimeTypes || []
     if (!mimeTypes.length) {
       switch (this.configuration.recognition.type) {
@@ -297,57 +317,70 @@ export class RecognizerHTTPV1
           mimeTypes = this.configuration.recognition.text.mimeTypes
           break
         default:
-          throw new Error(`Recognition type "${ this.configuration.recognition.type }" is unknown.\n Possible types are:\n -DIAGRAM\n -MATH\n -Raw Content\n -TEXT`)
+          throw new Error(
+            `Recognition type "${this.configuration.recognition.type}" is unknown.\n Possible types are:\n -DIAGRAM\n -MATH\n -Raw Content\n -TEXT`
+          )
           break
       }
     }
     return mimeTypes
   }
 
-  async convert(model: Model, conversionState?: TConverstionState, requestedMimeTypes?: string[]): Promise<Model>
-  {
-    this.#logger.info("convert", { model, conversionState, requestedMimeTypes })
+  async convert(model: Model, conversionState?: TConverstionState, requestedMimeTypes?: string[]): Promise<Model> {
+    this.#logger.info("convert", {
+      model,
+      conversionState,
+      requestedMimeTypes,
+    })
     const myModel = model.clone()
     const mimeTypes = this.getMimeTypes(requestedMimeTypes)
     const dataToConcert = this.buildData(myModel)
     dataToConcert.conversionState = conversionState
-    const promises = mimeTypes.map(mt => this.tryFetch(dataToConcert, mt))
+    const promises = mimeTypes.map((mt) => this.tryFetch(dataToConcert, mt))
     const exports: TExport[] = await Promise.all(promises)
-    exports.forEach(e =>
-    {
+    exports.forEach((e) => {
       myModel.mergeConvert(e)
     })
-    this.#logger.debug("convert", { model: myModel })
+    this.#logger.debug("convert", {
+      model: myModel,
+    })
     return myModel
   }
 
-  async export(model: Model, requestedMimeTypes?: string[]): Promise<Model>
-  {
-    this.#logger.info("export", { model, requestedMimeTypes })
+  async export(model: Model, requestedMimeTypes?: string[]): Promise<Model> {
+    this.#logger.info("export", {
+      model,
+      requestedMimeTypes,
+    })
     const myModel = model.clone()
     if (myModel.symbols.length === 0) {
       return Promise.resolve(myModel)
     }
     const mimeTypes = this.getMimeTypes(requestedMimeTypes)
     if (!mimeTypes.length) {
-      this.#logger.error("export", { model, requestedMimeTypes, "Export failed, no mimeTypes define in recognition configuration": String })
+      this.#logger.error("export", {
+        model,
+        requestedMimeTypes,
+        "Export failed, no mimeTypes define in recognition configuration": String,
+      })
       return Promise.reject(new Error("Export failed, no mimeTypes define in recognition configuration"))
     }
-    const mimeTypesRequiringExport: string[] = mimeTypes.filter(m => !myModel.exports || !myModel.exports[m])
+    const mimeTypesRequiringExport: string[] = mimeTypes.filter((m) => !myModel.exports || !myModel.exports[m])
     const data = this.buildData(model)
-    const exports: TExport[] = await Promise.all(mimeTypesRequiringExport.map(mimeType => this.tryFetch(data, mimeType)))
-    exports.forEach(e =>
-    {
+    const exports: TExport[] = await Promise.all(
+      mimeTypesRequiringExport.map((mimeType) => this.tryFetch(data, mimeType))
+    )
+    exports.forEach((e) => {
       myModel.mergeExport(e)
     })
-    this.#logger.debug("export", { model: myModel })
+    this.#logger.debug("export", {
+      model: myModel,
+    })
     return myModel
   }
 
-  async resize(model: Model): Promise<Model>
-  {
+  async resize(model: Model): Promise<Model> {
     this.#logger.info("resize", { model })
     return this.export(model)
   }
-
 }

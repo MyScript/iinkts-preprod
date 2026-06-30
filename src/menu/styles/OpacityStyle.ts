@@ -1,31 +1,31 @@
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import type { TMenuRange } from "@/menu/items"
+import { CollapsibleWrapper, RangeMenuItem } from "@/menu/items"
 import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
-import type { TMenuRange} from "@/menu/items";
-import { RangeMenuItem, CollapsibleWrapper } from "@/menu/items"
 
 /**
  * @group Menu
  * @remarks Opacity style menu
  */
-export class OpacityStyle extends BaseMenuItem<HTMLDivElement>
-{
+export class OpacityStyle extends BaseMenuItem<HTMLDivElement> {
   private opacityItem?: RangeMenuItem
 
-  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-style")
-  {
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-style") {
     const config = {
       type: "opacity" as const,
       id: `${idPrefix}-opacity`,
-      label: "Opacity"
+      label: "Opacity",
     }
     super(config, editor)
   }
 
-  createElement(): HTMLDivElement
-  {
-    const symbolsStyles = this.editor.model.symbolsSelected.map(s => s.style)
-    const hasUniqOpacity = symbolsStyles.length && symbolsStyles.every(st => st.opacity === symbolsStyles[0]?.opacity)
-    const currentOpacity = Math.round((hasUniqOpacity && symbolsStyles[0]?.opacity ? symbolsStyles[0]?.opacity : (this.editor.penStyle.opacity || 1)) * 100)
+  createElement(): HTMLDivElement {
+    const symbolsStyles = this.editor.model.symbolsSelected.map((s) => s.style)
+    const hasUniqOpacity = symbolsStyles.length && symbolsStyles.every((st) => st.opacity === symbolsStyles[0]?.opacity)
+    const currentOpacity = Math.round(
+      (hasUniqOpacity && symbolsStyles[0]?.opacity ? symbolsStyles[0]?.opacity : this.editor.penStyle.opacity || 1) *
+        100
+    )
 
     const opacityConfig: TMenuRange = {
       type: "range",
@@ -37,9 +37,12 @@ export class OpacityStyle extends BaseMenuItem<HTMLDivElement>
       onChange: (value: number, editor) => {
         editor.penStyle = { opacity: value / 100 }
         if (editor.model.symbolsSelected.length) {
-          editor.updateSymbolsStyle(editor.model.symbolsSelected.map(s => s.id), { opacity: value / 100 })
+          editor.updateSymbolsStyle(
+            editor.model.symbolsSelected.map((s) => s.id),
+            { opacity: value / 100 }
+          )
         }
-      }
+      },
     }
 
     this.opacityItem = new RangeMenuItem(opacityConfig, this.editor)
@@ -48,14 +51,12 @@ export class OpacityStyle extends BaseMenuItem<HTMLDivElement>
     return wrapper.getElement()
   }
 
-  update(): void
-  {
+  update(): void {
     this.updateDisabled()
     this.updateVisible()
   }
 
-  destroy(): void
-  {
+  destroy(): void {
     if (this.opacityItem) {
       this.opacityItem.destroy()
       this.opacityItem = undefined

@@ -28,10 +28,15 @@ export type TSegment = {
 /**
  * @group Symbol
  */
-export function isValidPoint(p?: TPartialDeep<TPoint>): boolean
-{
-  if (!p) return false
-  if (!isValidNumber(p.x)) return false
-  if (!isValidNumber(p.y)) return false
+export function isValidPoint(p?: TPartialDeep<TPoint>): boolean {
+  if (!p) {
+    return false
+  }
+  if (!isValidNumber(p.x)) {
+    return false
+  }
+  if (!isValidNumber(p.y)) {
+    return false
+  }
   return true
 }

@@ -1,9 +1,9 @@
-import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
-import type { TMenuItemBase } from "@/menu/items/BaseMenuItem";
-import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
-import { EditorTool } from "@/Constants"
-import { DEFAULT_ERASER_SIZE_LIST } from "@/menu/MenuConstants"
 import eraseIcon from "@/assets/svg/erase.svg"
+import { EditorTool } from "@/Constants"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import type { TMenuItemBase } from "@/menu/items/BaseMenuItem"
+import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
+import { DEFAULT_ERASER_SIZE_LIST } from "@/menu/MenuConstants"
 
 /**
  * @group Menu
@@ -16,32 +16,37 @@ type TEraseToolConfig = TMenuItemBase & {
  * @group Menu
  * @remarks Erase tool - Element erasure with configurable size
  */
-export class EraseTool extends BaseMenuItem<HTMLDivElement>
-{
+export class EraseTool extends BaseMenuItem<HTMLDivElement> {
   #documentPointerdownHandler?: (e: PointerEvent) => void
   private sizeButtons: Map<number, HTMLButtonElement> = new Map()
   private triggerButton?: HTMLButtonElement
 
-  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-tool")
-  {
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-tool") {
     const config: TEraseToolConfig = {
       type: "erase",
       id: `${idPrefix}-erase`,
-      label: "Erase"
+      label: "Erase",
     }
     super(config, editor)
   }
 
-  private createEraserSizeIcon(value: number): string
-  {
-    const radii: Record<number, number> = { 5: 3, 10: 5, 20: 7, 40: 9 }
+  private createEraserSizeIcon(value: number): string {
+    const radii: Record<number, number> = {
+      5: 3,
+      10: 5,
+      20: 7,
+      40: 9,
+    }
     const r = radii[value] ?? Math.round(Math.log2(value))
     return `<svg viewBox="0 0 24 24" width="24" height="24"><circle cx="12" cy="12" r="${r}" fill="currentColor"/></svg>`
   }
 
-  private createSizeButton(label: string, value: number): HTMLButtonElement
-  {
-    const button = this.dom.button({ id: `${this.config.id}-${value}`, className: "square", html: this.createEraserSizeIcon(value) })
+  private createSizeButton(label: string, value: number): HTMLButtonElement {
+    const button = this.dom.button({
+      id: `${this.config.id}-${value}`,
+      className: "square",
+      html: this.createEraserSizeIcon(value),
+    })
     button.title = `${label} (${value}px)`
 
     button.addEventListener("click", () => {
@@ -56,19 +61,29 @@ export class EraseTool extends BaseMenuItem<HTMLDivElement>
     return button
   }
 
-  createElement(): HTMLDivElement
-  {
-    this.triggerButton = this.dom.button({ id: this.config.id, className: "square", html: eraseIcon })
+  createElement(): HTMLDivElement {
+    this.triggerButton = this.dom.button({
+      id: this.config.id,
+      className: "square",
+      html: eraseIcon,
+    })
 
-    const subMenuContent = this.dom.div({ id: `${this.config.id}-list`, className: ["ms-menu-row", "sub-menu-content-erase"] })
+    const subMenuContent = this.dom.div({
+      id: `${this.config.id}-list`,
+      className: ["ms-menu-row", "sub-menu-content-erase"],
+    })
     DEFAULT_ERASER_SIZE_LIST.forEach(({ label, value }) => {
       subMenuContent.appendChild(this.createSizeButton(label, value))
     })
 
-    const content = this.dom.div({ className: ["sub-menu-content", "top"] })
+    const content = this.dom.div({
+      className: ["sub-menu-content", "top"],
+    })
     content.appendChild(subMenuContent)
 
-    const wrapper = this.dom.div({ className: "sub-menu" })
+    const wrapper = this.dom.div({
+      className: "sub-menu",
+    })
     wrapper.appendChild(this.triggerButton)
     wrapper.appendChild(content)
 
@@ -91,8 +106,7 @@ export class EraseTool extends BaseMenuItem<HTMLDivElement>
     return wrapper
   }
 
-  destroy(): void
-  {
+  destroy(): void {
     if (this.#documentPointerdownHandler) {
       document.removeEventListener("pointerdown", this.#documentPointerdownHandler)
       this.#documentPointerdownHandler = undefined
@@ -100,9 +114,10 @@ export class EraseTool extends BaseMenuItem<HTMLDivElement>
     super.destroy()
   }
 
-  update(): void
-  {
-    if (!this.element || !this.triggerButton) return
+  update(): void {
+    if (!this.element || !this.triggerButton) {
+      return
+    }
 
     const isActive = this.editor.tool === EditorTool.Erase
     this.triggerButton.classList.toggle("active", isActive)
@@ -116,10 +131,8 @@ export class EraseTool extends BaseMenuItem<HTMLDivElement>
     this.updateVisible()
   }
 
-  private unselectAll(): void
-  {
+  private unselectAll(): void {
     const menu = this.element?.closest(".ms-menu")
-    menu?.querySelectorAll("*").forEach(e => e.classList.remove("active"))
+    menu?.querySelectorAll("*").forEach((e) => e.classList.remove("active"))
   }
-
 }

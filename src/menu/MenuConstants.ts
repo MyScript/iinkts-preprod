@@ -8,10 +8,22 @@
  * @remarks Default color palette available in menus
  */
 export const DEFAULT_MENU_COLORS = [
-  "#000000", "#808080", "#ffffff", "transparent",
-  "#ff0000", "#ff6400", "#ffc800", "#ffff00",
-  "#0000ff", "#0064ff", "#00c8ff", "#00ffff",
-  "#008000", "#00af00", "#00e100", "#00ff00"
+  "#000000",
+  "#808080",
+  "#ffffff",
+  "transparent",
+  "#ff0000",
+  "#ff6400",
+  "#ffc800",
+  "#ffff00",
+  "#0000ff",
+  "#0064ff",
+  "#00c8ff",
+  "#00ffff",
+  "#008000",
+  "#00af00",
+  "#00e100",
+  "#00ff00",
 ]
 
 /**
@@ -40,7 +52,10 @@ export const DEFAULT_ERASER_SIZE_LIST = [
  * @group Menu
  * @remarks Default font size values
  */
-export const DEFAULT_FONT_SIZE_LIST: { label: string, value: "auto" | number }[] = [
+export const DEFAULT_FONT_SIZE_LIST: {
+  label: string
+  value: "auto" | number
+}[] = [
   { label: "Auto", value: "auto" },
   { label: "S", value: 0.5 },
   { label: "M", value: 0.75 },
@@ -51,7 +66,10 @@ export const DEFAULT_FONT_SIZE_LIST: { label: string, value: "auto" | number }[]
  * @group Menu
  * @remarks Default font weight values
  */
-export const DEFAULT_FONT_WEIGHT_LIST: { label: string, value: "auto" | "normal" | "bold" }[] = [
+export const DEFAULT_FONT_WEIGHT_LIST: {
+  label: string
+  value: "auto" | "normal" | "bold"
+}[] = [
   { label: "Auto", value: "auto" },
   { label: "Normal", value: "normal" },
   { label: "Bold", value: "bold" },

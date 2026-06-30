@@ -1,7 +1,7 @@
-import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
-import type { TMenuSubMenu } from "@/menu/items/SubMenuItem";
-import { SubMenuItem } from "@/menu/items/SubMenuItem"
 import guideIcon from "@/assets/svg/orthogonal-view.svg"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import type { TMenuSubMenu } from "@/menu/items/SubMenuItem"
+import { SubMenuItem } from "@/menu/items/SubMenuItem"
 
 /** @group Menu */
 export type TGuideActionItemsConfig = {
@@ -16,17 +16,15 @@ export type TGuideActionConfig = boolean | TGuideActionItemsConfig
  * @group Menu
  * @remarks Menu action Guide - Configuration des guides
  */
-export class GuideMenuAction extends SubMenuItem
-{
-  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-action", itemsConfig?: TGuideActionItemsConfig)
-  {
+export class GuideMenuAction extends SubMenuItem {
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-action", itemsConfig?: TGuideActionItemsConfig) {
     const enabled = (key: keyof TGuideActionItemsConfig) => itemsConfig?.[key] !== false
 
     const guideGaps = [
       { label: "S", value: "25" },
       { label: "M", value: "50" },
       { label: "L", value: "100" },
-      { label: "XL", value: "150" }
+      { label: "XL", value: "150" },
     ]
 
     const config: TMenuSubMenu = {
@@ -36,7 +34,7 @@ export class GuideMenuAction extends SubMenuItem
       menuTitle: "Guide",
       icon: guideIcon,
       position: "right-top",
-      items: []
+      items: [],
     }
 
     if (enabled("enable")) {
@@ -48,7 +46,7 @@ export class GuideMenuAction extends SubMenuItem
         setValue: (editor, value) => {
           editor.configuration.rendering.guides.enable = value
           editor.renderingConfiguration = editor.configuration.rendering
-        }
+        },
       })
     }
 
@@ -60,13 +58,13 @@ export class GuideMenuAction extends SubMenuItem
         options: [
           { label: "Line", value: "line" },
           { label: "Grid", value: "grid" },
-          { label: "Point", value: "point" }
+          { label: "Point", value: "point" },
         ],
         getValue: (editor) => editor.configuration.rendering.guides.type,
         setValue: (editor, value) => {
-          editor.configuration.rendering.guides.type = value as ("line" | "grid" | "point")
+          editor.configuration.rendering.guides.type = value as "line" | "grid" | "point"
           editor.renderingConfiguration = editor.configuration.rendering
-        }
+        },
       })
     }
 
@@ -81,7 +79,7 @@ export class GuideMenuAction extends SubMenuItem
         setValue: (editor, value) => {
           editor.configuration.rendering.guides.gap = +value
           editor.renderingConfiguration = editor.configuration.rendering
-        }
+        },
       })
     }
 
