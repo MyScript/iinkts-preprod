@@ -1,11 +1,10 @@
-import { TWO_PI, areValidCoordinates } from "@/utils"
 import { DOMFactory } from "@/components/dom"
+import { areValidCoordinates, TWO_PI } from "@/utils"
 
 /**
  * @group Components
  */
-export type TChartConfig =
-{
+export type TChartConfig = {
   width?: number
   height?: number
   title?: string
@@ -21,8 +20,7 @@ export type TChartConfig =
 /**
  * @hidden
  */
-type TViewPort =
-{
+type TViewPort = {
   xMin: number
   xMax: number
   yMin: number
@@ -32,8 +30,7 @@ type TViewPort =
 /**
  * @hidden
  */
-type TMargin =
-{
+type TMargin = {
   top: number
   right: number
   bottom: number
@@ -43,8 +40,7 @@ type TMargin =
 /**
  * @hidden
  */
-type TScaleFunctions =
-{
+type TScaleFunctions = {
   scaleX: (x: number) => number
   scaleY: (y: number) => number
 }
@@ -52,8 +48,7 @@ type TScaleFunctions =
 /**
  * @hidden
  */
-type TAxisPositions =
-{
+type TAxisPositions = {
   xAxisY: number
   yAxisX: number
 }
@@ -61,8 +56,7 @@ type TAxisPositions =
 /**
  * @group Components
  */
-export class Chart
-{
+export class Chart {
   private static readonly CHART_MARGIN: TMargin = { top: 40, right: 40, bottom: 60, left: 60 }
   private static readonly SERIES_COLORS = [
     "#2196F3", // Blue
@@ -71,7 +65,7 @@ export class Chart
     "#9C27B0", // Purple
     "#FF9800", // Orange
     "#00BCD4", // Cyan
-    "#E91E63"  // Pink
+    "#E91E63", // Pink
   ]
 
   private canvas: HTMLCanvasElement
@@ -85,8 +79,7 @@ export class Chart
   private lastMousePos = { x: 0, y: 0 }
   private controlsContainer?: HTMLDivElement
 
-  constructor(config: TChartConfig = {})
-  {
+  constructor(config: TChartConfig = {}) {
     this.config = {
       width: config.width ?? 500,
       height: config.height ?? 350,
@@ -97,11 +90,13 @@ export class Chart
       lineWidth: config.lineWidth ?? 2,
       showGrid: config.showGrid ?? true,
       showPoints: config.showPoints ?? true,
-      seriesColors: config.seriesColors
+      seriesColors: config.seriesColors,
     } as Required<TChartConfig>
 
     // Create container
-    this.container = DOMFactory.div({ className: "ms-chart" })
+    this.container = DOMFactory.div({
+      className: "ms-chart",
+    })
 
     // Create controls
     this.createControls()
@@ -123,30 +118,36 @@ export class Chart
     this.container.appendChild(this.canvas)
   }
 
-  private createControls(): void
-  {
-    this.controlsContainer = DOMFactory.div({ className: "ms-chart-controls" })
+  private createControls(): void {
+    this.controlsContainer = DOMFactory.div({
+      className: "ms-chart-controls",
+    })
 
-    const createChartButton = (label: string, onClick: () => void): HTMLButtonElement =>
-    {
-      return DOMFactory.button({ label, onClick, className: "ms-chart-btn" })
+    const createChartButton = (label: string, onClick: () => void): HTMLButtonElement => {
+      return DOMFactory.button({
+        label,
+        onClick,
+        className: "ms-chart-btn",
+      })
     }
 
     const zoomInBtn = createChartButton("Zoom +", () => this.zoom(1.2))
     const zoomOutBtn = createChartButton("Zoom −", () => this.zoom(0.8))
     const resetBtn = createChartButton("Reset", () => this.resetZoom())
-    const togglePointsBtn = createChartButton(
-      this.config.showPoints ? "Hide Points" : "Show Points",
-      () =>
-      {
-        this.config.showPoints = !this.config.showPoints
-        togglePointsBtn.textContent = this.config.showPoints ? "Hide Points" : "Show Points"
-        this.draw()
-      }
-    )
+    const togglePointsBtn = createChartButton(this.config.showPoints ? "Hide Points" : "Show Points", () => {
+      this.config.showPoints = !this.config.showPoints
+      togglePointsBtn.textContent = this.config.showPoints ? "Hide Points" : "Show Points"
+      this.draw()
+    })
 
-    const label = DOMFactory.span({ text: "Zoom: ", className: "ms-chart-zoom-label" })
-    const info = DOMFactory.span({ text: "Use mouse wheel to zoom, drag to pan", className: "ms-chart-info" })
+    const label = DOMFactory.span({
+      text: "Zoom: ",
+      className: "ms-chart-zoom-label",
+    })
+    const info = DOMFactory.span({
+      text: "Use mouse wheel to zoom, drag to pan",
+      className: "ms-chart-info",
+    })
 
     this.controlsContainer.appendChild(zoomInBtn)
     this.controlsContainer.appendChild(zoomOutBtn)
@@ -158,35 +159,41 @@ export class Chart
     this.container.appendChild(this.controlsContainer)
   }
 
-  private setupInteractions(): void
-  {
-    this.canvas.addEventListener("wheel", (e) =>
-    {
+  private setupInteractions(): void {
+    this.canvas.addEventListener("wheel", (e) => {
       e.preventDefault()
       const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9
-      this.zoom(zoomFactor, { x: e.offsetX, y: e.offsetY })
+      this.zoom(zoomFactor, {
+        x: e.offsetX,
+        y: e.offsetY,
+      })
     })
 
-    this.canvas.addEventListener("mousedown", (e) =>
-    {
+    this.canvas.addEventListener("mousedown", (e) => {
       this.isDragging = true
-      this.lastMousePos = { x: e.offsetX, y: e.offsetY }
+      this.lastMousePos = {
+        x: e.offsetX,
+        y: e.offsetY,
+      }
       this.setCursor("grabbing")
     })
 
-    this.canvas.addEventListener("mousemove", (e) =>
-    {
-      if (!this.isDragging || !this.viewport) return
+    this.canvas.addEventListener("mousemove", (e) => {
+      if (!this.isDragging || !this.viewport) {
+        return
+      }
 
       const dx = e.offsetX - this.lastMousePos.x
       const dy = e.offsetY - this.lastMousePos.y
-      this.lastMousePos = { x: e.offsetX, y: e.offsetY }
+      this.lastMousePos = {
+        x: e.offsetX,
+        y: e.offsetY,
+      }
 
       this.pan(dx, dy)
     })
 
-    const stopDragging = () =>
-    {
+    const stopDragging = () => {
       this.isDragging = false
       this.setCursor("grab")
     }
@@ -198,24 +205,21 @@ export class Chart
   /**
    * Set cursor style
    */
-  private setCursor(cursor: string): void
-  {
+  private setCursor(cursor: string): void {
     this.canvas.style.cursor = cursor
   }
 
   /**
    * Check if a point is valid (not NaN or Infinite)
    */
-  private isValidPoint(x: number, y: number): boolean
-  {
+  private isValidPoint(x: number, y: number): boolean {
     return areValidCoordinates(x, y)
   }
 
   /**
    * Get series colors
    */
-  private getSeriesColors(): string[]
-  {
+  private getSeriesColors(): string[] {
     // Use custom colors if provided
     if (this.config.seriesColors && this.config.seriesColors.length > 0) {
       return this.config.seriesColors
@@ -227,9 +231,10 @@ export class Chart
     return colors
   }
 
-  private zoom(factor: number, center?: { x: number; y: number }): void
-  {
-    if (!this.viewport) return
+  private zoom(factor: number, center?: { x: number; y: number }): void {
+    if (!this.viewport) {
+      return
+    }
 
     const { chartWidth, chartHeight, margin } = this.getChartDimensions()
 
@@ -254,15 +259,16 @@ export class Chart
       xMin: centerX - xRange / 2,
       xMax: centerX + xRange / 2,
       yMin: centerY - yRange / 2,
-      yMax: centerY + yRange / 2
+      yMax: centerY + yRange / 2,
     }
 
     this.draw()
   }
 
-  private pan(dx: number, dy: number): void
-  {
-    if (!this.viewport) return
+  private pan(dx: number, dy: number): void {
+    if (!this.viewport) {
+      return
+    }
 
     const { chartWidth, chartHeight } = this.getChartDimensions()
 
@@ -276,14 +282,13 @@ export class Chart
       xMin: this.viewport.xMin + xShift,
       xMax: this.viewport.xMax + xShift,
       yMin: this.viewport.yMin + yShift,
-      yMax: this.viewport.yMax + yShift
+      yMax: this.viewport.yMax + yShift,
     }
 
     this.draw()
   }
 
-  private resetZoom(): void
-  {
+  private resetZoom(): void {
     this.viewport = this.defaultViewport ? { ...this.defaultViewport } : null
     this.draw()
   }
@@ -291,8 +296,11 @@ export class Chart
   /**
    * Get chart dimensions accounting for margins
    */
-  private getChartDimensions(): { chartWidth: number; chartHeight: number; margin: TMargin }
-  {
+  private getChartDimensions(): {
+    chartWidth: number
+    chartHeight: number
+    margin: TMargin
+  } {
     const margin = Chart.CHART_MARGIN
     const chartWidth = this.config.width - margin.left - margin.right
     const chartHeight = this.config.height - margin.top - margin.bottom
@@ -302,23 +310,29 @@ export class Chart
   /**
    * Compute range with padding for axis bounds
    */
-  private computeRangeWithPadding(min: number, max: number, paddingRatio: number = 0.1): { min: number; max: number }
-  {
+  private computeRangeWithPadding(min: number, max: number, paddingRatio: number = 0.1): { min: number; max: number } {
     const range = max - min
     if (range === 0) {
       const padding = Math.abs(min) * paddingRatio || 1
-      return { min: min - padding, max: max + padding }
+      return {
+        min: min - padding,
+        max: max + padding,
+      }
     }
     const padding = range * paddingRatio
-    return { min: min - padding, max: max + padding }
+    return {
+      min: min - padding,
+      max: max + padding,
+    }
   }
 
   /**
    * Filter outliers using IQR method
    */
-  private filterOutliers(values: number[]): number[]
-  {
-    if (values.length === 0) return values
+  private filterOutliers(values: number[]): number[] {
+    if (values.length === 0) {
+      return values
+    }
 
     const sorted = [...values].sort((a, b) => a - b)
     const q1Index = Math.floor(sorted.length * 0.25)
@@ -335,20 +349,15 @@ export class Chart
   /**
    * Calculate default viewport based on median values
    */
-  private calculateDefaultViewport(): TViewPort | null
-  {
+  private calculateDefaultViewport(): TViewPort | null {
     // Collect all points from all series
     const allPoints: number[][] = []
     for (const series of this.series) {
       allPoints.push(...series)
     }
 
-    const xValues = allPoints
-      .map((p) => p[0])
-      .filter((v) => areValidCoordinates(v, 0))
-    const yValues = allPoints
-      .map((p) => p[1])
-      .filter((v) => areValidCoordinates(0, v))
+    const xValues = allPoints.map((p) => p[0]).filter((v) => areValidCoordinates(v, 0))
+    const yValues = allPoints.map((p) => p[1]).filter((v) => areValidCoordinates(0, v))
 
     if (xValues.length === 0 || yValues.length === 0) {
       return null
@@ -370,7 +379,7 @@ export class Chart
       xMin: finalXMin,
       xMax: finalXMax,
       yMin: finalYMin,
-      yMax: finalYMax
+      yMax: finalYMax,
     }
   }
 
@@ -380,8 +389,7 @@ export class Chart
    *   - Single series: number[][] or { [key: string]: number }[]
    *   - Multiple series: number[][][] or { [key: string]: number }[][]
    */
-  setData(data: number[][] | { [key: string]: number }[] | number[][][] | { [key: string]: number }[][]): void
-  {
+  setData(data: number[][] | { [key: string]: number }[] | number[][][] | { [key: string]: number }[][]): void {
     // Detect if we have multiple series or single series
     let multipleSeries = false
 
@@ -428,26 +436,16 @@ export class Chart
     this.draw()
   }
 
-  private convertToPoints(data: number[][] | { [key: string]: number }[]): number[][]
-  {
+  private convertToPoints(data: number[][] | { [key: string]: number }[]): number[][] {
     // Check if data is array of objects { x: val, y: val }
-    if (
-      data.length > 0 &&
-      typeof data[0] === "object" &&
-      !Array.isArray(data[0])
-    ) {
-      const objectArray = data as { [key: string]: number }[]
-      return objectArray.map((obj) => [
-        obj[this.config.xLabel],
-        obj[this.config.yLabel]
-      ])
+    if (data.length > 0 && typeof data[0] === "object" && !Array.isArray(data[0])) {
+      const objectArray = data as {
+        [key: string]: number
+      }[]
+      return objectArray.map((obj) => [obj[this.config.xLabel], obj[this.config.yLabel]])
     }
     // Check if data is in format [[x1, x2, ...], [y1, y2, ...]] and convert to [[x1, y1], [x2, y2], ...]
-    else if (
-      data.length === 2 &&
-      Array.isArray(data[0]) &&
-      Array.isArray(data[1])
-    ) {
+    else if (data.length === 2 && Array.isArray(data[0]) && Array.isArray(data[1])) {
       const xValues = data[0] as number[]
       const yValues = data[1] as number[]
       return xValues.map((x, i) => [x, yValues[i]])
@@ -459,13 +457,11 @@ export class Chart
   /**
    * Get the container element (includes canvas and table)
    */
-  getElement(): HTMLDivElement
-  {
+  getElement(): HTMLDivElement {
     return this.container
   }
 
-  private draw(): void
-  {
+  private draw(): void {
     if (this.series.length === 0) {
       return
     }
@@ -482,7 +478,9 @@ export class Chart
 
     // Calculate viewport bounds
     const bounds = this.calculateViewportBounds()
-    if (!bounds) return
+    if (!bounds) {
+      return
+    }
 
     const { xMin, xMax, yMin, yMax } = bounds
 
@@ -490,7 +488,17 @@ export class Chart
     const { scaleX, scaleY } = this.getScaleFunctions(xMin, xMax, yMin, yMax, margin, chartWidth, chartHeight)
 
     // Calculate axis positions
-    const { xAxisY, yAxisX } = this.calculateAxisPositions(xMin, xMax, yMin, yMax, scaleY, scaleX, margin, chartHeight, chartWidth)
+    const { xAxisY, yAxisX } = this.calculateAxisPositions(
+      xMin,
+      xMax,
+      yMin,
+      yMax,
+      scaleY,
+      scaleX,
+      margin,
+      chartHeight,
+      chartWidth
+    )
 
     // Draw all components
     this.drawTitle(width)
@@ -510,8 +518,7 @@ export class Chart
   /**
    * Calculate viewport bounds (with or without custom viewport)
    */
-  private calculateViewportBounds(): TViewPort | null
-  {
+  private calculateViewportBounds(): TViewPort | null {
     if (this.viewport) {
       return this.viewport
     }
@@ -519,27 +526,28 @@ export class Chart
     // Calculate data bounds from all series (filter out NaN values)
     const allPoints = this.series.flat()
 
-    const xValues = allPoints
-      .map((p) => p[0])
-      .filter((v) => this.isValidPoint(v, 0))
-    const yValues = allPoints
-      .map((p) => p[1])
-      .filter((v) => this.isValidPoint(0, v))
+    const xValues = allPoints.map((p) => p[0]).filter((v) => this.isValidPoint(v, 0))
+    const yValues = allPoints.map((p) => p[1]).filter((v) => this.isValidPoint(0, v))
 
     if (xValues.length === 0 || yValues.length === 0) {
       return null
     }
 
-    const xMin = xValues.reduce((min, v) => v < min ? v : min, Infinity)
-    const xMax = xValues.reduce((max, v) => v > max ? v : max, -Infinity)
-    const yMin = yValues.reduce((min, v) => v < min ? v : min, Infinity)
-    const yMax = yValues.reduce((max, v) => v > max ? v : max, -Infinity)
+    const xMin = xValues.reduce((min, v) => (v < min ? v : min), Infinity)
+    const xMax = xValues.reduce((max, v) => (v > max ? v : max), -Infinity)
+    const yMin = yValues.reduce((min, v) => (v < min ? v : min), Infinity)
+    const yMax = yValues.reduce((max, v) => (v > max ? v : max), -Infinity)
 
     // Add padding to ranges
     const { min: finalXMin, max: finalXMax } = this.computeRangeWithPadding(xMin, xMax)
     const { min: finalYMin, max: finalYMax } = this.computeRangeWithPadding(yMin, yMax)
 
-    return { xMin: finalXMin, xMax: finalXMax, yMin: finalYMin, yMax: finalYMax }
+    return {
+      xMin: finalXMin,
+      xMax: finalXMax,
+      yMin: finalYMin,
+      yMax: finalYMax,
+    }
   }
 
   /**
@@ -553,12 +561,9 @@ export class Chart
     margin: TMargin,
     chartWidth: number,
     chartHeight: number
-  ): TScaleFunctions
-  {
-    const scaleX = (x: number) =>
-      margin.left + ((x - xMin) / (xMax - xMin)) * chartWidth
-    const scaleY = (y: number) =>
-      margin.top + chartHeight - ((y - yMin) / (yMax - yMin)) * chartHeight
+  ): TScaleFunctions {
+    const scaleX = (x: number) => margin.left + ((x - xMin) / (xMax - xMin)) * chartWidth
+    const scaleY = (y: number) => margin.top + chartHeight - ((y - yMin) / (yMax - yMin)) * chartHeight
 
     return { scaleX, scaleY }
   }
@@ -576,8 +581,7 @@ export class Chart
     margin: TMargin,
     chartHeight: number,
     chartWidth: number
-  ): TAxisPositions
-  {
+  ): TAxisPositions {
     let xAxisY: number
     let yAxisX: number
 
@@ -605,9 +609,10 @@ export class Chart
   /**
    * Draw chart title
    */
-  private drawTitle(width: number): void
-  {
-    if (!this.config.title) return
+  private drawTitle(width: number): void {
+    if (!this.config.title) {
+      return
+    }
 
     const ctx = this.ctx
     ctx.fillStyle = "#333"
@@ -619,9 +624,10 @@ export class Chart
   /**
    * Draw grid lines
    */
-  private drawGrid(margin: TMargin, chartWidth: number, chartHeight: number): void
-  {
-    if (!this.config.showGrid) return
+  private drawGrid(margin: TMargin, chartWidth: number, chartHeight: number): void {
+    if (!this.config.showGrid) {
+      return
+    }
 
     const ctx = this.ctx
     ctx.strokeStyle = "#e0e0e0"
@@ -651,8 +657,7 @@ export class Chart
   /**
    * Draw chart border
    */
-  private drawChartBorder(margin: TMargin, chartWidth: number, chartHeight: number): void
-  {
+  private drawChartBorder(margin: TMargin, chartWidth: number, chartHeight: number): void {
     const ctx = this.ctx
     ctx.strokeStyle = "#ccc"
     ctx.lineWidth = 1
@@ -662,14 +667,7 @@ export class Chart
   /**
    * Draw X and Y axes
    */
-  private drawAxes(
-    xAxisY: number,
-    yAxisX: number,
-    margin: TMargin,
-    chartWidth: number,
-    chartHeight: number
-  ): void
-  {
+  private drawAxes(xAxisY: number, yAxisX: number, margin: TMargin, chartWidth: number, chartHeight: number): void {
     const ctx = this.ctx
     ctx.strokeStyle = "#333"
     ctx.lineWidth = 2
@@ -690,8 +688,7 @@ export class Chart
   /**
    * Draw axis labels
    */
-  private drawAxisLabels(width: number, height: number): void
-  {
+  private drawAxisLabels(width: number, height: number): void {
     const ctx = this.ctx
     ctx.fillStyle = "#333"
     ctx.font = "18px sans-serif"
@@ -718,8 +715,7 @@ export class Chart
     scaleX: (x: number) => number,
     margin: TMargin,
     chartHeight: number
-  ): void
-  {
+  ): void {
     const ctx = this.ctx
     ctx.fillStyle = "#666"
     ctx.font = "14px sans-serif"
@@ -766,8 +762,7 @@ export class Chart
     scaleY: (y: number) => number,
     margin: TMargin,
     chartWidth: number
-  ): void
-  {
+  ): void {
     const ctx = this.ctx
     ctx.fillStyle = "#666"
     ctx.font = "14px sans-serif"
@@ -815,8 +810,7 @@ export class Chart
     margin: TMargin,
     chartWidth: number,
     chartHeight: number
-  ): void
-  {
+  ): void {
     const ctx = this.ctx
     ctx.save()
 
@@ -865,8 +859,7 @@ export class Chart
     margin: TMargin,
     chartWidth: number,
     chartHeight: number
-  ): void
-  {
+  ): void {
     const ctx = this.ctx
     ctx.save()
 
@@ -909,8 +902,7 @@ export class Chart
   /**
    * Update chart configuration and redraw
    */
-  updateConfig(config: Partial<TChartConfig>): void
-  {
+  updateConfig(config: Partial<TChartConfig>): void {
     Object.assign(this.config, config)
     this.draw()
   }
@@ -918,8 +910,7 @@ export class Chart
   /**
    * Destroy the chart
    */
-  destroy(): void
-  {
+  destroy(): void {
     this.container.remove()
   }
 }

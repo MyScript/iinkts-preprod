@@ -4,43 +4,44 @@
  */
 
 // Environment variables from .env.local
-const ENV_CONFIG = __ENV_CONFIG__;
+// eslint-disable-next-line no-undef
+const ENV_CONFIG = __ENV_CONFIG__
 
 /**
  * Load environment variables into localStorage if not already set
  */
 export function loadDevEnv() {
-  const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const isDev = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
 
   if (!isDev) {
-    console.log('[DevEnv] Not in development mode, skipping env load');
-    return;
+    console.log("[DevEnv] Not in development mode, skipping env load")
+    return
   }
 
-  const existingConfig = JSON.parse(window.localStorage.getItem('server') || '{}');
+  const existingConfig = JSON.parse(window.localStorage.getItem("server") || "{}")
 
   // Only load if localStorage is empty or user explicitly wants to reload
-  const shouldLoad = !existingConfig.applicationKey || !existingConfig.hmacKey;
+  const shouldLoad = !existingConfig.applicationKey || !existingConfig.hmacKey
 
   if (shouldLoad && ENV_CONFIG.host && ENV_CONFIG.applicationKey && ENV_CONFIG.hmacKey) {
     const serverConfig = {
-      scheme: ENV_CONFIG.scheme || 'https',
+      scheme: ENV_CONFIG.scheme || "https",
       host: ENV_CONFIG.host,
       applicationKey: ENV_CONFIG.applicationKey,
-      hmacKey: ENV_CONFIG.hmacKey
-    };
+      hmacKey: ENV_CONFIG.hmacKey,
+    }
 
-    window.localStorage.setItem('server', JSON.stringify(serverConfig));
-    console.log('[DevEnv] ✅ Environment variables loaded into localStorage:', {
+    window.localStorage.setItem("server", JSON.stringify(serverConfig))
+    console.log("[DevEnv] ✅ Environment variables loaded into localStorage:", {
       scheme: serverConfig.scheme,
       host: serverConfig.host,
-      applicationKey: serverConfig.applicationKey.substring(0, 8) + '...',
-      hmacKey: serverConfig.hmacKey.substring(0, 8) + '...'
-    });
+      applicationKey: serverConfig.applicationKey.substring(0, 8) + "...",
+      hmacKey: serverConfig.hmacKey.substring(0, 8) + "...",
+    })
   } else if (!shouldLoad) {
-    console.log('[DevEnv] ℹ️ Server configuration already exists in localStorage');
+    console.log("[DevEnv] ℹ️ Server configuration already exists in localStorage")
   } else {
-    console.warn('[DevEnv] ⚠️ Missing required environment variables in .env.local');
+    console.warn("[DevEnv] ⚠️ Missing required environment variables in .env.local")
   }
 }
 
@@ -50,19 +51,19 @@ export function loadDevEnv() {
 export function forceLoadDevEnv() {
   if (ENV_CONFIG.host && ENV_CONFIG.applicationKey && ENV_CONFIG.hmacKey) {
     const serverConfig = {
-      scheme: ENV_CONFIG.scheme || 'https',
+      scheme: ENV_CONFIG.scheme || "https",
       host: ENV_CONFIG.host,
       applicationKey: ENV_CONFIG.applicationKey,
-      hmacKey: ENV_CONFIG.hmacKey
-    };
+      hmacKey: ENV_CONFIG.hmacKey,
+    }
 
-    window.localStorage.setItem('server', JSON.stringify(serverConfig));
-    console.log('[DevEnv] ✅ Environment variables force-loaded into localStorage');
-    return true;
+    window.localStorage.setItem("server", JSON.stringify(serverConfig))
+    console.log("[DevEnv] ✅ Environment variables force-loaded into localStorage")
+    return true
   }
-  console.error('[DevEnv] ❌ Cannot force load: missing environment variables');
-  return false;
+  console.error("[DevEnv] ❌ Cannot force load: missing environment variables")
+  return false
 }
 
 // Auto-load on import
-loadDevEnv();
+loadDevEnv()

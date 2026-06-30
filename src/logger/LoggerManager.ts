@@ -1,24 +1,21 @@
-import type { TLoggerConfiguration } from "./LoggerConfiguration"
-import type { LoggerCategory} from "./logger";
+import type { LoggerCategory } from "./logger"
 import { Logger, LoggerLevel } from "./logger"
+import type { TLoggerConfiguration } from "./LoggerConfiguration"
 
 /**
  * @group Logger
  */
-export class LoggerManager
-{
+export class LoggerManager {
   static #loggerMap: Map<LoggerCategory, Logger> = new Map()
 
-  static getLogger(name: LoggerCategory): Logger
-  {
+  static getLogger(name: LoggerCategory): Logger {
     if (!this.#loggerMap.has(name)) {
       this.#loggerMap.set(name, new Logger(name, LoggerLevel.ERROR))
     }
     return this.#loggerMap.get(name) as Logger
   }
 
-  static setLoggerLevel(config: TLoggerConfiguration)
-  {
+  static setLoggerLevel(config: TLoggerConfiguration) {
     for (const [lc, level] of Object.entries(config)) {
       LoggerManager.getLogger(lc as LoggerCategory).level = level
     }

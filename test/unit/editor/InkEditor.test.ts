@@ -1,21 +1,12 @@
 import { buildIIStroke } from "../helpers"
-import
-{
-  InkEditor,
-  TInkEditorOptions,
-  RecognizerHTTPV2,
-  DefaultInkEditorConfiguration,
-  IModel
-} from "@/iink"
+import { InkEditor, TInkEditorOptions, RecognizerHTTPV2, DefaultInkEditorConfiguration, IModel } from "@/iink"
 
-describe("InkEditor.ts", () =>
-{
+describe("InkEditor.ts", () => {
   const DefaultEditorRestRecognizerOptions: TInkEditorOptions = {
-    configuration: DefaultInkEditorConfiguration
+    configuration: DefaultInkEditorConfiguration,
   }
 
-  test("should instanciate InkEditor with default writer & recognizer", () =>
-  {
+  test("should instanciate InkEditor with default writer & recognizer", () => {
     //@ts-ignore IIC-1006 Type instantiation is excessively deep and possibly infinite.
     const editor = new InkEditor(document.createElement("div"), DefaultEditorRestRecognizerOptions)
     expect(editor).toBeDefined()
@@ -24,10 +15,8 @@ describe("InkEditor.ts", () =>
     expect(editor.recognizer instanceof RecognizerHTTPV2).toBe(true)
   })
 
-  test("should instanciate InkEditor with custom recognizer", () =>
-  {
-    class CustomRecognizer extends RecognizerHTTPV2
-    {
+  test("should instanciate InkEditor with custom recognizer", () => {
+    class CustomRecognizer extends RecognizerHTTPV2 {
       name = "custom-recognizer"
     }
     const customBehaviorsOptions = structuredClone(DefaultEditorRestRecognizerOptions)
@@ -40,10 +29,8 @@ describe("InkEditor.ts", () =>
     expect(editor.recognizer instanceof CustomRecognizer).toBe(true)
   })
 
-  describe("init", () =>
-  {
-    test("should call renderer init", async () =>
-    {
+  describe("init", () => {
+    test("should call renderer init", async () => {
       const editor = new InkEditor(document.createElement("div"), DefaultEditorRestRecognizerOptions)
       editor.renderer.init = jest.fn()
       await editor.initialize()
@@ -51,8 +38,7 @@ describe("InkEditor.ts", () =>
       expect(editor.renderer.init).toHaveBeenCalledWith(editor.layers.rendering)
     })
 
-    test("should attach writer", async () =>
-    {
+    test("should attach writer", async () => {
       const editor = new InkEditor(document.createElement("div"), DefaultEditorRestRecognizerOptions)
       editor.renderer.init = jest.fn()
       editor.writer.attach = jest.fn()
@@ -61,21 +47,20 @@ describe("InkEditor.ts", () =>
       expect(editor.writer.attach).toHaveBeenCalledWith(editor.layers.root)
     })
 
-    test("should load server infos", async () =>
-    {
+    test("should load server infos", async () => {
       const editor = new InkEditor(document.createElement("div"), DefaultEditorRestRecognizerOptions)
       editor.renderer.init = jest.fn()
       editor.writer.attach = jest.fn()
-      editor.loadInfo = jest.fn(async () => editor.info = { version: "3.1.3", gitCommit: "unknown", nativeVersion: "<=3.1.1" })
+      editor.loadInfo = jest.fn(
+        async () => (editor.info = { version: "3.1.3", gitCommit: "unknown", nativeVersion: "<=3.1.1" })
+      )
       await editor.initialize()
       expect(editor.loadInfo).toHaveBeenCalledTimes(1)
       expect(editor.loadInfo).toHaveBeenCalledWith(editor.configuration.server)
     })
-
   })
 
-  test("should resize", async () =>
-  {
+  test("should resize", async () => {
     const editor = new InkEditor(document.createElement("div"), DefaultEditorRestRecognizerOptions)
     editor.renderer.resize = jest.fn()
     await editor.initialize()
@@ -83,8 +68,7 @@ describe("InkEditor.ts", () =>
     expect(editor.renderer.resize).toHaveBeenCalledTimes(1)
   })
 
-  test("should updateSymbolsStyle", async () =>
-  {
+  test("should updateSymbolsStyle", async () => {
     const editor = new InkEditor(document.createElement("div"), DefaultEditorRestRecognizerOptions)
 
     const stroke1 = buildIIStroke()
@@ -98,10 +82,8 @@ describe("InkEditor.ts", () =>
     expect(editor.model.strokes[0].style.color).toBe("red")
   })
 
-  describe("undo", () =>
-  {
-    test("should call recognizer.send", async () =>
-    {
+  describe("undo", () => {
+    test("should call recognizer.send", async () => {
       const editor = new InkEditor(document.createElement("div"), DefaultEditorRestRecognizerOptions)
       await editor.initialize()
       const stroke1 = buildIIStroke()
@@ -115,8 +97,7 @@ describe("InkEditor.ts", () =>
       await editor.undo()
       expect(editor.recognizer.send).toHaveBeenNthCalledWith(1, [stroke1], undefined)
     })
-    test("should call renderer.drawSymbol when add stroke", async () =>
-    {
+    test("should call renderer.drawSymbol when add stroke", async () => {
       const editor = new InkEditor(document.createElement("div"), DefaultEditorRestRecognizerOptions)
       await editor.initialize()
       const stroke1 = buildIIStroke()
@@ -131,8 +112,7 @@ describe("InkEditor.ts", () =>
       expect(editor.renderer.drawSymbol).toHaveBeenNthCalledWith(1, stroke1)
       expect(editor.renderer.removeSymbol).toHaveBeenCalledTimes(0)
     })
-    test("should call renderer.removeSymbol when stroke remove", async () =>
-    {
+    test("should call renderer.removeSymbol when stroke remove", async () => {
       const editor = new InkEditor(document.createElement("div"), DefaultEditorRestRecognizerOptions)
       await editor.initialize()
       const stroke1 = buildIIStroke()
@@ -149,10 +129,8 @@ describe("InkEditor.ts", () =>
     })
   })
 
-  describe("redo", () =>
-  {
-    test("should call renderer.drawSymbol when added stroke", async () =>
-    {
+  describe("redo", () => {
+    test("should call renderer.drawSymbol when added stroke", async () => {
       const editor = new InkEditor(document.createElement("div"), DefaultEditorRestRecognizerOptions)
       await editor.initialize()
       const stroke1 = buildIIStroke()
@@ -166,8 +144,7 @@ describe("InkEditor.ts", () =>
       await editor.redo()
       expect(editor.recognizer.send).toHaveBeenNthCalledWith(1, [stroke1], undefined)
     })
-    test("should call renderer.drawSymbol when added stroke", async () =>
-    {
+    test("should call renderer.drawSymbol when added stroke", async () => {
       const editor = new InkEditor(document.createElement("div"), DefaultEditorRestRecognizerOptions)
       await editor.initialize()
       const stroke1 = buildIIStroke()
@@ -182,8 +159,7 @@ describe("InkEditor.ts", () =>
       expect(editor.renderer.drawSymbol).toHaveBeenNthCalledWith(1, stroke1)
       expect(editor.renderer.removeSymbol).toHaveBeenCalledTimes(0)
     })
-    test("should redo when removed stroke", async () =>
-    {
+    test("should redo when removed stroke", async () => {
       const editor = new InkEditor(document.createElement("div"), DefaultEditorRestRecognizerOptions)
       await editor.initialize()
       const stroke1 = buildIIStroke()
@@ -199,8 +175,7 @@ describe("InkEditor.ts", () =>
     })
   })
 
-  test("should clear", async () =>
-  {
+  test("should clear", async () => {
     const editor = new InkEditor(document.createElement("div"), DefaultEditorRestRecognizerOptions)
     await editor.initialize()
     const stroke1 = buildIIStroke()
@@ -214,12 +189,11 @@ describe("InkEditor.ts", () =>
     expect(editor.history.push).toHaveBeenCalledTimes(1)
   })
 
-  test("should destroy", async () =>
-  {
+  test("should destroy", async () => {
     const editor = new InkEditor(document.createElement("div"), DefaultEditorRestRecognizerOptions)
     await editor.initialize()
     editor.renderer.destroy = jest.fn()
-    editor.history.push = jest.fn(m => m)
+    editor.history.push = jest.fn((m) => m)
     editor.destroy()
     expect(editor.renderer.destroy).toHaveBeenCalledTimes(1)
   })

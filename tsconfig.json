@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "composite": true,
     "rootDir": "./",
     "outDir": "dist",
     "paths": {
@@ -16,7 +17,6 @@
       "ES2017",
       "webworker"
     ],
-    "declaration": false,
     "declarationMap": false,
     "removeComments": false,
     "preserveConstEnums": true,

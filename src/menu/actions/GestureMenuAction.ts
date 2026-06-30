@@ -1,7 +1,7 @@
-import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
-import type { TMenuSubMenu } from "@/menu/items/SubMenuItem";
-import { SubMenuItem } from "@/menu/items/SubMenuItem"
 import { EditorTool, EditorWriteTool } from "@/Constants"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import type { TMenuSubMenu } from "@/menu/items/SubMenuItem"
+import { SubMenuItem } from "@/menu/items/SubMenuItem"
 
 /** @group Menu */
 export type TGestureActionItemsConfig = {
@@ -13,41 +13,63 @@ export type TGestureActionItemsConfig = {
 }
 /** @group Menu */
 export type TGestureActionConfig = boolean | TGestureActionItemsConfig
-import { InsertAction, StrikeThroughAction, SurroundAction, UnderlineAction } from "@/manager"
 import gestureIcon from "@/assets/svg/spock-hand-gesture.svg"
+import { InsertAction, StrikeThroughAction, SurroundAction, UnderlineAction } from "@/manager"
 
 /**
  * @group Menu
  * @remarks Menu action Gesture - Détection et actions de gestes
  */
-export class GestureMenuAction extends SubMenuItem
-{
-  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-action", itemsConfig?: TGestureActionItemsConfig)
-  {
+export class GestureMenuAction extends SubMenuItem {
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-action", itemsConfig?: TGestureActionItemsConfig) {
     const enabled = (key: keyof TGestureActionItemsConfig) => itemsConfig?.[key] !== false
 
-    const surroundActionValues: { label: string, value: string }[] = []
+    const surroundActionValues: {
+      label: string
+      value: string
+    }[] = []
     for (const key in SurroundAction) {
       const value = SurroundAction[key as keyof typeof SurroundAction]
-      surroundActionValues.push({ label: key, value })
+      surroundActionValues.push({
+        label: key,
+        value,
+      })
     }
 
-    const strikeThroughActionValues: { label: string, value: string }[] = []
+    const strikeThroughActionValues: {
+      label: string
+      value: string
+    }[] = []
     for (const key in StrikeThroughAction) {
       const value = StrikeThroughAction[key as keyof typeof StrikeThroughAction]
-      strikeThroughActionValues.push({ label: key, value })
+      strikeThroughActionValues.push({
+        label: key,
+        value,
+      })
     }
 
-    const underlineActionValues: { label: string, value: string }[] = []
+    const underlineActionValues: {
+      label: string
+      value: string
+    }[] = []
     for (const key in UnderlineAction) {
       const value = UnderlineAction[key as keyof typeof UnderlineAction]
-      underlineActionValues.push({ label: key, value })
+      underlineActionValues.push({
+        label: key,
+        value,
+      })
     }
 
-    const splitActionValues: { label: string, value: string }[] = []
+    const splitActionValues: {
+      label: string
+      value: string
+    }[] = []
     for (const key in InsertAction) {
       const value = InsertAction[key as keyof typeof InsertAction]
-      splitActionValues.push({ label: key, value })
+      splitActionValues.push({
+        label: key,
+        value,
+      })
     }
 
     const config: TMenuSubMenu = {
@@ -57,7 +79,7 @@ export class GestureMenuAction extends SubMenuItem
       menuTitle: "Gesture",
       icon: gestureIcon,
       position: "right-top",
-      items: []
+      items: [],
     }
 
     if (enabled("detect")) {
@@ -70,7 +92,7 @@ export class GestureMenuAction extends SubMenuItem
           editor.writer.detectGesture = value
           editor.tool = EditorTool.Write
           editor.writer.tool = EditorWriteTool.Pencil
-        }
+        },
       })
     }
 
@@ -85,11 +107,14 @@ export class GestureMenuAction extends SubMenuItem
           editor.gesture.surroundAction = value as SurroundAction
           editor.tool = EditorTool.Write
           editor.writer.tool = EditorWriteTool.Pencil
-        }
+        },
       })
     }
 
-    if (enabled("strikethrough") && editor.configuration.recognition["raw-content"]?.gestures?.includes("strike-through")) {
+    if (
+      enabled("strikethrough") &&
+      editor.configuration.recognition["raw-content"]?.gestures?.includes("strike-through")
+    ) {
       config.items.push({
         type: "select",
         id: `${idPrefix}-gesture-strikethrough`,
@@ -100,7 +125,7 @@ export class GestureMenuAction extends SubMenuItem
           editor.gesture.strikeThroughAction = value as StrikeThroughAction
           editor.tool = EditorTool.Write
           editor.writer.tool = EditorWriteTool.Pencil
-        }
+        },
       })
     }
 
@@ -115,7 +140,7 @@ export class GestureMenuAction extends SubMenuItem
           editor.gesture.underlineAction = value as UnderlineAction
           editor.tool = EditorTool.Write
           editor.writer.tool = EditorWriteTool.Pencil
-        }
+        },
       })
     }
 
@@ -130,7 +155,7 @@ export class GestureMenuAction extends SubMenuItem
           editor.gesture.insertAction = value as InsertAction
           editor.tool = EditorTool.Write
           editor.writer.tool = EditorWriteTool.Pencil
-        }
+        },
       })
     }
 

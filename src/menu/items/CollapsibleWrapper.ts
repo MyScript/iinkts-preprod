@@ -13,20 +13,28 @@ export class CollapsibleWrapper {
   }
 
   private createWrapper(content: HTMLElement, title: string, id?: string): HTMLDivElement {
-    
-
-    const wrapper = DOMFactory.div({ className: "collapsible-wrapper" })
+    const wrapper = DOMFactory.div({
+      className: "collapsible-wrapper",
+    })
     if (id) {
       wrapper.id = id
     }
 
-    const head = DOMFactory.div({ className: "collapsible-header", text: title })
+    const head = DOMFactory.div({
+      className: "collapsible-header",
+      text: title,
+    })
 
-    const btn = DOMFactory.span({ className: "collapsible-header-icon", html: ArrowDown })
+    const btn = DOMFactory.span({
+      className: "collapsible-header-icon",
+      html: ArrowDown,
+    })
     head.appendChild(btn)
     head.style.setProperty("cursor", "pointer")
 
-    const contentWrapper = DOMFactory.div({ className: "collapsible-content" })
+    const contentWrapper = DOMFactory.div({
+      className: "collapsible-content",
+    })
 
     head.addEventListener("click", () => wrapper.classList.toggle("active"))
 

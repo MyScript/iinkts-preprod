@@ -1,13 +1,14 @@
 import type { EdgeDecoration } from "@/symbol/edge/Edge-enum"
 import type { TBox } from "@/symbol/primitives/Box"
-import type { TJIIXElementBase, TJIIXWord, TJIIXChar, TJIIXLine } from "./ExportCommon"
+
+import type { TJIIXChar, TJIIXElementBase, TJIIXLine, TJIIXWord } from "./ExportCommon"
 import type { TJIIXMathElement } from "./ExportMath"
 
 /**
  * @group Exports
  */
 // Re-export common types for backward compatibility
-export type { TJIIXStrokeItem, TJIIXBase, TJIIXElementBase, TJIIXWord, TJIIXChar, TJIIXLine } from "./ExportCommon"
+export type { TJIIXBase, TJIIXChar, TJIIXElementBase, TJIIXLine, TJIIXStrokeItem, TJIIXWord } from "./ExportCommon"
 
 /**
  * @group Exports
@@ -16,18 +17,18 @@ export type { TJIIXStrokeItem, TJIIXBase, TJIIXElementBase, TJIIXWord, TJIIXChar
 export type {
   TJIIXMathElement,
   TJIIXMathExpression,
-  TJIIXMathNumber,
-  TJIIXMathVariable,
-  TJIIXMathSymbolExpression,
-  TJIIXMathOperator,
-  TJIIXMathGroup,
   TJIIXMathFraction,
-  TJIIXMathSuperscript,
+  TJIIXMathGroup,
+  TJIIXMathNumber,
+  TJIIXMathOperator,
+  TJIIXMathRoot,
+  TJIIXMathSquareRoot,
   TJIIXMathSubscript,
   TJIIXMathSubsuperscript,
-  TJIIXMathSquareRoot,
-  TJIIXMathRoot,
+  TJIIXMathSuperscript,
   TJIIXMathSymbol,
+  TJIIXMathSymbolExpression,
+  TJIIXMathVariable,
 } from "./ExportMath"
 export { JIIXMathExpressionType } from "./ExportMath"
 
@@ -35,22 +36,20 @@ export { JIIXMathExpressionType } from "./ExportMath"
  * @group Exports
  * @remarks List all supported MIME types for export. Please note, the MIME types supported depend on the recognition type configured
  */
-export enum ExportType
-{
+export enum ExportType {
   JIIX = "application/vnd.myscript.jiix",
   TEXT = "text/plain",
   LATEX = "application/x-latex",
   MATHML = "application/mathml+xml",
   SVG = "image/svg+xml",
-  OFFICE_DOCUMENT = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+  OFFICE_DOCUMENT = "application/vnd.openxmlformats-officedocument.presentationml.presentation",
 }
 
 /**
  * @group Exports
  * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/jiix  Element type}
  */
-export enum JIIXElementType
-{
+export enum JIIXElementType {
   Text = "Text",
   Math = "Math",
   Node = "Node",
@@ -62,8 +61,7 @@ export enum JIIXElementType
  * @group Exports
  * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/jiix/#diagram-item-blocks | Element node kind}
  */
-export enum JIIXNodeKind
-{
+export enum JIIXNodeKind {
   Circle = "circle",
   Ellipse = "ellipse",
   Rectangle = "rectangle",
@@ -76,8 +74,7 @@ export enum JIIXNodeKind
 /**
  * @group Exports
  */
-export enum JIIXEdgeKind
-{
+export enum JIIXEdgeKind {
   Line = "line",
   PolyEdge = "polyedge",
   Arc = "arc",
@@ -173,13 +170,13 @@ export type TJIIXNodeRhombus = TJIIXNodeElementBase<JIIXNodeKind.Rhombus> & {
  * @group Exports
  */
 export type TJIIXNodeElement =
-  TJIIXNodeCircle |
-  TJIIXNodeEllipse |
-  TJIIXNodeRectangle |
-  TJIIXNodeTriangle |
-  TJIIXNodeParallelogram |
-  TJIIXNodePolygon |
-  TJIIXNodeRhombus
+  | TJIIXNodeCircle
+  | TJIIXNodeEllipse
+  | TJIIXNodeRectangle
+  | TJIIXNodeTriangle
+  | TJIIXNodeParallelogram
+  | TJIIXNodePolygon
+  | TJIIXNodeRhombus
 
 /**
  * @group Exports
@@ -213,12 +210,12 @@ export type TJIIXEdgePolyEdge = TJIIXEdgeElementBase<JIIXEdgeKind.PolyEdge> & {
  * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/jiix/#arc-item | Element arc}
  */
 export type TJIIXEdgeArc = TJIIXEdgeElementBase<JIIXEdgeKind.Arc> & {
-  cx: number,
-  cy: number,
-  rx: number,
-  ry: number,
-  phi: number,
-  startAngle: number,
+  cx: number
+  cy: number
+  rx: number
+  ry: number
+  phi: number
+  startAngle: number
   sweepAngle: number
   startDecoration?: EdgeDecoration
   endDecoration?: EdgeDecoration
@@ -227,20 +224,13 @@ export type TJIIXEdgeArc = TJIIXEdgeElementBase<JIIXEdgeKind.Arc> & {
 /**
  * @group Exports
  */
-export type TJIIXEdgeElement =
-  TJIIXEdgeLine |
-  TJIIXEdgePolyEdge |
-  TJIIXEdgeArc
+export type TJIIXEdgeElement = TJIIXEdgeLine | TJIIXEdgePolyEdge | TJIIXEdgeArc
 
 /**
  * @group Exports
  * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/web/jiix | Exports}
  */
-export type TJIIXElement =
-  TJIIXTextElement |
-  TJIIXMathElement |
-  TJIIXNodeElement |
-  TJIIXEdgeElement
+export type TJIIXElement = TJIIXTextElement | TJIIXMathElement | TJIIXNodeElement | TJIIXEdgeElement
 
 /**
  * @group Exports

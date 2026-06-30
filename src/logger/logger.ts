@@ -1,19 +1,17 @@
 /**
  * @group Logger
  */
-export enum LoggerLevel
-{
+export enum LoggerLevel {
   DEBUG = 1,
   INFO = 2,
   WARN = 3,
-  ERROR = 4
+  ERROR = 4,
 }
 
 /**
  * @group Logger
  */
-export enum LoggerCategory
-{
+export enum LoggerCategory {
   EDITOR = "EDITOR",
   RECOGNIZER = "RECOGNIZER",
   GRABBER = "GRABBER",
@@ -44,24 +42,26 @@ export enum LoggerCategory
 /**
  * @group Logger
  */
-export class Logger
-{
+export class Logger {
   category: LoggerCategory
   level: LoggerLevel
 
-  constructor(category: LoggerCategory, level: LoggerLevel)
-  {
+  constructor(category: LoggerCategory, level: LoggerLevel) {
     this.category = category
     this.level = level
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private log(level: LoggerLevel, levelName: "debug" | "info" | "warn" | "error", functionName: string, ...data: any): void
-  {
+  private log(
+    level: LoggerLevel,
+    levelName: "debug" | "info" | "warn" | "error",
+    functionName: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ...data: any
+  ): void {
     if (level >= this.level) {
       const dataLog = {
         level: levelName,
-        from: `${ this.category }.${ functionName }`,
+        from: `${this.category}.${functionName}`,
         message: data,
       }
       console[levelName](dataLog)
@@ -69,26 +69,22 @@ export class Logger
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  debug(functionName: string, ...data: any): void
-  {
+  debug(functionName: string, ...data: any): void {
     this.log(LoggerLevel.DEBUG, "debug", functionName, ...data)
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  info(functionName: string, ...data: any): void
-  {
+  info(functionName: string, ...data: any): void {
     this.log(LoggerLevel.INFO, "info", functionName, ...data)
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  warn(functionName: string, ...data: any): void
-  {
+  warn(functionName: string, ...data: any): void {
     this.log(LoggerLevel.WARN, "warn", functionName, ...data)
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  error(functionName: string, ...error: any): void
-  {
+  error(functionName: string, ...error: any): void {
     this.log(LoggerLevel.ERROR, "error", functionName, ...error)
   }
 }

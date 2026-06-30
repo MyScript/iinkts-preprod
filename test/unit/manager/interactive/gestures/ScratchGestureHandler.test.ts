@@ -1,35 +1,25 @@
 import { createEditorMock, asEditor } from "../../../__mocks__/createEditorMock"
 import { buildIIStroke, buildIIText } from "../../../helpers"
-import {
-  ScratchGestureHandler,
-  GestureHelpers,
-  TGesture,
-  StrokeOps,
-} from "@/iink"
+import { ScratchGestureHandler, GestureHelpers, TGesture, StrokeOps } from "@/iink"
 
-describe("ScratchGestureHandler.ts", () =>
-{
+describe("ScratchGestureHandler.ts", () => {
   let editor: ReturnType<typeof createEditorMock>
   let helpers: GestureHelpers
   let handler: ScratchGestureHandler
 
-  beforeEach(() =>
-  {
+  beforeEach(() => {
     editor = createEditorMock()
     helpers = new GestureHelpers(asEditor(editor))
     handler = new ScratchGestureHandler(asEditor(editor), helpers)
   })
 
-  test("should instantiate", () =>
-  {
+  test("should instantiate", () => {
     expect(handler).toBeDefined()
     expect(handler.gestureType).toBe("SCRATCH")
   })
 
-  describe("computeScratchOnStrokes", () =>
-  {
-    test("should split stroke when scratched in middle", () =>
-    {
+  describe("computeScratchOnStrokes", () => {
+    test("should split stroke when scratched in middle", () => {
       const stroke = buildIIStroke()
       StrokeOps.addPointer(stroke, { x: 0, y: 0, p: 1, t: 100 })
       StrokeOps.addPointer(stroke, { x: 5, y: 5, p: 1, t: 200 })
@@ -46,9 +36,9 @@ describe("ScratchGestureHandler.ts", () =>
           {
             fullStrokeId: stroke.id,
             x: [5, 10],
-            y: [5, 10]
-          }
-        ]
+            y: [5, 10],
+          },
+        ],
       }
 
       const result = handler.computeScratchOnStrokes(gesture, stroke)
@@ -56,8 +46,7 @@ describe("ScratchGestureHandler.ts", () =>
       expect(result.length).toBeGreaterThanOrEqual(0)
     })
 
-    test("should handle empty substroke data", () =>
-    {
+    test("should handle empty substroke data", () => {
       const stroke = buildIIStroke()
       StrokeOps.addPointer(stroke, { x: 0, y: 0, p: 1, t: 100 })
 
@@ -67,7 +56,7 @@ describe("ScratchGestureHandler.ts", () =>
         strokeIds: [stroke.id],
         strokeBeforeIds: [],
         strokeAfterIds: [],
-        subStrokes: []
+        subStrokes: [],
       }
 
       const result = handler.computeScratchOnStrokes(gesture, stroke)
@@ -76,22 +65,18 @@ describe("ScratchGestureHandler.ts", () =>
     })
   })
 
-  describe("computeScratchOnText", () =>
-  {
-    test("should detect chars overlap (method requires DOM APIs, testing structure only)", () =>
-    {
+  describe("computeScratchOnText", () => {
+    test("should detect chars overlap (method requires DOM APIs, testing structure only)", () => {
       // This method requires DOM APIs (getBBox, getNumberOfChars, getExtentOfChar)
       // that are not available in test environment
       // We verify the method exists and can be called
       expect(handler.computeScratchOnText).toBeDefined()
-      expect(typeof handler.computeScratchOnText).toBe('function')
+      expect(typeof handler.computeScratchOnText).toBe("function")
     })
   })
 
-  describe("computeScratchOnSymbol", () =>
-  {
-    test("should erase stroke when fully scratched", () =>
-    {
+  describe("computeScratchOnSymbol", () => {
+    test("should erase stroke when fully scratched", () => {
       const stroke = buildIIStroke()
       StrokeOps.addPointer(stroke, { x: 0, y: 0, p: 1, t: 100 })
       StrokeOps.addPointer(stroke, { x: 10, y: 10, p: 1, t: 200 })
@@ -109,9 +94,9 @@ describe("ScratchGestureHandler.ts", () =>
           {
             fullStrokeId: stroke.id,
             x: [0, 5, 10],
-            y: [0, 5, 10]
-          }
-        ]
+            y: [0, 5, 10],
+          },
+        ],
       }
 
       const result = handler.computeScratchOnSymbol(gestureStroke, gesture, stroke)
@@ -120,8 +105,7 @@ describe("ScratchGestureHandler.ts", () =>
       expect(result.erased !== undefined || result.replaced !== undefined).toBe(true)
     })
 
-    test("should handle text symbol scratch", () =>
-    {
+    test("should handle text symbol scratch", () => {
       const text = buildIIText({
         chars: [
           {
@@ -130,10 +114,10 @@ describe("ScratchGestureHandler.ts", () =>
             fontSize: 16,
             fontWeight: "normal",
             color: "#000000",
-            bounds: { x: 10, y: 10, width: 20, height: 16 }
-          }
+            bounds: { x: 10, y: 10, width: 20, height: 16 },
+          },
         ],
-        boundingBox: { x: 10, y: 10, width: 20, height: 16 }
+        boundingBox: { x: 10, y: 10, width: 20, height: 16 },
       })
 
       const gestureStroke = buildIIStroke()
@@ -144,7 +128,7 @@ describe("ScratchGestureHandler.ts", () =>
         gestureStrokeId: text.id,
         strokeIds: [text.id],
         strokeBeforeIds: [],
-        strokeAfterIds: []
+        strokeAfterIds: [],
       }
 
       const result = handler.computeScratchOnSymbol(gestureStroke, gesture, text)
@@ -153,10 +137,8 @@ describe("ScratchGestureHandler.ts", () =>
     })
   })
 
-  describe("apply", () =>
-  {
-    test("should handle empty strokeIds", async () =>
-    {
+  describe("apply", () => {
+    test("should handle empty strokeIds", async () => {
       const gestureStroke = buildIIStroke()
       StrokeOps.addPointer(gestureStroke, { x: 10, y: 10, p: 1, t: 100 })
 
@@ -165,7 +147,7 @@ describe("ScratchGestureHandler.ts", () =>
         gestureStrokeId: gestureStroke.id,
         strokeIds: [],
         strokeBeforeIds: [],
-        strokeAfterIds: []
+        strokeAfterIds: [],
       }
 
       await handler.apply(gestureStroke, gesture)
@@ -174,8 +156,7 @@ describe("ScratchGestureHandler.ts", () =>
       expect(true).toBe(true)
     })
 
-    test("should scratch and erase strokes", async () =>
-    {
+    test("should scratch and erase strokes", async () => {
       const stroke = buildIIStroke()
       StrokeOps.addPointer(stroke, { x: 10, y: 10, p: 1, t: 100 })
       StrokeOps.addPointer(stroke, { x: 20, y: 20, p: 1, t: 200 })
@@ -195,9 +176,9 @@ describe("ScratchGestureHandler.ts", () =>
           {
             fullStrokeId: stroke.id,
             x: [10, 15, 20],
-            y: [10, 15, 20]
-          }
-        ]
+            y: [10, 15, 20],
+          },
+        ],
       }
 
       await handler.apply(gestureStroke, gesture)

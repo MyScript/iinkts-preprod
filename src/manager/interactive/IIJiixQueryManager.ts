@@ -1,21 +1,21 @@
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import { LoggerCategory } from "@/logger"
 import type {
-  TJIIXElement,
-  TJIIXTextElement,
-  TJIIXMathElement,
-  TJIIXNodeElement,
   TJIIXEdgeElement,
+  TJIIXElement,
+  TJIIXMathElement,
   TJIIXMathExpression,
-  TJIIXStrokeItem} from "@/model";
-import {
-  JIIXElementType
+  TJIIXNodeElement,
+  TJIIXStrokeItem,
+  TJIIXTextElement,
 } from "@/model"
-import type { TStroke, TBox, TSymbol } from "@/symbol"
+import { JIIXElementType } from "@/model"
+import type { TBox, TStroke, TSymbol } from "@/symbol"
 import { BoxOps } from "@/symbol/primitives/Box"
 import { OBBOps } from "@/symbol/primitives/OBB"
-import { convertMillimeterToPixel, convertBoundingBoxMillimeterToPixel } from "@/utils"
+import { convertBoundingBoxMillimeterToPixel, convertMillimeterToPixel } from "@/utils"
+
 import { IIAbstractManager } from "./IIAbstractManager"
-import { LoggerCategory } from "@/logger"
 
 /**
  * Text metadata for a block
@@ -23,8 +23,18 @@ import { LoggerCategory } from "@/logger"
  */
 export type TBlockTextMetadata = {
   label?: string
-  word?: { label: string; firstChar?: number; lastChar?: number; bounds?: TBox; id?: string }
-  char?: { label: string; word: number; bounds?: TBox }
+  word?: {
+    label: string
+    firstChar?: number
+    lastChar?: number
+    bounds?: TBox
+    id?: string
+  }
+  char?: {
+    label: string
+    word: number
+    bounds?: TBox
+  }
   line?: { baseline: number; xHeight: number }
 }
 
@@ -44,9 +54,17 @@ export type TStrokeQueryResult = {
     /** For text strokes: word info */
     word?: { label: string; index: number }
     /** For text strokes: char info */
-    char?: { label: string; index: number; wordIndex: number }
+    char?: {
+      label: string
+      index: number
+      wordIndex: number
+    }
     /** For math strokes: expression info */
-    expression?: { type: string; label?: string; expressionPath: string }
+    expression?: {
+      type: string
+      label?: string
+      expressionPath: string
+    }
   }
 }
 
@@ -75,8 +93,7 @@ export type TJiixIndex = {
  * Provides fast lookups for strokes, labels, and element groupings
  * Automatically indexes JIIX data on first access and invalidates cache when model changes
  */
-export class IIJiixQueryManager extends IIAbstractManager
-{
+export class IIJiixQueryManager extends IIAbstractManager {
   protected managerName = "IIJiixQueryManager"
 
   /** Indexed JIIX data */
@@ -88,8 +105,7 @@ export class IIJiixQueryManager extends IIAbstractManager
   /** Text metadata per stroke ID (pixel-converted, set during sync) */
   #textMetadata = new Map<string, TBlockTextMetadata>()
 
-  constructor(editor: TInteractiveInkEditor)
-  {
+  constructor(editor: TInteractiveInkEditor) {
     super(editor, LoggerCategory.JIIX_QUERY)
     this.logger.info("constructor", this.managerName)
   }
@@ -98,8 +114,7 @@ export class IIJiixQueryManager extends IIAbstractManager
    * Build or rebuild the JIIX index
    * Called automatically when index is stale
    */
-  protected buildIndex(): void
-  {
+  protected buildIndex(): void {
     this.logger.debug("buildIndex", "Building JIIX index")
 
     const index: TJiixIndex = {
@@ -108,7 +123,7 @@ export class IIJiixQueryManager extends IIAbstractManager
       strokeToContext: new Map(),
       elementToStrokes: new Map(),
       elementById: new Map(),
-      version: this.#modelVersion
+      version: this.#modelVersion,
     }
 
     const jiixExport = this.model.exports?.["application/vnd.myscript.jiix"]
@@ -123,14 +138,16 @@ export class IIJiixQueryManager extends IIAbstractManager
     }
 
     this.#index = index
-    this.logger.debug("buildIndex", `Indexed ${index.strokeToElement.size} strokes from ${jiixExport.elements.length} elements`)
+    this.logger.debug(
+      "buildIndex",
+      `Indexed ${index.strokeToElement.size} strokes from ${jiixExport.elements.length} elements`
+    )
   }
 
   /**
    * Index a single JIIX element and its strokes
    */
-  protected indexElement(element: TJIIXElement, index: TJiixIndex): void
-  {
+  protected indexElement(element: TJIIXElement, index: TJiixIndex): void {
     const elementStrokes: string[] = []
 
     switch (element.type) {
@@ -157,12 +174,7 @@ export class IIJiixQueryManager extends IIAbstractManager
   /**
    * Index a text element
    */
-  protected indexTextElement(
-    element: TJIIXTextElement,
-    index: TJiixIndex,
-    elementStrokes: string[]
-  ): void
-  {
+  protected indexTextElement(element: TJIIXTextElement, index: TJiixIndex, elementStrokes: string[]): void {
     // Index by words and chars for precise labels
     if (element.words) {
       element.words.forEach((word, wordIndex) => {
@@ -174,7 +186,10 @@ export class IIJiixQueryManager extends IIAbstractManager
               index.strokeToElement.set(strokeId, element)
               index.strokeToLabel.set(strokeId, word.label)
               index.strokeToContext.set(strokeId, {
-                word: { label: word.label, index: wordIndex }
+                word: {
+                  label: word.label,
+                  index: wordIndex,
+                },
               })
             }
           })
@@ -195,8 +210,8 @@ export class IIJiixQueryManager extends IIAbstractManager
                 char: {
                   label: char.label,
                   index: charIndex,
-                  wordIndex: char.word
-                }
+                  wordIndex: char.word,
+                },
               })
               // Update label to char label (more precise)
               index.strokeToLabel.set(strokeId, char.label)
@@ -222,22 +237,11 @@ export class IIJiixQueryManager extends IIAbstractManager
   /**
    * Index a math element
    */
-  protected indexMathElement(
-    element: TJIIXMathElement,
-    index: TJiixIndex,
-    elementStrokes: string[]
-  ): void
-  {
+  protected indexMathElement(element: TJIIXMathElement, index: TJiixIndex, elementStrokes: string[]): void {
     // Index expressions recursively
     if (element.expressions) {
       element.expressions.forEach((expression, exprIndex) => {
-        this.indexMathExpression(
-          expression,
-          element,
-          index,
-          elementStrokes,
-          `expressions[${exprIndex}]`
-        )
+        this.indexMathExpression(expression, element, index, elementStrokes, `expressions[${exprIndex}]`)
       })
     }
 
@@ -263,8 +267,7 @@ export class IIJiixQueryManager extends IIAbstractManager
     index: TJiixIndex,
     elementStrokes: string[],
     path: string
-  ): void
-  {
+  ): void {
     const exprRecord = expression as Record<string, unknown>
 
     // Index items in this expression
@@ -274,13 +277,13 @@ export class IIJiixQueryManager extends IIAbstractManager
         if (strokeId) {
           elementStrokes.push(strokeId)
           index.strokeToElement.set(strokeId, element)
-          index.strokeToLabel.set(strokeId, exprRecord.label as string || expression.type)
+          index.strokeToLabel.set(strokeId, (exprRecord.label as string) || expression.type)
           index.strokeToContext.set(strokeId, {
             expression: {
               type: expression.type,
               label: exprRecord.label as string,
-              expressionPath: path
-            }
+              expressionPath: path,
+            },
           })
         }
       })
@@ -290,13 +293,7 @@ export class IIJiixQueryManager extends IIAbstractManager
     if ("operands" in expression && expression.operands && Array.isArray(expression.operands)) {
       expression.operands.forEach((operand: TJIIXMathExpression, opIndex: number) => {
         if (operand) {
-          this.indexMathExpression(
-            operand,
-            element,
-            index,
-            elementStrokes,
-            `${path}.operands[${opIndex}]`
-          )
+          this.indexMathExpression(operand, element, index, elementStrokes, `${path}.operands[${opIndex}]`)
         }
       })
     }
@@ -309,8 +306,7 @@ export class IIJiixQueryManager extends IIAbstractManager
     element: TJIIXNodeElement | TJIIXEdgeElement,
     index: TJiixIndex,
     elementStrokes: string[]
-  ): void
-  {
+  ): void {
     if (element.items) {
       element.items.forEach((item: TJIIXStrokeItem) => {
         const strokeId = item["full-id"] || item.id
@@ -328,8 +324,7 @@ export class IIJiixQueryManager extends IIAbstractManager
    * When model.exports is absent (cleared by updateSymbol etc.) but a valid index exists,
    * preserve it rather than overwriting with an empty rebuild.
    */
-  protected ensureIndexValid(): void
-  {
+  protected ensureIndexValid(): void {
     const currentVersion = this.model.modificationDate
 
     if (!this.#index || this.#modelVersion !== currentVersion) {
@@ -348,8 +343,7 @@ export class IIJiixQueryManager extends IIAbstractManager
    * Called after mergeExport so the rebuild happens while exports are still set,
    * before any subsequent updateSymbol calls clear them.
    */
-  invalidateIndex(): void
-  {
+  invalidateIndex(): void {
     this.logger.debug("invalidateIndex", "Invalidating JIIX index")
     this.#index = null
     const jiixExport = this.model.exports?.["application/vnd.myscript.jiix"]
@@ -364,8 +358,7 @@ export class IIJiixQueryManager extends IIAbstractManager
    * @param strokeId - The stroke ID
    * @returns The JIIX element or undefined
    */
-  getElementForStroke(strokeId: string): TJIIXElement | undefined
-  {
+  getElementForStroke(strokeId: string): TJIIXElement | undefined {
     this.ensureIndexValid()
     return this.#index?.strokeToElement.get(strokeId)
   }
@@ -377,8 +370,7 @@ export class IIJiixQueryManager extends IIAbstractManager
    * @param strokeId - The stroke ID
    * @returns The label or undefined
    */
-  getLabelForStroke(strokeId: string): string | undefined
-  {
+  getLabelForStroke(strokeId: string): string | undefined {
     this.ensureIndexValid()
     return this.#index?.strokeToLabel.get(strokeId)
   }
@@ -388,8 +380,7 @@ export class IIJiixQueryManager extends IIAbstractManager
    * @param strokeId - The stroke ID
    * @returns Full query result with element, label, and context
    */
-  getStrokeInfo(strokeId: string): TStrokeQueryResult | undefined
-  {
+  getStrokeInfo(strokeId: string): TStrokeQueryResult | undefined {
     this.ensureIndexValid()
 
     const element = this.#index?.strokeToElement.get(strokeId)
@@ -401,7 +392,7 @@ export class IIJiixQueryManager extends IIAbstractManager
       strokeId,
       element,
       label: this.#index?.strokeToLabel.get(strokeId),
-      context: this.#index?.strokeToContext.get(strokeId)
+      context: this.#index?.strokeToContext.get(strokeId),
     }
   }
 
@@ -415,32 +406,32 @@ export class IIJiixQueryManager extends IIAbstractManager
     allStrokeIds: string[]
     baseline: number | null
     xHeight: number | null
-  } | null
-  {
+  } | null {
     this.ensureIndexValid()
     const info = this.getStrokeInfo(strokeId)
-    if (!info?.context?.word) return null
+    if (!info?.context?.word) {
+      return null
+    }
     const textElement = info.element as TJIIXTextElement
     const wordIndex = info.context.word.index
     const word = textElement.words?.[wordIndex]
-    if (!word) return null
-    const allStrokeIds = (word.items || [])
-      .map(item => item["full-id"] || item.id)
-      .filter((id): id is string => !!id)
-    const wordBounds = word["bounding-box"]
-      ? convertBoundingBoxMillimeterToPixel(word["bounding-box"])
-      : null
+    if (!word) {
+      return null
+    }
+    const allStrokeIds = (word.items || []).map((item) => item["full-id"] || item.id).filter((id): id is string => !!id)
+    const wordBounds = word["bounding-box"] ? convertBoundingBoxMillimeterToPixel(word["bounding-box"]) : null
 
     // Find the line containing this word via first-char/last-char indices
     let baseline: number | null = null
     let xHeight: number | null = null
     if (textElement.lines && textElement.chars) {
       const chars = textElement.chars
-      const firstCharIndex = chars.findIndex(c => c.word === wordIndex)
+      const firstCharIndex = chars.findIndex((c) => c.word === wordIndex)
       if (firstCharIndex !== -1) {
-        const line = textElement.lines.find(l =>
-          (l["first-char"] === undefined || l["first-char"] <= firstCharIndex) &&
-          (l["last-char"] === undefined || l["last-char"] >= firstCharIndex)
+        const line = textElement.lines.find(
+          (l) =>
+            (l["first-char"] === undefined || l["first-char"] <= firstCharIndex) &&
+            (l["last-char"] === undefined || l["last-char"] >= firstCharIndex)
         )
         if (line) {
           baseline = convertMillimeterToPixel(line["baseline-y"])
@@ -450,11 +441,11 @@ export class IIJiixQueryManager extends IIAbstractManager
     }
 
     return {
-      wordKey: `${ textElement.id }:${ wordIndex }`,
+      wordKey: `${textElement.id}:${wordIndex}`,
       wordBounds,
       allStrokeIds,
       baseline,
-      xHeight
+      xHeight,
     }
   }
 
@@ -463,8 +454,7 @@ export class IIJiixQueryManager extends IIAbstractManager
    * @param elementId - The JIIX element ID
    * @returns Array of stroke IDs
    */
-  getStrokesForElement(elementId: string): string[]
-  {
+  getStrokesForElement(elementId: string): string[] {
     this.ensureIndexValid()
     return this.#index?.elementToStrokes.get(elementId) || []
   }
@@ -474,8 +464,7 @@ export class IIJiixQueryManager extends IIAbstractManager
    * @param elementId - The JIIX element ID
    * @returns Array of TStroke symbols
    */
-  getStrokeSymbolsForElement(elementId: string): TStroke[]
-  {
+  getStrokeSymbolsForElement(elementId: string): TStroke[] {
     const strokeIds = this.getStrokesForElement(elementId)
     const strokeMap = new Map<string, TStroke>()
 
@@ -491,9 +480,7 @@ export class IIJiixQueryManager extends IIAbstractManager
     }
 
     // Return strokes in order
-    return strokeIds
-      .map(id => strokeMap.get(id))
-      .filter((stroke): stroke is TStroke => stroke !== undefined)
+    return strokeIds.map((id) => strokeMap.get(id)).filter((stroke): stroke is TStroke => stroke !== undefined)
   }
 
   /**
@@ -501,8 +488,10 @@ export class IIJiixQueryManager extends IIAbstractManager
    * @param elementId - The text element ID
    * @returns Array of word groups, each containing stroke IDs and label
    */
-  getStrokesGroupedByWord(elementId: string): Array<{ label: string; strokeIds: string[] }>
-  {
+  getStrokesGroupedByWord(elementId: string): Array<{
+    label: string
+    strokeIds: string[]
+  }> {
     this.ensureIndexValid()
 
     const element = this.#index?.elementToStrokes.get(elementId)
@@ -511,7 +500,7 @@ export class IIJiixQueryManager extends IIAbstractManager
     }
 
     const jiixElement = this.model.exports?.["application/vnd.myscript.jiix"]?.elements?.find(
-      el => el.id === elementId
+      (el) => el.id === elementId
     )
 
     if (!jiixElement || jiixElement.type !== JIIXElementType.Text) {
@@ -519,7 +508,10 @@ export class IIJiixQueryManager extends IIAbstractManager
     }
 
     const textElement = jiixElement as TJIIXTextElement
-    const groups: Array<{ label: string; strokeIds: string[] }> = []
+    const groups: Array<{
+      label: string
+      strokeIds: string[]
+    }> = []
 
     if (textElement.words) {
       for (const word of textElement.words) {
@@ -533,7 +525,10 @@ export class IIJiixQueryManager extends IIAbstractManager
           })
         }
         if (strokeIds.length > 0) {
-          groups.push({ label: word.label, strokeIds })
+          groups.push({
+            label: word.label,
+            strokeIds,
+          })
         }
       }
     }
@@ -546,8 +541,11 @@ export class IIJiixQueryManager extends IIAbstractManager
    * @param elementId - The text element ID
    * @returns Array of char groups, each containing stroke IDs and label
    */
-  getStrokesGroupedByChar(elementId: string): Array<{ label: string; strokeIds: string[]; wordIndex: number }>
-  {
+  getStrokesGroupedByChar(elementId: string): Array<{
+    label: string
+    strokeIds: string[]
+    wordIndex: number
+  }> {
     this.ensureIndexValid()
 
     const element = this.#index?.elementToStrokes.get(elementId)
@@ -556,7 +554,7 @@ export class IIJiixQueryManager extends IIAbstractManager
     }
 
     const jiixElement = this.model.exports?.["application/vnd.myscript.jiix"]?.elements?.find(
-      el => el.id === elementId
+      (el) => el.id === elementId
     )
 
     if (!jiixElement || jiixElement.type !== JIIXElementType.Text) {
@@ -564,7 +562,11 @@ export class IIJiixQueryManager extends IIAbstractManager
     }
 
     const textElement = jiixElement as TJIIXTextElement
-    const groups: Array<{ label: string; strokeIds: string[]; wordIndex: number }> = []
+    const groups: Array<{
+      label: string
+      strokeIds: string[]
+      wordIndex: number
+    }> = []
 
     if (textElement.chars) {
       for (const char of textElement.chars) {
@@ -581,7 +583,7 @@ export class IIJiixQueryManager extends IIAbstractManager
           groups.push({
             label: char.label,
             strokeIds,
-            wordIndex: char.word
+            wordIndex: char.word,
           })
         }
       }
@@ -598,8 +600,7 @@ export class IIJiixQueryManager extends IIAbstractManager
     mathBlock: TJIIXMathElement
     strokeIds: string[]
     strokes: TStroke[]
-  }>
-  {
+  }> {
     this.ensureIndexValid()
 
     const mathBlocks = this.model.mathBlocks
@@ -616,7 +617,7 @@ export class IIJiixQueryManager extends IIAbstractManager
       result.push({
         mathBlock,
         strokeIds,
-        strokes
+        strokes,
       })
     }
 
@@ -631,8 +632,7 @@ export class IIJiixQueryManager extends IIAbstractManager
     textBlock: TJIIXTextElement
     strokeIds: string[]
     strokes: TStroke[]
-  }>
-  {
+  }> {
     this.ensureIndexValid()
 
     const textBlocks = this.model.textBlocks
@@ -649,7 +649,7 @@ export class IIJiixQueryManager extends IIAbstractManager
       result.push({
         textBlock,
         strokeIds,
-        strokes
+        strokes,
       })
     }
 
@@ -661,8 +661,7 @@ export class IIJiixQueryManager extends IIAbstractManager
    * @param jiixBlockId - The JIIX element ID
    * @returns The label of the block, or undefined if not found
    */
-  getBlockLabel(jiixBlockId: string): string | undefined
-  {
+  getBlockLabel(jiixBlockId: string): string | undefined {
     this.ensureIndexValid()
 
     const jiixElement = this.#index?.elementById.get(jiixBlockId)
@@ -687,8 +686,7 @@ export class IIJiixQueryManager extends IIAbstractManager
    * @param label - The label to search for (case-insensitive partial match)
    * @returns Array of matching stroke query results
    */
-  searchByLabel(label: string): TStrokeQueryResult[]
-  {
+  searchByLabel(label: string): TStrokeQueryResult[] {
     this.ensureIndexValid()
 
     const results: TStrokeQueryResult[] = []
@@ -710,13 +708,14 @@ export class IIJiixQueryManager extends IIAbstractManager
     return results
   }
 
-  getBlocksForSymbols(symbols: TSymbol[]): TJIIXElement[]
-  {
+  getBlocksForSymbols(symbols: TSymbol[]): TJIIXElement[] {
     this.ensureIndexValid()
-    if (!this.#index) return []
-    const symbolIds = new Set(symbols.map(s => s.id))
+    if (!this.#index) {
+      return []
+    }
+    const symbolIds = new Set(symbols.map((s) => s.id))
     return [...this.#index.elementToStrokes.entries()]
-      .filter(([, strokeIds]) => strokeIds.length > 0 && strokeIds.every(id => symbolIds.has(id)))
+      .filter(([, strokeIds]) => strokeIds.length > 0 && strokeIds.every((id) => symbolIds.has(id)))
       .map(([elementId]) => this.#index!.elementById.get(elementId))
       .filter((el): el is TJIIXElement => el !== undefined)
   }
@@ -730,15 +729,14 @@ export class IIJiixQueryManager extends IIAbstractManager
     totalElements: number
     byType: Record<string, number>
     indexed: boolean
-  }
-  {
+  } {
     this.ensureIndexValid()
 
     const stats = {
       totalStrokes: this.#index?.strokeToElement.size || 0,
       totalElements: this.#index?.elementToStrokes.size || 0,
       byType: {} as Record<string, number>,
-      indexed: this.#index !== null
+      indexed: this.#index !== null,
     }
 
     if (this.#index) {
@@ -753,27 +751,23 @@ export class IIJiixQueryManager extends IIAbstractManager
   /**
    * Get pixel-converted text metadata for a stroke
    */
-  getTextMetadata(strokeId: string): TBlockTextMetadata | undefined
-  {
+  getTextMetadata(strokeId: string): TBlockTextMetadata | undefined {
     return this.#textMetadata.get(strokeId)
   }
 
   /**
    * Update pixel-converted text metadata for a stroke (called during sync)
    */
-  updateTextMetadata(stroke: TStroke, element: TJIIXTextElement): void
-  {
+  updateTextMetadata(stroke: TStroke, element: TJIIXTextElement): void {
     const metadata: TBlockTextMetadata = {
-      label: element.label
+      label: element.label,
     }
 
     if (element.words && element.words.length > 0) {
       const firstWord = element.words[0]
       metadata.word = {
         label: firstWord.label,
-        bounds: firstWord["bounding-box"]
-          ? convertBoundingBoxMillimeterToPixel(firstWord["bounding-box"])
-          : undefined
+        bounds: firstWord["bounding-box"] ? convertBoundingBoxMillimeterToPixel(firstWord["bounding-box"]) : undefined,
       }
     }
 
@@ -782,9 +776,7 @@ export class IIJiixQueryManager extends IIAbstractManager
       metadata.char = {
         label: firstChar.label,
         word: firstChar.word,
-        bounds: firstChar["bounding-box"]
-          ? convertBoundingBoxMillimeterToPixel(firstChar["bounding-box"])
-          : undefined
+        bounds: firstChar["bounding-box"] ? convertBoundingBoxMillimeterToPixel(firstChar["bounding-box"]) : undefined,
       }
     }
 
@@ -792,7 +784,7 @@ export class IIJiixQueryManager extends IIAbstractManager
       const firstLine = element.lines[0]
       metadata.line = {
         baseline: convertMillimeterToPixel(firstLine["baseline-y"]),
-        xHeight: convertMillimeterToPixel(firstLine["x-height"])
+        xHeight: convertMillimeterToPixel(firstLine["x-height"]),
       }
     }
 
@@ -802,8 +794,7 @@ export class IIJiixQueryManager extends IIAbstractManager
   /**
    * Clear text metadata for a stroke (called when stroke is deleted)
    */
-  clearTextMetadata(strokeId: string): void
-  {
+  clearTextMetadata(strokeId: string): void {
     this.#textMetadata.delete(strokeId)
   }
 
@@ -812,43 +803,59 @@ export class IIJiixQueryManager extends IIAbstractManager
    * Only groups with valid bounding boxes are returned.
    * @param level - Selection granularity: "element", "word", or "char"
    */
-  getTextSelectionGroups(level: "element" | "word" | "char"): Array<{ strokeIds: string[], bounds: TBox }>
-  {
+  getTextSelectionGroups(level: "element" | "word" | "char"): Array<{
+    strokeIds: string[]
+    bounds: TBox
+  }> {
     this.ensureIndexValid()
 
     const jiixExport = this.model.exports?.["application/vnd.myscript.jiix"]
-    if (!jiixExport?.elements) return []
+    if (!jiixExport?.elements) {
+      return []
+    }
 
-    const groups: Array<{ strokeIds: string[], bounds: TBox }> = []
+    const groups: Array<{
+      strokeIds: string[]
+      bounds: TBox
+    }> = []
 
     for (const element of jiixExport.elements) {
-      if (element.type !== JIIXElementType.Text) continue
+      if (element.type !== JIIXElementType.Text) {
+        continue
+      }
       const textEl = element as TJIIXTextElement
 
       if (level === "element") {
         if (textEl["bounding-box"] && textEl.id) {
           const strokeIds = this.getStrokesForElement(textEl.id)
           if (strokeIds.length > 0) {
-            groups.push({ strokeIds, bounds: convertBoundingBoxMillimeterToPixel(textEl["bounding-box"]) })
+            groups.push({
+              strokeIds,
+              bounds: convertBoundingBoxMillimeterToPixel(textEl["bounding-box"]),
+            })
           }
         }
-      }
-      else if (level === "word" && textEl.words) {
+      } else if (level === "word" && textEl.words) {
         for (const word of textEl.words) {
           if (word["bounding-box"] && word.items) {
-            const strokeIds = word.items.map(i => i["full-id"] || i.id).filter((id): id is string => !!id)
+            const strokeIds = word.items.map((i) => i["full-id"] || i.id).filter((id): id is string => !!id)
             if (strokeIds.length > 0) {
-              groups.push({ strokeIds, bounds: convertBoundingBoxMillimeterToPixel(word["bounding-box"]) })
+              groups.push({
+                strokeIds,
+                bounds: convertBoundingBoxMillimeterToPixel(word["bounding-box"]),
+              })
             }
           }
         }
-      }
-      else if (level === "char" && textEl.chars) {
+      } else if (level === "char" && textEl.chars) {
         for (const char of textEl.chars) {
           if (char["bounding-box"] && char.items) {
-            const strokeIds = char.items.map(i => i["full-id"] || i.id).filter((id): id is string => !!id)
+            const strokeIds = char.items.map((i) => i["full-id"] || i.id).filter((id): id is string => !!id)
             if (strokeIds.length > 0) {
-              groups.push({ strokeIds, bounds: convertBoundingBoxMillimeterToPixel(char["bounding-box"]) })
+              groups.push({
+                strokeIds,
+                bounds: convertBoundingBoxMillimeterToPixel(char["bounding-box"]),
+              })
             }
           }
         }
@@ -863,17 +870,26 @@ export class IIJiixQueryManager extends IIAbstractManager
    * Only groups with valid bounding boxes are returned.
    * @param level - Selection granularity: "element" or "operand"
    */
-  getMathSelectionGroups(level: "element" | "operand"): Array<{ strokeIds: string[], bounds: TBox }>
-  {
+  getMathSelectionGroups(level: "element" | "operand"): Array<{
+    strokeIds: string[]
+    bounds: TBox
+  }> {
     this.ensureIndexValid()
 
     const jiixExport = this.model.exports?.["application/vnd.myscript.jiix"]
-    if (!jiixExport?.elements) return []
+    if (!jiixExport?.elements) {
+      return []
+    }
 
-    const groups: Array<{ strokeIds: string[], bounds: TBox }> = []
+    const groups: Array<{
+      strokeIds: string[]
+      bounds: TBox
+    }> = []
 
     for (const element of jiixExport.elements) {
-      if (element.type !== JIIXElementType.Math) continue
+      if (element.type !== JIIXElementType.Math) {
+        continue
+      }
       const mathEl = element as TJIIXMathElement
 
       if (level === "element") {
@@ -885,14 +901,15 @@ export class IIJiixQueryManager extends IIAbstractManager
               bounds = convertBoundingBoxMillimeterToPixel(mathEl["bounding-box"])
             } else {
               const strokes = this.getStrokeSymbolsForElement(mathEl.id)
-              if (!strokes.length) continue
-              bounds = BoxOps.createFromBoxes(strokes.map(s => OBBOps.toBox(s.bounds)))
+              if (!strokes.length) {
+                continue
+              }
+              bounds = BoxOps.createFromBoxes(strokes.map((s) => OBBOps.toBox(s.bounds)))
             }
             groups.push({ strokeIds, bounds })
           }
         }
-      }
-      else if (level === "operand" && mathEl.expressions) {
+      } else if (level === "operand" && mathEl.expressions) {
         this.collectMathExpressionGroups(mathEl.expressions, groups)
       }
     }
@@ -906,24 +923,38 @@ export class IIJiixQueryManager extends IIAbstractManager
    * "stroke" level: returns empty (signals fallback to stroke overlap).
    * @param level - Selection granularity: "element" or "stroke"
    */
-  getShapeSelectionGroups(level: "element" | "stroke"): Array<{ strokeIds: string[], bounds: TBox }>
-  {
-    if (level === "stroke") return []
+  getShapeSelectionGroups(level: "element" | "stroke"): Array<{
+    strokeIds: string[]
+    bounds: TBox
+  }> {
+    if (level === "stroke") {
+      return []
+    }
 
     this.ensureIndexValid()
 
     const jiixExport = this.model.exports?.["application/vnd.myscript.jiix"]
-    if (!jiixExport?.elements) return []
+    if (!jiixExport?.elements) {
+      return []
+    }
 
-    const groups: Array<{ strokeIds: string[], bounds: TBox }> = []
+    const groups: Array<{
+      strokeIds: string[]
+      bounds: TBox
+    }> = []
 
     for (const element of jiixExport.elements) {
-      if (element.type !== JIIXElementType.Node && element.type !== JIIXElementType.Edge) continue
+      if (element.type !== JIIXElementType.Node && element.type !== JIIXElementType.Edge) {
+        continue
+      }
 
       if (element["bounding-box"] && element.id) {
         const strokeIds = this.getStrokesForElement(element.id)
         if (strokeIds.length > 0) {
-          groups.push({ strokeIds, bounds: convertBoundingBoxMillimeterToPixel(element["bounding-box"]) })
+          groups.push({
+            strokeIds,
+            bounds: convertBoundingBoxMillimeterToPixel(element["bounding-box"]),
+          })
         }
       }
     }
@@ -936,19 +967,26 @@ export class IIJiixQueryManager extends IIAbstractManager
    */
   protected collectMathExpressionGroups(
     expressions: TJIIXMathExpression[],
-    groups: Array<{ strokeIds: string[], bounds: TBox }>
-  ): void
-  {
+    groups: Array<{
+      strokeIds: string[]
+      bounds: TBox
+    }>
+  ): void {
     for (const expr of expressions) {
-      if (!expr) continue
+      if (!expr) {
+        continue
+      }
       const exprRecord = expr as Record<string, unknown>
       const bbox = exprRecord["bounding-box"] as TBox | undefined
       const items = exprRecord.items as TJIIXStrokeItem[] | undefined
 
       if (bbox && items) {
-        const strokeIds = items.map(i => i["full-id"] || i.id).filter((id): id is string => !!id)
+        const strokeIds = items.map((i) => i["full-id"] || i.id).filter((id): id is string => !!id)
         if (strokeIds.length > 0) {
-          groups.push({ strokeIds, bounds: convertBoundingBoxMillimeterToPixel(bbox) })
+          groups.push({
+            strokeIds,
+            bounds: convertBoundingBoxMillimeterToPixel(bbox),
+          })
         }
       }
 

@@ -1,7 +1,8 @@
-import serve from "rollup-plugin-serve"
 import livereload from "rollup-plugin-livereload"
-import generateDevEnv from "./rollup-plugin-dev-env.mjs"
+import serve from "rollup-plugin-serve"
+
 import config from "./rollup.config.mjs"
+import generateDevEnv from "./rollup-plugin-dev-env.mjs"
 
 config[0].plugins.push(
   generateDevEnv(),

@@ -1,10 +1,17 @@
-
-import { RecognizerWebSocketSSRMathConfiguration, RecognizerWebSocketSSRTextConfiguration } from "../__dataset__/configuration.dataset"
-import { ServerWebSocketSSRMock, emptyJIIX, errorNotGrantedMessage, hTextJIIX, partChangeMessage } from "../__mocks__/ServerWebSocketSSRMock"
+import {
+  RecognizerWebSocketSSRMathConfiguration,
+  RecognizerWebSocketSSRTextConfiguration,
+} from "../__dataset__/configuration.dataset"
+import {
+  ServerWebSocketSSRMock,
+  emptyJIIX,
+  errorNotGrantedMessage,
+  hTextJIIX,
+  partChangeMessage,
+} from "../__mocks__/ServerWebSocketSSRMock"
 import { buildStroke, delay } from "../helpers"
 
-import
-{
+import {
   RecognizerWebSocketSSR,
   RecognizerError,
   TRecognitionTypeV1,
@@ -16,31 +23,28 @@ import
   StrokeOps,
 } from "@/iink"
 
-describe("RecognizerWebSocketSSR.ts", () =>
-{
-  const height = 100, width = 100
+describe("RecognizerWebSocketSSR.ts", () => {
+  const height = 100,
+    width = 100
 
-  const testDatas: { type: TRecognitionTypeV1, config: TRecognizerWebSocketSSRConfiguration }[] = [
+  const testDatas: { type: TRecognitionTypeV1; config: TRecognizerWebSocketSSRConfiguration }[] = [
     {
       type: "TEXT",
-      config: RecognizerWebSocketSSRTextConfiguration as TRecognizerWebSocketSSRConfiguration
+      config: RecognizerWebSocketSSRTextConfiguration as TRecognizerWebSocketSSRConfiguration,
     },
     {
       type: "MATH",
-      config: RecognizerWebSocketSSRMathConfiguration as TRecognizerWebSocketSSRConfiguration
+      config: RecognizerWebSocketSSRMathConfiguration as TRecognizerWebSocketSSRConfiguration,
     },
   ]
 
-  test("should instanciate RecognizerWebSocketSSR", () =>
-  {
+  test("should instanciate RecognizerWebSocketSSR", () => {
     const wsr = new RecognizerWebSocketSSR(RecognizerWebSocketSSRTextConfiguration)
     expect(wsr).toBeDefined()
   })
 
-  describe("Properties", () =>
-  {
-    test("should get url", () =>
-    {
+  describe("Properties", () => {
+    test("should get url", () => {
       const customConf = structuredClone(RecognizerWebSocketSSRTextConfiguration)
       customConf.server.scheme = "http"
       customConf.server.host = "pony"
@@ -49,10 +53,8 @@ describe("RecognizerWebSocketSSR.ts", () =>
       expect(wsr.url).toEqual("ws://pony/api/v4.0/iink/document?applicationKey=applicationKey")
     })
 
-    testDatas.forEach(({ type, config }) =>
-    {
-      test(`should get mimeTypes for ${ type }`, () =>
-      {
+    testDatas.forEach(({ type, config }) => {
+      test(`should get mimeTypes for ${type}`, () => {
         const customConf = structuredClone(RecognizerWebSocketSSRTextConfiguration)
         customConf.recognition = config.recognition
         const wsr = new RecognizerWebSocketSSR(customConf)
@@ -68,27 +70,23 @@ describe("RecognizerWebSocketSSR.ts", () =>
     })
   })
 
-  describe("init", () =>
-  {
+  describe("init", () => {
     const customConf = structuredClone(RecognizerWebSocketSSRTextConfiguration)
     customConf.server.host = "init-test"
     let mockServer: ServerWebSocketSSRMock
     let wsr: RecognizerWebSocketSSR
 
-    beforeEach(() =>
-    {
+    beforeEach(() => {
       wsr = new RecognizerWebSocketSSR(customConf)
       wsr.event.emitError = jest.fn()
       mockServer = new ServerWebSocketSSRMock(wsr.url)
     })
-    afterEach(() =>
-    {
+    afterEach(() => {
       wsr.destroy()
       mockServer.close()
     })
 
-    test("should sent newContentPackage message", async () =>
-    {
+    test("should sent newContentPackage message", async () => {
       expect.assertions(2)
       expect(mockServer.getMessages("newContentPackage")).toHaveLength(0)
       wsr.init(height, width)
@@ -96,8 +94,7 @@ describe("RecognizerWebSocketSSR.ts", () =>
       await delay(100)
       expect(mockServer.getMessages("newContentPackage")).toHaveLength(1)
     })
-    test("should sent hmac and configuration messages when receive ack message with hmacChallenge", async () =>
-    {
+    test("should sent hmac and configuration messages when receive ack message with hmacChallenge", async () => {
       expect.assertions(3)
       expect(mockServer.messages).toHaveLength(0)
       wsr.init(height, width)
@@ -107,8 +104,7 @@ describe("RecognizerWebSocketSSR.ts", () =>
       expect(mockServer.getMessages("hmac")).toHaveLength(1)
       expect(mockServer.getMessages("configuration")).toHaveLength(1)
     })
-    test("should sent only configuration message when receive ack message without hmacChallenge", async () =>
-    {
+    test("should sent only configuration message when receive ack message without hmacChallenge", async () => {
       expect.assertions(3)
       expect(mockServer.messages).toHaveLength(0)
       wsr.init(height, width)
@@ -119,8 +115,7 @@ describe("RecognizerWebSocketSSR.ts", () =>
       expect(mockServer.getMessages("hmac")).toHaveLength(0)
       expect(mockServer.getMessages("configuration")).toHaveLength(1)
     })
-    test("should sent newContentPart message when receive contentPackageDescription", async () =>
-    {
+    test("should sent newContentPart message when receive contentPackageDescription", async () => {
       expect.assertions(2)
       wsr.init(height, width)
       expect(mockServer.getMessages("newContentPart")).toHaveLength(0)
@@ -130,8 +125,7 @@ describe("RecognizerWebSocketSSR.ts", () =>
       await delay(100)
       expect(mockServer.getMessages("newContentPart")).toHaveLength(1)
     })
-    test("should sent openContentPart message when receive contentPackageDescription if currentPartId is defined", async () =>
-    {
+    test("should sent openContentPart message when receive contentPackageDescription if currentPartId is defined", async () => {
       expect.assertions(2)
       wsr.init(height, width)
       expect(mockServer.getMessages("openContentPart")).toHaveLength(0)
@@ -142,8 +136,7 @@ describe("RecognizerWebSocketSSR.ts", () =>
       await delay(100)
       expect(mockServer.getMessages("openContentPart")).toHaveLength(1)
     })
-    test("should resolve when receive newPart message", async () =>
-    {
+    test("should resolve when receive newPart message", async () => {
       expect.assertions(1)
       const promise = wsr.init(height, width)
       mockServer.sendAckWithoutHMAC()
@@ -152,8 +145,7 @@ describe("RecognizerWebSocketSSR.ts", () =>
       await promise
       expect(1).toEqual(1)
     })
-    test("should reject if receive error message", async () =>
-    {
+    test("should reject if receive error message", async () => {
       expect.assertions(3)
       const promise = wsr.init(height, width)
       mockServer.sendNotGrantedErrorMessage()
@@ -163,24 +155,20 @@ describe("RecognizerWebSocketSSR.ts", () =>
     })
   })
 
-  describe("Ping", () =>
-  {
+  describe("Ping", () => {
     const customConf = structuredClone(RecognizerWebSocketSSRTextConfiguration)
     customConf.server.host = "ping-test"
     let mockServer: ServerWebSocketSSRMock
-    beforeEach(() =>
-    {
+    beforeEach(() => {
       const url = new RecognizerWebSocketSSR(customConf).url
       mockServer = new ServerWebSocketSSRMock(url)
       mockServer.init()
     })
-    afterEach(async () =>
-    {
+    afterEach(async () => {
       mockServer.close()
     })
 
-    test("should send ping message", async () =>
-    {
+    test("should send ping message", async () => {
       expect.assertions(2)
       customConf.server.websocket.pingEnabled = true
       const wsr = new RecognizerWebSocketSSR(customConf)
@@ -191,8 +179,7 @@ describe("RecognizerWebSocketSSR.ts", () =>
       expect(mockServer.getMessages("ping")).toHaveLength(2)
       await wsr.destroy()
     })
-    test("should not send ping message", async () =>
-    {
+    test("should not send ping message", async () => {
       expect.assertions(2)
       customConf.server.websocket.pingEnabled = false
       const wsr = new RecognizerWebSocketSSR(customConf)
@@ -203,8 +190,7 @@ describe("RecognizerWebSocketSSR.ts", () =>
       expect(mockServer.getMessages("ping")).toHaveLength(0)
       await wsr.destroy()
     })
-    test("should close the connection when maxPingLostCount is reached", async () =>
-    {
+    test("should close the connection when maxPingLostCount is reached", async () => {
       expect.assertions(3)
       customConf.server.websocket.pingEnabled = true
       customConf.server.websocket.maxPingLostCount = 2
@@ -219,34 +205,29 @@ describe("RecognizerWebSocketSSR.ts", () =>
     })
   })
 
-  describe("send", () =>
-  {
+  describe("send", () => {
     const customConf = structuredClone(RecognizerWebSocketSSRTextConfiguration)
     customConf.server.host = "send-test"
     let mockServer: ServerWebSocketSSRMock
     let wsr: RecognizerWebSocketSSR
 
-    beforeEach(() =>
-    {
+    beforeEach(() => {
       wsr = new RecognizerWebSocketSSR(customConf)
 
       mockServer = new ServerWebSocketSSRMock(wsr.url)
       mockServer.init()
     })
-    afterEach(async () =>
-    {
+    afterEach(async () => {
       await wsr.destroy()
       mockServer.close()
     })
 
-    test("should throw error if recognizer has not been initialize", async () =>
-    {
+    test("should throw error if recognizer has not been initialize", async () => {
       expect.assertions(1)
       const testDataToSend = { type: "test", data: "test-data" }
       await expect(wsr.send(testDataToSend)).rejects.toEqual(new Error("Recognizer must be initilized"))
     })
-    test("should send message", async () =>
-    {
+    test("should send message", async () => {
       expect.assertions(1)
       await wsr.init(height, width)
       const testDataToSend = { type: "test", data: "test-data" }
@@ -257,8 +238,7 @@ describe("RecognizerWebSocketSSR.ts", () =>
       expect(messageSent).toEqual(testDataToSend)
     })
     //TODO fix test
-    test.skip("should reconnect before send message", async () =>
-    {
+    test.skip("should reconnect before send message", async () => {
       expect.assertions(1)
       await wsr.init(height, width)
       await wsr.close(1000, "CLOSE_RECOGNIZER")
@@ -271,28 +251,24 @@ describe("RecognizerWebSocketSSR.ts", () =>
     })
   })
 
-  describe("addStrokes", () =>
-  {
+  describe("addStrokes", () => {
     const customConf = structuredClone(RecognizerWebSocketSSRTextConfiguration)
     customConf.server.host = "add-strokes-test"
     let mockServer: ServerWebSocketSSRMock
     let wsr: RecognizerWebSocketSSR
 
-    beforeEach(() =>
-    {
+    beforeEach(() => {
       wsr = new RecognizerWebSocketSSR(customConf)
       wsr.event.emitError = jest.fn()
       mockServer = new ServerWebSocketSSRMock(wsr.url)
       mockServer.init()
     })
-    afterEach(async () =>
-    {
+    afterEach(async () => {
       await wsr.destroy()
       mockServer.close()
     })
 
-    test("should send addStrokes message", async () =>
-    {
+    test("should send addStrokes message", async () => {
       expect.assertions(1)
       const stroke = buildStroke()
       await wsr.init(height, width)
@@ -302,12 +278,11 @@ describe("RecognizerWebSocketSSR.ts", () =>
       const addStrokesMessageSent = JSON.parse(mockServer.getLastMessage() as string)
       const addStrokesMessageSentToTest = {
         type: "addStrokes",
-        strokes: [StrokeOps.formatToSend(stroke)]
+        strokes: [StrokeOps.formatToSend(stroke)],
       }
       await expect(addStrokesMessageSent).toMatchObject(addStrokesMessageSentToTest)
     })
-    test("should not send addStrokes message if model.extractUnsentStrokes return 0 strokes", async () =>
-    {
+    test("should not send addStrokes message if model.extractUnsentStrokes return 0 strokes", async () => {
       expect.assertions(1)
       await wsr.init(height, width)
       await wsr.addStrokes([])
@@ -316,8 +291,7 @@ describe("RecognizerWebSocketSSR.ts", () =>
       const addStrokesMessageSent = JSON.parse(mockServer.getLastMessage() as string)
       await expect(addStrokesMessageSent.type).not.toEqual("addStrokes")
     })
-    test("should resolve when receive exported message", async () =>
-    {
+    test("should resolve when receive exported message", async () => {
       expect.assertions(1)
       const stroke = buildStroke()
       await wsr.init(height, width)
@@ -328,12 +302,11 @@ describe("RecognizerWebSocketSSR.ts", () =>
       await promise
       await expect(promise).resolves.toEqual(
         expect.objectContaining({
-          "application/vnd.myscript.jiix": emptyJIIX
+          "application/vnd.myscript.jiix": emptyJIIX,
         })
       )
     })
-    test("should reject if receive error message", async () =>
-    {
+    test("should reject if receive error message", async () => {
       expect.assertions(3)
       const stroke = buildStroke()
       await wsr.init(height, width)
@@ -347,28 +320,24 @@ describe("RecognizerWebSocketSSR.ts", () =>
     })
   })
 
-  describe("Style", () =>
-  {
+  describe("Style", () => {
     const customConf = structuredClone(RecognizerWebSocketSSRTextConfiguration)
     customConf.server.host = "style-test"
     let mockServer: ServerWebSocketSSRMock
     let wsr: RecognizerWebSocketSSR
 
-    beforeEach(() =>
-    {
+    beforeEach(() => {
       wsr = new RecognizerWebSocketSSR(customConf)
 
       mockServer = new ServerWebSocketSSRMock(wsr.url)
       mockServer.init()
     })
-    afterEach(async () =>
-    {
+    afterEach(async () => {
       await wsr.destroy()
       mockServer.close()
     })
 
-    test("should setPenStyle", async () =>
-    {
+    test("should setPenStyle", async () => {
       expect.assertions(1)
       await wsr.init(height, width)
       const CustomPenStyle: TPenStyle = { color: "#d1d1d1" }
@@ -378,12 +347,11 @@ describe("RecognizerWebSocketSSR.ts", () =>
       const setPenStyle = mockServer.getLastMessage()
       const setPenStyleToTest = JSON.stringify({
         type: "setPenStyle",
-        style: "color: #d1d1d1;"
+        style: "color: #d1d1d1;",
       })
       expect(setPenStyle).toContain(setPenStyleToTest)
     })
-    test("should setPenStyleClasses", async () =>
-    {
+    test("should setPenStyleClasses", async () => {
       expect.assertions(1)
       await wsr.init(height, width)
       const styleClasses = "pony"
@@ -393,12 +361,11 @@ describe("RecognizerWebSocketSSR.ts", () =>
       const setPenStyleClasses = mockServer.getLastMessage()
       const setPenStyleClassesToTest = JSON.stringify({
         type: "setPenStyleClasses",
-        styleClasses
+        styleClasses,
       })
       expect(setPenStyleClasses).toContain(setPenStyleClassesToTest)
     })
-    test("should setTheme", async () =>
-    {
+    test("should setTheme", async () => {
       expect.assertions(1)
       await wsr.init(height, width)
       const theme: TTheme = {
@@ -407,56 +374,52 @@ describe("RecognizerWebSocketSSR.ts", () =>
           color: "#2E7D32",
           "-myscript-pen-width": 2,
           "-myscript-pen-fill-style": "purple",
-          "-myscript-pen-fill-color": "#FFFFFF00"
+          "-myscript-pen-fill-color": "#FFFFFF00",
         },
         ".math": {
-          "font-family": "STIXGeneral"
+          "font-family": "STIXGeneral",
         },
         ".math-solved": {
           "font-family": "STIXGeneral",
-          color: "blue"
+          color: "blue",
         },
         ".text": {
           "font-family": "Rubik Distressed",
-          "font-size": 10
-        }
+          "font-size": 10,
+        },
       }
       await wsr.setTheme(theme)
       //¯\_(ツ)_/¯  required to wait server received message
       await delay(100)
 
       const setThemeMessageSent = mockServer.getLastMessage()
-      const setThemeMessageSentToTest = "{\"type\":\"setTheme\",\"theme\":\"ink {\\nwidth: 42;\\ncolor: #2E7D32;\\n-myscript-pen-width: 2;\\n-myscript-pen-fill-style: purple;\\n-myscript-pen-fill-color: #FFFFFF00;\\n}\\n.math {\\nfont-family: STIXGeneral;\\n}\\n.math-solved {\\nfont-family: STIXGeneral;\\ncolor: blue;\\n}\\n.text {\\nfont-family: Rubik Distressed;\\nfont-size: 10;\\n}\\n\"}"
+      const setThemeMessageSentToTest =
+        '{"type":"setTheme","theme":"ink {\\nwidth: 42;\\ncolor: #2E7D32;\\n-myscript-pen-width: 2;\\n-myscript-pen-fill-style: purple;\\n-myscript-pen-fill-color: #FFFFFF00;\\n}\\n.math {\\nfont-family: STIXGeneral;\\n}\\n.math-solved {\\nfont-family: STIXGeneral;\\ncolor: blue;\\n}\\n.text {\\nfont-family: Rubik Distressed;\\nfont-size: 10;\\n}\\n"}'
       expect(setThemeMessageSent).toContain(setThemeMessageSentToTest)
     })
   })
 
-  describe("export", () =>
-  {
+  describe("export", () => {
     const customConf = structuredClone(RecognizerWebSocketSSRTextConfiguration)
     customConf.server.host = "export-test"
     let mockServer: ServerWebSocketSSRMock
     let wsr: RecognizerWebSocketSSR
     const model = new Model()
 
-    beforeEach(() =>
-    {
+    beforeEach(() => {
       wsr = new RecognizerWebSocketSSR(customConf)
       wsr.event.emitError = jest.fn()
 
       mockServer = new ServerWebSocketSSRMock(wsr.url)
       mockServer.init()
     })
-    afterEach(async () =>
-    {
+    afterEach(async () => {
       await wsr.destroy()
       mockServer.close()
     })
 
-    testDatas.forEach(({ type, config }) =>
-    {
-      test(`should send export message for ${ type }`, async () =>
-      {
+    testDatas.forEach(({ type, config }) => {
+      test(`should send export message for ${type}`, async () => {
         expect.assertions(1)
         customConf.recognition.type = type
         const my_wsr = new RecognizerWebSocketSSR(customConf)
@@ -480,14 +443,13 @@ describe("RecognizerWebSocketSSR.ts", () =>
         const exportMessageSentToTest = JSON.stringify({
           type: "export",
           partId: partChangeMessage.partId,
-          mimeTypes
+          mimeTypes,
         })
         expect(exportMessageSent).toContain(exportMessageSentToTest)
         my_wsr.destroy()
       })
     })
-    test("should resolve when receive export message", async () =>
-    {
+    test("should resolve when receive export message", async () => {
       expect.assertions(1)
       await wsr.init(height, width)
       const promise = wsr.export(model)
@@ -497,13 +459,12 @@ describe("RecognizerWebSocketSSR.ts", () =>
       await expect(promise).resolves.toEqual(
         expect.objectContaining({
           exports: {
-            "application/vnd.myscript.jiix": hTextJIIX
-          }
+            "application/vnd.myscript.jiix": hTextJIIX,
+          },
         })
       )
     })
-    test("should reject if receive error message", async () =>
-    {
+    test("should reject if receive error message", async () => {
       expect.assertions(3)
       await wsr.init(height, width)
       const promise = wsr.export(model)
@@ -516,8 +477,7 @@ describe("RecognizerWebSocketSSR.ts", () =>
     })
   })
 
-  describe("import", () =>
-  {
+  describe("import", () => {
     const customConf = structuredClone(RecognizerWebSocketSSRTextConfiguration)
     customConf.server.host = "import-test"
     let mockServer: ServerWebSocketSSRMock
@@ -527,22 +487,19 @@ describe("RecognizerWebSocketSSR.ts", () =>
     const mimeType = "text/plain"
     const textImport = "winter is comming"
     const blobToImport = new Blob([textImport])
-    beforeEach(() =>
-    {
+    beforeEach(() => {
       wsr = new RecognizerWebSocketSSR(customConf)
       wsr.event.emitError = jest.fn()
 
       mockServer = new ServerWebSocketSSRMock(wsr.url)
       mockServer.init()
     })
-    afterEach(async () =>
-    {
+    afterEach(async () => {
       await wsr.destroy()
       mockServer.close()
     })
 
-    test("should send import message", async () =>
-    {
+    test("should send import message", async () => {
       await wsr.init(height, width)
       wsr.import(model, blobToImport, mimeType)
       //¯\_(ツ)_/¯  required to wait server received message
@@ -561,8 +518,7 @@ describe("RecognizerWebSocketSSR.ts", () =>
       //@ts-ignore
       expect(fileChunkMes.importFileId).toEqual(importFileMes.importFileId)
     })
-    test("should resolve when receive exported message", async () =>
-    {
+    test("should resolve when receive exported message", async () => {
       expect.assertions(1)
       await wsr.init(height, width)
       const promise = wsr.import(model, blobToImport, mimeType)
@@ -572,13 +528,12 @@ describe("RecognizerWebSocketSSR.ts", () =>
       await expect(promise).resolves.toEqual(
         expect.objectContaining({
           exports: {
-            "application/vnd.myscript.jiix": emptyJIIX
-          }
+            "application/vnd.myscript.jiix": emptyJIIX,
+          },
         })
       )
     })
-    test("should reject if receive error message", async () =>
-    {
+    test("should reject if receive error message", async () => {
       expect.assertions(3)
       await wsr.init(height, width)
       const promise = wsr.import(model, blobToImport, mimeType)
@@ -590,30 +545,26 @@ describe("RecognizerWebSocketSSR.ts", () =>
     })
   })
 
-  describe("importPointEvents", () =>
-  {
+  describe("importPointEvents", () => {
     const customConf = structuredClone(RecognizerWebSocketSSRTextConfiguration)
     customConf.server.host = "import-pointerd-test"
     let mockServer: ServerWebSocketSSRMock
     let wsr: RecognizerWebSocketSSR
     const strokes = [buildStroke()]
 
-    beforeEach(() =>
-    {
+    beforeEach(() => {
       wsr = new RecognizerWebSocketSSR(customConf)
       wsr.event.emitError = jest.fn()
 
       mockServer = new ServerWebSocketSSRMock(wsr.url)
       mockServer.init()
     })
-    afterEach(async () =>
-    {
+    afterEach(async () => {
       await wsr.destroy()
       mockServer.close()
     })
 
-    test("should send importPointEvents message", async () =>
-    {
+    test("should send importPointEvents message", async () => {
       await wsr.init(height, width)
       wsr.importPointEvents(strokes)
       //¯\_(ツ)_/¯  required to wait server received message
@@ -624,10 +575,9 @@ describe("RecognizerWebSocketSSR.ts", () =>
       const importPointEventsMes = JSON.parse(importPointEventsMessages[0])
       //@ts-ignore
       expect(importPointEventsMes.events).toHaveLength(strokes.length)
-      expect(importPointEventsMes.events[0]).toEqual(expect.objectContaining({ id: strokes[0].id}))
+      expect(importPointEventsMes.events[0]).toEqual(expect.objectContaining({ id: strokes[0].id }))
     })
-    test("should resolve when receive exported message", async () =>
-    {
+    test("should resolve when receive exported message", async () => {
       expect.assertions(1)
       await wsr.init(height, width)
       const promise = wsr.importPointEvents(strokes)
@@ -636,12 +586,11 @@ describe("RecognizerWebSocketSSR.ts", () =>
       mockServer.sendEmptyExportMessage()
       await expect(promise).resolves.toEqual(
         expect.objectContaining({
-          "application/vnd.myscript.jiix": emptyJIIX
+          "application/vnd.myscript.jiix": emptyJIIX,
         })
       )
     })
-    test("should reject if receive error message", async () =>
-    {
+    test("should reject if receive error message", async () => {
       expect.assertions(3)
       await wsr.init(height, width)
       const promise = wsr.importPointEvents(strokes)
@@ -653,30 +602,26 @@ describe("RecognizerWebSocketSSR.ts", () =>
     })
   })
 
-  describe("resize", () =>
-  {
+  describe("resize", () => {
     const customConf = structuredClone(RecognizerWebSocketSSRTextConfiguration)
     customConf.server.host = "resize-test"
     let mockServer: ServerWebSocketSSRMock
     let wsr: RecognizerWebSocketSSR
     const model = new Model(width, height)
 
-    beforeEach(() =>
-    {
+    beforeEach(() => {
       wsr = new RecognizerWebSocketSSR(customConf)
       wsr.event.emitError = jest.fn()
 
       mockServer = new ServerWebSocketSSRMock(wsr.url)
       mockServer.init()
     })
-    afterEach(async () =>
-    {
+    afterEach(async () => {
       await wsr.destroy()
       mockServer.close()
     })
 
-    test("should send resize message", async () =>
-    {
+    test("should send resize message", async () => {
       expect.assertions(1)
       model.height = 27
       model.width = 5
@@ -685,11 +630,14 @@ describe("RecognizerWebSocketSSR.ts", () =>
       //¯\_(ツ)_/¯  required to wait server received message
       await delay(100)
       const resizeMessageSent = mockServer.getLastMessage()
-      const resizeMessageSentToTest = JSON.stringify({ type: "changeViewSize", height: model.height, width: model.width })
+      const resizeMessageSentToTest = JSON.stringify({
+        type: "changeViewSize",
+        height: model.height,
+        width: model.width,
+      })
       await expect(resizeMessageSent).toEqual(resizeMessageSentToTest)
     })
-    test("should resolve when receive svg patch message", async () =>
-    {
+    test("should resolve when receive svg patch message", async () => {
       expect.assertions(1)
       await wsr.init(height, width)
       const promise = wsr.resize(model)
@@ -698,8 +646,7 @@ describe("RecognizerWebSocketSSR.ts", () =>
       mockServer.sendSVGPatchMessage()
       await expect(promise).resolves.toEqual(model)
     })
-    test("should reject if receive error message", async () =>
-    {
+    test("should reject if receive error message", async () => {
       expect.assertions(3)
       await wsr.init(height, width)
       const promise = wsr.resize(model)
@@ -712,30 +659,26 @@ describe("RecognizerWebSocketSSR.ts", () =>
     })
   })
 
-  describe("convert", () =>
-  {
+  describe("convert", () => {
     const customConf = structuredClone(RecognizerWebSocketSSRTextConfiguration)
     customConf.server.host = "convert-test"
     const model = new Model(width, height)
     let mockServer: ServerWebSocketSSRMock
     let wsr: RecognizerWebSocketSSR
 
-    beforeEach(() =>
-    {
+    beforeEach(() => {
       wsr = new RecognizerWebSocketSSR(customConf)
       wsr.event.emitError = jest.fn()
 
       mockServer = new ServerWebSocketSSRMock(wsr.url)
       mockServer.init()
     })
-    afterEach(async () =>
-    {
+    afterEach(async () => {
       await wsr.destroy()
       mockServer.close()
     })
 
-    test("should send convert message", async () =>
-    {
+    test("should send convert message", async () => {
       expect.assertions(1)
       await wsr.init(height, width)
       const conversionState: TConverstionState = "DIGITAL_EDIT"
@@ -746,8 +689,7 @@ describe("RecognizerWebSocketSSR.ts", () =>
       const resizeMessageSentToTest = JSON.stringify({ type: "convert", conversionState })
       await expect(resizeMessageSent).toEqual(resizeMessageSentToTest)
     })
-    test("should resolve when receive exported message", async () =>
-    {
+    test("should resolve when receive exported message", async () => {
       expect.assertions(1)
       await wsr.init(height, width)
       const promise = wsr.convert(model)
@@ -757,13 +699,12 @@ describe("RecognizerWebSocketSSR.ts", () =>
       await expect(promise).resolves.toEqual(
         expect.objectContaining({
           converts: {
-            "application/vnd.myscript.jiix": emptyJIIX
-          }
+            "application/vnd.myscript.jiix": emptyJIIX,
+          },
         })
       )
     })
-    test("should reject if receive error message", async () =>
-    {
+    test("should reject if receive error message", async () => {
       expect.assertions(3)
       await wsr.init(height, width)
       const promise = wsr.convert(model)
@@ -776,29 +717,25 @@ describe("RecognizerWebSocketSSR.ts", () =>
     })
   })
 
-  describe("waitForIdle", () =>
-  {
+  describe("waitForIdle", () => {
     const customConf = structuredClone(RecognizerWebSocketSSRTextConfiguration)
     customConf.server.host = "wait-for-idle-test"
     let mockServer: ServerWebSocketSSRMock
     let wsr: RecognizerWebSocketSSR
 
-    beforeEach(() =>
-    {
+    beforeEach(() => {
       wsr = new RecognizerWebSocketSSR(customConf)
       wsr.event.emitError = jest.fn()
 
       mockServer = new ServerWebSocketSSRMock(wsr.url)
       mockServer.init()
     })
-    afterEach(async () =>
-    {
+    afterEach(async () => {
       await wsr.destroy()
       mockServer.close()
     })
 
-    test("should send waitForIdle message", async () =>
-    {
+    test("should send waitForIdle message", async () => {
       expect.assertions(1)
       await wsr.init(height, width)
       wsr.waitForIdle()
@@ -808,8 +745,7 @@ describe("RecognizerWebSocketSSR.ts", () =>
       const idleMessageSentToTest = JSON.stringify({ type: "waitForIdle" })
       await expect(idleMessageSent).toEqual(idleMessageSentToTest)
     })
-    test("should resolve when receive exported message", async () =>
-    {
+    test("should resolve when receive exported message", async () => {
       expect.assertions(1)
       await wsr.init(height, width)
       const promise = wsr.waitForIdle()
@@ -818,8 +754,7 @@ describe("RecognizerWebSocketSSR.ts", () =>
       mockServer.sendIdlehMessage()
       await expect(promise).resolves.toBeUndefined()
     })
-    test("should reject if receive error message", async () =>
-    {
+    test("should reject if receive error message", async () => {
       expect.assertions(3)
       await wsr.init(height, width)
       const promise = wsr.waitForIdle()
@@ -832,30 +767,26 @@ describe("RecognizerWebSocketSSR.ts", () =>
     })
   })
 
-  describe("undo", () =>
-  {
+  describe("undo", () => {
     const customConf = structuredClone(RecognizerWebSocketSSRTextConfiguration)
     customConf.server.host = "undo-test"
     const model = new Model(width, height)
     let mockServer: ServerWebSocketSSRMock
     let wsr: RecognizerWebSocketSSR
 
-    beforeEach(() =>
-    {
+    beforeEach(() => {
       wsr = new RecognizerWebSocketSSR(customConf)
       wsr.event.emitError = jest.fn()
 
       mockServer = new ServerWebSocketSSRMock(wsr.url)
       mockServer.init()
     })
-    afterEach(async () =>
-    {
+    afterEach(async () => {
       await wsr.destroy()
       mockServer.close()
     })
 
-    test("should send undo message", async () =>
-    {
+    test("should send undo message", async () => {
       expect.assertions(1)
       await wsr.init(height, width)
       wsr.undo(model)
@@ -865,8 +796,7 @@ describe("RecognizerWebSocketSSR.ts", () =>
       const resizeMessageSentToTest = JSON.stringify({ type: "undo" })
       await expect(resizeMessageSent).toEqual(resizeMessageSentToTest)
     })
-    test("should resolve when receive exported message", async () =>
-    {
+    test("should resolve when receive exported message", async () => {
       expect.assertions(1)
       await wsr.init(height, width)
       const promise = wsr.undo(model)
@@ -876,13 +806,12 @@ describe("RecognizerWebSocketSSR.ts", () =>
       await expect(promise).resolves.toEqual(
         expect.objectContaining({
           exports: {
-            "application/vnd.myscript.jiix": emptyJIIX
-          }
+            "application/vnd.myscript.jiix": emptyJIIX,
+          },
         })
       )
     })
-    test("should reject if receive error message", async () =>
-    {
+    test("should reject if receive error message", async () => {
       expect.assertions(3)
       await wsr.init(height, width)
       const promise = wsr.undo(model)
@@ -895,30 +824,26 @@ describe("RecognizerWebSocketSSR.ts", () =>
     })
   })
 
-  describe("redo", () =>
-  {
+  describe("redo", () => {
     const customConf = structuredClone(RecognizerWebSocketSSRTextConfiguration)
     customConf.server.host = "redo-test"
     const model = new Model(width, height)
     let mockServer: ServerWebSocketSSRMock
     let wsr: RecognizerWebSocketSSR
 
-    beforeEach(() =>
-    {
+    beforeEach(() => {
       wsr = new RecognizerWebSocketSSR(customConf)
       wsr.event.emitError = jest.fn()
 
       mockServer = new ServerWebSocketSSRMock(wsr.url)
       mockServer.init()
     })
-    afterEach(async () =>
-    {
+    afterEach(async () => {
       await wsr.destroy()
       mockServer.close()
     })
 
-    test("should send redo message", async () =>
-    {
+    test("should send redo message", async () => {
       expect.assertions(1)
       await wsr.init(height, width)
       wsr.redo(model)
@@ -928,8 +853,7 @@ describe("RecognizerWebSocketSSR.ts", () =>
       const resizeMessageSentToTest = JSON.stringify({ type: "redo" })
       await expect(resizeMessageSent).toEqual(resizeMessageSentToTest)
     })
-    test("should resolve when receive exported message", async () =>
-    {
+    test("should resolve when receive exported message", async () => {
       expect.assertions(1)
       await wsr.init(height, width)
       const promise = wsr.redo(model)
@@ -939,13 +863,12 @@ describe("RecognizerWebSocketSSR.ts", () =>
       await expect(promise).resolves.toEqual(
         expect.objectContaining({
           exports: {
-            "application/vnd.myscript.jiix": emptyJIIX
-          }
+            "application/vnd.myscript.jiix": emptyJIIX,
+          },
         })
       )
     })
-    test("should reject if receive error message", async () =>
-    {
+    test("should reject if receive error message", async () => {
       expect.assertions(3)
       await wsr.init(height, width)
       const promise = wsr.redo(model)
@@ -958,30 +881,26 @@ describe("RecognizerWebSocketSSR.ts", () =>
     })
   })
 
-  describe("clear", () =>
-  {
+  describe("clear", () => {
     const customConf = structuredClone(RecognizerWebSocketSSRTextConfiguration)
     customConf.server.host = "clear-test"
     const model = new Model(width, height)
     let mockServer: ServerWebSocketSSRMock
     let wsr: RecognizerWebSocketSSR
 
-    beforeEach(() =>
-    {
+    beforeEach(() => {
       wsr = new RecognizerWebSocketSSR(customConf)
       wsr.event.emitError = jest.fn()
 
       mockServer = new ServerWebSocketSSRMock(wsr.url)
       mockServer.init()
     })
-    afterEach(async () =>
-    {
+    afterEach(async () => {
       await wsr.destroy()
       mockServer.close()
     })
 
-    test("should send clear message", async () =>
-    {
+    test("should send clear message", async () => {
       expect.assertions(1)
       await wsr.init(height, width)
       wsr.clear(model)
@@ -991,8 +910,7 @@ describe("RecognizerWebSocketSSR.ts", () =>
       const resizeMessageSentToTest = JSON.stringify({ type: "clear" })
       await expect(resizeMessageSent).toEqual(resizeMessageSentToTest)
     })
-    test("should resolve when receive exported message", async () =>
-    {
+    test("should resolve when receive exported message", async () => {
       expect.assertions(1)
       await wsr.init(height, width)
       const promise = wsr.clear(model)
@@ -1002,13 +920,12 @@ describe("RecognizerWebSocketSSR.ts", () =>
       await expect(promise).resolves.toEqual(
         expect.objectContaining({
           exports: {
-            "application/vnd.myscript.jiix": emptyJIIX
-          }
+            "application/vnd.myscript.jiix": emptyJIIX,
+          },
         })
       )
     })
-    test("should reject if receive error message", async () =>
-    {
+    test("should reject if receive error message", async () => {
       expect.assertions(3)
       await wsr.init(height, width)
       const promise = wsr.clear(model)
@@ -1021,27 +938,23 @@ describe("RecognizerWebSocketSSR.ts", () =>
     })
   })
 
-  describe("Connection lost", () =>
-  {
+  describe("Connection lost", () => {
     const customConf = structuredClone(RecognizerWebSocketSSRTextConfiguration)
     customConf.server.host = "close-test"
     let mockServer: ServerWebSocketSSRMock
     let wsr: RecognizerWebSocketSSR
 
-    beforeEach(() =>
-    {
+    beforeEach(() => {
       wsr = new RecognizerWebSocketSSR(customConf)
       wsr.event.emitError = jest.fn()
 
       mockServer = new ServerWebSocketSSRMock(wsr.url)
       mockServer.init()
     })
-    afterEach(async () =>
-    {
+    afterEach(async () => {
       await wsr.destroy()
       mockServer.close()
     })
-
 
     const closeMessageOptions = [
       { code: 1001, message: RecognizerError.GOING_AWAY },
@@ -1058,10 +971,8 @@ describe("RecognizerWebSocketSSR.ts", () =>
       { code: 1015, message: RecognizerError.TLS_HANDSHAKE },
       { code: 42, message: RecognizerError.CANT_ESTABLISH },
     ]
-    closeMessageOptions.forEach(async (closeEvent) =>
-    {
-      test(`should emit error if the server closes the connection abnormally code == ${ closeEvent.code }`, async () =>
-      {
+    closeMessageOptions.forEach(async (closeEvent) => {
+      test(`should emit error if the server closes the connection abnormally code == ${closeEvent.code}`, async () => {
         expect.assertions(2)
         await wsr.init(height, width)
         mockServer.server.close({ code: closeEvent.code, reason: closeEvent.message, wasClean: false })
@@ -1071,13 +982,11 @@ describe("RecognizerWebSocketSSR.ts", () =>
     })
   })
 
-  describe("destroy", () =>
-  {
+  describe("destroy", () => {
     const customConf = structuredClone(RecognizerWebSocketSSRTextConfiguration)
     customConf.server.host = "destroy-test"
     let mockServer: ServerWebSocketSSRMock
-    test("should close socket", async () =>
-    {
+    test("should close socket", async () => {
       expect.assertions(2)
       const wsr = new RecognizerWebSocketSSR(customConf)
       mockServer = new ServerWebSocketSSRMock(wsr.url)

@@ -1,7 +1,7 @@
-import type { TMarginConfiguration } from "./MarginConfiguration";
-import { DefaultMarginConfiguration } from "./MarginConfiguration"
-import type { TEraserConfiguration } from "./EraserConfiguration";
+import type { TEraserConfiguration } from "./EraserConfiguration"
 import { DefaultEraserConfiguration } from "./EraserConfiguration"
+import type { TMarginConfiguration } from "./MarginConfiguration"
+import { DefaultMarginConfiguration } from "./MarginConfiguration"
 
 /**
  * @group Recognizer
@@ -15,7 +15,7 @@ export type TTextGuidesConfiguration = {
  * @source
  */
 export const DefaultTextGuidesConfiguration: TTextGuidesConfiguration = {
-  enable: true
+  enable: true,
 }
 
 /**

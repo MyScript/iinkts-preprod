@@ -1,61 +1,53 @@
 import { createEditorMock, asEditor } from "../__mocks__/createEditorMock"
-import {
-  type IIJiixQueryManager,
-  IIMathFunctionEvaluator
-} from "@/iink"
+import { type IIJiixQueryManager, IIMathFunctionEvaluator } from "@/iink"
 
-describe("IIMathFunctionEvaluator.ts", () =>
-{
+describe("IIMathFunctionEvaluator.ts", () => {
   let editor: ReturnType<typeof createEditorMock>
 
-  beforeEach(() =>
-  {
+  beforeEach(() => {
     editor = createEditorMock({
       jiix: {
         getBlockLabel: jest.fn().mockImplementation((id: string) => {
           if (id === "block-1") return "f(x) = x + 1"
           if (id === "block-2") return "g(x) = 2x"
           return "Unknown"
-        })
-      } as unknown as IIJiixQueryManager
+        }),
+      } as unknown as IIJiixQueryManager,
     })
 
     // Mock math.getEvaluables method
-    editor.math.getEvaluables = jest.fn().mockResolvedValue([
-      { inputName: "x", outputName: "f(x)" }
-    ])
+    editor.math.getEvaluables = jest.fn().mockResolvedValue([{ inputName: "x", outputName: "f(x)" }])
 
     // Mock math.evaluateFunction method
     editor.math.evaluateFunction = jest.fn().mockResolvedValue({
-      f: [[1, 2], [2, 4], [3, 6]]
+      f: [
+        [1, 2],
+        [2, 4],
+        [3, 6],
+      ],
     })
   })
 
-  afterEach(() =>
-  {
+  afterEach(() => {
     document.body.innerHTML = ""
   })
 
-  test("should instantiate with editor and jiixBlockIds", () =>
-  {
+  test("should instantiate with editor and jiixBlockIds", () => {
     const jiixBlockIds = ["block-1", "block-2"]
 
     const evaluator = new IIMathFunctionEvaluator(asEditor(editor), jiixBlockIds)
     expect(evaluator).toBeDefined()
   })
 
-  test("should deduplicate jiixBlockIds in constructor", () =>
-  {
+  test("should deduplicate jiixBlockIds in constructor", () => {
     const jiixBlockIds = ["block-1", "block-1", "block-2"]
 
     const evaluator = new IIMathFunctionEvaluator(asEditor(editor), jiixBlockIds)
     expect(evaluator).toBeDefined()
   })
 
-  describe("show()", () =>
-  {
-    test("should fetch evaluables for all blocks", async () =>
-    {
+  describe("show()", () => {
+    test("should fetch evaluables for all blocks", async () => {
       const jiixBlockIds = ["block-1", "block-2"]
 
       const evaluator = new IIMathFunctionEvaluator(asEditor(editor), jiixBlockIds)
@@ -72,8 +64,7 @@ describe("IIMathFunctionEvaluator.ts", () =>
       showSpy.mockRestore()
     })
 
-    test("should skip empty block ids", async () =>
-    {
+    test("should skip empty block ids", async () => {
       const jiixBlockIds = ["", "block-2"]
 
       const evaluator = new IIMathFunctionEvaluator(asEditor(editor), jiixBlockIds)
@@ -90,8 +81,7 @@ describe("IIMathFunctionEvaluator.ts", () =>
       showSpy.mockRestore()
     })
 
-    test("should assign unique colors to functions", async () =>
-    {
+    test("should assign unique colors to functions", async () => {
       const jiixBlockIds = ["block-1", "block-2", "block-3"]
 
       const evaluator = new IIMathFunctionEvaluator(asEditor(editor), jiixBlockIds)

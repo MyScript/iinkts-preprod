@@ -1,6 +1,6 @@
-import type { TBaseSymbol } from "@/symbol/Symbol"
 import type { TBox } from "@/symbol/primitives/Box"
 import type { TPoint } from "@/symbol/primitives/Point"
+import type { TBaseSymbol } from "@/symbol/Symbol"
 import type { TPartialDeep } from "@/utils"
 
 /**
@@ -22,8 +22,7 @@ import type { TPartialDeep } from "@/utils"
  * }
  * symbolRegistry.register(new StickyNoteUtil())
  */
-export abstract class SymbolUtil<T extends TBaseSymbol>
-{
+export abstract class SymbolUtil<T extends TBaseSymbol> {
   abstract readonly type: string
 
   abstract create(params: TPartialDeep<T>): T
@@ -32,28 +31,23 @@ export abstract class SymbolUtil<T extends TBaseSymbol>
 
   abstract overlaps(symbol: T, box: TBox): boolean
 
-  getSnapPoints(_symbol: T): TPoint[]
-  {
+  getSnapPoints(_symbol: T): TPoint[] {
     return []
   }
 
-  canSelect(_symbol: T): boolean
-  {
+  canSelect(_symbol: T): boolean {
     return true
   }
 
-  canTransform(_symbol: T): boolean
-  {
+  canTransform(_symbol: T): boolean {
     return true
   }
 
-  canResize(_symbol: T): boolean
-  {
+  canResize(_symbol: T): boolean {
     return true
   }
 
-  canRotate(_symbol: T): boolean
-  {
+  canRotate(_symbol: T): boolean {
     return true
   }
 

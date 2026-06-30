@@ -16,8 +16,15 @@ export type TAnchor = {
  * Resolve a normalized anchor to an absolute TPoint given the target symbol's bounding box.
  * @group Symbol
  */
-export function resolveAnchorPoint(anchor: TAnchor, bounds: { x: number; y: number; width: number; height: number }): { x: number; y: number }
-{
+export function resolveAnchorPoint(
+  anchor: TAnchor,
+  bounds: {
+    x: number
+    y: number
+    width: number
+    height: number
+  }
+): { x: number; y: number } {
   return {
     x: bounds.x + anchor.normalizedX * bounds.width,
     y: bounds.y + anchor.normalizedY * bounds.height,
@@ -31,9 +38,13 @@ export function resolveAnchorPoint(anchor: TAnchor, bounds: { x: number; y: numb
  */
 export function computeNormalizedAnchor(
   point: { x: number; y: number },
-  bounds: { x: number; y: number; width: number; height: number }
-): { normalizedX: number; normalizedY: number }
-{
+  bounds: {
+    x: number
+    y: number
+    width: number
+    height: number
+  }
+): { normalizedX: number; normalizedY: number } {
   const w = bounds.width || 1
   const h = bounds.height || 1
   return {

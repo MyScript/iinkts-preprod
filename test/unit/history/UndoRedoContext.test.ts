@@ -1,10 +1,7 @@
 import { getInitialHistoryContext } from "@/iink"
 
-describe("HistoryContext.ts", () =>
-{
-
-  test("should be initialize", () =>
-  {
+describe("HistoryContext.ts", () => {
+  test("should be initialize", () => {
     const context = getInitialHistoryContext()
     expect(context.stackIndex).toStrictEqual(0)
     expect(context.possibleUndoCount).toStrictEqual(0)

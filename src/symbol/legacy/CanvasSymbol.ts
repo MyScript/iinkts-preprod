@@ -64,7 +64,7 @@ export type TCanvasUnderLineSymbol = TBaseSymbol & {
  * @deprecated Legacy v1 canvas symbol types
  */
 export type TCanvasTextSymbol = TBaseSymbol & {
-  label: string,
+  label: string
   data: {
     topLeftPoint: TPoint
     height: number

@@ -1,8 +1,9 @@
-import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
-import { Modal } from "./Modal"
-import { LoggerCategory, LoggerManager } from "@/logger"
-import { getMathDiagnosticMessage } from "@/constants/MathDiagnosticMessages"
 import { DOMFactory } from "@/components/dom"
+import { getMathDiagnosticMessage } from "@/constants/MathDiagnosticMessages"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import { LoggerCategory, LoggerManager } from "@/logger"
+
+import { Modal } from "./Modal"
 
 /**
  * @group Components
@@ -42,13 +43,13 @@ export class IIMathDiagnosticChecker {
       }
 
       try {
-        const computeDiagnostic =  await this.editor.math.getDiagnostic(jiixBlockId, "numerical-computation")
+        const computeDiagnostic = await this.editor.math.getDiagnostic(jiixBlockId, "numerical-computation")
         const evaluationDiagnostic = await this.editor.math.getDiagnostic(jiixBlockId, "evaluation")
 
         diagnostics.push({
           jiixBlockId,
           computeDiagnostic,
-          evaluationDiagnostic
+          evaluationDiagnostic,
         })
       } catch (error) {
         const label = this.editor.jiix.getBlockLabel(jiixBlockId)
@@ -79,10 +80,12 @@ export class IIMathDiagnosticChecker {
    * Create the modal content with diagnostics
    */
   private createModalContent(diagnostics: TSymbolDiagnostic[]): HTMLDivElement {
-    const container = DOMFactory.div({ className: "ms-diagnostic-content" })
+    const container = DOMFactory.div({
+      className: "ms-diagnostic-content",
+    })
 
     // Create a section for each symbol
-    diagnostics.forEach(diagnostic => {
+    diagnostics.forEach((diagnostic) => {
       const symbolSection = this.createSymbolDiagnosticSection(diagnostic)
       container.appendChild(symbolSection)
     })
@@ -94,19 +97,40 @@ export class IIMathDiagnosticChecker {
    * Create a diagnostic section for a single symbol
    */
   private createSymbolDiagnosticSection(diagnostic: TSymbolDiagnostic): HTMLDivElement {
-    const section = DOMFactory.div({ className: "ms-diagnostic-section" })
+    const section = DOMFactory.div({
+      className: "ms-diagnostic-section",
+    })
 
     // Expression header
     const label = this.editor.jiix.getBlockLabel(diagnostic.jiixBlockId) || "N/A"
-    const expressionDiv = DOMFactory.div({ className: "ms-diagnostic-expression", html: `<strong>Expression:</strong> ${label}` })
+    const expressionDiv = DOMFactory.div({
+      className: "ms-diagnostic-expression",
+      html: `<strong>Expression:</strong> ${label}`,
+    })
     section.appendChild(expressionDiv)
 
     // Severity colors configuration
     const severityColors = {
-      success: { bg: "color-mix(in srgb, var(--iink-success) 15%, transparent)", color: "var(--iink-success)", icon: "✓" },
-      warning: { bg: "color-mix(in srgb, var(--iink-warning) 15%, transparent)", color: "var(--iink-warning)", icon: "⚠" },
-      error:   { bg: "color-mix(in srgb, var(--iink-error)   15%, transparent)", color: "var(--iink-error)",   icon: "✗" },
-      info:    { bg: "color-mix(in srgb, var(--iink-info)    15%, transparent)", color: "var(--iink-info)",    icon: "ℹ" }
+      success: {
+        bg: "color-mix(in srgb, var(--iink-success) 15%, transparent)",
+        color: "var(--iink-success)",
+        icon: "✓",
+      },
+      warning: {
+        bg: "color-mix(in srgb, var(--iink-warning) 15%, transparent)",
+        color: "var(--iink-warning)",
+        icon: "⚠",
+      },
+      error: {
+        bg: "color-mix(in srgb, var(--iink-error)   15%, transparent)",
+        color: "var(--iink-error)",
+        icon: "✗",
+      },
+      info: {
+        bg: "color-mix(in srgb, var(--iink-info)    15%, transparent)",
+        color: "var(--iink-info)",
+        icon: "ℹ",
+      },
     }
 
     // Get diagnostic info
@@ -114,20 +138,24 @@ export class IIMathDiagnosticChecker {
     const evalInfo = getMathDiagnosticMessage(diagnostic.evaluationDiagnostic)
 
     // Numerical computation diagnostic
-    section.appendChild(this.createDiagnosticSubSection(
-      "🔢 Numerical Computation",
-      diagnostic.computeDiagnostic,
-      computeInfo,
-      severityColors
-    ))
+    section.appendChild(
+      this.createDiagnosticSubSection(
+        "🔢 Numerical Computation",
+        diagnostic.computeDiagnostic,
+        computeInfo,
+        severityColors
+      )
+    )
 
     // Evaluation diagnostic
-    section.appendChild(this.createDiagnosticSubSection(
-      "📊 Function Evaluation",
-      diagnostic.evaluationDiagnostic,
-      evalInfo,
-      severityColors
-    ))
+    section.appendChild(
+      this.createDiagnosticSubSection(
+        "📊 Function Evaluation",
+        diagnostic.evaluationDiagnostic,
+        evalInfo,
+        severityColors
+      )
+    )
 
     return section
   }
@@ -138,17 +166,35 @@ export class IIMathDiagnosticChecker {
   private createDiagnosticSubSection(
     taskName: string,
     diagnosticCode: string,
-    diagnosticInfo: { title: string, message: string, severity: "success" | "warning" | "error" | "info" },
-    severityColors: { [key: string]: { bg: string, color: string, icon: string } }
+    diagnosticInfo: {
+      title: string
+      message: string
+      severity: "success" | "warning" | "error" | "info"
+    },
+    severityColors: {
+      [key: string]: {
+        bg: string
+        color: string
+        icon: string
+      }
+    }
   ): HTMLDivElement {
-    const subSection = DOMFactory.div({ className: "ms-diagnostic-subsection" })
+    const subSection = DOMFactory.div({
+      className: "ms-diagnostic-subsection",
+    })
 
     // Task title
-    const taskTitle = DOMFactory.div({ className: "ms-diagnostic-task-title", text: taskName })
+    const taskTitle = DOMFactory.div({
+      className: "ms-diagnostic-task-title",
+      text: taskName,
+    })
     subSection.appendChild(taskTitle)
 
     // Diagnostic code
-    const codeDiv = DOMFactory.div({ className: "ms-diagnostic-code", html: `<strong>Code:</strong> ${diagnosticCode}` })
+    const codeDiv = DOMFactory.div({
+      className: "ms-diagnostic-code",
+      html: `<strong>Code:</strong> ${diagnosticCode}`,
+    })
     subSection.appendChild(codeDiv)
 
     // Status indicator
@@ -156,12 +202,15 @@ export class IIMathDiagnosticChecker {
     const statusDiv = DOMFactory.div({
       className: "ms-diagnostic-status",
       style: `background: ${colors.bg}; color: ${colors.color};`,
-      html: `${colors.icon} ${diagnosticInfo.title}`
+      html: `${colors.icon} ${diagnosticInfo.title}`,
     })
     subSection.appendChild(statusDiv)
 
     // Message
-    const messageDiv = DOMFactory.div({ className: "ms-diagnostic-message", text: diagnosticInfo.message })
+    const messageDiv = DOMFactory.div({
+      className: "ms-diagnostic-message",
+      text: diagnosticInfo.message,
+    })
     subSection.appendChild(messageDiv)
 
     return subSection

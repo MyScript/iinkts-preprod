@@ -1,9 +1,7 @@
 import * as iink from "../../dist/iink.esm.js"
 import { ModalEditorOptions } from "../components/modal/modalEditorOptions.js"
-const inkEditorDeprecatedConfiguration =
-  iink.DefaultInkEditorDeprecatedConfiguration
-const IISSREditorConfiguration =
-  iink.DefaultInteractiveInkSSREditorConfiguration
+const inkEditorDeprecatedConfiguration = iink.DefaultInkEditorDeprecatedConfiguration
+const IISSREditorConfiguration = iink.DefaultInteractiveInkSSREditorConfiguration
 const IIEditorConfiguration = iink.DefaultInteractiveInkEditorConfiguration
 const inkEditorConfiguration = iink.DefaultInkEditorConfiguration
 
@@ -56,11 +54,10 @@ const inputMap = {
   "recognition.math.mimeTypes": {
     type: "select",
     multiple: true,
-    values: [
-      "application/vnd.myscript.jiix",
-      "application/x-latex",
-      "application/mathml+xml",
-    ].map((v) => ({ label: v, value: v })),
+    values: ["application/vnd.myscript.jiix", "application/x-latex", "application/mathml+xml"].map((v) => ({
+      label: v,
+      value: v,
+    })),
   },
   "recognition.math.solver.rounding-mode": {
     type: "select",
@@ -175,11 +172,7 @@ function buildInput(path, name, type, value) {
     input.value = value
   }
   input.addEventListener("change", () => {
-    setDeep(
-      editorOptions.configuration,
-      path,
-      type === "checkbox" ? input.checked : input.value,
-    )
+    setDeep(editorOptions.configuration, path, type === "checkbox" ? input.checked : input.value)
   })
   label.appendChild(input)
   return label
@@ -209,9 +202,7 @@ function buildSelect(path, name, values, options, multiple = false) {
     setDeep(
       editorOptions.configuration,
       path,
-      multiple
-        ? Array.from(input.selectedOptions).map((o) => o.value)
-        : input.value,
+      multiple ? Array.from(input.selectedOptions).map((o) => o.value) : input.value
     )
   })
 
@@ -224,7 +215,7 @@ function loadEditorType() {
     const selected = type === (editor?.type || "INTERACTIVEINKSSR")
     editorTypeSelect.appendChild(new Option(type, type, selected, selected))
   })
-  editorTypeSelect.addEventListener("input", (ev) => {
+  editorTypeSelect.addEventListener("input", () => {
     loadConfiguration()
   })
 }
@@ -240,13 +231,7 @@ function renderPartialConfiguration(conf, currentPath = "") {
       switch (mapping.type) {
         case "select":
           fragment.appendChild(
-            buildSelect(
-              localPath,
-              key,
-              Array.isArray(value) ? value : [value],
-              mapping.values,
-              mapping.multiple,
-            ),
+            buildSelect(localPath, key, Array.isArray(value) ? value : [value], mapping.values, mapping.multiple)
           )
           break
         case "color":
@@ -261,9 +246,7 @@ function renderPartialConfiguration(conf, currentPath = "") {
           if (Array.isArray(value)) {
             fragment.appendChild(buildSelect(localPath, key, value, value))
           } else {
-            fragment.appendChild(
-              createCard(key, renderPartialConfiguration(value, localPath)),
-            )
+            fragment.appendChild(createCard(key, renderPartialConfiguration(value, localPath)))
           }
           break
         case "number":
@@ -313,14 +296,11 @@ function renderConfiguration(configuration) {
     .filter((key) => key !== "server")
     .forEach((key) => {
       const conf = configuration[key]
-      configurationContent.appendChild(
-        createCard(key, renderPartialConfiguration(conf, key)),
-      )
+      configurationContent.appendChild(createCard(key, renderPartialConfiguration(conf, key)))
     })
 }
 
 let editor
-let serverConfiguration
 let languageList
 
 const editorOptions = {
@@ -333,9 +313,7 @@ function loadConfiguration() {
       editorOptions.configuration = structuredClone(IISSREditorConfiguration)
       break
     case "INKV1":
-      editorOptions.configuration = structuredClone(
-        inkEditorDeprecatedConfiguration,
-      )
+      editorOptions.configuration = structuredClone(inkEditorDeprecatedConfiguration)
       break
     case "INKV2":
       editorOptions.configuration = structuredClone(inkEditorConfiguration)
@@ -347,27 +325,8 @@ function loadConfiguration() {
   renderConfiguration(editorOptions.configuration)
 }
 async function loadEditor(options) {
-  if (!serverConfiguration) {
-    const defaultConfigurations = [
-      inkEditorDeprecatedConfiguration,
-      IISSREditorConfiguration,
-      IIEditorConfiguration,
-      inkEditorConfiguration,
-    ]
-    defaultConfigurations.forEach((c) =>
-      Object.assign(c.server, serverConfiguration),
-    )
-    options.configuration.server = Object.assign(
-      {},
-      options.configuration.server,
-      serverConfiguration,
-    )
-  }
-
   if (!languageList) {
-    languageList = await iink.getAvailableLanguageList(
-      editorOptions.configuration,
-    )
+    languageList = await iink.getAvailableLanguageList(editorOptions.configuration)
     Object.keys(languageList.result).forEach(function (key) {
       inputMap["recognition.lang"].values.push({
         label: languageList.result[key],
@@ -382,16 +341,13 @@ async function loadEditor(options) {
    * @param {Element} The DOM element to attach the ink paper
    * @param {Object} The Editor parameters
    */
-  editor = await iink.Editor.load(
-    editorElement,
-    editorTypeSelect.value,
-    options,
-  )
+  editor = await iink.Editor.load(editorElement, editorTypeSelect.value, options)
 
   editor.event.addEventListener("exported", (event) => {
     while (resultElement.firstChild) {
       resultElement.firstChild.remove()
     }
+    // eslint-disable-next-line no-undef
     resultElement.appendChild(renderjson(event.detail))
   })
 

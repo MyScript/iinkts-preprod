@@ -1,16 +1,13 @@
 import { DoubleTouchEventMock, LeftClickEventMock, RightClickEventMock, TouchEventMock } from "../__mocks__/EventMock"
 import { DefaultGrabberConfiguration, PointerEventGrabber, TGrabberConfiguration } from "@/iink"
 
-describe("PointerEventGrabber.ts", () =>
-{
-  test("should create with default configuration", () =>
-  {
+describe("PointerEventGrabber.ts", () => {
+  test("should create with default configuration", () => {
     const grabber = new PointerEventGrabber(DefaultGrabberConfiguration)
     expect(grabber).toBeDefined()
   })
 
-  describe("should attach & detach", () =>
-  {
+  describe("should attach & detach", () => {
     const wrapperHTML: HTMLElement = document.createElement("div")
     wrapperHTML.style.width = "100px"
     wrapperHTML.style.height = "100px"
@@ -26,14 +23,14 @@ describe("PointerEventGrabber.ts", () =>
       pointerType: "pen",
       clientX: 10,
       clientY: 10,
-      pressure: 1
+      pressure: 1,
     })
 
     const pointerMoveEvt = new LeftClickEventMock("pointermove", {
       pointerType: "pen",
       clientX: 15,
       clientY: 15,
-      pressure: 1
+      pressure: 1,
     })
     pointerMoveEvt.pointerId = pointerDownEvt.pointerId
 
@@ -41,30 +38,26 @@ describe("PointerEventGrabber.ts", () =>
       pointerType: "pen",
       clientX: 15,
       clientY: 15,
-      pressure: 1
+      pressure: 1,
     })
     pointerUpEvt.pointerId = pointerDownEvt.pointerId
 
-    test("should listen pointerdown event", () =>
-    {
+    test("should listen pointerdown event", () => {
       wrapperHTML.dispatchEvent(pointerDownEvt)
       expect(grabber.onPointerDown).toHaveBeenCalledTimes(1)
     })
 
-    test("should listen pointermove event", () =>
-    {
+    test("should listen pointermove event", () => {
       wrapperHTML.dispatchEvent(pointerMoveEvt)
       expect(grabber.onPointerMove).toHaveBeenCalledTimes(1)
     })
 
-    test("should listen pointerup event", () =>
-    {
+    test("should listen pointerup event", () => {
       wrapperHTML.dispatchEvent(pointerUpEvt)
       expect(grabber.onPointerUp).toHaveBeenCalledTimes(1)
     })
 
-    test("should call detach if already attach", () =>
-    {
+    test("should call detach if already attach", () => {
       const g = new PointerEventGrabber(DefaultGrabberConfiguration)
       g.onPointerDown = jest.fn()
       g.onPointerMove = jest.fn()
@@ -75,30 +68,26 @@ describe("PointerEventGrabber.ts", () =>
       expect(g.detach).toHaveBeenCalledTimes(1)
     })
 
-    test("should not listen pointerdown event after detach", () =>
-    {
+    test("should not listen pointerdown event after detach", () => {
       grabber.detach()
       wrapperHTML.dispatchEvent(pointerDownEvt)
       expect(grabber.onPointerDown).not.toHaveBeenCalled()
     })
 
-    test("should not listen pointermove event after detach", () =>
-    {
+    test("should not listen pointermove event after detach", () => {
       grabber.detach()
       wrapperHTML.dispatchEvent(pointerMoveEvt)
       expect(grabber.onPointerMove).not.toHaveBeenCalled()
     })
 
-    test("should not listen pointerup event after detach", () =>
-    {
+    test("should not listen pointerup event after detach", () => {
       grabber.detach()
       wrapperHTML.dispatchEvent(pointerUpEvt)
       expect(grabber.onPointerUp).not.toHaveBeenCalled()
     })
   })
 
-  describe("Should extract TPointer from event", () =>
-  {
+  describe("Should extract TPointer from event", () => {
     const wrapperHTML: HTMLElement = document.createElement("div")
     wrapperHTML.style.width = "100px"
     wrapperHTML.style.height = "100px"
@@ -108,55 +97,50 @@ describe("PointerEventGrabber.ts", () =>
     grabber.onPointerDown = jest.fn()
     grabber.attach(wrapperHTML)
 
-    test("should extract TPointer from mouseEvent", () =>
-    {
+    test("should extract TPointer from mouseEvent", () => {
       const mouseDownEvt = new LeftClickEventMock("pointerdown", {
         pointerType: "pen",
         clientX: 2705,
         clientY: 1989,
-        pressure: 1
+        pressure: 1,
       })
 
       wrapperHTML.dispatchEvent(mouseDownEvt)
 
-      expect(grabber.onPointerDown)
-        .toHaveBeenCalledWith(
-          expect.objectContaining({
-            pointer: expect.objectContaining({
-              x: mouseDownEvt.clientX,
-              y: mouseDownEvt.clientY,
-              p: mouseDownEvt.pressure
-            })
-          })
-        )
+      expect(grabber.onPointerDown).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pointer: expect.objectContaining({
+            x: mouseDownEvt.clientX,
+            y: mouseDownEvt.clientY,
+            p: mouseDownEvt.pressure,
+          }),
+        })
+      )
     })
 
-    test("should extract TPointer from touchEvent", () =>
-    {
+    test("should extract TPointer from touchEvent", () => {
       const touchDownEvt = new TouchEventMock("pointerdown", {
         pointerType: "pen",
         clientX: 2705,
         clientY: 1989,
-        pressure: 1
+        pressure: 1,
       })
 
       wrapperHTML.dispatchEvent(touchDownEvt)
 
-      expect(grabber.onPointerDown)
-        .toHaveBeenCalledWith(
-          expect.objectContaining({
-            pointer: expect.objectContaining({
-              x: touchDownEvt.changedTouches[0].clientX,
-              y: touchDownEvt.changedTouches[0].clientY,
-              p: touchDownEvt.pressure
-            })
-          })
-        )
+      expect(grabber.onPointerDown).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pointer: expect.objectContaining({
+            x: touchDownEvt.changedTouches[0].clientX,
+            y: touchDownEvt.changedTouches[0].clientY,
+            p: touchDownEvt.pressure,
+          }),
+        })
+      )
     })
   })
 
-  describe("Should use configuration", () =>
-  {
+  describe("Should use configuration", () => {
     const wrapperHTML: HTMLElement = document.createElement("div")
     wrapperHTML.style.width = "100px"
     wrapperHTML.style.height = "100px"
@@ -166,11 +150,10 @@ describe("PointerEventGrabber.ts", () =>
       pointerType: "pen",
       clientX: 2705,
       clientY: 1989,
-      pressure: 1
+      pressure: 1,
     })
 
-    test("should not round values with default configuration", () =>
-    {
+    test("should not round values with default configuration", () => {
       const grabber = new PointerEventGrabber(DefaultGrabberConfiguration)
       grabber.onPointerDown = jest.fn()
       grabber.onPointerMove = jest.fn()
@@ -179,21 +162,19 @@ describe("PointerEventGrabber.ts", () =>
 
       wrapperHTML.dispatchEvent(pointerDownEvt)
 
-      expect(grabber.onPointerDown)
-        .toHaveBeenCalledWith(
-          expect.objectContaining({
-            pointer: expect.objectContaining({
-              x: pointerDownEvt.clientX,
-              y: pointerDownEvt.clientY,
-              p: pointerDownEvt.pressure
-            })
-          })
-        )
+      expect(grabber.onPointerDown).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pointer: expect.objectContaining({
+            x: pointerDownEvt.clientX,
+            y: pointerDownEvt.clientY,
+            p: pointerDownEvt.pressure,
+          }),
+        })
+      )
       grabber.detach()
     })
 
-    test("should round values from configuration", () =>
-    {
+    test("should round values from configuration", () => {
       const grabberConfig: TGrabberConfiguration = { ...DefaultGrabberConfiguration, xyFloatPrecision: 2 }
       const grabber = new PointerEventGrabber(grabberConfig)
       grabber.onPointerDown = jest.fn()
@@ -205,20 +186,18 @@ describe("PointerEventGrabber.ts", () =>
 
       wrapperHTML.dispatchEvent(pointerDownEvt)
 
-      expect(grabber.onPointerDown)
-        .toHaveBeenCalledWith(
-          expect.objectContaining({
-            pointer: expect.objectContaining({
-              x: Math.round(pointerDownEvt.clientX / 100) * 100,
-              y: Math.round(pointerDownEvt.clientY / 100) * 100,
-              p: pointerDownEvt.pressure
-            })
-          })
-        )
+      expect(grabber.onPointerDown).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pointer: expect.objectContaining({
+            x: Math.round(pointerDownEvt.clientX / 100) * 100,
+            y: Math.round(pointerDownEvt.clientY / 100) * 100,
+            p: pointerDownEvt.pressure,
+          }),
+        })
+      )
     })
 
-    test("should not round values from configuration if negative precision", () =>
-    {
+    test("should not round values from configuration if negative precision", () => {
       const grabberConfig: TGrabberConfiguration = { ...DefaultGrabberConfiguration, xyFloatPrecision: -2 }
       const grabber = new PointerEventGrabber(grabberConfig)
       grabber.onPointerDown = jest.fn()
@@ -230,21 +209,19 @@ describe("PointerEventGrabber.ts", () =>
 
       wrapperHTML.dispatchEvent(pointerDownEvt)
 
-      expect(grabber.onPointerDown)
-        .toHaveBeenCalledWith(
-          expect.objectContaining({
-            pointer: expect.objectContaining({
-              x: pointerDownEvt.clientX,
-              y: pointerDownEvt.clientY,
-              p: pointerDownEvt.pressure
-            })
-          })
-        )
+      expect(grabber.onPointerDown).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pointer: expect.objectContaining({
+            x: pointerDownEvt.clientX,
+            y: pointerDownEvt.clientY,
+            p: pointerDownEvt.pressure,
+          }),
+        })
+      )
     })
   })
 
-  describe("Should ignore Event", () =>
-  {
+  describe("Should ignore Event", () => {
     const wrapperHTML: HTMLElement = document.createElement("div")
     wrapperHTML.style.width = "100px"
     wrapperHTML.style.height = "100px"
@@ -254,31 +231,28 @@ describe("PointerEventGrabber.ts", () =>
     grabber.attach(wrapperHTML)
     grabber.onPointerDown = jest.fn()
 
-    test("should not listen right click event", () =>
-    {
+    test("should not listen right click event", () => {
       const pointerDownEvt = new RightClickEventMock("pointerdown", {
         pointerType: "pen",
         clientX: 300,
         clientY: 500,
-        pressure: 1
+        pressure: 1,
       })
       wrapperHTML.dispatchEvent(pointerDownEvt)
       expect(grabber.onPointerDown).not.toHaveBeenCalled()
       grabber.detach()
     })
 
-    test("should not listen right click event", () =>
-    {
+    test("should not listen right click event", () => {
       const pointerDownEvt = new DoubleTouchEventMock("pointerdown", {
         pointerType: "pen",
         clientX: 300,
         clientY: 500,
-        pressure: 1
+        pressure: 1,
       })
       wrapperHTML.dispatchEvent(pointerDownEvt)
       expect(grabber.onPointerDown).not.toHaveBeenCalled()
       grabber.detach()
     })
   })
-
 })

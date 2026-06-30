@@ -1,16 +1,17 @@
-import style from "./menu.css"
-import { LoggerCategory, LoggerManager } from "@/logger"
-import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { DOMFactory } from "@/components/dom"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import { LoggerCategory, LoggerManager } from "@/logger"
 import { mergeDeep } from "@/utils"
-import { IIMenuAction } from "./IIMenuAction"
-import { IIMenuTool } from "./IIMenuTool"
-import { IIMenuContext } from "./IIMenuContext"
-import { IIMenuStyle } from "./IIMenuStyle"
-import type { TMenuStyleConfig } from "./IIMenuStyle"
-import type { TMenuToolConfig } from "./IIMenuTool"
+
 import type { TMenuActionConfig } from "./IIMenuAction"
+import { IIMenuAction } from "./IIMenuAction"
 import type { TMenuContextConfig } from "./IIMenuContext"
+import { IIMenuContext } from "./IIMenuContext"
+import type { TMenuStyleConfig } from "./IIMenuStyle"
+import { IIMenuStyle } from "./IIMenuStyle"
+import type { TMenuToolConfig } from "./IIMenuTool"
+import { IIMenuTool } from "./IIMenuTool"
+import style from "./menu.css"
 
 /**
  * @group Menu
@@ -20,15 +21,18 @@ export type TMenuConfigUpdate = {
   enable?: boolean
   style?: TMenuStyleConfig & { enable?: boolean }
   tool?: TMenuToolConfig & { enable?: boolean }
-  action?: TMenuActionConfig & { enable?: boolean }
-  context?: TMenuContextConfig & { enable?: boolean }
+  action?: TMenuActionConfig & {
+    enable?: boolean
+  }
+  context?: TMenuContextConfig & {
+    enable?: boolean
+  }
 }
 
 /**
  * @group Manager
  */
-export class IIMenuManager
-{
+export class IIMenuManager {
   #logger = LoggerManager.getLogger(LoggerCategory.MENU)
   editor: TInteractiveInkEditor
   layer?: HTMLElement
@@ -37,43 +41,45 @@ export class IIMenuManager
   context: IIMenuContext
   style: IIMenuStyle
 
-  constructor(editor: TInteractiveInkEditor, custom?: { style?: IIMenuStyle, tool?: IIMenuTool, action?: IIMenuAction, context?: IIMenuContext })
-  {
+  constructor(
+    editor: TInteractiveInkEditor,
+    custom?: {
+      style?: IIMenuStyle
+      tool?: IIMenuTool
+      action?: IIMenuAction
+      context?: IIMenuContext
+    }
+  ) {
     this.#logger.info("constructor")
     this.editor = editor
 
     if (custom?.style) {
       const CustomMenuStyle = custom.style as unknown as typeof IIMenuStyle
       this.style = new CustomMenuStyle(this.editor)
-    }
-    else {
+    } else {
       this.style = new IIMenuStyle(this.editor, "ms-menu-style", this.editor.configuration.menu.style)
     }
     if (custom?.tool) {
       const CustomMenuTool = custom.tool as unknown as typeof IIMenuTool
       this.tool = new CustomMenuTool(this.editor)
-    }
-    else {
+    } else {
       this.tool = new IIMenuTool(this.editor, "ms-menu-tool", this.editor.configuration.menu.tool)
     }
     if (custom?.action) {
       const CustomMenuAction = custom.action as unknown as typeof IIMenuAction
       this.action = new CustomMenuAction(this.editor)
-    }
-    else {
+    } else {
       this.action = new IIMenuAction(this.editor, "ms-menu-action", this.editor.configuration.menu.action)
     }
     if (custom?.context) {
       const CustomMenuAction = custom.context as unknown as typeof IIMenuContext
       this.context = new CustomMenuAction(this.editor)
-    }
-    else {
+    } else {
       this.context = new IIMenuContext(this.editor, "ms-menu-context", this.editor.configuration.menu.context)
     }
   }
 
-  render(layer: HTMLElement): void
-  {
+  render(layer: HTMLElement): void {
     if (this.editor.configuration.menu.enable) {
       this.layer = layer
 
@@ -104,13 +110,16 @@ export class IIMenuManager
    * // Disable the entire action menu
    * editor.menu.setConfig({ action: { enable: false } })
    */
-  setConfig(config: TMenuConfigUpdate): void
-  {
+  setConfig(config: TMenuConfigUpdate): void {
     mergeDeep(this.editor.configuration.menu, config)
 
-    if (!this.layer) return
+    if (!this.layer) {
+      return
+    }
 
-    const contextPosition = { ...this.context.position }
+    const contextPosition = {
+      ...this.context.position,
+    }
     const contextVisible = this.context.wrapper?.style.display !== "none"
 
     this.action.destroy()
@@ -124,40 +133,44 @@ export class IIMenuManager
     this.context = new IIMenuContext(this.editor, "ms-menu-context", this.editor.configuration.menu.context)
 
     if (this.editor.configuration.menu.enable) {
-      if (this.editor.configuration.menu.action.enable) this.action.render(this.layer)
-      if (this.editor.configuration.menu.style.enable) this.style.render(this.layer)
-      if (this.editor.configuration.menu.tool.enable) this.tool.render(this.layer)
+      if (this.editor.configuration.menu.action.enable) {
+        this.action.render(this.layer)
+      }
+      if (this.editor.configuration.menu.style.enable) {
+        this.style.render(this.layer)
+      }
+      if (this.editor.configuration.menu.tool.enable) {
+        this.tool.render(this.layer)
+      }
       if (this.editor.configuration.menu.context.enable) {
         this.context.render(this.layer)
         this.context.position = contextPosition
-        if (contextVisible) this.context.show()
+        if (contextVisible) {
+          this.context.show()
+        }
       }
     }
   }
 
-  update(): void
-  {
+  update(): void {
     this.action.update()
     this.tool.update()
     this.style.update()
   }
 
-  show(): void
-  {
+  show(): void {
     this.action.show()
     this.tool.show()
     this.style.show()
   }
 
-  hide(): void
-  {
+  hide(): void {
     this.action.hide()
     this.tool.hide()
     this.style.hide()
   }
 
-  destroy(): void
-  {
+  destroy(): void {
     this.action.destroy()
     this.tool.destroy()
     this.style.destroy()

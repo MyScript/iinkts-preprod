@@ -1,8 +1,8 @@
+import { IIMathDiagnosticChecker, IIMathFunctionEvaluator, IIMathVariablePerBlockEditor } from "@/components"
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
-import type { TMenuSubMenu } from "@/menu/items/SubMenuItem";
-import { SubMenuItem } from "@/menu/items/SubMenuItem"
-import { IIMathFunctionEvaluator, IIMathDiagnosticChecker, IIMathVariablePerBlockEditor } from "@/components"
 import { LoggerCategory, LoggerManager } from "@/logger"
+import type { TMenuSubMenu } from "@/menu/items/SubMenuItem"
+import { SubMenuItem } from "@/menu/items/SubMenuItem"
 
 /** @group Menu */
 export type TContextMathItemsConfig = {
@@ -18,8 +18,7 @@ export type TContextMathConfig = boolean | TContextMathItemsConfig
  * @group Menu
  * @remarks Menu contextuel Math - Opérations mathématiques sur les symboles
  */
-export class MathContextMenu extends SubMenuItem
-{
+export class MathContextMenu extends SubMenuItem {
   protected logger = LoggerManager.getLogger(LoggerCategory.MENU)
 
   readonly id: string
@@ -28,8 +27,7 @@ export class MathContextMenu extends SubMenuItem
   readonly idCheckDiagnostic: string
   readonly idEvaluate: string
 
-  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-context", itemsConfig?: TContextMathItemsConfig)
-  {
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-context", itemsConfig?: TContextMathItemsConfig) {
     const enabled = (key: keyof TContextMathItemsConfig) => itemsConfig?.[key] !== false
 
     const id = `${idPrefix}-math`
@@ -43,7 +41,7 @@ export class MathContextMenu extends SubMenuItem
       type: "submenu",
       label: "Math",
       position: "right",
-      items: []
+      items: [],
     }
 
     if (enabled("checkDiagnostic")) {
@@ -54,7 +52,10 @@ export class MathContextMenu extends SubMenuItem
         action: async () => {
           this.logger.info("Check diagnostic clicked")
           try {
-            const jiixBlockIds = editor.jiix.getBlocksForSymbols(editor.model.symbolsSelected).filter(s => s.type === "Math").map(s => s.id)
+            const jiixBlockIds = editor.jiix
+              .getBlocksForSymbols(editor.model.symbolsSelected)
+              .filter((s) => s.type === "Math")
+              .map((s) => s.id)
             if (jiixBlockIds.length === 0) {
               this.logger.warn("No block math selected")
               return
@@ -64,7 +65,7 @@ export class MathContextMenu extends SubMenuItem
           } catch (error) {
             this.logger.error("Error checking diagnostic:", error)
           }
-        }
+        },
       })
     }
 
@@ -74,14 +75,17 @@ export class MathContextMenu extends SubMenuItem
         type: "button",
         label: "Edit variables",
         action: async () => {
-          const jiixBlockIds = editor.jiix.getBlocksForSymbols(editor.model.symbolsSelected).filter(s => s.type === "Math").map(s => s.id)
+          const jiixBlockIds = editor.jiix
+            .getBlocksForSymbols(editor.model.symbolsSelected)
+            .filter((s) => s.type === "Math")
+            .map((s) => s.id)
           if (jiixBlockIds.length === 0) {
             this.logger.warn("No block math selected")
             return
           }
           const variableEditor = new IIMathVariablePerBlockEditor(editor, jiixBlockIds)
           await variableEditor.show()
-        }
+        },
       })
     }
 
@@ -93,16 +97,19 @@ export class MathContextMenu extends SubMenuItem
         action: async () => {
           this.logger.info("Compute numerical result clicked")
           try {
-            const jiixBlockIds = editor.jiix.getBlocksForSymbols(editor.model.symbolsSelected).filter(s => s.type === "Math").map(s => s.id)
+            const jiixBlockIds = editor.jiix
+              .getBlocksForSymbols(editor.model.symbolsSelected)
+              .filter((s) => s.type === "Math")
+              .map((s) => s.id)
             if (jiixBlockIds.length === 0) {
               this.logger.warn("No block math selected")
               return
             }
-            await Promise.all(jiixBlockIds.map(jiixBlockId => this.editor.math.computeNumericalResult(jiixBlockId)))
+            await Promise.all(jiixBlockIds.map((jiixBlockId) => this.editor.math.computeNumericalResult(jiixBlockId)))
           } catch (error) {
             this.logger.error("Error computing numerical result:", error)
           }
-        }
+        },
       })
     }
 
@@ -114,7 +121,10 @@ export class MathContextMenu extends SubMenuItem
         action: async () => {
           this.logger.info("Evaluate function clicked")
           try {
-            const jiixBlockIds = editor.jiix.getBlocksForSymbols(editor.model.symbolsSelected).filter(s => s.type === "Math").map(s => s.id)
+            const jiixBlockIds = editor.jiix
+              .getBlocksForSymbols(editor.model.symbolsSelected)
+              .filter((s) => s.type === "Math")
+              .map((s) => s.id)
             if (jiixBlockIds.length === 0) {
               this.logger.warn("No block math selected")
               return
@@ -124,7 +134,7 @@ export class MathContextMenu extends SubMenuItem
           } catch (error) {
             this.logger.error("Error evaluating function:", error)
           }
-        }
+        },
       })
     }
 
@@ -136,14 +146,25 @@ export class MathContextMenu extends SubMenuItem
     this.idEvaluate = idEvaluate
   }
 
-  setMenuVisibility(show: boolean, { canEditVariables, canCompute, canEvaluate }: { canEditVariables: boolean, canCompute: boolean, canEvaluate: boolean }): void {
+  setMenuVisibility(
+    show: boolean,
+    {
+      canEditVariables,
+      canCompute,
+      canEvaluate,
+    }: {
+      canEditVariables: boolean
+      canCompute: boolean
+      canEvaluate: boolean
+    }
+  ): void {
     const mathMenu = this.getElement()
     if (show) {
       mathMenu.style.removeProperty("display")
-      const editVariablesButton = mathMenu.querySelector(`#${ this.idEditVariables }`) as HTMLButtonElement
-      const numericalComputationButton = mathMenu.querySelector(`#${ this.idNumericalComputation }`) as HTMLButtonElement
-      const checkDiagnosticButton = mathMenu.querySelector(`#${ this.idCheckDiagnostic }`) as HTMLButtonElement
-      const evaluateButton = mathMenu.querySelector(`#${ this.idEvaluate }`) as HTMLButtonElement
+      const editVariablesButton = mathMenu.querySelector(`#${this.idEditVariables}`) as HTMLButtonElement
+      const numericalComputationButton = mathMenu.querySelector(`#${this.idNumericalComputation}`) as HTMLButtonElement
+      const checkDiagnosticButton = mathMenu.querySelector(`#${this.idCheckDiagnostic}`) as HTMLButtonElement
+      const evaluateButton = mathMenu.querySelector(`#${this.idEvaluate}`) as HTMLButtonElement
 
       if (editVariablesButton) {
         editVariablesButton.style.setProperty("display", canEditVariables ? "inline-block" : "none")
@@ -157,10 +178,8 @@ export class MathContextMenu extends SubMenuItem
       if (evaluateButton) {
         evaluateButton.style.setProperty("display", canEvaluate ? "inline-block" : "none")
       }
-
     } else {
       mathMenu.style.setProperty("display", "none")
     }
   }
-
 }

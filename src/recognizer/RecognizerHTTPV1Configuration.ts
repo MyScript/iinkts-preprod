@@ -1,5 +1,6 @@
-import type { TPartialDeep } from "@/utils";
+import type { TPartialDeep } from "@/utils"
 import { isVersionSuperiorOrEqual, mergeDeep } from "@/utils"
+
 import type {
   TConvertionConfiguration,
   TDiagramConfiguration,
@@ -7,18 +8,18 @@ import type {
   TMathConfiguration,
   TRawContentConfiguration,
   TRecognitionRendererConfiguration,
-  TTextConfiguration
-} from "./recognition";
+  TTextConfiguration,
+} from "./recognition"
 import {
   DefaultDiagramConfiguration,
   DefaultExportConfiguration,
   DefaultMathConfiguration,
   DefaultRawContentConfiguration,
   DefaultRecognitionRendererConfiguration,
-  DefaultTextConfiguration
+  DefaultTextConfiguration,
 } from "./recognition"
 import type { TRecognitionTypeV1 } from "./RecognitionConfiguration"
-import type { TServerHTTPConfiguration } from "./ServerConfiguration";
+import type { TServerHTTPConfiguration } from "./ServerConfiguration"
 import { DefaultServerHTTPConfiguration } from "./ServerConfiguration"
 
 /**
@@ -62,10 +63,9 @@ export type TRecognizerHTTPV1Configuration = {
 /**
  * @group Recognizer
  */
-export const DefaultRecognizerHTTPV1Configuration: TRecognizerHTTPV1Configuration =
-{
+export const DefaultRecognizerHTTPV1Configuration: TRecognizerHTTPV1Configuration = {
   server: DefaultServerHTTPConfiguration,
-  recognition: DefaulRecognitionHTTPV1ConfigurationConfiguration
+  recognition: DefaulRecognitionHTTPV1ConfigurationConfiguration,
 }
 
 /**
@@ -76,23 +76,30 @@ export class RecognizerHTTPV1Configuration implements TRecognizerHTTPV1Configura
   recognition: TRecognitionHTTPV1Configuration
   server: TServerHTTPConfiguration
 
-  constructor(configuration?: TPartialDeep<TRecognizerHTTPV1Configuration>)
-  {
+  constructor(configuration?: TPartialDeep<TRecognizerHTTPV1Configuration>) {
     this.server = mergeDeep({}, DefaultRecognizerHTTPV1Configuration.server, configuration?.server)
     this.recognition = mergeDeep({}, DefaultRecognizerHTTPV1Configuration.recognition, configuration?.recognition)
 
     if (configuration?.recognition?.text?.mimeTypes) {
-      this.recognition.text.mimeTypes = configuration.recognition.text.mimeTypes as ("text/plain" | "application/vnd.myscript.jiix")[]
+      this.recognition.text.mimeTypes = configuration.recognition.text.mimeTypes as (
+        "text/plain" | "application/vnd.myscript.jiix"
+      )[]
     }
     this.recognition.text.mimeTypes = [...new Set(this.recognition.text.mimeTypes)]
 
     if (configuration?.recognition?.math?.mimeTypes) {
-      this.recognition.math.mimeTypes = configuration.recognition.math.mimeTypes as ("application/vnd.myscript.jiix" | "application/x-latex" | "application/mathml+xml")[]
+      this.recognition.math.mimeTypes = configuration.recognition.math.mimeTypes as (
+        "application/vnd.myscript.jiix" | "application/x-latex" | "application/mathml+xml"
+      )[]
     }
     this.recognition.math.mimeTypes = [...new Set(this.recognition.math.mimeTypes)]
 
     if (configuration?.recognition?.diagram?.mimeTypes) {
-      this.recognition.diagram.mimeTypes = configuration.recognition.diagram.mimeTypes as ("application/vnd.myscript.jiix" | "application/vnd.openxmlformats-officedocument.presentationml.presentation" | "image/svg+xml")[]
+      this.recognition.diagram.mimeTypes = configuration.recognition.diagram.mimeTypes as (
+        | "application/vnd.myscript.jiix"
+        | "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        | "image/svg+xml"
+      )[]
     }
     this.recognition.diagram.mimeTypes = [...new Set(this.recognition.diagram.mimeTypes)]
 
@@ -101,12 +108,16 @@ export class RecognizerHTTPV1Configuration implements TRecognizerHTTPV1Configura
     }
 
     if (configuration?.recognition?.["raw-content"]?.recognition?.types) {
-      this.recognition["raw-content"].recognition!.types = configuration?.recognition?.["raw-content"]?.recognition?.types as ("text" | "shape")[]
+      this.recognition["raw-content"].recognition!.types = configuration?.recognition?.["raw-content"]?.recognition
+        ?.types as ("text" | "shape")[]
     }
-    this.recognition["raw-content"].recognition.types = [...new Set(this.recognition["raw-content"].recognition.types.filter((type) => type !== "decoration"))]
+    this.recognition["raw-content"].recognition.types = [
+      ...new Set(this.recognition["raw-content"].recognition.types.filter((type) => type !== "decoration")),
+    ]
 
     if (configuration?.recognition?.["raw-content"]?.classification?.types) {
-      this.recognition["raw-content"].classification!.types = configuration?.recognition?.["raw-content"]?.classification?.types as ("text" | "shape")[]
+      this.recognition["raw-content"].classification!.types = configuration?.recognition?.["raw-content"]
+        ?.classification?.types as ("text" | "shape")[]
     }
 
     if (this.server.version) {

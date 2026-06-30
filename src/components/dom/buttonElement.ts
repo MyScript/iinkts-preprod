@@ -1,4 +1,3 @@
-
 /** @group DOM */
 export type TButtonElConfig = {
   id?: string
@@ -16,24 +15,46 @@ export type TButtonElConfig = {
 }
 
 function applyButton(btn: HTMLButtonElement, config: TButtonElConfig, extraClasses: string[] = []): void {
-  if (config.id) btn.id = config.id
-  if (config.label) btn.textContent = config.label
-  if (config.html) btn.innerHTML = config.html
-  if (config.icon) btn.innerHTML = config.icon
-  if (config.disabled) btn.disabled = true
-  if (config.title) btn.title = config.title
-  if (config.type) btn.type = config.type
-  if (config.variant) btn.classList.add(config.variant)
+  if (config.id) {
+    btn.id = config.id
+  }
+  if (config.label) {
+    btn.textContent = config.label
+  }
+  if (config.html) {
+    btn.innerHTML = config.html
+  }
+  if (config.icon) {
+    btn.innerHTML = config.icon
+  }
+  if (config.disabled) {
+    btn.disabled = true
+  }
+  if (config.title) {
+    btn.title = config.title
+  }
+  if (config.type) {
+    btn.type = config.type
+  }
+  if (config.variant) {
+    btn.classList.add(config.variant)
+  }
 
-  const cls = config.className
-    ? (Array.isArray(config.className) ? config.className : [config.className])
-    : []
-  const all = [...extraClasses, ...cls].flatMap(c => c.split(" ")).filter(c => c.length > 0)
-  if (all.length) btn.classList.add(...all)
+  const cls = config.className ? (Array.isArray(config.className) ? config.className : [config.className]) : []
+  const all = [...extraClasses, ...cls].flatMap((c) => c.split(" ")).filter((c) => c.length > 0)
+  if (all.length) {
+    btn.classList.add(...all)
+  }
 
-  if (config.onClick) btn.addEventListener("click", config.onClick)
-  if (config.onPointerUp) btn.addEventListener("pointerup", config.onPointerUp)
-  if (config.onPointerDown) btn.addEventListener("pointerdown", config.onPointerDown)
+  if (config.onClick) {
+    btn.addEventListener("click", config.onClick)
+  }
+  if (config.onPointerUp) {
+    btn.addEventListener("pointerup", config.onPointerUp)
+  }
+  if (config.onPointerDown) {
+    btn.addEventListener("pointerdown", config.onPointerDown)
+  }
 }
 
 /** @group DOM */

@@ -1,9 +1,9 @@
 import type { EditorTool } from "@/Constants"
-import { LoggerManager, LoggerCategory } from "@/logger"
-import type { TExport, TExportV2 } from "@/model"
-import type { TStroke, TSymbol, TBaseSymbol } from "@/symbol"
 import type { THistoryContext } from "@/history"
+import { LoggerCategory, LoggerManager } from "@/logger"
 import type { TGestureType } from "@/manager"
+import type { TExport, TExportV2 } from "@/model"
+import type { TBaseSymbol, TStroke, TSymbol } from "@/symbol"
 
 /**
  * @group Editor
@@ -14,8 +14,7 @@ import type { TGestureType } from "@/manager"
  * editor.event.addEventListener(EditorEventName.CHANGED, (evt) => console.log(evt.detail))
  * ```
  */
-export enum EditorEventName
-{
+export enum EditorEventName {
   /**
    * @remarks event emitted when history has changed i.e. the context of undo-redo
    */
@@ -79,47 +78,44 @@ export enum EditorEventName
   /**
    * @remarks event emitted after applying a gesture
    */
-  GESTURED = "gestured"
+  GESTURED = "gestured",
 }
 
 /**
  * @group Editor
  */
-export class EditorEvent extends EventTarget
-{
-  #logger = LoggerManager.getLogger(LoggerCategory.EDITOR_EVENT);
+export class EditorEvent extends EventTarget {
+  #logger = LoggerManager.getLogger(LoggerCategory.EDITOR_EVENT)
   protected abortController: AbortController
   element: Element
 
-  constructor(element: Element)
-  {
+  constructor(element: Element) {
     super()
     this.#logger.info("constructor", { element })
     this.abortController = new AbortController()
     this.element = element
   }
 
-  removeAllListeners(): void
-  {
+  removeAllListeners(): void {
     this.#logger.info("removeAllListeners")
     this.abortController.abort()
     this.abortController = new AbortController()
   }
 
-  protected emit(type: string, data?: unknown): void
-  {
-    const evt = new CustomEvent(type, Object.assign({ bubbles: true, composed: true }, data ? { detail: data } : undefined))
+  protected emit(type: string, data?: unknown): void {
+    const evt = new CustomEvent(
+      type,
+      Object.assign({ bubbles: true, composed: true }, data ? { detail: data } : undefined)
+    )
     this.dispatchEvent(evt)
     this.element?.dispatchEvent(evt)
   }
 
-  emitSessionOpened(sessionId: string): void
-  {
+  emitSessionOpened(sessionId: string): void {
     this.#logger.info("emitSessionOpened")
     this.emit(EditorEventName.SESSION_OPENED, sessionId)
   }
-  addSessionOpenedListener(callback: (sessionId: string) => void): void
-  {
+  addSessionOpenedListener(callback: (sessionId: string) => void): void {
     this.#logger.info("addSessionOpenedListener", { callback })
     this.addEventListener(
       EditorEventName.SESSION_OPENED,
@@ -128,59 +124,59 @@ export class EditorEvent extends EventTarget
     )
   }
 
-  emitLoaded(): void
-  {
+  emitLoaded(): void {
     this.#logger.info("emitLoaded")
     this.emit(EditorEventName.LOADED)
   }
-  addLoadedListener(callback: () => void): void
-  {
-    this.#logger.info("addLoadedListener", { callback })
-    this.addEventListener(
-      EditorEventName.LOADED,
-      () => callback(),
-      { signal: this.abortController.signal }
-    )
+  addLoadedListener(callback: () => void): void {
+    this.#logger.info("addLoadedListener", {
+      callback,
+    })
+    this.addEventListener(EditorEventName.LOADED, () => callback(), { signal: this.abortController.signal })
   }
 
-  emitNotif(notif: { message: string; timeout?: number }): void
-  {
+  emitNotif(notif: { message: string; timeout?: number }): void {
     this.#logger.info("emitNotif", { notif })
     this.emit(EditorEventName.NOTIF, notif)
   }
-  addNotifListener(callback: (notif: { message: string; timeout?: number }) => void): void
-  {
-    this.#logger.info("addNotifListener", { callback })
+  addNotifListener(callback: (notif: { message: string; timeout?: number }) => void): void {
+    this.#logger.info("addNotifListener", {
+      callback,
+    })
     this.addEventListener(
       EditorEventName.NOTIF,
-      (evt: unknown) => callback((evt as CustomEvent).detail as { message: string; timeout?: number }),
+      (evt: unknown) =>
+        callback(
+          (evt as CustomEvent).detail as {
+            message: string
+            timeout?: number
+          }
+        ),
       { signal: this.abortController.signal }
     )
   }
 
-  emitError(err: Error): void
-  {
+  emitError(err: Error): void {
     this.#logger.info("emitError", { err })
     this.emit(EditorEventName.ERROR, err)
   }
-  addErrorListener(callback: (err: Error) => void): void
-  {
-    this.#logger.info("addErrorListener", { callback })
-    this.addEventListener(
-      EditorEventName.ERROR,
-      (evt: unknown) => callback((evt as CustomEvent).detail as Error),
-      { signal: this.abortController.signal }
-    )
+  addErrorListener(callback: (err: Error) => void): void {
+    this.#logger.info("addErrorListener", {
+      callback,
+    })
+    this.addEventListener(EditorEventName.ERROR, (evt: unknown) => callback((evt as CustomEvent).detail as Error), {
+      signal: this.abortController.signal,
+    })
   }
 
-  emitExported(exports: TExport | TExportV2): void
-  {
+  emitExported(exports: TExport | TExportV2): void {
     this.#logger.info("emitExported", { exports })
     this.emit(EditorEventName.EXPORTED, exports)
   }
-  addExportedListener(callback: (exports: TExport | TExportV2) => void): void
-  {
-    this.#logger.info("addExportedListener", { callback })
+  addExportedListener(callback: (exports: TExport | TExportV2) => void): void {
+    this.#logger.info("addExportedListener", {
+      callback,
+    })
     this.addEventListener(
       EditorEventName.EXPORTED,
       (evt: unknown) => callback((evt as CustomEvent).detail as TExport | TExportV2),
@@ -188,17 +184,19 @@ export class EditorEvent extends EventTarget
     )
   }
 
-  emitChanged(undoRedoContext: THistoryContext): void
-  {
-    this.#logger.info("emitChanged", { undoRedoContext })
+  emitChanged(undoRedoContext: THistoryContext): void {
+    this.#logger.info("emitChanged", {
+      undoRedoContext,
+    })
     this.emit(EditorEventName.CHANGED, {
       ...undoRedoContext,
-      canClear: !undoRedoContext.empty
+      canClear: !undoRedoContext.empty,
     })
   }
-  addChangedListener(callback: (context: THistoryContext) => void): void
-  {
-    this.#logger.info("addChangedListener", { callback })
+  addChangedListener(callback: (context: THistoryContext) => void): void {
+    this.#logger.info("addChangedListener", {
+      callback,
+    })
     this.addEventListener(
       EditorEventName.CHANGED,
       (evt: unknown) => callback((evt as CustomEvent).detail as THistoryContext),
@@ -206,44 +204,40 @@ export class EditorEvent extends EventTarget
     )
   }
 
-  emitIdle(idle: boolean): void
-  {
+  emitIdle(idle: boolean): void {
     this.#logger.info("emitIdle", { idle })
     this.emit(EditorEventName.IDLE, idle)
   }
-  addIdleListener(callback: (idle: boolean) => void): void
-  {
-    this.#logger.info("addIdleListener", { callback })
-    this.addEventListener(
-      EditorEventName.IDLE,
-      (evt: unknown) => callback((evt as CustomEvent).detail as boolean),
-      { signal: this.abortController.signal }
-    )
+  addIdleListener(callback: (idle: boolean) => void): void {
+    this.#logger.info("addIdleListener", {
+      callback,
+    })
+    this.addEventListener(EditorEventName.IDLE, (evt: unknown) => callback((evt as CustomEvent).detail as boolean), {
+      signal: this.abortController.signal,
+    })
   }
 
-  emitCleared(): void
-  {
+  emitCleared(): void {
     this.#logger.info("emitCleared")
     this.emit(EditorEventName.CLEARED)
   }
-  addClearedListener(callback: () => void): void
-  {
-    this.#logger.info("addClearedListener", { callback })
-    this.addEventListener(
-      EditorEventName.CLEARED,
-      () => callback(),
-      { signal: this.abortController.signal }
-    )
+  addClearedListener(callback: () => void): void {
+    this.#logger.info("addClearedListener", {
+      callback,
+    })
+    this.addEventListener(EditorEventName.CLEARED, () => callback(), { signal: this.abortController.signal })
   }
 
-  emitConverted(exports?: TExport): void
-  {
-    this.#logger.info("emitConverted", { exports })
+  emitConverted(exports?: TExport): void {
+    this.#logger.info("emitConverted", {
+      exports,
+    })
     this.emit(EditorEventName.CONVERTED, exports)
   }
-  addConvertedListener(callback: (exports: TExport) => void): void
-  {
-    this.#logger.info("addConvertedListener", { callback })
+  addConvertedListener(callback: (exports: TExport) => void): void {
+    this.#logger.info("addConvertedListener", {
+      callback,
+    })
     this.addEventListener(
       EditorEventName.CONVERTED,
       (evt: unknown) => callback((evt as CustomEvent).detail as TExport),
@@ -251,14 +245,14 @@ export class EditorEvent extends EventTarget
     )
   }
 
-  emitImported(exports: TExport): void
-  {
+  emitImported(exports: TExport): void {
     this.#logger.info("emitImported", { exports })
     this.emit(EditorEventName.IMPORTED, exports)
   }
-  addImportedListener(callback: (exports: TExport) => void): void
-  {
-    this.#logger.info("addImportedListener", { callback })
+  addImportedListener(callback: (exports: TExport) => void): void {
+    this.#logger.info("addImportedListener", {
+      callback,
+    })
     this.addEventListener(
       EditorEventName.IMPORTED,
       (evt: unknown) => callback((evt as CustomEvent).detail as TExport),
@@ -266,14 +260,14 @@ export class EditorEvent extends EventTarget
     )
   }
 
-  emitSelected(symbols: TBaseSymbol[]): void
-  {
+  emitSelected(symbols: TBaseSymbol[]): void {
     this.#logger.info("emitSelected")
     this.emit(EditorEventName.SELECTED, symbols)
   }
-  addSelectedListener(callback: (symbols: TSymbol[]) => void): void
-  {
-    this.#logger.info("addSelectedListener", { callback })
+  addSelectedListener(callback: (symbols: TSymbol[]) => void): void {
+    this.#logger.info("addSelectedListener", {
+      callback,
+    })
     this.addEventListener(
       EditorEventName.SELECTED,
       (evt: unknown) => callback((evt as CustomEvent).detail as TSymbol[]),
@@ -281,14 +275,14 @@ export class EditorEvent extends EventTarget
     )
   }
 
-  emitToolChanged(mode: EditorTool): void
-  {
+  emitToolChanged(mode: EditorTool): void {
     this.#logger.info("emitToolChanged")
     this.emit(EditorEventName.TOOL_CHANGED, mode)
   }
-  addToolChangedListener(callback: (mode: EditorTool) => void): void
-  {
-    this.#logger.info("addToolChangedListener", { callback })
+  addToolChangedListener(callback: (mode: EditorTool) => void): void {
+    this.#logger.info("addToolChangedListener", {
+      callback,
+    })
     this.addEventListener(
       EditorEventName.TOOL_CHANGED,
       (evt: unknown) => callback((evt as CustomEvent).detail as EditorTool),
@@ -296,47 +290,45 @@ export class EditorEvent extends EventTarget
     )
   }
 
-  emitUIpdated(): void
-  {
+  emitUIpdated(): void {
     this.#logger.info("emitUIpdated")
     this.emit(EditorEventName.UI_UPDATED)
   }
-  addUIpdatedListener(callback: () => void): void
-  {
-    this.#logger.info("addUIpdatedListener", { callback })
-    this.addEventListener(
-      EditorEventName.UI_UPDATED,
-      () => callback(),
-      { signal: this.abortController.signal }
-    )
+  addUIpdatedListener(callback: () => void): void {
+    this.#logger.info("addUIpdatedListener", {
+      callback,
+    })
+    this.addEventListener(EditorEventName.UI_UPDATED, () => callback(), { signal: this.abortController.signal })
   }
 
-  emitSynchronized(): void
-  {
+  emitSynchronized(): void {
     this.#logger.info("emitSynchronized")
     this.emit(EditorEventName.SYNCHRONIZED)
   }
-  addSynchronizedListener(callback: () => void): void
-  {
-    this.#logger.info("addSynchronizedListener", { callback })
-    this.addEventListener(
-      EditorEventName.SYNCHRONIZED,
-      () => callback(),
-      { signal: this.abortController.signal }
-    )
+  addSynchronizedListener(callback: () => void): void {
+    this.#logger.info("addSynchronizedListener", {
+      callback,
+    })
+    this.addEventListener(EditorEventName.SYNCHRONIZED, () => callback(), { signal: this.abortController.signal })
   }
 
-  emitGestured(gesture: { gestureType: TGestureType, stroke: TStroke }): void
-  {
+  emitGestured(gesture: { gestureType: TGestureType; stroke: TStroke }): void {
     this.#logger.info("emitGestured")
     this.emit(EditorEventName.GESTURED, gesture)
   }
-  addGesturedListener(callback: (gesture: { gestureType: TGestureType, stroke: TStroke }) => void): void
-  {
-    this.#logger.info("addGesturedListener", { callback })
+  addGesturedListener(callback: (gesture: { gestureType: TGestureType; stroke: TStroke }) => void): void {
+    this.#logger.info("addGesturedListener", {
+      callback,
+    })
     this.addEventListener(
       EditorEventName.GESTURED,
-      (evt) => callback((evt as CustomEvent).detail as { gestureType: TGestureType, stroke: TStroke }),
+      (evt) =>
+        callback(
+          (evt as CustomEvent).detail as {
+            gestureType: TGestureType
+            stroke: TStroke
+          }
+        ),
       { signal: this.abortController.signal }
     )
   }

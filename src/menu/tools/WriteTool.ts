@@ -1,17 +1,15 @@
-import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
-import type { TMenuButton } from "@/menu/items/ButtonMenuItem";
-import { ButtonMenuItem } from "@/menu/items/ButtonMenuItem"
-import { EditorTool, EditorWriteTool } from "@/Constants"
 import pencilIcon from "@/assets/svg/edit-pencil.svg"
+import { EditorTool, EditorWriteTool } from "@/Constants"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import type { TMenuButton } from "@/menu/items/ButtonMenuItem"
+import { ButtonMenuItem } from "@/menu/items/ButtonMenuItem"
 
 /**
  * @group Menu
  * @remarks Write tool - Pencil drawing
  */
-export class WriteTool extends ButtonMenuItem
-{
-  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-tool")
-  {
+export class WriteTool extends ButtonMenuItem {
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-tool") {
     const config: TMenuButton = {
       type: "button",
       id: `${idPrefix}-write-pencil`,
@@ -20,14 +18,17 @@ export class WriteTool extends ButtonMenuItem
       action: (editor: TInteractiveInkEditor) => {
         editor.tool = EditorTool.Write
         editor.writer.tool = EditorWriteTool.Pencil
-      }
+      },
     }
     super(config, editor)
   }
 
-  createElement(): HTMLButtonElement
-  {
-    const button = this.dom.button({ id: this.config.id, html: this.config.icon || "", className: "square" })
+  createElement(): HTMLButtonElement {
+    const button = this.dom.button({
+      id: this.config.id,
+      html: this.config.icon || "",
+      className: "square",
+    })
     button.addEventListener("click", () => {
       this.unselectAll()
       button.classList.add("active")
@@ -36,12 +37,12 @@ export class WriteTool extends ButtonMenuItem
     return button
   }
 
-  update(): void
-  {
-    if (!this.element) return
+  update(): void {
+    if (!this.element) {
+      return
+    }
 
-    const isActive = this.editor.tool === EditorTool.Write &&
-                     this.editor.writer.tool === EditorWriteTool.Pencil
+    const isActive = this.editor.tool === EditorTool.Write && this.editor.writer.tool === EditorWriteTool.Pencil
 
     if (isActive) {
       this.element.classList.add("active")
@@ -53,9 +54,8 @@ export class WriteTool extends ButtonMenuItem
     this.updateVisible()
   }
 
-  private unselectAll(): void
-  {
+  private unselectAll(): void {
     const menu = this.element?.closest(".ms-menu")
-    menu?.querySelectorAll("*").forEach(e => e.classList.remove("active"))
+    menu?.querySelectorAll("*").forEach((e) => e.classList.remove("active"))
   }
 }

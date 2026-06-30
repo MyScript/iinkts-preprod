@@ -19,7 +19,7 @@ export type TThemeMathSolved = {
  * @group Styles
  */
 export type TThemeText = {
-  "font-family": string,
+  "font-family": string
   "font-size": number
 }
 
@@ -44,17 +44,17 @@ export const DefaultTheme: TTheme = {
     width: 1,
     "-myscript-pen-width": 1,
     "-myscript-pen-fill-style": "none",
-    "-myscript-pen-fill-color": "#FFFFFF00"
+    "-myscript-pen-fill-color": "#FFFFFF00",
   },
   ".math": {
-    "font-family": "STIXGeneral"
+    "font-family": "STIXGeneral",
   },
   ".math-solved": {
     "font-family": "STIXGeneral",
-    color: "#A8A8A8FF"
+    color: "#A8A8A8FF",
   },
   ".text": {
     "font-family": "MyScriptInter",
-    "font-size": 10
-  }
+    "font-size": 10,
+  },
 }

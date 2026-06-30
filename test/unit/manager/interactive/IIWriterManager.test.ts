@@ -1,6 +1,5 @@
 import { createEditorMock, asEditor } from "../../__mocks__/createEditorMock"
-import
-{
+import {
   IIWriterManager,
   DefaultStyle,
   SymbolType,
@@ -12,20 +11,17 @@ import
   EdgeDecoration,
   EdgeKind,
   TStroke,
-  TPointerInfo
+  TPointerInfo,
 } from "@/iink"
 
-describe("IIWriterManager.ts", () =>
-{
-  test("should create", () =>
-  {
+describe("IIWriterManager.ts", () => {
+  test("should create", () => {
     const editor = createEditorMock()
     const manager = new IIWriterManager(asEditor(editor))
     expect(manager).toBeDefined()
   })
 
-  describe("writing process", () =>
-  {
+  describe("writing process", () => {
     const editor = createEditorMock()
     editor.recognizer.init = jest.fn(() => Promise.resolve())
     editor.recognizer.addStrokes = jest.fn(() => Promise.resolve(undefined))
@@ -35,12 +31,11 @@ describe("IIWriterManager.ts", () =>
 
     editor.init()
 
-    test("should init model.currentSymbol with pencil", async () =>
-    {
+    test("should init model.currentSymbol with pencil", async () => {
       expect(manager.model.currentSymbol).toBeUndefined()
 
       const info = {
-        pointer: { t: 1, p: 0.5, x: 1, y: 1 }
+        pointer: { t: 1, p: 0.5, x: 1, y: 1 },
       } as TPointerInfo
       manager.start(info)
       expect(manager.model.creationTime).toStrictEqual(manager.model.modificationDate)
@@ -51,25 +46,23 @@ describe("IIWriterManager.ts", () =>
       expect(manager.renderer.drawSymbol).toHaveBeenCalledTimes(1)
       expect(manager.renderer.drawSymbol).toHaveBeenCalledWith(manager.model.currentSymbol)
     })
-    test("should init model.currentSymbol with pencil & custom style", () =>
-    {
+    test("should init model.currentSymbol with pencil & custom style", () => {
       editor.penStyle = { color: "red", width: 42 }
       const info = {
-        pointer: { t: 1, p: 0.5, x: 1, y: 1 }
+        pointer: { t: 1, p: 0.5, x: 1, y: 1 },
       } as TPointerInfo
       manager.start(info)
       expect(manager.model.currentSymbol).toBeDefined()
       expect(manager.model.currentSymbol?.style.color).toBe(editor.penStyle.color)
       expect(manager.model.currentSymbol?.style.width).toBe(editor.penStyle.width)
     })
-    test("should init model.currentSymbol with Rectangle", () =>
-    {
+    test("should init model.currentSymbol with Rectangle", () => {
       editor.penStyle = DefaultStyle
       expect(editor.layers.root.classList.contains("shape")).toBe(false)
       manager.tool = EditorWriteTool.Rectangle
       expect(editor.layers.root.classList.contains("shape")).toBe(true)
       const info = {
-        pointer: { t: 1, p: 0.5, x: 1, y: 1 }
+        pointer: { t: 1, p: 0.5, x: 1, y: 1 },
       } as TPointerInfo
       manager.start(info)
       expect(manager.model.currentSymbol).toBeDefined()
@@ -79,12 +72,11 @@ describe("IIWriterManager.ts", () =>
       expect(manager.renderer.drawSymbol).toHaveBeenCalledTimes(1)
       expect(manager.renderer.drawSymbol).toHaveBeenCalledWith(manager.model.currentSymbol)
     })
-    test("should init model.currentSymbol with Circle", () =>
-    {
+    test("should init model.currentSymbol with Circle", () => {
       manager.tool = EditorWriteTool.Circle
       expect(editor.layers.root.classList.contains("shape")).toBe(true)
       const info = {
-        pointer: { t: 1, p: 0.5, x: 1, y: 1 }
+        pointer: { t: 1, p: 0.5, x: 1, y: 1 },
       } as TPointerInfo
       manager.start(info)
       expect(manager.model.currentSymbol).toBeDefined()
@@ -94,12 +86,11 @@ describe("IIWriterManager.ts", () =>
       expect(manager.renderer.drawSymbol).toHaveBeenCalledTimes(1)
       expect(manager.renderer.drawSymbol).toHaveBeenCalledWith(manager.model.currentSymbol)
     })
-    test("should init model.currentSymbol with Ellipse", () =>
-    {
+    test("should init model.currentSymbol with Ellipse", () => {
       manager.tool = EditorWriteTool.Ellipse
       expect(editor.layers.root.classList.contains("shape")).toBe(true)
       const info = {
-        pointer: { t: 1, p: 0.5, x: 1, y: 1 }
+        pointer: { t: 1, p: 0.5, x: 1, y: 1 },
       } as TPointerInfo
       manager.start(info)
       expect(manager.model.currentSymbol).toBeDefined()
@@ -109,12 +100,11 @@ describe("IIWriterManager.ts", () =>
       expect(manager.renderer.drawSymbol).toHaveBeenCalledTimes(1)
       expect(manager.renderer.drawSymbol).toHaveBeenCalledWith(manager.model.currentSymbol)
     })
-    test("should init model.currentSymbol with Triangle", () =>
-    {
+    test("should init model.currentSymbol with Triangle", () => {
       manager.tool = EditorWriteTool.Triangle
       expect(editor.layers.root.classList.contains("shape")).toBe(true)
       const info = {
-        pointer: { t: 1, p: 0.5, x: 1, y: 1 }
+        pointer: { t: 1, p: 0.5, x: 1, y: 1 },
       } as TPointerInfo
       manager.start(info)
       expect(manager.model.currentSymbol).toBeDefined()
@@ -124,12 +114,11 @@ describe("IIWriterManager.ts", () =>
       expect(manager.renderer.drawSymbol).toHaveBeenCalledTimes(1)
       expect(manager.renderer.drawSymbol).toHaveBeenCalledWith(manager.model.currentSymbol)
     })
-    test("should init model.currentSymbol with Parallelogram", () =>
-    {
+    test("should init model.currentSymbol with Parallelogram", () => {
       manager.tool = EditorWriteTool.Parallelogram
       expect(editor.layers.root.classList.contains("shape")).toBe(true)
       const info = {
-        pointer: { t: 1, p: 0.5, x: 1, y: 1 }
+        pointer: { t: 1, p: 0.5, x: 1, y: 1 },
       } as TPointerInfo
       manager.start(info)
       expect(manager.model.currentSymbol).toBeDefined()
@@ -139,12 +128,11 @@ describe("IIWriterManager.ts", () =>
       expect(manager.renderer.drawSymbol).toHaveBeenCalledTimes(1)
       expect(manager.renderer.drawSymbol).toHaveBeenCalledWith(manager.model.currentSymbol)
     })
-    test("should init model.currentSymbol with Line", () =>
-    {
+    test("should init model.currentSymbol with Line", () => {
       manager.tool = EditorWriteTool.Line
       expect(editor.layers.root.classList.contains("shape")).toBe(true)
       const info = {
-        pointer: { t: 1, p: 0.5, x: 1, y: 1 }
+        pointer: { t: 1, p: 0.5, x: 1, y: 1 },
       } as TPointerInfo
       manager.start(info)
       expect(manager.model.currentSymbol).toBeDefined()
@@ -156,12 +144,11 @@ describe("IIWriterManager.ts", () =>
       expect(manager.renderer.drawSymbol).toHaveBeenCalledTimes(1)
       expect(manager.renderer.drawSymbol).toHaveBeenCalledWith(manager.model.currentSymbol)
     })
-    test("should init model.currentSymbol with Arrow", () =>
-    {
+    test("should init model.currentSymbol with Arrow", () => {
       manager.tool = EditorWriteTool.Arrow
       expect(editor.layers.root.classList.contains("shape")).toBe(true)
       const info = {
-        pointer: { t: 1, p: 0.5, x: 1, y: 1 }
+        pointer: { t: 1, p: 0.5, x: 1, y: 1 },
       } as TPointerInfo
       manager.start(info)
       expect(manager.model.currentSymbol).toBeDefined()
@@ -173,12 +160,11 @@ describe("IIWriterManager.ts", () =>
       expect(manager.renderer.drawSymbol).toHaveBeenCalledTimes(1)
       expect(manager.renderer.drawSymbol).toHaveBeenCalledWith(manager.model.currentSymbol)
     })
-    test("should init model.currentSymbol with DoubleArrow", () =>
-    {
+    test("should init model.currentSymbol with DoubleArrow", () => {
       manager.tool = EditorWriteTool.DoubleArrow
       expect(editor.layers.root.classList.contains("shape")).toBe(true)
       const info = {
-        pointer: { t: 1, p: 0.5, x: 1, y: 1 }
+        pointer: { t: 1, p: 0.5, x: 1, y: 1 },
       } as TPointerInfo
       manager.start(info)
       expect(manager.model.currentSymbol).toBeDefined()
@@ -190,20 +176,18 @@ describe("IIWriterManager.ts", () =>
       expect(manager.renderer.drawSymbol).toHaveBeenCalledTimes(1)
       expect(manager.renderer.drawSymbol).toHaveBeenCalledWith(manager.model.currentSymbol)
     })
-    test("should throw error if symbol type unknown when start", () =>
-    {
+    test("should throw error if symbol type unknown when start", () => {
       const info = {
-        pointer: { t: 1, p: 0.5, x: 1, y: 1 }
+        pointer: { t: 1, p: 0.5, x: 1, y: 1 },
       } as TPointerInfo
       //@ts-ignore
       manager.tool = "unknown"
-      expect(() => manager.start(info)).toThrow("Can't create symbol, tool is unknown: \"unknown\"")
+      expect(() => manager.start(info)).toThrow('Can\'t create symbol, tool is unknown: "unknown"')
     })
-    test("should update currentSymbol", () =>
-    {
+    test("should update currentSymbol", () => {
       manager.tool = EditorWriteTool.Pencil
       const info = {
-        pointer: { t: 1, p: 0.5, x: 1, y: 1 }
+        pointer: { t: 1, p: 0.5, x: 1, y: 1 },
       } as TPointerInfo
       manager.start(info)
       const point2: TPointer = { t: 15, p: 15, x: 15, y: 15 }
@@ -215,20 +199,18 @@ describe("IIWriterManager.ts", () =>
       expect(stroke.pointers[1].t).toBe(point2.t)
       expect(stroke.pointers[1].p).toBe(point2.p)
     })
-    test("should throw error when continu if currentSymbol is undefined", () =>
-    {
+    test("should throw error when continu if currentSymbol is undefined", () => {
       manager.model.clear()
       const info = {
-        pointer: { t: 1, p: 0.5, x: 1, y: 1 }
+        pointer: { t: 1, p: 0.5, x: 1, y: 1 },
       } as TPointerInfo
       expect(() => manager.continue(info)).toThrow("Can't update current symbol because currentSymbol is undefined")
     })
-    test("should clear currentSymbol and add into model.symbols", async () =>
-    {
+    test("should clear currentSymbol and add into model.symbols", async () => {
       manager.model.clear()
       const point: TPointer = { t: 25, p: 25, x: 25, y: 25 }
       const info = {
-        pointer: { t: 1, p: 0.5, x: 1, y: 1 }
+        pointer: { t: 1, p: 0.5, x: 1, y: 1 },
       } as TPointerInfo
       manager.start(info)
       manager.continue({ pointer: point } as TPointerInfo)

@@ -1,9 +1,9 @@
-import type { TDecorator, TStroke, TText, TBox, DecoratorKind} from "@/symbol";
-import { SymbolType, isDecorator, isRecognizedText, isText, type TSymbol } from "@/symbol"
-import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
-import { DecoratorOps } from "@/symbol/decorator/Decorator"
-import type { TIIHistoryChanges } from "@/history"
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import type { TIIHistoryChanges } from "@/history"
+import type { DecoratorKind, TBox, TDecorator, TStroke, TText } from "@/symbol"
+import { isDecorator, isRecognizedText, isText, SymbolType, type TSymbol } from "@/symbol"
+import { DecoratorOps } from "@/symbol/decorator/Decorator"
+import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
 
 /**
  * Unified representation of a gesture's intent on a set of target strokes.
@@ -11,7 +11,10 @@ import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
  * @group Manager
  */
 export type TGestureAnnotation =
-  | { kind: "decorator"; decoratorKind: DecoratorKind }
+  | {
+      kind: "decorator"
+      decoratorKind: DecoratorKind
+    }
   | { kind: "erase" }
   | { kind: "thicken"; factor: number }
   | { kind: "select" }
@@ -21,12 +24,10 @@ export type TGestureAnnotation =
  * Standalone TDecorator symbols live in model.symbols with targetIds referencing strokes.
  * @group Manager
  */
-export class IIGestureAnnotationProcessor
-{
+export class IIGestureAnnotationProcessor {
   constructor(private editor: TInteractiveInkEditor) {}
 
-  async apply(ids: string[], annotation: TGestureAnnotation): Promise<TIIHistoryChanges | undefined>
-  {
+  async apply(ids: string[], annotation: TGestureAnnotation): Promise<TIIHistoryChanges | undefined> {
     switch (annotation.kind) {
       case "decorator":
         return this.#applyDecorator(ids, annotation.decoratorKind)
@@ -43,40 +44,61 @@ export class IIGestureAnnotationProcessor
     }
   }
 
-  #applyDecorator(ids: string[], kind: DecoratorKind): TIIHistoryChanges | undefined
-  {
+  #applyDecorator(ids: string[], kind: DecoratorKind): TIIHistoryChanges | undefined {
     const seenWordKeys = new Set<string>()
     const added: TDecorator[] = []
     const erased: TDecorator[] = []
 
     for (const id of ids) {
       const sym = this.editor.model.getRootSymbol(id)
-      if (!sym) continue
+      if (!sym) {
+        continue
+      }
 
       if (isText(sym)) {
         this.#toggleTextDecorator(sym, kind, added, erased)
         continue
       }
 
-      if (!isRecognizedText(sym as TStroke)) continue
+      if (!isRecognizedText(sym as TStroke)) {
+        continue
+      }
 
       const wordGroup = this.editor.jiix.getWordGroupForStroke(sym.id)
       if (wordGroup) {
-        if (seenWordKeys.has(wordGroup.wordKey)) continue
+        if (seenWordKeys.has(wordGroup.wordKey)) {
+          continue
+        }
         seenWordKeys.add(wordGroup.wordKey)
-        this.#toggleWordDecorator(wordGroup.allStrokeIds, wordGroup.wordBounds, wordGroup.baseline, wordGroup.xHeight, kind, added, erased)
+        this.#toggleWordDecorator(
+          wordGroup.allStrokeIds,
+          wordGroup.wordBounds,
+          wordGroup.baseline,
+          wordGroup.xHeight,
+          kind,
+          added,
+          erased
+        )
       } else {
         // JIIX not yet available — treat stroke as its own group
-        if (seenWordKeys.has(sym.id)) continue
+        if (seenWordKeys.has(sym.id)) {
+          continue
+        }
         seenWordKeys.add(sym.id)
         this.#toggleWordDecorator([sym.id], null, null, null, kind, added, erased)
       }
     }
 
-    if (!added.length && !erased.length) return undefined
+    if (!added.length && !erased.length) {
+      return undefined
+    }
     const changes: TIIHistoryChanges = {}
-    if (added.length) changes.added = added
-    if (erased.length) changes.erased = erased
+    if (added.length) {
+      changes.added = added
+    }
+    if (erased.length) {
+      changes.erased = erased
+    }
     return changes
   }
 
@@ -88,11 +110,10 @@ export class IIGestureAnnotationProcessor
     kind: DecoratorKind,
     added: TDecorator[],
     erased: TDecorator[]
-  ): void
-  {
+  ): void {
     const existing = this.editor.model.symbols
       .filter(isDecorator)
-      .find(d => d.kind === kind && this.#sameTargets(d.targetIds, targetIds))
+      .find((d) => d.kind === kind && this.#sameTargets(d.targetIds, targetIds))
 
     if (existing) {
       this.editor.model.removeSymbol(existing.id)
@@ -100,22 +121,28 @@ export class IIGestureAnnotationProcessor
       erased.push(existing)
     } else {
       const decorator = DecoratorOps.create(kind, this.editor.penStyle, targetIds)
-      if (wordBounds) DecoratorOps.setBounds(decorator, OBBOps.fromBox(wordBounds))
-      else {
+      if (wordBounds) {
+        DecoratorOps.setBounds(decorator, OBBOps.fromBox(wordBounds))
+      } else {
         const bounds = this.#computeBoundsFromTargets(targetIds)
-        if (bounds) DecoratorOps.setBounds(decorator, bounds)
+        if (bounds) {
+          DecoratorOps.setBounds(decorator, bounds)
+        }
       }
-      if (baseline !== null) decorator.baseline = baseline
-      if (xHeight !== null) decorator.xHeight = xHeight
+      if (baseline !== null) {
+        decorator.baseline = baseline
+      }
+      if (xHeight !== null) {
+        decorator.xHeight = xHeight
+      }
       this.editor.model.addSymbol(decorator)
       this.editor.renderer.drawSymbol(decorator)
       added.push(decorator)
     }
   }
 
-  #toggleTextDecorator(sym: TText, kind: DecoratorKind, added: TDecorator[], erased: TDecorator[]): void
-  {
-    const index = sym.decorators.findIndex(d => d.kind === kind)
+  #toggleTextDecorator(sym: TText, kind: DecoratorKind, added: TDecorator[], erased: TDecorator[]): void {
+    const index = sym.decorators.findIndex((d) => d.kind === kind)
     if (index !== -1) {
       const removed = sym.decorators.splice(index, 1)[0]
       this.editor.model.updateSymbol(sym)
@@ -130,29 +157,30 @@ export class IIGestureAnnotationProcessor
     }
   }
 
-  #sameTargets(a: string[], b: string[]): boolean
-  {
-    if (a.length !== b.length) return false
+  #sameTargets(a: string[], b: string[]): boolean {
+    if (a.length !== b.length) {
+      return false
+    }
     const setA = new Set(a)
-    return b.every(id => setA.has(id))
+    return b.every((id) => setA.has(id))
   }
 
-  #computeBoundsFromTargets(targetIds: string[]): TOBB | null
-  {
-    const syms = targetIds
-      .map(id => this.editor.model.getRootSymbol(id))
-      .filter((s): s is TSymbol => !!s)
-    if (!syms.length) return null
-    return OBBOps.createFromOBBs(syms.map(s => s.bounds))
+  #computeBoundsFromTargets(targetIds: string[]): TOBB | null {
+    const syms = targetIds.map((id) => this.editor.model.getRootSymbol(id)).filter((s): s is TSymbol => !!s)
+    if (!syms.length) {
+      return null
+    }
+    return OBBOps.createFromOBBs(syms.map((s) => s.bounds))
   }
 
-  #applyThicken(ids: string[], factor: number): TStroke[]
-  {
+  #applyThicken(ids: string[], factor: number): TStroke[] {
     const changed: TStroke[] = []
     const seen = new Set<string>()
     for (const id of ids) {
       const sym = this.editor.model.getRootSymbol(id)
-      if (!sym || sym.type !== SymbolType.Stroke || seen.has(sym.id)) continue
+      if (!sym || sym.type !== SymbolType.Stroke || seen.has(sym.id)) {
+        continue
+      }
       seen.add(sym.id)
       const stroke = sym as TStroke
       const newWidth = (stroke.style.width || 1) * factor
@@ -162,8 +190,7 @@ export class IIGestureAnnotationProcessor
     return changed
   }
 
-  #applySelect(ids: string[]): void
-  {
+  #applySelect(ids: string[]): void {
     if (ids.length) {
       this.editor.select(ids)
     }

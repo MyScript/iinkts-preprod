@@ -1,18 +1,17 @@
-import { IIAbstractManager } from "../IIAbstractManager"
-import type { TMathEvaluable } from "@/recognizer"
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { LoggerCategory } from "@/logger"
+import type { TMathEvaluable } from "@/recognizer"
+
+import { IIAbstractManager } from "../IIAbstractManager"
 
 /**
  * Sub-manager responsible for math function evaluation
  * @group Manager
  */
-export class IIMathFunctionEvaluationSubManager extends IIAbstractManager
-{
+export class IIMathFunctionEvaluationSubManager extends IIAbstractManager {
   protected managerName = "IIMathFunctionEvaluationSubManager"
 
-  constructor(editor: TInteractiveInkEditor)
-  {
+  constructor(editor: TInteractiveInkEditor) {
     super(editor, LoggerCategory.MATH)
   }
 
@@ -25,9 +24,11 @@ export class IIMathFunctionEvaluationSubManager extends IIAbstractManager
       to: number
       pointCount: number
     }
-  ): Promise<{ [key: string]: number }[][]>
-  {
-    this.logger.info("evaluateFunction", { jiixBlockId, evaluation })
+  ): Promise<{ [key: string]: number }[][]> {
+    this.logger.info("evaluateFunction", {
+      jiixBlockId,
+      evaluation,
+    })
 
     if (!jiixBlockId) {
       throw new Error("Math block does not have jiixBlockId")
@@ -36,15 +37,16 @@ export class IIMathFunctionEvaluationSubManager extends IIAbstractManager
     const series = await this.editor.recognizer.evaluate(jiixBlockId, evaluation)
     this.logger.info("evaluateFunction", {
       seriesCount: series.length,
-      totalPoints: series.reduce((sum, s) => sum + s.length, 0)
+      totalPoints: series.reduce((sum, s) => sum + s.length, 0),
     })
 
     return series
   }
 
-  async getEvaluables(jiixBlockId: string): Promise<TMathEvaluable[]>
-  {
-    this.logger.info("getEvaluables", { jiixBlockId })
+  async getEvaluables(jiixBlockId: string): Promise<TMathEvaluable[]> {
+    this.logger.info("getEvaluables", {
+      jiixBlockId,
+    })
     return this.editor.recognizer.getEvaluables(jiixBlockId)
   }
 }

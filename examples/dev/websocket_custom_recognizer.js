@@ -1,14 +1,14 @@
-import { RecognizerWebSocketSSR } from '../../dist/iink.esm.js'
+import { RecognizerWebSocketSSR } from "../../dist/iink.esm.js"
 
 export class CustomWebsocketRecognizer extends RecognizerWebSocketSSR {
   constructor(config) {
     super(config)
-    this.urlElement = document.getElementById('recognizer-url')
-    this.sentElement = document.getElementById('recognizer-sent')
-    this.receivedElement = document.getElementById('recognizer-received')
-    this.urlElement.textContent = 'Recognizer URL:'
-    this.sentElement.textContent = 'Message sent:'
-    this.receivedElement.textContent = 'Message received:'
+    this.urlElement = document.getElementById("recognizer-url")
+    this.sentElement = document.getElementById("recognizer-sent")
+    this.receivedElement = document.getElementById("recognizer-received")
+    this.urlElement.textContent = "Recognizer URL:"
+    this.sentElement.textContent = "Message sent:"
+    this.receivedElement.textContent = "Message received:"
   }
 
   async init(height, width) {

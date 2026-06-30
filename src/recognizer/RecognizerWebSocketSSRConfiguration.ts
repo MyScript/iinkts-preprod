@@ -1,20 +1,21 @@
-import type { TPartialDeep } from "@/utils";
+import type { TPartialDeep } from "@/utils"
 import { isVersionSuperiorOrEqual, mergeDeep } from "@/utils"
+
 import type {
   TConvertionConfiguration,
   TExportConfiguration,
   TMathConfiguration,
   TRecognitionRendererConfiguration,
-  TTextConfiguration
-} from "./recognition";
+  TTextConfiguration,
+} from "./recognition"
 import {
   DefaultExportConfiguration,
   DefaultMathConfiguration,
   DefaultRecognitionRendererConfiguration,
-  DefaultTextConfiguration
+  DefaultTextConfiguration,
 } from "./recognition"
 import type { TRecognitionTypeV1 } from "./RecognitionConfiguration"
-import type { TServerWebsocketConfiguration } from "./ServerConfiguration";
+import type { TServerWebsocketConfiguration } from "./ServerConfiguration"
 import { DefaultServerWebsocketConfiguration } from "./ServerConfiguration"
 
 /**
@@ -55,17 +56,15 @@ export type TRecognizerWebSocketSSRConfiguration = {
  * @group Recognizer
  * @source
  */
-export const DefaultRecognizerWebSocketSSRConfiguration: TRecognizerWebSocketSSRConfiguration =
-{
+export const DefaultRecognizerWebSocketSSRConfiguration: TRecognizerWebSocketSSRConfiguration = {
   server: DefaultServerWebsocketConfiguration,
-  recognition: DefaultRecognizerWebSocketSSRRecognitionConfiguration
+  recognition: DefaultRecognizerWebSocketSSRRecognitionConfiguration,
 }
 
 /**
  * @group Recognizer
  */
-export class RecognizerWebSocketSSRConfiguration implements TRecognizerWebSocketSSRConfiguration
-{
+export class RecognizerWebSocketSSRConfiguration implements TRecognizerWebSocketSSRConfiguration {
   recognition: TRecognizerWebSocketSSRRecognitionConfiguration
   server: TServerWebsocketConfiguration
 
@@ -74,12 +73,16 @@ export class RecognizerWebSocketSSRConfiguration implements TRecognizerWebSocket
     this.recognition = mergeDeep({}, DefaultRecognizerWebSocketSSRConfiguration.recognition, configuration?.recognition)
 
     if (configuration?.recognition?.text?.mimeTypes) {
-      this.recognition.text.mimeTypes = configuration.recognition.text.mimeTypes as ("text/plain" | "application/vnd.myscript.jiix")[]
+      this.recognition.text.mimeTypes = configuration.recognition.text.mimeTypes as (
+        "text/plain" | "application/vnd.myscript.jiix"
+      )[]
     }
     this.recognition.text.mimeTypes = [...new Set(this.recognition.text.mimeTypes)]
 
     if (configuration?.recognition?.math?.mimeTypes) {
-      this.recognition.math.mimeTypes = configuration.recognition.math.mimeTypes as ("application/vnd.myscript.jiix" | "application/x-latex" | "application/mathml+xml")[]
+      this.recognition.math.mimeTypes = configuration.recognition.math.mimeTypes as (
+        "application/vnd.myscript.jiix" | "application/x-latex" | "application/mathml+xml"
+      )[]
     }
     this.recognition.math.mimeTypes = [...new Set(this.recognition.math.mimeTypes)]
 

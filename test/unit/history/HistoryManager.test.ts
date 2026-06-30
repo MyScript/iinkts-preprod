@@ -1,42 +1,36 @@
 import { EditorEventMock } from "../__mocks__/EditorEventMock"
 import { delay } from "../helpers"
-import
-{
+import {
   TPointer,
   THistoryConfiguration,
   getInitialHistoryContext,
   HistoryManager,
   Model,
   DefaultHistoryConfiguration,
-  DefaultPenStyle
+  DefaultPenStyle,
 } from "@/iink"
 
-describe("HistoryManager.ts", () =>
-{
+describe("HistoryManager.ts", () => {
   const event = new EditorEventMock(document.createElement("div"))
-  test("should instanciate HistoryManager", () =>
-  {
+  test("should instanciate HistoryManager", () => {
     const manager = new HistoryManager(DefaultHistoryConfiguration, event)
     expect(manager).toBeDefined()
   })
 
-  test("should initialize HistoryContext", () =>
-  {
+  test("should initialize HistoryContext", () => {
     const manager = new HistoryManager(DefaultHistoryConfiguration, event)
     const context = getInitialHistoryContext()
     expect(manager.context).toStrictEqual(context)
   })
 
-  describe("push", () =>
-  {
+  describe("push", () => {
     const configuration: THistoryConfiguration = { maxStackSize: 5 }
     const model1 = new Model(27, 5)
     const model2 = new Model(42, 72)
     const model3 = new Model(42, 72)
     const manager = new HistoryManager(configuration, event)
 
-    test("should add model to stack and emitChanged", () =>
-    {
+    test("should add model to stack and emitChanged", () => {
       manager.push(model1)
 
       expect(manager.context.stackIndex).toStrictEqual(0)
@@ -49,8 +43,7 @@ describe("HistoryManager.ts", () =>
       expect(manager.event.emitChanged).toHaveBeenNthCalledWith(1, manager.context)
     })
 
-    test("should add 2nd model to stack and emitChanged", () =>
-    {
+    test("should add 2nd model to stack and emitChanged", () => {
       model2.initCurrentStroke({ t: 1, p: 0.5, x: 1, y: 1 }, "pen", DefaultPenStyle)
       model2.endCurrentStroke({ t: 15, p: 0.5, x: 10, y: 1 })
       manager.push(model2)
@@ -65,8 +58,7 @@ describe("HistoryManager.ts", () =>
       expect(manager.event.emitChanged).toHaveBeenNthCalledWith(1, manager.context)
     })
 
-    test("should splice end of stack if stackIndex no last and emitChanged", () =>
-    {
+    test("should splice end of stack if stackIndex no last and emitChanged", () => {
       const NB_STROKE = 4
       for (let i = 0; i < NB_STROKE; i++) {
         model3.initCurrentStroke({ t: i * 5, p: 1, x: i * 10, y: 10 }, "pen", DefaultPenStyle)
@@ -94,8 +86,7 @@ describe("HistoryManager.ts", () =>
       expect(manager.event.emitChanged).toHaveBeenNthCalledWith(1, manager.context)
     })
 
-    test("should shift the first element of the stack when maxStackSize is exceeded and emitChanged", () =>
-    {
+    test("should shift the first element of the stack when maxStackSize is exceeded and emitChanged", () => {
       const NB_STROKE = 10
       for (let i = 0; i < NB_STROKE; i++) {
         const p1: TPointer = { t: i * 42, p: 0.5, x: i / 2, y: i * 20 }
@@ -120,13 +111,11 @@ describe("HistoryManager.ts", () =>
     })
   })
 
-  describe("undo", () =>
-  {
+  describe("undo", () => {
     const model = new Model(27, 5)
     const manager = new HistoryManager(DefaultHistoryConfiguration, event)
     manager.push(model)
-    test("should get the previous model and emitChanged", () =>
-    {
+    test("should get the previous model and emitChanged", () => {
       model.initCurrentStroke({ t: 1, p: 0.5, x: 1, y: 1 }, "pen", DefaultPenStyle)
       model.endCurrentStroke({ t: 15, p: 0.5, x: 10, y: 1 })
       manager.push(model)
@@ -144,13 +133,11 @@ describe("HistoryManager.ts", () =>
     })
   })
 
-  describe("redo", () =>
-  {
+  describe("redo", () => {
     const model = new Model(27, 5)
     const manager = new HistoryManager(DefaultHistoryConfiguration, event)
     manager.push(model)
-    test("should get the next model", () =>
-    {
+    test("should get the next model", () => {
       const p1: TPointer = { t: 1, p: 0.5, x: 1, y: 1 }
       model.initCurrentStroke(p1, "pen", DefaultPenStyle)
 
@@ -172,10 +159,8 @@ describe("HistoryManager.ts", () =>
     })
   })
 
-  describe("updateStack", () =>
-  {
-    test("should update last model in stack", async () =>
-    {
+  describe("updateStack", () => {
+    test("should update last model in stack", async () => {
       const model = new Model(27, 5)
       const manager = new HistoryManager(DefaultHistoryConfiguration, event)
       manager.push(model)
@@ -199,8 +184,7 @@ describe("HistoryManager.ts", () =>
       expect(manager.stack[manager.context.stackIndex]).not.toBe(model)
     })
 
-    test("should update previous model in stack", async () =>
-    {
+    test("should update previous model in stack", async () => {
       const model = new Model(27, 5)
       const manager = new HistoryManager(DefaultHistoryConfiguration, event)
       manager.push(model)

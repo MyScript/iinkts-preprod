@@ -1,6 +1,6 @@
+import type { DOMFactory } from "@/components/dom"
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { LoggerCategory, LoggerManager } from "@/logger"
-import type { DOMFactory } from "@/components/dom"
 
 /**
  * @group Menu
@@ -17,14 +17,15 @@ export type TMenuItemBase = {
  * @group Menu
  * @remarks Union type for all menu types
  */
-export type TGenericMenuItem = TMenuItemBase & { type: string }
+export type TGenericMenuItem = TMenuItemBase & {
+  type: string
+}
 
 /**
  * @group Menu
  * @remarks Base class for all menu items
  */
-export abstract class BaseMenuItem<T extends HTMLElement = HTMLElement>
-{
+export abstract class BaseMenuItem<T extends HTMLElement = HTMLElement> {
   protected logger = LoggerManager.getLogger(LoggerCategory.MENU)
   protected config: TGenericMenuItem
   protected editor: TInteractiveInkEditor
@@ -63,7 +64,9 @@ export abstract class BaseMenuItem<T extends HTMLElement = HTMLElement>
    * Updates the disabled state
    */
   protected updateDisabled(): void {
-    if (!this.element) return
+    if (!this.element) {
+      return
+    }
 
     if (typeof this.config.disabled === "function") {
       const isDisabled = this.config.disabled(this.editor)
@@ -82,7 +85,9 @@ export abstract class BaseMenuItem<T extends HTMLElement = HTMLElement>
    * Updates the visible state
    */
   protected updateVisible(): void {
-    if (!this.element) return
+    if (!this.element) {
+      return
+    }
 
     if (typeof this.config.visible === "function") {
       this.element.style.display = this.config.visible(this.editor) ? "" : "none"

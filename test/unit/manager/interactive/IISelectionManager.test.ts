@@ -1,29 +1,20 @@
 import { createEditorMock, asEditor } from "../../__mocks__/createEditorMock"
 import { LeftClickEventMock, RightClickEventMock } from "../../__mocks__/EventMock"
 import { buildIIStroke } from "../../helpers"
-import
-{
-  IISelectionManager,
-  OBBOps,
-  TBox,
-  SvgElementRole,
-  ResizeDirection,
-  TPointerInfo,
-} from "@/iink"
+import { IISelectionManager, OBBOps, TBox, SvgElementRole, ResizeDirection, TPointerInfo } from "@/iink"
 
-describe("IISelectionManager.ts", () =>
-{
-  Object.defineProperty(global.SVGElement.prototype, 'getBBox', {
+describe("IISelectionManager.ts", () => {
+  Object.defineProperty(global.SVGElement.prototype, "getBBox", {
     writable: true,
     value: jest.fn().mockReturnValue({
       x: 0,
       y: 0,
       width: 10,
-      height: 10
+      height: 10,
     }),
   })
 
-  Object.defineProperty(global.SVGElement.prototype, 'getScreenCTM', {
+  Object.defineProperty(global.SVGElement.prototype, "getScreenCTM", {
     writable: true,
     value: jest.fn().mockReturnValue({
       a: 1,
@@ -38,33 +29,31 @@ describe("IISelectionManager.ts", () =>
         c: 0,
         d: 1,
         e: 0,
-        f: 0
-      })
+        f: 0,
+      }),
     }),
   })
 
-  Object.defineProperty(global.SVGElement.prototype, 'createSVGPoint', {
+  Object.defineProperty(global.SVGElement.prototype, "createSVGPoint", {
     writable: true,
     value: jest.fn().mockReturnValue({
       x: 0,
       y: 0,
-      matrixTransform: jest.fn(function(this: { x: number; y: number }, _matrix: unknown) {
+      matrixTransform: jest.fn(function (this: { x: number; y: number }, _matrix: unknown) {
         return {
           x: this.x,
-          y: this.y
+          y: this.y,
         }
-      })
+      }),
     }),
   })
-  test("should create", () =>
-  {
+  test("should create", () => {
     const editor = createEditorMock()
     const manager = new IISelectionManager(asEditor(editor))
     expect(manager).toBeDefined()
   })
 
-  test("should draw selecting rect", () =>
-  {
+  test("should draw selecting rect", () => {
     const editor = createEditorMock()
     const manager = new IISelectionManager(asEditor(editor))
     manager.renderer.clearElements = jest.fn()
@@ -73,15 +62,14 @@ describe("IISelectionManager.ts", () =>
       height: 10,
       width: 20,
       x: 1,
-      y: 2
+      y: 2,
     }
     manager.drawSelectingRect(box)
     expect(manager.renderer.clearElements).toHaveBeenCalledTimes(1)
     expect(manager.renderer.appendElement).toHaveBeenCalledTimes(1)
   })
 
-  test("should clear selecting rect", () =>
-  {
+  test("should clear selecting rect", () => {
     const editor = createEditorMock()
     const manager = new IISelectionManager(asEditor(editor))
     manager.renderer.clearElements = jest.fn()
@@ -89,52 +77,55 @@ describe("IISelectionManager.ts", () =>
     expect(manager.renderer.clearElements).toHaveBeenCalledTimes(1)
   })
 
-  describe("selected group", () =>
-  {
+  describe("selected group", () => {
     const editor = createEditorMock()
     editor.menu.context.hide = jest.fn()
     const manager = new IISelectionManager(asEditor(editor))
     const stroke = buildIIStroke()
 
-    beforeAll(async () =>
-    {
+    beforeAll(async () => {
       await editor.init()
       editor.model.addSymbol(stroke)
       editor.renderer.drawSymbol(stroke)
     })
 
-    test("should draw selected group", () =>
-    {
+    test("should draw selected group", () => {
       manager.drawSelectedGroup([stroke])
-      const group = editor.renderer.layer.querySelector(`[role=${ SvgElementRole.InteractElementsGroup }]`) as SVGGElement
+      const group = editor.renderer.layer.querySelector(`[role=${SvgElementRole.InteractElementsGroup}]`) as SVGGElement
       expect(group).not.toBeNull()
-      const translateRect = group?.querySelector(`[role=${ SvgElementRole.Translate }]`)
-      expect(translateRect?.getAttribute("x")).toEqual((OBBOps.toBox(stroke.bounds).x - (stroke.style.width || 1)).toString())
-      expect(translateRect?.getAttribute("y")).toEqual((OBBOps.toBox(stroke.bounds).y - (stroke.style.width || 1)).toString())
-      expect(translateRect?.getAttribute("width")).toEqual((stroke.bounds.width + 2 * (stroke.style.width || 1)).toString())
-      expect(translateRect?.getAttribute("height")).toEqual((stroke.bounds.height + 2 * (stroke.style.width || 1)).toString())
+      const translateRect = group?.querySelector(`[role=${SvgElementRole.Translate}]`)
+      expect(translateRect?.getAttribute("x")).toEqual(
+        (OBBOps.toBox(stroke.bounds).x - (stroke.style.width || 1)).toString()
+      )
+      expect(translateRect?.getAttribute("y")).toEqual(
+        (OBBOps.toBox(stroke.bounds).y - (stroke.style.width || 1)).toString()
+      )
+      expect(translateRect?.getAttribute("width")).toEqual(
+        (stroke.bounds.width + 2 * (stroke.style.width || 1)).toString()
+      )
+      expect(translateRect?.getAttribute("height")).toEqual(
+        (stroke.bounds.height + 2 * (stroke.style.width || 1)).toString()
+      )
 
-      const rotateCircles = group.querySelectorAll(`circle[role=${ SvgElementRole.Rotate }]`)
+      const rotateCircles = group.querySelectorAll(`circle[role=${SvgElementRole.Rotate}]`)
       expect(rotateCircles).toHaveLength(2)
 
-      const cornerResizeElement = group.querySelectorAll(`circle[role=${ SvgElementRole.Resize }]`)
+      const cornerResizeElement = group.querySelectorAll(`circle[role=${SvgElementRole.Resize}]`)
       expect(cornerResizeElement).toHaveLength(4)
-      const edgeResizeElement = group.querySelectorAll(`line[role=${ SvgElementRole.Resize }]`)
+      const edgeResizeElement = group.querySelectorAll(`line[role=${SvgElementRole.Resize}]`)
       expect(edgeResizeElement).toHaveLength(4)
     })
 
-    test("should remove selected group", () =>
-    {
-      let group = editor.renderer.layer.querySelector(`[role=${ SvgElementRole.InteractElementsGroup }]`) as SVGGElement
+    test("should remove selected group", () => {
+      let group = editor.renderer.layer.querySelector(`[role=${SvgElementRole.InteractElementsGroup}]`) as SVGGElement
       expect(group).not.toBeNull()
       manager.removeSelectedGroup()
-      group = editor.renderer.layer.querySelector(`[role=${ SvgElementRole.InteractElementsGroup }]`) as SVGGElement
+      group = editor.renderer.layer.querySelector(`[role=${SvgElementRole.InteractElementsGroup}]`) as SVGGElement
       expect(group).toBeNull()
       expect(editor.menu.context.hide).toHaveBeenCalledTimes(1)
     })
 
-    test("should reset selected group", () =>
-    {
+    test("should reset selected group", () => {
       manager.drawSelectedGroup = jest.fn()
       manager.removeSelectedGroup = jest.fn()
       manager.resetSelectedGroup([stroke])
@@ -143,15 +134,14 @@ describe("IISelectionManager.ts", () =>
     })
   })
 
-  describe("interact elements", () =>
-  {
-    Object.defineProperty(global.SVGElement.prototype, 'getBBox', {
+  describe("interact elements", () => {
+    Object.defineProperty(global.SVGElement.prototype, "getBBox", {
       writable: true,
       value: jest.fn().mockReturnValue({
         x: 0,
         y: 0,
         width: 10,
-        height: 10
+        height: 10,
       }),
     })
     const editor = createEditorMock()
@@ -168,174 +158,163 @@ describe("IISelectionManager.ts", () =>
     manager.resetSelectedGroup = jest.fn()
     const stroke = buildIIStroke()
 
-    beforeAll(async () =>
-    {
+    beforeAll(async () => {
       await editor.init()
       editor.model.addSymbol(stroke)
       editor.renderer.drawSymbol(stroke)
       manager.drawSelectedGroup([stroke])
     })
 
-    test("should not call translate.start on right pointerdown on translateEl", () =>
-    {
-      const translateEl = editor.renderer.layer.querySelector(`[role=${ SvgElementRole.Translate }]`)
+    test("should not call translate.start on right pointerdown on translateEl", () => {
+      const translateEl = editor.renderer.layer.querySelector(`[role=${SvgElementRole.Translate}]`)
       const pointerDown = new RightClickEventMock("pointerdown", {
         pointerType: "pen",
         clientX: 1,
         clientY: 2,
         pressure: 1,
-        pointerId: 1
+        pointerId: 1,
       }) as PointerEvent
       translateEl?.dispatchEvent(pointerDown)
       expect(editor.transform.translate.start).not.toHaveBeenCalled()
     })
-    test("should call translate.start on pointerdown on translateEl", () =>
-    {
-      const translateEl = editor.renderer.layer.querySelector(`[role=${ SvgElementRole.Translate }]`)
+    test("should call translate.start on pointerdown on translateEl", () => {
+      const translateEl = editor.renderer.layer.querySelector(`[role=${SvgElementRole.Translate}]`)
       const pointerDown = new LeftClickEventMock("pointerdown", {
         pointerType: "pen",
         clientX: 1,
         clientY: 2,
         pressure: 1,
-        pointerId: 1
+        pointerId: 1,
       }) as PointerEvent
       translateEl?.dispatchEvent(pointerDown)
       expect(editor.transform.translate.start).toHaveBeenNthCalledWith(1, translateEl, { x: 1, y: 2 })
     })
-    test("should call translate.continue on pointermove on render layer", () =>
-    {
+    test("should call translate.continue on pointermove on render layer", () => {
       const pointerMove = new LeftClickEventMock("pointermove", {
         pointerType: "pen",
         clientX: 3,
         clientY: 4,
         pressure: 1,
-        pointerId: 1
+        pointerId: 1,
       }) as PointerEvent
       editor.renderer.layer.dispatchEvent(pointerMove)
       expect(editor.transform.translate.continue).toHaveBeenNthCalledWith(1, { x: 3, y: 4 })
     })
-    test("should call translate.end on pointerup on render layer", () =>
-    {
+    test("should call translate.end on pointerup on render layer", () => {
       const pointerUp = new LeftClickEventMock("pointerup", {
         pointerType: "pen",
         clientX: 5,
         clientY: 6,
         pressure: 1,
-        pointerId: 1
+        pointerId: 1,
       }) as PointerEvent
       editor.renderer.layer.dispatchEvent(pointerUp)
       expect(editor.transform.translate.end).toHaveBeenNthCalledWith(1, { x: 5, y: 6 })
       expect(manager.resetSelectedGroup).toHaveBeenCalledTimes(1)
     })
 
-    test("should not call rotation.start on right pointerdown on rotateEl", () =>
-    {
-      const rotateEl = editor.renderer.layer.querySelector(`[role=${ SvgElementRole.Rotate }]`)
+    test("should not call rotation.start on right pointerdown on rotateEl", () => {
+      const rotateEl = editor.renderer.layer.querySelector(`[role=${SvgElementRole.Rotate}]`)
       const pointerDown = new RightClickEventMock("pointerdown", {
         pointerType: "pen",
         clientX: 1,
         clientY: 2,
         pressure: 1,
-        pointerId: 1
+        pointerId: 1,
       }) as PointerEvent
       rotateEl?.dispatchEvent(pointerDown)
       expect(editor.transform.rotation.start).not.toHaveBeenCalled()
     })
-    test("should call rotation.start on pointerdown on rotateEl", () =>
-    {
-      const rotateEl = editor.renderer.layer.querySelector(`[role=${ SvgElementRole.Rotate }]`)
+    test("should call rotation.start on pointerdown on rotateEl", () => {
+      const rotateEl = editor.renderer.layer.querySelector(`[role=${SvgElementRole.Rotate}]`)
       const pointerDown = new LeftClickEventMock("pointerdown", {
         pointerType: "pen",
         clientX: 1,
         clientY: 2,
         pressure: 1,
-        pointerId: 1
+        pointerId: 1,
       }) as PointerEvent
       rotateEl?.dispatchEvent(pointerDown)
       expect(editor.transform.rotation.start).toHaveBeenNthCalledWith(1, rotateEl, { x: 1, y: 2 })
     })
-    test("should call rotation.continue on pointermove on render layer", () =>
-    {
+    test("should call rotation.continue on pointermove on render layer", () => {
       const pointerMove = new LeftClickEventMock("pointermove", {
         pointerType: "pen",
         clientX: 3,
         clientY: 4,
         pressure: 1,
-        pointerId: 1
+        pointerId: 1,
       }) as PointerEvent
       editor.renderer.layer.dispatchEvent(pointerMove)
       expect(editor.transform.rotation.continue).toHaveBeenNthCalledWith(1, { x: 3, y: 4 })
     })
-    test("should call rotation.end on pointerup on render layer", () =>
-    {
+    test("should call rotation.end on pointerup on render layer", () => {
       const pointerUp = new LeftClickEventMock("pointerup", {
         pointerType: "pen",
         clientX: 5,
         clientY: 6,
         pressure: 1,
-        pointerId: 1
+        pointerId: 1,
       }) as PointerEvent
       editor.renderer.layer.dispatchEvent(pointerUp)
       expect(editor.transform.rotation.end).toHaveBeenNthCalledWith(1, { x: 5, y: 6 })
       expect(manager.resetSelectedGroup).toHaveBeenCalledTimes(1)
     })
 
-    test("should not call resize.start on right pointerdown on north resizeEl", () =>
-    {
-      const resizeEl = editor.renderer.layer.querySelector(`[role=${ SvgElementRole.Resize }][resize-direction=${ResizeDirection.North}]`)
+    test("should not call resize.start on right pointerdown on north resizeEl", () => {
+      const resizeEl = editor.renderer.layer.querySelector(
+        `[role=${SvgElementRole.Resize}][resize-direction=${ResizeDirection.North}]`
+      )
       const pointerDown = new RightClickEventMock("pointerdown", {
         pointerType: "pen",
         clientX: 1,
         clientY: 2,
         pressure: 1,
-        pointerId: 1
+        pointerId: 1,
       }) as PointerEvent
       resizeEl?.dispatchEvent(pointerDown)
       expect(editor.transform.resize.start).not.toHaveBeenCalled()
     })
-    test("should call resize.start on pointerdown on north resizeEl", () =>
-    {
-      const resizeEl = editor.renderer.layer.querySelector(`[role=${ SvgElementRole.Resize }][resize-direction=${ResizeDirection.North}]`)
+    test("should call resize.start on pointerdown on north resizeEl", () => {
+      const resizeEl = editor.renderer.layer.querySelector(
+        `[role=${SvgElementRole.Resize}][resize-direction=${ResizeDirection.North}]`
+      )
       const pointerDown = new LeftClickEventMock("pointerdown", {
         pointerType: "pen",
         clientX: 1,
         clientY: 2,
         pressure: 1,
-        pointerId: 1
+        pointerId: 1,
       }) as PointerEvent
       resizeEl?.dispatchEvent(pointerDown)
       expect(editor.transform.resize.start).toHaveBeenNthCalledWith(1, resizeEl, { x: 6, y: 13 })
     })
-    test("should call resize.continue on pointermove on render layer", () =>
-    {
+    test("should call resize.continue on pointermove on render layer", () => {
       const pointerMove = new LeftClickEventMock("pointermove", {
         pointerType: "pen",
         clientX: 3,
         clientY: 4,
         pressure: 1,
-        pointerId: 1
+        pointerId: 1,
       }) as PointerEvent
       editor.renderer.layer.dispatchEvent(pointerMove)
       expect(editor.transform.resize.continue).toHaveBeenNthCalledWith(1, { x: 3, y: 4 })
     })
-    test("should call resize.end on pointerup on render layer", () =>
-    {
+    test("should call resize.end on pointerup on render layer", () => {
       const pointerUp = new LeftClickEventMock("pointerup", {
         pointerType: "pen",
         clientX: 5,
         clientY: 6,
         pressure: 1,
-        pointerId: 1
+        pointerId: 1,
       }) as PointerEvent
       editor.renderer.layer.dispatchEvent(pointerUp)
       expect(editor.transform.resize.end).toHaveBeenNthCalledWith(1, { x: 5, y: 6 })
       expect(manager.resetSelectedGroup).toHaveBeenCalledTimes(1)
     })
-
   })
 
-  describe("process", () =>
-  {
+  describe("process", () => {
     const editor = createEditorMock()
     const manager = new IISelectionManager(asEditor(editor))
     const strokeToSelect = buildIIStroke({ box: { height: 10, width: 10, x: 10, y: 10 } })
@@ -348,19 +327,17 @@ describe("IISelectionManager.ts", () =>
     manager.renderer.drawSymbol = jest.fn()
     manager.renderer.updateSelectedState = jest.fn()
 
-    test("start", () =>
-    {
+    test("start", () => {
       const info = {
-        pointer: { x: 1, y: 2 }
+        pointer: { x: 1, y: 2 },
       } as TPointerInfo
       manager.start(info)
       expect(manager.drawSelectingRect).toHaveBeenCalledTimes(1)
     })
 
-    test("continue", () =>
-    {
+    test("continue", () => {
       const info = {
-        pointer: { x: 20, y: 20 }
+        pointer: { x: 20, y: 20 },
       } as TPointerInfo
       manager.continue(info)
       expect(manager.drawSelectingRect).toHaveBeenCalledTimes(1)
@@ -369,10 +346,9 @@ describe("IISelectionManager.ts", () =>
       expect(manager.model.symbolsSelected).toEqual([strokeToSelect])
     })
 
-    test("end", async () =>
-    {
+    test("end", async () => {
       const info = {
-        pointer: { x: 20, y: 20 }
+        pointer: { x: 20, y: 20 },
       } as TPointerInfo
       manager.end(info)
       expect(manager.drawSelectingRect).toHaveBeenCalledTimes(1)
@@ -381,18 +357,16 @@ describe("IISelectionManager.ts", () =>
       expect(manager.drawSelectedGroup).toHaveBeenCalledWith([strokeToSelect])
       expect(manager.model.symbolsSelected).toEqual([strokeToSelect])
       // emitSelected is deferred via setTimeout(0)
-      await new Promise(resolve => setTimeout(resolve, 0))
+      await new Promise((resolve) => setTimeout(resolve, 0))
       expect(editor.event.emitSelected).toHaveBeenCalledTimes(1)
       expect(editor.event.emitSelected).toHaveBeenCalledWith([strokeToSelect])
     })
 
-    test("continue should throw error when no start before", () =>
-    {
+    test("continue should throw error when no start before", () => {
       const info = {
-        pointer: { x: 20, y: 20 }
+        pointer: { x: 20, y: 20 },
       } as TPointerInfo
       expect(() => manager.continue(info)).toThrow("You need to call startSelectionByBox before")
     })
   })
-
 })

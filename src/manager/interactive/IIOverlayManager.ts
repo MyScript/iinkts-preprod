@@ -1,14 +1,15 @@
-import { IIAbstractManager } from "./IIAbstractManager"
-import { SVGBuilder, SVGRendererConst } from "@/renderer"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import { LoggerCategory } from "@/logger"
 import type { TJIIXMathElement } from "@/model"
-import type { TBox, TStroke} from "@/symbol";
+import { SVGBuilder, SVGRendererConst } from "@/renderer"
+import type { TBox, TStroke } from "@/symbol"
 import { isStroke } from "@/symbol"
 import { BoxOps } from "@/symbol/primitives/Box"
 import { OBBOps } from "@/symbol/primitives/OBB"
-import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
-import { ColorPaletteManager } from "../base"
 import { convertBoundingBoxMillimeterToPixel } from "@/utils"
-import { LoggerCategory } from "@/logger"
+
+import { ColorPaletteManager } from "../base"
+import { IIAbstractManager } from "./IIAbstractManager"
 
 /**
  * Visual overlay configuration
@@ -47,8 +48,7 @@ export const DefaultOverlayConfig: TOverlayConfig = {
  *
  * @group Manager
  */
-export class IIOverlayManager extends IIAbstractManager
-{
+export class IIOverlayManager extends IIAbstractManager {
   protected managerName = "IIOverlayManager"
 
   private static readonly BADGE_STYLES = {
@@ -67,34 +67,34 @@ export class IIOverlayManager extends IIAbstractManager
     PADDING_V: 2,
     GAP: 4,
     // user-select only — pointer-events must stay enabled so hover/click work
-    NO_SELECT: "-webkit-touch-callout: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;",
+    NO_SELECT:
+      "-webkit-touch-callout: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;",
   }
 
   // Overlay config
   #config: TOverlayConfig
   #colorManager: ColorPaletteManager
 
-  constructor(editor: TInteractiveInkEditor, config: Partial<TOverlayConfig> = {})
-  {
+  constructor(editor: TInteractiveInkEditor, config: Partial<TOverlayConfig> = {}) {
     super(editor, LoggerCategory.SVGDEBUG)
-    this.#config = { ...DefaultOverlayConfig, ...config }
+    this.#config = {
+      ...DefaultOverlayConfig,
+      ...config,
+    }
     this.#colorManager = ColorPaletteManager.getInstance()
   }
 
-  updateConfig(config: Partial<TOverlayConfig>): void
-  {
+  updateConfig(config: Partial<TOverlayConfig>): void {
     this.logger.debug("updateConfig", config)
     this.#config = { ...this.#config, ...config }
     this.refresh()
   }
 
-  getConfig(): TOverlayConfig
-  {
+  getConfig(): TOverlayConfig {
     return { ...this.#config }
   }
 
-  protected drawBadge(box: TBox, id: string, content: string): void
-  {
+  protected drawBadge(box: TBox, id: string, content: string): void {
     const badgeId = `badge-${id}`.replace(/[^a-zA-Z0-9_-]/g, "_")
     this.renderer.removeSymbol(badgeId)
 
@@ -106,38 +106,43 @@ export class IIOverlayManager extends IIAbstractManager
     const badgeGroup = SVGBuilder.createGroup({
       id: badgeId,
       "data-overlay": "badge",
-      "data-block-id": id
+      "data-block-id": id,
     })
 
     const circle = SVGBuilder.createCircle(
-      { x: badgeX + size / 2, y: badgeY + size / 2 },
+      {
+        x: badgeX + size / 2,
+        y: badgeY + size / 2,
+      },
       size / 2,
       {
         fill: IIOverlayManager.BADGE_STYLES.BACKGROUND,
         stroke: IIOverlayManager.BADGE_STYLES.BORDER,
         "stroke-width": "1",
-        style: SVGRendererConst.noSelection
+        style: SVGRendererConst.noSelection,
       }
     )
     badgeGroup.appendChild(circle)
 
     const text = SVGBuilder.createText(
-      { x: badgeX + size / 2, y: badgeY + size / 2 + 5 },
+      {
+        x: badgeX + size / 2,
+        y: badgeY + size / 2 + 5,
+      },
       content,
       {
         fill: "#000000",
         "font-size": IIOverlayManager.BADGE_STYLES.FONT_SIZE.toString(),
         "font-weight": "bold",
         "text-anchor": "middle",
-        style: SVGRendererConst.noSelection
+        style: SVGRendererConst.noSelection,
       }
     )
     badgeGroup.appendChild(text)
     this.renderer.layer.appendChild(badgeGroup)
   }
 
-  protected drawBorder(box: TBox, id: string, color: string = "#cccccc", dashArray?: string): void
-  {
+  protected drawBorder(box: TBox, id: string, color: string = "#cccccc", dashArray?: string): void {
     const borderId = `border-${id}`.replace(/[^a-zA-Z0-9_-]/g, "_")
     this.renderer.removeSymbol(borderId)
 
@@ -148,7 +153,7 @@ export class IIOverlayManager extends IIAbstractManager
       "stroke-width": this.#config.borderWidth.toString(),
       "data-overlay": "border",
       "data-block-id": id,
-      style: SVGRendererConst.noSelection
+      style: SVGRendererConst.noSelection,
     }
     if (dashArray) {
       attrs["stroke-dasharray"] = dashArray
@@ -158,9 +163,10 @@ export class IIOverlayManager extends IIAbstractManager
     this.renderer.layer.appendChild(rect)
   }
 
-  protected drawLabel(box: TBox, id: string, fullLabel: string): void
-  {
-    if (!fullLabel) return
+  protected drawLabel(box: TBox, id: string, fullLabel: string): void {
+    if (!fullLabel) {
+      return
+    }
 
     const labelId = `label-${this.sanitizeId(id)}`
     this.renderer.removeSymbol(labelId)
@@ -185,11 +191,16 @@ export class IIOverlayManager extends IIAbstractManager
       id: labelId,
       "data-overlay": "label",
       "data-block-id": id,
-      style: `pointer-events: all; ${cursorStyle}${NO_SELECT}`
+      style: `pointer-events: all; ${cursorStyle}${NO_SELECT}`,
     })
 
     const bgRect = SVGBuilder.createRect(
-      { x: chipX, y: chipY, width: shortLabel.length * CHAR_WIDTH + PADDING_H * 2, height: chipHeight },
+      {
+        x: chipX,
+        y: chipY,
+        width: shortLabel.length * CHAR_WIDTH + PADDING_H * 2,
+        height: chipHeight,
+      },
       {
         fill: IIOverlayManager.BADGE_STYLES.BACKGROUND,
         stroke: IIOverlayManager.BADGE_STYLES.BORDER,
@@ -200,13 +211,16 @@ export class IIOverlayManager extends IIAbstractManager
     group.appendChild(bgRect)
 
     const textEl = SVGBuilder.createText(
-      { x: chipX + PADDING_H, y: chipY + FONT_SIZE + PADDING_V - 1 },
+      {
+        x: chipX + PADDING_H,
+        y: chipY + FONT_SIZE + PADDING_V - 1,
+      },
       shortLabel,
       {
         fill: "#333333",
         "font-size": FONT_SIZE.toString(),
         "font-family": "monospace",
-        style: "pointer-events: none;"
+        style: "pointer-events: none;",
       }
     )
     group.appendChild(textEl)
@@ -228,8 +242,7 @@ export class IIOverlayManager extends IIAbstractManager
     this.renderer.layer.appendChild(group)
   }
 
-  protected createHoverZone(bounds: TBox, blockId: string): void
-  {
+  protected createHoverZone(bounds: TBox, blockId: string): void {
     const id = `hover-zone-${blockId}`.replace(/[^a-zA-Z0-9_-]/g, "_")
     this.renderer.removeSymbol(id)
 
@@ -239,7 +252,7 @@ export class IIOverlayManager extends IIAbstractManager
       stroke: "transparent",
       "data-overlay": "hover-zone",
       "data-block-id": blockId,
-      style: "pointer-events: all;"
+      style: "pointer-events: all;",
     }
 
     const hoverZone = SVGBuilder.createRect(bounds, attrs)
@@ -257,23 +270,21 @@ export class IIOverlayManager extends IIAbstractManager
     this.renderer.layer.appendChild(hoverZone)
   }
 
-  private getMathBlockBounds(mathBlock: TJIIXMathElement): TBox | null
-  {
+  private getMathBlockBounds(mathBlock: TJIIXMathElement): TBox | null {
     if (mathBlock["bounding-box"]) {
       return convertBoundingBoxMillimeterToPixel(mathBlock["bounding-box"])
     }
     const blockStrokes = this.editor.model.symbols.filter(
-      s => isStroke(s) && (s as TStroke).jiixBlockId === mathBlock.id
+      (s) => isStroke(s) && (s as TStroke).jiixBlockId === mathBlock.id
     ) as TStroke[]
     if (!blockStrokes.length) {
       this.logger.warn("getMathBlockBounds", `Math block ${mathBlock.id} has no bounding box and no strokes`)
       return null
     }
-    return BoxOps.createFromBoxes(blockStrokes.map(s => OBBOps.toBox(s.bounds)))
+    return BoxOps.createFromBoxes(blockStrokes.map((s) => OBBOps.toBox(s.bounds)))
   }
 
-  refresh(): void
-  {
+  refresh(): void {
     this.logger.info("refresh")
     if (!this.model) {
       this.logger.warn("refresh", "Model not available")
@@ -281,36 +292,42 @@ export class IIOverlayManager extends IIAbstractManager
     }
     this.clearAll()
 
-    this.model.mathBlocks.forEach(mathBlock => {
+    this.model.mathBlocks.forEach((mathBlock) => {
       const bounds = this.getMathBlockBounds(mathBlock)
-      if (bounds) this.createHoverZone(bounds, mathBlock.id)
+      if (bounds) {
+        this.createHoverZone(bounds, mathBlock.id)
+      }
     })
 
-    if (!this.#config.showBlockOverlays) return
+    if (!this.#config.showBlockOverlays) {
+      return
+    }
 
     this.refreshMathOverlays()
     this.refreshTextOverlays()
     this.refreshEdgeNodeOverlays()
   }
 
-  protected refreshMathOverlays(): void
-  {
-    this.model.mathBlocks.forEach(mathBlock => {
+  protected refreshMathOverlays(): void {
+    this.model.mathBlocks.forEach((mathBlock) => {
       const bounds = this.getMathBlockBounds(mathBlock)
       if (bounds) {
         const blockId = mathBlock.id
         this.drawBadge(bounds, blockId, IIOverlayManager.BADGE_STYLES.MATH)
         this.drawBorder(bounds, blockId)
-        if (mathBlock.label) this.drawLabel(bounds, blockId, mathBlock.label)
+        if (mathBlock.label) {
+          this.drawLabel(bounds, blockId, mathBlock.label)
+        }
       }
     })
   }
 
-  protected refreshTextOverlays(): void
-  {
+  protected refreshTextOverlays(): void {
     const jiix = this.model.exports?.["application/vnd.myscript.jiix"]
-    if (!jiix) return
-    this.model.textBlocks.forEach(textBlock => {
+    if (!jiix) {
+      return
+    }
+    this.model.textBlocks.forEach((textBlock) => {
       const box = convertBoundingBoxMillimeterToPixel(textBlock["bounding-box"])
       const blockId = `text-${textBlock.id}`
       this.drawBadge(box, blockId, IIOverlayManager.BADGE_STYLES.TEXT)
@@ -319,12 +336,15 @@ export class IIOverlayManager extends IIAbstractManager
     })
   }
 
-  protected refreshEdgeNodeOverlays(): void
-  {
+  protected refreshEdgeNodeOverlays(): void {
     const jiix = this.model.exports?.["application/vnd.myscript.jiix"]
-    if (!jiix) return
+    if (!jiix) {
+      return
+    }
     jiix.elements?.forEach((el, elIndex) => {
-      if (!el["bounding-box"]) return
+      if (!el["bounding-box"]) {
+        return
+      }
       const box = convertBoundingBoxMillimeterToPixel(el["bounding-box"])
       if (el.type === "Node") {
         const blockId = `node-${elIndex}`
@@ -340,30 +360,38 @@ export class IIOverlayManager extends IIAbstractManager
     })
   }
 
-  clearAll(): void
-  {
+  clearAll(): void {
     this.logger.info("clearAll")
-    this.renderer.clearElements({ attrs: { "data-overlay": "badge" } })
-    this.renderer.clearElements({ attrs: { "data-overlay": "border" } })
-    this.renderer.clearElements({ attrs: { "data-overlay": "result-panel" } })
-    this.renderer.clearElements({ attrs: { "data-overlay": "result-connection" } })
-    this.renderer.clearElements({ attrs: { "data-overlay": "hover-zone" } })
-    this.renderer.clearElements({ attrs: { "data-overlay": "arrow" } })
-    this.renderer.clearElements({ attrs: { "data-overlay": "label" } })
+    this.renderer.clearElements({
+      attrs: { "data-overlay": "badge" },
+    })
+    this.renderer.clearElements({
+      attrs: { "data-overlay": "border" },
+    })
+    this.renderer.clearElements({
+      attrs: { "data-overlay": "result-panel" },
+    })
+    this.renderer.clearElements({
+      attrs: {
+        "data-overlay": "result-connection",
+      },
+    })
+    this.renderer.clearElements({
+      attrs: { "data-overlay": "hover-zone" },
+    })
+    this.renderer.clearElements({
+      attrs: { "data-overlay": "arrow" },
+    })
+    this.renderer.clearElements({
+      attrs: { "data-overlay": "label" },
+    })
   }
 
-  protected sanitizeId(id: string): string
-  {
+  protected sanitizeId(id: string): string {
     return id.replace(/[^a-zA-Z0-9_-]/g, "_")
   }
 
-  protected drawOverlayRect(
-    id: string,
-    bounds: TBox,
-    idPrefix: string,
-    attrs: Partial<Record<string, string>>
-  ): void
-  {
+  protected drawOverlayRect(id: string, bounds: TBox, idPrefix: string, attrs: Partial<Record<string, string>>): void {
     const elemId = this.sanitizeId(`${idPrefix}-${id}`)
     this.renderer.removeSymbol(elemId)
 
@@ -373,35 +401,32 @@ export class IIOverlayManager extends IIAbstractManager
       "data-overlay": attrs["data-overlay"] || idPrefix,
       "data-block-id": id,
       style: attrs.style || "pointer-events: none;",
-      ...attrs
+      ...attrs,
     }
 
     const rect = SVGBuilder.createRect(bounds, finalAttrs)
     this.renderer.layer.appendChild(rect)
   }
 
-  highlightPrimary(id: string, bounds: TBox, color?: string): void
-  {
+  highlightPrimary(id: string, bounds: TBox, color?: string): void {
     this.drawOverlayRect(id, bounds, "highlight-source", {
       stroke: color || "var(--iink-success)",
       "stroke-width": "3",
       "stroke-dasharray": "5 3",
-      "data-overlay": "highlight"
+      "data-overlay": "highlight",
     })
   }
 
-  highlightLinked(id: string, bounds: TBox): void
-  {
+  highlightLinked(id: string, bounds: TBox): void {
     this.drawOverlayRect(id, bounds, "highlight-dependent", {
       stroke: "var(--iink-warning)",
       "stroke-width": "3",
       "stroke-dasharray": "5 3",
-      "data-overlay": "highlight"
+      "data-overlay": "highlight",
     })
   }
 
-  highlightWithColor(box: TBox, symbolId: string, colorKey: string): void
-  {
+  highlightWithColor(box: TBox, symbolId: string, colorKey: string): void {
     const color = this.#colorManager.getColorForVariable(colorKey)
     this.drawOverlayRect(`${symbolId}-${colorKey}`, box, "highlight-colored", {
       stroke: color,
@@ -411,38 +436,40 @@ export class IIOverlayManager extends IIAbstractManager
     })
   }
 
-  addHoverGlow(id: string, bounds: TBox): void
-  {
+  addHoverGlow(id: string, bounds: TBox): void {
     this.drawOverlayRect(id, bounds, "glow", {
       stroke: "var(--iink-primary)",
       "stroke-width": "2",
       "data-overlay": "glow",
-      style: "pointer-events: none; filter: drop-shadow(0 0 8px color-mix(in srgb, var(--iink-primary) 60%, transparent));"
+      style:
+        "pointer-events: none; filter: drop-shadow(0 0 8px color-mix(in srgb, var(--iink-primary) 60%, transparent));",
     })
   }
 
-  dimSymbol(id: string, bounds: TBox, opacity: number = 0.3): void
-  {
+  dimSymbol(id: string, bounds: TBox, opacity: number = 0.3): void {
     this.drawOverlayRect(id, bounds, "dim", {
       fill: "var(--iink-editor-bg)",
       opacity: (1 - opacity).toString(),
-      "data-overlay": "dim"
+      "data-overlay": "dim",
     })
   }
 
-  clearHighlights(): void
-  {
-    this.renderer.clearElements({ attrs: { "data-overlay": "highlight" } })
-    this.renderer.clearElements({ attrs: { "data-overlay": "glow" } })
+  clearHighlights(): void {
+    this.renderer.clearElements({
+      attrs: { "data-overlay": "highlight" },
+    })
+    this.renderer.clearElements({
+      attrs: { "data-overlay": "glow" },
+    })
   }
 
-  clearDimming(): void
-  {
-    this.renderer.clearElements({ attrs: { "data-overlay": "dim" } })
+  clearDimming(): void {
+    this.renderer.clearElements({
+      attrs: { "data-overlay": "dim" },
+    })
   }
 
-  apply(): void
-  {
+  apply(): void {
     this.refresh()
   }
 }
