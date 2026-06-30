@@ -7,7 +7,7 @@ import { EdgeUtil } from "./edge/EdgeUtil"
 import { DecoratorUtil } from "./decorator/DecoratorUtil"
 
 /**
- * @group Symbol
+ * @group SymbolUtils
  */
 export function registerBuiltinSymbolUtils(): void
 {

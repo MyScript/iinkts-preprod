@@ -1,11 +1,12 @@
-import { EdgeArcOps } from "../../../../src/symbol/edge/Arc"
+import { EdgeArcOps } from "@/symbol/edge/Arc"
 import
 {
+  OBBOps,
   TPoint,
   DefaultStyle,
   TStyle,
   TBox,
-} from "../../../../src/iink"
+} from "@/iink"
 
 describe("Arc.ts", () =>
 {
@@ -29,10 +30,9 @@ describe("Arc.ts", () =>
       expect(arc.creationTime).toBeLessThanOrEqual(Date.now())
       expect(arc.creationTime).toEqual(arc.modificationDate)
       expect(arc.style).toEqual(expect.objectContaining(style))
-      expect(arc.selected).toEqual(false)
       expect(arc.center).toEqual(center)
-      expect(arc.bounds.x).toEqual(-15)
-      expect(arc.bounds.y).toEqual(-5)
+      expect(OBBOps.toBox(arc.bounds).x).toEqual(-15)
+      expect(OBBOps.toBox(arc.bounds).y).toEqual(-5)
       expect(+arc.bounds.width.toFixed(0)).toEqual(27)
       expect(+arc.bounds.height.toFixed(0)).toEqual(60)
     })

@@ -1,11 +1,11 @@
+import { buildIICircle, buildIIStroke } from "../helpers"
 import
 {
   EditorEvent,
   EditorEventName,
   TExport,
   EditorTool
-} from "../../../src/iink"
-import { buildIICircle, buildIIStroke } from "../helpers"
+} from "@/iink"
 
 describe('EditorEvent.ts', () =>
 {

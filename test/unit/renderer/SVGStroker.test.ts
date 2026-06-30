@@ -1,5 +1,5 @@
 import { buildStroke } from "../helpers"
-import { SVGStroker } from "../../../src/iink"
+import { SVGStroker } from "@/iink"
 
 describe("SVGStroker.ts", () =>
 {

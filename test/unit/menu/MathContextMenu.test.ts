@@ -1,5 +1,5 @@
 import { createEditorMock, asEditor } from "../__mocks__/createEditorMock"
-import { MathContextMenu } from "../../../src/iink"
+import { MathContextMenu } from "@/iink"
 
 describe("MathContextMenu.ts", () =>
 {

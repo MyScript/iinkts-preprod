@@ -1,6 +1,6 @@
 import { buildIIStroke } from "../../helpers"
 import { createEditorMock, asEditor } from "../../__mocks__/createEditorMock"
-import { IIJiixQueryManager } from "../../../../src/iink"
+import { IIJiixQueryManager } from "@/iink"
 
 describe("IIJiixQueryManager.ts", () =>
 {

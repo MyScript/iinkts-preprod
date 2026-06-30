@@ -5,7 +5,7 @@ import {
   TInteractiveInkSSREditorConfiguration,
   TRecognizerHTTPV1Configuration,
   TRecognizerWebSocketSSRConfiguration
-} from "../../../src/iink"
+} from "@/iink"
 
 export const RecognizerWebSocketSSRTextConfiguration: TRecognizerWebSocketSSRConfiguration = {
   server: {

@@ -1,11 +1,11 @@
-import { ShapeEllipseOps } from "../../../../src/symbol/shape/Ellipse"
-import
-{
+import { ShapeEllipseOps } from "@/symbol/shape/Ellipse"
+import {
+  OBBOps,
   TPoint,
   DefaultStyle,
   TStyle,
   TBox
-} from "../../../../src/iink"
+} from "@/iink"
 
 describe("Ellipse.ts", () =>
 {
@@ -26,12 +26,11 @@ describe("Ellipse.ts", () =>
       expect(ellipse.creationTime).toBeLessThanOrEqual(Date.now())
       expect(ellipse.creationTime).toEqual(ellipse.modificationDate)
       expect(ellipse.style).toEqual(expect.objectContaining(style))
-      expect(ellipse.selected).toEqual(false)
       expect(ellipse.center).toEqual(center)
       expect(ellipse.radiusX).toEqual(radiusX)
       expect(ellipse.radiusY).toEqual(radiusY)
-      expect(ellipse.bounds.x).toEqual(0)
-      expect(ellipse.bounds.y).toEqual(-10)
+      expect(OBBOps.toBox(ellipse.bounds).x).toEqual(0)
+      expect(OBBOps.toBox(ellipse.bounds).y).toEqual(-10)
       expect(ellipse.bounds.width).toEqual(10)
       expect(ellipse.bounds.height).toEqual(20)
       expect(ellipse.vertices).toHaveLength(8)
@@ -71,7 +70,6 @@ describe("Ellipse.ts", () =>
       expect(ellipse.creationTime).toBeLessThanOrEqual(Date.now())
       expect(ellipse.creationTime).toEqual(ellipse.modificationDate)
       expect(ellipse.style).toEqual(expect.objectContaining(style))
-      expect(ellipse.selected).toEqual(false)
       expect(ellipse.center).toEqual({ x: 2.5, y: 4 })
       expect(ellipse.radiusX).toEqual(1.5)
       expect(ellipse.radiusY).toEqual(2)
@@ -93,8 +91,8 @@ describe("Ellipse.ts", () =>
       expect(ellipse.radiusY).toEqual(0)
       expect(ellipse.bounds.height).toEqual(0)
       expect(ellipse.bounds.width).toEqual(0)
-      expect(ellipse.bounds.x).toEqual(1)
-      expect(ellipse.bounds.y).toEqual(2)
+      expect(OBBOps.toBox(ellipse.bounds).x).toEqual(1)
+      expect(OBBOps.toBox(ellipse.bounds).y).toEqual(2)
       expect(ellipse.vertices).toHaveLength(8)
     })
     test("should create when origin is at the top left", () =>
@@ -107,8 +105,8 @@ describe("Ellipse.ts", () =>
       expect(ellipse.radiusY).toEqual(10)
       expect(ellipse.bounds.width).toEqual(10)
       expect(ellipse.bounds.height).toEqual(20)
-      expect(ellipse.bounds.x).toEqual(1)
-      expect(ellipse.bounds.y).toEqual(2)
+      expect(OBBOps.toBox(ellipse.bounds).x).toEqual(1)
+      expect(OBBOps.toBox(ellipse.bounds).y).toEqual(2)
     })
     test("should create when origin is at the top right", () =>
     {
@@ -120,8 +118,8 @@ describe("Ellipse.ts", () =>
       expect(ellipse.radiusY).toEqual(10)
       expect(ellipse.bounds.width).toEqual(10)
       expect(ellipse.bounds.height).toEqual(20)
-      expect(ellipse.bounds.x).toEqual(1)
-      expect(ellipse.bounds.y).toEqual(2)
+      expect(OBBOps.toBox(ellipse.bounds).x).toEqual(1)
+      expect(OBBOps.toBox(ellipse.bounds).y).toEqual(2)
     })
     test("should create when origin is at the bottom right", () =>
     {
@@ -133,8 +131,8 @@ describe("Ellipse.ts", () =>
       expect(ellipse.radiusY).toEqual(10)
       expect(ellipse.bounds.width).toEqual(10)
       expect(ellipse.bounds.height).toEqual(20)
-      expect(ellipse.bounds.x).toEqual(1)
-      expect(ellipse.bounds.y).toEqual(2)
+      expect(OBBOps.toBox(ellipse.bounds).x).toEqual(1)
+      expect(OBBOps.toBox(ellipse.bounds).y).toEqual(2)
     })
     test("should create when origin is at the bottom left", () =>
     {
@@ -146,8 +144,8 @@ describe("Ellipse.ts", () =>
       expect(ellipse.radiusY).toEqual(10)
       expect(ellipse.bounds.width).toEqual(10)
       expect(ellipse.bounds.height).toEqual(20)
-      expect(ellipse.bounds.x).toEqual(1)
-      expect(ellipse.bounds.y).toEqual(2)
+      expect(OBBOps.toBox(ellipse.bounds).x).toEqual(1)
+      expect(OBBOps.toBox(ellipse.bounds).y).toEqual(2)
     })
   })
 
@@ -167,16 +165,16 @@ describe("Ellipse.ts", () =>
       expect(ellipse.radiusY).toEqual(2)
       expect(ellipse.bounds.width).toEqual(3)
       expect(ellipse.bounds.height).toEqual(4)
-      expect(ellipse.bounds.x).toEqual(1)
-      expect(ellipse.bounds.y).toEqual(2)
+      expect(OBBOps.toBox(ellipse.bounds).x).toEqual(1)
+      expect(OBBOps.toBox(ellipse.bounds).y).toEqual(2)
       ShapeEllipseOps.updateBetweenPoints(ellipse, origin, { x: target.x + 6, y: target.y })
       expect(ellipse.center).toEqual({ x: 5.5, y: 4 })
       expect(ellipse.radiusX).toEqual(4.5)
       expect(ellipse.radiusY).toEqual(2)
       expect(ellipse.bounds.width).toEqual(9)
       expect(ellipse.bounds.height).toEqual(4)
-      expect(ellipse.bounds.x).toEqual(1)
-      expect(ellipse.bounds.y).toEqual(2)
+      expect(OBBOps.toBox(ellipse.bounds).x).toEqual(1)
+      expect(OBBOps.toBox(ellipse.bounds).y).toEqual(2)
     })
     test("should updateBetweenPoints when target y increase", () =>
     {
@@ -186,8 +184,8 @@ describe("Ellipse.ts", () =>
       expect(ellipse.radiusY).toEqual(4)
       expect(ellipse.bounds.width).toEqual(3)
       expect(ellipse.bounds.height).toEqual(8)
-      expect(ellipse.bounds.x).toEqual(1)
-      expect(ellipse.bounds.y).toEqual(2)
+      expect(OBBOps.toBox(ellipse.bounds).x).toEqual(1)
+      expect(OBBOps.toBox(ellipse.bounds).y).toEqual(2)
     })
   })
 

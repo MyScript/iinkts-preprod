@@ -1,4 +1,4 @@
-import { Modal, TModalConfig } from "../../../src/iink"
+import { Modal, TModalConfig } from "@/iink"
 
 describe("Modal.ts", () =>
 {

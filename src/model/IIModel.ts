@@ -18,6 +18,8 @@ export class IIModel
   exports?: TExport
   rowHeight: number
   idle: boolean
+  selectedIds: Set<string>
+  deletingIds: Set<string>
 
   constructor(rowHeight = 0, creationDate = Date.now())
   {
@@ -27,6 +29,8 @@ export class IIModel
     this.symbols = []
     this.exports = undefined
     this.idle = true
+    this.selectedIds = new Set()
+    this.deletingIds = new Set()
   }
 
   /**
@@ -43,7 +47,12 @@ export class IIModel
 
   get symbolsSelected(): TSymbol[]
   {
-    return this.symbols.filter(s => s.selected)
+    return this.symbols.filter(s => this.selectedIds.has(s.id))
+  }
+
+  get symbolsDeleting(): TSymbol[]
+  {
+    return this.symbols.filter(s => this.deletingIds.has(s.id))
   }
 
   /**
@@ -78,25 +87,17 @@ export class IIModel
 
   selectSymbol(id: string): void
   {
-    this.#syncMap()
-    const symbol = this.#symbolsMap.get(id)
-    if (symbol) {
-      symbol.selected = true
-    }
+    this.selectedIds.add(id)
   }
 
   unselectSymbol(id: string): void
   {
-    this.#syncMap()
-    const symbol = this.#symbolsMap.get(id)
-    if (symbol) {
-      symbol.selected = false
-    }
+    this.selectedIds.delete(id)
   }
 
   resetSelection(): void
   {
-    this.symbols.forEach(s => s.selected = false)
+    this.selectedIds.clear()
   }
 
   getRootSymbol(id: string): TSymbol | undefined
@@ -110,7 +111,7 @@ export class IIModel
   getSymbolRowIndex(symbol: TSymbol): number
   {
     // Use symbol bounds yMid for row calculation
-    return Math.round((symbol.bounds.y + symbol.bounds.height / 2) / this.rowHeight)
+    return Math.round(symbol.bounds.center.y / this.rowHeight)
   }
 
   getSymbolsByRowOrdered(): { rowIndex: number, symbols: TSymbol[] }[]
@@ -129,7 +130,7 @@ export class IIModel
 
     const rows: { rowIndex: number, symbols: TSymbol[] }[] = []
     rowsMap.forEach((symbols, rowIndex) => {
-      symbols.sort((s1, s2) => (s1.bounds.x + s1.bounds.width / 2) - (s2.bounds.x + s2.bounds.width / 2))
+      symbols.sort((s1, s2) => s1.bounds.center.x - s2.bounds.center.x)
       rows.push({ rowIndex, symbols })
     })
 
@@ -165,7 +166,7 @@ export class IIModel
         if (this.getSymbolRowIndex(previous) < this.getSymbolRowIndex(current)) {
           return previous
         }
-        else if (this.getSymbolRowIndex(previous) == this.getSymbolRowIndex(current) && (previous.bounds.x + previous.bounds.width / 2) < (current.bounds.x + current.bounds.width / 2)) {
+        else if (this.getSymbolRowIndex(previous) == this.getSymbolRowIndex(current) && previous.bounds.center.x < current.bounds.center.x) {
           return previous
         }
       }
@@ -185,7 +186,7 @@ export class IIModel
         if (this.getSymbolRowIndex(previous) < this.getSymbolRowIndex(current)) {
           return current
         }
-        else if ((previous.bounds.x + previous.bounds.width / 2) > (current.bounds.x + current.bounds.width / 2)) {
+        else if (previous.bounds.center.x > current.bounds.center.x) {
           return previous
         }
       }
@@ -300,7 +301,6 @@ export class IIModel
     clonedModel.symbols = this.symbols.map(s =>
     {
       const c = cloneSymbol(s)
-      c.selected = false
       clonedModel.#symbolsMap.set(c.id, c)
       return c
     })

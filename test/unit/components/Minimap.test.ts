@@ -1,6 +1,8 @@
-import { Minimap } from "../../../src/iink"
-import type { InteractiveInkEditor } from "../../../src/iink"
 import { LeftClickEventMock } from "../__mocks__/EventMock"
+import {
+  type InteractiveInkEditor,
+  Minimap
+} from "@/iink"
 
 function buildMockEditor(overrides: Partial<any> = {}): InteractiveInkEditor
 {

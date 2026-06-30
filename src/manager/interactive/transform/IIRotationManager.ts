@@ -7,8 +7,8 @@ import type {
   TEdge,
   TShape,
   TPoint,
-  TBox
 } from "@/symbol"
+import { type TOBB } from "@/symbol/primitives/OBB"
 import
 {
   EdgeKind,
@@ -172,11 +172,11 @@ export class IIRotationManager extends IIAbstractTransformManager
     const angleRad = convertDegreeToRadian(angleDegree) % TWO_PI
     const oldSymbols = this.model.symbolsSelected.map(s => cloneSymbol(s))
     const matrix = MatrixTransform.identity().rotate(angleRad, this.center)
-    const preTransformBoundsById = new Map<string, TBox>()
+    const preTransformBoundsById = new Map<string, TOBB>()
     this.model.symbolsSelected.forEach(s =>
     {
-      const bounds = (s as unknown as { bounds?: TBox }).bounds
-      if (bounds) preTransformBoundsById.set(s.id, { ...bounds })
+      const bounds = (s as unknown as { bounds?: TOBB }).bounds
+      if (bounds) preTransformBoundsById.set(s.id, { ...bounds, center: { ...bounds.center } })
     })
     this.applyAndDraw(this.model.symbolsSelected, matrix)
     this.editor.connector.updateAnchoredEdges(this.model.symbolsSelected.map(s => s.id), matrix, preTransformBoundsById)

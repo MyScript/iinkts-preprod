@@ -9,7 +9,7 @@ import {
   PointerEventGrabber,
   RecognizerHTTPV1,
   DefaultInkEditorDeprecatedConfiguration
-} from "../../../src/iink"
+} from "@/iink"
 
 describe("InkEditorDeprecated.ts", () =>
 {

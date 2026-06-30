@@ -5,7 +5,7 @@ import {
   GestureHelpers,
   TGesture,
   StrokeOps,
-} from "../../../../../src/iink"
+} from "@/iink"
 
 describe("ScratchGestureHandler.ts", () =>
 {

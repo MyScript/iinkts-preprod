@@ -1,6 +1,10 @@
-import { TBox, TSymbolChar, TPoint } from "../../../../src/iink"
-import { BoxOps } from "../../../../src/iink"
-import { TextOps } from "../../../../src/symbol/text/Text"
+import {
+  TBox,
+  TSymbolChar,
+  TPoint,
+  BoxOps,
+  TextOps
+} from "@/iink"
 
 describe("Text.ts", () =>
 {
@@ -169,7 +173,7 @@ describe("Text.ts", () =>
     {
       const text = TextOps.create(chars, point, box)
       text.rotation = {
-        center: BoxOps.getCenter(text.bounds),
+        center: text.bounds.center,
         degree: 180
       }
       TextOps.updateDerivedFields(text)
@@ -184,7 +188,7 @@ describe("Text.ts", () =>
     {
       const text = TextOps.create(chars, point, box)
       text.rotation = {
-        center: BoxOps.getCenter(text.bounds),
+        center: text.bounds.center,
         degree: 90
       }
       TextOps.updateDerivedFields(text)
@@ -201,7 +205,7 @@ describe("Text.ts", () =>
     {
       const text = TextOps.create(chars, point, box)
       text.rotation = {
-        center: BoxOps.getCenter(text.bounds),
+        center: text.bounds.center,
         degree: 90
       }
       TextOps.updateDerivedFields(text)

@@ -115,7 +115,7 @@ export class InsertGestureHandler extends GestureHandler
     const symbolsAfterGestureInRow = this.model.symbols.filter(s =>
       gestureStroke.id !== s.id &&
       this.model.isSymbolInRow(gestureStroke, s) &&
-      gestureStroke.bounds.x + gestureStroke.bounds.width / 2 < s.bounds.x
+      gestureStroke.bounds.center.x < s.bounds.center.x - s.bounds.width / 2
     )
 
     const symbolToSplit = this.model.getRootSymbol(strokeIdToSplit)
@@ -158,12 +158,12 @@ export class InsertGestureHandler extends GestureHandler
     const symbolsAfterGestureInRow = this.model.symbols.filter(s =>
       gestureStroke.id !== s.id &&
       this.model.isSymbolInRow(gestureStroke, s) &&
-      gestureStroke.bounds.x + gestureStroke.bounds.width / 2 < s.bounds.x
+      gestureStroke.bounds.center.x < s.bounds.center.x - s.bounds.width / 2
     )
     const symbolsBelow = this.model.symbols.filter(s => this.model.isSymbolBelow(gestureStroke, s))
 
-    const charsBefore = textToSplit.chars.filter(c => c.bounds.x + c.bounds.width / 2 <= gestureStroke.bounds.x + gestureStroke.bounds.width / 2)
-    const charsAfter = textToSplit.chars.filter(c => c.bounds.x + c.bounds.width / 2 > gestureStroke.bounds.x + gestureStroke.bounds.width / 2)
+    const charsBefore = textToSplit.chars.filter(c => c.bounds.x + c.bounds.width / 2 <= gestureStroke.bounds.center.x)
+    const charsAfter = textToSplit.chars.filter(c => c.bounds.x + c.bounds.width / 2 > gestureStroke.bounds.center.x)
     const newTexts: TText[] = []
     if (charsBefore.length && charsAfter.length) {
       const textBefore = TextOps.create(charsBefore, textToSplit.point, BoxOps.createFromBoxes(charsBefore.map(c => c.bounds)))
@@ -216,9 +216,9 @@ export class InsertGestureHandler extends GestureHandler
     this.logger.debug("applyInsertGesture", { gestureStroke, gesture })
 
     const symbolsRow = this.model.symbols.filter(s => gestureStroke.id !== s.id && this.model.isSymbolInRow(gestureStroke, s))
-    const textToSplit = symbolsRow.find(s => isText(s) && isBetween(gestureStroke.bounds.x + gestureStroke.bounds.width / 2, s.bounds.x, s.bounds.x + s.bounds.width)) as TText | undefined
-    const symbolsBeforeGestureInRow = symbolsRow.filter(s => gestureStroke.bounds.x + gestureStroke.bounds.width / 2 > s.bounds.x + s.bounds.width)
-    const symbolsAfterGestureInRow = symbolsRow.filter(s => gestureStroke.bounds.x + gestureStroke.bounds.width / 2 < s.bounds.x)
+    const textToSplit = symbolsRow.find(s => isText(s) && isBetween(gestureStroke.bounds.center.x, s.bounds.center.x - s.bounds.width / 2, s.bounds.center.x + s.bounds.width / 2)) as TText | undefined
+    const symbolsBeforeGestureInRow = symbolsRow.filter(s => gestureStroke.bounds.center.x > s.bounds.center.x + s.bounds.width / 2)
+    const symbolsAfterGestureInRow = symbolsRow.filter(s => gestureStroke.bounds.center.x < s.bounds.center.x - s.bounds.width / 2)
 
     const symbolsBelow = this.model.symbols.filter(s => this.model.isSymbolBelow(gestureStroke, s))
 
@@ -234,7 +234,7 @@ export class InsertGestureHandler extends GestureHandler
       const translate: { symbols: TSymbol[], tx: number, ty: number }[] = []
       let translateX = 0
       if (symbolsBeforeGestureInRow.length) {
-        translateX = Math.min(...symbolsBeforeGestureInRow.map(s => s.bounds.x)) - Math.min(...symbolsAfterGestureInRow.map(s => s.bounds.x))
+        translateX = Math.min(...symbolsBeforeGestureInRow.map(s => s.bounds.center.x - s.bounds.width / 2)) - Math.min(...symbolsAfterGestureInRow.map(s => s.bounds.center.x - s.bounds.width / 2))
       }
 
       switch (this.manager.insertAction) {
