@@ -322,7 +322,7 @@ export const StrokeOps = {
     if (!STROKE_LENGTH) {
       return ""
     }
-    const STROKE_WIDTH = stroke.style.width as number
+    const STROKE_WIDTH = stroke.style.width
     const NB_QUADRATICS = STROKE_LENGTH - 2
     const firstPoint = stroke.pointers[0]
     const parts = []
