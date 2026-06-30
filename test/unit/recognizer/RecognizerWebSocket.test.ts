@@ -16,7 +16,8 @@ import
   MatrixTransform,
   TIIHistoryBackendChanges,
   TRecognizerWebSocketConfiguration,
-} from "../../../src/iink"
+} from "@/iink"
+
 import { toResolve } from 'jest-extended'
 expect.extend({ toResolve })
 

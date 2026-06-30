@@ -4,8 +4,9 @@ import
   TPoint,
   DefaultStyle,
   TStyle,
-  TBox
-} from "../../../../src/iink"
+  TBox,
+  OBBOps
+} from "@/iink"
 
 describe("ShapePolygonOps", () =>
 {
@@ -16,9 +17,6 @@ describe("ShapePolygonOps", () =>
     {
       const polygon = ShapePolygonOps.create(points)
       expect(polygon.style).toEqual(DefaultStyle)
-      expect(polygon.selected).toEqual(false)
-      expect(polygon.deleting).toEqual(false)
-      expect(polygon.isClosed).toEqual(true)
     })
     test("should create with custom style", () =>
     {
@@ -34,8 +32,8 @@ describe("ShapePolygonOps", () =>
     test("should compute bounds from points", () =>
     {
       const polygon = ShapePolygonOps.create(points)
-      expect(polygon.bounds.x).toBeLessThanOrEqual(0)
-      expect(polygon.bounds.y).toBeLessThanOrEqual(0)
+      expect(OBBOps.toBox(polygon.bounds).x).toBeLessThanOrEqual(0)
+      expect(OBBOps.toBox(polygon.bounds).y).toBeLessThanOrEqual(0)
       expect(polygon.bounds.width).toBeGreaterThan(0)
       expect(polygon.bounds.height).toBeGreaterThan(0)
     })

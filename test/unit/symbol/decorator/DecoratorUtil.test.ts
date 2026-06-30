@@ -1,8 +1,11 @@
 import { describe, test, expect, beforeEach } from "@jest/globals"
-import { DecoratorUtil } from "../../../../src/symbol-utils/decorator/DecoratorUtil"
-import { DecoratorKind } from "../../../../src/symbol/decorator/Decorator"
-import { SymbolType } from "../../../../src/symbol/Symbol"
 import { buildIIDecorator } from "../../helpers"
+import {
+  DecoratorUtil,
+  DecoratorKind,
+  OBBOps,
+  SymbolType
+} from "@/iink"
 
 describe("DecoratorUtil", () =>
 {
@@ -58,7 +61,7 @@ describe("DecoratorUtil", () =>
     {
       const decorator = util.create({
         kind: DecoratorKind.Highlight,
-        bounds: { x: 0, y: 0, width: 10, height: 10 },
+        bounds: OBBOps.fromBox({ x: 0, y: 0, width: 10, height: 10 }),
       })
       // setBounds is guarded by hasBounds
       expect(() => util.updateDerivedFields(decorator)).not.toThrow()

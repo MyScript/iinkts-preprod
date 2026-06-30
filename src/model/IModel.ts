@@ -18,6 +18,7 @@ export class IModel
   height: number
   rowHeight: number
   idle: boolean
+  deletingIds: Set<string>
 
   constructor(width = 100, height = 100, rowHeight = 0, creationDate = Date.now())
   {
@@ -30,11 +31,12 @@ export class IModel
     this.exports = undefined
     this.converts = undefined
     this.idle = true
+    this.deletingIds = new Set()
   }
 
   get strokesToDelete(): TStroke[]
   {
-    return this.strokes.filter(s => s.deleting)
+    return this.strokes.filter(s => this.deletingIds.has(s.id))
   }
 
   addStroke(stroke: TStroke): void
@@ -105,12 +107,7 @@ export class IModel
     this.#logger.info("clone")
     const clonedModel = new IModel(this.width, this.height, this.rowHeight, this.creationTime)
     clonedModel.modificationDate = this.modificationDate
-    clonedModel.strokes = this.strokes.map(s =>
-    {
-      const c = structuredClone(s)
-      c.selected = false
-      return c
-    })
+    clonedModel.strokes = this.strokes.map(s => structuredClone(s))
     clonedModel.exports = structuredClone(this.exports)
     clonedModel.idle = this.idle
     this.#logger.debug("clone", { clonedModel })

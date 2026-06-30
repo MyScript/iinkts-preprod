@@ -12,6 +12,7 @@ import {
 } from "@/model"
 import type { TStroke, TBox, TSymbol } from "@/symbol"
 import { BoxOps } from "@/symbol/primitives/Box"
+import { OBBOps } from "@/symbol/primitives/OBB"
 import { convertMillimeterToPixel, convertBoundingBoxMillimeterToPixel } from "@/utils"
 import { IIAbstractManager } from "./IIAbstractManager"
 import { LoggerCategory } from "@/logger"
@@ -885,7 +886,7 @@ export class IIJiixQueryManager extends IIAbstractManager
             } else {
               const strokes = this.getStrokeSymbolsForElement(mathEl.id)
               if (!strokes.length) continue
-              bounds = BoxOps.createFromBoxes(strokes.map(s => s.bounds))
+              bounds = BoxOps.createFromBoxes(strokes.map(s => OBBOps.toBox(s.bounds)))
             }
             groups.push({ strokeIds, bounds })
           }

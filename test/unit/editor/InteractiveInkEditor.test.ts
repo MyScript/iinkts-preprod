@@ -14,7 +14,7 @@ import
   ShapeKind,
   TSymbol,
   DecoratorKind,
-} from "../../../src/iink"
+} from "@/iink"
 
 describe("EditorOffscreen.ts", () =>
 {
@@ -372,8 +372,8 @@ describe("EditorOffscreen.ts", () =>
   {
     const editor = new InteractiveInkEditor(document.createElement("div"), EditorOptions)
     const stroke1 = buildIIStroke()
-    stroke1.selected = true
     editor.model.addSymbol(stroke1)
+    editor.model.selectedIds.add(stroke1.id)
     const stroke2 = buildIIStroke()
     editor.model.addSymbol(stroke2)
 
@@ -987,7 +987,7 @@ describe("EditorOffscreen.ts", () =>
         const stroke2 = buildIIStroke()
         editor.model.addSymbol(stroke1)
         editor.model.addSymbol(stroke2)
-        stroke1.selected = true
+        editor.model.selectedIds.add(stroke1.id)
 
         editor.copy()
 
@@ -1018,8 +1018,8 @@ describe("EditorOffscreen.ts", () =>
         const decorator = buildIIDecorator(DecoratorKind.Highlight)
         editor.model.addSymbol(stroke)
         editor.model.addSymbol(decorator)
-        stroke.selected = true
-        decorator.selected = true
+        editor.model.selectedIds.add(stroke.id)
+        editor.model.selectedIds.add(decorator.id)
 
         editor.copy()
 
@@ -1035,8 +1035,8 @@ describe("EditorOffscreen.ts", () =>
         solverStroke.isSolverOutput = true
         editor.model.addSymbol(stroke)
         editor.model.addSymbol(solverStroke)
-        stroke.selected = true
-        solverStroke.selected = true
+        editor.model.selectedIds.add(stroke.id)
+        editor.model.selectedIds.add(solverStroke.id)
 
         editor.copy()
 
@@ -1122,7 +1122,7 @@ describe("EditorOffscreen.ts", () =>
       {
         const stroke = buildIIStroke()
         editor.model.addSymbol(stroke)
-        stroke.selected = true
+        editor.model.selectedIds.add(stroke.id)
 
         await editor.cut()
 
@@ -1134,7 +1134,7 @@ describe("EditorOffscreen.ts", () =>
       {
         const stroke = buildIIStroke()
         editor.model.addSymbol(stroke)
-        stroke.selected = true
+        editor.model.selectedIds.add(stroke.id)
 
         await editor.cut()
 

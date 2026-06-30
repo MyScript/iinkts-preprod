@@ -1,7 +1,8 @@
 import { SELECTION_MARGIN } from "@/Constants"
 import type { TStyle } from "@/style"
-import { BoxOps, type TBox } from "@/symbol/primitives/Box"
+import { BoxOps } from "@/symbol/primitives/Box"
 import type { TPoint } from "@/symbol/primitives/Point"
+import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
 
 /**
  * @group Symbol
@@ -21,7 +22,10 @@ export enum EdgeDecoration
   Arrow = "arrow-head"
 }
 
-export function computeEdgeBounds(vertices: TPoint[], style: TStyle, startDecoration?: EdgeDecoration, endDecoration?: EdgeDecoration): TBox
+/**
+ * @group Symbol
+ */
+export function computeEdgeBounds(vertices: TPoint[], style: TStyle, startDecoration?: EdgeDecoration, endDecoration?: EdgeDecoration): TOBB
 {
   const bb = BoxOps.createFromPoints(vertices)
   bb.x -= SELECTION_MARGIN / 2
@@ -34,5 +38,5 @@ export function computeEdgeBounds(vertices: TPoint[], style: TStyle, startDecora
     bb.height += ((style.width || 1) * 5)
     bb.width += ((style.width || 1) * 5)
   }
-  return bb
+  return OBBOps.fromBox(bb)
 }

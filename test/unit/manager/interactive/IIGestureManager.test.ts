@@ -7,9 +7,10 @@ import
   TSymbolChar,
   IIGestureManager,
   TStroke,
-  TRecognizerWebSocketMessageType
-} from "../../../../src/iink"
-import { BoxOps } from "../../../../src/iink"
+  TRecognizerWebSocketMessageType,
+  BoxOps,
+  OBBOps
+} from "@/iink"
 
 describe("IIGestureManager.ts", () =>
 {
@@ -146,7 +147,7 @@ describe("IIGestureManager.ts", () =>
     {
       const circle = buildIICircle()
       editor.model.addSymbol(circle)
-      const gestureStroke = buildIIStroke({ box: circle.bounds, nbPoint: 100 })
+      const gestureStroke = buildIIStroke({ box: OBBOps.toBox(circle.bounds), nbPoint: 100 })
       const gesture: TGesture = {
         gestureType: "SCRATCH",
         gestureStrokeId: gestureStroke.id,
@@ -320,7 +321,7 @@ describe("IIGestureManager.ts", () =>
       }
       // @ts-expect-error - Method moved to JoinGestureHandler
       await gestMan.applyJoinGesture(strokeGesture, gesture)
-      expect(gestMan.translator.translate).toHaveBeenNthCalledWith(1, [stroke21], (stroke12.bounds.x + stroke12.bounds.width) - stroke21.bounds.x + rowHeight * 2, -rowHeight, false)
+      expect(gestMan.translator.translate).toHaveBeenNthCalledWith(1, [stroke21], (OBBOps.toBox(stroke12.bounds).x + stroke12.bounds.width) - OBBOps.toBox(stroke21.bounds).x + rowHeight * 2, -rowHeight, false)
       expect(gestMan.history.push).toHaveBeenCalledTimes(1)
     })
 
@@ -374,7 +375,7 @@ describe("IIGestureManager.ts", () =>
 
     test("should go down stroke", async () =>
     {
-      const strokeGesture = buildIIStroke({ box: { height: stroke.bounds.height, width: 5, x: stroke.bounds.x - 10, y: stroke.bounds.y } })
+      const strokeGesture = buildIIStroke({ box: { height: stroke.bounds.height, width: 5, x: OBBOps.toBox(stroke.bounds).x - 10, y: OBBOps.toBox(stroke.bounds).y } })
       const gesture: TGesture = {
         gestureType: "JOIN",
         gestureStrokeId: strokeGesture.id,
@@ -438,13 +439,13 @@ describe("IIGestureManager.ts", () =>
       test("should return undefined when the gesture stroke contains no symbols", async () =>
       {
         const gestureStroke = buildIIStroke({ box: { height: 10, width: 10, x: 0, y: 0 } })
-        editor.model.addSymbol(buildIICircle({ center: BoxOps.getCenter(gestureStroke.bounds), radius: Math.max(gestureStroke.bounds.width * 2, gestureStroke.bounds.height * 2) }))
+        editor.model.addSymbol(buildIICircle({ center: BoxOps.getCenter(OBBOps.toBox(gestureStroke.bounds)), radius: Math.max(gestureStroke.bounds.width * 2, gestureStroke.bounds.height * 2) }))
         expect(await gestMan.getGestureFromContextLess(gestureStroke)).toBeUndefined()
       })
       test("should return gesture when the gesture stroke contains symbol", async () =>
       {
         const gestureStroke = buildIIStroke({ box: { height: 10, width: 10, x: 0, y: 0 } })
-        editor.model.addSymbol(buildIICircle({ center: BoxOps.getCenter(gestureStroke.bounds), radius: Math.min(gestureStroke.bounds.width / 2, gestureStroke.bounds.height / 2) }))
+        editor.model.addSymbol(buildIICircle({ center: BoxOps.getCenter(OBBOps.toBox(gestureStroke.bounds)), radius: Math.min(gestureStroke.bounds.width / 2, gestureStroke.bounds.height / 2) }))
         expect(await gestMan.getGestureFromContextLess(gestureStroke)).toEqual(expect.objectContaining({
           gestureType: "SURROUND",
           gestureStrokeId: gestureStroke.id

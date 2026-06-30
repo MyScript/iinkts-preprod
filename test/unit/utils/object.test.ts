@@ -1,4 +1,4 @@
-import { mergeDeep } from '../../../src/iink'
+import { mergeDeep } from '@/iink'
 
 describe('merge', () => {
   const testDatas = [

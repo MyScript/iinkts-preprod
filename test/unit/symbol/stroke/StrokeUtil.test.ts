@@ -1,8 +1,11 @@
 import { describe, test, expect, beforeEach } from "@jest/globals"
-import { StrokeUtil } from "../../../../src/symbol-utils/stroke/StrokeUtil"
-import { StrokeOps } from "../../../../src/iink"
-import { SymbolType } from "../../../../src/symbol/Symbol"
 import { buildIIStroke } from "../../helpers"
+import {
+  StrokeUtil,
+  StrokeOps,
+  OBBOps,
+  SymbolType
+} from "@/iink"
 
 describe("StrokeUtil", () =>
 {
@@ -54,8 +57,8 @@ describe("StrokeUtil", () =>
     {
       const stroke = buildIIStroke({ box: { x: 10, y: 20, width: 30, height: 40 } })
       util.updateDerivedFields(stroke)
-      expect(stroke.bounds.x).toBeCloseTo(10, 0)
-      expect(stroke.bounds.y).toBeCloseTo(20, 0)
+      expect(OBBOps.toBox(stroke.bounds).x).toBeCloseTo(10, 0)
+      expect(OBBOps.toBox(stroke.bounds).y).toBeCloseTo(20, 0)
     })
 
     test("should update snapPoints", () =>

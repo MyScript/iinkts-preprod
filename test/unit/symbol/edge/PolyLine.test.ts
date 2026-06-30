@@ -1,11 +1,12 @@
-import { EdgePolyLineOps } from "../../../../src/symbol/edge/PolyLine"
 import
 {
+  EdgePolyLineOps,
+  OBBOps,
   TPoint,
   DefaultStyle,
   TStyle,
   TBox,
-} from "../../../../src/iink"
+} from "@/iink"
 
 describe("PolyLine.ts", () =>
 {
@@ -23,10 +24,9 @@ describe("PolyLine.ts", () =>
       expect(line.creationTime).toBeLessThanOrEqual(Date.now())
       expect(line.creationTime).toEqual(line.modificationDate)
       expect(line.style).toEqual(expect.objectContaining(style))
-      expect(line.selected).toEqual(false)
       expect(line.points).toEqual(points)
-      expect(line.bounds.x).toEqual(-5)
-      expect(line.bounds.y).toEqual(-5)
+      expect(OBBOps.toBox(line.bounds).x).toEqual(-5)
+      expect(OBBOps.toBox(line.bounds).y).toEqual(-5)
       expect(line.bounds.width).toEqual(15)
       expect(line.bounds.height).toEqual(15)
       expect(line.vertices).toHaveLength(3)

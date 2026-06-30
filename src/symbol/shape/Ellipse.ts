@@ -10,6 +10,7 @@ import { SymbolType } from "@/symbol/Symbol"
 import type { TBaseSymbol } from "@/symbol/Symbol"
 import type { TBox } from "@/symbol/primitives/Box"
 import { BoxOps } from "@/symbol/primitives/Box"
+import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
 import { ShapeKind } from "./Shape-enum"
 
 /**
@@ -18,16 +19,13 @@ import { ShapeKind } from "./Shape-enum"
 export type TShapeEllipse = TBaseSymbol & {
   type: SymbolType.Shape
   kind: ShapeKind.Ellipse
-  isClosed: true
   style: TStyle
-  selected: boolean
-  deleting: boolean
   center: TPoint
   radiusX: number
   radiusY: number
   orientation: number
   vertices: TPoint[]
-  bounds: TBox
+  bounds: TOBB
   snapPoints: TPoint[]
   edges: TSegment[]
 }
@@ -45,19 +43,16 @@ export const ShapeEllipseOps = {
     const ellipse: TShapeEllipse = {
       type: SymbolType.Shape,
       kind: ShapeKind.Ellipse,
-      isClosed: true,
       id: `${ SymbolType.Shape }-${ createUUID() }`,
       style: mergedStyle,
       creationTime: now,
       modificationDate: now,
-      selected: false,
-      deleting: false,
       center,
       radiusX,
       radiusY,
       orientation,
       vertices: [],
-      bounds: { x: 0, y: 0, width: 0, height: 0 },
+      bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0),
       snapPoints: [],
       edges: [],
     }
@@ -85,14 +80,14 @@ export const ShapeEllipseOps = {
       vertices.push(computePointOnEllipse(ellipse.center, ellipse.radiusX, ellipse.radiusY, ellipse.orientation, theta))
     }
     ellipse.vertices = vertices
-    ellipse.bounds = BoxOps.createFromPoints(vertices)
-    ellipse.snapPoints = BoxOps.getSnapPoints(ellipse.bounds)
+    ellipse.bounds = OBBOps.createFromPoints(vertices)
+    ellipse.snapPoints = OBBOps.getSnapPoints(ellipse.bounds)
     ellipse.edges = vertices.map((p, i) => ({ p1: p, p2: vertices[(i + 1) % vertices.length] }))
   },
 
   overlaps(ellipse: TShapeEllipse, box: TBox): boolean
   {
-    return BoxOps.isContained(ellipse.bounds, box) ||
+    return OBBOps.isContained(ellipse.bounds, box) ||
       ellipse.edges.some(e1 => BoxOps.getSides(box).some(e2 => !!findIntersectionBetween2Segment(e1, e2)))
   },
 

@@ -5,7 +5,9 @@ import { findIntersectionBetween2Segment } from "@/utils"
 import { createUUID } from "@/utils/uuid"
 import { isValidPoint, type TPoint, type TSegment } from "@/symbol/primitives/Point"
 import { SymbolType, type TBaseSymbol } from "@/symbol/Symbol"
-import { BoxOps, type TBox } from "@/symbol/primitives/Box"
+import type { TBox } from "@/symbol/primitives/Box"
+import { BoxOps } from "@/symbol/primitives/Box"
+import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
 import { EdgeKind, type EdgeDecoration, computeEdgeBounds } from "./Edge-enum"
 import type { TAnchor } from "./Anchor"
 
@@ -15,10 +17,7 @@ import type { TAnchor } from "./Anchor"
 export type TEdgeLine = TBaseSymbol & {
   type: SymbolType.Edge
   kind: EdgeKind.Line
-  isClosed: false
   style: TStyle
-  selected: boolean
-  deleting: boolean
   startDecoration?: EdgeDecoration
   endDecoration?: EdgeDecoration
   startAnchor?: TAnchor
@@ -26,7 +25,7 @@ export type TEdgeLine = TBaseSymbol & {
   start: TPoint
   end: TPoint
   vertices: TPoint[]
-  bounds: TBox
+  bounds: TOBB
   snapPoints: TPoint[]
   edges: TSegment[]
 }
@@ -44,19 +43,16 @@ export const EdgeLineOps = {
     const line: TEdgeLine = {
       type: SymbolType.Edge,
       kind: EdgeKind.Line,
-      isClosed: false,
       id: `${ SymbolType.Edge }-${ createUUID() }`,
       style: mergedStyle,
       creationTime: now,
       modificationDate: now,
-      selected: false,
-      deleting: false,
       startDecoration,
       endDecoration,
       start,
       end,
       vertices: [],
-      bounds: { x: 0, y: 0, width: 0, height: 0 },
+      bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0),
       snapPoints: [],
       edges: [],
     }
@@ -88,7 +84,7 @@ export const EdgeLineOps = {
 
   overlaps(line: TEdgeLine, box: TBox): boolean
   {
-    return BoxOps.isContained(line.bounds, box) ||
+    return OBBOps.isContained(line.bounds, box) ||
       line.edges.some(e1 => BoxOps.getSides(box).some(e2 => !!findIntersectionBetween2Segment(e1, e2)))
   },
 

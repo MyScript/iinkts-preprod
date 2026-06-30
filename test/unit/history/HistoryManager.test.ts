@@ -1,3 +1,4 @@
+import { EditorEventMock } from "../__mocks__/EditorEventMock"
 import { delay } from "../helpers"
 import
 {
@@ -8,8 +9,7 @@ import
   Model,
   DefaultHistoryConfiguration,
   DefaultPenStyle
-} from "../../../src/iink"
-import { EditorEventMock } from "../__mocks__/EditorEventMock"
+} from "@/iink"
 
 describe("HistoryManager.ts", () =>
 {

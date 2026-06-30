@@ -1,7 +1,7 @@
 import {
   convertMillimeterToPixel,
   convertPixelToMillimeter,
-} from "../../../src/iink"
+} from "@/iink"
 
 const round = (n: number, digit = 2) => Math.round(n * Math.pow(10, digit)) / Math.pow(10, digit)
 

@@ -1,7 +1,7 @@
 import {
   SVGBuilder,
   TPoint,
-} from "../../../src/iink"
+} from "@/iink"
 
 describe("SVGBuilder.ts", () =>
 {

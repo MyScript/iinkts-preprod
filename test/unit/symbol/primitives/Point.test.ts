@@ -1,4 +1,4 @@
-import { isValidPoint } from "../../../../src/iink"
+import { isValidPoint } from "@/iink"
 
 describe("Point.ts", () =>
 {

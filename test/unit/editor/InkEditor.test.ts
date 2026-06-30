@@ -1,12 +1,12 @@
 import { buildIIStroke } from "../helpers"
 import
-  {
-    InkEditor,
-    TInkEditorOptions,
-    RecognizerHTTPV2,
-    DefaultInkEditorConfiguration,
-    IModel
-  } from "../../../src/iink"
+{
+  InkEditor,
+  TInkEditorOptions,
+  RecognizerHTTPV2,
+  DefaultInkEditorConfiguration,
+  IModel
+} from "@/iink"
 
 describe("InkEditor.ts", () =>
 {

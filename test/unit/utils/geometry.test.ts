@@ -16,7 +16,7 @@ import
   isPointInsidePolygon,
   computeRotatedPoint,
   computePointOnEllipse
-} from "../../../src/iink"
+} from "@/iink"
 
 describe("geometry.ts", () =>
 {

@@ -1,4 +1,4 @@
-import { MatrixTransform, TPoint } from "../../../src/iink"
+import { MatrixTransform, TPoint } from "@/iink"
 
 describe("MatrixTransform.ts", () =>
 {

@@ -4,7 +4,7 @@ import
   TExport,
   RecognizerWebSocketSSR,
   DefaultInteractiveInkSSREditorConfiguration
-} from "../../../src/iink"
+} from "@/iink"
 
 export class RecognizerWebSocketSSRMock extends RecognizerWebSocketSSR
 {

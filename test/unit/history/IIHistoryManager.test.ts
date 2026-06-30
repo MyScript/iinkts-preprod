@@ -1,3 +1,4 @@
+import { EditorEventMock } from "../__mocks__/EditorEventMock"
 import { buildIIStroke } from "../helpers"
 import
 {
@@ -7,8 +8,7 @@ import
   IIModel,
   DefaultHistoryConfiguration,
   MatrixTransform,
-} from "../../../src/iink"
-import { EditorEventMock } from "../__mocks__/EditorEventMock"
+} from "@/iink"
 
 describe("IIHistoryManager.ts", () =>
 {

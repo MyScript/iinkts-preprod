@@ -1,6 +1,6 @@
 import type { TDecorator, TStroke, TText, TBox, DecoratorKind} from "@/symbol";
 import { SymbolType, isDecorator, isRecognizedText, isText, type TSymbol } from "@/symbol"
-import { BoxOps } from "@/symbol/primitives/Box"
+import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
 import { DecoratorOps } from "@/symbol/decorator/Decorator"
 import type { TIIHistoryChanges } from "@/history"
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
@@ -100,7 +100,7 @@ export class IIGestureAnnotationProcessor
       erased.push(existing)
     } else {
       const decorator = DecoratorOps.create(kind, this.editor.penStyle, targetIds)
-      if (wordBounds) DecoratorOps.setBounds(decorator, wordBounds)
+      if (wordBounds) DecoratorOps.setBounds(decorator, OBBOps.fromBox(wordBounds))
       else {
         const bounds = this.#computeBoundsFromTargets(targetIds)
         if (bounds) DecoratorOps.setBounds(decorator, bounds)
@@ -137,13 +137,13 @@ export class IIGestureAnnotationProcessor
     return b.every(id => setA.has(id))
   }
 
-  #computeBoundsFromTargets(targetIds: string[]): TBox | null
+  #computeBoundsFromTargets(targetIds: string[]): TOBB | null
   {
     const syms = targetIds
       .map(id => this.editor.model.getRootSymbol(id))
       .filter((s): s is TSymbol => !!s)
     if (!syms.length) return null
-    return BoxOps.createFromBoxes(syms.map(s => s.bounds))
+    return OBBOps.createFromOBBs(syms.map(s => s.bounds))
   }
 
   #applyThicken(ids: string[], factor: number): TStroke[]

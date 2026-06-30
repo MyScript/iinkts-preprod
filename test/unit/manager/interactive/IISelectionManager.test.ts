@@ -1,14 +1,15 @@
-import { buildIIStroke } from "../../helpers"
 import { createEditorMock, asEditor } from "../../__mocks__/createEditorMock"
+import { LeftClickEventMock, RightClickEventMock } from "../../__mocks__/EventMock"
+import { buildIIStroke } from "../../helpers"
 import
 {
   IISelectionManager,
+  OBBOps,
   TBox,
   SvgElementRole,
   ResizeDirection,
   TPointerInfo,
-} from "../../../../src/iink"
-import { LeftClickEventMock, RightClickEventMock } from "../../__mocks__/EventMock"
+} from "@/iink"
 
 describe("IISelectionManager.ts", () =>
 {
@@ -108,8 +109,8 @@ describe("IISelectionManager.ts", () =>
       const group = editor.renderer.layer.querySelector(`[role=${ SvgElementRole.InteractElementsGroup }]`) as SVGGElement
       expect(group).not.toBeNull()
       const translateRect = group?.querySelector(`[role=${ SvgElementRole.Translate }]`)
-      expect(translateRect?.getAttribute("x")).toEqual((stroke.bounds.x - (stroke.style.width || 1)).toString())
-      expect(translateRect?.getAttribute("y")).toEqual((stroke.bounds.y - (stroke.style.width || 1)).toString())
+      expect(translateRect?.getAttribute("x")).toEqual((OBBOps.toBox(stroke.bounds).x - (stroke.style.width || 1)).toString())
+      expect(translateRect?.getAttribute("y")).toEqual((OBBOps.toBox(stroke.bounds).y - (stroke.style.width || 1)).toString())
       expect(translateRect?.getAttribute("width")).toEqual((stroke.bounds.width + 2 * (stroke.style.width || 1)).toString())
       expect(translateRect?.getAttribute("height")).toEqual((stroke.bounds.height + 2 * (stroke.style.width || 1)).toString())
 
@@ -364,7 +365,7 @@ describe("IISelectionManager.ts", () =>
       manager.continue(info)
       expect(manager.drawSelectingRect).toHaveBeenCalledTimes(1)
       expect(manager.renderer.updateSelectedState).toHaveBeenCalledTimes(1)
-      expect(manager.renderer.updateSelectedState).toHaveBeenCalledWith(strokeToSelect)
+      expect(manager.renderer.updateSelectedState).toHaveBeenCalledWith(strokeToSelect, true)
       expect(manager.model.symbolsSelected).toEqual([strokeToSelect])
     })
 

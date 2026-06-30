@@ -1,4 +1,4 @@
-import { Chart, TChartConfig } from "../../../src/iink"
+import { Chart, TChartConfig } from "@/iink"
 
 describe("Chart.ts", () =>
 {

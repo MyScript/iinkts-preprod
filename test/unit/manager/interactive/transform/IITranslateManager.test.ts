@@ -3,13 +3,14 @@ import
 {
   EdgeLineOps,
   IITranslateManager,
+  OBBOps,
   ShapeCircleOps,
   ShapePolygonOps,
   StrokeOps,
   TPoint,
   SvgElementRole,
-} from "../../../../../src/iink"
-import { MatrixTransform } from "../../../../../src/transform"
+  MatrixTransform
+} from "@/iink"
 
 describe("IITranslateManager.ts", () =>
 {
@@ -87,13 +88,13 @@ describe("IITranslateManager.ts", () =>
     const stroke = StrokeOps.create({})
     StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 0, y: 0 })
     StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 10, y: 50 })
-    stroke.selected = true
     const strokeNotTranslate = structuredClone(stroke)
     editor.model.addSymbol(stroke)
+    editor.model.selectedIds.add(stroke.id)
 
     const translationOrigin: TPoint = {
-      x: stroke.bounds.x + stroke.bounds.width / 2,
-      y: stroke.bounds.y + stroke.bounds.height / 2
+      x: OBBOps.toBox(stroke.bounds).x + stroke.bounds.width / 2,
+      y: OBBOps.toBox(stroke.bounds).y + stroke.bounds.height / 2
     }
 
     const testDatas = [

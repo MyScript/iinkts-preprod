@@ -1,10 +1,10 @@
-import { ShapePolygonOps } from "../../../../src/symbol/shape/Polygon"
 import
 {
+  ShapePolygonOps,
   TPoint,
   TStyle,
   TBox,
-} from "../../../../src/iink"
+} from "@/iink"
 
 describe("Polygon.ts", () =>
 {

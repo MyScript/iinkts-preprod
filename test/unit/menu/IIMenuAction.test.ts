@@ -1,6 +1,6 @@
 import { createEditorMock, asEditor } from "../__mocks__/createEditorMock"
-import { EditorTool, IIMenuAction, StrikeThroughAction, SurroundAction } from "../../../src/iink"
 import { ChangeEventMock, LeftClickEventMock } from "../__mocks__/EventMock"
+import { EditorTool, IIMenuAction, StrikeThroughAction, SurroundAction } from "@/iink"
 
 describe("IIMenuAction.ts", () =>
 {

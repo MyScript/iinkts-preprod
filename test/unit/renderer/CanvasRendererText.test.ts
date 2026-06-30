@@ -1,4 +1,4 @@
-import { CanvasRendererText, DefaultPenStyle, TCanvasTextSymbol, TCanvasTextUnderlineSymbol } from "../../../src/iink"
+import { CanvasRendererText, DefaultPenStyle, TCanvasTextSymbol, TCanvasTextUnderlineSymbol } from "@/iink"
 
 describe("CanvasRendererText.ts", () =>
 {

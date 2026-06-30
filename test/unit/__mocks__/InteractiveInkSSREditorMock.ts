@@ -2,7 +2,7 @@ import
 {
   DefaultInteractiveInkSSREditorConfiguration,
   InteractiveInkSSREditor
-} from "../../../src/iink"
+} from "@/iink"
 import { EditorEventMock } from "./EditorEventMock"
 
 

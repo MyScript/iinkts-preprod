@@ -1,7 +1,8 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
-import type { TEraser, TPoint, TSegment, TBox} from "@/symbol";
+import type { TEraser, TPoint, TSegment } from "@/symbol";
 import { isText } from "@/symbol"
 import { BoxOps } from "@/symbol/primitives/Box"
+import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
 import { EraserOps } from "@/symbol/eraser/Eraser"
 import type { SVGRenderer } from "@/renderer"
 import type { TPointerInfo } from "@/grabber";
@@ -13,7 +14,7 @@ import type { InkEditor } from "@/editor/variants/InkEditor"
 /**
  * @group Manager
  */
-export type THittable = { bounds: TBox; vertices: TPoint[]; edges: TSegment[] }
+export type THittable = { bounds: TOBB; vertices: TPoint[]; edges: TSegment[] }
 
 /**
  * @group Manager
@@ -35,7 +36,7 @@ export class EraseManager
 
   #isHitByPoint(symbol: THittable, point: TPoint, radius: number): boolean
   {
-    const { x, y, width, height } = symbol.bounds
+    const { x, y, width, height } = OBBOps.toBox(symbol.bounds)
     const expanded = { x: x - radius, y: y - radius, width: width + 2 * radius, height: height + 2 * radius }
     if (!BoxOps.containsPoint(expanded, point)) return false
     const edges = symbol.edges
@@ -107,22 +108,23 @@ export class EraseManager
             }
           })
           if (hasHitChar) {
-            s.deleting = true
-            this.renderer.updateDeletingState(s)
+            this.editor.model.deletingIds.add(s.id)
+            this.renderer.updateDeletingState(s, true)
           }
         }
         else if (this.#isHitByPoint(s, currentPoint, radius)) {
-          s.deleting = true
-          this.renderer.updateDeletingState(s)
+          this.editor.model.deletingIds.add(s.id)
+          this.renderer.updateDeletingState(s, true)
         }
       })
     }
     else {
-      this.editor.model.strokes.forEach(s =>
+      const inkEditor = this.editor as InkEditor
+      inkEditor.model.strokes.forEach(s =>
       {
         if (this.#isHitByPoint(s, currentPoint, radius)) {
-          s.deleting = true
-          this.renderer.updateDeletingState(s)
+          inkEditor.model.deletingIds.add(s.id)
+          this.renderer.updateDeletingState(s, true)
         }
       })
     }
@@ -152,21 +154,22 @@ export class EraseManager
             editor.typeset.setBounds(s)
             this.renderer.drawSymbol(s)
           }
-        } else if (s.deleting) {
-          // For other symbol types, mark for deletion if deleting flag is set
+        } else if (editor.model.deletingIds.has(s.id)) {
           symbolsToRemove.push(s.id)
         }
       })
 
-      // Remove complete symbols
       if (symbolsToRemove.length > 0) {
         await editor.removeSymbols(symbolsToRemove)
       }
 
+      editor.model.deletingIds.clear()
       this.charsToDelete.clear()
     }
     else {
-      this.editor.removeStrokes(this.editor.model.strokesToDelete.map(s => s.id))
+      const inkEditor = this.editor as InkEditor
+      inkEditor.removeStrokes(inkEditor.model.strokesToDelete.map(s => s.id))
+      inkEditor.model.deletingIds.clear()
     }
     this.currentEraser = undefined
   }

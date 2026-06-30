@@ -3,7 +3,7 @@ import { computeDistance, getClosestPoint, createUUID, computeAngleAxeRadian, co
 import type { TStyle } from "@/style"
 import { DefaultStyle } from "@/style"
 import type { TBox } from "@/symbol/primitives/Box"
-import { BoxOps } from "@/symbol/primitives/Box"
+import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
 import type { TPointer } from "@/symbol/primitives/Point"
 import { SymbolType } from "@/symbol/Symbol"
 import type { TBaseSymbol } from "@/symbol/Symbol"
@@ -24,12 +24,9 @@ export type TStrokeMinimal = {
  */
 export type TStroke = TBaseSymbol & TStrokeMinimal &{
   readonly type: SymbolType.Stroke
-  readonly isClosed: false
   style: TStyle
-  selected: boolean
-  deleting: boolean
   length: number
-  bounds: TBox
+  bounds: TOBB
   snapPoints: TPoint[]
   vertices: TPointer[]
   edges: TSegment[]
@@ -103,16 +100,13 @@ export const StrokeOps = {
     return {
       type: SymbolType.Stroke,
       id: `${ SymbolType.Stroke }-${ createUUID() }`,
-      isClosed: false,
       style: mergedStyle,
       creationTime: now,
       modificationDate: now,
-      selected: false,
-      deleting: false,
       pointerType,
       pointers,
       length: 0,
-      bounds: { x: 0, y: 0, width: 0, height: 0 },
+      bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0),
       snapPoints: [],
       vertices: pointers,
       edges: [],
@@ -121,8 +115,8 @@ export const StrokeOps = {
 
   updateBounds(stroke: TStroke): void
   {
-    stroke.bounds = BoxOps.createFromPoints(stroke.pointers)
-    stroke.snapPoints = BoxOps.getSnapPoints(stroke.bounds)
+    stroke.bounds = OBBOps.createFromPoints(stroke.pointers)
+    stroke.snapPoints = OBBOps.getSnapPoints(stroke.bounds)
     stroke.edges = stroke.pointers.slice(0, -1).map((p, i) => ({ p1: p, p2: stroke.pointers[i + 1] }))
   },
 
@@ -142,10 +136,10 @@ export const StrokeOps = {
 
   _filterPointByAcquisitionDelta(stroke: TStroke, point: TPointer): boolean
   {
-    const lastPointer = stroke.pointers.at(-1)
+    if (stroke.pointers.length === 0) return true
+    const lastPointer = stroke.pointers.at(-1)!
     const delta: number = (2 + ((stroke.style.width || 1) / 4))
-    return !lastPointer ||
-      Math.abs(lastPointer.x - point.x) >= delta ||
+    return Math.abs(lastPointer.x - point.x) >= delta ||
       Math.abs(lastPointer.y - point.y) >= delta
   },
 

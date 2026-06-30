@@ -1,4 +1,4 @@
-import { computeHmac } from "../../../src/iink"
+import { computeHmac } from "@/iink"
 
 describe("crypto.ts", () =>
 {

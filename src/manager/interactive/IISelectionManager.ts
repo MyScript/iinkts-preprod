@@ -3,6 +3,7 @@ import type { TDecorator, TEdgeArc, TStroke, TBox, TEdge, TSymbol, TPoint, TEdge
 import { EdgeKind, SymbolType, isDecorator, isRecognizedMath, StrokeOps } from "@/symbol"
 import { EdgeOps } from "@/symbol/edge/Edge"
 import { BoxOps } from "@/symbol/primitives/Box"
+import { OBBOps } from "@/symbol/primitives/OBB"
 import { computeAngleFromPointOnEllipse, computeDistance } from "@/utils"
 import { EdgeArcOps } from "@/symbol/edge/Arc"
 import { SVGBuilder } from "@/renderer"
@@ -342,11 +343,12 @@ export class IISelectionManager extends IIAbstractManager
 
     const box1 = BoxOps.createFromBoxes(symbols.map(s =>
     {
+      const b = OBBOps.toBox(s.bounds)
       return {
-        x: s.bounds.x - (s.style.width || 1),
-        y: s.bounds.y - (s.style.width || 1),
-        height: s.bounds.height + (s.style.width || 1) * 2,
-        width: s.bounds.width + (s.style.width || 1) * 2,
+        x: b.x - (s.style.width || 1),
+        y: b.y - (s.style.width || 1),
+        height: b.height + (s.style.width || 1) * 2,
+        width: b.width + (s.style.width || 1) * 2,
       }
     }))
 
@@ -591,7 +593,7 @@ export class IISelectionManager extends IIAbstractManager
     const surroundGroup = SVGBuilder.createGroup(attrs)
     const translateEl = (edge.kind === EdgeKind.Line || edge.kind === EdgeKind.PolyEdge)
       ? this.createEdgeTranslatePath(edge as TEdgeLine | TEdgePolyLine)
-      : this.createTranslateRect(edge.bounds)
+      : this.createTranslateRect(OBBOps.toBox(edge.bounds))
     surroundGroup.appendChild(translateEl)
     surroundGroup.appendChild(this.createEdgeResizeGroup(structuredClone(edge)))
     return surroundGroup
@@ -782,10 +784,15 @@ export class IISelectionManager extends IIAbstractManager
         shouldBeSelected = symbolRegistry.getUtil(s.type)?.overlaps(s, selectionBox) ?? false
       }
 
-      if (s.selected !== shouldBeSelected) {
-        s.selected = shouldBeSelected
+      const wasSelected = this.model.selectedIds.has(s.id)
+      if (wasSelected !== shouldBeSelected) {
+        if (shouldBeSelected) {
+          this.model.selectedIds.add(s.id)
+        } else {
+          this.model.selectedIds.delete(s.id)
+        }
         updatedSymbols.push(s)
-        this.renderer.updateSelectedState(s)
+        this.renderer.updateSelectedState(s, shouldBeSelected)
       }
     })
 

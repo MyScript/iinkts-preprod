@@ -6,7 +6,7 @@ import {
   TGesture,
   SurroundAction,
   StrokeOps,
-} from "../../../../../src/iink"
+} from "@/iink"
 
 describe("SurroundGestureHandler.ts", () =>
 {

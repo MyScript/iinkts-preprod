@@ -1,4 +1,4 @@
-import { TEraser, EraserOps } from "../../../../src/iink"
+import { TEraser, EraserOps } from "@/iink"
 
 describe("TEraser", () =>
 {

@@ -1,6 +1,11 @@
-import { TSymbolChar, TPoint, TBox } from "../../../../src/iink"
-import { BoxOps } from "../../../../src/symbol/primitives/Box"
-import { TextOps } from "../../../../src/symbol/text/Text"
+import {
+  TSymbolChar,
+  TPoint,
+  TBox,
+  BoxOps,
+  OBBOps,
+  TextOps
+} from "@/iink"
 
 const chars: TSymbolChar[] = [
   {
@@ -34,7 +39,7 @@ describe("TextOps", () =>
       expect(typeof text).toBe("object")
       expect(text.chars).toBe(chars)
       expect(text.point).toBe(point)
-      expect(text.bounds).toBe(bounds)
+      expect(text.bounds).toEqual(OBBOps.fromBox(bounds))
     })
 
     test("should initialize with empty decorators", () =>
@@ -49,19 +54,6 @@ describe("TextOps", () =>
       expect(text.vertices).toHaveLength(4)
       expect(text.snapPoints).toHaveLength(5)
       expect(text.edges).toHaveLength(4)
-    })
-
-    test("should set isClosed to true", () =>
-    {
-      const text = TextOps.create(chars, point, bounds)
-      expect(text.isClosed).toBe(true)
-    })
-
-    test("should set selected and deleting to false", () =>
-    {
-      const text = TextOps.create(chars, point, bounds)
-      expect(text.selected).toBe(false)
-      expect(text.deleting).toBe(false)
     })
 
     test("should have no rotation by default", () =>
@@ -125,7 +117,7 @@ describe("TextOps", () =>
     {
       const text = TextOps.create(chars, point, bounds)
       const newBounds: TBox = { x: 100, y: 100, width: 50, height: 30 }
-      text.bounds = newBounds
+      text.bounds = OBBOps.fromBox(newBounds)
       TextOps.updateDerivedFields(text)
       expect(text.vertices).toEqual(BoxOps.getCorners(newBounds))
     })

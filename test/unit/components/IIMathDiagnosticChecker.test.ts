@@ -1,6 +1,8 @@
 import { createEditorMock, asEditor } from "../__mocks__/createEditorMock"
-import type { IIJiixQueryManager } from "../../../src/iink"
-import { IIMathDiagnosticChecker } from "../../../src/iink"
+import { 
+  type IIJiixQueryManager,
+  IIMathDiagnosticChecker
+} from "@/iink"
 
 describe("IIMathDiagnosticChecker.ts", () =>
 {

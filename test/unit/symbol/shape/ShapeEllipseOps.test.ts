@@ -4,8 +4,9 @@ import
   TPoint,
   DefaultStyle,
   TStyle,
-  TBox
-} from "../../../../src/iink"
+  TBox,
+  OBBOps
+} from "@/iink"
 
 describe("ShapeEllipseOps", () =>
 {
@@ -15,9 +16,6 @@ describe("ShapeEllipseOps", () =>
     {
       const ellipse = ShapeEllipseOps.create({ x: 0, y: 0 }, 5, 10, 0)
       expect(ellipse.style).toEqual(DefaultStyle)
-      expect(ellipse.selected).toEqual(false)
-      expect(ellipse.deleting).toEqual(false)
-      expect(ellipse.isClosed).toEqual(true)
       expect(ellipse.creationTime).toBeLessThanOrEqual(Date.now())
     })
     test("should create with custom style", () =>
@@ -29,8 +27,8 @@ describe("ShapeEllipseOps", () =>
     test("should compute bounds from vertices", () =>
     {
       const ellipse = ShapeEllipseOps.create({ x: 5, y: 0 }, 5, 10, 0)
-      expect(ellipse.bounds.x).toBeCloseTo(0, 0)
-      expect(ellipse.bounds.y).toBeCloseTo(-10, 0)
+      expect(OBBOps.toBox(ellipse.bounds).x).toBeCloseTo(0, 0)
+      expect(OBBOps.toBox(ellipse.bounds).y).toBeCloseTo(-10, 0)
       expect(ellipse.bounds.width).toBeCloseTo(10, 0)
       expect(ellipse.bounds.height).toBeCloseTo(20, 0)
     })

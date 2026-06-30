@@ -3,7 +3,7 @@ import
   TPointer,
   computeLinksPointers,
   computeMiddlePointer
-} from "../../../src/iink"
+} from "@/iink"
 
 describe("quadratics", () =>
 {

@@ -1,4 +1,4 @@
-import { Stroke, convertPartialStrokesToStrokes, DefaultPenStyle, TPenStyle, TPartialDeep, TLegacyStroke } from "../../../../src/iink"
+import { Stroke, convertPartialStrokesToStrokes, DefaultPenStyle, TPenStyle, TPartialDeep, TLegacyStroke } from "@/iink"
 
 describe("Stroke.ts", () =>
 {

@@ -1,4 +1,5 @@
 import type { TText, TMath, TSymbol, TSymbolChar, TBox} from "@/symbol";
+import { OBBOps } from "@/symbol/primitives/OBB"
 import { isText } from "@/symbol"
 import { TextOps } from "@/symbol/text/Text"
 import { MathOps } from "@/symbol/math/Math"
@@ -58,13 +59,15 @@ export class IITypesetManager extends IIAbstractManager
   {
     const el = this.drawSymbolHidden(symbol)
     if (isText(symbol)) {
-      symbol.bounds = this.getElementBoundingBox(el)
+      symbol.bounds = OBBOps.fromBox(this.getElementBoundingBox(el))
+      symbol.bounds.angle = symbol.rotation?.degree ?? 0
       this.setCharsBounds(symbol, el)
       TextOps.updateDerivedFields(symbol)
     }
     else {
       const bbox = el.getBBox()
-      symbol.bounds = { x: bbox.x, y: bbox.y, width: bbox.width, height: bbox.height } as TBox
+      symbol.bounds = OBBOps.fromBox({ x: bbox.x, y: bbox.y, width: bbox.width, height: bbox.height })
+      symbol.bounds.angle = symbol.rotation?.degree ?? 0
       MathOps.updateDerivedFields(symbol)
     }
   }
@@ -106,7 +109,7 @@ export class IITypesetManager extends IIAbstractManager
   {
     const row = this.model.getSymbolsByRowOrdered().find(r => r.rowIndex === this.model.getSymbolRowIndex(text))
     if (row) {
-      const textsAfter = row.symbols.filter(s => isText(s) && s.bounds.x + s.bounds.width / 2 > text.bounds.x + text.bounds.width / 2) as TText[]
+      const textsAfter = row.symbols.filter(s => isText(s) && s.bounds.center.x > text.bounds.center.x) as TText[]
       textsAfter.forEach(symbol => {
         symbol.point.x += tx
         this.updateBounds(symbol)

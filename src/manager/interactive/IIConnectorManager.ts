@@ -1,8 +1,8 @@
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
-import type { TEdge, TPoint, TSymbol, TBox, TShape } from "@/symbol"
+import type { TEdge, TPoint, TSymbol, TShape } from "@/symbol"
+import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
 import { EdgeOps } from "@/symbol/edge/Edge"
 import { ShapeOps } from "@/symbol/shape/Shape"
-import { BoxOps } from "@/symbol/primitives/Box"
 import { isPointInsidePolygon, findIntersectionBetween2Segment } from "@/utils/geometry"
 import type { TAnchor } from "@/symbol/edge/Anchor"
 import { resolveAnchorPoint, computeNormalizedAnchor } from "@/symbol/edge/Anchor"
@@ -41,7 +41,7 @@ export class IIConnectorManager extends IIAbstractManager
       if (s.id === excludeId) return false
       if (EdgeOps.isEdge(s)) return false
       if (ShapeOps.isShape(s)) return isPointInsidePolygon(point, (s as TShape).vertices)
-      return BoxOps.containsPoint((s as unknown as { bounds: TBox }).bounds, point)
+      return OBBOps.containsPoint((s as unknown as { bounds: TOBB }).bounds, point)
     })
   }
 
@@ -54,7 +54,7 @@ export class IIConnectorManager extends IIAbstractManager
     this.clearAnchorHint()
     const target = this.findSymbolAtPoint(point, excludeId)
     if (target) {
-      const bounds = (target as unknown as { bounds: TBox }).bounds
+      const bounds = OBBOps.toBox((target as unknown as { bounds: TOBB }).bounds)
       this.editor.renderer.drawRect(bounds, {
         role: ANCHOR_HINT_ROLE,
         fill: "none",
@@ -152,8 +152,7 @@ export class IIConnectorManager extends IIAbstractManager
     const target = this.findSymbolAtPoint(point, edge.id)
 
     if (target !== undefined) {
-      const bounds = (target as unknown as { bounds: TBox }).bounds
-      const center: TPoint = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 }
+      const center: TPoint = { ...(target as unknown as { bounds: TOBB }).bounds.center }
       const anchor: TAnchor = { symbolId: target.id, normalizedX: 0.5, normalizedY: 0.5 }
       if (EdgeOps.isLineEdge(edge)) {
         if (isStart) {
@@ -226,11 +225,11 @@ export class IIConnectorManager extends IIAbstractManager
           : undefined
 
         if (startTargetSymbol) {
-          start = matrix.applyToPoint(resolveAnchorPoint(symbol.startAnchor!, (startTargetSymbol as { bounds: TBox }).bounds))
+          start = matrix.applyToPoint(resolveAnchorPoint(symbol.startAnchor!, OBBOps.toBox((startTargetSymbol as { bounds: TOBB }).bounds)))
           changed = true
         }
         if (endTargetSymbol) {
-          end = matrix.applyToPoint(resolveAnchorPoint(symbol.endAnchor!, (endTargetSymbol as { bounds: TBox }).bounds))
+          end = matrix.applyToPoint(resolveAnchorPoint(symbol.endAnchor!, OBBOps.toBox((endTargetSymbol as { bounds: TOBB }).bounds)))
           changed = true
         }
         if (changed) {
@@ -251,11 +250,11 @@ export class IIConnectorManager extends IIAbstractManager
           : undefined
 
         if (startTargetSymbol) {
-          points[0] = matrix.applyToPoint(resolveAnchorPoint(symbol.startAnchor!, (startTargetSymbol as { bounds: TBox }).bounds))
+          points[0] = matrix.applyToPoint(resolveAnchorPoint(symbol.startAnchor!, OBBOps.toBox((startTargetSymbol as { bounds: TOBB }).bounds)))
           changed = true
         }
         if (endTargetSymbol) {
-          points[points.length - 1] = matrix.applyToPoint(resolveAnchorPoint(symbol.endAnchor!, (endTargetSymbol as { bounds: TBox }).bounds))
+          points[points.length - 1] = matrix.applyToPoint(resolveAnchorPoint(symbol.endAnchor!, OBBOps.toBox((endTargetSymbol as { bounds: TOBB }).bounds)))
           changed = true
         }
         if (changed) {
@@ -280,22 +279,23 @@ export class IIConnectorManager extends IIAbstractManager
   private resolveAndUpdateAnchor(
     anchor: TAnchor,
     matrix: MatrixTransform | undefined,
-    preTransformBoundsById: Map<string, TBox> | undefined
+    preTransformBoundsById: Map<string, TOBB> | undefined
   ): { x: number; y: number } | undefined
   {
-    const target = this.model.getRootSymbol(anchor.symbolId) as { bounds: TBox } | undefined
+    const target = this.model.getRootSymbol(anchor.symbolId) as { bounds: TOBB } | undefined
     if (!target) return undefined
+    const targetBox = OBBOps.toBox(target.bounds)
     if (matrix && preTransformBoundsById) {
       const preBounds = preTransformBoundsById.get(anchor.symbolId)
       if (preBounds) {
-        const worldPoint = matrix.applyToPoint(resolveAnchorPoint(anchor, preBounds))
-        const { normalizedX, normalizedY } = computeNormalizedAnchor(worldPoint, target.bounds)
+        const worldPoint = matrix.applyToPoint(resolveAnchorPoint(anchor, OBBOps.toBox(preBounds)))
+        const { normalizedX, normalizedY } = computeNormalizedAnchor(worldPoint, targetBox)
         anchor.normalizedX = normalizedX
         anchor.normalizedY = normalizedY
         return worldPoint
       }
     }
-    return resolveAnchorPoint(anchor, target.bounds)
+    return resolveAnchorPoint(anchor, targetBox)
   }
 
   /**
@@ -324,7 +324,7 @@ export class IIConnectorManager extends IIAbstractManager
    * Pass `matrix` and `preTransformBoundsById` when called from rotation so that
    * anchor resolution uses the pre-transform AABB rather than the post-rotation AABB.
    */
-  updateAnchoredEdges(symbolIds: string[], matrix?: MatrixTransform, preTransformBoundsById?: Map<string, TBox>): void
+  updateAnchoredEdges(symbolIds: string[], matrix?: MatrixTransform, preTransformBoundsById?: Map<string, TOBB>): void
   {
     if (symbolIds.length === 0) return
     this.logger.info("updateAnchoredEdges", { symbolIds })

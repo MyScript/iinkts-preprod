@@ -4,7 +4,7 @@ import type { TPoint } from "@/symbol/primitives/Point"
 import type { TPartialDeep } from "@/utils"
 
 /**
- * @group Symbol
+ * @group SymbolUtils
  * @summary Plugin interface for registering symbol behaviour.
  *
  * Implement this class to add a new symbol type that participates in the

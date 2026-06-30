@@ -1,10 +1,10 @@
 import { createEditorMock, asEditor } from "../__mocks__/createEditorMock"
-import type { IIJiixQueryManager } from "../../../src/iink"
 import {
+  type IIJiixQueryManager,
   IIMathVariablePerBlockEditor,
   TMathVariable,
   TMathVariableDefinition
-} from "../../../src/iink"
+} from "@/iink"
 
 function makeVariable(overrides: Partial<TMathVariable> = {}): TMathVariable {
   return { name: "x", value: 5, sourceType: "API", ...overrides }

@@ -3,10 +3,10 @@ import {
   createSymbolsFromPartial,
   SymbolType,
   ShapeKind,
-  EdgeKind
-} from "../../../src/iink"
-import { ShapeOps } from "../../../src/symbol/shape/Shape"
-import { EdgeOps } from "../../../src/symbol/edge/Edge"
+  EdgeKind,
+  ShapeOps,
+  EdgeOps
+} from "@/iink"
 
 const createShapeFromPartial = ShapeOps.createShapeFromPartial.bind(ShapeOps)
 const createEdgeFromPartial = EdgeOps.createEdgeFromPartial.bind(EdgeOps)

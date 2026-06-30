@@ -1,6 +1,11 @@
-import { TMathElement, TPoint, TBox } from "../../../../src/iink"
-import { BoxOps } from "../../../../src/symbol/primitives/Box"
-import { MathOps } from "../../../../src/symbol/math/Math"
+import {
+  TMathElement,
+  TPoint,
+  TBox,
+  BoxOps,
+  OBBOps,
+  MathOps
+} from "@/iink"
 
 const elements: TMathElement[] = [
   {
@@ -36,7 +41,7 @@ describe("MathOps", () =>
       expect(typeof math).toBe("object")
       expect(math.elements).toBe(elements)
       expect(math.point).toBe(point)
-      expect(math.bounds).toBe(bounds)
+      expect(math.bounds).toEqual(OBBOps.fromBox(bounds))
     })
 
     test("should initialize with empty decorators", () =>
@@ -53,18 +58,6 @@ describe("MathOps", () =>
       expect(math.edges).toHaveLength(4)
     })
 
-    test("should set isClosed to true", () =>
-    {
-      const math = MathOps.create(elements, point, bounds)
-      expect(math.isClosed).toBe(true)
-    })
-
-    test("should set selected and deleting to false", () =>
-    {
-      const math = MathOps.create(elements, point, bounds)
-      expect(math.selected).toBe(false)
-      expect(math.deleting).toBe(false)
-    })
 
     test("should have no rotation by default", () =>
     {
@@ -126,7 +119,7 @@ describe("MathOps", () =>
     {
       const math = MathOps.create(elements, point, bounds)
       const newBounds: TBox = { x: 100, y: 100, width: 50, height: 30 }
-      math.bounds = newBounds
+      math.bounds = OBBOps.fromBox(newBounds)
       MathOps.updateDerivedFields(math)
       expect(math.vertices).toEqual(BoxOps.getCorners(newBounds))
     })
