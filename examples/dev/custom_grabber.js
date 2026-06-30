@@ -1,7 +1,6 @@
-import { PointerEventGrabber } from '../../dist/iink.esm.js'
+import { PointerEventGrabber } from "../../dist/iink.esm.js"
 
 export class CustomGrabber extends PointerEventGrabber {
-
   constructor(configuration) {
     super(configuration)
     this.downElement = document.getElementById("pointer-down")
@@ -12,24 +11,23 @@ export class CustomGrabber extends PointerEventGrabber {
     this.upElement.textContent = "Up at:"
   }
 
-  pointerDownHandler = (evt) =>
-  {
+  pointerDownHandler = (evt) => {
     if (evt.button !== 0 || evt.buttons !== 1) {
       let warning
       warning = "You have not clicked with only main button.\r"
-      switch(evt.button) {
+      switch (evt.button) {
         case 1:
-          warning += "Auxiliary button pressed, usually the wheel button or the middle button";
-          break;
+          warning += "Auxiliary button pressed, usually the wheel button or the middle button"
+          break
         case 2:
-          warning += "Secondary button pressed, usually the right button";
-          break;
+          warning += "Secondary button pressed, usually the right button"
+          break
         case 3:
-          warning += "Fourth button, typically the Browser Back button";
-          break;
+          warning += "Fourth button, typically the Browser Back button"
+          break
         case 4:
-          warning += "Fifth button, typically the Browser Forward button";
-          break;
+          warning += "Fifth button, typically the Browser Forward button"
+          break
       }
       alert(warning)
       return
@@ -37,7 +35,6 @@ export class CustomGrabber extends PointerEventGrabber {
 
     this.capturing = true
     this.pointerType = evt.pointerType
-
 
     if (this.onPointerDown) {
       /**
@@ -54,8 +51,7 @@ export class CustomGrabber extends PointerEventGrabber {
     }
   }
 
-  pointerMoveHandler = (evt) =>
-  {
+  pointerMoveHandler = (evt) => {
     if (this.capturing && this.pointerType === evt.pointerType) {
       if (this.onPointerMove) {
         /**
@@ -71,8 +67,7 @@ export class CustomGrabber extends PointerEventGrabber {
     }
   }
 
-  pointerUpHandler = (evt) =>
-  {
+  pointerUpHandler = (evt) => {
     if (this.capturing && this.pointerType === evt.pointerType) {
       this.pointerType = undefined
       this.capturing = false

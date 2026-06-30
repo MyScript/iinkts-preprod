@@ -1,8 +1,8 @@
-import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
-import type { TGenericMenuItem } from "@/menu/items/BaseMenuItem";
-import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
 import ArrowDown from "@/assets/svg/nav-arrow-down.svg"
-import type { TText} from "@/symbol";
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import type { TGenericMenuItem } from "@/menu/items/BaseMenuItem"
+import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
+import type { TText } from "@/symbol"
 import { isText } from "@/symbol"
 import { createUUID } from "@/utils"
 
@@ -10,44 +10,49 @@ import { createUUID } from "@/utils"
  * @group Menu
  * @remarks Menu contextuel Edit - Édite le texte sélectionné
  */
-export class EditContextMenu extends BaseMenuItem<HTMLElement>
-{
+export class EditContextMenu extends BaseMenuItem<HTMLElement> {
   #documentPointerdownHandler?: (e: PointerEvent) => void
-  protected declare config: TGenericMenuItem
+  declare protected config: TGenericMenuItem
   editInput?: HTMLInputElement
   editSaveBtn?: HTMLButtonElement
 
-  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-context")
-  {
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-context") {
     const config: TGenericMenuItem = {
       type: "custom",
       id: `${idPrefix}-edit`,
-      label: "Edit"
+      label: "Edit",
     }
     super(config, editor)
   }
 
-  createElement(): HTMLElement
-  {
-    const trigger = this.dom.button({ id: `${this.config.id}-trigger` })
+  createElement(): HTMLElement {
+    const trigger = this.dom.button({
+      id: `${this.config.id}-trigger`,
+    })
     const label = this.dom.span({ text: "Edit" })
     trigger.appendChild(label)
-    const icon = this.dom.span({ html: ArrowDown })
+    const icon = this.dom.span({
+      html: ArrowDown,
+    })
     icon.style.setProperty("width", "32px")
     icon.style.setProperty("transform", "rotate(270deg)")
     trigger.appendChild(icon)
 
-    const subMenuWrapper = this.dom.div({ className: "ms-menu-column" })
+    const subMenuWrapper = this.dom.div({
+      className: "ms-menu-column",
+    })
 
     this.editInput = this.dom.textInput({})
     subMenuWrapper.appendChild(this.editInput)
 
-    this.editSaveBtn = this.dom.button({ label: "Save" })
+    this.editSaveBtn = this.dom.button({
+      label: "Save",
+    })
     subMenuWrapper.appendChild(this.editSaveBtn)
-    
+
     this.editSaveBtn.addEventListener("pointerdown", async (e) => {
       e.stopPropagation()
-      const textSymbol = this.editor.model.symbolsSelected.find(s => isText(s)) as TText
+      const textSymbol = this.editor.model.symbolsSelected.find((s) => isText(s)) as TText
       if (textSymbol) {
         const firstChar = textSymbol.chars[0]
         textSymbol.chars = []
@@ -58,7 +63,7 @@ export class EditContextMenu extends BaseMenuItem<HTMLElement>
             color: firstChar.color,
             fontSize: firstChar.fontSize,
             fontWeight: firstChar.fontWeight,
-            bounds: firstChar.bounds
+            bounds: firstChar.bounds,
           })
         }
         await this.editor.updateSymbol(textSymbol)
@@ -66,10 +71,14 @@ export class EditContextMenu extends BaseMenuItem<HTMLElement>
       }
     })
 
-    const wrapper = this.dom.div({ className: "sub-menu" })
+    const wrapper = this.dom.div({
+      className: "sub-menu",
+    })
     wrapper.appendChild(trigger)
 
-    const content = this.dom.div({ className: ["sub-menu-content", "right"] })
+    const content = this.dom.div({
+      className: ["sub-menu-content", "right"],
+    })
     content.appendChild(subMenuWrapper)
     wrapper.appendChild(content)
 
@@ -93,8 +102,7 @@ export class EditContextMenu extends BaseMenuItem<HTMLElement>
     super.destroy()
   }
 
-  update(): void
-  {
+  update(): void {
     this.updateDisabled()
     this.updateVisible()
   }

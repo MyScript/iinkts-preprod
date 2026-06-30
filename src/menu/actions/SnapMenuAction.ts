@@ -1,7 +1,7 @@
-import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
-import type { TMenuSubMenu } from "@/menu/items/SubMenuItem";
-import { SubMenuItem } from "@/menu/items/SubMenuItem"
 import snapIcon from "@/assets/svg/arrow-to-dot.svg"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import type { TMenuSubMenu } from "@/menu/items/SubMenuItem"
+import { SubMenuItem } from "@/menu/items/SubMenuItem"
 
 /** @group Menu */
 export type TSnapActionItemsConfig = {
@@ -16,10 +16,8 @@ export type TSnapActionConfig = boolean | TSnapActionItemsConfig
  * @group Menu
  * @remarks Menu action Snap - Configuration du snap
  */
-export class SnapMenuAction extends SubMenuItem
-{
-  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-action", itemsConfig?: TSnapActionItemsConfig)
-  {
+export class SnapMenuAction extends SubMenuItem {
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-action", itemsConfig?: TSnapActionItemsConfig) {
     const enabled = (key: keyof TSnapActionItemsConfig) => itemsConfig?.[key] !== false
 
     const config: TMenuSubMenu = {
@@ -29,7 +27,7 @@ export class SnapMenuAction extends SubMenuItem
       menuTitle: "Snap",
       icon: snapIcon,
       position: "right-top",
-      items: []
+      items: [],
     }
 
     if (enabled("guide")) {
@@ -40,7 +38,7 @@ export class SnapMenuAction extends SubMenuItem
         getValue: (editor) => editor.snaps.snapConfiguration.guide,
         setValue: (editor, value) => {
           editor.snaps.snapConfiguration.guide = value
-        }
+        },
       })
     }
 
@@ -52,7 +50,7 @@ export class SnapMenuAction extends SubMenuItem
         getValue: (editor) => editor.snaps.snapConfiguration.symbol,
         setValue: (editor, value) => {
           editor.snaps.snapConfiguration.symbol = value
-        }
+        },
       })
     }
 
@@ -67,12 +65,12 @@ export class SnapMenuAction extends SubMenuItem
           { label: "30°", value: "30" },
           { label: "45°", value: "45" },
           { label: "90°", value: "90" },
-          { label: "180°", value: "180" }
+          { label: "180°", value: "180" },
         ],
         getValue: (editor) => editor.snaps.snapConfiguration.angle.toString(),
         setValue: (editor, angle) => {
           editor.snaps.snapConfiguration.angle = +angle
-        }
+        },
       })
     }
 

@@ -1,23 +1,18 @@
 import { createEditorMock, asEditor } from "../__mocks__/createEditorMock"
-import { 
-  type IIJiixQueryManager,
-  IIMathDiagnosticChecker
-} from "@/iink"
+import { type IIJiixQueryManager, IIMathDiagnosticChecker } from "@/iink"
 
-describe("IIMathDiagnosticChecker.ts", () =>
-{
+describe("IIMathDiagnosticChecker.ts", () => {
   let editor: ReturnType<typeof createEditorMock>
 
-  beforeEach(() =>
-  {
+  beforeEach(() => {
     editor = createEditorMock({
       jiix: {
         getBlockLabel: jest.fn().mockImplementation((id: string) => {
           if (id === "block-1") return "x + 1"
           if (id === "block-2") return "2y"
           return "Unknown"
-        })
-      } as unknown as IIJiixQueryManager
+        }),
+      } as unknown as IIJiixQueryManager,
     })
 
     // Mock getDiagnostic method
@@ -32,31 +27,26 @@ describe("IIMathDiagnosticChecker.ts", () =>
     })
   })
 
-  afterEach(() =>
-  {
+  afterEach(() => {
     document.body.innerHTML = ""
   })
 
-  test("should instantiate with editor and jiixBlockIds", () =>
-  {
+  test("should instantiate with editor and jiixBlockIds", () => {
     const jiixBlockIds = ["block-1", "block-2"]
 
     const checker = new IIMathDiagnosticChecker(asEditor(editor), jiixBlockIds)
     expect(checker).toBeDefined()
   })
 
-  test("should deduplicate jiixBlockIds in constructor", () =>
-  {
+  test("should deduplicate jiixBlockIds in constructor", () => {
     const jiixBlockIds = ["block-1", "block-1", "block-2"]
 
     const checker = new IIMathDiagnosticChecker(asEditor(editor), jiixBlockIds)
     expect(checker).toBeDefined()
   })
 
-  describe("show()", () =>
-  {
-    test("should fetch diagnostics for all blocks", async () =>
-    {
+  describe("show()", () => {
+    test("should fetch diagnostics for all blocks", async () => {
       const jiixBlockIds = ["block-1", "block-2"]
 
       const checker = new IIMathDiagnosticChecker(asEditor(editor), jiixBlockIds)
@@ -75,8 +65,7 @@ describe("IIMathDiagnosticChecker.ts", () =>
       showSpy.mockRestore()
     })
 
-    test("should skip empty block ids", async () =>
-    {
+    test("should skip empty block ids", async () => {
       const jiixBlockIds = ["", "block-2"]
 
       const checker = new IIMathDiagnosticChecker(asEditor(editor), jiixBlockIds)
@@ -94,10 +83,8 @@ describe("IIMathDiagnosticChecker.ts", () =>
     })
   })
 
-  describe("close()", () =>
-  {
-    test("should close and destroy modal", () =>
-    {
+  describe("close()", () => {
+    test("should close and destroy modal", () => {
       const jiixBlockIds = ["block-1"]
 
       const checker = new IIMathDiagnosticChecker(asEditor(editor), jiixBlockIds)
@@ -105,7 +92,7 @@ describe("IIMathDiagnosticChecker.ts", () =>
       // Create a mock modal
       const mockModal = {
         destroy: jest.fn(),
-        open: jest.fn()
+        open: jest.fn(),
       }
       ;(checker as any).modal = mockModal
 
@@ -114,8 +101,7 @@ describe("IIMathDiagnosticChecker.ts", () =>
       expect(mockModal.destroy).toHaveBeenCalled()
     })
 
-    test("should handle close when no modal exists", () =>
-    {
+    test("should handle close when no modal exists", () => {
       const jiixBlockIds = ["block-1"]
 
       const checker = new IIMathDiagnosticChecker(asEditor(editor), jiixBlockIds)

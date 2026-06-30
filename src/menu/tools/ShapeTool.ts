@@ -1,12 +1,12 @@
-import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
-import type { TMenuItemBase } from "@/menu/items/BaseMenuItem";
-import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
-import { EditorTool, EditorWriteTool } from "@/Constants"
-import rectangleIcon from "@/assets/svg/rectangle.svg"
 import circleIcon from "@/assets/svg/circle.svg"
 import ellipseIcon from "@/assets/svg/ellipse.svg"
-import triangleIcon from "@/assets/svg/triangle.svg"
+import rectangleIcon from "@/assets/svg/rectangle.svg"
 import rhombusIcon from "@/assets/svg/rhombus.svg"
+import triangleIcon from "@/assets/svg/triangle.svg"
+import { EditorTool, EditorWriteTool } from "@/Constants"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import type { TMenuItemBase } from "@/menu/items/BaseMenuItem"
+import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
 
 type TShapeToolConfig = TMenuItemBase & {
   type: "shape"
@@ -16,26 +16,27 @@ type TShapeToolConfig = TMenuItemBase & {
  * @group Menu
  * @remarks Shape tool - Sub-menu for geometric shapes
  */
-export class ShapeTool extends BaseMenuItem<HTMLDivElement>
-{
+export class ShapeTool extends BaseMenuItem<HTMLDivElement> {
   #documentPointerdownHandler?: (e: PointerEvent) => void
   private subMenuButtons: Map<EditorWriteTool, HTMLButtonElement> = new Map()
   private triggerButton?: HTMLButtonElement
   private currentIcon: string = rectangleIcon
 
-  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-tool")
-  {
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-tool") {
     const config: TShapeToolConfig = {
       type: "shape",
       id: `${idPrefix}-write-shape`,
-      label: "Shape"
+      label: "Shape",
     }
     super(config, editor)
   }
 
-  private createShapeButton(icon: string, tool: EditorWriteTool, label: string): HTMLButtonElement
-  {
-    const button = this.dom.button({ id: `${this.config.id}-${tool}`, className: "square", html: icon })
+  private createShapeButton(icon: string, tool: EditorWriteTool, label: string): HTMLButtonElement {
+    const button = this.dom.button({
+      id: `${this.config.id}-${tool}`,
+      className: "square",
+      html: icon,
+    })
     button.title = label
 
     button.addEventListener("click", () => {
@@ -58,21 +59,31 @@ export class ShapeTool extends BaseMenuItem<HTMLDivElement>
     return button
   }
 
-  createElement(): HTMLDivElement
-  {
-    this.triggerButton = this.dom.button({ id: this.config.id, className: "square", html: this.currentIcon })
+  createElement(): HTMLDivElement {
+    this.triggerButton = this.dom.button({
+      id: this.config.id,
+      className: "square",
+      html: this.currentIcon,
+    })
 
-    const subMenuContent = this.dom.div({ id: `${this.config.id}-list`, className: ["ms-menu-row", "sub-menu-content-shape"] })
+    const subMenuContent = this.dom.div({
+      id: `${this.config.id}-list`,
+      className: ["ms-menu-row", "sub-menu-content-shape"],
+    })
     subMenuContent.appendChild(this.createShapeButton(rectangleIcon, EditorWriteTool.Rectangle, "Rectangle"))
     subMenuContent.appendChild(this.createShapeButton(circleIcon, EditorWriteTool.Circle, "Circle"))
     subMenuContent.appendChild(this.createShapeButton(ellipseIcon, EditorWriteTool.Ellipse, "Ellipse"))
     subMenuContent.appendChild(this.createShapeButton(triangleIcon, EditorWriteTool.Triangle, "Triangle"))
     subMenuContent.appendChild(this.createShapeButton(rhombusIcon, EditorWriteTool.Rhombus, "Rhombus"))
 
-    const content = this.dom.div({ className: ["sub-menu-content", "top"] })
+    const content = this.dom.div({
+      className: ["sub-menu-content", "top"],
+    })
     content.appendChild(subMenuContent)
 
-    const wrapper = this.dom.div({ className: "sub-menu" })
+    const wrapper = this.dom.div({
+      className: "sub-menu",
+    })
     wrapper.appendChild(this.triggerButton)
     wrapper.appendChild(content)
 
@@ -96,17 +107,20 @@ export class ShapeTool extends BaseMenuItem<HTMLDivElement>
     super.destroy()
   }
 
-  update(): void
-  {
-    if (!this.element || !this.triggerButton) return
+  update(): void {
+    if (!this.element || !this.triggerButton) {
+      return
+    }
 
-    const isShapeTool = this.editor.tool === EditorTool.Write && [
-      EditorWriteTool.Circle,
-      EditorWriteTool.Ellipse,
-      EditorWriteTool.Triangle,
-      EditorWriteTool.Rectangle,
-      EditorWriteTool.Rhombus
-    ].includes(this.editor.writer.tool)
+    const isShapeTool =
+      this.editor.tool === EditorTool.Write &&
+      [
+        EditorWriteTool.Circle,
+        EditorWriteTool.Ellipse,
+        EditorWriteTool.Triangle,
+        EditorWriteTool.Rectangle,
+        EditorWriteTool.Rhombus,
+      ].includes(this.editor.writer.tool)
 
     if (isShapeTool) {
       this.triggerButton.classList.add("active")
@@ -114,16 +128,15 @@ export class ShapeTool extends BaseMenuItem<HTMLDivElement>
       activeButton?.classList.add("active")
     } else {
       this.triggerButton.classList.remove("active")
-      this.subMenuButtons.forEach(btn => btn.classList.remove("active"))
+      this.subMenuButtons.forEach((btn) => btn.classList.remove("active"))
     }
 
     this.updateDisabled()
     this.updateVisible()
   }
 
-  private unselectAll(): void
-  {
+  private unselectAll(): void {
     const menu = this.element?.closest(".ms-menu")
-    menu?.querySelectorAll("*").forEach(e => e.classList.remove("active"))
+    menu?.querySelectorAll("*").forEach((e) => e.classList.remove("active"))
   }
 }

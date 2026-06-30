@@ -1,10 +1,5 @@
-import type {
-  TEraserConfiguration
-} from "./EraserConfiguration";
-import
-{
-  DefaultEraserConfiguration
-} from "./EraserConfiguration"
+import type { TEraserConfiguration } from "./EraserConfiguration"
+import { DefaultEraserConfiguration } from "./EraserConfiguration"
 
 /**
  * @group Recognizer
@@ -43,16 +38,15 @@ export type TShapeConfiguration = {
  */
 export const DefaultShapeConvertConfiguration: TShapeConvertConfiguration = {
   types: ["shape"],
-  "match-text-size": true
+  "match-text-size": true,
 }
 
 /**
  * @group Recognizer
  * @source
  */
-export const DefaultShapeBeautificationConfiguration: TShapeBeautificationConfiguration =
-{
-  enable: true
+export const DefaultShapeBeautificationConfiguration: TShapeBeautificationConfiguration = {
+  enable: true,
 }
 
 /**
@@ -63,5 +57,5 @@ export const DefaultShapeConfiguration: TShapeConfiguration = {
   convert: DefaultShapeConvertConfiguration,
   eraser: DefaultEraserConfiguration,
   mimeTypes: ["application/vnd.myscript.jiix"],
-  beautification: DefaultShapeBeautificationConfiguration
+  beautification: DefaultShapeBeautificationConfiguration,
 }

@@ -1,4 +1,5 @@
 import type { TRecognitionTypeV2 } from "@/recognizer"
+
 import type { TJIIXBase, TJIIXWord } from "./ExportCommon"
 
 /**
@@ -16,10 +17,9 @@ export enum ExportV2Type {
  * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/jiix  Element type}
  */
 
-
 /**
  * @group Exports
-*/
+ */
 export type TJIIXV2RangeItem = {
   from: { stroke: number }
   to: { stroke: number }
@@ -69,9 +69,10 @@ export type TJIIXV2Line = {
  * @group Exports
  * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/jiix/#word-object | Word object}
  */
-export type TJIIXV2Expression = TJIIXV2Base & TJIIXWord & {
-  lines: TJIIXV2Line[]
-}
+export type TJIIXV2Expression = TJIIXV2Base &
+  TJIIXWord & {
+    lines: TJIIXV2Line[]
+  }
 
 /**
  * @group Exports
@@ -120,13 +121,24 @@ export enum JIIXV2ShapeKind {
 }
 
 /**
-   * @group Exports
-   */
-export type TJIIXV2PolygonType = "triangle" | "isosceles triangle" | "right triangle" | "right isosceles triangle" | "equilateral triangle" | "quadrilateral" | "trapezoid" | "parallelogram" | "rhombus" | "rectangle" | "square"
+ * @group Exports
+ */
+export type TJIIXV2PolygonType =
+  | "triangle"
+  | "isosceles triangle"
+  | "right triangle"
+  | "right isosceles triangle"
+  | "equilateral triangle"
+  | "quadrilateral"
+  | "trapezoid"
+  | "parallelogram"
+  | "rhombus"
+  | "rectangle"
+  | "square"
 
 /**
-   * @group Exports
-   */
+ * @group Exports
+ */
 export type TJIIXV2ShapeItemBase<K = JIIXV2ShapeKind> = TJIIXV2ElementBase<K> & {
   kind: K
 }
@@ -134,7 +146,9 @@ export type TJIIXV2ShapeItemBase<K = JIIXV2ShapeKind> = TJIIXV2ElementBase<K> & 
 /**
  * @group Exports
  */
-export type TJIIXV2EllipseBase<K = JIIXV2ShapeKind.Ellipse | JIIXV2ShapeKind.Circle> = TJIIXV2ShapeItemBase<JIIXV2ShapeKind.Ellipse | JIIXV2ShapeKind.Circle> & {
+export type TJIIXV2EllipseBase<K = JIIXV2ShapeKind.Ellipse | JIIXV2ShapeKind.Circle> = TJIIXV2ShapeItemBase<
+  JIIXV2ShapeKind.Ellipse | JIIXV2ShapeKind.Circle
+> & {
   kind: K
   id: string
   cx: number
@@ -160,12 +174,12 @@ export type TJIIXV2Ellipse = TJIIXV2EllipseBase<JIIXV2ShapeKind.Ellipse>
  */
 export type TJIIXV2PrimitiveArc = {
   type: "arc"
-  cx: number,
-  cy: number,
-  rx: number,
-  ry: number,
-  phi: number,
-  startAngle: number,
+  cx: number
+  cy: number
+  rx: number
+  ry: number
+  phi: number
+  startAngle: number
   sweepAngle: number
   startDecoration?: string
   endDecoration?: string
@@ -325,7 +339,31 @@ export type TJIIXV2ShapeArcOfCircle = TJIIXV2ShapeItemBase<JIIXV2ShapeKind.ArcOf
 /**
  * @group Exports
  */
-export type TJIIXV2ShapeElement = TJIIXV2Circle | TJIIXV2Ellipse | TJIIXV2ShapePolygon | TJIIXV2ShapePolygonTriangle | TJIIXV2ShapePolygonIsoscelesTriangle | TJIIXV2ShapePolygonRightTriangle | TJIIXV2ShapePolygonRightIsoscelesTriangle | TJIIXV2ShapePolygonEquilateralTriangle | TJIIXV2ShapePolygonQuadrilateral | TJIIXV2ShapePolygonTrapezoid | TJIIXV2ShapePolygonParallelogram | TJIIXV2ShapePolygonRhombus | TJIIXV2ShapePolygonRectangle | TJIIXV2ShapePolygonSquare | TJIIXV2ShapeLineArrow | TJIIXV2ShapeLineDoubleArrow | TJIIXV2ShapeLinePolyline | TJIIXV2ShapeLinePolylineArrow | TJIIXV2ShapeLinePolylineDoubleArrow | TJIIXV2ShapeCurvedDoubleArrow | TJIIXV2ShapeCurvedArrow | TJIIXV2ShapeArcOfEllipse | TJIIXV2ShapeArcOfCircle | TJIIXV2ShapeLine
+export type TJIIXV2ShapeElement =
+  | TJIIXV2Circle
+  | TJIIXV2Ellipse
+  | TJIIXV2ShapePolygon
+  | TJIIXV2ShapePolygonTriangle
+  | TJIIXV2ShapePolygonIsoscelesTriangle
+  | TJIIXV2ShapePolygonRightTriangle
+  | TJIIXV2ShapePolygonRightIsoscelesTriangle
+  | TJIIXV2ShapePolygonEquilateralTriangle
+  | TJIIXV2ShapePolygonQuadrilateral
+  | TJIIXV2ShapePolygonTrapezoid
+  | TJIIXV2ShapePolygonParallelogram
+  | TJIIXV2ShapePolygonRhombus
+  | TJIIXV2ShapePolygonRectangle
+  | TJIIXV2ShapePolygonSquare
+  | TJIIXV2ShapeLineArrow
+  | TJIIXV2ShapeLineDoubleArrow
+  | TJIIXV2ShapeLinePolyline
+  | TJIIXV2ShapeLinePolylineArrow
+  | TJIIXV2ShapeLinePolylineDoubleArrow
+  | TJIIXV2ShapeCurvedDoubleArrow
+  | TJIIXV2ShapeCurvedArrow
+  | TJIIXV2ShapeArcOfEllipse
+  | TJIIXV2ShapeArcOfCircle
+  | TJIIXV2ShapeLine
 
 /**
  * @group Exports
@@ -376,11 +414,7 @@ export type TJIIXV2RawContentElement = TJIIXV2RawContentItemText | TJIIXV2RawCon
  * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/web/JIIXV2 | Exports}
  */
 export type TJIIXV2Element =
-  TJIIXV2TextElement |
-  TJIIXV2ShapeElement |
-  TJIIXV2MathElement |
-  TJIIXV2DrawingElement |
-  TJIIXV2RawContentElement
+  TJIIXV2TextElement | TJIIXV2ShapeElement | TJIIXV2MathElement | TJIIXV2DrawingElement | TJIIXV2RawContentElement
 
 /**
  * @group Exports

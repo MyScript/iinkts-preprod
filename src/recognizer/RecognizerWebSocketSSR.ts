@@ -1,26 +1,26 @@
+import type { THistoryContext } from "@/history"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { Model, TExport, TJIIXExport } from "@/model"
-import { StrokeOps, type Stroke } from "@/symbol"
-import type { TPenStyle, TTheme } from "@/style";
+import type { TPenStyle, TTheme } from "@/style"
 import { StyleHelper } from "@/style"
-import type { THistoryContext } from "@/history"
-import type { TPartialDeep} from "@/utils";
-import { DeferredPromise, computeHmac, getApiInfos, isVersionSuperiorOrEqual } from "@/utils"
-import type
-{
+import { type Stroke, StrokeOps } from "@/symbol"
+import type { TPartialDeep } from "@/utils"
+import { computeHmac, DeferredPromise, getApiInfos, isVersionSuperiorOrEqual } from "@/utils"
+
+import type { TConverstionState } from "./RecognitionConfiguration"
+import { mapCloseCodeToMessage, RecognizerError } from "./RecognizerError"
+import { RecognizerEvent } from "./RecognizerEvent"
+import type { TRecognizerWebSocketSSRConfiguration } from "./RecognizerWebSocketSSRConfiguration"
+import { RecognizerWebSocketSSRConfiguration } from "./RecognizerWebSocketSSRConfiguration"
+import type {
   TRecognizerWebSocketSSRMessage,
   TRecognizerWebSocketSSRMessageContentChange,
   TRecognizerWebSocketSSRMessageError,
   TRecognizerWebSocketSSRMessageExport,
   TRecognizerWebSocketSSRMessageHMACChallenge,
   TRecognizerWebSocketSSRMessagePartChange,
-  TRecognizerWebSocketSSRMessageSVGPatch
+  TRecognizerWebSocketSSRMessageSVGPatch,
 } from "./RecognizerWebSocketSSRMessage"
-import { RecognizerError, mapCloseCodeToMessage } from "./RecognizerError"
-import { RecognizerEvent } from "./RecognizerEvent"
-import type { TRecognizerWebSocketSSRConfiguration} from "./RecognizerWebSocketSSRConfiguration";
-import { RecognizerWebSocketSSRConfiguration } from "./RecognizerWebSocketSSRConfiguration"
-import type { TConverstionState } from "./RecognitionConfiguration"
 
 /**
  * A websocket dialog have this sequence :
@@ -49,8 +49,7 @@ import type { TConverstionState } from "./RecognitionConfiguration"
 /**
  * @group Recognizer
  */
-export class RecognizerWebSocketSSR
-{
+export class RecognizerWebSocketSSR {
   #logger = LoggerManager.getLogger(LoggerCategory.RECOGNIZER)
 
   protected socket!: WebSocket
@@ -88,12 +87,11 @@ export class RecognizerWebSocketSSR
   url: string
   event: RecognizerEvent
 
-  constructor(config?: TPartialDeep<TRecognizerWebSocketSSRConfiguration>)
-  {
+  constructor(config?: TPartialDeep<TRecognizerWebSocketSSRConfiguration>) {
     this.#logger.info("constructor", { config })
     this.configuration = new RecognizerWebSocketSSRConfiguration(config)
-    const scheme = (this.configuration.server.scheme === "https") ? "wss" : "ws"
-    this.url = `${ scheme }://${ this.configuration.server.host }/api/v4.0/iink/document?applicationKey=${ this.configuration.server.applicationKey }`
+    const scheme = this.configuration.server.scheme === "https" ? "wss" : "ws"
+    this.url = `${scheme}://${this.configuration.server.host}/api/v4.0/iink/document?applicationKey=${this.configuration.server.applicationKey}`
     this.event = new RecognizerEvent()
     this.initialized = new DeferredPromise<void>()
     this.boundOpenCallback = this.openCallback.bind(this)
@@ -101,26 +99,23 @@ export class RecognizerWebSocketSSR
     this.boundMessageCallback = this.messageCallback.bind(this)
   }
 
-  get mimeTypes(): string[]
-  {
+  get mimeTypes(): string[] {
     switch (this.configuration.recognition.type.toLocaleLowerCase()) {
       case "text":
         return this.configuration.recognition.text.mimeTypes
       case "math":
         return this.configuration.recognition.math.mimeTypes
       default:
-        throw new Error(`Unauthorized recognition type: "${ this.configuration.recognition.type }"`)
+        throw new Error(`Unauthorized recognition type: "${this.configuration.recognition.type}"`)
     }
   }
 
-  protected infinitePing(): void
-  {
+  protected infinitePing(): void {
     this.pingCount++
     if (this.configuration.server.websocket.maxPingLostCount < this.pingCount) {
       this.socket.close(1000, "MAXIMUM_PING_REACHED")
     } else if (this.socket.readyState <= 1) {
-      setTimeout(() =>
-      {
+      setTimeout(() => {
         if (this.socket.readyState <= 1) {
           this.socket.send(JSON.stringify({ type: "ping" }))
           this.infinitePing()
@@ -129,8 +124,7 @@ export class RecognizerWebSocketSSR
     }
   }
 
-  protected openCallback(): void
-  {
+  protected openCallback(): void {
     this.connected?.resolve()
     const params: TRecognizerWebSocketSSRMessage = {
       type: this.sessionId ? "restoreIInkSession" : "newContentPackage",
@@ -139,7 +133,7 @@ export class RecognizerWebSocketSSR
       xDpi: 96,
       yDpi: 96,
       viewSizeHeight: this.viewSizeHeight,
-      viewSizeWidth: this.viewSizeWidth
+      viewSizeWidth: this.viewSizeWidth,
     }
     if (isVersionSuperiorOrEqual(this.configuration.server.version!, "2.0.4")) {
       params["myscript-client-name"] = "iink-ts"
@@ -148,8 +142,7 @@ export class RecognizerWebSocketSSR
     this.send(params)
   }
 
-  protected rejectDeferredPending(error: Error): void
-  {
+  protected rejectDeferredPending(error: Error): void {
     if (this.connected?.isPending) {
       this.connected?.reject(error)
     }
@@ -188,8 +181,7 @@ export class RecognizerWebSocketSSR
     }
   }
 
-  protected closeCallback(evt: CloseEvent): void
-  {
+  protected closeCallback(evt: CloseEvent): void {
     let message = ""
     if (!this.currentErrorCode) {
       const mapped = mapCloseCodeToMessage(evt.code)
@@ -208,9 +200,10 @@ export class RecognizerWebSocketSSR
     }
   }
 
-  protected async manageAckMessage(websocketMessage: TRecognizerWebSocketSSRMessage): Promise<void>
-  {
-    this.#logger.info("manageAckMessage", { websocketMessage })
+  protected async manageAckMessage(websocketMessage: TRecognizerWebSocketSSRMessage): Promise<void> {
+    this.#logger.info("manageAckMessage", {
+      websocketMessage,
+    })
     const hmacChallengeMessage = websocketMessage as TRecognizerWebSocketSSRMessageHMACChallenge
     if (hmacChallengeMessage.hmacChallenge) {
       let hmacKey: string
@@ -221,8 +214,7 @@ export class RecognizerWebSocketSSR
         hmacKey = this.configuration.server.hmacKey
       } else if (typeof this.configuration.server.hmacKey == "function") {
         hmacKey = await this.configuration.server.hmacKey(this.configuration.server.applicationKey)
-      }
-      else {
+      } else {
         this.ackDeferred?.reject("HMAC key is not a string nor a function")
         return this.initialized.reject(new Error("HMAC key is not a string nor a function"))
       }
@@ -232,7 +224,7 @@ export class RecognizerWebSocketSSR
       }
       this.send({
         type: "hmac",
-        hmac: await computeHmac(hmacChallengeMessage.hmacChallenge, this.configuration.server.applicationKey, hmacKey)
+        hmac: await computeHmac(hmacChallengeMessage.hmacChallenge, this.configuration.server.applicationKey, hmacKey),
       })
     }
     if (hmacChallengeMessage.iinkSessionId) {
@@ -244,37 +236,50 @@ export class RecognizerWebSocketSSR
     if (!isVersionSuperiorOrEqual(this.configuration.server.version!, "3.2.0")) {
       delete this.configuration.recognition.export.jiix.text.lines
     }
-    this.send({ ...this.configuration.recognition, type: "configuration" })
+    this.send({
+      ...this.configuration.recognition,
+      type: "configuration",
+    })
     this.ackDeferred?.resolve()
   }
 
-  protected async manageContentPackageDescriptionMessage(): Promise<void>
-  {
+  protected async manageContentPackageDescriptionMessage(): Promise<void> {
     this.reconnectionCount = 0
     await this.ackDeferred?.promise
     this.#logger.info("manageContentPackageDescriptionMessage")
     if (this.currentPartId) {
-      this.send({ type: "openContentPart", id: this.currentPartId, mimeTypes: this.mimeTypes })
-    }
-    else {
-      this.send({ type: "newContentPart", contentType: this.configuration.recognition.type, mimeTypes: this.mimeTypes })
+      this.send({
+        type: "openContentPart",
+        id: this.currentPartId,
+        mimeTypes: this.mimeTypes,
+      })
+    } else {
+      this.send({
+        type: "newContentPart",
+        contentType: this.configuration.recognition.type,
+        mimeTypes: this.mimeTypes,
+      })
     }
   }
 
-  protected managePartChangeMessage(websocketMessage: TRecognizerWebSocketSSRMessage): void
-  {
-    this.#logger.info("managePartChangeMessage", { websocketMessage })
+  protected managePartChangeMessage(websocketMessage: TRecognizerWebSocketSSRMessage): void {
+    this.#logger.info("managePartChangeMessage", {
+      websocketMessage,
+    })
     const partChangeMessage = websocketMessage as TRecognizerWebSocketSSRMessagePartChange
     this.currentPartId = partChangeMessage.partId
     this.initialized.resolve()
   }
 
-  protected manageExportMessage(websocketMessage: TRecognizerWebSocketSSRMessage): void
-  {
-    this.#logger.info("manageExportMessage", { websocketMessage })
+  protected manageExportMessage(websocketMessage: TRecognizerWebSocketSSRMessage): void {
+    this.#logger.info("manageExportMessage", {
+      websocketMessage,
+    })
     const exportMessage = websocketMessage as TRecognizerWebSocketSSRMessageExport
     if (exportMessage.exports["application/vnd.myscript.jiix"]) {
-      exportMessage.exports["application/vnd.myscript.jiix"] = JSON.parse(exportMessage.exports["application/vnd.myscript.jiix"].toString()) as TJIIXExport
+      exportMessage.exports["application/vnd.myscript.jiix"] = JSON.parse(
+        exportMessage.exports["application/vnd.myscript.jiix"].toString()
+      ) as TJIIXExport
     }
     this.initialized.resolve()
     this.addStrokeDeferred?.resolve(exportMessage.exports)
@@ -288,14 +293,12 @@ export class RecognizerWebSocketSSR
     this.event.emitExported(exportMessage.exports)
   }
 
-  protected async manageWaitForIdle(): Promise<void>
-  {
+  protected async manageWaitForIdle(): Promise<void> {
     this.event.emitIdle(true)
     this.waitForIdleDeferred?.resolve()
   }
 
-  protected manageErrorMessage(websocketMessage: TRecognizerWebSocketSSRMessage): void
-  {
+  protected manageErrorMessage(websocketMessage: TRecognizerWebSocketSSRMessage): void {
     const err = websocketMessage as TRecognizerWebSocketSSRMessageError
     this.currentErrorCode = err.data?.code || err.code
     let message = err.data?.message || err.message || RecognizerError.UNKNOWN
@@ -316,8 +319,7 @@ export class RecognizerWebSocketSSR
     this.event.emitError(error)
   }
 
-  protected manageContentChangeMessage(websocketMessage: TRecognizerWebSocketSSRMessage): void
-  {
+  protected manageContentChangeMessage(websocketMessage: TRecognizerWebSocketSSRMessage): void {
     this.#logger.info("manageContentChangeMessage", { websocketMessage })
     const contentChangeMessage = websocketMessage as TRecognizerWebSocketSSRMessageContentChange
     const context: THistoryContext = {
@@ -330,24 +332,26 @@ export class RecognizerWebSocketSSR
     this.event.emitContentChanged(context)
   }
 
-  protected manageSVGPatchMessage(websocketMessage: TRecognizerWebSocketSSRMessage): void
-  {
-    this.#logger.info("manageSVGPatchMessage", { websocketMessage })
+  protected manageSVGPatchMessage(websocketMessage: TRecognizerWebSocketSSRMessage): void {
+    this.#logger.info("manageSVGPatchMessage", {
+      websocketMessage,
+    })
     this.resizeDeferred?.resolve()
     const svgPatchMessage = websocketMessage as TRecognizerWebSocketSSRMessageSVGPatch
     this.event.emitSVGPatch(svgPatchMessage)
   }
 
-  protected messageCallback(message: MessageEvent<string>): void
-  {
-    this.#logger.debug("messageCallback", { message })
+  protected messageCallback(message: MessageEvent<string>): void {
+    this.#logger.debug("messageCallback", {
+      message,
+    })
     this.currentErrorCode = undefined
     const websocketMessage: TRecognizerWebSocketSSRMessage = JSON.parse(message.data)
     if (websocketMessage.type !== "pong") {
       this.pingCount = 0
       switch (websocketMessage.type) {
         case "ack":
-          this.manageAckMessage(websocketMessage).catch(err => this.event.emitError(err))
+          this.manageAckMessage(websocketMessage).catch((err) => this.event.emitError(err))
           break
         case "contentPackageDescription":
           this.manageContentPackageDescriptionMessage()
@@ -374,13 +378,12 @@ export class RecognizerWebSocketSSR
           this.manageWaitForIdle()
           break
         default:
-          this.#logger.warn("messageCallback", `Message type unknown: "${ websocketMessage.type }".`)
+          this.#logger.warn("messageCallback", `Message type unknown: "${websocketMessage.type}".`)
       }
     }
   }
 
-  async init(height: number, width: number): Promise<void>
-  {
+  async init(height: number, width: number): Promise<void> {
     try {
       this.event.emitStartInitialization()
       this.#logger.info("init", { height, width })
@@ -413,8 +416,7 @@ export class RecognizerWebSocketSSR
     }
   }
 
-  async send(message: TRecognizerWebSocketSSRMessage): Promise<void>
-  {
+  async send(message: TRecognizerWebSocketSSRMessage): Promise<void> {
     if (!this.socket) {
       return Promise.reject(new Error("Recognizer must be initilized"))
     }
@@ -427,76 +429,76 @@ export class RecognizerWebSocketSSR
       if (this.socket.readyState != this.socket.CONNECTING && this.configuration.server.websocket.autoReconnect) {
         this.reconnectionCount++
         if (this.configuration.server.websocket.maxRetryCount >= this.reconnectionCount) {
-          this.#logger.debug("send", `try to reconnect number: ${ this.reconnectionCount }.`)
+          this.#logger.debug("send", `try to reconnect number: ${this.reconnectionCount}.`)
           await this.init(this.viewSizeHeight, this.viewSizeWidth)
           await this.setPenStyle(this.penStyle as TPenStyle)
           await this.setPenStyleClasses(this.penStyleClasses as string)
           await this.setTheme(this.theme as TTheme)
           return this.send(message)
-        }
-        else {
-          return Promise.reject(new Error("Unable to send message. The maximum number of connection attempts has been reached."))
+        } else {
+          return Promise.reject(
+            new Error("Unable to send message. The maximum number of connection attempts has been reached.")
+          )
         }
       }
     }
   }
 
-  async addStrokes(strokes: Stroke[]): Promise<TExport>
-  {
+  async addStrokes(strokes: Stroke[]): Promise<TExport> {
     this.#logger.info("addStrokes", { strokes })
     await this.initialized.promise
     this.addStrokeDeferred = new DeferredPromise<TExport>()
     if (strokes.length === 0) {
       this.addStrokeDeferred.resolve({} as TExport)
-    }
-    else {
+    } else {
       await this.send({
         type: "addStrokes",
-        strokes: strokes.map(s => StrokeOps.formatToSend(s))
+        strokes: strokes.map((s) => StrokeOps.formatToSend(s)),
       })
     }
     return this.addStrokeDeferred?.promise
   }
 
-  async setPenStyle(penStyle: TPenStyle): Promise<void>
-  {
+  async setPenStyle(penStyle: TPenStyle): Promise<void> {
     this.#logger.info("setPenStyle", { penStyle })
     await this.initialized.promise
     this.penStyle = penStyle
     const message: TRecognizerWebSocketSSRMessage = {
       type: "setPenStyle",
-      style: StyleHelper.penStyleToCSS(penStyle)
+      style: StyleHelper.penStyleToCSS(penStyle),
     }
     return this.send(message)
   }
 
-  async setPenStyleClasses(penStyleClasses: string): Promise<void>
-  {
+  async setPenStyleClasses(penStyleClasses: string): Promise<void> {
     await this.initialized.promise
     this.penStyleClasses = penStyleClasses
-    this.#logger.info("setPenStyleClasses", { penStyleClasses })
+    this.#logger.info("setPenStyleClasses", {
+      penStyleClasses,
+    })
     const message: TRecognizerWebSocketSSRMessage = {
       type: "setPenStyleClasses",
-      styleClasses: penStyleClasses
+      styleClasses: penStyleClasses,
     }
     return this.send(message)
   }
 
-  async setTheme(theme: TTheme): Promise<void>
-  {
+  async setTheme(theme: TTheme): Promise<void> {
     this.#logger.info("setTheme", { theme })
     await this.initialized.promise
     this.theme = theme
     const message: TRecognizerWebSocketSSRMessage = {
       type: "setTheme",
-      theme: StyleHelper.themeToCSS(theme)
+      theme: StyleHelper.themeToCSS(theme),
     }
     return this.send(message)
   }
 
-  async export(model: Model, requestedMimeTypes?: string[]): Promise<Model>
-  {
-    this.#logger.info("export", { model, requestedMimeTypes })
+  async export(model: Model, requestedMimeTypes?: string[]): Promise<Model> {
+    this.#logger.info("export", {
+      model,
+      requestedMimeTypes,
+    })
     await this.initialized.promise
     this.exportDeferred = new DeferredPromise<TExport>()
     const localModel = model.clone()
@@ -510,40 +512,48 @@ export class RecognizerWebSocketSSR
           mimeTypes = this.configuration.recognition.text.mimeTypes
           break
         default:
-          throw new Error(`Recognition type "${ this.configuration.recognition.type }" is unknown.\n Possible types are:\n -MATH\n -TEXT`)
+          throw new Error(
+            `Recognition type "${this.configuration.recognition.type}" is unknown.\n Possible types are:\n -MATH\n -TEXT`
+          )
       }
     }
 
     if (!mimeTypes.length) {
-      return Promise.reject(new Error(`Export failed, no mimeTypes define in recognition ${ this.configuration.recognition.type } configuration`))
+      return Promise.reject(
+        new Error(
+          `Export failed, no mimeTypes define in recognition ${this.configuration.recognition.type} configuration`
+        )
+      )
     }
 
     const message: TRecognizerWebSocketSSRMessage = {
       type: "export",
       partId: this.currentPartId,
-      mimeTypes
+      mimeTypes,
     }
     await this.send(message)
     const exports: TExport = await this.exportDeferred?.promise
     localModel.updatePositionReceived()
     localModel.mergeExport(exports)
-    this.#logger.debug("export", { model: localModel })
+    this.#logger.debug("export", {
+      model: localModel,
+    })
     return localModel
   }
 
-  async import(model: Model, data: Blob, mimeType?: string): Promise<Model>
-  {
-    this.#logger.info("import", { data, mimeType })
+  async import(model: Model, data: Blob, mimeType?: string): Promise<Model> {
+    this.#logger.info("import", {
+      data,
+      mimeType,
+    })
     await this.initialized.promise
     const localModel = model.clone()
     const chunkSize = this.configuration.server.websocket.fileChunkSize
     const importFileId = Math.random().toString(10).substring(2, 6)
     this.importDeferred = new DeferredPromise<TExport>()
-    const readBlob = (blob: Blob): Promise<string | never> =>
-    {
+    const readBlob = (blob: Blob): Promise<string | never> => {
       const fileReader = new FileReader()
-      return new Promise((resolve, reject) =>
-      {
+      return new Promise((resolve, reject) => {
         fileReader.onloadend = (ev) => resolve(ev.target?.result as string)
         fileReader.onerror = () => reject()
         fileReader.readAsText(blob)
@@ -553,7 +563,7 @@ export class RecognizerWebSocketSSR
     const importFileMessage: TRecognizerWebSocketSSRMessage = {
       type: "importFile",
       importFileId,
-      mimeType
+      mimeType,
     }
     await this.send(importFileMessage)
     for (let i = 0; i < data.size; i += chunkSize) {
@@ -563,7 +573,7 @@ export class RecognizerWebSocketSSR
         type: "fileChunk",
         importFileId,
         data: partFileString,
-        lastChunk: i + chunkSize > data.size
+        lastChunk: i + chunkSize > data.size,
       }
       await this.send(fileChuckMessage)
     }
@@ -573,8 +583,7 @@ export class RecognizerWebSocketSSR
     return localModel
   }
 
-  async resize(model: Model): Promise<Model>
-  {
+  async resize(model: Model): Promise<Model> {
     this.#logger.info("resize", { model })
     await this.initialized.promise
     if (isNaN(model.height) || isNaN(model.width)) {
@@ -594,39 +603,43 @@ export class RecognizerWebSocketSSR
     return localModel
   }
 
-  async importPointEvents(strokes: Stroke[]): Promise<TExport>
-  {
-    this.#logger.info("importPointsEvents", { strokes })
+  async importPointEvents(strokes: Stroke[]): Promise<TExport> {
+    this.#logger.info("importPointsEvents", {
+      strokes,
+    })
     await this.initialized.promise
     this.importPointEventsDeferred = new DeferredPromise<TExport>()
     const message: TRecognizerWebSocketSSRMessage = {
       type: "pointerEvents",
-      events: strokes.map(s => StrokeOps.formatToSend(s))
+      events: strokes.map((s) => StrokeOps.formatToSend(s)),
     }
     await this.send(message)
     return this.importPointEventsDeferred?.promise
   }
 
-  async convert(model: Model, conversionState?: TConverstionState): Promise<Model>
-  {
-    this.#logger.info("convert", { model, conversionState })
+  async convert(model: Model, conversionState?: TConverstionState): Promise<Model> {
+    this.#logger.info("convert", {
+      model,
+      conversionState,
+    })
     await this.initialized.promise
     this.convertDeferred = new DeferredPromise<TExport>()
     const localModel = model.clone()
     const message: TRecognizerWebSocketSSRMessage = {
       type: "convert",
-      conversionState
+      conversionState,
     }
     await this.send(message)
     const myExportConverted: TExport = await this.convertDeferred?.promise
     localModel.updatePositionReceived()
     localModel.mergeConvert(myExportConverted)
-    this.#logger.debug("convert", { model: localModel })
+    this.#logger.debug("convert", {
+      model: localModel,
+    })
     return localModel
   }
 
-  async waitForIdle(): Promise<void>
-  {
+  async waitForIdle(): Promise<void> {
     await this.initialized.promise
     this.waitForIdleDeferred = new DeferredPromise<void>()
     const message: TRecognizerWebSocketSSRMessage = {
@@ -636,8 +649,7 @@ export class RecognizerWebSocketSSR
     return this.waitForIdleDeferred?.promise
   }
 
-  async undo(model: Model): Promise<Model>
-  {
+  async undo(model: Model): Promise<Model> {
     this.#logger.info("undo", { model })
     await this.initialized.promise
     const localModel = model.clone()
@@ -649,13 +661,14 @@ export class RecognizerWebSocketSSR
     const undoExports = await this.undoDeferred?.promise
     localModel.updatePositionReceived()
     localModel.mergeExport(undoExports)
-    this.#logger.debug("undo", { model: localModel })
+    this.#logger.debug("undo", {
+      model: localModel,
+    })
     this.undoDeferred = undefined
     return localModel
   }
 
-  async redo(model: Model): Promise<Model>
-  {
+  async redo(model: Model): Promise<Model> {
     this.#logger.info("redo", { model })
     await this.initialized.promise
     const localModel = model.clone()
@@ -667,13 +680,14 @@ export class RecognizerWebSocketSSR
     const redoExports = await this.redoDeferred?.promise
     localModel.updatePositionReceived()
     localModel.mergeExport(redoExports)
-    this.#logger.debug("redo", { model: redoExports })
+    this.#logger.debug("redo", {
+      model: redoExports,
+    })
     this.redoDeferred = undefined
     return localModel
   }
 
-  async clear(model: Model): Promise<Model>
-  {
+  async clear(model: Model): Promise<Model> {
     this.#logger.info("clear", { model })
     await this.initialized.promise
     const localModel = model.clone()
@@ -687,12 +701,13 @@ export class RecognizerWebSocketSSR
     localModel.updatePositionReceived()
     localModel.mergeExport(clearExports)
     this.clearDeferred = undefined
-    this.#logger.info("clear", { model: localModel })
+    this.#logger.info("clear", {
+      model: localModel,
+    })
     return localModel
   }
 
-  close(code: number, reason: string): void
-  {
+  close(code: number, reason: string): void {
     if (this.socket.readyState === this.socket.OPEN || this.socket.readyState === this.socket.CONNECTING) {
       this.#logger.info("close", { code, reason })
       this.socket.removeEventListener("close", this.boundCloseCallback)
@@ -702,8 +717,7 @@ export class RecognizerWebSocketSSR
     }
   }
 
-  destroy(): void
-  {
+  destroy(): void {
     this.#logger.info("destroy")
     this.connected = undefined
     this.ackDeferred = undefined

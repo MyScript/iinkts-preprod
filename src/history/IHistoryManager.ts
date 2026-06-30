@@ -2,9 +2,10 @@ import type { EditorEvent } from "@/editor/EditorEvent"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { IModel } from "@/model"
 import type { TSymbol } from "@/symbol"
-import type { THistoryContext} from "./HistoryContext";
-import { getInitialHistoryContext } from "./HistoryContext"
+
 import type { THistoryConfiguration } from "./HistoryConfiguration"
+import type { THistoryContext } from "./HistoryContext"
+import { getInitialHistoryContext } from "./HistoryContext"
 
 /**
  * @group History
@@ -34,7 +35,9 @@ export class IHistoryManager {
   stack: TIHistoryStackItem[]
 
   constructor(configuration: THistoryConfiguration, event: EditorEvent) {
-    this.#logger.info("constructor", { configuration })
+    this.#logger.info("constructor", {
+      configuration,
+    })
     this.configuration = configuration
     this.event = event
     this.context = getInitialHistoryContext()
@@ -48,8 +51,10 @@ export class IHistoryManager {
   }
 
   updateModelStack(model: IModel): void {
-    this.#logger.info("updateModelStack", { model })
-    const stackIdx = this.stack.findIndex(s => s.model.modificationDate === model.modificationDate)
+    this.#logger.info("updateModelStack", {
+      model,
+    })
+    const stackIdx = this.stack.findIndex((s) => s.model.modificationDate === model.modificationDate)
     if (stackIdx > -1) {
       this.stack[stackIdx].model = model.clone()
     }
@@ -58,26 +63,31 @@ export class IHistoryManager {
   }
 
   isChangesEmpty(changes: TIHistoryChanges): boolean {
-    return !(
-      changes.added?.length ||
-      changes.removed?.length
-    )
+    return !(changes.added?.length || changes.removed?.length)
   }
 
   init(model: IModel): void {
-    this.stack.push({ model: model.clone(), changes: {} })
+    this.stack.push({
+      model: model.clone(),
+      changes: {},
+    })
     this.event.emitChanged(this.context)
   }
 
   push(model: IModel, changes: TIHistoryChanges): void {
     this.#logger.info("push", { model, changes })
-    if (this.isChangesEmpty(changes)) return
+    if (this.isChangesEmpty(changes)) {
+      return
+    }
 
     if (this.context.stackIndex + 1 < this.stack.length) {
       this.stack.splice(this.context.stackIndex + 1)
     }
 
-    this.stack.push({ model: model.clone(), changes })
+    this.stack.push({
+      model: model.clone(),
+      changes,
+    })
     this.context.stackIndex = this.stack.length - 1
 
     if (this.stack.length > this.configuration.maxStackSize) {
@@ -119,7 +129,7 @@ export class IHistoryManager {
     this.#logger.debug("undo", previousStackItem)
     return {
       model: previousStackItem.model,
-      changes: this.reverseChanges(currentStackItem.changes)
+      changes: this.reverseChanges(currentStackItem.changes),
     }
   }
 

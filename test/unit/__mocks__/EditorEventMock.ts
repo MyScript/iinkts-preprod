@@ -1,7 +1,6 @@
-import { EditorEvent} from "@/iink"
+import { EditorEvent } from "@/iink"
 
-export class EditorEventMock extends EditorEvent
-{
+export class EditorEventMock extends EditorEvent {
   emitChanged = jest.fn()
   emitCleared = jest.fn()
   emitConverted = jest.fn()

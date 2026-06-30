@@ -1,8 +1,4 @@
-import {
-  createUUID,
-  mergeDeep,
-  isDeepEqual
-} from "../../src/iink"
+import { createUUID, mergeDeep, isDeepEqual } from "../../src/iink"
 
 describe("Performance Benchmarks", () => {
   describe("UUID Generation", () => {

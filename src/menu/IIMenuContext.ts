@@ -1,20 +1,26 @@
+import { DOMFactory } from "@/components/dom"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { LoggerCategory, LoggerManager } from "@/logger"
-import type { TStroke, TText, TSymbol} from "@/symbol";
+import type { TStroke, TSymbol, TText } from "@/symbol"
 import { isStroke, isText } from "@/symbol"
 import { TextOps } from "@/symbol/text/Text"
-import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
-import { DOMFactory } from "@/components/dom"
-import type { TContextDecoratorConfig, TContextReorderConfig, TContextExportConfig, TContextMathConfig} from "./context";
+
+import type {
+  TContextDecoratorConfig,
+  TContextExportConfig,
+  TContextMathConfig,
+  TContextReorderConfig,
+} from "./context"
 import {
-  EditContextMenu,
-  DecoratorContextMenu,
-  ReorderContextMenu,
-  ExportContextMenu,
   ConvertContextMenu,
-  MathContextMenu,
+  DecoratorContextMenu,
   DuplicateContextMenu,
+  EditContextMenu,
+  ExportContextMenu,
+  MathContextMenu,
   RemoveContextMenu,
-  SelectAllContextMenu
+  ReorderContextMenu,
+  SelectAllContextMenu,
 } from "./context"
 
 /**
@@ -56,7 +62,7 @@ export const DefaultMenuContextConfig: Required<TMenuContextConfig> = {
   group: true,
   duplicate: true,
   remove: true,
-  selectAll: true
+  selectAll: true,
 }
 
 function extractSubConfig<T>(config: boolean | T): T | undefined {
@@ -65,8 +71,7 @@ function extractSubConfig<T>(config: boolean | T): T | undefined {
 /**
  * @group Menu
  */
-export class IIMenuContext
-{
+export class IIMenuContext {
   #logger = LoggerManager.getLogger(LoggerCategory.MENU)
   editor: TInteractiveInkEditor
   id: string
@@ -74,90 +79,112 @@ export class IIMenuContext
   config: Required<TMenuContextConfig>
 
   // Context menu instances
-  private contextMenus: Map<string, EditContextMenu | DecoratorContextMenu | ReorderContextMenu | ExportContextMenu | ConvertContextMenu | MathContextMenu | DuplicateContextMenu | RemoveContextMenu | SelectAllContextMenu> = new Map()
+  private contextMenus: Map<
+    string,
+    | EditContextMenu
+    | DecoratorContextMenu
+    | ReorderContextMenu
+    | ExportContextMenu
+    | ConvertContextMenu
+    | MathContextMenu
+    | DuplicateContextMenu
+    | RemoveContextMenu
+    | SelectAllContextMenu
+  > = new Map()
 
   #scrollHandler?: () => void
 
   position: {
-    x: number,
+    x: number
     y: number
   }
 
-  constructor(editor: TInteractiveInkEditor, id = "ms-menu-context", config?: TMenuContextConfig)
-  {
+  constructor(editor: TInteractiveInkEditor, id = "ms-menu-context", config?: TMenuContextConfig) {
     this.id = id
     this.#logger.info("constructor")
     this.editor = editor
-    this.config = { ...DefaultMenuContextConfig, ...config }
+    this.config = {
+      ...DefaultMenuContextConfig,
+      ...config,
+    }
     this.position = { x: 0, y: 0 }
   }
 
-  get symbolsSelected(): TSymbol[]
-  {
+  get symbolsSelected(): TSymbol[] {
     return this.editor.model.symbolsSelected
   }
 
-  get haveSymbolsSelected(): boolean
-  {
+  get haveSymbolsSelected(): boolean {
     return this.symbolsSelected.length > 0
   }
 
-  get symbolsDecorable(): (TStroke | TText)[]
-  {
-    return this.symbolsSelected.filter(s => {
+  get symbolsDecorable(): (TStroke | TText)[] {
+    return this.symbolsSelected.filter((s) => {
       return isStroke(s) || isText(s)
     }) as (TStroke | TText)[]
   }
 
-  get showDecorator(): boolean
-  {
+  get showDecorator(): boolean {
     return this.symbolsDecorable.length > 0
   }
 
-  get hasSingleMathSymbol(): boolean
-  {
-    return this.editor.jiix.getBlocksForSymbols(this.editor.model.symbolsSelected).filter(s => s.type === "Math").length === 1
+  get hasSingleMathSymbol(): boolean {
+    return (
+      this.editor.jiix.getBlocksForSymbols(this.editor.model.symbolsSelected).filter((s) => s.type === "Math")
+        .length === 1
+    )
   }
 
-  protected async updateMathMenu(): Promise<void>
-  {
+  protected async updateMathMenu(): Promise<void> {
     const mathMenuInstance = this.contextMenus.get("math") as MathContextMenu | undefined
     if (mathMenuInstance) {
       if (this.hasSingleMathSymbol) {
         const mathSymbol = this.symbolsSelected[0] as TStroke
         if (!mathSymbol.jiixBlockId) {
-          mathMenuInstance.setMenuVisibility(false, { canEditVariables: false, canCompute: false, canEvaluate: false })
+          mathMenuInstance.setMenuVisibility(false, {
+            canEditVariables: false,
+            canCompute: false,
+            canEvaluate: false,
+          })
           return
         }
         const [actions, variables, evaluables] = await Promise.all([
           this.editor.math.getAvailableActions(mathSymbol.jiixBlockId),
           this.editor.math.getVariables(mathSymbol.jiixBlockId),
-          this.editor.math.getEvaluables(mathSymbol.jiixBlockId)
+          this.editor.math.getEvaluables(mathSymbol.jiixBlockId),
         ])
 
         const canEditVariables = Object.keys(variables).length > 0
         const canCompute = actions?.includes("numerical-computation")
         const canEvaluate = evaluables?.length ? true : false
-        mathMenuInstance.setMenuVisibility(true, { canEditVariables, canCompute, canEvaluate })
-      }
-      else {
-        mathMenuInstance.setMenuVisibility(false, { canEditVariables: false, canCompute: false, canEvaluate: false })
+        mathMenuInstance.setMenuVisibility(true, {
+          canEditVariables,
+          canCompute,
+          canEvaluate,
+        })
+      } else {
+        mathMenuInstance.setMenuVisibility(false, {
+          canEditVariables: false,
+          canCompute: false,
+          canEvaluate: false,
+        })
       }
     }
   }
 
-  update(): void
-  {
+  update(): void {
     // Position is now in client coordinates (relative to viewport), no need to adjust for scroll
-    this.wrapper?.style.setProperty("left", `${ this.position.x }px`)
-    this.wrapper?.style.setProperty("top", `${ this.position.y }px`)
+    this.wrapper?.style.setProperty("left", `${this.position.x}px`)
+    this.wrapper?.style.setProperty("top", `${this.position.y}px`)
 
     // Adjust position if menu overflows rendering layer boundaries
     if (this.wrapper) {
       const menuRect = this.wrapper.getBoundingClientRect()
       const renderingRect = this.editor.layers.rendering.getBoundingClientRect()
       const parent = this.wrapper.parentElement
-      if (!parent) return
+      if (!parent) {
+        return
+      }
       const parentRect = parent.getBoundingClientRect()
 
       const margin = 10
@@ -192,10 +219,10 @@ export class IIMenuContext
 
       // Apply adjusted positions if needed
       if (adjustedX !== this.position.x) {
-        this.wrapper.style.setProperty("left", `${ adjustedX }px`)
+        this.wrapper.style.setProperty("left", `${adjustedX}px`)
       }
       if (adjustedY !== this.position.y) {
-        this.wrapper.style.setProperty("top", `${ adjustedY }px`)
+        this.wrapper.style.setProperty("top", `${adjustedY}px`)
       }
     }
 
@@ -203,12 +230,11 @@ export class IIMenuContext
       // Update edit menu
       const editMenuInstance = this.contextMenus.get("edit") as EditContextMenu | undefined
       if (editMenuInstance) {
-        const textSymbol = this.editor.model.symbolsSelected.find(s => isText(s))
+        const textSymbol = this.editor.model.symbolsSelected.find((s) => isText(s))
         if (editMenuInstance.editInput && this.editor.model.symbolsSelected.length === 1 && textSymbol) {
           editMenuInstance.editInput.value = TextOps.getLabel(textSymbol as TText)
           editMenuInstance.getElement().style.removeProperty("display")
-        }
-        else {
+        } else {
           editMenuInstance.getElement().style.setProperty("display", "none")
         }
       }
@@ -216,8 +242,7 @@ export class IIMenuContext
       // Show convert button only if there are strokes AND not only math selected
       if (this.editor.extractStrokesFromSymbols(this.symbolsSelected).length) {
         this.contextMenus.get("convert")?.getElement().style.removeProperty("display")
-      }
-      else {
+      } else {
         this.contextMenus.get("convert")?.getElement().style.setProperty("display", "none")
       }
 
@@ -225,8 +250,7 @@ export class IIMenuContext
       this.contextMenus.get("duplicate")?.getElement().style.removeProperty("display")
       this.contextMenus.get("remove")?.getElement().style.removeProperty("display")
       this.contextMenus.get("export")?.getElement().style.removeProperty("display")
-    }
-    else {
+    } else {
       this.contextMenus.get("edit")?.getElement().style.setProperty("display", "none")
       this.contextMenus.get("convert")?.getElement().style.setProperty("display", "none")
       this.contextMenus.get("reorder")?.getElement().style.setProperty("display", "none")
@@ -242,12 +266,13 @@ export class IIMenuContext
     this.updateMathMenu()
   }
 
-  render(layer: HTMLElement): void
-  {
+  render(layer: HTMLElement): void {
     this.#logger.info("Rendering context menu with config", this.config)
 
-    
-    this.wrapper = DOMFactory.div({ id: `${ this.id }-wrapper`, className: ["ms-menu", "ms-menu-context"] })
+    this.wrapper = DOMFactory.div({
+      id: `${this.id}-wrapper`,
+      className: ["ms-menu", "ms-menu-context"],
+    })
 
     if (this.config.edit) {
       const editMenuInstance = new EditContextMenu(this.editor, this.id)
@@ -256,7 +281,11 @@ export class IIMenuContext
     }
 
     if (this.config.decorator) {
-      const decoratorMenuInstance = new DecoratorContextMenu(this.editor, this.id, extractSubConfig(this.config.decorator))
+      const decoratorMenuInstance = new DecoratorContextMenu(
+        this.editor,
+        this.id,
+        extractSubConfig(this.config.decorator)
+      )
       this.contextMenus.set("decorator", decoratorMenuInstance)
       this.wrapper.appendChild(decoratorMenuInstance.getElement())
     }
@@ -311,19 +340,16 @@ export class IIMenuContext
     this.editor.layers.rendering.addEventListener("scroll", this.#scrollHandler)
   }
 
-  show(): void
-  {
+  show(): void {
     this.wrapper?.style.setProperty("display", "block")
     this.update()
   }
 
-  hide(): void
-  {
+  hide(): void {
     this.wrapper?.style.setProperty("display", "none")
   }
 
-  destroy(): void
-  {
+  destroy(): void {
     if (this.#scrollHandler) {
       this.editor.layers.rendering.removeEventListener("scroll", this.#scrollHandler)
       this.#scrollHandler = undefined

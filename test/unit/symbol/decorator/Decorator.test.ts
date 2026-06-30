@@ -1,81 +1,68 @@
 import { DecoratorKind, DecoratorOps, TStyle } from "@/iink"
 
-describe("Decorator.ts", () =>
-{
-  describe("Highlight", () =>
-  {
+describe("Decorator.ts", () => {
+  describe("Highlight", () => {
     const style: TStyle = {
       color: "blue",
-      width: 20
+      width: 20,
     }
     const decorator = DecoratorOps.create(DecoratorKind.Highlight, style)
-    test("should create ", () =>
-    {
+    test("should create ", () => {
       expect(decorator).toBeDefined()
       expect(decorator.style.color).toEqual(style.color)
     })
-    test("should clone with structuredClone", () =>
-    {
+    test("should clone with structuredClone", () => {
       const clone = structuredClone(decorator)
       expect(clone).toEqual(decorator)
       expect(clone).not.toBe(decorator)
     })
   })
 
-  describe("Strikethrough", () =>
-  {
+  describe("Strikethrough", () => {
     const style: TStyle = {
       color: "blue",
-      width: 20
+      width: 20,
     }
     const decorator = DecoratorOps.create(DecoratorKind.Strikethrough, style)
-    test("should create ", () =>
-    {
+    test("should create ", () => {
       expect(decorator).toBeDefined()
       expect(decorator.style.color).toEqual(style.color)
     })
-    test("should clone with structuredClone", () =>
-    {
+    test("should clone with structuredClone", () => {
       const clone = structuredClone(decorator)
       expect(clone).toEqual(decorator)
       expect(clone).not.toBe(decorator)
     })
   })
 
-  describe("Surround", () =>
-  {
+  describe("Surround", () => {
     const style: TStyle = {
       color: "blue",
-      width: 20
+      width: 20,
     }
     const decorator = DecoratorOps.create(DecoratorKind.Surround, style)
-    test("should create ", () =>
-    {
+    test("should create ", () => {
       expect(decorator).toBeDefined()
       expect(decorator.style.color).toEqual(style.color)
     })
-    test("should clone with structuredClone", () =>
-    {
+    test("should clone with structuredClone", () => {
       const clone = structuredClone(decorator)
       expect(clone).toEqual(decorator)
       expect(clone).not.toBe(decorator)
     })
   })
 
-  describe("Underline", () =>
-  {
+  describe("Underline", () => {
     const style: TStyle = {
       color: "blue",
-      width: 20
+      width: 20,
     }
     const decorator = DecoratorOps.create(DecoratorKind.Underline, style)
-    test("should create ", () =>
-    {
+    test("should create ", () => {
       expect(decorator).toBeDefined()
       expect(decorator.style.color).toEqual(style.color)
     })
-    test("should clone with structuredClone", () =>
-    {
+    test("should clone with structuredClone", () => {
       const clone = structuredClone(decorator)
       expect(clone).toEqual(decorator)
       expect(clone).not.toBe(decorator)

@@ -1,5 +1,6 @@
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
-import type { TMenuItemBase } from "./BaseMenuItem";
+
+import type { TMenuItemBase } from "./BaseMenuItem"
 import { BaseMenuItem } from "./BaseMenuItem"
 
 /**
@@ -16,20 +17,21 @@ export type TMenuCheckbox = TMenuItemBase & {
  * @group Menu
  * @remarks Class for checkboxes
  */
-export class CheckboxMenuItem extends BaseMenuItem<HTMLDivElement>
-{
-  protected declare config: TMenuCheckbox
+export class CheckboxMenuItem extends BaseMenuItem<HTMLDivElement> {
+  declare protected config: TMenuCheckbox
 
   createElement(): HTMLDivElement {
-    const wrapper = this.dom.div({ id: this.config.id, className: ["ms-menu-item", "checkbox"] })
+    const wrapper = this.dom.div({
+      id: this.config.id,
+      className: ["ms-menu-item", "checkbox"],
+    })
 
     if (this.config.label) {
       wrapper.appendChild(this.dom.span({ text: this.config.label }))
     }
 
-    const isDisabled = typeof this.config.disabled === "function"
-      ? this.config.disabled(this.editor)
-      : (this.config.disabled ?? false)
+    const isDisabled =
+      typeof this.config.disabled === "function" ? this.config.disabled(this.editor) : (this.config.disabled ?? false)
 
     const checkbox = this.dom.checkbox({
       id: `${this.config.id}-input`,
@@ -48,7 +50,9 @@ export class CheckboxMenuItem extends BaseMenuItem<HTMLDivElement>
   }
 
   update(): void {
-    if (!this.element) return
+    if (!this.element) {
+      return
+    }
 
     const checkbox = this.element.querySelector("input") as HTMLInputElement
     if (checkbox) {

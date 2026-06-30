@@ -4,176 +4,176 @@ import {
   TInteractiveInkEditorConfiguration,
   TInteractiveInkSSREditorConfiguration,
   TRecognizerHTTPV1Configuration,
-  TRecognizerWebSocketSSRConfiguration
+  TRecognizerWebSocketSSRConfiguration,
 } from "@/iink"
 
 export const RecognizerWebSocketSSRTextConfiguration: TRecognizerWebSocketSSRConfiguration = {
   server: {
-    scheme: 'http',
-    host: 'test.com',
-    applicationKey: 'XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX',
-    hmacKey: 'YYYYYYYY-YYYY-YYYY-YYYY-YYYYYYYYYYYY',
+    scheme: "http",
+    host: "test.com",
+    applicationKey: "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
+    hmacKey: "YYYYYYYY-YYYY-YYYY-YYYY-YYYYYYYYYYYY",
     version: "3.0.0",
     websocket: {
       pingEnabled: false,
-      pingDelay: 100
-    }
+      pingDelay: 100,
+    },
   },
   recognition: {
     lang: "en_US",
-    type: 'TEXT',
+    type: "TEXT",
     text: {
-      mimeTypes: ['text/plain', 'application/vnd.myscript.jiix'],
+      mimeTypes: ["text/plain", "application/vnd.myscript.jiix"],
       margin: {
         bottom: 12,
         left: 12,
         right: 12,
-        top: 12
+        top: 12,
       },
-    }
-  }
+    },
+  },
 }
 
 export const RecognizerWebSocketSSRMathConfiguration: TRecognizerWebSocketSSRConfiguration = {
-    server: {
-      scheme: 'http',
-      host: 'test.com',
-      applicationKey: 'XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX',
-      hmacKey: 'YYYYYYYY-YYYY-YYYY-YYYY-YYYYYYYYYYYY',
-      version: "3.0.0",
-      websocket: {
-        pingEnabled: false
-      }
+  server: {
+    scheme: "http",
+    host: "test.com",
+    applicationKey: "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
+    hmacKey: "YYYYYYYY-YYYY-YYYY-YYYY-YYYYYYYYYYYY",
+    version: "3.0.0",
+    websocket: {
+      pingEnabled: false,
     },
-    recognition: {
-      lang: "en_US",
-      type: 'MATH',
-      math: {
-        mimeTypes: ["application/vnd.myscript.jiix"],
-      }
-    }
-  }
+  },
+  recognition: {
+    lang: "en_US",
+    type: "MATH",
+    math: {
+      mimeTypes: ["application/vnd.myscript.jiix"],
+    },
+  },
+}
 
 export const RecognizerHTTPV1TextConfiguration: TRecognizerHTTPV1Configuration = {
   server: {
-    scheme: 'http',
-    host: 'test.com',
-    applicationKey: 'XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX',
-    hmacKey: 'YYYYYYYY-YYYY-YYYY-YYYY-YYYYYYYYYYYY',
-    version: "3.0.0"
+    scheme: "http",
+    host: "test.com",
+    applicationKey: "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
+    hmacKey: "YYYYYYYY-YYYY-YYYY-YYYY-YYYYYYYYYYYY",
+    version: "3.0.0",
   },
   recognition: {
-    type: 'TEXT',
+    type: "TEXT",
     text: {
-      mimeTypes: ['text/plain', 'application/vnd.myscript.jiix'],
+      mimeTypes: ["text/plain", "application/vnd.myscript.jiix"],
       margin: {
         bottom: 12,
         left: 12,
         right: 12,
-        top: 12
+        top: 12,
       },
-    }
-  }
+    },
+  },
 }
 
 export const RecognizerHTTPV1DiagramConfiguration: TRecognizerHTTPV1Configuration = {
   server: {
-    scheme: 'http',
-    host: 'test.com',
-    applicationKey: 'XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX',
-    hmacKey: 'YYYYYYYY-YYYY-YYYY-YYYY-YYYYYYYYYYYY',
-    version: "3.0.0"
+    scheme: "http",
+    host: "test.com",
+    applicationKey: "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
+    hmacKey: "YYYYYYYY-YYYY-YYYY-YYYY-YYYYYYYYYYYY",
+    version: "3.0.0",
   },
   recognition: {
-    type: 'DIAGRAM',
+    type: "DIAGRAM",
     diagram: {
-      mimeTypes: ['application/vnd.myscript.jiix']
-    }
-  }
+      mimeTypes: ["application/vnd.myscript.jiix"],
+    },
+  },
 }
 
 export const RecognizerHTTPV1MathConfiguration: TRecognizerHTTPV1Configuration = {
   server: {
-    scheme: 'http',
-    host: 'test.com',
-    applicationKey: 'XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX',
-    hmacKey: 'YYYYYYYY-YYYY-YYYY-YYYY-YYYYYYYYYYYY',
-    version: "3.0.0"
+    scheme: "http",
+    host: "test.com",
+    applicationKey: "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
+    hmacKey: "YYYYYYYY-YYYY-YYYY-YYYY-YYYYYYYYYYYY",
+    version: "3.0.0",
   },
   recognition: {
-    type: 'MATH',
+    type: "MATH",
     math: {
-      mimeTypes: ['application/vnd.myscript.jiix']
-    }
-  }
+      mimeTypes: ["application/vnd.myscript.jiix"],
+    },
+  },
 }
 
 export const RecognizerHTTPV1RawContentConfiguration: TRecognizerHTTPV1Configuration = {
   server: {
-    scheme: 'http',
-    host: 'test.com',
-    applicationKey: 'XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX',
-    hmacKey: 'YYYYYYYY-YYYY-YYYY-YYYY-YYYYYYYYYYYY',
-    version: "3.0.0"
+    scheme: "http",
+    host: "test.com",
+    applicationKey: "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
+    hmacKey: "YYYYYYYY-YYYY-YYYY-YYYY-YYYYYYYYYYYY",
+    version: "3.0.0",
   },
   recognition: {
-    type: 'Raw Content',
-  }
+    type: "Raw Content",
+  },
 }
 
 export const InteractiveInkEditorOverrideConfiguration: TInteractiveInkEditorConfiguration = {
   server: {
-    scheme: 'http',
-    host: 'test.com',
-    applicationKey: 'XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX',
-    hmacKey: 'YYYYYYYY-YYYY-YYYY-YYYY-YYYYYYYYYYYY',
-    version: '2.0.4',
+    scheme: "http",
+    host: "test.com",
+    applicationKey: "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
+    hmacKey: "YYYYYYYY-YYYY-YYYY-YYYY-YYYYYYYYYYYY",
+    version: "2.0.4",
     websocket: {
       pingEnabled: false,
       pingDelay: 100,
       maxPingLostCount: 42,
       autoReconnect: false,
       maxRetryCount: 42,
-      fileChunkSize: 42
-    }
+      fileChunkSize: 42,
+    },
   },
   recognition: {
     alwaysConnected: false,
-    lang: 'fr_FR',
+    lang: "fr_FR",
     gesture: {
-      enable: false
+      enable: false,
     },
     export: {
-      'image-resolution': 12,
+      "image-resolution": 12,
       jiix: {
-        'bounding-box': true,
+        "bounding-box": true,
         strokes: true,
         "full-stroke-ids": true,
         ids: true,
         text: {
           chars: true,
-          words: false
-        }
+          words: false,
+        },
       },
     },
-    'raw-content': {
+    "raw-content": {
       recognition: {
         text: false,
-        shape: true
+        shape: true,
       },
       eraser: {
-        'erase-precisely': true
+        "erase-precisely": true,
       },
-      gestures: ["scratch-out"]
-    }
+      gestures: ["scratch-out"],
+    },
   },
   grabber: {
     listenerOptions: {
       capture: true,
-      passive: false
+      passive: false,
     },
     xyFloatPrecision: 27,
-    timestampFloatPrecision: 27
+    timestampFloatPrecision: 27,
   },
   renderer: {
     minHeight: 42,
@@ -181,15 +181,15 @@ export const InteractiveInkEditorOverrideConfiguration: TInteractiveInkEditorCon
     guides: {
       enable: true,
       gap: 27,
-      type: "grid"
-    }
+      type: "grid",
+    },
   },
   triggers: {
-    exportContent: 'DEMAND',
+    exportContent: "DEMAND",
     exportContentDelay: 5,
-    resizeTriggerDelay: 5
+    resizeTriggerDelay: 5,
   },
-  'undo-redo': {
-    maxStackSize: 10
-  }
+  "undo-redo": {
+    maxStackSize: 10,
+  },
 }

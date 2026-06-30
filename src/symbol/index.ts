@@ -27,14 +27,14 @@
 export * from "./primitives"
 
 // Symbol categories
+export * from "./decorator"
+export * from "./edge"
+export * from "./eraser"
+export * from "./math"
+export * from "./shape"
 export * from "./stroke"
 export * from "./text"
-export * from "./math"
 export * from "./typeset"
-export * from "./decorator"
-export * from "./eraser"
-export * from "./shape"
-export * from "./edge"
 
 // Root union type + enum re-exports
 export * from "./Symbol"
@@ -44,4 +44,3 @@ export * from "./SymbolHelpers"
 
 // Legacy v1 symbols (deprecated)
 export * from "./legacy"
-

@@ -1,15 +1,9 @@
-import { LoggerCategory, LoggerManager } from "@/logger"
-import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { DOMFactory } from "@/components/dom"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import { LoggerCategory, LoggerManager } from "@/logger"
+
 import type { BaseMenuItem } from "./items"
-import {
-  WriteTool,
-  MoveTool,
-  SelectTool,
-  EraseTool,
-  ShapeTool,
-  EdgeTool
-} from "./tools"
+import { EdgeTool, EraseTool, MoveTool, SelectTool, ShapeTool, WriteTool } from "./tools"
 
 /**
  * @group Menu
@@ -37,14 +31,13 @@ export const DefaultMenuToolConfig: Required<TMenuToolConfig> = {
   select: true,
   erase: true,
   shape: true,
-  edge: true
+  edge: true,
 }
 
 /**
  * @group Menu
  */
-export class IIMenuTool
-{
+export class IIMenuTool {
   #logger = LoggerManager.getLogger(LoggerCategory.MENU)
 
   editor: TInteractiveInkEditor
@@ -55,21 +48,23 @@ export class IIMenuTool
   // Instances des classes d'outils
   private menuTools: Map<string, BaseMenuItem> = new Map()
 
-  constructor(editor: TInteractiveInkEditor, id = "ms-menu-tool", config?: TMenuToolConfig)
-  {
+  constructor(editor: TInteractiveInkEditor, id = "ms-menu-tool", config?: TMenuToolConfig) {
     this.id = id
     this.#logger.info("constructor")
     this.editor = editor
-    this.config = { ...DefaultMenuToolConfig, ...config }
+    this.config = {
+      ...DefaultMenuToolConfig,
+      ...config,
+    }
   }
 
-  render(layer: HTMLElement): void
-  {
+  render(layer: HTMLElement): void {
     if (this.editor.configuration.menu.tool.enable) {
       this.#logger.info("Rendering menu tools with config", this.config)
 
-      
-      this.wrapper = DOMFactory.div({ className: ["ms-menu", "ms-menu-bottom", "ms-menu-row"] })
+      this.wrapper = DOMFactory.div({
+        className: ["ms-menu", "ms-menu-bottom", "ms-menu-row"],
+      })
 
       // Ajouter les outils conditionnellement
       if (this.config.write) {
@@ -114,31 +109,27 @@ export class IIMenuTool
     }
   }
 
-  update(): void
-  {
-    this.menuTools.forEach(tool => {
+  update(): void {
+    this.menuTools.forEach((tool) => {
       tool.update()
     })
   }
 
-  show(): void
-  {
+  show(): void {
     if (this.wrapper) {
       this.wrapper.style.visibility = "visible"
     }
   }
 
-  hide(): void
-  {
+  hide(): void {
     if (this.wrapper) {
       this.wrapper.style.visibility = "hidden"
     }
   }
 
-  destroy(): void
-  {
+  destroy(): void {
     if (this.wrapper) {
-      this.menuTools.forEach(tool => {
+      this.menuTools.forEach((tool) => {
         tool.destroy()
       })
       this.menuTools.clear()

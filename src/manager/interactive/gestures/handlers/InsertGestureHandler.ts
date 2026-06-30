@@ -1,31 +1,27 @@
-import type { TStroke, TText, TPoint } from "@/symbol";
-import { type TSymbol, isText, SymbolType } from "@/symbol"
-import { TextOps } from "@/symbol/text/Text"
-import { StrokeOps } from "@/symbol/stroke/Stroke"
-import { BoxOps } from "@/symbol/primitives/Box"
-import type { TIIHistoryChanges } from "@/history"
-import { computeAverage, isBetween } from "@/utils"
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
-import type { TGesture } from "../GestureTypes"
-import { InsertAction } from "../GestureTypes"
+import type { TIIHistoryChanges } from "@/history"
+import type { TPoint, TStroke, TText } from "@/symbol"
+import { isText, SymbolType, type TSymbol } from "@/symbol"
+import { BoxOps } from "@/symbol/primitives/Box"
+import { StrokeOps } from "@/symbol/stroke/Stroke"
+import { TextOps } from "@/symbol/text/Text"
+import { MatrixTransform } from "@/transform"
+import { computeAverage, isBetween } from "@/utils"
+
 import { GestureHandler } from "../GestureHandler"
 import type { GestureHelpers } from "../GestureHelpers"
-import { MatrixTransform } from "@/transform"
+import type { TGesture } from "../GestureTypes"
+import { InsertAction } from "../GestureTypes"
 
 /**
  * Handler for INSERT gesture type
  * Inserts line breaks or space by drawing vertical line
  * @group Manager
  */
-export class InsertGestureHandler extends GestureHandler
-{
+export class InsertGestureHandler extends GestureHandler {
   readonly gestureType = "INSERT" as const
 
-  constructor(
-    editor: TInteractiveInkEditor,
-    helpers: GestureHelpers
-  )
-  {
+  constructor(editor: TInteractiveInkEditor, helpers: GestureHelpers) {
     super(editor, helpers)
   }
 
@@ -36,18 +32,16 @@ export class InsertGestureHandler extends GestureHandler
    * @param subStrokes - Array of substroke data (x,y coordinates)
    * @returns Array of new strokes
    */
-  createStrokesFromGestureSubStroke(strokeOrigin: TStroke, subStrokes: { x: number[], y: number[] }[]): TStroke[]
-  {
+  createStrokesFromGestureSubStroke(strokeOrigin: TStroke, subStrokes: { x: number[]; y: number[] }[]): TStroke[] {
     const strokes: TStroke[] = []
     if (subStrokes[0]) {
       const subStroke = StrokeOps.create(strokeOrigin.style)
-      subStrokes[0].x.forEach((x, i) =>
-      {
+      subStrokes[0].x.forEach((x, i) => {
         subStroke.pointers.push({
           x,
           y: subStrokes[0].y[i],
           p: strokeOrigin.pointers.at(i)?.p || 1,
-          t: strokeOrigin.pointers.at(i)?.t || Math.max(...subStroke.pointers.map(p => p.t + 20))
+          t: strokeOrigin.pointers.at(i)?.t || Math.max(...subStroke.pointers.map((p) => p.t + 20)),
         })
       })
       StrokeOps.updateBounds(subStroke)
@@ -55,13 +49,14 @@ export class InsertGestureHandler extends GestureHandler
     }
     if (subStrokes[1]) {
       const subStroke = StrokeOps.create(strokeOrigin.style)
-      subStrokes[1].x.forEach((x, i) =>
-      {
+      subStrokes[1].x.forEach((x, i) => {
         subStroke.pointers.push({
           x,
           y: subStrokes[1].y[i],
           p: strokeOrigin.pointers.at(subStroke.pointers.length + i)?.p || 1,
-          t: strokeOrigin.pointers.at(subStroke.pointers.length + i)?.t || Math.max(...subStroke.pointers.map(p => p.t + 20))
+          t:
+            strokeOrigin.pointers.at(subStroke.pointers.length + i)?.t ||
+            Math.max(...subStroke.pointers.map((p) => p.t + 20)),
         })
       })
       StrokeOps.updateBounds(subStroke)
@@ -79,9 +74,8 @@ export class InsertGestureHandler extends GestureHandler
    */
   computeSplitStroke(
     strokeOrigin: TStroke,
-    subStrokes: { x: number[], y: number[] }[]
-  ): { before?: TStroke, after?: TStroke }
-  {
+    subStrokes: { x: number[]; y: number[] }[]
+  ): { before?: TStroke; after?: TStroke } {
     let after: TStroke | undefined
     const newStrokes = this.createStrokesFromGestureSubStroke(strokeOrigin, subStrokes)
 
@@ -91,7 +85,7 @@ export class InsertGestureHandler extends GestureHandler
     }
     return {
       before: newStrokes[0],
-      after
+      after,
     }
   }
 
@@ -106,16 +100,27 @@ export class InsertGestureHandler extends GestureHandler
   computeChangesOnSplitStroke(
     gestureStroke: TStroke,
     strokeIdToSplit: string,
-    subStrokes: { fullStrokeId: string, x: number[], y: number[] }[]
-  ): TIIHistoryChanges
-  {
-    const translate: { symbols: TSymbol[], tx: number, ty: number }[] = []
-    const replaced: { oldSymbols: TSymbol[], newSymbols: TSymbol[] } = { oldSymbols: [], newSymbols: [] }
+    subStrokes: {
+      fullStrokeId: string
+      x: number[]
+      y: number[]
+    }[]
+  ): TIIHistoryChanges {
+    const translate: {
+      symbols: TSymbol[]
+      tx: number
+      ty: number
+    }[] = []
+    const replaced: {
+      oldSymbols: TSymbol[]
+      newSymbols: TSymbol[]
+    } = { oldSymbols: [], newSymbols: [] }
 
-    const symbolsAfterGestureInRow = this.model.symbols.filter(s =>
-      gestureStroke.id !== s.id &&
-      this.model.isSymbolInRow(gestureStroke, s) &&
-      gestureStroke.bounds.center.x < s.bounds.center.x - s.bounds.width / 2
+    const symbolsAfterGestureInRow = this.model.symbols.filter(
+      (s) =>
+        gestureStroke.id !== s.id &&
+        this.model.isSymbolInRow(gestureStroke, s) &&
+        gestureStroke.bounds.center.x < s.bounds.center.x - s.bounds.width / 2
     )
 
     const symbolToSplit = this.model.getRootSymbol(strokeIdToSplit)
@@ -130,12 +135,16 @@ export class InsertGestureHandler extends GestureHandler
       replaced.oldSymbols.push(symbolToSplit)
     }
     if (symbolsAfterGestureInRow.length) {
-      translate.push({ symbols: symbolsAfterGestureInRow, tx: this.strokeSpaceWidth, ty: 0 })
+      translate.push({
+        symbols: symbolsAfterGestureInRow,
+        tx: this.strokeSpaceWidth,
+        ty: 0,
+      })
     }
 
     return {
       translate,
-      replaced
+      replaced,
     }
   }
 
@@ -146,27 +155,36 @@ export class InsertGestureHandler extends GestureHandler
    * @param insertAction - The insert action mode
    * @returns History changes object
    */
-  computeChangesOnSplitText(
-    gestureStroke: TStroke,
-    textToSplit: TText,
-    insertAction: InsertAction
-  ): TIIHistoryChanges
-  {
-    const translate: { symbols: TSymbol[], tx: number, ty: number }[] = []
-    const replaced: { oldSymbols: TSymbol[], newSymbols: TSymbol[] } = { oldSymbols: [], newSymbols: [] }
+  computeChangesOnSplitText(gestureStroke: TStroke, textToSplit: TText, insertAction: InsertAction): TIIHistoryChanges {
+    const translate: {
+      symbols: TSymbol[]
+      tx: number
+      ty: number
+    }[] = []
+    const replaced: {
+      oldSymbols: TSymbol[]
+      newSymbols: TSymbol[]
+    } = { oldSymbols: [], newSymbols: [] }
 
-    const symbolsAfterGestureInRow = this.model.symbols.filter(s =>
-      gestureStroke.id !== s.id &&
-      this.model.isSymbolInRow(gestureStroke, s) &&
-      gestureStroke.bounds.center.x < s.bounds.center.x - s.bounds.width / 2
+    const symbolsAfterGestureInRow = this.model.symbols.filter(
+      (s) =>
+        gestureStroke.id !== s.id &&
+        this.model.isSymbolInRow(gestureStroke, s) &&
+        gestureStroke.bounds.center.x < s.bounds.center.x - s.bounds.width / 2
     )
-    const symbolsBelow = this.model.symbols.filter(s => this.model.isSymbolBelow(gestureStroke, s))
+    const symbolsBelow = this.model.symbols.filter((s) => this.model.isSymbolBelow(gestureStroke, s))
 
-    const charsBefore = textToSplit.chars.filter(c => c.bounds.x + c.bounds.width / 2 <= gestureStroke.bounds.center.x)
-    const charsAfter = textToSplit.chars.filter(c => c.bounds.x + c.bounds.width / 2 > gestureStroke.bounds.center.x)
+    const charsBefore = textToSplit.chars.filter(
+      (c) => c.bounds.x + c.bounds.width / 2 <= gestureStroke.bounds.center.x
+    )
+    const charsAfter = textToSplit.chars.filter((c) => c.bounds.x + c.bounds.width / 2 > gestureStroke.bounds.center.x)
     const newTexts: TText[] = []
     if (charsBefore.length && charsAfter.length) {
-      const textBefore = TextOps.create(charsBefore, textToSplit.point, BoxOps.createFromBoxes(charsBefore.map(c => c.bounds)))
+      const textBefore = TextOps.create(
+        charsBefore,
+        textToSplit.point,
+        BoxOps.createFromBoxes(charsBefore.map((c) => c.bounds))
+      )
       this.typeset.setBounds(textBefore)
       newTexts.push(textBefore)
 
@@ -175,16 +193,19 @@ export class InsertGestureHandler extends GestureHandler
         // For line break, position at start of next line
         pointAfter = {
           x: textToSplit.point.x,
-          y: textToSplit.point.y + this.rowHeight
+          y: textToSplit.point.y + this.rowHeight,
         }
       } else {
         // For insert, add horizontal space
         pointAfter = {
-          x: textBefore.point.x + textBefore.bounds.width + this.typeset.getSpaceWidth(computeAverage(textBefore.chars.map(c => c.fontSize))),
-          y: textBefore.point.y
+          x:
+            textBefore.point.x +
+            textBefore.bounds.width +
+            this.typeset.getSpaceWidth(computeAverage(textBefore.chars.map((c) => c.fontSize))),
+          y: textBefore.point.y,
         }
       }
-      const textAfter = TextOps.create(charsAfter, pointAfter, BoxOps.createFromBoxes(charsAfter.map(c => c.bounds)))
+      const textAfter = TextOps.create(charsAfter, pointAfter, BoxOps.createFromBoxes(charsAfter.map((c) => c.bounds)))
       this.typeset.setBounds(textAfter)
       newTexts.push(textAfter)
       replaced.newSymbols = newTexts
@@ -194,71 +215,127 @@ export class InsertGestureHandler extends GestureHandler
     // Handle other symbols based on insert action
     if (insertAction === InsertAction.LineBreak) {
       if (symbolsAfterGestureInRow?.length) {
-        translate.push({ symbols: symbolsAfterGestureInRow.filter(s => s.id !== gestureStroke.id), tx: 0, ty: this.rowHeight })
+        translate.push({
+          symbols: symbolsAfterGestureInRow.filter((s) => s.id !== gestureStroke.id),
+          tx: 0,
+          ty: this.rowHeight,
+        })
       }
       if (symbolsBelow.length) {
-        translate.push({ symbols: symbolsBelow, tx: 0, ty: this.rowHeight })
+        translate.push({
+          symbols: symbolsBelow,
+          tx: 0,
+          ty: this.rowHeight,
+        })
       }
     } else {
       if (symbolsAfterGestureInRow?.length) {
-        translate.push({ symbols: symbolsAfterGestureInRow.filter(s => s.id !== gestureStroke.id), tx: this.strokeSpaceWidth, ty: 0 })
+        translate.push({
+          symbols: symbolsAfterGestureInRow.filter((s) => s.id !== gestureStroke.id),
+          tx: this.strokeSpaceWidth,
+          ty: 0,
+        })
       }
     }
 
     return {
       translate,
-      replaced
+      replaced,
     }
   }
 
-  async apply(gestureStroke: TStroke, gesture: TGesture): Promise<void>
-  {
-    this.logger.debug("applyInsertGesture", { gestureStroke, gesture })
+  async apply(gestureStroke: TStroke, gesture: TGesture): Promise<void> {
+    this.logger.debug("applyInsertGesture", {
+      gestureStroke,
+      gesture,
+    })
 
-    const symbolsRow = this.model.symbols.filter(s => gestureStroke.id !== s.id && this.model.isSymbolInRow(gestureStroke, s))
-    const textToSplit = symbolsRow.find(s => isText(s) && isBetween(gestureStroke.bounds.center.x, s.bounds.center.x - s.bounds.width / 2, s.bounds.center.x + s.bounds.width / 2)) as TText | undefined
-    const symbolsBeforeGestureInRow = symbolsRow.filter(s => gestureStroke.bounds.center.x > s.bounds.center.x + s.bounds.width / 2)
-    const symbolsAfterGestureInRow = symbolsRow.filter(s => gestureStroke.bounds.center.x < s.bounds.center.x - s.bounds.width / 2)
+    const symbolsRow = this.model.symbols.filter(
+      (s) => gestureStroke.id !== s.id && this.model.isSymbolInRow(gestureStroke, s)
+    )
+    const textToSplit = symbolsRow.find(
+      (s) =>
+        isText(s) &&
+        isBetween(
+          gestureStroke.bounds.center.x,
+          s.bounds.center.x - s.bounds.width / 2,
+          s.bounds.center.x + s.bounds.width / 2
+        )
+    ) as TText | undefined
+    const symbolsBeforeGestureInRow = symbolsRow.filter(
+      (s) => gestureStroke.bounds.center.x > s.bounds.center.x + s.bounds.width / 2
+    )
+    const symbolsAfterGestureInRow = symbolsRow.filter(
+      (s) => gestureStroke.bounds.center.x < s.bounds.center.x - s.bounds.width / 2
+    )
 
-    const symbolsBelow = this.model.symbols.filter(s => this.model.isSymbolBelow(gestureStroke, s))
-
+    const symbolsBelow = this.model.symbols.filter((s) => this.model.isSymbolBelow(gestureStroke, s))
 
     let changes: TIIHistoryChanges | undefined
     if (gesture.strokeIds.length && gesture.subStrokes?.length) {
       changes = this.computeChangesOnSplitStroke(gestureStroke, gesture.strokeIds[0], gesture.subStrokes)
-    }
-    else if (textToSplit) {
+    } else if (textToSplit) {
       changes = this.computeChangesOnSplitText(gestureStroke, textToSplit, this.manager.insertAction)
-    }
-    else if (symbolsAfterGestureInRow.length) {
-      const translate: { symbols: TSymbol[], tx: number, ty: number }[] = []
+    } else if (symbolsAfterGestureInRow.length) {
+      const translate: {
+        symbols: TSymbol[]
+        tx: number
+        ty: number
+      }[] = []
       let translateX = 0
       if (symbolsBeforeGestureInRow.length) {
-        translateX = Math.min(...symbolsBeforeGestureInRow.map(s => s.bounds.center.x - s.bounds.width / 2)) - Math.min(...symbolsAfterGestureInRow.map(s => s.bounds.center.x - s.bounds.width / 2))
+        translateX =
+          Math.min(...symbolsBeforeGestureInRow.map((s) => s.bounds.center.x - s.bounds.width / 2)) -
+          Math.min(...symbolsAfterGestureInRow.map((s) => s.bounds.center.x - s.bounds.width / 2))
       }
 
       switch (this.manager.insertAction) {
         case InsertAction.LineBreak:
-          translate.push({ symbols: symbolsAfterGestureInRow, tx: translateX, ty: this.rowHeight })
+          translate.push({
+            symbols: symbolsAfterGestureInRow,
+            tx: translateX,
+            ty: this.rowHeight,
+          })
           if (symbolsBelow.length) {
-            translate.push({ symbols: symbolsBelow, tx: 0, ty: this.rowHeight })
+            translate.push({
+              symbols: symbolsBelow,
+              tx: 0,
+              ty: this.rowHeight,
+            })
           }
           break
         case InsertAction.Insert:
-          translate.push({ symbols: symbolsAfterGestureInRow, tx: this.strokeSpaceWidth * 2, ty: 0 })
+          translate.push({
+            symbols: symbolsAfterGestureInRow,
+            tx: this.strokeSpaceWidth * 2,
+            ty: 0,
+          })
           break
       }
       changes = { translate }
-    }
-    else if (symbolsBeforeGestureInRow.length && symbolsBelow.length && this.manager.insertAction === InsertAction.LineBreak) {
-      changes = { translate: [{ symbols: symbolsBelow, tx: 0, ty: this.rowHeight }] }
+    } else if (
+      symbolsBeforeGestureInRow.length &&
+      symbolsBelow.length &&
+      this.manager.insertAction === InsertAction.LineBreak
+    ) {
+      changes = {
+        translate: [
+          {
+            symbols: symbolsBelow,
+            tx: 0,
+            ty: this.rowHeight,
+          },
+        ],
+      }
     }
 
     if (changes) {
       this.history.push(this.model, changes)
       const promises: Promise<void>[] = []
       if (changes.translate?.length) {
-        promises.push(...changes.translate.map(tr => this.manager.translator.translate(tr.symbols, tr.tx, tr.ty, false)))
+        promises.push(
+          ...changes.translate.map((tr) => this.manager.translator.translate(tr.symbols, tr.tx, tr.ty, false))
+        )
       }
       if (changes.replaced?.newSymbols.length) {
         promises.push(this.editor.replaceSymbols(changes.replaced.oldSymbols, changes.replaced.newSymbols, false))

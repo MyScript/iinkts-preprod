@@ -1,7 +1,6 @@
 import { RecognizerWebSocketSSRMock } from "../__mocks__/RecognizerWebSocketSSRMock"
 import { buildStroke, delay } from "../helpers"
-import
-{
+import {
   InteractiveInkSSREditor,
   Model,
   DefaultInteractiveInkSSREditorConfiguration,
@@ -15,20 +14,18 @@ import
   RecognizerWebSocketSSR,
   PointerEventGrabber,
   EditorTool,
-  TInteractiveInkSSREditorOptions
+  TInteractiveInkSSREditorOptions,
 } from "@/iink"
 
-describe("InteractiveInkSSREditor.ts", () =>
-{
-  const height = 100, width = 100
+describe("InteractiveInkSSREditor.ts", () => {
+  const height = 100,
+    width = 100
   const DefaultInteractiveInkSSREditorOptions: TInteractiveInkSSREditorOptions = {
-    configuration: DefaultInteractiveInkSSREditorConfiguration
+    configuration: DefaultInteractiveInkSSREditorConfiguration,
   }
 
-  describe("constructor", () =>
-  {
-    test("should instanciate with default grabber & recognizer", () =>
-    {
+  describe("constructor", () => {
+    test("should instanciate with default grabber & recognizer", () => {
       const editor = new InteractiveInkSSREditor(document.createElement("div"), DefaultInteractiveInkSSREditorOptions)
       expect(editor).toBeDefined()
       expect(editor.grabber).toBeDefined()
@@ -37,16 +34,14 @@ describe("InteractiveInkSSREditor.ts", () =>
       expect(editor.recognizer instanceof RecognizerWebSocketSSR).toBe(true)
     })
 
-    test("should instanciate with custom grabber", () =>
-    {
-      class CustomGrabber extends PointerEventGrabber
-      {
+    test("should instanciate with custom grabber", () => {
+      class CustomGrabber extends PointerEventGrabber {
         name = "custom-grabber"
       }
       const customOptions: TInteractiveInkSSREditorOptions = {
         configuration: DefaultInteractiveInkSSREditorConfiguration,
         //@ts-ignore
-        override: { grabber: CustomGrabber }
+        override: { grabber: CustomGrabber },
       }
       //@ts-ignore IIC-1006 Type instantiation is excessively deep and possibly infinite.
       const editor = new InteractiveInkSSREditor(document.createElement("div"), customOptions)
@@ -55,16 +50,14 @@ describe("InteractiveInkSSREditor.ts", () =>
       expect(editor.grabber instanceof CustomGrabber).toBe(true)
     })
 
-    test("should instanciate with custom recognizer", () =>
-    {
-      class CustomRecognizer extends RecognizerWebSocketSSR
-      {
+    test("should instanciate with custom recognizer", () => {
+      class CustomRecognizer extends RecognizerWebSocketSSR {
         name = "custom-recognizer"
       }
       const customOptions: TInteractiveInkSSREditorOptions = {
         configuration: DefaultInteractiveInkSSREditorConfiguration,
         //@ts-ignore
-        override: { recognizer: CustomRecognizer }
+        override: { recognizer: CustomRecognizer },
       }
       //@ts-ignore IIC-1006 Type instantiation is excessively deep and possibly infinite.
       const editor = new InteractiveInkSSREditor(document.createElement("div"), customOptions)
@@ -74,27 +67,22 @@ describe("InteractiveInkSSREditor.ts", () =>
     })
   })
 
-  describe("tool", () =>
-  {
+  describe("tool", () => {
     //@ts-ignore IIC-1006 Type instantiation is excessively deep and possibly infinite.
     const editor = new InteractiveInkSSREditor(document.createElement("div"), DefaultInteractiveInkSSREditorOptions)
-    test("should set class draw on root element by default", () =>
-    {
+    test("should set class draw on root element by default", () => {
       expect(editor.layers.root.classList.contains("draw")).toBe(true)
       expect(editor.layers.root.classList.contains("erase")).toBe(false)
     })
-    test("should set class erase when set tool eraser", () =>
-    {
+    test("should set class erase when set tool eraser", () => {
       editor.tool = EditorTool.Erase
       expect(editor.layers.root.classList.contains("draw")).toBe(false)
       expect(editor.layers.root.classList.contains("erase")).toBe(true)
     })
   })
 
-  describe("init", () =>
-  {
-    test("should init grabber, renderer & recognizer & context", async () =>
-    {
+  describe("init", () => {
+    test("should init grabber, renderer & recognizer & context", async () => {
       const editor = new InteractiveInkSSREditor(document.createElement("div"), DefaultInteractiveInkSSREditorOptions)
       editor.grabber.attach = jest.fn()
       editor.renderer.init = jest.fn()
@@ -108,21 +96,19 @@ describe("InteractiveInkSSREditor.ts", () =>
         canUndo: false,
         empty: true,
         stackIndex: 0,
-        possibleUndoCount: 0
+        possibleUndoCount: 0,
       })
       await expect(editor.grabber.attach).toHaveBeenNthCalledWith(1, editor.layers.rendering)
       await expect(editor.renderer.init).toHaveBeenNthCalledWith(1, editor.layers.rendering)
       await expect(editor.recognizer.init).toHaveBeenCalledTimes(1)
     })
 
-    test("should resolve init when recognizer.init is resolve", async () =>
-    {
+    test("should resolve init when recognizer.init is resolve", async () => {
       const editor = new InteractiveInkSSREditor(document.createElement("div"), DefaultInteractiveInkSSREditorOptions)
       editor.grabber.attach = jest.fn()
       editor.renderer.init = jest.fn()
       //@ts-ignore
-      editor.recognizer.init = jest.fn((height: number, width: number) =>
-      {
+      editor.recognizer.init = jest.fn((height: number, width: number) => {
         editor.recognizer.initialized.resolve()
         return editor.recognizer.initialized.promise
       })
@@ -134,14 +120,12 @@ describe("InteractiveInkSSREditor.ts", () =>
       await expect(editor.recognizer.init).toHaveBeenCalledTimes(1)
     })
 
-    test("should reject init when recognizer.init is reject", async () =>
-    {
+    test("should reject init when recognizer.init is reject", async () => {
       const editor = new InteractiveInkSSREditor(document.createElement("div"), DefaultInteractiveInkSSREditorOptions)
       editor.grabber.attach = jest.fn()
       editor.renderer.init = jest.fn()
       //@ts-ignore
-      editor.recognizer.init = jest.fn((height: number, width: number) =>
-      {
+      editor.recognizer.init = jest.fn((height: number, width: number) => {
         editor.recognizer.initialized.reject("pouet")
         return editor.recognizer.initialized.promise
       })
@@ -150,24 +134,20 @@ describe("InteractiveInkSSREditor.ts", () =>
     })
   })
 
-  describe("drawCurrentStroke", () =>
-  {
+  describe("drawCurrentStroke", () => {
     const editor = new InteractiveInkSSREditor(document.createElement("div"), DefaultInteractiveInkSSREditorOptions)
     editor.grabber.attach = jest.fn()
     editor.renderer.init = jest.fn()
     editor.recognizer = new RecognizerWebSocketSSRMock()
     editor.renderer.drawPendingStroke = jest.fn()
-    beforeAll(async () =>
-    {
+    beforeAll(async () => {
       await editor.initialize()
     })
-    test("should not call renderer.drawPendingStroke if currentSymbol is null", async () =>
-    {
+    test("should not call renderer.drawPendingStroke if currentSymbol is null", async () => {
       editor.drawCurrentStroke()
       await expect(editor.renderer.drawPendingStroke).toHaveBeenCalledTimes(0)
     })
-    test("should call renderer.drawPendingStroke", async () =>
-    {
+    test("should call renderer.drawPendingStroke", async () => {
       const p1: TPointer = { t: 1, p: 1, x: 1, y: 1 }
       editor.model.initCurrentStroke(p1, "pen", DefaultPenStyle)
       editor.drawCurrentStroke()
@@ -176,32 +156,26 @@ describe("InteractiveInkSSREditor.ts", () =>
     })
   })
 
-  describe("synchronizeModelWithBackend", () =>
-  {
-    describe("with exportContent = 'POINTER_UP", () =>
-    {
+  describe("synchronizeModelWithBackend", () => {
+    describe("with exportContent = 'POINTER_UP", () => {
       const editor = new InteractiveInkSSREditor(document.createElement("div"), DefaultInteractiveInkSSREditorOptions)
       editor.grabber.attach = jest.fn()
       editor.renderer.init = jest.fn()
       editor.renderer.clearErasingStrokes = jest.fn()
       editor.recognizer = new RecognizerWebSocketSSRMock()
-      beforeAll(async () =>
-      {
+      beforeAll(async () => {
         await editor.initialize()
       })
-      test("should call recognizer.addStrokes", async () =>
-      {
+      test("should call recognizer.addStrokes", async () => {
         await editor.synchronizeModelWithBackend()
         await expect(editor.recognizer.addStrokes).toHaveBeenCalledTimes(1)
       })
-      test("should call renderer.clearErasingStrokes", async () =>
-      {
+      test("should call renderer.clearErasingStrokes", async () => {
         await editor.synchronizeModelWithBackend()
         await expect(editor.renderer.clearErasingStrokes).toHaveBeenCalledTimes(1)
       })
     })
-    describe("with exportContent = 'DEMAND", () =>
-    {
+    describe("with exportContent = 'DEMAND", () => {
       const options: TInteractiveInkSSREditorOptions = JSON.parse(JSON.stringify(DefaultInteractiveInkSSREditorOptions))
       options!.configuration!.triggers!.exportContent = "DEMAND"
       const editor = new InteractiveInkSSREditor(document.createElement("div"), options)
@@ -209,64 +183,53 @@ describe("InteractiveInkSSREditor.ts", () =>
       editor.renderer.init = jest.fn()
       editor.renderer.clearPendingStroke = jest.fn()
       editor.recognizer = new RecognizerWebSocketSSRMock()
-      beforeAll(async () =>
-      {
+      beforeAll(async () => {
         await editor.initialize()
       })
-      test("should not call recognizer.addStrokes when exportContent = DEMAND", async () =>
-      {
+      test("should not call recognizer.addStrokes when exportContent = DEMAND", async () => {
         await editor.synchronizeModelWithBackend()
         await expect(editor.recognizer.addStrokes).toHaveBeenCalledTimes(0)
       })
     })
   })
 
-  describe("idle", () =>
-  {
+  describe("idle", () => {
     const editor = new InteractiveInkSSREditor(document.createElement("div"), DefaultInteractiveInkSSREditorOptions)
     editor.grabber.attach = jest.fn()
     editor.renderer.init = jest.fn()
     editor.recognizer = new RecognizerWebSocketSSRMock()
     editor.event.emitError = jest.fn()
-    beforeAll(async () =>
-    {
+    beforeAll(async () => {
       await editor.initialize()
     })
-    test("should call recognizer.waitForIdle", async () =>
-    {
+    test("should call recognizer.waitForIdle", async () => {
       await editor.waitForIdle()
       await expect(editor.recognizer.waitForIdle).toHaveBeenCalledTimes(1)
     })
   })
 
-  describe("export", () =>
-  {
-    describe("with exportContent = 'POINTER_UP", () =>
-    {
+  describe("export", () => {
+    describe("with exportContent = 'POINTER_UP", () => {
       const editor = new InteractiveInkSSREditor(document.createElement("div"), DefaultInteractiveInkSSREditorOptions)
       editor.grabber.attach = jest.fn()
       editor.renderer.init = jest.fn()
       editor.recognizer = new RecognizerWebSocketSSRMock()
       editor.event.emitError = jest.fn()
-      beforeAll(async () =>
-      {
+      beforeAll(async () => {
         await editor.initialize()
       })
-      test("should call recognizer.export", async () =>
-      {
-        editor.recognizer.export = jest.fn(m => Promise.resolve(m))
+      test("should call recognizer.export", async () => {
+        editor.recognizer.export = jest.fn((m) => Promise.resolve(m))
         await editor.export()
         await expect(editor.recognizer.export).toHaveBeenCalledTimes(1)
       })
-      test("should reject if recognizer.export rejected", async () =>
-      {
+      test("should reject if recognizer.export rejected", async () => {
         editor.recognizer.export = jest.fn(() => Promise.reject("poney"))
         await expect(editor.export()).rejects.toEqual("poney")
         expect(editor.event.emitError).toHaveBeenNthCalledWith(1, "poney")
       })
     })
-    describe("with exportContent = 'POINTER_UP", () =>
-    {
+    describe("with exportContent = 'POINTER_UP", () => {
       const options: TInteractiveInkSSREditorOptions = JSON.parse(JSON.stringify(DefaultInteractiveInkSSREditorOptions))
       options.configuration!.triggers!.exportContent = "DEMAND"
       const editor = new InteractiveInkSSREditor(document.createElement("div"), options)
@@ -274,19 +237,16 @@ describe("InteractiveInkSSREditor.ts", () =>
       editor.renderer.init = jest.fn()
       editor.recognizer = new RecognizerWebSocketSSRMock()
       editor.event.emitError = jest.fn()
-      beforeAll(async () =>
-      {
+      beforeAll(async () => {
         await editor.initialize()
       })
-      test("should call recognizer.addStrokes when exportContent = DEMAND", async () =>
-      {
+      test("should call recognizer.addStrokes when exportContent = DEMAND", async () => {
         await editor.initialize()
         await editor.export()
         await expect(editor.recognizer.addStrokes).toHaveBeenCalledTimes(1)
         await expect(editor.recognizer.export).toHaveBeenCalledTimes(0)
       })
-      test("should reject if recognizer.addStrokes rejected when exportContent = DEMAND", async () =>
-      {
+      test("should reject if recognizer.addStrokes rejected when exportContent = DEMAND", async () => {
         editor.recognizer.addStrokes = jest.fn(() => Promise.reject("poney"))
         await editor.initialize()
         await expect(editor.export()).rejects.toEqual("poney")
@@ -295,53 +255,44 @@ describe("InteractiveInkSSREditor.ts", () =>
     })
   })
 
-  describe("convert", () =>
-  {
+  describe("convert", () => {
     const editor = new InteractiveInkSSREditor(document.createElement("div"), DefaultInteractiveInkSSREditorOptions)
     editor.event.emitConverted = jest.fn()
     editor.grabber.attach = jest.fn()
     editor.renderer.init = jest.fn()
     editor.recognizer = new RecognizerWebSocketSSRMock()
-    beforeAll(async () =>
-    {
+    beforeAll(async () => {
       await editor.initialize()
     })
-    test("should call recognizer.convert", async () =>
-    {
+    test("should call recognizer.convert", async () => {
       await editor.convert()
       await expect(editor.recognizer.convert).toHaveBeenCalledTimes(1)
     })
-    test("should emit Converted recognizer.convert", async () =>
-    {
+    test("should emit Converted recognizer.convert", async () => {
       await editor.convert()
       await expect(editor.event.emitConverted).toHaveBeenCalledTimes(1)
     })
   })
 
-  describe("import", () =>
-  {
+  describe("import", () => {
     const editor = new InteractiveInkSSREditor(document.createElement("div"), DefaultInteractiveInkSSREditorOptions)
     editor.grabber.attach = jest.fn()
     editor.renderer.init = jest.fn()
     editor.recognizer = new RecognizerWebSocketSSRMock()
-    beforeAll(async () =>
-    {
+    beforeAll(async () => {
       await editor.initialize()
     })
-    test("should call recognizer.import", async () =>
-    {
+    test("should call recognizer.import", async () => {
       const mimeType = "text/plain"
       const textImport = "winter is comming"
       const blob = new Blob([textImport], { type: mimeType })
       await editor.import(blob, mimeType)
       await expect(editor.recognizer.import).toHaveBeenCalledTimes(1)
     })
-    test("should return model with new export", async () =>
-    {
+    test("should return model with new export", async () => {
       const exportExpected: TExport = { "test/plain": "cofveve" }
       const model = new Model(width, height)
-      editor.recognizer.import = jest.fn(() =>
-      {
+      editor.recognizer.import = jest.fn(() => {
         model.exports = exportExpected
         return Promise.resolve(model)
       })
@@ -351,15 +302,13 @@ describe("InteractiveInkSSREditor.ts", () =>
       const modelReceive = await editor.import(blob, mimeType)
       await await expect(modelReceive.exports).toBe(exportExpected)
     })
-    test("should emit Imported", async () =>
-    {
+    test("should emit Imported", async () => {
       const exportExpected: TExport = { "test/plain": "cofveve" }
       const mimeType = "text/plain"
       const textImport = "winter is comming"
       const blob = new Blob([textImport], { type: mimeType })
       const model = new Model(width, height)
-      editor.recognizer.import = jest.fn(() =>
-      {
+      editor.recognizer.import = jest.fn(() => {
         model.exports = exportExpected
         return Promise.resolve(model)
       })
@@ -369,18 +318,15 @@ describe("InteractiveInkSSREditor.ts", () =>
     })
   })
 
-  describe("importPointsEvent", () =>
-  {
+  describe("importPointsEvent", () => {
     const editor = new InteractiveInkSSREditor(document.createElement("div"), DefaultInteractiveInkSSREditorOptions)
     editor.grabber.attach = jest.fn()
     editor.renderer.init = jest.fn()
     editor.recognizer = new RecognizerWebSocketSSRMock()
-    beforeAll(async () =>
-    {
+    beforeAll(async () => {
       await editor.initialize()
     })
-    test("should call recognizer.importPointsEvents", async () =>
-    {
+    test("should call recognizer.importPointsEvents", async () => {
       await editor.initialize()
       const strokeToImport = buildStroke()
       await editor.importPointEvents([strokeToImport])
@@ -388,37 +334,31 @@ describe("InteractiveInkSSREditor.ts", () =>
     })
   })
 
-  describe("resize", () =>
-  {
+  describe("resize", () => {
     const editor = new InteractiveInkSSREditor(document.createElement("div"), DefaultInteractiveInkSSREditorOptions)
     editor.grabber.attach = jest.fn()
     editor.renderer.init = jest.fn()
     editor.renderer.resize = jest.fn()
     editor.recognizer = new RecognizerWebSocketSSRMock()
-    beforeAll(async () =>
-    {
+    beforeAll(async () => {
       await editor.initialize()
     })
-    test("should call renderer.resize", async () =>
-    {
-      await editor.resize({ height: 1, width: 2})
+    test("should call renderer.resize", async () => {
+      await editor.resize({ height: 1, width: 2 })
       await expect(editor.renderer.resize).toHaveBeenCalledTimes(1)
     })
-    test("should call recognizer.resize after resizeTriggerDelay", async () =>
-    {
-      await editor.resize({ height: 3, width: 4})
+    test("should call recognizer.resize after resizeTriggerDelay", async () => {
+      await editor.resize({ height: 3, width: 4 })
       await delay(editor.configuration.triggers.resizeTriggerDelay)
       await expect(editor.recognizer.resize).toHaveBeenCalledTimes(1)
     })
-    test("should reject if renderer.resize rejected", async () =>
-    {
+    test("should reject if renderer.resize rejected", async () => {
       editor.recognizer.resize = jest.fn(() => Promise.reject("pony"))
-      await expect(editor.resize({ height: 5, width: 6})).rejects.toEqual("pony")
+      await expect(editor.resize({ height: 5, width: 6 })).rejects.toEqual("pony")
     })
   })
 
-  describe("undo", () =>
-  {
+  describe("undo", () => {
     const editor = new InteractiveInkSSREditor(document.createElement("div"), DefaultInteractiveInkSSREditorOptions)
     editor.grabber.attach = jest.fn()
     editor.renderer.init = jest.fn()
@@ -428,39 +368,33 @@ describe("InteractiveInkSSREditor.ts", () =>
     const firstModel = new Model(200, 200)
     const secondModel = new Model(42, 12)
     editor.history.stack = [firstModel, secondModel]
-    beforeAll(async () =>
-    {
+    beforeAll(async () => {
       await editor.initialize()
     })
-    test("should call recognizer.undo", async () =>
-    {
+    test("should call recognizer.undo", async () => {
       editor.history.context.canUndo = true
       editor.history.context.stackIndex = 1
       await editor.undo()
       await expect(editor.recognizer.undo).toHaveBeenCalledTimes(1)
     })
-    test("should return previous model", async () =>
-    {
+    test("should return previous model", async () => {
       editor.history.context.canUndo = true
       editor.history.context.stackIndex = 1
       await expect(editor.undo()).resolves.toEqual(firstModel)
     })
-    test("should reject if recognizer.redo rejected", async () =>
-    {
+    test("should reject if recognizer.redo rejected", async () => {
       editor.history.context.canUndo = true
       editor.history.context.stackIndex = 1
       editor.recognizer.undo = jest.fn(() => Promise.reject("pony"))
       await expect(editor.undo()).rejects.toEqual("pony")
     })
-    test("should throw error if context.canUndo = false", async () =>
-    {
+    test("should throw error if context.canUndo = false", async () => {
       editor.history.context.canUndo = false
       await expect(editor.undo()).rejects.toEqual(new Error("Undo not allowed"))
     })
   })
 
-  describe("redo", () =>
-  {
+  describe("redo", () => {
     const editor = new InteractiveInkSSREditor(document.createElement("div"), DefaultInteractiveInkSSREditorOptions)
     editor.grabber.attach = jest.fn()
     editor.renderer.init = jest.fn()
@@ -469,119 +403,99 @@ describe("InteractiveInkSSREditor.ts", () =>
     const firstModel = new Model(200, 200)
     const secondModel = new Model(42, 12)
     editor.history.stack = [firstModel, secondModel]
-    beforeAll(async () =>
-    {
+    beforeAll(async () => {
       await editor.initialize()
     })
-    test("should call recognizer.redo", async () =>
-    {
+    test("should call recognizer.redo", async () => {
       editor.history.context.canRedo = true
       editor.history.context.stackIndex = 0
       await editor.redo()
       await expect(editor.recognizer.redo).toHaveBeenCalledTimes(1)
     })
-    test("should return next model", async () =>
-    {
+    test("should return next model", async () => {
       editor.history.context.canRedo = true
       editor.history.context.stackIndex = 0
       editor.history.stack.push(secondModel)
       await expect(editor.redo()).resolves.toEqual(editor.history.stack[1])
     })
-    test("should reject if recognizer.redo rejected", async () =>
-    {
+    test("should reject if recognizer.redo rejected", async () => {
       editor.history.context.canRedo = true
       editor.history.context.stackIndex = 0
       editor.recognizer.redo = jest.fn(() => Promise.reject("pony"))
       await expect(editor.redo()).rejects.toEqual("pony")
     })
-    test("should throw error if context.canRedo = false", async () =>
-    {
+    test("should throw error if context.canRedo = false", async () => {
       editor.history.context.canRedo = false
       await expect(editor.redo()).rejects.toEqual(new Error("Redo not allowed"))
     })
   })
 
-  describe("clear", () =>
-  {
+  describe("clear", () => {
     const editor = new InteractiveInkSSREditor(document.createElement("div"), DefaultInteractiveInkSSREditorOptions)
     editor.grabber.attach = jest.fn()
     editor.renderer.init = jest.fn()
     editor.renderer.resize = jest.fn()
     editor.recognizer = new RecognizerWebSocketSSRMock()
-    beforeAll(async () =>
-    {
+    beforeAll(async () => {
       await editor.initialize()
     })
-    test("should call model.clear", async () =>
-    {
+    test("should call model.clear", async () => {
       editor.model.clear = jest.fn()
       await editor.clear()
       await expect(editor.model.clear).toHaveBeenCalledTimes(1)
     })
-    test("should call recognizer.clear", async () =>
-    {
+    test("should call recognizer.clear", async () => {
       await editor.clear()
       await expect(editor.recognizer.clear).toHaveBeenCalledTimes(1)
     })
-    test("should call recognizer.clear", async () =>
-    {
+    test("should call recognizer.clear", async () => {
       editor.event.emitCleared = jest.fn()
       await editor.clear()
       await expect(editor.event.emitCleared).toHaveBeenCalledTimes(1)
     })
   })
 
-  describe("destroy", () =>
-  {
+  describe("destroy", () => {
     const editor = new InteractiveInkSSREditor(document.createElement("div"), DefaultInteractiveInkSSREditorOptions)
     editor.grabber.attach = jest.fn()
     editor.grabber.detach = jest.fn()
     editor.renderer.init = jest.fn()
     editor.renderer.destroy = jest.fn()
     editor.recognizer = new RecognizerWebSocketSSRMock()
-    beforeAll(async () =>
-    {
+    beforeAll(async () => {
       await editor.initialize()
     })
-    test("should call grabber.detach", async () =>
-    {
+    test("should call grabber.detach", async () => {
       editor.destroy()
       expect(editor.grabber.detach).toHaveBeenCalledTimes(1)
     })
 
-    test("should call renderer.destroy", async () =>
-    {
+    test("should call renderer.destroy", async () => {
       editor.destroy()
       expect(editor.renderer.destroy).toHaveBeenCalledTimes(1)
     })
 
-    test("should call recognizer.destroy", async () =>
-    {
+    test("should call recognizer.destroy", async () => {
       editor.destroy()
       expect(editor.recognizer.destroy).toHaveBeenCalledTimes(1)
     })
-
   })
 
-  describe("Event", () =>
-  {
+  describe("Event", () => {
     const editor = new InteractiveInkSSREditor(document.createElement("div"), DefaultInteractiveInkSSREditorOptions)
     editor.grabber.attach = jest.fn()
     editor.event.emitExported = jest.fn()
     editor.renderer.init = jest.fn()
     editor.renderer.updatesLayer = jest.fn()
     editor.recognizer = new RecognizerWebSocketSSRMock()
-    beforeAll(async () =>
-    {
+    beforeAll(async () => {
       await editor.initialize()
     })
-    test("should emitExported when recognizer emitExported", async () =>
-    {
+    test("should emitExported when recognizer emitExported", async () => {
       editor.recognizer.event.emitExported({ "text/plain": "test-exported" })
       expect(editor.event.emitExported).toHaveBeenNthCalledWith(1, { "text/plain": "test-exported" })
     })
-    test("should update smarguide when recognizer emitExported", async () =>
-    {
+    test("should update smarguide when recognizer emitExported", async () => {
       //@ts-ignore
       editor.smartGuide.update = jest.fn()
       const jiix = {
@@ -599,12 +513,11 @@ describe("InteractiveInkSSREditor.ts", () =>
       editor.recognizer.event.emitExported({ "application/vnd.myscript.jiix": jiix })
       expect(editor.smartGuide?.update).toHaveBeenNthCalledWith(1, jiix)
     })
-    test("should updatesLayer when recognizer emit SVG_PATCH", async () =>
-    {
+    test("should updatesLayer when recognizer emit SVG_PATCH", async () => {
       const svgPatch: TRecognizerWebSocketSSRMessageSVGPatch = {
         type: "REPLACE_ALL",
         layer: "MODEL",
-        updates: []
+        updates: [],
       }
       editor.recognizer.event.emitSVGPatch(svgPatch)
       expect(editor.renderer.updatesLayer).toHaveBeenCalledTimes(1)
@@ -612,9 +525,10 @@ describe("InteractiveInkSSREditor.ts", () =>
     })
   })
 
-  describe("Style", () =>
-  {
-    const customConfig: TInteractiveInkSSREditorConfiguration = JSON.parse(JSON.stringify(DefaultInteractiveInkSSREditorOptions))
+  describe("Style", () => {
+    const customConfig: TInteractiveInkSSREditorConfiguration = JSON.parse(
+      JSON.stringify(DefaultInteractiveInkSSREditorOptions)
+    )
     const customPenStyle: TPenStyle = { color: "#d1d1d1" }
     customConfig.penStyle = customPenStyle
     const customTheme: TTheme = {
@@ -623,19 +537,19 @@ describe("InteractiveInkSSREditor.ts", () =>
         color: "#2E7D32",
         "-myscript-pen-width": 2,
         "-myscript-pen-fill-style": "purple",
-        "-myscript-pen-fill-color": "#FFFFFF00"
+        "-myscript-pen-fill-color": "#FFFFFF00",
       },
       ".math": {
-        "font-family": "STIXGeneral"
+        "font-family": "STIXGeneral",
       },
       ".math-solved": {
         "font-family": "STIXGeneral",
-        color: "blue"
+        color: "blue",
       },
       ".text": {
         "font-family": "Rubik Distressed",
-        "font-size": 10
-      }
+        "font-size": 10,
+      },
     }
     customConfig.theme = customTheme
     const editor = new InteractiveInkSSREditor(document.createElement("div"), { configuration: customConfig })
@@ -646,60 +560,53 @@ describe("InteractiveInkSSREditor.ts", () =>
     editor.styleManager.setPenStyleClasses = jest.fn()
     editor.styleManager.setTheme = jest.fn()
     editor.recognizer = new RecognizerWebSocketSSRMock()
-    test("should have set PenStyle on initialization", async () =>
-    {
+    test("should have set PenStyle on initialization", async () => {
       await editor.initialize()
       await expect(editor.recognizer.setPenStyle).toHaveBeenNthCalledWith(1, customPenStyle)
     })
-    test("should change PenStyle", async () =>
-    {
+    test("should change PenStyle", async () => {
       const customPenStyle2: TPenStyle = { color: "red" }
       editor.penStyle = customPenStyle2
       expect(editor.styleManager.setPenStyle).toHaveBeenNthCalledWith(1, customPenStyle2)
       expect(editor.recognizer.setPenStyle).toHaveBeenNthCalledWith(1, editor.styleManager.penStyle)
     })
-    test("should have set Theme on initialization", async () =>
-    {
+    test("should have set Theme on initialization", async () => {
       await editor.initialize()
       await expect(editor.recognizer.setTheme).toHaveBeenNthCalledWith(1, editor.styleManager.theme)
     })
-    test("should change Theme", async () =>
-    {
+    test("should change Theme", async () => {
       const customTheme2: TTheme = {
         ink: {
           width: 42,
           color: "#2E7D32",
           "-myscript-pen-width": 2,
           "-myscript-pen-fill-style": "purple",
-          "-myscript-pen-fill-color": "#FFFFFF00"
+          "-myscript-pen-fill-color": "#FFFFFF00",
         },
         ".math": {
-          "font-family": "STIXGeneral"
+          "font-family": "STIXGeneral",
         },
         ".math-solved": {
           "font-family": "STIXGeneral",
-          color: "blue"
+          color: "blue",
         },
         ".text": {
           "font-family": "Rubik Distressed",
-          "font-size": 10
-        }
+          "font-size": 10,
+        },
       }
       editor.theme = customTheme2
       expect(editor.styleManager.setTheme).toHaveBeenNthCalledWith(1, customTheme2)
       expect(editor.recognizer.setTheme).toHaveBeenNthCalledWith(1, editor.styleManager.theme)
     })
-    test("should have set PenStyleClasses on initialization", async () =>
-    {
+    test("should have set PenStyleClasses on initialization", async () => {
       await editor.initialize()
       await expect(editor.recognizer.setPenStyleClasses).toHaveBeenNthCalledWith(1, "")
     })
-    test("should change PenStyleClasses", async () =>
-    {
+    test("should change PenStyleClasses", async () => {
       editor.penStyleClasses = "pouet"
       expect(editor.styleManager.setPenStyleClasses).toHaveBeenNthCalledWith(1, "pouet")
       expect(editor.recognizer.setPenStyleClasses).toHaveBeenNthCalledWith(1, editor.styleManager.penStyleClasses)
     })
   })
-
 })

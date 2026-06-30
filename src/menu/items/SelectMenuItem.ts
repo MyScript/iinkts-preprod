@@ -1,5 +1,6 @@
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
-import type { TMenuItemBase } from "./BaseMenuItem";
+
+import type { TMenuItemBase } from "./BaseMenuItem"
 import { BaseMenuItem } from "./BaseMenuItem"
 
 /**
@@ -8,7 +9,7 @@ import { BaseMenuItem } from "./BaseMenuItem"
  */
 export type TMenuSelect = TMenuItemBase & {
   type: "select"
-  options: Array<{ label: string, value: string }>
+  options: Array<{ label: string; value: string }>
   getValue: (editor: TInteractiveInkEditor) => string
   setValue: (editor: TInteractiveInkEditor, value: string) => void
 }
@@ -17,26 +18,27 @@ export type TMenuSelect = TMenuItemBase & {
  * @group Menu
  * @remarks Class for select/dropdown menu items
  */
-export class SelectMenuItem extends BaseMenuItem<HTMLDivElement>
-{
-  protected declare config: TMenuSelect
+export class SelectMenuItem extends BaseMenuItem<HTMLDivElement> {
+  declare protected config: TMenuSelect
 
   createElement(): HTMLDivElement {
-    const wrapper = this.dom.div({ id: this.config.id, className: ["ms-menu-item", "select"] })
+    const wrapper = this.dom.div({
+      id: this.config.id,
+      className: ["ms-menu-item", "select"],
+    })
 
     if (this.config.label) {
       wrapper.appendChild(this.dom.span({ text: this.config.label }))
     }
 
-    const isDisabled = typeof this.config.disabled === "function"
-      ? this.config.disabled(this.editor)
-      : (this.config.disabled ?? false)
+    const isDisabled =
+      typeof this.config.disabled === "function" ? this.config.disabled(this.editor) : (this.config.disabled ?? false)
 
     const currentValue = this.config.getValue(this.editor)
 
     const select = this.dom.select({
       id: `${this.config.id}-input`,
-      options: this.config.options.map(o => ({
+      options: this.config.options.map((o) => ({
         value: o.value,
         label: o.label,
         selected: o.value === currentValue,
@@ -55,7 +57,9 @@ export class SelectMenuItem extends BaseMenuItem<HTMLDivElement>
   }
 
   update(): void {
-    if (!this.element) return
+    if (!this.element) {
+      return
+    }
 
     const select = this.element.querySelector("select") as HTMLSelectElement
     if (select) {

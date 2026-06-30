@@ -25,5 +25,5 @@ export type TEditorTriggerConfiguration = {
 export const DefaultEditorTriggerConfiguration: TEditorTriggerConfiguration = {
   exportContent: "QUIET_PERIOD",
   exportContentDelay: 1000,
-  resizeTriggerDelay: 100
+  resizeTriggerDelay: 100,
 }

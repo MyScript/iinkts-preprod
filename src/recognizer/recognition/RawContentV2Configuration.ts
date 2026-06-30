@@ -1,5 +1,5 @@
-import { DefaultEraserConfiguration } from "./EraserConfiguration";
-import type { TRawContentConfiguration } from "./RawContentConfiguration";
+import { DefaultEraserConfiguration } from "./EraserConfiguration"
+import type { TRawContentConfiguration } from "./RawContentConfiguration"
 
 /**
  * @group Recognizer
@@ -7,10 +7,10 @@ import type { TRawContentConfiguration } from "./RawContentConfiguration";
  */
 export const DefaultRawContentV2Configuration: TRawContentConfiguration = {
   recognition: {
-    types: [ "text", "math", "shape"]
+    types: ["text", "math", "shape"],
   },
   classification: {
-    types: [ "text", "math", "shape", "decoration", "drawing"]
+    types: ["text", "math", "shape", "decoration", "drawing"],
   },
   eraser: DefaultEraserConfiguration,
 }

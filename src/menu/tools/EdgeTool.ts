@@ -1,10 +1,10 @@
-import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
-import type { TMenuItemBase } from "@/menu/items/BaseMenuItem";
-import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
-import { EditorTool, EditorWriteTool } from "@/Constants"
 import lineIcon from "@/assets/svg/linear.svg"
 import arrowIcon from "@/assets/svg/linear-arrow.svg"
 import doubleArrowIcon from "@/assets/svg/linear-double-arrow.svg"
+import { EditorTool, EditorWriteTool } from "@/Constants"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import type { TMenuItemBase } from "@/menu/items/BaseMenuItem"
+import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
 
 type TEdgeToolConfig = TMenuItemBase & {
   type: "edge"
@@ -14,26 +14,27 @@ type TEdgeToolConfig = TMenuItemBase & {
  * @group Menu
  * @remarks Edge tool - Sub-menu for lines and arrows
  */
-export class EdgeTool extends BaseMenuItem<HTMLDivElement>
-{
+export class EdgeTool extends BaseMenuItem<HTMLDivElement> {
   #documentPointerdownHandler?: (e: PointerEvent) => void
   private subMenuButtons: Map<EditorWriteTool, HTMLButtonElement> = new Map()
   private triggerButton?: HTMLButtonElement
   private currentIcon: string = lineIcon
 
-  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-tool")
-  {
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-tool") {
     const config: TEdgeToolConfig = {
       type: "edge",
       id: `${idPrefix}-write-edge`,
-      label: "Edge"
+      label: "Edge",
     }
     super(config, editor)
   }
 
-  private createEdgeButton(icon: string, tool: EditorWriteTool, label: string): HTMLButtonElement
-  {
-    const button = this.dom.button({ id: `${this.config.id}-${tool}`, className: "square", html: icon })
+  private createEdgeButton(icon: string, tool: EditorWriteTool, label: string): HTMLButtonElement {
+    const button = this.dom.button({
+      id: `${this.config.id}-${tool}`,
+      className: "square",
+      html: icon,
+    })
     button.title = label
 
     button.addEventListener("click", () => {
@@ -56,19 +57,29 @@ export class EdgeTool extends BaseMenuItem<HTMLDivElement>
     return button
   }
 
-  createElement(): HTMLDivElement
-  {
-    this.triggerButton = this.dom.button({ id: this.config.id, className: "square", html: this.currentIcon })
+  createElement(): HTMLDivElement {
+    this.triggerButton = this.dom.button({
+      id: this.config.id,
+      className: "square",
+      html: this.currentIcon,
+    })
 
-    const subMenuContent = this.dom.div({ id: `${this.config.id}-list`, className: ["ms-menu-row", "sub-menu-content-edge"] })
+    const subMenuContent = this.dom.div({
+      id: `${this.config.id}-list`,
+      className: ["ms-menu-row", "sub-menu-content-edge"],
+    })
     subMenuContent.appendChild(this.createEdgeButton(lineIcon, EditorWriteTool.Line, "Line"))
     subMenuContent.appendChild(this.createEdgeButton(arrowIcon, EditorWriteTool.Arrow, "Arrow"))
     subMenuContent.appendChild(this.createEdgeButton(doubleArrowIcon, EditorWriteTool.DoubleArrow, "Double Arrow"))
 
-    const content = this.dom.div({ className: ["sub-menu-content", "top"] })
+    const content = this.dom.div({
+      className: ["sub-menu-content", "top"],
+    })
     content.appendChild(subMenuContent)
 
-    const wrapper = this.dom.div({ className: "sub-menu" })
+    const wrapper = this.dom.div({
+      className: "sub-menu",
+    })
     wrapper.appendChild(this.triggerButton)
     wrapper.appendChild(content)
 
@@ -92,15 +103,14 @@ export class EdgeTool extends BaseMenuItem<HTMLDivElement>
     super.destroy()
   }
 
-  update(): void
-  {
-    if (!this.element || !this.triggerButton) return
+  update(): void {
+    if (!this.element || !this.triggerButton) {
+      return
+    }
 
-    const isEdgeTool = this.editor.tool === EditorTool.Write && [
-      EditorWriteTool.Line,
-      EditorWriteTool.Arrow,
-      EditorWriteTool.DoubleArrow
-    ].includes(this.editor.writer.tool)
+    const isEdgeTool =
+      this.editor.tool === EditorTool.Write &&
+      [EditorWriteTool.Line, EditorWriteTool.Arrow, EditorWriteTool.DoubleArrow].includes(this.editor.writer.tool)
 
     if (isEdgeTool) {
       this.triggerButton.classList.add("active")
@@ -108,16 +118,15 @@ export class EdgeTool extends BaseMenuItem<HTMLDivElement>
       activeButton?.classList.add("active")
     } else {
       this.triggerButton.classList.remove("active")
-      this.subMenuButtons.forEach(btn => btn.classList.remove("active"))
+      this.subMenuButtons.forEach((btn) => btn.classList.remove("active"))
     }
 
     this.updateDisabled()
     this.updateVisible()
   }
 
-  private unselectAll(): void
-  {
+  private unselectAll(): void {
     const menu = this.element?.closest(".ms-menu")
-    menu?.querySelectorAll("*").forEach(e => e.classList.remove("active"))
+    menu?.querySelectorAll("*").forEach((e) => e.classList.remove("active"))
   }
 }

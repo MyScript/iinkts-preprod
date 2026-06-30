@@ -1,14 +1,9 @@
-import type { TPartialDeep, TApiInfos } from "@/utils";
-import { getApiInfos } from "@/utils"
-import type {
-  TLoggerConfiguration
-} from "@/logger";
-import {
-  LoggerCategory,
-  LoggerManager,
-  DefaultLoggerConfiguration
-} from "@/logger"
+import type { TLoggerConfiguration } from "@/logger"
+import { DefaultLoggerConfiguration, LoggerCategory, LoggerManager } from "@/logger"
 import type { TServerHTTPConfiguration } from "@/recognizer"
+import type { TApiInfos, TPartialDeep } from "@/utils"
+import { getApiInfos } from "@/utils"
+
 import { EditorEvent } from "./EditorEvent"
 import { EditorLayer } from "./EditorLayer"
 
@@ -41,8 +36,7 @@ export type TEditorOptionsBase = {
  * @hidden
  * @group Editor
  */
-export abstract class AbstractEditor
-{
+export abstract class AbstractEditor {
   /** Logger instance for this editor. */
   logger = LoggerManager.getLogger(LoggerCategory.EDITOR)
   /** DOM layer manager handling rendering, UI, and modal elements. */
@@ -56,10 +50,15 @@ export abstract class AbstractEditor
   #resizeObserver?: ResizeObserver
   #resizeDebounceTimer?: ReturnType<typeof setTimeout>
 
-  constructor(rootElement: HTMLElement, options?: TPartialDeep<TEditorOptionsBase>)
-  {
-    this.loggerConfiguration = { ...DefaultLoggerConfiguration, ...options?.configuration?.logger }
-    this.logger.info("constructor", { rootElement, options })
+  constructor(rootElement: HTMLElement, options?: TPartialDeep<TEditorOptionsBase>) {
+    this.loggerConfiguration = {
+      ...DefaultLoggerConfiguration,
+      ...options?.configuration?.logger,
+    }
+    this.logger.info("constructor", {
+      rootElement,
+      options,
+    })
 
     this.event = new EditorEvent(rootElement)
     this.layers = new EditorLayer(rootElement, options?.override?.cssClass || "ms-editor")
@@ -68,14 +67,15 @@ export abstract class AbstractEditor
     rootElement.editor = this
   }
 
-  get loggerConfiguration(): TLoggerConfiguration
-  {
+  get loggerConfiguration(): TLoggerConfiguration {
     return this.#loggerConfiguration
   }
 
-  set loggerConfiguration(loggerConfig: TLoggerConfiguration)
-  {
-    this.#loggerConfiguration = { ...DefaultLoggerConfiguration, ...loggerConfig }
+  set loggerConfiguration(loggerConfig: TLoggerConfiguration) {
+    this.#loggerConfiguration = {
+      ...DefaultLoggerConfiguration,
+      ...loggerConfig,
+    }
     LoggerManager.setLoggerLevel(this.#loggerConfiguration)
   }
 
@@ -87,8 +87,7 @@ export abstract class AbstractEditor
 
   abstract resize(dims?: { height?: number; width?: number }): Promise<void>
 
-  protected startResizeObserver(): void
-  {
+  protected startResizeObserver(): void {
     this.#resizeObserver = new ResizeObserver(() => {
       clearTimeout(this.#resizeDebounceTimer)
       this.#resizeDebounceTimer = setTimeout(() => this.resize(), 150)
@@ -96,15 +95,13 @@ export abstract class AbstractEditor
     this.#resizeObserver.observe(this.layers.root)
   }
 
-  protected stopResizeObserver(): void
-  {
+  protected stopResizeObserver(): void {
     clearTimeout(this.#resizeDebounceTimer)
     this.#resizeObserver?.disconnect()
     this.#resizeObserver = undefined
   }
 
-  async loadInfo(server: TServerHTTPConfiguration): Promise<TApiInfos>
-  {
+  async loadInfo(server: TServerHTTPConfiguration): Promise<TApiInfos> {
     if (!this.info) {
       this.info = await getApiInfos({ server })
     }

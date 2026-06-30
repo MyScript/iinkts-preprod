@@ -1,13 +1,14 @@
 import ArrowDown from "@/assets/svg/nav-arrow-down.svg"
-import type { TMenuItemBase } from "./BaseMenuItem";
+
+import type { TMenuItemBase } from "./BaseMenuItem"
 import { BaseMenuItem } from "./BaseMenuItem"
-import { createMenuItemInstance } from "./MenuItemFactory"
+import type { TMenuButtonList } from "./ButtonListMenuItem"
 import type { TMenuButton } from "./ButtonMenuItem"
 import type { TMenuCheckbox } from "./CheckboxMenuItem"
-import type { TMenuSelect } from "./SelectMenuItem"
-import type { TMenuButtonList } from "./ButtonListMenuItem"
 import type { TMenuFileInput } from "./FileInputMenuItem"
+import { createMenuItemInstance } from "./MenuItemFactory"
 import type { TMenuRange } from "./RangeMenuItem"
+import type { TMenuSelect } from "./SelectMenuItem"
 
 /**
  * @group Menu
@@ -37,10 +38,9 @@ export type TMenuSubMenu = TMenuItemBase & {
  * @group Menu
  * @remarks Class for submenu items
  */
-export class SubMenuItem extends BaseMenuItem<HTMLDivElement>
-{
+export class SubMenuItem extends BaseMenuItem<HTMLDivElement> {
   #documentPointerdownHandler?: (e: PointerEvent) => void
-  protected declare config: TMenuSubMenu
+  declare protected config: TMenuSubMenu
   protected subMenuWrapper?: HTMLElement
   protected subMenuContent?: HTMLDivElement
   protected trigger?: HTMLButtonElement
@@ -63,27 +63,41 @@ export class SubMenuItem extends BaseMenuItem<HTMLDivElement>
 
   createElement(): HTMLDivElement {
     // Wrapper principal
-    const wrapper = this.dom.div({ id: this.config.id, className: "sub-menu" })
+    const wrapper = this.dom.div({
+      id: this.config.id,
+      className: "sub-menu",
+    })
 
     // Bouton trigger
-    this.trigger = this.dom.button({ id: `${this.config.id}-trigger`, className: ["between", "full-width"] })
+    this.trigger = this.dom.button({
+      id: `${this.config.id}-trigger`,
+      className: ["between", "full-width"],
+    })
     const position = this.config.position || "right-top"
 
     this.closedRotation = this.getArrowRotationForPosition(position)
     this.openedRotation = this.closedRotation + 180
 
-    this.arrowSpan = this.dom.span({ html: ArrowDown })
+    this.arrowSpan = this.dom.span({
+      html: ArrowDown,
+    })
     this.arrowSpan.style.transition = "transform 0.2s ease"
     this.arrowSpan.style.transform = `rotate(${this.closedRotation}deg)`
 
     if (this.config.icon && this.config.label) {
-      const labelSpan = this.dom.span({ text: this.config.label })
+      const labelSpan = this.dom.span({
+        text: this.config.label,
+      })
       this.trigger.appendChild(labelSpan)
-      const iconSpan = this.dom.span({ html: this.config.icon })
+      const iconSpan = this.dom.span({
+        html: this.config.icon,
+      })
       iconSpan.style.setProperty("width", "32px")
       this.trigger.appendChild(iconSpan)
     } else if (this.config.icon) {
-      const iconSpan = this.dom.span({ html: this.config.icon })
+      const iconSpan = this.dom.span({
+        html: this.config.icon,
+      })
       iconSpan.style.setProperty("width", "32px")
       this.trigger.appendChild(iconSpan)
     } else if (this.config.label) {
@@ -98,16 +112,23 @@ export class SubMenuItem extends BaseMenuItem<HTMLDivElement>
 
     wrapper.appendChild(this.trigger)
 
-    this.subMenuContent = this.dom.div({ className: ["sub-menu-content", position] })
+    this.subMenuContent = this.dom.div({
+      className: ["sub-menu-content", position],
+    })
 
     if (this.config.menuTitle) {
-      const menuTitleElement = this.dom.h3({ text: this.config.menuTitle, className: "ms-menu-title" })
+      const menuTitleElement = this.dom.h3({
+        text: this.config.menuTitle,
+        className: "ms-menu-title",
+      })
       this.subMenuContent.appendChild(menuTitleElement)
     }
 
-    this.subMenuWrapper = this.dom.div({ className: "ms-menu-column" })
+    this.subMenuWrapper = this.dom.div({
+      className: "ms-menu-column",
+    })
 
-    this.config.items.forEach(item => {
+    this.config.items.forEach((item) => {
       const menuItem = createMenuItemInstance(item, this.editor)
       const element = menuItem.getElement()
       if (element) {
@@ -184,7 +205,7 @@ export class SubMenuItem extends BaseMenuItem<HTMLDivElement>
   }
 
   update(): void {
-    this.subMenuItems.forEach(menuItem => {
+    this.subMenuItems.forEach((menuItem) => {
       menuItem.update()
     })
 
@@ -197,7 +218,7 @@ export class SubMenuItem extends BaseMenuItem<HTMLDivElement>
       document.removeEventListener("pointerdown", this.#documentPointerdownHandler)
       this.#documentPointerdownHandler = undefined
     }
-    this.subMenuItems.forEach(menuItem => {
+    this.subMenuItems.forEach((menuItem) => {
       menuItem.destroy()
     })
     this.subMenuItems.clear()

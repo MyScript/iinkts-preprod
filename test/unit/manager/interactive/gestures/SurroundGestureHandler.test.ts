@@ -1,36 +1,25 @@
 import { createEditorMock, asEditor } from "../../../__mocks__/createEditorMock"
 import { buildIIStroke, buildIIText } from "../../../helpers"
-import {
-  SurroundGestureHandler,
-  GestureHelpers,
-  TGesture,
-  SurroundAction,
-  StrokeOps,
-} from "@/iink"
+import { SurroundGestureHandler, GestureHelpers, TGesture, SurroundAction, StrokeOps } from "@/iink"
 
-describe("SurroundGestureHandler.ts", () =>
-{
+describe("SurroundGestureHandler.ts", () => {
   let editor: ReturnType<typeof createEditorMock>
   let helpers: GestureHelpers
   let handler: SurroundGestureHandler
 
-  beforeEach(() =>
-  {
+  beforeEach(() => {
     editor = createEditorMock()
     helpers = new GestureHelpers(asEditor(editor))
     handler = new SurroundGestureHandler(asEditor(editor), helpers)
   })
 
-  test("should instantiate", () =>
-  {
+  test("should instantiate", () => {
     expect(handler).toBeDefined()
     expect(handler.gestureType).toBe("SURROUND")
   })
 
-  describe("apply", () =>
-  {
-    test("should handle Select action", async () =>
-    {
+  describe("apply", () => {
+    test("should handle Select action", async () => {
       const stroke = buildIIStroke()
       StrokeOps.addPointer(stroke, { x: 10, y: 10, p: 1, t: 100 })
       StrokeOps.addPointer(stroke, { x: 20, y: 20, p: 1, t: 200 })
@@ -46,7 +35,7 @@ describe("SurroundGestureHandler.ts", () =>
         gestureStrokeId: gestureStroke.id,
         strokeIds: [],
         strokeBeforeIds: [],
-        strokeAfterIds: []
+        strokeAfterIds: [],
       }
 
       // Set surround action to Select
@@ -58,8 +47,7 @@ describe("SurroundGestureHandler.ts", () =>
       expect(true).toBe(true)
     })
 
-    test("should handle Highlight action", async () =>
-    {
+    test("should handle Highlight action", async () => {
       const text = buildIIText({
         chars: [
           {
@@ -68,10 +56,10 @@ describe("SurroundGestureHandler.ts", () =>
             fontSize: 16,
             fontWeight: "normal",
             color: "#000000",
-            bounds: { x: 10, y: 10, width: 20, height: 16 }
-          }
+            bounds: { x: 10, y: 10, width: 20, height: 16 },
+          },
         ],
-        boundingBox: { x: 10, y: 10, width: 20, height: 16 }
+        boundingBox: { x: 10, y: 10, width: 20, height: 16 },
       })
 
       editor.model.addSymbol(text)
@@ -85,7 +73,7 @@ describe("SurroundGestureHandler.ts", () =>
         gestureStrokeId: gestureStroke.id,
         strokeIds: [],
         strokeBeforeIds: [],
-        strokeAfterIds: []
+        strokeAfterIds: [],
       }
 
       // Set surround action to Highlight
@@ -97,8 +85,7 @@ describe("SurroundGestureHandler.ts", () =>
       expect(true).toBe(true)
     })
 
-    test("should handle Surround action", async () =>
-    {
+    test("should handle Surround action", async () => {
       const stroke = buildIIStroke()
       StrokeOps.addPointer(stroke, { x: 10, y: 10, p: 1, t: 100 })
       StrokeOps.addPointer(stroke, { x: 20, y: 20, p: 1, t: 200 })
@@ -115,7 +102,7 @@ describe("SurroundGestureHandler.ts", () =>
         gestureStrokeId: gestureStroke.id,
         strokeIds: [],
         strokeBeforeIds: [],
-        strokeAfterIds: []
+        strokeAfterIds: [],
       }
 
       // Set surround action to Surround
@@ -127,8 +114,7 @@ describe("SurroundGestureHandler.ts", () =>
       expect(true).toBe(true)
     })
 
-    test("should handle empty symbols", async () =>
-    {
+    test("should handle empty symbols", async () => {
       const gestureStroke = buildIIStroke()
       StrokeOps.addPointer(gestureStroke, { x: 100, y: 100, p: 1, t: 100 })
       StrokeOps.addPointer(gestureStroke, { x: 200, y: 200, p: 1, t: 200 })
@@ -138,7 +124,7 @@ describe("SurroundGestureHandler.ts", () =>
         gestureStrokeId: gestureStroke.id,
         strokeIds: [],
         strokeBeforeIds: [],
-        strokeAfterIds: []
+        strokeAfterIds: [],
       }
 
       editor.gesture.surroundAction = SurroundAction.Select
@@ -149,8 +135,7 @@ describe("SurroundGestureHandler.ts", () =>
       expect(true).toBe(true)
     })
 
-    test("should handle unknown surround action", async () =>
-    {
+    test("should handle unknown surround action", async () => {
       const gestureStroke = buildIIStroke()
       StrokeOps.addPointer(gestureStroke, { x: 10, y: 10, p: 1, t: 100 })
 
@@ -159,7 +144,7 @@ describe("SurroundGestureHandler.ts", () =>
         gestureStrokeId: gestureStroke.id,
         strokeIds: [],
         strokeBeforeIds: [],
-        strokeAfterIds: []
+        strokeAfterIds: [],
       }
 
       // Set an invalid surround action (cast to bypass type check for testing)
@@ -172,10 +157,8 @@ describe("SurroundGestureHandler.ts", () =>
     })
   })
 
-  describe("integration", () =>
-  {
-    test("should select symbols within gesture bounds", async () =>
-    {
+  describe("integration", () => {
+    test("should select symbols within gesture bounds", async () => {
       const stroke1 = buildIIStroke()
       StrokeOps.addPointer(stroke1, { x: 10, y: 10, p: 1, t: 100 })
       StrokeOps.addPointer(stroke1, { x: 15, y: 15, p: 1, t: 200 })
@@ -196,7 +179,7 @@ describe("SurroundGestureHandler.ts", () =>
         gestureStrokeId: gestureStroke.id,
         strokeIds: [],
         strokeBeforeIds: [],
-        strokeAfterIds: []
+        strokeAfterIds: [],
       }
 
       editor.gesture.surroundAction = SurroundAction.Select

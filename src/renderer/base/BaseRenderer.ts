@@ -4,8 +4,7 @@
  *
  * Common configuration properties required by all renderer implementations.
  */
-export type TBaseRendererConfiguration =
-{
+export type TBaseRendererConfiguration = {
   minWidth: number
   minHeight: number
 }
@@ -18,13 +17,14 @@ export type TBaseRendererConfiguration =
  * must implement, enabling consistent rendering behavior across
  * different output formats.
  */
-export abstract class BaseRenderer<RenderContextType, ConfigType extends TBaseRendererConfiguration = TBaseRendererConfiguration>
-{
+export abstract class BaseRenderer<
+  RenderContextType,
+  ConfigType extends TBaseRendererConfiguration = TBaseRendererConfiguration,
+> {
   configuration: ConfigType
   parent!: HTMLElement
 
-  constructor(configuration: ConfigType)
-  {
+  constructor(configuration: ConfigType) {
     this.configuration = configuration
   }
 
@@ -46,8 +46,7 @@ export abstract class BaseRenderer<RenderContextType, ConfigType extends TBaseRe
   /**
    * Get the bounds of the rendering area
    */
-  getBounds()
-  {
+  getBounds() {
     return {
       x: 0,
       y: 0,

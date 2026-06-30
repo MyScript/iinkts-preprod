@@ -1,19 +1,25 @@
-
-import { DEFAULT_MENU_COLORS, DEFAULT_THICKNESS_LIST, DEFAULT_FONT_SIZE_LIST, DEFAULT_FONT_WEIGHT_LIST } from "./MenuConstants"
-import type { TMenuStyleConfig } from "./IIMenuStyle"
-import type { TMenuToolConfig } from "./IIMenuTool"
 import type { TMenuActionConfig } from "./IIMenuAction"
 import type { TMenuContextConfig } from "./IIMenuContext"
+import type { TMenuStyleConfig } from "./IIMenuStyle"
+import type { TMenuToolConfig } from "./IIMenuTool"
+import {
+  DEFAULT_FONT_SIZE_LIST,
+  DEFAULT_FONT_WEIGHT_LIST,
+  DEFAULT_MENU_COLORS,
+  DEFAULT_THICKNESS_LIST,
+} from "./MenuConstants"
 
 /**
  * @group Menu
  */
 export type TMenuConfiguration = {
-  enable: boolean,
+  enable: boolean
   style: TMenuStyleConfig & { enable: boolean }
   tool: TMenuToolConfig & { enable: boolean }
   action: TMenuActionConfig & { enable: boolean }
-  context: TMenuContextConfig & { enable: boolean }
+  context: TMenuContextConfig & {
+    enable: boolean
+  }
 }
 
 /**
@@ -33,7 +39,7 @@ export const DefaultMenuConfiguration: TMenuConfiguration = {
     colors: DEFAULT_MENU_COLORS,
     thicknessList: DEFAULT_THICKNESS_LIST,
     fontSizeList: DEFAULT_FONT_SIZE_LIST,
-    fontWeightList: DEFAULT_FONT_WEIGHT_LIST
+    fontWeightList: DEFAULT_FONT_WEIGHT_LIST,
   },
   tool: {
     enable: true,
@@ -42,7 +48,7 @@ export const DefaultMenuConfiguration: TMenuConfiguration = {
     select: true,
     erase: true,
     shape: true,
-    edge: true
+    edge: true,
   },
   action: {
     enable: true,
@@ -59,7 +65,7 @@ export const DefaultMenuConfiguration: TMenuConfiguration = {
     selection: true,
     export: true,
     import: true,
-    minimap: true
+    minimap: true,
   },
   context: {
     enable: true,
@@ -72,6 +78,6 @@ export const DefaultMenuConfiguration: TMenuConfiguration = {
     group: true,
     duplicate: true,
     remove: true,
-    selectAll: true
+    selectAll: true,
   },
 }

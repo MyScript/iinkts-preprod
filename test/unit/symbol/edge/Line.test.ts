@@ -1,19 +1,8 @@
-import
-{
-  EdgeLineOps,
-  OBBOps,
-  TPoint,
-  DefaultStyle,
-  TStyle,
-  TBox,
-} from "@/iink"
+import { EdgeLineOps, OBBOps, TPoint, DefaultStyle, TStyle, TBox } from "@/iink"
 
-describe("Line.ts", () =>
-{
-  describe("constructor", () =>
-  {
-    test("should create", () =>
-    {
+describe("Line.ts", () => {
+  describe("constructor", () => {
+    test("should create", () => {
       const start: TPoint = { x: 0, y: 0 }
       const end: TPoint = { x: 5, y: 5 }
       const style: TStyle = {
@@ -33,44 +22,37 @@ describe("Line.ts", () =>
       expect(line.bounds.height).toEqual(15)
       expect(line.vertices).toHaveLength(2)
     })
-    test("should create with default style", () =>
-    {
+    test("should create with default style", () => {
       const start: TPoint = { x: 0, y: 0 }
       const end: TPoint = { x: 5, y: 5 }
       const line = EdgeLineOps.create(start, end)
       expect(line.style).toEqual(DefaultStyle)
     })
   })
-  describe("overlaps", () =>
-  {
+  describe("overlaps", () => {
     const start: TPoint = { x: 0, y: 0 }
     const end: TPoint = { x: 0, y: 25 }
     const line = EdgeLineOps.create(start, end)
-    test(`should return true if partially wrap`, () =>
-    {
+    test(`should return true if partially wrap`, () => {
       const boundaries: TBox = { height: 10, width: 10, x: -5, y: -5 }
       expect(EdgeLineOps.overlaps(line, boundaries)).toEqual(true)
     })
-    test(`should return true if totally wrap`, () =>
-    {
+    test(`should return true if totally wrap`, () => {
       const boundaries: TBox = { height: 50, width: 50, x: -25, y: -25 }
       expect(EdgeLineOps.overlaps(line, boundaries)).toEqual(true)
     })
-    test(`should return false if box is outside`, () =>
-    {
+    test(`should return false if box is outside`, () => {
       const boundaries: TBox = { height: 2, width: 2, x: 50, y: 50 }
       expect(EdgeLineOps.overlaps(line, boundaries)).toEqual(false)
     })
   })
-  describe("clone", () =>
-  {
-    test("should return clone", () =>
-    {
+  describe("clone", () => {
+    test("should return clone", () => {
       const start: TPoint = { x: 0, y: 0 }
       const end: TPoint = { x: 0, y: 25 }
       const style: TStyle = {
         color: "blue",
-        width: 20
+        width: 20,
       }
       const line = EdgeLineOps.create(start, end, undefined, undefined, style)
       const clone = structuredClone(line)

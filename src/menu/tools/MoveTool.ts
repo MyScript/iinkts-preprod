@@ -1,17 +1,15 @@
-import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
-import type { TMenuButton } from "@/menu/items/ButtonMenuItem";
-import { ButtonMenuItem } from "@/menu/items/ButtonMenuItem"
-import { EditorTool } from "@/Constants"
 import handIcon from "@/assets/svg/drag-hand-gesture.svg"
+import { EditorTool } from "@/Constants"
+import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
+import type { TMenuButton } from "@/menu/items/ButtonMenuItem"
+import { ButtonMenuItem } from "@/menu/items/ButtonMenuItem"
 
 /**
  * @group Menu
  * @remarks Move tool - View movement
  */
-export class MoveTool extends ButtonMenuItem
-{
-  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-tool")
-  {
+export class MoveTool extends ButtonMenuItem {
+  constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-tool") {
     const config: TMenuButton = {
       type: "button",
       id: `${idPrefix}-move`,
@@ -19,14 +17,17 @@ export class MoveTool extends ButtonMenuItem
       icon: handIcon,
       action: (editor: TInteractiveInkEditor) => {
         editor.tool = EditorTool.Move
-      }
+      },
     }
     super(config, editor)
   }
 
-  createElement(): HTMLButtonElement
-  {
-    const button = this.dom.button({ id: this.config.id, html: this.config.icon || "", className: "square" })
+  createElement(): HTMLButtonElement {
+    const button = this.dom.button({
+      id: this.config.id,
+      html: this.config.icon || "",
+      className: "square",
+    })
     button.addEventListener("click", () => {
       this.unselectAll()
       button.classList.add("active")
@@ -35,9 +36,10 @@ export class MoveTool extends ButtonMenuItem
     return button
   }
 
-  update(): void
-  {
-    if (!this.element) return
+  update(): void {
+    if (!this.element) {
+      return
+    }
 
     const isActive = this.editor.tool === EditorTool.Move
 
@@ -51,9 +53,8 @@ export class MoveTool extends ButtonMenuItem
     this.updateVisible()
   }
 
-  private unselectAll(): void
-  {
+  private unselectAll(): void {
     const menu = this.element?.closest(".ms-menu")
-    menu?.querySelectorAll("*").forEach(e => e.classList.remove("active"))
+    menu?.querySelectorAll("*").forEach((e) => e.classList.remove("active"))
   }
 }
