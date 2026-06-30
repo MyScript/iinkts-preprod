@@ -157,10 +157,12 @@ export class IIMenuContext {
         const canEditVariables = Object.keys(variables).length > 0
         const canCompute = actions?.includes("numerical-computation")
         const canEvaluate = evaluables?.length ? true : false
+        const hasDrawSolverOutputs = this.editor.math.hasDrawSolverOutputs(mathSymbol.jiixBlockId)
         mathMenuInstance.setMenuVisibility(true, {
           canEditVariables,
           canCompute,
           canEvaluate,
+          hasDrawSolverOutputs,
         })
       } else {
         mathMenuInstance.setMenuVisibility(false, {

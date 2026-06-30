@@ -75,6 +75,37 @@ export const isDeepEqual = (object1: unknown, object2: unknown): boolean => {
 /**
  * @group Utilities
  */
+export const isDeepEqualIgnoring = (object1: unknown, object2: unknown, ignoredKeys: string[]): boolean => {
+  if (!isObject(object1) || !isObject(object2)) {
+    return object1 === object2
+  }
+
+  const keys1 = Object.keys(object1).filter((k) => !ignoredKeys.includes(k))
+  const keys2 = Object.keys(object2).filter((k) => !ignoredKeys.includes(k))
+
+  if (keys1.length !== keys2.length) {
+    return false
+  }
+
+  for (const key of keys1) {
+    const value1 = object1[key as keyof typeof object1]
+    const value2 = object2[key as keyof typeof object2]
+
+    const isObjects = isObject(value1) && isObject(value2)
+
+    if (isObjects && !isDeepEqualIgnoring(value1, value2, ignoredKeys)) {
+      return false
+    }
+    if (!isObjects && value1 !== value2) {
+      return false
+    }
+  }
+  return true
+}
+
+/**
+ * @group Utilities
+ */
 const isObject = (object: unknown): object is Record<string, unknown> => {
   return typeof object === "object" && object !== null && !Array.isArray(object)
 }

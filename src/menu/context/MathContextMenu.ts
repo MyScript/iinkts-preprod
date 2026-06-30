@@ -10,6 +10,7 @@ export type TContextMathItemsConfig = {
   editVariables?: boolean
   compute?: boolean
   evaluate?: boolean
+  manageResultStrokes?: boolean
 }
 /** @group Menu */
 export type TContextMathConfig = boolean | TContextMathItemsConfig
@@ -26,6 +27,8 @@ export class MathContextMenu extends SubMenuItem {
   readonly idNumericalComputation: string
   readonly idCheckDiagnostic: string
   readonly idEvaluate: string
+  readonly idSelectResultStrokes: string
+  readonly idDeleteResultStrokes: string
 
   constructor(editor: TInteractiveInkEditor, idPrefix = "ms-menu-context", itemsConfig?: TContextMathItemsConfig) {
     const enabled = (key: keyof TContextMathItemsConfig) => itemsConfig?.[key] !== false
@@ -35,6 +38,8 @@ export class MathContextMenu extends SubMenuItem {
     const idNumericalComputation = `${id}-numerical-computation`
     const idCheckDiagnostic = `${id}-check-diagnostic`
     const idEvaluate = `${id}-evaluate`
+    const idSelectResultStrokes = `${id}-select-result-strokes`
+    const idDeleteResultStrokes = `${id}-delete-result-strokes`
 
     const config: TMenuSubMenu = {
       id: id,
@@ -138,12 +143,49 @@ export class MathContextMenu extends SubMenuItem {
       })
     }
 
+    if (enabled("manageResultStrokes")) {
+      config.items.push({
+        id: idSelectResultStrokes,
+        type: "button",
+        label: "Select result strokes",
+        action: () => {
+          const jiixBlockId = editor.jiix
+            .getBlocksForSymbols(editor.model.symbolsSelected)
+            .find((s) => s.type === "Math")?.id
+          if (!jiixBlockId) {
+            return
+          }
+          const ids = editor.math.getStoredSolverOutputs(jiixBlockId) ?? []
+          if (ids.length > 0) {
+            editor.select(ids)
+          }
+        },
+      })
+
+      config.items.push({
+        id: idDeleteResultStrokes,
+        type: "button",
+        label: "Delete result strokes",
+        action: async () => {
+          const jiixBlockId = editor.jiix
+            .getBlocksForSymbols(editor.model.symbolsSelected)
+            .find((s) => s.type === "Math")?.id
+          if (!jiixBlockId) {
+            return
+          }
+          await editor.math.clearSolverOutputs(jiixBlockId)
+        },
+      })
+    }
+
     super(config, editor)
     this.id = id
     this.idEditVariables = idEditVariables
     this.idNumericalComputation = idNumericalComputation
     this.idCheckDiagnostic = idCheckDiagnostic
     this.idEvaluate = idEvaluate
+    this.idSelectResultStrokes = idSelectResultStrokes
+    this.idDeleteResultStrokes = idDeleteResultStrokes
   }
 
   setMenuVisibility(
@@ -152,10 +194,12 @@ export class MathContextMenu extends SubMenuItem {
       canEditVariables,
       canCompute,
       canEvaluate,
+      hasDrawSolverOutputs,
     }: {
       canEditVariables: boolean
       canCompute: boolean
       canEvaluate: boolean
+      hasDrawSolverOutputs?: boolean
     }
   ): void {
     const mathMenu = this.getElement()
@@ -165,6 +209,8 @@ export class MathContextMenu extends SubMenuItem {
       const numericalComputationButton = mathMenu.querySelector(`#${this.idNumericalComputation}`) as HTMLButtonElement
       const checkDiagnosticButton = mathMenu.querySelector(`#${this.idCheckDiagnostic}`) as HTMLButtonElement
       const evaluateButton = mathMenu.querySelector(`#${this.idEvaluate}`) as HTMLButtonElement
+      const selectResultStrokesButton = mathMenu.querySelector(`#${this.idSelectResultStrokes}`) as HTMLButtonElement
+      const deleteResultStrokesButton = mathMenu.querySelector(`#${this.idDeleteResultStrokes}`) as HTMLButtonElement
 
       if (editVariablesButton) {
         editVariablesButton.style.setProperty("display", canEditVariables ? "inline-block" : "none")
@@ -177,6 +223,12 @@ export class MathContextMenu extends SubMenuItem {
       }
       if (evaluateButton) {
         evaluateButton.style.setProperty("display", canEvaluate ? "inline-block" : "none")
+      }
+      if (selectResultStrokesButton) {
+        selectResultStrokesButton.style.setProperty("display", hasDrawSolverOutputs ? "inline-block" : "none")
+      }
+      if (deleteResultStrokesButton) {
+        deleteResultStrokesButton.style.setProperty("display", hasDrawSolverOutputs ? "inline-block" : "none")
       }
     } else {
       mathMenu.style.setProperty("display", "none")
