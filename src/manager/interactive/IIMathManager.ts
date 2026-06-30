@@ -49,6 +49,10 @@ export class IIMathManager extends IIAbstractManager {
   #variables: IIMathVariableSubManager
   #evaluation: IIMathFunctionEvaluationSubManager
 
+  #mathBlockSnapshot = new Map<string, string>()
+  #isHandlingSynchronized = false
+  #blocksWithRecentSolverAdd = new Set<string>()
+
   constructor(editor: TInteractiveInkEditor, config?: TMathConfig) {
     super(editor, LoggerCategory.MATH)
 
@@ -57,10 +61,55 @@ export class IIMathManager extends IIAbstractManager {
     this.#evaluation = new IIMathFunctionEvaluationSubManager(editor)
 
     editor.event.addSynchronizedListener(() => {
-      if (this.#computation.getConfig().autoCompute) {
-        this.tryAutoCompute()
-      }
+      this.#onSynchronized()
     })
+  }
+
+  async #onSynchronized(): Promise<void> {
+    if (this.#isHandlingSynchronized) {
+      return
+    }
+    this.#isHandlingSynchronized = true
+    try {
+      await this.#clearStaleBlockOutputs()
+      if (this.#computation.getConfig().autoCompute) {
+        await this.tryAutoCompute()
+      }
+    } finally {
+      this.#isHandlingSynchronized = false
+    }
+  }
+
+  async #clearStaleBlockOutputs(): Promise<void> {
+    const currentBlocks = this.editor.model.mathBlocks
+    const currentSnapshot = new Map(currentBlocks.map((b) => [b.id, b.label ?? ""]))
+
+    const changedIds: string[] = []
+
+    for (const [id, prevLabel] of this.#mathBlockSnapshot) {
+      const currentLabel = currentSnapshot.get(id)
+      if ((currentLabel === undefined || currentLabel !== prevLabel) && !this.#blocksWithRecentSolverAdd.has(id)) {
+        changedIds.push(id)
+      }
+    }
+
+    this.#blocksWithRecentSolverAdd.clear()
+    this.#mathBlockSnapshot = currentSnapshot
+
+    for (const blockId of changedIds) {
+      await this.#clearSolverOutputsForBlockAndDependents(blockId)
+    }
+  }
+
+  async #clearSolverOutputsForBlockAndDependents(blockId: string): Promise<void> {
+    await this.#computation.clearSolverOutputs(blockId)
+    const deps = this.#variables.getDependencies(blockId)
+    if (!deps?.dependentBlocks) {
+      return
+    }
+    for (const dependentId of deps.dependentBlocks) {
+      await this.#computation.clearSolverOutputs(dependentId)
+    }
   }
 
   /**
@@ -76,6 +125,7 @@ export class IIMathManager extends IIAbstractManager {
     result: TJIIXMathElement
     addedStrokesCount: number
     value?: number
+    wasRecomputed: boolean
   }> {
     try {
       return this.#computation.computeNumericalResult(jiixBlockId, mode)
@@ -107,6 +157,18 @@ export class IIMathManager extends IIAbstractManager {
 
   clearGhostStrokes(jiixBlockId: string): void {
     this.#computation.clearGhostStrokes(jiixBlockId)
+  }
+
+  hasSolverOutputs(jiixBlockId: string): boolean {
+    return this.#computation.hasSolverOutputs(jiixBlockId)
+  }
+
+  hasDrawSolverOutputs(jiixBlockId: string): boolean {
+    return this.#computation.hasDrawSolverOutputs(jiixBlockId)
+  }
+
+  hasGhostStrokes(jiixBlockId: string): boolean {
+    return this.#computation.hasGhostStrokes(jiixBlockId)
   }
 
   /**
@@ -366,8 +428,8 @@ export class IIMathManager extends IIAbstractManager {
       const label = mb.label ?? ""
 
       if (!(label.endsWith("=") || label.endsWith("?"))) {
-        if (this.#computation.hasSolverOutputs(mb.id)) {
-          await this.#computation.clearSolverOutputs(mb.id)
+        if (this.#computation.hasGhostStrokes(mb.id)) {
+          this.#computation.clearGhostStrokes(mb.id)
         }
         continue
       }
@@ -375,7 +437,10 @@ export class IIMathManager extends IIAbstractManager {
       try {
         const actions = await this.editor.recognizer.getAvailableActions(mb.id)
         if (actions?.includes("numerical-computation")) {
-          await this.#computation.computeNumericalResult(mb.id)
+          const { wasRecomputed, addedStrokesCount } = await this.#computation.computeNumericalResult(mb.id)
+          if (wasRecomputed && addedStrokesCount > 0 && this.#computation.getConfig().resultMode === "draw") {
+            this.#blocksWithRecentSolverAdd.add(mb.id)
+          }
         }
       } catch (error) {
         this.logger.debug("tryAutoCompute", `Cannot auto-compute "${label}":`, (error as Error).message)
