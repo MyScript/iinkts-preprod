@@ -1,7 +1,6 @@
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { LoggerCategory } from "@/logger"
 import type { TJIIXMathElement, TJIIXMathExpression } from "@/model"
-import { SVGBuilder, SVGRendererConst } from "@/renderer"
 import type { TStyle } from "@/style/Style"
 import type { TPoint, TStroke } from "@/symbol"
 import { isStroke } from "@/symbol"
@@ -168,23 +167,27 @@ export class IIMathComputationSubManager extends IIAbstractManager {
         y: convertMillimeterToPixel(strokeData.Y[i]),
       }))
       const pathData = this.buildGhostStrokePath(points)
+      const stroke = StrokeOps.createFromPartial({
+        id: `ghost-stroke-${createUUID()}`,
+        pointers: points.map((p, i) => ({
+          x: p.x,
+          y: p.y,
+          p: strokeData.F?.[i] || 1,
+          t: strokeData.T?.[i] || i,
+        })),
+        style: {
+          color: strokeColor,
+          width: strokeWidth,
+          opacity: 0.5,
+        },
+        isSolverOutput: true,
+      })
       if (!pathData) {
         continue
       }
 
-      const elementId = `ghost-stroke-${createUUID()}`
-      const path = SVGBuilder.createPath({
-        id: elementId,
-        d: pathData,
-        stroke: strokeColor,
-        "stroke-width": String(strokeWidth),
-        fill: "none",
-        opacity: "0.5",
-        style: SVGRendererConst.noSelection,
-      })
-
-      this.renderer.layer.appendChild(path)
-      elementIds.push(elementId)
+      this.renderer.drawSymbol(stroke)
+      elementIds.push(stroke.id)
     }
 
     this.logger.debug("addGhostOutputStrokes", `Added ${elementIds.length} ghost stroke elements`)
