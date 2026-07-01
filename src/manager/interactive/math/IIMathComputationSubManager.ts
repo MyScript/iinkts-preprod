@@ -1,13 +1,12 @@
 import type { TInteractiveInkEditor } from "@/editor/TInteractiveInkEditor"
 import { LoggerCategory } from "@/logger"
 import type { TJIIXMathElement, TJIIXMathExpression } from "@/model"
-import { SVGBuilder, SVGRendererConst } from "@/renderer"
 import type { TStyle } from "@/style/Style"
 import type { TPoint, TStroke } from "@/symbol"
 import { isStroke } from "@/symbol"
 import { StrokeOps } from "@/symbol/stroke/Stroke"
 import { convertMillimeterToPixel } from "@/utils"
-import { isDeepEqual } from "@/utils/object"
+import { isDeepEqualIgnoring } from "@/utils/object"
 import { createUUID } from "@/utils/uuid"
 
 import { IIAbstractManager } from "../IIAbstractManager"
@@ -168,23 +167,27 @@ export class IIMathComputationSubManager extends IIAbstractManager {
         y: convertMillimeterToPixel(strokeData.Y[i]),
       }))
       const pathData = this.buildGhostStrokePath(points)
+      const stroke = StrokeOps.createFromPartial({
+        id: `ghost-stroke-${createUUID()}`,
+        pointers: points.map((p, i) => ({
+          x: p.x,
+          y: p.y,
+          p: strokeData.F?.[i] || 1,
+          t: strokeData.T?.[i] || i,
+        })),
+        style: {
+          color: strokeColor,
+          width: strokeWidth,
+          opacity: 0.5,
+        },
+        isSolverOutput: true,
+      })
       if (!pathData) {
         continue
       }
 
-      const elementId = `ghost-stroke-${createUUID()}`
-      const path = SVGBuilder.createPath({
-        id: elementId,
-        d: pathData,
-        stroke: strokeColor,
-        "stroke-width": String(strokeWidth),
-        fill: "none",
-        opacity: "0.5",
-        style: SVGRendererConst.noSelection,
-      })
-
-      this.renderer.layer.appendChild(path)
-      elementIds.push(elementId)
+      this.renderer.drawSymbol(stroke)
+      elementIds.push(stroke.id)
     }
 
     this.logger.debug("addGhostOutputStrokes", `Added ${elementIds.length} ghost stroke elements`)
@@ -197,6 +200,15 @@ export class IIMathComputationSubManager extends IIAbstractManager {
       return true
     }
     return !!this.#computations.get(jiixBlockId)?.solverOutputStrokeIds?.length
+  }
+
+  hasDrawSolverOutputs(jiixBlockId: string): boolean {
+    return !!this.#computations.get(jiixBlockId)?.solverOutputStrokeIds?.length
+  }
+
+  hasGhostStrokes(jiixBlockId: string): boolean {
+    const ghostIds = this.#ghostStrokeElementIds.get(jiixBlockId)
+    return !!(ghostIds && ghostIds.length > 0)
   }
 
   clearGhostStrokes(jiixBlockId: string): void {
@@ -262,6 +274,7 @@ export class IIMathComputationSubManager extends IIAbstractManager {
     result: TJIIXMathElement
     addedStrokesCount: number
     value?: number
+    wasRecomputed: boolean
   }> {
     this.logger.info("computeNumericalResult", {
       jiixBlockId,
@@ -276,14 +289,14 @@ export class IIMathComputationSubManager extends IIAbstractManager {
     this.logger.info("computeNumericalResult", "Numerical computation completed successfully", result)
 
     const lastResult = this.#lastComputationResult.get(jiixBlockId)
-    if (lastResult && isDeepEqual(lastResult, result)) {
+    if (lastResult && isDeepEqualIgnoring(lastResult, result, ["timestamp"])) {
       this.logger.debug("computeNumericalResult", "Result unchanged, skipping re-render", { jiixBlockId })
       const addedStrokesCount =
         mode === "ghost"
           ? (this.#ghostStrokeElementIds.get(jiixBlockId)?.length ?? 0)
           : (this.#computations.get(jiixBlockId)?.solverOutputStrokeIds?.length ?? 0)
       const value = this.#computations.get(jiixBlockId)?.computedResult as number | undefined
-      return { result, addedStrokesCount, value }
+      return { result, addedStrokesCount, value, wasRecomputed: false }
     }
 
     await this.clearSolverOutputs(jiixBlockId)
@@ -319,7 +332,7 @@ export class IIMathComputationSubManager extends IIAbstractManager {
       }
     }
 
-    return { result, addedStrokesCount, value }
+    return { result, addedStrokesCount, value, wasRecomputed: true }
   }
 
   async computeAllNumericalResults(): Promise<void> {
@@ -435,9 +448,11 @@ export class IIMathComputationSubManager extends IIAbstractManager {
       }))
 
       const stroke = StrokeOps.createFromPartial({
+        id: `solver-stroke-${createUUID()}`,
         pointers,
         style: defaultStyle,
         isSolverOutput: true,
+        jiixBlockId: result.id,
       })
 
       await this.editor.addSymbol(stroke)
