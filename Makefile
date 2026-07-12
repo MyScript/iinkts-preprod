@@ -237,6 +237,13 @@ _check-iink-backend:
 #########
 # CLEAN #
 #########
+save-docker-logs:
+	@mkdir -p docker-logs
+	@for c in $$(docker ps -aq --filter name="$(DOCKER_PREFIX)"); do \
+		name=$$(docker inspect --format='{{.Name}}' $$c | sed 's#^/##'); \
+		docker logs $$c > "docker-logs/$$name.log" 2>&1 || true; \
+	done
+
 kill-docker:
 	@docker ps -qa --filter name="$(DOCKER_PREFIX)"|xargs -r docker rm -f
 	@docker network rm "$(NETWORK_NAME)"||true;
