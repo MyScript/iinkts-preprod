@@ -208,8 +208,8 @@ _launch-iink-backend:
 		--user=$$(id -u) --userns=host \
 		$(NETWORK_PARAM) \
 		$(NETWORK_ALIAS_IINK_BACKEND_PARAM) \
-		-e "IINK_BACKEND_MAXINACTIVITYDURATION=10000" \
-		-e "IINK_BACKEND_MAXINACTIVITYNOSTROKEDURATION=5000" \
+		-e "IINK_BACKEND_MAXINACTIVITYDURATION=120000" \
+		-e "IINK_BACKEND_MAXINACTIVITYNOSTROKEDURATION=120000" \
 		-e "IINK_BACKEND_BATCH_SYNCHRONEMODE=true" \
 		-e "IINK_BACKEND_ENGINECACHE_ENABLED=true" \
 		-e "IINK_BACKEND_ENGINECACHE_SIZELIMIT=20" \
@@ -237,6 +237,13 @@ _check-iink-backend:
 #########
 # CLEAN #
 #########
+save-docker-logs:
+	@mkdir -p docker-logs
+	@for c in $$(docker ps -aq --filter name="$(DOCKER_PREFIX)"); do \
+		name=$$(docker inspect --format='{{.Name}}' $$c | sed 's#^/##'); \
+		docker logs $$c > "docker-logs/$$name.log" 2>&1 || true; \
+	done
+
 kill-docker:
 	@docker ps -qa --filter name="$(DOCKER_PREFIX)"|xargs -r docker rm -f
 	@docker network rm "$(NETWORK_NAME)"||true;
