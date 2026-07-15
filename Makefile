@@ -91,15 +91,6 @@ dev-init_examples:
 #########
 # TESTS #
 #########
-test-unit:
-	@echo "Starting test unit"
-	@docker run --rm --user=$$(id -u) --userns=host \
-		-e "TEST_SUITE_PATH=$(TEST_SUITE_PATH)" \
-		-v $(CURRENT_PWD):/iink-ts \
-		-w "/iink-ts/test/unit" \
-		$(DOCKER_IMAGE_JEST) \
-		yarn test:unit --coverage --maxWorkers 2
-
 prepare-test-examples-ci: _create-network \
 	_launch-mongo \
 	_launch-googlefonts-volume \
@@ -124,7 +115,7 @@ test-examples-ci:
 		-w "/iink-ts/test/examples" \
 		--name "$(DOCKER_INSTANCE_PLAYWRIGHT)" \
 		$(DOCKER_IMAGE_PLAYWRIGHT) \
-		yarn test:examples
+		corepack yarn test:examples
 
 dev-test-examples:
 	@make WITH_NETWORK=false -C ./ prepare-test-examples
@@ -145,7 +136,7 @@ test-examples:
 		-w "/iink-ts/test/examples" \
 		--name "$(DOCKER_INSTANCE_PLAYWRIGHT)" \
 		$(DOCKER_IMAGE_PLAYWRIGHT) \
-		yarn test:examples
+		corepack yarn test:examples
 
 dev-test-examples-ci:
 	@make WITH_NETWORK=false -C ./ prepare-test-examples-ci test-examples-ci
