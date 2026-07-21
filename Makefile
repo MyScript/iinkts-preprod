@@ -15,7 +15,7 @@ build-lib:
 
 build-tldraw-examples:
 	@yarn copy:to:tldraw
-	@cd ./examples/offscreen-interactivity/offscreen_interactivity_tldraw && yarn build
+	@cd ./examples/custom-rendering/tldraw-websocket-client && yarn build
 
 build-docs:
 	@yarn build:docs
