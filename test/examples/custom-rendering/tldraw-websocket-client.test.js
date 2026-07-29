@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test"
-import { passModalKey, writeStrokes } from "../helper"
+import { writeStrokes } from "../helper"
 import helloOneStroke from "../__dataset__/helloOneStroke"
 
 test.describe("TLDraw WebSocket client", () => {
