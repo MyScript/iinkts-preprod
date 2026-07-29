@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test"
-import { waitForCanvasInit, writeStrokes, waitForExportedEvent, getCanvasExports, passModalKey, getCanvasStrokes } from "../helper"
+import { writeStrokes, waitForExportedEvent, getCanvasExports, passModalKey, getCanvasStrokes } from "../helper"
 import h from "../__dataset__/h"
 
 test.describe("Ink Canvas v2 Text", () => {

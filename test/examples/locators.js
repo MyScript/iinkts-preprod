@@ -11,7 +11,7 @@ export default {
       },
       guide: {
         triggerBtn: "#ms-menu-action-guide button",
-        enable: "#ms-menu-action-guide-enable",
+        enable: "#ms-menu-action-guide-enable-input",
         types: "#ms-menu-action-guide-type-input",
         sizeS: "#ms-menu-action-guide-size-25",
         sizeM: "#ms-menu-action-guide-size-50",
