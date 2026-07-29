@@ -13,8 +13,8 @@ import {
   waitForGesturedEvent,
   getCanvasSymbols,
   getCanvasExportsType,
-  callCanvasSynchronize,
   callCanvasExport,
+  callCanvasConvert,
 } from "../helper"
 import locator from "../locators"
 import lecon from "../__dataset__/leçon"
@@ -156,7 +156,8 @@ test.describe("Interactive ink canvas Get Started Menu Action", () => {
     })
 
     await test.step("should display text", async () => {
-      const textSymbolId = await page.evaluate("rootEl.iink.model.symbols[0].id")
+      const symbols = await getCanvasSymbols(page)
+      const textSymbolId = symbols[0].id
       await expect(page.locator(`#${  textSymbolId }`)).toHaveText(helloOneStroke.exports["application/vnd.myscript.jiix"].label)
     })
   })
@@ -172,6 +173,11 @@ test.describe("Interactive ink canvas Get Started Menu Action", () => {
       await page.locator(locator.menu.action.language.inputSelect).click()
       const languageOptions = await page.locator(locator.menu.action.language.inputSelect + " option").all()
       expect(languageOptions.length).toBeGreaterThan(0)
+      // Close the language submenu by toggling its own trigger. The burger button is a
+      // sibling submenu, so clicking it would open the action list over the canvas and
+      // swallow the pointer events of the strokes written in the next steps.
+      await page.locator(locator.menu.action.language.trigger).click()
+      await expect(page.locator(locator.menu.action.language.inputSelect)).toBeHidden()
     })
 
     await test.step("should not recognize french text", async () => {
@@ -240,8 +246,8 @@ test.describe("Interactive ink canvas Get Started Menu Action", () => {
     })
 
     await test.step("should conserve strikethrough when convert", async () => {
-      await page.evaluate("rootEl.iink.convert()")
-      const symbols = await page.evaluate("rootEl.iink.model.symbols")
+      await callCanvasConvert(page)
+      const symbols = await getCanvasSymbols(page)
       expect(symbols).toHaveLength(1)
       const text = symbols[0]
       expect(text.type).toEqual("text")
@@ -404,11 +410,9 @@ test.describe("Interactive ink canvas Get Started Menu Action", () => {
     })
 
     await test.step("verify surround is kept after convert", async () => {
-      //now convert
-      await page.evaluate("rootEl.iink.convert()")
-
+      await callCanvasConvert(page)
       //verify surround is still drawn arround the text
-      const symbols = await page.evaluate("rootEl.iink.model.symbols")
+      const symbols = await getCanvasSymbols(page)
       expect(symbols).toHaveLength(1)
       const convertSym = symbols[0]
       expect(convertSym.type).toEqual("text")
@@ -459,7 +463,7 @@ test.describe("Interactive ink canvas Get Started Menu Action", () => {
         waitForSynchronizedEvent(page),
         writePointers(page, helloInsert.strokes[0].pointers, 0, 100)
       ])
-      const symbols = await page.evaluate("rootEl.iink.model.symbols")
+      const symbols = await getCanvasSymbols(page)
       expect(symbols).toHaveLength(1)
       expect(symbols[0].type).toEqual("stroke")
       expect(symbols[0].kind).toEqual("text")
@@ -488,7 +492,7 @@ test.describe("Interactive ink canvas Get Started Menu Action", () => {
         convertBtn.click()
       ])
 
-      const symbols = await page.evaluate("rootEl.iink.model.symbols")
+      const symbols = await getCanvasSymbols(page)
       expect(symbols).toHaveLength(2)
       const hel = symbols[0]
       expect(hel.type).toEqual("text")
@@ -504,7 +508,7 @@ test.describe("Interactive ink canvas Get Started Menu Action", () => {
     await test.step("insert should separate word on convert", async () => {
       //clear the canvas
       await page.evaluate("rootEl.iink.clear()")
-      let symbols = await page.evaluate("rootEl.iink.model.symbols")
+      let symbols = await getCanvasSymbols(page)
       expect(symbols).toHaveLength(0)
 
       //write again and convert
@@ -521,7 +525,7 @@ test.describe("Interactive ink canvas Get Started Menu Action", () => {
         writePointers(page, helloInsert.strokes[1].pointers, 0, -20)
       ])
 
-      symbols = await page.evaluate("rootEl.iink.model.symbols")
+      symbols = await getCanvasSymbols(page)
       expect(symbols).toHaveLength(2)
       const hel = symbols[0]
       expect(hel.type).toEqual("text")
