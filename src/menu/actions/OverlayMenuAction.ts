@@ -1,7 +1,4 @@
-import rectangleIcon from "@/assets/svg/rectangle.svg"
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import type { TMenuCheckbox } from "@/menu/items/CheckboxMenuItem"
-import type { TMenuRange } from "@/menu/items/RangeMenuItem"
 import type { TMenuSubMenu } from "@/menu/items/SubMenuItem"
 import { SubMenuItem } from "@/menu/items/SubMenuItem"
 
@@ -24,10 +21,17 @@ export class OverlayMenuAction extends SubMenuItem {
   constructor(canvas: TInteractiveInkCanvas, idPrefix = "ms-menu-action", itemsConfig?: TOverlayActionItemsConfig) {
     const enabled = (key: keyof TOverlayActionItemsConfig) => itemsConfig?.[key] !== false
 
-    const items: (TMenuCheckbox | TMenuRange)[] = []
+    const config: TMenuSubMenu = {
+      type: "submenu",
+      id: `${idPrefix}-overlay`,
+      label: "Overlay",
+      menuTitle: "Overlay",
+      position: "right-top",
+      items: [],
+    }
 
     if (enabled("showBlockOverlays")) {
-      items.push({
+      config.items.push({
         type: "checkbox",
         id: `${idPrefix}-overlay-show-block-overlays`,
         label: "Show block overlays",
@@ -41,7 +45,7 @@ export class OverlayMenuAction extends SubMenuItem {
     }
 
     if (enabled("badgeSize")) {
-      items.push({
+      config.items.push({
         type: "range",
         id: `${idPrefix}-overlay-badge-size`,
         label: "Badge size",
@@ -59,7 +63,7 @@ export class OverlayMenuAction extends SubMenuItem {
     }
 
     if (enabled("borderWidth")) {
-      items.push({
+      config.items.push({
         type: "range",
         id: `${idPrefix}-overlay-border-width`,
         label: "Border width",
@@ -77,7 +81,7 @@ export class OverlayMenuAction extends SubMenuItem {
     }
 
     if (enabled("labelMaxChars")) {
-      items.push({
+      config.items.push({
         type: "range",
         id: `${idPrefix}-overlay-label-max-chars`,
         label: "Label max chars",
@@ -95,7 +99,7 @@ export class OverlayMenuAction extends SubMenuItem {
     }
 
     if (enabled("labelFontSize")) {
-      items.push({
+      config.items.push({
         type: "range",
         id: `${idPrefix}-overlay-label-font-size`,
         label: "Label font size",
@@ -110,16 +114,6 @@ export class OverlayMenuAction extends SubMenuItem {
           })
         },
       })
-    }
-
-    const config: TMenuSubMenu = {
-      type: "submenu",
-      id: `${idPrefix}-overlay`,
-      label: "Overlay",
-      menuTitle: "Overlay",
-      icon: rectangleIcon,
-      position: "right-top",
-      items,
     }
 
     super(config, canvas)

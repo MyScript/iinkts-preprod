@@ -1,4 +1,3 @@
-import guideIcon from "@/assets/svg/orthogonal-view.svg"
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import type { TMenuSubMenu } from "@/menu/items/SubMenuItem"
 import { SubMenuItem } from "@/menu/items/SubMenuItem"
@@ -32,7 +31,6 @@ export class GuideMenuAction extends SubMenuItem {
       id: `${idPrefix}-guide`,
       label: "Guide",
       menuTitle: "Guide",
-      icon: guideIcon,
       position: "right-top",
       items: [],
     }

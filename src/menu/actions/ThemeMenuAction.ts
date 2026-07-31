@@ -1,4 +1,3 @@
-import styleIcon from "@/assets/svg/palette.svg"
 import type { TCanvasTheme } from "@/canvas/CanvasThemes"
 import { CanvasThemes } from "@/canvas/CanvasThemes"
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
@@ -22,7 +21,6 @@ export class ThemeMenuAction extends SubMenuItem {
       type: "submenu",
       id: `${idPrefix}-theme`,
       label: "Theme",
-      icon: styleIcon,
       menuTitle: "Theme",
       position: "right-top",
       items: [],
