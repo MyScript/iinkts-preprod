@@ -1,9 +1,6 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import { IIMathCapabilitiesTable, IIMathVariableCanvas } from "@/components"
 import type { TMathResultMode } from "@/manager/interactive/math"
-import type { TMenuButton } from "@/menu/items/ButtonMenuItem"
-import type { TMenuCheckbox } from "@/menu/items/CheckboxMenuItem"
-import type { TMenuSelect } from "@/menu/items/SelectMenuItem"
 import type { TMenuSubMenu } from "@/menu/items/SubMenuItem"
 import { SubMenuItem } from "@/menu/items/SubMenuItem"
 
@@ -29,10 +26,17 @@ export class MathMenuAction extends SubMenuItem {
   constructor(canvas: TInteractiveInkCanvas, idPrefix = "ms-menu-action", itemsConfig?: TMathActionItemsConfig) {
     const enabled = (key: keyof TMathActionItemsConfig) => itemsConfig?.[key] !== false
 
-    const items: (TMenuCheckbox | TMenuSelect | TMenuButton)[] = []
+    const config: TMenuSubMenu = {
+      type: "submenu",
+      id: `${idPrefix}-math`,
+      label: "Math",
+      menuTitle: "Math",
+      position: "right-top",
+      items: [],
+    }
 
     if (enabled("autoCompute")) {
-      items.push({
+      config.items.push({
         type: "checkbox",
         id: `${idPrefix}-math-auto-compute`,
         label: "Auto-compute",
@@ -49,7 +53,7 @@ export class MathMenuAction extends SubMenuItem {
     }
 
     if (enabled("forceComputeAll")) {
-      items.push({
+      config.items.push({
         type: "button",
         id: `${idPrefix}-math-force-compute-all`,
         label: "Force Compute all",
@@ -60,7 +64,7 @@ export class MathMenuAction extends SubMenuItem {
     }
 
     if (enabled("resultMode")) {
-      items.push({
+      config.items.push({
         type: "select",
         id: `${idPrefix}-math-result-mode`,
         label: "Result mode",
@@ -87,7 +91,7 @@ export class MathMenuAction extends SubMenuItem {
     }
 
     if (enabled("resultColor")) {
-      items.push({
+      config.items.push({
         type: "select",
         id: `${idPrefix}-math-result-color`,
         label: "Result color",
@@ -112,7 +116,7 @@ export class MathMenuAction extends SubMenuItem {
 
     if (canvas.configuration.recognition.math?.solver?.["auto-variable-management"]?.enable) {
       if (enabled("showDependencies")) {
-        items.push({
+        config.items.push({
           type: "checkbox",
           id: `${idPrefix}-math-show-dependency-on-hover`,
           label: "Show Dependencies on Hover",
@@ -129,7 +133,7 @@ export class MathMenuAction extends SubMenuItem {
       }
 
       if (enabled("highlightOnSelect")) {
-        items.push({
+        config.items.push({
           type: "checkbox",
           id: `${idPrefix}-math-highlight-on-select`,
           label: "Highlight on Select",
@@ -144,7 +148,7 @@ export class MathMenuAction extends SubMenuItem {
     }
 
     if (enabled("editVariables")) {
-      items.push({
+      config.items.push({
         type: "button",
         id: `${idPrefix}-math-variables`,
         label: "Edit Variables",
@@ -156,7 +160,7 @@ export class MathMenuAction extends SubMenuItem {
     }
 
     if (enabled("capabilities")) {
-      items.push({
+      config.items.push({
         type: "button",
         id: `${idPrefix}-math-capabilities-overview`,
         label: "Show Math Capabilities Overview",
@@ -165,15 +169,6 @@ export class MathMenuAction extends SubMenuItem {
           await capabilitiesTable.show()
         },
       })
-    }
-
-    const config: TMenuSubMenu = {
-      type: "submenu",
-      id: `${idPrefix}-math`,
-      label: "Math (∑)",
-      menuTitle: "Math (∑)",
-      position: "right-top",
-      items: items,
     }
 
     super(config, canvas)

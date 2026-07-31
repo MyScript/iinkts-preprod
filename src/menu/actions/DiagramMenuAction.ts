@@ -1,4 +1,3 @@
-import diagramIcon from "@/assets/svg/arrow-to-dot.svg"
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import type { TMenuSubMenu } from "@/menu/items/SubMenuItem"
 import { SubMenuItem } from "@/menu/items/SubMenuItem"
@@ -15,7 +14,6 @@ export class DiagramMenuAction extends SubMenuItem {
       id: `${idPrefix}-diagram`,
       label: "Diagram",
       menuTitle: "Diagram",
-      icon: diagramIcon,
       position: "right-top",
       items: [
         {
