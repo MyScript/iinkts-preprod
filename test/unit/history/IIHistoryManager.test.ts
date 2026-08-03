@@ -199,6 +199,35 @@ describe("IIHistoryManager.ts", () => {
       const previousStackItem = manager.undo()
       expect(previousStackItem.changes).toEqual({ matrix: { symbols: [stroke], matrix: matrix.invert() } })
     })
+
+    test("should invert updated action back to the old symbol state", () => {
+      const model2 = new IIModel()
+      const oldStroke = buildIIStroke()
+      const newStroke = buildIIStroke()
+      manager.push(model2, { updated: { oldSymbols: [oldStroke], newSymbols: [newStroke] } })
+      const previousStackItem = manager.undo()
+      expect(previousStackItem.changes).toEqual({ updated: { oldSymbols: [newStroke], newSymbols: [oldStroke] } })
+    })
+
+    test("should invert style action back to the old style", () => {
+      const model2 = new IIModel()
+      const stroke = buildIIStroke()
+      manager.push(model2, {
+        style: {
+          symbols: [stroke],
+          oldStyles: [{ color: "red" }],
+          newStyles: [{ color: "blue" }],
+        },
+      })
+      const previousStackItem = manager.undo()
+      expect(previousStackItem.changes).toEqual({
+        style: {
+          symbols: [stroke],
+          oldStyles: [{ color: "blue" }],
+          newStyles: [{ color: "red" }],
+        },
+      })
+    })
   })
 
   describe("redo", () => {

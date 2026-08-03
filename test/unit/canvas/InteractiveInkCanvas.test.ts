@@ -12,6 +12,7 @@ import {
   TShapeCircle,
   ShapeKind,
   TSymbol,
+  cloneSymbol,
   DecoratorKind,
   TSymbolChar,
   TText,
@@ -467,6 +468,44 @@ describe("CanvasOffscreen.ts", () => {
       expect(canvas.model.symbols[1].style.width).toEqual(42)
       expect(canvas.renderer.drawSymbol).toHaveBeenCalledTimes(1)
       expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(stroke2)
+    })
+    test("should push both old and new style so the change can be reversed", async () => {
+      await canvas.initialize()
+      const oldStyle = { ...stroke1.style }
+      canvas.history.push = jest.fn()
+      canvas.updateSymbolsStyle([stroke1.id], { color: "green" })
+      expect(canvas.history.push).toHaveBeenNthCalledWith(1, canvas.model, {
+        style: {
+          symbols: [stroke1],
+          oldStyles: [oldStyle],
+          newStyles: [{ ...stroke1.style }],
+        },
+      })
+    })
+  })
+
+  describe("updateSymbol", () => {
+    const canvas = new InteractiveInkCanvas(document.createElement("div"), CanvasOptions)
+    canvas.client.init = jest.fn()
+    canvas.client.waitForIdle = jest.fn(() => Promise.resolve())
+    canvas.client.addStrokes = jest.fn()
+    canvas.renderer.drawSymbol = jest.fn()
+
+    test("should push both the old and new symbol so the change can be reversed", async () => {
+      await canvas.initialize()
+      const stroke = buildIIStroke()
+      canvas.model.addSymbol(stroke)
+      const oldStroke = cloneSymbol(stroke)
+
+      const updatedStroke = cloneSymbol(stroke) as TStroke
+      updatedStroke.style.color = "green"
+      canvas.history.push = jest.fn()
+
+      await canvas.updateSymbol(updatedStroke)
+
+      expect(canvas.history.push).toHaveBeenNthCalledWith(1, canvas.model, {
+        updated: { oldSymbols: [oldStroke], newSymbols: [updatedStroke] },
+      })
     })
   })
 

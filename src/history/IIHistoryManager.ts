@@ -13,7 +13,10 @@ import { AbstractHistoryStack } from "./AbstractHistoryStack"
  */
 export type TIIHistoryChanges = {
   added?: TSymbol[]
-  updated?: TSymbol[]
+  updated?: {
+    oldSymbols: TSymbol[]
+    newSymbols: TSymbol[]
+  }
   erased?: TSymbol[]
   replaced?: {
     oldSymbols: TSymbol[]
@@ -41,15 +44,17 @@ export type TIIHistoryChanges = {
   }[]
   style?: {
     symbols: TSymbol[]
-    style?: TPartialDeep<TStyle>
-    fontSize?: number
+    // one full style/fontSize per symbol (parallel to `symbols`), since a batch can start
+    // from heterogeneous styles - a single shared before/after value can't reverse that.
+    oldStyles?: TPartialDeep<TStyle>[]
+    newStyles?: TPartialDeep<TStyle>[]
+    oldFontSizes?: (number | undefined)[]
+    newFontSizes?: (number | undefined)[]
   }
   order?: {
     symbols: TSymbol[]
     position: "first" | "last" | "forward" | "backward"
   }
-  group?: { symbols: TSymbol[] }
-  ungroup?: { group: TSymbol }
 }
 
 /**
@@ -103,10 +108,8 @@ export function extractIIBackendChanges(changes: TIIHistoryChanges): TIIHistoryB
   backendChanges.added = extractStrokes(changes.added)
   backendChanges.erased = extractStrokes(changes.erased)
 
-  const updated = extractStrokes(changes.updated)
-
-  const oldStrokes = updated.concat(extractStrokes(changes.replaced?.oldSymbols))
-  const newStrokes = updated.concat(extractStrokes(changes.replaced?.newSymbols))
+  const oldStrokes = extractStrokes(changes.updated?.oldSymbols).concat(extractStrokes(changes.replaced?.oldSymbols))
+  const newStrokes = extractStrokes(changes.updated?.newSymbols).concat(extractStrokes(changes.replaced?.newSymbols))
   if (oldStrokes.length && newStrokes.length) {
     backendChanges.replaced = {
       oldStrokes,
@@ -178,7 +181,7 @@ export class IIHistoryManager extends AbstractHistoryStack<TIIHistoryStackItem> 
   isChangesEmpty(changes: TIIHistoryChanges): boolean {
     return !(
       changes.added?.length ||
-      changes.updated?.length ||
+      changes.updated?.oldSymbols.length ||
       changes.erased?.length ||
       changes.replaced?.oldSymbols.length ||
       changes.matrix?.symbols.length ||
@@ -186,9 +189,7 @@ export class IIHistoryManager extends AbstractHistoryStack<TIIHistoryStackItem> 
       changes.rotate?.length ||
       changes.scale?.length ||
       changes.style?.symbols?.length ||
-      changes.order?.symbols?.length ||
-      changes.group?.symbols.length ||
-      changes.ungroup?.group
+      changes.order?.symbols?.length
     )
   }
 
@@ -228,7 +229,10 @@ export class IIHistoryManager extends AbstractHistoryStack<TIIHistoryStackItem> 
       reversedChanges.added = changes.erased
     }
     if (changes.updated) {
-      reversedChanges.updated = changes.updated
+      reversedChanges.updated = {
+        oldSymbols: changes.updated.newSymbols,
+        newSymbols: changes.updated.oldSymbols,
+      }
     }
     if (changes.replaced) {
       reversedChanges.replaced = {
@@ -278,7 +282,13 @@ export class IIHistoryManager extends AbstractHistoryStack<TIIHistoryStackItem> 
       })
     }
     if (changes.style) {
-      reversedChanges.style = changes.style
+      reversedChanges.style = {
+        symbols: changes.style.symbols,
+        oldStyles: changes.style.newStyles,
+        newStyles: changes.style.oldStyles,
+        oldFontSizes: changes.style.newFontSizes,
+        newFontSizes: changes.style.oldFontSizes,
+      }
     }
     if (changes.order) {
       const positionMap: Record<string, "first" | "last" | "forward" | "backward"> = {
@@ -302,15 +312,9 @@ export class IIHistoryManager extends AbstractHistoryStack<TIIHistoryStackItem> 
     this.moveStackIndex(-1, this.context.canUndo)
     const previousStackItem = this.stack[this.context.stackIndex]
     this.logger.debug("undo", previousStackItem)
-    const changes = this.reverseChanges(currentStackItem.changes)
-    if (currentStackItem.changes.updated?.length) {
-      changes.updated = currentStackItem.changes.updated
-        .map((sym) => previousStackItem.model.symbols.find((s) => s.id === sym.id))
-        .filter((s): s is TSymbol => s !== undefined)
-    }
     return {
       model: previousStackItem.model,
-      changes,
+      changes: this.reverseChanges(currentStackItem.changes),
     }
   }
 
