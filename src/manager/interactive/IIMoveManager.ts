@@ -20,6 +20,9 @@ export class IIMoveManager extends IIAbstractManager {
     clientY: number
   }
 
+  #pendingInfo?: TPointerInfo
+  #pendingFrame?: number
+
   constructor(canvas: TInteractiveInkCanvas) {
     super(canvas, LoggerCategory.MOVE)
     this.grabber = new PointerEventGrabber(canvas.configuration.grabber)
@@ -48,6 +51,32 @@ export class IIMoveManager extends IIAbstractManager {
     )
   }
 
+  /**
+   * Coalesces the viewBox update to at most once per animation frame: a fast pan
+   * gesture fires many `continue()` calls per frame, each of which would otherwise
+   * force a native layout/paint of the whole scene on a canvas that may hold many symbols.
+   */
+  #scheduleUpdateViewBox(): void {
+    if (this.#pendingFrame !== undefined) {
+      return
+    }
+    this.#pendingFrame = requestAnimationFrame(() => {
+      this.#pendingFrame = undefined
+      if (this.#pendingInfo) {
+        this.updateViewBox(this.#pendingInfo, false)
+        this.#pendingInfo = undefined
+      }
+    })
+  }
+
+  #cancelScheduledUpdateViewBox(): void {
+    if (this.#pendingFrame !== undefined) {
+      cancelAnimationFrame(this.#pendingFrame)
+      this.#pendingFrame = undefined
+    }
+    this.#pendingInfo = undefined
+  }
+
   attach(layer: HTMLElement): void {
     this.logger.info("attach", { layer })
     this.grabber.attach(layer)
@@ -58,6 +87,7 @@ export class IIMoveManager extends IIAbstractManager {
 
   detach(): void {
     this.logger.info("detach")
+    this.#cancelScheduledUpdateViewBox()
     this.grabber.detach()
   }
 
@@ -76,11 +106,13 @@ export class IIMoveManager extends IIAbstractManager {
 
   continue(info: TPointerInfo): void {
     this.logger.info("continue", { info })
-    this.updateViewBox(info, false)
+    this.#pendingInfo = info
+    this.#scheduleUpdateViewBox()
   }
 
   end(info: TPointerInfo): void {
     this.logger.info("end", { info })
+    this.#cancelScheduledUpdateViewBox()
     this.updateViewBox(info, true)
     this.origin = undefined
   }
