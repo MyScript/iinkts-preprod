@@ -42,7 +42,7 @@ export class IWriterManager extends AbstractWriterManager {
     this.model.currentStroke = undefined
     this.renderer.drawSymbol(localSymbol)
     this.model.addStroke(localSymbol)
-    this.canvas.history.push(this.model, {
+    this.canvas.history.push({
       added: [localSymbol],
     })
     if (this.canvas.configuration.triggers.exportContent !== "DEMAND") {
