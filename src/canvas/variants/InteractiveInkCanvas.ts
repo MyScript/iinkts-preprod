@@ -631,7 +631,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
 
     if (addToHistory) {
       this.history.push(this.model, {
-        updated: [sym],
+        updated: { oldSymbols: [oldSymbol ?? sym], newSymbols: [sym] },
       })
     }
     this.updateLayerUI()
@@ -668,7 +668,10 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
 
     if (addToHistory) {
       this.history.push(this.model, {
-        updated: symList,
+        updated: {
+          oldSymbols: symList.map((s) => oldSymbolsMap.get(s.id) ?? s),
+          newSymbols: symList,
+        },
       })
     }
     this.updateLayerUI()
@@ -687,8 +690,10 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       style,
     })
     const symbols: TSymbol[] = []
+    const oldStyles: TPartialDeep<TStyle>[] = []
     this.model.symbols.forEach((s) => {
       if (symbolIds.includes(s.id)) {
+        oldStyles.push({ ...s.style })
         s.style = Object.assign({}, s.style, style)
         if (isText(s)) {
           TextOps.updateChildrenStyle(s)
@@ -713,7 +718,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     }
     if (addToHistory && symbols.length) {
       this.history.push(this.model, {
-        style: { symbols, style },
+        style: { symbols, oldStyles, newStyles: symbols.map((s) => ({ ...s.style })) },
       })
     }
   }
@@ -739,6 +744,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       fontWeight,
     })
     const symbols: TText[] = []
+    const oldFontSizes: (number | undefined)[] = []
     const translate: {
       symbols: TSymbol[]
       tx: number
@@ -747,6 +753,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     this.model.symbols.forEach((s) => {
       if (textIds.includes(s.id)) {
         if (isText(s)) {
+          oldFontSizes.push(s.chars[0]?.fontSize)
           TextOps.updateChildrenFont(s, {
             fontSize,
             fontWeight: fontWeight === "auto" ? undefined : fontWeight,
@@ -772,7 +779,11 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     })
     if (symbols.length) {
       this.history.push(this.model, {
-        style: { symbols, fontSize },
+        style: {
+          symbols,
+          oldFontSizes,
+          newFontSizes: symbols.map((s) => s.chars[0]?.fontSize),
+        },
         translate,
       })
     }
@@ -812,7 +823,11 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       const newIds = new Set(newSymbols.map((s) => s.id))
       // Only clean up decorators whose targets are fully gone (not re-created by newSymbols)
       const removedIds = new Set([...allOldIds].filter((id) => !newIds.has(id)))
-      const { erased: decErased, updated: decUpdated } = this.#cleanupDecoratorsForRemovedIds(removedIds)
+      const {
+        erased: decErased,
+        updatedOld: decUpdatedOld,
+        updatedNew: decUpdatedNew,
+      } = this.#cleanupDecoratorsForRemovedIds(removedIds)
 
       if (addToHistory) {
         const changes: TIIHistoryChanges = {
@@ -824,8 +839,8 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
         if (decErased.length) {
           changes.erased = decErased
         }
-        if (decUpdated.length) {
-          changes.updated = decUpdated
+        if (decUpdatedNew.length) {
+          changes.updated = { oldSymbols: decUpdatedOld, newSymbols: decUpdatedNew }
         }
         this.history.push(this.model, changes)
       }
@@ -877,10 +892,12 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
    */
   #cleanupDecoratorsForRemovedIds(removedIds: Set<string>): {
     erased: TDecorator[]
-    updated: TDecorator[]
+    updatedOld: TDecorator[]
+    updatedNew: TDecorator[]
   } {
     const erased: TDecorator[] = []
-    const updated: TDecorator[] = []
+    const updatedOld: TDecorator[] = []
+    const updatedNew: TDecorator[] = []
 
     for (const sym of [...this.model.symbols]) {
       if (!isDecorator(sym)) {
@@ -893,6 +910,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
         this.renderer.removeElement(dec.id)
         erased.push(dec)
       } else if (remaining.length < dec.targetIds.length) {
+        const oldDec: TDecorator = { ...dec }
         dec.targetIds = remaining
         const targetSyms = remaining.map((id) => this.model.getRootSymbol(id)).filter((s): s is TSymbol => !!s)
         if (targetSyms.length) {
@@ -900,11 +918,12 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
         }
         this.model.updateSymbol(dec)
         this.renderer.drawSymbol(dec)
-        updated.push(dec)
+        updatedOld.push(oldDec)
+        updatedNew.push(dec)
       }
     }
 
-    return { erased, updated }
+    return { erased, updatedOld, updatedNew }
   }
 
   /**
@@ -930,7 +949,11 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       }
       this.model.removeSymbol(symbol.id)
       this.renderer.removeSymbol(symbol.id)
-      const { erased: decErased, updated: decUpdated } = this.#cleanupDecoratorsForRemovedIds(new Set([id]))
+      const {
+        erased: decErased,
+        updatedOld: decUpdatedOld,
+        updatedNew: decUpdatedNew,
+      } = this.#cleanupDecoratorsForRemovedIds(new Set([id]))
       if (addToHistory) {
         const changes: TIIHistoryChanges = {
           erased: [symbol],
@@ -938,8 +961,8 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
         if (decErased.length) {
           changes.erased = [...changes.erased!, ...decErased]
         }
-        if (decUpdated.length) {
-          changes.updated = decUpdated
+        if (decUpdatedNew.length) {
+          changes.updated = { oldSymbols: decUpdatedOld, newSymbols: decUpdatedNew }
         }
         this.history.push(this.model, changes)
       }
@@ -982,7 +1005,11 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     }
 
     const removedIds = new Set(symbolsRemoved.map((s) => s.id))
-    const { erased: decErased, updated: decUpdated } = this.#cleanupDecoratorsForRemovedIds(removedIds)
+    const {
+      erased: decErased,
+      updatedOld: decUpdatedOld,
+      updatedNew: decUpdatedNew,
+    } = this.#cleanupDecoratorsForRemovedIds(removedIds)
 
     if (addToHistory && symbolsRemoved.length) {
       const changes: TIIHistoryChanges = {
@@ -991,8 +1018,8 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       if (decErased.length) {
         changes.erased = [...changes.erased!, ...decErased]
       }
-      if (decUpdated.length) {
-        changes.updated = decUpdated
+      if (decUpdatedNew.length) {
+        changes.updated = { oldSymbols: decUpdatedOld, newSymbols: decUpdatedNew }
       }
       this.history.push(this.model, changes)
       this.updateLayerUI()

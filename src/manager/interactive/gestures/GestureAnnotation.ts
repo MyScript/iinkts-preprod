@@ -1,5 +1,6 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import type { TIIHistoryChanges } from "@/history"
+import type { TStyle } from "@/style"
 import type { DecoratorKind, TBox, TDecorator, TStroke, TText } from "@/symbol"
 import { isDecorator, isRecognizedText, isStroke, isText, SymbolType, type TSymbol } from "@/symbol"
 import { DecoratorOps } from "@/symbol/decorator/Decorator"
@@ -35,8 +36,10 @@ export class IIGestureAnnotationProcessor {
         await this.canvas.removeSymbols(ids)
         return undefined
       case "thicken": {
-        const changed = this.#applyThicken(ids, annotation.factor)
-        return changed.length ? { style: { symbols: changed } } : undefined
+        const { oldStyles, newSymbols } = this.#applyThicken(ids, annotation.factor)
+        return newSymbols.length
+          ? { style: { symbols: newSymbols, oldStyles, newStyles: newSymbols.map((s) => ({ ...s.style })) } }
+          : undefined
       }
       case "select":
         this.#applySelect(ids)
@@ -199,8 +202,9 @@ export class IIGestureAnnotationProcessor {
     return OBBOps.createFromOBBs(syms.map((s) => s.bounds))
   }
 
-  #applyThicken(ids: string[], factor: number): TStroke[] {
-    const changed: TStroke[] = []
+  #applyThicken(ids: string[], factor: number): { oldStyles: TStyle[]; newSymbols: TStroke[] } {
+    const newSymbols: TStroke[] = []
+    const oldStyles: TStyle[] = []
     const seen = new Set<string>()
     for (const id of ids) {
       const sym = this.canvas.model.getRootSymbol(id)
@@ -209,11 +213,12 @@ export class IIGestureAnnotationProcessor {
       }
       seen.add(sym.id)
       const stroke = sym as TStroke
+      oldStyles.push({ ...stroke.style })
       const newWidth = (stroke.style.width || 1) * factor
       this.canvas.updateSymbolsStyle([stroke.id], { width: newWidth }, false)
-      changed.push(stroke)
+      newSymbols.push(stroke)
     }
-    return changed
+    return { oldStyles, newSymbols }
   }
 
   #applySelect(ids: string[]): void {
