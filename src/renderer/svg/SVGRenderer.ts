@@ -5,6 +5,7 @@ import type { TIIRendererConfiguration } from "@/renderer/RendererConfiguration"
 import type { TBox, TEraser, TPoint, TPointer, TSymbol } from "@/symbol"
 import { SymbolType } from "@/symbol"
 import { BoxOps } from "@/symbol/primitives/Box"
+import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
 import { arrowHeadEndMarkerId, arrowHeadStartMarkerId } from "@/symbol-utils/edge/EdgeRenderOptions"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 import { bumpSvgTransformVersion, getClosestPoints } from "@/utils"
@@ -39,6 +40,20 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
     width: number
     height: number
   } = { x: 0, y: 0, width: 0, height: 0 }
+
+  /**
+   * Margin added around the viewBox (as a ratio of its width/height) before culling
+   * a symbol's element from the DOM, so a small pan doesn't immediately pop content in/out.
+   */
+  static readonly VIRTUALIZATION_MARGIN_RATIO = 0.5
+
+  /**
+   * Tracks every drawn symbol's element and bounds, whether currently attached to
+   * `layer` or not - see {@link drawSymbol} and {@link #reconcileVirtualization}.
+   * Off-screen symbols keep their built element here instead of in the DOM, so
+   * pan/zoom over a large document doesn't force a repaint of the whole scene.
+   */
+  #virtualizedSymbols = new Map<string, { element: SVGGraphicsElement; bounds: TOBB; isDecorator: boolean }>()
 
   constructor(configuration: TIIRendererConfiguration) {
     super(configuration)
@@ -85,6 +100,38 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
       "viewBox",
       `${this.#viewBox.x}, ${this.#viewBox.y}, ${this.#viewBox.width}, ${this.#viewBox.height}`
     )
+  }
+
+  #isInViewBox(bounds: TOBB): boolean {
+    const marginX = this.#viewBox.width * SVGRenderer.VIRTUALIZATION_MARGIN_RATIO
+    const marginY = this.#viewBox.height * SVGRenderer.VIRTUALIZATION_MARGIN_RATIO
+    const extendedViewBox: TBox = {
+      x: this.#viewBox.x - marginX,
+      y: this.#viewBox.y - marginY,
+      width: this.#viewBox.width + 2 * marginX,
+      height: this.#viewBox.height + 2 * marginY,
+    }
+    return OBBOps.overlapsBox(bounds, extendedViewBox)
+  }
+
+  /**
+   * Attaches symbols that scrolled into the (extended) viewBox and detaches
+   * symbols that scrolled out of it, without rebuilding their elements.
+   */
+  #reconcileVirtualization(): void {
+    this.#virtualizedSymbols.forEach(({ element, bounds, isDecorator }) => {
+      const shouldAttach = this.#isInViewBox(bounds)
+      const isAttached = element.parentNode !== null
+      if (shouldAttach && !isAttached) {
+        if (isDecorator) {
+          this.definitionGroup.insertAdjacentElement("afterend", element)
+        } else {
+          this.layer.appendChild(element)
+        }
+      } else if (!shouldAttach && isAttached) {
+        element.remove()
+      }
+    })
   }
 
   protected createDefs(): SVGDefsElement {
@@ -426,6 +473,7 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
 
   removeElement(id: string): void {
     this.#logger.debug("Element", { id })
+    this.#virtualizedSymbols.delete(id)
     if (!this.layer) {
       this.#logger.debug("removeElement: layer not initialized yet, skipping")
       return
@@ -436,19 +484,39 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
   drawSymbol(symbol: TSymbol | TEraser): SVGGraphicsElement | undefined {
     this.#logger.debug("drawSymbol", { symbol })
     const oldNode = this.getElementById(symbol?.id)
-    const svgEl =
-      symbol.type === SymbolType.Eraser
-        ? this.#buildEraserElement(symbol as TEraser)
-        : this.buildElementFromSymbol(symbol as TSymbol)
 
+    if (symbol.type === SymbolType.Eraser) {
+      const svgEl = this.#buildEraserElement(symbol as TEraser)
+      if (svgEl) {
+        if (oldNode) {
+          oldNode.replaceWith(svgEl)
+        } else {
+          this.layer.appendChild(svgEl)
+        }
+      }
+      return svgEl
+    }
+
+    const svgEl = this.buildElementFromSymbol(symbol as TSymbol)
     if (svgEl) {
-      if (oldNode) {
-        oldNode.replaceWith(svgEl)
-      } else if (symbol.type === SymbolType.Decorator) {
-        // Decorators render behind all other symbols
-        this.definitionGroup.insertAdjacentElement("afterend", svgEl)
-      } else {
-        this.layer.appendChild(svgEl)
+      const isDecorator = symbol.type === SymbolType.Decorator
+      const bounds = (symbol as TSymbol).bounds
+      this.#virtualizedSymbols.set(symbol.id, { element: svgEl, bounds, isDecorator })
+
+      const shouldAttach = this.#isInViewBox(bounds)
+      if (oldNode?.parentNode) {
+        if (shouldAttach) {
+          oldNode.replaceWith(svgEl)
+        } else {
+          oldNode.remove()
+        }
+      } else if (shouldAttach) {
+        if (isDecorator) {
+          // Decorators render behind all other symbols
+          this.definitionGroup.insertAdjacentElement("afterend", svgEl)
+        } else {
+          this.layer.appendChild(svgEl)
+        }
       }
     }
     return svgEl
@@ -598,6 +666,10 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
   }
 
   getElementById(id: string): SVGGraphicsElement | null {
+    const tracked = this.#virtualizedSymbols.get(id)
+    if (tracked) {
+      return tracked.element
+    }
     if (!this.layer) {
       return null
     }
@@ -630,11 +702,24 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
       this.#logger.debug("clearElements: layer not initialized yet, skipping")
       return
     }
+    let query = tagName || "*"
+    if (attrs) {
+      for (const k in attrs) {
+        query += `[${k}="${attrs[k]}"]`
+      }
+    }
+    this.#virtualizedSymbols.forEach(({ element }, id) => {
+      if (element.matches(query)) {
+        this.#virtualizedSymbols.delete(id)
+        element.remove()
+      }
+    })
     this.getElements({ tagName, attrs }).forEach((e) => e.remove())
   }
 
   clear(): void {
     this.#logger.info("clear")
+    this.#virtualizedSymbols.clear()
     if (this.layer) {
       while (this.layer.firstChild) {
         this.layer.firstChild.remove()
@@ -690,6 +775,7 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
     )
     bumpSvgTransformVersion(this.layer)
     this.#syncCurrentSymbolLayerViewBox()
+    this.#reconcileVirtualization()
 
     if (this.configuration.guides.enable) {
       this.removeGuides()
@@ -730,6 +816,7 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
     this.layer.setAttribute("viewBox", `${x}, ${y}, ${width}, ${height}`)
     bumpSvgTransformVersion(this.layer)
     this.#syncCurrentSymbolLayerViewBox()
+    this.#reconcileVirtualization()
 
     if (redrawGuides && this.configuration.guides.enable) {
       this.removeGuides()
