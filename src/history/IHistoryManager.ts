@@ -1,5 +1,4 @@
-import type { IModel } from "@/model"
-import type { TSymbol } from "@/symbol"
+import type { TStroke } from "@/symbol"
 
 import { AbstractHistoryStack } from "./AbstractHistoryStack"
 
@@ -7,58 +6,35 @@ import { AbstractHistoryStack } from "./AbstractHistoryStack"
  * @group History
  */
 export type TIHistoryChanges = {
-  added?: TSymbol[]
-  removed?: TSymbol[]
+  added?: TStroke[]
+  removed?: TStroke[]
 }
 
 /**
  * @group History
  */
-export type TIHistoryStackItem = {
-  changes: TIHistoryChanges
-  model: IModel
-}
-
-/**
- * @group History
- */
-export class IHistoryManager extends AbstractHistoryStack<TIHistoryStackItem> {
-  protected isStackItemEmpty(item: TIHistoryStackItem): boolean {
-    return item.model.strokes.length === 0
-  }
-
-  updateModelStack(model: IModel): void {
-    this.logger.info("updateModelStack", {
-      model,
-    })
-    const stackIdx = this.stack.findIndex((s) => s.model.modificationDate === model.modificationDate)
-    if (stackIdx > -1) {
-      this.stack[stackIdx].model = model.clone()
-    }
-    this.updateContext()
-    this.event.emitChanged(this.context)
+export class IHistoryManager extends AbstractHistoryStack<TIHistoryChanges> {
+  // context.empty is only read via ClearMenuAction, which is typed to InteractiveInkCanvas
+  // (IIHistoryManager), never to InkCanvas. No live model to check emptiness against here,
+  // so this mirrors isChangesEmpty as a harmless default.
+  protected isStackItemEmpty(item: TIHistoryChanges): boolean {
+    return this.isChangesEmpty(item)
   }
 
   isChangesEmpty(changes: TIHistoryChanges): boolean {
     return !(changes.added?.length || changes.removed?.length)
   }
 
-  init(model: IModel): void {
-    this.initStack({
-      model: model.clone(),
-      changes: {},
-    })
+  init(): void {
+    this.initStack({})
   }
 
-  push(model: IModel, changes: TIHistoryChanges): void {
-    this.logger.info("push", { model, changes })
+  push(changes: TIHistoryChanges): void {
+    this.logger.info("push", { changes })
     if (this.isChangesEmpty(changes)) {
       return
     }
-    this.pushToStack({
-      model: model.clone(),
-      changes,
-    })
+    this.pushToStack(changes)
   }
 
   protected reverseChanges(changes: TIHistoryChanges): TIHistoryChanges {
@@ -72,23 +48,20 @@ export class IHistoryManager extends AbstractHistoryStack<TIHistoryStackItem> {
     return reversedChanges
   }
 
-  undo(): TIHistoryStackItem {
+  undo(): TIHistoryChanges {
     this.logger.info("undo")
-    const currentStackItem = this.stack[this.context.stackIndex]
+    const currentChanges = this.stack[this.context.stackIndex]
     this.moveStackIndex(-1, this.context.canUndo)
-    const previousStackItem = this.stack[this.context.stackIndex]
-    this.logger.debug("undo", previousStackItem)
-    return {
-      model: previousStackItem.model,
-      changes: this.reverseChanges(currentStackItem.changes),
-    }
+    const reversed = this.reverseChanges(currentChanges)
+    this.logger.debug("undo", reversed)
+    return reversed
   }
 
-  redo(): TIHistoryStackItem {
+  redo(): TIHistoryChanges {
     this.logger.info("redo")
     this.moveStackIndex(1, this.context.canRedo)
-    const nextStackItem = this.stack[this.context.stackIndex]
-    this.logger.debug("redo", nextStackItem)
-    return nextStackItem
+    const nextChanges = this.stack[this.context.stackIndex]
+    this.logger.debug("redo", nextChanges)
+    return nextChanges
   }
 }
