@@ -32,7 +32,7 @@ export class StrikeThroughGestureHandler extends GestureHandler {
           decoratorKind: DecoratorKind.Strikethrough,
         })
         if (changes) {
-          this.history.push(this.model, changes)
+          this.history.push(changes)
         }
         break
       }

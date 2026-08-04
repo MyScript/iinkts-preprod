@@ -112,7 +112,7 @@ export class IITranslateManager extends IIAbstractTransformManager {
     this.applyTransformToGhostStrokesForSelectedMath(symbols, matrix)
     this.canvas.connector.updateAnchoredEdges(symbols.map((s) => s.id))
     if (addToHistory) {
-      this.canvas.history.push(this.model, {
+      this.canvas.history.push({
         translate: [
           {
             symbols: this.model.symbolsSelected,

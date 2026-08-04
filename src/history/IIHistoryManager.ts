@@ -6,7 +6,7 @@ import type { TMatrixTransform } from "@/transform"
 import { MatrixTransform } from "@/transform"
 import type { TPartialDeep } from "@/utils"
 
-import { AbstractHistoryStack } from "./AbstractHistoryStack"
+import { AbstractDiffHistoryManager } from "./AbstractDiffHistoryManager"
 
 /**
  * @group History
@@ -92,14 +92,6 @@ export type TIIHistoryBackendChanges = {
 
 /**
  * @group History
- */
-export type TIIHistoryStackItem = {
-  changes: TIIHistoryChanges
-  model: IIModel
-}
-
-/**
- * @group History
  * @remarks converts symbol-level history changes into the stroke-level format the backend
  * understands, so undo/redo can be replayed as a fallback list of explicit modifications.
  */
@@ -173,12 +165,17 @@ export function extractIIBackendChanges(changes: TIIHistoryChanges): TIIHistoryB
 /**
  * @group History
  */
-export class IIHistoryManager extends AbstractHistoryStack<TIIHistoryStackItem> {
-  protected isStackItemEmpty(item: TIIHistoryStackItem): boolean {
-    return item.model.symbols.length === 0
+export class IIHistoryManager extends AbstractDiffHistoryManager<TIIHistoryChanges> {
+  #liveModel?: IIModel
+
+  // context.empty must reflect whether the canvas is actually empty (ClearMenuAction disables
+  // Clear based on it), not just "no changes recorded at this stack index" - so this reads the
+  // live model instead of the generic isChangesEmpty-based default.
+  protected isStackItemEmpty(): boolean {
+    return (this.#liveModel?.symbols.length ?? 0) === 0
   }
 
-  isChangesEmpty(changes: TIIHistoryChanges): boolean {
+  protected isChangesEmpty(changes: TIIHistoryChanges): boolean {
     return !(
       changes.added?.length ||
       changes.updated?.oldSymbols.length ||
@@ -194,21 +191,8 @@ export class IIHistoryManager extends AbstractHistoryStack<TIIHistoryStackItem> 
   }
 
   init(model: IIModel): void {
-    this.initStack({
-      model: model.clone(),
-      changes: {},
-    })
-  }
-
-  push(model: IIModel, changes: TIIHistoryChanges): void {
-    this.logger.info("push", { model, changes })
-    if (this.isChangesEmpty(changes)) {
-      return
-    }
-    this.pushToStack({
-      model: model.clone(),
-      changes,
-    })
+    this.#liveModel = model
+    this.initStack({})
   }
 
   protected reverseChanges(changes: TIIHistoryChanges): TIIHistoryChanges {
@@ -295,25 +279,5 @@ export class IIHistoryManager extends AbstractHistoryStack<TIIHistoryStackItem> 
     }
 
     return reversedChanges
-  }
-
-  undo(): TIIHistoryStackItem {
-    this.logger.info("undo")
-    const currentStackItem = this.stack[this.context.stackIndex]
-    this.moveStackIndex(-1, this.context.canUndo)
-    const previousStackItem = this.stack[this.context.stackIndex]
-    this.logger.debug("undo", previousStackItem)
-    return {
-      model: previousStackItem.model,
-      changes: this.reverseChanges(currentStackItem.changes),
-    }
-  }
-
-  redo(): TIIHistoryStackItem {
-    this.logger.info("redo")
-    this.moveStackIndex(1, this.context.canRedo)
-    const nextStackItem = this.stack[this.context.stackIndex]
-    this.logger.debug("redo", nextStackItem)
-    return nextStackItem
   }
 }
