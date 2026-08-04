@@ -333,7 +333,7 @@ export class InsertGestureHandler extends GestureHandler {
     }
 
     if (changes) {
-      this.history.push(this.model, changes)
+      this.history.push(changes)
       const promises: Promise<void>[] = []
       if (changes.translate?.length) {
         promises.push(

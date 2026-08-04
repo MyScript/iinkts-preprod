@@ -184,7 +184,7 @@ export class IIRotationManager extends IIAbstractTransformManager {
       this.center.x,
       this.center.y
     )
-    this.canvas.history.push(this.model, {
+    this.canvas.history.push({
       rotate: [
         {
           symbols: oldSymbols,

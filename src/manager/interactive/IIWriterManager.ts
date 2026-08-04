@@ -311,7 +311,7 @@ export class IIWriterManager extends AbstractWriterManager {
     this.renderer.drawSymbol(localSymbol!)
     this.renderer.clearCurrentSymbolLayer()
     this.model.addSymbol(localSymbol)
-    this.history.push(this.model, {
+    this.history.push({
       added: [localSymbol],
     })
 

@@ -181,6 +181,6 @@ export class JoinGestureHandler extends GestureHandler {
       changes.translate = translate
       await Promise.all(translate.map((tr) => this.manager.translator.translate(tr.symbols, tr.tx, tr.ty, false)))
     }
-    this.history.push(this.model, changes)
+    this.history.push(changes)
   }
 }
