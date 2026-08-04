@@ -4,7 +4,7 @@ import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import { WebSocketClient } from "@/client"
 import { DOMFactory } from "@/components/dom"
 import { CanvasTool, SELECTION_MARGIN } from "@/Constants"
-import type { THistoryContext, TIIHistoryBackendChanges, TIIHistoryChanges, TIIHistoryStackItem } from "@/history"
+import type { THistoryContext, TIIHistoryBackendChanges, TIIHistoryChanges } from "@/history"
 import { extractIIBackendChanges, IIHistoryManager } from "@/history"
 import {
   EraseManager,
@@ -1439,34 +1439,92 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       .filter((a) => !!a) as string[]
   }
 
-  #applyHistoryStackItem(stackItem: TIIHistoryStackItem): TIIHistoryBackendChanges {
+  /**
+   * Applies a history diff locally (model + renderer), replacing the model-clone-swap this
+   * used to do. Backend replay is a separate, consolidated message sent by the caller via
+   * extractIIBackendChanges - this method must never talk to `this.client` itself, or the
+   * backend would receive the same action twice.
+   */
+  #applyHistoryChanges(changes: TIIHistoryChanges): void {
     this.manageIdleState(false)
     this.unselectAll()
-    const modifications = stackItem.model.extractDifferenceSymbols(this.model)
-    this.#model = stackItem.model.clone()
-    // The restored snapshot's `exports` (deep-cloned by `IIModel#clone`) reflects whatever the
-    // model looked like when it was pushed to history, which predates this undo/redo - if left
-    // in place, the next `export()` call sees a non-empty cache and skips re-fetching the JIIX
-    // entirely, so the backend's actual current block ids/content are never picked up.
-    this.#model.invalidateExports()
-    modifications.removed.forEach((s) => this.renderer.removeSymbol(s.id))
-    modifications.added.forEach((s) => this.renderer.drawSymbol(s))
-    return extractIIBackendChanges(stackItem.changes)
+
+    changes.added?.forEach((sym) => {
+      this.model.addSymbol(sym)
+      this.renderer.drawSymbol(sym)
+    })
+    changes.erased?.forEach((sym) => {
+      this.model.removeSymbol(sym.id)
+      this.renderer.removeSymbol(sym.id)
+    })
+    changes.updated?.newSymbols.forEach((sym) => {
+      this.model.updateSymbol(sym)
+      this.renderer.drawSymbol(sym)
+    })
+    if (changes.replaced) {
+      const [anchor, ...rest] = changes.replaced.oldSymbols
+      rest.forEach((s) => {
+        this.renderer.removeSymbol(s.id)
+        this.model.removeSymbol(s.id)
+      })
+      this.model.replaceSymbol(anchor.id, changes.replaced.newSymbols)
+      this.renderer.replaceSymbol(anchor.id, changes.replaced.newSymbols)
+    }
+    if (changes.matrix) {
+      const m = changes.matrix.matrix
+      this.transform.applyMatrix(changes.matrix.symbols, new MatrixTransform(m.xx, m.yx, m.xy, m.yy, m.tx, m.ty))
+    }
+    changes.translate?.forEach((tr) => {
+      this.transform.applyMatrix(tr.symbols, MatrixTransform.identity().translate(tr.tx, tr.ty))
+    })
+    changes.rotate?.forEach((r) => {
+      this.transform.applyMatrix(r.symbols, MatrixTransform.identity().rotate(r.angle, r.center))
+    })
+    changes.scale?.forEach((sc) => {
+      this.transform.applyMatrix(sc.symbols, MatrixTransform.identity().scale(sc.scaleX, sc.scaleY, sc.origin))
+    })
+    if (changes.style) {
+      const { symbols, newStyles, newFontSizes } = changes.style
+      symbols.forEach((sym, i) => {
+        if (newStyles?.[i]) {
+          sym.style = newStyles[i] as TStyle
+        }
+        const newFontSize = newFontSizes?.[i]
+        if (newFontSize !== undefined && isText(sym)) {
+          sym.chars.forEach((c) => {
+            c.fontSize = newFontSize
+          })
+        }
+        this.model.updateSymbol(sym)
+        this.renderer.drawSymbol(sym)
+      })
+    }
+    if (changes.order) {
+      changes.order.symbols.forEach((sym) => {
+        this.model.changeOrderSymbol(sym.id, changes.order!.position)
+        this.renderer.changeOrderSymbol(sym, changes.order!.position)
+      })
+    }
   }
 
   async #undoInternal(): Promise<IIModel> {
-    const previousStackItem = this.history.undo()
+    const { changes } = this.history.undo()
     this.logger.debug("undo", {
-      previousStackItem,
+      changes,
     })
 
-    const actionsToBackend = this.#applyHistoryStackItem(previousStackItem)
-    if (this.#hasBackendActions(actionsToBackend)) {
-      this.#extractJIIXBlockIdFromBackendActions(actionsToBackend).forEach((jiixBlockId) => {
-        this.math.clearGhostStrokes(jiixBlockId)
-      })
-      this.startOperation("Recognizing")
-      await this.client.undo(actionsToBackend)
+    this.#applyHistoryChanges(changes)
+    const actionsToBackend = extractIIBackendChanges(changes)
+    try {
+      if (this.#hasBackendActions(actionsToBackend)) {
+        this.#extractJIIXBlockIdFromBackendActions(actionsToBackend).forEach((jiixBlockId) => {
+          this.math.clearGhostStrokes(jiixBlockId)
+        })
+        this.startOperation("Recognizing")
+        await this.client.undo(actionsToBackend)
+      }
+    } finally {
+      this.updateLayerUI()
     }
     this.updateLayerUI()
     return this.model
@@ -1486,15 +1544,20 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
   }
 
   async #redoInternal(): Promise<IIModel> {
-    const nextStackItem = this.history.redo()
-    this.logger.debug("redo", { nextStackItem })
-    const actionsToBackend = this.#applyHistoryStackItem(nextStackItem)
-    if (this.#hasBackendActions(actionsToBackend)) {
-      this.#extractJIIXBlockIdFromBackendActions(actionsToBackend).forEach((jiixBlockId) => {
-        this.math.clearGhostStrokes(jiixBlockId)
-      })
-      this.startOperation("Recognizing")
-      await this.client.redo(actionsToBackend)
+    const { changes } = this.history.redo()
+    this.logger.debug("redo", { changes })
+    this.#applyHistoryChanges(changes)
+    const actionsToBackend = extractIIBackendChanges(changes)
+    try {
+      if (this.#hasBackendActions(actionsToBackend)) {
+        this.#extractJIIXBlockIdFromBackendActions(actionsToBackend).forEach((jiixBlockId) => {
+          this.math.clearGhostStrokes(jiixBlockId)
+        })
+        this.startOperation("Recognizing")
+        await this.client.redo(actionsToBackend)
+      }
+    } finally {
+      this.updateLayerUI()
     }
     this.updateLayerUI()
     return this.model

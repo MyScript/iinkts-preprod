@@ -37,6 +37,15 @@ export abstract class IIAbstractTransformManager extends IIAbstractManager {
     return target.closest(`[role=${SvgElementRole.InteractElementsGroup}]`) as unknown as SVGGElement
   }
 
+  /**
+   * Applies a matrix transform locally (model + redraw) without touching the backend or
+   * history. Used by InteractiveInkCanvas's undo/redo replay dispatcher, which sends its own
+   * consolidated backend message separately.
+   */
+  applyMatrix(symbols: TSymbol[], matrix: MatrixTransform): void {
+    this.applyAndDraw(symbols, matrix)
+  }
+
   protected applyAndDraw(symbols: TSymbol[], matrix: MatrixTransform): void {
     symbols.forEach((s) => {
       this.applyToSymbol(s, matrix)
