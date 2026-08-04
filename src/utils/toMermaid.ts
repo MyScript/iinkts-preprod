@@ -70,13 +70,40 @@ function findNodeForPoint(point: TPoint, nodes: TJIIXNodeElement[]): TJIIXNodeEl
   return nodes.find((node) => node["bounding-box"] && isPointInsideBox(point, node["bounding-box"]))
 }
 
-function edgeDeclaration(edge: TJIIXEdgeElement, nodes: TJIIXNodeElement[]): string | undefined {
+function findNodeById(id: string, nodes: TJIIXNodeElement[]): TJIIXNodeElement | undefined {
+  return nodes.find((node) => node.id === id)
+}
+
+/**
+ * Resolves which two Nodes an Edge connects. The server fills `connected`/`ports` once a
+ * diagram has more than one shape — trust it first, since it reflects the actual recognition
+ * rather than a geometric guess. Falls back to matching endpoints against node bounding boxes
+ * when `connected` is absent (e.g. a lone edge with nothing to connect to).
+ */
+function resolveEdgeNodes(
+  edge: TJIIXEdgeElement,
+  nodes: TJIIXNodeElement[]
+): [TJIIXNodeElement, TJIIXNodeElement] | undefined {
+  if (edge.connected?.length === 2) {
+    const from = findNodeById(edge.connected[0], nodes)
+    const to = findNodeById(edge.connected[1], nodes)
+    if (from && to) {
+      return [from, to]
+    }
+  }
+
   const [start, end] = edgeEndpoints(edge)
   const from = findNodeForPoint(start, nodes)
   const to = findNodeForPoint(end, nodes)
-  if (!from || !to) {
+  return from && to ? [from, to] : undefined
+}
+
+function edgeDeclaration(edge: TJIIXEdgeElement, nodes: TJIIXNodeElement[]): string | undefined {
+  const resolved = resolveEdgeNodes(edge, nodes)
+  if (!resolved) {
     return undefined
   }
+  const [from, to] = resolved
   return `  ${sanitizeMermaidId(from.id)} --> ${sanitizeMermaidId(to.id)}`
 }
 

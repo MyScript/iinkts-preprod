@@ -114,4 +114,49 @@ describe("jiixToMermaid", () => {
 
     expect(jiixToMermaid(jiix)).toBe("flowchart TD\n  node_A[rectangle]")
   })
+
+  test("should prefer the server-provided connected/ports over geometry when both are present", () => {
+    const jiix: TJIIXExport = {
+      type: "Raw Content",
+      id: "MainBlock",
+      version: "3",
+      elements: [
+        {
+          id: "node/A",
+          type: JIIXElementType.Node,
+          kind: JIIXNodeKind.Rectangle,
+          // Bounding box deliberately does NOT contain the edge's endpoints, so a geometry-only
+          // resolution would fail to connect this node — connected/ports must win regardless.
+          "bounding-box": { x: 500, y: 500, width: 20, height: 20 },
+          x: 500,
+          y: 500,
+          width: 20,
+          height: 20,
+        },
+        {
+          id: "node/B",
+          type: JIIXElementType.Node,
+          kind: JIIXNodeKind.Rectangle,
+          "bounding-box": { x: 600, y: 600, width: 20, height: 20 },
+          x: 600,
+          y: 600,
+          width: 20,
+          height: 20,
+        },
+        {
+          id: "edge/1",
+          type: JIIXElementType.Edge,
+          kind: JIIXEdgeKind.Line,
+          connected: ["node/A", "node/B"],
+          ports: [0, 1],
+          x1: 10,
+          y1: 15,
+          x2: 10,
+          y2: 105,
+        },
+      ],
+    }
+
+    expect(jiixToMermaid(jiix)).toBe("flowchart TD\n  node_A[rectangle]\n  node_B[rectangle]\n  node_A --> node_B")
+  })
 })
