@@ -1336,6 +1336,28 @@ describe("CanvasOffscreen.ts", () => {
     })
   })
 
+  describe("toMarkdown", () => {
+    test("should export JIIX and convert it to Markdown", async () => {
+      const canvas = new InteractiveInkCanvas(document.createElement("div"), CanvasOptions)
+      canvas.client.export = jest.fn(() => Promise.resolve({ "application/vnd.myscript.jiix": jiixText }))
+
+      const markdown = await canvas.toMarkdown()
+
+      expect(markdown).toBe("h")
+    })
+
+    test("should reuse the already cached JIIX export without calling client.export again", async () => {
+      const canvas = new InteractiveInkCanvas(document.createElement("div"), CanvasOptions)
+      canvas.model.exports = { "application/vnd.myscript.jiix": jiixText }
+      canvas.client.export = jest.fn()
+
+      const markdown = await canvas.toMarkdown()
+
+      expect(canvas.client.export).not.toHaveBeenCalled()
+      expect(markdown).toBe("h")
+    })
+  })
+
   describe("convert", () => {
     const canvas = new InteractiveInkCanvas(document.createElement("div"), CanvasOptions)
     canvas.overlays.apply = jest.fn()

@@ -125,6 +125,7 @@ export type TInteractiveInkCanvas = {
 
   // ── Recognition / conversion ──────────────────────────────────────
   export(mimeTypes?: string[]): Promise<TExport>
+  toMarkdown(): Promise<string>
   convert(symbols?: TSymbol[]): Promise<void>
   changeLanguage(code: string): Promise<void>
 

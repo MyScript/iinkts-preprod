@@ -29,7 +29,7 @@ import {
 import type { IIMenuAction, IIMenuStyle, IIMenuTool } from "@/menu"
 import { IIMenuManager } from "@/menu"
 import type { TExport } from "@/model"
-import { IIModel } from "@/model"
+import { ExportType, IIModel } from "@/model"
 import type { TIIRendererConfiguration } from "@/renderer"
 import { SVGBuilder, SVGRenderer } from "@/renderer"
 import type { TStyle } from "@/style"
@@ -56,7 +56,7 @@ import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 import type { SymbolUtil } from "@/symbol-utils/SymbolUtil"
 import { MatrixTransform } from "@/transform"
 import type { TPartialDeep } from "@/utils"
-import { createUUID, mergeDeep } from "@/utils"
+import { createUUID, jiixToMarkdown, mergeDeep } from "@/utils"
 
 import type { TInteractiveInkCanvasConfiguration } from "./InteractiveInkCanvasConfiguration"
 import { InteractiveInkCanvasConfiguration } from "./InteractiveInkCanvasConfiguration"
@@ -1710,6 +1710,15 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       this.manageError(error as Error)
       throw error
     }
+  }
+
+  /**
+   * Export content as Markdown, derived locally from the JIIX export (not a server mime type)
+   * @returns Promise resolving with the Markdown representation of the content
+   */
+  async toMarkdown(): Promise<string> {
+    const exports = await this.export([ExportType.JIIX])
+    return jiixToMarkdown(exports[ExportType.JIIX]!)
   }
 
   /**
