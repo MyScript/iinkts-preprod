@@ -56,7 +56,7 @@ import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 import type { SymbolUtil } from "@/symbol-utils/SymbolUtil"
 import { MatrixTransform } from "@/transform"
 import type { TPartialDeep } from "@/utils"
-import { createUUID, jiixToMarkdown, mergeDeep } from "@/utils"
+import { createUUID, jiixToMarkdown, jiixToMermaid, mergeDeep } from "@/utils"
 
 import type { TInteractiveInkCanvasConfiguration } from "./InteractiveInkCanvasConfiguration"
 import { InteractiveInkCanvasConfiguration } from "./InteractiveInkCanvasConfiguration"
@@ -1719,6 +1719,15 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
   async toMarkdown(): Promise<string> {
     const exports = await this.export([ExportType.JIIX])
     return jiixToMarkdown(exports[ExportType.JIIX]!)
+  }
+
+  /**
+   * Export the recognized diagram as a Mermaid flowchart, derived locally from the JIIX export
+   * @returns Promise resolving with the Mermaid flowchart syntax
+   */
+  async toMermaid(): Promise<string> {
+    const exports = await this.export([ExportType.JIIX])
+    return jiixToMermaid(exports[ExportType.JIIX]!)
   }
 
   /**
