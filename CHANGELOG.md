@@ -30,8 +30,10 @@ History entries no longer store a full `Model`/`IIModel` snapshot — only the d
 
 ## Features
 
-### Markdown export
+### Export
 - feat(export): `InteractiveInkCanvas.toMarkdown()` — converts the current content to Markdown, derived locally from the JIIX export (`src/utils/toMarkdown.ts`, `jiixToMarkdown`). Not a server mime type: Text elements become paragraphs, Math elements are wrapped in `$$...$$`; diagram Node/Edge elements are skipped
+- feat(export): `InteractiveInkCanvas.toMarkdown()` — converts the current content to Markdown, derived locally from the JIIX export (`src/utils/toMarkdown.ts`, `jiixToMarkdown`). Not a server mime type: Text elements become paragraphs, Math elements are wrapped in `$$...$$`; diagram Node/Edge elements are skipped
+- feat(export): `InteractiveInkCanvas.toMermaid()` — converts a recognized diagram to Mermaid flowchart syntax, derived locally from the JIIX export (`src/utils/toMermaid.ts`, `jiixToMermaid`). Node shape kind maps to the closest native Mermaid shape (rectangle/circle/ellipse/rhombus/parallelogram; triangle and polygon fall back to a rectangle, no native Mermaid equivalent). Edge connectivity is resolved geometrically — an edge's endpoints (Line/PolyEdge/Arc, the latter via `computePointOnEllipse`) are matched against node bounding boxes, since JIIX diagram exports carry no explicit node/edge id references (the `connected`/`ports` fields exist in the wire format but are always empty today).
 
 ### PDF export via native browser print
 - feat(canvas): add `InteractiveInkCanvas.printAsPDF(selection?, options?)` — prints the current content (or only the selected symbols) as PDF via the browser's native print dialog. Called with no `options`, opens a settings dialog (page format/orientation/page mode/scale) first, same as the Export menu; called with a partial `options` object, prints immediately with those values (defaults filled in for anything omitted), skipping the dialog — for programmatic callers
