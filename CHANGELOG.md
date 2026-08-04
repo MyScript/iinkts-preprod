@@ -52,6 +52,13 @@ History entries no longer store a full `Model`/`IIModel` snapshot — only the d
 - feat(menu): add "PDF" entry to `ExportMenuAction`/`ExportContextMenu` (`pdf?: boolean` in `TExportActionItemsConfig`/`TContextExportItemsConfig`, enabled by default)
 
 
+## Features
+
+### Shape ↔ edge connections
+- feat(connector): edges follow their connected shape when it is translated/resized/rotated, before Convert (raw ink strokes) as well as after (`TEdgeLine`/`TEdgePolyLine`/`TEdgeArc` with `startAnchor`/`endAnchor`)
+- refactor(connector): **BREAKING** `IIConnectorManager.updateAnchoredEdges()` now returns `string[]` (ids of the pre-convert edge strokes it moved) instead of `void`; callers must include them in their history entry and backend transform message
+- feat(connector): new `IIConnectorManager.getFollowedStrokeIds(symbolIds)` — read-only counterpart of the rigid-follow pass, for callers needing the id list before mutating anything
+
 # [v4.1.0](https://github.com/MyScript/iinkTS/tree/v4.1.0)
 
 ## Features
