@@ -13,6 +13,7 @@ import {
   ShapeKind,
   TSymbol,
   cloneSymbol,
+  IIModel,
   DecoratorKind,
   TSymbolChar,
   TText,
@@ -759,6 +760,7 @@ describe("CanvasOffscreen.ts", () => {
       canvas.client.undo = jest.fn(() => Promise.resolve())
       canvas.renderer.removeSymbol = jest.fn()
       canvas.renderer.drawSymbol = jest.fn()
+      canvas.renderer.replaceSymbol = jest.fn()
       canvas.menu.update = jest.fn()
       canvas.overlays.apply = jest.fn()
       canvas.client.waitForIdle = jest.fn(() => Promise.resolve())
@@ -819,26 +821,23 @@ describe("CanvasOffscreen.ts", () => {
       expect(canvas.renderer.removeSymbol).toHaveBeenCalledTimes(1)
       expect(canvas.renderer.removeSymbol).toHaveBeenCalledWith(stroke1.id)
     })
-    test("should call client.undo & renderer.drawSymbol & renderer.removeSymbol when history.undo return replaced stroke", async () => {
+    test("should call client.undo & renderer.replaceSymbol when history.undo return replaced stroke", async () => {
       const stroke1 = buildIIStroke()
       const stroke2 = buildIIStroke()
-      const firstModel = canvas.model.clone()
-      firstModel.addSymbol(stroke1)
       canvas.model.addSymbol(stroke2)
       canvas.history.undo = jest.fn(() => ({
-        model: firstModel,
-        changes: { replaced: { newSymbols: [stroke2], oldSymbols: [stroke1] } },
+        model: new IIModel(),
+        changes: { replaced: { oldSymbols: [stroke2], newSymbols: [stroke1] } },
       }))
       canvas.history.context.canUndo = true
       await canvas.undo()
       expect(canvas.client.undo).toHaveBeenCalledTimes(1)
       expect(canvas.client.undo).toHaveBeenCalledWith(
-        expect.objectContaining({ replaced: { newStrokes: [stroke2], oldStrokes: [stroke1] } })
+        expect.objectContaining({ replaced: { oldStrokes: [stroke2], newStrokes: [stroke1] } })
       )
-      expect(canvas.renderer.drawSymbol).toHaveBeenCalledTimes(1)
-      expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(stroke1)
-      expect(canvas.renderer.removeSymbol).toHaveBeenCalledTimes(1)
-      expect(canvas.renderer.removeSymbol).toHaveBeenCalledWith(stroke2.id)
+      expect(canvas.renderer.replaceSymbol).toHaveBeenCalledTimes(1)
+      expect(canvas.renderer.replaceSymbol).toHaveBeenCalledWith(stroke2.id, [stroke1])
+      expect(canvas.model.symbols).toEqual([stroke1])
     })
     test("should call client.undo & renderer.drawSymbol & renderer.removeSymbol when history.undo return matrix", async () => {
       const stroke1 = buildIIStroke()
@@ -910,6 +909,59 @@ describe("CanvasOffscreen.ts", () => {
       expect(canvas.renderer.drawSymbol).toHaveBeenCalledTimes(1)
       expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(stroke1)
     })
+    test("should update the model and redraw when history.undo returns an updated symbol", async () => {
+      const stroke1 = buildIIStroke()
+      const oldStroke1 = cloneSymbol(stroke1) as TStroke
+      canvas.model.addSymbol(stroke1)
+      canvas.history.undo = jest.fn(() => ({
+        model: new IIModel(),
+        changes: { updated: { oldSymbols: [stroke1], newSymbols: [oldStroke1] } },
+      }))
+      canvas.history.context.canUndo = true
+      await canvas.undo()
+      expect(canvas.model.symbols).toEqual([oldStroke1])
+      expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(oldStroke1)
+    })
+    test("should restore the old style and redraw when history.undo returns a style change, without calling client.undo", async () => {
+      const stroke1 = buildIIStroke()
+      canvas.model.addSymbol(stroke1)
+      const restoredStyle = { ...stroke1.style, color: "red" }
+      canvas.history.undo = jest.fn(() => ({
+        model: new IIModel(),
+        changes: { style: { symbols: [stroke1], newStyles: [restoredStyle] } },
+      }))
+      canvas.history.context.canUndo = true
+      await canvas.undo()
+      expect(canvas.model.symbols[0].style).toEqual(restoredStyle)
+      expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(stroke1)
+      expect(canvas.client.undo).toHaveBeenCalledTimes(0)
+    })
+    test("should reorder the symbol and redraw when history.undo returns an order change, without calling client.undo", async () => {
+      const stroke1 = buildIIStroke()
+      canvas.model.addSymbol(stroke1)
+      canvas.model.changeOrderSymbol = jest.fn()
+      canvas.renderer.changeOrderSymbol = jest.fn()
+      canvas.history.undo = jest.fn(() => ({
+        model: new IIModel(),
+        changes: { order: { symbols: [stroke1], position: "first" } },
+      }))
+      canvas.history.context.canUndo = true
+      await canvas.undo()
+      expect(canvas.model.changeOrderSymbol).toHaveBeenNthCalledWith(1, stroke1.id, "first")
+      expect(canvas.renderer.changeOrderSymbol).toHaveBeenNthCalledWith(1, stroke1, "first")
+      expect(canvas.client.undo).toHaveBeenCalledTimes(0)
+    })
+    test("should still refresh the menu (updateLayerUI) even when client.undo rejects", async () => {
+      const stroke1 = buildIIStroke()
+      const firstModel = canvas.model.clone()
+      canvas.model.addSymbol(stroke1)
+      canvas.history.undo = jest.fn(() => ({ model: firstModel, changes: { erased: [stroke1] } }))
+      canvas.history.context.canUndo = true
+      canvas.client.undo = jest.fn(() => Promise.reject(new Error("socket closed")))
+      canvas.updateLayerUI = jest.fn()
+      await expect(canvas.undo()).rejects.toThrow("socket closed")
+      expect(canvas.updateLayerUI).toHaveBeenCalledTimes(1)
+    })
   })
 
   describe("redo", () => {
@@ -923,6 +975,7 @@ describe("CanvasOffscreen.ts", () => {
       canvas.client.redo = jest.fn(() => Promise.resolve())
       canvas.renderer.removeSymbol = jest.fn()
       canvas.renderer.drawSymbol = jest.fn()
+      canvas.renderer.replaceSymbol = jest.fn()
       canvas.menu.update = jest.fn()
       canvas.overlays.apply = jest.fn()
       canvas.client.waitForIdle = jest.fn(() => Promise.resolve())
@@ -972,26 +1025,23 @@ describe("CanvasOffscreen.ts", () => {
       expect(canvas.renderer.removeSymbol).toHaveBeenCalledTimes(1)
       expect(canvas.renderer.removeSymbol).toHaveBeenCalledWith(stroke1.id)
     })
-    test("should call client.redo & renderer.drawSymbol & renderer.removeSymbol when history.redo return replaced stroke", async () => {
+    test("should call client.redo & renderer.replaceSymbol when history.redo return replaced stroke", async () => {
       const stroke1 = buildIIStroke()
       const stroke2 = buildIIStroke()
-      const firstModel = canvas.model.clone()
-      firstModel.addSymbol(stroke1)
-      canvas.model.addSymbol(stroke2)
+      canvas.model.addSymbol(stroke1)
       canvas.history.redo = jest.fn(() => ({
-        model: firstModel,
-        changes: { replaced: { newSymbols: [stroke2], oldSymbols: [stroke1] } },
+        model: new IIModel(),
+        changes: { replaced: { oldSymbols: [stroke1], newSymbols: [stroke2] } },
       }))
       canvas.history.context.canRedo = true
       await canvas.redo()
       expect(canvas.client.redo).toHaveBeenCalledTimes(1)
       expect(canvas.client.redo).toHaveBeenCalledWith(
-        expect.objectContaining({ replaced: { newStrokes: [stroke2], oldStrokes: [stroke1] } })
+        expect.objectContaining({ replaced: { oldStrokes: [stroke1], newStrokes: [stroke2] } })
       )
-      expect(canvas.renderer.drawSymbol).toHaveBeenCalledTimes(1)
-      expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(stroke1)
-      expect(canvas.renderer.removeSymbol).toHaveBeenCalledTimes(1)
-      expect(canvas.renderer.removeSymbol).toHaveBeenCalledWith(stroke2.id)
+      expect(canvas.renderer.replaceSymbol).toHaveBeenCalledTimes(1)
+      expect(canvas.renderer.replaceSymbol).toHaveBeenCalledWith(stroke1.id, [stroke2])
+      expect(canvas.model.symbols).toEqual([stroke2])
     })
   })
 
