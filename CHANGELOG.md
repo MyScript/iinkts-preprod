@@ -14,6 +14,9 @@ History entries no longer store a full `Model`/`IIModel` snapshot — only the d
 - `TIIHistoryChanges.style`: `{ style?, fontSize? }` → `{ oldStyles?, newStyles?, oldFontSizes?, newFontSizes? }`
 - `InteractiveInkCanvas.undo()`/`redo()` replay the returned changes on the live model instead of swapping in a cloned snapshot; local replay is independent from the backend replay message
 
+### Shape ↔ edge connections
+- `IIConnectorManager.updateAnchoredEdges()` returns `TAnchoredEdgesUpdateResult` (ids of the pre-convert edge strokes it moved) instead of `void` — callers must include them in their history entry and backend transform message
+
 ### Bug Fixes
 
 - fix(history): `IIHistoryManager` now correctly restores the previous style when reversing a `style` change (was a no-op)
