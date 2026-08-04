@@ -138,7 +138,6 @@ export class IISynchronizerManager extends IIAbstractManager {
 
     try {
       await this.canvas.export(["application/vnd.myscript.jiix"])
-      this.canvas.history.update(this.model)
     } catch (error) {
       this.logger.error("#doSynchronize", "Failed to export JIIX:", error)
       throw error
@@ -243,7 +242,6 @@ export class IISynchronizerManager extends IIAbstractManager {
     } catch (error) {
       this.logger.error("#doSynchronize", "Failed to refresh math overlays:", error)
     }
-    this.canvas.history.update(this.model)
 
     this.canvas.event.emitSynchronized()
   }
