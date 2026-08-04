@@ -18,7 +18,20 @@ History entries no longer store a full `Model`/`IIModel` snapshot — only the d
 - `IIConnectorManager.updateAnchoredEdges()` returns `TAnchoredEdgesUpdateResult` (ids of the pre-convert edge strokes it moved) instead of `void` — callers must include them in their history entry and backend transform message
 
 ### Bug Fixes
-
+- fix(menu): `ShapeTool`/`EdgeTool` picking a shape or edge type never closed the dropdown — the click handler queried `.sub-menu-content-shape`/`-edge` to remove the `open` class, but the class actually toggled by the trigger and by outside-clicks is the unsuffixed `.sub-menu-content`, so the query silently matched nothing. Also, `update()` in both only added `active` to the newly-selected button without first clearing a previously-active one, so switching shape/edge via `update()` (not via a click) could leave two buttons marked active at once. Both bugs were copy-pasted identically into both files; fixed in both
+- fix(canvas,client): `CanvasEvent.emit()`/`ClientEvent.emit()` used a truthy check (`data ? { detail: data } : undefined`) to decide whether to attach the event payload, so any falsy value — `emitIdle(false)`, `0`, `""` — was silently delivered to listeners as `detail: null` instead of the real value. Both now check `data !== undefined`
+- fix(client): `HTTPClientV2.post()` was missing the runtime check (already present in `HTTPClientV1.post()`) that strips `recognition.export.jiix.text.lines` when talking to a server below 3.2.0. Its `Configuration` class only applied this gate when the caller hardcoded `server.version` upfront — the common case, where the version is auto-detected via the client's own lazy `getApiInfos()` fetch, skipped it entirely, sending an unsupported field to older servers
+- fix(client): `HTTPClientV1.post()`'s error branch unconditionally called `response.json()` on a non-2xx response. A non-JSON error body (an HTML error page from a reverse proxy, plaintext, or an empty body on a raw 502/503) threw an uncaught `SyntaxError`, which `tryFetch()` then reported as the generic "unable to establish a connection" error, discarding the real HTTP status and message. `HTTPClientV2` already handled this correctly by checking the response's content-type first. Extracted shared `parseApiError(response)` (`src/client/ClientApiError.ts`) used by both clients' `post()`
+- fix(client): `WebSocketClient`/`WebSocketSSRClient` ping/pong liveness counter was reset on any non-`pong` message and left untouched on an actual `Pong` — the exact inverse of correct keepalive semantics. A healthy connection exchanging only ping/pong during idle periods self-disconnected with `MAXIMUM_PING_REACHED` after `maxPingLostCount * pingDelay` (default 5 min) even though the server kept answering every ping. Now resets only on `Pong` receipt, so the connection only closes when the server actually stops responding
+- fix(client): `WebSocketClient`/`WebSocketSSRClient`/`HTTPClientV1`/`HTTPClientV2` constructors logged the raw configuration object — including `server.applicationKey`/`hmacKey` in plaintext — at `info` level. Silent by default (the `CLIENT` logger category defaults to `error`), but any integrator raising it to `info`/`debug` to troubleshoot a session printed the secret to the console. Constructor logging now redacts both fields via the new `redactServerSecrets` util before logging
+- feat(utils): new exported `redactServerSecrets(config)` — returns a shallow copy with `server.hmacKey`/`server.applicationKey` replaced by `"[REDACTED]"` when present, for safe logging of client configuration objects
+- fix(manager): `IDebugSVGManager.drawRecognitionBox()`'s drag-to-move handler registered 3 brand-new anonymous `pointerup`/`pointerleave`/`pointercancel` listeners on the shared `renderer.layer` on every `pointerdown`, none of which were ever removed — a permanent 3-listener leak per drag on the debug recognition-box info panel. Handlers are now stable references shared across drags, so re-registering them is a no-op and each drag's own `pointerup`/`pointerleave`/`pointercancel` correctly removes itself along with `pointermove`
+- fix(manager): `EraseManager.end()` used `this.deletingIds.values().toArray()` (ES2024 `Iterator.prototype.toArray`), unsupported in Safari <18.4 and older Firefox/Chrome — erasing on `InkCanvas` could throw at runtime in those browsers. Replaced with `[...this.deletingIds]`
+- fix(menu): `IIMenuContext.destroy()` cleared its DOM but never called `.destroy()` on its `contextMenus` map entries (edit/decorator/reorder/export/convert/math/duplicate/remove/selectAll), nor cleared the map itself. Every `IIMenuManager.setConfig()` call leaked a growing set of `document`-level listeners closing over detached context-menu DOM. Now cascades `.destroy()` to every entry before clearing the map
+- fix(renderer): `SVGRenderer.pan()` never called `#reconcileVirtualization()`, unlike `setViewBox()`/`setZoom()` — panning-only viewport changes (`canvas.pan()`, arrow-key panning, `ensurePointVisible()`) left symbols that scrolled into/out of view stuck attached/detached from the DOM until an unrelated zoom or `setViewBox` call happened to run. Regression in the viewport-culling perf work for large documents (4000+ strokes)
+- fix(components): `Minimap`'s `MutationObserver` deep-cloned (`cloneNode(true)`) and recursively re-stripped ids from the *entire* rendering layer on every `childList` mutation of the main canvas — fired on every `drawSymbol`/virtualization attach-detach, reintroducing the full-scene-cost-per-mutation problem the SVG virtualization work was meant to eliminate. Sync is now coalesced to at most once per animation frame
+- fix(history): `IIHistoryManager` now correctly restores the previous style when reversing a `style` change. Previously, undo reapplied the new style and was effectively a no-op.
+- fix(history): `IIHistoryManager` populate possibleUndoCount
 - fix(history): `IIHistoryManager` now correctly restores the previous style when reversing a `style` change (was a no-op)
 - fix(history): `IIHistoryManager` populates `possibleUndoCount`
 
@@ -27,8 +40,6 @@ History entries no longer store a full `Model`/`IIModel` snapshot — only the d
 ### Shape ↔ edge connections
 - feat(connector): edges follow their connected shape when it is translated/resized/rotated, before Convert (raw ink strokes) as well as after (`TEdgeLine`/`TEdgePolyLine`/`TEdgeArc` with `startAnchor`/`endAnchor`)
 - feat(connector): new `IIConnectorManager.getFollowedStrokeIds(symbolIds)` — read-only counterpart of the rigid-follow pass, for callers needing the id list before mutating anything
-
-## Features
 
 ### Export
 - feat(export): `InteractiveInkCanvas.toMarkdown()` — converts the current content to Markdown, derived locally from the JIIX export (`src/utils/toMarkdown.ts`, `jiixToMarkdown`). Not a server mime type: Text elements become paragraphs, Math elements are wrapped in `$$...$$`; diagram Node/Edge elements are skipped
@@ -40,17 +51,6 @@ History entries no longer store a full `Model`/`IIModel` snapshot — only the d
 - feat(manager): new `PDFExportManager` (`src/manager/base/`, constructor `(canvas: TInteractiveInkCanvas | InkCanvas)`) — builds the print-only DOM/CSS layer, computes page format/orientation/scale-to-page-count (`computePageCount`, `computeFitToPageScale`, `getPageDimensionsMm`), single-page fit-to-scale and multi-page tiled print modes (`buildSinglePagePrintContainer`/`buildMultiPagePrintContainer`), the settings dialog (`openExportDialog`, reusing `Modal.ts` form fields), and print orchestration (`print()`); exposes `TPDFPageFormat`, `TPDFOrientation`, `TPDFPageMode`, `TPDFExportDialogOptions`, `TPDFPageOptions`, `TPDFPageCount`, `TPDFPageSizeMm` and `PDFExportManager.DEFAULT_OPTIONS`
 - feat(menu): add "PDF" entry to `ExportMenuAction`/`ExportContextMenu` (`pdf?: boolean` in `TExportActionItemsConfig`/`TContextExportItemsConfig`, enabled by default)
 
-### Shape ↔ edge connections
-- feat(connector): edges follow their connected shape when it is translated/resized/rotated, before Convert (raw ink strokes) as well as after (`TEdgeLine`/`TEdgePolyLine`/`TEdgeArc` with `startAnchor`/`endAnchor`)
-- refactor(connector): **BREAKING** `IIConnectorManager.updateAnchoredEdges()` now returns `string[]` (ids of the pre-convert edge strokes it moved) instead of `void`; callers must include them in their history entry and backend transform message
-- feat(connector): new `IIConnectorManager.getFollowedStrokeIds(symbolIds)` — read-only counterpart of the rigid-follow pass, for callers needing the id list before mutating anything
-
-## Features
-
-### Shape ↔ edge connections
-- feat(connector): edges follow their connected shape when it is translated/resized/rotated, before Convert (raw ink strokes) as well as after (`TEdgeLine`/`TEdgePolyLine`/`TEdgeArc` with `startAnchor`/`endAnchor`)
-- refactor(connector): **BREAKING** `IIConnectorManager.updateAnchoredEdges()` now returns `string[]` (ids of the pre-convert edge strokes it moved) instead of `void`; callers must include them in their history entry and backend transform message
-- feat(connector): new `IIConnectorManager.getFollowedStrokeIds(symbolIds)` — read-only counterpart of the rigid-follow pass, for callers needing the id list before mutating anything
 
 # [v4.1.0](https://github.com/MyScript/iinkTS/tree/v4.1.0)
 
