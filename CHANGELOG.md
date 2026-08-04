@@ -1,3 +1,24 @@
+# [v5.0.0](https://github.com/MyScript/iinkTS/tree/v5.0.0)
+
+See [MIGRATION.md](./MIGRATION.md) for step-by-step upgrade instructions.
+
+## Breaking Changes
+
+### History: diff-only undo/redo
+History entries no longer store a full `Model`/`IIModel` snapshot — only the diff needed to undo/redo, cutting the cost of pushing entries on large documents.
+- `TIHistoryStackItem`/`TIIHistoryStackItem` removed
+- `history.push(model, changes)` → `history.push(changes)`
+- `undo()`/`redo()` return `TIHistoryChanges`/`TIIHistoryChanges` directly instead of `{ model, changes }`
+- `IHistoryManager.updateModelStack()`/`IIHistoryManager.update()` removed (no snapshot left to sync)
+- `TIIHistoryChanges.updated`: `TSymbol[]` → `{ oldSymbols, newSymbols }`
+- `TIIHistoryChanges.style`: `{ style?, fontSize? }` → `{ oldStyles?, newStyles?, oldFontSizes?, newFontSizes? }`
+- `InteractiveInkCanvas.undo()`/`redo()` replay the returned changes on the live model instead of swapping in a cloned snapshot; local replay is independent from the backend replay message
+
+### Bug Fixes
+
+- fix(history): `IIHistoryManager` now correctly restores the previous style when reversing a `style` change (was a no-op)
+- fix(history): `IIHistoryManager` populates `possibleUndoCount`
+
 # [v4.1.0](https://github.com/MyScript/iinkTS/tree/v4.1.0)
 
 ## Features
@@ -9,7 +30,6 @@
 
 ### virtualization
 - throttle pan and cull off-screen symbols on large documents
-
 
 # [v4.0.0](https://github.com/MyScript/iinkTS/tree/v4.0.0)
 
