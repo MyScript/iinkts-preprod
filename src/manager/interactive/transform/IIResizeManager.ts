@@ -286,7 +286,7 @@ export class IIResizeManager extends IIAbstractTransformManager {
       this.transformOrigin.x,
       this.transformOrigin.y
     )
-    this.canvas.history.push(this.model, {
+    this.canvas.history.push({
       scale: [
         {
           symbols: oldSymbols,

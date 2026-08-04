@@ -802,7 +802,7 @@ export class IIConversionManager extends IIAbstractManager {
 
     // Add single history entry for the entire conversion
     if (allAddedSymbols.length) {
-      this.canvas.history.push(this.model, {
+      this.canvas.history.push({
         added: allAddedSymbols,
         erased: allErasedStrokes,
       })

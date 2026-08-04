@@ -572,7 +572,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     this.client.addStrokes(strokes, false)
 
     if (addToHistory) {
-      this.history.push(this.model, {
+      this.history.push({
         added: [sym],
       })
     }
@@ -600,7 +600,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     }
     this.client.addStrokes(strokes, false)
     if (addToHistory) {
-      this.history.push(this.model, {
+      this.history.push({
         added: symList,
       })
     }
@@ -619,7 +619,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     this.manageIdleState(false)
     this.updateTypesetBounds(sym)
 
-    const oldSymbol = this.history.stack.at(-1)?.model.getRootSymbol(sym.id) ?? this.model.getRootSymbol(sym.id)
+    const oldSymbol = this.model.getRootSymbol(sym.id)
     const oldStrokes = oldSymbol ? this.extractStrokesFromSymbols([oldSymbol]) : []
 
     this.model.updateSymbol(sym)
@@ -630,7 +630,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     this.#optimizeClientCall(oldStrokes, newStrokes)
 
     if (addToHistory) {
-      this.history.push(this.model, {
+      this.history.push({
         updated: { oldSymbols: [oldSymbol ?? sym], newSymbols: [sym] },
       })
     }
@@ -650,7 +650,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
 
     const oldSymbolsMap = new Map<string, TSymbol>()
     symList.forEach((sym) => {
-      const oldSymbol = this.history.stack.at(-1)?.model.getRootSymbol(sym.id) ?? this.model.getRootSymbol(sym.id)
+      const oldSymbol = this.model.getRootSymbol(sym.id)
       if (oldSymbol) {
         oldSymbolsMap.set(sym.id, oldSymbol)
       }
@@ -667,7 +667,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     this.#optimizeClientCall(oldStrokes, newStrokes)
 
     if (addToHistory) {
-      this.history.push(this.model, {
+      this.history.push({
         updated: {
           oldSymbols: symList.map((s) => oldSymbolsMap.get(s.id) ?? s),
           newSymbols: symList,
@@ -717,7 +717,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       })
     }
     if (addToHistory && symbols.length) {
-      this.history.push(this.model, {
+      this.history.push({
         style: { symbols, oldStyles, newStyles: symbols.map((s) => ({ ...s.style })) },
       })
     }
@@ -778,7 +778,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       }
     })
     if (symbols.length) {
-      this.history.push(this.model, {
+      this.history.push({
         style: {
           symbols,
           oldFontSizes,
@@ -842,7 +842,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
         if (decUpdatedNew.length) {
           changes.updated = { oldSymbols: decUpdatedOld, newSymbols: decUpdatedNew }
         }
-        this.history.push(this.model, changes)
+        this.history.push(changes)
       }
       this.updateLayerUI()
     }
@@ -856,7 +856,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
   changeOrderSymbol(symbol: TSymbol, position: "first" | "last" | "forward" | "backward"): void {
     this.model.changeOrderSymbol(symbol.id, position)
     this.renderer.changeOrderSymbol(symbol, position)
-    this.history.push(this.model, {
+    this.history.push({
       order: { symbols: [symbol], position },
     })
   }
@@ -871,7 +871,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       this.model.changeOrderSymbol(s.id, position)
       this.renderer.changeOrderSymbol(s, position)
     })
-    this.history.push(this.model, {
+    this.history.push({
       order: { symbols, position },
     })
   }
@@ -964,7 +964,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
         if (decUpdatedNew.length) {
           changes.updated = { oldSymbols: decUpdatedOld, newSymbols: decUpdatedNew }
         }
-        this.history.push(this.model, changes)
+        this.history.push(changes)
       }
       this.updateLayerUI()
     } else {
@@ -1021,7 +1021,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       if (decUpdatedNew.length) {
         changes.updated = { oldSymbols: decUpdatedOld, newSymbols: decUpdatedNew }
       }
-      this.history.push(this.model, changes)
+      this.history.push(changes)
       this.updateLayerUI()
     }
     this.manageIdleState(false)
@@ -1117,7 +1117,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       this.startOperation("Recognizing")
       this.client.addStrokes(strokes, false)
     }
-    this.history.push(this.model, {
+    this.history.push({
       added: strokes,
     })
     this.logger.debug("importPointEvents", this.model)
@@ -1508,7 +1508,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
   }
 
   async #undoInternal(): Promise<IIModel> {
-    const { changes } = this.history.undo()
+    const changes = this.history.undo()
     this.logger.debug("undo", {
       changes,
     })
@@ -1544,7 +1544,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
   }
 
   async #redoInternal(): Promise<IIModel> {
-    const { changes } = this.history.redo()
+    const changes = this.history.redo()
     this.logger.debug("redo", { changes })
     this.#applyHistoryChanges(changes)
     const actionsToBackend = extractIIBackendChanges(changes)
@@ -1747,7 +1747,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
         const erased = this.model.symbols
         this.renderer.clear()
         this.model.clear()
-        this.history.push(this.model, { erased })
+        this.history.push({ erased })
         this.startOperation("Recognizing")
         this.client.clear()
         this.event.emitSelected(this.model.symbolsSelected)
