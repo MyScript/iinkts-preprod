@@ -34,6 +34,7 @@ export abstract class AbstractHistoryStack<TStackItem> {
     this.context.canRedo = this.stack.length - 1 > this.context.stackIndex
     this.context.canUndo = this.context.stackIndex > 0
     this.context.empty = this.isStackItemEmpty(this.stack[this.context.stackIndex])
+    this.context.possibleUndoCount = this.context.stackIndex
   }
 
   protected initStack(item: TStackItem): void {
