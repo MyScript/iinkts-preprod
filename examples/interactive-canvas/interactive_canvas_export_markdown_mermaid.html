@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="HandheldFriendly" content="true" />
+
+    <title>Interactive Ink Canvas - Markdown &amp; Mermaid Export</title>
+
+    <link rel="stylesheet" href="../assets/style/reset.css" />
+    <link rel="stylesheet" href="../assets/style/components.css" />
+    <link rel="stylesheet" href="../assets/style/examples.css" />
+    <link rel="stylesheet" href="../assets/style/panel.css" />
+    <link rel="stylesheet" href="../components/code-viewer/code-viewer.css" />
+    <style>
+      #rootEl {
+        height: calc(100dvh - 220px);
+      }
+
+      .export-results {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--ex-space-md);
+        padding: var(--ex-space-md);
+      }
+
+      .export-results > div {
+        flex: 1;
+        min-width: 260px;
+      }
+
+      .export-results pre {
+        margin: 4px 0 0;
+        min-height: 60px;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+    </style>
+    <script>(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);})();</script>
+</head>
+
+  <body>
+    <header class="header-main">
+      <button id="panelToggleBtn" class="btn-panel-toggle" aria-expanded="false" aria-controls="info-panel">
+        💡 Info
+      </button>
+      <button id="showModalBtn" class="btn-keys">
+        API Keys
+      </button>
+      <h1 class="header-title">
+        Interactive Ink Canvas - Markdown &amp; Mermaid Export
+      </h1>
+    </header>
+
+    <div class="ex-page-layout">
+      <aside id="info-panel" class="ex-panel">
+        <p class="ex-panel-heading">Digital ink → structured export</p>
+        <p class="ex-panel-intro"><code>canvas.toMarkdown()</code> and <code>canvas.toMermaid()</code> convert the recognized content, computed locally from the JIIX export — not a server round-trip.</p>
+        <div class="ex-panel-divider"></div>
+        <div class="ex-panel-item">
+          <div class="ex-panel-item-desc"><strong>Markdown</strong>: recognized text becomes paragraphs, math becomes <code>$$...$$</code>. Handy to hand the content to an LLM prompt.</div>
+        </div>
+        <div class="ex-panel-item">
+          <div class="ex-panel-item-desc"><strong>Mermaid</strong>: draw shapes (rectangle, circle, rhombus...) connected by lines — the diagram becomes an editable <code>flowchart TD</code>. Write a word inside a shape to label it.</div>
+        </div>
+        <div class="ex-panel-item">
+          <div class="ex-panel-item-desc">Edge-to-shape connections are resolved geometrically (an edge's endpoint must land inside a shape) — an edge that doesn't touch any shape is left out of the flowchart.</div>
+        </div>
+      </aside>
+      <div class="page-content">
+        <nav class="flex-container wrap gap between">
+          <div class="flex-container wrap gap">
+            <button class="classic-btn primary" id="exportMarkdown">
+              Export as Markdown
+            </button>
+            <button class="classic-btn primary" id="exportMermaid">
+              Export as Mermaid
+            </button>
+            <button class="classic-btn" id="clear">
+              Clear
+            </button>
+          </div>
+        </nav>
+        <div id="rootEl"></div>
+        <div class="export-results">
+          <div>
+            <span class="ex-panel-item-label">Markdown</span>
+            <pre id="markdownResult"></pre>
+          </div>
+          <div>
+            <span class="ex-panel-item-label">Mermaid</span>
+            <pre id="mermaidResult"></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { Canvas } from '../../dist/iink.esm.js'
+      import { ModalCanvasOptions } from "../components/modal/modalCanvasOptions.js";
+
+      const panelToggleBtn = document.getElementById('panelToggleBtn')
+      const infoPanel = document.getElementById('info-panel')
+      panelToggleBtn.addEventListener('click', () => {
+        const open = infoPanel.classList.toggle('open')
+        panelToggleBtn.setAttribute('aria-expanded', open)
+      })
+
+      const rootElement = document.getElementById("rootEl");
+      const exportMarkdownBtn = document.getElementById("exportMarkdown");
+      const exportMermaidBtn = document.getElementById("exportMermaid");
+      const clearBtn = document.getElementById("clear");
+      const markdownResultElement = document.getElementById("markdownResult");
+      const mermaidResultElement = document.getElementById("mermaidResult");
+      const showModalBtn = document.getElementById("showModalBtn");
+
+      let canvas;
+      const canvasOptions = {
+        configuration: {
+          recognition: { types: ['text', 'shape'] },
+        },
+      };
+
+      async function loadCanvas(options) {
+        /**
+         * get canvas instance from type
+         * @param {Element} The DOM element to attach the ink paper
+         * @param {Object} The Canvas parameters
+         */
+        canvas = await Canvas.load(rootElement, "INTERACTIVE_INK", options);
+        markdownResultElement.textContent = "";
+        mermaidResultElement.textContent = "";
+      }
+
+      exportMarkdownBtn.addEventListener("click", async () => {
+        if (!canvas) return;
+        markdownResultElement.textContent = await canvas.toMarkdown();
+      });
+
+      exportMermaidBtn.addEventListener("click", async () => {
+        if (!canvas) return;
+        mermaidResultElement.textContent = await canvas.toMermaid();
+      });
+
+      clearBtn.addEventListener("click", async () => {
+        if (!canvas) return;
+        await canvas.clear();
+        markdownResultElement.textContent = "";
+        mermaidResultElement.textContent = "";
+      });
+
+      showModalBtn.addEventListener("click", () => {
+        ModalCanvasOptions.show(loadCanvas, canvasOptions);
+      });
+
+      ModalCanvasOptions.initConfiguration(loadCanvas, canvasOptions);
+
+      /**
+       * We expose these objects to the window use it in test
+       */
+      window.canvasOptions = canvasOptions
+      window.loadCanvas = loadCanvas
+    </script>
+    <script type="module" src="../components/code-viewer/code-viewer.js"></script>
+    <script src="../assets/js/theme.js"></script>
+</body>
+
+</html>
