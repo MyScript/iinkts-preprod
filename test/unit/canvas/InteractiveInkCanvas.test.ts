@@ -1358,6 +1358,28 @@ describe("CanvasOffscreen.ts", () => {
     })
   })
 
+  describe("toMermaid", () => {
+    test("should export JIIX and convert it to a Mermaid flowchart", async () => {
+      const canvas = new InteractiveInkCanvas(document.createElement("div"), CanvasOptions)
+      canvas.client.export = jest.fn(() => Promise.resolve({ "application/vnd.myscript.jiix": jiixText }))
+
+      const mermaid = await canvas.toMermaid()
+
+      expect(mermaid).toBe("flowchart TD")
+    })
+
+    test("should reuse the already cached JIIX export without calling client.export again", async () => {
+      const canvas = new InteractiveInkCanvas(document.createElement("div"), CanvasOptions)
+      canvas.model.exports = { "application/vnd.myscript.jiix": jiixText }
+      canvas.client.export = jest.fn()
+
+      const mermaid = await canvas.toMermaid()
+
+      expect(canvas.client.export).not.toHaveBeenCalled()
+      expect(mermaid).toBe("flowchart TD")
+    })
+  })
+
   describe("convert", () => {
     const canvas = new InteractiveInkCanvas(document.createElement("div"), CanvasOptions)
     canvas.overlays.apply = jest.fn()
