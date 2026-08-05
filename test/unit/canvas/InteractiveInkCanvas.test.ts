@@ -17,6 +17,9 @@ import {
   TSymbolChar,
   TText,
   getInitialHistoryContext,
+  EdgeLineOps,
+  TEdgeLine,
+  ShapePolygonOps,
 } from "@/iink"
 
 describe("CanvasOffscreen.ts", () => {
@@ -441,6 +444,117 @@ describe("CanvasOffscreen.ts", () => {
       await canvas.removeSymbol(shape.id)
       expect(canvas.model.removeSymbol).toHaveBeenNthCalledWith(1, shape.id)
       expect(canvas.renderer.removeSymbol).toHaveBeenNthCalledWith(1, shape.id)
+    })
+  })
+
+  describe("connection anchor cleanup on removal", () => {
+    async function buildCanvasWithMocks(): Promise<InteractiveInkCanvas> {
+      const canvas = new InteractiveInkCanvas(document.createElement("div"), CanvasOptions)
+      canvas.menu.update = jest.fn()
+      canvas.menu.render = jest.fn()
+      canvas.overlays.apply = jest.fn()
+      canvas.client.init = jest.fn(() => Promise.resolve())
+      canvas.client.waitForIdle = jest.fn(() => Promise.resolve())
+      canvas.client.addStrokes = jest.fn(() => Promise.resolve(undefined))
+      canvas.client.replaceStrokes = jest.fn(() => Promise.resolve())
+      canvas.client.eraseStrokes = jest.fn(() => Promise.resolve())
+      canvas.client.undo = jest.fn(() => Promise.resolve())
+      canvas.renderer.init = jest.fn()
+      canvas.renderer.drawSymbol = jest.fn()
+      canvas.renderer.removeSymbol = jest.fn()
+      canvas.renderer.removeElement = jest.fn()
+      canvas.renderer.replaceSymbol = jest.fn()
+      // history.init(model) only runs during initialize(); undo needs the stack's initial
+      // empty entry to make context.canUndo flip true after the first real push.
+      await canvas.initialize()
+      return canvas
+    }
+
+    test("removeSymbols: erasing a connected shape clears the edge's anchor and is undo-safe", async () => {
+      const canvas = await buildCanvasWithMocks()
+      const shape = ShapePolygonOps.create([
+        { x: 0, y: 0 },
+        { x: 10, y: 0 },
+        { x: 10, y: 10 },
+      ])
+      const edge = EdgeLineOps.create({ x: -10, y: 5 }, { x: 0, y: 5 })
+      edge.endAnchor = { symbolId: shape.id, normalizedX: 0, normalizedY: 0.5 }
+      canvas.model.addSymbol(shape)
+      canvas.model.addSymbol(edge)
+
+      await canvas.removeSymbols([shape.id])
+      const edgeAfterRemove = canvas.model.getRootSymbol(edge.id) as TEdgeLine
+      expect(edgeAfterRemove.endAnchor).toBeUndefined()
+
+      await canvas.undo()
+      const restoredEdge = canvas.model.getRootSymbol(edge.id) as TEdgeLine
+      expect(restoredEdge.endAnchor?.symbolId).toBe(shape.id)
+    })
+
+    test("removeSymbol: erasing a connected shape clears the edge's anchor and is undo-safe", async () => {
+      const canvas = await buildCanvasWithMocks()
+      const shape = ShapePolygonOps.create([
+        { x: 0, y: 0 },
+        { x: 10, y: 0 },
+        { x: 10, y: 10 },
+      ])
+      const edge = EdgeLineOps.create({ x: -10, y: 5 }, { x: 0, y: 5 })
+      edge.startAnchor = { symbolId: shape.id, normalizedX: 0, normalizedY: 0.5 }
+      canvas.model.addSymbol(shape)
+      canvas.model.addSymbol(edge)
+
+      await canvas.removeSymbol(shape.id)
+      const edgeAfterRemove = canvas.model.getRootSymbol(edge.id) as TEdgeLine
+      expect(edgeAfterRemove.startAnchor).toBeUndefined()
+
+      await canvas.undo()
+      const restoredEdge = canvas.model.getRootSymbol(edge.id) as TEdgeLine
+      expect(restoredEdge.startAnchor?.symbolId).toBe(shape.id)
+    })
+
+    test("replaceSymbols: replacing a connected shape (new id) clears the edge's anchor", async () => {
+      const canvas = await buildCanvasWithMocks()
+      const shape = ShapePolygonOps.create([
+        { x: 0, y: 0 },
+        { x: 10, y: 0 },
+        { x: 10, y: 10 },
+      ])
+      const newShape = ShapePolygonOps.create([
+        { x: 0, y: 0 },
+        { x: 20, y: 0 },
+        { x: 20, y: 20 },
+      ])
+      const edge = EdgeLineOps.create({ x: -10, y: 5 }, { x: 0, y: 5 })
+      edge.startAnchor = { symbolId: shape.id, normalizedX: 0, normalizedY: 0.5 }
+      canvas.model.addSymbol(shape)
+      canvas.model.addSymbol(edge)
+
+      await canvas.replaceSymbols([shape], [newShape])
+      const edgeAfterReplace = canvas.model.getRootSymbol(edge.id) as TEdgeLine
+      expect(edgeAfterReplace.startAnchor).toBeUndefined()
+    })
+
+    test("replaceSymbols: replacing a connected shape with a symbol keeping the same id preserves the edge's anchor", async () => {
+      const canvas = await buildCanvasWithMocks()
+      const shape = ShapePolygonOps.create([
+        { x: 0, y: 0 },
+        { x: 10, y: 0 },
+        { x: 10, y: 10 },
+      ])
+      const newShape = ShapePolygonOps.create([
+        { x: 0, y: 0 },
+        { x: 20, y: 0 },
+        { x: 20, y: 20 },
+      ])
+      newShape.id = shape.id
+      const edge = EdgeLineOps.create({ x: -10, y: 5 }, { x: 0, y: 5 })
+      edge.startAnchor = { symbolId: shape.id, normalizedX: 0, normalizedY: 0.5 }
+      canvas.model.addSymbol(shape)
+      canvas.model.addSymbol(edge)
+
+      await canvas.replaceSymbols([shape], [newShape])
+      const edgeAfterReplace = canvas.model.getRootSymbol(edge.id) as TEdgeLine
+      expect(edgeAfterReplace.startAnchor?.symbolId).toBe(shape.id)
     })
   })
 
