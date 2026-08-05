@@ -4,6 +4,7 @@ import {
   DecoratorKind,
   DecoratorOps,
   EdgeLineOps,
+  IIConnectorManager,
   IITranslateManager,
   OBBOps,
   ShapeCircleOps,
@@ -260,6 +261,38 @@ describe("IITranslateManager.ts", () => {
       await manager.translate([stroke], 0, 50, false)
 
       expect(decorator.baseline).toBe(150)
+    })
+  })
+
+  describe("raw single-anchor edge stroke follows a translated block through the full commit path", () => {
+    test("translate() permanently mutates the connected edge stroke's points (not just a preview clone)", async () => {
+      const canvas = createCanvasMock()
+      // Use the real IIConnectorManager so this exercises updateAnchoredEdges' commit path for
+      // real, not the connector stub — this is what the drag-preview-only test would have missed.
+      // `connector` is readonly on TInteractiveInkCanvas; swap the stub for a real instance
+      // wired to this same canvas mock, mirroring the cast pattern createCanvasMock.ts itself
+      // uses to configure otherwise-readonly/auto-stubbed manager properties for tests.
+      ;(canvas as unknown as { connector: IIConnectorManager }).connector = new IIConnectorManager(asCanvas(canvas))
+      jest.spyOn(canvas.jiix, "getStrokesForElement").mockReturnValue([])
+      const manager = new IITranslateManager(asCanvas(canvas))
+
+      const shape = ShapeCircleOps.create({ x: 50, y: 50 }, 20)
+      canvas.model.addSymbol(shape)
+
+      const edgeStroke = StrokeOps.create()
+      edgeStroke.pointers = [
+        { x: 0, y: 0, t: 0, p: 1 },
+        { x: 10, y: 0, t: 1, p: 1 },
+      ]
+      edgeStroke.jiixBlockType = "Edge"
+      edgeStroke.endAnchor = { symbolId: shape.id, normalizedX: 1, normalizedY: 0.5 }
+      StrokeOps.updateBounds(edgeStroke)
+      canvas.model.addSymbol(edgeStroke)
+
+      await manager.translate([shape], 5, 5, false)
+
+      expect(edgeStroke.pointers[0]).toEqual(expect.objectContaining({ x: 5, y: 5 }))
+      expect(edgeStroke.pointers[1]).toEqual(expect.objectContaining({ x: 15, y: 5 }))
     })
   })
 })

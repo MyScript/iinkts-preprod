@@ -55,6 +55,25 @@ function buildPolyLineWithEndAnchor() {
   return poly
 }
 
+function buildArcWithStartAnchor() {
+  const arc = EdgeArcOps.create({ x: 0, y: 0 }, 0, Math.PI, 10, 10, 0)
+  arc.startAnchor = { symbolId: TARGET_ID, normalizedX: 0, normalizedY: 0.5 }
+  return arc
+}
+
+function buildStrokeWithSingleAnchor(blockId: string) {
+  const stroke = StrokeOps.create()
+  stroke.id = "edge-stroke-1"
+  stroke.pointers = [
+    { x: 0, y: 0, t: 0, p: 1 },
+    { x: 10, y: 0, t: 1, p: 1 },
+  ]
+  stroke.jiixBlockType = "Edge"
+  stroke.endAnchor = { symbolId: blockId, normalizedX: 1, normalizedY: 0.5 }
+  StrokeOps.updateBounds(stroke)
+  return stroke
+}
+
 function setupSymbols(mock: ReturnType<typeof createCanvasMock>, symbols: unknown[]) {
   Object.defineProperty(mock.model, "symbols", {
     get: () => [...symbols],
@@ -266,6 +285,19 @@ describe("IIConnectorManager", () => {
 
       expect(updateSpy).not.toHaveBeenCalled()
       expect(mock.renderer.drawSymbol).not.toHaveBeenCalled()
+    })
+  })
+
+  describe("updateAnchoredEdges — arc reprojection", () => {
+    test("arc with startAnchor for a moved shape recomputes startAngle, keeps end angle fixed", () => {
+      const arc = buildArcWithStartAnchor()
+      const oldEndAngle = arc.startAngle + arc.sweepAngle
+      setupSymbols(mock, [arc])
+
+      manager.updateAnchoredEdges([TARGET_ID])
+
+      expect(arc.startAngle).not.toBe(0)
+      expect(arc.startAngle + arc.sweepAngle).toBeCloseTo(oldEndAngle, 1)
     })
   })
 
@@ -528,6 +560,34 @@ describe("IIConnectorManager", () => {
       setupSymbols(mock, [line])
 
       manager.drawAnchoredEdgesForMatrix(["other-id"], MatrixTransform.identity().translate(10, 0))
+
+      expect(mock.renderer.drawSymbol).not.toHaveBeenCalled()
+    })
+  })
+
+  describe("drawAnchoredEdgesForMatrix — raw stroke rigid follow", () => {
+    test("single-anchor edge stroke targeting a moving block gets every point transformed by the matrix", () => {
+      const stroke = buildStrokeWithSingleAnchor("block-shape-1")
+      setupSymbols(mock, [stroke])
+      jest
+        .spyOn(mock.jiix, "getStrokesForElement")
+        .mockImplementation((id: string) => (id === "block-shape-1" ? ["shape-stroke-1"] : []))
+      const matrix = MatrixTransform.identity().translate(5, 5)
+
+      manager.drawAnchoredEdgesForMatrix(["shape-stroke-1"], matrix)
+
+      const drawnClone = (mock.renderer.drawSymbol as jest.Mock).mock.calls.at(-1)![0] as typeof stroke
+      expect(drawnClone.pointers[0]).toEqual({ x: 5, y: 5, t: 0, p: 1 })
+      expect(drawnClone.pointers[1]).toEqual({ x: 15, y: 5, t: 1, p: 1 })
+    })
+
+    test("dual-anchor edge stroke is never rigid-transformed", () => {
+      const stroke = buildStrokeWithSingleAnchor("block-shape-1")
+      stroke.startAnchor = { symbolId: "block-shape-2", normalizedX: 0, normalizedY: 0.5 }
+      setupSymbols(mock, [stroke])
+      const matrix = MatrixTransform.identity().translate(5, 5)
+
+      manager.drawAnchoredEdgesForMatrix(["shape-stroke-1"], matrix)
 
       expect(mock.renderer.drawSymbol).not.toHaveBeenCalled()
     })
