@@ -7,6 +7,7 @@ import { isValidPoint, type TPoint, type TSegment } from "@/symbol/primitives/Po
 import { SymbolType, type TBaseSymbol } from "@/symbol/Symbol"
 import type { TPartialDeep } from "@/utils"
 import {
+  computeAngleFromPointOnEllipse,
   computeEllipseRadiusAverage,
   computePointOnEllipse,
   findIntersectionBetween2Segment,
@@ -175,4 +176,36 @@ export const EdgeArcOps = {
     }
     return path
   },
+}
+
+function normalizeSweep(rawSweep: number, referenceSweep: number): number {
+  const TWO_PI = Math.PI * 2
+  let sweep = rawSweep % TWO_PI
+  if (referenceSweep >= 0 && sweep < 0) {
+    sweep += TWO_PI
+  }
+  if (referenceSweep < 0 && sweep > 0) {
+    sweep -= TWO_PI
+  }
+  return sweep
+}
+
+/**
+ * Recompute startAngle/sweepAngle so that the given end ("start" or "end") of the arc lands
+ * on targetPoint, keeping center/radiusX/radiusY/phi and the OTHER endpoint's angle fixed.
+ * @group Symbol
+ */
+export function reprojectArcEndpoint(
+  arc: Pick<TEdgeArc, "center" | "radiusX" | "radiusY" | "phi" | "startAngle" | "sweepAngle">,
+  changingEnd: "start" | "end",
+  targetPoint: TPoint
+): { startAngle: number; sweepAngle: number } {
+  const newAngle = computeAngleFromPointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, targetPoint)
+  const oldEndAngle = arc.startAngle + arc.sweepAngle
+  if (changingEnd === "start") {
+    const sweepAngle = normalizeSweep(oldEndAngle - newAngle, arc.sweepAngle)
+    return { startAngle: newAngle, sweepAngle }
+  }
+  const sweepAngle = normalizeSweep(newAngle - arc.startAngle, arc.sweepAngle)
+  return { startAngle: arc.startAngle, sweepAngle }
 }
