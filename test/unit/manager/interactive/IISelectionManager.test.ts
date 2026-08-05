@@ -264,6 +264,80 @@ describe("IISelectionManager.ts", () => {
     })
   })
 
+  describe("expandSelectionForBlocks", () => {
+    test("selecting one stroke of a 3-stroke shape block selects all 3", () => {
+      const canvas = createCanvasMock()
+      const s1 = buildIIStroke()
+      const s2 = buildIIStroke()
+      const s3 = buildIIStroke()
+      s1.jiixBlockId = "shape-block-1"
+      s1.jiixBlockType = "Node"
+      s2.jiixBlockId = "shape-block-1"
+      s2.jiixBlockType = "Node"
+      s3.jiixBlockId = "shape-block-1"
+      s3.jiixBlockType = "Node"
+      canvas.model.addSymbol(s1)
+      canvas.model.addSymbol(s2)
+      canvas.model.addSymbol(s3)
+      canvas.model.selectedIds.add(s1.id)
+      jest.spyOn(canvas.jiix, "getStrokesForElement").mockReturnValue([s1.id, s2.id, s3.id])
+
+      const selector = new IISelectionManager(asCanvas(canvas))
+      selector.expandSelectionForBlocks()
+
+      expect(canvas.model.selectedIds.has(s2.id)).toBe(true)
+      expect(canvas.model.selectedIds.has(s3.id)).toBe(true)
+    })
+
+    test("also expands Edge-type blocks the same way", () => {
+      const canvas = createCanvasMock()
+      const s1 = buildIIStroke()
+      const s2 = buildIIStroke()
+      s1.jiixBlockId = "edge-block-1"
+      s1.jiixBlockType = "Edge"
+      s2.jiixBlockId = "edge-block-1"
+      s2.jiixBlockType = "Edge"
+      canvas.model.addSymbol(s1)
+      canvas.model.addSymbol(s2)
+      canvas.model.selectedIds.add(s1.id)
+      jest.spyOn(canvas.jiix, "getStrokesForElement").mockReturnValue([s1.id, s2.id])
+
+      const selector = new IISelectionManager(asCanvas(canvas))
+      selector.expandSelectionForBlocks()
+
+      expect(canvas.model.selectedIds.has(s2.id)).toBe(true)
+    })
+
+    test("end(): finishing a drag-select over one stroke of a shape block also selects its siblings", () => {
+      const canvas = createCanvasMock()
+      const manager = new IISelectionManager(asCanvas(canvas))
+      const s1 = buildIIStroke({ box: { height: 10, width: 10, x: 10, y: 10 } })
+      const s2 = buildIIStroke({ box: { height: 10, width: 10, x: 100, y: 100 } })
+      const s3 = buildIIStroke({ box: { height: 10, width: 10, x: 200, y: 200 } })
+      s1.jiixBlockId = "shape-block-1"
+      s1.jiixBlockType = "Node"
+      s2.jiixBlockId = "shape-block-1"
+      s2.jiixBlockType = "Node"
+      s3.jiixBlockId = "shape-block-1"
+      s3.jiixBlockType = "Node"
+      canvas.model.addSymbol(s1)
+      canvas.model.addSymbol(s2)
+      canvas.model.addSymbol(s3)
+      // getShapeSelectionGroups defaults to [] (see createCanvasMock), so continue() falls back
+      // to per-stroke bounds overlap: only s1 (under the drag rect) gets selected there. The
+      // sibling pull-in below must come from end()'s own expandSelectionForBlocks() call, not
+      // from continue()'s group-overlap logic.
+      jest.spyOn(canvas.jiix, "getStrokesForElement").mockReturnValue([s1.id, s2.id, s3.id])
+
+      manager.start({ pointer: { x: 10, y: 10 } } as TPointerInfo)
+      manager.end({ pointer: { x: 15, y: 15 } } as TPointerInfo)
+
+      expect(canvas.model.selectedIds.has(s1.id)).toBe(true)
+      expect(canvas.model.selectedIds.has(s2.id)).toBe(true)
+      expect(canvas.model.selectedIds.has(s3.id)).toBe(true)
+    })
+  })
+
   describe("selection rectangle includes ghost bounds", () => {
     function buildMathStroke(jiixBlockId: string): TStroke {
       const stroke = buildIIStroke()

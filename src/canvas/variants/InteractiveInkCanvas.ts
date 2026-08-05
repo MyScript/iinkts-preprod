@@ -1048,6 +1048,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       }
     })
     this.selector.expandSelectionForMathBlocks()
+    this.selector.expandSelectionForBlocks()
     this.selector.drawSelectedGroup(this.model.symbolsSelected)
 
     const selectedMathJiixBlockId = this.selector.getSelectedMathJiixBlockId()
