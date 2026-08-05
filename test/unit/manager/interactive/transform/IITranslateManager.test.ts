@@ -276,10 +276,12 @@ describe("IITranslateManager.ts", () => {
       // wired to this same canvas mock, mirroring the cast pattern createCanvasMock.ts itself
       // uses to configure otherwise-readonly/auto-stubbed manager properties for tests.
       ;(canvas as unknown as { connector: IIConnectorManager }).connector = new IIConnectorManager(asCanvas(canvas))
-      jest.spyOn(canvas.jiix, "getStrokesForElement").mockReturnValue([])
 
       const shape = ShapeCircleOps.create({ x: 50, y: 50 }, 20)
       canvas.model.addSymbol(shape)
+      // The gradient-follow direction resolves the connected block's center via
+      // jiix.getStrokesForElement + model.getRootSymbol — here the "block" is just the shape itself.
+      jest.spyOn(canvas.jiix, "getStrokesForElement").mockImplementation((id) => (id === shape.id ? [shape.id] : []))
 
       const edgeStroke = StrokeOps.create()
       edgeStroke.pointers = [
@@ -307,7 +309,7 @@ describe("IITranslateManager.ts", () => {
       expect(edgeStroke.pointers[1]).toEqual(expect.objectContaining({ x: 15, y: 5 }))
     })
 
-    test("translate() records the followed edge stroke in history so undo restores its points", async () => {
+    test("translate() records the followed edge stroke's pre-transform snapshot in history so undo restores its points", async () => {
       const canvas = createCanvasMock()
       const history = new IIHistoryManager(DefaultHistoryConfiguration, canvas.event)
       ;(canvas as unknown as { history: IIHistoryManager }).history = history
@@ -319,16 +321,67 @@ describe("IITranslateManager.ts", () => {
 
       await manager.translate([shape], 5, 5)
 
-      expect(edgeStroke.pointers[0]).toEqual(expect.objectContaining({ x: 5, y: 5 }))
+      // This connection is gradient-followed (single anchor, shape moving): point[1] (10,0) is
+      // nearest the shape's center (50,50) → full weight; point[0] is farthest → unchanged.
+      expect(edgeStroke.pointers[0]).toEqual(expect.objectContaining({ x: 0, y: 0 }))
+      expect(edgeStroke.pointers[1]).toEqual(expect.objectContaining({ x: 15, y: 5 }))
 
-      // Replay the undo diff the way InteractiveInkCanvas.#applyHistoryChanges does.
+      // Gradient moves aren't uniform, so undo can't just re-apply an inverse matrix — it must
+      // restore the pre-transform snapshot recorded in `changes.updated` instead. Replay the way
+      // InteractiveInkCanvas.#applyHistoryChanges does: `updated` first, then `translate`.
       const undoChanges = history.undo()
+      undoChanges.updated?.newSymbols.forEach((sym) => canvas.model.updateSymbol(sym))
       undoChanges.translate?.forEach((tr) => {
         manager.applyMatrix(tr.symbols, MatrixTransform.identity().translate(tr.tx, tr.ty))
       })
 
-      expect(edgeStroke.pointers[0]).toEqual(expect.objectContaining({ x: pointersBefore[0].x, y: pointersBefore[0].y }))
-      expect(edgeStroke.pointers[1]).toEqual(expect.objectContaining({ x: pointersBefore[1].x, y: pointersBefore[1].y }))
+      const restoredEdgeStroke = canvas.model.getRootSymbol(edgeStroke.id) as typeof edgeStroke
+      expect(restoredEdgeStroke.pointers[0]).toEqual(
+        expect.objectContaining({ x: pointersBefore[0].x, y: pointersBefore[0].y })
+      )
+      expect(restoredEdgeStroke.pointers[1]).toEqual(
+        expect.objectContaining({ x: pointersBefore[1].x, y: pointersBefore[1].y })
+      )
+    })
+
+    test("translate() moving a shape with a converted, anchored edge is undo-safe (the originally reported bug)", async () => {
+      // Reproduces the exact scenario reported: move a shape connected to an already-converted
+      // (anchored) edge, then undo — the shape must go back AND the edge must go back with it.
+      const canvas = createCanvasMock()
+      ;(canvas as unknown as { connector: IIConnectorManager }).connector = new IIConnectorManager(asCanvas(canvas))
+      const history = new IIHistoryManager(DefaultHistoryConfiguration, canvas.event)
+      ;(canvas as unknown as { history: IIHistoryManager }).history = history
+      const manager = new IITranslateManager(asCanvas(canvas))
+
+      const shape = ShapeCircleOps.create({ x: 50, y: 50 }, 20)
+      canvas.model.addSymbol(shape)
+
+      const edge = EdgeLineOps.create({ x: 0, y: 0 }, { x: 100, y: 100 })
+      edge.endAnchor = { symbolId: shape.id, normalizedX: 0.5, normalizedY: 0.5 }
+      canvas.model.addSymbol(edge)
+
+      history.init(canvas.model)
+      canvas.model.selectedIds.add(shape.id)
+      const endBefore = { ...edge.end }
+
+      await manager.translate([shape], 20, 20)
+
+      // Anchor recomputed from the shape's new bounds center (70,70), not translated by (20,20).
+      expect(edge.end).toEqual({ x: 70, y: 70 })
+      expect(edge.end).not.toEqual(endBefore)
+
+      // Replay the undo diff the way InteractiveInkCanvas.#applyHistoryChanges does: `updated`
+      // (restores the edge's snapshot directly) then `translate` (inverse-translates the shape).
+      const undoChanges = history.undo()
+      undoChanges.updated?.newSymbols.forEach((sym) => canvas.model.updateSymbol(sym))
+      undoChanges.translate?.forEach((tr) => {
+        manager.applyMatrix(tr.symbols, MatrixTransform.identity().translate(tr.tx, tr.ty))
+      })
+
+      const restoredShape = canvas.model.getRootSymbol(shape.id) as typeof shape
+      const restoredEdge = canvas.model.getRootSymbol(edge.id) as typeof edge
+      expect(restoredShape.center).toEqual({ x: 50, y: 50 })
+      expect(restoredEdge.end).toEqual(endBefore)
     })
 
     test("translate() sends the followed edge stroke's id to the backend transform", async () => {
@@ -351,11 +404,13 @@ describe("IITranslateManager.ts", () => {
       // wired to this same canvas mock, mirroring the cast pattern createCanvasMock.ts itself
       // uses to configure otherwise-readonly/auto-stubbed manager properties for tests.
       ;(canvas as unknown as { connector: IIConnectorManager }).connector = new IIConnectorManager(asCanvas(canvas))
-      jest.spyOn(canvas.jiix, "getStrokesForElement").mockReturnValue([])
       const manager = new IITranslateManager(asCanvas(canvas))
 
       const shape = ShapeCircleOps.create({ x: 50, y: 50 }, 20)
       canvas.model.addSymbol(shape)
+      // The gradient-follow direction resolves the connected block's center via
+      // jiix.getStrokesForElement + model.getRootSymbol — here the "block" is just the shape itself.
+      jest.spyOn(canvas.jiix, "getStrokesForElement").mockImplementation((id) => (id === shape.id ? [shape.id] : []))
 
       const edgeStroke = StrokeOps.create()
       edgeStroke.pointers = [
@@ -369,7 +424,8 @@ describe("IITranslateManager.ts", () => {
 
       await manager.translate([shape], 5, 5, false)
 
-      expect(edgeStroke.pointers[0]).toEqual(expect.objectContaining({ x: 5, y: 5 }))
+      // point[1] (10,0) is nearest the shape's center (50,50) → full weight; point[0] is farthest.
+      expect(edgeStroke.pointers[0]).toEqual(expect.objectContaining({ x: 0, y: 0 }))
       expect(edgeStroke.pointers[1]).toEqual(expect.objectContaining({ x: 15, y: 5 }))
     })
   })

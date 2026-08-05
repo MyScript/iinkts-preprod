@@ -1,12 +1,13 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import { ResizeDirection } from "@/Constants"
+import type { TIIHistoryChanges } from "@/history"
 import type { TBox, TEdge, TMath, TPoint, TShape, TStroke, TText } from "@/symbol"
 import { cloneSymbol, EdgeKind, isMath, isText, ShapeKind } from "@/symbol"
 import { EdgeOps } from "@/symbol/edge/Edge"
 import { MathOps } from "@/symbol/math/Math"
 import { BoxOps } from "@/symbol/primitives/Box"
 import { ShapeOps } from "@/symbol/shape/Shape"
-import { StrokeOps } from "@/symbol/stroke/Stroke"
+import { isStroke, StrokeOps } from "@/symbol/stroke/Stroke"
 import { TextOps } from "@/symbol/text/Text"
 import { MatrixTransform } from "@/transform"
 
@@ -283,10 +284,11 @@ export class IIResizeManager extends IIAbstractTransformManager {
     const matrix = MatrixTransform.identity().scale(scaleX, scaleY, this.transformOrigin)
     this.applyAndDraw(this.model.symbolsSelected, matrix)
     this.applyTransformToGhostStrokesForSelectedMath(this.model.symbolsSelected, matrix)
-    this.canvas.connector.updateAnchoredEdges(
-      this.model.symbolsSelected.map((s) => s.id),
-      matrix
-    )
+    const { oldSymbols: anchoredOldSymbols, newSymbols: anchoredNewSymbols } =
+      this.canvas.connector.updateAnchoredEdges(
+        this.model.symbolsSelected.map((s) => s.id),
+        matrix
+      )
     const strokesFromSymbols = this.canvas.extractStrokesFromSymbols(this.model.symbolsSelected)
     await this.canvas.client.transformScale(
       [...new Set([...strokesFromSymbols.map((s) => s.id), ...followedStrokeIds])],
@@ -295,7 +297,7 @@ export class IIResizeManager extends IIAbstractTransformManager {
       this.transformOrigin.x,
       this.transformOrigin.y
     )
-    this.canvas.history.push({
+    const changes: TIIHistoryChanges = {
       scale: [
         {
           symbols: oldSymbols,
@@ -304,7 +306,17 @@ export class IIResizeManager extends IIAbstractTransformManager {
           scaleY,
         },
       ],
-    })
+    }
+    // Converted Line/PolyEdge/Arc anchors are recomputed from the target's new bounds, not
+    // transformed by this scale matrix — the `scale` entry above can't undo them (there's no
+    // inverse-scale to replay), so they need their own pre-mutation snapshot via `updated`.
+    // Raw followed strokes are excluded here — `oldSymbols` above already snapshotted them.
+    const anchoredOldEdges = anchoredOldSymbols.filter((s) => !isStroke(s))
+    const anchoredNewEdges = anchoredNewSymbols.filter((s) => !isStroke(s))
+    if (anchoredNewEdges.length) {
+      changes.updated = { oldSymbols: anchoredOldEdges, newSymbols: anchoredNewEdges }
+    }
+    this.canvas.history.push(changes)
     this.finalizeTransform()
   }
 }
