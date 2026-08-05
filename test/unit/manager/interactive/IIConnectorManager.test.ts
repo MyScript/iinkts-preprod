@@ -563,6 +563,22 @@ describe("IIConnectorManager", () => {
 
       expect(mock.renderer.drawSymbol).not.toHaveBeenCalled()
     })
+
+    test("arc anchored to a non-Shape target is previewed, like the Line/PolyEdge branches and the commit path", () => {
+      // getRootSymbol is mocked to a bare { id, bounds } (not a TShape) — the commit path moves
+      // such an arc, so the preview must too, otherwise the arc only jumps on pointer-up.
+      const arc = buildArcWithStartAnchor()
+      const originalStartAngle = arc.startAngle
+      setupSymbols(mock, [arc])
+
+      manager.drawAnchoredEdgesForMatrix([TARGET_ID], MatrixTransform.identity().translate(10, 5))
+
+      expect(mock.renderer.drawSymbol).toHaveBeenCalledTimes(1)
+      const drawn = (mock.renderer.drawSymbol as jest.Mock).mock.calls[0][0] as typeof arc
+      expect(drawn.startAngle).not.toBe(originalStartAngle)
+      // preview must not mutate the model symbol
+      expect(arc.startAngle).toBe(originalStartAngle)
+    })
   })
 
   describe("drawAnchoredEdgesForMatrix — raw stroke rigid follow", () => {
@@ -589,6 +605,115 @@ describe("IIConnectorManager", () => {
 
       manager.drawAnchoredEdgesForMatrix(["shape-stroke-1"], matrix)
 
+      expect(mock.renderer.drawSymbol).not.toHaveBeenCalled()
+    })
+
+    test("edge stroke that is itself being transformed is not previewed as a follower", () => {
+      const stroke = buildStrokeWithSingleAnchor("block-shape-1")
+      setupSymbols(mock, [stroke])
+      jest
+        .spyOn(mock.jiix, "getStrokesForElement")
+        .mockImplementation((id: string) => (id === "block-shape-1" ? ["shape-stroke-1"] : []))
+      const matrix = MatrixTransform.identity().translate(5, 5)
+
+      // The edge stroke is part of the selection being dragged: the normal direct-transform
+      // path already previews it (CSS transform on its element), so the follow pass must skip it.
+      manager.drawAnchoredEdgesForMatrix(["shape-stroke-1", stroke.id], matrix)
+
+      expect(mock.renderer.drawSymbol).not.toHaveBeenCalled()
+    })
+  })
+
+  describe("updateAnchoredEdges — raw stroke rigid follow (commit path)", () => {
+    test("returns the ids of the edge strokes it mutated", () => {
+      const stroke = buildStrokeWithSingleAnchor("block-shape-1")
+      setupSymbols(mock, [stroke])
+      jest
+        .spyOn(mock.jiix, "getStrokesForElement")
+        .mockImplementation((id: string) => (id === "block-shape-1" ? ["shape-stroke-1"] : []))
+
+      const followed = manager.updateAnchoredEdges(["shape-stroke-1"], MatrixTransform.identity().translate(5, 5))
+
+      expect(followed).toEqual([stroke.id])
+      expect(stroke.pointers[0]).toEqual(expect.objectContaining({ x: 5, y: 5 }))
+    })
+
+    test("edge stroke that is itself being transformed is neither followed nor reported", () => {
+      const stroke = buildStrokeWithSingleAnchor("block-shape-1")
+      setupSymbols(mock, [stroke])
+      jest
+        .spyOn(mock.jiix, "getStrokesForElement")
+        .mockImplementation((id: string) => (id === "block-shape-1" ? ["shape-stroke-1"] : []))
+
+      const followed = manager.updateAnchoredEdges(
+        ["shape-stroke-1", stroke.id],
+        MatrixTransform.identity().translate(5, 5)
+      )
+
+      expect(followed).toEqual([])
+      // Untouched by the follow pass — the caller's own transform path owns this stroke.
+      expect(stroke.pointers[0]).toEqual(expect.objectContaining({ x: 0, y: 0 }))
+      expect(stroke.pointers[1]).toEqual(expect.objectContaining({ x: 10, y: 0 }))
+    })
+
+    test("getFollowedStrokeIds reports followers without mutating them", () => {
+      const stroke = buildStrokeWithSingleAnchor("block-shape-1")
+      setupSymbols(mock, [stroke])
+      jest
+        .spyOn(mock.jiix, "getStrokesForElement")
+        .mockImplementation((id: string) => (id === "block-shape-1" ? ["shape-stroke-1"] : []))
+
+      expect(manager.getFollowedStrokeIds(["shape-stroke-1"])).toEqual([stroke.id])
+      expect(manager.getFollowedStrokeIds(["shape-stroke-1", stroke.id])).toEqual([])
+      expect(manager.getFollowedStrokeIds([])).toEqual([])
+      expect(stroke.pointers[0]).toEqual(expect.objectContaining({ x: 0, y: 0 }))
+    })
+  })
+
+  describe("clearAnchoredEdgesFor", () => {
+    test("detaches an anchored line edge that is itself transformed", () => {
+      const line = buildLineWithStartAnchor()
+      const updateSpy = jest.spyOn(mock.model, "updateSymbol")
+
+      manager.clearAnchoredEdgesFor([line])
+
+      expect(line.startAnchor).toBeUndefined()
+      expect(line.endAnchor).toBeUndefined()
+      expect(updateSpy).toHaveBeenCalledWith(line)
+      expect(mock.renderer.drawSymbol).toHaveBeenCalledWith(line)
+    })
+
+    test("detaches an anchored polyline edge that is itself transformed", () => {
+      const poly = buildPolyLineWithEndAnchor()
+      const updateSpy = jest.spyOn(mock.model, "updateSymbol")
+
+      manager.clearAnchoredEdgesFor([poly])
+
+      expect(poly.startAnchor).toBeUndefined()
+      expect(poly.endAnchor).toBeUndefined()
+      expect(updateSpy).toHaveBeenCalledWith(poly)
+    })
+
+    test("detaches an anchored arc edge that is itself transformed", () => {
+      const arc = buildArcWithStartAnchor()
+      arc.endAnchor = { symbolId: TARGET_ID, normalizedX: 1, normalizedY: 0.5 }
+      const updateSpy = jest.spyOn(mock.model, "updateSymbol")
+
+      manager.clearAnchoredEdgesFor([arc])
+
+      expect(arc.startAnchor).toBeUndefined()
+      expect(arc.endAnchor).toBeUndefined()
+      expect(updateSpy).toHaveBeenCalledWith(arc)
+      expect(mock.renderer.drawSymbol).toHaveBeenCalledWith(arc)
+    })
+
+    test("leaves an edge without anchors untouched", () => {
+      const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 10, y: 10 })
+      const updateSpy = jest.spyOn(mock.model, "updateSymbol")
+
+      manager.clearAnchoredEdgesFor([line])
+
+      expect(updateSpy).not.toHaveBeenCalled()
       expect(mock.renderer.drawSymbol).not.toHaveBeenCalled()
     })
   })

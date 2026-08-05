@@ -164,7 +164,6 @@ export const BoxOps = {
     return true
   },
 
-
   /**
    * Closest point on the box's boundary to the given point.
    * If the point is outside, this is the clamp of the point onto the box.
@@ -173,8 +172,7 @@ export const BoxOps = {
   nearestBoundaryPoint(box: TBox, point: TPoint): TPoint {
     const clampedX = Math.max(box.x, Math.min(box.x + box.width, point.x))
     const clampedY = Math.max(box.y, Math.min(box.y + box.height, point.y))
-    const isInside =
-      point.x > box.x && point.x < box.x + box.width && point.y > box.y && point.y < box.y + box.height
+    const isInside = point.x > box.x && point.x < box.x + box.width && point.y > box.y && point.y < box.y + box.height
     if (!isInside) {
       return { x: clampedX, y: clampedY }
     }

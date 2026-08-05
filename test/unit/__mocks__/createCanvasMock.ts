@@ -250,7 +250,16 @@ export function createCanvasMock(overrides: Partial<TCanvasMock> = {}): TCanvasM
           .mockReturnValue({ showDependencyOnHover: false, highlightOnSelect: false })
         return m
       })(),
-    connector: overrides.connector ?? stubManager(),
+    connector:
+      overrides.connector ??
+      (() => {
+        const c = stubManager()
+        // Both return the ids of the pre-convert edge strokes that follow a transform; callers
+        // spread the result, so the stub must hand back an array, not the auto-stub's undefined.
+        ;(c as unknown as Record<string, unknown>).updateAnchoredEdges = jest.fn().mockReturnValue([])
+        ;(c as unknown as Record<string, unknown>).getFollowedStrokeIds = jest.fn().mockReturnValue([])
+        return c
+      })(),
     menu:
       overrides.menu ??
       (() => {
