@@ -1,6 +1,6 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import { LoggerCategory } from "@/logger"
-import type { TEdge, TPoint, TShape, TSymbol } from "@/symbol"
+import type { TEdge, TPoint, TShape, TStroke, TSymbol } from "@/symbol"
 import type { TAnchor } from "@/symbol/edge/Anchor"
 import { computeNormalizedAnchor, resolveAnchorPoint } from "@/symbol/edge/Anchor"
 import { EdgeArcOps, reprojectArcEndpoint } from "@/symbol/edge/Arc"
@@ -247,10 +247,13 @@ export class IIConnectorManager extends IIAbstractManager {
       if (EdgeOps.isEdge(symbol) && EdgeOps.isArcEdge(symbol)) {
         let clone = symbol
         let changed = false
+        // No `isShape` filter on the target here: neither the Line/PolyEdge preview branches
+        // below nor the commit path (resolveAndUpdateAnchor) apply one, and a preview that
+        // skips what the commit path moves makes the arc jump on pointer-up.
         if (symbol.startAnchor && idSet.has(symbol.startAnchor.symbolId)) {
           const targetSymbol = this.model.getRootSymbol(symbol.startAnchor.symbolId)
-          if (targetSymbol && ShapeOps.isShape(targetSymbol)) {
-            const box = OBBOps.toBox((targetSymbol as { bounds: TOBB }).bounds)
+          if (targetSymbol) {
+            const box = OBBOps.toBox((targetSymbol as unknown as { bounds: TOBB }).bounds)
             const point = matrix.applyToPoint(resolveAnchorPoint(symbol.startAnchor!, box))
             clone = { ...clone, ...reprojectArcEndpoint(clone, "start", point) }
             changed = true
@@ -258,8 +261,8 @@ export class IIConnectorManager extends IIAbstractManager {
         }
         if (symbol.endAnchor && idSet.has(symbol.endAnchor.symbolId)) {
           const targetSymbol = this.model.getRootSymbol(symbol.endAnchor.symbolId)
-          if (targetSymbol && ShapeOps.isShape(targetSymbol)) {
-            const box = OBBOps.toBox((targetSymbol as { bounds: TOBB }).bounds)
+          if (targetSymbol) {
+            const box = OBBOps.toBox((targetSymbol as unknown as { bounds: TOBB }).bounds)
             const point = matrix.applyToPoint(resolveAnchorPoint(symbol.endAnchor!, box))
             clone = { ...clone, ...reprojectArcEndpoint(clone, "end", point) }
             changed = true
@@ -439,13 +442,14 @@ export class IIConnectorManager extends IIAbstractManager {
   /**
    * Clear anchors from any edges in `symbols` that are being directly translated.
    * An anchored edge that the user explicitly moves becomes a free edge.
+   * Covers all three anchor-carrying edge kinds (Line, PolyLine, Arc).
    */
   clearAnchoredEdgesFor(symbols: TSymbol[]): void {
     symbols.forEach((symbol) => {
       if (!EdgeOps.isEdge(symbol)) {
         return
       }
-      if (!EdgeOps.isLineEdge(symbol) && !EdgeOps.isPolyEdge(symbol)) {
+      if (!EdgeOps.isLineEdge(symbol) && !EdgeOps.isPolyEdge(symbol) && !EdgeOps.isArcEdge(symbol)) {
         return
       }
       if (!symbol.startAnchor && !symbol.endAnchor) {
@@ -453,11 +457,7 @@ export class IIConnectorManager extends IIAbstractManager {
       }
       symbol.startAnchor = undefined
       symbol.endAnchor = undefined
-      if (EdgeOps.isLineEdge(symbol)) {
-        EdgeLineOps.updateDerivedFields(symbol)
-      } else {
-        EdgePolyLineOps.updateDerivedFields(symbol)
-      }
+      EdgeOps.updateEdgeDerivedFields(symbol)
       this.model.updateSymbol(symbol)
       this.canvas.renderer.drawSymbol(symbol)
     })
@@ -468,10 +468,16 @@ export class IIConnectorManager extends IIAbstractManager {
    * Called by transform managers after translate / resize / rotate.
    * Pass `matrix` and `preTransformBoundsById` when called from rotation so that
    * anchor resolution uses the pre-transform AABB rather than the post-rotation AABB.
+   * @returns ids of the pre-convert edge strokes rigidly moved by this call — callers must add
+   * them to their history entry and to their backend transform message.
    */
-  updateAnchoredEdges(symbolIds: string[], matrix?: MatrixTransform, preTransformBoundsById?: Map<string, TOBB>): void {
+  updateAnchoredEdges(
+    symbolIds: string[],
+    matrix?: MatrixTransform,
+    preTransformBoundsById?: Map<string, TOBB>
+  ): string[] {
     if (symbolIds.length === 0) {
-      return
+      return []
     }
     this.logger.info("updateAnchoredEdges", {
       symbolIds,
@@ -559,31 +565,54 @@ export class IIConnectorManager extends IIAbstractManager {
     // Raw-stroke rigid-follow only has a transform to apply when the caller supplies one —
     // Arc/Line/PolyEdge branches above don't need it (they reproject from the target's
     // already-updated model bounds), but freehand strokes have no per-point anchor formula.
-    if (matrix) {
-      this.#followConnectedStrokes(idSet, matrix, /* commit */ true)
-    }
+    return matrix ? this.#followConnectedStrokes(idSet, matrix, /* commit */ true) : []
   }
 
   /**
-   * Pre-convert rigid-follow: a raw ink stroke classified as an Edge, anchored to exactly one
-   * shape block, gets every point transformed by the same matrix when that block is moving.
+   * Ids of the pre-convert edge strokes that would rigidly follow a transform of `symbolIds`.
+   * Read-only counterpart of the follow pass, for transform managers that need the list *before*
+   * mutating anything (history snapshots, backend stroke ids).
+   */
+  getFollowedStrokeIds(symbolIds: string[]): string[] {
+    if (symbolIds.length === 0) {
+      return []
+    }
+    return this.#collectFollowedStrokes(new Set(symbolIds)).map((s) => s.id)
+  }
+
+  /**
+   * Single source of truth for the pre-convert follow predicate: a raw ink stroke classified as
+   * an Edge, anchored to exactly one shape block that is part of the moving set.
    * Dual-anchor edge strokes are skipped — independent per-endpoint repositioning isn't possible
    * on freehand ink without warping; they wait for Convert.
+   * Strokes already in `idSet` are skipped too: the caller's own transform path owns them, and
+   * following them as well would apply the matrix twice.
    */
-  #followConnectedStrokes(idSet: Set<string>, matrix: MatrixTransform, commit: boolean): void {
-    this.model.symbols.forEach((symbol) => {
+  #collectFollowedStrokes(idSet: Set<string>): TStroke[] {
+    return this.model.symbols.filter((symbol): symbol is TStroke => {
       if (!isStroke(symbol) || symbol.jiixBlockType !== "Edge") {
-        return
+        return false
+      }
+      if (idSet.has(symbol.id)) {
+        return false
       }
       const anchor = symbol.startAnchor ?? symbol.endAnchor
       if (!anchor || (symbol.startAnchor && symbol.endAnchor)) {
-        return
+        return false
       }
       const blockStrokeIds = this.canvas.jiix.getStrokesForElement(anchor.symbolId)
-      const isMoving = blockStrokeIds.some((id) => idSet.has(id)) || idSet.has(anchor.symbolId)
-      if (!isMoving) {
-        return
-      }
+      return blockStrokeIds.some((id) => idSet.has(id)) || idSet.has(anchor.symbolId)
+    })
+  }
+
+  /**
+   * Pre-convert rigid-follow: every point of each followed edge stroke gets the same matrix as
+   * the block it is anchored to.
+   * @returns the ids of the strokes mutated in the model (empty for the preview pass).
+   */
+  #followConnectedStrokes(idSet: Set<string>, matrix: MatrixTransform, commit: boolean): string[] {
+    const followed = this.#collectFollowedStrokes(idSet)
+    followed.forEach((symbol) => {
       if (commit) {
         this.applyMatrixToPoints(symbol.pointers, matrix)
         StrokeOps.updateBounds(symbol)
@@ -600,6 +629,7 @@ export class IIConnectorManager extends IIAbstractManager {
         this.canvas.renderer.drawSymbol(clone)
       }
     })
+    return commit ? followed.map((s) => s.id) : []
   }
 
   private applyMatrixToPoints(points: TPointer[], matrix: MatrixTransform): void {

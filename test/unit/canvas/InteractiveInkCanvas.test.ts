@@ -512,6 +512,68 @@ describe("CanvasOffscreen.ts", () => {
       expect(restoredEdge.startAnchor?.symbolId).toBe(shape.id)
     })
 
+    test("removeSymbols: erasing a pre-convert shape stroke clears the connected edge stroke's block anchor", async () => {
+      const canvas = await buildCanvasWithMocks()
+      // Pre-convert: the anchor targets a JIIX block id, not a real symbol id.
+      const shapeStroke = buildIIStroke()
+      shapeStroke.jiixBlockType = "Node"
+      shapeStroke.jiixBlockId = "block-shape-1"
+      const edgeStroke = buildIIStroke()
+      edgeStroke.jiixBlockType = "Edge"
+      edgeStroke.jiixBlockId = "block-edge-1"
+      edgeStroke.endAnchor = { symbolId: "block-shape-1", normalizedX: 1, normalizedY: 0.5 }
+      canvas.model.addSymbol(shapeStroke)
+      canvas.model.addSymbol(edgeStroke)
+
+      await canvas.removeSymbols([shapeStroke.id])
+
+      const edgeAfterRemove = canvas.model.getRootSymbol(edgeStroke.id) as TStroke
+      expect(edgeAfterRemove.endAnchor).toBeUndefined()
+
+      await canvas.undo()
+      const restoredEdge = canvas.model.getRootSymbol(edgeStroke.id) as TStroke
+      expect(restoredEdge.endAnchor?.symbolId).toBe("block-shape-1")
+    })
+
+    test("removeSymbol: erasing a pre-convert shape stroke clears the connected edge stroke's block anchor", async () => {
+      const canvas = await buildCanvasWithMocks()
+      const shapeStroke = buildIIStroke()
+      shapeStroke.jiixBlockType = "Node"
+      shapeStroke.jiixBlockId = "block-shape-2"
+      const edgeStroke = buildIIStroke()
+      edgeStroke.jiixBlockType = "Edge"
+      edgeStroke.startAnchor = { symbolId: "block-shape-2", normalizedX: 0, normalizedY: 0.5 }
+      canvas.model.addSymbol(shapeStroke)
+      canvas.model.addSymbol(edgeStroke)
+
+      await canvas.removeSymbol(shapeStroke.id)
+
+      const edgeAfterRemove = canvas.model.getRootSymbol(edgeStroke.id) as TStroke
+      expect(edgeAfterRemove.startAnchor).toBeUndefined()
+    })
+
+    test("replaceSymbols: converting a pre-convert shape stroke clears the connected edge stroke's block anchor", async () => {
+      const canvas = await buildCanvasWithMocks()
+      const shapeStroke = buildIIStroke()
+      shapeStroke.jiixBlockType = "Node"
+      shapeStroke.jiixBlockId = "block-shape-3"
+      const edgeStroke = buildIIStroke()
+      edgeStroke.jiixBlockType = "Edge"
+      edgeStroke.endAnchor = { symbolId: "block-shape-3", normalizedX: 1, normalizedY: 0.5 }
+      canvas.model.addSymbol(shapeStroke)
+      canvas.model.addSymbol(edgeStroke)
+      const newShape = ShapePolygonOps.create([
+        { x: 0, y: 0 },
+        { x: 20, y: 0 },
+        { x: 20, y: 20 },
+      ])
+
+      await canvas.replaceSymbols([shapeStroke], [newShape])
+
+      const edgeAfterReplace = canvas.model.getRootSymbol(edgeStroke.id) as TStroke
+      expect(edgeAfterReplace.endAnchor).toBeUndefined()
+    })
+
     test("replaceSymbols: replacing a connected shape (new id) clears the edge's anchor", async () => {
       const canvas = await buildCanvasWithMocks()
       const shape = ShapePolygonOps.create([

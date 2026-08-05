@@ -3,8 +3,10 @@ import { buildIIStroke } from "../../../helpers"
 import {
   DecoratorKind,
   DecoratorOps,
+  DefaultHistoryConfiguration,
   EdgeLineOps,
   IIConnectorManager,
+  IIHistoryManager,
   IITranslateManager,
   OBBOps,
   ShapeCircleOps,
@@ -265,6 +267,82 @@ describe("IITranslateManager.ts", () => {
   })
 
   describe("raw single-anchor edge stroke follows a translated block through the full commit path", () => {
+    /**
+     * Wires a real IIConnectorManager (the stub would no-op) plus a shape and a raw Edge stroke
+     * anchored to it, so the follow-on-transform commit path runs for real.
+     */
+    function setupShapeWithConnectedEdgeStroke(canvas: ReturnType<typeof createCanvasMock>) {
+      // `connector` is readonly on TInteractiveInkCanvas; swap the stub for a real instance
+      // wired to this same canvas mock, mirroring the cast pattern createCanvasMock.ts itself
+      // uses to configure otherwise-readonly/auto-stubbed manager properties for tests.
+      ;(canvas as unknown as { connector: IIConnectorManager }).connector = new IIConnectorManager(asCanvas(canvas))
+      jest.spyOn(canvas.jiix, "getStrokesForElement").mockReturnValue([])
+
+      const shape = ShapeCircleOps.create({ x: 50, y: 50 }, 20)
+      canvas.model.addSymbol(shape)
+
+      const edgeStroke = StrokeOps.create()
+      edgeStroke.pointers = [
+        { x: 0, y: 0, t: 0, p: 1 },
+        { x: 10, y: 0, t: 1, p: 1 },
+      ]
+      edgeStroke.jiixBlockType = "Edge"
+      edgeStroke.endAnchor = { symbolId: shape.id, normalizedX: 1, normalizedY: 0.5 }
+      StrokeOps.updateBounds(edgeStroke)
+      canvas.model.addSymbol(edgeStroke)
+
+      return { shape, edgeStroke }
+    }
+
+    test("translate() applies the matrix ONCE when the edge stroke is selected together with its shape", async () => {
+      const canvas = createCanvasMock()
+      const manager = new IITranslateManager(asCanvas(canvas))
+      const { shape, edgeStroke } = setupShapeWithConnectedEdgeStroke(canvas)
+
+      // Both symbols dragged together: the direct-transform path owns the edge stroke, so the
+      // rigid-follow pass must not apply the same matrix a second time.
+      await manager.translate([shape, edgeStroke], 5, 5, false)
+
+      expect(edgeStroke.pointers[0]).toEqual(expect.objectContaining({ x: 5, y: 5 }))
+      expect(edgeStroke.pointers[1]).toEqual(expect.objectContaining({ x: 15, y: 5 }))
+    })
+
+    test("translate() records the followed edge stroke in history so undo restores its points", async () => {
+      const canvas = createCanvasMock()
+      const history = new IIHistoryManager(DefaultHistoryConfiguration, canvas.event)
+      ;(canvas as unknown as { history: IIHistoryManager }).history = history
+      const manager = new IITranslateManager(asCanvas(canvas))
+      const { shape, edgeStroke } = setupShapeWithConnectedEdgeStroke(canvas)
+      history.init(canvas.model)
+      canvas.model.selectedIds.add(shape.id)
+      const pointersBefore = edgeStroke.pointers.map((p) => ({ ...p }))
+
+      await manager.translate([shape], 5, 5)
+
+      expect(edgeStroke.pointers[0]).toEqual(expect.objectContaining({ x: 5, y: 5 }))
+
+      // Replay the undo diff the way InteractiveInkCanvas.#applyHistoryChanges does.
+      const undoChanges = history.undo()
+      undoChanges.translate?.forEach((tr) => {
+        manager.applyMatrix(tr.symbols, MatrixTransform.identity().translate(tr.tx, tr.ty))
+      })
+
+      expect(edgeStroke.pointers[0]).toEqual(expect.objectContaining({ x: pointersBefore[0].x, y: pointersBefore[0].y }))
+      expect(edgeStroke.pointers[1]).toEqual(expect.objectContaining({ x: pointersBefore[1].x, y: pointersBefore[1].y }))
+    })
+
+    test("translate() sends the followed edge stroke's id to the backend transform", async () => {
+      const canvas = createCanvasMock()
+      canvas.client.transformTranslate = jest.fn(() => Promise.resolve())
+      const manager = new IITranslateManager(asCanvas(canvas))
+      const { shape, edgeStroke } = setupShapeWithConnectedEdgeStroke(canvas)
+
+      await manager.translate([shape], 5, 5, false)
+
+      const sentIds = (canvas.client.transformTranslate as jest.Mock).mock.calls[0][0] as string[]
+      expect(sentIds).toContain(edgeStroke.id)
+    })
+
     test("translate() permanently mutates the connected edge stroke's points (not just a preview clone)", async () => {
       const canvas = createCanvasMock()
       // Use the real IIConnectorManager so this exercises updateAnchoredEdges' commit path for

@@ -110,15 +110,17 @@ export class IITranslateManager extends IIAbstractTransformManager {
     const matrix = MatrixTransform.identity().translate(tx, ty)
     this.applyAndDraw(symbols, matrix)
     this.applyTransformToGhostStrokesForSelectedMath(symbols, matrix)
-    this.canvas.connector.updateAnchoredEdges(
+    // Pre-convert edge strokes moved by the connector, not by applyAndDraw above.
+    const followedStrokeIds = this.canvas.connector.updateAnchoredEdges(
       symbols.map((s) => s.id),
       matrix
     )
     if (addToHistory) {
+      const historySymbols = this.model.symbolsSelected
       this.canvas.history.push({
         translate: [
           {
-            symbols: this.model.symbolsSelected,
+            symbols: [...historySymbols, ...this.resolveFollowedSymbols(followedStrokeIds, historySymbols)],
             tx,
             ty,
           },
@@ -127,7 +129,7 @@ export class IITranslateManager extends IIAbstractTransformManager {
     }
     const strokes = this.canvas.extractStrokesFromSymbols(symbols)
     return this.canvas.client.transformTranslate(
-      strokes.map((s) => s.id),
+      [...new Set([...strokes.map((s) => s.id), ...followedStrokeIds])],
       tx,
       ty
     )

@@ -14,6 +14,7 @@ import {
   SvgElementRole,
   TSymbolChar,
   TPoint,
+  TStroke,
   TextOps,
   MatrixTransform,
   OBBOps,
@@ -491,6 +492,54 @@ describe("IIResizeManager.ts", () => {
       })
       expect(edgeStroke.pointers).toEqual(expectedPointers)
       expect(edgeStroke.pointers).not.toEqual(originalPointers)
+    })
+
+    test("end() sends the followed edge stroke to the backend and snapshots it in history", async () => {
+      const canvas = createCanvasMock()
+      ;(canvas as unknown as { connector: IIConnectorManager }).connector = new IIConnectorManager(asCanvas(canvas))
+      jest.spyOn(canvas.jiix, "getStrokesForElement").mockReturnValue([])
+      canvas.client.transformScale = jest.fn(() => Promise.resolve())
+      const manager = new IIResizeManager(asCanvas(canvas))
+
+      const shape = ShapeCircleOps.create({ x: 50, y: 50 }, 20)
+      canvas.model.addSymbol(shape)
+      canvas.model.selectedIds.add(shape.id)
+
+      const edgeStroke = StrokeOps.create()
+      edgeStroke.pointers = [
+        { x: 0, y: 0, t: 0, p: 1 },
+        { x: 10, y: 0, t: 1, p: 1 },
+      ]
+      edgeStroke.jiixBlockType = "Edge"
+      edgeStroke.endAnchor = { symbolId: shape.id, normalizedX: 1, normalizedY: 0.5 }
+      StrokeOps.updateBounds(edgeStroke)
+      canvas.model.addSymbol(edgeStroke)
+      const originalPointers = edgeStroke.pointers.map((p) => ({ ...p }))
+
+      const sb = OBBOps.toBox(shape.bounds)
+      const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
+      group.setAttribute("role", SvgElementRole.InteractElementsGroup)
+      const resizeElement = document.createElementNS("http://www.w3.org/2000/svg", "line")
+      resizeElement.setAttribute("resize-direction", ResizeDirection.East)
+      group.appendChild(resizeElement)
+
+      const transformOrigin: TPoint = { x: sb.x, y: sb.y + shape.bounds.height / 2 }
+      const resizeToPoint: TPoint = { x: sb.x + shape.bounds.width * 2, y: sb.y + shape.bounds.height / 2 }
+
+      manager.start(resizeElement, transformOrigin)
+      await manager.end(resizeToPoint)
+
+      // Server must scale that ink too, or its recognition of the connection drifts from ours.
+      const sentIds = (canvas.client.transformScale as jest.Mock).mock.calls[0][0] as string[]
+      expect(sentIds).toContain(edgeStroke.id)
+
+      // History needs a PRE-transform snapshot of the followed stroke, else undo can't restore it.
+      const changes = (canvas.history.push as jest.Mock).mock.calls[0][0] as {
+        scale: { symbols: TStroke[] }[]
+      }
+      const snapshot = changes.scale[0].symbols.find((s) => s.id === edgeStroke.id)
+      expect(snapshot).toBeDefined()
+      expect(snapshot!.pointers).toEqual(originalPointers)
     })
   })
 })

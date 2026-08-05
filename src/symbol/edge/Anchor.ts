@@ -77,12 +77,12 @@ export function resolveConnectionAnchors(
 
   const boxCenter = (box: TBox): TPoint => ({ x: box.x + box.width / 2, y: box.y + box.height / 2 })
 
-  type Slot = { key: "start" | "end"; point: TPoint }
-  let remainingSlots: Slot[] = [
+  type TSlot = { key: "start" | "end"; point: TPoint }
+  let remainingSlots: TSlot[] = [
     { key: "start", point: ownStart },
     { key: "end", point: ownEnd },
   ]
-  let remainingConnections = [...connections]
+  const remainingConnections = [...connections]
   const anchors: { startAnchor?: TAnchor; endAnchor?: TAnchor } = {}
 
   const pickGlobalBestPair = (): { slotIndex: number; connectionIndex: number } | undefined => {

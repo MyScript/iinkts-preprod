@@ -1,7 +1,7 @@
 import type { TStyle } from "@/style"
 import { DefaultStyle } from "@/style"
-import type { TAnchor } from "@/symbol/edge/Anchor"
 import type { DecoratorKind } from "@/symbol/decorator/Decorator"
+import type { TAnchor } from "@/symbol/edge/Anchor"
 import type { TBox } from "@/symbol/primitives/Box"
 import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
 import type { TPointer } from "@/symbol/primitives/Point"

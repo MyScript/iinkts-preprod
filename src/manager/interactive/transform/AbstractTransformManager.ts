@@ -81,6 +81,23 @@ export abstract class IIAbstractTransformManager extends IIAbstractManager {
     })
   }
 
+  /**
+   * Live model symbols for the pre-convert edge strokes that rigidly follow a transform
+   * (see IIConnectorManager), minus any already present in `alreadyIncluded`.
+   * They are transformed outside `applyAndDraw`, so history entries and backend transform
+   * messages must list them explicitly or undo and the server's ink both drift out of sync.
+   */
+  protected resolveFollowedSymbols(followedIds: string[], alreadyIncluded: TSymbol[]): TSymbol[] {
+    if (followedIds.length === 0) {
+      return []
+    }
+    const knownIds = new Set(alreadyIncluded.map((s) => s.id))
+    return followedIds
+      .filter((id) => !knownIds.has(id))
+      .map((id) => this.model.getRootSymbol(id))
+      .filter((s): s is TSymbol => !!s)
+  }
+
   protected finalizeTransform(): void {
     this.interactElementsGroup = undefined
     this.canvas.overlays.apply()

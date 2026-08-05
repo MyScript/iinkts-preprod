@@ -2,6 +2,7 @@ import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
 import { buildIIStroke } from "../../../helpers"
 import {
   EdgeLineOps,
+  IIConnectorManager,
   IIRotationManager,
   OBBOps,
   ShapeCircleOps,
@@ -9,6 +10,7 @@ import {
   StrokeOps,
   SvgElementRole,
   TPoint,
+  TStroke,
   computeRotatedPoint,
   convertDegreeToRadian,
   MatrixTransform,
@@ -260,6 +262,56 @@ describe("IIRotationManager.ts", () => {
       await manager.end(computeRotatedPoint(origin, center, Math.PI / 2))
 
       expect(canvas.math.applyTransformToGhostStrokes).toHaveBeenCalledWith("block-1", expect.anything())
+    })
+  })
+
+  describe("raw single-anchor edge stroke follows a rotated block through the full commit path", () => {
+    test("end() sends the followed edge stroke to the backend and snapshots it in history", async () => {
+      const canvas = createCanvasMock()
+      // Real connector: the stub would no-op the rigid-follow commit path entirely.
+      ;(canvas as unknown as { connector: IIConnectorManager }).connector = new IIConnectorManager(asCanvas(canvas))
+      jest.spyOn(canvas.jiix, "getStrokesForElement").mockReturnValue([])
+      canvas.client.transformRotate = jest.fn(() => Promise.resolve())
+      const manager = new IIRotationManager(asCanvas(canvas))
+
+      const shape = ShapeCircleOps.create({ x: 50, y: 50 }, 20)
+      canvas.model.addSymbol(shape)
+      canvas.model.selectedIds.add(shape.id)
+
+      const edgeStroke = StrokeOps.create()
+      edgeStroke.pointers = [
+        { x: 0, y: 0, t: 0, p: 1 },
+        { x: 10, y: 0, t: 1, p: 1 },
+      ]
+      edgeStroke.jiixBlockType = "Edge"
+      edgeStroke.endAnchor = { symbolId: shape.id, normalizedX: 1, normalizedY: 0.5 }
+      StrokeOps.updateBounds(edgeStroke)
+      canvas.model.addSymbol(edgeStroke)
+      const originalPointers = edgeStroke.pointers.map((p) => ({ ...p }))
+
+      const sb = OBBOps.toBox(shape.bounds)
+      const origin: TPoint = { x: sb.x + shape.bounds.width / 2, y: sb.y + shape.bounds.height }
+      const center: TPoint = { x: sb.x + shape.bounds.width / 2, y: sb.y + shape.bounds.height / 2 }
+      const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
+      group.setAttribute("role", SvgElementRole.InteractElementsGroup)
+      const rotateElement = document.createElementNS("http://www.w3.org/2000/svg", "circle")
+      group.appendChild(rotateElement)
+
+      manager.start(rotateElement, origin)
+      await manager.end(computeRotatedPoint(origin, center, Math.PI / 2))
+
+      // The edge stroke really moved with the shape...
+      expect(edgeStroke.pointers).not.toEqual(originalPointers)
+      // ...so the server's copy of that ink must be rotated too...
+      const sentIds = (canvas.client.transformRotate as jest.Mock).mock.calls[0][0] as string[]
+      expect(sentIds).toContain(edgeStroke.id)
+      // ...and history must hold its PRE-rotation snapshot for undo.
+      const changes = (canvas.history.push as jest.Mock).mock.calls[0][0] as {
+        rotate: { symbols: TStroke[] }[]
+      }
+      const snapshot = changes.rotate[0].symbols.find((s) => s.id === edgeStroke.id)
+      expect(snapshot).toBeDefined()
+      expect(snapshot!.pointers).toEqual(originalPointers)
     })
   })
 })
