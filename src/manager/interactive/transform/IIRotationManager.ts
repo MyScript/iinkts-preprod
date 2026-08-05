@@ -1,11 +1,12 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import type { TIIHistoryChanges } from "@/history"
 import type { TEdge, TMath, TPoint, TShape, TStroke, TText } from "@/symbol"
 import { cloneSymbol, EdgeKind, ShapeKind } from "@/symbol"
 import { EdgeOps } from "@/symbol/edge/Edge"
 import { BoxOps } from "@/symbol/primitives/Box"
 import { type TOBB } from "@/symbol/primitives/OBB"
 import { ShapeOps } from "@/symbol/shape/Shape"
-import { StrokeOps } from "@/symbol/stroke/Stroke"
+import { isStroke, StrokeOps } from "@/symbol/stroke/Stroke"
 import { MatrixTransform } from "@/transform"
 import { computeAngleRadian, convertDegreeToRadian, convertRadianToDegree, TWO_PI } from "@/utils"
 
@@ -178,11 +179,12 @@ export class IIRotationManager extends IIAbstractTransformManager {
     })
     this.applyAndDraw(this.model.symbolsSelected, matrix)
     this.applyTransformToGhostStrokesForSelectedMath(this.model.symbolsSelected, matrix)
-    this.canvas.connector.updateAnchoredEdges(
-      this.model.symbolsSelected.map((s) => s.id),
-      matrix,
-      preTransformBoundsById
-    )
+    const { oldSymbols: anchoredOldSymbols, newSymbols: anchoredNewSymbols } =
+      this.canvas.connector.updateAnchoredEdges(
+        this.model.symbolsSelected.map((s) => s.id),
+        matrix,
+        preTransformBoundsById
+      )
     const strokesFromSymbols = this.canvas.extractStrokesFromSymbols(this.model.symbolsSelected)
     await this.canvas.client.transformRotate(
       [...new Set([...strokesFromSymbols.map((s) => s.id), ...followedStrokeIds])],
@@ -190,7 +192,7 @@ export class IIRotationManager extends IIAbstractTransformManager {
       this.center.x,
       this.center.y
     )
-    this.canvas.history.push({
+    const changes: TIIHistoryChanges = {
       rotate: [
         {
           symbols: oldSymbols,
@@ -198,7 +200,17 @@ export class IIRotationManager extends IIAbstractTransformManager {
           center: { ...this.center },
         },
       ],
-    })
+    }
+    // Converted Line/PolyEdge/Arc anchors are recomputed from the target's new bounds, not
+    // transformed by this rotation matrix — the `rotate` entry above can't undo them (there's no
+    // inverse-rotation to replay), so they need their own pre-mutation snapshot via `updated`.
+    // Raw followed strokes are excluded here — `oldSymbols` above already snapshotted them.
+    const anchoredOldEdges = anchoredOldSymbols.filter((s) => !isStroke(s))
+    const anchoredNewEdges = anchoredNewSymbols.filter((s) => !isStroke(s))
+    if (anchoredNewEdges.length) {
+      changes.updated = { oldSymbols: anchoredOldEdges, newSymbols: anchoredNewEdges }
+    }
+    this.canvas.history.push(changes)
     this.finalizeTransform()
   }
 }

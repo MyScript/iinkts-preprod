@@ -7,17 +7,41 @@ import { EdgeArcOps, reprojectArcEndpoint } from "@/symbol/edge/Arc"
 import { EdgeOps } from "@/symbol/edge/Edge"
 import { EdgeLineOps } from "@/symbol/edge/Line"
 import { EdgePolyLineOps } from "@/symbol/edge/PolyLine"
+import { BoxOps } from "@/symbol/primitives/Box"
 import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
 import type { TPointer } from "@/symbol/primitives/Point"
 import { ShapeOps } from "@/symbol/shape/Shape"
 import { isStroke, StrokeOps } from "@/symbol/stroke/Stroke"
+import { cloneSymbol } from "@/symbol/SymbolHelpers"
 import type { MatrixTransform } from "@/transform"
+import { computeDistance } from "@/utils"
 import { findIntersectionBetween2Segment, isPointInsidePolygon } from "@/utils/geometry"
 
 import { IIAbstractManager } from "./IIAbstractManager"
 
 const ANCHOR_HINT_ROLE = "anchor-hint"
 const ANCHOR_HINT_COLOR = "#3e68ff"
+
+/**
+ * A pre-convert edge stroke that should follow a transform of the moving set, and how:
+ * "rigid" when both of its connected shapes are moving together (nothing shifts relatively),
+ * "gradient" when only one is — `movingAnchor` identifies which one to follow toward.
+ */
+type TFollowedStroke = { symbol: TStroke; mode: "rigid" | "gradient"; movingAnchor?: TAnchor }
+
+/**
+ * Result of committing the anchored-edges update pass (both pre-convert strokes and converted
+ * Line/PolyEdge/Arc symbols).
+ * `rigidStrokeIds` moved by a single uniform matrix — safe to fold into the caller's own
+ * matrix-replay history entry (translate/scale/rotate), since re-applying the inverse matrix
+ * correctly undoes a uniform transform.
+ * `oldSymbols`/`newSymbols` are everything else: gradient-followed raw strokes, and converted
+ * edges (their anchor position is *recomputed* from the target's new bounds, not transformed by
+ * a matrix relative to their own prior state, so there's no inverse to replay either way). All
+ * of these need their pre-mutation snapshot restored directly on undo via the `updated` history
+ * entry, not re-derived.
+ */
+type TAnchoredEdgesUpdateResult = { rigidStrokeIds: string[]; oldSymbols: TSymbol[]; newSymbols: TSymbol[] }
 
 /**
  * Manages anchored edges — edges whose endpoints are bound to other symbols.
@@ -475,19 +499,26 @@ export class IIConnectorManager extends IIAbstractManager {
     symbolIds: string[],
     matrix?: MatrixTransform,
     preTransformBoundsById?: Map<string, TOBB>
-  ): string[] {
+  ): TAnchoredEdgesUpdateResult {
     if (symbolIds.length === 0) {
-      return []
+      return { rigidStrokeIds: [], oldSymbols: [], newSymbols: [] }
     }
     this.logger.info("updateAnchoredEdges", {
       symbolIds,
     })
 
     const idSet = new Set(symbolIds)
+    // Converted Line/PolyEdge/Arc anchors are recomputed from the target's new bounds, not
+    // transformed by a matrix relative to their own prior position — there's no "inverse" of
+    // that to replay on undo, so every mutation here needs its own pre-mutation snapshot,
+    // same as a gradient-followed raw stroke.
+    const oldSymbols: TSymbol[] = []
+    const newSymbols: TSymbol[] = []
 
     this.model.symbols.forEach((symbol) => {
       if (EdgeOps.isEdge(symbol) && EdgeOps.isArcEdge(symbol)) {
         let changed = false
+        const oldSymbol = cloneSymbol(symbol)
         if (symbol.startAnchor && idSet.has(symbol.startAnchor.symbolId)) {
           const point = this.resolveAndUpdateAnchor(symbol.startAnchor, matrix, preTransformBoundsById)
           if (point) {
@@ -506,6 +537,8 @@ export class IIConnectorManager extends IIAbstractManager {
           EdgeArcOps.updateDerivedFields(symbol)
           this.canvas.renderer.drawSymbol(symbol)
           this.model.updateSymbol(symbol)
+          oldSymbols.push(oldSymbol)
+          newSymbols.push(symbol)
         }
         return
       }
@@ -515,6 +548,7 @@ export class IIConnectorManager extends IIAbstractManager {
       }
 
       let changed = false
+      const oldSymbol = cloneSymbol(symbol)
 
       if (EdgeOps.isLineEdge(symbol)) {
         if (symbol.startAnchor && idSet.has(symbol.startAnchor.symbolId)) {
@@ -559,13 +593,23 @@ export class IIConnectorManager extends IIAbstractManager {
       if (changed) {
         this.canvas.renderer.drawSymbol(symbol)
         this.model.updateSymbol(symbol)
+        oldSymbols.push(oldSymbol)
+        newSymbols.push(symbol)
       }
     })
 
-    // Raw-stroke rigid-follow only has a transform to apply when the caller supplies one —
+    // Raw-stroke follow only has a transform to apply when the caller supplies one —
     // Arc/Line/PolyEdge branches above don't need it (they reproject from the target's
     // already-updated model bounds), but freehand strokes have no per-point anchor formula.
-    return matrix ? this.#followConnectedStrokes(idSet, matrix, /* commit */ true) : []
+    const strokeFollowResult = matrix
+      ? this.#followConnectedStrokes(idSet, matrix, /* commit */ true)
+      : { rigidStrokeIds: [], oldSymbols: [], newSymbols: [] }
+
+    return {
+      rigidStrokeIds: strokeFollowResult.rigidStrokeIds,
+      oldSymbols: [...oldSymbols, ...strokeFollowResult.oldSymbols],
+      newSymbols: [...newSymbols, ...strokeFollowResult.newSymbols],
+    }
   }
 
   /**
@@ -577,7 +621,7 @@ export class IIConnectorManager extends IIAbstractManager {
     if (symbolIds.length === 0) {
       return []
     }
-    return this.#collectFollowedStrokes(new Set(symbolIds)).map((s) => s.id)
+    return this.#collectFollowedStrokes(new Set(symbolIds)).map((f) => f.symbol.id)
   }
 
   /**
@@ -588,21 +632,38 @@ export class IIConnectorManager extends IIAbstractManager {
    * Strokes already in `idSet` are skipped too: the caller's own transform path owns them, and
    * following them as well would apply the matrix twice.
    */
-  #collectFollowedStrokes(idSet: Set<string>): TStroke[] {
-    return this.model.symbols.filter((symbol): symbol is TStroke => {
-      if (!isStroke(symbol) || symbol.jiixBlockType !== "Edge") {
-        return false
-      }
-      if (idSet.has(symbol.id)) {
-        return false
-      }
-      const anchor = symbol.startAnchor ?? symbol.endAnchor
-      if (!anchor || (symbol.startAnchor && symbol.endAnchor)) {
-        return false
-      }
+  #collectFollowedStrokes(idSet: Set<string>): TFollowedStroke[] {
+    const isAnchorTargetMoving = (anchor: TAnchor): boolean => {
       const blockStrokeIds = this.canvas.jiix.getStrokesForElement(anchor.symbolId)
       return blockStrokeIds.some((id) => idSet.has(id)) || idSet.has(anchor.symbolId)
+    }
+
+    const followed: TFollowedStroke[] = []
+    this.model.symbols.forEach((symbol) => {
+      if (!isStroke(symbol) || symbol.jiixBlockType !== "Edge" || idSet.has(symbol.id)) {
+        return
+      }
+      const anchors = [symbol.startAnchor, symbol.endAnchor].filter((a): a is TAnchor => !!a)
+      if (anchors.length === 0) {
+        return
+      }
+      const movingAnchors = anchors.filter(isAnchorTargetMoving)
+      if (movingAnchors.length === 0) {
+        return
+      }
+      if (anchors.length === 2 && movingAnchors.length === 2) {
+        // Both connected shapes are moving together (same matrix) — nothing shifts
+        // relatively, so the whole stroke can move as one rigid body.
+        followed.push({ symbol, mode: "rigid" })
+      } else {
+        // Exactly one connected shape is moving — reposition points on a gradient
+        // instead of translating the whole stroke, since rigidly moving it would
+        // drag the end anchored to the shape that ISN'T moving (or the free end of
+        // a single-anchor edge) along for no reason.
+        followed.push({ symbol, mode: "gradient", movingAnchor: movingAnchors[0] })
+      }
     })
+    return followed
   }
 
   /**
@@ -610,33 +671,95 @@ export class IIConnectorManager extends IIAbstractManager {
    * the block it is anchored to.
    * @returns the ids of the strokes mutated in the model (empty for the preview pass).
    */
-  #followConnectedStrokes(idSet: Set<string>, matrix: MatrixTransform, commit: boolean): string[] {
+  #followConnectedStrokes(idSet: Set<string>, matrix: MatrixTransform, commit: boolean): TAnchoredEdgesUpdateResult {
     const followed = this.#collectFollowedStrokes(idSet)
-    followed.forEach((symbol) => {
+    const rigidStrokeIds: string[] = []
+    const oldSymbols: TStroke[] = []
+    const newSymbols: TStroke[] = []
+
+    followed.forEach(({ symbol, mode, movingAnchor }) => {
+      const newPoints =
+        mode === "rigid"
+          ? symbol.pointers.map((p) => matrix.applyToPoint(p))
+          : this.#computeGradientPoints(symbol.pointers, matrix, movingAnchor!)
+
       if (commit) {
-        this.applyMatrixToPoints(symbol.pointers, matrix)
+        // A rigid (uniform matrix) move is safe to undo by re-applying the inverse matrix, so it
+        // can ride along in the caller's own matrix-replay history entry. A gradient move is NOT
+        // uniform — undoing it requires restoring this pre-mutation snapshot directly instead.
+        const oldSymbol = mode === "gradient" ? (cloneSymbol(symbol) as TStroke) : undefined
+
+        symbol.pointers.forEach((p, i) => {
+          p.x = +newPoints[i].x.toFixed(3)
+          p.y = +newPoints[i].y.toFixed(3)
+        })
         StrokeOps.updateBounds(symbol)
         this.canvas.renderer.drawSymbol(symbol)
         this.model.updateSymbol(symbol)
+
+        if (mode === "rigid") {
+          rigidStrokeIds.push(symbol.id)
+        } else {
+          oldSymbols.push(oldSymbol!)
+          newSymbols.push(symbol)
+        }
       } else {
         const clone = {
           ...symbol,
-          pointers: symbol.pointers.map((p) => {
-            const np = matrix.applyToPoint(p)
-            return { ...p, x: +np.x.toFixed(3), y: +np.y.toFixed(3) }
-          }),
+          pointers: symbol.pointers.map((p, i) => ({
+            ...p,
+            x: +newPoints[i].x.toFixed(3),
+            y: +newPoints[i].y.toFixed(3),
+          })),
         }
         this.canvas.renderer.drawSymbol(clone)
       }
     })
-    return commit ? followed.map((s) => s.id) : []
+
+    return commit ? { rigidStrokeIds, oldSymbols, newSymbols } : { rigidStrokeIds: [], oldSymbols: [], newSymbols: [] }
   }
 
-  private applyMatrixToPoints(points: TPointer[], matrix: MatrixTransform): void {
-    points.forEach((p) => {
-      const np = matrix.applyToPoint(p)
-      p.x = +np.x.toFixed(3)
-      p.y = +np.y.toFixed(3)
+  /**
+   * Center of a pre-convert shape block, from the union of its raw strokes' bounds.
+   * Used as the reference point for gradient-follow direction — there's no single
+   * symbol to read `.bounds` from pre-convert, only a block of strokes sharing a jiixBlockId.
+   */
+  #resolveBlockCenter(blockId: string): TPoint | undefined {
+    const boxes = this.canvas.jiix
+      .getStrokesForElement(blockId)
+      .map((id) => this.model.getRootSymbol(id))
+      .filter((s): s is TSymbol & { bounds: TOBB } => !!s && "bounds" in s)
+      .map((s) => OBBOps.toBox(s.bounds))
+    if (boxes.length === 0) {
+      return undefined
+    }
+    const box = BoxOps.createFromBoxes(boxes)
+    return { x: box.x + box.width / 2, y: box.y + box.height / 2 }
+  }
+
+  /**
+   * Gradient-follow: instead of translating every point by the same amount, blend each
+   * point between its original position and its fully-transformed position — full weight
+   * (1) at whichever end of the stroke is nearest the moving shape, fading to no movement
+   * (0) at the other end. Approximates a freehand stroke stretching toward the shape it's
+   * anchored to, without needing to reposition a single "endpoint" the way a vector edge can.
+   */
+  #computeGradientPoints(pointers: TPointer[], matrix: MatrixTransform, movingAnchor: TAnchor): TPoint[] {
+    const n = pointers.length
+    if (n <= 1) {
+      return pointers.map((p) => matrix.applyToPoint(p))
+    }
+    const targetCenter = this.#resolveBlockCenter(movingAnchor.symbolId)
+    const distFirst = targetCenter ? computeDistance(pointers[0], targetCenter) : 0
+    const distLast = targetCenter ? computeDistance(pointers[n - 1], targetCenter) : 0
+    const nearFirst = distFirst <= distLast
+    return pointers.map((p, i) => {
+      const weight = nearFirst ? 1 - i / (n - 1) : i / (n - 1)
+      const transformed = matrix.applyToPoint(p)
+      return {
+        x: p.x + weight * (transformed.x - p.x),
+        y: p.y + weight * (transformed.y - p.y),
+      }
     })
   }
 }
