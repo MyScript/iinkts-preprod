@@ -11,6 +11,7 @@ import {
   OBBOps,
   type TOBB,
   MatrixTransform,
+  SymbolType,
 } from "@/iink"
 
 const TARGET_BOUNDS = OBBOps.fromBox({ x: 10, y: 20, width: 100, height: 80 })
@@ -74,6 +75,28 @@ function buildStrokeWithSingleAnchor(blockId: string) {
   return stroke
 }
 
+function buildStrokeWithBothAnchors(startBlockId: string, endBlockId: string) {
+  const stroke = StrokeOps.create()
+  stroke.id = "edge-stroke-1"
+  stroke.pointers = [
+    { x: 0, y: 0, t: 0, p: 1 },
+    { x: 10, y: 0, t: 1, p: 1 },
+  ]
+  stroke.jiixBlockType = "Edge"
+  stroke.startAnchor = { symbolId: startBlockId, normalizedX: 0, normalizedY: 0.5 }
+  stroke.endAnchor = { symbolId: endBlockId, normalizedX: 1, normalizedY: 0.5 }
+  StrokeOps.updateBounds(stroke)
+  return stroke
+}
+
+// Mocks resolving a block's center (via jiix.getStrokesForElement + model.getRootSymbol) to a
+// stroke sitting at the given point, so gradient-follow direction is deterministic in tests.
+function mockBlockCenter(mock: ReturnType<typeof createCanvasMock>, strokeId: string, center: { x: number; y: number }) {
+  const targetStroke = { type: SymbolType.Stroke, id: strokeId, bounds: OBBOps.fromBox({ x: center.x, y: center.y, width: 0, height: 0 }) }
+  jest.spyOn(mock.model, "getRootSymbol").mockImplementation((id: string) => (id === strokeId ? targetStroke : undefined) as never)
+  return targetStroke
+}
+
 function setupSymbols(mock: ReturnType<typeof createCanvasMock>, symbols: unknown[]) {
   Object.defineProperty(mock.model, "symbols", {
     get: () => [...symbols],
@@ -118,6 +141,23 @@ describe("IIConnectorManager", () => {
       expect(line.start).toEqual({ x: 60, y: 60 })
       expect(mock.renderer.drawSymbol).toHaveBeenCalledWith(line)
       expect(updateSpy).toHaveBeenCalledWith(line)
+    })
+
+    test("line with startAnchor for moved symbol → returns an undo-able pre-mutation snapshot", () => {
+      // A converted edge's anchor position is *recomputed* from the target's new bounds, not
+      // transformed by a matrix relative to its own prior state — there's no inverse-matrix undo
+      // for that, so the caller needs this snapshot to restore it directly.
+      const line = buildLineWithStartAnchor()
+      const originalStart = { ...line.start }
+      setupSymbols(mock, [line])
+
+      const result = manager.updateAnchoredEdges([TARGET_ID])
+
+      expect(result.rigidStrokeIds).toEqual([])
+      expect(result.newSymbols).toEqual([line])
+      expect(result.oldSymbols).toHaveLength(1)
+      expect(result.oldSymbols[0]).not.toBe(line)
+      expect((result.oldSymbols[0] as typeof line).start).toEqual(originalStart)
     })
 
     test("line with endAnchor for moved symbol → end recomputed", () => {
@@ -581,31 +621,58 @@ describe("IIConnectorManager", () => {
     })
   })
 
-  describe("drawAnchoredEdgesForMatrix — raw stroke rigid follow", () => {
-    test("single-anchor edge stroke targeting a moving block gets every point transformed by the matrix", () => {
+  describe("drawAnchoredEdgesForMatrix — raw stroke gradient/rigid follow", () => {
+    test("single-anchor edge stroke targeting a moving block gets a gradient toward it", () => {
       const stroke = buildStrokeWithSingleAnchor("block-shape-1")
       setupSymbols(mock, [stroke])
       jest
         .spyOn(mock.jiix, "getStrokesForElement")
         .mockImplementation((id: string) => (id === "block-shape-1" ? ["shape-stroke-1"] : []))
+      mockBlockCenter(mock, "shape-stroke-1", { x: 100, y: 0 })
+      const matrix = MatrixTransform.identity().translate(5, 5)
+
+      manager.drawAnchoredEdgesForMatrix(["shape-stroke-1"], matrix)
+
+      // point[1] (10,0) is nearest the moving block's center (100,0) → full weight.
+      // point[0] (0,0) is farthest → no movement.
+      const drawnClone = (mock.renderer.drawSymbol as jest.Mock).mock.calls.at(-1)![0] as typeof stroke
+      expect(drawnClone.pointers[0]).toEqual({ x: 0, y: 0, t: 0, p: 1 })
+      expect(drawnClone.pointers[1]).toEqual({ x: 15, y: 5, t: 1, p: 1 })
+    })
+
+    test("dual-anchor edge stroke gets a gradient when only one connected block is moving", () => {
+      const stroke = buildStrokeWithBothAnchors("block-shape-1", "block-shape-2")
+      setupSymbols(mock, [stroke])
+      jest.spyOn(mock.jiix, "getStrokesForElement").mockImplementation((id: string) => {
+        if (id === "block-shape-1") return ["shape-stroke-1"]
+        if (id === "block-shape-2") return ["other-stroke-x"]
+        return []
+      })
+      mockBlockCenter(mock, "shape-stroke-1", { x: 100, y: 0 })
       const matrix = MatrixTransform.identity().translate(5, 5)
 
       manager.drawAnchoredEdgesForMatrix(["shape-stroke-1"], matrix)
 
       const drawnClone = (mock.renderer.drawSymbol as jest.Mock).mock.calls.at(-1)![0] as typeof stroke
-      expect(drawnClone.pointers[0]).toEqual({ x: 5, y: 5, t: 0, p: 1 })
+      expect(drawnClone.pointers[0]).toEqual({ x: 0, y: 0, t: 0, p: 1 })
       expect(drawnClone.pointers[1]).toEqual({ x: 15, y: 5, t: 1, p: 1 })
     })
 
-    test("dual-anchor edge stroke is never rigid-transformed", () => {
-      const stroke = buildStrokeWithSingleAnchor("block-shape-1")
-      stroke.startAnchor = { symbolId: "block-shape-2", normalizedX: 0, normalizedY: 0.5 }
+    test("dual-anchor edge stroke is rigidly translated when both connected blocks move together", () => {
+      const stroke = buildStrokeWithBothAnchors("block-shape-1", "block-shape-2")
       setupSymbols(mock, [stroke])
+      jest.spyOn(mock.jiix, "getStrokesForElement").mockImplementation((id: string) => {
+        if (id === "block-shape-1") return ["shape-stroke-1"]
+        if (id === "block-shape-2") return ["shape-stroke-2"]
+        return []
+      })
       const matrix = MatrixTransform.identity().translate(5, 5)
 
-      manager.drawAnchoredEdgesForMatrix(["shape-stroke-1"], matrix)
+      manager.drawAnchoredEdgesForMatrix(["shape-stroke-1", "shape-stroke-2"], matrix)
 
-      expect(mock.renderer.drawSymbol).not.toHaveBeenCalled()
+      const drawnClone = (mock.renderer.drawSymbol as jest.Mock).mock.calls.at(-1)![0] as typeof stroke
+      expect(drawnClone.pointers[0]).toEqual({ x: 5, y: 5, t: 0, p: 1 })
+      expect(drawnClone.pointers[1]).toEqual({ x: 15, y: 5, t: 1, p: 1 })
     })
 
     test("edge stroke that is itself being transformed is not previewed as a follower", () => {
@@ -624,18 +691,49 @@ describe("IIConnectorManager", () => {
     })
   })
 
-  describe("updateAnchoredEdges — raw stroke rigid follow (commit path)", () => {
-    test("returns the ids of the edge strokes it mutated", () => {
+  describe("updateAnchoredEdges — raw stroke gradient/rigid follow (commit path)", () => {
+    test("returns the ids of the edge strokes it mutated, gradient-shifted toward the moving block", () => {
       const stroke = buildStrokeWithSingleAnchor("block-shape-1")
       setupSymbols(mock, [stroke])
       jest
         .spyOn(mock.jiix, "getStrokesForElement")
         .mockImplementation((id: string) => (id === "block-shape-1" ? ["shape-stroke-1"] : []))
+      mockBlockCenter(mock, "shape-stroke-1", { x: 100, y: 0 })
 
       const followed = manager.updateAnchoredEdges(["shape-stroke-1"], MatrixTransform.identity().translate(5, 5))
 
-      expect(followed).toEqual([stroke.id])
+      // Gradient-moved (not rigid): needs a pre-mutation snapshot for undo, not just an id.
+      expect(followed.rigidStrokeIds).toEqual([])
+      expect(followed.newSymbols.map((s) => s.id)).toEqual([stroke.id])
+      expect((followed.oldSymbols[0] as typeof stroke).pointers).toEqual([
+        { x: 0, y: 0, t: 0, p: 1 },
+        { x: 10, y: 0, t: 1, p: 1 },
+      ])
+      // point[1] (10,0) is nearest the moving block's center (100,0) → full weight.
+      expect(stroke.pointers[0]).toEqual(expect.objectContaining({ x: 0, y: 0 }))
+      expect(stroke.pointers[1]).toEqual(expect.objectContaining({ x: 15, y: 5 }))
+    })
+
+    test("dual-anchor edge stroke is rigidly translated (commit) when both connected blocks move together", () => {
+      const stroke = buildStrokeWithBothAnchors("block-shape-1", "block-shape-2")
+      setupSymbols(mock, [stroke])
+      jest.spyOn(mock.jiix, "getStrokesForElement").mockImplementation((id: string) => {
+        if (id === "block-shape-1") return ["shape-stroke-1"]
+        if (id === "block-shape-2") return ["shape-stroke-2"]
+        return []
+      })
+
+      const followed = manager.updateAnchoredEdges(
+        ["shape-stroke-1", "shape-stroke-2"],
+        MatrixTransform.identity().translate(5, 5)
+      )
+
+      // Rigid (both connected blocks moving together): id-only, safe to undo via inverse matrix.
+      expect(followed.rigidStrokeIds).toEqual([stroke.id])
+      expect(followed.oldSymbols).toEqual([])
+      expect(followed.newSymbols).toEqual([])
       expect(stroke.pointers[0]).toEqual(expect.objectContaining({ x: 5, y: 5 }))
+      expect(stroke.pointers[1]).toEqual(expect.objectContaining({ x: 15, y: 5 }))
     })
 
     test("edge stroke that is itself being transformed is neither followed nor reported", () => {
@@ -650,7 +748,7 @@ describe("IIConnectorManager", () => {
         MatrixTransform.identity().translate(5, 5)
       )
 
-      expect(followed).toEqual([])
+      expect(followed).toEqual({ rigidStrokeIds: [], oldSymbols: [], newSymbols: [] })
       // Untouched by the follow pass — the caller's own transform path owns this stroke.
       expect(stroke.pointers[0]).toEqual(expect.objectContaining({ x: 0, y: 0 }))
       expect(stroke.pointers[1]).toEqual(expect.objectContaining({ x: 10, y: 0 }))

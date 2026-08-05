@@ -449,13 +449,15 @@ describe("IIResizeManager.ts", () => {
       // Use the real IIConnectorManager so this exercises updateAnchoredEdges' commit path for
       // real, not the connector stub — mirrors the analogous IITranslateManager test.
       ;(canvas as unknown as { connector: IIConnectorManager }).connector = new IIConnectorManager(asCanvas(canvas))
-      jest.spyOn(canvas.jiix, "getStrokesForElement").mockReturnValue([])
       canvas.client.transformScale = jest.fn(() => Promise.resolve())
       const manager = new IIResizeManager(asCanvas(canvas))
 
       const shape = ShapeCircleOps.create({ x: 50, y: 50 }, 20)
       canvas.model.addSymbol(shape)
       canvas.model.selectedIds.add(shape.id)
+      // The gradient-follow direction resolves the connected block's center via
+      // jiix.getStrokesForElement + model.getRootSymbol — here the "block" is just the shape itself.
+      jest.spyOn(canvas.jiix, "getStrokesForElement").mockImplementation((id) => (id === shape.id ? [shape.id] : []))
 
       const edgeStroke = StrokeOps.create()
       edgeStroke.pointers = [
@@ -483,13 +485,15 @@ describe("IIResizeManager.ts", () => {
       await manager.end(resizeToPoint)
 
       // Reconstruct the exact matrix end() applied (same scaleX/scaleY, same origin) and assert
-      // the edge stroke's points were rigidly transformed by it — not left at their pre-resize
-      // values, and not just used to draw a transient preview clone.
+      // the edge stroke's points were transformed by it on a gradient — not left at their
+      // pre-resize values, and not just used to draw a transient preview clone. point[1] (10,0)
+      // is nearest the shape's center (50,50) → full weight; point[0] is farthest → unchanged.
       const expectedMatrix = MatrixTransform.identity().scale(scaleX, scaleY, transformOrigin)
-      const expectedPointers = originalPointers.map((p) => {
-        const np = expectedMatrix.applyToPoint(p)
-        return { ...p, x: +np.x.toFixed(3), y: +np.y.toFixed(3) }
-      })
+      const transformedLast = expectedMatrix.applyToPoint(originalPointers[1])
+      const expectedPointers = [
+        originalPointers[0],
+        { ...originalPointers[1], x: +transformedLast.x.toFixed(3), y: +transformedLast.y.toFixed(3) },
+      ]
       expect(edgeStroke.pointers).toEqual(expectedPointers)
       expect(edgeStroke.pointers).not.toEqual(originalPointers)
     })

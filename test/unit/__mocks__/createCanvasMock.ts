@@ -254,9 +254,12 @@ export function createCanvasMock(overrides: Partial<TCanvasMock> = {}): TCanvasM
       overrides.connector ??
       (() => {
         const c = stubManager()
-        // Both return the ids of the pre-convert edge strokes that follow a transform; callers
-        // spread the result, so the stub must hand back an array, not the auto-stub's undefined.
-        ;(c as unknown as Record<string, unknown>).updateAnchoredEdges = jest.fn().mockReturnValue([])
+        // getFollowedStrokeIds returns ids (callers spread the result); updateAnchoredEdges
+        // returns { rigidStrokeIds, oldSymbols, newSymbols } — callers destructure it, so the
+        // stub must hand back that shape, not the auto-stub's undefined.
+        ;(c as unknown as Record<string, unknown>).updateAnchoredEdges = jest
+          .fn()
+          .mockReturnValue({ rigidStrokeIds: [], oldSymbols: [], newSymbols: [] })
         ;(c as unknown as Record<string, unknown>).getFollowedStrokeIds = jest.fn().mockReturnValue([])
         return c
       })(),
