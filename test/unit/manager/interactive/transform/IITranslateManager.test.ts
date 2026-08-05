@@ -396,6 +396,31 @@ describe("IITranslateManager.ts", () => {
       expect(sentIds).toContain(edgeStroke.id)
     })
 
+    test("translate() moving a shape with a converted, anchored edge never sends the edge's id to the backend", async () => {
+      // The backend only tracks raw ink strokes — a converted Line/PolyEdge/Arc symbol must
+      // never appear in a client.transform* call, even though its anchor gets recomputed.
+      const canvas = createCanvasMock()
+      ;(canvas as unknown as { connector: IIConnectorManager }).connector = new IIConnectorManager(asCanvas(canvas))
+      canvas.client.transformTranslate = jest.fn(() => Promise.resolve())
+      const manager = new IITranslateManager(asCanvas(canvas))
+
+      const shape = ShapeCircleOps.create({ x: 50, y: 50 }, 20)
+      canvas.model.addSymbol(shape)
+      const edge = EdgeLineOps.create({ x: 0, y: 0 }, { x: 100, y: 100 })
+      edge.endAnchor = { symbolId: shape.id, normalizedX: 0.5, normalizedY: 0.5 }
+      canvas.model.addSymbol(edge)
+
+      await manager.translate([shape], 20, 20, false)
+
+      // The anchor was in fact recomputed (proves the connector ran, not a no-op).
+      expect(edge.end).toEqual({ x: 70, y: 70 })
+
+      // Neither the shape nor the edge is raw ink once converted — nothing for the backend here.
+      const sentIds = (canvas.client.transformTranslate as jest.Mock).mock.calls[0][0] as string[]
+      expect(sentIds).not.toContain(edge.id)
+      expect(sentIds).toEqual([])
+    })
+
     test("translate() permanently mutates the connected edge stroke's points (not just a preview clone)", async () => {
       const canvas = createCanvasMock()
       // Use the real IIConnectorManager so this exercises updateAnchoredEdges' commit path for
