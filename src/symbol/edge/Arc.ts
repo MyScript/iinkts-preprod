@@ -14,6 +14,7 @@ import {
 } from "@/utils"
 import { createUUID } from "@/utils/uuid"
 
+import type { TAnchor } from "./Anchor"
 import { computeEdgeBounds, type EdgeDecoration, EdgeKind } from "./Edge-enum"
 
 /**
@@ -31,6 +32,8 @@ export type TEdgeArc = TBaseSymbol & {
   phi: number
   startDecoration?: EdgeDecoration
   endDecoration?: EdgeDecoration
+  startAnchor?: TAnchor
+  endAnchor?: TAnchor
   vertices: TPoint[]
   bounds: TOBB
   snapPoints: TPoint[]

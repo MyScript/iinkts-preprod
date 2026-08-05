@@ -1,5 +1,6 @@
 import type { TStyle } from "@/style"
 import { DefaultStyle } from "@/style"
+import type { TAnchor } from "@/symbol/edge/Anchor"
 import type { DecoratorKind } from "@/symbol/decorator/Decorator"
 import type { TBox } from "@/symbol/primitives/Box"
 import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
@@ -42,6 +43,11 @@ export type TStroke = TBaseSymbol &
     // JIIX Block metadata
     jiixBlockId?: string
     jiixBlockType?: "Text" | "Math" | "Node" | "Edge" | "Decorator"
+
+    // Connection metadata — pre-convert: symbolId holds a jiixBlockId (target shape block).
+    // Populated by IISynchronizerManager from JIIX connected/ports, always overwritten on sync.
+    startAnchor?: TAnchor
+    endAnchor?: TAnchor
 
     // Computation metadata
     isSolverOutput?: boolean

@@ -151,4 +151,14 @@ describe("TStroke / StrokeOps", () => {
       expect(clone.pointers[0]).toEqual({ p: 1, t: 1, x: 11, y: 11 })
     })
   })
+
+  describe("anchors", () => {
+    test("stroke has no anchors by default, accepts optional startAnchor/endAnchor", () => {
+      const stroke = StrokeOps.create()
+      expect(stroke.startAnchor).toBeUndefined()
+      expect(stroke.endAnchor).toBeUndefined()
+      stroke.startAnchor = { symbolId: "block-1", normalizedX: 0.5, normalizedY: 0.5 }
+      expect(stroke.startAnchor.symbolId).toBe("block-1")
+    })
+  })
 })
