@@ -4,7 +4,7 @@ import type { TEdge, TMath, TPoint, TShape, TStroke, TSymbol, TText } from "@/sy
 import { EdgeKind, ShapeKind } from "@/symbol"
 import { EdgeOps } from "@/symbol/edge/Edge"
 import { ShapeOps } from "@/symbol/shape/Shape"
-import { StrokeOps } from "@/symbol/stroke/Stroke"
+import { isStroke, StrokeOps } from "@/symbol/stroke/Stroke"
 import { MatrixTransform } from "@/transform"
 
 import { IIAbstractTransformManager } from "./AbstractTransformManager"
@@ -111,14 +111,15 @@ export class IITranslateManager extends IIAbstractTransformManager {
     const matrix = MatrixTransform.identity().translate(tx, ty)
     this.applyAndDraw(symbols, matrix)
     this.applyTransformToGhostStrokesForSelectedMath(symbols, matrix)
-    // Pre-convert edge strokes moved by the connector, not by applyAndDraw above. Rigidly-moved
-    // ones ride along in this method's own `translate` history entry (a uniform matrix is safe to
-    // undo by re-applying its inverse); gradient-moved ones need their own pre-mutation snapshot
-    // instead, since a non-uniform move can't be undone that way — see `updated` below.
+    // Pre-convert edge strokes and converted Line/PolyEdge/Arc anchors moved by the connector,
+    // not by applyAndDraw above. Rigidly-moved raw strokes ride along in this method's own
+    // `translate` history entry (a uniform matrix is safe to undo by re-applying its inverse);
+    // everything else (gradient-moved raw strokes, converted edges recomputed from the target's
+    // new bounds) needs its own pre-mutation snapshot instead — see `updated` below.
     const {
       rigidStrokeIds,
-      oldSymbols: gradientOldSymbols,
-      newSymbols: gradientNewSymbols,
+      oldSymbols: anchoredOldSymbols,
+      newSymbols: anchoredNewSymbols,
     } = this.canvas.connector.updateAnchoredEdges(
       symbols.map((s) => s.id),
       matrix
@@ -134,13 +135,15 @@ export class IITranslateManager extends IIAbstractTransformManager {
           },
         ],
       }
-      if (gradientNewSymbols.length) {
-        changes.updated = { oldSymbols: gradientOldSymbols, newSymbols: gradientNewSymbols }
+      if (anchoredNewSymbols.length) {
+        changes.updated = { oldSymbols: anchoredOldSymbols, newSymbols: anchoredNewSymbols }
       }
       this.canvas.history.push(changes)
     }
     const strokes = this.canvas.extractStrokesFromSymbols(symbols)
-    const followedStrokeIds = [...rigidStrokeIds, ...gradientNewSymbols.map((s) => s.id)]
+    // Only raw strokes are meaningful to the backend — converted Line/PolyEdge/Arc symbols
+    // aren't ink the server tracks, so they must never appear in a client.transform* call.
+    const followedStrokeIds = [...rigidStrokeIds, ...anchoredNewSymbols.filter(isStroke).map((s) => s.id)]
     return this.canvas.client.transformTranslate(
       [...new Set([...strokes.map((s) => s.id), ...followedStrokeIds])],
       tx,
