@@ -134,4 +134,13 @@ describe("Arc.ts", () => {
       expect(clone).not.toBe(arc)
     })
   })
+
+  describe("anchors", () => {
+    test("arc has no anchors by default, accepts optional startAnchor/endAnchor", () => {
+      const arc = EdgeArcOps.create({ x: 0, y: 0 }, 0, Math.PI, 10, 10, 0)
+      expect(arc.startAnchor).toBeUndefined()
+      arc.endAnchor = { symbolId: "shape-1", normalizedX: 0.1, normalizedY: 0.9 }
+      expect(arc.endAnchor.symbolId).toBe("shape-1")
+    })
+  })
 })
