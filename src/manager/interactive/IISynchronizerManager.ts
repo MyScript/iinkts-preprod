@@ -12,9 +12,12 @@ import type {
   TJIIXStrokeItem,
   TJIIXTextElement,
 } from "@/model"
-import { JIIXEdgeKind, JIIXElementType } from "@/model"
+import { extractEdgeEndpoints, JIIXEdgeKind, JIIXElementType } from "@/model"
 import type { TStroke } from "@/symbol"
 import { isStroke } from "@/symbol"
+import { resolveConnectionAnchors } from "@/symbol/edge/Anchor"
+import { BoxOps } from "@/symbol/primitives/Box"
+import { OBBOps } from "@/symbol/primitives/OBB"
 
 import { IIAbstractManager } from "./IIAbstractManager"
 
@@ -183,6 +186,13 @@ export class IISynchronizerManager extends IIAbstractManager {
             stroke.modificationDate = now
           }
         }
+
+        // Connection anchors must reflect the LATEST JIIX truth on every sync, not only when
+        // the metadata-caching gate above says something "changed" — that gate is keyed off
+        // fields (label/words/chars/lines) that don't exist on Edge elements, so it would
+        // otherwise never re-run once an edge's jiixBlockId is first set, leaving anchors
+        // stale after later syncs report a different (or no) connection.
+        this.#syncEdgeConnections(el, strokes)
       } catch (error) {
         this.logger.error("#doSynchronize", `Failed to synchronize element of type ${el.type}:`, error)
       }
@@ -371,5 +381,45 @@ export class IISynchronizerManager extends IIAbstractManager {
       "#updateBlockMetadata",
       `Updated ${stroke.id}: jiixBlockId=${element.id}, jiixBlockType=${stroke.jiixBlockType}`
     )
+  }
+
+  /**
+   * Resolve and store this edge element's connection anchors on every one of its strokes.
+   * Always overwrites from the latest JIIX truth — a connection reported in a previous sync
+   * but absent now is cleared, not kept.
+   */
+  #syncEdgeConnections(el: TJIIXElement, strokes: TStroke[]): void {
+    if (el.type !== JIIXElementType.Edge) {
+      return
+    }
+    const endpoints = extractEdgeEndpoints(el)
+    const connectedIds = el.connected ?? []
+    if (!endpoints || connectedIds.length === 0) {
+      strokes.forEach((stroke) => {
+        stroke.startAnchor = undefined
+        stroke.endAnchor = undefined
+      })
+      return
+    }
+
+    const connections = connectedIds
+      .map((blockId) => {
+        const strokeIds = this.canvas.jiix.getStrokesForElement(blockId)
+        const boxes = strokeIds
+          .map((id) => this.model.getRootSymbol(id))
+          .filter((s): s is TStroke => !!s)
+          .map((s) => OBBOps.toBox(s.bounds))
+        if (boxes.length === 0) {
+          return undefined
+        }
+        return { targetId: blockId, box: BoxOps.createFromBoxes(boxes) }
+      })
+      .filter((c): c is { targetId: string; box: ReturnType<typeof BoxOps.createFromBoxes> } => !!c)
+
+    const { startAnchor, endAnchor } = resolveConnectionAnchors(endpoints.start, endpoints.end, connections)
+    strokes.forEach((stroke) => {
+      stroke.startAnchor = startAnchor
+      stroke.endAnchor = endAnchor
+    })
   }
 }
