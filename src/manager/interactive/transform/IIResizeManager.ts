@@ -273,7 +273,13 @@ export class IIResizeManager extends IIAbstractTransformManager {
     this.canvas.endOperation("Resizing")
     const { scaleX, scaleY } = this.continue(point)
     this.canvas.snaps.clearSnapToElementLines()
-    const oldSymbols = this.model.symbolsSelected.map((s) => cloneSymbol(s))
+    // Queried before anything is mutated: the pre-convert edge strokes that will rigidly follow
+    // this resize need a pre-transform snapshot in history, like the selection itself.
+    const followedStrokeIds = this.canvas.connector.getFollowedStrokeIds(this.model.symbolsSelected.map((s) => s.id))
+    const oldSymbols = [
+      ...this.model.symbolsSelected,
+      ...this.resolveFollowedSymbols(followedStrokeIds, this.model.symbolsSelected),
+    ].map((s) => cloneSymbol(s))
     const matrix = MatrixTransform.identity().scale(scaleX, scaleY, this.transformOrigin)
     this.applyAndDraw(this.model.symbolsSelected, matrix)
     this.applyTransformToGhostStrokesForSelectedMath(this.model.symbolsSelected, matrix)
@@ -283,7 +289,7 @@ export class IIResizeManager extends IIAbstractTransformManager {
     )
     const strokesFromSymbols = this.canvas.extractStrokesFromSymbols(this.model.symbolsSelected)
     await this.canvas.client.transformScale(
-      strokesFromSymbols.map((s) => s.id),
+      [...new Set([...strokesFromSymbols.map((s) => s.id), ...followedStrokeIds])],
       scaleX,
       scaleY,
       this.transformOrigin.x,

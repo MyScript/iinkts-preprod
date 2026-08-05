@@ -158,7 +158,13 @@ export class IIRotationManager extends IIAbstractTransformManager {
     this.canvas.endOperation("Rotating")
     const angleDegree = this.continue(point)
     const angleRad = convertDegreeToRadian(angleDegree) % TWO_PI
-    const oldSymbols = this.model.symbolsSelected.map((s) => cloneSymbol(s))
+    // Queried before anything is mutated: the pre-convert edge strokes that will rigidly follow
+    // this rotation need a pre-transform snapshot in history, like the selection itself.
+    const followedStrokeIds = this.canvas.connector.getFollowedStrokeIds(this.model.symbolsSelected.map((s) => s.id))
+    const oldSymbols = [
+      ...this.model.symbolsSelected,
+      ...this.resolveFollowedSymbols(followedStrokeIds, this.model.symbolsSelected),
+    ].map((s) => cloneSymbol(s))
     const matrix = MatrixTransform.identity().rotate(angleRad, this.center)
     const preTransformBoundsById = new Map<string, TOBB>()
     this.model.symbolsSelected.forEach((s) => {
@@ -179,7 +185,7 @@ export class IIRotationManager extends IIAbstractTransformManager {
     )
     const strokesFromSymbols = this.canvas.extractStrokesFromSymbols(this.model.symbolsSelected)
     await this.canvas.client.transformRotate(
-      strokesFromSymbols.map((s) => s.id),
+      [...new Set([...strokesFromSymbols.map((s) => s.id), ...followedStrokeIds])],
       angleRad,
       this.center.x,
       this.center.y

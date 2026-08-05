@@ -1006,7 +1006,6 @@ export class IISelectionManager extends IIAbstractManager {
     })
   }
 
-
   /**
    * For every selected stroke that belongs to a Node or Edge JIIX block, pull in all sibling
    * strokes of that block — unconditionally (unlike expandSelectionForMathBlocks, this doesn't

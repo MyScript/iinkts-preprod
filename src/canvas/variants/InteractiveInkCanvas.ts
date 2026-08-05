@@ -829,8 +829,10 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
         updatedOld: decUpdatedOld,
         updatedNew: decUpdatedNew,
       } = this.#cleanupDecoratorsForRemovedIds(removedIds)
-      const { updatedOld: anchorUpdatedOld, updatedNew: anchorUpdatedNew } =
-        this.#cleanupAnchorsForRemovedIds(removedIds)
+      const { updatedOld: anchorUpdatedOld, updatedNew: anchorUpdatedNew } = this.#cleanupAnchorsForRemovedIds(
+        removedIds,
+        [symToReplace, ...oldSymbols].filter((s) => removedIds.has(s.id))
+      )
 
       if (addToHistory) {
         const changes: TIIHistoryChanges = {
@@ -935,8 +937,13 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
    * After removing symbols, clear anchors on edges (and pre-convert Edge strokes) that
    * pointed at a removed target. Returns updated symbols so callers can include them in
    * history - undoing the removal then also restores the anchor.
+   * `removedSymbols` must be the symbol objects captured *before* they left the model: their
+   * `jiixBlockId` is what pre-convert anchors point at, and it can no longer be looked up here.
    */
-  #cleanupAnchorsForRemovedIds(removedIds: Set<string>): {
+  #cleanupAnchorsForRemovedIds(
+    removedIds: Set<string>,
+    removedSymbols: TSymbol[]
+  ): {
     updatedOld: TSymbol[]
     updatedNew: TSymbol[]
   } {
@@ -944,8 +951,8 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     const updatedNew: TSymbol[] = []
 
     const removedBlockIds = new Set<string>()
-    this.model.symbols.forEach((sym) => {
-      if (isStroke(sym) && removedIds.has(sym.id) && sym.jiixBlockId) {
+    removedSymbols.forEach((sym) => {
+      if (isStroke(sym) && sym.jiixBlockId) {
         removedBlockIds.add(sym.jiixBlockId)
       }
     })
@@ -1022,8 +1029,10 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
         updatedOld: decUpdatedOld,
         updatedNew: decUpdatedNew,
       } = this.#cleanupDecoratorsForRemovedIds(removedIds)
-      const { updatedOld: anchorUpdatedOld, updatedNew: anchorUpdatedNew } =
-        this.#cleanupAnchorsForRemovedIds(removedIds)
+      const { updatedOld: anchorUpdatedOld, updatedNew: anchorUpdatedNew } = this.#cleanupAnchorsForRemovedIds(
+        removedIds,
+        [symbol]
+      )
       if (addToHistory) {
         const changes: TIIHistoryChanges = {
           erased: [symbol],
@@ -1082,7 +1091,10 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       updatedOld: decUpdatedOld,
       updatedNew: decUpdatedNew,
     } = this.#cleanupDecoratorsForRemovedIds(removedIds)
-    const { updatedOld: anchorUpdatedOld, updatedNew: anchorUpdatedNew } = this.#cleanupAnchorsForRemovedIds(removedIds)
+    const { updatedOld: anchorUpdatedOld, updatedNew: anchorUpdatedNew } = this.#cleanupAnchorsForRemovedIds(
+      removedIds,
+      symbolsRemoved
+    )
 
     if (addToHistory && symbolsRemoved.length) {
       const changes: TIIHistoryChanges = {
