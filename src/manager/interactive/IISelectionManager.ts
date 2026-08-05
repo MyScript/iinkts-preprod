@@ -5,7 +5,7 @@ import { PointerEventGrabber } from "@/grabber"
 import { LoggerCategory } from "@/logger"
 import { SVGBuilder } from "@/renderer"
 import type { TBox, TDecorator, TEdge, TEdgeArc, TEdgeLine, TEdgePolyLine, TPoint, TStroke, TSymbol } from "@/symbol"
-import { EdgeKind, isDecorator, isRecognizedMath, StrokeOps, SymbolType } from "@/symbol"
+import { EdgeKind, isDecorator, isRecognizedMath, isStroke, StrokeOps, SymbolType } from "@/symbol"
 import { EdgeArcOps } from "@/symbol/edge/Arc"
 import { EdgeOps } from "@/symbol/edge/Edge"
 import { BoxOps } from "@/symbol/primitives/Box"
@@ -1006,9 +1006,37 @@ export class IISelectionManager extends IIAbstractManager {
     })
   }
 
+
+  /**
+   * For every selected stroke that belongs to a Node or Edge JIIX block, pull in all sibling
+   * strokes of that block — unconditionally (unlike expandSelectionForMathBlocks, this doesn't
+   * gate on selection.mathLevel; shape/edge blocks always move as one rigid group so that
+   * connected-edge live-follow has a consistent group bounds to work with).
+   */
+  expandSelectionForBlocks(): void {
+    const blockIds = new Set<string>()
+    this.model.symbolsSelected.forEach((s) => {
+      if (isStroke(s) && s.jiixBlockId && (s.jiixBlockType === "Node" || s.jiixBlockType === "Edge")) {
+        blockIds.add(s.jiixBlockId)
+      }
+    })
+    blockIds.forEach((blockId) => {
+      this.canvas.jiix.getStrokesForElement(blockId).forEach((id) => {
+        if (!this.model.selectedIds.has(id)) {
+          const sym = this.model.getRootSymbol(id)
+          if (sym) {
+            this.model.selectedIds.add(id)
+            this.renderer.updateSelectedState(sym, true)
+          }
+        }
+      })
+    })
+  }
+
   end(info: TPointerInfo): TSymbol[] {
     const updatedSymbols = this.continue(info)
     this.expandSelectionForMathBlocks()
+    this.expandSelectionForBlocks()
     this.startSelectionPoint = undefined
     this.endSelectionPoint = undefined
     this.clearSelectingRect()
