@@ -12,7 +12,21 @@ import {
 } from "../../__dataset__/jiix.dataset"
 import { buildIIStroke } from "../../helpers"
 import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import { IIConversionManager, JIIXElementType, TJIIXEdgeElement, TJIIXMathElement, TJIIXNodeElement, TJIIXTextElement, TextOps } from "@/iink"
+import {
+  EdgeOps,
+  IIConversionManager,
+  JIIXEdgeKind,
+  JIIXElementType,
+  JIIXNodeKind,
+  ShapeOps,
+  TEdgeLine,
+  TJIIXEdgeElement,
+  TJIIXMathElement,
+  TJIIXNodeElement,
+  TJIIXTextElement,
+  TextOps,
+  TSymbol,
+} from "@/iink"
 
 describe("IIConversionManager.ts", () => {
   test("should create", () => {
@@ -269,6 +283,93 @@ describe("IIConversionManager.ts", () => {
       const result = manager.convertEdge(jiixEdgeArc, [stroke])!
       expect(result.strokes).toEqual([stroke])
       expect(result.symbol.kind).toEqual("arc")
+    })
+  })
+
+  describe("apply - two-pass anchor resolution", () => {
+    // The real InteractiveInkCanvas.addSymbols() adds the symbol to the model before resolving;
+    // createCanvasMock's default addSymbols stub doesn't, so mirror that side effect here to
+    // exercise the same ordering guarantee #applyInternal relies on.
+    function mockAddSymbolsIntoModel(canvas: ReturnType<typeof createCanvasMock>): void {
+      canvas.addSymbols = jest.fn().mockImplementation((syms: TSymbol[]) => {
+        syms.forEach((s) => canvas.model.addSymbol(s))
+        return Promise.resolve(syms)
+      })
+    }
+
+    test("convert: node converted before its connected edge in the same batch → edge gets a real anchor", async () => {
+      const canvas = createCanvasMock()
+      mockAddSymbolsIntoModel(canvas)
+      const nodeStroke = buildIIStroke()
+      const edgeStroke = buildIIStroke()
+      canvas.model.addSymbol(nodeStroke)
+      canvas.model.addSymbol(edgeStroke)
+
+      const nodeEl = {
+        type: JIIXElementType.Node,
+        id: "node-1",
+        kind: JIIXNodeKind.Rectangle,
+        x: 100,
+        y: 0,
+        width: 20,
+        height: 20,
+        items: [{ type: "stroke", id: "i1", "full-id": nodeStroke.id }],
+      } as unknown as TJIIXNodeElement
+      const edgeEl = {
+        type: JIIXElementType.Edge,
+        id: "edge-1",
+        kind: JIIXEdgeKind.Line,
+        x1: 0,
+        y1: 5,
+        x2: 10,
+        y2: 5,
+        connected: ["node-1"],
+        ports: [0],
+        items: [{ type: "stroke", id: "i2", "full-id": edgeStroke.id }],
+      } as unknown as TJIIXEdgeElement
+      canvas.model.exports = {
+        "application/vnd.myscript.jiix": { type: "Text", id: "root", version: "3", elements: [edgeEl, nodeEl] },
+      }
+      jest
+        .spyOn(canvas.jiix, "getStrokesForElement")
+        .mockImplementation((id: string) => (id === "node-1" ? [nodeStroke.id] : []))
+
+      const manager = new IIConversionManager(asCanvas(canvas))
+      const added = await manager.apply()
+
+      const edgeSymbol = added.find((s) => EdgeOps.isEdge(s)) as TEdgeLine
+      const shapeSymbol = added.find((s) => ShapeOps.isShape(s))
+      expect(edgeSymbol.endAnchor?.symbolId).toBe(shapeSymbol!.id)
+    })
+
+    test("convert: edge converted alone (connected node not in this batch) → no anchor set", async () => {
+      const canvas = createCanvasMock()
+      mockAddSymbolsIntoModel(canvas)
+      const edgeStroke = buildIIStroke()
+      canvas.model.addSymbol(edgeStroke)
+
+      const edgeEl = {
+        type: JIIXElementType.Edge,
+        id: "edge-1",
+        kind: JIIXEdgeKind.Line,
+        x1: 0,
+        y1: 5,
+        x2: 10,
+        y2: 5,
+        connected: ["node-1"],
+        ports: [0],
+        items: [{ type: "stroke", id: "i2", "full-id": edgeStroke.id }],
+      } as unknown as TJIIXEdgeElement
+      canvas.model.exports = {
+        "application/vnd.myscript.jiix": { type: "Text", id: "root", version: "3", elements: [edgeEl] },
+      }
+
+      const manager = new IIConversionManager(asCanvas(canvas))
+      const added = await manager.apply()
+
+      const edgeSymbol = added.find((s) => EdgeOps.isEdge(s)) as TEdgeLine
+      expect(edgeSymbol.startAnchor).toBeUndefined()
+      expect(edgeSymbol.endAnchor).toBeUndefined()
     })
   })
 

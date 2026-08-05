@@ -19,7 +19,7 @@ import type {
   TJIIXTextElement,
   TJIIXWord,
 } from "@/model"
-import { JIIXEdgeKind, JIIXElementType, JIIXNodeKind } from "@/model"
+import { extractEdgeEndpoints, JIIXEdgeKind, JIIXElementType, JIIXNodeKind } from "@/model"
 import type {
   DecoratorKind,
   TDecorator,
@@ -41,11 +41,13 @@ import type {
 } from "@/symbol"
 import { isDecorator, isRecognizedMath } from "@/symbol"
 import { DecoratorOps } from "@/symbol/decorator/Decorator"
+import { resolveConnectionAnchors } from "@/symbol/edge/Anchor"
 import { EdgeArcOps } from "@/symbol/edge/Arc"
 import { EdgeLineOps } from "@/symbol/edge/Line"
 import { EdgePolyLineOps } from "@/symbol/edge/PolyLine"
 import { MathOps } from "@/symbol/math/Math"
-import { BoxOps } from "@/symbol/primitives/Box"
+import { BoxOps, type TBox } from "@/symbol/primitives/Box"
+import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
 import { ShapeCircleOps } from "@/symbol/shape/Circle"
 import { ShapeEllipseOps } from "@/symbol/shape/Ellipse"
 import { ShapePolygonOps } from "@/symbol/shape/Polygon"
@@ -417,7 +419,11 @@ export class IIConversionManager extends IIAbstractManager {
     )
   }
 
-  convertEdge(edge: TJIIXEdgeElement, strokes: TStroke[]): { symbol: TEdge; strokes: TStroke[] } | undefined {
+  convertEdge(
+    edge: TJIIXEdgeElement,
+    strokes: TStroke[],
+    blockIdToNewSymbolId: Map<string, string> = new Map()
+  ): { symbol: TEdge; strokes: TStroke[] } | undefined {
     switch (edge.kind) {
       case JIIXEdgeKind.Line: {
         const associatedStroke = strokes.filter((s) => edge.items?.some((i) => i["full-id"] === s.id))
@@ -426,6 +432,7 @@ export class IIConversionManager extends IIAbstractManager {
         }
         const uniqStrokes = associatedStroke.filter((a, i) => associatedStroke.findIndex((s) => a.id === s.id) === i)
         const oiEdge = this.buildLine(edge, uniqStrokes)
+        this.#applyConnectionAnchors(edge, oiEdge, blockIdToNewSymbolId)
         return {
           symbol: oiEdge,
           strokes: uniqStrokes,
@@ -438,6 +445,7 @@ export class IIConversionManager extends IIAbstractManager {
         }
         const uniqStrokes = associatedStroke.filter((a, i) => associatedStroke.findIndex((s) => a.id === s.id) === i)
         const oiEdge = this.buildArc(edge, uniqStrokes)
+        this.#applyConnectionAnchors(edge, oiEdge, blockIdToNewSymbolId)
         return {
           symbol: oiEdge,
           strokes: uniqStrokes,
@@ -452,6 +460,7 @@ export class IIConversionManager extends IIAbstractManager {
         }
         const uniqStrokes = associatedStroke.filter((a, i) => associatedStroke.findIndex((s) => a.id === s.id) === i)
         const oiEdge = this.buildPolyEdge(edge, uniqStrokes)
+        this.#applyConnectionAnchors(edge, oiEdge, blockIdToNewSymbolId)
         return {
           symbol: oiEdge,
           strokes: uniqStrokes,
@@ -461,6 +470,36 @@ export class IIConversionManager extends IIAbstractManager {
         this.logger.error("convertEdge", `Conversion of Edge with kind equal to ${JSON.stringify(edge)} is unknown`)
         return
     }
+  }
+
+  /**
+   * Resolve connected shapes to their newly-converted symbol ids (this batch only — a shape not
+   * converted in the same call has no entry in the map and the connection is dropped silently)
+   * and set startAnchor/endAnchor on the built edge symbol.
+   */
+  #applyConnectionAnchors(edge: TJIIXEdgeElement, symbol: TEdge, blockIdToNewSymbolId: Map<string, string>): void {
+    const endpoints = extractEdgeEndpoints(edge)
+    const connectedIds = edge.connected ?? []
+    if (!endpoints || connectedIds.length === 0) {
+      return
+    }
+    const connections = connectedIds
+      .map((blockId) => {
+        const targetId = blockIdToNewSymbolId.get(blockId)
+        if (!targetId) {
+          return undefined
+        }
+        const target = this.model.getRootSymbol(targetId)
+        if (!target) {
+          return undefined
+        }
+        return { targetId, box: OBBOps.toBox((target as { bounds: TOBB }).bounds) }
+      })
+      .filter((c): c is { targetId: string; box: TBox } => !!c)
+
+    const { startAnchor, endAnchor } = resolveConnectionAnchors(endpoints.start, endpoints.end, connections)
+    symbol.startAnchor = startAnchor
+    symbol.endAnchor = endAnchor
   }
 
   buildMath(mathElement: TJIIXMathElement, strokes: TStroke[], fontSize: number): TMath {
@@ -737,11 +776,18 @@ export class IIConversionManager extends IIAbstractManager {
       await new Promise((resolve) => requestAnimationFrame(resolve))
     }
 
-    // Also convert from JIIX export if available - process sequentially
+    // Also convert from JIIX export if available - process sequentially.
+    // Nodes are processed before edges (regardless of the export's own element order) so an
+    // edge converted in the same batch as its connected shape can resolve a real anchor.
     if (jiix?.elements?.length) {
       const onlyText = !jiix.elements?.some((e) => e.type !== "Text")
+      const blockIdToNewSymbolId = new Map<string, string>()
+      const orderedElements = [
+        ...jiix.elements.filter((e) => e.type === JIIXElementType.Node),
+        ...jiix.elements.filter((e) => e.type !== JIIXElementType.Node),
+      ]
 
-      for (const el of jiix.elements) {
+      for (const el of orderedElements) {
         let conversionResults: {
           symbol: TSymbol
           strokes: TStroke[]
@@ -766,11 +812,12 @@ export class IIConversionManager extends IIAbstractManager {
             const conversion = this.convertNode(el, strokesToConvert)
             if (conversion) {
               conversionResults = [conversion]
+              blockIdToNewSymbolId.set(el.id, conversion.symbol.id)
             }
             break
           }
           case JIIXElementType.Edge: {
-            const conversion = this.convertEdge(el, strokesToConvert)
+            const conversion = this.convertEdge(el, strokesToConvert, blockIdToNewSymbolId)
             if (conversion) {
               conversionResults = [conversion]
             }
