@@ -110,7 +110,10 @@ export class IITranslateManager extends IIAbstractTransformManager {
     const matrix = MatrixTransform.identity().translate(tx, ty)
     this.applyAndDraw(symbols, matrix)
     this.applyTransformToGhostStrokesForSelectedMath(symbols, matrix)
-    this.canvas.connector.updateAnchoredEdges(symbols.map((s) => s.id))
+    this.canvas.connector.updateAnchoredEdges(
+      symbols.map((s) => s.id),
+      matrix
+    )
     if (addToHistory) {
       this.canvas.history.push({
         translate: [

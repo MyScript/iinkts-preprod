@@ -4,6 +4,7 @@ import {
   EdgeArcOps,
   EdgeLineOps,
   EdgePolyLineOps,
+  IIConnectorManager,
   IIResizeManager,
   ShapeCircleOps,
   ShapeEllipseOps,
@@ -438,6 +439,58 @@ describe("IIResizeManager.ts", () => {
       await manager.end({ x: sb.x + stroke.bounds.width * 2, y: sb.y + stroke.bounds.height / 2 })
 
       expect(canvas.math.applyTransformToGhostStrokes).toHaveBeenCalledWith("block-1", expect.anything())
+    })
+  })
+
+  describe("raw single-anchor edge stroke follows a resized block through the full commit path", () => {
+    test("end() permanently mutates the connected edge stroke's points (not just a preview clone)", async () => {
+      const canvas = createCanvasMock()
+      // Use the real IIConnectorManager so this exercises updateAnchoredEdges' commit path for
+      // real, not the connector stub — mirrors the analogous IITranslateManager test.
+      ;(canvas as unknown as { connector: IIConnectorManager }).connector = new IIConnectorManager(asCanvas(canvas))
+      jest.spyOn(canvas.jiix, "getStrokesForElement").mockReturnValue([])
+      canvas.client.transformScale = jest.fn(() => Promise.resolve())
+      const manager = new IIResizeManager(asCanvas(canvas))
+
+      const shape = ShapeCircleOps.create({ x: 50, y: 50 }, 20)
+      canvas.model.addSymbol(shape)
+      canvas.model.selectedIds.add(shape.id)
+
+      const edgeStroke = StrokeOps.create()
+      edgeStroke.pointers = [
+        { x: 0, y: 0, t: 0, p: 1 },
+        { x: 10, y: 0, t: 1, p: 1 },
+      ]
+      edgeStroke.jiixBlockType = "Edge"
+      edgeStroke.endAnchor = { symbolId: shape.id, normalizedX: 1, normalizedY: 0.5 }
+      StrokeOps.updateBounds(edgeStroke)
+      canvas.model.addSymbol(edgeStroke)
+      const originalPointers = edgeStroke.pointers.map((p) => ({ ...p }))
+
+      const sb = OBBOps.toBox(shape.bounds)
+      const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
+      group.setAttribute("role", SvgElementRole.InteractElementsGroup)
+      const resizeElement = document.createElementNS("http://www.w3.org/2000/svg", "line")
+      resizeElement.setAttribute("resize-direction", ResizeDirection.East)
+      group.appendChild(resizeElement)
+
+      const transformOrigin: TPoint = { x: sb.x, y: sb.y + shape.bounds.height / 2 }
+      const resizeToPoint: TPoint = { x: sb.x + shape.bounds.width * 2, y: sb.y + shape.bounds.height / 2 }
+
+      manager.start(resizeElement, transformOrigin)
+      const { scaleX, scaleY } = manager.continue(resizeToPoint)
+      await manager.end(resizeToPoint)
+
+      // Reconstruct the exact matrix end() applied (same scaleX/scaleY, same origin) and assert
+      // the edge stroke's points were rigidly transformed by it — not left at their pre-resize
+      // values, and not just used to draw a transient preview clone.
+      const expectedMatrix = MatrixTransform.identity().scale(scaleX, scaleY, transformOrigin)
+      const expectedPointers = originalPointers.map((p) => {
+        const np = expectedMatrix.applyToPoint(p)
+        return { ...p, x: +np.x.toFixed(3), y: +np.y.toFixed(3) }
+      })
+      expect(edgeStroke.pointers).toEqual(expectedPointers)
+      expect(edgeStroke.pointers).not.toEqual(originalPointers)
     })
   })
 })
