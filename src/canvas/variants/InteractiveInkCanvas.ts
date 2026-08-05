@@ -44,6 +44,7 @@ import {
   StrokeOps,
 } from "@/symbol"
 import { DecoratorOps } from "@/symbol/decorator/Decorator"
+import { EdgeOps } from "@/symbol/edge/Edge"
 import { MathOps } from "@/symbol/math/Math"
 import { BoxOps } from "@/symbol/primitives/Box"
 import { OBBOps } from "@/symbol/primitives/OBB"
@@ -828,6 +829,8 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
         updatedOld: decUpdatedOld,
         updatedNew: decUpdatedNew,
       } = this.#cleanupDecoratorsForRemovedIds(removedIds)
+      const { updatedOld: anchorUpdatedOld, updatedNew: anchorUpdatedNew } =
+        this.#cleanupAnchorsForRemovedIds(removedIds)
 
       if (addToHistory) {
         const changes: TIIHistoryChanges = {
@@ -839,8 +842,10 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
         if (decErased.length) {
           changes.erased = decErased
         }
-        if (decUpdatedNew.length) {
-          changes.updated = { oldSymbols: decUpdatedOld, newSymbols: decUpdatedNew }
+        const updatedOld = [...decUpdatedOld, ...anchorUpdatedOld]
+        const updatedNew = [...decUpdatedNew, ...anchorUpdatedNew]
+        if (updatedNew.length) {
+          changes.updated = { oldSymbols: updatedOld, newSymbols: updatedNew }
         }
         this.history.push(changes)
       }
@@ -927,6 +932,68 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
   }
 
   /**
+   * After removing symbols, clear anchors on edges (and pre-convert Edge strokes) that
+   * pointed at a removed target. Returns updated symbols so callers can include them in
+   * history - undoing the removal then also restores the anchor.
+   */
+  #cleanupAnchorsForRemovedIds(removedIds: Set<string>): {
+    updatedOld: TSymbol[]
+    updatedNew: TSymbol[]
+  } {
+    const updatedOld: TSymbol[] = []
+    const updatedNew: TSymbol[] = []
+
+    const removedBlockIds = new Set<string>()
+    this.model.symbols.forEach((sym) => {
+      if (isStroke(sym) && removedIds.has(sym.id) && sym.jiixBlockId) {
+        removedBlockIds.add(sym.jiixBlockId)
+      }
+    })
+    const isTargetRemoved = (symbolId: string): boolean => removedIds.has(symbolId) || removedBlockIds.has(symbolId)
+
+    for (const sym of [...this.model.symbols]) {
+      if (EdgeOps.isEdge(sym) && (EdgeOps.isLineEdge(sym) || EdgeOps.isPolyEdge(sym) || EdgeOps.isArcEdge(sym))) {
+        const hitStart = sym.startAnchor && isTargetRemoved(sym.startAnchor.symbolId)
+        const hitEnd = sym.endAnchor && isTargetRemoved(sym.endAnchor.symbolId)
+        if (!hitStart && !hitEnd) {
+          continue
+        }
+        const oldSym = { ...sym }
+        if (hitStart) {
+          sym.startAnchor = undefined
+        }
+        if (hitEnd) {
+          sym.endAnchor = undefined
+        }
+        this.model.updateSymbol(sym)
+        this.renderer.drawSymbol(sym)
+        updatedOld.push(oldSym)
+        updatedNew.push(sym)
+        continue
+      }
+      if (isStroke(sym) && sym.jiixBlockType === "Edge" && (sym.startAnchor || sym.endAnchor)) {
+        const hitStart = sym.startAnchor && isTargetRemoved(sym.startAnchor.symbolId)
+        const hitEnd = sym.endAnchor && isTargetRemoved(sym.endAnchor.symbolId)
+        if (!hitStart && !hitEnd) {
+          continue
+        }
+        const oldSym = { ...sym }
+        if (hitStart) {
+          sym.startAnchor = undefined
+        }
+        if (hitEnd) {
+          sym.endAnchor = undefined
+        }
+        this.model.updateSymbol(sym)
+        updatedOld.push(oldSym)
+        updatedNew.push(sym)
+      }
+    }
+
+    return { updatedOld, updatedNew }
+  }
+
+  /**
    * Remove a symbol from the model
    * @param id - ID of symbol to remove
    * @param addToHistory - Whether to add to history (default: true)
@@ -949,11 +1016,14 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       }
       this.model.removeSymbol(symbol.id)
       this.renderer.removeSymbol(symbol.id)
+      const removedIds = new Set([id])
       const {
         erased: decErased,
         updatedOld: decUpdatedOld,
         updatedNew: decUpdatedNew,
-      } = this.#cleanupDecoratorsForRemovedIds(new Set([id]))
+      } = this.#cleanupDecoratorsForRemovedIds(removedIds)
+      const { updatedOld: anchorUpdatedOld, updatedNew: anchorUpdatedNew } =
+        this.#cleanupAnchorsForRemovedIds(removedIds)
       if (addToHistory) {
         const changes: TIIHistoryChanges = {
           erased: [symbol],
@@ -961,8 +1031,10 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
         if (decErased.length) {
           changes.erased = [...changes.erased!, ...decErased]
         }
-        if (decUpdatedNew.length) {
-          changes.updated = { oldSymbols: decUpdatedOld, newSymbols: decUpdatedNew }
+        const updatedOld = [...decUpdatedOld, ...anchorUpdatedOld]
+        const updatedNew = [...decUpdatedNew, ...anchorUpdatedNew]
+        if (updatedNew.length) {
+          changes.updated = { oldSymbols: updatedOld, newSymbols: updatedNew }
         }
         this.history.push(changes)
       }
@@ -1010,6 +1082,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       updatedOld: decUpdatedOld,
       updatedNew: decUpdatedNew,
     } = this.#cleanupDecoratorsForRemovedIds(removedIds)
+    const { updatedOld: anchorUpdatedOld, updatedNew: anchorUpdatedNew } = this.#cleanupAnchorsForRemovedIds(removedIds)
 
     if (addToHistory && symbolsRemoved.length) {
       const changes: TIIHistoryChanges = {
@@ -1018,8 +1091,10 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       if (decErased.length) {
         changes.erased = [...changes.erased!, ...decErased]
       }
-      if (decUpdatedNew.length) {
-        changes.updated = { oldSymbols: decUpdatedOld, newSymbols: decUpdatedNew }
+      const updatedOld = [...decUpdatedOld, ...anchorUpdatedOld]
+      const updatedNew = [...decUpdatedNew, ...anchorUpdatedNew]
+      if (updatedNew.length) {
+        changes.updated = { oldSymbols: updatedOld, newSymbols: updatedNew }
       }
       this.history.push(changes)
       this.updateLayerUI()
