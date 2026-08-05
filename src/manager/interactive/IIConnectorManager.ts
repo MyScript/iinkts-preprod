@@ -3,11 +3,14 @@ import { LoggerCategory } from "@/logger"
 import type { TEdge, TPoint, TShape, TSymbol } from "@/symbol"
 import type { TAnchor } from "@/symbol/edge/Anchor"
 import { computeNormalizedAnchor, resolveAnchorPoint } from "@/symbol/edge/Anchor"
+import { EdgeArcOps, reprojectArcEndpoint } from "@/symbol/edge/Arc"
 import { EdgeOps } from "@/symbol/edge/Edge"
 import { EdgeLineOps } from "@/symbol/edge/Line"
 import { EdgePolyLineOps } from "@/symbol/edge/PolyLine"
 import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
+import type { TPointer } from "@/symbol/primitives/Point"
 import { ShapeOps } from "@/symbol/shape/Shape"
+import { isStroke, StrokeOps } from "@/symbol/stroke/Stroke"
 import type { MatrixTransform } from "@/transform"
 import { findIntersectionBetween2Segment, isPointInsidePolygon } from "@/utils/geometry"
 
@@ -241,6 +244,34 @@ export class IIConnectorManager extends IIAbstractManager {
     }
 
     this.model.symbols.forEach((symbol) => {
+      if (EdgeOps.isEdge(symbol) && EdgeOps.isArcEdge(symbol)) {
+        let clone = symbol
+        let changed = false
+        if (symbol.startAnchor && idSet.has(symbol.startAnchor.symbolId)) {
+          const targetSymbol = this.model.getRootSymbol(symbol.startAnchor.symbolId)
+          if (targetSymbol && ShapeOps.isShape(targetSymbol)) {
+            const box = OBBOps.toBox((targetSymbol as { bounds: TOBB }).bounds)
+            const point = matrix.applyToPoint(resolveAnchorPoint(symbol.startAnchor!, box))
+            clone = { ...clone, ...reprojectArcEndpoint(clone, "start", point) }
+            changed = true
+          }
+        }
+        if (symbol.endAnchor && idSet.has(symbol.endAnchor.symbolId)) {
+          const targetSymbol = this.model.getRootSymbol(symbol.endAnchor.symbolId)
+          if (targetSymbol && ShapeOps.isShape(targetSymbol)) {
+            const box = OBBOps.toBox((targetSymbol as { bounds: TOBB }).bounds)
+            const point = matrix.applyToPoint(resolveAnchorPoint(symbol.endAnchor!, box))
+            clone = { ...clone, ...reprojectArcEndpoint(clone, "end", point) }
+            changed = true
+          }
+        }
+        if (changed) {
+          EdgeArcOps.updateDerivedFields(clone)
+          this.canvas.renderer.drawSymbol(clone)
+        }
+        return
+      }
+
       if (!EdgeOps.isEdge(symbol)) {
         return
       }
@@ -371,6 +402,8 @@ export class IIConnectorManager extends IIAbstractManager {
         }
       }
     })
+
+    this.#followConnectedStrokes(idSet, matrix, /* commit */ false)
   }
 
   /**
@@ -447,10 +480,31 @@ export class IIConnectorManager extends IIAbstractManager {
     const idSet = new Set(symbolIds)
 
     this.model.symbols.forEach((symbol) => {
-      if (!EdgeOps.isEdge(symbol)) {
+      if (EdgeOps.isEdge(symbol) && EdgeOps.isArcEdge(symbol)) {
+        let changed = false
+        if (symbol.startAnchor && idSet.has(symbol.startAnchor.symbolId)) {
+          const point = this.resolveAndUpdateAnchor(symbol.startAnchor, matrix, preTransformBoundsById)
+          if (point) {
+            Object.assign(symbol, reprojectArcEndpoint(symbol, "start", point))
+            changed = true
+          }
+        }
+        if (symbol.endAnchor && idSet.has(symbol.endAnchor.symbolId)) {
+          const point = this.resolveAndUpdateAnchor(symbol.endAnchor, matrix, preTransformBoundsById)
+          if (point) {
+            Object.assign(symbol, reprojectArcEndpoint(symbol, "end", point))
+            changed = true
+          }
+        }
+        if (changed) {
+          EdgeArcOps.updateDerivedFields(symbol)
+          this.canvas.renderer.drawSymbol(symbol)
+          this.model.updateSymbol(symbol)
+        }
         return
       }
-      if (!EdgeOps.isLineEdge(symbol) && !EdgeOps.isPolyEdge(symbol)) {
+
+      if (!EdgeOps.isEdge(symbol) || (!EdgeOps.isLineEdge(symbol) && !EdgeOps.isPolyEdge(symbol))) {
         return
       }
 
@@ -500,6 +554,59 @@ export class IIConnectorManager extends IIAbstractManager {
         this.canvas.renderer.drawSymbol(symbol)
         this.model.updateSymbol(symbol)
       }
+    })
+
+    // Raw-stroke rigid-follow only has a transform to apply when the caller supplies one —
+    // Arc/Line/PolyEdge branches above don't need it (they reproject from the target's
+    // already-updated model bounds), but freehand strokes have no per-point anchor formula.
+    if (matrix) {
+      this.#followConnectedStrokes(idSet, matrix, /* commit */ true)
+    }
+  }
+
+  /**
+   * Pre-convert rigid-follow: a raw ink stroke classified as an Edge, anchored to exactly one
+   * shape block, gets every point transformed by the same matrix when that block is moving.
+   * Dual-anchor edge strokes are skipped — independent per-endpoint repositioning isn't possible
+   * on freehand ink without warping; they wait for Convert.
+   */
+  #followConnectedStrokes(idSet: Set<string>, matrix: MatrixTransform, commit: boolean): void {
+    this.model.symbols.forEach((symbol) => {
+      if (!isStroke(symbol) || symbol.jiixBlockType !== "Edge") {
+        return
+      }
+      const anchor = symbol.startAnchor ?? symbol.endAnchor
+      if (!anchor || (symbol.startAnchor && symbol.endAnchor)) {
+        return
+      }
+      const blockStrokeIds = this.canvas.jiix.getStrokesForElement(anchor.symbolId)
+      const isMoving = blockStrokeIds.some((id) => idSet.has(id)) || idSet.has(anchor.symbolId)
+      if (!isMoving) {
+        return
+      }
+      if (commit) {
+        this.applyMatrixToPoints(symbol.pointers, matrix)
+        StrokeOps.updateBounds(symbol)
+        this.canvas.renderer.drawSymbol(symbol)
+        this.model.updateSymbol(symbol)
+      } else {
+        const clone = {
+          ...symbol,
+          pointers: symbol.pointers.map((p) => {
+            const np = matrix.applyToPoint(p)
+            return { ...p, x: +np.x.toFixed(3), y: +np.y.toFixed(3) }
+          }),
+        }
+        this.canvas.renderer.drawSymbol(clone)
+      }
+    })
+  }
+
+  private applyMatrixToPoints(points: TPointer[], matrix: MatrixTransform): void {
+    points.forEach((p) => {
+      const np = matrix.applyToPoint(p)
+      p.x = +np.x.toFixed(3)
+      p.y = +np.y.toFixed(3)
     })
   }
 }

@@ -277,7 +277,10 @@ export class IIResizeManager extends IIAbstractTransformManager {
     const matrix = MatrixTransform.identity().scale(scaleX, scaleY, this.transformOrigin)
     this.applyAndDraw(this.model.symbolsSelected, matrix)
     this.applyTransformToGhostStrokesForSelectedMath(this.model.symbolsSelected, matrix)
-    this.canvas.connector.updateAnchoredEdges(this.model.symbolsSelected.map((s) => s.id))
+    this.canvas.connector.updateAnchoredEdges(
+      this.model.symbolsSelected.map((s) => s.id),
+      matrix
+    )
     const strokesFromSymbols = this.canvas.extractStrokesFromSymbols(this.model.symbolsSelected)
     await this.canvas.client.transformScale(
       strokesFromSymbols.map((s) => s.id),
