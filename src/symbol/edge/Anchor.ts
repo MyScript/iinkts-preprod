@@ -1,3 +1,8 @@
+import type { TBox } from "@/symbol/primitives/Box"
+import { BoxOps } from "@/symbol/primitives/Box"
+import type { TPoint } from "@/symbol/primitives/Point"
+import { computeDistance } from "@/utils"
+
 /**
  * Anchor point on a symbol, expressed as normalized 0-1 coordinates within the symbol's bounds.
  * (0,0) = top-left, (1,1) = bottom-right.
@@ -51,4 +56,70 @@ export function computeNormalizedAnchor(
     normalizedX: Math.max(0, Math.min(1, (point.x - bounds.x) / w)),
     normalizedY: Math.max(0, Math.min(1, (point.y - bounds.y) / h)),
   }
+}
+
+/**
+ * Assign each candidate connection to whichever of an edge's own endpoints (start/end) is
+ * nearest (by distance to the target box's center), then compute a normalized anchor point
+ * for each assigned connection (nearest point on the target box's boundary to the edge's
+ * endpoint). Used both pre-convert (targetId = jiixBlockId) and post-convert (targetId = real
+ * symbol id) — the caller decides what targetId means.
+ * @group Symbol
+ */
+export function resolveConnectionAnchors(
+  ownStart: TPoint,
+  ownEnd: TPoint,
+  connections: { targetId: string; box: TBox }[]
+): { startAnchor?: TAnchor; endAnchor?: TAnchor } {
+  if (connections.length === 0) {
+    return {}
+  }
+
+  const boxCenter = (box: TBox): TPoint => ({ x: box.x + box.width / 2, y: box.y + box.height / 2 })
+
+  type Slot = { key: "start" | "end"; point: TPoint }
+  let remainingSlots: Slot[] = [
+    { key: "start", point: ownStart },
+    { key: "end", point: ownEnd },
+  ]
+  let remainingConnections = [...connections]
+  const anchors: { startAnchor?: TAnchor; endAnchor?: TAnchor } = {}
+
+  const pickGlobalBestPair = (): { slotIndex: number; connectionIndex: number } | undefined => {
+    if (remainingConnections.length === 0) {
+      return undefined
+    }
+    let best: { slotIndex: number; connectionIndex: number; distance: number } | undefined
+    remainingSlots.forEach((slot, slotIndex) => {
+      remainingConnections.forEach((connection, connectionIndex) => {
+        const distance = computeDistance(slot.point, boxCenter(connection.box))
+        if (!best || distance < best.distance) {
+          best = { slotIndex, connectionIndex, distance }
+        }
+      })
+    })
+    return best
+  }
+
+  // Round 1: the single globally-nearest (endpoint, connection) pair across everything remaining.
+  // Round 2 (if anything is left): whatever's left in the pool goes to whichever endpoint is left.
+  for (let round = 0; round < 2; round++) {
+    const best = pickGlobalBestPair()
+    if (!best) {
+      break
+    }
+    const slot = remainingSlots[best.slotIndex]
+    const [connection] = remainingConnections.splice(best.connectionIndex, 1)
+    remainingSlots = remainingSlots.filter((_, i) => i !== best.slotIndex)
+    const nearestPoint = BoxOps.nearestBoundaryPoint(connection.box, slot.point)
+    const { normalizedX, normalizedY } = computeNormalizedAnchor(nearestPoint, connection.box)
+    const anchor: TAnchor = { symbolId: connection.targetId, normalizedX, normalizedY }
+    if (slot.key === "start") {
+      anchors.startAnchor = anchor
+    } else {
+      anchors.endAnchor = anchor
+    }
+  }
+
+  return anchors
 }
