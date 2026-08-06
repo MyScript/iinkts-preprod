@@ -152,6 +152,22 @@ describe("IIConnectorManager", () => {
     expect(manager).toBeDefined()
   })
 
+  describe("connectorConfiguration", () => {
+    test("defaults followConnectedEdges to true when no config is passed", () => {
+      expect(manager.connectorConfiguration.followConnectedEdges).toBe(true)
+    })
+
+    test("respects an explicit followConnectedEdges: false at construction", () => {
+      const disabledManager = new IIConnectorManager(asCanvas(mock), { followConnectedEdges: false })
+      expect(disabledManager.connectorConfiguration.followConnectedEdges).toBe(false)
+    })
+
+    test("is mutable at runtime (e.g. from a menu toggle)", () => {
+      manager.connectorConfiguration.followConnectedEdges = false
+      expect(manager.connectorConfiguration.followConnectedEdges).toBe(false)
+    })
+  })
+
   describe("updateAnchoredEdges", () => {
     test("empty symbolIds → model.updateSymbol never called", () => {
       const updateSpy = jest.spyOn(mock.model, "updateSymbol")
@@ -891,5 +907,67 @@ describe("IIConnectorManager", () => {
       expect(updateSpy).not.toHaveBeenCalled()
       expect(mock.renderer.drawSymbol).not.toHaveBeenCalled()
     })
+  })
+})
+
+describe("connectorConfiguration.followConnectedEdges = false — disables all follow behavior", () => {
+  let mock: ReturnType<typeof createCanvasMock>
+  let manager: IIConnectorManager
+
+  beforeEach(() => {
+    mock = createCanvasMock()
+    manager = new IIConnectorManager(asCanvas(mock), { followConnectedEdges: false })
+    jest
+      .spyOn(mock.model, "getRootSymbol")
+      .mockReturnValue({ id: TARGET_ID, bounds: TARGET_BOUNDS } as unknown as ReturnType<
+        typeof mock.model.getRootSymbol
+      >)
+  })
+
+  test("updateAnchoredEdges: a converted Line's anchored endpoint is left untouched", () => {
+    const line = buildLineWithStartAnchor()
+    setupSymbols(mock, [line])
+    const startBefore = { ...line.start }
+
+    const result = manager.updateAnchoredEdges([TARGET_ID], MatrixTransform.identity().translate(20, 20))
+
+    expect(line.start).toEqual(startBefore)
+    expect(result).toEqual({ rigidStrokeIds: [], oldSymbols: [], newSymbols: [] })
+  })
+
+  test("drawAnchoredEdgesForMatrix: a converted Line's preview never draws", () => {
+    const line = buildLineWithStartAnchor()
+    setupSymbols(mock, [line])
+
+    manager.drawAnchoredEdgesForMatrix([TARGET_ID], MatrixTransform.identity().translate(20, 20))
+
+    expect(mock.renderer.drawSymbol).not.toHaveBeenCalled()
+  })
+
+  test("getFollowedStrokeIds / getRigidFollowedStrokeIds: a gradient-followed raw stroke is not reported", () => {
+    const stroke = buildStrokeWithSingleAnchor("block-shape-1")
+    setupSymbols(mock, [stroke])
+    jest
+      .spyOn(mock.jiix, "getStrokesForElement")
+      .mockImplementation((id: string) => (id === "block-shape-1" ? ["shape-stroke-1"] : []))
+    mockBlockCenter(mock, "shape-stroke-1", { x: 100, y: 0 })
+
+    expect(manager.getFollowedStrokeIds(["shape-stroke-1"])).toEqual([])
+    expect(manager.getRigidFollowedStrokeIds(["shape-stroke-1"])).toEqual([])
+  })
+
+  test("updateAnchoredEdges: a gradient-followed raw stroke is not mutated", () => {
+    const stroke = buildStrokeWithSingleAnchor("block-shape-1")
+    setupSymbols(mock, [stroke])
+    jest
+      .spyOn(mock.jiix, "getStrokesForElement")
+      .mockImplementation((id: string) => (id === "block-shape-1" ? ["shape-stroke-1"] : []))
+    mockBlockCenter(mock, "shape-stroke-1", { x: 100, y: 0 })
+    const before = stroke.pointers.map((p) => ({ ...p }))
+
+    const result = manager.updateAnchoredEdges(["shape-stroke-1"], MatrixTransform.identity().translate(5, 5))
+
+    expect(stroke.pointers).toEqual(before)
+    expect(result).toEqual({ rigidStrokeIds: [], oldSymbols: [], newSymbols: [] })
   })
 })

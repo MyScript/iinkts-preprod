@@ -195,7 +195,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     this.synchronizer = new IISynchronizerManager(this)
     this.jiix = new IIJiixQueryManager(this)
     this.math = new IIMathManager(this, this.#configuration.math)
-    this.connector = new IIConnectorManager(this)
+    this.connector = new IIConnectorManager(this, this.#configuration.connector)
     this.menu = new IIMenuManager(this, options?.override?.menu)
     this.playback = new IIPlaybackManager(this)
   }
