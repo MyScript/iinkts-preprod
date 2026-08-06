@@ -262,6 +262,7 @@ export function createCanvasMock(overrides: Partial<TCanvasMock> = {}): TCanvasM
           .mockReturnValue({ rigidStrokeIds: [], oldSymbols: [], newSymbols: [] })
         ;(c as unknown as Record<string, unknown>).getFollowedStrokeIds = jest.fn().mockReturnValue([])
         ;(c as unknown as Record<string, unknown>).getRigidFollowedStrokeIds = jest.fn().mockReturnValue([])
+        ;(c as unknown as Record<string, unknown>).connectorConfiguration = { followConnectedEdges: true }
         return c
       })(),
     menu:

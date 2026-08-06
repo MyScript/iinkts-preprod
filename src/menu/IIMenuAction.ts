@@ -17,6 +17,7 @@ import type {
 import {
   ClearMenuAction,
   ConvertMenuAction,
+  DiagramMenuAction,
   ExportMenuAction,
   GestureMenuAction,
   GuideMenuAction,
@@ -55,6 +56,8 @@ export type TMenuActionConfig = {
   guide?: TGuideActionConfig
   /** Enable/disable Snap submenu. Pass an object to configure individual snap items. */
   snap?: TSnapActionConfig
+  /** Enable/disable Diagram submenu (toggles whether moving a connected shape follows its anchored edges) */
+  diagram?: boolean
   /** Enable/disable Math submenu. Pass an object to configure individual math items. */
   math?: TMathActionConfig
   /** Enable/disable Overlay submenu. Pass an object to configure individual overlay items. */
@@ -83,6 +86,7 @@ export const DefaultMenuActionConfig: Required<Omit<TMenuActionConfig, "themes">
   gesture: true,
   guide: true,
   snap: true,
+  diagram: true,
   math: true,
   overlay: true,
   selection: true,
@@ -163,6 +167,12 @@ export class IIMenuAction {
         const snapAction = new SnapMenuAction(this.canvas, this.id, extractSubConfig(this.config.snap))
         this.menuActions.set("snap", snapAction)
         subMenuWrapper.appendChild(snapAction.getElement())
+      }
+
+      if (this.config.diagram) {
+        const diagramAction = new DiagramMenuAction(this.canvas, this.id)
+        this.menuActions.set("diagram", diagramAction)
+        subMenuWrapper.appendChild(diagramAction.getElement())
       }
 
       if (
