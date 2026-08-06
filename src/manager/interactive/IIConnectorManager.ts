@@ -601,7 +601,7 @@ export class IIConnectorManager extends IIAbstractManager {
     // Arc/Line/PolyEdge branches above don't need it (they reproject from the target's
     // already-updated model bounds), but freehand strokes have no per-point anchor formula.
     const strokeFollowResult = matrix
-      ? this.#followConnectedStrokes(idSet, matrix, /* commit */ true)
+      ? this.#followConnectedStrokes(idSet, matrix, /* commit */ true, preTransformBoundsById)
       : { rigidStrokeIds: [], oldSymbols: [], newSymbols: [] }
 
     return {
@@ -686,7 +686,12 @@ export class IIConnectorManager extends IIAbstractManager {
    * the block it is anchored to.
    * @returns the ids of the strokes mutated in the model (empty for the preview pass).
    */
-  #followConnectedStrokes(idSet: Set<string>, matrix: MatrixTransform, commit: boolean): TAnchoredEdgesUpdateResult {
+  #followConnectedStrokes(
+    idSet: Set<string>,
+    matrix: MatrixTransform,
+    commit: boolean,
+    preTransformBoundsById?: Map<string, TOBB>
+  ): TAnchoredEdgesUpdateResult {
     const followed = this.#collectFollowedStrokes(idSet)
     const rigidStrokeIds: string[] = []
     const oldSymbols: TStroke[] = []
@@ -720,7 +725,8 @@ export class IIConnectorManager extends IIAbstractManager {
       const groupPoints = this.#computeGroupGradientPoints(
         entries.map((entry) => entry.symbol),
         matrix,
-        entries[0].movingAnchor!
+        entries[0].movingAnchor!,
+        preTransformBoundsById
       )
       groupPoints.forEach((points, strokeId) => newPointsByStrokeId.set(strokeId, points))
     })
@@ -769,12 +775,16 @@ export class IIConnectorManager extends IIAbstractManager {
    * Used as the reference point for gradient-follow direction — there's no single
    * symbol to read `.bounds` from pre-convert, only a block of strokes sharing a jiixBlockId.
    */
-  #resolveBlockCenter(blockId: string): TPoint | undefined {
+  #resolveBlockCenter(blockId: string, preTransformBoundsById?: Map<string, TOBB>): TPoint | undefined {
     const boxes = this.canvas.jiix
       .getStrokesForElement(blockId)
-      .map((id) => this.model.getRootSymbol(id))
-      .filter((s): s is TSymbol & { bounds: TOBB } => !!s && "bounds" in s)
-      .map((s) => OBBOps.toBox(s.bounds))
+      .map(
+        (id) =>
+          preTransformBoundsById?.get(id) ??
+          (this.model.getRootSymbol(id) as (TSymbol & { bounds: TOBB }) | undefined)?.bounds
+      )
+      .filter((b): b is TOBB => !!b)
+      .map((b) => OBBOps.toBox(b))
     if (boxes.length === 0) {
       return undefined
     }
@@ -788,13 +798,20 @@ export class IIConnectorManager extends IIAbstractManager {
   #computeGroupGradientPoints(
     strokes: TStroke[],
     matrix: MatrixTransform,
-    movingAnchor: TAnchor
+    movingAnchor: TAnchor,
+    preTransformBoundsById?: Map<string, TOBB>
   ): Map<string, TPoint[]> {
     const identity = (): Map<string, TPoint[]> =>
       new Map(strokes.map((s) => [s.id, s.pointers.map((p) => matrix.applyToPoint(p))]))
 
     const allPoints = strokes.flatMap((s) => s.pointers)
-    const targetCenter = this.#resolveBlockCenter(movingAnchor.symbolId)
+    // Must resolve the target's PRE-transform center: by commit time the target has usually
+    // already been mutated to its final position (applyAndDraw runs before updateAnchoredEdges),
+    // so resolving from live model bounds here would use a different reference point than the
+    // preview pass did (which runs before the target moves) — same final matrix, different
+    // target center, different weights, so the committed shape would visibly snap to a
+    // different form than what was just shown while dragging.
+    const targetCenter = this.#resolveBlockCenter(movingAnchor.symbolId, preTransformBoundsById)
     if (allPoints.length <= 1 || !targetCenter) {
       return identity()
     }
