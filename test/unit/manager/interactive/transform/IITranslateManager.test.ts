@@ -400,6 +400,43 @@ describe("IITranslateManager.ts", () => {
       expect(canvas.client.replaceStrokes).toHaveBeenCalledWith([edgeStroke.id], [edgeStroke])
     })
 
+    test("translate() commits the exact same gradient shape the drag preview showed (no pointerup snap)", async () => {
+      // Regression: the preview pass (drawAnchoredEdgesForMatrix, called from continue() before
+      // the shape has moved) and the commit pass (updateAnchoredEdges, called from translate()
+      // after applyAndDraw already moved the shape) must resolve the gradient's target center
+      // from the SAME pre-transform position, or the committed stroke jumps to a different
+      // shape than what was just shown while dragging. Needs a 3rd, non-extreme point: with
+      // only 2 points both always land exactly on the group's min/max (weight 0 or 1 no matter
+      // which center is used), so the drift this test guards against wouldn't show up.
+      const canvas = createCanvasMock()
+      ;(canvas as unknown as { connector: IIConnectorManager }).connector = new IIConnectorManager(asCanvas(canvas))
+      const manager = new IITranslateManager(asCanvas(canvas))
+
+      const shape = ShapeCircleOps.create({ x: 50, y: 50 }, 20)
+      canvas.model.addSymbol(shape)
+      jest.spyOn(canvas.jiix, "getStrokesForElement").mockImplementation((id) => (id === shape.id ? [shape.id] : []))
+
+      const edgeStroke = StrokeOps.create()
+      edgeStroke.pointers = [
+        { x: 0, y: 0, t: 0, p: 1 },
+        { x: 5, y: 0, t: 1, p: 1 },
+        { x: 10, y: 0, t: 2, p: 1 },
+      ]
+      edgeStroke.jiixBlockType = "Edge"
+      edgeStroke.endAnchor = { symbolId: shape.id, normalizedX: 1, normalizedY: 0.5 }
+      StrokeOps.updateBounds(edgeStroke)
+      canvas.model.addSymbol(edgeStroke)
+
+      const matrix = MatrixTransform.identity().translate(30, 40)
+      canvas.connector.drawAnchoredEdgesForMatrix([shape.id], matrix)
+      const previewClone = (canvas.renderer.drawSymbol as jest.Mock).mock.calls.at(-1)![0] as typeof edgeStroke
+      const previewPointers = previewClone.pointers.map((p) => ({ ...p }))
+
+      await manager.translate([shape], 30, 40, false)
+
+      expect(edgeStroke.pointers).toEqual(previewPointers)
+    })
+
     test("translate() moving a shape with a converted, anchored edge never sends the edge's id to the backend", async () => {
       // The backend only tracks raw ink strokes — a converted Line/PolyEdge/Arc symbol must
       // never appear in a client.transform* call, even though its anchor gets recomputed.
