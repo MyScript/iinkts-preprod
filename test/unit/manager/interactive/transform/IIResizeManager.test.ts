@@ -498,11 +498,12 @@ describe("IIResizeManager.ts", () => {
       expect(edgeStroke.pointers).not.toEqual(originalPointers)
     })
 
-    test("end() sends the followed edge stroke to the backend and snapshots it in history", async () => {
+    test("end() sends the followed edge stroke's new content via replaceStrokes and snapshots it in history's updated entry", async () => {
       const canvas = createCanvasMock()
       ;(canvas as unknown as { connector: IIConnectorManager }).connector = new IIConnectorManager(asCanvas(canvas))
       jest.spyOn(canvas.jiix, "getStrokesForElement").mockReturnValue([])
       canvas.client.transformScale = jest.fn(() => Promise.resolve())
+      canvas.client.replaceStrokes = jest.fn(() => Promise.resolve())
       const manager = new IIResizeManager(asCanvas(canvas))
 
       const shape = ShapeCircleOps.create({ x: 50, y: 50 }, 20)
@@ -533,17 +534,24 @@ describe("IIResizeManager.ts", () => {
       manager.start(resizeElement, transformOrigin)
       await manager.end(resizeToPoint)
 
-      // Server must scale that ink too, or its recognition of the connection drifts from ours.
+      // Gradient-followed (single anchor): reshaped non-uniformly, so it must never be folded
+      // into the uniform transformScale call — its full new content goes via replaceStrokes.
       const sentIds = (canvas.client.transformScale as jest.Mock).mock.calls[0][0] as string[]
-      expect(sentIds).toContain(edgeStroke.id)
+      expect(sentIds).not.toContain(edgeStroke.id)
+      expect(canvas.client.replaceStrokes).toHaveBeenCalledWith([edgeStroke.id], [edgeStroke])
 
-      // History needs a PRE-transform snapshot of the followed stroke, else undo can't restore it.
+      // History needs a PRE-transform snapshot of the followed stroke, else undo can't restore
+      // it — but since a gradient shift isn't a uniform scale, it lives in `updated`, not the
+      // `scale` entry's own inverse-matrix-replay symbol list.
       const changes = (canvas.history.push as jest.Mock).mock.calls[0][0] as {
         scale: { symbols: TStroke[] }[]
+        updated?: { oldSymbols: TStroke[]; newSymbols: TStroke[] }
       }
-      const snapshot = changes.scale[0].symbols.find((s) => s.id === edgeStroke.id)
-      expect(snapshot).toBeDefined()
-      expect(snapshot!.pointers).toEqual(originalPointers)
+      expect(changes.scale[0].symbols.find((s) => s.id === edgeStroke.id)).toBeUndefined()
+      const oldSnapshot = changes.updated?.oldSymbols.find((s) => s.id === edgeStroke.id)
+      expect(oldSnapshot).toBeDefined()
+      expect(oldSnapshot!.pointers).toEqual(originalPointers)
+      expect(changes.updated?.newSymbols.find((s) => s.id === edgeStroke.id)).toBe(edgeStroke)
     })
   })
 })

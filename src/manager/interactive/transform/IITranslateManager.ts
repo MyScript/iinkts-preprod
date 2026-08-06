@@ -141,14 +141,19 @@ export class IITranslateManager extends IIAbstractTransformManager {
       this.canvas.history.push(changes)
     }
     const strokes = this.canvas.extractStrokesFromSymbols(symbols)
-    // Only raw strokes are meaningful to the backend — converted Line/PolyEdge/Arc symbols
-    // aren't ink the server tracks, so they must never appear in a client.transform* call.
-    const followedStrokeIds = [...rigidStrokeIds, ...anchoredNewSymbols.filter(isStroke).map((s) => s.id)]
-    return this.canvas.client.transformTranslate(
-      [...new Set([...strokes.map((s) => s.id), ...followedStrokeIds])],
-      tx,
-      ty
-    )
+    // Gradient-followed strokes were reshaped non-uniformly (their points didn't all move by the
+    // same tx/ty), so their full new content must be sent via replaceStrokes instead of asking
+    // the backend to apply this uniform translate itself — only raw strokes are meaningful to
+    // the backend at all, so converted Line/PolyEdge/Arc symbols never appear in either call.
+    const gradientStrokeReplacements = anchoredNewSymbols
+      .map((newSymbol, i) => ({ oldSymbol: anchoredOldSymbols[i], newSymbol }))
+      .filter((pair): pair is { oldSymbol: TStroke; newSymbol: TStroke } => isStroke(pair.newSymbol))
+    return Promise.all([
+      this.canvas.client.transformTranslate([...new Set([...strokes.map((s) => s.id), ...rigidStrokeIds])], tx, ty),
+      ...gradientStrokeReplacements.map(({ oldSymbol, newSymbol }) =>
+        this.canvas.client.replaceStrokes([oldSymbol.id], [newSymbol])
+      ),
+    ]).then(() => undefined)
   }
 
   translateElement(id: string, tx: number, ty: number): void {

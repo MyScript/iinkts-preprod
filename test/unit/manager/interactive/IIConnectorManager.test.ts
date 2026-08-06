@@ -89,6 +89,36 @@ function buildStrokeWithBothAnchors(startBlockId: string, endBlockId: string) {
   return stroke
 }
 
+// A 2-stroke edge block (e.g. a line's bar plus its arrowhead chevron): both strokes share the
+// same jiixBlockId and the same endAnchor, as the sync loop writes an identical anchor to every
+// stroke of one block. The chevron's own two points are nearly equidistant from the target, so
+// it has no reliable "own" direction — its correct weight only comes from the group's range.
+function buildTwoStrokeEdgeGroup(blockId: string) {
+  const bar = StrokeOps.create()
+  bar.id = "edge-stroke-bar"
+  bar.pointers = [
+    { x: 0, y: 0, t: 0, p: 1 },
+    { x: 10, y: 0, t: 1, p: 1 },
+  ]
+  bar.jiixBlockId = "block-edge-1"
+  bar.jiixBlockType = "Edge"
+  bar.endAnchor = { symbolId: blockId, normalizedX: 1, normalizedY: 0.5 }
+  StrokeOps.updateBounds(bar)
+
+  const chevron = StrokeOps.create()
+  chevron.id = "edge-stroke-chevron"
+  chevron.pointers = [
+    { x: 0, y: -2, t: 0, p: 1 },
+    { x: 0, y: 2, t: 1, p: 1 },
+  ]
+  chevron.jiixBlockId = "block-edge-1"
+  chevron.jiixBlockType = "Edge"
+  chevron.endAnchor = { symbolId: blockId, normalizedX: 1, normalizedY: 0.5 }
+  StrokeOps.updateBounds(chevron)
+
+  return { bar, chevron }
+}
+
 // Mocks resolving a block's center (via jiix.getStrokesForElement + model.getRootSymbol) to a
 // stroke sitting at the given point, so gradient-follow direction is deterministic in tests.
 function mockBlockCenter(mock: ReturnType<typeof createCanvasMock>, strokeId: string, center: { x: number; y: number }) {
@@ -689,6 +719,33 @@ describe("IIConnectorManager", () => {
 
       expect(mock.renderer.drawSymbol).not.toHaveBeenCalled()
     })
+
+    test("multi-stroke edge block (bar + chevron) computes gradient weight from the GROUP's distance range, not each stroke's own endpoints", () => {
+      const { bar, chevron } = buildTwoStrokeEdgeGroup("block-shape-1")
+      setupSymbols(mock, [bar, chevron])
+      jest
+        .spyOn(mock.jiix, "getStrokesForElement")
+        .mockImplementation((id: string) => (id === "block-shape-1" ? ["shape-stroke-1"] : []))
+      mockBlockCenter(mock, "shape-stroke-1", { x: 100, y: 0 })
+      const matrix = MatrixTransform.identity().translate(5, 5)
+
+      manager.drawAnchoredEdgesForMatrix(["shape-stroke-1"], matrix)
+
+      const drawnClones = (mock.renderer.drawSymbol as jest.Mock).mock.calls.map(
+        (call) => call[0] as typeof bar
+      )
+      const drawnBar = drawnClones.find((c) => c.id === bar.id)!
+      const drawnChevron = drawnClones.find((c) => c.id === chevron.id)!
+
+      // bar[1] (10,0) is the group's nearest point to the target (100,0) → full weight.
+      expect(drawnBar.pointers[1]).toEqual({ x: 15, y: 5, t: 1, p: 1 })
+      // Both chevron points are farther from the target than any bar point, so they're the
+      // group's farthest — weight 0, UNCHANGED. Isolated per-stroke math (the old algorithm)
+      // would have called them a tie and moved chevron[0] fully while leaving chevron[1] put,
+      // splitting the chevron apart instead of keeping it rigid relative to the group's far end.
+      expect(drawnChevron.pointers[0]).toEqual({ x: 0, y: -2, t: 0, p: 1 })
+      expect(drawnChevron.pointers[1]).toEqual({ x: 0, y: 2, t: 1, p: 1 })
+    })
   })
 
   describe("updateAnchoredEdges — raw stroke gradient/rigid follow (commit path)", () => {
@@ -752,6 +809,26 @@ describe("IIConnectorManager", () => {
       // Untouched by the follow pass — the caller's own transform path owns this stroke.
       expect(stroke.pointers[0]).toEqual(expect.objectContaining({ x: 0, y: 0 }))
       expect(stroke.pointers[1]).toEqual(expect.objectContaining({ x: 10, y: 0 }))
+    })
+
+    test("multi-stroke edge block (commit): each stroke gets its own pre-mutation snapshot, weighted by the group's distance range", () => {
+      const { bar, chevron } = buildTwoStrokeEdgeGroup("block-shape-1")
+      setupSymbols(mock, [bar, chevron])
+      jest
+        .spyOn(mock.jiix, "getStrokesForElement")
+        .mockImplementation((id: string) => (id === "block-shape-1" ? ["shape-stroke-1"] : []))
+      mockBlockCenter(mock, "shape-stroke-1", { x: 100, y: 0 })
+
+      const followed = manager.updateAnchoredEdges(["shape-stroke-1"], MatrixTransform.identity().translate(5, 5))
+
+      expect(followed.rigidStrokeIds).toEqual([])
+      expect(followed.newSymbols.map((s) => s.id).sort()).toEqual([bar.id, chevron.id].sort())
+
+      // Group's nearest point (bar[1]) gets full weight; the chevron, being the group's
+      // farthest points, gets none — both chevron points move together (weight 0), not split.
+      expect(bar.pointers[1]).toEqual(expect.objectContaining({ x: 15, y: 5 }))
+      expect(chevron.pointers[0]).toEqual(expect.objectContaining({ x: 0, y: -2 }))
+      expect(chevron.pointers[1]).toEqual(expect.objectContaining({ x: 0, y: 2 }))
     })
 
     test("getFollowedStrokeIds reports followers without mutating them", () => {

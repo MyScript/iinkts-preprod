@@ -80,7 +80,7 @@ describe("resolveConnectionAnchors", () => {
     expect(result).toEqual({})
   })
 
-  test("resolveConnectionAnchors: one connection nearest to end → only endAnchor set", () => {
+  test("resolveConnectionAnchors: one connection nearest to end → only endAnchor set, anchored at the target's center", () => {
     const box = { x: 90, y: -10, width: 20, height: 20 }
     const result = resolveConnectionAnchors(
       { x: 0, y: 0 },
@@ -90,9 +90,9 @@ describe("resolveConnectionAnchors", () => {
     // Global nearest-pair: box center (100,0) is distance 0 from end, distance 100 from start
     expect(result.startAnchor).toBeUndefined()
     expect(result.endAnchor?.symbolId).toBe("block-A")
-    // ownEnd (100,0) → nearestBoundaryPoint snaps to an edge, normalized in [0,1]
-    expect(result.endAnchor!.normalizedX).toBeGreaterThanOrEqual(0)
-    expect(result.endAnchor!.normalizedX).toBeLessThanOrEqual(1)
+    // Anchors are always at the target's center, regardless of the box's shape/position —
+    // matches applyEndpointAnchor's existing manual-drag convention.
+    expect(result.endAnchor).toEqual({ symbolId: "block-A", normalizedX: 0.5, normalizedY: 0.5 })
   })
 
   test("resolveConnectionAnchors: one connection nearest to start → only startAnchor set", () => {

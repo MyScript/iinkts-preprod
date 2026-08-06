@@ -275,8 +275,12 @@ export class IIResizeManager extends IIAbstractTransformManager {
     const { scaleX, scaleY } = this.continue(point)
     this.canvas.snaps.clearSnapToElementLines()
     // Queried before anything is mutated: the pre-convert edge strokes that will rigidly follow
-    // this resize need a pre-transform snapshot in history, like the selection itself.
-    const followedStrokeIds = this.canvas.connector.getFollowedStrokeIds(this.model.symbolsSelected.map((s) => s.id))
+    // this resize need a pre-transform snapshot in history, like the selection itself. Gradient-
+    // followed strokes are excluded — their shift isn't a uniform scale, so they get their own
+    // pre-mutation snapshot via `updated` below instead, like the anchored converted edges.
+    const followedStrokeIds = this.canvas.connector.getRigidFollowedStrokeIds(
+      this.model.symbolsSelected.map((s) => s.id)
+    )
     const oldSymbols = [
       ...this.model.symbolsSelected,
       ...this.resolveFollowedSymbols(followedStrokeIds, this.model.symbolsSelected),
@@ -290,13 +294,23 @@ export class IIResizeManager extends IIAbstractTransformManager {
         matrix
       )
     const strokesFromSymbols = this.canvas.extractStrokesFromSymbols(this.model.symbolsSelected)
-    await this.canvas.client.transformScale(
-      [...new Set([...strokesFromSymbols.map((s) => s.id), ...followedStrokeIds])],
-      scaleX,
-      scaleY,
-      this.transformOrigin.x,
-      this.transformOrigin.y
-    )
+    // Gradient-followed strokes were reshaped non-uniformly, so their full new content must be
+    // sent via replaceStrokes instead of asking the backend to apply this scale itself.
+    const gradientStrokeReplacements = anchoredNewSymbols
+      .map((newSymbol, i) => ({ oldSymbol: anchoredOldSymbols[i], newSymbol }))
+      .filter((pair): pair is { oldSymbol: TStroke; newSymbol: TStroke } => isStroke(pair.newSymbol))
+    await Promise.all([
+      this.canvas.client.transformScale(
+        [...new Set([...strokesFromSymbols.map((s) => s.id), ...followedStrokeIds])],
+        scaleX,
+        scaleY,
+        this.transformOrigin.x,
+        this.transformOrigin.y
+      ),
+      ...gradientStrokeReplacements.map(({ oldSymbol, newSymbol }) =>
+        this.canvas.client.replaceStrokes([oldSymbol.id], [newSymbol])
+      ),
+    ])
     const changes: TIIHistoryChanges = {
       scale: [
         {
@@ -307,14 +321,11 @@ export class IIResizeManager extends IIAbstractTransformManager {
         },
       ],
     }
-    // Converted Line/PolyEdge/Arc anchors are recomputed from the target's new bounds, not
-    // transformed by this scale matrix — the `scale` entry above can't undo them (there's no
-    // inverse-scale to replay), so they need their own pre-mutation snapshot via `updated`.
-    // Raw followed strokes are excluded here — `oldSymbols` above already snapshotted them.
-    const anchoredOldEdges = anchoredOldSymbols.filter((s) => !isStroke(s))
-    const anchoredNewEdges = anchoredNewSymbols.filter((s) => !isStroke(s))
-    if (anchoredNewEdges.length) {
-      changes.updated = { oldSymbols: anchoredOldEdges, newSymbols: anchoredNewEdges }
+    // Converted Line/PolyEdge/Arc anchors are recomputed from the target's new bounds, and
+    // gradient-followed raw strokes are reshaped non-uniformly — neither has an inverse-scale to
+    // replay on undo, so both need their pre-mutation snapshot restored directly via `updated`.
+    if (anchoredNewSymbols.length) {
+      changes.updated = { oldSymbols: anchoredOldSymbols, newSymbols: anchoredNewSymbols }
     }
     this.canvas.history.push(changes)
     this.finalizeTransform()
