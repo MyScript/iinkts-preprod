@@ -1,5 +1,4 @@
 import type { TBox } from "@/symbol/primitives/Box"
-import { BoxOps } from "@/symbol/primitives/Box"
 import type { TPoint } from "@/symbol/primitives/Point"
 import { computeDistance } from "@/utils"
 
@@ -111,9 +110,12 @@ export function resolveConnectionAnchors(
     const slot = remainingSlots[best.slotIndex]
     const [connection] = remainingConnections.splice(best.connectionIndex, 1)
     remainingSlots = remainingSlots.filter((_, i) => i !== best.slotIndex)
-    const nearestPoint = BoxOps.nearestBoundaryPoint(connection.box, slot.point)
-    const { normalizedX, normalizedY } = computeNormalizedAnchor(nearestPoint, connection.box)
-    const anchor: TAnchor = { symbolId: connection.targetId, normalizedX, normalizedY }
+    // To anchor at a point along the edge of the shape
+    // const nearestPoint = BoxOps.nearestBoundaryPoint(connection.box, slot.point)
+    // const { normalizedX, normalizedY } = computeNormalizedAnchor(nearestPoint, connection.box)
+    // const anchor: TAnchor = { symbolId: connection.targetId, normalizedX, normalizedY }
+    // Always anchor at the target's center
+    const anchor: TAnchor = { symbolId: connection.targetId, normalizedX: 0.5, normalizedY: 0.5 }
     if (slot.key === "start") {
       anchors.startAnchor = anchor
     } else {

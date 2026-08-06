@@ -9,7 +9,6 @@ import { EdgeLineOps } from "@/symbol/edge/Line"
 import { EdgePolyLineOps } from "@/symbol/edge/PolyLine"
 import { BoxOps } from "@/symbol/primitives/Box"
 import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
-import type { TPointer } from "@/symbol/primitives/Point"
 import { ShapeOps } from "@/symbol/shape/Shape"
 import { isStroke, StrokeOps } from "@/symbol/stroke/Stroke"
 import { cloneSymbol } from "@/symbol/SymbolHelpers"
@@ -625,6 +624,22 @@ export class IIConnectorManager extends IIAbstractManager {
   }
 
   /**
+   * Like `getFollowedStrokeIds`, but only the rigidly-followed ones (both connected shapes
+   * moving together — safe to fold into a uniform matrix-replay transform). Gradient-followed
+   * strokes are excluded: their shift isn't uniform, so callers must snapshot and undo them via
+   * `updateAnchoredEdges`'s `oldSymbols`/`newSymbols` instead, and must send their new content to
+   * the backend via `client.replaceStrokes` rather than a uniform transform call.
+   */
+  getRigidFollowedStrokeIds(symbolIds: string[]): string[] {
+    if (symbolIds.length === 0) {
+      return []
+    }
+    return this.#collectFollowedStrokes(new Set(symbolIds))
+      .filter((f) => f.mode === "rigid")
+      .map((f) => f.symbol.id)
+  }
+
+  /**
    * Single source of truth for the pre-convert follow predicate: a raw ink stroke classified as
    * an Edge, anchored to exactly one shape block that is part of the moving set.
    * Dual-anchor edge strokes are skipped — independent per-endpoint repositioning isn't possible
@@ -677,11 +692,41 @@ export class IIConnectorManager extends IIAbstractManager {
     const oldSymbols: TStroke[] = []
     const newSymbols: TStroke[] = []
 
-    followed.forEach(({ symbol, mode, movingAnchor }) => {
-      const newPoints =
-        mode === "rigid"
-          ? symbol.pointers.map((p) => matrix.applyToPoint(p))
-          : this.#computeGradientPoints(symbol.pointers, matrix, movingAnchor!)
+    // Gradient-mode strokes are grouped by their edge's own jiixBlockId so a multi-stroke edge
+    // (e.g. a line's bar plus its arrowhead chevron) shares ONE near/far distance range instead
+    // of each stroke computing its own in isolation — a short chevron has no reliable "own"
+    // direction, but it does have a position relative to the rest of its block.
+    const rigidEntries: TFollowedStroke[] = []
+    const gradientGroups = new Map<string, TFollowedStroke[]>()
+    followed.forEach((entry) => {
+      if (entry.mode === "rigid") {
+        rigidEntries.push(entry)
+        return
+      }
+      const blockId = entry.symbol.jiixBlockId ?? entry.symbol.id
+      const group = gradientGroups.get(blockId) ?? []
+      group.push(entry)
+      gradientGroups.set(blockId, group)
+    })
+
+    const newPointsByStrokeId = new Map<string, TPoint[]>()
+    rigidEntries.forEach(({ symbol }) => {
+      newPointsByStrokeId.set(
+        symbol.id,
+        symbol.pointers.map((p) => matrix.applyToPoint(p))
+      )
+    })
+    gradientGroups.forEach((entries) => {
+      const groupPoints = this.#computeGroupGradientPoints(
+        entries.map((entry) => entry.symbol),
+        matrix,
+        entries[0].movingAnchor!
+      )
+      groupPoints.forEach((points, strokeId) => newPointsByStrokeId.set(strokeId, points))
+    })
+
+    followed.forEach(({ symbol, mode }) => {
+      const newPoints = newPointsByStrokeId.get(symbol.id)!
 
       if (commit) {
         // A rigid (uniform matrix) move is safe to undo by re-applying the inverse matrix, so it
@@ -737,29 +782,47 @@ export class IIConnectorManager extends IIAbstractManager {
     return { x: box.x + box.width / 2, y: box.y + box.height / 2 }
   }
 
-  /**
-   * Gradient-follow: instead of translating every point by the same amount, blend each
-   * point between its original position and its fully-transformed position — full weight
-   * (1) at whichever end of the stroke is nearest the moving shape, fading to no movement
-   * (0) at the other end. Approximates a freehand stroke stretching toward the shape it's
-   * anchored to, without needing to reposition a single "endpoint" the way a vector edge can.
-   */
-  #computeGradientPoints(pointers: TPointer[], matrix: MatrixTransform, movingAnchor: TAnchor): TPoint[] {
-    const n = pointers.length
-    if (n <= 1) {
-      return pointers.map((p) => matrix.applyToPoint(p))
-    }
+  // All points of all strokes sharing the same jiixBlockId share one near/far distance range,
+  // computed against the moving target's center — a lone short stroke (e.g. an arrowhead
+  // chevron) has no reliable "own" direction, but a position relative to its whole block.
+  #computeGroupGradientPoints(
+    strokes: TStroke[],
+    matrix: MatrixTransform,
+    movingAnchor: TAnchor
+  ): Map<string, TPoint[]> {
+    const identity = (): Map<string, TPoint[]> =>
+      new Map(strokes.map((s) => [s.id, s.pointers.map((p) => matrix.applyToPoint(p))]))
+
+    const allPoints = strokes.flatMap((s) => s.pointers)
     const targetCenter = this.#resolveBlockCenter(movingAnchor.symbolId)
-    const distFirst = targetCenter ? computeDistance(pointers[0], targetCenter) : 0
-    const distLast = targetCenter ? computeDistance(pointers[n - 1], targetCenter) : 0
-    const nearFirst = distFirst <= distLast
-    return pointers.map((p, i) => {
-      const weight = nearFirst ? 1 - i / (n - 1) : i / (n - 1)
-      const transformed = matrix.applyToPoint(p)
-      return {
-        x: p.x + weight * (transformed.x - p.x),
-        y: p.y + weight * (transformed.y - p.y),
+    if (allPoints.length <= 1 || !targetCenter) {
+      return identity()
+    }
+
+    const distances = allPoints.map((p) => computeDistance(p, targetCenter))
+    const groupMin = Math.min(...distances)
+    const groupMax = Math.max(...distances)
+    const range = groupMax - groupMin
+
+    const weightOf = (point: TPoint): number => {
+      if (range <= 0) {
+        return 1
       }
-    })
+      return 1 - (computeDistance(point, targetCenter) - groupMin) / range
+    }
+
+    return new Map(
+      strokes.map((s) => [
+        s.id,
+        s.pointers.map((p) => {
+          const weight = weightOf(p)
+          const transformed = matrix.applyToPoint(p)
+          return {
+            x: p.x + weight * (transformed.x - p.x),
+            y: p.y + weight * (transformed.y - p.y),
+          }
+        }),
+      ])
+    )
   }
 }
