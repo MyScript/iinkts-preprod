@@ -3,7 +3,7 @@ import { LoggerCategory } from "@/logger"
 import type { TEdge, TPoint, TShape, TStroke, TSymbol } from "@/symbol"
 import type { TAnchor } from "@/symbol/edge/Anchor"
 import { computeNormalizedAnchor, resolveAnchorPoint } from "@/symbol/edge/Anchor"
-import { EdgeArcOps, reprojectArcEndpoint } from "@/symbol/edge/Arc"
+import { EdgeArcOps, stretchArcEndpoint } from "@/symbol/edge/Arc"
 import { EdgeOps } from "@/symbol/edge/Edge"
 import { EdgeLineOps } from "@/symbol/edge/Line"
 import { EdgePolyLineOps } from "@/symbol/edge/PolyLine"
@@ -12,6 +12,7 @@ import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
 import { ShapeOps } from "@/symbol/shape/Shape"
 import { isStroke, StrokeOps } from "@/symbol/stroke/Stroke"
 import { cloneSymbol } from "@/symbol/SymbolHelpers"
+import { SVGBuilder } from "@/symbol-utils/SVGBuilder"
 import type { MatrixTransform } from "@/transform"
 import { computeDistance, type TPartialDeep } from "@/utils"
 import { findIntersectionBetween2Segment, isPointInsidePolygon } from "@/utils/geometry"
@@ -20,6 +21,7 @@ import { IIAbstractManager } from "./IIAbstractManager"
 
 const ANCHOR_HINT_ROLE = "anchor-hint"
 const ANCHOR_HINT_COLOR = "#3e68ff"
+const ANCHOR_HINT_PATTERN_ID = "ms-anchor-hint-pattern"
 
 /**
  * A pre-convert edge stroke that should follow a transform of the moving set, and how:
@@ -118,9 +120,24 @@ export class IIConnectorManager extends IIAbstractManager {
     const target = this.findSymbolAtPoint(point, excludeId)
     if (target) {
       const bounds = OBBOps.toBox((target as unknown as { bounds: TOBB }).bounds)
+      // Tagging the pattern with the same role as the rect lets clearAnchorHint's single
+      // clearElements() sweep remove both together.
+      const pattern = SVGBuilder.createPattern(
+        ANCHOR_HINT_PATTERN_ID,
+        { x: 0, y: 0, width: 8, height: 8 },
+        { role: ANCHOR_HINT_ROLE, patternTransform: "rotate(45)" }
+      )
+      pattern.appendChild(
+        SVGBuilder.createLine(
+          { x: 0, y: 0 },
+          { x: 0, y: 8 },
+          { stroke: ANCHOR_HINT_COLOR, "stroke-width": "2", opacity: "0.35" }
+        )
+      )
+      this.canvas.renderer.appendElement(pattern)
       this.canvas.renderer.drawRect(bounds, {
         role: ANCHOR_HINT_ROLE,
-        fill: "none",
+        fill: `url(#${ANCHOR_HINT_PATTERN_ID})`,
         stroke: ANCHOR_HINT_COLOR,
         "stroke-width": "2",
         "stroke-dasharray": "6 3",
@@ -211,6 +228,22 @@ export class IIConnectorManager extends IIAbstractManager {
             ? this.computeEntryPoint(edge.points[n - 1], edge.points[n - 2], (target as TShape).vertices)
             : undefined
       }
+    } else if (EdgeOps.isArcEdge(edge)) {
+      const n = edge.vertices.length
+      if (edge.startAnchor && n >= 2) {
+        const target = this.model.getRootSymbol(edge.startAnchor.symbolId)
+        edge.startAnchor.entryPoint =
+          target && ShapeOps.isShape(target)
+            ? this.computeEntryPoint(edge.vertices[0], edge.vertices[1], (target as TShape).vertices)
+            : undefined
+      }
+      if (edge.endAnchor && n >= 2) {
+        const target = this.model.getRootSymbol(edge.endAnchor.symbolId)
+        edge.endAnchor.entryPoint =
+          target && ShapeOps.isShape(target)
+            ? this.computeEntryPoint(edge.vertices[n - 1], edge.vertices[n - 2], (target as TShape).vertices)
+            : undefined
+      }
     }
   }
 
@@ -221,7 +254,7 @@ export class IIConnectorManager extends IIAbstractManager {
    * Called after the user releases an edge endpoint drag.
    */
   applyEndpointAnchor(edge: TEdge, pointIndex: number, point: TPoint): void {
-    if (!EdgeOps.isLineEdge(edge) && !EdgeOps.isPolyEdge(edge)) {
+    if (!EdgeOps.isLineEdge(edge) && !EdgeOps.isPolyEdge(edge) && !EdgeOps.isArcEdge(edge)) {
       return
     }
     const isStart = pointIndex === 0
@@ -261,6 +294,19 @@ export class IIConnectorManager extends IIAbstractManager {
           edge.endAnchor = anchor
         }
         EdgePolyLineOps.updateDerivedFields(edge)
+      } else if (EdgeOps.isArcEdge(edge)) {
+        // An arc has no independent start/end coordinate to overwrite directly — stretch the
+        // ellipse (keeping the other endpoint fixed) so the anchored endpoint lands exactly on
+        // the target's center, same as a manual endpoint drag.
+        if (isStart) {
+          Object.assign(edge, stretchArcEndpoint(edge, "start", center))
+          edge.startAnchor = anchor
+        }
+        if (isEnd) {
+          Object.assign(edge, stretchArcEndpoint(edge, "end", center))
+          edge.endAnchor = anchor
+        }
+        EdgeArcOps.updateDerivedFields(edge)
       }
     } else {
       if (isStart) {
@@ -313,7 +359,7 @@ export class IIConnectorManager extends IIAbstractManager {
           if (targetSymbol) {
             const box = OBBOps.toBox((targetSymbol as unknown as { bounds: TOBB }).bounds)
             const point = matrix.applyToPoint(resolveAnchorPoint(symbol.startAnchor!, box))
-            clone = { ...clone, ...reprojectArcEndpoint(clone, "start", point) }
+            clone = { ...clone, ...stretchArcEndpoint(clone, "start", point) }
             changed = true
           }
         }
@@ -322,12 +368,23 @@ export class IIConnectorManager extends IIAbstractManager {
           if (targetSymbol) {
             const box = OBBOps.toBox((targetSymbol as unknown as { bounds: TOBB }).bounds)
             const point = matrix.applyToPoint(resolveAnchorPoint(symbol.endAnchor!, box))
-            clone = { ...clone, ...reprojectArcEndpoint(clone, "end", point) }
+            clone = { ...clone, ...stretchArcEndpoint(clone, "end", point) }
             changed = true
           }
         }
         if (changed) {
           EdgeArcOps.updateDerivedFields(clone)
+          // Entry points must be refreshed from the STRETCHED geometry's own vertices, or they
+          // go stale the instant the anchored shape moves — same "M ... Q ..." spike bug as an
+          // un-recomputed entry point, just self-inflicted on every subsequent move instead of
+          // only at first anchoring.
+          const n = clone.vertices.length
+          if (clone.startAnchor && n >= 2) {
+            clone.startAnchor = recomputeAnchor(clone.startAnchor, clone.vertices[0], clone.vertices[1])
+          }
+          if (clone.endAnchor && n >= 2) {
+            clone.endAnchor = recomputeAnchor(clone.endAnchor, clone.vertices[n - 1], clone.vertices[n - 2])
+          }
           this.canvas.renderer.drawSymbol(clone)
         }
         return
@@ -556,19 +613,20 @@ export class IIConnectorManager extends IIAbstractManager {
         if (symbol.startAnchor && idSet.has(symbol.startAnchor.symbolId)) {
           const point = this.resolveAndUpdateAnchor(symbol.startAnchor, matrix, preTransformBoundsById)
           if (point) {
-            Object.assign(symbol, reprojectArcEndpoint(symbol, "start", point))
+            Object.assign(symbol, stretchArcEndpoint(symbol, "start", point))
             changed = true
           }
         }
         if (symbol.endAnchor && idSet.has(symbol.endAnchor.symbolId)) {
           const point = this.resolveAndUpdateAnchor(symbol.endAnchor, matrix, preTransformBoundsById)
           if (point) {
-            Object.assign(symbol, reprojectArcEndpoint(symbol, "end", point))
+            Object.assign(symbol, stretchArcEndpoint(symbol, "end", point))
             changed = true
           }
         }
         if (changed) {
           EdgeArcOps.updateDerivedFields(symbol)
+          this.recomputeAllEntryPoints(symbol)
           this.canvas.renderer.drawSymbol(symbol)
           this.model.updateSymbol(symbol)
           oldSymbols.push(oldSymbol)

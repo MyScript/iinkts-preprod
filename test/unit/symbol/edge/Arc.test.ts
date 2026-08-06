@@ -1,4 +1,11 @@
-import { EdgeArcOps, reprojectArcEndpoint, computePointOnEllipse } from "@/iink"
+import {
+  EdgeArcOps,
+  reprojectArcEndpoint,
+  reprojectArcMidpoint,
+  stretchArcEndpoint,
+  computePointOnEllipse,
+  computeDistance,
+} from "@/iink"
 import { OBBOps, TPoint, DefaultStyle, TStyle, TBox } from "@/iink"
 
 describe("Arc.ts", () => {
@@ -190,6 +197,299 @@ describe("Arc.ts", () => {
       // so 0 + (-π) = -π, which equals π modulo the circle (both are on the negative real axis)
       expect(result.sweepAngle).toBeCloseTo(-Math.PI, 1)
       expect(result.startAngle + result.sweepAngle).toBeCloseTo(-Math.PI, 1)
+    })
+  })
+
+  describe("reprojectArcMidpoint", () => {
+    // Regression: dragging the midpoint handle past the chord to the OPPOSITE side used to
+    // make the search chase an ever-larger, near-degenerate ellipse (radius exploding towards
+    // hundreds of times the original) instead of finding the much simpler answer — flip to the
+    // complementary arc on essentially the SAME ellipse. Reported as "goes into an infinite
+    // loop and the result is wrong" (the runaway radius growth, not a literal hang).
+    test("dragging to the opposite side of the chord flips to the complementary arc instead of blowing up the radius", () => {
+      const arc = { center: { x: 0, y: 0 }, radiusX: 5, radiusY: 5, phi: 0, startAngle: Math.PI, sweepAngle: -Math.PI }
+      // start=(-5,0), end=(5,0), original bulge at (0,5). Target is the exact mirror image
+      // across the chord — reachable by the SAME circle, just tracing the other semicircle.
+      const result = reprojectArcMidpoint(arc, { x: 0, y: -5 })
+
+      expect(result.radiusY).toBeLessThan(10)
+      const midAngle = result.startAngle + result.sweepAngle / 2
+      const midPoint = computePointOnEllipse(result.center, result.radiusX, result.radiusY, arc.phi, midAngle)
+      expect(midPoint.x).toBeCloseTo(0, 1)
+      expect(midPoint.y).toBeCloseTo(-5, 1)
+    })
+
+    // Recomputes both endpoints' world positions from a reprojectArcMidpoint result, using the
+    // ORIGINAL phi (the function never touches it) — the core contract this function must
+    // uphold no matter what target point is given: neither endpoint may move.
+    function recomputeEndpoints(
+      arc: { phi: number },
+      result: { center: TPoint; radiusX: number; radiusY: number; startAngle: number; sweepAngle: number }
+    ) {
+      return {
+        start: computePointOnEllipse(result.center, result.radiusX, result.radiusY, arc.phi, result.startAngle),
+        end: computePointOnEllipse(
+          result.center,
+          result.radiusX,
+          result.radiusY,
+          arc.phi,
+          result.startAngle + result.sweepAngle
+        ),
+      }
+    }
+
+    test("circular arc: both endpoints stay exactly fixed for an arbitrary (unreachable) target", () => {
+      const arc = { center: { x: 0, y: 0 }, radiusX: 5, radiusY: 5, phi: 0, startAngle: Math.PI, sweepAngle: -Math.PI }
+      const startBefore = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle)
+      const endBefore = computePointOnEllipse(
+        arc.center,
+        arc.radiusX,
+        arc.radiusY,
+        arc.phi,
+        arc.startAngle + arc.sweepAngle
+      )
+
+      // Nothing about this target is engineered to be exactly reachable by a ratio=1, phi=0
+      // family through startBefore/endBefore — it just has to not move the endpoints.
+      const result = reprojectArcMidpoint(arc, { x: 3, y: 17 })
+
+      const { start, end } = recomputeEndpoints(arc, result)
+      expect(start.x).toBeCloseTo(startBefore.x, 2)
+      expect(start.y).toBeCloseTo(startBefore.y, 2)
+      expect(end.x).toBeCloseTo(endBefore.x, 2)
+      expect(end.y).toBeCloseTo(endBefore.y, 2)
+      expect(result.radiusX).toBeCloseTo(result.radiusY, 2)
+    })
+
+    test("elliptical, rotated arc: both endpoints stay exactly fixed and the radiusX:radiusY ratio is preserved", () => {
+      const arc = { center: { x: 20, y: -10 }, radiusX: 30, radiusY: 12, phi: Math.PI / 6, startAngle: 0.3, sweepAngle: 2 }
+      const originalRatio = arc.radiusX / arc.radiusY
+      const startBefore = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle)
+      const endBefore = computePointOnEllipse(
+        arc.center,
+        arc.radiusX,
+        arc.radiusY,
+        arc.phi,
+        arc.startAngle + arc.sweepAngle
+      )
+
+      const result = reprojectArcMidpoint(arc, { x: -40, y: 60 })
+
+      const { start, end } = recomputeEndpoints(arc, result)
+      expect(start.x).toBeCloseTo(startBefore.x, 1)
+      expect(start.y).toBeCloseTo(startBefore.y, 1)
+      expect(end.x).toBeCloseTo(endBefore.x, 1)
+      expect(end.y).toBeCloseTo(endBefore.y, 1)
+      expect(result.radiusX / result.radiusY).toBeCloseTo(originalRatio, 2)
+    })
+
+    test("target already at the current midpoint → reconstructs essentially the same arc (search converges to the existing solution)", () => {
+      const arc = { center: { x: 5, y: 5 }, radiusX: 20, radiusY: 8, phi: 0.4, startAngle: -0.5, sweepAngle: 1.8 }
+      const midAngle = arc.startAngle + arc.sweepAngle / 2
+      const currentMid = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, midAngle)
+
+      const result = reprojectArcMidpoint(arc, currentMid)
+
+      expect(result.center.x).toBeCloseTo(arc.center.x, 1)
+      expect(result.center.y).toBeCloseTo(arc.center.y, 1)
+      expect(result.radiusX).toBeCloseTo(arc.radiusX, 1)
+      expect(result.radiusY).toBeCloseTo(arc.radiusY, 1)
+    })
+
+    test("target is an exactly reachable point on a DIFFERENT family member → converges to that member (not just to the closest-effort clamp)", () => {
+      // Circular case (ratio=1): the family of circles through two fixed points is exactly
+      // "centers on their perpendicular bisector" — independent of reprojectArcMidpoint's own
+      // line-parametrization, so this is a genuine external check, not a tautology.
+      const arc = { center: { x: 0, y: 0 }, radiusX: 5, radiusY: 5, phi: 0, startAngle: Math.PI, sweepAngle: -Math.PI }
+      // start=(-5,0), end=(5,0). An alternate circle through both: center (0,-5), radius
+      // sqrt(5²+5²) ≈ 7.0711 (also on the perpendicular bisector x=0).
+      const altCenter = { x: 0, y: -5 }
+      const altRadius = Math.sqrt(50)
+      // Matching the original arc's clockwise (negative sweep) direction: start angle (from
+      // altCenter to (-5,0)) is 3π/4, end angle (to (5,0)) is π/4, sweep = π/4 - 3π/4 = -π/2.
+      const altStartAngle = (3 * Math.PI) / 4
+      const altSweepAngle = -Math.PI / 2
+      const altMidAngle = altStartAngle + altSweepAngle / 2
+      const target = computePointOnEllipse(altCenter, altRadius, altRadius, 0, altMidAngle)
+
+      const result = reprojectArcMidpoint(arc, target)
+
+      expect(result.center.x).toBeCloseTo(altCenter.x, 1)
+      expect(result.center.y).toBeCloseTo(altCenter.y, 1)
+      expect(result.radiusY).toBeCloseTo(altRadius, 1)
+      const midAngle = result.startAngle + result.sweepAngle / 2
+      const midPoint = computePointOnEllipse(result.center, result.radiusX, result.radiusY, arc.phi, midAngle)
+      expect(computeDistance(midPoint, target)).toBeLessThan(0.05)
+    })
+  })
+
+  describe("stretchArcEndpoint", () => {
+    function recomputeEndpoints(
+      arc: { phi: number },
+      result: { center: TPoint; radiusX: number; radiusY: number; startAngle: number; sweepAngle: number }
+    ) {
+      return {
+        start: computePointOnEllipse(result.center, result.radiusX, result.radiusY, arc.phi, result.startAngle),
+        end: computePointOnEllipse(
+          result.center,
+          result.radiusX,
+          result.radiusY,
+          arc.phi,
+          result.startAngle + result.sweepAngle
+        ),
+      }
+    }
+
+    test("circle: dragging the end handle further out stretches the radius, keeps start exactly fixed, lands exactly on the target", () => {
+      const arc = { center: { x: 0, y: 0 }, radiusX: 5, radiusY: 5, phi: 0, startAngle: Math.PI, sweepAngle: -Math.PI }
+      const startBefore = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle)
+
+      const result = stretchArcEndpoint(arc, "end", { x: 10, y: 0 })
+
+      expect(result.radiusY).not.toBeCloseTo(arc.radiusY, 1)
+      const { start, end } = recomputeEndpoints(arc, result)
+      expect(start.x).toBeCloseTo(startBefore.x, 2)
+      expect(start.y).toBeCloseTo(startBefore.y, 2)
+      expect(end.x).toBeCloseTo(10, 2)
+      expect(end.y).toBeCloseTo(0, 2)
+      // Center equidistant from both endpoints (the chosen tie-break criterion).
+      expect(computeDistance(result.center, start)).toBeCloseTo(computeDistance(result.center, end), 2)
+    })
+
+    test("circle: dragging the start handle inward shrinks the radius, keeps end exactly fixed, lands exactly on the target", () => {
+      const arc = { center: { x: 0, y: 0 }, radiusX: 5, radiusY: 5, phi: 0, startAngle: Math.PI, sweepAngle: -Math.PI }
+      const endBefore = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle + arc.sweepAngle)
+
+      const result = stretchArcEndpoint(arc, "start", { x: -2, y: 1 })
+
+      const { start, end } = recomputeEndpoints(arc, result)
+      expect(end.x).toBeCloseTo(endBefore.x, 2)
+      expect(end.y).toBeCloseTo(endBefore.y, 2)
+      expect(start.x).toBeCloseTo(-2, 2)
+      expect(start.y).toBeCloseTo(1, 2)
+    })
+
+    test("elliptical, rotated arc: dragging start keeps end fixed and preserves the radiusX:radiusY ratio", () => {
+      const arc = { center: { x: 20, y: -10 }, radiusX: 30, radiusY: 12, phi: Math.PI / 6, startAngle: 0.3, sweepAngle: 2 }
+      const originalRatio = arc.radiusX / arc.radiusY
+      const endBefore = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle + arc.sweepAngle)
+
+      const result = stretchArcEndpoint(arc, "start", { x: 10, y: -5 })
+
+      const { start, end } = recomputeEndpoints(arc, result)
+      expect(start.x).toBeCloseTo(10, 1)
+      expect(start.y).toBeCloseTo(-5, 1)
+      expect(end.x).toBeCloseTo(endBefore.x, 1)
+      expect(end.y).toBeCloseTo(endBefore.y, 1)
+      expect(result.radiusX / result.radiusY).toBeCloseTo(originalRatio, 2)
+    })
+
+    test("dragging the end handle past the start handle (crossover) still lands exactly on target and keeps start fixed, no NaN", () => {
+      const arc = { center: { x: 0, y: 0 }, radiusX: 5, radiusY: 5, phi: 0, startAngle: Math.PI, sweepAngle: -Math.PI }
+      const startBefore = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle)
+
+      // start is at x=-5; drag end to x=-15, well past start on the same side.
+      const result = stretchArcEndpoint(arc, "end", { x: -15, y: 2 })
+
+      expect(Number.isFinite(result.center.x)).toBe(true)
+      expect(Number.isFinite(result.center.y)).toBe(true)
+      expect(Number.isFinite(result.radiusX)).toBe(true)
+      expect(Number.isFinite(result.radiusY)).toBe(true)
+      const { start, end } = recomputeEndpoints(arc, result)
+      expect(start.x).toBeCloseTo(startBefore.x, 2)
+      expect(start.y).toBeCloseTo(startBefore.y, 2)
+      expect(end.x).toBeCloseTo(-15, 2)
+      expect(end.y).toBeCloseTo(2, 2)
+    })
+
+    test("dragging an endpoint onto the other endpoint's exact position is a no-op (degenerate, can't divide by zero)", () => {
+      const arc = { center: { x: 0, y: 0 }, radiusX: 5, radiusY: 5, phi: 0, startAngle: Math.PI, sweepAngle: -Math.PI }
+      const startPoint = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle)
+
+      const result = stretchArcEndpoint(arc, "end", startPoint)
+
+      expect(result).toEqual({
+        center: arc.center,
+        radiusX: arc.radiusX,
+        radiusY: arc.radiusY,
+        startAngle: arc.startAngle,
+        sweepAngle: arc.sweepAngle,
+      })
+    })
+  })
+
+  describe("getSVGPath", () => {
+    // Parses "M x y Q x y x y ..." into actual points, so containment checks compare points
+    // (not substrings — e.g. "10 0" is a substring of "-10 0", a real false-positive risk).
+    function parsePathPoints(path: string): TPoint[] {
+      const numbers = path
+        .split(/\s+/)
+        .filter((t) => t !== "M" && t !== "Q")
+        .map(Number)
+      const points: TPoint[] = []
+      for (let i = 0; i < numbers.length; i += 2) {
+        points.push({ x: numbers[i], y: numbers[i + 1] })
+      }
+      return points
+    }
+    function containsPoint(points: TPoint[], p: TPoint): boolean {
+      return points.some((q) => q.x === p.x && q.y === p.y)
+    }
+
+    test("without anchors, draws through the true first/last vertices", () => {
+      const arc = EdgeArcOps.create({ x: 0, y: 0 }, 0, Math.PI, 10, 10, 0)
+      const path = EdgeArcOps.getSVGPath(arc)
+      const first = arc.vertices[0]
+      const last = arc.vertices.at(-1)!
+      expect(path.startsWith(`M ${first.x} ${first.y} Q`)).toBe(true)
+      expect(path.endsWith(`${last.x} ${last.y}`)).toBe(true)
+    })
+
+    test("startAnchor.entryPoint drops every leading vertex still closer to the true start than the entry point, not just the first one", () => {
+      // Regression: substituting ONLY vertices[0] left the next few (densely-tessellated,
+      // still near the true start) vertices in place, drawing a spike from the entry point
+      // back to them before the visible curve even began.
+      const arc = EdgeArcOps.create({ x: 0, y: 0 }, 0, Math.PI, 10, 10, 0)
+      const trueStart = arc.vertices[0]
+      const v1 = arc.vertices[1]
+      const v2 = arc.vertices[2]
+      // Entry point sits farther from the true start than v1 but closer than v2 — both v0 and
+      // v1 (still "inside" the shape along the curve) must be dropped, not just v0.
+      expect(computeDistance(v1, trueStart)).toBeLessThan(5)
+      expect(computeDistance(v2, trueStart)).toBeGreaterThan(5)
+      const entryPoint = { x: 10, y: 5 }
+      arc.startAnchor = { symbolId: "shape-1", normalizedX: 0.5, normalizedY: 0.5, entryPoint }
+
+      const path = EdgeArcOps.getSVGPath(arc)
+      const points = parsePathPoints(path)
+
+      expect(path.startsWith(`M ${entryPoint.x} ${entryPoint.y} Q ${entryPoint.x} ${entryPoint.y}`)).toBe(true)
+      expect(containsPoint(points, trueStart)).toBe(false)
+      expect(containsPoint(points, v1)).toBe(false)
+      expect(containsPoint(points, v2)).toBe(true)
+      const last = arc.vertices.at(-1)!
+      expect(path.endsWith(`${last.x} ${last.y}`)).toBe(true)
+    })
+
+    test("endAnchor.entryPoint drops every trailing vertex still closer to the true end than the entry point", () => {
+      const arc = EdgeArcOps.create({ x: 0, y: 0 }, 0, Math.PI, 10, 10, 0)
+      const trueEnd = arc.vertices.at(-1)!
+      const vLast1 = arc.vertices.at(-2)!
+      const vLast2 = arc.vertices.at(-3)!
+      expect(computeDistance(vLast1, trueEnd)).toBeLessThan(5)
+      expect(computeDistance(vLast2, trueEnd)).toBeGreaterThan(5)
+      const entryPoint = { x: -10, y: 5 }
+      arc.endAnchor = { symbolId: "shape-2", normalizedX: 0.5, normalizedY: 0.5, entryPoint }
+
+      const path = EdgeArcOps.getSVGPath(arc)
+      const points = parsePathPoints(path)
+
+      const first = arc.vertices[0]
+      expect(path.startsWith(`M ${first.x} ${first.y} Q`)).toBe(true)
+      expect(path.endsWith(`${entryPoint.x} ${entryPoint.y}`)).toBe(true)
+      expect(containsPoint(points, trueEnd)).toBe(false)
+      expect(containsPoint(points, vLast1)).toBe(false)
+      expect(containsPoint(points, vLast2)).toBe(true)
     })
   })
 })

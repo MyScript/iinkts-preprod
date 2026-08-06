@@ -12,6 +12,7 @@ import {
   type TOBB,
   MatrixTransform,
   SymbolType,
+  computePointOnEllipse,
 } from "@/iink"
 
 const TARGET_BOUNDS = OBBOps.fromBox({ x: 10, y: 20, width: 100, height: 80 })
@@ -59,6 +60,12 @@ function buildPolyLineWithEndAnchor() {
 function buildArcWithStartAnchor() {
   const arc = EdgeArcOps.create({ x: 0, y: 0 }, 0, Math.PI, 10, 10, 0)
   arc.startAnchor = { symbolId: TARGET_ID, normalizedX: 0, normalizedY: 0.5 }
+  return arc
+}
+
+function buildArcWithEndAnchor() {
+  const arc = EdgeArcOps.create({ x: 0, y: 0 }, 0, Math.PI, 10, 10, 0)
+  arc.endAnchor = { symbolId: TARGET_ID, normalizedX: 0, normalizedY: 0.5 }
   return arc
 }
 
@@ -375,15 +382,121 @@ describe("IIConnectorManager", () => {
   })
 
   describe("updateAnchoredEdges — arc reprojection", () => {
-    test("arc with startAnchor for a moved shape recomputes startAngle, keeps end angle fixed", () => {
+    test("arc with startAnchor for a moved shape recomputes startAngle and lets the ellipse stretch to reach the target", () => {
       const arc = buildArcWithStartAnchor()
-      const oldEndAngle = arc.startAngle + arc.sweepAngle
+      const radiusYBefore = arc.radiusY
       setupSymbols(mock, [arc])
 
       manager.updateAnchoredEdges([TARGET_ID])
 
       expect(arc.startAngle).not.toBe(0)
-      expect(arc.startAngle + arc.sweepAngle).toBeCloseTo(oldEndAngle, 1)
+      // The regression this locks in: the anchor target is far from the original radius, so the
+      // ellipse must actually resize to reach it exactly — not stay locked to its old size.
+      expect(arc.radiusY).not.toBeCloseTo(radiusYBefore, 0)
+    })
+
+    // Regression lock: when only ONE end of a connected arc is anchored to the moving shape,
+    // the OTHER endpoint's actual WORLD position — not just its angle sum — must stay exactly
+    // where it was. This is what "the edge follows the shape without distorting" means for an
+    // arc, and it's the same invariant reprojectArcMidpoint's manual-drag fix now also upholds.
+    test("arc with startAnchor for a moved shape: the end endpoint's world position is unchanged", () => {
+      const arc = buildArcWithStartAnchor()
+      const endBefore = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle + arc.sweepAngle)
+      setupSymbols(mock, [arc])
+
+      manager.updateAnchoredEdges([TARGET_ID])
+
+      const endAfter = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle + arc.sweepAngle)
+      expect(endAfter.x).toBeCloseTo(endBefore.x, 2)
+      expect(endAfter.y).toBeCloseTo(endBefore.y, 2)
+    })
+
+    test("arc with endAnchor for a moved shape: the start endpoint's world position is unchanged", () => {
+      const arc = buildArcWithEndAnchor()
+      const startBefore = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle)
+      setupSymbols(mock, [arc])
+
+      manager.updateAnchoredEdges([TARGET_ID])
+
+      const startAfter = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle)
+      expect(startAfter.x).toBeCloseTo(startBefore.x, 2)
+      expect(startAfter.y).toBeCloseTo(startBefore.y, 2)
+      // Sanity: the anchored end actually moved (this isn't a no-op).
+      expect(arc.startAngle + arc.sweepAngle).not.toBeCloseTo(Math.PI, 1)
+    })
+
+    // Regression: the Arc branch used to skip recomputeAllEntryPoints entirely (unlike the
+    // Line/PolyEdge branches right below it), so entryPoint stayed frozen at whatever it was
+    // when the anchor was first created — drawing a phantom segment from the shape's center to
+    // that stale point once the connected shape actually moved.
+    test("arc with startAnchor: entryPoint is refreshed after the connected shape moves, not left stale", () => {
+      const circle = ShapeCircleOps.create({ x: 50, y: 50 }, 30)
+      jest.spyOn(mock.model, "getRootSymbol").mockImplementation((id: string) => (id === circle.id ? circle : undefined) as never)
+      const arc = EdgeArcOps.create({ x: 50, y: 50 }, 0, Math.PI, 20, 20, 0)
+      arc.startAnchor = { symbolId: circle.id, normalizedX: 0.5, normalizedY: 0.5, entryPoint: { x: -9999, y: -9999 } }
+      setupSymbols(mock, [arc, circle])
+
+      manager.updateAnchoredEdges([circle.id])
+
+      expect(arc.startAnchor?.entryPoint).toBeDefined()
+      expect(arc.startAnchor?.entryPoint).not.toEqual({ x: -9999, y: -9999 })
+    })
+  })
+
+  describe("drawAnchoredEdgesForMatrix — arc reprojection", () => {
+    // Regression: the preview pass (drawAnchoredEdgesForMatrix) and the commit pass
+    // (updateAnchoredEdges) must stretch the ellipse to the SAME geometry — otherwise the arc
+    // would visually stay locked to its old size while dragging, then snap to the correct
+    // stretched size only at pointerup (the same class of bug fixed earlier for gradient-
+    // followed raw strokes).
+    test("arc with startAnchor for a moving block previews the same stretched geometry the commit produces", () => {
+      const previewArc = buildArcWithStartAnchor()
+      setupSymbols(mock, [previewArc])
+
+      manager.drawAnchoredEdgesForMatrix([TARGET_ID], MatrixTransform.identity())
+
+      const drawnClone = (mock.renderer.drawSymbol as jest.Mock).mock.calls.at(-1)![0] as typeof previewArc
+      expect(drawnClone.radiusY).not.toBeCloseTo(previewArc.radiusY, 0)
+      const endAfterPreview = computePointOnEllipse(
+        drawnClone.center,
+        drawnClone.radiusX,
+        drawnClone.radiusY,
+        drawnClone.phi,
+        drawnClone.startAngle + drawnClone.sweepAngle
+      )
+      const endBefore = computePointOnEllipse(
+        previewArc.center,
+        previewArc.radiusX,
+        previewArc.radiusY,
+        previewArc.phi,
+        previewArc.startAngle + previewArc.sweepAngle
+      )
+      expect(endAfterPreview.x).toBeCloseTo(endBefore.x, 2)
+      expect(endAfterPreview.y).toBeCloseTo(endBefore.y, 2)
+
+      const commitArc = buildArcWithStartAnchor()
+      setupSymbols(mock, [commitArc])
+      manager.updateAnchoredEdges([TARGET_ID])
+
+      expect(commitArc.radiusY).toBeCloseTo(drawnClone.radiusY, 2)
+      expect(commitArc.center.x).toBeCloseTo(drawnClone.center.x, 2)
+      expect(commitArc.center.y).toBeCloseTo(drawnClone.center.y, 2)
+    })
+
+    test("arc with startAnchor: preview also refreshes entryPoint on the drawn clone, without mutating the original (still-stale) arc", () => {
+      const circle = ShapeCircleOps.create({ x: 50, y: 50 }, 30)
+      jest.spyOn(mock.model, "getRootSymbol").mockImplementation((id: string) => (id === circle.id ? circle : undefined) as never)
+      const arc = EdgeArcOps.create({ x: 50, y: 50 }, 0, Math.PI, 20, 20, 0)
+      arc.startAnchor = { symbolId: circle.id, normalizedX: 0.5, normalizedY: 0.5, entryPoint: { x: -9999, y: -9999 } }
+      setupSymbols(mock, [arc, circle])
+
+      manager.drawAnchoredEdgesForMatrix([circle.id], MatrixTransform.identity())
+
+      const drawnClone = (mock.renderer.drawSymbol as jest.Mock).mock.calls.at(-1)![0] as typeof arc
+      expect(drawnClone.startAnchor?.entryPoint).toBeDefined()
+      expect(drawnClone.startAnchor?.entryPoint).not.toEqual({ x: -9999, y: -9999 })
+      // Preview never mutates the model's own symbol — only the clone it draws.
+      expect(arc.startAnchor?.entryPoint).toEqual({ x: -9999, y: -9999 })
     })
   })
 
@@ -555,14 +668,35 @@ describe("IIConnectorManager", () => {
       expect(poly.endAnchor).toBeUndefined()
     })
 
-    test("ignores Arc edges", () => {
+    test("Arc: sets startAnchor and stretches the ellipse so the endpoint lands exactly on the shape's center", () => {
       const circle = ShapeCircleOps.create({ x: 50, y: 50 }, 30)
       setupSymbols(mock, [circle])
       const arc = EdgeArcOps.create({ x: 50, y: 50 }, 0, Math.PI, 20, 20, 0)
+      const endBefore = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle + arc.sweepAngle)
 
       manager.applyEndpointAnchor(arc, 0, { x: 55, y: 55 })
 
-      expect((arc as { startAnchor?: unknown }).startAnchor).toBeUndefined()
+      expect(arc.startAnchor).toEqual(
+        expect.objectContaining({ symbolId: circle.id, normalizedX: 0.5, normalizedY: 0.5 })
+      )
+      const startAfter = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle)
+      expect(startAfter.x).toBeCloseTo(50, 1)
+      expect(startAfter.y).toBeCloseTo(50, 1)
+      // The other endpoint (end) stays exactly where it was — only the dragged one moved.
+      const endAfter = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle + arc.sweepAngle)
+      expect(endAfter.x).toBeCloseTo(endBefore.x, 1)
+      expect(endAfter.y).toBeCloseTo(endBefore.y, 1)
+    })
+
+    test("Arc: dropping the endpoint away from any shape clears the anchor", () => {
+      const circle = ShapeCircleOps.create({ x: 50, y: 50 }, 30)
+      setupSymbols(mock, [circle])
+      const arc = EdgeArcOps.create({ x: 50, y: 50 }, 0, Math.PI, 20, 20, 0)
+      arc.startAnchor = { symbolId: circle.id, normalizedX: 0.5, normalizedY: 0.5 }
+
+      manager.applyEndpointAnchor(arc, 0, { x: 500, y: 500 })
+
+      expect(arc.startAnchor).toBeUndefined()
     })
   })
 
@@ -594,6 +728,21 @@ describe("IIConnectorManager", () => {
       manager.showAnchorHint({ x: 55, y: 55 }, "other-id")
 
       expect(mock.renderer.clearElements).toHaveBeenCalledTimes(2)
+    })
+
+    test("fills the hint rect with a hatched pattern tagged with the same role, so it clears together with the rect", () => {
+      const circle = ShapeCircleOps.create({ x: 50, y: 50 }, 30)
+      setupSymbols(mock, [circle])
+
+      manager.showAnchorHint({ x: 55, y: 55 }, "other-id")
+
+      const patternCall = (mock.renderer.appendElement as jest.Mock).mock.calls.at(-1)![0] as SVGPatternElement
+      expect(patternCall.tagName.toLowerCase()).toBe("pattern")
+      expect(patternCall.getAttribute("role")).toBe("anchor-hint")
+
+      const rectAttrs = (mock.renderer.drawRect as jest.Mock).mock.calls.at(-1)![1] as Record<string, string>
+      expect(rectAttrs.role).toBe("anchor-hint")
+      expect(rectAttrs.fill).toBe(`url(#${patternCall.id})`)
     })
   })
 
