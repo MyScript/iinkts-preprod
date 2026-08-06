@@ -3,6 +3,7 @@ import type { TIIHistoryChanges } from "@/history"
 import type { TEdge, TMath, TPoint, TShape, TStroke, TSymbol, TText } from "@/symbol"
 import { EdgeKind, ShapeKind } from "@/symbol"
 import { EdgeOps } from "@/symbol/edge/Edge"
+import { type TOBB } from "@/symbol/primitives/OBB"
 import { ShapeOps } from "@/symbol/shape/Shape"
 import { isStroke, StrokeOps } from "@/symbol/stroke/Stroke"
 import { MatrixTransform } from "@/transform"
@@ -108,6 +109,17 @@ export class IITranslateManager extends IIAbstractTransformManager {
       ty,
     })
     this.canvas.connector.clearAnchoredEdgesFor(symbols)
+    // Snapshotted before applyAndDraw mutates `symbols` below: gradient-follow needs the
+    // moving target's PRE-transform center (same reference point the drag preview used), not
+    // its already-moved bounds, or the committed shape would snap to a different form than
+    // what was just shown while dragging.
+    const preTransformBoundsById = new Map<string, TOBB>()
+    symbols.forEach((s) => {
+      const bounds = (s as unknown as { bounds?: TOBB }).bounds
+      if (bounds) {
+        preTransformBoundsById.set(s.id, { ...bounds, center: { ...bounds.center } })
+      }
+    })
     const matrix = MatrixTransform.identity().translate(tx, ty)
     this.applyAndDraw(symbols, matrix)
     this.applyTransformToGhostStrokesForSelectedMath(symbols, matrix)
@@ -122,7 +134,8 @@ export class IITranslateManager extends IIAbstractTransformManager {
       newSymbols: anchoredNewSymbols,
     } = this.canvas.connector.updateAnchoredEdges(
       symbols.map((s) => s.id),
-      matrix
+      matrix,
+      preTransformBoundsById
     )
     if (addToHistory) {
       const historySymbols = this.model.symbolsSelected

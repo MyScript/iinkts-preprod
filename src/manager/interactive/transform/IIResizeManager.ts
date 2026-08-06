@@ -6,6 +6,7 @@ import { cloneSymbol, EdgeKind, isMath, isText, ShapeKind } from "@/symbol"
 import { EdgeOps } from "@/symbol/edge/Edge"
 import { MathOps } from "@/symbol/math/Math"
 import { BoxOps } from "@/symbol/primitives/Box"
+import { type TOBB } from "@/symbol/primitives/OBB"
 import { ShapeOps } from "@/symbol/shape/Shape"
 import { isStroke, StrokeOps } from "@/symbol/stroke/Stroke"
 import { TextOps } from "@/symbol/text/Text"
@@ -285,13 +286,25 @@ export class IIResizeManager extends IIAbstractTransformManager {
       ...this.model.symbolsSelected,
       ...this.resolveFollowedSymbols(followedStrokeIds, this.model.symbolsSelected),
     ].map((s) => cloneSymbol(s))
+    // Snapshotted before applyAndDraw mutates the selection below: gradient-follow needs the
+    // moving target's PRE-transform center (same reference point the drag preview used), not
+    // its already-resized bounds, or the committed shape would snap to a different form than
+    // what was just shown while dragging.
+    const preTransformBoundsById = new Map<string, TOBB>()
+    this.model.symbolsSelected.forEach((s) => {
+      const bounds = (s as unknown as { bounds?: TOBB }).bounds
+      if (bounds) {
+        preTransformBoundsById.set(s.id, { ...bounds, center: { ...bounds.center } })
+      }
+    })
     const matrix = MatrixTransform.identity().scale(scaleX, scaleY, this.transformOrigin)
     this.applyAndDraw(this.model.symbolsSelected, matrix)
     this.applyTransformToGhostStrokesForSelectedMath(this.model.symbolsSelected, matrix)
     const { oldSymbols: anchoredOldSymbols, newSymbols: anchoredNewSymbols } =
       this.canvas.connector.updateAnchoredEdges(
         this.model.symbolsSelected.map((s) => s.id),
-        matrix
+        matrix,
+        preTransformBoundsById
       )
     const strokesFromSymbols = this.canvas.extractStrokesFromSymbols(this.model.symbolsSelected)
     // Gradient-followed strokes were reshaped non-uniformly, so their full new content must be
