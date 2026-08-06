@@ -13,7 +13,7 @@ import { ShapeOps } from "@/symbol/shape/Shape"
 import { isStroke, StrokeOps } from "@/symbol/stroke/Stroke"
 import { cloneSymbol } from "@/symbol/SymbolHelpers"
 import type { MatrixTransform } from "@/transform"
-import { computeDistance } from "@/utils"
+import { computeDistance, type TPartialDeep } from "@/utils"
 import { findIntersectionBetween2Segment, isPointInsidePolygon } from "@/utils/geometry"
 
 import { IIAbstractManager } from "./IIAbstractManager"
@@ -43,6 +43,39 @@ type TFollowedStroke = { symbol: TStroke; mode: "rigid" | "gradient"; movingAnch
 type TAnchoredEdgesUpdateResult = { rigidStrokeIds: string[]; oldSymbols: TSymbol[]; newSymbols: TSymbol[] }
 
 /**
+ * @group Manager
+ */
+export type TConnectorConfiguration = {
+  /** Whether moving/resizing/rotating a connected shape reshapes its anchored edges (stroke or
+   * converted Line/PolyEdge/Arc) to follow it. Existing anchors and connection tracking (sync,
+   * survival across Convert) are unaffected either way — this only gates the visual/commit
+   * follow-on-move behavior. */
+  followConnectedEdges: boolean
+}
+
+/**
+ * @group Manager
+ * @source
+ */
+export const DefaultConnectorConfiguration: TConnectorConfiguration = {
+  followConnectedEdges: true,
+}
+
+/**
+ * @group Manager
+ */
+export class ConnectorConfiguration implements TConnectorConfiguration {
+  followConnectedEdges: boolean
+
+  constructor(config?: TPartialDeep<TConnectorConfiguration>) {
+    this.followConnectedEdges =
+      config?.followConnectedEdges !== undefined
+        ? config.followConnectedEdges
+        : DefaultConnectorConfiguration.followConnectedEdges
+  }
+}
+
+/**
  * Manages anchored edges — edges whose endpoints are bound to other symbols.
  * When an anchored symbol moves, `updateAnchoredEdges` recomputes the
  * corresponding edge endpoints from their stored normalized anchor coordinates.
@@ -50,9 +83,11 @@ type TAnchoredEdgesUpdateResult = { rigidStrokeIds: string[]; oldSymbols: TSymbo
  */
 export class IIConnectorManager extends IIAbstractManager {
   protected managerName = "IIConnectorManager"
+  connectorConfiguration: ConnectorConfiguration
 
-  constructor(canvas: TInteractiveInkCanvas) {
+  constructor(canvas: TInteractiveInkCanvas, config?: TPartialDeep<TConnectorConfiguration>) {
     super(canvas, LoggerCategory.MANAGER)
+    this.connectorConfiguration = new ConnectorConfiguration(config)
   }
 
   /**
@@ -245,7 +280,7 @@ export class IIConnectorManager extends IIAbstractManager {
    * Call from transform `continue()` for real-time edge following.
    */
   drawAnchoredEdgesForMatrix(symbolIds: string[], matrix: MatrixTransform): void {
-    if (symbolIds.length === 0) {
+    if (symbolIds.length === 0 || !this.connectorConfiguration.followConnectedEdges) {
       return
     }
     const idSet = new Set(symbolIds)
@@ -499,7 +534,7 @@ export class IIConnectorManager extends IIAbstractManager {
     matrix?: MatrixTransform,
     preTransformBoundsById?: Map<string, TOBB>
   ): TAnchoredEdgesUpdateResult {
-    if (symbolIds.length === 0) {
+    if (symbolIds.length === 0 || !this.connectorConfiguration.followConnectedEdges) {
       return { rigidStrokeIds: [], oldSymbols: [], newSymbols: [] }
     }
     this.logger.info("updateAnchoredEdges", {
@@ -648,6 +683,9 @@ export class IIConnectorManager extends IIAbstractManager {
    * following them as well would apply the matrix twice.
    */
   #collectFollowedStrokes(idSet: Set<string>): TFollowedStroke[] {
+    if (!this.connectorConfiguration.followConnectedEdges) {
+      return []
+    }
     const isAnchorTargetMoving = (anchor: TAnchor): boolean => {
       const blockStrokeIds = this.canvas.jiix.getStrokesForElement(anchor.symbolId)
       return blockStrokeIds.some((id) => idSet.has(id)) || idSet.has(anchor.symbolId)
