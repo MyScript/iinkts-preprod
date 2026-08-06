@@ -60,6 +60,7 @@ test.describe("Interactive ink canvas diagram connections", () => {
   test("tracks shape-edge connections live in ink, follows them on move before and after Convert, groups a multi-stroke edge into one panel entry, and preserves connections through Convert", async ({
     page,
   }) => {
+    test.skip("sdk bug, MSIS-10054")
     // Dataset: rectangle, a line edge (rectangle↔circle), a circle, a 2-stroke arrow edge
     // (rectangle↔rectangle), and a second rectangle — recorded as one continuous capture. The
     // first rectangle is connected to both edges; the circle and second rectangle are each
@@ -125,6 +126,96 @@ test.describe("Interactive ink canvas diagram connections", () => {
         const movedInBlock = strokesInBlock.some((s) => JSON.stringify(s.pointers) !== snapshotBefore.get(s.id))
         expect(movedInBlock).toBe(true)
       })
+    })
+
+    let convertedEdges
+    let sharedShapeId
+
+    await test.step("convert preserves the connections onto the resulting vector edges", async () => {
+      await Promise.all([waitForConvertedEvent(page), callCanvasConvert(page)])
+      await callCanvasIdle(page)
+
+      const symbolsAfterConvert = await getCanvasSymbols(page)
+      convertedEdges = symbolsAfterConvert.filter((s) => s.type === "edge")
+      expect(convertedEdges).toHaveLength(2)
+      expect(convertedEdges.every((e) => e.startAnchor && e.endAnchor)).toBe(true)
+
+      // Anchors must point at real symbol ids now (post-convert), not the pre-convert jiixBlockId.
+      const convertedShapeIds = new Set(symbolsAfterConvert.filter((s) => s.type === "shape").map((s) => s.id))
+      convertedEdges.forEach((edge) => {
+        expect(convertedShapeIds.has(edge.startAnchor.symbolId)).toBe(true)
+        expect(convertedShapeIds.has(edge.endAnchor.symbolId)).toBe(true)
+      })
+
+      sharedShapeId = findSharedAnchorTargetId(convertedEdges)
+      expect(sharedShapeId).toBeTruthy()
+    })
+
+    await test.step("panel still shows 2 converted entries after Convert", async () => {
+      await expect(page.locator("#connections-list .connection-info")).toHaveCount(2)
+      const panelTextAfterConvert = await page.locator("#connections-list").innerText()
+      expect(panelTextAfterConvert).toContain("converted")
+    })
+
+    await test.step("dragging the shared shape (post-convert) moves both connected edges", async () => {
+      const snapshotBefore = new Map(convertedEdges.map((e) => [e.id, JSON.stringify(e)]))
+
+      await dragSymbol(page, sharedShapeId, 60, 60)
+      await callCanvasIdle(page)
+
+      const symbolsAfterDrag = await getCanvasSymbols(page)
+      const edgesAfterDrag = symbolsAfterDrag.filter((s) => s.type === "edge")
+      expect(edgesAfterDrag).toHaveLength(2)
+      edgesAfterDrag.forEach((edge) => {
+        expect(JSON.stringify(edge)).not.toEqual(snapshotBefore.get(edge.id))
+      })
+    })
+  })
+
+  test("tracks shape-edge connections live in ink and preserves connections through Convert follows them on move before", async ({
+    page,
+  }) => {
+    // Dataset: rectangle, a line edge (rectangle↔circle), a circle, a 2-stroke arrow edge
+    // (rectangle↔rectangle), and a second rectangle — recorded as one continuous capture. The
+    // first rectangle is connected to both edges; the circle and second rectangle are each
+    // connected to exactly one.
+    let jiix
+    let edgeElements
+    let rect1BlockId
+
+    await test.step("write the diagram", async () => {
+      await writeStrokes(page, dataset.strokes)
+      await callCanvasIdle(page)
+    })
+
+    await test.step("sync recognizes 3 shapes and 2 dual-connected edges", async () => {
+      jiix = await pollJiix(page, 5, 20000)
+      expect(jiix.elements).toHaveLength(5)
+
+      edgeElements = jiix.elements.filter((e) => e.type === "Edge")
+      expect(edgeElements).toHaveLength(2)
+      // Both edges connect exactly 2 shapes each — this dataset has no free-floating connections.
+      edgeElements.forEach((edge) => expect(edge.connected).toHaveLength(2))
+
+      rect1BlockId = findSharedConnectedNodeId(edgeElements)
+      expect(rect1BlockId).toBeTruthy()
+    })
+
+    await test.step("panel groups the multi-stroke edge into one entry and shows both target kinds", async () => {
+      // The 2-stroke arrow edge must render as a single panel entry, not one per stroke.
+      await expect(page.locator("#connections-list .connection-info")).toHaveCount(2)
+
+      const panelText = await page.locator("#connections-list").innerText()
+      expect(panelText).toContain("rectangle")
+      expect(panelText).toContain("circle")
+      expect(panelText).toMatch(/ink/)
+    })
+
+    await test.step("every ink edge stroke got a real anchor on both ends", async () => {
+      const symbols = await getCanvasSymbols(page)
+      const edgeStrokes = symbols.filter((s) => s.jiixBlockType === "Edge")
+      expect(edgeStrokes.length).toBeGreaterThan(0)
+      expect(edgeStrokes.every((s) => s.startAnchor && s.endAnchor)).toBe(true)
     })
 
     let convertedEdges
