@@ -169,7 +169,10 @@ export class IIMenuAction {
         subMenuWrapper.appendChild(snapAction.getElement())
       }
 
-      if (this.config.diagram) {
+      if (
+        this.config.diagram &&
+        this.canvas.configuration.recognition["raw-content"].recognition?.types.includes("shape")
+      ) {
         const diagramAction = new DiagramMenuAction(this.canvas, this.id)
         this.menuActions.set("diagram", diagramAction)
         subMenuWrapper.appendChild(diagramAction.getElement())
