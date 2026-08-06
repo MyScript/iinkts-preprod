@@ -261,6 +261,7 @@ export function createCanvasMock(overrides: Partial<TCanvasMock> = {}): TCanvasM
           .fn()
           .mockReturnValue({ rigidStrokeIds: [], oldSymbols: [], newSymbols: [] })
         ;(c as unknown as Record<string, unknown>).getFollowedStrokeIds = jest.fn().mockReturnValue([])
+        ;(c as unknown as Record<string, unknown>).getRigidFollowedStrokeIds = jest.fn().mockReturnValue([])
         return c
       })(),
     menu:

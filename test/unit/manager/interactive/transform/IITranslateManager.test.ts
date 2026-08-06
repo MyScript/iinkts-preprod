@@ -384,16 +384,20 @@ describe("IITranslateManager.ts", () => {
       expect(restoredEdge.end).toEqual(endBefore)
     })
 
-    test("translate() sends the followed edge stroke's id to the backend transform", async () => {
+    test("translate() sends the followed edge stroke's new content via replaceStrokes, not the backend transform", async () => {
       const canvas = createCanvasMock()
       canvas.client.transformTranslate = jest.fn(() => Promise.resolve())
+      canvas.client.replaceStrokes = jest.fn(() => Promise.resolve())
       const manager = new IITranslateManager(asCanvas(canvas))
       const { shape, edgeStroke } = setupShapeWithConnectedEdgeStroke(canvas)
 
       await manager.translate([shape], 5, 5, false)
 
+      // Gradient-followed (single anchor): reshaped non-uniformly, so its full new content must
+      // be replaced on the backend, not folded into a uniform transformTranslate call.
       const sentIds = (canvas.client.transformTranslate as jest.Mock).mock.calls[0][0] as string[]
-      expect(sentIds).toContain(edgeStroke.id)
+      expect(sentIds).not.toContain(edgeStroke.id)
+      expect(canvas.client.replaceStrokes).toHaveBeenCalledWith([edgeStroke.id], [edgeStroke])
     })
 
     test("translate() moving a shape with a converted, anchored edge never sends the edge's id to the backend", async () => {

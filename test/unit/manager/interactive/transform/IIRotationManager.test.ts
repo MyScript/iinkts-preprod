@@ -266,12 +266,13 @@ describe("IIRotationManager.ts", () => {
   })
 
   describe("raw single-anchor edge stroke follows a rotated block through the full commit path", () => {
-    test("end() sends the followed edge stroke to the backend and snapshots it in history", async () => {
+    test("end() sends the followed edge stroke's new content via replaceStrokes and snapshots it in history's updated entry", async () => {
       const canvas = createCanvasMock()
       // Real connector: the stub would no-op the rigid-follow commit path entirely.
       ;(canvas as unknown as { connector: IIConnectorManager }).connector = new IIConnectorManager(asCanvas(canvas))
       jest.spyOn(canvas.jiix, "getStrokesForElement").mockReturnValue([])
       canvas.client.transformRotate = jest.fn(() => Promise.resolve())
+      canvas.client.replaceStrokes = jest.fn(() => Promise.resolve())
       const manager = new IIRotationManager(asCanvas(canvas))
 
       const shape = ShapeCircleOps.create({ x: 50, y: 50 }, 20)
@@ -302,16 +303,22 @@ describe("IIRotationManager.ts", () => {
 
       // The edge stroke really moved with the shape...
       expect(edgeStroke.pointers).not.toEqual(originalPointers)
-      // ...so the server's copy of that ink must be rotated too...
+      // ...but it was reshaped non-uniformly (gradient-followed, single anchor), so it must never
+      // be folded into the uniform transformRotate call — its full new content goes via replaceStrokes...
       const sentIds = (canvas.client.transformRotate as jest.Mock).mock.calls[0][0] as string[]
-      expect(sentIds).toContain(edgeStroke.id)
-      // ...and history must hold its PRE-rotation snapshot for undo.
+      expect(sentIds).not.toContain(edgeStroke.id)
+      expect(canvas.client.replaceStrokes).toHaveBeenCalledWith([edgeStroke.id], [edgeStroke])
+      // ...and history must hold its PRE-rotation snapshot for undo in `updated`, not the
+      // `rotate` entry's own inverse-matrix-replay symbol list (a gradient shift has no inverse).
       const changes = (canvas.history.push as jest.Mock).mock.calls[0][0] as {
         rotate: { symbols: TStroke[] }[]
+        updated?: { oldSymbols: TStroke[]; newSymbols: TStroke[] }
       }
-      const snapshot = changes.rotate[0].symbols.find((s) => s.id === edgeStroke.id)
-      expect(snapshot).toBeDefined()
-      expect(snapshot!.pointers).toEqual(originalPointers)
+      expect(changes.rotate[0].symbols.find((s) => s.id === edgeStroke.id)).toBeUndefined()
+      const oldSnapshot = changes.updated?.oldSymbols.find((s) => s.id === edgeStroke.id)
+      expect(oldSnapshot).toBeDefined()
+      expect(oldSnapshot!.pointers).toEqual(originalPointers)
+      expect(changes.updated?.newSymbols.find((s) => s.id === edgeStroke.id)).toBe(edgeStroke)
     })
   })
 })
