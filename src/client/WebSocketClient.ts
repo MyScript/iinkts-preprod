@@ -589,9 +589,9 @@ export class WebSocketClient {
     try {
       const websocketMessage: TWebSocketClientMessageReceived = JSON.parse(message.data)
       if (websocketMessage.type === TWebSocketClientMessageType.Pong) {
+        this.pingCount = 0
         return
       }
-      this.pingCount = 0
       switch (websocketMessage.type) {
         case TWebSocketClientMessageType.HMAC_Challenge:
           this.manageHMACChallenge(websocketMessage).catch((err) => this.event.emitError(err))

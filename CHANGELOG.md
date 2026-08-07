@@ -61,7 +61,7 @@ History entries no longer store a full `Model`/`IIModel` snapshot — only the d
 
 # [v4.1.0](https://github.com/MyScript/iinkTS/tree/v4.1.0)
 
-## Features
+- fix(history): `IIHistoryManager` reversing a `style` change used to reapply the same new style instead of restoring the old one (undo was a no-op for style edits); now round-trips correctly via the enriched `oldStyles`/`newStyles`
 
 ### Import Strokes
 - feat(InkCanvasV2) added strokes import functionality 
