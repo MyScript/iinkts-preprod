@@ -252,4 +252,60 @@ describe("PDFExportManager.ts", () => {
       expect(document.querySelector(".ms-modal")).toBeNull()
     })
   })
+
+  describe("print", () => {
+    afterEach(() => {
+      document.querySelectorAll(".ii-pdf-print-container").forEach((el) => el.remove())
+      document.querySelectorAll("style[data-ii-pdf-print]").forEach((el) => el.remove())
+      document.querySelectorAll("style[data-ii-pdf-page]").forEach((el) => el.remove())
+      jest.restoreAllMocks()
+    })
+
+    test("exposes default options matching the dialog defaults", () => {
+      expect(PDFExportManager.DEFAULT_OPTIONS).toEqual({
+        format: "A4",
+        orientation: "portrait",
+        mode: "single",
+        scale: 100,
+      })
+    })
+
+    test("should build a single-page container and call window.print for mode single", () => {
+      const manager = new PDFExportManager(asCanvas(createCanvasMock()))
+      manager.buildMultiPagePrintContainer = jest.fn()
+      manager.buildSinglePagePrintContainer = jest.fn()
+      window.print = jest.fn()
+
+      manager.print("<svg></svg>", { x: 0, y: 0, width: 100, height: 100 }, PDFExportManager.DEFAULT_OPTIONS)
+
+      expect(manager.buildSinglePagePrintContainer).toHaveBeenCalledTimes(1)
+      expect(manager.buildMultiPagePrintContainer).not.toHaveBeenCalled()
+      expect(window.print).toHaveBeenCalledTimes(1)
+    })
+
+    test("should build a multi-page container and call window.print for mode multi", () => {
+      const manager = new PDFExportManager(asCanvas(createCanvasMock()))
+      manager.buildMultiPagePrintContainer = jest.fn()
+      manager.buildSinglePagePrintContainer = jest.fn()
+      window.print = jest.fn()
+
+      manager.print("<svg></svg>", { x: 0, y: 0, width: 100, height: 100 }, { ...PDFExportManager.DEFAULT_OPTIONS, mode: "multi" })
+
+      expect(manager.buildMultiPagePrintContainer).toHaveBeenCalledTimes(1)
+      expect(manager.buildSinglePagePrintContainer).not.toHaveBeenCalled()
+      expect(window.print).toHaveBeenCalledTimes(1)
+    })
+
+    test("should remove the print container once the browser fires afterprint", () => {
+      const manager = new PDFExportManager(asCanvas(createCanvasMock()))
+      window.print = jest.fn()
+
+      manager.print("<svg></svg>", { x: 0, y: 0, width: 100, height: 100 }, PDFExportManager.DEFAULT_OPTIONS)
+      expect(document.querySelector(".ii-pdf-print-container")).not.toBeNull()
+
+      window.dispatchEvent(new Event("afterprint"))
+
+      expect(document.querySelector(".ii-pdf-print-container")).toBeNull()
+    })
+  })
 })

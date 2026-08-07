@@ -89,6 +89,13 @@ const PRINT_STYLESHEET = `
  * @group Manager
  */
 export class PDFExportManager {
+  static readonly DEFAULT_OPTIONS: TPDFExportDialogOptions = {
+    format: "A4",
+    orientation: "portrait",
+    mode: "single",
+    scale: 100,
+  }
+
   #logger = LoggerManager.getLogger(LoggerCategory.MODEL)
   canvas: TInteractiveInkCanvas | InkCanvas
   #printContainer?: HTMLDivElement
@@ -239,7 +246,19 @@ export class PDFExportManager {
     return container
   }
 
+  print(svgContent: string, box: TBox, options: TPDFExportDialogOptions): void {
+    if (options.mode === "single") {
+      this.buildSinglePagePrintContainer(svgContent, box, options.format, options.orientation)
+    } else {
+      this.buildMultiPagePrintContainer(svgContent, box, options)
+    }
+
+    window.addEventListener("afterprint", () => this.removePrintContainer(), { once: true })
+    window.print()
+  }
+
   openExportDialog(onConfirm: (options: TPDFExportDialogOptions) => void): void {
+    const defaults = PDFExportManager.DEFAULT_OPTIONS
     const modal = new Modal({
       title: "Export as PDF",
       container: this.canvas.layers.root,
@@ -248,7 +267,7 @@ export class PDFExportManager {
           id: DIALOG_FIELD_IDS.format,
           label: "Page format",
           type: "select",
-          defaultValue: "A4",
+          defaultValue: defaults.format,
           options: [
             { value: "A4", label: "A4" },
             { value: "Letter", label: "Letter" },
@@ -259,7 +278,7 @@ export class PDFExportManager {
           id: DIALOG_FIELD_IDS.orientation,
           label: "Orientation",
           type: "select",
-          defaultValue: "portrait",
+          defaultValue: defaults.orientation,
           options: [
             { value: "portrait", label: "Portrait" },
             { value: "landscape", label: "Landscape" },
@@ -269,7 +288,7 @@ export class PDFExportManager {
           id: DIALOG_FIELD_IDS.mode,
           label: "Page mode",
           type: "select",
-          defaultValue: "single",
+          defaultValue: defaults.mode,
           options: [
             { value: "single", label: "Single page (fit to page)" },
             { value: "multi", label: "Multi-page (tiled)" },
@@ -279,7 +298,7 @@ export class PDFExportManager {
           id: DIALOG_FIELD_IDS.scale,
           label: "Scale (%)",
           type: "number",
-          defaultValue: 100,
+          defaultValue: defaults.scale,
         },
       ],
       buttons: [
