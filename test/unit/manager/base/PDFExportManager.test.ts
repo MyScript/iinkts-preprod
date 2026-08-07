@@ -78,4 +78,46 @@ describe("PDFExportManager.ts", () => {
       expect(result).toEqual({ columns: 2, rows: 2, total: 4 })
     })
   })
+
+  describe("single-page fit-to-scale mode", () => {
+    afterEach(() => {
+      document.querySelectorAll(".ii-pdf-print-container").forEach((el) => el.remove())
+      document.querySelectorAll("style[data-ii-pdf-print]").forEach((el) => el.remove())
+      document.querySelectorAll("style[data-ii-pdf-page]").forEach((el) => el.remove())
+    })
+
+    test("should shrink content that exceeds the page to fit within it", () => {
+      const manager = new PDFExportManager(asCanvas(createCanvasMock()))
+      const box = { x: 0, y: 0, width: 2000, height: 1000 } // ~529x265mm, wider than A4 portrait
+      const scale = manager.computeFitToPageScale(box, "A4", "portrait")
+      expect(scale).toBeCloseTo(210 / (2000 * (25.4 / 96)), 3)
+    })
+
+    test("should grow content smaller than the page to fill it", () => {
+      const manager = new PDFExportManager(asCanvas(createCanvasMock()))
+      const box = { x: 0, y: 0, width: 400, height: 600 } // ~106x159mm, smaller than A4 portrait
+      const scale = manager.computeFitToPageScale(box, "A4", "portrait")
+      expect(scale).toBeCloseTo(297 / (600 * (25.4 / 96)), 3)
+    })
+
+    test("should set @page size matching the requested format/orientation", () => {
+      const manager = new PDFExportManager(asCanvas(createCanvasMock()))
+      manager.buildSinglePagePrintContainer("<svg><rect /></svg>", { x: 0, y: 0, width: 400, height: 600 }, "A4", "landscape")
+
+      const style = document.head.querySelector("style[data-ii-pdf-page]")
+      expect(style?.textContent).toContain("@page")
+      expect(style?.textContent).toContain("297mm 210mm")
+    })
+
+    test("should scale the SVG element to the fitted physical size", () => {
+      const manager = new PDFExportManager(asCanvas(createCanvasMock()))
+      const box = { x: 0, y: 0, width: 400, height: 600 }
+      const container = manager.buildSinglePagePrintContainer("<svg><rect /></svg>", box, "A4", "portrait")
+
+      const svg = container.querySelector("svg") as SVGElement
+      const scale = manager.computeFitToPageScale(box, "A4", "portrait")
+      const expectedWidthMm = 400 * (25.4 / 96) * scale
+      expect(parseFloat(svg.style.width)).toBeCloseTo(expectedWidthMm, 2)
+    })
+  })
 })
