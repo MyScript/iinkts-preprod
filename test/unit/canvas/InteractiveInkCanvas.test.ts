@@ -911,6 +911,69 @@ describe("CanvasOffscreen.ts", () => {
     })
   })
 
+  describe("Print", () => {
+    const canvas = new InteractiveInkCanvas(document.createElement("div"), CanvasOptions)
+    const stroke1 = buildIIStroke()
+    canvas.model.addSymbol(stroke1)
+    const stroke2 = buildIIStroke()
+    canvas.model.addSymbol(stroke2)
+
+    canvas.renderer.getElementById = jest.fn((id) => {
+      const p = document.createElementNS("http://www.w3.org/2000/svg", "path")
+      p.id = id
+      return p
+    })
+
+    afterEach(() => {
+      jest.restoreAllMocks()
+    })
+
+    test("should open the PDF export dialog", () => {
+      canvas.pdfExport.openExportDialog = jest.fn()
+      canvas.printAsPDF()
+      expect(canvas.pdfExport.openExportDialog).toHaveBeenCalledTimes(1)
+    })
+
+    test("should build a single-page print container and print when mode is single", () => {
+      canvas.pdfExport.buildSinglePagePrintContainer = jest.fn()
+      canvas.pdfExport.buildMultiPagePrintContainer = jest.fn()
+      canvas.pdfExport.openExportDialog = jest.fn((onConfirm) =>
+        onConfirm({ format: "A4", orientation: "portrait", mode: "single", scale: 100 })
+      )
+      window.print = jest.fn()
+
+      canvas.printAsPDF()
+
+      expect(canvas.pdfExport.buildSinglePagePrintContainer).toHaveBeenCalledTimes(1)
+      expect(canvas.pdfExport.buildMultiPagePrintContainer).not.toHaveBeenCalled()
+      expect(window.print).toHaveBeenCalledTimes(1)
+    })
+
+    test("should build a multi-page print container when mode is multi", () => {
+      canvas.pdfExport.buildSinglePagePrintContainer = jest.fn()
+      canvas.pdfExport.buildMultiPagePrintContainer = jest.fn()
+      canvas.pdfExport.openExportDialog = jest.fn((onConfirm) =>
+        onConfirm({ format: "A4", orientation: "portrait", mode: "multi", scale: 100 })
+      )
+      window.print = jest.fn()
+
+      canvas.printAsPDF()
+
+      expect(canvas.pdfExport.buildMultiPagePrintContainer).toHaveBeenCalledTimes(1)
+      expect(canvas.pdfExport.buildSinglePagePrintContainer).not.toHaveBeenCalled()
+    })
+
+    test("should only bound selected symbols when selection is true", () => {
+      canvas.model.selectedIds = new Set([stroke1.id])
+      const boundsSpy = jest.spyOn(canvas, "getSymbolsBounds")
+      canvas.pdfExport.openExportDialog = jest.fn()
+
+      canvas.printAsPDF(true)
+
+      expect(boundsSpy).toHaveBeenCalledWith(canvas.model.symbolsSelected)
+    })
+  })
+
   describe("extract symbols", () => {
     const canvas = new InteractiveInkCanvas(document.createElement("div"), CanvasOptions)
     const text1 = buildIIText()
