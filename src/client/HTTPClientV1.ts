@@ -4,7 +4,7 @@ import type { TPenStyle } from "@/style"
 import { StyleHelper } from "@/style"
 import { type Stroke, StrokeOps } from "@/symbol"
 import type { TPartialDeep } from "@/utils"
-import { computeHmac, getApiInfos, isVersionSuperiorOrEqual } from "@/utils"
+import { computeHmac, getApiInfos, isVersionSuperiorOrEqual, redactServerSecrets } from "@/utils"
 
 import { ClientError } from "./ClientError"
 import type { THTTPClientV1Configuration } from "./HTTPClientV1Configuration"
@@ -85,7 +85,7 @@ export class HTTPClientV1 {
   configuration: HTTPClientV1Configuration
 
   constructor(config: TPartialDeep<THTTPClientV1Configuration>) {
-    this.#logger.info("constructor", { config })
+    this.#logger.info("constructor", { config: redactServerSecrets(config) })
     this.configuration = new HTTPClientV1Configuration(config)
   }
 

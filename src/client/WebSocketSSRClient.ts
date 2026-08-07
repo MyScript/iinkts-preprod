@@ -5,7 +5,7 @@ import type { TPenStyle, TTheme } from "@/style"
 import { StyleHelper } from "@/style"
 import { type Stroke, StrokeOps } from "@/symbol"
 import type { TPartialDeep } from "@/utils"
-import { computeHmac, DeferredPromise, getApiInfos, isVersionSuperiorOrEqual } from "@/utils"
+import { computeHmac, DeferredPromise, getApiInfos, isVersionSuperiorOrEqual, redactServerSecrets } from "@/utils"
 
 import { ClientError, mapCloseCodeToMessage } from "./ClientError"
 import { ClientEvent } from "./ClientEvent"
@@ -88,7 +88,7 @@ export class WebSocketSSRClient {
   event: ClientEvent
 
   constructor(config?: TPartialDeep<TWebSocketSSRClientConfiguration>) {
-    this.#logger.info("constructor", { config })
+    this.#logger.info("constructor", { config: redactServerSecrets(config) })
     this.configuration = new WebSocketSSRClientConfiguration(config)
     const scheme = this.configuration.server.scheme === "https" ? "wss" : "ws"
     this.url = `${scheme}://${this.configuration.server.host}/api/v4.0/iink/document?applicationKey=${this.configuration.server.applicationKey}`
