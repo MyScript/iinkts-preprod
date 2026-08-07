@@ -60,6 +60,7 @@ import {
   createUUID,
   latexToUnicodeMath,
   roundTo,
+  uniqueById,
 } from "@/utils"
 
 import { IIAbstractManager } from "./IIAbstractManager"
@@ -313,7 +314,7 @@ export class IIConversionManager extends IIAbstractManager {
       return
     }
 
-    const uniqStrokes = associatedStroke.filter((a, i) => associatedStroke.findIndex((s) => a.id === s.id) === i)
+    const uniqStrokes = uniqueById(associatedStroke)
 
     let shape: TShape
     switch (node.kind) {
@@ -430,7 +431,7 @@ export class IIConversionManager extends IIAbstractManager {
         if (!associatedStroke.length) {
           return
         }
-        const uniqStrokes = associatedStroke.filter((a, i) => associatedStroke.findIndex((s) => a.id === s.id) === i)
+        const uniqStrokes = uniqueById(associatedStroke)
         const oiEdge = this.buildLine(edge, uniqStrokes)
         this.#applyConnectionAnchors(edge, oiEdge, blockIdToNewSymbolId)
         return {
@@ -443,7 +444,7 @@ export class IIConversionManager extends IIAbstractManager {
         if (!associatedStroke.length) {
           return
         }
-        const uniqStrokes = associatedStroke.filter((a, i) => associatedStroke.findIndex((s) => a.id === s.id) === i)
+        const uniqStrokes = uniqueById(associatedStroke)
         const oiEdge = this.buildArc(edge, uniqStrokes)
         this.#applyConnectionAnchors(edge, oiEdge, blockIdToNewSymbolId)
         return {
@@ -458,7 +459,7 @@ export class IIConversionManager extends IIAbstractManager {
         if (!associatedStroke.length) {
           return
         }
-        const uniqStrokes = associatedStroke.filter((a, i) => associatedStroke.findIndex((s) => a.id === s.id) === i)
+        const uniqStrokes = uniqueById(associatedStroke)
         const oiEdge = this.buildPolyEdge(edge, uniqStrokes)
         this.#applyConnectionAnchors(edge, oiEdge, blockIdToNewSymbolId)
         return {

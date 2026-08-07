@@ -57,6 +57,10 @@ History entries no longer store a full `Model`/`IIModel` snapshot — only the d
 - refactor(connector): **BREAKING** `IIConnectorManager.updateAnchoredEdges()` now returns `string[]` (ids of the pre-convert edge strokes it moved) instead of `void`; callers must include them in their history entry and backend transform message
 - feat(connector): new `IIConnectorManager.getFollowedStrokeIds(symbolIds)` — read-only counterpart of the rigid-follow pass, for callers needing the id list before mutating anything
 
+## Performance
+
+- perf(manager): `IIConversionManager.convertNode()`/`convertEdge()` deduped associated strokes by id using an O(n²) `filter`+`findIndex` idiom, copy-pasted 4×. Extracted a shared `uniqueById()` util (`src/utils/object.ts`, exported) using a `Set`, O(n)
+
 # [v4.1.0](https://github.com/MyScript/iinkTS/tree/v4.1.0)
 
 - fix(history): `IIHistoryManager` reversing a `style` change used to reapply the same new style instead of restoring the old one (undo was a no-op for style edits); now round-trips correctly via the enriched `oldStyles`/`newStyles`

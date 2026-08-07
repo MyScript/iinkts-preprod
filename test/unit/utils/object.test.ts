@@ -1,4 +1,4 @@
-import { mergeDeep, redactServerSecrets } from "@/iink"
+import { mergeDeep, redactServerSecrets, uniqueById } from "@/iink"
 
 describe("merge", () => {
   const testDatas = [
@@ -122,5 +122,31 @@ describe("redactServerSecrets", () => {
   test("should leave non-object input untouched", () => {
     expect(redactServerSecrets(undefined)).toEqual(undefined)
     expect(redactServerSecrets({})).toEqual({})
+  })
+})
+
+describe("uniqueById", () => {
+  test("should drop later duplicates, keeping the first occurrence", () => {
+    const items = [
+      { id: "a", value: 1 },
+      { id: "b", value: 2 },
+      { id: "a", value: 3 },
+      { id: "c", value: 4 },
+      { id: "b", value: 5 },
+    ]
+    expect(uniqueById(items)).toEqual([
+      { id: "a", value: 1 },
+      { id: "b", value: 2 },
+      { id: "c", value: 4 },
+    ])
+  })
+
+  test("should return an equivalent array when there are no duplicates", () => {
+    const items = [{ id: "a" }, { id: "b" }, { id: "c" }]
+    expect(uniqueById(items)).toEqual(items)
+  })
+
+  test("should handle an empty array", () => {
+    expect(uniqueById([])).toEqual([])
   })
 })
