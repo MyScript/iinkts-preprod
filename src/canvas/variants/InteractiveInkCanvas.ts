@@ -6,6 +6,7 @@ import { DOMFactory } from "@/components/dom"
 import { CanvasTool, SELECTION_MARGIN } from "@/Constants"
 import type { THistoryContext, TIIHistoryBackendChanges, TIIHistoryChanges } from "@/history"
 import { extractIIBackendChanges, IIHistoryManager } from "@/history"
+import type { TPDFExportDialogOptions } from "@/manager"
 import {
   EraseManager,
   IIConnectorManager,
@@ -1400,24 +1401,22 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
 
   /**
    * Print symbols as PDF via the browser's native print dialog, either all symbols or only selected ones.
-   * Opens a settings dialog (format/orientation/page mode/scale) before printing.
+   * Without `options`, opens a settings dialog (format/orientation/page mode/scale) before printing.
+   * With `options`, prints immediately using those values, falling back to defaults for anything omitted.
    * @param selection - Whether to print only selected symbols (default: false, prints all symbols)
+   * @param options - Print settings to use directly, skipping the dialog
    */
-  printAsPDF(selection = false) {
+  printAsPDF(selection = false, options?: Partial<TPDFExportDialogOptions>) {
     const symbols = selection ? this.model.symbolsSelected : this.model.symbols
     const box = this.getSymbolsBounds(symbols)
     const svgString = this.buildSvgStringFromSymbols(symbols, box)
 
-    this.pdfExport.openExportDialog((options) => {
-      if (options.mode === "single") {
-        this.pdfExport.buildSinglePagePrintContainer(svgString, box, options.format, options.orientation)
-      } else {
-        this.pdfExport.buildMultiPagePrintContainer(svgString, box, options)
-      }
+    if (options) {
+      this.pdfExport.print(svgString, box, { ...PDFExportManager.DEFAULT_OPTIONS, ...options })
+      return
+    }
 
-      window.addEventListener("afterprint", () => this.pdfExport.removePrintContainer(), { once: true })
-      window.print()
-    })
+    this.pdfExport.openExportDialog((dialogOptions) => this.pdfExport.print(svgString, box, dialogOptions))
   }
 
   protected extractTextFromSymbols(symbols: TSymbol[]): string {

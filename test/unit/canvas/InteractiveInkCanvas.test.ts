@@ -972,6 +972,28 @@ describe("CanvasOffscreen.ts", () => {
 
       expect(boundsSpy).toHaveBeenCalledWith(canvas.model.symbolsSelected)
     })
+
+    test("should skip the dialog and print directly when options are passed", () => {
+      canvas.pdfExport.openExportDialog = jest.fn()
+      canvas.pdfExport.print = jest.fn()
+
+      canvas.printAsPDF(false, { mode: "multi" })
+
+      expect(canvas.pdfExport.openExportDialog).not.toHaveBeenCalled()
+      expect(canvas.pdfExport.print).toHaveBeenCalledTimes(1)
+      const [, , options] = (canvas.pdfExport.print as jest.Mock).mock.calls[0]
+      expect(options).toEqual({ format: "A4", orientation: "portrait", mode: "multi", scale: 100 })
+    })
+
+    test("should fill in every default when called with no options at all", () => {
+      canvas.pdfExport.openExportDialog = jest.fn()
+      canvas.pdfExport.print = jest.fn()
+
+      canvas.printAsPDF(false, {})
+
+      const [, , options] = (canvas.pdfExport.print as jest.Mock).mock.calls[0]
+      expect(options).toEqual({ format: "A4", orientation: "portrait", mode: "single", scale: 100 })
+    })
   })
 
   describe("extract symbols", () => {
