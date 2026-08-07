@@ -242,6 +242,7 @@ export class PDFExportManager {
   openExportDialog(onConfirm: (options: TPDFExportDialogOptions) => void): void {
     const modal = new Modal({
       title: "Export as PDF",
+      container: this.canvas.layers.root,
       fields: [
         {
           id: DIALOG_FIELD_IDS.format,

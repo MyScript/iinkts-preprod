@@ -100,6 +100,16 @@ describe("PDFExportManager.ts", () => {
       expect(scale).toBeCloseTo(297 / (600 * (25.4 / 96)), 3)
     })
 
+    test("should remove the page-size stylesheet when removePrintContainer is called", () => {
+      const manager = new PDFExportManager(asCanvas(createCanvasMock()))
+      manager.buildSinglePagePrintContainer("<svg><rect /></svg>", { x: 0, y: 0, width: 400, height: 600 }, "A4", "portrait")
+      expect(document.head.querySelector("style[data-ii-pdf-page]")).not.toBeNull()
+
+      manager.removePrintContainer()
+
+      expect(document.head.querySelector("style[data-ii-pdf-page]")).toBeNull()
+    })
+
     test("should set @page size matching the requested format/orientation", () => {
       const manager = new PDFExportManager(asCanvas(createCanvasMock()))
       manager.buildSinglePagePrintContainer("<svg><rect /></svg>", { x: 0, y: 0, width: 400, height: 600 }, "A4", "landscape")
@@ -187,9 +197,20 @@ describe("PDFExportManager.ts", () => {
   })
 
   describe("export settings dialog", () => {
+    let mountedRoots: HTMLElement[] = []
+
     afterEach(() => {
       document.querySelectorAll(".ms-modal, .ms-modal-backdrop").forEach((el) => el.remove())
+      mountedRoots.forEach((el) => el.remove())
+      mountedRoots = []
     })
+
+    function createMountedCanvasMock() {
+      const canvas = createCanvasMock()
+      document.body.appendChild(canvas.layers.root)
+      mountedRoots.push(canvas.layers.root)
+      return canvas
+    }
 
     function clickButtonWithText(text: string): void {
       const button = Array.from(document.querySelectorAll("button")).find((b) => b.textContent === text)
@@ -197,7 +218,7 @@ describe("PDFExportManager.ts", () => {
     }
 
     test("should default to A4 portrait single-page 100% scale", () => {
-      const manager = new PDFExportManager(asCanvas(createCanvasMock()))
+      const manager = new PDFExportManager(asCanvas(createMountedCanvasMock()))
       const onConfirm = jest.fn()
 
       manager.openExportDialog(onConfirm)
@@ -207,7 +228,7 @@ describe("PDFExportManager.ts", () => {
     })
 
     test("should call onConfirm with the values selected by the user", () => {
-      const manager = new PDFExportManager(asCanvas(createCanvasMock()))
+      const manager = new PDFExportManager(asCanvas(createMountedCanvasMock()))
       const onConfirm = jest.fn()
 
       manager.openExportDialog(onConfirm)
@@ -221,7 +242,7 @@ describe("PDFExportManager.ts", () => {
     })
 
     test("should not call onConfirm and should remove the modal when Cancel is clicked", () => {
-      const manager = new PDFExportManager(asCanvas(createCanvasMock()))
+      const manager = new PDFExportManager(asCanvas(createMountedCanvasMock()))
       const onConfirm = jest.fn()
 
       manager.openExportDialog(onConfirm)
