@@ -30,6 +30,11 @@ History entries no longer store a full `Model`/`IIModel` snapshot — only the d
 
 ## Features
 
+### PDF export via native browser print
+- feat(canvas): add `InteractiveInkCanvas.printAsPDF(selection?, options?)` — prints the current content (or only the selected symbols) as PDF via the browser's native print dialog. Called with no `options`, opens a settings dialog (page format/orientation/page mode/scale) first, same as the Export menu; called with a partial `options` object, prints immediately with those values (defaults filled in for anything omitted), skipping the dialog — for programmatic callers
+- feat(manager): new `PDFExportManager` (`src/manager/base/`, constructor `(canvas: TInteractiveInkCanvas | InkCanvas)`) — builds the print-only DOM/CSS layer, computes page format/orientation/scale-to-page-count (`computePageCount`, `computeFitToPageScale`, `getPageDimensionsMm`), single-page fit-to-scale and multi-page tiled print modes (`buildSinglePagePrintContainer`/`buildMultiPagePrintContainer`), the settings dialog (`openExportDialog`, reusing `Modal.ts` form fields), and print orchestration (`print()`); exposes `TPDFPageFormat`, `TPDFOrientation`, `TPDFPageMode`, `TPDFExportDialogOptions`, `TPDFPageOptions`, `TPDFPageCount`, `TPDFPageSizeMm` and `PDFExportManager.DEFAULT_OPTIONS`
+- feat(menu): add "PDF" entry to `ExportMenuAction`/`ExportContextMenu` (`pdf?: boolean` in `TExportActionItemsConfig`/`TContextExportItemsConfig`, enabled by default)
+
 ### Shape ↔ edge connections
 - feat(connector): edges follow their connected shape when it is translated/resized/rotated, before Convert (raw ink strokes) as well as after (`TEdgeLine`/`TEdgePolyLine`/`TEdgeArc` with `startAnchor`/`endAnchor`)
 - refactor(connector): **BREAKING** `IIConnectorManager.updateAnchoredEdges()` now returns `string[]` (ids of the pre-convert edge strokes it moved) instead of `void`; callers must include them in their history entry and backend transform message
