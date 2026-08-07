@@ -8,7 +8,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="HandheldFriendly" content="true" />
 
-    <title>Interactive Ink Canvas - Markdown &amp; Mermaid Export</title>
+    <title>Interactive Ink Canvas - Markdown / Diagram / LLM Export</title>
 
     <link rel="stylesheet" href="../assets/style/reset.css" />
     <link rel="stylesheet" href="../assets/style/components.css" />
@@ -17,22 +17,19 @@
     <link rel="stylesheet" href="../components/code-viewer/code-viewer.css" />
     <style>
       #rootEl {
-        height: calc(100dvh - 220px);
-      }
-
-      .export-results {
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--ex-space-md);
-        padding: var(--ex-space-md);
-      }
-
-      .export-results > div {
         flex: 1;
-        min-width: 260px;
+        min-width: 0;
       }
 
-      .export-results pre {
+      #results-panel {
+        width: 320px;
+      }
+
+      .export-result-item {
+        margin-bottom: var(--ex-space-md);
+      }
+
+      .export-result-item pre {
         margin: 4px 0 0;
         min-height: 60px;
         white-space: pre-wrap;
@@ -47,18 +44,21 @@
       <button id="panelToggleBtn" class="btn-panel-toggle" aria-expanded="false" aria-controls="info-panel">
         💡 Info
       </button>
+      <button id="resultsPanelToggleBtn" class="btn-panel-toggle" aria-expanded="false" aria-controls="results-panel">
+        📤 Results
+      </button>
       <button id="showModalBtn" class="btn-keys">
         API Keys
       </button>
       <h1 class="header-title">
-        Interactive Ink Canvas - Markdown &amp; Mermaid Export
+        Interactive Ink Canvas - Markdown / Diagram / LLM Export
       </h1>
     </header>
 
     <div class="ex-page-layout">
       <aside id="info-panel" class="ex-panel">
         <p class="ex-panel-heading">Digital ink → structured export</p>
-        <p class="ex-panel-intro"><code>canvas.toMarkdown()</code> and <code>canvas.toMermaid()</code> convert the recognized content, computed locally from the JIIX export — not a server round-trip.</p>
+        <p class="ex-panel-intro"><code>canvas.toMarkdown()</code>, <code>canvas.toMermaid()</code>, <code>canvas.toPlantUML()</code> and <code>canvas.toLLM()</code> convert the recognized content, computed locally from the JIIX export — not a server round-trip.</p>
         <div class="ex-panel-divider"></div>
         <div class="ex-panel-item">
           <div class="ex-panel-item-desc"><strong>Markdown</strong>: recognized text becomes paragraphs, math becomes <code>$$...$$</code>. Handy to hand the content to an LLM prompt.</div>
@@ -68,6 +68,12 @@
         </div>
         <div class="ex-panel-item">
           <div class="ex-panel-item-desc">Edge-to-shape connections are resolved geometrically (an edge's endpoint must land inside a shape) — an edge that doesn't touch any shape is left out of the flowchart.</div>
+        </div>
+        <div class="ex-panel-item">
+          <div class="ex-panel-item-desc"><strong>PlantUML</strong>: same diagram, exported as a <code>@startuml</code>/<code>@enduml</code> block instead of Mermaid syntax.</div>
+        </div>
+        <div class="ex-panel-item">
+          <div class="ex-panel-item-desc"><strong>LLM JSON</strong>: flat, ordered content blocks (<code>text</code>/<code>math</code>/<code>diagram</code>) — the structured shape an app hands to its own LLM prompt.</div>
         </div>
       </aside>
       <div class="page-content">
@@ -79,21 +85,38 @@
             <button class="classic-btn primary" id="exportMermaid">
               Export as Mermaid
             </button>
+            <button class="classic-btn primary" id="exportPlantUML">
+              Export as PlantUML
+            </button>
+            <button class="classic-btn primary" id="exportLLM">
+              Export as LLM JSON
+            </button>
             <button class="classic-btn" id="clear">
               Clear
             </button>
           </div>
         </nav>
-        <div id="rootEl"></div>
-        <div class="export-results">
-          <div>
-            <span class="ex-panel-item-label">Markdown</span>
-            <pre id="markdownResult"></pre>
-          </div>
-          <div>
-            <span class="ex-panel-item-label">Mermaid</span>
-            <pre id="mermaidResult"></pre>
-          </div>
+        <div class="main-layout">
+          <div id="rootEl"></div>
+          <aside id="results-panel" class="ex-panel">
+            <p class="ex-panel-heading">Export results</p>
+            <div class="export-result-item">
+              <span class="ex-panel-item-label">Markdown</span>
+              <pre id="markdownResult" class="ex-panel-code"></pre>
+            </div>
+            <div class="export-result-item">
+              <span class="ex-panel-item-label">Mermaid</span>
+              <pre id="mermaidResult" class="ex-panel-code"></pre>
+            </div>
+            <div class="export-result-item">
+              <span class="ex-panel-item-label">PlantUML</span>
+              <pre id="plantUMLResult" class="ex-panel-code"></pre>
+            </div>
+            <div class="export-result-item">
+              <span class="ex-panel-item-label">LLM JSON</span>
+              <pre id="llmResult" class="ex-panel-code"></pre>
+            </div>
+          </aside>
         </div>
       </div>
     </div>
@@ -109,18 +132,65 @@
         panelToggleBtn.setAttribute('aria-expanded', open)
       })
 
+      const resultsPanelToggleBtn = document.getElementById('resultsPanelToggleBtn')
+      const resultsPanel = document.getElementById('results-panel')
+      resultsPanelToggleBtn.addEventListener('click', () => {
+        const open = resultsPanel.classList.toggle('open')
+        resultsPanelToggleBtn.setAttribute('aria-expanded', open)
+      })
+
       const rootElement = document.getElementById("rootEl");
       const exportMarkdownBtn = document.getElementById("exportMarkdown");
       const exportMermaidBtn = document.getElementById("exportMermaid");
+      const exportPlantUMLBtn = document.getElementById("exportPlantUML");
+      const exportLLMBtn = document.getElementById("exportLLM");
       const clearBtn = document.getElementById("clear");
       const markdownResultElement = document.getElementById("markdownResult");
       const mermaidResultElement = document.getElementById("mermaidResult");
+      const plantUMLResultElement = document.getElementById("plantUMLResult");
+      const llmResultElement = document.getElementById("llmResult");
       const showModalBtn = document.getElementById("showModalBtn");
 
       let canvas;
       const canvasOptions = {
         configuration: {
           recognition: { types: ['text', 'shape'] },
+          menu: {
+            action: {
+              language: false,
+              gesture: false,
+              snap: false,
+              export: false,
+              import: false,
+              convert: false,
+              math: false,
+              guide: false,
+              selection: false,
+            },
+            tool: {
+              write: true,
+              move: true,
+              select: true,
+              erase: true,
+              shape: false,
+              edge: false,
+            },
+            style: {
+              strokeColor: true,
+              fillColor: false,
+              thickness: false,
+              fontSize: false,
+              fontWeight: false,
+              opacity: false,
+            },
+            context: {
+              edit: false,
+              decorator: false,
+              reorder: false,
+              export: false,
+              convert: false,
+            },
+          },
         },
       };
 
@@ -133,6 +203,8 @@
         canvas = await Canvas.load(rootElement, "INTERACTIVE_INK", options);
         markdownResultElement.textContent = "";
         mermaidResultElement.textContent = "";
+        plantUMLResultElement.textContent = "";
+        llmResultElement.textContent = "";
       }
 
       exportMarkdownBtn.addEventListener("click", async () => {
@@ -145,11 +217,23 @@
         mermaidResultElement.textContent = await canvas.toMermaid();
       });
 
+      exportPlantUMLBtn.addEventListener("click", async () => {
+        if (!canvas) return;
+        plantUMLResultElement.textContent = await canvas.toPlantUML();
+      });
+
+      exportLLMBtn.addEventListener("click", async () => {
+        if (!canvas) return;
+        llmResultElement.textContent = JSON.stringify(await canvas.toLLM(), null, 2);
+      });
+
       clearBtn.addEventListener("click", async () => {
         if (!canvas) return;
         await canvas.clear();
         markdownResultElement.textContent = "";
         mermaidResultElement.textContent = "";
+        plantUMLResultElement.textContent = "";
+        llmResultElement.textContent = "";
       });
 
       showModalBtn.addEventListener("click", () => {
