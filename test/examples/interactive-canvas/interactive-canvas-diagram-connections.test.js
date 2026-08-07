@@ -60,6 +60,7 @@ test.describe("Interactive ink canvas diagram connections", () => {
   test("tracks shape-edge connections live in ink, follows them on move before and after Convert, groups a multi-stroke edge into one panel entry, and preserves connections through Convert", async ({
     page,
   }) => {
+    // eslint-disable-next-line playwright/no-skipped-test
     test.skip("sdk bug, MSIS-10054")
     // Dataset: rectangle, a line edge (rectangle↔circle), a circle, a 2-stroke arrow edge
     // (rectangle↔rectangle), and a second rectangle — recorded as one continuous capture. The
