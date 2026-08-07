@@ -132,6 +132,7 @@ export type TInteractiveInkCanvas = {
   downloadAsPNG(selection?: boolean): void
   downloadAsJson(selection?: boolean): void
   downloadAsText(selection?: boolean): void
+  printAsPDF(selection?: boolean): void
 
   // ── Symbol plugin registry ────────────────────────────────────────
   registerSymbolUtil<T extends TBaseSymbol>(util: SymbolUtil<T>): void

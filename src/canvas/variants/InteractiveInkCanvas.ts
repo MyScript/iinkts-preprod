@@ -23,6 +23,7 @@ import {
   IITransformManager,
   IITypesetManager,
   IIWriterManager,
+  PDFExportManager,
 } from "@/manager"
 import type { IIMenuAction, IIMenuStyle, IIMenuTool } from "@/menu"
 import { IIMenuManager } from "@/menu"
@@ -113,6 +114,8 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
   keyboard: IIKeyboardManager
   /** Handles erasing strokes and symbols via pointer interaction. */
   eraser: EraseManager
+  /** Builds print-only DOM/CSS layers and drives PDF export via native browser print. */
+  pdfExport: PDFExportManager
   /** Detects and processes touch/pointer gestures (scratch-out, join, insert, etc.). */
   gesture: IIGestureManager
   /** Orchestrates translate, resize, and rotation transforms on selected symbols. */
@@ -183,6 +186,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     this.keyboard = new IIKeyboardManager(this)
     this.writer = new IIWriterManager(this)
     this.eraser = new EraseManager(this)
+    this.pdfExport = new PDFExportManager(this)
     this.selector = new IISelectionManager(this)
     this.move = new IIMoveManager(this)
 
@@ -1294,7 +1298,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     this.renderer.pan(dx, dy)
   }
 
-  protected buildBlobFromSymbols(symbols: TSymbol[], box: TBox): Blob {
+  protected buildSvgStringFromSymbols(symbols: TSymbol[], box: TBox): string {
     const svgNode = SVGBuilder.createLayer(box)
     symbols.forEach((s) => {
       const el = this.renderer.getElementById(s.id)?.cloneNode(true)
@@ -1303,7 +1307,11 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       }
     })
 
-    const svgString = new XMLSerializer().serializeToString(svgNode)
+    return new XMLSerializer().serializeToString(svgNode)
+  }
+
+  protected buildBlobFromSymbols(symbols: TSymbol[], box: TBox): Blob {
+    const svgString = this.buildSvgStringFromSymbols(symbols, box)
 
     return new Blob([svgString], {
       type: "image/svg+xml;charset=utf-8",
@@ -1388,6 +1396,28 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     const text = this.extractTextFromSymbols(symbolsToExport)
     const dataStr = "data:text/plain;charset=utf-8," + encodeURIComponent(text)
     this.triggerDownload(this.getExportName("txt"), dataStr)
+  }
+
+  /**
+   * Print symbols as PDF via the browser's native print dialog, either all symbols or only selected ones.
+   * Opens a settings dialog (format/orientation/page mode/scale) before printing.
+   * @param selection - Whether to print only selected symbols (default: false, prints all symbols)
+   */
+  printAsPDF(selection = false) {
+    const symbols = selection ? this.model.symbolsSelected : this.model.symbols
+    const box = this.getSymbolsBounds(symbols)
+    const svgString = this.buildSvgStringFromSymbols(symbols, box)
+
+    this.pdfExport.openExportDialog((options) => {
+      if (options.mode === "single") {
+        this.pdfExport.buildSinglePagePrintContainer(svgString, box, options.format, options.orientation)
+      } else {
+        this.pdfExport.buildMultiPagePrintContainer(svgString, box, options)
+      }
+
+      window.addEventListener("afterprint", () => this.pdfExport.removePrintContainer(), { once: true })
+      window.print()
+    })
   }
 
   protected extractTextFromSymbols(symbols: TSymbol[]): string {
