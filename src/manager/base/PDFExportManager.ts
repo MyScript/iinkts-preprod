@@ -161,4 +161,58 @@ export class PDFExportManager {
 
     return container
   }
+
+  buildMultiPagePrintContainer(svgContent: string, box: TBox, options: TPDFPageOptions): HTMLDivElement {
+    this.removePrintContainer()
+    this.#ensurePrintStylesheet()
+
+    const page = this.getPageDimensionsMm(options.format, options.orientation)
+    this.#setPageSizeStyle(page)
+
+    const { columns, rows } = this.computePageCount(box, options)
+    const scaleFactor = options.scale / 100
+    const contentWidthMm = +(convertPixelToMillimeter(box.width) * scaleFactor).toFixed(3)
+    const contentHeightMm = +(convertPixelToMillimeter(box.height) * scaleFactor).toFixed(3)
+
+    const container = document.createElement("div")
+    container.className = PRINT_CONTAINER_CLASS
+
+    const total = columns * rows
+    let index = 0
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < columns; col++) {
+        const pageEl = document.createElement("div")
+        pageEl.className = "ii-pdf-page"
+        pageEl.style.width = `${page.width}mm`
+        pageEl.style.height = `${page.height}mm`
+        pageEl.style.overflow = "hidden"
+        pageEl.style.position = "relative"
+        index++
+        if (index < total) {
+          pageEl.style.pageBreakAfter = "always"
+          pageEl.style.breakAfter = "page"
+        }
+
+        const content = document.createElement("div")
+        content.className = "ii-pdf-page-content"
+        content.style.position = "absolute"
+        content.style.left = `${-col * page.width}mm`
+        content.style.top = `${-row * page.height}mm`
+        content.innerHTML = svgContent
+
+        const svg = content.querySelector("svg")
+        if (svg) {
+          svg.style.width = `${contentWidthMm}mm`
+          svg.style.height = `${contentHeightMm}mm`
+        }
+
+        pageEl.appendChild(content)
+        container.appendChild(pageEl)
+      }
+    }
+
+    document.body.appendChild(container)
+    this.#printContainer = container
+    return container
+  }
 }
