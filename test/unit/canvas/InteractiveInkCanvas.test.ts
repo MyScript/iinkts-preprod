@@ -1380,6 +1380,50 @@ describe("CanvasOffscreen.ts", () => {
     })
   })
 
+  describe("toPlantUML", () => {
+    test("should export JIIX and convert it to a PlantUML diagram", async () => {
+      const canvas = new InteractiveInkCanvas(document.createElement("div"), CanvasOptions)
+      canvas.client.export = jest.fn(() => Promise.resolve({ "application/vnd.myscript.jiix": jiixText }))
+
+      const plantUML = await canvas.toPlantUML()
+
+      expect(plantUML).toBe("@startuml\n@enduml")
+    })
+
+    test("should reuse the already cached JIIX export without calling client.export again", async () => {
+      const canvas = new InteractiveInkCanvas(document.createElement("div"), CanvasOptions)
+      canvas.model.exports = { "application/vnd.myscript.jiix": jiixText }
+      canvas.client.export = jest.fn()
+
+      const plantUML = await canvas.toPlantUML()
+
+      expect(canvas.client.export).not.toHaveBeenCalled()
+      expect(plantUML).toBe("@startuml\n@enduml")
+    })
+  })
+
+  describe("toLLM", () => {
+    test("should export JIIX and convert it to LLM-ready content blocks", async () => {
+      const canvas = new InteractiveInkCanvas(document.createElement("div"), CanvasOptions)
+      canvas.client.export = jest.fn(() => Promise.resolve({ "application/vnd.myscript.jiix": jiixText }))
+
+      const llm = await canvas.toLLM()
+
+      expect(llm).toEqual({ blocks: [{ type: "text", content: "h" }] })
+    })
+
+    test("should reuse the already cached JIIX export without calling client.export again", async () => {
+      const canvas = new InteractiveInkCanvas(document.createElement("div"), CanvasOptions)
+      canvas.model.exports = { "application/vnd.myscript.jiix": jiixText }
+      canvas.client.export = jest.fn()
+
+      const llm = await canvas.toLLM()
+
+      expect(canvas.client.export).not.toHaveBeenCalled()
+      expect(llm).toEqual({ blocks: [{ type: "text", content: "h" }] })
+    })
+  })
+
   describe("convert", () => {
     const canvas = new InteractiveInkCanvas(document.createElement("div"), CanvasOptions)
     canvas.overlays.apply = jest.fn()
