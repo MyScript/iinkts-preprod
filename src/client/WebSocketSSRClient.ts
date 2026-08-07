@@ -347,39 +347,40 @@ export class WebSocketSSRClient {
     })
     this.currentErrorCode = undefined
     const websocketMessage: TWebSocketSSRClientMessage = JSON.parse(message.data)
-    if (websocketMessage.type !== "pong") {
+    if (websocketMessage.type === "pong") {
       this.pingCount = 0
-      switch (websocketMessage.type) {
-        case "ack":
-          this.manageAckMessage(websocketMessage).catch((err) => this.event.emitError(err))
-          break
-        case "contentPackageDescription":
-          this.manageContentPackageDescriptionMessage()
-          break
-        case "partChanged":
-          this.managePartChangeMessage(websocketMessage)
-          break
-        case "newPart":
-          this.initialized.resolve()
-          break
-        case "contentChanged":
-          this.manageContentChangeMessage(websocketMessage)
-          break
-        case "exported":
-          this.manageExportMessage(websocketMessage)
-          break
-        case "svgPatch":
-          this.manageSVGPatchMessage(websocketMessage)
-          break
-        case "error":
-          this.manageErrorMessage(websocketMessage)
-          break
-        case "idle":
-          this.manageWaitForIdle()
-          break
-        default:
-          this.#logger.warn("messageCallback", `Message type unknown: "${websocketMessage.type}".`)
-      }
+      return
+    }
+    switch (websocketMessage.type) {
+      case "ack":
+        this.manageAckMessage(websocketMessage).catch((err) => this.event.emitError(err))
+        break
+      case "contentPackageDescription":
+        this.manageContentPackageDescriptionMessage()
+        break
+      case "partChanged":
+        this.managePartChangeMessage(websocketMessage)
+        break
+      case "newPart":
+        this.initialized.resolve()
+        break
+      case "contentChanged":
+        this.manageContentChangeMessage(websocketMessage)
+        break
+      case "exported":
+        this.manageExportMessage(websocketMessage)
+        break
+      case "svgPatch":
+        this.manageSVGPatchMessage(websocketMessage)
+        break
+      case "error":
+        this.manageErrorMessage(websocketMessage)
+        break
+      case "idle":
+        this.manageWaitForIdle()
+        break
+      default:
+        this.#logger.warn("messageCallback", `Message type unknown: "${websocketMessage.type}".`)
     }
   }
 
