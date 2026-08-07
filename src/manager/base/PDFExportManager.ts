@@ -1,5 +1,6 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import type { InkCanvas } from "@/canvas/variants/InkCanvas"
+import { Modal } from "@/components/Modal"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { TBox } from "@/symbol"
 import { convertPixelToMillimeter } from "@/utils"
@@ -39,6 +40,28 @@ export type TPDFPageCount = {
   rows: number
   total: number
 }
+
+/**
+ * @group Manager
+ */
+export type TPDFPageMode = "single" | "multi"
+
+/**
+ * @group Manager
+ */
+export type TPDFExportDialogOptions = {
+  format: TPDFPageFormat
+  orientation: TPDFOrientation
+  mode: TPDFPageMode
+  scale: number
+}
+
+const DIALOG_FIELD_IDS = {
+  format: "ii-pdf-export-format",
+  orientation: "ii-pdf-export-orientation",
+  mode: "ii-pdf-export-mode",
+  scale: "ii-pdf-export-scale",
+} as const
 
 const PAGE_SIZES_MM: Record<TPDFPageFormat, TPDFPageSizeMm> = {
   A4: { width: 210, height: 297 },
@@ -214,5 +237,77 @@ export class PDFExportManager {
     document.body.appendChild(container)
     this.#printContainer = container
     return container
+  }
+
+  openExportDialog(onConfirm: (options: TPDFExportDialogOptions) => void): void {
+    const modal = new Modal({
+      title: "Export as PDF",
+      fields: [
+        {
+          id: DIALOG_FIELD_IDS.format,
+          label: "Page format",
+          type: "select",
+          defaultValue: "A4",
+          options: [
+            { value: "A4", label: "A4" },
+            { value: "Letter", label: "Letter" },
+            { value: "Legal", label: "Legal" },
+          ],
+        },
+        {
+          id: DIALOG_FIELD_IDS.orientation,
+          label: "Orientation",
+          type: "select",
+          defaultValue: "portrait",
+          options: [
+            { value: "portrait", label: "Portrait" },
+            { value: "landscape", label: "Landscape" },
+          ],
+        },
+        {
+          id: DIALOG_FIELD_IDS.mode,
+          label: "Page mode",
+          type: "select",
+          defaultValue: "single",
+          options: [
+            { value: "single", label: "Single page (fit to page)" },
+            { value: "multi", label: "Multi-page (tiled)" },
+          ],
+        },
+        {
+          id: DIALOG_FIELD_IDS.scale,
+          label: "Scale (%)",
+          type: "number",
+          defaultValue: 100,
+        },
+      ],
+      buttons: [
+        {
+          label: "Cancel",
+          variant: "secondary",
+          onClick: () => modal.destroy(),
+        },
+        {
+          label: "Export",
+          variant: "primary",
+          onClick: () => {
+            const options = this.#readDialogOptions()
+            modal.destroy()
+            onConfirm(options)
+          },
+        },
+      ],
+    })
+    modal.open()
+  }
+
+  #readDialogOptions(): TPDFExportDialogOptions {
+    const format = (document.getElementById(DIALOG_FIELD_IDS.format) as HTMLSelectElement).value as TPDFPageFormat
+    const orientation = (document.getElementById(DIALOG_FIELD_IDS.orientation) as HTMLSelectElement)
+      .value as TPDFOrientation
+    const mode = (document.getElementById(DIALOG_FIELD_IDS.mode) as HTMLSelectElement).value as TPDFPageMode
+    const scale = Number((document.getElementById(DIALOG_FIELD_IDS.scale) as HTMLInputElement).value)
+
+    return { format, orientation, mode, scale }
   }
 }

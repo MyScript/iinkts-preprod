@@ -185,4 +185,50 @@ describe("PDFExportManager.ts", () => {
       expect(parseFloat(svg.style.width)).toBeCloseTo(expectedWidthMm, 2)
     })
   })
+
+  describe("export settings dialog", () => {
+    afterEach(() => {
+      document.querySelectorAll(".ms-modal, .ms-modal-backdrop").forEach((el) => el.remove())
+    })
+
+    function clickButtonWithText(text: string): void {
+      const button = Array.from(document.querySelectorAll("button")).find((b) => b.textContent === text)
+      button?.click()
+    }
+
+    test("should default to A4 portrait single-page 100% scale", () => {
+      const manager = new PDFExportManager(asCanvas(createCanvasMock()))
+      const onConfirm = jest.fn()
+
+      manager.openExportDialog(onConfirm)
+      clickButtonWithText("Export")
+
+      expect(onConfirm).toHaveBeenCalledWith({ format: "A4", orientation: "portrait", mode: "single", scale: 100 })
+    })
+
+    test("should call onConfirm with the values selected by the user", () => {
+      const manager = new PDFExportManager(asCanvas(createCanvasMock()))
+      const onConfirm = jest.fn()
+
+      manager.openExportDialog(onConfirm)
+      ;(document.getElementById("ii-pdf-export-format") as HTMLSelectElement).value = "Letter"
+      ;(document.getElementById("ii-pdf-export-orientation") as HTMLSelectElement).value = "landscape"
+      ;(document.getElementById("ii-pdf-export-mode") as HTMLSelectElement).value = "multi"
+      ;(document.getElementById("ii-pdf-export-scale") as HTMLInputElement).value = "150"
+      clickButtonWithText("Export")
+
+      expect(onConfirm).toHaveBeenCalledWith({ format: "Letter", orientation: "landscape", mode: "multi", scale: 150 })
+    })
+
+    test("should not call onConfirm and should remove the modal when Cancel is clicked", () => {
+      const manager = new PDFExportManager(asCanvas(createCanvasMock()))
+      const onConfirm = jest.fn()
+
+      manager.openExportDialog(onConfirm)
+      clickButtonWithText("Cancel")
+
+      expect(onConfirm).not.toHaveBeenCalled()
+      expect(document.querySelector(".ms-modal")).toBeNull()
+    })
+  })
 })
