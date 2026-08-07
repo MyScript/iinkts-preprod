@@ -172,6 +172,13 @@ export class IDebugSVGManager {
       })
     }
 
+    const endTranslate = () => {
+      this.renderer.layer.removeEventListener("pointermove", translateEl)
+      this.renderer.layer.removeEventListener("pointerup", endTranslate)
+      this.renderer.layer.removeEventListener("pointerleave", endTranslate)
+      this.renderer.layer.removeEventListener("pointercancel", endTranslate)
+    }
+
     rectTranslate.addEventListener("pointerdown", (e) => {
       e.preventDefault()
       e.stopPropagation()
@@ -180,15 +187,9 @@ export class IDebugSVGManager {
         this.renderer.setAttribute(infosGroup.id, "originY", e.clientY.toString())
       }
       this.renderer.layer.addEventListener("pointermove", translateEl)
-      this.renderer.layer.addEventListener("pointerup", () =>
-        this.renderer.layer.removeEventListener("pointermove", translateEl)
-      )
-      this.renderer.layer.addEventListener("pointerleave", () =>
-        this.renderer.layer.removeEventListener("pointermove", translateEl)
-      )
-      this.renderer.layer.addEventListener("pointercancel", () =>
-        this.renderer.layer.removeEventListener("pointermove", translateEl)
-      )
+      this.renderer.layer.addEventListener("pointerup", endTranslate)
+      this.renderer.layer.addEventListener("pointerleave", endTranslate)
+      this.renderer.layer.addEventListener("pointercancel", endTranslate)
     })
   }
 
