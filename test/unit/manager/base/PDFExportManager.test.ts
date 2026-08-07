@@ -44,4 +44,38 @@ describe("PDFExportManager.ts", () => {
       expect(document.body.contains(container)).toBe(false)
     })
   })
+
+  describe("page dimensions and page count", () => {
+    const manager = new PDFExportManager(asCanvas(createCanvasMock()))
+
+    test("should return A4 portrait dimensions in millimeters", () => {
+      expect(manager.getPageDimensionsMm("A4", "portrait")).toEqual({ width: 210, height: 297 })
+    })
+
+    test("should swap width/height for landscape orientation", () => {
+      expect(manager.getPageDimensionsMm("A4", "landscape")).toEqual({ width: 297, height: 210 })
+    })
+
+    test("should return Letter portrait dimensions in millimeters", () => {
+      expect(manager.getPageDimensionsMm("Letter", "portrait")).toEqual({ width: 215.9, height: 279.4 })
+    })
+
+    test("should compute a single page when content fits within one page at 100% scale", () => {
+      const box = { x: 0, y: 0, width: 700, height: 1000 } // ~185x264mm at 96dpi
+      const result = manager.computePageCount(box, { format: "A4", orientation: "portrait", scale: 100 })
+      expect(result).toEqual({ columns: 1, rows: 1, total: 1 })
+    })
+
+    test("should compute multiple pages when content exceeds one page at given scale", () => {
+      const box = { x: 0, y: 0, width: 1600, height: 1000 } // ~423x264mm at 96dpi, wider than 2 A4 portrait pages
+      const result = manager.computePageCount(box, { format: "A4", orientation: "portrait", scale: 100 })
+      expect(result).toEqual({ columns: 3, rows: 1, total: 3 })
+    })
+
+    test("should scale content before computing page count", () => {
+      const box = { x: 0, y: 0, width: 700, height: 1000 }
+      const result = manager.computePageCount(box, { format: "A4", orientation: "portrait", scale: 200 })
+      expect(result).toEqual({ columns: 2, rows: 2, total: 4 })
+    })
+  })
 })
