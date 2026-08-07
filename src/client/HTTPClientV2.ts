@@ -2,7 +2,7 @@ import { LoggerCategory, LoggerManager } from "@/logger"
 import type { TExportV2, TJIIXExport } from "@/model"
 import { StrokeOps, type TStrokeMinimal } from "@/symbol"
 import type { TPartialDeep } from "@/utils"
-import { computeHmac, getApiInfos, isVersionSuperiorOrEqual } from "@/utils"
+import { computeHmac, getApiInfos, isVersionSuperiorOrEqual, redactServerSecrets } from "@/utils"
 
 import { ClientError } from "./ClientError"
 import type { THTTPClientV2Configuration } from "./HTTPClientV2Configuration"
@@ -59,7 +59,7 @@ export class HTTPClientV2 {
   configuration: HTTPClientV2Configuration
 
   constructor(config: TPartialDeep<THTTPClientV2Configuration>) {
-    this.#logger.info("constructor", { config })
+    this.#logger.info("constructor", { config: redactServerSecrets(config) })
     this.configuration = new HTTPClientV2Configuration(config)
   }
 

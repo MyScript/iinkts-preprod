@@ -7,7 +7,14 @@ import type { TStroke } from "@/symbol"
 import { StrokeOps } from "@/symbol/stroke/Stroke"
 import type { TMatrixTransform } from "@/transform"
 import type { TPartialDeep } from "@/utils"
-import { computeHmac, DeferredPromise, getApiInfos, isVersionSuperiorOrEqual, mergeDeep } from "@/utils"
+import {
+  computeHmac,
+  DeferredPromise,
+  getApiInfos,
+  isVersionSuperiorOrEqual,
+  mergeDeep,
+  redactServerSecrets,
+} from "@/utils"
 
 import { ClientError, mapCloseCodeToMessage } from "./ClientError"
 import { ClientEvent } from "./ClientEvent"
@@ -115,7 +122,7 @@ export class WebSocketClient {
   event: ClientEvent
 
   constructor(config: TPartialDeep<TWebSocketClientConfiguration>, event?: ClientEvent) {
-    this.#logger.info("constructor", { config })
+    this.#logger.info("constructor", { config: redactServerSecrets(config) })
     this.configuration = new WebSocketClientConfiguration(config)
     const scheme = this.configuration.server.scheme === "https" ? "wss" : "ws"
     this.url = `${scheme}://${this.configuration.server.host}/api/v4.0/iink/offscreen?applicationKey=${this.configuration.server.applicationKey}`
