@@ -64,10 +64,14 @@
 
         <div class="ex-panel-item">
           <div class="ex-panel-item-label">PDF <code>canvas.printAsPDF()</code></div>
-          <div class="ex-panel-item-desc">A print-ready document via the browser's native print dialog. Choose page format, orientation and scale, and print on a single page or tiled across multiple pages.</div>
+          <div class="ex-panel-item-desc">A print-ready document via the browser's native print dialog. Called with no arguments, it opens a settings dialog first (format/orientation/page mode/scale) — same as the Export menu.</div>
+        </div>
+        <div class="ex-panel-item">
+          <div class="ex-panel-item-label">PDF, no dialog <code>canvas.printAsPDF(false, options)</code></div>
+          <div class="ex-panel-item-desc">Passing an <code>options</code> object (<code>format</code>/<code>orientation</code>/<code>mode</code>/<code>scale</code>, all optional) prints immediately with those values, skipping the dialog entirely — useful when calling from your own code.</div>
         </div>
         <div class="ex-panel-divider"></div>
-        <div class="ex-panel-hint">Every button below calls <code>downloadAsJson()</code>/<code>downloadAsSVG()</code>/<code>downloadAsPNG()</code>/<code>downloadAsText()</code>/<code>printAsPDF()</code> directly on the canvas instance — the Export menu (top-right) calls the exact same methods. Pass <code>true</code> to export only the selected symbols.</div>
+        <div class="ex-panel-hint">Every button below calls <code>downloadAsJson()</code>/<code>downloadAsSVG()</code>/<code>downloadAsPNG()</code>/<code>downloadAsText()</code> directly on the canvas instance — the Export menu (top-right) calls the exact same methods. Pass <code>true</code> to export only the selected symbols.</div>
       </aside>
 
       <div class="page-content">
@@ -76,7 +80,8 @@
           <button id="btn-export-svg" class="classic-btn">Export SVG</button>
           <button id="btn-export-png" class="classic-btn">Export PNG</button>
           <button id="btn-export-text" class="classic-btn">Export Text</button>
-          <button id="btn-export-pdf" class="classic-btn">Export PDF</button>
+          <button id="btn-export-pdf" class="classic-btn">Export PDF (dialog)</button>
+          <button id="btn-export-pdf-no-dialog" class="classic-btn">Export PDF (no dialog)</button>
         </nav>
         <div id="rootEl"></div>
       </div>
@@ -136,6 +141,9 @@
       document.getElementById("btn-export-png").addEventListener("click", () => canvas?.downloadAsPNG())
       document.getElementById("btn-export-text").addEventListener("click", () => canvas?.downloadAsText())
       document.getElementById("btn-export-pdf").addEventListener("click", () => canvas?.printAsPDF())
+      document.getElementById("btn-export-pdf-no-dialog").addEventListener("click", () =>
+        canvas?.printAsPDF(false, { format: "A4", orientation: "portrait", mode: "single", scale: 100 })
+      )
 
       showModalBtn.addEventListener("click", () => {
         ModalCanvasOptions.show(loadCanvas, canvasOptions)

@@ -59,6 +59,13 @@ test.describe("Interactive ink canvas Export Formats", () => {
       await expect(page.locator(".ms-modal")).toHaveCount(0)
       expect(await page.evaluate(() => window.__printCalled)).toBe(true)
     })
+
+    await test.step("PDF no-dialog toolbar button prints immediately without opening the dialog", async () => {
+      await page.evaluate(() => { window.__printCalled = false })
+      await page.locator("#btn-export-pdf-no-dialog").click()
+      await expect(page.locator(".ms-modal")).toHaveCount(0)
+      expect(await page.evaluate(() => window.__printCalled)).toBe(true)
+    })
   })
 
   test("right-click context menu is disabled", async ({ page }) => {

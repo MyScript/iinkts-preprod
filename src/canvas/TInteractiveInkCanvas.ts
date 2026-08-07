@@ -19,6 +19,7 @@ import type {
   IITransformManager,
   IITypesetManager,
   IIWriterManager,
+  TPDFExportDialogOptions,
 } from "@/manager"
 import type { IIMenuManager } from "@/menu"
 import type { IIModel, TExport } from "@/model"
@@ -132,7 +133,7 @@ export type TInteractiveInkCanvas = {
   downloadAsPNG(selection?: boolean): void
   downloadAsJson(selection?: boolean): void
   downloadAsText(selection?: boolean): void
-  printAsPDF(selection?: boolean): void
+  printAsPDF(selection?: boolean, options?: Partial<TPDFExportDialogOptions>): void
 
   // ── Symbol plugin registry ────────────────────────────────────────
   registerSymbolUtil<T extends TBaseSymbol>(util: SymbolUtil<T>): void
