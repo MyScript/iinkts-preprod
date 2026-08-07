@@ -120,4 +120,69 @@ describe("PDFExportManager.ts", () => {
       expect(parseFloat(svg.style.width)).toBeCloseTo(expectedWidthMm, 2)
     })
   })
+
+  describe("multi-page tiled mode", () => {
+    afterEach(() => {
+      document.querySelectorAll(".ii-pdf-print-container").forEach((el) => el.remove())
+      document.querySelectorAll("style[data-ii-pdf-print]").forEach((el) => el.remove())
+      document.querySelectorAll("style[data-ii-pdf-page]").forEach((el) => el.remove())
+    })
+
+    test("should create one page element per tile in the grid", () => {
+      const manager = new PDFExportManager(asCanvas(createCanvasMock()))
+      const box = { x: 0, y: 0, width: 1600, height: 1000 } // -> 3 columns x 1 row on A4 portrait @100%
+      const container = manager.buildMultiPagePrintContainer("<svg><rect /></svg>", box, {
+        format: "A4",
+        orientation: "portrait",
+        scale: 100,
+      })
+
+      expect(container.querySelectorAll(".ii-pdf-page")).toHaveLength(3)
+    })
+
+    test("should offset each tile's content by column/row page size so it lines up across pages", () => {
+      const manager = new PDFExportManager(asCanvas(createCanvasMock()))
+      const box = { x: 0, y: 0, width: 1600, height: 1000 }
+      const container = manager.buildMultiPagePrintContainer("<svg><rect /></svg>", box, {
+        format: "A4",
+        orientation: "portrait",
+        scale: 100,
+      })
+
+      const contents = container.querySelectorAll<HTMLDivElement>(".ii-pdf-page-content")
+      expect(contents[0].style.left).toBe("0mm")
+      expect(contents[0].style.top).toBe("0mm")
+      expect(contents[1].style.left).toBe("-210mm")
+      expect(contents[2].style.left).toBe("-420mm")
+    })
+
+    test("should mark every page but the last with a page break", () => {
+      const manager = new PDFExportManager(asCanvas(createCanvasMock()))
+      const box = { x: 0, y: 0, width: 1600, height: 1000 }
+      const container = manager.buildMultiPagePrintContainer("<svg><rect /></svg>", box, {
+        format: "A4",
+        orientation: "portrait",
+        scale: 100,
+      })
+
+      const pages = container.querySelectorAll<HTMLDivElement>(".ii-pdf-page")
+      expect(pages[0].style.pageBreakAfter).toBe("always")
+      expect(pages[1].style.pageBreakAfter).toBe("always")
+      expect(pages[2].style.pageBreakAfter).toBe("")
+    })
+
+    test("should scale the SVG in each tile to the requested scale", () => {
+      const manager = new PDFExportManager(asCanvas(createCanvasMock()))
+      const box = { x: 0, y: 0, width: 1600, height: 1000 }
+      const container = manager.buildMultiPagePrintContainer("<svg><rect /></svg>", box, {
+        format: "A4",
+        orientation: "portrait",
+        scale: 50,
+      })
+
+      const svg = container.querySelector(".ii-pdf-page-content svg") as SVGElement
+      const expectedWidthMm = 1600 * (25.4 / 96) * 0.5
+      expect(parseFloat(svg.style.width)).toBeCloseTo(expectedWidthMm, 2)
+    })
+  })
 })
