@@ -353,6 +353,7 @@ export function createCanvasMock(overrides: Partial<TCanvasMock> = {}): TCanvasM
     downloadAsPNG: jest.fn(),
     downloadAsJson: jest.fn(),
     downloadAsText: jest.fn(),
+    printAsPDF: jest.fn(),
     clear: jest.fn().mockResolvedValue(undefined),
     destroy: jest.fn().mockResolvedValue(undefined),
     resize: jest.fn().mockResolvedValue(undefined),
