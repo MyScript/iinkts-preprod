@@ -28,7 +28,7 @@ import type { TIIRendererConfiguration } from "@/renderer"
 import type { TStyle } from "@/style"
 import type { TBaseSymbol, TBox, TStroke, TSymbol } from "@/symbol"
 import type { SymbolUtil } from "@/symbol-utils/SymbolUtil"
-import type { TPartialDeep } from "@/utils"
+import type { TLLMExport, TPartialDeep } from "@/utils"
 
 import type { TCanvasOperationLabel } from "./AbstractCanvas"
 import type { CanvasEvent, TCanvasConnectionState } from "./CanvasEvent"
@@ -127,6 +127,8 @@ export type TInteractiveInkCanvas = {
   export(mimeTypes?: string[]): Promise<TExport>
   toMarkdown(): Promise<string>
   toMermaid(): Promise<string>
+  toPlantUML(): Promise<string>
+  toLLM(): Promise<TLLMExport>
   convert(symbols?: TSymbol[]): Promise<void>
   changeLanguage(code: string): Promise<void>
 

@@ -56,7 +56,8 @@ import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 import type { SymbolUtil } from "@/symbol-utils/SymbolUtil"
 import { MatrixTransform } from "@/transform"
 import type { TPartialDeep } from "@/utils"
-import { createUUID, jiixToMarkdown, jiixToMermaid, mergeDeep } from "@/utils"
+import type { TLLMExport } from "@/utils"
+import { createUUID, jiixToLLM, jiixToMarkdown, jiixToMermaid, jiixToPlantUML, mergeDeep } from "@/utils"
 
 import type { TInteractiveInkCanvasConfiguration } from "./InteractiveInkCanvasConfiguration"
 import { InteractiveInkCanvasConfiguration } from "./InteractiveInkCanvasConfiguration"
@@ -1728,6 +1729,16 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
   async toMermaid(): Promise<string> {
     const exports = await this.export([ExportType.JIIX])
     return jiixToMermaid(exports[ExportType.JIIX]!)
+  }
+
+  async toPlantUML(): Promise<string> {
+    const exports = await this.export([ExportType.JIIX])
+    return jiixToPlantUML(exports[ExportType.JIIX]!)
+  }
+
+  async toLLM(): Promise<TLLMExport> {
+    const exports = await this.export([ExportType.JIIX])
+    return jiixToLLM(exports[ExportType.JIIX]!)
   }
 
   /**
