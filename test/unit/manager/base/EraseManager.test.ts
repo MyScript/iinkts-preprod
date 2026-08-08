@@ -47,12 +47,12 @@ describe("EraseManager.ts", () => {
     test("should complete erasing", async () => {
       const eraserId = manager.currentEraser!.id
       const strokeToErase = buildIIStroke()
-      canvas.model.symbols.push(strokeToErase)
+      canvas.model.addSymbol(strokeToErase)
       manager.deletingIds.add(strokeToErase.id)
       const circleToErase = buildIICircle()
-      canvas.model.symbols.push(circleToErase)
+      canvas.model.addSymbol(circleToErase)
       manager.deletingIds.add(circleToErase.id)
-      canvas.model.symbols.push(buildIIStroke())
+      canvas.model.addSymbol(buildIIStroke())
 
       const info = {
         pointer: { t: 1, p: 0.5, x: 20, y: 20 },
