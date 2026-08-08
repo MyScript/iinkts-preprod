@@ -3,7 +3,6 @@ import { mergeSymbolStyle } from "@/style"
 import type { TDecorator } from "@/symbol/decorator/Decorator"
 import { DecoratorOps } from "@/symbol/decorator/Decorator"
 import type { TBox } from "@/symbol/primitives/Box"
-import { BoxOps } from "@/symbol/primitives/Box"
 import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
 import type { TPoint, TSegment } from "@/symbol/primitives/Point"
 import { isValidPoint } from "@/symbol/primitives/Point"
@@ -11,15 +10,15 @@ import type { TBaseSymbol } from "@/symbol/Symbol"
 import { SymbolType } from "@/symbol/Symbol"
 import type { TRotation } from "@/symbol/typeset/Typeset"
 import type { TTypesetChild } from "@/symbol/typeset/Typeset"
-import { computeClosedEdges, computeTypesetSnapPoints, computeTypesetVertices } from "@/symbol/typeset/Typeset"
-import type { TPartialDeep } from "@/utils"
 import {
-  computeRotatedPoint,
-  convertDegreeToRadian,
-  createUUID,
-  findIntersectionBetween2Segment,
-  isPointInsidePolygon,
-} from "@/utils"
+  computeChildrenOverlaps,
+  computeClosedEdges,
+  computeTypesetSnapPoints,
+  computeTypesetVertices,
+  typesetOverlapsBox,
+} from "@/symbol/typeset/Typeset"
+import type { TPartialDeep } from "@/utils"
+import { createUUID } from "@/utils"
 
 /**
  * @group Symbol
@@ -120,23 +119,11 @@ export const TextOps = {
   },
 
   overlaps(text: TText, box: TBox): boolean {
-    return (
-      text.vertices.some((p) => BoxOps.containsPoint(box, p)) ||
-      text.edges.some((e1) => BoxOps.getSides(box).some((e2) => !!findIntersectionBetween2Segment(e1, e2)))
-    )
+    return typesetOverlapsBox(text.vertices, text.edges, box)
   },
 
   getChildrenOverlaps(text: TText, points: TPoint[]): TSymbolChar[] {
-    return text.chars.filter((c) => {
-      let corners: TPoint[]
-      if (text.rotation) {
-        const rad = convertDegreeToRadian(-text.rotation.degree)
-        corners = BoxOps.getCorners(c.bounds).map((p) => computeRotatedPoint(p, text.rotation!.center, rad))
-      } else {
-        corners = BoxOps.getCorners(c.bounds)
-      }
-      return points.some((p) => isPointInsidePolygon(p, corners))
-    })
+    return computeChildrenOverlaps(text.chars, points, text.rotation)
   },
 
   updateChildrenStyle(text: TText): void {
