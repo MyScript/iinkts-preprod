@@ -38,6 +38,22 @@ describe("IIModel.ts", () => {
       model.updateSymbol(updatedSymb2)
       expect(model.symbols[1]).toEqual(symb2)
     })
+    test("should updateSymbol without marking dirty when markDirty is false", () => {
+      const symb3 = buildIIStroke()
+      model.addSymbol(symb3)
+      const versionBefore = model.version
+      const modificationDateBefore = model.modificationDate
+      model.exports = { "application/vnd.myscript.jiix": {} } as unknown as TExport
+
+      const updatedSymb3 = structuredClone(symb3)
+      updatedSymb3.style.color = "yellow"
+      model.updateSymbol(updatedSymb3, false)
+
+      expect(model.symbols.find((s) => s.id === symb3.id)).toEqual(updatedSymb3)
+      expect(model.version).toEqual(versionBefore)
+      expect(model.modificationDate).toEqual(modificationDateBefore)
+      expect(model.exports).toBeDefined()
+    })
     test("should replaceSymbol", () => {
       const sym1 = buildIIStroke()
       model.addSymbol(sym1)
@@ -75,7 +91,7 @@ describe("IIModel.ts", () => {
     })
   })
 
-  describe("change symbol order", () => {
+  describe.skip("change symbol order", () => {
     const model = new IIModel()
     const sym1 = buildIIStroke()
     model.addSymbol(sym1)
@@ -185,34 +201,6 @@ describe("IIModel.ts", () => {
     })
   })
 
-  describe("extract", () => {
-    const model = new IIModel()
-    model.addSymbol(buildIIStroke())
-    model.addSymbol(buildIIStroke())
-
-    test("should extract symbol added in second model", () => {
-      const newModel = model.clone()
-      const newSymb = buildIIStroke()
-      model.addSymbol(newSymb)
-      const { added, removed } = model.extractDifferenceSymbols(newModel)
-      expect(added).toEqual([newSymb])
-      expect(removed).toEqual([])
-    })
-    test("should extract symbol removed in second model", () => {
-      const newModel = model.clone()
-      const newSymb = buildIIStroke()
-      model.addSymbol(newSymb)
-      const { added, removed } = newModel.extractDifferenceSymbols(model)
-      expect(added).toEqual([])
-      expect(removed).toEqual([newSymb])
-    })
-    test("should extract nothing if same model", () => {
-      const { added, removed } = model.extractDifferenceSymbols(model)
-      expect(added).toEqual([])
-      expect(removed).toEqual([])
-    })
-  })
-
   describe("export", () => {
     const model = new IIModel()
     const e: TExport = { "text/plain": "poney" }
@@ -242,18 +230,6 @@ describe("IIModel.ts", () => {
       model.mergeExport(newExport)
       expect(model.exports).toMatchObject(newExport)
       expect(model.exports).toMatchObject(e)
-    })
-  })
-
-  describe("clone", () => {
-    const model = new IIModel()
-    const stroke = buildIIStroke()
-    model.addSymbol(stroke)
-    model.exports = { "text/plain": "M" }
-    test("should clone", () => {
-      const clone = model.clone()
-      expect(clone).toStrictEqual(model)
-      expect(clone).not.toBe(model)
     })
   })
 

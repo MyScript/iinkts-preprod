@@ -201,7 +201,7 @@ describe("InsertGestureHandler.ts", () => {
       await handler.apply(gestureStroke, gesture)
 
       const translatedSymbols = translateSpy.mock.calls.flatMap((call) => call[0] as TStroke[])
-      expect(translatedSymbols).toContain(afterStroke)
+      expect(translatedSymbols).toContainEqual(afterStroke)
       expect(translatedSymbols).not.toContain(strayStroke)
     })
   })
