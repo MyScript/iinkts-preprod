@@ -2,26 +2,7 @@
  * @group Manager
  * @summary List all authorized gestures
  */
-export type TGestureType = "UNDERLINE" | "SCRATCH" | "JOIN" | "INSERT" | "STRIKETHROUGH" | "SURROUND"
-
-/**
- * @group Manager
- * @remarks
- *  when gestureType = "INSERT", subStrokes represent the two parts
- *  when gestureType = "SCRATCH", subStrokes represent the part to substract at the stroke corresponding fullStrokeId
- */
-export type TGesture = {
-  gestureType: TGestureType
-  gestureStrokeId: string
-  strokeIds: string[]
-  strokeBeforeIds: string[]
-  strokeAfterIds: string[]
-  subStrokes?: {
-    fullStrokeId: string
-    x: number[]
-    y: number[]
-  }[]
-}
+export type { TGesture, TGestureType } from "@/client"
 
 /**
  * @group Manager
