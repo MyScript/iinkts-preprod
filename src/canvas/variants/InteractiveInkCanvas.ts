@@ -100,6 +100,9 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
   #clipboard: TSymbol[] = []
   #renderedWidth = 0
   #renderedHeight = 0
+  #pendingWheelFrame?: number
+  #pendingWheelDeltaY = 0
+  #pendingWheelOffset?: { x: number; y: number }
 
   /** SVG renderer responsible for drawing symbols onto the canvas layer. */
   renderer: SVGRenderer
@@ -1505,14 +1508,39 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     if (event.ctrlKey || event.metaKey) {
       event.preventDefault()
       event.stopPropagation()
-      const zoomIntensity = 0.001
-      const zoom = this.renderer.getZoom() * Math.exp(-event.deltaY * zoomIntensity)
       const rect = this.layers.root.getBoundingClientRect()
-      const offsetX = event.clientX - rect.left
-      const offsetY = event.clientY - rect.top
-      this.renderer.setZoom(zoom, offsetX, offsetY)
-      this.menu.action.update()
+      this.#pendingWheelDeltaY += event.deltaY
+      this.#pendingWheelOffset = {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top,
+      }
+      this.#scheduleWheelZoom()
     }
+  }
+
+  /**
+   * Coalesces `setZoom()` (attribute mutation + virtualization reconciliation + guide redraw)
+   * to at most one call per animation frame — a trackpad pinch/ctrl+scroll fires many `wheel`
+   * events per frame. Summing `deltaY` across the coalesced events and applying it in one
+   * `Math.exp()` against the pre-frame zoom is exactly equivalent to applying each event's zoom
+   * factor in sequence (exponents add under multiplication), so no precision is lost.
+   */
+  #scheduleWheelZoom(): void {
+    if (this.#pendingWheelFrame !== undefined) {
+      return
+    }
+    this.#pendingWheelFrame = requestAnimationFrame(() => {
+      this.#pendingWheelFrame = undefined
+      if (!this.#pendingWheelOffset) {
+        return
+      }
+      const zoomIntensity = 0.001
+      const zoom = this.renderer.getZoom() * Math.exp(-this.#pendingWheelDeltaY * zoomIntensity)
+      this.renderer.setZoom(zoom, this.#pendingWheelOffset.x, this.#pendingWheelOffset.y)
+      this.menu.action.update()
+      this.#pendingWheelDeltaY = 0
+      this.#pendingWheelOffset = undefined
+    })
   }
 
   /**
@@ -1971,6 +1999,10 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
 
     this.keyboard.detach()
     this.layers.root.removeEventListener("wheel", this.handleWheel)
+    if (this.#pendingWheelFrame !== undefined) {
+      cancelAnimationFrame(this.#pendingWheelFrame)
+      this.#pendingWheelFrame = undefined
+    }
     this.stopResizeObserver()
 
     this.layers.root.classList.remove("draw")
