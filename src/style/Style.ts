@@ -1,3 +1,5 @@
+import type { TPartialDeep } from "@/utils"
+
 /**
  * @group Styles
  * @property {String} color=#000000 Color (supported formats rgb() rgba() hsl() hsla() #rgb #rgba #rrggbb #rrggbbaa)
@@ -22,3 +24,17 @@ export const DefaultStyle: TStyle = {
   //   opacity: 1,
   //   fill: "transparent",
 } as const
+
+/**
+ * Merges a partial style onto {@link DefaultStyle} and coerces `width`/`opacity` to numbers —
+ * every symbol type's `create()` did this identically before extraction.
+ * @group Styles
+ */
+export function mergeSymbolStyle(style?: TPartialDeep<TStyle>): TStyle {
+  const mergedStyle = Object.assign({}, DefaultStyle, style) as TStyle
+  if (mergedStyle.opacity) {
+    mergedStyle.opacity = +mergedStyle.opacity
+  }
+  mergedStyle.width = +mergedStyle.width
+  return mergedStyle
+}
