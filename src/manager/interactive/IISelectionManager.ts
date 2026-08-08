@@ -158,6 +158,48 @@ export class IISelectionManager extends IIAbstractManager {
     }
   }
 
+  /**
+   * Wires the pointerdown → pointermove/pointerup/pointercancel/pointerleave dance shared by
+   * every drag handle in this file (translate/resize/rotate rect+group handles, edge resize
+   * points, arc handles): on a primary-button `pointerdown`, hide the interact overlay and run
+   * `onStart`, then listen for the 4 continuation events on `renderer.layer`; on any of those,
+   * run `onEnd` and remove all 4 listeners. `onContinue` runs on every `pointermove` in between.
+   */
+  #bindPointerDrag(
+    el: SVGElement,
+    onStart: (ev: PointerEvent) => void,
+    onContinue: (ev: PointerEvent) => void,
+    onEnd: (ev: PointerEvent) => void
+  ): void {
+    const handler = (ev: PointerEvent) => {
+      ev.preventDefault()
+      ev.stopPropagation()
+      onContinue(ev)
+    }
+    const endHandler = (ev: PointerEvent) => {
+      ev.preventDefault()
+      ev.stopPropagation()
+      onEnd(ev)
+      this.renderer.layer.removeEventListener("pointermove", handler)
+      this.renderer.layer.removeEventListener("pointercancel", endHandler)
+      this.renderer.layer.removeEventListener("pointerleave", endHandler)
+      this.renderer.layer.removeEventListener("pointerup", endHandler)
+    }
+    el.addEventListener("pointerdown", (ev) => {
+      if (ev.button !== 0 || ev.buttons !== 1) {
+        return
+      }
+      ev.preventDefault()
+      ev.stopPropagation()
+      this.hideInteractElements()
+      onStart(ev)
+      this.renderer.layer.addEventListener("pointermove", handler)
+      this.renderer.layer.addEventListener("pointercancel", endHandler)
+      this.renderer.layer.addEventListener("pointerleave", endHandler)
+      this.renderer.layer.addEventListener("pointerup", endHandler)
+    })
+  }
+
   protected createTranslateRect(box: TBox): SVGRectElement {
     const attrs = {
       role: SvgElementRole.Translate,
@@ -172,38 +214,19 @@ export class IISelectionManager extends IIAbstractManager {
       y: box.y,
     }
     const translateEl = SVGBuilder.createRect(boxWithMarge, attrs)
-    const handler = (ev: PointerEvent) => {
-      ev.preventDefault()
-      ev.stopPropagation()
-      this.translate.continue(this.getPoint(ev))
-    }
-    const endHandler = (ev: PointerEvent) => {
-      ev.preventDefault()
-      ev.stopPropagation()
-      this.translate.end(this.getPoint(ev))
-      this.renderer.layer.removeEventListener("pointermove", handler)
-      this.renderer.layer.removeEventListener("pointercancel", endHandler)
-      this.renderer.layer.removeEventListener("pointerleave", endHandler)
-      this.renderer.layer.removeEventListener("pointerup", endHandler)
-      this.renderer.layer.style.cursor = ""
-      this.redrawSelectedGroup()
-    }
-
-    translateEl.addEventListener("pointerdown", (ev) => {
-      if (ev.button !== 0 || ev.buttons !== 1) {
-        return
+    this.#bindPointerDrag(
+      translateEl,
+      (ev) => {
+        this.translate.start(ev.target as Element, this.getPoint(ev))
+        this.renderer.layer.style.cursor = "move"
+      },
+      (ev) => this.translate.continue(this.getPoint(ev)),
+      (ev) => {
+        this.translate.end(this.getPoint(ev))
+        this.renderer.layer.style.cursor = ""
+        this.redrawSelectedGroup()
       }
-      ev.preventDefault()
-      ev.stopPropagation()
-      this.hideInteractElements()
-      this.translate.start(ev.target as Element, this.getPoint(ev))
-      this.renderer.layer.addEventListener("pointermove", handler)
-      this.renderer.layer.addEventListener("pointercancel", endHandler)
-      this.renderer.layer.addEventListener("pointerleave", endHandler)
-      this.renderer.layer.addEventListener("pointerup", endHandler)
-
-      this.renderer.layer.style.cursor = "move"
-    })
+    )
     return translateEl
   }
 
@@ -249,35 +272,15 @@ export class IISelectionManager extends IIAbstractManager {
       )
     )
 
-    const handler = (ev: PointerEvent) => {
-      ev.preventDefault()
-      ev.stopPropagation()
-      this.rotation.continue(this.getPoint(ev))
-    }
-    const endHandler = (ev: PointerEvent) => {
-      ev.preventDefault()
-      ev.stopPropagation()
-      this.rotation.end(this.getPoint(ev))
-      this.renderer.layer.removeEventListener("pointermove", handler)
-      this.renderer.layer.removeEventListener("pointercancel", endHandler)
-      this.renderer.layer.removeEventListener("pointerleave", endHandler)
-      this.renderer.layer.removeEventListener("pointerup", endHandler)
-      this.drawSelectedGroup(this.model.symbolsSelected)
-    }
-
-    group.addEventListener("pointerdown", (ev) => {
-      if (ev.button !== 0 || ev.buttons !== 1) {
-        return
+    this.#bindPointerDrag(
+      group,
+      (ev) => this.rotation.start(ev.target as Element, this.getPoint(ev)),
+      (ev) => this.rotation.continue(this.getPoint(ev)),
+      (ev) => {
+        this.rotation.end(this.getPoint(ev))
+        this.drawSelectedGroup(this.model.symbolsSelected)
       }
-      ev.preventDefault()
-      ev.stopPropagation()
-      this.hideInteractElements()
-      this.rotation.start(ev.target as Element, this.getPoint(ev))
-      this.renderer.layer.addEventListener("pointermove", handler)
-      this.renderer.layer.addEventListener("pointercancel", endHandler)
-      this.renderer.layer.addEventListener("pointerleave", endHandler)
-      this.renderer.layer.addEventListener("pointerup", endHandler)
-    })
+    )
     return group
   }
 
@@ -306,38 +309,19 @@ export class IISelectionManager extends IIAbstractManager {
     }
 
     const bindEl = (el: SVGElement, transformOrigin: TPoint, cursor: string) => {
-      const handler = (ev: PointerEvent) => {
-        ev.preventDefault()
-        ev.stopPropagation()
-        this.resize.continue(this.getPoint(ev))
-      }
-      const endHandler = (ev: PointerEvent) => {
-        ev.preventDefault()
-        ev.stopPropagation()
-        this.resize.end(this.getPoint(ev))
-        this.renderer.layer.removeEventListener("pointermove", handler)
-        this.renderer.layer.removeEventListener("pointercancel", endHandler)
-        this.renderer.layer.removeEventListener("pointerleave", endHandler)
-        this.renderer.layer.removeEventListener("pointerup", endHandler)
-
-        this.renderer.layer.style.cursor = ""
-        this.drawSelectedGroup(this.model.symbolsSelected)
-      }
-
-      el.addEventListener("pointerdown", (ev) => {
-        if (ev.button !== 0 || ev.buttons !== 1) {
-          return
+      this.#bindPointerDrag(
+        el,
+        (ev) => {
+          this.renderer.layer.style.cursor = cursor
+          this.resize.start(ev.target as Element, transformOrigin)
+        },
+        (ev) => this.resize.continue(this.getPoint(ev)),
+        (ev) => {
+          this.resize.end(this.getPoint(ev))
+          this.renderer.layer.style.cursor = ""
+          this.drawSelectedGroup(this.model.symbolsSelected)
         }
-        ev.preventDefault()
-        ev.stopPropagation()
-        this.hideInteractElements()
-        this.renderer.layer.style.cursor = cursor
-        this.resize.start(ev.target as Element, transformOrigin)
-        this.renderer.layer.addEventListener("pointermove", handler)
-        this.renderer.layer.addEventListener("pointercancel", endHandler)
-        this.renderer.layer.addEventListener("pointerleave", endHandler)
-        this.renderer.layer.addEventListener("pointerup", endHandler)
-      })
+      )
     }
 
     const sideResizeDefs = [
@@ -512,51 +496,35 @@ export class IISelectionManager extends IIAbstractManager {
       style: `cursor:grab;`,
     }
     const bindEl = (el: SVGCircleElement, pointIndex: number) => {
-      const handler = (ev: PointerEvent) => {
-        ev.preventDefault()
-        ev.stopPropagation()
-        const point = this.getPoint(ev)
-        const { x, y } = this.canvas.snaps.snapResize(point)
-        edge.vertices[pointIndex].x = x
-        edge.vertices[pointIndex].y = y
-        EdgeOps.updateEdgeDerivedFields(edge)
-        this.model.updateSymbol(edge)
-        this.renderer.drawSymbol(edge)
-        this.canvas.connector.showAnchorHint({ x, y }, edge.id)
-      }
-      const endHandler = (ev: PointerEvent) => {
-        ev.preventDefault()
-        ev.stopPropagation()
-        const point = this.getPoint(ev)
-        const { x, y } = this.canvas.snaps.snapResize(point)
-        edge.vertices[pointIndex].x = x
-        edge.vertices[pointIndex].y = y
-        EdgeOps.updateEdgeDerivedFields(edge)
-        this.canvas.connector.clearAnchorHint()
-        this.canvas.connector.applyEndpointAnchor(edge, pointIndex, { x, y })
-        this.renderer.layer.style.cursor = ""
-        this.canvas.updateSymbol(edge)
-        this.renderer.layer.removeEventListener("pointermove", handler)
-        this.renderer.layer.removeEventListener("pointercancel", endHandler)
-        this.renderer.layer.removeEventListener("pointerleave", endHandler)
-        this.renderer.layer.removeEventListener("pointerup", endHandler)
-        this.canvas.snaps.clearSnapToElementLines()
-        this.drawSelectedGroup(this.model.symbolsSelected)
-      }
-
-      el.addEventListener("pointerdown", (ev) => {
-        if (ev.button !== 0 || ev.buttons !== 1) {
-          return
+      this.#bindPointerDrag(
+        el,
+        () => {
+          this.renderer.layer.style.cursor = "grabbing"
+        },
+        (ev) => {
+          const point = this.getPoint(ev)
+          const { x, y } = this.canvas.snaps.snapResize(point)
+          edge.vertices[pointIndex].x = x
+          edge.vertices[pointIndex].y = y
+          EdgeOps.updateEdgeDerivedFields(edge)
+          this.model.updateSymbol(edge)
+          this.renderer.drawSymbol(edge)
+          this.canvas.connector.showAnchorHint({ x, y }, edge.id)
+        },
+        (ev) => {
+          const point = this.getPoint(ev)
+          const { x, y } = this.canvas.snaps.snapResize(point)
+          edge.vertices[pointIndex].x = x
+          edge.vertices[pointIndex].y = y
+          EdgeOps.updateEdgeDerivedFields(edge)
+          this.canvas.connector.clearAnchorHint()
+          this.canvas.connector.applyEndpointAnchor(edge, pointIndex, { x, y })
+          this.renderer.layer.style.cursor = ""
+          this.canvas.updateSymbol(edge)
+          this.canvas.snaps.clearSnapToElementLines()
+          this.drawSelectedGroup(this.model.symbolsSelected)
         }
-        this.renderer.layer.style.cursor = "grabbing"
-        this.hideInteractElements()
-        ev.preventDefault()
-        ev.stopPropagation()
-        this.renderer.layer.addEventListener("pointermove", handler)
-        this.renderer.layer.addEventListener("pointercancel", endHandler)
-        this.renderer.layer.addEventListener("pointerleave", endHandler)
-        this.renderer.layer.addEventListener("pointerup", endHandler)
-      })
+      )
     }
     if (edge.kind === EdgeKind.Arc) {
       const arc = edge as TEdgeArc
@@ -589,49 +557,32 @@ export class IISelectionManager extends IIAbstractManager {
             this.canvas.connector.showAnchorHint({ x, y }, arc.id)
           }
         }
-        const handler = (ev: PointerEvent) => {
-          ev.preventDefault()
-          ev.stopPropagation()
-          dragCoalescer.schedule(() => runHandler(ev))
-        }
-        const endHandler = (ev: PointerEvent) => {
-          ev.preventDefault()
-          ev.stopPropagation()
-          dragCoalescer.cancel()
-          const point = this.getPoint(ev)
-          const { x, y } = this.canvas.snaps.snapResize(point)
-          updateArc(x, y)
-          EdgeArcOps.updateDerivedFields(arc)
-          this.canvas.connector.clearAnchorHint()
-          if (isStart || isEnd) {
-            // Recomputed fresh, not the vertexIndex captured before this drag: updateDerivedFields
-            // just re-tessellated the arc, and the vertex COUNT can change with the new radius/
-            // sweep — a stale index could silently miss applyEndpointAnchor's own isEnd check.
-            const currentIndex = isStart ? 0 : arc.vertices.length - 1
-            this.canvas.connector.applyEndpointAnchor(arc, currentIndex, { x, y })
+        this.#bindPointerDrag(
+          el,
+          () => {
+            this.renderer.layer.style.cursor = "grabbing"
+          },
+          (ev) => dragCoalescer.schedule(() => runHandler(ev)),
+          (ev) => {
+            dragCoalescer.cancel()
+            const point = this.getPoint(ev)
+            const { x, y } = this.canvas.snaps.snapResize(point)
+            updateArc(x, y)
+            EdgeArcOps.updateDerivedFields(arc)
+            this.canvas.connector.clearAnchorHint()
+            if (isStart || isEnd) {
+              // Recomputed fresh, not the vertexIndex captured before this drag: updateDerivedFields
+              // just re-tessellated the arc, and the vertex COUNT can change with the new radius/
+              // sweep — a stale index could silently miss applyEndpointAnchor's own isEnd check.
+              const currentIndex = isStart ? 0 : arc.vertices.length - 1
+              this.canvas.connector.applyEndpointAnchor(arc, currentIndex, { x, y })
+            }
+            this.renderer.layer.style.cursor = ""
+            this.canvas.updateSymbol(arc)
+            this.canvas.snaps.clearSnapToElementLines()
+            this.drawSelectedGroup(this.model.symbolsSelected)
           }
-          this.renderer.layer.style.cursor = ""
-          this.canvas.updateSymbol(arc)
-          this.renderer.layer.removeEventListener("pointermove", handler)
-          this.renderer.layer.removeEventListener("pointercancel", endHandler)
-          this.renderer.layer.removeEventListener("pointerleave", endHandler)
-          this.renderer.layer.removeEventListener("pointerup", endHandler)
-          this.canvas.snaps.clearSnapToElementLines()
-          this.drawSelectedGroup(this.model.symbolsSelected)
-        }
-        el.addEventListener("pointerdown", (ev) => {
-          if (ev.button !== 0 || ev.buttons !== 1) {
-            return
-          }
-          this.renderer.layer.style.cursor = "grabbing"
-          this.hideInteractElements()
-          ev.preventDefault()
-          ev.stopPropagation()
-          this.renderer.layer.addEventListener("pointermove", handler)
-          this.renderer.layer.addEventListener("pointercancel", endHandler)
-          this.renderer.layer.addEventListener("pointerleave", endHandler)
-          this.renderer.layer.addEventListener("pointerup", endHandler)
-        })
+        )
       }
       EdgeArcOps.getResizePoints(arc).forEach(({ point, vertexIndex }) => {
         const initialVertexCount = arc.vertices.length
@@ -678,36 +629,19 @@ export class IISelectionManager extends IIAbstractManager {
       "stroke-linecap": "round",
       d,
     })
-    const handler = (ev: PointerEvent) => {
-      ev.preventDefault()
-      ev.stopPropagation()
-      this.translate.continue(this.getPoint(ev))
-    }
-    const endHandler = (ev: PointerEvent) => {
-      ev.preventDefault()
-      ev.stopPropagation()
-      this.translate.end(this.getPoint(ev))
-      this.renderer.layer.removeEventListener("pointermove", handler)
-      this.renderer.layer.removeEventListener("pointercancel", endHandler)
-      this.renderer.layer.removeEventListener("pointerleave", endHandler)
-      this.renderer.layer.removeEventListener("pointerup", endHandler)
-      this.renderer.layer.style.cursor = ""
-      this.drawSelectedGroup(this.model.symbolsSelected)
-    }
-    translateEl.addEventListener("pointerdown", (ev) => {
-      if (ev.button !== 0 || ev.buttons !== 1) {
-        return
+    this.#bindPointerDrag(
+      translateEl,
+      (ev) => {
+        this.translate.start(ev.target as Element, this.getPoint(ev))
+        this.renderer.layer.style.cursor = "move"
+      },
+      (ev) => this.translate.continue(this.getPoint(ev)),
+      (ev) => {
+        this.translate.end(this.getPoint(ev))
+        this.renderer.layer.style.cursor = ""
+        this.drawSelectedGroup(this.model.symbolsSelected)
       }
-      ev.preventDefault()
-      ev.stopPropagation()
-      this.hideInteractElements()
-      this.translate.start(ev.target as Element, this.getPoint(ev))
-      this.renderer.layer.addEventListener("pointermove", handler)
-      this.renderer.layer.addEventListener("pointercancel", endHandler)
-      this.renderer.layer.addEventListener("pointerleave", endHandler)
-      this.renderer.layer.addEventListener("pointerup", endHandler)
-      this.renderer.layer.style.cursor = "move"
-    })
+    )
     return translateEl
   }
 
