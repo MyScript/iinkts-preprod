@@ -57,7 +57,7 @@ import type { SymbolUtil } from "@/symbol-utils/SymbolUtil"
 import { MatrixTransform } from "@/transform"
 import type { TPartialDeep } from "@/utils"
 import type { TLLMExport } from "@/utils"
-import { createUUID, jiixToLLM, jiixToMarkdown, jiixToMermaid, jiixToPlantUML, mergeDeep } from "@/utils"
+import { createUUID, jiixToLLM, jiixToMarkdown, jiixToMermaid, jiixToPlantUML, mergeDeep, RafCoalescer } from "@/utils"
 
 import type { TInteractiveInkCanvasConfiguration } from "./InteractiveInkCanvasConfiguration"
 import { InteractiveInkCanvasConfiguration } from "./InteractiveInkCanvasConfiguration"
@@ -100,7 +100,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
   #clipboard: TSymbol[] = []
   #renderedWidth = 0
   #renderedHeight = 0
-  #pendingWheelFrame?: number
+  #wheelZoomCoalescer = new RafCoalescer()
   #pendingWheelDeltaY = 0
   #pendingWheelOffset?: { x: number; y: number }
 
@@ -1526,11 +1526,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
    * factor in sequence (exponents add under multiplication), so no precision is lost.
    */
   #scheduleWheelZoom(): void {
-    if (this.#pendingWheelFrame !== undefined) {
-      return
-    }
-    this.#pendingWheelFrame = requestAnimationFrame(() => {
-      this.#pendingWheelFrame = undefined
+    this.#wheelZoomCoalescer.schedule(() => {
       if (!this.#pendingWheelOffset) {
         return
       }
@@ -1999,10 +1995,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
 
     this.keyboard.detach()
     this.layers.root.removeEventListener("wheel", this.handleWheel)
-    if (this.#pendingWheelFrame !== undefined) {
-      cancelAnimationFrame(this.#pendingWheelFrame)
-      this.#pendingWheelFrame = undefined
-    }
+    this.#wheelZoomCoalescer.cancel()
     this.stopResizeObserver()
 
     this.layers.root.classList.remove("draw")

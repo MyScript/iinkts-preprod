@@ -1,5 +1,5 @@
 import { DOMFactory } from "@/components/dom"
-import { areValidCoordinates, TWO_PI } from "@/utils"
+import { areValidCoordinates, RafCoalescer, TWO_PI } from "@/utils"
 
 /**
  * @group Components
@@ -78,7 +78,7 @@ export class Chart {
   private isDragging = false
   private lastMousePos = { x: 0, y: 0 }
   private controlsContainer?: HTMLDivElement
-  private pendingDrawFrame?: number
+  private drawCoalescer = new RafCoalescer()
 
   constructor(config: TChartConfig = {}) {
     this.config = {
@@ -303,13 +303,7 @@ export class Chart {
    * outpaces what a single frame can show.
    */
   private scheduleDraw(): void {
-    if (this.pendingDrawFrame !== undefined) {
-      return
-    }
-    this.pendingDrawFrame = requestAnimationFrame(() => {
-      this.pendingDrawFrame = undefined
-      this.draw()
-    })
+    this.drawCoalescer.schedule(() => this.draw())
   }
 
   private resetZoom(): void {
@@ -935,10 +929,7 @@ export class Chart {
    * Destroy the chart
    */
   destroy(): void {
-    if (this.pendingDrawFrame !== undefined) {
-      cancelAnimationFrame(this.pendingDrawFrame)
-      this.pendingDrawFrame = undefined
-    }
+    this.drawCoalescer.cancel()
     this.container.remove()
   }
 }
