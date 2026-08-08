@@ -323,6 +323,7 @@ export class InkCanvas extends AbstractCanvas {
     this.writer.detach()
     this.layers.destroy()
     this.renderer.destroy()
+    this.clearRootElementReference()
     return Promise.resolve()
   }
 }

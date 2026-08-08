@@ -443,6 +443,7 @@ export class InkCanvasDeprecated extends AbstractCanvas {
     this.grabber.detach()
     this.layers.destroy()
     this.renderer.destroy()
+    this.clearRootElementReference()
     return Promise.resolve()
   }
 }

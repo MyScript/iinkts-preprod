@@ -1564,6 +1564,14 @@ describe("InteractiveInkCanvas.ts", () => {
       canvas.destroy()
       await expect(canvas.client.destroy).toHaveBeenCalledTimes(1)
     })
+
+    test("should clear rootElement.iink so the element doesn't keep a reference to the destroyed canvas", async () => {
+      const rootElement = document.createElement("div")
+      const otherCanvas = new InteractiveInkCanvas(rootElement, CanvasOptions)
+      expect(rootElement.iink).toBe(otherCanvas)
+      await otherCanvas.destroy()
+      expect(rootElement.iink).toBeUndefined()
+    })
   })
 
   describe("zoomToFit", () => {
