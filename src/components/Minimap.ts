@@ -1,5 +1,6 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import { DOMFactory } from "@/components/dom"
+import { RafCoalescer } from "@/utils"
 
 /**
  * @group Components
@@ -35,7 +36,7 @@ export class Minimap {
   } = { x: 0, y: 0, width: 1, height: 1 }
   #isDragging = false
   #observer: MutationObserver
-  #pendingSyncFrame: number | undefined
+  #syncCoalescer = new RafCoalescer()
 
   constructor(canvas: TInteractiveInkCanvas, options?: TMinimapOptions) {
     this.#canvas = canvas
@@ -98,13 +99,7 @@ export class Minimap {
   }
 
   #scheduleSync(): void {
-    if (this.#pendingSyncFrame !== undefined) {
-      return
-    }
-    this.#pendingSyncFrame = requestAnimationFrame(() => {
-      this.#pendingSyncFrame = undefined
-      this.#sync()
-    })
+    this.#syncCoalescer.schedule(() => this.#sync())
   }
 
   #bindPointerEvents(): void {
@@ -245,10 +240,7 @@ export class Minimap {
    * Disconnects the observer, removes event listeners, and removes the minimap from the DOM.
    */
   destroy(): void {
-    if (this.#pendingSyncFrame !== undefined) {
-      cancelAnimationFrame(this.#pendingSyncFrame)
-      this.#pendingSyncFrame = undefined
-    }
+    this.#syncCoalescer.cancel()
     this.#observer.disconnect()
     this.#container.removeEventListener("pointerdown", this.#handlePointerDown)
     this.#container.removeEventListener("pointermove", this.#handlePointerMove)

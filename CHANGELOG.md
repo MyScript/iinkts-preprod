@@ -60,6 +60,7 @@ History entries no longer store a full `Model`/`IIModel` snapshot — only the d
 ## Performance
 
 - perf(manager): `IIConversionManager.convertNode()`/`convertEdge()` deduped associated strokes by id using an O(n²) `filter`+`findIndex` idiom, copy-pasted 4×. Extracted a shared `uniqueById()` util (`src/utils/object.ts`, exported) using a `Set`, O(n)
+- perf: `IIWriterManager`, `IIMoveManager`, `Minimap`, `IISelectionManager` (arc-handle drag), `Chart.ts` (pan), and `InteractiveInkCanvas` (wheel-zoom) each hand-rolled the same "coalesce to one `requestAnimationFrame` callback" pattern independently. Extracted a shared `RafCoalescer` (`src/utils/RafCoalescer.ts`, exported) and migrated all 6 call sites
 
 # [v4.1.0](https://github.com/MyScript/iinkTS/tree/v4.1.0)
 
