@@ -523,6 +523,7 @@ export class InteractiveInkSSRCanvas extends AbstractCanvas {
     this.renderer.destroy()
     this.client.destroy()
     this.smartGuide?.destroy()
+    this.clearRootElementReference()
     return Promise.resolve()
   }
 }

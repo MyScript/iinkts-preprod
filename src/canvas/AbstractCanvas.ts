@@ -252,6 +252,20 @@ export abstract class AbstractCanvas {
 
   abstract destroy(): Promise<void>
 
+  /**
+   * Clears the `rootElement.iink` back-reference set in the constructor, guarded so it only
+   * clears the reference if it's still pointing at this instance — a newer canvas mounted on
+   * the same element (e.g. `Canvas.load()` replacing an instance) must not have its own
+   * reference clobbered by this (older) instance's `destroy()` running after the fact.
+   * Every `destroy()` implementation must call this, or the mounting DOM element keeps a
+   * strong reference to the entire destroyed canvas graph.
+   */
+  protected clearRootElementReference(): void {
+    if (this.layers.root.iink === this) {
+      this.layers.root.iink = undefined
+    }
+  }
+
   abstract resize(dims?: { height?: number; width?: number }): Promise<void>
 
   protected startResizeObserver(): void {

@@ -2015,6 +2015,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     this.client.destroy()
     this.model.clear()
     this.history.clear()
+    this.clearRootElementReference()
     return Promise.resolve()
   }
 }
