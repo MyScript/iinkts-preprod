@@ -1,4 +1,4 @@
-import { mergeDeep, redactServerSecrets, uniqueById } from "@/iink"
+import { mergeDeep, mergeExports, redactServerSecrets, uniqueById } from "@/iink"
 
 describe("merge", () => {
   const testDatas = [
@@ -148,5 +148,28 @@ describe("uniqueById", () => {
 
   test("should handle an empty array", () => {
     expect(uniqueById([])).toEqual([])
+  })
+})
+
+describe("mergeExports", () => {
+  type TExportLike = { "text/plain"?: string; "application/x-latex"?: string }
+
+  test("should adopt the incoming payload as-is when there is nothing to merge into", () => {
+    const incoming: TExportLike = { "text/plain": "hello" }
+    expect(mergeExports<TExportLike>(undefined, incoming)).toBe(incoming)
+  })
+
+  test("should merge new keys into the current payload, mutating and returning it", () => {
+    const current: TExportLike = { "text/plain": "hello" }
+    const incoming: TExportLike = { "application/x-latex": "\\hello" }
+    const result = mergeExports(current, incoming)
+    expect(result).toBe(current)
+    expect(result).toEqual({ "text/plain": "hello", "application/x-latex": "\\hello" })
+  })
+
+  test("should let the incoming payload overwrite overlapping keys", () => {
+    const current: TExportLike = { "text/plain": "hello" }
+    const incoming: TExportLike = { "text/plain": "world" }
+    expect(mergeExports(current, incoming)).toEqual({ "text/plain": "world" })
   })
 })

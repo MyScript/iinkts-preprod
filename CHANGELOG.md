@@ -65,6 +65,8 @@ History entries no longer store a full `Model`/`IIModel` snapshot — only the d
 # [v4.1.0](https://github.com/MyScript/iinkTS/tree/v4.1.0)
 
 - fix(history): `IIHistoryManager` reversing a `style` change used to reapply the same new style instead of restoring the old one (undo was a no-op for style edits); now round-trips correctly via the enriched `oldStyles`/`newStyles`
+- fix(manager): `IISynchronizerManager`'s own metadata bookkeeping (`jiixBlockId`/`jiixBlockType`, connection anchors) called `model.updateSymbol(stroke)` without the new opt-out, so every sync cleared `model.exports` right after `canvas.export()` had just populated it. Reading `model.exports` right after a `synchronized` event could get `undefined` instead of the JIIX just fetched. Now passes `updateSymbol(stroke, false)` — none of that metadata is part of the export content
+- fix(model): `Model.addStroke()` silently allowed a duplicate stroke id, unlike `IModel.addStroke`/`IIModel.addSymbol` which both throw — now throws `Stroke id already exist: <id>` too, for consistency
 
 ### Import Strokes
 - feat(InkCanvasV2) added strokes import functionality 

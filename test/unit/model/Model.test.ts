@@ -183,6 +183,16 @@ describe("Model.ts", () => {
       expect(model.symbols[0]).toStrictEqual(stroke)
     })
 
+    test("should not addStroke if id already exist", () => {
+      const model = new Model(width, height, rowHeight)
+      const stroke1 = new Stroke(DefaultPenStyle)
+      const stroke2 = new Stroke(DefaultPenStyle)
+      stroke2.id = stroke1.id
+      model.addStroke(stroke1)
+      expect(() => model.addStroke(stroke2)).toThrow(`Stroke id already exist: ${stroke1.id}`)
+      expect(model.symbols).toHaveLength(1)
+    })
+
     test("should extractUnsentStrokes", () => {
       const model = new Model(width, height, rowHeight)
       const stroke = new Stroke(DefaultPenStyle)
