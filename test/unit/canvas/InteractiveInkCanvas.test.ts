@@ -1565,6 +1565,14 @@ describe("InteractiveInkCanvas.ts", () => {
       await expect(canvas.client.destroy).toHaveBeenCalledTimes(1)
     })
 
+    test("should remove all event listeners", async () => {
+      const rootElement = document.createElement("div")
+      const otherCanvas = new InteractiveInkCanvas(rootElement, CanvasOptions)
+      otherCanvas.event.removeAllListeners = jest.fn()
+      await otherCanvas.destroy()
+      expect(otherCanvas.event.removeAllListeners).toHaveBeenCalledTimes(1)
+    })
+
     test("should clear rootElement.iink so the element doesn't keep a reference to the destroyed canvas", async () => {
       const rootElement = document.createElement("div")
       const otherCanvas = new InteractiveInkCanvas(rootElement, CanvasOptions)
