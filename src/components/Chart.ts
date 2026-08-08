@@ -78,6 +78,7 @@ export class Chart {
   private isDragging = false
   private lastMousePos = { x: 0, y: 0 }
   private controlsContainer?: HTMLDivElement
+  private pendingDrawFrame?: number
 
   constructor(config: TChartConfig = {}) {
     this.config = {
@@ -293,7 +294,22 @@ export class Chart {
       yMax: this.viewport.yMax + yShift,
     }
 
-    this.draw()
+    this.scheduleDraw()
+  }
+
+  /**
+   * Coalesces `draw()` to at most once per animation frame — `pan()` fires on every native
+   * `mousemove` while dragging, and a full chart redraw (axes/grid/curves/points) per event
+   * outpaces what a single frame can show.
+   */
+  private scheduleDraw(): void {
+    if (this.pendingDrawFrame !== undefined) {
+      return
+    }
+    this.pendingDrawFrame = requestAnimationFrame(() => {
+      this.pendingDrawFrame = undefined
+      this.draw()
+    })
   }
 
   private resetZoom(): void {
@@ -919,6 +935,10 @@ export class Chart {
    * Destroy the chart
    */
   destroy(): void {
+    if (this.pendingDrawFrame !== undefined) {
+      cancelAnimationFrame(this.pendingDrawFrame)
+      this.pendingDrawFrame = undefined
+    }
     this.container.remove()
   }
 }
