@@ -1,6 +1,7 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { TSymbol } from "@/symbol"
 import { cloneSymbol } from "@/symbol"
+import { mergeExports } from "@/utils"
 
 import type { TExport, TJIIXMathElement, TJIIXTextElement } from "./Export"
 import { JIIXElementType } from "./Export"
@@ -164,11 +165,7 @@ export class IIModel {
 
   mergeExport(exports: TExport) {
     this.#logger.info("mergeExport", { exports })
-    if (this.exports) {
-      Object.assign(this.exports, exports)
-    } else {
-      this.exports = exports
-    }
+    this.exports = mergeExports(this.exports, exports)
     this.#logger.debug("mergeExport", this.exports)
   }
 

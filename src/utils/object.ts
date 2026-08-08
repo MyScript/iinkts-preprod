@@ -140,3 +140,16 @@ export const uniqueById = <T extends { id: string }>(items: T[]): T[] => {
     return true
   })
 }
+
+/**
+ * Merges an incoming export payload into the current one, mutating and returning it when
+ * present, or adopting `incoming` as-is when there was nothing to merge into yet.
+ * @group Utilities
+ */
+export const mergeExports = <T extends object>(current: T | undefined, incoming: T): T => {
+  if (current) {
+    Object.assign(current, incoming)
+    return current
+  }
+  return incoming
+}
