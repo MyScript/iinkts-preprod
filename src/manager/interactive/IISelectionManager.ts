@@ -20,6 +20,7 @@ import { EdgeOps } from "@/symbol/edge/Edge"
 import { BoxOps } from "@/symbol/primitives/Box"
 import { OBBOps } from "@/symbol/primitives/OBB"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
+import { RafCoalescer } from "@/utils"
 
 import { IIAbstractManager } from "./IIAbstractManager"
 import type { IIResizeManager } from "./transform/IIResizeManager"
@@ -576,8 +577,7 @@ export class IISelectionManager extends IIAbstractManager {
         // Midpoint drag (reprojectArcMidpoint) runs a ~280-sample golden-section search per
         // call — coalescing to one commit per animation frame, instead of one per native
         // pointermove, keeps that search from running far more often than it can be seen.
-        let pendingFrame: number | undefined
-        let pendingEvent: PointerEvent | undefined
+        const dragCoalescer = new RafCoalescer()
         const runHandler = (ev: PointerEvent) => {
           const point = this.getPoint(ev)
           const { x, y } = this.canvas.snaps.snapResize(point)
@@ -592,26 +592,12 @@ export class IISelectionManager extends IIAbstractManager {
         const handler = (ev: PointerEvent) => {
           ev.preventDefault()
           ev.stopPropagation()
-          pendingEvent = ev
-          if (pendingFrame !== undefined) {
-            return
-          }
-          pendingFrame = requestAnimationFrame(() => {
-            pendingFrame = undefined
-            if (pendingEvent) {
-              runHandler(pendingEvent)
-              pendingEvent = undefined
-            }
-          })
+          dragCoalescer.schedule(() => runHandler(ev))
         }
         const endHandler = (ev: PointerEvent) => {
           ev.preventDefault()
           ev.stopPropagation()
-          if (pendingFrame !== undefined) {
-            cancelAnimationFrame(pendingFrame)
-            pendingFrame = undefined
-            pendingEvent = undefined
-          }
+          dragCoalescer.cancel()
           const point = this.getPoint(ev)
           const { x, y } = this.canvas.snaps.snapResize(point)
           updateArc(x, y)
