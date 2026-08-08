@@ -1997,6 +1997,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     this.layers.root.removeEventListener("wheel", this.handleWheel)
     this.#wheelZoomCoalescer.cancel()
     this.stopResizeObserver()
+    this.event.removeAllListeners()
 
     this.layers.root.classList.remove("draw")
     this.layers.root.classList.remove("erase")
