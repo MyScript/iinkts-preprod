@@ -573,9 +573,12 @@ export class IISelectionManager extends IIAbstractManager {
             Object.assign(arc, reprojectArcMidpoint(arc, { x, y }))
           }
         }
-        const handler = (ev: PointerEvent) => {
-          ev.preventDefault()
-          ev.stopPropagation()
+        // Midpoint drag (reprojectArcMidpoint) runs a ~280-sample golden-section search per
+        // call — coalescing to one commit per animation frame, instead of one per native
+        // pointermove, keeps that search from running far more often than it can be seen.
+        let pendingFrame: number | undefined
+        let pendingEvent: PointerEvent | undefined
+        const runHandler = (ev: PointerEvent) => {
           const point = this.getPoint(ev)
           const { x, y } = this.canvas.snaps.snapResize(point)
           updateArc(x, y)
@@ -586,9 +589,29 @@ export class IISelectionManager extends IIAbstractManager {
             this.canvas.connector.showAnchorHint({ x, y }, arc.id)
           }
         }
+        const handler = (ev: PointerEvent) => {
+          ev.preventDefault()
+          ev.stopPropagation()
+          pendingEvent = ev
+          if (pendingFrame !== undefined) {
+            return
+          }
+          pendingFrame = requestAnimationFrame(() => {
+            pendingFrame = undefined
+            if (pendingEvent) {
+              runHandler(pendingEvent)
+              pendingEvent = undefined
+            }
+          })
+        }
         const endHandler = (ev: PointerEvent) => {
           ev.preventDefault()
           ev.stopPropagation()
+          if (pendingFrame !== undefined) {
+            cancelAnimationFrame(pendingFrame)
+            pendingFrame = undefined
+            pendingEvent = undefined
+          }
           const point = this.getPoint(ev)
           const { x, y } = this.canvas.snaps.snapResize(point)
           updateArc(x, y)
