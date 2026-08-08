@@ -1,5 +1,5 @@
 import type { TStyle } from "@/style"
-import { DefaultStyle } from "@/style"
+import { mergeSymbolStyle } from "@/style"
 import type { TBox } from "@/symbol/primitives/Box"
 import { BoxOps } from "@/symbol/primitives/Box"
 import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
@@ -8,7 +8,6 @@ import { isValidPoint } from "@/symbol/primitives/Point"
 import type { TBaseSymbol } from "@/symbol/Symbol"
 import { SymbolType } from "@/symbol/Symbol"
 import type { TPartialDeep } from "@/utils"
-import { findIntersectionBetween2Segment } from "@/utils"
 import { createUUID } from "@/utils/uuid"
 
 import { ShapeKind } from "./Shape-enum"
@@ -32,11 +31,7 @@ export type TShapePolygon = TBaseSymbol & {
  */
 export const ShapePolygonOps = {
   create(points: TPoint[], style?: TPartialDeep<TStyle>): TShapePolygon {
-    const mergedStyle = Object.assign({}, DefaultStyle, style) as TStyle
-    if (mergedStyle.opacity) {
-      mergedStyle.opacity = +mergedStyle.opacity
-    }
-    mergedStyle.width = +mergedStyle.width
+    const mergedStyle = mergeSymbolStyle(style)
     const now = Date.now()
     const polygon: TShapePolygon = {
       type: SymbolType.Shape,
@@ -80,10 +75,7 @@ export const ShapePolygonOps = {
   },
 
   overlaps(polygon: TShapePolygon, box: TBox): boolean {
-    return (
-      OBBOps.isContained(polygon.bounds, box) ||
-      polygon.edges.some((e1) => BoxOps.getSides(box).some((e2) => !!findIntersectionBetween2Segment(e1, e2)))
-    )
+    return OBBOps.polygonOverlapsBox(polygon.bounds, polygon.edges, box)
   },
 
   createTriangleBetweenPoints(origin: TPoint, target: TPoint, style?: TPartialDeep<TStyle>): TShapePolygon {

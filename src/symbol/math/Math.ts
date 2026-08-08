@@ -1,5 +1,5 @@
 import type { TStyle } from "@/style"
-import { DefaultStyle } from "@/style"
+import { mergeSymbolStyle } from "@/style"
 import type { TDecorator } from "@/symbol/decorator/Decorator"
 import { DecoratorOps } from "@/symbol/decorator/Decorator"
 import type { TBox } from "@/symbol/primitives/Box"
@@ -60,11 +60,7 @@ export function isMath(symbol: TBaseSymbol): symbol is TMath {
  */
 export const MathOps = {
   create(elements: TMathElement[], point: TPoint, boundsBox: TBox, style?: TPartialDeep<TStyle>): TMath {
-    const mergedStyle = Object.assign({}, DefaultStyle, style) as TStyle
-    if (mergedStyle.opacity) {
-      mergedStyle.opacity = +mergedStyle.opacity
-    }
-    mergedStyle.width = +mergedStyle.width
+    const mergedStyle = mergeSymbolStyle(style)
     const now = Date.now()
     const vertices = computeTypesetVertices(boundsBox)
     const snapPoints = computeTypesetSnapPoints(boundsBox, point)
