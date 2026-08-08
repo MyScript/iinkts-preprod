@@ -62,6 +62,9 @@ export class IISnapManager extends IIAbstractManager {
   protected managerName = "IISnapManager"
 
   snapConfiguration: SnapConfiguration
+  #otherSnapPointsCache: TPoint[] = []
+  #otherSnapPointsCacheVersion = -1
+  #otherSnapPointsCacheSelectionKey = ""
 
   constructor(canvas: TInteractiveInkCanvas, config?: TPartialDeep<TSnapConfiguration>) {
     super(canvas, LoggerCategory.SNAP)
@@ -73,9 +76,25 @@ export class IISnapManager extends IIAbstractManager {
     return BoxOps.getSnapPoints(BoxOps.createFromPoints(this.model.symbolsSelected.flatMap((s) => s.snapPoints)))
   }
 
+  /**
+   * Snap points of every non-selected symbol, rebuilt only when the model content or the
+   * selection actually changed. Called on every pointermove while drawing/resizing/translating —
+   * neither `model.version` (content) nor selection changes mid-drag, so this reuses the cache
+   * for the whole gesture instead of re-scanning every symbol per move.
+   */
   get otherSnapPoints(): TPoint[] {
-    const selectedIds = new Set(this.model.symbolsSelected.map((s) => s.id))
-    return this.model.symbols.filter((s) => !selectedIds.has(s.id)).flatMap((s) => s.snapPoints)
+    const currentVersion = this.model.version
+    const selectedIds = this.model.selectedIds
+    const selectionKey = Array.from(selectedIds).sort().join(",")
+    if (
+      this.#otherSnapPointsCacheVersion !== currentVersion ||
+      this.#otherSnapPointsCacheSelectionKey !== selectionKey
+    ) {
+      this.#otherSnapPointsCacheVersion = currentVersion
+      this.#otherSnapPointsCacheSelectionKey = selectionKey
+      this.#otherSnapPointsCache = this.model.symbols.filter((s) => !selectedIds.has(s.id)).flatMap((s) => s.snapPoints)
+    }
+    return this.#otherSnapPointsCache
   }
 
   get snapThreshold(): number {
