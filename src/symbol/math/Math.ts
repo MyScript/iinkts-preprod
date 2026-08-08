@@ -3,21 +3,20 @@ import { mergeSymbolStyle } from "@/style"
 import type { TDecorator } from "@/symbol/decorator/Decorator"
 import { DecoratorOps } from "@/symbol/decorator/Decorator"
 import type { TBox } from "@/symbol/primitives/Box"
-import { BoxOps } from "@/symbol/primitives/Box"
 import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
 import type { TPoint, TSegment } from "@/symbol/primitives/Point"
 import type { TBaseSymbol } from "@/symbol/Symbol"
 import { SymbolType } from "@/symbol/Symbol"
 import type { TRotation, TTypesetChild } from "@/symbol/typeset/Typeset"
-import { computeClosedEdges, computeTypesetSnapPoints, computeTypesetVertices } from "@/symbol/typeset/Typeset"
-import type { TPartialDeep } from "@/utils"
 import {
-  computeRotatedPoint,
-  convertDegreeToRadian,
-  createUUID,
-  findIntersectionBetween2Segment,
-  isPointInsidePolygon,
-} from "@/utils"
+  computeChildrenOverlaps,
+  computeClosedEdges,
+  computeTypesetSnapPoints,
+  computeTypesetVertices,
+  typesetOverlapsBox,
+} from "@/symbol/typeset/Typeset"
+import type { TPartialDeep } from "@/utils"
+import { createUUID } from "@/utils"
 
 /**
  * @group Symbol
@@ -138,23 +137,11 @@ export const MathOps = {
   },
 
   overlaps(math: TMath, box: TBox): boolean {
-    return (
-      math.vertices.some((p) => BoxOps.containsPoint(box, p)) ||
-      math.edges.some((e1) => BoxOps.getSides(box).some((e2) => !!findIntersectionBetween2Segment(e1, e2)))
-    )
+    return typesetOverlapsBox(math.vertices, math.edges, box)
   },
 
   getChildrenOverlaps(math: TMath, points: TPoint[]): TMathElement[] {
-    return math.elements.filter((e) => {
-      let corners: TPoint[]
-      if (math.rotation) {
-        const rad = convertDegreeToRadian(-math.rotation.degree)
-        corners = BoxOps.getCorners(e.bounds).map((p) => computeRotatedPoint(p, math.rotation!.center, rad))
-      } else {
-        corners = BoxOps.getCorners(e.bounds)
-      }
-      return points.some((p) => isPointInsidePolygon(p, corners))
-    })
+    return computeChildrenOverlaps(math.elements, points, math.rotation)
   },
 
   updateChildrenStyle(math: TMath): void {
