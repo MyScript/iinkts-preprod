@@ -1,5 +1,5 @@
-import { createCanvasMock, asCanvas } from "../__mocks__/createCanvasMock"
-import { buildIIStroke } from "../helpers"
+import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
+import { buildIIStroke } from "../../helpers"
 import { ExportContextMenu } from "@/iink"
 
 describe("ExportContextMenu.ts", () => {

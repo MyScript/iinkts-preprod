@@ -1,5 +1,5 @@
-import { createCanvasMock, asCanvas } from "../__mocks__/createCanvasMock"
-import { LeftClickEventMock } from "../__mocks__/EventMock"
+import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
+import { LeftClickEventMock } from "../../__mocks__/EventMock"
 import { MathContextMenu } from "@/iink"
 
 function clickButton(button: HTMLButtonElement) {
