@@ -7,7 +7,7 @@ import type { TServerHTTPConfiguration } from "./ServerConfiguration"
  * function) and computes the HMAC signature for `data`, or returns `undefined` if no HMAC key
  * is configured.
  */
-export async function resolveHmac(server: TServerHTTPConfiguration, data: unknown): Promise<string | undefined> {
+export async function resolveHmac(server: TServerHTTPConfiguration, message: string): Promise<string | undefined> {
   if (!server.hmacKey) {
     return undefined
   }
@@ -22,5 +22,5 @@ export async function resolveHmac(server: TServerHTTPConfiguration, data: unknow
   if (!hmacKey) {
     return undefined
   }
-  return computeHmac(JSON.stringify(data), server.applicationKey, hmacKey)
+  return computeHmac(message, server.applicationKey, hmacKey)
 }

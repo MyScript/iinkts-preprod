@@ -7,17 +7,11 @@ import type { TStroke } from "@/symbol"
 import { StrokeOps } from "@/symbol/stroke/Stroke"
 import type { TMatrixTransform } from "@/transform"
 import type { TPartialDeep } from "@/utils"
-import {
-  computeHmac,
-  DeferredPromise,
-  getApiInfos,
-  isVersionSuperiorOrEqual,
-  mergeDeep,
-  redactServerSecrets,
-} from "@/utils"
+import { DeferredPromise, getApiInfos, isVersionSuperiorOrEqual, mergeDeep, redactServerSecrets } from "@/utils"
 
 import { ClientError, mapCloseCodeToMessage } from "./ClientError"
 import { ClientEvent } from "./ClientEvent"
+import { resolveHmac } from "./HmacAuth"
 import type { TWebSocketClientConfiguration } from "./WebSocketClientConfiguration"
 import { WebSocketClientConfiguration } from "./WebSocketClientConfiguration"
 import type {
@@ -374,20 +368,15 @@ export class WebSocketClient {
   }
 
   protected async manageHMACChallenge(hmacChallengeMessage: TWebSocketClientMessageHMACChallenge): Promise<void> {
-    let hmacKey: string
-    if (typeof this.configuration.server.hmacKey == "string") {
-      hmacKey = this.configuration.server.hmacKey
-    } else if (typeof this.configuration.server.hmacKey == "function") {
-      hmacKey = await this.configuration.server.hmacKey(this.configuration.server.applicationKey)
-    } else {
+    if (
+      typeof this.configuration.server.hmacKey !== "function" &&
+      typeof this.configuration.server.hmacKey !== "string"
+    ) {
       return this.initialized.reject(new Error("HMAC key is not a string nor a function"))
-    }
-    if (!hmacKey) {
-      return this.initialized.reject(new Error("HMAC key is required"))
     }
     this.#send({
       type: "hmac",
-      hmac: await computeHmac(hmacChallengeMessage.hmacChallenge, this.configuration.server.applicationKey, hmacKey),
+      hmac: await resolveHmac(this.configuration.server, hmacChallengeMessage.hmacChallenge),
     })
   }
 

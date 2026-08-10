@@ -5,10 +5,11 @@ import type { TPenStyle, TTheme } from "@/style"
 import { StyleHelper } from "@/style"
 import { type Stroke, StrokeOps } from "@/symbol"
 import type { TPartialDeep } from "@/utils"
-import { computeHmac, DeferredPromise, getApiInfos, isVersionSuperiorOrEqual, redactServerSecrets } from "@/utils"
+import { DeferredPromise, getApiInfos, isVersionSuperiorOrEqual, redactServerSecrets } from "@/utils"
 
 import { ClientError, mapCloseCodeToMessage } from "./ClientError"
 import { ClientEvent } from "./ClientEvent"
+import { resolveHmac } from "./HmacAuth"
 import type { TConverstionState } from "./RecognitionConfiguration"
 import type { TWebSocketSSRClientConfiguration } from "./WebSocketSSRClientConfiguration"
 import { WebSocketSSRClientConfiguration } from "./WebSocketSSRClientConfiguration"
@@ -206,25 +207,15 @@ export class WebSocketSSRClient {
     })
     const hmacChallengeMessage = websocketMessage as TWebSocketSSRClientMessageHMACChallenge
     if (hmacChallengeMessage.hmacChallenge) {
-      let hmacKey: string
-      if (typeof this.configuration.server.hmacKey == "string") {
-        if (this.configuration.server.hmacKey.length === 0) {
-          return this.ackDeferred?.reject("HMAC key is empty")
-        }
-        hmacKey = this.configuration.server.hmacKey
-      } else if (typeof this.configuration.server.hmacKey == "function") {
-        hmacKey = await this.configuration.server.hmacKey(this.configuration.server.applicationKey)
-      } else {
-        this.ackDeferred?.reject("HMAC key is not a string nor a function")
+      if (
+        typeof this.configuration.server.hmacKey !== "function" &&
+        typeof this.configuration.server.hmacKey !== "string"
+      ) {
         return this.initialized.reject(new Error("HMAC key is not a string nor a function"))
-      }
-      if (!hmacKey) {
-        this.ackDeferred?.reject("HMAC key is undefined")
-        return this.initialized.reject(new Error("HMAC key is undefined"))
       }
       this.send({
         type: "hmac",
-        hmac: await computeHmac(hmacChallengeMessage.hmacChallenge, this.configuration.server.applicationKey, hmacKey),
+        hmac: await resolveHmac(this.configuration.server, hmacChallengeMessage.hmacChallenge),
       })
     }
     if (hmacChallengeMessage.iinkSessionId) {
