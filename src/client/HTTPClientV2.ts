@@ -4,6 +4,7 @@ import { StrokeOps, type TStrokeMinimal } from "@/symbol"
 import type { TPartialDeep } from "@/utils"
 import { computeHmac, getApiInfos, isVersionSuperiorOrEqual, redactServerSecrets } from "@/utils"
 
+import { parseApiError } from "./ClientApiError"
 import { ClientError } from "./ClientError"
 import type { THTTPClientV2Configuration } from "./HTTPClientV2Configuration"
 import { HTTPClientV2Configuration } from "./HTTPClientV2Configuration"
@@ -14,11 +15,6 @@ import type {
   TRawContentConfiguration,
   TTextConfiguration,
 } from "./recognition"
-
-type TApiError = {
-  code?: string
-  message: string
-}
 
 /**
  * @group Client
@@ -192,18 +188,9 @@ export class HTTPClientV2 {
       this.#logger.debug("post", { result })
       return result
     } else {
-      if (response.headers.get("content-type")?.includes("application/json")) {
-        const err = (await response.json()) as TApiError
-        this.#logger.error("post", { err })
-        throw err
-      } else {
-        const err: TApiError = {
-          code: response.status.toString(),
-          message: await response.text(),
-        }
-        this.#logger.error("post", { err })
-        throw err
-      }
+      const err = await parseApiError(response)
+      this.#logger.error("post", { err })
+      throw err
     }
   }
 
