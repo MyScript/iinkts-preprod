@@ -80,19 +80,43 @@ export class InteractiveInkSSRCanvasConfiguration implements TInteractiveInkSSRC
     this.server = server
     this.recognition = recognition
 
-    this.rendering = mergeDeep({}, DefaultInteractiveInkSSRCanvasConfiguration.rendering, configuration?.rendering)
-    this.smartGuide = mergeDeep({}, DefaultInteractiveInkSSRCanvasConfiguration.smartGuide, configuration?.smartGuide)
-    this["undo-redo"] = mergeDeep(
+    this.rendering = mergeDeep<TRendererConfiguration>(
+      {},
+      DefaultInteractiveInkSSRCanvasConfiguration.rendering,
+      configuration?.rendering
+    )
+    this.smartGuide = mergeDeep<InteractiveInkSSRCanvasConfiguration["smartGuide"]>(
+      {},
+      DefaultInteractiveInkSSRCanvasConfiguration.smartGuide,
+      configuration?.smartGuide
+    )
+    this["undo-redo"] = mergeDeep<THistoryConfiguration>(
       {},
       DefaultInteractiveInkSSRCanvasConfiguration["undo-redo"],
       configuration?.["undo-redo"]
     )
-    this.grabber = mergeDeep({}, DefaultInteractiveInkSSRCanvasConfiguration.grabber, configuration?.grabber)
-    this.triggers = mergeDeep({}, DefaultInteractiveInkSSRCanvasConfiguration.triggers, configuration?.triggers)
-    this.logger = mergeDeep({}, DefaultInteractiveInkSSRCanvasConfiguration.logger, configuration?.logger)
-    this.penStyle = mergeDeep({}, DefaultInteractiveInkSSRCanvasConfiguration.penStyle, configuration?.penStyle)
+    this.grabber = mergeDeep<TGrabberConfiguration>(
+      {},
+      DefaultInteractiveInkSSRCanvasConfiguration.grabber,
+      configuration?.grabber
+    )
+    this.triggers = mergeDeep<TCanvasTriggerConfiguration>(
+      {},
+      DefaultInteractiveInkSSRCanvasConfiguration.triggers,
+      configuration?.triggers
+    )
+    this.logger = mergeDeep<TLoggerConfiguration>(
+      {},
+      DefaultInteractiveInkSSRCanvasConfiguration.logger,
+      configuration?.logger
+    )
+    this.penStyle = mergeDeep<TPenStyle>(
+      {},
+      DefaultInteractiveInkSSRCanvasConfiguration.penStyle,
+      configuration?.penStyle
+    )
     this.penStyleClasses = configuration?.penStyleClasses || this.penStyleClasses
-    this.theme = mergeDeep({}, DefaultInteractiveInkSSRCanvasConfiguration.theme, configuration?.theme)
+    this.theme = mergeDeep<TTheme>({}, DefaultInteractiveInkSSRCanvasConfiguration.theme, configuration?.theme)
 
     if (this.recognition.type !== "TEXT") {
       this.smartGuide.enable = false

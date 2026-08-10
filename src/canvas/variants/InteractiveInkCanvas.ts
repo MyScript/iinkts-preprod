@@ -299,7 +299,10 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
    * @param renderingConfiguration - Partial rendering config to merge
    */
   set renderingConfiguration(renderingConfiguration: TIIRendererConfiguration) {
-    this.configuration.rendering = mergeDeep(this.configuration.rendering, renderingConfiguration)
+    this.configuration.rendering = mergeDeep<TIIRendererConfiguration>(
+      this.configuration.rendering,
+      renderingConfiguration
+    )
     const height = Math.max(this.renderer.parent.clientHeight, this.configuration.rendering.minHeight)
     const width = Math.max(this.renderer.parent.clientWidth, this.configuration.rendering.minWidth)
     this.renderer.resize(height, width)

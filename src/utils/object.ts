@@ -1,19 +1,24 @@
-/**
- * @group Utilities
- */
-type TMergeable = Record<string, unknown> | unknown[] | unknown
+import type { TPartialDeep } from "./types"
 
 /**
  * @group Utilities
  */
+export type TMergeable = Record<string, unknown> | unknown[] | unknown
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const mergeDeep = (target: any, ...sources: TMergeable[]): any => {
+/**
+ * Deep-merges `sources` (left to right) onto `target`, mutating and returning it. `target` is
+ * typically an empty object/array so the caller's own default-configuration object isn't
+ * mutated in place; the explicit type parameter `T` should be given at the call site (e.g.
+ * `mergeDeep<TServerHTTPConfiguration>({}, DefaultServerHTTPConfiguration, override)`) since an
+ * empty `target` carries no type information of its own to infer `T` from.
+ * @group Utilities
+ */
+export const mergeDeep = <T extends TMergeable>(target: TPartialDeep<T>, ...sources: TMergeable[]): T => {
   const isObject = (item: unknown): item is Record<string, unknown> => {
     return typeof item === "object" && item !== null && !Array.isArray(item)
   }
   if (!sources.length) {
-    return target
+    return target as T
   }
   const source = sources.shift()
 
@@ -36,9 +41,9 @@ export const mergeDeep = (target: any, ...sources: TMergeable[]): any => {
       }
     }
   } else if (Array.isArray(target) && Array.isArray(source)) {
-    return target.concat(source)
+    return target.concat(source) as T
   } else if (source) {
-    return source
+    return source as T
   }
 
   return mergeDeep(target, ...sources)
