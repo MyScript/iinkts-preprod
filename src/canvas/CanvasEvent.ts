@@ -127,7 +127,7 @@ export class CanvasEvent extends EventTarget {
   protected emit(type: string, data?: unknown): void {
     const evt = new CustomEvent(
       type,
-      Object.assign({ bubbles: true, composed: true }, data ? { detail: data } : undefined)
+      Object.assign({ bubbles: true, composed: true }, data !== undefined ? { detail: data } : undefined)
     )
     this.dispatchEvent(evt)
     this.element?.dispatchEvent(evt)
