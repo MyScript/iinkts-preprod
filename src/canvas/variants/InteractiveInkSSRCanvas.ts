@@ -503,11 +503,8 @@ export class InteractiveInkSSRCanvas extends AbstractCanvas {
 
   async destroy(): Promise<void> {
     this.logger.info("destroy")
-    this.stopResizeObserver()
-    this.event.removeAllListeners()
     this.grabber.detach()
-    this.layers.destroy()
-    this.renderer.destroy()
+    this.teardownCommon()
     this.client.destroy()
     this.smartGuide?.destroy()
     this.clearRootElementReference()

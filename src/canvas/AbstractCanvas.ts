@@ -251,6 +251,9 @@ export abstract class AbstractCanvas {
 
   abstract clear(): Promise<void>
 
+  /** The variant's rendering backend, declared here only so {@link teardownCommon} can tear it down generically. */
+  abstract renderer: { destroy(): void }
+
   abstract destroy(): Promise<void>
 
   /**
@@ -265,6 +268,19 @@ export abstract class AbstractCanvas {
     if (this.layers.root.iink === this) {
       this.layers.root.iink = undefined
     }
+  }
+
+  /**
+   * Common teardown shared by every variant's `destroy()`: stops the resize observer, removes
+   * all `event` listeners, and destroys the DOM layers and the renderer. Each variant calls this
+   * in addition to its own teardown (input-handler detach, client/menu/model/history cleanup,
+   * etc.) and must still call {@link clearRootElementReference} itself afterwards.
+   */
+  protected teardownCommon(): void {
+    this.stopResizeObserver()
+    this.event.removeAllListeners()
+    this.layers.destroy()
+    this.renderer.destroy()
   }
 
   abstract resize(dims?: { height?: number; width?: number }): Promise<void>

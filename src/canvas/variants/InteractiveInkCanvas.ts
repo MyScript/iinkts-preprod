@@ -1986,8 +1986,6 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     this.keyboard.detach()
     this.layers.root.removeEventListener("wheel", this.handleWheel)
     this.#wheelZoomCoalescer.cancel()
-    this.stopResizeObserver()
-    this.event.removeAllListeners()
 
     this.layers.root.classList.remove("draw")
     this.layers.root.classList.remove("erase")
@@ -2000,8 +1998,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     this.writer.detach()
 
     this.playback.destroy()
-    this.renderer.destroy()
-    this.layers.destroy()
+    this.teardownCommon()
     this.menu.destroy()
     this.client.destroy()
     this.model.clear()
