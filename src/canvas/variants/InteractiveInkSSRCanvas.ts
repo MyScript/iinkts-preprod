@@ -89,19 +89,6 @@ export class InteractiveInkSSRCanvas extends AbstractCanvas {
     this.setCursorStyle()
   }
 
-  protected setCursorStyle(): void {
-    switch (this.tool) {
-      case CanvasTool.Erase:
-        this.layers.root.classList.remove("draw")
-        this.layers.root.classList.add("erase")
-        break
-      default:
-        this.layers.root.classList.add("draw")
-        this.layers.root.classList.remove("erase")
-        break
-    }
-  }
-
   get model(): Model {
     return this.#model
   }
