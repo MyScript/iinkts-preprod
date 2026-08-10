@@ -1,4 +1,5 @@
 import type { TConnectionStatus, TServerHTTPConfiguration } from "@/client"
+import { CanvasTool } from "@/Constants"
 import type { TLoggerConfiguration } from "@/logger"
 import { DefaultLoggerConfiguration, LoggerCategory, LoggerManager } from "@/logger"
 import type { TApiInfos, TPartialDeep } from "@/utils"
@@ -267,6 +268,34 @@ export abstract class AbstractCanvas {
   }
 
   abstract resize(dims?: { height?: number; width?: number }): Promise<void>
+
+  abstract get tool(): CanvasTool
+
+  /**
+   * Toggles the `draw`/`erase` CSS classes on the mounting root element to reflect the
+   * current tool. Default 2-state (Write/Erase) implementation shared by variants with no
+   * other tool; `InteractiveInkCanvas` overrides it for its 4-state tool set.
+   */
+  /**
+   * CSS classes toggled by {@link setCursorStyle} to reflect the current tool on the mounting
+   * root element. Default 2-state (`draw`/`erase`) set; override alongside {@link getCursorClass}
+   * for variants with additional tools.
+   */
+  protected get cursorClasses(): string[] {
+    return ["draw", "erase"]
+  }
+
+  /** The single class from {@link cursorClasses} that should be active for the current tool. */
+  protected getCursorClass(): string {
+    return this.tool === CanvasTool.Erase ? "erase" : "draw"
+  }
+
+  protected setCursorStyle(): void {
+    const activeClass = this.getCursorClass()
+    this.cursorClasses.forEach((cssClass) => {
+      this.layers.root.classList.toggle(cssClass, cssClass === activeClass)
+    })
+  }
 
   protected startResizeObserver(): void {
     this.#resizeObserver = new ResizeObserver(() => {

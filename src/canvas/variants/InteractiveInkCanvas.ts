@@ -348,32 +348,20 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     return symbolRegistry.getUtil<T>(type)
   }
 
-  protected setCursorStyle(): void {
+  protected get cursorClasses(): string[] {
+    return ["draw", "erase", "select", "move"]
+  }
+
+  protected getCursorClass(): string {
     switch (this.#tool) {
       case CanvasTool.Erase:
-        this.layers.root.classList.remove("draw")
-        this.layers.root.classList.add("erase")
-        this.layers.root.classList.remove("select")
-        this.layers.root.classList.remove("move")
-        break
+        return "erase"
       case CanvasTool.Select:
-        this.layers.root.classList.remove("draw")
-        this.layers.root.classList.remove("erase")
-        this.layers.root.classList.add("select")
-        this.layers.root.classList.remove("move")
-        break
+        return "select"
       case CanvasTool.Move:
-        this.layers.root.classList.remove("draw")
-        this.layers.root.classList.remove("erase")
-        this.layers.root.classList.remove("select")
-        this.layers.root.classList.add("move")
-        break
+        return "move"
       default:
-        this.layers.root.classList.add("draw")
-        this.layers.root.classList.remove("erase")
-        this.layers.root.classList.remove("select")
-        this.layers.root.classList.remove("move")
-        break
+        return "draw"
     }
   }
 
