@@ -1,6 +1,12 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { Stroke, TPointer } from "@/symbol"
-import { computeAngleAxeRadian, computeLinksPointers, computeMiddlePointer, TWO_PI } from "@/utils"
+import {
+  computeFinalOutlinePoints,
+  computeLineOutlinePoints,
+  computeMiddlePointer,
+  computeQuadraticOutlinePoints,
+  TWO_PI,
+} from "@/utils"
 
 /**
  * @group Renderer
@@ -24,8 +30,7 @@ export class CanvasRendererStroke {
       end,
       width,
     })
-    const linkPoints1 = computeLinksPointers(begin, computeAngleAxeRadian(begin, end), width)
-    const linkPoints2 = computeLinksPointers(end, computeAngleAxeRadian(begin, end), width)
+    const { linkPoints1, linkPoints2 } = computeLineOutlinePoints(begin, end, width)
 
     context2d.moveTo(linkPoints1[0].x, linkPoints1[0].y)
     context2d.lineTo(linkPoints2[0].x, linkPoints2[0].y)
@@ -40,13 +45,10 @@ export class CanvasRendererStroke {
       end,
       width,
     })
-    const ARCSPLIT = 6
-    const angle = computeAngleAxeRadian(begin, end)
-    const linkPoints = computeLinksPointers(end, angle, width)
-    context2d.moveTo(linkPoints[0].x, linkPoints[0].y)
-    for (let i = 1; i <= ARCSPLIT; i++) {
-      const newAngle = angle - (i * Math.PI) / ARCSPLIT
-      context2d.lineTo(end.x - end.p * width * Math.sin(newAngle), end.y + end.p * width * Math.cos(newAngle))
+    const points = computeFinalOutlinePoints(begin, end, width)
+    context2d.moveTo(points[0].x, points[0].y)
+    for (let i = 1; i < points.length; i++) {
+      context2d.lineTo(points[i].x, points[i].y)
     }
   }
 
@@ -64,9 +66,7 @@ export class CanvasRendererStroke {
       ctrl,
       width,
     })
-    const linkPoints1 = computeLinksPointers(begin, computeAngleAxeRadian(begin, ctrl), width)
-    const linkPoints2 = computeLinksPointers(end, computeAngleAxeRadian(ctrl, end), width)
-    const linkPoints3 = computeLinksPointers(ctrl, computeAngleAxeRadian(begin, end), width)
+    const { linkPoints1, linkPoints2, linkPoints3 } = computeQuadraticOutlinePoints(begin, end, ctrl, width)
 
     context2d.moveTo(linkPoints1[0].x, linkPoints1[0].y)
     context2d.quadraticCurveTo(linkPoints3[0].x, linkPoints3[0].y, linkPoints2[0].x, linkPoints2[0].y)
