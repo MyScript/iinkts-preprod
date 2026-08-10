@@ -269,6 +269,21 @@ export abstract class AbstractCanvas {
 
   abstract resize(dims?: { height?: number; width?: number }): Promise<void>
 
+  /** Minimum height/width for {@link resolveDimensions}, from the variant's own rendering configuration. */
+  protected abstract get minDimensions(): { minHeight: number; minWidth: number }
+
+  /**
+   * Resolves the target height/width for `resize()`: an explicit value wins, otherwise falls
+   * back to the mounting root element's computed size, clamped to {@link minDimensions}.
+   */
+  protected resolveDimensions(height?: number, width?: number): { height: number; width: number } {
+    const compStyles = window.getComputedStyle(this.layers.root)
+    return {
+      height: height || Math.max(parseInt(compStyles.height.replace("px", "")), this.minDimensions.minHeight),
+      width: width || Math.max(parseInt(compStyles.width.replace("px", "")), this.minDimensions.minWidth),
+    }
+  }
+
   abstract get tool(): CanvasTool
 
   /**
