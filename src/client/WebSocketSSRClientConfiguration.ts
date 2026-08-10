@@ -69,8 +69,16 @@ export class WebSocketSSRClientConfiguration implements TWebSocketSSRClientConfi
   server: TServerWebsocketConfiguration
 
   constructor(configuration?: TPartialDeep<TWebSocketSSRClientConfiguration>) {
-    this.server = mergeDeep({}, DefaultWebSocketSSRClientConfiguration.server, configuration?.server)
-    this.recognition = mergeDeep({}, DefaultWebSocketSSRClientConfiguration.recognition, configuration?.recognition)
+    this.server = mergeDeep<TServerWebsocketConfiguration>(
+      {},
+      DefaultWebSocketSSRClientConfiguration.server,
+      configuration?.server
+    )
+    this.recognition = mergeDeep<TWebSocketSSRClientRecognitionConfiguration>(
+      {},
+      DefaultWebSocketSSRClientConfiguration.recognition,
+      configuration?.recognition
+    )
 
     if (configuration?.recognition?.text?.mimeTypes) {
       this.recognition.text.mimeTypes = configuration.recognition.text.mimeTypes as (
