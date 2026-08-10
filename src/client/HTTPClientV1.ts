@@ -4,10 +4,11 @@ import type { TPenStyle } from "@/style"
 import { StyleHelper } from "@/style"
 import { type Stroke, StrokeOps } from "@/symbol"
 import type { TPartialDeep } from "@/utils"
-import { computeHmac, getApiInfos, isVersionSuperiorOrEqual, redactServerSecrets } from "@/utils"
+import { getApiInfos, isVersionSuperiorOrEqual, redactServerSecrets } from "@/utils"
 
 import { parseApiError } from "./ClientApiError"
 import { ClientError } from "./ClientError"
+import { resolveHmac } from "./HmacAuth"
 import type { THTTPClientV1Configuration } from "./HTTPClientV1Configuration"
 import { HTTPClientV1Configuration } from "./HTTPClientV1Configuration"
 import type {
@@ -183,21 +184,11 @@ export class HTTPClientV1 {
     const headers = new Headers()
     headers.append("Accept", "application/json," + mimeType)
     headers.append("applicationKey", this.configuration.server.applicationKey)
-    let hmacKey: string | undefined
     try {
       // If an HMAC key is provided, compute the HMAC of the request body and add it to the headers
-      if (this.configuration.server.hmacKey) {
-        if (typeof this.configuration.server.hmacKey == "string") {
-          hmacKey = this.configuration.server.hmacKey
-        } else if (typeof this.configuration.server.hmacKey == "function") {
-          hmacKey = await this.configuration.server.hmacKey(this.configuration.server.applicationKey)
-        } else {
-          throw new Error("HMAC key is not a string nor a function")
-        }
-        if (hmacKey) {
-          const hmac = await computeHmac(JSON.stringify(data), this.configuration.server.applicationKey, hmacKey)
-          headers.append("hmac", hmac)
-        }
+      const hmac = await resolveHmac(this.configuration.server, data)
+      if (hmac) {
+        headers.append("hmac", hmac)
       }
     } catch (error: Error | unknown) {
       // If there is an error during HMAC computation, log the error and proceed without the HMAC header
