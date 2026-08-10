@@ -49,7 +49,7 @@ export class EdgeTool extends BaseMenuItem<HTMLDivElement> {
       }
       button.classList.add("active")
 
-      const subMenuContent = this.element?.querySelector(".sub-menu-content-edge")
+      const subMenuContent = this.element?.querySelector(".sub-menu-content")
       subMenuContent?.classList.remove("open")
     })
 
@@ -112,13 +112,14 @@ export class EdgeTool extends BaseMenuItem<HTMLDivElement> {
       this.canvas.tool === CanvasTool.Write &&
       [CanvasWriteTool.Line, CanvasWriteTool.Arrow, CanvasWriteTool.DoubleArrow].includes(this.canvas.writer.tool)
 
+    this.subMenuButtons.forEach((btn) => btn.classList.remove("active"))
+
     if (isEdgeTool) {
       this.triggerButton.classList.add("active")
       const activeButton = this.subMenuButtons.get(this.canvas.writer.tool)
       activeButton?.classList.add("active")
     } else {
       this.triggerButton.classList.remove("active")
-      this.subMenuButtons.forEach((btn) => btn.classList.remove("active"))
     }
 
     this.updateDisabled()
