@@ -61,6 +61,7 @@ History entries no longer store a full `Model`/`IIModel` snapshot — only the d
 
 - perf(manager): `IIConversionManager.convertNode()`/`convertEdge()` deduped associated strokes by id using an O(n²) `filter`+`findIndex` idiom, copy-pasted 4×. Extracted a shared `uniqueById()` util (`src/utils/object.ts`, exported) using a `Set`, O(n)
 - perf: `IIWriterManager`, `IIMoveManager`, `Minimap`, `IISelectionManager` (arc-handle drag), `Chart.ts` (pan), and `InteractiveInkCanvas` (wheel-zoom) each hand-rolled the same "coalesce to one `requestAnimationFrame` callback" pattern independently. Extracted a shared `RafCoalescer` (`src/utils/RafCoalescer.ts`, exported) and migrated all 6 call sites
+- refactor(renderer): `CanvasRendererStroke`/`SVGStroker` reimplemented the same stroke-outline geometry (line, quadratic, and end-cap-fan segments) once per renderer, encoding the same points as Canvas2D calls vs. SVG path strings. Extracted the shared point math into `computeLineOutlinePoints()`/`computeQuadraticOutlinePoints()`/`computeFinalOutlinePoints()` (`src/utils/quadratics.ts`, exported), both renderers now only encode the returned points into their own drawing API
 
 # [v4.1.0](https://github.com/MyScript/iinkTS/tree/v4.1.0)
 
