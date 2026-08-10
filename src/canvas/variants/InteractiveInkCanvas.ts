@@ -1854,24 +1854,26 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
         height,
         width,
       })
-      const compStyles = window.getComputedStyle(this.layers.root)
-      height = height || Math.max(parseInt(compStyles.height.replace("px", "")), this.configuration.rendering.minHeight)
-      width = width || Math.max(parseInt(compStyles.width.replace("px", "")), this.configuration.rendering.minWidth)
+      const dims = this.resolveDimensions(height, width)
 
-      if (height === this.#renderedHeight && width === this.#renderedWidth) {
+      if (dims.height === this.#renderedHeight && dims.width === this.#renderedWidth) {
         this.logger.debug("resize", "no change")
         return
       }
-      this.#renderedHeight = height
-      this.#renderedWidth = width
+      this.#renderedHeight = dims.height
+      this.#renderedWidth = dims.width
 
       this.manageIdleState(false)
-      this.renderer.resize(height, width)
+      this.renderer.resize(dims.height, dims.width)
       this.updateLayerUI(50)
       this.manageIdleState(true)
     } catch (error) {
       this.manageError(error as Error)
     }
+  }
+
+  protected get minDimensions(): { minHeight: number; minWidth: number } {
+    return this.configuration.rendering
   }
 
   /**
