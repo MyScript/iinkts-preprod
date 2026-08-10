@@ -186,7 +186,7 @@ export class HTTPClientV1 {
     headers.append("applicationKey", this.configuration.server.applicationKey)
     try {
       // If an HMAC key is provided, compute the HMAC of the request body and add it to the headers
-      const hmac = await resolveHmac(this.configuration.server, data)
+      const hmac = await resolveHmac(this.configuration.server, JSON.stringify(data))
       if (hmac) {
         headers.append("hmac", hmac)
       }
