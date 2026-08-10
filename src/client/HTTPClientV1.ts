@@ -6,6 +6,7 @@ import { type Stroke, StrokeOps } from "@/symbol"
 import type { TPartialDeep } from "@/utils"
 import { computeHmac, getApiInfos, isVersionSuperiorOrEqual, redactServerSecrets } from "@/utils"
 
+import { parseApiError } from "./ClientApiError"
 import { ClientError } from "./ClientError"
 import type { THTTPClientV1Configuration } from "./HTTPClientV1Configuration"
 import { HTTPClientV1Configuration } from "./HTTPClientV1Configuration"
@@ -17,11 +18,6 @@ import type {
   TTextConfiguration,
 } from "./recognition"
 import type { TConverstionState } from "./RecognitionConfiguration"
-
-type TApiError = {
-  code?: string
-  message: string
-}
 
 /**
  * @group Symbol
@@ -260,7 +256,7 @@ export class HTTPClientV1 {
       this.#logger.debug("post", { result })
       return result
     } else {
-      const err = (await response.json()) as TApiError
+      const err = await parseApiError(response)
       this.#logger.error("post", { err })
       throw err
     }
