@@ -1,4 +1,4 @@
-import { createCanvasMock, asCanvas } from "../__mocks__/createCanvasMock"
+import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
 import { ExportMenuAction } from "@/iink"
 
 describe("ExportMenuAction.ts", () => {
