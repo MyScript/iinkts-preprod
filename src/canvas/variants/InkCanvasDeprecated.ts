@@ -427,11 +427,8 @@ export class InkCanvasDeprecated extends AbstractCanvas {
 
   async destroy(): Promise<void> {
     this.logger.info("destroy")
-    this.stopResizeObserver()
-    this.event.removeAllListeners()
     this.grabber.detach()
-    this.layers.destroy()
-    this.renderer.destroy()
+    this.teardownCommon()
     this.clearRootElementReference()
     return Promise.resolve()
   }
