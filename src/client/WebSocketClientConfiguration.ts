@@ -107,9 +107,17 @@ export class WebSocketClientConfiguration implements TWebSocketClientConfigurati
   recognition: TRecognitionWebSocketConfiguration
 
   constructor(configuration?: TPartialDeep<TWebSocketClientConfiguration>) {
-    this.server = mergeDeep({}, DefaultWebSocketClientConfiguration.server, configuration?.server)
+    this.server = mergeDeep<TServerWebsocketConfiguration>(
+      {},
+      DefaultWebSocketClientConfiguration.server,
+      configuration?.server
+    )
 
-    this.recognition = mergeDeep({}, DefaultWebSocketClientConfiguration.recognition, configuration?.recognition)
+    this.recognition = mergeDeep<TRecognitionWebSocketConfiguration>(
+      {},
+      DefaultWebSocketClientConfiguration.recognition,
+      configuration?.recognition
+    )
     this.recognition.export.jiix["full-stroke-ids"] = true
     this.recognition.export.jiix.ids = true
     this.recognition.export.jiix.text.words = true

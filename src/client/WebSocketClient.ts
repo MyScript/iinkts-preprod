@@ -639,7 +639,7 @@ export class WebSocketClient {
 
   async newSession(config: TPartialDeep<TWebSocketClientConfiguration>): Promise<void> {
     await this.close(1000, "new-session")
-    this.configuration = mergeDeep({}, this.configuration, config)
+    this.configuration = mergeDeep<WebSocketClientConfiguration>({}, this.configuration, config)
     this.sessionId = undefined
     this.currentPartId = undefined
     await this.init()

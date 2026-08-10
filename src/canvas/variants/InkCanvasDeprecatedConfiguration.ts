@@ -66,17 +66,33 @@ export class InkCanvasDeprecatedConfiguration implements TInkCanvasDeprecatedCon
     const { server, recognition } = new HTTPClientV1Configuration(configuration)
     this.server = server
     this.recognition = recognition
-    this.rendering = mergeDeep({}, DefaultInkCanvasDeprecatedConfiguration.rendering, configuration?.rendering)
-    this.grabber = mergeDeep({}, DefaultInkCanvasDeprecatedConfiguration.grabber, configuration?.grabber)
-    this["undo-redo"] = mergeDeep(
+    this.rendering = mergeDeep<TRendererConfiguration>(
+      {},
+      DefaultInkCanvasDeprecatedConfiguration.rendering,
+      configuration?.rendering
+    )
+    this.grabber = mergeDeep<TGrabberConfiguration>(
+      {},
+      DefaultInkCanvasDeprecatedConfiguration.grabber,
+      configuration?.grabber
+    )
+    this["undo-redo"] = mergeDeep<THistoryConfiguration>(
       {},
       DefaultInkCanvasDeprecatedConfiguration["undo-redo"],
       configuration?.["undo-redo"]
     )
-    this.triggers = mergeDeep({}, DefaultInkCanvasDeprecatedConfiguration.triggers, configuration?.triggers)
-    this.logger = mergeDeep({}, DefaultInkCanvasDeprecatedConfiguration.logger, configuration?.logger)
-    this.penStyle = mergeDeep({}, DefaultInkCanvasDeprecatedConfiguration.penStyle, configuration?.penStyle)
+    this.triggers = mergeDeep<TCanvasTriggerConfiguration>(
+      {},
+      DefaultInkCanvasDeprecatedConfiguration.triggers,
+      configuration?.triggers
+    )
+    this.logger = mergeDeep<TLoggerConfiguration>(
+      {},
+      DefaultInkCanvasDeprecatedConfiguration.logger,
+      configuration?.logger
+    )
+    this.penStyle = mergeDeep<TPenStyle>({}, DefaultInkCanvasDeprecatedConfiguration.penStyle, configuration?.penStyle)
     this.penStyleClasses = configuration?.penStyleClasses || this.penStyleClasses
-    this.theme = mergeDeep({}, DefaultInkCanvasDeprecatedConfiguration.theme, configuration?.theme)
+    this.theme = mergeDeep<TTheme>({}, DefaultInkCanvasDeprecatedConfiguration.theme, configuration?.theme)
   }
 }

@@ -73,8 +73,16 @@ export class HTTPClientV2Configuration implements THTTPClientV2Configuration {
   server: TServerHTTPConfiguration
 
   constructor(configuration?: TPartialDeep<THTTPClientV2Configuration>) {
-    this.server = mergeDeep({}, DefaultHTTPClientV2Configuration.server, configuration?.server)
-    this.recognition = mergeDeep({}, DefaultHTTPClientV2Configuration.recognition, configuration?.recognition)
+    this.server = mergeDeep<TServerHTTPConfiguration>(
+      {},
+      DefaultHTTPClientV2Configuration.server,
+      configuration?.server
+    )
+    this.recognition = mergeDeep<THTTPClientV2RecognitionConfiguration>(
+      {},
+      DefaultHTTPClientV2Configuration.recognition,
+      configuration?.recognition
+    )
 
     if (configuration?.recognition?.text?.mimeTypes) {
       this.recognition.text.mimeTypes = configuration.recognition.text.mimeTypes.filter((t) => !!t)
