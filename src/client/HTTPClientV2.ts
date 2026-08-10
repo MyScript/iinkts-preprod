@@ -145,6 +145,9 @@ export class HTTPClientV2 {
       headers.append("myscript-client-name", "iink-ts")
       headers.append("myscript-client-version", "1.0.0-buildVersion")
     }
+    if (!isVersionSuperiorOrEqual(this.configuration.server.version!, "3.2.0")) {
+      delete this.configuration.recognition.export.jiix.text.lines
+    }
 
     const reqInit: RequestInit = {
       method: "POST",
