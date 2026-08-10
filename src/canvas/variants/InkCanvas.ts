@@ -104,15 +104,12 @@ export class InkCanvas extends AbstractCanvas {
     switch (this.tool) {
       case CanvasTool.Erase:
         this.eraser.attach(this.layers.root)
-        this.layers.root.classList.remove("draw")
-        this.layers.root.classList.add("erase")
         break
       default:
         this.writer.attach(this.layers.root)
-        this.layers.root.classList.add("draw")
-        this.layers.root.classList.remove("erase")
         break
     }
+    this.setCursorStyle()
   }
 
   get model(): IModel {
