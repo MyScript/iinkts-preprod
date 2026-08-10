@@ -89,6 +89,22 @@ describe("HTTPClientV1.ts", () => {
     })
   })
 
+  test("should surface the real error body when the server returns a non-JSON error response", async () => {
+    const model = new Model(width, height)
+    const p1: TPointer = { t: 1, p: 1, x: 1, y: 1 }
+    const p2: TPointer = { t: 10, p: 1, x: 100, y: 1 }
+    model.initCurrentStroke(p1, "pen", DefaultPenStyle)
+    model.endCurrentStroke(p2)
+    const newConf: THTTPClientV1Configuration = structuredClone(
+      HTTPClientV1RawContentConfiguration as THTTPClientV1Configuration
+    )
+    newConf.recognition.type = "Raw Content"
+    fetchMock.mockResponseOnce("Bad Gateway", { status: 502, headers: { "content-type": "text/html" } })
+
+    const rr = new HTTPClientV1(newConf)
+    await expect(rr.export(model)).rejects.toThrow("Bad Gateway")
+  })
+
   testDatas.forEach(({ type, config }) => {
     test(`should convert ${type}`, async () => {
       const model = new Model(width, height)
