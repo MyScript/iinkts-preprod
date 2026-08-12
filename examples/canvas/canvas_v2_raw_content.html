@@ -14,26 +14,28 @@
     <link rel="stylesheet" href="../assets/style/components.css" />
     <link rel="stylesheet" href="../assets/style/examples.css" />
     <link rel="stylesheet" href="../assets/style/inputs.css" />
+    <link rel="stylesheet" href="../assets/style/panel.css" />
     <link rel="stylesheet" href="../components/code-viewer/code-viewer.css" />
     <link rel="stylesheet" href="../assets/style/renderjson.css" />
 
     <script type="text/javascript" src="../assets/renderjson/renderjson.js"></script>
     <style>
       #result {
-        border-bottom: solid gray 1px;
         display: block;
         text-align: start;
         padding: 12px;
         cursor: zoom-in;
+        height: auto;
       }
-
-
     </style>
     <script>(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);})();</script>
 </head>
 
   <body>
     <header class="header-main">
+      <button id="panelToggleBtn" class="btn-panel-toggle" aria-expanded="false" aria-controls="info-panel">
+        💡 Info
+      </button>
       <button id="showModalBtn" class="btn-keys">
         API Keys
       </button>
@@ -41,7 +43,6 @@
         Ink Canvas v2 Raw Content
       </h1>
     </header>
-    <div id="result"></div>
 
     <nav class="flex-container wrap gap between">
       <div class="flex-container wrap gap">
@@ -73,7 +74,38 @@
       <select id="language"></select>
     </nav>
 
-    <div id="rootEl"></div>
+    <div class="ex-page-layout">
+      <aside id="raw-content-panel" class="ex-panel">
+        <p class="ex-panel-heading">Raw content recognition</p>
+        <p class="ex-panel-intro">
+          This example shows how iinkTS can recognize different types of content within the
+          same canvas. Write naturally and combine text, mathematical expressions, and shapes
+          to see how each type of content is recognized.
+        </p>
+
+        <div class="ex-panel-divider"></div>
+
+        <div class="ex-panel-item">
+          <div class="ex-panel-item-desc">
+            Write a combination of handwritten text, mathematical expressions, and shapes.
+            The recognition engine analyzes the content and identifies each element according
+            to its type.
+          </div>
+        </div>
+
+        <div class="ex-panel-hint">
+          Try mixing text, equations, and hand-drawn shapes on the canvas to see how iinkTS
+          recognizes the different types of content together.
+        </div>
+
+        <div class="ex-panel-divider"></div>
+
+        <p class="ex-panel-subtitle">Recognized raw content</p>
+        <div id="result"></div>
+      </aside>
+
+      <div id="rootEl"></div>
+    </div>
 
     <script type="module">
       import { Canvas, getAvailableLanguageList } from '../../dist/iink.esm.js'
@@ -88,6 +120,13 @@
       const showRecognitionItems = document.getElementById('showRecognitionItems')
       const showModalBtn = document.getElementById('showModalBtn')
 
+      const panelToggleBtn = document.getElementById('panelToggleBtn');
+      const rawContentPanel = document.getElementById('raw-content-panel');
+      panelToggleBtn.addEventListener('click', () => {
+        const open = rawContentPanel.classList.toggle('open')
+        panelToggleBtn.setAttribute('aria-expanded', open)
+      });
+  
       let canvas
 
       undoElement.addEventListener('click', () => {
