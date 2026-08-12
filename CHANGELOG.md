@@ -1,3 +1,9 @@
+# [v4.1.0](https://github.com/MyScript/iinkTS/tree/v4.1.0)
+
+## Features
+
+### Import Strokes
+- feat(InkCanvasV2) added strokes import functionality 
 
 
 # [v4.0.0](https://github.com/MyScript/iinkTS/tree/v4.0.0)
