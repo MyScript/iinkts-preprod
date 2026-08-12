@@ -9,6 +9,8 @@ import type { TExport, TExportV2 } from "@/model"
 import { IModel } from "@/model"
 import { SVGRenderer } from "@/renderer"
 import type { TStyle } from "@/style"
+import type { TStroke } from "@/symbol"
+import { StrokeOps } from "@/symbol"
 import { registerBuiltinSymbolUtils } from "@/symbol-utils"
 import type { TPartialDeep } from "@/utils"
 
@@ -194,6 +196,34 @@ export class InkCanvas extends AbstractCanvas {
       return exports
     } catch (error) {
       this.logger.error("export", error)
+      this.layers.showMessageError(error as Error)
+      this.event.emitError(error as Error)
+      throw error
+    }
+  }
+
+  async importStrokes(strokes: TPartialDeep<TStroke>[]): Promise<TExportV2> {
+    return this.trackOperation("Importing", async () => this.#importStrokeInternal(strokes))
+  }
+
+  async #importStrokeInternal(pStrokes: TPartialDeep<TStroke>[]): Promise<TExportV2> {
+    try {
+      this.logger.info("import")
+      this.#model = this.model.clone()
+      const strokes = pStrokes.map(StrokeOps.createFromPartial)
+      strokes.map((s) => {
+        this.model.addStroke(s)
+        this.renderer.drawSymbol(s)
+      })
+      this.history.push(this.#model, {
+        added: strokes,
+      })
+      const result = await this.client.send(strokes)
+      this.model.mergeExport(result)
+      this.history.updateModelStack(this.model)
+      return result
+    } catch (error) {
+      this.logger.error("import", error)
       this.layers.showMessageError(error as Error)
       this.event.emitError(error as Error)
       throw error

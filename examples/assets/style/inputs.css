@@ -16,7 +16,6 @@ input:not([type]),
 select,
 textarea {
   display: block;
-  width: 100%;
   font-family: inherit;
   font-size: var(--ex-input-font-size);
   color: var(--ex-text);

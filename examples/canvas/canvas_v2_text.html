@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
   <head>
     <meta charset="UTF-8" />
     <meta
@@ -14,12 +15,16 @@
     <link rel="stylesheet" href="../assets/style/components.css" />
     <link rel="stylesheet" href="../assets/style/examples.css" />
     <link rel="stylesheet" href="../assets/style/inputs.css" />
+    <link rel="stylesheet" href="../assets/style/panel.css" />
     <link rel="stylesheet" href="../components/code-viewer/code-viewer.css" />
     <script>(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);})();</script>
-</head>
+  </head>
 
   <body>
     <header class="header-main">
+      <button id="panelToggleBtn" class="btn-panel-toggle" aria-expanded="false" aria-controls="info-panel">
+        💡 Info
+      </button>
       <button id="showModalBtn" class="btn-keys">
         API Keys
       </button>
@@ -28,9 +33,7 @@
       </h1>
     </header>
 
-    <div id="result"></div>
-
-    <nav class="flex-container wrap gap between">
+    <nav class="flex-container gap between">
       <div class="flex-container wrap gap">
         <button id="clear" class="nav-btn btn-fab-mini btn-lightBlue" disabled>
           <img src="../assets/img/clear.svg" />
@@ -45,7 +48,37 @@
       <select id="language"></select>
     </nav>
 
-    <div id="rootEl"></div>
+    <div class="ex-page-layout">
+      <aside id="natural-writing-panel" class="ex-panel">
+        <p class="ex-panel-heading">Natural handwriting recognition</p>
+        <p class="ex-panel-intro">
+          This example shows how iinkTS can recognize natural handwriting as you write.
+          Write directly on the canvas and see the recognized text appear automatically as
+          your strokes are processed.
+        </p>
+
+        <div class="ex-panel-divider"></div>
+
+        <div class="ex-panel-item">
+          <div class="ex-panel-item-desc">
+            Write naturally on the canvas using your pen or pointer. The handwriting
+            recognition engine processes your strokes and converts them into digital text.
+          </div>
+        </div>
+
+        <div class="ex-panel-hint">
+          Try writing a few words or sentences naturally on the canvas and observe how the
+          recognition updates as you continue writing.
+        </div>
+
+        <div class="ex-panel-divider"></div>
+
+        <p class="ex-panel-subtitle">Recognized text</p>
+        <div id="result"></div>
+      </aside>
+
+      <div id="rootEl"></div>
+    </div>
 
     <script type="module">
       import { getAvailableLanguageList, Canvas } from "../../dist/iink.esm.js"
@@ -57,6 +90,13 @@
       const undoElement = document.getElementById("undo")
       const redoElement = document.getElementById("redo")
       const showModalBtn = document.getElementById("showModalBtn")
+      
+      const panelToggleBtn = document.getElementById('panelToggleBtn');
+      const naturalWritingPanel = document.getElementById('natural-writing-panel');
+      panelToggleBtn.addEventListener('click', () => {
+        const open = naturalWritingPanel.classList.toggle('open')
+        panelToggleBtn.setAttribute('aria-expanded', open)
+      })
 
       let canvas
 

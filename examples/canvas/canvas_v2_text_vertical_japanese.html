@@ -14,12 +14,16 @@
     <link rel="stylesheet" href="../assets/style/components.css" />
     <link rel="stylesheet" href="../assets/style/examples.css" />
     <link rel="stylesheet" href="../assets/style/inputs.css" />
+    <link rel="stylesheet" href="../assets/style/panel.css" />
     <link rel="stylesheet" href="../components/code-viewer/code-viewer.css" />
     <script>(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);})();</script>
-</head>
+  </head>
 
   <body>
     <header class="header-main">
+      <button id="panelToggleBtn" class="btn-panel-toggle" aria-expanded="false" aria-controls="info-panel">
+        💡 Info
+      </button>
       <button id="showModalBtn" class="btn-keys">
         API Keys
       </button>
@@ -27,8 +31,6 @@
         Japanese Vertical (日本縦型)
       </h1>
     </header>
-
-    <div id="result"></div>
 
     <nav class="flex-container wrap gap between">
       <div class="flex-container wrap gap">
@@ -44,7 +46,37 @@
       </div>
     </nav>
 
-    <div id="rootEl"></div>
+    <div class="ex-page-layout">
+      <aside id="japanese-vertical-panel" class="ex-panel">
+        <p class="ex-panel-heading">Vertical Japanese handwriting recognition</p>
+        <p class="ex-panel-intro">
+          This example shows how iinkTS can recognize Japanese handwriting written vertically.
+          Write naturally on the canvas and see the recognized Japanese text displayed in its
+          vertical writing direction.
+        </p>
+
+        <div class="ex-panel-divider"></div>
+
+        <div class="ex-panel-item">
+          <div class="ex-panel-item-desc">
+            Write Japanese characters naturally from top to bottom. The handwriting recognition
+            engine processes the strokes and converts them into digital Japanese text while
+            preserving the vertical writing layout.
+          </div>
+        </div>
+
+        <div class="ex-panel-hint">
+          Try writing several Japanese characters or sentences vertically on the canvas and
+          observe how the recognition follows the writing direction.
+        </div>
+
+        <div class="ex-panel-divider"></div>
+
+        <p class="ex-panel-subtitle">Recognized text</p>
+        <div id="result"></div>
+      </aside>
+      <div id="rootEl"></div>
+    </div>
 
     <script type="module">
       import { Canvas } from '../../dist/iink.esm.js'
@@ -55,7 +87,13 @@
       const undoElement = document.getElementById("undo")
       const redoElement = document.getElementById("redo")
       const showModalBtn = document.getElementById("showModalBtn")
+      const panelToggleBtn = document.getElementById('panelToggleBtn')
 
+      const japaneseVerticalPanel = document.getElementById('japanese-vertical-panel')
+      panelToggleBtn.addEventListener('click', () => {
+        const open = japaneseVerticalPanel.classList.toggle('open')
+        panelToggleBtn.setAttribute('aria-expanded', open)
+      })
       let canvas
 
       clearElement.addEventListener("click", async () => {
