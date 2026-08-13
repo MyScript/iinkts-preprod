@@ -5,6 +5,11 @@
 ### Import Strokes
 - feat(InkCanvasV2) added strokes import functionality 
 
+## Performance
+
+### virtualization
+- throttle pan and cull off-screen symbols on large documents
+
 
 # [v4.0.0](https://github.com/MyScript/iinkTS/tree/v4.0.0)
 
