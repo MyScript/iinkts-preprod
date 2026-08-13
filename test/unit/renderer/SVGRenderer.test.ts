@@ -4,6 +4,7 @@ import {
   SVGRenderer,
   DefaultIIRendererConfiguration,
   OBBOps,
+  TBox,
   TIIRendererConfiguration,
   TSymbol,
   TSymbolChar,
@@ -440,5 +441,67 @@ describe("SVGRenderer.ts", () => {
     expect(divElement.childElementCount).toEqual(2) // main layer + current-symbol overlay
     renderer.destroy()
     expect(divElement.childElementCount).toEqual(0)
+  })
+
+  describe("virtualization (viewport culling)", () => {
+    const farAwayBox: TBox = { x: 10000, y: 10000, width: 10, height: 10 }
+
+    test("should not append an off-screen symbol's element to the DOM", () => {
+      const divElement: HTMLDivElement = document.createElement("div")
+      const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
+      renderer.init(divElement)
+      const initChildNumber = renderer.layer.childElementCount
+
+      const stroke = buildIIStroke({ box: farAwayBox })
+      const el = renderer.drawSymbol(stroke)
+
+      expect(renderer.layer.childElementCount).toEqual(initChildNumber)
+      expect(renderer.getElementById(stroke.id)).toBe(el)
+    })
+
+    test("should append a previously off-screen element once panned into view", () => {
+      const divElement: HTMLDivElement = document.createElement("div")
+      const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
+      renderer.init(divElement)
+
+      const stroke = buildIIStroke({ box: farAwayBox })
+      renderer.drawSymbol(stroke)
+
+      renderer.setViewBox(farAwayBox.x, farAwayBox.y, 400, 400)
+
+      const el = renderer.getElementById(stroke.id)
+      expect(el).not.toBeNull()
+      expect(el?.parentNode).toBe(renderer.layer)
+    })
+
+    test("should remove an on-screen element from the DOM once panned out of view, keeping it retrievable", () => {
+      const divElement: HTMLDivElement = document.createElement("div")
+      const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
+      renderer.init(divElement)
+
+      const stroke = buildIIStroke()
+      renderer.drawSymbol(stroke)
+      expect(renderer.getElementById(stroke.id)?.parentNode).toBe(renderer.layer)
+
+      renderer.setViewBox(farAwayBox.x, farAwayBox.y, 400, 400)
+
+      const el = renderer.getElementById(stroke.id)
+      expect(el).not.toBeNull()
+      expect(el?.parentNode).toBeNull()
+    })
+
+    test("removeSymbol should clean up an off-screen (virtualized) element", () => {
+      const divElement: HTMLDivElement = document.createElement("div")
+      const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
+      renderer.init(divElement)
+
+      const stroke = buildIIStroke({ box: farAwayBox })
+      renderer.drawSymbol(stroke)
+      renderer.removeSymbol(stroke.id)
+
+      renderer.setViewBox(farAwayBox.x, farAwayBox.y, 400, 400)
+
+      expect(renderer.getElementById(stroke.id)).toBeNull()
+    })
   })
 })
