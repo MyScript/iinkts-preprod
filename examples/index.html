@@ -52,8 +52,8 @@
   <h1>iinkTS Examples</h1>
   <p>Explore handwriting recognition demos — Interactive Ink Canvas, Ink Canvas (v2), and advanced integrations.</p>
   <div class="home-hero-stats">
-    <div class="hero-stat"><strong>16</strong><span>Interactive Ink Canvas</span></div>
-    <div class="hero-stat"><strong>5</strong><span>Ink Canvas v2</span></div>
+    <div class="hero-stat"><strong>20</strong><span>Interactive Ink Canvas</span></div>
+    <div class="hero-stat"><strong>9</strong><span>Ink Canvas v2</span></div>
     <div class="hero-stat"><strong>1</strong><span>Configuration</span></div>
   </div>
 </section>
@@ -83,7 +83,10 @@
     <hr class="sidebar-divider" />
     <p class="sidebar-heading">Ink Canvas v2</p>
     <ul>
-      <li><a href="#ink-v2"><span class="dot" style="background:#00B894"></span>Ink Canvas v2</a></li>
+      <li><a href="#ink-v2-text"><span class="dot" style="background:#00b859"></span>Text</a></li>
+      <li><a href="#ink-v2-math"><span class="dot" style="background:#6C63FF"></span>Math</a></li>
+      <li><a href="#ink-v2-shape"><span class="dot" style="background:#00B894"></span>Shape</a></li>
+      <li><a href="#ink-v2-raw-content"><span class="dot" style="background:#00B894"></span>Raw content</a></li>
     </ul>
     <hr class="sidebar-divider" />
     <p class="sidebar-heading">Utilities</p>
@@ -415,98 +418,152 @@
         </div>
       </div>
 
+      <div class="subsection" id="ink-v2-text">
+        <div class="subsection-title">Text</div>
+        <div class="card-grid">
+          <article class="card" data-search="ink canvas v2 rest text batch recognition">
+            <div class="card-top">
+              <span class="badge badge-rest">InkCanvas-v2</span>
+              <span class="badge badge-rest">Text</span>
+            </div>
+            <h3>Text</h3>
+            <p>Text recognition using the REST v2 API — simple batch handwriting to text.</p>
+            <div class="card-actions">
+              <a href="canvas/canvas_v2_text.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
+              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/canvas/canvas_v2_text.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
+            </div>
+          </article>
+
+          <article class="card" data-search="ink canvas v2 rest japanese vertical text 日本縦型 asian">
+            <div class="card-top">
+              <span class="badge badge-rest">InkCanvas-v2</span>
+              <span class="badge badge-rest">Text</span>
+            </div>
+            <h3>Import strokes</h3>
+            <p>Import a set of previously written strokes into the canvas. using REST v2 APi</p>
+            <div class="card-actions">
+              <a href="canvas/canvas_v2_text_import_strokes.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
+              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/canvas/canvas_v2_text_import_strokes.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
+            </div>
+          </article>
+
+          <article class="card" data-search="ink canvas v2 rest japanese vertical text 日本縦型 asian">
+            <div class="card-top">
+              <span class="badge badge-rest">InkCanvas-v2</span>
+              <span class="badge badge-rest">Text</span>
+            </div>
+            <h3>Japanese Vertical (日本縦型)</h3>
+            <p>Vertical Japanese text recognition — tategumi layout with REST v2.</p>
+            <div class="card-actions">
+              <a href="canvas/canvas_v2_text_vertical_japanese.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
+              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/canvas/canvas_v2_text_vertical_japanese.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
+            </div>
+          </article>
+        </div>
+      </div>
+
+      <div class="subsection" id="ink-v2-math">
+        <div class="subsection-title">Math</div>
+        <div class="card-grid">
+          <article class="card" data-search="ink canvas v2 rest math equation batch">
+            <div class="card-top">
+              <span class="badge badge-rest">InkCanvas-v2</span>
+              <span class="badge badge-rest">Math</span>
+            </div>
+            <h3>Math</h3>
+            <p>Math equation recognition with the new REST v2 API — no WebSocket needed.</p>
+            <div class="card-actions">
+              <a href="canvas/canvas_v2_math.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
+              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/canvas/canvas_v2_math.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
+            </div>
+          </article>
+
+          <article class="card" data-search="ink canvas v2 rest math equation batch">
+            <div class="card-top">
+              <span class="badge badge-rest">InkCanvas-v2</span>
+              <span class="badge badge-rest">Math</span>
+            </div>
+            <h3>Draw Graph</h3>
+            <p>Plot recognized math functions live using Desmos graph integration.</p>
+            <div class="card-actions">
+              <a href="canvas/canvas_v2_math_with_graph.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
+              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/canvas/canvas_v2_math_with_graph.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
+            </div>
+          </article>
+        </div>
+      </div>
+
+      <div class="subsection" id="ink-v2-shape">
+        <div class="subsection-title">Shape</div>
+        <div class="card-grid">
+          <article class="card" data-search="ink canvas v2 rest shape detect geometry">
+            <div class="card-top">
+              <span class="badge badge-rest">InkCanvas-v2</span>
+              <span class="badge badge-rest">Shape</span>
+            </div>
+            <h3>Shape</h3>
+            <p>Shape detection and vectorization — circles, arrows, polygons, and more.</p>
+            <div class="card-actions">
+              <a href="canvas/canvas_v2_shape.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
+              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/canvas/canvas_v2_shape.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
+            </div>
+          </article>
+
+        </div>
+      </div>
+
+      <div class="subsection" id="ink-v2-raw-content">
+        <div class="subsection-title">Raw Content</div>
+        <div class="card-grid">
+          <article class="card" data-search="ink canvas v2 rest raw content digital ink">
+            <div class="card-top">
+              <span class="badge badge-rest">InkCanvas-v2</span>
+              <span class="badge badge-rest">Raw Content</span>
+            </div>
+            <h3>Raw Content</h3>
+            <p>Raw digital ink recognition — no explicit content type segmentation.</p>
+            <div class="card-actions">
+              <a href="canvas/canvas_v2_raw_content.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
+              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/canvas/canvas_v2_raw_content.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
+            </div>
+          </article>
+
+        </div>
+      </div>
+
+      <div class="subsection" id="ink-v2-multiple">
+        <div class="subsection-title">Multiple canvas</div>
+        <div class="card-grid">
+          <article class="card" data-search="ink canvas v2 rest multiple canvas form fields exam quiz">
+            <div class="card-top">
+              <span class="badge badge-rest">InkCanvas-v2</span>
+              <span class="badge badge-rest">Multiple canvas</span>
+            </div>
+            <h3>Multiple Canvas — Exam form</h3>
+            <p>One independent <code>InkCanvas</code> instance per question field — validate each answer via export and tally a score.</p>
+            <div class="card-actions">
+              <a href="canvas/canvas_v2_multi_canvas_exam.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
+              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/canvas/canvas_v2_multi_canvas_exam.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
+            </div>
+          </article>
+
+          <article class="card" data-search="ink canvas v2 rest multiple canvas grading table grid participants criteria">
+            <div class="card-top">
+              <span class="badge badge-rest">InkCanvas-v2</span>
+              <span class="badge badge-rest">Multiple canvas</span>
+            </div>
+            <h3>Multiple Canvas — Grading table</h3>
+            <p>A grid of independent <code>InkCanvas</code> instances — one participant per row, one grade per criterion column, plus a text comment.</p>
+            <div class="card-actions">
+              <a href="canvas/canvas_v2_multi_canvas_grading.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
+              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/canvas/canvas_v2_multi_canvas_grading.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
+            </div>
+          </article>
+        </div>
+      </div>
+
       <div class="card-grid">
 
-        <article class="card" data-search="ink canvas v2 rest math equation batch">
-          <div class="card-top">
-            <span class="badge badge-rest">InkCanvas-v2</span>
-            <span class="badge badge-rest">Math</span>
-          </div>
-          <h3>Math</h3>
-          <p>Math equation recognition with the new REST v2 API — no WebSocket needed.</p>
-          <div class="card-actions">
-            <a href="canvas/canvas_v2_math.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
-            <a href="https://github.com/MyScript/iinkTS/blob/master/examples/canvas/canvas_v2_math.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
-          </div>
-        </article>
-
-        <article class="card" data-search="ink canvas v2 rest shape detect geometry">
-          <div class="card-top">
-            <span class="badge badge-rest">InkCanvas-v2</span>
-            <span class="badge badge-rest">Shape</span>
-          </div>
-          <h3>Shape</h3>
-          <p>Shape detection and vectorization — circles, arrows, polygons, and more.</p>
-          <div class="card-actions">
-            <a href="canvas/canvas_v2_shape.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
-            <a href="https://github.com/MyScript/iinkTS/blob/master/examples/canvas/canvas_v2_shape.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
-          </div>
-        </article>
-
-        <article class="card" data-search="ink canvas v2 rest raw content digital ink">
-          <div class="card-top">
-            <span class="badge badge-rest">InkCanvas-v2</span>
-            <span class="badge badge-rest">Raw Content</span>
-          </div>
-          <h3>Raw Content</h3>
-          <p>Raw digital ink recognition — no explicit content type segmentation.</p>
-          <div class="card-actions">
-            <a href="canvas/canvas_v2_raw_content.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
-            <a href="https://github.com/MyScript/iinkTS/blob/master/examples/canvas/canvas_v2_raw_content.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
-          </div>
-        </article>
-
-        <article class="card" data-search="ink canvas v2 rest text batch recognition">
-          <div class="card-top">
-            <span class="badge badge-rest">InkCanvas-v2</span>
-            <span class="badge badge-rest">Text</span>
-          </div>
-          <h3>Text</h3>
-          <p>Text recognition using the REST v2 API — simple batch handwriting to text.</p>
-          <div class="card-actions">
-            <a href="canvas/canvas_v2_text.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
-            <a href="https://github.com/MyScript/iinkTS/blob/master/examples/canvas/canvas_v2_text.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
-          </div>
-        </article>
-
-        <article class="card" data-search="ink canvas v2 rest japanese vertical text 日本縦型 asian">
-          <div class="card-top">
-            <span class="badge badge-rest">InkCanvas-v2</span>
-            <span class="badge badge-rest">Text</span>
-          </div>
-          <h3>Japanese Vertical (日本縦型)</h3>
-          <p>Vertical Japanese text recognition — tategumi layout with REST v2.</p>
-          <div class="card-actions">
-            <a href="canvas/canvas_v2_text_vertical_japanese.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
-            <a href="https://github.com/MyScript/iinkTS/blob/master/examples/canvas/canvas_v2_text_vertical_japanese.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
-          </div>
-        </article>
-
-        <article class="card" data-search="ink canvas v2 rest multiple canvas form fields exam quiz">
-          <div class="card-top">
-            <span class="badge badge-rest">InkCanvas-v2</span>
-            <span class="badge badge-rest">Multiple canvas</span>
-          </div>
-          <h3>Multiple Canvas — Exam form</h3>
-          <p>One independent <code>InkCanvas</code> instance per question field — validate each answer via export and tally a score.</p>
-          <div class="card-actions">
-            <a href="canvas/canvas_v2_multi_canvas_exam.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
-            <a href="https://github.com/MyScript/iinkTS/blob/master/examples/canvas/canvas_v2_multi_canvas_exam.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
-          </div>
-        </article>
-
-        <article class="card" data-search="ink canvas v2 rest multiple canvas grading table grid participants criteria">
-          <div class="card-top">
-            <span class="badge badge-rest">InkCanvas-v2</span>
-            <span class="badge badge-rest">Multiple canvas</span>
-          </div>
-          <h3>Multiple Canvas — Grading table</h3>
-          <p>A grid of independent <code>InkCanvas</code> instances — one participant per row, one grade per criterion column, plus a text comment.</p>
-          <div class="card-actions">
-            <a href="canvas/canvas_v2_multi_canvas_grading.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
-            <a href="https://github.com/MyScript/iinkTS/blob/master/examples/canvas/canvas_v2_multi_canvas_grading.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
-          </div>
-        </article>
 
       </div>
     </section>
@@ -557,7 +614,8 @@
     <p id="no-results" class="home-no-results" style="display:none">No examples match your search.</p>
 
   </main>
-</div><!-- /home-layout -->
+</div>
+<!-- /home-layout -->
 
 <button class="back-to-top-btn" id="back-to-top" aria-label="Back to top" onclick="scrollToTop()">↑</button>
 
