@@ -145,6 +145,7 @@ nav {
 :root[data-theme="dark"] .ex-theme-toggle .ico-sun  { display: block; }
 :root[data-theme="dark"] .ex-theme-toggle .ico-moon { display: none; }
 
+.result,
 #result {
   height: var(--ex-result-height);
   display: flex;
@@ -261,6 +262,7 @@ nav {
 
 /* ─── Expandable result panel (#result.open toggle) ──────────────────────── */
 
+.result.open,
 #result.open {
   position: absolute;
   z-index: 999;
