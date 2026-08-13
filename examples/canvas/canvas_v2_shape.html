@@ -14,24 +14,33 @@
     <link rel="stylesheet" href="../assets/style/components.css" />
     <link rel="stylesheet" href="../assets/style/examples.css" />
     <link rel="stylesheet" href="../assets/style/inputs.css" />
+    <link rel="stylesheet" href="../assets/style/panel.css" />
     <link rel="stylesheet" href="../components/code-viewer/code-viewer.css" />
     <link rel="stylesheet" href="../assets/style/renderjson.css" />
+    <script type="text/javascript" src="../assets/renderjson/renderjson.js"></script>
+    <script>(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);})();</script>
     <style>
       #result {
-        border-bottom: solid gray 1px;
+        display: block;
+        height: auto;
+        text-align: left;
+      }
+      #export-jiix {
         display: block;
         text-align: start;
         padding: 12px;
         cursor: zoom-in;
+        height: auto;
+        text-align: left;
       }
     </style>
-
-    <script type="text/javascript" src="../assets/renderjson/renderjson.js"></script>
-    <script>(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);})();</script>
-</head>
+  </head>
 
   <body>
     <header class="header-main">
+      <button id="panelToggleBtn" class="btn-panel-toggle" aria-expanded="false" aria-controls="info-panel">
+        💡 Info
+      </button>
       <button id="showModalBtn" class="btn-keys">
         API Keys
       </button>
@@ -39,8 +48,6 @@
         Ink Canvas v2 Shape
       </h1>
     </header>
-
-    <div id="result"></div>
 
     <nav class="flex-container wrap gap between">
       <div class="flex-container wrap gap">
@@ -62,31 +69,63 @@
           <img src="../assets/img/eraser.svg" />
         </button>
       </div>
-      <div class="flex-container wrap gap">
-      </div>
-      </div>
     </nav>
 
-    <div id="progress"></div>
+    <div class="ex-page-layout">
+      <aside id="shape-recognition-panel" class="ex-panel">
+        <p class="ex-panel-heading">Shape recognition</p>
+        <p class="ex-panel-intro">
+          This example shows how iinkTS can recognize hand-drawn shapes. Draw shapes naturally
+          on the canvas and see how they are recognized and converted into digital shapes.
+        </p>
 
-    <div id="rootEl"></div>
+        <div class="ex-panel-divider"></div>
 
-    <div id="conversion-container"></div>
+        <div class="ex-panel-item">
+          <div class="ex-panel-item-desc">
+            Draw common geometric shapes such as circles, rectangles, triangles, or lines.
+            The recognition engine analyzes your strokes and identifies the corresponding
+            digital shape.
+          </div>
+        </div>
+
+        <div class="ex-panel-hint">
+          Try drawing different shapes on the canvas, from simple geometric figures to more
+          complex combinations, and observe how they are recognized.
+        </div>
+
+        <div class="ex-panel-divider"></div>
+
+        <p class="ex-panel-subtitle">Recognized shapes</p>
+        <div id="result" class="result"></div>
+
+        <div class="ex-panel-divider"></div>
+
+        <p class="ex-panel-subtitle">Global Recognition export</p>
+        <div id="export-jiix" class="result"></div>
+      </aside>
+
+      <div id="rootEl"></div>
+    </div>
 
     <script type="module">
       import { Canvas, CanvasTool } from '../../dist/iink.esm.js'
       import { ModalCanvasOptions } from "../components/modal/modalCanvasOptions.js"
       const rootElement = document.getElementById("rootEl");
       const resultElement = document.getElementById("result");
+      const jiixElement = document.getElementById("export-jiix");
       const clearElement = document.getElementById("clear");
       const undoElement = document.getElementById("undo");
       const redoElement = document.getElementById("redo");
       const eraserElement = document.getElementById("eraser");
       const penElement = document.getElementById("pen");
       const showModalBtn = document.getElementById("showModalBtn");
-
-      resultElement.addEventListener("click", () => {
-        resultElement.classList.toggle("open")
+      
+      const panelToggleBtn = document.getElementById('panelToggleBtn');
+      const shapeRecognitionPanel = document.getElementById('shape-recognition-panel');
+      panelToggleBtn.addEventListener('click', () => {
+        const open = shapeRecognitionPanel.classList.toggle('open')
+        panelToggleBtn.setAttribute('aria-expanded', open)
       });
 
       let canvas;
@@ -104,8 +143,32 @@
         }
       };
 
+      jiixElement.addEventListener('click', () => {
+        jiixElement.classList.toggle('open')
+      })
+
+      function displayReconizedShape(jiix) {
+        resultElement.innerHTML = ""
+        if (!jiix?.elements?.length) {
+          return
+        }
+        jiix.elements.forEach(el => {
+          const item = document.createElement("p")
+          item.innerHTML = `${el.shape.kind} candidates:`
+          const candidates = document.createElement("ul")
+          el.candidates.forEach(c => {
+            const ci = document.createElement("li")
+            ci.innerText = c.kind
+            candidates.appendChild(ci)
+          })
+          resultElement.appendChild(item)
+          resultElement.appendChild(candidates)
+        })
+      }
+
       async function loadCanvas(options) {
         resultElement.innerHTML = ""
+        jiixElement.innerHTML = ""
         await canvas?.destroy()
 
         /**
@@ -123,10 +186,13 @@
         });
 
         canvas.event.addEventListener("exported", (evt) => {
-          while (resultElement.firstChild) {
-            resultElement.firstChild.remove()
+          while (jiixElement.firstChild) {
+            jiixElement.firstChild.remove()
           }
-          resultElement.appendChild(renderjson(evt.detail))
+          if (evt.detail) {
+            jiixElement.appendChild(renderjson(evt.detail))
+          }
+          displayReconizedShape(evt.detail?.["application/vnd.myscript.jiix"])
         });
       };
 

@@ -23,8 +23,9 @@ test.describe("Ink Canvas v2 Shape", () => {
       waitForExportedEvent(page),
       writeStrokes(page, line.strokes),
     ])
-    await expect(page.locator("#result")).toContainText("application/vnd.myscript.jiix")
-    await expect(page.locator("#result")).toContainText('"type": "Shape",')
+    await expect(page.locator("#export-jiix")).toContainText("application/vnd.myscript.jiix")
+    await expect(page.locator("#export-jiix")).toContainText('"type": "Shape",')
+    await expect(page.locator("#result")).toContainText("line")
   })
 
   test.describe("Request sent", () => {
@@ -72,7 +73,8 @@ test.describe("Ink Canvas v2 Shape", () => {
       ])
       expect(promisesResult[0]).toBeNull()
       expect(await getCanvasExports(page)).toBeFalsy()
-      await expect(page.locator("#result")).toHaveText("null")
+      await expect(page.locator("#result")).toHaveText("")
+      await expect(page.locator("#export-jiix")).toHaveText("")
     })
 
     test("should undo/redo", async ({ page }) => {
