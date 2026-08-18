@@ -3,7 +3,7 @@ include Makefile.inc
 purge:
 	@git clean -xdf || true
 
-prepare: docker-mongo-scripts docker-wait4x docker-jest
+prepare: docker-mongo-scripts docker-wait4x
 	@PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 yarn install
 	yarn install:tldraw && yarn prepare:tldraw
 
@@ -43,10 +43,6 @@ docker-mongo-scripts:
 docker-wait4x:
 	echo "Build wait4x"
 	docker build -t $(DOCKER_IMAGE_WAIT4X) ./docker/wait4x
-
-docker-jest:
-	@echo "Build jest"
-	@cd docker/jest/ && docker build --quiet -t $(DOCKER_IMAGE_JEST) .
 
 ###########
 # NETWORK #
