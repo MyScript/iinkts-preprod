@@ -326,7 +326,7 @@ export class IIJiixQueryManager extends IIAbstractManager {
    * preserve it rather than overwriting with an empty rebuild.
    */
   protected ensureIndexValid(): void {
-    const currentVersion = this.model.modificationDate
+    const currentVersion = this.model.version
 
     if (!this.#index || this.#modelVersion !== currentVersion) {
       if (!this.model.exports?.["application/vnd.myscript.jiix"]?.elements && this.#index) {
@@ -349,7 +349,7 @@ export class IIJiixQueryManager extends IIAbstractManager {
     this.#index = null
     const jiixExport = this.model.exports?.["application/vnd.myscript.jiix"]
     if (jiixExport?.elements) {
-      this.#modelVersion = this.model.modificationDate
+      this.#modelVersion = this.model.version
       this.buildIndex()
     }
   }

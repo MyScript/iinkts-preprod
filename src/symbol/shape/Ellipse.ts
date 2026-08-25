@@ -1,8 +1,7 @@
 import { SELECTION_MARGIN } from "@/Constants"
 import type { TStyle } from "@/style"
-import { DefaultStyle } from "@/style"
+import { mergeSymbolStyle } from "@/style"
 import type { TBox } from "@/symbol/primitives/Box"
-import { BoxOps } from "@/symbol/primitives/Box"
 import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
 import type { TPoint, TSegment } from "@/symbol/primitives/Point"
 import { isValidPoint } from "@/symbol/primitives/Point"
@@ -12,7 +11,7 @@ import type { TPartialDeep } from "@/utils"
 import {
   computeEllipseRadiusAverage,
   computePointOnEllipse,
-  findIntersectionBetween2Segment,
+  computeTessellationCount,
   isValidNumber,
   TWO_PI,
 } from "@/utils"
@@ -48,11 +47,7 @@ export const ShapeEllipseOps = {
     orientation: number,
     style?: TPartialDeep<TStyle>
   ): TShapeEllipse {
-    const mergedStyle = Object.assign({}, DefaultStyle, style) as TStyle
-    if (mergedStyle.opacity) {
-      mergedStyle.opacity = +mergedStyle.opacity
-    }
-    mergedStyle.width = +mergedStyle.width
+    const mergedStyle = mergeSymbolStyle(style)
     const now = Date.now()
     const ellipse: TShapeEllipse = {
       type: SymbolType.Shape,
@@ -99,7 +94,7 @@ export const ShapeEllipseOps = {
 
   updateDerivedFields(ellipse: TShapeEllipse): void {
     const perimeter = TWO_PI * computeEllipseRadiusAverage(ellipse.radiusX, ellipse.radiusY)
-    const nbPoint = Math.max(8, Math.round(perimeter / SELECTION_MARGIN))
+    const nbPoint = computeTessellationCount(perimeter, SELECTION_MARGIN)
     const vertices: TPoint[] = []
     for (let i = 0; i < nbPoint; i++) {
       const theta = TWO_PI * (i / nbPoint)
@@ -115,10 +110,7 @@ export const ShapeEllipseOps = {
   },
 
   overlaps(ellipse: TShapeEllipse, box: TBox): boolean {
-    return (
-      OBBOps.isContained(ellipse.bounds, box) ||
-      ellipse.edges.some((e1) => BoxOps.getSides(box).some((e2) => !!findIntersectionBetween2Segment(e1, e2)))
-    )
+    return OBBOps.polygonOverlapsBox(ellipse.bounds, ellipse.edges, box)
   },
 
   createBetweenPoints(origin: TPoint, target: TPoint, style?: TPartialDeep<TStyle>): TShapeEllipse {

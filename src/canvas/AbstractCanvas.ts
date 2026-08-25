@@ -1,4 +1,5 @@
 import type { TConnectionStatus, TServerHTTPConfiguration } from "@/client"
+import { CanvasTool } from "@/Constants"
 import type { TLoggerConfiguration } from "@/logger"
 import { DefaultLoggerConfiguration, LoggerCategory, LoggerManager } from "@/logger"
 import type { TApiInfos, TPartialDeep } from "@/utils"
@@ -250,9 +251,82 @@ export abstract class AbstractCanvas {
 
   abstract clear(): Promise<void>
 
+  /** The variant's rendering backend, declared here only so {@link teardownCommon} can tear it down generically. */
+  abstract renderer: { destroy(): void }
+
   abstract destroy(): Promise<void>
 
+  /**
+   * Clears the `rootElement.iink` back-reference set in the constructor, guarded so it only
+   * clears the reference if it's still pointing at this instance — a newer canvas mounted on
+   * the same element (e.g. `Canvas.load()` replacing an instance) must not have its own
+   * reference clobbered by this (older) instance's `destroy()` running after the fact.
+   * Every `destroy()` implementation must call this, or the mounting DOM element keeps a
+   * strong reference to the entire destroyed canvas graph.
+   */
+  protected clearRootElementReference(): void {
+    if (this.layers.root.iink === this) {
+      this.layers.root.iink = undefined
+    }
+  }
+
+  /**
+   * Common teardown shared by every variant's `destroy()`: stops the resize observer, removes
+   * all `event` listeners, and destroys the DOM layers and the renderer. Each variant calls this
+   * in addition to its own teardown (input-handler detach, client/menu/model/history cleanup,
+   * etc.) and must still call {@link clearRootElementReference} itself afterwards.
+   */
+  protected teardownCommon(): void {
+    this.stopResizeObserver()
+    this.event.removeAllListeners()
+    this.layers.destroy()
+    this.renderer.destroy()
+  }
+
   abstract resize(dims?: { height?: number; width?: number }): Promise<void>
+
+  /** Minimum height/width for {@link resolveDimensions}, from the variant's own rendering configuration. */
+  protected abstract get minDimensions(): { minHeight: number; minWidth: number }
+
+  /**
+   * Resolves the target height/width for `resize()`: an explicit value wins, otherwise falls
+   * back to the mounting root element's computed size, clamped to {@link minDimensions}.
+   */
+  protected resolveDimensions(height?: number, width?: number): { height: number; width: number } {
+    const compStyles = window.getComputedStyle(this.layers.root)
+    return {
+      height: height || Math.max(parseInt(compStyles.height.replace("px", "")), this.minDimensions.minHeight),
+      width: width || Math.max(parseInt(compStyles.width.replace("px", "")), this.minDimensions.minWidth),
+    }
+  }
+
+  abstract get tool(): CanvasTool
+
+  /**
+   * Toggles the `draw`/`erase` CSS classes on the mounting root element to reflect the
+   * current tool. Default 2-state (Write/Erase) implementation shared by variants with no
+   * other tool; `InteractiveInkCanvas` overrides it for its 4-state tool set.
+   */
+  /**
+   * CSS classes toggled by {@link setCursorStyle} to reflect the current tool on the mounting
+   * root element. Default 2-state (`draw`/`erase`) set; override alongside {@link getCursorClass}
+   * for variants with additional tools.
+   */
+  protected get cursorClasses(): string[] {
+    return ["draw", "erase"]
+  }
+
+  /** The single class from {@link cursorClasses} that should be active for the current tool. */
+  protected getCursorClass(): string {
+    return this.tool === CanvasTool.Erase ? "erase" : "draw"
+  }
+
+  protected setCursorStyle(): void {
+    const activeClass = this.getCursorClass()
+    this.cursorClasses.forEach((cssClass) => {
+      this.layers.root.classList.toggle(cssClass, cssClass === activeClass)
+    })
+  }
 
   protected startResizeObserver(): void {
     this.#resizeObserver = new ResizeObserver(() => {

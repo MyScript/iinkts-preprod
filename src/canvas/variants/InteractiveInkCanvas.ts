@@ -57,7 +57,7 @@ import type { SymbolUtil } from "@/symbol-utils/SymbolUtil"
 import { MatrixTransform } from "@/transform"
 import type { TPartialDeep } from "@/utils"
 import type { TLLMExport } from "@/utils"
-import { createUUID, jiixToLLM, jiixToMarkdown, jiixToMermaid, jiixToPlantUML, mergeDeep } from "@/utils"
+import { createUUID, jiixToLLM, jiixToMarkdown, jiixToMermaid, jiixToPlantUML, mergeDeep, RafCoalescer } from "@/utils"
 
 import type { TInteractiveInkCanvasConfiguration } from "./InteractiveInkCanvasConfiguration"
 import { InteractiveInkCanvasConfiguration } from "./InteractiveInkCanvasConfiguration"
@@ -100,6 +100,9 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
   #clipboard: TSymbol[] = []
   #renderedWidth = 0
   #renderedHeight = 0
+  #wheelZoomCoalescer = new RafCoalescer()
+  #pendingWheelDeltaY = 0
+  #pendingWheelOffset?: { x: number; y: number }
 
   /** SVG renderer responsible for drawing symbols onto the canvas layer. */
   renderer: SVGRenderer
@@ -296,7 +299,10 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
    * @param renderingConfiguration - Partial rendering config to merge
    */
   set renderingConfiguration(renderingConfiguration: TIIRendererConfiguration) {
-    this.configuration.rendering = mergeDeep(this.configuration.rendering, renderingConfiguration)
+    this.configuration.rendering = mergeDeep<TIIRendererConfiguration>(
+      this.configuration.rendering,
+      renderingConfiguration
+    )
     const height = Math.max(this.renderer.parent.clientHeight, this.configuration.rendering.minHeight)
     const width = Math.max(this.renderer.parent.clientWidth, this.configuration.rendering.minWidth)
     this.renderer.resize(height, width)
@@ -345,32 +351,20 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     return symbolRegistry.getUtil<T>(type)
   }
 
-  protected setCursorStyle(): void {
+  protected get cursorClasses(): string[] {
+    return ["draw", "erase", "select", "move"]
+  }
+
+  protected getCursorClass(): string {
     switch (this.#tool) {
       case CanvasTool.Erase:
-        this.layers.root.classList.remove("draw")
-        this.layers.root.classList.add("erase")
-        this.layers.root.classList.remove("select")
-        this.layers.root.classList.remove("move")
-        break
+        return "erase"
       case CanvasTool.Select:
-        this.layers.root.classList.remove("draw")
-        this.layers.root.classList.remove("erase")
-        this.layers.root.classList.add("select")
-        this.layers.root.classList.remove("move")
-        break
+        return "select"
       case CanvasTool.Move:
-        this.layers.root.classList.remove("draw")
-        this.layers.root.classList.remove("erase")
-        this.layers.root.classList.remove("select")
-        this.layers.root.classList.add("move")
-        break
+        return "move"
       default:
-        this.layers.root.classList.add("draw")
-        this.layers.root.classList.remove("erase")
-        this.layers.root.classList.remove("select")
-        this.layers.root.classList.remove("move")
-        break
+        return "draw"
     }
   }
 
@@ -1505,14 +1499,35 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     if (event.ctrlKey || event.metaKey) {
       event.preventDefault()
       event.stopPropagation()
-      const zoomIntensity = 0.001
-      const zoom = this.renderer.getZoom() * Math.exp(-event.deltaY * zoomIntensity)
       const rect = this.layers.root.getBoundingClientRect()
-      const offsetX = event.clientX - rect.left
-      const offsetY = event.clientY - rect.top
-      this.renderer.setZoom(zoom, offsetX, offsetY)
-      this.menu.action.update()
+      this.#pendingWheelDeltaY += event.deltaY
+      this.#pendingWheelOffset = {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top,
+      }
+      this.#scheduleWheelZoom()
     }
+  }
+
+  /**
+   * Coalesces `setZoom()` (attribute mutation + virtualization reconciliation + guide redraw)
+   * to at most one call per animation frame — a trackpad pinch/ctrl+scroll fires many `wheel`
+   * events per frame. Summing `deltaY` across the coalesced events and applying it in one
+   * `Math.exp()` against the pre-frame zoom is exactly equivalent to applying each event's zoom
+   * factor in sequence (exponents add under multiplication), so no precision is lost.
+   */
+  #scheduleWheelZoom(): void {
+    this.#wheelZoomCoalescer.schedule(() => {
+      if (!this.#pendingWheelOffset) {
+        return
+      }
+      const zoomIntensity = 0.001
+      const zoom = this.renderer.getZoom() * Math.exp(-this.#pendingWheelDeltaY * zoomIntensity)
+      this.renderer.setZoom(zoom, this.#pendingWheelOffset.x, this.#pendingWheelOffset.y)
+      this.menu.action.update()
+      this.#pendingWheelDeltaY = 0
+      this.#pendingWheelOffset = undefined
+    })
   }
 
   /**
@@ -1842,24 +1857,26 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
         height,
         width,
       })
-      const compStyles = window.getComputedStyle(this.layers.root)
-      height = height || Math.max(parseInt(compStyles.height.replace("px", "")), this.configuration.rendering.minHeight)
-      width = width || Math.max(parseInt(compStyles.width.replace("px", "")), this.configuration.rendering.minWidth)
+      const dims = this.resolveDimensions(height, width)
 
-      if (height === this.#renderedHeight && width === this.#renderedWidth) {
+      if (dims.height === this.#renderedHeight && dims.width === this.#renderedWidth) {
         this.logger.debug("resize", "no change")
         return
       }
-      this.#renderedHeight = height
-      this.#renderedWidth = width
+      this.#renderedHeight = dims.height
+      this.#renderedWidth = dims.width
 
       this.manageIdleState(false)
-      this.renderer.resize(height, width)
+      this.renderer.resize(dims.height, dims.width)
       this.updateLayerUI(50)
       this.manageIdleState(true)
     } catch (error) {
       this.manageError(error as Error)
     }
+  }
+
+  protected get minDimensions(): { minHeight: number; minWidth: number } {
+    return this.configuration.rendering
   }
 
   /**
@@ -1971,7 +1988,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
 
     this.keyboard.detach()
     this.layers.root.removeEventListener("wheel", this.handleWheel)
-    this.stopResizeObserver()
+    this.#wheelZoomCoalescer.cancel()
 
     this.layers.root.classList.remove("draw")
     this.layers.root.classList.remove("erase")
@@ -1984,12 +2001,12 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     this.writer.detach()
 
     this.playback.destroy()
-    this.renderer.destroy()
-    this.layers.destroy()
+    this.teardownCommon()
     this.menu.destroy()
     this.client.destroy()
     this.model.clear()
     this.history.clear()
+    this.clearRootElementReference()
     return Promise.resolve()
   }
 }

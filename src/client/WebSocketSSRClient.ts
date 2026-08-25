@@ -5,10 +5,11 @@ import type { TPenStyle, TTheme } from "@/style"
 import { StyleHelper } from "@/style"
 import { type Stroke, StrokeOps } from "@/symbol"
 import type { TPartialDeep } from "@/utils"
-import { computeHmac, DeferredPromise, getApiInfos, isVersionSuperiorOrEqual } from "@/utils"
+import { DeferredPromise, getApiInfos, isVersionSuperiorOrEqual, redactServerSecrets } from "@/utils"
 
 import { ClientError, mapCloseCodeToMessage } from "./ClientError"
 import { ClientEvent } from "./ClientEvent"
+import { resolveHmac } from "./HmacAuth"
 import type { TConverstionState } from "./RecognitionConfiguration"
 import type { TWebSocketSSRClientConfiguration } from "./WebSocketSSRClientConfiguration"
 import { WebSocketSSRClientConfiguration } from "./WebSocketSSRClientConfiguration"
@@ -88,7 +89,7 @@ export class WebSocketSSRClient {
   event: ClientEvent
 
   constructor(config?: TPartialDeep<TWebSocketSSRClientConfiguration>) {
-    this.#logger.info("constructor", { config })
+    this.#logger.info("constructor", { config: redactServerSecrets(config) })
     this.configuration = new WebSocketSSRClientConfiguration(config)
     const scheme = this.configuration.server.scheme === "https" ? "wss" : "ws"
     this.url = `${scheme}://${this.configuration.server.host}/api/v4.0/iink/document?applicationKey=${this.configuration.server.applicationKey}`
@@ -206,25 +207,15 @@ export class WebSocketSSRClient {
     })
     const hmacChallengeMessage = websocketMessage as TWebSocketSSRClientMessageHMACChallenge
     if (hmacChallengeMessage.hmacChallenge) {
-      let hmacKey: string
-      if (typeof this.configuration.server.hmacKey == "string") {
-        if (this.configuration.server.hmacKey.length === 0) {
-          return this.ackDeferred?.reject("HMAC key is empty")
-        }
-        hmacKey = this.configuration.server.hmacKey
-      } else if (typeof this.configuration.server.hmacKey == "function") {
-        hmacKey = await this.configuration.server.hmacKey(this.configuration.server.applicationKey)
-      } else {
-        this.ackDeferred?.reject("HMAC key is not a string nor a function")
+      if (
+        typeof this.configuration.server.hmacKey !== "function" &&
+        typeof this.configuration.server.hmacKey !== "string"
+      ) {
         return this.initialized.reject(new Error("HMAC key is not a string nor a function"))
-      }
-      if (!hmacKey) {
-        this.ackDeferred?.reject("HMAC key is undefined")
-        return this.initialized.reject(new Error("HMAC key is undefined"))
       }
       this.send({
         type: "hmac",
-        hmac: await computeHmac(hmacChallengeMessage.hmacChallenge, this.configuration.server.applicationKey, hmacKey),
+        hmac: await resolveHmac(this.configuration.server, hmacChallengeMessage.hmacChallenge),
       })
     }
     if (hmacChallengeMessage.iinkSessionId) {
@@ -347,39 +338,40 @@ export class WebSocketSSRClient {
     })
     this.currentErrorCode = undefined
     const websocketMessage: TWebSocketSSRClientMessage = JSON.parse(message.data)
-    if (websocketMessage.type !== "pong") {
+    if (websocketMessage.type === "pong") {
       this.pingCount = 0
-      switch (websocketMessage.type) {
-        case "ack":
-          this.manageAckMessage(websocketMessage).catch((err) => this.event.emitError(err))
-          break
-        case "contentPackageDescription":
-          this.manageContentPackageDescriptionMessage()
-          break
-        case "partChanged":
-          this.managePartChangeMessage(websocketMessage)
-          break
-        case "newPart":
-          this.initialized.resolve()
-          break
-        case "contentChanged":
-          this.manageContentChangeMessage(websocketMessage)
-          break
-        case "exported":
-          this.manageExportMessage(websocketMessage)
-          break
-        case "svgPatch":
-          this.manageSVGPatchMessage(websocketMessage)
-          break
-        case "error":
-          this.manageErrorMessage(websocketMessage)
-          break
-        case "idle":
-          this.manageWaitForIdle()
-          break
-        default:
-          this.#logger.warn("messageCallback", `Message type unknown: "${websocketMessage.type}".`)
-      }
+      return
+    }
+    switch (websocketMessage.type) {
+      case "ack":
+        this.manageAckMessage(websocketMessage).catch((err) => this.event.emitError(err))
+        break
+      case "contentPackageDescription":
+        this.manageContentPackageDescriptionMessage()
+        break
+      case "partChanged":
+        this.managePartChangeMessage(websocketMessage)
+        break
+      case "newPart":
+        this.initialized.resolve()
+        break
+      case "contentChanged":
+        this.manageContentChangeMessage(websocketMessage)
+        break
+      case "exported":
+        this.manageExportMessage(websocketMessage)
+        break
+      case "svgPatch":
+        this.manageSVGPatchMessage(websocketMessage)
+        break
+      case "error":
+        this.manageErrorMessage(websocketMessage)
+        break
+      case "idle":
+        this.manageWaitForIdle()
+        break
+      default:
+        this.#logger.warn("messageCallback", `Message type unknown: "${websocketMessage.type}".`)
     }
   }
 

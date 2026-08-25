@@ -65,15 +65,27 @@ export class InkCanvasConfiguration implements TInkCanvasConfiguration {
     const { server, recognition } = new HTTPClientV2Configuration(configuration)
     this.server = server
     this.recognition = recognition
-    this.rendering = mergeDeep({}, DefaultInkCanvasConfiguration.rendering, configuration?.rendering)
+    this.rendering = mergeDeep<TIIRendererConfiguration>(
+      {},
+      DefaultInkCanvasConfiguration.rendering,
+      configuration?.rendering
+    )
     this.recognition.text.guides.enable = this.rendering.guides.enable
     if (this.rendering.guides.enable) {
       this.recognition.text.guides["line-gap-mm"] = convertPixelToMillimeter(this.rendering.guides.gap)
     }
-    this.grabber = mergeDeep({}, DefaultInkCanvasConfiguration.grabber, configuration?.grabber)
-    this["undo-redo"] = mergeDeep({}, DefaultInkCanvasConfiguration["undo-redo"], configuration?.["undo-redo"])
-    this.triggers = mergeDeep({}, DefaultInkCanvasConfiguration.triggers, configuration?.triggers)
-    this.logger = mergeDeep({}, DefaultInkCanvasConfiguration.logger, configuration?.logger)
-    this.penStyle = mergeDeep({}, DefaultInkCanvasConfiguration.penStyle, configuration?.penStyle)
+    this.grabber = mergeDeep<TGrabberConfiguration>({}, DefaultInkCanvasConfiguration.grabber, configuration?.grabber)
+    this["undo-redo"] = mergeDeep<THistoryConfiguration>(
+      {},
+      DefaultInkCanvasConfiguration["undo-redo"],
+      configuration?.["undo-redo"]
+    )
+    this.triggers = mergeDeep<TCanvasTriggerConfiguration>(
+      {},
+      DefaultInkCanvasConfiguration.triggers,
+      configuration?.triggers
+    )
+    this.logger = mergeDeep<TLoggerConfiguration>({}, DefaultInkCanvasConfiguration.logger, configuration?.logger)
+    this.penStyle = mergeDeep<TStyle>({}, DefaultInkCanvasConfiguration.penStyle, configuration?.penStyle)
   }
 }
