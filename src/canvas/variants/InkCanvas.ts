@@ -3,6 +3,7 @@ import { AbstractCanvas } from "@/canvas/AbstractCanvas"
 import { HTTPClientV2 } from "@/client"
 import { CanvasTool } from "@/Constants"
 import type { PointerEventGrabber } from "@/grabber"
+import type { TIHistoryChanges } from "@/history"
 import { IHistoryManager } from "@/history"
 import { EraseManager, IDebugSVGManager, IWriterManager } from "@/manager"
 import type { TExport, TExportV2 } from "@/model"
@@ -137,7 +138,7 @@ export class InkCanvas extends AbstractCanvas {
         this.#configuration.rendering.minHeight
       )
       this.model.rowHeight = this.configuration.rendering.guides.gap
-      this.history.init(this.model)
+      this.history.init()
       this.startResizeObserver()
 
       if (!this.client.configuration.server.version) {
@@ -185,7 +186,6 @@ export class InkCanvas extends AbstractCanvas {
       if (this.model.modificationDate === currentModel.modificationDate) {
         this.model.exports = currentModel.exports
       }
-      this.history.updateModelStack(currentModel)
       this.event.emitExported(this.model.exports || {})
       if (this.debugger.recognitionBoxItemsVisibility) {
         this.debugger.debugRecognitionBoxItems()
@@ -215,12 +215,9 @@ export class InkCanvas extends AbstractCanvas {
         this.model.addStroke(s)
         this.renderer.drawSymbol(s)
       })
-      this.history.push(this.#model, {
-        added: strokes,
-      })
+      this.history.push({ added: strokes })
       const result = await this.client.send(strokes)
       this.model.mergeExport(result)
-      this.history.updateModelStack(this.model)
       return result
     } catch (error) {
       this.logger.error("import", error)
@@ -263,31 +260,37 @@ export class InkCanvas extends AbstractCanvas {
       this.logger.warn("removeStrokes", "No strokes found to remove")
       return
     }
-    this.#model = this.model.clone()
     removedStrokes.forEach((s) => {
       this.renderer.removeSymbol(s.id)
       this.model.removeStroke(s.id)
     })
-    this.history.push(this.#model, {
+    this.history.push({
       removed: removedStrokes,
     })
     const exports = await this.client.send(this.model.strokes)
     this.model.mergeExport(exports)
-    this.history.updateModelStack(this.model)
-    this.event.emitExported(this.#model.exports as TExport)
+    this.event.emitExported(this.model.exports as TExport)
     this.logger.debug("removeStrokes", {
       model: this.#model,
+    })
+  }
+
+  #applyHistoryChanges(changes: TIHistoryChanges): void {
+    changes.added?.forEach((s) => {
+      this.model.addStroke(s)
+      this.renderer.drawSymbol(s)
+    })
+    changes.removed?.forEach((s) => {
+      this.model.removeStroke(s.id)
+      this.renderer.removeSymbol(s.id)
     })
   }
 
   async undo(): Promise<void> {
     return this.trackOperation("Undoing", async () => {
       this.logger.info("undo")
-      const previousStackItem = this.history.undo()
-      const modifications = previousStackItem.model.extractDifferenceStrokes(this.model)
-      this.#model = previousStackItem.model.clone()
-      modifications.removed.forEach((s) => this.renderer.removeSymbol(s.id))
-      modifications.added.forEach((s) => this.renderer.drawSymbol(s))
+      const changes = this.history.undo()
+      this.#applyHistoryChanges(changes)
       await this.export()
     })
   }
@@ -295,11 +298,8 @@ export class InkCanvas extends AbstractCanvas {
   async redo(): Promise<void> {
     return this.trackOperation("Redoing", async () => {
       this.logger.info("redo")
-      const previousStackItem = this.history.redo()
-      const modifications = previousStackItem.model.extractDifferenceStrokes(this.model)
-      this.#model = previousStackItem.model.clone()
-      modifications.removed.forEach((s) => this.renderer.removeSymbol(s.id))
-      modifications.added.forEach((s) => this.renderer.drawSymbol(s))
+      const changes = this.history.redo()
+      this.#applyHistoryChanges(changes)
       await this.export()
     })
   }
@@ -308,7 +308,7 @@ export class InkCanvas extends AbstractCanvas {
     this.logger.info("clear")
     const erased = this.model.strokes
     this.model.clear()
-    this.history.push(this.model, {
+    this.history.push({
       removed: erased,
     })
     this.renderer.clear()

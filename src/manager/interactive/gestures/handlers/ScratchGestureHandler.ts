@@ -179,7 +179,7 @@ export class ScratchGestureHandler extends GestureHandler {
       promises.push(this.canvas.replaceSymbols(symbolsToReplace.oldSymbols, symbolsToReplace.newSymbols, false))
     }
 
-    this.history.push(this.model, changes)
+    this.history.push(changes)
     await Promise.all(promises)
   }
 }

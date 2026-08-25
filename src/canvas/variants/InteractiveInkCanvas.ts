@@ -4,8 +4,9 @@ import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import { WebSocketClient } from "@/client"
 import { DOMFactory } from "@/components/dom"
 import { CanvasTool, SELECTION_MARGIN } from "@/Constants"
-import type { THistoryContext, TIIHistoryBackendChanges, TIIHistoryChanges, TIIHistoryStackItem } from "@/history"
+import type { THistoryContext, TIIHistoryBackendChanges, TIIHistoryChanges } from "@/history"
 import { extractIIBackendChanges, IIHistoryManager } from "@/history"
+import type { TPDFExportDialogOptions } from "@/manager"
 import {
   EraseManager,
   IIConnectorManager,
@@ -23,11 +24,12 @@ import {
   IITransformManager,
   IITypesetManager,
   IIWriterManager,
+  PDFExportManager,
 } from "@/manager"
 import type { IIMenuAction, IIMenuStyle, IIMenuTool } from "@/menu"
 import { IIMenuManager } from "@/menu"
 import type { TExport } from "@/model"
-import { IIModel } from "@/model"
+import { ExportType, IIModel } from "@/model"
 import type { TIIRendererConfiguration } from "@/renderer"
 import { SVGBuilder, SVGRenderer } from "@/renderer"
 import type { TStyle } from "@/style"
@@ -44,6 +46,7 @@ import {
   StrokeOps,
 } from "@/symbol"
 import { DecoratorOps } from "@/symbol/decorator/Decorator"
+import { EdgeOps } from "@/symbol/edge/Edge"
 import { MathOps } from "@/symbol/math/Math"
 import { BoxOps } from "@/symbol/primitives/Box"
 import { OBBOps } from "@/symbol/primitives/OBB"
@@ -53,7 +56,8 @@ import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 import type { SymbolUtil } from "@/symbol-utils/SymbolUtil"
 import { MatrixTransform } from "@/transform"
 import type { TPartialDeep } from "@/utils"
-import { createUUID, mergeDeep } from "@/utils"
+import type { TLLMExport } from "@/utils"
+import { createUUID, jiixToLLM, jiixToMarkdown, jiixToMermaid, jiixToPlantUML, mergeDeep } from "@/utils"
 
 import type { TInteractiveInkCanvasConfiguration } from "./InteractiveInkCanvasConfiguration"
 import { InteractiveInkCanvasConfiguration } from "./InteractiveInkCanvasConfiguration"
@@ -112,6 +116,8 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
   keyboard: IIKeyboardManager
   /** Handles erasing strokes and symbols via pointer interaction. */
   eraser: EraseManager
+  /** Builds print-only DOM/CSS layers and drives PDF export via native browser print. */
+  pdfExport: PDFExportManager
   /** Detects and processes touch/pointer gestures (scratch-out, join, insert, etc.). */
   gesture: IIGestureManager
   /** Orchestrates translate, resize, and rotation transforms on selected symbols. */
@@ -182,6 +188,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     this.keyboard = new IIKeyboardManager(this)
     this.writer = new IIWriterManager(this)
     this.eraser = new EraseManager(this)
+    this.pdfExport = new PDFExportManager(this)
     this.selector = new IISelectionManager(this)
     this.move = new IIMoveManager(this)
 
@@ -194,7 +201,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     this.synchronizer = new IISynchronizerManager(this)
     this.jiix = new IIJiixQueryManager(this)
     this.math = new IIMathManager(this, this.#configuration.math)
-    this.connector = new IIConnectorManager(this)
+    this.connector = new IIConnectorManager(this, this.#configuration.connector)
     this.menu = new IIMenuManager(this, options?.override?.menu)
     this.playback = new IIPlaybackManager(this)
   }
@@ -572,7 +579,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     this.client.addStrokes(strokes, false)
 
     if (addToHistory) {
-      this.history.push(this.model, {
+      this.history.push({
         added: [sym],
       })
     }
@@ -600,7 +607,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     }
     this.client.addStrokes(strokes, false)
     if (addToHistory) {
-      this.history.push(this.model, {
+      this.history.push({
         added: symList,
       })
     }
@@ -619,7 +626,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     this.manageIdleState(false)
     this.updateTypesetBounds(sym)
 
-    const oldSymbol = this.history.stack.at(-1)?.model.getRootSymbol(sym.id) ?? this.model.getRootSymbol(sym.id)
+    const oldSymbol = this.model.getRootSymbol(sym.id)
     const oldStrokes = oldSymbol ? this.extractStrokesFromSymbols([oldSymbol]) : []
 
     this.model.updateSymbol(sym)
@@ -630,8 +637,8 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     this.#optimizeClientCall(oldStrokes, newStrokes)
 
     if (addToHistory) {
-      this.history.push(this.model, {
-        updated: [sym],
+      this.history.push({
+        updated: { oldSymbols: [oldSymbol ?? sym], newSymbols: [sym] },
       })
     }
     this.updateLayerUI()
@@ -650,7 +657,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
 
     const oldSymbolsMap = new Map<string, TSymbol>()
     symList.forEach((sym) => {
-      const oldSymbol = this.history.stack.at(-1)?.model.getRootSymbol(sym.id) ?? this.model.getRootSymbol(sym.id)
+      const oldSymbol = this.model.getRootSymbol(sym.id)
       if (oldSymbol) {
         oldSymbolsMap.set(sym.id, oldSymbol)
       }
@@ -667,8 +674,11 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     this.#optimizeClientCall(oldStrokes, newStrokes)
 
     if (addToHistory) {
-      this.history.push(this.model, {
-        updated: symList,
+      this.history.push({
+        updated: {
+          oldSymbols: symList.map((s) => oldSymbolsMap.get(s.id) ?? s),
+          newSymbols: symList,
+        },
       })
     }
     this.updateLayerUI()
@@ -687,8 +697,10 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       style,
     })
     const symbols: TSymbol[] = []
+    const oldStyles: TPartialDeep<TStyle>[] = []
     this.model.symbols.forEach((s) => {
       if (symbolIds.includes(s.id)) {
+        oldStyles.push({ ...s.style })
         s.style = Object.assign({}, s.style, style)
         if (isText(s)) {
           TextOps.updateChildrenStyle(s)
@@ -712,8 +724,8 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       })
     }
     if (addToHistory && symbols.length) {
-      this.history.push(this.model, {
-        style: { symbols, style },
+      this.history.push({
+        style: { symbols, oldStyles, newStyles: symbols.map((s) => ({ ...s.style })) },
       })
     }
   }
@@ -739,6 +751,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       fontWeight,
     })
     const symbols: TText[] = []
+    const oldFontSizes: (number | undefined)[] = []
     const translate: {
       symbols: TSymbol[]
       tx: number
@@ -747,6 +760,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     this.model.symbols.forEach((s) => {
       if (textIds.includes(s.id)) {
         if (isText(s)) {
+          oldFontSizes.push(s.chars[0]?.fontSize)
           TextOps.updateChildrenFont(s, {
             fontSize,
             fontWeight: fontWeight === "auto" ? undefined : fontWeight,
@@ -771,8 +785,12 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       }
     })
     if (symbols.length) {
-      this.history.push(this.model, {
-        style: { symbols, fontSize },
+      this.history.push({
+        style: {
+          symbols,
+          oldFontSizes,
+          newFontSizes: symbols.map((s) => s.chars[0]?.fontSize),
+        },
         translate,
       })
     }
@@ -812,7 +830,15 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       const newIds = new Set(newSymbols.map((s) => s.id))
       // Only clean up decorators whose targets are fully gone (not re-created by newSymbols)
       const removedIds = new Set([...allOldIds].filter((id) => !newIds.has(id)))
-      const { erased: decErased, updated: decUpdated } = this.#cleanupDecoratorsForRemovedIds(removedIds)
+      const {
+        erased: decErased,
+        updatedOld: decUpdatedOld,
+        updatedNew: decUpdatedNew,
+      } = this.#cleanupDecoratorsForRemovedIds(removedIds)
+      const { updatedOld: anchorUpdatedOld, updatedNew: anchorUpdatedNew } = this.#cleanupAnchorsForRemovedIds(
+        removedIds,
+        [symToReplace, ...oldSymbols].filter((s) => removedIds.has(s.id))
+      )
 
       if (addToHistory) {
         const changes: TIIHistoryChanges = {
@@ -824,10 +850,12 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
         if (decErased.length) {
           changes.erased = decErased
         }
-        if (decUpdated.length) {
-          changes.updated = decUpdated
+        const updatedOld = [...decUpdatedOld, ...anchorUpdatedOld]
+        const updatedNew = [...decUpdatedNew, ...anchorUpdatedNew]
+        if (updatedNew.length) {
+          changes.updated = { oldSymbols: updatedOld, newSymbols: updatedNew }
         }
-        this.history.push(this.model, changes)
+        this.history.push(changes)
       }
       this.updateLayerUI()
     }
@@ -841,7 +869,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
   changeOrderSymbol(symbol: TSymbol, position: "first" | "last" | "forward" | "backward"): void {
     this.model.changeOrderSymbol(symbol.id, position)
     this.renderer.changeOrderSymbol(symbol, position)
-    this.history.push(this.model, {
+    this.history.push({
       order: { symbols: [symbol], position },
     })
   }
@@ -856,7 +884,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       this.model.changeOrderSymbol(s.id, position)
       this.renderer.changeOrderSymbol(s, position)
     })
-    this.history.push(this.model, {
+    this.history.push({
       order: { symbols, position },
     })
   }
@@ -877,10 +905,12 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
    */
   #cleanupDecoratorsForRemovedIds(removedIds: Set<string>): {
     erased: TDecorator[]
-    updated: TDecorator[]
+    updatedOld: TDecorator[]
+    updatedNew: TDecorator[]
   } {
     const erased: TDecorator[] = []
-    const updated: TDecorator[] = []
+    const updatedOld: TDecorator[] = []
+    const updatedNew: TDecorator[] = []
 
     for (const sym of [...this.model.symbols]) {
       if (!isDecorator(sym)) {
@@ -893,6 +923,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
         this.renderer.removeElement(dec.id)
         erased.push(dec)
       } else if (remaining.length < dec.targetIds.length) {
+        const oldDec: TDecorator = { ...dec }
         dec.targetIds = remaining
         const targetSyms = remaining.map((id) => this.model.getRootSymbol(id)).filter((s): s is TSymbol => !!s)
         if (targetSyms.length) {
@@ -900,11 +931,79 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
         }
         this.model.updateSymbol(dec)
         this.renderer.drawSymbol(dec)
-        updated.push(dec)
+        updatedOld.push(oldDec)
+        updatedNew.push(dec)
       }
     }
 
-    return { erased, updated }
+    return { erased, updatedOld, updatedNew }
+  }
+
+  /**
+   * After removing symbols, clear anchors on edges (and pre-convert Edge strokes) that
+   * pointed at a removed target. Returns updated symbols so callers can include them in
+   * history - undoing the removal then also restores the anchor.
+   * `removedSymbols` must be the symbol objects captured *before* they left the model: their
+   * `jiixBlockId` is what pre-convert anchors point at, and it can no longer be looked up here.
+   */
+  #cleanupAnchorsForRemovedIds(
+    removedIds: Set<string>,
+    removedSymbols: TSymbol[]
+  ): {
+    updatedOld: TSymbol[]
+    updatedNew: TSymbol[]
+  } {
+    const updatedOld: TSymbol[] = []
+    const updatedNew: TSymbol[] = []
+
+    const removedBlockIds = new Set<string>()
+    removedSymbols.forEach((sym) => {
+      if (isStroke(sym) && sym.jiixBlockId) {
+        removedBlockIds.add(sym.jiixBlockId)
+      }
+    })
+    const isTargetRemoved = (symbolId: string): boolean => removedIds.has(symbolId) || removedBlockIds.has(symbolId)
+
+    for (const sym of [...this.model.symbols]) {
+      if (EdgeOps.isEdge(sym) && (EdgeOps.isLineEdge(sym) || EdgeOps.isPolyEdge(sym) || EdgeOps.isArcEdge(sym))) {
+        const hitStart = sym.startAnchor && isTargetRemoved(sym.startAnchor.symbolId)
+        const hitEnd = sym.endAnchor && isTargetRemoved(sym.endAnchor.symbolId)
+        if (!hitStart && !hitEnd) {
+          continue
+        }
+        const oldSym = { ...sym }
+        if (hitStart) {
+          sym.startAnchor = undefined
+        }
+        if (hitEnd) {
+          sym.endAnchor = undefined
+        }
+        this.model.updateSymbol(sym)
+        this.renderer.drawSymbol(sym)
+        updatedOld.push(oldSym)
+        updatedNew.push(sym)
+        continue
+      }
+      if (isStroke(sym) && sym.jiixBlockType === "Edge" && (sym.startAnchor || sym.endAnchor)) {
+        const hitStart = sym.startAnchor && isTargetRemoved(sym.startAnchor.symbolId)
+        const hitEnd = sym.endAnchor && isTargetRemoved(sym.endAnchor.symbolId)
+        if (!hitStart && !hitEnd) {
+          continue
+        }
+        const oldSym = { ...sym }
+        if (hitStart) {
+          sym.startAnchor = undefined
+        }
+        if (hitEnd) {
+          sym.endAnchor = undefined
+        }
+        this.model.updateSymbol(sym)
+        updatedOld.push(oldSym)
+        updatedNew.push(sym)
+      }
+    }
+
+    return { updatedOld, updatedNew }
   }
 
   /**
@@ -930,7 +1029,16 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       }
       this.model.removeSymbol(symbol.id)
       this.renderer.removeSymbol(symbol.id)
-      const { erased: decErased, updated: decUpdated } = this.#cleanupDecoratorsForRemovedIds(new Set([id]))
+      const removedIds = new Set([id])
+      const {
+        erased: decErased,
+        updatedOld: decUpdatedOld,
+        updatedNew: decUpdatedNew,
+      } = this.#cleanupDecoratorsForRemovedIds(removedIds)
+      const { updatedOld: anchorUpdatedOld, updatedNew: anchorUpdatedNew } = this.#cleanupAnchorsForRemovedIds(
+        removedIds,
+        [symbol]
+      )
       if (addToHistory) {
         const changes: TIIHistoryChanges = {
           erased: [symbol],
@@ -938,10 +1046,12 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
         if (decErased.length) {
           changes.erased = [...changes.erased!, ...decErased]
         }
-        if (decUpdated.length) {
-          changes.updated = decUpdated
+        const updatedOld = [...decUpdatedOld, ...anchorUpdatedOld]
+        const updatedNew = [...decUpdatedNew, ...anchorUpdatedNew]
+        if (updatedNew.length) {
+          changes.updated = { oldSymbols: updatedOld, newSymbols: updatedNew }
         }
-        this.history.push(this.model, changes)
+        this.history.push(changes)
       }
       this.updateLayerUI()
     } else {
@@ -982,7 +1092,15 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     }
 
     const removedIds = new Set(symbolsRemoved.map((s) => s.id))
-    const { erased: decErased, updated: decUpdated } = this.#cleanupDecoratorsForRemovedIds(removedIds)
+    const {
+      erased: decErased,
+      updatedOld: decUpdatedOld,
+      updatedNew: decUpdatedNew,
+    } = this.#cleanupDecoratorsForRemovedIds(removedIds)
+    const { updatedOld: anchorUpdatedOld, updatedNew: anchorUpdatedNew } = this.#cleanupAnchorsForRemovedIds(
+      removedIds,
+      symbolsRemoved
+    )
 
     if (addToHistory && symbolsRemoved.length) {
       const changes: TIIHistoryChanges = {
@@ -991,10 +1109,12 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       if (decErased.length) {
         changes.erased = [...changes.erased!, ...decErased]
       }
-      if (decUpdated.length) {
-        changes.updated = decUpdated
+      const updatedOld = [...decUpdatedOld, ...anchorUpdatedOld]
+      const updatedNew = [...decUpdatedNew, ...anchorUpdatedNew]
+      if (updatedNew.length) {
+        changes.updated = { oldSymbols: updatedOld, newSymbols: updatedNew }
       }
-      this.history.push(this.model, changes)
+      this.history.push(changes)
       this.updateLayerUI()
     }
     this.manageIdleState(false)
@@ -1021,6 +1141,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       }
     })
     this.selector.expandSelectionForMathBlocks()
+    this.selector.expandSelectionForBlocks()
     this.selector.drawSelectedGroup(this.model.symbolsSelected)
 
     const selectedMathJiixBlockId = this.selector.getSelectedMathJiixBlockId()
@@ -1090,7 +1211,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       this.startOperation("Recognizing")
       this.client.addStrokes(strokes, false)
     }
-    this.history.push(this.model, {
+    this.history.push({
       added: strokes,
     })
     this.logger.debug("importPointEvents", this.model)
@@ -1179,7 +1300,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     this.renderer.pan(dx, dy)
   }
 
-  protected buildBlobFromSymbols(symbols: TSymbol[], box: TBox): Blob {
+  protected buildSvgStringFromSymbols(symbols: TSymbol[], box: TBox): string {
     const svgNode = SVGBuilder.createLayer(box)
     symbols.forEach((s) => {
       const el = this.renderer.getElementById(s.id)?.cloneNode(true)
@@ -1188,7 +1309,11 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       }
     })
 
-    const svgString = new XMLSerializer().serializeToString(svgNode)
+    return new XMLSerializer().serializeToString(svgNode)
+  }
+
+  protected buildBlobFromSymbols(symbols: TSymbol[], box: TBox): Blob {
+    const svgString = this.buildSvgStringFromSymbols(symbols, box)
 
     return new Blob([svgString], {
       type: "image/svg+xml;charset=utf-8",
@@ -1273,6 +1398,26 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     const text = this.extractTextFromSymbols(symbolsToExport)
     const dataStr = "data:text/plain;charset=utf-8," + encodeURIComponent(text)
     this.triggerDownload(this.getExportName("txt"), dataStr)
+  }
+
+  /**
+   * Print symbols as PDF via the browser's native print dialog, either all symbols or only selected ones.
+   * Without `options`, opens a settings dialog (format/orientation/page mode/scale) before printing.
+   * With `options`, prints immediately using those values, falling back to defaults for anything omitted.
+   * @param selection - Whether to print only selected symbols (default: false, prints all symbols)
+   * @param options - Print settings to use directly, skipping the dialog
+   */
+  printAsPDF(selection = false, options?: Partial<TPDFExportDialogOptions>) {
+    const symbols = selection ? this.model.symbolsSelected : this.model.symbols
+    const box = this.getSymbolsBounds(symbols)
+    const svgString = this.buildSvgStringFromSymbols(symbols, box)
+
+    if (options) {
+      this.pdfExport.print(svgString, box, { ...PDFExportManager.DEFAULT_OPTIONS, ...options })
+      return
+    }
+
+    this.pdfExport.openExportDialog((dialogOptions) => this.pdfExport.print(svgString, box, dialogOptions))
   }
 
   protected extractTextFromSymbols(symbols: TSymbol[]): string {
@@ -1412,34 +1557,92 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       .filter((a) => !!a) as string[]
   }
 
-  #applyHistoryStackItem(stackItem: TIIHistoryStackItem): TIIHistoryBackendChanges {
+  /**
+   * Applies a history diff locally (model + renderer), replacing the model-clone-swap this
+   * used to do. Backend replay is a separate, consolidated message sent by the caller via
+   * extractIIBackendChanges - this method must never talk to `this.client` itself, or the
+   * backend would receive the same action twice.
+   */
+  #applyHistoryChanges(changes: TIIHistoryChanges): void {
     this.manageIdleState(false)
     this.unselectAll()
-    const modifications = stackItem.model.extractDifferenceSymbols(this.model)
-    this.#model = stackItem.model.clone()
-    // The restored snapshot's `exports` (deep-cloned by `IIModel#clone`) reflects whatever the
-    // model looked like when it was pushed to history, which predates this undo/redo - if left
-    // in place, the next `export()` call sees a non-empty cache and skips re-fetching the JIIX
-    // entirely, so the backend's actual current block ids/content are never picked up.
-    this.#model.invalidateExports()
-    modifications.removed.forEach((s) => this.renderer.removeSymbol(s.id))
-    modifications.added.forEach((s) => this.renderer.drawSymbol(s))
-    return extractIIBackendChanges(stackItem.changes)
+
+    changes.added?.forEach((sym) => {
+      this.model.addSymbol(sym)
+      this.renderer.drawSymbol(sym)
+    })
+    changes.erased?.forEach((sym) => {
+      this.model.removeSymbol(sym.id)
+      this.renderer.removeSymbol(sym.id)
+    })
+    changes.updated?.newSymbols.forEach((sym) => {
+      this.model.updateSymbol(sym)
+      this.renderer.drawSymbol(sym)
+    })
+    if (changes.replaced) {
+      const [anchor, ...rest] = changes.replaced.oldSymbols
+      rest.forEach((s) => {
+        this.renderer.removeSymbol(s.id)
+        this.model.removeSymbol(s.id)
+      })
+      this.model.replaceSymbol(anchor.id, changes.replaced.newSymbols)
+      this.renderer.replaceSymbol(anchor.id, changes.replaced.newSymbols)
+    }
+    if (changes.matrix) {
+      const m = changes.matrix.matrix
+      this.transform.applyMatrix(changes.matrix.symbols, new MatrixTransform(m.xx, m.yx, m.xy, m.yy, m.tx, m.ty))
+    }
+    changes.translate?.forEach((tr) => {
+      this.transform.applyMatrix(tr.symbols, MatrixTransform.identity().translate(tr.tx, tr.ty))
+    })
+    changes.rotate?.forEach((r) => {
+      this.transform.applyMatrix(r.symbols, MatrixTransform.identity().rotate(r.angle, r.center))
+    })
+    changes.scale?.forEach((sc) => {
+      this.transform.applyMatrix(sc.symbols, MatrixTransform.identity().scale(sc.scaleX, sc.scaleY, sc.origin))
+    })
+    if (changes.style) {
+      const { symbols, newStyles, newFontSizes } = changes.style
+      symbols.forEach((sym, i) => {
+        if (newStyles?.[i]) {
+          sym.style = newStyles[i] as TStyle
+        }
+        const newFontSize = newFontSizes?.[i]
+        if (newFontSize !== undefined && isText(sym)) {
+          sym.chars.forEach((c) => {
+            c.fontSize = newFontSize
+          })
+        }
+        this.model.updateSymbol(sym)
+        this.renderer.drawSymbol(sym)
+      })
+    }
+    if (changes.order) {
+      changes.order.symbols.forEach((sym) => {
+        this.model.changeOrderSymbol(sym.id, changes.order!.position)
+        this.renderer.changeOrderSymbol(sym, changes.order!.position)
+      })
+    }
   }
 
   async #undoInternal(): Promise<IIModel> {
-    const previousStackItem = this.history.undo()
+    const changes = this.history.undo()
     this.logger.debug("undo", {
-      previousStackItem,
+      changes,
     })
 
-    const actionsToBackend = this.#applyHistoryStackItem(previousStackItem)
-    if (this.#hasBackendActions(actionsToBackend)) {
-      this.#extractJIIXBlockIdFromBackendActions(actionsToBackend).forEach((jiixBlockId) => {
-        this.math.clearGhostStrokes(jiixBlockId)
-      })
-      this.startOperation("Recognizing")
-      await this.client.undo(actionsToBackend)
+    this.#applyHistoryChanges(changes)
+    const actionsToBackend = extractIIBackendChanges(changes)
+    try {
+      if (this.#hasBackendActions(actionsToBackend)) {
+        this.#extractJIIXBlockIdFromBackendActions(actionsToBackend).forEach((jiixBlockId) => {
+          this.math.clearGhostStrokes(jiixBlockId)
+        })
+        this.startOperation("Recognizing")
+        await this.client.undo(actionsToBackend)
+      }
+    } finally {
+      this.updateLayerUI()
     }
     this.updateLayerUI()
     return this.model
@@ -1459,15 +1662,20 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
   }
 
   async #redoInternal(): Promise<IIModel> {
-    const nextStackItem = this.history.redo()
-    this.logger.debug("redo", { nextStackItem })
-    const actionsToBackend = this.#applyHistoryStackItem(nextStackItem)
-    if (this.#hasBackendActions(actionsToBackend)) {
-      this.#extractJIIXBlockIdFromBackendActions(actionsToBackend).forEach((jiixBlockId) => {
-        this.math.clearGhostStrokes(jiixBlockId)
-      })
-      this.startOperation("Recognizing")
-      await this.client.redo(actionsToBackend)
+    const changes = this.history.redo()
+    this.logger.debug("redo", { changes })
+    this.#applyHistoryChanges(changes)
+    const actionsToBackend = extractIIBackendChanges(changes)
+    try {
+      if (this.#hasBackendActions(actionsToBackend)) {
+        this.#extractJIIXBlockIdFromBackendActions(actionsToBackend).forEach((jiixBlockId) => {
+          this.math.clearGhostStrokes(jiixBlockId)
+        })
+        this.startOperation("Recognizing")
+        await this.client.redo(actionsToBackend)
+      }
+    } finally {
+      this.updateLayerUI()
     }
     this.updateLayerUI()
     return this.model
@@ -1503,6 +1711,34 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       this.manageError(error as Error)
       throw error
     }
+  }
+
+  /**
+   * Export content as Markdown, derived locally from the JIIX export (not a server mime type)
+   * @returns Promise resolving with the Markdown representation of the content
+   */
+  async toMarkdown(): Promise<string> {
+    const exports = await this.export([ExportType.JIIX])
+    return jiixToMarkdown(exports[ExportType.JIIX]!)
+  }
+
+  /**
+   * Export the recognized diagram as a Mermaid flowchart, derived locally from the JIIX export
+   * @returns Promise resolving with the Mermaid flowchart syntax
+   */
+  async toMermaid(): Promise<string> {
+    const exports = await this.export([ExportType.JIIX])
+    return jiixToMermaid(exports[ExportType.JIIX]!)
+  }
+
+  async toPlantUML(): Promise<string> {
+    const exports = await this.export([ExportType.JIIX])
+    return jiixToPlantUML(exports[ExportType.JIIX]!)
+  }
+
+  async toLLM(): Promise<TLLMExport> {
+    const exports = await this.export([ExportType.JIIX])
+    return jiixToLLM(exports[ExportType.JIIX]!)
   }
 
   /**
@@ -1657,7 +1893,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
         const erased = this.model.symbols
         this.renderer.clear()
         this.model.clear()
-        this.history.push(this.model, { erased })
+        this.history.push({ erased })
         this.startOperation("Recognizing")
         this.client.clear()
         this.event.emitSelected(this.model.symbolsSelected)

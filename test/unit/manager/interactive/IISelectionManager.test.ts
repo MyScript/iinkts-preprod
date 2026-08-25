@@ -11,6 +11,11 @@ import {
   TStroke,
   DecoratorOps,
   DecoratorKind,
+  EdgeArcOps,
+  TEdgeArc,
+  computePointOnEllipse,
+  IIConnectorManager,
+  ShapeCircleOps,
 } from "@/iink"
 
 describe("IISelectionManager.ts", () => {
@@ -261,6 +266,80 @@ describe("IISelectionManager.ts", () => {
 
       expect(canvas.model.selectedIds.has(stroke2.id)).toBe(false)
       expect(canvas.model.selectedIds.has(drawStroke.id)).toBe(false)
+    })
+  })
+
+  describe("expandSelectionForBlocks", () => {
+    test("selecting one stroke of a 3-stroke shape block selects all 3", () => {
+      const canvas = createCanvasMock()
+      const s1 = buildIIStroke()
+      const s2 = buildIIStroke()
+      const s3 = buildIIStroke()
+      s1.jiixBlockId = "shape-block-1"
+      s1.jiixBlockType = "Node"
+      s2.jiixBlockId = "shape-block-1"
+      s2.jiixBlockType = "Node"
+      s3.jiixBlockId = "shape-block-1"
+      s3.jiixBlockType = "Node"
+      canvas.model.addSymbol(s1)
+      canvas.model.addSymbol(s2)
+      canvas.model.addSymbol(s3)
+      canvas.model.selectedIds.add(s1.id)
+      jest.spyOn(canvas.jiix, "getStrokesForElement").mockReturnValue([s1.id, s2.id, s3.id])
+
+      const selector = new IISelectionManager(asCanvas(canvas))
+      selector.expandSelectionForBlocks()
+
+      expect(canvas.model.selectedIds.has(s2.id)).toBe(true)
+      expect(canvas.model.selectedIds.has(s3.id)).toBe(true)
+    })
+
+    test("also expands Edge-type blocks the same way", () => {
+      const canvas = createCanvasMock()
+      const s1 = buildIIStroke()
+      const s2 = buildIIStroke()
+      s1.jiixBlockId = "edge-block-1"
+      s1.jiixBlockType = "Edge"
+      s2.jiixBlockId = "edge-block-1"
+      s2.jiixBlockType = "Edge"
+      canvas.model.addSymbol(s1)
+      canvas.model.addSymbol(s2)
+      canvas.model.selectedIds.add(s1.id)
+      jest.spyOn(canvas.jiix, "getStrokesForElement").mockReturnValue([s1.id, s2.id])
+
+      const selector = new IISelectionManager(asCanvas(canvas))
+      selector.expandSelectionForBlocks()
+
+      expect(canvas.model.selectedIds.has(s2.id)).toBe(true)
+    })
+
+    test("end(): finishing a drag-select over one stroke of a shape block also selects its siblings", () => {
+      const canvas = createCanvasMock()
+      const manager = new IISelectionManager(asCanvas(canvas))
+      const s1 = buildIIStroke({ box: { height: 10, width: 10, x: 10, y: 10 } })
+      const s2 = buildIIStroke({ box: { height: 10, width: 10, x: 100, y: 100 } })
+      const s3 = buildIIStroke({ box: { height: 10, width: 10, x: 200, y: 200 } })
+      s1.jiixBlockId = "shape-block-1"
+      s1.jiixBlockType = "Node"
+      s2.jiixBlockId = "shape-block-1"
+      s2.jiixBlockType = "Node"
+      s3.jiixBlockId = "shape-block-1"
+      s3.jiixBlockType = "Node"
+      canvas.model.addSymbol(s1)
+      canvas.model.addSymbol(s2)
+      canvas.model.addSymbol(s3)
+      // getShapeSelectionGroups defaults to [] (see createCanvasMock), so continue() falls back
+      // to per-stroke bounds overlap: only s1 (under the drag rect) gets selected there. The
+      // sibling pull-in below must come from end()'s own expandSelectionForBlocks() call, not
+      // from continue()'s group-overlap logic.
+      jest.spyOn(canvas.jiix, "getStrokesForElement").mockReturnValue([s1.id, s2.id, s3.id])
+
+      manager.start({ pointer: { x: 10, y: 10 } } as TPointerInfo)
+      manager.end({ pointer: { x: 15, y: 15 } } as TPointerInfo)
+
+      expect(canvas.model.selectedIds.has(s1.id)).toBe(true)
+      expect(canvas.model.selectedIds.has(s2.id)).toBe(true)
+      expect(canvas.model.selectedIds.has(s3.id)).toBe(true)
     })
   })
 
@@ -580,6 +659,127 @@ describe("IISelectionManager.ts", () => {
       expect(manager.model.selectedIds.has(stroke.id)).toBe(true)
       expect(manager.model.selectedIds.has(decorator.id)).toBe(false)
       expect(manager.renderer.updateSelectedState).not.toHaveBeenCalledWith(decorator, true)
+    })
+  })
+
+  describe("createEdgeResizeGroup — Arc handle drag", () => {
+    function setup() {
+      const canvas = createCanvasMock()
+      const manager = new IISelectionManager(asCanvas(canvas))
+      const arc = EdgeArcOps.create({ x: 0, y: 0 }, Math.PI, -Math.PI, 5, 5, 0)
+      canvas.model.addSymbol(arc)
+      const group = (
+        manager as unknown as { createEdgeResizeGroup: (edge: TEdgeArc) => SVGGElement }
+      ).createEdgeResizeGroup(arc)
+      return { canvas, arc, group }
+    }
+
+    function dragHandle(canvas: ReturnType<typeof createCanvasMock>, group: SVGGElement, index: number, target: { x: number; y: number }) {
+      const el = group.children[index] as unknown as SVGCircleElement
+      el.dispatchEvent(new LeftClickEventMock("pointerdown", { clientX: 0, clientY: 0, pointerType: "pen", pressure: 1 }))
+      canvas.renderer.layer.dispatchEvent(
+        new LeftClickEventMock("pointermove", { clientX: target.x, clientY: target.y, pointerType: "pen", pressure: 1 })
+      )
+      canvas.renderer.layer.dispatchEvent(
+        new LeftClickEventMock("pointerup", { clientX: target.x, clientY: target.y, pointerType: "pen", pressure: 1 })
+      )
+    }
+
+    test("dragging the start handle keeps the end endpoint fixed", () => {
+      const { canvas, arc, group } = setup()
+      const endBefore = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle + arc.sweepAngle)
+
+      dragHandle(canvas, group, 0, { x: 3, y: 4 })
+
+      const endAfter = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle + arc.sweepAngle)
+      expect(endAfter.x).toBeCloseTo(endBefore.x, 1)
+      expect(endAfter.y).toBeCloseTo(endBefore.y, 1)
+    })
+
+    test("dragging the end handle keeps the start endpoint fixed", () => {
+      const { canvas, arc, group } = setup()
+      const startBefore = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle)
+
+      dragHandle(canvas, group, 2, { x: -3, y: -4 })
+
+      const startAfter = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle)
+      expect(startAfter.x).toBeCloseTo(startBefore.x, 1)
+      expect(startAfter.y).toBeCloseTo(startBefore.y, 1)
+    })
+
+    test("dragging the middle handle keeps BOTH endpoints fixed (the reported bug)", () => {
+      const { canvas, arc, group } = setup()
+      const startBefore = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle)
+      const endBefore = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle + arc.sweepAngle)
+      const radiusYBefore = arc.radiusY
+
+      dragHandle(canvas, group, 1, { x: 0, y: 20 })
+
+      const startAfter = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle)
+      const endAfter = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle + arc.sweepAngle)
+      expect(startAfter.x).toBeCloseTo(startBefore.x, 1)
+      expect(startAfter.y).toBeCloseTo(startBefore.y, 1)
+      expect(endAfter.x).toBeCloseTo(endBefore.x, 1)
+      expect(endAfter.y).toBeCloseTo(endBefore.y, 1)
+      // The bulge actually changed (not a no-op) — the fix moves curvature, not endpoints.
+      expect(arc.radiusY).not.toBeCloseTo(radiusYBefore, 1)
+    })
+
+    test("dragging the end handle out beyond the current ellipse stretches the radius and lands exactly on the drop point", () => {
+      const { canvas, arc, group } = setup()
+      const startBefore = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle)
+      const radiusYBefore = arc.radiusY
+
+      dragHandle(canvas, group, 2, { x: 10, y: 0 })
+
+      const startAfter = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle)
+      const endAfter = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle + arc.sweepAngle)
+      expect(startAfter.x).toBeCloseTo(startBefore.x, 1)
+      expect(startAfter.y).toBeCloseTo(startBefore.y, 1)
+      expect(endAfter.x).toBeCloseTo(10, 1)
+      expect(endAfter.y).toBeCloseTo(0, 1)
+      // No longer locked to the original ellipse — the radius actually stretched.
+      expect(arc.radiusY).not.toBeCloseTo(radiusYBefore, 1)
+    })
+
+    test("dragging the end handle past the start handle (crossover) keeps start fixed and lands on the drop point, no crash", () => {
+      const { canvas, arc, group } = setup()
+      const startBefore = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle)
+
+      // start is at x=-5; drop end well past it, at x=-15.
+      dragHandle(canvas, group, 2, { x: -15, y: 2 })
+
+      expect(Number.isFinite(arc.radiusX)).toBe(true)
+      expect(Number.isFinite(arc.radiusY)).toBe(true)
+      const startAfter = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle)
+      const endAfter = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle + arc.sweepAngle)
+      expect(startAfter.x).toBeCloseTo(startBefore.x, 1)
+      expect(startAfter.y).toBeCloseTo(startBefore.y, 1)
+      expect(endAfter.x).toBeCloseTo(-15, 1)
+      expect(endAfter.y).toBeCloseTo(2, 1)
+    })
+
+    test("dragging the end handle onto a shape anchors it and stretches the arc so the endpoint lands exactly on the shape's center", () => {
+      const canvas = createCanvasMock()
+      // Real connector: the stub would no-op findSymbolAtPoint/applyEndpointAnchor entirely.
+      ;(canvas as unknown as { connector: IIConnectorManager }).connector = new IIConnectorManager(asCanvas(canvas))
+      const manager = new IISelectionManager(asCanvas(canvas))
+      const arc = EdgeArcOps.create({ x: 0, y: 0 }, Math.PI, -Math.PI, 5, 5, 0)
+      canvas.model.addSymbol(arc)
+      const circle = ShapeCircleOps.create({ x: 50, y: 0 }, 20)
+      canvas.model.addSymbol(circle)
+      const group = (
+        manager as unknown as { createEdgeResizeGroup: (edge: TEdgeArc) => SVGGElement }
+      ).createEdgeResizeGroup(arc)
+
+      dragHandle(canvas, group, 2, { x: 55, y: 5 })
+
+      expect(arc.endAnchor).toEqual(
+        expect.objectContaining({ symbolId: circle.id, normalizedX: 0.5, normalizedY: 0.5 })
+      )
+      const endAfter = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle + arc.sweepAngle)
+      expect(endAfter.x).toBeCloseTo(50, 1)
+      expect(endAfter.y).toBeCloseTo(0, 1)
     })
   })
 })

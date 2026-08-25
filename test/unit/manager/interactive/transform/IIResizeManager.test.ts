@@ -4,6 +4,7 @@ import {
   EdgeArcOps,
   EdgeLineOps,
   EdgePolyLineOps,
+  IIConnectorManager,
   IIResizeManager,
   ShapeCircleOps,
   ShapeEllipseOps,
@@ -13,6 +14,7 @@ import {
   SvgElementRole,
   TSymbolChar,
   TPoint,
+  TStroke,
   TextOps,
   MatrixTransform,
   OBBOps,
@@ -438,6 +440,167 @@ describe("IIResizeManager.ts", () => {
       await manager.end({ x: sb.x + stroke.bounds.width * 2, y: sb.y + stroke.bounds.height / 2 })
 
       expect(canvas.math.applyTransformToGhostStrokes).toHaveBeenCalledWith("block-1", expect.anything())
+    })
+  })
+
+  describe("raw single-anchor edge stroke follows a resized block through the full commit path", () => {
+    test("end() permanently mutates the connected edge stroke's points (not just a preview clone)", async () => {
+      const canvas = createCanvasMock()
+      // Use the real IIConnectorManager so this exercises updateAnchoredEdges' commit path for
+      // real, not the connector stub — mirrors the analogous IITranslateManager test.
+      ;(canvas as unknown as { connector: IIConnectorManager }).connector = new IIConnectorManager(asCanvas(canvas))
+      canvas.client.transformScale = jest.fn(() => Promise.resolve())
+      const manager = new IIResizeManager(asCanvas(canvas))
+
+      const shape = ShapeCircleOps.create({ x: 50, y: 50 }, 20)
+      canvas.model.addSymbol(shape)
+      canvas.model.selectedIds.add(shape.id)
+      // The gradient-follow direction resolves the connected block's center via
+      // jiix.getStrokesForElement + model.getRootSymbol — here the "block" is just the shape itself.
+      jest.spyOn(canvas.jiix, "getStrokesForElement").mockImplementation((id) => (id === shape.id ? [shape.id] : []))
+
+      const edgeStroke = StrokeOps.create()
+      edgeStroke.pointers = [
+        { x: 0, y: 0, t: 0, p: 1 },
+        { x: 10, y: 0, t: 1, p: 1 },
+      ]
+      edgeStroke.jiixBlockType = "Edge"
+      edgeStroke.endAnchor = { symbolId: shape.id, normalizedX: 1, normalizedY: 0.5 }
+      StrokeOps.updateBounds(edgeStroke)
+      canvas.model.addSymbol(edgeStroke)
+      const originalPointers = edgeStroke.pointers.map((p) => ({ ...p }))
+
+      const sb = OBBOps.toBox(shape.bounds)
+      const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
+      group.setAttribute("role", SvgElementRole.InteractElementsGroup)
+      const resizeElement = document.createElementNS("http://www.w3.org/2000/svg", "line")
+      resizeElement.setAttribute("resize-direction", ResizeDirection.East)
+      group.appendChild(resizeElement)
+
+      const transformOrigin: TPoint = { x: sb.x, y: sb.y + shape.bounds.height / 2 }
+      const resizeToPoint: TPoint = { x: sb.x + shape.bounds.width * 2, y: sb.y + shape.bounds.height / 2 }
+
+      manager.start(resizeElement, transformOrigin)
+      const { scaleX, scaleY } = manager.continue(resizeToPoint)
+      await manager.end(resizeToPoint)
+
+      // Reconstruct the exact matrix end() applied (same scaleX/scaleY, same origin) and assert
+      // the edge stroke's points were transformed by it on a gradient — not left at their
+      // pre-resize values, and not just used to draw a transient preview clone. point[1] (10,0)
+      // is nearest the shape's center (50,50) → full weight; point[0] is farthest → unchanged.
+      const expectedMatrix = MatrixTransform.identity().scale(scaleX, scaleY, transformOrigin)
+      const transformedLast = expectedMatrix.applyToPoint(originalPointers[1])
+      const expectedPointers = [
+        originalPointers[0],
+        { ...originalPointers[1], x: +transformedLast.x.toFixed(3), y: +transformedLast.y.toFixed(3) },
+      ]
+      expect(edgeStroke.pointers).toEqual(expectedPointers)
+      expect(edgeStroke.pointers).not.toEqual(originalPointers)
+    })
+
+    test("end() commits the exact same gradient shape the drag preview showed (no pointerup snap)", async () => {
+      // Regression: the preview pass (drawAnchoredEdgesForMatrix, called from continue() before
+      // the shape has moved) and the commit pass (updateAnchoredEdges, called after applyAndDraw
+      // already resized the shape) must resolve the gradient's target center from the SAME
+      // pre-transform position. Needs a 3rd, non-extreme point: with only 2 points both always
+      // land exactly on the group's min/max (weight 0 or 1 regardless of which center is used),
+      // so the drift this test guards against wouldn't show up.
+      const canvas = createCanvasMock()
+      ;(canvas as unknown as { connector: IIConnectorManager }).connector = new IIConnectorManager(asCanvas(canvas))
+      canvas.client.transformScale = jest.fn(() => Promise.resolve())
+      const manager = new IIResizeManager(asCanvas(canvas))
+
+      const shape = ShapeCircleOps.create({ x: 50, y: 50 }, 20)
+      canvas.model.addSymbol(shape)
+      canvas.model.selectedIds.add(shape.id)
+      jest.spyOn(canvas.jiix, "getStrokesForElement").mockImplementation((id) => (id === shape.id ? [shape.id] : []))
+
+      const edgeStroke = StrokeOps.create()
+      edgeStroke.pointers = [
+        { x: 0, y: 0, t: 0, p: 1 },
+        { x: 5, y: 0, t: 1, p: 1 },
+        { x: 10, y: 0, t: 2, p: 1 },
+      ]
+      edgeStroke.jiixBlockType = "Edge"
+      edgeStroke.endAnchor = { symbolId: shape.id, normalizedX: 1, normalizedY: 0.5 }
+      StrokeOps.updateBounds(edgeStroke)
+      canvas.model.addSymbol(edgeStroke)
+
+      const sb = OBBOps.toBox(shape.bounds)
+      const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
+      group.setAttribute("role", SvgElementRole.InteractElementsGroup)
+      const resizeElement = document.createElementNS("http://www.w3.org/2000/svg", "line")
+      resizeElement.setAttribute("resize-direction", ResizeDirection.East)
+      group.appendChild(resizeElement)
+
+      const transformOrigin: TPoint = { x: sb.x, y: sb.y + shape.bounds.height / 2 }
+      const resizeToPoint: TPoint = { x: sb.x + shape.bounds.width * 2, y: sb.y + shape.bounds.height / 2 }
+
+      manager.start(resizeElement, transformOrigin)
+      await manager.end(resizeToPoint)
+
+      // First drawSymbol call for this id is the preview clone (from continue(), before the
+      // shape moved) — must match the final, committed points exactly.
+      const previewClone = (canvas.renderer.drawSymbol as jest.Mock).mock.calls.find(
+        (c) => (c[0] as { id: string }).id === edgeStroke.id
+      )![0] as typeof edgeStroke
+      expect(edgeStroke.pointers).toEqual(previewClone.pointers)
+    })
+
+    test("end() sends the followed edge stroke's new content via replaceStrokes and snapshots it in history's updated entry", async () => {
+      const canvas = createCanvasMock()
+      ;(canvas as unknown as { connector: IIConnectorManager }).connector = new IIConnectorManager(asCanvas(canvas))
+      jest.spyOn(canvas.jiix, "getStrokesForElement").mockReturnValue([])
+      canvas.client.transformScale = jest.fn(() => Promise.resolve())
+      canvas.client.replaceStrokes = jest.fn(() => Promise.resolve())
+      const manager = new IIResizeManager(asCanvas(canvas))
+
+      const shape = ShapeCircleOps.create({ x: 50, y: 50 }, 20)
+      canvas.model.addSymbol(shape)
+      canvas.model.selectedIds.add(shape.id)
+
+      const edgeStroke = StrokeOps.create()
+      edgeStroke.pointers = [
+        { x: 0, y: 0, t: 0, p: 1 },
+        { x: 10, y: 0, t: 1, p: 1 },
+      ]
+      edgeStroke.jiixBlockType = "Edge"
+      edgeStroke.endAnchor = { symbolId: shape.id, normalizedX: 1, normalizedY: 0.5 }
+      StrokeOps.updateBounds(edgeStroke)
+      canvas.model.addSymbol(edgeStroke)
+      const originalPointers = edgeStroke.pointers.map((p) => ({ ...p }))
+
+      const sb = OBBOps.toBox(shape.bounds)
+      const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
+      group.setAttribute("role", SvgElementRole.InteractElementsGroup)
+      const resizeElement = document.createElementNS("http://www.w3.org/2000/svg", "line")
+      resizeElement.setAttribute("resize-direction", ResizeDirection.East)
+      group.appendChild(resizeElement)
+
+      const transformOrigin: TPoint = { x: sb.x, y: sb.y + shape.bounds.height / 2 }
+      const resizeToPoint: TPoint = { x: sb.x + shape.bounds.width * 2, y: sb.y + shape.bounds.height / 2 }
+
+      manager.start(resizeElement, transformOrigin)
+      await manager.end(resizeToPoint)
+
+      // Gradient-followed (single anchor): reshaped non-uniformly, so it must never be folded
+      // into the uniform transformScale call — its full new content goes via replaceStrokes.
+      const sentIds = (canvas.client.transformScale as jest.Mock).mock.calls[0][0] as string[]
+      expect(sentIds).not.toContain(edgeStroke.id)
+      expect(canvas.client.replaceStrokes).toHaveBeenCalledWith([edgeStroke.id], [edgeStroke])
+
+      // History needs a PRE-transform snapshot of the followed stroke, else undo can't restore
+      // it — but since a gradient shift isn't a uniform scale, it lives in `updated`, not the
+      // `scale` entry's own inverse-matrix-replay symbol list.
+      const changes = (canvas.history.push as jest.Mock).mock.calls[0][0] as {
+        scale: { symbols: TStroke[] }[]
+        updated?: { oldSymbols: TStroke[]; newSymbols: TStroke[] }
+      }
+      expect(changes.scale[0].symbols.find((s) => s.id === edgeStroke.id)).toBeUndefined()
+      const oldSnapshot = changes.updated?.oldSymbols.find((s) => s.id === edgeStroke.id)
+      expect(oldSnapshot).toBeDefined()
+      expect(oldSnapshot!.pointers).toEqual(originalPointers)
+      expect(changes.updated?.newSymbols.find((s) => s.id === edgeStroke.id)).toBe(edgeStroke)
     })
   })
 })

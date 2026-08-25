@@ -2,10 +2,13 @@ import { buildIIStroke } from "../../helpers"
 import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
 import {
   IISynchronizerManager,
+  JIIXEdgeKind,
   JIIXElementType,
+  TJIIXEdgeElement,
   TJIIXElement,
   TJIIXExport,
   TJIIXMathElement,
+  TJIIXNodeElement,
   TJIIXTextElement,
   TStroke,
 } from "@/iink"
@@ -26,6 +29,34 @@ function buildTextElement(id: string, strokeId: string): TJIIXTextElement {
       },
     ],
   }
+}
+
+function buildEdgeElement(id: string, strokeId: string, connected?: string[], ports?: number[]): TJIIXEdgeElement {
+  return {
+    type: JIIXElementType.Edge,
+    id,
+    kind: JIIXEdgeKind.Line,
+    x1: 0,
+    y1: 0,
+    x2: 10,
+    y2: 0,
+    connected,
+    ports,
+    items: [{ type: "stroke", id: `item-${id}`, "full-id": strokeId }],
+  } as unknown as TJIIXEdgeElement
+}
+
+function buildNodeElement(id: string, strokeId: string): TJIIXNodeElement {
+  return {
+    type: JIIXElementType.Node,
+    id,
+    kind: "rectangle",
+    x: 100,
+    y: -10,
+    width: 20,
+    height: 20,
+    items: [{ type: "stroke", id: `item-${id}`, "full-id": strokeId }],
+  } as unknown as TJIIXNodeElement
 }
 
 function buildJiixExport(elements: TJIIXElement[]): TJIIXExport {
@@ -245,6 +276,104 @@ describe("IISynchronizerManager.ts", () => {
       // First pass: superseded before the backend answered - discarded.
       // Redo pass (triggered by #dirtyDuringSync): fresh, nothing pending after it.
       expect(isStaleResultsPerPass).toEqual([true, false])
+    })
+  })
+
+  describe("synchronize() — edge connections", () => {
+    test("edge element with connected[] → strokes get startAnchor/endAnchor", async () => {
+      const canvas = createCanvasMock()
+      const edgeStroke = buildIIStroke()
+      // Edge's own endpoints are extracted from its JIIX geometry (x1=0,y1=0 → x2=10mm,y2=0 →
+      // ~37.8px). Position the node's live bounds near the edge's *end* point so the
+      // nearest-endpoint resolution in resolveConnectionAnchors deterministically picks "end".
+      const nodeStroke = buildIIStroke({ box: { x: 35, y: -2, width: 6, height: 6 } })
+      canvas.model.addSymbol(edgeStroke)
+      canvas.model.addSymbol(nodeStroke)
+
+      const nodeEl = buildNodeElement("node-1", nodeStroke.id)
+      const edgeEl = buildEdgeElement("edge-1", edgeStroke.id, ["node-1"], [0])
+      const jiixExport = buildJiixExport([nodeEl, edgeEl])
+      canvas.export = jest.fn().mockImplementation(async () => {
+        canvas.model.exports = { "application/vnd.myscript.jiix": jiixExport }
+      })
+      jest.spyOn(canvas.jiix, "getStrokesForElement").mockImplementation((id: string) =>
+        id === "node-1" ? [nodeStroke.id] : []
+      )
+
+      const manager = new IISynchronizerManager(asCanvas(canvas))
+      await manager.synchronize()
+
+      expect(edgeStroke.endAnchor?.symbolId).toBe("node-1")
+      expect(edgeStroke.startAnchor).toBeUndefined()
+    })
+
+    test("edge element with no connected[] clears any previously-set anchor (live-truth overwrite)", async () => {
+      const canvas = createCanvasMock()
+      const edgeStroke = buildIIStroke()
+      edgeStroke.endAnchor = { symbolId: "stale-block", normalizedX: 0.5, normalizedY: 0.5 }
+      canvas.model.addSymbol(edgeStroke)
+
+      const edgeEl = buildEdgeElement("edge-1", edgeStroke.id)
+      const jiixExport = buildJiixExport([edgeEl])
+      canvas.export = jest.fn().mockImplementation(async () => {
+        canvas.model.exports = { "application/vnd.myscript.jiix": jiixExport }
+      })
+
+      const manager = new IISynchronizerManager(asCanvas(canvas))
+      await manager.synchronize()
+
+      expect(edgeStroke.startAnchor).toBeUndefined()
+      expect(edgeStroke.endAnchor).toBeUndefined()
+    })
+
+    test("connected[] changes between syncs → anchor is not sticky, reflects the latest JIIX truth", async () => {
+      const canvas = createCanvasMock()
+      const edgeStroke = buildIIStroke()
+      // Both node targets sit near the edge's *end* point (see the first test's comment for why),
+      // so each sync deterministically resolves to endAnchor - only the targetId should change.
+      const nodeAStroke = buildIIStroke({ box: { x: 35, y: -2, width: 6, height: 6 } })
+      const nodeBStroke = buildIIStroke({ box: { x: 35, y: -2, width: 6, height: 6 } })
+      canvas.model.addSymbol(edgeStroke)
+      canvas.model.addSymbol(nodeAStroke)
+      canvas.model.addSymbol(nodeBStroke)
+
+      const nodeAEl = buildNodeElement("node-a", nodeAStroke.id)
+      const nodeBEl = buildNodeElement("node-b", nodeBStroke.id)
+      // Same edge element id and same edge stroke across both syncs - only `connected` differs.
+      const edgeElConnectedToA = buildEdgeElement("edge-1", edgeStroke.id, ["node-a"], [0])
+      const edgeElConnectedToB = buildEdgeElement("edge-1", edgeStroke.id, ["node-b"], [0])
+
+      jest.spyOn(canvas.jiix, "getStrokesForElement").mockImplementation((id: string) => {
+        if (id === "node-a") return [nodeAStroke.id]
+        if (id === "node-b") return [nodeBStroke.id]
+        return []
+      })
+
+      canvas.export = jest
+        .fn()
+        .mockImplementationOnce(async () => {
+          canvas.model.exports = {
+            "application/vnd.myscript.jiix": buildJiixExport([nodeAEl, edgeElConnectedToA]),
+          }
+        })
+        .mockImplementationOnce(async () => {
+          canvas.model.exports = {
+            "application/vnd.myscript.jiix": buildJiixExport([nodeBEl, edgeElConnectedToB]),
+          }
+        })
+
+      const manager = new IISynchronizerManager(asCanvas(canvas))
+
+      await manager.synchronize()
+      expect(edgeStroke.endAnchor?.symbolId).toBe("node-a")
+
+      // Second sync: same edge element id/content fingerprint (label/words/chars/lines are all
+      // absent on Edge elements, and jiixBlockId is already set) - the pre-existing
+      // metadata-caching gate would treat this as "unchanged" and skip re-processing, which is
+      // exactly why #syncEdgeConnections must run unconditionally, outside that gate.
+      await manager.synchronize()
+      expect(edgeStroke.endAnchor?.symbolId).toBe("node-b")
+      expect(edgeStroke.startAnchor).toBeUndefined()
     })
   })
 })

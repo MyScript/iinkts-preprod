@@ -1,11 +1,12 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import type { TIIHistoryChanges } from "@/history"
 import type { TEdge, TMath, TPoint, TShape, TStroke, TText } from "@/symbol"
 import { cloneSymbol, EdgeKind, ShapeKind } from "@/symbol"
 import { EdgeOps } from "@/symbol/edge/Edge"
 import { BoxOps } from "@/symbol/primitives/Box"
 import { type TOBB } from "@/symbol/primitives/OBB"
 import { ShapeOps } from "@/symbol/shape/Shape"
-import { StrokeOps } from "@/symbol/stroke/Stroke"
+import { isStroke, StrokeOps } from "@/symbol/stroke/Stroke"
 import { MatrixTransform } from "@/transform"
 import { computeAngleRadian, convertDegreeToRadian, convertRadianToDegree, TWO_PI } from "@/utils"
 
@@ -158,7 +159,17 @@ export class IIRotationManager extends IIAbstractTransformManager {
     this.canvas.endOperation("Rotating")
     const angleDegree = this.continue(point)
     const angleRad = convertDegreeToRadian(angleDegree) % TWO_PI
-    const oldSymbols = this.model.symbolsSelected.map((s) => cloneSymbol(s))
+    // Queried before anything is mutated: the pre-convert edge strokes that will rigidly follow
+    // this rotation need a pre-transform snapshot in history, like the selection itself. Gradient-
+    // followed strokes are excluded — their shift isn't a uniform rotation, so they get their own
+    // pre-mutation snapshot via `updated` below instead, like the anchored converted edges.
+    const followedStrokeIds = this.canvas.connector.getRigidFollowedStrokeIds(
+      this.model.symbolsSelected.map((s) => s.id)
+    )
+    const oldSymbols = [
+      ...this.model.symbolsSelected,
+      ...this.resolveFollowedSymbols(followedStrokeIds, this.model.symbolsSelected),
+    ].map((s) => cloneSymbol(s))
     const matrix = MatrixTransform.identity().rotate(angleRad, this.center)
     const preTransformBoundsById = new Map<string, TOBB>()
     this.model.symbolsSelected.forEach((s) => {
@@ -172,19 +183,30 @@ export class IIRotationManager extends IIAbstractTransformManager {
     })
     this.applyAndDraw(this.model.symbolsSelected, matrix)
     this.applyTransformToGhostStrokesForSelectedMath(this.model.symbolsSelected, matrix)
-    this.canvas.connector.updateAnchoredEdges(
-      this.model.symbolsSelected.map((s) => s.id),
-      matrix,
-      preTransformBoundsById
-    )
+    const { oldSymbols: anchoredOldSymbols, newSymbols: anchoredNewSymbols } =
+      this.canvas.connector.updateAnchoredEdges(
+        this.model.symbolsSelected.map((s) => s.id),
+        matrix,
+        preTransformBoundsById
+      )
     const strokesFromSymbols = this.canvas.extractStrokesFromSymbols(this.model.symbolsSelected)
-    await this.canvas.client.transformRotate(
-      strokesFromSymbols.map((s) => s.id),
-      angleRad,
-      this.center.x,
-      this.center.y
-    )
-    this.canvas.history.push(this.model, {
+    // Gradient-followed strokes were reshaped non-uniformly, so their full new content must be
+    // sent via replaceStrokes instead of asking the backend to apply this rotation itself.
+    const gradientStrokeReplacements = anchoredNewSymbols
+      .map((newSymbol, i) => ({ oldSymbol: anchoredOldSymbols[i], newSymbol }))
+      .filter((pair): pair is { oldSymbol: TStroke; newSymbol: TStroke } => isStroke(pair.newSymbol))
+    await Promise.all([
+      this.canvas.client.transformRotate(
+        [...new Set([...strokesFromSymbols.map((s) => s.id), ...followedStrokeIds])],
+        angleRad,
+        this.center.x,
+        this.center.y
+      ),
+      ...gradientStrokeReplacements.map(({ oldSymbol, newSymbol }) =>
+        this.canvas.client.replaceStrokes([oldSymbol.id], [newSymbol])
+      ),
+    ])
+    const changes: TIIHistoryChanges = {
       rotate: [
         {
           symbols: oldSymbols,
@@ -192,7 +214,14 @@ export class IIRotationManager extends IIAbstractTransformManager {
           center: { ...this.center },
         },
       ],
-    })
+    }
+    // Converted Line/PolyEdge/Arc anchors are recomputed from the target's new bounds, and
+    // gradient-followed raw strokes are reshaped non-uniformly — neither has an inverse-rotation
+    // to replay on undo, so both need their pre-mutation snapshot restored directly via `updated`.
+    if (anchoredNewSymbols.length) {
+      changes.updated = { oldSymbols: anchoredOldSymbols, newSymbols: anchoredNewSymbols }
+    }
+    this.canvas.history.push(changes)
     this.finalizeTransform()
   }
 }

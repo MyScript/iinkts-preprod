@@ -19,6 +19,7 @@ import type {
   IITransformManager,
   IITypesetManager,
   IIWriterManager,
+  TPDFExportDialogOptions,
 } from "@/manager"
 import type { IIMenuManager } from "@/menu"
 import type { IIModel, TExport } from "@/model"
@@ -27,7 +28,7 @@ import type { TIIRendererConfiguration } from "@/renderer"
 import type { TStyle } from "@/style"
 import type { TBaseSymbol, TBox, TStroke, TSymbol } from "@/symbol"
 import type { SymbolUtil } from "@/symbol-utils/SymbolUtil"
-import type { TPartialDeep } from "@/utils"
+import type { TLLMExport, TPartialDeep } from "@/utils"
 
 import type { TCanvasOperationLabel } from "./AbstractCanvas"
 import type { CanvasEvent, TCanvasConnectionState } from "./CanvasEvent"
@@ -124,6 +125,10 @@ export type TInteractiveInkCanvas = {
 
   // ── Recognition / conversion ──────────────────────────────────────
   export(mimeTypes?: string[]): Promise<TExport>
+  toMarkdown(): Promise<string>
+  toMermaid(): Promise<string>
+  toPlantUML(): Promise<string>
+  toLLM(): Promise<TLLMExport>
   convert(symbols?: TSymbol[]): Promise<void>
   changeLanguage(code: string): Promise<void>
 
@@ -132,6 +137,7 @@ export type TInteractiveInkCanvas = {
   downloadAsPNG(selection?: boolean): void
   downloadAsJson(selection?: boolean): void
   downloadAsText(selection?: boolean): void
+  printAsPDF(selection?: boolean, options?: Partial<TPDFExportDialogOptions>): void
 
   // ── Symbol plugin registry ────────────────────────────────────────
   registerSymbolUtil<T extends TBaseSymbol>(util: SymbolUtil<T>): void

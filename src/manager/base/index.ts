@@ -7,3 +7,4 @@
 export * from "./AbstractWriterManager"
 export * from "./ColorPaletteManager"
 export * from "./EraseManager"
+export * from "./PDFExportManager"

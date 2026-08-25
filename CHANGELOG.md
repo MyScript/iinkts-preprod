@@ -1,3 +1,57 @@
+# [v5.0.0](https://github.com/MyScript/iinkTS/tree/v5.0.0)
+
+See [MIGRATION.md](./MIGRATION.md) for step-by-step upgrade instructions.
+
+## Breaking Changes
+
+### History: diff-only undo/redo
+History entries no longer store a full `Model`/`IIModel` snapshot — only the diff needed to undo/redo, cutting the cost of pushing entries on large documents.
+- `TIHistoryStackItem`/`TIIHistoryStackItem` removed
+- `history.push(model, changes)` → `history.push(changes)`
+- `undo()`/`redo()` return `TIHistoryChanges`/`TIIHistoryChanges` directly instead of `{ model, changes }`
+- `IHistoryManager.updateModelStack()`/`IIHistoryManager.update()` removed (no snapshot left to sync)
+- `TIIHistoryChanges.updated`: `TSymbol[]` → `{ oldSymbols, newSymbols }`
+- `TIIHistoryChanges.style`: `{ style?, fontSize? }` → `{ oldStyles?, newStyles?, oldFontSizes?, newFontSizes? }`
+- `InteractiveInkCanvas.undo()`/`redo()` replay the returned changes on the live model instead of swapping in a cloned snapshot; local replay is independent from the backend replay message
+
+### Shape ↔ edge connections
+- `IIConnectorManager.updateAnchoredEdges()` returns `TAnchoredEdgesUpdateResult` (ids of the pre-convert edge strokes it moved) instead of `void` — callers must include them in their history entry and backend transform message
+
+### Bug Fixes
+
+- fix(history): `IIHistoryManager` now correctly restores the previous style when reversing a `style` change (was a no-op)
+- fix(history): `IIHistoryManager` populates `possibleUndoCount`
+
+## Features
+
+### Shape ↔ edge connections
+- feat(connector): edges follow their connected shape when it is translated/resized/rotated, before Convert (raw ink strokes) as well as after (`TEdgeLine`/`TEdgePolyLine`/`TEdgeArc` with `startAnchor`/`endAnchor`)
+- feat(connector): new `IIConnectorManager.getFollowedStrokeIds(symbolIds)` — read-only counterpart of the rigid-follow pass, for callers needing the id list before mutating anything
+
+## Features
+
+### Export
+- feat(export): `InteractiveInkCanvas.toMarkdown()` — converts the current content to Markdown, derived locally from the JIIX export (`src/utils/toMarkdown.ts`, `jiixToMarkdown`). Not a server mime type: Text elements become paragraphs, Math elements are wrapped in `$$...$$`; diagram Node/Edge elements are skipped
+- feat(export): `InteractiveInkCanvas.toMarkdown()` — converts the current content to Markdown, derived locally from the JIIX export (`src/utils/toMarkdown.ts`, `jiixToMarkdown`). Not a server mime type: Text elements become paragraphs, Math elements are wrapped in `$$...$$`; diagram Node/Edge elements are skipped
+- feat(export): `InteractiveInkCanvas.toMermaid()` — converts a recognized diagram to Mermaid flowchart syntax, derived locally from the JIIX export (`src/utils/toMermaid.ts`, `jiixToMermaid`). Node shape kind maps to the closest native Mermaid shape (rectangle/circle/ellipse/rhombus/parallelogram; triangle and polygon fall back to a rectangle, no native Mermaid equivalent). Edge connectivity is resolved geometrically — an edge's endpoints (Line/PolyEdge/Arc, the latter via `computePointOnEllipse`) are matched against node bounding boxes, since JIIX diagram exports carry no explicit node/edge id references (the `connected`/`ports` fields exist in the wire format but are always empty today).
+
+### PDF export via native browser print
+- feat(canvas): add `InteractiveInkCanvas.printAsPDF(selection?, options?)` — prints the current content (or only the selected symbols) as PDF via the browser's native print dialog. Called with no `options`, opens a settings dialog (page format/orientation/page mode/scale) first, same as the Export menu; called with a partial `options` object, prints immediately with those values (defaults filled in for anything omitted), skipping the dialog — for programmatic callers
+- feat(manager): new `PDFExportManager` (`src/manager/base/`, constructor `(canvas: TInteractiveInkCanvas | InkCanvas)`) — builds the print-only DOM/CSS layer, computes page format/orientation/scale-to-page-count (`computePageCount`, `computeFitToPageScale`, `getPageDimensionsMm`), single-page fit-to-scale and multi-page tiled print modes (`buildSinglePagePrintContainer`/`buildMultiPagePrintContainer`), the settings dialog (`openExportDialog`, reusing `Modal.ts` form fields), and print orchestration (`print()`); exposes `TPDFPageFormat`, `TPDFOrientation`, `TPDFPageMode`, `TPDFExportDialogOptions`, `TPDFPageOptions`, `TPDFPageCount`, `TPDFPageSizeMm` and `PDFExportManager.DEFAULT_OPTIONS`
+- feat(menu): add "PDF" entry to `ExportMenuAction`/`ExportContextMenu` (`pdf?: boolean` in `TExportActionItemsConfig`/`TContextExportItemsConfig`, enabled by default)
+
+### Shape ↔ edge connections
+- feat(connector): edges follow their connected shape when it is translated/resized/rotated, before Convert (raw ink strokes) as well as after (`TEdgeLine`/`TEdgePolyLine`/`TEdgeArc` with `startAnchor`/`endAnchor`)
+- refactor(connector): **BREAKING** `IIConnectorManager.updateAnchoredEdges()` now returns `string[]` (ids of the pre-convert edge strokes it moved) instead of `void`; callers must include them in their history entry and backend transform message
+- feat(connector): new `IIConnectorManager.getFollowedStrokeIds(symbolIds)` — read-only counterpart of the rigid-follow pass, for callers needing the id list before mutating anything
+
+## Features
+
+### Shape ↔ edge connections
+- feat(connector): edges follow their connected shape when it is translated/resized/rotated, before Convert (raw ink strokes) as well as after (`TEdgeLine`/`TEdgePolyLine`/`TEdgeArc` with `startAnchor`/`endAnchor`)
+- refactor(connector): **BREAKING** `IIConnectorManager.updateAnchoredEdges()` now returns `string[]` (ids of the pre-convert edge strokes it moved) instead of `void`; callers must include them in their history entry and backend transform message
+- feat(connector): new `IIConnectorManager.getFollowedStrokeIds(symbolIds)` — read-only counterpart of the rigid-follow pass, for callers needing the id list before mutating anything
+
 # [v4.1.0](https://github.com/MyScript/iinkTS/tree/v4.1.0)
 
 ## Features
@@ -9,7 +63,6 @@
 
 ### virtualization
 - throttle pan and cull off-screen symbols on large documents
-
 
 # [v4.0.0](https://github.com/MyScript/iinkTS/tree/v4.0.0)
 

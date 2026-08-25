@@ -183,6 +183,16 @@ export type TJIIXNodeElement =
  */
 export type TJIIXEdgeElementBase<K = string> = TJIIXElementBase<JIIXElementType.Edge> & {
   kind: K
+  /**
+   * @remarks IDs of the Node elements this edge connects, in `ports` order. Populated by the
+   * server for diagrams with more than one shape; empty for a standalone edge with nothing to
+   * connect to.
+   */
+  connected?: string[]
+  /**
+   * @remarks Port index on each connected node, parallel to `connected`
+   */
+  ports?: number[]
 }
 
 /**

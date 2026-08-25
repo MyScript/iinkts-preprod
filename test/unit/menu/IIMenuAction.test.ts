@@ -32,6 +32,19 @@ describe("IIMenuAction.ts", () => {
     test("should render menu snap", () => {
       expect(canvas.layers.ui.root.querySelector("#ms-menu-action-snap")).not.toBeNull()
     })
+    test("should render menu diagram", () => {
+      expect(canvas.layers.ui.root.querySelector("#ms-menu-action-diagram")).not.toBeNull()
+    })
+    test("should toggle canvas.connector.connectorConfiguration.followConnectedEdges via the diagram checkbox", () => {
+      expect(canvas.connector.connectorConfiguration.followConnectedEdges).toBe(true)
+      const checkbox = canvas.layers.ui.root.querySelector(
+        "#ms-menu-action-diagram-follow-connected-edges-input"
+      ) as HTMLInputElement
+      expect(checkbox).not.toBeNull()
+      checkbox.checked = false
+      checkbox.dispatchEvent(new ChangeEventMock({ target: checkbox }))
+      expect(canvas.connector.connectorConfiguration.followConnectedEdges).toBe(false)
+    })
     test("should render menu clear", () => {
       expect(canvas.layers.ui.root.querySelector("#ms-menu-action-clear")).not.toBeNull()
     })

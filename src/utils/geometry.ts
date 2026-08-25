@@ -182,7 +182,9 @@ export function computeAngleFromPointOnEllipse(
   const sinPhi = Math.sin(phi)
   const rotatedX = cosPhi * dx + sinPhi * dy
   const rotatedY = -sinPhi * dx + cosPhi * dy
-  return Math.atan2(rotatedY / radiusY, rotatedX / radiusX)
+  const rx = radiusX || 1
+  const ry = radiusY || 1
+  return Math.atan2(rotatedY / ry, rotatedX / rx)
 }
 
 /**

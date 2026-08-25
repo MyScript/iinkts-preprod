@@ -250,7 +250,21 @@ export function createCanvasMock(overrides: Partial<TCanvasMock> = {}): TCanvasM
           .mockReturnValue({ showDependencyOnHover: false, highlightOnSelect: false })
         return m
       })(),
-    connector: overrides.connector ?? stubManager(),
+    connector:
+      overrides.connector ??
+      (() => {
+        const c = stubManager()
+        // getFollowedStrokeIds returns ids (callers spread the result); updateAnchoredEdges
+        // returns { rigidStrokeIds, oldSymbols, newSymbols } — callers destructure it, so the
+        // stub must hand back that shape, not the auto-stub's undefined.
+        ;(c as unknown as Record<string, unknown>).updateAnchoredEdges = jest
+          .fn()
+          .mockReturnValue({ rigidStrokeIds: [], oldSymbols: [], newSymbols: [] })
+        ;(c as unknown as Record<string, unknown>).getFollowedStrokeIds = jest.fn().mockReturnValue([])
+        ;(c as unknown as Record<string, unknown>).getRigidFollowedStrokeIds = jest.fn().mockReturnValue([])
+        ;(c as unknown as Record<string, unknown>).connectorConfiguration = { followConnectedEdges: true }
+        return c
+      })(),
     menu:
       overrides.menu ??
       (() => {
@@ -339,6 +353,7 @@ export function createCanvasMock(overrides: Partial<TCanvasMock> = {}): TCanvasM
     downloadAsPNG: jest.fn(),
     downloadAsJson: jest.fn(),
     downloadAsText: jest.fn(),
+    printAsPDF: jest.fn(),
     clear: jest.fn().mockResolvedValue(undefined),
     destroy: jest.fn().mockResolvedValue(undefined),
     resize: jest.fn().mockResolvedValue(undefined),
