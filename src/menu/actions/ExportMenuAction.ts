@@ -9,6 +9,7 @@ export type TExportActionItemsConfig = {
   svg?: boolean
   png?: boolean
   text?: boolean
+  pdf?: boolean
 }
 /** @group Menu */
 export type TExportActionConfig = boolean | TExportActionItemsConfig
@@ -61,6 +62,14 @@ export class ExportMenuAction extends SubMenuItem {
         id: `${idPrefix}-export-text`,
         label: "Text",
         action: (e) => e.downloadAsText(),
+      })
+    }
+    if (enabled("pdf")) {
+      config.items.push({
+        type: "button",
+        id: `${idPrefix}-export-pdf`,
+        label: "PDF",
+        action: (e) => e.printAsPDF(),
       })
     }
 

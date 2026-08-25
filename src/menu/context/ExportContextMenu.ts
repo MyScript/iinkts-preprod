@@ -8,6 +8,7 @@ export type TContextExportItemsConfig = {
   svg?: boolean
   png?: boolean
   text?: boolean
+  pdf?: boolean
 }
 /** @group Menu */
 export type TContextExportConfig = boolean | TContextExportItemsConfig
@@ -58,6 +59,14 @@ export class ExportContextMenu extends SubMenuItem {
         type: "button",
         label: "text",
         action: () => canvas.downloadAsText(canvas.model.symbolsSelected.length > 0),
+      })
+    }
+    if (enabled("pdf")) {
+      config.items.push({
+        id: `${idPrefix}-export-pdf`,
+        type: "button",
+        label: "pdf",
+        action: () => canvas.printAsPDF(canvas.model.symbolsSelected.length > 0),
       })
     }
 

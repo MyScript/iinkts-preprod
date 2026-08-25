@@ -35,14 +35,14 @@ export class UnderlineGestureHandler extends GestureHandler {
           decoratorKind: DecoratorKind.Underline,
         })
         if (changes) {
-          this.history.push(this.model, changes)
+          this.history.push(changes)
         }
         break
       }
       case UnderlineAction.Thicken: {
         const changes = await this.processor.apply(gesture.strokeIds, { kind: "thicken", factor: 2 })
         if (changes) {
-          this.history.push(this.model, changes)
+          this.history.push(changes)
         }
         break
       }

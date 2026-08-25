@@ -1,9 +1,11 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import type { TIIHistoryChanges } from "@/history"
 import type { TEdge, TMath, TPoint, TShape, TStroke, TSymbol, TText } from "@/symbol"
 import { EdgeKind, ShapeKind } from "@/symbol"
 import { EdgeOps } from "@/symbol/edge/Edge"
+import { type TOBB } from "@/symbol/primitives/OBB"
 import { ShapeOps } from "@/symbol/shape/Shape"
-import { StrokeOps } from "@/symbol/stroke/Stroke"
+import { isStroke, StrokeOps } from "@/symbol/stroke/Stroke"
 import { MatrixTransform } from "@/transform"
 
 import { IIAbstractTransformManager } from "./AbstractTransformManager"
@@ -107,27 +109,64 @@ export class IITranslateManager extends IIAbstractTransformManager {
       ty,
     })
     this.canvas.connector.clearAnchoredEdgesFor(symbols)
+    // Snapshotted before applyAndDraw mutates `symbols` below: gradient-follow needs the
+    // moving target's PRE-transform center (same reference point the drag preview used), not
+    // its already-moved bounds, or the committed shape would snap to a different form than
+    // what was just shown while dragging.
+    const preTransformBoundsById = new Map<string, TOBB>()
+    symbols.forEach((s) => {
+      const bounds = (s as unknown as { bounds?: TOBB }).bounds
+      if (bounds) {
+        preTransformBoundsById.set(s.id, { ...bounds, center: { ...bounds.center } })
+      }
+    })
     const matrix = MatrixTransform.identity().translate(tx, ty)
     this.applyAndDraw(symbols, matrix)
     this.applyTransformToGhostStrokesForSelectedMath(symbols, matrix)
-    this.canvas.connector.updateAnchoredEdges(symbols.map((s) => s.id))
+    // Pre-convert edge strokes and converted Line/PolyEdge/Arc anchors moved by the connector,
+    // not by applyAndDraw above. Rigidly-moved raw strokes ride along in this method's own
+    // `translate` history entry (a uniform matrix is safe to undo by re-applying its inverse);
+    // everything else (gradient-moved raw strokes, converted edges recomputed from the target's
+    // new bounds) needs its own pre-mutation snapshot instead — see `updated` below.
+    const {
+      rigidStrokeIds,
+      oldSymbols: anchoredOldSymbols,
+      newSymbols: anchoredNewSymbols,
+    } = this.canvas.connector.updateAnchoredEdges(
+      symbols.map((s) => s.id),
+      matrix,
+      preTransformBoundsById
+    )
     if (addToHistory) {
-      this.canvas.history.push(this.model, {
+      const historySymbols = this.model.symbolsSelected
+      const changes: TIIHistoryChanges = {
         translate: [
           {
-            symbols: this.model.symbolsSelected,
+            symbols: [...historySymbols, ...this.resolveFollowedSymbols(rigidStrokeIds, historySymbols)],
             tx,
             ty,
           },
         ],
-      })
+      }
+      if (anchoredNewSymbols.length) {
+        changes.updated = { oldSymbols: anchoredOldSymbols, newSymbols: anchoredNewSymbols }
+      }
+      this.canvas.history.push(changes)
     }
     const strokes = this.canvas.extractStrokesFromSymbols(symbols)
-    return this.canvas.client.transformTranslate(
-      strokes.map((s) => s.id),
-      tx,
-      ty
-    )
+    // Gradient-followed strokes were reshaped non-uniformly (their points didn't all move by the
+    // same tx/ty), so their full new content must be sent via replaceStrokes instead of asking
+    // the backend to apply this uniform translate itself — only raw strokes are meaningful to
+    // the backend at all, so converted Line/PolyEdge/Arc symbols never appear in either call.
+    const gradientStrokeReplacements = anchoredNewSymbols
+      .map((newSymbol, i) => ({ oldSymbol: anchoredOldSymbols[i], newSymbol }))
+      .filter((pair): pair is { oldSymbol: TStroke; newSymbol: TStroke } => isStroke(pair.newSymbol))
+    return Promise.all([
+      this.canvas.client.transformTranslate([...new Set([...strokes.map((s) => s.id), ...rigidStrokeIds])], tx, ty),
+      ...gradientStrokeReplacements.map(({ oldSymbol, newSymbol }) =>
+        this.canvas.client.replaceStrokes([oldSymbol.id], [newSymbol])
+      ),
+    ]).then(() => undefined)
   }
 
   translateElement(id: string, tx: number, ty: number): void {

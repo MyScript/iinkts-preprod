@@ -1,5 +1,6 @@
 export * from "./ClearMenuAction"
 export * from "./ConvertMenuAction"
+export * from "./DiagramMenuAction"
 export * from "./ExportMenuAction"
 export * from "./GestureMenuAction"
 export * from "./GuideMenuAction"

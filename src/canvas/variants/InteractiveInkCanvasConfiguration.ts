@@ -12,6 +12,7 @@ import { DefaultHistoryConfiguration } from "@/history"
 import type { TLoggerConfiguration } from "@/logger"
 import { DefaultLoggerConfiguration } from "@/logger"
 import type {
+  TConnectorConfiguration,
   TGestureConfiguration,
   TMathConfig,
   TOverlayConfig,
@@ -19,6 +20,8 @@ import type {
   TSnapConfiguration,
 } from "@/manager"
 import {
+  ConnectorConfiguration,
+  DefaultConnectorConfiguration,
   DefaultGestureConfiguration,
   DefaultOverlayConfig,
   DefaultSelectionConfig,
@@ -50,6 +53,8 @@ export type TInteractiveInkCanvasConfiguration = TCanvasConfiguration &
     }
     gesture: TGestureConfiguration
     snap: TSnapConfiguration
+    /** Whether moving/resizing/rotating a connected shape reshapes its anchored edges to follow it */
+    connector: TConnectorConfiguration
     overlays: TOverlayConfig
     selection: TSelectionConfig
     /** Math manager configuration (computation behavior and visual interactions) */
@@ -78,6 +83,7 @@ export const DefaultInteractiveInkCanvasConfiguration: TInteractiveInkCanvasConf
   },
   gesture: DefaultGestureConfiguration,
   snap: DefaultSnapConfiguration,
+  connector: DefaultConnectorConfiguration,
   overlays: DefaultOverlayConfig,
   selection: DefaultSelectionConfig,
   math: {},
@@ -103,6 +109,7 @@ export class InteractiveInkCanvasConfiguration implements TInteractiveInkCanvasC
   }
   gesture: TGestureConfiguration
   snap: TSnapConfiguration
+  connector: TConnectorConfiguration
   overlays: TOverlayConfig
   selection: TSelectionConfig
   math: TMathConfig
@@ -165,6 +172,7 @@ export class InteractiveInkCanvasConfiguration implements TInteractiveInkCanvasC
     }
     this.gesture = mergeDeep({}, DefaultInteractiveInkCanvasConfiguration.gesture, configuration?.gesture)
     this.snap = new SnapConfiguration(configuration?.snap)
+    this.connector = new ConnectorConfiguration(configuration?.connector)
     this.overlays = mergeDeep({}, DefaultOverlayConfig, configuration?.overlays)
 
     this.penStyle = mergeDeep({}, DefaultInteractiveInkCanvasConfiguration.penStyle, configuration?.penStyle)

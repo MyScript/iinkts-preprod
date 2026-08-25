@@ -1,5 +1,6 @@
 export * from "./Export"
 export * from "./ExportCommon"
+export * from "./ExportEdgeGeometry"
 export * from "./ExportMath"
 export * from "./ExportV2"
 export * from "./IIModel"

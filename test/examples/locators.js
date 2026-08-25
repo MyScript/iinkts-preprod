@@ -32,6 +32,10 @@ export default {
         trigger: "#ms-menu-action-language-trigger",
         inputSelect: "#ms-menu-action-language"
       },
+      export: {
+        triggerBtn: "#ms-menu-action-export-trigger",
+        pdfBtn: "#ms-menu-action-export-pdf"
+      },
       triggerBtn: "#ms-menu-action"
     },
     intention: {
