@@ -89,19 +89,6 @@ export class InteractiveInkSSRCanvas extends AbstractCanvas {
     this.setCursorStyle()
   }
 
-  protected setCursorStyle(): void {
-    switch (this.tool) {
-      case CanvasTool.Erase:
-        this.layers.root.classList.remove("draw")
-        this.layers.root.classList.add("erase")
-        break
-      default:
-        this.layers.root.classList.add("draw")
-        this.layers.root.classList.remove("erase")
-        break
-    }
-  }
-
   get model(): Model {
     return this.#model
   }
@@ -444,18 +431,14 @@ export class InteractiveInkSSRCanvas extends AbstractCanvas {
     width?: number
   } = {}): Promise<void> {
     this.logger.info("resize", { height, width })
-    const compStyles = window.getComputedStyle(this.layers.root)
-    const heightValue =
-      height || Math.max(parseInt(compStyles.height.replace("px", "")), this.configuration.rendering.minHeight)
-    const widthValue =
-      width || Math.max(parseInt(compStyles.width.replace("px", "")), this.configuration.rendering.minWidth)
-    if (heightValue === this.model.height && widthValue === this.model.width) {
+    const dims = this.resolveDimensions(height, width)
+    if (dims.height === this.model.height && dims.width === this.model.width) {
       this.logger.debug("resize", "no change")
       return
     }
     const deferredResize = new DeferredPromise<Model>()
-    this.model.height = heightValue
-    this.model.width = widthValue
+    this.model.height = dims.height
+    this.model.width = dims.width
     const clonedModel = this.model.clone()
     this.renderer.resize(clonedModel)
     clearTimeout(this.#resizeTimer)
@@ -477,6 +460,10 @@ export class InteractiveInkSSRCanvas extends AbstractCanvas {
     this.smartGuide?.resize()
     this.event.emitExported(this.model.exports as TExport)
     this.logger.debug("resize", this.model)
+  }
+
+  protected get minDimensions(): { minHeight: number; minWidth: number } {
+    return this.configuration.rendering
   }
 
   async undo(): Promise<Model> {
@@ -516,13 +503,11 @@ export class InteractiveInkSSRCanvas extends AbstractCanvas {
 
   async destroy(): Promise<void> {
     this.logger.info("destroy")
-    this.stopResizeObserver()
-    this.event.removeAllListeners()
     this.grabber.detach()
-    this.layers.destroy()
-    this.renderer.destroy()
+    this.teardownCommon()
     this.client.destroy()
     this.smartGuide?.destroy()
+    this.clearRootElementReference()
     return Promise.resolve()
   }
 }

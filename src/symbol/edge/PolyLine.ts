@@ -1,11 +1,10 @@
 import type { TStyle } from "@/style"
-import { DefaultStyle } from "@/style"
+import { mergeSymbolStyle } from "@/style"
 import type { TBox } from "@/symbol/primitives/Box"
-import { BoxOps } from "@/symbol/primitives/Box"
 import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
 import { isValidPoint, type TPoint, type TSegment } from "@/symbol/primitives/Point"
 import { SymbolType, type TBaseSymbol } from "@/symbol/Symbol"
-import { findIntersectionBetween2Segment, type TPartialDeep } from "@/utils"
+import type { TPartialDeep } from "@/utils"
 import { createUUID } from "@/utils/uuid"
 
 import type { TAnchor } from "./Anchor"
@@ -38,11 +37,7 @@ export const EdgePolyLineOps = {
     endDecoration?: EdgeDecoration,
     style?: TPartialDeep<TStyle>
   ): TEdgePolyLine {
-    const mergedStyle = Object.assign({}, DefaultStyle, style) as TStyle
-    if (mergedStyle.opacity) {
-      mergedStyle.opacity = +mergedStyle.opacity
-    }
-    mergedStyle.width = +mergedStyle.width
+    const mergedStyle = mergeSymbolStyle(style)
     const now = Date.now()
     const polyline: TEdgePolyLine = {
       type: SymbolType.Edge,
@@ -102,10 +97,7 @@ export const EdgePolyLineOps = {
   },
 
   overlaps(polyline: TEdgePolyLine, box: TBox): boolean {
-    return (
-      OBBOps.isContained(polyline.bounds, box) ||
-      polyline.edges.some((e1) => BoxOps.getSides(box).some((e2) => !!findIntersectionBetween2Segment(e1, e2)))
-    )
+    return OBBOps.polygonOverlapsBox(polyline.bounds, polyline.edges, box)
   },
 
   getSVGPath(polyline: TEdgePolyLine): string {

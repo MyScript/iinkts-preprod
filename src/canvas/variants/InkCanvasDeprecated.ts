@@ -163,19 +163,6 @@ export class InkCanvasDeprecated extends AbstractCanvas {
     this.setCursorStyle()
   }
 
-  protected setCursorStyle(): void {
-    switch (this.tool) {
-      case CanvasTool.Erase:
-        this.layers.root.classList.remove("draw")
-        this.layers.root.classList.add("erase")
-        break
-      default:
-        this.layers.root.classList.add("draw")
-        this.layers.root.classList.remove("erase")
-        break
-    }
-  }
-
   get model(): Model {
     return this.#model
   }
@@ -394,12 +381,14 @@ export class InkCanvasDeprecated extends AbstractCanvas {
     width?: number
   } = {}): Promise<void> {
     this.logger.info("resize", { height, width })
-    const compStyles = window.getComputedStyle(this.layers.root)
-    this.model.height =
-      height || Math.max(parseInt(compStyles.height.replace("px", "")), this.configuration.rendering.minHeight)
-    this.model.width =
-      width || Math.max(parseInt(compStyles.width.replace("px", "")), this.configuration.rendering.minWidth)
+    const dims = this.resolveDimensions(height, width)
+    this.model.height = dims.height
+    this.model.width = dims.width
     this.renderer.resize(this.model)
+  }
+
+  protected get minDimensions(): { minHeight: number; minWidth: number } {
+    return this.configuration.rendering
   }
 
   async undo(): Promise<void> {
@@ -438,11 +427,9 @@ export class InkCanvasDeprecated extends AbstractCanvas {
 
   async destroy(): Promise<void> {
     this.logger.info("destroy")
-    this.stopResizeObserver()
-    this.event.removeAllListeners()
     this.grabber.detach()
-    this.layers.destroy()
-    this.renderer.destroy()
+    this.teardownCommon()
+    this.clearRootElementReference()
     return Promise.resolve()
   }
 }

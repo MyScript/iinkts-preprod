@@ -199,8 +199,23 @@ describe("WebSocketSSRClient.ts", () => {
       await delay(customConf.server.websocket.pingDelay * 1.5)
       expect(mockServer.server.clients()).toHaveLength(1)
       await delay(customConf.server.websocket.pingDelay * customConf.server.websocket.maxPingLostCount)
-      expect(mockServer.getMessages("ping")).toHaveLength(customConf.server.websocket.maxPingLostCount + 1)
+      // maxPingLostCount pings sent without a pong response, then close — no "+1" bonus cycle:
+      // that extra cycle was an artifact of the pingCount-reset-on-any-message bug this fix removes.
+      expect(mockServer.getMessages("ping")).toHaveLength(customConf.server.websocket.maxPingLostCount)
       expect(mockServer.server.clients()).toHaveLength(0)
+      await wsr.destroy()
+    })
+    test("should not close the connection when the server answers every ping with pong", async () => {
+      expect.assertions(1)
+      mockServer.close()
+      mockServer = new ServerWebSocketSSRMock(new WebSocketSSRClient(customConf).url)
+      mockServer.init(false, true)
+      customConf.server.websocket.pingEnabled = true
+      customConf.server.websocket.maxPingLostCount = 2
+      const wsr = new WebSocketSSRClient(customConf)
+      await wsr.init(height, width)
+      await delay(customConf.server.websocket.pingDelay * (customConf.server.websocket.maxPingLostCount + 2))
+      expect(mockServer.server.clients()).toHaveLength(1)
       await wsr.destroy()
     })
   })

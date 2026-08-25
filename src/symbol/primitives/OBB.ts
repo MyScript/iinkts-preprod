@@ -1,3 +1,5 @@
+import { findIntersectionBetween2Segment } from "@/utils"
+
 import type { TBox } from "./Box"
 import { BoxOps } from "./Box"
 import type { TPoint, TSegment } from "./Point"
@@ -190,6 +192,17 @@ export const OBBOps = {
       return BoxOps.isContained(OBBOps.toBox(obb), box)
     }
     return OBBOps.getCorners(obb).every((p) => BoxOps.containsPoint(box, p))
+  },
+
+  /**
+   * Whether a polygon-like symbol (its `bounds` OBB and own `edges`) overlaps `box` — contained
+   * OBB is an early-out, otherwise any edge crossing any side of `box` counts as an overlap.
+   */
+  polygonOverlapsBox(bounds: TOBB, edges: TSegment[], box: TBox): boolean {
+    return (
+      OBBOps.isContained(bounds, box) ||
+      edges.some((e1) => BoxOps.getSides(box).some((e2) => !!findIntersectionBetween2Segment(e1, e2)))
+    )
   },
 
   contains(a: TOBB, b: TOBB): boolean {

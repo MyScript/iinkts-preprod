@@ -222,61 +222,60 @@ describe("IIResizeManager.ts", () => {
     const manager = new IIResizeManager(asCanvas(canvas))
     manager.applyToSymbol = jest.fn()
 
-    const stroke = StrokeOps.create({})
-    StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 0, y: 0 })
-    StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 10, y: 50 })
-    const strokeNotResized = structuredClone(stroke)
-    canvas.model.addSymbol(stroke)
-    canvas.model.selectedIds.add(stroke.id)
+    const strokeOrigin = StrokeOps.create({})
+    StrokeOps.addPointer(strokeOrigin, { p: 1, t: 1, x: 0, y: 0 })
+    StrokeOps.addPointer(strokeOrigin, { p: 1, t: 1, x: 10, y: 50 })
+    canvas.model.addSymbol(strokeOrigin)
+    canvas.model.selectedIds.add(strokeOrigin.id)
 
-    const sb = OBBOps.toBox(stroke.bounds)
+    const sb = OBBOps.toBox(strokeOrigin.bounds)
     const resizeToPoint: TPoint = {
-      x: (sb.x + stroke.bounds.width + sb.x) / 4,
-      y: (sb.y + stroke.bounds.height + sb.y) / 4,
+      x: (sb.x + strokeOrigin.bounds.width + sb.x) / 4,
+      y: (sb.y + strokeOrigin.bounds.height + sb.y) / 4,
     }
 
     const testDatas = [
       {
         direction: ResizeDirection.North,
         transformOrigin: {
-          x: sb.x + stroke.bounds.width / 2,
-          y: sb.y + stroke.bounds.height,
+          x: sb.x + strokeOrigin.bounds.width / 2,
+          y: sb.y + strokeOrigin.bounds.height,
         },
         scale: {
           x: 1,
-          y: 1 + (sb.y - resizeToPoint.y) / stroke.bounds.height,
+          y: 1 + (sb.y - resizeToPoint.y) / strokeOrigin.bounds.height,
         },
       },
       {
         direction: ResizeDirection.East,
         transformOrigin: {
           x: sb.x,
-          y: sb.y + stroke.bounds.height / 2,
+          y: sb.y + strokeOrigin.bounds.height / 2,
         },
         scale: {
-          x: 1 + (resizeToPoint.x - (sb.x + stroke.bounds.width)) / stroke.bounds.width,
+          x: 1 + (resizeToPoint.x - (sb.x + strokeOrigin.bounds.width)) / strokeOrigin.bounds.width,
           y: 1,
         },
       },
       {
         direction: ResizeDirection.South,
         transformOrigin: {
-          x: sb.x + stroke.bounds.width / 2,
+          x: sb.x + strokeOrigin.bounds.width / 2,
           y: sb.y,
         },
         scale: {
           x: 1,
-          y: 1 + (resizeToPoint.y - (sb.y + stroke.bounds.height)) / stroke.bounds.height,
+          y: 1 + (resizeToPoint.y - (sb.y + strokeOrigin.bounds.height)) / strokeOrigin.bounds.height,
         },
       },
       {
         direction: ResizeDirection.West,
         transformOrigin: {
-          x: sb.x + stroke.bounds.width,
-          y: sb.y + stroke.bounds.height / 2,
+          x: sb.x + strokeOrigin.bounds.width,
+          y: sb.y + strokeOrigin.bounds.height / 2,
         },
         scale: {
-          x: 1 + (sb.x - resizeToPoint.x) / stroke.bounds.width,
+          x: 1 + (sb.x - resizeToPoint.x) / strokeOrigin.bounds.width,
           y: 1,
         },
       },
@@ -284,22 +283,22 @@ describe("IIResizeManager.ts", () => {
         direction: ResizeDirection.NorthEast,
         transformOrigin: {
           x: sb.x,
-          y: sb.y + stroke.bounds.height,
+          y: sb.y + strokeOrigin.bounds.height,
         },
         scale: {
-          x: 1 + (resizeToPoint.x - (sb.x + stroke.bounds.width)) / stroke.bounds.width,
-          y: 1 + (sb.y - resizeToPoint.y) / stroke.bounds.height,
+          x: 1 + (resizeToPoint.x - (sb.x + strokeOrigin.bounds.width)) / strokeOrigin.bounds.width,
+          y: 1 + (sb.y - resizeToPoint.y) / strokeOrigin.bounds.height,
         },
       },
       {
         direction: ResizeDirection.NorthWest,
         transformOrigin: {
-          x: sb.x + stroke.bounds.width,
-          y: sb.y + stroke.bounds.height,
+          x: sb.x + strokeOrigin.bounds.width,
+          y: sb.y + strokeOrigin.bounds.height,
         },
         scale: {
-          x: 1 + (sb.x - resizeToPoint.x) / stroke.bounds.width,
-          y: 1 + (sb.y - resizeToPoint.y) / stroke.bounds.height,
+          x: 1 + (sb.x - resizeToPoint.x) / strokeOrigin.bounds.width,
+          y: 1 + (sb.y - resizeToPoint.y) / strokeOrigin.bounds.height,
         },
       },
       {
@@ -309,19 +308,19 @@ describe("IIResizeManager.ts", () => {
           y: sb.y,
         },
         scale: {
-          x: 1 + (resizeToPoint.x - (sb.x + stroke.bounds.width)) / stroke.bounds.width,
-          y: 1 + (resizeToPoint.y - (sb.y + stroke.bounds.height)) / stroke.bounds.height,
+          x: 1 + (resizeToPoint.x - (sb.x + strokeOrigin.bounds.width)) / strokeOrigin.bounds.width,
+          y: 1 + (resizeToPoint.y - (sb.y + strokeOrigin.bounds.height)) / strokeOrigin.bounds.height,
         },
       },
       {
         direction: ResizeDirection.SouthWest,
         transformOrigin: {
-          x: sb.x + stroke.bounds.width,
+          x: sb.x + strokeOrigin.bounds.width,
           y: sb.y,
         },
         scale: {
-          x: 1 + (sb.x - resizeToPoint.x) / stroke.bounds.width,
-          y: 1 + (resizeToPoint.y - (sb.y + stroke.bounds.height)) / stroke.bounds.height,
+          x: 1 + (sb.x - resizeToPoint.x) / strokeOrigin.bounds.width,
+          y: 1 + (resizeToPoint.y - (sb.y + strokeOrigin.bounds.height)) / strokeOrigin.bounds.height,
         },
       },
     ]
@@ -341,7 +340,7 @@ describe("IIResizeManager.ts", () => {
       test(`should start with direction: "${data.direction}" `, () => {
         manager.start(resizeElement, data.transformOrigin)
         expect(manager.interactElementsGroup).toEqual(group)
-        expect(manager.boundingBox).toEqual(OBBOps.toBox(stroke.bounds))
+        expect(manager.boundingBox).toEqual(OBBOps.toBox(strokeOrigin.bounds))
         expect(manager.direction).toEqual(data.direction)
         expect(manager.transformOrigin).toEqual(data.transformOrigin)
         expect(canvas.renderer.setAttribute).toHaveBeenNthCalledWith(
@@ -352,7 +351,7 @@ describe("IIResizeManager.ts", () => {
         )
         expect(canvas.renderer.setAttribute).toHaveBeenNthCalledWith(
           2,
-          stroke.id,
+          strokeOrigin.id,
           "transform-origin",
           `${data.transformOrigin.x}px ${data.transformOrigin.y}px`
         )
@@ -368,7 +367,7 @@ describe("IIResizeManager.ts", () => {
         )
         expect(canvas.renderer.setAttribute).toHaveBeenNthCalledWith(
           2,
-          stroke.id,
+          strokeOrigin.id,
           "transform",
           `scale(${data.scale.x},${data.scale.y})`
         )
@@ -377,18 +376,19 @@ describe("IIResizeManager.ts", () => {
         const endPromise = manager.end(resizeToPoint)
         expect(canvas.endOperation).toHaveBeenCalledWith("Resizing")
         await endPromise
+        const newStroke = canvas.model.getRootSymbol(strokeOrigin.id) as TStroke
         expect(manager.applyToSymbol).toHaveBeenCalledTimes(1)
         expect(canvas.renderer.drawSymbol).toHaveBeenCalledTimes(1)
-        expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(stroke)
+        expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(newStroke)
         expect(canvas.client.transformScale).toHaveBeenCalledTimes(1)
         expect(canvas.client.transformScale).toHaveBeenCalledWith(
-          [stroke.id],
+          [strokeOrigin.id],
           data.scale.x,
           data.scale.y,
           data.transformOrigin.x,
           data.transformOrigin.y
         )
-        expect(stroke).not.toEqual(strokeNotResized)
+        expect(strokeOrigin).not.toEqual(newStroke)
       })
     })
   })
@@ -459,16 +459,16 @@ describe("IIResizeManager.ts", () => {
       // jiix.getStrokesForElement + model.getRootSymbol — here the "block" is just the shape itself.
       jest.spyOn(canvas.jiix, "getStrokesForElement").mockImplementation((id) => (id === shape.id ? [shape.id] : []))
 
-      const edgeStroke = StrokeOps.create()
-      edgeStroke.pointers = [
+      const edgeStrokeOrigin = StrokeOps.create()
+      edgeStrokeOrigin.pointers = [
         { x: 0, y: 0, t: 0, p: 1 },
         { x: 10, y: 0, t: 1, p: 1 },
       ]
-      edgeStroke.jiixBlockType = "Edge"
-      edgeStroke.endAnchor = { symbolId: shape.id, normalizedX: 1, normalizedY: 0.5 }
-      StrokeOps.updateBounds(edgeStroke)
-      canvas.model.addSymbol(edgeStroke)
-      const originalPointers = edgeStroke.pointers.map((p) => ({ ...p }))
+      edgeStrokeOrigin.jiixBlockType = "Edge"
+      edgeStrokeOrigin.endAnchor = { symbolId: shape.id, normalizedX: 1, normalizedY: 0.5 }
+      StrokeOps.updateBounds(edgeStrokeOrigin)
+      canvas.model.addSymbol(edgeStrokeOrigin)
+      const originalPointers = edgeStrokeOrigin.pointers.map((p) => ({ ...p }))
 
       const sb = OBBOps.toBox(shape.bounds)
       const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
@@ -494,8 +494,9 @@ describe("IIResizeManager.ts", () => {
         originalPointers[0],
         { ...originalPointers[1], x: +transformedLast.x.toFixed(3), y: +transformedLast.y.toFixed(3) },
       ]
-      expect(edgeStroke.pointers).toEqual(expectedPointers)
-      expect(edgeStroke.pointers).not.toEqual(originalPointers)
+      const newEdgeStroke = canvas.model.getRootSymbol(edgeStrokeOrigin.id) as TStroke
+      expect(newEdgeStroke.pointers).toEqual(expectedPointers)
+      expect(newEdgeStroke.pointers).not.toEqual(originalPointers)
     })
 
     test("end() commits the exact same gradient shape the drag preview showed (no pointerup snap)", async () => {
@@ -544,7 +545,8 @@ describe("IIResizeManager.ts", () => {
       const previewClone = (canvas.renderer.drawSymbol as jest.Mock).mock.calls.find(
         (c) => (c[0] as { id: string }).id === edgeStroke.id
       )![0] as typeof edgeStroke
-      expect(edgeStroke.pointers).toEqual(previewClone.pointers)
+      const newEdgeStroke = canvas.model.getRootSymbol(edgeStroke.id) as TStroke
+      expect(newEdgeStroke.pointers).toEqual(previewClone.pointers)
     })
 
     test("end() sends the followed edge stroke's new content via replaceStrokes and snapshots it in history's updated entry", async () => {
@@ -583,11 +585,12 @@ describe("IIResizeManager.ts", () => {
       manager.start(resizeElement, transformOrigin)
       await manager.end(resizeToPoint)
 
+      const newEdgeStroke = canvas.model.getRootSymbol(edgeStroke.id) as TStroke
       // Gradient-followed (single anchor): reshaped non-uniformly, so it must never be folded
       // into the uniform transformScale call — its full new content goes via replaceStrokes.
       const sentIds = (canvas.client.transformScale as jest.Mock).mock.calls[0][0] as string[]
-      expect(sentIds).not.toContain(edgeStroke.id)
-      expect(canvas.client.replaceStrokes).toHaveBeenCalledWith([edgeStroke.id], [edgeStroke])
+      expect(sentIds).not.toContain(newEdgeStroke.id)
+      expect(canvas.client.replaceStrokes).toHaveBeenCalledWith([newEdgeStroke.id], [newEdgeStroke])
 
       // History needs a PRE-transform snapshot of the followed stroke, else undo can't restore
       // it — but since a gradient shift isn't a uniform scale, it lives in `updated`, not the
@@ -596,11 +599,11 @@ describe("IIResizeManager.ts", () => {
         scale: { symbols: TStroke[] }[]
         updated?: { oldSymbols: TStroke[]; newSymbols: TStroke[] }
       }
-      expect(changes.scale[0].symbols.find((s) => s.id === edgeStroke.id)).toBeUndefined()
-      const oldSnapshot = changes.updated?.oldSymbols.find((s) => s.id === edgeStroke.id)
+      expect(changes.scale[0].symbols.find((s) => s.id === newEdgeStroke.id)).toBeUndefined()
+      const oldSnapshot = changes.updated?.oldSymbols.find((s) => s.id === newEdgeStroke.id)
       expect(oldSnapshot).toBeDefined()
       expect(oldSnapshot!.pointers).toEqual(originalPointers)
-      expect(changes.updated?.newSymbols.find((s) => s.id === edgeStroke.id)).toBe(edgeStroke)
+      expect(changes.updated?.newSymbols.find((s) => s.id === newEdgeStroke.id)).toStrictEqual(newEdgeStroke)
     })
   })
 })

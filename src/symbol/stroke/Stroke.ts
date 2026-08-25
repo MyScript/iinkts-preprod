@@ -1,5 +1,5 @@
 import type { TStyle } from "@/style"
-import { DefaultStyle } from "@/style"
+import { mergeSymbolStyle } from "@/style"
 import type { DecoratorKind } from "@/symbol/decorator/Decorator"
 import type { TAnchor } from "@/symbol/edge/Anchor"
 import type { TBox } from "@/symbol/primitives/Box"
@@ -101,11 +101,7 @@ export function isRecognizedText(symbol: TBaseSymbol): symbol is TStroke {
  */
 export const StrokeOps = {
   create(style?: TPartialDeep<TStyle>, pointerType = "pen"): TStroke {
-    const mergedStyle = Object.assign({}, DefaultStyle, style) as TStyle
-    if (mergedStyle.opacity) {
-      mergedStyle.opacity = +mergedStyle.opacity
-    }
-    mergedStyle.width = +mergedStyle.width
+    const mergedStyle = mergeSymbolStyle(style)
     const now = Date.now()
     const pointers: TPointer[] = []
     return {

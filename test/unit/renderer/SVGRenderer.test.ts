@@ -490,6 +490,37 @@ describe("SVGRenderer.ts", () => {
       expect(el?.parentNode).toBeNull()
     })
 
+    test("should append a previously off-screen element once panned into view", () => {
+      const divElement: HTMLDivElement = document.createElement("div")
+      const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
+      renderer.init(divElement)
+
+      const stroke = buildIIStroke({ box: farAwayBox })
+      renderer.drawSymbol(stroke)
+
+      renderer.pan(farAwayBox.x, farAwayBox.y)
+
+      const el = renderer.getElementById(stroke.id)
+      expect(el).not.toBeNull()
+      expect(el?.parentNode).toBe(renderer.layer)
+    })
+
+    test("should remove an on-screen element from the DOM once panned out of view, keeping it retrievable", () => {
+      const divElement: HTMLDivElement = document.createElement("div")
+      const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
+      renderer.init(divElement)
+
+      const stroke = buildIIStroke()
+      renderer.drawSymbol(stroke)
+      expect(renderer.getElementById(stroke.id)?.parentNode).toBe(renderer.layer)
+
+      renderer.pan(farAwayBox.x, farAwayBox.y)
+
+      const el = renderer.getElementById(stroke.id)
+      expect(el).not.toBeNull()
+      expect(el?.parentNode).toBeNull()
+    })
+
     test("removeSymbol should clean up an off-screen (virtualized) element", () => {
       const divElement: HTMLDivElement = document.createElement("div")
       const renderer = new SVGRenderer(DefaultIIRendererConfiguration)

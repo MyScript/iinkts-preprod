@@ -169,7 +169,7 @@ export class EraseManager {
       this.deletingIds.clear()
       this.charsToDelete.clear()
     } else {
-      this.canvas.removeStrokes(this.deletingIds.values().toArray())
+      this.canvas.removeStrokes([...this.deletingIds])
       this.deletingIds.clear()
     }
     this.currentEraser = undefined

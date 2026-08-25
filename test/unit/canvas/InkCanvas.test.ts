@@ -1,5 +1,5 @@
 import { buildIIStroke } from "../helpers"
-import { InkCanvas, TInkCanvasOptions, HTTPClientV2, DefaultInkCanvasConfiguration } from "@/iink"
+import { CanvasTool, InkCanvas, TInkCanvasOptions, HTTPClientV2, DefaultInkCanvasConfiguration } from "@/iink"
 
 describe("InkCanvas.ts", () => {
   const DefaultInkCanvasRestClientOptions: TInkCanvasOptions = {
@@ -27,6 +27,20 @@ describe("InkCanvas.ts", () => {
     expect(canvas).toBeDefined()
     expect(canvas.client).toBeDefined()
     expect(canvas.client instanceof CustomClient).toBe(true)
+  })
+
+  describe("tool", () => {
+    //@ts-ignore IIC-1006 Type instantiation is excessively deep and possibly infinite.
+    const canvas = new InkCanvas(document.createElement("div"), DefaultInkCanvasRestClientOptions)
+    test("should set class draw on root element by default", () => {
+      expect(canvas.layers.root.classList.contains("draw")).toBe(true)
+      expect(canvas.layers.root.classList.contains("erase")).toBe(false)
+    })
+    test("should set class erase when set tool eraser", () => {
+      canvas.tool = CanvasTool.Erase
+      expect(canvas.layers.root.classList.contains("draw")).toBe(false)
+      expect(canvas.layers.root.classList.contains("erase")).toBe(true)
+    })
   })
 
   describe("init", () => {
