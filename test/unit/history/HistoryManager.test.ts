@@ -34,6 +34,7 @@ describe("HistoryManager.ts", () => {
       manager.push(model1)
 
       expect(manager.context.stackIndex).toStrictEqual(0)
+      expect(manager.context.possibleUndoCount).toStrictEqual(0)
       expect(manager.context.canUndo).toStrictEqual(false)
       expect(manager.context.canRedo).toStrictEqual(false)
       expect(manager.context.empty).toStrictEqual(true)
@@ -49,6 +50,7 @@ describe("HistoryManager.ts", () => {
       manager.push(model2)
 
       expect(manager.context.stackIndex).toStrictEqual(1)
+      expect(manager.context.possibleUndoCount).toStrictEqual(1)
       expect(manager.context.canUndo).toStrictEqual(true)
       expect(manager.context.canRedo).toStrictEqual(false)
       expect(manager.context.empty).toStrictEqual(false)
@@ -122,6 +124,7 @@ describe("HistoryManager.ts", () => {
 
       const previousModel = manager.undo()
       expect(manager.context.stackIndex).toStrictEqual(0)
+      expect(manager.context.possibleUndoCount).toStrictEqual(0)
 
       expect(manager.stack).toHaveLength(2)
       expect(manager.stack[manager.context.stackIndex]).toEqual(previousModel)

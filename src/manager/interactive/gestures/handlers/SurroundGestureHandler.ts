@@ -38,7 +38,7 @@ export class SurroundGestureHandler extends GestureHandler {
           decoratorKind: DecoratorKind.Highlight,
         })
         if (changes) {
-          this.history.push(this.model, changes)
+          this.history.push(changes)
         }
         break
       }
@@ -48,7 +48,7 @@ export class SurroundGestureHandler extends GestureHandler {
           decoratorKind: DecoratorKind.Surround,
         })
         if (changes) {
-          this.history.push(this.model, changes)
+          this.history.push(changes)
         }
         break
       }

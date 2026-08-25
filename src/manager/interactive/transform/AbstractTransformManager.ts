@@ -37,6 +37,15 @@ export abstract class IIAbstractTransformManager extends IIAbstractManager {
     return target.closest(`[role=${SvgElementRole.InteractElementsGroup}]`) as unknown as SVGGElement
   }
 
+  /**
+   * Applies a matrix transform locally (model + redraw) without touching the backend or
+   * history. Used by InteractiveInkCanvas's undo/redo replay dispatcher, which sends its own
+   * consolidated backend message separately.
+   */
+  applyMatrix(symbols: TSymbol[], matrix: MatrixTransform): void {
+    this.applyAndDraw(symbols, matrix)
+  }
+
   protected applyAndDraw(symbols: TSymbol[], matrix: MatrixTransform): void {
     symbols.forEach((s) => {
       this.applyToSymbol(s, matrix)
@@ -70,6 +79,23 @@ export abstract class IIAbstractTransformManager extends IIAbstractManager {
         this.canvas.renderer.drawSymbol(sym)
       }
     })
+  }
+
+  /**
+   * Live model symbols for the pre-convert edge strokes that rigidly follow a transform
+   * (see IIConnectorManager), minus any already present in `alreadyIncluded`.
+   * They are transformed outside `applyAndDraw`, so history entries and backend transform
+   * messages must list them explicitly or undo and the server's ink both drift out of sync.
+   */
+  protected resolveFollowedSymbols(followedIds: string[], alreadyIncluded: TSymbol[]): TSymbol[] {
+    if (followedIds.length === 0) {
+      return []
+    }
+    const knownIds = new Set(alreadyIncluded.map((s) => s.id))
+    return followedIds
+      .filter((id) => !knownIds.has(id))
+      .map((id) => this.model.getRootSymbol(id))
+      .filter((s): s is TSymbol => !!s)
   }
 
   protected finalizeTransform(): void {

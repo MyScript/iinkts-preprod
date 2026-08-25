@@ -4,14 +4,22 @@ import type { TPointerInfo } from "@/grabber"
 import { PointerEventGrabber } from "@/grabber"
 import { LoggerCategory } from "@/logger"
 import { SVGBuilder } from "@/renderer"
-import type { TBox, TDecorator, TEdge, TEdgeArc, TEdgeLine, TEdgePolyLine, TPoint, TStroke, TSymbol } from "@/symbol"
-import { EdgeKind, isDecorator, isRecognizedMath, StrokeOps, SymbolType } from "@/symbol"
-import { EdgeArcOps } from "@/symbol/edge/Arc"
+import type { TBox, TDecorator, TEdge, TEdgeArc, TPoint, TStroke, TSymbol } from "@/symbol"
+import {
+  EdgeKind,
+  EdgeLineOps,
+  EdgePolyLineOps,
+  isDecorator,
+  isRecognizedMath,
+  isStroke,
+  StrokeOps,
+  SymbolType,
+} from "@/symbol"
+import { EdgeArcOps, reprojectArcMidpoint, stretchArcEndpoint } from "@/symbol/edge/Arc"
 import { EdgeOps } from "@/symbol/edge/Edge"
 import { BoxOps } from "@/symbol/primitives/Box"
 import { OBBOps } from "@/symbol/primitives/OBB"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
-import { computeAngleFromPointOnEllipse, computeDistance } from "@/utils"
 
 import { IIAbstractManager } from "./IIAbstractManager"
 import type { IIResizeManager } from "./transform/IIResizeManager"
@@ -554,21 +562,15 @@ export class IISelectionManager extends IIAbstractManager {
       const bindArcEl = (el: SVGCircleElement, isStart: boolean, isEnd: boolean) => {
         const updateArc = (x: number, y: number) => {
           if (isStart) {
-            const endAngle = arc.startAngle + arc.sweepAngle
-            arc.startAngle = computeAngleFromPointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, { x, y })
-            arc.sweepAngle = endAngle - arc.startAngle
+            // Free stretch: lets the ellipse resize to reach the dragged point, rather than
+            // sliding the endpoint's angle around the existing (unchanged-size) ellipse.
+            Object.assign(arc, stretchArcEndpoint(arc, "start", { x, y }))
           } else if (isEnd) {
-            const newEndAngle = computeAngleFromPointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, { x, y })
-            arc.sweepAngle = newEndAngle - arc.startAngle
+            Object.assign(arc, stretchArcEndpoint(arc, "end", { x, y }))
           } else {
-            const midVertex = arc.vertices[Math.floor(arc.vertices.length / 2)]
-            const oldDist = computeDistance(arc.center, midVertex)
-            const newDist = computeDistance(arc.center, { x, y })
-            if (oldDist > 0) {
-              const scale = newDist / oldDist
-              arc.radiusX *= scale
-              arc.radiusY *= scale
-            }
+            // Keeps both endpoints (and phi, and the radiusX:radiusY ratio) exactly fixed —
+            // dragging this handle only changes the arc's bulge, not where it's anchored.
+            Object.assign(arc, reprojectArcMidpoint(arc, { x, y }))
           }
         }
         const handler = (ev: PointerEvent) => {
@@ -580,6 +582,9 @@ export class IISelectionManager extends IIAbstractManager {
           EdgeArcOps.updateDerivedFields(arc)
           this.model.updateSymbol(arc)
           this.renderer.drawSymbol(arc)
+          if (isStart || isEnd) {
+            this.canvas.connector.showAnchorHint({ x, y }, arc.id)
+          }
         }
         const endHandler = (ev: PointerEvent) => {
           ev.preventDefault()
@@ -588,6 +593,14 @@ export class IISelectionManager extends IIAbstractManager {
           const { x, y } = this.canvas.snaps.snapResize(point)
           updateArc(x, y)
           EdgeArcOps.updateDerivedFields(arc)
+          this.canvas.connector.clearAnchorHint()
+          if (isStart || isEnd) {
+            // Recomputed fresh, not the vertexIndex captured before this drag: updateDerivedFields
+            // just re-tessellated the arc, and the vertex COUNT can change with the new radius/
+            // sweep — a stale index could silently miss applyEndpointAnchor's own isEnd check.
+            const currentIndex = isStart ? 0 : arc.vertices.length - 1
+            this.canvas.connector.applyEndpointAnchor(arc, currentIndex, { x, y })
+          }
           this.renderer.layer.style.cursor = ""
           this.canvas.updateSymbol(arc)
           this.renderer.layer.removeEventListener("pointermove", handler)
@@ -634,26 +647,18 @@ export class IISelectionManager extends IIAbstractManager {
    * Path-based hit area for line/polyline edges — narrow stroke aligned with edge geometry,
    * avoiding the AABB problem where diagonal edges have an oversized clickable rectangle.
    */
-  protected createEdgeTranslatePath(edge: TEdgeLine | TEdgePolyLine): SVGPathElement {
+  protected createEdgeTranslatePath(edge: TEdge): SVGPathElement {
     let d: string
-    if (edge.kind === EdgeKind.Line) {
-      const start = edge.startAnchor?.entryPoint ?? edge.start
-      const end = edge.endAnchor?.entryPoint ?? edge.end
-      d = `M ${start.x} ${start.y} L ${end.x} ${end.y}`
-    } else {
-      const pts = [...edge.points]
-      if (edge.startAnchor?.entryPoint) {
-        pts[0] = edge.startAnchor.entryPoint
-      }
-      if (edge.endAnchor?.entryPoint) {
-        pts[pts.length - 1] = edge.endAnchor.entryPoint
-      }
-      d =
-        `M ${pts[0].x} ${pts[0].y}` +
-        pts
-          .slice(1)
-          .map((p) => ` L ${p.x} ${p.y}`)
-          .join("")
+    switch (edge.kind) {
+      case EdgeKind.Arc:
+        d = EdgeArcOps.getSVGPath(edge)
+        break
+      case EdgeKind.Line:
+        d = EdgeLineOps.getSVGPath(edge)
+        break
+      case EdgeKind.PolyEdge:
+        d = EdgePolyLineOps.getSVGPath(edge)
+        break
     }
     const translateEl = SVGBuilder.createPath({
       role: SvgElementRole.Translate,
@@ -706,10 +711,7 @@ export class IISelectionManager extends IIAbstractManager {
       role: SvgElementRole.InteractElementsGroup,
     }
     const surroundGroup = SVGBuilder.createGroup(attrs)
-    const translateEl =
-      edge.kind === EdgeKind.Line || edge.kind === EdgeKind.PolyEdge
-        ? this.createEdgeTranslatePath(edge as TEdgeLine | TEdgePolyLine)
-        : this.createTranslateRect(OBBOps.toBox(edge.bounds))
+    const translateEl = this.createEdgeTranslatePath(edge)
     surroundGroup.appendChild(translateEl)
     surroundGroup.appendChild(this.createEdgeResizeGroup(structuredClone(edge)))
     return surroundGroup
@@ -1006,9 +1008,36 @@ export class IISelectionManager extends IIAbstractManager {
     })
   }
 
+  /**
+   * For every selected stroke that belongs to a Node or Edge JIIX block, pull in all sibling
+   * strokes of that block — unconditionally (unlike expandSelectionForMathBlocks, this doesn't
+   * gate on selection.mathLevel; shape/edge blocks always move as one rigid group so that
+   * connected-edge live-follow has a consistent group bounds to work with).
+   */
+  expandSelectionForBlocks(): void {
+    const blockIds = new Set<string>()
+    this.model.symbolsSelected.forEach((s) => {
+      if (isStroke(s) && s.jiixBlockId && (s.jiixBlockType === "Node" || s.jiixBlockType === "Edge")) {
+        blockIds.add(s.jiixBlockId)
+      }
+    })
+    blockIds.forEach((blockId) => {
+      this.canvas.jiix.getStrokesForElement(blockId).forEach((id) => {
+        if (!this.model.selectedIds.has(id)) {
+          const sym = this.model.getRootSymbol(id)
+          if (sym) {
+            this.model.selectedIds.add(id)
+            this.renderer.updateSelectedState(sym, true)
+          }
+        }
+      })
+    })
+  }
+
   end(info: TPointerInfo): TSymbol[] {
     const updatedSymbols = this.continue(info)
     this.expandSelectionForMathBlocks()
+    this.expandSelectionForBlocks()
     this.startSelectionPoint = undefined
     this.endSelectionPoint = undefined
     this.clearSelectingRect()

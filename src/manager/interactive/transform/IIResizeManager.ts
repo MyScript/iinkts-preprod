@@ -1,12 +1,14 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import { ResizeDirection } from "@/Constants"
+import type { TIIHistoryChanges } from "@/history"
 import type { TBox, TEdge, TMath, TPoint, TShape, TStroke, TText } from "@/symbol"
 import { cloneSymbol, EdgeKind, isMath, isText, ShapeKind } from "@/symbol"
 import { EdgeOps } from "@/symbol/edge/Edge"
 import { MathOps } from "@/symbol/math/Math"
 import { BoxOps } from "@/symbol/primitives/Box"
+import { type TOBB } from "@/symbol/primitives/OBB"
 import { ShapeOps } from "@/symbol/shape/Shape"
-import { StrokeOps } from "@/symbol/stroke/Stroke"
+import { isStroke, StrokeOps } from "@/symbol/stroke/Stroke"
 import { TextOps } from "@/symbol/text/Text"
 import { MatrixTransform } from "@/transform"
 
@@ -273,20 +275,56 @@ export class IIResizeManager extends IIAbstractTransformManager {
     this.canvas.endOperation("Resizing")
     const { scaleX, scaleY } = this.continue(point)
     this.canvas.snaps.clearSnapToElementLines()
-    const oldSymbols = this.model.symbolsSelected.map((s) => cloneSymbol(s))
+    // Queried before anything is mutated: the pre-convert edge strokes that will rigidly follow
+    // this resize need a pre-transform snapshot in history, like the selection itself. Gradient-
+    // followed strokes are excluded — their shift isn't a uniform scale, so they get their own
+    // pre-mutation snapshot via `updated` below instead, like the anchored converted edges.
+    const followedStrokeIds = this.canvas.connector.getRigidFollowedStrokeIds(
+      this.model.symbolsSelected.map((s) => s.id)
+    )
+    const oldSymbols = [
+      ...this.model.symbolsSelected,
+      ...this.resolveFollowedSymbols(followedStrokeIds, this.model.symbolsSelected),
+    ].map((s) => cloneSymbol(s))
+    // Snapshotted before applyAndDraw mutates the selection below: gradient-follow needs the
+    // moving target's PRE-transform center (same reference point the drag preview used), not
+    // its already-resized bounds, or the committed shape would snap to a different form than
+    // what was just shown while dragging.
+    const preTransformBoundsById = new Map<string, TOBB>()
+    this.model.symbolsSelected.forEach((s) => {
+      const bounds = (s as unknown as { bounds?: TOBB }).bounds
+      if (bounds) {
+        preTransformBoundsById.set(s.id, { ...bounds, center: { ...bounds.center } })
+      }
+    })
     const matrix = MatrixTransform.identity().scale(scaleX, scaleY, this.transformOrigin)
     this.applyAndDraw(this.model.symbolsSelected, matrix)
     this.applyTransformToGhostStrokesForSelectedMath(this.model.symbolsSelected, matrix)
-    this.canvas.connector.updateAnchoredEdges(this.model.symbolsSelected.map((s) => s.id))
+    const { oldSymbols: anchoredOldSymbols, newSymbols: anchoredNewSymbols } =
+      this.canvas.connector.updateAnchoredEdges(
+        this.model.symbolsSelected.map((s) => s.id),
+        matrix,
+        preTransformBoundsById
+      )
     const strokesFromSymbols = this.canvas.extractStrokesFromSymbols(this.model.symbolsSelected)
-    await this.canvas.client.transformScale(
-      strokesFromSymbols.map((s) => s.id),
-      scaleX,
-      scaleY,
-      this.transformOrigin.x,
-      this.transformOrigin.y
-    )
-    this.canvas.history.push(this.model, {
+    // Gradient-followed strokes were reshaped non-uniformly, so their full new content must be
+    // sent via replaceStrokes instead of asking the backend to apply this scale itself.
+    const gradientStrokeReplacements = anchoredNewSymbols
+      .map((newSymbol, i) => ({ oldSymbol: anchoredOldSymbols[i], newSymbol }))
+      .filter((pair): pair is { oldSymbol: TStroke; newSymbol: TStroke } => isStroke(pair.newSymbol))
+    await Promise.all([
+      this.canvas.client.transformScale(
+        [...new Set([...strokesFromSymbols.map((s) => s.id), ...followedStrokeIds])],
+        scaleX,
+        scaleY,
+        this.transformOrigin.x,
+        this.transformOrigin.y
+      ),
+      ...gradientStrokeReplacements.map(({ oldSymbol, newSymbol }) =>
+        this.canvas.client.replaceStrokes([oldSymbol.id], [newSymbol])
+      ),
+    ])
+    const changes: TIIHistoryChanges = {
       scale: [
         {
           symbols: oldSymbols,
@@ -295,7 +333,14 @@ export class IIResizeManager extends IIAbstractTransformManager {
           scaleY,
         },
       ],
-    })
+    }
+    // Converted Line/PolyEdge/Arc anchors are recomputed from the target's new bounds, and
+    // gradient-followed raw strokes are reshaped non-uniformly — neither has an inverse-scale to
+    // replay on undo, so both need their pre-mutation snapshot restored directly via `updated`.
+    if (anchoredNewSymbols.length) {
+      changes.updated = { oldSymbols: anchoredOldSymbols, newSymbols: anchoredNewSymbols }
+    }
+    this.canvas.history.push(changes)
     this.finalizeTransform()
   }
 }

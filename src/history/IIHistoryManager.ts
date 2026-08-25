@@ -6,14 +6,17 @@ import type { TMatrixTransform } from "@/transform"
 import { MatrixTransform } from "@/transform"
 import type { TPartialDeep } from "@/utils"
 
-import { AbstractHistoryStack } from "./AbstractHistoryStack"
+import { AbstractDiffHistoryManager } from "./AbstractDiffHistoryManager"
 
 /**
  * @group History
  */
 export type TIIHistoryChanges = {
   added?: TSymbol[]
-  updated?: TSymbol[]
+  updated?: {
+    oldSymbols: TSymbol[]
+    newSymbols: TSymbol[]
+  }
   erased?: TSymbol[]
   replaced?: {
     oldSymbols: TSymbol[]
@@ -41,15 +44,17 @@ export type TIIHistoryChanges = {
   }[]
   style?: {
     symbols: TSymbol[]
-    style?: TPartialDeep<TStyle>
-    fontSize?: number
+    // one full style/fontSize per symbol (parallel to `symbols`), since a batch can start
+    // from heterogeneous styles - a single shared before/after value can't reverse that.
+    oldStyles?: TPartialDeep<TStyle>[]
+    newStyles?: TPartialDeep<TStyle>[]
+    oldFontSizes?: (number | undefined)[]
+    newFontSizes?: (number | undefined)[]
   }
   order?: {
     symbols: TSymbol[]
     position: "first" | "last" | "forward" | "backward"
   }
-  group?: { symbols: TSymbol[] }
-  ungroup?: { group: TSymbol }
 }
 
 /**
@@ -87,14 +92,6 @@ export type TIIHistoryBackendChanges = {
 
 /**
  * @group History
- */
-export type TIIHistoryStackItem = {
-  changes: TIIHistoryChanges
-  model: IIModel
-}
-
-/**
- * @group History
  * @remarks converts symbol-level history changes into the stroke-level format the backend
  * understands, so undo/redo can be replayed as a fallback list of explicit modifications.
  */
@@ -103,10 +100,8 @@ export function extractIIBackendChanges(changes: TIIHistoryChanges): TIIHistoryB
   backendChanges.added = extractStrokes(changes.added)
   backendChanges.erased = extractStrokes(changes.erased)
 
-  const updated = extractStrokes(changes.updated)
-
-  const oldStrokes = updated.concat(extractStrokes(changes.replaced?.oldSymbols))
-  const newStrokes = updated.concat(extractStrokes(changes.replaced?.newSymbols))
+  const oldStrokes = extractStrokes(changes.updated?.oldSymbols).concat(extractStrokes(changes.replaced?.oldSymbols))
+  const newStrokes = extractStrokes(changes.updated?.newSymbols).concat(extractStrokes(changes.replaced?.newSymbols))
   if (oldStrokes.length && newStrokes.length) {
     backendChanges.replaced = {
       oldStrokes,
@@ -170,15 +165,20 @@ export function extractIIBackendChanges(changes: TIIHistoryChanges): TIIHistoryB
 /**
  * @group History
  */
-export class IIHistoryManager extends AbstractHistoryStack<TIIHistoryStackItem> {
-  protected isStackItemEmpty(item: TIIHistoryStackItem): boolean {
-    return item.model.symbols.length === 0
+export class IIHistoryManager extends AbstractDiffHistoryManager<TIIHistoryChanges> {
+  #liveModel?: IIModel
+
+  // context.empty must reflect whether the canvas is actually empty (ClearMenuAction disables
+  // Clear based on it), not just "no changes recorded at this stack index" - so this reads the
+  // live model instead of the generic isChangesEmpty-based default.
+  protected isStackItemEmpty(): boolean {
+    return (this.#liveModel?.symbols.length ?? 0) === 0
   }
 
-  isChangesEmpty(changes: TIIHistoryChanges): boolean {
+  protected isChangesEmpty(changes: TIIHistoryChanges): boolean {
     return !(
       changes.added?.length ||
-      changes.updated?.length ||
+      changes.updated?.oldSymbols.length ||
       changes.erased?.length ||
       changes.replaced?.oldSymbols.length ||
       changes.matrix?.symbols.length ||
@@ -186,37 +186,13 @@ export class IIHistoryManager extends AbstractHistoryStack<TIIHistoryStackItem> 
       changes.rotate?.length ||
       changes.scale?.length ||
       changes.style?.symbols?.length ||
-      changes.order?.symbols?.length ||
-      changes.group?.symbols.length ||
-      changes.ungroup?.group
+      changes.order?.symbols?.length
     )
   }
 
   init(model: IIModel): void {
-    this.initStack({
-      model: model.clone(),
-      changes: {},
-    })
-  }
-
-  push(model: IIModel, changes: TIIHistoryChanges): void {
-    this.logger.info("push", { model, changes })
-    if (this.isChangesEmpty(changes)) {
-      return
-    }
-    this.pushToStack({
-      model: model.clone(),
-      changes,
-    })
-  }
-
-  update(model: IIModel): void {
-    this.logger.info("update", { model })
-    const stackIdx = this.stack.findIndex((s) => s.model.modificationDate === model.modificationDate)
-    if (stackIdx > -1) {
-      this.stack[stackIdx].model = model.clone()
-      this.updateContext()
-    }
+    this.#liveModel = model
+    this.initStack({})
   }
 
   protected reverseChanges(changes: TIIHistoryChanges): TIIHistoryChanges {
@@ -228,7 +204,10 @@ export class IIHistoryManager extends AbstractHistoryStack<TIIHistoryStackItem> 
       reversedChanges.added = changes.erased
     }
     if (changes.updated) {
-      reversedChanges.updated = changes.updated
+      reversedChanges.updated = {
+        oldSymbols: changes.updated.newSymbols,
+        newSymbols: changes.updated.oldSymbols,
+      }
     }
     if (changes.replaced) {
       reversedChanges.replaced = {
@@ -278,7 +257,13 @@ export class IIHistoryManager extends AbstractHistoryStack<TIIHistoryStackItem> 
       })
     }
     if (changes.style) {
-      reversedChanges.style = changes.style
+      reversedChanges.style = {
+        symbols: changes.style.symbols,
+        oldStyles: changes.style.newStyles,
+        newStyles: changes.style.oldStyles,
+        oldFontSizes: changes.style.newFontSizes,
+        newFontSizes: changes.style.oldFontSizes,
+      }
     }
     if (changes.order) {
       const positionMap: Record<string, "first" | "last" | "forward" | "backward"> = {
@@ -294,31 +279,5 @@ export class IIHistoryManager extends AbstractHistoryStack<TIIHistoryStackItem> 
     }
 
     return reversedChanges
-  }
-
-  undo(): TIIHistoryStackItem {
-    this.logger.info("undo")
-    const currentStackItem = this.stack[this.context.stackIndex]
-    this.moveStackIndex(-1, this.context.canUndo)
-    const previousStackItem = this.stack[this.context.stackIndex]
-    this.logger.debug("undo", previousStackItem)
-    const changes = this.reverseChanges(currentStackItem.changes)
-    if (currentStackItem.changes.updated?.length) {
-      changes.updated = currentStackItem.changes.updated
-        .map((sym) => previousStackItem.model.symbols.find((s) => s.id === sym.id))
-        .filter((s): s is TSymbol => s !== undefined)
-    }
-    return {
-      model: previousStackItem.model,
-      changes,
-    }
-  }
-
-  redo(): TIIHistoryStackItem {
-    this.logger.info("redo")
-    this.moveStackIndex(1, this.context.canRedo)
-    const nextStackItem = this.stack[this.context.stackIndex]
-    this.logger.debug("redo", nextStackItem)
-    return nextStackItem
   }
 }
