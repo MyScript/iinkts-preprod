@@ -1,18 +1,12 @@
 import { test, expect } from '@playwright/test'
 import {
-  waitForCanvasInit,
   writeStrokes,
   waitForExportedEvent,
-  getCanvasExportsType,
   getCanvasConfiguration,
-  callCanvasIdle,
-  getCanvasExports,
   loadCanvas,
   passModalKey
 } from '../helper'
 
-import TextNavActions from '../_partials/text-nav-actions'
-import h from '../__dataset__/h'
 import helloStrike from '../__dataset__/helloStrike'
 
 test.describe('Interactive Canvas SSR Text Gesture', () => {

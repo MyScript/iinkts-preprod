@@ -18,6 +18,9 @@ export class LanguageMenuAction extends BaseMenuItem<HTMLDivElement> {
       type: "language" as const,
       id: `${idPrefix}-language`,
       label: "Language",
+      menuTitle: "Language",
+      position: "right-top",
+      items: [],
     }
     super(config, canvas)
   }
