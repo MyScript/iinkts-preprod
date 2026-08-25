@@ -1,23 +1,22 @@
 import type { TStyle } from "@/style"
-import { DefaultStyle } from "@/style"
+import { mergeSymbolStyle } from "@/style"
 import type { TDecorator } from "@/symbol/decorator/Decorator"
 import { DecoratorOps } from "@/symbol/decorator/Decorator"
 import type { TBox } from "@/symbol/primitives/Box"
-import { BoxOps } from "@/symbol/primitives/Box"
 import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
 import type { TPoint, TSegment } from "@/symbol/primitives/Point"
 import type { TBaseSymbol } from "@/symbol/Symbol"
 import { SymbolType } from "@/symbol/Symbol"
 import type { TRotation, TTypesetChild } from "@/symbol/typeset/Typeset"
-import { computeClosedEdges, computeTypesetSnapPoints, computeTypesetVertices } from "@/symbol/typeset/Typeset"
-import type { TPartialDeep } from "@/utils"
 import {
-  computeRotatedPoint,
-  convertDegreeToRadian,
-  createUUID,
-  findIntersectionBetween2Segment,
-  isPointInsidePolygon,
-} from "@/utils"
+  computeChildrenOverlaps,
+  computeClosedEdges,
+  computeTypesetSnapPoints,
+  computeTypesetVertices,
+  typesetOverlapsBox,
+} from "@/symbol/typeset/Typeset"
+import type { TPartialDeep } from "@/utils"
+import { createUUID } from "@/utils"
 
 /**
  * @group Symbol
@@ -60,11 +59,7 @@ export function isMath(symbol: TBaseSymbol): symbol is TMath {
  */
 export const MathOps = {
   create(elements: TMathElement[], point: TPoint, boundsBox: TBox, style?: TPartialDeep<TStyle>): TMath {
-    const mergedStyle = Object.assign({}, DefaultStyle, style) as TStyle
-    if (mergedStyle.opacity) {
-      mergedStyle.opacity = +mergedStyle.opacity
-    }
-    mergedStyle.width = +mergedStyle.width
+    const mergedStyle = mergeSymbolStyle(style)
     const now = Date.now()
     const vertices = computeTypesetVertices(boundsBox)
     const snapPoints = computeTypesetSnapPoints(boundsBox, point)
@@ -142,23 +137,11 @@ export const MathOps = {
   },
 
   overlaps(math: TMath, box: TBox): boolean {
-    return (
-      math.vertices.some((p) => BoxOps.containsPoint(box, p)) ||
-      math.edges.some((e1) => BoxOps.getSides(box).some((e2) => !!findIntersectionBetween2Segment(e1, e2)))
-    )
+    return typesetOverlapsBox(math.vertices, math.edges, box)
   },
 
   getChildrenOverlaps(math: TMath, points: TPoint[]): TMathElement[] {
-    return math.elements.filter((e) => {
-      let corners: TPoint[]
-      if (math.rotation) {
-        const rad = convertDegreeToRadian(-math.rotation.degree)
-        corners = BoxOps.getCorners(e.bounds).map((p) => computeRotatedPoint(p, math.rotation!.center, rad))
-      } else {
-        corners = BoxOps.getCorners(e.bounds)
-      }
-      return points.some((p) => isPointInsidePolygon(p, corners))
-    })
+    return computeChildrenOverlaps(math.elements, points, math.rotation)
   },
 
   updateChildrenStyle(math: TMath): void {

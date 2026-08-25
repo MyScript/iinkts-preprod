@@ -2,7 +2,7 @@ import { LoggerCategory, LoggerManager } from "@/logger"
 import type { TPenStyle } from "@/style"
 import type { TPoint, TPointer } from "@/symbol"
 import { Stroke } from "@/symbol"
-import { computeDistance, computeDistanceSquared, isBetween } from "@/utils"
+import { computeDistance, computeDistanceSquared, isBetween, mergeExports } from "@/utils"
 
 import type { TExport } from "./Export"
 
@@ -117,6 +117,9 @@ export class Model {
 
   addStroke(stroke: Stroke): void {
     this.#logger.info("addStroke", { stroke })
+    if (this.symbols.some((s) => s.id === stroke.id)) {
+      throw new Error(`Stroke id already exist: ${stroke.id}`)
+    }
     this.symbols.push(stroke)
     this.modificationDate = Date.now()
     this.converts = undefined
@@ -231,11 +234,7 @@ export class Model {
 
   mergeExport(exports: TExport) {
     this.#logger.info("mergeExport", { exports })
-    if (this.exports) {
-      Object.assign(this.exports, exports)
-    } else {
-      this.exports = exports
-    }
+    this.exports = mergeExports(this.exports, exports)
     this.#logger.debug("mergeExport", this.exports)
   }
 
@@ -243,11 +242,7 @@ export class Model {
     this.#logger.info("mergeConvert", {
       converts,
     })
-    if (this.converts) {
-      Object.assign(this.converts, converts)
-    } else {
-      this.converts = converts
-    }
+    this.converts = mergeExports(this.converts, converts)
     this.#logger.debug("mergeConvert", this.converts)
   }
 

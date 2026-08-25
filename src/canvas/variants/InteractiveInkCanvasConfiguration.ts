@@ -120,15 +120,27 @@ export class InteractiveInkCanvasConfiguration implements TInteractiveInkCanvasC
     this.recognition = recognition
     this.server = server
 
-    this.grabber = mergeDeep({}, DefaultInteractiveInkCanvasConfiguration.grabber, configuration?.grabber)
-    this.logger = mergeDeep({}, DefaultInteractiveInkCanvasConfiguration.logger, configuration?.logger)
-    this.rendering = mergeDeep({}, DefaultInteractiveInkCanvasConfiguration.rendering, configuration?.rendering)
-    this["undo-redo"] = mergeDeep(
+    this.grabber = mergeDeep<TGrabberConfiguration>(
+      {},
+      DefaultInteractiveInkCanvasConfiguration.grabber,
+      configuration?.grabber
+    )
+    this.logger = mergeDeep<TLoggerConfiguration>(
+      {},
+      DefaultInteractiveInkCanvasConfiguration.logger,
+      configuration?.logger
+    )
+    this.rendering = mergeDeep<TIIRendererConfiguration>(
+      {},
+      DefaultInteractiveInkCanvasConfiguration.rendering,
+      configuration?.rendering
+    )
+    this["undo-redo"] = mergeDeep<THistoryConfiguration>(
       {},
       DefaultInteractiveInkCanvasConfiguration["undo-redo"],
       configuration?.["undo-redo"]
     )
-    this.menu = mergeDeep({}, DefaultInteractiveInkCanvasConfiguration.menu, configuration?.menu)
+    this.menu = mergeDeep<TMenuConfiguration>({}, DefaultInteractiveInkCanvasConfiguration.menu, configuration?.menu)
     if (configuration?.menu?.style) {
       if (configuration.menu.style.colors) {
         this.menu.style.colors = configuration.menu.style.colors.filter((color): color is string => color !== undefined)
@@ -170,15 +182,23 @@ export class InteractiveInkCanvasConfiguration implements TInteractiveInkCanvasC
       this.menu.style.fontWeight = configuration.menu.style.fontWeight ?? this.menu.style.fontWeight
       this.menu.style.opacity = configuration.menu.style.opacity ?? this.menu.style.opacity
     }
-    this.gesture = mergeDeep({}, DefaultInteractiveInkCanvasConfiguration.gesture, configuration?.gesture)
+    this.gesture = mergeDeep<TGestureConfiguration>(
+      {},
+      DefaultInteractiveInkCanvasConfiguration.gesture,
+      configuration?.gesture
+    )
     this.snap = new SnapConfiguration(configuration?.snap)
     this.connector = new ConnectorConfiguration(configuration?.connector)
-    this.overlays = mergeDeep({}, DefaultOverlayConfig, configuration?.overlays)
+    this.overlays = mergeDeep<TOverlayConfig>({}, DefaultOverlayConfig, configuration?.overlays)
 
-    this.penStyle = mergeDeep({}, DefaultInteractiveInkCanvasConfiguration.penStyle, configuration?.penStyle)
-    this.fontStyle = mergeDeep({}, DefaultInteractiveInkCanvasConfiguration.fontStyle, configuration?.fontStyle)
-    this.selection = mergeDeep({}, DefaultSelectionConfig, configuration?.selection)
-    this.math = mergeDeep({}, DefaultInteractiveInkCanvasConfiguration.math, configuration?.math)
+    this.penStyle = mergeDeep<TStyle>({}, DefaultInteractiveInkCanvasConfiguration.penStyle, configuration?.penStyle)
+    this.fontStyle = mergeDeep<InteractiveInkCanvasConfiguration["fontStyle"]>(
+      {},
+      DefaultInteractiveInkCanvasConfiguration.fontStyle,
+      configuration?.fontStyle
+    )
+    this.selection = mergeDeep<TSelectionConfig>({}, DefaultSelectionConfig, configuration?.selection)
+    this.math = mergeDeep<TMathConfig>({}, DefaultInteractiveInkCanvasConfiguration.math, configuration?.math)
     this.cssVars = configuration?.cssVars as Record<string, string> | undefined
   }
 }

@@ -31,6 +31,26 @@ describe("HTTPClientV2.ts", () => {
     expect(rr).toBeDefined()
   })
 
+  test("should strip export.jiix.text.lines when the server version is below 3.2.0", async () => {
+    const model = new Model(width, height)
+    const p1: TPointer = { t: 1, p: 1, x: 1, y: 1 }
+    const p2: TPointer = { t: 10, p: 1, x: 100, y: 1 }
+    model.initCurrentStroke(p1, "pen", DefaultPenStyle)
+    model.endCurrentStroke(p2)
+    const newConf: THTTPClientV2Configuration = structuredClone(
+      HTTPClientV1RawContentConfiguration as unknown as THTTPClientV2Configuration
+    )
+    newConf.recognition.type = "Raw Content"
+    const rr = new HTTPClientV2(newConf)
+    rr.configuration.recognition.export.jiix.text.lines = true
+
+    await rr.send(model.symbols)
+
+    const request = fetchMock.mock.calls[0][0] as Request
+    const sentBody = await request.clone().json()
+    expect(sentBody.configuration.export.jiix.text.lines).toBeUndefined()
+  })
+
   const testDatas: { type: TRecognitionTypeV2; config: THTTPClientV2Configuration }[] = [
     {
       type: "TEXT",

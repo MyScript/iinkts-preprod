@@ -1,6 +1,7 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { TSymbol } from "@/symbol"
 import { cloneSymbol } from "@/symbol"
+import { mergeExports } from "@/utils"
 
 import type { TExport, TJIIXMathElement, TJIIXTextElement } from "./Export"
 import { JIIXElementType } from "./Export"
@@ -14,27 +15,27 @@ export class IIModel {
   #version = 0
   readonly creationTime: number
   modificationDate: number
-  symbols: TSymbol[]
   exports?: TExport
   selectedIds: Set<string>
 
   constructor(creationDate = Date.now()) {
     this.creationTime = creationDate
     this.modificationDate = creationDate
-    this.symbols = []
     this.exports = undefined
     this.selectedIds = new Set()
   }
 
   /**
-   * Synchronize the internal Map with the symbols array
-   * Useful when symbols are modified directly (e.g., in tests)
+   * Bumped on every mutation that invalidates `exports` (add/remove/update/replace/clear).
+   * Lets an in-flight export request detect that the model changed while it was waiting
+   * for a server response, so a now-stale response isn't cached as if it were current.
    */
-  #syncMap(): void {
-    if (this.#symbolsMap.size !== this.symbols.length) {
-      this.#symbolsMap.clear()
-      this.symbols.forEach((s) => this.#symbolsMap.set(s.id, s))
-    }
+  get version(): number {
+    return this.#version
+  }
+
+  get symbols(): TSymbol[] {
+    return Array.from(this.#symbolsMap.values(), cloneSymbol)
   }
 
   get symbolsSelected(): TSymbol[] {
@@ -78,12 +79,8 @@ export class IIModel {
   }
 
   getRootSymbol(id: string): TSymbol | undefined {
-    this.#syncMap()
-    const directMatch = this.#symbolsMap.get(id)
-    if (directMatch) {
-      return directMatch
-    }
-    return undefined
+    const s = this.#symbolsMap.get(id)
+    return s ? cloneSymbol(s) : undefined
   }
 
   addSymbol(symbol: TSymbol): void {
@@ -91,36 +88,36 @@ export class IIModel {
     if (this.#symbolsMap.has(symbol.id)) {
       throw new Error(`Symbol id already exist: ${symbol.id}`)
     }
-    this.symbols.push(symbol)
     this.#symbolsMap.set(symbol.id, symbol)
     this.#markDirty()
     this.#logger.debug("addSymbol", this.symbols)
   }
 
-  updateSymbol(updatedSymbol: TSymbol): void {
+  updateSymbol(updatedSymbol: TSymbol, markDirty: boolean = true): void {
     this.#logger.info("updateSymbol", {
       updatedSymbol,
+      markDirty,
     })
-    const sIndex = this.symbols.findIndex((s) => s.id === updatedSymbol.id)
-    if (sIndex !== -1) {
-      updatedSymbol.modificationDate = Date.now()
-      this.symbols.splice(sIndex, 1, updatedSymbol)
+    if (this.#symbolsMap.has(updatedSymbol.id)) {
+      if (markDirty) {
+        updatedSymbol.modificationDate = Date.now()
+      }
       this.#symbolsMap.set(updatedSymbol.id, updatedSymbol)
-      this.#markDirty()
+      if (markDirty) {
+        this.#markDirty()
+      }
     }
     this.#logger.debug("updateSymbol", this.symbols)
   }
 
   replaceSymbol(id: string, symbols: TSymbol[]): void {
-    const sIndex = this.symbols.findIndex((s) => s.id === id)
-    if (sIndex !== -1) {
-      this.symbols.splice(sIndex, 1, ...symbols)
-      this.#symbolsMap.delete(id)
+    if (this.#symbolsMap.delete(id)) {
       symbols.forEach((s) => this.#symbolsMap.set(s.id, s))
       this.#markDirty()
     }
   }
 
+  // TODO fix ordre add attribut on TSymbol to define
   changeOrderSymbol(id: string, position: "first" | "last" | "forward" | "backward") {
     const fromIndex = this.symbols.findIndex((s) => s.id === id)
     if (fromIndex > -1) {
@@ -146,36 +143,10 @@ export class IIModel {
 
   removeSymbol(id: string): void {
     this.#logger.info("removeSymbol", { id })
-    this.#syncMap()
-    const symbolIndex = this.symbols.findIndex((s) => s.id === id)
-    if (symbolIndex !== -1) {
-      this.symbols.splice(symbolIndex, 1)
-      this.#symbolsMap.delete(id)
+    if (this.#symbolsMap.delete(id)) {
       this.#markDirty()
     }
     this.#logger.debug("removeSymbol", this.symbols)
-  }
-
-  extractDifferenceSymbols(model: IIModel): {
-    added: TSymbol[]
-    removed: TSymbol[]
-  } {
-    const modelKeys = new Set(model.symbols.map((s) => `${s.id}:${s.modificationDate}`))
-    const thisKeys = new Set(this.symbols.map((s) => `${s.id}:${s.modificationDate}`))
-
-    return {
-      added: this.symbols.filter((s) => !modelKeys.has(`${s.id}:${s.modificationDate}`)),
-      removed: model.symbols.filter((s) => !thisKeys.has(`${s.id}:${s.modificationDate}`)),
-    }
-  }
-
-  /**
-   * Bumped on every mutation that invalidates `exports` (add/remove/update/replace/clear).
-   * Lets an in-flight export request detect that the model changed while it was waiting
-   * for a server response, so a now-stale response isn't cached as if it were current.
-   */
-  get version(): number {
-    return this.#version
   }
 
   /**
@@ -194,31 +165,12 @@ export class IIModel {
 
   mergeExport(exports: TExport) {
     this.#logger.info("mergeExport", { exports })
-    if (this.exports) {
-      Object.assign(this.exports, exports)
-    } else {
-      this.exports = exports
-    }
+    this.exports = mergeExports(this.exports, exports)
     this.#logger.debug("mergeExport", this.exports)
-  }
-
-  clone(): IIModel {
-    this.#logger.info("clone")
-    const clonedModel = new IIModel(this.creationTime)
-    clonedModel.modificationDate = this.modificationDate
-    clonedModel.symbols = this.symbols.map((s) => {
-      const c = cloneSymbol(s)
-      clonedModel.#symbolsMap.set(c.id, c)
-      return c
-    })
-    clonedModel.exports = structuredClone(this.exports)
-    this.#logger.debug("clone", { clonedModel })
-    return clonedModel
   }
 
   clear(): void {
     this.#logger.info("clear")
-    this.symbols = []
     this.#symbolsMap.clear()
     this.#markDirty()
   }

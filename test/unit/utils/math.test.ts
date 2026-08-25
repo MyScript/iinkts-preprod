@@ -1,4 +1,4 @@
-import { computeAverage, isBetween, isValidNumber, roundTo } from "@/iink"
+import { computeAverage, computeTessellationCount, isBetween, isValidNumber, roundTo } from "@/iink"
 
 describe("math.ts", () => {
   describe("isValidNumber", () => {
@@ -56,5 +56,17 @@ describe("Average", () => {
     test(`should computeAverage of ${JSON.stringify(data.values)} equal to ${data.expected}`, () => {
       expect(computeAverage(data.values)).toEqual(data.expected)
     })
+  })
+})
+
+describe("computeTessellationCount", () => {
+  test("should floor to minPoints when the computed count is lower", () => {
+    expect(computeTessellationCount(5, 10)).toEqual(8)
+  })
+  test("should round length/minSegmentLength when above minPoints", () => {
+    expect(computeTessellationCount(314, 10)).toEqual(31)
+  })
+  test("should accept a custom minPoints floor", () => {
+    expect(computeTessellationCount(5, 10, 2)).toEqual(2)
   })
 })

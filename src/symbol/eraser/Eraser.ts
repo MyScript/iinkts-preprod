@@ -1,5 +1,5 @@
 import type { TStyle } from "@/style"
-import { DefaultStyle } from "@/style"
+import { mergeSymbolStyle } from "@/style"
 import type { TBox } from "@/symbol/primitives/Box"
 import { BoxOps } from "@/symbol/primitives/Box"
 import type { TPointer } from "@/symbol/primitives/Point"
@@ -21,14 +21,12 @@ export type TEraser = {
  */
 export const EraserOps = {
   create(width = 5): TEraser {
-    const style = Object.assign({}, DefaultStyle, {
+    const style = mergeSymbolStyle({
       color: "grey",
       fill: "none",
       opacity: 0.2,
       width,
     })
-    style.opacity = +style.opacity
-    style.width = +style.width
     return {
       type: SymbolType.Eraser,
       id: `${SymbolType.Eraser}-${createUUID()}`,

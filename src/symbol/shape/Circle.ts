@@ -1,5 +1,5 @@
 import { SELECTION_MARGIN } from "@/Constants"
-import { DefaultStyle, type TStyle } from "@/style"
+import { mergeSymbolStyle, type TStyle } from "@/style"
 import type { TBox } from "@/symbol/primitives/Box"
 import { BoxOps } from "@/symbol/primitives/Box"
 import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
@@ -12,7 +12,7 @@ import {
   type TPartialDeep,
   TWO_PI,
 } from "@/utils"
-import { isValidNumber } from "@/utils"
+import { computeTessellationCount, isValidNumber } from "@/utils"
 import { createUUID } from "@/utils/uuid"
 
 import { ShapeKind } from "./Shape-enum"
@@ -37,11 +37,7 @@ export type TShapeCircle = TBaseSymbol & {
  */
 export const ShapeCircleOps = {
   create(center: TPoint, radius: number, style?: TPartialDeep<TStyle>): TShapeCircle {
-    const mergedStyle = Object.assign({}, DefaultStyle, style) as TStyle
-    if (mergedStyle.opacity) {
-      mergedStyle.opacity = +mergedStyle.opacity
-    }
-    mergedStyle.width = +mergedStyle.width
+    const mergedStyle = mergeSymbolStyle(style)
     const now = Date.now()
     const circle: TShapeCircle = {
       type: SymbolType.Shape,
@@ -82,7 +78,7 @@ export const ShapeCircleOps = {
       y: circle.radius + circle.center.y,
     }
     const perimeter = TWO_PI * circle.radius
-    const nbPoint = Math.max(8, Math.round(perimeter / SELECTION_MARGIN))
+    const nbPoint = computeTessellationCount(perimeter, SELECTION_MARGIN)
     const vertices: TPoint[] = []
     for (let i = 0; i < nbPoint; i++) {
       const rad = TWO_PI * (i / nbPoint)

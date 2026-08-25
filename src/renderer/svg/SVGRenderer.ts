@@ -844,6 +844,7 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
     )
     bumpSvgTransformVersion(this.layer)
     this.#syncCurrentSymbolLayerViewBox()
+    this.#reconcileVirtualization()
 
     if (redrawGuides && this.configuration.guides.enable) {
       this.removeGuides()

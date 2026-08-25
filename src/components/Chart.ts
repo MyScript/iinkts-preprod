@@ -1,5 +1,5 @@
 import { DOMFactory } from "@/components/dom"
-import { areValidCoordinates, TWO_PI } from "@/utils"
+import { areValidCoordinates, RafCoalescer, TWO_PI } from "@/utils"
 
 /**
  * @group Components
@@ -78,6 +78,7 @@ export class Chart {
   private isDragging = false
   private lastMousePos = { x: 0, y: 0 }
   private controlsContainer?: HTMLDivElement
+  private drawCoalescer = new RafCoalescer()
 
   constructor(config: TChartConfig = {}) {
     this.config = {
@@ -293,7 +294,16 @@ export class Chart {
       yMax: this.viewport.yMax + yShift,
     }
 
-    this.draw()
+    this.scheduleDraw()
+  }
+
+  /**
+   * Coalesces `draw()` to at most once per animation frame — `pan()` fires on every native
+   * `mousemove` while dragging, and a full chart redraw (axes/grid/curves/points) per event
+   * outpaces what a single frame can show.
+   */
+  private scheduleDraw(): void {
+    this.drawCoalescer.schedule(() => this.draw())
   }
 
   private resetZoom(): void {
@@ -919,6 +929,7 @@ export class Chart {
    * Destroy the chart
    */
   destroy(): void {
+    this.drawCoalescer.cancel()
     this.container.remove()
   }
 }

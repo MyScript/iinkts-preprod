@@ -104,20 +104,19 @@ describe("IIRotationManager.ts", () => {
     const manager = new IIRotationManager(asCanvas(canvas))
     manager.applyToSymbol = jest.fn()
 
-    const stroke = StrokeOps.create({})
-    StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 0, y: 0 })
-    StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 10, y: 50 })
-    const strokeNotRotate = structuredClone(stroke)
-    canvas.model.addSymbol(stroke)
-    canvas.model.selectedIds.add(stroke.id)
+    const strokeOrigin = StrokeOps.create({})
+    StrokeOps.addPointer(strokeOrigin, { p: 1, t: 1, x: 0, y: 0 })
+    StrokeOps.addPointer(strokeOrigin, { p: 1, t: 1, x: 10, y: 50 })
+    canvas.model.addSymbol(strokeOrigin)
+    canvas.model.selectedIds.add(strokeOrigin.id)
 
     const rotateCenter: TPoint = {
-      x: OBBOps.toBox(stroke.bounds).x + stroke.bounds.width / 2,
-      y: OBBOps.toBox(stroke.bounds).y + stroke.bounds.height / 2,
+      x: OBBOps.toBox(strokeOrigin.bounds).x + strokeOrigin.bounds.width / 2,
+      y: OBBOps.toBox(strokeOrigin.bounds).y + strokeOrigin.bounds.height / 2,
     }
     const rotateOrigin: TPoint = {
-      x: OBBOps.toBox(stroke.bounds).x + stroke.bounds.width / 2,
-      y: OBBOps.toBox(stroke.bounds).y + stroke.bounds.height,
+      x: OBBOps.toBox(strokeOrigin.bounds).x + strokeOrigin.bounds.width / 2,
+      y: OBBOps.toBox(strokeOrigin.bounds).y + strokeOrigin.bounds.height,
     }
 
     const testDatas = [
@@ -166,7 +165,7 @@ describe("IIRotationManager.ts", () => {
         )
         expect(canvas.renderer.setAttribute).toHaveBeenNthCalledWith(
           2,
-          stroke.id,
+          strokeOrigin.id,
           "transform-origin",
           `${rotateCenter.x}px ${rotateCenter.y}px`
         )
@@ -176,24 +175,25 @@ describe("IIRotationManager.ts", () => {
         expect(manager.continue(data.rotateToPoint)).toEqual(data.angle)
 
         expect(canvas.renderer.setAttribute).toHaveBeenNthCalledWith(1, group.id, "transform", `rotate(${data.angle})`)
-        expect(canvas.renderer.setAttribute).toHaveBeenNthCalledWith(2, stroke.id, "transform", `rotate(${data.angle})`)
+        expect(canvas.renderer.setAttribute).toHaveBeenNthCalledWith(2, strokeOrigin.id, "transform", `rotate(${data.angle})`)
       })
       test(`shoud end with angle: "${data.angle}°`, async () => {
         const endPromise = manager.end(data.rotateToPoint)
         expect(canvas.endOperation).toHaveBeenCalledWith("Rotating")
         await endPromise
 
+        const newStroke = canvas.model.getRootSymbol(strokeOrigin.id) as TStroke
         expect(manager.applyToSymbol).toHaveBeenCalledTimes(1)
         expect(canvas.renderer.drawSymbol).toHaveBeenCalledTimes(1)
-        expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(stroke)
+        expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(newStroke)
         expect(canvas.client.transformRotate).toHaveBeenCalledTimes(1)
         expect(canvas.client.transformRotate).toHaveBeenCalledWith(
-          [stroke.id],
+          [newStroke.id],
           convertDegreeToRadian(data.angle),
           rotateCenter.x,
           rotateCenter.y
         )
-        expect(stroke).not.toEqual(strokeNotRotate)
+        expect(strokeOrigin).not.toEqual(newStroke)
       })
     })
   })
@@ -301,24 +301,25 @@ describe("IIRotationManager.ts", () => {
       manager.start(rotateElement, origin)
       await manager.end(computeRotatedPoint(origin, center, Math.PI / 2))
 
+      const newEdgeStroke = canvas.model.getRootSymbol(edgeStroke.id) as TStroke
       // The edge stroke really moved with the shape...
-      expect(edgeStroke.pointers).not.toEqual(originalPointers)
+      expect(newEdgeStroke.pointers).not.toEqual(originalPointers)
       // ...but it was reshaped non-uniformly (gradient-followed, single anchor), so it must never
       // be folded into the uniform transformRotate call — its full new content goes via replaceStrokes...
       const sentIds = (canvas.client.transformRotate as jest.Mock).mock.calls[0][0] as string[]
-      expect(sentIds).not.toContain(edgeStroke.id)
-      expect(canvas.client.replaceStrokes).toHaveBeenCalledWith([edgeStroke.id], [edgeStroke])
+      expect(sentIds).not.toContain(newEdgeStroke.id)
+      expect(canvas.client.replaceStrokes).toHaveBeenCalledWith([newEdgeStroke.id], [newEdgeStroke])
       // ...and history must hold its PRE-rotation snapshot for undo in `updated`, not the
       // `rotate` entry's own inverse-matrix-replay symbol list (a gradient shift has no inverse).
       const changes = (canvas.history.push as jest.Mock).mock.calls[0][0] as {
         rotate: { symbols: TStroke[] }[]
         updated?: { oldSymbols: TStroke[]; newSymbols: TStroke[] }
       }
-      expect(changes.rotate[0].symbols.find((s) => s.id === edgeStroke.id)).toBeUndefined()
+      expect(changes.rotate[0].symbols.find((s) => s.id === newEdgeStroke.id)).toBeUndefined()
       const oldSnapshot = changes.updated?.oldSymbols.find((s) => s.id === edgeStroke.id)
       expect(oldSnapshot).toBeDefined()
       expect(oldSnapshot!.pointers).toEqual(originalPointers)
-      expect(changes.updated?.newSymbols.find((s) => s.id === edgeStroke.id)).toBe(edgeStroke)
+      expect(changes.updated?.newSymbols.find((s) => s.id === edgeStroke.id)).toStrictEqual(newEdgeStroke)
     })
 
     test("end() commits the exact same gradient shape the drag preview showed (no pointerup snap)", async () => {
@@ -365,7 +366,8 @@ describe("IIRotationManager.ts", () => {
       const previewClone = (canvas.renderer.drawSymbol as jest.Mock).mock.calls.find(
         (c) => (c[0] as { id: string }).id === edgeStroke.id
       )![0] as typeof edgeStroke
-      expect(edgeStroke.pointers).toEqual(previewClone.pointers)
+      const newEdgeStroke = canvas.model.getRootSymbol(edgeStroke.id) as TStroke
+      expect(newEdgeStroke.pointers).toEqual(previewClone.pointers)
     })
   })
 })

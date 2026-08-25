@@ -184,6 +184,10 @@ export class IISynchronizerManager extends IIAbstractManager {
             }
 
             stroke.modificationDate = now
+            // jiixBlockId/jiixBlockType are local bookkeeping, not part of the JIIX export
+            // content — must not clear model.exports, which was just populated by the
+            // canvas.export() call this very sync is processing the result of.
+            this.model.updateSymbol(stroke, false)
           }
         }
 
@@ -398,6 +402,9 @@ export class IISynchronizerManager extends IIAbstractManager {
       strokes.forEach((stroke) => {
         stroke.startAnchor = undefined
         stroke.endAnchor = undefined
+        // Anchors aren't part of the JIIX export content either — same reasoning as the
+        // metadata-update loop above.
+        this.model.updateSymbol(stroke, false)
       })
       return
     }
@@ -420,6 +427,7 @@ export class IISynchronizerManager extends IIAbstractManager {
     strokes.forEach((stroke) => {
       stroke.startAnchor = startAnchor
       stroke.endAnchor = endAnchor
+      this.model.updateSymbol(stroke, false)
     })
   }
 }

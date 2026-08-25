@@ -357,6 +357,10 @@ export class IIMenuContext {
       this.canvas.layers.rendering.removeEventListener("scroll", this.#scrollHandler)
       this.#scrollHandler = undefined
     }
+    this.contextMenus.forEach((contextMenu) => {
+      contextMenu.destroy()
+    })
+    this.contextMenus.clear()
     while (this.wrapper?.lastChild) {
       this.wrapper.removeChild(this.wrapper.lastChild)
     }

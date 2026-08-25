@@ -22,7 +22,7 @@ import {
   ShapePolygonOps,
 } from "@/iink"
 
-describe("CanvasOffscreen.ts", () => {
+describe("InteractiveInkCanvas.ts", () => {
   global.fetch = jest.fn(() =>
     Promise.resolve({
       json: () => Promise.resolve({ result: { fr: "fr_FR" } }),
@@ -432,7 +432,8 @@ describe("CanvasOffscreen.ts", () => {
     })
     test("remove stroke", async () => {
       const stroke = buildIIStroke()
-      canvas.model.symbols.push(stroke)
+      canvas.model.getRootSymbol = jest.fn(() => stroke)
+      canvas.model.addSymbol(stroke)
       await canvas.removeSymbol(stroke.id)
       expect(canvas.model.removeSymbol).toHaveBeenNthCalledWith(1, stroke.id)
       expect(canvas.renderer.removeSymbol).toHaveBeenNthCalledWith(1, stroke.id)
@@ -440,7 +441,8 @@ describe("CanvasOffscreen.ts", () => {
     })
     test("remove shape", async () => {
       const shape = buildIICircle()
-      canvas.model.symbols.push(shape)
+      canvas.model.getRootSymbol = jest.fn(() => shape)
+      canvas.model.addSymbol(shape)
       await canvas.removeSymbol(shape.id)
       expect(canvas.model.removeSymbol).toHaveBeenNthCalledWith(1, shape.id)
       expect(canvas.renderer.removeSymbol).toHaveBeenNthCalledWith(1, shape.id)
@@ -633,28 +635,32 @@ describe("CanvasOffscreen.ts", () => {
       await canvas.initialize()
       expect(canvas.model.symbols[0].style.color).toEqual("#000000")
       canvas.updateSymbolsStyle([stroke1.id], { color: "red" })
+      const newStroke1 = canvas.model.getRootSymbol(stroke1.id)
       expect(canvas.model.symbols[0].style.color).toEqual("red")
       expect(canvas.renderer.drawSymbol).toHaveBeenCalledTimes(1)
-      expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(stroke1)
+      expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(newStroke1)
     })
     test("should update symbol width and draw", async () => {
       await canvas.initialize()
-      expect(canvas.model.symbols[1].style.width).toEqual(2)
+      expect(stroke2.style.width).toEqual(2)
       canvas.updateSymbolsStyle([stroke2.id], { width: 42 })
-      expect(canvas.model.symbols[1].style.width).toEqual(42)
+      const newStroke2 = canvas.model.getRootSymbol(stroke2.id) as TStroke
+      expect(newStroke2.style.width).toEqual(42)
       expect(canvas.renderer.drawSymbol).toHaveBeenCalledTimes(1)
-      expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(stroke2)
+      expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(newStroke2)
     })
     test("should push both old and new style so the change can be reversed", async () => {
       await canvas.initialize()
-      const oldStyle = { ...stroke1.style }
+      const oldStroke1 = canvas.model.getRootSymbol(stroke1.id) as TStroke
+      const oldStyle = { ...oldStroke1.style }
       canvas.history.push = jest.fn()
       canvas.updateSymbolsStyle([stroke1.id], { color: "green" })
+      const newStroke1 = canvas.model.getRootSymbol(stroke1.id) as TStroke
       expect(canvas.history.push).toHaveBeenNthCalledWith(1, {
         style: {
-          symbols: [stroke1],
+          symbols: [newStroke1],
           oldStyles: [oldStyle],
-          newStyles: [{ ...stroke1.style }],
+          newStyles: [{ ...newStroke1.style }],
         },
       })
     })
@@ -720,7 +726,7 @@ describe("CanvasOffscreen.ts", () => {
       expect(canvas.client.addStrokes).toHaveBeenCalledTimes(1)
     })
     test("should add symbols to model and draw", async () => {
-      canvas.model.symbols = []
+      canvas.model.clear()
       await canvas.importPointEvents(pStrokes)
       expect(canvas.model.symbols).toHaveLength(pStrokes.length)
       expect(canvas.renderer.drawSymbol).toHaveBeenCalledTimes(2)
@@ -1557,6 +1563,22 @@ describe("CanvasOffscreen.ts", () => {
     test("should call client.destroy", async () => {
       canvas.destroy()
       await expect(canvas.client.destroy).toHaveBeenCalledTimes(1)
+    })
+
+    test("should remove all event listeners", async () => {
+      const rootElement = document.createElement("div")
+      const otherCanvas = new InteractiveInkCanvas(rootElement, CanvasOptions)
+      otherCanvas.event.removeAllListeners = jest.fn()
+      await otherCanvas.destroy()
+      expect(otherCanvas.event.removeAllListeners).toHaveBeenCalledTimes(1)
+    })
+
+    test("should clear rootElement.iink so the element doesn't keep a reference to the destroyed canvas", async () => {
+      const rootElement = document.createElement("div")
+      const otherCanvas = new InteractiveInkCanvas(rootElement, CanvasOptions)
+      expect(rootElement.iink).toBe(otherCanvas)
+      await otherCanvas.destroy()
+      expect(rootElement.iink).toBeUndefined()
     })
   })
 

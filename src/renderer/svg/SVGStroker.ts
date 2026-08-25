@@ -1,5 +1,10 @@
 import type { TLegacyStroke, TPointer } from "@/symbol"
-import { computeAngleAxeRadian, computeLinksPointers, computeMiddlePointer } from "@/utils"
+import {
+  computeFinalOutlinePoints,
+  computeLineOutlinePoints,
+  computeMiddlePointer,
+  computeQuadraticOutlinePoints,
+} from "@/utils"
 
 /**
  * @group Renderer
@@ -16,8 +21,7 @@ export class SVGStroker {
   }
 
   protected getLinePath(begin: TPointer, end: TPointer, width: number): string {
-    const linkPoints1 = computeLinksPointers(begin, computeAngleAxeRadian(begin, end), width)
-    const linkPoints2 = computeLinksPointers(end, computeAngleAxeRadian(begin, end), width)
+    const { linkPoints1, linkPoints2 } = computeLineOutlinePoints(begin, end, width)
     const svgPath = [
       `M ${linkPoints1[0].x},${linkPoints1[0].y}`,
       `L ${linkPoints2[0].x},${linkPoints2[0].y}`,
@@ -28,22 +32,14 @@ export class SVGStroker {
   }
 
   protected getFinalPath(begin: TPointer, end: TPointer, width: number): string {
-    const ARCSPLIT = 6
-    const angle = computeAngleAxeRadian(begin, end)
-    const linkPoints = computeLinksPointers(end, angle, width)
-    const parts = [`M ${linkPoints[0].x},${linkPoints[0].y}`]
-    for (let i = 1; i <= ARCSPLIT; i++) {
-      const newAngle = angle - i * (Math.PI / ARCSPLIT)
-      parts.push(`L ${end.x - end.p * width * Math.sin(newAngle)},${end.y + end.p * width * Math.cos(newAngle)}`)
-    }
+    const points = computeFinalOutlinePoints(begin, end, width)
+    const parts = points.map((point, i) => `${i === 0 ? "M" : "L"} ${point.x},${point.y}`)
     const svgPath = parts.join(" ")
     return svgPath
   }
 
   protected getQuadraticPath(begin: TPointer, end: TPointer, central: TPointer, width: number): string {
-    const linkPoints1 = computeLinksPointers(begin, computeAngleAxeRadian(begin, central), width)
-    const linkPoints2 = computeLinksPointers(end, computeAngleAxeRadian(central, end), width)
-    const linkPoints3 = computeLinksPointers(central, computeAngleAxeRadian(begin, end), width)
+    const { linkPoints1, linkPoints2, linkPoints3 } = computeQuadraticOutlinePoints(begin, end, central, width)
     const svgPath = [
       `M ${linkPoints1[0].x},${linkPoints1[0].y}`,
       `Q ${linkPoints3[0].x},${linkPoints3[0].y} ${linkPoints2[0].x},${linkPoints2[0].y}`,

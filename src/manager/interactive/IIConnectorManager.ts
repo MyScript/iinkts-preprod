@@ -86,10 +86,29 @@ export class ConnectorConfiguration implements TConnectorConfiguration {
 export class IIConnectorManager extends IIAbstractManager {
   protected managerName = "IIConnectorManager"
   connectorConfiguration: ConnectorConfiguration
+  #anchoredEdgesCache: TEdge[] = []
+  #anchoredEdgesCacheVersion = -1
 
   constructor(canvas: TInteractiveInkCanvas, config?: TPartialDeep<TConnectorConfiguration>) {
     super(canvas, LoggerCategory.MANAGER)
     this.connectorConfiguration = new ConnectorConfiguration(config)
+  }
+
+  /**
+   * Edges that have at least one anchor, rebuilt only when the model actually changed.
+   * `drawAnchoredEdgesForMatrix` is called on every pointermove of a drag, but the model
+   * itself only mutates on commit — scanning all symbols per move (as opposed to just the
+   * handful of anchored edges) was the O(n) cost this cache removes.
+   */
+  #getAnchoredEdges(): TEdge[] {
+    const currentVersion = this.model.version
+    if (this.#anchoredEdgesCacheVersion !== currentVersion) {
+      this.#anchoredEdgesCacheVersion = currentVersion
+      this.#anchoredEdgesCache = this.model.symbols.filter(
+        (s): s is TEdge => EdgeOps.isEdge(s) && (!!s.startAnchor || !!s.endAnchor)
+      )
+    }
+    return this.#anchoredEdgesCache
   }
 
   /**
@@ -347,8 +366,8 @@ export class IIConnectorManager extends IIAbstractManager {
       }
     }
 
-    this.model.symbols.forEach((symbol) => {
-      if (EdgeOps.isEdge(symbol) && EdgeOps.isArcEdge(symbol)) {
+    this.#getAnchoredEdges().forEach((symbol) => {
+      if (EdgeOps.isArcEdge(symbol)) {
         let clone = symbol
         let changed = false
         // No `isShape` filter on the target here: neither the Line/PolyEdge preview branches
@@ -390,9 +409,6 @@ export class IIConnectorManager extends IIAbstractManager {
         return
       }
 
-      if (!EdgeOps.isEdge(symbol)) {
-        return
-      }
       if (!EdgeOps.isLineEdge(symbol) && !EdgeOps.isPolyEdge(symbol)) {
         return
       }

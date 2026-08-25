@@ -2,9 +2,11 @@ import { LoggerCategory, LoggerManager } from "@/logger"
 import type { TExportV2, TJIIXExport } from "@/model"
 import { StrokeOps, type TStrokeMinimal } from "@/symbol"
 import type { TPartialDeep } from "@/utils"
-import { computeHmac, getApiInfos, isVersionSuperiorOrEqual } from "@/utils"
+import { getApiInfos, isVersionSuperiorOrEqual, redactServerSecrets } from "@/utils"
 
+import { parseApiError } from "./ClientApiError"
 import { ClientError } from "./ClientError"
+import { resolveHmac } from "./HmacAuth"
 import type { THTTPClientV2Configuration } from "./HTTPClientV2Configuration"
 import { HTTPClientV2Configuration } from "./HTTPClientV2Configuration"
 import type {
@@ -14,11 +16,6 @@ import type {
   TRawContentConfiguration,
   TTextConfiguration,
 } from "./recognition"
-
-type TApiError = {
-  code?: string
-  message: string
-}
 
 /**
  * @group Client
@@ -59,7 +56,7 @@ export class HTTPClientV2 {
   configuration: HTTPClientV2Configuration
 
   constructor(config: TPartialDeep<THTTPClientV2Configuration>) {
-    this.#logger.info("constructor", { config })
+    this.#logger.info("constructor", { config: redactServerSecrets(config) })
     this.configuration = new HTTPClientV2Configuration(config)
   }
 
@@ -124,21 +121,11 @@ export class HTTPClientV2 {
     const headers = new Headers()
     headers.append("Accept", mimeType)
     headers.append("applicationKey", this.configuration.server.applicationKey)
-    let hmacKey: string | undefined
     try {
       // If an HMAC key is provided, compute the HMAC of the request body and add it to the headers
-      if (this.configuration.server.hmacKey) {
-        if (typeof this.configuration.server.hmacKey == "string") {
-          hmacKey = this.configuration.server.hmacKey
-        } else if (typeof this.configuration.server.hmacKey == "function") {
-          hmacKey = await this.configuration.server.hmacKey(this.configuration.server.applicationKey)
-        } else {
-          throw new Error("HMAC key is not a string nor a function")
-        }
-        if (hmacKey) {
-          const hmac = await computeHmac(JSON.stringify(data), this.configuration.server.applicationKey, hmacKey)
-          headers.append("hmac", hmac)
-        }
+      const hmac = await resolveHmac(this.configuration.server, JSON.stringify(data))
+      if (hmac) {
+        headers.append("hmac", hmac)
       }
     } catch (error: Error | unknown) {
       // If there is an error during HMAC computation, log the error and proceed without the HMAC header
@@ -157,6 +144,9 @@ export class HTTPClientV2 {
     if (this.configuration.server.version && isVersionSuperiorOrEqual(this.configuration.server.version, "2.0.4")) {
       headers.append("myscript-client-name", "iink-ts")
       headers.append("myscript-client-version", "1.0.0-buildVersion")
+    }
+    if (!isVersionSuperiorOrEqual(this.configuration.server.version!, "3.2.0")) {
+      delete this.configuration.recognition.export.jiix.text.lines
     }
 
     const reqInit: RequestInit = {
@@ -192,18 +182,9 @@ export class HTTPClientV2 {
       this.#logger.debug("post", { result })
       return result
     } else {
-      if (response.headers.get("content-type")?.includes("application/json")) {
-        const err = (await response.json()) as TApiError
-        this.#logger.error("post", { err })
-        throw err
-      } else {
-        const err: TApiError = {
-          code: response.status.toString(),
-          message: await response.text(),
-        }
-        this.#logger.error("post", { err })
-        throw err
-      }
+      const err = await parseApiError(response)
+      this.#logger.error("post", { err })
+      throw err
     }
   }
 

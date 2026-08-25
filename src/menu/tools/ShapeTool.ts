@@ -51,7 +51,7 @@ export class ShapeTool extends BaseMenuItem<HTMLDivElement> {
       }
       button.classList.add("active")
 
-      const subMenuContent = this.element?.querySelector(".sub-menu-content-shape")
+      const subMenuContent = this.element?.querySelector(".sub-menu-content")
       subMenuContent?.classList.remove("open")
     })
 
@@ -122,13 +122,14 @@ export class ShapeTool extends BaseMenuItem<HTMLDivElement> {
         CanvasWriteTool.Rhombus,
       ].includes(this.canvas.writer.tool)
 
+    this.subMenuButtons.forEach((btn) => btn.classList.remove("active"))
+
     if (isShapeTool) {
       this.triggerButton.classList.add("active")
       const activeButton = this.subMenuButtons.get(this.canvas.writer.tool)
       activeButton?.classList.add("active")
     } else {
       this.triggerButton.classList.remove("active")
-      this.subMenuButtons.forEach((btn) => btn.classList.remove("active"))
     }
 
     this.updateDisabled()

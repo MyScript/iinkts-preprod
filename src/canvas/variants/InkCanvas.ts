@@ -104,15 +104,12 @@ export class InkCanvas extends AbstractCanvas {
     switch (this.tool) {
       case CanvasTool.Erase:
         this.eraser.attach(this.layers.root)
-        this.layers.root.classList.remove("draw")
-        this.layers.root.classList.add("erase")
         break
       default:
         this.writer.attach(this.layers.root)
-        this.layers.root.classList.add("draw")
-        this.layers.root.classList.remove("erase")
         break
     }
+    this.setCursorStyle()
   }
 
   get model(): IModel {
@@ -235,15 +232,17 @@ export class InkCanvas extends AbstractCanvas {
     width?: number
   } = {}): Promise<void> {
     this.logger.info("resize", { height, width })
-    const compStyles = window.getComputedStyle(this.layers.root)
-    this.model.height =
-      height || Math.max(parseInt(compStyles.height.replace("px", "")), this.configuration.rendering.minHeight)
-    this.model.width =
-      width || Math.max(parseInt(compStyles.width.replace("px", "")), this.configuration.rendering.minWidth)
+    const dims = this.resolveDimensions(height, width)
+    this.model.height = dims.height
+    this.model.width = dims.width
     this.renderer.resize(this.model.height, this.model.width)
     this.logger.debug("resize", {
       model: this.model,
     })
+  }
+
+  protected get minDimensions(): { minHeight: number; minWidth: number } {
+    return this.configuration.rendering
   }
 
   async removeStrokes(strokeIds: string[]): Promise<void> {
@@ -318,11 +317,9 @@ export class InkCanvas extends AbstractCanvas {
 
   async destroy(): Promise<void> {
     this.logger.info("destroy")
-    this.stopResizeObserver()
-    this.event.removeAllListeners()
     this.writer.detach()
-    this.layers.destroy()
-    this.renderer.destroy()
+    this.teardownCommon()
+    this.clearRootElementReference()
     return Promise.resolve()
   }
 }

@@ -199,4 +199,33 @@ describe("IIMenuContext.ts", () => {
       expect(getMathMenuElement(menuContext).style.display).toBe("none")
     })
   })
+
+  describe("destroy", () => {
+    test("destroys every rendered context menu and clears the map", () => {
+      const canvas = createCanvasMock()
+      const menuContext = new IIMenuContext(asCanvas(canvas), "ms-menu-context")
+      menuContext.render(canvas.layers.rendering)
+
+      const contextMenus = (menuContext as unknown as { contextMenus: Map<string, { destroy: () => void }> })
+        .contextMenus
+      expect(contextMenus.size).toBeGreaterThan(0)
+      const destroySpies = Array.from(contextMenus.values()).map((contextMenu) => jest.spyOn(contextMenu, "destroy"))
+
+      menuContext.destroy()
+
+      destroySpies.forEach((spy) => expect(spy).toHaveBeenCalledTimes(1))
+      expect(contextMenus.size).toBe(0)
+    })
+
+    test("removes the scroll listener from the rendering layer", () => {
+      const canvas = createCanvasMock()
+      const removeSpy = jest.spyOn(canvas.layers.rendering, "removeEventListener")
+      const menuContext = new IIMenuContext(asCanvas(canvas), "ms-menu-context")
+      menuContext.render(canvas.layers.rendering)
+
+      menuContext.destroy()
+
+      expect(removeSpy).toHaveBeenCalledWith("scroll", expect.any(Function))
+    })
+  })
 })

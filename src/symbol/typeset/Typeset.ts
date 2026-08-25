@@ -1,7 +1,12 @@
 import type { TBox } from "@/symbol/primitives/Box"
 import { BoxOps } from "@/symbol/primitives/Box"
 import type { TPoint, TSegment } from "@/symbol/primitives/Point"
-import { computeRotatedPoint, convertDegreeToRadian } from "@/utils"
+import {
+  computeRotatedPoint,
+  convertDegreeToRadian,
+  findIntersectionBetween2Segment,
+  isPointInsidePolygon,
+} from "@/utils"
 
 /**
  * @group Symbol
@@ -63,4 +68,33 @@ export function computeClosedEdges(vertices: TPoint[]): TSegment[] {
     p1: p,
     p2: vertices[(i + 1) % vertices.length],
   }))
+}
+
+/**
+ * Whether a typeset symbol (its own `vertices`/`edges`, from {@link computeTypesetVertices}/
+ * {@link computeClosedEdges}) overlaps `box` — either a vertex lands inside `box`, or one of its
+ * edges crosses one of `box`'s sides.
+ * @group Symbol
+ */
+export function typesetOverlapsBox(vertices: TPoint[], edges: TSegment[], box: TBox): boolean {
+  return (
+    vertices.some((p) => BoxOps.containsPoint(box, p)) ||
+    edges.some((e1) => BoxOps.getSides(box).some((e2) => !!findIntersectionBetween2Segment(e1, e2)))
+  )
+}
+
+/**
+ * Filters `children` (Text chars / Math elements — anything shaped like {@link TTypesetChild})
+ * to those whose (possibly rotated) bounds contain at least one of `points`.
+ * @group Symbol
+ */
+export function computeChildrenOverlaps<T extends TTypesetChild>(
+  children: T[],
+  points: TPoint[],
+  rotation?: TRotation
+): T[] {
+  return children.filter((c) => {
+    const corners = computeTypesetVertices(c.bounds, rotation)
+    return points.some((p) => isPointInsidePolygon(p, corners))
+  })
 }

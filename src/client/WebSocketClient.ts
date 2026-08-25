@@ -7,10 +7,11 @@ import type { TStroke } from "@/symbol"
 import { StrokeOps } from "@/symbol/stroke/Stroke"
 import type { TMatrixTransform } from "@/transform"
 import type { TPartialDeep } from "@/utils"
-import { computeHmac, DeferredPromise, getApiInfos, isVersionSuperiorOrEqual, mergeDeep } from "@/utils"
+import { DeferredPromise, getApiInfos, isVersionSuperiorOrEqual, mergeDeep, redactServerSecrets } from "@/utils"
 
 import { ClientError, mapCloseCodeToMessage } from "./ClientError"
 import { ClientEvent } from "./ClientEvent"
+import { resolveHmac } from "./HmacAuth"
 import type { TWebSocketClientConfiguration } from "./WebSocketClientConfiguration"
 import { WebSocketClientConfiguration } from "./WebSocketClientConfiguration"
 import type {
@@ -115,7 +116,7 @@ export class WebSocketClient {
   event: ClientEvent
 
   constructor(config: TPartialDeep<TWebSocketClientConfiguration>, event?: ClientEvent) {
-    this.#logger.info("constructor", { config })
+    this.#logger.info("constructor", { config: redactServerSecrets(config) })
     this.configuration = new WebSocketClientConfiguration(config)
     const scheme = this.configuration.server.scheme === "https" ? "wss" : "ws"
     this.url = `${scheme}://${this.configuration.server.host}/api/v4.0/iink/offscreen?applicationKey=${this.configuration.server.applicationKey}`
@@ -367,20 +368,15 @@ export class WebSocketClient {
   }
 
   protected async manageHMACChallenge(hmacChallengeMessage: TWebSocketClientMessageHMACChallenge): Promise<void> {
-    let hmacKey: string
-    if (typeof this.configuration.server.hmacKey == "string") {
-      hmacKey = this.configuration.server.hmacKey
-    } else if (typeof this.configuration.server.hmacKey == "function") {
-      hmacKey = await this.configuration.server.hmacKey(this.configuration.server.applicationKey)
-    } else {
+    if (
+      typeof this.configuration.server.hmacKey !== "function" &&
+      typeof this.configuration.server.hmacKey !== "string"
+    ) {
       return this.initialized.reject(new Error("HMAC key is not a string nor a function"))
-    }
-    if (!hmacKey) {
-      return this.initialized.reject(new Error("HMAC key is required"))
     }
     this.#send({
       type: "hmac",
-      hmac: await computeHmac(hmacChallengeMessage.hmacChallenge, this.configuration.server.applicationKey, hmacKey),
+      hmac: await resolveHmac(this.configuration.server, hmacChallengeMessage.hmacChallenge),
     })
   }
 
@@ -589,9 +585,9 @@ export class WebSocketClient {
     try {
       const websocketMessage: TWebSocketClientMessageReceived = JSON.parse(message.data)
       if (websocketMessage.type === TWebSocketClientMessageType.Pong) {
+        this.pingCount = 0
         return
       }
-      this.pingCount = 0
       switch (websocketMessage.type) {
         case TWebSocketClientMessageType.HMAC_Challenge:
           this.manageHMACChallenge(websocketMessage).catch((err) => this.event.emitError(err))
@@ -643,7 +639,7 @@ export class WebSocketClient {
 
   async newSession(config: TPartialDeep<TWebSocketClientConfiguration>): Promise<void> {
     await this.close(1000, "new-session")
-    this.configuration = mergeDeep({}, this.configuration, config)
+    this.configuration = mergeDeep<WebSocketClientConfiguration>({}, this.configuration, config)
     this.sessionId = undefined
     this.currentPartId = undefined
     await this.init()

@@ -26,6 +26,7 @@ import { ShapeCircleOps } from "@/symbol/shape/Circle"
 import { ShapeEllipseOps } from "@/symbol/shape/Ellipse"
 import { ShapePolygonOps } from "@/symbol/shape/Polygon"
 import { StrokeOps } from "@/symbol/stroke/Stroke"
+import { RafCoalescer } from "@/utils"
 
 import type { TGesture } from "./gestures"
 import type { IIGestureManager } from "./IIGestureManager"
@@ -36,6 +37,7 @@ import type { IISnapManager } from "./IISnapManager"
  */
 export class IIWriterManager extends AbstractWriterManager {
   #tool: CanvasWriteTool = CanvasWriteTool.Pencil
+  #renderCoalescer = new RafCoalescer()
   detectGesture: boolean = true
   canvas: TInteractiveInkCanvas
   currentSymbolOrigin?: TPoint
@@ -82,8 +84,6 @@ export class IIWriterManager extends AbstractWriterManager {
     return this.canvas.client
   }
 
-  #pendingFrame?: number
-
   attach(layer: HTMLElement): void {
     this.grabber.attach(layer)
     this.grabber.onPointerDown = this.start.bind(this)
@@ -108,11 +108,7 @@ export class IIWriterManager extends AbstractWriterManager {
    * a real DOM replace + repaint on a canvas that may already hold many symbols.
    */
   protected scheduleRender(): void {
-    if (this.#pendingFrame !== undefined) {
-      return
-    }
-    this.#pendingFrame = requestAnimationFrame(() => {
-      this.#pendingFrame = undefined
+    this.#renderCoalescer.schedule(() => {
       if (this.currentSymbol) {
         this.renderer.drawCurrentSymbol(this.currentSymbol)
       }
@@ -120,10 +116,7 @@ export class IIWriterManager extends AbstractWriterManager {
   }
 
   protected cancelScheduledRender(): void {
-    if (this.#pendingFrame !== undefined) {
-      cancelAnimationFrame(this.#pendingFrame)
-      this.#pendingFrame = undefined
-    }
+    this.#renderCoalescer.cancel()
   }
 
   protected needContextLessGesture(stroke: TStroke): boolean {
