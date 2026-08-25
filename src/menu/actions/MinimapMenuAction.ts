@@ -16,7 +16,6 @@ export class MinimapMenuAction extends ButtonMenuItem {
     const config: TMenuButton = {
       type: "button",
       id: `${idPrefix}-minimap`,
-      label: "Minimap",
       icon: minimapIcon,
       action: () => this.#toggle(),
     }

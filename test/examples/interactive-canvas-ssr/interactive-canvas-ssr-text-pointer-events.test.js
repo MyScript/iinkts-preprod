@@ -1,11 +1,8 @@
 import { test, expect } from "@playwright/test"
 import {
   waitForExportedEvent,
-  getCanvasExports,
-  writeStrokes,
   passModalKey
 } from "../helper"
-import h from '../__dataset__/h'
 
 test.describe("Interactive Canvas SSR Text Pointer Events", () => {
   test.beforeEach(async ({ page }) => {
