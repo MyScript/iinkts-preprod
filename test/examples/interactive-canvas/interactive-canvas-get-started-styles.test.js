@@ -133,7 +133,7 @@ test.describe("Interactive ink canvas Get Started Menu Style", () => {
       const maxY = Math.max(...helloOneStroke.strokes[0].pointers.map(p => p.y))
 
       const strokesHeight = maxY - minY
-      const symbolsAfterConvert = await page.evaluate("rootEl.iink.model.symbols")
+      const symbolsAfterConvert = await getCanvasSymbols(page)
       const boundsHeight = symbolsAfterConvert[0].bounds.height
       const chars = symbolsAfterConvert[0].chars
       expect(chars).toHaveLength(helloOneStroke.exports["application/vnd.myscript.jiix"].label.length)

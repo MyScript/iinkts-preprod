@@ -1,4 +1,3 @@
-import downloadIcon from "@/assets/svg/download.svg"
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import type { TMenuSubMenu } from "@/menu/items/SubMenuItem"
 import { SubMenuItem } from "@/menu/items/SubMenuItem"
@@ -27,7 +26,6 @@ export class ExportMenuAction extends SubMenuItem {
       id: `${idPrefix}-export`,
       label: "Export",
       menuTitle: "Export",
-      icon: downloadIcon,
       position: "right-top",
       items: [],
     }

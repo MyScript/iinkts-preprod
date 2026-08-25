@@ -10,7 +10,6 @@ import rome from "../__dataset__/rome"
 import madrid from "../__dataset__/madrid"
 import tokyo from "../__dataset__/tokyo"
 import paris from "../__dataset__/paris"
-import TextNavActions from "../_partials/text-nav-actions"
 
 test.describe("Interactive Canvas SSR Text interact", () => {
   test.beforeEach(async ({ page }) => {

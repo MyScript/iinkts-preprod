@@ -13,7 +13,6 @@ export type TGestureActionItemsConfig = {
 }
 /** @group Menu */
 export type TGestureActionConfig = boolean | TGestureActionItemsConfig
-import gestureIcon from "@/assets/svg/spock-hand-gesture.svg"
 import { InsertAction, StrikeThroughAction, SurroundAction, UnderlineAction } from "@/manager"
 
 /**
@@ -77,7 +76,6 @@ export class GestureMenuAction extends SubMenuItem {
       id: `${idPrefix}-gesture`,
       label: "Gesture",
       menuTitle: "Gesture",
-      icon: gestureIcon,
       position: "right-top",
       items: [],
     }

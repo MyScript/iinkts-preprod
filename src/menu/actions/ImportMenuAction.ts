@@ -1,4 +1,3 @@
-import uploadIcon from "@/assets/svg/upload.svg"
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import type { TMenuSubMenu } from "@/menu/items/SubMenuItem"
 import { SubMenuItem } from "@/menu/items/SubMenuItem"
@@ -16,7 +15,6 @@ export class ImportMenuAction extends SubMenuItem {
       id: `${idPrefix}-import`,
       label: "Import",
       menuTitle: "Import",
-      icon: uploadIcon,
       position: "right-top",
       items: [
         {
