@@ -52,9 +52,9 @@
   <h1>iinkTS Examples</h1>
   <p>Explore handwriting recognition demos — Interactive Ink Canvas, Ink Canvas (v2), and advanced integrations.</p>
   <div class="home-hero-stats">
-    <div class="hero-stat"><strong>23</strong><span>Interactive Ink Canvas</span></div>
-    <div class="hero-stat"><strong>9</strong><span>Ink Canvas v2</span></div>
-    <div class="hero-stat"><strong>1</strong><span>Configuration</span></div>
+    <div class="hero-stat" data-count-for="ii-all"><strong>23</strong><span>Interactive Ink Canvas</span></div>
+    <div class="hero-stat" data-count-for="ink-v2"><strong>9</strong><span>Ink Canvas v2</span></div>
+    <div class="hero-stat" data-count-for="config"><strong>1</strong><span>Configuration</span></div>
   </div>
 </section>
 
@@ -757,6 +757,14 @@
   }
   window.addEventListener('hashchange', openHash);
   document.addEventListener('DOMContentLoaded', openHash);
+
+  // Hero counters are derived from the sections themselves; the numbers in the
+  // markup are only a no-JS fallback.
+  document.querySelectorAll('.hero-stat[data-count-for]').forEach(stat => {
+    const section = document.getElementById(stat.dataset.countFor);
+    const value = stat.querySelector('strong');
+    if (section && value) value.textContent = section.querySelectorAll('.card').length;
+  });
 
   document.getElementById('search-input').addEventListener('input', function () {
     const query = this.value.trim().toLowerCase();
