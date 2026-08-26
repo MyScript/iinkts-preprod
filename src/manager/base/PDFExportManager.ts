@@ -257,7 +257,13 @@ export class PDFExportManager {
     window.print()
   }
 
-  openExportDialog(onConfirm: (options: TPDFExportDialogOptions) => void): void {
+  /**
+   * Open the PDF settings dialog.
+   * @param onConfirm - Called with the chosen settings when the user validates
+   * @param onCancel - Called when the user dismisses the dialog, so callers awaiting the dialog
+   *                   can settle instead of hanging forever
+   */
+  openExportDialog(onConfirm: (options: TPDFExportDialogOptions) => void, onCancel?: () => void): void {
     const defaults = PDFExportManager.DEFAULT_OPTIONS
     const modal = new Modal({
       title: "Export as PDF",
@@ -305,7 +311,10 @@ export class PDFExportManager {
         {
           label: "Cancel",
           variant: "secondary",
-          onClick: () => modal.destroy(),
+          onClick: () => {
+            modal.destroy()
+            onCancel?.()
+          },
         },
         {
           label: "Export",

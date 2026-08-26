@@ -33,10 +33,11 @@ test.describe("Interactive ink canvas Export Formats", () => {
     await expect(page.locator(locator.menu.action.language.trigger)).toHaveCount(0)
 
     await page.locator(locator.menu.action.export.triggerBtn).click()
-    await expect(page.locator("#ms-menu-action-export-json")).toBeVisible()
-    await expect(page.locator("#ms-menu-action-export-svg")).toBeVisible()
-    await expect(page.locator("#ms-menu-action-export-png")).toBeVisible()
-    await expect(page.locator("#ms-menu-action-export-text")).toBeVisible()
+    // The default recognition configuration enables text, shape and math, so every one of the
+    // ten formats is reachable — including the three gated on a recognition type.
+    for (const format of ["json", "svg", "png", "text", "markdown", "mermaid", "plantuml", "llm", "jiix"]) {
+      await expect(page.locator(`#ms-menu-action-export-${format}`)).toBeVisible()
+    }
     await expect(page.locator(locator.menu.action.export.pdfBtn)).toBeVisible()
   })
 
@@ -46,11 +47,28 @@ test.describe("Interactive ink canvas Export Formats", () => {
       writeStrokes(page, helloOneStroke.strokes)
     ])
 
-    await test.step("JSON toolbar button triggers a download", async () => {
+    await test.step("every file format triggers a download with the matching extension", async () => {
+      for (const [button, extension] of [
+        ["#btn-export-json", ".json"],
+        ["#btn-export-svg", ".svg"],
+        ["#btn-export-png", ".png"],
+        ["#btn-export-text", ".txt"],
+        ["#btn-export-jiix", ".jiix"],
+      ]) {
+        const downloadPromise = page.waitForEvent("download")
+        await page.locator(button).click()
+        const download = await downloadPromise
+        expect(download.suggestedFilename()).toContain(extension)
+        // The timestamped default name must stay free of characters browsers mangle in file names
+        expect(download.suggestedFilename()).toMatch(/^iink-ts-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\./)
+      }
+    })
+
+    await test.step("the download options name the file", async () => {
       const downloadPromise = page.waitForEvent("download")
-      await page.locator("#btn-export-json").click()
+      await page.locator("#btn-export-selection").click()
       const download = await downloadPromise
-      expect(download.suggestedFilename()).toContain(".json")
+      expect(download.suggestedFilename()).toBe("iink-selection.svg")
     })
 
     await test.step("PDF toolbar button opens the dialog and printing works the same way", async () => {
