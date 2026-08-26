@@ -1,5 +1,109 @@
 # Migration Guide
 
+## v4.x → v5.0.0
+
+### Exports: nine methods become two
+
+Every export goes through `exportAs(format, options?)` (get the content) or `download(format, options?)`
+(get the file). The nine methods below no longer exist — there is no compatibility shim, so
+`yarn build:lib` / your own typecheck will point at every remaining call site.
+
+| v4.x | v5.0.0 |
+|---|---|
+| `canvas.downloadAsJson()` | `canvas.download("json")` |
+| `canvas.downloadAsJson(true)` | `canvas.download("json", { scope: "selection" })` |
+| `canvas.downloadAsSVG()` | `canvas.download("svg")` |
+| `canvas.downloadAsSVG(true)` | `canvas.download("svg", { scope: "selection" })` |
+| `canvas.downloadAsPNG()` | `canvas.download("png")` |
+| `canvas.downloadAsPNG(true)` | `canvas.download("png", { scope: "selection" })` |
+| `canvas.downloadAsText()` | `canvas.download("text")` |
+| `canvas.downloadAsText(true)` | `canvas.download("text", { scope: "selection" })` |
+| `canvas.printAsPDF()` | `canvas.download("pdf")` |
+| `canvas.printAsPDF(true)` | `canvas.download("pdf", { scope: "selection" })` |
+| `canvas.printAsPDF(false, { mode: "multi" })` | `canvas.download("pdf", { mode: "multi" })` |
+| `await canvas.toMarkdown()` | `await canvas.exportAs("markdown")` |
+| `await canvas.toMermaid()` | `await canvas.exportAs("mermaid")` |
+| `await canvas.toPlantUML()` | `await canvas.exportAs("plantuml")` |
+| `await canvas.toLLM()` | `await canvas.exportAs("llm")` |
+
+`canvas.export(mimeTypes)` is unchanged — it stays the low-level server export.
+
+#### Everything is a promise now
+
+`downloadAsSVG`/`downloadAsPNG`/`downloadAsJson` used to return `void`. Their replacements are
+`async`, so `await` them (or handle the returned promise) where you relied on the call having
+finished:
+
+```diff
+- canvas.downloadAsSVG()
+- doSomethingAfter()
++ await canvas.download("svg")
++ doSomethingAfter()
+```
+
+This closes a real bug in `downloadAsPNG`: it went through `image.onload` and returned before the
+bitmap existed. `exportAs("png")` resolves with a fully rasterized `Blob`.
+
+#### Selecting what to export
+
+The positional `selection: boolean` is gone, replaced by an options object:
+
+```diff
+- canvas.downloadAsText(true)
++ canvas.download("text", { scope: "selection" })
+```
+
+```typescript
+// an explicit list, which takes precedence over `scope`
+await canvas.exportAs("json", { symbols: mySymbols })
+// name the file yourself; without it the name is timestamped
+await canvas.download("markdown", { filename: "meeting-notes" })
+```
+
+#### Five formats gained a download
+
+`markdown`, `mermaid`, `plantuml`, `llm` and `jiix` had no download in v4 — you had to serialize and
+save the string yourself. They now work like every other format:
+
+```typescript
+await canvas.download("mermaid") // saves iink-ts-<timestamp>.mmd
+```
+
+#### `pdf` is download-only
+
+`exportAs("pdf")` does not compile: printing produces no in-memory value.
+
+```typescript
+await canvas.exportAs("pdf") // ❌ Argument of type '"pdf"' is not assignable…
+await canvas.download("pdf") // ✅
+```
+
+`download("pdf")` resolves when the settings dialog closes, **cancellation included** — in v4 there
+was no cancellation signal at all. Pass any PDF setting (`format`/`orientation`/`mode`/`scale`) to
+skip the dialog and print immediately.
+
+#### File names
+
+Default names moved from a locale-formatted date to a truncated ISO instant:
+
+| v4.x (`fr-FR`) | v5.0.0 |
+|---|---|
+| `iink-ts-26/08/2026 14:30:15.svg` | `iink-ts-2026-08-26T14-30-15.svg` |
+
+If you matched on the old shape anywhere (tests, download interception), update the pattern.
+
+#### Menu configuration
+
+`TExportActionItemsConfig` and `TContextExportItemsConfig` gained `markdown`, `mermaid`, `plantuml`,
+`llm` and `jiix`, all enabled by default — the Export menu goes from 5 entries to 10. Set the ones
+you don't want to `false`. `markdown` is only built when `text` recognition is enabled, and
+`mermaid`/`plantuml` only when `shape` is.
+
+#### Custom `PDFExportManager` callers
+
+`openExportDialog(onConfirm)` now accepts an optional `onCancel` second argument. Existing one-argument
+calls keep working unchanged.
+
 ## v3.x → v4.0.0
 
 Version 4.0.0 renames every class/type/constant that reused native MyScript SDK terms (`Editor`, `Recognizer`) for unrelated front-end concepts, source of long-standing confusion between the native SDK and iinkTS. This is a **breaking change** with no compatibility shim — the old names simply don't exist anymore. See [CHANGELOG.md](./CHANGELOG.md) for the full breaking-changes list; this guide gives step-by-step find/replace instructions for your integration code.

@@ -17,6 +17,30 @@ History entries no longer store a full `Model`/`IIModel` snapshot — only the d
 ### Shape ↔ edge connections
 - `IIConnectorManager.updateAnchoredEdges()` returns `TAnchoredEdgesUpdateResult` (ids of the pre-convert edge strokes it moved) instead of `void` — callers must include them in their history entry and backend transform message
 
+### Export: one `exportAs`, one `download`
+Every export on `InteractiveInkCanvas` now goes through two functions instead of nine. The nine
+removed methods have **no compatibility shim**.
+
+| Removed | Replacement |
+|---|---|
+| `downloadAsJson(selection?)` | `download("json", { scope })` |
+| `downloadAsSVG(selection?)` | `download("svg", { scope })` |
+| `downloadAsPNG(selection?)` | `download("png", { scope })` |
+| `downloadAsText(selection?)` | `download("text", { scope })` |
+| `printAsPDF(selection?, options?)` | `download("pdf", { scope, ...options })` |
+| `toMarkdown()` | `exportAs("markdown")` |
+| `toMermaid()` | `exportAs("mermaid")` |
+| `toPlantUML()` | `exportAs("plantuml")` |
+| `toLLM()` | `exportAs("llm")` |
+
+- the positional `selection: boolean` argument is replaced by `{ scope: "all" | "selection" }`, plus `{ symbols: TSymbol[] }` for an explicit list (`symbols` wins over `scope`) and `{ filename }` on `download`
+- `exportAs`/`download` are always `async`, including for `json`/`svg`/`png` which used to be synchronous. `png` in particular was asynchronous in disguise before (it went through `image.onload` and returned before the bitmap existed); `exportAs("png")` now resolves with a fully rasterized `Blob`
+- `exportAs("pdf")` does not compile — printing produces no in-memory value, `pdf` only exists on `download`
+- `export(mimeTypes)` is unchanged and stays public as the low-level server export
+- default download file names switched from a locale-formatted date to a truncated ISO instant (`iink-ts-2026-08-26T14-30-15.svg`). The previous name went through `toLocaleDateString` with time fields, which produced `iink-ts-26/08/2026 14:30:15.svg` under `fr-FR` — slashes and colons in a file name, with browser-dependent behavior
+- `PDFExportManager.openExportDialog(onConfirm, onCancel?)` gained an optional second callback, fired when the dialog is dismissed, so `download("pdf")` settles on cancellation instead of hanging forever
+- `TExportActionItemsConfig`/`TContextExportItemsConfig` gained `markdown`, `mermaid`, `plantuml`, `llm` and `jiix` (all enabled by default). `markdown` is only built when `text` recognition is enabled, `mermaid`/`plantuml` only when `shape` is
+
 ### Bug Fixes
 - fix(menu): `ShapeTool`/`EdgeTool` picking a shape or edge type never closed the dropdown — the click handler queried `.sub-menu-content-shape`/`-edge` to remove the `open` class, but the class actually toggled by the trigger and by outside-clicks is the unsuffixed `.sub-menu-content`, so the query silently matched nothing. Also, `update()` in both only added `active` to the newly-selected button without first clearing a previously-active one, so switching shape/edge via `update()` (not via a click) could leave two buttons marked active at once. Both bugs were copy-pasted identically into both files; fixed in both
 - fix(canvas,client): `CanvasEvent.emit()`/`ClientEvent.emit()` used a truthy check (`data ? { detail: data } : undefined`) to decide whether to attach the event payload, so any falsy value — `emitIdle(false)`, `0`, `""` — was silently delivered to listeners as `detail: null` instead of the real value. Both now check `data !== undefined`
@@ -40,14 +64,18 @@ History entries no longer store a full `Model`/`IIModel` snapshot — only the d
 - feat(connector): new `IIConnectorManager.getFollowedStrokeIds(symbolIds)` — read-only counterpart of the rigid-follow pass, for callers needing the id list before mutating anything
 
 ### Export
-- feat(export): `InteractiveInkCanvas.toMarkdown()` — converts the current content to Markdown, derived locally from the JIIX export (`src/utils/toMarkdown.ts`, `jiixToMarkdown`). Not a server mime type: Text elements become paragraphs, Math elements are wrapped in `$$...$$`; diagram Node/Edge elements are skipped
-- feat(export): `InteractiveInkCanvas.toMarkdown()` — converts the current content to Markdown, derived locally from the JIIX export (`src/utils/toMarkdown.ts`, `jiixToMarkdown`). Not a server mime type: Text elements become paragraphs, Math elements are wrapped in `$$...$$`; diagram Node/Edge elements are skipped
-- feat(export): `InteractiveInkCanvas.toMermaid()` — converts a recognized diagram to Mermaid flowchart syntax, derived locally from the JIIX export (`src/utils/toMermaid.ts`, `jiixToMermaid`). Node shape kind maps to the closest native Mermaid shape (rectangle/circle/ellipse/rhombus/parallelogram; triangle and polygon fall back to a rectangle, no native Mermaid equivalent). Edge connectivity is resolved geometrically — an edge's endpoints (Line/PolyEdge/Arc, the latter via `computePointOnEllipse`) are matched against node bounding boxes, since JIIX diagram exports carry no explicit node/edge id references (the `connected`/`ports` fields exist in the wire format but are always empty today).
+- feat(export): `InteractiveInkCanvas.exportAs(format, options?)` — single entry point returning the content in one of nine formats, with the resolved type derived from the format: `json` → `TSymbol[]`, `svg`/`text`/`markdown`/`mermaid`/`plantuml` → `string`, `png` → `Blob`, `llm` → `TLLMExport`, `jiix` → `TJIIXExport`
+- feat(export): `InteractiveInkCanvas.download(format, options?)` — same nine formats plus `pdf`, handing the file to the browser. New downloads compared to v4: `markdown` (`.md`), `mermaid` (`.mmd`), `plantuml` (`.puml`), `llm` (`.json`) and `jiix` (`.jiix`) — five formats that previously had no download at all
+- feat(manager): new `ExportManager` (`src/manager/base/`) — shared implementation of `exportAs`/`download`: symbol resolution (`scope`/`symbols`), file naming, object-URL lifecycle, and the `json`/`svg`/`png`/`pdf` formats. Exposes `TExportFormat`, `TDownloadFormat`, `TExportResultMap`, `TExportOptions`, `TDownloadOptions`, `TPDFDownloadOptions`, `TExporterMap`, `EXPORT_EXTENSIONS` and `EXPORT_MIME_TYPES`
+- feat(manager): new `IIExportManager` (`src/manager/interactive/`, exposed as `canvas.exportManager`) — adds the recognition-derived formats on top: `text` from the JIIX stroke index, and `jiix`/`markdown`/`mermaid`/`plantuml`/`llm` from a single JIIX access point. Empty content yields empty output rather than an error
+- feat(client): new exported `TRecognitionType` (`"text" | "shape" | "math"`) for the `raw-content` recognition/classification type lists
+- feat(export): Markdown conversion — derived locally from the JIIX export (`src/utils/toMarkdown.ts`, `jiixToMarkdown`). Not a server mime type: Text elements become paragraphs, Math elements are wrapped in `$$...$$`; diagram Node/Edge elements are skipped
+- feat(export): Mermaid conversion — converts a recognized diagram to Mermaid flowchart syntax, derived locally from the JIIX export (`src/utils/toMermaid.ts`, `jiixToMermaid`). Node shape kind maps to the closest native Mermaid shape (rectangle/circle/ellipse/rhombus/parallelogram; triangle and polygon fall back to a rectangle, no native Mermaid equivalent). Edge connectivity is resolved geometrically — an edge's endpoints (Line/PolyEdge/Arc, the latter via `computePointOnEllipse`) are matched against node bounding boxes, since JIIX diagram exports carry no explicit node/edge id references (the `connected`/`ports` fields exist in the wire format but are always empty today).
 
 ### PDF export via native browser print
-- feat(canvas): add `InteractiveInkCanvas.printAsPDF(selection?, options?)` — prints the current content (or only the selected symbols) as PDF via the browser's native print dialog. Called with no `options`, opens a settings dialog (page format/orientation/page mode/scale) first, same as the Export menu; called with a partial `options` object, prints immediately with those values (defaults filled in for anything omitted), skipping the dialog — for programmatic callers
+- feat(canvas): `download("pdf", options?)` — prints the current content (or only the selected symbols) as PDF via the browser's native print dialog. Called with no PDF setting, opens a settings dialog (page format/orientation/page mode/scale) first, same as the Export menu, and the promise settles when the dialog closes — cancellation included; called with any PDF setting, prints immediately with those values (defaults filled in for anything omitted), skipping the dialog — for programmatic callers
 - feat(manager): new `PDFExportManager` (`src/manager/base/`, constructor `(canvas: TInteractiveInkCanvas | InkCanvas)`) — builds the print-only DOM/CSS layer, computes page format/orientation/scale-to-page-count (`computePageCount`, `computeFitToPageScale`, `getPageDimensionsMm`), single-page fit-to-scale and multi-page tiled print modes (`buildSinglePagePrintContainer`/`buildMultiPagePrintContainer`), the settings dialog (`openExportDialog`, reusing `Modal.ts` form fields), and print orchestration (`print()`); exposes `TPDFPageFormat`, `TPDFOrientation`, `TPDFPageMode`, `TPDFExportDialogOptions`, `TPDFPageOptions`, `TPDFPageCount`, `TPDFPageSizeMm` and `PDFExportManager.DEFAULT_OPTIONS`
-- feat(menu): add "PDF" entry to `ExportMenuAction`/`ExportContextMenu` (`pdf?: boolean` in `TExportActionItemsConfig`/`TContextExportItemsConfig`, enabled by default)
+- feat(menu): `ExportMenuAction`/`ExportContextMenu` now build the ten entries (JSON, SVG, PNG, Text, Markdown, Mermaid, PlantUML, LLM, JIIX, PDF), each toggleable through `TExportActionItemsConfig`/`TContextExportItemsConfig` and each routed through `canvas.download()`. The context menu resolves its scope at click time, so it always follows the current selection
 
 
 ## Features
