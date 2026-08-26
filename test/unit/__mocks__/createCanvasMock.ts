@@ -229,6 +229,7 @@ export function createCanvasMock(overrides: Partial<TCanvasMock> = {}): TCanvasM
         return s
       })(),
     synchronizer: overrides.synchronizer ?? stubManager(),
+    exportManager: overrides.exportManager ?? stubManager(),
     jiix:
       overrides.jiix ??
       (() => {
@@ -349,11 +350,8 @@ export function createCanvasMock(overrides: Partial<TCanvasMock> = {}): TCanvasM
     export: jest.fn().mockResolvedValue({}),
     convert: jest.fn().mockResolvedValue(undefined),
     changeLanguage: jest.fn().mockResolvedValue(undefined),
-    downloadAsSVG: jest.fn(),
-    downloadAsPNG: jest.fn(),
-    downloadAsJson: jest.fn(),
-    downloadAsText: jest.fn(),
-    printAsPDF: jest.fn(),
+    exportAs: jest.fn().mockResolvedValue(undefined),
+    download: jest.fn().mockResolvedValue(undefined),
     clear: jest.fn().mockResolvedValue(undefined),
     destroy: jest.fn().mockResolvedValue(undefined),
     resize: jest.fn().mockResolvedValue(undefined),

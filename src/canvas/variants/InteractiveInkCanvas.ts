@@ -6,11 +6,12 @@ import { DOMFactory } from "@/components/dom"
 import { CanvasTool, SELECTION_MARGIN } from "@/Constants"
 import type { THistoryContext, TIIHistoryBackendChanges, TIIHistoryChanges } from "@/history"
 import { extractIIBackendChanges, IIHistoryManager } from "@/history"
-import type { TPDFExportDialogOptions } from "@/manager"
+import type { TDownloadFormat, TExportFormat, TExportOptions, TExportResultMap, TPDFDownloadOptions } from "@/manager"
 import {
   EraseManager,
   IIConnectorManager,
   IIConversionManager,
+  IIExportManager,
   IIGestureManager,
   IIJiixQueryManager,
   IIKeyboardManager,
@@ -29,9 +30,9 @@ import {
 import type { IIMenuAction, IIMenuStyle, IIMenuTool } from "@/menu"
 import { IIMenuManager } from "@/menu"
 import type { TExport } from "@/model"
-import { ExportType, IIModel } from "@/model"
+import { IIModel } from "@/model"
 import type { TIIRendererConfiguration } from "@/renderer"
-import { SVGBuilder, SVGRenderer } from "@/renderer"
+import { SVGRenderer } from "@/renderer"
 import type { TStyle } from "@/style"
 import type { TBox, TDecorator, TMath, TStroke, TSymbol, TText } from "@/symbol"
 import type { TBaseSymbol } from "@/symbol"
@@ -47,7 +48,6 @@ import {
 } from "@/symbol"
 import { DecoratorOps } from "@/symbol/decorator/Decorator"
 import { EdgeOps } from "@/symbol/edge/Edge"
-import { MathOps } from "@/symbol/math/Math"
 import { BoxOps } from "@/symbol/primitives/Box"
 import { OBBOps } from "@/symbol/primitives/OBB"
 import { TextOps } from "@/symbol/text/Text"
@@ -56,8 +56,7 @@ import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 import type { SymbolUtil } from "@/symbol-utils/SymbolUtil"
 import { MatrixTransform } from "@/transform"
 import type { TPartialDeep } from "@/utils"
-import type { TLLMExport } from "@/utils"
-import { createUUID, jiixToLLM, jiixToMarkdown, jiixToMermaid, jiixToPlantUML, mergeDeep, RafCoalescer } from "@/utils"
+import { createUUID, mergeDeep, RafCoalescer } from "@/utils"
 
 import type { TInteractiveInkCanvasConfiguration } from "./InteractiveInkCanvasConfiguration"
 import { InteractiveInkCanvasConfiguration } from "./InteractiveInkCanvasConfiguration"
@@ -141,6 +140,8 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
   synchronizer: IISynchronizerManager
   /** Queries and maps JIIX data to local symbols for math/text label resolution. */
   jiix: IIJiixQueryManager
+  /** Produces every export format and drives the file downloads. */
+  exportManager: IIExportManager
   /** Manages math recognition: variables, computation, and evaluation rendering. */
   math: IIMathManager
   /** Manages smart connectors and anchor-based endpoint updates. */
@@ -203,6 +204,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     this.snaps = new IISnapManager(this, this.#configuration.snap)
     this.synchronizer = new IISynchronizerManager(this)
     this.jiix = new IIJiixQueryManager(this)
+    this.exportManager = new IIExportManager(this, this.pdfExport)
     this.math = new IIMathManager(this, this.#configuration.math)
     this.connector = new IIConnectorManager(this, this.#configuration.connector)
     this.menu = new IIMenuManager(this, options?.override?.menu)
@@ -1214,15 +1216,6 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     return this.model
   }
 
-  protected triggerDownload(fileName: string, urlData: string): void {
-    const downloadAnchorNode = document.createElement("a")
-    downloadAnchorNode.setAttribute("href", urlData)
-    downloadAnchorNode.setAttribute("download", fileName)
-    document.body.appendChild(downloadAnchorNode)
-    downloadAnchorNode.click()
-    downloadAnchorNode.remove()
-  }
-
   /**
    * Get bounding box for a list of symbols
    * @param symbols - Symbols to calculate bounds for
@@ -1294,184 +1287,43 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     this.renderer.pan(dx, dy)
   }
 
-  protected buildSvgStringFromSymbols(symbols: TSymbol[], box: TBox): string {
-    const svgNode = SVGBuilder.createLayer(box)
-    symbols.forEach((s) => {
-      const el = this.renderer.getElementById(s.id)?.cloneNode(true)
-      if (el) {
-        svgNode.appendChild(el)
-      }
-    })
-
-    return new XMLSerializer().serializeToString(svgNode)
-  }
-
-  protected buildBlobFromSymbols(symbols: TSymbol[], box: TBox): Blob {
-    const svgString = this.buildSvgStringFromSymbols(symbols, box)
-
-    return new Blob([svgString], {
-      type: "image/svg+xml;charset=utf-8",
-    })
-  }
-
-  protected getExportName(extension: string): string {
-    const options: Intl.DateTimeFormatOptions = {
-      year: "numeric",
-      month: "numeric",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    }
-    try {
-      return `iink-ts-${new Date().toLocaleDateString(navigator.language, options)}.${extension}`
-    } catch {
-      return `iink-ts-${new Date().toLocaleDateString("en-US", options)}.${extension}`
-    }
+  /**
+   * Export the content in the given format.
+   *
+   * `pdf` is not available here — printing produces no in-memory value, use
+   * {@link InteractiveInkCanvas.download} instead.
+   *
+   * @param format - Format to export to; the resolved type follows from it
+   * @param options - Which symbols to export (`scope`, or an explicit `symbols` list)
+   * @returns Promise resolving with the exported content
+   *
+   * @example
+   * ```typescript
+   * const symbols = await canvas.exportAs("json")
+   * const markdown = await canvas.exportAs("markdown")
+   * const svg = await canvas.exportAs("svg", { scope: "selection" })
+   * ```
+   */
+  exportAs<F extends TExportFormat>(format: F, options?: TExportOptions): Promise<TExportResultMap[F]> {
+    return this.exportManager.exportAs(format, options)
   }
 
   /**
-   * Download symbols as SVG file, either all symbols or only selected ones
-   * @param selection - Whether to download only selected symbols (default: false, downloads all symbols)
+   * Export the content and hand the resulting file to the browser.
+   *
+   * @param format - Format to download; `pdf` opens the print flow instead of saving a file
+   * @param options - Which symbols to export, plus the file name. The PDF settings
+   *                  (`format`/`orientation`/`mode`/`scale`) are ignored by every other format.
+   *
+   * @example
+   * ```typescript
+   * await canvas.download("svg")
+   * await canvas.download("text", { scope: "selection", filename: "notes" })
+   * await canvas.download("pdf", { orientation: "landscape" })
+   * ```
    */
-  downloadAsSVG(selection = false) {
-    const symbols = selection ? this.model.symbolsSelected : this.model.symbols
-    const box = this.getSymbolsBounds(symbols)
-    const svgBlob = this.buildBlobFromSymbols(symbols, box)
-    const url = URL.createObjectURL(svgBlob)
-    this.triggerDownload(this.getExportName("svg"), url)
-  }
-
-  /**
-   * Download symbols as PNG file, either all symbols or only selected ones
-   * @param selection - Whether to download only selected symbols (default: false, downloads all symbols)
-   */
-  downloadAsPNG(selection = false) {
-    const symbols = selection ? this.model.symbolsSelected : this.model.symbols
-    const box = this.getSymbolsBounds(symbols)
-    const svgBlob = this.buildBlobFromSymbols(symbols, box)
-
-    const url = URL.createObjectURL(svgBlob)
-    const image = new Image(box.width, box.height)
-    image.src = url
-    image.onload = () => {
-      const canvas = document.createElement("canvas")
-      canvas.width = image.width
-      canvas.height = image.height
-
-      const ctx = canvas.getContext("2d") as CanvasRenderingContext2D
-      ctx.drawImage(image, 0, 0)
-      URL.revokeObjectURL(url)
-
-      const imgURI = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream")
-
-      this.triggerDownload(this.getExportName("png"), imgURI)
-    }
-  }
-
-  /**
-   * Download symbols as JSON file, either all symbols or only selected ones
-   * @param selection - Whether to download only selected symbols (default: false, downloads all symbols)
-   */
-  downloadAsJson(selection = false) {
-    const symbolsToExport = selection ? this.model.symbolsSelected : this.model.symbols
-
-    const clonedSymbols = symbolsToExport.map((s) => cloneSymbol(s))
-    const filteredSymbols = clonedSymbols
-
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(filteredSymbols, null, 2))
-    this.triggerDownload(this.getExportName("json"), dataStr)
-  }
-
-  /**
-   * Download symbols as plain text file, either all symbols or only selected ones
-   * @param selection - Whether to download only selected symbols (default: false, downloads all symbols)
-   */
-  downloadAsText(selection = false) {
-    const symbolsToExport = selection ? this.model.symbolsSelected : this.model.symbols
-    const text = this.extractTextFromSymbols(symbolsToExport)
-    const dataStr = "data:text/plain;charset=utf-8," + encodeURIComponent(text)
-    this.triggerDownload(this.getExportName("txt"), dataStr)
-  }
-
-  /**
-   * Print symbols as PDF via the browser's native print dialog, either all symbols or only selected ones.
-   * Without `options`, opens a settings dialog (format/orientation/page mode/scale) before printing.
-   * With `options`, prints immediately using those values, falling back to defaults for anything omitted.
-   * @param selection - Whether to print only selected symbols (default: false, prints all symbols)
-   * @param options - Print settings to use directly, skipping the dialog
-   */
-  printAsPDF(selection = false, options?: Partial<TPDFExportDialogOptions>) {
-    const symbols = selection ? this.model.symbolsSelected : this.model.symbols
-    const box = this.getSymbolsBounds(symbols)
-    const svgString = this.buildSvgStringFromSymbols(symbols, box)
-
-    if (options) {
-      this.pdfExport.print(svgString, box, { ...PDFExportManager.DEFAULT_OPTIONS, ...options })
-      return
-    }
-
-    this.pdfExport.openExportDialog((dialogOptions) => this.pdfExport.print(svgString, box, dialogOptions))
-  }
-
-  protected extractTextFromSymbols(symbols: TSymbol[]): string {
-    const entries: { box: TBox; label: string }[] = []
-    const seenElementIds = new Set<string>()
-
-    symbols.forEach((s) => {
-      if (isText(s)) {
-        const content = TextOps.getLabel(s)
-        if (content) {
-          entries.push({ box: BoxOps.createFromPoints(s.vertices), label: content })
-        }
-      } else if (isMath(s)) {
-        const content = MathOps.getLabel(s)
-        if (content) {
-          entries.push({ box: BoxOps.createFromPoints(s.vertices), label: content })
-        }
-      } else if (isStroke(s)) {
-        // Stroke with JIIX metadata (text or math recognized from backend).
-        // A block (word or math expression) can span several strokes: use
-        // the block label so the block is emitted once, and its own
-        // bounding box (not draw order) so it sorts into reading order.
-        const element = this.jiix.getElementForStroke(s.id)
-        if (element && !seenElementIds.has(element.id)) {
-          seenElementIds.add(element.id)
-          const label = this.jiix.getBlockLabel(element.id)
-          if (label) {
-            const box = element["bounding-box"] ?? BoxOps.createFromPoints(s.vertices)
-            entries.push({ box, label })
-          }
-        }
-      }
-    })
-
-    return this.groupEntriesIntoLines(entries)
-      .map((line) => line.map((e) => e.label).join(" "))
-      .join("\n")
-  }
-
-  /**
-   * Groups entries (words, math expressions) sharing a vertical extent into
-   * the same reading line, ordered top-to-bottom then left-to-right, so
-   * words drawn on the same line stay on the same line in the export.
-   */
-  private groupEntriesIntoLines<T extends { box: TBox }>(entries: T[]): T[][] {
-    const sortedByTop = [...entries].sort((a, b) => a.box.y - b.box.y)
-    const lines: { bottom: number; entries: T[] }[] = []
-
-    sortedByTop.forEach((entry) => {
-      const bottom = entry.box.y + entry.box.height
-      const currentLine = lines[lines.length - 1]
-      if (currentLine && entry.box.y < currentLine.bottom) {
-        currentLine.entries.push(entry)
-        currentLine.bottom = Math.max(currentLine.bottom, bottom)
-      } else {
-        lines.push({ bottom, entries: [entry] })
-      }
-    })
-
-    return lines.map((line) => line.entries.sort((a, b) => a.box.x - b.box.x))
+  download(format: TDownloadFormat, options?: TPDFDownloadOptions): Promise<void> {
+    return this.exportManager.download(format, options)
   }
 
   /**
@@ -1729,34 +1581,6 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
   }
 
   /**
-   * Export content as Markdown, derived locally from the JIIX export (not a server mime type)
-   * @returns Promise resolving with the Markdown representation of the content
-   */
-  async toMarkdown(): Promise<string> {
-    const exports = await this.export([ExportType.JIIX])
-    return jiixToMarkdown(exports[ExportType.JIIX]!)
-  }
-
-  /**
-   * Export the recognized diagram as a Mermaid flowchart, derived locally from the JIIX export
-   * @returns Promise resolving with the Mermaid flowchart syntax
-   */
-  async toMermaid(): Promise<string> {
-    const exports = await this.export([ExportType.JIIX])
-    return jiixToMermaid(exports[ExportType.JIIX]!)
-  }
-
-  async toPlantUML(): Promise<string> {
-    const exports = await this.export([ExportType.JIIX])
-    return jiixToPlantUML(exports[ExportType.JIIX]!)
-  }
-
-  async toLLM(): Promise<TLLMExport> {
-    const exports = await this.export([ExportType.JIIX])
-    return jiixToLLM(exports[ExportType.JIIX]!)
-  }
-
-  /**
    * Coalesces concurrent stale-export retries triggered within the debounce window into a
    * single re-fetch covering the union of requested mime types.
    */
@@ -2001,6 +1825,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     this.writer.detach()
 
     this.playback.destroy()
+    this.exportManager.destroy()
     this.teardownCommon()
     this.menu.destroy()
     this.client.destroy()

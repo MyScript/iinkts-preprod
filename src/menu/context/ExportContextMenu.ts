@@ -1,4 +1,6 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import type { TRecognitionType } from "@/client"
+import type { TDownloadFormat, TExportOptions } from "@/manager"
 import type { TMenuSubMenu } from "@/menu/items/SubMenuItem"
 import { SubMenuItem } from "@/menu/items/SubMenuItem"
 
@@ -8,6 +10,11 @@ export type TContextExportItemsConfig = {
   svg?: boolean
   png?: boolean
   text?: boolean
+  markdown?: boolean
+  mermaid?: boolean
+  plantuml?: boolean
+  llm?: boolean
+  jiix?: boolean
   pdf?: boolean
 }
 /** @group Menu */
@@ -20,6 +27,13 @@ export type TContextExportConfig = boolean | TContextExportItemsConfig
 export class ExportContextMenu extends SubMenuItem {
   constructor(canvas: TInteractiveInkCanvas, idPrefix = "ms-menu-context", itemsConfig?: TContextExportItemsConfig) {
     const enabled = (key: keyof TContextExportItemsConfig) => itemsConfig?.[key] !== false
+    // Markdown/Mermaid/PlantUML are derived from the recognition result, so they are only
+    // reachable when the matching recognition type is actually enabled on the session.
+    const recognizes = (type: TRecognitionType) =>
+      canvas.configuration.recognition["raw-content"].recognition?.types.includes(type) ?? false
+    // The context menu acts on the selection when there is one, on the whole content otherwise.
+    const scope = (): TExportOptions => ({ scope: canvas.model.symbolsSelected.length > 0 ? "selection" : "all" })
+    const download = (format: TDownloadFormat) => () => canvas.download(format, scope())
 
     const config: TMenuSubMenu = {
       id: `${idPrefix}-export`,
@@ -34,7 +48,7 @@ export class ExportContextMenu extends SubMenuItem {
         id: `${idPrefix}-export-json`,
         type: "button",
         label: "json",
-        action: () => canvas.downloadAsJson(canvas.model.symbolsSelected.length > 0),
+        action: download("json"),
       })
     }
     if (enabled("svg")) {
@@ -42,7 +56,7 @@ export class ExportContextMenu extends SubMenuItem {
         id: `${idPrefix}-export-svg`,
         type: "button",
         label: "svg",
-        action: () => canvas.downloadAsSVG(canvas.model.symbolsSelected.length > 0),
+        action: download("svg"),
       })
     }
     if (enabled("png")) {
@@ -50,7 +64,7 @@ export class ExportContextMenu extends SubMenuItem {
         id: `${idPrefix}-export-png`,
         type: "button",
         label: "png",
-        action: () => canvas.downloadAsPNG(canvas.model.symbolsSelected.length > 0),
+        action: download("png"),
       })
     }
     if (enabled("text")) {
@@ -58,7 +72,47 @@ export class ExportContextMenu extends SubMenuItem {
         id: `${idPrefix}-export-text`,
         type: "button",
         label: "text",
-        action: () => canvas.downloadAsText(canvas.model.symbolsSelected.length > 0),
+        action: download("text"),
+      })
+    }
+    if (enabled("markdown") && recognizes("text")) {
+      config.items.push({
+        id: `${idPrefix}-export-markdown`,
+        type: "button",
+        label: "markdown",
+        action: download("markdown"),
+      })
+    }
+    if (enabled("mermaid") && recognizes("shape")) {
+      config.items.push({
+        id: `${idPrefix}-export-mermaid`,
+        type: "button",
+        label: "mermaid",
+        action: download("mermaid"),
+      })
+    }
+    if (enabled("plantuml") && recognizes("shape")) {
+      config.items.push({
+        id: `${idPrefix}-export-plantuml`,
+        type: "button",
+        label: "plantuml",
+        action: download("plantuml"),
+      })
+    }
+    if (enabled("llm")) {
+      config.items.push({
+        id: `${idPrefix}-export-llm`,
+        type: "button",
+        label: "llm",
+        action: download("llm"),
+      })
+    }
+    if (enabled("jiix")) {
+      config.items.push({
+        id: `${idPrefix}-export-jiix`,
+        type: "button",
+        label: "jiix",
+        action: download("jiix"),
       })
     }
     if (enabled("pdf")) {
@@ -66,7 +120,7 @@ export class ExportContextMenu extends SubMenuItem {
         id: `${idPrefix}-export-pdf`,
         type: "button",
         label: "pdf",
-        action: () => canvas.printAsPDF(canvas.model.symbolsSelected.length > 0),
+        action: download("pdf"),
       })
     }
 
