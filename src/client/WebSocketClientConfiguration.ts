@@ -6,6 +6,12 @@ import type { TServerWebsocketConfiguration } from "./ServerConfiguration"
 import { DefaultServerWebsocketConfiguration } from "./ServerConfiguration"
 
 /**
+ * Content kinds the Interactive Ink session can recognize.
+ * @group Client
+ */
+export type TRecognitionType = "text" | "shape" | "math"
+
+/**
  * @group Client
  */
 export type TRecognitionWebSocketConfiguration = {
@@ -16,10 +22,10 @@ export type TRecognitionWebSocketConfiguration = {
     text?: TTextConfConfiguration
     "session-time"?: number
     recognition?: {
-      types: ("text" | "shape" | "math")[]
+      types: TRecognitionType[]
     }
     classification?: {
-      types: ("text" | "shape" | "math")[]
+      types: TRecognitionType[]
     }
     gestures?: ("underline" | "scratch-out" | "join" | "insert" | "strike-through" | "surround")[]
   }

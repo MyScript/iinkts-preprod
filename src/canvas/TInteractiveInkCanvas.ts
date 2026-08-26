@@ -6,6 +6,7 @@ import type {
   EraseManager,
   IIConnectorManager,
   IIConversionManager,
+  IIExportManager,
   IIGestureManager,
   IIJiixQueryManager,
   IIKeyboardManager,
@@ -19,7 +20,11 @@ import type {
   IITransformManager,
   IITypesetManager,
   IIWriterManager,
-  TPDFExportDialogOptions,
+  TDownloadFormat,
+  TExportFormat,
+  TExportOptions,
+  TExportResultMap,
+  TPDFDownloadOptions,
 } from "@/manager"
 import type { IIMenuManager } from "@/menu"
 import type { IIModel, TExport } from "@/model"
@@ -28,7 +33,7 @@ import type { TIIRendererConfiguration } from "@/renderer"
 import type { TStyle } from "@/style"
 import type { TBaseSymbol, TBox, TStroke, TSymbol } from "@/symbol"
 import type { SymbolUtil } from "@/symbol-utils/SymbolUtil"
-import type { TLLMExport, TPartialDeep } from "@/utils"
+import type { TPartialDeep } from "@/utils"
 
 import type { TCanvasOperationLabel } from "./AbstractCanvas"
 import type { CanvasEvent, TCanvasConnectionState } from "./CanvasEvent"
@@ -78,6 +83,7 @@ export type TInteractiveInkCanvas = {
   readonly snaps: IISnapManager
   readonly synchronizer: IISynchronizerManager
   readonly jiix: IIJiixQueryManager
+  readonly exportManager: IIExportManager
   readonly math: IIMathManager
   readonly connector: IIConnectorManager
   readonly menu: IIMenuManager
@@ -125,19 +131,12 @@ export type TInteractiveInkCanvas = {
 
   // ── Recognition / conversion ──────────────────────────────────────
   export(mimeTypes?: string[]): Promise<TExport>
-  toMarkdown(): Promise<string>
-  toMermaid(): Promise<string>
-  toPlantUML(): Promise<string>
-  toLLM(): Promise<TLLMExport>
   convert(symbols?: TSymbol[]): Promise<void>
   changeLanguage(code: string): Promise<void>
 
-  // ── Download ──────────────────────────────────────────────────────
-  downloadAsSVG(selection?: boolean): void
-  downloadAsPNG(selection?: boolean): void
-  downloadAsJson(selection?: boolean): void
-  downloadAsText(selection?: boolean): void
-  printAsPDF(selection?: boolean, options?: Partial<TPDFExportDialogOptions>): void
+  // ── Export / download ─────────────────────────────────────────────
+  exportAs<F extends TExportFormat>(format: F, options?: TExportOptions): Promise<TExportResultMap[F]>
+  download(format: TDownloadFormat, options?: TPDFDownloadOptions): Promise<void>
 
   // ── Symbol plugin registry ────────────────────────────────────────
   registerSymbolUtil<T extends TBaseSymbol>(util: SymbolUtil<T>): void
