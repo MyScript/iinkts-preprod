@@ -52,7 +52,7 @@
   <h1>iinkTS Examples</h1>
   <p>Explore handwriting recognition demos — Interactive Ink Canvas, Ink Canvas (v2), and advanced integrations.</p>
   <div class="home-hero-stats">
-    <div class="hero-stat"><strong>20</strong><span>Interactive Ink Canvas</span></div>
+    <div class="hero-stat"><strong>23</strong><span>Interactive Ink Canvas</span></div>
     <div class="hero-stat"><strong>9</strong><span>Ink Canvas v2</span></div>
     <div class="hero-stat"><strong>1</strong><span>Configuration</span></div>
   </div>
@@ -77,9 +77,16 @@
   <nav class="home-sidebar" id="home-sidebar" aria-label="Examples navigation">
     <p class="sidebar-heading">Interactive Ink</p>
     <ul>
-      <li><a href="#ii-all"><span class="dot" style="background:#1A9FFF"></span>All types</a></li>
+      <li><a href="#ii-start"><span class="dot" style="background:#1A9FFF"></span>Getting started</a></li>
       <li><a href="#ii-math"><span class="dot" style="background:#6C63FF"></span>Math</a></li>
       <li><a href="#ii-diagram"><span class="dot" style="background:#FF9800"></span>Diagram</a></li>
+      <li><a href="#ii-export"><span class="dot" style="background:#00b859"></span>Export</a></li>
+      <li><a href="#ii-input"><span class="dot" style="background:#00B8D9"></span>Input &amp; gestures</a></li>
+      <li><a href="#ii-customization"><span class="dot" style="background:#E91E63"></span>Customization</a></li>
+      <li><a href="#ii-api"><span class="dot" style="background:#8E44AD"></span>Programmatic API</a></li>
+      <li><a href="#ii-navigation"><span class="dot" style="background:#F5A623"></span>Navigation</a></li>
+      <li><a href="#ii-events"><span class="dot" style="background:#607D8B"></span>Events &amp; diagnostics</a></li>
+      <li><a href="#ii-integration"><span class="dot" style="background:#795548"></span>Integrations</a></li>
     </ul>
     <hr class="sidebar-divider" />
     <p class="sidebar-heading">Ink Canvas v2</p>
@@ -106,7 +113,7 @@
     <!-- ============================================
          SECTION: Interactive Ink Canvas
     ============================================= -->
-    <section class="home-section">
+    <section class="home-section" id="ii-all">
       <div class="section-header">
         <div class="section-icon">
           <img src="./assets/img/home-offscreen.svg" alt="" />
@@ -123,9 +130,9 @@
         </div>
       </div>
 
-      <!-- All types -->
-      <div class="subsection" id="ii-all">
-        <div class="subsection-title">All types</div>
+      <!-- Getting started -->
+      <div class="subsection" id="ii-start">
+        <div class="subsection-title">Getting started</div>
         <div class="card-grid">
 
           <article class="card" data-search="get started interactive ink advanced all types">
@@ -151,214 +158,6 @@
             <div class="card-actions">
               <a href="interactive-canvas/interactive_canvas_showcase.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
               <a href="https://github.com/MyScript/iinkTS/blob/master/examples/interactive-canvas/interactive_canvas_showcase.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
-            </div>
-          </article>
-
-          <article class="card" data-search="gestures scratch surround strikethrough underline insert join interactive ink">
-            <div class="card-top">
-              <span class="badge badge-primary">INTERACTIVITY</span>
-              <span class="badge badge-primary">All types</span>
-            </div>
-            <h3>Gestures</h3>
-            <p>All 6 gesture types with visual reference and gesture menu configuration.</p>
-            <div class="card-actions">
-              <a href="interactive-canvas/interactive_canvas_gestures.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
-              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/interactive-canvas/interactive_canvas_gestures.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
-            </div>
-          </article>
-
-          <article class="card" data-search="override default options configuration settings all types">
-            <div class="card-top">
-              <span class="badge badge-primary">INTERACTIVITY</span>
-              <span class="badge badge-primary">All types</span>
-            </div>
-            <h3>Override Default Options</h3>
-            <p>Configure canvas defaults, behavior overrides, and initial settings.</p>
-            <div class="card-actions">
-              <a href="interactive-canvas/interactive_canvas_default_options.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
-              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/interactive-canvas/interactive_canvas_default_options.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
-            </div>
-          </article>
-
-          <article class="card" data-search="menu configuration activate deactivate all types">
-            <div class="card-top">
-              <span class="badge badge-primary">INTERACTIVEINK</span>
-              <span class="badge badge-primary">All types</span>
-            </div>
-            <h3>Override Theme</h3>
-            <p>Customize background, menu panels, and input appearance via <code>cssVars</code> CSS custom properties.</p>
-            <div class="card-actions">
-              <a href="interactive-canvas/interactive_canvas_style.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
-              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/interactive-canvas/interactive_canvas_style.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
-            </div>
-          </article>
-
-          <article class="card" data-search="menu configuration activate deactivate all types">
-            <div class="card-top">
-              <span class="badge badge-primary">INTERACTIVITY</span>
-              <span class="badge badge-primary">All types</span>
-            </div>
-            <h3>Configure Menu Visibility</h3>
-            <p>Show or hide specific menus and toolbar actions without custom code.</p>
-            <div class="card-actions">
-              <a href="interactive-canvas/interactive_canvas_menu_config.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
-              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/interactive-canvas/interactive_canvas_menu_config.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
-            </div>
-          </article>
-
-          <article class="card" data-search="export json svg png text pdf print formats">
-            <div class="card-top">
-              <span class="badge badge-primary">INTERACTIVITY</span>
-              <span class="badge badge-primary">Interactive Ink</span>
-            </div>
-            <h3>Export Formats</h3>
-            <p>Write content and export it as JSON, SVG, PNG, Text or PDF (via native browser print).</p>
-            <div class="card-actions">
-              <a href="interactive-canvas/interactive_canvas_export.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
-              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/interactive-canvas/interactive_canvas_export.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
-            </div>
-          </article>
-
-          <article class="card" data-search="override menu custom class replace implementation all types">
-            <div class="card-top">
-              <span class="badge badge-primary">INTERACTIVITY</span>
-              <span class="badge badge-primary">All types</span>
-            </div>
-            <h3>Override Menu</h3>
-            <p>Replace built-in menus with fully custom menu classes.</p>
-            <div class="card-actions">
-              <a href="interactive-canvas/interactive_canvas_override_menu.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
-              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/interactive-canvas/interactive_canvas_override_menu.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
-            </div>
-          </article>
-
-          <article class="card" data-search="import pointers stroke playback animation replay timing load existing strokes ink all types">
-            <div class="card-top">
-              <span class="badge badge-primary">INTERACTIVITY</span>
-              <span class="badge badge-primary">All types</span>
-            </div>
-            <h3>Stroke Playback</h3>
-            <p>Replay a recorded set of strokes on the canvas with its original timing, with play/pause/speed control.</p>
-            <div class="card-actions">
-              <a href="interactive-canvas/interactive_canvas_stroke_playback.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
-              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/interactive-canvas/interactive_canvas_stroke_playback.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
-            </div>
-          </article>
-
-          <article class="card" data-search="markdown mermaid export llm diagram flowchart jiix text math shape all types">
-            <div class="card-top">
-              <span class="badge badge-primary">INTERACTIVITY</span>
-              <span class="badge badge-primary">All types</span>
-            </div>
-            <h3>Markdown &amp; Mermaid Export</h3>
-            <p>Convert recognized content to Markdown (text/math) and Mermaid (diagram) — derived locally from the JIIX export.</p>
-            <div class="card-actions">
-              <a href="interactive-canvas/interactive_canvas_export_markdown_mermaid.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
-              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/interactive-canvas/interactive_canvas_export_markdown_mermaid.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
-            </div>
-          </article>
-
-          <article class="card" data-search="create symbol programmatic ink stroke shape all types">
-            <div class="card-top">
-              <span class="badge badge-primary">INTERACTIVITY</span>
-              <span class="badge badge-primary">All types</span>
-            </div>
-            <h3>Create Symbols</h3>
-            <p>Programmatically create and inject ink symbols into the canvas.</p>
-            <div class="card-actions">
-              <a href="interactive-canvas/interactive_canvas_create_symbols.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
-              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/interactive-canvas/interactive_canvas_create_symbols.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
-            </div>
-          </article>
-
-          <article class="card" data-search="zoom pan viewport fit navigation programmatic api all types">
-            <div class="card-top">
-              <span class="badge badge-primary">INTERACTIVITY</span>
-              <span class="badge badge-primary">All types</span>
-            </div>
-            <h3>Zoom &amp; Pan</h3>
-            <p>Programmatic zoom and pan — set zoom level, fit to content, and shift the viewport via the API.</p>
-            <div class="card-actions">
-              <a href="interactive-canvas/interactive_canvas_zoom_pan.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
-              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/interactive-canvas/interactive_canvas_zoom_pan.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
-            </div>
-          </article>
-
-          <article class="card" data-search="selection select all symbols programmatic api ids event all types">
-            <div class="card-top">
-              <span class="badge badge-primary">INTERACTIVITY</span>
-              <span class="badge badge-primary">All types</span>
-            </div>
-            <h3>Selection API</h3>
-            <p>Programmatic symbol selection — select all, select by ID, react to selection events, zoom to selection.</p>
-            <div class="card-actions">
-              <a href="interactive-canvas/interactive_canvas_selection.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
-              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/interactive-canvas/interactive_canvas_selection.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
-            </div>
-          </article>
-
-          <article class="card" data-search="minimap overview bird eye canvas navigation thumbnail all types">
-            <div class="card-top">
-              <span class="badge badge-primary">INTERACTIVITY</span>
-              <span class="badge badge-primary">All types</span>
-            </div>
-            <h3>Minimap</h3>
-            <p>Bird's-eye overview panel for navigating large ink canvases.</p>
-            <div class="card-actions">
-              <a href="interactive-canvas/interactive_canvas_minimap.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
-              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/interactive-canvas/interactive_canvas_minimap.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
-            </div>
-          </article>
-
-          <article class="card" data-search="keyboard shortcuts hotkeys navigation accessibility all types">
-            <div class="card-top">
-              <span class="badge badge-primary">INTERACTIVITY</span>
-              <span class="badge badge-primary">All types</span>
-            </div>
-            <h3>Keyboard Shortcuts</h3>
-            <p>Keyboard navigation and shortcut bindings for hands-free editing.</p>
-            <div class="card-actions">
-              <a href="interactive-canvas/interactive_canvas_keyboard_shortcuts.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
-              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/interactive-canvas/interactive_canvas_keyboard_shortcuts.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
-            </div>
-          </article>
-
-          <article class="card" data-search="live monitor status events log symbols undo redo zoom clipboard all types">
-            <div class="card-top">
-              <span class="badge badge-primary">INTERACTIVITY</span>
-              <span class="badge badge-primary">All types</span>
-            </div>
-            <h3>Live Monitor</h3>
-            <p>Real-time canvas state snapshot and timestamped action log — symbols, selection, undo/redo, zoom, and clipboard.</p>
-            <div class="card-actions">
-              <a href="interactive-canvas/interactive_canvas_live_monitor.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
-              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/interactive-canvas/interactive_canvas_live_monitor.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
-            </div>
-          </article>
-
-          <article class="card" data-search="live monitor status events log symbols undo redo zoom clipboard all types">
-            <div class="card-top">
-              <span class="badge badge-primary">INTERACTIVITY</span>
-              <span class="badge badge-primary">All types</span>
-            </div>
-            <h3>Connection Status</h3>
-            <p>Live connection state indicator with automatic reconnect handling.</p>
-            <div class="card-actions">
-              <a href="interactive-canvas/interactive_canvas_connection_status.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
-              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/interactive-canvas/interactive_canvas_connection_status.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
-            </div>
-          </article>
-
-          <article class="card" data-search="tldraw integration whiteboard react drawing canvas third-party all types">
-            <div class="card-top">
-              <span class="badge badge-primary">INTERACTIVITY</span>
-              <span class="badge badge-primary">All types</span>
-            </div>
-            <h3>TLDraw Integration</h3>
-            <p>Handwriting recognition embedded inside a TLDraw collaborative canvas (React).</p>
-            <div class="card-actions">
-              <a href="custom-rendering/tldraw-websocket-client/dist/index.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
-              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/custom-rendering/tldraw-websocket-client/src/App.tsx" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
             </div>
           </article>
 
@@ -444,6 +243,271 @@
 
         </div>
       </div>
+
+      <!-- Export -->
+      <div class="subsection" id="ii-export">
+        <div class="subsection-title">Export</div>
+        <div class="card-grid">
+
+          <article class="card" data-search="export json svg png text pdf print formats">
+            <div class="card-top">
+              <span class="badge badge-primary">INTERACTIVITY</span>
+              <span class="badge badge-primary">Interactive Ink</span>
+            </div>
+            <h3>Export Formats</h3>
+            <p>Write content and export it as JSON, SVG, PNG, Text or PDF (via native browser print).</p>
+            <div class="card-actions">
+              <a href="interactive-canvas/interactive_canvas_export.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
+              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/interactive-canvas/interactive_canvas_export.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
+            </div>
+          </article>
+
+          <article class="card" data-search="markdown mermaid export llm diagram flowchart jiix text math shape all types">
+            <div class="card-top">
+              <span class="badge badge-primary">INTERACTIVITY</span>
+              <span class="badge badge-primary">All types</span>
+            </div>
+            <h3>Markdown &amp; Mermaid Export</h3>
+            <p>Convert recognized content to Markdown (text/math) and Mermaid (diagram) — derived locally from the JIIX export.</p>
+            <div class="card-actions">
+              <a href="interactive-canvas/interactive_canvas_export_markdown_mermaid.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
+              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/interactive-canvas/interactive_canvas_export_markdown_mermaid.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
+            </div>
+          </article>
+
+        </div>
+      </div>
+
+      <!-- Input & gestures -->
+      <div class="subsection" id="ii-input">
+        <div class="subsection-title">Input &amp; gestures</div>
+        <div class="card-grid">
+
+          <article class="card" data-search="gestures scratch surround strikethrough underline insert join interactive ink">
+            <div class="card-top">
+              <span class="badge badge-primary">INTERACTIVITY</span>
+              <span class="badge badge-primary">All types</span>
+            </div>
+            <h3>Gestures</h3>
+            <p>All 6 gesture types with visual reference and gesture menu configuration.</p>
+            <div class="card-actions">
+              <a href="interactive-canvas/interactive_canvas_gestures.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
+              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/interactive-canvas/interactive_canvas_gestures.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
+            </div>
+          </article>
+
+          <article class="card" data-search="keyboard shortcuts hotkeys navigation accessibility all types">
+            <div class="card-top">
+              <span class="badge badge-primary">INTERACTIVITY</span>
+              <span class="badge badge-primary">All types</span>
+            </div>
+            <h3>Keyboard Shortcuts</h3>
+            <p>Keyboard navigation and shortcut bindings for hands-free editing.</p>
+            <div class="card-actions">
+              <a href="interactive-canvas/interactive_canvas_keyboard_shortcuts.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
+              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/interactive-canvas/interactive_canvas_keyboard_shortcuts.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
+            </div>
+          </article>
+
+        </div>
+      </div>
+
+      <!-- Customization & overrides -->
+      <div class="subsection" id="ii-customization">
+        <div class="subsection-title">Customization &amp; overrides</div>
+        <div class="card-grid">
+
+          <article class="card" data-search="override default options configuration settings all types">
+            <div class="card-top">
+              <span class="badge badge-primary">INTERACTIVITY</span>
+              <span class="badge badge-primary">All types</span>
+            </div>
+            <h3>Override Default Options</h3>
+            <p>Configure canvas defaults, behavior overrides, and initial settings.</p>
+            <div class="card-actions">
+              <a href="interactive-canvas/interactive_canvas_default_options.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
+              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/interactive-canvas/interactive_canvas_default_options.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
+            </div>
+          </article>
+
+          <article class="card" data-search="menu configuration activate deactivate all types">
+            <div class="card-top">
+              <span class="badge badge-primary">INTERACTIVEINK</span>
+              <span class="badge badge-primary">All types</span>
+            </div>
+            <h3>Override Theme</h3>
+            <p>Customize background, menu panels, and input appearance via <code>cssVars</code> CSS custom properties.</p>
+            <div class="card-actions">
+              <a href="interactive-canvas/interactive_canvas_style.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
+              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/interactive-canvas/interactive_canvas_style.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
+            </div>
+          </article>
+
+          <article class="card" data-search="menu configuration activate deactivate all types">
+            <div class="card-top">
+              <span class="badge badge-primary">INTERACTIVITY</span>
+              <span class="badge badge-primary">All types</span>
+            </div>
+            <h3>Configure Menu Visibility</h3>
+            <p>Show or hide specific menus and toolbar actions without custom code.</p>
+            <div class="card-actions">
+              <a href="interactive-canvas/interactive_canvas_menu_config.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
+              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/interactive-canvas/interactive_canvas_menu_config.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
+            </div>
+          </article>
+
+          <article class="card" data-search="override menu custom class replace implementation all types">
+            <div class="card-top">
+              <span class="badge badge-primary">INTERACTIVITY</span>
+              <span class="badge badge-primary">All types</span>
+            </div>
+            <h3>Override Menu</h3>
+            <p>Replace built-in menus with fully custom menu classes.</p>
+            <div class="card-actions">
+              <a href="interactive-canvas/interactive_canvas_override_menu.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
+              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/interactive-canvas/interactive_canvas_override_menu.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
+            </div>
+          </article>
+
+        </div>
+      </div>
+
+      <!-- Programmatic API -->
+      <div class="subsection" id="ii-api">
+        <div class="subsection-title">Programmatic API</div>
+        <div class="card-grid">
+
+          <article class="card" data-search="create symbol programmatic ink stroke shape all types">
+            <div class="card-top">
+              <span class="badge badge-primary">INTERACTIVITY</span>
+              <span class="badge badge-primary">All types</span>
+            </div>
+            <h3>Create Symbols</h3>
+            <p>Programmatically create and inject ink symbols into the canvas.</p>
+            <div class="card-actions">
+              <a href="interactive-canvas/interactive_canvas_create_symbols.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
+              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/interactive-canvas/interactive_canvas_create_symbols.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
+            </div>
+          </article>
+
+          <article class="card" data-search="selection select all symbols programmatic api ids event all types">
+            <div class="card-top">
+              <span class="badge badge-primary">INTERACTIVITY</span>
+              <span class="badge badge-primary">All types</span>
+            </div>
+            <h3>Selection API</h3>
+            <p>Programmatic symbol selection — select all, select by ID, react to selection events, zoom to selection.</p>
+            <div class="card-actions">
+              <a href="interactive-canvas/interactive_canvas_selection.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
+              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/interactive-canvas/interactive_canvas_selection.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
+            </div>
+          </article>
+
+          <article class="card" data-search="import pointers stroke playback animation replay timing load existing strokes ink all types">
+            <div class="card-top">
+              <span class="badge badge-primary">INTERACTIVITY</span>
+              <span class="badge badge-primary">All types</span>
+            </div>
+            <h3>Stroke Playback</h3>
+            <p>Replay a recorded set of strokes on the canvas with its original timing, with play/pause/speed control.</p>
+            <div class="card-actions">
+              <a href="interactive-canvas/interactive_canvas_stroke_playback.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
+              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/interactive-canvas/interactive_canvas_stroke_playback.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
+            </div>
+          </article>
+
+        </div>
+      </div>
+
+      <!-- Navigation & viewport -->
+      <div class="subsection" id="ii-navigation">
+        <div class="subsection-title">Navigation &amp; viewport</div>
+        <div class="card-grid">
+
+          <article class="card" data-search="zoom pan viewport fit navigation programmatic api all types">
+            <div class="card-top">
+              <span class="badge badge-primary">INTERACTIVITY</span>
+              <span class="badge badge-primary">All types</span>
+            </div>
+            <h3>Zoom &amp; Pan</h3>
+            <p>Programmatic zoom and pan — set zoom level, fit to content, and shift the viewport via the API.</p>
+            <div class="card-actions">
+              <a href="interactive-canvas/interactive_canvas_zoom_pan.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
+              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/interactive-canvas/interactive_canvas_zoom_pan.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
+            </div>
+          </article>
+
+          <article class="card" data-search="minimap overview bird eye canvas navigation thumbnail all types">
+            <div class="card-top">
+              <span class="badge badge-primary">INTERACTIVITY</span>
+              <span class="badge badge-primary">All types</span>
+            </div>
+            <h3>Minimap</h3>
+            <p>Bird's-eye overview panel for navigating large ink canvases.</p>
+            <div class="card-actions">
+              <a href="interactive-canvas/interactive_canvas_minimap.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
+              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/interactive-canvas/interactive_canvas_minimap.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
+            </div>
+          </article>
+
+        </div>
+      </div>
+
+      <!-- Events & diagnostics -->
+      <div class="subsection" id="ii-events">
+        <div class="subsection-title">Events &amp; diagnostics</div>
+        <div class="card-grid">
+
+          <article class="card" data-search="live monitor status events log symbols undo redo zoom clipboard all types">
+            <div class="card-top">
+              <span class="badge badge-primary">INTERACTIVITY</span>
+              <span class="badge badge-primary">All types</span>
+            </div>
+            <h3>Live Monitor</h3>
+            <p>Real-time canvas state snapshot and timestamped action log — symbols, selection, undo/redo, zoom, and clipboard.</p>
+            <div class="card-actions">
+              <a href="interactive-canvas/interactive_canvas_live_monitor.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
+              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/interactive-canvas/interactive_canvas_live_monitor.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
+            </div>
+          </article>
+
+          <article class="card" data-search="live monitor status events log symbols undo redo zoom clipboard all types">
+            <div class="card-top">
+              <span class="badge badge-primary">INTERACTIVITY</span>
+              <span class="badge badge-primary">All types</span>
+            </div>
+            <h3>Connection Status</h3>
+            <p>Live connection state indicator with automatic reconnect handling.</p>
+            <div class="card-actions">
+              <a href="interactive-canvas/interactive_canvas_connection_status.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
+              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/interactive-canvas/interactive_canvas_connection_status.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
+            </div>
+          </article>
+
+        </div>
+      </div>
+
+      <!-- Integrations -->
+      <div class="subsection" id="ii-integration">
+        <div class="subsection-title">Integrations</div>
+        <div class="card-grid">
+
+          <article class="card" data-search="tldraw integration whiteboard react drawing canvas third-party all types">
+            <div class="card-top">
+              <span class="badge badge-primary">INTERACTIVITY</span>
+              <span class="badge badge-primary">All types</span>
+            </div>
+            <h3>TLDraw Integration</h3>
+            <p>Handwriting recognition embedded inside a TLDraw collaborative canvas (React).</p>
+            <div class="card-actions">
+              <a href="custom-rendering/tldraw-websocket-client/dist/index.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
+              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/custom-rendering/tldraw-websocket-client/src/App.tsx" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
+            </div>
+          </article>
+
+        </div>
+      </div>
+
 
     </section>
 
@@ -703,6 +767,10 @@
       const match = !query || text.includes(query);
       card.classList.toggle('hidden', !match);
       if (match) visible++;
+    });
+    document.querySelectorAll('.subsection').forEach(sub => {
+      const anyVisible = [...sub.querySelectorAll('.card')].some(c => !c.classList.contains('hidden'));
+      sub.style.display = anyVisible ? '' : 'none';
     });
     document.querySelectorAll('.home-section').forEach(section => {
       const anyVisible = [...section.querySelectorAll('.card')].some(c => !c.classList.contains('hidden'));
