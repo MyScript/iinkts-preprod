@@ -8,7 +8,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="HandheldFriendly" content="true" />
 
-    <title>Interactive Ink Canvas - Markdown / Diagram / LLM Export</title>
+    <title>Interactive Ink Canvas - Markdown Export</title>
 
     <link rel="stylesheet" href="../assets/style/reset.css" />
     <link rel="stylesheet" href="../assets/style/components.css" />
@@ -22,7 +22,7 @@
       }
 
       #results-panel {
-        width: 320px;
+        width: 360px;
       }
 
       .export-result-item {
@@ -34,6 +34,26 @@
         min-height: 60px;
         white-space: pre-wrap;
         word-break: break-word;
+      }
+
+      #markdownRendered {
+        margin: 4px 0 0;
+        padding: var(--ex-space-sm);
+        border: 1px solid var(--ex-border, #ddd);
+        border-radius: 4px;
+        min-height: 60px;
+        overflow-wrap: break-word;
+      }
+
+      #markdownRendered :is(h1, h2, h3) {
+        margin: 0.4em 0 0.2em;
+        font-weight: 600;
+      }
+
+      #markdownRendered ul,
+      #markdownRendered ol {
+        padding-left: 1.2em;
+        list-style: revert;
       }
     </style>
     <script src="../assets/js/theme-init.js"></script>
@@ -51,30 +71,26 @@
         API Keys
       </button>
       <h1 class="header-title">
-        Interactive Ink Canvas - Markdown / Diagram / LLM Export
+        Interactive Ink Canvas - Markdown Export
       </h1>
     </header>
 
     <div class="ex-page-layout">
       <aside id="info-panel" class="ex-panel">
-        <p class="ex-panel-heading">Digital ink → structured export</p>
-        <p class="ex-panel-intro"><code>canvas.toMarkdown()</code>, <code>canvas.toMermaid()</code>, <code>canvas.toPlantUML()</code> and <code>canvas.toLLM()</code> convert the recognized content, computed locally from the JIIX export — not a server round-trip.</p>
+        <p class="ex-panel-heading">Handwriting → Markdown</p>
+        <p class="ex-panel-intro"><code>canvas.exportAs("markdown")</code> resolves with the Markdown source, derived locally from the JIIX recognition result — no extra server round-trip.</p>
         <div class="ex-panel-divider"></div>
         <div class="ex-panel-item">
-          <div class="ex-panel-item-desc"><strong>Markdown</strong>: recognized text becomes paragraphs, math becomes <code>$$...$$</code>. Handy to hand the content to an LLM prompt.</div>
+          <div class="ex-panel-item-desc">Recognized text becomes paragraphs, math becomes <code>$$...$$</code>. Handy to hand the content to an LLM prompt or to a note-taking app.</div>
         </div>
         <div class="ex-panel-item">
-          <div class="ex-panel-item-desc"><strong>Mermaid</strong>: draw shapes (rectangle, circle, rhombus...) connected by lines — the diagram becomes an editable <code>flowchart TD</code>. Write a word inside a shape to label it.</div>
+          <div class="ex-panel-item-desc">The panel refreshes on every <code>exported</code> event, so the Markdown follows what you write without pressing anything.</div>
         </div>
         <div class="ex-panel-item">
-          <div class="ex-panel-item-desc">Edge-to-shape connections are resolved geometrically (an edge's endpoint must land inside a shape) — an edge that doesn't touch any shape is left out of the flowchart.</div>
+          <div class="ex-panel-item-desc"><code>canvas.download("markdown")</code> saves the same content as a <code>.md</code> file.</div>
         </div>
-        <div class="ex-panel-item">
-          <div class="ex-panel-item-desc"><strong>PlantUML</strong>: same diagram, exported as a <code>@startuml</code>/<code>@enduml</code> block instead of Mermaid syntax.</div>
-        </div>
-        <div class="ex-panel-item">
-          <div class="ex-panel-item-desc"><strong>LLM JSON</strong>: flat, ordered content blocks (<code>text</code>/<code>math</code>/<code>diagram</code>) — the structured shape an app hands to its own LLM prompt.</div>
-        </div>
+        <div class="ex-panel-divider"></div>
+        <div class="ex-panel-hint">The rendered preview below uses <code>marked</code> and <code>DOMPurify</code> from a CDN. They are only there to show the Markdown as a document — iinkTS itself produces the source text and has no rendering dependency.</div>
       </aside>
       <div class="page-content">
         <nav class="flex-container wrap gap between">
@@ -82,14 +98,8 @@
             <button class="classic-btn primary" id="exportMarkdown">
               Export as Markdown
             </button>
-            <button class="classic-btn primary" id="exportMermaid">
-              Export as Mermaid
-            </button>
-            <button class="classic-btn primary" id="exportPlantUML">
-              Export as PlantUML
-            </button>
-            <button class="classic-btn primary" id="exportLLM">
-              Export as LLM JSON
+            <button class="classic-btn" id="downloadMarkdown">
+              Download .md
             </button>
             <button class="classic-btn" id="clear">
               Clear
@@ -99,27 +109,29 @@
         <div class="main-layout">
           <div id="rootEl"></div>
           <aside id="results-panel" class="ex-panel">
-            <p class="ex-panel-heading">Export results</p>
+            <p class="ex-panel-heading">Markdown source</p>
             <div class="export-result-item">
-              <span class="ex-panel-item-label">Markdown</span>
               <pre id="markdownResult" class="ex-panel-code"></pre>
             </div>
+            <p class="ex-panel-heading">Rendered</p>
             <div class="export-result-item">
-              <span class="ex-panel-item-label">Mermaid</span>
-              <pre id="mermaidResult" class="ex-panel-code"></pre>
-            </div>
-            <div class="export-result-item">
-              <span class="ex-panel-item-label">PlantUML</span>
-              <pre id="plantUMLResult" class="ex-panel-code"></pre>
-            </div>
-            <div class="export-result-item">
-              <span class="ex-panel-item-label">LLM JSON</span>
-              <pre id="llmResult" class="ex-panel-code"></pre>
+              <div id="markdownRendered"></div>
             </div>
           </aside>
         </div>
       </div>
     </div>
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/marked@15.0.7/marked.min.js"
+      integrity="sha384-H+hy9ULve6xfxRkWIh/YOtvDdpXgV2fmAGQkIDTxIgZwNoaoBal14Di2YTMR6MzR"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js"
+      integrity="sha384-eEu5CTj3qGvu9PdJuS+YlkNi7d2XxQROAFYOr59zgObtlcux1ae1Il3u7jvdCSWu"
+      crossorigin="anonymous"
+    ></script>
 
     <script type="module">
       import { Canvas } from '../../dist/iink.esm.js'
@@ -141,20 +153,16 @@
 
       const rootElement = document.getElementById("rootEl");
       const exportMarkdownBtn = document.getElementById("exportMarkdown");
-      const exportMermaidBtn = document.getElementById("exportMermaid");
-      const exportPlantUMLBtn = document.getElementById("exportPlantUML");
-      const exportLLMBtn = document.getElementById("exportLLM");
+      const downloadMarkdownBtn = document.getElementById("downloadMarkdown");
       const clearBtn = document.getElementById("clear");
       const markdownResultElement = document.getElementById("markdownResult");
-      const mermaidResultElement = document.getElementById("mermaidResult");
-      const plantUMLResultElement = document.getElementById("plantUMLResult");
-      const llmResultElement = document.getElementById("llmResult");
+      const markdownRenderedElement = document.getElementById("markdownRendered");
       const showModalBtn = document.getElementById("showModalBtn");
 
       let canvas;
       const canvasOptions = {
         configuration: {
-          recognition: { types: ['text', 'shape'] },
+          recognition: { types: ['text'] },
           menu: {
             action: {
               language: false,
@@ -194,46 +202,38 @@
         },
       };
 
-      async function loadCanvas(options) {
-        /**
-         * get canvas instance from type
-         * @param {Element} The DOM element to attach the ink paper
-         * @param {Object} The Canvas parameters
-         */
-        canvas = await Canvas.load(rootElement, "INTERACTIVE_INK", options);
+      function clearResults() {
         markdownResultElement.textContent = "";
-        mermaidResultElement.textContent = "";
-        plantUMLResultElement.textContent = "";
-        llmResultElement.textContent = "";
+        markdownRenderedElement.innerHTML = "";
       }
 
-      exportMarkdownBtn.addEventListener("click", async () => {
+      /**
+       * Renders the exported Markdown as HTML. The source text is the export itself; the HTML is
+       * only a preview, sanitized before it reaches the DOM.
+       */
+      async function refreshMarkdown() {
         if (!canvas) return;
-        markdownResultElement.textContent = await canvas.toMarkdown();
-      });
+        const markdown = await canvas.exportAs("markdown");
+        markdownResultElement.textContent = markdown;
+        markdownRenderedElement.innerHTML = window.DOMPurify.sanitize(window.marked.parse(markdown));
+      }
 
-      exportMermaidBtn.addEventListener("click", async () => {
-        if (!canvas) return;
-        mermaidResultElement.textContent = await canvas.toMermaid();
-      });
+      async function loadCanvas(options) {
+        await canvas?.destroy();
+        canvas = await Canvas.load(rootElement, "INTERACTIVE_INK", options);
+        window.canvas = canvas;
+        clearResults();
+        canvas.event.addEventListener("exported", () => refreshMarkdown());
+      }
 
-      exportPlantUMLBtn.addEventListener("click", async () => {
-        if (!canvas) return;
-        plantUMLResultElement.textContent = await canvas.toPlantUML();
-      });
+      exportMarkdownBtn.addEventListener("click", () => refreshMarkdown());
 
-      exportLLMBtn.addEventListener("click", async () => {
-        if (!canvas) return;
-        llmResultElement.textContent = JSON.stringify(await canvas.toLLM(), null, 2);
-      });
+      downloadMarkdownBtn.addEventListener("click", () => canvas?.download("markdown"));
 
       clearBtn.addEventListener("click", async () => {
         if (!canvas) return;
         await canvas.clear();
-        markdownResultElement.textContent = "";
-        mermaidResultElement.textContent = "";
-        plantUMLResultElement.textContent = "";
-        llmResultElement.textContent = "";
+        clearResults();
       });
 
       showModalBtn.addEventListener("click", () => {
