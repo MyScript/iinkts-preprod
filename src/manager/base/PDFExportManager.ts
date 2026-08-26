@@ -170,17 +170,23 @@ export class PDFExportManager {
     return Math.min(page.width / contentWidthMm, page.height / contentHeightMm)
   }
 
+  /**
+   * Lay the content out on a single page, scaled to fit it.
+   * @param scalePercent - Percentage of the fit-to-page size to use; 100 (the default) fills the
+   *                       page, 50 draws the content at half that size
+   */
   buildSinglePagePrintContainer(
     svgContent: string,
     box: TBox,
     format: TPDFPageFormat,
-    orientation: TPDFOrientation
+    orientation: TPDFOrientation,
+    scalePercent: number = PDFExportManager.DEFAULT_OPTIONS.scale
   ): HTMLDivElement {
     const container = this.buildPrintContainer(svgContent)
     const page = this.getPageDimensionsMm(format, orientation)
     this.#setPageSizeStyle(page)
 
-    const scale = this.computeFitToPageScale(box, format, orientation)
+    const scale = this.computeFitToPageScale(box, format, orientation) * (scalePercent / 100)
     const svg = container.querySelector("svg")
     if (svg) {
       const widthMm = +(convertPixelToMillimeter(box.width) * scale).toFixed(3)
@@ -248,7 +254,7 @@ export class PDFExportManager {
 
   print(svgContent: string, box: TBox, options: TPDFExportDialogOptions): void {
     if (options.mode === "single") {
-      this.buildSinglePagePrintContainer(svgContent, box, options.format, options.orientation)
+      this.buildSinglePagePrintContainer(svgContent, box, options.format, options.orientation, options.scale)
     } else {
       this.buildMultiPagePrintContainer(svgContent, box, options)
     }

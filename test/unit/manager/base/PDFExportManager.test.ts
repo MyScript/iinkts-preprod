@@ -129,6 +129,27 @@ describe("PDFExportManager.ts", () => {
       const expectedWidthMm = 400 * (25.4 / 96) * scale
       expect(parseFloat(svg.style.width)).toBeCloseTo(expectedWidthMm, 2)
     })
+
+    test("should apply the requested scale on top of the fit-to-page size", () => {
+      const manager = new PDFExportManager(asCanvas(createCanvasMock()))
+      const box = { x: 0, y: 0, width: 400, height: 600 }
+      const container = manager.buildSinglePagePrintContainer("<svg><rect /></svg>", box, "A4", "portrait", 50)
+
+      const svg = container.querySelector("svg") as SVGElement
+      const fitted = manager.computeFitToPageScale(box, "A4", "portrait")
+      expect(parseFloat(svg.style.width)).toBeCloseTo(400 * (25.4 / 96) * fitted * 0.5, 2)
+      expect(parseFloat(svg.style.height)).toBeCloseTo(600 * (25.4 / 96) * fitted * 0.5, 2)
+    })
+
+    test("should leave the fitted size untouched at 100%", () => {
+      const manager = new PDFExportManager(asCanvas(createCanvasMock()))
+      const box = { x: 0, y: 0, width: 400, height: 600 }
+      const container = manager.buildSinglePagePrintContainer("<svg><rect /></svg>", box, "A4", "portrait", 100)
+
+      const svg = container.querySelector("svg") as SVGElement
+      const fitted = manager.computeFitToPageScale(box, "A4", "portrait")
+      expect(parseFloat(svg.style.width)).toBeCloseTo(400 * (25.4 / 96) * fitted, 2)
+    })
   })
 
   describe("multi-page tiled mode", () => {
@@ -281,6 +302,29 @@ describe("PDFExportManager.ts", () => {
       expect(manager.buildSinglePagePrintContainer).toHaveBeenCalledTimes(1)
       expect(manager.buildMultiPagePrintContainer).not.toHaveBeenCalled()
       expect(window.print).toHaveBeenCalledTimes(1)
+    })
+
+    test("should forward the requested scale to the single-page container", () => {
+      const manager = new PDFExportManager(asCanvas(createCanvasMock()))
+      manager.buildSinglePagePrintContainer = jest.fn()
+      window.print = jest.fn()
+      const box = { x: 0, y: 0, width: 100, height: 100 }
+
+      manager.print("<svg></svg>", box, { ...PDFExportManager.DEFAULT_OPTIONS, scale: 50 })
+
+      expect(manager.buildSinglePagePrintContainer).toHaveBeenCalledWith("<svg></svg>", box, "A4", "portrait", 50)
+    })
+
+    test("should honour the scale end to end in single-page mode", () => {
+      const manager = new PDFExportManager(asCanvas(createCanvasMock()))
+      window.print = jest.fn()
+      const box = { x: 0, y: 0, width: 400, height: 600 }
+
+      manager.print("<svg><rect /></svg>", box, { ...PDFExportManager.DEFAULT_OPTIONS, scale: 50 })
+
+      const svg = document.querySelector(".ii-pdf-print-container svg") as SVGElement
+      const fitted = manager.computeFitToPageScale(box, "A4", "portrait")
+      expect(parseFloat(svg.style.width)).toBeCloseTo(400 * (25.4 / 96) * fitted * 0.5, 2)
     })
 
     test("should build a multi-page container and call window.print for mode multi", () => {
