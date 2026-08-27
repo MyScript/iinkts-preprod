@@ -3,7 +3,7 @@ import { isBetween } from "@/core/math"
 import type { TPoint, TSegment } from "./Point"
 
 /**
- * @group Symbol
+ * @group Core/Geometry
  */
 export type TBox = {
   x: number
@@ -13,7 +13,7 @@ export type TBox = {
 }
 
 /**
- * @group Symbol
+ * @group Core/Geometry
  */
 export const BoxOps = {
   createFromBoxes(boxes: TBox[]): TBox {

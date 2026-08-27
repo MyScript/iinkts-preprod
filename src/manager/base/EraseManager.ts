@@ -1,5 +1,7 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import type { InkCanvas } from "@/canvas/variants/InkCanvas"
+import { BoxOps } from "@/core/geometry"
+import { OBBOps, type TOBB } from "@/core/geometry"
 import type { TPointerInfo } from "@/grabber"
 import { PointerEventGrabber } from "@/grabber"
 import { LoggerCategory, LoggerManager } from "@/logger"
@@ -7,8 +9,6 @@ import type { SVGRenderer } from "@/renderer"
 import type { TEraser, TPoint, TSegment } from "@/symbol"
 import { isText } from "@/symbol"
 import { EraserOps } from "@/symbol/eraser/Eraser"
-import { BoxOps } from "@/symbol/primitives/Box"
-import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
 import { computeDistanceBetweenPointAndSegment, computeDistanceSquared } from "@/utils"
 
 /**

@@ -23,8 +23,9 @@
  * **Legacy** (deprecated v1) — {@link Stroke}, {@link TLegacyStroke}
  */
 
-// Primitives
-export * from "./primitives"
+// Primitives - descended to core/geometry by IIC-1962, re-exported here until IIC-1966
+// repoints the remaining `@/symbol` call sites.
+export * from "@/core/geometry"
 
 // Symbol categories
 export * from "./decorator"

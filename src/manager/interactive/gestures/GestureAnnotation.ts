@@ -1,10 +1,10 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import { OBBOps, type TOBB } from "@/core/geometry"
 import type { TIIHistoryChanges } from "@/history"
 import type { TStyle } from "@/style"
 import type { DecoratorKind, TBox, TDecorator, TStroke, TText } from "@/symbol"
 import { isDecorator, isRecognizedText, isStroke, isText, SymbolType, type TSymbol } from "@/symbol"
 import { DecoratorOps } from "@/symbol/decorator/Decorator"
-import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
 
 /**
  * Unified representation of a gesture's intent on a set of target strokes.
