@@ -1,9 +1,8 @@
-import type { TPoint, TPointer } from "@/symbol"
-
-import { computeAngleAxeRadian } from "./geometry"
+import { computeAngleAxeRadian } from "./angle"
+import type { TPoint, TPointer } from "./Point"
 
 /**
- * @group Utilities
+ * @group Core/Geometry
  */
 export function computeLinksPointers(point: TPointer, angle: number, width: number): TPoint[] {
   const radius = point.p * width
@@ -20,7 +19,7 @@ export function computeLinksPointers(point: TPointer, angle: number, width: numb
 }
 
 /**
- * @group Utilities
+ * @group Core/Geometry
  */
 export function computeMiddlePointer(point1: TPointer, point2: TPointer): TPointer {
   return {
@@ -34,7 +33,7 @@ export function computeMiddlePointer(point1: TPointer, point2: TPointer): TPoint
 /**
  * Outline points on either side of a straight segment, used to build both the
  * Canvas2D and SVG stroke-outline paths for a line segment.
- * @group Utilities
+ * @group Core/Geometry
  */
 export function computeLineOutlinePoints(
   begin: TPointer,
@@ -51,7 +50,7 @@ export function computeLineOutlinePoints(
 /**
  * Outline points on either side of a quadratic segment, used to build both the
  * Canvas2D and SVG stroke-outline paths for a quadratic curve.
- * @group Utilities
+ * @group Core/Geometry
  */
 export function computeQuadraticOutlinePoints(
   begin: TPointer,
@@ -69,7 +68,7 @@ export function computeQuadraticOutlinePoints(
 /**
  * Fan of points closing a stroke's final end cap, used to build both the
  * Canvas2D and SVG stroke-outline paths for a stroke's last segment.
- * @group Utilities
+ * @group Core/Geometry
  */
 export function computeFinalOutlinePoints(begin: TPointer, end: TPointer, width: number): TPoint[] {
   const ARCSPLIT = 6
