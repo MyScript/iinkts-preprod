@@ -12,7 +12,7 @@ function elementToMarkdown(element: TJIIXElement): string | undefined {
 }
 
 /**
- * @group Utilities
+ * @group Export
  * @summary Convert a JIIX export into a Markdown string
  * @param jiix - JIIX export to convert
  * @returns Markdown representation of the JIIX export

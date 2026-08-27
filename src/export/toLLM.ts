@@ -1,5 +1,6 @@
 import { JIIXElementType, type TJIIXExport } from "@/model/Export"
-import { jiixToMermaid } from "@/utils/toMermaid"
+
+import { jiixToMermaid } from "./toMermaid"
 
 export type TLLMContentBlock =
   { type: "text"; content: string } | { type: "math"; latex: string } | { type: "diagram"; mermaid: string }
@@ -9,7 +10,7 @@ export type TLLMExport = {
 }
 
 /**
- * @group Utilities
+ * @group Export
  * @summary Convert a JIIX export into a flat, prompt-ready JSON structure for LLM consumption
  * @param jiix - JIIX export to convert
  * @returns Ordered content blocks (text/math/diagram); diagram Nodes/Edges collapse into a single Mermaid block
