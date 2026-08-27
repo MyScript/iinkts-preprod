@@ -1,7 +1,7 @@
 import type { TPartialDeep } from "./types"
 
 /**
- * @group Utilities
+ * @group Core/Std
  */
 export type TMergeable = Record<string, unknown> | unknown[] | unknown
 
@@ -11,7 +11,7 @@ export type TMergeable = Record<string, unknown> | unknown[] | unknown
  * mutated in place; the explicit type parameter `T` should be given at the call site (e.g.
  * `mergeDeep<TServerHTTPConfiguration>({}, DefaultServerHTTPConfiguration, override)`) since an
  * empty `target` carries no type information of its own to infer `T` from.
- * @group Utilities
+ * @group Core/Std
  */
 export const mergeDeep = <T extends TMergeable>(target: TPartialDeep<T>, ...sources: TMergeable[]): T => {
   const isObject = (item: unknown): item is Record<string, unknown> => {
@@ -50,7 +50,7 @@ export const mergeDeep = <T extends TMergeable>(target: TPartialDeep<T>, ...sour
 }
 
 /**
- * @group Utilities
+ * @group Core/Std
  */
 export const isDeepEqual = (object1: unknown, object2: unknown): boolean => {
   if (!isObject(object1) || !isObject(object2)) {
@@ -78,7 +78,7 @@ export const isDeepEqual = (object1: unknown, object2: unknown): boolean => {
 }
 
 /**
- * @group Utilities
+ * @group Core/Std
  */
 export const isDeepEqualIgnoring = (object1: unknown, object2: unknown, ignoredKeys: string[]): boolean => {
   if (!isObject(object1) || !isObject(object2)) {
@@ -109,31 +109,14 @@ export const isDeepEqualIgnoring = (object1: unknown, object2: unknown, ignoredK
 }
 
 /**
- * @group Utilities
+ * @group Core/Std
  */
 const isObject = (object: unknown): object is Record<string, unknown> => {
   return typeof object === "object" && object !== null && !Array.isArray(object)
 }
 
 /**
- * @group Utilities
- */
-export const redactServerSecrets = (config: unknown): unknown => {
-  if (!isObject(config) || !isObject(config.server)) {
-    return config
-  }
-  const server: Record<string, unknown> = { ...config.server }
-  if ("hmacKey" in server) {
-    server.hmacKey = "[REDACTED]"
-  }
-  if ("applicationKey" in server) {
-    server.applicationKey = "[REDACTED]"
-  }
-  return { ...config, server }
-}
-
-/**
- * @group Utilities
+ * @group Core/Std
  */
 export const uniqueById = <T extends { id: string }>(items: T[]): T[] => {
   const seenIds = new Set<string>()
@@ -149,7 +132,7 @@ export const uniqueById = <T extends { id: string }>(items: T[]): T[] => {
 /**
  * Merges an incoming export payload into the current one, mutating and returning it when
  * present, or adopting `incoming` as-is when there was nothing to merge into yet.
- * @group Utilities
+ * @group Core/Std
  */
 export const mergeExports = <T extends object>(current: T | undefined, incoming: T): T => {
   if (current) {

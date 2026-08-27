@@ -1,5 +1,5 @@
 /**
- * @group Utilities
+ * @group Core/Std
  */
 export function createUUID(): string {
   const getRandomBytes = (): Uint8Array => {

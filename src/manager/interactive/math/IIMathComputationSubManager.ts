@@ -1,4 +1,6 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import { isDeepEqualIgnoring } from "@/core/std"
+import { createUUID } from "@/core/std"
 import { LoggerCategory } from "@/logger"
 import type { TJIIXMathElement, TJIIXMathExpression } from "@/model"
 import type { TStyle } from "@/style/Style"
@@ -7,8 +9,6 @@ import { BoxOps, isStroke, OBBOps } from "@/symbol"
 import { StrokeOps } from "@/symbol/stroke/Stroke"
 import type { MatrixTransform } from "@/transform"
 import { convertMillimeterToPixel } from "@/utils"
-import { isDeepEqualIgnoring } from "@/utils/object"
-import { createUUID } from "@/utils/uuid"
 
 import { IIAbstractManager } from "../IIAbstractManager"
 

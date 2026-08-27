@@ -1,12 +1,5 @@
+import { isBetween } from "@/core/math"
 import type { TBox, TPoint, TSegment } from "@/symbol"
-
-import { isBetween } from "./math"
-
-/**
- * Mathematical constants for geometric calculations
- * @group Constants
- */
-export const TWO_PI = 2 * Math.PI
 
 /**
  * @group Utilities
@@ -112,20 +105,6 @@ export function getBoxConnectionPoint(box: TBox, target: TPoint): TPoint {
         ? hw / Math.abs(dx)
         : Math.min(hw / Math.abs(dx), hh / Math.abs(dy))
   return { x: cx + t * dx, y: cy + t * dy }
-}
-
-/**
- * @group Utilities
- */
-export function convertRadianToDegree(radian: number): number {
-  return +(((radian % TWO_PI) / Math.PI) * 180).toFixed(4)
-}
-
-/**
- * @group Utilities
- */
-export function convertDegreeToRadian(degree: number): number {
-  return +(((degree % 360) / 180) * Math.PI).toFixed(4)
 }
 
 /**
@@ -349,20 +328,6 @@ export function isPointInsidePolygon(point: TPoint, points: TPoint[]) {
   }
 
   return inside
-}
-
-/**
- * Calculate rotation angle for ellipse arc
- * @group Utilities
- * @param angle - The angle in radians
- * @returns Normalized angle
- */
-export function normalizeAngle(angle: number): number {
-  let returnedAngle = ((angle + Math.PI) % TWO_PI) - Math.PI
-  if (returnedAngle < -Math.PI) {
-    returnedAngle += TWO_PI
-  }
-  return returnedAngle
 }
 
 /**

@@ -1,5 +1,5 @@
-import type { TPartialDeep } from "@/utils"
-import { isValidNumber } from "@/utils"
+import { isValidNumber } from "@/core/math"
+import type { TPartialDeep } from "@/core/std"
 
 /**
  * @group Symbol
