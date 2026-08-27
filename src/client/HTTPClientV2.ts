@@ -1,14 +1,14 @@
+import { isVersionSuperiorOrEqual, type TPartialDeep } from "@/core/std"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { TExportV2, TJIIXExport } from "@/model"
 import { StrokeOps, type TStrokeMinimal } from "@/symbol"
-import type { TPartialDeep } from "@/utils"
-import { getApiInfos, isVersionSuperiorOrEqual, redactServerSecrets } from "@/utils"
 
 import { parseApiError } from "./ClientApiError"
 import { ClientError } from "./ClientError"
 import { resolveHmac } from "./HmacAuth"
 import type { THTTPClientV2Configuration } from "./HTTPClientV2Configuration"
 import { HTTPClientV2Configuration } from "./HTTPClientV2Configuration"
+import { getApiInfos } from "./infos"
 import type {
   TDiagramConfiguration,
   TExportConfiguration,
@@ -16,6 +16,7 @@ import type {
   TRawContentConfiguration,
   TTextConfiguration,
 } from "./recognition"
+import { redactServerSecrets } from "./ServerConfiguration"
 
 /**
  * @group Client
