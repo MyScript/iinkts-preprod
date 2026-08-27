@@ -1,4 +1,4 @@
-import { computePointOnEllipse, isPointInsideBox } from "@/core/geometry"
+import { computePointOnEllipse, isPointInsideBox, type TBox, type TPoint } from "@/core/geometry"
 import {
   JIIXEdgeKind,
   JIIXElementType,
@@ -7,10 +7,9 @@ import {
   type TJIIXNodeElement,
   type TJIIXTextElement,
 } from "@/model/Export"
-import type { TBox, TPoint } from "@/symbol"
 
 /**
- * @group Utilities
+ * @group Export
  * @summary Sanitize a JIIX element id into a valid Mermaid/PlantUML identifier
  * @param id - JIIX element id
  * @returns Identifier containing only alphanumeric characters and underscores
@@ -24,7 +23,7 @@ function boxCenter(box: TBox): TPoint {
 }
 
 /**
- * @group Utilities
+ * @group Export
  * @summary Find the Text element whose bounding-box center lands inside a given box
  * @param box - Box to test against (typically a Node's bounding-box)
  * @param texts - Text elements to search
@@ -76,7 +75,7 @@ function findNodeById(id: string, nodes: TJIIXNodeElement[]): TJIIXNodeElement |
  * rather than a geometric guess. Falls back to matching endpoints against node bounding boxes
  * when `connected` is absent (e.g. a lone edge with nothing to connect to).
  *
- * @group Utilities
+ * @group Export
  * @summary Resolve the two Nodes an Edge connects
  * @param edge - Edge element to resolve
  * @param nodes - Node elements to search
@@ -107,7 +106,7 @@ export type TJIIXGraphElements = {
 }
 
 /**
- * @group Utilities
+ * @group Export
  * @summary Split a JIIX export's elements into diagram Nodes/Edges and their Text labels
  * @param jiix - JIIX export to inspect
  * @returns The Node, Text and Edge elements found in the export
