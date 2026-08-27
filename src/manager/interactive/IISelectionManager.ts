@@ -1,12 +1,14 @@
+import { RafCoalescer } from "@/browser"
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import { ResizeDirection, SELECTION_MARGIN, SvgElementRole } from "@/Constants"
+import type { TBox, TPoint } from "@/core/geometry"
 import { BoxOps } from "@/core/geometry"
 import { OBBOps } from "@/core/geometry"
 import type { TPointerInfo } from "@/grabber"
 import { PointerEventGrabber } from "@/grabber"
 import { LoggerCategory } from "@/logger"
 import { SVGBuilder } from "@/renderer"
-import type { TBox, TDecorator, TEdge, TEdgeArc, TPoint, TStroke, TSymbol } from "@/symbol"
+import type { TDecorator, TEdge, TEdgeArc, TStroke, TSymbol } from "@/symbol"
 import {
   EdgeKind,
   EdgeLineOps,
@@ -20,7 +22,6 @@ import {
 import { EdgeArcOps, reprojectArcMidpoint, stretchArcEndpoint } from "@/symbol/edge/Arc"
 import { EdgeOps } from "@/symbol/edge/Edge"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
-import { RafCoalescer } from "@/utils"
 
 import { IIAbstractManager } from "./IIAbstractManager"
 import type { IIResizeManager } from "./transform/IIResizeManager"

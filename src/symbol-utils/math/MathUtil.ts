@@ -1,9 +1,9 @@
 import type { TBox } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
+import type { TPartialDeep } from "@/core/std"
 import { DecoratorKind } from "@/symbol/decorator/Decorator"
 import { MathOps, type TMath } from "@/symbol/math/Math"
 import { SymbolType } from "@/symbol/Symbol"
-import type { TPartialDeep } from "@/utils"
 
 import { DecoratorUtil } from "../decorator/DecoratorUtil"
 import { SVGBuilder } from "../SVGBuilder"

@@ -1,6 +1,11 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import { latexToUnicodeMath } from "@/core"
+import type { TPoint } from "@/core/geometry"
 import { BoxOps, type TBox } from "@/core/geometry"
 import { OBBOps, type TOBB } from "@/core/geometry"
+import { computeAngleAxeRadian, convertBoundingBoxMillimeterToPixel } from "@/core/geometry"
+import { computeAverage, convertMillimeterToPixel, roundTo } from "@/core/math"
+import { createUUID, uniqueById } from "@/core/std"
 import { LoggerCategory } from "@/logger"
 import type {
   TJIIXChar,
@@ -31,7 +36,6 @@ import type {
   TEdgePolyLine,
   TMath,
   TMathElement,
-  TPoint,
   TShape,
   TShapeCircle,
   TShapeEllipse,
@@ -52,16 +56,6 @@ import { ShapeCircleOps } from "@/symbol/shape/Circle"
 import { ShapeEllipseOps } from "@/symbol/shape/Ellipse"
 import { ShapePolygonOps } from "@/symbol/shape/Polygon"
 import { TextOps } from "@/symbol/text/Text"
-import {
-  computeAngleAxeRadian,
-  computeAverage,
-  convertBoundingBoxMillimeterToPixel,
-  convertMillimeterToPixel,
-  createUUID,
-  latexToUnicodeMath,
-  roundTo,
-  uniqueById,
-} from "@/utils"
 
 import { IIAbstractManager } from "./IIAbstractManager"
 

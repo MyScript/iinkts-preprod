@@ -1,5 +1,4 @@
-import type { TPartialDeep } from "@/utils"
-
+import type { TPartialDeep } from "@/core/std"
 /**
  * @group Styles
  * @property {String} color=#000000 Color (supported formats rgb() rgba() hsl() hsla() #rgb #rgba #rrggbb #rrggbbaa)
