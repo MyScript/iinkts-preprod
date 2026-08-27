@@ -844,9 +844,9 @@ export class IISelectionManager extends IIAbstractManager {
       const wasSelected = this.model.selectedIds.has(s.id)
       if (wasSelected !== shouldBeSelected) {
         if (shouldBeSelected) {
-          this.model.selectedIds.add(s.id)
+          this.model.selectSymbol(s.id)
         } else {
-          this.model.selectedIds.delete(s.id)
+          this.model.unselectSymbol(s.id)
         }
         updatedSymbols.push(s)
         this.renderer.updateSelectedState(s, shouldBeSelected)
@@ -934,7 +934,7 @@ export class IISelectionManager extends IIAbstractManager {
       if (this.model.selectedIds.has(id)) {
         return
       }
-      this.model.selectedIds.add(id)
+      this.model.selectSymbol(id)
       const symbol = this.model.symbols.find((s) => s.id === id)
       if (symbol) {
         this.renderer.updateSelectedState(symbol, true)
@@ -960,7 +960,7 @@ export class IISelectionManager extends IIAbstractManager {
         if (!this.model.selectedIds.has(id)) {
           const sym = this.model.getRootSymbol(id)
           if (sym) {
-            this.model.selectedIds.add(id)
+            this.model.selectSymbol(id)
             this.renderer.updateSelectedState(sym, true)
           }
         }

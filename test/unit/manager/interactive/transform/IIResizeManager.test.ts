@@ -226,7 +226,7 @@ describe("IIResizeManager.ts", () => {
     StrokeOps.addPointer(strokeOrigin, { p: 1, t: 1, x: 0, y: 0 })
     StrokeOps.addPointer(strokeOrigin, { p: 1, t: 1, x: 10, y: 50 })
     canvas.model.addSymbol(strokeOrigin)
-    canvas.model.selectedIds.add(strokeOrigin.id)
+    canvas.model.selectSymbol(strokeOrigin.id)
 
     const sb = OBBOps.toBox(strokeOrigin.bounds)
     const resizeToPoint: TPoint = {
@@ -417,7 +417,7 @@ describe("IIResizeManager.ts", () => {
       const manager = new IIResizeManager(asCanvas(canvas))
       const stroke = buildMathStroke("block-1")
       canvas.model.addSymbol(stroke)
-      canvas.model.selectedIds.add(stroke.id)
+      canvas.model.selectSymbol(stroke.id)
 
       const sb = OBBOps.toBox(stroke.bounds)
       manager.start(setupTarget(), { x: sb.x, y: sb.y + stroke.bounds.height / 2 })
@@ -433,7 +433,7 @@ describe("IIResizeManager.ts", () => {
       const manager = new IIResizeManager(asCanvas(canvas))
       const stroke = buildMathStroke("block-1")
       canvas.model.addSymbol(stroke)
-      canvas.model.selectedIds.add(stroke.id)
+      canvas.model.selectSymbol(stroke.id)
 
       const sb = OBBOps.toBox(stroke.bounds)
       manager.start(setupTarget(), { x: sb.x, y: sb.y + stroke.bounds.height / 2 })
@@ -454,7 +454,7 @@ describe("IIResizeManager.ts", () => {
 
       const shape = ShapeCircleOps.create({ x: 50, y: 50 }, 20)
       canvas.model.addSymbol(shape)
-      canvas.model.selectedIds.add(shape.id)
+      canvas.model.selectSymbol(shape.id)
       // The gradient-follow direction resolves the connected block's center via
       // jiix.getStrokesForElement + model.getRootSymbol — here the "block" is just the shape itself.
       jest.spyOn(canvas.jiix, "getStrokesForElement").mockImplementation((id) => (id === shape.id ? [shape.id] : []))
@@ -513,7 +513,7 @@ describe("IIResizeManager.ts", () => {
 
       const shape = ShapeCircleOps.create({ x: 50, y: 50 }, 20)
       canvas.model.addSymbol(shape)
-      canvas.model.selectedIds.add(shape.id)
+      canvas.model.selectSymbol(shape.id)
       jest.spyOn(canvas.jiix, "getStrokesForElement").mockImplementation((id) => (id === shape.id ? [shape.id] : []))
 
       const edgeStroke = StrokeOps.create()
@@ -559,7 +559,7 @@ describe("IIResizeManager.ts", () => {
 
       const shape = ShapeCircleOps.create({ x: 50, y: 50 }, 20)
       canvas.model.addSymbol(shape)
-      canvas.model.selectedIds.add(shape.id)
+      canvas.model.selectSymbol(shape.id)
 
       const edgeStroke = StrokeOps.create()
       edgeStroke.pointers = [

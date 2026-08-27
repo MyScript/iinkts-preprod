@@ -21,7 +21,7 @@ describe("RemoveContextMenu.ts", () => {
     const canvas = createCanvasMock()
     const stroke = buildIIStroke()
     canvas.model.addSymbol(stroke)
-    canvas.model.selectedIds.add(stroke.id)
+    canvas.model.selectSymbol(stroke.id)
     const item = new RemoveContextMenu(asCanvas(canvas))
     const button = item.getElement()
     document.body.appendChild(button)

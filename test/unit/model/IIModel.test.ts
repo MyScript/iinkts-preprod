@@ -43,7 +43,7 @@ describe("IIModel.ts", () => {
       model.addSymbol(symb3)
       const versionBefore = model.version
       const modificationDateBefore = model.modificationDate
-      model.exports = { "application/vnd.myscript.jiix": {} } as unknown as TExport
+      model.mergeExport({ "application/vnd.myscript.jiix": {} } as unknown as TExport)
 
       const updatedSymb3 = structuredClone(symb3)
       updatedSymb3.style.color = "yellow"
@@ -91,7 +91,7 @@ describe("IIModel.ts", () => {
     })
   })
 
-  describe.skip("change symbol order", () => {
+  describe("change symbol order", () => {
     const model = new IIModel()
     const sym1 = buildIIStroke()
     model.addSymbol(sym1)
