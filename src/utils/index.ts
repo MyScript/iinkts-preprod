@@ -1,16 +1,10 @@
 // Re-exported until IIC-1966 deletes this barrel: `core` now owns these, but the ~90 call sites
 // still import them from `@/utils` and are repointed one destination module at a time.
-export * from "./crypto"
-export * from "./font"
-export * from "./infos"
 export * from "./jiixGraph"
-export * from "./language"
 export * from "./RafCoalescer"
-export * from "./serverSecrets"
 export * from "./svgTransform"
 export * from "./toLLM"
 export * from "./toMarkdown"
 export * from "./toMermaid"
 export * from "./toPlantUML"
-export * from "./validation"
 export * from "@/core"

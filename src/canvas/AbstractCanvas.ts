@@ -1,9 +1,9 @@
 import type { TConnectionStatus, TServerHTTPConfiguration } from "@/client"
+import { getApiInfos, type TApiInfos } from "@/client"
 import { CanvasTool } from "@/Constants"
+import type { TPartialDeep } from "@/core/std"
 import type { TLoggerConfiguration } from "@/logger"
 import { DefaultLoggerConfiguration, LoggerCategory, LoggerManager } from "@/logger"
-import type { TApiInfos, TPartialDeep } from "@/utils"
-import { getApiInfos } from "@/utils"
 
 import type { TCanvasConnectionState } from "./CanvasEvent"
 import { CanvasEvent } from "./CanvasEvent"

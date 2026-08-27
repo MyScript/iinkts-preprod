@@ -1,5 +1,5 @@
 /**
- * @group Utilities
+ * @group Client
  */
 export async function computeHmac(message: string, applicationKey: string, hmacKey: string): Promise<string> {
   const enc = new TextEncoder()
