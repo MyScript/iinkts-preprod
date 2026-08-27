@@ -701,18 +701,23 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     })
     const symbols: TSymbol[] = []
     const oldStyles: TPartialDeep<TStyle>[] = []
-    this.model.symbols.forEach((s) => {
-      if (symbolIds.includes(s.id)) {
-        oldStyles.push({ ...s.style })
-        s.style = Object.assign({}, s.style, style)
-        if (isText(s)) {
-          TextOps.updateChildrenStyle(s)
-        }
-        this.renderer.drawSymbol(s)
-        this.model.updateSymbol(s)
-        s.modificationDate = Date.now()
-        symbols.push(s)
+    // Driven by the id list rather than by a scan of the document: `symbolIds.includes` inside a
+    // full pass was O(n·m), and drafting by id is O(m).
+    symbolIds.forEach((id) => {
+      const s = this.model.draftSymbol(id)
+      if (!s) {
+        return
       }
+      oldStyles.push({ ...s.style })
+      s.style = Object.assign({}, s.style, style)
+      if (isText(s)) {
+        TextOps.updateChildrenStyle(s)
+      }
+      this.renderer.drawSymbol(s)
+      // `commitSymbol` stamps `modificationDate` itself; the old code stamped it again *after*
+      // committing, which was redundant and wrote to an already-stored record.
+      this.model.commitSymbol(s)
+      symbols.push(s)
     })
     if (symbols.length) {
       symbols.forEach((s) => {
@@ -760,8 +765,10 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       tx: number
       ty: number
     }[] = []
-    this.model.symbols.forEach((s) => {
-      if (textIds.includes(s.id)) {
+    // Driven by the id list rather than by a scan of the document, same as `updateSymbolsStyle`.
+    textIds.forEach((id) => {
+      const s = this.model.draftSymbol(id)
+      if (s) {
         if (isText(s)) {
           oldFontSizes.push(s.chars[0]?.fontSize)
           TextOps.updateChildrenFont(s, {
@@ -782,7 +789,8 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
               })
             }
           }
-          s.modificationDate = Date.now()
+          // `typeset.updateBounds` above already committed the draft, which stamps
+          // `modificationDate`; the old code stamped it again afterwards.
           symbols.push(s)
         }
       }
