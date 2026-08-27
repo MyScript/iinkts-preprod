@@ -26,7 +26,13 @@ test.describe("Interactive ink canvas Get Started Menu Style", () => {
     colors.forEach(async (color) => {
       test(`should write with color: ${ color.color }`, async ({ page }) => {
         await page.locator("#ms-menu-style-color").click()
-        await page.locator("#ms-menu-style-color-list-" + color.rgb).click()
+        // The palette slides open with a 500ms max-height transition, and a click landing while
+        // the swatches are still moving silently misses them — leaving the strokes written next
+        // in the default black. Retry the pick until the pen style actually holds the colour.
+        await expect(async () => {
+          await page.locator("#ms-menu-style-color-list-" + color.rgb).click()
+          expect(await page.evaluate("rootEl.iink.penStyle.color")).toStrictEqual("#" + color.rgb)
+        }).toPass({ timeout: 10000 })
 
         await Promise.all([
           waitForSynchronizedEvent(page),
