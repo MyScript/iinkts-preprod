@@ -1,9 +1,9 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import type { TPoint, TSegment } from "@/core/geometry"
 import { BoxOps } from "@/core/geometry"
+import type { TPartialDeep } from "@/core/std"
 import { LoggerCategory } from "@/logger"
 import { SVGRendererConst } from "@/renderer/svg/utils/SVGRendererConst"
-import type { TPoint, TSegment } from "@/symbol"
-import type { TPartialDeep } from "@/utils"
 
 import { IIAbstractManager } from "./IIAbstractManager"
 

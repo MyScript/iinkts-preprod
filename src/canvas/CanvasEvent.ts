@@ -5,7 +5,6 @@ import { LoggerCategory, LoggerManager } from "@/logger"
 import type { TGestureType } from "@/manager"
 import type { TExport, TExportV2 } from "@/model"
 import type { TBaseSymbol, TStroke, TSymbol } from "@/symbol"
-
 /**
  * @group Canvas
  * @remarks Lists all events that can be listened to on the canvas or DOM element

@@ -1,8 +1,8 @@
 import type { TPointer } from "@/core/geometry"
+import type { TPartialDeep } from "@/core/std"
+import { createUUID } from "@/core/std"
 import type { TPenStyle } from "@/style"
 import { DefaultPenStyle } from "@/style"
-import type { TPartialDeep } from "@/utils"
-import { createUUID } from "@/utils"
 
 import type { TStrokeMinimal } from "../stroke"
 import type { TBaseSymbol } from "../Symbol"

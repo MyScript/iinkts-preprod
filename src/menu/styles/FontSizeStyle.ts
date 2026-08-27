@@ -3,7 +3,6 @@ import type { TMenuButtonList } from "@/menu/items"
 import { ButtonListMenuItem, CollapsibleWrapper } from "@/menu/items"
 import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
 import { isText } from "@/symbol"
-
 /**
  * @group Menu
  * @remarks Font size style menu

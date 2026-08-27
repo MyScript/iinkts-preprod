@@ -1,14 +1,14 @@
 import type { InkCanvas } from "@/canvas"
+import type { TBox } from "@/core/geometry"
 import { BoxOps } from "@/core/geometry"
 import { OBBOps } from "@/core/geometry"
+import { createUUID } from "@/core/std"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { IModel } from "@/model"
 import type { SVGRenderer } from "@/renderer"
 import { SVGBuilder, SVGRendererConst } from "@/renderer"
-import type { TBox, TStroke, TSymbol } from "@/symbol"
+import type { TStroke, TSymbol } from "@/symbol"
 import { isText } from "@/symbol"
-import { createUUID } from "@/utils"
-
 /**
  * @group Manager
  */

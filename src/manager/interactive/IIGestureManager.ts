@@ -1,11 +1,11 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import { OBBOps } from "@/core/geometry"
+import { isBetween } from "@/core/math"
+import type { TPartialDeep } from "@/core/std"
 import type { IIHistoryManager } from "@/history"
 import { LoggerCategory } from "@/logger"
 import type { TStroke } from "@/symbol"
 import { isDecorator, isStroke, SymbolType } from "@/symbol"
-import type { TPartialDeep } from "@/utils"
-import { isBetween } from "@/utils"
 
 import type { IITranslateManager, IITypesetManager } from "."
 import type { TGestureHandler } from "./gestures"
