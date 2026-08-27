@@ -1,30 +1,5 @@
 /**
- * @group Utilities
- */
-export function isBetween(val: number, min: number, max: number): boolean {
-  return val >= min && val <= max
-}
-
-/**
- * @group Utilities
- * @summary Round a value to the nearest multiple of a step
- * @param value - Value to round
- * @param step - Rounding step
- * @returns Value rounded to the nearest multiple of step
- */
-export function roundTo(value: number, step: number): number {
-  return Math.round(value / step) * step
-}
-
-/**
- * @group Utilities
- */
-export function computeAverage(arr: number[]): number {
-  return arr.reduce((p, c) => p + c, 0) / (arr.length || 1)
-}
-
-/**
- * @group Utilities
+ * @group Core/Math
  * @summary Compute approximate average radius of an ellipse
  * @remarks Computes sqrt((radiusX^2 + radiusY^2) / 2) - a geometric average
  * used for ellipse perimeter and arc length approximations
@@ -37,7 +12,7 @@ export function computeEllipseRadiusAverage(radiusX: number, radiusY: number): n
 }
 
 /**
- * @group Utilities
+ * @group Core/Math
  * @summary Compute how many vertices a curve of the given length should tessellate into
  * @param length - Arc/perimeter length to cover
  * @param minSegmentLength - Target length per segment (e.g. `SELECTION_MARGIN`)
