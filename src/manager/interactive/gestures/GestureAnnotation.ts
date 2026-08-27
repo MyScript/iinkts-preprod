@@ -1,6 +1,7 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import type { TBox } from "@/core/geometry"
 import { OBBOps, type TOBB } from "@/core/geometry"
+import type { TDraft } from "@/core/std"
 import type { TIIHistoryChanges } from "@/history"
 import type { TStyle } from "@/style"
 import type { DecoratorKind, TDecorator, TStroke, TText } from "@/symbol"
@@ -56,7 +57,9 @@ export class IIGestureAnnotationProcessor {
     const erased: TDecorator[] = []
 
     for (const id of ids) {
-      const sym = this.canvas.model.getRootSymbol(id)
+      // A draft rather than a read: the text branch below adds or removes a decorator on the
+      // symbol and commits it.
+      const sym = this.canvas.model.draftSymbol(id)
       if (!sym) {
         continue
       }
@@ -171,17 +174,17 @@ export class IIGestureAnnotationProcessor {
     }
   }
 
-  #toggleTextDecorator(sym: TText, kind: DecoratorKind, added: TDecorator[], erased: TDecorator[]): void {
+  #toggleTextDecorator(sym: TDraft<TText>, kind: DecoratorKind, added: TDecorator[], erased: TDecorator[]): void {
     const index = sym.decorators.findIndex((d) => d.kind === kind)
     if (index !== -1) {
       const removed = sym.decorators.splice(index, 1)[0]
-      this.canvas.model.updateSymbol(sym)
+      this.canvas.model.commitSymbol(sym)
       this.canvas.renderer.drawSymbol(sym)
       erased.push(removed)
     } else {
       const decorator = DecoratorOps.create(kind, this.canvas.penStyle)
       sym.decorators.push(decorator)
-      this.canvas.model.updateSymbol(sym)
+      this.canvas.model.commitSymbol(sym)
       this.canvas.renderer.drawSymbol(sym)
       added.push(decorator)
     }
