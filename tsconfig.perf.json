@@ -3,12 +3,25 @@
   "compilerOptions": {
     "noEmit": true,
     "rootDir": "./",
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
     "allowImportingTsExtensions": true,
     "paths": {
-      "#iink": ["./dist/iink.d.ts"]
-    }
+      "#iink": [
+        "./dist/iink.d.ts"
+      ]
+    },
+    "allowJs": true,
+    "checkJs": false
   },
-  "include": ["test/perf"],
-  "exclude": ["node_modules", "dist"]
+  "include": [
+    "test/perf",
+    "test/perf-e2e",
+    "test/examples/helper.js"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
 }
