@@ -200,7 +200,7 @@ test.describe("Interactive ink canvas Get Started Menu Action", () => {
         .poll(async () => {
           const jiix = await callCanvasExport(page, "application/vnd.myscript.jiix")
           return jiix?.elements?.[0]?.label
-        }, { timeout: 10000 })
+        }, { timeout: 30000 })
         .toEqual(lecon.exports["application/vnd.myscript.jiix"].elements[0].label)
     })
   })
@@ -373,10 +373,17 @@ test.describe("Interactive ink canvas Get Started Menu Action", () => {
     })
 
     await test.step("write again hello surrounded", async () => {
-      //write something with surround
+      // A surround can only decorate ink the model already holds: write the word, wait for it
+      // to be synchronized, then draw the surround around it. Writing both strokes back to back
+      // lets the gesture be processed while the word is still in flight, and it then decorates
+      // nothing.
+      await Promise.all([
+        waitForSynchronizedEvent(page),
+        writePointers(page, helloOneStrokeSurrounded.strokes[0].pointers, 0, 100)
+      ])
       await Promise.all([
         waitForGesturedEvent(page),
-        writeStrokes(page, helloOneStrokeSurrounded.strokes, 0, 100)
+        writePointers(page, helloOneStrokeSurrounded.strokes[1].pointers, 0, 100)
       ])
 
       let symbols

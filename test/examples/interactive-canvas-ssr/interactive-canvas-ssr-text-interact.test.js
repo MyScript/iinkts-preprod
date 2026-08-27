@@ -22,8 +22,9 @@ test.describe("Interactive Canvas SSR Text interact", () => {
   })
 
   test("should resolve all questions", async ({ page }) => {
-    // Increase timeout for this test because sometimes it may take longer than the default 60 seconds
-    test.setTimeout(90 * 1000)
+    // Five questions, each answered stroke by stroke with a server round trip per stroke: the
+    // whole walk takes well over a minute on WebKit, and more when the run is loaded.
+    test.setTimeout(180 * 1000)
 
     await test.step(`should ask the capital of France`, async () => {
       await expect(page.locator("#question")).toHaveText("What is the capital of France?")
