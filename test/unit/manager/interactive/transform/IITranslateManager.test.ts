@@ -321,8 +321,11 @@ describe("IITranslateManager.ts", () => {
       // rigid-follow pass must not apply the same matrix a second time.
       await manager.translate([shape, edgeStroke], 5, 5, false)
 
-      expect(edgeStroke.pointers[0]).toEqual(expect.objectContaining({ x: 5, y: 5 }))
-      expect(edgeStroke.pointers[1]).toEqual(expect.objectContaining({ x: 15, y: 5 }))
+      // Read the model, not the object passed in: the transform commits a draft rather than
+      // mutating the committed record, so the local reference is a pre-transform snapshot.
+      const movedEdgeStroke = canvas.model.getRootSymbol(edgeStroke.id) as TStroke
+      expect(movedEdgeStroke.pointers[0]).toEqual(expect.objectContaining({ x: 5, y: 5 }))
+      expect(movedEdgeStroke.pointers[1]).toEqual(expect.objectContaining({ x: 15, y: 5 }))
     })
 
     test("translate() records the followed edge stroke's pre-transform snapshot in history so undo restores its points", async () => {

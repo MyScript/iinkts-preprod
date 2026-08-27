@@ -179,3 +179,107 @@ describe("SymbolStore", () => {
     })
   })
 })
+
+describe("SymbolStore drafts", () => {
+  test("should hand out a mutable copy, not the stored record", () => {
+    const store = new SymbolStore<TRecord>()
+    const record = build("a", "committed")
+    store.add(record)
+
+    const draft = store.draft("a")!
+    expect(draft).not.toBe(record)
+    draft.label = "drafted"
+    expect(store.get("a")?.label).toEqual("committed")
+  })
+
+  test("should return undefined for an unknown id", () => {
+    const store = new SymbolStore<TRecord>()
+    expect(store.draft("ghost")).toBeUndefined()
+  })
+
+  test("should store the draft on commit and bump the version", () => {
+    const store = new SymbolStore<TRecord>()
+    store.add(build("a", "committed"))
+    const before = store.version
+
+    const draft = store.draft("a")!
+    draft.label = "drafted"
+    store.commit(draft)
+
+    expect(store.get("a")?.label).toEqual("drafted")
+    expect(store.version).toBeGreaterThan(before)
+  })
+
+  test("should not bump the version when committing quietly", () => {
+    const store = new SymbolStore<TRecord>()
+    store.add(build("a"))
+    const before = store.version
+    const draft = store.draft("a")!
+    draft.label = "quiet"
+    store.commit(draft, false)
+    expect(store.get("a")?.label).toEqual("quiet")
+    expect(store.version).toEqual(before)
+  })
+
+  test("should keep the record's position in the stacking order on commit", () => {
+    const store = new SymbolStore<TRecord>()
+    ;["a", "b", "c"].forEach((id) => store.add(build(id)))
+    const draft = store.draft("b")!
+    draft.label = "drafted"
+    store.commit(draft)
+    expect(ids(store)).toEqual(["a", "b", "c"])
+  })
+})
+
+describe("SymbolStore.listBy", () => {
+  type TTargeted = TBaseSymbol & { targetIds?: string[] }
+
+  const targeted = (id: string, targetIds?: string[]): TTargeted => ({
+    id,
+    creationTime: 0,
+    modificationDate: 0,
+    type: targetIds ? "decorator" : "stroke",
+    style: {},
+    targetIds,
+  })
+
+  const byTargetIds = (s: TTargeted) => s.targetIds ?? []
+  const byTypeName = (s: TTargeted) => [s.type]
+  const index = (store: SymbolStore<TTargeted>) => store.listBy(byTargetIds)
+
+  test("should map each key to the records claiming it", () => {
+    const store = new SymbolStore<TTargeted>()
+    store.add(targeted("stroke1"))
+    store.add(targeted("deco1", ["stroke1"]))
+    store.add(targeted("deco2", ["stroke1", "stroke2"]))
+
+    const byTarget = index(store)
+    expect(byTarget.get("stroke1")?.map((s) => s.id)).toEqual(["deco1", "deco2"])
+    expect(byTarget.get("stroke2")?.map((s) => s.id)).toEqual(["deco2"])
+    expect(byTarget.get("stroke3")).toBeUndefined()
+  })
+
+  test("should be recomputed once the document changed", () => {
+    const store = new SymbolStore<TTargeted>()
+    store.add(targeted("deco1", ["stroke1"]))
+    expect(index(store).get("stroke1")?.length).toEqual(1)
+
+    store.add(targeted("deco2", ["stroke1"]))
+    expect(index(store).get("stroke1")?.length).toEqual(2)
+  })
+
+  test("should serve the same map while the version has not moved", () => {
+    const store = new SymbolStore<TTargeted>()
+    store.add(targeted("deco1", ["stroke1"]))
+    expect(index(store)).toBe(index(store))
+  })
+
+  test("should key each selector separately", () => {
+    const store = new SymbolStore<TTargeted>()
+    store.add(targeted("deco1", ["stroke1"]))
+    const byTarget = store.listBy(byTargetIds)
+    const byType = store.listBy(byTypeName)
+    expect(byTarget).not.toBe(byType)
+    expect(byType.get("decorator")?.map((s) => s.id)).toEqual(["deco1"])
+  })
+})

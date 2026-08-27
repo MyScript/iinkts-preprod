@@ -1,11 +1,14 @@
-import { mergeExports } from "@/core/std"
+import { mergeExports, type TDraft } from "@/core/std"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import { SymbolStore, type TSymbolOrder } from "@/store"
 import type { TSymbol } from "@/symbol"
-import { cloneSymbol } from "@/symbol"
+import { cloneSymbol, isDecorator } from "@/symbol"
 
 import type { TExport, TJIIXMathElement, TJIIXTextElement } from "./Export"
 import { JIIXElementType } from "./Export"
+
+/** Held at module level so it is a stable cache key for {@link SymbolStore.listBy}. */
+const targetIdsOf = (symbol: TSymbol): string[] => (isDecorator(symbol) ? symbol.targetIds : [])
 
 /**
  * @group Model
@@ -103,9 +106,35 @@ export class IIModel {
     this.#selectedIds.clear()
   }
 
+  /**
+   * The decorators claiming each target id, memoized against {@link version}.
+   *
+   * Transform paths need this per `pointermove`; scanning the document for it was a full pass — and,
+   * before IIC-1968, a full deep clone — on every frame.
+   */
+  get decoratorsByTargetId(): ReadonlyMap<string, TSymbol[]> {
+    return this.#store.listBy(targetIdsOf)
+  }
+
   getRootSymbol(id: string): TSymbol | undefined {
     const s = this.#store.get(id)
     return s ? cloneSymbol(s) : undefined
+  }
+
+  /**
+   * A mutable copy of a committed symbol, yours to change until you {@link commitSymbol} it.
+   *
+   * This is the replacement for the read-a-clone-then-mutate-it pattern: same cost, but the type
+   * says which side of the commit boundary you are on, so IIC-1974 can freeze committed records
+   * without every caller having to be re-read to find out whether it writes.
+   */
+  draftSymbol(id: string): TDraft<TSymbol> | undefined {
+    return this.#store.draft(id)
+  }
+
+  /** Stores a draft back into the document, in the position the symbol already held. */
+  commitSymbol(draft: TDraft<TSymbol>, markDirty: boolean = true): void {
+    this.updateSymbol(draft, markDirty)
   }
 
   addSymbol(symbol: TSymbol): void {
