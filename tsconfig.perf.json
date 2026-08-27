@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "./",
+    "types": ["node"],
+    "allowImportingTsExtensions": true,
+    "paths": {
+      "#iink": ["./dist/iink.d.ts"]
+    }
+  },
+  "include": ["test/perf"],
+  "exclude": ["node_modules", "dist"]
+}
