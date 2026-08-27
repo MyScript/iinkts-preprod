@@ -1449,8 +1449,14 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     this.manageIdleState(false)
     this.unselectAll()
 
+    // A history entry is a value: putting one into the document hands over a copy, so the entry
+    // stays replayable and the document never shares identity with the stack. Undo and redo entries
+    // also share their arrays (see `reverseChanges`), so a stored reference would be reachable from
+    // both directions.
+    const restore = <T extends TSymbol>(sym: T): T => cloneSymbol(sym) as T
+
     changes.added?.forEach((sym) => {
-      this.model.addSymbol(sym)
+      this.model.addSymbol(restore(sym))
       this.renderer.drawSymbol(sym)
     })
     changes.erased?.forEach((sym) => {
@@ -1458,7 +1464,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       this.renderer.removeSymbol(sym.id)
     })
     changes.updated?.newSymbols.forEach((sym) => {
-      this.model.updateSymbol(sym)
+      this.model.updateSymbol(restore(sym))
       this.renderer.drawSymbol(sym)
     })
     if (changes.replaced) {
@@ -1467,7 +1473,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
         this.renderer.removeSymbol(s.id)
         this.model.removeSymbol(s.id)
       })
-      this.model.replaceSymbol(anchor.id, changes.replaced.newSymbols)
+      this.model.replaceSymbol(anchor.id, changes.replaced.newSymbols.map(restore))
       this.renderer.replaceSymbol(anchor.id, changes.replaced.newSymbols)
     }
     if (changes.matrix) {
@@ -1486,17 +1492,23 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     if (changes.style) {
       const { symbols, newStyles, newFontSizes } = changes.style
       symbols.forEach((sym, i) => {
+        // The style is re-applied to a draft of what the document currently holds, never to the
+        // entry's own symbol: mutating that would rewrite the history entry being replayed.
+        const draft = this.model.draftSymbol(sym.id)
+        if (!draft) {
+          return
+        }
         if (newStyles?.[i]) {
-          sym.style = newStyles[i] as TStyle
+          draft.style = newStyles[i] as TStyle
         }
         const newFontSize = newFontSizes?.[i]
-        if (newFontSize !== undefined && isText(sym)) {
-          sym.chars.forEach((c) => {
+        if (newFontSize !== undefined && isText(draft)) {
+          draft.chars.forEach((c) => {
             c.fontSize = newFontSize
           })
         }
-        this.model.updateSymbol(sym)
-        this.renderer.drawSymbol(sym)
+        this.model.commitSymbol(draft)
+        this.renderer.drawSymbol(draft)
       })
     }
     if (changes.order) {
