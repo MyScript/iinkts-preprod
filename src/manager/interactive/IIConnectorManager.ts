@@ -1,6 +1,7 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import { BoxOps } from "@/core/geometry"
 import { OBBOps, type TOBB } from "@/core/geometry"
+import { findIntersectionBetween2Segment, isPointInsidePolygon } from "@/core/geometry"
 import { LoggerCategory } from "@/logger"
 import type { TEdge, TPoint, TShape, TStroke, TSymbol } from "@/symbol"
 import type { TAnchor } from "@/symbol/edge/Anchor"
@@ -15,7 +16,6 @@ import { cloneSymbol } from "@/symbol/SymbolHelpers"
 import { SVGBuilder } from "@/symbol-utils/SVGBuilder"
 import type { MatrixTransform } from "@/transform"
 import { computeDistance, type TPartialDeep } from "@/utils"
-import { findIntersectionBetween2Segment, isPointInsidePolygon } from "@/utils/geometry"
 
 import { IIAbstractManager } from "./IIAbstractManager"
 

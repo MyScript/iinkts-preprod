@@ -10,6 +10,7 @@
  *
  * **Std** — helpers that speak `unknown`, plain objects and strings
  */
+export * from "./geometry"
 export * from "./latex"
 export * from "./math"
 export * from "./std"

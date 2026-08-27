@@ -1,3 +1,4 @@
+import { computePointOnEllipse, isPointInsideBox } from "@/core/geometry"
 import {
   JIIXEdgeKind,
   JIIXElementType,
@@ -7,7 +8,6 @@ import {
   type TJIIXTextElement,
 } from "@/model/Export"
 import type { TBox, TPoint } from "@/symbol"
-import { computePointOnEllipse, isPointInsideBox } from "@/utils/geometry"
 
 /**
  * @group Utilities

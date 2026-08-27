@@ -1,8 +1,9 @@
 import { convertMillimeterToPixel } from "@/core/math"
-import type { TBox } from "@/symbol"
+
+import type { TBox } from "./Box"
 
 /**
- * @group Utilities
+ * @group Core/Geometry
  */
 export function convertBoundingBoxMillimeterToPixel(box?: TBox): TBox {
   if (!box) {
