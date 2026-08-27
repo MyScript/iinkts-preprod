@@ -1,4 +1,5 @@
 import { SELECTION_MARGIN } from "@/Constants"
+import { createUUID } from "@/core/std"
 import { mergeSymbolStyle, type TStyle } from "@/style"
 import type { TBox } from "@/symbol/primitives/Box"
 import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
@@ -13,7 +14,6 @@ import {
   computeTessellationCount,
   isValidNumber,
 } from "@/utils"
-import { createUUID } from "@/utils/uuid"
 
 import type { TAnchor } from "./Anchor"
 import { computeEdgeBounds, type EdgeDecoration, EdgeKind } from "./Edge-enum"

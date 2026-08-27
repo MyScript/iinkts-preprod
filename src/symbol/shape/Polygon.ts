@@ -1,3 +1,4 @@
+import { createUUID } from "@/core/std"
 import type { TStyle } from "@/style"
 import { mergeSymbolStyle } from "@/style"
 import type { TBox } from "@/symbol/primitives/Box"
@@ -8,7 +9,6 @@ import { isValidPoint } from "@/symbol/primitives/Point"
 import type { TBaseSymbol } from "@/symbol/Symbol"
 import { SymbolType } from "@/symbol/Symbol"
 import type { TPartialDeep } from "@/utils"
-import { createUUID } from "@/utils/uuid"
 
 import { ShapeKind } from "./Shape-enum"
 

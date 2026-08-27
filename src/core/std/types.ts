@@ -1,5 +1,5 @@
 /**
- * @group Utilities
+ * @group Core/Std
  */
 export type TPartialDeep<T> = T extends object
   ? {

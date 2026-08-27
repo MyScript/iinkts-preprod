@@ -1,5 +1,5 @@
 /**
- * @group Utilities
+ * @group Core/Std
  */
 export class DeferredPromise<T> {
   promise: Promise<T>

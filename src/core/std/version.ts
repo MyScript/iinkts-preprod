@@ -1,5 +1,5 @@
 /**
- * @group Utilities
+ * @group Core/Std
  */
 export const isVersionSuperiorOrEqual = (source: string, target: string): boolean => {
   const sourceParts = source.split(".")

@@ -1,3 +1,4 @@
+import { createUUID } from "@/core/std"
 import type { TStyle } from "@/style"
 import { mergeSymbolStyle } from "@/style"
 import type { TBox } from "@/symbol/primitives/Box"
@@ -5,7 +6,6 @@ import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
 import { isValidPoint, type TPoint, type TSegment } from "@/symbol/primitives/Point"
 import { SymbolType, type TBaseSymbol } from "@/symbol/Symbol"
 import type { TPartialDeep } from "@/utils"
-import { createUUID } from "@/utils/uuid"
 
 import type { TAnchor } from "./Anchor"
 import { computeEdgeBounds, type EdgeDecoration, EdgeKind } from "./Edge-enum"

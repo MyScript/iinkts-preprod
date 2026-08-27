@@ -1,4 +1,5 @@
 import { SELECTION_MARGIN } from "@/Constants"
+import { createUUID } from "@/core/std"
 import type { TStyle } from "@/style"
 import { mergeSymbolStyle } from "@/style"
 import type { TBox } from "@/symbol/primitives/Box"
@@ -15,7 +16,6 @@ import {
   isValidNumber,
   TWO_PI,
 } from "@/utils"
-import { createUUID } from "@/utils/uuid"
 
 import { ShapeKind } from "./Shape-enum"
 
