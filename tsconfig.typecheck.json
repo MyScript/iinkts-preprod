@@ -1,0 +1,23 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "./",
+    "types": ["jest", "node"],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": [
+    "src",
+    "test",
+    "config",
+    "examples/**/*.ts",
+    "./eslint.config.mjs"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "examples/custom-rendering/tldraw-websocket-client"
+  ]
+}

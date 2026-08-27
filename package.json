@@ -2,6 +2,9 @@
   "name": "iink-ts",
   "version": "1.0.0-buildVersion",
   "packageManager": "yarn@4.18.0",
+  "imports": {
+    "#iink": "./dist/iink.esm.js"
+  },
   "engines": {
     "node": ">=22"
   },
@@ -29,6 +32,12 @@
   "repository": "git://github.com/MyScript/iinkTS.git",
   "scripts": {
     "lint": "eslint",
+    "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
+    "typecheck:perf": "tsc --noEmit -p tsconfig.perf.json",
+    "bench": "node test/perf/bench.ts",
+    "bench:gate": "node test/perf/compare.ts",
+    "bench:baseline": "node test/perf/runBaseline.ts",
+    "bench:e2e": "playwright test --config=test/perf-e2e/playwright.config.js",
     "lint:src": "eslint src/",
     "lint:tu": "eslint test/unit/",
     "lint:te": "eslint --config=./test/examples/eslint.config.mjs ./test/examples",
@@ -44,7 +53,7 @@
     "build:tldraw": "cd ./examples/custom-rendering/tldraw-websocket-client && yarn build",
     "build:lib": "rollup -c config/rollup.config.build.mjs --sourcemap",
     "build:docs": "typedoc",
-    "build": "npm-run-all lint test:unit build:lib build:docs copy:to:tldraw build:tldraw"
+    "build": "npm-run-all lint typecheck test:unit build:lib build:docs copy:to:tldraw build:tldraw"
   },
   "dependencies": {
     "json-css": "^1.5.6"
