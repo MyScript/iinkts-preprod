@@ -1,6 +1,8 @@
 import { GESTURE_OPERATION_LABELS } from "@/canvas/AbstractCanvas"
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import { CanvasTool } from "@/Constants"
+import { BoxOps } from "@/core/geometry"
+import { OBBOps } from "@/core/geometry"
 import { LoggerCategory } from "@/logger"
 import type {
   TJIIXEdgeElement,
@@ -16,8 +18,6 @@ import { extractEdgeEndpoints, JIIXEdgeKind, JIIXElementType } from "@/model"
 import type { TStroke } from "@/symbol"
 import { isStroke } from "@/symbol"
 import { resolveConnectionAnchors } from "@/symbol/edge/Anchor"
-import { BoxOps } from "@/symbol/primitives/Box"
-import { OBBOps } from "@/symbol/primitives/OBB"
 
 import { IIAbstractManager } from "./IIAbstractManager"
 

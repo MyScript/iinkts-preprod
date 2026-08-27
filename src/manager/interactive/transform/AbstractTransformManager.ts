@@ -1,10 +1,10 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import { SvgElementRole } from "@/Constants"
+import { OBBOps } from "@/core/geometry"
 import { LoggerCategory } from "@/logger"
 import type { TEdge, TMath, TPoint, TShape, TStroke, TSymbol, TText } from "@/symbol"
 import { isDecorator, isStroke, SymbolType } from "@/symbol"
 import { DecoratorOps } from "@/symbol/decorator/Decorator"
-import { OBBOps } from "@/symbol/primitives/OBB"
 import type { MatrixTransform } from "@/transform"
 
 import { IIAbstractManager } from "../IIAbstractManager"

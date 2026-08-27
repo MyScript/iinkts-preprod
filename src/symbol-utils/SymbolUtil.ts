@@ -1,5 +1,5 @@
-import type { TBox } from "@/symbol/primitives/Box"
-import type { TPoint } from "@/symbol/primitives/Point"
+import type { TBox } from "@/core/geometry"
+import type { TPoint } from "@/core/geometry"
 import type { TBaseSymbol } from "@/symbol/Symbol"
 import type { TPartialDeep } from "@/utils"
 

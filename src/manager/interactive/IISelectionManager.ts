@@ -1,5 +1,7 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import { ResizeDirection, SELECTION_MARGIN, SvgElementRole } from "@/Constants"
+import { BoxOps } from "@/core/geometry"
+import { OBBOps } from "@/core/geometry"
 import type { TPointerInfo } from "@/grabber"
 import { PointerEventGrabber } from "@/grabber"
 import { LoggerCategory } from "@/logger"
@@ -17,8 +19,6 @@ import {
 } from "@/symbol"
 import { EdgeArcOps, reprojectArcMidpoint, stretchArcEndpoint } from "@/symbol/edge/Arc"
 import { EdgeOps } from "@/symbol/edge/Edge"
-import { BoxOps } from "@/symbol/primitives/Box"
-import { OBBOps } from "@/symbol/primitives/OBB"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 import { RafCoalescer } from "@/utils"
 

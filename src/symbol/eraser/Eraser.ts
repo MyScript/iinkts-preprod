@@ -1,8 +1,8 @@
+import type { TBox } from "@/core/geometry"
+import type { TPointer } from "@/core/geometry"
+import { BoxOps } from "@/core/geometry"
 import type { TStyle } from "@/style"
 import { mergeSymbolStyle } from "@/style"
-import type { TBox } from "@/symbol/primitives/Box"
-import { BoxOps } from "@/symbol/primitives/Box"
-import type { TPointer } from "@/symbol/primitives/Point"
 import { SymbolType } from "@/symbol/Symbol"
 import { createUUID } from "@/utils"
 

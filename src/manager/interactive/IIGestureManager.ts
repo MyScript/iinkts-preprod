@@ -1,9 +1,9 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import { OBBOps } from "@/core/geometry"
 import type { IIHistoryManager } from "@/history"
 import { LoggerCategory } from "@/logger"
 import type { TStroke } from "@/symbol"
 import { isDecorator, isStroke, SymbolType } from "@/symbol"
-import { OBBOps } from "@/symbol/primitives/OBB"
 import type { TPartialDeep } from "@/utils"
 import { isBetween } from "@/utils"
 

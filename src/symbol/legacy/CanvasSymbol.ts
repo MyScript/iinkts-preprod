@@ -1,4 +1,5 @@
-import type { TPoint } from "../primitives/Point"
+import type { TPoint } from "@/core/geometry"
+
 import type { TBaseSymbol } from "../Symbol"
 
 /**

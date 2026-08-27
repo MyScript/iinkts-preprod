@@ -1,6 +1,6 @@
+import type { TBox } from "@/core/geometry"
+import type { TPoint } from "@/core/geometry"
 import { DefaultStyle } from "@/style"
-import type { TBox } from "@/symbol/primitives/Box"
-import type { TPoint } from "@/symbol/primitives/Point"
 import { ShapeCircleOps, type TShapeCircle } from "@/symbol/shape/Circle"
 import { ShapeEllipseOps, type TShapeEllipse } from "@/symbol/shape/Ellipse"
 import { ShapePolygonOps, type TShapePolygon } from "@/symbol/shape/Polygon"
