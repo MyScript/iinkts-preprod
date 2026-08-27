@@ -22,3 +22,6 @@ __diff_output__
 .serena/
 .playwright-mcp/
 .local
+
+# tsc incremental state
+*.tsbuildinfo
