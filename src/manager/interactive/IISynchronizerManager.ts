@@ -3,6 +3,7 @@ import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import { CanvasTool } from "@/Constants"
 import { BoxOps } from "@/core/geometry"
 import { OBBOps } from "@/core/geometry"
+import type { TDraft } from "@/core/std"
 import { LoggerCategory } from "@/logger"
 import type {
   TJIIXEdgeElement,
@@ -161,9 +162,10 @@ export class IISynchronizerManager extends IIAbstractManager {
 
     const now = Date.now()
 
+    // Stamps the document as changed up front: the per-stroke commits below all pass
+    // `markDirty: false`, because jiixBlockId/anchors are local bookkeeping and must not clear
+    // `model.exports`, which the very sync being processed just populated.
     this.model.touch()
-    // Process each element — strokes are reference types, so in-place mutation is
-    // immediately visible in model.symbols without calling the O(n) updateSymbol()
     let processedSinceYield = 0
     for (const el of jiix.elements || []) {
       const snapshotKey = this.#elementSnapshotKey(el)
@@ -186,7 +188,7 @@ export class IISynchronizerManager extends IIAbstractManager {
             // jiixBlockId/jiixBlockType are local bookkeeping, not part of the JIIX export
             // content — must not clear model.exports, which was just populated by the
             // canvas.export() call this very sync is processing the result of.
-            this.model.updateSymbol(stroke, false)
+            this.model.commitSymbol(stroke, false)
           }
           // Recorded only once every write for this element has landed. Setting it before the
           // loop meant a throw halfway through marked the element as synced for the rest of the
@@ -342,8 +344,8 @@ export class IISynchronizerManager extends IIAbstractManager {
   /**
    * Get strokes from JIIX items
    */
-  #getStrokesFromItems(items: TJIIXStrokeItem[]): TStroke[] {
-    const strokes: TStroke[] = []
+  #getStrokesFromItems(items: TJIIXStrokeItem[]): TDraft<TStroke>[] {
+    const strokes: TDraft<TStroke>[] = []
     const seen = new Set<string>()
 
     for (const item of items) {
@@ -352,9 +354,9 @@ export class IISynchronizerManager extends IIAbstractManager {
         continue
       }
       seen.add(strokeId)
-      const symbol = this.model.getRootSymbol(strokeId)
+      const symbol = this.model.draftSymbol(strokeId)
       if (symbol && isStroke(symbol)) {
-        strokes.push(symbol)
+        strokes.push(symbol as TDraft<TStroke>)
       }
     }
 
@@ -365,7 +367,7 @@ export class IISynchronizerManager extends IIAbstractManager {
    * Update block metadata (jiixBlockId, jiixBlockType ONLY)
    */
   #updateBlockMetadata(
-    stroke: TStroke,
+    stroke: TDraft<TStroke>,
     element: TJIIXTextElement | TJIIXMathElement | TJIIXNodeElement | TJIIXEdgeElement
   ): void {
     stroke.jiixBlockId = element.id
@@ -396,7 +398,7 @@ export class IISynchronizerManager extends IIAbstractManager {
    * Always overwrites from the latest JIIX truth — a connection reported in a previous sync
    * but absent now is cleared, not kept.
    */
-  #syncEdgeConnections(el: TJIIXElement, strokes: TStroke[]): void {
+  #syncEdgeConnections(el: TJIIXElement, strokes: TDraft<TStroke>[]): void {
     if (el.type !== JIIXElementType.Edge) {
       return
     }
@@ -408,7 +410,7 @@ export class IISynchronizerManager extends IIAbstractManager {
         stroke.endAnchor = undefined
         // Anchors aren't part of the JIIX export content either — same reasoning as the
         // metadata-update loop above.
-        this.model.updateSymbol(stroke, false)
+        this.model.commitSymbol(stroke, false)
       })
       return
     }
@@ -431,7 +433,7 @@ export class IISynchronizerManager extends IIAbstractManager {
     strokes.forEach((stroke) => {
       stroke.startAnchor = startAnchor
       stroke.endAnchor = endAnchor
-      this.model.updateSymbol(stroke, false)
+      this.model.commitSymbol(stroke, false)
     })
   }
 }

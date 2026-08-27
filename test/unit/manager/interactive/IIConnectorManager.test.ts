@@ -1,3 +1,4 @@
+import type { TDraft, TSymbol } from "@/iink"
 import { describe, test, expect, jest, beforeEach } from "@jest/globals"
 import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
 import {
@@ -14,6 +15,13 @@ import {
   SymbolType,
   computePointOnEllipse,
 } from "@/iink"
+
+/**
+ * The object under test is created here and is not in the model, so it is the caller's to mutate —
+ * a draft in the contract's sense. Mint one the way the store does.
+ */
+const asDraft = <T>(value: T): TDraft<T> => value as TDraft<T>
+
 
 const TARGET_BOUNDS = OBBOps.fromBox({ x: 10, y: 20, width: 100, height: 80 })
 const TARGET_ID = "target-symbol"
@@ -134,16 +142,25 @@ function mockBlockCenter(mock: ReturnType<typeof createCanvasMock>, strokeId: st
   return targetStroke
 }
 
+/**
+ * Puts the symbols into the model rather than stubbing the `symbols` getter: the manager now drafts
+ * by id before mutating, so a stubbed getter would hand out records the store has never heard of.
+ */
 function setupSymbols(mock: ReturnType<typeof createCanvasMock>, symbols: unknown[]) {
-  Object.defineProperty(mock.model, "symbols", {
-    get: () => [...symbols],
-    configurable: true,
-  })
+  mock.model.clear()
+  symbols.forEach((s) => mock.model.addSymbol(s as TSymbol))
 }
 
 describe("IIConnectorManager", () => {
   let mock: ReturnType<typeof createCanvasMock>
   let manager: IIConnectorManager
+
+  /**
+   * The manager commits a draft rather than mutating the committed record, so a local reference held
+   * from before the call is a pre-mutation snapshot. Assertions read the document instead.
+   */
+  const fromModel = <T>(symbol: { id: string }): T => mock.model.symbols.find((s) => s.id === symbol.id) as T
+
 
   beforeEach(() => {
     mock = createCanvasMock()
@@ -191,9 +208,9 @@ describe("IIConnectorManager", () => {
 
       // bounds.x + 0.5 * bounds.width = 10 + 50 = 60
       // bounds.y + 0.5 * bounds.height = 20 + 40 = 60
-      expect(line.start).toEqual({ x: 60, y: 60 })
-      expect(mock.renderer.drawSymbol).toHaveBeenCalledWith(line)
-      expect(updateSpy).toHaveBeenCalledWith(line)
+      expect(fromModel<typeof line>(line).start).toEqual({ x: 60, y: 60 })
+      expect(mock.renderer.drawSymbol).toHaveBeenCalledWith(fromModel<typeof line>(line))
+      expect(updateSpy).toHaveBeenCalledWith(fromModel<typeof line>(line), true)
     })
 
     test("line with startAnchor for moved symbol → returns an undo-able pre-mutation snapshot", () => {
@@ -207,7 +224,7 @@ describe("IIConnectorManager", () => {
       const result = manager.updateAnchoredEdges([TARGET_ID])
 
       expect(result.rigidStrokeIds).toEqual([])
-      expect(result.newSymbols).toEqual([line])
+      expect(result.newSymbols).toEqual([fromModel<typeof line>(line)])
       expect(result.oldSymbols).toHaveLength(1)
       expect(result.oldSymbols[0]).not.toBe(line)
       expect((result.oldSymbols[0] as typeof line).start).toEqual(originalStart)
@@ -222,9 +239,9 @@ describe("IIConnectorManager", () => {
 
       // bounds.x + 1 * bounds.width = 10 + 100 = 110
       // bounds.y + 1 * bounds.height = 20 + 80 = 100
-      expect(line.end).toEqual({ x: 110, y: 100 })
-      expect(mock.renderer.drawSymbol).toHaveBeenCalledWith(line)
-      expect(updateSpy).toHaveBeenCalledWith(line)
+      expect(fromModel<typeof line>(line).end).toEqual({ x: 110, y: 100 })
+      expect(mock.renderer.drawSymbol).toHaveBeenCalledWith(fromModel<typeof line>(line))
+      expect(updateSpy).toHaveBeenCalledWith(fromModel<typeof line>(line), true)
     })
 
     test("line with both anchors → both recomputed, updateSymbol called once", () => {
@@ -235,9 +252,9 @@ describe("IIConnectorManager", () => {
       manager.updateAnchoredEdges([TARGET_ID])
 
       // start: normalizedX=0, normalizedY=0 → (10, 20)
-      expect(line.start).toEqual({ x: 10, y: 20 })
+      expect(fromModel<typeof line>(line).start).toEqual({ x: 10, y: 20 })
       // end: normalizedX=1, normalizedY=1 → (110, 100)
-      expect(line.end).toEqual({ x: 110, y: 100 })
+      expect(fromModel<typeof line>(line).end).toEqual({ x: 110, y: 100 })
       expect(updateSpy).toHaveBeenCalledTimes(1)
     })
 
@@ -249,7 +266,7 @@ describe("IIConnectorManager", () => {
 
       manager.updateAnchoredEdges(["other-id"])
 
-      expect(line.start).toEqual(originalStart)
+      expect(fromModel<typeof line>(line).start).toEqual(originalStart)
       expect(updateSpy).not.toHaveBeenCalled()
     })
 
@@ -262,8 +279,8 @@ describe("IIConnectorManager", () => {
 
       manager.updateAnchoredEdges([TARGET_ID])
 
-      expect(line.start).toEqual(originalStart)
-      expect(line.end).toEqual(originalEnd)
+      expect(fromModel<typeof line>(line).start).toEqual(originalStart)
+      expect(fromModel<typeof line>(line).end).toEqual(originalEnd)
       expect(updateSpy).not.toHaveBeenCalled()
     })
 
@@ -276,7 +293,7 @@ describe("IIConnectorManager", () => {
 
       manager.updateAnchoredEdges([TARGET_ID])
 
-      expect(line.start).toEqual(originalStart)
+      expect(fromModel<typeof line>(line).start).toEqual(originalStart)
       expect(updateSpy).not.toHaveBeenCalled()
     })
 
@@ -289,9 +306,9 @@ describe("IIConnectorManager", () => {
 
       // bounds.x + 0.25 * bounds.width = 10 + 25 = 35
       // bounds.y + 0.25 * bounds.height = 20 + 20 = 40
-      expect(poly.points[0]).toEqual({ x: 35, y: 40 })
-      expect(mock.renderer.drawSymbol).toHaveBeenCalledWith(poly)
-      expect(updateSpy).toHaveBeenCalledWith(poly)
+      expect(fromModel<typeof poly>(poly).points[0]).toEqual({ x: 35, y: 40 })
+      expect(mock.renderer.drawSymbol).toHaveBeenCalledWith(fromModel<typeof poly>(poly))
+      expect(updateSpy).toHaveBeenCalledWith(fromModel<typeof poly>(poly), true)
     })
 
     test("polyline with endAnchor → points[last] updated", () => {
@@ -303,9 +320,9 @@ describe("IIConnectorManager", () => {
 
       // bounds.x + 0.75 * bounds.width = 10 + 75 = 85
       // bounds.y + 0.75 * bounds.height = 20 + 60 = 80
-      expect(poly.points[poly.points.length - 1]).toEqual({ x: 85, y: 80 })
-      expect(mock.renderer.drawSymbol).toHaveBeenCalledWith(poly)
-      expect(updateSpy).toHaveBeenCalledWith(poly)
+      expect(fromModel<typeof poly>(poly).points[poly.points.length - 1]).toEqual({ x: 85, y: 80 })
+      expect(mock.renderer.drawSymbol).toHaveBeenCalledWith(fromModel<typeof poly>(poly))
+      expect(updateSpy).toHaveBeenCalledWith(fromModel<typeof poly>(poly), true)
     })
 
     describe("with matrix and preTransformBoundsById (rotation case)", () => {
@@ -329,7 +346,7 @@ describe("IIConnectorManager", () => {
 
         // resolveAnchorPoint(anchor, TARGET_BOUNDS) = {x:60, y:60}; translate(10,5) → {x:70, y:65}
         // if using POST_BOUNDS instead: {x:150, y:150} — proves we use preBounds
-        expect(line.start).toEqual({ x: 70, y: 65 })
+        expect(fromModel<typeof line>(line).start).toEqual({ x: 70, y: 65 })
       })
 
       test("normalizedXY updated to reflect position in post-transform bounds", () => {
@@ -342,8 +359,8 @@ describe("IIConnectorManager", () => {
 
         // world point (70, 65) in POST_BOUNDS {x:50,y:50,w:200,h:200}:
         // normalizedX = (70-50)/200 = 0.1, normalizedY = (65-50)/200 = 0.075
-        expect(line.startAnchor!.normalizedX).toBeCloseTo(0.1)
-        expect(line.startAnchor!.normalizedY).toBeCloseTo(0.075)
+        expect(fromModel<typeof line>(line).startAnchor!.normalizedX).toBeCloseTo(0.1)
+        expect(fromModel<typeof line>(line).startAnchor!.normalizedY).toBeCloseTo(0.075)
       })
 
       test("without matrix → falls back to current bounds (backward compat)", () => {
@@ -353,7 +370,7 @@ describe("IIConnectorManager", () => {
         manager.updateAnchoredEdges([TARGET_ID])
 
         // Uses POST_BOUNDS (no matrix): x=50+0.5*200=150, y=50+0.5*200=150
-        expect(line.start).toEqual({ x: 150, y: 150 })
+        expect(fromModel<typeof line>(line).start).toEqual({ x: 150, y: 150 })
       })
 
       test("matrix present but no preBounds entry → falls back to current bounds", () => {
@@ -365,7 +382,7 @@ describe("IIConnectorManager", () => {
         manager.updateAnchoredEdges([TARGET_ID], matrix, emptyMap)
 
         // Falls back to POST_BOUNDS: x=50+0.5*200=150, y=50+0.5*200=150
-        expect(line.start).toEqual({ x: 150, y: 150 })
+        expect(fromModel<typeof line>(line).start).toEqual({ x: 150, y: 150 })
       })
     })
 
@@ -389,10 +406,10 @@ describe("IIConnectorManager", () => {
 
       manager.updateAnchoredEdges([TARGET_ID])
 
-      expect(arc.startAngle).not.toBe(0)
+      expect(fromModel<typeof arc>(arc).startAngle).not.toBe(0)
       // The regression this locks in: the anchor target is far from the original radius, so the
       // ellipse must actually resize to reach it exactly — not stay locked to its old size.
-      expect(arc.radiusY).not.toBeCloseTo(radiusYBefore, 0)
+      expect(fromModel<typeof arc>(arc).radiusY).not.toBeCloseTo(radiusYBefore, 0)
     })
 
     // Regression lock: when only ONE end of a connected arc is anchored to the moving shape,
@@ -422,7 +439,7 @@ describe("IIConnectorManager", () => {
       expect(startAfter.x).toBeCloseTo(startBefore.x, 2)
       expect(startAfter.y).toBeCloseTo(startBefore.y, 2)
       // Sanity: the anchored end actually moved (this isn't a no-op).
-      expect(arc.startAngle + arc.sweepAngle).not.toBeCloseTo(Math.PI, 1)
+      expect(fromModel<typeof arc>(arc).startAngle + arc.sweepAngle).not.toBeCloseTo(Math.PI, 1)
     })
 
     // Regression: the Arc branch used to skip recomputeAllEntryPoints entirely (unlike the
@@ -438,8 +455,8 @@ describe("IIConnectorManager", () => {
 
       manager.updateAnchoredEdges([circle.id])
 
-      expect(arc.startAnchor?.entryPoint).toBeDefined()
-      expect(arc.startAnchor?.entryPoint).not.toEqual({ x: -9999, y: -9999 })
+      expect(fromModel<typeof arc>(arc).startAnchor?.entryPoint).toBeDefined()
+      expect(fromModel<typeof arc>(arc).startAnchor?.entryPoint).not.toEqual({ x: -9999, y: -9999 })
     })
   })
 
@@ -478,9 +495,10 @@ describe("IIConnectorManager", () => {
       setupSymbols(mock, [commitArc])
       manager.updateAnchoredEdges([TARGET_ID])
 
-      expect(commitArc.radiusY).toBeCloseTo(drawnClone.radiusY, 2)
-      expect(commitArc.center.x).toBeCloseTo(drawnClone.center.x, 2)
-      expect(commitArc.center.y).toBeCloseTo(drawnClone.center.y, 2)
+      const committedArc = fromModel<typeof commitArc>(commitArc)
+      expect(committedArc.radiusY).toBeCloseTo(drawnClone.radiusY, 2)
+      expect(committedArc.center.x).toBeCloseTo(drawnClone.center.x, 2)
+      expect(committedArc.center.y).toBeCloseTo(drawnClone.center.y, 2)
     })
 
     test("arc with startAnchor: preview also refreshes entryPoint on the drawn clone, without mutating the original (still-stale) arc", () => {
@@ -496,7 +514,7 @@ describe("IIConnectorManager", () => {
       expect(drawnClone.startAnchor?.entryPoint).toBeDefined()
       expect(drawnClone.startAnchor?.entryPoint).not.toEqual({ x: -9999, y: -9999 })
       // Preview never mutates the model's own symbol — only the clone it draws.
-      expect(arc.startAnchor?.entryPoint).toEqual({ x: -9999, y: -9999 })
+      expect(fromModel<typeof arc>(arc).startAnchor?.entryPoint).toEqual({ x: -9999, y: -9999 })
     })
   })
 
@@ -510,7 +528,7 @@ describe("IIConnectorManager", () => {
 
       const result = manager.findSymbolAtPoint({ x: 55, y: 55 }, "other-id")
 
-      expect(result).toBe(circle)
+      expect(result).toEqual(circle)
     })
 
     test("returns undefined when point outside all symbol bounds", () => {
@@ -563,7 +581,7 @@ describe("IIConnectorManager", () => {
       // (50,50) is the center — clearly inside the diamond
       const result = manager.findSymbolAtPoint({ x: 50, y: 50 }, "other-id")
 
-      expect(result).toBe(diamond)
+      expect(result).toEqual(diamond)
     })
 
     test("excludes edges from anchor targets", () => {
@@ -587,7 +605,7 @@ describe("IIConnectorManager", () => {
       setupSymbols(mock, [square])
       const line = EdgeLineOps.create({ x: 55, y: 55 }, { x: 200, y: 200 })
 
-      manager.applyEndpointAnchor(line, 0, { x: 55, y: 55 })
+      manager.applyEndpointAnchor(asDraft(line), 0, { x: 55, y: 55 })
 
       expect(line.startAnchor?.symbolId).toBe(square.id)
       expect(line.startAnchor?.normalizedX).toBe(0.5)
@@ -608,7 +626,7 @@ describe("IIConnectorManager", () => {
       const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 55, y: 55 })
       EdgeLineOps.updateDerivedFields(line)
 
-      manager.applyEndpointAnchor(line, line.vertices.length - 1, { x: 55, y: 55 })
+      manager.applyEndpointAnchor(asDraft(line), line.vertices.length - 1, { x: 55, y: 55 })
 
       expect(line.endAnchor?.symbolId).toBe(square.id)
       expect(line.endAnchor?.normalizedX).toBe(0.5)
@@ -636,7 +654,7 @@ describe("IIConnectorManager", () => {
       const line = EdgeLineOps.create({ x: 200, y: 50 }, { x: 55, y: 55 })
       EdgeLineOps.updateDerivedFields(line)
 
-      manager.applyEndpointAnchor(line, line.vertices.length - 1, { x: 55, y: 55 })
+      manager.applyEndpointAnchor(asDraft(line), line.vertices.length - 1, { x: 55, y: 55 })
 
       expect(line.endAnchor?.entryPoint).toBeDefined()
       expect(line.endAnchor?.entryPoint?.x).toBeCloseTo(100)
@@ -648,7 +666,7 @@ describe("IIConnectorManager", () => {
       const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 100, y: 100 })
       line.startAnchor = { symbolId: "old", normalizedX: 0.5, normalizedY: 0.5 }
 
-      manager.applyEndpointAnchor(line, 0, { x: 0, y: 0 })
+      manager.applyEndpointAnchor(asDraft(line), 0, { x: 0, y: 0 })
 
       expect(line.startAnchor).toBeUndefined()
     })
@@ -662,7 +680,7 @@ describe("IIConnectorManager", () => {
         { x: 100, y: 100 },
       ])
 
-      manager.applyEndpointAnchor(poly, 1, { x: 55, y: 55 })
+      manager.applyEndpointAnchor(asDraft(poly), 1, { x: 55, y: 55 })
 
       expect(poly.startAnchor).toBeUndefined()
       expect(poly.endAnchor).toBeUndefined()
@@ -674,7 +692,7 @@ describe("IIConnectorManager", () => {
       const arc = EdgeArcOps.create({ x: 50, y: 50 }, 0, Math.PI, 20, 20, 0)
       const endBefore = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle + arc.sweepAngle)
 
-      manager.applyEndpointAnchor(arc, 0, { x: 55, y: 55 })
+      manager.applyEndpointAnchor(asDraft(arc), 0, { x: 55, y: 55 })
 
       expect(arc.startAnchor).toEqual(
         expect.objectContaining({ symbolId: circle.id, normalizedX: 0.5, normalizedY: 0.5 })
@@ -694,7 +712,7 @@ describe("IIConnectorManager", () => {
       const arc = EdgeArcOps.create({ x: 50, y: 50 }, 0, Math.PI, 20, 20, 0)
       arc.startAnchor = { symbolId: circle.id, normalizedX: 0.5, normalizedY: 0.5 }
 
-      manager.applyEndpointAnchor(arc, 0, { x: 500, y: 500 })
+      manager.applyEndpointAnchor(asDraft(arc), 0, { x: 500, y: 500 })
 
       expect(arc.startAnchor).toBeUndefined()
     })
@@ -707,7 +725,7 @@ describe("IIConnectorManager", () => {
 
       const result = manager.showAnchorHint({ x: 55, y: 55 }, "other-id")
 
-      expect(result).toBe(circle)
+      expect(result).toEqual(circle)
       expect(mock.renderer.drawRect).toHaveBeenCalledTimes(1)
     })
 
@@ -773,7 +791,7 @@ describe("IIConnectorManager", () => {
 
       manager.drawAnchoredEdgesForMatrix([TARGET_ID], MatrixTransform.identity().translate(10, 0))
 
-      expect(line.start).toEqual(originalStart)
+      expect(fromModel<typeof line>(line).start).toEqual(originalStart)
     })
 
     test("polyline endAnchor → last point moved by matrix", () => {
@@ -812,7 +830,7 @@ describe("IIConnectorManager", () => {
       const drawn = (mock.renderer.drawSymbol as jest.Mock).mock.calls[0][0] as typeof arc
       expect(drawn.startAngle).not.toBe(originalStartAngle)
       // preview must not mutate the model symbol
-      expect(arc.startAngle).toBe(originalStartAngle)
+      expect(fromModel<typeof arc>(arc).startAngle).toBe(originalStartAngle)
     })
   })
 
@@ -932,8 +950,8 @@ describe("IIConnectorManager", () => {
         { x: 10, y: 0, t: 1, p: 1 },
       ])
       // point[1] (10,0) is nearest the moving block's center (100,0) → full weight.
-      expect(stroke.pointers[0]).toEqual(expect.objectContaining({ x: 0, y: 0 }))
-      expect(stroke.pointers[1]).toEqual(expect.objectContaining({ x: 15, y: 5 }))
+      expect(fromModel<typeof stroke>(stroke).pointers[0]).toEqual(expect.objectContaining({ x: 0, y: 0 }))
+      expect(fromModel<typeof stroke>(stroke).pointers[1]).toEqual(expect.objectContaining({ x: 15, y: 5 }))
     })
 
     test("dual-anchor edge stroke is rigidly translated (commit) when both connected blocks move together", () => {
@@ -954,8 +972,8 @@ describe("IIConnectorManager", () => {
       expect(followed.rigidStrokeIds).toEqual([stroke.id])
       expect(followed.oldSymbols).toEqual([])
       expect(followed.newSymbols).toEqual([])
-      expect(stroke.pointers[0]).toEqual(expect.objectContaining({ x: 5, y: 5 }))
-      expect(stroke.pointers[1]).toEqual(expect.objectContaining({ x: 15, y: 5 }))
+      expect(fromModel<typeof stroke>(stroke).pointers[0]).toEqual(expect.objectContaining({ x: 5, y: 5 }))
+      expect(fromModel<typeof stroke>(stroke).pointers[1]).toEqual(expect.objectContaining({ x: 15, y: 5 }))
     })
 
     test("edge stroke that is itself being transformed is neither followed nor reported", () => {
@@ -972,8 +990,8 @@ describe("IIConnectorManager", () => {
 
       expect(followed).toEqual({ rigidStrokeIds: [], oldSymbols: [], newSymbols: [] })
       // Untouched by the follow pass — the caller's own transform path owns this stroke.
-      expect(stroke.pointers[0]).toEqual(expect.objectContaining({ x: 0, y: 0 }))
-      expect(stroke.pointers[1]).toEqual(expect.objectContaining({ x: 10, y: 0 }))
+      expect(fromModel<typeof stroke>(stroke).pointers[0]).toEqual(expect.objectContaining({ x: 0, y: 0 }))
+      expect(fromModel<typeof stroke>(stroke).pointers[1]).toEqual(expect.objectContaining({ x: 10, y: 0 }))
     })
 
     test("multi-stroke edge block (commit): each stroke gets its own pre-mutation snapshot, weighted by the group's distance range", () => {
@@ -991,9 +1009,9 @@ describe("IIConnectorManager", () => {
 
       // Group's nearest point (bar[1]) gets full weight; the chevron, being the group's
       // farthest points, gets none — both chevron points move together (weight 0), not split.
-      expect(bar.pointers[1]).toEqual(expect.objectContaining({ x: 15, y: 5 }))
-      expect(chevron.pointers[0]).toEqual(expect.objectContaining({ x: 0, y: -2 }))
-      expect(chevron.pointers[1]).toEqual(expect.objectContaining({ x: 0, y: 2 }))
+      expect(fromModel<typeof bar>(bar).pointers[1]).toEqual(expect.objectContaining({ x: 15, y: 5 }))
+      expect(fromModel<typeof chevron>(chevron).pointers[0]).toEqual(expect.objectContaining({ x: 0, y: -2 }))
+      expect(fromModel<typeof chevron>(chevron).pointers[1]).toEqual(expect.objectContaining({ x: 0, y: 2 }))
     })
 
     test("getFollowedStrokeIds reports followers without mutating them", () => {
@@ -1006,7 +1024,7 @@ describe("IIConnectorManager", () => {
       expect(manager.getFollowedStrokeIds(["shape-stroke-1"])).toEqual([stroke.id])
       expect(manager.getFollowedStrokeIds(["shape-stroke-1", stroke.id])).toEqual([])
       expect(manager.getFollowedStrokeIds([])).toEqual([])
-      expect(stroke.pointers[0]).toEqual(expect.objectContaining({ x: 0, y: 0 }))
+      expect(fromModel<typeof stroke>(stroke).pointers[0]).toEqual(expect.objectContaining({ x: 0, y: 0 }))
     })
   })
 
@@ -1147,7 +1165,7 @@ describe("IIConnectorManager", () => {
       expect(manager.getFollowedStrokeIds(["shape-stroke-1"])).toEqual([stroke.id])
       expect(manager.getFollowedStrokeIds(["shape-stroke-1", stroke.id])).toEqual([])
       expect(manager.getFollowedStrokeIds([])).toEqual([])
-      expect(stroke.pointers[0]).toEqual(expect.objectContaining({ x: 0, y: 0 }))
+      expect(fromModel<typeof stroke>(stroke).pointers[0]).toEqual(expect.objectContaining({ x: 0, y: 0 }))
     })
   })
 
@@ -1204,6 +1222,9 @@ describe("connectorConfiguration.followConnectedEdges = false — disables all f
   let mock: ReturnType<typeof createCanvasMock>
   let manager: IIConnectorManager
 
+  /** Same reason as the suite above: read the document, not the pre-commit local reference. */
+  const fromModel = <T>(symbol: { id: string }): T => mock.model.symbols.find((s) => s.id === symbol.id) as T
+
   beforeEach(() => {
     mock = createCanvasMock()
     manager = new IIConnectorManager(asCanvas(mock), { followConnectedEdges: false })
@@ -1221,7 +1242,7 @@ describe("connectorConfiguration.followConnectedEdges = false — disables all f
 
     const result = manager.updateAnchoredEdges([TARGET_ID], MatrixTransform.identity().translate(20, 20))
 
-    expect(line.start).toEqual(startBefore)
+    expect(fromModel<typeof line>(line).start).toEqual(startBefore)
     expect(result).toEqual({ rigidStrokeIds: [], oldSymbols: [], newSymbols: [] })
   })
 
@@ -1257,7 +1278,7 @@ describe("connectorConfiguration.followConnectedEdges = false — disables all f
 
     const result = manager.updateAnchoredEdges(["shape-stroke-1"], MatrixTransform.identity().translate(5, 5))
 
-    expect(stroke.pointers).toEqual(before)
+    expect(fromModel<typeof stroke>(stroke).pointers).toEqual(before)
     expect(result).toEqual({ rigidStrokeIds: [], oldSymbols: [], newSymbols: [] })
   })
 })

@@ -4,6 +4,7 @@ import { ResizeDirection, SELECTION_MARGIN, SvgElementRole } from "@/Constants"
 import type { TBox, TPoint } from "@/core/geometry"
 import { BoxOps } from "@/core/geometry"
 import { OBBOps } from "@/core/geometry"
+import type { TDraft } from "@/core/std"
 import type { TPointerInfo } from "@/grabber"
 import { PointerEventGrabber } from "@/grabber"
 import { LoggerCategory } from "@/logger"
@@ -480,7 +481,11 @@ export class IISelectionManager extends IIAbstractManager {
     return boxes
   }
 
-  protected createEdgeResizeGroup(edge: TEdge): SVGGElement {
+  /**
+   * The resize handles drag `edge` in place across the whole gesture and commit it on every frame,
+   * so it takes a draft: one draft per drag, mutated per `pointermove`, committed per frame.
+   */
+  protected createEdgeResizeGroup(edge: TDraft<TEdge>): SVGGElement {
     const group = SVGBuilder.createGroup({
       role: SvgElementRole.Resize,
       "vector-effect": "non-scaling-size",
@@ -528,7 +533,7 @@ export class IISelectionManager extends IIAbstractManager {
       )
     }
     if (edge.kind === EdgeKind.Arc) {
-      const arc = edge as TEdgeArc
+      const arc = edge as TDraft<TEdgeArc>
       const bindArcEl = (el: SVGCircleElement, isStart: boolean, isEnd: boolean) => {
         const updateArc = (x: number, y: number) => {
           if (isStart) {
@@ -657,7 +662,10 @@ export class IISelectionManager extends IIAbstractManager {
     const surroundGroup = SVGBuilder.createGroup(attrs)
     const translateEl = this.createEdgeTranslatePath(edge)
     surroundGroup.appendChild(translateEl)
-    surroundGroup.appendChild(this.createEdgeResizeGroup(structuredClone(edge)))
+    const resizeDraft = this.model.draftSymbol(edge.id)
+    if (resizeDraft && EdgeOps.isEdge(resizeDraft)) {
+      surroundGroup.appendChild(this.createEdgeResizeGroup(resizeDraft as TDraft<TEdge>))
+    }
     return surroundGroup
   }
 
