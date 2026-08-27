@@ -28,6 +28,7 @@
     "node_modules",
     "dist",
     "test/perf",
+    "test/perf-e2e",
     "examples/custom-rendering/tldraw-websocket-client"
   ]
 }

@@ -114,6 +114,27 @@ export default [
     },
   },
 
+  // Perf harness: node scripts and Playwright scenarios, both TypeScript and plain JS.
+  // Runs on node, not in a browser, and is type-checked by tsconfig.perf.json rather than by the
+  // main typecheck project — see .local/v5-e1-tooling for why the two are separate.
+  {
+    files: ["test/perf/**/*.ts", "test/perf-e2e/**/*.ts", "test/perf-e2e/**/*.mjs", "test/perf-e2e/**/*.js"],
+    plugins: {
+      "@typescript-eslint": typescriptEslint,
+    },
+    languageOptions: {
+      globals: { ...globals.node, ...globals.browser },
+      parser: tsParser,
+      sourceType: "module",
+    },
+    rules: {
+      ...js.configs.recommended.rules,
+      "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
+      "no-unused-vars": "off",
+    },
+  },
+
   // Examples: plain JS only
   {
     files: ["examples/**/*.js"],
