@@ -49,9 +49,14 @@ export abstract class IIAbstractTransformManager extends IIAbstractManager {
 
   protected applyAndDraw(symbols: TSymbol[], matrix: MatrixTransform): void {
     symbols.forEach((s) => {
-      this.applyToSymbol(s, matrix)
-      this.canvas.renderer.drawSymbol(s)
-      this.model.updateSymbol(s)
+      // A symbol the document no longer holds has no draft: the undo/redo replay dispatcher can
+      // replay a transform over a symbol erased since, and the old path mutated the detached object
+      // and still drew it, with `updateSymbol` quietly ignoring the unknown id. Keep that, rather
+      // than silently dropping the draw — IIC-1972 removes the case by making history hold values.
+      const target = this.model.draftSymbol(s.id) ?? s
+      this.applyToSymbol(target, matrix)
+      this.canvas.renderer.drawSymbol(target)
+      this.model.updateSymbol(target)
     })
     this.updateDecoratorsForTargets(symbols, matrix)
   }
@@ -63,22 +68,27 @@ export abstract class IIAbstractTransformManager extends IIAbstractManager {
    * Recompute them here from the (already transformed) target symbols.
    */
   private updateDecoratorsForTargets(symbols: TSymbol[], matrix: MatrixTransform): void {
-    const movedIds = new Set(symbols.map((s) => s.id))
-    this.model.symbols.forEach((sym) => {
-      if (!isDecorator(sym) || !sym.targetIds.some((id) => movedIds.has(id))) {
+    const byTargetId = this.model.decoratorsByTargetId
+    const affected = new Map<string, TSymbol>()
+    symbols.forEach((s) => byTargetId.get(s.id)?.forEach((deco) => affected.set(deco.id, deco)))
+
+    affected.forEach((deco) => {
+      const draft = this.model.draftSymbol(deco.id)
+      if (!draft || !isDecorator(draft)) {
         return
       }
-      const targetSyms = sym.targetIds.map((id) => this.model.getRootSymbol(id)).filter((s): s is TSymbol => !!s)
-      if (targetSyms.length) {
-        DecoratorOps.setBounds(sym, OBBOps.createFromOBBs(targetSyms.map((s) => s.bounds)))
-        // baseline is an absolute y-coordinate (used by Underline/Strikethrough rendering
-        // in place of bounds), so it must follow the same transform as the target symbols.
-        if (sym.baseline !== undefined) {
-          sym.baseline = +matrix.applyToPoint({ x: 0, y: sym.baseline }).y.toFixed(3)
-        }
-        this.model.updateSymbol(sym)
-        this.canvas.renderer.drawSymbol(sym)
+      const targetSyms = draft.targetIds.map((id) => this.model.getRootSymbol(id)).filter((s): s is TSymbol => !!s)
+      if (!targetSyms.length) {
+        return
       }
+      DecoratorOps.setBounds(draft, OBBOps.createFromOBBs(targetSyms.map((s) => s.bounds)))
+      // baseline is an absolute y-coordinate (used by Underline/Strikethrough rendering
+      // in place of bounds), so it must follow the same transform as the target symbols.
+      if (draft.baseline !== undefined) {
+        draft.baseline = +matrix.applyToPoint({ x: 0, y: draft.baseline }).y.toFixed(3)
+      }
+      this.model.commitSymbol(draft)
+      this.canvas.renderer.drawSymbol(draft)
     })
   }
 

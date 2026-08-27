@@ -1,3 +1,4 @@
+import type { TDraft } from "@/core/std"
 import type { TBaseSymbol } from "@/symbol"
 
 /**
@@ -19,6 +20,7 @@ export type TSymbolOrder = "first" | "last" | "forward" | "backward"
 export class SymbolStore<T extends TBaseSymbol> {
   #records = new Map<string, T>()
   #version = 0
+  #indexes = new WeakMap<(record: T) => string[], { version: number; byKey: Map<string, T[]> }>()
 
   /**
    * Bumped by every change to the document. Lets a derived value — a cache, an index, an in-flight
@@ -35,6 +37,35 @@ export class SymbolStore<T extends TBaseSymbol> {
   /** The records in stacking order. */
   list(): T[] {
     return Array.from(this.#records.values())
+  }
+
+  /**
+   * The records grouped by whatever keys `selector` claims for each of them, memoized against
+   * {@link version} so a caller on a hot path can ask every frame and only pay when the document
+   * actually changed.
+   *
+   * `selector` must be a stable reference — a module-level or field-held function, not an inline
+   * closure — because it is the cache key. An inline arrow is a new key on every call and would
+   * recompute every time, which is the cost this exists to remove.
+   */
+  listBy(selector: (record: T) => string[]): ReadonlyMap<string, T[]> {
+    const cached = this.#indexes.get(selector)
+    if (cached?.version === this.#version) {
+      return cached.byKey
+    }
+    const byKey = new Map<string, T[]>()
+    for (const record of this.#records.values()) {
+      for (const key of selector(record)) {
+        const bucket = byKey.get(key)
+        if (bucket) {
+          bucket.push(record)
+        } else {
+          byKey.set(key, [record])
+        }
+      }
+    }
+    this.#indexes.set(selector, { version: this.#version, byKey })
+    return byKey
   }
 
   get(id: string): T | undefined {
@@ -65,6 +96,23 @@ export class SymbolStore<T extends TBaseSymbol> {
     if (markDirty) {
       this.#bump()
     }
+  }
+
+  /**
+   * A mutable copy of the committed record, yours to change until you {@link commit} it.
+   *
+   * The copy is what makes the contract honest: the stored record is handed to readers as-is, so
+   * mutating it in place would change what every other reader sees, mid-frame and without a version
+   * bump. Ask for a draft, change it, commit it.
+   */
+  draft(id: string): TDraft<T> | undefined {
+    const record = this.#records.get(id)
+    return record ? (structuredClone(record) as TDraft<T>) : undefined
+  }
+
+  /** Stores a draft back under its own id, in the position the record already held. */
+  commit(draft: TDraft<T>, markDirty = true): void {
+    this.update(draft as T, markDirty)
   }
 
   /** Swaps one record for several, in the position the original held. */
