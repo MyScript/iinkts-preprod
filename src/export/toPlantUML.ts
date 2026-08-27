@@ -1,5 +1,6 @@
 import { JIIXNodeKind, type TJIIXExport, type TJIIXNodeElement, type TJIIXTextElement } from "@/model/Export"
-import { extractJIIXGraphElements, findLabelInside, resolveEdgeNodes, sanitizeGraphId } from "@/utils/jiixGraph"
+
+import { extractJIIXGraphElements, findLabelInside, resolveEdgeNodes, sanitizeGraphId } from "./jiixGraph"
 
 const PLANTUML_SHAPE_BY_NODE_KIND: Record<JIIXNodeKind, string> = {
   [JIIXNodeKind.Rectangle]: "rectangle",
@@ -18,7 +19,7 @@ function nodeDeclaration(node: TJIIXNodeElement, texts: TJIIXTextElement[]): str
 }
 
 /**
- * @group Utilities
+ * @group Export
  * @summary Convert a JIIX diagram export into a PlantUML diagram
  * @param jiix - JIIX export to convert
  * @returns PlantUML `@startuml`/`@enduml` diagram syntax
