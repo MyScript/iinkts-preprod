@@ -53,7 +53,7 @@ describe("IIExportManager.ts", () => {
       "should reuse the cached JIIX export for %s without calling client.export again",
       async (format) => {
         const canvas = buildCanvas()
-        canvas.model.exports = { "application/vnd.myscript.jiix": jiixText }
+        canvas.model.mergeExport({ "application/vnd.myscript.jiix": jiixText })
         canvas.client.export = jest.fn()
 
         await canvas.exportAs(format)
@@ -115,7 +115,7 @@ describe("IIExportManager.ts", () => {
       addStrokeWithId("x-1")
       addStrokeWithId("x-2")
       addStrokeWithId("n-1")
-      canvas.model.exports = { "application/vnd.myscript.jiix": jiixMathDuplicateStrokes }
+      canvas.model.mergeExport({ "application/vnd.myscript.jiix": jiixMathDuplicateStrokes })
 
       const text = await canvas.exportAs("text")
 
@@ -187,7 +187,7 @@ describe("IIExportManager.ts", () => {
       const selected = buildIIMath("a=b")
       canvas.model.addSymbol(selected)
       canvas.model.addSymbol(buildIIMath("c=d"))
-      canvas.model.selectedIds.add(selected.id)
+      canvas.model.selectSymbol(selected.id)
 
       await expect(canvas.exportAs("text", { scope: "selection" })).resolves.toBe("a=b")
     })
@@ -203,7 +203,7 @@ describe("IIExportManager.ts", () => {
       ["jiix", ".jiix", "application/vnd.myscript.jiix"],
     ] as const)("should download %s as %s", async (format, extension, mimeType) => {
       const canvas = buildCanvas()
-      canvas.model.exports = { "application/vnd.myscript.jiix": jiixText }
+      canvas.model.mergeExport({ "application/vnd.myscript.jiix": jiixText })
       const link = spyOnDownloadAnchor()
 
       await canvas.download(format)

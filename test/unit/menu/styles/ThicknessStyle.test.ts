@@ -26,7 +26,7 @@ describe("ThicknessStyle.ts", () => {
     const canvas = createCanvasMock()
     const stroke = buildIIStroke({ style: { ...DefaultStyle, width: 2 } })
     canvas.model.addSymbol(stroke)
-    canvas.model.selectedIds.add(stroke.id)
+    canvas.model.selectSymbol(stroke.id)
     const style = new ThicknessStyle(asCanvas(canvas), thicknessList)
 
     const active = style.getElement().querySelector("button.active") as HTMLButtonElement
@@ -38,7 +38,7 @@ describe("ThicknessStyle.ts", () => {
     const canvas = createCanvasMock()
     const stroke = buildIIStroke()
     canvas.model.addSymbol(stroke)
-    canvas.model.selectedIds.add(stroke.id)
+    canvas.model.selectSymbol(stroke.id)
     const style = new ThicknessStyle(asCanvas(canvas), thicknessList)
     const wrapper = style.getElement()
     document.body.appendChild(wrapper)
