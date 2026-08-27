@@ -203,6 +203,9 @@
     let canvas
     let currentNodeId = null
     let trace = []
+    // Signature of the graph the walk in progress was built on: the server keeps synchronizing
+    // after the last stroke, and a plain re-export of the same diagram must not disturb the run.
+    let walkSignature = null
 
     // Nothing to configure: INTERACTIVE_INK recognizes shapes, edges and text out of the box.
     const canvasOptions = {
@@ -270,8 +273,21 @@
      * Turns the recognized diagram into a directed graph: one entry per node, each holding the
      * transitions leaving it.
      */
+    /**
+     * Identity of the recognized diagram, restricted to what the walk relies on: re-exporting an
+     * unchanged drawing yields the very same signature, editing it yields another one.
+     */
+    function graphSignature({ nodes, edges, texts }) {
+      return JSON.stringify([
+        nodes.map((node) => [node.id, node.kind]),
+        edges.map((edge) => [edge.id, edge.kind, edge.connected]),
+        texts.map((text) => [text.id, text.label]),
+      ])
+    }
+
     function buildFlow() {
-      const { nodes, edges, texts } = currentGraph()
+      const graph = currentGraph()
+      const { nodes, edges, texts } = graph
       // Texts that land inside a shape are that shape's label; the rest are free to label edges.
       const freeTexts = texts.filter(
         (text) =>
@@ -301,7 +317,12 @@
       // A flowchart starts where nothing points; a fully cyclic drawing has no such node, so
       // fall back to the first recognized shape rather than refusing to run.
       const start = entries.find((step) => !targeted.has(step.id)) ?? entries[0]
-      return { steps, start, danglingEdges: edges.filter((edge) => !resolveEdgeNodes(edge, nodes)).length }
+      return {
+        steps,
+        start,
+        danglingEdges: edges.filter((edge) => !resolveEdgeNodes(edge, nodes)).length,
+        signature: graphSignature(graph),
+      }
     }
 
     /**
@@ -381,6 +402,7 @@
       clearHighlights()
       currentNodeId = null
       trace = []
+      walkSignature = null
       stateElement.textContent = 'Draw a flowchart, then hit Run.'
       renderChoices(null)
       renderTrace()
@@ -394,12 +416,23 @@
       currentNodeId = null
       trace = []
       const flow = buildFlow()
+      walkSignature = flow.signature
       showStep(flow.start)
       if (flow.start && flow.danglingEdges) {
         stateElement.innerHTML +=
           `<br><span class="runner-warning">${flow.danglingEdges} edge(s) reach no shape and were skipped.</span>`
       }
     })
+
+    /**
+     * Synchronization fires on every server update, ink edits included but also long after the
+     * last stroke for the same content — so the walk is dropped only when the graph really moved.
+     */
+    function invalidateWalkOnGraphChange() {
+      if (walkSignature !== null && graphSignature(currentGraph()) !== walkSignature) {
+        reset()
+      }
+    }
 
     resetBtn.addEventListener('click', reset)
 
@@ -415,6 +448,7 @@
         return
       }
       const next = flow.steps.get(transition.toId)
+      walkSignature = flow.signature
       showStep(next, transition.label)
       // Outline the edge just taken on top of the new current node, so the jump stays readable.
       highlight(transition.edgeId, 'runner-edge-highlight')
@@ -425,8 +459,8 @@
 
       canvas = await Canvas.load(rootElement, 'INTERACTIVE_INK', options)
 
-      // Editing the diagram invalidates the walk: the graph under the run may have changed.
-      canvas.event.addSynchronizedListener(reset)
+      // Editing the diagram invalidates the walk: the graph under the run has changed.
+      canvas.event.addSynchronizedListener(invalidateWalkOnGraphChange)
       reset()
       return canvas
     }
