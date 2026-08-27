@@ -1,9 +1,6 @@
-// geometry.ts descends to core/geometry in IIC-1963; until then this is the only exception to the
-// core layer rule, and it dies with that ticket.
-import { findIntersectionBetween2Segment } from "@/utils" // eslint-disable-line no-restricted-imports
-
 import type { TBox } from "./Box"
 import { BoxOps } from "./Box"
+import { findIntersectionBetween2Segment } from "./intersection"
 import type { TPoint, TSegment } from "./Point"
 
 /**
