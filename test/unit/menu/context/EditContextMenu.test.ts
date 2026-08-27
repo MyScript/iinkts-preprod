@@ -65,7 +65,7 @@ describe("EditContextMenu.ts", () => {
     const canvas = createCanvasMock()
     const text = buildTextSymbol()
     canvas.model.addSymbol(text)
-    canvas.model.selectedIds.add(text.id)
+    canvas.model.selectSymbol(text.id)
     const item = new EditContextMenu(asCanvas(canvas))
     const wrapper = item.getElement()
     document.body.appendChild(wrapper)

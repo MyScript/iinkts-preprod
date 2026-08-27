@@ -1136,9 +1136,9 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       const wasSelected = this.model.selectedIds.has(s.id)
       if (wasSelected !== shouldBeSelected) {
         if (shouldBeSelected) {
-          this.model.selectedIds.add(s.id)
+          this.model.selectSymbol(s.id)
         } else {
-          this.model.selectedIds.delete(s.id)
+          this.model.unselectSymbol(s.id)
         }
         this.renderer.updateSelectedState(s, shouldBeSelected)
       }
@@ -1163,7 +1163,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
   selectAll(): void {
     this.tool = CanvasTool.Select
     this.model.symbols.forEach((s) => {
-      this.model.selectedIds.add(s.id)
+      this.model.selectSymbol(s.id)
       this.renderer.updateSelectedState(s, true)
     })
     this.selector.drawSelectedGroup(this.model.symbolsSelected)

@@ -102,7 +102,7 @@ describe("IITranslateManager.ts", () => {
     StrokeOps.addPointer(strokeOrigin, { p: 1, t: 1, x: 0, y: 0 })
     StrokeOps.addPointer(strokeOrigin, { p: 1, t: 1, x: 10, y: 50 })
     canvas.model.addSymbol(strokeOrigin)
-    canvas.model.selectedIds.add(strokeOrigin.id)
+    canvas.model.selectSymbol(strokeOrigin.id)
 
     const translationOrigin: TPoint = {
       x: OBBOps.toBox(strokeOrigin.bounds).x + strokeOrigin.bounds.width / 2,
@@ -202,7 +202,7 @@ describe("IITranslateManager.ts", () => {
       const manager = new IITranslateManager(asCanvas(canvas))
       const stroke = buildMathStroke("block-1")
       canvas.model.addSymbol(stroke)
-      canvas.model.selectedIds.add(stroke.id)
+      canvas.model.selectSymbol(stroke.id)
 
       manager.start(setupTarget(), { x: 0, y: 0 })
       manager.continue({ x: 10, y: 20 })
@@ -332,7 +332,7 @@ describe("IITranslateManager.ts", () => {
       const manager = new IITranslateManager(asCanvas(canvas))
       const { shape, edgeStroke } = setupShapeWithConnectedEdgeStroke(canvas)
       history.init(canvas.model)
-      canvas.model.selectedIds.add(shape.id)
+      canvas.model.selectSymbol(shape.id)
       const pointersBefore = edgeStroke.pointers.map((p) => ({ ...p }))
 
       await manager.translate([shape], 5, 5)
@@ -378,7 +378,7 @@ describe("IITranslateManager.ts", () => {
       canvas.model.addSymbol(edge)
 
       history.init(canvas.model)
-      canvas.model.selectedIds.add(shape.id)
+      canvas.model.selectSymbol(shape.id)
       const endBefore = { ...edge.end }
 
       await manager.translate([shape], 20, 20)

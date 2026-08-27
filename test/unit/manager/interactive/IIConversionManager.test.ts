@@ -50,21 +50,21 @@ describe("IIConversionManager.ts", () => {
     })
     test("should call convertText", async () => {
       expect(manager.convertText).toHaveBeenCalledTimes(0)
-      manager.model.exports = { "application/vnd.myscript.jiix": hTextJIIX }
+      manager.model.mergeExport({ "application/vnd.myscript.jiix": hTextJIIX })
       await manager.apply()
       expect(canvas.selector.removeSelectedGroup).toHaveBeenCalledTimes(1)
       expect(manager.convertText).toHaveBeenCalledTimes(1)
     })
     test("should call convertNode", async () => {
       expect(manager.convertNode).toHaveBeenCalledTimes(0)
-      manager.model.exports = { "application/vnd.myscript.jiix": rectangleJIIX }
+      manager.model.mergeExport({ "application/vnd.myscript.jiix": rectangleJIIX })
       await manager.apply()
       expect(canvas.selector.removeSelectedGroup).toHaveBeenCalledTimes(1)
       expect(manager.convertNode).toHaveBeenCalledTimes(1)
     })
     test("should call convertEdge", async () => {
       expect(manager.convertEdge).toHaveBeenCalledTimes(0)
-      manager.model.exports = { "application/vnd.myscript.jiix": lineJIIX }
+      manager.model.mergeExport({ "application/vnd.myscript.jiix": lineJIIX })
       await manager.apply()
       expect(canvas.selector.removeSelectedGroup).toHaveBeenCalledTimes(1)
       expect(manager.convertEdge).toHaveBeenCalledTimes(1)
@@ -328,9 +328,9 @@ describe("IIConversionManager.ts", () => {
         ports: [0],
         items: [{ type: "stroke", id: "i2", "full-id": edgeStroke.id }],
       } as unknown as TJIIXEdgeElement
-      canvas.model.exports = {
+      canvas.model.mergeExport({
         "application/vnd.myscript.jiix": { type: "Text", id: "root", version: "3", elements: [edgeEl, nodeEl] },
-      }
+      })
       jest
         .spyOn(canvas.jiix, "getStrokesForElement")
         .mockImplementation((id: string) => (id === "node-1" ? [nodeStroke.id] : []))
@@ -361,9 +361,9 @@ describe("IIConversionManager.ts", () => {
         ports: [0],
         items: [{ type: "stroke", id: "i2", "full-id": edgeStroke.id }],
       } as unknown as TJIIXEdgeElement
-      canvas.model.exports = {
+      canvas.model.mergeExport({
         "application/vnd.myscript.jiix": { type: "Text", id: "root", version: "3", elements: [edgeEl] },
-      }
+      })
 
       const manager = new IIConversionManager(asCanvas(canvas))
       const added = await manager.apply()

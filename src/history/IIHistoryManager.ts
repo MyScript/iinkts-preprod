@@ -173,7 +173,7 @@ export class IIHistoryManager extends AbstractDiffHistoryManager<TIIHistoryChang
   // Clear based on it), not just "no changes recorded at this stack index" - so this reads the
   // live model instead of the generic isChangesEmpty-based default.
   protected isStackItemEmpty(): boolean {
-    return (this.#liveModel?.symbols.length ?? 0) === 0
+    return (this.#liveModel?.symbolCount ?? 0) === 0
   }
 
   protected isChangesEmpty(changes: TIIHistoryChanges): boolean {

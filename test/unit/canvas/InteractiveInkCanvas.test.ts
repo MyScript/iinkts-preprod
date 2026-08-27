@@ -827,7 +827,7 @@ describe("InteractiveInkCanvas.ts", () => {
     })
     test("should invalidate the restored model's exports so the next synchronize re-fetches JIIX instead of reusing the pre-undo snapshot", async () => {
       const stroke1 = buildIIStroke()
-      canvas.model.exports = { "application/vnd.myscript.jiix": jiixText } as never
+      canvas.model.mergeExport({ "application/vnd.myscript.jiix": jiixText } as never)
       canvas.history.undo = jest.fn(() => ({ added: [stroke1] }))
       canvas.history.context.canUndo = true
       await canvas.undo()
@@ -1081,7 +1081,7 @@ describe("InteractiveInkCanvas.ts", () => {
 
     test("should only request mimeTypes not already cached in model.exports", async () => {
       const cachedCanvas = new InteractiveInkCanvas(document.createElement("div"), CanvasOptions)
-      cachedCanvas.model.exports = { "text/plain": "already cached" }
+      cachedCanvas.model.mergeExport({ "text/plain": "already cached" })
       cachedCanvas.client.export = jest.fn(() =>
         Promise.resolve({ "application/vnd.myscript.jiix": jiixText })
       )
@@ -1098,7 +1098,7 @@ describe("InteractiveInkCanvas.ts", () => {
 
     test("should not call client.export at all when every requested mimeType is already cached", async () => {
       const cachedCanvas = new InteractiveInkCanvas(document.createElement("div"), CanvasOptions)
-      cachedCanvas.model.exports = { "text/plain": "already cached" }
+      cachedCanvas.model.mergeExport({ "text/plain": "already cached" })
       cachedCanvas.client.export = jest.fn()
 
       const result = await cachedCanvas.export(["text/plain"])
@@ -1118,7 +1118,7 @@ describe("InteractiveInkCanvas.ts", () => {
 
     test("should not call client.export when no mimeTypes requested but the client's defaults are already cached", async () => {
       const freshCanvas = new InteractiveInkCanvas(document.createElement("div"), CanvasOptions)
-      freshCanvas.model.exports = { "application/vnd.myscript.jiix": jiixText }
+      freshCanvas.model.mergeExport({ "application/vnd.myscript.jiix": jiixText })
       freshCanvas.client.export = jest.fn()
 
       const result = await freshCanvas.export()
@@ -1483,7 +1483,7 @@ describe("InteractiveInkCanvas.ts", () => {
         const stroke2 = buildIIStroke()
         canvas.model.addSymbol(stroke1)
         canvas.model.addSymbol(stroke2)
-        canvas.model.selectedIds.add(stroke1.id)
+        canvas.model.selectSymbol(stroke1.id)
 
         canvas.copy()
 
@@ -1515,8 +1515,8 @@ describe("InteractiveInkCanvas.ts", () => {
         const decorator = buildIIDecorator(DecoratorKind.Highlight)
         canvas.model.addSymbol(stroke)
         canvas.model.addSymbol(decorator)
-        canvas.model.selectedIds.add(stroke.id)
-        canvas.model.selectedIds.add(decorator.id)
+        canvas.model.selectSymbol(stroke.id)
+        canvas.model.selectSymbol(decorator.id)
 
         canvas.copy()
 
@@ -1531,8 +1531,8 @@ describe("InteractiveInkCanvas.ts", () => {
         solverStroke.isSolverOutput = true
         canvas.model.addSymbol(stroke)
         canvas.model.addSymbol(solverStroke)
-        canvas.model.selectedIds.add(stroke.id)
-        canvas.model.selectedIds.add(solverStroke.id)
+        canvas.model.selectSymbol(stroke.id)
+        canvas.model.selectSymbol(solverStroke.id)
 
         canvas.copy()
 
@@ -1609,7 +1609,7 @@ describe("InteractiveInkCanvas.ts", () => {
       test("should remove selected symbols", async () => {
         const stroke = buildIIStroke()
         canvas.model.addSymbol(stroke)
-        canvas.model.selectedIds.add(stroke.id)
+        canvas.model.selectSymbol(stroke.id)
 
         await canvas.cut()
 
@@ -1620,7 +1620,7 @@ describe("InteractiveInkCanvas.ts", () => {
       test("should copy symbols before removing", async () => {
         const stroke = buildIIStroke()
         canvas.model.addSymbol(stroke)
-        canvas.model.selectedIds.add(stroke.id)
+        canvas.model.selectSymbol(stroke.id)
 
         await canvas.cut()
 

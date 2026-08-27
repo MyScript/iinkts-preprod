@@ -81,7 +81,7 @@ describe("ExportManager.ts", () => {
       const other = buildIIStroke()
       canvas.model.addSymbol(selected)
       canvas.model.addSymbol(other)
-      canvas.model.selectedIds.add(selected.id)
+      canvas.model.selectSymbol(selected.id)
 
       const symbols = await canvas.exportAs("json", { scope: "selection" })
 
@@ -94,7 +94,7 @@ describe("ExportManager.ts", () => {
       const explicit = buildIIStroke()
       canvas.model.addSymbol(selected)
       canvas.model.addSymbol(explicit)
-      canvas.model.selectedIds.add(selected.id)
+      canvas.model.selectSymbol(selected.id)
 
       const symbols = await canvas.exportAs("json", { scope: "selection", symbols: [explicit] })
 
@@ -170,7 +170,7 @@ describe("ExportManager.ts", () => {
       const other = buildIIStroke()
       canvas.model.addSymbol(selected)
       canvas.model.addSymbol(other)
-      canvas.model.selectedIds.add(selected.id)
+      canvas.model.selectSymbol(selected.id)
       const link = spyOnDownloadAnchor()
 
       await canvas.download("json", { scope: "selection" })
@@ -280,7 +280,7 @@ describe("ExportManager.ts", () => {
       const selected = buildIIStroke()
       canvas.model.addSymbol(selected)
       canvas.model.addSymbol(buildIIStroke())
-      canvas.model.selectedIds.add(selected.id)
+      canvas.model.selectSymbol(selected.id)
       const boundsSpy = jest.spyOn(canvas, "getSymbolsBounds")
       canvas.pdfExport.openExportDialog = jest.fn()
 

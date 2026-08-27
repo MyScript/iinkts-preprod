@@ -156,7 +156,7 @@ describe("IISelectionManager.ts", () => {
       const stroke2 = buildMathStroke("block-1")
       canvas.model.addSymbol(stroke1)
       canvas.model.addSymbol(stroke2)
-      canvas.model.selectedIds.add(stroke1.id)
+      canvas.model.selectSymbol(stroke1.id)
 
       expect(manager.isMathBlockSelected("block-1")).toBe(true)
       expect(manager.getSelectedMathJiixBlockId()).toEqual("block-1")
@@ -179,8 +179,8 @@ describe("IISelectionManager.ts", () => {
       const stroke2 = buildMathStroke("block-2")
       canvas.model.addSymbol(stroke1)
       canvas.model.addSymbol(stroke2)
-      canvas.model.selectedIds.add(stroke1.id)
-      canvas.model.selectedIds.add(stroke2.id)
+      canvas.model.selectSymbol(stroke1.id)
+      canvas.model.selectSymbol(stroke2.id)
 
       expect(manager.isMathBlockSelected("block-1")).toBe(true)
       expect(manager.isMathBlockSelected("block-2")).toBe(true)
@@ -197,10 +197,10 @@ describe("IISelectionManager.ts", () => {
       canvas.model.addSymbol(stroke2)
       canvas.jiix.getStrokesForElement = jest.fn().mockReturnValue([stroke1.id, stroke2.id])
 
-      canvas.model.selectedIds.add(stroke1.id)
+      canvas.model.selectSymbol(stroke1.id)
       expect(manager.isMathBlockSelected("block-1")).toBe(false)
 
-      canvas.model.selectedIds.add(stroke2.id)
+      canvas.model.selectSymbol(stroke2.id)
       expect(manager.isMathBlockSelected("block-1")).toBe(true)
     })
   })
@@ -224,7 +224,7 @@ describe("IISelectionManager.ts", () => {
       canvas.model.addSymbol(drawStroke)
       canvas.jiix.getStrokesForElement = jest.fn().mockReturnValue([stroke1.id, stroke2.id])
       canvas.math.getStoredSolverOutputs = jest.fn().mockReturnValue([drawStroke.id])
-      canvas.model.selectedIds.add(stroke1.id)
+      canvas.model.selectSymbol(stroke1.id)
 
       manager.expandSelectionForMathBlocks()
 
@@ -241,7 +241,7 @@ describe("IISelectionManager.ts", () => {
       canvas.model.addSymbol(stroke2)
       canvas.jiix.getStrokesForElement = jest.fn().mockReturnValue([stroke1.id, stroke2.id])
       canvas.math.getStoredSolverOutputs = jest.fn().mockReturnValue(undefined)
-      canvas.model.selectedIds.add(stroke1.id)
+      canvas.model.selectSymbol(stroke1.id)
 
       manager.expandSelectionForMathBlocks()
 
@@ -260,7 +260,7 @@ describe("IISelectionManager.ts", () => {
       canvas.model.addSymbol(drawStroke)
       canvas.jiix.getStrokesForElement = jest.fn().mockReturnValue([stroke1.id, stroke2.id])
       canvas.math.getStoredSolverOutputs = jest.fn().mockReturnValue([drawStroke.id])
-      canvas.model.selectedIds.add(stroke1.id)
+      canvas.model.selectSymbol(stroke1.id)
 
       manager.expandSelectionForMathBlocks()
 
@@ -284,7 +284,7 @@ describe("IISelectionManager.ts", () => {
       canvas.model.addSymbol(s1)
       canvas.model.addSymbol(s2)
       canvas.model.addSymbol(s3)
-      canvas.model.selectedIds.add(s1.id)
+      canvas.model.selectSymbol(s1.id)
       jest.spyOn(canvas.jiix, "getStrokesForElement").mockReturnValue([s1.id, s2.id, s3.id])
 
       const selector = new IISelectionManager(asCanvas(canvas))
@@ -304,7 +304,7 @@ describe("IISelectionManager.ts", () => {
       s2.jiixBlockType = "Edge"
       canvas.model.addSymbol(s1)
       canvas.model.addSymbol(s2)
-      canvas.model.selectedIds.add(s1.id)
+      canvas.model.selectSymbol(s1.id)
       jest.spyOn(canvas.jiix, "getStrokesForElement").mockReturnValue([s1.id, s2.id])
 
       const selector = new IISelectionManager(asCanvas(canvas))

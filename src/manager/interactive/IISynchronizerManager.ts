@@ -161,7 +161,7 @@ export class IISynchronizerManager extends IIAbstractManager {
 
     const now = Date.now()
 
-    this.model.modificationDate = now
+    this.model.touch()
     // Process each element — strokes are reference types, so in-place mutation is
     // immediately visible in model.symbols without calling the O(n) updateSymbol()
     let processedSinceYield = 0
