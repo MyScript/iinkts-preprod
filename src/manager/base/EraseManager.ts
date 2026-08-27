@@ -152,10 +152,16 @@ export class EraseManager {
             // All chars deleted, remove the symbol
             symbolsToRemove.push(s.id)
           } else {
-            // Some chars deleted, update the symbol directly
-            s.chars = remainingChars
-            canvas.typeset.setBounds(s)
-            this.renderer.drawSymbol(s)
+            // Some chars deleted, update the symbol directly. The draft is committed here: the old
+            // code mutated the clone `model.symbols` had just handed it, drew the result, and never
+            // stored it — so the deleted characters came back on any redraw from the document.
+            const draft = canvas.model.draftSymbol(s.id)
+            if (draft && isText(draft)) {
+              draft.chars = remainingChars
+              canvas.typeset.setBounds(draft)
+              canvas.model.commitSymbol(draft)
+              this.renderer.drawSymbol(draft)
+            }
           }
         } else if (this.deletingIds.has(s.id)) {
           symbolsToRemove.push(s.id)
