@@ -1,8 +1,8 @@
 import { SELECTION_MARGIN } from "@/Constants"
+import type { TPoint } from "@/core/geometry"
+import { BoxOps } from "@/core/geometry"
+import { OBBOps, type TOBB } from "@/core/geometry"
 import type { TStyle } from "@/style"
-import { BoxOps } from "@/symbol/primitives/Box"
-import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
-import type { TPoint } from "@/symbol/primitives/Point"
 
 /**
  * @group Symbol

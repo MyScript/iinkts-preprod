@@ -1,9 +1,9 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import { OBBOps } from "@/core/geometry"
 import { LoggerCategory } from "@/logger"
 import type { TBox, TMath, TSymbol, TSymbolChar, TText } from "@/symbol"
 import { isText } from "@/symbol"
 import { MathOps } from "@/symbol/math/Math"
-import { OBBOps } from "@/symbol/primitives/OBB"
 import { TextOps } from "@/symbol/text/Text"
 
 import { IIAbstractManager } from "./IIAbstractManager"

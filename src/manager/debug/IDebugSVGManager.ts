@@ -1,12 +1,12 @@
 import type { InkCanvas } from "@/canvas"
+import { BoxOps } from "@/core/geometry"
+import { OBBOps } from "@/core/geometry"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { IModel } from "@/model"
 import type { SVGRenderer } from "@/renderer"
 import { SVGBuilder, SVGRendererConst } from "@/renderer"
 import type { TBox, TStroke, TSymbol } from "@/symbol"
 import { isText } from "@/symbol"
-import { BoxOps } from "@/symbol/primitives/Box"
-import { OBBOps } from "@/symbol/primitives/OBB"
 import { createUUID } from "@/utils"
 
 /**

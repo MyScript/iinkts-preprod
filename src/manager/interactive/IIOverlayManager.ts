@@ -1,11 +1,11 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import { BoxOps } from "@/core/geometry"
+import { OBBOps } from "@/core/geometry"
 import { LoggerCategory } from "@/logger"
 import type { TJIIXMathElement } from "@/model"
 import { SVGBuilder, SVGRendererConst } from "@/renderer"
 import type { TBox, TPoint, TStroke } from "@/symbol"
 import { isStroke } from "@/symbol"
-import { BoxOps } from "@/symbol/primitives/Box"
-import { OBBOps } from "@/symbol/primitives/OBB"
 import { convertBoundingBoxMillimeterToPixel } from "@/utils"
 
 import { ColorPaletteManager } from "../base"

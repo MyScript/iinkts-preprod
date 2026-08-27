@@ -1,9 +1,9 @@
+import type { TBox } from "@/core/geometry"
+import { OBBOps, type TOBB } from "@/core/geometry"
+import { isValidPoint, type TPoint, type TSegment } from "@/core/geometry"
 import { createUUID } from "@/core/std"
 import type { TStyle } from "@/style"
 import { mergeSymbolStyle } from "@/style"
-import type { TBox } from "@/symbol/primitives/Box"
-import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
-import { isValidPoint, type TPoint, type TSegment } from "@/symbol/primitives/Point"
 import { SymbolType, type TBaseSymbol } from "@/symbol/Symbol"
 import type { TPartialDeep } from "@/utils"
 

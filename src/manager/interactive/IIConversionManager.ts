@@ -1,4 +1,6 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import { BoxOps, type TBox } from "@/core/geometry"
+import { OBBOps, type TOBB } from "@/core/geometry"
 import { LoggerCategory } from "@/logger"
 import type {
   TJIIXChar,
@@ -46,8 +48,6 @@ import { EdgeArcOps } from "@/symbol/edge/Arc"
 import { EdgeLineOps } from "@/symbol/edge/Line"
 import { EdgePolyLineOps } from "@/symbol/edge/PolyLine"
 import { MathOps } from "@/symbol/math/Math"
-import { BoxOps, type TBox } from "@/symbol/primitives/Box"
-import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
 import { ShapeCircleOps } from "@/symbol/shape/Circle"
 import { ShapeEllipseOps } from "@/symbol/shape/Ellipse"
 import { ShapePolygonOps } from "@/symbol/shape/Polygon"

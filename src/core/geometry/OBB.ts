@@ -1,4 +1,6 @@
-import { findIntersectionBetween2Segment } from "@/utils"
+// geometry.ts descends to core/geometry in IIC-1963; until then this is the only exception to the
+// core layer rule, and it dies with that ticket.
+import { findIntersectionBetween2Segment } from "@/utils" // eslint-disable-line no-restricted-imports
 
 import type { TBox } from "./Box"
 import { BoxOps } from "./Box"
@@ -6,7 +8,7 @@ import type { TPoint, TSegment } from "./Point"
 
 /**
  * Oriented Bounding Box
- * @group Symbol
+ * @group Core/Geometry
  */
 export type TOBB = {
   center: TPoint
@@ -31,7 +33,7 @@ function projectOntoAxis(corners: TPoint[], ax: number, ay: number): [number, nu
 }
 
 /**
- * @group Symbol
+ * @group Core/Geometry
  */
 export const OBBOps = {
   create(center: TPoint, width: number, height: number, angle = 0): TOBB {

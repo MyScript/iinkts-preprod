@@ -1,6 +1,6 @@
+import type { TBox } from "@/core/geometry"
+import type { TPoint } from "@/core/geometry"
 import { DecoratorKind } from "@/symbol/decorator/Decorator"
-import type { TBox } from "@/symbol/primitives/Box"
-import type { TPoint } from "@/symbol/primitives/Point"
 import { SymbolType } from "@/symbol/Symbol"
 import { TextOps, type TText } from "@/symbol/text/Text"
 import type { TPartialDeep } from "@/utils"

@@ -2,7 +2,7 @@ import { isValidNumber } from "@/core/math"
 import type { TPartialDeep } from "@/core/std"
 
 /**
- * @group Symbol
+ * @group Core/Geometry
  */
 export type TPoint = {
   x: number
@@ -10,7 +10,7 @@ export type TPoint = {
 }
 
 /**
- * @group Symbol
+ * @group Core/Geometry
  */
 export type TPointer = TPoint & {
   t: number
@@ -18,7 +18,7 @@ export type TPointer = TPoint & {
 }
 
 /**
- * @group Symbol
+ * @group Core/Geometry
  */
 export type TSegment = {
   p1: TPoint
@@ -26,7 +26,7 @@ export type TSegment = {
 }
 
 /**
- * @group Symbol
+ * @group Core/Geometry
  */
 export function isValidPoint(p?: TPartialDeep<TPoint>): boolean {
   if (!p) {
