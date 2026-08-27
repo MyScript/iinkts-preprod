@@ -1,16 +1,16 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import type { InkCanvas } from "@/canvas/variants/InkCanvas"
+import type { TPoint, TSegment } from "@/core/geometry"
 import { BoxOps } from "@/core/geometry"
 import { OBBOps, type TOBB } from "@/core/geometry"
+import { computeDistanceBetweenPointAndSegment, computeDistanceSquared } from "@/core/geometry"
 import type { TPointerInfo } from "@/grabber"
 import { PointerEventGrabber } from "@/grabber"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { SVGRenderer } from "@/renderer"
-import type { TEraser, TPoint, TSegment } from "@/symbol"
+import type { TEraser } from "@/symbol"
 import { isText } from "@/symbol"
 import { EraserOps } from "@/symbol/eraser/Eraser"
-import { computeDistanceBetweenPointAndSegment, computeDistanceSquared } from "@/utils"
-
 /**
  * @group Manager
  */

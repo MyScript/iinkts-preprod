@@ -3,7 +3,7 @@
  * fast pointer/wheel/mutation-driven code paths otherwise fire far more often than a single
  * frame can render. Each `schedule()` call replaces the pending callback, so the one that
  * actually runs always sees whatever state the caller captured (or reads live) last.
- * @group Utilities
+ * @group Browser
  */
 export class RafCoalescer {
   #frame?: number

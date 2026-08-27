@@ -2,22 +2,21 @@ import type { TBox } from "@/core/geometry"
 import type { TPointer } from "@/core/geometry"
 import type { TPoint, TSegment } from "@/core/geometry"
 import { OBBOps, type TOBB } from "@/core/geometry"
+import {
+  computeAngleAxeRadian,
+  computeDistance,
+  computeLinksPointers,
+  computeMiddlePointer,
+  getClosestPoint,
+} from "@/core/geometry"
+import type { TPartialDeep } from "@/core/std"
+import { createUUID } from "@/core/std"
 import type { TStyle } from "@/style"
 import { mergeSymbolStyle } from "@/style"
 import type { DecoratorKind } from "@/symbol/decorator/Decorator"
 import type { TAnchor } from "@/symbol/edge/Anchor"
 import type { TBaseSymbol } from "@/symbol/Symbol"
 import { SymbolType } from "@/symbol/Symbol"
-import type { TPartialDeep } from "@/utils"
-import {
-  computeAngleAxeRadian,
-  computeDistance,
-  computeLinksPointers,
-  computeMiddlePointer,
-  createUUID,
-  getClosestPoint,
-} from "@/utils"
-
 /**
  * @group Symbol
  */

@@ -1,8 +1,9 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import type { TPointer } from "@/core/geometry"
+import type { TPartialDeep } from "@/core/std"
 import type { TPointerInfo } from "@/grabber"
 import { LoggerCategory } from "@/logger"
-import type { TPointer, TStroke } from "@/symbol"
-import type { TPartialDeep } from "@/utils"
+import type { TStroke } from "@/symbol"
 
 import { IIAbstractManager } from "./IIAbstractManager"
 

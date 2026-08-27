@@ -7,6 +7,9 @@ import type {
   TServerHTTPConfiguration,
 } from "@/client"
 import { DefaultHTTPClientV2Configuration, HTTPClientV2Configuration } from "@/client"
+import { convertPixelToMillimeter } from "@/core/math"
+import type { TPartialDeep } from "@/core/std"
+import { mergeDeep } from "@/core/std"
 import type { TGrabberConfiguration } from "@/grabber"
 import { DefaultGrabberConfiguration } from "@/grabber"
 import type { THistoryConfiguration } from "@/history"
@@ -17,9 +20,6 @@ import type { TIIRendererConfiguration } from "@/renderer"
 import { DefaultIIRendererConfiguration } from "@/renderer"
 import type { TStyle } from "@/style"
 import { DefaultStyle } from "@/style"
-import type { TPartialDeep } from "@/utils"
-import { convertPixelToMillimeter, mergeDeep } from "@/utils"
-
 /**
  * @group Canvas
  */

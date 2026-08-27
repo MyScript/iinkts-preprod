@@ -1,6 +1,7 @@
+import { RafCoalescer } from "@/browser"
 import { DOMFactory } from "@/components/dom"
-import { areValidCoordinates, RafCoalescer, TWO_PI } from "@/utils"
-
+import { areValidCoordinates } from "@/core/geometry"
+import { TWO_PI } from "@/core/math"
 /**
  * @group Components
  */

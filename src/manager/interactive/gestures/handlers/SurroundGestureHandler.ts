@@ -6,7 +6,6 @@ import type { TGesture } from "@/manager/interactive/gestures/GestureTypes"
 import { SurroundAction } from "@/manager/interactive/gestures/GestureTypes"
 import type { TStroke } from "@/symbol"
 import { DecoratorKind } from "@/symbol"
-
 /**
  * Handler for SURROUND gesture type
  * Supports three actions: Select, Highlight, and Surround

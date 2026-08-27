@@ -1,11 +1,10 @@
 import type { TBox } from "@/core/geometry"
 import type { TPointer } from "@/core/geometry"
 import { BoxOps } from "@/core/geometry"
+import { createUUID } from "@/core/std"
 import type { TStyle } from "@/style"
 import { mergeSymbolStyle } from "@/style"
 import { SymbolType } from "@/symbol/Symbol"
-import { createUUID } from "@/utils"
-
 /**
  * @group Symbol
  */

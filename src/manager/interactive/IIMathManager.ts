@@ -5,9 +5,9 @@ import type {
   TMathVariableDefinition,
   TMathVariableDefinitions,
 } from "@/client/WebSocketClientMessage"
+import type { TBox } from "@/core/geometry"
 import { LoggerCategory } from "@/logger"
 import type { TJIIXMathElement } from "@/model"
-import type { TBox } from "@/symbol"
 import type { MatrixTransform } from "@/transform"
 
 import { IIAbstractManager } from "./IIAbstractManager"

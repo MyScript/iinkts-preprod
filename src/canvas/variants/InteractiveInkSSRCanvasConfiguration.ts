@@ -7,6 +7,8 @@ import type {
   TWebSocketSSRClientRecognitionConfiguration,
 } from "@/client"
 import { DefaultWebSocketSSRClientConfiguration, WebSocketSSRClientConfiguration } from "@/client"
+import type { TPartialDeep } from "@/core/std"
+import { mergeDeep } from "@/core/std"
 import type { TGrabberConfiguration } from "@/grabber"
 import { DefaultGrabberConfiguration } from "@/grabber"
 import type { THistoryConfiguration } from "@/history"
@@ -17,9 +19,6 @@ import type { TRendererConfiguration } from "@/renderer"
 import { DefaultRendererConfiguration } from "@/renderer"
 import type { TPenStyle, TTheme } from "@/style"
 import { DefaultTheme } from "@/style"
-import type { TPartialDeep } from "@/utils"
-import { mergeDeep } from "@/utils"
-
 /**
  * @group Canvas
  */

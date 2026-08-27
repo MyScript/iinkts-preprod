@@ -1,6 +1,6 @@
+import { mergeExports } from "@/core/std"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { TStroke } from "@/symbol"
-import { mergeExports } from "@/utils"
 
 import type { TExportV2 } from "./ExportV2"
 

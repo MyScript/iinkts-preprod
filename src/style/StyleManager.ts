@@ -1,6 +1,6 @@
+import type { TPartialDeep } from "@/core/std"
+import { mergeDeep } from "@/core/std"
 import { LoggerCategory, LoggerManager } from "@/logger"
-import type { TPartialDeep } from "@/utils"
-import { mergeDeep } from "@/utils"
 
 import type { TPenStyle } from "./PenStyle"
 import { DefaultPenStyle } from "./PenStyle"

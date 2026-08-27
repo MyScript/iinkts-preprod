@@ -1,6 +1,8 @@
+import { RafCoalescer } from "@/browser"
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import type { WebSocketClient } from "@/client"
 import { CanvasWriteTool, SELECTION_MARGIN } from "@/Constants"
+import type { TPoint, TPointer } from "@/core/geometry"
 import { OBBOps } from "@/core/geometry"
 import type { TPointerInfo } from "@/grabber"
 import type { IIHistoryManager } from "@/history"
@@ -8,17 +10,7 @@ import { AbstractWriterManager } from "@/manager/base/AbstractWriterManager"
 import type { IIModel } from "@/model"
 import type { SVGRenderer } from "@/renderer"
 import type { TStyle } from "@/style"
-import type {
-  TEdge,
-  TEdgeLine,
-  TPoint,
-  TPointer,
-  TShapeCircle,
-  TShapeEllipse,
-  TShapePolygon,
-  TStroke,
-  TSymbol,
-} from "@/symbol"
+import type { TEdge, TEdgeLine, TShapeCircle, TShapeEllipse, TShapePolygon, TStroke, TSymbol } from "@/symbol"
 import { cloneSymbol, EdgeDecoration, EdgeKind, isStroke, SymbolType } from "@/symbol"
 import { EdgeOps } from "@/symbol/edge/Edge"
 import { EdgeLineOps } from "@/symbol/edge/Line"
@@ -26,7 +18,6 @@ import { ShapeCircleOps } from "@/symbol/shape/Circle"
 import { ShapeEllipseOps } from "@/symbol/shape/Ellipse"
 import { ShapePolygonOps } from "@/symbol/shape/Polygon"
 import { StrokeOps } from "@/symbol/stroke/Stroke"
-import { RafCoalescer } from "@/utils"
 
 import type { TGesture } from "./gestures"
 import type { IIGestureManager } from "./IIGestureManager"

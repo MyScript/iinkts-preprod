@@ -1,10 +1,10 @@
 import type { TBox } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
 import { OBBOps, type TOBB } from "@/core/geometry"
+import type { TPartialDeep } from "@/core/std"
 import { DefaultStyle } from "@/style"
 import { DecoratorKind, DecoratorOps, type TDecorator } from "@/symbol/decorator/Decorator"
 import { SymbolType } from "@/symbol/Symbol"
-import type { TPartialDeep } from "@/utils"
 
 import { SVGBuilder } from "../SVGBuilder"
 import { SymbolUtil } from "../SymbolUtil"

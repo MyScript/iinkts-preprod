@@ -1,13 +1,13 @@
-import { LoggerCategory, LoggerManager } from "@/logger"
-import type { Stroke, TPointer } from "@/symbol"
+import type { TPointer } from "@/core/geometry"
 import {
   computeFinalOutlinePoints,
   computeLineOutlinePoints,
   computeMiddlePointer,
   computeQuadraticOutlinePoints,
-  TWO_PI,
-} from "@/utils"
-
+} from "@/core/geometry"
+import { TWO_PI } from "@/core/math"
+import { LoggerCategory, LoggerManager } from "@/logger"
+import type { Stroke } from "@/symbol"
 /**
  * @group Renderer
  */

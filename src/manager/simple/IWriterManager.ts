@@ -1,9 +1,10 @@
 import type { InkCanvas } from "@/canvas"
+import type { TPointer } from "@/core/geometry"
 import type { TPointerInfo } from "@/grabber"
 import { AbstractWriterManager } from "@/manager/base/AbstractWriterManager"
 import type { IModel } from "@/model"
 import type { TStyle } from "@/style"
-import type { TPointer, TStroke, TSymbol } from "@/symbol"
+import type { TStroke, TSymbol } from "@/symbol"
 import { isStroke } from "@/symbol"
 import { StrokeOps } from "@/symbol/stroke/Stroke"
 

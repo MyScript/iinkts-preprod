@@ -1,6 +1,9 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import type { TBox } from "@/core/geometry"
 import { BoxOps } from "@/core/geometry"
 import { OBBOps } from "@/core/geometry"
+import { convertBoundingBoxMillimeterToPixel } from "@/core/geometry"
+import { convertMillimeterToPixel } from "@/core/math"
 import { LoggerCategory } from "@/logger"
 import type {
   TJIIXEdgeElement,
@@ -13,8 +16,7 @@ import type {
   TJIIXTextElement,
 } from "@/model"
 import { JIIXElementType } from "@/model"
-import type { TBox, TStroke, TSymbol } from "@/symbol"
-import { convertBoundingBoxMillimeterToPixel, convertMillimeterToPixel } from "@/utils"
+import type { TStroke, TSymbol } from "@/symbol"
 
 import { IIAbstractManager } from "./IIAbstractManager"
 

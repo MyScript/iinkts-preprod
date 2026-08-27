@@ -1,11 +1,11 @@
-import type { TLegacyStroke, TPointer } from "@/symbol"
+import type { TPointer } from "@/core/geometry"
 import {
   computeFinalOutlinePoints,
   computeLineOutlinePoints,
   computeMiddlePointer,
   computeQuadraticOutlinePoints,
-} from "@/utils"
-
+} from "@/core/geometry"
+import type { TLegacyStroke } from "@/symbol"
 /**
  * @group Renderer
  */

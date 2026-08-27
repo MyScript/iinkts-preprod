@@ -1,8 +1,7 @@
 import type { TBox } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
+import type { TPartialDeep } from "@/core/std"
 import type { TBaseSymbol } from "@/symbol/Symbol"
-import type { TPartialDeep } from "@/utils"
-
 /**
  * @group SymbolUtils
  * @summary Plugin interface for registering symbol behaviour.
