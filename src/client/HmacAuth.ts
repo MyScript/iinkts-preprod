@@ -1,5 +1,4 @@
-import { computeHmac } from "@/utils"
-
+import { computeHmac } from "./crypto"
 import type { TServerHTTPConfiguration } from "./ServerConfiguration"
 
 /**

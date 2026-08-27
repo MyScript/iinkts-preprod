@@ -1,10 +1,9 @@
-import type { TServerHTTPConfiguration } from "@/client"
 import type { TPartialDeep } from "@/core/std"
 
-import { assertServerConfig } from "./validation"
+import { assertServerConfig, type TServerHTTPConfiguration } from "./ServerConfiguration"
 
 /**
- * @group Utilities
+ * @group Client
  */
 export type TApiInfos = {
   version: string
@@ -13,7 +12,7 @@ export type TApiInfos = {
 }
 
 /**
- * @group Utilities
+ * @group Client
  */
 export async function getApiInfos(
   configuration?: TPartialDeep<{

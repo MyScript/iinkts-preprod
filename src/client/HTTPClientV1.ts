@@ -1,16 +1,16 @@
+import { isVersionSuperiorOrEqual, type TPartialDeep } from "@/core/std"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { Model, TExport, TJIIXExport } from "@/model"
 import type { TPenStyle } from "@/style"
 import { StyleHelper } from "@/style"
 import { type Stroke, StrokeOps } from "@/symbol"
-import type { TPartialDeep } from "@/utils"
-import { getApiInfos, isVersionSuperiorOrEqual, redactServerSecrets } from "@/utils"
 
 import { parseApiError } from "./ClientApiError"
 import { ClientError } from "./ClientError"
 import { resolveHmac } from "./HmacAuth"
 import type { THTTPClientV1Configuration } from "./HTTPClientV1Configuration"
 import { HTTPClientV1Configuration } from "./HTTPClientV1Configuration"
+import { getApiInfos } from "./infos"
 import type {
   TDiagramConfiguration,
   TExportConfiguration,
@@ -19,6 +19,7 @@ import type {
   TTextConfiguration,
 } from "./recognition"
 import type { TConverstionState } from "./RecognitionConfiguration"
+import { redactServerSecrets } from "./ServerConfiguration"
 
 /**
  * @group Symbol
