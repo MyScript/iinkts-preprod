@@ -944,7 +944,9 @@ describe("InteractiveInkCanvas.ts", () => {
       canvas.history.undo = jest.fn(() => ({ updated: { oldSymbols: [stroke1], newSymbols: [oldStroke1] } }))
       canvas.history.context.canUndo = true
       await canvas.undo()
-      expect(canvas.model.symbols).toEqual([oldStroke1])
+      // The document stores a copy of the entry rather than the entry itself, and `updateSymbol`
+      // stamps that copy — so compare everything but the timestamp it just set.
+      expect(canvas.model.symbols).toEqual([{ ...oldStroke1, modificationDate: expect.any(Number) }])
       expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(oldStroke1)
     })
     test("should restore the old style and redraw when history.undo returns a style change, without calling client.undo", async () => {
@@ -955,9 +957,30 @@ describe("InteractiveInkCanvas.ts", () => {
       canvas.history.context.canUndo = true
       await canvas.undo()
       expect(canvas.model.symbols[0].style).toEqual(restoredStyle)
-      expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(stroke1)
+      // The entry's own symbol is no longer mutated by the replay, so the redraw gets what the
+      // document now holds, not the pre-undo reference the test still has.
+      expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(canvas.model.symbols[0])
       expect(canvas.client.undo).toHaveBeenCalledTimes(0)
     })
+    test("should leave the history entry itself untouched while replaying a style change", async () => {
+      // IIC-1972: the replay used to mutate `changes.style.symbols` in place and store that same
+      // object, so the stack aliased the document and a second undo replayed a rewritten entry.
+      const stroke1 = buildIIStroke()
+      canvas.model.addSymbol(stroke1)
+      const entrySymbol = canvas.model.symbols[0]
+      const entryStyleBefore = { ...entrySymbol.style }
+      canvas.history.undo = jest.fn(() => ({
+        style: { symbols: [entrySymbol], newStyles: [{ ...entrySymbol.style, color: "red" }] },
+      }))
+      canvas.history.context.canUndo = true
+
+      await canvas.undo()
+
+      expect(canvas.model.symbols[0].style).toEqual({ ...entryStyleBefore, color: "red" })
+      expect(entrySymbol.style).toEqual(entryStyleBefore)
+      expect(canvas.model.symbols[0]).not.toBe(entrySymbol)
+    })
+
     test("should reorder the symbol and redraw when history.undo returns an order change, without calling client.undo", async () => {
       const stroke1 = buildIIStroke()
       canvas.model.addSymbol(stroke1)
