@@ -883,6 +883,9 @@ describe("InteractiveInkCanvas.ts", () => {
     })
     test("should call client.undo & renderer.drawSymbol & renderer.removeSymbol when history.undo return matrix", async () => {
       const stroke1 = buildIIStroke()
+      // The replay transforms what the document holds; a symbol it does not hold is skipped,
+      // so the test has to seed it.
+      canvas.model.addSymbol(stroke1)
       canvas.history.undo = jest.fn(() => ({
         matrix: { matrix: { tx: 2, ty: 3, xx: 4, xy: 5, yx: 6, yy: 7 }, symbols: [stroke1] },
       }))
@@ -895,10 +898,13 @@ describe("InteractiveInkCanvas.ts", () => {
         })
       )
       expect(canvas.renderer.drawSymbol).toHaveBeenCalledTimes(1)
-      expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(stroke1)
+      expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(canvas.model.getRootSymbol(stroke1.id))
     })
     test("should call client.undo & renderer.drawSymbol & renderer.removeSymbol when history.undo return translate", async () => {
       const stroke1 = buildIIStroke()
+      // The replay transforms what the document holds; a symbol it does not hold is skipped,
+      // so the test has to seed it.
+      canvas.model.addSymbol(stroke1)
       canvas.history.undo = jest.fn(() => ({ translate: [{ tx: 1, ty: 2, symbols: [stroke1] }] }))
       canvas.history.context.canUndo = true
       await canvas.undo()
@@ -907,10 +913,13 @@ describe("InteractiveInkCanvas.ts", () => {
         expect.objectContaining({ translate: [{ tx: 1, ty: 2, strokes: [stroke1] }] })
       )
       expect(canvas.renderer.drawSymbol).toHaveBeenCalledTimes(1)
-      expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(stroke1)
+      expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(canvas.model.getRootSymbol(stroke1.id))
     })
     test("should call client.undo & renderer.drawSymbol & renderer.removeSymbol when history.undo return scale", async () => {
       const stroke1 = buildIIStroke()
+      // The replay transforms what the document holds; a symbol it does not hold is skipped,
+      // so the test has to seed it.
+      canvas.model.addSymbol(stroke1)
       canvas.history.undo = jest.fn(() => ({
         scale: [{ origin: { x: 1, y: 2 }, scaleX: 2, scaleY: 4, symbols: [stroke1] }],
       }))
@@ -921,10 +930,13 @@ describe("InteractiveInkCanvas.ts", () => {
         expect.objectContaining({ scale: [{ origin: { x: 1, y: 2 }, scaleX: 2, scaleY: 4, strokes: [stroke1] }] })
       )
       expect(canvas.renderer.drawSymbol).toHaveBeenCalledTimes(1)
-      expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(stroke1)
+      expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(canvas.model.getRootSymbol(stroke1.id))
     })
     test("should call client.undo & renderer.drawSymbol & renderer.removeSymbol when history.undo return rotate", async () => {
       const stroke1 = buildIIStroke()
+      // The replay transforms what the document holds; a symbol it does not hold is skipped,
+      // so the test has to seed it.
+      canvas.model.addSymbol(stroke1)
       canvas.history.undo = jest.fn(() => ({
         rotate: [{ angle: 42, center: { x: 1, y: 2 }, symbols: [stroke1] }],
       }))
@@ -935,7 +947,7 @@ describe("InteractiveInkCanvas.ts", () => {
         expect.objectContaining({ rotate: [{ angle: 42, center: { x: 1, y: 2 }, strokes: [stroke1] }] })
       )
       expect(canvas.renderer.drawSymbol).toHaveBeenCalledTimes(1)
-      expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(stroke1)
+      expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(canvas.model.getRootSymbol(stroke1.id))
     })
     test("should update the model and redraw when history.undo returns an updated symbol", async () => {
       const stroke1 = buildIIStroke()

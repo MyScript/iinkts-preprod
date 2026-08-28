@@ -49,14 +49,17 @@ export abstract class IIAbstractTransformManager extends IIAbstractManager {
 
   protected applyAndDraw(symbols: TSymbol[], matrix: MatrixTransform): void {
     symbols.forEach((s) => {
-      // A symbol the document no longer holds has no draft: the undo/redo replay dispatcher can
-      // replay a transform over a symbol erased since, and the old path mutated the detached object
-      // and still drew it, with `updateSymbol` quietly ignoring the unknown id. Keep that, rather
-      // than silently dropping the draw — IIC-1972 removes the case by making history hold values.
-      const target = this.model.draftSymbol(s.id) ?? s
+      // No fallback on the passed symbol: since IIC-1972 the history stack holds values rather than
+      // references into the document, so a symbol the document no longer holds is one there is
+      // nothing to transform. The old path mutated the detached object and drew it anyway, painting
+      // something the model had already forgotten.
+      const target = this.model.draftSymbol(s.id)
+      if (!target) {
+        return
+      }
       this.applyToSymbol(target, matrix)
       this.canvas.renderer.drawSymbol(target)
-      this.model.updateSymbol(target)
+      this.model.commitSymbol(target)
     })
     this.updateDecoratorsForTargets(symbols, matrix)
   }

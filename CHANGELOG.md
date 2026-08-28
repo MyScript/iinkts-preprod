@@ -4,6 +4,15 @@ See [MIGRATION.md](./MIGRATION.md) for step-by-step upgrade instructions.
 
 ## Breaking Changes
 
+### The document is immutable
+Symbols are frozen when committed and handed to readers directly, instead of the whole document being deep-cloned on every read. Reading `model.symbols` on a 500-stroke document goes from 11.59 ms to 0.0012 ms; the cost moves to the write side, where building a 200-stroke model is 28% slower.
+- mutating a symbol read from `model` now throws — ask for `model.draftSymbol(id)` and hand it back with `model.commitSymbol(draft)`. Enforced at runtime by `Object.freeze`, not by the types
+- a draft is frozen once committed, so a per-frame gesture needs a fresh draft each frame
+- `model.selectedIds` is a `ReadonlySet`; `modificationDate` and `exports` are getters
+- new: `SymbolStore`, `TDraft`, `TReadonlyDeep`, `TSymbolOrder`, `IIModel.symbolCount`, `IIModel.decoratorsByTargetId`
+- fixed: `changeOrderSymbol` was a no-op; partially erasing characters was never stored; undo/redo replay rewrote the history entry it was replaying; edge-connection anchors were silently dropped behind a swallowed throw
+- see [MIGRATION.md](./MIGRATION.md)
+
 ### Internal layout: `src/utils/` dissolved
 Every helper moved to the lowest layer its inputs allow, and the new `core` layer may not import from anywhere else in the library. The exported surface is unchanged — the same 787 names before and after — so this only affects code that imported a deep path rather than the package root.
 - `src/utils/` no longer exists; helpers now live in `core/geometry`, `core/math`, `core/std`, `core`, `client`, `export` and `browser`
