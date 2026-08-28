@@ -114,6 +114,17 @@ export class IIJiixQueryManager extends IIAbstractManager {
   }
 
   /**
+   * Both the index and the text metadata hold references into the document — strokes and JIIX
+   * elements — so leaving them populated retains the whole graph for as long as this manager is
+   * reachable. Unlike {@link invalidateIndex}, this does not rebuild.
+   */
+  protected onDestroy(): void {
+    this.logger.info("onDestroy", this.managerName)
+    this.#index = null
+    this.#textMetadata.clear()
+  }
+
+  /**
    * Build or rebuild the JIIX index
    * Called automatically when index is stale
    */
