@@ -159,15 +159,19 @@ export class DecoratorContextMenu extends BaseMenuItem<HTMLElement> {
       btn.addEventListener("pointerup", (e) => {
         e.preventDefault()
         e.stopPropagation()
-        const symbolsDecorable = this.symbolsDecorable
+        // Drafts, not reads: the decorator whose colour changes is nested inside a committed record.
+        const recoloured = this.symbolsDecorable
+          .filter((s) => s.decorators.some((d) => d.kind === kind))
+          .map((s) => this.canvas.model.draftSymbol(s.id))
+          .filter((s): s is TDraft<TText> => !!s && isText(s))
 
-        symbolsDecorable.forEach((s) => {
+        recoloured.forEach((s) => {
           const deco = s.decorators.find((d) => d.kind === kind)
           if (deco) {
             deco.style.color = color
           }
         })
-        this.canvas.updateSymbols(symbolsDecorable.filter((s) => s.decorators.some((d) => d.kind === kind)))
+        this.canvas.updateSymbols(recoloured)
         colorList.querySelectorAll("*").forEach((e) => e.classList.remove("active"))
         btn.classList.add("active")
       })

@@ -398,10 +398,17 @@ export class IISynchronizerManager extends IIAbstractManager {
    * Always overwrites from the latest JIIX truth — a connection reported in a previous sync
    * but absent now is cleared, not kept.
    */
-  #syncEdgeConnections(el: TJIIXElement, strokes: TDraft<TStroke>[]): void {
+  /**
+   * Takes the committed strokes and drafts its own: the metadata loop above commits the drafts it
+   * was handed, and a committed draft is frozen.
+   */
+  #syncEdgeConnections(el: TJIIXElement, committed: TStroke[]): void {
     if (el.type !== JIIXElementType.Edge) {
       return
     }
+    const strokes = committed
+      .map((s) => this.model.draftSymbol(s.id))
+      .filter((s): s is TDraft<TStroke> => !!s && isStroke(s))
     const endpoints = extractEdgeEndpoints(el)
     const connectedIds = el.connected ?? []
     if (!endpoints || connectedIds.length === 0) {

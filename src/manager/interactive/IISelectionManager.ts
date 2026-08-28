@@ -482,10 +482,11 @@ export class IISelectionManager extends IIAbstractManager {
   }
 
   /**
-   * The resize handles drag `edge` in place across the whole gesture and commit it on every frame,
-   * so it takes a draft: one draft per drag, mutated per `pointermove`, committed per frame.
+   * `edge` positions the handles and nothing more. The drag handlers take a **fresh draft on every
+   * frame**: a draft is frozen the moment it is committed, so one draft reused across the gesture
+   * would throw on the second `pointermove`.
    */
-  protected createEdgeResizeGroup(edge: TDraft<TEdge>): SVGGElement {
+  protected createEdgeResizeGroup(edge: TEdge): SVGGElement {
     const group = SVGBuilder.createGroup({
       role: SvgElementRole.Resize,
       "vector-effect": "non-scaling-size",
@@ -501,6 +502,16 @@ export class IISelectionManager extends IIAbstractManager {
       fill: "white",
       style: `cursor:grab;`,
     }
+    /** The edge as the document currently holds it, mutable. One per frame. */
+    const draftEdge = (): TDraft<TEdge> | undefined => {
+      const draft = this.model.draftSymbol(edge.id)
+      return draft && EdgeOps.isEdge(draft) ? (draft as TDraft<TEdge>) : undefined
+    }
+    const moveVertex = (draft: TDraft<TEdge>, pointIndex: number, x: number, y: number) => {
+      draft.vertices[pointIndex].x = x
+      draft.vertices[pointIndex].y = y
+      EdgeOps.updateEdgeDerivedFields(draft)
+    }
     const bindEl = (el: SVGCircleElement, pointIndex: number) => {
       this.#bindPointerDrag(
         el,
@@ -508,34 +519,43 @@ export class IISelectionManager extends IIAbstractManager {
           this.renderer.layer.style.cursor = "grabbing"
         },
         (ev) => {
+          const draft = draftEdge()
+          if (!draft) {
+            return
+          }
           const point = this.getPoint(ev)
           const { x, y } = this.canvas.snaps.snapResize(point)
-          edge.vertices[pointIndex].x = x
-          edge.vertices[pointIndex].y = y
-          EdgeOps.updateEdgeDerivedFields(edge)
-          this.model.updateSymbol(edge)
-          this.renderer.drawSymbol(edge)
-          this.canvas.connector.showAnchorHint({ x, y }, edge.id)
+          moveVertex(draft, pointIndex, x, y)
+          this.model.commitSymbol(draft)
+          this.renderer.drawSymbol(draft)
+          this.canvas.connector.showAnchorHint({ x, y }, draft.id)
         },
         (ev) => {
+          const draft = draftEdge()
+          if (!draft) {
+            return
+          }
           const point = this.getPoint(ev)
           const { x, y } = this.canvas.snaps.snapResize(point)
-          edge.vertices[pointIndex].x = x
-          edge.vertices[pointIndex].y = y
-          EdgeOps.updateEdgeDerivedFields(edge)
+          moveVertex(draft, pointIndex, x, y)
           this.canvas.connector.clearAnchorHint()
-          this.canvas.connector.applyEndpointAnchor(edge, pointIndex, { x, y })
+          this.canvas.connector.applyEndpointAnchor(draft, pointIndex, { x, y })
           this.renderer.layer.style.cursor = ""
-          this.canvas.updateSymbol(edge)
+          this.canvas.updateSymbol(draft)
           this.canvas.snaps.clearSnapToElementLines()
           this.drawSelectedGroup(this.model.symbolsSelected)
         }
       )
     }
     if (edge.kind === EdgeKind.Arc) {
-      const arc = edge as TDraft<TEdgeArc>
+      const arc = edge as TEdgeArc
+      /** The arc as the document currently holds it, mutable. One per frame. */
+      const draftArc = (): TDraft<TEdgeArc> | undefined => {
+        const draft = this.model.draftSymbol(arc.id)
+        return draft && EdgeOps.isEdge(draft) && EdgeOps.isArcEdge(draft) ? (draft as TDraft<TEdgeArc>) : undefined
+      }
       const bindArcEl = (el: SVGCircleElement, isStart: boolean, isEnd: boolean) => {
-        const updateArc = (x: number, y: number) => {
+        const updateArc = (arc: TDraft<TEdgeArc>, x: number, y: number) => {
           if (isStart) {
             // Free stretch: lets the ellipse resize to reach the dragged point, rather than
             // sliding the endpoint's angle around the existing (unchanged-size) ellipse.
@@ -553,14 +573,18 @@ export class IISelectionManager extends IIAbstractManager {
         // pointermove, keeps that search from running far more often than it can be seen.
         const dragCoalescer = new RafCoalescer()
         const runHandler = (ev: PointerEvent) => {
+          const draft = draftArc()
+          if (!draft) {
+            return
+          }
           const point = this.getPoint(ev)
           const { x, y } = this.canvas.snaps.snapResize(point)
-          updateArc(x, y)
-          EdgeArcOps.updateDerivedFields(arc)
-          this.model.updateSymbol(arc)
-          this.renderer.drawSymbol(arc)
+          updateArc(draft, x, y)
+          EdgeArcOps.updateDerivedFields(draft)
+          this.model.commitSymbol(draft)
+          this.renderer.drawSymbol(draft)
           if (isStart || isEnd) {
-            this.canvas.connector.showAnchorHint({ x, y }, arc.id)
+            this.canvas.connector.showAnchorHint({ x, y }, draft.id)
           }
         }
         this.#bindPointerDrag(
@@ -571,20 +595,24 @@ export class IISelectionManager extends IIAbstractManager {
           (ev) => dragCoalescer.schedule(() => runHandler(ev)),
           (ev) => {
             dragCoalescer.cancel()
+            const draft = draftArc()
+            if (!draft) {
+              return
+            }
             const point = this.getPoint(ev)
             const { x, y } = this.canvas.snaps.snapResize(point)
-            updateArc(x, y)
-            EdgeArcOps.updateDerivedFields(arc)
+            updateArc(draft, x, y)
+            EdgeArcOps.updateDerivedFields(draft)
             this.canvas.connector.clearAnchorHint()
             if (isStart || isEnd) {
               // Recomputed fresh, not the vertexIndex captured before this drag: updateDerivedFields
               // just re-tessellated the arc, and the vertex COUNT can change with the new radius/
               // sweep — a stale index could silently miss applyEndpointAnchor's own isEnd check.
-              const currentIndex = isStart ? 0 : arc.vertices.length - 1
-              this.canvas.connector.applyEndpointAnchor(arc, currentIndex, { x, y })
+              const currentIndex = isStart ? 0 : draft.vertices.length - 1
+              this.canvas.connector.applyEndpointAnchor(draft, currentIndex, { x, y })
             }
             this.renderer.layer.style.cursor = ""
-            this.canvas.updateSymbol(arc)
+            this.canvas.updateSymbol(draft)
             this.canvas.snaps.clearSnapToElementLines()
             this.drawSelectedGroup(this.model.symbolsSelected)
           }
@@ -662,10 +690,7 @@ export class IISelectionManager extends IIAbstractManager {
     const surroundGroup = SVGBuilder.createGroup(attrs)
     const translateEl = this.createEdgeTranslatePath(edge)
     surroundGroup.appendChild(translateEl)
-    const resizeDraft = this.model.draftSymbol(edge.id)
-    if (resizeDraft && EdgeOps.isEdge(resizeDraft)) {
-      surroundGroup.appendChild(this.createEdgeResizeGroup(resizeDraft as TDraft<TEdge>))
-    }
+    surroundGroup.appendChild(this.createEdgeResizeGroup(edge))
     return surroundGroup
   }
 

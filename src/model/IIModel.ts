@@ -2,7 +2,7 @@ import { mergeExports, type TDraft } from "@/core/std"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import { SymbolStore, type TSymbolOrder } from "@/store"
 import type { TSymbol } from "@/symbol"
-import { cloneSymbol, isDecorator } from "@/symbol"
+import { isDecorator } from "@/symbol"
 
 import type { TExport, TJIIXMathElement, TJIIXTextElement } from "./Export"
 import { JIIXElementType } from "./Export"
@@ -54,20 +54,18 @@ export class IIModel {
   }
 
   /**
-   * A fresh, deep-cloned array on every access. Never pass it to a logger: the arguments of
-   * `logger.debug` are evaluated whether or not the level is enabled, so a per-mutation
-   * `debug("…", this.symbols)` clones the whole document once per mutation and turns any loop over
-   * symbols into O(n^2). That is what it used to do in addSymbol/updateSymbol/removeSymbol.
+   * The document's symbols, in stacking order.
+   *
+   * These are the stored records themselves, not copies: the store freezes them at commit, so a
+   * reader cannot corrupt the document by holding one. To change a symbol, ask for a
+   * {@link draftSymbol} and commit it back.
    */
   get symbols(): TSymbol[] {
-    return this.#store.list().map(cloneSymbol)
+    return this.#store.list()
   }
 
   get symbolsSelected(): TSymbol[] {
-    return this.#store
-      .list()
-      .filter((s) => this.#selectedIds.has(s.id))
-      .map(cloneSymbol)
+    return this.#store.list().filter((s) => this.#selectedIds.has(s.id))
   }
 
   /**
@@ -117,8 +115,7 @@ export class IIModel {
   }
 
   getRootSymbol(id: string): TSymbol | undefined {
-    const s = this.#store.get(id)
-    return s ? cloneSymbol(s) : undefined
+    return this.#store.get(id)
   }
 
   /**

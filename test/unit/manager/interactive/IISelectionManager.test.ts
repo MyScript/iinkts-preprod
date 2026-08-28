@@ -671,7 +671,9 @@ describe("IISelectionManager.ts", () => {
       const group = (
         manager as unknown as { createEdgeResizeGroup: (edge: TEdgeArc) => SVGGElement }
       ).createEdgeResizeGroup(arc)
-      return { canvas, arc, group }
+      /** The drag commits a draft, so the local `arc` is a pre-drag snapshot: read the document. */
+      const current = () => canvas.model.getRootSymbol(arc.id) as TEdgeArc
+      return { canvas, arc, group, current }
     }
 
     function dragHandle(canvas: ReturnType<typeof createCanvasMock>, group: SVGGElement, index: number, target: { x: number; y: number }) {
@@ -686,12 +688,12 @@ describe("IISelectionManager.ts", () => {
     }
 
     test("dragging the start handle keeps the end endpoint fixed", () => {
-      const { canvas, arc, group } = setup()
+      const { canvas, arc, group, current } = setup()
       const endBefore = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle + arc.sweepAngle)
 
       dragHandle(canvas, group, 0, { x: 3, y: 4 })
 
-      const endAfter = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle + arc.sweepAngle)
+      const endAfter = computePointOnEllipse(current().center, current().radiusX, current().radiusY, current().phi, current().startAngle + current().sweepAngle)
       expect(endAfter.x).toBeCloseTo(endBefore.x, 1)
       expect(endAfter.y).toBeCloseTo(endBefore.y, 1)
     })
@@ -708,7 +710,7 @@ describe("IISelectionManager.ts", () => {
     })
 
     test("dragging the middle handle keeps BOTH endpoints fixed (the reported bug)", () => {
-      const { canvas, arc, group } = setup()
+      const { canvas, arc, group, current } = setup()
       const startBefore = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle)
       const endBefore = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle + arc.sweepAngle)
       const radiusYBefore = arc.radiusY
@@ -716,34 +718,34 @@ describe("IISelectionManager.ts", () => {
       dragHandle(canvas, group, 1, { x: 0, y: 20 })
 
       const startAfter = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle)
-      const endAfter = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle + arc.sweepAngle)
+      const endAfter = computePointOnEllipse(current().center, current().radiusX, current().radiusY, current().phi, current().startAngle + current().sweepAngle)
       expect(startAfter.x).toBeCloseTo(startBefore.x, 1)
       expect(startAfter.y).toBeCloseTo(startBefore.y, 1)
       expect(endAfter.x).toBeCloseTo(endBefore.x, 1)
       expect(endAfter.y).toBeCloseTo(endBefore.y, 1)
       // The bulge actually changed (not a no-op) — the fix moves curvature, not endpoints.
-      expect(arc.radiusY).not.toBeCloseTo(radiusYBefore, 1)
+      expect(current().radiusY).not.toBeCloseTo(radiusYBefore, 1)
     })
 
     test("dragging the end handle out beyond the current ellipse stretches the radius and lands exactly on the drop point", () => {
-      const { canvas, arc, group } = setup()
+      const { canvas, arc, group, current } = setup()
       const startBefore = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle)
       const radiusYBefore = arc.radiusY
 
       dragHandle(canvas, group, 2, { x: 10, y: 0 })
 
       const startAfter = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle)
-      const endAfter = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle + arc.sweepAngle)
+      const endAfter = computePointOnEllipse(current().center, current().radiusX, current().radiusY, current().phi, current().startAngle + current().sweepAngle)
       expect(startAfter.x).toBeCloseTo(startBefore.x, 1)
       expect(startAfter.y).toBeCloseTo(startBefore.y, 1)
       expect(endAfter.x).toBeCloseTo(10, 1)
       expect(endAfter.y).toBeCloseTo(0, 1)
       // No longer locked to the original ellipse — the radius actually stretched.
-      expect(arc.radiusY).not.toBeCloseTo(radiusYBefore, 1)
+      expect(current().radiusY).not.toBeCloseTo(radiusYBefore, 1)
     })
 
     test("dragging the end handle past the start handle (crossover) keeps start fixed and lands on the drop point, no crash", () => {
-      const { canvas, arc, group } = setup()
+      const { canvas, arc, group, current } = setup()
       const startBefore = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle)
 
       // start is at x=-5; drop end well past it, at x=-15.
@@ -752,7 +754,7 @@ describe("IISelectionManager.ts", () => {
       expect(Number.isFinite(arc.radiusX)).toBe(true)
       expect(Number.isFinite(arc.radiusY)).toBe(true)
       const startAfter = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle)
-      const endAfter = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle + arc.sweepAngle)
+      const endAfter = computePointOnEllipse(current().center, current().radiusX, current().radiusY, current().phi, current().startAngle + current().sweepAngle)
       expect(startAfter.x).toBeCloseTo(startBefore.x, 1)
       expect(startAfter.y).toBeCloseTo(startBefore.y, 1)
       expect(endAfter.x).toBeCloseTo(-15, 1)
@@ -771,13 +773,14 @@ describe("IISelectionManager.ts", () => {
       const group = (
         manager as unknown as { createEdgeResizeGroup: (edge: TEdgeArc) => SVGGElement }
       ).createEdgeResizeGroup(arc)
+      const current = () => canvas.model.getRootSymbol(arc.id) as TEdgeArc
 
       dragHandle(canvas, group, 2, { x: 55, y: 5 })
 
-      expect(arc.endAnchor).toEqual(
+      expect(current().endAnchor).toEqual(
         expect.objectContaining({ symbolId: circle.id, normalizedX: 0.5, normalizedY: 0.5 })
       )
-      const endAfter = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle + arc.sweepAngle)
+      const endAfter = computePointOnEllipse(current().center, current().radiusX, current().radiusY, current().phi, current().startAngle + current().sweepAngle)
       expect(endAfter.x).toBeCloseTo(50, 1)
       expect(endAfter.y).toBeCloseTo(0, 1)
     })

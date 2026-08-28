@@ -983,16 +983,22 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
           continue
         }
         const oldSym = { ...sym }
+        // Guarded above on the committed record, drafted only now that it is actually losing an
+        // anchor: the record itself is frozen.
+        const draft = this.model.draftSymbol(sym.id)
+        if (!draft || !EdgeOps.isEdge(draft)) {
+          continue
+        }
         if (hitStart) {
-          sym.startAnchor = undefined
+          draft.startAnchor = undefined
         }
         if (hitEnd) {
-          sym.endAnchor = undefined
+          draft.endAnchor = undefined
         }
-        this.model.updateSymbol(sym)
-        this.renderer.drawSymbol(sym)
+        this.model.commitSymbol(draft)
+        this.renderer.drawSymbol(draft)
         updatedOld.push(oldSym)
-        updatedNew.push(sym)
+        updatedNew.push(draft)
         continue
       }
       if (isStroke(sym) && sym.jiixBlockType === "Edge" && (sym.startAnchor || sym.endAnchor)) {
@@ -1002,15 +1008,19 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
           continue
         }
         const oldSym = { ...sym }
+        const draft = this.model.draftSymbol(sym.id)
+        if (!draft || !isStroke(draft)) {
+          continue
+        }
         if (hitStart) {
-          sym.startAnchor = undefined
+          draft.startAnchor = undefined
         }
         if (hitEnd) {
-          sym.endAnchor = undefined
+          draft.endAnchor = undefined
         }
-        this.model.updateSymbol(sym)
+        this.model.commitSymbol(draft)
         updatedOld.push(oldSym)
-        updatedNew.push(sym)
+        updatedNew.push(draft)
       }
     }
 
