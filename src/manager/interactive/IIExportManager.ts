@@ -1,18 +1,19 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import type { InteractiveInkCanvasConfiguration } from "@/canvas/variants/InteractiveInkCanvasConfiguration"
 import type { WebSocketClient } from "@/client"
+import type { TBox } from "@/core/geometry"
+import { BoxOps } from "@/core/geometry"
+import { jiixToLLM, jiixToMarkdown, jiixToMermaid, jiixToPlantUML } from "@/export"
 import type { TExporterMap } from "@/manager/base/ExportManager"
 import { ExportManager } from "@/manager/base/ExportManager"
 import type { PDFExportManager } from "@/manager/base/PDFExportManager"
 import type { TJIIXExport } from "@/model"
 import { ExportType } from "@/model"
 import type { SVGRenderer } from "@/renderer"
-import type { TBox, TSymbol } from "@/symbol"
+import type { TSymbol } from "@/symbol"
 import { isMath, isStroke, isText } from "@/symbol"
 import { MathOps } from "@/symbol/math/Math"
-import { BoxOps } from "@/symbol/primitives/Box"
 import { TextOps } from "@/symbol/text/Text"
-import { jiixToLLM, jiixToMarkdown, jiixToMermaid, jiixToPlantUML } from "@/utils"
 
 /** JIIX stand-in used when the content has not been recognized yet, so exports stay empty instead of throwing */
 const EMPTY_JIIX: TJIIXExport = { type: "Container", id: "", version: "" }

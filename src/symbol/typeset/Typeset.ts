@@ -1,13 +1,8 @@
-import type { TBox } from "@/symbol/primitives/Box"
-import { BoxOps } from "@/symbol/primitives/Box"
-import type { TPoint, TSegment } from "@/symbol/primitives/Point"
-import {
-  computeRotatedPoint,
-  convertDegreeToRadian,
-  findIntersectionBetween2Segment,
-  isPointInsidePolygon,
-} from "@/utils"
-
+import type { TBox } from "@/core/geometry"
+import type { TPoint, TSegment } from "@/core/geometry"
+import { BoxOps } from "@/core/geometry"
+import { computeRotatedPoint, findIntersectionBetween2Segment, isPointInsidePolygon } from "@/core/geometry"
+import { convertDegreeToRadian } from "@/core/math"
 /**
  * @group Symbol
  */

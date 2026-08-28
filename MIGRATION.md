@@ -104,6 +104,33 @@ you don't want to `false`. `markdown` is only built when `text` recognition is e
 `openExportDialog(onConfirm)` now accepts an optional `onCancel` second argument. Existing one-argument
 calls keep working unchanged.
 
+### Internal layout: `src/utils/` no longer exists
+
+**If you import from `iink-ts` and nothing else, this section does not apply to you.** The package's
+public surface is unchanged: the same 787 names are exported before and after, verified by diffing
+the generated `dist/iink.d.ts` against v4's.
+
+What changed is where those names live inside the package, which matters only if you reached past the
+package root into a deep path such as `iink-ts/dist/utils/geometry`. `src/utils/` was a drawer with no
+rule about what belonged in it, and it imported *upward* into `symbol`, `model` and `client`, which
+made it impossible to run the library headless or to publish any part of it on its own. Every helper
+moved to the lowest layer its inputs allow:
+
+| Was in `utils/` | Now in | Rule |
+|---|---|---|
+| `computeDistance`, `findIntersectionBetween2Segment`, `BoxOps`, `TPoint`, `TBox`, `TOBB`, … | `core/geometry` | speaks points, boxes and segments |
+| `isBetween`, `roundTo`, `isValidNumber`, `normalizeAngle`, `convertMillimeterToPixel`, … | `core/math` | speaks `number` only |
+| `mergeDeep`, `TPartialDeep`, `createUUID`, `isVersionSuperiorOrEqual`, `DeferredPromise` | `core/std` | speaks `unknown`, objects and strings |
+| `latexToUnicodeMath` | `core` | `string` in, `string` out |
+| `computeHmac`, `getApiInfos`, `getAvailableFontList`, `getAvailableLanguageList`, `assertServerConfig`, `redactServerSecrets` | `client` | speaks server configuration |
+| `jiixToMermaid`, `jiixToMarkdown`, `jiixToPlantUML`, `jiixToLLM`, `extractJIIXGraphElements` | `export` | JIIX in, string out |
+| `RafCoalescer`, `bumpSvgTransformVersion`, `getSvgTransformVersion` | `browser` | needs the DOM |
+
+The geometry primitives `TPoint`, `TPointer`, `TSegment`, `TBox` and `TOBB` also left `symbol/`,
+where they never belonged, for `core/geometry`. `core` may not import from anywhere else in the
+library — an eslint rule enforces it — which is what makes a headless and a standalone build
+possible later.
+
 ## v3.x → v4.0.0
 
 Version 4.0.0 renames every class/type/constant that reused native MyScript SDK terms (`Editor`, `Recognizer`) for unrelated front-end concepts, source of long-standing confusion between the native SDK and iinkTS. This is a **breaking change** with no compatibility shim — the old names simply don't exist anymore. See [CHANGELOG.md](./CHANGELOG.md) for the full breaking-changes list; this guide gives step-by-step find/replace instructions for your integration code.

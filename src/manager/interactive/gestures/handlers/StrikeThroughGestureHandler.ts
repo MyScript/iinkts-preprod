@@ -5,7 +5,6 @@ import type { TGesture } from "@/manager/interactive/gestures/GestureTypes"
 import { StrikeThroughAction } from "@/manager/interactive/gestures/GestureTypes"
 import type { TStroke } from "@/symbol"
 import { DecoratorKind } from "@/symbol"
-
 /**
  * Handler for STRIKETHROUGH gesture type
  * Supports two actions: Draw (apply decorator) and Erase (remove symbols)

@@ -1,10 +1,10 @@
+import type { TPartialDeep } from "@/core/std"
 import { EdgeOps, type TEdge } from "@/symbol/edge/Edge"
 import { MathOps, type TMath } from "@/symbol/math/Math"
 import { ShapeOps, type TShape } from "@/symbol/shape/Shape"
 import { StrokeOps, type TStroke } from "@/symbol/stroke/Stroke"
 import { SymbolType, type TSymbol } from "@/symbol/Symbol"
 import { TextOps, type TText } from "@/symbol/text/Text"
-import type { TPartialDeep } from "@/utils"
 
 import { symbolRegistry } from "./SymbolRegistry"
 

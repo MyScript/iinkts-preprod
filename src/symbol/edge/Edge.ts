@@ -1,7 +1,7 @@
+import type { TOBB } from "@/core/geometry"
+import type { TPoint } from "@/core/geometry"
+import type { TPartialDeep } from "@/core/std"
 import type { TStyle } from "@/style"
-import type { TOBB } from "@/symbol/primitives/OBB"
-import type { TPoint } from "@/symbol/primitives/Point"
-import type { TPartialDeep } from "@/utils/types"
 
 import { SymbolType, type TBaseSymbol } from "../Symbol"
 import { EdgeArcOps, type TEdgeArc } from "./Arc"

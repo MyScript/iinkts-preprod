@@ -1,19 +1,15 @@
 import { SELECTION_MARGIN } from "@/Constants"
+import type { TBox } from "@/core/geometry"
+import { BoxOps } from "@/core/geometry"
+import { OBBOps, type TOBB } from "@/core/geometry"
+import { isValidPoint, type TPoint, type TSegment } from "@/core/geometry"
+import { computeDistance, computeRotatedPoint, findIntersectBetweenSegmentAndCircle } from "@/core/geometry"
+import { TWO_PI } from "@/core/math"
+import { computeTessellationCount, isValidNumber } from "@/core/math"
+import { createUUID } from "@/core/std"
+import { type TPartialDeep } from "@/core/std"
 import { mergeSymbolStyle, type TStyle } from "@/style"
-import type { TBox } from "@/symbol/primitives/Box"
-import { BoxOps } from "@/symbol/primitives/Box"
-import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
-import { isValidPoint, type TPoint, type TSegment } from "@/symbol/primitives/Point"
 import { SymbolType, type TBaseSymbol } from "@/symbol/Symbol"
-import {
-  computeDistance,
-  computeRotatedPoint,
-  findIntersectBetweenSegmentAndCircle,
-  type TPartialDeep,
-  TWO_PI,
-} from "@/utils"
-import { computeTessellationCount, isValidNumber } from "@/utils"
-import { createUUID } from "@/utils/uuid"
 
 import { ShapeKind } from "./Shape-enum"
 

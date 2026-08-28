@@ -1,7 +1,7 @@
+import { mergeExports } from "@/core/std"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { TSymbol } from "@/symbol"
 import { cloneSymbol } from "@/symbol"
-import { mergeExports } from "@/utils"
 
 import type { TExport, TJIIXMathElement, TJIIXTextElement } from "./Export"
 import { JIIXElementType } from "./Export"
