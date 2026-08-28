@@ -229,6 +229,52 @@ describe("IISynchronizerManager.ts", () => {
       restoreRaf()
     })
 
+    test("should not record an element as synced when its text-metadata write threw", async () => {
+      const { canvas, manager, strokes, restoreRaf } = setup(1)
+
+      // A first successful sync persists jiixBlockId, so the `needsMetadata` escape hatch is
+      // closed from here on: only the snapshot bookkeeping decides whether this element is
+      // reprocessed. That is what makes this shape of failure permanent rather than transient.
+      await manager.synchronize()
+      expect(canvas.jiix.updateTextMetadata).toHaveBeenCalledTimes(1)
+
+      // The content changes, so the snapshot gate opens on the next sync.
+      const changed = buildTextElement("block-0", strokes[0].id)
+      changed.label = "b"
+      changed.words = [{ label: "b", items: changed.words![0].items }]
+      const changedExport = buildJiixExport([changed])
+      canvas.export = jest.fn().mockImplementation(async () => {
+        canvas.model.exports = { "application/vnd.myscript.jiix": changedExport }
+      })
+
+      // ...and the text-metadata write for that new content fails.
+      ;(canvas.jiix.updateTextMetadata as jest.Mock).mockImplementationOnce(() => {
+        throw new Error("text metadata write failed")
+      })
+
+      await manager.synchronize()
+      expect(canvas.jiix.updateTextMetadata).toHaveBeenCalledTimes(2)
+
+      // Same content again: the lost write must be retried, not silently treated as done for
+      // the rest of the session.
+      await manager.synchronize()
+      expect(canvas.jiix.updateTextMetadata).toHaveBeenCalledTimes(3)
+      restoreRaf()
+    })
+
+    test("should keep synchronizing the remaining elements after one of them threw", async () => {
+      const { canvas, manager, strokes, restoreRaf } = setup(3)
+      ;(canvas.jiix.updateTextMetadata as jest.Mock).mockImplementationOnce(() => {
+        throw new Error("metadata write failed")
+      })
+
+      await manager.synchronize()
+
+      expect((canvas.model.getRootSymbol(strokes[1].id) as TStroke).jiixBlockId).toBe("block-1")
+      expect((canvas.model.getRootSymbol(strokes[2].id) as TStroke).jiixBlockId).toBe("block-2")
+      restoreRaf()
+    })
+
     test("should reprocess a block whose content actually changed since the last sync", async () => {
       const { canvas, manager, strokes, restoreRaf } = setup(3)
       await manager.synchronize()
