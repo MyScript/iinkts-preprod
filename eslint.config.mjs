@@ -163,6 +163,24 @@ export default [
     },
   },
 
+  // Layer boundary: core is the bottom layer - it may not import from anywhere else in src/
+  {
+    files: ["src/core/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/*", "@/**", "!@/core", "!@/core/**"],
+              message: "core is the bottom layer and must not import from anywhere else in src/",
+            },
+          ],
+        },
+      ],
+    },
+  },
+
   // Layer boundary: model must not import from manager, renderer, canvas, or menu
   {
     files: ["src/model/**/*.ts"],

@@ -1,5 +1,4 @@
-import type { TPoint } from "@/symbol"
-
+import type { TPoint } from "@/core/geometry"
 /**
  * @group Utilities
  * @remarks Represents a 2D affine transform, defined as a 3x3 matrix with an implicit third raw of <code>[ 0 0 1 ]</code>

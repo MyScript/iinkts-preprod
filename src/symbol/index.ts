@@ -23,9 +23,6 @@
  * **Legacy** (deprecated v1) — {@link Stroke}, {@link TLegacyStroke}
  */
 
-// Primitives
-export * from "./primitives"
-
 // Symbol categories
 export * from "./decorator"
 export * from "./edge"

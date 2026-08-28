@@ -1,21 +1,16 @@
 import { SELECTION_MARGIN } from "@/Constants"
+import type { TBox } from "@/core/geometry"
+import type { TPoint, TSegment } from "@/core/geometry"
+import { OBBOps, type TOBB } from "@/core/geometry"
+import { isValidPoint } from "@/core/geometry"
+import { computePointOnEllipse } from "@/core/geometry"
+import { computeEllipseRadiusAverage, computeTessellationCount, isValidNumber, TWO_PI } from "@/core/math"
+import type { TPartialDeep } from "@/core/std"
+import { createUUID } from "@/core/std"
 import type { TStyle } from "@/style"
 import { mergeSymbolStyle } from "@/style"
-import type { TBox } from "@/symbol/primitives/Box"
-import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
-import type { TPoint, TSegment } from "@/symbol/primitives/Point"
-import { isValidPoint } from "@/symbol/primitives/Point"
 import type { TBaseSymbol } from "@/symbol/Symbol"
 import { SymbolType } from "@/symbol/Symbol"
-import type { TPartialDeep } from "@/utils"
-import {
-  computeEllipseRadiusAverage,
-  computePointOnEllipse,
-  computeTessellationCount,
-  isValidNumber,
-  TWO_PI,
-} from "@/utils"
-import { createUUID } from "@/utils/uuid"
 
 import { ShapeKind } from "./Shape-enum"
 
