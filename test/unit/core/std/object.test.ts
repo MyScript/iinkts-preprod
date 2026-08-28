@@ -1,4 +1,4 @@
-import { mergeDeep, mergeExports, uniqueById } from "@/iink"
+import { mergeDeep, mergeExports, redactServerSecrets, uniqueById } from "@/iink"
 
 describe("merge", () => {
   const testDatas = [
@@ -78,6 +78,105 @@ describe("merge", () => {
   })
 })
 
+describe("mergeDeep prototype pollution", () => {
+  // A polluting key only reaches mergeDeep as an OWN enumerable property, which is what
+  // JSON.parse produces — an object literal would set the real prototype instead.
+  const parse = (json: string) => JSON.parse(json) as Record<string, unknown>
+
+  afterEach(() => {
+    delete (Object.prototype as unknown as Record<string, unknown>).polluted
+    delete (Array.prototype as unknown as Record<string, unknown>).polluted
+  })
+
+  test("should not let __proto__ reach Object.prototype", () => {
+    const source = parse('{"__proto__": {"polluted": "yes"}}')
+
+    mergeDeep<Record<string, unknown>>({}, source)
+
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined()
+    expect(Object.prototype).not.toHaveProperty("polluted")
+  })
+
+  test("should not let a nested __proto__ reach Object.prototype", () => {
+    const source = parse('{"server": {"__proto__": {"polluted": "yes"}}}')
+
+    mergeDeep<Record<string, unknown>>({}, source)
+
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined()
+    expect(Object.prototype).not.toHaveProperty("polluted")
+  })
+
+  test("should not write through constructor.prototype", () => {
+    const source = parse('{"constructor": {"prototype": {"polluted": "yes"}}}')
+
+    mergeDeep<Record<string, unknown>>({}, source)
+
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined()
+    expect(Object.prototype).not.toHaveProperty("polluted")
+  })
+
+  test("should drop the dangerous key rather than copying it onto the target", () => {
+    const source = parse('{"__proto__": {"polluted": "yes"}, "kept": 1}')
+
+    const result = mergeDeep<Record<string, unknown>>({}, source)
+
+    expect(result.kept).toBe(1)
+    expect(Object.getOwnPropertyNames(result)).toEqual(["kept"])
+  })
+
+  test("should still merge a legitimate key named like a normal property", () => {
+    const result = mergeDeep<Record<string, unknown>>({}, { proto: { a: 1 }, prototypes: 2 })
+
+    expect(result).toEqual({ proto: { a: 1 }, prototypes: 2 })
+  })
+})
+
+describe("redactServerSecrets", () => {
+  test("should redact hmacKey and applicationKey", () => {
+    const config = {
+      server: {
+        host: "cloud.myscript.com",
+        applicationKey: "XXXX-XXXX-XXXX",
+        hmacKey: "YYYY-YYYY-YYYY",
+      },
+    }
+    expect(redactServerSecrets(config)).toEqual({
+      server: {
+        host: "cloud.myscript.com",
+        applicationKey: "[REDACTED]",
+        hmacKey: "[REDACTED]",
+      },
+    })
+  })
+
+  test("should redact a function hmacKey the same way as a string one", () => {
+    const config = {
+      server: {
+        host: "cloud.myscript.com",
+        applicationKey: "XXXX-XXXX-XXXX",
+        hmacKey: () => Promise.resolve("computed"),
+      },
+    }
+    expect(redactServerSecrets(config)).toEqual({
+      server: {
+        host: "cloud.myscript.com",
+        applicationKey: "[REDACTED]",
+        hmacKey: "[REDACTED]",
+      },
+    })
+  })
+
+  test("should not touch the original config object", () => {
+    const config = { server: { hmacKey: "YYYY-YYYY-YYYY" } }
+    redactServerSecrets(config)
+    expect(config.server.hmacKey).toEqual("YYYY-YYYY-YYYY")
+  })
+
+  test("should leave non-object input untouched", () => {
+    expect(redactServerSecrets(undefined)).toEqual(undefined)
+    expect(redactServerSecrets({})).toEqual({})
+  })
+})
 
 describe("uniqueById", () => {
   test("should drop later duplicates, keeping the first occurrence", () => {
