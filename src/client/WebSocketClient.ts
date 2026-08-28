@@ -1,17 +1,18 @@
 import PingWorker from "web-worker:../worker/ping.worker.ts"
 
+import { DeferredPromise, isVersionSuperiorOrEqual, mergeDeep, type TPartialDeep } from "@/core/std"
 import type { THistoryContext, TIIHistoryBackendChanges } from "@/history"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { TExport, TJIIXExport, TJIIXMathElement } from "@/model"
 import type { TStroke } from "@/symbol"
 import { StrokeOps } from "@/symbol/stroke/Stroke"
 import type { TMatrixTransform } from "@/transform"
-import type { TPartialDeep } from "@/utils"
-import { DeferredPromise, getApiInfos, isVersionSuperiorOrEqual, mergeDeep, redactServerSecrets } from "@/utils"
 
 import { ClientError, mapCloseCodeToMessage } from "./ClientError"
 import { ClientEvent } from "./ClientEvent"
 import { resolveHmac } from "./HmacAuth"
+import { getApiInfos } from "./infos"
+import { redactServerSecrets } from "./ServerConfiguration"
 import type { TWebSocketClientConfiguration } from "./WebSocketClientConfiguration"
 import { WebSocketClientConfiguration } from "./WebSocketClientConfiguration"
 import type {

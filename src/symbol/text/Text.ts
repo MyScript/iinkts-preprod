@@ -1,11 +1,13 @@
+import type { TBox } from "@/core/geometry"
+import type { TPoint, TSegment } from "@/core/geometry"
+import { OBBOps, type TOBB } from "@/core/geometry"
+import { isValidPoint } from "@/core/geometry"
+import type { TPartialDeep } from "@/core/std"
+import { createUUID } from "@/core/std"
 import type { TStyle } from "@/style"
 import { mergeSymbolStyle } from "@/style"
 import type { TDecorator } from "@/symbol/decorator/Decorator"
 import { DecoratorOps } from "@/symbol/decorator/Decorator"
-import type { TBox } from "@/symbol/primitives/Box"
-import { OBBOps, type TOBB } from "@/symbol/primitives/OBB"
-import type { TPoint, TSegment } from "@/symbol/primitives/Point"
-import { isValidPoint } from "@/symbol/primitives/Point"
 import type { TBaseSymbol } from "@/symbol/Symbol"
 import { SymbolType } from "@/symbol/Symbol"
 import type { TRotation } from "@/symbol/typeset/Typeset"
@@ -17,9 +19,6 @@ import {
   computeTypesetVertices,
   typesetOverlapsBox,
 } from "@/symbol/typeset/Typeset"
-import type { TPartialDeep } from "@/utils"
-import { createUUID } from "@/utils"
-
 /**
  * @group Symbol
  */

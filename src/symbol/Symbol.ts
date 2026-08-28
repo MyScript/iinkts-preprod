@@ -1,5 +1,5 @@
+import type { TPartialDeep } from "@/core/std"
 import type { TStyle } from "@/style"
-import type { TPartialDeep } from "@/utils"
 
 import type { TDecorator } from "./decorator/Decorator"
 import type { TEdge } from "./edge/Edge"

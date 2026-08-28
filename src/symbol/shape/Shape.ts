@@ -1,4 +1,4 @@
-import type { TPartialDeep } from "@/utils/types"
+import type { TPartialDeep } from "@/core/std"
 
 import { SymbolType, type TBaseSymbol } from "../Symbol"
 import { ShapeCircleOps, type TShapeCircle } from "./Circle"

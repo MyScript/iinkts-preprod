@@ -67,3 +67,42 @@ export const DefaultServerWebsocketConfiguration: TServerWebsocketConfiguration 
     maxReconnectAttempts: 10,
   },
 }
+
+/**
+ * Assert that server config has both scheme and host. Throws if either is missing.
+ * @group Client
+ */
+export function assertServerConfig(
+  server: { scheme?: string; host?: string } | undefined,
+  errorPrefix: string
+): asserts server is {
+  scheme: string
+  host: string
+} {
+  if (!server?.scheme || !server?.host) {
+    throw new Error(`${errorPrefix}: configuration.server.scheme & configuration.server.host are required!`)
+  }
+}
+
+const isObject = (object: unknown): object is Record<string, unknown> => {
+  return typeof object === "object" && object !== null && !Array.isArray(object)
+}
+
+/**
+ * Returns a copy of `config` with the server credentials replaced by `[REDACTED]`, so a
+ * configuration can be logged without leaking the application and HMAC keys.
+ * @group Client
+ */
+export const redactServerSecrets = (config: unknown): unknown => {
+  if (!isObject(config) || !isObject(config.server)) {
+    return config
+  }
+  const server: Record<string, unknown> = { ...config.server }
+  if ("hmacKey" in server) {
+    server.hmacKey = "[REDACTED]"
+  }
+  if ("applicationKey" in server) {
+    server.applicationKey = "[REDACTED]"
+  }
+  return { ...config, server }
+}

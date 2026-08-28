@@ -1,12 +1,11 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import { OBBOps } from "@/core/geometry"
 import { GestureHandler } from "@/manager/interactive/gestures/GestureHandler"
 import type { GestureHelpers } from "@/manager/interactive/gestures/GestureHelpers"
 import type { TGesture } from "@/manager/interactive/gestures/GestureTypes"
 import { SurroundAction } from "@/manager/interactive/gestures/GestureTypes"
 import type { TStroke } from "@/symbol"
 import { DecoratorKind } from "@/symbol"
-import { OBBOps } from "@/symbol/primitives/OBB"
-
 /**
  * Handler for SURROUND gesture type
  * Supports three actions: Select, Highlight, and Surround

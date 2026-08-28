@@ -1,6 +1,6 @@
+import { bumpSvgTransformVersion, getSvgTransformVersion } from "@/browser"
+import type { TPointer } from "@/core/geometry"
 import { LoggerCategory, LoggerLevel, LoggerManager } from "@/logger"
-import type { TPointer } from "@/symbol"
-import { bumpSvgTransformVersion, getSvgTransformVersion } from "@/utils"
 
 import type { TGrabberConfiguration } from "./GrabberConfiguration"
 

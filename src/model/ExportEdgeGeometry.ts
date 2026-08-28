@@ -1,5 +1,6 @@
-import type { TPoint } from "@/symbol/primitives/Point"
-import { computePointOnEllipse, convertMillimeterToPixel } from "@/utils"
+import type { TPoint } from "@/core/geometry"
+import { computePointOnEllipse } from "@/core/geometry"
+import { convertMillimeterToPixel } from "@/core/math"
 
 import type { TJIIXEdgeElement } from "./Export"
 import { JIIXEdgeKind } from "./Export"

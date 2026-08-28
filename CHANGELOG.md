@@ -4,6 +4,12 @@ See [MIGRATION.md](./MIGRATION.md) for step-by-step upgrade instructions.
 
 ## Breaking Changes
 
+### Internal layout: `src/utils/` dissolved
+Every helper moved to the lowest layer its inputs allow, and the new `core` layer may not import from anywhere else in the library. The exported surface is unchanged — the same 787 names before and after — so this only affects code that imported a deep path rather than the package root.
+- `src/utils/` no longer exists; helpers now live in `core/geometry`, `core/math`, `core/std`, `core`, `client`, `export` and `browser`
+- `TPoint`, `TPointer`, `TSegment`, `TBox` and `TOBB` moved from `symbol/primitives` to `core/geometry`
+- see [MIGRATION.md](./MIGRATION.md) for the full mapping
+
 ### History: diff-only undo/redo
 History entries no longer store a full `Model`/`IIModel` snapshot — only the diff needed to undo/redo, cutting the cost of pushing entries on large documents.
 - `TIHistoryStackItem`/`TIIHistoryStackItem` removed

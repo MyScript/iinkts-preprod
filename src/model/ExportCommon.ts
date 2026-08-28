@@ -1,5 +1,4 @@
-import type { TBox, TPoint } from "@/symbol"
-
+import type { TBox, TPoint } from "@/core/geometry"
 /**
  * @group Exports
  * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/jiix/#stroke-item | Stroke item}

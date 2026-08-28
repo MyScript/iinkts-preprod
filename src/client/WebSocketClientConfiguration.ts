@@ -1,5 +1,5 @@
-import type { TPartialDeep } from "@/utils"
-import { isVersionSuperiorOrEqual, mergeDeep } from "@/utils"
+import type { TPartialDeep } from "@/core/std"
+import { isVersionSuperiorOrEqual, mergeDeep } from "@/core/std"
 
 import type { TExportConfiguration, TTextConfConfiguration } from "./recognition"
 import type { TServerWebsocketConfiguration } from "./ServerConfiguration"

@@ -1,8 +1,10 @@
+import type { TPoint, TPointer } from "@/core/geometry"
+import { computeDistance, computeDistanceSquared } from "@/core/geometry"
+import { isBetween } from "@/core/math"
+import { mergeExports } from "@/core/std"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { TPenStyle } from "@/style"
-import type { TPoint, TPointer } from "@/symbol"
 import { Stroke } from "@/symbol"
-import { computeDistance, computeDistanceSquared, isBetween, mergeExports } from "@/utils"
 
 import type { TExport } from "./Export"
 

@@ -1,6 +1,8 @@
 import type { WebSocketClient } from "@/client"
 import type { DOMFactory } from "@/components/dom"
 import type { CanvasTool } from "@/Constants"
+import type { TBox } from "@/core/geometry"
+import type { TPartialDeep } from "@/core/std"
 import type { IIHistoryManager } from "@/history"
 import type {
   EraseManager,
@@ -31,9 +33,8 @@ import type { IIModel, TExport } from "@/model"
 import type { SVGRenderer } from "@/renderer"
 import type { TIIRendererConfiguration } from "@/renderer"
 import type { TStyle } from "@/style"
-import type { TBaseSymbol, TBox, TStroke, TSymbol } from "@/symbol"
+import type { TBaseSymbol, TStroke, TSymbol } from "@/symbol"
 import type { SymbolUtil } from "@/symbol-utils/SymbolUtil"
-import type { TPartialDeep } from "@/utils"
 
 import type { TCanvasOperationLabel } from "./AbstractCanvas"
 import type { CanvasEvent, TCanvasConnectionState } from "./CanvasEvent"

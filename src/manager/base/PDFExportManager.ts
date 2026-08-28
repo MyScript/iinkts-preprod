@@ -1,10 +1,9 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import type { InkCanvas } from "@/canvas/variants/InkCanvas"
 import { Modal } from "@/components/Modal"
+import type { TBox } from "@/core/geometry"
+import { convertPixelToMillimeter } from "@/core/math"
 import { LoggerCategory, LoggerManager } from "@/logger"
-import type { TBox } from "@/symbol"
-import { convertPixelToMillimeter } from "@/utils"
-
 /**
  * @group Manager
  */

@@ -1,9 +1,9 @@
+import type { TBox } from "@/core/geometry"
+import type { TPoint } from "@/core/geometry"
+import type { TPartialDeep } from "@/core/std"
 import { DefaultStyle } from "@/style"
-import type { TBox } from "@/symbol/primitives/Box"
-import type { TPoint } from "@/symbol/primitives/Point"
 import { StrokeOps, type TStroke } from "@/symbol/stroke/Stroke"
 import { SymbolType } from "@/symbol/Symbol"
-import type { TPartialDeep } from "@/utils"
 
 import { SVGBuilder } from "../SVGBuilder"
 import { SymbolUtil } from "../SymbolUtil"

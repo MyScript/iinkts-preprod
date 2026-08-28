@@ -1,12 +1,12 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import type { InkCanvas } from "@/canvas/variants/InkCanvas"
+import type { TPointer } from "@/core/geometry"
 import type { TPointerInfo } from "@/grabber"
 import { PointerEventGrabber } from "@/grabber"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { SVGRenderer } from "@/renderer"
 import type { TStyle } from "@/style"
-import type { TPointer, TSymbol } from "@/symbol"
-
+import type { TSymbol } from "@/symbol"
 /**
  * @group Manager
  */
