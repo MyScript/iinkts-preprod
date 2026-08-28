@@ -80,7 +80,7 @@ export class SymbolStore<T extends TBaseSymbol> {
     if (this.#records.has(record.id)) {
       throw new Error(`Symbol id already exist: ${record.id}`)
     }
-    this.#records.set(record.id, record)
+    this.#records.set(record.id, this.#freeze(record))
     this.#bump()
   }
 
@@ -92,7 +92,7 @@ export class SymbolStore<T extends TBaseSymbol> {
     if (!this.#records.has(record.id)) {
       return
     }
-    this.#records.set(record.id, record)
+    this.#records.set(record.id, this.#freeze(record))
     if (markDirty) {
       this.#bump()
     }
@@ -121,7 +121,7 @@ export class SymbolStore<T extends TBaseSymbol> {
       return
     }
     this.#records.delete(id)
-    records.forEach((r) => this.#records.set(r.id, r))
+    records.forEach((r) => this.#records.set(r.id, this.#freeze(r)))
     this.#bump()
   }
 
@@ -165,5 +165,23 @@ export class SymbolStore<T extends TBaseSymbol> {
 
   #bump(): void {
     this.#version++
+  }
+
+  /**
+   * Freezes a record on the way in, deeply.
+   *
+   * This is what lets {@link list} and {@link get} hand out the stored records themselves instead of
+   * copying the whole document on every read: a caller cannot corrupt what it was given. The cost is
+   * paid once per commit rather than once per read, and reads outnumber commits by a wide margin.
+   */
+  #freeze<TValue>(value: TValue): TValue {
+    if (value === null || typeof value !== "object" || Object.isFrozen(value)) {
+      return value
+    }
+    Object.freeze(value)
+    for (const key of Object.getOwnPropertyNames(value)) {
+      this.#freeze((value as Record<string, unknown>)[key])
+    }
+    return value
   }
 }
