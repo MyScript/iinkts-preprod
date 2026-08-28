@@ -1810,6 +1810,32 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
   }
 
   /**
+   * Tear down every manager the canvas owns that carries the {@link IIAbstractManager} lifecycle,
+   * in reverse construction order so a manager is released before whatever it was built on.
+   * `math` cascades to its own sub-managers.
+   *
+   * Deliberately an explicit list rather than enumerating the instance: a manager added later and
+   * forgotten here is caught by the "should destroy every manager it owns" test, which does
+   * enumerate at runtime.
+   */
+  #destroyManagers(): void {
+    this.playback.destroy()
+    this.connector.destroy()
+    this.math.destroy()
+    this.jiix.destroy()
+    this.synchronizer.destroy()
+    this.snaps.destroy()
+    this.overlays.destroy()
+    this.typeset.destroy()
+    this.converter.destroy()
+    this.transform.destroy()
+    this.gesture.destroy()
+    this.move.destroy()
+    this.selector.destroy()
+    this.keyboard.destroy()
+  }
+
+  /**
    * Destroy the canvas and clean up resources
    * @returns Promise that resolves when destruction is complete
    */
@@ -1830,7 +1856,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     this.move.detach()
     this.writer.detach()
 
-    this.playback.destroy()
+    this.#destroyManagers()
     this.exportManager.destroy()
     this.teardownCommon()
     this.menu.destroy()
