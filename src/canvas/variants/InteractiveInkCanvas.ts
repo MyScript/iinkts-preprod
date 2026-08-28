@@ -1738,12 +1738,16 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
         this.model.clear()
         this.history.push({ erased })
         this.startOperation("Recognizing")
-        this.client.clear()
+        await this.client.clear()
         this.event.emitSelected(this.model.symbolsSelected)
       }
       this.updateLayerUI()
       this.event.emitCleared()
     } catch (error) {
+      // "Recognizing" is normally bulk-cleared by onContentChanged, which is driven by the
+      // client's contentChanged event — that never arrives if the clear failed, so the badge
+      // would stay lit forever.
+      this.clearOperation("Recognizing")
       this.manageError(error as Error)
     }
   }
