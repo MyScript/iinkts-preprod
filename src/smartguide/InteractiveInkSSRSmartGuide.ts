@@ -175,15 +175,18 @@ export class InteractiveInkSSRSmartGuide {
     this.wordToChange = words[wordId]
     if (this.wordToChange) {
       this.wordToChange.id = wordId.toString()
-      this.#candidatesElement.innerHTML = ""
+      this.#candidatesElement.replaceChildren()
       if (this.wordToChange?.candidates) {
         this.#candidatesElement.style.display = "flex"
         this.wordToChange.candidates.forEach((word, index) => {
+          const span = document.createElement("span")
+          span.id = `cdt-${index}${this.uuid}`
           if (this.wordToChange?.label === word) {
-            this.#candidatesElement.innerHTML += `<span id="cdt-${index}${this.uuid}" class="selected-word">${word}</span>`
-          } else {
-            this.#candidatesElement.innerHTML += `<span id="cdt-${index}${this.uuid}">${word}</span>`
+            span.classList.add("selected-word")
           }
+          // `word` is a server-supplied JIIX candidate label: textContent, never innerHTML.
+          span.textContent = word
+          this.#candidatesElement.appendChild(span)
         })
 
         target.appendChild(this.#candidatesElement)
