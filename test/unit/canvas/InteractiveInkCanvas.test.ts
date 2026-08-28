@@ -18,6 +18,7 @@ import {
   EdgeLineOps,
   TEdgeLine,
   ShapePolygonOps,
+  IIAbstractManager,
 } from "@/iink"
 
 describe("InteractiveInkCanvas.ts", () => {
@@ -1246,6 +1247,56 @@ describe("InteractiveInkCanvas.ts", () => {
       await canvas.clear()
 
       expect(settled).toBe(true)
+    })
+  })
+
+  describe("destroy — manager teardown", () => {
+    const buildCanvas = () => {
+      const canvas = new InteractiveInkCanvas(document.createElement("div"), CanvasOptions)
+      canvas.client.destroy = jest.fn()
+      canvas.renderer.destroy = jest.fn()
+      canvas.eraser.detach = jest.fn()
+      canvas.selector.detach = jest.fn()
+      canvas.move.detach = jest.fn()
+      canvas.writer.detach = jest.fn()
+      return canvas
+    }
+
+    // Enumerates the canvas at runtime rather than hard-coding a list, so a manager added later
+    // without being wired into the teardown fails here instead of leaking silently.
+    const spyOnEveryManager = (canvas: InteractiveInkCanvas) => {
+      const spies = new Map<string, jest.Mock>()
+      for (const [name, value] of Object.entries(canvas)) {
+        if (value instanceof IIAbstractManager) {
+          const spy = jest.fn()
+          value.destroy = spy
+          spies.set(name, spy)
+        }
+      }
+      return spies
+    }
+
+    test("should destroy every manager it owns", async () => {
+      const canvas = buildCanvas()
+      const spies = spyOnEveryManager(canvas)
+      expect(spies.size).toBeGreaterThan(10)
+
+      await canvas.destroy()
+
+      const missed = [...spies.entries()].filter(([, spy]) => spy.mock.calls.length === 0).map(([name]) => name)
+      expect(missed).toEqual([])
+    })
+
+    test("should destroy each manager exactly once", async () => {
+      const canvas = buildCanvas()
+      const spies = spyOnEveryManager(canvas)
+
+      await canvas.destroy()
+
+      const wrongCount = [...spies.entries()]
+        .filter(([, spy]) => spy.mock.calls.length !== 1)
+        .map(([name, spy]) => `${name}:${spy.mock.calls.length}`)
+      expect(wrongCount).toEqual([])
     })
   })
 
