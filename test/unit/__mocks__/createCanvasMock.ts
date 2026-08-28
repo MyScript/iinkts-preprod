@@ -322,8 +322,17 @@ export function createCanvasMock(overrides: Partial<TCanvasMock> = {}): TCanvasM
     createSymbols: jest.fn().mockResolvedValue([]),
     addSymbol: jest.fn().mockImplementation((sym: unknown) => Promise.resolve(sym)),
     addSymbols: jest.fn().mockImplementation((syms: unknown) => Promise.resolve(syms)),
-    updateSymbol: jest.fn().mockImplementation((sym: unknown) => Promise.resolve(sym)),
-    updateSymbols: jest.fn().mockImplementation((syms: unknown) => Promise.resolve(syms)),
+    // These write through to the model, like the real canvas: since IIC-1974 the document holds
+    // frozen records and callers commit drafts, so a stub that swallowed the write would leave the
+    // model showing the pre-drag value and the test asserting on nothing.
+    updateSymbol: jest.fn().mockImplementation((sym: unknown) => {
+      model.updateSymbol(sym as TSymbol)
+      return Promise.resolve(sym)
+    }),
+    updateSymbols: jest.fn().mockImplementation((syms: unknown) => {
+      ;(syms as TSymbol[]).forEach((s) => model.updateSymbol(s))
+      return Promise.resolve(syms)
+    }),
     updateSymbolsStyle: jest.fn(),
     updateTextFontStyle: jest.fn(),
     replaceSymbols: jest.fn().mockResolvedValue(undefined),

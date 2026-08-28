@@ -214,7 +214,7 @@ describe("IISynchronizerManager.ts", () => {
 
       // Simulate undo() swapping in strokes cloned from a history snapshot taken before
       // this block's jiixBlockId was ever assigned - same export content as before.
-      const staleStroke = canvas.model.getRootSymbol(strokes[0].id) as TStroke
+      const staleStroke = canvas.model.draftSymbol(strokes[0].id) as TStroke
       staleStroke.jiixBlockId = undefined
       staleStroke.jiixBlockType = undefined
       canvas.model.updateSymbol(staleStroke)
