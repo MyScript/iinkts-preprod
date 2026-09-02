@@ -184,7 +184,10 @@ describe("IIJiixQueryManager.ts", () => {
       // updateSymbol clears model.exports and bumps the version. ensureIndexValid deliberately
       // keeps the existing index for exactly this case ("Exports cleared transiently"), so the
       // element must still resolve — through the index, not by re-scanning the exports.
-      canvas.model.updateSymbol(stroke)
+      // Committed records are frozen, so the update has to go through a draft.
+      const draft = canvas.model.draftSymbol(stroke.id)
+      expect(draft).toBeDefined()
+      canvas.model.updateSymbol(draft!)
 
       expect(jiix.getStrokesGroupedByWord("block-1")).toEqual([{ label: "hi", strokeIds: [stroke.id] }])
       expect(jiix.getStrokesGroupedByChar("block-1")).toHaveLength(2)
