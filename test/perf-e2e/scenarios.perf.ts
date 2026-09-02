@@ -23,13 +23,19 @@ const DOCUMENT_SIZE = Number(process.env.PERF_E2E_DOCUMENT ?? 150)
 const SEED = 20260827
 
 /**
- * Ceiling for the pointer-driven scenarios below. Above it, importing that many strokes ends with a
- * "connection to the recognition server" error, and its modal backdrop swallows every subsequent
- * gesture — so a drag reports a clean measurement of nothing at all. Reproduced at 2000 and 3000,
- * passes at 1000. That failure is a separate defect, not a property of these scenarios, and the
- * assertions in them are what surfaced it.
+ * There is no size ceiling on the pointer-driven scenarios, and the reason is worth keeping.
+ *
+ * They used to skip above 1000 strokes: importing more ended with a "connection to the recognition
+ * server" error whose modal backdrop swallowed every subsequent gesture, so a drag reported a clean
+ * measurement of nothing. That was never a defect of its own — it was a symptom of the quadratic
+ * import this branch removes. While a 3000-stroke import blocked the main thread for ~133 s, the
+ * WebSocket keepalive starved and the session dropped. Re-measured after the fix: 1000, 2000, 3000
+ * and 4419 all import cleanly and every scenario asserts a real effect, so the ceiling now only
+ * hides the sizes worth measuring.
+ *
+ * What guards these scenarios is the effect assertion at the end of each one, not a stroke count. If
+ * a modal ever swallows a gesture again it fails loudly and `describePoint` names what was hit.
  */
-const POINTER_SCENARIO_LIMIT = 1000
 
 const REPORT = resolve(process.cwd(), ".local/bench/perf-e2e.json")
 
@@ -140,10 +146,6 @@ test.describe("browser perf scenarios", () => {
   })
 
   test("write a stroke on a loaded document", async ({ page }) => {
-    test.skip(
-      DOCUMENT_SIZE > POINTER_SCENARIO_LIMIT,
-      `pointer gestures are swallowed by the connection-error modal above ${POINTER_SCENARIO_LIMIT} strokes`
-    )
     const strokes = documentStrokes(DOCUMENT_SIZE)
     await page.evaluate(
       async (payload) => await (window as unknown as TCanvasWindow).rootEl.iink.importPointEvents(payload),
@@ -210,10 +212,6 @@ test.describe("browser perf scenarios", () => {
   })
 
   test("drag a full selection", async ({ page }) => {
-    test.skip(
-      DOCUMENT_SIZE > POINTER_SCENARIO_LIMIT,
-      `pointer gestures are swallowed by the connection-error modal above ${POINTER_SCENARIO_LIMIT} strokes`
-    )
     const strokes = documentStrokes(DOCUMENT_SIZE)
     await page.evaluate(
       async (payload) => await (window as unknown as TCanvasWindow).rootEl.iink.importPointEvents(payload),
@@ -253,10 +251,6 @@ test.describe("browser perf scenarios", () => {
     }
   })
   test("erase across a loaded document", async ({ page }) => {
-    test.skip(
-      DOCUMENT_SIZE > POINTER_SCENARIO_LIMIT,
-      `pointer gestures are swallowed by the connection-error modal above ${POINTER_SCENARIO_LIMIT} strokes`
-    )
     const strokes = documentStrokes(DOCUMENT_SIZE)
     await page.evaluate(
       async (payload) => await (window as unknown as TCanvasWindow).rootEl.iink.importPointEvents(payload),
@@ -290,10 +284,6 @@ test.describe("browser perf scenarios", () => {
   })
 
   test("lasso-select across a loaded document", async ({ page }) => {
-    test.skip(
-      DOCUMENT_SIZE > POINTER_SCENARIO_LIMIT,
-      `pointer gestures are swallowed by the connection-error modal above ${POINTER_SCENARIO_LIMIT} strokes`
-    )
     const strokes = documentStrokes(DOCUMENT_SIZE)
     await page.evaluate(
       async (payload) => await (window as unknown as TCanvasWindow).rootEl.iink.importPointEvents(payload),
