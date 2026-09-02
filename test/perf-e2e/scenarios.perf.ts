@@ -34,7 +34,8 @@ type TCanvasWindow = {
       zoom(z: number): void
       selectAll(): void
       unselectAll(): void
-      model: { symbols: { id: string }[] }
+      tool: string
+      model: { symbols: { id: string }[]; symbolsSelected: { id: string }[] }
     }
   }
 }
@@ -150,5 +151,70 @@ test.describe("browser perf scenarios", () => {
       }
       await page.mouse.up()
     })
+  })
+  test("erase across a loaded document", async ({ page }) => {
+    const strokes = documentStrokes(DOCUMENT_SIZE)
+    await page.evaluate(
+      async (payload) => await (window as unknown as TCanvasWindow).rootEl.iink.importPointEvents(payload),
+      strokes
+    )
+    const before = await page.evaluate(() => (window as unknown as TCanvasWindow).rootEl.iink.model.symbols.length)
+    await page.evaluate(() => ((window as unknown as TCanvasWindow).rootEl.iink.tool = "erase"))
+
+    const editor = page.locator("#rootEl")
+    const box = await editor.boundingBox()
+    if (!box) throw new Error("the canvas has no bounding box")
+
+    // Along the first baselines, where generateDocument lays its words out. An erase drag through
+    // empty space would report a clean zero while measuring nothing, so the assertion below is part
+    // of the scenario rather than a nicety.
+    results[`erase across ${DOCUMENT_SIZE} strokes`] = await measure(page, async () => {
+      await page.mouse.move(box.x + 40, box.y + 70)
+      await page.mouse.down()
+      for (let i = 1; i <= 40; i++) {
+        await page.mouse.move(box.x + 40 + i * 14, box.y + 70 + (i % 6) * 12)
+      }
+      await page.mouse.up()
+    })
+
+    const after = await page.evaluate(() => (window as unknown as TCanvasWindow).rootEl.iink.model.symbols.length)
+    if (after >= before) {
+      throw new Error(`the erase drag removed nothing (${before} -> ${after}): the path missed the ink`)
+    }
+  })
+
+  test("lasso-select across a loaded document", async ({ page }) => {
+    const strokes = documentStrokes(DOCUMENT_SIZE)
+    await page.evaluate(
+      async (payload) => await (window as unknown as TCanvasWindow).rootEl.iink.importPointEvents(payload),
+      strokes
+    )
+    await page.evaluate(() => ((window as unknown as TCanvasWindow).rootEl.iink.tool = "select"))
+
+    const editor = page.locator("#rootEl")
+    const box = await editor.boundingBox()
+    if (!box) throw new Error("the canvas has no bounding box")
+
+    // Growing the selection rectangle is what costs: the manager re-evaluates which symbols the box
+    // covers on every pointermove. This is the path `drag a full selection` never touches, because
+    // that one starts from selectAll().
+    results[`lasso over ${DOCUMENT_SIZE} strokes`] = await measure(page, async () => {
+      // Starts below the menu bar and left of LEFT_MARGIN, on empty canvas: a pointerdown on ink
+      // would begin a symbol drag instead of a selection rectangle, and one on the menu would not
+      // reach the canvas at all.
+      await page.mouse.move(box.x + 12, box.y + 48)
+      await page.mouse.down()
+      for (let i = 1; i <= 40; i++) {
+        await page.mouse.move(box.x + 12 + i * 18, box.y + 48 + i * 9)
+      }
+      await page.mouse.up()
+    })
+
+    const selected = await page.evaluate(
+      () => (window as unknown as TCanvasWindow).rootEl.iink.model.symbolsSelected.length
+    )
+    if (selected === 0) {
+      throw new Error("the lasso selected nothing: the rectangle missed the ink")
+    }
   })
 })
