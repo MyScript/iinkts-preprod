@@ -782,4 +782,24 @@ describe("IISelectionManager.ts", () => {
       expect(endAfter.y).toBeCloseTo(0, 1)
     })
   })
+  describe("JIIX group sets", () => {
+    // Guard for the shared helper the three getXxxGroupSets wrappers delegate to: the one thing a
+    // behaviour-preserving extraction can get wrong is wiring a wrapper to the wrong getter or the
+    // wrong configured level. Passes before and after the extraction, by design.
+    test("should ask each JIIX getter for its own configured level", () => {
+      const canvas = createCanvasMock()
+      canvas.configuration.selection.textLevel = "word"
+      canvas.configuration.selection.mathLevel = "operand"
+      canvas.configuration.selection.shapeLevel = "element"
+      const manager = new IISelectionManager(asCanvas(canvas))
+
+      manager.start({ pointer: { x: 10, y: 10 } } as TPointerInfo)
+      manager.end({ pointer: { x: 15, y: 15 } } as TPointerInfo)
+
+      expect(canvas.jiix.getTextSelectionGroups).toHaveBeenCalledWith("word")
+      expect(canvas.jiix.getMathSelectionGroups).toHaveBeenCalledWith("operand")
+      expect(canvas.jiix.getShapeSelectionGroups).toHaveBeenCalledWith("element")
+    })
+  })
+
 })
