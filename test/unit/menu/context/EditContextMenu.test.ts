@@ -86,7 +86,7 @@ describe("EditContextMenu.ts", () => {
     const canvas = createCanvasMock()
     const text = buildTextSymbol()
     canvas.model.addSymbol(text)
-    canvas.model.selectedIds.add(text.id)
+    canvas.model.selectSymbol(text.id)
     const boom = new Error("backend refused the update")
     canvas.updateSymbol = jest.fn().mockRejectedValue(boom)
     const item = new EditContextMenu(asCanvas(canvas))
