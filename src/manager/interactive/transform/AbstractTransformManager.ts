@@ -137,6 +137,22 @@ export abstract class IIAbstractTransformManager extends IIAbstractManager {
     })
   }
 
+  /**
+   * Gradient-followed strokes were reshaped non-uniformly by the connector — their points did not
+   * all move by the same delta — so the backend cannot be asked to apply this transform to them.
+   * Their full new content has to be sent instead. Returns one `replaceStrokes` call per such
+   * stroke, to be spread into the transform's own `Promise.all`.
+   */
+  protected replaceGradientFollowedStrokes(
+    anchoredOldSymbols: TSymbol[],
+    anchoredNewSymbols: TSymbol[]
+  ): Promise<void>[] {
+    return anchoredNewSymbols
+      .map((newSymbol, i) => ({ oldSymbol: anchoredOldSymbols[i], newSymbol }))
+      .filter((pair): pair is { oldSymbol: TStroke; newSymbol: TStroke } => isStroke(pair.newSymbol))
+      .map(({ oldSymbol, newSymbol }) => this.canvas.client.replaceStrokes([oldSymbol.id], [newSymbol]))
+  }
+
   protected abstract applyToStroke(stroke: TStroke, matrix: MatrixTransform): TStroke
   protected abstract applyToShape(shape: TShape, matrix: MatrixTransform): TShape
   protected abstract applyToEdge(edge: TEdge, matrix: MatrixTransform): TEdge

@@ -6,7 +6,7 @@ import type { TEdge, TMath, TShape, TStroke, TSymbol, TText } from "@/symbol"
 import { EdgeKind, ShapeKind } from "@/symbol"
 import { EdgeOps } from "@/symbol/edge/Edge"
 import { ShapeOps } from "@/symbol/shape/Shape"
-import { isStroke, StrokeOps } from "@/symbol/stroke/Stroke"
+import { StrokeOps } from "@/symbol/stroke/Stroke"
 import { MatrixTransform } from "@/transform"
 
 import { IIAbstractTransformManager } from "./AbstractTransformManager"
@@ -65,8 +65,9 @@ export class IITranslateManager extends IIAbstractTransformManager {
         EdgeOps.updateEdgeDerivedFields(edge)
         return edge
       }
+      default:
+        throw new Error(`Can't apply translate on edge, kind unknown: ${JSON.stringify(edge)}`)
     }
-    return edge
   }
 
   protected applyOnText(text: TText, matrix: MatrixTransform): TText {
@@ -155,18 +156,9 @@ export class IITranslateManager extends IIAbstractTransformManager {
       this.canvas.history.push(changes)
     }
     const strokes = this.canvas.extractStrokesFromSymbols(symbols)
-    // Gradient-followed strokes were reshaped non-uniformly (their points didn't all move by the
-    // same tx/ty), so their full new content must be sent via replaceStrokes instead of asking
-    // the backend to apply this uniform translate itself — only raw strokes are meaningful to
-    // the backend at all, so converted Line/PolyEdge/Arc symbols never appear in either call.
-    const gradientStrokeReplacements = anchoredNewSymbols
-      .map((newSymbol, i) => ({ oldSymbol: anchoredOldSymbols[i], newSymbol }))
-      .filter((pair): pair is { oldSymbol: TStroke; newSymbol: TStroke } => isStroke(pair.newSymbol))
     return Promise.all([
       this.canvas.client.transformTranslate([...new Set([...strokes.map((s) => s.id), ...rigidStrokeIds])], tx, ty),
-      ...gradientStrokeReplacements.map(({ oldSymbol, newSymbol }) =>
-        this.canvas.client.replaceStrokes([oldSymbol.id], [newSymbol])
-      ),
+      ...this.replaceGradientFollowedStrokes(anchoredOldSymbols, anchoredNewSymbols),
     ]).then(() => undefined)
   }
 

@@ -29,6 +29,24 @@ describe("IIRotationManager.ts", () => {
     canvas.renderer.setAttribute = jest.fn()
     const manager = new IIRotationManager(asCanvas(canvas))
 
+    test("should not rotate edge with kind unknown", () => {
+
+      const edge = EdgeLineOps.create({ x: 0, y: 0 }, { x: 0, y: 5 })
+
+      //@ts-ignore
+
+      edge.kind = "pouet"
+
+      const matrix = MatrixTransform.identity().rotate(Math.PI / 2, { x: 0, y: 0 })
+
+      expect(() => manager.applyToSymbol(edge, matrix)).toThrow(
+
+        expect.objectContaining({ message: expect.stringContaining("Can't apply rotate on edge, kind unknown:") })
+
+      )
+
+    })
+
     test("not rotate shape with kind unknown", () => {
       const points: TPoint[] = [
         { x: 0, y: 0 },

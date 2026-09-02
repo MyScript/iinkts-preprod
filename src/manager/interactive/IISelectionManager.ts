@@ -719,14 +719,14 @@ export class IISelectionManager extends IIAbstractManager {
   }
 
   /**
-   * Build selected/covered stroke ID sets from JIIX text groups.
-   * Returns null when no JIIX groups exist (fallback to stroke overlap).
+   * Build selected/covered stroke ID sets from a batch of JIIX groups: `covered` is every stroke
+   * the groups account for, `selected` is those in a group overlapping the selection box.
+   * Returns null when there are no groups, which callers read as "fall back to stroke overlap".
    */
-  protected getTextGroupSets(selectionBox: TBox): {
-    selected: Set<string>
-    covered: Set<string>
-  } | null {
-    const groups = this.canvas.jiix.getTextSelectionGroups(this.canvas.configuration.selection.textLevel)
+  #buildGroupSets(
+    groups: Array<{ strokeIds: string[]; bounds: TBox }>,
+    selectionBox: TBox
+  ): { selected: Set<string>; covered: Set<string> } | null {
     if (groups.length === 0) {
       return null
     }
@@ -742,6 +742,20 @@ export class IISelectionManager extends IIAbstractManager {
     }
 
     return { selected, covered }
+  }
+
+  /**
+   * Build selected/covered stroke ID sets from JIIX text groups.
+   * Returns null when no JIIX groups exist (fallback to stroke overlap).
+   */
+  protected getTextGroupSets(selectionBox: TBox): {
+    selected: Set<string>
+    covered: Set<string>
+  } | null {
+    return this.#buildGroupSets(
+      this.canvas.jiix.getTextSelectionGroups(this.canvas.configuration.selection.textLevel),
+      selectionBox
+    )
   }
 
   /**
@@ -752,22 +766,10 @@ export class IISelectionManager extends IIAbstractManager {
     selected: Set<string>
     covered: Set<string>
   } | null {
-    const groups = this.canvas.jiix.getMathSelectionGroups(this.canvas.configuration.selection.mathLevel)
-    if (groups.length === 0) {
-      return null
-    }
-
-    const selected = new Set<string>()
-    const covered = new Set<string>()
-
-    for (const group of groups) {
-      group.strokeIds.forEach((id) => covered.add(id))
-      if (BoxOps.overlaps(group.bounds, selectionBox)) {
-        group.strokeIds.forEach((id) => selected.add(id))
-      }
-    }
-
-    return { selected, covered }
+    return this.#buildGroupSets(
+      this.canvas.jiix.getMathSelectionGroups(this.canvas.configuration.selection.mathLevel),
+      selectionBox
+    )
   }
 
   /**
@@ -778,22 +780,10 @@ export class IISelectionManager extends IIAbstractManager {
     selected: Set<string>
     covered: Set<string>
   } | null {
-    const groups = this.canvas.jiix.getShapeSelectionGroups(this.canvas.configuration.selection.shapeLevel)
-    if (groups.length === 0) {
-      return null
-    }
-
-    const selected = new Set<string>()
-    const covered = new Set<string>()
-
-    for (const group of groups) {
-      group.strokeIds.forEach((id) => covered.add(id))
-      if (BoxOps.overlaps(group.bounds, selectionBox)) {
-        group.strokeIds.forEach((id) => selected.add(id))
-      }
-    }
-
-    return { selected, covered }
+    return this.#buildGroupSets(
+      this.canvas.jiix.getShapeSelectionGroups(this.canvas.configuration.selection.shapeLevel),
+      selectionBox
+    )
   }
 
   start(info: TPointerInfo): void {
