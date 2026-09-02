@@ -36,6 +36,7 @@
     "dev": "rollup -c config/rollup.config.dev.mjs -w --sourcemap",
     "dev:tldraw": "cd ./examples/custom-rendering/tldraw-websocket-client && yarn dev",
     "test:unit": "jest --config=test/unit/jest.config.js --detectOpenHandles",
+    "test:unit:coverage": "jest --config=test/unit/jest.config.js --coverage",
     "test:examples": "playwright test --config=test/examples/playwright.config.js",
     "copy:to:tldraw": "cp -r dist/ examples/custom-rendering/tldraw-websocket-client/node_modules/iink-ts/",
     "install:tldraw": "cd ./examples/custom-rendering/tldraw-websocket-client && yarn install",
