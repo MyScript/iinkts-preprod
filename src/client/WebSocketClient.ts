@@ -583,8 +583,15 @@ export class WebSocketClient {
 
   protected messageCallback(message: MessageEvent<string>): void {
     this.currentErrorCode = undefined
+    let websocketMessage: TWebSocketClientMessageReceived
     try {
-      const websocketMessage: TWebSocketClientMessageReceived = JSON.parse(message.data)
+      websocketMessage = JSON.parse(message.data)
+    } catch {
+      // The payload is not JSON at all: the payload itself is the useful diagnostic.
+      this.event.emitError(new Error(message.data))
+      return
+    }
+    try {
       if (websocketMessage.type === TWebSocketClientMessageType.Pong) {
         this.pingCount = 0
         return
@@ -633,8 +640,10 @@ export class WebSocketClient {
           this.#logger.warn("messageCallback", `Message type unknown: "${websocketMessage}".`)
           break
       }
-    } catch {
-      this.event.emitError(new Error(message.data))
+    } catch (error) {
+      // A handler threw. Reporting the payload here, as this used to, hid every
+      // message-handling bug in the client behind an error that only said what the server sent.
+      this.event.emitError(error instanceof Error ? error : new Error(String(error)))
     }
   }
 
