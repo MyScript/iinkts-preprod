@@ -6,7 +6,7 @@ import type { TEdge, TMath, TShape, TStroke, TSymbol, TText } from "@/symbol"
 import { EdgeKind, ShapeKind } from "@/symbol"
 import { EdgeOps } from "@/symbol/edge/Edge"
 import { ShapeOps } from "@/symbol/shape/Shape"
-import { isStroke, StrokeOps } from "@/symbol/stroke/Stroke"
+import { StrokeOps } from "@/symbol/stroke/Stroke"
 import { MatrixTransform } from "@/transform"
 
 import { IIAbstractTransformManager } from "./AbstractTransformManager"
@@ -65,8 +65,9 @@ export class IITranslateManager extends IIAbstractTransformManager {
         EdgeOps.updateEdgeDerivedFields(edge)
         return edge
       }
+      default:
+        throw new Error(`Can't apply translate on edge, kind unknown: ${JSON.stringify(edge)}`)
     }
-    return edge
   }
 
   protected applyOnText(text: TText, matrix: MatrixTransform): TText {
