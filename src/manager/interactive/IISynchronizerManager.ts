@@ -175,7 +175,6 @@ export class IISynchronizerManager extends IIAbstractManager {
         // — re-annotate whenever the metadata itself is missing, not only on content changes.
         const needsMetadata = strokes.some((s) => s.jiixBlockId !== el.id)
         if (needsMetadata || this.#lastElementSnapshots.get(el.id) !== snapshotKey) {
-          this.#lastElementSnapshots.set(el.id, snapshotKey)
           for (const stroke of strokes) {
             this.#updateBlockMetadata(stroke, el)
 
@@ -189,6 +188,11 @@ export class IISynchronizerManager extends IIAbstractManager {
             // canvas.export() call this very sync is processing the result of.
             this.model.updateSymbol(stroke, false)
           }
+          // Recorded only once every write for this element has landed. Setting it before the
+          // loop meant a throw halfway through marked the element as synced for the rest of the
+          // session: `needsMetadata` cannot rescue it, because jiixBlockId is already correct
+          // and the lost write (text metadata) is in neither that check nor the snapshot key.
+          this.#lastElementSnapshots.set(el.id, snapshotKey)
         }
 
         // Connection anchors must reflect the LATEST JIIX truth on every sync, not only when
