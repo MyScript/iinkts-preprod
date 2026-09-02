@@ -35,7 +35,13 @@ export class UndoRedoMenuAction extends BaseMenuItem<HTMLDivElement> {
     this.undoButton.disabled = !this.canvas.history.context.canUndo
     this.undoButton.addEventListener("pointerup", async () => {
       this.logger.info(`${this.config.id}-undo.click`)
-      await this.canvas.undo()
+      try {
+        await this.canvas.undo()
+      } catch (error) {
+        // An async listener's rejection goes nowhere: without this it surfaces as an unhandled
+        // rejection to the integrator, and the user sees a click that silently did nothing.
+        this.canvas.manageError(error as Error)
+      }
     })
 
     // Bouton Redo
@@ -47,7 +53,13 @@ export class UndoRedoMenuAction extends BaseMenuItem<HTMLDivElement> {
     this.redoButton.disabled = !this.canvas.history.context.canRedo
     this.redoButton.addEventListener("pointerup", async () => {
       this.logger.info(`${this.config.id}-redo.click`)
-      await this.canvas.redo()
+      try {
+        await this.canvas.redo()
+      } catch (error) {
+        // An async listener's rejection goes nowhere: without this it surfaces as an unhandled
+        // rejection to the integrator, and the user sees a click that silently did nothing.
+        this.canvas.manageError(error as Error)
+      }
     })
 
     wrapper.appendChild(this.undoButton)

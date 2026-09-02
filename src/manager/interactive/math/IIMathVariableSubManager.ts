@@ -438,8 +438,11 @@ export class IIMathVariableSubManager extends IIAbstractManager {
       const definition = await this.canvas.client.asVariableDefinition(jiixBlockId)
       this.#variableDefinitionCache.set(jiixBlockId, definition)
       return definition
-    } catch {
-      this.#variableDefinitionCache.set(jiixBlockId, null)
+    } catch (error) {
+      // Deliberately not cached: the success path above already caches a legitimately absent
+      // definition, so caching here only ever pinned a transient failure for the whole session —
+      // and the bare `catch` meant it did so without leaving a trace anywhere.
+      this.logger.error("asVariableDefinition", { jiixBlockId, error })
       return null
     }
   }

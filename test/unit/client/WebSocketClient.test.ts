@@ -148,6 +148,40 @@ describe("WebSocketClient.ts", () => {
     })
   })
 
+  describe("messageCallback error routing", () => {
+    type WithCallback = { messageCallback: (message: MessageEvent<string>) => void }
+    const invoke = (client: WebSocketClient, data: string) =>
+      (client as unknown as WithCallback).messageCallback({ data } as MessageEvent<string>)
+
+    test("should report the raw payload when it is not JSON at all", () => {
+      const wsClient = new WebSocketClient(configuration)
+      const spyEmitError = jest.spyOn(wsClient.event, "emitError")
+
+      invoke(wsClient, "<html>502 Bad Gateway</html>")
+
+      // For an unparseable payload the payload itself is the useful diagnostic.
+      expect(spyEmitError).toHaveBeenCalledWith(new Error("<html>502 Bad Gateway</html>"))
+    })
+
+    test("should report a handler's own error rather than the payload", () => {
+      const wsClient = new WebSocketClient(configuration)
+      const boom = new Error("manageSessionDescriptionMessage blew up")
+      ;(wsClient as unknown as { manageSessionDescriptionMessage: () => void }).manageSessionDescriptionMessage =
+        () => {
+          throw boom
+        }
+      const spyEmitError = jest.spyOn(wsClient.event, "emitError")
+
+      const payload = JSON.stringify({ type: "sessionDescription" })
+      invoke(wsClient, payload)
+
+      // Reporting `new Error(payload)` here would hide every message-handling bug in the client
+      // behind a message that only ever says "the server sent this".
+      expect(spyEmitError).toHaveBeenCalledWith(boom)
+      expect(spyEmitError).not.toHaveBeenCalledWith(new Error(payload))
+    })
+  })
+
   //TODO fix mock web worker
   describe.skip("Ping", () => {
     const conf = structuredClone(configuration)
