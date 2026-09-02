@@ -244,7 +244,7 @@ describe("IISynchronizerManager.ts", () => {
       changed.words = [{ label: "b", items: changed.words![0].items }]
       const changedExport = buildJiixExport([changed])
       canvas.export = jest.fn().mockImplementation(async () => {
-        canvas.model.exports = { "application/vnd.myscript.jiix": changedExport }
+        canvas.model.mergeExport({ "application/vnd.myscript.jiix": changedExport })
       })
 
       // ...and the text-metadata write for that new content fails.
