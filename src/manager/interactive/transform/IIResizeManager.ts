@@ -9,7 +9,7 @@ import { cloneSymbol, EdgeKind, isMath, isText, ShapeKind } from "@/symbol"
 import { EdgeOps } from "@/symbol/edge/Edge"
 import { MathOps } from "@/symbol/math/Math"
 import { ShapeOps } from "@/symbol/shape/Shape"
-import { isStroke, StrokeOps } from "@/symbol/stroke/Stroke"
+import { StrokeOps } from "@/symbol/stroke/Stroke"
 import { TextOps } from "@/symbol/text/Text"
 import { MatrixTransform } from "@/transform"
 
@@ -308,11 +308,6 @@ export class IIResizeManager extends IIAbstractTransformManager {
         preTransformBoundsById
       )
     const strokesFromSymbols = this.canvas.extractStrokesFromSymbols(this.model.symbolsSelected)
-    // Gradient-followed strokes were reshaped non-uniformly, so their full new content must be
-    // sent via replaceStrokes instead of asking the backend to apply this scale itself.
-    const gradientStrokeReplacements = anchoredNewSymbols
-      .map((newSymbol, i) => ({ oldSymbol: anchoredOldSymbols[i], newSymbol }))
-      .filter((pair): pair is { oldSymbol: TStroke; newSymbol: TStroke } => isStroke(pair.newSymbol))
     await Promise.all([
       this.canvas.client.transformScale(
         [...new Set([...strokesFromSymbols.map((s) => s.id), ...followedStrokeIds])],
@@ -321,9 +316,7 @@ export class IIResizeManager extends IIAbstractTransformManager {
         this.transformOrigin.x,
         this.transformOrigin.y
       ),
-      ...gradientStrokeReplacements.map(({ oldSymbol, newSymbol }) =>
-        this.canvas.client.replaceStrokes([oldSymbol.id], [newSymbol])
-      ),
+      ...this.replaceGradientFollowedStrokes(anchoredOldSymbols, anchoredNewSymbols),
     ])
     const changes: TIIHistoryChanges = {
       scale: [
