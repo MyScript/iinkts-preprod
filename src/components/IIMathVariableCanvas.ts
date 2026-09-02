@@ -194,10 +194,13 @@ export class IIMathVariableCanvas {
         await Promise.all(updates)
         this.logger.info("applyChanges", `Updated ${updates.length} variable(s)`)
       }
+    } catch (error) {
+      // Writes may have landed partially, so the user has to be told rather than only the log.
+      this.canvas.manageError(error as Error)
+    } finally {
+      // Closes either way: a log-only catch left the dialog open with no feedback at all.
       this.close()
       this.canvas.menu.context.update()
-    } catch (error) {
-      this.logger.error("applyChanges", "Error applying variable changes:", error)
     }
   }
 

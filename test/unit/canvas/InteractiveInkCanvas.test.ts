@@ -18,6 +18,7 @@ import {
   EdgeLineOps,
   TEdgeLine,
   ShapePolygonOps,
+  IIAbstractManager,
 } from "@/iink"
 
 describe("InteractiveInkCanvas.ts", () => {
@@ -283,6 +284,54 @@ describe("InteractiveInkCanvas.ts", () => {
 
       jest.advanceTimersByTime(500)
       expect(synchronizeSpy).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe("a failing debounced synchronize must not be swallowed", () => {
+    let canvas: InteractiveInkCanvas
+
+    beforeEach(() => {
+      jest.useFakeTimers()
+      canvas = new InteractiveInkCanvas(document.createElement("div"), CanvasOptions)
+    })
+
+    afterEach(() => {
+      jest.useRealTimers()
+    })
+
+    test("should route the failure through manageError instead of leaving it unhandled", async () => {
+      const boom = new Error("synchronize failed")
+      jest.spyOn(canvas.synchronizer, "synchronize").mockRejectedValue(boom)
+      const manageError = jest.spyOn(canvas, "manageError").mockImplementation(() => undefined)
+
+      canvas.client.event.emitContentChanged(getInitialHistoryContext())
+      await jest.advanceTimersByTimeAsync(500)
+
+      expect(manageError).toHaveBeenCalledWith(boom)
+    })
+
+    test("should still emit changed when the synchronize failed", async () => {
+      jest.spyOn(canvas.synchronizer, "synchronize").mockRejectedValue(new Error("synchronize failed"))
+      jest.spyOn(canvas, "manageError").mockImplementation(() => undefined)
+      const emitChanged = jest.spyOn(canvas.event, "emitChanged")
+
+      canvas.client.event.emitContentChanged(getInitialHistoryContext())
+      await jest.advanceTimersByTimeAsync(500)
+
+      // The local content did change — that is why onContentChanged ran at all. Only the backend
+      // sync failed, so consumers must still be told the document moved.
+      expect(emitChanged).toHaveBeenCalledTimes(1)
+    })
+
+    test("should clear the Recognizing operation even when the synchronize failed", async () => {
+      jest.spyOn(canvas.synchronizer, "synchronize").mockRejectedValue(new Error("synchronize failed"))
+      jest.spyOn(canvas, "manageError").mockImplementation(() => undefined)
+      canvas.startOperation("Recognizing")
+
+      canvas.client.event.emitContentChanged(getInitialHistoryContext())
+      await jest.advanceTimersByTimeAsync(500)
+
+      expect(canvas.hasOperation("Recognizing")).toBe(false)
     })
   })
 
@@ -1246,6 +1295,56 @@ describe("InteractiveInkCanvas.ts", () => {
       await canvas.clear()
 
       expect(settled).toBe(true)
+    })
+  })
+
+  describe("destroy — manager teardown", () => {
+    const buildCanvas = () => {
+      const canvas = new InteractiveInkCanvas(document.createElement("div"), CanvasOptions)
+      canvas.client.destroy = jest.fn()
+      canvas.renderer.destroy = jest.fn()
+      canvas.eraser.detach = jest.fn()
+      canvas.selector.detach = jest.fn()
+      canvas.move.detach = jest.fn()
+      canvas.writer.detach = jest.fn()
+      return canvas
+    }
+
+    // Enumerates the canvas at runtime rather than hard-coding a list, so a manager added later
+    // without being wired into the teardown fails here instead of leaking silently.
+    const spyOnEveryManager = (canvas: InteractiveInkCanvas) => {
+      const spies = new Map<string, jest.Mock>()
+      for (const [name, value] of Object.entries(canvas)) {
+        if (value instanceof IIAbstractManager) {
+          const spy = jest.fn()
+          value.destroy = spy
+          spies.set(name, spy)
+        }
+      }
+      return spies
+    }
+
+    test("should destroy every manager it owns", async () => {
+      const canvas = buildCanvas()
+      const spies = spyOnEveryManager(canvas)
+      expect(spies.size).toBeGreaterThan(10)
+
+      await canvas.destroy()
+
+      const missed = [...spies.entries()].filter(([, spy]) => spy.mock.calls.length === 0).map(([name]) => name)
+      expect(missed).toEqual([])
+    })
+
+    test("should destroy each manager exactly once", async () => {
+      const canvas = buildCanvas()
+      const spies = spyOnEveryManager(canvas)
+
+      await canvas.destroy()
+
+      const wrongCount = [...spies.entries()]
+        .filter(([, spy]) => spy.mock.calls.length !== 1)
+        .map(([name, spy]) => `${name}:${spy.mock.calls.length}`)
+      expect(wrongCount).toEqual([])
     })
   })
 

@@ -112,6 +112,29 @@ describe("IIJiixQueryManager.ts", () => {
     })
   })
 
+  describe("destroy", () => {
+    test("should drop the text metadata it accumulated", () => {
+      const canvas = createCanvasMock()
+      const jiix = new IIJiixQueryManager(asCanvas(canvas))
+      const stroke = buildIIStroke()
+      canvas.model.addSymbol(stroke)
+
+      jiix.updateTextMetadata(stroke, {
+        type: "Text" as never,
+        id: "block-1",
+        label: "a",
+        words: [{ label: "a", items: [{ type: "stroke", id: "i1", "full-id": stroke.id }] }],
+      } as never)
+      expect(jiix.getTextMetadata(stroke.id)).toBeDefined()
+
+      jiix.destroy()
+
+      // The map keys strokes of a document this manager no longer belongs to; keeping it alive
+      // retains that document for as long as the manager is referenced.
+      expect(jiix.getTextMetadata(stroke.id)).toBeUndefined()
+    })
+  })
+
   describe("getStrokeIdsForBlock", () => {
     test("returns the stroke ids belonging to the given block", () => {
       const canvas = createCanvasMock()
