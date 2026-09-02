@@ -65,8 +65,14 @@ export class EditContextMenu extends BaseMenuItem<HTMLElement> {
             bounds: firstChar.bounds,
           })
         }
-        await this.canvas.updateSymbol(textSymbol)
-        this.canvas.selector.drawSelectedGroup([textSymbol])
+        try {
+          await this.canvas.updateSymbol(textSymbol)
+          this.canvas.selector.drawSelectedGroup([textSymbol])
+        } catch (error) {
+          // The chars above were already rewritten, so swallowing here leaves the edit
+          // half-applied with no redraw and no feedback.
+          this.canvas.manageError(error as Error)
+        }
       }
     })
 

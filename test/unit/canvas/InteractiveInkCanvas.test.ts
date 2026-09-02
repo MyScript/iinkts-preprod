@@ -287,6 +287,54 @@ describe("InteractiveInkCanvas.ts", () => {
     })
   })
 
+  describe("a failing debounced synchronize must not be swallowed", () => {
+    let canvas: InteractiveInkCanvas
+
+    beforeEach(() => {
+      jest.useFakeTimers()
+      canvas = new InteractiveInkCanvas(document.createElement("div"), CanvasOptions)
+    })
+
+    afterEach(() => {
+      jest.useRealTimers()
+    })
+
+    test("should route the failure through manageError instead of leaving it unhandled", async () => {
+      const boom = new Error("synchronize failed")
+      jest.spyOn(canvas.synchronizer, "synchronize").mockRejectedValue(boom)
+      const manageError = jest.spyOn(canvas, "manageError").mockImplementation(() => undefined)
+
+      canvas.client.event.emitContentChanged(getInitialHistoryContext())
+      await jest.advanceTimersByTimeAsync(500)
+
+      expect(manageError).toHaveBeenCalledWith(boom)
+    })
+
+    test("should still emit changed when the synchronize failed", async () => {
+      jest.spyOn(canvas.synchronizer, "synchronize").mockRejectedValue(new Error("synchronize failed"))
+      jest.spyOn(canvas, "manageError").mockImplementation(() => undefined)
+      const emitChanged = jest.spyOn(canvas.event, "emitChanged")
+
+      canvas.client.event.emitContentChanged(getInitialHistoryContext())
+      await jest.advanceTimersByTimeAsync(500)
+
+      // The local content did change — that is why onContentChanged ran at all. Only the backend
+      // sync failed, so consumers must still be told the document moved.
+      expect(emitChanged).toHaveBeenCalledTimes(1)
+    })
+
+    test("should clear the Recognizing operation even when the synchronize failed", async () => {
+      jest.spyOn(canvas.synchronizer, "synchronize").mockRejectedValue(new Error("synchronize failed"))
+      jest.spyOn(canvas, "manageError").mockImplementation(() => undefined)
+      canvas.startOperation("Recognizing")
+
+      canvas.client.event.emitContentChanged(getInitialHistoryContext())
+      await jest.advanceTimersByTimeAsync(500)
+
+      expect(canvas.hasOperation("Recognizing")).toBe(false)
+    })
+  })
+
   describe("onGestured forces a synchronize when the backend won't emit a contentChange for it", () => {
     let canvas: InteractiveInkCanvas
 

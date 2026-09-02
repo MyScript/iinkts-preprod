@@ -82,6 +82,27 @@ describe("EditContextMenu.ts", () => {
     expect(canvas.selector.drawSelectedGroup).toHaveBeenCalledWith([updatedText])
   })
 
+  test("should route a failing save through manageError instead of leaving it unhandled", async () => {
+    const canvas = createCanvasMock()
+    const text = buildTextSymbol()
+    canvas.model.addSymbol(text)
+    canvas.model.selectedIds.add(text.id)
+    const boom = new Error("backend refused the update")
+    canvas.updateSymbol = jest.fn().mockRejectedValue(boom)
+    const item = new EditContextMenu(asCanvas(canvas))
+    document.body.appendChild(item.getElement())
+    item.editInput!.value = "Hi"
+
+    item.editSaveBtn!.dispatchEvent(new Event("pointerdown", { bubbles: true, cancelable: true }))
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(canvas.manageError).toHaveBeenCalledWith(boom)
+    // The chars were already rewritten before the await, so a swallowed failure leaves the edit
+    // half-applied with no redraw and no feedback.
+    expect(canvas.selector.drawSelectedGroup).not.toHaveBeenCalled()
+  })
+
   test("should do nothing on save when no text symbol is selected", async () => {
     const canvas = createCanvasMock()
     const item = new EditContextMenu(asCanvas(canvas))
