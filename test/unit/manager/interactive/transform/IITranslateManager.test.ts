@@ -64,6 +64,17 @@ describe("IITranslateManager.ts", () => {
         expect.objectContaining({ message: expect.stringContaining("Can't apply translate on shape, kind unknown:") })
       )
     })
+    test("should not translate edge with kind unknown", () => {
+      const start: TPoint = { x: 0, y: 0 }
+      const end: TPoint = { x: 0, y: 5 }
+      const edge = EdgeLineOps.create(start, end)
+      //@ts-ignore
+      edge.kind = "pouet"
+      const matrix = MatrixTransform.identity().translate(10, 15)
+      expect(() => manager.applyToSymbol(edge, matrix)).toThrow(
+        expect.objectContaining({ message: expect.stringContaining("Can't apply translate on edge, kind unknown:") })
+      )
+    })
     test("translate edge Line", () => {
       const start: TPoint = { x: 0, y: 0 }
       const end: TPoint = { x: 0, y: 5 }
