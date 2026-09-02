@@ -50,7 +50,13 @@ export class IWriterManager extends AbstractWriterManager {
       clearTimeout(this.#exportTimer)
       this.#exportTimer = setTimeout(
         async () => {
-          this.canvas.export()
+          try {
+            await this.canvas.export()
+          } catch (error) {
+            // Not awaited before, so every failed auto-export reached the integrator as an
+            // unhandled rejection. InkCanvas has no manageError, so report on the error event.
+            this.canvas.event.emitError(error as Error)
+          }
         },
         this.canvas.configuration.triggers.exportContent === "QUIET_PERIOD"
           ? this.canvas.configuration.triggers.exportContentDelay

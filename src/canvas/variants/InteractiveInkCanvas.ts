@@ -390,6 +390,11 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     this.#recognizeStrokeTimer = setTimeout(async () => {
       try {
         await this.synchronize()
+      } catch (error) {
+        // Without this the rejection escapes the async setTimeout callback as an unhandled
+        // rejection, and the two calls after the finally never run — so the UI never refreshes
+        // and consumers never get `changed`, even though the local content did change.
+        this.manageError(error as Error)
       } finally {
         // Clears every "Recognizing" started since the last synchronize (writer/transform pointerDown,
         // programmatic API calls) in one shot — not a matched start/end pair, since several may have
