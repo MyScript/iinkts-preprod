@@ -1186,6 +1186,69 @@ describe("InteractiveInkCanvas.ts", () => {
     })
   })
 
+  describe("clear failure handling", () => {
+    const buildCanvas = async (clearImpl: () => Promise<void>) => {
+      const canvas = new InteractiveInkCanvas(document.createElement("div"), CanvasOptions)
+      canvas.overlays.apply = jest.fn()
+      canvas.selector.removeSelectedGroup = jest.fn()
+      canvas.renderer.clear = jest.fn()
+      canvas.client.init = jest.fn(() => Promise.resolve())
+      canvas.client.clear = jest.fn(clearImpl)
+      await canvas.initialize()
+      canvas.model.addSymbol(buildIIStroke())
+      return canvas
+    }
+
+    test("should route a client.clear rejection through manageError", async () => {
+      const boom = new Error("server refused the clear")
+      const canvas = await buildCanvas(() => Promise.reject(boom))
+      const onError = jest.fn()
+      canvas.event.addErrorListener(onError)
+
+      await canvas.clear()
+
+      expect(canvas.client.clear).toHaveBeenCalledTimes(1)
+      expect(onError).toHaveBeenCalledWith(boom)
+    })
+
+    test("should not leave the Recognizing operation active when client.clear rejects", async () => {
+      const canvas = await buildCanvas(() => Promise.reject(new Error("server refused the clear")))
+
+      await canvas.clear()
+
+      // onContentChanged - which bulk-clears "Recognizing" - is driven by the client's
+      // contentChanged event, so a failed clear would otherwise never clear the badge.
+      expect(canvas.hasOperation("Recognizing")).toBe(false)
+    })
+
+    test("should keep the Recognizing operation active when client.clear succeeds", async () => {
+      const canvas = await buildCanvas(() => Promise.resolve())
+
+      await canvas.clear()
+
+      // Unchanged behaviour: "Recognizing" accumulates across calls and is cleared in one shot
+      // by the debounced synchronize, exactly as undo/redo and the other backend calls do.
+      expect(canvas.hasOperation("Recognizing")).toBe(true)
+    })
+
+    test("should not resolve before client.clear has settled", async () => {
+      let settled = false
+      const canvas = await buildCanvas(
+        () =>
+          new Promise<void>((resolve) =>
+            setTimeout(() => {
+              settled = true
+              resolve()
+            }, 0)
+          )
+      )
+
+      await canvas.clear()
+
+      expect(settled).toBe(true)
+    })
+  })
+
   describe("destroy", () => {
     const canvas = new InteractiveInkCanvas(document.createElement("div"), CanvasOptions)
     canvas.eraser.detach = jest.fn()

@@ -6,6 +6,14 @@ import type { TPartialDeep } from "./types"
 export type TMergeable = Record<string, unknown> | unknown[] | unknown
 
 /**
+ * Keys that must never be copied by {@link mergeDeep}. `hasOwnProperty` is not enough on its own:
+ * `JSON.parse('{"__proto__": {...}}')` yields `__proto__` as an *own* enumerable property, so it
+ * passes that guard — and reading `target["__proto__"]` then hits the getter and returns
+ * `Object.prototype`, which the recursion would happily write into.
+ */
+const FORBIDDEN_MERGE_KEYS = new Set(["__proto__", "constructor", "prototype"])
+
+/**
  * Deep-merges `sources` (left to right) onto `target`, mutating and returning it. `target` is
  * typically an empty object/array so the caller's own default-configuration object isn't
  * mutated in place; the explicit type parameter `T` should be given at the call site (e.g.
@@ -24,6 +32,9 @@ export const mergeDeep = <T extends TMergeable>(target: TPartialDeep<T>, ...sour
 
   if (isObject(target) && isObject(source)) {
     for (const key in source) {
+      if (FORBIDDEN_MERGE_KEYS.has(key)) {
+        continue
+      }
       if (Object.prototype.hasOwnProperty.call(source, key)) {
         const sourceValue = source[key]
         const targetValue = (target as Record<string, unknown>)[key]
