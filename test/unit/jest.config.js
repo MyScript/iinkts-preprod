@@ -5,7 +5,10 @@ export default {
     "<rootDir>/test/unit"
   ],
   clearMocks: true,
-  // collectCoverage: true,
+  // Coverage is opt-in through the `test:unit:coverage` script, not a flag on `test:unit`:
+  // combining `--coverage` with `--detectOpenHandles` takes over ten minutes on this suite,
+  // where `--coverage` alone takes about two. A commented-out `collectCoverage: true` used to
+  // sit here, which is how the threshold below went years without ever being enforced.
   collectCoverageFrom: [
     "<rootDir>/src/**/**.ts",
     "!<rootDir>/src/modules.d.ts",
@@ -19,6 +22,7 @@ export default {
       statements: 75,
     },
   },
+  coverageReporters: ["text-summary", "lcov"],
   coverageDirectory: "coverage",
   coverageProvider: "v8", // "babel"
   moduleFileExtensions: [
