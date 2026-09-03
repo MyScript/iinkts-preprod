@@ -189,8 +189,19 @@ and the import scenario's longest frame fell 2434 → 1461 ms for the same reaso
 profiles at 138 ms — the clone-to-write E5 introduced. Reaching the 50 ms criterion would mean not
 baking a rigid translate into every pointer at all, which is a different design, not a tuning pass.
 Separately, each `pointermove` writes `transform` on **4420** elements (128 180 over a 30-move drag),
-most of them detached: ~43 ms per move, under the 50 ms long-task bar so it never shows in
-`blockingMs`, but it is what the remaining dropped frames and the 36 ms p95 are made of.
+most of them detached: under the 50 ms long-task bar so it never shows in `blockingMs`, but it is what
+the remaining dropped frames and the 31–36 ms p95 are made of.
+
+IIC-1985 took the snap computation out of that per-move path. `IISnapManager` cached
+`otherSnapPoints` behind a validity key built as `Array.from(selectedIds).sort().join(",")` — a
+4419-entry array, a sort and a ~180 kB string **per pointermove**, so the check cost more than the
+work it guarded — while `selectionSnapPoints` had no cache at all and listed the whole document each
+time. Both now share one pass, keyed on `model.version` plus the new `model.selectionVersion`.
+Everything under `snapTranslate` falls from ~171 ms to 44 ms over a 30-move drag, of which 34 ms is
+`clearSnapToElementLines` querying the DOM rather than any snap arithmetic. End to end the drag's wall
+clock goes **880–908 → 811–837 ms**; `blockingMs` does not move, because that number is the commit.
+The per-move remainder is now browser layout/paint, the 4420 `transform` writes, and three
+`model.symbolsSelected` reads per move that each list the whole store.
 
 ## Acceptance criteria this baseline creates, and where they stand
 
