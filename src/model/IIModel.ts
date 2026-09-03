@@ -34,6 +34,12 @@ export class IIModel {
     return this.#version
   }
 
+  /**
+   * A fresh, deep-cloned array on every access. Never pass it to a logger: the arguments of
+   * `logger.debug` are evaluated whether or not the level is enabled, so a per-mutation
+   * `debug("…", this.symbols)` clones the whole document once per mutation and turns any loop over
+   * symbols into O(n^2). That is what it used to do in addSymbol/updateSymbol/removeSymbol.
+   */
   get symbols(): TSymbol[] {
     return Array.from(this.#symbolsMap.values(), cloneSymbol)
   }
@@ -90,7 +96,7 @@ export class IIModel {
     }
     this.#symbolsMap.set(symbol.id, symbol)
     this.#markDirty()
-    this.#logger.debug("addSymbol", this.symbols)
+    this.#logger.debug("addSymbol", { count: this.#symbolsMap.size })
   }
 
   updateSymbol(updatedSymbol: TSymbol, markDirty: boolean = true): void {
@@ -107,7 +113,7 @@ export class IIModel {
         this.#markDirty()
       }
     }
-    this.#logger.debug("updateSymbol", this.symbols)
+    this.#logger.debug("updateSymbol", { count: this.#symbolsMap.size })
   }
 
   replaceSymbol(id: string, symbols: TSymbol[]): void {
@@ -146,7 +152,7 @@ export class IIModel {
     if (this.#symbolsMap.delete(id)) {
       this.#markDirty()
     }
-    this.#logger.debug("removeSymbol", this.symbols)
+    this.#logger.debug("removeSymbol", { count: this.#symbolsMap.size })
   }
 
   /**
