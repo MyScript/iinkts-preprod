@@ -25,7 +25,7 @@ import type { TWireStroke } from "./StrokeSerializer"
 import { toWireStroke } from "./StrokeSerializer"
 
 /**
- * @group Symbol
+ * @group Client
  * @deprecated Use {@link TStroke} from stroke/ for new code
  */
 export type TStrokeGroup = {
@@ -34,7 +34,7 @@ export type TStrokeGroup = {
 }
 
 /**
- * @group Symbol
+ * @group Client
  * @deprecated Use {@link TStroke} with {@link HTTPClientV2}
  */
 export type TStrokeGroupToSend = {
