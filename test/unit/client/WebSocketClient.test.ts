@@ -10,11 +10,11 @@ import { buildIIStroke, delay } from "../helpers"
 import {
   WebSocketClient,
   ClientError,
-  StrokeOps,
   TMatrixTransform,
   MatrixTransform,
   TIIHistoryBackendChanges,
   TWebSocketClientConfiguration,
+  toWireStroke,
 } from "@/iink"
 
 import { toResolve } from "jest-extended"
@@ -312,7 +312,7 @@ describe("WebSocketClient.ts", () => {
       const messageSent = JSON.parse(mockServer.getLastMessage() as string)
       const messageSentExpected = {
         type: "addStrokes",
-        strokes: strokes.map((s) => StrokeOps.formatToSend(s)),
+        strokes: strokes.map((s) => toWireStroke(s)),
       }
       await expect(messageSent).toMatchObject(messageSentExpected)
     })
@@ -406,7 +406,7 @@ describe("WebSocketClient.ts", () => {
       const messageSent = JSON.parse(mockServer.getLastMessage() as string)
       expect(messageSent).toMatchObject({
         type: "addStrokes",
-        strokes: strokes.map((s) => StrokeOps.formatToSend(s)),
+        strokes: strokes.map((s) => toWireStroke(s)),
       })
       mockServer.sendGestureDetectedMessage()
       await expect(promise).resolves.toEqual(gestureDetectedMessage)
@@ -927,7 +927,7 @@ describe("WebSocketClient.ts", () => {
       const messageSent = JSON.parse(mockServer.getLastMessage() as string)
       const messageSentExpected = {
         type: "contextlessGesture",
-        stroke: StrokeOps.formatToSend(stroke),
+        stroke: toWireStroke(stroke),
       }
       await expect(messageSent).toMatchObject(messageSentExpected)
     })
@@ -1048,7 +1048,7 @@ describe("WebSocketClient.ts", () => {
         expect.arrayContaining([
           expect.objectContaining({
             type: "addStrokes",
-            strokes: changes.added!.map((s) => StrokeOps.formatToSend(s)),
+            strokes: changes.added!.map((s) => toWireStroke(s)),
             processGestures: false,
           }),
         ])
@@ -1066,7 +1066,7 @@ describe("WebSocketClient.ts", () => {
           expect.objectContaining({
             type: "replaceStrokes",
             oldStrokeIds: changes.replaced!.oldStrokes.map((s) => s.id),
-            newStrokes: changes.replaced!.newStrokes.map((s) => StrokeOps.formatToSend(s)),
+            newStrokes: changes.replaced!.newStrokes.map((s) => toWireStroke(s)),
           }),
         ])
       )

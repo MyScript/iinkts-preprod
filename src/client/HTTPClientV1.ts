@@ -3,7 +3,7 @@ import { LoggerCategory, LoggerManager } from "@/logger"
 import type { Model, TExport, TJIIXExport } from "@/model"
 import type { TPenStyle } from "@/style"
 import { StyleHelper } from "@/style"
-import { type Stroke, StrokeOps } from "@/symbol"
+import type { Stroke } from "@/symbol"
 
 import { parseApiError } from "./ClientApiError"
 import { ClientError } from "./ClientError"
@@ -20,6 +20,8 @@ import type {
 } from "./recognition"
 import type { TConverstionState } from "./RecognitionConfiguration"
 import { redactServerSecrets } from "./ServerConfiguration"
+import type { TWireStroke } from "./StrokeSerializer"
+import { toWireStroke } from "./StrokeSerializer"
 
 /**
  * @group Symbol
@@ -36,14 +38,7 @@ export type TStrokeGroup = {
  */
 export type TStrokeGroupToSend = {
   penStyle?: string
-  strokes: {
-    id: string
-    pointerType: string
-    x: number[]
-    y: number[]
-    t: number[]
-    p: number[]
-  }[]
+  strokes: TWireStroke[]
 }
 
 /**
@@ -156,7 +151,7 @@ export class HTTPClientV1 {
         JSON.stringify(group.penStyle) === "{}" ? undefined : StyleHelper.penStyleToCSS(group.penStyle as TPenStyle)
       const newGroup = {
         penStyle: newPenStyle,
-        strokes: group.strokes.map((s) => StrokeOps.formatToSend(s)),
+        strokes: group.strokes.map((s) => toWireStroke(s)),
       }
       strokeGroupsToSend.push(newGroup)
     })
