@@ -9,7 +9,7 @@ Symbols are frozen when committed and handed to readers directly, instead of the
 - mutating a symbol read from `model` now throws — ask for `model.draftSymbol(id)` and hand it back with `model.commitSymbol(draft)`. Enforced at runtime by `Object.freeze`, not by the types
 - a draft is frozen once committed, so a per-frame gesture needs a fresh draft each frame
 - `model.selectedIds` is a `ReadonlySet`; `modificationDate` and `exports` are getters
-- new: `SymbolStore`, `TDraft`, `TReadonlyDeep`, `TSymbolOrder`, `IIModel.symbolCount`, `IIModel.decoratorsByTargetId`
+- new: `SymbolStore`, `TDraft`, `TReadonlyDeep`, `TSymbolOrder`, `IIModel.symbolCount`, `IIModel.decoratorsByTargetId`, `IIModel.selectionVersion`
 - fixed: `changeOrderSymbol` was a no-op; partially erasing characters was never stored; undo/redo replay rewrote the history entry it was replaying; edge-connection anchors were silently dropped behind a swallowed throw
 - see [MIGRATION.md](./MIGRATION.md)
 
