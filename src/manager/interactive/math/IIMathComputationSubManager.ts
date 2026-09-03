@@ -1,6 +1,6 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import type { TJIIXMathElement, TJIIXMathExpression } from "@/client"
-import type { TBox, TPoint } from "@/core/geometry"
+import type { MatrixTransform, TBox, TPoint } from "@/core/geometry"
 import { BoxOps, OBBOps } from "@/core/geometry"
 import { convertMillimeterToPixel } from "@/core/math"
 import { isDeepEqualIgnoring } from "@/core/std"
@@ -10,7 +10,6 @@ import type { TStyle } from "@/style/Style"
 import type { TStroke } from "@/symbol"
 import { isStroke } from "@/symbol"
 import { StrokeOps } from "@/symbol/stroke/Stroke"
-import type { MatrixTransform } from "@/transform"
 
 import { IIAbstractManager } from "../IIAbstractManager"
 

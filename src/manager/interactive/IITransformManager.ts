@@ -1,7 +1,7 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import type { MatrixTransform } from "@/core/geometry"
 import { LoggerCategory } from "@/logger"
 import type { TSymbol } from "@/symbol"
-import type { MatrixTransform } from "@/transform"
 
 import { IIAbstractManager } from "./IIAbstractManager"
 import { IIResizeManager } from "./transform/IIResizeManager"

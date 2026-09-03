@@ -1,8 +1,7 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import { ResizeDirection } from "@/Constants"
 import type { TBox, TPoint } from "@/core/geometry"
-import { BoxOps } from "@/core/geometry"
-import { type TOBB } from "@/core/geometry"
+import { BoxOps, MatrixTransform, type TOBB } from "@/core/geometry"
 import type { TIIHistoryChanges } from "@/history"
 import type { TEdge, TMath, TShape, TStroke, TText } from "@/symbol"
 import { cloneSymbol, EdgeKind, isMath, isText, ShapeKind } from "@/symbol"
@@ -11,7 +10,6 @@ import { MathOps } from "@/symbol/math/Math"
 import { ShapeOps } from "@/symbol/shape/Shape"
 import { StrokeOps } from "@/symbol/stroke/Stroke"
 import { TextOps } from "@/symbol/text/Text"
-import { MatrixTransform } from "@/transform"
 
 import { IIAbstractTransformManager } from "./AbstractTransformManager"
 

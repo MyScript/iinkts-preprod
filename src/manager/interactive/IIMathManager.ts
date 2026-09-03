@@ -6,9 +6,8 @@ import type {
   TMathVariableDefinition,
   TMathVariableDefinitions,
 } from "@/client/WebSocketClientMessage"
-import type { TBox } from "@/core/geometry"
+import type { MatrixTransform, TBox } from "@/core/geometry"
 import { LoggerCategory } from "@/logger"
-import type { MatrixTransform } from "@/transform"
 
 import { IIAbstractManager } from "./IIAbstractManager"
 import type {
