@@ -1,4 +1,4 @@
-import type { TInkCanvas } from "@/canvas"
+import type { TInkCanvas } from "@/canvas/TInkCanvas"
 import type { TPointer } from "@/core/geometry"
 import type { TPointerInfo } from "@/grabber"
 import { AbstractWriterManager } from "@/manager/base/AbstractWriterManager"
