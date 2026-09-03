@@ -1,4 +1,4 @@
-import type { InkCanvas } from "@/canvas"
+import type { TInkCanvas } from "@/canvas"
 import type { TBox } from "@/core/geometry"
 import { BoxOps } from "@/core/geometry"
 import { OBBOps } from "@/core/geometry"
@@ -19,9 +19,9 @@ export class IDebugSVGManager {
   #recognitionBoxDrawing = false
   #recognitionBoxItemsDrawing = false
 
-  canvas: InkCanvas
+  canvas: TInkCanvas
 
-  constructor(canvas: InkCanvas) {
+  constructor(canvas: TInkCanvas) {
     this.#logger.info("constructor")
     this.canvas = canvas
   }

@@ -251,6 +251,24 @@ export default [
           ],
         },
       ],
+      // A second, separate rule on purpose. The typescript-eslint variant above skips type imports
+      // whenever its options carry `allowTypeImports`, whatever the group — so a stricter group put
+      // beside that one is silently inert. The base rule has no such notion and bans both kinds,
+      // which is what naming a concrete canvas deserves: `implements` only guards the contract in
+      // one direction, and a member added to the class does not make the interface stale to the
+      // compiler. The `*Configuration` types are part of the contracts and stay allowed.
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/canvas/variants/*", "!@/canvas/variants/*Configuration"],
+              message:
+                "depend on the canvas contract (`TInkCanvas` / `TInteractiveInkCanvas`), not on a concrete variant class",
+            },
+          ],
+        },
+      ],
     },
   },
 ]

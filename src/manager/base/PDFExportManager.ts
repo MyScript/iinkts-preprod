@@ -1,5 +1,5 @@
+import type { TInkCanvas } from "@/canvas/TInkCanvas"
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import type { InkCanvas } from "@/canvas/variants/InkCanvas"
 import { Modal } from "@/components/Modal"
 import type { TBox } from "@/core/geometry"
 import { convertPixelToMillimeter } from "@/core/math"
@@ -96,11 +96,11 @@ export class PDFExportManager {
   }
 
   #logger = LoggerManager.getLogger(LoggerCategory.MODEL)
-  canvas: TInteractiveInkCanvas | InkCanvas
+  canvas: TInteractiveInkCanvas | TInkCanvas
   #printContainer?: HTMLDivElement
   #pageStyle?: HTMLStyleElement
 
-  constructor(canvas: TInteractiveInkCanvas | InkCanvas) {
+  constructor(canvas: TInteractiveInkCanvas | TInkCanvas) {
     this.#logger.info("constructor")
     this.canvas = canvas
   }
