@@ -1,0 +1,159 @@
+{
+  "generatedAt": "2026-09-02T11:54:52.941Z",
+  "host": "LAP-01608",
+  "cpu": "11th Gen Intel(R) Core(TM) i7-11850H @ 2.50GHz",
+  "nodeVersion": "v25.2.1",
+  "agent": "local",
+  "repeats": 7,
+  "controlCase": "control: float arithmetic",
+  "processes": 7,
+  "cases": [
+    {
+      "name": "control: float arithmetic",
+      "p50Ms": 0.11271799999940413,
+      "samples": 7
+    },
+    {
+      "name": "import: build a model of 200 strokes",
+      "p50Ms": 591.5765360000005,
+      "samples": 7
+    },
+    {
+      "name": "append: add then remove one stroke @500",
+      "p50Ms": 32.77129699999932,
+      "samples": 7
+    },
+    {
+      "name": "read: model.symbols @500",
+      "p50Ms": 16.031823500000428,
+      "samples": 7
+    },
+    {
+      "name": "read: getRootSymbol by id @500 x20",
+      "p50Ms": 0.7172609999997803,
+      "samples": 7
+    },
+    {
+      "name": "derive: recompute derived fields for all @500 x20",
+      "p50Ms": 12.252357999999731,
+      "samples": 7
+    },
+    {
+      "name": "hit test: linear overlaps over all @500 x20",
+      "p50Ms": 0.809968000000481,
+      "samples": 7
+    },
+    {
+      "name": "transform: matrix over every pointer @500 x20",
+      "p50Ms": 1.6377209999991464,
+      "samples": 7
+    }
+  ],
+  "ratios": {
+    "control: float arithmetic": 1,
+    "import: build a model of 200 strokes": 4919.311267619964,
+    "append: add then remove one stroke @500": 270.2519769896355,
+    "read: model.symbols @500": 139.5585687531916,
+    "read: getRootSymbol by id @500 x20": 6.199364786488485,
+    "derive: recompute derived fields for all @500 x20": 107.64931046696066,
+    "hit test: linear overlaps over all @500 x20": 7.274497388702582,
+    "transform: matrix over every pointer @500 x20": 14.358660395759669
+  },
+  "ratioSpread": {
+    "control: float arithmetic": 0,
+    "import: build a model of 200 strokes": 0.08935924403539273,
+    "append: add then remove one stroke @500": 0.044331238161911264,
+    "read: model.symbols @500": 0.06396957966956612,
+    "read: getRootSymbol by id @500 x20": 0.06179766560548711,
+    "derive: recompute derived fields for all @500 x20": 0.12117220669541029,
+    "hit test: linear overlaps over all @500 x20": 0.1731272649300297,
+    "transform: matrix over every pointer @500 x20": 0.16673375068962282
+  },
+  "controlSpread": 0.02656629819260951,
+  "dataset": "500 strokes / 7876 pointers, seed 20260827",
+  "seedMs": 3700.475529,
+  "ratioMaxDeviation": {
+    "control: float arithmetic": 0,
+    "import: build a model of 200 strokes": 0.1416544214712078,
+    "append: add then remove one stroke @500": 0.9341338863800075,
+    "read: model.symbols @500": 0.23414369668319548,
+    "read: getRootSymbol by id @500 x20": 0.22854730800946124,
+    "derive: recompute derived fields for all @500 x20": 0.5509200435401511,
+    "hit test: linear overlaps over all @500 x20": 0.24118934935989794,
+    "transform: matrix over every pointer @500 x20": 0.2835921575281849
+  },
+  "ratioSamples": {
+    "control: float arithmetic": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "import: build a model of 200 strokes": [
+      5358.8972,
+      5405.6794,
+      5616.1535,
+      4919.3113,
+      4867.0411,
+      4797.0851,
+      4254.9135
+    ],
+    "append: add then remove one stroke @500": [
+      321.2172,
+      522.7035,
+      335.6269,
+      258.2714,
+      270.252,
+      265.7419,
+      258.8981
+    ],
+    "read: model.symbols @500": [
+      146.6508,
+      169.727,
+      172.2353,
+      130.6311,
+      139.5586,
+      130.0018,
+      131.5955
+    ],
+    "read: getRootSymbol by id @500 x20": [
+      6.1994,
+      7.6162,
+      7.07,
+      5.8344,
+      6.4568,
+      5.8163,
+      5.4497
+    ],
+    "derive: recompute derived fields for all @500 x20": [
+      115.4628,
+      166.9555,
+      123.5691,
+      102.3691,
+      107.6493,
+      94.6052,
+      80.2626
+    ],
+    "hit test: linear overlaps over all @500 x20": [
+      8.788,
+      8.5339,
+      5.7479,
+      6.753,
+      7.2745,
+      7.2857,
+      5.52
+    ],
+    "transform: matrix over every pointer @500 x20": [
+      18.3123,
+      14.9082,
+      11.3478,
+      11.9646,
+      14.7087,
+      14.3587,
+      10.2867
+    ]
+  }
+}
