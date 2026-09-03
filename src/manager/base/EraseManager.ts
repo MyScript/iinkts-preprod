@@ -1,5 +1,5 @@
+import type { TInkCanvas } from "@/canvas/TInkCanvas"
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import type { InkCanvas } from "@/canvas/variants/InkCanvas"
 import type { TPoint, TSegment } from "@/core/geometry"
 import { BoxOps } from "@/core/geometry"
 import { OBBOps, type TOBB } from "@/core/geometry"
@@ -26,14 +26,14 @@ export type THittable = {
 export class EraseManager {
   #logger = LoggerManager.getLogger(LoggerCategory.WRITE)
   grabber: PointerEventGrabber
-  canvas: TInteractiveInkCanvas | InkCanvas
+  canvas: TInteractiveInkCanvas | TInkCanvas
 
   eraserWidth = 5
   currentEraser?: TEraser
   deletingIds: Set<string>
   charsToDelete: Map<string, Set<string>> = new Map()
 
-  constructor(canvas: TInteractiveInkCanvas | InkCanvas) {
+  constructor(canvas: TInteractiveInkCanvas | TInkCanvas) {
     this.#logger.info("constructor")
     this.canvas = canvas
     this.grabber = new PointerEventGrabber(canvas.configuration.grabber)
@@ -44,7 +44,7 @@ export class EraseManager {
     return this.canvas.renderer
   }
 
-  #isTInteractiveInkCanvas(canvas: TInteractiveInkCanvas | InkCanvas): canvas is TInteractiveInkCanvas {
+  #isTInteractiveInkCanvas(canvas: TInteractiveInkCanvas | TInkCanvas): canvas is TInteractiveInkCanvas {
     return "removeSymbols" in canvas && typeof canvas.removeSymbols === "function"
   }
 

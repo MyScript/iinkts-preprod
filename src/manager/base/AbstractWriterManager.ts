@@ -1,5 +1,5 @@
+import type { TInkCanvas } from "@/canvas/TInkCanvas"
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import type { InkCanvas } from "@/canvas/variants/InkCanvas"
 import type { TPointer } from "@/core/geometry"
 import type { TPointerInfo } from "@/grabber"
 import { PointerEventGrabber } from "@/grabber"
@@ -13,12 +13,12 @@ import type { TSymbol } from "@/symbol"
 export abstract class AbstractWriterManager {
   #logger = LoggerManager.getLogger(LoggerCategory.WRITE)
   grabber: PointerEventGrabber
-  canvas: TInteractiveInkCanvas | InkCanvas
+  canvas: TInteractiveInkCanvas | TInkCanvas
   currentSymbol?: TSymbol
 
   detectGesture: boolean = true
 
-  constructor(canvas: TInteractiveInkCanvas | InkCanvas) {
+  constructor(canvas: TInteractiveInkCanvas | TInkCanvas) {
     this.#logger.info("constructor")
     this.canvas = canvas
     this.grabber = new PointerEventGrabber(canvas.configuration.grabber)
