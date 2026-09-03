@@ -1,7 +1,7 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import type { TJIIXMathElement } from "@/client"
 import { DOMFactory } from "@/components/dom"
 import { LoggerCategory, LoggerManager } from "@/logger"
-import type { TJIIXMathElement } from "@/model"
 import type { TStroke, TSymbol, TText } from "@/symbol"
 import { isStroke, isText } from "@/symbol"
 import { TextOps } from "@/symbol/text/Text"

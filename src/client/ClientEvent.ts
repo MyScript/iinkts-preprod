@@ -1,6 +1,6 @@
 import type { THistoryContext } from "@/history"
-import type { TExport } from "@/model"
 
+import type { TExport } from "./Export"
 import type { TWebSocketClientMessageGesture } from "./WebSocketClientMessage"
 import type { TWebSocketSSRClientMessageSVGPatch } from "./WebSocketSSRClientMessage"
 

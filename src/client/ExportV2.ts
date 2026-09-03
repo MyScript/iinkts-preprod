@@ -1,6 +1,5 @@
-import type { TRecognitionTypeV2 } from "@/client"
-
 import type { TJIIXBase, TJIIXWord } from "./ExportCommon"
+import type { TRecognitionTypeV2 } from "./RecognitionConfiguration"
 
 /**
  * @group Exports

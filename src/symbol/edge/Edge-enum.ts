@@ -1,4 +1,4 @@
-import { SELECTION_MARGIN } from "@/Constants"
+import { type EdgeDecoration, SELECTION_MARGIN } from "@/Constants"
 import type { TPoint } from "@/core/geometry"
 import { BoxOps } from "@/core/geometry"
 import { OBBOps, type TOBB } from "@/core/geometry"
@@ -11,13 +11,6 @@ export enum EdgeKind {
   Line = "line",
   PolyEdge = "polyedge",
   Arc = "arc",
-}
-
-/**
- * @group Symbol
- */
-export enum EdgeDecoration {
-  Arrow = "arrow-head",
 }
 
 /**
