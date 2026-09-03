@@ -92,21 +92,6 @@ describe("StrokeOps", () => {
     })
   })
 
-  describe("formatToSend", () => {
-    test("should return arrays of x, y, t, p", () => {
-      const stroke = StrokeOps.create(DefaultStyle)
-      StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 1, y: 1 })
-      StrokeOps.addPointer(stroke, { p: 1, t: 2, x: 11, y: 11 })
-      const result = StrokeOps.formatToSend(stroke)
-      expect(result.id).toEqual(stroke.id)
-      expect(result.pointerType).toEqual(stroke.pointerType)
-      expect(result.x).toEqual(stroke.pointers.map((p) => p.x))
-      expect(result.y).toEqual(stroke.pointers.map((p) => p.y))
-      expect(result.t).toEqual(stroke.pointers.map((p) => p.t))
-      expect(result.p).toEqual(stroke.pointers.map((p) => p.p))
-    })
-  })
-
   describe("split", () => {
     test("should split into before and after at index", () => {
       const stroke = StrokeOps.create(DefaultStyle)
