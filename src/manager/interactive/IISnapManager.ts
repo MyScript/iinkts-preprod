@@ -63,8 +63,14 @@ export class IISnapManager extends IIAbstractManager {
 
   snapConfiguration: SnapConfiguration
   #otherSnapPointsCache: TPoint[] = []
-  #otherSnapPointsCacheVersion = -1
-  #otherSnapPointsCacheSelectionKey = ""
+  #selectionSnapPointsCache: TPoint[] = []
+  /**
+   * `(content version, selection version)` the two caches above were built from. Both getters are
+   * read on every `pointermove` of every drag and neither of their inputs can change during a
+   * gesture: `continue()` moves DOM elements, the model is written at commit.
+   */
+  #cacheVersion = -1
+  #cacheSelectionVersion = -1
 
   constructor(canvas: TInteractiveInkCanvas, config?: TPartialDeep<TSnapConfiguration>) {
     super(canvas, LoggerCategory.SNAP)
@@ -72,8 +78,14 @@ export class IISnapManager extends IIAbstractManager {
     this.snapConfiguration = new SnapConfiguration(config)
   }
 
+  /**
+   * Snap points of the selection's own bounding box. Rebuilt only when the model content or the
+   * selection changed — reading it lists the whole document to filter the selection out of it, and
+   * a drag asks for it once per pointermove.
+   */
   get selectionSnapPoints(): TPoint[] {
-    return BoxOps.getSnapPoints(BoxOps.createFromPoints(this.model.symbolsSelected.flatMap((s) => s.snapPoints)))
+    this.#refreshCaches()
+    return this.#selectionSnapPointsCache
   }
 
   /**
@@ -83,18 +95,37 @@ export class IISnapManager extends IIAbstractManager {
    * for the whole gesture instead of re-scanning every symbol per move.
    */
   get otherSnapPoints(): TPoint[] {
-    const currentVersion = this.model.version
-    const selectedIds = this.model.selectedIds
-    const selectionKey = Array.from(selectedIds).sort().join(",")
-    if (
-      this.#otherSnapPointsCacheVersion !== currentVersion ||
-      this.#otherSnapPointsCacheSelectionKey !== selectionKey
-    ) {
-      this.#otherSnapPointsCacheVersion = currentVersion
-      this.#otherSnapPointsCacheSelectionKey = selectionKey
-      this.#otherSnapPointsCache = this.model.symbols.filter((s) => !selectedIds.has(s.id)).flatMap((s) => s.snapPoints)
-    }
+    this.#refreshCaches()
     return this.#otherSnapPointsCache
+  }
+
+  /**
+   * Rebuilds both snap point sets if either the document content or the selection moved on.
+   *
+   * The previous validity check built its selection key as `Array.from(selectedIds).sort().join()`.
+   * On a drag of the whole document that is a 4419-entry array, a sort and a ~180 kB string per
+   * pointermove — the check cost more than the work it was guarding. `model.selectionVersion` is an
+   * integer maintained by the model instead.
+   */
+  #refreshCaches(): void {
+    const version = this.model.version
+    const selectionVersion = this.model.selectionVersion
+    if (this.#cacheVersion === version && this.#cacheSelectionVersion === selectionVersion) {
+      return
+    }
+    this.#cacheVersion = version
+    this.#cacheSelectionVersion = selectionVersion
+
+    const selectedIds = this.model.selectedIds
+    const other: TPoint[] = []
+    const selectedSnapPoints: TPoint[] = []
+    // One pass over the document rather than one per getter: `symbols` and `symbolsSelected` each
+    // list the whole store, and the two sets partition it.
+    this.model.symbols.forEach((symbol) => {
+      ;(selectedIds.has(symbol.id) ? selectedSnapPoints : other).push(...symbol.snapPoints)
+    })
+    this.#otherSnapPointsCache = other
+    this.#selectionSnapPointsCache = BoxOps.getSnapPoints(BoxOps.createFromPoints(selectedSnapPoints))
   }
 
   get snapThreshold(): number {
