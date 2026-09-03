@@ -168,7 +168,7 @@ Document of 4419 strokes, the reference size, which the harness can now reach:
 | write one stroke | 736 ms | 0 ms | 0 ms | 16.7 / 20.0 / 21.7 ms | 0 |
 | pan, 90 frames | 1504 ms | 0 ms | 0 ms | 16.7 / 18.1 / 27.0 ms | 0 |
 | zoom, 30 steps | 491 ms | 0 ms | 0 ms | 16.6 / 17.4 / 18.2 ms | 0 |
-| **drag 4419 selected symbols** | 1620 ms | **674 ms** | **674 ms** | 16.9 / 38.4 / **679 ms** | **8** |
+| **drag 4419 selected symbols** | 907 ms | **202 ms** | **202 ms** | 16.5 / 36.1 / **206 ms** | **3** |
 | erase across 4419 strokes | 707 ms | 0 ms | 0 ms | 16.6 / 19.9 / 26.5 ms | 0 |
 | lasso over 4419 strokes | 1019 ms | 0 ms | 0 ms | 17.0 / 30.6 / 41.4 ms | 1 |
 
@@ -176,10 +176,32 @@ Document of 4419 strokes, the reference size, which the harness can now reach:
 reports 0 ms blocking next to a 2434 ms frame. Read `frameMaxMs` for anything driven from inside the
 page, and `blockingMs` for anything driven through the pointer.
 
-**Dragging a full selection is the one interaction that still janks, and it scales linearly.**
-Measured across sizes: 0 ms at 150, 285 ms at 2000, 455 ms at 3000, 674–889 ms at 4419 — always a
-**single** long task, roughly 0.2 ms per selected symbol. It is the largest unfixed perf defect the
-harness can see, and it was invisible until the scenario stopped skipping above 1000 strokes.
+**Dragging a full selection was the one interaction that janked: 674–889 ms in a single long task at
+4419 symbols, 0.2 ms per selected symbol.** Fixed by IIC-1984 — `SVGRenderer.drawSymbol` built an
+element for every symbol and only then asked `#isInViewBox` whether to attach it, so committing the
+transform rebuilt 4419 SVG paths to keep the **295** the viewport holds. An off-screen redraw of an
+already-tracked symbol is now deferred to `#reconcileVirtualization`, which pays for it if and when
+the symbol comes into view. **674–889 ms → 198–218 ms across three runs**, dropped frames 8–14 → 1–3,
+and the import scenario's longest frame fell 2434 → 1461 ms for the same reason.
+
+**What is left in that 202 ms is not rendering.** Counted per phase: the commit issues
+`draftSymbol` × 4419, `drawSymbol` × 4419 and `commitSymbol` × 4419, and `SymbolStore.draft` alone
+profiles at 138 ms — the clone-to-write E5 introduced. Reaching the 50 ms criterion would mean not
+baking a rigid translate into every pointer at all, which is a different design, not a tuning pass.
+Separately, each `pointermove` writes `transform` on **4420** elements (128 180 over a 30-move drag),
+most of them detached: under the 50 ms long-task bar so it never shows in `blockingMs`, but it is what
+the remaining dropped frames and the 31–36 ms p95 are made of.
+
+IIC-1985 took the snap computation out of that per-move path. `IISnapManager` cached
+`otherSnapPoints` behind a validity key built as `Array.from(selectedIds).sort().join(",")` — a
+4419-entry array, a sort and a ~180 kB string **per pointermove**, so the check cost more than the
+work it guarded — while `selectionSnapPoints` had no cache at all and listed the whole document each
+time. Both now share one pass, keyed on `model.version` plus the new `model.selectionVersion`.
+Everything under `snapTranslate` falls from ~171 ms to 44 ms over a 30-move drag, of which 34 ms is
+`clearSnapToElementLines` querying the DOM rather than any snap arithmetic. End to end the drag's wall
+clock goes **880–908 → 811–837 ms**; `blockingMs` does not move, because that number is the commit.
+The per-move remainder is now browser layout/paint, the 4420 `transform` writes, and three
+`model.symbolsSelected` reads per move that each list the whole store.
 
 ## Acceptance criteria this baseline creates, and where they stand
 
@@ -187,7 +209,7 @@ harness can see, and it was invisible until the scenario stopped skipping above 
 |---|---|---|
 | the micro-bench resident document reaches 4419 strokes without setup dominating | E5 | **unblocked, not done** — seeding 500 costs 15 ms, the cap can be lifted |
 | `append` on a loaded document costs a frame or less | E5 | **met** — 0.00027 ms |
-| `drag N selected symbols` shows no task above 50 ms | E5 | **met at 150** (0 ms), **not met at 4419** (674 ms) |
+| `drag N selected symbols` shows no task above 50 ms | E5 | **met at 150** (0 ms), **still not met at 4419** — 674 → 202 ms via IIC-1984; the rest is the write contract, not the renderer |
 | `structuredClone` call sites reach 0 | E5 | **not met** — 13 remain; see *Static counters* for why the counter was the wrong target |
 | the 66 linear scans reach the "legitimate full walk" set only | E6 | **unmeasurable as written** — the counter is not reproducible, see *Static counters* |
 | a document of 4419 strokes still holds 60 Hz on pan | E8 | **met** — p95 18.1 ms, 0 dropped frames at 4419 |

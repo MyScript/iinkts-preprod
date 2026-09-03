@@ -55,7 +55,20 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
    * Off-screen symbols keep their built element here instead of in the DOM, so
    * pan/zoom over a large document doesn't force a repaint of the whole scene.
    */
-  #virtualizedSymbols = new Map<string, { element: SVGGraphicsElement; bounds: TOBB; isDecorator: boolean }>()
+  #virtualizedSymbols = new Map<
+    string,
+    {
+      element: SVGGraphicsElement
+      bounds: TOBB
+      isDecorator: boolean
+      /**
+       * Set when a redraw was skipped because the symbol was outside the extended viewBox, so
+       * `element` no longer matches the symbol. `#reconcileVirtualization` rebuilds from this the
+       * moment the symbol becomes visible, and clears it.
+       */
+      pendingRedraw?: TSymbol
+    }
+  >()
 
   constructor(configuration: TIIRendererConfiguration) {
     super(configuration)
@@ -117,21 +130,30 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
   }
 
   /**
-   * Attaches symbols that scrolled into the (extended) viewBox and detaches
-   * symbols that scrolled out of it, without rebuilding their elements.
+   * Attaches symbols that scrolled into the (extended) viewBox and detaches symbols that scrolled
+   * out of it. Elements are not rebuilt here, except for the one case where `drawSymbol` deferred a
+   * rebuild because the symbol was off screen — that debt is settled on the way in.
    */
   #reconcileVirtualization(): void {
-    this.#virtualizedSymbols.forEach(({ element, bounds, isDecorator }) => {
-      const shouldAttach = this.#isInViewBox(bounds)
-      const isAttached = element.parentNode !== null
-      if (shouldAttach && !isAttached) {
-        if (isDecorator) {
-          this.definitionGroup.insertAdjacentElement("afterend", element)
-        } else {
-          this.layer.appendChild(element)
+    this.#virtualizedSymbols.forEach((tracked) => {
+      if (!this.#isInViewBox(tracked.bounds)) {
+        tracked.element.remove()
+        return
+      }
+      if (tracked.pendingRedraw) {
+        const rebuilt = this.buildElementFromSymbol(tracked.pendingRedraw)
+        tracked.pendingRedraw = undefined
+        if (rebuilt) {
+          tracked.element.remove()
+          tracked.element = rebuilt
         }
-      } else if (!shouldAttach && isAttached) {
-        element.remove()
+      }
+      if (tracked.element.parentNode === null) {
+        if (tracked.isDecorator) {
+          this.definitionGroup.insertAdjacentElement("afterend", tracked.element)
+        } else {
+          this.layer.appendChild(tracked.element)
+        }
       }
     })
   }
@@ -499,10 +521,25 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
       return svgEl
     }
 
+    const bounds = (symbol as TSymbol).bounds
+    const tracked = this.#virtualizedSymbols.get(symbol.id)
+
+    // Building an element walks every pointer of the symbol, so doing it for a symbol nobody can see
+    // is work thrown away. Committing a transform over a large selection redraws every symbol in it:
+    // on a 4419-stroke document that is 4419 rebuilt paths to keep the 295 elements the viewport
+    // actually holds. Defer instead, and let `#reconcileVirtualization` pay for the ones that come
+    // into view. Only a symbol already tracked can be deferred — the first draw must produce an
+    // element, because `drawSymbol` and `getElementById` are expected to return one off screen too.
+    if (tracked && !this.#isInViewBox(bounds)) {
+      tracked.bounds = bounds
+      tracked.pendingRedraw = symbol as TSymbol
+      tracked.element.remove()
+      return tracked.element
+    }
+
     const svgEl = this.buildElementFromSymbol(symbol as TSymbol)
     if (svgEl) {
       const isDecorator = symbol.type === SymbolType.Decorator
-      const bounds = (symbol as TSymbol).bounds
       this.#virtualizedSymbols.set(symbol.id, { element: svgEl, bounds, isDecorator })
 
       const shouldAttach = this.#isInViewBox(bounds)
