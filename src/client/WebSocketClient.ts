@@ -1,9 +1,9 @@
 import PingWorker from "web-worker:../worker/ping.worker.ts"
 
+import type { TMatrixTransform } from "@/core/geometry"
 import { DeferredPromise, isVersionSuperiorOrEqual, mergeDeep, type TPartialDeep } from "@/core/std"
 import type { THistoryContext, TIIHistoryBackendChanges } from "@/history"
 import { LoggerCategory, LoggerManager } from "@/logger"
-import type { TMatrixTransform } from "@/transform"
 
 import { ClientError, mapCloseCodeToMessage } from "./ClientError"
 import { ClientEvent } from "./ClientEvent"

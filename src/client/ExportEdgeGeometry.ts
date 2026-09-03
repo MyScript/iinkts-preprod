@@ -9,7 +9,7 @@ import { JIIXEdgeKind } from "./Export"
  * Extract an edge JIIX element's own start/end points (in pixels), regardless of
  * whether the edge has been converted to a vector symbol yet. Used to resolve which
  * connected shape binds to which end of the edge, both at sync time and at convert time.
- * @group Exports
+ * @group Client/Export
  */
 export function extractEdgeEndpoints(edge: TJIIXEdgeElement): { start: TPoint; end: TPoint } | undefined {
   switch (edge.kind) {

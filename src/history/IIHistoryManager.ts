@@ -1,11 +1,10 @@
-import type { TPoint } from "@/core/geometry"
+import type { TMatrixTransform, TPoint } from "@/core/geometry"
+import { MatrixTransform } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import type { IIModel } from "@/model"
 import type { TStyle } from "@/style"
 import type { TStroke, TSymbol } from "@/symbol"
 import { extractStrokes } from "@/symbol"
-import type { TMatrixTransform } from "@/transform"
-import { MatrixTransform } from "@/transform"
 
 import { AbstractDiffHistoryManager } from "./AbstractDiffHistoryManager"
 
