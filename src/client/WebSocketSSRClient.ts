@@ -3,7 +3,7 @@ import type { THistoryContext } from "@/history"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { Model } from "@/model"
 import type { TPenStyle, TTheme } from "@/style"
-import { StyleHelper } from "@/style"
+import { StyleHelper } from "@/style-css"
 import type { Stroke } from "@/symbol"
 
 import { ClientError, mapCloseCodeToMessage } from "./ClientError"

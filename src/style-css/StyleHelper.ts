@@ -1,7 +1,7 @@
 import TJsonCSS from "json-css"
 
-import type { TPenStyle } from "./PenStyle"
-import type { TTheme } from "./Theme"
+import type { TPenStyle } from "@/style"
+import type { TTheme } from "@/style"
 
 /**
  * Interface for TJsonCSS parser
