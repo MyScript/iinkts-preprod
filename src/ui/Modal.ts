@@ -1,7 +1,7 @@
-import type { TButtonElConfig } from "@/components/dom"
-import { DOMFactory } from "@/components/dom"
+import type { TButtonElConfig } from "@/dom"
+import { DOMFactory } from "@/dom"
 
-/** @group Components */
+/** @group UI */
 export type TModalType = "info" | "success" | "warning" | "error" | "primary"
 
 const MODAL_TYPE_STYLE: Record<TModalType, { bg: string; color: string; icon: string }> = {
@@ -48,7 +48,7 @@ function getModalTitleStyle(type?: TModalType): {
 }
 
 /**
- * @group Components
+ * @group UI
  */
 export type TModalFieldOption = {
   value: string
@@ -56,7 +56,7 @@ export type TModalFieldOption = {
 }
 
 /**
- * @group Components
+ * @group UI
  */
 export type TModalField = {
   id: string
@@ -68,7 +68,7 @@ export type TModalField = {
 }
 
 /**
- * @group Components
+ * @group UI
  */
 export type TModalConfig = {
   title: string
@@ -85,7 +85,7 @@ export type TModalConfig = {
 }
 
 /**
- * @group Components
+ * @group UI
  */
 export class Modal {
   private modal: HTMLDivElement

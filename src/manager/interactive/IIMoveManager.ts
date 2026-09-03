@@ -1,5 +1,5 @@
-import { RafCoalescer } from "@/browser"
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import { RafCoalescer } from "@/dom"
 import type { TPointerInfo } from "@/grabber"
 import { PointerEventGrabber } from "@/grabber"
 import { LoggerCategory } from "@/logger"

@@ -1,11 +1,11 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import type { TMathVariable, TMathVariableDefinition } from "@/client"
-import { DOMFactory } from "@/components/dom"
+import { DOMFactory } from "@/dom"
 import { LoggerCategory, LoggerManager } from "@/logger"
+import { Modal } from "@/ui"
 
 import type { TVariableInputItem } from "./IIMathVariableInputList"
 import { IIMathVariableInputList } from "./IIMathVariableInputList"
-import { Modal } from "./Modal"
 
 /**
  * @group Components

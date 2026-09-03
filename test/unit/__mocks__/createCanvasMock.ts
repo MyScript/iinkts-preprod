@@ -10,7 +10,7 @@ import type { TStyle } from "@/style"
 import type { TSymbol } from "@/symbol/Symbol"
 import { SymbolType } from "@/symbol/Symbol"
 import type { TStroke } from "@/symbol/stroke/Stroke"
-import { DOMFactory } from "@/components/dom"
+import { DOMFactory } from "@/dom"
 import { CanvasLayer } from "@/canvas/CanvasLayer"
 import { CanvasEventMock } from "./CanvasEventMock"
 

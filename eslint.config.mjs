@@ -295,4 +295,45 @@ export default [
       ],
     },
   },
+
+  // Layer boundary: `dom` is a bottom layer, like `core`, and may not import from anywhere else in
+  // `src/`. It is the only bottom layer allowed to touch the DOM — `core` stays DOM-free so the
+  // library runs headless and the client can be installed in Node — which is exactly why nothing
+  // above it may be pulled in from here.
+  {
+    files: ["src/dom/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/*", "@/**", "!@/dom", "!@/dom/**"],
+              message: "dom is a bottom layer and must not import from anywhere else in src/",
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  // Layer boundary: `ui` holds generic widgets. They may build DOM and use core helpers, and must
+  // know nothing about a canvas, a manager, a symbol or the client — that is the whole difference
+  // between them and the interactive widgets left in `components/`.
+  {
+    files: ["src/ui/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/*", "@/**", "!@/dom", "!@/dom/**", "!@/core", "!@/core/**", "!@/logger", "!@/Constants"],
+              message: "ui widgets may only depend on dom, core, logger and Constants",
+            },
+          ],
+        },
+      ],
+    },
+  },
 ]
