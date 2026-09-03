@@ -23,16 +23,19 @@ const DOCUMENT_SIZE = Number(process.env.PERF_E2E_DOCUMENT ?? 150)
 const SEED = 20260827
 
 /**
- * Ceiling for the pointer-driven scenarios below. Above it, importing that many strokes ends with a
- * "connection to the recognition server" error, and its modal backdrop swallows every subsequent
- * gesture — so a drag reports a clean measurement of nothing at all. Reproduced at 2000 and 3000,
- * passes at 1000. That failure is a separate defect, not a property of these scenarios, and the
- * assertions in them are what surfaced it.
+ * There is no size ceiling on the pointer-driven scenarios, and the reason is worth keeping.
  *
- * `write a stroke` and `drag a full selection` are pointer-driven too and have no such assertion, so
- * their numbers above this size are not trustworthy either.
+ * They used to skip above 1000 strokes: importing more ended with a "connection to the recognition
+ * server" error whose modal backdrop swallowed every subsequent gesture, so a drag reported a clean
+ * measurement of nothing. That was never a defect of its own — it was a symptom of the quadratic
+ * import this branch removes. While a 3000-stroke import blocked the main thread for ~133 s, the
+ * WebSocket keepalive starved and the session dropped. Re-measured after the fix: 1000, 2000, 3000
+ * and 4419 all import cleanly and every scenario asserts a real effect, so the ceiling now only
+ * hides the sizes worth measuring.
+ *
+ * What guards these scenarios is the effect assertion at the end of each one, not a stroke count. If
+ * a modal ever swallows a gesture again it fails loudly and `describePoint` names what was hit.
  */
-const POINTER_SCENARIO_LIMIT = 1000
 
 const REPORT = resolve(process.cwd(), ".local/bench/perf-e2e.json")
 
@@ -91,7 +94,7 @@ async function describePoint(page: Page, x: number, y: number): Promise<string> 
  * canvas element outgrows the viewport, and offsets computed from the element's box stop landing on
  * ink. The SVG renderer also virtualizes, so an off-screen symbol has no element at all.
  */
-async function firstVisibleSymbolRect(page: Page): Promise<{ x: number; y: number; w: number; h: number }> {
+async function firstVisibleSymbolRect(page: Page): Promise<{ id: string; x: number; y: number; w: number; h: number }> {
   const rect = await page.evaluate(() => {
     const canvas = (window as unknown as TCanvasWindow).rootEl.iink
     for (const symbol of canvas.model.symbols) {
@@ -99,7 +102,7 @@ async function firstVisibleSymbolRect(page: Page): Promise<{ x: number; y: numbe
       if (!el) continue
       const r = el.getBoundingClientRect()
       if (r.width > 2 && r.height > 2 && r.top > 0 && r.bottom < window.innerHeight) {
-        return { x: r.x, y: r.y, w: r.width, h: r.height }
+        return { id: symbol.id, x: r.x, y: r.y, w: r.width, h: r.height }
       }
     }
     return null
@@ -148,20 +151,34 @@ test.describe("browser perf scenarios", () => {
       async (payload) => await (window as unknown as TCanvasWindow).rootEl.iink.importPointEvents(payload),
       strokes
     )
+    await page.evaluate(() => ((window as unknown as TCanvasWindow).rootEl.iink.tool = "write"))
 
-    // A real pointer stroke, not an API call: this is the write-latency path the user feels.
-    const editor = page.locator("#rootEl")
-    const box = await editor.boundingBox()
-    if (!box) throw new Error("the canvas has no bounding box")
+    // A real pointer stroke, not an API call: this is the write-latency path the user feels. The
+    // start point is anchored on ink that is provably on screen, because an offset taken from the
+    // canvas element's own box lands past the viewport as soon as the document outgrows it, and a
+    // stroke drawn off screen reports a clean measurement of nothing.
+    const before = await page.evaluate(() => (window as unknown as TCanvasWindow).rootEl.iink.model.symbols.length)
+    const ink = await firstVisibleSymbolRect(page)
+    const startX = Math.max(1, ink.x)
+    const startY = Math.max(20, ink.y - 14)
 
     results["write one stroke"] = await measure(page, async () => {
-      await page.mouse.move(box.x + 60, box.y + box.height - 80)
+      await page.mouse.move(startX, startY)
       await page.mouse.down()
       for (let i = 1; i <= 40; i++) {
-        await page.mouse.move(box.x + 60 + i * 4, box.y + box.height - 80 + Math.sin(i / 4) * 12)
+        await page.mouse.move(startX + i * 4, startY + Math.sin(i / 4) * 12)
       }
       await page.mouse.up()
     })
+
+    const after = await page.evaluate(() => (window as unknown as TCanvasWindow).rootEl.iink.model.symbols.length)
+    if (after <= before) {
+      const where = await describePoint(page, startX, startY)
+      throw new Error(
+        `the pointer stroke created no symbol (${before} -> ${after}). ` +
+          `start ${Math.round(startX)},${Math.round(startY)} | ${where}`
+      )
+    }
   })
 
   test("pan and zoom across a loaded document", async ({ page }) => {
@@ -202,24 +219,38 @@ test.describe("browser perf scenarios", () => {
     )
     await page.evaluate(() => (window as unknown as TCanvasWindow).rootEl.iink.selectAll())
 
-    const editor = page.locator("#rootEl")
-    const box = await editor.boundingBox()
-    if (!box) throw new Error("the canvas has no bounding box")
+    // Grabbed on ink that is provably on screen: the centre of the canvas element is past the
+    // viewport once the document outgrows it, and a pointerdown there drags nothing while still
+    // reporting a plausible number.
+    const ink = await firstVisibleSymbolRect(page)
+    const grabX = ink.x + ink.w / 2
+    const grabY = ink.y + ink.h / 2
 
     results[`drag ${DOCUMENT_SIZE} selected symbols`] = await measure(page, async () => {
-      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+      await page.mouse.move(grabX, grabY)
       await page.mouse.down()
       for (let i = 1; i <= 30; i++) {
-        await page.mouse.move(box.x + box.width / 2 + i * 3, box.y + box.height / 2 + i * 2)
+        await page.mouse.move(grabX + i * 3, grabY + i * 2)
       }
       await page.mouse.up()
     })
+
+    const moved = await page.evaluate((id) => {
+      const el = document.getElementById(id)
+      if (!el) return null
+      const r = el.getBoundingClientRect()
+      return { x: r.x, y: r.y }
+    }, ink.id)
+    if (!moved || (Math.abs(moved.x - ink.x) < 2 && Math.abs(moved.y - ink.y) < 2)) {
+      const where = await describePoint(page, grabX, grabY)
+      throw new Error(
+        `the drag moved nothing: symbol ${ink.id} stayed at ` +
+          `${moved ? `${Math.round(moved.x)},${Math.round(moved.y)}` : "no element"} ` +
+          `(was ${Math.round(ink.x)},${Math.round(ink.y)}) | ${where}`
+      )
+    }
   })
   test("erase across a loaded document", async ({ page }) => {
-    test.skip(
-      DOCUMENT_SIZE > POINTER_SCENARIO_LIMIT,
-      `pointer gestures are swallowed by the connection-error modal above ${POINTER_SCENARIO_LIMIT} strokes`
-    )
     const strokes = documentStrokes(DOCUMENT_SIZE)
     await page.evaluate(
       async (payload) => await (window as unknown as TCanvasWindow).rootEl.iink.importPointEvents(payload),
@@ -253,10 +284,6 @@ test.describe("browser perf scenarios", () => {
   })
 
   test("lasso-select across a loaded document", async ({ page }) => {
-    test.skip(
-      DOCUMENT_SIZE > POINTER_SCENARIO_LIMIT,
-      `pointer gestures are swallowed by the connection-error modal above ${POINTER_SCENARIO_LIMIT} strokes`
-    )
     const strokes = documentStrokes(DOCUMENT_SIZE)
     await page.evaluate(
       async (payload) => await (window as unknown as TCanvasWindow).rootEl.iink.importPointEvents(payload),

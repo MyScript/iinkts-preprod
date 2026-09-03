@@ -1,6 +1,6 @@
 import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
 import { buildIIStroke } from "../../../helpers"
-import { IIGestureAnnotationProcessor, DecoratorKind, StrokeOps } from "@/iink"
+import { IIGestureAnnotationProcessor, DecoratorKind, isStroke, StrokeOps } from "@/iink"
 
 describe("GestureAnnotation.ts", () => {
   describe("IIGestureAnnotationProcessor.apply (decorator)", () => {
@@ -16,7 +16,12 @@ describe("GestureAnnotation.ts", () => {
       canvas.model.addSymbol(stroke)
 
       setTimeout(() => {
-        stroke.jiixBlockType = "Text"
+        // The document holds frozen records, so classify by committing a draft.
+        const draft = canvas.model.draftSymbol(stroke.id)
+        if (draft && isStroke(draft)) {
+          draft.jiixBlockType = "Text"
+          canvas.model.updateSymbol(draft)
+        }
       }, 50)
 
       const changes = await processor.apply([stroke.id], {

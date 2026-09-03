@@ -104,6 +104,49 @@ you don't want to `false`. `markdown` is only built when `text` recognition is e
 `openExportDialog(onConfirm)` now accepts an optional `onCancel` second argument. Existing one-argument
 calls keep working unchanged.
 
+### The document is immutable: symbols you read are frozen
+
+**If you only read `canvas.model`, nothing changes for you** — except that reading it is now roughly
+ten thousand times cheaper. The document's symbols are frozen when committed and handed to you
+directly, instead of the whole document being deep-cloned on every read.
+
+Four names are added (`SymbolStore`, `TDraft`, `TReadonlyDeep`, `TSymbolOrder`) and **none removed**.
+
+**If you mutated a symbol you read from the model, that code now throws.** It never worked the way it
+looked: the getter handed you a deep clone, so the mutation was lost unless you passed the object
+back to `updateSymbol`. Now it is a frozen record, and the failure is loud instead of silent.
+
+```ts
+// Before — silently mutated a copy, and only worked if you also called updateSymbol
+const stroke = canvas.model.symbols.find((s) => s.id === id)
+stroke.style.color = "red"
+canvas.model.updateSymbol(stroke)
+
+// Now — ask for a draft, change it, commit it
+const draft = canvas.model.draftSymbol(id)
+if (draft) {
+  draft.style.color = "red"
+  canvas.model.commitSymbol(draft)
+}
+```
+
+`draftSymbol` returns a mutable copy that is yours until you commit it. **A draft is frozen the moment
+it is committed**, so a gesture that commits on every frame must take a fresh draft each frame rather
+than reusing one.
+
+**This is enforced at runtime, not by the compiler.** `Object.freeze` is what stops the write; the
+types will not warn you. Treat anything you read from `canvas.model` as frozen.
+
+Building a symbol from scratch is unaffected: `StrokeOps.create()` and friends return an object you
+own, and it becomes frozen only when you hand it to `addSymbol`.
+
+Two accessors were sealed along the way: `model.selectedIds` is a `ReadonlySet` — change the selection
+through `selectSymbol` / `unselectSymbol` — and `model.modificationDate` and `model.exports` are
+getters.
+
+**New on `IIModel`:** `draftSymbol` / `commitSymbol`, `symbolCount` (counts without building the
+list), `decoratorsByTargetId` (an index, memoized against `version`).
+
 ### Internal layout: `src/utils/` no longer exists
 
 **If you import from `iink-ts` and nothing else, this section does not apply to you.** The package's

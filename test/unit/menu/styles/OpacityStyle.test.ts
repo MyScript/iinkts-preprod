@@ -30,7 +30,7 @@ describe("OpacityStyle.ts", () => {
     const canvas = createCanvasMock()
     const stroke = buildIIStroke({ style: { ...DefaultStyle, opacity: 0.25 } })
     canvas.model.addSymbol(stroke)
-    canvas.model.selectedIds.add(stroke.id)
+    canvas.model.selectSymbol(stroke.id)
     const style = new OpacityStyle(asCanvas(canvas))
 
     const input = style.getElement().querySelector("input") as HTMLInputElement
@@ -42,7 +42,7 @@ describe("OpacityStyle.ts", () => {
     const canvas = createCanvasMock()
     const stroke = buildIIStroke()
     canvas.model.addSymbol(stroke)
-    canvas.model.selectedIds.add(stroke.id)
+    canvas.model.selectSymbol(stroke.id)
     const style = new OpacityStyle(asCanvas(canvas))
     const input = style.getElement().querySelector("input") as HTMLInputElement
 

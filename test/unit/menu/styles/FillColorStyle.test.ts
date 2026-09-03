@@ -21,7 +21,7 @@ describe("FillColorStyle.ts", () => {
     const canvas = createCanvasMock()
     const stroke = buildIIStroke({ style: { ...DefaultStyle, color: "#654321" } })
     canvas.model.addSymbol(stroke)
-    canvas.model.selectedIds.add(stroke.id)
+    canvas.model.selectSymbol(stroke.id)
     const style = new FillColorStyle(asCanvas(canvas), ["#123456", "#654321"])
 
     const active = style.getElement().querySelector("button.active")?.querySelector(".color") as HTMLDivElement
@@ -33,7 +33,7 @@ describe("FillColorStyle.ts", () => {
     const canvas = createCanvasMock()
     const stroke = buildIIStroke()
     canvas.model.addSymbol(stroke)
-    canvas.model.selectedIds.add(stroke.id)
+    canvas.model.selectSymbol(stroke.id)
     const style = new FillColorStyle(asCanvas(canvas), ["#123456", "#654321"])
     const wrapper = style.getElement()
     document.body.appendChild(wrapper)
