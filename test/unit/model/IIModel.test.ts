@@ -201,6 +201,62 @@ describe("IIModel.ts", () => {
     })
   })
 
+  describe("selectionVersion", () => {
+    // `selectedIds` is a live Set whose identity never changes, so this counter is the only way a
+    // reader can cache per-selection work. Readers compare it every pointermove of every drag.
+    const build = () => {
+      const model = new IIModel()
+      const stroke1 = buildIIStroke({ box: { height: 10, width: 10, x: 0, y: 0 } })
+      const stroke2 = buildIIStroke({ box: { height: 10, width: 10, x: 20, y: 0 } })
+      model.addSymbol(stroke1)
+      model.addSymbol(stroke2)
+      return { model, stroke1, stroke2 }
+    }
+
+    test("should bump when a symbol is selected", () => {
+      const { model, stroke1 } = build()
+      const before = model.selectionVersion
+      model.selectSymbol(stroke1.id)
+      expect(model.selectionVersion).toBeGreaterThan(before)
+    })
+
+    test("should not bump when the same symbol is selected twice", () => {
+      const { model, stroke1 } = build()
+      model.selectSymbol(stroke1.id)
+      const after = model.selectionVersion
+      model.selectSymbol(stroke1.id)
+      expect(model.selectionVersion).toEqual(after)
+    })
+
+    test("should bump when a symbol is unselected, and not when it was not selected", () => {
+      const { model, stroke1, stroke2 } = build()
+      model.selectSymbol(stroke1.id)
+      const selected = model.selectionVersion
+      model.unselectSymbol(stroke2.id)
+      expect(model.selectionVersion).toEqual(selected)
+      model.unselectSymbol(stroke1.id)
+      expect(model.selectionVersion).toBeGreaterThan(selected)
+    })
+
+    test("should bump when a non-empty selection is reset, and not when it is already empty", () => {
+      const { model, stroke1 } = build()
+      const empty = model.selectionVersion
+      model.resetSelection()
+      expect(model.selectionVersion).toEqual(empty)
+      model.selectSymbol(stroke1.id)
+      const selected = model.selectionVersion
+      model.resetSelection()
+      expect(model.selectionVersion).toBeGreaterThan(selected)
+    })
+
+    test("should not move when the document content changes", () => {
+      const { model } = build()
+      const before = model.selectionVersion
+      model.addSymbol(buildIIStroke({ box: { height: 10, width: 10, x: 40, y: 0 } }))
+      expect(model.selectionVersion).toEqual(before)
+    })
+  })
+
   describe("export", () => {
     const model = new IIModel()
     const e: TExport = { "text/plain": "poney" }

@@ -17,6 +17,7 @@ export class IIModel {
   #logger = LoggerManager.getLogger(LoggerCategory.MODEL)
   #store = new SymbolStore<TSymbol>()
   #selectedIds = new Set<string>()
+  #selectionVersion = 0
   #modificationDate: number
   #exports?: TExport
   readonly creationTime: number
@@ -41,6 +42,16 @@ export class IIModel {
 
   get exports(): TExport | undefined {
     return this.#exports
+  }
+
+  /**
+   * Bumped whenever the selection changes. `selectedIds` is a live `Set` whose identity never
+   * changes, so a reader that caches per-selection work has no way to notice a mutation — and
+   * building a key out of the ids costs a sort and a string over the whole selection, on every
+   * `pointermove` of every drag. Compare this integer instead.
+   */
+  get selectionVersion(): number {
+    return this.#selectionVersion
   }
 
   /** The ids of the selected symbols. Change the selection through {@link selectSymbol} and friends. */
@@ -93,15 +104,24 @@ export class IIModel {
   }
 
   selectSymbol(id: string): void {
+    const before = this.#selectedIds.size
     this.#selectedIds.add(id)
+    if (this.#selectedIds.size !== before) {
+      this.#selectionVersion++
+    }
   }
 
   unselectSymbol(id: string): void {
-    this.#selectedIds.delete(id)
+    if (this.#selectedIds.delete(id)) {
+      this.#selectionVersion++
+    }
   }
 
   resetSelection(): void {
-    this.#selectedIds.clear()
+    if (this.#selectedIds.size > 0) {
+      this.#selectedIds.clear()
+      this.#selectionVersion++
+    }
   }
 
   /**
