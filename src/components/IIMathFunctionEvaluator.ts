@@ -1,11 +1,10 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import { DOMFactory } from "@/components/dom"
+import { DOMFactory } from "@/dom"
 import { LoggerCategory, LoggerManager } from "@/logger"
-
-import { Chart } from "./Chart"
-import { Modal } from "./Modal"
-import type { TTableRow } from "./Table"
-import { Table } from "./Table"
+import type { TTableRow } from "@/ui"
+import { Chart } from "@/ui"
+import { Modal } from "@/ui"
+import { Table } from "@/ui"
 
 /**
  * @group Components

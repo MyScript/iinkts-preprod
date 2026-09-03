@@ -1,9 +1,9 @@
 import type { WebSocketClient } from "@/client"
 import type { TExport } from "@/client"
-import type { DOMFactory } from "@/components/dom"
 import type { CanvasTool, TCanvasOperationLabel } from "@/Constants"
 import type { TBox } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
+import type { DOMFactory } from "@/dom"
 import type { IIHistoryManager } from "@/history"
 import type {
   EraseManager,
