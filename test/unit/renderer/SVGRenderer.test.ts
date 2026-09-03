@@ -459,6 +459,55 @@ describe("SVGRenderer.ts", () => {
       expect(renderer.getElementById(stroke.id)).toBe(el)
     })
 
+    test("should not rebuild an off-screen element that is already tracked", () => {
+      const divElement: HTMLDivElement = document.createElement("div")
+      const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
+      renderer.init(divElement)
+
+      const stroke = buildIIStroke({ box: farAwayBox })
+      const first = renderer.drawSymbol(stroke)
+      const second = renderer.drawSymbol(stroke)
+
+      // Building an SVG path walks every pointer of the stroke. Doing it for a symbol that is not on
+      // screen is work thrown away: at 4419 strokes only 295 elements are attached, so a redraw of
+      // the whole document built 4419 paths to keep 295.
+      expect(second).toBe(first)
+    })
+
+    test("should attach the latest geometry when a skipped off-screen symbol is panned into view", () => {
+      const divElement: HTMLDivElement = document.createElement("div")
+      const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
+      renderer.init(divElement)
+
+      const stroke = buildIIStroke({ box: farAwayBox })
+      renderer.drawSymbol(stroke)
+
+      // Same symbol, moved — the redraw that a transform commit issues.
+      const moved = structuredClone(stroke)
+      moved.pointers.forEach((pointer) => {
+        pointer.x += 40
+        pointer.y += 25
+      })
+      StrokeOps.updateBounds(moved)
+      renderer.drawSymbol(moved)
+
+      renderer.setViewBox(farAwayBox.x, farAwayBox.y, 400, 400)
+
+      // Oracle: the same moved stroke drawn by a renderer that was already looking at it.
+      const referenceDiv: HTMLDivElement = document.createElement("div")
+      const reference = new SVGRenderer(DefaultIIRendererConfiguration)
+      reference.init(referenceDiv)
+      reference.setViewBox(farAwayBox.x, farAwayBox.y, 400, 400)
+      const referenceEl = reference.drawSymbol(moved)
+
+      const el = renderer.getElementById(stroke.id)
+      expect(el?.parentNode).toBe(renderer.layer)
+      // Deferring the rebuild must not defer it forever: what gets attached is the moved geometry.
+      expect(el?.querySelector("path")?.getAttribute("d")).toEqual(
+        referenceEl?.querySelector("path")?.getAttribute("d")
+      )
+    })
+
     test("should append a previously off-screen element once panned into view", () => {
       const divElement: HTMLDivElement = document.createElement("div")
       const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
