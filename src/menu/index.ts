@@ -1,3 +1,4 @@
+export * from "./CanvasThemes"
 export * from "./IIMenuAction"
 export * from "./IIMenuContext"
 export * from "./IIMenuManager"

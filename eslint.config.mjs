@@ -219,4 +219,38 @@ export default [
       ],
     },
   },
+
+  // Layer boundary: the folders above the canvas may name its contract as a TYPE, never import a
+  // value from it. A value import is what makes the dependency real at runtime and what turned
+  // `manager` and `menu` into cycles with `canvas`; the ~100 `import type` references to
+  // `TInteractiveInkCanvas` are how a manager is typed against its host and must keep working.
+  // This uses the typescript-eslint variant of the rule because only it understands
+  // `allowTypeImports` — the base rule bans both kinds.
+  {
+    files: [
+      "src/manager/**/*.ts",
+      "src/menu/**/*.ts",
+      "src/components/**/*.ts",
+      "src/history/**/*.ts",
+      "src/smartguide/**/*.ts",
+    ],
+    plugins: {
+      "@typescript-eslint": typescriptEslint,
+    },
+    rules: {
+      "@typescript-eslint/no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/canvas", "@/canvas/**"],
+              allowTypeImports: true,
+              message:
+                "this layer sits above the canvas: import its contract as a type (`import type`), never a value",
+            },
+          ],
+        },
+      ],
+    },
+  },
 ]

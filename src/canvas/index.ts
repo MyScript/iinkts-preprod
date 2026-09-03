@@ -11,6 +11,3 @@ export { CanvasFactory, type TCanvasOptionsMap, type TCanvasVariantMap } from ".
 
 // Canvas variants
 export * from "./variants"
-
-// Theming
-export * from "./CanvasThemes"
