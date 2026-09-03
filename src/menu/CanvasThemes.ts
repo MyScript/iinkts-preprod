@@ -1,7 +1,7 @@
 /**
  * Predefined canvas themes — passed to `canvas.setCssVars()`.
  * `vars: undefined` resets to the stylesheet defaults.
- * @group Canvas
+ * @group Menu
  */
 export type TCanvasTheme = {
   id: string
@@ -136,10 +136,10 @@ const CANVAS_THEMES: TCanvasTheme[] = [
   },
 ]
 
-/** @group Canvas */
+/** @group Menu */
 export const THEME_STORAGE_KEY = "iink-canvas-theme"
 
-/** @group Canvas */
+/** @group Menu */
 export class CanvasThemes {
   static THEMES = CANVAS_THEMES
   static THEME_STORAGE_KEY = THEME_STORAGE_KEY

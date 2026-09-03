@@ -1,6 +1,6 @@
-import type { TPoint } from "@/core/geometry"
+import type { TPoint } from "./Point"
 /**
- * @group Utilities
+ * @group Core/Geometry
  * @remarks Represents a 2D affine transform, defined as a 3x3 matrix with an implicit third raw of <code>[ 0 0 1 ]</code>
  */
 export type TMatrixTransform = {
@@ -31,7 +31,7 @@ export type TMatrixTransform = {
 }
 
 /**
- * @group Utilities
+ * @group Core/Geometry
  * @remarks Represents a 2D affine transform, defined as a 3x3 matrix with an implicit third raw of <code>[ 0 0 1 ]</code>
  */
 export class MatrixTransform implements TMatrixTransform {
