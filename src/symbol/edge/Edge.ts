@@ -1,3 +1,4 @@
+import type { EdgeDecoration } from "@/Constants"
 import type { TOBB } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
@@ -5,7 +6,7 @@ import type { TStyle } from "@/style"
 
 import { SymbolType, type TBaseSymbol } from "../Symbol"
 import { EdgeArcOps, type TEdgeArc } from "./Arc"
-import { computeEdgeBounds, type EdgeDecoration, EdgeKind } from "./Edge-enum"
+import { computeEdgeBounds, EdgeKind } from "./Edge-enum"
 import { EdgeLineOps, type TEdgeLine } from "./Line"
 import { EdgePolyLineOps, type TEdgePolyLine } from "./PolyLine"
 

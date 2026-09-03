@@ -1,12 +1,4 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import { latexToUnicodeMath } from "@/core"
-import type { TPoint } from "@/core/geometry"
-import { BoxOps, type TBox } from "@/core/geometry"
-import { OBBOps, type TOBB } from "@/core/geometry"
-import { computeAngleAxeRadian, convertBoundingBoxMillimeterToPixel } from "@/core/geometry"
-import { computeAverage, convertMillimeterToPixel, roundTo } from "@/core/math"
-import { createUUID, uniqueById } from "@/core/std"
-import { LoggerCategory } from "@/logger"
 import type {
   TJIIXChar,
   TJIIXEdgeArc,
@@ -25,8 +17,16 @@ import type {
   TJIIXNodeTriangle,
   TJIIXTextElement,
   TJIIXWord,
-} from "@/model"
-import { extractEdgeEndpoints, JIIXEdgeKind, JIIXElementType, JIIXNodeKind } from "@/model"
+} from "@/client"
+import { extractEdgeEndpoints, JIIXEdgeKind, JIIXElementType, JIIXNodeKind } from "@/client"
+import { latexToUnicodeMath } from "@/core"
+import type { TPoint } from "@/core/geometry"
+import { BoxOps, type TBox } from "@/core/geometry"
+import { OBBOps, type TOBB } from "@/core/geometry"
+import { computeAngleAxeRadian, convertBoundingBoxMillimeterToPixel } from "@/core/geometry"
+import { computeAverage, convertMillimeterToPixel, roundTo } from "@/core/math"
+import { createUUID, uniqueById } from "@/core/std"
+import { LoggerCategory } from "@/logger"
 import type {
   DecoratorKind,
   TDecorator,
