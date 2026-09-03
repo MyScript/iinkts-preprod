@@ -1,7 +1,6 @@
 import { isVersionSuperiorOrEqual, type TPartialDeep } from "@/core/std"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { TExportV2, TJIIXExport } from "@/model"
-import { StrokeOps, type TStrokeMinimal } from "@/symbol"
 
 import { parseApiError } from "./ClientApiError"
 import { ClientError } from "./ClientError"
@@ -17,6 +16,8 @@ import type {
   TTextConfiguration,
 } from "./recognition"
 import { redactServerSecrets } from "./ServerConfiguration"
+import type { TRecognitionStroke, TWireStroke } from "./StrokeSerializer"
+import { toWireStroke } from "./StrokeSerializer"
 
 /**
  * @group Client
@@ -38,14 +39,7 @@ export type THTTPClientV2PostData = {
   scaleY: number
   configuration: THTTPClientV2PostConfiguration
   contentType: string
-  strokes: {
-    id: string
-    pointerType: string
-    x: number[]
-    y: number[]
-    t: number[]
-    p: number[]
-  }[]
+  strokes: TWireStroke[]
 }
 
 /**
@@ -97,7 +91,7 @@ export class HTTPClientV2 {
     }
   }
 
-  protected buildData(strokes: TStrokeMinimal[]): THTTPClientV2PostData {
+  protected buildData(strokes: TRecognitionStroke[]): THTTPClientV2PostData {
     this.#logger.info("buildData", { strokes })
 
     const contentType: string =
@@ -111,7 +105,7 @@ export class HTTPClientV2 {
       scaleX: 0.265,
       scaleY: 0.265,
       contentType,
-      strokes: strokes.map((s) => StrokeOps.formatToSend(s)),
+      strokes: strokes.map((s) => toWireStroke(s)),
     }
     this.#logger.debug("buildData", { data })
     return data
@@ -249,7 +243,7 @@ export class HTTPClientV2 {
     return mimeTypes
   }
 
-  async send(strokes: TStrokeMinimal[], requestedMimeTypes?: string[]): Promise<TExportV2> {
+  async send(strokes: TRecognitionStroke[], requestedMimeTypes?: string[]): Promise<TExportV2> {
     this.#logger.info("send", strokes)
 
     const recognition: TExportV2 = {}

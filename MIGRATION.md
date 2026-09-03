@@ -147,6 +147,48 @@ getters.
 **New on `IIModel`:** `draftSymbol` / `commitSymbol`, `symbolCount` (counts without building the
 list), `decoratorsByTargetId` (an index, memoized against `version`).
 
+### The client owns the stroke shape it sends
+
+`StrokeOps.formatToSend` has moved into the client as `toWireStroke`. It does exactly the same thing —
+transposes a stroke's pointers into the protocol's `x`/`y`/`t`/`p` arrays — but it now lives in the
+layer that owns the wire format, so the client no longer needs the symbol layer at all.
+
+```diff
+- import { StrokeOps } from "iink-ts"
+- const payload = StrokeOps.formatToSend(stroke)
++ import { toWireStroke } from "iink-ts"
++ const payload = toWireStroke(stroke)
+```
+
+The client also declares its own input type rather than importing `TStroke`:
+
+| before | after |
+|---|---|
+| `TStrokeMinimal` | `TStrokeCapture` — same shape, still in the symbol layer, still the base of `TStroke` |
+| `WebSocketClient.addStrokes(strokes: TStroke[])` | `addStrokes(strokes: TRecognitionStroke[])` |
+| `WebSocketClient.replaceStrokes(ids, newStrokes: TStroke[])` | `replaceStrokes(ids, newStrokes: TRecognitionStroke[])` |
+| `WebSocketClient.recognizeGesture(stroke: TStroke)` | `recognizeGesture(stroke: TRecognitionStroke)` |
+| `HTTPClientV2.send(strokes: TStrokeMinimal[])` | `send(strokes: TRecognitionStroke[])` |
+
+**No call-site change is needed for any of those.** `TRecognitionStroke` is
+`{ id, pointerType, pointers }` and TypeScript is structural, so the `TStroke` you already pass
+satisfies it. The rename only matters if you named the type explicitly in your own signatures.
+
+A pointer's `t` and `p` are now optional, which is what lets you build a stroke by hand:
+
+```ts
+await client.addStrokes([{ id: "s1", pointerType: "pen", pointers: [{ x: 10, y: 20 }, { x: 30, y: 40 }] }])
+```
+
+**Supply `t` if you can.** The recognizer reads the interval between points to segment characters and
+to resolve ambiguous shapes; without it, recognition runs on geometry alone and results are
+measurably worse on cursive text and on shapes drawn in several passes. `p` only affects rendered
+stroke width.
+
+`t` and `p` are emitted all-or-nothing: if any pointer in a stroke lacks one, that whole column is
+left out rather than padded, because the server pairs pointers by index across the arrays and a short
+column would attach the wrong values to the wrong points.
+
 ### Internal layout: `src/utils/` no longer exists
 
 **If you import from `iink-ts` and nothing else, this section does not apply to you.** The package's

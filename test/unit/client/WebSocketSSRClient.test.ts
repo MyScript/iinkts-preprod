@@ -20,7 +20,7 @@ import {
   Model,
   TConverstionState,
   TWebSocketSSRClientConfiguration,
-  StrokeOps,
+  toWireStroke,
 } from "@/iink"
 
 describe("WebSocketSSRClient.ts", () => {
@@ -293,7 +293,7 @@ describe("WebSocketSSRClient.ts", () => {
       const addStrokesMessageSent = JSON.parse(mockServer.getLastMessage() as string)
       const addStrokesMessageSentToTest = {
         type: "addStrokes",
-        strokes: [StrokeOps.formatToSend(stroke)],
+        strokes: [toWireStroke(stroke)],
       }
       await expect(addStrokesMessageSent).toMatchObject(addStrokesMessageSentToTest)
     })
