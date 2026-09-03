@@ -2,7 +2,7 @@ import { isVersionSuperiorOrEqual, type TPartialDeep } from "@/core/std"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { Model } from "@/model"
 import type { TPenStyle } from "@/style"
-import { StyleHelper } from "@/style"
+import { StyleHelper } from "@/style-css"
 import type { Stroke } from "@/symbol"
 
 import { parseApiError } from "./ClientApiError"
