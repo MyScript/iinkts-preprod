@@ -1,3 +1,4 @@
+import type { TExport } from "@/client"
 import type { TPoint, TPointer } from "@/core/geometry"
 import { computeDistance, computeDistanceSquared } from "@/core/geometry"
 import { isBetween } from "@/core/math"
@@ -5,8 +6,6 @@ import { mergeExports } from "@/core/std"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { TPenStyle } from "@/style"
 import { Stroke } from "@/symbol"
-
-import type { TExport } from "./Export"
 
 /**
  * @group Model

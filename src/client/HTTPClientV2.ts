@@ -1,9 +1,10 @@
 import { isVersionSuperiorOrEqual, type TPartialDeep } from "@/core/std"
 import { LoggerCategory, LoggerManager } from "@/logger"
-import type { TExportV2, TJIIXExport } from "@/model"
 
 import { parseApiError } from "./ClientApiError"
 import { ClientError } from "./ClientError"
+import type { TJIIXExport } from "./Export"
+import type { TExportV2 } from "./ExportV2"
 import { resolveHmac } from "./HmacAuth"
 import type { THTTPClientV2Configuration } from "./HTTPClientV2Configuration"
 import { HTTPClientV2Configuration } from "./HTTPClientV2Configuration"

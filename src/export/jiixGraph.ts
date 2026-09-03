@@ -1,4 +1,3 @@
-import { computePointOnEllipse, isPointInsideBox, type TBox, type TPoint } from "@/core/geometry"
 import {
   JIIXEdgeKind,
   JIIXElementType,
@@ -6,7 +5,8 @@ import {
   type TJIIXExport,
   type TJIIXNodeElement,
   type TJIIXTextElement,
-} from "@/model/Export"
+} from "@/client"
+import { computePointOnEllipse, isPointInsideBox, type TBox, type TPoint } from "@/core/geometry"
 
 /**
  * @group Export

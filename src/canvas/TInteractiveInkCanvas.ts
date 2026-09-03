@@ -1,4 +1,5 @@
 import type { WebSocketClient } from "@/client"
+import type { TExport } from "@/client"
 import type { DOMFactory } from "@/components/dom"
 import type { CanvasTool, TCanvasOperationLabel } from "@/Constants"
 import type { TBox } from "@/core/geometry"
@@ -29,7 +30,7 @@ import type {
   TPDFDownloadOptions,
 } from "@/manager"
 import type { IIMenuManager } from "@/menu"
-import type { IIModel, TExport } from "@/model"
+import type { IIModel } from "@/model"
 import type { SVGRenderer } from "@/renderer"
 import type { TIIRendererConfiguration } from "@/renderer"
 import type { TStyle } from "@/style"

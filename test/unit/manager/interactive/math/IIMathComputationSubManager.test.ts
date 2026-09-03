@@ -1,5 +1,5 @@
 import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
-import type { TJIIXMathElement, TJIIXMathNumber } from "@/model"
+import type { TJIIXMathElement, TJIIXMathNumber } from "@/client"
 import {
   IIMathComputationSubManager,
   JIIXElementType,

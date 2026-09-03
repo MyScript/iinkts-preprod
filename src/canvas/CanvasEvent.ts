@@ -1,9 +1,9 @@
 import type { TConnectionStatus } from "@/client"
+import type { TExport, TExportV2 } from "@/client"
 import type { CanvasTool } from "@/Constants"
 import type { THistoryContext } from "@/history"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { TGestureType } from "@/manager"
-import type { TExport, TExportV2 } from "@/model"
 import type { TBaseSymbol, TStroke, TSymbol } from "@/symbol"
 /**
  * @group Canvas

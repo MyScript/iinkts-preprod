@@ -1,10 +1,10 @@
 import type { InteractiveInkSSRCanvas } from "@/canvas"
 import type { TMarginConfiguration } from "@/client"
+import type { TJIIXExport, TJIIXWord } from "@/client"
+import { ExportType } from "@/client"
 import { convertMillimeterToPixel } from "@/core/math"
 import { createUUID } from "@/core/std"
 import { LoggerCategory, LoggerManager } from "@/logger"
-import type { TJIIXExport, TJIIXWord } from "@/model"
-import { ExportType } from "@/model"
 
 import style from "./InteractiveInkSSRSmartGuide.css"
 

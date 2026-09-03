@@ -1,4 +1,4 @@
-import { JIIXElementType, type TJIIXExport } from "@/model/Export"
+import { JIIXElementType, type TJIIXExport } from "@/client"
 
 import { jiixToMermaid } from "./toMermaid"
 

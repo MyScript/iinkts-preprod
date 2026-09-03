@@ -115,6 +115,18 @@ export const GESTURE_OPERATION_LABELS: readonly TCanvasOperationLabel[] = [
 ] as const
 
 /**
+ * How an edge's end is drawn, and how the recognizer reports it in JIIX.
+ *
+ * It lives here rather than in either layer that uses it: the symbol layer draws it, the wire types
+ * carry it, and neither owns it. `Constants` is the module both may import without either depending
+ * on the other.
+ * @group Symbol
+ */
+export enum EdgeDecoration {
+  Arrow = "arrow-head",
+}
+
+/**
  * @group Constants
  */
 export * from "./constants/MathDiagnosticMessages"
