@@ -1,6 +1,5 @@
-import { GESTURE_OPERATION_LABELS } from "@/canvas/AbstractCanvas"
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import { CanvasTool } from "@/Constants"
+import { CanvasTool, GESTURE_OPERATION_LABELS } from "@/Constants"
 import { BoxOps } from "@/core/geometry"
 import { OBBOps } from "@/core/geometry"
 import type { TDraft } from "@/core/std"
