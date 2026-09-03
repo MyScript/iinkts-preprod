@@ -1,5 +1,6 @@
 export * from "./browser"
 export * from "./canvas"
+export * from "./canvas/variants"
 export * from "./client"
 export * from "./components"
 export * from "./Constants"

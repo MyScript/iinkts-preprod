@@ -1,4 +1,4 @@
-import type { TInkCanvas } from "@/canvas"
+import type { TInkCanvas } from "@/canvas/TInkCanvas"
 import type { TBox } from "@/core/geometry"
 import { BoxOps } from "@/core/geometry"
 import { OBBOps } from "@/core/geometry"

@@ -271,4 +271,28 @@ export default [
       ],
     },
   },
+
+  // Layer boundary inside the canvas folder: the contract level may not reach the variants.
+  // `src/canvas/*.ts` is the base — `AbstractCanvas`, the events, the layer, and the two canvas
+  // contracts — and it sits below the four concrete canvases in `variants/`. The `*Configuration`
+  // types are excepted because `TInkCanvas` and `TInteractiveInkCanvas` name them as part of the
+  // contract. `CanvasFactory.ts` is excepted because being the one place that knows all four
+  // variants is its whole job; IIC-1998 makes those imports lazy.
+  {
+    files: ["src/canvas/*.ts"],
+    ignores: ["src/canvas/CanvasFactory.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["./variants/*", "@/canvas/variants/*", "!*Configuration"],
+              message: "the canvas contract level must not depend on a concrete variant",
+            },
+          ],
+        },
+      ],
+    },
+  },
 ]
