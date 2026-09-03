@@ -1,6 +1,6 @@
 import ArrowDown from "@/assets/svg/nav-arrow-down.svg"
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import { createUUID } from "@/core/std"
+import { createUUID, type TDraft } from "@/core/std"
 import type { TGenericMenuItem } from "@/menu/items/BaseMenuItem"
 import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
 import type { TText } from "@/symbol"
@@ -51,7 +51,9 @@ export class EditContextMenu extends BaseMenuItem<HTMLElement> {
 
     this.editSaveBtn.addEventListener("pointerdown", async (e) => {
       e.stopPropagation()
-      const textSymbol = this.canvas.model.symbolsSelected.find((s) => isText(s)) as TText
+      const selectedText = this.canvas.model.symbolsSelected.find((s) => isText(s))
+      // A draft: every branch below rewrites the symbol's chars and commits it.
+      const textSymbol = selectedText && (this.canvas.model.draftSymbol(selectedText.id) as TDraft<TText>)
       if (textSymbol) {
         const firstChar = textSymbol.chars[0]
         textSymbol.chars = []

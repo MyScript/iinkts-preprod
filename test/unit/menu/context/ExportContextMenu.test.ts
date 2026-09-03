@@ -30,7 +30,7 @@ describe("ExportContextMenu.ts", () => {
     const canvas = createCanvasMock()
     const stroke = buildIIStroke()
     canvas.model.addSymbol(stroke)
-    canvas.model.selectedIds.add(stroke.id)
+    canvas.model.selectSymbol(stroke.id)
     const element = buildMenu(canvas)
 
     const button = element.querySelector("#ms-menu-context-export-pdf") as HTMLButtonElement
@@ -45,7 +45,7 @@ describe("ExportContextMenu.ts", () => {
 
     const stroke = buildIIStroke()
     canvas.model.addSymbol(stroke)
-    canvas.model.selectedIds.add(stroke.id)
+    canvas.model.selectSymbol(stroke.id)
 
     const button = element.querySelector("#ms-menu-context-export-json") as HTMLButtonElement
     button.dispatchEvent(new Event("pointerup", { bubbles: true }))

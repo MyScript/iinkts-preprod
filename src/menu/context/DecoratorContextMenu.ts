@@ -1,5 +1,6 @@
 import ArrowDown from "@/assets/svg/nav-arrow-down.svg"
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import type { TDraft } from "@/core/std"
 import type { TGenericMenuItem } from "@/menu/items/BaseMenuItem"
 import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
 import { DEFAULT_MENU_COLORS } from "@/menu/MenuConstants"
@@ -87,7 +88,11 @@ export class DecoratorContextMenu extends BaseMenuItem<HTMLElement> {
     })
     checkbox.addEventListener("change", (e) => {
       const enable = (e.target as HTMLInputElement).checked
+      // Drafts, not reads: the loop below adds or removes a decorator on each of them and the
+      // `updateSymbols` call after it commits them.
       const symbolsDecorable = this.symbolsDecorable
+        .map((s) => this.canvas.model.draftSymbol(s.id))
+        .filter((s): s is TDraft<TText> => !!s && isText(s))
 
       symbolsDecorable.forEach((s) => {
         if (enable) {
@@ -154,15 +159,19 @@ export class DecoratorContextMenu extends BaseMenuItem<HTMLElement> {
       btn.addEventListener("pointerup", (e) => {
         e.preventDefault()
         e.stopPropagation()
-        const symbolsDecorable = this.symbolsDecorable
+        // Drafts, not reads: the decorator whose colour changes is nested inside a committed record.
+        const recoloured = this.symbolsDecorable
+          .filter((s) => s.decorators.some((d) => d.kind === kind))
+          .map((s) => this.canvas.model.draftSymbol(s.id))
+          .filter((s): s is TDraft<TText> => !!s && isText(s))
 
-        symbolsDecorable.forEach((s) => {
+        recoloured.forEach((s) => {
           const deco = s.decorators.find((d) => d.kind === kind)
           if (deco) {
             deco.style.color = color
           }
         })
-        this.canvas.updateSymbols(symbolsDecorable.filter((s) => s.decorators.some((d) => d.kind === kind)))
+        this.canvas.updateSymbols(recoloured)
         colorList.querySelectorAll("*").forEach((e) => e.classList.remove("active"))
         btn.classList.add("active")
       })

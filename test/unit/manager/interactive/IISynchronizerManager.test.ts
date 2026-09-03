@@ -87,7 +87,7 @@ describe("IISynchronizerManager.ts", () => {
       const elements = strokes.map((stroke, i) => buildTextElement(`block-${i}`, stroke.id))
       const jiixExport = buildJiixExport(elements)
       canvas.export = jest.fn().mockImplementation(async () => {
-        canvas.model.exports = { "application/vnd.myscript.jiix": jiixExport }
+        canvas.model.mergeExport({ "application/vnd.myscript.jiix": jiixExport })
       })
 
       const rafSpy = jest.fn().mockImplementation((cb: FrameRequestCallback) => {
@@ -214,7 +214,7 @@ describe("IISynchronizerManager.ts", () => {
 
       // Simulate undo() swapping in strokes cloned from a history snapshot taken before
       // this block's jiixBlockId was ever assigned - same export content as before.
-      const staleStroke = canvas.model.getRootSymbol(strokes[0].id) as TStroke
+      const staleStroke = canvas.model.draftSymbol(strokes[0].id) as TStroke
       staleStroke.jiixBlockId = undefined
       staleStroke.jiixBlockType = undefined
       canvas.model.updateSymbol(staleStroke)
@@ -244,7 +244,7 @@ describe("IISynchronizerManager.ts", () => {
       changed.words = [{ label: "b", items: changed.words![0].items }]
       const changedExport = buildJiixExport([changed])
       canvas.export = jest.fn().mockImplementation(async () => {
-        canvas.model.exports = { "application/vnd.myscript.jiix": changedExport }
+        canvas.model.mergeExport({ "application/vnd.myscript.jiix": changedExport })
       })
 
       // ...and the text-metadata write for that new content fails.
@@ -288,7 +288,7 @@ describe("IISynchronizerManager.ts", () => {
       const unchangedElements = strokes.slice(1).map((stroke, i) => buildTextElement(`block-${i + 1}`, stroke.id))
       const changedExport = buildJiixExport([changedElement, ...unchangedElements])
       canvas.export = jest.fn().mockImplementation(async () => {
-        canvas.model.exports = { "application/vnd.myscript.jiix": changedExport }
+        canvas.model.mergeExport({ "application/vnd.myscript.jiix": changedExport })
       })
 
       await manager.synchronize()
@@ -302,7 +302,7 @@ describe("IISynchronizerManager.ts", () => {
       const canvas = createCanvasMock()
       const jiixExport = buildJiixExport(mathBlockIds.map(buildMathElement))
       canvas.export = jest.fn().mockImplementation(async () => {
-        canvas.model.exports = { "application/vnd.myscript.jiix": jiixExport }
+        canvas.model.mergeExport({ "application/vnd.myscript.jiix": jiixExport })
       })
       const manager = new IISynchronizerManager(asCanvas(canvas))
       return { canvas, manager }
@@ -357,7 +357,7 @@ describe("IISynchronizerManager.ts", () => {
       const edgeEl = buildEdgeElement("edge-1", edgeStroke.id, ["node-1"], [0])
       const jiixExport = buildJiixExport([nodeEl, edgeEl])
       canvas.export = jest.fn().mockImplementation(async () => {
-        canvas.model.exports = { "application/vnd.myscript.jiix": jiixExport }
+        canvas.model.mergeExport({ "application/vnd.myscript.jiix": jiixExport })
       })
       jest.spyOn(canvas.jiix, "getStrokesForElement").mockImplementation((id: string) =>
         id === "node-1" ? [nodeStroke.id] : []
@@ -380,7 +380,7 @@ describe("IISynchronizerManager.ts", () => {
       const edgeEl = buildEdgeElement("edge-1", edgeStroke.id)
       const jiixExport = buildJiixExport([edgeEl])
       canvas.export = jest.fn().mockImplementation(async () => {
-        canvas.model.exports = { "application/vnd.myscript.jiix": jiixExport }
+        canvas.model.mergeExport({ "application/vnd.myscript.jiix": jiixExport })
       })
 
       const manager = new IISynchronizerManager(asCanvas(canvas))
@@ -417,14 +417,14 @@ describe("IISynchronizerManager.ts", () => {
       canvas.export = jest
         .fn()
         .mockImplementationOnce(async () => {
-          canvas.model.exports = {
+          canvas.model.mergeExport({
             "application/vnd.myscript.jiix": buildJiixExport([nodeAEl, edgeElConnectedToA]),
-          }
+          })
         })
         .mockImplementationOnce(async () => {
-          canvas.model.exports = {
+          canvas.model.mergeExport({
             "application/vnd.myscript.jiix": buildJiixExport([nodeBEl, edgeElConnectedToB]),
-          }
+          })
         })
 
       const manager = new IISynchronizerManager(asCanvas(canvas))
