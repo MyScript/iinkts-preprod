@@ -15,6 +15,7 @@ import type { TStroke } from "@/symbol"
 import { StrokeOps } from "@/symbol"
 import { registerBuiltinSymbolUtils } from "@/symbol-utils"
 
+import type { TInkCanvas } from "../TInkCanvas"
 import type { TInkCanvasConfiguration } from "./InkCanvasConfiguration"
 import { InkCanvasConfiguration } from "./InkCanvasConfiguration"
 
@@ -45,7 +46,7 @@ export type TInkCanvasOptions = TPartialDeep<
  *
  * The InkCanvas is designed for extensibility, allowing developers to override core components like the client or input grabber for custom behavior.
  */
-export class InkCanvas extends AbstractCanvas {
+export class InkCanvas extends AbstractCanvas implements TInkCanvas {
   #configuration: InkCanvasConfiguration
   #model: IModel
   #penStyle: TStyle
