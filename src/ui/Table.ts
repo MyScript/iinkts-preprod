@@ -1,5 +1,5 @@
 /**
- * @group Components
+ * @group UI
  */
 export type TTableColumn = {
   header: string | HTMLElement
@@ -8,7 +8,7 @@ export type TTableColumn = {
 }
 
 /**
- * @group Components
+ * @group UI
  */
 export type TTableCellConfig = {
   content: string | HTMLElement
@@ -17,7 +17,7 @@ export type TTableCellConfig = {
 }
 
 /**
- * @group Components
+ * @group UI
  */
 export type TTableRow = {
   cells: (string | HTMLElement | TTableCellConfig)[]
@@ -27,7 +27,7 @@ export type TTableRow = {
 }
 
 /**
- * @group Components
+ * @group UI
  */
 export type TTableConfig = {
   columns: (string | TTableColumn)[]
@@ -42,10 +42,10 @@ export type TTableConfig = {
   onRowClick?: (rowIndex: number, rowData?: unknown, isSelected?: boolean) => void
 }
 
-import { DOMFactory } from "@/components/dom"
+import { DOMFactory } from "@/dom"
 
 /**
- * @group Components
+ * @group UI
  * @remarks Generic table component for displaying data in a structured format
  */
 export class Table {

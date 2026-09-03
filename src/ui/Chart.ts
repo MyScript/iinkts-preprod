@@ -1,9 +1,9 @@
-import { RafCoalescer } from "@/browser"
-import { DOMFactory } from "@/components/dom"
 import { areValidCoordinates } from "@/core/geometry"
 import { TWO_PI } from "@/core/math"
+import { RafCoalescer } from "@/dom"
+import { DOMFactory } from "@/dom"
 /**
- * @group Components
+ * @group UI
  */
 export type TChartConfig = {
   width?: number
@@ -55,7 +55,7 @@ type TAxisPositions = {
 }
 
 /**
- * @group Components
+ * @group UI
  */
 export class Chart {
   private static readonly CHART_MARGIN: TMargin = { top: 40, right: 40, bottom: 60, left: 60 }

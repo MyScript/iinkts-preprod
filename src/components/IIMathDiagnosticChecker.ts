@@ -1,9 +1,8 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import { DOMFactory } from "@/components/dom"
 import { getMathDiagnosticMessage } from "@/constants/MathDiagnosticMessages"
+import { DOMFactory } from "@/dom"
 import { LoggerCategory, LoggerManager } from "@/logger"
-
-import { Modal } from "./Modal"
+import { Modal } from "@/ui"
 
 /**
  * @group Components

@@ -1,6 +1,6 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import { DOMFactory } from "@/components/dom"
 import { mergeDeep } from "@/core/std"
+import { DOMFactory } from "@/dom"
 import { LoggerCategory, LoggerManager } from "@/logger"
 
 import type { TMenuActionConfig } from "./IIMenuAction"
