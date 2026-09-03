@@ -142,7 +142,7 @@ describe("IIMenuStyle.ts", () => {
     test("should update color of selected symbols", () => {
       const stroke = buildIIStroke()
       canvas.model.addSymbol(stroke)
-      canvas.model.selectedIds.add(stroke.id)
+      canvas.model.selectSymbol(stroke.id)
       const btn = layer.querySelector("#ms-menu-style-color-list-808080") as HTMLButtonElement
       btn.dispatchEvent(clickEvt)
       expect(canvas.updateSymbolsStyle).toHaveBeenCalledTimes(1)
@@ -151,7 +151,7 @@ describe("IIMenuStyle.ts", () => {
     test("should update fill of selected symbols", () => {
       const stroke = buildIIStroke()
       canvas.model.addSymbol(stroke)
-      canvas.model.selectedIds.add(stroke.id)
+      canvas.model.selectSymbol(stroke.id)
       const btn = layer.querySelector("#ms-menu-style-fill-list-ffff00") as HTMLButtonElement
       btn.dispatchEvent(clickEvt)
       expect(canvas.updateSymbolsStyle).toHaveBeenCalledTimes(1)
@@ -165,7 +165,7 @@ describe("IIMenuStyle.ts", () => {
     test("should update thickness of selected symbols", () => {
       const stroke = buildIIStroke()
       canvas.model.addSymbol(stroke)
-      canvas.model.selectedIds.add(stroke.id)
+      canvas.model.selectSymbol(stroke.id)
       const btn = layer.querySelector("#ms-menu-style-thickness-8") as HTMLButtonElement
       btn.dispatchEvent(pointerUpEvt)
       expect(canvas.updateSymbolsStyle).toHaveBeenCalledTimes(1)
@@ -182,7 +182,7 @@ describe("IIMenuStyle.ts", () => {
     test("should update opacity of selected symbols", () => {
       const stroke = buildIIStroke()
       canvas.model.addSymbol(stroke)
-      canvas.model.selectedIds.add(stroke.id)
+      canvas.model.selectSymbol(stroke.id)
       const input = layer.querySelector("#ms-menu-style-opacity-input") as HTMLInputElement
       input.value = "42"
       input.dispatchEvent(new Event("input"))
@@ -273,7 +273,7 @@ describe("IIMenuStyle.ts", () => {
         canvas.tool = CanvasTool.Select
         const shape = buildIICircle()
         canvas.model.addSymbol(shape)
-        canvas.model.selectedIds.add(shape.id)
+        canvas.model.selectSymbol(shape.id)
         menu.update()
       })
       test("should display menu color", () => {

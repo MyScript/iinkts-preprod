@@ -173,7 +173,7 @@ export class IIHistoryManager extends AbstractDiffHistoryManager<TIIHistoryChang
   // Clear based on it), not just "no changes recorded at this stack index" - so this reads the
   // live model instead of the generic isChangesEmpty-based default.
   protected isStackItemEmpty(): boolean {
-    return (this.#liveModel?.symbols.length ?? 0) === 0
+    return (this.#liveModel?.symbolCount ?? 0) === 0
   }
 
   protected isChangesEmpty(changes: TIIHistoryChanges): boolean {
@@ -198,27 +198,30 @@ export class IIHistoryManager extends AbstractDiffHistoryManager<TIIHistoryChang
 
   protected reverseChanges(changes: TIIHistoryChanges): TIIHistoryChanges {
     const reversedChanges: TIIHistoryChanges = {}
+    // Every symbol list is copied, not shared: the reversed entry is a separate entry, and two
+    // entries holding the same array would change together if anything ever appended to one.
+    // The symbols inside stay shared — they are values, never mutated in place.
     if (changes.added) {
-      reversedChanges.erased = changes.added
+      reversedChanges.erased = [...changes.added]
     }
     if (changes.erased) {
-      reversedChanges.added = changes.erased
+      reversedChanges.added = [...changes.erased]
     }
     if (changes.updated) {
       reversedChanges.updated = {
-        oldSymbols: changes.updated.newSymbols,
-        newSymbols: changes.updated.oldSymbols,
+        oldSymbols: [...changes.updated.newSymbols],
+        newSymbols: [...changes.updated.oldSymbols],
       }
     }
     if (changes.replaced) {
       reversedChanges.replaced = {
-        newSymbols: changes.replaced.oldSymbols,
-        oldSymbols: changes.replaced.newSymbols,
+        newSymbols: [...changes.replaced.oldSymbols],
+        oldSymbols: [...changes.replaced.newSymbols],
       }
     }
     if (changes.matrix) {
       reversedChanges.matrix = {
-        symbols: changes.matrix.symbols,
+        symbols: [...changes.matrix.symbols],
         matrix: new MatrixTransform(
           changes.matrix.matrix.xx,
           changes.matrix.matrix.yx,
@@ -232,7 +235,7 @@ export class IIHistoryManager extends AbstractDiffHistoryManager<TIIHistoryChang
     if (changes.translate?.length) {
       reversedChanges.translate = changes.translate.map((tr) => {
         return {
-          symbols: tr.symbols,
+          symbols: [...tr.symbols],
           tx: -tr.tx,
           ty: -tr.ty,
         }
@@ -241,7 +244,7 @@ export class IIHistoryManager extends AbstractDiffHistoryManager<TIIHistoryChang
     if (changes.rotate?.length) {
       reversedChanges.rotate = changes.rotate.map((tr) => {
         return {
-          symbols: tr.symbols,
+          symbols: [...tr.symbols],
           angle: -tr.angle,
           center: tr.center,
         }
@@ -250,7 +253,7 @@ export class IIHistoryManager extends AbstractDiffHistoryManager<TIIHistoryChang
     if (changes.scale?.length) {
       reversedChanges.scale = changes.scale.map((tr) => {
         return {
-          symbols: tr.symbols,
+          symbols: [...tr.symbols],
           origin: tr.origin,
           scaleX: 1 / tr.scaleX,
           scaleY: 1 / tr.scaleY,
@@ -259,7 +262,7 @@ export class IIHistoryManager extends AbstractDiffHistoryManager<TIIHistoryChang
     }
     if (changes.style) {
       reversedChanges.style = {
-        symbols: changes.style.symbols,
+        symbols: [...changes.style.symbols],
         oldStyles: changes.style.newStyles,
         newStyles: changes.style.oldStyles,
         oldFontSizes: changes.style.newFontSizes,
@@ -274,7 +277,7 @@ export class IIHistoryManager extends AbstractDiffHistoryManager<TIIHistoryChang
         backward: "forward",
       }
       reversedChanges.order = {
-        symbols: changes.order.symbols,
+        symbols: [...changes.order.symbols],
         position: positionMap[changes.order.position],
       }
     }

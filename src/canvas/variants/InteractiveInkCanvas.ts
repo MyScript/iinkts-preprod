@@ -701,18 +701,23 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     })
     const symbols: TSymbol[] = []
     const oldStyles: TPartialDeep<TStyle>[] = []
-    this.model.symbols.forEach((s) => {
-      if (symbolIds.includes(s.id)) {
-        oldStyles.push({ ...s.style })
-        s.style = Object.assign({}, s.style, style)
-        if (isText(s)) {
-          TextOps.updateChildrenStyle(s)
-        }
-        this.renderer.drawSymbol(s)
-        this.model.updateSymbol(s)
-        s.modificationDate = Date.now()
-        symbols.push(s)
+    // Driven by the id list rather than by a scan of the document: `symbolIds.includes` inside a
+    // full pass was O(n·m), and drafting by id is O(m).
+    symbolIds.forEach((id) => {
+      const s = this.model.draftSymbol(id)
+      if (!s) {
+        return
       }
+      oldStyles.push({ ...s.style })
+      s.style = Object.assign({}, s.style, style)
+      if (isText(s)) {
+        TextOps.updateChildrenStyle(s)
+      }
+      this.renderer.drawSymbol(s)
+      // `commitSymbol` stamps `modificationDate` itself; the old code stamped it again *after*
+      // committing, which was redundant and wrote to an already-stored record.
+      this.model.commitSymbol(s)
+      symbols.push(s)
     })
     if (symbols.length) {
       symbols.forEach((s) => {
@@ -760,8 +765,10 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       tx: number
       ty: number
     }[] = []
-    this.model.symbols.forEach((s) => {
-      if (textIds.includes(s.id)) {
+    // Driven by the id list rather than by a scan of the document, same as `updateSymbolsStyle`.
+    textIds.forEach((id) => {
+      const s = this.model.draftSymbol(id)
+      if (s) {
         if (isText(s)) {
           oldFontSizes.push(s.chars[0]?.fontSize)
           TextOps.updateChildrenFont(s, {
@@ -782,7 +789,8 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
               })
             }
           }
-          s.modificationDate = Date.now()
+          // `typeset.updateBounds` above already committed the draft, which stamps
+          // `modificationDate`; the old code stamped it again afterwards.
           symbols.push(s)
         }
       }
@@ -975,16 +983,22 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
           continue
         }
         const oldSym = { ...sym }
+        // Guarded above on the committed record, drafted only now that it is actually losing an
+        // anchor: the record itself is frozen.
+        const draft = this.model.draftSymbol(sym.id)
+        if (!draft || !EdgeOps.isEdge(draft)) {
+          continue
+        }
         if (hitStart) {
-          sym.startAnchor = undefined
+          draft.startAnchor = undefined
         }
         if (hitEnd) {
-          sym.endAnchor = undefined
+          draft.endAnchor = undefined
         }
-        this.model.updateSymbol(sym)
-        this.renderer.drawSymbol(sym)
+        this.model.commitSymbol(draft)
+        this.renderer.drawSymbol(draft)
         updatedOld.push(oldSym)
-        updatedNew.push(sym)
+        updatedNew.push(draft)
         continue
       }
       if (isStroke(sym) && sym.jiixBlockType === "Edge" && (sym.startAnchor || sym.endAnchor)) {
@@ -994,15 +1008,19 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
           continue
         }
         const oldSym = { ...sym }
+        const draft = this.model.draftSymbol(sym.id)
+        if (!draft || !isStroke(draft)) {
+          continue
+        }
         if (hitStart) {
-          sym.startAnchor = undefined
+          draft.startAnchor = undefined
         }
         if (hitEnd) {
-          sym.endAnchor = undefined
+          draft.endAnchor = undefined
         }
-        this.model.updateSymbol(sym)
+        this.model.commitSymbol(draft)
         updatedOld.push(oldSym)
-        updatedNew.push(sym)
+        updatedNew.push(draft)
       }
     }
 
@@ -1136,9 +1154,9 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       const wasSelected = this.model.selectedIds.has(s.id)
       if (wasSelected !== shouldBeSelected) {
         if (shouldBeSelected) {
-          this.model.selectedIds.add(s.id)
+          this.model.selectSymbol(s.id)
         } else {
-          this.model.selectedIds.delete(s.id)
+          this.model.unselectSymbol(s.id)
         }
         this.renderer.updateSelectedState(s, shouldBeSelected)
       }
@@ -1163,7 +1181,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
   selectAll(): void {
     this.tool = CanvasTool.Select
     this.model.symbols.forEach((s) => {
-      this.model.selectedIds.add(s.id)
+      this.model.selectSymbol(s.id)
       this.renderer.updateSelectedState(s, true)
     })
     this.selector.drawSelectedGroup(this.model.symbolsSelected)
@@ -1441,8 +1459,14 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     this.manageIdleState(false)
     this.unselectAll()
 
+    // A history entry is a value: putting one into the document hands over a copy, so the entry
+    // stays replayable and the document never shares identity with the stack. Undo and redo entries
+    // also share their arrays (see `reverseChanges`), so a stored reference would be reachable from
+    // both directions.
+    const restore = <T extends TSymbol>(sym: T): T => cloneSymbol(sym) as T
+
     changes.added?.forEach((sym) => {
-      this.model.addSymbol(sym)
+      this.model.addSymbol(restore(sym))
       this.renderer.drawSymbol(sym)
     })
     changes.erased?.forEach((sym) => {
@@ -1450,7 +1474,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       this.renderer.removeSymbol(sym.id)
     })
     changes.updated?.newSymbols.forEach((sym) => {
-      this.model.updateSymbol(sym)
+      this.model.updateSymbol(restore(sym))
       this.renderer.drawSymbol(sym)
     })
     if (changes.replaced) {
@@ -1459,7 +1483,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
         this.renderer.removeSymbol(s.id)
         this.model.removeSymbol(s.id)
       })
-      this.model.replaceSymbol(anchor.id, changes.replaced.newSymbols)
+      this.model.replaceSymbol(anchor.id, changes.replaced.newSymbols.map(restore))
       this.renderer.replaceSymbol(anchor.id, changes.replaced.newSymbols)
     }
     if (changes.matrix) {
@@ -1478,17 +1502,23 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     if (changes.style) {
       const { symbols, newStyles, newFontSizes } = changes.style
       symbols.forEach((sym, i) => {
+        // The style is re-applied to a draft of what the document currently holds, never to the
+        // entry's own symbol: mutating that would rewrite the history entry being replayed.
+        const draft = this.model.draftSymbol(sym.id)
+        if (!draft) {
+          return
+        }
         if (newStyles?.[i]) {
-          sym.style = newStyles[i] as TStyle
+          draft.style = newStyles[i] as TStyle
         }
         const newFontSize = newFontSizes?.[i]
-        if (newFontSize !== undefined && isText(sym)) {
-          sym.chars.forEach((c) => {
+        if (newFontSize !== undefined && isText(draft)) {
+          draft.chars.forEach((c) => {
             c.fontSize = newFontSize
           })
         }
-        this.model.updateSymbol(sym)
-        this.renderer.drawSymbol(sym)
+        this.model.commitSymbol(draft)
+        this.renderer.drawSymbol(draft)
       })
     }
     if (changes.order) {

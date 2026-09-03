@@ -126,7 +126,7 @@ describe("IIRotationManager.ts", () => {
     StrokeOps.addPointer(strokeOrigin, { p: 1, t: 1, x: 0, y: 0 })
     StrokeOps.addPointer(strokeOrigin, { p: 1, t: 1, x: 10, y: 50 })
     canvas.model.addSymbol(strokeOrigin)
-    canvas.model.selectedIds.add(strokeOrigin.id)
+    canvas.model.selectSymbol(strokeOrigin.id)
 
     const rotateCenter: TPoint = {
       x: OBBOps.toBox(strokeOrigin.bounds).x + strokeOrigin.bounds.width / 2,
@@ -241,7 +241,7 @@ describe("IIRotationManager.ts", () => {
       const manager = new IIRotationManager(asCanvas(canvas))
       const stroke = buildMathStroke("block-1")
       canvas.model.addSymbol(stroke)
-      canvas.model.selectedIds.add(stroke.id)
+      canvas.model.selectSymbol(stroke.id)
 
       const origin: TPoint = {
         x: OBBOps.toBox(stroke.bounds).x + stroke.bounds.width / 2,
@@ -265,7 +265,7 @@ describe("IIRotationManager.ts", () => {
       const manager = new IIRotationManager(asCanvas(canvas))
       const stroke = buildMathStroke("block-1")
       canvas.model.addSymbol(stroke)
-      canvas.model.selectedIds.add(stroke.id)
+      canvas.model.selectSymbol(stroke.id)
 
       const origin: TPoint = {
         x: OBBOps.toBox(stroke.bounds).x + stroke.bounds.width / 2,
@@ -295,7 +295,7 @@ describe("IIRotationManager.ts", () => {
 
       const shape = ShapeCircleOps.create({ x: 50, y: 50 }, 20)
       canvas.model.addSymbol(shape)
-      canvas.model.selectedIds.add(shape.id)
+      canvas.model.selectSymbol(shape.id)
 
       const edgeStroke = StrokeOps.create()
       edgeStroke.pointers = [
@@ -354,7 +354,7 @@ describe("IIRotationManager.ts", () => {
 
       const shape = ShapeCircleOps.create({ x: 50, y: 50 }, 20)
       canvas.model.addSymbol(shape)
-      canvas.model.selectedIds.add(shape.id)
+      canvas.model.selectSymbol(shape.id)
       jest.spyOn(canvas.jiix, "getStrokesForElement").mockImplementation((id) => (id === shape.id ? [shape.id] : []))
 
       const edgeStroke = StrokeOps.create()

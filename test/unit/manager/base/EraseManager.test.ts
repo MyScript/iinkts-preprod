@@ -1,4 +1,4 @@
-import { buildIICircle, buildIIStroke } from "../../helpers"
+import { buildIICircle, buildIIEraser, buildIIStroke, buildIIText } from "../../helpers"
 import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
 import { EraseManager, TPointerInfo, SymbolType } from "@/iink"
 
@@ -71,5 +71,33 @@ describe("EraseManager.ts", () => {
       expect(manager.currentEraser).toBeUndefined()
       expect(() => manager.continue(info)).toThrow("Can't update current eraser because currentEraser is undefined")
     })
+  })
+})
+
+describe("partial character erase", () => {
+  /**
+   * Regression for IIC-1971: the partial-erase branch mutated the clone `model.symbols` had just
+   * handed it, drew the result, and never stored it — so the deleted characters were back on the
+   * next redraw from the document.
+   */
+  test("should store the remaining characters in the model, not only draw them", async () => {
+    const canvas = createCanvasMock()
+    const manager = new EraseManager(asCanvas(canvas))
+
+    const text = buildIIText({
+      chars: [
+        { id: "c1", label: "a", color: "#000", fontSize: 10, fontWeight: "normal", bounds: { x: 0, y: 0, width: 5, height: 10 } },
+        { id: "c2", label: "b", color: "#000", fontSize: 10, fontWeight: "normal", bounds: { x: 5, y: 0, width: 5, height: 10 } },
+      ],
+    })
+    canvas.model.addSymbol(text)
+
+    manager.currentEraser = buildIIEraser()
+    manager.charsToDelete.set(text.id, new Set(["c1"]))
+
+    await manager.end({ pointer: { x: 0, y: 0, t: 0, p: 1 }, pointerType: "pen" } as TPointerInfo)
+
+    const stored = canvas.model.getRootSymbol(text.id) as typeof text
+    expect(stored.chars.map((c) => c.id)).toEqual(["c2"])
   })
 })

@@ -131,9 +131,15 @@ const cases: TBenchCase[] = [
   {
     name: `derive: recompute derived fields for all @${RESIDENT_SIZE} x${CHEAP_CASE_PASSES}`,
     fn: () => {
+      // Committed records are frozen since E5, so deriving in place throws. This goes through the
+      // write contract instead, which is what production code does now — the number therefore
+      // includes draft-then-commit and is NOT comparable to a pre-E5 baseline for this case.
       for (let pass = 0; pass < CHEAP_CASE_PASSES; pass++) {
         for (const stroke of strokes) {
-          symbolRegistry.getUtil(stroke.type)?.updateDerivedFields(stroke)
+          const draft = model.draftSymbol(stroke.id)
+          if (!draft) continue
+          symbolRegistry.getUtil(draft.type)?.updateDerivedFields(draft)
+          model.commitSymbol(draft, false)
         }
       }
     },

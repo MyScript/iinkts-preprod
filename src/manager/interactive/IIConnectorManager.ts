@@ -4,6 +4,7 @@ import { BoxOps } from "@/core/geometry"
 import { OBBOps, type TOBB } from "@/core/geometry"
 import { findIntersectionBetween2Segment, isPointInsidePolygon } from "@/core/geometry"
 import { computeDistance } from "@/core/geometry"
+import type { TDraft } from "@/core/std"
 import { type TPartialDeep } from "@/core/std"
 import { LoggerCategory } from "@/logger"
 import type { TEdge, TShape, TStroke, TSymbol } from "@/symbol"
@@ -274,7 +275,7 @@ export class IIConnectorManager extends IIAbstractManager {
    * computes `entryPoint` (intersection with shape border) for split rendering.
    * Called after the user releases an edge endpoint drag.
    */
-  applyEndpointAnchor(edge: TEdge, pointIndex: number, point: TPoint): void {
+  applyEndpointAnchor(edge: TDraft<TEdge>, pointIndex: number, point: TPoint): void {
     if (!EdgeOps.isLineEdge(edge) && !EdgeOps.isPolyEdge(edge) && !EdgeOps.isArcEdge(edge)) {
       return
     }
@@ -578,19 +579,25 @@ export class IIConnectorManager extends IIAbstractManager {
    * Covers all three anchor-carrying edge kinds (Line, PolyLine, Arc).
    */
   clearAnchoredEdgesFor(symbols: TSymbol[]): void {
-    symbols.forEach((symbol) => {
-      if (!EdgeOps.isEdge(symbol)) {
+    symbols.forEach((committed) => {
+      if (!EdgeOps.isEdge(committed)) {
         return
       }
-      if (!EdgeOps.isLineEdge(symbol) && !EdgeOps.isPolyEdge(symbol) && !EdgeOps.isArcEdge(symbol)) {
+      if (!EdgeOps.isLineEdge(committed) && !EdgeOps.isPolyEdge(committed) && !EdgeOps.isArcEdge(committed)) {
         return
       }
-      if (!symbol.startAnchor && !symbol.endAnchor) {
+      if (!committed.startAnchor && !committed.endAnchor) {
         return
       }
+      // Drafted only once the guards above say this edge is actually losing its anchors. Callers
+      // pass their own symbols here, which are not always in the document — same fallback as
+      // `applyAndDraw`, so a caller-owned edge is still detached rather than silently skipped.
+      const symbol = (this.model.draftSymbol(committed.id) as TDraft<TEdge> | undefined) ?? committed
       symbol.startAnchor = undefined
       symbol.endAnchor = undefined
       EdgeOps.updateEdgeDerivedFields(symbol)
+      // `updateSymbol` and not `commitSymbol`: the fallback above widens the type back to a plain
+      // symbol, and typing it as a draft would be a lie while that branch exists.
       this.model.updateSymbol(symbol)
       this.canvas.renderer.drawSymbol(symbol)
     })
@@ -624,8 +631,22 @@ export class IIConnectorManager extends IIAbstractManager {
     const oldSymbols: TSymbol[] = []
     const newSymbols: TSymbol[] = []
 
-    this.model.symbols.forEach((symbol) => {
-      if (EdgeOps.isEdge(symbol) && EdgeOps.isArcEdge(symbol)) {
+    /** True when at least one of the edge's anchors points at a symbol that just moved. */
+    const isAnchoredToMoved = (e: { startAnchor?: TAnchor; endAnchor?: TAnchor }): boolean =>
+      (!!e.startAnchor && idSet.has(e.startAnchor.symbolId)) || (!!e.endAnchor && idSet.has(e.endAnchor.symbolId))
+
+    this.model.symbols.forEach((committed) => {
+      // Guarded on the committed record, so only the edges that can actually move get drafted —
+      // drafting every edge on every pass would put back the per-frame copy this epic removes.
+      if (!EdgeOps.isEdge(committed) || !isAnchoredToMoved(committed)) {
+        return
+      }
+      const symbol = this.model.draftSymbol(committed.id) as TDraft<TEdge> | undefined
+      if (!symbol) {
+        return
+      }
+
+      if (EdgeOps.isArcEdge(symbol)) {
         let changed = false
         const oldSymbol = cloneSymbol(symbol)
         if (symbol.startAnchor && idSet.has(symbol.startAnchor.symbolId)) {
@@ -646,14 +667,14 @@ export class IIConnectorManager extends IIAbstractManager {
           EdgeArcOps.updateDerivedFields(symbol)
           this.recomputeAllEntryPoints(symbol)
           this.canvas.renderer.drawSymbol(symbol)
-          this.model.updateSymbol(symbol)
+          this.model.commitSymbol(symbol)
           oldSymbols.push(oldSymbol)
           newSymbols.push(symbol)
         }
         return
       }
 
-      if (!EdgeOps.isEdge(symbol) || (!EdgeOps.isLineEdge(symbol) && !EdgeOps.isPolyEdge(symbol))) {
+      if (!EdgeOps.isLineEdge(symbol) && !EdgeOps.isPolyEdge(symbol)) {
         return
       }
 
@@ -702,7 +723,7 @@ export class IIConnectorManager extends IIAbstractManager {
 
       if (changed) {
         this.canvas.renderer.drawSymbol(symbol)
-        this.model.updateSymbol(symbol)
+        this.model.commitSymbol(symbol)
         oldSymbols.push(oldSymbol)
         newSymbols.push(symbol)
       }
@@ -845,10 +866,13 @@ export class IIConnectorManager extends IIAbstractManager {
       groupPoints.forEach((points, strokeId) => newPointsByStrokeId.set(strokeId, points))
     })
 
-    followed.forEach(({ symbol, mode }) => {
-      const newPoints = newPointsByStrokeId.get(symbol.id)!
+    followed.forEach(({ symbol: committed, mode }) => {
+      const newPoints = newPointsByStrokeId.get(committed.id)!
 
       if (commit) {
+        // Drafted here rather than at the top of the loop: the preview branch below reads the
+        // committed record and builds its own throwaway clone, so it needs no draft at all.
+        const symbol = (this.model.draftSymbol(committed.id) as TDraft<TStroke> | undefined) ?? committed
         // A rigid (uniform matrix) move is safe to undo by re-applying the inverse matrix, so it
         // can ride along in the caller's own matrix-replay history entry. A gradient move is NOT
         // uniform — undoing it requires restoring this pre-mutation snapshot directly instead.
@@ -869,6 +893,7 @@ export class IIConnectorManager extends IIAbstractManager {
           newSymbols.push(symbol)
         }
       } else {
+        const symbol = committed
         const clone = {
           ...symbol,
           pointers: symbol.pointers.map((p, i) => ({

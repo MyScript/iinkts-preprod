@@ -827,7 +827,7 @@ describe("InteractiveInkCanvas.ts", () => {
     })
     test("should invalidate the restored model's exports so the next synchronize re-fetches JIIX instead of reusing the pre-undo snapshot", async () => {
       const stroke1 = buildIIStroke()
-      canvas.model.exports = { "application/vnd.myscript.jiix": jiixText } as never
+      canvas.model.mergeExport({ "application/vnd.myscript.jiix": jiixText } as never)
       canvas.history.undo = jest.fn(() => ({ added: [stroke1] }))
       canvas.history.context.canUndo = true
       await canvas.undo()
@@ -883,6 +883,9 @@ describe("InteractiveInkCanvas.ts", () => {
     })
     test("should call client.undo & renderer.drawSymbol & renderer.removeSymbol when history.undo return matrix", async () => {
       const stroke1 = buildIIStroke()
+      // The replay transforms what the document holds; a symbol it does not hold is skipped,
+      // so the test has to seed it.
+      canvas.model.addSymbol(stroke1)
       canvas.history.undo = jest.fn(() => ({
         matrix: { matrix: { tx: 2, ty: 3, xx: 4, xy: 5, yx: 6, yy: 7 }, symbols: [stroke1] },
       }))
@@ -895,10 +898,13 @@ describe("InteractiveInkCanvas.ts", () => {
         })
       )
       expect(canvas.renderer.drawSymbol).toHaveBeenCalledTimes(1)
-      expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(stroke1)
+      expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(canvas.model.getRootSymbol(stroke1.id))
     })
     test("should call client.undo & renderer.drawSymbol & renderer.removeSymbol when history.undo return translate", async () => {
       const stroke1 = buildIIStroke()
+      // The replay transforms what the document holds; a symbol it does not hold is skipped,
+      // so the test has to seed it.
+      canvas.model.addSymbol(stroke1)
       canvas.history.undo = jest.fn(() => ({ translate: [{ tx: 1, ty: 2, symbols: [stroke1] }] }))
       canvas.history.context.canUndo = true
       await canvas.undo()
@@ -907,10 +913,13 @@ describe("InteractiveInkCanvas.ts", () => {
         expect.objectContaining({ translate: [{ tx: 1, ty: 2, strokes: [stroke1] }] })
       )
       expect(canvas.renderer.drawSymbol).toHaveBeenCalledTimes(1)
-      expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(stroke1)
+      expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(canvas.model.getRootSymbol(stroke1.id))
     })
     test("should call client.undo & renderer.drawSymbol & renderer.removeSymbol when history.undo return scale", async () => {
       const stroke1 = buildIIStroke()
+      // The replay transforms what the document holds; a symbol it does not hold is skipped,
+      // so the test has to seed it.
+      canvas.model.addSymbol(stroke1)
       canvas.history.undo = jest.fn(() => ({
         scale: [{ origin: { x: 1, y: 2 }, scaleX: 2, scaleY: 4, symbols: [stroke1] }],
       }))
@@ -921,10 +930,13 @@ describe("InteractiveInkCanvas.ts", () => {
         expect.objectContaining({ scale: [{ origin: { x: 1, y: 2 }, scaleX: 2, scaleY: 4, strokes: [stroke1] }] })
       )
       expect(canvas.renderer.drawSymbol).toHaveBeenCalledTimes(1)
-      expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(stroke1)
+      expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(canvas.model.getRootSymbol(stroke1.id))
     })
     test("should call client.undo & renderer.drawSymbol & renderer.removeSymbol when history.undo return rotate", async () => {
       const stroke1 = buildIIStroke()
+      // The replay transforms what the document holds; a symbol it does not hold is skipped,
+      // so the test has to seed it.
+      canvas.model.addSymbol(stroke1)
       canvas.history.undo = jest.fn(() => ({
         rotate: [{ angle: 42, center: { x: 1, y: 2 }, symbols: [stroke1] }],
       }))
@@ -935,7 +947,7 @@ describe("InteractiveInkCanvas.ts", () => {
         expect.objectContaining({ rotate: [{ angle: 42, center: { x: 1, y: 2 }, strokes: [stroke1] }] })
       )
       expect(canvas.renderer.drawSymbol).toHaveBeenCalledTimes(1)
-      expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(stroke1)
+      expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(canvas.model.getRootSymbol(stroke1.id))
     })
     test("should update the model and redraw when history.undo returns an updated symbol", async () => {
       const stroke1 = buildIIStroke()
@@ -944,7 +956,9 @@ describe("InteractiveInkCanvas.ts", () => {
       canvas.history.undo = jest.fn(() => ({ updated: { oldSymbols: [stroke1], newSymbols: [oldStroke1] } }))
       canvas.history.context.canUndo = true
       await canvas.undo()
-      expect(canvas.model.symbols).toEqual([oldStroke1])
+      // The document stores a copy of the entry rather than the entry itself, and `updateSymbol`
+      // stamps that copy — so compare everything but the timestamp it just set.
+      expect(canvas.model.symbols).toEqual([{ ...oldStroke1, modificationDate: expect.any(Number) }])
       expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(oldStroke1)
     })
     test("should restore the old style and redraw when history.undo returns a style change, without calling client.undo", async () => {
@@ -955,9 +969,30 @@ describe("InteractiveInkCanvas.ts", () => {
       canvas.history.context.canUndo = true
       await canvas.undo()
       expect(canvas.model.symbols[0].style).toEqual(restoredStyle)
-      expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(stroke1)
+      // The entry's own symbol is no longer mutated by the replay, so the redraw gets what the
+      // document now holds, not the pre-undo reference the test still has.
+      expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(canvas.model.symbols[0])
       expect(canvas.client.undo).toHaveBeenCalledTimes(0)
     })
+    test("should leave the history entry itself untouched while replaying a style change", async () => {
+      // IIC-1972: the replay used to mutate `changes.style.symbols` in place and store that same
+      // object, so the stack aliased the document and a second undo replayed a rewritten entry.
+      const stroke1 = buildIIStroke()
+      canvas.model.addSymbol(stroke1)
+      const entrySymbol = canvas.model.symbols[0]
+      const entryStyleBefore = { ...entrySymbol.style }
+      canvas.history.undo = jest.fn(() => ({
+        style: { symbols: [entrySymbol], newStyles: [{ ...entrySymbol.style, color: "red" }] },
+      }))
+      canvas.history.context.canUndo = true
+
+      await canvas.undo()
+
+      expect(canvas.model.symbols[0].style).toEqual({ ...entryStyleBefore, color: "red" })
+      expect(entrySymbol.style).toEqual(entryStyleBefore)
+      expect(canvas.model.symbols[0]).not.toBe(entrySymbol)
+    })
+
     test("should reorder the symbol and redraw when history.undo returns an order change, without calling client.undo", async () => {
       const stroke1 = buildIIStroke()
       canvas.model.addSymbol(stroke1)
@@ -1081,7 +1116,7 @@ describe("InteractiveInkCanvas.ts", () => {
 
     test("should only request mimeTypes not already cached in model.exports", async () => {
       const cachedCanvas = new InteractiveInkCanvas(document.createElement("div"), CanvasOptions)
-      cachedCanvas.model.exports = { "text/plain": "already cached" }
+      cachedCanvas.model.mergeExport({ "text/plain": "already cached" })
       cachedCanvas.client.export = jest.fn(() =>
         Promise.resolve({ "application/vnd.myscript.jiix": jiixText })
       )
@@ -1098,7 +1133,7 @@ describe("InteractiveInkCanvas.ts", () => {
 
     test("should not call client.export at all when every requested mimeType is already cached", async () => {
       const cachedCanvas = new InteractiveInkCanvas(document.createElement("div"), CanvasOptions)
-      cachedCanvas.model.exports = { "text/plain": "already cached" }
+      cachedCanvas.model.mergeExport({ "text/plain": "already cached" })
       cachedCanvas.client.export = jest.fn()
 
       const result = await cachedCanvas.export(["text/plain"])
@@ -1118,7 +1153,7 @@ describe("InteractiveInkCanvas.ts", () => {
 
     test("should not call client.export when no mimeTypes requested but the client's defaults are already cached", async () => {
       const freshCanvas = new InteractiveInkCanvas(document.createElement("div"), CanvasOptions)
-      freshCanvas.model.exports = { "application/vnd.myscript.jiix": jiixText }
+      freshCanvas.model.mergeExport({ "application/vnd.myscript.jiix": jiixText })
       freshCanvas.client.export = jest.fn()
 
       const result = await freshCanvas.export()
@@ -1483,7 +1518,7 @@ describe("InteractiveInkCanvas.ts", () => {
         const stroke2 = buildIIStroke()
         canvas.model.addSymbol(stroke1)
         canvas.model.addSymbol(stroke2)
-        canvas.model.selectedIds.add(stroke1.id)
+        canvas.model.selectSymbol(stroke1.id)
 
         canvas.copy()
 
@@ -1515,8 +1550,8 @@ describe("InteractiveInkCanvas.ts", () => {
         const decorator = buildIIDecorator(DecoratorKind.Highlight)
         canvas.model.addSymbol(stroke)
         canvas.model.addSymbol(decorator)
-        canvas.model.selectedIds.add(stroke.id)
-        canvas.model.selectedIds.add(decorator.id)
+        canvas.model.selectSymbol(stroke.id)
+        canvas.model.selectSymbol(decorator.id)
 
         canvas.copy()
 
@@ -1531,8 +1566,8 @@ describe("InteractiveInkCanvas.ts", () => {
         solverStroke.isSolverOutput = true
         canvas.model.addSymbol(stroke)
         canvas.model.addSymbol(solverStroke)
-        canvas.model.selectedIds.add(stroke.id)
-        canvas.model.selectedIds.add(solverStroke.id)
+        canvas.model.selectSymbol(stroke.id)
+        canvas.model.selectSymbol(solverStroke.id)
 
         canvas.copy()
 
@@ -1609,7 +1644,7 @@ describe("InteractiveInkCanvas.ts", () => {
       test("should remove selected symbols", async () => {
         const stroke = buildIIStroke()
         canvas.model.addSymbol(stroke)
-        canvas.model.selectedIds.add(stroke.id)
+        canvas.model.selectSymbol(stroke.id)
 
         await canvas.cut()
 
@@ -1620,7 +1655,7 @@ describe("InteractiveInkCanvas.ts", () => {
       test("should copy symbols before removing", async () => {
         const stroke = buildIIStroke()
         canvas.model.addSymbol(stroke)
-        canvas.model.selectedIds.add(stroke.id)
+        canvas.model.selectSymbol(stroke.id)
 
         await canvas.cut()
 
