@@ -622,6 +622,35 @@ describe("IITranslateManager.ts", () => {
       expect(canvas.typeset.updateBounds).toHaveBeenCalledWith(symbol)
     })
 
+    test.each([
+      ["text", () => buildIIText({ point: { x: 1, y: 2 } })],
+      ["math", () => buildIIMath("y=3x+2", { point: { x: 1, y: 2 } })],
+    ])("%s should move its anchor point", (_name, build) => {
+      // A typeset symbol stores a position and is otherwise measured, so its anchor point is the
+      // whole of what a translate moves. Nothing asserted it: gutting the move left every test in
+      // this file green, including the one that checks the typeset service was called.
+      const symbol = build()
+      const canvas = createCanvasMock()
+      new IITranslateManager(asCanvas(canvas)).applyToSymbol(symbol, MatrixTransform.identity().translate(10, 15))
+      expect(symbol.point).toEqual({ x: 11, y: 17 })
+    })
+
+    test("math should also move its stored bounds centre and its elements", () => {
+      // Math carries more position than text: its own bounds centre, and one box per element. The
+      // typeset service is stubbed here, so these are the raw moves rather than a re-measurement.
+      const math = buildIIMath("y=3x+2", { point: { x: 1, y: 2 } })
+      const centreBefore = { ...math.bounds.center }
+      const elementBefore = { ...math.elements[0].bounds }
+      const canvas = createCanvasMock()
+      new IITranslateManager(asCanvas(canvas)).applyToSymbol(math, MatrixTransform.identity().translate(10, 15))
+      expect(math.bounds.center).toEqual({ x: centreBefore.x + 10, y: centreBefore.y + 15 })
+      expect(math.elements[0].bounds).toEqual({
+        ...elementBefore,
+        x: elementBefore.x + 10,
+        y: elementBefore.y + 15,
+      })
+    })
+
     test("a symbol type the library does not know should translate", () => {
       // The point of the epic. It is reachable through the util now; `applyToSymbol` still throws
       // for an unregistered type, because the base's switch on `symbol.type` survives until
