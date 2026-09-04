@@ -189,6 +189,31 @@ stroke width.
 left out rather than padded, because the server pairs pointers by index across the arrays and a short
 column would attach the wrong values to the wrong points.
 
+### A custom `SymbolUtil` must implement `translate`
+
+```diff
+  class StickyNoteUtil extends SymbolUtil<TStickyNote> {
+    readonly type = "sticky-note"
+    create(partial) { ... }
+    updateDerivedFields(symbol) { ... }
+    overlaps(symbol, box) { ... }
+    getSVGElement(symbol) { ... }
++   translate(symbol, { matrix }) {
++     symbol.point = applyMatrixToPoint(symbol.point, matrix)
++   }
+  }
+```
+
+Move the symbol's stored geometry and leave it derived-consistent; `applyMatrixToPoint` and
+`applyMatrixToPoints` from `core/geometry` round the way the document stores coordinates. Implement
+it as an empty body if your symbol is not meant to move — the built-in decorator util does, because
+a decorator's bounds are recomputed from the symbols it decorates.
+
+The second argument is a `TTranslateContext`: `matrix`, plus a `typeset` port that only text and
+math consult. A typeset symbol's bounds come from drawing it into the DOM hidden and reading
+`getBBox()`, which is not something a util can do for itself, so the service is passed in rather
+than imported.
+
 ### Resize handles come from the symbol's util
 
 ```diff

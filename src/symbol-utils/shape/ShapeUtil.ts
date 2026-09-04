@@ -10,9 +10,10 @@ import type { TShape } from "@/symbol/shape/Shape"
 import { ShapeKind } from "@/symbol/shape/Shape-enum"
 import { SymbolType } from "@/symbol/Symbol"
 
-import { defineKind, resolveKind, type TKindDefinition } from "../KindDefinition"
+import { defineKind, resolveKind, type TKindDefinition, translateByCentre, translateByPoints } from "../KindDefinition"
 import { SVGBuilder } from "../SVGBuilder"
 import { SymbolUtil } from "../SymbolUtil"
+import type { TTranslateContext } from "../TransformContext"
 
 /**
  * The shape kinds this util can build, and how.
@@ -29,12 +30,14 @@ const SHAPE_KINDS: Partial<Record<ShapeKind, TKindDefinition<TShape>>> = {
     updateDerivedFields: (shape) => ShapeCircleOps.updateDerivedFields(shape),
     overlaps: (shape, box) => ShapeCircleOps.overlaps(shape, box),
     getSVGPath: (shape) => ShapeCircleOps.getSVGPath(shape),
+    translate: translateByCentre,
   }),
   [ShapeKind.Ellipse]: defineKind<TShape, TShapeEllipse>({
     create: (partial) => ShapeEllipseOps.createFromPartial(partial),
     updateDerivedFields: (shape) => ShapeEllipseOps.updateDerivedFields(shape),
     overlaps: (shape, box) => ShapeEllipseOps.overlaps(shape, box),
     getSVGPath: (shape) => ShapeEllipseOps.getSVGPath(shape),
+    translate: translateByCentre,
     // The ellipse is the only kind whose path needs orienting, and this is where that used to live
     // as an `if (shape.kind === ShapeKind.Ellipse)` inside the shared `getSVGElement`.
     extraPathAttributes: (shape) => ({
@@ -46,6 +49,7 @@ const SHAPE_KINDS: Partial<Record<ShapeKind, TKindDefinition<TShape>>> = {
     updateDerivedFields: (shape) => ShapePolygonOps.updateDerivedFields(shape),
     overlaps: (shape, box) => ShapePolygonOps.overlaps(shape, box),
     getSVGPath: (shape) => ShapePolygonOps.getSVGPath(shape),
+    translate: translateByPoints,
   }),
 }
 
@@ -69,6 +73,11 @@ export class ShapeUtil extends SymbolUtil<TShape> {
 
   getSnapPoints(shape: TShape): TPoint[] {
     return shape.snapPoints
+  }
+
+  translate(shape: TShape, { matrix }: TTranslateContext): void {
+    resolveKind(SHAPE_KINDS, shape.kind, "shape", "translate").translate(shape, matrix)
+    this.updateDerivedFields(shape)
   }
 
   static getSVGPath(shape: TShape): string {
