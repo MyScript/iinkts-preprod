@@ -1,6 +1,6 @@
 import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
 import { LeftClickEventMock, RightClickEventMock } from "../../__mocks__/EventMock"
-import { buildIILine, buildIIStroke } from "../../helpers"
+import { buildIICircle, buildIILine, buildIIStroke } from "../../helpers"
 import {
   IISelectionManager,
   OBBOps,
@@ -18,6 +18,7 @@ import {
   ShapeCircleOps,
   EdgePolyLineOps,
   EdgeUtil,
+  ShapeUtil,
   TEdge,
 } from "@/iink"
 
@@ -845,5 +846,53 @@ describe("IISelectionManager edge translate hit path", () => {
     expect(el?.tagName).toBe("path")
     expect(el?.getAttribute("d")).toBe(EdgeUtil.getSVGPath(edge))
     expect(el?.getAttribute("d")).toBeTruthy()
+  })
+})
+
+/**
+ * `EdgeOps.getEdgeResizePoints` was an `if/else` dispatcher over the three edge kinds, with this
+ * manager as its only caller. IIC-2009 replaced it with `getResizePoints` on the contract, answered
+ * from `EdgeUtil`'s kind table.
+ *
+ * Nothing covered the handles before: making the util report none at all left this whole suite
+ * green. These are what hold them.
+ */
+describe("IISelectionManager edge resize handles", () => {
+  const EDGES: Record<string, () => TEdge> = {
+    line: () => buildIILine({ start: { x: 0, y: 0 }, end: { x: 40, y: 30 } }),
+    polyedge: () =>
+      EdgePolyLineOps.create([
+        { x: 0, y: 0 },
+        { x: 20, y: 0 },
+        { x: 20, y: 20 },
+      ]),
+  }
+
+  // The arc is deliberately absent: this manager branches on `isArcEdge` before reaching the util,
+  // to bind start/mid/end handles to arc-specific drag behaviour. The dispatcher's own arc branch
+  // was therefore dead code, and deleting it changed nothing for arcs.
+
+  test.each(Object.entries(EDGES))("%s should offer one handle per point the util reports", async (_kind, build) => {
+    const canvas = createCanvasMock()
+    const manager = new IISelectionManager(asCanvas(canvas))
+    await canvas.init()
+    const edge = build()
+    canvas.model.addSymbol(edge)
+    canvas.renderer.drawSymbol(edge)
+    manager.drawSelectedGroup([edge])
+
+    const expected = new EdgeUtil().getResizePoints(edge)
+    expect(expected.length).toBeGreaterThan(1)
+
+    const handles = Array.from(canvas.renderer.layer.querySelectorAll(`circle[role=${SvgElementRole.Resize}]`))
+    expect(handles).toHaveLength(expected.length)
+    expect(handles.map((h) => [Number(h.getAttribute("cx")), Number(h.getAttribute("cy"))])).toEqual(
+      expected.map(({ point }) => [point.x, point.y])
+    )
+  })
+
+  test("a symbol whose util reports no handles should get none", () => {
+    // The contract's default. Most symbols resize by their bounding box alone.
+    expect(new ShapeUtil().getResizePoints(buildIICircle())).toEqual([])
   })
 })
