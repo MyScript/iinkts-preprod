@@ -1,6 +1,6 @@
 import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
 import { LeftClickEventMock, RightClickEventMock } from "../../__mocks__/EventMock"
-import { buildIIStroke } from "../../helpers"
+import { buildIILine, buildIIStroke } from "../../helpers"
 import {
   IISelectionManager,
   OBBOps,
@@ -16,6 +16,9 @@ import {
   computePointOnEllipse,
   IIConnectorManager,
   ShapeCircleOps,
+  EdgePolyLineOps,
+  EdgeUtil,
+  TEdge,
 } from "@/iink"
 
 describe("IISelectionManager.ts", () => {
@@ -805,4 +808,42 @@ describe("IISelectionManager.ts", () => {
     })
   })
 
+})
+
+/**
+ * `createEdgeTranslatePath` carried a fourth `switch` on `edge.kind`, calling the same three `Ops`
+ * that `EdgeUtil`'s kind table has called since IIC-2002. IIC-2008 deleted it. These tests hold the
+ * property that made the deletion safe: the hit path is the edge's own path, for every kind.
+ *
+ * It matters beyond tidiness — the hit area follows the edge's geometry rather than its bounding
+ * box, which on a diagonal edge would be a far larger clickable rectangle than the edge itself.
+ */
+describe("IISelectionManager edge translate hit path", () => {
+  const EDGES: Record<string, () => TEdge> = {
+    line: () => buildIILine({ start: { x: 0, y: 0 }, end: { x: 40, y: 30 } }),
+    polyedge: () =>
+      EdgePolyLineOps.create([
+        { x: 0, y: 0 },
+        { x: 20, y: 0 },
+        { x: 20, y: 20 },
+      ]),
+    arc: () => EdgeArcOps.create({ x: 50, y: 50 }, 0, Math.PI, 30, 20, 0),
+  }
+
+  test.each(Object.entries(EDGES))("%s should be drawn from the edge's own path", async (_kind, build) => {
+    // A canvas per case: `drawSelectedGroup` appends to the layer, so a shared one would make the
+    // query depend on the order the cases ran in.
+    const canvas = createCanvasMock()
+    const manager = new IISelectionManager(asCanvas(canvas))
+    await canvas.init()
+    const edge = build()
+    canvas.model.addSymbol(edge)
+    canvas.renderer.drawSymbol(edge)
+    manager.drawSelectedGroup([edge])
+
+    const el = canvas.renderer.layer.querySelector(`[role=${SvgElementRole.Translate}]`)
+    expect(el?.tagName).toBe("path")
+    expect(el?.getAttribute("d")).toBe(EdgeUtil.getSVGPath(edge))
+    expect(el?.getAttribute("d")).toBeTruthy()
+  })
 })
