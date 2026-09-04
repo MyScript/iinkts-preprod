@@ -1,6 +1,7 @@
 import type { TBox } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
-import { applyMatrixToPoint, applyMatrixToPoints } from "@/core/geometry"
+import { applyMatrixToPoint, applyMatrixToPoints, MatrixTransform } from "@/core/geometry"
+import { convertRadianToDegree } from "@/core/math"
 import type { TPartialDeep } from "@/core/std"
 import { DecoratorKind } from "@/symbol/decorator/Decorator"
 import { SymbolType } from "@/symbol/Symbol"
@@ -9,7 +10,7 @@ import { TextOps, type TText } from "@/symbol/text/Text"
 import { DecoratorUtil } from "../decorator/DecoratorUtil"
 import { SVGBuilder } from "../SVGBuilder"
 import { SymbolUtil } from "../SymbolUtil"
-import type { TTranslateContext } from "../TransformContext"
+import type { TRotateContext, TTranslateContext } from "../TransformContext"
 
 const noSelection =
   "pointer-events: none; -webkit-touch-callout: none; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;"
@@ -42,6 +43,18 @@ export class TextUtil extends SymbolUtil<TText> {
     }
     applyMatrixToPoints([text.point], matrix)
     // Not geometry: bounds come from drawing the text hidden and measuring it, so a service does it.
+    typeset.updateBounds(text)
+  }
+
+  /**
+   * A typeset symbol is turned by recording an angle, not by moving its glyphs — the renderer
+   * applies it as an SVG `rotate`. The angle accumulates, so a second rotation adds to the first.
+   */
+  rotate(text: TText, { matrix, center, typeset }: TRotateContext): void {
+    text.rotation = {
+      degree: convertRadianToDegree(MatrixTransform.rotation(matrix)) + (text.rotation?.degree || 0),
+      center,
+    }
     typeset.updateBounds(text)
   }
 
