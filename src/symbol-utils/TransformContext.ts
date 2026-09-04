@@ -42,8 +42,6 @@ export type TTranslateContext = {
 export type TRotateContext = {
   matrix: MatrixTransform
   center: TPoint
-  /** Text consults it; math deliberately does not. See `MathUtil.rotate`. */
-  typeset: TTypesetPort
 }
 
 /**

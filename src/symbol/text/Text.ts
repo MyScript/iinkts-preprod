@@ -111,7 +111,8 @@ export const TextOps = {
   },
 
   updateDerivedFields(text: TText): void {
-    const boundsBox = OBBOps.toBox(text.bounds)
+    // Unrotated, not `toBox`: the rotation is applied once below, from `text.rotation`.
+    const boundsBox = OBBOps.toUnrotatedBox(text.bounds)
     text.vertices = computeTypesetVertices(boundsBox, text.rotation)
     text.snapPoints = computeTypesetSnapPoints(boundsBox, text.point, text.rotation)
     text.edges = computeClosedEdges(text.vertices)
