@@ -189,6 +189,31 @@ stroke width.
 left out rather than padded, because the server pairs pointers by index across the arrays and a short
 column would attach the wrong values to the wrong points.
 
+### A custom `SymbolUtil` must implement `getSVGElement`
+
+It was optional in v4, which meant a util could be registered and accepted while drawing nothing —
+the symbol went into the document, took part in selection and transforms, and was simply never
+visible. No error said so.
+
+```diff
+  class StickyNoteUtil extends SymbolUtil<TStickyNote> {
+    readonly type = "sticky-note"
+    create(partial) { ... }
+    updateDerivedFields(symbol) { ... }
+    overlaps(symbol, box) { ... }
++   getSVGElement(symbol) { ... }
+  }
+```
+
+Return `undefined` for a state you deliberately leave undrawn; the built-in decorator util does
+that for a kind it does not own.
+
+One limit worth knowing before you build on this: `InkCanvasDeprecated` (INK_V1) does not honour it.
+That variant renders through `CanvasRenderer`, which dispatches on `isStroke` and two fixed renderer
+tables instead of asking the registry, so your symbol is invisible there and the log says
+"symbol type unknown". `InteractiveInkCanvas`, `InkCanvas` and `InteractiveInkSSRCanvas` all draw
+it.
+
 ### Derived fields come from the symbol's util
 
 The two family dispatchers are gone. They did nothing but resolve a kind that the util resolves
