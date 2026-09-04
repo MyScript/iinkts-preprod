@@ -1,7 +1,7 @@
 import { SymbolType, type TBaseSymbol } from "../Symbol"
-import { ShapeCircleOps, type TShapeCircle } from "./Circle"
-import { ShapeEllipseOps, type TShapeEllipse } from "./Ellipse"
-import { ShapePolygonOps, type TShapePolygon } from "./Polygon"
+import type { TShapeCircle } from "./Circle"
+import type { TShapeEllipse } from "./Ellipse"
+import type { TShapePolygon } from "./Polygon"
 import { ShapeKind } from "./Shape-enum"
 
 /**
@@ -51,19 +51,5 @@ export const ShapeOps = {
    */
   isPolygonShape(shape: TBaseSymbol): shape is TShapePolygon {
     return ShapeOps.isShape(shape) && shape.kind === ShapeKind.Polygon
-  },
-
-  /**
-   * @group Symbol
-   * @summary Update derived fields (bounds, vertices, snapPoints, edges) for any TShape.
-   */
-  updateShapeDerivedFields(shape: TShape): void {
-    if (ShapeOps.isCircleShape(shape)) {
-      ShapeCircleOps.updateDerivedFields(shape)
-    } else if (ShapeOps.isEllipseShape(shape)) {
-      ShapeEllipseOps.updateDerivedFields(shape)
-    } else if (ShapeOps.isPolygonShape(shape)) {
-      ShapePolygonOps.updateDerivedFields(shape)
-    }
   },
 }
