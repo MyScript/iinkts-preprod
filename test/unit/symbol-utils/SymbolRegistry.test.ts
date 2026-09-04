@@ -75,4 +75,33 @@ describe("symbolRegistry", () => {
       expect(() => symbolRegistry.getUtilFor({ type: "no-such-type" } as TBaseSymbol)).toThrow()
     })
   })
+
+  /**
+   * `SymbolType.Group` was an enum member with no `TSymbol` variant, no `Ops`, no util, and no code
+   * path able to produce it — so the three `IIGestureManager` sets that listed it could never match.
+   * IIC-2005 deleted it. This is what stops the next one from being added.
+   */
+  describe("coverage of SymbolType", () => {
+    /**
+     * Not document symbols, so deliberately without a util. The eraser is a transient overlay: it
+     * never enters the model, is absent from the `TSymbol` union, and `SVGRenderer` draws it from
+     * its own branch rather than by asking a util.
+     */
+    const NON_DOCUMENT_TYPES: SymbolType[] = [SymbolType.Eraser]
+
+    it("should have a registered util for every type the document can hold", () => {
+      // One direction only. A util for a type *not* in the enum is the extension story working as
+      // intended, so the reverse would be a wrong invariant to assert.
+      const documentTypes = Object.values(SymbolType).filter((type) => !NON_DOCUMENT_TYPES.includes(type))
+      const missing = documentTypes.filter((type) => !symbolRegistry.has(type))
+      // Named, not counted: a failure has to say which type has no util behind it.
+      expect(missing).toEqual([])
+    })
+
+    it("should match the TSymbol union, which is what the model actually stores", () => {
+      // Guards the guard: the list above is only meaningful if it tracks the union. Six members —
+      // stroke, text, math, shape, edge, decorator.
+      expect(Object.values(SymbolType).length - NON_DOCUMENT_TYPES.length).toBe(6)
+    })
+  })
 })
