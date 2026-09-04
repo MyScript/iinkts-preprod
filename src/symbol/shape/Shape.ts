@@ -1,5 +1,3 @@
-import type { TPartialDeep } from "@/core/std"
-
 import { SymbolType, type TBaseSymbol } from "../Symbol"
 import { ShapeCircleOps, type TShapeCircle } from "./Circle"
 import { ShapeEllipseOps, type TShapeEllipse } from "./Ellipse"
@@ -66,23 +64,6 @@ export const ShapeOps = {
       ShapeEllipseOps.updateDerivedFields(shape)
     } else if (ShapeOps.isPolygonShape(shape)) {
       ShapePolygonOps.updateDerivedFields(shape)
-    }
-  },
-
-  /**
-   * @group Symbol
-   * @summary Create a TShape from partial data — dispatches by kind.
-   */
-  createShapeFromPartial(partial: TPartialDeep<TShape>): TShape {
-    switch (partial.kind) {
-      case ShapeKind.Circle:
-        return ShapeCircleOps.createFromPartial(partial as TPartialDeep<TShapeCircle>)
-      case ShapeKind.Ellipse:
-        return ShapeEllipseOps.createFromPartial(partial as TPartialDeep<TShapeEllipse>)
-      case ShapeKind.Polygon:
-        return ShapePolygonOps.createFromPartial(partial as TPartialDeep<TShapePolygon>)
-      default:
-        throw new Error(`Unable to create shape, kind: "${partial.kind}" is unknown`)
     }
   },
 }
