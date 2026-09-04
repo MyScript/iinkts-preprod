@@ -52,7 +52,7 @@ export class MathUtil extends TypesetUtil<TMath> {
       element.bounds.x = moved.x
       element.bounds.y = moved.y
     })
-    typeset.updateBounds(math)
+    typeset.setBounds(math)
   }
 
   getSVGElement(math: TMath): SVGGraphicsElement {

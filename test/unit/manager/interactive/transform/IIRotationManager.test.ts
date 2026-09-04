@@ -31,7 +31,7 @@ describe("IIRotationManager.ts", () => {
 
   describe("should applyToSymbol", () => {
     const canvas = createCanvasMock()
-    canvas.typeset.updateBounds = jest.fn()
+    canvas.typeset.setBounds = jest.fn()
     canvas.renderer.setAttribute = jest.fn()
     const manager = new IIRotationManager(asCanvas(canvas))
 
@@ -515,13 +515,13 @@ describe("IIRotationManager, the cells that are rotation-specific", () => {
   })
 
   test("text should be re-measured, and math deliberately should not", () => {
-    // An asymmetry inherited from IIRotationManager, which called typeset.updateBounds for text and
+    // An asymmetry inherited from IIRotationManager, which re-measured text after a turn and
     // returned math untouched. Pinned rather than quietly evened out: levelling it is a behaviour
     // change, and IIC-2012 only moved code.
     const text = buildIIText({ point: { x: 0, y: 0 } })
-    expect(rotate(text).typeset.updateBounds).toHaveBeenCalledWith(text)
+    expect(rotate(text).typeset.setBounds).toHaveBeenCalledWith(text)
 
     const math = buildIIMath()
-    expect(rotate(math).typeset.updateBounds).not.toHaveBeenCalled()
+    expect(rotate(math).typeset.setBounds).not.toHaveBeenCalled()
   })
 })
