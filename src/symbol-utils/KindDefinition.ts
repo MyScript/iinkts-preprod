@@ -1,4 +1,4 @@
-import type { TBox } from "@/core/geometry"
+import { applyMatrixToPoint, applyMatrixToPoints, type MatrixTransform, type TBox, type TPoint } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import type { TResizePoint } from "@/symbol/Symbol"
 
@@ -17,6 +17,8 @@ export type TKindDefinition<T> = {
   updateDerivedFields(symbol: T): void
   overlaps(symbol: T, box: TBox): boolean
   getSVGPath(symbol: T): string
+  /** Moves this kind's own geometry. The family util derives afterwards, once, for every kind. */
+  translate(symbol: T, matrix: MatrixTransform): void
   /**
    * Extra attributes for the rendered path. Only a kind that needs them supplies this — it is what
    * replaces an `if (symbol.kind === …)` sitting inside a family's shared `getSVGElement`.
@@ -58,4 +60,19 @@ export function resolveKind<T>(
     throw new Error(`Unable to ${operation} ${family}, kind: "${kind}" is unknown`)
   }
   return definition
+}
+
+/**
+ * Moves a symbol that stores a single centre — circle, ellipse and arc.
+ *
+ * Shared because those three cells are the same code: the epic's measurement found nine of the
+ * twenty-seven transform cells written more than once, and this is two of them.
+ */
+export function translateByCentre(symbol: { center: TPoint }, matrix: MatrixTransform): void {
+  symbol.center = applyMatrixToPoint(symbol.center, matrix)
+}
+
+/** Moves a symbol that stores a vertex list — polygon and polyedge. */
+export function translateByPoints(symbol: { points: TPoint[] }, matrix: MatrixTransform): void {
+  applyMatrixToPoints(symbol.points, matrix)
 }

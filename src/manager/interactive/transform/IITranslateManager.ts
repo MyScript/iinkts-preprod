@@ -1,10 +1,8 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import type { TPoint } from "@/core/geometry"
-import { applyMatrixToPoint, applyMatrixToPoints, MatrixTransform, type TOBB } from "@/core/geometry"
+import { MatrixTransform, type TOBB } from "@/core/geometry"
 import type { TIIHistoryChanges } from "@/history"
 import type { TEdge, TMath, TShape, TStroke, TSymbol, TText } from "@/symbol"
-import { EdgeKind, ShapeKind } from "@/symbol"
-import { StrokeOps } from "@/symbol/stroke/Stroke"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 
 import { IIAbstractTransformManager } from "./AbstractTransformManager"
@@ -21,79 +19,37 @@ export class IITranslateManager extends IIAbstractTransformManager {
     super(canvas)
   }
 
+  /**
+   * The five per-type methods below are now one line each. The behaviour they held lives on each
+   * symbol's util, so a custom symbol translates too — which the throwing `default` of
+   * `applyToSymbol` used to make impossible.
+   *
+   * They exist at all only because `IIAbstractTransformManager` still declares them abstract.
+   * IIC-2014 removes those declarations, and these five go with them.
+   */
+  #throughUtil<T extends TSymbol>(symbol: T, matrix: MatrixTransform): T {
+    symbolRegistry.getUtilFor(symbol).translate(symbol, { matrix, typeset: this.canvas.typeset })
+    return symbol
+  }
+
   protected applyToStroke(stroke: TStroke, matrix: MatrixTransform): TStroke {
-    applyMatrixToPoints(stroke.pointers, matrix)
-    StrokeOps.updateBounds(stroke)
-    return stroke
+    return this.#throughUtil(stroke, matrix)
   }
 
   protected applyToShape(shape: TShape, matrix: MatrixTransform): TShape {
-    switch (shape.kind) {
-      case ShapeKind.Ellipse:
-      case ShapeKind.Circle: {
-        shape.center = applyMatrixToPoint(shape.center, matrix)
-        break
-      }
-      case ShapeKind.Polygon: {
-        applyMatrixToPoints(shape.points, matrix)
-        break
-      }
-      default:
-        throw new Error(`Can't apply translate on shape, kind unknown: ${JSON.stringify(shape)}`)
-    }
-    // One derive for every kind, asked of the symbol's own util. Each branch above used to
-    // call the family's derive dispatcher, which then re-dispatched on the same kind.
-    symbolRegistry.getUtilFor(shape).updateDerivedFields(shape)
-    return shape
+    return this.#throughUtil(shape, matrix)
   }
 
   protected applyToEdge(edge: TEdge, matrix: MatrixTransform): TEdge {
-    switch (edge.kind) {
-      case EdgeKind.Arc: {
-        edge.center = applyMatrixToPoint(edge.center, matrix)
-        break
-      }
-      case EdgeKind.Line: {
-        edge.start = applyMatrixToPoint(edge.start, matrix)
-        edge.end = applyMatrixToPoint(edge.end, matrix)
-        break
-      }
-      case EdgeKind.PolyEdge: {
-        applyMatrixToPoints(edge.points, matrix)
-        break
-      }
-      default:
-        throw new Error(`Can't apply translate on edge, kind unknown: ${JSON.stringify(edge)}`)
-    }
-    // One derive for every kind, asked of the symbol's own util. Each branch above used to
-    // call the family's derive dispatcher, which then re-dispatched on the same kind.
-    symbolRegistry.getUtilFor(edge).updateDerivedFields(edge)
-    return edge
+    return this.#throughUtil(edge, matrix)
   }
 
   protected applyOnText(text: TText, matrix: MatrixTransform): TText {
-    if (text.rotation) {
-      text.rotation.center = applyMatrixToPoint(text.rotation.center, matrix)
-    }
-    applyMatrixToPoints([text.point], matrix)
-    return this.canvas.typeset.updateBounds(text)
+    return this.#throughUtil(text, matrix)
   }
 
   protected applyOnMath(math: TMath, matrix: MatrixTransform): TMath {
-    if (math.rotation) {
-      math.rotation.center = applyMatrixToPoint(math.rotation.center, matrix)
-    }
-    applyMatrixToPoints([math.point], matrix)
-
-    applyMatrixToPoints([math.bounds.center], matrix)
-
-    math.elements.forEach((e) => {
-      const ep = applyMatrixToPoint({ x: e.bounds.x, y: e.bounds.y }, matrix)
-      e.bounds.x = ep.x
-      e.bounds.y = ep.y
-    })
-
-    return this.canvas.typeset.updateBounds(math)
+    return this.#throughUtil(math, matrix)
   }
 
   translate(symbols: TSymbol[], tx: number, ty: number, addToHistory = true): Promise<void> {

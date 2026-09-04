@@ -1,5 +1,5 @@
 import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
-import { buildIIStroke, expectPointsRounded, expectDerivedFieldsSettled } from "../../../helpers"
+import { buildIIMath, buildIIStroke, buildIIText, expectDerivedFieldsSettled, expectPointsRounded } from "../../../helpers"
 import {
   DecoratorKind,
   DecoratorOps,
@@ -20,6 +20,12 @@ import {
   TShapeCircle,
   TShapePolygon,
   TStroke,
+  SymbolUtil,
+  TBaseSymbol,
+  TPartialDeep,
+  TTranslateContext,
+  applyMatrixToPoint,
+  symbolRegistry,
   TSymbol,
 } from "@/iink"
 
@@ -63,8 +69,12 @@ describe("IITranslateManager.ts", () => {
       //@ts-ignore
       poly.kind = "pouet"
       const matrix = MatrixTransform.identity().translate(10, 15)
+      // IIC-2011 moved the refusal from the manager's switch to the family util's kind table, so
+      // the wording is now the one every other table lookup uses — and it no longer stringifies the
+      // whole symbol into the message. Rotation and resize keep the old wording until IIC-2012 and
+      // IIC-2013 move them too.
       expect(() => manager.applyToSymbol(poly, matrix)).toThrow(
-        expect.objectContaining({ message: expect.stringContaining("Can't apply translate on shape, kind unknown:") })
+        'Unable to translate shape, kind: "pouet" is unknown'
       )
     })
     test("should not translate edge with kind unknown", () => {
@@ -74,8 +84,12 @@ describe("IITranslateManager.ts", () => {
       //@ts-ignore
       edge.kind = "pouet"
       const matrix = MatrixTransform.identity().translate(10, 15)
+      // IIC-2011 moved the refusal from the manager's switch to the family util's kind table, so
+      // the wording is now the one every other table lookup uses — and it no longer stringifies the
+      // whole symbol into the message. Rotation and resize keep the old wording until IIC-2012 and
+      // IIC-2013 move them too.
       expect(() => manager.applyToSymbol(edge, matrix)).toThrow(
-        expect.objectContaining({ message: expect.stringContaining("Can't apply translate on edge, kind unknown:") })
+        'Unable to translate edge, kind: "pouet" is unknown'
       )
     })
     test("translate edge Line", () => {
@@ -583,6 +597,62 @@ describe("IITranslateManager.ts", () => {
       const symbol = build()
       manager.applyToSymbol(symbol, MatrixTransform.identity().translate(1 / 3, 1 / 3))
       expectPointsRounded(stored(symbol))
+    })
+  })
+
+  /**
+   * IIC-2011 moved translate onto each symbol's util. Two things about that move needed holding
+   * that nothing held before: text and math reach a service rather than doing geometry, and a
+   * symbol type the library does not know can now translate at all.
+   */
+  describe("translate through the util", () => {
+    test.each([
+      ["text", () => buildIIText({ point: { x: 0, y: 0 } })],
+      ["math", () => buildIIMath()],
+    ])("%s should be re-measured by the typeset service", (_name, build) => {
+      // Not geometry: a typeset symbol's bounds come from drawing it hidden and reading getBBox(),
+      // so the util is handed a port instead of computing them. Dropping the call left every test
+      // in this file green before this one existed.
+      const canvas = createCanvasMock()
+      const manager = new IITranslateManager(asCanvas(canvas))
+      const symbol = build()
+      manager.applyToSymbol(symbol, MatrixTransform.identity().translate(10, 15))
+      expect(canvas.typeset.updateBounds).toHaveBeenCalledWith(symbol)
+    })
+
+    test("a symbol type the library does not know should translate", () => {
+      // The point of the epic. It is reachable through the util now; `applyToSymbol` still throws
+      // for an unregistered type, because the base's switch on `symbol.type` survives until
+      // IIC-2014.
+      type TStickyNote = TBaseSymbol & { type: "sticky-note"; point: TPoint }
+      class StickyNoteUtil extends SymbolUtil<TStickyNote> {
+        readonly type = "sticky-note"
+        create(partial: TPartialDeep<TStickyNote>): TStickyNote {
+          return partial as TStickyNote
+        }
+        updateDerivedFields(): void {}
+        overlaps(): boolean {
+          return false
+        }
+        translate(symbol: TStickyNote, { matrix }: TTranslateContext): void {
+          symbol.point = applyMatrixToPoint(symbol.point, matrix)
+        }
+        getSVGElement(): SVGGraphicsElement {
+          return document.createElementNS("http://www.w3.org/2000/svg", "g")
+        }
+      }
+      symbolRegistry.register(new StickyNoteUtil())
+
+      const canvas = createCanvasMock()
+      const sticky = { id: "n1", type: "sticky-note", point: { x: 1, y: 2 } } as unknown as TSymbol
+      symbolRegistry
+        .getUtilFor(sticky)
+        .translate(sticky, { matrix: MatrixTransform.identity().translate(10, 15), typeset: canvas.typeset })
+
+      expect((sticky as unknown as TStickyNote).point).toEqual({ x: 11, y: 17 })
+      expect(() => new IITranslateManager(asCanvas(canvas)).applyToSymbol(sticky, MatrixTransform.identity())).toThrow(
+        "type unknown"
+      )
     })
   })
 })

@@ -13,6 +13,13 @@ Symbols are frozen when committed and handed to readers directly, instead of the
 - fixed: `changeOrderSymbol` was a no-op; partially erasing characters was never stored; undo/redo replay rewrote the history entry it was replaying; edge-connection anchors were silently dropped behind a swallowed throw
 - see [MIGRATION.md](./MIGRATION.md)
 
+### A symbol moves itself
+`SymbolUtil.translate` is a new required member. Translating used to be three managers' business: `IIAbstractTransformManager` switched on `symbol.type` to five abstract methods, and two of those switched again on kind — so a symbol type the library did not know threw instead of moving.
+- `SymbolUtil.translate(symbol, context)` is abstract. A custom util that omits it no longer compiles, and implementing it is what makes a custom symbol movable
+- new: `TTranslateContext` (`{ matrix, typeset }`) and `TTypesetPort`. Text and math are measured by drawing them hidden and reading `getBBox()`, so the util is handed a port rather than reaching for the canvas — `IITypesetManager` satisfies it structurally
+- `IITranslateManager` no longer refuses an unknown shape or edge kind with `Can't apply translate on shape, kind unknown: {…}`; the message is now `Unable to translate shape, kind: "x" is unknown`, the wording every other kind lookup uses, and it no longer stringifies the whole symbol into itself. Rotation and resize keep the old wording until they move too
+- see [MIGRATION.md](./MIGRATION.md)
+
 ### A symbol offers its own resize handles
 `EdgeOps.getEdgeResizePoints` is gone. It was an `if/else` over the three edge kinds with a single caller, reaching the very functions the edge util's kind table already reaches.
 - removed: `EdgeOps.getEdgeResizePoints(edge)` → use `symbolRegistry.getUtilFor(symbol).getResizePoints(symbol)`, which answers for any symbol type including your own

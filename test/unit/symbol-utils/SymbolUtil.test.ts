@@ -17,6 +17,9 @@ class TestSymbolUtil extends SymbolUtil<TBaseSymbol> {
   overlaps(): boolean {
     return false
   }
+  translate(): void {
+    // this double exists to exercise the contract's defaults, not to move anything
+  }
   getSVGElement(symbol: TBaseSymbol): SVGGraphicsElement {
     const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
     group.setAttribute("id", symbol.id)

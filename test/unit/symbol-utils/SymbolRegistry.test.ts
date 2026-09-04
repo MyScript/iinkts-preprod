@@ -1,4 +1,5 @@
-import type { TBaseSymbol, TBox, TPartialDeep } from "@/iink"
+import type { TBaseSymbol, TBox, TPartialDeep, TPoint, TTranslateContext } from "@/iink"
+import { applyMatrixToPoint } from "@/iink"
 import { registerBuiltinSymbolUtils, symbolRegistry, SymbolType, SymbolUtil } from "@/iink"
 
 beforeAll(() => {
@@ -6,7 +7,7 @@ beforeAll(() => {
 })
 
 /** A type the library knows nothing about, to stand in for an integrator's own symbol. */
-type TStickyNote = TBaseSymbol & { type: "sticky-note"; text: string }
+type TStickyNote = TBaseSymbol & { type: "sticky-note"; text: string; point: TPoint }
 
 class StickyNoteUtil extends SymbolUtil<TStickyNote> {
   readonly type = "sticky-note"
@@ -14,6 +15,9 @@ class StickyNoteUtil extends SymbolUtil<TStickyNote> {
     return { ...partial, type: "sticky-note", text: partial.text ?? "" } as TStickyNote
   }
   updateDerivedFields(): void {}
+  translate(symbol: TStickyNote, { matrix }: TTranslateContext): void {
+    symbol.point = applyMatrixToPoint(symbol.point, matrix)
+  }
   overlaps(_symbol: TStickyNote, _box: TBox): boolean {
     return false
   }
