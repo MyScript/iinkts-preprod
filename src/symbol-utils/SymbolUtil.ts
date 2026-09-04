@@ -86,6 +86,18 @@ export abstract class SymbolUtil<T extends TBaseSymbol> {
   }
 
   /**
+   * Whether a resize of this symbol must preserve its aspect ratio.
+   *
+   * False by default. `IIResizeManager` decided this with
+   * `isText(s) || isMath(s) || (isShape(s) && isCircleShape(s))`, which is a question about a
+   * symbol asked from outside it — so a custom symbol could never require a locked ratio, however
+   * badly a free scale would distort it.
+   */
+  keepsAspectRatio(_symbol: T): boolean {
+    return false
+  }
+
+  /**
    * The element that draws this symbol.
    *
    * Required rather than optional: a symbol nothing can draw is a symbol the canvas cannot show,

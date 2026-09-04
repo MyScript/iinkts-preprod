@@ -1,11 +1,18 @@
 import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
-import { buildIIMath, buildIIStroke, expectDerivedFieldsSettled, expectPointsRounded } from "../../../helpers"
+import {
+  buildIIMath,
+  buildIIStroke,
+  buildIIText,
+  expectDerivedFieldsSettled,
+  expectPointsRounded,
+} from "../../../helpers"
 import {
   EdgeArcOps,
   EdgeLineOps,
   EdgePolyLineOps,
   IIConnectorManager,
   IIResizeManager,
+  BoxOps,
   MatrixTransform,
   OBBOps,
   ResizeDirection,
@@ -719,5 +726,93 @@ describe("IIResizeManager, the two uncovered resize cells", () => {
     expect(math.elements.map((element) => element.fontSize)).toEqual(
       before.map((size) => +(size * 3).toFixed(3))
     )
+  })
+})
+
+/**
+ * `keepRatio` decides whether dragging one edge of a selection scales both axes together. It was
+ * asserted nowhere at all — `grep keepRatio test/` returned nothing before IIC-2015 — even though
+ * it changes the outcome of every resize gesture on a circle, a text or a math block.
+ *
+ * IIC-2015 moved the decision from three type tests in the manager onto the symbol's util, so these
+ * cover both halves: which symbols ask for it, and what asking for it does.
+ */
+describe("IIResizeManager aspect ratio locking", () => {
+  const startResize = async (symbols: TSymbol[], direction: ResizeDirection) => {
+    const canvas = createCanvasMock()
+    const manager = new IIResizeManager(asCanvas(canvas))
+    await canvas.init()
+    symbols.forEach((symbol) => {
+      canvas.model.addSymbol(symbol)
+      canvas.model.selectSymbol(symbol.id)
+    })
+    const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
+    group.setAttribute("id", "group-id")
+    group.setAttribute("role", SvgElementRole.InteractElementsGroup)
+    const handle = document.createElementNS("http://www.w3.org/2000/svg", "line")
+    handle.setAttribute("resize-direction", direction)
+    group.appendChild(handle)
+    const box = BoxOps.createFromPoints(symbols.flatMap((s) => s.vertices))
+    manager.start(handle, { x: box.x, y: box.y })
+    return { manager, box }
+  }
+
+  const buildStroke = () => {
+    const stroke = StrokeOps.create({})
+    StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 0, y: 0 })
+    StrokeOps.addPointer(stroke, { p: 1, t: 2, x: 40, y: 20 })
+    return stroke
+  }
+
+  test("a circle in the selection should lock it", async () => {
+    const { manager } = await startResize([ShapeCircleOps.create({ x: 20, y: 20 }, 10)], ResizeDirection.East)
+    expect(manager.keepRatio).toBe(true)
+  })
+
+  test.each([
+    ["text", () => buildIIText({ point: { x: 0, y: 0 } })],
+    ["math", () => buildIIMath()],
+  ])("a %s in the selection should lock it", async (_name, build) => {
+    const { manager } = await startResize([build()], ResizeDirection.East)
+    expect(manager.keepRatio).toBe(true)
+  })
+
+  test.each([
+    ["a stroke", () => buildStroke()],
+    ["an ellipse", () => ShapeEllipseOps.create({ x: 20, y: 20 }, 30, 10, 0)],
+    ["a polygon", () => ShapePolygonOps.create([{ x: 0, y: 0 }, { x: 20, y: 0 }, { x: 20, y: 20 }])],
+    ["a line", () => EdgeLineOps.create({ x: 0, y: 0 }, { x: 20, y: 20 })],
+  ])("%s alone should not lock it", async (_name, build) => {
+    const { manager } = await startResize([build()], ResizeDirection.East)
+    expect(manager.keepRatio).toBe(false)
+  })
+
+  test("one locking symbol should lock the whole selection", async () => {
+    // `some`, not `every` — which is what the three type tests said, and easy to invert by accident.
+    const { manager } = await startResize(
+      [buildStroke(), ShapeCircleOps.create({ x: 60, y: 20 }, 10)],
+      ResizeDirection.East
+    )
+    expect(manager.keepRatio).toBe(true)
+  })
+
+  test("a locked drag should equalise the two scale factors", async () => {
+    // The payoff. Dragging an east handle normally scales x alone; with the ratio locked, y follows.
+    const { manager, box } = await startResize([ShapeCircleOps.create({ x: 20, y: 20 }, 10)], ResizeDirection.East)
+    const scales = manager.continue({ x: box.x + box.width * 2, y: box.y })
+    expect(scales.scaleY).toBe(scales.scaleX)
+    expect(scales.scaleX).not.toBe(1)
+  })
+
+  test("an unlocked drag of the same shape should not", async () => {
+    // Guards the guard: without this, the assertion above could pass on a gesture that happened to
+    // produce equal factors anyway.
+    const { manager, box } = await startResize(
+      [ShapeEllipseOps.create({ x: 20, y: 20 }, 30, 10, 0)],
+      ResizeDirection.East
+    )
+    const scales = manager.continue({ x: box.x + box.width * 2, y: box.y })
+    expect(scales.scaleY).toBe(1)
+    expect(scales.scaleX).not.toBe(1)
   })
 })

@@ -42,6 +42,12 @@ export type TKindDefinition<T> = {
    * do not, and a family util reports an empty list for a kind that leaves this out.
    */
   getResizePoints?(symbol: T): TResizePoint[]
+  /**
+   * Whether this kind must be resized with its ratio locked. A property of the kind rather than of
+   * an instance, so it is a flag: only the circle sets it, because one radius cannot describe two
+   * different scales.
+   */
+  keepsAspectRatio?: boolean
 }
 
 /**
