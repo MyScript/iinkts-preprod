@@ -17,6 +17,12 @@ class StickyNoteUtil extends SymbolUtil<TStickyNote> {
   overlaps(_symbol: TStickyNote, _box: TBox): boolean {
     return false
   }
+  getSVGElement(symbol: TStickyNote): SVGGraphicsElement {
+    const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
+    group.setAttribute("id", symbol.id)
+    group.setAttribute("type", symbol.type)
+    return group
+  }
 }
 
 describe("symbolRegistry", () => {

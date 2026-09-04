@@ -18,6 +18,7 @@ import type { TBaseSymbol } from "@/symbol/Symbol"
  *   create(partial) { ... }
  *   updateDerivedFields(s) { ... }
  *   overlaps(s, box) { ... }
+ *   getSVGElement(s) { ... }
  * }
  * symbolRegistry.register(new StickyNoteUtil())
  */
@@ -50,5 +51,19 @@ export abstract class SymbolUtil<T extends TBaseSymbol> {
     return true
   }
 
-  getSVGElement?(_symbol: T): SVGGraphicsElement | undefined
+  /**
+   * The element that draws this symbol.
+   *
+   * Required rather than optional: a symbol nothing can draw is a symbol the canvas cannot show,
+   * and when this was optional a custom util that omitted it registered successfully and then
+   * silently rendered nothing. Return `undefined` only for a state deliberately left undrawn — the
+   * decorator does that for a kind it does not own.
+   *
+   * Honoured by the SVG renderer, which `InteractiveInkCanvas`, `InkCanvas` and
+   * `InteractiveInkSSRCanvas` all use. **`InkCanvasDeprecated` (INK_V1) ignores it**: it draws
+   * through `CanvasRenderer`, which dispatches on `isStroke` and two fixed renderer tables instead
+   * of asking the registry, so a registered custom symbol is invisible there and logs
+   * "symbol type unknown". That variant is deprecated and not worth wiring up.
+   */
+  abstract getSVGElement(symbol: T): SVGGraphicsElement | undefined
 }

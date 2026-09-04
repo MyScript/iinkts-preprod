@@ -457,11 +457,14 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
 
   buildElementFromSymbol(symbol: TSymbol): SVGGraphicsElement | undefined {
     const util = symbolRegistry.getUtil(symbol.type)
-    if (util?.getSVGElement) {
-      return util.getSVGElement(symbol)
+    if (!util) {
+      this.#logger.error("buildElementFromSymbol", `no util for symbol: "${JSON.stringify(symbol)}"`)
+      return undefined
     }
-    this.#logger.error("buildElementFromSymbol", `no util for symbol: "${JSON.stringify(symbol)}"`)
-    return undefined
+    // No check that the util can draw: `getSVGElement` is part of the contract. This used to log
+    // "no util for symbol" for a util that existed but had no draw method, which said the wrong
+    // thing about a registration that had in fact worked.
+    return util.getSVGElement(symbol)
   }
 
   prependElement(el: Element): void {
