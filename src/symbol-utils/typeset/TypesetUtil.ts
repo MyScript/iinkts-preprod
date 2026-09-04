@@ -56,14 +56,27 @@ export abstract class TypesetUtil<T extends TText | TMath> extends SymbolUtil<T>
   /**
    * Records the turn. Accumulates, so a second rotation adds to the first.
    *
-   * Subclasses that re-measure afterwards override this and call `super` first — `TextUtil` does,
-   * and `MathUtil` deliberately does not.
+   * Nothing is re-measured. A typeset symbol's `bounds` is the box of its *unrotated* glyphs —
+   * `setBounds` reads `getBBox()` from the `<text>` inside the rotated group, so the measurement
+   * cannot depend on the angle — and turning a symbol does not change its glyphs. Only the angle
+   * and the fields derived from it move.
+   *
+   * `TextUtil` used to override this to re-measure and `MathUtil` did not, an asymmetry inherited
+   * from `IIRotationManager`. It was not a decision: the text call was doing nothing but set
+   * `bounds.angle`, which is done here for both types now, and math was left never updating its
+   * derived fields at all — so a rotated math block could not be selected by surrounding it.
    */
   rotate(symbol: T, { matrix, center }: TRotateContext): void {
     symbol.rotation = {
       degree: convertRadianToDegree(MatrixTransform.rotation(matrix)) + (symbol.rotation?.degree || 0),
       center,
     }
+    // Kept in step with `rotation`, on purpose. `bounds.angle` is what makes `OBBOps.toBox` report
+    // the area the symbol covers on screen, and half a dozen callers depend on that for hit boxes,
+    // decorator bounds and annotation extents. The box the rotation is *applied to* comes from
+    // `OBBOps.toUnrotatedBox` instead, which is what keeps the angle from counting twice.
+    symbol.bounds.angle = symbol.rotation.degree
+    this.updateDerivedFields(symbol)
   }
 
   /**
