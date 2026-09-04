@@ -3,8 +3,8 @@ import { SvgElementRole } from "@/Constants"
 import type { MatrixTransform } from "@/core/geometry"
 import { applyMatrixToPoint, OBBOps } from "@/core/geometry"
 import { LoggerCategory } from "@/logger"
-import type { TEdge, TMath, TShape, TStroke, TSymbol, TText } from "@/symbol"
-import { isDecorator, isStroke, SymbolType } from "@/symbol"
+import type { TStroke, TSymbol } from "@/symbol"
+import { isDecorator, isStroke } from "@/symbol"
 import { DecoratorOps } from "@/symbol/decorator/Decorator"
 
 import { IIAbstractManager } from "../IIAbstractManager"
@@ -14,7 +14,6 @@ import { IIAbstractManager } from "../IIAbstractManager"
  * @group Manager
  */
 export abstract class IIAbstractTransformManager extends IIAbstractManager {
-  protected abstract transformName: string
   interactElementsGroup?: SVGElement
 
   constructor(canvas: TInteractiveInkCanvas) {
@@ -157,30 +156,21 @@ export abstract class IIAbstractTransformManager extends IIAbstractManager {
       .map(({ oldSymbol, newSymbol }) => this.canvas.client.replaceStrokes([oldSymbol.id], [newSymbol]))
   }
 
-  protected abstract applyToStroke(stroke: TStroke, matrix: MatrixTransform): TStroke
-  protected abstract applyToShape(shape: TShape, matrix: MatrixTransform): TShape
-  protected abstract applyToEdge(edge: TEdge, matrix: MatrixTransform): TEdge
-  protected abstract applyOnText(text: TText, matrix: MatrixTransform): TText
-  protected abstract applyOnMath(math: TMath, matrix: MatrixTransform): TMath
+  /**
+   * Applies this manager's own operation to a symbol, through the symbol's util.
+   *
+   * One member instead of the five per-type ones this class used to declare. Those existed to be
+   * reached by a `switch (symbol.type)` here, which is what made a symbol type the library did not
+   * know untransformable: it fell to a throwing `default` however well its util was registered.
+   */
+  protected abstract applyThroughUtil(symbol: TSymbol, matrix: MatrixTransform): void
 
   applyToSymbol(symbol: TSymbol, matrix: MatrixTransform): TSymbol {
-    if (symbol.type === SymbolType.Decorator) {
-      return symbol
-    }
     this.logger.info("applyToSymbol", { symbol })
-    switch (symbol.type) {
-      case SymbolType.Stroke:
-        return this.applyToStroke(symbol, matrix)
-      case SymbolType.Shape:
-        return this.applyToShape(symbol, matrix)
-      case SymbolType.Edge:
-        return this.applyToEdge(symbol, matrix)
-      case SymbolType.Text:
-        return this.applyOnText(symbol, matrix)
-      case SymbolType.Math:
-        return this.applyOnMath(symbol, matrix)
-      default:
-        throw new Error(`Can't apply ${this.transformName} on symbol, type unknown: ${JSON.stringify(symbol)}`)
-    }
+    // No branch on type, and no early return for decorators — `DecoratorUtil` implements all three
+    // operations as deliberate no-ops, which is where that exception now reads. An unregistered
+    // type still fails, from `getUtilFor`, with a message that also lists what *is* registered.
+    this.applyThroughUtil(symbol, matrix)
+    return symbol
   }
 }

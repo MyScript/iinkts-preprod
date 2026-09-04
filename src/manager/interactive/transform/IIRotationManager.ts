@@ -3,7 +3,7 @@ import type { TPoint } from "@/core/geometry"
 import { BoxOps, computeAngleRadian, MatrixTransform, type TOBB } from "@/core/geometry"
 import { convertDegreeToRadian, convertRadianToDegree, TWO_PI } from "@/core/math"
 import type { TIIHistoryChanges } from "@/history"
-import type { TEdge, TMath, TShape, TStroke, TSymbol, TText } from "@/symbol"
+import type { TSymbol } from "@/symbol"
 import { cloneSymbol } from "@/symbol"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 
@@ -14,7 +14,6 @@ import { IIAbstractTransformManager } from "./AbstractTransformManager"
  */
 export class IIRotationManager extends IIAbstractTransformManager {
   protected managerName = "IIRotationManager"
-  protected transformName = "rotate"
   center!: TPoint
   origin!: TPoint
 
@@ -23,37 +22,11 @@ export class IIRotationManager extends IIAbstractTransformManager {
   }
 
   /**
-   * Five one-liners, for the reason `IITranslateManager`'s are: the behaviour lives on each
-   * symbol's util now, and these survive only while `IIAbstractTransformManager` still declares
-   * them abstract. IIC-2014 removes both.
-   *
-   * `center` was gesture state read straight off `this`, declared `center!: TPoint` and undefined
-   * until a gesture started. Passing it in retires that definite-assignment assertion for the
-   * behaviour that needed it.
+   * One hook, like the other two managers'. `center` is passed here rather than read
+   * off `this` inside the util, which is what retired its definite-assignment assertion.
    */
-  #throughUtil<T extends TSymbol>(symbol: T, matrix: MatrixTransform): T {
+  protected applyThroughUtil(symbol: TSymbol, matrix: MatrixTransform): void {
     symbolRegistry.getUtilFor(symbol).rotate(symbol, { matrix, center: this.center, typeset: this.canvas.typeset })
-    return symbol
-  }
-
-  protected applyToStroke(stroke: TStroke, matrix: MatrixTransform): TStroke {
-    return this.#throughUtil(stroke, matrix)
-  }
-
-  protected applyToShape(shape: TShape, matrix: MatrixTransform): TShape {
-    return this.#throughUtil(shape, matrix)
-  }
-
-  protected applyToEdge(edge: TEdge, matrix: MatrixTransform): TEdge {
-    return this.#throughUtil(edge, matrix)
-  }
-
-  protected applyOnText(text: TText, matrix: MatrixTransform): TText {
-    return this.#throughUtil(text, matrix)
-  }
-
-  protected applyOnMath(math: TMath, matrix: MatrixTransform): TMath {
-    return this.#throughUtil(math, matrix)
   }
 
   rotateElement(id: string, degree: number): void {

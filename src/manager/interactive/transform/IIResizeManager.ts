@@ -3,7 +3,7 @@ import { ResizeDirection } from "@/Constants"
 import type { TBox, TPoint } from "@/core/geometry"
 import { BoxOps, MatrixTransform, type TOBB } from "@/core/geometry"
 import type { TIIHistoryChanges } from "@/history"
-import type { TEdge, TMath, TShape, TStroke, TSymbol, TText } from "@/symbol"
+import type { TSymbol } from "@/symbol"
 import { cloneSymbol, isMath, isText } from "@/symbol"
 import { ShapeOps } from "@/symbol/shape/Shape"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
@@ -27,7 +27,6 @@ const isSouthernResize = (direction: ResizeDirection): boolean =>
  */
 export class IIResizeManager extends IIAbstractTransformManager {
   protected managerName = "IIResizeManager"
-  protected transformName = "resize"
   direction!: ResizeDirection
   boundingBox!: TBox
   transformOrigin!: TPoint
@@ -38,36 +37,12 @@ export class IIResizeManager extends IIAbstractTransformManager {
   }
 
   /**
-   * Five one-liners, like the other two managers'. They survive only while
-   * `IIAbstractTransformManager` still declares them abstract; IIC-2014 removes both.
-   *
-   * `transformOrigin` was gesture state read off `this`. It is a context field now, which is what
-   * lets the ellipse and the arc scale their centre about it from inside their own util.
+   * One hook, like the other two managers'. `transformOrigin` is passed here, which is
+   * what lets the ellipse and the arc scale their centre about it from inside their own util.
    */
-  #throughUtil<T extends TSymbol>(symbol: T, matrix: MatrixTransform): T {
+  protected applyThroughUtil(symbol: TSymbol, matrix: MatrixTransform): void {
     this.logger.debug("applyToSymbol", { symbol })
     symbolRegistry.getUtilFor(symbol).resize(symbol, { matrix, origin: this.transformOrigin })
-    return symbol
-  }
-
-  protected applyToStroke(stroke: TStroke, matrix: MatrixTransform): TStroke {
-    return this.#throughUtil(stroke, matrix)
-  }
-
-  protected applyToShape(shape: TShape, matrix: MatrixTransform): TShape {
-    return this.#throughUtil(shape, matrix)
-  }
-
-  protected applyToEdge(edge: TEdge, matrix: MatrixTransform): TEdge {
-    return this.#throughUtil(edge, matrix)
-  }
-
-  protected applyOnText(text: TText, matrix: MatrixTransform): TText {
-    return this.#throughUtil(text, matrix)
-  }
-
-  protected applyOnMath(math: TMath, matrix: MatrixTransform): TMath {
-    return this.#throughUtil(math, matrix)
   }
 
   scaleElement(id: string, sx: number, sy: number): void {

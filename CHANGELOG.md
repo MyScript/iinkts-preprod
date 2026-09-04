@@ -13,6 +13,14 @@ Symbols are frozen when committed and handed to readers directly, instead of the
 - fixed: `changeOrderSymbol` was a no-op; partially erasing characters was never stored; undo/redo replay rewrote the history entry it was replaying; edge-connection anchors were silently dropped behind a swallowed throw
 - see [MIGRATION.md](./MIGRATION.md)
 
+### A symbol the library does not know can be transformed
+The three transform managers reached their per-type behaviour through a `switch (symbol.type)` in `IIAbstractTransformManager` with a throwing `default`. A custom symbol could be created, stored, selected and drawn, and then not moved — however well its util was registered. Both the switch and the five `protected abstract applyTo*`/`applyOn*` members it existed to reach are gone.
+- `IIAbstractTransformManager` now declares one `protected abstract applyThroughUtil(symbol, matrix)`. A subclass implements that instead of `applyToStroke`, `applyToShape`, `applyToEdge`, `applyOnText` and `applyOnMath`
+- removed: `IIAbstractTransformManager.transformName`, whose only reader was the deleted error message
+- `applyToSymbol` no longer returns early for a decorator. `DecoratorUtil` implements the three operations as deliberate no-ops — a standalone decorator's bounds are recomputed from the symbols it decorates — so the exception now reads where the behaviour lives
+- a symbol whose type no util owns still fails, from `symbolRegistry.getUtilFor`: `No util is registered for type "x". Registered types: …`, which distinguishes a typo from a registry that was never populated. The old message was `Can't apply resize on symbol, type unknown: {…}`
+- see [MIGRATION.md](./MIGRATION.md)
+
 ### A symbol scales itself
 `SymbolUtil.resize` is a new required member, completing the three.
 - `SymbolUtil.resize(symbol, context)` is abstract; a custom util that omits it no longer compiles

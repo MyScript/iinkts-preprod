@@ -687,9 +687,12 @@ describe("IITranslateManager.ts", () => {
         .translate(sticky, { matrix: MatrixTransform.identity().translate(10, 15), typeset: canvas.typeset })
 
       expect((sticky as unknown as TStickyNote).point).toEqual({ x: 11, y: 17 })
-      expect(() => new IITranslateManager(asCanvas(canvas)).applyToSymbol(sticky, MatrixTransform.identity())).toThrow(
-        "type unknown"
-      )
+
+      // Written in IIC-2011 asserting that `applyToSymbol` still refused this symbol, because the
+      // base's `switch (symbol.type)` fell to a throwing default. IIC-2014 deleted that switch, so
+      // the manager route works too — which is the whole point of the epic.
+      new IITranslateManager(asCanvas(canvas)).applyToSymbol(sticky, MatrixTransform.identity().translate(1, 2))
+      expect((sticky as unknown as TStickyNote).point).toEqual({ x: 12, y: 19 })
     })
   })
 })

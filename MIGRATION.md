@@ -189,6 +189,28 @@ stroke width.
 left out rather than padded, because the server pairs pointers by index across the arrays and a short
 column would attach the wrong values to the wrong points.
 
+### A custom transform manager implements one method, not five
+
+Only relevant if you subclass `IIAbstractTransformManager`.
+
+```diff
+  class MyTransformManager extends IIAbstractTransformManager {
+-   protected transformName = "skew"
+-   protected applyToStroke(stroke, matrix) { ... }
+-   protected applyToShape(shape, matrix) { ... }
+-   protected applyToEdge(edge, matrix) { ... }
+-   protected applyOnText(text, matrix) { ... }
+-   protected applyOnMath(math, matrix) { ... }
++   protected applyThroughUtil(symbol, matrix) {
++     symbolRegistry.getUtilFor(symbol).translate(symbol, { matrix, typeset: this.canvas.typeset })
++   }
+  }
+```
+
+The five members existed so that a `switch (symbol.type)` in `applyToSymbol` could reach them, and
+that switch is why a symbol type the library did not know threw instead of moving. Routing through
+the symbol's own util means one method, and a custom symbol that transforms.
+
 ### A custom `SymbolUtil` must implement `resize`
 
 ```diff
