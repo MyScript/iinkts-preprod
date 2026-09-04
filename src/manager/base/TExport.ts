@@ -1,6 +1,6 @@
+import type { TJIIXExport } from "@/client"
 import type { TLLMExport } from "@/export"
 import type { TPDFExportDialogOptions } from "@/manager/base/PDFExportManager"
-import type { TJIIXExport } from "@/model/Export"
 import type { TSymbol } from "@/symbol"
 /**
  * Maps every export format to the type {@link TInteractiveInkCanvas.exportAs} resolves with.

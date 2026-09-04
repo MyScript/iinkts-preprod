@@ -1,9 +1,13 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import type { TPoint } from "@/core/geometry"
-import { BoxOps } from "@/core/geometry"
-import { OBBOps, type TOBB } from "@/core/geometry"
-import { findIntersectionBetween2Segment, isPointInsidePolygon } from "@/core/geometry"
-import { computeDistance } from "@/core/geometry"
+import type { MatrixTransform, TPoint } from "@/core/geometry"
+import {
+  BoxOps,
+  computeDistance,
+  findIntersectionBetween2Segment,
+  isPointInsidePolygon,
+  OBBOps,
+  type TOBB,
+} from "@/core/geometry"
 import type { TDraft } from "@/core/std"
 import { type TPartialDeep } from "@/core/std"
 import { LoggerCategory } from "@/logger"
@@ -18,7 +22,6 @@ import { ShapeOps } from "@/symbol/shape/Shape"
 import { isStroke, StrokeOps } from "@/symbol/stroke/Stroke"
 import { cloneSymbol } from "@/symbol/SymbolHelpers"
 import { SVGBuilder } from "@/symbol-utils/SVGBuilder"
-import type { MatrixTransform } from "@/transform"
 
 import { IIAbstractManager } from "./IIAbstractManager"
 

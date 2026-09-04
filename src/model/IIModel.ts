@@ -1,11 +1,10 @@
+import type { TExport, TJIIXMathElement, TJIIXTextElement } from "@/client"
+import { JIIXElementType } from "@/client"
 import { mergeExports, type TDraft } from "@/core/std"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import { SymbolStore, type TSymbolOrder } from "@/store"
 import type { TSymbol } from "@/symbol"
 import { isDecorator } from "@/symbol"
-
-import type { TExport, TJIIXMathElement, TJIIXTextElement } from "./Export"
-import { JIIXElementType } from "./Export"
 
 /** Held at module level so it is a stable cache key for {@link SymbolStore.listBy}. */
 const targetIdsOf = (symbol: TSymbol): string[] => (isDecorator(symbol) ? symbol.targetIds : [])

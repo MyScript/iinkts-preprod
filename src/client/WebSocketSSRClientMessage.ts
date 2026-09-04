@@ -1,4 +1,4 @@
-import type { TExport } from "@/model"
+import type { TExport } from "./Export"
 
 /**
  * @group Client

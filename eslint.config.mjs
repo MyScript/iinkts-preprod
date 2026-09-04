@@ -219,4 +219,121 @@ export default [
       ],
     },
   },
+
+  // Layer boundary: the folders above the canvas may name its contract as a TYPE, never import a
+  // value from it. A value import is what makes the dependency real at runtime and what turned
+  // `manager` and `menu` into cycles with `canvas`; the ~100 `import type` references to
+  // `TInteractiveInkCanvas` are how a manager is typed against its host and must keep working.
+  // This uses the typescript-eslint variant of the rule because only it understands
+  // `allowTypeImports` — the base rule bans both kinds.
+  {
+    files: [
+      "src/manager/**/*.ts",
+      "src/menu/**/*.ts",
+      "src/components/**/*.ts",
+      "src/history/**/*.ts",
+      "src/smartguide/**/*.ts",
+    ],
+    plugins: {
+      "@typescript-eslint": typescriptEslint,
+    },
+    rules: {
+      "@typescript-eslint/no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/canvas", "@/canvas/**"],
+              allowTypeImports: true,
+              message:
+                "this layer sits above the canvas: import its contract as a type (`import type`), never a value",
+            },
+          ],
+        },
+      ],
+      // A second, separate rule on purpose. The typescript-eslint variant above skips type imports
+      // whenever its options carry `allowTypeImports`, whatever the group — so a stricter group put
+      // beside that one is silently inert. The base rule has no such notion and bans both kinds,
+      // which is what naming a concrete canvas deserves: `implements` only guards the contract in
+      // one direction, and a member added to the class does not make the interface stale to the
+      // compiler. The `*Configuration` types are part of the contracts and stay allowed.
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/canvas/variants/*", "!@/canvas/variants/*Configuration"],
+              message:
+                "depend on the canvas contract (`TInkCanvas` / `TInteractiveInkCanvas`), not on a concrete variant class",
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  // Layer boundary inside the canvas folder: the contract level may not reach the variants.
+  // `src/canvas/*.ts` is the base — `AbstractCanvas`, the events, the layer, and the two canvas
+  // contracts — and it sits below the four concrete canvases in `variants/`. The `*Configuration`
+  // types are excepted because `TInkCanvas` and `TInteractiveInkCanvas` name them as part of the
+  // contract. `CanvasFactory.ts` is excepted because being the one place that knows all four
+  // variants is its whole job; IIC-1998 makes those imports lazy.
+  {
+    files: ["src/canvas/*.ts"],
+    ignores: ["src/canvas/CanvasFactory.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["./variants/*", "@/canvas/variants/*", "!*Configuration"],
+              message: "the canvas contract level must not depend on a concrete variant",
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  // Layer boundary: `dom` is a bottom layer, like `core`, and may not import from anywhere else in
+  // `src/`. It is the only bottom layer allowed to touch the DOM — `core` stays DOM-free so the
+  // library runs headless and the client can be installed in Node — which is exactly why nothing
+  // above it may be pulled in from here.
+  {
+    files: ["src/dom/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/*", "@/**", "!@/dom", "!@/dom/**"],
+              message: "dom is a bottom layer and must not import from anywhere else in src/",
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  // Layer boundary: `ui` holds generic widgets. They may build DOM and use core helpers, and must
+  // know nothing about a canvas, a manager, a symbol or the client — that is the whole difference
+  // between them and the interactive widgets left in `components/`.
+  {
+    files: ["src/ui/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/*", "@/**", "!@/dom", "!@/dom/**", "!@/core", "!@/core/**", "!@/logger", "!@/Constants"],
+              message: "ui widgets may only depend on dom, core, logger and Constants",
+            },
+          ],
+        },
+      ],
+    },
+  },
 ]

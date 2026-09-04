@@ -1,6 +1,6 @@
 import type { TBox, TPoint } from "@/core/geometry"
 /**
- * @group Exports
+ * @group Client/Export
  * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/jiix/#stroke-item | Stroke item}
  */
 export type TJIIXStrokeItem = {
@@ -15,7 +15,7 @@ export type TJIIXStrokeItem = {
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXBase = {
   "bounding-box"?: TBox
@@ -23,7 +23,7 @@ export type TJIIXBase = {
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXElementBase<T = string> = TJIIXBase & {
   id: string
@@ -37,7 +37,7 @@ export type TJIIXElementBase<T = string> = TJIIXBase & {
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/jiix/#word-object | Word object}
  */
 export type TJIIXWord = TJIIXBase & {
@@ -53,7 +53,7 @@ export type TJIIXWord = TJIIXBase & {
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/jiix/#character-object | Character object}
  */
 export type TJIIXChar = TJIIXBase & {
@@ -64,7 +64,7 @@ export type TJIIXChar = TJIIXBase & {
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/jiix/#text-interpretation | Text Element }
  */
 export type TJIIXLine = {

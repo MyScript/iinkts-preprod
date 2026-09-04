@@ -1,8 +1,6 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import type { TPoint } from "@/core/geometry"
-import { BoxOps } from "@/core/geometry"
-import { type TOBB } from "@/core/geometry"
-import { computeAngleRadian } from "@/core/geometry"
+import { BoxOps, computeAngleRadian, MatrixTransform, type TOBB } from "@/core/geometry"
 import { convertDegreeToRadian, convertRadianToDegree, TWO_PI } from "@/core/math"
 import type { TIIHistoryChanges } from "@/history"
 import type { TEdge, TMath, TShape, TStroke, TText } from "@/symbol"
@@ -10,7 +8,6 @@ import { cloneSymbol, EdgeKind, ShapeKind } from "@/symbol"
 import { EdgeOps } from "@/symbol/edge/Edge"
 import { ShapeOps } from "@/symbol/shape/Shape"
 import { StrokeOps } from "@/symbol/stroke/Stroke"
-import { MatrixTransform } from "@/transform"
 
 import { IIAbstractTransformManager } from "./AbstractTransformManager"
 

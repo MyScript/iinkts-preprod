@@ -20,7 +20,7 @@ import { SymbolType } from "@/symbol/Symbol"
 /**
  * @group Symbol
  */
-export type TStrokeMinimal = {
+export type TStrokeCapture = {
   id: string
   pointerType: string
   pointers: TPointer[]
@@ -30,7 +30,7 @@ export type TStrokeMinimal = {
  * @group Symbol
  */
 export type TStroke = TBaseSymbol &
-  TStrokeMinimal & {
+  TStrokeCapture & {
     readonly type: SymbolType.Stroke
     style: TStyle
     length: number
@@ -345,37 +345,5 @@ export const StrokeOps = {
       parts.push(StrokeOps._getFinalPath(beforeLastPoint, lastPoint, STROKE_WIDTH))
     }
     return parts.join(" ")
-  },
-
-  formatToSend(stroke: TStrokeMinimal): {
-    id: string
-    pointerType: string
-    p: number[]
-    t: number[]
-    x: number[]
-    y: number[]
-  } {
-    const json: {
-      id: string
-      pointerType: string
-      p: number[]
-      t: number[]
-      x: number[]
-      y: number[]
-    } = {
-      id: stroke.id,
-      pointerType: stroke.pointerType,
-      p: [],
-      t: [],
-      x: [],
-      y: [],
-    }
-    stroke.pointers.forEach((p) => {
-      json.p.push(p.p)
-      json.t.push(p.t)
-      json.x.push(p.x)
-      json.y.push(p.y)
-    })
-    return json
   },
 }

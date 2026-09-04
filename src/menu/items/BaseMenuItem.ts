@@ -1,5 +1,5 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import type { DOMFactory } from "@/components/dom"
+import type { DOMFactory } from "@/dom"
 import { LoggerCategory, LoggerManager } from "@/logger"
 
 /**

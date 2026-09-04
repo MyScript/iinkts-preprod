@@ -1,9 +1,8 @@
-import type { TRecognitionTypeV2 } from "@/client"
-
 import type { TJIIXBase, TJIIXWord } from "./ExportCommon"
+import type { TRecognitionTypeV2 } from "./RecognitionConfiguration"
 
 /**
- * @group Exports
+ * @group Client/Export
  * @remarks List all supported MIME types for export in ClientsV2. Please note, the MIME types supported depend on the recognition type configured
  */
 export enum ExportV2Type {
@@ -13,12 +12,12 @@ export enum ExportV2Type {
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/jiix  Element type}
  */
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2RangeItem = {
   from: { stroke: number }
@@ -26,20 +25,20 @@ export type TJIIXV2RangeItem = {
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  * @remarks Only in InkCanvas () activated with recognition.export.JIIXV2.range = true
  */
 export type TJIIXV2Range = TJIIXV2RangeItem[]
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2Base = TJIIXBase & {
   range?: TJIIXV2Range
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2ElementBase<T = TRecognitionTypeV2> = TJIIXV2Base & {
   id: string
@@ -47,7 +46,7 @@ export type TJIIXV2ElementBase<T = TRecognitionTypeV2> = TJIIXV2Base & {
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2LineSpan = {
   type: string
@@ -56,7 +55,7 @@ export type TJIIXV2LineSpan = {
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2Line = {
   type: string
@@ -66,7 +65,7 @@ export type TJIIXV2Line = {
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/jiix/#word-object | Word object}
  */
 export type TJIIXV2Expression = TJIIXV2Base &
@@ -75,23 +74,23 @@ export type TJIIXV2Expression = TJIIXV2Base &
   }
 
 /**
- * @group Exports
+ * @group Client/Export
  * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/jiix#text-interpretation | Text Element }
  */
 export type TJIIXV2TextElement = TJIIXV2ElementBase<"Text"> & TJIIXV2Expression
 
 /**
- * @group Exports
+ * @group Client/Export
  * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/jiix#text-interpretation | Math Element }
  */
 export type TJIIXV2MathElement = TJIIXV2ElementBase<"Math"> & TJIIXV2Expression
 
-/** @group Exports
+/** @group Client/Export
  */
 export type TJIIXV2DrawingElement = TJIIXV2ElementBase<"Drawing"> & TJIIXV2Expression
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export enum JIIXV2ShapeKind {
   Circle = "circle",
@@ -121,7 +120,7 @@ export enum JIIXV2ShapeKind {
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2PolygonType =
   | "triangle"
@@ -137,14 +136,14 @@ export type TJIIXV2PolygonType =
   | "square"
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2ShapeItemBase<K = JIIXV2ShapeKind> = TJIIXV2ElementBase<K> & {
   kind: K
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2EllipseBase<K = JIIXV2ShapeKind.Ellipse | JIIXV2ShapeKind.Circle> = TJIIXV2ShapeItemBase<
   JIIXV2ShapeKind.Ellipse | JIIXV2ShapeKind.Circle
@@ -160,17 +159,17 @@ export type TJIIXV2EllipseBase<K = JIIXV2ShapeKind.Ellipse | JIIXV2ShapeKind.Cir
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2Circle = TJIIXV2EllipseBase<JIIXV2ShapeKind.Circle>
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2Ellipse = TJIIXV2EllipseBase<JIIXV2ShapeKind.Ellipse>
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2PrimitiveArc = {
   type: "arc"
@@ -186,7 +185,7 @@ export type TJIIXV2PrimitiveArc = {
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2PrimitiveLine = {
   type: "line"
@@ -199,7 +198,7 @@ export type TJIIXV2PrimitiveLine = {
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2PolygonBase<K = TJIIXV2PolygonType> = TJIIXV2ShapeItemBase<K> & {
   kind: K
@@ -207,137 +206,137 @@ export type TJIIXV2PolygonBase<K = TJIIXV2PolygonType> = TJIIXV2ShapeItemBase<K>
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2ShapePolygon = TJIIXV2PolygonBase<JIIXV2ShapeKind.Polygon>
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2ShapePolygonTriangle = TJIIXV2PolygonBase<JIIXV2ShapeKind.Triangle>
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2ShapePolygonIsoscelesTriangle = TJIIXV2PolygonBase<JIIXV2ShapeKind.IsoscelesTriangle>
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2ShapePolygonRightTriangle = TJIIXV2PolygonBase<JIIXV2ShapeKind.RightTriangle>
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2ShapePolygonRightIsoscelesTriangle = TJIIXV2PolygonBase<JIIXV2ShapeKind.RightIsoscelesTriangle>
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2ShapePolygonEquilateralTriangle = TJIIXV2PolygonBase<JIIXV2ShapeKind.EquilateralTriangle>
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2ShapePolygonQuadrilateral = TJIIXV2PolygonBase<JIIXV2ShapeKind.Quadrilateral>
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2ShapePolygonTrapezoid = TJIIXV2PolygonBase<JIIXV2ShapeKind.Trapezoid>
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2ShapePolygonParallelogram = TJIIXV2PolygonBase<JIIXV2ShapeKind.Parallelogram>
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2ShapePolygonRhombus = TJIIXV2PolygonBase<JIIXV2ShapeKind.Rhombus>
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2ShapePolygonRectangle = TJIIXV2PolygonBase<JIIXV2ShapeKind.Rectangle>
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2ShapePolygonSquare = TJIIXV2PolygonBase<JIIXV2ShapeKind.Square>
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2ShapeLine = TJIIXV2ShapeItemBase<JIIXV2ShapeKind.Line> & {
   primitives: TJIIXV2PrimitiveLine[]
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2ShapeLineArrow = TJIIXV2ShapeItemBase<JIIXV2ShapeKind.Arrow> & {
   primitives: TJIIXV2PrimitiveLine[]
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2ShapeLineDoubleArrow = TJIIXV2ShapeItemBase<JIIXV2ShapeKind.DoubleArrow> & {
   primitives: TJIIXV2PrimitiveLine[]
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2ShapeLinePolyline = TJIIXV2ShapeItemBase<JIIXV2ShapeKind.PolyLine> & {
   primitives: TJIIXV2PrimitiveLine[]
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2ShapeLinePolylineArrow = TJIIXV2ShapeItemBase<JIIXV2ShapeKind.PolylineArrow> & {
   primitives: TJIIXV2PrimitiveLine[]
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2ShapeLinePolylineDoubleArrow = TJIIXV2ShapeItemBase<JIIXV2ShapeKind.PolylineDoubleArrow> & {
   primitives: TJIIXV2PrimitiveLine[]
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2ShapeCurvedDoubleArrow = TJIIXV2ShapeItemBase<JIIXV2ShapeKind.CurvedDoubleArrow> & {
   primitives: TJIIXV2PrimitiveArc[]
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2ShapeCurvedArrow = TJIIXV2ShapeItemBase<JIIXV2ShapeKind.CurvedArrow> & {
   primitives: TJIIXV2PrimitiveArc[]
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2ShapeArcOfEllipse = TJIIXV2ShapeItemBase<JIIXV2ShapeKind.ArcOfEllipse> & {
   primitives: TJIIXV2PrimitiveArc[]
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2ShapeArcOfCircle = TJIIXV2ShapeItemBase<JIIXV2ShapeKind.ArcOfCircle> & {
   primitives: TJIIXV2PrimitiveArc[]
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2ShapeElement =
   | TJIIXV2Circle
@@ -366,7 +365,7 @@ export type TJIIXV2ShapeElement =
   | TJIIXV2ShapeLine
 
 /**
- * @group Exports
+ * @group Client/Export
  * @remarks Only in InkCanvas () activated with recognition.export.JIIXV2.range = true
  */
 export type TJIIXV2RawContentBase<T = TRecognitionTypeV2> = {
@@ -375,12 +374,12 @@ export type TJIIXV2RawContentBase<T = TRecognitionTypeV2> = {
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2RawContentItemText = TJIIXV2RawContentBase<"Text"> & TJIIXV2Expression
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2RawContentTextLine = {
   type: "Line"
@@ -389,7 +388,7 @@ export type TJIIXV2RawContentTextLine = {
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2RawContentShape = TJIIXV2RawContentBase<"Shape"> & {
   label: string
@@ -397,7 +396,7 @@ export type TJIIXV2RawContentShape = TJIIXV2RawContentBase<"Shape"> & {
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2RawContentItemShape = TJIIXV2RawContentBase<"Shape"> & {
   range: TJIIXV2RangeItem[]
@@ -405,19 +404,19 @@ export type TJIIXV2RawContentItemShape = TJIIXV2RawContentBase<"Shape"> & {
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2RawContentElement = TJIIXV2RawContentItemText | TJIIXV2RawContentItemShape
 
 /**
- * @group Exports
+ * @group Client/Export
  * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/web/JIIXV2 | Exports}
  */
 export type TJIIXV2Element =
   TJIIXV2TextElement | TJIIXV2ShapeElement | TJIIXV2MathElement | TJIIXV2DrawingElement | TJIIXV2RawContentElement
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXV2Export = TJIIXV2Base & {
   type: string
@@ -429,7 +428,7 @@ export type TJIIXV2Export = TJIIXV2Base & {
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  * @remarks
  * List all supported MIME types for export.
  *
