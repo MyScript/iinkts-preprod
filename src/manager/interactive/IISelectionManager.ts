@@ -10,18 +10,10 @@ import { PointerEventGrabber } from "@/grabber"
 import { LoggerCategory } from "@/logger"
 import { SVGBuilder } from "@/renderer"
 import type { TDecorator, TEdge, TEdgeArc, TStroke, TSymbol } from "@/symbol"
-import {
-  EdgeKind,
-  EdgeLineOps,
-  EdgePolyLineOps,
-  isDecorator,
-  isRecognizedMath,
-  isStroke,
-  StrokeOps,
-  SymbolType,
-} from "@/symbol"
+import { EdgeKind, isDecorator, isRecognizedMath, isStroke, StrokeOps, SymbolType } from "@/symbol"
 import { EdgeArcOps, reprojectArcMidpoint, stretchArcEndpoint } from "@/symbol/edge/Arc"
 import { EdgeOps } from "@/symbol/edge/Edge"
+import { EdgeUtil } from "@/symbol-utils/edge/EdgeUtil"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 
 import { IIAbstractManager } from "./IIAbstractManager"
@@ -638,22 +630,11 @@ export class IISelectionManager extends IIAbstractManager {
   }
 
   /**
-   * Path-based hit area for line/polyline edges — narrow stroke aligned with edge geometry,
-   * avoiding the AABB problem where diagonal edges have an oversized clickable rectangle.
+   * Path-based hit area for an edge — a narrow stroke following the edge's own geometry, rather
+   * than its bounding box, which on a diagonal edge would be a far larger clickable rectangle than
+   * the edge itself.
    */
   protected createEdgeTranslatePath(edge: TEdge): SVGPathElement {
-    let d: string
-    switch (edge.kind) {
-      case EdgeKind.Arc:
-        d = EdgeArcOps.getSVGPath(edge)
-        break
-      case EdgeKind.Line:
-        d = EdgeLineOps.getSVGPath(edge)
-        break
-      case EdgeKind.PolyEdge:
-        d = EdgePolyLineOps.getSVGPath(edge)
-        break
-    }
     const translateEl = SVGBuilder.createPath({
       role: SvgElementRole.Translate,
       style: "cursor:move",
@@ -661,7 +642,11 @@ export class IISelectionManager extends IIAbstractManager {
       stroke: "transparent",
       "stroke-width": "16",
       "stroke-linecap": "round",
-      d,
+      // The edge's own path, resolved by the kind table EdgeUtil has owned since IIC-2002. This
+      // used to be a fourth switch on kind, calling the same three Ops that table calls — and it
+      // assigned into a `let d: string` with no `default`, so a new edge kind would have left `d`
+      // unassigned.
+      d: EdgeUtil.getSVGPath(edge),
     })
     this.#bindPointerDrag(
       translateEl,
