@@ -9,9 +9,14 @@ import type { TText } from "@/symbol/text/Text"
  * `IITypesetManager` satisfies this structurally. It has to be a service at all because the work is
  * genuinely not geometry — measuring a typeset symbol means drawing it into the DOM hidden and
  * reading `getBBox()`, so it needs a live renderer and the browser's layout engine.
+ *
+ * `setBounds` and not `updateBounds`, which measures *and* commits. Committing from here was
+ * IIC-1999: `SymbolStore.update` deep-freezes what it stores, so the draft came back frozen and the
+ * transform manager's own `commitSymbol` then threw stamping `modificationDate` on it. A util
+ * transforms a draft; committing it is the caller's business, and the caller already does it.
  */
 export type TTypesetPort = {
-  updateBounds<S extends TText | TMath>(symbol: S): S
+  setBounds(symbol: TText | TMath): void
 }
 
 /**

@@ -41,17 +41,17 @@ export class TextUtil extends TypesetUtil<TText> {
 
   translate(text: TText, { matrix, typeset }: TTranslateContext): void {
     this.moveAnchor(text, matrix)
-    typeset.updateBounds(text)
+    typeset.setBounds(text)
   }
 
   /**
    * Records the turn, then re-measures. Math deliberately does not — an asymmetry inherited from
-   * `IIRotationManager`, which called `typeset.updateBounds` for text and returned math untouched.
+   * `IIRotationManager`, which re-measured text after a turn and returned math untouched.
    * It is an override here so that the difference is a line of code rather than a missing one.
    */
   rotate(text: TText, context: TRotateContext): void {
     super.rotate(text, context)
-    context.typeset.updateBounds(text)
+    context.typeset.setBounds(text)
   }
 
   getSVGElement(text: TText): SVGGraphicsElement {

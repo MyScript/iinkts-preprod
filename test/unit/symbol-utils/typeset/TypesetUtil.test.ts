@@ -28,7 +28,7 @@ describe("TypesetUtil", () => {
   const context = (matrix: MatrixTransform): TRotateContext => ({
     matrix,
     center: { x: 0, y: 0 },
-    typeset: { updateBounds: <S extends TText | TMath>(symbol: S) => symbol },
+    typeset: { setBounds: () => {} },
   })
 
   test("both built-in typeset utils should share the base", () => {
@@ -66,9 +66,8 @@ describe("TypesetUtil", () => {
       // happens to lack. Inherited from IIRotationManager and preserved deliberately.
       const measured: string[] = []
       const typeset = {
-        updateBounds: <S extends TText | TMath>(symbol: S) => {
+        setBounds: (symbol: TText | TMath) => {
           measured.push(symbol.type)
-          return symbol
         },
       }
       text.rotate(buildIIText({ point: { x: 0, y: 0 } }), { ...context(quarterTurn()), typeset })
