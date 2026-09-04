@@ -13,6 +13,15 @@ Symbols are frozen when committed and handed to readers directly, instead of the
 - fixed: `changeOrderSymbol` was a no-op; partially erasing characters was never stored; undo/redo replay rewrote the history entry it was replaying; edge-connection anchors were silently dropped behind a swallowed throw
 - see [MIGRATION.md](./MIGRATION.md)
 
+### A symbol scales itself
+`SymbolUtil.resize` is a new required member, completing the three.
+- `SymbolUtil.resize(symbol, context)` is abstract; a custom util that omits it no longer compiles
+- new: `TResizeContext` (`{ matrix, origin }`). `origin` was gesture state on the manager (`transformOrigin!: TPoint`); the ellipse and the arc need it because they scale their centre about it by hand
+- **no `typeset` port**, unlike translate and rotate: resizing a typeset symbol rebuilds its bounds from the scale factors instead of re-measuring it in the DOM. Inherited from `IIResizeManager` and preserved
+- `IIResizeManager.applyOnTypeset` handled text and math together and branched on `isText(symbol)` twice — once for the font list, once for the derive. Splitting it across the two utils removes both type tests
+- all three transform managers word an unknown kind the same way again: `Unable to resize shape, kind: "x" is unknown`
+- see [MIGRATION.md](./MIGRATION.md)
+
 ### A symbol turns itself
 `SymbolUtil.rotate` is a new required member, the counterpart of `translate`.
 - `SymbolUtil.rotate(symbol, context)` is abstract; a custom util that omits it no longer compiles

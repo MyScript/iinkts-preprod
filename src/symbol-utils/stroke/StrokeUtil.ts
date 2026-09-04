@@ -8,7 +8,7 @@ import { SymbolType } from "@/symbol/Symbol"
 
 import { SVGBuilder } from "../SVGBuilder"
 import { SymbolUtil } from "../SymbolUtil"
-import type { TRotateContext, TTranslateContext } from "../TransformContext"
+import type { TResizeContext, TRotateContext, TTranslateContext } from "../TransformContext"
 
 /**
  * @group SymbolUtils
@@ -47,6 +47,10 @@ export class StrokeUtil extends SymbolUtil<TStroke> {
   }
 
   rotate(stroke: TStroke, { matrix }: TRotateContext): void {
+    this.#applyMatrix(stroke, matrix)
+  }
+
+  resize(stroke: TStroke, { matrix }: TResizeContext): void {
     this.#applyMatrix(stroke, matrix)
   }
 

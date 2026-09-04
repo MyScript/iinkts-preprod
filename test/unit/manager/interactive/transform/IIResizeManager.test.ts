@@ -1,5 +1,5 @@
 import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
-import { buildIIStroke, expectPointsRounded, expectDerivedFieldsSettled } from "../../../helpers"
+import { buildIIMath, buildIIStroke, expectDerivedFieldsSettled, expectPointsRounded } from "../../../helpers"
 import {
   EdgeArcOps,
   EdgeLineOps,
@@ -77,8 +77,10 @@ describe("IIResizeManager.ts", () => {
       poly.kind = "pouet"
       const origin: TPoint = { x: 0, y: 0 }
       const matrix = MatrixTransform.identity().scale(2, 3, origin)
+      // IIC-2013 moved the refusal to the shape util's kind table. With rotate and translate
+      // already moved, all three transform managers word it the same way again.
       expect(() => manager.applyToSymbol(poly, matrix)).toThrow(
-        expect.objectContaining({ message: expect.stringContaining("Can't apply resize on shape, kind unknown:") })
+        'Unable to resize shape, kind: "pouet" is unknown'
       )
     })
     test("should resize shape Circle", () => {
@@ -140,7 +142,7 @@ describe("IIResizeManager.ts", () => {
       const origin: TPoint = { x: 0, y: 0 }
       const matrix = MatrixTransform.identity().scale(2, 3, origin)
       expect(() => manager.applyToSymbol(edge, matrix)).toThrow(
-        expect.objectContaining({ message: expect.stringContaining("Can't apply resize on edge, kind unknown:") })
+        'Unable to resize edge, kind: "pouet" is unknown'
       )
     })
     test("should resize edge Arc", () => {
@@ -671,5 +673,49 @@ describe("IIResizeManager.ts", () => {
       manager.applyToSymbol(symbol, MatrixTransform.identity().scale(1 / 3, 1 / 3, { x: 1 / 3, y: 1 / 3 }))
       expectPointsRounded(stored(symbol))
     })
+  })
+})
+
+/**
+ * Two resize cells that nothing covered: gutting either left this whole file green. IIC-2013 moved
+ * them onto the utils, so they are pinned here.
+ */
+describe("IIResizeManager, the two uncovered resize cells", () => {
+  const resize = (symbol: TSymbol, matrix: MatrixTransform, origin: TPoint) => {
+    const canvas = createCanvasMock()
+    const manager = new IIResizeManager(asCanvas(canvas))
+    manager.transformOrigin = origin
+    manager.applyToSymbol(symbol, matrix)
+  }
+
+  test("mirroring an arc should re-base its start angle and reverse its sweep", () => {
+    // A negative x scale flips the arc. Its start angle is measured from the other side afterwards,
+    // and it sweeps the other way — drop either and the arc resizes into a different curve.
+    const arc = EdgeArcOps.create({ x: 50, y: 50 }, 0.5, 1.5, 30, 20, 0)
+    const origin: TPoint = { x: 0, y: 0 }
+    resize(arc, MatrixTransform.identity().scale(-1, 1, origin), origin)
+    expect(arc.startAngle).toBeCloseTo(+(Math.PI - 0.5).toFixed(3), 6)
+    expect(arc.sweepAngle).toBeCloseTo(-1.5, 6)
+  })
+
+  test("mirroring an arc vertically should only reverse the sweep", () => {
+    const arc = EdgeArcOps.create({ x: 50, y: 50 }, 0.5, 1.5, 30, 20, 0)
+    const origin: TPoint = { x: 0, y: 0 }
+    resize(arc, MatrixTransform.identity().scale(1, -1, origin), origin)
+    expect(arc.startAngle).toBeCloseTo(0.5, 6)
+    expect(arc.sweepAngle).toBeCloseTo(-1.5, 6)
+  })
+
+  test("resizing math should scale its element font sizes", () => {
+    // Text's font scaling was covered; math's was not, even though the two shared one method.
+    const math = buildIIMath()
+    const before = math.elements.map((element) => element.fontSize)
+    expect(before.length).toBeGreaterThan(0)
+    const origin: TPoint = { x: 0, y: 0 }
+    resize(math, MatrixTransform.identity().scale(2, 4, origin), origin)
+    // The mean of the two axes, which is what a typeset symbol scales its glyphs by.
+    expect(math.elements.map((element) => element.fontSize)).toEqual(
+      before.map((size) => +(size * 3).toFixed(3))
+    )
   })
 })

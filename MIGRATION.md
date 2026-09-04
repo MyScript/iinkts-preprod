@@ -189,6 +189,28 @@ stroke width.
 left out rather than padded, because the server pairs pointers by index across the arrays and a short
 column would attach the wrong values to the wrong points.
 
+### A custom `SymbolUtil` must implement `resize`
+
+```diff
+  class StickyNoteUtil extends SymbolUtil<TStickyNote> {
+    ...
+    rotate(symbol, { matrix }) { ... }
++   resize(symbol, { matrix }) {
++     symbol.point = applyMatrixToPoint(symbol.point, matrix)
++   }
+  }
+```
+
+As with `rotate`, point it at the same code as `translate` if pushing your geometry through the
+matrix is the whole of it — the polygon, the polyedge and the line all do. Write it separately only
+if your symbol stores a size of its own: the circle scales its radius, the ellipse and the arc scale
+their radii about `origin` along their own axes, and text and math scale their font sizes.
+
+The context carries `matrix` and `origin`, the fixed point of the scale — the corner opposite the
+handle being dragged. There is no `typeset` port here, unlike translate and rotate: resizing a
+typeset symbol rebuilds its bounds arithmetically from the scale factors rather than re-measuring
+it, so no service is needed.
+
 ### A custom `SymbolUtil` must implement `rotate`
 
 ```diff
