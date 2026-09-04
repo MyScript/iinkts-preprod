@@ -1,5 +1,6 @@
 import type { TBox } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
+import { applyMatrixToPoint, applyMatrixToPoints } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import { DecoratorKind } from "@/symbol/decorator/Decorator"
 import { MathOps, type TMath } from "@/symbol/math/Math"
@@ -8,6 +9,7 @@ import { SymbolType } from "@/symbol/Symbol"
 import { DecoratorUtil } from "../decorator/DecoratorUtil"
 import { SVGBuilder } from "../SVGBuilder"
 import { SymbolUtil } from "../SymbolUtil"
+import type { TTranslateContext } from "../TransformContext"
 
 const noSelection =
   "pointer-events: none; -webkit-touch-callout: none; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;"
@@ -32,6 +34,21 @@ export class MathUtil extends SymbolUtil<TMath> {
 
   getSnapPoints(math: TMath): TPoint[] {
     return math.snapPoints
+  }
+
+  translate(math: TMath, { matrix, typeset }: TTranslateContext): void {
+    if (math.rotation) {
+      math.rotation.center = applyMatrixToPoint(math.rotation.center, matrix)
+    }
+    applyMatrixToPoints([math.point], matrix)
+    applyMatrixToPoints([math.bounds.center], matrix)
+    math.elements.forEach((element) => {
+      const moved = applyMatrixToPoint({ x: element.bounds.x, y: element.bounds.y }, matrix)
+      element.bounds.x = moved.x
+      element.bounds.y = moved.y
+    })
+    // Not geometry: bounds come from drawing the math hidden and measuring it, so a service does it.
+    typeset.updateBounds(math)
   }
 
   getSVGElement(math: TMath): SVGGraphicsElement {

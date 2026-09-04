@@ -1,5 +1,6 @@
 import type { TBox } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
+import { applyMatrixToPoints } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import { DefaultStyle } from "@/style"
 import { StrokeOps, type TStroke } from "@/symbol/stroke/Stroke"
@@ -7,6 +8,7 @@ import { SymbolType } from "@/symbol/Symbol"
 
 import { SVGBuilder } from "../SVGBuilder"
 import { SymbolUtil } from "../SymbolUtil"
+import type { TTranslateContext } from "../TransformContext"
 
 /**
  * @group SymbolUtils
@@ -28,6 +30,11 @@ export class StrokeUtil extends SymbolUtil<TStroke> {
 
   getSnapPoints(stroke: TStroke): TPoint[] {
     return stroke.snapPoints
+  }
+
+  translate(stroke: TStroke, { matrix }: TTranslateContext): void {
+    applyMatrixToPoints(stroke.pointers, matrix)
+    StrokeOps.updateBounds(stroke)
   }
 
   getSVGElement(stroke: TStroke): SVGGraphicsElement {

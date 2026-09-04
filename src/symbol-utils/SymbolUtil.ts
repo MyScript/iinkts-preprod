@@ -2,6 +2,8 @@ import type { TBox } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import type { TBaseSymbol, TResizePoint } from "@/symbol/Symbol"
+
+import type { TTranslateContext } from "./TransformContext"
 /**
  * @group SymbolUtils
  * @summary Plugin interface for registering symbol behaviour.
@@ -18,6 +20,7 @@ import type { TBaseSymbol, TResizePoint } from "@/symbol/Symbol"
  *   create(partial) { ... }
  *   updateDerivedFields(s) { ... }
  *   overlaps(s, box) { ... }
+ *   translate(s, { matrix }) { ... }
  *   getSVGElement(s) { ... }
  * }
  * symbolRegistry.register(new StickyNoteUtil())
@@ -30,6 +33,15 @@ export abstract class SymbolUtil<T extends TBaseSymbol> {
   abstract updateDerivedFields(symbol: T): void
 
   abstract overlaps(symbol: T, box: TBox): boolean
+
+  /**
+   * Moves this symbol by a matrix, leaving it derived-consistent.
+   *
+   * Abstract for the reason {@link getSVGElement} is: a symbol that cannot say how it moves is a
+   * symbol the canvas cannot move, and a silent no-op default would pin a custom symbol in place
+   * with nothing reporting it. `DecoratorUtil` implements it as a deliberate no-op.
+   */
+  abstract translate(symbol: T, context: TTranslateContext): void
 
   getSnapPoints(_symbol: T): TPoint[] {
     return []

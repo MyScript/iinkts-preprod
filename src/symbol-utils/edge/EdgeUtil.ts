@@ -1,6 +1,7 @@
 import { EdgeDecoration } from "@/Constants"
 import type { TBox } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
+import { applyMatrixToPoint } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import { DefaultStyle } from "@/style"
 import { EdgeArcOps, type TEdgeArc } from "@/symbol/edge/Arc"
@@ -10,9 +11,10 @@ import { EdgeLineOps, type TEdgeLine } from "@/symbol/edge/Line"
 import { EdgePolyLineOps, type TEdgePolyLine } from "@/symbol/edge/PolyLine"
 import { SymbolType, type TResizePoint } from "@/symbol/Symbol"
 
-import { defineKind, resolveKind, type TKindDefinition } from "../KindDefinition"
+import { defineKind, resolveKind, type TKindDefinition, translateByCentre, translateByPoints } from "../KindDefinition"
 import { SVGBuilder } from "../SVGBuilder"
 import { SymbolUtil } from "../SymbolUtil"
+import type { TTranslateContext } from "../TransformContext"
 import { arrowHeadEndMarkerId, arrowHeadStartMarkerId } from "./EdgeRenderOptions"
 
 /**
@@ -26,6 +28,7 @@ const EDGE_KINDS: Partial<Record<EdgeKind, TKindDefinition<TEdge>>> = {
     overlaps: (edge, box) => EdgeArcOps.overlaps(edge, box),
     getSVGPath: (edge) => EdgeArcOps.getSVGPath(edge),
     getResizePoints: (edge) => EdgeArcOps.getResizePoints(edge),
+    translate: translateByCentre,
   }),
   [EdgeKind.Line]: defineKind<TEdge, TEdgeLine>({
     create: (partial) => EdgeLineOps.createFromPartial(partial),
@@ -33,6 +36,10 @@ const EDGE_KINDS: Partial<Record<EdgeKind, TKindDefinition<TEdge>>> = {
     overlaps: (edge, box) => EdgeLineOps.overlaps(edge, box),
     getSVGPath: (edge) => EdgeLineOps.getSVGPath(edge),
     getResizePoints: (edge) => EdgeLineOps.getResizePoints(edge),
+    translate: (edge, matrix) => {
+      edge.start = applyMatrixToPoint(edge.start, matrix)
+      edge.end = applyMatrixToPoint(edge.end, matrix)
+    },
   }),
   [EdgeKind.PolyEdge]: defineKind<TEdge, TEdgePolyLine>({
     create: (partial) => EdgePolyLineOps.createFromPartial(partial),
@@ -40,6 +47,7 @@ const EDGE_KINDS: Partial<Record<EdgeKind, TKindDefinition<TEdge>>> = {
     overlaps: (edge, box) => EdgePolyLineOps.overlaps(edge, box),
     getSVGPath: (edge) => EdgePolyLineOps.getSVGPath(edge),
     getResizePoints: (edge) => EdgePolyLineOps.getResizePoints(edge),
+    translate: translateByPoints,
   }),
 }
 
@@ -67,6 +75,11 @@ export class EdgeUtil extends SymbolUtil<TEdge> {
 
   getResizePoints(edge: TEdge): TResizePoint[] {
     return EDGE_KINDS[edge.kind]?.getResizePoints?.(edge) ?? []
+  }
+
+  translate(edge: TEdge, { matrix }: TTranslateContext): void {
+    resolveKind(EDGE_KINDS, edge.kind, "edge", "translate").translate(edge, matrix)
+    this.updateDerivedFields(edge)
   }
 
   static getSVGPath(edge: TEdge): string {

@@ -1,5 +1,6 @@
 import type { TBox } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
+import { applyMatrixToPoint, applyMatrixToPoints } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import { DecoratorKind } from "@/symbol/decorator/Decorator"
 import { SymbolType } from "@/symbol/Symbol"
@@ -8,6 +9,7 @@ import { TextOps, type TText } from "@/symbol/text/Text"
 import { DecoratorUtil } from "../decorator/DecoratorUtil"
 import { SVGBuilder } from "../SVGBuilder"
 import { SymbolUtil } from "../SymbolUtil"
+import type { TTranslateContext } from "../TransformContext"
 
 const noSelection =
   "pointer-events: none; -webkit-touch-callout: none; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;"
@@ -32,6 +34,15 @@ export class TextUtil extends SymbolUtil<TText> {
 
   getSnapPoints(text: TText): TPoint[] {
     return text.snapPoints
+  }
+
+  translate(text: TText, { matrix, typeset }: TTranslateContext): void {
+    if (text.rotation) {
+      text.rotation.center = applyMatrixToPoint(text.rotation.center, matrix)
+    }
+    applyMatrixToPoints([text.point], matrix)
+    // Not geometry: bounds come from drawing the text hidden and measuring it, so a service does it.
+    typeset.updateBounds(text)
   }
 
   getSVGElement(text: TText): SVGGraphicsElement {

@@ -133,6 +133,15 @@ export class DecoratorUtil extends SymbolUtil<TDecorator> {
     return DecoratorOps.overlaps(decorator, box)
   }
 
+  /**
+   * Deliberately nothing. A standalone decorator's bounds are recomputed from the symbols it
+   * decorates, which the transform manager does after moving them — moving the decorator itself
+   * would double the displacement. `IIAbstractTransformManager.applyToSymbol` still returns early
+   * for decorators, so nothing calls this yet; it becomes the live path when IIC-2014 removes that
+   * early return, and stating the exception here is what keeps it from being lost.
+   */
+  translate(): void {}
+
   getSnapPoints(decorator: TDecorator): TPoint[] {
     return decorator.snapPoints
   }
