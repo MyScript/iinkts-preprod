@@ -34,15 +34,17 @@ describe("IIResizeManager.ts", () => {
   describe("applyToSymbol", () => {
     const canvas = createCanvasMock()
     const manager = new IIResizeManager(asCanvas(canvas))
-    test("should not resize symbol with type unknown", () => {
+    test("should not resize a symbol whose type no util owns", () => {
       const stroke = buildIIStroke()
       //@ts-ignore
       stroke.type = "pouet"
       const origin: TPoint = { x: 0, y: 0 }
       const matrix = MatrixTransform.identity().scale(2, 3, origin)
-      expect(() => manager.applyToSymbol(stroke, matrix)).toThrow(
-        expect.objectContaining({ message: expect.stringContaining("Can't apply resize on symbol, type unknown:") })
-      )
+      // IIC-2014 deleted the manager's `switch (symbol.type)` and its throwing default. The refusal
+      // did not disappear — it comes from the registry now, and says what *is* registered, which
+      // distinguishes a typo from a missing `registerBuiltinSymbolUtils()`.
+      expect(() => manager.applyToSymbol(stroke, matrix)).toThrow('No util is registered for type "pouet"')
+      expect(() => manager.applyToSymbol(stroke, matrix)).toThrow(/Registered types: .*stroke/)
     })
     test("should resize stroke", () => {
       const stroke = StrokeOps.create()
