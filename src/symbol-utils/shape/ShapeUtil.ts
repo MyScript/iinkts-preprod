@@ -40,6 +40,7 @@ const SHAPE_KINDS: Partial<Record<ShapeKind, TKindDefinition<TShape>>> = {
     getSVGPath: (shape) => ShapeCircleOps.getSVGPath(shape),
     // A circle has no orientation of its own, so turning it is moving its centre.
     translate: moveByCentre,
+    keepsAspectRatio: true,
     rotate: moveByCentre,
     // A circle scales to a circle: one radius, from the mean of the two scale factors.
     resize: (shape, matrix) => {
@@ -105,6 +106,10 @@ export class ShapeUtil extends SymbolUtil<TShape> {
 
   getSnapPoints(shape: TShape): TPoint[] {
     return shape.snapPoints
+  }
+
+  keepsAspectRatio(shape: TShape): boolean {
+    return SHAPE_KINDS[shape.kind]?.keepsAspectRatio ?? false
   }
 
   translate(shape: TShape, { matrix }: TTranslateContext): void {

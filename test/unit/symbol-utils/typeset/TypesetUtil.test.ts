@@ -113,4 +113,14 @@ describe("TypesetUtil", () => {
       expectBoundsRebuilt(symbol, () => math.resize(symbol, { matrix: scale(), origin: { x: 0, y: 0 } }))
     })
   })
+
+  describe("aspect ratio", () => {
+    test.each([["text"], ["math"]])("%s should always lock it", (name) => {
+      // A typeset symbol is drawn from glyphs at a font size, and a font size is one number:
+      // scaling the axes unequally would ask for glyphs that do not exist.
+      const util = name === "text" ? text : math
+      const symbol = name === "text" ? buildIIText() : buildIIMath()
+      expect(util.keepsAspectRatio(symbol as never)).toBe(true)
+    })
+  })
 })

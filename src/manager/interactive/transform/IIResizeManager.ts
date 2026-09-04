@@ -4,8 +4,7 @@ import type { TBox, TPoint } from "@/core/geometry"
 import { BoxOps, MatrixTransform, type TOBB } from "@/core/geometry"
 import type { TIIHistoryChanges } from "@/history"
 import type { TSymbol } from "@/symbol"
-import { cloneSymbol, isMath, isText } from "@/symbol"
-import { ShapeOps } from "@/symbol/shape/Shape"
+import { cloneSymbol } from "@/symbol"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 
 import { IIAbstractTransformManager } from "./AbstractTransformManager"
@@ -63,9 +62,10 @@ export class IIResizeManager extends IIAbstractTransformManager {
     this.interactElementsGroup = this.resolveInteractGroup(target)
     this.direction = target.getAttribute("resize-direction") as ResizeDirection
 
-    this.keepRatio = this.model.symbolsSelected.some(
-      (s) => isText(s) || isMath(s) || (ShapeOps.isShape(s) && ShapeOps.isCircleShape(s))
-    )
+    // One symbol that needs its ratio locked locks it for the whole selection, which is what the
+    // three type tests here used to say. Asked of each symbol's util now, so a custom symbol can
+    // require it too.
+    this.keepRatio = this.model.symbolsSelected.some((s) => symbolRegistry.getUtilFor(s).keepsAspectRatio(s))
 
     this.transformOrigin = origin
     this.boundingBox = BoxOps.createFromPoints(this.model.symbolsSelected.flatMap((s) => s.vertices))
