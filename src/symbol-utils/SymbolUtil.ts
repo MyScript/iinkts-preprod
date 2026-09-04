@@ -3,7 +3,7 @@ import type { TPoint } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import type { TBaseSymbol, TResizePoint } from "@/symbol/Symbol"
 
-import type { TTranslateContext } from "./TransformContext"
+import type { TRotateContext, TTranslateContext } from "./TransformContext"
 /**
  * @group SymbolUtils
  * @summary Plugin interface for registering symbol behaviour.
@@ -21,6 +21,7 @@ import type { TTranslateContext } from "./TransformContext"
  *   updateDerivedFields(s) { ... }
  *   overlaps(s, box) { ... }
  *   translate(s, { matrix }) { ... }
+ *   rotate(s, { matrix }) { ... }
  *   getSVGElement(s) { ... }
  * }
  * symbolRegistry.register(new StickyNoteUtil())
@@ -42,6 +43,12 @@ export abstract class SymbolUtil<T extends TBaseSymbol> {
    * with nothing reporting it. `DecoratorUtil` implements it as a deliberate no-op.
    */
   abstract translate(symbol: T, context: TTranslateContext): void
+
+  /**
+   * Turns this symbol, leaving it derived-consistent. Required for the same reason
+   * {@link translate} is.
+   */
+  abstract rotate(symbol: T, context: TRotateContext): void
 
   getSnapPoints(_symbol: T): TPoint[] {
     return []

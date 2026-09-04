@@ -1,4 +1,4 @@
-import type { TBaseSymbol, TBox, TPartialDeep, TPoint, TTranslateContext } from "@/iink"
+import type { TBaseSymbol, TBox, TPartialDeep, TPoint, TRotateContext, TTranslateContext } from "@/iink"
 import { applyMatrixToPoint } from "@/iink"
 import { registerBuiltinSymbolUtils, symbolRegistry, SymbolType, SymbolUtil } from "@/iink"
 
@@ -16,6 +16,9 @@ class StickyNoteUtil extends SymbolUtil<TStickyNote> {
   }
   updateDerivedFields(): void {}
   translate(symbol: TStickyNote, { matrix }: TTranslateContext): void {
+    symbol.point = applyMatrixToPoint(symbol.point, matrix)
+  }
+  rotate(symbol: TStickyNote, { matrix }: TRotateContext): void {
     symbol.point = applyMatrixToPoint(symbol.point, matrix)
   }
   overlaps(_symbol: TStickyNote, _box: TBox): boolean {

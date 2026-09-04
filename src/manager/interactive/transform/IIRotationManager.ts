@@ -1,18 +1,10 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import type { TPoint } from "@/core/geometry"
-import {
-  applyMatrixToPoint,
-  applyMatrixToPoints,
-  BoxOps,
-  computeAngleRadian,
-  MatrixTransform,
-  type TOBB,
-} from "@/core/geometry"
+import { BoxOps, computeAngleRadian, MatrixTransform, type TOBB } from "@/core/geometry"
 import { convertDegreeToRadian, convertRadianToDegree, TWO_PI } from "@/core/math"
 import type { TIIHistoryChanges } from "@/history"
-import type { TEdge, TMath, TShape, TStroke, TText } from "@/symbol"
-import { cloneSymbol, EdgeKind, ShapeKind } from "@/symbol"
-import { StrokeOps } from "@/symbol/stroke/Stroke"
+import type { TEdge, TMath, TShape, TStroke, TSymbol, TText } from "@/symbol"
+import { cloneSymbol } from "@/symbol"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 
 import { IIAbstractTransformManager } from "./AbstractTransformManager"
@@ -30,75 +22,38 @@ export class IIRotationManager extends IIAbstractTransformManager {
     super(canvas)
   }
 
+  /**
+   * Five one-liners, for the reason `IITranslateManager`'s are: the behaviour lives on each
+   * symbol's util now, and these survive only while `IIAbstractTransformManager` still declares
+   * them abstract. IIC-2014 removes both.
+   *
+   * `center` was gesture state read straight off `this`, declared `center!: TPoint` and undefined
+   * until a gesture started. Passing it in retires that definite-assignment assertion for the
+   * behaviour that needed it.
+   */
+  #throughUtil<T extends TSymbol>(symbol: T, matrix: MatrixTransform): T {
+    symbolRegistry.getUtilFor(symbol).rotate(symbol, { matrix, center: this.center, typeset: this.canvas.typeset })
+    return symbol
+  }
+
   protected applyToStroke(stroke: TStroke, matrix: MatrixTransform): TStroke {
-    applyMatrixToPoints(stroke.pointers, matrix)
-    StrokeOps.updateBounds(stroke)
-    return stroke
+    return this.#throughUtil(stroke, matrix)
   }
 
   protected applyToShape(shape: TShape, matrix: MatrixTransform): TShape {
-    switch (shape.kind) {
-      case ShapeKind.Ellipse: {
-        shape.center = applyMatrixToPoint(shape.center, matrix)
-        shape.orientation = (shape.orientation + MatrixTransform.rotation(matrix)) % TWO_PI
-        break
-      }
-      case ShapeKind.Circle: {
-        shape.center = applyMatrixToPoint(shape.center, matrix)
-        break
-      }
-      case ShapeKind.Polygon: {
-        applyMatrixToPoints(shape.points, matrix)
-        break
-      }
-      default:
-        throw new Error(`Can't apply rotate on shape, kind unknown: ${JSON.stringify(shape)}`)
-    }
-    // One derive for every kind, asked of the symbol's own util. Each branch above used to
-    // call the family's derive dispatcher, which then re-dispatched on the same kind.
-    symbolRegistry.getUtilFor(shape).updateDerivedFields(shape)
-    return shape
+    return this.#throughUtil(shape, matrix)
   }
 
   protected applyToEdge(edge: TEdge, matrix: MatrixTransform): TEdge {
-    switch (edge.kind) {
-      case EdgeKind.Arc: {
-        edge.phi = (edge.phi - MatrixTransform.rotation(matrix)) % TWO_PI
-        edge.center = applyMatrixToPoint(edge.center, matrix)
-        break
-      }
-      case EdgeKind.Line: {
-        edge.start = applyMatrixToPoint(edge.start, matrix)
-        edge.end = applyMatrixToPoint(edge.end, matrix)
-        break
-      }
-      case EdgeKind.PolyEdge: {
-        applyMatrixToPoints(edge.points, matrix)
-        break
-      }
-      default:
-        throw new Error(`Can't apply rotate on edge, kind unknown: ${JSON.stringify(edge)}`)
-    }
-    // One derive for every kind, asked of the symbol's own util. Each branch above used to
-    // call the family's derive dispatcher, which then re-dispatched on the same kind.
-    symbolRegistry.getUtilFor(edge).updateDerivedFields(edge)
-    return edge
+    return this.#throughUtil(edge, matrix)
   }
 
   protected applyOnText(text: TText, matrix: MatrixTransform): TText {
-    text.rotation = {
-      degree: convertRadianToDegree(MatrixTransform.rotation(matrix)) + (text.rotation?.degree || 0),
-      center: this.center,
-    }
-    return this.canvas.typeset.updateBounds(text)
+    return this.#throughUtil(text, matrix)
   }
 
   protected applyOnMath(math: TMath, matrix: MatrixTransform): TMath {
-    math.rotation = {
-      degree: convertRadianToDegree(MatrixTransform.rotation(matrix)) + (math.rotation?.degree || 0),
-      center: this.center,
-    }
-    return math
+    return this.#throughUtil(math, matrix)
   }
 
   rotateElement(id: string, degree: number): void {
