@@ -13,6 +13,13 @@ Symbols are frozen when committed and handed to readers directly, instead of the
 - fixed: `changeOrderSymbol` was a no-op; partially erasing characters was never stored; undo/redo replay rewrote the history entry it was replaying; edge-connection anchors were silently dropped behind a swallowed throw
 - see [MIGRATION.md](./MIGRATION.md)
 
+### A symbol offers its own resize handles
+`EdgeOps.getEdgeResizePoints` is gone. It was an `if/else` over the three edge kinds with a single caller, reaching the very functions the edge util's kind table already reaches.
+- removed: `EdgeOps.getEdgeResizePoints(edge)` → use `symbolRegistry.getUtilFor(symbol).getResizePoints(symbol)`, which answers for any symbol type including your own
+- new: `SymbolUtil.getResizePoints(symbol)`, empty by default — most symbols resize by their bounding box alone, and only the edge kinds offer per-vertex handles
+- new: `TResizePoint`, the `{ point, vertexIndex }` shape that was written out inline in four places. Structural, so existing code needs no change
+- see [MIGRATION.md](./MIGRATION.md)
+
 ### A custom symbol has to be able to draw itself
 `SymbolUtil.getSVGElement` was optional, so a custom util could register successfully and then render nothing at all, with no error anywhere. It is now a required member.
 - `SymbolUtil.getSVGElement(symbol)` is abstract. A custom util that omits it no longer compiles; return `undefined` for a state you deliberately do not draw

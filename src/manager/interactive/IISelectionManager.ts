@@ -619,11 +619,14 @@ export class IISelectionManager extends IIAbstractManager {
         group.appendChild(pointEl)
       })
     } else {
-      EdgeOps.getEdgeResizePoints(edge).forEach(({ point, vertexIndex }) => {
-        const pointEl = SVGBuilder.createCircle(point, radius, attrs)
-        bindEl(pointEl, vertexIndex)
-        group.appendChild(pointEl)
-      })
+      symbolRegistry
+        .getUtilFor(edge)
+        .getResizePoints(edge)
+        .forEach(({ point, vertexIndex }) => {
+          const pointEl = SVGBuilder.createCircle(point, radius, attrs)
+          bindEl(pointEl, vertexIndex)
+          group.appendChild(pointEl)
+        })
     }
 
     return group

@@ -1,5 +1,6 @@
 import type { TBox } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
+import type { TResizePoint } from "@/symbol/Symbol"
 
 /**
  * Everything a family util needs to know about one kind within its family.
@@ -21,6 +22,11 @@ export type TKindDefinition<T> = {
    * replaces an `if (symbol.kind === …)` sitting inside a family's shared `getSVGElement`.
    */
   extraPathAttributes?(symbol: T): Record<string, string>
+  /**
+   * Handles for vertex-level resizing. Optional in the same way: edge kinds offer them, shape kinds
+   * do not, and a family util reports an empty list for a kind that leaves this out.
+   */
+  getResizePoints?(symbol: T): TResizePoint[]
 }
 
 /**
