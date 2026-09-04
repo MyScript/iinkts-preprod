@@ -1,7 +1,7 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import { SvgElementRole } from "@/Constants"
-import type { MatrixTransform, TPoint } from "@/core/geometry"
-import { OBBOps } from "@/core/geometry"
+import type { MatrixTransform } from "@/core/geometry"
+import { applyMatrixToPoint, OBBOps } from "@/core/geometry"
 import { LoggerCategory } from "@/logger"
 import type { TEdge, TMath, TShape, TStroke, TSymbol, TText } from "@/symbol"
 import { isDecorator, isStroke, SymbolType } from "@/symbol"
@@ -19,14 +19,6 @@ export abstract class IIAbstractTransformManager extends IIAbstractManager {
 
   constructor(canvas: TInteractiveInkCanvas) {
     super(canvas, LoggerCategory.TRANSFORMER)
-  }
-
-  protected applyMatrixToPoints(points: TPoint[], matrix: MatrixTransform): void {
-    points.forEach((p) => {
-      const np = matrix.applyToPoint(p)
-      p.x = +np.x.toFixed(3)
-      p.y = +np.y.toFixed(3)
-    })
   }
 
   setTransformOrigin(id: string, originX: number, originY: number): void {
@@ -87,7 +79,7 @@ export abstract class IIAbstractTransformManager extends IIAbstractManager {
       // baseline is an absolute y-coordinate (used by Underline/Strikethrough rendering
       // in place of bounds), so it must follow the same transform as the target symbols.
       if (draft.baseline !== undefined) {
-        draft.baseline = +matrix.applyToPoint({ x: 0, y: draft.baseline }).y.toFixed(3)
+        draft.baseline = applyMatrixToPoint({ x: 0, y: draft.baseline }, matrix).y
       }
       this.model.commitSymbol(draft)
       this.canvas.renderer.drawSymbol(draft)

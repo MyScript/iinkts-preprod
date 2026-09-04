@@ -1,7 +1,7 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import { ResizeDirection } from "@/Constants"
 import type { TBox, TPoint } from "@/core/geometry"
-import { BoxOps, MatrixTransform, type TOBB } from "@/core/geometry"
+import { applyMatrixToPoint, applyMatrixToPoints, BoxOps, MatrixTransform, type TOBB } from "@/core/geometry"
 import type { TIIHistoryChanges } from "@/history"
 import type { TEdge, TMath, TShape, TStroke, TText } from "@/symbol"
 import { cloneSymbol, EdgeKind, isMath, isText, ShapeKind } from "@/symbol"
@@ -42,7 +42,7 @@ export class IIResizeManager extends IIAbstractTransformManager {
 
   protected applyToStroke(stroke: TStroke, matrix: MatrixTransform): TStroke {
     this.logger.debug("applyToStroke", { stroke })
-    this.applyMatrixToPoints(stroke.pointers, matrix)
+    applyMatrixToPoints(stroke.pointers, matrix)
     StrokeOps.updateBounds(stroke)
     return stroke
   }
@@ -71,11 +71,11 @@ export class IIResizeManager extends IIAbstractTransformManager {
       }
       case ShapeKind.Circle: {
         shape.radius = +((shape.radius * (matrix.xx + matrix.yy)) / 2).toFixed(3)
-        shape.center = matrix.applyToPoint(shape.center)
+        shape.center = applyMatrixToPoint(shape.center, matrix)
         break
       }
       case ShapeKind.Polygon: {
-        this.applyMatrixToPoints(shape.points, matrix)
+        applyMatrixToPoints(shape.points, matrix)
         break
       }
       default:
@@ -116,11 +116,11 @@ export class IIResizeManager extends IIAbstractTransformManager {
         break
       }
       case EdgeKind.Line: {
-        this.applyMatrixToPoints([edge.start, edge.end], matrix)
+        applyMatrixToPoints([edge.start, edge.end], matrix)
         break
       }
       case EdgeKind.PolyEdge: {
-        this.applyMatrixToPoints(edge.points, matrix)
+        applyMatrixToPoints(edge.points, matrix)
         break
       }
       default:
@@ -133,21 +133,16 @@ export class IIResizeManager extends IIAbstractTransformManager {
   }
 
   private applyOnTypeset(symbol: TText | TMath, matrix: MatrixTransform): TText | TMath {
-    const np = matrix.applyToPoint(symbol.point)
-    symbol.point.x = +np.x.toFixed(3)
-    symbol.point.y = +np.y.toFixed(3)
+    applyMatrixToPoints([symbol.point], matrix)
     const scale = (matrix.xx + matrix.yy) / 2
     if (isText(symbol)) {
       symbol.chars.forEach((c) => (c.fontSize = +(c.fontSize * scale).toFixed(3)))
     } else {
       symbol.elements.forEach((e) => (e.fontSize = +(e.fontSize * scale).toFixed(3)))
     }
-    const newCenter = matrix.applyToPoint(symbol.bounds.center)
+    const newCenter = applyMatrixToPoint(symbol.bounds.center, matrix)
     symbol.bounds = {
-      center: {
-        x: +newCenter.x.toFixed(3),
-        y: +newCenter.y.toFixed(3),
-      },
+      center: newCenter,
       width: +(symbol.bounds.width * Math.abs(matrix.xx)).toFixed(3),
       height: +(symbol.bounds.height * Math.abs(matrix.yy)).toFixed(3),
       angle: 0,

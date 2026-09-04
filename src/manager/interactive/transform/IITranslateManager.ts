@@ -1,6 +1,6 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import type { TPoint } from "@/core/geometry"
-import { MatrixTransform, type TOBB } from "@/core/geometry"
+import { applyMatrixToPoint, applyMatrixToPoints, MatrixTransform, type TOBB } from "@/core/geometry"
 import type { TIIHistoryChanges } from "@/history"
 import type { TEdge, TMath, TShape, TStroke, TSymbol, TText } from "@/symbol"
 import { EdgeKind, ShapeKind } from "@/symbol"
@@ -22,7 +22,7 @@ export class IITranslateManager extends IIAbstractTransformManager {
   }
 
   protected applyToStroke(stroke: TStroke, matrix: MatrixTransform): TStroke {
-    this.applyMatrixToPoints(stroke.pointers, matrix)
+    applyMatrixToPoints(stroke.pointers, matrix)
     StrokeOps.updateBounds(stroke)
     return stroke
   }
@@ -31,11 +31,11 @@ export class IITranslateManager extends IIAbstractTransformManager {
     switch (shape.kind) {
       case ShapeKind.Ellipse:
       case ShapeKind.Circle: {
-        shape.center = matrix.applyToPoint(shape.center)
+        shape.center = applyMatrixToPoint(shape.center, matrix)
         break
       }
       case ShapeKind.Polygon: {
-        this.applyMatrixToPoints(shape.points, matrix)
+        applyMatrixToPoints(shape.points, matrix)
         break
       }
       default:
@@ -50,16 +50,16 @@ export class IITranslateManager extends IIAbstractTransformManager {
   protected applyToEdge(edge: TEdge, matrix: MatrixTransform): TEdge {
     switch (edge.kind) {
       case EdgeKind.Arc: {
-        edge.center = matrix.applyToPoint(edge.center)
+        edge.center = applyMatrixToPoint(edge.center, matrix)
         break
       }
       case EdgeKind.Line: {
-        edge.start = matrix.applyToPoint(edge.start)
-        edge.end = matrix.applyToPoint(edge.end)
+        edge.start = applyMatrixToPoint(edge.start, matrix)
+        edge.end = applyMatrixToPoint(edge.end, matrix)
         break
       }
       case EdgeKind.PolyEdge: {
-        this.applyMatrixToPoints(edge.points, matrix)
+        applyMatrixToPoints(edge.points, matrix)
         break
       }
       default:
@@ -73,33 +73,24 @@ export class IITranslateManager extends IIAbstractTransformManager {
 
   protected applyOnText(text: TText, matrix: MatrixTransform): TText {
     if (text.rotation) {
-      text.rotation.center = matrix.applyToPoint(text.rotation.center)
+      text.rotation.center = applyMatrixToPoint(text.rotation.center, matrix)
     }
-    const np = matrix.applyToPoint(text.point)
-    text.point.x = +np.x.toFixed(3)
-    text.point.y = +np.y.toFixed(3)
+    applyMatrixToPoints([text.point], matrix)
     return this.canvas.typeset.updateBounds(text)
   }
 
   protected applyOnMath(math: TMath, matrix: MatrixTransform): TMath {
     if (math.rotation) {
-      math.rotation.center = matrix.applyToPoint(math.rotation.center)
+      math.rotation.center = applyMatrixToPoint(math.rotation.center, matrix)
     }
-    const np = matrix.applyToPoint(math.point)
-    math.point.x = +np.x.toFixed(3)
-    math.point.y = +np.y.toFixed(3)
+    applyMatrixToPoints([math.point], matrix)
 
-    const bp = matrix.applyToPoint(math.bounds.center)
-    math.bounds.center.x = +bp.x.toFixed(3)
-    math.bounds.center.y = +bp.y.toFixed(3)
+    applyMatrixToPoints([math.bounds.center], matrix)
 
     math.elements.forEach((e) => {
-      const ep = matrix.applyToPoint({
-        x: e.bounds.x,
-        y: e.bounds.y,
-      })
-      e.bounds.x = +ep.x.toFixed(3)
-      e.bounds.y = +ep.y.toFixed(3)
+      const ep = applyMatrixToPoint({ x: e.bounds.x, y: e.bounds.y }, matrix)
+      e.bounds.x = ep.x
+      e.bounds.y = ep.y
     })
 
     return this.canvas.typeset.updateBounds(math)

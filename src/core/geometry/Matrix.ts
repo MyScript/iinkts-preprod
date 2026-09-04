@@ -166,3 +166,47 @@ export class MatrixTransform implements TMatrixTransform {
     return MatrixTransform.toCssString(this)
   }
 }
+
+/**
+ * Decimals a transformed coordinate keeps.
+ *
+ * Three is what this library stores everywhere else — `toFixed(3)` appears in dozens of places. The
+ * transform managers were the exception, and only in some of their branches, which is how a resized
+ * line came to hold three decimals while a translated one held seventeen.
+ */
+const TRANSFORM_DECIMALS = 3
+
+function roundCoordinate(value: number): number {
+  return +value.toFixed(TRANSFORM_DECIMALS)
+}
+
+/**
+ * A matrix applied to a point, rounded to the precision the document stores.
+ *
+ * Prefer this over {@link MatrixTransform.applyToPoint} whenever the result is written back into a
+ * symbol: the raw form is for intermediate maths, where rounding at every step would accumulate.
+ *
+ * Returns a new point and leaves the argument untouched.
+ *
+ * @group Core/Geometry
+ */
+export function applyMatrixToPoint(point: TPoint, matrix: TMatrixTransform): TPoint {
+  const transformed = MatrixTransform.applyToPoint(matrix, point)
+  return { x: roundCoordinate(transformed.x), y: roundCoordinate(transformed.y) }
+}
+
+/**
+ * The same, applied in place to every point of a list, so each point keeps its object identity.
+ *
+ * Lived as a `protected` method on the transform manager base until IIC-2010, where no symbol util
+ * could reach it — which is half of why the managers rounded inconsistently.
+ *
+ * @group Core/Geometry
+ */
+export function applyMatrixToPoints(points: TPoint[], matrix: TMatrixTransform): void {
+  points.forEach((point) => {
+    const transformed = applyMatrixToPoint(point, matrix)
+    point.x = transformed.x
+    point.y = transformed.y
+  })
+}
