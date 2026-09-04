@@ -1,6 +1,13 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import type { TPoint } from "@/core/geometry"
-import { BoxOps, computeAngleRadian, MatrixTransform, type TOBB } from "@/core/geometry"
+import {
+  applyMatrixToPoint,
+  applyMatrixToPoints,
+  BoxOps,
+  computeAngleRadian,
+  MatrixTransform,
+  type TOBB,
+} from "@/core/geometry"
 import { convertDegreeToRadian, convertRadianToDegree, TWO_PI } from "@/core/math"
 import type { TIIHistoryChanges } from "@/history"
 import type { TEdge, TMath, TShape, TStroke, TText } from "@/symbol"
@@ -24,7 +31,7 @@ export class IIRotationManager extends IIAbstractTransformManager {
   }
 
   protected applyToStroke(stroke: TStroke, matrix: MatrixTransform): TStroke {
-    this.applyMatrixToPoints(stroke.pointers, matrix)
+    applyMatrixToPoints(stroke.pointers, matrix)
     StrokeOps.updateBounds(stroke)
     return stroke
   }
@@ -32,16 +39,16 @@ export class IIRotationManager extends IIAbstractTransformManager {
   protected applyToShape(shape: TShape, matrix: MatrixTransform): TShape {
     switch (shape.kind) {
       case ShapeKind.Ellipse: {
-        shape.center = matrix.applyToPoint(shape.center)
+        shape.center = applyMatrixToPoint(shape.center, matrix)
         shape.orientation = (shape.orientation + MatrixTransform.rotation(matrix)) % TWO_PI
         break
       }
       case ShapeKind.Circle: {
-        shape.center = matrix.applyToPoint(shape.center)
+        shape.center = applyMatrixToPoint(shape.center, matrix)
         break
       }
       case ShapeKind.Polygon: {
-        this.applyMatrixToPoints(shape.points, matrix)
+        applyMatrixToPoints(shape.points, matrix)
         break
       }
       default:
@@ -57,16 +64,16 @@ export class IIRotationManager extends IIAbstractTransformManager {
     switch (edge.kind) {
       case EdgeKind.Arc: {
         edge.phi = (edge.phi - MatrixTransform.rotation(matrix)) % TWO_PI
-        edge.center = matrix.applyToPoint(edge.center)
+        edge.center = applyMatrixToPoint(edge.center, matrix)
         break
       }
       case EdgeKind.Line: {
-        edge.start = matrix.applyToPoint(edge.start)
-        edge.end = matrix.applyToPoint(edge.end)
+        edge.start = applyMatrixToPoint(edge.start, matrix)
+        edge.end = applyMatrixToPoint(edge.end, matrix)
         break
       }
       case EdgeKind.PolyEdge: {
-        edge.points = edge.points.map((p) => matrix.applyToPoint(p))
+        applyMatrixToPoints(edge.points, matrix)
         break
       }
       default:

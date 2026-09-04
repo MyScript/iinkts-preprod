@@ -1,5 +1,5 @@
 import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
-import { buildIIStroke, expectDerivedFieldsSettled } from "../../../helpers"
+import { buildIIStroke, expectPointsRounded, expectDerivedFieldsSettled } from "../../../helpers"
 import {
   DecoratorKind,
   DecoratorOps,
@@ -8,16 +8,19 @@ import {
   IIConnectorManager,
   IIHistoryManager,
   IITranslateManager,
+  MatrixTransform,
   OBBOps,
   ShapeCircleOps,
   ShapePolygonOps,
   StrokeOps,
-  TPoint,
   SvgElementRole,
-  MatrixTransform,
-  TStroke,
-  TEdgeLine,
   TDecorator,
+  TEdgeLine,
+  TPoint,
+  TShapeCircle,
+  TShapePolygon,
+  TStroke,
+  TSymbol,
 } from "@/iink"
 
 describe("IITranslateManager.ts", () => {
@@ -540,6 +543,46 @@ describe("IITranslateManager.ts", () => {
       const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 10, y: 10 })
       manager.applyToSymbol(line, MatrixTransform.identity().translate(10, 15))
       expectDerivedFieldsSettled(line)
+    })
+  })
+
+  /**
+   * A translate by a third of a pixel: raw, every coordinate would keep seventeen decimals. IIC-2010
+   * put all thirteen of the managers' raw `applyToPoint` sites on the rounding helper, and nothing
+   * covered any of them — deleting the rounding outright left this whole file green.
+   *
+   * Each case names the geometry the transform writes. The derived fields are excluded on purpose:
+   * see `expectPointsRounded`.
+   */
+  describe("coordinate rounding", () => {
+    const canvas = createCanvasMock()
+    const manager = new IITranslateManager(asCanvas(canvas))
+
+    /** Each row names the geometry its own builder produced, so the narrowing is sound. */
+    const CASES: [string, () => TSymbol, (symbol: TSymbol) => TPoint[]][] = [
+      ["circle centre", () => ShapeCircleOps.create({ x: 5, y: 5 }, 4), (s) => [(s as TShapeCircle).center]],
+      [
+        "polygon points",
+        () =>
+          ShapePolygonOps.create([
+            { x: 0, y: 0 },
+            { x: 10, y: 0 },
+            { x: 10, y: 10 },
+          ]),
+        (s) => (s as TShapePolygon).points,
+      ],
+      [
+        "line endpoints",
+        () => EdgeLineOps.create({ x: 0, y: 0 }, { x: 10, y: 10 }),
+        (s) => [(s as TEdgeLine).start, (s as TEdgeLine).end],
+      ],
+      ["stroke pointers", () => buildIIStroke(), (s) => (s as TStroke).pointers],
+    ]
+
+    test.each(CASES)("%s should keep three decimals", (_name, build, stored) => {
+      const symbol = build()
+      manager.applyToSymbol(symbol, MatrixTransform.identity().translate(1 / 3, 1 / 3))
+      expectPointsRounded(stored(symbol))
     })
   })
 })

@@ -186,3 +186,23 @@ export function expectDerivedFieldsSettled(symbol: TSymbol): void {
   symbolRegistry.getUtilFor(copy).updateDerivedFields(copy)
   expect(derivedSnapshot(copy)).toBe(before)
 }
+
+/**
+ * Asserts a transform wrote its coordinates rounded to the three decimals the document stores.
+ *
+ * Takes the points explicitly rather than walking the symbol, because only the geometry a transform
+ * *writes* is in scope: `center`, `start`, `end`, `points`, `point`, `pointers`. The derived fields
+ * — `bounds`, `vertices`, `snapPoints`, `edges` — are recomputed from those by the symbol's util,
+ * and arithmetic on a rounded value is not itself a rounded value (3.217 − 4 is
+ * −0.7829999999999999 in binary floating point). They were never rounded and are not asked to be.
+ *
+ * The invariant, not thirteen enumerated call sites: before IIC-2010 some transform branches went
+ * through `MatrixTransform.applyToPoint` raw and others through a rounding helper, so a resized
+ * line held three decimals while a translated one held seventeen.
+ */
+export function expectPointsRounded(points: TPoint[]): void {
+  expect(points.length).toBeGreaterThan(0)
+  const unrounded = points.filter((point) => point.x !== +point.x.toFixed(3) || point.y !== +point.y.toFixed(3))
+  // Named, not counted: a failure has to show which coordinate kept its full precision.
+  expect(unrounded).toEqual([])
+}
