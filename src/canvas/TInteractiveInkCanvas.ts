@@ -1,8 +1,9 @@
 import type { WebSocketClient } from "@/client"
-import type { DOMFactory } from "@/components/dom"
-import type { CanvasTool } from "@/Constants"
+import type { TExport } from "@/client"
+import type { CanvasTool, TCanvasOperationLabel } from "@/Constants"
 import type { TBox } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
+import type { DOMFactory } from "@/dom"
 import type { IIHistoryManager } from "@/history"
 import type {
   EraseManager,
@@ -29,14 +30,13 @@ import type {
   TPDFDownloadOptions,
 } from "@/manager"
 import type { IIMenuManager } from "@/menu"
-import type { IIModel, TExport } from "@/model"
+import type { IIModel } from "@/model"
 import type { SVGRenderer } from "@/renderer"
 import type { TIIRendererConfiguration } from "@/renderer"
 import type { TStyle } from "@/style"
 import type { TBaseSymbol, TStroke, TSymbol } from "@/symbol"
 import type { SymbolUtil } from "@/symbol-utils/SymbolUtil"
 
-import type { TCanvasOperationLabel } from "./AbstractCanvas"
 import type { CanvasEvent, TCanvasConnectionState } from "./CanvasEvent"
 import type { CanvasLayer } from "./CanvasLayer"
 import type { InteractiveInkCanvasConfiguration } from "./variants/InteractiveInkCanvasConfiguration"

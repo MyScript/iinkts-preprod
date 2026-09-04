@@ -75,6 +75,58 @@ export const enum ResizeDirection {
 export const SELECTION_MARGIN = 10 as const
 
 /**
+ * Every label ever passed to `startOperation`/`endOperation`/`trackOperation` (shown on the
+ * canvas state badge tooltip). `Writing`/`Translating`/`Resizing`/`Rotating` additionally
+ * identify an in-progress user gesture — see {@link GESTURE_OPERATION_LABELS}.
+ * @group Canvas
+ */
+export type TCanvasOperationLabel =
+  | "Recognizing"
+  | "Writing"
+  | "Translating"
+  | "Resizing"
+  | "Rotating"
+  | "Synchronizing"
+  | "Applying gesture"
+  | "Converting"
+  | "Computing"
+  | "Updating variables"
+  | "Loading variables"
+  | "Evaluating"
+  | "Checking"
+  | "Exporting"
+  | "Importing"
+  | "Undoing"
+  | "Redoing"
+  | "Clearing"
+  | "Removing strokes"
+
+/**
+ * Operation labels that identify an in-progress user gesture (pointer down through pointer up).
+ * While any of these is active, synchronizing with the backend should be deferred so it never
+ * contends with the gesture for the main thread.
+ * @group Canvas
+ */
+export const GESTURE_OPERATION_LABELS: readonly TCanvasOperationLabel[] = [
+  "Writing",
+  "Translating",
+  "Resizing",
+  "Rotating",
+] as const
+
+/**
+ * How an edge's end is drawn, and how the recognizer reports it in JIIX.
+ *
+ * It lives here rather than in either layer that uses it: the symbol layer draws it, the wire types
+ * carry it, and neither owns it. `Constants` is the module both may import without either depending
+ * on the other.
+ * @group Symbol
+ */
+export enum EdgeDecoration {
+  Arrow = "arrow-head",
+}
+
+/**
  * @group Constants
  */
 export * from "./constants/MathDiagnosticMessages"

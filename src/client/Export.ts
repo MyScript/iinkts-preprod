@@ -1,17 +1,17 @@
+import type { EdgeDecoration } from "@/Constants"
 import type { TBox } from "@/core/geometry"
-import type { EdgeDecoration } from "@/symbol/edge/Edge-enum"
 
 import type { TJIIXChar, TJIIXElementBase, TJIIXLine, TJIIXWord } from "./ExportCommon"
 import type { TJIIXMathElement } from "./ExportMath"
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 // Re-export common types for backward compatibility
 export type { TJIIXBase, TJIIXChar, TJIIXElementBase, TJIIXLine, TJIIXStrokeItem, TJIIXWord } from "./ExportCommon"
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 // Export Math types
 export type {
@@ -33,7 +33,7 @@ export type {
 export { JIIXMathExpressionType } from "./ExportMath"
 
 /**
- * @group Exports
+ * @group Client/Export
  * @remarks List all supported MIME types for export. Please note, the MIME types supported depend on the recognition type configured
  */
 export enum ExportType {
@@ -46,7 +46,7 @@ export enum ExportType {
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/jiix  Element type}
  */
 export enum JIIXElementType {
@@ -58,7 +58,7 @@ export enum JIIXElementType {
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/jiix/#diagram-item-blocks | Element node kind}
  */
 export enum JIIXNodeKind {
@@ -72,7 +72,7 @@ export enum JIIXNodeKind {
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export enum JIIXEdgeKind {
   Line = "line",
@@ -81,7 +81,7 @@ export enum JIIXEdgeKind {
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/jiix/#text-interpretation | Text Element }
  */
 export type TJIIXTextElement = TJIIXElementBase<JIIXElementType.Text> & {
@@ -94,7 +94,7 @@ export type TJIIXTextElement = TJIIXElementBase<JIIXElementType.Text> & {
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXNodeElementBase<K = string> = TJIIXElementBase<JIIXElementType.Node> & {
   id: string
@@ -102,7 +102,7 @@ export type TJIIXNodeElementBase<K = string> = TJIIXElementBase<JIIXElementType.
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXNodeCircle = TJIIXNodeElementBase<JIIXNodeKind.Circle> & {
   id: string
@@ -112,7 +112,7 @@ export type TJIIXNodeCircle = TJIIXNodeElementBase<JIIXNodeKind.Circle> & {
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXNodeEllipse = TJIIXNodeElementBase<JIIXNodeKind.Ellipse> & {
   id: string
@@ -124,7 +124,7 @@ export type TJIIXNodeEllipse = TJIIXNodeElementBase<JIIXNodeKind.Ellipse> & {
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXNodeRectangle = TJIIXNodeElementBase<JIIXNodeKind.Rectangle> & {
   id: string
@@ -135,7 +135,7 @@ export type TJIIXNodeRectangle = TJIIXNodeElementBase<JIIXNodeKind.Rectangle> & 
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXNodeTriangle = TJIIXNodeElementBase<JIIXNodeKind.Triangle> & {
   id: string
@@ -143,7 +143,7 @@ export type TJIIXNodeTriangle = TJIIXNodeElementBase<JIIXNodeKind.Triangle> & {
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXNodeParallelogram = TJIIXNodeElementBase<JIIXNodeKind.Parallelogram> & {
   id: string
@@ -151,7 +151,7 @@ export type TJIIXNodeParallelogram = TJIIXNodeElementBase<JIIXNodeKind.Parallelo
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXNodePolygon = TJIIXNodeElementBase<JIIXNodeKind.Polygon> & {
   id: string
@@ -159,7 +159,7 @@ export type TJIIXNodePolygon = TJIIXNodeElementBase<JIIXNodeKind.Polygon> & {
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXNodeRhombus = TJIIXNodeElementBase<JIIXNodeKind.Rhombus> & {
   id: string
@@ -167,7 +167,7 @@ export type TJIIXNodeRhombus = TJIIXNodeElementBase<JIIXNodeKind.Rhombus> & {
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXNodeElement =
   | TJIIXNodeCircle
@@ -179,7 +179,7 @@ export type TJIIXNodeElement =
   | TJIIXNodeRhombus
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXEdgeElementBase<K = string> = TJIIXElementBase<JIIXElementType.Edge> & {
   kind: K
@@ -196,7 +196,7 @@ export type TJIIXEdgeElementBase<K = string> = TJIIXElementBase<JIIXElementType.
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/jiix/#line-item | Element line}
  */
 export type TJIIXEdgeLine = TJIIXEdgeElementBase<JIIXEdgeKind.Line> & {
@@ -209,14 +209,14 @@ export type TJIIXEdgeLine = TJIIXEdgeElementBase<JIIXEdgeKind.Line> & {
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXEdgePolyEdge = TJIIXEdgeElementBase<JIIXEdgeKind.PolyEdge> & {
   edges: TJIIXEdgeLine[]
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/jiix/#arc-item | Element arc}
  */
 export type TJIIXEdgeArc = TJIIXEdgeElementBase<JIIXEdgeKind.Arc> & {
@@ -232,18 +232,18 @@ export type TJIIXEdgeArc = TJIIXEdgeElementBase<JIIXEdgeKind.Arc> & {
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXEdgeElement = TJIIXEdgeLine | TJIIXEdgePolyEdge | TJIIXEdgeArc
 
 /**
- * @group Exports
+ * @group Client/Export
  * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/web/jiix | Exports}
  */
 export type TJIIXElement = TJIIXTextElement | TJIIXMathElement | TJIIXNodeElement | TJIIXEdgeElement
 
 /**
- * @group Exports
+ * @group Client/Export
  */
 export type TJIIXExport = {
   type: string
@@ -257,7 +257,7 @@ export type TJIIXExport = {
 }
 
 /**
- * @group Exports
+ * @group Client/Export
  * @remarks
  * List all supported MIME types for export.
  *

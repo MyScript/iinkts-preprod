@@ -1,4 +1,4 @@
-import { JIIXNodeKind, type TJIIXExport, type TJIIXNodeElement, type TJIIXTextElement } from "@/model/Export"
+import { JIIXNodeKind, type TJIIXExport, type TJIIXNodeElement, type TJIIXTextElement } from "@/client"
 
 import { extractJIIXGraphElements, findLabelInside, resolveEdgeNodes, sanitizeGraphId } from "./jiixGraph"
 

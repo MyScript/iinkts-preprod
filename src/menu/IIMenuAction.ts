@@ -1,7 +1,6 @@
 import menuIcon from "@/assets/svg/menu.svg"
-import type { TCanvasTheme } from "@/canvas/CanvasThemes"
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import { DOMFactory } from "@/components/dom"
+import { DOMFactory } from "@/dom"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { IIModel } from "@/model"
 
@@ -32,6 +31,7 @@ import {
   UndoRedoMenuAction,
   ZoomMenuAction,
 } from "./actions"
+import type { TCanvasTheme } from "./CanvasThemes"
 import type { BaseMenuItem } from "./items"
 
 /**

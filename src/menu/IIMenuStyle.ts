@@ -1,7 +1,7 @@
 import styleIcon from "@/assets/svg/palette.svg"
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import { DOMFactory } from "@/components/dom"
 import { CanvasTool, CanvasWriteTool } from "@/Constants"
+import { DOMFactory } from "@/dom"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { IIModel } from "@/model"
 import type { TSymbol } from "@/symbol"

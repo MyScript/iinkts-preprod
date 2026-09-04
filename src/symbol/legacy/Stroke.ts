@@ -4,7 +4,7 @@ import { createUUID } from "@/core/std"
 import type { TPenStyle } from "@/style"
 import { DefaultPenStyle } from "@/style"
 
-import type { TStrokeMinimal } from "../stroke"
+import type { TStrokeCapture } from "../stroke"
 import type { TBaseSymbol } from "../Symbol"
 import { SymbolType } from "../Symbol"
 
@@ -13,7 +13,7 @@ import { SymbolType } from "../Symbol"
  * @deprecated Use {@link TStroke} from stroke/ for new code
  */
 export type TLegacyStroke = TBaseSymbol &
-  TStrokeMinimal & {
+  TStrokeCapture & {
     style: TPenStyle
     length: number
   }

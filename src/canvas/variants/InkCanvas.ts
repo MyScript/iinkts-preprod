@@ -1,5 +1,6 @@
 import type { TCanvasOptionsBase } from "@/canvas/AbstractCanvas"
 import { AbstractCanvas } from "@/canvas/AbstractCanvas"
+import type { TExport, TExportV2 } from "@/client"
 import { HTTPClientV2 } from "@/client"
 import { CanvasTool } from "@/Constants"
 import type { TPartialDeep } from "@/core/std"
@@ -7,7 +8,6 @@ import type { PointerEventGrabber } from "@/grabber"
 import type { TIHistoryChanges } from "@/history"
 import { IHistoryManager } from "@/history"
 import { EraseManager, IDebugSVGManager, IWriterManager } from "@/manager"
-import type { TExport, TExportV2 } from "@/model"
 import { IModel } from "@/model"
 import { SVGRenderer } from "@/renderer"
 import type { TStyle } from "@/style"
@@ -15,6 +15,7 @@ import type { TStroke } from "@/symbol"
 import { StrokeOps } from "@/symbol"
 import { registerBuiltinSymbolUtils } from "@/symbol-utils"
 
+import type { TInkCanvas } from "../TInkCanvas"
 import type { TInkCanvasConfiguration } from "./InkCanvasConfiguration"
 import { InkCanvasConfiguration } from "./InkCanvasConfiguration"
 
@@ -45,7 +46,7 @@ export type TInkCanvasOptions = TPartialDeep<
  *
  * The InkCanvas is designed for extensibility, allowing developers to override core components like the client or input grabber for custom behavior.
  */
-export class InkCanvas extends AbstractCanvas {
+export class InkCanvas extends AbstractCanvas implements TInkCanvas {
   #configuration: InkCanvasConfiguration
   #model: IModel
   #penStyle: TStyle

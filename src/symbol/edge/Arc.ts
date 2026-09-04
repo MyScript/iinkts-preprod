@@ -1,3 +1,4 @@
+import type { EdgeDecoration } from "@/Constants"
 import { SELECTION_MARGIN } from "@/Constants"
 import type { TBox } from "@/core/geometry"
 import { OBBOps, type TOBB } from "@/core/geometry"
@@ -10,7 +11,7 @@ import { mergeSymbolStyle, type TStyle } from "@/style"
 import { SymbolType, type TBaseSymbol } from "@/symbol/Symbol"
 
 import type { TAnchor } from "./Anchor"
-import { computeEdgeBounds, type EdgeDecoration, EdgeKind } from "./Edge-enum"
+import { computeEdgeBounds, EdgeKind } from "./Edge-enum"
 
 /**
  * @group Symbol

@@ -1,5 +1,4 @@
 export * from "./PenStyle"
 export * from "./Style"
-export * from "./StyleHelper"
 export * from "./StyleManager"
 export * from "./Theme"

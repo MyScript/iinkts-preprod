@@ -1,5 +1,6 @@
 import type { TConnectionStatus, TServerHTTPConfiguration } from "@/client"
 import { getApiInfos, type TApiInfos } from "@/client"
+import type { TCanvasOperationLabel } from "@/Constants"
 import { CanvasTool } from "@/Constants"
 import type { TPartialDeep } from "@/core/std"
 import type { TLoggerConfiguration } from "@/logger"
@@ -26,46 +27,6 @@ export type TCanvasConfiguration = {
  * @remarks "INK_V1" is deprecated use "INK_V2" instead.
  */
 export type TCanvasType = "INTERACTIVE_INK" | "INK_V1" | "INTERACTIVE_INK_SSR" | "INK_V2"
-
-/**
- * Every label ever passed to `startOperation`/`endOperation`/`trackOperation` (shown on the
- * canvas state badge tooltip). `Writing`/`Translating`/`Resizing`/`Rotating` additionally
- * identify an in-progress user gesture — see {@link GESTURE_OPERATION_LABELS}.
- * @group Canvas
- */
-export type TCanvasOperationLabel =
-  | "Recognizing"
-  | "Writing"
-  | "Translating"
-  | "Resizing"
-  | "Rotating"
-  | "Synchronizing"
-  | "Applying gesture"
-  | "Converting"
-  | "Computing"
-  | "Updating variables"
-  | "Loading variables"
-  | "Evaluating"
-  | "Checking"
-  | "Exporting"
-  | "Importing"
-  | "Undoing"
-  | "Redoing"
-  | "Clearing"
-  | "Removing strokes"
-
-/**
- * Operation labels that identify an in-progress user gesture (pointer down through pointer up).
- * While any of these is active, synchronizing with the backend should be deferred so it never
- * contends with the gesture for the main thread.
- * @group Canvas
- */
-export const GESTURE_OPERATION_LABELS: readonly TCanvasOperationLabel[] = [
-  "Writing",
-  "Translating",
-  "Resizing",
-  "Rotating",
-] as const
 
 /**
  * @hidden

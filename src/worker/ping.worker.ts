@@ -1,5 +1,5 @@
 /**
- * @group Utilities
+ * @group Core
  */
 export type TPingWorkerEvent = {
   pingDelay: number

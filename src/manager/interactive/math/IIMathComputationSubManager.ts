@@ -1,16 +1,15 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import type { TBox, TPoint } from "@/core/geometry"
+import type { TJIIXMathElement, TJIIXMathExpression } from "@/client"
+import type { MatrixTransform, TBox, TPoint } from "@/core/geometry"
 import { BoxOps, OBBOps } from "@/core/geometry"
 import { convertMillimeterToPixel } from "@/core/math"
 import { isDeepEqualIgnoring } from "@/core/std"
 import { createUUID } from "@/core/std"
 import { LoggerCategory } from "@/logger"
-import type { TJIIXMathElement, TJIIXMathExpression } from "@/model"
 import type { TStyle } from "@/style/Style"
 import type { TStroke } from "@/symbol"
 import { isStroke } from "@/symbol"
 import { StrokeOps } from "@/symbol/stroke/Stroke"
-import type { MatrixTransform } from "@/transform"
 
 import { IIAbstractManager } from "../IIAbstractManager"
 

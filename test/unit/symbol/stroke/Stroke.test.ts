@@ -101,24 +101,6 @@ describe("TStroke / StrokeOps", () => {
     })
   })
 
-  describe("formatToSend", () => {
-    test("should return array of x, y, t, and p", () => {
-      const stroke = StrokeOps.create(DefaultStyle)
-      StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 1, y: 1 })
-      StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 11, y: 11 })
-
-      const jsonToSend = StrokeOps.formatToSend(stroke)
-      expect(jsonToSend).toEqual({
-        id: stroke.id,
-        pointerType: stroke.pointerType,
-        x: stroke.pointers.map((s) => s.x),
-        y: stroke.pointers.map((s) => s.y),
-        t: stroke.pointers.map((s) => s.t),
-        p: stroke.pointers.map((s) => s.p),
-      })
-    })
-  })
-
   describe("clone", () => {
     test("should return clone", () => {
       const style: TStyle = {

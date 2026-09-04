@@ -1,12 +1,13 @@
 import { isVersionSuperiorOrEqual, type TPartialDeep } from "@/core/std"
 import { LoggerCategory, LoggerManager } from "@/logger"
-import type { Model, TExport, TJIIXExport } from "@/model"
+import type { Model } from "@/model"
 import type { TPenStyle } from "@/style"
-import { StyleHelper } from "@/style"
-import { type Stroke, StrokeOps } from "@/symbol"
+import { StyleHelper } from "@/style-css"
+import type { Stroke } from "@/symbol"
 
 import { parseApiError } from "./ClientApiError"
 import { ClientError } from "./ClientError"
+import type { TExport, TJIIXExport } from "./Export"
 import { resolveHmac } from "./HmacAuth"
 import type { THTTPClientV1Configuration } from "./HTTPClientV1Configuration"
 import { HTTPClientV1Configuration } from "./HTTPClientV1Configuration"
@@ -20,9 +21,11 @@ import type {
 } from "./recognition"
 import type { TConverstionState } from "./RecognitionConfiguration"
 import { redactServerSecrets } from "./ServerConfiguration"
+import type { TWireStroke } from "./StrokeSerializer"
+import { toWireStroke } from "./StrokeSerializer"
 
 /**
- * @group Symbol
+ * @group Client
  * @deprecated Use {@link TStroke} from stroke/ for new code
  */
 export type TStrokeGroup = {
@@ -31,19 +34,12 @@ export type TStrokeGroup = {
 }
 
 /**
- * @group Symbol
+ * @group Client
  * @deprecated Use {@link TStroke} with {@link HTTPClientV2}
  */
 export type TStrokeGroupToSend = {
   penStyle?: string
-  strokes: {
-    id: string
-    pointerType: string
-    x: number[]
-    y: number[]
-    t: number[]
-    p: number[]
-  }[]
+  strokes: TWireStroke[]
 }
 
 /**
@@ -156,7 +152,7 @@ export class HTTPClientV1 {
         JSON.stringify(group.penStyle) === "{}" ? undefined : StyleHelper.penStyleToCSS(group.penStyle as TPenStyle)
       const newGroup = {
         penStyle: newPenStyle,
-        strokes: group.strokes.map((s) => StrokeOps.formatToSend(s)),
+        strokes: group.strokes.map((s) => toWireStroke(s)),
       }
       strokeGroupsToSend.push(newGroup)
     })

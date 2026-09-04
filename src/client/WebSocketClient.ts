@@ -1,18 +1,20 @@
 import PingWorker from "web-worker:../worker/ping.worker.ts"
 
+import type { TMatrixTransform } from "@/core/geometry"
 import { DeferredPromise, isVersionSuperiorOrEqual, mergeDeep, type TPartialDeep } from "@/core/std"
 import type { THistoryContext, TIIHistoryBackendChanges } from "@/history"
 import { LoggerCategory, LoggerManager } from "@/logger"
-import type { TExport, TJIIXExport, TJIIXMathElement } from "@/model"
-import type { TStroke } from "@/symbol"
-import { StrokeOps } from "@/symbol/stroke/Stroke"
-import type { TMatrixTransform } from "@/transform"
 
 import { ClientError, mapCloseCodeToMessage } from "./ClientError"
 import { ClientEvent } from "./ClientEvent"
+import type { TExport } from "./Export"
+import type { TJIIXExport } from "./Export"
+import type { TJIIXMathElement } from "./ExportMath"
 import { resolveHmac } from "./HmacAuth"
 import { getApiInfos } from "./infos"
 import { redactServerSecrets } from "./ServerConfiguration"
+import type { TRecognitionStroke } from "./StrokeSerializer"
+import { toWireStroke } from "./StrokeSerializer"
 import type { TWebSocketClientConfiguration } from "./WebSocketClientConfiguration"
 import { WebSocketClientConfiguration } from "./WebSocketClientConfiguration"
 import type {
@@ -729,18 +731,18 @@ export class WebSocketClient {
     }
   }
 
-  protected buildAddStrokesMessage(strokes: TStroke[], processGestures = true): TWebSocketClientMessage {
+  protected buildAddStrokesMessage(strokes: TRecognitionStroke[], processGestures = true): TWebSocketClientMessage {
     return {
       type: "addStrokes",
       processGestures,
-      strokes: strokes.map((s) => StrokeOps.formatToSend(s)),
+      strokes: strokes.map((s) => toWireStroke(s)),
     }
   }
   /**
    * @remarks Resolves once the message is sent, not once the server acks it — gesture detection
    * results (if any) arrive asynchronously via `event.addGestureDetectedListener`, not this promise.
    */
-  async addStrokes(strokes: TStroke[], processGestures = true): Promise<void> {
+  async addStrokes(strokes: TRecognitionStroke[], processGestures = true): Promise<void> {
     if (strokes.length === 0) {
       return
     }
@@ -954,14 +956,17 @@ export class WebSocketClient {
     return allSeries
   }
 
-  protected buildReplaceStrokesMessage(oldStrokeIds: string[], newStrokes: TStroke[]): TWebSocketClientMessage {
+  protected buildReplaceStrokesMessage(
+    oldStrokeIds: string[],
+    newStrokes: TRecognitionStroke[]
+  ): TWebSocketClientMessage {
     return {
       type: "replaceStrokes",
       oldStrokeIds,
-      newStrokes: newStrokes.map((s) => StrokeOps.formatToSend(s)),
+      newStrokes: newStrokes.map((s) => toWireStroke(s)),
     }
   }
-  async replaceStrokes(oldStrokeIds: string[], newStrokes: TStroke[]): Promise<void> {
+  async replaceStrokes(oldStrokeIds: string[], newStrokes: TRecognitionStroke[]): Promise<void> {
     if (oldStrokeIds.length === 0) {
       return
     }
@@ -1064,7 +1069,7 @@ export class WebSocketClient {
     await this.send(this.buildEraseStrokesMessage(strokeIds))
   }
 
-  async recognizeGesture(stroke: TStroke): Promise<TWebSocketClientMessageContextlessGesture | undefined> {
+  async recognizeGesture(stroke: TRecognitionStroke): Promise<TWebSocketClientMessageContextlessGesture | undefined> {
     if (!stroke) {
       return
     }
@@ -1075,7 +1080,7 @@ export class WebSocketClient {
       type: "contextlessGesture",
       scaleX: pixelTomm,
       scaleY: pixelTomm,
-      stroke: StrokeOps.formatToSend(stroke),
+      stroke: toWireStroke(stroke),
     })
     return deferred.promise
   }
