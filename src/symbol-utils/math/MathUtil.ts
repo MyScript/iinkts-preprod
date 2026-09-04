@@ -1,6 +1,7 @@
 import type { TBox } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
-import { applyMatrixToPoint, applyMatrixToPoints } from "@/core/geometry"
+import { applyMatrixToPoint, applyMatrixToPoints, MatrixTransform } from "@/core/geometry"
+import { convertRadianToDegree } from "@/core/math"
 import type { TPartialDeep } from "@/core/std"
 import { DecoratorKind } from "@/symbol/decorator/Decorator"
 import { MathOps, type TMath } from "@/symbol/math/Math"
@@ -9,7 +10,7 @@ import { SymbolType } from "@/symbol/Symbol"
 import { DecoratorUtil } from "../decorator/DecoratorUtil"
 import { SVGBuilder } from "../SVGBuilder"
 import { SymbolUtil } from "../SymbolUtil"
-import type { TTranslateContext } from "../TransformContext"
+import type { TRotateContext, TTranslateContext } from "../TransformContext"
 
 const noSelection =
   "pointer-events: none; -webkit-touch-callout: none; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;"
@@ -49,6 +50,19 @@ export class MathUtil extends SymbolUtil<TMath> {
     })
     // Not geometry: bounds come from drawing the math hidden and measuring it, so a service does it.
     typeset.updateBounds(math)
+  }
+
+  /**
+   * Records an angle, like text does. Unlike text it does **not** re-measure: `IIRotationManager`
+   * called `typeset.updateBounds` for text and returned math untouched, and that asymmetry is
+   * preserved here rather than quietly evened out — evening it up is a behaviour change, and this
+   * ticket only moves code.
+   */
+  rotate(math: TMath, { matrix, center }: TRotateContext): void {
+    math.rotation = {
+      degree: convertRadianToDegree(MatrixTransform.rotation(matrix)) + (math.rotation?.degree || 0),
+      center,
+    }
   }
 
   getSVGElement(math: TMath): SVGGraphicsElement {

@@ -13,6 +13,15 @@ Symbols are frozen when committed and handed to readers directly, instead of the
 - fixed: `changeOrderSymbol` was a no-op; partially erasing characters was never stored; undo/redo replay rewrote the history entry it was replaying; edge-connection anchors were silently dropped behind a swallowed throw
 - see [MIGRATION.md](./MIGRATION.md)
 
+### A symbol turns itself
+`SymbolUtil.rotate` is a new required member, the counterpart of `translate`.
+- `SymbolUtil.rotate(symbol, context)` is abstract; a custom util that omits it no longer compiles
+- new: `TRotateContext` (`{ matrix, center, typeset }`). `center` was gesture state read off the manager (`center!: TPoint`, undefined until a drag began) and is now passed in
+- five of the nine kinds point `rotate` at the same function as `translate` — applying a matrix to their points is the whole of it. Only the ellipse and the arc carry an angle of their own
+- `IIRotationManager` no longer refuses an unknown kind with `Can't apply rotate on shape, kind unknown: {…}`; the message is `Unable to rotate shape, kind: "x" is unknown`. Resize keeps the old wording until it moves too
+- text is re-measured after a rotation and math deliberately is not, an asymmetry inherited from the manager and now pinned by a test rather than left to be rediscovered
+- see [MIGRATION.md](./MIGRATION.md)
+
 ### A symbol moves itself
 `SymbolUtil.translate` is a new required member. Translating used to be three managers' business: `IIAbstractTransformManager` switched on `symbol.type` to five abstract methods, and two of those switched again on kind — so a symbol type the library did not know threw instead of moving.
 - `SymbolUtil.translate(symbol, context)` is abstract. A custom util that omits it no longer compiles, and implementing it is what makes a custom symbol movable

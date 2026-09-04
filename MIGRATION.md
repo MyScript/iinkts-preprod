@@ -189,6 +189,26 @@ stroke width.
 left out rather than padded, because the server pairs pointers by index across the arrays and a short
 column would attach the wrong values to the wrong points.
 
+### A custom `SymbolUtil` must implement `rotate`
+
+```diff
+  class StickyNoteUtil extends SymbolUtil<TStickyNote> {
+    ...
+    translate(symbol, { matrix }) { ... }
++   rotate(symbol, { matrix }) {
++     symbol.point = applyMatrixToPoint(symbol.point, matrix)
++   }
+  }
+```
+
+If applying the matrix is the whole of turning your symbol, point `rotate` at the same code as
+`translate` — five of the six built-in kinds do exactly that. Implement it only differently if your
+symbol stores an angle of its own, as the ellipse and arc do, or if it is turned by recording an
+angle rather than by moving geometry, as text and math are.
+
+The context adds `center`, the point the gesture turns around. The geometric kinds never read it —
+it is already folded into the matrix — but a symbol rendered with a CSS or SVG rotation needs it.
+
 ### A custom `SymbolUtil` must implement `translate`
 
 ```diff

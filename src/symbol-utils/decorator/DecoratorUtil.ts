@@ -142,6 +142,9 @@ export class DecoratorUtil extends SymbolUtil<TDecorator> {
    */
   translate(): void {}
 
+  /** Nothing, for the same reason {@link translate} does nothing. */
+  rotate(): void {}
+
   getSnapPoints(decorator: TDecorator): TPoint[] {
     return decorator.snapPoints
   }

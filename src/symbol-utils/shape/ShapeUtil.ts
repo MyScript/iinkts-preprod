@@ -1,6 +1,7 @@
 import type { TBox } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
-import { convertRadianToDegree } from "@/core/math"
+import { MatrixTransform } from "@/core/geometry"
+import { convertRadianToDegree, TWO_PI } from "@/core/math"
 import type { TPartialDeep } from "@/core/std"
 import { DefaultStyle } from "@/style"
 import { ShapeCircleOps, type TShapeCircle } from "@/symbol/shape/Circle"
@@ -10,10 +11,10 @@ import type { TShape } from "@/symbol/shape/Shape"
 import { ShapeKind } from "@/symbol/shape/Shape-enum"
 import { SymbolType } from "@/symbol/Symbol"
 
-import { defineKind, resolveKind, type TKindDefinition, translateByCentre, translateByPoints } from "../KindDefinition"
+import { defineKind, moveByCentre, moveByPoints, resolveKind, type TKindDefinition } from "../KindDefinition"
 import { SVGBuilder } from "../SVGBuilder"
 import { SymbolUtil } from "../SymbolUtil"
-import type { TTranslateContext } from "../TransformContext"
+import type { TRotateContext, TTranslateContext } from "../TransformContext"
 
 /**
  * The shape kinds this util can build, and how.
@@ -30,14 +31,22 @@ const SHAPE_KINDS: Partial<Record<ShapeKind, TKindDefinition<TShape>>> = {
     updateDerivedFields: (shape) => ShapeCircleOps.updateDerivedFields(shape),
     overlaps: (shape, box) => ShapeCircleOps.overlaps(shape, box),
     getSVGPath: (shape) => ShapeCircleOps.getSVGPath(shape),
-    translate: translateByCentre,
+    // A circle has no orientation of its own, so turning it is moving its centre.
+    translate: moveByCentre,
+    rotate: moveByCentre,
   }),
   [ShapeKind.Ellipse]: defineKind<TShape, TShapeEllipse>({
     create: (partial) => ShapeEllipseOps.createFromPartial(partial),
     updateDerivedFields: (shape) => ShapeEllipseOps.updateDerivedFields(shape),
     overlaps: (shape, box) => ShapeEllipseOps.overlaps(shape, box),
     getSVGPath: (shape) => ShapeEllipseOps.getSVGPath(shape),
-    translate: translateByCentre,
+    translate: moveByCentre,
+    // One of the four cells in the whole matrix that genuinely differ by operation: an ellipse
+    // carries an orientation, so turning it is not the same as moving it.
+    rotate: (shape, matrix) => {
+      moveByCentre(shape, matrix)
+      shape.orientation = (shape.orientation + MatrixTransform.rotation(matrix)) % TWO_PI
+    },
     // The ellipse is the only kind whose path needs orienting, and this is where that used to live
     // as an `if (shape.kind === ShapeKind.Ellipse)` inside the shared `getSVGElement`.
     extraPathAttributes: (shape) => ({
@@ -49,7 +58,8 @@ const SHAPE_KINDS: Partial<Record<ShapeKind, TKindDefinition<TShape>>> = {
     updateDerivedFields: (shape) => ShapePolygonOps.updateDerivedFields(shape),
     overlaps: (shape, box) => ShapePolygonOps.overlaps(shape, box),
     getSVGPath: (shape) => ShapePolygonOps.getSVGPath(shape),
-    translate: translateByPoints,
+    translate: moveByPoints,
+    rotate: moveByPoints,
   }),
 }
 
@@ -77,6 +87,11 @@ export class ShapeUtil extends SymbolUtil<TShape> {
 
   translate(shape: TShape, { matrix }: TTranslateContext): void {
     resolveKind(SHAPE_KINDS, shape.kind, "shape", "translate").translate(shape, matrix)
+    this.updateDerivedFields(shape)
+  }
+
+  rotate(shape: TShape, { matrix }: TRotateContext): void {
+    resolveKind(SHAPE_KINDS, shape.kind, "shape", "rotate").rotate(shape, matrix)
     this.updateDerivedFields(shape)
   }
 

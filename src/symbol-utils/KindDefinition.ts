@@ -20,6 +20,12 @@ export type TKindDefinition<T> = {
   /** Moves this kind's own geometry. The family util derives afterwards, once, for every kind. */
   translate(symbol: T, matrix: MatrixTransform): void
   /**
+   * Rotates this kind's own geometry. Five of the nine kinds point this at the same function as
+   * `translate`: a matrix applied to their points is the whole of it, whichever gesture produced
+   * the matrix. Only the ellipse and the arc carry an angle of their own to adjust.
+   */
+  rotate(symbol: T, matrix: MatrixTransform): void
+  /**
    * Extra attributes for the rendered path. Only a kind that needs them supplies this — it is what
    * replaces an `if (symbol.kind === …)` sitting inside a family's shared `getSVGElement`.
    */
@@ -63,16 +69,23 @@ export function resolveKind<T>(
 }
 
 /**
- * Moves a symbol that stores a single centre — circle, ellipse and arc.
+ * Applies a matrix to a symbol that stores a single centre — circle, ellipse and arc.
  *
- * Shared because those three cells are the same code: the epic's measurement found nine of the
- * twenty-seven transform cells written more than once, and this is two of them.
+ * Named for what it does rather than which operation calls it, because more than one does: five of
+ * the nine kinds move identically under translate and rotate, which is most of the nine duplicated
+ * cells the epic measured across the twenty-seven.
  */
-export function translateByCentre(symbol: { center: TPoint }, matrix: MatrixTransform): void {
+export function moveByCentre(symbol: { center: TPoint }, matrix: MatrixTransform): void {
   symbol.center = applyMatrixToPoint(symbol.center, matrix)
 }
 
-/** Moves a symbol that stores a vertex list — polygon and polyedge. */
-export function translateByPoints(symbol: { points: TPoint[] }, matrix: MatrixTransform): void {
+/** Applies a matrix to a symbol that stores a vertex list — polygon and polyedge. */
+export function moveByPoints(symbol: { points: TPoint[] }, matrix: MatrixTransform): void {
   applyMatrixToPoints(symbol.points, matrix)
+}
+
+/** Applies a matrix to a symbol that stores two endpoints — the line edge. */
+export function moveEndpoints(symbol: { start: TPoint; end: TPoint }, matrix: MatrixTransform): void {
+  symbol.start = applyMatrixToPoint(symbol.start, matrix)
+  symbol.end = applyMatrixToPoint(symbol.end, matrix)
 }

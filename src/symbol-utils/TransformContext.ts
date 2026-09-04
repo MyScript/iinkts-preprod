@@ -1,4 +1,4 @@
-import type { MatrixTransform } from "@/core/geometry"
+import type { MatrixTransform, TPoint } from "@/core/geometry"
 import type { TMath } from "@/symbol/math/Math"
 import type { TText } from "@/symbol/text/Text"
 
@@ -24,5 +24,19 @@ export type TTypesetPort = {
 export type TTranslateContext = {
   matrix: MatrixTransform
   /** Only text and math consult it. */
+  typeset: TTypesetPort
+}
+
+/**
+ * What rotating a symbol needs beyond the symbol itself.
+ *
+ * `center` is the point the gesture turns around, computed once from the selection's bounding box.
+ * The geometric kinds never read it — it is already folded into the matrix — but text and math
+ * store it, because a typeset symbol is rotated by a CSS transform rather than by moving its glyphs.
+ */
+export type TRotateContext = {
+  matrix: MatrixTransform
+  center: TPoint
+  /** Text consults it; math deliberately does not. See `MathUtil.rotate`. */
   typeset: TTypesetPort
 }

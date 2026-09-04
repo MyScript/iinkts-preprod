@@ -15,6 +15,7 @@ import {
   TBaseSymbol,
   TPartialDeep,
   TPoint,
+  TRotateContext,
   TTranslateContext,
   applyMatrixToPoint,
 } from "@/iink"
@@ -607,6 +608,9 @@ describe("SVGRenderer.ts", () => {
       }
       updateDerivedFields(): void {}
       translate(symbol: TStickyNote, { matrix }: TTranslateContext): void {
+        symbol.point = applyMatrixToPoint(symbol.point, matrix)
+      }
+      rotate(symbol: TStickyNote, { matrix }: TRotateContext): void {
         symbol.point = applyMatrixToPoint(symbol.point, matrix)
       }
       overlaps(): boolean {
