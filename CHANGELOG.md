@@ -13,6 +13,11 @@ Symbols are frozen when committed and handed to readers directly, instead of the
 - fixed: `changeOrderSymbol` was a no-op; partially erasing characters was never stored; undo/redo replay rewrote the history entry it was replaying; edge-connection anchors were silently dropped behind a swallowed throw
 - see [MIGRATION.md](./MIGRATION.md)
 
+### A symbol says whether it resizes with its ratio locked
+- new: `SymbolUtil.keepsAspectRatio(symbol)`, `false` by default. `TypesetUtil` returns `true` for both text and math — a font size is one number, so scaling the axes unequally would ask for glyphs that do not exist — and the shape util returns it for the circle, whose single radius cannot describe two scales
+- `IIResizeManager` decided this with `isText(s) || isMath(s) || (isShape(s) && isCircleShape(s))`, a question about a symbol asked from outside it. A custom symbol could never require a locked ratio however badly a free scale would distort it; now it can. No type test is left in that manager
+- additive: the default means an existing custom util needs no change
+
 ### A symbol the library does not know can be transformed
 The three transform managers reached their per-type behaviour through a `switch (symbol.type)` in `IIAbstractTransformManager` with a throwing `default`. A custom symbol could be created, stored, selected and drawn, and then not moved — however well its util was registered. Both the switch and the five `protected abstract applyTo*`/`applyOn*` members it existed to reach are gone.
 - `IIAbstractTransformManager` now declares one `protected abstract applyThroughUtil(symbol, matrix)`. A subclass implements that instead of `applyToStroke`, `applyToShape`, `applyToEdge`, `applyOnText` and `applyOnMath`

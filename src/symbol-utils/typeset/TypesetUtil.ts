@@ -86,5 +86,13 @@ export abstract class TypesetUtil<T extends TText | TMath> extends SymbolUtil<T>
     this.updateDerivedFields(symbol)
   }
 
+  /**
+   * Always. A typeset symbol is drawn from glyphs at a font size, and a font size is one number —
+   * scaling the axes unequally would ask for glyphs that do not exist.
+   */
+  keepsAspectRatio(_symbol: T): boolean {
+    return true
+  }
+
   abstract translate(symbol: T, context: TTranslateContext): void
 }

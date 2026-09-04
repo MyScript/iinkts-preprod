@@ -110,6 +110,19 @@ describe("ShapeUtil", () => {
     })
   })
 
+  describe("aspect ratio", () => {
+    /**
+     * `IIResizeManager` decided this from outside the symbol, with
+     * `isText(s) || isMath(s) || (isShape(s) && isCircleShape(s))`. IIC-2015 moved it onto the
+     * contract, and for shapes it is a flag on the kind table.
+     */
+    test("should lock only the circle, which has one radius to describe two axes", () => {
+      expect(util.keepsAspectRatio(util.create(PARTIALS[ShapeKind.Circle]))).toBe(true)
+      expect(util.keepsAspectRatio(util.create(PARTIALS[ShapeKind.Ellipse]))).toBe(false)
+      expect(util.keepsAspectRatio(util.create(PARTIALS[ShapeKind.Polygon]))).toBe(false)
+    })
+  })
+
   describe("path attributes", () => {
     test("should orient the ellipse, the one kind that needs it", () => {
       const path = util.getSVGElement(util.create(PARTIALS[ShapeKind.Ellipse])).querySelector("path")
