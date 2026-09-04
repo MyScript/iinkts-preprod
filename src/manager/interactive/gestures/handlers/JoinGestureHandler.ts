@@ -7,7 +7,7 @@ import type { GestureHelpers } from "@/manager/interactive/gestures/GestureHelpe
 import type { TGesture } from "@/manager/interactive/gestures/GestureTypes"
 import type { TStroke, TText } from "@/symbol"
 import { cloneSymbol, isText, type TSymbol } from "@/symbol"
-import { TextOps } from "@/symbol/text/Text"
+import { TextOps } from "@/symbol/typeset/Text"
 /**
  * Handler for JOIN gesture type
  * Joins rows of text together by removing line breaks

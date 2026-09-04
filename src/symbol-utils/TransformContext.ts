@@ -1,6 +1,6 @@
 import type { MatrixTransform, TPoint } from "@/core/geometry"
-import type { TMath } from "@/symbol/math/Math"
-import type { TText } from "@/symbol/text/Text"
+import type { TMath } from "@/symbol/typeset/Math"
+import type { TText } from "@/symbol/typeset/Text"
 
 /**
  * The measuring service text and math need once they have moved.

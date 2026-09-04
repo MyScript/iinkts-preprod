@@ -6,7 +6,7 @@ import type { TIIHistoryChanges } from "@/history"
 import type { TDecorator, TStroke, TText } from "@/symbol"
 import { cloneSymbol, isText, SymbolType, type TSymbol } from "@/symbol"
 import { StrokeOps } from "@/symbol/stroke/Stroke"
-import { TextOps } from "@/symbol/text/Text"
+import { TextOps } from "@/symbol/typeset/Text"
 
 import { GestureHandler } from "../GestureHandler"
 import type { GestureHelpers } from "../GestureHelpers"
