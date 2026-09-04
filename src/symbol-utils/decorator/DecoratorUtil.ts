@@ -10,6 +10,105 @@ import { SVGBuilder } from "../SVGBuilder"
 import { SymbolUtil } from "../SymbolUtil"
 
 /**
+ * How one kind of decorator is drawn.
+ *
+ * Not the shared `TKindDefinition` used by the shape and edge tables: a decorator does not produce
+ * a path string but a whole element, and it needs the decorated symbol's stroke width and the text
+ * metrics to place itself. Same idea, different contract.
+ */
+type TDecoratorKindDefinition = {
+  /** Attributes this kind layers over the shared ones. */
+  attributes(decorator: TDecorator): Record<string, string>
+  /** The element this kind draws. */
+  render(context: TDecoratorRenderContext, attrs: { [key: string]: string }): SVGGeometryElement
+}
+
+/** What every kind needs to place itself, resolved once before the table is consulted. */
+type TDecoratorRenderContext = {
+  box: TBox
+  /** From the decorated symbol, not the decorator: it is what the decoration has to clear. */
+  strokeWidth: number
+  baseline?: number
+  xHeight?: number
+}
+
+/** The attributes shared by every decoration drawn as an outline — all of them but the highlight. */
+function outlineAttributes(decorator: TDecorator): Record<string, string> {
+  return {
+    fill: "transparent",
+    stroke: decorator.style.color || DefaultStyle.color!,
+    "stroke-width": (decorator.style.width || DefaultStyle.width).toString(),
+  }
+}
+
+/** The decorated bounds grown by one symbol stroke width on every side. */
+function inflatedBox({ box, strokeWidth }: TDecoratorRenderContext): TBox {
+  return {
+    x: box.x - +strokeWidth,
+    y: box.y - +strokeWidth,
+    width: box.width + +strokeWidth * 2,
+    height: box.height + +strokeWidth * 2,
+  }
+}
+
+/**
+ * A line spanning the decorated bounds.
+ *
+ * `fallbackY` places it from the bounding box; when the text metrics are there the line follows the
+ * baseline instead, which is what keeps an underline under the glyphs rather than under the box
+ * their ascenders inflate. Both metrics are required — one alone says nothing.
+ */
+function horizontalLine(
+  context: TDecoratorRenderContext,
+  fallbackY: number,
+  fromBaseline: (baseline: number, xHeight: number) => number,
+  attrs: { [key: string]: string }
+): SVGGeometryElement {
+  const { box, baseline, xHeight } = context
+  const y = baseline !== undefined && xHeight !== undefined ? fromBaseline(baseline, xHeight) : fallbackY
+  return SVGBuilder.createLine({ x: box.x, y }, { x: box.x + box.width, y }, attrs)
+}
+
+/**
+ * The decorator kinds this util can draw, and how. Adding a kind is adding an entry.
+ *
+ * The `switch` this replaced repeated the outline attributes in three of its four branches and
+ * built the same inflated rect in two of them.
+ */
+const DECORATOR_KINDS: Partial<Record<DecoratorKind, TDecoratorKindDefinition>> = {
+  [DecoratorKind.Highlight]: {
+    // The one kind that fills rather than outlines, and the one that overrides the decorator's own
+    // opacity: a highlight is a wash, and 0.5 is what keeps the decorated symbol readable through
+    // it.
+    attributes: (decorator) => ({
+      opacity: "0.5",
+      stroke: "transparent",
+      fill: decorator.style.color || DefaultStyle.color!,
+    }),
+    render: (context, attrs) => SVGBuilder.createRect(inflatedBox(context), attrs),
+  },
+  [DecoratorKind.Surround]: {
+    attributes: outlineAttributes,
+    render: (context, attrs) => SVGBuilder.createRect(inflatedBox(context), attrs),
+  },
+  [DecoratorKind.Strikethrough]: {
+    attributes: outlineAttributes,
+    render: (context, attrs) =>
+      horizontalLine(context, context.box.y + context.box.height / 2, (baseline, xHeight) => baseline - xHeight, attrs),
+  },
+  [DecoratorKind.Underline]: {
+    attributes: outlineAttributes,
+    render: (context, attrs) =>
+      horizontalLine(
+        context,
+        context.box.y + context.box.height + +context.strokeWidth,
+        (baseline, xHeight) => baseline + xHeight,
+        attrs
+      ),
+  },
+}
+
+/**
  * @group SymbolUtils
  */
 export class DecoratorUtil extends SymbolUtil<TDecorator> {
@@ -77,7 +176,13 @@ export class DecoratorUtil extends SymbolUtil<TDecorator> {
       color?: string
     }
   ): SVGGeometryElement | undefined {
-    const { x, y, width, height } = OBBOps.toBox(bounds)
+    const definition = DECORATOR_KINDS[decorator.kind]
+    if (!definition) {
+      // Skipped rather than thrown on, unlike the shape and edge utils: this runs over every
+      // decorated symbol on every redraw, and one unknown kind must not abort the frame.
+      return undefined
+    }
+
     const attrs: { [key: string]: string } = {
       id: decorator.id,
       type: "decorator",
@@ -89,69 +194,15 @@ export class DecoratorUtil extends SymbolUtil<TDecorator> {
     if (decorator.style.opacity) {
       attrs["opacity"] = decorator.style.opacity.toString()
     }
+    // Layered after, so a kind may override a shared attribute. The highlight does exactly that.
+    Object.assign(attrs, definition.attributes(decorator))
 
-    const strokeWidth = symbolStyle?.width || DefaultStyle.width
-
-    switch (decorator.kind) {
-      case DecoratorKind.Highlight: {
-        attrs["opacity"] = "0.5"
-        attrs["stroke"] = "transparent"
-        attrs["fill"] = decorator.style.color || DefaultStyle.color!
-        const boundingBox: TBox = {
-          x: x - +strokeWidth,
-          y: y - +strokeWidth,
-          height: height + +strokeWidth * 2,
-          width: width + +strokeWidth * 2,
-        }
-        return SVGBuilder.createRect(boundingBox, attrs)
-      }
-      case DecoratorKind.Surround: {
-        attrs["fill"] = "transparent"
-        attrs["stroke"] = decorator.style.color || DefaultStyle.color!
-        attrs["stroke-width"] = (decorator.style.width || DefaultStyle.width).toString()
-        const boundingBox: TBox = {
-          x: x - +strokeWidth,
-          y: y - +strokeWidth,
-          height: height + +strokeWidth * 2,
-          width: width + +strokeWidth * 2,
-        }
-        return SVGBuilder.createRect(boundingBox, attrs)
-      }
-      case DecoratorKind.Strikethrough: {
-        attrs["fill"] = "transparent"
-        attrs["stroke"] = decorator.style.color || DefaultStyle.color!
-        attrs["stroke-width"] = (decorator.style.width || DefaultStyle.width).toString()
-        const p1 = { x, y: y + height / 2 }
-        const p2 = {
-          x: x + width,
-          y: y + height / 2,
-        }
-        if (baseline !== undefined && xHeight !== undefined) {
-          p1.y = baseline - xHeight
-          p2.y = baseline - xHeight
-        }
-        return SVGBuilder.createLine(p1, p2, attrs)
-      }
-      case DecoratorKind.Underline: {
-        attrs["fill"] = "transparent"
-        attrs["stroke"] = decorator.style.color || DefaultStyle.color!
-        attrs["stroke-width"] = (decorator.style.width || DefaultStyle.width).toString()
-        const p1 = {
-          x,
-          y: y + height + +strokeWidth,
-        }
-        const p2 = {
-          x: x + width,
-          y: y + height + +strokeWidth,
-        }
-        if (baseline !== undefined && xHeight !== undefined) {
-          p1.y = baseline + xHeight
-          p2.y = baseline + xHeight
-        }
-        return SVGBuilder.createLine(p1, p2, attrs)
-      }
-      default:
-        return undefined
+    const context: TDecoratorRenderContext = {
+      box: OBBOps.toBox(bounds),
+      strokeWidth: symbolStyle?.width || DefaultStyle.width,
+      baseline,
+      xHeight,
     }
+    return definition.render(context, attrs)
   }
 }
