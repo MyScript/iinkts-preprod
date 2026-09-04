@@ -145,6 +145,9 @@ export class DecoratorUtil extends SymbolUtil<TDecorator> {
   /** Nothing, for the same reason {@link translate} does nothing. */
   rotate(): void {}
 
+  /** Nothing, for the same reason {@link translate} does nothing. */
+  resize(): void {}
+
   getSnapPoints(decorator: TDecorator): TPoint[] {
     return decorator.snapPoints
   }

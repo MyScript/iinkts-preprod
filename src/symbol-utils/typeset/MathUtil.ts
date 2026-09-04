@@ -10,7 +10,8 @@ import { SymbolType } from "@/symbol/Symbol"
 import { DecoratorUtil } from "../decorator/DecoratorUtil"
 import { SVGBuilder } from "../SVGBuilder"
 import { SymbolUtil } from "../SymbolUtil"
-import type { TRotateContext, TTranslateContext } from "../TransformContext"
+import type { TResizeContext, TRotateContext, TTranslateContext } from "../TransformContext"
+import { scaleTypesetGeometry, typesetFontScale } from "../typesetGeometry"
 
 const noSelection =
   "pointer-events: none; -webkit-touch-callout: none; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;"
@@ -63,6 +64,13 @@ export class MathUtil extends SymbolUtil<TMath> {
       degree: convertRadianToDegree(MatrixTransform.rotation(matrix)) + (math.rotation?.degree || 0),
       center,
     }
+  }
+
+  resize(math: TMath, { matrix }: TResizeContext): void {
+    scaleTypesetGeometry(math, matrix)
+    const scale = typesetFontScale(matrix)
+    math.elements.forEach((element) => (element.fontSize = +(element.fontSize * scale).toFixed(3)))
+    MathOps.updateDerivedFields(math)
   }
 
   getSVGElement(math: TMath): SVGGraphicsElement {

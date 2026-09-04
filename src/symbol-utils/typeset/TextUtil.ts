@@ -10,7 +10,8 @@ import { TextOps, type TText } from "@/symbol/text/Text"
 import { DecoratorUtil } from "../decorator/DecoratorUtil"
 import { SVGBuilder } from "../SVGBuilder"
 import { SymbolUtil } from "../SymbolUtil"
-import type { TRotateContext, TTranslateContext } from "../TransformContext"
+import type { TResizeContext, TRotateContext, TTranslateContext } from "../TransformContext"
+import { scaleTypesetGeometry, typesetFontScale } from "../typesetGeometry"
 
 const noSelection =
   "pointer-events: none; -webkit-touch-callout: none; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;"
@@ -56,6 +57,13 @@ export class TextUtil extends SymbolUtil<TText> {
       center,
     }
     typeset.updateBounds(text)
+  }
+
+  resize(text: TText, { matrix }: TResizeContext): void {
+    scaleTypesetGeometry(text, matrix)
+    const scale = typesetFontScale(matrix)
+    text.chars.forEach((char) => (char.fontSize = +(char.fontSize * scale).toFixed(3)))
+    TextOps.updateDerivedFields(text)
   }
 
   getSVGElement(text: TText): SVGGraphicsElement {

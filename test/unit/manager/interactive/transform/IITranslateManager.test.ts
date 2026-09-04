@@ -23,6 +23,7 @@ import {
   SymbolUtil,
   TBaseSymbol,
   TPartialDeep,
+  TResizeContext,
   TRotateContext,
   TTranslateContext,
   applyMatrixToPoint,
@@ -639,6 +640,9 @@ describe("IITranslateManager.ts", () => {
           symbol.point = applyMatrixToPoint(symbol.point, matrix)
         }
         rotate(symbol: TStickyNote, { matrix }: TRotateContext): void {
+          symbol.point = applyMatrixToPoint(symbol.point, matrix)
+        }
+        resize(symbol: TStickyNote, { matrix }: TResizeContext): void {
           symbol.point = applyMatrixToPoint(symbol.point, matrix)
         }
         getSVGElement(): SVGGraphicsElement {

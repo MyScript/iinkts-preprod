@@ -18,11 +18,12 @@ import {
   moveByPoints,
   moveEndpoints,
   resolveKind,
+  scaleCentreAboutOrigin,
   type TKindDefinition,
 } from "../KindDefinition"
 import { SVGBuilder } from "../SVGBuilder"
 import { SymbolUtil } from "../SymbolUtil"
-import type { TRotateContext, TTranslateContext } from "../TransformContext"
+import type { TResizeContext, TRotateContext, TTranslateContext } from "../TransformContext"
 import { arrowHeadEndMarkerId, arrowHeadStartMarkerId } from "./EdgeRenderOptions"
 
 /**
@@ -43,6 +44,21 @@ const EDGE_KINDS: Partial<Record<EdgeKind, TKindDefinition<TEdge>>> = {
       edge.phi = (edge.phi - MatrixTransform.rotation(matrix)) % TWO_PI
       moveByCentre(edge, matrix)
     },
+    // The first of the two trigonometric cells. A negative scale factor mirrors the arc, which for
+    // a swept arc means re-basing the start angle and reversing the sweep.
+    resize: (edge, matrix, origin) => {
+      const cos = Math.cos(edge.phi)
+      const sin = Math.sin(edge.phi)
+      scaleCentreAboutOrigin(edge, matrix, origin, edge.phi)
+      edge.radiusX = +(edge.radiusX * Math.abs(matrix.xx * cos + matrix.yy * sin)).toFixed(3)
+      edge.radiusY = +(edge.radiusY * Math.abs(matrix.xx * sin + matrix.yy * cos)).toFixed(3)
+      if (matrix.xx < 0) {
+        edge.startAngle = +(Math.PI - edge.startAngle).toFixed(3)
+        edge.sweepAngle *= -1
+      } else if (matrix.yy < 0) {
+        edge.sweepAngle *= -1
+      }
+    },
   }),
   [EdgeKind.Line]: defineKind<TEdge, TEdgeLine>({
     create: (partial) => EdgeLineOps.createFromPartial(partial),
@@ -52,6 +68,7 @@ const EDGE_KINDS: Partial<Record<EdgeKind, TKindDefinition<TEdge>>> = {
     getResizePoints: (edge) => EdgeLineOps.getResizePoints(edge),
     translate: moveEndpoints,
     rotate: moveEndpoints,
+    resize: moveEndpoints,
   }),
   [EdgeKind.PolyEdge]: defineKind<TEdge, TEdgePolyLine>({
     create: (partial) => EdgePolyLineOps.createFromPartial(partial),
@@ -61,6 +78,7 @@ const EDGE_KINDS: Partial<Record<EdgeKind, TKindDefinition<TEdge>>> = {
     getResizePoints: (edge) => EdgePolyLineOps.getResizePoints(edge),
     translate: moveByPoints,
     rotate: moveByPoints,
+    resize: moveByPoints,
   }),
 }
 
@@ -97,6 +115,11 @@ export class EdgeUtil extends SymbolUtil<TEdge> {
 
   rotate(edge: TEdge, { matrix }: TRotateContext): void {
     resolveKind(EDGE_KINDS, edge.kind, "edge", "rotate").rotate(edge, matrix)
+    this.updateDerivedFields(edge)
+  }
+
+  resize(edge: TEdge, { matrix, origin }: TResizeContext): void {
+    resolveKind(EDGE_KINDS, edge.kind, "edge", "resize").resize(edge, matrix, origin)
     this.updateDerivedFields(edge)
   }
 

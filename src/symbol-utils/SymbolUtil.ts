@@ -3,7 +3,7 @@ import type { TPoint } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import type { TBaseSymbol, TResizePoint } from "@/symbol/Symbol"
 
-import type { TRotateContext, TTranslateContext } from "./TransformContext"
+import type { TResizeContext, TRotateContext, TTranslateContext } from "./TransformContext"
 /**
  * @group SymbolUtils
  * @summary Plugin interface for registering symbol behaviour.
@@ -22,6 +22,7 @@ import type { TRotateContext, TTranslateContext } from "./TransformContext"
  *   overlaps(s, box) { ... }
  *   translate(s, { matrix }) { ... }
  *   rotate(s, { matrix }) { ... }
+ *   resize(s, { matrix }) { ... }
  *   getSVGElement(s) { ... }
  * }
  * symbolRegistry.register(new StickyNoteUtil())
@@ -49,6 +50,12 @@ export abstract class SymbolUtil<T extends TBaseSymbol> {
    * {@link translate} is.
    */
   abstract rotate(symbol: T, context: TRotateContext): void
+
+  /**
+   * Scales this symbol, leaving it derived-consistent. Required for the same reason
+   * {@link translate} is.
+   */
+  abstract resize(symbol: T, context: TResizeContext): void
 
   getSnapPoints(_symbol: T): TPoint[] {
     return []

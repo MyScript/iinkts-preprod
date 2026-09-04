@@ -11,10 +11,17 @@ import type { TShape } from "@/symbol/shape/Shape"
 import { ShapeKind } from "@/symbol/shape/Shape-enum"
 import { SymbolType } from "@/symbol/Symbol"
 
-import { defineKind, moveByCentre, moveByPoints, resolveKind, type TKindDefinition } from "../KindDefinition"
+import {
+  defineKind,
+  moveByCentre,
+  moveByPoints,
+  resolveKind,
+  scaleCentreAboutOrigin,
+  type TKindDefinition,
+} from "../KindDefinition"
 import { SVGBuilder } from "../SVGBuilder"
 import { SymbolUtil } from "../SymbolUtil"
-import type { TRotateContext, TTranslateContext } from "../TransformContext"
+import type { TResizeContext, TRotateContext, TTranslateContext } from "../TransformContext"
 
 /**
  * The shape kinds this util can build, and how.
@@ -34,6 +41,11 @@ const SHAPE_KINDS: Partial<Record<ShapeKind, TKindDefinition<TShape>>> = {
     // A circle has no orientation of its own, so turning it is moving its centre.
     translate: moveByCentre,
     rotate: moveByCentre,
+    // A circle scales to a circle: one radius, from the mean of the two scale factors.
+    resize: (shape, matrix) => {
+      shape.radius = +((shape.radius * (matrix.xx + matrix.yy)) / 2).toFixed(3)
+      moveByCentre(shape, matrix)
+    },
   }),
   [ShapeKind.Ellipse]: defineKind<TShape, TShapeEllipse>({
     create: (partial) => ShapeEllipseOps.createFromPartial(partial),
@@ -46,6 +58,15 @@ const SHAPE_KINDS: Partial<Record<ShapeKind, TKindDefinition<TShape>>> = {
     rotate: (shape, matrix) => {
       moveByCentre(shape, matrix)
       shape.orientation = (shape.orientation + MatrixTransform.rotation(matrix)) % TWO_PI
+    },
+    // The second of the two trigonometric cells: an oriented ellipse scales along its own axes, so
+    // its centre moves about the origin rather than through the matrix.
+    resize: (shape, matrix, origin) => {
+      const cos = Math.cos(shape.orientation)
+      const sin = Math.sin(shape.orientation)
+      scaleCentreAboutOrigin(shape, matrix, origin, shape.orientation)
+      shape.radiusX = +Math.abs(shape.radiusX * (matrix.xx * cos - matrix.yy * sin)).toFixed(3)
+      shape.radiusY = +Math.abs(shape.radiusY * (matrix.xx * sin + matrix.yy * cos)).toFixed(3)
     },
     // The ellipse is the only kind whose path needs orienting, and this is where that used to live
     // as an `if (shape.kind === ShapeKind.Ellipse)` inside the shared `getSVGElement`.
@@ -60,6 +81,7 @@ const SHAPE_KINDS: Partial<Record<ShapeKind, TKindDefinition<TShape>>> = {
     getSVGPath: (shape) => ShapePolygonOps.getSVGPath(shape),
     translate: moveByPoints,
     rotate: moveByPoints,
+    resize: moveByPoints,
   }),
 }
 
@@ -92,6 +114,11 @@ export class ShapeUtil extends SymbolUtil<TShape> {
 
   rotate(shape: TShape, { matrix }: TRotateContext): void {
     resolveKind(SHAPE_KINDS, shape.kind, "shape", "rotate").rotate(shape, matrix)
+    this.updateDerivedFields(shape)
+  }
+
+  resize(shape: TShape, { matrix, origin }: TResizeContext): void {
+    resolveKind(SHAPE_KINDS, shape.kind, "shape", "resize").resize(shape, matrix, origin)
     this.updateDerivedFields(shape)
   }
 
