@@ -18,7 +18,8 @@ Symbols are frozen when committed and handed to readers directly, instead of the
 - `SymbolUtil.resize(symbol, context)` is abstract; a custom util that omits it no longer compiles
 - new: `TResizeContext` (`{ matrix, origin }`). `origin` was gesture state on the manager (`transformOrigin!: TPoint`); the ellipse and the arc need it because they scale their centre about it by hand
 - **no `typeset` port**, unlike translate and rotate: resizing a typeset symbol rebuilds its bounds from the scale factors instead of re-measuring it in the DOM. Inherited from `IIResizeManager` and preserved
-- `IIResizeManager.applyOnTypeset` handled text and math together and branched on `isText(symbol)` twice — once for the font list, once for the derive. Splitting it across the two utils removes both type tests
+- `IIResizeManager.applyOnTypeset` handled text and math together and branched on `isText(symbol)` twice — once for the font list, once for the derive. Both type tests are gone
+- new: `TypesetUtil`, an abstract util `TextUtil` and `MathUtil` now extend, in `src/symbol-utils/typeset/`. `TText` and `TMath` are the same shape but for the list they hold, so `rotate` and `resize` are written once on the base; the two subclasses supply `glyphsOf` — a text's characters, a math's elements — and their own `translate`. Its type parameter is constrained to `TText | TMath`, since the typeset service that measures them handles only those two
 - all three transform managers word an unknown kind the same way again: `Unable to resize shape, kind: "x" is unknown`
 - see [MIGRATION.md](./MIGRATION.md)
 

@@ -1,7 +1,5 @@
 import type { TBox } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
-import { applyMatrixToPoint, applyMatrixToPoints, MatrixTransform } from "@/core/geometry"
-import { convertRadianToDegree } from "@/core/math"
 import type { TPartialDeep } from "@/core/std"
 import { DecoratorKind } from "@/symbol/decorator/Decorator"
 import { SymbolType } from "@/symbol/Symbol"
@@ -9,9 +7,8 @@ import { TextOps, type TText } from "@/symbol/text/Text"
 
 import { DecoratorUtil } from "../decorator/DecoratorUtil"
 import { SVGBuilder } from "../SVGBuilder"
-import { SymbolUtil } from "../SymbolUtil"
-import type { TResizeContext, TRotateContext, TTranslateContext } from "../TransformContext"
-import { scaleTypesetGeometry, typesetFontScale } from "../typesetGeometry"
+import type { TRotateContext, TTranslateContext } from "../TransformContext"
+import { TypesetUtil } from "./TypesetUtil"
 
 const noSelection =
   "pointer-events: none; -webkit-touch-callout: none; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;"
@@ -19,7 +16,7 @@ const noSelection =
 /**
  * @group SymbolUtils
  */
-export class TextUtil extends SymbolUtil<TText> {
+export class TextUtil extends TypesetUtil<TText> {
   readonly type = SymbolType.Text
 
   create(partial: TPartialDeep<TText>): TText {
@@ -38,32 +35,23 @@ export class TextUtil extends SymbolUtil<TText> {
     return text.snapPoints
   }
 
+  protected glyphsOf(text: TText): { fontSize: number }[] {
+    return text.chars
+  }
+
   translate(text: TText, { matrix, typeset }: TTranslateContext): void {
-    if (text.rotation) {
-      text.rotation.center = applyMatrixToPoint(text.rotation.center, matrix)
-    }
-    applyMatrixToPoints([text.point], matrix)
-    // Not geometry: bounds come from drawing the text hidden and measuring it, so a service does it.
+    this.moveAnchor(text, matrix)
     typeset.updateBounds(text)
   }
 
   /**
-   * A typeset symbol is turned by recording an angle, not by moving its glyphs — the renderer
-   * applies it as an SVG `rotate`. The angle accumulates, so a second rotation adds to the first.
+   * Records the turn, then re-measures. Math deliberately does not — an asymmetry inherited from
+   * `IIRotationManager`, which called `typeset.updateBounds` for text and returned math untouched.
+   * It is an override here so that the difference is a line of code rather than a missing one.
    */
-  rotate(text: TText, { matrix, center, typeset }: TRotateContext): void {
-    text.rotation = {
-      degree: convertRadianToDegree(MatrixTransform.rotation(matrix)) + (text.rotation?.degree || 0),
-      center,
-    }
-    typeset.updateBounds(text)
-  }
-
-  resize(text: TText, { matrix }: TResizeContext): void {
-    scaleTypesetGeometry(text, matrix)
-    const scale = typesetFontScale(matrix)
-    text.chars.forEach((char) => (char.fontSize = +(char.fontSize * scale).toFixed(3)))
-    TextOps.updateDerivedFields(text)
+  rotate(text: TText, context: TRotateContext): void {
+    super.rotate(text, context)
+    context.typeset.updateBounds(text)
   }
 
   getSVGElement(text: TText): SVGGraphicsElement {

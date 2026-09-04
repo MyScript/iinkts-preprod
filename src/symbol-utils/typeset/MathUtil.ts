@@ -1,7 +1,6 @@
 import type { TBox } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
-import { applyMatrixToPoint, applyMatrixToPoints, MatrixTransform } from "@/core/geometry"
-import { convertRadianToDegree } from "@/core/math"
+import { applyMatrixToPoint, applyMatrixToPoints } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import { DecoratorKind } from "@/symbol/decorator/Decorator"
 import { MathOps, type TMath } from "@/symbol/math/Math"
@@ -9,9 +8,8 @@ import { SymbolType } from "@/symbol/Symbol"
 
 import { DecoratorUtil } from "../decorator/DecoratorUtil"
 import { SVGBuilder } from "../SVGBuilder"
-import { SymbolUtil } from "../SymbolUtil"
-import type { TResizeContext, TRotateContext, TTranslateContext } from "../TransformContext"
-import { scaleTypesetGeometry, typesetFontScale } from "../typesetGeometry"
+import type { TTranslateContext } from "../TransformContext"
+import { TypesetUtil } from "./TypesetUtil"
 
 const noSelection =
   "pointer-events: none; -webkit-touch-callout: none; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;"
@@ -19,7 +17,7 @@ const noSelection =
 /**
  * @group SymbolUtils
  */
-export class MathUtil extends SymbolUtil<TMath> {
+export class MathUtil extends TypesetUtil<TMath> {
   readonly type = SymbolType.Math
 
   create(partial: TPartialDeep<TMath>): TMath {
@@ -38,39 +36,23 @@ export class MathUtil extends SymbolUtil<TMath> {
     return math.snapPoints
   }
 
+  protected glyphsOf(math: TMath): { fontSize: number }[] {
+    return math.elements
+  }
+
+  /**
+   * Moves more than text does: a math symbol's elements each carry their own bounds, and its own
+   * bounds centre is stored rather than derived, so both follow the matrix here.
+   */
   translate(math: TMath, { matrix, typeset }: TTranslateContext): void {
-    if (math.rotation) {
-      math.rotation.center = applyMatrixToPoint(math.rotation.center, matrix)
-    }
-    applyMatrixToPoints([math.point], matrix)
+    this.moveAnchor(math, matrix)
     applyMatrixToPoints([math.bounds.center], matrix)
     math.elements.forEach((element) => {
       const moved = applyMatrixToPoint({ x: element.bounds.x, y: element.bounds.y }, matrix)
       element.bounds.x = moved.x
       element.bounds.y = moved.y
     })
-    // Not geometry: bounds come from drawing the math hidden and measuring it, so a service does it.
     typeset.updateBounds(math)
-  }
-
-  /**
-   * Records an angle, like text does. Unlike text it does **not** re-measure: `IIRotationManager`
-   * called `typeset.updateBounds` for text and returned math untouched, and that asymmetry is
-   * preserved here rather than quietly evened out — evening it up is a behaviour change, and this
-   * ticket only moves code.
-   */
-  rotate(math: TMath, { matrix, center }: TRotateContext): void {
-    math.rotation = {
-      degree: convertRadianToDegree(MatrixTransform.rotation(matrix)) + (math.rotation?.degree || 0),
-      center,
-    }
-  }
-
-  resize(math: TMath, { matrix }: TResizeContext): void {
-    scaleTypesetGeometry(math, matrix)
-    const scale = typesetFontScale(matrix)
-    math.elements.forEach((element) => (element.fontSize = +(element.fontSize * scale).toFixed(3)))
-    MathOps.updateDerivedFields(math)
   }
 
   getSVGElement(math: TMath): SVGGraphicsElement {
