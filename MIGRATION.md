@@ -189,6 +189,22 @@ stroke width.
 left out rather than padded, because the server pairs pointers by index across the arrays and a short
 column would attach the wrong values to the wrong points.
 
+### Resize handles come from the symbol's util
+
+```diff
+- import { EdgeOps } from "iink-ts"
+- EdgeOps.getEdgeResizePoints(edge)
++ import { symbolRegistry } from "iink-ts"
++ symbolRegistry.getUtilFor(symbol).getResizePoints(symbol)
+```
+
+The replacement is not edge-specific: it answers for any symbol type, and a custom util can now
+offer per-vertex handles by overriding `getResizePoints`. It returns an empty list by default, which
+is what every built-in but the edges does.
+
+`TResizePoint` names the `{ point, vertexIndex }` shape the three edge `Ops` already returned. It is
+structural, so nothing has to change to adopt it.
+
 ### A custom `SymbolUtil` must implement `getSVGElement`
 
 It was optional in v4, which meant a util could be registered and accepted while drawing nothing —

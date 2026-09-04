@@ -8,7 +8,7 @@ import type { TEdge } from "@/symbol/edge/Edge"
 import { EdgeKind } from "@/symbol/edge/Edge-enum"
 import { EdgeLineOps, type TEdgeLine } from "@/symbol/edge/Line"
 import { EdgePolyLineOps, type TEdgePolyLine } from "@/symbol/edge/PolyLine"
-import { SymbolType } from "@/symbol/Symbol"
+import { SymbolType, type TResizePoint } from "@/symbol/Symbol"
 
 import { defineKind, resolveKind, type TKindDefinition } from "../KindDefinition"
 import { SVGBuilder } from "../SVGBuilder"
@@ -25,18 +25,21 @@ const EDGE_KINDS: Partial<Record<EdgeKind, TKindDefinition<TEdge>>> = {
     updateDerivedFields: (edge) => EdgeArcOps.updateDerivedFields(edge),
     overlaps: (edge, box) => EdgeArcOps.overlaps(edge, box),
     getSVGPath: (edge) => EdgeArcOps.getSVGPath(edge),
+    getResizePoints: (edge) => EdgeArcOps.getResizePoints(edge),
   }),
   [EdgeKind.Line]: defineKind<TEdge, TEdgeLine>({
     create: (partial) => EdgeLineOps.createFromPartial(partial),
     updateDerivedFields: (edge) => EdgeLineOps.updateDerivedFields(edge),
     overlaps: (edge, box) => EdgeLineOps.overlaps(edge, box),
     getSVGPath: (edge) => EdgeLineOps.getSVGPath(edge),
+    getResizePoints: (edge) => EdgeLineOps.getResizePoints(edge),
   }),
   [EdgeKind.PolyEdge]: defineKind<TEdge, TEdgePolyLine>({
     create: (partial) => EdgePolyLineOps.createFromPartial(partial),
     updateDerivedFields: (edge) => EdgePolyLineOps.updateDerivedFields(edge),
     overlaps: (edge, box) => EdgePolyLineOps.overlaps(edge, box),
     getSVGPath: (edge) => EdgePolyLineOps.getSVGPath(edge),
+    getResizePoints: (edge) => EdgePolyLineOps.getResizePoints(edge),
   }),
 }
 
@@ -60,6 +63,10 @@ export class EdgeUtil extends SymbolUtil<TEdge> {
 
   getSnapPoints(edge: TEdge): TPoint[] {
     return edge.snapPoints
+  }
+
+  getResizePoints(edge: TEdge): TResizePoint[] {
+    return EDGE_KINDS[edge.kind]?.getResizePoints?.(edge) ?? []
   }
 
   static getSVGPath(edge: TEdge): string {
