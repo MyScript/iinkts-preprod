@@ -40,3 +40,19 @@ export type TRotateContext = {
   /** Text consults it; math deliberately does not. See `MathUtil.rotate`. */
   typeset: TTypesetPort
 }
+
+/**
+ * What resizing a symbol needs beyond the symbol itself.
+ *
+ * `origin` is the fixed point of the scale — the corner or edge opposite the handle being dragged.
+ * The ellipse and the arc need it because they scale their centre about it by hand; the kinds that
+ * simply push their points through the matrix do not, since it is already folded in.
+ *
+ * No `typeset` port, unlike {@link TTranslateContext} and {@link TRotateContext}: resizing a
+ * typeset symbol rebuilds its bounds arithmetically from the scale factors rather than re-measuring
+ * it in the DOM. That asymmetry is inherited from `IIResizeManager` and preserved.
+ */
+export type TResizeContext = {
+  matrix: MatrixTransform
+  origin: TPoint
+}

@@ -15,6 +15,7 @@ import {
   TBaseSymbol,
   TPartialDeep,
   TPoint,
+  TResizeContext,
   TRotateContext,
   TTranslateContext,
   applyMatrixToPoint,
@@ -611,6 +612,9 @@ describe("SVGRenderer.ts", () => {
         symbol.point = applyMatrixToPoint(symbol.point, matrix)
       }
       rotate(symbol: TStickyNote, { matrix }: TRotateContext): void {
+        symbol.point = applyMatrixToPoint(symbol.point, matrix)
+      }
+      resize(symbol: TStickyNote, { matrix }: TResizeContext): void {
         symbol.point = applyMatrixToPoint(symbol.point, matrix)
       }
       overlaps(): boolean {
