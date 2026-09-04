@@ -1,5 +1,5 @@
 import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
-import { buildIIStroke } from "../../../helpers"
+import { buildIIStroke, expectDerivedFieldsSettled } from "../../../helpers"
 import {
   DecoratorKind,
   DecoratorOps,
@@ -518,6 +518,28 @@ describe("IITranslateManager.ts", () => {
       const newEdgeStroke = canvas.model.getRootSymbol(edgeStroke.id) as TStroke
       expect(newEdgeStroke.pointers[0]).toEqual(expect.objectContaining({ x: 0, y: 0 }))
       expect(newEdgeStroke.pointers[1]).toEqual(expect.objectContaining({ x: 15, y: 5 }))
+    })
+  })
+
+  /**
+   * IIC-2004 moved the derive out of each `case` and into one call after the switch, asking the
+   * symbol's own util instead of a family dispatcher that re-resolved the kind. Deleting that one
+   * call left every existing test in this file green, so these are what hold it.
+   */
+  describe("derived fields", () => {
+    const canvas = createCanvasMock()
+    const manager = new IITranslateManager(asCanvas(canvas))
+
+    test("should leave a translated circle derived-consistent", () => {
+      const circle = ShapeCircleOps.create({ x: 5, y: 5 }, 4)
+      manager.applyToSymbol(circle, MatrixTransform.identity().translate(10, 15))
+      expectDerivedFieldsSettled(circle)
+    })
+
+    test("should leave a translated line derived-consistent", () => {
+      const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 10, y: 10 })
+      manager.applyToSymbol(line, MatrixTransform.identity().translate(10, 15))
+      expectDerivedFieldsSettled(line)
     })
   })
 })

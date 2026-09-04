@@ -60,20 +60,6 @@ export const EdgeOps = {
 
   /**
    * @group Symbol
-   * @summary Update derived fields (bounds, vertices, snapPoints, edges) for any TEdge.
-   */
-  updateEdgeDerivedFields(edge: TEdge): void {
-    if (EdgeOps.isLineEdge(edge)) {
-      EdgeLineOps.updateDerivedFields(edge)
-    } else if (EdgeOps.isPolyEdge(edge)) {
-      EdgePolyLineOps.updateDerivedFields(edge)
-    } else if (EdgeOps.isArcEdge(edge)) {
-      EdgeArcOps.updateDerivedFields(edge)
-    }
-  },
-
-  /**
-   * @group Symbol
    * @summary Get resize points for any TEdge.
    */
   getEdgeResizePoints(edge: TEdge): { point: TPoint; vertexIndex: number }[] {

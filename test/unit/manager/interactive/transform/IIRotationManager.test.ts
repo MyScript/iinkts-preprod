@@ -1,5 +1,5 @@
 import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
-import { buildIIStroke } from "../../../helpers"
+import { buildIIStroke, expectDerivedFieldsSettled } from "../../../helpers"
 import {
   EdgeLineOps,
   IIConnectorManager,
@@ -386,6 +386,28 @@ describe("IIRotationManager.ts", () => {
       )![0] as typeof edgeStroke
       const newEdgeStroke = canvas.model.getRootSymbol(edgeStroke.id) as TStroke
       expect(newEdgeStroke.pointers).toEqual(previewClone.pointers)
+    })
+  })
+
+  /**
+   * IIC-2004 moved the derive out of each `case` and into one call after the switch, asking the
+   * symbol's own util instead of a family dispatcher that re-resolved the kind. Deleting that one
+   * call left every existing test in this file green, so these are what hold it.
+   */
+  describe("derived fields", () => {
+    const canvas = createCanvasMock()
+    const manager = new IIRotationManager(asCanvas(canvas))
+
+    test("should leave a rotated circle derived-consistent", () => {
+      const circle = ShapeCircleOps.create({ x: 5, y: 5 }, 4)
+      manager.applyToSymbol(circle, MatrixTransform.identity().rotate(Math.PI / 2, { x: 1, y: 2 }))
+      expectDerivedFieldsSettled(circle)
+    })
+
+    test("should leave a rotated line derived-consistent", () => {
+      const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 10, y: 10 })
+      manager.applyToSymbol(line, MatrixTransform.identity().rotate(Math.PI / 2, { x: 1, y: 2 }))
+      expectDerivedFieldsSettled(line)
     })
   })
 })

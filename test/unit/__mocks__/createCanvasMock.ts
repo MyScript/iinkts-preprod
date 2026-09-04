@@ -12,6 +12,7 @@ import { SymbolType } from "@/symbol/Symbol"
 import type { TStroke } from "@/symbol/stroke/Stroke"
 import { DOMFactory } from "@/dom"
 import { CanvasLayer } from "@/canvas/CanvasLayer"
+import { registerBuiltinSymbolUtils } from "@/symbol-utils"
 import { CanvasEventMock } from "./CanvasEventMock"
 
 /**
@@ -155,6 +156,10 @@ export type TCanvasMock = Omit<TInteractiveInkCanvas, "renderer"> & {
  * const canvas = createCanvasMock({ model })
  */
 export function createCanvasMock(overrides: Partial<TCanvasMock> = {}): TCanvasMock {
+  // A real canvas registers the built-in utils in its constructor, and the managers now ask the
+  // registry for a symbol's behaviour rather than calling a family dispatcher. A mock canvas that
+  // skipped this would hand its managers a registry no real canvas ever gives them.
+  registerBuiltinSymbolUtils()
   const configuration =
     overrides.configuration ??
     new InteractiveInkCanvasConfiguration(JSON.parse(JSON.stringify(DefaultInteractiveInkCanvasConfiguration)))
