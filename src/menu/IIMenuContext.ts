@@ -4,7 +4,7 @@ import { DOMFactory } from "@/dom"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { TStroke, TSymbol, TText } from "@/symbol"
 import { isStroke, isText } from "@/symbol"
-import { TextOps } from "@/symbol/text/Text"
+import { TextOps } from "@/symbol/typeset/Text"
 
 import type {
   TContextDecoratorConfig,
