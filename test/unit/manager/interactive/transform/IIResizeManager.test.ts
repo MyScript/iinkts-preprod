@@ -1,5 +1,5 @@
 import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
-import { buildIIStroke } from "../../../helpers"
+import { buildIIStroke, expectDerivedFieldsSettled } from "../../../helpers"
 import {
   EdgeArcOps,
   EdgeLineOps,
@@ -604,6 +604,28 @@ describe("IIResizeManager.ts", () => {
       expect(oldSnapshot).toBeDefined()
       expect(oldSnapshot!.pointers).toEqual(originalPointers)
       expect(changes.updated?.newSymbols.find((s) => s.id === newEdgeStroke.id)).toStrictEqual(newEdgeStroke)
+    })
+  })
+
+  /**
+   * IIC-2004 moved the derive out of each `case` and into one call after the switch, asking the
+   * symbol's own util instead of a family dispatcher that re-resolved the kind. Deleting that one
+   * call left every existing test in this file green, so these are what hold it.
+   */
+  describe("derived fields", () => {
+    const canvas = createCanvasMock()
+    const manager = new IIResizeManager(asCanvas(canvas))
+
+    test("should leave a resized circle derived-consistent", () => {
+      const circle = ShapeCircleOps.create({ x: 5, y: 5 }, 4)
+      manager.applyToSymbol(circle, MatrixTransform.identity().scale(2, 3, { x: 1, y: 2 }))
+      expectDerivedFieldsSettled(circle)
+    })
+
+    test("should leave a resized line derived-consistent", () => {
+      const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 10, y: 10 })
+      manager.applyToSymbol(line, MatrixTransform.identity().scale(2, 3, { x: 1, y: 2 }))
+      expectDerivedFieldsSettled(line)
     })
   })
 })

@@ -189,6 +189,28 @@ stroke width.
 left out rather than padded, because the server pairs pointers by index across the arrays and a short
 column would attach the wrong values to the wrong points.
 
+### Derived fields come from the symbol's util
+
+The two family dispatchers are gone. They did nothing but resolve a kind that the util resolves
+anyway, so a transform paid for the same dispatch twice.
+
+```diff
+- import { ShapeOps, EdgeOps } from "iink-ts"
+- ShapeOps.updateShapeDerivedFields(shape)
+- EdgeOps.updateEdgeDerivedFields(edge)
++ import { symbolRegistry } from "iink-ts"
++ symbolRegistry.getUtilFor(symbol).updateDerivedFields(symbol)
+```
+
+The replacement is not per-family: one call covers strokes, text, math and any type you registered
+yourself, which the two removed functions never could.
+
+`getUtilFor` throws when no util owns the symbol's type, where `getUtil(type)` returns `undefined`.
+That is deliberate — a derive that is silently skipped leaves stale `bounds` behind a symbol whose
+own coordinates still read correctly, and the damage surfaces later in hit-testing. If you drive a
+transform manager yourself, without a canvas, call `registerBuiltinSymbolUtils()` first; both
+canvases already do it in their constructor.
+
 ### Internal layout: `src/utils/` no longer exists
 
 **If you import from `iink-ts` and nothing else, this section does not apply to you.** The package's
