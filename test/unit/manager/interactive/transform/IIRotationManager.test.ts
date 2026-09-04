@@ -6,6 +6,10 @@ import {
   IIRotationManager,
   EdgeArcOps,
   ShapeEllipseOps,
+  BoxOps,
+  MathUtil,
+  TBox,
+  TextUtil,
   MatrixTransform,
   OBBOps,
   ShapeCircleOps,
@@ -514,14 +518,74 @@ describe("IIRotationManager, the cells that are rotation-specific", () => {
     expect(symbol.rotation?.degree).toBeCloseTo(180, 10)
   })
 
-  test("text should be re-measured, and math deliberately should not", () => {
-    // An asymmetry inherited from IIRotationManager, which re-measured text after a turn and
-    // returned math untouched. Pinned rather than quietly evened out: levelling it is a behaviour
-    // change, and IIC-2012 only moved code.
-    const text = buildIIText({ point: { x: 0, y: 0 } })
-    expect(rotate(text).typeset.setBounds).toHaveBeenCalledWith(text)
+  test.each([
+    ["text", () => buildIIText({ point: { x: 0, y: 0 } })],
+    ["math", () => buildIIMath()],
+  ])("%s should be re-derived without being re-measured", (_name, build) => {
+    // This asserted the opposite until the box was fixed: that text was re-measured after a turn
+    // and math was not. IIC-2012 pinned that asymmetry as inherited and deliberate, and it was
+    // neither. The text call set `bounds.angle` and nothing else — a typeset symbol's box is
+    // measured from its unrotated glyphs, so it cannot depend on the angle — while math was left
+    // never updating its derived fields, which is why a rotated math block could not be surrounded.
+    const symbol = build()
+    const canvas = rotate(symbol)
 
-    const math = buildIIMath()
-    expect(rotate(math).typeset.setBounds).not.toHaveBeenCalled()
+    expect(canvas.typeset.setBounds).not.toHaveBeenCalled()
+    expect(symbol.bounds.angle).toBeCloseTo(90, 10)
+    expect(symbol.vertices.length).toBe(4)
+  })
+})
+
+/**
+ * The symptom this ticket was reported for: after rotating a typeset symbol, surrounding it no
+ * longer selected it, because `overlaps` reads `vertices` and those described the renderer's quad
+ * mirrored about the rotation centre.
+ *
+ * This closes the loop the coordinate tests leave open — from the gesture to the predicate the
+ * selection actually asks.
+ */
+describe("surrounding a rotated typeset symbol", () => {
+  const rotateQuarterTurn = (symbol: TSymbol) => {
+    const canvas = createCanvasMock()
+    const manager = new IIRotationManager(asCanvas(canvas))
+    manager.center = { x: 0, y: 0 }
+    manager.applyToSymbol(symbol, MatrixTransform.identity().rotate(Math.PI / 2, manager.center))
+  }
+
+  /** A generous box around a set of points, as a lasso would produce. */
+  const boxAround = (points: TPoint[]): TBox => {
+    const box = BoxOps.createFromPoints(points)
+    return { x: box.x - 5, y: box.y - 5, width: box.width + 10, height: box.height + 10 }
+  }
+
+  test.each([
+    ["text", () => buildIIText({ point: { x: 10, y: 20 } }), () => new TextUtil()],
+    ["math", () => buildIIMath("y=3x+2", { point: { x: 10, y: 20 } }), () => new MathUtil()],
+  ])("a rotated %s should be selected where it is drawn", (_name, build, buildUtil) => {
+    const symbol = build()
+    rotateQuarterTurn(symbol)
+
+    // Where the renderer puts it: rotate(90, 0, 0) sends (x, y) to (−y, x).
+    const drawn = BoxOps.getCorners(OBBOps.toUnrotatedBox(symbol.bounds)).map((corner) => ({
+      x: -corner.y,
+      y: corner.x,
+    }))
+    expect(buildUtil().overlaps(symbol as never, boxAround(drawn))).toBe(true)
+  })
+
+  test.each([
+    ["text", () => buildIIText({ point: { x: 10, y: 20 } }), () => new TextUtil()],
+    ["math", () => buildIIMath("y=3x+2", { point: { x: 10, y: 20 } }), () => new MathUtil()],
+  ])("a rotated %s should not be selected where it used to be reported", (_name, build, buildUtil) => {
+    // The other half, and the one that would have caught this: the mirrored position must miss.
+    // Without it, a box merely large enough would satisfy the test above whichever sign was used.
+    const symbol = build()
+    rotateQuarterTurn(symbol)
+
+    const mirrored = BoxOps.getCorners(OBBOps.toUnrotatedBox(symbol.bounds)).map((corner) => ({
+      x: corner.y,
+      y: -corner.x,
+    }))
+    expect(buildUtil().overlaps(symbol as never, boxAround(mirrored))).toBe(false)
   })
 })

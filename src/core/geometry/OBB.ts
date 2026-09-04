@@ -69,6 +69,24 @@ export const OBBOps = {
     return BoxOps.createFromPoints(corners)
   },
 
+  /**
+   * The box the OBB describes *before* its own rotation — centre, width and height, angle ignored.
+   *
+   * {@link toBox} cannot serve this: for a non-zero angle it returns the axis-aligned **envelope**
+   * of the rotated box, which is strictly larger. Both are wanted, for different questions — the
+   * envelope for "what area does this cover on screen", this one for "what box is being rotated".
+   * Conflating them was IIC-1999's sibling: a typeset symbol's derived vertices were built from the
+   * envelope and then rotated again, so the rotation was counted twice.
+   */
+  toUnrotatedBox(obb: TOBB): TBox {
+    return {
+      x: obb.center.x - obb.width / 2,
+      y: obb.center.y - obb.height / 2,
+      width: obb.width,
+      height: obb.height,
+    }
+  },
+
   createFromPoints(points: TPoint[]): TOBB {
     return OBBOps.fromBox(BoxOps.createFromPoints(points))
   },
