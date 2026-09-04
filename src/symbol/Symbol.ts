@@ -4,10 +4,10 @@ import type { TStyle } from "@/style"
 
 import type { TDecorator } from "./decorator/Decorator"
 import type { TEdge } from "./edge/Edge"
-import type { TMath } from "./math/Math"
 import type { TShape } from "./shape/Shape"
 import type { TStroke } from "./stroke/Stroke"
-import type { TText } from "./text/Text"
+import type { TMath } from "./typeset/Math"
+import type { TText } from "./typeset/Text"
 
 /**
  * @group Symbol

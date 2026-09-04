@@ -27,10 +27,8 @@
 export * from "./decorator"
 export * from "./edge"
 export * from "./eraser"
-export * from "./math"
 export * from "./shape"
 export * from "./stroke"
-export * from "./text"
 export * from "./typeset"
 
 // Root union type + enum re-exports

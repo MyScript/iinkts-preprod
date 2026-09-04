@@ -1,7 +1,7 @@
 import { applyMatrixToPoint, applyMatrixToPoints, MatrixTransform } from "@/core/geometry"
 import { convertRadianToDegree } from "@/core/math"
-import type { TMath } from "@/symbol/math/Math"
-import type { TText } from "@/symbol/text/Text"
+import type { TMath } from "@/symbol/typeset/Math"
+import type { TText } from "@/symbol/typeset/Text"
 
 import { SymbolUtil } from "../SymbolUtil"
 import type { TResizeContext, TRotateContext, TTranslateContext } from "../TransformContext"

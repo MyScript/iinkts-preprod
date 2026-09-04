@@ -4,8 +4,8 @@ import { OBBOps } from "@/core/geometry"
 import { LoggerCategory } from "@/logger"
 import type { TMath, TSymbol, TSymbolChar, TText } from "@/symbol"
 import { isText } from "@/symbol"
-import { MathOps } from "@/symbol/math/Math"
-import { TextOps } from "@/symbol/text/Text"
+import { MathOps } from "@/symbol/typeset/Math"
+import { TextOps } from "@/symbol/typeset/Text"
 
 import { IIAbstractManager } from "./IIAbstractManager"
 
