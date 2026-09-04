@@ -2,7 +2,7 @@ import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import type { TPoint } from "@/core/geometry"
 import { MatrixTransform, type TOBB } from "@/core/geometry"
 import type { TIIHistoryChanges } from "@/history"
-import type { TEdge, TMath, TShape, TStroke, TSymbol, TText } from "@/symbol"
+import type { TSymbol } from "@/symbol"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 
 import { IIAbstractTransformManager } from "./AbstractTransformManager"
@@ -12,7 +12,6 @@ import { IIAbstractTransformManager } from "./AbstractTransformManager"
  */
 export class IITranslateManager extends IIAbstractTransformManager {
   protected managerName = "IITranslateManager"
-  protected transformName = "translate"
   transformOrigin!: TPoint
 
   constructor(canvas: TInteractiveInkCanvas) {
@@ -20,36 +19,12 @@ export class IITranslateManager extends IIAbstractTransformManager {
   }
 
   /**
-   * The five per-type methods below are now one line each. The behaviour they held lives on each
-   * symbol's util, so a custom symbol translates too — which the throwing `default` of
-   * `applyToSymbol` used to make impossible.
-   *
-   * They exist at all only because `IIAbstractTransformManager` still declares them abstract.
-   * IIC-2014 removes those declarations, and these five go with them.
+   * One hook instead of five per-type methods. `IIAbstractTransformManager` used to
+   * declare those five so its `switch (symbol.type)` could reach them; IIC-2014 replaced both with
+   * this.
    */
-  #throughUtil<T extends TSymbol>(symbol: T, matrix: MatrixTransform): T {
+  protected applyThroughUtil(symbol: TSymbol, matrix: MatrixTransform): void {
     symbolRegistry.getUtilFor(symbol).translate(symbol, { matrix, typeset: this.canvas.typeset })
-    return symbol
-  }
-
-  protected applyToStroke(stroke: TStroke, matrix: MatrixTransform): TStroke {
-    return this.#throughUtil(stroke, matrix)
-  }
-
-  protected applyToShape(shape: TShape, matrix: MatrixTransform): TShape {
-    return this.#throughUtil(shape, matrix)
-  }
-
-  protected applyToEdge(edge: TEdge, matrix: MatrixTransform): TEdge {
-    return this.#throughUtil(edge, matrix)
-  }
-
-  protected applyOnText(text: TText, matrix: MatrixTransform): TText {
-    return this.#throughUtil(text, matrix)
-  }
-
-  protected applyOnMath(math: TMath, matrix: MatrixTransform): TMath {
-    return this.#throughUtil(math, matrix)
   }
 
   translate(symbols: TSymbol[], tx: number, ty: number, addToHistory = true): Promise<void> {
