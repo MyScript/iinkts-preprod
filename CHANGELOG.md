@@ -13,6 +13,17 @@ Symbols are frozen when committed and handed to readers directly, instead of the
 - fixed: `changeOrderSymbol` was a no-op; partially erasing characters was never stored; undo/redo replay rewrote the history entry it was replaying; edge-connection anchors were silently dropped behind a swallowed throw
 - see [MIGRATION.md](./MIGRATION.md)
 
+### The client owns the stroke shape it sends
+`StrokeOps.formatToSend` is gone. The conversion now lives in the client, which is the layer that owns the protocol, so the client no longer depends on the symbol layer to talk to the server.
+- removed: `StrokeOps.formatToSend(stroke)` → use `toWireStroke(stroke)`
+- new: `toWireStroke`, `TRecognitionStroke` (`{ id, pointerType, pointers }` — what you hand the recognizer), `TRecognitionPointer` and `TWireStroke` (the column-array form that goes on the wire)
+- a pointer's `t` and `p` are **optional**, so a caller building strokes itself can send geometry alone. `t` is worth supplying whenever the capture source has it: the recognizer uses inter-point timing to segment characters and resolve ambiguous shapes, so leaving it out measurably degrades results on cursive text and multi-pass shapes
+- `TWireStroke.t` and `.p` are optional to match, and are emitted all-or-nothing — a partially filled column would misalign with `x`/`y` and corrupt the stroke
+- `TStrokeGroupToSend.strokes` and `THTTPClientV2PostData.strokes` are now `TWireStroke[]` instead of three copies of the same inline shape
+- renamed: `TStrokeMinimal` → `TStrokeCapture`, where it stays in the symbol layer as the base of `TStroke`
+- `WebSocketClient.addStrokes`/`replaceStrokes`/`recognizeGesture` and `HTTPClientV2.send` now take `TRecognitionStroke`. A `TStroke` still satisfies them — TypeScript is structural, so no conversion is needed at the call site
+- see [MIGRATION.md](./MIGRATION.md)
+
 ### Internal layout: `src/utils/` dissolved
 Every helper moved to the lowest layer its inputs allow, and the new `core` layer may not import from anywhere else in the library. The exported surface is unchanged — the same 787 names before and after — so this only affects code that imported a deep path rather than the package root.
 - `src/utils/` no longer exists; helpers now live in `core/geometry`, `core/math`, `core/std`, `core`, `client`, `export` and `browser`

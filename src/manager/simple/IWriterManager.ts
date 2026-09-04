@@ -1,4 +1,4 @@
-import type { InkCanvas } from "@/canvas"
+import type { TInkCanvas } from "@/canvas/TInkCanvas"
 import type { TPointer } from "@/core/geometry"
 import type { TPointerInfo } from "@/grabber"
 import { AbstractWriterManager } from "@/manager/base/AbstractWriterManager"
@@ -12,10 +12,10 @@ import { StrokeOps } from "@/symbol/stroke/Stroke"
  * @group Manager
  */
 export class IWriterManager extends AbstractWriterManager {
-  canvas: InkCanvas
+  canvas: TInkCanvas
   #exportTimer?: ReturnType<typeof setTimeout>
 
-  constructor(canvas: InkCanvas) {
+  constructor(canvas: TInkCanvas) {
     super(canvas)
     this.canvas = canvas
   }

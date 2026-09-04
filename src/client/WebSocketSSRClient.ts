@@ -1,17 +1,19 @@
 import { DeferredPromise, isVersionSuperiorOrEqual, type TPartialDeep } from "@/core/std"
 import type { THistoryContext } from "@/history"
 import { LoggerCategory, LoggerManager } from "@/logger"
-import type { Model, TExport, TJIIXExport } from "@/model"
+import type { Model } from "@/model"
 import type { TPenStyle, TTheme } from "@/style"
-import { StyleHelper } from "@/style"
-import { type Stroke, StrokeOps } from "@/symbol"
+import { StyleHelper } from "@/style-css"
+import type { Stroke } from "@/symbol"
 
 import { ClientError, mapCloseCodeToMessage } from "./ClientError"
 import { ClientEvent } from "./ClientEvent"
+import type { TExport, TJIIXExport } from "./Export"
 import { resolveHmac } from "./HmacAuth"
 import { getApiInfos } from "./infos"
 import type { TConverstionState } from "./RecognitionConfiguration"
 import { redactServerSecrets } from "./ServerConfiguration"
+import { toWireStroke } from "./StrokeSerializer"
 import type { TWebSocketSSRClientConfiguration } from "./WebSocketSSRClientConfiguration"
 import { WebSocketSSRClientConfiguration } from "./WebSocketSSRClientConfiguration"
 import type {
@@ -446,7 +448,7 @@ export class WebSocketSSRClient {
     } else {
       await this.send({
         type: "addStrokes",
-        strokes: strokes.map((s) => StrokeOps.formatToSend(s)),
+        strokes: strokes.map((s) => toWireStroke(s)),
       })
     }
     return this.addStrokeDeferred?.promise
@@ -604,7 +606,7 @@ export class WebSocketSSRClient {
     this.importPointEventsDeferred = new DeferredPromise<TExport>()
     const message: TWebSocketSSRClientMessage = {
       type: "pointerEvents",
-      events: strokes.map((s) => StrokeOps.formatToSend(s)),
+      events: strokes.map((s) => toWireStroke(s)),
     }
     await this.send(message)
     return this.importPointEventsDeferred?.promise

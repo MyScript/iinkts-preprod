@@ -1,6 +1,5 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import { BoxOps } from "@/core/geometry"
-import { OBBOps } from "@/core/geometry"
+import { BoxOps, MatrixTransform, OBBOps } from "@/core/geometry"
 import { roundTo } from "@/core/math"
 import type { TIIHistoryChanges } from "@/history"
 import { GestureHandler } from "@/manager/interactive/gestures/GestureHandler"
@@ -9,7 +8,6 @@ import type { TGesture } from "@/manager/interactive/gestures/GestureTypes"
 import type { TStroke, TText } from "@/symbol"
 import { cloneSymbol, isText, type TSymbol } from "@/symbol"
 import { TextOps } from "@/symbol/text/Text"
-import { MatrixTransform } from "@/transform"
 /**
  * Handler for JOIN gesture type
  * Joins rows of text together by removing line breaks

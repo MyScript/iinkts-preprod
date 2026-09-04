@@ -1,4 +1,4 @@
-import { JIIXElementType, type TJIIXElement, type TJIIXExport } from "@/model/Export"
+import { JIIXElementType, type TJIIXElement, type TJIIXExport } from "@/client"
 
 function elementToMarkdown(element: TJIIXElement): string | undefined {
   switch (element.type) {

@@ -1,12 +1,12 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import type { TMathVariable, TMathVariableDefinition, TMathVariableDefinitions } from "@/client"
+import type { TJIIXMathElement, TJIIXMathExpression } from "@/client"
 import { SOURCE_TYPE_COLORS, SOURCE_TYPE_LABELS } from "@/components/IIMathVariableInputList"
 import type { TBox } from "@/core/geometry"
 import { BoxOps } from "@/core/geometry"
 import { OBBOps } from "@/core/geometry"
 import { convertBoundingBoxMillimeterToPixel, getBoxConnectionPoint } from "@/core/geometry"
 import { LoggerCategory } from "@/logger"
-import type { TJIIXMathElement, TJIIXMathExpression } from "@/model/ExportMath"
 import type { TStroke } from "@/symbol"
 import { isRecognizedMath, isStroke } from "@/symbol"
 
