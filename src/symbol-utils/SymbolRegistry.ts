@@ -29,6 +29,14 @@ class SymbolRegistryClass {
   has(type: string): boolean {
     return this.#utils.has(type)
   }
+
+  /**
+   * Every registered type. Exists so a failed lookup can say what *is* registered — the difference
+   * between "you spelled the type wrong" and "registerBuiltinSymbolUtils never ran".
+   */
+  registeredTypes(): string[] {
+    return [...this.#utils.keys()]
+  }
 }
 
 /**
