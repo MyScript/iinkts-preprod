@@ -1,6 +1,6 @@
 import type { EdgeDecoration } from "@/Constants"
 import type { TBox } from "@/core/geometry"
-import { OBBOps, type TOBB } from "@/core/geometry"
+import { MatrixTransform, mergeSymbolTransform, OBBOps, type TOBB } from "@/core/geometry"
 import { isValidPoint, type TPoint, type TSegment } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import { createUUID } from "@/core/std"
@@ -58,6 +58,7 @@ export const EdgeLineOps = {
       bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0),
       snapPoints: [],
       edges: [],
+      transform: MatrixTransform.identity(),
     }
     EdgeLineOps.updateDerivedFields(line)
     return line
@@ -80,6 +81,7 @@ export const EdgeLineOps = {
     if (partial.id) {
       line.id = partial.id
     }
+    line.transform = mergeSymbolTransform(partial.transform)
     return line
   },
 

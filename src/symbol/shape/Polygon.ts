@@ -1,7 +1,7 @@
 import type { TBox } from "@/core/geometry"
 import type { TPoint, TSegment } from "@/core/geometry"
 import { BoxOps } from "@/core/geometry"
-import { OBBOps, type TOBB } from "@/core/geometry"
+import { MatrixTransform, mergeSymbolTransform, OBBOps, type TOBB } from "@/core/geometry"
 import { isValidPoint } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import { createUUID } from "@/core/std"
@@ -45,6 +45,7 @@ export const ShapePolygonOps = {
       bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0),
       snapPoints: [],
       edges: [],
+      transform: MatrixTransform.identity(),
     }
     ShapePolygonOps.updateDerivedFields(polygon)
     return polygon
@@ -61,6 +62,7 @@ export const ShapePolygonOps = {
     if (partial.id) {
       polygon.id = partial.id
     }
+    polygon.transform = mergeSymbolTransform(partial.transform)
     return polygon
   },
 

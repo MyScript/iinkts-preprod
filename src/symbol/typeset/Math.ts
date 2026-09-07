@@ -1,6 +1,6 @@
 import type { TBox } from "@/core/geometry"
 import type { TPoint, TSegment } from "@/core/geometry"
-import { OBBOps, type TOBB } from "@/core/geometry"
+import { MatrixTransform, mergeSymbolTransform, OBBOps, type TOBB } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import { createUUID } from "@/core/std"
 import type { TStyle } from "@/style"
@@ -77,6 +77,7 @@ export const MathOps = {
       vertices,
       snapPoints,
       edges,
+      transform: MatrixTransform.identity(),
     }
   },
 
@@ -116,6 +117,7 @@ export const MathOps = {
     if (partial.id) {
       math.id = partial.id
     }
+    math.transform = mergeSymbolTransform(partial.transform)
     if (partial.rotation) {
       math.rotation = partial.rotation as TRotation
     }

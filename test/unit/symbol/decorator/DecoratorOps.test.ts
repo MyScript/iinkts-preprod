@@ -1,8 +1,12 @@
 import { describe, test, expect } from "@jest/globals"
-import { DecoratorOps, OBBOps, SymbolType, DecoratorKind } from "@/iink"
+import { DecoratorOps, OBBOps, SymbolType, DecoratorKind, MatrixTransform } from "@/iink"
 
 describe("DecoratorOps", () => {
   describe("create", () => {
+    test("should initialise transform to identity", () => {
+      const d = DecoratorOps.create(DecoratorKind.Underline, { color: "red", width: 2 })
+      expect(d.transform).toEqual(MatrixTransform.identity())
+    })
     test("should create a decorator with required fields", () => {
       const d = DecoratorOps.create(DecoratorKind.Underline, { color: "red", width: 2 })
       expect(d.type).toBe(SymbolType.Decorator)

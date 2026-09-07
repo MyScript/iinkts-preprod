@@ -173,7 +173,7 @@ describe("IIConnectorManager", () => {
     manager = new IIConnectorManager(asCanvas(mock))
     jest
       .spyOn(mock.model, "getRootSymbol")
-      .mockReturnValue({ id: TARGET_ID, type: SymbolType.Decorator, bounds: TARGET_BOUNDS } as unknown as ReturnType<
+      .mockReturnValue({ id: TARGET_ID, type: SymbolType.Decorator, bounds: TARGET_BOUNDS, transform: MatrixTransform.identity() } as unknown as ReturnType<
         typeof mock.model.getRootSymbol
       >)
   })
@@ -337,7 +337,7 @@ describe("IIConnectorManager", () => {
       beforeEach(() => {
         jest
           .spyOn(mock.model, "getRootSymbol")
-          .mockReturnValue({ id: TARGET_ID, type: SymbolType.Decorator, bounds: POST_BOUNDS } as unknown as ReturnType<
+          .mockReturnValue({ id: TARGET_ID, type: SymbolType.Decorator, bounds: POST_BOUNDS, transform: MatrixTransform.identity() } as unknown as ReturnType<
             typeof mock.model.getRootSymbol
           >)
       })
@@ -1255,7 +1255,7 @@ describe("connectorConfiguration.followConnectedEdges = false — disables all f
     manager = new IIConnectorManager(asCanvas(mock), { followConnectedEdges: false })
     jest
       .spyOn(mock.model, "getRootSymbol")
-      .mockReturnValue({ id: TARGET_ID, type: SymbolType.Decorator, bounds: TARGET_BOUNDS } as unknown as ReturnType<
+      .mockReturnValue({ id: TARGET_ID, type: SymbolType.Decorator, bounds: TARGET_BOUNDS, transform: MatrixTransform.identity() } as unknown as ReturnType<
         typeof mock.model.getRootSymbol
       >)
   })

@@ -1,6 +1,6 @@
 import type { TBox } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
-import { MatrixTransform, OBBOps } from "@/core/geometry"
+import { isIdentityMatrix, MatrixTransform, OBBOps } from "@/core/geometry"
 import { convertRadianToDegree, TWO_PI } from "@/core/math"
 import type { TPartialDeep } from "@/core/std"
 import { DefaultStyle } from "@/style"
@@ -193,6 +193,8 @@ export class ShapeUtil extends SymbolUtil<TShape> {
   }
 
   getSVGElement(shape: TShape): SVGGraphicsElement {
+    const definition = resolveKind(SHAPE_KINDS, shape.kind, "shape", "getSVGElement for")
+
     const attrs: { [key: string]: string } = {
       id: shape.id,
       type: shape.type,
@@ -201,9 +203,11 @@ export class ShapeUtil extends SymbolUtil<TShape> {
       "stroke-linecap": "round",
       "stroke-linejoin": "round",
     }
+    if (!isIdentityMatrix(shape.transform)) {
+      attrs.transform = MatrixTransform.toCssString(shape.transform)
+    }
 
     const group = SVGBuilder.createGroup(attrs)
-    const definition = resolveKind(SHAPE_KINDS, shape.kind, "shape", "getSVGElement for")
 
     const pathAttrs: { [key: string]: string } = {
       fill: shape.style.fill || "transparent",

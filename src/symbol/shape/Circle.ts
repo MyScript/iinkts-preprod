@@ -1,7 +1,7 @@
 import { SELECTION_MARGIN } from "@/Constants"
 import type { TBox } from "@/core/geometry"
 import { BoxOps } from "@/core/geometry"
-import { OBBOps, type TOBB } from "@/core/geometry"
+import { MatrixTransform, mergeSymbolTransform, OBBOps, type TOBB } from "@/core/geometry"
 import { isValidPoint, type TPoint, type TSegment } from "@/core/geometry"
 import { computeDistance, computeRotatedPoint, findIntersectBetweenSegmentAndCircle } from "@/core/geometry"
 import { TWO_PI } from "@/core/math"
@@ -48,6 +48,7 @@ export const ShapeCircleOps = {
       bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0),
       snapPoints: [],
       edges: [],
+      transform: MatrixTransform.identity(),
     }
     ShapeCircleOps.updateDerivedFields(circle)
     return circle
@@ -64,6 +65,7 @@ export const ShapeCircleOps = {
     if (partial.id) {
       circle.id = partial.id
     }
+    circle.transform = mergeSymbolTransform(partial.transform)
     return circle
   },
 

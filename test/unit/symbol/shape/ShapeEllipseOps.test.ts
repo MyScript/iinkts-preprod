@@ -1,7 +1,10 @@
-import { ShapeEllipseOps, TPoint, DefaultStyle, TStyle, TBox, OBBOps } from "@/iink"
+import { ShapeEllipseOps, TPoint, DefaultStyle, TStyle, TBox, OBBOps, MatrixTransform } from "@/iink"
 
 describe("ShapeEllipseOps", () => {
   describe("create", () => {
+    test("should initialise transform to identity", () => {
+      expect(ShapeEllipseOps.create({ x: 0, y: 0 }, 5, 10, 0).transform).toEqual(MatrixTransform.identity())
+    })
     test("should create with default style", () => {
       const ellipse = ShapeEllipseOps.create({ x: 0, y: 0 }, 5, 10, 0)
       expect(ellipse.style).toEqual(DefaultStyle)
@@ -40,6 +43,11 @@ describe("ShapeEllipseOps", () => {
       const ellipse = ShapeEllipseOps.createFromPartial(partial)
       expect(ellipse.radiusX).toEqual(5)
       expect(ellipse.radiusY).toEqual(10)
+    })
+    test("should carry a given transform through, merged onto identity", () => {
+      const partial = { center: { x: 0, y: 0 }, radiusX: 5, radiusY: 10, transform: { tx: 5, ty: 6 } }
+      const ellipse = ShapeEllipseOps.createFromPartial(partial)
+      expect(ellipse.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 5, ty: 6 })
     })
     test("should preserve id", () => {
       const partial = { id: "my-id", center: { x: 0, y: 0 }, radiusX: 5, radiusY: 5 }

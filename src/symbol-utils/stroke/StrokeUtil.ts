@@ -1,6 +1,6 @@
 import type { TBox } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
-import { applyMatrixToPoints, type MatrixTransform } from "@/core/geometry"
+import { applyMatrixToPoints, isIdentityMatrix, MatrixTransform } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import { DefaultStyle } from "@/style"
 import { StrokeOps, type TStroke } from "@/symbol/stroke/Stroke"
@@ -73,6 +73,9 @@ export class StrokeUtil extends SymbolUtil<TStroke> {
       "vector-effect": "non-scaling-stroke",
       "stroke-linecap": "round",
       "stroke-linejoin": "round",
+    }
+    if (!isIdentityMatrix(stroke.transform)) {
+      attrs.transform = MatrixTransform.toCssString(stroke.transform)
     }
 
     const strokeGroup = SVGBuilder.createGroup(attrs)
