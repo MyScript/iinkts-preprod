@@ -56,6 +56,7 @@ import { DecoratorOps } from "@/symbol/decorator/Decorator"
 import { EdgeOps } from "@/symbol/edge/Edge"
 import { TextOps } from "@/symbol/typeset/Text"
 import { createSymbolFromPartial, createSymbolsFromPartial, registerBuiltinSymbolUtils } from "@/symbol-utils"
+import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 import type { SymbolUtil } from "@/symbol-utils/SymbolUtil"
 
@@ -711,25 +712,25 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       s.style = Object.assign({}, s.style, style)
       if (isText(s)) {
         TextOps.updateChildrenStyle(s)
+        // `typeset.updateBounds` measures the fresh box and commits the draft in the same call —
+        // reading the width before and after *that* call, rather than after a separate
+        // `commitSymbol`, is what keeps `s` mutable long enough for `updateBounds` to write
+        // `bounds` at all: a committed symbol is frozen, and assigning into a frozen `bounds`
+        // throws.
+        const lastWidth = SymbolGeometry.boundsOf(s).width
+        this.typeset.updateBounds(s)
+        const tx = SymbolGeometry.boundsOf(s).width - lastWidth
+        if (tx !== 0) {
+          this.typeset.moveTextAfter(s, tx)
+        }
+      } else {
+        // `commitSymbol` stamps `modificationDate` itself; the old code stamped it again *after*
+        // committing, which was redundant and wrote to an already-stored record.
+        this.model.commitSymbol(s)
       }
       this.renderer.drawSymbol(s)
-      // `commitSymbol` stamps `modificationDate` itself; the old code stamped it again *after*
-      // committing, which was redundant and wrote to an already-stored record.
-      this.model.commitSymbol(s)
       symbols.push(s)
     })
-    if (symbols.length) {
-      symbols.forEach((s) => {
-        if (isText(s)) {
-          const lastWidth = s.bounds.width
-          this.typeset.updateBounds(s)
-          const tx = s.bounds.width - lastWidth
-          if (tx !== 0) {
-            this.typeset.moveTextAfter(s, tx)
-          }
-        }
-      })
-    }
     if (addToHistory && symbols.length) {
       this.history.push({
         style: { symbols, oldStyles, newStyles: symbols.map((s) => ({ ...s.style })) },
@@ -774,10 +775,10 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
             fontSize,
             fontWeight: fontWeight === "auto" ? undefined : fontWeight,
           })
-          const lastWidth = s.bounds.width
+          const lastWidth = SymbolGeometry.boundsOf(s).width
           this.typeset.updateBounds(s)
           this.renderer.drawSymbol(s)
-          const tx = s.bounds.width - lastWidth
+          const tx = SymbolGeometry.boundsOf(s).width - lastWidth
           if (tx !== 0) {
             const symbolsTranslated = this.typeset.moveTextAfter(s, tx)
             if (symbolsTranslated?.length) {
@@ -936,8 +937,12 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
         const oldDec: TDecorator = { ...dec }
         dec.targetIds = remaining
         const targetSyms = remaining.map((id) => this.model.getRootSymbol(id)).filter((s): s is TSymbol => !!s)
-        if (targetSyms.length) {
-          DecoratorOps.setBounds(dec, OBBOps.createFromOBBs(targetSyms.map((s) => s.bounds)))
+        // Whole-document scan (`this.model.symbols`): an unregistered target type must not
+        // abort cleanup for every other decorator, so it is filtered out silently rather
+        // than let `SymbolGeometry.boundsOf` throw.
+        const geometryTargets = targetSyms.filter((s) => symbolRegistry.has(s.type))
+        if (geometryTargets.length) {
+          DecoratorOps.setBounds(dec, OBBOps.createFromOBBs(geometryTargets.map((s) => SymbolGeometry.boundsOf(s))))
         }
         this.model.updateSymbol(dec)
         this.renderer.drawSymbol(dec)
@@ -1247,7 +1252,12 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
    * @returns Bounding box containing all symbols
    */
   getSymbolsBounds(symbols: TSymbol[], margin: number = SELECTION_MARGIN): TBox {
-    const box = BoxOps.createFromBoxes(symbols.map((s) => OBBOps.toBox(s.bounds)))
+    // Public API: callers (export, minimap, viewport framing) can pass an arbitrary symbol
+    // list, including a selection built with no registry check, so an unregistered type is
+    // dropped from the bounds computation instead of throwing.
+    const box = BoxOps.createFromBoxes(
+      symbols.filter((s) => symbolRegistry.has(s.type)).map((s) => OBBOps.toBox(SymbolGeometry.boundsOf(s)))
+    )
     box.x -= margin
     box.y -= margin
     box.width += margin * 2
@@ -1665,7 +1675,13 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     try {
       this.manageIdleState(false)
       const symbolsToDuplicate = symbols ?? this.model.symbols
-      const bounds = BoxOps.createFromBoxes(symbolsToDuplicate.map((s) => OBBOps.toBox(s.bounds)))
+      // `symbols` is caller-supplied and may include an unregistered type; skip it for the
+      // placement-offset computation rather than abort the whole duplicate.
+      const bounds = BoxOps.createFromBoxes(
+        symbolsToDuplicate
+          .filter((s) => symbolRegistry.has(s.type))
+          .map((s) => OBBOps.toBox(SymbolGeometry.boundsOf(s)))
+      )
 
       const duplicatedSymbols = symbolsToDuplicate.map((s) => {
         const clone = cloneSymbol(s)

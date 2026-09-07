@@ -109,7 +109,7 @@ describe("TextUtil", () => {
       const text = buildIIText()
       util.updateDerivedFields(text)
       const result = util.getSnapPoints(text)
-      expect(result).toBe(text.snapPoints)
+      expect(result).toStrictEqual(text.snapPoints)
     })
   })
 

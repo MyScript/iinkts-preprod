@@ -6,6 +6,8 @@ import type { TMath, TSymbol, TSymbolChar, TText } from "@/symbol"
 import { isText } from "@/symbol"
 import { MathOps } from "@/symbol/typeset/Math"
 import { TextOps } from "@/symbol/typeset/Text"
+import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
+import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 
 import { IIAbstractManager } from "./IIAbstractManager"
 
@@ -26,7 +28,7 @@ export class IITypesetManager extends IIAbstractManager {
 
   getSymbolRowIndex(symbol: TSymbol): number {
     // Use symbol bounds yMid for row calculation
-    return Math.round(symbol.bounds.center.y / this.rowHeight)
+    return Math.round(SymbolGeometry.boundsOf(symbol).center.y / this.rowHeight)
   }
 
   getSymbolsByRowOrdered(): {
@@ -36,6 +38,11 @@ export class IITypesetManager extends IIAbstractManager {
     const rowsMap = new Map<number, TSymbol[]>()
 
     for (const s of this.model.symbols) {
+      // Whole-document scan — one unregistered symbol type must not abort row bucketing for
+      // the rest of the document.
+      if (!symbolRegistry.has(s.type)) {
+        continue
+      }
       const rowIndex = this.getSymbolRowIndex(s)
       const row = rowsMap.get(rowIndex)
       if (row) {
@@ -50,7 +57,7 @@ export class IITypesetManager extends IIAbstractManager {
       symbols: TSymbol[]
     }[] = []
     rowsMap.forEach((symbols, rowIndex) => {
-      symbols.sort((s1, s2) => s1.bounds.center.x - s2.bounds.center.x)
+      symbols.sort((s1, s2) => SymbolGeometry.boundsOf(s1).center.x - SymbolGeometry.boundsOf(s2).center.x)
       rows.push({ rowIndex, symbols })
     })
 
@@ -155,9 +162,16 @@ export class IITypesetManager extends IIAbstractManager {
   }
 
   moveTextAfter(text: TText, tx: number): TSymbol[] | undefined {
-    const row = this.getSymbolsByRowOrdered().find((r) => r.rowIndex === this.getSymbolRowIndex(text))
+    // `text` can be a draft mid-edit (see callers in InteractiveInkCanvas), so its geometry is
+    // never cached — one boundsOf call here, reused for both the row lookup and the position
+    // comparison below, instead of getSymbolRowIndex(text) computing it again independently.
+    const textBounds = SymbolGeometry.boundsOf(text)
+    const textRowIndex = Math.round(textBounds.center.y / this.rowHeight)
+    const row = this.getSymbolsByRowOrdered().find((r) => r.rowIndex === textRowIndex)
     if (row) {
-      const textsAfter = row.symbols.filter((s) => isText(s) && s.bounds.center.x > text.bounds.center.x) as TText[]
+      const textsAfter = row.symbols.filter(
+        (s) => isText(s) && SymbolGeometry.boundsOf(s).center.x > textBounds.center.x
+      ) as TText[]
       textsAfter.forEach((symbol) => {
         symbol.point.x += tx
         this.updateBounds(symbol)

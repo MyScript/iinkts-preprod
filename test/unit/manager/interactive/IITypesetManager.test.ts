@@ -1,6 +1,6 @@
 import { buildIICircle, buildIIStroke, buildIIText } from "../../helpers"
 import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import { IITypesetManager, OBBOps, TSymbolChar, SVGBuilder } from "@/iink"
+import { IITypesetManager, OBBOps, TSymbolChar, SVGBuilder, TBaseSymbol, TSymbol } from "@/iink"
 
 describe("IITypesetManager.ts", () => {
   const chars: TSymbolChar[] = [
@@ -143,6 +143,23 @@ describe("IITypesetManager.ts", () => {
       expect(rows[2].symbols).toEqual([stroke31])
       expect(rows[3].rowIndex).toEqual(5)
       expect(rows[3].symbols).toEqual([stroke51])
+    })
+
+    test("skips an unregistered symbol type without throwing, keeping the rest of the rows", () => {
+      const orphan = {
+        ...(buildIIStroke({ box: { height: 9, width: 10, x: 0, y: 3.5 * rowHeight } }) as unknown as TBaseSymbol),
+        type: "no-such-type",
+        id: "orphan-1",
+      } as unknown as TSymbol
+      canvas.model.addSymbol(orphan)
+
+      let rows: ReturnType<typeof manager.getSymbolsByRowOrdered>
+      expect(() => {
+        rows = manager.getSymbolsByRowOrdered()
+      }).not.toThrow()
+
+      expect(rows!.some((r) => r.symbols.some((s) => s.id === orphan.id))).toBe(false)
+      expect(rows!.find((r) => r.rowIndex === 1)?.symbols).toEqual([stroke11, stroke12, circle13])
     })
   })
 })

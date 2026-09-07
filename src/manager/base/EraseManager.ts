@@ -8,9 +8,11 @@ import type { TPointerInfo } from "@/grabber"
 import { PointerEventGrabber } from "@/grabber"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { SVGRenderer } from "@/renderer"
-import type { TEraser } from "@/symbol"
+import type { TEraser, TSymbol } from "@/symbol"
 import { isText } from "@/symbol"
 import { EraserOps } from "@/symbol/eraser/Eraser"
+import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
+import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 /**
  * @group Manager
  */
@@ -48,8 +50,13 @@ export class EraseManager {
     return "removeSymbols" in canvas && typeof canvas.removeSymbols === "function"
   }
 
-  #isHitByPoint(symbol: THittable, point: TPoint, radius: number): boolean {
-    const { x, y, width, height } = OBBOps.toBox(symbol.bounds)
+  #isHitByPoint(symbol: TSymbol, point: TPoint, radius: number): boolean {
+    // One `of()` call serves all three reads below: an unfrozen symbol (the plain-Ink branch loops
+    // `IModel.strokes`, a never-frozen array — see SymbolStore.ts's the only freeze in `src/`) is
+    // never cached, so three separate accessor calls would recompute the whole geometry three
+    // times over on every pointermove instead of once.
+    const { bounds, vertices, edges } = SymbolGeometry.of(symbol)
+    const { x, y, width, height } = OBBOps.toBox(bounds)
     const expanded = {
       x: x - radius,
       y: y - radius,
@@ -59,10 +66,9 @@ export class EraseManager {
     if (!BoxOps.containsPoint(expanded, point)) {
       return false
     }
-    const edges = symbol.edges
     if (edges.length === 0) {
       const squaredRadius = radius * radius
-      return symbol.vertices.some((v) => computeDistanceSquared(point, v) <= squaredRadius)
+      return vertices.some((v) => computeDistanceSquared(point, v) <= squaredRadius)
     }
     return edges.some((edge) => computeDistanceBetweenPointAndSegment(point, edge) < radius)
   }
@@ -95,6 +101,9 @@ export class EraseManager {
     this.renderer.drawSymbol(this.currentEraser)
     const currentPoint = info.pointer
     const radius = (this.currentEraser.style.width as number) / 2
+    // Scans every symbol in the document regardless of type, so an integrator's custom symbol type
+    // missing its util must not abort erasing for the whole document — skip it like a non-hit
+    // instead of throwing.
     if (this.#isTInteractiveInkCanvas(this.canvas)) {
       this.canvas.model.symbols.forEach((s) => {
         if (isText(s)) {
@@ -119,7 +128,7 @@ export class EraseManager {
             this.deletingIds.add(s.id)
             this.renderer.updateDeletingState(s, true)
           }
-        } else if (this.#isHitByPoint(s, currentPoint, radius)) {
+        } else if (symbolRegistry.has(s.type) && this.#isHitByPoint(s, currentPoint, radius)) {
           this.deletingIds.add(s.id)
           this.renderer.updateDeletingState(s, true)
         }

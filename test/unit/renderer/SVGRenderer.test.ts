@@ -456,6 +456,26 @@ describe("SVGRenderer.ts", () => {
   describe("virtualization (viewport culling)", () => {
     const farAwayBox: TBox = { x: 10000, y: 10000, width: 10, height: 10 }
 
+    test("culls a symbol by its computed bounds, not by a field it carries", () => {
+      const divElement: HTMLDivElement = document.createElement("div")
+      const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
+      renderer.init(divElement)
+
+      const stroke = StrokeOps.createFromPartial({
+        pointers: [
+          { x: 100000, y: 100000, t: 0, p: 1 },
+          { x: 100010, y: 100010, t: 1, p: 1 },
+        ],
+      })
+      // A bounds field that disagrees with the pointers: the renderer must trust the computed
+      // geometry, not this stale/tampered field.
+      Object.assign(stroke, { bounds: OBBOps.create({ x: 0, y: 0 }, 10, 10) })
+
+      renderer.drawSymbol(stroke)
+
+      expect(renderer.getElementById(stroke.id)?.parentNode).toBeNull()
+    })
+
     test("should not append an off-screen symbol's element to the DOM", () => {
       const divElement: HTMLDivElement = document.createElement("div")
       const renderer = new SVGRenderer(DefaultIIRendererConfiguration)

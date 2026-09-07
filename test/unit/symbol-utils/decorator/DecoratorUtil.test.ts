@@ -102,10 +102,23 @@ describe("DecoratorUtil", () => {
   })
 
   describe("getSnapPoints", () => {
-    test("should return decorator snapPoints", () => {
+    test("should return the decorator's snap points once bounds are set", () => {
+      const decorator = util.create({ kind: DecoratorKind.Strikethrough })
+      // `util.create`'s own `bounds` partial handling has a pre-existing TOBB-vs-TBox mismatch
+      // (see the `computeGeometry` test above), so bounds are set the same safe way: directly via
+      // the legacy writer, with a real `TBox`.
+      DecoratorOps.setBounds(decorator, OBBOps.fromBox({ x: 0, y: 0, width: 10, height: 10 }))
+      // Independent oracle: computed straight from `decorator.bounds`, not read back from the
+      // decorator's own `snapPoints` field — a `getSnapPoints` stubbed to return `[]` would fail
+      // this against a non-empty expectation.
+      const expected = DecoratorOps.computeVertices(decorator.bounds)
+      expect(expected.length).toBeGreaterThan(0)
+      expect(util.getSnapPoints(decorator)).toStrictEqual(expected)
+    })
+
+    test("should return an empty array when the decorator has no bounds", () => {
       const decorator = buildIIDecorator(DecoratorKind.Strikethrough)
-      const result = util.getSnapPoints(decorator)
-      expect(result).toBe(decorator.snapPoints)
+      expect(util.getSnapPoints(decorator)).toStrictEqual([])
     })
   })
 

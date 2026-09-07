@@ -6,6 +6,8 @@ import type { TGesture } from "@/manager/interactive/gestures/GestureTypes"
 import { SurroundAction } from "@/manager/interactive/gestures/GestureTypes"
 import type { TStroke } from "@/symbol"
 import { DecoratorKind } from "@/symbol"
+import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
+import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 /**
  * Handler for SURROUND gesture type
  * Supports three actions: Select, Highlight, and Surround
@@ -23,7 +25,12 @@ export class SurroundGestureHandler extends GestureHandler {
       gestureStroke,
       gesture,
     })
-    const ids = this.model.symbols.filter((s) => OBBOps.contains(gestureStroke.bounds, s.bounds)).map((s) => s.id)
+    const gestureBounds = SymbolGeometry.boundsOf(gestureStroke)
+    // Scans every symbol in the document regardless of type, so an integrator's custom symbol type
+    // missing its util must not abort the gesture — skip it like a non-candidate instead of throwing.
+    const ids = this.model.symbols
+      .filter((s) => symbolRegistry.has(s.type) && OBBOps.contains(gestureBounds, SymbolGeometry.boundsOf(s)))
+      .map((s) => s.id)
 
     switch (this.manager.surroundAction) {
       case SurroundAction.Select:

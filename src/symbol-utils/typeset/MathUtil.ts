@@ -29,7 +29,7 @@ export class MathUtil extends TypesetUtil<TMath> {
   }
 
   getSnapPoints(math: TMath): TPoint[] {
-    return math.snapPoints
+    return this.computeGeometry(math).snapPoints
   }
 
   protected glyphsOf(math: TMath): { fontSize: number }[] {

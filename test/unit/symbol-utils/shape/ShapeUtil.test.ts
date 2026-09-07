@@ -286,7 +286,7 @@ describe("ShapeUtil, the contract members", () => {
       const circle = buildIICircle()
       util.updateDerivedFields(circle)
       const result = util.getSnapPoints(circle)
-      expect(result).toBe(circle.snapPoints)
+      expect(result).toStrictEqual(circle.snapPoints)
     })
   })
 

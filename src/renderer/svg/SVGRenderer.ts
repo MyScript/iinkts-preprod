@@ -10,6 +10,7 @@ import type { TIIRendererConfiguration } from "@/renderer/RendererConfiguration"
 import type { TEraser, TSymbol } from "@/symbol"
 import { SymbolType } from "@/symbol"
 import { arrowHeadEndMarkerId, arrowHeadStartMarkerId } from "@/symbol-utils/edge/EdgeRenderOptions"
+import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 
 import { SVGBuilder } from "./utils/SVGBuilder"
@@ -524,8 +525,11 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
       return svgEl
     }
 
-    const bounds = (symbol as TSymbol).bounds
     const tracked = this.#virtualizedSymbols.get(symbol.id)
+    // Only computed when a util is registered for this type: `buildElementFromSymbol` below already
+    // owns the "no util" case (logs and returns undefined), and `SymbolGeometry.boundsOf` throws for
+    // an unregistered type instead of returning undefined - it must not run ahead of that guard.
+    const bounds = symbolRegistry.has(symbol.type) ? SymbolGeometry.boundsOf(symbol as TSymbol) : undefined
 
     // Building an element walks every pointer of the symbol, so doing it for a symbol nobody can see
     // is work thrown away. Committing a transform over a large selection redraws every symbol in it:
@@ -533,7 +537,7 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
     // actually holds. Defer instead, and let `#reconcileVirtualization` pay for the ones that come
     // into view. Only a symbol already tracked can be deferred — the first draw must produce an
     // element, because `drawSymbol` and `getElementById` are expected to return one off screen too.
-    if (tracked && !this.#isInViewBox(bounds)) {
+    if (tracked && bounds && !this.#isInViewBox(bounds)) {
       tracked.bounds = bounds
       tracked.pendingRedraw = symbol as TSymbol
       tracked.element.remove()
@@ -541,7 +545,7 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
     }
 
     const svgEl = this.buildElementFromSymbol(symbol as TSymbol)
-    if (svgEl) {
+    if (svgEl && bounds) {
       const isDecorator = symbol.type === SymbolType.Decorator
       this.#virtualizedSymbols.set(symbol.id, { element: svgEl, bounds, isDecorator })
 

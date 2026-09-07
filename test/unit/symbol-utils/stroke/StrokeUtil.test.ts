@@ -102,7 +102,7 @@ describe("StrokeUtil", () => {
       const stroke = buildIIStroke()
       StrokeOps.updateBounds(stroke)
       const result = util.getSnapPoints(stroke)
-      expect(result).toBe(stroke.snapPoints)
+      expect(result).toStrictEqual(stroke.snapPoints)
     })
   })
 

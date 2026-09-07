@@ -3,6 +3,7 @@ import type { TPoint } from "@/core/geometry"
 import { MatrixTransform, type TOBB } from "@/core/geometry"
 import type { TIIHistoryChanges } from "@/history"
 import type { TSymbol } from "@/symbol"
+import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 
 import { IIAbstractTransformManager } from "./AbstractTransformManager"
@@ -40,10 +41,14 @@ export class IITranslateManager extends IIAbstractTransformManager {
     // what was just shown while dragging.
     const preTransformBoundsById = new Map<string, TOBB>()
     symbols.forEach((s) => {
-      const bounds = (s as unknown as { bounds?: TOBB }).bounds
-      if (bounds) {
-        preTransformBoundsById.set(s.id, { ...bounds, center: { ...bounds.center } })
+      // selectAll() populates symbolsSelected with no registry check ahead of it (see
+      // IISelectionManager.createInteractElementsGroup) — an unregistered symbol has no snapshot
+      // taken, so updateAnchoredEdges below leaves it untouched rather than throwing.
+      if (!symbolRegistry.has(s.type)) {
+        return
       }
+      const bounds = SymbolGeometry.boundsOf(s)
+      preTransformBoundsById.set(s.id, { ...bounds, center: { ...bounds.center } })
     })
     const matrix = MatrixTransform.identity().translate(tx, ty)
     this.applyAndDraw(symbols, matrix)

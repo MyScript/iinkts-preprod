@@ -9,6 +9,7 @@ import {
   BoxOps,
   MathUtil,
   TBox,
+  TBaseSymbol,
   TextUtil,
   MatrixTransform,
   OBBOps,
@@ -587,5 +588,41 @@ describe("surrounding a rotated typeset symbol", () => {
       y: -corner.x,
     }))
     expect(buildUtil().overlaps(symbol as never, boxAround(mirrored))).toBe(false)
+  })
+})
+
+describe("start() — selection containing an unregistered symbol type", () => {
+  /**
+   * selectAll() (and any other bulk-select path) populates symbolsSelected with no registry
+   * check ahead of it — start()'s bounding-box scan must not throw over one bad symbol, or the
+   * gesture never reaches end(), leaving startOperation("Rotating") stuck open for the rest of
+   * the session (endOperation only runs from end()/continue(), never from a throw in start()).
+   */
+  test("does not throw, and computes center from the registered symbols only", () => {
+    const canvas = createCanvasMock()
+    const manager = new IIRotationManager(asCanvas(canvas))
+
+    const stroke = buildIIStroke({ box: { x: 0, y: 0, width: 10, height: 10 } })
+    canvas.model.addSymbol(stroke)
+    canvas.model.selectSymbol(stroke.id)
+
+    const orphan = {
+      ...(buildIIStroke({ box: { x: 1000, y: 1000, width: 10, height: 10 } }) as unknown as TBaseSymbol),
+      type: "no-such-type",
+      id: "orphan-1",
+    } as unknown as TSymbol
+    canvas.model.addSymbol(orphan)
+    canvas.model.selectSymbol(orphan.id)
+
+    const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
+    group.setAttribute("role", SvgElementRole.InteractElementsGroup)
+    const target = document.createElementNS("http://www.w3.org/2000/svg", "circle")
+    group.appendChild(target)
+
+    expect(() => manager.start(target, { x: 0, y: 0 })).not.toThrow()
+
+    // Center comes only from the registered stroke's bounds (5,5) — the orphan at (1000,1000)
+    // must not have pulled it off toward the far corner.
+    expect(manager.center).toEqual({ x: 5, y: 5 })
   })
 })

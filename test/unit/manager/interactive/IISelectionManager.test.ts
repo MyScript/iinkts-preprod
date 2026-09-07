@@ -20,6 +20,8 @@ import {
   EdgeUtil,
   ShapeUtil,
   TEdge,
+  TBaseSymbol,
+  TSymbol,
 } from "@/iink"
 
 describe("IISelectionManager.ts", () => {
@@ -894,5 +896,31 @@ describe("IISelectionManager edge resize handles", () => {
   test("a symbol whose util reports no handles should get none", () => {
     // The contract's default. Most symbols resize by their bounding box alone.
     expect(new ShapeUtil().getResizePoints(buildIICircle())).toEqual([])
+  })
+})
+
+describe("createInteractElementsGroup skips unregistered symbol types", () => {
+  /**
+   * `selectAll()` selects every symbol in the model with no render or registry check ahead of it,
+   * then draws the selection outline through this path — a custom symbol type missing its util
+   * must not abort building that outline for the whole selection.
+   */
+  test("does not throw when a selected symbol has no registered util, and still frames the rest", () => {
+    const canvas = createCanvasMock()
+    const manager = new IISelectionManager(asCanvas(canvas))
+
+    const stroke = buildIIStroke()
+    canvas.model.addSymbol(stroke)
+    canvas.renderer.drawSymbol(stroke)
+
+    const orphan = {
+      ...(buildIIStroke() as unknown as TBaseSymbol),
+      type: "no-such-type",
+      id: "orphan-1",
+    } as unknown as TSymbol
+    canvas.model.addSymbol(orphan)
+
+    expect(() => manager.drawSelectedGroup([stroke, orphan])).not.toThrow()
+    expect(manager.selectedGroup).toBeDefined()
   })
 })

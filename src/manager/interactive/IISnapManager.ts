@@ -4,6 +4,8 @@ import { BoxOps } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import { LoggerCategory } from "@/logger"
 import { SVGRendererConst } from "@/renderer/svg/utils/SVGRendererConst"
+import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
+import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 
 import { IIAbstractManager } from "./IIAbstractManager"
 
@@ -120,9 +122,13 @@ export class IISnapManager extends IIAbstractManager {
     const other: TPoint[] = []
     const selectedSnapPoints: TPoint[] = []
     // One pass over the document rather than one per getter: `symbols` and `symbolsSelected` each
-    // list the whole store, and the two sets partition it.
+    // list the whole store, and the two sets partition it. An unregistered custom type is skipped
+    // silently rather than let `SymbolGeometry.snapPointsOf` throw and abort the whole pass.
     this.model.symbols.forEach((symbol) => {
-      ;(selectedIds.has(symbol.id) ? selectedSnapPoints : other).push(...symbol.snapPoints)
+      if (!symbolRegistry.has(symbol.type)) {
+        return
+      }
+      ;(selectedIds.has(symbol.id) ? selectedSnapPoints : other).push(...SymbolGeometry.snapPointsOf(symbol))
     })
     this.#otherSnapPointsCache = other
     this.#selectionSnapPointsCache = BoxOps.getSnapPoints(BoxOps.createFromPoints(selectedSnapPoints))

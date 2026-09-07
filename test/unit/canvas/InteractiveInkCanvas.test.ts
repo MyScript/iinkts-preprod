@@ -12,6 +12,7 @@ import {
   TShapeCircle,
   ShapeKind,
   TSymbol,
+  TBaseSymbol,
   cloneSymbol,
   DecoratorKind,
   getInitialHistoryContext,
@@ -19,6 +20,11 @@ import {
   TEdgeLine,
   ShapePolygonOps,
   IIAbstractManager,
+  SymbolGeometry,
+  OBBOps,
+  SELECTION_MARGIN,
+  MatrixTransform,
+  isStroke,
 } from "@/iink"
 
 describe("InteractiveInkCanvas.ts", () => {
@@ -735,6 +741,89 @@ describe("InteractiveInkCanvas.ts", () => {
       expect(canvas.history.push).toHaveBeenNthCalledWith(1, {
         updated: { oldSymbols: [oldStroke], newSymbols: [updatedStroke] },
       })
+    })
+  })
+
+  describe("getSymbolsBounds — an unregistered symbol type in the list", () => {
+    /**
+     * Public API: callers can pass an arbitrary symbol list, including one built from a
+     * selection with no registry check ahead of it (`selectAll()` populates
+     * `symbolsSelected` unconditionally). An unregistered type must not abort the whole
+     * bounding-box computation.
+     */
+    test("is skipped instead of throwing", () => {
+      const canvas = new InteractiveInkCanvas(document.createElement("div"), CanvasOptions)
+      const stroke = buildIIStroke()
+      canvas.model.addSymbol(stroke)
+
+      const orphan = {
+        ...(buildIIStroke() as unknown as TBaseSymbol),
+        type: "no-such-type",
+        id: "orphan-1",
+      } as unknown as TSymbol
+
+      // Computed independently of `getSymbolsBounds` — comparing against a second call to the
+      // method under test would be a tautology if the gate dropped every symbol: both calls
+      // would degenerate to the same empty-array zero box and still match.
+      const expectedBox = OBBOps.toBox(SymbolGeometry.boundsOf(stroke))
+
+      expect(() => canvas.getSymbolsBounds([stroke, orphan], 0)).not.toThrow()
+      expect(canvas.getSymbolsBounds([stroke, orphan], 0)).toEqual(expectedBox)
+    })
+  })
+
+  describe("duplicate — an unregistered symbol type in the list", () => {
+    /**
+     * Same caller-supplied-list concern as `getSymbolsBounds`. `translate.applyToSymbol` is
+     * stubbed here because it throws unconditionally for an unregistered type by design (see
+     * `AbstractTransformManager.applyToSymbol`) — a separate, pre-existing, out-of-scope path
+     * that would otherwise mask what this test is isolating: only the placement-offset bounds
+     * computation is expected to skip the unregistered symbol.
+     */
+    test("is skipped in the placement-offset bounds instead of throwing", async () => {
+      const canvas = new InteractiveInkCanvas(document.createElement("div"), CanvasOptions)
+      canvas.client.init = jest.fn()
+      canvas.client.waitForIdle = jest.fn(() => Promise.resolve())
+      canvas.client.addStrokes = jest.fn()
+      canvas.renderer.drawSymbol = jest.fn()
+      canvas.selector.drawSelectedGroup = jest.fn()
+      canvas.selector.removeSelectedGroup = jest.fn()
+      // Applies the matrix for real (rather than a pure no-op passthrough) so the placement
+      // offset this test cares about is observable on the returned symbol itself, not only on
+      // the arguments a stub happened to receive.
+      canvas.transform.translate.applyToSymbol = jest.fn((s: TSymbol, matrix: MatrixTransform) => {
+        if (isStroke(s)) {
+          s.pointers.forEach((p) => {
+            const moved = MatrixTransform.applyToPoint(matrix, p)
+            p.x = moved.x
+            p.y = moved.y
+          })
+        }
+        return s
+      })
+
+      const stroke = buildIIStroke()
+      canvas.model.addSymbol(stroke)
+
+      const orphan = {
+        ...(buildIIStroke() as unknown as TBaseSymbol),
+        type: "no-such-type",
+        id: "orphan-1",
+      } as unknown as TSymbol
+      canvas.model.addSymbol(orphan)
+
+      // Computed independently of `duplicate`, from the registered stroke's own real geometry —
+      // if the gate dropped every symbol instead of just the orphan, `bounds.height` inside
+      // `duplicate` would degenerate to 0 and the applied ty would be `SELECTION_MARGIN` alone,
+      // not this value.
+      const expectedTy = OBBOps.toBox(SymbolGeometry.boundsOf(stroke)).height + SELECTION_MARGIN
+
+      const result = await canvas.duplicate([stroke, orphan])
+      expect(result).toHaveLength(2)
+
+      const duplicatedStroke = result.find((s): s is TStroke => isStroke(s))
+      expect(duplicatedStroke).toBeDefined()
+      expect(duplicatedStroke?.pointers[0].y).toBeCloseTo(stroke.pointers[0].y + expectedTy)
     })
   })
 

@@ -41,7 +41,7 @@ export class StrokeUtil extends SymbolUtil<TStroke> {
   }
 
   getSnapPoints(stroke: TStroke): TPoint[] {
-    return stroke.snapPoints
+    return this.computeGeometry(stroke).snapPoints
   }
 
   /**

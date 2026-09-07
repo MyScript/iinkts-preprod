@@ -21,6 +21,7 @@ import {
   ShapePolygonOps,
   StrokeOps,
   SvgElementRole,
+  TBaseSymbol,
   TEdgeLine,
   TPoint,
   TShapeCircle,
@@ -814,5 +815,48 @@ describe("IIResizeManager aspect ratio locking", () => {
     const scales = manager.continue({ x: box.x + box.width * 2, y: box.y })
     expect(scales.scaleY).toBe(1)
     expect(scales.scaleX).not.toBe(1)
+  })
+})
+
+describe("start() — selection containing an unregistered symbol type", () => {
+  /**
+   * selectAll() (and any other bulk-select path) populates symbolsSelected with no registry
+   * check ahead of it — start()'s bounding-box scan AND its keepRatio check must both skip an
+   * unregistered symbol rather than throw, or the gesture never reaches end(), leaving
+   * startOperation("Resizing") stuck open for the rest of the session (endOperation only runs
+   * from end(), never from a throw in start()). Both guards share one filtered list, so this
+   * fails if either is removed.
+   */
+  test("does not throw, computing both the bounding box and keepRatio from the registered symbols only", () => {
+    const canvas = createCanvasMock()
+    const manager = new IIResizeManager(asCanvas(canvas))
+
+    const stroke = buildIIStroke({ box: { x: 0, y: 0, width: 10, height: 10 } })
+    canvas.model.addSymbol(stroke)
+    canvas.model.selectSymbol(stroke.id)
+
+    const orphan = {
+      ...(buildIIStroke({ box: { x: 1000, y: 1000, width: 10, height: 10 } }) as unknown as TBaseSymbol),
+      type: "no-such-type",
+      id: "orphan-1",
+    } as unknown as TSymbol
+    canvas.model.addSymbol(orphan)
+    canvas.model.selectSymbol(orphan.id)
+
+    const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
+    group.setAttribute("role", SvgElementRole.InteractElementsGroup)
+    const handle = document.createElementNS("http://www.w3.org/2000/svg", "line")
+    handle.setAttribute("resize-direction", ResizeDirection.East)
+    group.appendChild(handle)
+
+    expect(() => manager.start(handle, { x: 0, y: 0 })).not.toThrow()
+
+    // Bounding box comes only from the registered stroke (0,0,10,10) — the orphan at
+    // (1000,1000,10,10) must not have pulled it out toward that far corner.
+    expect(manager.boundingBox).toEqual({ x: 0, y: 0, width: 10, height: 10 })
+    // A plain stroke never requires a locked ratio — this is really just checking that
+    // keepRatio was computed at all (over the filtered list) rather than throwing before
+    // assigning it.
+    expect(manager.keepRatio).toBe(false)
   })
 })

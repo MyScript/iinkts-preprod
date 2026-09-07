@@ -14,6 +14,7 @@ import { EdgeKind, isDecorator, isRecognizedMath, isStroke, StrokeOps, SymbolTyp
 import { EdgeArcOps, reprojectArcMidpoint, stretchArcEndpoint } from "@/symbol/edge/Arc"
 import { EdgeOps } from "@/symbol/edge/Edge"
 import { EdgeUtil } from "@/symbol-utils/edge/EdgeUtil"
+import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 
 import { IIAbstractManager } from "./IIAbstractManager"
@@ -422,9 +423,16 @@ export class IISelectionManager extends IIAbstractManager {
       return
     }
 
+    // Reachable from `selectAll()`, which selects every symbol in the model with no render or
+    // registry check ahead of it — a custom symbol type missing its util must not abort building
+    // the selection outline, so it's left out of the bounding box, mirroring this file's own
+    // silent-skip precedent for a document-wide scan (`continue`'s `getUtil(...)?.overlaps(...) ??
+    // false`).
+    const registeredSymbols = symbols.filter((s) => symbolRegistry.has(s.type))
+
     const box1 = BoxOps.createFromBoxes(
-      symbols.map((s) => {
-        const b = OBBOps.toBox(s.bounds)
+      registeredSymbols.map((s) => {
+        const b = OBBOps.toBox(SymbolGeometry.boundsOf(s))
         return {
           x: b.x - (s.style.width || 1),
           y: b.y - (s.style.width || 1),
@@ -434,7 +442,7 @@ export class IISelectionManager extends IIAbstractManager {
       })
     )
 
-    const box2 = BoxOps.createFromPoints(symbols.flatMap((s) => s.vertices))
+    const box2 = BoxOps.createFromPoints(registeredSymbols.flatMap((s) => SymbolGeometry.verticesOf(s)))
     const ghostBoxes = this.getGhostBoxesForSelectedMath(symbols)
     const box = BoxOps.createFromBoxes([box1, box2, ...ghostBoxes])
 
@@ -600,7 +608,7 @@ export class IISelectionManager extends IIAbstractManager {
               // Recomputed fresh, not the vertexIndex captured before this drag: updateDerivedFields
               // just re-tessellated the arc, and the vertex COUNT can change with the new radius/
               // sweep — a stale index could silently miss applyEndpointAnchor's own isEnd check.
-              const currentIndex = isStart ? 0 : draft.vertices.length - 1
+              const currentIndex = isStart ? 0 : SymbolGeometry.verticesOf(draft).length - 1
               this.canvas.connector.applyEndpointAnchor(draft, currentIndex, { x, y })
             }
             this.renderer.layer.style.cursor = ""
@@ -611,7 +619,7 @@ export class IISelectionManager extends IIAbstractManager {
         )
       }
       EdgeArcOps.getResizePoints(arc).forEach(({ point, vertexIndex }) => {
-        const initialVertexCount = arc.vertices.length
+        const initialVertexCount = SymbolGeometry.verticesOf(arc).length
         const isStart = vertexIndex === 0
         const isEnd = vertexIndex === initialVertexCount - 1
         const pointEl = SVGBuilder.createCircle(point, radius, attrs)

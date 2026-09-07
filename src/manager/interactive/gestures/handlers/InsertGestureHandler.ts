@@ -7,6 +7,8 @@ import type { TDecorator, TStroke, TText } from "@/symbol"
 import { cloneSymbol, isText, SymbolType, type TSymbol } from "@/symbol"
 import { StrokeOps } from "@/symbol/stroke/Stroke"
 import { TextOps } from "@/symbol/typeset/Text"
+import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
+import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 
 import { GestureHandler } from "../GestureHandler"
 import type { GestureHelpers } from "../GestureHelpers"
@@ -116,12 +118,16 @@ export class InsertGestureHandler extends GestureHandler {
       newSymbols: TSymbol[]
     } = { oldSymbols: [], newSymbols: [] }
 
-    const symbolsAfterGestureInRow = this.model.symbols.filter(
-      (s) =>
-        gestureStroke.id !== s.id &&
-        this.isSymbolInRow(gestureStroke, s) &&
-        gestureStroke.bounds.center.x < s.bounds.center.x - s.bounds.width / 2
-    )
+    const gestureBounds = SymbolGeometry.boundsOf(gestureStroke)
+    // Scans every symbol in the document regardless of type, so an integrator's custom symbol type
+    // missing its util must not abort the gesture — skip it like a non-candidate instead of throwing.
+    const symbolsAfterGestureInRow = this.model.symbols.filter((s) => {
+      if (gestureStroke.id === s.id || !symbolRegistry.has(s.type) || !this.isSymbolInRow(gestureStroke, s)) {
+        return false
+      }
+      const b = SymbolGeometry.boundsOf(s)
+      return gestureBounds.center.x < b.center.x - b.width / 2
+    })
 
     const symbolToSplit = this.model.getRootSymbol(strokeIdToSplit)
     if (symbolToSplit?.type === SymbolType.Stroke) {
@@ -166,18 +172,24 @@ export class InsertGestureHandler extends GestureHandler {
       newSymbols: TSymbol[]
     } = { oldSymbols: [], newSymbols: [] }
 
-    const symbolsAfterGestureInRow = this.model.symbols.filter(
-      (s) =>
-        gestureStroke.id !== s.id &&
-        this.isSymbolInRow(gestureStroke, s) &&
-        gestureStroke.bounds.center.x < s.bounds.center.x - s.bounds.width / 2
+    const gestureBounds = SymbolGeometry.boundsOf(gestureStroke)
+    // Scans every symbol in the document regardless of type, so an integrator's custom symbol type
+    // missing its util must not abort the gesture — skip it like a non-candidate instead of throwing.
+    const symbolsAfterGestureInRow = this.model.symbols.filter((s) => {
+      if (gestureStroke.id === s.id || !symbolRegistry.has(s.type) || !this.isSymbolInRow(gestureStroke, s)) {
+        return false
+      }
+      const b = SymbolGeometry.boundsOf(s)
+      return gestureBounds.center.x < b.center.x - b.width / 2
+    })
+    const symbolsBelow = this.model.symbols.filter(
+      (s) => symbolRegistry.has(s.type) && this.isSymbolBelow(gestureStroke, s)
     )
-    const symbolsBelow = this.model.symbols.filter((s) => this.isSymbolBelow(gestureStroke, s))
 
-    const charsBefore = textToSplit.chars.filter(
-      (c) => c.bounds.x + c.bounds.width / 2 <= gestureStroke.bounds.center.x
-    )
-    const charsAfter = textToSplit.chars.filter((c) => c.bounds.x + c.bounds.width / 2 > gestureStroke.bounds.center.x)
+    // `c.bounds` below is a typeset child's own box (`TSymbolChar`, not a `TSymbol`) — it has no
+    // registered util and is out of `SymbolGeometry`'s scope, so it stays a direct field read.
+    const charsBefore = textToSplit.chars.filter((c) => c.bounds.x + c.bounds.width / 2 <= gestureBounds.center.x)
+    const charsAfter = textToSplit.chars.filter((c) => c.bounds.x + c.bounds.width / 2 > gestureBounds.center.x)
     const newTexts: TText[] = []
     if (charsBefore.length && charsAfter.length) {
       const textBefore = TextOps.create(
@@ -201,7 +213,7 @@ export class InsertGestureHandler extends GestureHandler {
         pointAfter = {
           x:
             textBefore.point.x +
-            textBefore.bounds.width +
+            SymbolGeometry.boundsOf(textBefore).width +
             this.typeset.getSpaceWidth(computeAverage(textBefore.chars.map((c) => c.fontSize))),
           y: textBefore.point.y,
         }
@@ -252,27 +264,34 @@ export class InsertGestureHandler extends GestureHandler {
       gesture,
     })
 
+    const gestureBounds = SymbolGeometry.boundsOf(gestureStroke)
+    // Scans every symbol in the document regardless of type, so an integrator's custom symbol type
+    // missing its util must not abort the gesture — skip it like a non-candidate instead of
+    // throwing. Every set derived below is a subset of symbolsRow/symbolsBelow, so gating here
+    // keeps every later geometry read in this method safe without repeating the check on each.
     const symbolsRow = this.model.symbols.filter(
-      (s) => gestureStroke.id !== s.id && this.isSymbolInRow(gestureStroke, s)
+      (s) => symbolRegistry.has(s.type) && gestureStroke.id !== s.id && this.isSymbolInRow(gestureStroke, s)
     )
 
-    const textToSplit = symbolsRow.find(
-      (s) =>
-        isText(s) &&
-        isBetween(
-          gestureStroke.bounds.center.x,
-          s.bounds.center.x - s.bounds.width / 2,
-          s.bounds.center.x + s.bounds.width / 2
-        )
-    ) as TText | undefined
-    const symbolsBeforeGestureInRow = symbolsRow.filter(
-      (s) => gestureStroke.bounds.center.x > s.bounds.center.x + s.bounds.width / 2
-    )
-    const symbolsAfterGestureInRow = symbolsRow.filter(
-      (s) => gestureStroke.bounds.center.x < s.bounds.center.x - s.bounds.width / 2
-    )
+    const textToSplit = symbolsRow.find((s) => {
+      if (!isText(s)) {
+        return false
+      }
+      const b = SymbolGeometry.boundsOf(s)
+      return isBetween(gestureBounds.center.x, b.center.x - b.width / 2, b.center.x + b.width / 2)
+    }) as TText | undefined
+    const symbolsBeforeGestureInRow = symbolsRow.filter((s) => {
+      const b = SymbolGeometry.boundsOf(s)
+      return gestureBounds.center.x > b.center.x + b.width / 2
+    })
+    const symbolsAfterGestureInRow = symbolsRow.filter((s) => {
+      const b = SymbolGeometry.boundsOf(s)
+      return gestureBounds.center.x < b.center.x - b.width / 2
+    })
 
-    const symbolsBelow = this.model.symbols.filter((s) => this.isSymbolBelow(gestureStroke, s))
+    const symbolsBelow = this.model.symbols.filter(
+      (s) => symbolRegistry.has(s.type) && this.isSymbolBelow(gestureStroke, s)
+    )
 
     let changes: TIIHistoryChanges | undefined
     if (gesture.strokeIds.length && gesture.subStrokes?.length) {
@@ -287,9 +306,12 @@ export class InsertGestureHandler extends GestureHandler {
       }[] = []
       let translateX = 0
       if (symbolsBeforeGestureInRow.length) {
+        const leftEdge = (s: TSymbol) => {
+          const b = SymbolGeometry.boundsOf(s)
+          return b.center.x - b.width / 2
+        }
         translateX =
-          Math.min(...symbolsBeforeGestureInRow.map((s) => s.bounds.center.x - s.bounds.width / 2)) -
-          Math.min(...symbolsAfterGestureInRow.map((s) => s.bounds.center.x - s.bounds.width / 2))
+          Math.min(...symbolsBeforeGestureInRow.map(leftEdge)) - Math.min(...symbolsAfterGestureInRow.map(leftEdge))
       }
 
       switch (this.manager.insertAction) {
