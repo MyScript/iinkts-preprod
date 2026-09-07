@@ -97,7 +97,7 @@ describe("MathUtil", () => {
       const math = buildIIMath()
       util.updateDerivedFields(math)
       const result = util.getSnapPoints(math)
-      expect(result).toBe(math.snapPoints)
+      expect(result).toStrictEqual(math.snapPoints)
     })
   })
 

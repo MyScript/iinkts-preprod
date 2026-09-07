@@ -1,6 +1,15 @@
 import { buildIICircle, buildIIEraser, buildIIStroke, buildIIText } from "../../helpers"
 import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import { EraseManager, TPointerInfo, SymbolType } from "@/iink"
+import {
+  EraseManager,
+  TPointerInfo,
+  SymbolType,
+  TBaseSymbol,
+  TSymbol,
+  TInkCanvas,
+  symbolRegistry,
+  registerBuiltinSymbolUtils,
+} from "@/iink"
 
 describe("EraseManager.ts", () => {
   test("should create", () => {
@@ -99,5 +108,70 @@ describe("partial character erase", () => {
 
     const stored = canvas.model.getRootSymbol(text.id) as typeof text
     expect(stored.chars.map((c) => c.id)).toEqual(["c2"])
+  })
+})
+
+describe("hit-testing an unregistered symbol type", () => {
+  /**
+   * `continue()` hit-tests every symbol in the document, including types an integrator registered
+   * without a `SymbolUtil` — a document-wide scan must not abort erasing over one bad symbol.
+   */
+  test("skips it without throwing and still erases a normal stroke at the same spot", () => {
+    const canvas = createCanvasMock()
+    const manager = new EraseManager(asCanvas(canvas))
+
+    const box = { x: 5, y: 5, width: 4, height: 4 }
+    const orphan = {
+      ...(buildIIStroke({ box }) as unknown as TBaseSymbol),
+      type: "no-such-type",
+      id: "orphan-1",
+    } as unknown as TSymbol
+    canvas.model.addSymbol(orphan)
+
+    const realStroke = buildIIStroke({ box })
+    canvas.model.addSymbol(realStroke)
+
+    manager.currentEraser = buildIIEraser({ box: { x: 7, y: 7, width: 0, height: 0 }, nbPoint: 1 })
+    manager.currentEraser.style.width = 20
+
+    expect(() =>
+      manager.continue({ pointer: { x: 7, y: 7, t: 0, p: 1 }, pointerType: "pen" } as TPointerInfo)
+    ).not.toThrow()
+
+    expect(manager.deletingIds.has(orphan.id)).toBe(false)
+    expect(manager.deletingIds.has(realStroke.id)).toBe(true)
+  })
+})
+
+describe("plain Ink hit-testing avoids redundant geometry recomputation", () => {
+  /**
+   * `IModel.strokes` (the plain-Ink branch) is a live array, never frozen by a store — unlike
+   * `IIModel.symbols`, which is a frozen store record cached by `SymbolGeometry`. Hit-testing an
+   * unfrozen stroke through three separate accessor calls (bounds/edges/vertices) recomputes the
+   * whole geometry three times over on every pointermove; going through one `SymbolGeometry.of()`
+   * call must bring that back down to once.
+   */
+  test("computes a stroke's geometry once per hit-test, not three times", () => {
+    registerBuiltinSymbolUtils()
+    const strokeUtil = symbolRegistry.getUtil(SymbolType.Stroke)!
+    const computeGeometrySpy = jest.spyOn(strokeUtil, "computeGeometry")
+
+    const stroke = buildIIStroke({ box: { x: 5, y: 5, width: 4, height: 4 } })
+    const canvas = {
+      model: { strokes: [stroke], symbols: [] },
+      configuration: { grabber: {} },
+      renderer: { drawSymbol: jest.fn(), updateDeletingState: jest.fn() },
+    } as unknown as TInkCanvas
+    const manager = new EraseManager(canvas)
+    manager.currentEraser = buildIIEraser({ box: { x: 7, y: 7, width: 0, height: 0 }, nbPoint: 1 })
+    manager.currentEraser.style.width = 20
+
+    computeGeometrySpy.mockClear()
+    manager.continue({ pointer: { x: 7, y: 7, t: 0, p: 1 }, pointerType: "pen" } as TPointerInfo)
+
+    expect(computeGeometrySpy).toHaveBeenCalledTimes(1)
+    expect(manager.deletingIds.has(stroke.id)).toBe(true)
+
+    computeGeometrySpy.mockRestore()
   })
 })

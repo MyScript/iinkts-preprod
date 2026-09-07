@@ -28,7 +28,7 @@ export class TextUtil extends TypesetUtil<TText> {
   }
 
   getSnapPoints(text: TText): TPoint[] {
-    return text.snapPoints
+    return this.computeGeometry(text).snapPoints
   }
 
   protected glyphsOf(text: TText): { fontSize: number }[] {

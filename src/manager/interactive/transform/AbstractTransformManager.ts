@@ -6,6 +6,7 @@ import { LoggerCategory } from "@/logger"
 import type { TStroke, TSymbol } from "@/symbol"
 import { isDecorator, isStroke } from "@/symbol"
 import { DecoratorOps } from "@/symbol/decorator/Decorator"
+import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 
 import { IIAbstractManager } from "../IIAbstractManager"
 
@@ -74,7 +75,7 @@ export abstract class IIAbstractTransformManager extends IIAbstractManager {
       if (!targetSyms.length) {
         return
       }
-      DecoratorOps.setBounds(draft, OBBOps.createFromOBBs(targetSyms.map((s) => s.bounds)))
+      DecoratorOps.setBounds(draft, OBBOps.createFromOBBs(targetSyms.map((s) => SymbolGeometry.boundsOf(s))))
       // baseline is an absolute y-coordinate (used by Underline/Strikethrough rendering
       // in place of bounds), so it must follow the same transform as the target symbols.
       if (draft.baseline !== undefined) {

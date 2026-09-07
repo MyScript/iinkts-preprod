@@ -157,7 +157,7 @@ export class EdgeUtil extends SymbolUtil<TEdge> {
   }
 
   getSnapPoints(edge: TEdge): TPoint[] {
-    return edge.snapPoints
+    return this.computeGeometry(edge).snapPoints
   }
 
   getResizePoints(edge: TEdge): TResizePoint[] {

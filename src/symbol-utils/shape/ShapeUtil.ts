@@ -166,7 +166,7 @@ export class ShapeUtil extends SymbolUtil<TShape> {
   }
 
   getSnapPoints(shape: TShape): TPoint[] {
-    return shape.snapPoints
+    return this.computeGeometry(shape).snapPoints
   }
 
   keepsAspectRatio(shape: TShape): boolean {

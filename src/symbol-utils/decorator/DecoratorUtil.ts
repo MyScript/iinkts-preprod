@@ -4,9 +4,11 @@ import { OBBOps, type TOBB } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import { DefaultStyle } from "@/style"
 import { DecoratorKind, DecoratorOps, type TDecorator } from "@/symbol/decorator/Decorator"
+import type { TBaseSymbol } from "@/symbol/Symbol"
 import { SymbolType } from "@/symbol/Symbol"
 
 import { SVGBuilder } from "../SVGBuilder"
+import { SymbolGeometry } from "../SymbolGeometry"
 import { SymbolUtil } from "../SymbolUtil"
 import type { TSymbolGeometry } from "../TSymbolGeometry"
 
@@ -175,7 +177,7 @@ export class DecoratorUtil extends SymbolUtil<TDecorator> {
   resize(): void {}
 
   getSnapPoints(decorator: TDecorator): TPoint[] {
-    return decorator.snapPoints
+    return this.computeGeometry(decorator).snapPoints
   }
 
   canResize(_decorator: TDecorator): boolean {
@@ -187,20 +189,20 @@ export class DecoratorUtil extends SymbolUtil<TDecorator> {
   }
 
   getSVGElement(decorator: TDecorator): SVGGeometryElement | undefined {
-    return DecoratorUtil.renderFromBounds(decorator, decorator.bounds, decorator.baseline, decorator.xHeight, {
-      width: decorator.style.width,
-      color: decorator.style.color,
-    })
+    return DecoratorUtil.renderFromBounds(
+      decorator,
+      SymbolGeometry.boundsOf(decorator),
+      decorator.baseline,
+      decorator.xHeight,
+      {
+        width: decorator.style.width,
+        color: decorator.style.color,
+      }
+    )
   }
 
-  static renderForSymbol(
-    decorator: TDecorator,
-    symbol: {
-      bounds: TOBB
-      style: { width?: number; color?: string }
-    }
-  ): SVGGeometryElement | undefined {
-    const bounds = decorator.hasBounds ? decorator.bounds : symbol.bounds
+  static renderForSymbol(decorator: TDecorator, symbol: TBaseSymbol): SVGGeometryElement | undefined {
+    const bounds = decorator.hasBounds ? SymbolGeometry.boundsOf(decorator) : SymbolGeometry.boundsOf(symbol)
     return DecoratorUtil.renderFromBounds(decorator, bounds, undefined, undefined, {
       width: symbol.style.width,
       color: symbol.style.color,
