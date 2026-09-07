@@ -1,4 +1,4 @@
-import { SymbolUtil, TBaseSymbol, TPartialDeep } from "@/iink"
+import { OBBOps, SymbolUtil, TBaseSymbol, TPartialDeep, TSymbolGeometry } from "@/iink"
 
 class TestSymbolUtil extends SymbolUtil<TBaseSymbol> {
   readonly type = "test"
@@ -13,6 +13,9 @@ class TestSymbolUtil extends SymbolUtil<TBaseSymbol> {
   }
   updateDerivedFields(): void {
     // no derived fields for this test double
+  }
+  computeGeometry(): TSymbolGeometry {
+    return { bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0), vertices: [], snapPoints: [], edges: [], length: 0 }
   }
   overlaps(): boolean {
     return false

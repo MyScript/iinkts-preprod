@@ -1,10 +1,12 @@
-import { applyMatrixToPoint, applyMatrixToPoints, MatrixTransform } from "@/core/geometry"
+import { applyMatrixToPoint, applyMatrixToPoints, MatrixTransform, OBBOps } from "@/core/geometry"
 import { convertRadianToDegree } from "@/core/math"
 import type { TMath } from "@/symbol/typeset/Math"
 import type { TText } from "@/symbol/typeset/Text"
+import { computeClosedEdges, computeTypesetSnapPoints, computeTypesetVertices } from "@/symbol/typeset/Typeset"
 
 import { SymbolUtil } from "../SymbolUtil"
 import type { TResizeContext, TRotateContext, TTranslateContext } from "../TransformContext"
+import type { TSymbolGeometry } from "../TSymbolGeometry"
 
 /**
  * @group SymbolUtils
@@ -40,6 +42,31 @@ export abstract class TypesetUtil<T extends TText | TMath> extends SymbolUtil<T>
   /** The factor a typeset symbol scales its glyphs by: the mean of the two axes. */
   protected static fontScale(matrix: MatrixTransform): number {
     return (matrix.xx + matrix.yy) / 2
+  }
+
+  /**
+   * Shared whole: `TText` and `TMath` derive identically, down to the formula — the only thing
+   * that ever differed between them was which list of glyphs resized, which is {@link glyphsOf}'s
+   * job, not this one's.
+   */
+  computeGeometry(symbol: T): TSymbolGeometry {
+    // Unrotated, not `toBox`: the rotation is applied once below, from `symbol.rotation`.
+    const boundsBox = OBBOps.toUnrotatedBox(symbol.bounds)
+    const vertices = computeTypesetVertices(boundsBox, symbol.rotation)
+    return {
+      bounds: symbol.bounds,
+      vertices,
+      snapPoints: computeTypesetSnapPoints(boundsBox, symbol.point, symbol.rotation),
+      edges: computeClosedEdges(vertices),
+      length: 0,
+    }
+  }
+
+  updateDerivedFields(symbol: T): void {
+    // Destructured rather than spread: `computeGeometry` also carries `length`, which neither
+    // `TText` nor `TMath` declares — an undeclared property `Object.assign` would not warn about.
+    const { bounds, vertices, snapPoints, edges } = this.computeGeometry(symbol)
+    Object.assign(symbol, { bounds, vertices, snapPoints, edges })
   }
 
   /**

@@ -17,6 +17,7 @@ import {
   TPoint,
   TResizeContext,
   TRotateContext,
+  TSymbolGeometry,
   TTranslateContext,
   applyMatrixToPoint,
 } from "@/iink"
@@ -608,6 +609,9 @@ describe("SVGRenderer.ts", () => {
         return { ...partial, type: "sticky-note", text: partial.text ?? "" } as TStickyNote
       }
       updateDerivedFields(): void {}
+      computeGeometry(): TSymbolGeometry {
+        return { bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0), vertices: [], snapPoints: [], edges: [], length: 0 }
+      }
       translate(symbol: TStickyNote, { matrix }: TTranslateContext): void {
         symbol.point = applyMatrixToPoint(symbol.point, matrix)
       }

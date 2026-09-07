@@ -74,15 +74,20 @@ export const DecoratorOps = {
     return decorator
   },
 
-  setBounds(decorator: TDecorator, bounds: TOBB): void {
-    decorator.bounds = bounds
-    decorator.hasBounds = true
+  /** The two endpoints of the horizontal line a decorator's own geometry is: the middle of its bounds. */
+  computeVertices(bounds: TOBB): TPoint[] {
     const yMid = bounds.center.y
     const hw = bounds.width / 2
-    const vertices: TPoint[] = [
+    return [
       { x: bounds.center.x - hw, y: yMid },
       { x: bounds.center.x + hw, y: yMid },
     ]
+  },
+
+  setBounds(decorator: TDecorator, bounds: TOBB): void {
+    decorator.bounds = bounds
+    decorator.hasBounds = true
+    const vertices = DecoratorOps.computeVertices(bounds)
     decorator.vertices = vertices
     decorator.snapPoints = vertices
     decorator.edges = [{ p1: vertices[0], p2: vertices[1] }]

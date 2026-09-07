@@ -69,6 +69,28 @@ describe("EdgeUtil", () => {
       expect(created.bounds).toBeDefined()
     })
 
+    test("computeGeometry should match the legacy *Ops writer already run by create, not merely itself", () => {
+      // `edge()` already ran the legacy per-kind `updateDerivedFields` as part of construction
+      // (`EdgeArcOps`/`EdgeLineOps`/`EdgePolyLineOps.create` all call it before returning) — an
+      // independent oracle `computeGeometry` never touches. Calling `util.updateDerivedFields` here
+      // first would make the comparison circular: it IS `Object.assign(s, computeGeometry(s))`.
+      const created = edge()
+
+      const geometry = util.computeGeometry(created)
+
+      expect(geometry.bounds).toEqual(created.bounds)
+      expect(geometry.vertices).toEqual(created.vertices)
+      expect(geometry.snapPoints).toEqual(created.snapPoints)
+      expect(geometry.edges).toEqual(created.edges)
+      expect(geometry.length).toBe(0)
+    })
+
+    test("updateDerivedFields should not write an undeclared length onto the edge", () => {
+      const created = edge()
+      util.updateDerivedFields(created)
+      expect(created).not.toHaveProperty("length")
+    })
+
     test("should answer overlaps", () => {
       expect(typeof util.overlaps(edge(), { x: 0, y: 0, width: 200, height: 200 })).toBe("boolean")
     })
@@ -118,6 +140,38 @@ describe("EdgeUtil", () => {
       const unknown = { kind: "spline" } as unknown as TEdge
       expect(() => util.updateDerivedFields(unknown)).not.toThrow()
       expect(util.overlaps(unknown, { x: 0, y: 0, width: 1, height: 1 })).toBe(false)
+    })
+
+    test("computeGeometry should stay tolerant too, leaving the edge's own fields as its answer", () => {
+      const unknown = {
+        kind: "spline",
+        bounds: "bounds",
+        vertices: "vertices",
+        snapPoints: "snapPoints",
+        edges: "edges",
+      } as unknown as TEdge
+      expect(util.computeGeometry(unknown)).toEqual({
+        bounds: unknown.bounds,
+        vertices: unknown.vertices,
+        snapPoints: unknown.snapPoints,
+        edges: unknown.edges,
+        length: 0,
+      })
+    })
+
+    test("updateDerivedFields should perform no write at all for a kind the table does not own, even on a frozen edge", () => {
+      // `Object.assign` throws on a frozen object even when writing back the identical value —
+      // exactly the state a `SymbolStore`-committed symbol is in. The dispatch this replaced
+      // (`EDGE_KINDS[edge.kind]?.updateDerivedFields(edge)`) never wrote for an unowned kind, so this
+      // must not either.
+      const frozen = Object.freeze({
+        kind: "spline",
+        bounds: "bounds",
+        vertices: "vertices",
+        snapPoints: "snapPoints",
+        edges: "edges",
+      }) as unknown as TEdge
+      expect(() => util.updateDerivedFields(frozen)).not.toThrow()
     })
   })
 })

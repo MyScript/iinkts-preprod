@@ -23,10 +23,6 @@ export class TextUtil extends TypesetUtil<TText> {
     return TextOps.createFromPartial(partial)
   }
 
-  updateDerivedFields(text: TText): void {
-    TextOps.updateDerivedFields(text)
-  }
-
   overlaps(text: TText, box: TBox): boolean {
     return TextOps.overlaps(text, box)
   }
