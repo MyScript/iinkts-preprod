@@ -103,6 +103,61 @@ describe("OBBOps", () => {
     })
   })
 
+  describe("toCorners", () => {
+    test("should return the same 4 corners as getCorners", () => {
+      const obb: TOBB = { center: { x: 0, y: 0 }, width: 10, height: 4, angle: Math.PI / 4 }
+      expect(OBBOps.toCorners(obb)).toEqual(OBBOps.getCorners(obb))
+    })
+  })
+
+  describe("fromCorners", () => {
+    test("hand-computed: fits an axis-aligned box translated to x:[10,20], y:[0,10]", () => {
+      // Corners of a 10x10 box centred on (15, 5); average of the 4 corners is that centre.
+      const corners: TPoint[] = [
+        { x: 10, y: 0 },
+        { x: 20, y: 0 },
+        { x: 20, y: 10 },
+        { x: 10, y: 10 },
+      ]
+      expect(OBBOps.fromCorners(corners, 0)).toEqual({ center: { x: 15, y: 5 }, width: 10, height: 10, angle: 0 })
+    })
+
+    test("hand-computed: fits a square rotated 90 degrees around the origin", () => {
+      // getCorners({center:(0,0), width:2, height:2, angle: PI/2}) rotates (-1,-1),(1,-1),(1,1),(-1,1)
+      // by 90°, landing on (1,-1),(1,1),(-1,1),(-1,-1) — hand-derived from cos(90°)=0, sin(90°)=1.
+      const corners: TPoint[] = [
+        { x: 1, y: -1 },
+        { x: 1, y: 1 },
+        { x: -1, y: 1 },
+        { x: -1, y: -1 },
+      ]
+      const result = OBBOps.fromCorners(corners, Math.PI / 2)
+      expect(result.center.x).toBeCloseTo(0)
+      expect(result.center.y).toBeCloseTo(0)
+      expect(result.width).toBeCloseTo(2)
+      expect(result.height).toBeCloseTo(2)
+      expect(result.angle).toBe(Math.PI / 2)
+    })
+
+    test("should round-trip through toCorners for an axis-aligned OBB", () => {
+      const obb: TOBB = { center: { x: 5, y: 2 }, width: 10, height: 4, angle: 0 }
+      const result = OBBOps.fromCorners(OBBOps.toCorners(obb), obb.angle)
+      expect(result.center.x).toBeCloseTo(obb.center.x)
+      expect(result.center.y).toBeCloseTo(obb.center.y)
+      expect(result.width).toBeCloseTo(obb.width)
+      expect(result.height).toBeCloseTo(obb.height)
+    })
+
+    test("should round-trip through toCorners for a rotated OBB", () => {
+      const obb: TOBB = { center: { x: 3, y: -4 }, width: 6, height: 2, angle: Math.PI / 2 }
+      const result = OBBOps.fromCorners(OBBOps.toCorners(obb), obb.angle)
+      expect(result.center.x).toBeCloseTo(obb.center.x)
+      expect(result.center.y).toBeCloseTo(obb.center.y)
+      expect(result.width).toBeCloseTo(obb.width)
+      expect(result.height).toBeCloseTo(obb.height)
+    })
+  })
+
   describe("getSides", () => {
     test("should return 4 segments connecting consecutive corners, wrapping around", () => {
       const obb: TOBB = { center: { x: 0, y: 0 }, width: 10, height: 4, angle: 0 }

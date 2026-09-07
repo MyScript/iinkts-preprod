@@ -1,7 +1,11 @@
-import { EdgeArcOps, TPoint, DefaultStyle, TStyle, TBox, EdgeDecoration, OBBOps } from "@/iink"
+import { EdgeArcOps, TPoint, DefaultStyle, TStyle, TBox, EdgeDecoration, OBBOps, MatrixTransform } from "@/iink"
 
 describe("EdgeArcOps", () => {
   describe("create", () => {
+    test("should initialise transform to identity", () => {
+      const arc = EdgeArcOps.create({ x: 0, y: 0 }, Math.PI / 4, Math.PI / 2, 10, 10, 0)
+      expect(arc.transform).toEqual(MatrixTransform.identity())
+    })
     test("should create with default style", () => {
       const center: TPoint = { x: 0, y: 0 }
       const arc = EdgeArcOps.create(center, Math.PI / 4, Math.PI / 2, 10, 10, 0)
@@ -53,6 +57,19 @@ describe("EdgeArcOps", () => {
       const arc = EdgeArcOps.createFromPartial(partial)
       expect(arc.center).toEqual(partial.center)
       expect(arc.startAngle).toEqual(partial.startAngle)
+    })
+    test("should carry a given transform through, merged onto identity", () => {
+      const partial = {
+        center: { x: 0, y: 0 },
+        startAngle: Math.PI / 4,
+        sweepAngle: Math.PI / 2,
+        radiusX: 10,
+        radiusY: 10,
+        phi: 0,
+        transform: { tx: 5, ty: 6 },
+      }
+      const arc = EdgeArcOps.createFromPartial(partial)
+      expect(arc.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 5, ty: 6 })
     })
     test("should preserve id", () => {
       const partial = {

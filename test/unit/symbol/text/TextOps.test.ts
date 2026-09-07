@@ -1,4 +1,4 @@
-import { TSymbolChar, TPoint, TBox, BoxOps, OBBOps, TextOps } from "@/iink"
+import { TSymbolChar, TPoint, TBox, BoxOps, OBBOps, TextOps, MatrixTransform } from "@/iink"
 
 const chars: TSymbolChar[] = [
   {
@@ -23,6 +23,9 @@ const bounds: TBox = BoxOps.createFromBoxes(chars.map((c) => c.bounds))
 
 describe("TextOps", () => {
   describe("create", () => {
+    test("should initialise transform to identity", () => {
+      expect(TextOps.create(chars, point, bounds).transform).toEqual(MatrixTransform.identity())
+    })
     test("should return a plain object with correct type", () => {
       const text = TextOps.create(chars, point, bounds)
       expect(text.type).toBe("text")
@@ -55,6 +58,11 @@ describe("TextOps", () => {
       const text = TextOps.createFromPartial({ chars, point, bounds })
       expect(text.chars).toEqual(chars)
       expect(text.point).toEqual(point)
+    })
+
+    test("should carry a given transform through, merged onto identity", () => {
+      const text = TextOps.createFromPartial({ chars, point, bounds, transform: { tx: 5, ty: 6 } })
+      expect(text.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 5, ty: 6 })
     })
 
     test("should throw when chars is empty", () => {

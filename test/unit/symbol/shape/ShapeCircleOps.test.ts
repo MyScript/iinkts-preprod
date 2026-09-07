@@ -1,7 +1,10 @@
-import { ShapeCircleOps, TPoint, DefaultStyle, TStyle, TBox, OBBOps } from "@/iink"
+import { ShapeCircleOps, TPoint, DefaultStyle, TStyle, TBox, OBBOps, MatrixTransform } from "@/iink"
 
 describe("ShapeCircleOps", () => {
   describe("create", () => {
+    test("should initialise transform to identity", () => {
+      expect(ShapeCircleOps.create({ x: 0, y: 0 }, 5).transform).toEqual(MatrixTransform.identity())
+    })
     test("should create with center and radius", () => {
       const center: TPoint = { x: 5, y: 0 }
       const radius = 5
@@ -46,6 +49,11 @@ describe("ShapeCircleOps", () => {
       const circle = ShapeCircleOps.createFromPartial(partial)
       expect(circle.center).toEqual(partial.center)
       expect(circle.radius).toEqual(partial.radius)
+    })
+    test("should carry a given transform through, merged onto identity", () => {
+      const partial = { center: { x: 10, y: 10 }, radius: 5, transform: { tx: 5, ty: 6 } }
+      const circle = ShapeCircleOps.createFromPartial(partial)
+      expect(circle.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 5, ty: 6 })
     })
     test("should preserve id from partial", () => {
       const partial = { id: "test-id", center: { x: 0, y: 0 }, radius: 5 }

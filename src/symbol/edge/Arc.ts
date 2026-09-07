@@ -1,7 +1,7 @@
 import type { EdgeDecoration } from "@/Constants"
 import { SELECTION_MARGIN } from "@/Constants"
 import type { TBox } from "@/core/geometry"
-import { OBBOps, type TOBB } from "@/core/geometry"
+import { MatrixTransform, mergeSymbolTransform, OBBOps, type TOBB } from "@/core/geometry"
 import { isValidPoint, type TPoint, type TSegment } from "@/core/geometry"
 import { computeAngleFromPointOnEllipse, computeDistance, computePointOnEllipse } from "@/core/geometry"
 import { computeEllipseRadiusAverage, computeTessellationCount, isValidNumber } from "@/core/math"
@@ -72,6 +72,7 @@ export const EdgeArcOps = {
       bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0),
       snapPoints: [],
       edges: [],
+      transform: MatrixTransform.identity(),
     }
     EdgeArcOps.updateDerivedFields(arc)
     return arc
@@ -107,6 +108,7 @@ export const EdgeArcOps = {
     if (partial.id) {
       arc.id = partial.id
     }
+    arc.transform = mergeSymbolTransform(partial.transform)
     return arc
   },
 

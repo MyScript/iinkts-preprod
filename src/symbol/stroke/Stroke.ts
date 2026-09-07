@@ -1,7 +1,7 @@
 import type { TBox } from "@/core/geometry"
 import type { TPointer } from "@/core/geometry"
 import type { TPoint, TSegment } from "@/core/geometry"
-import { OBBOps, type TOBB } from "@/core/geometry"
+import { MatrixTransform, mergeSymbolTransform, OBBOps, type TOBB } from "@/core/geometry"
 import {
   computeAngleAxeRadian,
   computeDistance,
@@ -116,6 +116,7 @@ export const StrokeOps = {
       snapPoints: [],
       vertices: pointers,
       edges: [],
+      transform: MatrixTransform.identity(),
     }
   },
 
@@ -255,6 +256,7 @@ export const StrokeOps = {
     if (partial.id) {
       stroke.id = partial.id
     }
+    stroke.transform = mergeSymbolTransform(partial.transform)
     stroke.isSolverOutput = partial.isSolverOutput
     stroke.jiixBlockId = partial.jiixBlockId
     const errors: string[] = []

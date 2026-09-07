@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach } from "@jest/globals"
 import { buildIIStroke } from "../../helpers"
-import { StrokeUtil, StrokeOps, OBBOps, SymbolType } from "@/iink"
+import { StrokeUtil, StrokeOps, OBBOps, SymbolType, MatrixTransform } from "@/iink"
 
 describe("StrokeUtil", () => {
   let util: StrokeUtil
@@ -80,6 +80,23 @@ describe("StrokeUtil", () => {
       expect(geometry.edges).toEqual(stroke.edges)
       // 0,0 → 10,0 → 10,5: 10 + 5, a literal independent of computeLength's own formula.
       expect(geometry.length).toBe(15)
+    })
+  })
+
+  describe("getSVGElement", () => {
+    test("emits the symbol's matrix as the element transform", () => {
+      const stroke = StrokeOps.createFromPartial({ pointers: [{ x: 0, y: 0, t: 0, p: 1 }] })
+      stroke.transform = MatrixTransform.identity().translate(3, 4)
+
+      const el = new StrokeUtil().getSVGElement(stroke)
+
+      expect(el.getAttribute("transform")).toBe("matrix(1, 0, 0, 1, 3, 4)")
+    })
+
+    test("emits no transform attribute for a symbol that was never moved", () => {
+      const stroke = StrokeOps.createFromPartial({ pointers: [{ x: 0, y: 0, t: 0, p: 1 }] })
+
+      expect(new StrokeUtil().getSVGElement(stroke).getAttribute("transform")).toBeNull()
     })
   })
 

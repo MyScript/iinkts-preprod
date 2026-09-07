@@ -1,4 +1,4 @@
-import { registerBuiltinSymbolUtils, StrokeOps, SymbolGeometry, SymbolStore, symbolRegistry } from "@/iink"
+import { MatrixTransform, registerBuiltinSymbolUtils, StrokeOps, SymbolGeometry, SymbolStore, symbolRegistry } from "@/iink"
 import type { TStroke } from "@/iink"
 
 describe("SymbolGeometry", () => {
@@ -144,5 +144,143 @@ describe("SymbolGeometry", () => {
 
     expect(spy).toHaveBeenCalledTimes(1)
     spy.mockRestore()
+  })
+
+  describe("transform", () => {
+    test("moves the computed bounds without touching the stored coordinates", () => {
+      const stroke = StrokeOps.createFromPartial({
+        pointers: [
+          { x: 0, y: 0, t: 0, p: 1 },
+          { x: 10, y: 0, t: 1, p: 1 },
+        ],
+      })
+      const before = SymbolGeometry.boundsOf(stroke).center
+
+      stroke.transform = MatrixTransform.identity().translate(100, 50)
+      const after = SymbolGeometry.boundsOf(stroke).center
+
+      expect(after.x).toBeCloseTo(before.x + 100)
+      expect(after.y).toBeCloseTo(before.y + 50)
+      expect(stroke.pointers[0]).toEqual({ x: 0, y: 0, t: 0, p: 1 })
+    })
+
+    test("carries the matrix rotation into the bounds angle, in radians, without corrupting width/height", () => {
+      // Hand-computed, not read off the code under test: raw bounds are center (5,0), width 10,
+      // height 0, angle 0 (StrokeOps.computeBounds is always axis-aligned). `rotate(PI/2, {0,0})`
+      // rounds cos/sin to exactly 0/1 (MatrixTransform.rotate), giving matrix {xx:0,yx:1,xy:-1,yy:0}.
+      // Every raw corner (a degenerate box: (0,0) and (10,0) each twice) maps to (0,0) or (0,10), so
+      // the rotated box is still a 10-long, 0-wide segment — center (0,5), width 10, height 0 — just
+      // turned 90 degrees, i.e. PI/2 radians, matching TOBB.angle's own convention. A bug that
+      // wrapped this in convertRadianToDegree left the angle numerically as "90" (looking plausible
+      // in isolation) while corrupting width/height into ~8.94/~4.48 — which is why both are
+      // asserted here, not just the angle.
+      const stroke = StrokeOps.createFromPartial({
+        pointers: [
+          { x: 0, y: 0, t: 0, p: 1 },
+          { x: 10, y: 0, t: 1, p: 1 },
+        ],
+      })
+      stroke.transform = MatrixTransform.identity().rotate(Math.PI / 2, { x: 0, y: 0 })
+
+      const bounds = SymbolGeometry.boundsOf(stroke)
+      expect(bounds.angle).toBeCloseTo(Math.PI / 2)
+      expect(bounds.width).toBeCloseTo(10)
+      expect(bounds.height).toBeCloseTo(0)
+      expect(bounds.center.x).toBeCloseTo(0)
+      expect(bounds.center.y).toBeCloseTo(5)
+    })
+
+    test("a symbol starts with the identity matrix", () => {
+      const stroke = StrokeOps.createFromPartial({ pointers: [{ x: 0, y: 0, t: 0, p: 1 }] })
+      expect(stroke.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 0, ty: 0 })
+    })
+
+    test("leaves length unchanged under a pure rotation", () => {
+      // Points (0,0) and (10,0): length is 10. A rotation has xx=cos, yx=sin with hypot(xx,yx)=1, so
+      // `length * hypot(matrix.xx, matrix.yx)` must leave it exactly where it started.
+      const stroke = StrokeOps.createFromPartial({
+        pointers: [
+          { x: 0, y: 0, t: 0, p: 1 },
+          { x: 10, y: 0, t: 1, p: 1 },
+        ],
+      })
+      stroke.transform = MatrixTransform.identity().rotate(Math.PI / 2, { x: 0, y: 0 })
+
+      expect(SymbolGeometry.lengthOf(stroke)).toBeCloseTo(10)
+    })
+
+    test("scales length under a pure scale", () => {
+      const stroke = StrokeOps.createFromPartial({
+        pointers: [
+          { x: 0, y: 0, t: 0, p: 1 },
+          { x: 10, y: 0, t: 1, p: 1 },
+        ],
+      })
+      stroke.transform = MatrixTransform.identity().scale(2, 2)
+
+      expect(SymbolGeometry.lengthOf(stroke)).toBeCloseTo(20)
+    })
+
+    test("does not cache the raw geometry: two symbols never share a cache entry either way", () => {
+      // Guards the design choice the brief calls out explicitly: applyMatrix runs inside compute(),
+      // once per (frozen) symbol, not on every read. Two distinct frozen symbols with the same matrix
+      // still get two distinct, independently-cached, correctly-transformed results.
+      const buildTranslated = () => {
+        const stroke = StrokeOps.createFromPartial({
+          pointers: [
+            { x: 0, y: 0, t: 0, p: 1 },
+            { x: 10, y: 0, t: 1, p: 1 },
+          ],
+        })
+        stroke.transform = MatrixTransform.identity().translate(7, 0)
+        return Object.freeze(stroke)
+      }
+      const a = buildTranslated()
+      const b = buildTranslated()
+
+      expect(SymbolGeometry.boundsOf(a)).not.toBe(SymbolGeometry.boundsOf(b))
+      expect(SymbolGeometry.boundsOf(a).center.x).toBeCloseTo(12)
+      expect(SymbolGeometry.boundsOf(b).center.x).toBeCloseTo(12)
+    })
+  })
+
+  describe("rawOf", () => {
+    const buildMoved = () => {
+      const stroke = buildStroke()
+      stroke.transform = MatrixTransform.identity().translate(100, 50)
+      return Object.freeze(stroke)
+    }
+
+    test("returns the untransformed geometry even when the symbol has moved", () => {
+      const stroke = buildMoved()
+
+      expect(SymbolGeometry.rawOf(stroke).bounds).toEqual(StrokeOps.computeBounds(stroke))
+      expect(SymbolGeometry.rawOf(stroke).bounds).not.toEqual(SymbolGeometry.boundsOf(stroke))
+    })
+
+    test("computes a frozen symbol's raw geometry once and serves it from cache after", () => {
+      const stroke = buildMoved()
+      const util = symbolRegistry.getUtilFor(stroke)
+      const spy = jest.spyOn(util, "computeGeometry")
+
+      const first = SymbolGeometry.rawOf(stroke)
+      const second = SymbolGeometry.rawOf(stroke)
+
+      expect(spy).toHaveBeenCalledTimes(1)
+      expect(second).toBe(first)
+      spy.mockRestore()
+    })
+
+    test("shares its cached computation with of()/boundsOf(), so a transformed read costs no extra computeGeometry call", () => {
+      const stroke = buildMoved()
+      const util = symbolRegistry.getUtilFor(stroke)
+      const spy = jest.spyOn(util, "computeGeometry")
+
+      SymbolGeometry.rawOf(stroke)
+      SymbolGeometry.boundsOf(stroke)
+
+      expect(spy).toHaveBeenCalledTimes(1)
+      spy.mockRestore()
+    })
   })
 })

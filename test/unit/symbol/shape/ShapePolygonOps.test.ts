@@ -1,4 +1,4 @@
-import { ShapePolygonOps, TPoint, DefaultStyle, TStyle, TBox, OBBOps } from "@/iink"
+import { ShapePolygonOps, TPoint, DefaultStyle, TStyle, TBox, OBBOps, MatrixTransform } from "@/iink"
 
 describe("ShapePolygonOps", () => {
   describe("create", () => {
@@ -8,6 +8,9 @@ describe("ShapePolygonOps", () => {
       { x: 10, y: 10 },
       { x: 0, y: 10 },
     ]
+    test("should initialise transform to identity", () => {
+      expect(ShapePolygonOps.create(points).transform).toEqual(MatrixTransform.identity())
+    })
     test("should create with default style", () => {
       const polygon = ShapePolygonOps.create(points)
       expect(polygon.style).toEqual(DefaultStyle)
@@ -44,6 +47,15 @@ describe("ShapePolygonOps", () => {
       ]
       const polygon = ShapePolygonOps.createFromPartial({ points: pts })
       expect(polygon.points).toEqual(pts)
+    })
+    test("should carry a given transform through, merged onto identity", () => {
+      const pts: TPoint[] = [
+        { x: 0, y: 0 },
+        { x: 5, y: 0 },
+        { x: 2, y: 5 },
+      ]
+      const polygon = ShapePolygonOps.createFromPartial({ points: pts, transform: { tx: 5, ty: 6 } })
+      expect(polygon.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 5, ty: 6 })
     })
     test("should preserve id", () => {
       const pts: TPoint[] = [

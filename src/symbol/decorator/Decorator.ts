@@ -1,6 +1,6 @@
 import type { TBox } from "@/core/geometry"
 import type { TPoint, TSegment } from "@/core/geometry"
-import { OBBOps, type TOBB } from "@/core/geometry"
+import { MatrixTransform, OBBOps, type TOBB } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import { createUUID } from "@/core/std"
 import type { TStyle } from "@/style"
@@ -67,6 +67,7 @@ export const DecoratorOps = {
       vertices: [],
       snapPoints: [],
       edges: [],
+      transform: MatrixTransform.identity(),
     }
     if (bounds) {
       DecoratorOps.setBounds(decorator, OBBOps.fromBox(bounds))

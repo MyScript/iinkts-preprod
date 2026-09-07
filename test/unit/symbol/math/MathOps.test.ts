@@ -1,4 +1,4 @@
-import { TMathElement, TPoint, TBox, BoxOps, OBBOps, MathOps } from "@/iink"
+import { TMathElement, TPoint, TBox, BoxOps, OBBOps, MathOps, MatrixTransform } from "@/iink"
 
 const elements: TMathElement[] = [
   {
@@ -25,6 +25,9 @@ const bounds: TBox = BoxOps.createFromBoxes(elements.map((e) => e.bounds))
 
 describe("MathOps", () => {
   describe("create", () => {
+    test("should initialise transform to identity", () => {
+      expect(MathOps.create(elements, point, bounds).transform).toEqual(MatrixTransform.identity())
+    })
     test("should return a plain object with correct type", () => {
       const math = MathOps.create(elements, point, bounds)
       expect(math.type).toBe("math")
@@ -57,6 +60,11 @@ describe("MathOps", () => {
       const math = MathOps.createFromPartial({ elements, point, bounds })
       expect(math.elements).toHaveLength(2)
       expect(math.point).toEqual(point)
+    })
+
+    test("should carry a given transform through, merged onto identity", () => {
+      const math = MathOps.createFromPartial({ elements, point, bounds, transform: { tx: 5, ty: 6 } })
+      expect(math.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 5, ty: 6 })
     })
 
     test("should throw when elements is empty", () => {

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, test } from "@jest/globals"
 import { buildIICircle } from "../../helpers"
 
 import type { TPartialDeep, TShape } from "@/iink"
-import { OBBOps, ShapeKind, ShapeUtil, SymbolType } from "@/iink"
+import { MatrixTransform, OBBOps, ShapeKind, ShapeUtil, SymbolType } from "@/iink"
 
 /**
  * `ShapeUtil` used to resolve a kind with a `switch` in each of four methods, which meant a kind
@@ -103,6 +103,16 @@ describe("ShapeUtil", () => {
       const path = element.querySelector("path")
       expect(element.getAttribute("kind")).toBe(kind)
       expect(path?.getAttribute("d")).toBe(ShapeUtil.getSVGPath(shape()))
+    })
+
+    test("should emit no transform attribute for a shape that was never moved", () => {
+      expect(util.getSVGElement(shape()).getAttribute("transform")).toBeNull()
+    })
+
+    test("should emit the shape's matrix as the element transform once moved", () => {
+      const moved = shape()
+      moved.transform = MatrixTransform.identity().translate(3, 4)
+      expect(util.getSVGElement(moved).getAttribute("transform")).toBe("matrix(1, 0, 0, 1, 3, 4)")
     })
   })
 
