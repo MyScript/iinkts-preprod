@@ -18,6 +18,7 @@ import { ShapeCircleOps } from "@/symbol/shape/Circle"
 import { ShapeEllipseOps } from "@/symbol/shape/Ellipse"
 import { ShapePolygonOps } from "@/symbol/shape/Polygon"
 import { StrokeOps } from "@/symbol/stroke/Stroke"
+import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 
 import type { TGesture } from "./gestures"
@@ -115,7 +116,14 @@ export class IIWriterManager extends AbstractWriterManager {
     const strokeBoundsWithMargin = this.canvas.getSymbolsBounds([stroke], 2 * SELECTION_MARGIN)
     return (
       this.detectGesture &&
-      this.model.symbols.some((s) => !isStroke(s) && OBBOps.overlapsBox(s.bounds, strokeBoundsWithMargin))
+      // Whole-document scan on every stroke-end — one unregistered symbol type must not abort
+      // gesture detection for the rest of the document.
+      this.model.symbols.some(
+        (s) =>
+          !isStroke(s) &&
+          symbolRegistry.has(s.type) &&
+          OBBOps.overlapsBox(SymbolGeometry.boundsOf(s), strokeBoundsWithMargin)
+      )
     )
   }
 

@@ -7,6 +7,7 @@ import type { TStyle } from "@/style"
 import type { DecoratorKind, TDecorator, TStroke, TText } from "@/symbol"
 import { isDecorator, isRecognizedText, isStroke, isText, SymbolType, type TSymbol } from "@/symbol"
 import { DecoratorOps } from "@/symbol/decorator/Decorator"
+import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 
 /**
  * Unified representation of a gesture's intent on a set of target strokes.
@@ -203,7 +204,7 @@ export class IIGestureAnnotationProcessor {
     if (!syms.length) {
       return null
     }
-    return OBBOps.createFromOBBs(syms.map((s) => s.bounds))
+    return OBBOps.createFromOBBs(syms.map((s) => SymbolGeometry.boundsOf(s)))
   }
 
   #applyThicken(ids: string[], factor: number): { oldStyles: TStyle[]; newSymbols: TStroke[] } {

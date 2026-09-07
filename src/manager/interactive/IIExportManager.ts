@@ -14,6 +14,7 @@ import type { TSymbol } from "@/symbol"
 import { isMath, isStroke, isText } from "@/symbol"
 import { MathOps } from "@/symbol/typeset/Math"
 import { TextOps } from "@/symbol/typeset/Text"
+import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 
 /** JIIX stand-in used when the content has not been recognized yet, so exports stay empty instead of throwing */
 const EMPTY_JIIX: TJIIXExport = { type: "Container", id: "", version: "" }
@@ -84,12 +85,12 @@ export class IIExportManager extends ExportManager {
       if (isText(s)) {
         const content = TextOps.getLabel(s)
         if (content) {
-          entries.push({ box: BoxOps.createFromPoints(s.vertices), label: content })
+          entries.push({ box: BoxOps.createFromPoints(SymbolGeometry.verticesOf(s)), label: content })
         }
       } else if (isMath(s)) {
         const content = MathOps.getLabel(s)
         if (content) {
-          entries.push({ box: BoxOps.createFromPoints(s.vertices), label: content })
+          entries.push({ box: BoxOps.createFromPoints(SymbolGeometry.verticesOf(s)), label: content })
         }
       } else if (isStroke(s)) {
         const element = this.canvas.jiix.getElementForStroke(s.id)
@@ -97,7 +98,7 @@ export class IIExportManager extends ExportManager {
           seenElementIds.add(element.id)
           const label = this.canvas.jiix.getBlockLabel(element.id)
           if (label) {
-            const box = element["bounding-box"] ?? BoxOps.createFromPoints(s.vertices)
+            const box = element["bounding-box"] ?? BoxOps.createFromPoints(SymbolGeometry.verticesOf(s))
             entries.push({ box, label })
           }
         }

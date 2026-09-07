@@ -295,7 +295,7 @@ describe("EdgeUtil, the contract members", () => {
       const line = buildIILine()
       util.updateDerivedFields(line)
       const result = util.getSnapPoints(line)
-      expect(result).toBe(line.snapPoints)
+      expect(result).toStrictEqual(line.snapPoints)
     })
   })
 

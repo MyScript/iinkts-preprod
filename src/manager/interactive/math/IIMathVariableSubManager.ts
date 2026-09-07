@@ -9,6 +9,7 @@ import { convertBoundingBoxMillimeterToPixel, getBoxConnectionPoint } from "@/co
 import { LoggerCategory } from "@/logger"
 import type { TStroke } from "@/symbol"
 import { isRecognizedMath, isStroke } from "@/symbol"
+import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 
 import { ColorPaletteManager } from "../../base"
 import { IIAbstractManager } from "../IIAbstractManager"
@@ -128,7 +129,7 @@ export class IIMathVariableSubManager extends IIAbstractManager {
     if (!strokes.length) {
       return null
     }
-    return BoxOps.createFromBoxes(strokes.map((s) => OBBOps.toBox(s.bounds)))
+    return BoxOps.createFromBoxes(strokes.map((s) => OBBOps.toBox(SymbolGeometry.boundsOf(s))))
   }
 
   private getAllMathBlockIds(): string[] {

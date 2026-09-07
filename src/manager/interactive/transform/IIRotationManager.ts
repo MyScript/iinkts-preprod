@@ -5,6 +5,7 @@ import { convertDegreeToRadian, convertRadianToDegree, TWO_PI } from "@/core/mat
 import type { TIIHistoryChanges } from "@/history"
 import type { TSymbol } from "@/symbol"
 import { cloneSymbol } from "@/symbol"
+import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 
 import { IIAbstractTransformManager } from "./AbstractTransformManager"
@@ -44,7 +45,12 @@ export class IIRotationManager extends IIAbstractTransformManager {
     // gesture. Ended synchronously in `end()`.
     this.canvas.startOperation("Rotating")
     this.interactElementsGroup = this.resolveInteractGroup(target)
-    const boundingBox = BoxOps.createFromPoints(this.model.symbolsSelected.flatMap((s) => s.vertices))
+    // selectAll() populates symbolsSelected with no registry check ahead of it (see
+    // IISelectionManager.createInteractElementsGroup) — a symbol type missing its util must not
+    // abort starting the rotation, so it's excluded from the bounding box, same silent-skip
+    // precedent as that file.
+    const registeredSymbols = this.model.symbolsSelected.filter((s) => symbolRegistry.has(s.type))
+    const boundingBox = BoxOps.createFromPoints(registeredSymbols.flatMap((s) => SymbolGeometry.verticesOf(s)))
 
     this.center = {
       x: boundingBox.x + boundingBox.width / 2,
@@ -108,13 +114,16 @@ export class IIRotationManager extends IIAbstractTransformManager {
     const matrix = MatrixTransform.identity().rotate(angleRad, this.center)
     const preTransformBoundsById = new Map<string, TOBB>()
     this.model.symbolsSelected.forEach((s) => {
-      const bounds = (s as unknown as { bounds?: TOBB }).bounds
-      if (bounds) {
-        preTransformBoundsById.set(s.id, {
-          ...bounds,
-          center: { ...bounds.center },
-        })
+      // Same selectAll() gap as start()'s bounding box — an unregistered symbol has no snapshot
+      // taken, so updateAnchoredEdges below leaves it untouched rather than throwing.
+      if (!symbolRegistry.has(s.type)) {
+        return
       }
+      const bounds = SymbolGeometry.boundsOf(s)
+      preTransformBoundsById.set(s.id, {
+        ...bounds,
+        center: { ...bounds.center },
+      })
     })
     this.applyAndDraw(this.model.symbolsSelected, matrix)
     this.applyTransformToGhostStrokesForSelectedMath(this.model.symbolsSelected, matrix)
