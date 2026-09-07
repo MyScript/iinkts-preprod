@@ -24,6 +24,7 @@ import {
 import { SVGBuilder } from "../SVGBuilder"
 import { SymbolUtil } from "../SymbolUtil"
 import type { TResizeContext, TRotateContext, TTranslateContext } from "../TransformContext"
+import type { TSymbolGeometry } from "../TSymbolGeometry"
 import { arrowHeadEndMarkerId, arrowHeadStartMarkerId } from "./EdgeRenderOptions"
 
 /**
@@ -34,6 +35,16 @@ const EDGE_KINDS: Partial<Record<EdgeKind, TKindDefinition<TEdge>>> = {
   [EdgeKind.Arc]: defineKind<TEdge, TEdgeArc>({
     create: (partial) => EdgeArcOps.createFromPartial(partial),
     updateDerivedFields: (edge) => EdgeArcOps.updateDerivedFields(edge),
+    computeGeometry: (edge) => {
+      const vertices = EdgeArcOps.computeVertices(edge)
+      return {
+        bounds: EdgeArcOps.computeBounds(edge, vertices),
+        vertices,
+        snapPoints: EdgeArcOps.computeSnapPoints(vertices),
+        edges: EdgeArcOps.computeEdges(vertices),
+        length: 0,
+      }
+    },
     overlaps: (edge, box) => EdgeArcOps.overlaps(edge, box),
     getSVGPath: (edge) => EdgeArcOps.getSVGPath(edge),
     getResizePoints: (edge) => EdgeArcOps.getResizePoints(edge),
@@ -63,6 +74,16 @@ const EDGE_KINDS: Partial<Record<EdgeKind, TKindDefinition<TEdge>>> = {
   [EdgeKind.Line]: defineKind<TEdge, TEdgeLine>({
     create: (partial) => EdgeLineOps.createFromPartial(partial),
     updateDerivedFields: (edge) => EdgeLineOps.updateDerivedFields(edge),
+    computeGeometry: (edge) => {
+      const vertices = EdgeLineOps.computeVertices(edge)
+      return {
+        bounds: EdgeLineOps.computeBounds(edge, vertices),
+        vertices,
+        snapPoints: vertices,
+        edges: EdgeLineOps.computeEdges(edge),
+        length: 0,
+      }
+    },
     overlaps: (edge, box) => EdgeLineOps.overlaps(edge, box),
     getSVGPath: (edge) => EdgeLineOps.getSVGPath(edge),
     getResizePoints: (edge) => EdgeLineOps.getResizePoints(edge),
@@ -73,6 +94,13 @@ const EDGE_KINDS: Partial<Record<EdgeKind, TKindDefinition<TEdge>>> = {
   [EdgeKind.PolyEdge]: defineKind<TEdge, TEdgePolyLine>({
     create: (partial) => EdgePolyLineOps.createFromPartial(partial),
     updateDerivedFields: (edge) => EdgePolyLineOps.updateDerivedFields(edge),
+    computeGeometry: (edge) => ({
+      bounds: EdgePolyLineOps.computeBounds(edge),
+      vertices: edge.points,
+      snapPoints: edge.points,
+      edges: EdgePolyLineOps.computeEdges(edge.points),
+      length: 0,
+    }),
     overlaps: (edge, box) => EdgePolyLineOps.overlaps(edge, box),
     getSVGPath: (edge) => EdgePolyLineOps.getSVGPath(edge),
     getResizePoints: (edge) => EdgePolyLineOps.getResizePoints(edge),
@@ -92,8 +120,36 @@ export class EdgeUtil extends SymbolUtil<TEdge> {
     return resolveKind(EDGE_KINDS, partial.kind, "edge", "create").create(partial)
   }
 
+  /**
+   * Tolerant like `updateDerivedFields`: a kind arriving as data the table does not own leaves the
+   * edge's current fields as its answer, rather than throwing over a whole model.
+   */
+  computeGeometry(edge: TEdge): TSymbolGeometry {
+    return (
+      EDGE_KINDS[edge.kind]?.computeGeometry(edge) ?? {
+        bounds: edge.bounds,
+        vertices: edge.vertices,
+        snapPoints: edge.snapPoints,
+        edges: edge.edges,
+        length: 0,
+      }
+    )
+  }
+
+  /**
+   * A kind the table does not own performs no write at all, exactly like the dispatch this
+   * replaced (`EDGE_KINDS[edge.kind]?.updateDerivedFields(edge)`, a no-op for an unowned kind) —
+   * `computeGeometry`'s tolerant fallback must not be turned into a write here, or this throws on a
+   * frozen record for a kind it was never going to touch. `length` is also left out of the write:
+   * only `TStroke` declares it.
+   */
   updateDerivedFields(edge: TEdge): void {
-    EDGE_KINDS[edge.kind]?.updateDerivedFields(edge)
+    const definition = EDGE_KINDS[edge.kind]
+    if (!definition) {
+      return
+    }
+    const { bounds, vertices, snapPoints, edges } = definition.computeGeometry(edge)
+    Object.assign(edge, { bounds, vertices, snapPoints, edges })
   }
 
   overlaps(edge: TEdge, box: TBox): boolean {

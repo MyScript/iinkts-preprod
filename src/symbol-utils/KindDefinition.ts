@@ -2,6 +2,8 @@ import { applyMatrixToPoint, applyMatrixToPoints, type MatrixTransform, type TBo
 import type { TPartialDeep } from "@/core/std"
 import type { TResizePoint } from "@/symbol/Symbol"
 
+import type { TSymbolGeometry } from "./TSymbolGeometry"
+
 /**
  * Everything a family util needs to know about one kind within its family.
  *
@@ -15,6 +17,11 @@ import type { TResizePoint } from "@/symbol/Symbol"
 export type TKindDefinition<T> = {
   create(partial: TPartialDeep<T>): T
   updateDerivedFields(symbol: T): void
+  /**
+   * This kind's derived geometry, computed from the coordinates it stores — the value
+   * `updateDerivedFields` writes onto the symbol, returned instead of assigned.
+   */
+  computeGeometry(symbol: T): TSymbolGeometry
   overlaps(symbol: T, box: TBox): boolean
   getSVGPath(symbol: T): string
   /** Moves this kind's own geometry. The family util derives afterwards, once, for every kind. */

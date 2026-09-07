@@ -129,15 +129,27 @@ export const EdgeArcOps = {
     return v
   },
 
-  updateDerivedFields(arc: TEdgeArc): void {
-    const vertices = EdgeArcOps.computeVertices(arc)
-    arc.vertices = vertices
-    arc.bounds = computeEdgeBounds(vertices, arc.style, arc.startDecoration, arc.endDecoration)
-    arc.snapPoints = [vertices[0], vertices.at(-1)!]
-    arc.edges = vertices.slice(0, -1).map((p, i) => ({
+  computeBounds(arc: TEdgeArc, vertices: TPoint[]): TOBB {
+    return computeEdgeBounds(vertices, arc.style, arc.startDecoration, arc.endDecoration)
+  },
+
+  computeSnapPoints(vertices: TPoint[]): TPoint[] {
+    return [vertices[0], vertices.at(-1)!]
+  },
+
+  computeEdges(vertices: TPoint[]): TSegment[] {
+    return vertices.slice(0, -1).map((p, i) => ({
       p1: p,
       p2: vertices[i + 1],
     }))
+  },
+
+  updateDerivedFields(arc: TEdgeArc): void {
+    const vertices = EdgeArcOps.computeVertices(arc)
+    arc.vertices = vertices
+    arc.bounds = EdgeArcOps.computeBounds(arc, vertices)
+    arc.snapPoints = EdgeArcOps.computeSnapPoints(vertices)
+    arc.edges = EdgeArcOps.computeEdges(vertices)
   },
 
   getResizePoints(arc: TEdgeArc): TResizePoint[] {

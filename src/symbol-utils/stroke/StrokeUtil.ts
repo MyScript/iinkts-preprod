@@ -9,6 +9,7 @@ import { SymbolType } from "@/symbol/Symbol"
 import { SVGBuilder } from "../SVGBuilder"
 import { SymbolUtil } from "../SymbolUtil"
 import type { TResizeContext, TRotateContext, TTranslateContext } from "../TransformContext"
+import type { TSymbolGeometry } from "../TSymbolGeometry"
 
 /**
  * @group SymbolUtils
@@ -20,8 +21,19 @@ export class StrokeUtil extends SymbolUtil<TStroke> {
     return StrokeOps.createFromPartial(partial)
   }
 
+  computeGeometry(stroke: TStroke): TSymbolGeometry {
+    const bounds = StrokeOps.computeBounds(stroke)
+    return {
+      bounds,
+      vertices: StrokeOps.computeVertices(stroke),
+      snapPoints: StrokeOps.computeSnapPoints(bounds),
+      edges: StrokeOps.computeEdges(stroke),
+      length: StrokeOps.computeLength(stroke),
+    }
+  }
+
   updateDerivedFields(stroke: TStroke): void {
-    StrokeOps.updateBounds(stroke)
+    Object.assign(stroke, this.computeGeometry(stroke))
   }
 
   overlaps(stroke: TStroke, box: TBox): boolean {

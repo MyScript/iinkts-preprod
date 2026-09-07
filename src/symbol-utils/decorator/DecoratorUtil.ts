@@ -8,6 +8,7 @@ import { SymbolType } from "@/symbol/Symbol"
 
 import { SVGBuilder } from "../SVGBuilder"
 import { SymbolUtil } from "../SymbolUtil"
+import type { TSymbolGeometry } from "../TSymbolGeometry"
 
 /**
  * How one kind of decorator is drawn.
@@ -123,9 +124,34 @@ export class DecoratorUtil extends SymbolUtil<TDecorator> {
     return DecoratorOps.create(partial.kind, partial.style ?? {}, targetIds, bounds)
   }
 
+  /**
+   * A standalone decorator's own geometry comes from `bounds`, which is set from outside — not from
+   * coordinates it stores itself, unlike every other util. `length` is always zero: nothing here
+   * has a path.
+   *
+   * Mirrors the `hasBounds` guard `updateDerivedFields` has always kept: a decorator with no bounds
+   * yet (embedded in a `TText`/`TMath`, or standalone but not placed) has no geometry of its own
+   * either, and must report the same three empty arrays its fields already hold rather than two
+   * phantom points at the un-set `(0,0)` bounds.
+   */
+  computeGeometry(decorator: TDecorator): TSymbolGeometry {
+    if (!decorator.hasBounds) {
+      return { bounds: decorator.bounds, vertices: [], snapPoints: [], edges: [], length: 0 }
+    }
+    const vertices = DecoratorOps.computeVertices(decorator.bounds)
+    return {
+      bounds: decorator.bounds,
+      vertices,
+      snapPoints: vertices,
+      edges: [{ p1: vertices[0], p2: vertices[1] }],
+      length: 0,
+    }
+  }
+
   updateDerivedFields(decorator: TDecorator): void {
     if (decorator.hasBounds) {
-      DecoratorOps.setBounds(decorator, decorator.bounds)
+      const { bounds, vertices, snapPoints, edges } = this.computeGeometry(decorator)
+      Object.assign(decorator, { bounds, vertices, snapPoints, edges })
     }
   }
 

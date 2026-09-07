@@ -67,6 +67,31 @@ describe("TextUtil", () => {
     })
   })
 
+  describe("computeGeometry", () => {
+    test("matches the legacy TextOps geometry already computed by create, not merely itself", () => {
+      // `buildIIText` builds through `TextOps.create`, which computes vertices/snapPoints/edges
+      // inline via the same (untouched) `computeTypesetVertices`/`computeTypesetSnapPoints`/
+      // `computeClosedEdges` — an independent oracle `computeGeometry` never touches. Calling
+      // `util.updateDerivedFields` here first would make the comparison circular: it IS
+      // `Object.assign(s, computeGeometry(s))`.
+      const text = buildIIText({ boundingBox: { x: 0, y: 10, width: 20, height: 30 } })
+
+      const geometry = util.computeGeometry(text)
+
+      expect(geometry.bounds).toEqual(text.bounds)
+      expect(geometry.vertices).toEqual(text.vertices)
+      expect(geometry.snapPoints).toEqual(text.snapPoints)
+      expect(geometry.edges).toEqual(text.edges)
+      expect(geometry.length).toBe(0)
+    })
+
+    test("updateDerivedFields should not write an undeclared length onto the text", () => {
+      const text = buildIIText()
+      util.updateDerivedFields(text)
+      expect(text).not.toHaveProperty("length")
+    })
+  })
+
   describe("overlaps", () => {
     test("should return true when text overlaps given box", () => {
       const text = buildIIText({ boundingBox: { x: 5, y: 5, width: 10, height: 10 } })

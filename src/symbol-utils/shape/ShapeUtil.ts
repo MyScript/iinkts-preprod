@@ -1,6 +1,6 @@
 import type { TBox } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
-import { MatrixTransform } from "@/core/geometry"
+import { MatrixTransform, OBBOps } from "@/core/geometry"
 import { convertRadianToDegree, TWO_PI } from "@/core/math"
 import type { TPartialDeep } from "@/core/std"
 import { DefaultStyle } from "@/style"
@@ -22,6 +22,7 @@ import {
 import { SVGBuilder } from "../SVGBuilder"
 import { SymbolUtil } from "../SymbolUtil"
 import type { TResizeContext, TRotateContext, TTranslateContext } from "../TransformContext"
+import type { TSymbolGeometry } from "../TSymbolGeometry"
 
 /**
  * The shape kinds this util can build, and how.
@@ -36,6 +37,17 @@ const SHAPE_KINDS: Partial<Record<ShapeKind, TKindDefinition<TShape>>> = {
   [ShapeKind.Circle]: defineKind<TShape, TShapeCircle>({
     create: (partial) => ShapeCircleOps.createFromPartial(partial),
     updateDerivedFields: (shape) => ShapeCircleOps.updateDerivedFields(shape),
+    computeGeometry: (shape) => {
+      const vertices = ShapeCircleOps.computeVertices(shape)
+      const bounds = ShapeCircleOps.computeBounds(shape)
+      return {
+        bounds,
+        vertices,
+        snapPoints: OBBOps.getSnapPoints(bounds),
+        edges: ShapeCircleOps.computeEdges(vertices),
+        length: 0,
+      }
+    },
     overlaps: (shape, box) => ShapeCircleOps.overlaps(shape, box),
     getSVGPath: (shape) => ShapeCircleOps.getSVGPath(shape),
     // A circle has no orientation of its own, so turning it is moving its centre.
@@ -51,6 +63,17 @@ const SHAPE_KINDS: Partial<Record<ShapeKind, TKindDefinition<TShape>>> = {
   [ShapeKind.Ellipse]: defineKind<TShape, TShapeEllipse>({
     create: (partial) => ShapeEllipseOps.createFromPartial(partial),
     updateDerivedFields: (shape) => ShapeEllipseOps.updateDerivedFields(shape),
+    computeGeometry: (shape) => {
+      const vertices = ShapeEllipseOps.computeVertices(shape)
+      const bounds = OBBOps.createFromPoints(vertices)
+      return {
+        bounds,
+        vertices,
+        snapPoints: OBBOps.getSnapPoints(bounds),
+        edges: ShapeEllipseOps.computeEdges(vertices),
+        length: 0,
+      }
+    },
     overlaps: (shape, box) => ShapeEllipseOps.overlaps(shape, box),
     getSVGPath: (shape) => ShapeEllipseOps.getSVGPath(shape),
     translate: moveByCentre,
@@ -78,6 +101,16 @@ const SHAPE_KINDS: Partial<Record<ShapeKind, TKindDefinition<TShape>>> = {
   [ShapeKind.Polygon]: defineKind<TShape, TShapePolygon>({
     create: (partial) => ShapePolygonOps.createFromPartial(partial),
     updateDerivedFields: (shape) => ShapePolygonOps.updateDerivedFields(shape),
+    computeGeometry: (shape) => {
+      const bounds = OBBOps.createFromPoints(shape.points)
+      return {
+        bounds,
+        vertices: shape.points,
+        snapPoints: OBBOps.getSnapPoints(bounds),
+        edges: ShapePolygonOps.computeEdges(shape.points),
+        length: 0,
+      }
+    },
     overlaps: (shape, box) => ShapePolygonOps.overlaps(shape, box),
     getSVGPath: (shape) => ShapePolygonOps.getSVGPath(shape),
     translate: moveByPoints,
@@ -96,8 +129,36 @@ export class ShapeUtil extends SymbolUtil<TShape> {
     return resolveKind(SHAPE_KINDS, partial.kind, "shape", "create").create(partial)
   }
 
+  /**
+   * Tolerant like `updateDerivedFields`: a kind arriving as data the table does not own leaves the
+   * shape's current fields as its answer, rather than throwing over a whole model.
+   */
+  computeGeometry(shape: TShape): TSymbolGeometry {
+    return (
+      SHAPE_KINDS[shape.kind]?.computeGeometry(shape) ?? {
+        bounds: shape.bounds,
+        vertices: shape.vertices,
+        snapPoints: shape.snapPoints,
+        edges: shape.edges,
+        length: 0,
+      }
+    )
+  }
+
+  /**
+   * A kind the table does not own performs no write at all, exactly like the dispatch this
+   * replaced (`SHAPE_KINDS[shape.kind]?.updateDerivedFields(shape)`, a no-op for an unowned kind) —
+   * `computeGeometry`'s tolerant fallback must not be turned into a write here, or this throws on a
+   * frozen record for a kind it was never going to touch. `length` is also left out of the write:
+   * only `TStroke` declares it.
+   */
   updateDerivedFields(shape: TShape): void {
-    SHAPE_KINDS[shape.kind]?.updateDerivedFields(shape)
+    const definition = SHAPE_KINDS[shape.kind]
+    if (!definition) {
+      return
+    }
+    const { bounds, vertices, snapPoints, edges } = definition.computeGeometry(shape)
+    Object.assign(shape, { bounds, vertices, snapPoints, edges })
   }
 
   overlaps(shape: TShape, box: TBox): boolean {

@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach } from "@jest/globals"
 import { buildIIDecorator } from "../../helpers"
 import type { TDecorator } from "@/iink"
-import { DecoratorUtil, DecoratorKind, OBBOps, SymbolType } from "@/iink"
+import { DecoratorUtil, DecoratorKind, DecoratorOps, OBBOps, SymbolType } from "@/iink"
 
 describe("DecoratorUtil", () => {
   let util: DecoratorUtil
@@ -50,6 +50,45 @@ describe("DecoratorUtil", () => {
       })
       // setBounds is guarded by hasBounds
       expect(() => util.updateDerivedFields(decorator)).not.toThrow()
+    })
+  })
+
+  describe("computeGeometry", () => {
+    test("matches the legacy DecoratorOps.setBounds writer, not merely itself", () => {
+      const decorator = util.create({ kind: DecoratorKind.Highlight })
+      // Independent oracle: `DecoratorOps.setBounds`, the untouched legacy writer, called directly
+      // with a real `TBox` — not through `util.create`'s own bounds handling (a separate,
+      // pre-existing `TOBB`-vs-`TBox` mismatch out of this task's scope), and not through
+      // `computeGeometry`. `x`/`y` are real, finite coordinates, so a NaN center here would mean
+      // the fixture itself is broken rather than proving anything about `computeGeometry`.
+      DecoratorOps.setBounds(decorator, OBBOps.fromBox({ x: 0, y: 0, width: 10, height: 10 }))
+      expect(Number.isNaN(decorator.bounds.center.x)).toBe(false)
+
+      const geometry = util.computeGeometry(decorator)
+
+      expect(geometry.bounds).toEqual(decorator.bounds)
+      expect(geometry.vertices).toEqual(decorator.vertices)
+      expect(geometry.snapPoints).toEqual(decorator.snapPoints)
+      expect(geometry.edges).toEqual(decorator.edges)
+      expect(geometry.length).toBe(0)
+    })
+
+    test("reports empty geometry for a decorator without bounds, mirroring updateDerivedFields' own guard", () => {
+      const decorator = buildIIDecorator(DecoratorKind.Underline) // hasBounds stays false
+      expect(util.computeGeometry(decorator)).toEqual({
+        bounds: decorator.bounds,
+        vertices: [],
+        snapPoints: [],
+        edges: [],
+        length: 0,
+      })
+    })
+
+    test("updateDerivedFields should not write an undeclared length onto the decorator", () => {
+      const decorator = util.create({ kind: DecoratorKind.Highlight })
+      DecoratorOps.setBounds(decorator, OBBOps.fromBox({ x: 0, y: 0, width: 10, height: 10 }))
+      util.updateDerivedFields(decorator)
+      expect(decorator).not.toHaveProperty("length")
     })
   })
 

@@ -30,6 +30,7 @@ import {
   symbolRegistry,
   TMath,
   TSymbol,
+  TSymbolGeometry,
   TText,
 } from "@/iink"
 
@@ -664,6 +665,9 @@ describe("IITranslateManager.ts", () => {
           return partial as TStickyNote
         }
         updateDerivedFields(): void {}
+        computeGeometry(): TSymbolGeometry {
+          return { bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0), vertices: [], snapPoints: [], edges: [], length: 0 }
+        }
         overlaps(): boolean {
           return false
         }

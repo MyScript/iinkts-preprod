@@ -119,13 +119,35 @@ export const StrokeOps = {
     }
   },
 
-  updateBounds(stroke: TStroke): void {
-    stroke.bounds = OBBOps.createFromPoints(stroke.pointers)
-    stroke.snapPoints = OBBOps.getSnapPoints(stroke.bounds)
-    stroke.edges = stroke.pointers.slice(0, -1).map((p, i) => ({
+  computeBounds(stroke: TStroke): TOBB {
+    return OBBOps.createFromPoints(stroke.pointers)
+  },
+
+  computeSnapPoints(bounds: TOBB): TPoint[] {
+    return OBBOps.getSnapPoints(bounds)
+  },
+
+  computeEdges(stroke: TStroke): TSegment[] {
+    return stroke.pointers.slice(0, -1).map((p, i) => ({
       p1: p,
       p2: stroke.pointers[i + 1],
     }))
+  },
+
+  /** A stroke's vertices are its pointers verbatim — the same array, not a copy. */
+  computeVertices(stroke: TStroke): TPointer[] {
+    return stroke.pointers
+  },
+
+  /** Path length: the sum of the distances between consecutive pointers. */
+  computeLength(stroke: TStroke): number {
+    return stroke.pointers.reduce((sum, ptr, idx, arr) => (idx === 0 ? 0 : sum + computeDistance(ptr, arr[idx - 1])), 0)
+  },
+
+  updateBounds(stroke: TStroke): void {
+    stroke.bounds = StrokeOps.computeBounds(stroke)
+    stroke.snapPoints = StrokeOps.computeSnapPoints(stroke.bounds)
+    stroke.edges = StrokeOps.computeEdges(stroke)
   },
 
   _computePressure(stroke: TStroke, distance: number): number {

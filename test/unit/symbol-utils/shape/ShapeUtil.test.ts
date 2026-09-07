@@ -68,6 +68,28 @@ describe("ShapeUtil", () => {
       expect(created.bounds).toBeDefined()
     })
 
+    test("computeGeometry should match the legacy *Ops writer already run by create, not merely itself", () => {
+      // `shape()` already ran the legacy per-kind `updateDerivedFields` as part of construction
+      // (`ShapeCircleOps`/`ShapeEllipseOps`/`ShapePolygonOps.create` all call it before returning)
+      // — an independent oracle `computeGeometry` never touches. Calling `util.updateDerivedFields`
+      // here first would make the comparison circular: it IS `Object.assign(s, computeGeometry(s))`.
+      const created = shape()
+
+      const geometry = util.computeGeometry(created)
+
+      expect(geometry.bounds).toEqual(created.bounds)
+      expect(geometry.vertices).toEqual(created.vertices)
+      expect(geometry.snapPoints).toEqual(created.snapPoints)
+      expect(geometry.edges).toEqual(created.edges)
+      expect(geometry.length).toBe(0)
+    })
+
+    test("updateDerivedFields should not write an undeclared length onto the shape", () => {
+      const created = shape()
+      util.updateDerivedFields(created)
+      expect(created).not.toHaveProperty("length")
+    })
+
     test("should answer overlaps", () => {
       expect(typeof util.overlaps(shape(), { x: 0, y: 0, width: 200, height: 200 })).toBe("boolean")
     })
@@ -99,6 +121,26 @@ describe("ShapeUtil", () => {
       // These two never threw on an unknown kind and still must not: they run over whole models.
       expect(() => util.updateDerivedFields({ kind } as TShape)).not.toThrow()
       expect(util.overlaps({ kind } as TShape, { x: 0, y: 0, width: 1, height: 1 })).toBe(false)
+    })
+
+    test("computeGeometry should stay tolerant too, leaving the shape's own fields as its answer", () => {
+      const shape = { kind, bounds: "bounds", vertices: "vertices", snapPoints: "snapPoints", edges: "edges" } as unknown as TShape
+      expect(util.computeGeometry(shape)).toEqual({
+        bounds: shape.bounds,
+        vertices: shape.vertices,
+        snapPoints: shape.snapPoints,
+        edges: shape.edges,
+        length: 0,
+      })
+    })
+
+    test("updateDerivedFields should perform no write at all for a kind the table does not own, even on a frozen shape", () => {
+      // `Object.assign` throws on a frozen object even when writing back the identical value —
+      // exactly the state a `SymbolStore`-committed symbol is in. The dispatch this replaced
+      // (`SHAPE_KINDS[shape.kind]?.updateDerivedFields(shape)`) never wrote for an unowned kind, so
+      // this must not either.
+      const frozen = Object.freeze({ kind, bounds: "bounds", vertices: "vertices", snapPoints: "snapPoints", edges: "edges" }) as unknown as TShape
+      expect(() => util.updateDerivedFields(frozen)).not.toThrow()
     })
   })
 

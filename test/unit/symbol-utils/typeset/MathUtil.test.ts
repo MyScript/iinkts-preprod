@@ -55,6 +55,31 @@ describe("MathUtil", () => {
     })
   })
 
+  describe("computeGeometry", () => {
+    test("matches the legacy MathOps geometry already computed by create, not merely itself", () => {
+      // `buildIIMath` builds through `MathOps.create`, which computes vertices/snapPoints/edges
+      // inline via the same (untouched) `computeTypesetVertices`/`computeTypesetSnapPoints`/
+      // `computeClosedEdges` — an independent oracle `computeGeometry` never touches. Calling
+      // `util.updateDerivedFields` here first would make the comparison circular: it IS
+      // `Object.assign(s, computeGeometry(s))`.
+      const math = buildIIMath()
+
+      const geometry = util.computeGeometry(math)
+
+      expect(geometry.bounds).toEqual(math.bounds)
+      expect(geometry.vertices).toEqual(math.vertices)
+      expect(geometry.snapPoints).toEqual(math.snapPoints)
+      expect(geometry.edges).toEqual(math.edges)
+      expect(geometry.length).toBe(0)
+    })
+
+    test("updateDerivedFields should not write an undeclared length onto the math", () => {
+      const math = buildIIMath()
+      util.updateDerivedFields(math)
+      expect(math).not.toHaveProperty("length")
+    })
+  })
+
   describe("overlaps", () => {
     test("should return true when math overlaps given box", () => {
       const math = buildIIMath("y=x", { boundingBox: { x: 5, y: 5, width: 20, height: 10 } })

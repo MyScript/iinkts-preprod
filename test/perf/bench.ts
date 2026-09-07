@@ -5,7 +5,7 @@ import { CONTROL_CASE, printReport, runSuite, writeReport, type TBenchCase } fro
 installDom()
 
 const iink = await import("#iink")
-const { IIModel, MatrixTransform, StrokeOps, registerBuiltinSymbolUtils, symbolRegistry } = iink
+const { IIModel, MatrixTransform, StrokeOps, SymbolGeometry, registerBuiltinSymbolUtils, symbolRegistry } = iink
 type TStroke = ReturnType<typeof StrokeOps.create>
 
 /**
@@ -84,6 +84,42 @@ const controlBuffer = new Float64Array(65536)
 for (let i = 0; i < controlBuffer.length; i++) {
   controlBuffer[i] = i * 0.5
 }
+
+/**
+ * Volume of the reference document used to diagnose the pan-latency bug (see
+ * `.local/v5-symbol-geometry-matrix/BASELINE.md`), reused here so the cache is measured at the size
+ * that made the read cost visible in the first place.
+ */
+const GEOMETRY_SYMBOL_COUNT = 4419
+const GEOMETRY_POINTS_PER_STROKE = 40
+
+/**
+ * `SymbolGeometry` only caches for a frozen symbol — an unfrozen one is recomputed on every call, by
+ * design. `Object.freeze` here is what makes a "warm" measurement possible at all: without it every
+ * call below would silently take the uncached path and the two cases would measure the same thing.
+ */
+function buildFrozenGeometryStrokes(): TStroke[] {
+  return Array.from({ length: GEOMETRY_SYMBOL_COUNT }, (_, i) =>
+    Object.freeze(
+      StrokeOps.createFromPartial({
+        pointers: Array.from({ length: GEOMETRY_POINTS_PER_STROKE }, (_, j) => ({
+          x: i + j,
+          y: i - j,
+          t: j,
+          p: 1,
+        })),
+      })
+    )
+  )
+}
+
+/**
+ * Cached geometry is deep-frozen before it is stored, and for a stroke `vertices` is `pointers`
+ * itself — reading geometry once therefore freezes the stroke's own arrays. These strokes exist only
+ * to be read, never mutated after, so that is never a problem here.
+ */
+const geometryWarmStrokes = buildFrozenGeometryStrokes()
+geometryWarmStrokes.forEach((s) => SymbolGeometry.boundsOf(s))
 
 const cases: TBenchCase[] = [
   {
@@ -168,6 +204,23 @@ const cases: TBenchCase[] = [
           }
         }
       }
+    },
+  },
+  {
+    name: `symbolGeometry:cold @${GEOMETRY_SYMBOL_COUNT}`,
+    // A fresh, freshly-frozen stroke set every invocation: every read is a first read, so this is the
+    // uncached path — building the strokes and computing their geometry, with nothing to reuse.
+    fn: () => {
+      buildFrozenGeometryStrokes().forEach((s) => SymbolGeometry.boundsOf(s))
+    },
+  },
+  {
+    name: `symbolGeometry:warm @${GEOMETRY_SYMBOL_COUNT}`,
+    // Same frozen strokes on every invocation, already warmed once above: this is a WeakMap hit per
+    // symbol, drawing and hit-testing's actual read shape, not the per-frame renderer path — the
+    // renderer's own pan virtualization reads `tracked.bounds`, not `SymbolGeometry`.
+    fn: () => {
+      geometryWarmStrokes.forEach((s) => SymbolGeometry.boundsOf(s))
     },
   },
 ]

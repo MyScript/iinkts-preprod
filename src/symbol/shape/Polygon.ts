@@ -64,14 +64,18 @@ export const ShapePolygonOps = {
     return polygon
   },
 
+  computeEdges(points: TPoint[]): TSegment[] {
+    return points.map((p, i) => ({
+      p1: p,
+      p2: points[(i + 1) % points.length],
+    }))
+  },
+
   updateDerivedFields(polygon: TShapePolygon): void {
     polygon.vertices = polygon.points
     polygon.bounds = OBBOps.createFromPoints(polygon.points)
     polygon.snapPoints = OBBOps.getSnapPoints(polygon.bounds)
-    polygon.edges = polygon.points.map((p, i) => ({
-      p1: p,
-      p2: polygon.points[(i + 1) % polygon.points.length],
-    }))
+    polygon.edges = ShapePolygonOps.computeEdges(polygon.points)
   },
 
   overlaps(polygon: TShapePolygon, box: TBox): boolean {

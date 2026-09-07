@@ -1,0 +1,148 @@
+import { registerBuiltinSymbolUtils, StrokeOps, SymbolGeometry, SymbolStore, symbolRegistry } from "@/iink"
+import type { TStroke } from "@/iink"
+
+describe("SymbolGeometry", () => {
+  beforeAll(() => registerBuiltinSymbolUtils())
+
+  const buildStroke = () =>
+    StrokeOps.createFromPartial({
+      pointers: [
+        { x: 0, y: 0, t: 0, p: 1 },
+        { x: 10, y: 4, t: 1, p: 1 },
+      ],
+    })
+
+  test("computes a frozen symbol's geometry once and serves it from cache after", () => {
+    const stroke = Object.freeze(buildStroke())
+    const util = symbolRegistry.getUtilFor(stroke)
+    const spy = jest.spyOn(util, "computeGeometry")
+
+    const first = SymbolGeometry.boundsOf(stroke)
+    const second = SymbolGeometry.boundsOf(stroke)
+
+    expect(spy).toHaveBeenCalledTimes(1)
+    expect(second).toBe(first)
+    spy.mockRestore()
+  })
+
+  test("does not cache an unfrozen draft, whose geometry can still change under it", () => {
+    const draft = buildStroke()
+    const util = symbolRegistry.getUtilFor(draft)
+    const spy = jest.spyOn(util, "computeGeometry")
+
+    const before = SymbolGeometry.boundsOf(draft)
+    draft.pointers.push({ x: 100, y: 100, t: 2, p: 1 })
+    const after = SymbolGeometry.boundsOf(draft)
+
+    expect(spy).toHaveBeenCalledTimes(2)
+    expect(after.width).toBeGreaterThan(before.width)
+    spy.mockRestore()
+  })
+
+  test("gives two distinct symbol objects two distinct cache entries", () => {
+    const a = Object.freeze(buildStroke())
+    const b = Object.freeze(buildStroke())
+
+    expect(SymbolGeometry.boundsOf(a)).not.toBe(SymbolGeometry.boundsOf(b))
+    expect(SymbolGeometry.boundsOf(a)).toEqual(SymbolGeometry.boundsOf(b))
+  })
+
+  test("exposes each derived field through its own accessor", () => {
+    const stroke = Object.freeze(buildStroke())
+
+    expect(SymbolGeometry.verticesOf(stroke)).toEqual(SymbolGeometry.of(stroke).vertices)
+    expect(SymbolGeometry.edgesOf(stroke)).toEqual(SymbolGeometry.of(stroke).edges)
+    expect(SymbolGeometry.snapPointsOf(stroke)).toEqual(SymbolGeometry.of(stroke).snapPoints)
+    expect(SymbolGeometry.lengthOf(stroke)).toEqual(SymbolGeometry.of(stroke).length)
+  })
+
+  // The tests above only prove the cache is self-consistent (same call returns the same object
+  // twice, distinct objects get distinct entries). None of them would catch a cache that faithfully
+  // and consistently serves the *wrong* answer. These compare against values computed by hand, or by
+  // a code path independent of the cache, so a geometrically wrong result fails here even though it
+  // would pass every test above.
+
+  test("computes bounds matching a hand-computed oriented bounding box", () => {
+    // Points (0,0) and (10,4): axis-aligned box is x:[0,10], y:[0,4] -> center (5,2), 10x4, angle 0.
+    const stroke = Object.freeze(buildStroke())
+
+    expect(SymbolGeometry.boundsOf(stroke)).toEqual({
+      center: { x: 5, y: 2 },
+      width: 10,
+      height: 4,
+      angle: 0,
+    })
+  })
+
+  test("computes bounds matching StrokeOps' own bounds computation", () => {
+    const stroke = buildStroke()
+    const expected = StrokeOps.computeBounds(stroke)
+    Object.freeze(stroke)
+
+    expect(SymbolGeometry.boundsOf(stroke)).toEqual(expected)
+  })
+
+  test("computes length matching the hand-computed distance between the two pointers", () => {
+    // sqrt((10-0)^2 + (4-0)^2) = sqrt(116)
+    const stroke = Object.freeze(buildStroke())
+
+    expect(SymbolGeometry.lengthOf(stroke)).toBeCloseTo(Math.sqrt(116), 10)
+  })
+
+  // A cached entry must be immutable, not merely reused. Some utils hand back a symbol's own
+  // already-frozen data (safe as-is), others build fresh, unfrozen arrays — without freezing the
+  // cache's own output, a single stray write on one of the latter poisons every later read of that
+  // symbol permanently, since a frozen symbol's entry is never recomputed.
+  test("freezes cached geometry, so a stray write throws instead of poisoning every later read", () => {
+    const stroke = Object.freeze(buildStroke())
+    const bounds = SymbolGeometry.boundsOf(stroke)
+
+    expect(Object.isFrozen(bounds)).toBe(true)
+    expect(() => {
+      bounds.width = 999
+    }).toThrow(TypeError)
+    expect(SymbolGeometry.boundsOf(stroke).width).toBe(bounds.width)
+  })
+
+  test("freezes the arrays inside cached geometry too, not just the geometry object itself", () => {
+    const stroke = Object.freeze(buildStroke())
+    const geometry = SymbolGeometry.of(stroke)
+
+    expect(Object.isFrozen(geometry.vertices)).toBe(true)
+    expect(Object.isFrozen(geometry.edges)).toBe(true)
+    expect(Object.isFrozen(geometry.snapPoints)).toBe(true)
+  })
+
+  // The accessors must not rely on `this`: a migration across hundreds of read sites will pass them
+  // around detached from the SymbolGeometry object — destructured, or handed to Array#map — and
+  // TypeScript cannot catch a `this`-bound method breaking under that shape.
+  test("accessors work detached from the object, e.g. destructured or passed to Array#map", () => {
+    const stroke = Object.freeze(buildStroke())
+    const { boundsOf } = SymbolGeometry
+
+    expect(boundsOf(stroke)).toEqual(SymbolGeometry.of(stroke).bounds)
+    expect([stroke].map(SymbolGeometry.boundsOf)).toEqual([SymbolGeometry.of(stroke).bounds])
+  })
+
+  // The cache's whole "no invalidation needed" argument rests on SymbolStore deep-freezing what it
+  // commits, not on however a test happens to call Object.freeze. This ties the two files together
+  // for real, instead of trusting a shallow-frozen fixture to stand in for a store-committed record.
+  test("reads correct, cached geometry off a symbol committed through a real SymbolStore", () => {
+    const store = new SymbolStore<TStroke>()
+    const stroke = buildStroke()
+    store.add(stroke)
+    const record = store.get(stroke.id)!
+
+    expect(Object.isFrozen(record)).toBe(true)
+    expect(Object.isFrozen(record.pointers)).toBe(true)
+
+    const util = symbolRegistry.getUtilFor(record)
+    const spy = jest.spyOn(util, "computeGeometry")
+
+    expect(SymbolGeometry.boundsOf(record)).toEqual(StrokeOps.computeBounds(record))
+    SymbolGeometry.boundsOf(record)
+
+    expect(spy).toHaveBeenCalledTimes(1)
+    spy.mockRestore()
+  })
+})

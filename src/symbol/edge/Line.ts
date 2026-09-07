@@ -83,11 +83,24 @@ export const EdgeLineOps = {
     return line
   },
 
+  computeVertices(line: TEdgeLine): TPoint[] {
+    return [line.start, line.end]
+  },
+
+  computeBounds(line: TEdgeLine, vertices: TPoint[]): TOBB {
+    return computeEdgeBounds(vertices, line.style, line.startDecoration, line.endDecoration)
+  },
+
+  computeEdges(line: TEdgeLine): TSegment[] {
+    return [{ p1: line.start, p2: line.end }]
+  },
+
   updateDerivedFields(line: TEdgeLine): void {
-    line.vertices = [line.start, line.end]
-    line.bounds = computeEdgeBounds(line.vertices, line.style, line.startDecoration, line.endDecoration)
-    line.snapPoints = line.vertices
-    line.edges = [{ p1: line.start, p2: line.end }]
+    const vertices = EdgeLineOps.computeVertices(line)
+    line.vertices = vertices
+    line.bounds = EdgeLineOps.computeBounds(line, vertices)
+    line.snapPoints = vertices
+    line.edges = EdgeLineOps.computeEdges(line)
   },
 
   getResizePoints(line: TEdgeLine): TResizePoint[] {
