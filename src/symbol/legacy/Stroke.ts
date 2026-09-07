@@ -1,4 +1,5 @@
 import type { TPointer } from "@/core/geometry"
+import { MatrixTransform, type TMatrixTransform } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import { createUUID } from "@/core/std"
 import type { TPenStyle } from "@/style"
@@ -31,6 +32,7 @@ export class Stroke implements TLegacyStroke {
   pointerType: string
   pointers: TPointer[]
   length: number
+  transform: TMatrixTransform
 
   constructor(style: TPenStyle, pointerType = "pen") {
     this.id = `${this.type}-${createUUID()}`
@@ -40,6 +42,7 @@ export class Stroke implements TLegacyStroke {
     this.pointerType = pointerType
     this.pointers = []
     this.length = 0
+    this.transform = MatrixTransform.identity()
   }
 
   clone(): Stroke {
@@ -49,6 +52,7 @@ export class Stroke implements TLegacyStroke {
     clone.modificationDate = this.modificationDate
     clone.pointers = structuredClone(this.pointers)
     clone.length = this.length
+    clone.transform = { ...this.transform }
     return clone
   }
 }

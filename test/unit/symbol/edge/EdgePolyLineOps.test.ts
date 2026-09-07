@@ -1,4 +1,4 @@
-import { EdgePolyLineOps, TPoint, DefaultStyle, TStyle, TBox, EdgeDecoration, OBBOps } from "@/iink"
+import { EdgePolyLineOps, TPoint, DefaultStyle, TStyle, TBox, EdgeDecoration, OBBOps, MatrixTransform } from "@/iink"
 
 describe("EdgePolyLineOps", () => {
   describe("create", () => {
@@ -7,6 +7,9 @@ describe("EdgePolyLineOps", () => {
       { x: 5, y: 0 },
       { x: 5, y: 5 },
     ]
+    test("should initialise transform to identity", () => {
+      expect(EdgePolyLineOps.create(points).transform).toEqual(MatrixTransform.identity())
+    })
     test("should create with default style", () => {
       const line = EdgePolyLineOps.create(points)
       expect(line.style).toEqual(DefaultStyle)
@@ -52,6 +55,14 @@ describe("EdgePolyLineOps", () => {
       ]
       const line = EdgePolyLineOps.createFromPartial({ points: pts })
       expect(line.points).toEqual(pts)
+    })
+    test("should carry a given transform through, merged onto identity", () => {
+      const pts: TPoint[] = [
+        { x: 0, y: 0 },
+        { x: 5, y: 5 },
+      ]
+      const line = EdgePolyLineOps.createFromPartial({ points: pts, transform: { tx: 5, ty: 6 } })
+      expect(line.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 5, ty: 6 })
     })
     test("should preserve id", () => {
       const pts: TPoint[] = [

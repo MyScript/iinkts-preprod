@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach } from "@jest/globals"
 import { buildIIText } from "../../helpers"
-import { TextUtil, SymbolType, OBBOps, type TSymbolChar, type TBox } from "@/iink"
+import { TextUtil, SymbolType, OBBOps, MatrixTransform, type TSymbolChar, type TBox } from "@/iink"
 
 const makeChar = (label: string, bounds: TBox): TSymbolChar => ({
   id: `char-${label}`,
@@ -101,6 +101,38 @@ describe("TextUtil", () => {
     test("should return false when text is outside given box", () => {
       const text = buildIIText({ boundingBox: { x: 100, y: 100, width: 10, height: 10 } })
       expect(util.overlaps(text, { x: 0, y: 0, width: 5, height: 5 })).toBe(false)
+    })
+  })
+
+  describe("getSVGElement", () => {
+    test("emits no transform attribute for a symbol that was never moved", () => {
+      const text = buildIIText()
+      expect(util.getSVGElement(text).getAttribute("transform")).toBeNull()
+    })
+
+    test("emits the symbol's matrix as the element transform once moved", () => {
+      const text = buildIIText()
+      text.transform = MatrixTransform.identity().translate(3, 4)
+      expect(util.getSVGElement(text).getAttribute("transform")).toBe("matrix(1, 0, 0, 1, 3, 4)")
+    })
+
+    test("emits the legacy rotate attribute alone while the matrix stays identity", () => {
+      // Task 11 removes `.rotation`; until then a rotated text symbol still turns through it, not
+      // the matrix, so getSVGElement must keep emitting exactly this — the pre-task-9 attribute.
+      const text = buildIIText()
+      text.rotation = { degree: 45, center: { x: 1, y: 2 } }
+      expect(util.getSVGElement(text).getAttribute("transform")).toBe("rotate(45, 1, 2)")
+    })
+
+    test("composes the matrix before the legacy rotate when both apply", () => {
+      // Order matters: an SVG transform list applies right-to-left, so the matrix must be the
+      // leftmost (outer) term and `rotate` the rightmost (inner) one — `rotate` turns the raw
+      // glyphs about `rotation.center` first, then the matrix moves the whole (already-rotated)
+      // result. Reversing the order would rotate about a point the matrix had already displaced.
+      const text = buildIIText()
+      text.rotation = { degree: 45, center: { x: 1, y: 2 } }
+      text.transform = MatrixTransform.identity().translate(3, 4)
+      expect(util.getSVGElement(text).getAttribute("transform")).toBe("matrix(1, 0, 0, 1, 3, 4) rotate(45, 1, 2)")
     })
   })
 

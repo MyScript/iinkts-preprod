@@ -1,7 +1,10 @@
-import { StrokeOps, DefaultStyle, TStyle, TPointer, OBBOps } from "@/iink"
+import { StrokeOps, DefaultStyle, TStyle, TPointer, OBBOps, MatrixTransform } from "@/iink"
 
 describe("StrokeOps", () => {
   describe("create", () => {
+    test("should initialise transform to identity", () => {
+      expect(StrokeOps.create().transform).toEqual(MatrixTransform.identity())
+    })
     test("should create with default style", () => {
       const stroke = StrokeOps.create()
       expect(stroke.style).toEqual(DefaultStyle)
@@ -160,6 +163,14 @@ describe("StrokeOps", () => {
       }
       const stroke = StrokeOps.createFromPartial(partial)
       expect(stroke.pointers[0]).toEqual(expect.objectContaining({ x: 10, y: 20 }))
+    })
+    test("should carry a given transform through, merged onto identity", () => {
+      const partial = {
+        pointers: [{ x: 10, y: 20, t: 1, p: 0.5 }],
+        transform: { tx: 5, ty: 6 },
+      }
+      const stroke = StrokeOps.createFromPartial(partial)
+      expect(stroke.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 5, ty: 6 })
     })
     test("should preserve id if provided", () => {
       const partial = {

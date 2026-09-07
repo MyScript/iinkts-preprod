@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach } from "@jest/globals"
 import { buildIIMath } from "../../helpers"
-import { MathUtil, SymbolType, OBBOps, type TMathElement } from "@/iink"
+import { MathUtil, SymbolType, OBBOps, MatrixTransform, type TMathElement } from "@/iink"
 
 const makeMathElement = (label: string, bounds = { x: 0, y: 0, width: 50, height: 30 }): TMathElement => ({
   id: "e1",
@@ -89,6 +89,38 @@ describe("MathUtil", () => {
     test("should return false when math is outside given box", () => {
       const math = buildIIMath("y=x", { boundingBox: { x: 100, y: 100, width: 20, height: 10 } })
       expect(util.overlaps(math, { x: 0, y: 0, width: 5, height: 5 })).toBe(false)
+    })
+  })
+
+  describe("getSVGElement", () => {
+    test("emits no transform attribute for a symbol that was never moved", () => {
+      const math = buildIIMath()
+      expect(util.getSVGElement(math).getAttribute("transform")).toBeNull()
+    })
+
+    test("emits the symbol's matrix as the element transform once moved", () => {
+      const math = buildIIMath()
+      math.transform = MatrixTransform.identity().translate(3, 4)
+      expect(util.getSVGElement(math).getAttribute("transform")).toBe("matrix(1, 0, 0, 1, 3, 4)")
+    })
+
+    test("emits the legacy rotate attribute alone while the matrix stays identity", () => {
+      // Task 11 removes `.rotation`; until then a rotated math symbol still turns through it, not
+      // the matrix, so getSVGElement must keep emitting exactly this — the pre-task-9 attribute.
+      const math = buildIIMath()
+      math.rotation = { degree: 45, center: { x: 1, y: 2 } }
+      expect(util.getSVGElement(math).getAttribute("transform")).toBe("rotate(45, 1, 2)")
+    })
+
+    test("composes the matrix before the legacy rotate when both apply", () => {
+      // Order matters: an SVG transform list applies right-to-left, so the matrix must be the
+      // leftmost (outer) term and `rotate` the rightmost (inner) one — `rotate` turns the raw
+      // glyphs about `rotation.center` first, then the matrix moves the whole (already-rotated)
+      // result. Reversing the order would rotate about a point the matrix had already displaced.
+      const math = buildIIMath()
+      math.rotation = { degree: 45, center: { x: 1, y: 2 } }
+      math.transform = MatrixTransform.identity().translate(3, 4)
+      expect(util.getSVGElement(math).getAttribute("transform")).toBe("matrix(1, 0, 0, 1, 3, 4) rotate(45, 1, 2)")
     })
   })
 

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, test } from "@jest/globals"
 import { buildIILine } from "../../helpers"
 
 import type { TEdge, TPartialDeep } from "@/iink"
-import { EdgeDecoration, EdgeKind, EdgeUtil, SymbolType } from "@/iink"
+import { EdgeDecoration, EdgeKind, EdgeUtil, MatrixTransform, SymbolType } from "@/iink"
 
 /**
  * `EdgeUtil` resolved a kind with a `switch` in each of four methods until IIC-2002 replaced them
@@ -104,6 +104,16 @@ describe("EdgeUtil", () => {
       const path = element.querySelector("path")
       expect(element.getAttribute("kind")).toBe(kind)
       expect(path?.getAttribute("d")).toBe(EdgeUtil.getSVGPath(edge()))
+    })
+
+    test("should emit no transform attribute for an edge that was never moved", () => {
+      expect(util.getSVGElement(edge()).getAttribute("transform")).toBeNull()
+    })
+
+    test("should emit the edge's matrix as the element transform once moved", () => {
+      const moved = edge()
+      moved.transform = MatrixTransform.identity().translate(3, 4)
+      expect(util.getSVGElement(moved).getAttribute("transform")).toBe("matrix(1, 0, 0, 1, 3, 4)")
     })
 
     test("should carry arrow decorations, which belong to every kind rather than to the table", () => {

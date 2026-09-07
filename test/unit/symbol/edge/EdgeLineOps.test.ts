@@ -1,7 +1,10 @@
-import { EdgeLineOps, TPoint, DefaultStyle, TStyle, TBox, EdgeDecoration, OBBOps } from "@/iink"
+import { EdgeLineOps, TPoint, DefaultStyle, TStyle, TBox, EdgeDecoration, OBBOps, MatrixTransform } from "@/iink"
 
 describe("EdgeLineOps", () => {
   describe("create", () => {
+    test("should initialise transform to identity", () => {
+      expect(EdgeLineOps.create({ x: 0, y: 0 }, { x: 10, y: 10 }).transform).toEqual(MatrixTransform.identity())
+    })
     test("should create with default style", () => {
       const start: TPoint = { x: 0, y: 0 }
       const end: TPoint = { x: 10, y: 10 }
@@ -51,6 +54,11 @@ describe("EdgeLineOps", () => {
       const line = EdgeLineOps.createFromPartial(partial)
       expect(line.start).toEqual(partial.start)
       expect(line.end).toEqual(partial.end)
+    })
+    test("should carry a given transform through, merged onto identity", () => {
+      const partial = { start: { x: 0, y: 0 }, end: { x: 5, y: 5 }, transform: { tx: 5, ty: 6 } }
+      const line = EdgeLineOps.createFromPartial(partial)
+      expect(line.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 5, ty: 6 })
     })
     test("should preserve id", () => {
       const partial = { id: "line-id", start: { x: 0, y: 0 }, end: { x: 5, y: 5 } }

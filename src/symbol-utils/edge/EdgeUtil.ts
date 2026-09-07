@@ -1,7 +1,7 @@
 import { EdgeDecoration } from "@/Constants"
 import type { TBox } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
-import { MatrixTransform } from "@/core/geometry"
+import { isIdentityMatrix, MatrixTransform } from "@/core/geometry"
 import { TWO_PI } from "@/core/math"
 import type { TPartialDeep } from "@/core/std"
 import { DefaultStyle } from "@/style"
@@ -184,6 +184,8 @@ export class EdgeUtil extends SymbolUtil<TEdge> {
   }
 
   getSVGElement(edge: TEdge): SVGGraphicsElement {
+    const definition = resolveKind(EDGE_KINDS, edge.kind, "edge", "getSVGElement for")
+
     const attrs: { [key: string]: string } = {
       id: edge.id,
       type: edge.type,
@@ -192,9 +194,11 @@ export class EdgeUtil extends SymbolUtil<TEdge> {
       "stroke-linecap": "round",
       "stroke-linejoin": "round",
     }
+    if (!isIdentityMatrix(edge.transform)) {
+      attrs.transform = MatrixTransform.toCssString(edge.transform)
+    }
 
     const group = SVGBuilder.createGroup(attrs)
-    const definition = resolveKind(EDGE_KINDS, edge.kind, "edge", "getSVGElement for")
 
     const pathAttrs: { [key: string]: string } = {
       fill: "transparent",

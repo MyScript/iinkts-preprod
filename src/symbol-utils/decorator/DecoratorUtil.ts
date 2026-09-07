@@ -1,6 +1,6 @@
 import type { TBox } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
-import { OBBOps, type TOBB } from "@/core/geometry"
+import { isIdentityMatrix, MatrixTransform, mergeSymbolTransform, OBBOps, type TOBB } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import { DefaultStyle } from "@/style"
 import { DecoratorKind, DecoratorOps, type TDecorator } from "@/symbol/decorator/Decorator"
@@ -123,7 +123,9 @@ export class DecoratorUtil extends SymbolUtil<TDecorator> {
     }
     const targetIds = (partial.targetIds ?? []).filter((id): id is string => id !== undefined)
     const bounds = partial.bounds as TBox | undefined
-    return DecoratorOps.create(partial.kind, partial.style ?? {}, targetIds, bounds)
+    const decorator = DecoratorOps.create(partial.kind, partial.style ?? {}, targetIds, bounds)
+    decorator.transform = mergeSymbolTransform(partial.transform)
+    return decorator
   }
 
   /**
@@ -191,7 +193,7 @@ export class DecoratorUtil extends SymbolUtil<TDecorator> {
   getSVGElement(decorator: TDecorator): SVGGeometryElement | undefined {
     return DecoratorUtil.renderFromBounds(
       decorator,
-      SymbolGeometry.boundsOf(decorator),
+      SymbolGeometry.rawOf(decorator).bounds,
       decorator.baseline,
       decorator.xHeight,
       {
@@ -202,7 +204,13 @@ export class DecoratorUtil extends SymbolUtil<TDecorator> {
   }
 
   static renderForSymbol(decorator: TDecorator, symbol: TBaseSymbol): SVGGeometryElement | undefined {
-    const bounds = decorator.hasBounds ? SymbolGeometry.boundsOf(decorator) : SymbolGeometry.boundsOf(symbol)
+    // `SymbolGeometry.rawOf`, not `boundsOf`: this element is drawn either as the decorator's own
+    // top-level group (which carries its own `transform` below) or as a child of the host's group
+    // (which carries the host's), so the geometry itself must stay untransformed — the enclosing
+    // `transform` attribute is what repositions it, exactly once at each level. `rawOf` also keeps
+    // this on the cache `boundsOf` uses, rather than calling a util's `computeGeometry` uncached on
+    // every redraw.
+    const bounds = decorator.hasBounds ? SymbolGeometry.rawOf(decorator).bounds : SymbolGeometry.rawOf(symbol).bounds
     return DecoratorUtil.renderFromBounds(decorator, bounds, undefined, undefined, {
       width: symbol.style.width,
       color: symbol.style.color,
@@ -236,6 +244,9 @@ export class DecoratorUtil extends SymbolUtil<TDecorator> {
     }
     if (decorator.style.opacity) {
       attrs["opacity"] = decorator.style.opacity.toString()
+    }
+    if (!isIdentityMatrix(decorator.transform)) {
+      attrs.transform = MatrixTransform.toCssString(decorator.transform)
     }
     // Layered after, so a kind may override a shared attribute. The highlight does exactly that.
     Object.assign(attrs, definition.attributes(decorator))

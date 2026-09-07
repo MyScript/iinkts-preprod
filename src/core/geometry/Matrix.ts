@@ -1,3 +1,5 @@
+import type { TPartialDeep } from "@/core/std"
+
 import type { TPoint } from "./Point"
 /**
  * @group Core/Geometry
@@ -209,4 +211,33 @@ export function applyMatrixToPoints(points: TPoint[], matrix: TMatrixTransform):
     point.x = transformed.x
     point.y = transformed.y
   })
+}
+
+/**
+ * Whether this matrix leaves everything where it is.
+ *
+ * Worth asking before doing anything with it: the vast majority of symbols in a document were never
+ * moved, and both the geometry pass and the renderer can skip their whole matrix path on this.
+ *
+ * @group Core/Geometry
+ */
+export function isIdentityMatrix(matrix: TMatrixTransform): boolean {
+  return matrix.xx === 1 && matrix.yx === 0 && matrix.xy === 0 && matrix.yy === 1 && matrix.tx === 0 && matrix.ty === 0
+}
+
+/**
+ * A transform partially specified in incoming data, filled out with the identity for whatever field
+ * it left unset.
+ *
+ * Mirrors `mergeSymbolStyle`'s role for `TStyle`: every `*Ops.createFromPartial` deserialises data
+ * that may predate this field, or may simply describe a symbol that was never moved, so `transform`
+ * has to be optional on the wire even though `TBaseSymbol.transform` is not. Without this, a
+ * `createFromPartial` that dropped an incoming `transform` would silently reset every deserialised
+ * symbol to identity — invisible today, since nothing yet writes a non-identity one, but silent data
+ * loss the moment something does.
+ *
+ * @group Core/Geometry
+ */
+export function mergeSymbolTransform(transform?: TPartialDeep<TMatrixTransform>): TMatrixTransform {
+  return { ...MatrixTransform.identity(), ...transform }
 }

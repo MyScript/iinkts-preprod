@@ -1,7 +1,7 @@
 import { SELECTION_MARGIN } from "@/Constants"
 import type { TBox } from "@/core/geometry"
 import type { TPoint, TSegment } from "@/core/geometry"
-import { OBBOps, type TOBB } from "@/core/geometry"
+import { MatrixTransform, mergeSymbolTransform, OBBOps, type TOBB } from "@/core/geometry"
 import { isValidPoint } from "@/core/geometry"
 import { computePointOnEllipse } from "@/core/geometry"
 import { computeEllipseRadiusAverage, computeTessellationCount, isValidNumber, TWO_PI } from "@/core/math"
@@ -59,6 +59,7 @@ export const ShapeEllipseOps = {
       bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0),
       snapPoints: [],
       edges: [],
+      transform: MatrixTransform.identity(),
     }
     ShapeEllipseOps.updateDerivedFields(ellipse)
     return ellipse
@@ -84,6 +85,7 @@ export const ShapeEllipseOps = {
     if (partial.id) {
       ellipse.id = partial.id
     }
+    ellipse.transform = mergeSymbolTransform(partial.transform)
     return ellipse
   },
 

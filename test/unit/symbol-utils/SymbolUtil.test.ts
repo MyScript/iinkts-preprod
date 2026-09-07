@@ -1,4 +1,4 @@
-import { OBBOps, SymbolUtil, TBaseSymbol, TPartialDeep, TSymbolGeometry } from "@/iink"
+import { MatrixTransform, OBBOps, SymbolUtil, TBaseSymbol, TPartialDeep, TSymbolGeometry } from "@/iink"
 
 class TestSymbolUtil extends SymbolUtil<TBaseSymbol> {
   readonly type = "test"
@@ -9,6 +9,7 @@ class TestSymbolUtil extends SymbolUtil<TBaseSymbol> {
       modificationDate: params.modificationDate ?? 0,
       type: "test",
       style: params.style ?? {},
+      transform: { ...MatrixTransform.identity(), ...params.transform },
     }
   }
   updateDerivedFields(): void {
@@ -40,7 +41,14 @@ class TestSymbolUtil extends SymbolUtil<TBaseSymbol> {
 
 describe("SymbolUtil.ts", () => {
   const util = new TestSymbolUtil()
-  const symbol: TBaseSymbol = { id: "1", creationTime: 0, modificationDate: 0, type: "test", style: {} }
+  const symbol: TBaseSymbol = {
+    id: "1",
+    creationTime: 0,
+    modificationDate: 0,
+    type: "test",
+    style: {},
+    transform: MatrixTransform.identity(),
+  }
 
   test("should default getSnapPoints to an empty array", () => {
     expect(util.getSnapPoints(symbol)).toEqual([])

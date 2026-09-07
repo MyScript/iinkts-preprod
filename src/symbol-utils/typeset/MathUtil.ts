@@ -1,6 +1,6 @@
 import type { TBox } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
-import { applyMatrixToPoint, applyMatrixToPoints } from "@/core/geometry"
+import { applyMatrixToPoint, applyMatrixToPoints, isIdentityMatrix, MatrixTransform } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import { DecoratorKind } from "@/symbol/decorator/Decorator"
 import { SymbolType } from "@/symbol/Symbol"
@@ -63,8 +63,20 @@ export class MathUtil extends TypesetUtil<TMath> {
     if (math.style.opacity) {
       attrs.opacity = math.style.opacity.toString()
     }
+    // Composed, not either/or: the matrix is the outer frame, `rotation` (while it still exists —
+    // Task 11 removes it) the inner one. `rotation.center` lives in raw coordinates, and an SVG
+    // transform list applies right-to-left, so the matrix must be listed FIRST and `rotate` second —
+    // reversing that would turn the glyphs about a point the matrix has already moved. At this task
+    // the matrix is always identity for a typeset symbol, so this emits exactly today's attribute.
+    const transformParts: string[] = []
+    if (!isIdentityMatrix(math.transform)) {
+      transformParts.push(MatrixTransform.toCssString(math.transform))
+    }
     if (math.rotation) {
-      attrs.transform = `rotate(${math.rotation.degree}, ${math.rotation.center.x}, ${math.rotation.center.y})`
+      transformParts.push(`rotate(${math.rotation.degree}, ${math.rotation.center.x}, ${math.rotation.center.y})`)
+    }
+    if (transformParts.length) {
+      attrs.transform = transformParts.join(" ")
     }
 
     const mathGroup = SVGBuilder.createGroup(attrs)

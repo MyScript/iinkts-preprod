@@ -133,6 +133,52 @@ export const OBBOps = {
     ]
   },
 
+  /**
+   * The four corners, named for the round trip with {@link fromCorners}.
+   *
+   * Same computation as {@link getCorners} — kept as its own name because a caller fitting a box
+   * back from transformed corners thinks in "to/from corners" pairs, and `getCorners` predates that
+   * pairing by naming itself after the shape instead.
+   */
+  toCorners(obb: TOBB): TPoint[] {
+    return OBBOps.getCorners(obb)
+  },
+
+  /**
+   * Fits an OBB to four corners at a known angle — the fitting counterpart to {@link toCorners}.
+   *
+   * Takes the angle rather than solving for it (which a PCA or minimal-bounding-rectangle search
+   * would have to) because every caller already knows it: it is the original box's own angle, plus
+   * whatever rotation a matrix carried. That keeps this O(1) per call instead of O(points).
+   *
+   * The four corners are expected to form a box or, after a non-uniform scale applied to a rotated
+   * box, a parallelogram. Projecting onto the given angle's axes and taking the extent along each
+   * fits the *enclosing* OBB in the parallelogram case — exact for any similarity, an accepted
+   * over-approximation otherwise (see `SymbolGeometry`'s `applyMatrix`, the only caller that can
+   * produce a parallelogram here).
+   */
+  fromCorners(corners: TPoint[], angle: number): TOBB {
+    const center = {
+      x: corners.reduce((sum, c) => sum + c.x, 0) / corners.length,
+      y: corners.reduce((sum, c) => sum + c.y, 0) / corners.length,
+    }
+    const cos = Math.cos(angle)
+    const sin = Math.sin(angle)
+    const local = corners.map((c) => {
+      const dx = c.x - center.x
+      const dy = c.y - center.y
+      return { x: cos * dx + sin * dy, y: -sin * dx + cos * dy }
+    })
+    const xs = local.map((p) => p.x)
+    const ys = local.map((p) => p.y)
+    return {
+      center,
+      width: Math.max(...xs) - Math.min(...xs),
+      height: Math.max(...ys) - Math.min(...ys),
+      angle,
+    }
+  },
+
   getSides(obb: TOBB): TSegment[] {
     const corners = OBBOps.getCorners(obb)
     return corners.map((p, i) => ({

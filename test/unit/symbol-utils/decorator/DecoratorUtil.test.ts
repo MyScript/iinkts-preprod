@@ -1,10 +1,12 @@
-import { describe, test, expect, beforeEach } from "@jest/globals"
+import { describe, test, expect, beforeAll, beforeEach } from "@jest/globals"
 import { buildIIDecorator } from "../../helpers"
 import type { TDecorator } from "@/iink"
-import { DecoratorUtil, DecoratorKind, DecoratorOps, OBBOps, SymbolType } from "@/iink"
+import { DecoratorUtil, DecoratorKind, DecoratorOps, OBBOps, SymbolType, MatrixTransform, registerBuiltinSymbolUtils } from "@/iink"
 
 describe("DecoratorUtil", () => {
   let util: DecoratorUtil
+
+  beforeAll(() => registerBuiltinSymbolUtils())
 
   beforeEach(() => {
     util = new DecoratorUtil()
@@ -34,6 +36,16 @@ describe("DecoratorUtil", () => {
       const d1 = util.create({ kind: DecoratorKind.Surround })
       const d2 = util.create({ kind: DecoratorKind.Surround })
       expect(d1.id).not.toBe(d2.id)
+    })
+
+    test("should carry a given transform through, merged onto identity", () => {
+      const decorator = util.create({ kind: DecoratorKind.Underline, transform: { tx: 5, ty: 6 } })
+      expect(decorator.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 5, ty: 6 })
+    })
+
+    test("should default transform to identity when absent", () => {
+      const decorator = util.create({ kind: DecoratorKind.Underline })
+      expect(decorator.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 0, ty: 0 })
     })
   })
 
@@ -137,6 +149,29 @@ describe("DecoratorUtil", () => {
 
     test("canRotate should return false", () => {
       expect(util.canRotate(buildIIDecorator(DecoratorKind.Underline))).toBe(false)
+    })
+  })
+
+  describe("getSVGElement", () => {
+    const buildUnderline = () => DecoratorOps.create(DecoratorKind.Underline, {}, [], { x: 0, y: 0, width: 20, height: 10 })
+
+    test("emits no transform attribute for a decorator that was never moved", () => {
+      expect(util.getSVGElement(buildUnderline())?.getAttribute("transform")).toBeNull()
+    })
+
+    test("emits the decorator's matrix as the element transform once moved, without also shifting the geometry", () => {
+      // Guards the interaction with SymbolGeometry now baking the matrix into `boundsOf`: this
+      // element must draw from the decorator's *raw*, stored bounds and let the `transform`
+      // attribute alone account for the move — using the transformed bounds here would shift the
+      // line twice (once in its own x1/x2, once via the attribute).
+      const decorator = buildUnderline()
+      decorator.transform = MatrixTransform.identity().translate(5, 5)
+
+      const element = util.getSVGElement(decorator)
+
+      expect(element?.getAttribute("transform")).toBe("matrix(1, 0, 0, 1, 5, 5)")
+      expect(element?.getAttribute("x1")).toBe("0")
+      expect(element?.getAttribute("x2")).toBe("20")
     })
   })
 

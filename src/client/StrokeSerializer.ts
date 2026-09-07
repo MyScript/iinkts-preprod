@@ -7,6 +7,9 @@
  * direction and no conversion at the call site.
  */
 
+import type { TMatrixTransform } from "@/core/geometry"
+import { applyMatrixToPoint, isIdentityMatrix } from "@/core/geometry"
+
 /**
  * One captured point of a stroke. `x` and `y` are required; `t` and `p` are not, so a caller that
  * builds strokes itself — a custom renderer, an importer — can hand over geometry alone.
@@ -38,6 +41,14 @@ export type TRecognitionStroke = {
   id: string
   pointerType: string
   pointers: TRecognitionPointer[]
+  /**
+   * The stroke's affine transform, if any. Baked into absolute coordinates by {@link toWireStroke}
+   * before the pointers reach the wire — the server only ever deals in absolute geometry.
+   *
+   * Optional so a caller with no notion of a transform — building a `TRecognitionStroke` by hand
+   * rather than handing over a `TStroke` from the symbol layer — can omit it; absent is identity.
+   */
+  transform?: TMatrixTransform
 }
 
 /**
@@ -73,6 +84,7 @@ export type TWireStroke = {
  * @group Client
  */
 export function toWireStroke(stroke: TRecognitionStroke): TWireStroke {
+  const toAbsolute = createPointerTransformer(stroke.transform)
   const wire: TWireStroke = {
     id: stroke.id,
     pointerType: stroke.pointerType,
@@ -84,7 +96,8 @@ export function toWireStroke(stroke: TRecognitionStroke): TWireStroke {
   let everyPointerIsTimed = true
   let everyPointerHasPressure = true
 
-  stroke.pointers.forEach((pointer) => {
+  stroke.pointers.forEach((rawPointer) => {
+    const pointer = toAbsolute(rawPointer)
     wire.x.push(pointer.x)
     wire.y.push(pointer.y)
     if (typeof pointer.t === "number") {
@@ -106,4 +119,26 @@ export function toWireStroke(stroke: TRecognitionStroke): TWireStroke {
     wire.p = p
   }
   return wire
+}
+
+/**
+ * Builds the function that bakes a stroke's matrix into one pointer's absolute position.
+ *
+ * Identity — no transform at all, or one that leaves everything where it is — returns the pointer
+ * unchanged: no new object, no matrix math. The vast majority of strokes in any document were never
+ * moved, and re-sending them is the common path, so it has to stay allocation-free.
+ *
+ * `t` and `p` ride along untouched: the matrix moves position only, and a pointer that never had a
+ * timestamp or pressure must not acquire one by passing through here.
+ *
+ * Coordinates round to three decimals via {@link applyMatrixToPoint}, the same precision the
+ * document stores everywhere else — the wire should not carry more precision than the model does.
+ */
+function createPointerTransformer(
+  transform: TMatrixTransform | undefined
+): (pointer: TRecognitionPointer) => TRecognitionPointer {
+  if (!transform || isIdentityMatrix(transform)) {
+    return (pointer) => pointer
+  }
+  return (pointer) => ({ ...pointer, ...applyMatrixToPoint(pointer, transform) })
 }
