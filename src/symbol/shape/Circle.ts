@@ -67,8 +67,11 @@ export const ShapeCircleOps = {
     return circle
   },
 
-  updateDerivedFields(circle: TShapeCircle): void {
-    circle.bounds = OBBOps.create(circle.center, circle.radius * 2, circle.radius * 2)
+  computeBounds(circle: TShapeCircle): TOBB {
+    return OBBOps.create(circle.center, circle.radius * 2, circle.radius * 2)
+  },
+
+  computeVertices(circle: TShapeCircle): TPoint[] {
     const firstPoint: TPoint = {
       x: circle.center.x,
       y: circle.radius + circle.center.y,
@@ -80,12 +83,22 @@ export const ShapeCircleOps = {
       const rad = TWO_PI * (i / nbPoint)
       vertices.push(computeRotatedPoint(firstPoint, circle.center, rad))
     }
-    circle.vertices = vertices
-    circle.snapPoints = OBBOps.getSnapPoints(circle.bounds)
-    circle.edges = vertices.map((p, i) => ({
+    return vertices
+  },
+
+  computeEdges(vertices: TPoint[]): TSegment[] {
+    return vertices.map((p, i) => ({
       p1: p,
       p2: vertices[(i + 1) % vertices.length],
     }))
+  },
+
+  updateDerivedFields(circle: TShapeCircle): void {
+    const vertices = ShapeCircleOps.computeVertices(circle)
+    circle.bounds = ShapeCircleOps.computeBounds(circle)
+    circle.vertices = vertices
+    circle.snapPoints = OBBOps.getSnapPoints(circle.bounds)
+    circle.edges = ShapeCircleOps.computeEdges(vertices)
   },
 
   overlaps(circle: TShapeCircle, box: TBox): boolean {

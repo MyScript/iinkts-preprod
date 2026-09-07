@@ -87,7 +87,7 @@ export const ShapeEllipseOps = {
     return ellipse
   },
 
-  updateDerivedFields(ellipse: TShapeEllipse): void {
+  computeVertices(ellipse: TShapeEllipse): TPoint[] {
     const perimeter = TWO_PI * computeEllipseRadiusAverage(ellipse.radiusX, ellipse.radiusY)
     const nbPoint = computeTessellationCount(perimeter, SELECTION_MARGIN)
     const vertices: TPoint[] = []
@@ -95,13 +95,22 @@ export const ShapeEllipseOps = {
       const theta = TWO_PI * (i / nbPoint)
       vertices.push(computePointOnEllipse(ellipse.center, ellipse.radiusX, ellipse.radiusY, ellipse.orientation, theta))
     }
-    ellipse.vertices = vertices
-    ellipse.bounds = OBBOps.createFromPoints(vertices)
-    ellipse.snapPoints = OBBOps.getSnapPoints(ellipse.bounds)
-    ellipse.edges = vertices.map((p, i) => ({
+    return vertices
+  },
+
+  computeEdges(vertices: TPoint[]): TSegment[] {
+    return vertices.map((p, i) => ({
       p1: p,
       p2: vertices[(i + 1) % vertices.length],
     }))
+  },
+
+  updateDerivedFields(ellipse: TShapeEllipse): void {
+    const vertices = ShapeEllipseOps.computeVertices(ellipse)
+    ellipse.vertices = vertices
+    ellipse.bounds = OBBOps.createFromPoints(vertices)
+    ellipse.snapPoints = OBBOps.getSnapPoints(ellipse.bounds)
+    ellipse.edges = ShapeEllipseOps.computeEdges(vertices)
   },
 
   overlaps(ellipse: TShapeEllipse, box: TBox): boolean {

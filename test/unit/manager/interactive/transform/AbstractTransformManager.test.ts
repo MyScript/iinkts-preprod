@@ -13,10 +13,12 @@ import {
   IIRotationManager,
   IITranslateManager,
   MatrixTransform,
+  OBBOps,
   registerBuiltinSymbolUtils,
   symbolRegistry,
   SymbolUtil,
 } from "@/iink"
+import type { TSymbolGeometry } from "@/iink"
 
 /**
  * `IIAbstractTransformManager` used to declare five `applyTo*` members so that a
@@ -36,6 +38,9 @@ class StickyNoteUtil extends SymbolUtil<TStickyNote> {
     return { ...partial, type: "sticky-note" } as TStickyNote
   }
   updateDerivedFields(): void {}
+  computeGeometry(): TSymbolGeometry {
+    return { bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0), vertices: [], snapPoints: [], edges: [], length: 0 }
+  }
   overlaps(_symbol: TStickyNote, _box: TBox): boolean {
     return false
   }

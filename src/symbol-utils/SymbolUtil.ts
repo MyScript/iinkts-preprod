@@ -4,6 +4,7 @@ import type { TPartialDeep } from "@/core/std"
 import type { TBaseSymbol, TResizePoint } from "@/symbol/Symbol"
 
 import type { TResizeContext, TRotateContext, TTranslateContext } from "./TransformContext"
+import type { TSymbolGeometry } from "./TSymbolGeometry"
 /**
  * @group SymbolUtils
  * @summary Plugin interface for registering symbol behaviour.
@@ -33,6 +34,15 @@ export abstract class SymbolUtil<T extends TBaseSymbol> {
   abstract create(params: TPartialDeep<T>): T
 
   abstract updateDerivedFields(symbol: T): void
+
+  /**
+   * This symbol's derived geometry, computed from the coordinates it stores.
+   *
+   * Same values `updateDerivedFields` writes onto the symbol, returned instead of assigned. The two
+   * coexist only for the length of this epic: `updateDerivedFields` goes away once every reader has
+   * moved to `SymbolGeometry`.
+   */
+  abstract computeGeometry(symbol: T): TSymbolGeometry
 
   abstract overlaps(symbol: T, box: TBox): boolean
 

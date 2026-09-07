@@ -75,19 +75,22 @@ export const EdgePolyLineOps = {
     return polyline
   },
 
+  computeBounds(polyline: TEdgePolyLine): TOBB {
+    return computeEdgeBounds(polyline.points, polyline.style, polyline.startDecoration, polyline.endDecoration)
+  },
+
+  computeEdges(points: TPoint[]): TSegment[] {
+    return points.slice(0, -1).map((p, i) => ({
+      p1: p,
+      p2: points[i + 1],
+    }))
+  },
+
   updateDerivedFields(polyline: TEdgePolyLine): void {
     polyline.vertices = polyline.points
-    polyline.bounds = computeEdgeBounds(
-      polyline.vertices,
-      polyline.style,
-      polyline.startDecoration,
-      polyline.endDecoration
-    )
+    polyline.bounds = EdgePolyLineOps.computeBounds(polyline)
     polyline.snapPoints = polyline.vertices
-    polyline.edges = polyline.points.slice(0, -1).map((p, i) => ({
-      p1: p,
-      p2: polyline.points[i + 1],
-    }))
+    polyline.edges = EdgePolyLineOps.computeEdges(polyline.points)
   },
 
   getResizePoints(polyline: TEdgePolyLine): TResizePoint[] {

@@ -57,6 +57,32 @@ describe("StrokeUtil", () => {
     })
   })
 
+  describe("computeGeometry", () => {
+    test("matches the legacy StrokeOps writer, not merely itself", () => {
+      // `createFromPartial` builds this stroke through `StrokeOps.addPointer`, which calls the
+      // legacy `StrokeOps.updateBounds` and accumulates `length` incrementally — none of it goes
+      // through `computeGeometry`, so this is an oracle a broken `computeGeometry` cannot satisfy
+      // by construction (unlike calling `updateDerivedFields` first, which IS `Object.assign(s,
+      // computeGeometry(s))` and would make the comparison circular).
+      const stroke = StrokeOps.createFromPartial({
+        pointers: [
+          { x: 0, y: 0, t: 0, p: 1 },
+          { x: 10, y: 0, t: 1, p: 1 },
+          { x: 10, y: 5, t: 2, p: 1 },
+        ],
+      })
+
+      const geometry = util.computeGeometry(stroke)
+
+      expect(geometry.bounds).toEqual(stroke.bounds)
+      expect(geometry.vertices).toBe(stroke.pointers)
+      expect(geometry.snapPoints).toEqual(stroke.snapPoints)
+      expect(geometry.edges).toEqual(stroke.edges)
+      // 0,0 → 10,0 → 10,5: 10 + 5, a literal independent of computeLength's own formula.
+      expect(geometry.length).toBe(15)
+    })
+  })
+
   describe("overlaps", () => {
     test("should return true when stroke overlaps box", () => {
       const stroke = buildIIStroke({ box: { x: 5, y: 5, width: 10, height: 10 } })

@@ -24,10 +24,6 @@ export class MathUtil extends TypesetUtil<TMath> {
     return MathOps.createFromPartial(partial)
   }
 
-  updateDerivedFields(math: TMath): void {
-    MathOps.updateDerivedFields(math)
-  }
-
   overlaps(math: TMath, box: TBox): boolean {
     return MathOps.overlaps(math, box)
   }
