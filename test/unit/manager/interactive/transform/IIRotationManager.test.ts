@@ -118,6 +118,7 @@ describe("IIRotationManager.ts", () => {
     canvas.client.transformRotate = jest.fn(() => Promise.resolve())
     canvas.renderer.setAttribute = jest.fn()
     canvas.renderer.drawSymbol = jest.fn()
+    canvas.renderer.setSymbolTransform = jest.fn()
 
     const manager = new IIRotationManager(asCanvas(canvas))
     manager.applyToSymbol = jest.fn()
@@ -202,8 +203,12 @@ describe("IIRotationManager.ts", () => {
 
         const newStroke = canvas.model.getRootSymbol(strokeOrigin.id) as TStroke
         expect(manager.applyToSymbol).toHaveBeenCalledTimes(1)
-        expect(canvas.renderer.drawSymbol).toHaveBeenCalledTimes(1)
-        expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(newStroke)
+        // Committing a transform rewrites the element's `transform` attribute instead of rebuilding
+        // it through `drawSymbol` (task 12) - the final geometry reaches the renderer as an
+        // untouched `setSymbolTransform` call, not a `drawSymbol` one.
+        expect(canvas.renderer.drawSymbol).not.toHaveBeenCalled()
+        expect(canvas.renderer.setSymbolTransform).toHaveBeenCalledTimes(1)
+        expect(canvas.renderer.setSymbolTransform).toHaveBeenCalledWith(newStroke)
         expect(canvas.client.transformRotate).toHaveBeenCalledTimes(1)
         expect(canvas.client.transformRotate).toHaveBeenCalledWith(
           [newStroke.id],
