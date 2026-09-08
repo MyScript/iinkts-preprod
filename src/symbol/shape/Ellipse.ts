@@ -25,10 +25,6 @@ export type TShapeEllipse = TBaseSymbol & {
   radiusX: number
   radiusY: number
   orientation: number
-  vertices: TPoint[]
-  bounds: TOBB
-  snapPoints: TPoint[]
-  edges: TSegment[]
 }
 
 /**
@@ -55,13 +51,8 @@ export const ShapeEllipseOps = {
       radiusX,
       radiusY,
       orientation,
-      vertices: [],
-      bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0),
-      snapPoints: [],
-      edges: [],
       transform: MatrixTransform.identity(),
     }
-    ShapeEllipseOps.updateDerivedFields(ellipse)
     return ellipse
   },
 
@@ -100,6 +91,11 @@ export const ShapeEllipseOps = {
     return vertices
   },
 
+  /** Takes the vertices, like {@link computeEdges}: an ellipse's box is the box of its tessellation. */
+  computeBounds(vertices: TPoint[]): TOBB {
+    return OBBOps.createFromPoints(vertices)
+  },
+
   computeEdges(vertices: TPoint[]): TSegment[] {
     return vertices.map((p, i) => ({
       p1: p,
@@ -107,16 +103,13 @@ export const ShapeEllipseOps = {
     }))
   },
 
-  updateDerivedFields(ellipse: TShapeEllipse): void {
-    const vertices = ShapeEllipseOps.computeVertices(ellipse)
-    ellipse.vertices = vertices
-    ellipse.bounds = OBBOps.createFromPoints(vertices)
-    ellipse.snapPoints = OBBOps.getSnapPoints(ellipse.bounds)
-    ellipse.edges = ShapeEllipseOps.computeEdges(vertices)
-  },
-
   overlaps(ellipse: TShapeEllipse, box: TBox): boolean {
-    return OBBOps.polygonOverlapsBox(ellipse.bounds, ellipse.edges, box)
+    const vertices = ShapeEllipseOps.computeVertices(ellipse)
+    return OBBOps.polygonOverlapsBox(
+      ShapeEllipseOps.computeBounds(vertices),
+      ShapeEllipseOps.computeEdges(vertices),
+      box
+    )
   },
 
   createBetweenPoints(origin: TPoint, target: TPoint, style?: TPartialDeep<TStyle>): TShapeEllipse {
@@ -136,7 +129,6 @@ export const ShapeEllipseOps = {
     }
     ellipse.radiusX = Math.abs(origin.x - target.x) / 2
     ellipse.radiusY = Math.abs(origin.y - target.y) / 2
-    ShapeEllipseOps.updateDerivedFields(ellipse)
   },
 
   getSVGPath(ellipse: TShapeEllipse): string {

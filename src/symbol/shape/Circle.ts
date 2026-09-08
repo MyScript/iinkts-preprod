@@ -22,10 +22,6 @@ export type TShapeCircle = TBaseSymbol & {
   style: TStyle
   center: TPoint
   radius: number
-  vertices: TPoint[]
-  bounds: TOBB
-  snapPoints: TPoint[]
-  edges: TSegment[]
 }
 
 /**
@@ -44,13 +40,8 @@ export const ShapeCircleOps = {
       modificationDate: now,
       center,
       radius,
-      vertices: [],
-      bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0),
-      snapPoints: [],
-      edges: [],
       transform: MatrixTransform.identity(),
     }
-    ShapeCircleOps.updateDerivedFields(circle)
     return circle
   },
 
@@ -95,17 +86,9 @@ export const ShapeCircleOps = {
     }))
   },
 
-  updateDerivedFields(circle: TShapeCircle): void {
-    const vertices = ShapeCircleOps.computeVertices(circle)
-    circle.bounds = ShapeCircleOps.computeBounds(circle)
-    circle.vertices = vertices
-    circle.snapPoints = OBBOps.getSnapPoints(circle.bounds)
-    circle.edges = ShapeCircleOps.computeEdges(vertices)
-  },
-
   overlaps(circle: TShapeCircle, box: TBox): boolean {
     return (
-      OBBOps.isContained(circle.bounds, box) ||
+      OBBOps.isContained(ShapeCircleOps.computeBounds(circle), box) ||
       BoxOps.getSides(box).some(
         (seg) => findIntersectBetweenSegmentAndCircle(seg, circle.center, circle.radius).length > 0
       )
@@ -115,13 +98,11 @@ export const ShapeCircleOps = {
   createBetweenPoints(origin: TPoint, target: TPoint, style?: TPartialDeep<TStyle>): TShapeCircle {
     const circle = ShapeCircleOps.create(origin, 0, style)
     circle.radius = computeDistance(circle.center, target)
-    ShapeCircleOps.updateDerivedFields(circle)
     return circle
   },
 
   updateBetweenPoints(circle: TShapeCircle, _origin: TPoint, target: TPoint): void {
     circle.radius = computeDistance(circle.center, target)
-    ShapeCircleOps.updateDerivedFields(circle)
   },
 
   getSVGPath(circle: TShapeCircle): string {

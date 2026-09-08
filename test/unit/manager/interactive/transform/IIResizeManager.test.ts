@@ -1,5 +1,5 @@
 import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
-import { buildIIMath, buildIIStroke, buildIIText, expectDerivedFieldsSettled } from "../../../helpers"
+import { buildIIMath, buildIIStroke, buildIIText } from "../../../helpers"
 import {
   EdgeArcOps,
   EdgeLineOps,
@@ -20,8 +20,7 @@ import {
   TStroke,
   TSymbol,
   TSymbolChar,
-  TextOps,
-} from "@/iink"
+  TextOps, SymbolGeometry } from "@/iink"
 
 describe("IIResizeManager.ts", () => {
   test("should create", () => {
@@ -106,7 +105,7 @@ describe("IIResizeManager.ts", () => {
       const shape = ShapeEllipseOps.create(center, radiusX, radiusY, orientation)
       const scaleX = 2
       const scaleY = 4
-      const shapeBoundsBox = OBBOps.toBox(shape.bounds)
+      const shapeBoundsBox = OBBOps.toBox(SymbolGeometry.boundsOf(shape))
       const origin: TPoint = { x: shapeBoundsBox.x, y: shapeBoundsBox.y }
       manager.transformOrigin = origin
       const matrix = MatrixTransform.identity().scale(scaleX, scaleY, origin)
@@ -129,7 +128,7 @@ describe("IIResizeManager.ts", () => {
       const shape = ShapePolygonOps.create(points)
       const scaleX = 2
       const scaleY = 4
-      const polyBoundsBox = OBBOps.toBox(shape.bounds)
+      const polyBoundsBox = OBBOps.toBox(SymbolGeometry.boundsOf(shape))
       const origin: TPoint = { x: polyBoundsBox.x, y: polyBoundsBox.y }
       const matrix = MatrixTransform.identity().scale(scaleX, scaleY, origin)
       manager.applyToSymbol(shape, matrix)
@@ -155,7 +154,7 @@ describe("IIResizeManager.ts", () => {
       const radiusY = 10
       const phi = 0
       const edge = EdgeArcOps.create(center, startAngle, sweepAngle, radiusX, radiusY, phi)
-      const edgeBoundsBox = OBBOps.toBox(edge.bounds)
+      const edgeBoundsBox = OBBOps.toBox(SymbolGeometry.boundsOf(edge))
       const origin: TPoint = { x: edgeBoundsBox.x, y: edgeBoundsBox.y }
       const scaleX = 2
       const scaleY = 3
@@ -237,54 +236,54 @@ describe("IIResizeManager.ts", () => {
     canvas.model.addSymbol(strokeOrigin)
     canvas.model.selectSymbol(strokeOrigin.id)
 
-    const sb = OBBOps.toBox(strokeOrigin.bounds)
+    const sb = OBBOps.toBox(SymbolGeometry.boundsOf(strokeOrigin))
     const resizeToPoint: TPoint = {
-      x: (sb.x + strokeOrigin.bounds.width + sb.x) / 4,
-      y: (sb.y + strokeOrigin.bounds.height + sb.y) / 4,
+      x: (sb.x + sb.width + sb.x) / 4,
+      y: (sb.y + sb.height + sb.y) / 4,
     }
 
     const testDatas = [
       {
         direction: ResizeDirection.North,
         transformOrigin: {
-          x: sb.x + strokeOrigin.bounds.width / 2,
-          y: sb.y + strokeOrigin.bounds.height,
+          x: sb.x + sb.width / 2,
+          y: sb.y + sb.height,
         },
         scale: {
           x: 1,
-          y: 1 + (sb.y - resizeToPoint.y) / strokeOrigin.bounds.height,
+          y: 1 + (sb.y - resizeToPoint.y) / sb.height,
         },
       },
       {
         direction: ResizeDirection.East,
         transformOrigin: {
           x: sb.x,
-          y: sb.y + strokeOrigin.bounds.height / 2,
+          y: sb.y + sb.height / 2,
         },
         scale: {
-          x: 1 + (resizeToPoint.x - (sb.x + strokeOrigin.bounds.width)) / strokeOrigin.bounds.width,
+          x: 1 + (resizeToPoint.x - (sb.x + sb.width)) / sb.width,
           y: 1,
         },
       },
       {
         direction: ResizeDirection.South,
         transformOrigin: {
-          x: sb.x + strokeOrigin.bounds.width / 2,
+          x: sb.x + sb.width / 2,
           y: sb.y,
         },
         scale: {
           x: 1,
-          y: 1 + (resizeToPoint.y - (sb.y + strokeOrigin.bounds.height)) / strokeOrigin.bounds.height,
+          y: 1 + (resizeToPoint.y - (sb.y + sb.height)) / sb.height,
         },
       },
       {
         direction: ResizeDirection.West,
         transformOrigin: {
-          x: sb.x + strokeOrigin.bounds.width,
-          y: sb.y + strokeOrigin.bounds.height / 2,
+          x: sb.x + sb.width,
+          y: sb.y + sb.height / 2,
         },
         scale: {
-          x: 1 + (sb.x - resizeToPoint.x) / strokeOrigin.bounds.width,
+          x: 1 + (sb.x - resizeToPoint.x) / sb.width,
           y: 1,
         },
       },
@@ -292,22 +291,22 @@ describe("IIResizeManager.ts", () => {
         direction: ResizeDirection.NorthEast,
         transformOrigin: {
           x: sb.x,
-          y: sb.y + strokeOrigin.bounds.height,
+          y: sb.y + sb.height,
         },
         scale: {
-          x: 1 + (resizeToPoint.x - (sb.x + strokeOrigin.bounds.width)) / strokeOrigin.bounds.width,
-          y: 1 + (sb.y - resizeToPoint.y) / strokeOrigin.bounds.height,
+          x: 1 + (resizeToPoint.x - (sb.x + sb.width)) / sb.width,
+          y: 1 + (sb.y - resizeToPoint.y) / sb.height,
         },
       },
       {
         direction: ResizeDirection.NorthWest,
         transformOrigin: {
-          x: sb.x + strokeOrigin.bounds.width,
-          y: sb.y + strokeOrigin.bounds.height,
+          x: sb.x + sb.width,
+          y: sb.y + sb.height,
         },
         scale: {
-          x: 1 + (sb.x - resizeToPoint.x) / strokeOrigin.bounds.width,
-          y: 1 + (sb.y - resizeToPoint.y) / strokeOrigin.bounds.height,
+          x: 1 + (sb.x - resizeToPoint.x) / sb.width,
+          y: 1 + (sb.y - resizeToPoint.y) / sb.height,
         },
       },
       {
@@ -317,19 +316,19 @@ describe("IIResizeManager.ts", () => {
           y: sb.y,
         },
         scale: {
-          x: 1 + (resizeToPoint.x - (sb.x + strokeOrigin.bounds.width)) / strokeOrigin.bounds.width,
-          y: 1 + (resizeToPoint.y - (sb.y + strokeOrigin.bounds.height)) / strokeOrigin.bounds.height,
+          x: 1 + (resizeToPoint.x - (sb.x + sb.width)) / sb.width,
+          y: 1 + (resizeToPoint.y - (sb.y + sb.height)) / sb.height,
         },
       },
       {
         direction: ResizeDirection.SouthWest,
         transformOrigin: {
-          x: sb.x + strokeOrigin.bounds.width,
+          x: sb.x + sb.width,
           y: sb.y,
         },
         scale: {
-          x: 1 + (sb.x - resizeToPoint.x) / strokeOrigin.bounds.width,
-          y: 1 + (resizeToPoint.y - (sb.y + strokeOrigin.bounds.height)) / strokeOrigin.bounds.height,
+          x: 1 + (sb.x - resizeToPoint.x) / sb.width,
+          y: 1 + (resizeToPoint.y - (sb.y + sb.height)) / sb.height,
         },
       },
     ]
@@ -349,7 +348,7 @@ describe("IIResizeManager.ts", () => {
       test(`should start with direction: "${data.direction}" `, () => {
         manager.start(resizeElement, data.transformOrigin)
         expect(manager.interactElementsGroup).toEqual(group)
-        expect(manager.boundingBox).toEqual(OBBOps.toBox(strokeOrigin.bounds))
+        expect(manager.boundingBox).toEqual(OBBOps.toBox(SymbolGeometry.boundsOf(strokeOrigin)))
         expect(manager.direction).toEqual(data.direction)
         expect(manager.transformOrigin).toEqual(data.transformOrigin)
         // `start` no longer writes anything to the DOM. It used to set `transform-origin` on the
@@ -465,9 +464,9 @@ describe("IIResizeManager.ts", () => {
       canvas.model.addSymbol(stroke)
       canvas.model.selectSymbol(stroke.id)
 
-      const sb = OBBOps.toBox(stroke.bounds)
-      manager.start(setupTarget(), { x: sb.x, y: sb.y + stroke.bounds.height / 2 })
-      manager.continue({ x: sb.x + stroke.bounds.width * 2, y: sb.y + stroke.bounds.height / 2 })
+      const sb = OBBOps.toBox(SymbolGeometry.boundsOf(stroke))
+      manager.start(setupTarget(), { x: sb.x, y: sb.y + sb.height / 2 })
+      manager.continue({ x: sb.x + sb.width * 2, y: sb.y + sb.height / 2 })
 
       // The ghost must follow with the *same* transform the selection got, not merely with some
       // scale: it previews the block the selection belongs to, so any divergence shows on screen as
@@ -489,9 +488,9 @@ describe("IIResizeManager.ts", () => {
       canvas.model.addSymbol(stroke)
       canvas.model.selectSymbol(stroke.id)
 
-      const sb = OBBOps.toBox(stroke.bounds)
-      manager.start(setupTarget(), { x: sb.x, y: sb.y + stroke.bounds.height / 2 })
-      await manager.end({ x: sb.x + stroke.bounds.width * 2, y: sb.y + stroke.bounds.height / 2 })
+      const sb = OBBOps.toBox(SymbolGeometry.boundsOf(stroke))
+      manager.start(setupTarget(), { x: sb.x, y: sb.y + sb.height / 2 })
+      await manager.end({ x: sb.x + sb.width * 2, y: sb.y + sb.height / 2 })
 
       expect(canvas.math.applyTransformToGhostStrokes).toHaveBeenCalledWith("block-1", expect.anything())
     })
@@ -520,19 +519,18 @@ describe("IIResizeManager.ts", () => {
       ]
       edgeStrokeOrigin.jiixBlockType = "Edge"
       edgeStrokeOrigin.endAnchor = { symbolId: shape.id, normalizedX: 1, normalizedY: 0.5 }
-      StrokeOps.updateBounds(edgeStrokeOrigin)
       canvas.model.addSymbol(edgeStrokeOrigin)
       const originalPointers = edgeStrokeOrigin.pointers.map((p) => ({ ...p }))
 
-      const sb = OBBOps.toBox(shape.bounds)
+      const sb = OBBOps.toBox(SymbolGeometry.boundsOf(shape))
       const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
       group.setAttribute("role", SvgElementRole.InteractElementsGroup)
       const resizeElement = document.createElementNS("http://www.w3.org/2000/svg", "line")
       resizeElement.setAttribute("resize-direction", ResizeDirection.East)
       group.appendChild(resizeElement)
 
-      const transformOrigin: TPoint = { x: sb.x, y: sb.y + shape.bounds.height / 2 }
-      const resizeToPoint: TPoint = { x: sb.x + shape.bounds.width * 2, y: sb.y + shape.bounds.height / 2 }
+      const transformOrigin: TPoint = { x: sb.x, y: sb.y + sb.height / 2 }
+      const resizeToPoint: TPoint = { x: sb.x + sb.width * 2, y: sb.y + sb.height / 2 }
 
       manager.start(resizeElement, transformOrigin)
       const { scaleX, scaleY } = manager.continue(resizeToPoint)
@@ -578,18 +576,17 @@ describe("IIResizeManager.ts", () => {
       ]
       edgeStroke.jiixBlockType = "Edge"
       edgeStroke.endAnchor = { symbolId: shape.id, normalizedX: 1, normalizedY: 0.5 }
-      StrokeOps.updateBounds(edgeStroke)
       canvas.model.addSymbol(edgeStroke)
 
-      const sb = OBBOps.toBox(shape.bounds)
+      const sb = OBBOps.toBox(SymbolGeometry.boundsOf(shape))
       const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
       group.setAttribute("role", SvgElementRole.InteractElementsGroup)
       const resizeElement = document.createElementNS("http://www.w3.org/2000/svg", "line")
       resizeElement.setAttribute("resize-direction", ResizeDirection.East)
       group.appendChild(resizeElement)
 
-      const transformOrigin: TPoint = { x: sb.x, y: sb.y + shape.bounds.height / 2 }
-      const resizeToPoint: TPoint = { x: sb.x + shape.bounds.width * 2, y: sb.y + shape.bounds.height / 2 }
+      const transformOrigin: TPoint = { x: sb.x, y: sb.y + sb.height / 2 }
+      const resizeToPoint: TPoint = { x: sb.x + sb.width * 2, y: sb.y + sb.height / 2 }
 
       manager.start(resizeElement, transformOrigin)
       await manager.end(resizeToPoint)
@@ -622,19 +619,18 @@ describe("IIResizeManager.ts", () => {
       ]
       edgeStroke.jiixBlockType = "Edge"
       edgeStroke.endAnchor = { symbolId: shape.id, normalizedX: 1, normalizedY: 0.5 }
-      StrokeOps.updateBounds(edgeStroke)
       canvas.model.addSymbol(edgeStroke)
       const originalPointers = edgeStroke.pointers.map((p) => ({ ...p }))
 
-      const sb = OBBOps.toBox(shape.bounds)
+      const sb = OBBOps.toBox(SymbolGeometry.boundsOf(shape))
       const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
       group.setAttribute("role", SvgElementRole.InteractElementsGroup)
       const resizeElement = document.createElementNS("http://www.w3.org/2000/svg", "line")
       resizeElement.setAttribute("resize-direction", ResizeDirection.East)
       group.appendChild(resizeElement)
 
-      const transformOrigin: TPoint = { x: sb.x, y: sb.y + shape.bounds.height / 2 }
-      const resizeToPoint: TPoint = { x: sb.x + shape.bounds.width * 2, y: sb.y + shape.bounds.height / 2 }
+      const transformOrigin: TPoint = { x: sb.x, y: sb.y + sb.height / 2 }
+      const resizeToPoint: TPoint = { x: sb.x + sb.width * 2, y: sb.y + sb.height / 2 }
 
       manager.start(resizeElement, transformOrigin)
       await manager.end(resizeToPoint)
@@ -660,30 +656,7 @@ describe("IIResizeManager.ts", () => {
       expect(changes.updated?.newSymbols.find((s) => s.id === newEdgeStroke.id)).toStrictEqual(newEdgeStroke)
     })
   })
-
-  /**
-   * IIC-2004 moved the derive out of each `case` and into one call after the switch, asking the
-   * symbol's own util instead of a family dispatcher that re-resolved the kind. Deleting that one
-   * call left every existing test in this file green, so these are what hold it.
-   */
-  describe("derived fields", () => {
-    const canvas = createCanvasMock()
-    const manager = new IIResizeManager(asCanvas(canvas))
-
-    test("should leave a resized circle derived-consistent", () => {
-      const circle = ShapeCircleOps.create({ x: 5, y: 5 }, 4)
-      manager.applyToSymbol(circle, MatrixTransform.identity().scale(2, 3, { x: 1, y: 2 }))
-      expectDerivedFieldsSettled(circle)
-    })
-
-    test("should leave a resized line derived-consistent", () => {
-      const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 10, y: 10 })
-      manager.applyToSymbol(line, MatrixTransform.identity().scale(2, 3, { x: 1, y: 2 }))
-      expectDerivedFieldsSettled(line)
-    })
   })
-
-})
 
 /**
  * Two resize cells that nothing covered: gutting either left this whole file green. IIC-2013 moved
@@ -759,7 +732,7 @@ describe("IIResizeManager aspect ratio locking", () => {
     const handle = document.createElementNS("http://www.w3.org/2000/svg", "line")
     handle.setAttribute("resize-direction", direction)
     group.appendChild(handle)
-    const box = BoxOps.createFromPoints(symbols.flatMap((s) => s.vertices))
+    const box = BoxOps.createFromPoints(symbols.flatMap((s) => SymbolGeometry.verticesOf(s)))
     manager.start(handle, { x: box.x, y: box.y })
     return { manager, box }
   }

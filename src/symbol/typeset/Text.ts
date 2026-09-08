@@ -1,5 +1,5 @@
 import type { TBox } from "@/core/geometry"
-import type { TPoint, TSegment } from "@/core/geometry"
+import type { TPoint } from "@/core/geometry"
 import { MatrixTransform, mergeSymbolTransform, OBBOps, type TOBB } from "@/core/geometry"
 import { isValidPoint } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
@@ -14,7 +14,6 @@ import type { TTypesetChild } from "@/symbol/typeset/Typeset"
 import {
   computeChildrenOverlaps,
   computeClosedEdges,
-  computeTypesetSnapPoints,
   computeTypesetVertices,
   typesetOverlapsBox,
 } from "@/symbol/typeset/Typeset"
@@ -33,9 +32,6 @@ export type TText = TBaseSymbol & {
   chars: TSymbolChar[]
   decorators: TDecorator[]
   bounds: TOBB
-  vertices: TPoint[]
-  snapPoints: TPoint[]
-  edges: TSegment[]
 }
 
 /**
@@ -55,9 +51,6 @@ export const TextOps = {
   create(chars: TSymbolChar[], point: TPoint, boundsBox: TBox, style?: TPartialDeep<TStyle>): TText {
     const mergedStyle = mergeSymbolStyle(style)
     const now = Date.now()
-    const vertices = computeTypesetVertices(boundsBox)
-    const snapPoints = computeTypesetSnapPoints(boundsBox, point)
-    const edges = computeClosedEdges(vertices)
     return {
       type: SymbolType.Text,
       id: `${SymbolType.Text}-${createUUID()}`,
@@ -68,9 +61,6 @@ export const TextOps = {
       chars,
       decorators: [],
       bounds: OBBOps.fromBox(boundsBox),
-      vertices,
-      snapPoints,
-      edges,
       transform: MatrixTransform.identity(),
     }
   },
@@ -102,21 +92,12 @@ export const TextOps = {
         }
       })
     }
-    TextOps.updateDerivedFields(text)
     return text
   },
 
-  updateDerivedFields(text: TText): void {
-    // Unrotated, not `toBox`: turning a text symbol is composing its matrix now, so its own bounds
-    // stay axis-aligned and `SymbolGeometry` applies the angle on top.
-    const boundsBox = OBBOps.toUnrotatedBox(text.bounds)
-    text.vertices = computeTypesetVertices(boundsBox)
-    text.snapPoints = computeTypesetSnapPoints(boundsBox, text.point)
-    text.edges = computeClosedEdges(text.vertices)
-  },
-
   overlaps(text: TText, box: TBox): boolean {
-    return typesetOverlapsBox(text.vertices, text.edges, box)
+    const vertices = computeTypesetVertices(OBBOps.toUnrotatedBox(text.bounds))
+    return typesetOverlapsBox(vertices, computeClosedEdges(vertices), box)
   },
 
   getChildrenOverlaps(text: TText, points: TPoint[]): TSymbolChar[] {

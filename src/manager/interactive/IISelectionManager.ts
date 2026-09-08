@@ -11,8 +11,10 @@ import { LoggerCategory } from "@/logger"
 import { SVGBuilder } from "@/renderer"
 import type { TDecorator, TEdge, TEdgeArc, TStroke, TSymbol } from "@/symbol"
 import { EdgeKind, isDecorator, isRecognizedMath, isStroke, SymbolType } from "@/symbol"
-import { EdgeArcOps, reprojectArcMidpoint, stretchArcEndpoint } from "@/symbol/edge/Arc"
+import { reprojectArcMidpoint, stretchArcEndpoint } from "@/symbol/edge/Arc"
 import { EdgeOps } from "@/symbol/edge/Edge"
+import { EdgeLineOps } from "@/symbol/edge/Line"
+import { EdgePolyLineOps } from "@/symbol/edge/PolyLine"
 import { EdgeUtil } from "@/symbol-utils/edge/EdgeUtil"
 import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
@@ -517,9 +519,17 @@ export class IISelectionManager extends IIAbstractManager {
         // the pointer is. Nothing sensible to store; leave the edge as it stands.
         return
       }
-      draft.vertices[pointIndex].x = raw.x
-      draft.vertices[pointIndex].y = raw.y
-      symbolRegistry.getUtilFor(draft).updateDerivedFields(draft)
+      // Written through the kind's own `moveVertex` rather than into a vertices array: a line's
+      // vertices are its `start`/`end` and a polyline's are its `points`, and mutating a computed
+      // array would take the write and discard it. An arc never reaches here — it has its own
+      // handles, bound by `bindArcEl` below.
+      if (EdgeOps.isLineEdge(draft)) {
+        EdgeLineOps.moveVertex(draft, pointIndex, raw)
+      } else if (EdgeOps.isPolyEdge(draft)) {
+        EdgePolyLineOps.moveVertex(draft, pointIndex, raw)
+      } else {
+        return
+      }
     }
     const bindEl = (el: SVGCircleElement, pointIndex: number) => {
       this.#bindPointerDrag(
@@ -598,7 +608,6 @@ export class IISelectionManager extends IIAbstractManager {
           const point = this.getPoint(ev)
           const { x, y } = this.canvas.snaps.snapResize(point)
           updateArc(draft, x, y)
-          EdgeArcOps.updateDerivedFields(draft)
           this.model.commitSymbol(draft)
           this.renderer.drawSymbol(draft)
           if (isStart || isEnd) {
@@ -620,10 +629,9 @@ export class IISelectionManager extends IIAbstractManager {
             const point = this.getPoint(ev)
             const { x, y } = this.canvas.snaps.snapResize(point)
             updateArc(draft, x, y)
-            EdgeArcOps.updateDerivedFields(draft)
             this.canvas.connector.clearAnchorHint()
             if (isStart || isEnd) {
-              // Recomputed fresh, not the vertexIndex captured before this drag: updateDerivedFields
+              // Recomputed fresh, not the vertexIndex captured before this drag
               // just re-tessellated the arc, and the vertex COUNT can change with the new radius/
               // sweep — a stale index could silently miss applyEndpointAnchor's own isEnd check.
               const currentIndex = isStart ? 0 : SymbolGeometry.verticesOf(draft).length - 1

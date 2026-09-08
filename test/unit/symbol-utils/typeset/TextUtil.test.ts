@@ -9,8 +9,7 @@ import {
   MatrixTransform,
   registerBuiltinSymbolUtils,
   type TSymbolChar,
-  type TBox,
-} from "@/iink"
+  type TBox, computeTypesetSnapPoints, computeClosedEdges, computeTypesetVertices } from "@/iink"
 
 const makeChar = (label: string, bounds: TBox): TSymbolChar => ({
   id: `char-${label}`,
@@ -66,41 +65,18 @@ describe("TextUtil", () => {
     })
   })
 
-  describe("updateDerivedFields", () => {
-    test("should not throw on valid text", () => {
-      const text = buildIIText()
-      expect(() => util.updateDerivedFields(text)).not.toThrow()
-    })
-
-    test("should update snapPoints after call", () => {
-      const text = buildIIText({ boundingBox: { x: 0, y: 10, width: 20, height: 30 } })
-      util.updateDerivedFields(text)
-      expect(Array.isArray(text.snapPoints)).toBe(true)
-    })
-  })
-
   describe("computeGeometry", () => {
     test("matches the legacy TextOps geometry already computed by create, not merely itself", () => {
-      // `buildIIText` builds through `TextOps.create`, which computes vertices/snapPoints/edges
-      // inline via the same (untouched) `computeTypesetVertices`/`computeTypesetSnapPoints`/
-      // `computeClosedEdges` — an independent oracle `computeGeometry` never touches. Calling
-      // `util.updateDerivedFields` here first would make the comparison circular: it IS
-      // `Object.assign(s, computeGeometry(s))`.
       const text = buildIIText({ boundingBox: { x: 0, y: 10, width: 20, height: 30 } })
 
       const geometry = util.computeGeometry(text)
 
       expect(geometry.bounds).toEqual(text.bounds)
-      expect(geometry.vertices).toEqual(text.vertices)
-      expect(geometry.snapPoints).toEqual(text.snapPoints)
-      expect(geometry.edges).toEqual(text.edges)
+      expect(geometry.vertices).toEqual(computeTypesetVertices(OBBOps.toUnrotatedBox(text.bounds)))
+      // Oracle is the shared typeset helper, not the stored field it replaced.
+      expect(geometry.snapPoints).toEqual(computeTypesetSnapPoints(OBBOps.toUnrotatedBox(text.bounds), text.point))
+      expect(geometry.edges).toEqual(computeClosedEdges(geometry.vertices))
       expect(geometry.length).toBe(0)
-    })
-
-    test("updateDerivedFields should not write an undeclared length onto the text", () => {
-      const text = buildIIText()
-      util.updateDerivedFields(text)
-      expect(text).not.toHaveProperty("length")
     })
   })
 
@@ -130,11 +106,10 @@ describe("TextUtil", () => {
   })
 
   describe("getSnapPoints", () => {
-    test("should return the text snapPoints reference", () => {
+    test("should return the text's snap points, computed from its measured box", () => {
       const text = buildIIText()
-      util.updateDerivedFields(text)
       const result = util.getSnapPoints(text)
-      expect(result).toStrictEqual(text.snapPoints)
+      expect(result).toStrictEqual(computeTypesetSnapPoints(OBBOps.toUnrotatedBox(text.bounds), text.point))
     })
   })
 
@@ -147,8 +122,8 @@ describe("TextUtil", () => {
       })
       const center = { x: 5, y: 5 }
 
-      util.rotate(text, { matrix: MatrixTransform.identity().rotate(Math.PI / 4, center), center })
-      util.rotate(text, { matrix: MatrixTransform.identity().rotate(Math.PI / 4, center), center })
+      util.rotate(text, { matrix: MatrixTransform.identity().rotate(Math.PI / 4, center) })
+      util.rotate(text, { matrix: MatrixTransform.identity().rotate(Math.PI / 4, center) })
 
       // `bounds.angle` is radians (`TOBB`'s own convention, per OBBOps — Task 9 fixed a bug that
       // mixed degrees into it), so two quarter-quarter (45°) turns compose to π/2, not 90.
@@ -165,9 +140,9 @@ describe("TextUtil", () => {
         bounds: OBBOps.fromBox({ x: 0, y: 0, width: 10, height: 10 }),
       })
       const center = { x: 5, y: 5 }
-      util.rotate(text, { matrix: MatrixTransform.identity().rotate(Math.PI / 2, center), center })
+      util.rotate(text, { matrix: MatrixTransform.identity().rotate(Math.PI / 2, center) })
 
-      util.resize(text, { matrix: MatrixTransform.identity().scale(2, 2, { x: 0, y: 0 }), origin: { x: 0, y: 0 } })
+      util.resize(text, { matrix: MatrixTransform.identity().scale(2, 2, { x: 0, y: 0 }) })
 
       // Radians again, for the same reason as above: a 90° turn is π/2.
       expect(SymbolGeometry.boundsOf(text).angle).toBeCloseTo(Math.PI / 2)

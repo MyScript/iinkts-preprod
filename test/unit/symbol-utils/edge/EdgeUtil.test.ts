@@ -2,14 +2,46 @@ import { beforeEach, describe, expect, test } from "@jest/globals"
 
 import { buildIILine } from "../../helpers"
 
-import type { TEdge, TPartialDeep } from "@/iink"
-import { EdgeDecoration, EdgeKind, EdgeUtil, MatrixTransform, SymbolType } from "@/iink"
+import type { TEdge, TOBB, TPartialDeep } from "@/iink"
+import { EdgeArcOps, EdgeDecoration, EdgeKind, EdgeUtil, MatrixTransform, OBBOps, SymbolType, TPoint, TSegment, EdgeLineOps, TEdgeLine, EdgePolyLineOps, TEdgePolyLine, TEdgeArc } from "@/iink"
 
 /**
  * `EdgeUtil` resolved a kind with a `switch` in each of four methods until IIC-2002 replaced them
  * with one table. These tests assert what the table buys: a kind is wired everywhere or nowhere,
  * and every member of `EdgeKind` is wired at all.
  */
+/**
+ * Each kind's own edge computation, the oracle now that the stored `edges` field is gone. A
+ * dispatch oracle like {@link EDGE_BOUNDS_ORACLE}: it reaches the same `*Ops` calls `computeGeometry`
+ * makes, so it pins the routing, not the arithmetic.
+ */
+const EDGES_ORACLE: Record<string, (edge: TEdge, vertices: TPoint[]) => TSegment[]> = {
+  [EdgeKind.Line]: (edge) => EdgeLineOps.computeEdges(edge as TEdgeLine),
+  [EdgeKind.PolyEdge]: (edge) => EdgePolyLineOps.computeEdges((edge as TEdgePolyLine).points),
+  [EdgeKind.Arc]: (_edge, vertices) => EdgeArcOps.computeEdges(vertices),
+}
+
+/**
+ * Each kind's own bounds computation. This is a *dispatch* oracle: it proves `EdgeUtil` routes an
+ * arc to `EdgeArcOps` and not to `EdgeLineOps`, and nothing more — it cannot fail if a kind's own
+ * `computeBounds` is wrong, because it is that same call. The value coverage lives in each kind's
+ * own test file, against hand-written boxes.
+ */
+const EDGE_BOUNDS_ORACLE: Record<string, (edge: TEdge) => TOBB> = {
+  [EdgeKind.Line]: (edge) =>
+    EdgeLineOps.computeBounds(edge as TEdgeLine, EdgeLineOps.computeVertices(edge as TEdgeLine)),
+  [EdgeKind.PolyEdge]: (edge) => EdgePolyLineOps.computeBounds(edge as TEdgePolyLine),
+  [EdgeKind.Arc]: (edge) =>
+    EdgeArcOps.computeBounds(edge as TEdgeArc, EdgeArcOps.computeVertices(edge as TEdgeArc)),
+}
+
+/** Each kind's own vertex computation, the oracle now that the stored `vertices` field is gone. */
+const EDGE_VERTICES_ORACLE: Record<string, (edge: TEdge) => TPoint[]> = {
+  [EdgeKind.Line]: (edge) => EdgeLineOps.computeVertices(edge as TEdgeLine),
+  [EdgeKind.PolyEdge]: (edge) => EdgePolyLineOps.computeVertices(edge as TEdgePolyLine),
+  [EdgeKind.Arc]: (edge) => EdgeArcOps.computeVertices(edge as TEdgeArc),
+}
+
 const PARTIALS: Record<string, TPartialDeep<TEdge>> = {
   [EdgeKind.Line]: {
     type: SymbolType.Edge,
@@ -63,32 +95,23 @@ describe("EdgeUtil", () => {
       expect(edge().type).toBe(SymbolType.Edge)
     })
 
-    test("should update derived fields without dispatching elsewhere", () => {
-      const created = edge()
-      expect(() => util.updateDerivedFields(created)).not.toThrow()
-      expect(created.bounds).toBeDefined()
-    })
-
-    test("computeGeometry should match the legacy *Ops writer already run by create, not merely itself", () => {
-      // `edge()` already ran the legacy per-kind `updateDerivedFields` as part of construction
-      // (`EdgeArcOps`/`EdgeLineOps`/`EdgePolyLineOps.create` all call it before returning) — an
-      // independent oracle `computeGeometry` never touches. Calling `util.updateDerivedFields` here
-      // first would make the comparison circular: it IS `Object.assign(s, computeGeometry(s))`.
+    test("computeGeometry should dispatch each kind to that kind's own computation", () => {
       const created = edge()
 
       const geometry = util.computeGeometry(created)
 
-      expect(geometry.bounds).toEqual(created.bounds)
-      expect(geometry.vertices).toEqual(created.vertices)
-      expect(geometry.snapPoints).toEqual(created.snapPoints)
-      expect(geometry.edges).toEqual(created.edges)
+      expect(geometry.bounds).toEqual(EDGE_BOUNDS_ORACLE[kind](created))
+      // Oracle is the kind's own vertex computation, not the stored field it replaced.
+      expect(geometry.vertices).toEqual(EDGE_VERTICES_ORACLE[kind](created))
+      // Per kind, because the three do not agree: a line and a polyline snap by every vertex, an arc
+      // only by its two endpoints. Asserting `geometry.vertices` for all three passed for the first
+      // two and quietly accepted a 28-point answer for the arc.
+      expect(geometry.snapPoints).toEqual(
+        kind === EdgeKind.Arc ? EdgeArcOps.computeSnapPoints(geometry.vertices) : geometry.vertices
+      )
+      // Oracle is the kind's own `computeEdges`, not the stored field it replaced.
+      expect(geometry.edges).toEqual(EDGES_ORACLE[kind](created, geometry.vertices))
       expect(geometry.length).toBe(0)
-    })
-
-    test("updateDerivedFields should not write an undeclared length onto the edge", () => {
-      const created = edge()
-      util.updateDerivedFields(created)
-      expect(created).not.toHaveProperty("length")
     })
 
     test("should answer overlaps", () => {
@@ -148,7 +171,6 @@ describe("EdgeUtil", () => {
     test("should stay tolerant where it always was", () => {
       // Both run over whole models and never threw on an unknown kind; they still must not.
       const unknown = { kind: "spline" } as unknown as TEdge
-      expect(() => util.updateDerivedFields(unknown)).not.toThrow()
       expect(util.overlaps(unknown, { x: 0, y: 0, width: 1, height: 1 })).toBe(false)
     })
 
@@ -161,27 +183,15 @@ describe("EdgeUtil", () => {
         edges: "edges",
       } as unknown as TEdge
       expect(util.computeGeometry(unknown)).toEqual({
-        bounds: unknown.bounds,
-        vertices: unknown.vertices,
-        snapPoints: unknown.snapPoints,
-        edges: unknown.edges,
+        // Not the object's own `bounds` any more: no edge type declares one, so a stray property
+        // arriving as data is not something the fallback can read or echo back.
+        bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0),
+        vertices: [],
+        // An unregistered kind has no snap points to offer, so the fallback returns none.
+        snapPoints: [],
+        edges: [],
         length: 0,
       })
-    })
-
-    test("updateDerivedFields should perform no write at all for a kind the table does not own, even on a frozen edge", () => {
-      // `Object.assign` throws on a frozen object even when writing back the identical value —
-      // exactly the state a `SymbolStore`-committed symbol is in. The dispatch this replaced
-      // (`EDGE_KINDS[edge.kind]?.updateDerivedFields(edge)`) never wrote for an unowned kind, so this
-      // must not either.
-      const frozen = Object.freeze({
-        kind: "spline",
-        bounds: "bounds",
-        vertices: "vertices",
-        snapPoints: "snapPoints",
-        edges: "edges",
-      }) as unknown as TEdge
-      expect(() => util.updateDerivedFields(frozen)).not.toThrow()
     })
   })
 })
@@ -240,37 +250,6 @@ describe("EdgeUtil, the contract members", () => {
       const e1 = util.create({ kind: EdgeKind.Line, start: { x: 0, y: 0 }, end: { x: 5, y: 5 } })
       const e2 = util.create({ kind: EdgeKind.Line, start: { x: 0, y: 0 }, end: { x: 5, y: 5 } })
       expect(e1.id).not.toBe(e2.id)
-    })
-  })
-
-  describe("updateDerivedFields", () => {
-    test("should not throw for a line", () => {
-      const line = buildIILine()
-      expect(() => util.updateDerivedFields(line)).not.toThrow()
-    })
-
-    test("should not throw for an arc", () => {
-      const arc = util.create({
-        kind: EdgeKind.Arc,
-        center: { x: 0, y: 0 },
-        startAngle: 0,
-        sweepAngle: Math.PI,
-        radiusX: 5,
-        radiusY: 5,
-      })
-      expect(() => util.updateDerivedFields(arc)).not.toThrow()
-    })
-
-    test("should not throw for a polyline", () => {
-      const poly = util.create({
-        kind: EdgeKind.PolyEdge,
-        points: [
-          { x: 0, y: 0 },
-          { x: 5, y: 5 },
-          { x: 10, y: 0 },
-        ],
-      })
-      expect(() => util.updateDerivedFields(poly)).not.toThrow()
     })
   })
 
@@ -337,11 +316,10 @@ describe("EdgeUtil, the contract members", () => {
   })
 
   describe("getSnapPoints", () => {
-    test("should return the edge snapPoints reference", () => {
+    test("should return the edge's snap points, which for a line are its vertices", () => {
       const line = buildIILine()
-      util.updateDerivedFields(line)
       const result = util.getSnapPoints(line)
-      expect(result).toStrictEqual(line.snapPoints)
+      expect(result).toStrictEqual(util.computeGeometry(line).vertices)
     })
 
     test("a rotated line's snap points land on the rotated geometry, not the raw one", () => {

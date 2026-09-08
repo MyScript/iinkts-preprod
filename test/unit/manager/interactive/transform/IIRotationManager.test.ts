@@ -1,5 +1,5 @@
 import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
-import { buildIIMath, buildIIStroke, buildIIText, expectDerivedFieldsSettled } from "../../../helpers"
+import { buildIIMath, buildIIStroke, buildIIText } from "../../../helpers"
 import {
   EdgeLineOps,
   IIConnectorManager,
@@ -129,13 +129,14 @@ describe("IIRotationManager.ts", () => {
     canvas.model.addSymbol(strokeOrigin)
     canvas.model.selectSymbol(strokeOrigin.id)
 
+    const originBox = OBBOps.toBox(SymbolGeometry.boundsOf(strokeOrigin))
     const rotateCenter: TPoint = {
-      x: OBBOps.toBox(strokeOrigin.bounds).x + strokeOrigin.bounds.width / 2,
-      y: OBBOps.toBox(strokeOrigin.bounds).y + strokeOrigin.bounds.height / 2,
+      x: originBox.x + originBox.width / 2,
+      y: originBox.y + originBox.height / 2,
     }
     const rotateOrigin: TPoint = {
-      x: OBBOps.toBox(strokeOrigin.bounds).x + strokeOrigin.bounds.width / 2,
-      y: OBBOps.toBox(strokeOrigin.bounds).y + strokeOrigin.bounds.height,
+      x: originBox.x + originBox.width / 2,
+      y: originBox.y + originBox.height,
     }
 
     const testDatas = [
@@ -289,14 +290,9 @@ describe("IIRotationManager.ts", () => {
       canvas.model.addSymbol(stroke)
       canvas.model.selectSymbol(stroke.id)
 
-      const origin: TPoint = {
-        x: OBBOps.toBox(stroke.bounds).x + stroke.bounds.width / 2,
-        y: OBBOps.toBox(stroke.bounds).y + stroke.bounds.height,
-      }
-      const center: TPoint = {
-        x: OBBOps.toBox(stroke.bounds).x + stroke.bounds.width / 2,
-        y: OBBOps.toBox(stroke.bounds).y + stroke.bounds.height / 2,
-      }
+      const sb = OBBOps.toBox(SymbolGeometry.boundsOf(stroke))
+      const origin: TPoint = { x: sb.x + sb.width / 2, y: sb.y + sb.height }
+      const center: TPoint = { x: sb.x + sb.width / 2, y: sb.y + sb.height / 2 }
 
       manager.start(setupTarget(origin), origin)
       manager.continue(computeRotatedPoint(origin, center, Math.PI / 2))
@@ -322,14 +318,9 @@ describe("IIRotationManager.ts", () => {
       canvas.model.addSymbol(stroke)
       canvas.model.selectSymbol(stroke.id)
 
-      const origin: TPoint = {
-        x: OBBOps.toBox(stroke.bounds).x + stroke.bounds.width / 2,
-        y: OBBOps.toBox(stroke.bounds).y + stroke.bounds.height,
-      }
-      const center: TPoint = {
-        x: OBBOps.toBox(stroke.bounds).x + stroke.bounds.width / 2,
-        y: OBBOps.toBox(stroke.bounds).y + stroke.bounds.height / 2,
-      }
+      const sb = OBBOps.toBox(SymbolGeometry.boundsOf(stroke))
+      const origin: TPoint = { x: sb.x + sb.width / 2, y: sb.y + sb.height }
+      const center: TPoint = { x: sb.x + sb.width / 2, y: sb.y + sb.height / 2 }
 
       manager.start(setupTarget(origin), origin)
       await manager.end(computeRotatedPoint(origin, center, Math.PI / 2))
@@ -359,13 +350,12 @@ describe("IIRotationManager.ts", () => {
       ]
       edgeStroke.jiixBlockType = "Edge"
       edgeStroke.endAnchor = { symbolId: shape.id, normalizedX: 1, normalizedY: 0.5 }
-      StrokeOps.updateBounds(edgeStroke)
       canvas.model.addSymbol(edgeStroke)
       const originalPointers = edgeStroke.pointers.map((p) => ({ ...p }))
 
-      const sb = OBBOps.toBox(shape.bounds)
-      const origin: TPoint = { x: sb.x + shape.bounds.width / 2, y: sb.y + shape.bounds.height }
-      const center: TPoint = { x: sb.x + shape.bounds.width / 2, y: sb.y + shape.bounds.height / 2 }
+      const sb = OBBOps.toBox(SymbolGeometry.boundsOf(shape))
+      const origin: TPoint = { x: sb.x + sb.width / 2, y: sb.y + sb.height }
+      const center: TPoint = { x: sb.x + sb.width / 2, y: sb.y + sb.height / 2 }
       const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
       group.setAttribute("role", SvgElementRole.InteractElementsGroup)
       const rotateElement = document.createElementNS("http://www.w3.org/2000/svg", "circle")
@@ -420,12 +410,11 @@ describe("IIRotationManager.ts", () => {
       ]
       edgeStroke.jiixBlockType = "Edge"
       edgeStroke.endAnchor = { symbolId: shape.id, normalizedX: 1, normalizedY: 0.5 }
-      StrokeOps.updateBounds(edgeStroke)
       canvas.model.addSymbol(edgeStroke)
 
-      const sb = OBBOps.toBox(shape.bounds)
-      const origin: TPoint = { x: sb.x + shape.bounds.width / 2, y: sb.y + shape.bounds.height }
-      const center: TPoint = { x: sb.x + shape.bounds.width / 2, y: sb.y + shape.bounds.height / 2 }
+      const sb = OBBOps.toBox(SymbolGeometry.boundsOf(shape))
+      const origin: TPoint = { x: sb.x + sb.width / 2, y: sb.y + sb.height }
+      const center: TPoint = { x: sb.x + sb.width / 2, y: sb.y + sb.height / 2 }
       const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
       group.setAttribute("role", SvgElementRole.InteractElementsGroup)
       const rotateElement = document.createElementNS("http://www.w3.org/2000/svg", "circle")
@@ -443,29 +432,6 @@ describe("IIRotationManager.ts", () => {
       expect(newEdgeStroke.pointers).toEqual(previewClone.pointers)
     })
   })
-
-  /**
-   * IIC-2004 moved the derive out of each `case` and into one call after the switch, asking the
-   * symbol's own util instead of a family dispatcher that re-resolved the kind. Deleting that one
-   * call left every existing test in this file green, so these are what hold it.
-   */
-  describe("derived fields", () => {
-    const canvas = createCanvasMock()
-    const manager = new IIRotationManager(asCanvas(canvas))
-
-    test("should leave a rotated circle derived-consistent", () => {
-      const circle = ShapeCircleOps.create({ x: 5, y: 5 }, 4)
-      manager.applyToSymbol(circle, MatrixTransform.identity().rotate(Math.PI / 2, { x: 1, y: 2 }))
-      expectDerivedFieldsSettled(circle)
-    })
-
-    test("should leave a rotated line derived-consistent", () => {
-      const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 10, y: 10 })
-      manager.applyToSymbol(line, MatrixTransform.identity().rotate(Math.PI / 2, { x: 1, y: 2 }))
-      expectDerivedFieldsSettled(line)
-    })
-  })
-
 })
 
 /**
@@ -532,12 +498,17 @@ describe("IIRotationManager, the cells that used to be rotation-specific", () =>
     // (pre-matrix) bounds/vertices a typeset symbol was measured at do not change just because it
     // turned, and only `SymbolGeometry` (which applies the matrix) reports the rotated extent.
     const symbol = build()
-    const before = { bounds: structuredClone(symbol.bounds), vertices: structuredClone(symbol.vertices) }
+    // `rawOf`, not `verticesOf`: the latter applies the matrix, so it *must* differ after a turn —
+    // that is the epic working. What this test pins is that the pre-matrix geometry is untouched.
+    const before = {
+      bounds: structuredClone(symbol.bounds),
+      vertices: structuredClone(SymbolGeometry.rawOf(symbol).vertices),
+    }
     const canvas = rotate(symbol)
 
     expect(canvas.typeset.setBounds).not.toHaveBeenCalled()
     expect(symbol.bounds).toEqual(before.bounds)
-    expect(symbol.vertices).toEqual(before.vertices)
+    expect(SymbolGeometry.rawOf(symbol).vertices).toEqual(before.vertices)
   })
 })
 

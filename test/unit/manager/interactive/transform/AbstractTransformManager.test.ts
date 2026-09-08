@@ -3,8 +3,7 @@ import { beforeAll, describe, expect, jest, test } from "@jest/globals"
 import { asCanvas, createCanvasMock } from "../../../__mocks__/createCanvasMock"
 import { buildIIDecorator, buildIIStroke } from "../../../helpers"
 
-import type { TBaseSymbol, TBox, TPartialDeep, TPoint, TResizeContext, TRotateContext, TSymbol } from "@/iink"
-import type { TTranslateContext } from "@/iink"
+import type { TBaseSymbol, TBox, TPartialDeep, TPoint, TTransformContext, TSymbol } from "@/iink"
 import {
   applyMatrixToPoint,
   DecoratorKind,
@@ -37,20 +36,19 @@ class StickyNoteUtil extends SymbolUtil<TStickyNote> {
   create(partial: TPartialDeep<TStickyNote>): TStickyNote {
     return { ...partial, type: "sticky-note" } as TStickyNote
   }
-  updateDerivedFields(): void {}
   computeGeometry(): TSymbolGeometry {
     return { bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0), vertices: [], snapPoints: [], edges: [], length: 0 }
   }
   overlaps(_symbol: TStickyNote, _box: TBox): boolean {
     return false
   }
-  translate(symbol: TStickyNote, { matrix }: TTranslateContext): void {
+  translate(symbol: TStickyNote, { matrix }: TTransformContext): void {
     symbol.point = applyMatrixToPoint(symbol.point, matrix)
   }
-  rotate(symbol: TStickyNote, { matrix }: TRotateContext): void {
+  rotate(symbol: TStickyNote, { matrix }: TTransformContext): void {
     symbol.degree += MatrixTransform.rotation(matrix)
   }
-  resize(symbol: TStickyNote, { matrix }: TResizeContext): void {
+  resize(symbol: TStickyNote, { matrix }: TTransformContext): void {
     symbol.scale *= matrix.xx
   }
   getSVGElement(): SVGGraphicsElement {

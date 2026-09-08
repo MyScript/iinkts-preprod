@@ -28,7 +28,6 @@ import type { TSymbolGeometry } from "../TSymbolGeometry"
 const SHAPE_KINDS: Partial<Record<ShapeKind, TKindDefinition<TShape>>> = {
   [ShapeKind.Circle]: defineKind<TShape, TShapeCircle>({
     create: (partial) => ShapeCircleOps.createFromPartial(partial),
-    updateDerivedFields: (shape) => ShapeCircleOps.updateDerivedFields(shape),
     computeGeometry: (shape) => {
       const vertices = ShapeCircleOps.computeVertices(shape)
       const bounds = ShapeCircleOps.computeBounds(shape)
@@ -46,10 +45,9 @@ const SHAPE_KINDS: Partial<Record<ShapeKind, TKindDefinition<TShape>>> = {
   }),
   [ShapeKind.Ellipse]: defineKind<TShape, TShapeEllipse>({
     create: (partial) => ShapeEllipseOps.createFromPartial(partial),
-    updateDerivedFields: (shape) => ShapeEllipseOps.updateDerivedFields(shape),
     computeGeometry: (shape) => {
       const vertices = ShapeEllipseOps.computeVertices(shape)
-      const bounds = OBBOps.createFromPoints(vertices)
+      const bounds = ShapeEllipseOps.computeBounds(vertices)
       return {
         bounds,
         vertices,
@@ -68,9 +66,8 @@ const SHAPE_KINDS: Partial<Record<ShapeKind, TKindDefinition<TShape>>> = {
   }),
   [ShapeKind.Polygon]: defineKind<TShape, TShapePolygon>({
     create: (partial) => ShapePolygonOps.createFromPartial(partial),
-    updateDerivedFields: (shape) => ShapePolygonOps.updateDerivedFields(shape),
     computeGeometry: (shape) => {
-      const bounds = OBBOps.createFromPoints(shape.points)
+      const bounds = ShapePolygonOps.computeBounds(shape.points)
       return {
         bounds,
         vertices: shape.points,
@@ -94,36 +91,19 @@ export class ShapeUtil extends SymbolUtil<TShape> {
     return resolveKind(SHAPE_KINDS, partial.kind, "shape", "create").create(partial)
   }
 
-  /**
-   * Tolerant like `updateDerivedFields`: a kind arriving as data the table does not own leaves the
-   * shape's current fields as its answer, rather than throwing over a whole model.
-   */
   computeGeometry(shape: TShape): TSymbolGeometry {
     return (
       SHAPE_KINDS[shape.kind]?.computeGeometry(shape) ?? {
-        bounds: shape.bounds,
-        vertices: shape.vertices,
-        snapPoints: shape.snapPoints,
-        edges: shape.edges,
+        // No stored `bounds` to fall back on any more: an unregistered kind's geometry cannot be
+        // computed, and there is no field left to echo, so it reports an empty box at the origin.
+        bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0),
+        vertices: [],
+        snapPoints: [],
+        // An unregistered kind offers no edges either; the fallback returns none.
+        edges: [],
         length: 0,
       }
     )
-  }
-
-  /**
-   * A kind the table does not own performs no write at all, exactly like the dispatch this
-   * replaced (`SHAPE_KINDS[shape.kind]?.updateDerivedFields(shape)`, a no-op for an unowned kind) —
-   * `computeGeometry`'s tolerant fallback must not be turned into a write here, or this throws on a
-   * frozen record for a kind it was never going to touch. `length` is also left out of the write:
-   * only `TStroke` declares it.
-   */
-  updateDerivedFields(shape: TShape): void {
-    const definition = SHAPE_KINDS[shape.kind]
-    if (!definition) {
-      return
-    }
-    const { bounds, vertices, snapPoints, edges } = definition.computeGeometry(shape)
-    Object.assign(shape, { bounds, vertices, snapPoints, edges })
   }
 
   overlaps(shape: TShape, box: TBox): boolean {

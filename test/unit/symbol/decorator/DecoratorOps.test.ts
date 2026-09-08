@@ -1,5 +1,5 @@
 import { describe, test, expect } from "@jest/globals"
-import { DecoratorOps, OBBOps, SymbolType, DecoratorKind, MatrixTransform } from "@/iink"
+import { DecoratorOps, OBBOps, SymbolType, DecoratorKind, MatrixTransform, DecoratorUtil } from "@/iink"
 
 describe("DecoratorOps", () => {
   describe("create", () => {
@@ -12,10 +12,11 @@ describe("DecoratorOps", () => {
       expect(d.type).toBe(SymbolType.Decorator)
       expect(d.kind).toBe(DecoratorKind.Underline)
       expect(d.targetIds).toEqual([])
-      expect(d.hasBounds).toBe(false)
-      expect(d.vertices).toEqual([])
-      expect(d.snapPoints).toEqual([])
-      expect(d.edges).toEqual([])
+      expect(d.targetBounds).toBeUndefined()
+      // Through the util, not `DecoratorOps.computeVertices` directly: a decorator with no
+      // `targetBounds` has no vertices, and that emptiness comes from `computeGeometry`'s guard.
+      // Calling the raw computation on a zero-size box would return two coincident points instead.
+      expect(new DecoratorUtil().computeGeometry(d).vertices).toEqual([])
     })
 
     test("should merge style with DefaultStyle", () => {
@@ -30,12 +31,12 @@ describe("DecoratorOps", () => {
       expect(d.targetIds).toEqual(ids)
     })
 
-    test("should call setBounds when bounds provided", () => {
+    test("should set targetBounds when provided", () => {
       const bounds = { x: 10, y: 20, width: 100, height: 30 }
       const d = DecoratorOps.create(DecoratorKind.Strikethrough, {}, [], bounds)
-      expect(d.hasBounds).toBe(true)
-      expect(OBBOps.toBox(d.bounds)).toEqual(bounds)
-      expect(d.vertices).toHaveLength(2)
+      expect(d.targetBounds).toBeDefined()
+      expect(OBBOps.toBox(d.targetBounds!)).toEqual(bounds)
+      expect(DecoratorOps.computeVertices(d.targetBounds!)).toHaveLength(2)
     })
 
     test("should generate a unique id prefixed with kind", () => {
@@ -59,65 +60,61 @@ describe("DecoratorOps", () => {
     })
   })
 
-  describe("setBounds", () => {
-    test("should set bounds and hasBounds", () => {
+  describe("setTargetBounds", () => {
+    test("should set targetBounds", () => {
       const d = DecoratorOps.create(DecoratorKind.Underline, {})
       const bounds = { x: 5, y: 10, width: 80, height: 20 }
-      DecoratorOps.setBounds(d, OBBOps.fromBox(bounds))
-      expect(OBBOps.toBox(d.bounds)).toEqual(bounds)
-      expect(d.hasBounds).toBe(true)
+      DecoratorOps.setTargetBounds(d, OBBOps.fromBox(bounds))
+      expect(OBBOps.toBox(d.targetBounds!)).toEqual(bounds)
     })
 
     test("should compute vertices at y midpoint", () => {
       const d = DecoratorOps.create(DecoratorKind.Underline, {})
       const bounds = { x: 0, y: 10, width: 100, height: 20 }
-      DecoratorOps.setBounds(d, OBBOps.fromBox(bounds))
+      DecoratorOps.setTargetBounds(d, OBBOps.fromBox(bounds))
       const yMid = 10 + 20 / 2 // = 20
-      expect(d.vertices).toEqual([
+      expect(DecoratorOps.computeVertices(d.targetBounds!)).toEqual([
         { x: 0, y: yMid },
         { x: 100, y: yMid },
       ])
     })
 
-    test("should set snapPoints equal to vertices", () => {
-      const d = DecoratorOps.create(DecoratorKind.Underline, {})
-      DecoratorOps.setBounds(d, OBBOps.fromBox({ x: 0, y: 0, width: 50, height: 10 }))
-      expect(d.snapPoints).toEqual(d.vertices)
-    })
-
     test("should set edges from first to second vertex", () => {
       const d = DecoratorOps.create(DecoratorKind.Underline, {})
-      DecoratorOps.setBounds(d, OBBOps.fromBox({ x: 0, y: 0, width: 50, height: 10 }))
-      expect(d.edges).toHaveLength(1)
-      expect(d.edges[0].p1).toEqual(d.vertices[0])
-      expect(d.edges[0].p2).toEqual(d.vertices[1])
+      DecoratorOps.setTargetBounds(d, OBBOps.fromBox({ x: 0, y: 0, width: 50, height: 10 }))
+      // Edges are no longer stored; a decorator's single edge joins its two vertices, which is
+      // what `DecoratorUtil.computeGeometry` builds and what this used to read off the field.
+      const edges = new DecoratorUtil().computeGeometry(d).edges
+      expect(edges).toHaveLength(1)
+      expect(edges[0].p1).toEqual(DecoratorOps.computeVertices(d.targetBounds!)[0])
+      expect(edges[0].p2).toEqual(DecoratorOps.computeVertices(d.targetBounds!)[1])
     })
 
-    test("should overwrite previous bounds when called again", () => {
+    test("should overwrite previous targetBounds when called again", () => {
       const d = DecoratorOps.create(DecoratorKind.Underline, {})
-      DecoratorOps.setBounds(d, OBBOps.fromBox({ x: 0, y: 0, width: 50, height: 10 }))
+      DecoratorOps.setTargetBounds(d, OBBOps.fromBox({ x: 0, y: 0, width: 50, height: 10 }))
       const newBounds = { x: 100, y: 200, width: 300, height: 40 }
-      DecoratorOps.setBounds(d, OBBOps.fromBox(newBounds))
-      expect(OBBOps.toBox(d.bounds)).toEqual(newBounds)
+      DecoratorOps.setTargetBounds(d, OBBOps.fromBox(newBounds))
+      expect(OBBOps.toBox(d.targetBounds!)).toEqual(newBounds)
     })
   })
 
   describe("overlaps", () => {
-    test("should return false when hasBounds is false", () => {
+    test("should return false when targetBounds is unset", () => {
       const d = DecoratorOps.create(DecoratorKind.Highlight, {})
-      expect(d.hasBounds).toBe(false)
+      expect(d.targetBounds).toBeUndefined()
       expect(DecoratorOps.overlaps(d, { x: 0, y: 0, width: 200, height: 200 })).toBe(false)
     })
 
-    test("should return true when bounds overlap the query box", () => {
+    test("should return true when targetBounds overlap the query box", () => {
       const d = DecoratorOps.create(DecoratorKind.Highlight, {})
-      DecoratorOps.setBounds(d, OBBOps.fromBox({ x: 10, y: 10, width: 50, height: 20 }))
+      DecoratorOps.setTargetBounds(d, OBBOps.fromBox({ x: 10, y: 10, width: 50, height: 20 }))
       expect(DecoratorOps.overlaps(d, { x: 0, y: 0, width: 30, height: 30 })).toBe(true)
     })
 
-    test("should return false when bounds do not overlap the query box", () => {
+    test("should return false when targetBounds do not overlap the query box", () => {
       const d = DecoratorOps.create(DecoratorKind.Highlight, {})
-      DecoratorOps.setBounds(d, OBBOps.fromBox({ x: 200, y: 200, width: 50, height: 20 }))
+      DecoratorOps.setTargetBounds(d, OBBOps.fromBox({ x: 200, y: 200, width: 50, height: 20 }))
       expect(DecoratorOps.overlaps(d, { x: 0, y: 0, width: 100, height: 100 })).toBe(false)
     })
   })

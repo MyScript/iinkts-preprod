@@ -28,14 +28,14 @@ describe("EdgeArcOps", () => {
       const arc = EdgeArcOps.create({ x: 0, y: 0 }, Math.PI / 4, (3 * Math.PI) / 4, 10, 50, 0, undefined, undefined, {
         width: 20,
       })
-      expect(OBBOps.toBox(arc.bounds).x).toEqual(-15)
-      expect(OBBOps.toBox(arc.bounds).y).toEqual(-5)
-      expect(+arc.bounds.width.toFixed(0)).toEqual(27)
-      expect(+arc.bounds.height.toFixed(0)).toEqual(60)
+      expect(OBBOps.toBox(EdgeArcOps.computeBounds(arc, EdgeArcOps.computeVertices(arc))).x).toEqual(-15)
+      expect(OBBOps.toBox(EdgeArcOps.computeBounds(arc, EdgeArcOps.computeVertices(arc))).y).toEqual(-5)
+      expect(+EdgeArcOps.computeBounds(arc, EdgeArcOps.computeVertices(arc)).width.toFixed(0)).toEqual(27)
+      expect(+EdgeArcOps.computeBounds(arc, EdgeArcOps.computeVertices(arc)).height.toFixed(0)).toEqual(60)
     })
     test("should compute vertices", () => {
       const arc = EdgeArcOps.create({ x: 0, y: 0 }, Math.PI / 4, Math.PI / 4, 5, 5, 0)
-      expect(arc.vertices).toHaveLength(9)
+      expect(EdgeArcOps.computeVertices(arc)).toHaveLength(9)
     })
     test("should generate unique ids", () => {
       const a1 = EdgeArcOps.create({ x: 0, y: 0 }, 0, Math.PI, 5, 5, 0)
@@ -109,28 +109,18 @@ describe("EdgeArcOps", () => {
     })
   })
 
-  describe("updateDerivedFields", () => {
-    test("should recompute after center change", () => {
-      const arc = EdgeArcOps.create({ x: 0, y: 0 }, 0, Math.PI, 10, 10, 0)
-      const prevBounds = { ...arc.bounds }
-      arc.center = { x: 50, y: 50 }
-      EdgeArcOps.updateDerivedFields(arc)
-      expect(OBBOps.toBox(arc.bounds).x).not.toEqual(OBBOps.toBox(prevBounds).x)
-    })
-  })
-
   describe("getResizePoints", () => {
     test("should return 3 resize points (start, mid, end)", () => {
       const arc = EdgeArcOps.create({ x: 0, y: 0 }, Math.PI / 4, Math.PI / 2, 10, 10, 0)
       const pts = EdgeArcOps.getResizePoints(arc)
       expect(pts).toHaveLength(3)
       expect(pts[0].vertexIndex).toEqual(0)
-      expect(pts[2].vertexIndex).toEqual(arc.vertices.length - 1)
+      expect(pts[2].vertexIndex).toEqual(EdgeArcOps.computeVertices(arc).length - 1)
     })
     test("mid point index is middle vertex", () => {
       const arc = EdgeArcOps.create({ x: 0, y: 0 }, Math.PI / 4, Math.PI / 2, 10, 10, 0)
       const pts = EdgeArcOps.getResizePoints(arc)
-      const mid = Math.floor(arc.vertices.length / 2)
+      const mid = Math.floor(EdgeArcOps.computeVertices(arc).length / 2)
       expect(pts[1].vertexIndex).toEqual(mid)
     })
   })
@@ -138,9 +128,11 @@ describe("EdgeArcOps", () => {
   describe("snapPoints", () => {
     test("should have 2 snap points (start and end)", () => {
       const arc = EdgeArcOps.create({ x: 0, y: 0 }, Math.PI / 4, Math.PI / 4, 5, 5, 0)
-      expect(arc.snapPoints).toHaveLength(2)
-      expect(arc.snapPoints[0]).toEqual({ x: 3.536, y: 3.536 })
-      expect(arc.snapPoints[1]).toEqual({ x: 0, y: 5 })
+      // Snap points are no longer stored on the arc; computed from its vertices on demand.
+      const snapPoints = EdgeArcOps.computeSnapPoints(EdgeArcOps.computeVertices(arc))
+      expect(snapPoints).toHaveLength(2)
+      expect(snapPoints[0]).toEqual({ x: 3.536, y: 3.536 })
+      expect(snapPoints[1]).toEqual({ x: 0, y: 5 })
     })
   })
 

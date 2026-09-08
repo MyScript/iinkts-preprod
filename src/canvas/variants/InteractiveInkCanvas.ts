@@ -935,19 +935,33 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
         erased.push(dec)
       } else if (remaining.length < dec.targetIds.length) {
         const oldDec: TDecorator = { ...dec }
-        dec.targetIds = remaining
+        // Drafted rather than mutated where it lies: `model.symbols` hands out the store's
+        // deep-frozen committed records, so writing `targetIds` straight onto `dec` threw
+        // `TypeError: Cannot assign to read only property`. That made this whole branch — losing
+        // one target out of several — dead from the moment the store began freezing, and nothing
+        // exercised it to say so.
+        const draft = this.model.draftSymbol(dec.id)
+        if (!draft || !isDecorator(draft)) {
+          continue
+        }
+        draft.targetIds = remaining
         const targetSyms = remaining.map((id) => this.model.getRootSymbol(id)).filter((s): s is TSymbol => !!s)
         // Whole-document scan (`this.model.symbols`): an unregistered target type must not
         // abort cleanup for every other decorator, so it is filtered out silently rather
         // than let `SymbolGeometry.boundsOf` throw.
         const geometryTargets = targetSyms.filter((s) => symbolRegistry.has(s.type))
         if (geometryTargets.length) {
-          DecoratorOps.setBounds(dec, OBBOps.createFromOBBs(geometryTargets.map((s) => SymbolGeometry.boundsOf(s))))
+          // Losing a target shrinks the decorator: its box is an input, so nothing else would
+          // narrow it and the underline would keep spanning the erased stroke.
+          DecoratorOps.setTargetBounds(
+            draft,
+            OBBOps.createFromOBBs(geometryTargets.map((s) => SymbolGeometry.boundsOf(s)))
+          )
         }
-        this.model.updateSymbol(dec)
-        this.renderer.drawSymbol(dec)
+        this.model.updateSymbol(draft)
+        this.renderer.drawSymbol(draft)
         updatedOld.push(oldDec)
-        updatedNew.push(dec)
+        updatedNew.push(draft)
       }
     }
 

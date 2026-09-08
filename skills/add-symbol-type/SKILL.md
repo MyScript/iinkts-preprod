@@ -48,8 +48,6 @@ export function isYourType(symbol: TBaseSymbol): symbol is TYourType {
 export const YourTypeOps = {
   create(/* params */): TYourType { /* ... */ },
   createFromPartial(partial: TPartialDeep<TYourType>): TYourType { /* ... */ },
-  updateDerivedFields(sym: TYourType): void { /* recompute bounds/snapPoints */ },
-  overlaps(sym: TYourType, box: TBox): boolean { /* ... */ },
 }
 ```
 
@@ -80,7 +78,6 @@ export class YourTypeUtil extends SymbolUtil<TYourType> {
   readonly type = SymbolType.YourType
 
   create(partial) { return YourTypeOps.createFromPartial(partial) }
-  updateDerivedFields(sym) { YourTypeOps.updateDerivedFields(sym) }
   overlaps(sym, box) { return YourTypeOps.overlaps(sym, box) }
   getSVGElement(sym) { /* build and return the SVGGraphicsElement */ }
 }
@@ -111,7 +108,7 @@ Check which managers need to handle the new type:
 
 ### 9. Write tests
 
-- `test/unit/symbol/yourtype/YourType.test.ts` — `create()`, `createFromPartial()` with missing fields, `updateDerivedFields()`, `overlaps()` inside/outside box
+- `test/unit/symbol/yourtype/YourType.test.ts` — `create()`, `createFromPartial()` with missing fields, `overlaps()` inside/outside box
 - `test/unit/symbol-utils/yourtype/YourTypeUtil.test.ts` — adapter delegates correctly, `getSVGElement()` produces expected structure
 
 ## Checklist

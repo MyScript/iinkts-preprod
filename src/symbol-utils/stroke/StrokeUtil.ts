@@ -31,10 +31,6 @@ export class StrokeUtil extends SymbolUtil<TStroke> {
     }
   }
 
-  updateDerivedFields(stroke: TStroke): void {
-    Object.assign(stroke, this.computeGeometry(stroke))
-  }
-
   /**
    * A rotated or sheared query supplies its own exact test here, rather than falling through to
    * `overlapsQuery`'s generic bounds/edges fallback: a stroke's real "overlaps" is "any raw pointer

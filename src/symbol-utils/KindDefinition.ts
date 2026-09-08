@@ -16,11 +16,6 @@ import type { TSymbolGeometry } from "./TSymbolGeometry"
  */
 export type TKindDefinition<T> = {
   create(partial: TPartialDeep<T>): T
-  updateDerivedFields(symbol: T): void
-  /**
-   * This kind's derived geometry, computed from the coordinates it stores — the value
-   * `updateDerivedFields` writes onto the symbol, returned instead of assigned.
-   */
   computeGeometry(symbol: T): TSymbolGeometry
   overlaps(symbol: T, box: TBox): boolean
   getSVGPath(symbol: T): string
@@ -55,11 +50,6 @@ export function defineKind<TFamily, TKind extends TFamily>(
   return definition as TKindDefinition<TFamily>
 }
 
-/**
- * Looks a kind up, or fails saying which kind and which family. Used by the methods that cannot
- * carry on without a definition; the ones that can (`updateDerivedFields`, `overlaps`) index the
- * table directly and keep their old tolerant behaviour.
- */
 export function resolveKind<T>(
   table: Partial<Record<string, TKindDefinition<T>>>,
   kind: string | undefined,

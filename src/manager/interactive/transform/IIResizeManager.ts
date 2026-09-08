@@ -42,7 +42,7 @@ export class IIResizeManager extends IIAbstractTransformManager {
    */
   protected applyThroughUtil(symbol: TSymbol, matrix: MatrixTransform): void {
     this.logger.debug("applyToSymbol", { symbol })
-    symbolRegistry.getUtilFor(symbol).resize(symbol, { matrix, origin: this.transformOrigin })
+    symbolRegistry.getUtilFor(symbol).resize(symbol, { matrix })
   }
 
   start(target: Element, origin: TPoint): void {

@@ -86,7 +86,6 @@ function buildStrokeWithSingleAnchor(blockId: string) {
   ]
   stroke.jiixBlockType = "Edge"
   stroke.endAnchor = { symbolId: blockId, normalizedX: 1, normalizedY: 0.5 }
-  StrokeOps.updateBounds(stroke)
   return stroke
 }
 
@@ -100,7 +99,6 @@ function buildStrokeWithBothAnchors(startBlockId: string, endBlockId: string) {
   stroke.jiixBlockType = "Edge"
   stroke.startAnchor = { symbolId: startBlockId, normalizedX: 0, normalizedY: 0.5 }
   stroke.endAnchor = { symbolId: endBlockId, normalizedX: 1, normalizedY: 0.5 }
-  StrokeOps.updateBounds(stroke)
   return stroke
 }
 
@@ -118,7 +116,6 @@ function buildTwoStrokeEdgeGroup(blockId: string) {
   bar.jiixBlockId = "block-edge-1"
   bar.jiixBlockType = "Edge"
   bar.endAnchor = { symbolId: blockId, normalizedX: 1, normalizedY: 0.5 }
-  StrokeOps.updateBounds(bar)
 
   const chevron = StrokeOps.create()
   chevron.id = "edge-stroke-chevron"
@@ -129,7 +126,6 @@ function buildTwoStrokeEdgeGroup(blockId: string) {
   chevron.jiixBlockId = "block-edge-1"
   chevron.jiixBlockType = "Edge"
   chevron.endAnchor = { symbolId: blockId, normalizedX: 1, normalizedY: 0.5 }
-  StrokeOps.updateBounds(chevron)
 
   return { bar, chevron }
 }
@@ -143,7 +139,6 @@ function mockBlockCenter(mock: ReturnType<typeof createCanvasMock>, strokeId: st
   const targetStroke = StrokeOps.create()
   targetStroke.id = strokeId
   targetStroke.pointers = [{ ...center, t: 0, p: 0 }]
-  StrokeOps.updateBounds(targetStroke)
   jest.spyOn(mock.model, "getRootSymbol").mockImplementation((id: string) => (id === strokeId ? targetStroke : undefined) as never)
   return targetStroke
 }
@@ -173,7 +168,7 @@ describe("IIConnectorManager", () => {
     manager = new IIConnectorManager(asCanvas(mock))
     jest
       .spyOn(mock.model, "getRootSymbol")
-      .mockReturnValue({ id: TARGET_ID, type: SymbolType.Decorator, bounds: TARGET_BOUNDS, transform: MatrixTransform.identity() } as unknown as ReturnType<
+      .mockReturnValue({ id: TARGET_ID, type: SymbolType.Decorator, targetBounds: TARGET_BOUNDS, transform: MatrixTransform.identity() } as unknown as ReturnType<
         typeof mock.model.getRootSymbol
       >)
   })
@@ -337,7 +332,7 @@ describe("IIConnectorManager", () => {
       beforeEach(() => {
         jest
           .spyOn(mock.model, "getRootSymbol")
-          .mockReturnValue({ id: TARGET_ID, type: SymbolType.Decorator, bounds: POST_BOUNDS, transform: MatrixTransform.identity() } as unknown as ReturnType<
+          .mockReturnValue({ id: TARGET_ID, type: SymbolType.Decorator, targetBounds: POST_BOUNDS, transform: MatrixTransform.identity() } as unknown as ReturnType<
             typeof mock.model.getRootSymbol
           >)
       })
@@ -647,9 +642,8 @@ describe("IIConnectorManager", () => {
       ])
       setupSymbols(mock, [square])
       const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 55, y: 55 })
-      EdgeLineOps.updateDerivedFields(line)
 
-      manager.applyEndpointAnchor(asDraft(line), line.vertices.length - 1, { x: 55, y: 55 })
+      manager.applyEndpointAnchor(asDraft(line), EdgeLineOps.computeVertices(line).length - 1, { x: 55, y: 55 })
 
       expect(line.endAnchor?.symbolId).toBe(square.id)
       expect(line.endAnchor?.normalizedX).toBe(0.5)
@@ -675,9 +669,8 @@ describe("IIConnectorManager", () => {
         .spyOn(mock.model, "getRootSymbol")
         .mockReturnValue(square as unknown as ReturnType<typeof mock.model.getRootSymbol>)
       const line = EdgeLineOps.create({ x: 200, y: 50 }, { x: 55, y: 55 })
-      EdgeLineOps.updateDerivedFields(line)
 
-      manager.applyEndpointAnchor(asDraft(line), line.vertices.length - 1, { x: 55, y: 55 })
+      manager.applyEndpointAnchor(asDraft(line), EdgeLineOps.computeVertices(line).length - 1, { x: 55, y: 55 })
 
       expect(line.endAnchor?.entryPoint).toBeDefined()
       expect(line.endAnchor?.entryPoint?.x).toBeCloseTo(100)
@@ -1255,7 +1248,7 @@ describe("connectorConfiguration.followConnectedEdges = false — disables all f
     manager = new IIConnectorManager(asCanvas(mock), { followConnectedEdges: false })
     jest
       .spyOn(mock.model, "getRootSymbol")
-      .mockReturnValue({ id: TARGET_ID, type: SymbolType.Decorator, bounds: TARGET_BOUNDS, transform: MatrixTransform.identity() } as unknown as ReturnType<
+      .mockReturnValue({ id: TARGET_ID, type: SymbolType.Decorator, targetBounds: TARGET_BOUNDS, transform: MatrixTransform.identity() } as unknown as ReturnType<
         typeof mock.model.getRootSymbol
       >)
   })

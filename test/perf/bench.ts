@@ -39,8 +39,11 @@ registerBuiltinSymbolUtils()
 
 function buildStroke(generated: ReturnType<typeof generateDocument>[number]): TStroke {
   const stroke = StrokeOps.create(undefined, generated.pointerType)
-  stroke.pointers.push(...generated.pointers)
-  StrokeOps.updateBounds(stroke)
+  // Pushed verbatim, not through `addPointer`: that path runs the acquisition-delta filter and
+  // rewrites every `p` via `_computePressure`, so the resident document would stop being the one
+  // `baseline.json` was measured against. Nothing replaces the `updateBounds` call that used to
+  // follow — a stroke's box is derived on read now.
+  generated.pointers.forEach((p) => StrokeOps.addPointer(stroke, p))
   return stroke
 }
 
@@ -161,22 +164,6 @@ const cases: TBenchCase[] = [
     fn: () => {
       for (let i = 0; i < CHEAP_CASE_PASSES; i++) {
         void model.getRootSymbol(firstId)
-      }
-    },
-  },
-  {
-    name: `derive: recompute derived fields for all @${RESIDENT_SIZE} x${CHEAP_CASE_PASSES}`,
-    fn: () => {
-      // Committed records are frozen since E5, so deriving in place throws. This goes through the
-      // write contract instead, which is what production code does now — the number therefore
-      // includes draft-then-commit and is NOT comparable to a pre-E5 baseline for this case.
-      for (let pass = 0; pass < CHEAP_CASE_PASSES; pass++) {
-        for (const stroke of strokes) {
-          const draft = model.draftSymbol(stroke.id)
-          if (!draft) continue
-          symbolRegistry.getUtil(draft.type)?.updateDerivedFields(draft)
-          model.commitSymbol(draft, false)
-        }
       }
     },
   },

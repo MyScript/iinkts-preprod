@@ -24,10 +24,6 @@ export type TEdgeLine = TBaseSymbol & {
   endAnchor?: TAnchor
   start: TPoint
   end: TPoint
-  vertices: TPoint[]
-  bounds: TOBB
-  snapPoints: TPoint[]
-  edges: TSegment[]
 }
 
 /**
@@ -54,13 +50,8 @@ export const EdgeLineOps = {
       endDecoration,
       start,
       end,
-      vertices: [],
-      bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0),
-      snapPoints: [],
-      edges: [],
       transform: MatrixTransform.identity(),
     }
-    EdgeLineOps.updateDerivedFields(line)
     return line
   },
 
@@ -97,23 +88,33 @@ export const EdgeLineOps = {
     return [{ p1: line.start, p2: line.end }]
   },
 
-  updateDerivedFields(line: TEdgeLine): void {
-    const vertices = EdgeLineOps.computeVertices(line)
-    line.vertices = vertices
-    line.bounds = EdgeLineOps.computeBounds(line, vertices)
-    line.snapPoints = vertices
-    line.edges = EdgeLineOps.computeEdges(line)
-  },
-
   getResizePoints(line: TEdgeLine): TResizePoint[] {
-    return line.vertices.map((point, vertexIndex) => ({
+    return EdgeLineOps.computeVertices(line).map((point, vertexIndex) => ({
       point,
       vertexIndex,
     }))
   },
 
+  /**
+   * Moves the vertex a resize handle owns, by writing into the geometry the line actually stores.
+   *
+   * A line's vertices are its `start` and `end`, and `computeVertices` returns those very objects —
+   * so the drag handler used to mutate `line.vertices[i]` and reach them by aliasing. That worked
+   * only as long as the array was stored and shared; a computed one would take the write and throw
+   * it away, silently. This says which field a handle owns instead of relying on that.
+   */
+  moveVertex(line: TEdgeLine, vertexIndex: number, point: TPoint): void {
+    const target = vertexIndex === 0 ? line.start : line.end
+    target.x = point.x
+    target.y = point.y
+  },
+
   overlaps(line: TEdgeLine, box: TBox): boolean {
-    return OBBOps.polygonOverlapsBox(line.bounds, line.edges, box)
+    return OBBOps.polygonOverlapsBox(
+      EdgeLineOps.computeBounds(line, EdgeLineOps.computeVertices(line)),
+      EdgeLineOps.computeEdges(line),
+      box
+    )
   },
 
   getSVGPath(line: TEdgeLine): string {

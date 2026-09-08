@@ -15,10 +15,8 @@ import {
   TBaseSymbol,
   TPartialDeep,
   TPoint,
-  TResizeContext,
-  TRotateContext,
+  TTransformContext,
   TSymbolGeometry,
-  TTranslateContext,
   applyMatrixToPoint,
   MatrixTransform,
 } from "@/iink"
@@ -519,7 +517,6 @@ describe("SVGRenderer.ts", () => {
         pointer.x += 40
         pointer.y += 25
       })
-      StrokeOps.updateBounds(moved)
       renderer.drawSymbol(moved)
 
       renderer.setViewBox(farAwayBox.x, farAwayBox.y, 400, 400)
@@ -736,17 +733,16 @@ describe("SVGRenderer.ts", () => {
       create(partial: TPartialDeep<TStickyNote>): TStickyNote {
         return { ...partial, type: "sticky-note", text: partial.text ?? "" } as TStickyNote
       }
-      updateDerivedFields(): void {}
       computeGeometry(): TSymbolGeometry {
         return { bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0), vertices: [], snapPoints: [], edges: [], length: 0 }
       }
-      translate(symbol: TStickyNote, { matrix }: TTranslateContext): void {
+      translate(symbol: TStickyNote, { matrix }: TTransformContext): void {
         symbol.point = applyMatrixToPoint(symbol.point, matrix)
       }
-      rotate(symbol: TStickyNote, { matrix }: TRotateContext): void {
+      rotate(symbol: TStickyNote, { matrix }: TTransformContext): void {
         symbol.point = applyMatrixToPoint(symbol.point, matrix)
       }
-      resize(symbol: TStickyNote, { matrix }: TResizeContext): void {
+      resize(symbol: TStickyNote, { matrix }: TTransformContext): void {
         symbol.point = applyMatrixToPoint(symbol.point, matrix)
       }
       overlaps(): boolean {

@@ -1,3 +1,4 @@
+import { SymbolGeometry } from "@/iink"
 import { buildIICircle, buildIIStroke, buildIIText } from "../../helpers"
 import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
 import {
@@ -134,7 +135,7 @@ describe("IIGestureManager.ts", () => {
     test("should erase shape symbol", async () => {
       const circle = buildIICircle()
       canvas.model.addSymbol(circle)
-      const gestureStroke = buildIIStroke({ box: OBBOps.toBox(circle.bounds), nbPoint: 100 })
+      const gestureStroke = buildIIStroke({ box: OBBOps.toBox(SymbolGeometry.boundsOf(circle)), nbPoint: 100 })
       const gesture: TGesture = {
         gestureType: "SCRATCH",
         gestureStrokeId: gestureStroke.id,
@@ -318,7 +319,7 @@ describe("IIGestureManager.ts", () => {
       expect(gestMan.translator.translate).toHaveBeenNthCalledWith(
         1,
         [stroke21],
-        OBBOps.toBox(stroke12.bounds).x + stroke12.bounds.width - OBBOps.toBox(stroke21.bounds).x + rowHeight * 2,
+        OBBOps.toBox(SymbolGeometry.boundsOf(stroke12)).x + SymbolGeometry.boundsOf(stroke12).width - OBBOps.toBox(SymbolGeometry.boundsOf(stroke21)).x + rowHeight * 2,
         -rowHeight,
         false
       )
@@ -386,10 +387,10 @@ describe("IIGestureManager.ts", () => {
     test("should go down stroke", async () => {
       const strokeGesture = buildIIStroke({
         box: {
-          height: stroke.bounds.height,
+          height: SymbolGeometry.boundsOf(stroke).height,
           width: 5,
-          x: OBBOps.toBox(stroke.bounds).x - 10,
-          y: OBBOps.toBox(stroke.bounds).y,
+          x: OBBOps.toBox(SymbolGeometry.boundsOf(stroke)).x - 10,
+          y: OBBOps.toBox(SymbolGeometry.boundsOf(stroke)).y,
         },
       })
       const gesture: TGesture = {
@@ -453,8 +454,8 @@ describe("IIGestureManager.ts", () => {
         const gestureStroke = buildIIStroke({ box: { height: 10, width: 10, x: 0, y: 0 } })
         canvas.model.addSymbol(
           buildIICircle({
-            center: BoxOps.getCenter(OBBOps.toBox(gestureStroke.bounds)),
-            radius: Math.max(gestureStroke.bounds.width * 2, gestureStroke.bounds.height * 2),
+            center: BoxOps.getCenter(OBBOps.toBox(SymbolGeometry.boundsOf(gestureStroke))),
+            radius: Math.max(SymbolGeometry.boundsOf(gestureStroke).width * 2, SymbolGeometry.boundsOf(gestureStroke).height * 2),
           })
         )
         expect(await gestMan.getGestureFromContextLess(gestureStroke)).toBeUndefined()
@@ -463,8 +464,8 @@ describe("IIGestureManager.ts", () => {
         const gestureStroke = buildIIStroke({ box: { height: 10, width: 10, x: 0, y: 0 } })
         canvas.model.addSymbol(
           buildIICircle({
-            center: BoxOps.getCenter(OBBOps.toBox(gestureStroke.bounds)),
-            radius: Math.min(gestureStroke.bounds.width / 2, gestureStroke.bounds.height / 2),
+            center: BoxOps.getCenter(OBBOps.toBox(SymbolGeometry.boundsOf(gestureStroke))),
+            radius: Math.min(SymbolGeometry.boundsOf(gestureStroke).width / 2, SymbolGeometry.boundsOf(gestureStroke).height / 2),
           })
         )
         expect(await gestMan.getGestureFromContextLess(gestureStroke)).toEqual(

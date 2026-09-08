@@ -1,4 +1,4 @@
-import { TSymbolChar, TPoint, TBox, BoxOps, OBBOps, TextOps, MatrixTransform } from "@/iink"
+import { TSymbolChar, TPoint, TBox, BoxOps, OBBOps, TextOps, MatrixTransform, computeTypesetSnapPoints, computeClosedEdges, computeTypesetVertices } from "@/iink"
 
 const chars: TSymbolChar[] = [
   {
@@ -42,9 +42,9 @@ describe("TextOps", () => {
 
     test("should initialize derived fields (vertices, snapPoints, edges)", () => {
       const text = TextOps.create(chars, point, bounds)
-      expect(text.vertices).toHaveLength(4)
-      expect(text.snapPoints).toHaveLength(5)
-      expect(text.edges).toHaveLength(4)
+      expect(computeTypesetVertices(OBBOps.toUnrotatedBox(text.bounds))).toHaveLength(4)
+      expect(computeTypesetSnapPoints(OBBOps.toUnrotatedBox(text.bounds), text.point)).toHaveLength(5)
+      expect(computeClosedEdges(computeTypesetVertices(OBBOps.toUnrotatedBox(text.bounds)))).toHaveLength(4)
     })
 
   })
@@ -76,22 +76,6 @@ describe("TextOps", () => {
     test("should set custom id from partial", () => {
       const text = TextOps.createFromPartial({ id: "my-id", chars, point, bounds })
       expect(text.id).toBe("my-id")
-    })
-  })
-
-  describe("updateDerivedFields", () => {
-    test("should compute vertices from corners", () => {
-      const text = TextOps.create(chars, point, bounds)
-      TextOps.updateDerivedFields(text)
-      expect(text.vertices).toEqual(BoxOps.getCorners(bounds))
-    })
-
-    test("should recompute edges when bounds change", () => {
-      const text = TextOps.create(chars, point, bounds)
-      const newBounds: TBox = { x: 100, y: 100, width: 50, height: 30 }
-      text.bounds = OBBOps.fromBox(newBounds)
-      TextOps.updateDerivedFields(text)
-      expect(text.vertices).toEqual(BoxOps.getCorners(newBounds))
     })
   })
 

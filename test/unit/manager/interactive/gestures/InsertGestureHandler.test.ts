@@ -6,6 +6,7 @@ import {
   InsertGestureHandler,
   GestureHelpers,
   OBBOps,
+  SymbolGeometry,
   StrokeOps,
   MatrixTransform,
   DecoratorKind,
@@ -27,7 +28,6 @@ describe("InsertGestureHandler.ts", () => {
           p.x = +np.x.toFixed(3)
           p.y = +np.y.toFixed(3)
         })
-        StrokeOps.updateBounds(sym)
         return sym
       }),
     }
@@ -103,7 +103,7 @@ describe("InsertGestureHandler.ts", () => {
       expect(result.after).toBeDefined()
       if (result.after) {
         // After stroke should be translated
-        expect(OBBOps.toBox(result.after.bounds).x).not.toBe(5)
+        expect(OBBOps.toBox(SymbolGeometry.boundsOf(result.after)).x).not.toBe(5)
       }
     })
   })
