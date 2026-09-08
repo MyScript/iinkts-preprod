@@ -23,8 +23,28 @@ describe("convert angle", () => {
   ]
   degreToRad.forEach((d) => {
     test(`shoud couvert ${d.degree}° to ${d.radian} rad`, () => {
-      expect(convertDegreeToRadian(d.degree)).toEqual(d.radian)
+      // Compared to four decimals rather than for equality: the conversion no longer rounds its
+      // result. It used to, and that made 90° convert to 1.5708 instead of PI/2 — a cosine of
+      // -3.7e-6 instead of zero, so a rotation matrix built from it was not orthonormal and
+      // composing a rotation with its own inverse left a residue the symbol's stored matrix kept.
+      // The table above still reads in four decimals because that is what a human checks against;
+      // the assertion is what stopped demanding the rounding.
+      expect(convertDegreeToRadian(d.degree)).toBeCloseTo(d.radian, 4)
     })
+  })
+
+  test("converts a right angle to exactly PI/2, not to a rounded 1.5708", () => {
+    // The specific value the old rounding broke, pinned on its own: `Math.cos` of the rounded 1.5708
+    // is -3.673e-6, and `MatrixTransform.rotate` snaps a cosine to zero only within 1e-9 of it.
+    expect(convertDegreeToRadian(90)).toBe(Math.PI / 2)
+    expect(Math.cos(convertDegreeToRadian(90))).toBeCloseTo(0, 15)
+  })
+
+  test("a degree round trip returns the angle it started from", () => {
+    // What the rounding cost in practice. At four decimals of a radian, 37° came back as 37.0001°.
+    for (const degree of [7, 13, 37, 90, 137, 359]) {
+      expect(convertRadianToDegree(convertDegreeToRadian(degree))).toBe(degree)
+    }
   })
 
   const radToDegree = [

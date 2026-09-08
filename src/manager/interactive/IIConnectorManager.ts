@@ -1,9 +1,12 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import type { MatrixTransform, TPoint } from "@/core/geometry"
 import {
+  applyInverseMatrixToPoint,
+  applyMatrixToPoint,
   BoxOps,
   computeDistance,
   findIntersectionBetween2Segment,
+  isIdentityMatrix,
   isPointInsidePolygon,
   OBBOps,
   type TOBB,
@@ -225,6 +228,32 @@ export class IIConnectorManager extends IIAbstractManager {
   }
 
   /**
+   * `computeEntryPoint`, with both sides brought into the same frame and the answer returned in
+   * `edge`'s own.
+   *
+   * Three frames meet here and used to be mixed. `from`/`to` are the edge's stored coordinates, which
+   * are raw; a target shape's vertices come from `SymbolGeometry` in document coordinates, the
+   * target's own matrix already applied; and the result is stored on the anchor, from where
+   * `PolyLine.getSVGPath` and `Arc.getSVGPath` put it straight into path data — so it has to be raw
+   * again, because the element's `transform` attribute is what applies the edge's matrix.
+   *
+   * The edge's two points are carried forward into document space rather than the target's vertices
+   * being carried back: that is two mappings and one return trip whatever the shape's vertex count,
+   * and this runs on every anchored-edge update of a drag.
+   */
+  #entryPointInEdgeFrame(edge: TEdge, from: TPoint, to: TPoint, targetVertices: TPoint[]): TPoint | undefined {
+    if (isIdentityMatrix(edge.transform)) {
+      return this.computeEntryPoint(from, to, targetVertices)
+    }
+    const worldEntry = this.computeEntryPoint(
+      applyMatrixToPoint(from, edge.transform),
+      applyMatrixToPoint(to, edge.transform),
+      targetVertices
+    )
+    return worldEntry ? applyInverseMatrixToPoint(worldEntry, edge.transform) : undefined
+  }
+
+  /**
    * Recompute `entryPoint` on every anchor currently set on `edge`.
    * Must be called after the edge endpoints and anchor target shape are in their final positions.
    */
@@ -234,14 +263,14 @@ export class IIConnectorManager extends IIAbstractManager {
         const target = this.model.getRootSymbol(edge.startAnchor.symbolId)
         edge.startAnchor.entryPoint =
           target && ShapeOps.isShape(target)
-            ? this.computeEntryPoint(edge.start, edge.end, SymbolGeometry.verticesOf(target))
+            ? this.#entryPointInEdgeFrame(edge, edge.start, edge.end, SymbolGeometry.verticesOf(target))
             : undefined
       }
       if (edge.endAnchor) {
         const target = this.model.getRootSymbol(edge.endAnchor.symbolId)
         edge.endAnchor.entryPoint =
           target && ShapeOps.isShape(target)
-            ? this.computeEntryPoint(edge.end, edge.start, SymbolGeometry.verticesOf(target))
+            ? this.#entryPointInEdgeFrame(edge, edge.end, edge.start, SymbolGeometry.verticesOf(target))
             : undefined
       }
     } else if (EdgeOps.isPolyEdge(edge)) {
@@ -250,34 +279,41 @@ export class IIConnectorManager extends IIAbstractManager {
         const target = this.model.getRootSymbol(edge.startAnchor.symbolId)
         edge.startAnchor.entryPoint =
           target && ShapeOps.isShape(target)
-            ? this.computeEntryPoint(edge.points[0], edge.points[1], SymbolGeometry.verticesOf(target))
+            ? this.#entryPointInEdgeFrame(edge, edge.points[0], edge.points[1], SymbolGeometry.verticesOf(target))
             : undefined
       }
       if (edge.endAnchor && n >= 2) {
         const target = this.model.getRootSymbol(edge.endAnchor.symbolId)
         edge.endAnchor.entryPoint =
           target && ShapeOps.isShape(target)
-            ? this.computeEntryPoint(edge.points[n - 1], edge.points[n - 2], SymbolGeometry.verticesOf(target))
+            ? this.#entryPointInEdgeFrame(
+                edge,
+                edge.points[n - 1],
+                edge.points[n - 2],
+                SymbolGeometry.verticesOf(target)
+              )
             : undefined
       }
     } else if (EdgeOps.isArcEdge(edge)) {
       // `edge` is always a draft here (every caller passes one mid-edit), so this never hits the
       // geometry cache — one verticesOf call shared by both branches instead of the three separate
       // reads (`.length`, `[0]`/`[1]`, `[n-1]`/`[n-2]`) the field-access version used to make.
-      const vertices = SymbolGeometry.verticesOf(edge)
+      // Raw, not document: `#entryPointInEdgeFrame` expects the edge's own frame and carries
+      // these forward itself. Reading them already-transformed would apply the matrix twice.
+      const vertices = SymbolGeometry.rawOf(edge).vertices
       const n = vertices.length
       if (edge.startAnchor && n >= 2) {
         const target = this.model.getRootSymbol(edge.startAnchor.symbolId)
         edge.startAnchor.entryPoint =
           target && ShapeOps.isShape(target)
-            ? this.computeEntryPoint(vertices[0], vertices[1], SymbolGeometry.verticesOf(target))
+            ? this.#entryPointInEdgeFrame(edge, vertices[0], vertices[1], SymbolGeometry.verticesOf(target))
             : undefined
       }
       if (edge.endAnchor && n >= 2) {
         const target = this.model.getRootSymbol(edge.endAnchor.symbolId)
         edge.endAnchor.entryPoint =
           target && ShapeOps.isShape(target)
-            ? this.computeEntryPoint(vertices[n - 1], vertices[n - 2], SymbolGeometry.verticesOf(target))
+            ? this.#entryPointInEdgeFrame(edge, vertices[n - 1], vertices[n - 2], SymbolGeometry.verticesOf(target))
             : undefined
       }
     }
@@ -302,8 +338,14 @@ export class IIConnectorManager extends IIAbstractManager {
     const target = this.findSymbolAtPoint(point, edge.id)
 
     if (target !== undefined) {
-      const center: TPoint = {
-        ...SymbolGeometry.boundsOf(target).center,
+      // The target's centre comes back in document coordinates — its own matrix already applied —
+      // and is about to be written into `edge`'s raw `start`/`end`/`points`, which the edge's matrix
+      // places. Mapped into the edge's frame first, or anchoring an already-moved edge to a shape
+      // would drop its endpoint off by that matrix.
+      const center = applyInverseMatrixToPoint(SymbolGeometry.boundsOf(target).center, edge.transform)
+      if (!center) {
+        // The edge is flattened to nothing on some axis, so it has no frame to anchor into.
+        return
       }
       const anchor: TAnchor = {
         symbolId: target.id,
@@ -524,14 +566,24 @@ export class IIConnectorManager extends IIAbstractManager {
   }
 
   /**
-   * Resolve an anchor to a world point, optionally using pre-transform bounds + matrix.
-   * When matrix and preTransformBoundsById are provided (rotation case), resolves in the
-   * pre-transform AABB then applies the matrix — this preserves the physical point on
+   * Resolve an anchor to a point in `edge`'s own coordinate frame, optionally using pre-transform
+   * bounds + matrix. When matrix and preTransformBoundsById are provided (rotation case), resolves
+   * in the pre-transform AABB then applies the matrix — this preserves the physical point on
    * the shape regardless of AABB size change. Also updates normalizedXY on the anchor
    * so subsequent transforms resolve correctly in the new AABB.
+   *
+   * The anchor is resolved against the *target's* geometry, which `SymbolGeometry` reports in
+   * document coordinates — the target's own matrix already applied. The result is then written into
+   * `edge`'s stored `start`/`end`/`points`, which are raw: the edge's matrix is what places them. So
+   * the point is mapped back through that matrix here rather than at each of the six call sites,
+   * which is what keeps an already-moved edge from jumping when the shape it is anchored to moves.
+   *
+   * Returns `undefined` when the edge's matrix cannot be inverted, alongside the existing
+   * missing-target case: callers already skip the write on `undefined`.
    */
   private resolveAndUpdateAnchor(
     anchor: TAnchor,
+    edge: TEdge,
     matrix: MatrixTransform | undefined,
     preTransformBoundsById: Map<string, TOBB> | undefined
   ): { x: number; y: number } | undefined {
@@ -544,13 +596,14 @@ export class IIConnectorManager extends IIAbstractManager {
       const preBounds = preTransformBoundsById.get(anchor.symbolId)
       if (preBounds) {
         const worldPoint = matrix.applyToPoint(resolveAnchorPoint(anchor, OBBOps.toBox(preBounds)))
+        // Normalized against the target's document-space box, so it stays a world point here.
         const { normalizedX, normalizedY } = computeNormalizedAnchor(worldPoint, targetBox)
         anchor.normalizedX = normalizedX
         anchor.normalizedY = normalizedY
-        return worldPoint
+        return applyInverseMatrixToPoint(worldPoint, edge.transform)
       }
     }
-    return resolveAnchorPoint(anchor, targetBox)
+    return applyInverseMatrixToPoint(resolveAnchorPoint(anchor, targetBox), edge.transform)
   }
 
   /**
@@ -630,14 +683,14 @@ export class IIConnectorManager extends IIAbstractManager {
         let changed = false
         const oldSymbol = cloneSymbol(symbol)
         if (symbol.startAnchor && idSet.has(symbol.startAnchor.symbolId)) {
-          const point = this.resolveAndUpdateAnchor(symbol.startAnchor, matrix, preTransformBoundsById)
+          const point = this.resolveAndUpdateAnchor(symbol.startAnchor, symbol, matrix, preTransformBoundsById)
           if (point) {
             Object.assign(symbol, stretchArcEndpoint(symbol, "start", point))
             changed = true
           }
         }
         if (symbol.endAnchor && idSet.has(symbol.endAnchor.symbolId)) {
-          const point = this.resolveAndUpdateAnchor(symbol.endAnchor, matrix, preTransformBoundsById)
+          const point = this.resolveAndUpdateAnchor(symbol.endAnchor, symbol, matrix, preTransformBoundsById)
           if (point) {
             Object.assign(symbol, stretchArcEndpoint(symbol, "end", point))
             changed = true
@@ -663,14 +716,14 @@ export class IIConnectorManager extends IIAbstractManager {
 
       if (EdgeOps.isLineEdge(symbol)) {
         if (symbol.startAnchor && idSet.has(symbol.startAnchor.symbolId)) {
-          const point = this.resolveAndUpdateAnchor(symbol.startAnchor, matrix, preTransformBoundsById)
+          const point = this.resolveAndUpdateAnchor(symbol.startAnchor, symbol, matrix, preTransformBoundsById)
           if (point) {
             symbol.start = point
             changed = true
           }
         }
         if (symbol.endAnchor && idSet.has(symbol.endAnchor.symbolId)) {
-          const point = this.resolveAndUpdateAnchor(symbol.endAnchor, matrix, preTransformBoundsById)
+          const point = this.resolveAndUpdateAnchor(symbol.endAnchor, symbol, matrix, preTransformBoundsById)
           if (point) {
             symbol.end = point
             changed = true
@@ -682,14 +735,14 @@ export class IIConnectorManager extends IIAbstractManager {
         }
       } else if (EdgeOps.isPolyEdge(symbol)) {
         if (symbol.startAnchor && idSet.has(symbol.startAnchor.symbolId)) {
-          const point = this.resolveAndUpdateAnchor(symbol.startAnchor, matrix, preTransformBoundsById)
+          const point = this.resolveAndUpdateAnchor(symbol.startAnchor, symbol, matrix, preTransformBoundsById)
           if (point && symbol.points.length > 0) {
             symbol.points[0] = point
             changed = true
           }
         }
         if (symbol.endAnchor && idSet.has(symbol.endAnchor.symbolId)) {
-          const point = this.resolveAndUpdateAnchor(symbol.endAnchor, matrix, preTransformBoundsById)
+          const point = this.resolveAndUpdateAnchor(symbol.endAnchor, symbol, matrix, preTransformBoundsById)
           if (point && symbol.points.length > 0) {
             symbol.points[symbol.points.length - 1] = point
             changed = true

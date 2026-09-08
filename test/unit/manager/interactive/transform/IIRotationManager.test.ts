@@ -176,25 +176,25 @@ describe("IIRotationManager.ts", () => {
         expect(manager.interactElementsGroup).toEqual(group)
         expect(manager.center).toEqual(rotateCenter)
         expect(manager.origin).toEqual(rotateOrigin)
-        expect(canvas.renderer.setAttribute).toHaveBeenNthCalledWith(
-          1,
-          group.id,
-          "transform-origin",
-          `${rotateCenter.x}px ${rotateCenter.y}px`
-        )
-        expect(canvas.renderer.setAttribute).toHaveBeenNthCalledWith(
-          2,
-          strokeOrigin.id,
-          "transform-origin",
-          `${rotateCenter.x}px ${rotateCenter.y}px`
-        )
+        // `start` no longer writes anything to the DOM. It used to set `transform-origin` on the
+        // group and on every selected symbol, which cannot survive alongside a stored matrix: that
+        // attribute applies to the whole transform list, so it would displace the symbol's own
+        // matrix as well as the gesture's. The live matrix carries `center` itself instead.
+        expect(canvas.renderer.setAttribute).not.toHaveBeenCalled()
         expect(canvas.startOperation).toHaveBeenCalledWith("Rotating")
       })
       test(`shoud continu with angle: "${data.angle}°`, () => {
         expect(manager.continue(data.rotateToPoint)).toEqual(data.angle)
 
-        expect(canvas.renderer.setAttribute).toHaveBeenNthCalledWith(1, group.id, "transform", `rotate(${data.angle})`)
-        expect(canvas.renderer.setAttribute).toHaveBeenNthCalledWith(2, strokeOrigin.id, "transform", `rotate(${data.angle})`)
+        // The preview is a full `matrix(...)` rather than `rotate(deg)`: it has to compose with the
+        // matrix a symbol already carries, and a bare `rotate` would replace it. `strokeOrigin`'s own
+        // matrix is the identity here, so both writes come out the same — the composition itself is
+        // pinned by the "keeps the matrix a symbol already carries" test below.
+        const live = MatrixTransform.identity()
+          .rotate(convertDegreeToRadian(data.angle), rotateCenter)
+          .toCssString()
+        expect(canvas.renderer.setAttribute).toHaveBeenNthCalledWith(1, group.id, "transform", live)
+        expect(canvas.renderer.setAttribute).toHaveBeenNthCalledWith(2, strokeOrigin.id, "transform", live)
       })
       test(`shoud end with angle: "${data.angle}°`, async () => {
         const endPromise = manager.end(data.rotateToPoint)
@@ -218,6 +218,47 @@ describe("IIRotationManager.ts", () => {
         )
         expect(strokeOrigin).not.toEqual(newStroke)
       })
+    })
+  })
+
+  /**
+   * IIC-1999. The drag preview used to write the gesture's transform alone, which replaced whatever
+   * the element already carried — so a symbol that had been moved before snapped back to its raw
+   * coordinates for the length of the drag and jumped into place on release. Before this epic only a
+   * rotated typeset carried a baked transform; now every moved symbol does.
+   */
+  describe("the preview keeps the matrix a symbol already carries", () => {
+    test("composes the gesture onto the stored matrix rather than replacing it", () => {
+      const canvas = createCanvasMock()
+      const stroke = buildIIStroke()
+      // Already moved 100 to the right, as a previous committed translate would have left it.
+      stroke.transform = MatrixTransform.identity().translate(100, 0)
+      canvas.model.addSymbol(stroke)
+      canvas.model.selectSymbol(stroke.id)
+
+      const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
+      group.setAttribute("id", "already-moved-group")
+      group.setAttribute("role", SvgElementRole.InteractElementsGroup)
+      const target = document.createElementNS("http://www.w3.org/2000/svg", "circle")
+      group.appendChild(target)
+
+      const manager = new IIRotationManager(asCanvas(canvas))
+      manager.start(target, { x: 0, y: 0 })
+      // Drive the angle straight in rather than deriving it from a pointer position: this test is
+      // about the composition, and `continue`'s angle arithmetic is covered above.
+      manager.center = { x: 0, y: 0 }
+      manager.origin = { x: 1, y: 0 }
+      manager.continue({ x: 0, y: 1 })
+
+      const written = (canvas.renderer.setAttribute as jest.Mock).mock.calls.find(
+        ([id, name]) => id === stroke.id && name === "transform"
+      )
+      // Hand-computed, not read back from the code under test. A 90 degree rotation about the origin
+      // is {xx:0, yx:1, xy:-1, yy:0, tx:0, ty:0}; the stored translate is {1,0,0,1,100,0}. Their
+      // product live*stored has tx = 0*100 + (-1)*0 + 0 = 0 and ty = 1*100 + 0*0 + 0 = 100 — the
+      // symbol's own offset turned by the gesture. Replacing instead of composing would write
+      // "matrix(0, 1, -1, 0, 0, 0)" and lose the 100 entirely.
+      expect(written?.[2]).toBe("matrix(0, 1, -1, 0, 0, 100)")
     })
   })
 
@@ -260,7 +301,16 @@ describe("IIRotationManager.ts", () => {
       manager.start(setupTarget(origin), origin)
       manager.continue(computeRotatedPoint(origin, center, Math.PI / 2))
 
-      expect(canvas.renderer.setAttribute).toHaveBeenCalledWith("ghost-1", "transform", expect.stringContaining("rotate("))
+      // The ghost must follow with the *same* transform the selection got, not merely with some
+      // rotation: it is a preview of the block the selection belongs to, so any divergence shows on
+      // screen as the ghost drifting away from the strokes it shadows. Compared against the write
+      // the selected stroke received rather than a hard-coded string, which is the property that
+      // actually matters and survives a change of angle.
+      const calls = (canvas.renderer.setAttribute as jest.Mock).mock.calls
+      const selectionWrite = calls.find(([id, name]) => id === stroke.id && name === "transform")
+      const ghostWrite = calls.find(([id, name]) => id === "ghost-1" && name === "transform")
+      expect(selectionWrite?.[2]).toEqual(expect.stringContaining("matrix("))
+      expect(ghostWrite?.[2]).toBe(selectionWrite?.[2])
     })
 
     test("end() permanently applies the matrix to the block's ghost strokes", async () => {

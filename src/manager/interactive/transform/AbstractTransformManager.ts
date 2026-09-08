@@ -21,8 +21,33 @@ export abstract class IIAbstractTransformManager extends IIAbstractManager {
     super(canvas, LoggerCategory.TRANSFORMER)
   }
 
-  setTransformOrigin(id: string, originX: number, originY: number): void {
-    this.canvas.renderer.setAttribute(id, "transform-origin", `${originX}px ${originY}px`)
+  /**
+   * The gesture's matrix, previewed on top of the one the symbol already carries.
+   *
+   * The live part multiplies onto the stored one rather than replacing it, so the SVG transform list
+   * reads outside-in: the symbol sits where its own matrix puts it, and the gesture moves it from
+   * there — the same order the commit will apply. Writing the live transform alone is what made an
+   * already-moved symbol snap back to its raw coordinates for the length of a drag and jump into
+   * place on release (IIC-1999). Before this epic only a rotated typeset carried a baked transform;
+   * now every moved symbol does, so the same overwrite would affect all of them.
+   *
+   * The stored matrix is untouched here. This is a preview: `applyAndDraw` is what settles it.
+   */
+  protected previewTransform(symbol: TSymbol, live: MatrixTransform): void {
+    this.canvas.renderer.setAttribute(symbol.id, "transform", live.clone().multiply(symbol.transform).toCssString())
+  }
+
+  /**
+   * The same, for an element with no symbol behind it — the interact-elements group, or a math
+   * ghost stroke. Nothing is composed because nothing is stored: these are drawn in document
+   * coordinates already.
+   *
+   * Note both preview methods write a full `matrix(...)`, carrying their own centre. The
+   * `transform-origin` attribute this class used to set cannot serve here: it applies to the whole
+   * transform list, so it would displace the stored matrix, which brings its own centre.
+   */
+  protected previewElementTransform(id: string, live: MatrixTransform): void {
+    this.canvas.renderer.setAttribute(id, "transform", live.toCssString())
   }
 
   protected resolveInteractGroup(target: Element): SVGGElement {
