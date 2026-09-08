@@ -289,6 +289,30 @@ describe("ShapeUtil, the contract members", () => {
       const unknownShape = { ...circle, kind: "unknown" } as unknown as TShape
       expect(util.overlaps(unknownShape, { x: 0, y: 0, width: 100, height: 100 })).toBe(false)
     })
+
+    /**
+     * Regression found in review: the containment early-out tested the circle's raw *bounding box*
+     * corners (at distance radius·√2 from center) rather than the circle's own vertices (at distance
+     * radius) — so once the query was rotated relative to the raw frame, a query that trivially
+     * surrounds the actual circle (half-size just over the radius) could still miss the (larger,
+     * fictional) box-corner distance, for every half-size up to radius·√2.
+     *
+     * A circle centered at the origin is unmoved by a rotation about that same origin — only the
+     * matrix (and so the query's own inverse mapping) changes, not where the circle actually sits —
+     * so a query box centered at the origin is exactly "does this query surround the circle" for
+     * every half-size, with no world-space translation to additionally account for.
+     */
+    test.each([5.1, 7.0])(
+      "a rotated circle (radius 5) is selected by a surrounding query of half-size %s",
+      (halfSize) => {
+        const circle = buildIICircle({ center: { x: 0, y: 0 }, radius: 5 })
+        circle.transform = MatrixTransform.identity().rotate(Math.PI / 4)
+
+        expect(
+          util.overlaps(circle, { x: -halfSize, y: -halfSize, width: 2 * halfSize, height: 2 * halfSize })
+        ).toBe(true)
+      }
+    )
   })
 
   describe("getSnapPoints", () => {

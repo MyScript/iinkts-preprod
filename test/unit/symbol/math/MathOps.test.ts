@@ -49,10 +49,6 @@ describe("MathOps", () => {
       expect(math.edges).toHaveLength(4)
     })
 
-    test("should have no rotation by default", () => {
-      const math = MathOps.create(elements, point, bounds)
-      expect(math.rotation).toBeUndefined()
-    })
   })
 
   describe("createFromPartial", () => {
@@ -86,18 +82,10 @@ describe("MathOps", () => {
   })
 
   describe("updateDerivedFields", () => {
-    test("should compute vertices from corners when no rotation", () => {
+    test("should compute vertices from corners", () => {
       const math = MathOps.create(elements, point, bounds)
       MathOps.updateDerivedFields(math)
       expect(math.vertices).toEqual(BoxOps.getCorners(bounds))
-    })
-
-    test("should compute rotated vertices when rotation is set", () => {
-      const math = MathOps.create(elements, point, bounds)
-      math.rotation = { degree: 90, center: { x: 0, y: 0 } }
-      MathOps.updateDerivedFields(math)
-      expect(math.vertices).not.toEqual(BoxOps.getCorners(bounds))
-      expect(math.vertices).toHaveLength(4)
     })
 
     test("should recompute edges when bounds change", () => {

@@ -1,6 +1,16 @@
-import { describe, test, expect, beforeEach } from "@jest/globals"
+import { describe, test, expect, beforeAll, beforeEach } from "@jest/globals"
 import { buildIIText } from "../../helpers"
-import { TextUtil, SymbolType, OBBOps, MatrixTransform, type TSymbolChar, type TBox } from "@/iink"
+import {
+  TextUtil,
+  TextOps,
+  SymbolGeometry,
+  SymbolType,
+  OBBOps,
+  MatrixTransform,
+  registerBuiltinSymbolUtils,
+  type TSymbolChar,
+  type TBox,
+} from "@/iink"
 
 const makeChar = (label: string, bounds: TBox): TSymbolChar => ({
   id: `char-${label}`,
@@ -13,6 +23,8 @@ const makeChar = (label: string, bounds: TBox): TSymbolChar => ({
 
 describe("TextUtil", () => {
   let util: TextUtil
+
+  beforeAll(() => registerBuiltinSymbolUtils())
 
   beforeEach(() => {
     util = new TextUtil()
@@ -115,25 +127,6 @@ describe("TextUtil", () => {
       text.transform = MatrixTransform.identity().translate(3, 4)
       expect(util.getSVGElement(text).getAttribute("transform")).toBe("matrix(1, 0, 0, 1, 3, 4)")
     })
-
-    test("emits the legacy rotate attribute alone while the matrix stays identity", () => {
-      // Task 11 removes `.rotation`; until then a rotated text symbol still turns through it, not
-      // the matrix, so getSVGElement must keep emitting exactly this — the pre-task-9 attribute.
-      const text = buildIIText()
-      text.rotation = { degree: 45, center: { x: 1, y: 2 } }
-      expect(util.getSVGElement(text).getAttribute("transform")).toBe("rotate(45, 1, 2)")
-    })
-
-    test("composes the matrix before the legacy rotate when both apply", () => {
-      // Order matters: an SVG transform list applies right-to-left, so the matrix must be the
-      // leftmost (outer) term and `rotate` the rightmost (inner) one — `rotate` turns the raw
-      // glyphs about `rotation.center` first, then the matrix moves the whole (already-rotated)
-      // result. Reversing the order would rotate about a point the matrix had already displaced.
-      const text = buildIIText()
-      text.rotation = { degree: 45, center: { x: 1, y: 2 } }
-      text.transform = MatrixTransform.identity().translate(3, 4)
-      expect(util.getSVGElement(text).getAttribute("transform")).toBe("matrix(1, 0, 0, 1, 3, 4) rotate(45, 1, 2)")
-    })
   })
 
   describe("getSnapPoints", () => {
@@ -142,6 +135,42 @@ describe("TextUtil", () => {
       util.updateDerivedFields(text)
       const result = util.getSnapPoints(text)
       expect(result).toStrictEqual(text.snapPoints)
+    })
+  })
+
+  describe("rotate/resize, composing the matrix", () => {
+    test("a second rotation composes with the first instead of replacing it", () => {
+      const text = TextOps.createFromPartial({
+        chars: [{ label: "a", color: "#000", fontSize: 10, fontWeight: "normal", id: "c1" }],
+        point: { x: 0, y: 0 },
+        bounds: OBBOps.fromBox({ x: 0, y: 0, width: 10, height: 10 }),
+      })
+      const center = { x: 5, y: 5 }
+
+      util.rotate(text, { matrix: MatrixTransform.identity().rotate(Math.PI / 4, center), center })
+      util.rotate(text, { matrix: MatrixTransform.identity().rotate(Math.PI / 4, center), center })
+
+      // `bounds.angle` is radians (`TOBB`'s own convention, per OBBOps — Task 9 fixed a bug that
+      // mixed degrees into it), so two quarter-quarter (45°) turns compose to π/2, not 90.
+      expect(SymbolGeometry.boundsOf(text).angle).toBeCloseTo(Math.PI / 2)
+    })
+
+    test("a resize of a turned text keeps its angle", () => {
+      // The bug this covers: `TypesetUtil.resize` used to set `bounds.angle = 0` while leaving a
+      // separate `rotation` field intact, desynchronising the hit box from what was drawn. There is
+      // only one matrix to compose now, so the angle a rotate composed into it survives a resize.
+      const text = TextOps.createFromPartial({
+        chars: [{ label: "a", color: "#000", fontSize: 10, fontWeight: "normal", id: "c1" }],
+        point: { x: 0, y: 0 },
+        bounds: OBBOps.fromBox({ x: 0, y: 0, width: 10, height: 10 }),
+      })
+      const center = { x: 5, y: 5 }
+      util.rotate(text, { matrix: MatrixTransform.identity().rotate(Math.PI / 2, center), center })
+
+      util.resize(text, { matrix: MatrixTransform.identity().scale(2, 2, { x: 0, y: 0 }), origin: { x: 0, y: 0 } })
+
+      // Radians again, for the same reason as above: a 90° turn is π/2.
+      expect(SymbolGeometry.boundsOf(text).angle).toBeCloseTo(Math.PI / 2)
     })
   })
 

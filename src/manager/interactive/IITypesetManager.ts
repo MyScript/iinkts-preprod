@@ -101,7 +101,6 @@ export class IITypesetManager extends IIAbstractManager {
     const el = this.drawSymbolHidden(symbol)
     if (isText(symbol)) {
       symbol.bounds = OBBOps.fromBox(this.getElementBoundingBox(el))
-      symbol.bounds.angle = symbol.rotation?.degree ?? 0
       this.setCharsBounds(symbol, el)
       TextOps.updateDerivedFields(symbol)
     } else {
@@ -112,7 +111,6 @@ export class IITypesetManager extends IIAbstractManager {
         width: bbox.width,
         height: bbox.height,
       })
-      symbol.bounds.angle = symbol.rotation?.degree ?? 0
       MathOps.updateDerivedFields(symbol)
     }
   }

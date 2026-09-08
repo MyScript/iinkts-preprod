@@ -1,11 +1,5 @@
 import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
-import {
-  buildIIMath,
-  buildIIStroke,
-  buildIIText,
-  expectDerivedFieldsSettled,
-  expectPointsRounded,
-} from "../../../helpers"
+import { buildIIMath, buildIIStroke, buildIIText, expectDerivedFieldsSettled } from "../../../helpers"
 import {
   EdgeArcOps,
   EdgeLineOps,
@@ -22,10 +16,7 @@ import {
   StrokeOps,
   SvgElementRole,
   TBaseSymbol,
-  TEdgeLine,
   TPoint,
-  TShapeCircle,
-  TShapePolygon,
   TStroke,
   TSymbol,
   TSymbolChar,
@@ -54,28 +45,34 @@ describe("IIResizeManager.ts", () => {
       expect(() => manager.applyToSymbol(stroke, matrix)).toThrow('No util is registered for type "pouet"')
       expect(() => manager.applyToSymbol(stroke, matrix)).toThrow(/Registered types: .*stroke/)
     })
-    test("should resize stroke", () => {
+    test("should resize stroke by composing the matrix rather than moving its pointers", () => {
       const stroke = StrokeOps.create()
       const origin: TPoint = { x: 1, y: 2 }
       StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 1, y: 2 })
       StrokeOps.addPointer(stroke, { p: 1, t: 10, x: 21, y: 42 })
+      const pointersBefore = stroke.pointers.map((p) => ({ ...p }))
       const matrix = MatrixTransform.identity().scale(2, 3, origin)
       manager.applyToSymbol(stroke, matrix)
-      expect(stroke.pointers[0]).toEqual(expect.objectContaining({ x: 1, y: 2 }))
-      expect(stroke.pointers[1]).toEqual(expect.objectContaining({ x: 41, y: 122 }))
+      // Starting from identity, composing the matrix onto it is the matrix itself.
+      expect(stroke.transform).toEqual({ xx: 2, yx: 0, xy: 0, yy: 3, tx: -1, ty: -4 })
+      expect(stroke.pointers).toEqual(pointersBefore)
     })
-    test("should resize a math solver-output (draw) stroke like a normal stroke", () => {
+    test("should resize a math solver-output (draw) stroke the same way", () => {
       const stroke = StrokeOps.create()
       stroke.isSolverOutput = true
       const origin: TPoint = { x: 1, y: 2 }
       StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 1, y: 2 })
       StrokeOps.addPointer(stroke, { p: 1, t: 10, x: 21, y: 42 })
+      const pointersBefore = stroke.pointers.map((p) => ({ ...p }))
       const matrix = MatrixTransform.identity().scale(2, 3, origin)
       manager.applyToSymbol(stroke, matrix)
-      expect(stroke.pointers[0]).toEqual(expect.objectContaining({ x: 1, y: 2 }))
-      expect(stroke.pointers[1]).toEqual(expect.objectContaining({ x: 41, y: 122 }))
+      expect(stroke.transform).toEqual({ xx: 2, yx: 0, xy: 0, yy: 3, tx: -1, ty: -4 })
+      expect(stroke.pointers).toEqual(pointersBefore)
     })
-    test("should not resize shape with kind unknown", () => {
+    test("resize shape with kind unknown no longer throws, since resize no longer resolves a kind", () => {
+      // IIC-2013 moved the refusal to the shape util's kind table; Task 11 then made
+      // translate/rotate/resize matrix-only, so that table is no longer on this path at all — a
+      // symbol whose geometry cannot be computed can still have its matrix composed.
       const points: TPoint[] = [
         { x: 0, y: 0 },
         { x: 0, y: 5 },
@@ -87,23 +84,21 @@ describe("IIResizeManager.ts", () => {
       poly.kind = "pouet"
       const origin: TPoint = { x: 0, y: 0 }
       const matrix = MatrixTransform.identity().scale(2, 3, origin)
-      // IIC-2013 moved the refusal to the shape util's kind table. With rotate and translate
-      // already moved, all three transform managers word it the same way again.
-      expect(() => manager.applyToSymbol(poly, matrix)).toThrow(
-        'Unable to resize shape, kind: "pouet" is unknown'
-      )
+      expect(() => manager.applyToSymbol(poly, matrix)).not.toThrow()
+      expect(poly.transform).toEqual({ xx: 2, yx: 0, xy: 0, yy: 3, tx: 0, ty: 0 })
     })
-    test("should resize shape Circle", () => {
+    test("should resize shape Circle by composing the matrix rather than scaling its radius", () => {
       const center: TPoint = { x: 5, y: 5 }
       const radius = 4
       const shape = ShapeCircleOps.create(center, radius)
       const origin: TPoint = { x: 1, y: 2 }
       const matrix = MatrixTransform.identity().scale(2, 4, origin)
       manager.applyToSymbol(shape, matrix)
-      expect(shape.radius).toEqual(12)
-      expect(shape.center).toEqual({ x: 9, y: 14 })
+      expect(shape.transform).toEqual({ xx: 2, yx: 0, xy: 0, yy: 4, tx: -1, ty: -6 })
+      expect(shape.radius).toEqual(radius)
+      expect(shape.center).toEqual(center)
     })
-    test("should resize shape Ellipse", () => {
+    test("should resize shape Ellipse by composing the matrix rather than scaling its radii", () => {
       const center: TPoint = { x: 0, y: 0 }
       const radiusX = 50
       const radiusY = 10
@@ -116,11 +111,15 @@ describe("IIResizeManager.ts", () => {
       manager.transformOrigin = origin
       const matrix = MatrixTransform.identity().scale(scaleX, scaleY, origin)
       manager.applyToSymbol(shape, matrix)
-      expect(shape.radiusX).toEqual(radiusX * scaleX)
-      expect(shape.radiusY).toEqual(radiusY * scaleY)
-      expect(shape.center).toEqual({ x: 49.534, y: 29.931 })
+      // `matrix` is built independently of the code under test (`applyTransform`), so comparing
+      // against it is not circular: starting from identity, composing it is the matrix itself.
+      expect(shape.transform).toEqual(matrix)
+      expect(shape.radiusX).toEqual(radiusX)
+      expect(shape.radiusY).toEqual(radiusY)
+      expect(shape.center).toEqual(center)
+      expect(shape.orientation).toEqual(orientation)
     })
-    test("should resize shape Polygon", () => {
+    test("should resize shape Polygon by composing the matrix rather than moving its points", () => {
       const points: TPoint[] = [
         { x: 0, y: 0 },
         { x: 20, y: 0 },
@@ -134,16 +133,10 @@ describe("IIResizeManager.ts", () => {
       const origin: TPoint = { x: polyBoundsBox.x, y: polyBoundsBox.y }
       const matrix = MatrixTransform.identity().scale(scaleX, scaleY, origin)
       manager.applyToSymbol(shape, matrix)
-      expect(shape.points[0].x).toEqual(0)
-      expect(shape.points[0].y).toEqual(0)
-      expect(shape.points[1].x).toEqual(40)
-      expect(shape.points[1].y).toEqual(0)
-      expect(shape.points[2].x).toEqual(40)
-      expect(shape.points[2].y).toEqual(40)
-      expect(shape.points[3].x).toEqual(0)
-      expect(shape.points[3].y).toEqual(40)
+      expect(shape.transform).toEqual(matrix)
+      expect(shape.points).toEqual(points)
     })
-    test("should not resize edge with kind unknown", () => {
+    test("resize edge with kind unknown no longer throws, for the same reason", () => {
       const start: TPoint = { x: 0, y: 0 }
       const end: TPoint = { x: 0, y: 5 }
       const edge = EdgeLineOps.create(start, end)
@@ -151,11 +144,10 @@ describe("IIResizeManager.ts", () => {
       edge.kind = "pouet"
       const origin: TPoint = { x: 0, y: 0 }
       const matrix = MatrixTransform.identity().scale(2, 3, origin)
-      expect(() => manager.applyToSymbol(edge, matrix)).toThrow(
-        'Unable to resize edge, kind: "pouet" is unknown'
-      )
+      expect(() => manager.applyToSymbol(edge, matrix)).not.toThrow()
+      expect(edge.transform).toEqual({ xx: 2, yx: 0, xy: 0, yy: 3, tx: 0, ty: 0 })
     })
-    test("should resize edge Arc", () => {
+    test("should resize edge Arc by composing the matrix rather than scaling its radii", () => {
       const center: TPoint = { x: 0, y: 0 }
       const startAngle = -Math.PI
       const sweepAngle = Math.PI
@@ -170,21 +162,25 @@ describe("IIResizeManager.ts", () => {
       manager.transformOrigin = origin
       const matrix = MatrixTransform.identity().scale(scaleX, scaleY, origin)
       manager.applyToSymbol(edge, matrix)
-      expect(edge.center).toEqual({ x: 55, y: 29.796 })
-      expect(edge.radiusX).toEqual(radiusX * scaleX)
-      expect(edge.radiusY).toEqual(radiusY * scaleY)
+      expect(edge.transform).toEqual(matrix)
+      expect(edge.center).toEqual(center)
+      expect(edge.radiusX).toEqual(radiusX)
+      expect(edge.radiusY).toEqual(radiusY)
+      expect(edge.startAngle).toEqual(startAngle)
+      expect(edge.sweepAngle).toEqual(sweepAngle)
     })
-    test("resize edge Line", () => {
+    test("resize edge Line composes the matrix rather than moving its endpoints", () => {
       const start: TPoint = { x: 0, y: 0 }
       const end: TPoint = { x: 0, y: 5 }
       const edge = EdgeLineOps.create(start, end)
       const origin: TPoint = { x: 0, y: 0 }
       const matrix = MatrixTransform.identity().scale(2, 3, origin)
       manager.applyToSymbol(edge, matrix)
-      expect(edge.start).toEqual({ x: 0, y: 0 })
-      expect(edge.end).toEqual({ x: 0, y: 15 })
+      expect(edge.transform).toEqual({ xx: 2, yx: 0, xy: 0, yy: 3, tx: 0, ty: 0 })
+      expect(edge.start).toEqual(start)
+      expect(edge.end).toEqual(end)
     })
-    test("resize edge PolyEdge", () => {
+    test("resize edge PolyEdge composes the matrix rather than moving its points", () => {
       const points: TPoint[] = [
         { x: 0, y: 0 },
         { x: 20, y: 0 },
@@ -195,16 +191,10 @@ describe("IIResizeManager.ts", () => {
       const origin: TPoint = { x: 0, y: 0 }
       const matrix = MatrixTransform.identity().scale(2, 3, origin)
       manager.applyToSymbol(edge, matrix)
-      expect(edge.points[0].x).toEqual(0)
-      expect(edge.points[0].y).toEqual(0)
-      expect(edge.points[1].x).toEqual(40)
-      expect(edge.points[1].y).toEqual(0)
-      expect(edge.points[2].x).toEqual(40)
-      expect(edge.points[2].y).toEqual(30)
-      expect(edge.points[3].x).toEqual(0)
-      expect(edge.points[3].y).toEqual(30)
+      expect(edge.transform).toEqual({ xx: 2, yx: 0, xy: 0, yy: 3, tx: 0, ty: 0 })
+      expect(edge.points).toEqual(points)
     })
-    test("resize edge Text", () => {
+    test("resize edge Text composes the matrix rather than rebuilding bounds or scaling glyphs", () => {
       const point: TPoint = { x: 0, y: 0 }
       const chars: TSymbolChar[] = [
         {
@@ -217,12 +207,14 @@ describe("IIResizeManager.ts", () => {
         },
       ]
       const text = TextOps.create(chars, point, { height: 10, width: 5, x: 0, y: 0 })
+      const boundsBefore = structuredClone(text.bounds)
       const origin: TPoint = { x: 0, y: 0 }
       const matrix = MatrixTransform.identity().scale(2, 3, origin)
       manager.applyToSymbol(text, matrix)
-      expect(text.point).toEqual({ x: 0, y: 0 })
-      expect(chars[0].fontSize).toEqual(30)
-      expect(text.bounds).toEqual(OBBOps.fromBox({ x: 0, y: 0, width: 10, height: 30 }))
+      expect(text.transform).toEqual({ xx: 2, yx: 0, xy: 0, yy: 3, tx: 0, ty: 0 })
+      expect(text.point).toEqual(point)
+      expect(chars[0].fontSize).toEqual(12)
+      expect(text.bounds).toEqual(boundsBefore)
     })
   })
 
@@ -645,52 +637,18 @@ describe("IIResizeManager.ts", () => {
     })
   })
 
-  /**
-   * A resize by a third of a pixel: raw, every coordinate would keep seventeen decimals. IIC-2010
-   * put all thirteen of the managers' raw `applyToPoint` sites on the rounding helper, and nothing
-   * covered any of them — deleting the rounding outright left this whole file green.
-   *
-   * Each case names the geometry the transform writes. The derived fields are excluded on purpose:
-   * see `expectPointsRounded`.
-   */
-  describe("coordinate rounding", () => {
-    const canvas = createCanvasMock()
-    const manager = new IIResizeManager(asCanvas(canvas))
-
-    /** Each row names the geometry its own builder produced, so the narrowing is sound. */
-    const CASES: [string, () => TSymbol, (symbol: TSymbol) => TPoint[]][] = [
-      ["circle centre", () => ShapeCircleOps.create({ x: 5, y: 5 }, 4), (s) => [(s as TShapeCircle).center]],
-      [
-        "polygon points",
-        () =>
-          ShapePolygonOps.create([
-            { x: 0, y: 0 },
-            { x: 10, y: 0 },
-            { x: 10, y: 10 },
-          ]),
-        (s) => (s as TShapePolygon).points,
-      ],
-      [
-        "line endpoints",
-        () => EdgeLineOps.create({ x: 0, y: 0 }, { x: 10, y: 10 }),
-        (s) => [(s as TEdgeLine).start, (s as TEdgeLine).end],
-      ],
-      ["stroke pointers", () => buildIIStroke(), (s) => (s as TStroke).pointers],
-    ]
-
-    test.each(CASES)("%s should keep three decimals", (_name, build, stored) => {
-      const symbol = build()
-      manager.applyToSymbol(symbol, MatrixTransform.identity().scale(1 / 3, 1 / 3, { x: 1 / 3, y: 1 / 3 }))
-      expectPointsRounded(stored(symbol))
-    })
-  })
 })
 
 /**
  * Two resize cells that nothing covered: gutting either left this whole file green. IIC-2013 moved
  * them onto the utils, so they are pinned here.
  */
-describe("IIResizeManager, the two uncovered resize cells", () => {
+/**
+ * These three cells — an arc's mirrored start angle/sweep, math's font scaling — were the last
+ * per-type resize logic left, and Task 11 deleted all of it: resize composes the matrix now, for
+ * every type, and leaves the raw fields it used to rewrite by hand untouched.
+ */
+describe("IIResizeManager, resize composes the matrix instead of touching these fields", () => {
   const resize = (symbol: TSymbol, matrix: MatrixTransform, origin: TPoint) => {
     const canvas = createCanvasMock()
     const manager = new IIResizeManager(asCanvas(canvas))
@@ -698,35 +656,37 @@ describe("IIResizeManager, the two uncovered resize cells", () => {
     manager.applyToSymbol(symbol, matrix)
   }
 
-  test("mirroring an arc should re-base its start angle and reverse its sweep", () => {
-    // A negative x scale flips the arc. Its start angle is measured from the other side afterwards,
-    // and it sweeps the other way — drop either and the arc resizes into a different curve.
+  test("mirroring an arc no longer re-bases its start angle or reverses its sweep", () => {
     const arc = EdgeArcOps.create({ x: 50, y: 50 }, 0.5, 1.5, 30, 20, 0)
     const origin: TPoint = { x: 0, y: 0 }
-    resize(arc, MatrixTransform.identity().scale(-1, 1, origin), origin)
-    expect(arc.startAngle).toBeCloseTo(+(Math.PI - 0.5).toFixed(3), 6)
-    expect(arc.sweepAngle).toBeCloseTo(-1.5, 6)
+    const matrix = MatrixTransform.identity().scale(-1, 1, origin)
+    resize(arc, matrix, origin)
+    expect(arc.transform).toEqual(matrix)
+    expect(arc.startAngle).toBe(0.5)
+    expect(arc.sweepAngle).toBe(1.5)
   })
 
-  test("mirroring an arc vertically should only reverse the sweep", () => {
+  test("mirroring an arc vertically leaves it just as untouched", () => {
     const arc = EdgeArcOps.create({ x: 50, y: 50 }, 0.5, 1.5, 30, 20, 0)
     const origin: TPoint = { x: 0, y: 0 }
-    resize(arc, MatrixTransform.identity().scale(1, -1, origin), origin)
-    expect(arc.startAngle).toBeCloseTo(0.5, 6)
-    expect(arc.sweepAngle).toBeCloseTo(-1.5, 6)
+    const matrix = MatrixTransform.identity().scale(1, -1, origin)
+    resize(arc, matrix, origin)
+    expect(arc.transform).toEqual(matrix)
+    expect(arc.startAngle).toBe(0.5)
+    expect(arc.sweepAngle).toBe(1.5)
   })
 
-  test("resizing math should scale its element font sizes", () => {
-    // Text's font scaling was covered; math's was not, even though the two shared one method.
+  test("resizing math no longer scales its element font sizes by hand", () => {
+    // The matrix scales the glyphs at render time instead, which is also what makes the operation
+    // exactly reversible — hand-scaling a font size and rounding it to three decimals could not be.
     const math = buildIIMath()
     const before = math.elements.map((element) => element.fontSize)
     expect(before.length).toBeGreaterThan(0)
     const origin: TPoint = { x: 0, y: 0 }
-    resize(math, MatrixTransform.identity().scale(2, 4, origin), origin)
-    // The mean of the two axes, which is what a typeset symbol scales its glyphs by.
-    expect(math.elements.map((element) => element.fontSize)).toEqual(
-      before.map((size) => +(size * 3).toFixed(3))
-    )
+    const matrix = MatrixTransform.identity().scale(2, 4, origin)
+    resize(math, matrix, origin)
+    expect(math.transform).toEqual(matrix)
+    expect(math.elements.map((element) => element.fontSize)).toEqual(before)
   })
 })
 
