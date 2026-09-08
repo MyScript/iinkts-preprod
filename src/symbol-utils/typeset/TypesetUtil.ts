@@ -46,13 +46,6 @@ export abstract class TypesetUtil<T extends TText | TMath> extends SymbolUtil<T>
     }
   }
 
-  updateDerivedFields(symbol: T): void {
-    // Destructured rather than spread: `computeGeometry` also carries `length`, which neither
-    // `TText` nor `TMath` declares — an undeclared property `Object.assign` would not warn about.
-    const { bounds, vertices, snapPoints, edges } = this.computeGeometry(symbol)
-    Object.assign(symbol, { bounds, vertices, snapPoints, edges })
-  }
-
   /**
    * Always. A typeset symbol is drawn from glyphs at a font size, and a font size is one number —
    * scaling the axes unequally would ask for glyphs that do not exist.

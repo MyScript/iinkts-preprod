@@ -49,46 +49,28 @@ describe("DecoratorUtil", () => {
     })
   })
 
-  describe("updateDerivedFields", () => {
-    test("should not throw when decorator has no bounds", () => {
-      const decorator = buildIIDecorator(DecoratorKind.Underline)
-      expect(() => util.updateDerivedFields(decorator)).not.toThrow()
-    })
-
-    test("should not throw when decorator has bounds", () => {
-      const decorator = util.create({
-        kind: DecoratorKind.Highlight,
-        bounds: OBBOps.fromBox({ x: 0, y: 0, width: 10, height: 10 }),
-      })
-      // setBounds is guarded by hasBounds
-      expect(() => util.updateDerivedFields(decorator)).not.toThrow()
-    })
-  })
-
   describe("computeGeometry", () => {
-    test("matches the legacy DecoratorOps.setBounds writer, not merely itself", () => {
+    test("reads targetBounds rather than deriving anything, since a decorator owns no coordinates", () => {
       const decorator = util.create({ kind: DecoratorKind.Highlight })
-      // Independent oracle: `DecoratorOps.setBounds`, the untouched legacy writer, called directly
-      // with a real `TBox` — not through `util.create`'s own bounds handling (a separate,
-      // pre-existing `TOBB`-vs-`TBox` mismatch out of this task's scope), and not through
-      // `computeGeometry`. `x`/`y` are real, finite coordinates, so a NaN center here would mean
-      // the fixture itself is broken rather than proving anything about `computeGeometry`.
-      DecoratorOps.setBounds(decorator, OBBOps.fromBox({ x: 0, y: 0, width: 10, height: 10 }))
-      expect(Number.isNaN(decorator.bounds.center.x)).toBe(false)
+      // Oracle is `DecoratorOps`, reached directly: `computeGeometry` is the one util method that
+      // reports a stored box, so what it must be checked against is the writer, not a derivation.
+      DecoratorOps.setTargetBounds(decorator, OBBOps.fromBox({ x: 0, y: 0, width: 10, height: 10 }))
 
       const geometry = util.computeGeometry(decorator)
 
-      expect(geometry.bounds).toEqual(decorator.bounds)
-      expect(geometry.vertices).toEqual(decorator.vertices)
-      expect(geometry.snapPoints).toEqual(decorator.snapPoints)
-      expect(geometry.edges).toEqual(decorator.edges)
+      expect(geometry.bounds).toEqual(decorator.targetBounds)
+      expect(geometry.vertices).toEqual(DecoratorOps.computeVertices(decorator.targetBounds!))
+      // A decorator's snap points are its two vertices — that is what the removed field copied.
+      expect(geometry.snapPoints).toEqual(geometry.vertices)
+      // A decorator's single edge joins its two vertices — what the removed field held.
+      expect(geometry.edges).toEqual([{ p1: geometry.vertices[0], p2: geometry.vertices[1] }])
       expect(geometry.length).toBe(0)
     })
 
-    test("reports empty geometry for a decorator without bounds, mirroring updateDerivedFields' own guard", () => {
-      const decorator = buildIIDecorator(DecoratorKind.Underline) // hasBounds stays false
+    test("reports empty geometry for a decorator with no targetBounds, not two points at the origin", () => {
+      const decorator = buildIIDecorator(DecoratorKind.Underline) // targetBounds stays unset
       expect(util.computeGeometry(decorator)).toEqual({
-        bounds: decorator.bounds,
+        bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0),
         vertices: [],
         snapPoints: [],
         edges: [],
@@ -96,39 +78,47 @@ describe("DecoratorUtil", () => {
       })
     })
 
-    test("updateDerivedFields should not write an undeclared length onto the decorator", () => {
-      const decorator = util.create({ kind: DecoratorKind.Highlight })
-      DecoratorOps.setBounds(decorator, OBBOps.fromBox({ x: 0, y: 0, width: 10, height: 10 }))
-      util.updateDerivedFields(decorator)
-      expect(decorator).not.toHaveProperty("length")
+    test("takes targetBounds through create as the TOBB the field declares, centre intact", () => {
+      // `create` used to read this partial as a `TBox` behind a cast, so a decorator serialised by
+      // iinkTS itself — a `TOBB`, carrying `center` and no `x` — came back with a NaN centre.
+      const decorator = util.create({
+        kind: DecoratorKind.Highlight,
+        targetBounds: { center: { x: 5, y: 5 }, width: 10, height: 10, angle: 0 },
+      })
+      expect(decorator.targetBounds).toEqual(OBBOps.create({ x: 5, y: 5 }, 10, 10))
+      expect(util.computeGeometry(decorator).vertices).toEqual([
+        { x: 0, y: 5 },
+        { x: 10, y: 5 },
+      ])
     })
   })
 
   describe("overlaps", () => {
-    test("should return false when decorator with no bounds is tested against box", () => {
+    test("should return false when a decorator with no targetBounds is tested against a box", () => {
       const decorator = buildIIDecorator(DecoratorKind.Underline)
-      // No bounds set so expected to not overlap (no vertices)
-      const result = util.overlaps(decorator, { x: 0, y: 0, width: 100, height: 100 })
-      expect(typeof result).toBe("boolean")
+      expect(util.overlaps(decorator, { x: 0, y: 0, width: 100, height: 100 })).toBe(false)
+    })
+
+    test("should overlap a box that meets its targetBounds", () => {
+      const decorator = buildIIDecorator(DecoratorKind.Underline)
+      DecoratorOps.setTargetBounds(decorator, OBBOps.fromBox({ x: 10, y: 10, width: 50, height: 20 }))
+      expect(util.overlaps(decorator, { x: 0, y: 0, width: 30, height: 30 })).toBe(true)
+      expect(util.overlaps(decorator, { x: 200, y: 200, width: 30, height: 30 })).toBe(false)
     })
   })
 
   describe("getSnapPoints", () => {
-    test("should return the decorator's snap points once bounds are set", () => {
+    test("should return the decorator's snap points once targetBounds are set", () => {
       const decorator = util.create({ kind: DecoratorKind.Strikethrough })
-      // `util.create`'s own `bounds` partial handling has a pre-existing TOBB-vs-TBox mismatch
-      // (see the `computeGeometry` test above), so bounds are set the same safe way: directly via
-      // the legacy writer, with a real `TBox`.
-      DecoratorOps.setBounds(decorator, OBBOps.fromBox({ x: 0, y: 0, width: 10, height: 10 }))
-      // Independent oracle: computed straight from `decorator.bounds`, not read back from the
-      // decorator's own `snapPoints` field — a `getSnapPoints` stubbed to return `[]` would fail
-      // this against a non-empty expectation.
-      const expected = DecoratorOps.computeVertices(decorator.bounds)
+      DecoratorOps.setTargetBounds(decorator, OBBOps.fromBox({ x: 0, y: 0, width: 10, height: 10 }))
+      // Independent oracle: computed straight from `targetBounds`, so a `getSnapPoints` stubbed to
+      // return `[]` fails this against a non-empty expectation.
+      const expected = DecoratorOps.computeVertices(decorator.targetBounds!)
       expect(expected.length).toBeGreaterThan(0)
       expect(util.getSnapPoints(decorator)).toStrictEqual(expected)
     })
 
-    test("should return an empty array when the decorator has no bounds", () => {
+    test("should return an empty array when the decorator has no targetBounds", () => {
       const decorator = buildIIDecorator(DecoratorKind.Strikethrough)
       expect(util.getSnapPoints(decorator)).toStrictEqual([])
     })

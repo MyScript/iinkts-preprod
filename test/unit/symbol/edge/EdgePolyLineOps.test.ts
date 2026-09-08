@@ -27,18 +27,18 @@ describe("EdgePolyLineOps", () => {
     })
     test("should have vertices same ref as points", () => {
       const line = EdgePolyLineOps.create(points)
-      expect(line.vertices).toBe(line.points)
+      expect(EdgePolyLineOps.computeVertices(line)).toBe(line.points)
     })
     test("should compute vertices count matching points", () => {
       const line = EdgePolyLineOps.create(points)
-      expect(line.vertices).toHaveLength(3)
+      expect(EdgePolyLineOps.computeVertices(line)).toHaveLength(3)
     })
     test("should compute bounds with margin", () => {
       const line = EdgePolyLineOps.create(points, undefined, undefined, { width: 20 })
-      expect(OBBOps.toBox(line.bounds).x).toEqual(-5)
-      expect(OBBOps.toBox(line.bounds).y).toEqual(-5)
-      expect(line.bounds.width).toEqual(15)
-      expect(line.bounds.height).toEqual(15)
+      expect(OBBOps.toBox(EdgePolyLineOps.computeBounds(line)).x).toEqual(-5)
+      expect(OBBOps.toBox(EdgePolyLineOps.computeBounds(line)).y).toEqual(-5)
+      expect(EdgePolyLineOps.computeBounds(line).width).toEqual(15)
+      expect(EdgePolyLineOps.computeBounds(line).height).toEqual(15)
     })
     test("should generate unique ids", () => {
       const l1 = EdgePolyLineOps.create(points)
@@ -71,25 +71,6 @@ describe("EdgePolyLineOps", () => {
       ]
       const line = EdgePolyLineOps.createFromPartial({ id: "pl-id", points: pts })
       expect(line.id).toEqual("pl-id")
-    })
-  })
-
-  describe("updateDerivedFields", () => {
-    test("should recompute after points change", () => {
-      const pts: TPoint[] = [
-        { x: 0, y: 0 },
-        { x: 5, y: 0 },
-        { x: 5, y: 5 },
-      ]
-      const line = EdgePolyLineOps.create(pts)
-      line.points = [
-        { x: 0, y: 0 },
-        { x: 50, y: 0 },
-        { x: 50, y: 50 },
-      ]
-      EdgePolyLineOps.updateDerivedFields(line)
-      expect(line.vertices).toBe(line.points)
-      expect(line.bounds.width).toBeGreaterThan(20)
     })
   })
 

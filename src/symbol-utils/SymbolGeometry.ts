@@ -123,10 +123,6 @@ function of(symbol: TBaseSymbol): TSymbolGeometry {
  * @group SymbolUtils
  * @summary Reads a symbol's derived geometry — bounds, vertices, snap points, edges, length.
  *
- * These used to be fields on every symbol type, written by `updateDerivedFields` after each change.
- * Storing them meant every mutation path had to remember to refresh them, and a forgotten call left
- * a symbol that looked right and hit-tested wrong.
- *
  * Every accessor below calls the module-level {@link of} directly rather than `this.of` — so
  * `const { boundsOf } = SymbolGeometry` and `symbols.map(SymbolGeometry.boundsOf)` both work. A
  * `this`-bound accessor throws the moment it is detached from the object, which is exactly the

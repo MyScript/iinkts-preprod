@@ -1,6 +1,7 @@
 import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
-import { buildIIMath, buildIIStroke, buildIIText, expectDerivedFieldsSettled } from "../../../helpers"
+import { buildIIMath, buildIIStroke, buildIIText } from "../../../helpers"
 import {
+  SymbolGeometry,
   DecoratorKind,
   DecoratorOps,
   DefaultHistoryConfiguration,
@@ -14,18 +15,16 @@ import {
   ShapePolygonOps,
   StrokeOps,
   SvgElementRole,
-  TDecorator,
   TEdgeLine,
   TPoint,
   TStroke,
   SymbolUtil,
   TBaseSymbol,
   TPartialDeep,
-  TResizeContext,
-  TRotateContext,
-  TTranslateContext,
+  TTransformContext,
   applyMatrixToPoint,
   symbolRegistry,
+  TDecorator,
   TMath,
   TSymbol,
   TSymbolGeometry,
@@ -123,8 +122,8 @@ describe("IITranslateManager.ts", () => {
     canvas.model.selectSymbol(strokeOrigin.id)
 
     const translationOrigin: TPoint = {
-      x: OBBOps.toBox(strokeOrigin.bounds).x + strokeOrigin.bounds.width / 2,
-      y: OBBOps.toBox(strokeOrigin.bounds).y + strokeOrigin.bounds.height / 2,
+      x: OBBOps.toBox(SymbolGeometry.boundsOf(strokeOrigin)).x + SymbolGeometry.boundsOf(strokeOrigin).width / 2,
+      y: OBBOps.toBox(SymbolGeometry.boundsOf(strokeOrigin)).y + SymbolGeometry.boundsOf(strokeOrigin).height / 2,
     }
 
     const testDatas = [
@@ -288,65 +287,6 @@ describe("IITranslateManager.ts", () => {
     })
   })
 
-  describe("standalone decorator bounds follow translated targets", () => {
-    test("translate() recomputes the decorator's bounds from its (moved) target symbols", async () => {
-      const canvas = createCanvasMock()
-      const manager = new IITranslateManager(asCanvas(canvas))
-
-      const stroke = buildIIStroke()
-      canvas.model.addSymbol(stroke)
-      const decorator = DecoratorOps.create(DecoratorKind.Highlight, {}, [stroke.id], OBBOps.toBox(stroke.bounds))
-      canvas.model.addSymbol(decorator)
-      const centerBefore = { ...decorator.bounds.center }
-
-      await manager.translate([stroke], 10, 20, false)
-
-      const newDeco = canvas.model.getRootSymbol(decorator.id) as TDecorator
-      expect(newDeco.bounds.center).toEqual(
-        expect.objectContaining({ x: centerBefore.x + 10, y: centerBefore.y + 20 })
-      )
-    })
-
-    test("translate() leaves other decorators (not targeting a moved symbol) untouched", async () => {
-      const canvas = createCanvasMock()
-      const manager = new IITranslateManager(asCanvas(canvas))
-
-      const movedStroke = buildIIStroke()
-      const otherStroke = buildIIStroke()
-      canvas.model.addSymbol(movedStroke)
-      canvas.model.addSymbol(otherStroke)
-      const decorator = DecoratorOps.create(
-        DecoratorKind.Highlight,
-        {},
-        [otherStroke.id],
-        OBBOps.toBox(otherStroke.bounds)
-      )
-      canvas.model.addSymbol(decorator)
-      const centerBefore = { ...decorator.bounds.center }
-
-      await manager.translate([movedStroke], 10, 20, false)
-
-      expect(decorator.bounds.center).toEqual(centerBefore)
-    })
-
-    test("translate() shifts the decorator's baseline vertically along with its target stroke", async () => {
-      const canvas = createCanvasMock()
-      const manager = new IITranslateManager(asCanvas(canvas))
-
-      const stroke = buildIIStroke()
-      canvas.model.addSymbol(stroke)
-      const decorator = DecoratorOps.create(DecoratorKind.Underline, {}, [stroke.id], OBBOps.toBox(stroke.bounds))
-      decorator.baseline = 100
-      decorator.xHeight = 8
-      canvas.model.addSymbol(decorator)
-
-      await manager.translate([stroke], 0, 50, false)
-
-      const newDeco = canvas.model.getRootSymbol(decorator.id) as TDecorator
-      expect(newDeco.baseline).toBe(150)
-    })
-  })
-
   describe("raw single-anchor edge stroke follows a translated block through the full commit path", () => {
     /**
      * Wires a real IIConnectorManager (the stub would no-op) plus a shape and a raw Edge stroke
@@ -371,7 +311,6 @@ describe("IITranslateManager.ts", () => {
       ]
       edgeStroke.jiixBlockType = "Edge"
       edgeStroke.endAnchor = { symbolId: shape.id, normalizedX: 1, normalizedY: 0.5 }
-      StrokeOps.updateBounds(edgeStroke)
       canvas.model.addSymbol(edgeStroke)
 
       return { shape, edgeStroke }
@@ -514,7 +453,6 @@ describe("IITranslateManager.ts", () => {
       ]
       edgeStroke.jiixBlockType = "Edge"
       edgeStroke.endAnchor = { symbolId: shape.id, normalizedX: 1, normalizedY: 0.5 }
-      StrokeOps.updateBounds(edgeStroke)
       canvas.model.addSymbol(edgeStroke)
 
       const matrix = MatrixTransform.identity().translate(30, 40)
@@ -577,7 +515,6 @@ describe("IITranslateManager.ts", () => {
       ]
       edgeStroke.jiixBlockType = "Edge"
       edgeStroke.endAnchor = { symbolId: shape.id, normalizedX: 1, normalizedY: 0.5 }
-      StrokeOps.updateBounds(edgeStroke)
       canvas.model.addSymbol(edgeStroke)
 
       await manager.translate([shape], 5, 5, false)
@@ -585,28 +522,6 @@ describe("IITranslateManager.ts", () => {
       const newEdgeStroke = canvas.model.getRootSymbol(edgeStroke.id) as TStroke
       expect(newEdgeStroke.pointers[0]).toEqual(expect.objectContaining({ x: 0, y: 0 }))
       expect(newEdgeStroke.pointers[1]).toEqual(expect.objectContaining({ x: 15, y: 5 }))
-    })
-  })
-
-  /**
-   * IIC-2004 moved the derive out of each `case` and into one call after the switch, asking the
-   * symbol's own util instead of a family dispatcher that re-resolved the kind. Deleting that one
-   * call left every existing test in this file green, so these are what hold it.
-   */
-  describe("derived fields", () => {
-    const canvas = createCanvasMock()
-    const manager = new IITranslateManager(asCanvas(canvas))
-
-    test("should leave a translated circle derived-consistent", () => {
-      const circle = ShapeCircleOps.create({ x: 5, y: 5 }, 4)
-      manager.applyToSymbol(circle, MatrixTransform.identity().translate(10, 15))
-      expectDerivedFieldsSettled(circle)
-    })
-
-    test("should leave a translated line derived-consistent", () => {
-      const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 10, y: 10 })
-      manager.applyToSymbol(line, MatrixTransform.identity().translate(10, 15))
-      expectDerivedFieldsSettled(line)
     })
   })
 
@@ -665,20 +580,19 @@ describe("IITranslateManager.ts", () => {
         create(partial: TPartialDeep<TStickyNote>): TStickyNote {
           return partial as TStickyNote
         }
-        updateDerivedFields(): void {}
         computeGeometry(): TSymbolGeometry {
           return { bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0), vertices: [], snapPoints: [], edges: [], length: 0 }
         }
         overlaps(): boolean {
           return false
         }
-        translate(symbol: TStickyNote, { matrix }: TTranslateContext): void {
+        translate(symbol: TStickyNote, { matrix }: TTransformContext): void {
           symbol.point = applyMatrixToPoint(symbol.point, matrix)
         }
-        rotate(symbol: TStickyNote, { matrix }: TRotateContext): void {
+        rotate(symbol: TStickyNote, { matrix }: TTransformContext): void {
           symbol.point = applyMatrixToPoint(symbol.point, matrix)
         }
-        resize(symbol: TStickyNote, { matrix }: TResizeContext): void {
+        resize(symbol: TStickyNote, { matrix }: TTransformContext): void {
           symbol.point = applyMatrixToPoint(symbol.point, matrix)
         }
         getSVGElement(): SVGGraphicsElement {
@@ -691,7 +605,7 @@ describe("IITranslateManager.ts", () => {
       const sticky = { id: "n1", type: "sticky-note", point: { x: 1, y: 2 } } as unknown as TSymbol
       symbolRegistry
         .getUtilFor(sticky)
-        .translate(sticky, { matrix: MatrixTransform.identity().translate(10, 15), typeset: canvas.typeset })
+        .translate(sticky, { matrix: MatrixTransform.identity().translate(10, 15) })
 
       expect((sticky as unknown as TStickyNote).point).toEqual({ x: 11, y: 17 })
 
@@ -766,5 +680,79 @@ describe("IIC-1999, a selection of typeset symbols", () => {
     await manager.translate([text], 10, 15)
 
     expect((canvas.model.symbols[0] as TText).transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 10, ty: 15 })
+  })
+  /**
+   * A decorator's `targetBounds` is an input: `DecoratorUtil.applyTransform` is a no-op, so no
+   * matrix carries it, and `updateDecoratorsForTargets` is the only thing that keeps it in step
+   * with the symbols the decorator sits over. Nothing covered that writer, which is why deleting
+   * it read as free — these tests are what makes it cost something.
+   */
+  describe("standalone decorator targetBounds follow translated targets", () => {
+    test("translate() recomputes the decorator's targetBounds from its (moved) target symbols", async () => {
+      const canvas = createCanvasMock()
+      const manager = new IITranslateManager(asCanvas(canvas))
+
+      const stroke = buildIIStroke()
+      canvas.model.addSymbol(stroke)
+      const decorator = DecoratorOps.create(
+        DecoratorKind.Highlight,
+        {},
+        [stroke.id],
+        OBBOps.toBox(SymbolGeometry.boundsOf(stroke))
+      )
+      canvas.model.addSymbol(decorator)
+      const centerBefore = { ...decorator.targetBounds!.center }
+
+      await manager.translate([stroke], 10, 20, false)
+
+      const newDeco = canvas.model.getRootSymbol(decorator.id) as TDecorator
+      expect(newDeco.targetBounds!.center).toEqual(
+        expect.objectContaining({ x: centerBefore.x + 10, y: centerBefore.y + 20 })
+      )
+    })
+
+    test("translate() leaves other decorators (not targeting a moved symbol) untouched", async () => {
+      const canvas = createCanvasMock()
+      const manager = new IITranslateManager(asCanvas(canvas))
+
+      const movedStroke = buildIIStroke()
+      const otherStroke = buildIIStroke()
+      canvas.model.addSymbol(movedStroke)
+      canvas.model.addSymbol(otherStroke)
+      const decorator = DecoratorOps.create(
+        DecoratorKind.Highlight,
+        {},
+        [otherStroke.id],
+        OBBOps.toBox(SymbolGeometry.boundsOf(otherStroke))
+      )
+      canvas.model.addSymbol(decorator)
+      const centerBefore = { ...decorator.targetBounds!.center }
+
+      await manager.translate([movedStroke], 10, 20, false)
+
+      expect(decorator.targetBounds!.center).toEqual(centerBefore)
+    })
+
+    test("translate() shifts the decorator's baseline vertically along with its target stroke", async () => {
+      const canvas = createCanvasMock()
+      const manager = new IITranslateManager(asCanvas(canvas))
+
+      const stroke = buildIIStroke()
+      canvas.model.addSymbol(stroke)
+      const decorator = DecoratorOps.create(
+        DecoratorKind.Underline,
+        {},
+        [stroke.id],
+        OBBOps.toBox(SymbolGeometry.boundsOf(stroke))
+      )
+      decorator.baseline = 100
+      decorator.xHeight = 8
+      canvas.model.addSymbol(decorator)
+
+      await manager.translate([stroke], 0, 50, false)
+
+      const newDeco = canvas.model.getRootSymbol(decorator.id) as TDecorator
+      expect(newDeco.baseline).toBe(150)
+    })
   })
 })

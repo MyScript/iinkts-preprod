@@ -155,12 +155,15 @@ export class IIGestureAnnotationProcessor {
       erased.push(existing)
     } else {
       const decorator = DecoratorOps.create(kind, this.canvas.penStyle, targetIds)
+      // The recognizer's own word box when JIIX has answered, the union of the targets' boxes
+      // otherwise. Not interchangeable: a word box is tighter than the union of its strokes, and
+      // neither can be recomputed from the decorator, which stores no coordinates of its own.
       if (wordBounds) {
-        DecoratorOps.setBounds(decorator, OBBOps.fromBox(wordBounds))
+        DecoratorOps.setTargetBounds(decorator, OBBOps.fromBox(wordBounds))
       } else {
         const bounds = this.#computeBoundsFromTargets(targetIds)
         if (bounds) {
-          DecoratorOps.setBounds(decorator, bounds)
+          DecoratorOps.setTargetBounds(decorator, bounds)
         }
       }
       if (baseline !== null) {

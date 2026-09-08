@@ -11,7 +11,7 @@ import { AbstractWriterManager } from "@/manager/base/AbstractWriterManager"
 import type { IIModel } from "@/model"
 import type { SVGRenderer } from "@/renderer"
 import type { TStyle } from "@/style"
-import type { TEdge, TEdgeLine, TShapeCircle, TShapeEllipse, TShapePolygon, TStroke, TSymbol } from "@/symbol"
+import type { TEdge, TShapeCircle, TShapeEllipse, TShapePolygon, TStroke, TSymbol } from "@/symbol"
 import { cloneSymbol, EdgeKind, isStroke, SymbolType } from "@/symbol"
 import { EdgeLineOps } from "@/symbol/edge/Line"
 import { ShapeCircleOps } from "@/symbol/shape/Circle"
@@ -212,8 +212,7 @@ export class IIWriterManager extends AbstractWriterManager {
     const edge = this.currentSymbol as TEdge
     switch (edge.kind) {
       case EdgeKind.Line:
-        ;(edge as TEdgeLine).end = pointer
-        symbolRegistry.getUtilFor(edge).updateDerivedFields(edge)
+        edge.end = pointer
         break
     }
   }

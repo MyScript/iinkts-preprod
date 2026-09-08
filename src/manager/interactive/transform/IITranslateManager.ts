@@ -25,7 +25,7 @@ export class IITranslateManager extends IIAbstractTransformManager {
    * this.
    */
   protected applyThroughUtil(symbol: TSymbol, matrix: MatrixTransform): void {
-    symbolRegistry.getUtilFor(symbol).translate(symbol, { matrix, typeset: this.canvas.typeset })
+    symbolRegistry.getUtilFor(symbol).translate(symbol, { matrix })
   }
 
   translate(symbols: TSymbol[], tx: number, ty: number, addToHistory = true): Promise<void> {

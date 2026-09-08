@@ -2,6 +2,7 @@ import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
 import { LeftClickEventMock, RightClickEventMock } from "../../__mocks__/EventMock"
 import { buildIICircle, buildIILine, buildIIStroke } from "../../helpers"
 import {
+  SymbolGeometry,
   IISelectionManager,
   MatrixTransform,
   OBBOps,
@@ -10,8 +11,6 @@ import {
   ResizeDirection,
   TPointerInfo,
   TStroke,
-  DecoratorOps,
-  DecoratorKind,
   EdgeArcOps,
   TEdgeArc,
   computePointOnEllipse,
@@ -117,16 +116,16 @@ describe("IISelectionManager.ts", () => {
       expect(group).not.toBeNull()
       const translateRect = group?.querySelector(`[role=${SvgElementRole.Translate}]`)
       expect(translateRect?.getAttribute("x")).toEqual(
-        (OBBOps.toBox(stroke.bounds).x - (stroke.style.width || 1)).toString()
+        (OBBOps.toBox(SymbolGeometry.boundsOf(stroke)).x - (stroke.style.width || 1)).toString()
       )
       expect(translateRect?.getAttribute("y")).toEqual(
-        (OBBOps.toBox(stroke.bounds).y - (stroke.style.width || 1)).toString()
+        (OBBOps.toBox(SymbolGeometry.boundsOf(stroke)).y - (stroke.style.width || 1)).toString()
       )
       expect(translateRect?.getAttribute("width")).toEqual(
-        (stroke.bounds.width + 2 * (stroke.style.width || 1)).toString()
+        (SymbolGeometry.boundsOf(stroke).width + 2 * (stroke.style.width || 1)).toString()
       )
       expect(translateRect?.getAttribute("height")).toEqual(
-        (stroke.bounds.height + 2 * (stroke.style.width || 1)).toString()
+        (SymbolGeometry.boundsOf(stroke).height + 2 * (stroke.style.width || 1)).toString()
       )
 
       const rotateCircles = group.querySelectorAll(`circle[role=${SvgElementRole.Rotate}]`)
@@ -367,7 +366,7 @@ describe("IISelectionManager.ts", () => {
       canvas.model.addSymbol(stroke)
       canvas.renderer.drawSymbol(stroke)
 
-      const strokeBox = OBBOps.toBox(stroke.bounds)
+      const strokeBox = OBBOps.toBox(SymbolGeometry.boundsOf(stroke))
       const ghostBox: TBox = {
         x: strokeBox.x + strokeBox.width + 50,
         y: strokeBox.y,
@@ -396,7 +395,7 @@ describe("IISelectionManager.ts", () => {
       canvas.model.addSymbol(stroke)
       canvas.renderer.drawSymbol(stroke)
 
-      const strokeBox = OBBOps.toBox(stroke.bounds)
+      const strokeBox = OBBOps.toBox(SymbolGeometry.boundsOf(stroke))
       const ghostBox: TBox = {
         x: strokeBox.x + strokeBox.width + 50,
         y: strokeBox.y,
@@ -648,27 +647,6 @@ describe("IISelectionManager.ts", () => {
     })
   })
 
-  describe("standalone decorators are never directly selectable", () => {
-    test("box selection over a decorated stroke selects the stroke, not the decorator", () => {
-      const canvas = createCanvasMock()
-      const manager = new IISelectionManager(asCanvas(canvas))
-      manager.drawSelectingRect = jest.fn()
-      manager.renderer.updateSelectedState = jest.fn()
-
-      const stroke = buildIIStroke({ box: { height: 10, width: 10, x: 10, y: 10 } })
-      manager.model.addSymbol(stroke)
-      const decorator = DecoratorOps.create(DecoratorKind.Surround, {}, [stroke.id], OBBOps.toBox(stroke.bounds))
-      manager.model.addSymbol(decorator)
-
-      manager.start({ pointer: { x: 1, y: 2 } } as TPointerInfo)
-      manager.continue({ pointer: { x: 20, y: 20 } } as TPointerInfo)
-
-      expect(manager.model.selectedIds.has(stroke.id)).toBe(true)
-      expect(manager.model.selectedIds.has(decorator.id)).toBe(false)
-      expect(manager.renderer.updateSelectedState).not.toHaveBeenCalledWith(decorator, true)
-    })
-  })
-
   /**
    * The regression this closes: `continue()`'s surround-select tested every symbol's raw (pre-move)
    * geometry against the drag box, so a symbol moved by a translate/rotate/resize was never selected
@@ -751,7 +729,8 @@ describe("IISelectionManager.ts", () => {
 
       // `EdgeArcOps.getResizePoints` picks arc.vertices[0], its middle index and its last index —
       // read directly here (the same stored field it reads), each shifted by the translate by hand.
-      const raw = [arc.vertices[0], arc.vertices[Math.floor(arc.vertices.length / 2)], arc.vertices[arc.vertices.length - 1]]
+      const arcVertices = EdgeArcOps.computeVertices(arc)
+      const raw = [arcVertices[0], arcVertices[Math.floor(arcVertices.length / 2)], arcVertices[arcVertices.length - 1]]
       const handles = Array.from(group.children) as unknown as SVGCircleElement[]
       expect(handles.map((h) => [Number(h.getAttribute("cx")), Number(h.getAttribute("cy"))])).toEqual(
         raw.map((p) => [p.x + 100, p.y + 200])

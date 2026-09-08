@@ -4,7 +4,7 @@ import { applyMatrixToPoint, BoxOps, isIdentityMatrix, MatrixTransform, OBBOps }
 import type { TPartialDeep } from "@/core/std"
 import type { TBaseSymbol, TResizePoint } from "@/symbol/Symbol"
 
-import type { TResizeContext, TRotateContext, TTranslateContext } from "./TransformContext"
+import type { TTransformContext } from "./TransformContext"
 import type { TSymbolGeometry } from "./TSymbolGeometry"
 
 /**
@@ -31,7 +31,6 @@ const MIN_DETERMINANT = 1e-9
  * class StickyNoteUtil extends SymbolUtil<TStickyNote> {
  *   readonly type = "sticky-note"
  *   create(partial) { ... }
- *   updateDerivedFields(s) { ... }
  *   overlaps(s, box) { ... }
  *   translate(s, { matrix }) { ... }
  *   rotate(s, { matrix }) { ... }
@@ -45,14 +44,8 @@ export abstract class SymbolUtil<T extends TBaseSymbol> {
 
   abstract create(params: TPartialDeep<T>): T
 
-  abstract updateDerivedFields(symbol: T): void
-
   /**
    * This symbol's derived geometry, computed from the coordinates it stores.
-   *
-   * Same values `updateDerivedFields` writes onto the symbol, returned instead of assigned. The two
-   * coexist only for the length of this epic: `updateDerivedFields` goes away once every reader has
-   * moved to `SymbolGeometry`.
    */
   abstract computeGeometry(symbol: T): TSymbolGeometry
 
@@ -192,30 +185,29 @@ export abstract class SymbolUtil<T extends TBaseSymbol> {
   }
 
   /**
-   * Moves this symbol by a matrix, leaving it derived-consistent.
+   * Moves this symbol by a matrix.
    *
    * Concrete rather than abstract: every built-in type composes the matrix the same way, through
-   * {@link applyTransform}. `center` and `origin` on the other two contexts, and `typeset` on this
-   * one, are unused here — they remain part of the public contract because the three transform
-   * managers still pass them, and trimming the contract itself is a later task.
+   * {@link applyTransform}, and none of the six overrides this. A custom util only needs its own
+   * body if it stores something a matrix cannot express.
    */
-  translate(symbol: T, { matrix }: TTranslateContext): void {
+  translate(symbol: T, { matrix }: TTransformContext): void {
     this.applyTransform(symbol, matrix)
   }
 
   /**
-   * Turns this symbol, leaving it derived-consistent. Composes through {@link applyTransform}, for
-   * the same reason {@link translate} does.
+   * Turns this symbol. Composes through {@link applyTransform}, for the same reason
+   * {@link translate} does.
    */
-  rotate(symbol: T, { matrix }: TRotateContext): void {
+  rotate(symbol: T, { matrix }: TTransformContext): void {
     this.applyTransform(symbol, matrix)
   }
 
   /**
-   * Scales this symbol, leaving it derived-consistent. Composes through {@link applyTransform}, for
-   * the same reason {@link translate} does.
+   * Scales this symbol. Composes through {@link applyTransform}, for the same reason
+   * {@link translate} does.
    */
-  resize(symbol: T, { matrix }: TResizeContext): void {
+  resize(symbol: T, { matrix }: TTransformContext): void {
     this.applyTransform(symbol, matrix)
   }
 

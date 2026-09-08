@@ -23,18 +23,43 @@ describe("ShapeCircleOps", () => {
     })
     test("should compute bounds as center±radius", () => {
       const circle = ShapeCircleOps.create({ x: 5, y: 0 }, 5)
-      expect(OBBOps.toBox(circle.bounds).x).toEqual(0)
-      expect(OBBOps.toBox(circle.bounds).y).toEqual(-5)
-      expect(circle.bounds.width).toEqual(10)
-      expect(circle.bounds.height).toEqual(10)
+      expect(OBBOps.toBox(ShapeCircleOps.computeBounds(circle)).x).toEqual(0)
+      expect(OBBOps.toBox(ShapeCircleOps.computeBounds(circle)).y).toEqual(-5)
+      expect(ShapeCircleOps.computeBounds(circle).width).toEqual(10)
+      expect(ShapeCircleOps.computeBounds(circle).height).toEqual(10)
     })
     test("should compute minimum 8 vertices for small circle", () => {
       const circle = ShapeCircleOps.create({ x: 0, y: 0 }, 5)
-      expect(circle.vertices).toHaveLength(8)
+      expect(ShapeCircleOps.computeVertices(circle)).toHaveLength(8)
     })
     test("should compute more vertices for large circle", () => {
       const circle = ShapeCircleOps.create({ x: 0, y: 0 }, 50)
-      expect(circle.vertices).toHaveLength(31)
+      expect(ShapeCircleOps.computeVertices(circle)).toHaveLength(31)
+    })
+    // Counts alone let the tessellation drift: a phase shift or a wrong radius keeps the length
+    // and moves every point. The oracle here is the circle's own definition, written out rather
+    // than borrowed from the implementation, so these values pin where the points actually land.
+    test("should tessellate from the bottom of the circle, counter-clockwise, on the radius", () => {
+      const circle = ShapeCircleOps.create({ x: 0, y: 0 }, 5)
+      const vertices = ShapeCircleOps.computeVertices(circle)
+      expect(vertices).toHaveLength(8)
+      const expected = [
+        { x: 0, y: 5 },
+        { x: -3.536, y: 3.536 },
+        { x: -5, y: 0 },
+        { x: -3.536, y: -3.536 },
+        { x: 0, y: -5 },
+        { x: 3.536, y: -3.536 },
+        { x: 5, y: 0 },
+        { x: 3.536, y: 3.536 },
+      ]
+      vertices.forEach((vertex, index) => {
+        expect(vertex.x).toBeCloseTo(expected[index].x, 3)
+        expect(vertex.y).toBeCloseTo(expected[index].y, 3)
+        // Precision 2, not 3: each coordinate is quantised to 3 decimals by `computeRotatedPoint`,
+        // so a diagonal point's radius carries two roundings and lands ~6.6e-4 off.
+        expect(Math.hypot(vertex.x, vertex.y)).toBeCloseTo(5, 2)
+      })
     })
     test("should generate unique ids", () => {
       const c1 = ShapeCircleOps.create({ x: 0, y: 0 }, 5)
@@ -65,23 +90,6 @@ describe("ShapeCircleOps", () => {
     })
     test("should throw if radius missing", () => {
       expect(() => ShapeCircleOps.createFromPartial({ center: { x: 0, y: 0 } })).toThrow()
-    })
-  })
-
-  describe("updateDerivedFields", () => {
-    test("should recompute bounds after center change", () => {
-      const circle = ShapeCircleOps.create({ x: 0, y: 0 }, 10)
-      circle.center = { x: 5, y: 5 }
-      ShapeCircleOps.updateDerivedFields(circle)
-      expect(OBBOps.toBox(circle.bounds).x).toEqual(-5)
-      expect(OBBOps.toBox(circle.bounds).y).toEqual(-5)
-    })
-    test("should recompute vertices after radius change", () => {
-      const circle = ShapeCircleOps.create({ x: 0, y: 0 }, 5)
-      const prevLen = circle.vertices.length
-      circle.radius = 50
-      ShapeCircleOps.updateDerivedFields(circle)
-      expect(circle.vertices.length).toBeGreaterThan(prevLen)
     })
   })
 

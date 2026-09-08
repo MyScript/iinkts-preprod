@@ -46,7 +46,6 @@ export class InsertGestureHandler extends GestureHandler {
           t: strokeOrigin.pointers.at(i)?.t || Math.max(...subStroke.pointers.map((p) => p.t + 20)),
         })
       })
-      StrokeOps.updateBounds(subStroke)
       strokes.push(subStroke)
     }
     if (subStrokes[1]) {
@@ -61,7 +60,6 @@ export class InsertGestureHandler extends GestureHandler {
             Math.max(...subStroke.pointers.map((p) => p.t + 20)),
         })
       })
-      StrokeOps.updateBounds(subStroke)
       strokes.push(subStroke)
     }
     return strokes

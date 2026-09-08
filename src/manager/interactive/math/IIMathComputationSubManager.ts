@@ -247,7 +247,6 @@ export class IIMathComputationSubManager extends IIAbstractManager {
         p.x = +np.x.toFixed(3)
         p.y = +np.y.toFixed(3)
       })
-      StrokeOps.updateBounds(stroke)
       this.renderer.drawSymbol(stroke)
     })
   }
