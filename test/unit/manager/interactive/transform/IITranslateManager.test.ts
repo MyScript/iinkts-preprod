@@ -166,18 +166,13 @@ describe("IITranslateManager.ts", () => {
       test(`shoud continu with tx: "${data.tx} & ty ${data.ty}`, () => {
         expect(manager.continue(data.translateToPoint)).toEqual({ tx: data.tx, ty: data.ty })
 
-        expect(canvas.renderer.setAttribute).toHaveBeenNthCalledWith(
-          1,
-          group.id,
-          "transform",
-          `translate(${data.tx},${data.ty})`
-        )
-        expect(canvas.renderer.setAttribute).toHaveBeenNthCalledWith(
-          2,
-          strokeOrigin.id,
-          "transform",
-          `translate(${data.tx},${data.ty})`
-        )
+        // A full `matrix(...)` rather than `translate(tx,ty)`: it has to compose with the matrix a
+        // symbol already carries, and a bare `translate` would replace it. `strokeOrigin`'s own
+        // matrix is the identity here, so both writes come out the same — the composition itself is
+        // pinned by the "keeps the matrix a symbol already carries" test below.
+        const live = `matrix(1, 0, 0, 1, ${data.tx}, ${data.ty})`
+        expect(canvas.renderer.setAttribute).toHaveBeenNthCalledWith(1, group.id, "transform", live)
+        expect(canvas.renderer.setAttribute).toHaveBeenNthCalledWith(2, strokeOrigin.id, "transform", live)
       })
       test(`shoud end with tx: "${data.tx} & ty ${data.ty}`, async () => {
         const endPromise = manager.end(data.translateToPoint)
@@ -198,6 +193,47 @@ describe("IITranslateManager.ts", () => {
         expect(canvas.client.transformTranslate).toHaveBeenCalledWith([newStroke.id], data.tx, data.ty)
         expect(strokeOrigin).not.toEqual(newStroke)
       })
+    })
+  })
+
+  /**
+   * IIC-1999, the bug this whole epic started from. The drag preview used to write the gesture's
+   * transform alone, which replaced whatever the element already carried — so a symbol moved before
+   * snapped back to its raw coordinates for the length of the drag and jumped into place on release.
+   * Before the epic only a rotated typeset carried a baked transform; now every moved symbol does,
+   * so the same overwrite would affect all of them.
+   */
+  describe("the preview keeps the matrix a symbol already carries", () => {
+    test("composes the gesture onto the stored matrix rather than replacing it", () => {
+      const canvas = createCanvasMock()
+      const stroke = buildIIStroke()
+      // Already turned a quarter turn about the origin, as a previous committed rotate would have
+      // left it. A rotation rather than a translate on purpose: composing two translates commutes,
+      // so it could not tell composition apart from addition.
+      stroke.transform = MatrixTransform.identity().rotate(Math.PI / 2, { x: 0, y: 0 })
+      canvas.model.addSymbol(stroke)
+      canvas.model.selectSymbol(stroke.id)
+
+      const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
+      group.setAttribute("id", "already-moved-group")
+      group.setAttribute("role", SvgElementRole.InteractElementsGroup)
+      const target = document.createElementNS("http://www.w3.org/2000/svg", "circle")
+      group.appendChild(target)
+
+      const manager = new IITranslateManager(asCanvas(canvas))
+      manager.start(target, { x: 0, y: 0 })
+      manager.continue({ x: 10, y: 20 })
+
+      const written = (canvas.renderer.setAttribute as jest.Mock).mock.calls.find(
+        ([id, name]) => id === stroke.id && name === "transform"
+      )
+      // Hand-computed, not read back from the code under test. The stored quarter turn is
+      // {xx:0, yx:1, xy:-1, yy:0, tx:0, ty:0}; the live translate is {1,0,0,1,10,20}. Their product
+      // live*stored keeps the rotation's four leading terms and carries the live offset through
+      // unchanged: tx = 1*0 + 0*0 + 10 = 10, ty = 0*0 + 1*0 + 20 = 20. Replacing instead of
+      // composing would write "matrix(1, 0, 0, 1, 10, 20)" — the rotation gone, which is exactly
+      // the symptom: the symbol un-rotates for the duration of the drag.
+      expect(written?.[2]).toBe("matrix(0, 1, -1, 0, 10, 20)")
     })
   })
 
@@ -229,7 +265,14 @@ describe("IITranslateManager.ts", () => {
       manager.start(setupTarget(), { x: 0, y: 0 })
       manager.continue({ x: 10, y: 20 })
 
-      expect(canvas.renderer.setAttribute).toHaveBeenCalledWith("ghost-1", "transform", "translate(10,20)")
+      // The ghost must follow with the *same* transform the selection got: it previews the block the
+      // selection belongs to, so any divergence shows on screen as the ghost drifting away from the
+      // strokes it shadows.
+      const calls = (canvas.renderer.setAttribute as jest.Mock).mock.calls
+      const selectionWrite = calls.find(([id, name]) => id === stroke.id && name === "transform")
+      const ghostWrite = calls.find(([id, name]) => id === "ghost-1" && name === "transform")
+      expect(selectionWrite?.[2]).toBe("matrix(1, 0, 0, 1, 10, 20)")
+      expect(ghostWrite?.[2]).toBe(selectionWrite?.[2])
     })
 
     test("translate() permanently applies the matrix to the block's ghost strokes", async () => {
