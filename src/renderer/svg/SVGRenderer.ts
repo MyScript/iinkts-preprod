@@ -3,6 +3,7 @@ import type { TBox, TPoint, TPointer } from "@/core/geometry"
 import { BoxOps } from "@/core/geometry"
 import { OBBOps, type TOBB } from "@/core/geometry"
 import { getClosestPoints } from "@/core/geometry"
+import { MatrixTransform } from "@/core/geometry"
 import { bumpSvgTransformVersion } from "@/dom"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import { BaseRenderer } from "@/renderer/base"
@@ -566,6 +567,38 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
       }
     }
     return svgEl
+  }
+
+  /**
+   * Re-points an already-drawn symbol at its current matrix, without rebuilding it.
+   *
+   * The element's geometry is the symbol's raw coordinates, which a transform never changes — so the
+   * matrix is the whole of what has to reach the DOM. Committing a transform over a large selection
+   * used to rebuild every element in it (`buildElementFromSymbol` walks every pointer); this writes
+   * one attribute per symbol instead.
+   *
+   * The tracked bounds are refreshed here too. They are what `#reconcileVirtualization` culls by,
+   * and leaving them behind would strand a moved symbol at its old address — attached where it is no
+   * longer drawn, detached where it now is.
+   */
+  setSymbolTransform(symbol: TSymbol): void {
+    const tracked = this.#virtualizedSymbols.get(symbol.id)
+    if (!tracked) {
+      this.drawSymbol(symbol)
+      return
+    }
+    tracked.bounds = SymbolGeometry.boundsOf(symbol)
+    if (tracked.pendingRedraw) {
+      // The element is already stale for another reason (it was off screen when last drawn); let
+      // the deferred rebuild in `#reconcileVirtualization` carry this matrix too, instead of writing
+      // an attribute onto an element that is about to be replaced wholesale.
+      tracked.pendingRedraw = symbol
+      return
+    }
+    tracked.element.setAttribute("transform", MatrixTransform.toCssString(symbol.transform))
+    if (!this.#isInViewBox(tracked.bounds)) {
+      tracked.element.remove()
+    }
   }
 
   /**
