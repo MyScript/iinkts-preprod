@@ -36,6 +36,28 @@ export type TMatrixTransform = {
  * @group Core/Geometry
  * @remarks Represents a 2D affine transform, defined as a 3x3 matrix with an implicit third raw of <code>[ 0 0 1 ]</code>
  */
+/**
+ * How close a sine or cosine has to be to 0, 1 or -1 before it is treated as exactly that.
+ *
+ * Sized for the error `Math.cos`/`Math.sin` leave at the quarter turns — 6.1e-17 for `cos(PI/2)` —
+ * with room to spare, and far below any angle a user can express: a full turn split into a million
+ * steps still moves a cosine by more than 6e-6.
+ */
+const UNIT_SNAP_EPSILON = 1e-9
+
+function snapToUnit(value: number): number {
+  if (Math.abs(value) < UNIT_SNAP_EPSILON) {
+    return 0
+  }
+  if (Math.abs(value - 1) < UNIT_SNAP_EPSILON) {
+    return 1
+  }
+  if (Math.abs(value + 1) < UNIT_SNAP_EPSILON) {
+    return -1
+  }
+  return value
+}
+
 export class MatrixTransform implements TMatrixTransform {
   xx: number
   yx: number
@@ -122,8 +144,16 @@ export class MatrixTransform implements TMatrixTransform {
     if (center) {
       this.translate(center.x, center.y)
     }
-    const cosAngle = Math.round(Math.cos(radian) * 1000) / 1000
-    const sinAngle = Math.round(Math.sin(radian) * 1000) / 1000
+    // Snapped to the exact value when it is within a whisker of one, not rounded to three decimals.
+    // Snapping exists because `Math.cos(Math.PI / 2)` is 6.1e-17 rather than 0, which would otherwise
+    // leak into every matrix built from a right angle and into the `matrix(...)` strings the renderer
+    // emits. Rounding, which is what this did before, costs orthonormality: cos(37°) and sin(37°)
+    // round to 0.799 and 0.602, whose squares sum to 1.000805 — so composing a rotation with its own
+    // inverse left a 0.08% scale behind, and an undo/redo cycle compounded it. Now that a transform
+    // is a matrix the symbol keeps rather than a pass over its coordinates, that residue would
+    // accumulate on the symbol itself instead of being flattened away by the next redraw.
+    const cosAngle = snapToUnit(Math.cos(radian))
+    const sinAngle = snapToUnit(Math.sin(radian))
     this.multiply({
       xx: cosAngle,
       yx: sinAngle,
@@ -212,6 +242,46 @@ export function applyMatrixToPoints(points: TPoint[], matrix: TMatrixTransform):
     point.y = transformed.y
   })
 }
+
+/**
+ * A document-space point mapped back into the frame a symbol's own coordinates live in.
+ *
+ * The mirror of {@link applyMatrixToPoint}, and needed wherever a value that came from the document
+ * — a pointer position, or a point computed from another symbol's geometry — is written *into* a
+ * symbol's stored coordinates. Those coordinates are raw: they are what the symbol was created with,
+ * and its matrix is what puts it where the user sees it. Writing a document-space point straight
+ * into them lands it wrong by exactly that matrix, which is why dragging one vertex of an
+ * already-moved edge used to make it jump.
+ *
+ * Returns `undefined` when the matrix cannot be inverted — a symbol flattened to nothing on some
+ * axis, or one whose determinant came out `NaN`. There is genuinely no raw point corresponding to a
+ * document one in that state, so callers skip the write rather than storing a fabricated coordinate.
+ *
+ * Rounded to the three decimals the document stores, like {@link applyMatrixToPoint}: the result is
+ * written back into a symbol, not used for intermediate maths.
+ *
+ * @group Core/Geometry
+ */
+export function applyInverseMatrixToPoint(point: TPoint, matrix: TMatrixTransform): TPoint | undefined {
+  if (isIdentityMatrix(matrix)) {
+    return { x: roundCoordinate(point.x), y: roundCoordinate(point.y) }
+  }
+  const determinant = matrix.xx * matrix.yy - matrix.yx * matrix.xy
+  if (!Number.isFinite(determinant) || Math.abs(determinant) < INVERTIBLE_DETERMINANT_EPSILON) {
+    return undefined
+  }
+  const inverse = new MatrixTransform(matrix.xx, matrix.yx, matrix.xy, matrix.yy, matrix.tx, matrix.ty).invert()
+  return applyMatrixToPoint(point, inverse)
+}
+
+/**
+ * Below this, a matrix is treated as non-invertible.
+ *
+ * The determinant is the product of the two scale factors, so 1e-9 means a uniform scale of about
+ * 3.2e-5 — far smaller than anything visible, and three orders below a symbol scaled to a thousandth
+ * of its size. Matches the threshold `SymbolUtil.overlapsQuery` guards its own inverse with.
+ */
+const INVERTIBLE_DETERMINANT_EPSILON = 1e-9
 
 /**
  * Whether this matrix leaves everything where it is.

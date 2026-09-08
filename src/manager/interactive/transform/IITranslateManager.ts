@@ -90,15 +90,6 @@ export class IITranslateManager extends IIAbstractTransformManager {
     ]).then(() => undefined)
   }
 
-  translateElement(id: string, tx: number, ty: number): void {
-    this.logger.info("translateElement", {
-      id,
-      tx,
-      ty,
-    })
-    this.canvas.renderer.setAttribute(id, "transform", `translate(${tx},${ty})`)
-  }
-
   start(target: Element, origin: TPoint): void {
     this.logger.info("start", { origin })
     // Reflects "working" on the state badge as soon as the drag starts. Also the signal
@@ -125,14 +116,16 @@ export class IITranslateManager extends IIAbstractTransformManager {
     tx = nudge.x
     ty = nudge.y
 
-    this.translateElement(this.interactElementsGroup.id as string, tx, ty)
+    // Built before the preview so one matrix serves both it and the connector below.
+    const matrix = MatrixTransform.identity().translate(tx, ty)
+
+    this.previewElementTransform(this.interactElementsGroup.id as string, matrix)
     this.model.symbolsSelected.forEach((s) => {
-      this.translateElement(s.id as string, tx, ty)
+      this.previewTransform(s, matrix)
     })
     this.getGhostStrokeIdsForSelectedMath(this.model.symbolsSelected).forEach((id) => {
-      this.translateElement(id, tx, ty)
+      this.previewElementTransform(id, matrix)
     })
-    const matrix = MatrixTransform.identity().translate(tx, ty)
     this.canvas.connector.drawAnchoredEdgesForMatrix(
       this.model.symbolsSelected.map((s) => s.id),
       matrix

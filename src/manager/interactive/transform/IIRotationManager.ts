@@ -30,14 +30,6 @@ export class IIRotationManager extends IIAbstractTransformManager {
     symbolRegistry.getUtilFor(symbol).rotate(symbol, { matrix, center: this.center })
   }
 
-  rotateElement(id: string, degree: number): void {
-    this.logger.info("rotateElement", {
-      id,
-      degree,
-    })
-    this.canvas.renderer.setAttribute(id, "transform", `rotate(${degree})`)
-  }
-
   start(target: Element, origin: TPoint): void {
     this.logger.info("start", { target })
     // Reflects "working" on the state badge as soon as the drag starts. Also the signal
@@ -57,10 +49,6 @@ export class IIRotationManager extends IIAbstractTransformManager {
       y: boundingBox.y + boundingBox.height / 2,
     }
     this.origin = origin
-    this.setTransformOrigin(this.interactElementsGroup.id, this.center.x, this.center.y)
-    this.model.symbolsSelected.forEach((s) => {
-      this.setTransformOrigin(s.id, this.center.x, this.center.y)
-    })
   }
 
   continue(point: TPoint): number {
@@ -76,15 +64,18 @@ export class IIRotationManager extends IIAbstractTransformManager {
       angleDegree = 360 - angleDegree
     }
 
-    this.rotateElement(this.interactElementsGroup.id, angleDegree)
+    const angleRad = convertDegreeToRadian(angleDegree)
+    // Built before the preview, and carrying `center` explicitly, so one matrix serves both the
+    // preview and the connector below — and so the preview needs no `transform-origin`.
+    const matrix = MatrixTransform.identity().rotate(angleRad, this.center)
+
+    this.previewElementTransform(this.interactElementsGroup.id, matrix)
     this.model.symbolsSelected.forEach((s) => {
-      this.rotateElement(s.id, angleDegree)
+      this.previewTransform(s, matrix)
     })
     this.getGhostStrokeIdsForSelectedMath(this.model.symbolsSelected).forEach((id) => {
-      this.rotateElement(id, angleDegree)
+      this.previewElementTransform(id, matrix)
     })
-    const angleRad = convertDegreeToRadian(angleDegree)
-    const matrix = MatrixTransform.identity().rotate(angleRad, this.center)
     this.canvas.connector.drawAnchoredEdgesForMatrix(
       this.model.symbolsSelected.map((s) => s.id),
       matrix

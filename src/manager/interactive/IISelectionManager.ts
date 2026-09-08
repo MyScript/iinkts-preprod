@@ -1,7 +1,7 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import { ResizeDirection, SELECTION_MARGIN, SvgElementRole } from "@/Constants"
 import type { TBox, TPoint } from "@/core/geometry"
-import { BoxOps } from "@/core/geometry"
+import { applyInverseMatrixToPoint, BoxOps } from "@/core/geometry"
 import { OBBOps } from "@/core/geometry"
 import type { TDraft } from "@/core/std"
 import { RafCoalescer } from "@/dom"
@@ -508,8 +508,17 @@ export class IISelectionManager extends IIAbstractManager {
       return draft && EdgeOps.isEdge(draft) ? (draft as TDraft<TEdge>) : undefined
     }
     const moveVertex = (draft: TDraft<TEdge>, pointIndex: number, x: number, y: number) => {
-      draft.vertices[pointIndex].x = x
-      draft.vertices[pointIndex].y = y
+      // `x`/`y` are where the pointer is, in document coordinates; `draft.vertices` are the edge's
+      // own raw coordinates, which its matrix places. Writing the one into the other lands the vertex
+      // off by exactly that matrix — an already-moved edge jumped when a handle was dragged.
+      const raw = applyInverseMatrixToPoint({ x, y }, draft.transform)
+      if (!raw) {
+        // The edge is flattened to nothing on some axis, so no raw coordinate corresponds to where
+        // the pointer is. Nothing sensible to store; leave the edge as it stands.
+        return
+      }
+      draft.vertices[pointIndex].x = raw.x
+      draft.vertices[pointIndex].y = raw.y
       symbolRegistry.getUtilFor(draft).updateDerivedFields(draft)
     }
     const bindEl = (el: SVGCircleElement, pointIndex: number) => {
@@ -556,6 +565,15 @@ export class IISelectionManager extends IIAbstractManager {
       }
       const bindArcEl = (el: SVGCircleElement, isStart: boolean, isEnd: boolean) => {
         const updateArc = (arc: TDraft<TEdgeArc>, x: number, y: number) => {
+          // Same frame mismatch as `moveVertex`: the pointer speaks document coordinates, the arc's
+          // centre, radii and endpoints are raw. Mapped back through the arc's own matrix before any
+          // of the three reshaping helpers below sees it, so each still works in one frame.
+          const raw = applyInverseMatrixToPoint({ x, y }, arc.transform)
+          if (!raw) {
+            return
+          }
+          x = raw.x
+          y = raw.y
           if (isStart) {
             // Free stretch: lets the ellipse resize to reach the dragged point, rather than
             // sliding the endpoint's angle around the existing (unchanged-size) ellipse.

@@ -45,15 +45,6 @@ export class IIResizeManager extends IIAbstractTransformManager {
     symbolRegistry.getUtilFor(symbol).resize(symbol, { matrix, origin: this.transformOrigin })
   }
 
-  scaleElement(id: string, sx: number, sy: number): void {
-    this.logger.info("scaleElement", {
-      id,
-      sx,
-      sy,
-    })
-    this.canvas.renderer.setAttribute(id, "transform", `scale(${sx},${sy})`)
-  }
-
   start(target: Element, origin: TPoint): void {
     this.logger.info("start", { target })
     // Reflects "working" on the state badge as soon as the drag starts. Also the signal
@@ -77,10 +68,6 @@ export class IIResizeManager extends IIAbstractTransformManager {
 
     this.transformOrigin = origin
     this.boundingBox = BoxOps.createFromPoints(registeredSymbols.flatMap((s) => SymbolGeometry.verticesOf(s)))
-    this.setTransformOrigin(this.interactElementsGroup!.id, this.transformOrigin.x, this.transformOrigin.y)
-    this.model.symbolsSelected.forEach((s) => {
-      this.setTransformOrigin(s.id, this.transformOrigin.x, this.transformOrigin.y)
-    })
   }
 
   continue(point: TPoint): {
@@ -138,14 +125,17 @@ export class IIResizeManager extends IIAbstractTransformManager {
         scaleY = scaleX
       }
     }
-    this.scaleElement(this.interactElementsGroup.id, scaleX, scaleY)
+    // Built before the preview, and carrying `transformOrigin` explicitly, so one matrix serves both
+    // the preview and the connector below — and so the preview needs no `transform-origin`.
+    const matrix = MatrixTransform.identity().scale(scaleX, scaleY, this.transformOrigin)
+
+    this.previewElementTransform(this.interactElementsGroup.id, matrix)
     this.model.symbolsSelected.forEach((s) => {
-      this.scaleElement(s.id, scaleX, scaleY)
+      this.previewTransform(s, matrix)
     })
     this.getGhostStrokeIdsForSelectedMath(this.model.symbolsSelected).forEach((id) => {
-      this.scaleElement(id, scaleX, scaleY)
+      this.previewElementTransform(id, matrix)
     })
-    const matrix = MatrixTransform.identity().scale(scaleX, scaleY, this.transformOrigin)
     this.canvas.connector.drawAnchoredEdgesForMatrix(
       this.model.symbolsSelected.map((s) => s.id),
       matrix
