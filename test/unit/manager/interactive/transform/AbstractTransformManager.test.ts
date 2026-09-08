@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, jest, test } from "@jest/globals"
 
 import { asCanvas, createCanvasMock } from "../../../__mocks__/createCanvasMock"
-import { buildIIDecorator } from "../../../helpers"
+import { buildIIDecorator, buildIIStroke } from "../../../helpers"
 
 import type { TBaseSymbol, TBox, TPartialDeep, TPoint, TResizeContext, TRotateContext, TSymbol } from "@/iink"
 import type { TTranslateContext } from "@/iink"
@@ -135,6 +135,41 @@ describe("IIAbstractTransformManager", () => {
         asked.mockRestore()
       }
       expect(JSON.stringify(decorator)).toBe(before)
+    })
+  })
+
+  /**
+   * Task 12: committing a transform rewrites one attribute instead of rebuilding the element
+   * (`SVGRenderer.setSymbolTransform`). `SymbolGeometry` only caches geometry for a frozen
+   * symbol - `SymbolStore` freezes on commit, `draftSymbol()` returns an unfrozen clone - so the
+   * renderer must be handed the record `commitSymbol` just froze, not the draft that produced it.
+   */
+  describe("applyAndDraw", () => {
+    test("commits before drawing, so the renderer is handed an already-frozen record", () => {
+      const canvas = createCanvasMock()
+      const stroke = buildIIStroke()
+      canvas.model.addSymbol(stroke)
+
+      // `SymbolStore.update` freezes its argument in place, so by the time `applyMatrix` returns,
+      // every symbol it touched is frozen regardless of call order - asserting `isFrozen` only
+      // after the fact would pass even if the renderer were called first. What actually
+      // distinguishes "commit, then draw" from "draw, then commit" is whether the symbol was
+      // frozen yet *at the moment the renderer received it* - captured here synchronously, inside
+      // the mock, before anything later in the call can freeze it out from under the assertion.
+      const frozenAtCallTime: boolean[] = []
+      canvas.renderer.setSymbolTransform = jest.fn((s: TSymbol) => {
+        frozenAtCallTime.push(Object.isFrozen(s))
+      })
+
+      const manager = new IITranslateManager(asCanvas(canvas))
+      manager.applyMatrix([stroke], MatrixTransform.identity().translate(10, 15))
+
+      expect(canvas.renderer.drawSymbol).not.toHaveBeenCalled()
+      expect(canvas.renderer.setSymbolTransform).toHaveBeenCalledTimes(1)
+      expect(frozenAtCallTime).toEqual([true])
+
+      const passed = (canvas.renderer.setSymbolTransform as jest.Mock).mock.calls[0][0] as TSymbol
+      expect(passed).toBe(canvas.model.getRootSymbol(stroke.id))
     })
   })
 })
