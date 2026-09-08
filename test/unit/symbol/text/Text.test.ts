@@ -1,4 +1,4 @@
-import { BoxOps, OBBOps, TBox, TextOps, TPoint, TSymbolChar } from "@/iink"
+import { BoxOps, OBBOps, TBox, TextOps, TPoint, TSymbolChar, computeTypesetSnapPoints, computeClosedEdges, computeTypesetVertices } from "@/iink"
 
 describe("Text.ts", () => {
   const chars: TSymbolChar[] = [
@@ -33,11 +33,11 @@ describe("Text.ts", () => {
     })
     test(`should get vertices`, () => {
       const text = TextOps.create(chars, point, box)
-      expect(text.vertices).toEqual(BoxOps.getCorners(box))
+      expect(computeTypesetVertices(OBBOps.toUnrotatedBox(text.bounds))).toEqual(BoxOps.getCorners(box))
     })
     test(`should get edges`, () => {
       const text = TextOps.create(chars, point, box)
-      expect(text.edges).toEqual([
+      expect(computeClosedEdges(computeTypesetVertices(OBBOps.toUnrotatedBox(text.bounds)))).toEqual([
         { p1: { x: 1, y: 2 }, p2: { x: 11, y: 2 } },
         { p1: { x: 11, y: 2 }, p2: { x: 11, y: 12 } },
         { p1: { x: 11, y: 12 }, p2: { x: 1, y: 12 } },
@@ -46,7 +46,7 @@ describe("Text.ts", () => {
     })
     test(`should get snapPoints`, () => {
       const text = TextOps.create(chars, point, box)
-      expect(text.snapPoints).toEqual([
+      expect(computeTypesetSnapPoints(OBBOps.toUnrotatedBox(text.bounds), text.point)).toEqual([
         { x: 1, y: 14 },
         { x: 11, y: 14 },
         { x: 11, y: 0 },
@@ -114,25 +114,10 @@ describe("Text.ts", () => {
   })
 })
 
-/**
- * `bounds.angle` is a `TOBB` field, independent of the old `.rotation`/`TRotation` type that Task 11
- * removed — a typeset symbol is turned by composing its matrix now, and `SymbolGeometry` is what
- * grows the on-screen envelope from that matrix, not `updateDerivedFields`. This is what is left to
- * check at the `Text.ts` level: that `updateDerivedFields` never resets an angle already on the
- * bounds, and that `OBBOps` reports the grown envelope for it.
- */
 describe("Text derived fields, with the angle recorded on the bounds", () => {
   const chars: TSymbolChar[] = [
     { id: "c1", label: "a", color: "#000", fontSize: 10, fontWeight: "normal", bounds: { x: 0, y: 0, width: 40, height: 10 } },
   ]
-
-  test("should leave a directly-set angle alone", () => {
-    const text = TextOps.create(chars, { x: 0, y: 0 }, { x: 0, y: 0, width: 40, height: 10 })
-    text.bounds.angle = 30
-    TextOps.updateDerivedFields(text)
-
-    expect(text.bounds.angle).toBe(30)
-  })
 
   test("should keep the recorded angle, which callers read as the on-screen extent", () => {
     // `bounds.angle` is deliberately still written: `OBBOps.toBox` uses it to report the area the

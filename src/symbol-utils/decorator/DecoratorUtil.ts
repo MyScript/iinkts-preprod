@@ -122,41 +122,26 @@ export class DecoratorUtil extends SymbolUtil<TDecorator> {
       throw new Error("TDecorator requires kind")
     }
     const targetIds = (partial.targetIds ?? []).filter((id): id is string => id !== undefined)
-    const bounds = partial.bounds as TBox | undefined
-    const decorator = DecoratorOps.create(partial.kind, partial.style ?? {}, targetIds, bounds)
+    const targetBounds = partial.targetBounds
+    const decorator = DecoratorOps.create(partial.kind, partial.style ?? {}, targetIds)
+    // Read as the `TOBB` the field declares, field by field, rather than through `create`'s `TBox`
+    // parameter. The code this replaces did `partial.bounds as TBox` and handed that to
+    // `OBBOps.fromBox`, which reads `.x`/`.y` — so a decorator serialised by iinkTS itself (a
+    // `TOBB`, with `center` and no `x`) came back with a NaN centre on re-import. The cast was what
+    // hid the mismatch from the compiler.
+    if (targetBounds) {
+      DecoratorOps.setTargetBounds(
+        decorator,
+        OBBOps.create(
+          { x: targetBounds.center?.x ?? 0, y: targetBounds.center?.y ?? 0 },
+          targetBounds.width ?? 0,
+          targetBounds.height ?? 0,
+          targetBounds.angle ?? 0
+        )
+      )
+    }
     decorator.transform = mergeSymbolTransform(partial.transform)
     return decorator
-  }
-
-  /**
-   * A standalone decorator's own geometry comes from `bounds`, which is set from outside — not from
-   * coordinates it stores itself, unlike every other util. `length` is always zero: nothing here
-   * has a path.
-   *
-   * Mirrors the `hasBounds` guard `updateDerivedFields` has always kept: a decorator with no bounds
-   * yet (embedded in a `TText`/`TMath`, or standalone but not placed) has no geometry of its own
-   * either, and must report the same three empty arrays its fields already hold rather than two
-   * phantom points at the un-set `(0,0)` bounds.
-   */
-  computeGeometry(decorator: TDecorator): TSymbolGeometry {
-    if (!decorator.hasBounds) {
-      return { bounds: decorator.bounds, vertices: [], snapPoints: [], edges: [], length: 0 }
-    }
-    const vertices = DecoratorOps.computeVertices(decorator.bounds)
-    return {
-      bounds: decorator.bounds,
-      vertices,
-      snapPoints: vertices,
-      edges: [{ p1: vertices[0], p2: vertices[1] }],
-      length: 0,
-    }
-  }
-
-  updateDerivedFields(decorator: TDecorator): void {
-    if (decorator.hasBounds) {
-      const { bounds, vertices, snapPoints, edges } = this.computeGeometry(decorator)
-      Object.assign(decorator, { bounds, vertices, snapPoints, edges })
-    }
   }
 
   overlaps(decorator: TDecorator, box: TBox): boolean {
@@ -175,6 +160,30 @@ export class DecoratorUtil extends SymbolUtil<TDecorator> {
    * no-op here covers all three at once instead of three separate ones.
    */
   applyTransform(): void {}
+
+  /**
+   * A decorator's geometry is read, not derived: `targetBounds` is an input written by whoever
+   * placed it (see `TDecorator.targetBounds`). This util is the one that reports a stored box
+   * because it is the one type whose box does not come from coordinates it owns.
+   *
+   * No `targetBounds` means no box of its own — a decorator embedded in a `TText`/`TMath`, or
+   * standalone but not yet placed. It reports empty rather than two phantom points at the origin,
+   * which is what a zero-size box would produce.
+   */
+  computeGeometry(decorator: TDecorator): TSymbolGeometry {
+    const bounds = decorator.targetBounds
+    if (!bounds) {
+      return { bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0), vertices: [], snapPoints: [], edges: [], length: 0 }
+    }
+    const vertices = DecoratorOps.computeVertices(bounds)
+    return {
+      bounds,
+      vertices,
+      snapPoints: vertices,
+      edges: [{ p1: vertices[0], p2: vertices[1] }],
+      length: 0,
+    }
+  }
 
   getSnapPoints(decorator: TDecorator): TPoint[] {
     return this.mapPointsForward(decorator, this.computeGeometry(decorator).snapPoints)
@@ -208,7 +217,7 @@ export class DecoratorUtil extends SymbolUtil<TDecorator> {
     // `transform` attribute is what repositions it, exactly once at each level. `rawOf` also keeps
     // this on the cache `boundsOf` uses, rather than calling a util's `computeGeometry` uncached on
     // every redraw.
-    const bounds = decorator.hasBounds ? SymbolGeometry.rawOf(decorator).bounds : SymbolGeometry.rawOf(symbol).bounds
+    const bounds = decorator.targetBounds ? SymbolGeometry.rawOf(decorator).bounds : SymbolGeometry.rawOf(symbol).bounds
     return DecoratorUtil.renderFromBounds(decorator, bounds, undefined, undefined, {
       width: symbol.style.width,
       color: symbol.style.color,

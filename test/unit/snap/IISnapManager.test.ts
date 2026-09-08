@@ -1,6 +1,6 @@
 import { buildIILine, buildIIStroke } from "../helpers"
 import { createCanvasMock, asCanvas } from "../__mocks__/createCanvasMock"
-import { IISnapManager, IIModel, StrokeOps, TSegment, TPoint, TSnapNudge, SVGRendererConst } from "@/iink"
+import { IISnapManager, IIModel, TSegment, TPoint, TSnapNudge, SVGRendererConst } from "@/iink"
 
 describe("IISnapManager.ts", () => {
   test("should create", () => {
@@ -72,9 +72,6 @@ describe("IISnapManager.ts", () => {
         pointer.x += 50
         pointer.y += 50
       })
-      // `snapPoints` is a stored field, not a getter: without this the geometry moves and the snap
-      // points do not, which is what the cache would then be asked to reflect.
-      StrokeOps.updateBounds(draft)
       model.updateSymbol(draft)
       const after = manager.selectionSnapPoints
       expect(after).not.toBe(before)

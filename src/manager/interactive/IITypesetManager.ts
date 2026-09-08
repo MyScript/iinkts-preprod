@@ -4,7 +4,6 @@ import { OBBOps } from "@/core/geometry"
 import { LoggerCategory } from "@/logger"
 import type { TMath, TSymbol, TSymbolChar, TText } from "@/symbol"
 import { isText } from "@/symbol"
-import { MathOps } from "@/symbol/typeset/Math"
 import { TextOps } from "@/symbol/typeset/Text"
 import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
@@ -102,7 +101,6 @@ export class IITypesetManager extends IIAbstractManager {
     if (isText(symbol)) {
       symbol.bounds = OBBOps.fromBox(this.getElementBoundingBox(el))
       this.setCharsBounds(symbol, el)
-      TextOps.updateDerivedFields(symbol)
     } else {
       const bbox = el.getBBox()
       symbol.bounds = OBBOps.fromBox({
@@ -111,7 +109,6 @@ export class IITypesetManager extends IIAbstractManager {
         width: bbox.width,
         height: bbox.height,
       })
-      MathOps.updateDerivedFields(symbol)
     }
   }
 

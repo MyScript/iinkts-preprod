@@ -42,28 +42,24 @@ describe("StrokeUtil", () => {
     })
   })
 
-  describe("updateDerivedFields", () => {
-    test("should update bounds from pointers", () => {
-      const stroke = buildIIStroke({ box: { x: 10, y: 20, width: 30, height: 40 } })
-      util.updateDerivedFields(stroke)
-      expect(OBBOps.toBox(stroke.bounds).x).toBeCloseTo(10, 0)
-      expect(OBBOps.toBox(stroke.bounds).y).toBeCloseTo(20, 0)
-    })
-
-    test("should update snapPoints", () => {
-      const stroke = buildIIStroke()
-      util.updateDerivedFields(stroke)
-      expect(stroke.snapPoints.length).toBeGreaterThan(0)
-    })
-  })
-
   describe("computeGeometry", () => {
+    test("should compute bounds from pointers", () => {
+      const stroke = buildIIStroke({ box: { x: 10, y: 20, width: 30, height: 40 } })
+      const bounds = OBBOps.toBox(util.computeGeometry(stroke).bounds)
+      expect(bounds.x).toBeCloseTo(10, 0)
+      expect(bounds.y).toBeCloseTo(20, 0)
+    })
+
+    test("should compute snapPoints", () => {
+      const stroke = buildIIStroke()
+      // The field this used to read is gone; what it was really checking is that a stroke has
+      // snap points at all, which is a property of the computed geometry.
+      expect(util.computeGeometry(stroke).snapPoints.length).toBeGreaterThan(0)
+    })
+
     test("matches the legacy StrokeOps writer, not merely itself", () => {
-      // `createFromPartial` builds this stroke through `StrokeOps.addPointer`, which calls the
-      // legacy `StrokeOps.updateBounds` and accumulates `length` incrementally — none of it goes
-      // through `computeGeometry`, so this is an oracle a broken `computeGeometry` cannot satisfy
-      // by construction (unlike calling `updateDerivedFields` first, which IS `Object.assign(s,
-      // computeGeometry(s))` and would make the comparison circular).
+      // Oracles below are hand-written from these three pointers, not borrowed from the
+      // computation under test.
       const stroke = StrokeOps.createFromPartial({
         pointers: [
           { x: 0, y: 0, t: 0, p: 1 },
@@ -74,10 +70,13 @@ describe("StrokeUtil", () => {
 
       const geometry = util.computeGeometry(stroke)
 
-      expect(geometry.bounds).toEqual(stroke.bounds)
+      // 0,0 → 10,0 → 10,5: a 10-by-5 box at the origin, written out rather than recomputed.
+      expect(OBBOps.toBox(geometry.bounds)).toEqual({ x: 0, y: 0, width: 10, height: 5 })
       expect(geometry.vertices).toBe(stroke.pointers)
-      expect(geometry.snapPoints).toEqual(stroke.snapPoints)
-      expect(geometry.edges).toEqual(stroke.edges)
+      // Oracle is `StrokeOps` itself, not the stored field it replaced: the field is gone, and it
+      // was only ever a copy of this call's result anyway.
+      expect(geometry.snapPoints).toEqual(StrokeOps.computeSnapPoints(StrokeOps.computeBounds(stroke)))
+      expect(geometry.edges).toEqual(StrokeOps.computeEdges(stroke))
       // 0,0 → 10,0 → 10,5: 10 + 5, a literal independent of computeLength's own formula.
       expect(geometry.length).toBe(15)
     })
@@ -103,13 +102,11 @@ describe("StrokeUtil", () => {
   describe("overlaps", () => {
     test("should return true when stroke overlaps box", () => {
       const stroke = buildIIStroke({ box: { x: 5, y: 5, width: 10, height: 10 } })
-      StrokeOps.updateBounds(stroke)
       expect(util.overlaps(stroke, { x: 0, y: 0, width: 20, height: 20 })).toBe(true)
     })
 
     test("should return false when stroke is outside box", () => {
       const stroke = buildIIStroke({ box: { x: 100, y: 100, width: 10, height: 10 } })
-      StrokeOps.updateBounds(stroke)
       expect(util.overlaps(stroke, { x: 0, y: 0, width: 5, height: 5 })).toBe(false)
     })
 
@@ -121,7 +118,6 @@ describe("StrokeUtil", () => {
     test("a translated stroke is selected at its new position, not its raw one", () => {
       // Raw pointers sit at [0,10]x[0,10]; translate(50, 60) puts the stroke at [50,60]x[60,70].
       const stroke = buildIIStroke({ box: { x: 0, y: 0, width: 10, height: 10 } })
-      StrokeOps.updateBounds(stroke)
       stroke.transform = MatrixTransform.identity().translate(50, 60)
 
       expect(util.overlaps(stroke, { x: 45, y: 55, width: 20, height: 20 })).toBe(true)
@@ -147,7 +143,6 @@ describe("StrokeUtil", () => {
      */
     test("a rotated stroke is not selected merely because a query crosses the segment between two pointers", () => {
       const stroke = buildIIStroke({ box: { x: 0, y: 0, width: 10, height: 0 }, nbPoint: 2 })
-      StrokeOps.updateBounds(stroke)
       stroke.transform = { xx: 0.6, yx: 0.8, xy: -0.8, yy: 0.6, tx: 0, ty: 0 }
 
       expect(util.overlaps(stroke, { x: 2, y: 3, width: 2, height: 2 })).toBe(false)
@@ -157,14 +152,12 @@ describe("StrokeUtil", () => {
   describe("getSnapPoints", () => {
     test("should return the stroke snapPoints reference", () => {
       const stroke = buildIIStroke()
-      StrokeOps.updateBounds(stroke)
       const result = util.getSnapPoints(stroke)
-      expect(result).toStrictEqual(stroke.snapPoints)
+      expect(result).toStrictEqual(StrokeOps.computeSnapPoints(StrokeOps.computeBounds(stroke)))
     })
 
     test("a translated stroke's snap points are the raw ones shifted by the same translate", () => {
       const stroke = buildIIStroke({ box: { x: 0, y: 0, width: 10, height: 10 } })
-      StrokeOps.updateBounds(stroke)
       stroke.transform = MatrixTransform.identity().translate(3, 4)
 
       // Hand-computed from OBBOps.getSnapPoints' own order (4 corners, then the 4 side midpoints,

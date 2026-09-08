@@ -20,10 +20,6 @@ export type TShapePolygon = TBaseSymbol & {
   kind: ShapeKind.Polygon
   style: TStyle
   points: TPoint[]
-  vertices: TPoint[]
-  bounds: TOBB
-  snapPoints: TPoint[]
-  edges: TSegment[]
 }
 
 /**
@@ -41,13 +37,8 @@ export const ShapePolygonOps = {
       creationTime: now,
       modificationDate: now,
       points,
-      vertices: points,
-      bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0),
-      snapPoints: [],
-      edges: [],
       transform: MatrixTransform.identity(),
     }
-    ShapePolygonOps.updateDerivedFields(polygon)
     return polygon
   },
 
@@ -66,6 +57,21 @@ export const ShapePolygonOps = {
     return polygon
   },
 
+  /**
+   * A polygon's vertices are the points it stores, returned as-is.
+   *
+   * Named rather than inlined so every caller goes through one place, like
+   * `EdgePolyLineOps.computeVertices`.
+   */
+  computeVertices(polygon: TShapePolygon): TPoint[] {
+    return polygon.points
+  },
+
+  /** Takes the points, like {@link computeEdges}: a polygon's box is the box of its own vertices. */
+  computeBounds(points: TPoint[]): TOBB {
+    return OBBOps.createFromPoints(points)
+  },
+
   computeEdges(points: TPoint[]): TSegment[] {
     return points.map((p, i) => ({
       p1: p,
@@ -73,15 +79,12 @@ export const ShapePolygonOps = {
     }))
   },
 
-  updateDerivedFields(polygon: TShapePolygon): void {
-    polygon.vertices = polygon.points
-    polygon.bounds = OBBOps.createFromPoints(polygon.points)
-    polygon.snapPoints = OBBOps.getSnapPoints(polygon.bounds)
-    polygon.edges = ShapePolygonOps.computeEdges(polygon.points)
-  },
-
   overlaps(polygon: TShapePolygon, box: TBox): boolean {
-    return OBBOps.polygonOverlapsBox(polygon.bounds, polygon.edges, box)
+    return OBBOps.polygonOverlapsBox(
+      ShapePolygonOps.computeBounds(polygon.points),
+      ShapePolygonOps.computeEdges(polygon.points),
+      box
+    )
   },
 
   createTriangleBetweenPoints(origin: TPoint, target: TPoint, style?: TPartialDeep<TStyle>): TShapePolygon {
@@ -106,7 +109,6 @@ export const ShapePolygonOps = {
       },
     ]
     poly.modificationDate = Date.now()
-    ShapePolygonOps.updateDerivedFields(poly)
   },
 
   createParallelogramBetweenPoints(origin: TPoint, target: TPoint, style?: TPartialDeep<TStyle>): TShapePolygon {
@@ -139,7 +141,6 @@ export const ShapePolygonOps = {
       },
     ]
     poly.modificationDate = Date.now()
-    ShapePolygonOps.updateDerivedFields(poly)
   },
 
   createRectangleBetweenPoints(origin: TPoint, target: TPoint, style?: TPartialDeep<TStyle>): TShapePolygon {
@@ -168,7 +169,6 @@ export const ShapePolygonOps = {
       { x: box.x, y: box.y + box.height },
     ]
     poly.modificationDate = Date.now()
-    ShapePolygonOps.updateDerivedFields(poly)
   },
 
   createRhombusBetweenPoints(origin: TPoint, target: TPoint, style?: TPartialDeep<TStyle>): TShapePolygon {
@@ -203,7 +203,6 @@ export const ShapePolygonOps = {
       { x: box.x, y: box.y + box.height / 2 },
     ]
     poly.modificationDate = Date.now()
-    ShapePolygonOps.updateDerivedFields(poly)
   },
 
   getSVGPath(polygon: TShapePolygon): string {

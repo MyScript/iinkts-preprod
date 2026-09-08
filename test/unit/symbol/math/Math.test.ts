@@ -1,4 +1,4 @@
-import { TMathElement, TPoint, BoxOps, MathOps } from "@/iink"
+import { TMathElement, TPoint, BoxOps, MathOps, computeTypesetSnapPoints, OBBOps, computeTypesetVertices } from "@/iink"
 
 describe("Math.ts", () => {
   const elements: TMathElement[] = [
@@ -46,12 +46,12 @@ describe("Math.ts", () => {
 
     test("should get vertices", () => {
       const math = MathOps.create(elements, point, box)
-      expect(math.vertices).toEqual(BoxOps.getCorners(box))
+      expect(computeTypesetVertices(OBBOps.toUnrotatedBox(math.bounds))).toEqual(BoxOps.getCorners(box))
     })
 
     test("should get snapPoints", () => {
       const math = MathOps.create(elements, point, box)
-      const snapPoints = math.snapPoints
+      const snapPoints = computeTypesetSnapPoints(OBBOps.toUnrotatedBox(math.bounds), math.point)
       expect(snapPoints.length).toBe(5)
       expect(snapPoints[4]).toEqual(BoxOps.getCenter(box))
     })

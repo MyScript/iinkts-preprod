@@ -24,7 +24,6 @@ describe("TypesetUtil", () => {
     math = new MathUtil()
   })
 
-  const typesetPort = { setBounds: (): void => {} }
   const quarterTurn = () => MatrixTransform.identity().rotate(Math.PI / 2, { x: 0, y: 0 })
 
   test("both built-in typeset utils should share the base", () => {
@@ -43,7 +42,7 @@ describe("TypesetUtil", () => {
       const util = name === "text" ? text : math
       const before = structuredClone({ point: symbol.point, bounds: symbol.bounds })
 
-      util.translate(symbol as never, { matrix: MatrixTransform.identity().translate(3, 4), typeset: typesetPort })
+      util.translate(symbol as never, { matrix: MatrixTransform.identity().translate(3, 4) })
 
       // The matrix composed onto an until-now identity transform is the matrix itself.
       expect(symbol.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 3, ty: 4 })
@@ -60,7 +59,7 @@ describe("TypesetUtil", () => {
       const util = name === "text" ? text : math
       const before = structuredClone(symbol.bounds)
 
-      util.rotate(symbol as never, { matrix: quarterTurn(), center: { x: 0, y: 0 } })
+      util.rotate(symbol as never, { matrix: quarterTurn() })
 
       // A quarter turn about the origin, from an until-now identity transform: cos(90°) rounds to
       // 0 and sin(90°) to 1 inside `MatrixTransform.rotate`, so this is exact, not approximate.
@@ -77,8 +76,8 @@ describe("TypesetUtil", () => {
       const symbol = build()
       const util = name === "text" ? text : math
 
-      util.rotate(symbol as never, { matrix: quarterTurn(), center: { x: 0, y: 0 } })
-      util.rotate(symbol as never, { matrix: quarterTurn(), center: { x: 0, y: 0 } })
+      util.rotate(symbol as never, { matrix: quarterTurn() })
+      util.rotate(symbol as never, { matrix: quarterTurn() })
 
       // Two quarter turns compose to a half turn: cos(180°) rounds to -1, sin(180°) to 0 — `xy`
       // lands on negative zero (0 * -1 followed by -1 * 0, both IEEE754 negative-zero products),
@@ -94,7 +93,7 @@ describe("TypesetUtil", () => {
       const util = name === "text" ? text : math
       const before = structuredClone({ bounds: symbol.bounds, fontSizes: glyphFontSizes(symbol) })
 
-      util.resize(symbol as never, { matrix: MatrixTransform.identity().scale(2, 4, { x: 0, y: 0 }), origin: { x: 0, y: 0 } })
+      util.resize(symbol as never, { matrix: MatrixTransform.identity().scale(2, 4, { x: 0, y: 0 }) })
 
       expect(symbol.transform).toEqual({ xx: 2, yx: 0, xy: 0, yy: 4, tx: 0, ty: 0 })
       // Untouched: the matrix scales the glyphs at render time now, so nothing here rewrites a

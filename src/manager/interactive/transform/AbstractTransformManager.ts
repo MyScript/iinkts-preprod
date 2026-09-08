@@ -104,7 +104,10 @@ export abstract class IIAbstractTransformManager extends IIAbstractManager {
       if (!targetSyms.length) {
         return
       }
-      DecoratorOps.setBounds(draft, OBBOps.createFromOBBs(targetSyms.map((s) => SymbolGeometry.boundsOf(s))))
+      // Re-derived from the moved targets, not carried by a matrix: `DecoratorUtil.applyTransform`
+      // is deliberately a no-op, so a decorator never receives one. Its box is an input, and this
+      // is the writer that keeps it in step with the symbols it decorates.
+      DecoratorOps.setTargetBounds(draft, OBBOps.createFromOBBs(targetSyms.map((s) => SymbolGeometry.boundsOf(s))))
       // baseline is an absolute y-coordinate (used by Underline/Strikethrough rendering
       // in place of bounds), so it must follow the same transform as the target symbols.
       if (draft.baseline !== undefined) {

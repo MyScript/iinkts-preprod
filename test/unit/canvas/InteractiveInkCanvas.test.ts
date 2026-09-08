@@ -15,6 +15,8 @@ import {
   TBaseSymbol,
   cloneSymbol,
   DecoratorKind,
+  DecoratorOps,
+  TDecorator,
   getInitialHistoryContext,
   EdgeLineOps,
   TEdgeLine,
@@ -524,6 +526,34 @@ describe("InteractiveInkCanvas.ts", () => {
       await canvas.initialize()
       return canvas
     }
+
+    /**
+     * A decorator's `targetBounds` is an input, so losing a target is the one thing that must
+     * narrow it — nothing else would, and the underline would keep spanning the erased stroke.
+     * This writer had no coverage, which is what made removing it look free.
+     */
+    test("removeSymbols: erasing one of two targets shrinks the decorator to the survivor's box", async () => {
+      const canvas = await buildCanvasWithMocks()
+      const kept = buildIIStroke({ box: { x: 0, y: 0, width: 10, height: 10 } })
+      const erased = buildIIStroke({ box: { x: 100, y: 0, width: 10, height: 10 } })
+      canvas.model.addSymbol(kept)
+      canvas.model.addSymbol(erased)
+      const decorator = DecoratorOps.create(
+        DecoratorKind.Underline,
+        {},
+        [kept.id, erased.id],
+        OBBOps.toBox(OBBOps.createFromOBBs([SymbolGeometry.boundsOf(kept), SymbolGeometry.boundsOf(erased)]))
+      )
+      canvas.model.addSymbol(decorator)
+      // Spans both to start with: wider than either stroke alone, so a shrink is observable.
+      expect(decorator.targetBounds!.width).toBeGreaterThan(SymbolGeometry.boundsOf(kept).width)
+
+      await canvas.removeSymbols([erased.id])
+
+      const after = canvas.model.getRootSymbol(decorator.id) as TDecorator
+      expect(after.targetIds).toEqual([kept.id])
+      expect(after.targetBounds).toEqual(SymbolGeometry.boundsOf(kept))
+    })
 
     test("removeSymbols: erasing a connected shape clears the edge's anchor and is undo-safe", async () => {
       const canvas = await buildCanvasWithMocks()

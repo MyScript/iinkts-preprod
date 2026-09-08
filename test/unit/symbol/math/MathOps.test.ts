@@ -1,4 +1,4 @@
-import { TMathElement, TPoint, TBox, BoxOps, OBBOps, MathOps, MatrixTransform } from "@/iink"
+import { TMathElement, TPoint, TBox, BoxOps, OBBOps, MathOps, MatrixTransform, computeTypesetSnapPoints, computeClosedEdges, computeTypesetVertices } from "@/iink"
 
 const elements: TMathElement[] = [
   {
@@ -44,9 +44,9 @@ describe("MathOps", () => {
 
     test("should initialize derived fields (vertices, snapPoints, edges)", () => {
       const math = MathOps.create(elements, point, bounds)
-      expect(math.vertices).toHaveLength(4)
-      expect(math.snapPoints).toHaveLength(5)
-      expect(math.edges).toHaveLength(4)
+      expect(computeTypesetVertices(OBBOps.toUnrotatedBox(math.bounds))).toHaveLength(4)
+      expect(computeTypesetSnapPoints(OBBOps.toUnrotatedBox(math.bounds), math.point)).toHaveLength(5)
+      expect(computeClosedEdges(computeTypesetVertices(OBBOps.toUnrotatedBox(math.bounds)))).toHaveLength(4)
     })
 
   })
@@ -78,22 +78,6 @@ describe("MathOps", () => {
     test("should set custom id from partial", () => {
       const math = MathOps.createFromPartial({ id: "my-math", elements, point, bounds })
       expect(math.id).toBe("my-math")
-    })
-  })
-
-  describe("updateDerivedFields", () => {
-    test("should compute vertices from corners", () => {
-      const math = MathOps.create(elements, point, bounds)
-      MathOps.updateDerivedFields(math)
-      expect(math.vertices).toEqual(BoxOps.getCorners(bounds))
-    })
-
-    test("should recompute edges when bounds change", () => {
-      const math = MathOps.create(elements, point, bounds)
-      const newBounds: TBox = { x: 100, y: 100, width: 50, height: 30 }
-      math.bounds = OBBOps.fromBox(newBounds)
-      MathOps.updateDerivedFields(math)
-      expect(math.vertices).toEqual(BoxOps.getCorners(newBounds))
     })
   })
 

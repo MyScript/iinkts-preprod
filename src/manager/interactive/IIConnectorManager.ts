@@ -17,12 +17,10 @@ import { LoggerCategory } from "@/logger"
 import type { TEdge, TStroke, TSymbol } from "@/symbol"
 import type { TAnchor } from "@/symbol/edge/Anchor"
 import { computeNormalizedAnchor, resolveAnchorPoint } from "@/symbol/edge/Anchor"
-import { EdgeArcOps, stretchArcEndpoint } from "@/symbol/edge/Arc"
+import { stretchArcEndpoint } from "@/symbol/edge/Arc"
 import { EdgeOps } from "@/symbol/edge/Edge"
-import { EdgeLineOps } from "@/symbol/edge/Line"
-import { EdgePolyLineOps } from "@/symbol/edge/PolyLine"
 import { ShapeOps } from "@/symbol/shape/Shape"
-import { isStroke, StrokeOps } from "@/symbol/stroke/Stroke"
+import { isStroke } from "@/symbol/stroke/Stroke"
 import { cloneSymbol } from "@/symbol/SymbolHelpers"
 import { SVGBuilder } from "@/symbol-utils/SVGBuilder"
 import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
@@ -361,7 +359,6 @@ export class IIConnectorManager extends IIAbstractManager {
           edge.end = center
           edge.endAnchor = anchor
         }
-        EdgeLineOps.updateDerivedFields(edge)
       } else if (EdgeOps.isPolyEdge(edge)) {
         if (isStart) {
           edge.points[0] = center
@@ -371,7 +368,6 @@ export class IIConnectorManager extends IIAbstractManager {
           edge.points[edge.points.length - 1] = center
           edge.endAnchor = anchor
         }
-        EdgePolyLineOps.updateDerivedFields(edge)
       } else if (EdgeOps.isArcEdge(edge)) {
         // An arc has no independent start/end coordinate to overwrite directly — stretch the
         // ellipse (keeping the other endpoint fixed) so the anchored endpoint lands exactly on
@@ -384,7 +380,6 @@ export class IIConnectorManager extends IIAbstractManager {
           Object.assign(edge, stretchArcEndpoint(edge, "end", center))
           edge.endAnchor = anchor
         }
-        EdgeArcOps.updateDerivedFields(edge)
       }
     } else {
       if (isStart) {
@@ -451,7 +446,6 @@ export class IIConnectorManager extends IIAbstractManager {
           }
         }
         if (changed) {
-          EdgeArcOps.updateDerivedFields(clone)
           // Entry points must be refreshed from the STRETCHED geometry's own vertices, or they
           // go stale the instant the anchored shape moves — same "M ... Q ..." spike bug as an
           // un-recomputed entry point, just self-inflicted on every subsequent move instead of
@@ -512,7 +506,6 @@ export class IIConnectorManager extends IIAbstractManager {
             startAnchor: cloneStartAnchor,
             endAnchor: cloneEndAnchor,
           }
-          EdgeLineOps.updateDerivedFields(clone)
           this.canvas.renderer.drawSymbol(clone)
         }
       } else if (EdgeOps.isPolyEdge(symbol)) {
@@ -556,7 +549,6 @@ export class IIConnectorManager extends IIAbstractManager {
             startAnchor: cloneStartAnchor,
             endAnchor: cloneEndAnchor,
           }
-          EdgePolyLineOps.updateDerivedFields(clone)
           this.canvas.renderer.drawSymbol(clone)
         }
       }
@@ -628,7 +620,6 @@ export class IIConnectorManager extends IIAbstractManager {
       const symbol = (this.model.draftSymbol(committed.id) as TDraft<TEdge> | undefined) ?? committed
       symbol.startAnchor = undefined
       symbol.endAnchor = undefined
-      symbolRegistry.getUtilFor(symbol).updateDerivedFields(symbol)
       // `updateSymbol` and not `commitSymbol`: the fallback above widens the type back to a plain
       // symbol, and typing it as a draft would be a lie while that branch exists.
       this.model.updateSymbol(symbol)
@@ -697,7 +688,6 @@ export class IIConnectorManager extends IIAbstractManager {
           }
         }
         if (changed) {
-          EdgeArcOps.updateDerivedFields(symbol)
           this.recomputeAllEntryPoints(symbol)
           this.canvas.renderer.drawSymbol(symbol)
           this.model.commitSymbol(symbol)
@@ -730,7 +720,6 @@ export class IIConnectorManager extends IIAbstractManager {
           }
         }
         if (changed) {
-          EdgeLineOps.updateDerivedFields(symbol)
           this.recomputeAllEntryPoints(symbol)
         }
       } else if (EdgeOps.isPolyEdge(symbol)) {
@@ -749,7 +738,6 @@ export class IIConnectorManager extends IIAbstractManager {
           }
         }
         if (changed) {
-          EdgePolyLineOps.updateDerivedFields(symbol)
           this.recomputeAllEntryPoints(symbol)
         }
       }
@@ -915,7 +903,6 @@ export class IIConnectorManager extends IIAbstractManager {
           p.x = +newPoints[i].x.toFixed(3)
           p.y = +newPoints[i].y.toFixed(3)
         })
-        StrokeOps.updateBounds(symbol)
         this.canvas.renderer.drawSymbol(symbol)
         this.model.updateSymbol(symbol)
 

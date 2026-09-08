@@ -25,9 +25,6 @@ class TestSymbolUtil extends SymbolUtil<TBaseSymbol> {
       transform: { ...MatrixTransform.identity(), ...params.transform },
     }
   }
-  updateDerivedFields(): void {
-    // no derived fields for this test double
-  }
   computeGeometry(): TSymbolGeometry {
     return {
       bounds: OBBOps.fromBox(RAW_BOX),

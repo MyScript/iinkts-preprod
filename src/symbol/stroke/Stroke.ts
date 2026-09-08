@@ -34,10 +34,6 @@ export type TStroke = TBaseSymbol &
     readonly type: SymbolType.Stroke
     style: TStyle
     length: number
-    bounds: TOBB
-    snapPoints: TPoint[]
-    vertices: TPointer[]
-    edges: TSegment[]
 
     // JIIX Block metadata
     jiixBlockId?: string
@@ -112,10 +108,6 @@ export const StrokeOps = {
       pointerType,
       pointers,
       length: 0,
-      bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0),
-      snapPoints: [],
-      vertices: pointers,
-      edges: [],
       transform: MatrixTransform.identity(),
     }
   },
@@ -143,12 +135,6 @@ export const StrokeOps = {
   /** Path length: the sum of the distances between consecutive pointers. */
   computeLength(stroke: TStroke): number {
     return stroke.pointers.reduce((sum, ptr, idx, arr) => (idx === 0 ? 0 : sum + computeDistance(ptr, arr[idx - 1])), 0)
-  },
-
-  updateBounds(stroke: TStroke): void {
-    stroke.bounds = StrokeOps.computeBounds(stroke)
-    stroke.snapPoints = StrokeOps.computeSnapPoints(stroke.bounds)
-    stroke.edges = StrokeOps.computeEdges(stroke)
   },
 
   _computePressure(stroke: TStroke, distance: number): number {
@@ -181,7 +167,6 @@ export const StrokeOps = {
       pointer.p = StrokeOps._computePressure(stroke, distance)
       stroke.pointers.push(pointer)
       stroke.modificationDate = Date.now()
-      StrokeOps.updateBounds(stroke)
     }
   },
 
@@ -194,19 +179,11 @@ export const StrokeOps = {
   split(strokeToSplit: TStroke, i: number): { before: TStroke; after: TStroke } {
     const before = StrokeOps.create(strokeToSplit.style, strokeToSplit.pointerType)
     before.pointers.push(...strokeToSplit.pointers.slice(0, i))
-    before.length = before.pointers.reduce(
-      (sum, ptr, idx, arr) => (idx === 0 ? 0 : sum + computeDistance(ptr, arr[idx - 1])),
-      0
-    )
-    StrokeOps.updateBounds(before)
+    before.length = StrokeOps.computeLength(before)
 
     const after = StrokeOps.create(strokeToSplit.style, strokeToSplit.pointerType)
     after.pointers.push(...strokeToSplit.pointers.slice(i))
-    after.length = after.pointers.reduce(
-      (sum, ptr, idx, arr) => (idx === 0 ? 0 : sum + computeDistance(ptr, arr[idx - 1])),
-      0
-    )
-    StrokeOps.updateBounds(after)
+    after.length = StrokeOps.computeLength(after)
 
     return { before, after }
   },

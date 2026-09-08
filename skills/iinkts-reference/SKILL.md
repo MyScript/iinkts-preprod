@@ -40,7 +40,7 @@ src/
 │       ├── utils/       # SVGRendererConst; SVGBuilder is a re-export shim → @/symbol-utils/SVGBuilder
 │       └── SVGRenderer.ts, SVGSSRenderer.ts, SVGStroker.ts
 ├── symbol-utils/        # Per-type rendering/behavior, plugin registry (see Symbol hierarchy below)
-│   ├── SymbolUtil.ts            # Abstract base: create/updateDerivedFields/overlaps/getSVGElement per type
+│   ├── SymbolUtil.ts            # Abstract base: create/overlaps/getSVGElement per type
 │   ├── SymbolRegistry.ts        # symbolRegistry — register/lookup SymbolUtil by SymbolType
 │   ├── registerBuiltinSymbolUtils.ts  # Registers the 6 built-in Util classes at startup
 │   ├── SymbolFactory.ts         # Symbol creation entry point

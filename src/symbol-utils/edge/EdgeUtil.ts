@@ -1,7 +1,7 @@
 import { EdgeDecoration } from "@/Constants"
 import type { TBox } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
-import { isIdentityMatrix, MatrixTransform } from "@/core/geometry"
+import { isIdentityMatrix, MatrixTransform, OBBOps } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import { DefaultStyle } from "@/style"
 import { EdgeArcOps, type TEdgeArc } from "@/symbol/edge/Arc"
@@ -24,7 +24,6 @@ import { arrowHeadEndMarkerId, arrowHeadStartMarkerId } from "./EdgeRenderOption
 const EDGE_KINDS: Partial<Record<EdgeKind, TKindDefinition<TEdge>>> = {
   [EdgeKind.Arc]: defineKind<TEdge, TEdgeArc>({
     create: (partial) => EdgeArcOps.createFromPartial(partial),
-    updateDerivedFields: (edge) => EdgeArcOps.updateDerivedFields(edge),
     computeGeometry: (edge) => {
       const vertices = EdgeArcOps.computeVertices(edge)
       return {
@@ -41,7 +40,6 @@ const EDGE_KINDS: Partial<Record<EdgeKind, TKindDefinition<TEdge>>> = {
   }),
   [EdgeKind.Line]: defineKind<TEdge, TEdgeLine>({
     create: (partial) => EdgeLineOps.createFromPartial(partial),
-    updateDerivedFields: (edge) => EdgeLineOps.updateDerivedFields(edge),
     computeGeometry: (edge) => {
       const vertices = EdgeLineOps.computeVertices(edge)
       return {
@@ -58,7 +56,6 @@ const EDGE_KINDS: Partial<Record<EdgeKind, TKindDefinition<TEdge>>> = {
   }),
   [EdgeKind.PolyEdge]: defineKind<TEdge, TEdgePolyLine>({
     create: (partial) => EdgePolyLineOps.createFromPartial(partial),
-    updateDerivedFields: (edge) => EdgePolyLineOps.updateDerivedFields(edge),
     computeGeometry: (edge) => ({
       bounds: EdgePolyLineOps.computeBounds(edge),
       vertices: edge.points,
@@ -82,36 +79,19 @@ export class EdgeUtil extends SymbolUtil<TEdge> {
     return resolveKind(EDGE_KINDS, partial.kind, "edge", "create").create(partial)
   }
 
-  /**
-   * Tolerant like `updateDerivedFields`: a kind arriving as data the table does not own leaves the
-   * edge's current fields as its answer, rather than throwing over a whole model.
-   */
   computeGeometry(edge: TEdge): TSymbolGeometry {
     return (
       EDGE_KINDS[edge.kind]?.computeGeometry(edge) ?? {
-        bounds: edge.bounds,
-        vertices: edge.vertices,
-        snapPoints: edge.snapPoints,
-        edges: edge.edges,
+        // No stored `bounds` to fall back on any more: an unregistered kind's geometry cannot be
+        // computed, and there is no field left to echo, so it reports an empty box at the origin.
+        bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0),
+        vertices: [],
+        snapPoints: [],
+        // An unregistered kind offers no edges either; the fallback returns none.
+        edges: [],
         length: 0,
       }
     )
-  }
-
-  /**
-   * A kind the table does not own performs no write at all, exactly like the dispatch this
-   * replaced (`EDGE_KINDS[edge.kind]?.updateDerivedFields(edge)`, a no-op for an unowned kind) —
-   * `computeGeometry`'s tolerant fallback must not be turned into a write here, or this throws on a
-   * frozen record for a kind it was never going to touch. `length` is also left out of the write:
-   * only `TStroke` declares it.
-   */
-  updateDerivedFields(edge: TEdge): void {
-    const definition = EDGE_KINDS[edge.kind]
-    if (!definition) {
-      return
-    }
-    const { bounds, vertices, snapPoints, edges } = definition.computeGeometry(edge)
-    Object.assign(edge, { bounds, vertices, snapPoints, edges })
   }
 
   overlaps(edge: TEdge, box: TBox): boolean {
