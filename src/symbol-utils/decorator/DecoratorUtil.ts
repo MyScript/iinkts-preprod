@@ -160,7 +160,7 @@ export class DecoratorUtil extends SymbolUtil<TDecorator> {
   }
 
   overlaps(decorator: TDecorator, box: TBox): boolean {
-    return DecoratorOps.overlaps(decorator, box)
+    return this.overlapsQuery(decorator, box, (b) => DecoratorOps.overlaps(decorator, b))
   }
 
   /**
@@ -169,17 +169,15 @@ export class DecoratorUtil extends SymbolUtil<TDecorator> {
    * would double the displacement. `IIAbstractTransformManager.applyToSymbol` still returns early
    * for decorators, so nothing calls this yet; it becomes the live path when IIC-2014 removes that
    * early return, and stating the exception here is what keeps it from being lost.
+   *
+   * Overriding `applyTransform` rather than `translate`/`rotate`/`resize` individually: those three
+   * are concrete on `SymbolUtil` now and all three route through this one method, so a single
+   * no-op here covers all three at once instead of three separate ones.
    */
-  translate(): void {}
-
-  /** Nothing, for the same reason {@link translate} does nothing. */
-  rotate(): void {}
-
-  /** Nothing, for the same reason {@link translate} does nothing. */
-  resize(): void {}
+  applyTransform(): void {}
 
   getSnapPoints(decorator: TDecorator): TPoint[] {
-    return this.computeGeometry(decorator).snapPoints
+    return this.mapPointsForward(decorator, this.computeGeometry(decorator).snapPoints)
   }
 
   canResize(_decorator: TDecorator): boolean {

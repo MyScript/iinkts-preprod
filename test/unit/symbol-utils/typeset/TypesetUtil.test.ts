@@ -2,18 +2,18 @@ import { beforeEach, describe, expect, test } from "@jest/globals"
 
 import { buildIIMath, buildIIText } from "../../helpers"
 
-import type { TMath, TRotateContext, TText } from "@/iink"
-import { BoxOps, MathUtil, MatrixTransform, OBBOps, TextUtil, TypesetUtil } from "@/iink"
+import { MathUtil, MatrixTransform, TextUtil, TypesetUtil } from "@/iink"
 
 /**
  * `TText` and `TMath` are the same shape but for the list they hold — `chars` against `elements` —
- * so before IIC-2013 their utils were the same code twice, and the resize path was one method on
- * `IIResizeManager` that branched on `isText(symbol)` twice to reach the right list and the right
- * derive.
+ * so before IIC-2013 their utils were the same code twice. `translate`, `rotate` and `resize` used
+ * to be where that showed most: one method on `IIResizeManager` that branched on `isText(symbol)`
+ * twice, once to reach the right list and once to reach the right derive.
  *
- * These tests hold what the shared base buys: `rotate` and `resize` behave identically for both
- * types because there is only one of each, and the one place they legitimately differ is an
- * override rather than an omission.
+ * Task 11 removed that branching for good: the three operations are `SymbolUtil`'s now, composing
+ * the matrix the same way for every registered type. `TypesetUtil` no longer overrides any of
+ * them — these tests check that `TextUtil`/`MathUtil` inherit exactly that, and that nothing left
+ * in `TypesetUtil` still reaches for a coordinate the matrix is responsible for from here on.
  */
 describe("TypesetUtil", () => {
   let text: TextUtil
@@ -24,11 +24,8 @@ describe("TypesetUtil", () => {
     math = new MathUtil()
   })
 
+  const typesetPort = { setBounds: (): void => {} }
   const quarterTurn = () => MatrixTransform.identity().rotate(Math.PI / 2, { x: 0, y: 0 })
-  const context = (matrix: MatrixTransform): TRotateContext => ({
-    matrix,
-    center: { x: 0, y: 0 },
-  })
 
   test("both built-in typeset utils should share the base", () => {
     // Guards the guard: every assertion below is about inherited behaviour, and would pass
@@ -37,109 +34,73 @@ describe("TypesetUtil", () => {
     expect(math).toBeInstanceOf(TypesetUtil)
   })
 
-  describe("rotate, written once", () => {
-    test("text should record the angle rather than move its point", () => {
-      const symbol = buildIIText({ point: { x: 3, y: 4 } })
-      text.rotate(symbol, context(quarterTurn()))
-      expect(symbol.rotation?.degree).toBeCloseTo(90, 10)
-      // Untouched: a typeset symbol is turned by the renderer, not by moving its glyphs.
-      expect(symbol.point).toEqual({ x: 3, y: 4 })
-    })
-
-    test("math should do the same, from the same implementation", () => {
-      const symbol = buildIIMath("y=3x+2", { point: { x: 3, y: 4 } })
-      math.rotate(symbol, context(quarterTurn()))
-      expect(symbol.rotation?.degree).toBeCloseTo(90, 10)
-      expect(symbol.point).toEqual({ x: 3, y: 4 })
-    })
-
-    test("the recorded angle should accumulate across turns", () => {
-      const symbol = buildIIText({ point: { x: 0, y: 0 } })
-      text.rotate(symbol, context(quarterTurn()))
-      text.rotate(symbol, context(quarterTurn()))
-      expect(symbol.rotation?.degree).toBeCloseTo(180, 10)
-    })
-
-    /**
-     * This used to assert the opposite — that text re-measured after a turn and math did not — on
-     * the reading that the asymmetry inherited from `IIRotationManager` was deliberate. It was not.
-     * The text call set `bounds.angle` and nothing else, since the measurement cannot depend on the
-     * angle, and math was left never updating its derived fields at all. Both now do the same work,
-     * and neither re-measures.
-     */
+  describe("translate/rotate/resize, inherited from SymbolUtil, written once", () => {
     test.each([
-      ["text", () => buildIIText({ point: { x: 0, y: 0 } })],
-      ["math", () => buildIIMath()],
-    ])("%s should record the angle on its bounds and re-derive, without re-measuring", (name, build) => {
+      ["text", () => buildIIText({ point: { x: 3, y: 4 } })],
+      ["math", () => buildIIMath("y=3x+2", { point: { x: 3, y: 4 } })],
+    ])("%s translate should compose the matrix rather than move its point", (name, build) => {
       const symbol = build()
-      const before = { width: symbol.bounds.width, height: symbol.bounds.height }
       const util = name === "text" ? text : math
+      const before = structuredClone({ point: symbol.point, bounds: symbol.bounds })
 
-      util.rotate(symbol as never, context(quarterTurn()))
+      util.translate(symbol as never, { matrix: MatrixTransform.identity().translate(3, 4), typeset: typesetPort })
 
-      expect(symbol.bounds.angle).toBeCloseTo(90, 10)
-      // The glyph box itself is untouched — turning a symbol does not change what it is made of.
-      expect(symbol.bounds.width).toBe(before.width)
-      expect(symbol.bounds.height).toBe(before.height)
+      // The matrix composed onto an until-now identity transform is the matrix itself.
+      expect(symbol.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 3, ty: 4 })
+      // Untouched: a translate no longer moves a single stored coordinate.
+      expect(symbol.point).toEqual(before.point)
+      expect(symbol.bounds).toEqual(before.bounds)
     })
 
     test.each([
       ["text", () => buildIIText({ point: { x: 0, y: 0 } })],
       ["math", () => buildIIMath()],
-    ])("%s should place its vertices where the renderer draws them", (name, build) => {
-      // The bug this ticket fixes, at the level a caller sees it: `overlaps` reads `vertices`, so a
-      // quad that disagrees with the rendered transform is a symbol that cannot be surrounded.
+    ])("%s rotate should compose the matrix rather than record an angle", (name, build) => {
       const symbol = build()
       const util = name === "text" ? text : math
-      util.rotate(symbol as never, context(quarterTurn()))
+      const before = structuredClone(symbol.bounds)
 
-      const box = OBBOps.toUnrotatedBox(symbol.bounds)
-      const rad = Math.PI / 2
-      const expected = BoxOps.getCorners(box).map((corner) => ({
-        x: Math.cos(rad) * corner.x - Math.sin(rad) * corner.y,
-        y: Math.sin(rad) * corner.x + Math.cos(rad) * corner.y,
-      }))
-      symbol.vertices.forEach((vertex, i) => {
-        expect(vertex.x).toBeCloseTo(expected[i].x, 2)
-        expect(vertex.y).toBeCloseTo(expected[i].y, 2)
-      })
-    })
-  })
+      util.rotate(symbol as never, { matrix: quarterTurn(), center: { x: 0, y: 0 } })
 
-  describe("resize, written once", () => {
-    const scale = () => MatrixTransform.identity().scale(2, 4, { x: 0, y: 0 })
-
-    test("text should scale its characters", () => {
-      const symbol = buildIIText({ chars: [{ id: "c", label: "a", color: "#000", fontSize: 10, fontWeight: "normal", bounds: { x: 0, y: 0, width: 1, height: 1 } }] })
-      text.resize(symbol, { matrix: scale(), origin: { x: 0, y: 0 } })
-      // The mean of the two axes: (2 + 4) / 2.
-      expect(symbol.chars[0].fontSize).toBe(30)
+      // A quarter turn about the origin, from an until-now identity transform: cos(90°) rounds to
+      // 0 and sin(90°) to 1 inside `MatrixTransform.rotate`, so this is exact, not approximate.
+      expect(symbol.transform).toEqual({ xx: 0, yx: 1, xy: -1, yy: 0, tx: 0, ty: 0 })
+      // Untouched: no `.rotation` field is left to write, and the raw (pre-matrix) bounds this
+      // symbol was measured at do not change just because it turned.
+      expect(symbol.bounds).toEqual(before)
     })
 
-    test("math should scale its elements, by the same rule", () => {
-      const symbol = buildIIMath()
-      const before = symbol.elements[0].fontSize
-      math.resize(symbol, { matrix: scale(), origin: { x: 0, y: 0 } })
-      expect(symbol.elements[0].fontSize).toBe(+(before * 3).toFixed(3))
+    test.each([
+      ["text", () => buildIIText()],
+      ["math", () => buildIIMath()],
+    ])("%s rotate should accumulate across two turns rather than replace", (name, build) => {
+      const symbol = build()
+      const util = name === "text" ? text : math
+
+      util.rotate(symbol as never, { matrix: quarterTurn(), center: { x: 0, y: 0 } })
+      util.rotate(symbol as never, { matrix: quarterTurn(), center: { x: 0, y: 0 } })
+
+      // Two quarter turns compose to a half turn: cos(180°) rounds to -1, sin(180°) to 0 — `xy`
+      // lands on negative zero (0 * -1 followed by -1 * 0, both IEEE754 negative-zero products),
+      // which `toEqual` distinguishes from positive zero.
+      expect(symbol.transform).toEqual({ xx: -1, yx: 0, xy: -0, yy: -1, tx: 0, ty: 0 })
     })
 
-    /** Why `resize` takes no typeset port where `translate` and `rotate` do. */
-    const expectBoundsRebuilt = (symbol: TText | TMath, resized: () => void) => {
-      const { width, height } = symbol.bounds
-      resized()
-      expect(symbol.bounds.width).toBe(+(width * 2).toFixed(3))
-      expect(symbol.bounds.height).toBe(+(height * 4).toFixed(3))
-      expect(symbol.bounds.angle).toBe(0)
-    }
+    test.each([
+      ["text", () => buildIIText({ chars: [{ id: "c", label: "a", color: "#000", fontSize: 10, fontWeight: "normal", bounds: { x: 0, y: 0, width: 1, height: 1 } }] })],
+      ["math", () => buildIIMath()],
+    ])("%s resize should compose the matrix rather than rebuild bounds or scale glyphs", (name, build) => {
+      const symbol = build()
+      const util = name === "text" ? text : math
+      const before = structuredClone({ bounds: symbol.bounds, fontSizes: glyphFontSizes(symbol) })
 
-    test("text should rebuild its bounds from the scale factors rather than re-measure", () => {
-      const symbol = buildIIText({ point: { x: 1, y: 1 } })
-      expectBoundsRebuilt(symbol, () => text.resize(symbol, { matrix: scale(), origin: { x: 0, y: 0 } }))
-    })
+      util.resize(symbol as never, { matrix: MatrixTransform.identity().scale(2, 4, { x: 0, y: 0 }), origin: { x: 0, y: 0 } })
 
-    test("math should rebuild its bounds the same way", () => {
-      const symbol = buildIIMath("y=3x+2", { point: { x: 1, y: 1 } })
-      expectBoundsRebuilt(symbol, () => math.resize(symbol, { matrix: scale(), origin: { x: 0, y: 0 } }))
+      expect(symbol.transform).toEqual({ xx: 2, yx: 0, xy: 0, yy: 4, tx: 0, ty: 0 })
+      // Untouched: the matrix scales the glyphs at render time now, so nothing here rewrites a
+      // stored font size, and the raw bounds stay exactly what they were measured at.
+      expect(symbol.bounds).toEqual(before.bounds)
+      expect(glyphFontSizes(symbol)).toEqual(before.fontSizes)
     })
   })
 
@@ -153,3 +114,7 @@ describe("TypesetUtil", () => {
     })
   })
 })
+
+function glyphFontSizes(symbol: { chars?: { fontSize: number }[]; elements?: { fontSize: number }[] }): number[] {
+  return (symbol.chars ?? symbol.elements ?? []).map((g) => g.fontSize)
+}

@@ -1,7 +1,7 @@
 import type { TInkCanvas } from "@/canvas/TInkCanvas"
 import type { TBox } from "@/core/geometry"
 import { BoxOps } from "@/core/geometry"
-import { OBBOps } from "@/core/geometry"
+import { isIdentityMatrix, MatrixTransform, OBBOps } from "@/core/geometry"
 import { createUUID } from "@/core/std"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { IModel } from "@/model"
@@ -82,10 +82,7 @@ export class IDebugSVGManager {
       const symEl = this.renderer.getElementById(s.id)
       if (symEl) {
         if (isText(s)) {
-          let transform: string = ""
-          if (s.rotation) {
-            transform = `rotate(${s.rotation.degree}, ${s.rotation.center.x}, ${s.rotation.center.y})`
-          }
+          const transform = isIdentityMatrix(s.transform) ? "" : MatrixTransform.toCssString(s.transform)
           s.chars.forEach((c) => {
             const ca = {
               ...charAttrs,

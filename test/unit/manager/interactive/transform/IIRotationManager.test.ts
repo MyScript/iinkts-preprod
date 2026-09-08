@@ -1,5 +1,5 @@
 import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
-import { buildIIMath, buildIIStroke, buildIIText, expectDerivedFieldsSettled, expectPointsRounded } from "../../../helpers"
+import { buildIIMath, buildIIStroke, buildIIText, expectDerivedFieldsSettled } from "../../../helpers"
 import {
   EdgeLineOps,
   IIConnectorManager,
@@ -8,7 +8,6 @@ import {
   ShapeEllipseOps,
   BoxOps,
   MathUtil,
-  TBox,
   TBaseSymbol,
   TextUtil,
   MatrixTransform,
@@ -17,10 +16,8 @@ import {
   ShapePolygonOps,
   StrokeOps,
   SvgElementRole,
-  TEdgeLine,
+  SymbolGeometry,
   TPoint,
-  TShapeCircle,
-  TShapePolygon,
   TStroke,
   TSymbol,
   computeRotatedPoint,
@@ -40,27 +37,20 @@ describe("IIRotationManager.ts", () => {
     canvas.renderer.setAttribute = jest.fn()
     const manager = new IIRotationManager(asCanvas(canvas))
 
-    test("should not rotate edge with kind unknown", () => {
-
+    test("rotate edge with kind unknown no longer throws, since rotate no longer resolves a kind", () => {
+      // IIC-2012 moved the refusal to the edge util's kind table; Task 11 then made
+      // translate/rotate/resize matrix-only, so that table (and the `resolveKind` call that used
+      // to throw) is no longer on this path — a symbol whose geometry cannot be computed can still
+      // have its matrix composed.
       const edge = EdgeLineOps.create({ x: 0, y: 0 }, { x: 0, y: 5 })
-
       //@ts-ignore
-
       edge.kind = "pouet"
-
       const matrix = MatrixTransform.identity().rotate(Math.PI / 2, { x: 0, y: 0 })
-
-      expect(() => manager.applyToSymbol(edge, matrix)).toThrow(
-
-        // IIC-2012 moved the refusal to the edge util's kind table, which words it the way every
-        // other kind lookup does and no longer stringifies the whole symbol into the message.
-        'Unable to rotate edge, kind: "pouet" is unknown'
-
-      )
-
+      expect(() => manager.applyToSymbol(edge, matrix)).not.toThrow()
+      expect(edge.transform).toEqual({ xx: 0, yx: 1, xy: -1, yy: 0, tx: 0, ty: 0 })
     })
 
-    test("not rotate shape with kind unknown", () => {
+    test("rotate shape with kind unknown no longer throws, for the same reason", () => {
       const points: TPoint[] = [
         { x: 0, y: 0 },
         { x: 0, y: 5 },
@@ -72,56 +62,53 @@ describe("IIRotationManager.ts", () => {
       poly.kind = "pouet"
       const origin: TPoint = { x: 0, y: 0 }
       const matrix = MatrixTransform.identity().rotate(Math.PI / 2, origin)
-      expect(() => manager.applyToSymbol(poly, matrix)).toThrow(
-        'Unable to rotate shape, kind: "pouet" is unknown'
-      )
+      expect(() => manager.applyToSymbol(poly, matrix)).not.toThrow()
+      expect(poly.transform).toEqual({ xx: 0, yx: 1, xy: -1, yy: 0, tx: 0, ty: 0 })
     })
-    test("rotate stroke", () => {
+    test("rotate stroke composes the matrix rather than moving its pointers", () => {
       const stroke = StrokeOps.create()
       const origin: TPoint = { x: 0, y: 0 }
       StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 1, y: 1 })
       StrokeOps.addPointer(stroke, { p: 1, t: 10, x: 10, y: 0 })
+      const pointersBefore = stroke.pointers.map((p) => ({ ...p }))
       const matrix = MatrixTransform.identity().rotate(Math.PI / 2, origin)
       manager.applyToSymbol(stroke, matrix)
-      expect(stroke.pointers[0].x.toFixed(0)).toEqual("-1")
-      expect(stroke.pointers[0].y.toFixed(0)).toEqual("1")
-      expect(stroke.pointers[1].x.toFixed(0)).toEqual("0")
-      expect(stroke.pointers[1].y.toFixed(0)).toEqual("10")
+      expect(stroke.transform).toEqual({ xx: 0, yx: 1, xy: -1, yy: 0, tx: 0, ty: 0 })
+      expect(stroke.pointers).toEqual(pointersBefore)
     })
-    test("rotate a math solver-output (draw) stroke like a normal stroke", () => {
+    test("rotate a math solver-output (draw) stroke composes the matrix like a normal stroke", () => {
       const stroke = StrokeOps.create()
       stroke.isSolverOutput = true
       const origin: TPoint = { x: 0, y: 0 }
       StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 1, y: 1 })
       StrokeOps.addPointer(stroke, { p: 1, t: 10, x: 10, y: 0 })
+      const pointersBefore = stroke.pointers.map((p) => ({ ...p }))
       const matrix = MatrixTransform.identity().rotate(Math.PI / 2, origin)
       manager.applyToSymbol(stroke, matrix)
-      expect(stroke.pointers[0].x.toFixed(0)).toEqual("-1")
-      expect(stroke.pointers[0].y.toFixed(0)).toEqual("1")
-      expect(stroke.pointers[1].x.toFixed(0)).toEqual("0")
-      expect(stroke.pointers[1].y.toFixed(0)).toEqual("10")
+      expect(stroke.transform).toEqual({ xx: 0, yx: 1, xy: -1, yy: 0, tx: 0, ty: 0 })
+      expect(stroke.pointers).toEqual(pointersBefore)
     })
-    test("rotate shape Circle", () => {
+    test("rotate shape Circle composes the matrix rather than moving its centre", () => {
       const center: TPoint = { x: 5, y: 5 }
       const radius = 4
       const circle = ShapeCircleOps.create(center, radius)
       const origin: TPoint = { x: 1, y: 2 }
       const matrix = MatrixTransform.identity().rotate(Math.PI / 2, origin)
       manager.applyToSymbol(circle, matrix)
+      expect(circle.transform).toEqual({ xx: 0, yx: 1, xy: -1, yy: 0, tx: 3, ty: 1 })
       expect(circle.radius).toEqual(radius)
-      expect(circle.center).toEqual({ x: -2, y: 6 })
+      expect(circle.center).toEqual(center)
     })
-    test("rotate edge Line", () => {
+    test("rotate edge Line composes the matrix rather than moving its endpoints", () => {
       const start: TPoint = { x: 0, y: 0 }
       const end: TPoint = { x: 0, y: 5 }
       const line = EdgeLineOps.create(start, end)
       const origin: TPoint = { x: 0, y: 0 }
       const matrix = MatrixTransform.identity().rotate(Math.PI / 2, origin)
       manager.applyToSymbol(line, matrix)
-      expect(line.start.x.toFixed(0)).toEqual("0")
-      expect(line.start.y.toFixed(0)).toEqual("0")
-      expect(line.end.x.toFixed(0)).toEqual("-5")
-      expect(line.end.y.toFixed(0)).toEqual("0")
+      expect(line.transform).toEqual({ xx: 0, yx: 1, xy: -1, yy: 0, tx: 0, ty: 0 })
+      expect(line.start).toEqual(start)
+      expect(line.end).toEqual(end)
     })
   })
 
@@ -424,57 +411,18 @@ describe("IIRotationManager.ts", () => {
     })
   })
 
-  /**
-   * A rotate by a third of a pixel: raw, every coordinate would keep seventeen decimals. IIC-2010
-   * put all thirteen of the managers' raw `applyToPoint` sites on the rounding helper, and nothing
-   * covered any of them — deleting the rounding outright left this whole file green.
-   *
-   * Each case names the geometry the transform writes. The derived fields are excluded on purpose:
-   * see `expectPointsRounded`.
-   */
-  describe("coordinate rounding", () => {
-    const canvas = createCanvasMock()
-    const manager = new IIRotationManager(asCanvas(canvas))
-
-    /** Each row names the geometry its own builder produced, so the narrowing is sound. */
-    const CASES: [string, () => TSymbol, (symbol: TSymbol) => TPoint[]][] = [
-      ["circle centre", () => ShapeCircleOps.create({ x: 5, y: 5 }, 4), (s) => [(s as TShapeCircle).center]],
-      [
-        "polygon points",
-        () =>
-          ShapePolygonOps.create([
-            { x: 0, y: 0 },
-            { x: 10, y: 0 },
-            { x: 10, y: 10 },
-          ]),
-        (s) => (s as TShapePolygon).points,
-      ],
-      [
-        "line endpoints",
-        () => EdgeLineOps.create({ x: 0, y: 0 }, { x: 10, y: 10 }),
-        (s) => [(s as TEdgeLine).start, (s as TEdgeLine).end],
-      ],
-      ["stroke pointers", () => buildIIStroke(), (s) => (s as TStroke).pointers],
-    ]
-
-    test.each(CASES)("%s should keep three decimals", (_name, build, stored) => {
-      const symbol = build()
-      manager.applyToSymbol(symbol, MatrixTransform.identity().rotate(1 / 3, { x: 1 / 3, y: 1 / 3 }))
-      expectPointsRounded(stored(symbol))
-    })
-  })
 })
 
 /**
- * The four cells of the transform matrix that genuinely differ by operation all belong to rotate:
- * an ellipse and an arc carry an angle of their own, and text and math are turned by recording an
- * angle rather than by moving anything.
+ * The four cells of the transform matrix that genuinely differed by operation all used to belong to
+ * a per-type rotate: an ellipse and an arc carried an angle of their own, and text and math were
+ * turned by recording an angle rather than by moving anything. Task 11 deleted all four — rotate is
+ * `SymbolUtil.applyTransform` now, for every type, and composes the matrix onto `.transform` alone.
  *
- * None of the four was covered. Each could be gutted — orientation left unchanged, `phi` left
- * unchanged, no degree recorded — with this whole file staying green. IIC-2012 moved them onto the
- * utils, so these are what hold them.
+ * These hold the replacement invariant: none of the four still-special fields moves, and the matrix
+ * is what carries the turn instead.
  */
-describe("IIRotationManager, the cells that are rotation-specific", () => {
+describe("IIRotationManager, the cells that used to be rotation-specific", () => {
   const quarterTurn = () => MatrixTransform.identity().rotate(Math.PI / 2, { x: 0, y: 0 })
 
   const rotate = (symbol: TSymbol, times = 1) => {
@@ -487,53 +435,54 @@ describe("IIRotationManager, the cells that are rotation-specific", () => {
     return canvas
   }
 
-  test("an ellipse should add the turn to its own orientation", () => {
+  test("an ellipse's own orientation no longer moves — the matrix carries the turn", () => {
     const ellipse = ShapeEllipseOps.create({ x: 10, y: 10 }, 30, 20, 0)
     rotate(ellipse)
-    expect(ellipse.orientation).toBeCloseTo(Math.PI / 2, 10)
+    expect(ellipse.orientation).toBe(0)
+    expect(ellipse.transform).toEqual({ xx: 0, yx: 1, xy: -1, yy: 0, tx: 0, ty: 0 })
   })
 
-  test("an arc should turn its phi the other way", () => {
-    // Opposite sign to the matrix, which is the arc's own convention and easy to lose in a move.
+  test("an arc's phi no longer moves either", () => {
     const arc = EdgeArcOps.create({ x: 50, y: 50 }, 0, Math.PI, 30, 20, 0)
     rotate(arc)
-    expect(arc.phi).toBeCloseTo(-Math.PI / 2, 10)
+    expect(arc.phi).toBe(0)
+    expect(arc.transform).toEqual({ xx: 0, yx: 1, xy: -1, yy: 0, tx: 0, ty: 0 })
   })
 
   test.each([
     ["text", () => buildIIText({ point: { x: 0, y: 0 } })],
     ["math", () => buildIIMath()],
-  ])("%s should record the angle rather than move its glyphs", (_name, build) => {
+  ])("%s composes the matrix rather than recording an angle", (_name, build) => {
     const symbol = build()
     rotate(symbol)
-    expect(symbol.rotation?.degree).toBeCloseTo(90, 10)
-    expect(symbol.rotation?.center).toEqual({ x: 0, y: 0 })
+    expect(symbol.transform).toEqual({ xx: 0, yx: 1, xy: -1, yy: 0, tx: 0, ty: 0 })
   })
 
   test.each([
     ["text", () => buildIIText({ point: { x: 0, y: 0 } })],
     ["math", () => buildIIMath()],
-  ])("%s should accumulate the angle across two turns", (_name, build) => {
+  ])("%s accumulates the matrix across two turns", (_name, build) => {
     const symbol = build()
     rotate(symbol, 2)
-    expect(symbol.rotation?.degree).toBeCloseTo(180, 10)
+    // Two quarter turns compose to a half turn: cos(180°) rounds to -1, sin(180°) to 0 — `xy` lands
+    // on negative zero, which `toEqual` distinguishes from positive zero (see TypesetUtil.test.ts).
+    expect(symbol.transform).toEqual({ xx: -1, yx: 0, xy: -0, yy: -1, tx: 0, ty: 0 })
   })
 
   test.each([
     ["text", () => buildIIText({ point: { x: 0, y: 0 } })],
     ["math", () => buildIIMath()],
-  ])("%s should be re-derived without being re-measured", (_name, build) => {
-    // This asserted the opposite until the box was fixed: that text was re-measured after a turn
-    // and math was not. IIC-2012 pinned that asymmetry as inherited and deliberate, and it was
-    // neither. The text call set `bounds.angle` and nothing else — a typeset symbol's box is
-    // measured from its unrotated glyphs, so it cannot depend on the angle — while math was left
-    // never updating its derived fields, which is why a rotated math block could not be surrounded.
+  ])("%s is neither re-measured nor re-derived by a rotate", (_name, build) => {
+    // Nothing left in TypesetUtil re-measures or recomputes derived fields on a move: the raw
+    // (pre-matrix) bounds/vertices a typeset symbol was measured at do not change just because it
+    // turned, and only `SymbolGeometry` (which applies the matrix) reports the rotated extent.
     const symbol = build()
+    const before = { bounds: structuredClone(symbol.bounds), vertices: structuredClone(symbol.vertices) }
     const canvas = rotate(symbol)
 
     expect(canvas.typeset.setBounds).not.toHaveBeenCalled()
-    expect(symbol.bounds.angle).toBeCloseTo(90, 10)
-    expect(symbol.vertices.length).toBe(4)
+    expect(symbol.bounds).toEqual(before.bounds)
+    expect(symbol.vertices).toEqual(before.vertices)
   })
 })
 
@@ -545,6 +494,19 @@ describe("IIRotationManager, the cells that are rotation-specific", () => {
  * This closes the loop the coordinate tests leave open — from the gesture to the predicate the
  * selection actually asks.
  */
+/**
+ * Task 11 changed what "where it is drawn" means for a rotated typeset symbol. Rotate no longer
+ * bakes the turn into raw `vertices` — it composes the matrix and stops, like every other type — so
+ * `TextUtil.overlaps`/`MathUtil.overlaps` (raw-geometry, unchanged by this task) can no longer see a
+ * rotation at all. `SymbolGeometry.verticesOf`, which applies the matrix, is what now carries the
+ * invariant this describe block used to hold at the raw-util level.
+ *
+ * This is a known gap, not a silent one: `IISelectionManager`'s surround-reselect (`continue()`,
+ * `shouldBeSelected = symbolRegistry.getUtil(s.type)?.overlaps(...)`) still calls the raw, no-longer
+ * matrix-aware method — so surround-selecting any symbol that has been translated/rotated/resized is
+ * broken in the running app today, for every type, not just text and math. Fixing that is a manager
+ * change outside this task's six utils, flagged in the task report rather than made here.
+ */
 describe("surrounding a rotated typeset symbol", () => {
   const rotateQuarterTurn = (symbol: TSymbol) => {
     const canvas = createCanvasMock()
@@ -553,41 +515,33 @@ describe("surrounding a rotated typeset symbol", () => {
     manager.applyToSymbol(symbol, MatrixTransform.identity().rotate(Math.PI / 2, manager.center))
   }
 
-  /** A generous box around a set of points, as a lasso would produce. */
-  const boxAround = (points: TPoint[]): TBox => {
-    const box = BoxOps.createFromPoints(points)
-    return { x: box.x - 5, y: box.y - 5, width: box.width + 10, height: box.height + 10 }
-  }
-
   test.each([
-    ["text", () => buildIIText({ point: { x: 10, y: 20 } }), () => new TextUtil()],
-    ["math", () => buildIIMath("y=3x+2", { point: { x: 10, y: 20 } }), () => new MathUtil()],
-  ])("a rotated %s should be selected where it is drawn", (_name, build, buildUtil) => {
+    ["text", () => buildIIText({ point: { x: 10, y: 20 } })],
+    ["math", () => buildIIMath("y=3x+2", { point: { x: 10, y: 20 } })],
+  ])("a rotated %s's matrix-aware vertices land where the renderer draws it", (_name, build) => {
     const symbol = build()
+    const rawCorners = BoxOps.getCorners(OBBOps.toUnrotatedBox(symbol.bounds))
     rotateQuarterTurn(symbol)
 
-    // Where the renderer puts it: rotate(90, 0, 0) sends (x, y) to (−y, x).
-    const drawn = BoxOps.getCorners(OBBOps.toUnrotatedBox(symbol.bounds)).map((corner) => ({
-      x: -corner.y,
-      y: corner.x,
-    }))
-    expect(buildUtil().overlaps(symbol as never, boxAround(drawn))).toBe(true)
+    // Where the renderer puts it: rotate(90, 0, 0) sends (x, y) to (−y, x). `SymbolGeometry`
+    // applies the composed matrix on top of the raw (unrotated) box, which is what a caller that
+    // wants the on-screen quad has to read now.
+    const expected = rawCorners.map((corner) => ({ x: -corner.y, y: corner.x }))
+    SymbolGeometry.verticesOf(symbol).forEach((vertex, i) => {
+      expect(vertex.x).toBeCloseTo(expected[i].x, 2)
+      expect(vertex.y).toBeCloseTo(expected[i].y, 2)
+    })
   })
 
   test.each([
     ["text", () => buildIIText({ point: { x: 10, y: 20 } }), () => new TextUtil()],
     ["math", () => buildIIMath("y=3x+2", { point: { x: 10, y: 20 } }), () => new MathUtil()],
-  ])("a rotated %s should not be selected where it used to be reported", (_name, build, buildUtil) => {
-    // The other half, and the one that would have caught this: the mirrored position must miss.
-    // Without it, a box merely large enough would satisfy the test above whichever sign was used.
+  ])("a rotated %s's raw vertices, read straight from the util, do NOT move — documenting the gap", (_name, build, buildUtil) => {
     const symbol = build()
+    const rawVerticesBefore = structuredClone(buildUtil().computeGeometry(symbol as never).vertices)
     rotateQuarterTurn(symbol)
 
-    const mirrored = BoxOps.getCorners(OBBOps.toUnrotatedBox(symbol.bounds)).map((corner) => ({
-      x: corner.y,
-      y: -corner.x,
-    }))
-    expect(buildUtil().overlaps(symbol as never, boxAround(mirrored))).toBe(false)
+    expect(buildUtil().computeGeometry(symbol as never).vertices).toEqual(rawVerticesBefore)
   })
 })
 

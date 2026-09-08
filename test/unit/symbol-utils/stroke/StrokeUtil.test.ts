@@ -112,6 +112,46 @@ describe("StrokeUtil", () => {
       StrokeOps.updateBounds(stroke)
       expect(util.overlaps(stroke, { x: 0, y: 0, width: 5, height: 5 })).toBe(false)
     })
+
+    /**
+     * The regression this closes: a surround-select box that only covers where a moved stroke now
+     * sits used to miss it entirely, because `overlaps` tested the query against the stroke's raw
+     * (pre-move) pointers.
+     */
+    test("a translated stroke is selected at its new position, not its raw one", () => {
+      // Raw pointers sit at [0,10]x[0,10]; translate(50, 60) puts the stroke at [50,60]x[60,70].
+      const stroke = buildIIStroke({ box: { x: 0, y: 0, width: 10, height: 10 } })
+      StrokeOps.updateBounds(stroke)
+      stroke.transform = MatrixTransform.identity().translate(50, 60)
+
+      expect(util.overlaps(stroke, { x: 45, y: 55, width: 20, height: 20 })).toBe(true)
+      // The raw position is where the stroke used to be — a query still drawn there must miss it.
+      expect(util.overlaps(stroke, { x: 0, y: 0, width: 10, height: 10 })).toBe(false)
+    })
+
+    /**
+     * A rotated stroke must not widen to "the drawn line crosses the box": a stroke's real overlap
+     * test is per-pointer, and the generic bounds/edges fallback other types use would count a query
+     * side crossing the segment *between* two raw pointers as an overlap even with no pointer inside
+     * it — over-approximating exactly the case a surround-select box that just grazes a straight
+     * stretch of a rotated stroke would trigger.
+     *
+     * Hand-derived with a clean (no trig rounding) rotation matrix — cos=0.6, sin=0.8, the 3-4-5
+     * triangle — so the inverse is its exact transpose: {xx:0.6, yx:-0.8, xy:0.8, yy:0.6}, mapping
+     * (x,y) to (0.6x+0.8y, -0.8x+0.6y). Two raw pointers at (0,0) and (10,0); the query box
+     * {x:2,y:3,width:2,height:2} maps back to the raw-frame quad (3.6,0.2), (4.8,-1.4), (6.4,-0.2),
+     * (5.2,1.4) — straddling the segment near its midpoint (crossing it at (3.75,0), verified by
+     * intersecting the query's first mapped side with the raw segment) while containing neither
+     * raw pointer (both (0,0) and (10,0) fall on the far side of that quad's boundary — verified by
+     * the same cross-product sign test `pointInConvexPolygon` uses).
+     */
+    test("a rotated stroke is not selected merely because a query crosses the segment between two pointers", () => {
+      const stroke = buildIIStroke({ box: { x: 0, y: 0, width: 10, height: 0 }, nbPoint: 2 })
+      StrokeOps.updateBounds(stroke)
+      stroke.transform = { xx: 0.6, yx: 0.8, xy: -0.8, yy: 0.6, tx: 0, ty: 0 }
+
+      expect(util.overlaps(stroke, { x: 2, y: 3, width: 2, height: 2 })).toBe(false)
+    })
   })
 
   describe("getSnapPoints", () => {
@@ -120,6 +160,27 @@ describe("StrokeUtil", () => {
       StrokeOps.updateBounds(stroke)
       const result = util.getSnapPoints(stroke)
       expect(result).toStrictEqual(stroke.snapPoints)
+    })
+
+    test("a translated stroke's snap points are the raw ones shifted by the same translate", () => {
+      const stroke = buildIIStroke({ box: { x: 0, y: 0, width: 10, height: 10 } })
+      StrokeOps.updateBounds(stroke)
+      stroke.transform = MatrixTransform.identity().translate(3, 4)
+
+      // Hand-computed from OBBOps.getSnapPoints' own order (4 corners, then the 4 side midpoints,
+      // then the center) over the raw [0,10]x[0,10] box this stroke's pointers describe, each
+      // shifted by the translate — not by calling getSnapPoints with an identity transform first.
+      expect(util.getSnapPoints(stroke)).toEqual([
+        { x: 3, y: 4 },
+        { x: 13, y: 4 },
+        { x: 13, y: 14 },
+        { x: 3, y: 14 },
+        { x: 8, y: 4 },
+        { x: 13, y: 9 },
+        { x: 8, y: 14 },
+        { x: 3, y: 9 },
+        { x: 8, y: 9 },
+      ])
     })
   })
 
