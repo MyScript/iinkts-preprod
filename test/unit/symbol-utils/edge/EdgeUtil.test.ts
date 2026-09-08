@@ -298,6 +298,42 @@ describe("EdgeUtil, the contract members", () => {
       const unknownEdge = { ...line, kind: "unknown" } as unknown as TEdge
       expect(util.overlaps(unknownEdge, { x: 0, y: 0, width: 100, height: 100 })).toBe(false)
     })
+
+    /**
+     * The regression this closes: surround-selecting a rotated edge missed it entirely, because
+     * `overlaps` tested the query against the raw (pre-rotate) segment.
+     */
+    test("a rotated line is crossed by a query over its new position, not its raw one", () => {
+      // Raw line lies along y=0 from x=0 to x=10. rotate(90°) about the origin sends (x, y) to
+      // (-y, x), so the rotated line now lies along x=0 from y=0 to y=10.
+      const line = buildIILine({ start: { x: 0, y: 0 }, end: { x: 10, y: 0 } })
+      line.transform = MatrixTransform.identity().rotate(Math.PI / 2)
+
+      expect(util.overlaps(line, { x: -1, y: 5, width: 2, height: 2 })).toBe(true)
+      // Where the line used to lie — a query still drawn along y=0 must miss it now.
+      expect(util.overlaps(line, { x: 5, y: -1, width: 2, height: 2 })).toBe(false)
+    })
+
+    /**
+     * Regression found in review: a rotated line's two raw endpoints are also two of its own raw
+     * *bounding-box* corners — but the box has two more corners, never on the line itself. Testing
+     * containment against the box's corners (as the first version of this fix did) rather than the
+     * line's own two endpoints made a query that truly surrounds the (rotated) line miss it, because
+     * the box's other two corners reach further out than the line does everywhere but its endpoints.
+     *
+     * Hand-derived with a clean (no trig rounding) rotation matrix — cos=0.6, sin=0.8, the 3-4-5
+     * triangle. Raw endpoints (0,0),(20,5) map forward to world (0,0),(8,19); the world-space query
+     * {x:-1,y:-1,width:10,height:21} maps back, through the exact-transpose inverse, to a raw-frame
+     * quad that contains both raw endpoints (verified by the same cross-product sign test
+     * `pointInConvexPolygon` uses) but excludes both of the raw bounding box's other corners,
+     * (20,0) and (0,5).
+     */
+    test("hand-computed: a rotated line is contained where its bounding box's other two corners are not", () => {
+      const line = buildIILine({ start: { x: 0, y: 0 }, end: { x: 20, y: 5 } })
+      line.transform = { xx: 0.6, yx: 0.8, xy: -0.8, yy: 0.6, tx: 0, ty: 0 }
+
+      expect(util.overlaps(line, { x: -1, y: -1, width: 10, height: 21 })).toBe(true)
+    })
   })
 
   describe("getSnapPoints", () => {
@@ -306,6 +342,18 @@ describe("EdgeUtil, the contract members", () => {
       util.updateDerivedFields(line)
       const result = util.getSnapPoints(line)
       expect(result).toStrictEqual(line.snapPoints)
+    })
+
+    test("a rotated line's snap points land on the rotated geometry, not the raw one", () => {
+      const line = buildIILine({ start: { x: 0, y: 0 }, end: { x: 10, y: 0 } })
+      line.transform = MatrixTransform.identity().rotate(Math.PI / 2)
+
+      // Hand-computed: rotate(90°) about the origin sends (x, y) to (-y, x), so raw endpoints
+      // (0,0),(10,0) - the line's own snap points - become (0,0),(0,10).
+      expect(util.getSnapPoints(line)).toEqual([
+        { x: 0, y: 0 },
+        { x: 0, y: 10 },
+      ])
     })
   })
 

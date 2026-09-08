@@ -47,10 +47,6 @@ describe("TextOps", () => {
       expect(text.edges).toHaveLength(4)
     })
 
-    test("should have no rotation by default", () => {
-      const text = TextOps.create(chars, point, bounds)
-      expect(text.rotation).toBeUndefined()
-    })
   })
 
   describe("createFromPartial", () => {
@@ -84,19 +80,10 @@ describe("TextOps", () => {
   })
 
   describe("updateDerivedFields", () => {
-    test("should compute vertices from corners when no rotation", () => {
+    test("should compute vertices from corners", () => {
       const text = TextOps.create(chars, point, bounds)
       TextOps.updateDerivedFields(text)
       expect(text.vertices).toEqual(BoxOps.getCorners(bounds))
-    })
-
-    test("should compute rotated vertices when rotation is set", () => {
-      const text = TextOps.create(chars, point, bounds)
-      text.rotation = { degree: 90, center: { x: 0, y: 0 } }
-      TextOps.updateDerivedFields(text)
-      // After rotation the vertices should differ from corners
-      expect(text.vertices).not.toEqual(BoxOps.getCorners(bounds))
-      expect(text.vertices).toHaveLength(4)
     })
 
     test("should recompute edges when bounds change", () => {

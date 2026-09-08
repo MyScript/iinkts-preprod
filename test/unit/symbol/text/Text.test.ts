@@ -31,29 +31,11 @@ describe("Text.ts", () => {
       const text = TextOps.create(chars, point, box)
       expect(TextOps.getLabel(text)).toEqual("firstsecond")
     })
-    test(`should get vertices without rotation`, () => {
+    test(`should get vertices`, () => {
       const text = TextOps.create(chars, point, box)
       expect(text.vertices).toEqual(BoxOps.getCorners(box))
     })
-    test(`should get vertices with rotation 90°`, () => {
-      const text = TextOps.create(chars, point, box)
-      text.rotation = {
-        degree: 90,
-        center: { x: 0, y: 0 },
-      }
-      TextOps.updateDerivedFields(text)
-      // Expected the mirrored quad until this ticket. Written from what the implementation
-      // produced rather than from what the renderer draws, so it locked the sign error in place:
-      // for a 90° turn about the origin the two differ by exactly a negation. The values below are
-      // `rotate(90, 0, 0)`'s own arithmetic — x' = −y, y' = x.
-      expect(text.vertices).toEqual([
-        { x: -2, y: 1 },
-        { x: -2, y: 11 },
-        { x: -12, y: 11 },
-        { x: -12, y: 1 },
-      ])
-    })
-    test(`should get edges without rotation`, () => {
+    test(`should get edges`, () => {
       const text = TextOps.create(chars, point, box)
       expect(text.edges).toEqual([
         { p1: { x: 1, y: 2 }, p2: { x: 11, y: 2 } },
@@ -62,25 +44,7 @@ describe("Text.ts", () => {
         { p1: { x: 1, y: 12 }, p2: { x: 1, y: 2 } },
       ])
     })
-    test(`should get edges with rotation 90°`, () => {
-      const text = TextOps.create(chars, point, box)
-      text.rotation = {
-        degree: 90,
-        center: { x: 0, y: 0 },
-      }
-      TextOps.updateDerivedFields(text)
-      // Expected the mirrored quad until this ticket. Written from what the implementation
-      // produced rather than from what the renderer draws, so it locked the sign error in place:
-      // for a 90° turn about the origin the two differ by exactly a negation. The values below are
-      // `rotate(90, 0, 0)`'s own arithmetic — x' = −y, y' = x.
-      expect(text.edges).toEqual([
-        { p1: { x: -2, y: 1 }, p2: { x: -2, y: 11 } },
-        { p1: { x: -2, y: 11 }, p2: { x: -12, y: 11 } },
-        { p1: { x: -12, y: 11 }, p2: { x: -12, y: 1 } },
-        { p1: { x: -12, y: 1 }, p2: { x: -2, y: 1 } },
-      ])
-    })
-    test(`should get snapPoints without rotation`, () => {
+    test(`should get snapPoints`, () => {
       const text = TextOps.create(chars, point, box)
       expect(text.snapPoints).toEqual([
         { x: 1, y: 14 },
@@ -88,28 +52,6 @@ describe("Text.ts", () => {
         { x: 11, y: 0 },
         { x: 1, y: 0 },
         { x: 6, y: 7 },
-      ])
-    })
-    test(`should get snapPoints with rotation 90°`, () => {
-      const text = TextOps.create(chars, point, box)
-      text.rotation = {
-        degree: 90,
-        center: { x: 0, y: 0 },
-      }
-      TextOps.updateDerivedFields(text)
-      // Expected the mirrored quad until this ticket. Written from what the implementation
-      // produced rather than from what the renderer draws, so it locked the sign error in place:
-      // for a 90° turn about the origin the two differ by exactly a negation. The values below are
-      // `rotate(90, 0, 0)`'s own arithmetic — x' = −y, y' = x.
-      expect(text.snapPoints).toEqual([
-        { x: -14, y: 1 },
-        { x: -14, y: 11 },
-        // Negative zero, which `toEqual` distinguishes from zero: the rounding in
-        // `computeRotatedPoint` yields `+(-0).toFixed(3)`. The old expectation carried it too, on
-        // the other side of the sign.
-        { x: -0, y: 11 },
-        { x: -0, y: 1 },
-        { x: -7, y: 6 },
       ])
     })
   })
@@ -131,7 +73,7 @@ describe("Text.ts", () => {
   })
 
   describe("getChildrenOverlaps", () => {
-    test(`should return only first char without rotation`, () => {
+    test(`should return only first char`, () => {
       const text = TextOps.create(chars, point, box)
       const points: TPoint[] = [
         { x: 3, y: 0 },
@@ -140,7 +82,7 @@ describe("Text.ts", () => {
       ]
       expect(TextOps.getChildrenOverlaps(text, points)).toEqual([chars[0]])
     })
-    test(`should return all char without rotation`, () => {
+    test(`should return all char`, () => {
       const text = TextOps.create(chars, point, box)
       const points: TPoint[] = [
         { x: 3, y: 0 },
@@ -151,52 +93,8 @@ describe("Text.ts", () => {
       ]
       expect(TextOps.getChildrenOverlaps(text, points)).toEqual(chars)
     })
-    test(`should return false if box is outside without rotation`, () => {
+    test(`should return false if box is outside`, () => {
       const text = TextOps.create(chars, point, box)
-      const points: TPoint[] = [
-        { x: 13, y: 0 },
-        { x: 12, y: 3 },
-        { x: 14, y: 7 },
-      ]
-      expect(TextOps.getChildrenOverlaps(text, points)).toEqual([])
-    })
-    test(`should return only second char with rotation 180°`, () => {
-      const text = TextOps.create(chars, point, box)
-      text.rotation = {
-        center: text.bounds.center,
-        degree: 180,
-      }
-      TextOps.updateDerivedFields(text)
-      const points: TPoint[] = [
-        { x: 3, y: 0 },
-        { x: 2, y: 3 },
-        { x: 4, y: 7 },
-      ]
-      expect(TextOps.getChildrenOverlaps(text, points)).toEqual([chars[1]])
-    })
-    test(`should return all char with rotation 180°`, () => {
-      const text = TextOps.create(chars, point, box)
-      text.rotation = {
-        center: text.bounds.center,
-        degree: 90,
-      }
-      TextOps.updateDerivedFields(text)
-      const points: TPoint[] = [
-        { x: 3, y: 0 },
-        { x: 2, y: 3 },
-        { x: 4, y: 7 },
-        { x: 8, y: 7 },
-        { x: 10, y: 6 },
-      ]
-      expect(TextOps.getChildrenOverlaps(text, points)).toEqual(chars)
-    })
-    test(`should return false if box is outside with rotation 180°`, () => {
-      const text = TextOps.create(chars, point, box)
-      text.rotation = {
-        center: text.bounds.center,
-        degree: 90,
-      }
-      TextOps.updateDerivedFields(text)
       const points: TPoint[] = [
         { x: 13, y: 0 },
         { x: 12, y: 3 },
@@ -217,32 +115,23 @@ describe("Text.ts", () => {
 })
 
 /**
- * The rotation used to be applied twice: `bounds.angle` was set alongside `rotation.degree`, so
- * `OBBOps.toBox` handed `updateDerivedFields` the axis-aligned **envelope** of the already-rotated
- * box, whose corners were then rotated again.
- *
- * A square box turned by 90° hides it — the envelope equals the box — which is why the existing
- * rotation tests never caught it. This one uses an oblong box and an oblique angle, where the
- * envelope is visibly larger.
+ * `bounds.angle` is a `TOBB` field, independent of the old `.rotation`/`TRotation` type that Task 11
+ * removed — a typeset symbol is turned by composing its matrix now, and `SymbolGeometry` is what
+ * grows the on-screen envelope from that matrix, not `updateDerivedFields`. This is what is left to
+ * check at the `Text.ts` level: that `updateDerivedFields` never resets an angle already on the
+ * bounds, and that `OBBOps` reports the grown envelope for it.
  */
 describe("Text derived fields, with the angle recorded on the bounds", () => {
   const chars: TSymbolChar[] = [
     { id: "c1", label: "a", color: "#000", fontSize: 10, fontWeight: "normal", bounds: { x: 0, y: 0, width: 40, height: 10 } },
   ]
 
-  test("should rotate the glyph box, not an envelope grown for the angle", () => {
+  test("should leave a directly-set angle alone", () => {
     const text = TextOps.create(chars, { x: 0, y: 0 }, { x: 0, y: 0, width: 40, height: 10 })
-    text.rotation = { degree: 30, center: { x: 0, y: 0 } }
     text.bounds.angle = 30
     TextOps.updateDerivedFields(text)
 
-    // A 40×10 box stays 40×10 through any rotation — only its orientation changes. Grown to its 30°
-    // envelope first (39.64 × 28.66) the quad would come out with those sides instead.
-    // Corners run top-left, top-right, bottom-right, bottom-left.
-    const side = (a: TPoint, b: TPoint) => Math.hypot(b.x - a.x, b.y - a.y)
-    const [topLeft, topRight, , bottomLeft] = text.vertices
-    expect(side(topLeft, topRight)).toBeCloseTo(40, 1)
-    expect(side(topLeft, bottomLeft)).toBeCloseTo(10, 1)
+    expect(text.bounds.angle).toBe(30)
   })
 
   test("should keep the recorded angle, which callers read as the on-screen extent", () => {

@@ -10,7 +10,6 @@ import type { TDecorator } from "@/symbol/decorator/Decorator"
 import { DecoratorOps } from "@/symbol/decorator/Decorator"
 import type { TBaseSymbol } from "@/symbol/Symbol"
 import { SymbolType } from "@/symbol/Symbol"
-import type { TRotation } from "@/symbol/typeset/Typeset"
 import type { TTypesetChild } from "@/symbol/typeset/Typeset"
 import {
   computeChildrenOverlaps,
@@ -34,7 +33,6 @@ export type TText = TBaseSymbol & {
   chars: TSymbolChar[]
   decorators: TDecorator[]
   bounds: TOBB
-  rotation?: TRotation
   vertices: TPoint[]
   snapPoints: TPoint[]
   edges: TSegment[]
@@ -70,7 +68,6 @@ export const TextOps = {
       chars,
       decorators: [],
       bounds: OBBOps.fromBox(boundsBox),
-      rotation: undefined,
       vertices,
       snapPoints,
       edges,
@@ -98,9 +95,6 @@ export const TextOps = {
       text.id = partial.id
     }
     text.transform = mergeSymbolTransform(partial.transform)
-    if (partial.rotation) {
-      text.rotation = partial.rotation as TRotation
-    }
     if (partial.decorators?.length) {
       partial.decorators.forEach((d) => {
         if (d?.kind) {
@@ -113,10 +107,11 @@ export const TextOps = {
   },
 
   updateDerivedFields(text: TText): void {
-    // Unrotated, not `toBox`: the rotation is applied once below, from `text.rotation`.
+    // Unrotated, not `toBox`: turning a text symbol is composing its matrix now, so its own bounds
+    // stay axis-aligned and `SymbolGeometry` applies the angle on top.
     const boundsBox = OBBOps.toUnrotatedBox(text.bounds)
-    text.vertices = computeTypesetVertices(boundsBox, text.rotation)
-    text.snapPoints = computeTypesetSnapPoints(boundsBox, text.point, text.rotation)
+    text.vertices = computeTypesetVertices(boundsBox)
+    text.snapPoints = computeTypesetSnapPoints(boundsBox, text.point)
     text.edges = computeClosedEdges(text.vertices)
   },
 
@@ -125,7 +120,7 @@ export const TextOps = {
   },
 
   getChildrenOverlaps(text: TText, points: TPoint[]): TSymbolChar[] {
-    return computeChildrenOverlaps(text.chars, points, text.rotation)
+    return computeChildrenOverlaps(text.chars, points)
   },
 
   updateChildrenStyle(text: TText): void {
@@ -169,7 +164,6 @@ export const TextOps = {
       point: text.point,
       chars: text.chars,
       style: text.style,
-      rotation: text.rotation,
       bounds: OBBOps.toBox(text.bounds),
       decorators: text.decorators.length ? text.decorators : undefined,
     }

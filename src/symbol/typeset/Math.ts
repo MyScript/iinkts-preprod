@@ -9,7 +9,7 @@ import type { TDecorator } from "@/symbol/decorator/Decorator"
 import { DecoratorOps } from "@/symbol/decorator/Decorator"
 import type { TBaseSymbol } from "@/symbol/Symbol"
 import { SymbolType } from "@/symbol/Symbol"
-import type { TRotation, TTypesetChild } from "@/symbol/typeset/Typeset"
+import type { TTypesetChild } from "@/symbol/typeset/Typeset"
 import {
   computeChildrenOverlaps,
   computeClosedEdges,
@@ -37,7 +37,6 @@ export type TMath = TBaseSymbol & {
   elements: TMathElement[]
   decorators: TDecorator[]
   bounds: TOBB
-  rotation?: TRotation
   vertices: TPoint[]
   snapPoints: TPoint[]
   edges: TSegment[]
@@ -73,7 +72,6 @@ export const MathOps = {
       elements,
       decorators: [],
       bounds: OBBOps.fromBox(boundsBox),
-      rotation: undefined,
       vertices,
       snapPoints,
       edges,
@@ -118,9 +116,6 @@ export const MathOps = {
       math.id = partial.id
     }
     math.transform = mergeSymbolTransform(partial.transform)
-    if (partial.rotation) {
-      math.rotation = partial.rotation as TRotation
-    }
     if (partial.decorators) {
       math.decorators = partial.decorators
         .filter((d) => d?.kind && d?.style)
@@ -131,10 +126,11 @@ export const MathOps = {
   },
 
   updateDerivedFields(math: TMath): void {
-    // Unrotated, not `toBox`: the rotation is applied once below, from `math.rotation`.
+    // Unrotated, not `toBox`: turning a math symbol is composing its matrix now, so its own bounds
+    // stay axis-aligned and `SymbolGeometry` applies the angle on top.
     const boundsBox = OBBOps.toUnrotatedBox(math.bounds)
-    math.vertices = computeTypesetVertices(boundsBox, math.rotation)
-    math.snapPoints = computeTypesetSnapPoints(boundsBox, math.point, math.rotation)
+    math.vertices = computeTypesetVertices(boundsBox)
+    math.snapPoints = computeTypesetSnapPoints(boundsBox, math.point)
     math.edges = computeClosedEdges(math.vertices)
   },
 
@@ -143,7 +139,7 @@ export const MathOps = {
   },
 
   getChildrenOverlaps(math: TMath, points: TPoint[]): TMathElement[] {
-    return computeChildrenOverlaps(math.elements, points, math.rotation)
+    return computeChildrenOverlaps(math.elements, points)
   },
 
   updateChildrenStyle(math: TMath): void {
@@ -193,7 +189,6 @@ export const MathOps = {
       elements: math.elements,
       decorators: math.decorators,
       bounds: OBBOps.toBox(math.bounds),
-      rotation: math.rotation,
       style: math.style,
     }
   },

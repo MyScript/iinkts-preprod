@@ -30,6 +30,33 @@ function projectOntoAxis(corners: TPoint[], ax: number, ay: number): [number, nu
 }
 
 /**
+ * Whether `point` lies inside (or on the boundary of) the convex polygon `polygon` describes by its
+ * corners in order.
+ *
+ * The winding may run either way — `polygon` can be the image of a `TBox`'s corners under a matrix
+ * with a negative determinant (a reflection), which reverses it — so every edge's cross product with
+ * `point` must merely agree in sign with the others, rather than assume a particular direction.
+ */
+function pointInConvexPolygon(polygon: TPoint[], point: TPoint): boolean {
+  let sign = 0
+  for (let i = 0; i < polygon.length; i++) {
+    const a = polygon[i]
+    const b = polygon[(i + 1) % polygon.length]
+    const cross = (b.x - a.x) * (point.y - a.y) - (b.y - a.y) * (point.x - a.x)
+    if (cross === 0) {
+      continue
+    }
+    const currentSign = cross > 0 ? 1 : -1
+    if (sign === 0) {
+      sign = currentSign
+    } else if (currentSign !== sign) {
+      return false
+    }
+  }
+  return true
+}
+
+/**
  * @group Core/Geometry
  */
 export const OBBOps = {
@@ -266,6 +293,52 @@ export const OBBOps = {
       OBBOps.isContained(bounds, box) ||
       edges.some((e1) => BoxOps.getSides(box).some((e2) => !!findIntersectionBetween2Segment(e1, e2)))
     )
+  },
+
+  /**
+   * Whether a polygon-like symbol (its own `vertices` and `edges`) overlaps `query`, an arbitrary
+   * convex quadrilateral given as its four corners in order.
+   *
+   * Generalizes {@link polygonOverlapsBox} to a query a `TBox` cannot express: the image of an
+   * axis-aligned box under the inverse of a rotated (and possibly also sheared) matrix is a rotated
+   * rectangle or a genuine parallelogram, neither of which fits a `TBox`, and the latter does not fit
+   * a `TOBB` either (which assumes right angles).
+   *
+   * The containment early-out tests the symbol's own `vertices`, not an axis-aligned `bounds` box —
+   * `bounds` is the *raw* frame's AABB, which for anything but a plain rectangle reaches further out
+   * on the diagonal than the shape itself (a circle of radius r has corners at r·√2). Once `query` is
+   * rotated relative to that raw frame, a `query` that fully encloses the true shape can still miss
+   * those corners, which is a real regression this fixes rather than a hypothetical: a query built
+   * from `bounds` reported a rotated circle or a rotated diagonal line as unselected while a selection
+   * box plainly surrounded it. `vertices` is what every `computeGeometry` already tessellates a curve
+   * into (or, for a straight-edged type, already is the exact boundary) — a polygon is contained in a
+   * convex region iff all its vertices are, whether or not the polygon itself is convex.
+   *
+   * Same as `polygonOverlapsBox` otherwise: any of the symbol's own edges crossing a side of `query`
+   * counts as an overlap. Neither branch catches `query` sitting entirely inside the shape without
+   * crossing its boundary — `polygonOverlapsBox` has never caught that case either; it is a
+   * pre-existing gap, not one this generalization introduces.
+   */
+  polygonOverlapsQuad(vertices: TPoint[], edges: TSegment[], query: TPoint[]): boolean {
+    if (vertices.length > 0 && vertices.every((p) => pointInConvexPolygon(query, p))) {
+      return true
+    }
+    const querySides: TSegment[] = query.map((p, i) => ({ p1: p, p2: query[(i + 1) % query.length] }))
+    return edges.some((e1) => querySides.some((e2) => !!findIntersectionBetween2Segment(e1, e2)))
+  },
+
+  /**
+   * Whether `point` lies inside (or on the boundary of) the convex quadrilateral `query` describes
+   * by its four corners in order — the same test {@link polygonOverlapsQuad} uses for its own
+   * vertices, exposed here for a type whose true overlap test is itself point-based (a stroke: "is
+   * any raw pointer inside the query") rather than a bounds/edges polygon test. Using the generic
+   * edges-crossing test for such a type would over-approximate: a query side can cross the segment
+   * *between* two consecutive pointers without any pointer itself being inside the query, which is a
+   * true overlap for a polygon but not for a stroke, whose own definition of "overlaps" was never
+   * "the drawn line crosses the box" to begin with.
+   */
+  quadContainsPoint(query: TPoint[], point: TPoint): boolean {
+    return pointInConvexPolygon(query, point)
   },
 
   contains(a: TOBB, b: TOBB): boolean {

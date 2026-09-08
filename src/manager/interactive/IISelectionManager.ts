@@ -10,7 +10,7 @@ import { PointerEventGrabber } from "@/grabber"
 import { LoggerCategory } from "@/logger"
 import { SVGBuilder } from "@/renderer"
 import type { TDecorator, TEdge, TEdgeArc, TStroke, TSymbol } from "@/symbol"
-import { EdgeKind, isDecorator, isRecognizedMath, isStroke, StrokeOps, SymbolType } from "@/symbol"
+import { EdgeKind, isDecorator, isRecognizedMath, isStroke, SymbolType } from "@/symbol"
 import { EdgeArcOps, reprojectArcMidpoint, stretchArcEndpoint } from "@/symbol/edge/Arc"
 import { EdgeOps } from "@/symbol/edge/Edge"
 import { EdgeUtil } from "@/symbol-utils/edge/EdgeUtil"
@@ -618,14 +618,17 @@ export class IISelectionManager extends IIAbstractManager {
           }
         )
       }
-      EdgeArcOps.getResizePoints(arc).forEach(({ point, vertexIndex }) => {
-        const initialVertexCount = SymbolGeometry.verticesOf(arc).length
-        const isStart = vertexIndex === 0
-        const isEnd = vertexIndex === initialVertexCount - 1
-        const pointEl = SVGBuilder.createCircle(point, radius, attrs)
-        bindArcEl(pointEl, isStart, isEnd)
-        group.appendChild(pointEl)
-      })
+      symbolRegistry
+        .getUtilFor(edge)
+        .getResizePoints(edge)
+        .forEach(({ point, vertexIndex }) => {
+          const initialVertexCount = SymbolGeometry.verticesOf(arc).length
+          const isStart = vertexIndex === 0
+          const isEnd = vertexIndex === initialVertexCount - 1
+          const pointEl = SVGBuilder.createCircle(point, radius, attrs)
+          bindArcEl(pointEl, isStart, isEnd)
+          group.appendChild(pointEl)
+        })
     } else {
       symbolRegistry
         .getUtilFor(edge)
@@ -849,22 +852,22 @@ export class IISelectionManager extends IIAbstractManager {
           if (textSets && textSets.covered.has(stroke.id)) {
             shouldBeSelected = textSets.selected.has(stroke.id)
           } else {
-            shouldBeSelected = StrokeOps.overlaps(s, selectionBox)
+            shouldBeSelected = symbolRegistry.getUtilFor(stroke).overlaps(stroke, selectionBox)
           }
         } else if (stroke.jiixBlockType === "Math") {
           if (mathSets && mathSets.covered.has(stroke.id)) {
             shouldBeSelected = mathSets.selected.has(stroke.id)
           } else {
-            shouldBeSelected = StrokeOps.overlaps(s, selectionBox)
+            shouldBeSelected = symbolRegistry.getUtilFor(stroke).overlaps(stroke, selectionBox)
           }
         } else if (stroke.jiixBlockType === "Node" || stroke.jiixBlockType === "Edge") {
           if (shapeSets && shapeSets.covered.has(stroke.id)) {
             shouldBeSelected = shapeSets.selected.has(stroke.id)
           } else {
-            shouldBeSelected = StrokeOps.overlaps(s, selectionBox)
+            shouldBeSelected = symbolRegistry.getUtilFor(stroke).overlaps(stroke, selectionBox)
           }
         } else {
-          shouldBeSelected = StrokeOps.overlaps(s, selectionBox)
+          shouldBeSelected = symbolRegistry.getUtilFor(stroke).overlaps(stroke, selectionBox)
         }
       } else {
         shouldBeSelected = symbolRegistry.getUtil(s.type)?.overlaps(s, selectionBox) ?? false

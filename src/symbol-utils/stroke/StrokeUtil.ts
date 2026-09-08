@@ -1,6 +1,6 @@
 import type { TBox } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
-import { applyMatrixToPoints, isIdentityMatrix, MatrixTransform } from "@/core/geometry"
+import { isIdentityMatrix, MatrixTransform, OBBOps } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import { DefaultStyle } from "@/style"
 import { StrokeOps, type TStroke } from "@/symbol/stroke/Stroke"
@@ -8,7 +8,6 @@ import { SymbolType } from "@/symbol/Symbol"
 
 import { SVGBuilder } from "../SVGBuilder"
 import { SymbolUtil } from "../SymbolUtil"
-import type { TResizeContext, TRotateContext, TTranslateContext } from "../TransformContext"
 import type { TSymbolGeometry } from "../TSymbolGeometry"
 
 /**
@@ -36,34 +35,24 @@ export class StrokeUtil extends SymbolUtil<TStroke> {
     Object.assign(stroke, this.computeGeometry(stroke))
   }
 
+  /**
+   * A rotated or sheared query supplies its own exact test here, rather than falling through to
+   * `overlapsQuery`'s generic bounds/edges fallback: a stroke's real "overlaps" is "any raw pointer
+   * inside the query", not "the drawn line crosses it" — the generic edges-based test would count a
+   * query side crossing the segment between two consecutive pointers as an overlap even when no
+   * pointer itself lands inside the query, which is truer for a polygon than for a stroke.
+   */
   overlaps(stroke: TStroke, box: TBox): boolean {
-    return StrokeOps.overlaps(stroke, box)
+    return this.overlapsQuery(
+      stroke,
+      box,
+      (b) => StrokeOps.overlaps(stroke, b),
+      (query) => stroke.pointers.some((p) => OBBOps.quadContainsPoint(query, p))
+    )
   }
 
   getSnapPoints(stroke: TStroke): TPoint[] {
-    return this.computeGeometry(stroke).snapPoints
-  }
-
-  /**
-   * A stroke does not care which gesture produced the matrix — its pointers are moved and its
-   * bounds recomputed either way. This was written out three times, once per transform manager,
-   * byte-identical bar a debug log.
-   */
-  #applyMatrix(stroke: TStroke, matrix: MatrixTransform): void {
-    applyMatrixToPoints(stroke.pointers, matrix)
-    StrokeOps.updateBounds(stroke)
-  }
-
-  translate(stroke: TStroke, { matrix }: TTranslateContext): void {
-    this.#applyMatrix(stroke, matrix)
-  }
-
-  rotate(stroke: TStroke, { matrix }: TRotateContext): void {
-    this.#applyMatrix(stroke, matrix)
-  }
-
-  resize(stroke: TStroke, { matrix }: TResizeContext): void {
-    this.#applyMatrix(stroke, matrix)
+    return this.mapPointsForward(stroke, this.computeGeometry(stroke).snapPoints)
   }
 
   getSVGElement(stroke: TStroke): SVGGraphicsElement {

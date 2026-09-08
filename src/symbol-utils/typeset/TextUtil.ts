@@ -8,7 +8,6 @@ import { TextOps, type TText } from "@/symbol/typeset/Text"
 
 import { DecoratorUtil } from "../decorator/DecoratorUtil"
 import { SVGBuilder } from "../SVGBuilder"
-import type { TTranslateContext } from "../TransformContext"
 import { TypesetUtil } from "./TypesetUtil"
 
 const noSelection =
@@ -25,20 +24,11 @@ export class TextUtil extends TypesetUtil<TText> {
   }
 
   overlaps(text: TText, box: TBox): boolean {
-    return TextOps.overlaps(text, box)
+    return this.overlapsQuery(text, box, (b) => TextOps.overlaps(text, b))
   }
 
   getSnapPoints(text: TText): TPoint[] {
-    return this.computeGeometry(text).snapPoints
-  }
-
-  protected glyphsOf(text: TText): { fontSize: number }[] {
-    return text.chars
-  }
-
-  translate(text: TText, { matrix, typeset }: TTranslateContext): void {
-    this.moveAnchor(text, matrix)
-    typeset.setBounds(text)
+    return this.mapPointsForward(text, this.computeGeometry(text).snapPoints)
   }
 
   getSVGElement(text: TText): SVGGraphicsElement {
@@ -53,20 +43,10 @@ export class TextUtil extends TypesetUtil<TText> {
     if (text.style.opacity) {
       attrs.opacity = text.style.opacity.toString()
     }
-    // Composed, not either/or: the matrix is the outer frame, `rotation` (while it still exists —
-    // Task 11 removes it) the inner one. `rotation.center` lives in raw coordinates, and an SVG
-    // transform list applies right-to-left, so the matrix must be listed FIRST and `rotate` second —
-    // reversing that would turn the glyphs about a point the matrix has already moved. At this task
-    // the matrix is always identity for a typeset symbol, so this emits exactly today's attribute.
-    const transformParts: string[] = []
+    // Turning a text symbol is composed into its matrix now, not recorded separately — there is no
+    // `.rotation` left to combine this with.
     if (!isIdentityMatrix(text.transform)) {
-      transformParts.push(MatrixTransform.toCssString(text.transform))
-    }
-    if (text.rotation) {
-      transformParts.push(`rotate(${text.rotation.degree}, ${text.rotation.center.x}, ${text.rotation.center.y})`)
-    }
-    if (transformParts.length) {
-      attrs.transform = transformParts.join(" ")
+      attrs.transform = MatrixTransform.toCssString(text.transform)
     }
 
     const textGroup = SVGBuilder.createGroup(attrs)

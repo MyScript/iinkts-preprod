@@ -1695,9 +1695,16 @@ describe("InteractiveInkCanvas.ts", () => {
 
         const drawn = (canvas.renderer.drawSymbol as jest.Mock).mock.calls[0][0] as TStroke
         const offset = InteractiveInkCanvas.PASTE_OFFSET
+        // `#cloneSymbolForPaste` goes through `transform.translate.applyToSymbol`, which composes
+        // the offset onto the clone's matrix rather than moving its raw pointers — so the pasted
+        // clone's own `pointers` stay identical to the original, and only `SymbolGeometry` (which
+        // applies the matrix) reports the offset position.
+        expect(drawn.pointers).toEqual(stroke.pointers)
+        expect(drawn.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: offset, ty: offset })
         drawn.pointers.forEach((p, i) => {
-          expect(p.x).toBeCloseTo(stroke.pointers[i].x + offset)
-          expect(p.y).toBeCloseTo(stroke.pointers[i].y + offset)
+          const drawnPoint = SymbolGeometry.verticesOf(drawn)[i]
+          expect(drawnPoint.x).toBeCloseTo(p.x + offset)
+          expect(drawnPoint.y).toBeCloseTo(p.y + offset)
         })
       })
 
