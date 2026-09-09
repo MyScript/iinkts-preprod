@@ -1,0 +1,135 @@
+import { beforeAll, describe, expect, jest, test } from "@jest/globals"
+
+import { asCanvas, createCanvasMock } from "../../../__mocks__/createCanvasMock"
+import { buildIIDecorator } from "../../../helpers"
+
+import type { TBaseSymbol, TBox, TPartialDeep, TPoint, TResizeContext, TRotateContext, TSymbol } from "@/iink"
+import type { TTranslateContext } from "@/iink"
+import {
+  applyMatrixToPoint,
+  DecoratorKind,
+  DecoratorUtil,
+  IIResizeManager,
+  IIRotationManager,
+  IITranslateManager,
+  MatrixTransform,
+  registerBuiltinSymbolUtils,
+  symbolRegistry,
+  SymbolUtil,
+} from "@/iink"
+
+/**
+ * `IIAbstractTransformManager` used to declare five `applyTo*` members so that a
+ * `switch (symbol.type)` in `applyToSymbol` could reach them, with a throwing `default`. That
+ * default is why a symbol type the library did not know could be created, stored, selected and
+ * drawn — and then not moved, however well its util was registered.
+ *
+ * IIC-2014 replaced the five members and the switch with one `applyThroughUtil` hook per manager.
+ * This file holds what that bought.
+ */
+type TStickyNote = TBaseSymbol & { type: "sticky-note"; point: TPoint; scale: number; degree: number }
+
+class StickyNoteUtil extends SymbolUtil<TStickyNote> {
+  readonly type = "sticky-note"
+
+  create(partial: TPartialDeep<TStickyNote>): TStickyNote {
+    return { ...partial, type: "sticky-note" } as TStickyNote
+  }
+  updateDerivedFields(): void {}
+  overlaps(_symbol: TStickyNote, _box: TBox): boolean {
+    return false
+  }
+  translate(symbol: TStickyNote, { matrix }: TTranslateContext): void {
+    symbol.point = applyMatrixToPoint(symbol.point, matrix)
+  }
+  rotate(symbol: TStickyNote, { matrix }: TRotateContext): void {
+    symbol.degree += MatrixTransform.rotation(matrix)
+  }
+  resize(symbol: TStickyNote, { matrix }: TResizeContext): void {
+    symbol.scale *= matrix.xx
+  }
+  getSVGElement(): SVGGraphicsElement {
+    return document.createElementNS("http://www.w3.org/2000/svg", "g")
+  }
+}
+
+const buildSticky = (): TStickyNote =>
+  ({ id: "note-1", type: "sticky-note", point: { x: 1, y: 2 }, scale: 1, degree: 0 }) as TStickyNote
+
+describe("IIAbstractTransformManager", () => {
+  beforeAll(() => {
+    registerBuiltinSymbolUtils()
+    symbolRegistry.register(new StickyNoteUtil())
+  })
+
+  describe("a symbol type the library does not know", () => {
+    test("should translate", () => {
+      const sticky = buildSticky()
+      const canvas = createCanvasMock()
+      new IITranslateManager(asCanvas(canvas)).applyToSymbol(
+        sticky as unknown as TSymbol,
+        MatrixTransform.identity().translate(10, 15)
+      )
+      expect(sticky.point).toEqual({ x: 11, y: 17 })
+    })
+
+    test("should rotate", () => {
+      const sticky = buildSticky()
+      const canvas = createCanvasMock()
+      const manager = new IIRotationManager(asCanvas(canvas))
+      manager.center = { x: 0, y: 0 }
+      manager.applyToSymbol(sticky as unknown as TSymbol, MatrixTransform.identity().rotate(Math.PI / 2, manager.center))
+      expect(sticky.degree).toBeCloseTo(Math.PI / 2, 10)
+    })
+
+    test("should resize", () => {
+      const sticky = buildSticky()
+      const canvas = createCanvasMock()
+      const manager = new IIResizeManager(asCanvas(canvas))
+      manager.transformOrigin = { x: 0, y: 0 }
+      manager.applyToSymbol(
+        sticky as unknown as TSymbol,
+        MatrixTransform.identity().scale(3, 3, manager.transformOrigin)
+      )
+      expect(sticky.scale).toBe(3)
+    })
+  })
+
+  describe("a symbol type no util owns", () => {
+    test.each([
+      ["translate", (c: ReturnType<typeof createCanvasMock>) => new IITranslateManager(asCanvas(c))],
+      ["rotate", (c: ReturnType<typeof createCanvasMock>) => new IIRotationManager(asCanvas(c))],
+      ["resize", (c: ReturnType<typeof createCanvasMock>) => new IIResizeManager(asCanvas(c))],
+    ])("should be refused by %s, from the registry", (_name, build) => {
+      // The refusal did not disappear with the throwing default; it moved to `getUtilFor`, which
+      // also reports what is registered — the difference between a typo and a registry never
+      // populated.
+      const orphan = { id: "x", type: "no-such-type" } as unknown as TSymbol
+      expect(() => build(createCanvasMock()).applyToSymbol(orphan, MatrixTransform.identity())).toThrow(
+        'No util is registered for type "no-such-type"'
+      )
+    })
+  })
+
+  describe("a decorator", () => {
+    test("should pass through untouched, from its util rather than an early return", () => {
+      // `applyToSymbol` used to return early for decorators. `DecoratorUtil` implements all three
+      // operations as deliberate no-ops — a standalone decorator's bounds are recomputed from the
+      // symbols it decorates, so moving it too would double the displacement — and IIC-2014 made
+      // that the live path.
+      const decorator = buildIIDecorator(DecoratorKind.Underline)
+      const before = JSON.stringify(decorator)
+      const canvas = createCanvasMock()
+      // Spied rather than only observed: "untouched" is what an early return produced too, so the
+      // assertion has to be that the util was asked, not merely that nothing moved.
+      const asked = jest.spyOn(DecoratorUtil.prototype, "translate")
+      try {
+        new IITranslateManager(asCanvas(canvas)).applyToSymbol(decorator, MatrixTransform.identity().translate(10, 15))
+        expect(asked).toHaveBeenCalledTimes(1)
+      } finally {
+        asked.mockRestore()
+      }
+      expect(JSON.stringify(decorator)).toBe(before)
+    })
+  })
+})

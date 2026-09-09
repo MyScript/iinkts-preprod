@@ -1,23 +1,34 @@
 import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
-import { buildIIStroke, expectDerivedFieldsSettled } from "../../../helpers"
+import {
+  buildIIMath,
+  buildIIStroke,
+  buildIIText,
+  expectDerivedFieldsSettled,
+  expectPointsRounded,
+} from "../../../helpers"
 import {
   EdgeArcOps,
   EdgeLineOps,
   EdgePolyLineOps,
   IIConnectorManager,
   IIResizeManager,
+  BoxOps,
+  MatrixTransform,
+  OBBOps,
+  ResizeDirection,
   ShapeCircleOps,
   ShapeEllipseOps,
   ShapePolygonOps,
   StrokeOps,
-  ResizeDirection,
   SvgElementRole,
-  TSymbolChar,
+  TEdgeLine,
   TPoint,
+  TShapeCircle,
+  TShapePolygon,
   TStroke,
+  TSymbol,
+  TSymbolChar,
   TextOps,
-  MatrixTransform,
-  OBBOps,
 } from "@/iink"
 
 describe("IIResizeManager.ts", () => {
@@ -30,15 +41,17 @@ describe("IIResizeManager.ts", () => {
   describe("applyToSymbol", () => {
     const canvas = createCanvasMock()
     const manager = new IIResizeManager(asCanvas(canvas))
-    test("should not resize symbol with type unknown", () => {
+    test("should not resize a symbol whose type no util owns", () => {
       const stroke = buildIIStroke()
       //@ts-ignore
       stroke.type = "pouet"
       const origin: TPoint = { x: 0, y: 0 }
       const matrix = MatrixTransform.identity().scale(2, 3, origin)
-      expect(() => manager.applyToSymbol(stroke, matrix)).toThrow(
-        expect.objectContaining({ message: expect.stringContaining("Can't apply resize on symbol, type unknown:") })
-      )
+      // IIC-2014 deleted the manager's `switch (symbol.type)` and its throwing default. The refusal
+      // did not disappear — it comes from the registry now, and says what *is* registered, which
+      // distinguishes a typo from a missing `registerBuiltinSymbolUtils()`.
+      expect(() => manager.applyToSymbol(stroke, matrix)).toThrow('No util is registered for type "pouet"')
+      expect(() => manager.applyToSymbol(stroke, matrix)).toThrow(/Registered types: .*stroke/)
     })
     test("should resize stroke", () => {
       const stroke = StrokeOps.create()
@@ -73,8 +86,10 @@ describe("IIResizeManager.ts", () => {
       poly.kind = "pouet"
       const origin: TPoint = { x: 0, y: 0 }
       const matrix = MatrixTransform.identity().scale(2, 3, origin)
+      // IIC-2013 moved the refusal to the shape util's kind table. With rotate and translate
+      // already moved, all three transform managers word it the same way again.
       expect(() => manager.applyToSymbol(poly, matrix)).toThrow(
-        expect.objectContaining({ message: expect.stringContaining("Can't apply resize on shape, kind unknown:") })
+        'Unable to resize shape, kind: "pouet" is unknown'
       )
     })
     test("should resize shape Circle", () => {
@@ -136,7 +151,7 @@ describe("IIResizeManager.ts", () => {
       const origin: TPoint = { x: 0, y: 0 }
       const matrix = MatrixTransform.identity().scale(2, 3, origin)
       expect(() => manager.applyToSymbol(edge, matrix)).toThrow(
-        expect.objectContaining({ message: expect.stringContaining("Can't apply resize on edge, kind unknown:") })
+        'Unable to resize edge, kind: "pouet" is unknown'
       )
     })
     test("should resize edge Arc", () => {
@@ -627,5 +642,177 @@ describe("IIResizeManager.ts", () => {
       manager.applyToSymbol(line, MatrixTransform.identity().scale(2, 3, { x: 1, y: 2 }))
       expectDerivedFieldsSettled(line)
     })
+  })
+
+  /**
+   * A resize by a third of a pixel: raw, every coordinate would keep seventeen decimals. IIC-2010
+   * put all thirteen of the managers' raw `applyToPoint` sites on the rounding helper, and nothing
+   * covered any of them — deleting the rounding outright left this whole file green.
+   *
+   * Each case names the geometry the transform writes. The derived fields are excluded on purpose:
+   * see `expectPointsRounded`.
+   */
+  describe("coordinate rounding", () => {
+    const canvas = createCanvasMock()
+    const manager = new IIResizeManager(asCanvas(canvas))
+
+    /** Each row names the geometry its own builder produced, so the narrowing is sound. */
+    const CASES: [string, () => TSymbol, (symbol: TSymbol) => TPoint[]][] = [
+      ["circle centre", () => ShapeCircleOps.create({ x: 5, y: 5 }, 4), (s) => [(s as TShapeCircle).center]],
+      [
+        "polygon points",
+        () =>
+          ShapePolygonOps.create([
+            { x: 0, y: 0 },
+            { x: 10, y: 0 },
+            { x: 10, y: 10 },
+          ]),
+        (s) => (s as TShapePolygon).points,
+      ],
+      [
+        "line endpoints",
+        () => EdgeLineOps.create({ x: 0, y: 0 }, { x: 10, y: 10 }),
+        (s) => [(s as TEdgeLine).start, (s as TEdgeLine).end],
+      ],
+      ["stroke pointers", () => buildIIStroke(), (s) => (s as TStroke).pointers],
+    ]
+
+    test.each(CASES)("%s should keep three decimals", (_name, build, stored) => {
+      const symbol = build()
+      manager.applyToSymbol(symbol, MatrixTransform.identity().scale(1 / 3, 1 / 3, { x: 1 / 3, y: 1 / 3 }))
+      expectPointsRounded(stored(symbol))
+    })
+  })
+})
+
+/**
+ * Two resize cells that nothing covered: gutting either left this whole file green. IIC-2013 moved
+ * them onto the utils, so they are pinned here.
+ */
+describe("IIResizeManager, the two uncovered resize cells", () => {
+  const resize = (symbol: TSymbol, matrix: MatrixTransform, origin: TPoint) => {
+    const canvas = createCanvasMock()
+    const manager = new IIResizeManager(asCanvas(canvas))
+    manager.transformOrigin = origin
+    manager.applyToSymbol(symbol, matrix)
+  }
+
+  test("mirroring an arc should re-base its start angle and reverse its sweep", () => {
+    // A negative x scale flips the arc. Its start angle is measured from the other side afterwards,
+    // and it sweeps the other way — drop either and the arc resizes into a different curve.
+    const arc = EdgeArcOps.create({ x: 50, y: 50 }, 0.5, 1.5, 30, 20, 0)
+    const origin: TPoint = { x: 0, y: 0 }
+    resize(arc, MatrixTransform.identity().scale(-1, 1, origin), origin)
+    expect(arc.startAngle).toBeCloseTo(+(Math.PI - 0.5).toFixed(3), 6)
+    expect(arc.sweepAngle).toBeCloseTo(-1.5, 6)
+  })
+
+  test("mirroring an arc vertically should only reverse the sweep", () => {
+    const arc = EdgeArcOps.create({ x: 50, y: 50 }, 0.5, 1.5, 30, 20, 0)
+    const origin: TPoint = { x: 0, y: 0 }
+    resize(arc, MatrixTransform.identity().scale(1, -1, origin), origin)
+    expect(arc.startAngle).toBeCloseTo(0.5, 6)
+    expect(arc.sweepAngle).toBeCloseTo(-1.5, 6)
+  })
+
+  test("resizing math should scale its element font sizes", () => {
+    // Text's font scaling was covered; math's was not, even though the two shared one method.
+    const math = buildIIMath()
+    const before = math.elements.map((element) => element.fontSize)
+    expect(before.length).toBeGreaterThan(0)
+    const origin: TPoint = { x: 0, y: 0 }
+    resize(math, MatrixTransform.identity().scale(2, 4, origin), origin)
+    // The mean of the two axes, which is what a typeset symbol scales its glyphs by.
+    expect(math.elements.map((element) => element.fontSize)).toEqual(
+      before.map((size) => +(size * 3).toFixed(3))
+    )
+  })
+})
+
+/**
+ * `keepRatio` decides whether dragging one edge of a selection scales both axes together. It was
+ * asserted nowhere at all — `grep keepRatio test/` returned nothing before IIC-2015 — even though
+ * it changes the outcome of every resize gesture on a circle, a text or a math block.
+ *
+ * IIC-2015 moved the decision from three type tests in the manager onto the symbol's util, so these
+ * cover both halves: which symbols ask for it, and what asking for it does.
+ */
+describe("IIResizeManager aspect ratio locking", () => {
+  const startResize = async (symbols: TSymbol[], direction: ResizeDirection) => {
+    const canvas = createCanvasMock()
+    const manager = new IIResizeManager(asCanvas(canvas))
+    await canvas.init()
+    symbols.forEach((symbol) => {
+      canvas.model.addSymbol(symbol)
+      canvas.model.selectSymbol(symbol.id)
+    })
+    const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
+    group.setAttribute("id", "group-id")
+    group.setAttribute("role", SvgElementRole.InteractElementsGroup)
+    const handle = document.createElementNS("http://www.w3.org/2000/svg", "line")
+    handle.setAttribute("resize-direction", direction)
+    group.appendChild(handle)
+    const box = BoxOps.createFromPoints(symbols.flatMap((s) => s.vertices))
+    manager.start(handle, { x: box.x, y: box.y })
+    return { manager, box }
+  }
+
+  const buildStroke = () => {
+    const stroke = StrokeOps.create({})
+    StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 0, y: 0 })
+    StrokeOps.addPointer(stroke, { p: 1, t: 2, x: 40, y: 20 })
+    return stroke
+  }
+
+  test("a circle in the selection should lock it", async () => {
+    const { manager } = await startResize([ShapeCircleOps.create({ x: 20, y: 20 }, 10)], ResizeDirection.East)
+    expect(manager.keepRatio).toBe(true)
+  })
+
+  test.each([
+    ["text", () => buildIIText({ point: { x: 0, y: 0 } })],
+    ["math", () => buildIIMath()],
+  ])("a %s in the selection should lock it", async (_name, build) => {
+    const { manager } = await startResize([build()], ResizeDirection.East)
+    expect(manager.keepRatio).toBe(true)
+  })
+
+  test.each([
+    ["a stroke", () => buildStroke()],
+    ["an ellipse", () => ShapeEllipseOps.create({ x: 20, y: 20 }, 30, 10, 0)],
+    ["a polygon", () => ShapePolygonOps.create([{ x: 0, y: 0 }, { x: 20, y: 0 }, { x: 20, y: 20 }])],
+    ["a line", () => EdgeLineOps.create({ x: 0, y: 0 }, { x: 20, y: 20 })],
+  ])("%s alone should not lock it", async (_name, build) => {
+    const { manager } = await startResize([build()], ResizeDirection.East)
+    expect(manager.keepRatio).toBe(false)
+  })
+
+  test("one locking symbol should lock the whole selection", async () => {
+    // `some`, not `every` — which is what the three type tests said, and easy to invert by accident.
+    const { manager } = await startResize(
+      [buildStroke(), ShapeCircleOps.create({ x: 60, y: 20 }, 10)],
+      ResizeDirection.East
+    )
+    expect(manager.keepRatio).toBe(true)
+  })
+
+  test("a locked drag should equalise the two scale factors", async () => {
+    // The payoff. Dragging an east handle normally scales x alone; with the ratio locked, y follows.
+    const { manager, box } = await startResize([ShapeCircleOps.create({ x: 20, y: 20 }, 10)], ResizeDirection.East)
+    const scales = manager.continue({ x: box.x + box.width * 2, y: box.y })
+    expect(scales.scaleY).toBe(scales.scaleX)
+    expect(scales.scaleX).not.toBe(1)
+  })
+
+  test("an unlocked drag of the same shape should not", async () => {
+    // Guards the guard: without this, the assertion above could pass on a gesture that happened to
+    // produce equal factors anyway.
+    const { manager, box } = await startResize(
+      [ShapeEllipseOps.create({ x: 20, y: 20 }, 30, 10, 0)],
+      ResizeDirection.East
+    )
+    const scales = manager.continue({ x: box.x + box.width * 2, y: box.y })
+    expect(scales.scaleY).toBe(1)
+    expect(scales.scaleX).not.toBe(1)
   })
 })

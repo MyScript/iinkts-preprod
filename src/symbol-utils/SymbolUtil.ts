@@ -1,7 +1,9 @@
 import type { TBox } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
-import type { TBaseSymbol } from "@/symbol/Symbol"
+import type { TBaseSymbol, TResizePoint } from "@/symbol/Symbol"
+
+import type { TResizeContext, TRotateContext, TTranslateContext } from "./TransformContext"
 /**
  * @group SymbolUtils
  * @summary Plugin interface for registering symbol behaviour.
@@ -18,6 +20,9 @@ import type { TBaseSymbol } from "@/symbol/Symbol"
  *   create(partial) { ... }
  *   updateDerivedFields(s) { ... }
  *   overlaps(s, box) { ... }
+ *   translate(s, { matrix }) { ... }
+ *   rotate(s, { matrix }) { ... }
+ *   resize(s, { matrix }) { ... }
  *   getSVGElement(s) { ... }
  * }
  * symbolRegistry.register(new StickyNoteUtil())
@@ -31,7 +36,36 @@ export abstract class SymbolUtil<T extends TBaseSymbol> {
 
   abstract overlaps(symbol: T, box: TBox): boolean
 
+  /**
+   * Moves this symbol by a matrix, leaving it derived-consistent.
+   *
+   * Abstract for the reason {@link getSVGElement} is: a symbol that cannot say how it moves is a
+   * symbol the canvas cannot move, and a silent no-op default would pin a custom symbol in place
+   * with nothing reporting it. `DecoratorUtil` implements it as a deliberate no-op.
+   */
+  abstract translate(symbol: T, context: TTranslateContext): void
+
+  /**
+   * Turns this symbol, leaving it derived-consistent. Required for the same reason
+   * {@link translate} is.
+   */
+  abstract rotate(symbol: T, context: TRotateContext): void
+
+  /**
+   * Scales this symbol, leaving it derived-consistent. Required for the same reason
+   * {@link translate} is.
+   */
+  abstract resize(symbol: T, context: TResizeContext): void
+
   getSnapPoints(_symbol: T): TPoint[] {
+    return []
+  }
+
+  /**
+   * Handles for dragging one vertex of this symbol. Empty by default: most symbols resize by their
+   * bounding box alone, and only the edge kinds offer per-vertex handles today.
+   */
+  getResizePoints(_symbol: T): TResizePoint[] {
     return []
   }
 
@@ -49,6 +83,18 @@ export abstract class SymbolUtil<T extends TBaseSymbol> {
 
   canRotate(_symbol: T): boolean {
     return true
+  }
+
+  /**
+   * Whether a resize of this symbol must preserve its aspect ratio.
+   *
+   * False by default. `IIResizeManager` decided this with
+   * `isText(s) || isMath(s) || (isShape(s) && isCircleShape(s))`, which is a question about a
+   * symbol asked from outside it — so a custom symbol could never require a locked ratio, however
+   * badly a free scale would distort it.
+   */
+  keepsAspectRatio(_symbol: T): boolean {
+    return false
   }
 
   /**

@@ -4,10 +4,10 @@ import type { TPoint } from "@/core/geometry"
 import type { TStyle } from "@/style"
 
 import { SymbolType, type TBaseSymbol } from "../Symbol"
-import { EdgeArcOps, type TEdgeArc } from "./Arc"
+import type { TEdgeArc } from "./Arc"
 import { computeEdgeBounds, EdgeKind } from "./Edge-enum"
-import { EdgeLineOps, type TEdgeLine } from "./Line"
-import { EdgePolyLineOps, type TEdgePolyLine } from "./PolyLine"
+import type { TEdgeLine } from "./Line"
+import type { TEdgePolyLine } from "./PolyLine"
 
 /**
  * @group Symbol
@@ -56,23 +56,6 @@ export const EdgeOps = {
    */
   isPolyEdge(edge: TBaseSymbol): edge is TEdgePolyLine {
     return EdgeOps.isEdge(edge) && edge.kind === EdgeKind.PolyEdge
-  },
-
-  /**
-   * @group Symbol
-   * @summary Get resize points for any TEdge.
-   */
-  getEdgeResizePoints(edge: TEdge): { point: TPoint; vertexIndex: number }[] {
-    if (EdgeOps.isLineEdge(edge)) {
-      return EdgeLineOps.getResizePoints(edge)
-    }
-    if (EdgeOps.isPolyEdge(edge)) {
-      return EdgePolyLineOps.getResizePoints(edge)
-    }
-    if (EdgeOps.isArcEdge(edge)) {
-      return EdgeArcOps.getResizePoints(edge)
-    }
-    return []
   },
 
   computeEdgeBounds(

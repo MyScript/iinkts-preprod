@@ -13,6 +13,52 @@ Symbols are frozen when committed and handed to readers directly, instead of the
 - fixed: `changeOrderSymbol` was a no-op; partially erasing characters was never stored; undo/redo replay rewrote the history entry it was replaying; edge-connection anchors were silently dropped behind a swallowed throw
 - see [MIGRATION.md](./MIGRATION.md)
 
+### A symbol says whether it resizes with its ratio locked
+- new: `SymbolUtil.keepsAspectRatio(symbol)`, `false` by default. `TypesetUtil` returns `true` for both text and math — a font size is one number, so scaling the axes unequally would ask for glyphs that do not exist — and the shape util returns it for the circle, whose single radius cannot describe two scales
+- `IIResizeManager` decided this with `isText(s) || isMath(s) || (isShape(s) && isCircleShape(s))`, a question about a symbol asked from outside it. A custom symbol could never require a locked ratio however badly a free scale would distort it; now it can. No type test is left in that manager
+- additive: the default means an existing custom util needs no change
+
+### A symbol the library does not know can be transformed
+The three transform managers reached their per-type behaviour through a `switch (symbol.type)` in `IIAbstractTransformManager` with a throwing `default`. A custom symbol could be created, stored, selected and drawn, and then not moved — however well its util was registered. Both the switch and the five `protected abstract applyTo*`/`applyOn*` members it existed to reach are gone.
+- `IIAbstractTransformManager` now declares one `protected abstract applyThroughUtil(symbol, matrix)`. A subclass implements that instead of `applyToStroke`, `applyToShape`, `applyToEdge`, `applyOnText` and `applyOnMath`
+- removed: `IIAbstractTransformManager.transformName`, whose only reader was the deleted error message
+- `applyToSymbol` no longer returns early for a decorator. `DecoratorUtil` implements the three operations as deliberate no-ops — a standalone decorator's bounds are recomputed from the symbols it decorates — so the exception now reads where the behaviour lives
+- a symbol whose type no util owns still fails, from `symbolRegistry.getUtilFor`: `No util is registered for type "x". Registered types: …`, which distinguishes a typo from a registry that was never populated. The old message was `Can't apply resize on symbol, type unknown: {…}`
+- see [MIGRATION.md](./MIGRATION.md)
+
+### A symbol scales itself
+`SymbolUtil.resize` is a new required member, completing the three.
+- `SymbolUtil.resize(symbol, context)` is abstract; a custom util that omits it no longer compiles
+- new: `TResizeContext` (`{ matrix, origin }`). `origin` was gesture state on the manager (`transformOrigin!: TPoint`); the ellipse and the arc need it because they scale their centre about it by hand
+- **no `typeset` port**, unlike translate and rotate: resizing a typeset symbol rebuilds its bounds from the scale factors instead of re-measuring it in the DOM. Inherited from `IIResizeManager` and preserved
+- `IIResizeManager.applyOnTypeset` handled text and math together and branched on `isText(symbol)` twice — once for the font list, once for the derive. Both type tests are gone
+- new: `TypesetUtil`, an abstract util `TextUtil` and `MathUtil` now extend, in `src/symbol-utils/typeset/`. `TText` and `TMath` are the same shape but for the list they hold, so `rotate` and `resize` are written once on the base; the two subclasses supply `glyphsOf` — a text's characters, a math's elements — and their own `translate`. Its type parameter is constrained to `TText | TMath`, since the typeset service that measures them handles only those two
+- all three transform managers word an unknown kind the same way again: `Unable to resize shape, kind: "x" is unknown`
+- see [MIGRATION.md](./MIGRATION.md)
+
+### A symbol turns itself
+`SymbolUtil.rotate` is a new required member, the counterpart of `translate`.
+- `SymbolUtil.rotate(symbol, context)` is abstract; a custom util that omits it no longer compiles
+- new: `TRotateContext` (`{ matrix, center, typeset }`). `center` was gesture state read off the manager (`center!: TPoint`, undefined until a drag began) and is now passed in
+- five of the nine kinds point `rotate` at the same function as `translate` — applying a matrix to their points is the whole of it. Only the ellipse and the arc carry an angle of their own
+- `IIRotationManager` no longer refuses an unknown kind with `Can't apply rotate on shape, kind unknown: {…}`; the message is `Unable to rotate shape, kind: "x" is unknown`. Resize keeps the old wording until it moves too
+- text is re-measured after a rotation and math deliberately is not, an asymmetry inherited from the manager and now pinned by a test rather than left to be rediscovered
+- see [MIGRATION.md](./MIGRATION.md)
+
+### A symbol moves itself
+`SymbolUtil.translate` is a new required member. Translating used to be three managers' business: `IIAbstractTransformManager` switched on `symbol.type` to five abstract methods, and two of those switched again on kind — so a symbol type the library did not know threw instead of moving.
+- `SymbolUtil.translate(symbol, context)` is abstract. A custom util that omits it no longer compiles, and implementing it is what makes a custom symbol movable
+- new: `TTranslateContext` (`{ matrix, typeset }`) and `TTypesetPort`. Text and math are measured by drawing them hidden and reading `getBBox()`, so the util is handed a port rather than reaching for the canvas — `IITypesetManager` satisfies it structurally
+- `IITranslateManager` no longer refuses an unknown shape or edge kind with `Can't apply translate on shape, kind unknown: {…}`; the message is now `Unable to translate shape, kind: "x" is unknown`, the wording every other kind lookup uses, and it no longer stringifies the whole symbol into itself. Rotation and resize keep the old wording until they move too
+- see [MIGRATION.md](./MIGRATION.md)
+
+### A symbol offers its own resize handles
+`EdgeOps.getEdgeResizePoints` is gone. It was an `if/else` over the three edge kinds with a single caller, reaching the very functions the edge util's kind table already reaches.
+- removed: `EdgeOps.getEdgeResizePoints(edge)` → use `symbolRegistry.getUtilFor(symbol).getResizePoints(symbol)`, which answers for any symbol type including your own
+- new: `SymbolUtil.getResizePoints(symbol)`, empty by default — most symbols resize by their bounding box alone, and only the edge kinds offer per-vertex handles
+- new: `TResizePoint`, the `{ point, vertexIndex }` shape that was written out inline in four places. Structural, so existing code needs no change
+- see [MIGRATION.md](./MIGRATION.md)
+
 ### A custom symbol has to be able to draw itself
 `SymbolUtil.getSVGElement` was optional, so a custom util could register successfully and then render nothing at all, with no error anywhere. It is now a required member.
 - `SymbolUtil.getSVGElement(symbol)` is abstract. A custom util that omits it no longer compiles; return `undefined` for a state you deliberately do not draw
@@ -104,6 +150,7 @@ removed methods have **no compatibility shim**.
 - fix(canvas,manager,menu,components,client): nine swallowed errors and floating promises now reach the caller. `InteractiveInkCanvas`'s debounced `synchronize()` sat in a `try`/`finally` with no `catch`, so a failure was an unhandled rejection **and** skipped both `updateLayerUI()` and `emitChanged()` — the UI never refreshed and consumers never learned the document had moved, on the path that runs 500ms after every stroke. `IWriterManager`'s auto-export, both `UndoRedoMenuAction` buttons and `EditContextMenu`'s save all awaited a canvas call inside an async listener or timer with nothing catching it; each failure was an unhandled rejection at the integrator, and the edit-menu one left the text half-rewritten with no redraw. `WebSocketClient.messageCallback` wrapped its whole twelve-case dispatch switch in `catch { emitError(new Error(message.data)) }`, so any fault inside a handler was reported as though the payload were malformed — the `try` is now narrowed to the `JSON.parse` (where reporting the payload is the right diagnostic) and a handler's own error is reported as itself. `IIMathVariableSubManager.asVariableDefinition` cached `null` on failure from a bare `catch`, so one transient error pinned that block as undefined for the rest of the session with no trace; failures are no longer cached, and the success path already caches a legitimately absent definition. Both math variable dialogs logged and swallowed a failed `Promise.all` of variable writes, leaving the modal open with no feedback after partial writes; they now surface the error and always close
 - fix(manager): `IIJiixQueryManager.getStrokesGroupedByWord()`/`getStrokesGroupedByChar()` located their JIIX element by re-scanning `model.exports` with a linear `find`, even though the index they had just validated holds it in `elementById`. That was not only a scan: `ensureIndexValid()` deliberately keeps the existing index when exports are cleared transiently (its own comment says so), and these two defeated that — after any `updateSymbol()` cleared the exports, both returned an empty array with a perfectly good index in hand. Both now resolve through the index. Neither method had any test before; they have three now, including one that pins the transient-clear case
 - fix(manager): `IITranslateManager.applyToEdge()` switched on three edge kinds with no `default` and fell through to `return edge`, so an edge kind it did not know was silently returned untransformed. Its two siblings, `IIResizeManager` and `IIRotationManager`, both `throw` in that case — a new edge kind would have been silently un-translated while failing loudly on rotate and resize. Translate now throws like the others, and the missing test was added to rotation too so all three pin the same contract
+- refactor(manager,core): every coordinate a transform writes is now rounded to three decimals. Thirteen sites went through `MatrixTransform.applyToPoint` raw while their neighbours went through a rounding helper, so resizing a line stored `10.333` where translating the same line stored `10.333333333333332` — and a circle's centre kept full precision under translate and rotate while its radius was rounded in the same branch. `applyMatrixToPoint`/`applyMatrixToPoints` are now exported from `core/geometry`, where a symbol util can reach them; the rounding helper had been a `protected` method on the transform manager base. Derived fields (`bounds`, `vertices`, `snapPoints`, `edges`) are unchanged: they are recomputed from the stored geometry, and arithmetic on a rounded value is not itself a rounded value. Observable if you compare a transformed coordinate for exact equality
 
 ## Features
 
