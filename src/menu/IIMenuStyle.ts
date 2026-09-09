@@ -26,6 +26,8 @@ export type TMenuStyleConfig = {
   fillColor?: boolean
   /** Enable/disable stroke thickness picker */
   thickness?: boolean
+  /** Enable/disable nib picker */
+  pen?: boolean
   /** Enable/disable font size picker */
   fontSize?: boolean
   /** Enable/disable font weight picker */
@@ -56,6 +58,7 @@ export const DefaultMenuStyleConfig: Required<TMenuStyleConfig> = {
   strokeColor: true,
   fillColor: true,
   thickness: true,
+  pen: true,
   fontSize: true,
   fontWeight: true,
   opacity: true,
@@ -69,6 +72,7 @@ import {
   FontSizeStyle,
   FontWeightStyle,
   OpacityStyle,
+  PenNibStyle,
   StrokeColorStyle,
   ThicknessStyle,
 } from "./styles"
@@ -165,6 +169,12 @@ export class IIMenuStyle {
         const fillColorStyle = new FillColorStyle(this.canvas, this.config.colors, this.id)
         this.styleItems.set("fillColor", fillColorStyle)
         subMenuContent.appendChild(fillColorStyle.getElement())
+      }
+
+      if (this.config.pen) {
+        const penNibStyle = new PenNibStyle(this.canvas, this.id)
+        this.styleItems.set("pen", penNibStyle)
+        subMenuContent.appendChild(penNibStyle.getElement())
       }
 
       if (this.config.thickness) {
