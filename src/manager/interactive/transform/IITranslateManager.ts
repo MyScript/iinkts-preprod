@@ -4,9 +4,8 @@ import { MatrixTransform, type TOBB } from "@/core/geometry"
 import type { TIIHistoryChanges } from "@/history"
 import type { TEdge, TMath, TShape, TStroke, TSymbol, TText } from "@/symbol"
 import { EdgeKind, ShapeKind } from "@/symbol"
-import { EdgeOps } from "@/symbol/edge/Edge"
-import { ShapeOps } from "@/symbol/shape/Shape"
 import { StrokeOps } from "@/symbol/stroke/Stroke"
+import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 
 import { IIAbstractTransformManager } from "./AbstractTransformManager"
 
@@ -33,40 +32,43 @@ export class IITranslateManager extends IIAbstractTransformManager {
       case ShapeKind.Ellipse:
       case ShapeKind.Circle: {
         shape.center = matrix.applyToPoint(shape.center)
-        ShapeOps.updateShapeDerivedFields(shape)
-        return shape
+        break
       }
       case ShapeKind.Polygon: {
         this.applyMatrixToPoints(shape.points, matrix)
-        ShapeOps.updateShapeDerivedFields(shape)
-        return shape
+        break
       }
       default:
         throw new Error(`Can't apply translate on shape, kind unknown: ${JSON.stringify(shape)}`)
     }
+    // One derive for every kind, asked of the symbol's own util. Each branch above used to
+    // call the family's derive dispatcher, which then re-dispatched on the same kind.
+    symbolRegistry.getUtilFor(shape).updateDerivedFields(shape)
+    return shape
   }
 
   protected applyToEdge(edge: TEdge, matrix: MatrixTransform): TEdge {
     switch (edge.kind) {
       case EdgeKind.Arc: {
         edge.center = matrix.applyToPoint(edge.center)
-        EdgeOps.updateEdgeDerivedFields(edge)
-        return edge
+        break
       }
       case EdgeKind.Line: {
         edge.start = matrix.applyToPoint(edge.start)
         edge.end = matrix.applyToPoint(edge.end)
-        EdgeOps.updateEdgeDerivedFields(edge)
-        return edge
+        break
       }
       case EdgeKind.PolyEdge: {
         this.applyMatrixToPoints(edge.points, matrix)
-        EdgeOps.updateEdgeDerivedFields(edge)
-        return edge
+        break
       }
       default:
         throw new Error(`Can't apply translate on edge, kind unknown: ${JSON.stringify(edge)}`)
     }
+    // One derive for every kind, asked of the symbol's own util. Each branch above used to
+    // call the family's derive dispatcher, which then re-dispatched on the same kind.
+    symbolRegistry.getUtilFor(edge).updateDerivedFields(edge)
+    return edge
   }
 
   protected applyOnText(text: TText, matrix: MatrixTransform): TText {

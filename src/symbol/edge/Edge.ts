@@ -1,7 +1,6 @@
 import type { EdgeDecoration } from "@/Constants"
 import type { TOBB } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
-import type { TPartialDeep } from "@/core/std"
 import type { TStyle } from "@/style"
 
 import { SymbolType, type TBaseSymbol } from "../Symbol"
@@ -61,20 +60,6 @@ export const EdgeOps = {
 
   /**
    * @group Symbol
-   * @summary Update derived fields (bounds, vertices, snapPoints, edges) for any TEdge.
-   */
-  updateEdgeDerivedFields(edge: TEdge): void {
-    if (EdgeOps.isLineEdge(edge)) {
-      EdgeLineOps.updateDerivedFields(edge)
-    } else if (EdgeOps.isPolyEdge(edge)) {
-      EdgePolyLineOps.updateDerivedFields(edge)
-    } else if (EdgeOps.isArcEdge(edge)) {
-      EdgeArcOps.updateDerivedFields(edge)
-    }
-  },
-
-  /**
-   * @group Symbol
    * @summary Get resize points for any TEdge.
    */
   getEdgeResizePoints(edge: TEdge): { point: TPoint; vertexIndex: number }[] {
@@ -88,23 +73,6 @@ export const EdgeOps = {
       return EdgeArcOps.getResizePoints(edge)
     }
     return []
-  },
-
-  /**
-   * @group Symbol
-   * @summary Create a TEdge from partial data — dispatches by kind.
-   */
-  createEdgeFromPartial(partial: TPartialDeep<TEdge>): TEdge {
-    switch (partial.kind) {
-      case EdgeKind.Arc:
-        return EdgeArcOps.createFromPartial(partial as TPartialDeep<TEdgeArc>)
-      case EdgeKind.Line:
-        return EdgeLineOps.createFromPartial(partial as TPartialDeep<TEdgeLine>)
-      case EdgeKind.PolyEdge:
-        return EdgePolyLineOps.createFromPartial(partial as TPartialDeep<TEdgePolyLine>)
-      default:
-        throw new Error(`Unable to create edge, kind: "${partial.kind}" is unknown`)
-    }
   },
 
   computeEdgeBounds(

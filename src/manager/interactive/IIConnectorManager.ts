@@ -22,6 +22,7 @@ import { ShapeOps } from "@/symbol/shape/Shape"
 import { isStroke, StrokeOps } from "@/symbol/stroke/Stroke"
 import { cloneSymbol } from "@/symbol/SymbolHelpers"
 import { SVGBuilder } from "@/symbol-utils/SVGBuilder"
+import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 
 import { IIAbstractManager } from "./IIAbstractManager"
 
@@ -598,7 +599,7 @@ export class IIConnectorManager extends IIAbstractManager {
       const symbol = (this.model.draftSymbol(committed.id) as TDraft<TEdge> | undefined) ?? committed
       symbol.startAnchor = undefined
       symbol.endAnchor = undefined
-      EdgeOps.updateEdgeDerivedFields(symbol)
+      symbolRegistry.getUtilFor(symbol).updateDerivedFields(symbol)
       // `updateSymbol` and not `commitSymbol`: the fallback above widens the type back to a plain
       // symbol, and typing it as a draft would be a lie while that branch exists.
       this.model.updateSymbol(symbol)
