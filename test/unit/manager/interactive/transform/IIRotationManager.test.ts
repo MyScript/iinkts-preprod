@@ -1,19 +1,25 @@
 import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
-import { buildIIStroke, expectDerivedFieldsSettled } from "../../../helpers"
+import { buildIIMath, buildIIStroke, buildIIText, expectDerivedFieldsSettled, expectPointsRounded } from "../../../helpers"
 import {
   EdgeLineOps,
   IIConnectorManager,
   IIRotationManager,
+  EdgeArcOps,
+  ShapeEllipseOps,
+  MatrixTransform,
   OBBOps,
   ShapeCircleOps,
   ShapePolygonOps,
   StrokeOps,
   SvgElementRole,
+  TEdgeLine,
   TPoint,
+  TShapeCircle,
+  TShapePolygon,
   TStroke,
+  TSymbol,
   computeRotatedPoint,
   convertDegreeToRadian,
-  MatrixTransform,
 } from "@/iink"
 
 describe("IIRotationManager.ts", () => {
@@ -41,7 +47,9 @@ describe("IIRotationManager.ts", () => {
 
       expect(() => manager.applyToSymbol(edge, matrix)).toThrow(
 
-        expect.objectContaining({ message: expect.stringContaining("Can't apply rotate on edge, kind unknown:") })
+        // IIC-2012 moved the refusal to the edge util's kind table, which words it the way every
+        // other kind lookup does and no longer stringifies the whole symbol into the message.
+        'Unable to rotate edge, kind: "pouet" is unknown'
 
       )
 
@@ -60,7 +68,7 @@ describe("IIRotationManager.ts", () => {
       const origin: TPoint = { x: 0, y: 0 }
       const matrix = MatrixTransform.identity().rotate(Math.PI / 2, origin)
       expect(() => manager.applyToSymbol(poly, matrix)).toThrow(
-        expect.objectContaining({ message: expect.stringContaining("Can't apply rotate on shape, kind unknown: ") })
+        'Unable to rotate shape, kind: "pouet" is unknown'
       )
     })
     test("rotate stroke", () => {
@@ -409,5 +417,111 @@ describe("IIRotationManager.ts", () => {
       manager.applyToSymbol(line, MatrixTransform.identity().rotate(Math.PI / 2, { x: 1, y: 2 }))
       expectDerivedFieldsSettled(line)
     })
+  })
+
+  /**
+   * A rotate by a third of a pixel: raw, every coordinate would keep seventeen decimals. IIC-2010
+   * put all thirteen of the managers' raw `applyToPoint` sites on the rounding helper, and nothing
+   * covered any of them — deleting the rounding outright left this whole file green.
+   *
+   * Each case names the geometry the transform writes. The derived fields are excluded on purpose:
+   * see `expectPointsRounded`.
+   */
+  describe("coordinate rounding", () => {
+    const canvas = createCanvasMock()
+    const manager = new IIRotationManager(asCanvas(canvas))
+
+    /** Each row names the geometry its own builder produced, so the narrowing is sound. */
+    const CASES: [string, () => TSymbol, (symbol: TSymbol) => TPoint[]][] = [
+      ["circle centre", () => ShapeCircleOps.create({ x: 5, y: 5 }, 4), (s) => [(s as TShapeCircle).center]],
+      [
+        "polygon points",
+        () =>
+          ShapePolygonOps.create([
+            { x: 0, y: 0 },
+            { x: 10, y: 0 },
+            { x: 10, y: 10 },
+          ]),
+        (s) => (s as TShapePolygon).points,
+      ],
+      [
+        "line endpoints",
+        () => EdgeLineOps.create({ x: 0, y: 0 }, { x: 10, y: 10 }),
+        (s) => [(s as TEdgeLine).start, (s as TEdgeLine).end],
+      ],
+      ["stroke pointers", () => buildIIStroke(), (s) => (s as TStroke).pointers],
+    ]
+
+    test.each(CASES)("%s should keep three decimals", (_name, build, stored) => {
+      const symbol = build()
+      manager.applyToSymbol(symbol, MatrixTransform.identity().rotate(1 / 3, { x: 1 / 3, y: 1 / 3 }))
+      expectPointsRounded(stored(symbol))
+    })
+  })
+})
+
+/**
+ * The four cells of the transform matrix that genuinely differ by operation all belong to rotate:
+ * an ellipse and an arc carry an angle of their own, and text and math are turned by recording an
+ * angle rather than by moving anything.
+ *
+ * None of the four was covered. Each could be gutted — orientation left unchanged, `phi` left
+ * unchanged, no degree recorded — with this whole file staying green. IIC-2012 moved them onto the
+ * utils, so these are what hold them.
+ */
+describe("IIRotationManager, the cells that are rotation-specific", () => {
+  const quarterTurn = () => MatrixTransform.identity().rotate(Math.PI / 2, { x: 0, y: 0 })
+
+  const rotate = (symbol: TSymbol, times = 1) => {
+    const canvas = createCanvasMock()
+    const manager = new IIRotationManager(asCanvas(canvas))
+    manager.center = { x: 0, y: 0 }
+    for (let i = 0; i < times; i++) {
+      manager.applyToSymbol(symbol, quarterTurn())
+    }
+    return canvas
+  }
+
+  test("an ellipse should add the turn to its own orientation", () => {
+    const ellipse = ShapeEllipseOps.create({ x: 10, y: 10 }, 30, 20, 0)
+    rotate(ellipse)
+    expect(ellipse.orientation).toBeCloseTo(Math.PI / 2, 10)
+  })
+
+  test("an arc should turn its phi the other way", () => {
+    // Opposite sign to the matrix, which is the arc's own convention and easy to lose in a move.
+    const arc = EdgeArcOps.create({ x: 50, y: 50 }, 0, Math.PI, 30, 20, 0)
+    rotate(arc)
+    expect(arc.phi).toBeCloseTo(-Math.PI / 2, 10)
+  })
+
+  test.each([
+    ["text", () => buildIIText({ point: { x: 0, y: 0 } })],
+    ["math", () => buildIIMath()],
+  ])("%s should record the angle rather than move its glyphs", (_name, build) => {
+    const symbol = build()
+    rotate(symbol)
+    expect(symbol.rotation?.degree).toBeCloseTo(90, 10)
+    expect(symbol.rotation?.center).toEqual({ x: 0, y: 0 })
+  })
+
+  test.each([
+    ["text", () => buildIIText({ point: { x: 0, y: 0 } })],
+    ["math", () => buildIIMath()],
+  ])("%s should accumulate the angle across two turns", (_name, build) => {
+    const symbol = build()
+    rotate(symbol, 2)
+    expect(symbol.rotation?.degree).toBeCloseTo(180, 10)
+  })
+
+  test("text should be re-measured, and math deliberately should not", () => {
+    // An asymmetry inherited from IIRotationManager, which called typeset.updateBounds for text and
+    // returned math untouched. Pinned rather than quietly evened out: levelling it is a behaviour
+    // change, and IIC-2012 only moved code.
+    const text = buildIIText({ point: { x: 0, y: 0 } })
+    expect(rotate(text).typeset.updateBounds).toHaveBeenCalledWith(text)
+
+    const math = buildIIMath()
+    expect(rotate(math).typeset.updateBounds).not.toHaveBeenCalled()
   })
 })

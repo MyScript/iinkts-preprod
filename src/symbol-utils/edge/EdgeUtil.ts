@@ -1,6 +1,8 @@
 import { EdgeDecoration } from "@/Constants"
 import type { TBox } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
+import { MatrixTransform } from "@/core/geometry"
+import { TWO_PI } from "@/core/math"
 import type { TPartialDeep } from "@/core/std"
 import { DefaultStyle } from "@/style"
 import { EdgeArcOps, type TEdgeArc } from "@/symbol/edge/Arc"
@@ -8,11 +10,20 @@ import type { TEdge } from "@/symbol/edge/Edge"
 import { EdgeKind } from "@/symbol/edge/Edge-enum"
 import { EdgeLineOps, type TEdgeLine } from "@/symbol/edge/Line"
 import { EdgePolyLineOps, type TEdgePolyLine } from "@/symbol/edge/PolyLine"
-import { SymbolType } from "@/symbol/Symbol"
+import { SymbolType, type TResizePoint } from "@/symbol/Symbol"
 
-import { defineKind, resolveKind, type TKindDefinition } from "../KindDefinition"
+import {
+  defineKind,
+  moveByCentre,
+  moveByPoints,
+  moveEndpoints,
+  resolveKind,
+  scaleCentreAboutOrigin,
+  type TKindDefinition,
+} from "../KindDefinition"
 import { SVGBuilder } from "../SVGBuilder"
 import { SymbolUtil } from "../SymbolUtil"
+import type { TResizeContext, TRotateContext, TTranslateContext } from "../TransformContext"
 import { arrowHeadEndMarkerId, arrowHeadStartMarkerId } from "./EdgeRenderOptions"
 
 /**
@@ -25,18 +36,49 @@ const EDGE_KINDS: Partial<Record<EdgeKind, TKindDefinition<TEdge>>> = {
     updateDerivedFields: (edge) => EdgeArcOps.updateDerivedFields(edge),
     overlaps: (edge, box) => EdgeArcOps.overlaps(edge, box),
     getSVGPath: (edge) => EdgeArcOps.getSVGPath(edge),
+    getResizePoints: (edge) => EdgeArcOps.getResizePoints(edge),
+    translate: moveByCentre,
+    // The other operation-specific cell on this side: an arc carries `phi`, and it turns the
+    // opposite way to the matrix.
+    rotate: (edge, matrix) => {
+      edge.phi = (edge.phi - MatrixTransform.rotation(matrix)) % TWO_PI
+      moveByCentre(edge, matrix)
+    },
+    // The first of the two trigonometric cells. A negative scale factor mirrors the arc, which for
+    // a swept arc means re-basing the start angle and reversing the sweep.
+    resize: (edge, matrix, origin) => {
+      const cos = Math.cos(edge.phi)
+      const sin = Math.sin(edge.phi)
+      scaleCentreAboutOrigin(edge, matrix, origin, edge.phi)
+      edge.radiusX = +(edge.radiusX * Math.abs(matrix.xx * cos + matrix.yy * sin)).toFixed(3)
+      edge.radiusY = +(edge.radiusY * Math.abs(matrix.xx * sin + matrix.yy * cos)).toFixed(3)
+      if (matrix.xx < 0) {
+        edge.startAngle = +(Math.PI - edge.startAngle).toFixed(3)
+        edge.sweepAngle *= -1
+      } else if (matrix.yy < 0) {
+        edge.sweepAngle *= -1
+      }
+    },
   }),
   [EdgeKind.Line]: defineKind<TEdge, TEdgeLine>({
     create: (partial) => EdgeLineOps.createFromPartial(partial),
     updateDerivedFields: (edge) => EdgeLineOps.updateDerivedFields(edge),
     overlaps: (edge, box) => EdgeLineOps.overlaps(edge, box),
     getSVGPath: (edge) => EdgeLineOps.getSVGPath(edge),
+    getResizePoints: (edge) => EdgeLineOps.getResizePoints(edge),
+    translate: moveEndpoints,
+    rotate: moveEndpoints,
+    resize: moveEndpoints,
   }),
   [EdgeKind.PolyEdge]: defineKind<TEdge, TEdgePolyLine>({
     create: (partial) => EdgePolyLineOps.createFromPartial(partial),
     updateDerivedFields: (edge) => EdgePolyLineOps.updateDerivedFields(edge),
     overlaps: (edge, box) => EdgePolyLineOps.overlaps(edge, box),
     getSVGPath: (edge) => EdgePolyLineOps.getSVGPath(edge),
+    getResizePoints: (edge) => EdgePolyLineOps.getResizePoints(edge),
+    translate: moveByPoints,
+    rotate: moveByPoints,
+    resize: moveByPoints,
   }),
 }
 
@@ -60,6 +102,25 @@ export class EdgeUtil extends SymbolUtil<TEdge> {
 
   getSnapPoints(edge: TEdge): TPoint[] {
     return edge.snapPoints
+  }
+
+  getResizePoints(edge: TEdge): TResizePoint[] {
+    return EDGE_KINDS[edge.kind]?.getResizePoints?.(edge) ?? []
+  }
+
+  translate(edge: TEdge, { matrix }: TTranslateContext): void {
+    resolveKind(EDGE_KINDS, edge.kind, "edge", "translate").translate(edge, matrix)
+    this.updateDerivedFields(edge)
+  }
+
+  rotate(edge: TEdge, { matrix }: TRotateContext): void {
+    resolveKind(EDGE_KINDS, edge.kind, "edge", "rotate").rotate(edge, matrix)
+    this.updateDerivedFields(edge)
+  }
+
+  resize(edge: TEdge, { matrix, origin }: TResizeContext): void {
+    resolveKind(EDGE_KINDS, edge.kind, "edge", "resize").resize(edge, matrix, origin)
+    this.updateDerivedFields(edge)
   }
 
   static getSVGPath(edge: TEdge): string {

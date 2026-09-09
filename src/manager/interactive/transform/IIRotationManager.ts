@@ -3,9 +3,8 @@ import type { TPoint } from "@/core/geometry"
 import { BoxOps, computeAngleRadian, MatrixTransform, type TOBB } from "@/core/geometry"
 import { convertDegreeToRadian, convertRadianToDegree, TWO_PI } from "@/core/math"
 import type { TIIHistoryChanges } from "@/history"
-import type { TEdge, TMath, TShape, TStroke, TText } from "@/symbol"
-import { cloneSymbol, EdgeKind, ShapeKind } from "@/symbol"
-import { StrokeOps } from "@/symbol/stroke/Stroke"
+import type { TSymbol } from "@/symbol"
+import { cloneSymbol } from "@/symbol"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 
 import { IIAbstractTransformManager } from "./AbstractTransformManager"
@@ -15,7 +14,6 @@ import { IIAbstractTransformManager } from "./AbstractTransformManager"
  */
 export class IIRotationManager extends IIAbstractTransformManager {
   protected managerName = "IIRotationManager"
-  protected transformName = "rotate"
   center!: TPoint
   origin!: TPoint
 
@@ -23,75 +21,12 @@ export class IIRotationManager extends IIAbstractTransformManager {
     super(canvas)
   }
 
-  protected applyToStroke(stroke: TStroke, matrix: MatrixTransform): TStroke {
-    this.applyMatrixToPoints(stroke.pointers, matrix)
-    StrokeOps.updateBounds(stroke)
-    return stroke
-  }
-
-  protected applyToShape(shape: TShape, matrix: MatrixTransform): TShape {
-    switch (shape.kind) {
-      case ShapeKind.Ellipse: {
-        shape.center = matrix.applyToPoint(shape.center)
-        shape.orientation = (shape.orientation + MatrixTransform.rotation(matrix)) % TWO_PI
-        break
-      }
-      case ShapeKind.Circle: {
-        shape.center = matrix.applyToPoint(shape.center)
-        break
-      }
-      case ShapeKind.Polygon: {
-        this.applyMatrixToPoints(shape.points, matrix)
-        break
-      }
-      default:
-        throw new Error(`Can't apply rotate on shape, kind unknown: ${JSON.stringify(shape)}`)
-    }
-    // One derive for every kind, asked of the symbol's own util. Each branch above used to
-    // call the family's derive dispatcher, which then re-dispatched on the same kind.
-    symbolRegistry.getUtilFor(shape).updateDerivedFields(shape)
-    return shape
-  }
-
-  protected applyToEdge(edge: TEdge, matrix: MatrixTransform): TEdge {
-    switch (edge.kind) {
-      case EdgeKind.Arc: {
-        edge.phi = (edge.phi - MatrixTransform.rotation(matrix)) % TWO_PI
-        edge.center = matrix.applyToPoint(edge.center)
-        break
-      }
-      case EdgeKind.Line: {
-        edge.start = matrix.applyToPoint(edge.start)
-        edge.end = matrix.applyToPoint(edge.end)
-        break
-      }
-      case EdgeKind.PolyEdge: {
-        edge.points = edge.points.map((p) => matrix.applyToPoint(p))
-        break
-      }
-      default:
-        throw new Error(`Can't apply rotate on edge, kind unknown: ${JSON.stringify(edge)}`)
-    }
-    // One derive for every kind, asked of the symbol's own util. Each branch above used to
-    // call the family's derive dispatcher, which then re-dispatched on the same kind.
-    symbolRegistry.getUtilFor(edge).updateDerivedFields(edge)
-    return edge
-  }
-
-  protected applyOnText(text: TText, matrix: MatrixTransform): TText {
-    text.rotation = {
-      degree: convertRadianToDegree(MatrixTransform.rotation(matrix)) + (text.rotation?.degree || 0),
-      center: this.center,
-    }
-    return this.canvas.typeset.updateBounds(text)
-  }
-
-  protected applyOnMath(math: TMath, matrix: MatrixTransform): TMath {
-    math.rotation = {
-      degree: convertRadianToDegree(MatrixTransform.rotation(matrix)) + (math.rotation?.degree || 0),
-      center: this.center,
-    }
-    return math
+  /**
+   * One hook, like the other two managers'. `center` is passed here rather than read
+   * off `this` inside the util, which is what retired its definite-assignment assertion.
+   */
+  protected applyThroughUtil(symbol: TSymbol, matrix: MatrixTransform): void {
+    symbolRegistry.getUtilFor(symbol).rotate(symbol, { matrix, center: this.center, typeset: this.canvas.typeset })
   }
 
   rotateElement(id: string, degree: number): void {

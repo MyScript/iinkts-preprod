@@ -14,6 +14,11 @@ import {
   SymbolUtil,
   TBaseSymbol,
   TPartialDeep,
+  TPoint,
+  TResizeContext,
+  TRotateContext,
+  TTranslateContext,
+  applyMatrixToPoint,
 } from "@/iink"
 
 beforeAll(() => {
@@ -595,7 +600,7 @@ describe("SVGRenderer.ts", () => {
    * matching against a fixed list of built-ins.
    */
   describe("a symbol type the library does not know", () => {
-    type TStickyNote = TBaseSymbol & { type: "sticky-note"; text: string }
+    type TStickyNote = TBaseSymbol & { type: "sticky-note"; text: string; point: TPoint }
 
     class StickyNoteUtil extends SymbolUtil<TStickyNote> {
       readonly type = "sticky-note"
@@ -603,6 +608,15 @@ describe("SVGRenderer.ts", () => {
         return { ...partial, type: "sticky-note", text: partial.text ?? "" } as TStickyNote
       }
       updateDerivedFields(): void {}
+      translate(symbol: TStickyNote, { matrix }: TTranslateContext): void {
+        symbol.point = applyMatrixToPoint(symbol.point, matrix)
+      }
+      rotate(symbol: TStickyNote, { matrix }: TRotateContext): void {
+        symbol.point = applyMatrixToPoint(symbol.point, matrix)
+      }
+      resize(symbol: TStickyNote, { matrix }: TResizeContext): void {
+        symbol.point = applyMatrixToPoint(symbol.point, matrix)
+      }
       overlaps(): boolean {
         return false
       }

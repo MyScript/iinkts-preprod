@@ -6,7 +6,7 @@ import type { TPartialDeep } from "@/core/std"
 import { createUUID } from "@/core/std"
 import type { TStyle } from "@/style"
 import { mergeSymbolStyle } from "@/style"
-import { SymbolType, type TBaseSymbol } from "@/symbol/Symbol"
+import { SymbolType, type TBaseSymbol, type TResizePoint } from "@/symbol/Symbol"
 
 import type { TAnchor } from "./Anchor"
 import { computeEdgeBounds, EdgeKind } from "./Edge-enum"
@@ -90,7 +90,7 @@ export const EdgePolyLineOps = {
     }))
   },
 
-  getResizePoints(polyline: TEdgePolyLine): { point: TPoint; vertexIndex: number }[] {
+  getResizePoints(polyline: TEdgePolyLine): TResizePoint[] {
     return polyline.vertices.map((point, vertexIndex) => ({
       point,
       vertexIndex,

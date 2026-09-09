@@ -2,9 +2,7 @@ import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import type { TPoint } from "@/core/geometry"
 import { MatrixTransform, type TOBB } from "@/core/geometry"
 import type { TIIHistoryChanges } from "@/history"
-import type { TEdge, TMath, TShape, TStroke, TSymbol, TText } from "@/symbol"
-import { EdgeKind, ShapeKind } from "@/symbol"
-import { StrokeOps } from "@/symbol/stroke/Stroke"
+import type { TSymbol } from "@/symbol"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 
 import { IIAbstractTransformManager } from "./AbstractTransformManager"
@@ -14,95 +12,19 @@ import { IIAbstractTransformManager } from "./AbstractTransformManager"
  */
 export class IITranslateManager extends IIAbstractTransformManager {
   protected managerName = "IITranslateManager"
-  protected transformName = "translate"
   transformOrigin!: TPoint
 
   constructor(canvas: TInteractiveInkCanvas) {
     super(canvas)
   }
 
-  protected applyToStroke(stroke: TStroke, matrix: MatrixTransform): TStroke {
-    this.applyMatrixToPoints(stroke.pointers, matrix)
-    StrokeOps.updateBounds(stroke)
-    return stroke
-  }
-
-  protected applyToShape(shape: TShape, matrix: MatrixTransform): TShape {
-    switch (shape.kind) {
-      case ShapeKind.Ellipse:
-      case ShapeKind.Circle: {
-        shape.center = matrix.applyToPoint(shape.center)
-        break
-      }
-      case ShapeKind.Polygon: {
-        this.applyMatrixToPoints(shape.points, matrix)
-        break
-      }
-      default:
-        throw new Error(`Can't apply translate on shape, kind unknown: ${JSON.stringify(shape)}`)
-    }
-    // One derive for every kind, asked of the symbol's own util. Each branch above used to
-    // call the family's derive dispatcher, which then re-dispatched on the same kind.
-    symbolRegistry.getUtilFor(shape).updateDerivedFields(shape)
-    return shape
-  }
-
-  protected applyToEdge(edge: TEdge, matrix: MatrixTransform): TEdge {
-    switch (edge.kind) {
-      case EdgeKind.Arc: {
-        edge.center = matrix.applyToPoint(edge.center)
-        break
-      }
-      case EdgeKind.Line: {
-        edge.start = matrix.applyToPoint(edge.start)
-        edge.end = matrix.applyToPoint(edge.end)
-        break
-      }
-      case EdgeKind.PolyEdge: {
-        this.applyMatrixToPoints(edge.points, matrix)
-        break
-      }
-      default:
-        throw new Error(`Can't apply translate on edge, kind unknown: ${JSON.stringify(edge)}`)
-    }
-    // One derive for every kind, asked of the symbol's own util. Each branch above used to
-    // call the family's derive dispatcher, which then re-dispatched on the same kind.
-    symbolRegistry.getUtilFor(edge).updateDerivedFields(edge)
-    return edge
-  }
-
-  protected applyOnText(text: TText, matrix: MatrixTransform): TText {
-    if (text.rotation) {
-      text.rotation.center = matrix.applyToPoint(text.rotation.center)
-    }
-    const np = matrix.applyToPoint(text.point)
-    text.point.x = +np.x.toFixed(3)
-    text.point.y = +np.y.toFixed(3)
-    return this.canvas.typeset.updateBounds(text)
-  }
-
-  protected applyOnMath(math: TMath, matrix: MatrixTransform): TMath {
-    if (math.rotation) {
-      math.rotation.center = matrix.applyToPoint(math.rotation.center)
-    }
-    const np = matrix.applyToPoint(math.point)
-    math.point.x = +np.x.toFixed(3)
-    math.point.y = +np.y.toFixed(3)
-
-    const bp = matrix.applyToPoint(math.bounds.center)
-    math.bounds.center.x = +bp.x.toFixed(3)
-    math.bounds.center.y = +bp.y.toFixed(3)
-
-    math.elements.forEach((e) => {
-      const ep = matrix.applyToPoint({
-        x: e.bounds.x,
-        y: e.bounds.y,
-      })
-      e.bounds.x = +ep.x.toFixed(3)
-      e.bounds.y = +ep.y.toFixed(3)
-    })
-
-    return this.canvas.typeset.updateBounds(math)
+  /**
+   * One hook instead of five per-type methods. `IIAbstractTransformManager` used to
+   * declare those five so its `switch (symbol.type)` could reach them; IIC-2014 replaced both with
+   * this.
+   */
+  protected applyThroughUtil(symbol: TSymbol, matrix: MatrixTransform): void {
+    symbolRegistry.getUtilFor(symbol).translate(symbol, { matrix, typeset: this.canvas.typeset })
   }
 
   translate(symbols: TSymbol[], tx: number, ty: number, addToHistory = true): Promise<void> {

@@ -7,7 +7,8 @@ import { TextOps, type TText } from "@/symbol/text/Text"
 
 import { DecoratorUtil } from "../decorator/DecoratorUtil"
 import { SVGBuilder } from "../SVGBuilder"
-import { SymbolUtil } from "../SymbolUtil"
+import type { TRotateContext, TTranslateContext } from "../TransformContext"
+import { TypesetUtil } from "./TypesetUtil"
 
 const noSelection =
   "pointer-events: none; -webkit-touch-callout: none; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;"
@@ -15,7 +16,7 @@ const noSelection =
 /**
  * @group SymbolUtils
  */
-export class TextUtil extends SymbolUtil<TText> {
+export class TextUtil extends TypesetUtil<TText> {
   readonly type = SymbolType.Text
 
   create(partial: TPartialDeep<TText>): TText {
@@ -32,6 +33,25 @@ export class TextUtil extends SymbolUtil<TText> {
 
   getSnapPoints(text: TText): TPoint[] {
     return text.snapPoints
+  }
+
+  protected glyphsOf(text: TText): { fontSize: number }[] {
+    return text.chars
+  }
+
+  translate(text: TText, { matrix, typeset }: TTranslateContext): void {
+    this.moveAnchor(text, matrix)
+    typeset.updateBounds(text)
+  }
+
+  /**
+   * Records the turn, then re-measures. Math deliberately does not — an asymmetry inherited from
+   * `IIRotationManager`, which called `typeset.updateBounds` for text and returned math untouched.
+   * It is an override here so that the difference is a line of code rather than a missing one.
+   */
+  rotate(text: TText, context: TRotateContext): void {
+    super.rotate(text, context)
+    context.typeset.updateBounds(text)
   }
 
   getSVGElement(text: TText): SVGGraphicsElement {

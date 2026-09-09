@@ -1,5 +1,5 @@
 import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
-import { buildIIStroke, expectDerivedFieldsSettled } from "../../../helpers"
+import { buildIIMath, buildIIStroke, buildIIText, expectDerivedFieldsSettled, expectPointsRounded } from "../../../helpers"
 import {
   DecoratorKind,
   DecoratorOps,
@@ -8,16 +8,27 @@ import {
   IIConnectorManager,
   IIHistoryManager,
   IITranslateManager,
+  MatrixTransform,
   OBBOps,
   ShapeCircleOps,
   ShapePolygonOps,
   StrokeOps,
-  TPoint,
   SvgElementRole,
-  MatrixTransform,
-  TStroke,
-  TEdgeLine,
   TDecorator,
+  TEdgeLine,
+  TPoint,
+  TShapeCircle,
+  TShapePolygon,
+  TStroke,
+  SymbolUtil,
+  TBaseSymbol,
+  TPartialDeep,
+  TResizeContext,
+  TRotateContext,
+  TTranslateContext,
+  applyMatrixToPoint,
+  symbolRegistry,
+  TSymbol,
 } from "@/iink"
 
 describe("IITranslateManager.ts", () => {
@@ -60,8 +71,12 @@ describe("IITranslateManager.ts", () => {
       //@ts-ignore
       poly.kind = "pouet"
       const matrix = MatrixTransform.identity().translate(10, 15)
+      // IIC-2011 moved the refusal from the manager's switch to the family util's kind table, so
+      // the wording is now the one every other table lookup uses — and it no longer stringifies the
+      // whole symbol into the message. Rotation and resize keep the old wording until IIC-2012 and
+      // IIC-2013 move them too.
       expect(() => manager.applyToSymbol(poly, matrix)).toThrow(
-        expect.objectContaining({ message: expect.stringContaining("Can't apply translate on shape, kind unknown:") })
+        'Unable to translate shape, kind: "pouet" is unknown'
       )
     })
     test("should not translate edge with kind unknown", () => {
@@ -71,8 +86,12 @@ describe("IITranslateManager.ts", () => {
       //@ts-ignore
       edge.kind = "pouet"
       const matrix = MatrixTransform.identity().translate(10, 15)
+      // IIC-2011 moved the refusal from the manager's switch to the family util's kind table, so
+      // the wording is now the one every other table lookup uses — and it no longer stringifies the
+      // whole symbol into the message. Rotation and resize keep the old wording until IIC-2012 and
+      // IIC-2013 move them too.
       expect(() => manager.applyToSymbol(edge, matrix)).toThrow(
-        expect.objectContaining({ message: expect.stringContaining("Can't apply translate on edge, kind unknown:") })
+        'Unable to translate edge, kind: "pouet" is unknown'
       )
     })
     test("translate edge Line", () => {
@@ -540,6 +559,140 @@ describe("IITranslateManager.ts", () => {
       const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 10, y: 10 })
       manager.applyToSymbol(line, MatrixTransform.identity().translate(10, 15))
       expectDerivedFieldsSettled(line)
+    })
+  })
+
+  /**
+   * A translate by a third of a pixel: raw, every coordinate would keep seventeen decimals. IIC-2010
+   * put all thirteen of the managers' raw `applyToPoint` sites on the rounding helper, and nothing
+   * covered any of them — deleting the rounding outright left this whole file green.
+   *
+   * Each case names the geometry the transform writes. The derived fields are excluded on purpose:
+   * see `expectPointsRounded`.
+   */
+  describe("coordinate rounding", () => {
+    const canvas = createCanvasMock()
+    const manager = new IITranslateManager(asCanvas(canvas))
+
+    /** Each row names the geometry its own builder produced, so the narrowing is sound. */
+    const CASES: [string, () => TSymbol, (symbol: TSymbol) => TPoint[]][] = [
+      ["circle centre", () => ShapeCircleOps.create({ x: 5, y: 5 }, 4), (s) => [(s as TShapeCircle).center]],
+      [
+        "polygon points",
+        () =>
+          ShapePolygonOps.create([
+            { x: 0, y: 0 },
+            { x: 10, y: 0 },
+            { x: 10, y: 10 },
+          ]),
+        (s) => (s as TShapePolygon).points,
+      ],
+      [
+        "line endpoints",
+        () => EdgeLineOps.create({ x: 0, y: 0 }, { x: 10, y: 10 }),
+        (s) => [(s as TEdgeLine).start, (s as TEdgeLine).end],
+      ],
+      ["stroke pointers", () => buildIIStroke(), (s) => (s as TStroke).pointers],
+    ]
+
+    test.each(CASES)("%s should keep three decimals", (_name, build, stored) => {
+      const symbol = build()
+      manager.applyToSymbol(symbol, MatrixTransform.identity().translate(1 / 3, 1 / 3))
+      expectPointsRounded(stored(symbol))
+    })
+  })
+
+  /**
+   * IIC-2011 moved translate onto each symbol's util. Two things about that move needed holding
+   * that nothing held before: text and math reach a service rather than doing geometry, and a
+   * symbol type the library does not know can now translate at all.
+   */
+  describe("translate through the util", () => {
+    test.each([
+      ["text", () => buildIIText({ point: { x: 0, y: 0 } })],
+      ["math", () => buildIIMath()],
+    ])("%s should be re-measured by the typeset service", (_name, build) => {
+      // Not geometry: a typeset symbol's bounds come from drawing it hidden and reading getBBox(),
+      // so the util is handed a port instead of computing them. Dropping the call left every test
+      // in this file green before this one existed.
+      const canvas = createCanvasMock()
+      const manager = new IITranslateManager(asCanvas(canvas))
+      const symbol = build()
+      manager.applyToSymbol(symbol, MatrixTransform.identity().translate(10, 15))
+      expect(canvas.typeset.updateBounds).toHaveBeenCalledWith(symbol)
+    })
+
+    test.each([
+      ["text", () => buildIIText({ point: { x: 1, y: 2 } })],
+      ["math", () => buildIIMath("y=3x+2", { point: { x: 1, y: 2 } })],
+    ])("%s should move its anchor point", (_name, build) => {
+      // A typeset symbol stores a position and is otherwise measured, so its anchor point is the
+      // whole of what a translate moves. Nothing asserted it: gutting the move left every test in
+      // this file green, including the one that checks the typeset service was called.
+      const symbol = build()
+      const canvas = createCanvasMock()
+      new IITranslateManager(asCanvas(canvas)).applyToSymbol(symbol, MatrixTransform.identity().translate(10, 15))
+      expect(symbol.point).toEqual({ x: 11, y: 17 })
+    })
+
+    test("math should also move its stored bounds centre and its elements", () => {
+      // Math carries more position than text: its own bounds centre, and one box per element. The
+      // typeset service is stubbed here, so these are the raw moves rather than a re-measurement.
+      const math = buildIIMath("y=3x+2", { point: { x: 1, y: 2 } })
+      const centreBefore = { ...math.bounds.center }
+      const elementBefore = { ...math.elements[0].bounds }
+      const canvas = createCanvasMock()
+      new IITranslateManager(asCanvas(canvas)).applyToSymbol(math, MatrixTransform.identity().translate(10, 15))
+      expect(math.bounds.center).toEqual({ x: centreBefore.x + 10, y: centreBefore.y + 15 })
+      expect(math.elements[0].bounds).toEqual({
+        ...elementBefore,
+        x: elementBefore.x + 10,
+        y: elementBefore.y + 15,
+      })
+    })
+
+    test("a symbol type the library does not know should translate", () => {
+      // The point of the epic. It is reachable through the util now; `applyToSymbol` still throws
+      // for an unregistered type, because the base's switch on `symbol.type` survives until
+      // IIC-2014.
+      type TStickyNote = TBaseSymbol & { type: "sticky-note"; point: TPoint }
+      class StickyNoteUtil extends SymbolUtil<TStickyNote> {
+        readonly type = "sticky-note"
+        create(partial: TPartialDeep<TStickyNote>): TStickyNote {
+          return partial as TStickyNote
+        }
+        updateDerivedFields(): void {}
+        overlaps(): boolean {
+          return false
+        }
+        translate(symbol: TStickyNote, { matrix }: TTranslateContext): void {
+          symbol.point = applyMatrixToPoint(symbol.point, matrix)
+        }
+        rotate(symbol: TStickyNote, { matrix }: TRotateContext): void {
+          symbol.point = applyMatrixToPoint(symbol.point, matrix)
+        }
+        resize(symbol: TStickyNote, { matrix }: TResizeContext): void {
+          symbol.point = applyMatrixToPoint(symbol.point, matrix)
+        }
+        getSVGElement(): SVGGraphicsElement {
+          return document.createElementNS("http://www.w3.org/2000/svg", "g")
+        }
+      }
+      symbolRegistry.register(new StickyNoteUtil())
+
+      const canvas = createCanvasMock()
+      const sticky = { id: "n1", type: "sticky-note", point: { x: 1, y: 2 } } as unknown as TSymbol
+      symbolRegistry
+        .getUtilFor(sticky)
+        .translate(sticky, { matrix: MatrixTransform.identity().translate(10, 15), typeset: canvas.typeset })
+
+      expect((sticky as unknown as TStickyNote).point).toEqual({ x: 11, y: 17 })
+
+      // Written in IIC-2011 asserting that `applyToSymbol` still refused this symbol, because the
+      // base's `switch (symbol.type)` fell to a throwing default. IIC-2014 deleted that switch, so
+      // the manager route works too — which is the whole point of the epic.
+      new IITranslateManager(asCanvas(canvas)).applyToSymbol(sticky, MatrixTransform.identity().translate(1, 2))
+      expect((sticky as unknown as TStickyNote).point).toEqual({ x: 12, y: 19 })
     })
   })
 })
