@@ -13,6 +13,20 @@ Symbols are frozen when committed and handed to readers directly, instead of the
 - fixed: `changeOrderSymbol` was a no-op; partially erasing characters was never stored; undo/redo replay rewrote the history entry it was replaying; edge-connection anchors were silently dropped behind a swallowed throw
 - see [MIGRATION.md](./MIGRATION.md)
 
+### A custom symbol has to be able to draw itself
+`SymbolUtil.getSVGElement` was optional, so a custom util could register successfully and then render nothing at all, with no error anywhere. It is now a required member.
+- `SymbolUtil.getSVGElement(symbol)` is abstract. A custom util that omits it no longer compiles; return `undefined` for a state you deliberately do not draw
+- the SVG renderer no longer checks whether a util can draw, so its "no util for symbol" error now means what it says. It used to fire for a util that existed but had no draw method
+- `InkCanvasDeprecated` (INK_V1) still ignores it: that variant draws through `CanvasRenderer`, which dispatches on `isStroke` and two fixed tables rather than asking the registry, so a custom symbol is invisible there and logs "symbol type unknown". The three other variants draw it
+- see [MIGRATION.md](./MIGRATION.md)
+
+### A symbol's derived fields come from its util
+`ShapeOps.updateShapeDerivedFields` and `EdgeOps.updateEdgeDerivedFields` are gone. Both were pure dispatchers: they re-resolved a symbol's kind to reach the very per-kind function its util already exposes, so a transform resolved the same kind twice.
+- removed: `ShapeOps.updateShapeDerivedFields(shape)` and `EdgeOps.updateEdgeDerivedFields(edge)` → use `symbolRegistry.getUtilFor(symbol).updateDerivedFields(symbol)`, which works for any symbol type including your own
+- new: `symbolRegistry.getUtilFor(symbol)` — `getUtil(symbol.type)` that throws instead of returning `undefined`, for the paths where skipping the work would leave stale geometry rather than fail
+- transforming a symbol now needs the registry populated. Both canvases call `registerBuiltinSymbolUtils()` in their constructor, so this only affects code that drives a transform manager without a canvas
+- see [MIGRATION.md](./MIGRATION.md)
+
 ### The client owns the stroke shape it sends
 `StrokeOps.formatToSend` is gone. The conversion now lives in the client, which is the layer that owns the protocol, so the client no longer depends on the symbol layer to talk to the server.
 - removed: `StrokeOps.formatToSend(stroke)` → use `toWireStroke(stroke)`

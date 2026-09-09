@@ -510,7 +510,7 @@ export class IISelectionManager extends IIAbstractManager {
     const moveVertex = (draft: TDraft<TEdge>, pointIndex: number, x: number, y: number) => {
       draft.vertices[pointIndex].x = x
       draft.vertices[pointIndex].y = y
-      EdgeOps.updateEdgeDerivedFields(draft)
+      symbolRegistry.getUtilFor(draft).updateDerivedFields(draft)
     }
     const bindEl = (el: SVGCircleElement, pointIndex: number) => {
       this.#bindPointerDrag(

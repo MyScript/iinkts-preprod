@@ -5,9 +5,8 @@ import { convertDegreeToRadian, convertRadianToDegree, TWO_PI } from "@/core/mat
 import type { TIIHistoryChanges } from "@/history"
 import type { TEdge, TMath, TShape, TStroke, TText } from "@/symbol"
 import { cloneSymbol, EdgeKind, ShapeKind } from "@/symbol"
-import { EdgeOps } from "@/symbol/edge/Edge"
-import { ShapeOps } from "@/symbol/shape/Shape"
 import { StrokeOps } from "@/symbol/stroke/Stroke"
+import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 
 import { IIAbstractTransformManager } from "./AbstractTransformManager"
 
@@ -35,22 +34,23 @@ export class IIRotationManager extends IIAbstractTransformManager {
       case ShapeKind.Ellipse: {
         shape.center = matrix.applyToPoint(shape.center)
         shape.orientation = (shape.orientation + MatrixTransform.rotation(matrix)) % TWO_PI
-        ShapeOps.updateShapeDerivedFields(shape)
-        return shape
+        break
       }
       case ShapeKind.Circle: {
         shape.center = matrix.applyToPoint(shape.center)
-        ShapeOps.updateShapeDerivedFields(shape)
-        return shape
+        break
       }
       case ShapeKind.Polygon: {
         this.applyMatrixToPoints(shape.points, matrix)
-        ShapeOps.updateShapeDerivedFields(shape)
-        return shape
+        break
       }
       default:
         throw new Error(`Can't apply rotate on shape, kind unknown: ${JSON.stringify(shape)}`)
     }
+    // One derive for every kind, asked of the symbol's own util. Each branch above used to
+    // call the family's derive dispatcher, which then re-dispatched on the same kind.
+    symbolRegistry.getUtilFor(shape).updateDerivedFields(shape)
+    return shape
   }
 
   protected applyToEdge(edge: TEdge, matrix: MatrixTransform): TEdge {
@@ -58,23 +58,24 @@ export class IIRotationManager extends IIAbstractTransformManager {
       case EdgeKind.Arc: {
         edge.phi = (edge.phi - MatrixTransform.rotation(matrix)) % TWO_PI
         edge.center = matrix.applyToPoint(edge.center)
-        EdgeOps.updateEdgeDerivedFields(edge)
-        return edge
+        break
       }
       case EdgeKind.Line: {
         edge.start = matrix.applyToPoint(edge.start)
         edge.end = matrix.applyToPoint(edge.end)
-        EdgeOps.updateEdgeDerivedFields(edge)
-        return edge
+        break
       }
       case EdgeKind.PolyEdge: {
         edge.points = edge.points.map((p) => matrix.applyToPoint(p))
-        EdgeOps.updateEdgeDerivedFields(edge)
-        return edge
+        break
       }
       default:
         throw new Error(`Can't apply rotate on edge, kind unknown: ${JSON.stringify(edge)}`)
     }
+    // One derive for every kind, asked of the symbol's own util. Each branch above used to
+    // call the family's derive dispatcher, which then re-dispatched on the same kind.
+    symbolRegistry.getUtilFor(edge).updateDerivedFields(edge)
+    return edge
   }
 
   protected applyOnText(text: TText, matrix: MatrixTransform): TText {

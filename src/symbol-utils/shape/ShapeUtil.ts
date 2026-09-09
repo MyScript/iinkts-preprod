@@ -10,8 +10,44 @@ import type { TShape } from "@/symbol/shape/Shape"
 import { ShapeKind } from "@/symbol/shape/Shape-enum"
 import { SymbolType } from "@/symbol/Symbol"
 
+import { defineKind, resolveKind, type TKindDefinition } from "../KindDefinition"
 import { SVGBuilder } from "../SVGBuilder"
 import { SymbolUtil } from "../SymbolUtil"
+
+/**
+ * The shape kinds this util can build, and how.
+ *
+ * Adding a kind is adding an entry: there is no `switch` to find and extend in four places, and the
+ * type makes it impossible to supply `create` and forget `overlaps`.
+ *
+ * `ShapeKind.Table` is absent on purpose — it is declared in the enum with no implementation behind
+ * it, so it resolves like any unknown kind rather than like a shape that half works.
+ */
+const SHAPE_KINDS: Partial<Record<ShapeKind, TKindDefinition<TShape>>> = {
+  [ShapeKind.Circle]: defineKind<TShape, TShapeCircle>({
+    create: (partial) => ShapeCircleOps.createFromPartial(partial),
+    updateDerivedFields: (shape) => ShapeCircleOps.updateDerivedFields(shape),
+    overlaps: (shape, box) => ShapeCircleOps.overlaps(shape, box),
+    getSVGPath: (shape) => ShapeCircleOps.getSVGPath(shape),
+  }),
+  [ShapeKind.Ellipse]: defineKind<TShape, TShapeEllipse>({
+    create: (partial) => ShapeEllipseOps.createFromPartial(partial),
+    updateDerivedFields: (shape) => ShapeEllipseOps.updateDerivedFields(shape),
+    overlaps: (shape, box) => ShapeEllipseOps.overlaps(shape, box),
+    getSVGPath: (shape) => ShapeEllipseOps.getSVGPath(shape),
+    // The ellipse is the only kind whose path needs orienting, and this is where that used to live
+    // as an `if (shape.kind === ShapeKind.Ellipse)` inside the shared `getSVGElement`.
+    extraPathAttributes: (shape) => ({
+      transform: `rotate(${convertRadianToDegree(shape.orientation)}, ${shape.center.x}, ${shape.center.y})`,
+    }),
+  }),
+  [ShapeKind.Polygon]: defineKind<TShape, TShapePolygon>({
+    create: (partial) => ShapePolygonOps.createFromPartial(partial),
+    updateDerivedFields: (shape) => ShapePolygonOps.updateDerivedFields(shape),
+    overlaps: (shape, box) => ShapePolygonOps.overlaps(shape, box),
+    getSVGPath: (shape) => ShapePolygonOps.getSVGPath(shape),
+  }),
+}
 
 /**
  * @group SymbolUtils
@@ -20,43 +56,15 @@ export class ShapeUtil extends SymbolUtil<TShape> {
   readonly type = SymbolType.Shape
 
   create(partial: TPartialDeep<TShape>): TShape {
-    switch (partial.kind) {
-      case ShapeKind.Circle:
-        return ShapeCircleOps.createFromPartial(partial as TPartialDeep<TShapeCircle>)
-      case ShapeKind.Ellipse:
-        return ShapeEllipseOps.createFromPartial(partial as TPartialDeep<TShapeEllipse>)
-      case ShapeKind.Polygon:
-        return ShapePolygonOps.createFromPartial(partial as TPartialDeep<TShapePolygon>)
-      default:
-        throw new Error(`Unable to create shape, kind: "${partial.kind}" is unknown`)
-    }
+    return resolveKind(SHAPE_KINDS, partial.kind, "shape", "create").create(partial)
   }
 
   updateDerivedFields(shape: TShape): void {
-    switch (shape.kind) {
-      case ShapeKind.Circle:
-        ShapeCircleOps.updateDerivedFields(shape as TShapeCircle)
-        break
-      case ShapeKind.Ellipse:
-        ShapeEllipseOps.updateDerivedFields(shape as TShapeEllipse)
-        break
-      case ShapeKind.Polygon:
-        ShapePolygonOps.updateDerivedFields(shape as TShapePolygon)
-        break
-    }
+    SHAPE_KINDS[shape.kind]?.updateDerivedFields(shape)
   }
 
   overlaps(shape: TShape, box: TBox): boolean {
-    switch (shape.kind) {
-      case ShapeKind.Circle:
-        return ShapeCircleOps.overlaps(shape as TShapeCircle, box)
-      case ShapeKind.Ellipse:
-        return ShapeEllipseOps.overlaps(shape as TShapeEllipse, box)
-      case ShapeKind.Polygon:
-        return ShapePolygonOps.overlaps(shape as TShapePolygon, box)
-      default:
-        return false
-    }
+    return SHAPE_KINDS[shape.kind]?.overlaps(shape, box) ?? false
   }
 
   getSnapPoints(shape: TShape): TPoint[] {
@@ -64,16 +72,7 @@ export class ShapeUtil extends SymbolUtil<TShape> {
   }
 
   static getSVGPath(shape: TShape): string {
-    switch (shape.kind) {
-      case ShapeKind.Circle:
-        return ShapeCircleOps.getSVGPath(shape as TShapeCircle)
-      case ShapeKind.Ellipse:
-        return ShapeEllipseOps.getSVGPath(shape as TShapeEllipse)
-      case ShapeKind.Polygon:
-        return ShapePolygonOps.getSVGPath(shape as TShapePolygon)
-      default:
-        throw new Error(`Can't getSVGPath for shape cause kind is unknown: "${JSON.stringify(shape)}"`)
-    }
+    return resolveKind(SHAPE_KINDS, shape.kind, "shape", "getSVGPath for").getSVGPath(shape)
   }
 
   getSVGElement(shape: TShape): SVGGraphicsElement {
@@ -87,19 +86,17 @@ export class ShapeUtil extends SymbolUtil<TShape> {
     }
 
     const group = SVGBuilder.createGroup(attrs)
+    const definition = resolveKind(SHAPE_KINDS, shape.kind, "shape", "getSVGElement for")
 
     const pathAttrs: { [key: string]: string } = {
       fill: shape.style.fill || "transparent",
       stroke: shape.style.color || DefaultStyle.color!,
       "stroke-width": (shape.style.width || DefaultStyle.width).toString(),
-      d: ShapeUtil.getSVGPath(shape),
+      d: definition.getSVGPath(shape),
+      ...definition.extraPathAttributes?.(shape),
     }
     if (shape.style.opacity) {
       pathAttrs["opacity"] = shape.style.opacity.toString()
-    }
-    if (shape.kind === ShapeKind.Ellipse) {
-      const ellipse = shape as TShapeEllipse
-      pathAttrs.transform = `rotate(${convertRadianToDegree(ellipse.orientation)}, ${ellipse.center.x}, ${ellipse.center.y})`
     }
 
     group.appendChild(SVGBuilder.createPath(pathAttrs))
