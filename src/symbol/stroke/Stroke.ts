@@ -19,6 +19,7 @@ import {
 import type { TPartialDeep } from "@/core/std"
 import { createUUID } from "@/core/std"
 import type { TStyle } from "@/style"
+import { computeOutlinePointers, readNibOverrides } from "@/style"
 import { mergeSymbolStyle } from "@/style"
 import type { DecoratorKind } from "@/symbol/decorator/Decorator"
 import type { TAnchor } from "@/symbol/edge/Anchor"
@@ -40,7 +41,6 @@ export type TStroke = TBaseSymbol &
   TStrokeCapture & {
     readonly type: SymbolType.Stroke
     style: TStyle
-    length: number
 
     // JIIX Block metadata
     jiixBlockId?: string
@@ -127,7 +127,6 @@ export const StrokeOps = {
       modificationDate: now,
       pointerType,
       pointers,
-      length: 0,
       transform: MatrixTransform.identity(),
     }
   },
@@ -157,19 +156,6 @@ export const StrokeOps = {
     return stroke.pointers.reduce((sum, ptr, idx, arr) => (idx === 0 ? 0 : sum + computeDistance(ptr, arr[idx - 1])), 0)
   },
 
-  _computePressure(stroke: TStroke, distance: number): number {
-    let ratio = 1.0
-    if (distance === stroke.length) {
-      ratio = 1.0
-    } else if (distance < 10) {
-      ratio = 0.2 + Math.pow(0.1 * distance, 0.4)
-    } else if (distance > stroke.length - 10) {
-      ratio = 0.2 + Math.pow(0.1 * (stroke.length - distance), 0.4)
-    }
-    const pressure = ratio * Math.max(0.1, 1.0 - 0.1 * Math.sqrt(distance))
-    return isNaN(pressure) ? 0.5 : Math.round(pressure * 100) / 100
-  },
-
   _filterPointByAcquisitionDelta(stroke: TStroke, point: TPointer): boolean {
     if (stroke.pointers.length === 0) {
       return true
@@ -181,10 +167,10 @@ export const StrokeOps = {
 
   addPointer(stroke: TStroke, pointer: TPointer): void {
     if (StrokeOps._filterPointByAcquisitionDelta(stroke, pointer)) {
-      const lastPointer = stroke.pointers.at(-1)
-      const distance = lastPointer ? computeDistance(pointer, lastPointer) : 0
-      stroke.length += distance
-      pointer.p = StrokeOps._computePressure(stroke, distance)
+      // `p` is left exactly as the device reported it. It used to be overwritten here with a value
+      // derived from the gap to the previous pointer, which made the drawn thickness depend on how
+      // densely the stroke happened to be sampled - so the same gesture rendered differently under
+      // main-thread load. The renderer derives width from speed instead, at draw time.
       stroke.pointers.push(pointer)
       stroke.modificationDate = Date.now()
     }
@@ -203,17 +189,15 @@ export const StrokeOps = {
     const { style, pointerType, creationTime } = strokeToSplit
     const before = StrokeOps.create(style, pointerType, creationTime)
     before.pointers.push(...strokeToSplit.pointers.slice(0, i))
-    before.length = StrokeOps.computeLength(before)
 
     const after = StrokeOps.create(style, pointerType, creationTime)
     after.pointers.push(...strokeToSplit.pointers.slice(i))
-    after.length = StrokeOps.computeLength(after)
 
     return { before, after }
   },
 
   substract(stroke: TStroke, partStroke: TStroke): { before?: TStroke; after?: TStroke } {
-    if (!partStroke.length) {
+    if (!StrokeOps.computeLength(partStroke)) {
       return { before: stroke }
     }
     const result: {
@@ -359,21 +343,29 @@ export const StrokeOps = {
     }
     const STROKE_WIDTH = stroke.style.width
     const NB_QUADRATICS = STROKE_LENGTH - 2
-    const firstPoint = stroke.pointers[0]
+    // Width comes from the pen's speed, computed here rather than read off the stored pointers:
+    // `p` on a stored pointer is what the device measured, not a drawing instruction.
+    const pointers = computeOutlinePointers(
+      stroke.pointers,
+      stroke.pointerType,
+      stroke.style.pen,
+      readNibOverrides(stroke.style)
+    )
+    const firstPoint = pointers[0]
     const parts = []
     if (STROKE_LENGTH < 3) {
       parts.push(StrokeOps._getArcPath(firstPoint, STROKE_WIDTH * 0.6))
     } else {
       parts.push(StrokeOps._getArcPath(firstPoint, STROKE_WIDTH * firstPoint.p))
-      parts.push(StrokeOps._getLinePath(firstPoint, computeMiddlePointer(firstPoint, stroke.pointers[1]), STROKE_WIDTH))
+      parts.push(StrokeOps._getLinePath(firstPoint, computeMiddlePointer(firstPoint, pointers[1]), STROKE_WIDTH))
       for (let i = 0; i < NB_QUADRATICS; i++) {
-        const begin = computeMiddlePointer(stroke.pointers[i], stroke.pointers[i + 1])
-        const end = computeMiddlePointer(stroke.pointers[i + 1], stroke.pointers[i + 2])
-        const central = stroke.pointers[i + 1]
+        const begin = computeMiddlePointer(pointers[i], pointers[i + 1])
+        const end = computeMiddlePointer(pointers[i + 1], pointers[i + 2])
+        const central = pointers[i + 1]
         parts.push(StrokeOps._getQuadraticPath(begin, end, central, STROKE_WIDTH))
       }
-      const beforeLastPoint = stroke.pointers[STROKE_LENGTH - 2]
-      const lastPoint = stroke.pointers[STROKE_LENGTH - 1]
+      const beforeLastPoint = pointers[STROKE_LENGTH - 2]
+      const lastPoint = pointers[STROKE_LENGTH - 1]
       parts.push(StrokeOps._getLinePath(computeMiddlePointer(beforeLastPoint, lastPoint), lastPoint, STROKE_WIDTH))
       parts.push(StrokeOps._getFinalPath(beforeLastPoint, lastPoint, STROKE_WIDTH))
     }
