@@ -1,5 +1,6 @@
 import type { TBox } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
+import { applyMatrixToPoint, applyMatrixToPoints } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import { DecoratorKind } from "@/symbol/decorator/Decorator"
 import { MathOps, type TMath } from "@/symbol/math/Math"
@@ -7,7 +8,8 @@ import { SymbolType } from "@/symbol/Symbol"
 
 import { DecoratorUtil } from "../decorator/DecoratorUtil"
 import { SVGBuilder } from "../SVGBuilder"
-import { SymbolUtil } from "../SymbolUtil"
+import type { TTranslateContext } from "../TransformContext"
+import { TypesetUtil } from "./TypesetUtil"
 
 const noSelection =
   "pointer-events: none; -webkit-touch-callout: none; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;"
@@ -15,7 +17,7 @@ const noSelection =
 /**
  * @group SymbolUtils
  */
-export class MathUtil extends SymbolUtil<TMath> {
+export class MathUtil extends TypesetUtil<TMath> {
   readonly type = SymbolType.Math
 
   create(partial: TPartialDeep<TMath>): TMath {
@@ -32,6 +34,25 @@ export class MathUtil extends SymbolUtil<TMath> {
 
   getSnapPoints(math: TMath): TPoint[] {
     return math.snapPoints
+  }
+
+  protected glyphsOf(math: TMath): { fontSize: number }[] {
+    return math.elements
+  }
+
+  /**
+   * Moves more than text does: a math symbol's elements each carry their own bounds, and its own
+   * bounds centre is stored rather than derived, so both follow the matrix here.
+   */
+  translate(math: TMath, { matrix, typeset }: TTranslateContext): void {
+    this.moveAnchor(math, matrix)
+    applyMatrixToPoints([math.bounds.center], matrix)
+    math.elements.forEach((element) => {
+      const moved = applyMatrixToPoint({ x: element.bounds.x, y: element.bounds.y }, matrix)
+      element.bounds.x = moved.x
+      element.bounds.y = moved.y
+    })
+    typeset.updateBounds(math)
   }
 
   getSVGElement(math: TMath): SVGGraphicsElement {

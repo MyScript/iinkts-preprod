@@ -189,6 +189,111 @@ stroke width.
 left out rather than padded, because the server pairs pointers by index across the arrays and a short
 column would attach the wrong values to the wrong points.
 
+### A custom transform manager implements one method, not five
+
+Only relevant if you subclass `IIAbstractTransformManager`.
+
+```diff
+  class MyTransformManager extends IIAbstractTransformManager {
+-   protected transformName = "skew"
+-   protected applyToStroke(stroke, matrix) { ... }
+-   protected applyToShape(shape, matrix) { ... }
+-   protected applyToEdge(edge, matrix) { ... }
+-   protected applyOnText(text, matrix) { ... }
+-   protected applyOnMath(math, matrix) { ... }
++   protected applyThroughUtil(symbol, matrix) {
++     symbolRegistry.getUtilFor(symbol).translate(symbol, { matrix, typeset: this.canvas.typeset })
++   }
+  }
+```
+
+The five members existed so that a `switch (symbol.type)` in `applyToSymbol` could reach them, and
+that switch is why a symbol type the library did not know threw instead of moving. Routing through
+the symbol's own util means one method, and a custom symbol that transforms.
+
+### A custom `SymbolUtil` must implement `resize`
+
+```diff
+  class StickyNoteUtil extends SymbolUtil<TStickyNote> {
+    ...
+    rotate(symbol, { matrix }) { ... }
++   resize(symbol, { matrix }) {
++     symbol.point = applyMatrixToPoint(symbol.point, matrix)
++   }
+  }
+```
+
+As with `rotate`, point it at the same code as `translate` if pushing your geometry through the
+matrix is the whole of it — the polygon, the polyedge and the line all do. Write it separately only
+if your symbol stores a size of its own: the circle scales its radius, the ellipse and the arc scale
+their radii about `origin` along their own axes, and text and math scale their font sizes.
+
+The context carries `matrix` and `origin`, the fixed point of the scale — the corner opposite the
+handle being dragged. There is no `typeset` port here, unlike translate and rotate: resizing a
+typeset symbol rebuilds its bounds arithmetically from the scale factors rather than re-measuring
+it, so no service is needed.
+
+### A custom `SymbolUtil` must implement `rotate`
+
+```diff
+  class StickyNoteUtil extends SymbolUtil<TStickyNote> {
+    ...
+    translate(symbol, { matrix }) { ... }
++   rotate(symbol, { matrix }) {
++     symbol.point = applyMatrixToPoint(symbol.point, matrix)
++   }
+  }
+```
+
+If applying the matrix is the whole of turning your symbol, point `rotate` at the same code as
+`translate` — five of the six built-in kinds do exactly that. Implement it only differently if your
+symbol stores an angle of its own, as the ellipse and arc do, or if it is turned by recording an
+angle rather than by moving geometry, as text and math are.
+
+The context adds `center`, the point the gesture turns around. The geometric kinds never read it —
+it is already folded into the matrix — but a symbol rendered with a CSS or SVG rotation needs it.
+
+### A custom `SymbolUtil` must implement `translate`
+
+```diff
+  class StickyNoteUtil extends SymbolUtil<TStickyNote> {
+    readonly type = "sticky-note"
+    create(partial) { ... }
+    updateDerivedFields(symbol) { ... }
+    overlaps(symbol, box) { ... }
+    getSVGElement(symbol) { ... }
++   translate(symbol, { matrix }) {
++     symbol.point = applyMatrixToPoint(symbol.point, matrix)
++   }
+  }
+```
+
+Move the symbol's stored geometry and leave it derived-consistent; `applyMatrixToPoint` and
+`applyMatrixToPoints` from `core/geometry` round the way the document stores coordinates. Implement
+it as an empty body if your symbol is not meant to move — the built-in decorator util does, because
+a decorator's bounds are recomputed from the symbols it decorates.
+
+The second argument is a `TTranslateContext`: `matrix`, plus a `typeset` port that only text and
+math consult. A typeset symbol's bounds come from drawing it into the DOM hidden and reading
+`getBBox()`, which is not something a util can do for itself, so the service is passed in rather
+than imported.
+
+### Resize handles come from the symbol's util
+
+```diff
+- import { EdgeOps } from "iink-ts"
+- EdgeOps.getEdgeResizePoints(edge)
++ import { symbolRegistry } from "iink-ts"
++ symbolRegistry.getUtilFor(symbol).getResizePoints(symbol)
+```
+
+The replacement is not edge-specific: it answers for any symbol type, and a custom util can now
+offer per-vertex handles by overriding `getResizePoints`. It returns an empty list by default, which
+is what every built-in but the edges does.
+
+`TResizePoint` names the `{ point, vertexIndex }` shape the three edge `Ops` already returned. It is
+structural, so nothing has to change to adopt it.
+
 ### A custom `SymbolUtil` must implement `getSVGElement`
 
 It was optional in v4, which meant a util could be registered and accepted while drawing nothing —

@@ -8,7 +8,7 @@ import { computeEllipseRadiusAverage, computeTessellationCount, isValidNumber } 
 import type { TPartialDeep } from "@/core/std"
 import { createUUID } from "@/core/std"
 import { mergeSymbolStyle, type TStyle } from "@/style"
-import { SymbolType, type TBaseSymbol } from "@/symbol/Symbol"
+import { SymbolType, type TBaseSymbol, type TResizePoint } from "@/symbol/Symbol"
 
 import type { TAnchor } from "./Anchor"
 import { computeEdgeBounds, EdgeKind } from "./Edge-enum"
@@ -140,7 +140,7 @@ export const EdgeArcOps = {
     }))
   },
 
-  getResizePoints(arc: TEdgeArc): { point: TPoint; vertexIndex: number }[] {
+  getResizePoints(arc: TEdgeArc): TResizePoint[] {
     const v = arc.vertices
     const mid = Math.floor(v.length / 2)
     return [

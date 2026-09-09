@@ -3,12 +3,8 @@ import { ResizeDirection } from "@/Constants"
 import type { TBox, TPoint } from "@/core/geometry"
 import { BoxOps, MatrixTransform, type TOBB } from "@/core/geometry"
 import type { TIIHistoryChanges } from "@/history"
-import type { TEdge, TMath, TShape, TStroke, TText } from "@/symbol"
-import { cloneSymbol, EdgeKind, isMath, isText, ShapeKind } from "@/symbol"
-import { MathOps } from "@/symbol/math/Math"
-import { ShapeOps } from "@/symbol/shape/Shape"
-import { StrokeOps } from "@/symbol/stroke/Stroke"
-import { TextOps } from "@/symbol/text/Text"
+import type { TSymbol } from "@/symbol"
+import { cloneSymbol } from "@/symbol"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 
 import { IIAbstractTransformManager } from "./AbstractTransformManager"
@@ -30,7 +26,6 @@ const isSouthernResize = (direction: ResizeDirection): boolean =>
  */
 export class IIResizeManager extends IIAbstractTransformManager {
   protected managerName = "IIResizeManager"
-  protected transformName = "resize"
   direction!: ResizeDirection
   boundingBox!: TBox
   transformOrigin!: TPoint
@@ -40,132 +35,13 @@ export class IIResizeManager extends IIAbstractTransformManager {
     super(canvas)
   }
 
-  protected applyToStroke(stroke: TStroke, matrix: MatrixTransform): TStroke {
-    this.logger.debug("applyToStroke", { stroke })
-    this.applyMatrixToPoints(stroke.pointers, matrix)
-    StrokeOps.updateBounds(stroke)
-    return stroke
-  }
-
-  protected applyToShape(shape: TShape, matrix: MatrixTransform): TShape {
-    this.logger.debug("applyToShape", { shape })
-    switch (shape.kind) {
-      case ShapeKind.Ellipse: {
-        const cosPhi = Math.cos(shape.orientation)
-        const sinPhi = Math.sin(shape.orientation)
-        const scaleX = matrix.xx
-        const scaleY = matrix.yy
-        const ox = this.transformOrigin.x
-        const oy = this.transformOrigin.y
-        shape.center.x = +(
-          shape.center.x +
-          ((scaleX - 1) * cosPhi + (scaleY - 1) * sinPhi) * (shape.center.x - ox)
-        ).toFixed(3)
-        shape.center.y = +(
-          shape.center.y +
-          ((scaleX - 1) * -sinPhi + (scaleY - 1) * cosPhi) * (shape.center.y - oy)
-        ).toFixed(3)
-        shape.radiusX = +Math.abs(shape.radiusX * (scaleX * cosPhi - scaleY * sinPhi)).toFixed(3)
-        shape.radiusY = +Math.abs(shape.radiusY * (scaleX * sinPhi + scaleY * cosPhi)).toFixed(3)
-        break
-      }
-      case ShapeKind.Circle: {
-        shape.radius = +((shape.radius * (matrix.xx + matrix.yy)) / 2).toFixed(3)
-        shape.center = matrix.applyToPoint(shape.center)
-        break
-      }
-      case ShapeKind.Polygon: {
-        this.applyMatrixToPoints(shape.points, matrix)
-        break
-      }
-      default:
-        throw new Error(`Can't apply resize on shape, kind unknown: ${JSON.stringify(shape)}`)
-    }
-    // One derive for every kind, asked of the symbol's own util. Each branch above used to
-    // call the family's derive dispatcher, which then re-dispatched on the same kind.
-    symbolRegistry.getUtilFor(shape).updateDerivedFields(shape)
-    return shape
-  }
-
-  protected applyToEdge(edge: TEdge, matrix: MatrixTransform): TEdge {
-    this.logger.debug("applyToEdge", { edge })
-    switch (edge.kind) {
-      case EdgeKind.Arc: {
-        const cosPhi = Math.cos(edge.phi)
-        const sinPhi = Math.sin(edge.phi)
-        const scaleX = matrix.xx
-        const scaleY = matrix.yy
-        const ox = this.transformOrigin.x
-        const oy = this.transformOrigin.y
-        edge.center.x = +(
-          edge.center.x +
-          ((scaleX - 1) * cosPhi + (scaleY - 1) * sinPhi) * (edge.center.x - ox)
-        ).toFixed(3)
-        edge.center.y = +(
-          edge.center.y +
-          ((scaleX - 1) * -sinPhi + (scaleY - 1) * cosPhi) * (edge.center.y - oy)
-        ).toFixed(3)
-        edge.radiusX = +(edge.radiusX * Math.abs(scaleX * cosPhi + scaleY * sinPhi)).toFixed(3)
-        edge.radiusY = +(edge.radiusY * Math.abs(scaleX * sinPhi + scaleY * cosPhi)).toFixed(3)
-        if (scaleX < 0) {
-          edge.startAngle = +(Math.PI - edge.startAngle).toFixed(3)
-          edge.sweepAngle *= -1
-        } else if (scaleY < 0) {
-          edge.sweepAngle *= -1
-        }
-        break
-      }
-      case EdgeKind.Line: {
-        this.applyMatrixToPoints([edge.start, edge.end], matrix)
-        break
-      }
-      case EdgeKind.PolyEdge: {
-        this.applyMatrixToPoints(edge.points, matrix)
-        break
-      }
-      default:
-        throw new Error(`Can't apply resize on edge, kind unknown: ${JSON.stringify(edge)}`)
-    }
-    // One derive for every kind, asked of the symbol's own util. Each branch above used to
-    // call the family's derive dispatcher, which then re-dispatched on the same kind.
-    symbolRegistry.getUtilFor(edge).updateDerivedFields(edge)
-    return edge
-  }
-
-  private applyOnTypeset(symbol: TText | TMath, matrix: MatrixTransform): TText | TMath {
-    const np = matrix.applyToPoint(symbol.point)
-    symbol.point.x = +np.x.toFixed(3)
-    symbol.point.y = +np.y.toFixed(3)
-    const scale = (matrix.xx + matrix.yy) / 2
-    if (isText(symbol)) {
-      symbol.chars.forEach((c) => (c.fontSize = +(c.fontSize * scale).toFixed(3)))
-    } else {
-      symbol.elements.forEach((e) => (e.fontSize = +(e.fontSize * scale).toFixed(3)))
-    }
-    const newCenter = matrix.applyToPoint(symbol.bounds.center)
-    symbol.bounds = {
-      center: {
-        x: +newCenter.x.toFixed(3),
-        y: +newCenter.y.toFixed(3),
-      },
-      width: +(symbol.bounds.width * Math.abs(matrix.xx)).toFixed(3),
-      height: +(symbol.bounds.height * Math.abs(matrix.yy)).toFixed(3),
-      angle: 0,
-    }
-    if (isText(symbol)) {
-      TextOps.updateDerivedFields(symbol)
-    } else {
-      MathOps.updateDerivedFields(symbol)
-    }
-    return symbol
-  }
-
-  protected applyOnText(text: TText, matrix: MatrixTransform): TText {
-    return this.applyOnTypeset(text, matrix) as TText
-  }
-
-  protected applyOnMath(math: TMath, matrix: MatrixTransform): TMath {
-    return this.applyOnTypeset(math, matrix) as TMath
+  /**
+   * One hook, like the other two managers'. `transformOrigin` is passed here, which is
+   * what lets the ellipse and the arc scale their centre about it from inside their own util.
+   */
+  protected applyThroughUtil(symbol: TSymbol, matrix: MatrixTransform): void {
+    this.logger.debug("applyToSymbol", { symbol })
+    symbolRegistry.getUtilFor(symbol).resize(symbol, { matrix, origin: this.transformOrigin })
   }
 
   scaleElement(id: string, sx: number, sy: number): void {
@@ -186,9 +62,10 @@ export class IIResizeManager extends IIAbstractTransformManager {
     this.interactElementsGroup = this.resolveInteractGroup(target)
     this.direction = target.getAttribute("resize-direction") as ResizeDirection
 
-    this.keepRatio = this.model.symbolsSelected.some(
-      (s) => isText(s) || isMath(s) || (ShapeOps.isShape(s) && ShapeOps.isCircleShape(s))
-    )
+    // One symbol that needs its ratio locked locks it for the whole selection, which is what the
+    // three type tests here used to say. Asked of each symbol's util now, so a custom symbol can
+    // require it too.
+    this.keepRatio = this.model.symbolsSelected.some((s) => symbolRegistry.getUtilFor(s).keepsAspectRatio(s))
 
     this.transformOrigin = origin
     this.boundingBox = BoxOps.createFromPoints(this.model.symbolsSelected.flatMap((s) => s.vertices))

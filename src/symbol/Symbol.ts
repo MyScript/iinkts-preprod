@@ -1,3 +1,4 @@
+import type { TPoint } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import type { TStyle } from "@/style"
 
@@ -20,6 +21,15 @@ export enum SymbolType {
   Eraser = "eraser",
   Decorator = "decorator",
 }
+
+/**
+ * A handle a symbol offers for vertex-level resizing, and which of its vertices the handle moves.
+ *
+ * The shape was written out inline in four places before IIC-2009.
+ *
+ * @group Symbol
+ */
+export type TResizePoint = { point: TPoint; vertexIndex: number }
 
 /**
  * @group Symbol

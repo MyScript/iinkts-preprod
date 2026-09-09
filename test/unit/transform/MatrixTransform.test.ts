@@ -1,4 +1,4 @@
-import { MatrixTransform, TPoint } from "@/iink"
+import { applyMatrixToPoint, applyMatrixToPoints, MatrixTransform, TPoint } from "@/iink"
 
 describe("MatrixTransform.ts", () => {
   test("should create", () => {
@@ -196,5 +196,64 @@ describe("MatrixTransform.ts", () => {
         expect(MatrixTransform.rotation(matrix).toFixed(4)).toEqual(d.expected.toFixed(4))
       })
     })
+  })
+})
+
+/**
+ * IIC-2010 added these so a symbol util can round a transformed point the same way the transform
+ * managers always did — `applyMatrixToPoints` was a `protected` method on the manager base, out of
+ * reach, which is half of why some branches rounded and others did not.
+ */
+describe("applyMatrixToPoint", () => {
+  /** A third of a pixel: seventeen decimals raw, three once stored. */
+  const third = MatrixTransform.identity().translate(1 / 3, 1 / 3)
+
+  test("should round to the three decimals the document stores", () => {
+    expect(applyMatrixToPoint({ x: 0, y: 0 }, third)).toEqual({ x: 0.333, y: 0.333 })
+  })
+
+  test("should not round what the raw form returns, which is what it exists to differ from", () => {
+    // Pins the distinction rather than the helper alone: if `applyToPoint` started rounding, this
+    // helper would be pointless and this test says so.
+    expect(third.applyToPoint({ x: 0, y: 0 }).x).toBeCloseTo(0.3333333333333333, 15)
+  })
+
+  test("should leave its argument untouched", () => {
+    const point = { x: 0, y: 0 }
+    applyMatrixToPoint(point, third)
+    expect(point).toEqual({ x: 0, y: 0 })
+  })
+
+  test("should round half away from zero, as toFixed does", () => {
+    expect(applyMatrixToPoint({ x: 0, y: 0 }, MatrixTransform.identity().translate(0.0005, -0.0015))).toEqual({
+      x: 0.001,
+      y: -0.002,
+    })
+  })
+})
+
+describe("applyMatrixToPoints", () => {
+  const third = MatrixTransform.identity().translate(1 / 3, 1 / 3)
+
+  test("should round every point in the list", () => {
+    const points = [
+      { x: 0, y: 0 },
+      { x: 1, y: 1 },
+    ]
+    applyMatrixToPoints(points, third)
+    expect(points).toEqual([
+      { x: 0.333, y: 0.333 },
+      { x: 1.333, y: 1.333 },
+    ])
+  })
+
+  test("should move each point rather than replace it", () => {
+    // Relied on throughout the managers: a symbol's `vertices` and `points` can be the same objects,
+    // so replacing them would leave one of the two stale.
+    const point: TPoint = { x: 0, y: 0 }
+    const points = [point]
+    applyMatrixToPoints(points, third)
+    expect(points[0]).toBe(point)
+    expect(point.x).toBe(0.333)
   })
 })
