@@ -5,11 +5,11 @@ import { BoxOps, MatrixTransform, type TOBB } from "@/core/geometry"
 import type { TIIHistoryChanges } from "@/history"
 import type { TEdge, TMath, TShape, TStroke, TText } from "@/symbol"
 import { cloneSymbol, EdgeKind, isMath, isText, ShapeKind } from "@/symbol"
-import { EdgeOps } from "@/symbol/edge/Edge"
 import { MathOps } from "@/symbol/math/Math"
 import { ShapeOps } from "@/symbol/shape/Shape"
 import { StrokeOps } from "@/symbol/stroke/Stroke"
 import { TextOps } from "@/symbol/text/Text"
+import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 
 import { IIAbstractTransformManager } from "./AbstractTransformManager"
 
@@ -67,23 +67,24 @@ export class IIResizeManager extends IIAbstractTransformManager {
         ).toFixed(3)
         shape.radiusX = +Math.abs(shape.radiusX * (scaleX * cosPhi - scaleY * sinPhi)).toFixed(3)
         shape.radiusY = +Math.abs(shape.radiusY * (scaleX * sinPhi + scaleY * cosPhi)).toFixed(3)
-        ShapeOps.updateShapeDerivedFields(shape)
-        return shape
+        break
       }
       case ShapeKind.Circle: {
         shape.radius = +((shape.radius * (matrix.xx + matrix.yy)) / 2).toFixed(3)
         shape.center = matrix.applyToPoint(shape.center)
-        ShapeOps.updateShapeDerivedFields(shape)
-        return shape
+        break
       }
       case ShapeKind.Polygon: {
         this.applyMatrixToPoints(shape.points, matrix)
-        ShapeOps.updateShapeDerivedFields(shape)
-        return shape
+        break
       }
       default:
         throw new Error(`Can't apply resize on shape, kind unknown: ${JSON.stringify(shape)}`)
     }
+    // One derive for every kind, asked of the symbol's own util. Each branch above used to
+    // call the family's derive dispatcher, which then re-dispatched on the same kind.
+    symbolRegistry.getUtilFor(shape).updateDerivedFields(shape)
+    return shape
   }
 
   protected applyToEdge(edge: TEdge, matrix: MatrixTransform): TEdge {
@@ -112,22 +113,23 @@ export class IIResizeManager extends IIAbstractTransformManager {
         } else if (scaleY < 0) {
           edge.sweepAngle *= -1
         }
-        EdgeOps.updateEdgeDerivedFields(edge)
-        return edge
+        break
       }
       case EdgeKind.Line: {
         this.applyMatrixToPoints([edge.start, edge.end], matrix)
-        EdgeOps.updateEdgeDerivedFields(edge)
-        return edge
+        break
       }
       case EdgeKind.PolyEdge: {
         this.applyMatrixToPoints(edge.points, matrix)
-        EdgeOps.updateEdgeDerivedFields(edge)
-        return edge
+        break
       }
       default:
         throw new Error(`Can't apply resize on edge, kind unknown: ${JSON.stringify(edge)}`)
     }
+    // One derive for every kind, asked of the symbol's own util. Each branch above used to
+    // call the family's derive dispatcher, which then re-dispatched on the same kind.
+    symbolRegistry.getUtilFor(edge).updateDerivedFields(edge)
+    return edge
   }
 
   private applyOnTypeset(symbol: TText | TMath, matrix: MatrixTransform): TText | TMath {

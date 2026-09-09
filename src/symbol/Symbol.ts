@@ -13,7 +13,6 @@ import type { TText } from "./text/Text"
  */
 export enum SymbolType {
   Stroke = "stroke",
-  Group = "group",
   Shape = "shape",
   Edge = "edge",
   Text = "text",

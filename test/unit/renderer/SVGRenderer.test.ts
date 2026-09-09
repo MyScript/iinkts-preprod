@@ -10,6 +10,10 @@ import {
   TSymbolChar,
   StrokeOps,
   registerBuiltinSymbolUtils,
+  symbolRegistry,
+  SymbolUtil,
+  TBaseSymbol,
+  TPartialDeep,
 } from "@/iink"
 
 beforeAll(() => {
@@ -582,6 +586,56 @@ describe("SVGRenderer.ts", () => {
       renderer.setViewBox(farAwayBox.x, farAwayBox.y, 400, 400)
 
       expect(renderer.getElementById(stroke.id)).toBeNull()
+    })
+  })
+
+  /**
+   * The point of making `getSVGElement` part of the contract in IIC-2006: a registered symbol type
+   * the library knows nothing about becomes visible, because the renderer asks its util instead of
+   * matching against a fixed list of built-ins.
+   */
+  describe("a symbol type the library does not know", () => {
+    type TStickyNote = TBaseSymbol & { type: "sticky-note"; text: string }
+
+    class StickyNoteUtil extends SymbolUtil<TStickyNote> {
+      readonly type = "sticky-note"
+      create(partial: TPartialDeep<TStickyNote>): TStickyNote {
+        return { ...partial, type: "sticky-note", text: partial.text ?? "" } as TStickyNote
+      }
+      updateDerivedFields(): void {}
+      overlaps(): boolean {
+        return false
+      }
+      getSVGElement(symbol: TStickyNote): SVGGraphicsElement {
+        const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
+        group.setAttribute("id", symbol.id)
+        group.setAttribute("type", symbol.type)
+        return group
+      }
+    }
+
+    const sticky = {
+      id: "sticky-1",
+      type: "sticky-note",
+      text: "note",
+      creationTime: 0,
+      modificationDate: 0,
+      style: {},
+    } as unknown as TSymbol
+
+    test("should draw it by asking its util", () => {
+      symbolRegistry.register(new StickyNoteUtil())
+      const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
+      const element = renderer.buildElementFromSymbol(sticky)
+      expect(element?.getAttribute("type")).toBe("sticky-note")
+      expect(element?.getAttribute("id")).toBe("sticky-1")
+    })
+
+    test("should draw nothing when no util owns the type", () => {
+      // The remaining failure mode now that the draw method cannot be missing: nothing registered.
+      const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
+      const orphan = { ...(sticky as unknown as TBaseSymbol), type: "no-such-type" } as unknown as TSymbol
+      expect(renderer.buildElementFromSymbol(orphan)).toBeUndefined()
     })
   })
 })

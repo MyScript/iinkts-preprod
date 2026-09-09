@@ -17,6 +17,11 @@ class TestSymbolUtil extends SymbolUtil<TBaseSymbol> {
   overlaps(): boolean {
     return false
   }
+  getSVGElement(symbol: TBaseSymbol): SVGGraphicsElement {
+    const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
+    group.setAttribute("id", symbol.id)
+    return group
+  }
 }
 
 describe("SymbolUtil.ts", () => {
@@ -43,7 +48,9 @@ describe("SymbolUtil.ts", () => {
     expect(util.canRotate(symbol)).toBe(true)
   })
 
-  test("should leave getSVGElement undefined by default", () => {
-    expect(util.getSVGElement).toBeUndefined()
+  test("should require getSVGElement rather than defaulting it", () => {
+    // It was optional until IIC-2006, which let a util register successfully and then draw nothing.
+    // There is no default to assert any more; what matters is that the member is there and used.
+    expect(util.getSVGElement(symbol).getAttribute("id")).toBe("1")
   })
 })
