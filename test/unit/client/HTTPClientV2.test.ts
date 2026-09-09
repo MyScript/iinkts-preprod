@@ -33,8 +33,8 @@ describe("HTTPClientV2.ts", () => {
 
   test("should strip export.jiix.text.lines when the server version is below 3.2.0", async () => {
     const model = new Model(width, height)
-    const p1: TPointer = { t: 1, p: 1, x: 1, y: 1 }
-    const p2: TPointer = { t: 10, p: 1, x: 100, y: 1 }
+    const p1: TPointer = { dt: 1, p: 1, x: 1, y: 1 }
+    const p2: TPointer = { dt: 10, p: 1, x: 100, y: 1 }
     model.initCurrentStroke(p1, "pen", DefaultPenStyle)
     model.endCurrentStroke(p2)
     const newConf: THTTPClientV2Configuration = structuredClone(
@@ -73,8 +73,8 @@ describe("HTTPClientV2.ts", () => {
   testDatas.forEach(({ type, config }) => {
     test(`should send ${type}`, async () => {
       const model = new Model(width, height)
-      const p1: TPointer = { t: 1, p: 1, x: 1, y: 1 }
-      const p2: TPointer = { t: 10, p: 1, x: 100, y: 1 }
+      const p1: TPointer = { dt: 1, p: 1, x: 1, y: 1 }
+      const p2: TPointer = { dt: 10, p: 1, x: 100, y: 1 }
       model.initCurrentStroke(p1, "pen", DefaultPenStyle)
       model.endCurrentStroke(p2)
       const newConf: THTTPClientV2Configuration = structuredClone(config)

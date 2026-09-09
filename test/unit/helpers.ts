@@ -50,7 +50,7 @@ export function buildStroke({
   for (let i = 0; i < nbPoint; i++) {
     stroke.pointers.push({
       p: Math.random(),
-      t: Date.now() + i,
+      dt: i,
       x: randomIntFromInterval(box.x, box.x + box.width),
       y: randomIntFromInterval(box.y, box.y + box.height),
     })
@@ -68,7 +68,7 @@ export function buildStrokeV2({
   for (let i = 0; i < nbPoint; i++) {
     stroke.pointers.push({
       p: Math.random(),
-      t: Date.now() + i,
+      dt: i,
       x: randomIntFromInterval(box.x, box.x + box.width),
       y: randomIntFromInterval(box.y, box.y + box.height),
     })
@@ -88,7 +88,7 @@ export function buildIIStroke({
   for (let i = 0; i < nbPoint; i++) {
     StrokeOps.addPointer(stroke, {
       p: Math.random(),
-      t: Date.now() + i,
+      dt: i,
       x: box.x + stepX * i,
       y: box.y + stepY * i,
     })
@@ -103,7 +103,7 @@ export function buildIIEraser({ box = defaultBox, nbPoint = 5 } = {}): TEraser {
   for (let i = 0; i < nbPoint; i++) {
     eraser.pointers.push({
       p: Math.random(),
-      t: Date.now() + i,
+      dt: i,
       x: box.x + stepX * i,
       y: box.y + stepY * i,
     })

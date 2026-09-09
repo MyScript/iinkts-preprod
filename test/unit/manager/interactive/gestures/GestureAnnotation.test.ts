@@ -17,8 +17,8 @@ describe("GestureAnnotation.ts", () => {
       const processor = new IIGestureAnnotationProcessor(asCanvas(canvas))
 
       const stroke = buildIIStroke()
-      StrokeOps.addPointer(stroke, { x: 10, y: 10, p: 1, t: 100 })
-      StrokeOps.addPointer(stroke, { x: 20, y: 20, p: 1, t: 200 })
+      StrokeOps.addPointer(stroke, { x: 10, y: 10, p: 1, dt: 100 })
+      StrokeOps.addPointer(stroke, { x: 20, y: 20, p: 1, dt: 200 })
       // Not classified yet — mirrors a freshly-written stroke whose own recognition
       // round-trip hasn't resolved yet (jiixBlockType assigned later, asynchronously).
       canvas.model.addSymbol(stroke)
@@ -48,8 +48,8 @@ describe("GestureAnnotation.ts", () => {
       const processor = new IIGestureAnnotationProcessor(asCanvas(canvas))
 
       const stroke = buildIIStroke()
-      StrokeOps.addPointer(stroke, { x: 10, y: 10, p: 1, t: 100 })
-      StrokeOps.addPointer(stroke, { x: 20, y: 20, p: 1, t: 200 })
+      StrokeOps.addPointer(stroke, { x: 10, y: 10, p: 1, dt: 100 })
+      StrokeOps.addPointer(stroke, { x: 20, y: 20, p: 1, dt: 200 })
       canvas.model.addSymbol(stroke)
 
       const changes = await processor.apply([stroke.id], {
@@ -69,8 +69,8 @@ describe("GestureAnnotation.ts", () => {
   describe("IIGestureAnnotationProcessor.apply (decorator placement)", () => {
     function buildRecognizedStroke() {
       const stroke = buildIIStroke()
-      StrokeOps.addPointer(stroke, { x: 10, y: 10, p: 1, t: 100 })
-      StrokeOps.addPointer(stroke, { x: 20, y: 20, p: 1, t: 200 })
+      StrokeOps.addPointer(stroke, { x: 10, y: 10, p: 1, dt: 100 })
+      StrokeOps.addPointer(stroke, { x: 20, y: 20, p: 1, dt: 200 })
       stroke.jiixBlockType = "Text"
       return stroke
     }

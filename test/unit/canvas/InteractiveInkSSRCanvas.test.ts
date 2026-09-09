@@ -148,7 +148,7 @@ describe("InteractiveInkSSRCanvas.ts", () => {
       await expect(canvas.renderer.drawPendingStroke).toHaveBeenCalledTimes(0)
     })
     test("should call renderer.drawPendingStroke", async () => {
-      const p1: TPointer = { t: 1, p: 1, x: 1, y: 1 }
+      const p1: TPointer = { dt: 1, p: 1, x: 1, y: 1 }
       canvas.model.initCurrentStroke(p1, "pen", DefaultPenStyle)
       canvas.drawCurrentStroke()
       await expect(canvas.renderer.drawPendingStroke).toHaveBeenCalledTimes(1)

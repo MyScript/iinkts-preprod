@@ -22,7 +22,7 @@ describe("IIModel.ts", () => {
       const updatedSymb = structuredClone(sym)
       updatedSymb.style.color = "yellow"
       updatedSymb.style.width = 25
-      updatedSymb.pointers.push({ p: 1, t: 20, x: 42, y: 31 })
+      updatedSymb.pointers.push({ p: 1, dt: 20, x: 42, y: 31 })
       model.updateSymbol(updatedSymb)
       expect(model.symbols[0]).not.toEqual(sym)
       expect(model.symbols[0]).toEqual(updatedSymb)
@@ -34,7 +34,7 @@ describe("IIModel.ts", () => {
       updatedSymb2.id = "not-exist"
       updatedSymb2.style.color = "yellow"
       updatedSymb2.style.width = 25
-      updatedSymb2.pointers.push({ p: 1, t: 20, x: 42, y: 31 })
+      updatedSymb2.pointers.push({ p: 1, dt: 20, x: 42, y: 31 })
       model.updateSymbol(updatedSymb2)
       expect(model.symbols[1]).toEqual(symb2)
     })
