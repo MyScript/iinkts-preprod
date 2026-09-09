@@ -12,8 +12,8 @@ import type { PDFExportManager } from "@/manager/base/PDFExportManager"
 import type { SVGRenderer } from "@/renderer"
 import type { TSymbol } from "@/symbol"
 import { isMath, isStroke, isText } from "@/symbol"
-import { MathOps } from "@/symbol/math/Math"
-import { TextOps } from "@/symbol/text/Text"
+import { MathOps } from "@/symbol/typeset/Math"
+import { TextOps } from "@/symbol/typeset/Text"
 
 /** JIIX stand-in used when the content has not been recognized yet, so exports stay empty instead of throwing */
 const EMPTY_JIIX: TJIIXExport = { type: "Container", id: "", version: "" }

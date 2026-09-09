@@ -129,7 +129,8 @@ export const MathOps = {
   },
 
   updateDerivedFields(math: TMath): void {
-    const boundsBox = OBBOps.toBox(math.bounds)
+    // Unrotated, not `toBox`: the rotation is applied once below, from `math.rotation`.
+    const boundsBox = OBBOps.toUnrotatedBox(math.bounds)
     math.vertices = computeTypesetVertices(boundsBox, math.rotation)
     math.snapPoints = computeTypesetSnapPoints(boundsBox, math.point, math.rotation)
     math.edges = computeClosedEdges(math.vertices)

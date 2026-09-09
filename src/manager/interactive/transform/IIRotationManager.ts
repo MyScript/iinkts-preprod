@@ -26,7 +26,7 @@ export class IIRotationManager extends IIAbstractTransformManager {
    * off `this` inside the util, which is what retired its definite-assignment assertion.
    */
   protected applyThroughUtil(symbol: TSymbol, matrix: MatrixTransform): void {
-    symbolRegistry.getUtilFor(symbol).rotate(symbol, { matrix, center: this.center, typeset: this.canvas.typeset })
+    symbolRegistry.getUtilFor(symbol).rotate(symbol, { matrix, center: this.center })
   }
 
   rotateElement(id: string, degree: number): void {
