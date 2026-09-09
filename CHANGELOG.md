@@ -50,6 +50,19 @@ The three transform managers reached their per-type behaviour through a `switch 
 - removed: `TTranslateContext`, `TRotateContext`, `TResizeContext` → one `TTransformContext`, `{ matrix }`. The three had become identical: the measuring port, the rotation centre and the scale origin were all still being passed and read by nobody, because the matrix carries the centre and the origin folded in and a typeset symbol's measured box does not change when it moves
 - removed: `TTypesetPort`, whose only reader was the port field above
 
+### History records what changed, not how
+`TIIHistoryChanges` had a form per operation: `translate`, `rotate`, `scale`, `matrix` and `style`, each carrying the *parameters* of a change — a delta, an angle, a pair of factors, a colour — so undo could re-derive the previous state by applying an inverse. None of them is needed once a transform writes to `symbol.transform` and a restyle to `symbol.style`: both are part of the record, so the record is the state. All five are gone; `updated` is the only way a change to an existing symbol is recorded.
+- removed: `TIIHistoryChanges.translate`, `rotate`, `scale`, `matrix` and `style`
+- removed: `TIIHistoryBackendChanges.translate`, `rotate`, `scale` and `matrix`. Undo and redo reach the server as a stroke replacement, whose wire form carries the moved coordinates — `StrokeSerializer` bakes the matrix in
+- `TIIHistoryChanges.updated` is now `{ before: TSymbol; after: TSymbol }[]`, a list of pairs, where it was `{ oldSymbols: TSymbol[]; newSymbols: TSymbol[] }`. Two parallel lists could fall out of step, and a length mismatch paired the wrong symbols together on undo without a word; the pairing is the type now
+- new: `appendUpdated(changes, pairs)`. One undoable step can gather symbols from several sources — a transform records the symbols dragged *and* the connected edges recomputed from them — and assigning `updated` twice kept only the last writer
+- undo is exact where it used to be arithmetic: restoring a record needs no inverse. A scale's reversal was `1 / scaleX`, which is `Infinity` at zero and ignores the origin the scale was taken about
+- `IITypesetManager.moveTextAfter` returns `{ before, after }[]` instead of `TSymbol[]`: it is the only place that knows which texts it shifted, so it is the only place their pre-move snapshots can come from
+- fixed: a restyle never reached the server, `style` having had no backend form. It travels as a replacement now, so undoing a colour change no longer leaves the server holding the old one
+- fixed: `IITranslateManager.translate(symbols, …)` recorded `model.symbolsSelected` rather than the symbols it was asked to move. Called with anything else, it produced an entry with no symbols at all, and undo consumed it and applied nothing
+- fixed: thickening strokes by a gesture recorded the pre-change record as the *new* symbol, so redo restored the value it was already at
+- `WebSocketClient.transformMatrix` is still there and still works, but nothing in the library calls it any more — it was reachable only through the removed `matrix` undo path
+
 ### A decorator's box is named for where it comes from
 `TDecorator` was the one symbol type whose `bounds` was never derived: a decorator holds no coordinates of its own and is placed over other symbols, so its box arrives from outside — the recognizer's word box when JIIX has answered, the union of its targets' boxes otherwise. It is the only stored geometry left on a stroke, shape or edge-like symbol, and it is renamed so it cannot be read as a leftover derived field.
 - renamed: `TDecorator.bounds` → `TDecorator.targetBounds`, now optional. `DecoratorOps.setBounds(decorator, obb)` → `DecoratorOps.setTargetBounds(decorator, obb)`

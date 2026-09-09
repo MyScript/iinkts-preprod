@@ -272,6 +272,48 @@ wants before doing work.
 The wire format is unchanged: `StrokeSerializer` bakes the matrix into the coordinates it sends, so
 a server sees the same strokes it always did.
 
+### History: one form for every change
+
+If you read or build `TIIHistoryChanges` — a custom menu action, an integration that pushes its own
+undoable steps — the five per-operation forms are gone:
+
+```diff
+- history.push({ translate: [{ symbols, tx: 10, ty: 0 }] })
+- history.push({ rotate: [{ symbols, angle, center }] })
+- history.push({ scale: [{ symbols, scaleX, scaleY, origin }] })
+- history.push({ matrix: { symbols, matrix } })
+- history.push({ style: { symbols, oldStyles, newStyles } })
++ import { appendUpdated } from "iink-ts"
++ const changes = {}
++ appendUpdated(changes, symbols.map((after, i) => ({ before: snapshots[i], after })))
++ history.push(changes)
+```
+
+Take the snapshots *before* you change anything, and read `after` back from the document rather than
+from the object you mutated — a write commits a draft, so the reference you started with is the
+pre-change record.
+
+`updated` itself changed shape, from two parallel lists to a list of pairs:
+
+```diff
+- changes.updated.newSymbols.forEach((sym) => restore(sym))
++ changes.updated.forEach(({ after }) => restore(after))
+```
+
+Use `appendUpdated` rather than assigning `changes.updated`. One undoable step can gather symbols
+from more than one source, and assigning twice keeps only the last.
+
+**Why the forms went.** Each described a change by its parameters so that undo could re-derive the
+old state by applying an inverse. A transform writes to `symbol.transform` and a restyle to
+`symbol.style`, both part of the record — so the record is the state, and restoring it is exact.
+Inverting a parameter was not: a scale's `1 / scaleX` is `Infinity` at zero, and it ignores the
+origin the scale was taken about.
+
+`TIIHistoryBackendChanges` lost the same four transform forms. Undo and redo reach the server as a
+stroke replacement, whose wire form carries the moved coordinates because the serializer bakes the
+matrix in. One consequence worth knowing: a restyle now reaches the server, where `style` had no
+backend form and silently did not.
+
 ### A decorator's box is renamed for where it comes from
 
 `TDecorator` is the one symbol type that still stores a box, because it is the one type whose box is

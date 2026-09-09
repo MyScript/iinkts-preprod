@@ -6,13 +6,13 @@ import { WebSocketClient } from "@/client"
 import type { TCanvasOperationLabel } from "@/Constants"
 import { CanvasTool, GESTURE_OPERATION_LABELS, SELECTION_MARGIN } from "@/Constants"
 import type { TBox } from "@/core/geometry"
-import { BoxOps, MatrixTransform, OBBOps } from "@/core/geometry"
+import { BoxOps, isIdentityMatrix, MatrixTransform, OBBOps } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import { createUUID, mergeDeep } from "@/core/std"
 import { RafCoalescer } from "@/dom"
 import { DOMFactory } from "@/dom"
 import type { THistoryContext, TIIHistoryBackendChanges, TIIHistoryChanges } from "@/history"
-import { extractIIBackendChanges, IIHistoryManager } from "@/history"
+import { appendUpdated, extractIIBackendChanges, IIHistoryManager } from "@/history"
 import type { TDownloadFormat, TExportFormat, TExportOptions, TExportResultMap, TPDFDownloadOptions } from "@/manager"
 import {
   EraseManager,
@@ -641,7 +641,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
 
     if (addToHistory) {
       this.history.push({
-        updated: { oldSymbols: [oldSymbol ?? sym], newSymbols: [sym] },
+        updated: [{ before: oldSymbol ?? sym, after: sym }],
       })
     }
     this.updateLayerUI()
@@ -678,10 +678,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
 
     if (addToHistory) {
       this.history.push({
-        updated: {
-          oldSymbols: symList.map((s) => oldSymbolsMap.get(s.id) ?? s),
-          newSymbols: symList,
-        },
+        updated: symList.map((after) => ({ before: oldSymbolsMap.get(after.id) ?? after, after })),
       })
     }
     this.updateLayerUI()
@@ -700,7 +697,9 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       style,
     })
     const symbols: TSymbol[] = []
-    const oldStyles: TPartialDeep<TStyle>[] = []
+    // Snapshots, not just the old styles: history records a whole before/after record now, which
+    // also covers the geometry a font change moves. Cloned before the draft is mutated.
+    const before: TSymbol[] = []
     // Driven by the id list rather than by a scan of the document: `symbolIds.includes` inside a
     // full pass was O(n·m), and drafting by id is O(m).
     symbolIds.forEach((id) => {
@@ -708,7 +707,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       if (!s) {
         return
       }
-      oldStyles.push({ ...s.style })
+      before.push(cloneSymbol(s))
       s.style = Object.assign({}, s.style, style)
       if (isText(s)) {
         TextOps.updateChildrenStyle(s)
@@ -732,9 +731,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       symbols.push(s)
     })
     if (addToHistory && symbols.length) {
-      this.history.push({
-        style: { symbols, oldStyles, newStyles: symbols.map((s) => ({ ...s.style })) },
-      })
+      this.history.push({ updated: symbols.map((after, index) => ({ before: before[index], after })) })
     }
   }
 
@@ -759,18 +756,16 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       fontWeight,
     })
     const symbols: TText[] = []
-    const oldFontSizes: (number | undefined)[] = []
-    const translate: {
-      symbols: TSymbol[]
-      tx: number
-      ty: number
-    }[] = []
+    // One flat list of before/after pairs: the texts whose font changed, and the texts that had to
+    // slide along because a font change makes a word wider or narrower. Both are just symbols whose
+    // record changed, so history no longer distinguishes them.
+    const updated: { before: TSymbol; after: TSymbol }[] = []
     // Driven by the id list rather than by a scan of the document, same as `updateSymbolsStyle`.
     textIds.forEach((id) => {
       const s = this.model.draftSymbol(id)
       if (s) {
         if (isText(s)) {
-          oldFontSizes.push(s.chars[0]?.fontSize)
+          const before = cloneSymbol(s)
           TextOps.updateChildrenFont(s, {
             fontSize,
             fontWeight: fontWeight === "auto" ? undefined : fontWeight,
@@ -780,30 +775,17 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
           this.renderer.drawSymbol(s)
           const tx = SymbolGeometry.boundsOf(s).width - lastWidth
           if (tx !== 0) {
-            const symbolsTranslated = this.typeset.moveTextAfter(s, tx)
-            if (symbolsTranslated?.length) {
-              translate.push({
-                symbols: symbolsTranslated,
-                tx,
-                ty: 0,
-              })
-            }
+            updated.push(...(this.typeset.moveTextAfter(s, tx) ?? []))
           }
           // `typeset.updateBounds` above already committed the draft, which stamps
           // `modificationDate`; the old code stamped it again afterwards.
+          updated.push({ before, after: this.model.getRootSymbol(s.id) ?? s })
           symbols.push(s)
         }
       }
     })
-    if (symbols.length) {
-      this.history.push({
-        style: {
-          symbols,
-          oldFontSizes,
-          newFontSizes: symbols.map((s) => s.chars[0]?.fontSize),
-        },
-        translate,
-      })
+    if (updated.length) {
+      this.history.push({ updated })
     }
   }
 
@@ -863,9 +845,10 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
         }
         const updatedOld = [...decUpdatedOld, ...anchorUpdatedOld]
         const updatedNew = [...decUpdatedNew, ...anchorUpdatedNew]
-        if (updatedNew.length) {
-          changes.updated = { oldSymbols: updatedOld, newSymbols: updatedNew }
-        }
+        appendUpdated(
+          changes,
+          updatedOld.map((before, index) => ({ before, after: updatedNew[index] }))
+        )
         this.history.push(changes)
       }
       this.updateLayerUI()
@@ -1087,9 +1070,10 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
         }
         const updatedOld = [...decUpdatedOld, ...anchorUpdatedOld]
         const updatedNew = [...decUpdatedNew, ...anchorUpdatedNew]
-        if (updatedNew.length) {
-          changes.updated = { oldSymbols: updatedOld, newSymbols: updatedNew }
-        }
+        appendUpdated(
+          changes,
+          updatedOld.map((before, index) => ({ before, after: updatedNew[index] }))
+        )
         this.history.push(changes)
       }
       this.updateLayerUI()
@@ -1150,9 +1134,10 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       }
       const updatedOld = [...decUpdatedOld, ...anchorUpdatedOld]
       const updatedNew = [...decUpdatedNew, ...anchorUpdatedNew]
-      if (updatedNew.length) {
-        changes.updated = { oldSymbols: updatedOld, newSymbols: updatedNew }
-      }
+      appendUpdated(
+        changes,
+        updatedOld.map((before, index) => ({ before, after: updatedNew[index] }))
+      )
       this.history.push(changes)
       this.updateLayerUI()
     }
@@ -1443,33 +1428,74 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
   }
 
   #hasBackendActions(actions: TIIHistoryBackendChanges): boolean {
-    return !!(
-      actions.added?.length ||
-      actions.erased?.length ||
-      actions.replaced ||
-      actions.matrix ||
-      actions.translate?.length ||
-      actions.scale?.length ||
-      actions.rotate?.length
-    )
+    return !!(actions.added?.length || actions.erased?.length || actions.replaced)
   }
 
-  #extractJIIXBlockIdFromBackendActions(actions: TIIHistoryBackendChanges): string[] {
-    const strokes = [
-      ...(actions.added || []),
-      ...(actions.erased || []),
-      ...(actions.replaced?.newStrokes || []),
-      ...(actions.replaced?.oldStrokes || []),
-      ...(actions.matrix?.strokes || []),
-      ...(actions.translate?.flatMap((s) => s.strokes) || []),
-      ...(actions.scale?.flatMap((s) => s.strokes) || []),
-      ...(actions.rotate?.flatMap((s) => s.strokes) || []),
-    ]
+  /**
+   * Notes how far a math block's ghost result has to travel to stay with its expression.
+   *
+   * The delta is `restored ∘ current⁻¹` — read off the two records rather than taken from the
+   * history entry, which no longer says *how* a symbol changed, only what it changed to. That is
+   * enough here, and only here: a ghost is an overlay, not part of any record, so nothing else
+   * would move it.
+   *
+   * Collected into a map keyed by block rather than applied on the spot. Every stroke of an
+   * expression carries the same transform and produces the same delta, so applying it per stroke
+   * moved the ghost by as many multiples as the expression had strokes.
+   */
+  #collectGhostDelta(into: Map<string, MatrixTransform>, current: TSymbol, restored: TSymbol): void {
+    if (!isStroke(restored) || restored.jiixBlockType !== "Math" || !restored.jiixBlockId) {
+      return
+    }
+    if (into.has(restored.jiixBlockId) || !this.math.hasGhostStrokes(restored.jiixBlockId)) {
+      return
+    }
+    const inverse = new MatrixTransform(
+      current.transform.xx,
+      current.transform.yx,
+      current.transform.xy,
+      current.transform.yy,
+      current.transform.tx,
+      current.transform.ty
+    ).invert()
+    const delta = new MatrixTransform(
+      restored.transform.xx,
+      restored.transform.yx,
+      restored.transform.xy,
+      restored.transform.yy,
+      restored.transform.tx,
+      restored.transform.ty
+    ).multiply(inverse)
+    if (isIdentityMatrix(delta)) {
+      return
+    }
+    into.set(restored.jiixBlockId, delta)
+  }
 
-    return new Set(strokes.map((s) => s.jiixBlockId))
-      .values()
-      .toArray()
-      .filter((a) => !!a) as string[]
+  /**
+   * The math blocks whose ghost result a replay invalidates, as opposed to merely repositions.
+   *
+   * Driven by the symbol-level changes rather than the backend ones: `extractIIBackendChanges`
+   * folds `updated` into `replaced`, which loses the distinction this needs. A block whose strokes
+   * were added, erased or genuinely replaced has a stale result and must lose its ghost; a block
+   * that only moved keeps it, repositioned by {@link #moveGhostResultWith}.
+   */
+  #ghostBlocksInvalidatedBy(changes: TIIHistoryChanges): string[] {
+    const touched = [
+      ...(changes.added || []),
+      ...(changes.erased || []),
+      ...(changes.replaced?.oldSymbols || []),
+      ...(changes.replaced?.newSymbols || []),
+    ]
+    const blockIds = extractStrokes(touched).map((stroke) => {
+      // The live record first, the entry's snapshot second. A history entry holds a stroke as it
+      // was when the step happened, and a stroke has no `jiixBlockId` at the moment it is written —
+      // recognition assigns one later. Reading only the snapshot found no block for an undo of a
+      // freshly drawn stroke, so a ghost result outlived the expression it belonged to.
+      const live = this.model.getRootSymbol(stroke.id)
+      return (live && isStroke(live) ? live.jiixBlockId : undefined) ?? stroke.jiixBlockId
+    })
+    return [...new Set(blockIds)].filter((id): id is string => !!id)
   }
 
   /**
@@ -1496,10 +1522,23 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       this.model.removeSymbol(sym.id)
       this.renderer.removeSymbol(sym.id)
     })
-    changes.updated?.newSymbols.forEach((sym) => {
-      this.model.updateSymbol(restore(sym))
-      this.renderer.drawSymbol(sym)
+    // One delta per math block, not per symbol: an expression is many strokes, they all move
+    // together, and applying the delta once per stroke would shift the ghost by a multiple of it.
+    const ghostDeltas = new Map<string, MatrixTransform>()
+    changes.updated?.forEach(({ after }) => {
+      // Read before the restore: a ghost result's coordinates come from the recognizer, in
+      // millimetres, so it cannot be re-placed from the model — it is either carried by the same
+      // matrix as its expression or thrown away. Restoring a record that only moved leaves the
+      // result itself valid, so the delta between where the symbol is and where it is going back to
+      // is what the ghost has to follow.
+      const current = this.model.getRootSymbol(after.id)
+      this.model.updateSymbol(restore(after))
+      this.renderer.drawSymbol(after)
+      if (current) {
+        this.#collectGhostDelta(ghostDeltas, current, after)
+      }
     })
+    ghostDeltas.forEach((delta, jiixBlockId) => this.math.applyTransformToGhostStrokes(jiixBlockId, delta))
     if (changes.replaced) {
       const [anchor, ...rest] = changes.replaced.oldSymbols
       rest.forEach((s) => {
@@ -1508,41 +1547,6 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       })
       this.model.replaceSymbol(anchor.id, changes.replaced.newSymbols.map(restore))
       this.renderer.replaceSymbol(anchor.id, changes.replaced.newSymbols)
-    }
-    if (changes.matrix) {
-      const m = changes.matrix.matrix
-      this.transform.applyMatrix(changes.matrix.symbols, new MatrixTransform(m.xx, m.yx, m.xy, m.yy, m.tx, m.ty))
-    }
-    changes.translate?.forEach((tr) => {
-      this.transform.applyMatrix(tr.symbols, MatrixTransform.identity().translate(tr.tx, tr.ty))
-    })
-    changes.rotate?.forEach((r) => {
-      this.transform.applyMatrix(r.symbols, MatrixTransform.identity().rotate(r.angle, r.center))
-    })
-    changes.scale?.forEach((sc) => {
-      this.transform.applyMatrix(sc.symbols, MatrixTransform.identity().scale(sc.scaleX, sc.scaleY, sc.origin))
-    })
-    if (changes.style) {
-      const { symbols, newStyles, newFontSizes } = changes.style
-      symbols.forEach((sym, i) => {
-        // The style is re-applied to a draft of what the document currently holds, never to the
-        // entry's own symbol: mutating that would rewrite the history entry being replayed.
-        const draft = this.model.draftSymbol(sym.id)
-        if (!draft) {
-          return
-        }
-        if (newStyles?.[i]) {
-          draft.style = newStyles[i] as TStyle
-        }
-        const newFontSize = newFontSizes?.[i]
-        if (newFontSize !== undefined && isText(draft)) {
-          draft.chars.forEach((c) => {
-            c.fontSize = newFontSize
-          })
-        }
-        this.model.commitSymbol(draft)
-        this.renderer.drawSymbol(draft)
-      })
     }
     if (changes.order) {
       changes.order.symbols.forEach((sym) => {
@@ -1558,11 +1562,14 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       changes,
     })
 
+    // Resolved before the replay: it reads each stroke's block off the document, and the replay is
+    // about to remove some of them.
+    const invalidatedGhostBlocks = this.#ghostBlocksInvalidatedBy(changes)
     this.#applyHistoryChanges(changes)
     const actionsToBackend = extractIIBackendChanges(changes)
     try {
       if (this.#hasBackendActions(actionsToBackend)) {
-        this.#extractJIIXBlockIdFromBackendActions(actionsToBackend).forEach((jiixBlockId) => {
+        invalidatedGhostBlocks.forEach((jiixBlockId) => {
           this.math.clearGhostStrokes(jiixBlockId)
         })
         this.startOperation("Recognizing")
@@ -1591,11 +1598,13 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
   async #redoInternal(): Promise<IIModel> {
     const changes = this.history.redo()
     this.logger.debug("redo", { changes })
+    // Resolved before the replay, for the same reason as in `#undoInternal`.
+    const invalidatedGhostBlocks = this.#ghostBlocksInvalidatedBy(changes)
     this.#applyHistoryChanges(changes)
     const actionsToBackend = extractIIBackendChanges(changes)
     try {
       if (this.#hasBackendActions(actionsToBackend)) {
-        this.#extractJIIXBlockIdFromBackendActions(actionsToBackend).forEach((jiixBlockId) => {
+        invalidatedGhostBlocks.forEach((jiixBlockId) => {
           this.math.clearGhostStrokes(jiixBlockId)
         })
         this.startOperation("Recognizing")
