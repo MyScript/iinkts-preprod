@@ -1,6 +1,6 @@
 import type { MatrixTransform, TPoint } from "@/core/geometry"
-import type { TMath } from "@/symbol/math/Math"
-import type { TText } from "@/symbol/text/Text"
+import type { TMath } from "@/symbol/typeset/Math"
+import type { TText } from "@/symbol/typeset/Text"
 
 /**
  * The measuring service text and math need once they have moved.
@@ -9,9 +9,14 @@ import type { TText } from "@/symbol/text/Text"
  * `IITypesetManager` satisfies this structurally. It has to be a service at all because the work is
  * genuinely not geometry — measuring a typeset symbol means drawing it into the DOM hidden and
  * reading `getBBox()`, so it needs a live renderer and the browser's layout engine.
+ *
+ * `setBounds` and not `updateBounds`, which measures *and* commits. Committing from here was
+ * IIC-1999: `SymbolStore.update` deep-freezes what it stores, so the draft came back frozen and the
+ * transform manager's own `commitSymbol` then threw stamping `modificationDate` on it. A util
+ * transforms a draft; committing it is the caller's business, and the caller already does it.
  */
 export type TTypesetPort = {
-  updateBounds<S extends TText | TMath>(symbol: S): S
+  setBounds(symbol: TText | TMath): void
 }
 
 /**
@@ -37,8 +42,6 @@ export type TTranslateContext = {
 export type TRotateContext = {
   matrix: MatrixTransform
   center: TPoint
-  /** Text consults it; math deliberately does not. See `MathUtil.rotate`. */
-  typeset: TTypesetPort
 }
 
 /**

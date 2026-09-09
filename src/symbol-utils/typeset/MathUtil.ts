@@ -3,8 +3,8 @@ import type { TPoint } from "@/core/geometry"
 import { applyMatrixToPoint, applyMatrixToPoints } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import { DecoratorKind } from "@/symbol/decorator/Decorator"
-import { MathOps, type TMath } from "@/symbol/math/Math"
 import { SymbolType } from "@/symbol/Symbol"
+import { MathOps, type TMath } from "@/symbol/typeset/Math"
 
 import { DecoratorUtil } from "../decorator/DecoratorUtil"
 import { SVGBuilder } from "../SVGBuilder"
@@ -52,7 +52,7 @@ export class MathUtil extends TypesetUtil<TMath> {
       element.bounds.x = moved.x
       element.bounds.y = moved.y
     })
-    typeset.updateBounds(math)
+    typeset.setBounds(math)
   }
 
   getSVGElement(math: TMath): SVGGraphicsElement {

@@ -3,11 +3,11 @@ import type { TPoint } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import { DecoratorKind } from "@/symbol/decorator/Decorator"
 import { SymbolType } from "@/symbol/Symbol"
-import { TextOps, type TText } from "@/symbol/text/Text"
+import { TextOps, type TText } from "@/symbol/typeset/Text"
 
 import { DecoratorUtil } from "../decorator/DecoratorUtil"
 import { SVGBuilder } from "../SVGBuilder"
-import type { TRotateContext, TTranslateContext } from "../TransformContext"
+import type { TTranslateContext } from "../TransformContext"
 import { TypesetUtil } from "./TypesetUtil"
 
 const noSelection =
@@ -41,17 +41,7 @@ export class TextUtil extends TypesetUtil<TText> {
 
   translate(text: TText, { matrix, typeset }: TTranslateContext): void {
     this.moveAnchor(text, matrix)
-    typeset.updateBounds(text)
-  }
-
-  /**
-   * Records the turn, then re-measures. Math deliberately does not — an asymmetry inherited from
-   * `IIRotationManager`, which called `typeset.updateBounds` for text and returned math untouched.
-   * It is an override here so that the difference is a line of code rather than a missing one.
-   */
-  rotate(text: TText, context: TRotateContext): void {
-    super.rotate(text, context)
-    context.typeset.updateBounds(text)
+    typeset.setBounds(text)
   }
 
   getSVGElement(text: TText): SVGGraphicsElement {

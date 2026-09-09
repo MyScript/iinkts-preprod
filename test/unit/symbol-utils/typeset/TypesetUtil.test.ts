@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, test } from "@jest/globals"
 import { buildIIMath, buildIIText } from "../../helpers"
 
 import type { TMath, TRotateContext, TText } from "@/iink"
-import { MathUtil, MatrixTransform, TextUtil, TypesetUtil } from "@/iink"
+import { BoxOps, MathUtil, MatrixTransform, OBBOps, TextUtil, TypesetUtil } from "@/iink"
 
 /**
  * `TText` and `TMath` are the same shape but for the list they hold — `chars` against `elements` —
@@ -28,7 +28,6 @@ describe("TypesetUtil", () => {
   const context = (matrix: MatrixTransform): TRotateContext => ({
     matrix,
     center: { x: 0, y: 0 },
-    typeset: { updateBounds: <S extends TText | TMath>(symbol: S) => symbol },
   })
 
   test("both built-in typeset utils should share the base", () => {
@@ -61,19 +60,49 @@ describe("TypesetUtil", () => {
       expect(symbol.rotation?.degree).toBeCloseTo(180, 10)
     })
 
-    test("text should re-measure afterwards and math should not", () => {
-      // The one place the two differ, and it is an override calling `super` rather than a call math
-      // happens to lack. Inherited from IIRotationManager and preserved deliberately.
-      const measured: string[] = []
-      const typeset = {
-        updateBounds: <S extends TText | TMath>(symbol: S) => {
-          measured.push(symbol.type)
-          return symbol
-        },
-      }
-      text.rotate(buildIIText({ point: { x: 0, y: 0 } }), { ...context(quarterTurn()), typeset })
-      math.rotate(buildIIMath(), { ...context(quarterTurn()), typeset })
-      expect(measured).toEqual(["text"])
+    /**
+     * This used to assert the opposite — that text re-measured after a turn and math did not — on
+     * the reading that the asymmetry inherited from `IIRotationManager` was deliberate. It was not.
+     * The text call set `bounds.angle` and nothing else, since the measurement cannot depend on the
+     * angle, and math was left never updating its derived fields at all. Both now do the same work,
+     * and neither re-measures.
+     */
+    test.each([
+      ["text", () => buildIIText({ point: { x: 0, y: 0 } })],
+      ["math", () => buildIIMath()],
+    ])("%s should record the angle on its bounds and re-derive, without re-measuring", (name, build) => {
+      const symbol = build()
+      const before = { width: symbol.bounds.width, height: symbol.bounds.height }
+      const util = name === "text" ? text : math
+
+      util.rotate(symbol as never, context(quarterTurn()))
+
+      expect(symbol.bounds.angle).toBeCloseTo(90, 10)
+      // The glyph box itself is untouched — turning a symbol does not change what it is made of.
+      expect(symbol.bounds.width).toBe(before.width)
+      expect(symbol.bounds.height).toBe(before.height)
+    })
+
+    test.each([
+      ["text", () => buildIIText({ point: { x: 0, y: 0 } })],
+      ["math", () => buildIIMath()],
+    ])("%s should place its vertices where the renderer draws them", (name, build) => {
+      // The bug this ticket fixes, at the level a caller sees it: `overlaps` reads `vertices`, so a
+      // quad that disagrees with the rendered transform is a symbol that cannot be surrounded.
+      const symbol = build()
+      const util = name === "text" ? text : math
+      util.rotate(symbol as never, context(quarterTurn()))
+
+      const box = OBBOps.toUnrotatedBox(symbol.bounds)
+      const rad = Math.PI / 2
+      const expected = BoxOps.getCorners(box).map((corner) => ({
+        x: Math.cos(rad) * corner.x - Math.sin(rad) * corner.y,
+        y: Math.sin(rad) * corner.x + Math.cos(rad) * corner.y,
+      }))
+      symbol.vertices.forEach((vertex, i) => {
+        expect(vertex.x).toBeCloseTo(expected[i].x, 2)
+        expect(vertex.y).toBeCloseTo(expected[i].y, 2)
+      })
     })
   })
 

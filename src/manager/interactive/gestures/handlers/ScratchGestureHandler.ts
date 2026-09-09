@@ -6,7 +6,7 @@ import type { TGesture } from "@/manager/interactive/gestures/GestureTypes"
 import type { TStroke, TText } from "@/symbol"
 import { SymbolType, type TSymbol } from "@/symbol"
 import { StrokeOps } from "@/symbol/stroke/Stroke"
-import { TextOps } from "@/symbol/text/Text"
+import { TextOps } from "@/symbol/typeset/Text"
 
 /**
  * Handler for SCRATCH gesture type

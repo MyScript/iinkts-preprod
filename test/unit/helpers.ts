@@ -22,8 +22,8 @@ import {
 } from "@/iink"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 import { DecoratorOps } from "../../src/symbol/decorator/Decorator"
-import { TextOps } from "../../src/symbol/text/Text"
-import { MathOps } from "../../src/symbol/math/Math"
+import { TextOps } from "../../src/symbol/typeset/Text"
+import { MathOps } from "../../src/symbol/typeset/Math"
 import { ShapeCircleOps } from "../../src/symbol/shape/Circle"
 import { EdgeLineOps } from "../../src/symbol/edge/Line"
 

@@ -28,7 +28,9 @@ import {
   TTranslateContext,
   applyMatrixToPoint,
   symbolRegistry,
+  TMath,
   TSymbol,
+  TText,
 } from "@/iink"
 
 describe("IITranslateManager.ts", () => {
@@ -619,7 +621,7 @@ describe("IITranslateManager.ts", () => {
       const manager = new IITranslateManager(asCanvas(canvas))
       const symbol = build()
       manager.applyToSymbol(symbol, MatrixTransform.identity().translate(10, 15))
-      expect(canvas.typeset.updateBounds).toHaveBeenCalledWith(symbol)
+      expect(canvas.typeset.setBounds).toHaveBeenCalledWith(symbol)
     })
 
     test.each([
@@ -694,5 +696,70 @@ describe("IITranslateManager.ts", () => {
       new IITranslateManager(asCanvas(canvas)).applyToSymbol(sticky, MatrixTransform.identity().translate(1, 2))
       expect((sticky as unknown as TStickyNote).point).toEqual({ x: 12, y: 19 })
     })
+  })
+})
+
+/**
+ * IIC-1999. Translating a selection of typeset symbols moved only the first one in the model: the
+ * rest kept their old coordinates while the drag preview showed them moved, so selection and
+ * hit-testing afterwards pointed at where they used to be.
+ *
+ * The mechanism is a double write. `IITypesetManager.updateBounds` measures **and** commits, and
+ * `SymbolStore.update` deep-freezes what it stores — so the draft came back frozen, and
+ * `applyAndDraw`'s own `commitSymbol` then threw on `updatedSymbol.modificationDate = Date.now()`.
+ * That `TypeError` escaped the `forEach`, and every symbol after the first was never drafted at all.
+ *
+ * No unit test could see it: the canvas mock's `typeset` is an auto-stub, so the model write that
+ * causes the freeze never happened. These tests supply a port that behaves like the real service.
+ */
+describe("IIC-1999, a selection of typeset symbols", () => {
+  const realisticTypeset = (canvas: ReturnType<typeof createCanvasMock>) => {
+    // Both methods, as IITypesetManager has them: `setBounds` measures, `updateBounds` also commits.
+    canvas.typeset.setBounds = () => {}
+    canvas.typeset.updateBounds = <S extends TText | TMath>(symbol: S): S => {
+      canvas.model.updateSymbol(symbol)
+      return symbol
+    }
+  }
+
+  const selection = (canvas: ReturnType<typeof createCanvasMock>, symbols: TSymbol[]) =>
+    symbols.forEach((symbol) => {
+      canvas.model.addSymbol(symbol)
+      canvas.model.selectSymbol(symbol.id)
+    })
+
+  test.each([
+    ["texts", () => [buildIIText({ point: { x: 0, y: 0 } }), buildIIText({ point: { x: 100, y: 0 } })]],
+    ["maths", () => [buildIIMath("a=1", { point: { x: 0, y: 0 } }), buildIIMath("b=2", { point: { x: 100, y: 0 } })]],
+    ["a text then a math", () => [buildIIText({ point: { x: 0, y: 0 } }), buildIIMath("b=2", { point: { x: 100, y: 0 } })]],
+  ])("should move every one of two %s, not just the first", async (_name, build) => {
+    const canvas = createCanvasMock()
+    realisticTypeset(canvas)
+    const manager = new IITranslateManager(asCanvas(canvas))
+    await canvas.init()
+    const symbols = build()
+    selection(canvas, symbols)
+
+    await manager.translate(symbols, 10, 15)
+
+    expect(canvas.model.symbols.map((s) => (s as TText).point)).toEqual([
+      { x: 10, y: 15 },
+      { x: 110, y: 15 },
+    ])
+  })
+
+  test("should still move a lone typeset symbol", async () => {
+    // Guards the guard: the bug spared the first symbol, so a single-symbol test passes either way
+    // and proves nothing on its own.
+    const canvas = createCanvasMock()
+    realisticTypeset(canvas)
+    const manager = new IITranslateManager(asCanvas(canvas))
+    await canvas.init()
+    const text = buildIIText({ point: { x: 0, y: 0 } })
+    selection(canvas, [text])
+
+    await manager.translate([text], 10, 15)
+
+    expect((canvas.model.symbols[0] as TText).point).toEqual({ x: 10, y: 15 })
   })
 })
