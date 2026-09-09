@@ -1,232 +1,193 @@
 import {
-  DEVIATION_FACTOR,
-  MAX_GATED_DEVIATION,
   MAX_USABLE_SPREAD,
-  MIN_CURRENT_PROCESSES,
   MIN_GATED_MS,
-  MIN_THRESHOLD,
+  MIN_ROUNDS,
+  REGRESSION_THRESHOLD,
   evaluate,
-  thresholdFor,
-  type TGateReport,
+  type TPairedGateReport,
 } from "../../perf/lib/gate"
 
 /**
- * The perf gate's decision rule. It is unit-tested because it twice reported a near-regression on code
- * that had not been touched, and both times the cause was in this arithmetic rather than in the
- * measurement: a threshold that read the run it was judging, and a dispersion statistic blind to the
- * tail it was supposed to bound.
+ * The perf gate's decision rule. It is unit-tested because its predecessor twice reported a
+ * near-regression on code that had not been touched, and both times the cause was in this arithmetic
+ * rather than in the measurement.
  */
 
 const CONTROL = "control: float arithmetic"
 
-function report(over: Partial<TGateReport> = {}): TGateReport {
+function report(over: Partial<TPairedGateReport> = {}): TPairedGateReport {
+  const rounds = over.rounds ?? MIN_ROUNDS
   return {
-    ratios: { [CONTROL]: 1, case: 10 },
-    ratioMaxDeviation: { [CONTROL]: 0, case: 0.02 },
-    ratioSpread: { [CONTROL]: 0, case: 0.02 },
-    processes: 5,
-    controlSpread: 0.03,
+    rounds,
+    samples: { [CONTROL]: Array(rounds).fill(1), case: Array(rounds).fill(1) },
+    paired: { [CONTROL]: 1, case: 1 },
+    onlyReference: [],
+    onlyCurrent: [],
+    reference: {
+      cases: [
+        { name: CONTROL, p50Ms: 0.1 },
+        { name: "case", p50Ms: 5 },
+      ],
+      controlSpread: 0.03,
+    },
+    current: { controlSpread: 0.03 },
     ...over,
   }
 }
 
-describe("thresholdFor", () => {
-  test("floors the threshold at MIN_THRESHOLD for a very stable case", () => {
-    const baseline = report({ ratioMaxDeviation: { case: 0.001 } })
-    expect(thresholdFor(baseline, "case")).toBe(MIN_THRESHOLD)
-  })
-
-  test("scales with the widest deviation the baseline observed", () => {
-    const baseline = report({ ratioMaxDeviation: { case: 0.2 } })
-    expect(thresholdFor(baseline, "case")).toBeCloseTo(0.2 * DEVIATION_FACTOR, 10)
-  })
-
-  test("ignores the current run's dispersion entirely", () => {
-    // The defect this replaces: max(baseline, current) let a noisy run widen its own limit, so a
-    // regression that also destabilised timing bought itself room.
-    const baseline = report({ ratioMaxDeviation: { case: 0.02 } })
-    const noisyCurrent = report({ ratioMaxDeviation: { case: 0.9 }, ratioSpread: { case: 0.9 } })
-
-    const before = thresholdFor(baseline, "case")
-    const result = evaluate(baseline, { ...noisyCurrent, ratios: { case: 12 } })
-
-    expect(before).toBe(MIN_THRESHOLD)
-    expect(result.verdicts[0].threshold).toBe(MIN_THRESHOLD)
-  })
-
-  test("falls back to the floor when the baseline predates ratioMaxDeviation", () => {
-    const baseline = report({ ratioMaxDeviation: undefined })
-    expect(thresholdFor(baseline, "case")).toBe(MIN_THRESHOLD)
-  })
-})
+/** A case whose paired median is `ratio`, paired in every round. */
+function withCase(ratio: number, over: Partial<TPairedGateReport> = {}): TPairedGateReport {
+  const base = report(over)
+  return { ...base, paired: { ...base.paired, case: ratio } }
+}
 
 describe("evaluate — regression detection", () => {
-  test("passes a drift below the threshold", () => {
-    const result = evaluate(report(), report({ ratios: { case: 11 } }))
+  test("passes a build that costs the same as its reference", () => {
+    const result = evaluate(report())
     expect(result.regressions).toHaveLength(0)
-    expect(result.verdicts[0].drift).toBeCloseTo(0.1, 10)
+    expect(result.verdicts.every((v) => v.gated)).toBe(true)
+  })
+
+  test("passes a drift below the threshold", () => {
+    const result = evaluate(withCase(1 + REGRESSION_THRESHOLD - 0.01))
+    expect(result.regressions).toHaveLength(0)
   })
 
   test("flags a drift above the threshold", () => {
-    const result = evaluate(report(), report({ ratios: { case: 12 } }))
+    const result = evaluate(withCase(1 + REGRESSION_THRESHOLD + 0.01))
     expect(result.regressions.map((v) => v.name)).toEqual(["case"])
-    expect(result.verdicts[0].regressed).toBe(true)
   })
 
-  test("does not flag the +13.9% drift that the old rule nearly failed on", () => {
-    // The measured case: transform's MAD was 2.2% and its real tail far wider. With the tail recorded,
-    // its limit clears the drift instead of sitting 1.1 points under it.
-    const baseline = report({ ratios: { case: 12.35 }, ratioMaxDeviation: { case: 0.14 } })
-    const current = report({ ratios: { case: 14.06 } })
-
-    const result = evaluate(baseline, current)
-
-    expect(result.verdicts[0].drift).toBeCloseTo(0.1385, 3)
-    expect(result.verdicts[0].threshold).toBeCloseTo(0.21, 10)
-    expect(result.regressions).toHaveLength(0)
+  test("does not flag a drift sitting exactly on the threshold", () => {
+    // The threshold is a bound the run has to pass, not reach: a case landing exactly on it has not
+    // been shown to be worse than the noise the limit was drawn from.
+    expect(evaluate(withCase(1 + REGRESSION_THRESHOLD)).regressions).toHaveLength(0)
   })
 
-  test("still catches a 20% step on a stable case", () => {
-    // The gate's stated purpose. A rule tuned only to stop false positives is worthless.
-    const baseline = report({ ratios: { case: 10 }, ratioMaxDeviation: { case: 0.02 } })
-    const result = evaluate(baseline, report({ ratios: { case: 12 } }))
-    expect(result.regressions).toHaveLength(1)
+  test("reports the drift as the distance from parity", () => {
+    expect(evaluate(withCase(1.4)).verdicts[0].drift).toBeCloseTo(0.4, 10)
   })
 
   test("marks a symmetric drop as improved rather than regressed", () => {
-    const result = evaluate(report(), report({ ratios: { case: 8 } }))
-    expect(result.verdicts[0].improved).toBe(true)
-    expect(result.verdicts[0].regressed).toBe(false)
+    const result = evaluate(withCase(1 - REGRESSION_THRESHOLD - 0.01))
+    const verdict = result.verdicts.find((v) => v.name === "case")
+    expect(verdict?.improved).toBe(true)
+    expect(verdict?.regressed).toBe(false)
   })
 
   test("sorts verdicts worst drift first", () => {
-    const baseline = report({
-      ratios: { a: 10, b: 10, c: 10 },
-      ratioMaxDeviation: { a: 0.02, b: 0.02, c: 0.02 },
+    const base = report()
+    const result = evaluate({
+      ...base,
+      samples: { a: Array(8).fill(1), b: Array(8).fill(1), c: Array(8).fill(1) },
+      paired: { a: 1, b: 1.3, c: 0.8 },
+      reference: {
+        cases: [
+          { name: "a", p50Ms: 5 },
+          { name: "b", p50Ms: 5 },
+          { name: "c", p50Ms: 5 },
+        ],
+        controlSpread: 0.03,
+      },
     })
-    const result = evaluate(baseline, report({ ratios: { a: 10, b: 13, c: 8 } }))
     expect(result.verdicts.map((v) => v.name)).toEqual(["b", "a", "c"])
   })
 })
 
 describe("evaluate — cases it refuses to gate", () => {
-  test("reports but does not gate a case noisier than MAX_GATED_DEVIATION", () => {
-    const baseline = report({ ratios: { case: 10 }, ratioMaxDeviation: { case: MAX_GATED_DEVIATION + 0.01 } })
-    const result = evaluate(baseline, report({ ratios: { case: 20 } }))
-
-    expect(result.verdicts[0].gated).toBe(false)
-    expect(result.verdicts[0].regressed).toBe(false)
-    expect(result.regressions).toHaveLength(0)
-  })
-
   test("reports but does not gate a case measured below the timer floor", () => {
-    // The drift is one a gated case would have failed on: the floor has to be what stops it, not a
-    // threshold that happens to be wide.
-    const baseline = report({
-      ratios: { case: 10 },
-      ratioMaxDeviation: { case: 0.02 },
-      cases: [{ name: "case", p50Ms: MIN_GATED_MS / 2 }],
+    const base = withCase(2)
+    const result = evaluate({
+      ...base,
+      reference: { ...base.reference, cases: [{ name: "case", p50Ms: MIN_GATED_MS / 2 }] },
     })
-    const result = evaluate(baseline, report({ ratios: { case: 20 } }))
-
-    expect(result.verdicts[0].gated).toBe(false)
-    expect(result.verdicts[0].ungatedReason).toBe("timer-floor")
+    const verdict = result.verdicts.find((v) => v.name === "case")
+    expect(verdict?.gated).toBe(false)
+    expect(verdict?.ungatedReason).toBe("timer-floor")
     expect(result.regressions).toHaveLength(0)
   })
 
   test("gates a case sitting exactly on the floor", () => {
-    const baseline = report({
-      ratios: { case: 10 },
-      ratioMaxDeviation: { case: 0.02 },
-      cases: [{ name: "case", p50Ms: MIN_GATED_MS }],
+    const base = withCase(2)
+    const result = evaluate({
+      ...base,
+      reference: { ...base.reference, cases: [{ name: "case", p50Ms: MIN_GATED_MS }] },
     })
-    const result = evaluate(baseline, report({ ratios: { case: 20 } }))
-
-    expect(result.verdicts[0].gated).toBe(true)
-    expect(result.regressions).toHaveLength(1)
+    expect(result.regressions.map((v) => v.name)).toEqual(["case"])
   })
 
-  test("blames the timer floor rather than the noise when a case is both", () => {
-    // A case timed against the clock has a meaningless dispersion too, so calling it noisy would send
-    // someone off to stabilise a number that was never measured.
-    const baseline = report({
-      ratios: { case: 10 },
-      ratioMaxDeviation: { case: MAX_GATED_DEVIATION + 0.5 },
-      cases: [{ name: "case", p50Ms: MIN_GATED_MS / 100 }],
+  test("reports but does not gate a case that rarely paired", () => {
+    // One build failing to produce a case half the time is telling you something, and it is not how
+    // fast the case is.
+    const base = withCase(2)
+    const result = evaluate({ ...base, samples: { ...base.samples, case: [1, 1] } })
+    const verdict = result.verdicts.find((v) => v.name === "case")
+    expect(verdict?.ungatedReason).toBe("too-few-rounds")
+    expect(result.regressions).toHaveLength(0)
+  })
+
+  test("gates a case paired in exactly the required share of rounds", () => {
+    const base = withCase(2)
+    const result = evaluate({ ...base, samples: { ...base.samples, case: Array(6).fill(1) } })
+    expect(result.verdicts.find((v) => v.name === "case")?.gated).toBe(true)
+  })
+
+  test("blames the timer floor rather than the round count when a case is both", () => {
+    const base = withCase(2)
+    const result = evaluate({
+      ...base,
+      samples: { ...base.samples, case: [1] },
+      reference: { ...base.reference, cases: [{ name: "case", p50Ms: MIN_GATED_MS / 100 }] },
     })
-    const result = evaluate(baseline, report({ ratios: { case: 20 } }))
-
-    expect(result.verdicts[0].ungatedReason).toBe("timer-floor")
+    expect(result.verdicts.find((v) => v.name === "case")?.ungatedReason).toBe("timer-floor")
   })
 
-  test("gates normally when the baseline records no per-case milliseconds", () => {
-    // An older baseline has no opinion on measurability, and refusing every case over that would be
-    // worse than the problem.
-    const baseline = report({ ratios: { case: 10 }, ratioMaxDeviation: { case: 0.02 }, cases: undefined })
-    const result = evaluate(baseline, report({ ratios: { case: 20 } }))
-
-    expect(result.verdicts[0].gated).toBe(true)
-    expect(result.verdicts[0].ungatedReason).toBeUndefined()
-    expect(result.regressions).toHaveLength(1)
+  test("reports how many rounds each case actually paired", () => {
+    const base = report()
+    const result = evaluate({ ...base, samples: { ...base.samples, case: Array(7).fill(1) } })
+    expect(result.verdicts.find((v) => v.name === "case")?.rounds).toBe(7)
   })
+})
 
-  test("reads the floor from the baseline, not from the run being judged", () => {
-    // Symmetric with the threshold rule: a change that made a case unmeasurably fast is an
-    // improvement to report, not a reason to stop gating it.
-    const baseline = report({
-      ratios: { case: 10 },
-      ratioMaxDeviation: { case: 0.02 },
-      cases: [{ name: "case", p50Ms: MIN_GATED_MS * 10 }],
-    })
-    const current = report({ ratios: { case: 20 }, cases: [{ name: "case", p50Ms: MIN_GATED_MS / 100 }] })
-
-    expect(evaluate(baseline, current).verdicts[0].gated).toBe(true)
-  })
-
-  test("refuses the whole run when the control case is too noisy", () => {
-    const result = evaluate(report(), report({ controlSpread: MAX_USABLE_SPREAD + 0.01 }))
-
-    expect(result.refusal?.kind).toBe("control-too-noisy")
+describe("evaluate — runs it refuses outright", () => {
+  test("refuses a run with fewer rounds than the minimum", () => {
+    const result = evaluate(report({ rounds: MIN_ROUNDS - 1 }))
+    expect(result.refusal?.kind).toBe("too-few-rounds")
     expect(result.verdicts).toHaveLength(0)
     expect(result.regressions).toHaveLength(0)
   })
 
-  test("refuses a single-process current run", () => {
-    // A run of repeats inside one process has a median biased by the between-process variance. It is
-    // readable and not gateable, and saying so is the point.
-    const result = evaluate(report(), report({ processes: 1, ratios: { case: 30 } }))
-
-    expect(result.refusal?.kind).toBe("current-not-multi-process")
-    expect(result.refusal?.message).toContain("yarn bench:ci")
-    expect(result.regressions).toHaveLength(0)
+  test("accepts exactly the minimum", () => {
+    expect(evaluate(report({ rounds: MIN_ROUNDS })).refusal).toBeUndefined()
   })
 
-  test("refuses a current run that does not declare its process count", () => {
-    const result = evaluate(report(), report({ processes: undefined }))
-    expect(result.refusal?.kind).toBe("current-not-multi-process")
-  })
-
-  test("accepts exactly MIN_CURRENT_PROCESSES", () => {
-    const result = evaluate(report(), report({ processes: MIN_CURRENT_PROCESSES }))
-    expect(result.refusal).toBeUndefined()
-  })
-
-  test("checks the control before the process count, so a noisy run is not mislabelled", () => {
-    const result = evaluate(report(), report({ processes: 1, controlSpread: MAX_USABLE_SPREAD + 0.01 }))
+  test("refuses when the reference side's control was too noisy", () => {
+    const base = report()
+    const result = evaluate({
+      ...base,
+      reference: { ...base.reference, controlSpread: MAX_USABLE_SPREAD + 0.01 },
+    })
     expect(result.refusal?.kind).toBe("control-too-noisy")
+  })
+
+  test("refuses when the current side's control was too noisy", () => {
+    // Either side being unreadable makes the pair unreadable; the noisy one is not always the one
+    // that changed.
+    const result = evaluate(report({ current: { controlSpread: MAX_USABLE_SPREAD + 0.01 } }))
+    expect(result.refusal?.kind).toBe("control-too-noisy")
+  })
+
+  test("checks the round count before the control, so a short run is not mislabelled", () => {
+    const result = evaluate(report({ rounds: 1, current: { controlSpread: MAX_USABLE_SPREAD + 0.01 } }))
+    expect(result.refusal?.kind).toBe("too-few-rounds")
   })
 })
 
 describe("evaluate — case inventory", () => {
-  test("lists cases the current run added, without gating them", () => {
-    const result = evaluate(report(), report({ ratios: { [CONTROL]: 1, case: 10, fresh: 4 } }))
-    expect(result.added).toEqual(["fresh"])
+  test("passes through the cases only one build has, without gating them", () => {
+    const result = evaluate(report({ onlyCurrent: ["fresh"], onlyReference: ["gone"] }))
+    expect(result.onlyCurrent).toEqual(["fresh"])
+    expect(result.onlyReference).toEqual(["gone"])
     expect(result.verdicts.map((v) => v.name)).not.toContain("fresh")
-  })
-
-  test("lists cases the current run failed to produce", () => {
-    const result = evaluate(report(), report({ ratios: { [CONTROL]: 1 } }))
-    expect(result.missing).toEqual(["case"])
-    expect(result.regressions).toHaveLength(0)
   })
 })
