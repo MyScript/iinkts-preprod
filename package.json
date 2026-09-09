@@ -37,6 +37,7 @@
     "bench": "node test/perf/bench.ts",
     "bench:ci": "node test/perf/runCurrent.ts",
     "bench:gate": "node test/perf/compare.ts",
+    "bench:ref": "node test/perf/buildReference.ts",
     "bench:record": "node test/perf/recordHistory.ts",
     "bench:history": "node test/perf/showHistory.ts",
     "bench:baseline": "node test/perf/runBaseline.ts",
