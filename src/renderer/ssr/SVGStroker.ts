@@ -5,6 +5,7 @@ import {
   computeMiddlePointer,
   computeQuadraticOutlinePoints,
 } from "@/core/geometry"
+import { computeOutlinePointers, isPenNib, readNibOverrides } from "@/style"
 import type { TLegacyStroke } from "@/symbol"
 /**
  * @group Renderer
@@ -53,23 +54,31 @@ export class SVGStroker {
     const STROKE_LENGTH = stroke.pointers.length
     const STROKE_WIDTH = stroke.style.width as number
     const NB_QUADRATICS = STROKE_LENGTH - 2
-    const firstPoint = stroke.pointers[0]
+    // See `computeWidthProfile`: `p` on a stored pointer is the device's measurement, the width to
+    // draw is derived from the pen's speed here.
+    const pointers = computeOutlinePointers(
+      stroke.pointers,
+      stroke.pointerType,
+      isPenNib(stroke.style.pen) ? stroke.style.pen : undefined,
+      readNibOverrides(stroke.style)
+    )
+    const firstPoint = pointers[0]
 
     const parts = []
     if (STROKE_LENGTH < 3) {
       parts.push(this.getArcPath(firstPoint, STROKE_WIDTH * 0.6))
     } else {
       parts.push(this.getArcPath(firstPoint, STROKE_WIDTH * firstPoint.p))
-      parts.push(this.getLinePath(firstPoint, computeMiddlePointer(firstPoint, stroke.pointers[1]), STROKE_WIDTH))
+      parts.push(this.getLinePath(firstPoint, computeMiddlePointer(firstPoint, pointers[1]), STROKE_WIDTH))
 
       for (let i = 0; i < NB_QUADRATICS; i++) {
-        const begin = computeMiddlePointer(stroke.pointers[i], stroke.pointers[i + 1])
-        const end = computeMiddlePointer(stroke.pointers[i + 1], stroke.pointers[i + 2])
-        const central = stroke.pointers[i + 1]
+        const begin = computeMiddlePointer(pointers[i], pointers[i + 1])
+        const end = computeMiddlePointer(pointers[i + 1], pointers[i + 2])
+        const central = pointers[i + 1]
         parts.push(this.getQuadraticPath(begin, end, central, STROKE_WIDTH))
       }
-      const beforeLastPoint = stroke.pointers[STROKE_LENGTH - 2]
-      const lastPoint = stroke.pointers[STROKE_LENGTH - 1]
+      const beforeLastPoint = pointers[STROKE_LENGTH - 2]
+      const lastPoint = pointers[STROKE_LENGTH - 1]
       parts.push(this.getLinePath(computeMiddlePointer(beforeLastPoint, lastPoint), lastPoint, STROKE_WIDTH))
       parts.push(this.getFinalPath(beforeLastPoint, lastPoint, STROKE_WIDTH))
     }

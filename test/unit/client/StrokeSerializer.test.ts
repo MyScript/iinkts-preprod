@@ -158,16 +158,16 @@ describe("StrokeSerializer.ts", () => {
       // symbol layer's type: structural typing makes a real `TStroke` a valid argument, so neither
       // package needs to know about the other.
       const stroke = StrokeOps.create(undefined, "pen", CREATED_AT)
-      // `addPointer` overwrites the supplied pressure with its own computed value — 1 for the first
-      // pointer, whose travelled distance is 0 — so the expected `p` below is the library's, not the
-      // one passed in here.
+      // The pressure reaches the wire exactly as the device reported it. `addPointer` used to
+      // overwrite it with a value derived from the gap to the previous pointer; width is a drawing
+      // decision now, taken at render time, and never written back into the document.
       StrokeOps.addPointer(stroke, { x: 7, y: 8, dt: 42, p: 0.25 })
 
       const wire: TWireStroke = toWireStroke(stroke)
       expect(wire).toEqual({
         id: stroke.id,
         pointerType: "pen",
-        p: [1],
+        p: [0.25],
         t: [CREATED_AT + 42],
         x: [7],
         y: [8],
