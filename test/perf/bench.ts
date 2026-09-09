@@ -28,12 +28,38 @@ const IMPORT_SIZE = 200
 const SEED = 20260827
 
 /**
- * Repeat factor for the cheap cases. A single linear hit test over 500 strokes costs ~0.03 ms, close
- * enough to the timer floor that its ratio drifted +/-15% between unchanged runs. Doing the same work
- * several times per measured operation lifts it clear of the noise without changing what is measured
- * — the ratio scales, the comparison does not care.
+ * How many times each case repeats its own unit of work per measured operation.
+ *
+ * There used to be one shared factor of 20 here, which is the same mistake as one shared threshold:
+ * the cases span seven orders of magnitude, so a single number cannot put them all in a measurable
+ * band. Measured at 20 passes, one iteration of `getRootSymbol` cost 0.00003 ms — below the
+ * resolution of `performance.now()`, so it timed the clock rather than the code, and then failed CI
+ * at +21% against a 15% limit on a tree nobody had touched.
+ *
+ * Each factor below is therefore chosen from a measurement, targeting **0.1-10 ms per iteration**:
+ * high enough that timer overhead is negligible, low enough that a run stays affordable when every
+ * case is later measured twice, once per build. A case whose smallest indivisible unit already costs
+ * more than the band keeps a factor of 1 and sits above it.
+ *
+ * These are constants, not calibrated at runtime, on purpose: the two sides of an A/B comparison must
+ * do byte-for-byte the same work, and a factor recomputed per run would not guarantee that.
  */
-const CHEAP_CASE_PASSES = 20
+const IMPORT_PASSES = 16 // 0.030 ms measured x1 -> ~0.5 ms
+const APPEND_PASSES = 1000 // 0.0003 ms measured x1 -> ~0.3 ms
+const SYMBOLS_READ_PASSES = 200 // 0.0015 ms measured x1 -> ~0.3 ms
+const GET_ROOT_PASSES = 100_000 // below timer resolution at x20 -> see the sink in the case below
+const HIT_TEST_PASSES = 20 // 7.6 ms measured, already in band
+const TRANSFORM_PASSES = 20 // 4.0 ms measured, already in band
+const GEOMETRY_COLD_PASSES = 1 // one build of the whole set is its smallest unit
+const GEOMETRY_WARM_PASSES = 1 // one read of the whole set is its smallest unit
+
+/**
+ * Case names carry their repeat factor so a report can never be read as if it measured a single pass.
+ * A factor of 1 adds nothing: the name of a case that does its work once should not claim a multiple.
+ */
+function sized(name: string, passes: number): string {
+  return passes > 1 ? `${name} x${passes}` : name
+}
 
 registerBuiltinSymbolUtils()
 
@@ -136,42 +162,55 @@ const cases: TBenchCase[] = [
     },
   },
   {
-    name: `import: build a model of ${IMPORT_SIZE} strokes`,
+    name: sized(`import: build a model of ${IMPORT_SIZE} strokes`, IMPORT_PASSES),
     fn: () => {
-      const fresh = new IIModel()
-      for (const stroke of importSource) {
-        fresh.addSymbol(stroke)
+      for (let pass = 0; pass < IMPORT_PASSES; pass++) {
+        const fresh = new IIModel()
+        for (const stroke of importSource) {
+          fresh.addSymbol(stroke)
+        }
       }
     },
   },
   {
-    name: `append: add then remove one stroke @${RESIDENT_SIZE}`,
+    name: sized(`append: add then remove one stroke @${RESIDENT_SIZE}`, APPEND_PASSES),
     fn: () => {
-      const stroke = appendPool[appendCursor]
-      appendCursor = (appendCursor + 1) % appendPool.length
-      model.addSymbol(stroke)
-      model.removeSymbol(stroke.id)
-    },
-  },
-  {
-    name: `read: model.symbols @${RESIDENT_SIZE}`,
-    fn: () => {
-      void model.symbols
-    },
-  },
-  {
-    name: `read: getRootSymbol by id @${RESIDENT_SIZE} x${CHEAP_CASE_PASSES}`,
-    fn: () => {
-      for (let i = 0; i < CHEAP_CASE_PASSES; i++) {
-        void model.getRootSymbol(firstId)
+      for (let pass = 0; pass < APPEND_PASSES; pass++) {
+        const stroke = appendPool[appendCursor]
+        appendCursor = (appendCursor + 1) % appendPool.length
+        model.addSymbol(stroke)
+        model.removeSymbol(stroke.id)
       }
     },
   },
   {
-    name: `hit test: linear overlaps over all @${RESIDENT_SIZE} x${CHEAP_CASE_PASSES}`,
+    name: sized(`read: model.symbols @${RESIDENT_SIZE}`, SYMBOLS_READ_PASSES),
+    fn: () => {
+      let seen = 0
+      for (let pass = 0; pass < SYMBOLS_READ_PASSES; pass++) {
+        seen += model.symbols.length
+      }
+      if (seen < 0) throw new Error("unreachable")
+    },
+  },
+  {
+    name: sized(`read: getRootSymbol by id @${RESIDENT_SIZE}`, GET_ROOT_PASSES),
+    // The lookup's result was discarded through `void`, which let V8 remove part of the work: the
+    // case reported 1.6 ns per `Map.get`, below what a real one costs. Counting the hits makes the
+    // call observable, the same way the hit test case does.
+    fn: () => {
+      let found = 0
+      for (let i = 0; i < GET_ROOT_PASSES; i++) {
+        if (model.getRootSymbol(firstId) !== undefined) found++
+      }
+      if (found < 0) throw new Error("unreachable")
+    },
+  },
+  {
+    name: sized(`hit test: linear overlaps over all @${RESIDENT_SIZE}`, HIT_TEST_PASSES),
     fn: () => {
       let hits = 0
-      for (let pass = 0; pass < CHEAP_CASE_PASSES; pass++) {
+      for (let pass = 0; pass < HIT_TEST_PASSES; pass++) {
         for (const stroke of strokes) {
           if (symbolRegistry.getUtil(stroke.type)?.overlaps(stroke, probeBox)) {
             hits++
@@ -182,9 +221,9 @@ const cases: TBenchCase[] = [
     },
   },
   {
-    name: `transform: matrix over every pointer @${RESIDENT_SIZE} x${CHEAP_CASE_PASSES}`,
+    name: sized(`transform: matrix over every pointer @${RESIDENT_SIZE}`, TRANSFORM_PASSES),
     fn: () => {
-      for (let pass = 0; pass < CHEAP_CASE_PASSES; pass++) {
+      for (let pass = 0; pass < TRANSFORM_PASSES; pass++) {
         for (const stroke of strokes) {
           for (const pointer of stroke.pointers) {
             void MatrixTransform.applyToPoint(matrix, pointer)
@@ -194,7 +233,7 @@ const cases: TBenchCase[] = [
     },
   },
   {
-    name: `symbolGeometry:cold @${GEOMETRY_SYMBOL_COUNT}`,
+    name: sized(`symbolGeometry:cold @${GEOMETRY_SYMBOL_COUNT}`, GEOMETRY_COLD_PASSES),
     // A fresh, freshly-frozen stroke set every invocation: every read is a first read, so this is the
     // uncached path — building the strokes and computing their geometry, with nothing to reuse.
     fn: () => {
@@ -202,7 +241,7 @@ const cases: TBenchCase[] = [
     },
   },
   {
-    name: `symbolGeometry:warm @${GEOMETRY_SYMBOL_COUNT}`,
+    name: sized(`symbolGeometry:warm @${GEOMETRY_SYMBOL_COUNT}`, GEOMETRY_WARM_PASSES),
     // Same frozen strokes on every invocation, already warmed once above: this is a WeakMap hit per
     // symbol, drawing and hit-testing's actual read shape, not the per-frame renderer path — the
     // renderer's own pan virtualization reads `tracked.bounds`, not `SymbolGeometry`.
