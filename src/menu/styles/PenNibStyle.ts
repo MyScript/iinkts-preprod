@@ -1,0 +1,72 @@
+import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import type { TMenuButtonList } from "@/menu/items"
+import { ButtonListMenuItem, CollapsibleWrapper } from "@/menu/items"
+import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
+import { DEFAULT_PEN_NIB, isPenNib, PEN_NIBS } from "@/style"
+
+/** Every nib, in the order the write tool offers them. */
+const NIB_OPTIONS = (Object.keys(PEN_NIBS) as (keyof typeof PEN_NIBS)[]).map((nib) => ({
+  label: nib.charAt(0).toUpperCase() + nib.slice(1),
+  value: nib,
+}))
+
+/**
+ * @group Menu
+ * @remarks Nib style menu — picks the instrument, for the pen and for what is already selected
+ *
+ * The nib lives on a stroke's style, so changing it here rewrites the selected strokes and they
+ * redraw with the new instrument. Without this the nib could only ever be chosen before writing.
+ */
+export class PenNibStyle extends BaseMenuItem<HTMLDivElement> {
+  private nibItem?: ButtonListMenuItem
+
+  constructor(canvas: TInteractiveInkCanvas, idPrefix = "ms-menu-style") {
+    super({ type: "pen" as const, id: `${idPrefix}-pen`, label: "Pen" }, canvas)
+  }
+
+  createElement(): HTMLDivElement {
+    const config: TMenuButtonList = {
+      type: "buttonlist",
+      id: this.config.id,
+      buttonType: "square",
+      options: NIB_OPTIONS,
+      getValue: (canvas) => {
+        // What the selection says, when it speaks with one voice; otherwise what the pen carries.
+        const styles = canvas.model.symbolsSelected.map((s) => s.style)
+        const shared = styles.length > 0 && styles.every((style) => style.pen === styles[0].pen)
+        const nib = shared ? styles[0].pen : canvas.penStyle.pen
+        return isPenNib(nib) ? nib : DEFAULT_PEN_NIB
+      },
+      setValue: (canvas, value) => {
+        if (!isPenNib(value)) {
+          return
+        }
+        canvas.penStyle = { pen: value }
+        if (canvas.model.symbolsSelected.length) {
+          canvas.updateSymbolsStyle(
+            canvas.model.symbolsSelected.map((s) => s.id),
+            { pen: value }
+          )
+          canvas.selector.redrawSelectedGroup()
+        }
+      },
+    }
+
+    this.nibItem = new ButtonListMenuItem(config, this.canvas)
+    const wrapper = new CollapsibleWrapper(this.nibItem.getElement(), "Pen", this.config.id)
+    return wrapper.getElement()
+  }
+
+  update(): void {
+    this.updateDisabled()
+    this.updateVisible()
+  }
+
+  destroy(): void {
+    if (this.nibItem) {
+      this.nibItem.destroy()
+      this.nibItem = undefined
+    }
+    super.destroy()
+  }
+}
