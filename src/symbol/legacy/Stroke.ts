@@ -16,7 +16,6 @@ import { SymbolType } from "../Symbol"
 export type TLegacyStroke = TBaseSymbol &
   TStrokeCapture & {
     style: TPenStyle
-    length: number
   }
 
 /**
@@ -31,7 +30,6 @@ export class Stroke implements TLegacyStroke {
   style: TPenStyle
   pointerType: string
   pointers: TPointer[]
-  length: number
   transform: TMatrixTransform
 
   constructor(style: TPenStyle, pointerType = "pen") {
@@ -41,7 +39,6 @@ export class Stroke implements TLegacyStroke {
     this.style = style
     this.pointerType = pointerType
     this.pointers = []
-    this.length = 0
     this.transform = MatrixTransform.identity()
   }
 
@@ -51,7 +48,6 @@ export class Stroke implements TLegacyStroke {
     clone.creationTime = this.creationTime
     clone.modificationDate = this.modificationDate
     clone.pointers = structuredClone(this.pointers)
-    clone.length = this.length
     clone.transform = { ...this.transform }
     return clone
   }
