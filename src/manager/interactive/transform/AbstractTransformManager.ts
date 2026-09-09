@@ -2,6 +2,8 @@ import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import { SvgElementRole } from "@/Constants"
 import type { MatrixTransform } from "@/core/geometry"
 import { applyMatrixToPoint, OBBOps } from "@/core/geometry"
+import type { TIIHistoryChanges } from "@/history"
+import { appendUpdated } from "@/history"
 import { LoggerCategory } from "@/logger"
 import type { TStroke, TSymbol } from "@/symbol"
 import { isDecorator, isStroke } from "@/symbol"
@@ -61,6 +63,28 @@ export abstract class IIAbstractTransformManager extends IIAbstractManager {
    */
   applyMatrix(symbols: TSymbol[], matrix: MatrixTransform): void {
     this.applyAndDraw(symbols, matrix)
+  }
+
+  /**
+   * Records a transform as the before/after pair `updated` wants, resolving "after" from the
+   * document by id rather than from the caller.
+   *
+   * By id, because a transform commits a draft: the object the caller holds is the pre-transform
+   * snapshot, and reading the moved value off it would record no change at all. Resolving both
+   * sides here also keeps the two lists the same length — a symbol the document no longer holds is
+   * dropped from both rather than shifting every pair after it.
+   *
+   * Call after `applyAndDraw`, with the snapshots taken before it.
+   */
+  protected recordTransformed(changes: TIIHistoryChanges, snapshots: TSymbol[]): void {
+    appendUpdated(
+      changes,
+      snapshots.flatMap((before) => {
+        // The committed record is frozen, so it is a value the history can hold as-is — no clone.
+        const after = this.model.getRootSymbol(before.id)
+        return after ? [{ before, after }] : []
+      })
+    )
   }
 
   protected applyAndDraw(symbols: TSymbol[], matrix: MatrixTransform): void {

@@ -372,17 +372,20 @@ describe("IIRotationManager.ts", () => {
       const sentIds = (canvas.client.transformRotate as jest.Mock).mock.calls[0][0] as string[]
       expect(sentIds).not.toContain(newEdgeStroke.id)
       expect(canvas.client.replaceStrokes).toHaveBeenCalledWith([newEdgeStroke.id], [newEdgeStroke])
-      // ...and history must hold its PRE-rotation snapshot for undo in `updated`, not the
-      // `rotate` entry's own inverse-matrix-replay symbol list (a gradient shift has no inverse).
+      // ...and history must hold its PRE-rotation snapshot for undo. Every change is a before/after
+      // pair now, so the gradient-shifted stroke and the rotated selection sit in the same list.
       const changes = (canvas.history.push as jest.Mock).mock.calls[0][0] as {
-        rotate: { symbols: TStroke[] }[]
-        updated?: { oldSymbols: TStroke[]; newSymbols: TStroke[] }
+        updated?: { before: TStroke; after: TStroke }[]
       }
-      expect(changes.rotate[0].symbols.find((s) => s.id === newEdgeStroke.id)).toBeUndefined()
-      const oldSnapshot = changes.updated?.oldSymbols.find((s) => s.id === edgeStroke.id)
-      expect(oldSnapshot).toBeDefined()
-      expect(oldSnapshot!.pointers).toEqual(originalPointers)
-      expect(changes.updated?.newSymbols.find((s) => s.id === edgeStroke.id)).toStrictEqual(newEdgeStroke)
+      const pair = changes.updated?.find((entry) => entry.before.id === edgeStroke.id)
+      expect(pair).toBeDefined()
+      expect(pair!.before.pointers).toEqual(originalPointers)
+      expect(pair!.after).toStrictEqual(newEdgeStroke)
+      // And the rotated symbol's own pair is still there beside it. Two sources feed one entry — the
+      // selection and the followed stroke — and they must be appended, not assigned: assigning
+      // `updated` twice keeps only the last writer, which would leave the symbols the user actually
+      // dragged with nothing to undo.
+      expect(changes.updated?.find((entry) => entry.before.id === shape.id)).toBeDefined()
     })
 
     test("end() commits the exact same gradient shape the drag preview showed (no pointerup snap)", async () => {

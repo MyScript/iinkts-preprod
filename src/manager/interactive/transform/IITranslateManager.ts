@@ -2,7 +2,9 @@ import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import type { TPoint } from "@/core/geometry"
 import { MatrixTransform, type TOBB } from "@/core/geometry"
 import type { TIIHistoryChanges } from "@/history"
+import { appendUpdated } from "@/history"
 import type { TSymbol } from "@/symbol"
+import { cloneSymbol } from "@/symbol/SymbolHelpers"
 import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 
@@ -50,14 +52,19 @@ export class IITranslateManager extends IIAbstractTransformManager {
       const bounds = SymbolGeometry.boundsOf(s)
       preTransformBoundsById.set(s.id, { ...bounds, center: { ...bounds.center } })
     })
+    // Snapshotted before the transform, and from `symbols` — the list actually being moved, not
+    // `symbolsSelected`. Recording the selection instead produced an entry with no symbols at all
+    // whenever a caller moved something that was not selected, and undo then consumed that entry
+    // and applied nothing. Only taken when the move is undoable: the gesture handlers translate
+    // with `addToHistory` false and would pay for clones nobody reads.
+    const preTransformSnapshots = addToHistory ? symbols.map((s) => cloneSymbol(s)) : []
     const matrix = MatrixTransform.identity().translate(tx, ty)
     this.applyAndDraw(symbols, matrix)
     this.applyTransformToGhostStrokesForSelectedMath(symbols, matrix)
     // Pre-convert edge strokes and converted Line/PolyEdge/Arc anchors moved by the connector,
-    // not by applyAndDraw above. Rigidly-moved raw strokes ride along in this method's own
-    // `translate` history entry (a uniform matrix is safe to undo by re-applying its inverse);
+    // not by applyAndDraw above. Rigidly-moved raw strokes are recorded alongside the selection;
     // everything else (gradient-moved raw strokes, converted edges recomputed from the target's
-    // new bounds) needs its own pre-mutation snapshot instead — see `updated` below.
+    // new bounds) carries its own pre-mutation snapshot — both end up in the same `updated` pair.
     const {
       rigidStrokeIds,
       oldSymbols: anchoredOldSymbols,
@@ -69,18 +76,15 @@ export class IITranslateManager extends IIAbstractTransformManager {
     )
     if (addToHistory) {
       const historySymbols = this.model.symbolsSelected
-      const changes: TIIHistoryChanges = {
-        translate: [
-          {
-            symbols: [...historySymbols, ...this.resolveFollowedSymbols(rigidStrokeIds, historySymbols)],
-            tx,
-            ty,
-          },
-        ],
-      }
-      if (anchoredNewSymbols.length) {
-        changes.updated = { oldSymbols: anchoredOldSymbols, newSymbols: anchoredNewSymbols }
-      }
+      const changes: TIIHistoryChanges = {}
+      this.recordTransformed(changes, [
+        ...preTransformSnapshots,
+        ...this.resolveFollowedSymbols(rigidStrokeIds, historySymbols),
+      ])
+      appendUpdated(
+        changes,
+        anchoredOldSymbols.map((before, index) => ({ before, after: anchoredNewSymbols[index] }))
+      )
       this.canvas.history.push(changes)
     }
     const strokes = this.canvas.extractStrokesFromSymbols(symbols)

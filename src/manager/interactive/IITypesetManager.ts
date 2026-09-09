@@ -3,7 +3,7 @@ import type { TBox } from "@/core/geometry"
 import { OBBOps } from "@/core/geometry"
 import { LoggerCategory } from "@/logger"
 import type { TMath, TSymbol, TSymbolChar, TText } from "@/symbol"
-import { isText } from "@/symbol"
+import { cloneSymbol, isText } from "@/symbol"
 import { TextOps } from "@/symbol/typeset/Text"
 import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
@@ -156,7 +156,13 @@ export class IITypesetManager extends IIAbstractManager {
     return typesetSymbol
   }
 
-  moveTextAfter(text: TText, tx: number): TSymbol[] | undefined {
+  /**
+   * Shifts the texts that follow `text` on its row, and returns each one's before/after pair.
+   *
+   * Pairs rather than just the moved symbols: only this method knows which ones it picked, so it is
+   * the only place a caller's history entry can get its pre-move snapshots from.
+   */
+  moveTextAfter(text: TText, tx: number): { before: TSymbol; after: TSymbol }[] | undefined {
     // `text` can be a draft mid-edit (see callers in InteractiveInkCanvas), so its geometry is
     // never cached — one boundsOf call here, reused for both the row lookup and the position
     // comparison below, instead of getSymbolRowIndex(text) computing it again independently.
@@ -167,13 +173,14 @@ export class IITypesetManager extends IIAbstractManager {
       const textsAfter = row.symbols.filter(
         (s) => isText(s) && SymbolGeometry.boundsOf(s).center.x > textBounds.center.x
       ) as TText[]
-      textsAfter.forEach((symbol) => {
+      return textsAfter.map((symbol) => {
+        const before = cloneSymbol(symbol)
         symbol.point.x += tx
         this.updateBounds(symbol)
         this.model.updateSymbol(symbol)
         this.renderer.drawSymbol(symbol)
+        return { before, after: this.model.getRootSymbol(symbol.id) ?? symbol }
       })
-      return textsAfter
     }
     return
   }
