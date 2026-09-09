@@ -3,6 +3,7 @@ import {
   MAX_GATED_DEVIATION,
   MAX_USABLE_SPREAD,
   MIN_CURRENT_PROCESSES,
+  MIN_GATED_MS,
   MIN_THRESHOLD,
   evaluate,
   thresholdFor,
@@ -116,6 +117,70 @@ describe("evaluate — cases it refuses to gate", () => {
     expect(result.verdicts[0].gated).toBe(false)
     expect(result.verdicts[0].regressed).toBe(false)
     expect(result.regressions).toHaveLength(0)
+  })
+
+  test("reports but does not gate a case measured below the timer floor", () => {
+    // The drift is one a gated case would have failed on: the floor has to be what stops it, not a
+    // threshold that happens to be wide.
+    const baseline = report({
+      ratios: { case: 10 },
+      ratioMaxDeviation: { case: 0.02 },
+      cases: [{ name: "case", p50Ms: MIN_GATED_MS / 2 }],
+    })
+    const result = evaluate(baseline, report({ ratios: { case: 20 } }))
+
+    expect(result.verdicts[0].gated).toBe(false)
+    expect(result.verdicts[0].ungatedReason).toBe("timer-floor")
+    expect(result.regressions).toHaveLength(0)
+  })
+
+  test("gates a case sitting exactly on the floor", () => {
+    const baseline = report({
+      ratios: { case: 10 },
+      ratioMaxDeviation: { case: 0.02 },
+      cases: [{ name: "case", p50Ms: MIN_GATED_MS }],
+    })
+    const result = evaluate(baseline, report({ ratios: { case: 20 } }))
+
+    expect(result.verdicts[0].gated).toBe(true)
+    expect(result.regressions).toHaveLength(1)
+  })
+
+  test("blames the timer floor rather than the noise when a case is both", () => {
+    // A case timed against the clock has a meaningless dispersion too, so calling it noisy would send
+    // someone off to stabilise a number that was never measured.
+    const baseline = report({
+      ratios: { case: 10 },
+      ratioMaxDeviation: { case: MAX_GATED_DEVIATION + 0.5 },
+      cases: [{ name: "case", p50Ms: MIN_GATED_MS / 100 }],
+    })
+    const result = evaluate(baseline, report({ ratios: { case: 20 } }))
+
+    expect(result.verdicts[0].ungatedReason).toBe("timer-floor")
+  })
+
+  test("gates normally when the baseline records no per-case milliseconds", () => {
+    // An older baseline has no opinion on measurability, and refusing every case over that would be
+    // worse than the problem.
+    const baseline = report({ ratios: { case: 10 }, ratioMaxDeviation: { case: 0.02 }, cases: undefined })
+    const result = evaluate(baseline, report({ ratios: { case: 20 } }))
+
+    expect(result.verdicts[0].gated).toBe(true)
+    expect(result.verdicts[0].ungatedReason).toBeUndefined()
+    expect(result.regressions).toHaveLength(1)
+  })
+
+  test("reads the floor from the baseline, not from the run being judged", () => {
+    // Symmetric with the threshold rule: a change that made a case unmeasurably fast is an
+    // improvement to report, not a reason to stop gating it.
+    const baseline = report({
+      ratios: { case: 10 },
+      ratioMaxDeviation: { case: 0.02 },
+      cases: [{ name: "case", p50Ms: MIN_GATED_MS * 10 }],
+    })
+    const current = report({ ratios: { case: 20 }, cases: [{ name: "case", p50Ms: MIN_GATED_MS / 100 }] })
+
+    expect(evaluate(baseline, current).verdicts[0].gated).toBe(true)
   })
 
   test("refuses the whole run when the control case is too noisy", () => {

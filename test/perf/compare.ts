@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 
-import { DEVIATION_FACTOR, MIN_THRESHOLD, evaluate } from "./lib/gate.ts"
+import { DEVIATION_FACTOR, MIN_GATED_MS, MIN_THRESHOLD, evaluate, type TVerdict } from "./lib/gate.ts"
 import type { TRunReport } from "./lib/harness.ts"
 
 /**
@@ -22,6 +22,23 @@ function readOptional(file: string): TRunReport | undefined {
   } catch {
     return undefined
   }
+}
+
+/**
+ * The two reasons a case is not gated need different work from whoever reads this, so they are not
+ * printed as one word: a noisy case needs its measurement stabilised, a case under the floor needs
+ * more work per iteration before it measures anything at all.
+ */
+function markFor(v: TVerdict): string {
+  if (v.regressed) return "REGRESSED"
+  if (!v.gated) return v.ungatedReason === "timer-floor" ? "too small" : "too noisy"
+  return v.improved ? "improved " : "         "
+}
+
+function limitFor(v: TVerdict): string {
+  if (v.gated) return `limit ${(v.threshold * 100).toFixed(0)}%`
+  if (v.ungatedReason === "timer-floor") return `not gated, under the ${MIN_GATED_MS} ms floor`
+  return "not gated, too noisy"
 }
 
 function arg(name: string, fallback: string): string {
@@ -61,10 +78,8 @@ for (const name of result.missing) {
 const width = Math.max(...result.verdicts.map((v) => v.name.length))
 for (const v of result.verdicts) {
   const sign = v.drift >= 0 ? "+" : ""
-  const mark = v.regressed ? "REGRESSED" : !v.gated ? "too noisy" : v.improved ? "improved " : "         "
-  const limit = v.gated ? `limit ${(v.threshold * 100).toFixed(0)}%` : "not gated"
   console.log(
-    `${mark} ${v.name.padEnd(width)}  x${v.baselineRatio.toFixed(2)} -> x${v.currentRatio.toFixed(2)}  ${sign}${(v.drift * 100).toFixed(1)}%  (${limit})`
+    `${markFor(v)} ${v.name.padEnd(width)}  x${v.baselineRatio.toFixed(2)} -> x${v.currentRatio.toFixed(2)}  ${sign}${(v.drift * 100).toFixed(1)}%  (${limitFor(v)})`
   )
 }
 
