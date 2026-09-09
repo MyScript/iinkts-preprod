@@ -78,7 +78,7 @@ describe("TStroke / StrokeOps", () => {
         y: 50,
       }
       StrokeOps.addPointer(stroke, pointer)
-      expect(stroke.length).toEqual(Math.sqrt(2 * Math.pow(50, 2)))
+      expect(StrokeOps.computeLength(stroke)).toEqual(Math.sqrt(2 * Math.pow(50, 2)))
     })
   })
 
