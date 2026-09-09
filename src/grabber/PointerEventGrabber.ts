@@ -17,6 +17,12 @@ export type TPointerInfo = {
   pointer: TPointer
   button: number
   buttons: number
+  /**
+   * Epoch milliseconds of the `pointerdown` that opened the current gesture — the origin every
+   * {@link TPointer.dt} in this gesture counts from. A symbol built out of these pointers takes it
+   * as its `creationTime`, which is what turns their relative times back into absolute ones.
+   */
+  gestureStartTime: number
 }
 
 /**
@@ -92,6 +98,36 @@ export class PointerEventGrabber {
     return ctm
   }
 
+  /**
+   * Epoch milliseconds of the gesture currently being captured. Set on `pointerdown` and read back
+   * by every pointer of that gesture, so they all count from the same origin.
+   */
+  protected gestureStartTime = 0
+
+  /**
+   * The instant an event was captured, in epoch milliseconds and with sub-millisecond precision.
+   *
+   * Read off the event rather than by calling `Date.now()` in the handler: under main-thread
+   * pressure the browser hands several samples to one `pointermove`, and a clock read taken while
+   * replaying them would stamp them all with the same instant — the recognizer would then see a
+   * burst of points captured simultaneously, which is exactly the timing information it uses to
+   * segment characters. `timeStamp` is relative to the page's time origin, so it is shifted back
+   * onto the epoch to keep the same reference as `creationTime`.
+   */
+  protected eventTime(event: Event): number {
+    // Three decimals: the sum of two floats carries digits neither operand had, and they would
+    // ride into `creationTime` and from there onto the wire as false precision.
+    return +(performance.timeOrigin + event.timeStamp).toFixed(3)
+  }
+
+  protected extractDelta(event: Event): number {
+    const delta = this.eventTime(event) - this.gestureStartTime
+    // Three decimals, the precision coordinates already carry. `timestampFloatPrecision` can still
+    // coarsen further, but it cannot express decimals - it rounds to a power of ten - so it no
+    // longer decides the default.
+    return +this.roundFloat(delta, this.configuration.timestampFloatPrecision).toFixed(3)
+  }
+
   protected extractPointer(event: MouseEvent | TouchEvent): TPointer {
     let clientX: number, clientY: number
     if ("changedTouches" in event) {
@@ -128,7 +164,7 @@ export class PointerEventGrabber {
     const pointer = {
       x: this.roundFloat(x, this.configuration.xyFloatPrecision),
       y: this.roundFloat(y, this.configuration.xyFloatPrecision),
-      t: this.roundFloat(Date.now(), this.configuration.timestampFloatPrecision),
+      dt: this.extractDelta(event),
       p: (event as PointerEvent).pressure,
     }
     this.#logger.debug("extractPointer", {
@@ -149,6 +185,7 @@ export class PointerEventGrabber {
       pointer: this.extractPointer(evt),
       button: evt.button,
       buttons: evt.buttons,
+      gestureStartTime: this.gestureStartTime,
     }
   }
 
@@ -159,6 +196,9 @@ export class PointerEventGrabber {
     // can't detect it. Force a fresh getScreenCTM read at the start of every
     // gesture so a stale value never survives across a reparent.
     this.#cachedCTMSvg = undefined
+    // Opens the gesture's time origin before the first pointer is extracted, so that pointer comes
+    // out at dt 0 and every later one counts from the same instant.
+    this.gestureStartTime = this.eventTime(evt)
     const pointerInfo = this.getPointerInfos(evt)
     this.#logger.debug("pointerDownHandler", pointerInfo)
 
@@ -227,6 +267,9 @@ export class PointerEventGrabber {
 
   protected contextMenuHandler = (evt: MouseEvent) => {
     if (evt.target && this.onContextMenu) {
+      // A context menu opens no gesture, so it has no origin of its own to count from. Left on the
+      // previous gesture's origin it would report a dt of however long ago that stroke was drawn.
+      this.gestureStartTime = this.eventTime(evt)
       const pointerInfo: TPointerInfo = {
         clientX: evt.clientX,
         clientY: evt.clientY,
@@ -237,6 +280,7 @@ export class PointerEventGrabber {
         pointer: this.extractPointer(evt),
         button: evt.button,
         buttons: evt.buttons,
+        gestureStartTime: this.gestureStartTime,
       }
       this.#logger.debug("contextMenuHandler", pointerInfo)
       this.onContextMenu(pointerInfo)

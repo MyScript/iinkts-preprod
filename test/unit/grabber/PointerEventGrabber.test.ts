@@ -62,6 +62,81 @@ describe("PointerEventGrabber.ts", () => {
       expect(grabber.onPointerUp).toHaveBeenCalledTimes(1)
     })
 
+    test("should time each coalesced sample from its own event, not from one clock read", () => {
+      // The bug this guards: reading the clock inside the handler while replaying a batch stamped
+      // every sample in it with the same instant, so the recognizer saw them as simultaneous.
+      const g = new PointerEventGrabber(DefaultGrabberConfiguration)
+      g.onPointerDown = jest.fn()
+      const moves: number[] = []
+      g.onPointerMove = (info) => moves.push(info.pointer.dt)
+      g.attach(wrapperHTML)
+
+      wrapperHTML.dispatchEvent(
+        new LeftClickEventMock("pointerdown", { pointerType: "pen", clientX: 0, clientY: 0, pressure: 1, timeStamp: 1000 })
+      )
+      const batched = new LeftClickEventMock("pointermove", {
+        pointerType: "pen",
+        clientX: 10,
+        clientY: 10,
+        pressure: 1,
+        timeStamp: 1012,
+        coalescedEvents: [
+          new LeftClickEventMock("pointermove", { pointerType: "pen", clientX: 4, clientY: 4, pressure: 1, timeStamp: 1004 }),
+          new LeftClickEventMock("pointermove", { pointerType: "pen", clientX: 7, clientY: 7, pressure: 1, timeStamp: 1008.5 }),
+          new LeftClickEventMock("pointermove", { pointerType: "pen", clientX: 10, clientY: 10, pressure: 1, timeStamp: 1012 }),
+        ],
+      })
+      wrapperHTML.dispatchEvent(batched)
+
+      // Counted from the pointerdown at 1000, and sub-millisecond gaps survive.
+      expect(moves).toEqual([4, 8.5, 12])
+      g.detach()
+    })
+
+    test("should count every pointer of a gesture from that gesture's own pointerdown", () => {
+      const g = new PointerEventGrabber(DefaultGrabberConfiguration)
+      const downs: number[] = []
+      const moves: number[] = []
+      g.onPointerDown = (info) => downs.push(info.pointer.dt)
+      g.onPointerMove = (info) => moves.push(info.pointer.dt)
+      g.onPointerUp = jest.fn()
+      g.attach(wrapperHTML)
+
+      const stroke = (downAt: number, moveAt: number) => {
+        wrapperHTML.dispatchEvent(
+          new LeftClickEventMock("pointerdown", { pointerType: "pen", clientX: 0, clientY: 0, pressure: 1, timeStamp: downAt })
+        )
+        wrapperHTML.dispatchEvent(
+          new LeftClickEventMock("pointermove", { pointerType: "pen", clientX: 5, clientY: 5, pressure: 1, timeStamp: moveAt })
+        )
+        wrapperHTML.dispatchEvent(
+          new LeftClickEventMock("pointerup", { pointerType: "pen", clientX: 5, clientY: 5, pressure: 1, timeStamp: moveAt })
+        )
+      }
+      stroke(1000, 1020)
+      stroke(5000, 5030)
+
+      // The second stroke restarts at 0 rather than carrying on from the first: where it sits on
+      // the timeline is the stroke's `creationTime`, reported alongside as `gestureStartTime`.
+      expect(downs).toEqual([0, 0])
+      expect(moves).toEqual([20, 30])
+      g.detach()
+    })
+
+    test("should report the gesture's epoch origin so a symbol can anchor its pointers", () => {
+      const g = new PointerEventGrabber(DefaultGrabberConfiguration)
+      let start = -1
+      g.onPointerDown = (info) => {
+        start = info.gestureStartTime
+      }
+      g.attach(wrapperHTML)
+      wrapperHTML.dispatchEvent(
+        new LeftClickEventMock("pointerdown", { pointerType: "pen", clientX: 0, clientY: 0, pressure: 1, timeStamp: 1234.5 })
+      )
+      expect(start).toBeCloseTo(performance.timeOrigin + 1234.5, 3)
+      g.detach()
+    })
+
     test("should call onPointerMove once per coalesced point instead of only the last one", () => {
       const g = new PointerEventGrabber(DefaultGrabberConfiguration)
       g.onPointerDown = jest.fn()

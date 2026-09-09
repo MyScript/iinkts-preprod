@@ -11,19 +11,19 @@ import {
 describe("quadratics", () => {
   const p1: TPointer = {
     p: 1,
-    t: 1,
+    dt: 1,
     x: 1,
     y: 1,
   }
   const p2: TPointer = {
     p: 1,
-    t: 1,
+    dt: 1,
     x: 2,
     y: 5,
   }
   const p3: TPointer = {
     p: 1,
-    t: 1,
+    dt: 1,
     x: 4,
     y: 2,
   }
@@ -44,7 +44,7 @@ describe("quadratics", () => {
 
   test("should computeMiddlePointer", () => {
     const point = computeMiddlePointer(p1, p2)
-    expect(point).toStrictEqual({ x: 1.5, y: 3, p: 1, t: 1 })
+    expect(point).toStrictEqual({ x: 1.5, y: 3, p: 1, dt: 1 })
   })
 
   test("should computeLineOutlinePoints link both endpoints along the segment angle", () => {

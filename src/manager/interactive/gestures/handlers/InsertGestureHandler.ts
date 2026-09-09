@@ -1,5 +1,5 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import type { TPoint } from "@/core/geometry"
+import type { TPoint, TPointer } from "@/core/geometry"
 import { BoxOps, MatrixTransform } from "@/core/geometry"
 import { computeAverage, isBetween } from "@/core/math"
 import type { TIIHistoryChanges } from "@/history"
@@ -41,6 +41,21 @@ export class InsertGestureHandler extends GestureHandler {
   }
 
   /**
+   * The `dt` the pointer at `index` had in the stroke being split, or one step past the last
+   * pointer already kept when the split runs off the end of the original.
+   *
+   * `??` and not `||`: the first pointer of a stroke has a `dt` of exactly 0, and `||` would read
+   * that as missing and fabricate a time for a pointer that has a perfectly good one.
+   */
+  protected deltaAt(strokeOrigin: TStroke, index: number, kept: TPointer[]): number {
+    const original = strokeOrigin.pointers.at(index)?.dt
+    if (original !== undefined) {
+      return original
+    }
+    return kept.length ? Math.max(...kept.map((p) => p.dt)) + 20 : 0
+  }
+
+  /**
    * Create strokes from gesture substrokes
    * Reconstructs pointers with pressure and time information
    * @param strokeOrigin - The original stroke to get style and pointer info
@@ -50,27 +65,31 @@ export class InsertGestureHandler extends GestureHandler {
   createStrokesFromGestureSubStroke(strokeOrigin: TStroke, subStrokes: { x: number[]; y: number[] }[]): TStroke[] {
     const strokes: TStroke[] = []
     if (subStrokes[0]) {
-      const subStroke = StrokeOps.create(strokeOrigin.style)
+      // Same origin as the stroke it is cut from: its pointers keep the `dt` they were captured
+      // with, and those count from that origin. A fresh `creationTime` here would place every
+      // one of them at the instant of the split.
+      const subStroke = StrokeOps.create(strokeOrigin.style, strokeOrigin.pointerType, strokeOrigin.creationTime)
       subStrokes[0].x.forEach((x, i) => {
         subStroke.pointers.push({
           x,
           y: subStrokes[0].y[i],
           p: strokeOrigin.pointers.at(i)?.p || 1,
-          t: strokeOrigin.pointers.at(i)?.t || Math.max(...subStroke.pointers.map((p) => p.t + 20)),
+          dt: this.deltaAt(strokeOrigin, i, subStroke.pointers),
         })
       })
       strokes.push(subStroke)
     }
     if (subStrokes[1]) {
-      const subStroke = StrokeOps.create(strokeOrigin.style)
+      // Same origin as the stroke it is cut from: its pointers keep the `dt` they were captured
+      // with, and those count from that origin. A fresh `creationTime` here would place every
+      // one of them at the instant of the split.
+      const subStroke = StrokeOps.create(strokeOrigin.style, strokeOrigin.pointerType, strokeOrigin.creationTime)
       subStrokes[1].x.forEach((x, i) => {
         subStroke.pointers.push({
           x,
           y: subStrokes[1].y[i],
           p: strokeOrigin.pointers.at(subStroke.pointers.length + i)?.p || 1,
-          t:
-            strokeOrigin.pointers.at(subStroke.pointers.length + i)?.t ||
-            Math.max(...subStroke.pointers.map((p) => p.t + 20)),
+          dt: this.deltaAt(strokeOrigin, subStroke.pointers.length + i, subStroke.pointers),
         })
       })
       strokes.push(subStroke)

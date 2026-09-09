@@ -39,13 +39,23 @@ export abstract class AbstractWriterManager {
     this.grabber.detach()
   }
 
-  protected abstract createCurrentSymbol(pointer: TPointer, style: TStyle, pointerType: string): TSymbol
+  protected abstract createCurrentSymbol(
+    pointer: TPointer,
+    style: TStyle,
+    pointerType: string,
+    creationTime: number
+  ): TSymbol
   protected abstract updateCurrentSymbol(pointer: TPointer): TSymbol
 
   start(info: TPointerInfo): void {
     this.#logger.info("startWriting", { info })
     const localPointer = info.pointer
-    this.currentSymbol = this.createCurrentSymbol(localPointer, this.canvas.penStyle, info.pointerType)
+    this.currentSymbol = this.createCurrentSymbol(
+      localPointer,
+      this.canvas.penStyle,
+      info.pointerType,
+      info.gestureStartTime
+    )
     this.renderer.drawSymbol(this.currentSymbol!)
   }
 

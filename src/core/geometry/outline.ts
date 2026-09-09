@@ -26,7 +26,7 @@ export function computeMiddlePointer(point1: TPointer, point2: TPointer): TPoint
     x: +((point2.x + point1.x) / 2).toFixed(3),
     y: +((point2.y + point1.y) / 2).toFixed(3),
     p: +((point2.p + point1.p) / 2).toFixed(3),
-    t: +((point2.t + point1.t) / 2).toFixed(3),
+    dt: +((point2.dt + point1.dt) / 2).toFixed(3),
   }
 }
 

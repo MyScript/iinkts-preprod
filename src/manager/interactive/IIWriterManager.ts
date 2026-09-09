@@ -127,10 +127,10 @@ export class IIWriterManager extends AbstractWriterManager {
     )
   }
 
-  protected createCurrentSymbol(pointer: TPointer, style: TStyle, pointerType: string): TSymbol {
+  protected createCurrentSymbol(pointer: TPointer, style: TStyle, pointerType: string, creationTime: number): TSymbol {
     switch (this.tool) {
       case CanvasWriteTool.Pencil:
-        this.currentSymbol = StrokeOps.create(style, pointerType)
+        this.currentSymbol = StrokeOps.create(style, pointerType, creationTime)
         break
       case CanvasWriteTool.Rectangle:
         this.currentSymbol = ShapePolygonOps.createRectangleBetweenPoints(pointer, pointer, style)
@@ -248,7 +248,7 @@ export class IIWriterManager extends AbstractWriterManager {
       localPointer.y = y
     }
     this.currentSymbolOrigin = localPointer
-    this.createCurrentSymbol(localPointer, this.canvas.penStyle, info.pointerType)
+    this.createCurrentSymbol(localPointer, this.canvas.penStyle, info.pointerType, info.gestureStartTime)
     this.renderer.drawCurrentSymbol(this.currentSymbol!)
   }
 

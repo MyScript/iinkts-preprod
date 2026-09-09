@@ -38,7 +38,7 @@ describe("IIWriterManager.ts", () => {
       expect(manager.currentSymbol).toBeUndefined()
 
       const info = {
-        pointer: { t: 1, p: 0.5, x: 1, y: 1 },
+        pointer: { dt: 1, p: 0.5, x: 1, y: 1 },
       } as TPointerInfo
       manager.start(info)
       expect(canvas.startOperation).toHaveBeenCalledWith("Writing")
@@ -53,7 +53,7 @@ describe("IIWriterManager.ts", () => {
     test("should init model.currentSymbol with pencil & custom style", () => {
       canvas.penStyle = { color: "red", width: 42 }
       const info = {
-        pointer: { t: 1, p: 0.5, x: 1, y: 1 },
+        pointer: { dt: 1, p: 0.5, x: 1, y: 1 },
       } as TPointerInfo
       manager.start(info)
       expect(manager.currentSymbol).toBeDefined()
@@ -66,7 +66,7 @@ describe("IIWriterManager.ts", () => {
       manager.tool = CanvasWriteTool.Rectangle
       expect(canvas.layers.root.classList.contains("shape")).toBe(true)
       const info = {
-        pointer: { t: 1, p: 0.5, x: 1, y: 1 },
+        pointer: { dt: 1, p: 0.5, x: 1, y: 1 },
       } as TPointerInfo
       manager.start(info)
       expect(manager.currentSymbol).toBeDefined()
@@ -80,7 +80,7 @@ describe("IIWriterManager.ts", () => {
       manager.tool = CanvasWriteTool.Circle
       expect(canvas.layers.root.classList.contains("shape")).toBe(true)
       const info = {
-        pointer: { t: 1, p: 0.5, x: 1, y: 1 },
+        pointer: { dt: 1, p: 0.5, x: 1, y: 1 },
       } as TPointerInfo
       manager.start(info)
       expect(manager.currentSymbol).toBeDefined()
@@ -94,7 +94,7 @@ describe("IIWriterManager.ts", () => {
       manager.tool = CanvasWriteTool.Ellipse
       expect(canvas.layers.root.classList.contains("shape")).toBe(true)
       const info = {
-        pointer: { t: 1, p: 0.5, x: 1, y: 1 },
+        pointer: { dt: 1, p: 0.5, x: 1, y: 1 },
       } as TPointerInfo
       manager.start(info)
       expect(manager.currentSymbol).toBeDefined()
@@ -108,7 +108,7 @@ describe("IIWriterManager.ts", () => {
       manager.tool = CanvasWriteTool.Triangle
       expect(canvas.layers.root.classList.contains("shape")).toBe(true)
       const info = {
-        pointer: { t: 1, p: 0.5, x: 1, y: 1 },
+        pointer: { dt: 1, p: 0.5, x: 1, y: 1 },
       } as TPointerInfo
       manager.start(info)
       expect(manager.currentSymbol).toBeDefined()
@@ -122,7 +122,7 @@ describe("IIWriterManager.ts", () => {
       manager.tool = CanvasWriteTool.Parallelogram
       expect(canvas.layers.root.classList.contains("shape")).toBe(true)
       const info = {
-        pointer: { t: 1, p: 0.5, x: 1, y: 1 },
+        pointer: { dt: 1, p: 0.5, x: 1, y: 1 },
       } as TPointerInfo
       manager.start(info)
       expect(manager.currentSymbol).toBeDefined()
@@ -136,7 +136,7 @@ describe("IIWriterManager.ts", () => {
       manager.tool = CanvasWriteTool.Line
       expect(canvas.layers.root.classList.contains("shape")).toBe(true)
       const info = {
-        pointer: { t: 1, p: 0.5, x: 1, y: 1 },
+        pointer: { dt: 1, p: 0.5, x: 1, y: 1 },
       } as TPointerInfo
       manager.start(info)
       expect(manager.currentSymbol).toBeDefined()
@@ -152,7 +152,7 @@ describe("IIWriterManager.ts", () => {
       manager.tool = CanvasWriteTool.Arrow
       expect(canvas.layers.root.classList.contains("shape")).toBe(true)
       const info = {
-        pointer: { t: 1, p: 0.5, x: 1, y: 1 },
+        pointer: { dt: 1, p: 0.5, x: 1, y: 1 },
       } as TPointerInfo
       manager.start(info)
       expect(manager.currentSymbol).toBeDefined()
@@ -168,7 +168,7 @@ describe("IIWriterManager.ts", () => {
       manager.tool = CanvasWriteTool.DoubleArrow
       expect(canvas.layers.root.classList.contains("shape")).toBe(true)
       const info = {
-        pointer: { t: 1, p: 0.5, x: 1, y: 1 },
+        pointer: { dt: 1, p: 0.5, x: 1, y: 1 },
       } as TPointerInfo
       manager.start(info)
       expect(manager.currentSymbol).toBeDefined()
@@ -182,7 +182,7 @@ describe("IIWriterManager.ts", () => {
     })
     test("should throw error if symbol type unknown when start", () => {
       const info = {
-        pointer: { t: 1, p: 0.5, x: 1, y: 1 },
+        pointer: { dt: 1, p: 0.5, x: 1, y: 1 },
       } as TPointerInfo
       //@ts-ignore
       manager.tool = "unknown"
@@ -191,31 +191,31 @@ describe("IIWriterManager.ts", () => {
     test("should update currentSymbol", () => {
       manager.tool = CanvasWriteTool.Pencil
       const info = {
-        pointer: { t: 1, p: 0.5, x: 1, y: 1 },
+        pointer: { dt: 1, p: 0.5, x: 1, y: 1 },
       } as TPointerInfo
       manager.start(info)
-      const point2: TPointer = { t: 15, p: 15, x: 15, y: 15 }
+      const point2: TPointer = { dt: 15, p: 15, x: 15, y: 15 }
       manager.continue({ pointer: point2 } as TPointerInfo)
       const stroke = manager.currentSymbol as TStroke
       expect(stroke.pointers).toHaveLength(2)
       expect(stroke.pointers[1].x).toBe(point2.x)
       expect(stroke.pointers[1].y).toBe(point2.y)
-      expect(stroke.pointers[1].t).toBe(point2.t)
+      expect(stroke.pointers[1].dt).toBe(point2.dt)
       expect(stroke.pointers[1].p).toBe(point2.p)
     })
     test("should throw error when continu if currentSymbol is undefined", () => {
       manager.currentSymbol = undefined
       const info = {
-        pointer: { t: 1, p: 0.5, x: 1, y: 1 },
+        pointer: { dt: 1, p: 0.5, x: 1, y: 1 },
       } as TPointerInfo
       expect(() => manager.continue(info)).toThrow("Can't update current symbol because currentSymbol is undefined")
     })
     test("should clear currentSymbol and add into model.symbols", async () => {
       manager.model.clear()
       manager.currentSymbol = undefined
-      const point: TPointer = { t: 25, p: 25, x: 25, y: 25 }
+      const point: TPointer = { dt: 25, p: 25, x: 25, y: 25 }
       const info = {
-        pointer: { t: 1, p: 0.5, x: 1, y: 1 },
+        pointer: { dt: 1, p: 0.5, x: 1, y: 1 },
       } as TPointerInfo
       manager.start(info)
       manager.continue({ pointer: point } as TPointerInfo)
@@ -229,9 +229,9 @@ describe("IIWriterManager.ts", () => {
     test("should end the 'Writing' operation synchronously on end(), even for a stroke whose backend round-trip is still pending", () => {
       manager.model.clear()
       manager.currentSymbol = undefined
-      const point: TPointer = { t: 25, p: 25, x: 25, y: 25 }
+      const point: TPointer = { dt: 25, p: 25, x: 25, y: 25 }
       const info = {
-        pointer: { t: 1, p: 0.5, x: 1, y: 1 },
+        pointer: { dt: 1, p: 0.5, x: 1, y: 1 },
       } as TPointerInfo
       manager.start(info)
       manager.continue({ pointer: point } as TPointerInfo)
@@ -248,8 +248,8 @@ describe("IIWriterManager.ts", () => {
       shapeManager.renderer.drawSymbol = jest.fn()
       shapeManager.tool = CanvasWriteTool.Rectangle
 
-      const point: TPointer = { t: 25, p: 25, x: 25, y: 25 }
-      shapeManager.start({ pointer: { t: 1, p: 0.5, x: 1, y: 1 } } as TPointerInfo)
+      const point: TPointer = { dt: 25, p: 25, x: 25, y: 25 }
+      shapeManager.start({ pointer: { dt: 1, p: 0.5, x: 1, y: 1 } } as TPointerInfo)
       await shapeManager.end({ pointer: point } as TPointerInfo)
 
       expect(shapeCanvas.startOperation).toHaveBeenCalledWith("Writing")
@@ -269,12 +269,12 @@ describe("IIWriterManager.ts", () => {
 
     test("should coalesce several continue() calls into a single drawCurrentSymbol per animation frame", async () => {
       manager.tool = CanvasWriteTool.Pencil
-      manager.start({ pointer: { t: 0, p: 0.5, x: 0, y: 0 } } as TPointerInfo)
+      manager.start({ pointer: { dt: 0, p: 0.5, x: 0, y: 0 } } as TPointerInfo)
       ;(manager.renderer.drawCurrentSymbol as jest.Mock).mockClear()
 
-      manager.continue({ pointer: { t: 1, p: 0.5, x: 10, y: 10 } } as TPointerInfo)
-      manager.continue({ pointer: { t: 2, p: 0.5, x: 20, y: 20 } } as TPointerInfo)
-      manager.continue({ pointer: { t: 3, p: 0.5, x: 30, y: 30 } } as TPointerInfo)
+      manager.continue({ pointer: { dt: 1, p: 0.5, x: 10, y: 10 } } as TPointerInfo)
+      manager.continue({ pointer: { dt: 2, p: 0.5, x: 20, y: 20 } } as TPointerInfo)
+      manager.continue({ pointer: { dt: 3, p: 0.5, x: 30, y: 30 } } as TPointerInfo)
 
       // Data is updated synchronously for every point - only the DOM write is throttled.
       expect((manager.currentSymbol as TStroke).pointers).toHaveLength(4)
@@ -287,11 +287,11 @@ describe("IIWriterManager.ts", () => {
     })
 
     test("should still draw the final state immediately on end(), without a pending stale frame", async () => {
-      manager.continue({ pointer: { t: 4, p: 0.5, x: 4, y: 4 } } as TPointerInfo)
+      manager.continue({ pointer: { dt: 4, p: 0.5, x: 4, y: 4 } } as TPointerInfo)
       ;(manager.renderer.drawSymbol as jest.Mock).mockClear()
       ;(manager.renderer.drawCurrentSymbol as jest.Mock).mockClear()
 
-      await manager.end({ pointer: { t: 5, p: 0.5, x: 5, y: 5 } } as TPointerInfo)
+      await manager.end({ pointer: { dt: 5, p: 0.5, x: 5, y: 5 } } as TPointerInfo)
       expect(manager.renderer.drawSymbol).toHaveBeenCalledTimes(1)
       expect(manager.renderer.clearCurrentSymbolLayer).toHaveBeenCalledTimes(1)
 

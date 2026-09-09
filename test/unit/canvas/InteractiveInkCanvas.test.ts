@@ -436,7 +436,7 @@ describe("InteractiveInkCanvas.ts", () => {
     test("create stroke", async () => {
       const stroke: TPartialDeep<TStroke> = {
         type: SymbolType.Stroke,
-        pointers: [{ x: 0, y: 1, t: 1, p: 1 }],
+        pointers: [{ x: 0, y: 1, dt: 1, p: 1 }],
       }
       await canvas.createSymbol(stroke)
       expect(canvas.model.addSymbol).toHaveBeenNthCalledWith(1, expect.objectContaining(stroke))
@@ -859,14 +859,14 @@ describe("InteractiveInkCanvas.ts", () => {
     const pStrokes: TPartialDeep<TStroke>[] = [
       {
         pointers: [
-          { x: 254, y: 37, t: 1, p: 1 },
-          { x: 253, y: 42, t: 2, p: 0.7 },
+          { x: 254, y: 37, dt: 1, p: 1 },
+          { x: 253, y: 42, dt: 2, p: 0.7 },
         ],
       },
       {
         pointers: [
-          { x: 222, y: 386, t: 3, p: 0.5 },
-          { x: 226, y: 385, t: 4, p: 0.8 },
+          { x: 222, y: 386, dt: 3, p: 0.5 },
+          { x: 226, y: 385, dt: 4, p: 0.8 },
         ],
         style: { width: 3, color: "#1A8CFF" },
       },
