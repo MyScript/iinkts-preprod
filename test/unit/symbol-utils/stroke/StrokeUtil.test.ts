@@ -62,9 +62,9 @@ describe("StrokeUtil", () => {
       // computation under test.
       const stroke = StrokeOps.createFromPartial({
         pointers: [
-          { x: 0, y: 0, t: 0, p: 1 },
-          { x: 10, y: 0, t: 1, p: 1 },
-          { x: 10, y: 5, t: 2, p: 1 },
+          { x: 0, y: 0, dt: 0, p: 1 },
+          { x: 10, y: 0, dt: 1, p: 1 },
+          { x: 10, y: 5, dt: 2, p: 1 },
         ],
       })
 
@@ -84,7 +84,7 @@ describe("StrokeUtil", () => {
 
   describe("getSVGElement", () => {
     test("emits the symbol's matrix as the element transform", () => {
-      const stroke = StrokeOps.createFromPartial({ pointers: [{ x: 0, y: 0, t: 0, p: 1 }] })
+      const stroke = StrokeOps.createFromPartial({ pointers: [{ x: 0, y: 0, dt: 0, p: 1 }] })
       stroke.transform = MatrixTransform.identity().translate(3, 4)
 
       const el = new StrokeUtil().getSVGElement(stroke)
@@ -93,7 +93,7 @@ describe("StrokeUtil", () => {
     })
 
     test("emits no transform attribute for a symbol that was never moved", () => {
-      const stroke = StrokeOps.createFromPartial({ pointers: [{ x: 0, y: 0, t: 0, p: 1 }] })
+      const stroke = StrokeOps.createFromPartial({ pointers: [{ x: 0, y: 0, dt: 0, p: 1 }] })
 
       expect(new StrokeUtil().getSVGElement(stroke).getAttribute("transform")).toBeNull()
     })

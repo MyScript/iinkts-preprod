@@ -33,7 +33,7 @@ describe("EraseManager.ts", () => {
     test("should init currentEraser", async () => {
       expect(manager.currentEraser).toBeUndefined()
       const info = {
-        pointer: { t: 1, p: 0.5, x: 1, y: 1 },
+        pointer: { dt: 1, p: 0.5, x: 1, y: 1 },
       } as TPointerInfo
       manager.start(info)
       expect(manager.currentEraser).toBeDefined()
@@ -44,7 +44,7 @@ describe("EraseManager.ts", () => {
     })
     test("should update currentEraser", async () => {
       const info = {
-        pointer: { t: 1, p: 0.5, x: 15, y: 15 },
+        pointer: { dt: 1, p: 0.5, x: 15, y: 15 },
       } as TPointerInfo
       manager.continue(info)
       expect(manager.currentEraser).toBeDefined()
@@ -64,7 +64,7 @@ describe("EraseManager.ts", () => {
       canvas.model.addSymbol(buildIIStroke())
 
       const info = {
-        pointer: { t: 1, p: 0.5, x: 20, y: 20 },
+        pointer: { dt: 1, p: 0.5, x: 20, y: 20 },
       } as TPointerInfo
       await manager.end(info)
       expect(manager.currentEraser).toBeUndefined()
@@ -75,7 +75,7 @@ describe("EraseManager.ts", () => {
     })
     test("should throw error if continu when currentEraser is undefine", async () => {
       const info = {
-        pointer: { t: 1, p: 0.5, x: 20, y: 20 },
+        pointer: { dt: 1, p: 0.5, x: 20, y: 20 },
       } as TPointerInfo
       expect(manager.currentEraser).toBeUndefined()
       expect(() => manager.continue(info)).toThrow("Can't update current eraser because currentEraser is undefined")
@@ -104,7 +104,7 @@ describe("partial character erase", () => {
     manager.currentEraser = buildIIEraser()
     manager.charsToDelete.set(text.id, new Set(["c1"]))
 
-    await manager.end({ pointer: { x: 0, y: 0, t: 0, p: 1 }, pointerType: "pen" } as TPointerInfo)
+    await manager.end({ pointer: { x: 0, y: 0, dt: 0, p: 1 }, pointerType: "pen" } as TPointerInfo)
 
     const stored = canvas.model.getRootSymbol(text.id) as typeof text
     expect(stored.chars.map((c) => c.id)).toEqual(["c2"])
@@ -135,7 +135,7 @@ describe("hit-testing an unregistered symbol type", () => {
     manager.currentEraser.style.width = 20
 
     expect(() =>
-      manager.continue({ pointer: { x: 7, y: 7, t: 0, p: 1 }, pointerType: "pen" } as TPointerInfo)
+      manager.continue({ pointer: { x: 7, y: 7, dt: 0, p: 1 }, pointerType: "pen" } as TPointerInfo)
     ).not.toThrow()
 
     expect(manager.deletingIds.has(orphan.id)).toBe(false)
@@ -167,7 +167,7 @@ describe("plain Ink hit-testing avoids redundant geometry recomputation", () => 
     manager.currentEraser.style.width = 20
 
     computeGeometrySpy.mockClear()
-    manager.continue({ pointer: { x: 7, y: 7, t: 0, p: 1 }, pointerType: "pen" } as TPointerInfo)
+    manager.continue({ pointer: { x: 7, y: 7, dt: 0, p: 1 }, pointerType: "pen" } as TPointerInfo)
 
     expect(computeGeometrySpy).toHaveBeenCalledTimes(1)
     expect(manager.deletingIds.has(stroke.id)).toBe(true)

@@ -32,6 +32,9 @@ export type TGrabberConfiguration = {
 export const DefaultGrabberConfiguration: TGrabberConfiguration = {
   listenerOptions: DefaultListenerConfiguration,
   xyFloatPrecision: 0,
-  timestampFloatPrecision: 0,
+  // Negative means "do not coarsen": pointer times are kept to three decimals. A pen samples
+  // several times per millisecond, and the previous default of 0 rounded to whole milliseconds,
+  // which reported consecutive samples as captured at the very same instant.
+  timestampFloatPrecision: -1,
   delayLongTouch: 500,
 }

@@ -44,8 +44,8 @@ describe("IITranslateManager.ts", () => {
 
     test("translate stroke composes the matrix rather than moving its pointers", () => {
       const stroke = StrokeOps.create()
-      StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 1, y: 1 })
-      StrokeOps.addPointer(stroke, { p: 1, t: 10, x: 10, y: 0 })
+      StrokeOps.addPointer(stroke, { p: 1, dt: 1, x: 1, y: 1 })
+      StrokeOps.addPointer(stroke, { p: 1, dt: 10, x: 10, y: 0 })
       const pointersBefore = stroke.pointers.map((p) => ({ ...p }))
       const matrix = MatrixTransform.identity().translate(10, 15)
       manager.applyToSymbol(stroke, matrix)
@@ -116,8 +116,8 @@ describe("IITranslateManager.ts", () => {
     manager.applyToSymbol = jest.fn()
 
     const strokeOrigin = StrokeOps.create({})
-    StrokeOps.addPointer(strokeOrigin, { p: 1, t: 1, x: 0, y: 0 })
-    StrokeOps.addPointer(strokeOrigin, { p: 1, t: 1, x: 10, y: 50 })
+    StrokeOps.addPointer(strokeOrigin, { p: 1, dt: 1, x: 0, y: 0 })
+    StrokeOps.addPointer(strokeOrigin, { p: 1, dt: 1, x: 10, y: 50 })
     canvas.model.addSymbol(strokeOrigin)
     canvas.model.selectSymbol(strokeOrigin.id)
 
@@ -306,8 +306,8 @@ describe("IITranslateManager.ts", () => {
 
       const edgeStroke = StrokeOps.create()
       edgeStroke.pointers = [
-        { x: 0, y: 0, t: 0, p: 1 },
-        { x: 10, y: 0, t: 1, p: 1 },
+        { x: 0, y: 0, dt: 0, p: 1 },
+        { x: 10, y: 0, dt: 1, p: 1 },
       ]
       edgeStroke.jiixBlockType = "Edge"
       edgeStroke.endAnchor = { symbolId: shape.id, normalizedX: 1, normalizedY: 0.5 }
@@ -441,9 +441,9 @@ describe("IITranslateManager.ts", () => {
 
       const edgeStroke = StrokeOps.create()
       edgeStroke.pointers = [
-        { x: 0, y: 0, t: 0, p: 1 },
-        { x: 5, y: 0, t: 1, p: 1 },
-        { x: 10, y: 0, t: 2, p: 1 },
+        { x: 0, y: 0, dt: 0, p: 1 },
+        { x: 5, y: 0, dt: 1, p: 1 },
+        { x: 10, y: 0, dt: 2, p: 1 },
       ]
       edgeStroke.jiixBlockType = "Edge"
       edgeStroke.endAnchor = { symbolId: shape.id, normalizedX: 1, normalizedY: 0.5 }
@@ -504,8 +504,8 @@ describe("IITranslateManager.ts", () => {
 
       const edgeStroke = StrokeOps.create()
       edgeStroke.pointers = [
-        { x: 0, y: 0, t: 0, p: 1 },
-        { x: 10, y: 0, t: 1, p: 1 },
+        { x: 0, y: 0, dt: 0, p: 1 },
+        { x: 10, y: 0, dt: 1, p: 1 },
       ]
       edgeStroke.jiixBlockType = "Edge"
       edgeStroke.endAnchor = { symbolId: shape.id, normalizedX: 1, normalizedY: 0.5 }

@@ -4,6 +4,16 @@ See [MIGRATION.md](./MIGRATION.md) for step-by-step upgrade instructions.
 
 ## Breaking Changes
 
+### A pointer stores when it was captured, relative to its stroke
+`TPointer.t` is renamed `TPointer.dt` and its meaning changes: it counted epoch milliseconds, it now counts milliseconds since the stroke began, so the first pointer of every stroke is at 0. The absolute instant is `stroke.creationTime + dt`, which is what `toWireStroke` sends — the recognizer reads the order strokes were written in from those absolute times.
+- the rename is deliberate. Same name with a new meaning would have compiled everywhere and silently mis-timed every integrator who reads pointers; `dt` fails loudly instead
+- **reading old documents keeps working.** `StrokeOps.createFromPartial` and `IIPlaybackManager.play` accept pointers that still carry the absolute `t` and rebase them, recovering both the intervals inside a stroke and the stroke's own `creationTime`
+- pointer times are no longer rounded to whole milliseconds. A pen samples several times per millisecond, and the previous default reported consecutive samples as captured at the same instant — 18% of intervals in a reference capture had a duration of exactly zero. `DefaultGrabberConfiguration.timestampFloatPrecision` changes from `0` to `-1` (no coarsening); it can still coarsen, it no longer decides the default
+- each coalesced sample is timed from its own event rather than from one clock read taken while replaying the batch, which is what produced those zero-length intervals
+- new: `TPointer.dt`, `TPointerImport`, `TStrokeImport`, `resolvePointerDelta`, `resolveStrokeOrigin`, `TPointerInfo.gestureStartTime`, a third `creationTime` argument to `StrokeOps.create`
+- every `dt` is an offset from its stroke's origin, never a difference between consecutive points. `StrokeOps.split` and the insert gesture's sub-strokes therefore inherit the origin of the stroke they were cut from — a fresh one would have claimed their points were drawn at the moment of the split. The insert gesture's sub-strokes also keep the original `pointerType`, which they previously dropped
+- fixed: `IIPlaybackManager.play` ordered strokes by their first pointer's timestamp. Every first pointer is now at 0, so it orders by stroke origin instead
+
 ### The document is immutable
 Symbols are frozen when committed and handed to readers directly, instead of the whole document being deep-cloned on every read. Reading `model.symbols` on a 500-stroke document goes from 11.59 ms to 0.0012 ms; the cost moves to the write side, where building a 200-stroke model is 28% slower.
 - mutating a symbol read from `model` now throws — ask for `model.draftSymbol(id)` and hand it back with `model.commitSymbol(draft)`. Enforced at runtime by `Object.freeze`, not by the types
