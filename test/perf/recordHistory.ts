@@ -32,9 +32,19 @@ function gitInfo(): { commit: string; branch: string } {
   return { commit, branch }
 }
 
-const source = JSON.parse(
-  readFileSync(resolve(process.cwd(), arg("--current", ".local/bench/current.json")), "utf8")
-) as THistorySource
+/**
+ * A paired run measures two builds; the history follows one of them. It follows the current build,
+ * and keeps its absolute figures rather than the paired ratio — a paired ratio is relative to each
+ * commit's own merge-base, so it is a different question every commit and cannot be read as a trend.
+ */
+function historySource(parsed: unknown): THistorySource {
+  const paired = parsed as { paired?: unknown; current?: THistorySource }
+  return paired.paired !== undefined && paired.current !== undefined ? paired.current : (parsed as THistorySource)
+}
+
+const source = historySource(
+  JSON.parse(readFileSync(resolve(process.cwd(), arg("--current", ".local/bench/paired.json")), "utf8"))
+)
 const record = toRecord(source, gitInfo())
 
 const dir = resolve(process.cwd(), arg("--dir", ".local/bench-history"))
