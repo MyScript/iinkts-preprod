@@ -75,11 +75,13 @@ export class IITranslateManager extends IIAbstractTransformManager {
       preTransformBoundsById
     )
     if (addToHistory) {
-      const historySymbols = this.model.symbolsSelected
       const changes: TIIHistoryChanges = {}
+      // Excluded against `symbols`, the list actually moved — not against `symbolsSelected`. The
+      // two are the same during a drag but not for a programmatic caller, and an exclusion list
+      // built from the wrong set records a followed stroke twice.
       this.recordTransformed(changes, [
         ...preTransformSnapshots,
-        ...this.resolveFollowedSymbols(rigidStrokeIds, historySymbols),
+        ...this.resolveFollowedSymbols(rigidStrokeIds, symbols),
       ])
       appendUpdated(
         changes,
