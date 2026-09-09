@@ -642,18 +642,21 @@ describe("IIResizeManager.ts", () => {
       expect(sentIds).not.toContain(newEdgeStroke.id)
       expect(canvas.client.replaceStrokes).toHaveBeenCalledWith([newEdgeStroke.id], [newEdgeStroke])
 
-      // History needs a PRE-transform snapshot of the followed stroke, else undo can't restore
-      // it — but since a gradient shift isn't a uniform scale, it lives in `updated`, not the
-      // `scale` entry's own inverse-matrix-replay symbol list.
+      // History needs a PRE-transform snapshot of the followed stroke, else undo cannot restore it.
+      // Every change is a before/after pair now, so the gradient-shifted stroke and the resized
+      // selection sit in the same list.
       const changes = (canvas.history.push as jest.Mock).mock.calls[0][0] as {
-        scale: { symbols: TStroke[] }[]
-        updated?: { oldSymbols: TStroke[]; newSymbols: TStroke[] }
+        updated?: { before: TStroke; after: TStroke }[]
       }
-      expect(changes.scale[0].symbols.find((s) => s.id === newEdgeStroke.id)).toBeUndefined()
-      const oldSnapshot = changes.updated?.oldSymbols.find((s) => s.id === newEdgeStroke.id)
-      expect(oldSnapshot).toBeDefined()
-      expect(oldSnapshot!.pointers).toEqual(originalPointers)
-      expect(changes.updated?.newSymbols.find((s) => s.id === newEdgeStroke.id)).toStrictEqual(newEdgeStroke)
+      const pair = changes.updated?.find((entry) => entry.before.id === newEdgeStroke.id)
+      expect(pair).toBeDefined()
+      expect(pair!.before.pointers).toEqual(originalPointers)
+      expect(pair!.after).toStrictEqual(newEdgeStroke)
+      // And the resized symbol's own pair is still there beside it. Two sources feed one entry — the
+      // selection and the followed stroke — and they must be appended, not assigned: assigning
+      // `updated` twice keeps only the last writer, which would leave the symbols the user actually
+      // dragged with nothing to undo.
+      expect(changes.updated?.find((entry) => entry.before.id === shape.id)).toBeDefined()
     })
   })
   })

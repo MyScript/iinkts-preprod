@@ -3,6 +3,7 @@ import type { TPoint } from "@/core/geometry"
 import { BoxOps, MatrixTransform } from "@/core/geometry"
 import { computeAverage, isBetween } from "@/core/math"
 import type { TIIHistoryChanges } from "@/history"
+import { appendUpdated } from "@/history"
 import type { TDecorator, TStroke, TText } from "@/symbol"
 import { cloneSymbol, isText, SymbolType, type TSymbol } from "@/symbol"
 import { StrokeOps } from "@/symbol/stroke/Stroke"
@@ -20,6 +21,18 @@ import { InsertAction } from "../GestureTypes"
  * Inserts line breaks or space by drawing vertical line
  * @group Manager
  */
+/**
+ * A group of symbols to shift, and by how much.
+ *
+ * Not a history form. It used to be one — `TIIHistoryChanges.translate` — and these handlers used
+ * one object both to record the step and to drive it. History records before/after pairs now, so
+ * the two parted ways: this stays as the instruction, and `apply` snapshots around it.
+ */
+type TShift = { symbols: TSymbol[]; tx: number; ty: number }
+
+/** What a split computes: the symbols it replaces, and the groups it shifts to make room. */
+type TSplitOutcome = { replaced: { oldSymbols: TSymbol[]; newSymbols: TSymbol[] }; shifts: TShift[] }
+
 export class InsertGestureHandler extends GestureHandler {
   readonly gestureType = "INSERT" as const
 
@@ -105,12 +118,8 @@ export class InsertGestureHandler extends GestureHandler {
       x: number[]
       y: number[]
     }[]
-  ): TIIHistoryChanges {
-    const translate: {
-      symbols: TSymbol[]
-      tx: number
-      ty: number
-    }[] = []
+  ): TSplitOutcome {
+    const shifts: TShift[] = []
     const replaced: {
       oldSymbols: TSymbol[]
       newSymbols: TSymbol[]
@@ -139,7 +148,7 @@ export class InsertGestureHandler extends GestureHandler {
       replaced.oldSymbols.push(symbolToSplit)
     }
     if (symbolsAfterGestureInRow.length) {
-      translate.push({
+      shifts.push({
         symbols: symbolsAfterGestureInRow,
         tx: this.strokeSpaceWidth,
         ty: 0,
@@ -147,8 +156,8 @@ export class InsertGestureHandler extends GestureHandler {
     }
 
     return {
-      translate,
       replaced,
+      shifts,
     }
   }
 
@@ -159,12 +168,8 @@ export class InsertGestureHandler extends GestureHandler {
    * @param insertAction - The insert action mode
    * @returns History changes object
    */
-  computeChangesOnSplitText(gestureStroke: TStroke, textToSplit: TText, insertAction: InsertAction): TIIHistoryChanges {
-    const translate: {
-      symbols: TSymbol[]
-      tx: number
-      ty: number
-    }[] = []
+  computeChangesOnSplitText(gestureStroke: TStroke, textToSplit: TText, insertAction: InsertAction): TSplitOutcome {
+    const shifts: TShift[] = []
     const replaced: {
       oldSymbols: TSymbol[]
       newSymbols: TSymbol[]
@@ -227,14 +232,14 @@ export class InsertGestureHandler extends GestureHandler {
     // Handle other symbols based on insert action
     if (insertAction === InsertAction.LineBreak) {
       if (symbolsAfterGestureInRow?.length) {
-        translate.push({
+        shifts.push({
           symbols: symbolsAfterGestureInRow.filter((s) => s.id !== gestureStroke.id),
           tx: 0,
           ty: this.rowHeight,
         })
       }
       if (symbolsBelow.length) {
-        translate.push({
+        shifts.push({
           symbols: symbolsBelow,
           tx: 0,
           ty: this.rowHeight,
@@ -242,7 +247,7 @@ export class InsertGestureHandler extends GestureHandler {
       }
     } else {
       if (symbolsAfterGestureInRow?.length) {
-        translate.push({
+        shifts.push({
           symbols: symbolsAfterGestureInRow.filter((s) => s.id !== gestureStroke.id),
           tx: this.strokeSpaceWidth,
           ty: 0,
@@ -251,8 +256,8 @@ export class InsertGestureHandler extends GestureHandler {
     }
 
     return {
-      translate,
       replaced,
+      shifts,
     }
   }
 
@@ -291,17 +296,13 @@ export class InsertGestureHandler extends GestureHandler {
       (s) => symbolRegistry.has(s.type) && this.isSymbolBelow(gestureStroke, s)
     )
 
-    let changes: TIIHistoryChanges | undefined
+    let outcome: TSplitOutcome | undefined
     if (gesture.strokeIds.length && gesture.subStrokes?.length) {
-      changes = this.computeChangesOnSplitStroke(gestureStroke, gesture.strokeIds[0], gesture.subStrokes)
+      outcome = this.computeChangesOnSplitStroke(gestureStroke, gesture.strokeIds[0], gesture.subStrokes)
     } else if (textToSplit) {
-      changes = this.computeChangesOnSplitText(gestureStroke, textToSplit, this.manager.insertAction)
+      outcome = this.computeChangesOnSplitText(gestureStroke, textToSplit, this.manager.insertAction)
     } else if (symbolsAfterGestureInRow.length) {
-      const translate: {
-        symbols: TSymbol[]
-        tx: number
-        ty: number
-      }[] = []
+      const shifts: TShift[] = []
       let translateX = 0
       if (symbolsBeforeGestureInRow.length) {
         const leftEdge = (s: TSymbol) => {
@@ -314,13 +315,13 @@ export class InsertGestureHandler extends GestureHandler {
 
       switch (this.manager.insertAction) {
         case InsertAction.LineBreak:
-          translate.push({
+          shifts.push({
             symbols: symbolsAfterGestureInRow,
             tx: translateX,
             ty: this.rowHeight,
           })
           if (symbolsBelow.length) {
-            translate.push({
+            shifts.push({
               symbols: symbolsBelow,
               tx: 0,
               ty: this.rowHeight,
@@ -328,42 +329,50 @@ export class InsertGestureHandler extends GestureHandler {
           }
           break
         case InsertAction.Insert:
-          translate.push({
+          shifts.push({
             symbols: symbolsAfterGestureInRow,
             tx: this.strokeSpaceWidth * 2,
             ty: 0,
           })
           break
       }
-      changes = { translate }
+      outcome = { replaced: { oldSymbols: [], newSymbols: [] }, shifts }
     } else if (
       symbolsBeforeGestureInRow.length &&
       symbolsBelow.length &&
       this.manager.insertAction === InsertAction.LineBreak
     ) {
-      changes = {
-        translate: [
-          {
-            symbols: symbolsBelow,
-            tx: 0,
-            ty: this.rowHeight,
-          },
-        ],
+      outcome = {
+        replaced: { oldSymbols: [], newSymbols: [] },
+        shifts: [{ symbols: symbolsBelow, tx: 0, ty: this.rowHeight }],
       }
     }
 
-    if (changes) {
-      this.history.push(changes)
-      const promises: Promise<void>[] = []
-      if (changes.translate?.length) {
-        promises.push(
-          ...changes.translate.map((tr) => this.manager.translator.translate(tr.symbols, tr.tx, tr.ty, false))
-        )
+    if (outcome) {
+      const changes: TIIHistoryChanges = {}
+      if (outcome.replaced.newSymbols.length) {
+        changes.replaced = outcome.replaced
       }
-      if (changes.replaced?.newSymbols.length) {
-        promises.push(this.canvas.replaceSymbols(changes.replaced.oldSymbols, changes.replaced.newSymbols, false))
+      // Snapshotted before the shift, then paired with what the document holds after it. The
+      // translations run with `addToHistory` false — this step is one undoable unit, not one per
+      // group — so nothing else records them. `translator.translate` and not `applyMatrix`: only
+      // the former also moves the connected edges and tells the server.
+      const snapshots = outcome.shifts.map(({ symbols }) => symbols.map((sym) => cloneSymbol(sym)))
+      const promises: Promise<void>[] = outcome.shifts.map(({ symbols, tx, ty }) =>
+        this.manager.translator.translate(symbols, tx, ty, false)
+      )
+      if (outcome.replaced.newSymbols.length) {
+        promises.push(this.canvas.replaceSymbols(outcome.replaced.oldSymbols, outcome.replaced.newSymbols, false))
       }
       await Promise.all(promises)
+      appendUpdated(
+        changes,
+        snapshots.flat().flatMap((before) => {
+          const after = this.canvas.model.getRootSymbol(before.id)
+          return after ? [{ before, after }] : []
+        })
+      )
+      this.history.push(changes)
     }
   }
 }

@@ -3,6 +3,7 @@ import { ResizeDirection } from "@/Constants"
 import type { TBox, TPoint } from "@/core/geometry"
 import { BoxOps, MatrixTransform, type TOBB } from "@/core/geometry"
 import type { TIIHistoryChanges } from "@/history"
+import { appendUpdated } from "@/history"
 import type { TSymbol } from "@/symbol"
 import { cloneSymbol } from "@/symbol"
 import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
@@ -196,22 +197,15 @@ export class IIResizeManager extends IIAbstractTransformManager {
       ),
       ...this.replaceGradientFollowedStrokes(anchoredOldSymbols, anchoredNewSymbols),
     ])
-    const changes: TIIHistoryChanges = {
-      scale: [
-        {
-          symbols: oldSymbols,
-          origin: { ...this.transformOrigin },
-          scaleX,
-          scaleY,
-        },
-      ],
-    }
+    const changes: TIIHistoryChanges = {}
+    this.recordTransformed(changes, oldSymbols)
     // Converted Line/PolyEdge/Arc anchors are recomputed from the target's new bounds, and
-    // gradient-followed raw strokes are reshaped non-uniformly — neither has an inverse-scale to
-    // replay on undo, so both need their pre-mutation snapshot restored directly via `updated`.
-    if (anchoredNewSymbols.length) {
-      changes.updated = { oldSymbols: anchoredOldSymbols, newSymbols: anchoredNewSymbols }
-    }
+    // gradient-followed raw strokes are reshaped non-uniformly. They join the same `updated` pair
+    // as the resized selection — appended, not assigned, or one of the two sets would be lost.
+    appendUpdated(
+      changes,
+      anchoredOldSymbols.map((before, index) => ({ before, after: anchoredNewSymbols[index] }))
+    )
     this.canvas.history.push(changes)
     this.finalizeTransform()
   }

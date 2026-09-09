@@ -739,12 +739,10 @@ describe("InteractiveInkCanvas.ts", () => {
       canvas.history.push = jest.fn()
       canvas.updateSymbolsStyle([stroke1.id], { color: "green" })
       const newStroke1 = canvas.model.getRootSymbol(stroke1.id) as TStroke
+      // A restyle is a before/after pair like any other change now: the record carries the style,
+      // so there is nothing to record beside it.
       expect(canvas.history.push).toHaveBeenNthCalledWith(1, {
-        style: {
-          symbols: [newStroke1],
-          oldStyles: [oldStyle],
-          newStyles: [{ ...newStroke1.style }],
-        },
+        updated: [{ before: expect.objectContaining({ id: stroke1.id, style: oldStyle }), after: newStroke1 }],
       })
     })
   })
@@ -769,7 +767,7 @@ describe("InteractiveInkCanvas.ts", () => {
       await canvas.updateSymbol(updatedStroke)
 
       expect(canvas.history.push).toHaveBeenNthCalledWith(1, {
-        updated: { oldSymbols: [oldStroke], newSymbols: [updatedStroke] },
+        updated: [{ before: oldStroke, after: updatedStroke }],
       })
     })
   })
@@ -1000,79 +998,72 @@ describe("InteractiveInkCanvas.ts", () => {
       expect(canvas.renderer.replaceSymbol).toHaveBeenCalledWith(stroke2.id, [stroke1])
       expect(canvas.model.symbols).toEqual([stroke1])
     })
-    test("should call client.undo & renderer.drawSymbol & renderer.removeSymbol when history.undo return matrix", async () => {
-      const stroke1 = buildIIStroke()
-      // The replay transforms what the document holds; a symbol it does not hold is skipped,
-      // so the test has to seed it.
-      canvas.model.addSymbol(stroke1)
+    /**
+     * A ghost result is an overlay drawn from coordinates the recognizer sent in millimetres. It is
+     * not part of any symbol's record, so restoring records does not move it — it has to be carried
+     * by the same delta as its expression, or a move that is undone leaves the result behind.
+     */
+    test("undoing a move should carry the block's ghost result by the same delta, once", async () => {
+      const strokes = [buildIIStroke(), buildIIStroke(), buildIIStroke()]
+      const snapshots = strokes.map((stroke) => {
+        stroke.jiixBlockId = "block-1"
+        stroke.jiixBlockType = "Math"
+        const before = cloneSymbol(stroke) as TStroke
+        stroke.transform = MatrixTransform.identity().translate(50, 25)
+        canvas.model.addSymbol(stroke)
+        return { before, after: canvas.model.getRootSymbol(stroke.id) as TStroke }
+      })
+      canvas.math.hasGhostStrokes = jest.fn().mockReturnValue(true)
+      canvas.math.applyTransformToGhostStrokes = jest.fn()
+      canvas.math.clearGhostStrokes = jest.fn()
+      // Reversed the way `reverseChanges` does, so the replay restores the pre-move records.
       canvas.history.undo = jest.fn(() => ({
-        matrix: { matrix: { tx: 2, ty: 3, xx: 4, xy: 5, yx: 6, yy: 7 }, symbols: [stroke1] },
+        updated: snapshots.map(({ before, after }) => ({ before: after, after: before })),
       }))
       canvas.history.context.canUndo = true
+
       await canvas.undo()
-      expect(canvas.client.undo).toHaveBeenCalledTimes(1)
-      expect(canvas.client.undo).toHaveBeenCalledWith(
-        expect.objectContaining({
-          matrix: { matrix: { tx: 2, ty: 3, xx: 4, xy: 5, yx: 6, yy: 7 }, strokes: [stroke1] },
-        })
+
+      // Once for the block, not once per stroke: all three carry the same transform and yield the
+      // same delta, and applying it three times moved the ghost by three times the distance.
+      expect(canvas.math.applyTransformToGhostStrokes).toHaveBeenCalledTimes(1)
+      expect(canvas.math.applyTransformToGhostStrokes).toHaveBeenCalledWith(
+        "block-1",
+        expect.objectContaining({ tx: -50, ty: -25 })
       )
-      expect(canvas.renderer.drawSymbol).toHaveBeenCalledTimes(1)
-      expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(canvas.model.getRootSymbol(stroke1.id))
+      // And it is moved, not thrown away: the result itself is still valid after a move.
+      expect(canvas.math.clearGhostStrokes).not.toHaveBeenCalled()
     })
-    test("should call client.undo & renderer.drawSymbol & renderer.removeSymbol when history.undo return translate", async () => {
-      const stroke1 = buildIIStroke()
-      // The replay transforms what the document holds; a symbol it does not hold is skipped,
-      // so the test has to seed it.
-      canvas.model.addSymbol(stroke1)
-      canvas.history.undo = jest.fn(() => ({ translate: [{ tx: 1, ty: 2, symbols: [stroke1] }] }))
+
+    /**
+     * The mirror case: undoing the stroke that completed the expression invalidates the result, so
+     * the ghost must go. The block id has to come from the document — a history entry holds a
+     * stroke as it was when written, and recognition assigns `jiixBlockId` only afterwards.
+     */
+    test("undoing a written stroke should clear the ghost of the block it belongs to now", async () => {
+      const stroke = buildIIStroke()
+      // The entry's snapshot, taken at write time: no block yet.
+      const asWritten = cloneSymbol(stroke) as TStroke
+      expect(asWritten.jiixBlockId).toBeUndefined()
+      // The document's record, after recognition assigned one.
+      stroke.jiixBlockId = "block-1"
+      stroke.jiixBlockType = "Math"
+      canvas.model.addSymbol(stroke)
+      canvas.math.hasGhostStrokes = jest.fn().mockReturnValue(true)
+      canvas.math.clearGhostStrokes = jest.fn()
+      canvas.history.undo = jest.fn(() => ({ erased: [asWritten] }))
       canvas.history.context.canUndo = true
+
       await canvas.undo()
-      expect(canvas.client.undo).toHaveBeenCalledTimes(1)
-      expect(canvas.client.undo).toHaveBeenCalledWith(
-        expect.objectContaining({ translate: [{ tx: 1, ty: 2, strokes: [stroke1] }] })
-      )
-      expect(canvas.renderer.drawSymbol).toHaveBeenCalledTimes(1)
-      expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(canvas.model.getRootSymbol(stroke1.id))
+
+      expect(canvas.math.clearGhostStrokes).toHaveBeenCalledWith("block-1")
     })
-    test("should call client.undo & renderer.drawSymbol & renderer.removeSymbol when history.undo return scale", async () => {
-      const stroke1 = buildIIStroke()
-      // The replay transforms what the document holds; a symbol it does not hold is skipped,
-      // so the test has to seed it.
-      canvas.model.addSymbol(stroke1)
-      canvas.history.undo = jest.fn(() => ({
-        scale: [{ origin: { x: 1, y: 2 }, scaleX: 2, scaleY: 4, symbols: [stroke1] }],
-      }))
-      canvas.history.context.canUndo = true
-      await canvas.undo()
-      expect(canvas.client.undo).toHaveBeenCalledTimes(1)
-      expect(canvas.client.undo).toHaveBeenCalledWith(
-        expect.objectContaining({ scale: [{ origin: { x: 1, y: 2 }, scaleX: 2, scaleY: 4, strokes: [stroke1] }] })
-      )
-      expect(canvas.renderer.drawSymbol).toHaveBeenCalledTimes(1)
-      expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(canvas.model.getRootSymbol(stroke1.id))
-    })
-    test("should call client.undo & renderer.drawSymbol & renderer.removeSymbol when history.undo return rotate", async () => {
-      const stroke1 = buildIIStroke()
-      // The replay transforms what the document holds; a symbol it does not hold is skipped,
-      // so the test has to seed it.
-      canvas.model.addSymbol(stroke1)
-      canvas.history.undo = jest.fn(() => ({
-        rotate: [{ angle: 42, center: { x: 1, y: 2 }, symbols: [stroke1] }],
-      }))
-      canvas.history.context.canUndo = true
-      await canvas.undo()
-      expect(canvas.client.undo).toHaveBeenCalledTimes(1)
-      expect(canvas.client.undo).toHaveBeenCalledWith(
-        expect.objectContaining({ rotate: [{ angle: 42, center: { x: 1, y: 2 }, strokes: [stroke1] }] })
-      )
-      expect(canvas.renderer.drawSymbol).toHaveBeenCalledTimes(1)
-      expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(canvas.model.getRootSymbol(stroke1.id))
-    })
-    test("should update the model and redraw when history.undo returns an updated symbol", async () => {
+
+    test("should restore the before-state of every updated pair and redraw it", async () => {
       const stroke1 = buildIIStroke()
       const oldStroke1 = cloneSymbol(stroke1) as TStroke
       canvas.model.addSymbol(stroke1)
-      canvas.history.undo = jest.fn(() => ({ updated: { oldSymbols: [stroke1], newSymbols: [oldStroke1] } }))
+      canvas.history.undo = jest.fn(() => ({ updated: [{ before: stroke1, after: oldStroke1 }] }))
       canvas.history.context.canUndo = true
       await canvas.undo()
       // The document stores a copy of the entry rather than the entry itself, and `updateSymbol`
@@ -1080,36 +1071,78 @@ describe("InteractiveInkCanvas.ts", () => {
       expect(canvas.model.symbols).toEqual([{ ...oldStroke1, modificationDate: expect.any(Number) }])
       expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(oldStroke1)
     })
-    test("should restore the old style and redraw when history.undo returns a style change, without calling client.undo", async () => {
-      const stroke1 = buildIIStroke()
-      canvas.model.addSymbol(stroke1)
-      const restoredStyle = { ...stroke1.style, color: "red" }
-      canvas.history.undo = jest.fn(() => ({ style: { symbols: [stroke1], newStyles: [restoredStyle] } }))
-      canvas.history.context.canUndo = true
-      await canvas.undo()
-      expect(canvas.model.symbols[0].style).toEqual(restoredStyle)
-      // The entry's own symbol is no longer mutated by the replay, so the redraw gets what the
-      // document now holds, not the pre-undo reference the test still has.
-      expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(canvas.model.symbols[0])
-      expect(canvas.client.undo).toHaveBeenCalledTimes(0)
-    })
-    test("should leave the history entry itself untouched while replaying a style change", async () => {
-      // IIC-1972: the replay used to mutate `changes.style.symbols` in place and store that same
-      // object, so the stack aliased the document and a second undo replayed a rewritten entry.
-      const stroke1 = buildIIStroke()
-      canvas.model.addSymbol(stroke1)
-      const entrySymbol = canvas.model.symbols[0]
-      const entryStyleBefore = { ...entrySymbol.style }
+
+    /**
+     * `updated` is a list of pairs, so one undoable step can restore symbols that were changed by
+     * different means — a transform records the symbols dragged *and* the connected edges recomputed
+     * from them. Each pair is independent; nothing about the list's order matters.
+     */
+    test("should restore every pair independently", async () => {
+      const strokeA = buildIIStroke()
+      const strokeB = buildIIStroke()
+      const restoredA = cloneSymbol(strokeA) as TStroke
+      const restoredB = cloneSymbol(strokeB) as TStroke
+      restoredA.style = { ...restoredA.style, color: "#ff0000" }
+      restoredB.style = { ...restoredB.style, width: 9 }
+      canvas.model.addSymbol(strokeA)
+      canvas.model.addSymbol(strokeB)
       canvas.history.undo = jest.fn(() => ({
-        style: { symbols: [entrySymbol], newStyles: [{ ...entrySymbol.style, color: "red" }] },
+        updated: [
+          { before: strokeA, after: restoredA },
+          { before: strokeB, after: restoredB },
+        ],
       }))
       canvas.history.context.canUndo = true
 
       await canvas.undo()
 
-      expect(canvas.model.symbols[0].style).toEqual({ ...entryStyleBefore, color: "red" })
-      expect(entrySymbol.style).toEqual(entryStyleBefore)
-      expect(canvas.model.symbols[0]).not.toBe(entrySymbol)
+      expect(canvas.model.getRootSymbol(strokeA.id)?.style.color).toBe("#ff0000")
+      expect(canvas.model.getRootSymbol(strokeB.id)?.style.width).toBe(9)
+    })
+
+    /**
+     * A restyle used to have a history form of its own, carrying the old and new styles. It reaches
+     * the replay as an ordinary pair now — the style is part of the record, so restoring the record
+     * restores it.
+     */
+    test("should restore a style through the same pair replay, and still tell the client", async () => {
+      const stroke1 = buildIIStroke()
+      canvas.model.addSymbol(stroke1)
+      const restored = cloneSymbol(stroke1) as TStroke
+      restored.style = { ...stroke1.style, color: "red" }
+      canvas.history.undo = jest.fn(() => ({ updated: [{ before: stroke1, after: restored }] }))
+      canvas.history.context.canUndo = true
+
+      await canvas.undo()
+
+      expect(canvas.model.symbols[0].style).toEqual(restored.style)
+      // The entry's own symbol is no longer mutated by the replay, so the redraw gets what the
+      // document now holds, not the pre-undo reference the test still has.
+      expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(restored)
+      // A restyle never reached the server before, because `style` had no backend form. As a pair
+      // it does, as a stroke replacement — the wire form carries the style.
+      expect(canvas.client.undo).toHaveBeenCalledWith(
+        expect.objectContaining({ replaced: { oldStrokes: [stroke1], newStrokes: [restored] } })
+      )
+    })
+
+    test("should leave the history entry itself untouched while replaying a pair", async () => {
+      // IIC-1972: the replay used to mutate the entry's symbols in place and store that same
+      // object, so the stack aliased the document and a second undo replayed a rewritten entry.
+      const stroke1 = buildIIStroke()
+      canvas.model.addSymbol(stroke1)
+      const entrySymbol = canvas.model.symbols[0] as TStroke
+      const restored = cloneSymbol(entrySymbol) as TStroke
+      restored.style = { ...entrySymbol.style, color: "red" }
+      const entryStyleBefore = { ...restored.style }
+      canvas.history.undo = jest.fn(() => ({ updated: [{ before: entrySymbol, after: restored }] }))
+      canvas.history.context.canUndo = true
+
+      await canvas.undo()
+
+      expect(canvas.model.symbols[0].style).toEqual(entryStyleBefore)
+      expect(restored.style).toEqual(entryStyleBefore)
+      expect(canvas.model.symbols[0]).not.toBe(restored)
     })
 
     test("should reorder the symbol and redraw when history.undo returns an order change, without calling client.undo", async () => {

@@ -1,8 +1,4 @@
-import type { TMatrixTransform, TPoint } from "@/core/geometry"
-import { MatrixTransform } from "@/core/geometry"
-import type { TPartialDeep } from "@/core/std"
 import type { IIModel } from "@/model"
-import type { TStyle } from "@/style"
 import type { TStroke, TSymbol } from "@/symbol"
 import { extractStrokes } from "@/symbol"
 
@@ -13,43 +9,35 @@ import { AbstractDiffHistoryManager } from "./AbstractDiffHistoryManager"
  */
 export type TIIHistoryChanges = {
   added?: TSymbol[]
+  /**
+   * A before/after pair, and the only way a change to an existing symbol is recorded.
+   *
+   * `matrix`/`translate`/`rotate`/`scale` and `style` used to sit alongside this, each describing a
+   * change by its parameters — a delta, an angle, a colour — so undo could re-derive the old state
+   * by applying an inverse. None is needed any more: a transform writes to `symbol.transform` and a
+   * restyle to `symbol.style`, both part of the record, so the record *is* the state. Restoring it
+   * is exact by construction, where inverting a parameter was arithmetic that could drift — and,
+   * for a scale's `1 / scaleX`, could be `Infinity` or ignore the origin it was taken about.
+   *
+   * A list of pairs, not two parallel lists: `{ oldSymbols, newSymbols }` let the two fall out of
+   * step, and a length mismatch silently paired the wrong symbols together on undo. Here the
+   * pairing is the type.
+   *
+   * `before`/`after` rather than `old`/`new`: `new` reads as the operator wherever it appears, and
+   * these two words are the ones the rest of this code already uses for a snapshot and its result.
+   *
+   * Several sources can contribute to a single undoable step — a transform records both the symbols
+   * dragged and the connected edges recomputed from them — so append with {@link appendUpdated}
+   * rather than assigning.
+   */
   updated?: {
-    oldSymbols: TSymbol[]
-    newSymbols: TSymbol[]
-  }
+    before: TSymbol
+    after: TSymbol
+  }[]
   erased?: TSymbol[]
   replaced?: {
     oldSymbols: TSymbol[]
     newSymbols: TSymbol[]
-  }
-  matrix?: {
-    symbols: TSymbol[]
-    matrix: TMatrixTransform
-  }
-  translate?: {
-    symbols: TSymbol[]
-    tx: number
-    ty: number
-  }[]
-  scale?: {
-    symbols: TSymbol[]
-    scaleX: number
-    scaleY: number
-    origin: TPoint
-  }[]
-  rotate?: {
-    symbols: TSymbol[]
-    angle: number
-    center: TPoint
-  }[]
-  style?: {
-    symbols: TSymbol[]
-    // one full style/fontSize per symbol (parallel to `symbols`), since a batch can start
-    // from heterogeneous styles - a single shared before/after value can't reverse that.
-    oldStyles?: TPartialDeep<TStyle>[]
-    newStyles?: TPartialDeep<TStyle>[]
-    oldFontSizes?: (number | undefined)[]
-    newFontSizes?: (number | undefined)[]
   }
   order?: {
     symbols: TSymbol[]
@@ -68,26 +56,23 @@ export type TIIHistoryBackendChanges = {
     oldStrokes: TStroke[]
     newStrokes: TStroke[]
   }
-  matrix?: {
-    strokes: TStroke[]
-    matrix: TMatrixTransform
+}
+
+/**
+ * Appends before/after pairs to `changes.updated`, creating the list if absent.
+ *
+ * Appending rather than assigning, because one undoable step can gather symbols from more than one
+ * source: a transform records the symbols that were dragged *and* the connected edges recomputed
+ * from their new position. Assigning `changes.updated` twice dropped the first set silently, which
+ * is the mistake this exists to make impossible.
+ *
+ * @group History
+ */
+export function appendUpdated(changes: TIIHistoryChanges, pairs: { before: TSymbol; after: TSymbol }[]): void {
+  if (!pairs.length) {
+    return
   }
-  translate?: {
-    strokes: TStroke[]
-    tx: number
-    ty: number
-  }[]
-  scale?: {
-    strokes: TStroke[]
-    scaleX: number
-    scaleY: number
-    origin: TPoint
-  }[]
-  rotate?: {
-    strokes: TStroke[]
-    angle: number
-    center: TPoint
-  }[]
+  ;(changes.updated ??= []).push(...pairs)
 }
 
 /**
@@ -100,8 +85,12 @@ export function extractIIBackendChanges(changes: TIIHistoryChanges): TIIHistoryB
   backendChanges.added = extractStrokes(changes.added)
   backendChanges.erased = extractStrokes(changes.erased)
 
-  const oldStrokes = extractStrokes(changes.updated?.oldSymbols).concat(extractStrokes(changes.replaced?.oldSymbols))
-  const newStrokes = extractStrokes(changes.updated?.newSymbols).concat(extractStrokes(changes.replaced?.newSymbols))
+  const oldStrokes = extractStrokes(changes.updated?.map((pair) => pair.before)).concat(
+    extractStrokes(changes.replaced?.oldSymbols)
+  )
+  const newStrokes = extractStrokes(changes.updated?.map((pair) => pair.after)).concat(
+    extractStrokes(changes.replaced?.newSymbols)
+  )
   if (oldStrokes.length && newStrokes.length) {
     backendChanges.replaced = {
       oldStrokes,
@@ -112,53 +101,6 @@ export function extractIIBackendChanges(changes: TIIHistoryChanges): TIIHistoryB
     backendChanges.erased.push(...oldStrokes)
   }
 
-  if (changes.matrix) {
-    backendChanges.matrix = {
-      strokes: extractStrokes(changes.matrix.symbols),
-      matrix: changes.matrix.matrix,
-    }
-  }
-
-  if (changes.translate?.length) {
-    backendChanges.translate = []
-    changes.translate.forEach((tr) => {
-      const strokes = extractStrokes(tr.symbols)
-      if (strokes.length) {
-        backendChanges.translate!.push({
-          strokes,
-          tx: tr.tx,
-          ty: tr.ty,
-        })
-      }
-    })
-  }
-  if (changes.scale?.length) {
-    backendChanges.scale = []
-    changes.scale.forEach((tr) => {
-      const strokes = extractStrokes(tr.symbols)
-      if (strokes.length) {
-        backendChanges.scale!.push({
-          strokes,
-          origin: tr.origin,
-          scaleX: tr.scaleX,
-          scaleY: tr.scaleY,
-        })
-      }
-    })
-  }
-  if (changes.rotate?.length) {
-    backendChanges.rotate = []
-    changes.rotate.forEach((tr) => {
-      const strokes = extractStrokes(tr.symbols)
-      if (strokes.length) {
-        backendChanges.rotate!.push({
-          strokes,
-          center: tr.center,
-          angle: tr.angle,
-        })
-      }
-    })
-  }
   return backendChanges
 }
 
@@ -178,14 +120,9 @@ export class IIHistoryManager extends AbstractDiffHistoryManager<TIIHistoryChang
   protected isChangesEmpty(changes: TIIHistoryChanges): boolean {
     return !(
       changes.added?.length ||
-      changes.updated?.oldSymbols.length ||
+      changes.updated?.length ||
       changes.erased?.length ||
       changes.replaced?.oldSymbols.length ||
-      changes.matrix?.symbols.length ||
-      changes.translate?.length ||
-      changes.rotate?.length ||
-      changes.scale?.length ||
-      changes.style?.symbols?.length ||
       changes.order?.symbols?.length
     )
   }
@@ -207,65 +144,12 @@ export class IIHistoryManager extends AbstractDiffHistoryManager<TIIHistoryChang
       reversedChanges.added = [...changes.erased]
     }
     if (changes.updated) {
-      reversedChanges.updated = {
-        oldSymbols: [...changes.updated.newSymbols],
-        newSymbols: [...changes.updated.oldSymbols],
-      }
+      reversedChanges.updated = changes.updated.map((pair) => ({ before: pair.after, after: pair.before }))
     }
     if (changes.replaced) {
       reversedChanges.replaced = {
         newSymbols: [...changes.replaced.oldSymbols],
         oldSymbols: [...changes.replaced.newSymbols],
-      }
-    }
-    if (changes.matrix) {
-      reversedChanges.matrix = {
-        symbols: [...changes.matrix.symbols],
-        matrix: new MatrixTransform(
-          changes.matrix.matrix.xx,
-          changes.matrix.matrix.yx,
-          changes.matrix.matrix.xy,
-          changes.matrix.matrix.yy,
-          changes.matrix.matrix.tx,
-          changes.matrix.matrix.ty
-        ).invert(),
-      }
-    }
-    if (changes.translate?.length) {
-      reversedChanges.translate = changes.translate.map((tr) => {
-        return {
-          symbols: [...tr.symbols],
-          tx: -tr.tx,
-          ty: -tr.ty,
-        }
-      })
-    }
-    if (changes.rotate?.length) {
-      reversedChanges.rotate = changes.rotate.map((tr) => {
-        return {
-          symbols: [...tr.symbols],
-          angle: -tr.angle,
-          center: tr.center,
-        }
-      })
-    }
-    if (changes.scale?.length) {
-      reversedChanges.scale = changes.scale.map((tr) => {
-        return {
-          symbols: [...tr.symbols],
-          origin: tr.origin,
-          scaleX: 1 / tr.scaleX,
-          scaleY: 1 / tr.scaleY,
-        }
-      })
-    }
-    if (changes.style) {
-      reversedChanges.style = {
-        symbols: [...changes.style.symbols],
-        oldStyles: changes.style.newStyles,
-        newStyles: changes.style.oldStyles,
-        oldFontSizes: changes.style.newFontSizes,
-        newFontSizes: changes.style.oldFontSizes,
       }
     }
     if (changes.order) {

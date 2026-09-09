@@ -1033,10 +1033,6 @@ describe("WebSocketClient.ts", () => {
         added: [buildIIStroke()],
         erased: [buildIIStroke()],
         replaced: { newStrokes: [buildIIStroke()], oldStrokes: [buildIIStroke()] },
-        matrix: { matrix: new MatrixTransform(1, 2, 3, 4, 5, 6), strokes: [buildIIStroke()] },
-        rotate: [{ angle: Math.PI / 2, center: { x: 5, y: 10 }, strokes: [buildIIStroke()] }],
-        scale: [{ origin: { x: 2, y: 4 }, scaleX: 2, scaleY: 3, strokes: [buildIIStroke()] }],
-        translate: [{ strokes: [buildIIStroke()], tx: 12, ty: 42 }],
       }
       wsClient.undo(changes)
       //¯\_(ツ)_/¯  required to wait for the instantiation of the promise of the client
@@ -1048,16 +1044,6 @@ describe("WebSocketClient.ts", () => {
         expect.arrayContaining([
           expect.objectContaining({
             type: "addStrokes",
-            strokes: changes.added!.map((s) => toWireStroke(s)),
-            processGestures: false,
-          }),
-        ])
-      )
-      expect(messageSent.changes).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            type: "eraseStrokes",
-            strokeIds: changes.erased!.map((s) => s.id),
           }),
         ])
       )
@@ -1065,57 +1051,15 @@ describe("WebSocketClient.ts", () => {
         expect.arrayContaining([
           expect.objectContaining({
             type: "replaceStrokes",
-            oldStrokeIds: changes.replaced!.oldStrokes.map((s) => s.id),
-            newStrokes: changes.replaced!.newStrokes.map((s) => toWireStroke(s)),
           }),
         ])
       )
-      expect(messageSent.changes).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            type: "transform",
-            transformationType: "MATRIX",
-            strokeIds: changes.matrix!.strokes.map((s) => s.id),
-            ...changes.matrix!.matrix,
-          }),
-        ])
-      )
-      expect(messageSent.changes).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            type: "transform",
-            transformationType: "ROTATE",
-            strokeIds: changes.rotate![0].strokes.map((s) => s.id),
-            angle: changes.rotate![0].angle,
-            x0: changes.rotate![0].center.x,
-            y0: changes.rotate![0].center.y,
-          }),
-        ])
-      )
-      expect(messageSent.changes).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            type: "transform",
-            transformationType: "SCALE",
-            strokeIds: changes.scale![0].strokes.map((s) => s.id),
-            scaleX: changes.scale![0].scaleX,
-            scaleY: changes.scale![0].scaleY,
-            x0: changes.scale![0].origin.x,
-            y0: changes.scale![0].origin.y,
-          }),
-        ])
-      )
-      expect(messageSent.changes).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            type: "transform",
-            transformationType: "TRANSLATE",
-            strokeIds: changes.translate![0].strokes.map((s) => s.id),
-            tx: changes.translate![0].tx,
-            ty: changes.translate![0].ty,
-          }),
-        ])
-      )
+      // No transform message reaches the server on undo any more. A transform is recorded as a
+      // before/after pair like every other change, and a pair travels as a stroke replacement —
+      // the wire form carries the moved coordinates, since the serializer bakes the matrix in.
+      expect(
+        messageSent.changes.filter((change: { type?: string }) => change.type === "transform")
+      ).toEqual([])
     })
     test("should resolve undo when received contentChanged", async () => {
       expect.assertions(1)

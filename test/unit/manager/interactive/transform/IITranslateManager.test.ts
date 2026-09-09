@@ -354,12 +354,9 @@ describe("IITranslateManager.ts", () => {
 
       // Gradient moves aren't uniform, so undo can't just re-apply an inverse matrix — it must
       // restore the pre-transform snapshot recorded in `changes.updated` instead. Replay the way
-      // InteractiveInkCanvas.#applyHistoryChanges does: `updated` first, then `translate`.
+      // InteractiveInkCanvas.#applyHistoryChanges does: `updated`, which is now the whole of it.
       const undoChanges = history.undo()
-      undoChanges.updated?.newSymbols.forEach((sym) => canvas.model.updateSymbol(sym))
-      undoChanges.translate?.forEach((tr) => {
-        manager.applyMatrix(tr.symbols, MatrixTransform.identity().translate(tr.tx, tr.ty))
-      })
+      undoChanges.updated?.forEach(({ after }) => canvas.model.updateSymbol(after))
 
       const restoredEdgeStroke = canvas.model.getRootSymbol(edgeStroke.id) as typeof edgeStroke
       expect(restoredEdgeStroke.pointers[0]).toEqual(
@@ -398,12 +395,9 @@ describe("IITranslateManager.ts", () => {
       expect(newEdge.end).not.toEqual(endBefore)
 
       // Replay the undo diff the way InteractiveInkCanvas.#applyHistoryChanges does: `updated`
-      // (restores the edge's snapshot directly) then `translate` (inverse-translates the shape).
+      // — one pass over `updated`, which carries the shape and the edge alike.
       const undoChanges = history.undo()
-      undoChanges.updated?.newSymbols.forEach((sym) => canvas.model.updateSymbol(sym))
-      undoChanges.translate?.forEach((tr) => {
-        manager.applyMatrix(tr.symbols, MatrixTransform.identity().translate(tr.tx, tr.ty))
-      })
+      undoChanges.updated?.forEach(({ after }) => canvas.model.updateSymbol(after))
 
       const restoredShape = canvas.model.getRootSymbol(shape.id) as typeof shape
       const restoredEdge = canvas.model.getRootSymbol(edge.id) as typeof edge
