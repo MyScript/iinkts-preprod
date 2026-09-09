@@ -51,11 +51,11 @@ import { resolveConnectionAnchors } from "@/symbol/edge/Anchor"
 import { EdgeArcOps } from "@/symbol/edge/Arc"
 import { EdgeLineOps } from "@/symbol/edge/Line"
 import { EdgePolyLineOps } from "@/symbol/edge/PolyLine"
-import { MathOps } from "@/symbol/math/Math"
 import { ShapeCircleOps } from "@/symbol/shape/Circle"
 import { ShapeEllipseOps } from "@/symbol/shape/Ellipse"
 import { ShapePolygonOps } from "@/symbol/shape/Polygon"
-import { TextOps } from "@/symbol/text/Text"
+import { MathOps } from "@/symbol/typeset/Math"
+import { TextOps } from "@/symbol/typeset/Text"
 
 import { IIAbstractManager } from "./IIAbstractManager"
 

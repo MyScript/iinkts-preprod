@@ -24,11 +24,20 @@ export type TTypesetChild = {
 }
 
 /**
+ * The quad a typeset symbol occupies on screen.
+ *
+ * `bounds` must be the box **before** rotation — `OBBOps.toUnrotatedBox`, not `OBBOps.toBox`, which
+ * would hand over an envelope already grown for the angle and get it rotated a second time.
+ *
  * @group Symbol
  */
 export function computeTypesetVertices(bounds: TBox, rotation?: TRotation): TPoint[] {
   if (rotation) {
-    const rad = convertDegreeToRadian(-rotation.degree)
+    // The renderer writes `rotate(degree, center)` on the symbol's group, and `computeRotatedPoint`
+    // is that same transform: positive turns the same way in a y-down space. This negated it until
+    // IIC-1999, so the model's quad was the renderer's quad mirrored about the centre — invisible
+    // at small angles, where only the y differs, and plainly wrong past that.
+    const rad = convertDegreeToRadian(rotation.degree)
     return BoxOps.getCorners(bounds).map((p) => computeRotatedPoint(p, rotation.center, rad))
   }
   return BoxOps.getCorners(bounds)
@@ -49,7 +58,8 @@ export function computeTypesetSnapPoints(bounds: TBox, point: TPoint, rotation?:
     BoxOps.getCenter(bounds),
   ]
   if (rotation) {
-    const rad = convertDegreeToRadian(-rotation.degree)
+    // Same transform as the vertices, and it carried the same inverted sign.
+    const rad = convertDegreeToRadian(rotation.degree)
     return points.map((p) => computeRotatedPoint(p, rotation.center, rad))
   }
   return points

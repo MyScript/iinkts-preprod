@@ -54,7 +54,7 @@ import {
 } from "@/symbol"
 import { DecoratorOps } from "@/symbol/decorator/Decorator"
 import { EdgeOps } from "@/symbol/edge/Edge"
-import { TextOps } from "@/symbol/text/Text"
+import { TextOps } from "@/symbol/typeset/Text"
 import { createSymbolFromPartial, createSymbolsFromPartial, registerBuiltinSymbolUtils } from "@/symbol-utils"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 import type { SymbolUtil } from "@/symbol-utils/SymbolUtil"

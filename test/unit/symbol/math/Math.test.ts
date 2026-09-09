@@ -58,8 +58,9 @@ describe("Math.ts", () => {
       MathOps.updateDerivedFields(math)
       const vertices = math.vertices
       expect(vertices.length).toBe(4)
-      expect(vertices[0].x).toBeCloseTo(10, 1)
-      expect(vertices[0].y).toBeCloseTo(-10, 1)
+      // Mirrored until this ticket, like the text ones: rotate(90) sends (x, y) to (−y, x).
+      expect(vertices[0].x).toBeCloseTo(-10, 1)
+      expect(vertices[0].y).toBeCloseTo(10, 1)
     })
 
     test("should get snapPoints without rotation", () => {
