@@ -4,6 +4,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 
 import type { TRunReport } from "./harness.ts"
+import { pairedSamples, referenceFirst, unpairedCases, type TPairedRound } from "./paired.ts"
 import { maxRelativeDeviation, median, relativeMad } from "./stats.ts"
 
 /**
@@ -18,24 +19,137 @@ import { maxRelativeDeviation, median, relativeMad } from "./stats.ts"
  * sides of a comparison are the same kind of number. They differ only in how many processes they can
  * afford: the baseline is recorded once and deliberately, a CI run is paid on every build.
  */
+/** `process.env`'s own shape, spelled out: the `NodeJS` namespace is a type-only global the linter does not see. */
+type TEnv = Record<string, string | undefined>
+
+function runOneProcess(file: string, env: TEnv): TRunReport {
+  execFileSync(process.execPath, ["test/perf/bench.ts", "--out", file, "--repeats", "1"], {
+    stdio: ["ignore", "ignore", "inherit"],
+    env,
+  })
+  return JSON.parse(readFileSync(file, "utf8")) as TRunReport
+}
+
 export function runAcrossProcesses(runs: number): TRunReport {
   const dir = mkdtempSync(join(tmpdir(), "iink-bench-"))
   const reports: TRunReport[] = []
 
   try {
     for (let i = 0; i < runs; i++) {
-      const file = join(dir, `run-${i}.json`)
       process.stdout.write(`bench process ${i + 1}/${runs}\n`)
-      execFileSync(process.execPath, ["test/perf/bench.ts", "--out", file, "--repeats", "1"], {
-        stdio: ["ignore", "ignore", "inherit"],
-      })
-      reports.push(JSON.parse(readFileSync(file, "utf8")) as TRunReport)
+      reports.push(runOneProcess(join(dir, `run-${i}.json`), process.env))
     }
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }
 
   return aggregate(reports)
+}
+
+/**
+ * Both builds, measured here, alternating.
+ *
+ * How many rounds is not a free choice. Measured on 2026-09-09 against a reference bundle byte-
+ * identical to the build under test — so the true answer was 1.00 for every case — the median of the
+ * paired ratios was still 42.8% out at five rounds and within 5.5% at eight, for six of the eight
+ * cases. Five is the process count the single-sided run used and it is not enough here.
+ */
+export const DEFAULT_ROUNDS = 8
+
+export type TPairedReport = {
+  generatedAt: string
+  host: string
+  cpu: string
+  nodeVersion: string
+  agent: string
+  rounds: number
+  /** The two bundles measured. Both explicit, so neither side is loaded by a different mechanism. */
+  referenceLib: string
+  currentLib: string
+  /** The commit the reference bundle was built from. */
+  referenceSha?: string
+  /** The current build's cost as a multiple of the reference's, per case, one entry per round. */
+  samples: Record<string, number[]>
+  /** The median of those samples: the number a verdict is given on. */
+  paired: Record<string, number>
+  /** Cases only one build has. Facts about the branch, not about its speed. */
+  onlyReference: string[]
+  onlyCurrent: string[]
+  /** Both sides in full, for the absolute times, the sample counts and the record. */
+  reference: TRunReport
+  current: TRunReport
+}
+
+function p50Map(report: TRunReport): Record<string, number> {
+  return Object.fromEntries(report.cases.map((c) => [c.name, c.p50Ms]))
+}
+
+function runRounds(
+  rounds: number,
+  dir: string,
+  referenceLib: string,
+  currentLib: string
+): { reference: TRunReport[]; current: TRunReport[] } {
+  // Both sides are pointed at an explicit bundle, and neither is left to the package's own `#iink`.
+  // The two specifiers resolve the same file but not by the same mechanism, and an asymmetry in the
+  // instrument is a defect whether or not a case has yet been found that shows it.
+  const referenceEnv: TEnv = { ...process.env, BENCH_LIB: referenceLib }
+  const currentEnv: TEnv = { ...process.env, BENCH_LIB: currentLib }
+
+  const reference: TRunReport[] = []
+  const current: TRunReport[] = []
+  for (let round = 0; round < rounds; round++) {
+    process.stdout.write(`round ${round + 1}/${rounds}\n`)
+    const measureReference = () => reference.push(runOneProcess(join(dir, `ref-${round}.json`), referenceEnv))
+    const measureCurrent = () => current.push(runOneProcess(join(dir, `cur-${round}.json`), currentEnv))
+    if (referenceFirst(round)) {
+      measureReference()
+      measureCurrent()
+    } else {
+      measureCurrent()
+      measureReference()
+    }
+  }
+  return { reference, current }
+}
+
+export function runPaired(options: {
+  rounds: number
+  referenceLib: string
+  currentLib: string
+  referenceSha?: string
+}): TPairedReport {
+  const dir = mkdtempSync(join(tmpdir(), "iink-bench-ab-"))
+  let sides: { reference: TRunReport[]; current: TRunReport[] }
+  try {
+    sides = runRounds(options.rounds, dir, options.referenceLib, options.currentLib)
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+
+  const paired: TPairedRound[] = sides.reference.map((reference, i) => ({
+    reference: p50Map(reference),
+    current: p50Map(sides.current[i]),
+  }))
+  const samples = pairedSamples(paired)
+  const last = sides.current[sides.current.length - 1]
+
+  return {
+    generatedAt: new Date().toISOString(),
+    host: last.host,
+    cpu: last.cpu,
+    nodeVersion: last.nodeVersion,
+    agent: last.agent,
+    rounds: options.rounds,
+    referenceLib: options.referenceLib,
+    currentLib: options.currentLib,
+    ...(options.referenceSha ? { referenceSha: options.referenceSha } : {}),
+    samples,
+    paired: Object.fromEntries(Object.entries(samples).map(([name, values]) => [name, median(values)])),
+    ...unpairedCases(paired),
+    reference: aggregate(sides.reference),
+    current: aggregate(sides.current),
+  }
 }
 
 /**

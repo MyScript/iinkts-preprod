@@ -9,13 +9,14 @@
     }
   },
   // `test/perf` is excluded below: it imports `#iink`, which needs `dist/` built, and uses `.ts`
-  // import specifiers. These three modules are the exceptions — the gate's decision rule, its
-  // statistics and the history record are deliberately import-free precisely so the main project can
-  // check and unit-test them. `exclude` does not filter `files`, so listing them here is what makes
-  // `test/unit/perf/*.test.ts` type-check.
+  // import specifiers. These four modules are the exceptions — the gate's decision rule, its
+  // statistics, the history record and the pairing arithmetic are deliberately import-free precisely
+  // so the main project can check and unit-test them. `exclude` does not filter `files`, so listing
+  // them here is what makes `test/unit/perf/*.test.ts` type-check.
   "files": [
     "test/perf/lib/gate.ts",
     "test/perf/lib/history.ts",
+    "test/perf/lib/paired.ts",
     "test/perf/lib/stats.ts"
   ],
   "include": [
