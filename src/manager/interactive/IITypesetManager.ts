@@ -3,7 +3,7 @@ import type { TBox } from "@/core/geometry"
 import { OBBOps } from "@/core/geometry"
 import { LoggerCategory } from "@/logger"
 import type { TMath, TSymbol, TSymbolChar, TText } from "@/symbol"
-import { cloneSymbol, isText } from "@/symbol"
+import { isText } from "@/symbol"
 import { TextOps } from "@/symbol/typeset/Text"
 import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
@@ -173,13 +173,21 @@ export class IITypesetManager extends IIAbstractManager {
       const textsAfter = row.symbols.filter(
         (s) => isText(s) && SymbolGeometry.boundsOf(s).center.x > textBounds.center.x
       ) as TText[]
-      return textsAfter.map((symbol) => {
-        const before = cloneSymbol(symbol)
-        symbol.point.x += tx
-        this.updateBounds(symbol)
-        this.model.updateSymbol(symbol)
-        this.renderer.drawSymbol(symbol)
-        return { before, after: this.model.getRootSymbol(symbol.id) ?? symbol }
+      return textsAfter.flatMap((committed) => {
+        // Drafted by id rather than shifted where it lies. `getSymbolsByRowOrdered` reads
+        // `model.symbols`, which hands out the store's deep-frozen committed records, so
+        // `symbol.point.x += tx` threw `TypeError: Cannot assign to read only property 'x'` —
+        // and `setBounds` would have thrown on `bounds` and on every char's `bounds` right after.
+        const draft = this.model.draftSymbol(committed.id)
+        if (!draft || !isText(draft)) {
+          return []
+        }
+        draft.point.x += tx
+        // Measures the moved text and commits the draft in one call.
+        this.updateBounds(draft)
+        this.renderer.drawSymbol(draft)
+        // `committed` is already a frozen value, so it is the snapshot — nothing to clone.
+        return [{ before: committed, after: this.model.getRootSymbol(committed.id) ?? draft }]
       })
     }
     return
