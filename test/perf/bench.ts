@@ -1,10 +1,56 @@
+import { resolve } from "node:path"
+import { pathToFileURL } from "node:url"
+
 import { installDom } from "./lib/env.ts"
 import { countPointers, generateDocument } from "./lib/generateDocument.ts"
 import { CONTROL_CASE, printReport, runSuite, writeReport, type TBenchCase } from "./lib/harness.ts"
 
 installDom()
 
-const iink = await import("#iink")
+/**
+ * Which build to measure. Unset means the package's own `#iink`, which is `dist/` — the ordinary
+ * case, and what a developer running `yarn bench` expects.
+ *
+ * `BENCH_LIB` points the same suite at any other bundle. That is what makes a comparison possible
+ * without a frozen baseline: build the merge-base alongside the current branch, run this file twice,
+ * and the two reports describe two builds measured on one machine instead of one build measured
+ * against a record made on another.
+ */
+const BENCH_LIB = process.env.BENCH_LIB
+const bundleLabel = BENCH_LIB ?? "#iink"
+const bundleSpecifier = BENCH_LIB === undefined ? "#iink" : pathToFileURL(resolve(process.cwd(), BENCH_LIB)).href
+
+/** What the cases below reach for. Checked at load so a wrong bundle says so, in one line. */
+const REQUIRED_EXPORTS = [
+  "IIModel",
+  "MatrixTransform",
+  "StrokeOps",
+  "SymbolGeometry",
+  "registerBuiltinSymbolUtils",
+  "symbolRegistry",
+] as const
+
+/**
+ * The typed boundary around a module chosen at runtime.
+ *
+ * `import()` of a non-literal specifier is `any` by construction — the compiler cannot know what a
+ * path decided by the environment exports. Rather than let that `any` spread through every case, the
+ * exports are checked here and the value is given the one shape the whole file is written against.
+ * A bundle that does not have them fails immediately, naming itself, instead of failing later as an
+ * undefined call inside a measured window.
+ */
+async function loadBundle(specifier: string, label: string): Promise<typeof import("#iink")> {
+  const loaded = (await import(specifier)) as Record<string, unknown>
+  const missing = REQUIRED_EXPORTS.filter((name) => loaded[name] === undefined)
+  if (missing.length > 0) {
+    throw new Error(
+      `the bundle at ${label} is missing ${missing.join(", ")} — is it built, and is it a build of this library?`
+    )
+  }
+  return loaded as unknown as typeof import("#iink")
+}
+
+const iink = await loadBundle(bundleSpecifier, bundleLabel)
 const { IIModel, MatrixTransform, StrokeOps, SymbolGeometry, registerBuiltinSymbolUtils, symbolRegistry } = iink
 type TStroke = ReturnType<typeof StrokeOps.create>
 
@@ -258,8 +304,9 @@ const repeats = process.argv.includes("--repeats") ? Number(process.argv[process
 
 const report = await runSuite(cases, { repeats })
 const dataset = `${RESIDENT_SIZE} strokes / ${countPointers(generated)} pointers, seed ${SEED}`
+console.log(`bundle: ${bundleLabel}`)
 console.log(`dataset: ${dataset}`)
 console.log(`seeding the resident document via addSymbol: ${seedMs.toFixed(0)} ms`)
 printReport(report)
-writeReport({ ...report, dataset, seedMs }, outFile)
+writeReport({ ...report, dataset, seedMs, lib: bundleLabel }, outFile)
 console.log(`\nreport written to ${outFile}`)

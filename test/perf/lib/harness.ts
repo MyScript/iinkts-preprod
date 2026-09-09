@@ -30,6 +30,11 @@ export type TRunReport = {
   generatedAt: string
   /** Human-readable description of the generated document, for the record. */
   dataset?: string
+  /**
+   * Which bundle was measured. Two reports are only comparable when this differs and everything else
+   * does not, so a report that does not say what it measured cannot be one side of a comparison.
+   */
+  lib?: string
   /** Wall time spent seeding the resident document through the public API, for the record. */
   seedMs?: number
   host: string
