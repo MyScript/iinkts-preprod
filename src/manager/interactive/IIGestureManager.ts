@@ -6,6 +6,8 @@ import type { IIHistoryManager } from "@/history"
 import { LoggerCategory } from "@/logger"
 import type { TStroke } from "@/symbol"
 import { isDecorator, isStroke, SymbolType } from "@/symbol"
+import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
+import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 
 import type { IITranslateManager, IITypesetManager } from "."
 import type { TGestureHandler } from "./gestures"
@@ -148,10 +150,23 @@ export class IIGestureManager extends IIAbstractManager {
     if (!gesture) {
       return
     }
+    // Computed once: `gestureStroke` is an unfrozen working copy (see `interactWithBackend`'s
+    // `cloneSymbol`), so `SymbolGeometry.boundsOf` never caches it — calling it from inside the
+    // `.some`/`.filter` predicates below, once per candidate symbol, would recompute it that many
+    // times over.
+    const gestureBounds = SymbolGeometry.boundsOf(gestureStroke)
     switch (gesture.gestureType) {
       case "surround": {
+        // Scans every symbol in the document regardless of type, so an integrator's custom symbol
+        // type missing its util must not abort gesture recognition for the whole stroke — skip it
+        // like a non-candidate instead of throwing.
         const hasSymbolsToSurrond = this.model.symbols.some((s) => {
-          if (s.id !== gestureStroke.id && !isDecorator(s) && OBBOps.contains(gestureStroke.bounds, s.bounds)) {
+          if (
+            s.id !== gestureStroke.id &&
+            !isDecorator(s) &&
+            symbolRegistry.has(s.type) &&
+            OBBOps.contains(gestureBounds, SymbolGeometry.boundsOf(s))
+          ) {
             return this.surroundAction === SurroundAction.Select || IIGestureManager.#SURROUND_SELECT_TYPES.has(s.type)
           }
           return false
@@ -170,18 +185,20 @@ export class IIGestureManager extends IIAbstractManager {
       case "left-right":
       case "right-left": {
         const symbolsToUnderline = this.model.symbols.filter((s) => {
+          if (s.id === gestureStroke.id || !IIGestureManager.#TEXT_STROKE_GROUP_TYPES.has(s.type)) {
+            return false
+          }
+          const sBounds = SymbolGeometry.boundsOf(s)
           return (
-            s.id !== gestureStroke.id &&
-            IIGestureManager.#TEXT_STROKE_GROUP_TYPES.has(s.type) &&
             isBetween(
-              s.bounds.center.x,
-              gestureStroke.bounds.center.x - gestureStroke.bounds.width / 2,
-              gestureStroke.bounds.center.x + gestureStroke.bounds.width / 2
+              sBounds.center.x,
+              gestureBounds.center.x - gestureBounds.width / 2,
+              gestureBounds.center.x + gestureBounds.width / 2
             ) &&
             isBetween(
-              gestureStroke.bounds.center.y,
-              s.bounds.center.y + s.bounds.height / 4,
-              s.bounds.center.y + (s.bounds.height * 3) / 4
+              gestureBounds.center.y,
+              sBounds.center.y + sBounds.height / 4,
+              sBounds.center.y + (sBounds.height * 3) / 4
             )
           )
         })
@@ -195,18 +212,20 @@ export class IIGestureManager extends IIAbstractManager {
           }
         }
         const symbolsToStrikeThrough = this.model.symbols.filter((s) => {
+          if (s.id === gestureStroke.id || !IIGestureManager.#TEXT_STROKE_GROUP_TYPES.has(s.type)) {
+            return false
+          }
+          const sBounds = SymbolGeometry.boundsOf(s)
           return (
-            s.id !== gestureStroke.id &&
-            IIGestureManager.#TEXT_STROKE_GROUP_TYPES.has(s.type) &&
             isBetween(
-              s.bounds.center.x,
-              gestureStroke.bounds.center.x - gestureStroke.bounds.width / 2,
-              gestureStroke.bounds.center.x + gestureStroke.bounds.width / 2
+              sBounds.center.x,
+              gestureBounds.center.x - gestureBounds.width / 2,
+              gestureBounds.center.x + gestureBounds.width / 2
             ) &&
             isBetween(
-              gestureStroke.bounds.center.y,
-              s.bounds.center.y - s.bounds.height / 4,
-              s.bounds.center.y + s.bounds.height / 4
+              gestureBounds.center.y,
+              sBounds.center.y - sBounds.height / 4,
+              sBounds.center.y + sBounds.height / 4
             )
           )
         })
@@ -222,11 +241,17 @@ export class IIGestureManager extends IIAbstractManager {
         return
       }
       case "scratch": {
+        // Scans every symbol in the document regardless of type, so an integrator's custom symbol
+        // type missing its util must not abort gesture recognition for the whole stroke — skip it
+        // like a non-candidate instead of throwing.
         const symbolsToErase = this.model.symbols.filter((s) => {
+          if (s.id === gestureStroke.id || !symbolRegistry.has(s.type)) {
+            return false
+          }
+          const sBounds = SymbolGeometry.boundsOf(s)
           return (
-            s.id !== gestureStroke.id &&
-            ((OBBOps.overlaps(gestureStroke.bounds, s.bounds) && IIGestureManager.#ERASE_OVERLAY_TYPES.has(s.type)) ||
-              (OBBOps.contains(gestureStroke.bounds, s.bounds) && IIGestureManager.#ERASE_CONTAIN_TYPES.has(s.type)))
+            (OBBOps.overlaps(gestureBounds, sBounds) && IIGestureManager.#ERASE_OVERLAY_TYPES.has(s.type)) ||
+            (OBBOps.contains(gestureBounds, sBounds) && IIGestureManager.#ERASE_CONTAIN_TYPES.has(s.type))
           )
         })
 
@@ -247,9 +272,9 @@ export class IIGestureManager extends IIAbstractManager {
             s.id !== gestureStroke.id &&
             IIGestureManager.#TEXT_STROKE_GROUP_TYPES.has(s.type) &&
             isBetween(
-              s.bounds.center.y,
-              gestureStroke.bounds.center.y - gestureStroke.bounds.height / 2,
-              gestureStroke.bounds.center.y + gestureStroke.bounds.height / 2
+              SymbolGeometry.boundsOf(s).center.y,
+              gestureBounds.center.y - gestureBounds.height / 2,
+              gestureBounds.center.y + gestureBounds.height / 2
             )
         )
         if (hasSymbolsInRow) {
@@ -269,9 +294,9 @@ export class IIGestureManager extends IIAbstractManager {
             s.id !== gestureStroke.id &&
             IIGestureManager.#TEXT_STROKE_GROUP_TYPES.has(s.type) &&
             isBetween(
-              s.bounds.center.y,
-              gestureStroke.bounds.center.y - gestureStroke.bounds.height / 2,
-              gestureStroke.bounds.center.y + gestureStroke.bounds.height / 2
+              SymbolGeometry.boundsOf(s).center.y,
+              gestureBounds.center.y - gestureBounds.height / 2,
+              gestureBounds.center.y + gestureBounds.height / 2
             )
         )
         if (hasSymbolsInRow) {

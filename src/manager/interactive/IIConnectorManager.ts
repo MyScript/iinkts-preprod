@@ -1,9 +1,12 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import type { MatrixTransform, TPoint } from "@/core/geometry"
 import {
+  applyInverseMatrixToPoint,
+  applyMatrixToPoint,
   BoxOps,
   computeDistance,
   findIntersectionBetween2Segment,
+  isIdentityMatrix,
   isPointInsidePolygon,
   OBBOps,
   type TOBB,
@@ -11,17 +14,16 @@ import {
 import type { TDraft } from "@/core/std"
 import { type TPartialDeep } from "@/core/std"
 import { LoggerCategory } from "@/logger"
-import type { TEdge, TShape, TStroke, TSymbol } from "@/symbol"
+import type { TEdge, TStroke, TSymbol } from "@/symbol"
 import type { TAnchor } from "@/symbol/edge/Anchor"
 import { computeNormalizedAnchor, resolveAnchorPoint } from "@/symbol/edge/Anchor"
-import { EdgeArcOps, stretchArcEndpoint } from "@/symbol/edge/Arc"
+import { stretchArcEndpoint } from "@/symbol/edge/Arc"
 import { EdgeOps } from "@/symbol/edge/Edge"
-import { EdgeLineOps } from "@/symbol/edge/Line"
-import { EdgePolyLineOps } from "@/symbol/edge/PolyLine"
 import { ShapeOps } from "@/symbol/shape/Shape"
-import { isStroke, StrokeOps } from "@/symbol/stroke/Stroke"
+import { isStroke } from "@/symbol/stroke/Stroke"
 import { cloneSymbol } from "@/symbol/SymbolHelpers"
 import { SVGBuilder } from "@/symbol-utils/SVGBuilder"
+import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 
 import { IIAbstractManager } from "./IIAbstractManager"
@@ -130,10 +132,15 @@ export class IIConnectorManager extends IIAbstractManager {
       if (EdgeOps.isEdge(s)) {
         return false
       }
-      if (ShapeOps.isShape(s)) {
-        return isPointInsidePolygon(point, (s as TShape).vertices)
+      // Whole-document scan on every anchor-hint hover (see showAnchorHint) — one bad symbol
+      // (unregistered type) must not abort hit-testing the rest of the document.
+      if (!symbolRegistry.has(s.type)) {
+        return false
       }
-      return OBBOps.containsPoint((s as unknown as { bounds: TOBB }).bounds, point)
+      if (ShapeOps.isShape(s)) {
+        return isPointInsidePolygon(point, SymbolGeometry.verticesOf(s))
+      }
+      return OBBOps.containsPoint(SymbolGeometry.boundsOf(s), point)
     })
   }
 
@@ -145,7 +152,7 @@ export class IIConnectorManager extends IIAbstractManager {
     this.clearAnchorHint()
     const target = this.findSymbolAtPoint(point, excludeId)
     if (target) {
-      const bounds = OBBOps.toBox((target as unknown as { bounds: TOBB }).bounds)
+      const bounds = OBBOps.toBox(SymbolGeometry.boundsOf(target))
       // Tagging the pattern with the same role as the rect lets clearAnchorHint's single
       // clearElements() sweep remove both together.
       const pattern = SVGBuilder.createPattern(
@@ -219,6 +226,32 @@ export class IIConnectorManager extends IIAbstractManager {
   }
 
   /**
+   * `computeEntryPoint`, with both sides brought into the same frame and the answer returned in
+   * `edge`'s own.
+   *
+   * Three frames meet here and used to be mixed. `from`/`to` are the edge's stored coordinates, which
+   * are raw; a target shape's vertices come from `SymbolGeometry` in document coordinates, the
+   * target's own matrix already applied; and the result is stored on the anchor, from where
+   * `PolyLine.getSVGPath` and `Arc.getSVGPath` put it straight into path data — so it has to be raw
+   * again, because the element's `transform` attribute is what applies the edge's matrix.
+   *
+   * The edge's two points are carried forward into document space rather than the target's vertices
+   * being carried back: that is two mappings and one return trip whatever the shape's vertex count,
+   * and this runs on every anchored-edge update of a drag.
+   */
+  #entryPointInEdgeFrame(edge: TEdge, from: TPoint, to: TPoint, targetVertices: TPoint[]): TPoint | undefined {
+    if (isIdentityMatrix(edge.transform)) {
+      return this.computeEntryPoint(from, to, targetVertices)
+    }
+    const worldEntry = this.computeEntryPoint(
+      applyMatrixToPoint(from, edge.transform),
+      applyMatrixToPoint(to, edge.transform),
+      targetVertices
+    )
+    return worldEntry ? applyInverseMatrixToPoint(worldEntry, edge.transform) : undefined
+  }
+
+  /**
    * Recompute `entryPoint` on every anchor currently set on `edge`.
    * Must be called after the edge endpoints and anchor target shape are in their final positions.
    */
@@ -228,14 +261,14 @@ export class IIConnectorManager extends IIAbstractManager {
         const target = this.model.getRootSymbol(edge.startAnchor.symbolId)
         edge.startAnchor.entryPoint =
           target && ShapeOps.isShape(target)
-            ? this.computeEntryPoint(edge.start, edge.end, (target as TShape).vertices)
+            ? this.#entryPointInEdgeFrame(edge, edge.start, edge.end, SymbolGeometry.verticesOf(target))
             : undefined
       }
       if (edge.endAnchor) {
         const target = this.model.getRootSymbol(edge.endAnchor.symbolId)
         edge.endAnchor.entryPoint =
           target && ShapeOps.isShape(target)
-            ? this.computeEntryPoint(edge.end, edge.start, (target as TShape).vertices)
+            ? this.#entryPointInEdgeFrame(edge, edge.end, edge.start, SymbolGeometry.verticesOf(target))
             : undefined
       }
     } else if (EdgeOps.isPolyEdge(edge)) {
@@ -244,30 +277,41 @@ export class IIConnectorManager extends IIAbstractManager {
         const target = this.model.getRootSymbol(edge.startAnchor.symbolId)
         edge.startAnchor.entryPoint =
           target && ShapeOps.isShape(target)
-            ? this.computeEntryPoint(edge.points[0], edge.points[1], (target as TShape).vertices)
+            ? this.#entryPointInEdgeFrame(edge, edge.points[0], edge.points[1], SymbolGeometry.verticesOf(target))
             : undefined
       }
       if (edge.endAnchor && n >= 2) {
         const target = this.model.getRootSymbol(edge.endAnchor.symbolId)
         edge.endAnchor.entryPoint =
           target && ShapeOps.isShape(target)
-            ? this.computeEntryPoint(edge.points[n - 1], edge.points[n - 2], (target as TShape).vertices)
+            ? this.#entryPointInEdgeFrame(
+                edge,
+                edge.points[n - 1],
+                edge.points[n - 2],
+                SymbolGeometry.verticesOf(target)
+              )
             : undefined
       }
     } else if (EdgeOps.isArcEdge(edge)) {
-      const n = edge.vertices.length
+      // `edge` is always a draft here (every caller passes one mid-edit), so this never hits the
+      // geometry cache — one verticesOf call shared by both branches instead of the three separate
+      // reads (`.length`, `[0]`/`[1]`, `[n-1]`/`[n-2]`) the field-access version used to make.
+      // Raw, not document: `#entryPointInEdgeFrame` expects the edge's own frame and carries
+      // these forward itself. Reading them already-transformed would apply the matrix twice.
+      const vertices = SymbolGeometry.rawOf(edge).vertices
+      const n = vertices.length
       if (edge.startAnchor && n >= 2) {
         const target = this.model.getRootSymbol(edge.startAnchor.symbolId)
         edge.startAnchor.entryPoint =
           target && ShapeOps.isShape(target)
-            ? this.computeEntryPoint(edge.vertices[0], edge.vertices[1], (target as TShape).vertices)
+            ? this.#entryPointInEdgeFrame(edge, vertices[0], vertices[1], SymbolGeometry.verticesOf(target))
             : undefined
       }
       if (edge.endAnchor && n >= 2) {
         const target = this.model.getRootSymbol(edge.endAnchor.symbolId)
         edge.endAnchor.entryPoint =
           target && ShapeOps.isShape(target)
-            ? this.computeEntryPoint(edge.vertices[n - 1], edge.vertices[n - 2], (target as TShape).vertices)
+            ? this.#entryPointInEdgeFrame(edge, vertices[n - 1], vertices[n - 2], SymbolGeometry.verticesOf(target))
             : undefined
       }
     }
@@ -284,7 +328,7 @@ export class IIConnectorManager extends IIAbstractManager {
       return
     }
     const isStart = pointIndex === 0
-    const isEnd = pointIndex === edge.vertices.length - 1
+    const isEnd = pointIndex === SymbolGeometry.verticesOf(edge).length - 1
     if (!isStart && !isEnd) {
       return
     }
@@ -292,8 +336,14 @@ export class IIConnectorManager extends IIAbstractManager {
     const target = this.findSymbolAtPoint(point, edge.id)
 
     if (target !== undefined) {
-      const center: TPoint = {
-        ...(target as unknown as { bounds: TOBB }).bounds.center,
+      // The target's centre comes back in document coordinates — its own matrix already applied —
+      // and is about to be written into `edge`'s raw `start`/`end`/`points`, which the edge's matrix
+      // places. Mapped into the edge's frame first, or anchoring an already-moved edge to a shape
+      // would drop its endpoint off by that matrix.
+      const center = applyInverseMatrixToPoint(SymbolGeometry.boundsOf(target).center, edge.transform)
+      if (!center) {
+        // The edge is flattened to nothing on some axis, so it has no frame to anchor into.
+        return
       }
       const anchor: TAnchor = {
         symbolId: target.id,
@@ -309,7 +359,6 @@ export class IIConnectorManager extends IIAbstractManager {
           edge.end = center
           edge.endAnchor = anchor
         }
-        EdgeLineOps.updateDerivedFields(edge)
       } else if (EdgeOps.isPolyEdge(edge)) {
         if (isStart) {
           edge.points[0] = center
@@ -319,7 +368,6 @@ export class IIConnectorManager extends IIAbstractManager {
           edge.points[edge.points.length - 1] = center
           edge.endAnchor = anchor
         }
-        EdgePolyLineOps.updateDerivedFields(edge)
       } else if (EdgeOps.isArcEdge(edge)) {
         // An arc has no independent start/end coordinate to overwrite directly — stretch the
         // ellipse (keeping the other endpoint fixed) so the anchored endpoint lands exactly on
@@ -332,7 +380,6 @@ export class IIConnectorManager extends IIAbstractManager {
           Object.assign(edge, stretchArcEndpoint(edge, "end", center))
           edge.endAnchor = anchor
         }
-        EdgeArcOps.updateDerivedFields(edge)
       }
     } else {
       if (isStart) {
@@ -365,8 +412,8 @@ export class IIConnectorManager extends IIAbstractManager {
         return anchor
       }
       const vertices = idSet.has(anchor.symbolId)
-        ? (target as TShape).vertices.map((v) => matrix.applyToPoint(v))
-        : (target as TShape).vertices
+        ? SymbolGeometry.verticesOf(target).map((v) => matrix.applyToPoint(v))
+        : SymbolGeometry.verticesOf(target)
       return {
         ...anchor,
         entryPoint: this.computeEntryPoint(from, to, vertices),
@@ -383,7 +430,7 @@ export class IIConnectorManager extends IIAbstractManager {
         if (symbol.startAnchor && idSet.has(symbol.startAnchor.symbolId)) {
           const targetSymbol = this.model.getRootSymbol(symbol.startAnchor.symbolId)
           if (targetSymbol) {
-            const box = OBBOps.toBox((targetSymbol as unknown as { bounds: TOBB }).bounds)
+            const box = OBBOps.toBox(SymbolGeometry.boundsOf(targetSymbol))
             const point = matrix.applyToPoint(resolveAnchorPoint(symbol.startAnchor!, box))
             clone = { ...clone, ...stretchArcEndpoint(clone, "start", point) }
             changed = true
@@ -392,24 +439,25 @@ export class IIConnectorManager extends IIAbstractManager {
         if (symbol.endAnchor && idSet.has(symbol.endAnchor.symbolId)) {
           const targetSymbol = this.model.getRootSymbol(symbol.endAnchor.symbolId)
           if (targetSymbol) {
-            const box = OBBOps.toBox((targetSymbol as unknown as { bounds: TOBB }).bounds)
+            const box = OBBOps.toBox(SymbolGeometry.boundsOf(targetSymbol))
             const point = matrix.applyToPoint(resolveAnchorPoint(symbol.endAnchor!, box))
             clone = { ...clone, ...stretchArcEndpoint(clone, "end", point) }
             changed = true
           }
         }
         if (changed) {
-          EdgeArcOps.updateDerivedFields(clone)
           // Entry points must be refreshed from the STRETCHED geometry's own vertices, or they
           // go stale the instant the anchored shape moves — same "M ... Q ..." spike bug as an
           // un-recomputed entry point, just self-inflicted on every subsequent move instead of
-          // only at first anchoring.
-          const n = clone.vertices.length
+          // only at first anchoring. `clone` is a fresh spread each move (never frozen), so this
+          // is one verticesOf call instead of the three separate field reads it replaces.
+          const vertices = SymbolGeometry.verticesOf(clone)
+          const n = vertices.length
           if (clone.startAnchor && n >= 2) {
-            clone.startAnchor = recomputeAnchor(clone.startAnchor, clone.vertices[0], clone.vertices[1])
+            clone.startAnchor = recomputeAnchor(clone.startAnchor, vertices[0], vertices[1])
           }
           if (clone.endAnchor && n >= 2) {
-            clone.endAnchor = recomputeAnchor(clone.endAnchor, clone.vertices[n - 1], clone.vertices[n - 2])
+            clone.endAnchor = recomputeAnchor(clone.endAnchor, vertices[n - 1], vertices[n - 2])
           }
           this.canvas.renderer.drawSymbol(clone)
         }
@@ -436,31 +484,13 @@ export class IIConnectorManager extends IIAbstractManager {
 
         if (startTargetSymbol) {
           start = matrix.applyToPoint(
-            resolveAnchorPoint(
-              symbol.startAnchor!,
-              OBBOps.toBox(
-                (
-                  startTargetSymbol as {
-                    bounds: TOBB
-                  }
-                ).bounds
-              )
-            )
+            resolveAnchorPoint(symbol.startAnchor!, OBBOps.toBox(SymbolGeometry.boundsOf(startTargetSymbol)))
           )
           changed = true
         }
         if (endTargetSymbol) {
           end = matrix.applyToPoint(
-            resolveAnchorPoint(
-              symbol.endAnchor!,
-              OBBOps.toBox(
-                (
-                  endTargetSymbol as {
-                    bounds: TOBB
-                  }
-                ).bounds
-              )
-            )
+            resolveAnchorPoint(symbol.endAnchor!, OBBOps.toBox(SymbolGeometry.boundsOf(endTargetSymbol)))
           )
           changed = true
         }
@@ -476,7 +506,6 @@ export class IIConnectorManager extends IIAbstractManager {
             startAnchor: cloneStartAnchor,
             endAnchor: cloneEndAnchor,
           }
-          EdgeLineOps.updateDerivedFields(clone)
           this.canvas.renderer.drawSymbol(clone)
         }
       } else if (EdgeOps.isPolyEdge(symbol)) {
@@ -494,31 +523,13 @@ export class IIConnectorManager extends IIAbstractManager {
 
         if (startTargetSymbol) {
           points[0] = matrix.applyToPoint(
-            resolveAnchorPoint(
-              symbol.startAnchor!,
-              OBBOps.toBox(
-                (
-                  startTargetSymbol as {
-                    bounds: TOBB
-                  }
-                ).bounds
-              )
-            )
+            resolveAnchorPoint(symbol.startAnchor!, OBBOps.toBox(SymbolGeometry.boundsOf(startTargetSymbol)))
           )
           changed = true
         }
         if (endTargetSymbol) {
           points[points.length - 1] = matrix.applyToPoint(
-            resolveAnchorPoint(
-              symbol.endAnchor!,
-              OBBOps.toBox(
-                (
-                  endTargetSymbol as {
-                    bounds: TOBB
-                  }
-                ).bounds
-              )
-            )
+            resolveAnchorPoint(symbol.endAnchor!, OBBOps.toBox(SymbolGeometry.boundsOf(endTargetSymbol)))
           )
           changed = true
         }
@@ -538,7 +549,6 @@ export class IIConnectorManager extends IIAbstractManager {
             startAnchor: cloneStartAnchor,
             endAnchor: cloneEndAnchor,
           }
-          EdgePolyLineOps.updateDerivedFields(clone)
           this.canvas.renderer.drawSymbol(clone)
         }
       }
@@ -548,33 +558,44 @@ export class IIConnectorManager extends IIAbstractManager {
   }
 
   /**
-   * Resolve an anchor to a world point, optionally using pre-transform bounds + matrix.
-   * When matrix and preTransformBoundsById are provided (rotation case), resolves in the
-   * pre-transform AABB then applies the matrix — this preserves the physical point on
+   * Resolve an anchor to a point in `edge`'s own coordinate frame, optionally using pre-transform
+   * bounds + matrix. When matrix and preTransformBoundsById are provided (rotation case), resolves
+   * in the pre-transform AABB then applies the matrix — this preserves the physical point on
    * the shape regardless of AABB size change. Also updates normalizedXY on the anchor
    * so subsequent transforms resolve correctly in the new AABB.
+   *
+   * The anchor is resolved against the *target's* geometry, which `SymbolGeometry` reports in
+   * document coordinates — the target's own matrix already applied. The result is then written into
+   * `edge`'s stored `start`/`end`/`points`, which are raw: the edge's matrix is what places them. So
+   * the point is mapped back through that matrix here rather than at each of the six call sites,
+   * which is what keeps an already-moved edge from jumping when the shape it is anchored to moves.
+   *
+   * Returns `undefined` when the edge's matrix cannot be inverted, alongside the existing
+   * missing-target case: callers already skip the write on `undefined`.
    */
   private resolveAndUpdateAnchor(
     anchor: TAnchor,
+    edge: TEdge,
     matrix: MatrixTransform | undefined,
     preTransformBoundsById: Map<string, TOBB> | undefined
   ): { x: number; y: number } | undefined {
-    const target = this.model.getRootSymbol(anchor.symbolId) as { bounds: TOBB } | undefined
+    const target = this.model.getRootSymbol(anchor.symbolId)
     if (!target) {
       return undefined
     }
-    const targetBox = OBBOps.toBox(target.bounds)
+    const targetBox = OBBOps.toBox(SymbolGeometry.boundsOf(target))
     if (matrix && preTransformBoundsById) {
       const preBounds = preTransformBoundsById.get(anchor.symbolId)
       if (preBounds) {
         const worldPoint = matrix.applyToPoint(resolveAnchorPoint(anchor, OBBOps.toBox(preBounds)))
+        // Normalized against the target's document-space box, so it stays a world point here.
         const { normalizedX, normalizedY } = computeNormalizedAnchor(worldPoint, targetBox)
         anchor.normalizedX = normalizedX
         anchor.normalizedY = normalizedY
-        return worldPoint
+        return applyInverseMatrixToPoint(worldPoint, edge.transform)
       }
     }
-    return resolveAnchorPoint(anchor, targetBox)
+    return applyInverseMatrixToPoint(resolveAnchorPoint(anchor, targetBox), edge.transform)
   }
 
   /**
@@ -599,7 +620,6 @@ export class IIConnectorManager extends IIAbstractManager {
       const symbol = (this.model.draftSymbol(committed.id) as TDraft<TEdge> | undefined) ?? committed
       symbol.startAnchor = undefined
       symbol.endAnchor = undefined
-      symbolRegistry.getUtilFor(symbol).updateDerivedFields(symbol)
       // `updateSymbol` and not `commitSymbol`: the fallback above widens the type back to a plain
       // symbol, and typing it as a draft would be a lie while that branch exists.
       this.model.updateSymbol(symbol)
@@ -654,21 +674,20 @@ export class IIConnectorManager extends IIAbstractManager {
         let changed = false
         const oldSymbol = cloneSymbol(symbol)
         if (symbol.startAnchor && idSet.has(symbol.startAnchor.symbolId)) {
-          const point = this.resolveAndUpdateAnchor(symbol.startAnchor, matrix, preTransformBoundsById)
+          const point = this.resolveAndUpdateAnchor(symbol.startAnchor, symbol, matrix, preTransformBoundsById)
           if (point) {
             Object.assign(symbol, stretchArcEndpoint(symbol, "start", point))
             changed = true
           }
         }
         if (symbol.endAnchor && idSet.has(symbol.endAnchor.symbolId)) {
-          const point = this.resolveAndUpdateAnchor(symbol.endAnchor, matrix, preTransformBoundsById)
+          const point = this.resolveAndUpdateAnchor(symbol.endAnchor, symbol, matrix, preTransformBoundsById)
           if (point) {
             Object.assign(symbol, stretchArcEndpoint(symbol, "end", point))
             changed = true
           }
         }
         if (changed) {
-          EdgeArcOps.updateDerivedFields(symbol)
           this.recomputeAllEntryPoints(symbol)
           this.canvas.renderer.drawSymbol(symbol)
           this.model.commitSymbol(symbol)
@@ -687,40 +706,38 @@ export class IIConnectorManager extends IIAbstractManager {
 
       if (EdgeOps.isLineEdge(symbol)) {
         if (symbol.startAnchor && idSet.has(symbol.startAnchor.symbolId)) {
-          const point = this.resolveAndUpdateAnchor(symbol.startAnchor, matrix, preTransformBoundsById)
+          const point = this.resolveAndUpdateAnchor(symbol.startAnchor, symbol, matrix, preTransformBoundsById)
           if (point) {
             symbol.start = point
             changed = true
           }
         }
         if (symbol.endAnchor && idSet.has(symbol.endAnchor.symbolId)) {
-          const point = this.resolveAndUpdateAnchor(symbol.endAnchor, matrix, preTransformBoundsById)
+          const point = this.resolveAndUpdateAnchor(symbol.endAnchor, symbol, matrix, preTransformBoundsById)
           if (point) {
             symbol.end = point
             changed = true
           }
         }
         if (changed) {
-          EdgeLineOps.updateDerivedFields(symbol)
           this.recomputeAllEntryPoints(symbol)
         }
       } else if (EdgeOps.isPolyEdge(symbol)) {
         if (symbol.startAnchor && idSet.has(symbol.startAnchor.symbolId)) {
-          const point = this.resolveAndUpdateAnchor(symbol.startAnchor, matrix, preTransformBoundsById)
+          const point = this.resolveAndUpdateAnchor(symbol.startAnchor, symbol, matrix, preTransformBoundsById)
           if (point && symbol.points.length > 0) {
             symbol.points[0] = point
             changed = true
           }
         }
         if (symbol.endAnchor && idSet.has(symbol.endAnchor.symbolId)) {
-          const point = this.resolveAndUpdateAnchor(symbol.endAnchor, matrix, preTransformBoundsById)
+          const point = this.resolveAndUpdateAnchor(symbol.endAnchor, symbol, matrix, preTransformBoundsById)
           if (point && symbol.points.length > 0) {
             symbol.points[symbol.points.length - 1] = point
             changed = true
           }
         }
         if (changed) {
-          EdgePolyLineOps.updateDerivedFields(symbol)
           this.recomputeAllEntryPoints(symbol)
         }
       }
@@ -886,7 +903,6 @@ export class IIConnectorManager extends IIAbstractManager {
           p.x = +newPoints[i].x.toFixed(3)
           p.y = +newPoints[i].y.toFixed(3)
         })
-        StrokeOps.updateBounds(symbol)
         this.canvas.renderer.drawSymbol(symbol)
         this.model.updateSymbol(symbol)
 
@@ -919,13 +935,18 @@ export class IIConnectorManager extends IIAbstractManager {
    * symbol to read `.bounds` from pre-convert, only a block of strokes sharing a jiixBlockId.
    */
   #resolveBlockCenter(blockId: string, preTransformBoundsById?: Map<string, TOBB>): TPoint | undefined {
+    // Pre-convert stroke ids only (see class doc above) — always a TStroke, so boundsOf never
+    // throws for an unregistered type here.
     const boxes = this.canvas.jiix
       .getStrokesForElement(blockId)
-      .map(
-        (id) =>
-          preTransformBoundsById?.get(id) ??
-          (this.model.getRootSymbol(id) as (TSymbol & { bounds: TOBB }) | undefined)?.bounds
-      )
+      .map((id) => {
+        const preBounds = preTransformBoundsById?.get(id)
+        if (preBounds) {
+          return preBounds
+        }
+        const target = this.model.getRootSymbol(id)
+        return target ? SymbolGeometry.boundsOf(target) : undefined
+      })
       .filter((b): b is TOBB => !!b)
       .map((b) => OBBOps.toBox(b))
     if (boxes.length === 0) {

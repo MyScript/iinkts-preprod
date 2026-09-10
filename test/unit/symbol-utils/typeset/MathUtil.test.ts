@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach } from "@jest/globals"
 import { buildIIMath } from "../../helpers"
-import { MathUtil, SymbolType, OBBOps, type TMathElement } from "@/iink"
+import { MathUtil, SymbolType, OBBOps, MatrixTransform, type TMathElement, computeTypesetSnapPoints, computeClosedEdges, computeTypesetVertices } from "@/iink"
 
 const makeMathElement = (label: string, bounds = { x: 0, y: 0, width: 50, height: 30 }): TMathElement => ({
   id: "e1",
@@ -42,16 +42,19 @@ describe("MathUtil", () => {
     })
   })
 
-  describe("updateDerivedFields", () => {
-    test("should not throw on valid math", () => {
-      const math = buildIIMath()
-      expect(() => util.updateDerivedFields(math)).not.toThrow()
-    })
 
-    test("should update snapPoints after call", () => {
+  describe("computeGeometry", () => {
+    test("matches the legacy MathOps geometry already computed by create, not merely itself", () => {
       const math = buildIIMath()
-      util.updateDerivedFields(math)
-      expect(Array.isArray(math.snapPoints)).toBe(true)
+
+      const geometry = util.computeGeometry(math)
+
+      expect(geometry.bounds).toEqual(math.bounds)
+      expect(geometry.vertices).toEqual(computeTypesetVertices(OBBOps.toUnrotatedBox(math.bounds)))
+      // Oracle is the shared typeset helper, not the stored field it replaced.
+      expect(geometry.snapPoints).toEqual(computeTypesetSnapPoints(OBBOps.toUnrotatedBox(math.bounds), math.point))
+      expect(geometry.edges).toEqual(computeClosedEdges(geometry.vertices))
+      expect(geometry.length).toBe(0)
     })
   })
 
@@ -67,12 +70,24 @@ describe("MathUtil", () => {
     })
   })
 
-  describe("getSnapPoints", () => {
-    test("should return the math snapPoints reference", () => {
+  describe("getSVGElement", () => {
+    test("emits no transform attribute for a symbol that was never moved", () => {
       const math = buildIIMath()
-      util.updateDerivedFields(math)
+      expect(util.getSVGElement(math).getAttribute("transform")).toBeNull()
+    })
+
+    test("emits the symbol's matrix as the element transform once moved", () => {
+      const math = buildIIMath()
+      math.transform = MatrixTransform.identity().translate(3, 4)
+      expect(util.getSVGElement(math).getAttribute("transform")).toBe("matrix(1, 0, 0, 1, 3, 4)")
+    })
+  })
+
+  describe("getSnapPoints", () => {
+    test("should return the math's snap points, computed from its measured box", () => {
+      const math = buildIIMath()
       const result = util.getSnapPoints(math)
-      expect(result).toBe(math.snapPoints)
+      expect(result).toStrictEqual(computeTypesetSnapPoints(OBBOps.toUnrotatedBox(math.bounds), math.point))
     })
   })
 

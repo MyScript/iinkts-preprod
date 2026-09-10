@@ -33,7 +33,9 @@ regressions:
 - **`derive` is not comparable to any pre-E5 figure, by construction.** Committed records are frozen,
   so deriving in place throws; the case now goes through `draftSymbol` → `updateDerivedFields` →
   `commitSymbol`, which is what production code does. Its 449 ms therefore includes 10 000
-  draft-and-commit round trips and says nothing about the derivation itself.
+  draft-and-commit round trips and says nothing about the derivation itself. **The case has since
+  been removed from the bench along with `updateDerivedFields` itself** — symbols no longer store a
+  derived field to recompute. The figure is kept as the record of what was measured at the time.
 
 **Do not read this re-record as the gate being loosened.** No threshold was changed. The gate caught
 the frozen-access cost on its own, at +779% against a 36% limit, which is the tooling working.

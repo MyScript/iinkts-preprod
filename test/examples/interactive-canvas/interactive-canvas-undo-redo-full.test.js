@@ -8,6 +8,7 @@ import {
   waitForConvertedEvent,
   getCanvasSymbols,
   callCanvasIdle,
+  openMenuCollapsible,
 } from "../helper"
 import locator from "../locators"
 import helloOneStroke from "../__dataset__/helloOneStroke"
@@ -127,7 +128,7 @@ test.describe("Interactive ink canvas full undo/redo", () => {
 
     await test.step("change thickness, undo/redo", async () => {
       await selectSymbol(page, strokeId)
-      await page.locator("#ms-menu-style-thickness .collapsible-header").click()
+      await openMenuCollapsible(page, "#ms-menu-style-thickness")
       await page.locator(`#ms-menu-style-thickness-${NEW_WIDTH}`).click()
 
       let symbols = await getCanvasSymbols(page)
@@ -173,7 +174,7 @@ test.describe("Interactive ink canvas full undo/redo", () => {
 
     await test.step("change font size, undo/redo", async () => {
       await selectSymbol(page, textId)
-      await page.locator("#ms-menu-style-font-size .collapsible-header").click()
+      await openMenuCollapsible(page, "#ms-menu-style-font-size")
       await page.locator(`[id="ms-menu-style-font-size-${NEW_FONT_SIZE_PIXELS}"]`).click()
 
       const expectedFontSize = NEW_FONT_SIZE_PIXELS * DEFAULT_GUIDE_SIZE
@@ -194,7 +195,7 @@ test.describe("Interactive ink canvas full undo/redo", () => {
 
     await test.step("change font weight, undo/redo", async () => {
       await selectSymbol(page, textId)
-      await page.locator("#ms-menu-style-font-weight .collapsible-header").click()
+      await openMenuCollapsible(page, "#ms-menu-style-font-weight")
       await page.locator(`#ms-menu-style-font-weight-${NEW_FONT_WEIGHT}`).click()
 
       let symbols = await getCanvasSymbols(page)

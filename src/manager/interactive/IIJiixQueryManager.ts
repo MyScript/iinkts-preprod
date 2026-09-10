@@ -17,6 +17,7 @@ import { convertBoundingBoxMillimeterToPixel } from "@/core/geometry"
 import { convertMillimeterToPixel } from "@/core/math"
 import { LoggerCategory } from "@/logger"
 import type { TStroke, TSymbol } from "@/symbol"
+import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 
 import { IIAbstractManager } from "./IIAbstractManager"
 
@@ -910,7 +911,7 @@ export class IIJiixQueryManager extends IIAbstractManager {
               if (!strokes.length) {
                 continue
               }
-              bounds = BoxOps.createFromBoxes(strokes.map((s) => OBBOps.toBox(s.bounds)))
+              bounds = BoxOps.createFromBoxes(strokes.map((s) => OBBOps.toBox(SymbolGeometry.boundsOf(s))))
             }
             groups.push({ strokeIds, bounds })
           }

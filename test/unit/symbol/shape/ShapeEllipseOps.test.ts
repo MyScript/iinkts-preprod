@@ -1,7 +1,10 @@
-import { ShapeEllipseOps, TPoint, DefaultStyle, TStyle, TBox, OBBOps } from "@/iink"
+import { ShapeEllipseOps, TPoint, DefaultStyle, TStyle, TBox, OBBOps, MatrixTransform } from "@/iink"
 
 describe("ShapeEllipseOps", () => {
   describe("create", () => {
+    test("should initialise transform to identity", () => {
+      expect(ShapeEllipseOps.create({ x: 0, y: 0 }, 5, 10, 0).transform).toEqual(MatrixTransform.identity())
+    })
     test("should create with default style", () => {
       const ellipse = ShapeEllipseOps.create({ x: 0, y: 0 }, 5, 10, 0)
       expect(ellipse.style).toEqual(DefaultStyle)
@@ -14,18 +17,30 @@ describe("ShapeEllipseOps", () => {
     })
     test("should compute bounds from vertices", () => {
       const ellipse = ShapeEllipseOps.create({ x: 5, y: 0 }, 5, 10, 0)
-      expect(OBBOps.toBox(ellipse.bounds).x).toBeCloseTo(0, 0)
-      expect(OBBOps.toBox(ellipse.bounds).y).toBeCloseTo(-10, 0)
-      expect(ellipse.bounds.width).toBeCloseTo(10, 0)
-      expect(ellipse.bounds.height).toBeCloseTo(20, 0)
+      expect(OBBOps.toBox(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse))).x).toBeCloseTo(0, 0)
+      expect(OBBOps.toBox(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse))).y).toBeCloseTo(-10, 0)
+      expect(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse)).width).toBeCloseTo(10, 0)
+      expect(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse)).height).toBeCloseTo(20, 0)
     })
     test("should compute minimum 8 vertices for small ellipse", () => {
       const ellipse = ShapeEllipseOps.create({ x: 0, y: 0 }, 5, 10, 0)
-      expect(ellipse.vertices).toHaveLength(8)
+      expect(ShapeEllipseOps.computeVertices(ellipse)).toHaveLength(8)
     })
     test("should compute more vertices for large ellipse", () => {
       const ellipse = ShapeEllipseOps.create({ x: 0, y: 0 }, 50, 100, 0)
-      expect(ellipse.vertices).toHaveLength(50)
+      expect(ShapeEllipseOps.computeVertices(ellipse)).toHaveLength(50)
+    })
+    // Same reason as the circle: a length assertion cannot see the tessellation drift. Oracle is
+    // the un-rotated parametric ellipse `(cx + rx·cos θ, cy + ry·sin θ)`, written out here.
+    test("should tessellate an un-rotated ellipse from its +x apex", () => {
+      const ellipse = ShapeEllipseOps.create({ x: 0, y: 0 }, 5, 10, 0)
+      const vertices = ShapeEllipseOps.computeVertices(ellipse)
+      expect(vertices).toHaveLength(8)
+      vertices.forEach((vertex, index) => {
+        const theta = (2 * Math.PI * index) / 8
+        expect(vertex.x).toBeCloseTo(5 * Math.cos(theta), 3)
+        expect(vertex.y).toBeCloseTo(10 * Math.sin(theta), 3)
+      })
     })
     test("should generate unique ids", () => {
       const e1 = ShapeEllipseOps.create({ x: 0, y: 0 }, 5, 5, 0)
@@ -41,6 +56,11 @@ describe("ShapeEllipseOps", () => {
       expect(ellipse.radiusX).toEqual(5)
       expect(ellipse.radiusY).toEqual(10)
     })
+    test("should carry a given transform through, merged onto identity", () => {
+      const partial = { center: { x: 0, y: 0 }, radiusX: 5, radiusY: 10, transform: { tx: 5, ty: 6 } }
+      const ellipse = ShapeEllipseOps.createFromPartial(partial)
+      expect(ellipse.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 5, ty: 6 })
+    })
     test("should preserve id", () => {
       const partial = { id: "my-id", center: { x: 0, y: 0 }, radiusX: 5, radiusY: 5 }
       const ellipse = ShapeEllipseOps.createFromPartial(partial)
@@ -54,15 +74,6 @@ describe("ShapeEllipseOps", () => {
     })
     test("should throw if radiusY missing", () => {
       expect(() => ShapeEllipseOps.createFromPartial({ center: { x: 0, y: 0 }, radiusX: 5 })).toThrow()
-    })
-  })
-
-  describe("updateDerivedFields", () => {
-    test("should recompute bounds after radiusX change", () => {
-      const ellipse = ShapeEllipseOps.create({ x: 0, y: 0 }, 5, 10, 0)
-      ellipse.radiusX = 20
-      ShapeEllipseOps.updateDerivedFields(ellipse)
-      expect(ellipse.bounds.width).toBeCloseTo(40, 0)
     })
   })
 

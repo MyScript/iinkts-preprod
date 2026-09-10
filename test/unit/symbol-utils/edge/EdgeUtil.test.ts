@@ -2,14 +2,46 @@ import { beforeEach, describe, expect, test } from "@jest/globals"
 
 import { buildIILine } from "../../helpers"
 
-import type { TEdge, TPartialDeep } from "@/iink"
-import { EdgeDecoration, EdgeKind, EdgeUtil, SymbolType } from "@/iink"
+import type { TEdge, TOBB, TPartialDeep } from "@/iink"
+import { EdgeArcOps, EdgeDecoration, EdgeKind, EdgeUtil, MatrixTransform, OBBOps, SymbolType, TPoint, TSegment, EdgeLineOps, TEdgeLine, EdgePolyLineOps, TEdgePolyLine, TEdgeArc } from "@/iink"
 
 /**
  * `EdgeUtil` resolved a kind with a `switch` in each of four methods until IIC-2002 replaced them
  * with one table. These tests assert what the table buys: a kind is wired everywhere or nowhere,
  * and every member of `EdgeKind` is wired at all.
  */
+/**
+ * Each kind's own edge computation, the oracle now that the stored `edges` field is gone. A
+ * dispatch oracle like {@link EDGE_BOUNDS_ORACLE}: it reaches the same `*Ops` calls `computeGeometry`
+ * makes, so it pins the routing, not the arithmetic.
+ */
+const EDGES_ORACLE: Record<string, (edge: TEdge, vertices: TPoint[]) => TSegment[]> = {
+  [EdgeKind.Line]: (edge) => EdgeLineOps.computeEdges(edge as TEdgeLine),
+  [EdgeKind.PolyEdge]: (edge) => EdgePolyLineOps.computeEdges((edge as TEdgePolyLine).points),
+  [EdgeKind.Arc]: (_edge, vertices) => EdgeArcOps.computeEdges(vertices),
+}
+
+/**
+ * Each kind's own bounds computation. This is a *dispatch* oracle: it proves `EdgeUtil` routes an
+ * arc to `EdgeArcOps` and not to `EdgeLineOps`, and nothing more — it cannot fail if a kind's own
+ * `computeBounds` is wrong, because it is that same call. The value coverage lives in each kind's
+ * own test file, against hand-written boxes.
+ */
+const EDGE_BOUNDS_ORACLE: Record<string, (edge: TEdge) => TOBB> = {
+  [EdgeKind.Line]: (edge) =>
+    EdgeLineOps.computeBounds(edge as TEdgeLine, EdgeLineOps.computeVertices(edge as TEdgeLine)),
+  [EdgeKind.PolyEdge]: (edge) => EdgePolyLineOps.computeBounds(edge as TEdgePolyLine),
+  [EdgeKind.Arc]: (edge) =>
+    EdgeArcOps.computeBounds(edge as TEdgeArc, EdgeArcOps.computeVertices(edge as TEdgeArc)),
+}
+
+/** Each kind's own vertex computation, the oracle now that the stored `vertices` field is gone. */
+const EDGE_VERTICES_ORACLE: Record<string, (edge: TEdge) => TPoint[]> = {
+  [EdgeKind.Line]: (edge) => EdgeLineOps.computeVertices(edge as TEdgeLine),
+  [EdgeKind.PolyEdge]: (edge) => EdgePolyLineOps.computeVertices(edge as TEdgePolyLine),
+  [EdgeKind.Arc]: (edge) => EdgeArcOps.computeVertices(edge as TEdgeArc),
+}
+
 const PARTIALS: Record<string, TPartialDeep<TEdge>> = {
   [EdgeKind.Line]: {
     type: SymbolType.Edge,
@@ -63,10 +95,23 @@ describe("EdgeUtil", () => {
       expect(edge().type).toBe(SymbolType.Edge)
     })
 
-    test("should update derived fields without dispatching elsewhere", () => {
+    test("computeGeometry should dispatch each kind to that kind's own computation", () => {
       const created = edge()
-      expect(() => util.updateDerivedFields(created)).not.toThrow()
-      expect(created.bounds).toBeDefined()
+
+      const geometry = util.computeGeometry(created)
+
+      expect(geometry.bounds).toEqual(EDGE_BOUNDS_ORACLE[kind](created))
+      // Oracle is the kind's own vertex computation, not the stored field it replaced.
+      expect(geometry.vertices).toEqual(EDGE_VERTICES_ORACLE[kind](created))
+      // Per kind, because the three do not agree: a line and a polyline snap by every vertex, an arc
+      // only by its two endpoints. Asserting `geometry.vertices` for all three passed for the first
+      // two and quietly accepted a 28-point answer for the arc.
+      expect(geometry.snapPoints).toEqual(
+        kind === EdgeKind.Arc ? EdgeArcOps.computeSnapPoints(geometry.vertices) : geometry.vertices
+      )
+      // Oracle is the kind's own `computeEdges`, not the stored field it replaced.
+      expect(geometry.edges).toEqual(EDGES_ORACLE[kind](created, geometry.vertices))
+      expect(geometry.length).toBe(0)
     })
 
     test("should answer overlaps", () => {
@@ -82,6 +127,16 @@ describe("EdgeUtil", () => {
       const path = element.querySelector("path")
       expect(element.getAttribute("kind")).toBe(kind)
       expect(path?.getAttribute("d")).toBe(EdgeUtil.getSVGPath(edge()))
+    })
+
+    test("should emit no transform attribute for an edge that was never moved", () => {
+      expect(util.getSVGElement(edge()).getAttribute("transform")).toBeNull()
+    })
+
+    test("should emit the edge's matrix as the element transform once moved", () => {
+      const moved = edge()
+      moved.transform = MatrixTransform.identity().translate(3, 4)
+      expect(util.getSVGElement(moved).getAttribute("transform")).toBe("matrix(1, 0, 0, 1, 3, 4)")
     })
 
     test("should carry arrow decorations, which belong to every kind rather than to the table", () => {
@@ -116,8 +171,27 @@ describe("EdgeUtil", () => {
     test("should stay tolerant where it always was", () => {
       // Both run over whole models and never threw on an unknown kind; they still must not.
       const unknown = { kind: "spline" } as unknown as TEdge
-      expect(() => util.updateDerivedFields(unknown)).not.toThrow()
       expect(util.overlaps(unknown, { x: 0, y: 0, width: 1, height: 1 })).toBe(false)
+    })
+
+    test("computeGeometry should stay tolerant too, leaving the edge's own fields as its answer", () => {
+      const unknown = {
+        kind: "spline",
+        bounds: "bounds",
+        vertices: "vertices",
+        snapPoints: "snapPoints",
+        edges: "edges",
+      } as unknown as TEdge
+      expect(util.computeGeometry(unknown)).toEqual({
+        // Not the object's own `bounds` any more: no edge type declares one, so a stray property
+        // arriving as data is not something the fallback can read or echo back.
+        bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0),
+        vertices: [],
+        // An unregistered kind has no snap points to offer, so the fallback returns none.
+        snapPoints: [],
+        edges: [],
+        length: 0,
+      })
     })
   })
 })
@@ -179,37 +253,6 @@ describe("EdgeUtil, the contract members", () => {
     })
   })
 
-  describe("updateDerivedFields", () => {
-    test("should not throw for a line", () => {
-      const line = buildIILine()
-      expect(() => util.updateDerivedFields(line)).not.toThrow()
-    })
-
-    test("should not throw for an arc", () => {
-      const arc = util.create({
-        kind: EdgeKind.Arc,
-        center: { x: 0, y: 0 },
-        startAngle: 0,
-        sweepAngle: Math.PI,
-        radiusX: 5,
-        radiusY: 5,
-      })
-      expect(() => util.updateDerivedFields(arc)).not.toThrow()
-    })
-
-    test("should not throw for a polyline", () => {
-      const poly = util.create({
-        kind: EdgeKind.PolyEdge,
-        points: [
-          { x: 0, y: 0 },
-          { x: 5, y: 5 },
-          { x: 10, y: 0 },
-        ],
-      })
-      expect(() => util.updateDerivedFields(poly)).not.toThrow()
-    })
-  })
-
   describe("overlaps", () => {
     test("should return true when box fully contains line bounds (totally wraps)", () => {
       // Use a large box that fully contains the line bounds (including SELECTION_MARGIN expansion)
@@ -234,14 +277,61 @@ describe("EdgeUtil, the contract members", () => {
       const unknownEdge = { ...line, kind: "unknown" } as unknown as TEdge
       expect(util.overlaps(unknownEdge, { x: 0, y: 0, width: 100, height: 100 })).toBe(false)
     })
+
+    /**
+     * The regression this closes: surround-selecting a rotated edge missed it entirely, because
+     * `overlaps` tested the query against the raw (pre-rotate) segment.
+     */
+    test("a rotated line is crossed by a query over its new position, not its raw one", () => {
+      // Raw line lies along y=0 from x=0 to x=10. rotate(90°) about the origin sends (x, y) to
+      // (-y, x), so the rotated line now lies along x=0 from y=0 to y=10.
+      const line = buildIILine({ start: { x: 0, y: 0 }, end: { x: 10, y: 0 } })
+      line.transform = MatrixTransform.identity().rotate(Math.PI / 2)
+
+      expect(util.overlaps(line, { x: -1, y: 5, width: 2, height: 2 })).toBe(true)
+      // Where the line used to lie — a query still drawn along y=0 must miss it now.
+      expect(util.overlaps(line, { x: 5, y: -1, width: 2, height: 2 })).toBe(false)
+    })
+
+    /**
+     * Regression found in review: a rotated line's two raw endpoints are also two of its own raw
+     * *bounding-box* corners — but the box has two more corners, never on the line itself. Testing
+     * containment against the box's corners (as the first version of this fix did) rather than the
+     * line's own two endpoints made a query that truly surrounds the (rotated) line miss it, because
+     * the box's other two corners reach further out than the line does everywhere but its endpoints.
+     *
+     * Hand-derived with a clean (no trig rounding) rotation matrix — cos=0.6, sin=0.8, the 3-4-5
+     * triangle. Raw endpoints (0,0),(20,5) map forward to world (0,0),(8,19); the world-space query
+     * {x:-1,y:-1,width:10,height:21} maps back, through the exact-transpose inverse, to a raw-frame
+     * quad that contains both raw endpoints (verified by the same cross-product sign test
+     * `pointInConvexPolygon` uses) but excludes both of the raw bounding box's other corners,
+     * (20,0) and (0,5).
+     */
+    test("hand-computed: a rotated line is contained where its bounding box's other two corners are not", () => {
+      const line = buildIILine({ start: { x: 0, y: 0 }, end: { x: 20, y: 5 } })
+      line.transform = { xx: 0.6, yx: 0.8, xy: -0.8, yy: 0.6, tx: 0, ty: 0 }
+
+      expect(util.overlaps(line, { x: -1, y: -1, width: 10, height: 21 })).toBe(true)
+    })
   })
 
   describe("getSnapPoints", () => {
-    test("should return the edge snapPoints reference", () => {
+    test("should return the edge's snap points, which for a line are its vertices", () => {
       const line = buildIILine()
-      util.updateDerivedFields(line)
       const result = util.getSnapPoints(line)
-      expect(result).toBe(line.snapPoints)
+      expect(result).toStrictEqual(util.computeGeometry(line).vertices)
+    })
+
+    test("a rotated line's snap points land on the rotated geometry, not the raw one", () => {
+      const line = buildIILine({ start: { x: 0, y: 0 }, end: { x: 10, y: 0 } })
+      line.transform = MatrixTransform.identity().rotate(Math.PI / 2)
+
+      // Hand-computed: rotate(90°) about the origin sends (x, y) to (-y, x), so raw endpoints
+      // (0,0),(10,0) - the line's own snap points - become (0,0),(0,10).
+      expect(util.getSnapPoints(line)).toEqual([
+        { x: 0, y: 0 },
+        { x: 0, y: 10 },
+      ])
     })
   })
 

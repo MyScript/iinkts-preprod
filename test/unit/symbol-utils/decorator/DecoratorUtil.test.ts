@@ -1,10 +1,12 @@
-import { describe, test, expect, beforeEach } from "@jest/globals"
+import { describe, test, expect, beforeAll, beforeEach } from "@jest/globals"
 import { buildIIDecorator } from "../../helpers"
 import type { TDecorator } from "@/iink"
-import { DecoratorUtil, DecoratorKind, OBBOps, SymbolType } from "@/iink"
+import { DecoratorUtil, DecoratorKind, DecoratorOps, OBBOps, SymbolType, MatrixTransform, registerBuiltinSymbolUtils } from "@/iink"
 
 describe("DecoratorUtil", () => {
   let util: DecoratorUtil
+
+  beforeAll(() => registerBuiltinSymbolUtils())
 
   beforeEach(() => {
     util = new DecoratorUtil()
@@ -35,38 +37,90 @@ describe("DecoratorUtil", () => {
       const d2 = util.create({ kind: DecoratorKind.Surround })
       expect(d1.id).not.toBe(d2.id)
     })
-  })
 
-  describe("updateDerivedFields", () => {
-    test("should not throw when decorator has no bounds", () => {
-      const decorator = buildIIDecorator(DecoratorKind.Underline)
-      expect(() => util.updateDerivedFields(decorator)).not.toThrow()
+    test("should carry a given transform through, merged onto identity", () => {
+      const decorator = util.create({ kind: DecoratorKind.Underline, transform: { tx: 5, ty: 6 } })
+      expect(decorator.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 5, ty: 6 })
     })
 
-    test("should not throw when decorator has bounds", () => {
+    test("should default transform to identity when absent", () => {
+      const decorator = util.create({ kind: DecoratorKind.Underline })
+      expect(decorator.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 0, ty: 0 })
+    })
+  })
+
+  describe("computeGeometry", () => {
+    test("reads targetBounds rather than deriving anything, since a decorator owns no coordinates", () => {
+      const decorator = util.create({ kind: DecoratorKind.Highlight })
+      // Oracle is `DecoratorOps`, reached directly: `computeGeometry` is the one util method that
+      // reports a stored box, so what it must be checked against is the writer, not a derivation.
+      DecoratorOps.setTargetBounds(decorator, OBBOps.fromBox({ x: 0, y: 0, width: 10, height: 10 }))
+
+      const geometry = util.computeGeometry(decorator)
+
+      expect(geometry.bounds).toEqual(decorator.targetBounds)
+      expect(geometry.vertices).toEqual(DecoratorOps.computeVertices(decorator.targetBounds!))
+      // A decorator's snap points are its two vertices — that is what the removed field copied.
+      expect(geometry.snapPoints).toEqual(geometry.vertices)
+      // A decorator's single edge joins its two vertices — what the removed field held.
+      expect(geometry.edges).toEqual([{ p1: geometry.vertices[0], p2: geometry.vertices[1] }])
+      expect(geometry.length).toBe(0)
+    })
+
+    test("reports empty geometry for a decorator with no targetBounds, not two points at the origin", () => {
+      const decorator = buildIIDecorator(DecoratorKind.Underline) // targetBounds stays unset
+      expect(util.computeGeometry(decorator)).toEqual({
+        bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0),
+        vertices: [],
+        snapPoints: [],
+        edges: [],
+        length: 0,
+      })
+    })
+
+    test("takes targetBounds through create as the TOBB the field declares, centre intact", () => {
+      // `create` used to read this partial as a `TBox` behind a cast, so a decorator serialised by
+      // iinkTS itself — a `TOBB`, carrying `center` and no `x` — came back with a NaN centre.
       const decorator = util.create({
         kind: DecoratorKind.Highlight,
-        bounds: OBBOps.fromBox({ x: 0, y: 0, width: 10, height: 10 }),
+        targetBounds: { center: { x: 5, y: 5 }, width: 10, height: 10, angle: 0 },
       })
-      // setBounds is guarded by hasBounds
-      expect(() => util.updateDerivedFields(decorator)).not.toThrow()
+      expect(decorator.targetBounds).toEqual(OBBOps.create({ x: 5, y: 5 }, 10, 10))
+      expect(util.computeGeometry(decorator).vertices).toEqual([
+        { x: 0, y: 5 },
+        { x: 10, y: 5 },
+      ])
     })
   })
 
   describe("overlaps", () => {
-    test("should return false when decorator with no bounds is tested against box", () => {
+    test("should return false when a decorator with no targetBounds is tested against a box", () => {
       const decorator = buildIIDecorator(DecoratorKind.Underline)
-      // No bounds set so expected to not overlap (no vertices)
-      const result = util.overlaps(decorator, { x: 0, y: 0, width: 100, height: 100 })
-      expect(typeof result).toBe("boolean")
+      expect(util.overlaps(decorator, { x: 0, y: 0, width: 100, height: 100 })).toBe(false)
+    })
+
+    test("should overlap a box that meets its targetBounds", () => {
+      const decorator = buildIIDecorator(DecoratorKind.Underline)
+      DecoratorOps.setTargetBounds(decorator, OBBOps.fromBox({ x: 10, y: 10, width: 50, height: 20 }))
+      expect(util.overlaps(decorator, { x: 0, y: 0, width: 30, height: 30 })).toBe(true)
+      expect(util.overlaps(decorator, { x: 200, y: 200, width: 30, height: 30 })).toBe(false)
     })
   })
 
   describe("getSnapPoints", () => {
-    test("should return decorator snapPoints", () => {
+    test("should return the decorator's snap points once targetBounds are set", () => {
+      const decorator = util.create({ kind: DecoratorKind.Strikethrough })
+      DecoratorOps.setTargetBounds(decorator, OBBOps.fromBox({ x: 0, y: 0, width: 10, height: 10 }))
+      // Independent oracle: computed straight from `targetBounds`, so a `getSnapPoints` stubbed to
+      // return `[]` fails this against a non-empty expectation.
+      const expected = DecoratorOps.computeVertices(decorator.targetBounds!)
+      expect(expected.length).toBeGreaterThan(0)
+      expect(util.getSnapPoints(decorator)).toStrictEqual(expected)
+    })
+
+    test("should return an empty array when the decorator has no targetBounds", () => {
       const decorator = buildIIDecorator(DecoratorKind.Strikethrough)
-      const result = util.getSnapPoints(decorator)
-      expect(result).toBe(decorator.snapPoints)
+      expect(util.getSnapPoints(decorator)).toStrictEqual([])
     })
   })
 
@@ -85,6 +139,29 @@ describe("DecoratorUtil", () => {
 
     test("canRotate should return false", () => {
       expect(util.canRotate(buildIIDecorator(DecoratorKind.Underline))).toBe(false)
+    })
+  })
+
+  describe("getSVGElement", () => {
+    const buildUnderline = () => DecoratorOps.create(DecoratorKind.Underline, {}, [], { x: 0, y: 0, width: 20, height: 10 })
+
+    test("emits no transform attribute for a decorator that was never moved", () => {
+      expect(util.getSVGElement(buildUnderline())?.getAttribute("transform")).toBeNull()
+    })
+
+    test("emits the decorator's matrix as the element transform once moved, without also shifting the geometry", () => {
+      // Guards the interaction with SymbolGeometry now baking the matrix into `boundsOf`: this
+      // element must draw from the decorator's *raw*, stored bounds and let the `transform`
+      // attribute alone account for the move — using the transformed bounds here would shift the
+      // line twice (once in its own x1/x2, once via the attribute).
+      const decorator = buildUnderline()
+      decorator.transform = MatrixTransform.identity().translate(5, 5)
+
+      const element = util.getSVGElement(decorator)
+
+      expect(element?.getAttribute("transform")).toBe("matrix(1, 0, 0, 1, 5, 5)")
+      expect(element?.getAttribute("x1")).toBe("0")
+      expect(element?.getAttribute("x2")).toBe("20")
     })
   })
 

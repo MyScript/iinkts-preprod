@@ -1,10 +1,10 @@
-import { applyMatrixToPoint, applyMatrixToPoints, MatrixTransform } from "@/core/geometry"
-import { convertRadianToDegree } from "@/core/math"
+import { OBBOps } from "@/core/geometry"
 import type { TMath } from "@/symbol/typeset/Math"
 import type { TText } from "@/symbol/typeset/Text"
+import { computeClosedEdges, computeTypesetSnapPoints, computeTypesetVertices } from "@/symbol/typeset/Typeset"
 
 import { SymbolUtil } from "../SymbolUtil"
-import type { TResizeContext, TRotateContext, TTranslateContext } from "../TransformContext"
+import type { TSymbolGeometry } from "../TSymbolGeometry"
 
 /**
  * @group SymbolUtils
@@ -15,14 +15,13 @@ import type { TResizeContext, TRotateContext, TTranslateContext } from "../Trans
  * on `IIResizeManager` that branched on `isText(symbol)` twice, once to reach the right list and
  * once to reach the right derive.
  *
- * A typeset symbol differs from a geometric one in two ways, and both live here:
- *
- * - it is **turned by recording an angle**, not by moving anything. The renderer applies it as an
- *   SVG rotation, so `rotate` writes `rotation` and touches no coordinate.
- * - it is **measured, not computed**: its bounds come from drawing it into the DOM hidden and
- *   reading `getBBox()`. That is why `translate` and `rotate` are handed a typeset port. `resize` is
- *   the exception — it rebuilds bounds from the scale factors instead, which is why it needs no
- *   port.
+ * A typeset symbol used to differ from a geometric one in how it turns and resizes: it recorded an
+ * angle instead of moving a coordinate, and rebuilt its bounds from scale factors instead of
+ * rescaling anything by hand. Both of those were per-type code, and both are gone — `translate`,
+ * `rotate` and `resize` are `SymbolUtil`'s now, composing the matrix like every other type. What is
+ * left here is the one thing that is still genuinely different: a typeset symbol is **measured, not
+ * computed** — its bounds come from drawing it into the DOM hidden and reading `getBBox()`, always
+ * unrotated and unscaled, because turning and scaling are the matrix's job from here on.
  */
 export abstract class TypesetUtil<T extends TText | TMath> extends SymbolUtil<T> {
   // The parameter is deliberately not widened to a structural "has a point and bounds" shape. It
@@ -31,72 +30,20 @@ export abstract class TypesetUtil<T extends TText | TMath> extends SymbolUtil<T>
   // one call it cannot avoid.
 
   /**
-   * The glyphs whose size follows a resize — a text's characters, a math's elements.
-   *
-   * The one thing the two types genuinely do not share, so it is the one thing they have to say.
+   * Shared whole: `TText` and `TMath` derive identically, down to the formula. `symbol.bounds` is
+   * always the raw, unrotated box a typeset symbol was measured at — the matrix, not a stored angle,
+   * is what turns it, and `SymbolGeometry` applies that matrix on top of this raw geometry.
    */
-  protected abstract glyphsOf(symbol: T): { fontSize: number }[]
-
-  /** The factor a typeset symbol scales its glyphs by: the mean of the two axes. */
-  protected static fontScale(matrix: MatrixTransform): number {
-    return (matrix.xx + matrix.yy) / 2
-  }
-
-  /**
-   * Moves everything a typeset symbol stores as a position: its anchor point, and the centre it
-   * recorded if it has already been turned.
-   */
-  protected moveAnchor(symbol: T, matrix: MatrixTransform): void {
-    if (symbol.rotation) {
-      symbol.rotation.center = applyMatrixToPoint(symbol.rotation.center, matrix)
+  computeGeometry(symbol: T): TSymbolGeometry {
+    const boundsBox = OBBOps.toUnrotatedBox(symbol.bounds)
+    const vertices = computeTypesetVertices(boundsBox)
+    return {
+      bounds: symbol.bounds,
+      vertices,
+      snapPoints: computeTypesetSnapPoints(boundsBox, symbol.point),
+      edges: computeClosedEdges(vertices),
+      length: 0,
     }
-    applyMatrixToPoints([symbol.point], matrix)
-  }
-
-  /**
-   * Records the turn. Accumulates, so a second rotation adds to the first.
-   *
-   * Nothing is re-measured. A typeset symbol's `bounds` is the box of its *unrotated* glyphs —
-   * `setBounds` reads `getBBox()` from the `<text>` inside the rotated group, so the measurement
-   * cannot depend on the angle — and turning a symbol does not change its glyphs. Only the angle
-   * and the fields derived from it move.
-   *
-   * `TextUtil` used to override this to re-measure and `MathUtil` did not, an asymmetry inherited
-   * from `IIRotationManager`. It was not a decision: the text call was doing nothing but set
-   * `bounds.angle`, which is done here for both types now, and math was left never updating its
-   * derived fields at all — so a rotated math block could not be selected by surrounding it.
-   */
-  rotate(symbol: T, { matrix, center }: TRotateContext): void {
-    symbol.rotation = {
-      degree: convertRadianToDegree(MatrixTransform.rotation(matrix)) + (symbol.rotation?.degree || 0),
-      center,
-    }
-    // Kept in step with `rotation`, on purpose. `bounds.angle` is what makes `OBBOps.toBox` report
-    // the area the symbol covers on screen, and half a dozen callers depend on that for hit boxes,
-    // decorator bounds and annotation extents. The box the rotation is *applied to* comes from
-    // `OBBOps.toUnrotatedBox` instead, which is what keeps the angle from counting twice.
-    symbol.bounds.angle = symbol.rotation.degree
-    this.updateDerivedFields(symbol)
-  }
-
-  /**
-   * Scales the anchor, the bounds and the glyph sizes.
-   *
-   * Shared whole: the derive at the end is {@link SymbolUtil.updateDerivedFields}, which each type
-   * already implements, and the glyph list comes from {@link glyphsOf}. Nothing else about resizing
-   * a typeset symbol differs between the two.
-   */
-  resize(symbol: T, { matrix }: TResizeContext): void {
-    applyMatrixToPoints([symbol.point], matrix)
-    symbol.bounds = {
-      center: applyMatrixToPoint(symbol.bounds.center, matrix),
-      width: +(symbol.bounds.width * Math.abs(matrix.xx)).toFixed(3),
-      height: +(symbol.bounds.height * Math.abs(matrix.yy)).toFixed(3),
-      angle: 0,
-    }
-    const scale = TypesetUtil.fontScale(matrix)
-    this.glyphsOf(symbol).forEach((glyph) => (glyph.fontSize = +(glyph.fontSize * scale).toFixed(3)))
-    this.updateDerivedFields(symbol)
   }
 
   /**
@@ -106,6 +53,4 @@ export abstract class TypesetUtil<T extends TText | TMath> extends SymbolUtil<T>
   keepsAspectRatio(_symbol: T): boolean {
     return true
   }
-
-  abstract translate(symbol: T, context: TTranslateContext): void
 }

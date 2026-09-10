@@ -3,6 +3,7 @@ import type { TBox, TPoint, TPointer } from "@/core/geometry"
 import { BoxOps } from "@/core/geometry"
 import { OBBOps, type TOBB } from "@/core/geometry"
 import { getClosestPoints } from "@/core/geometry"
+import { MatrixTransform } from "@/core/geometry"
 import { bumpSvgTransformVersion } from "@/dom"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import { BaseRenderer } from "@/renderer/base"
@@ -10,6 +11,7 @@ import type { TIIRendererConfiguration } from "@/renderer/RendererConfiguration"
 import type { TEraser, TSymbol } from "@/symbol"
 import { SymbolType } from "@/symbol"
 import { arrowHeadEndMarkerId, arrowHeadStartMarkerId } from "@/symbol-utils/edge/EdgeRenderOptions"
+import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 
 import { SVGBuilder } from "./utils/SVGBuilder"
@@ -524,8 +526,11 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
       return svgEl
     }
 
-    const bounds = (symbol as TSymbol).bounds
     const tracked = this.#virtualizedSymbols.get(symbol.id)
+    // Only computed when a util is registered for this type: `buildElementFromSymbol` below already
+    // owns the "no util" case (logs and returns undefined), and `SymbolGeometry.boundsOf` throws for
+    // an unregistered type instead of returning undefined - it must not run ahead of that guard.
+    const bounds = symbolRegistry.has(symbol.type) ? SymbolGeometry.boundsOf(symbol as TSymbol) : undefined
 
     // Building an element walks every pointer of the symbol, so doing it for a symbol nobody can see
     // is work thrown away. Committing a transform over a large selection redraws every symbol in it:
@@ -533,7 +538,7 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
     // actually holds. Defer instead, and let `#reconcileVirtualization` pay for the ones that come
     // into view. Only a symbol already tracked can be deferred — the first draw must produce an
     // element, because `drawSymbol` and `getElementById` are expected to return one off screen too.
-    if (tracked && !this.#isInViewBox(bounds)) {
+    if (tracked && bounds && !this.#isInViewBox(bounds)) {
       tracked.bounds = bounds
       tracked.pendingRedraw = symbol as TSymbol
       tracked.element.remove()
@@ -541,7 +546,7 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
     }
 
     const svgEl = this.buildElementFromSymbol(symbol as TSymbol)
-    if (svgEl) {
+    if (svgEl && bounds) {
       const isDecorator = symbol.type === SymbolType.Decorator
       this.#virtualizedSymbols.set(symbol.id, { element: svgEl, bounds, isDecorator })
 
@@ -562,6 +567,38 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
       }
     }
     return svgEl
+  }
+
+  /**
+   * Re-points an already-drawn symbol at its current matrix, without rebuilding it.
+   *
+   * The element's geometry is the symbol's raw coordinates, which a transform never changes — so the
+   * matrix is the whole of what has to reach the DOM. Committing a transform over a large selection
+   * used to rebuild every element in it (`buildElementFromSymbol` walks every pointer); this writes
+   * one attribute per symbol instead.
+   *
+   * The tracked bounds are refreshed here too. They are what `#reconcileVirtualization` culls by,
+   * and leaving them behind would strand a moved symbol at its old address — attached where it is no
+   * longer drawn, detached where it now is.
+   */
+  setSymbolTransform(symbol: TSymbol): void {
+    const tracked = this.#virtualizedSymbols.get(symbol.id)
+    if (!tracked) {
+      this.drawSymbol(symbol)
+      return
+    }
+    tracked.bounds = SymbolGeometry.boundsOf(symbol)
+    if (tracked.pendingRedraw) {
+      // The element is already stale for another reason (it was off screen when last drawn); let
+      // the deferred rebuild in `#reconcileVirtualization` carry this matrix too, instead of writing
+      // an attribute onto an element that is about to be replaced wholesale.
+      tracked.pendingRedraw = symbol
+      return
+    }
+    tracked.element.setAttribute("transform", MatrixTransform.toCssString(symbol.transform))
+    if (!this.#isInViewBox(tracked.bounds)) {
+      tracked.element.remove()
+    }
   }
 
   /**

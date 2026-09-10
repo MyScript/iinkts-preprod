@@ -1112,50 +1112,6 @@ export class WebSocketClient {
         )
       )
     }
-    if (changes.matrix?.strokes.length) {
-      changesMessages.push(
-        this.buildTransformMatrixMessage(
-          changes.matrix.strokes.map((s) => s.id),
-          changes.matrix.matrix
-        )
-      )
-    }
-    if (changes.translate?.length) {
-      changes.translate.forEach((tr) => {
-        changesMessages.push(
-          this.buildTransformTranslateMessage(
-            tr.strokes.map((s) => s.id),
-            tr.tx,
-            tr.ty
-          )
-        )
-      })
-    }
-    if (changes.rotate?.length) {
-      changes.rotate.forEach((tr) => {
-        changesMessages.push(
-          this.buildTransformRotateMessage(
-            tr.strokes.map((s) => s.id),
-            tr.angle,
-            tr.center.x,
-            tr.center.y
-          )
-        )
-      })
-    }
-    if (changes.scale?.length) {
-      changes.scale.forEach((tr) => {
-        changesMessages.push(
-          this.buildTransformScaleMessage(
-            tr.strokes.map((s) => s.id),
-            tr.scaleX,
-            tr.scaleY,
-            tr.origin.x,
-            tr.origin.y
-          )
-        )
-      })
-    }
     return changesMessages
   }
 

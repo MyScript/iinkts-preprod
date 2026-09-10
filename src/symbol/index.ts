@@ -10,7 +10,7 @@
  *
  * **Math** — {@link TMath}, {@link MathOps}
  *
- * **Typeset** — {@link TTypesetChild}, {@link TRotation}
+ * **Typeset** — {@link TTypesetChild}
  *
  * **Decorator** — {@link TDecorator}, {@link DecoratorOps}
  *

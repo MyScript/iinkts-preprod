@@ -1,6 +1,6 @@
 import type { TBox } from "@/core/geometry"
-import type { TPoint, TSegment } from "@/core/geometry"
-import { OBBOps, type TOBB } from "@/core/geometry"
+import type { TPoint } from "@/core/geometry"
+import { MatrixTransform, mergeSymbolTransform, OBBOps, type TOBB } from "@/core/geometry"
 import { isValidPoint } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import { createUUID } from "@/core/std"
@@ -10,12 +10,10 @@ import type { TDecorator } from "@/symbol/decorator/Decorator"
 import { DecoratorOps } from "@/symbol/decorator/Decorator"
 import type { TBaseSymbol } from "@/symbol/Symbol"
 import { SymbolType } from "@/symbol/Symbol"
-import type { TRotation } from "@/symbol/typeset/Typeset"
 import type { TTypesetChild } from "@/symbol/typeset/Typeset"
 import {
   computeChildrenOverlaps,
   computeClosedEdges,
-  computeTypesetSnapPoints,
   computeTypesetVertices,
   typesetOverlapsBox,
 } from "@/symbol/typeset/Typeset"
@@ -34,10 +32,6 @@ export type TText = TBaseSymbol & {
   chars: TSymbolChar[]
   decorators: TDecorator[]
   bounds: TOBB
-  rotation?: TRotation
-  vertices: TPoint[]
-  snapPoints: TPoint[]
-  edges: TSegment[]
 }
 
 /**
@@ -57,9 +51,6 @@ export const TextOps = {
   create(chars: TSymbolChar[], point: TPoint, boundsBox: TBox, style?: TPartialDeep<TStyle>): TText {
     const mergedStyle = mergeSymbolStyle(style)
     const now = Date.now()
-    const vertices = computeTypesetVertices(boundsBox)
-    const snapPoints = computeTypesetSnapPoints(boundsBox, point)
-    const edges = computeClosedEdges(vertices)
     return {
       type: SymbolType.Text,
       id: `${SymbolType.Text}-${createUUID()}`,
@@ -70,10 +61,7 @@ export const TextOps = {
       chars,
       decorators: [],
       bounds: OBBOps.fromBox(boundsBox),
-      rotation: undefined,
-      vertices,
-      snapPoints,
-      edges,
+      transform: MatrixTransform.identity(),
     }
   },
 
@@ -96,9 +84,7 @@ export const TextOps = {
     if (partial.id) {
       text.id = partial.id
     }
-    if (partial.rotation) {
-      text.rotation = partial.rotation as TRotation
-    }
+    text.transform = mergeSymbolTransform(partial.transform)
     if (partial.decorators?.length) {
       partial.decorators.forEach((d) => {
         if (d?.kind) {
@@ -106,24 +92,16 @@ export const TextOps = {
         }
       })
     }
-    TextOps.updateDerivedFields(text)
     return text
   },
 
-  updateDerivedFields(text: TText): void {
-    // Unrotated, not `toBox`: the rotation is applied once below, from `text.rotation`.
-    const boundsBox = OBBOps.toUnrotatedBox(text.bounds)
-    text.vertices = computeTypesetVertices(boundsBox, text.rotation)
-    text.snapPoints = computeTypesetSnapPoints(boundsBox, text.point, text.rotation)
-    text.edges = computeClosedEdges(text.vertices)
-  },
-
   overlaps(text: TText, box: TBox): boolean {
-    return typesetOverlapsBox(text.vertices, text.edges, box)
+    const vertices = computeTypesetVertices(OBBOps.toUnrotatedBox(text.bounds))
+    return typesetOverlapsBox(vertices, computeClosedEdges(vertices), box)
   },
 
   getChildrenOverlaps(text: TText, points: TPoint[]): TSymbolChar[] {
-    return computeChildrenOverlaps(text.chars, points, text.rotation)
+    return computeChildrenOverlaps(text.chars, points)
   },
 
   updateChildrenStyle(text: TText): void {
@@ -167,7 +145,6 @@ export const TextOps = {
       point: text.point,
       chars: text.chars,
       style: text.style,
-      rotation: text.rotation,
       bounds: OBBOps.toBox(text.bounds),
       decorators: text.decorators.length ? text.decorators : undefined,
     }

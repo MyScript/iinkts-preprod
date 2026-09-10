@@ -18,6 +18,7 @@ import { LoggerCategory } from "@/logger"
 import type { TStroke } from "@/symbol"
 import { isStroke } from "@/symbol"
 import { resolveConnectionAnchors } from "@/symbol/edge/Anchor"
+import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 
 import { IIAbstractManager } from "./IIAbstractManager"
 
@@ -426,8 +427,8 @@ export class IISynchronizerManager extends IIAbstractManager {
         const strokeIds = this.canvas.jiix.getStrokesForElement(blockId)
         const boxes = strokeIds
           .map((id) => this.model.getRootSymbol(id))
-          .filter((s): s is TStroke => !!s)
-          .map((s) => OBBOps.toBox(s.bounds))
+          .filter((s): s is TStroke => !!s && isStroke(s))
+          .map((s) => OBBOps.toBox(SymbolGeometry.boundsOf(s)))
         if (boxes.length === 0) {
           return undefined
         }

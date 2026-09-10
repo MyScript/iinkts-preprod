@@ -1,7 +1,7 @@
 import type { TBox } from "@/core/geometry"
 import type { TPointer } from "@/core/geometry"
 import type { TPoint, TSegment } from "@/core/geometry"
-import { OBBOps, type TOBB } from "@/core/geometry"
+import { MatrixTransform, mergeSymbolTransform, OBBOps, type TOBB } from "@/core/geometry"
 import {
   computeAngleAxeRadian,
   computeDistance,
@@ -34,10 +34,6 @@ export type TStroke = TBaseSymbol &
     readonly type: SymbolType.Stroke
     style: TStyle
     length: number
-    bounds: TOBB
-    snapPoints: TPoint[]
-    vertices: TPointer[]
-    edges: TSegment[]
 
     // JIIX Block metadata
     jiixBlockId?: string
@@ -112,20 +108,33 @@ export const StrokeOps = {
       pointerType,
       pointers,
       length: 0,
-      bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0),
-      snapPoints: [],
-      vertices: pointers,
-      edges: [],
+      transform: MatrixTransform.identity(),
     }
   },
 
-  updateBounds(stroke: TStroke): void {
-    stroke.bounds = OBBOps.createFromPoints(stroke.pointers)
-    stroke.snapPoints = OBBOps.getSnapPoints(stroke.bounds)
-    stroke.edges = stroke.pointers.slice(0, -1).map((p, i) => ({
+  computeBounds(stroke: TStroke): TOBB {
+    return OBBOps.createFromPoints(stroke.pointers)
+  },
+
+  computeSnapPoints(bounds: TOBB): TPoint[] {
+    return OBBOps.getSnapPoints(bounds)
+  },
+
+  computeEdges(stroke: TStroke): TSegment[] {
+    return stroke.pointers.slice(0, -1).map((p, i) => ({
       p1: p,
       p2: stroke.pointers[i + 1],
     }))
+  },
+
+  /** A stroke's vertices are its pointers verbatim — the same array, not a copy. */
+  computeVertices(stroke: TStroke): TPointer[] {
+    return stroke.pointers
+  },
+
+  /** Path length: the sum of the distances between consecutive pointers. */
+  computeLength(stroke: TStroke): number {
+    return stroke.pointers.reduce((sum, ptr, idx, arr) => (idx === 0 ? 0 : sum + computeDistance(ptr, arr[idx - 1])), 0)
   },
 
   _computePressure(stroke: TStroke, distance: number): number {
@@ -158,7 +167,6 @@ export const StrokeOps = {
       pointer.p = StrokeOps._computePressure(stroke, distance)
       stroke.pointers.push(pointer)
       stroke.modificationDate = Date.now()
-      StrokeOps.updateBounds(stroke)
     }
   },
 
@@ -171,19 +179,11 @@ export const StrokeOps = {
   split(strokeToSplit: TStroke, i: number): { before: TStroke; after: TStroke } {
     const before = StrokeOps.create(strokeToSplit.style, strokeToSplit.pointerType)
     before.pointers.push(...strokeToSplit.pointers.slice(0, i))
-    before.length = before.pointers.reduce(
-      (sum, ptr, idx, arr) => (idx === 0 ? 0 : sum + computeDistance(ptr, arr[idx - 1])),
-      0
-    )
-    StrokeOps.updateBounds(before)
+    before.length = StrokeOps.computeLength(before)
 
     const after = StrokeOps.create(strokeToSplit.style, strokeToSplit.pointerType)
     after.pointers.push(...strokeToSplit.pointers.slice(i))
-    after.length = after.pointers.reduce(
-      (sum, ptr, idx, arr) => (idx === 0 ? 0 : sum + computeDistance(ptr, arr[idx - 1])),
-      0
-    )
-    StrokeOps.updateBounds(after)
+    after.length = StrokeOps.computeLength(after)
 
     return { before, after }
   },
@@ -233,6 +233,7 @@ export const StrokeOps = {
     if (partial.id) {
       stroke.id = partial.id
     }
+    stroke.transform = mergeSymbolTransform(partial.transform)
     stroke.isSolverOutput = partial.isSolverOutput
     stroke.jiixBlockId = partial.jiixBlockId
     const errors: string[] = []

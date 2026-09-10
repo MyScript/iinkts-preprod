@@ -1,4 +1,4 @@
-import type { TPoint } from "@/core/geometry"
+import type { TMatrixTransform, TPoint } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import type { TStyle } from "@/style"
 
@@ -40,6 +40,15 @@ export type TBaseSymbol = {
   modificationDate: number
   type: string
   style: TPartialDeep<TStyle>
+  /**
+   * Where this symbol sits, relative to the coordinates it stores.
+   *
+   * A transform writes here and nowhere else: the raw coordinates are what the symbol was created
+   * with and never move again. That is what lets the renderer apply a change by rewriting one
+   * attribute instead of rebuilding the element, and what keeps undo exact — re-applying an inverse
+   * matrix restores the value bit for bit, where re-transforming coordinates accumulated rounding.
+   */
+  transform: TMatrixTransform
 }
 
 /**

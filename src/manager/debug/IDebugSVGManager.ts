@@ -1,7 +1,7 @@
 import type { TInkCanvas } from "@/canvas/TInkCanvas"
 import type { TBox } from "@/core/geometry"
 import { BoxOps } from "@/core/geometry"
-import { OBBOps } from "@/core/geometry"
+import { isIdentityMatrix, MatrixTransform, OBBOps } from "@/core/geometry"
 import { createUUID } from "@/core/std"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { IModel } from "@/model"
@@ -9,6 +9,8 @@ import type { SVGRenderer } from "@/renderer"
 import { SVGBuilder, SVGRendererConst } from "@/renderer"
 import type { TStroke, TSymbol } from "@/symbol"
 import { isText } from "@/symbol"
+import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
+import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 /**
  * @group Manager
  */
@@ -72,13 +74,15 @@ export class IDebugSVGManager {
       debug: "bounding-box",
     }
     symbols.forEach((s) => {
+      // Caller-supplied symbol list, of arbitrary origin — one unregistered symbol type must not
+      // abort drawing debug boxes for the rest of them.
+      if (!symbolRegistry.has(s.type)) {
+        return
+      }
       const symEl = this.renderer.getElementById(s.id)
       if (symEl) {
         if (isText(s)) {
-          let transform: string = ""
-          if (s.rotation) {
-            transform = `rotate(${s.rotation.degree}, ${s.rotation.center.x}, ${s.rotation.center.y})`
-          }
+          const transform = isIdentityMatrix(s.transform) ? "" : MatrixTransform.toCssString(s.transform)
           s.chars.forEach((c) => {
             const ca = {
               ...charAttrs,
@@ -92,13 +96,19 @@ export class IDebugSVGManager {
             symbol: s.id,
             transform,
           }
-          symEl.insertAdjacentElement("beforebegin", SVGBuilder.createRect(OBBOps.toBox(s.bounds), sa))
+          symEl.insertAdjacentElement(
+            "beforebegin",
+            SVGBuilder.createRect(OBBOps.toBox(SymbolGeometry.boundsOf(s)), sa)
+          )
         } else {
           const sa = {
             ...symbolAttrs,
             symbol: s.id,
           }
-          symEl.insertAdjacentElement("beforebegin", SVGBuilder.createRect(OBBOps.toBox(s.bounds), sa))
+          symEl.insertAdjacentElement(
+            "beforebegin",
+            SVGBuilder.createRect(OBBOps.toBox(SymbolGeometry.boundsOf(s)), sa)
+          )
         }
       }
     })
@@ -233,7 +243,7 @@ export class IDebugSVGManager {
             el.range?.forEach((r) => {
               associatedStrokes.push(...this.model.strokes.slice(r.from.stroke, r.to.stroke + 1))
             })
-            const box = BoxOps.createFromBoxes(associatedStrokes.map((s) => OBBOps.toBox(s.bounds)))
+            const box = BoxOps.createFromBoxes(associatedStrokes.map((s) => OBBOps.toBox(SymbolGeometry.boundsOf(s))))
             let infos: string[] = [`type: ${el.type}`]
             infos.push(...this.buildInfos(el))
             const hideProperties = ["bounding-box", "primitives", "range", "candidates"]
@@ -247,7 +257,7 @@ export class IDebugSVGManager {
             el.range?.forEach((r) => {
               associatedStrokes.push(...this.model.strokes.slice(r.from.stroke, r.to.stroke + 1))
             })
-            const box = BoxOps.createFromBoxes(associatedStrokes.map((s) => OBBOps.toBox(s.bounds)))
+            const box = BoxOps.createFromBoxes(associatedStrokes.map((s) => OBBOps.toBox(SymbolGeometry.boundsOf(s))))
             this.drawRecognitionBox(
               box,
               [`type: ${el.type}`, `label: ${JSON.stringify(el.label || [])}`],
@@ -261,7 +271,7 @@ export class IDebugSVGManager {
             el.range?.forEach((r) => {
               associatedStrokes.push(...this.model.strokes.slice(r.from.stroke, r.to.stroke + 1))
             })
-            const box = BoxOps.createFromBoxes(associatedStrokes.map((s) => OBBOps.toBox(s.bounds)))
+            const box = BoxOps.createFromBoxes(associatedStrokes.map((s) => OBBOps.toBox(SymbolGeometry.boundsOf(s))))
             let infos: string[] = [`type: ${el.type}`]
             infos.push(...this.buildInfos(el))
             const hideProperties = ["bounding-box", "primitives", "range", "candidates"]
@@ -300,7 +310,7 @@ export class IDebugSVGManager {
               e.range?.forEach((r) => {
                 associatedStrokes.push(...this.model.strokes.slice(r.from.stroke, r.to.stroke + 1))
               })
-              const box = BoxOps.createFromBoxes(associatedStrokes.map((s) => OBBOps.toBox(s.bounds)))
+              const box = BoxOps.createFromBoxes(associatedStrokes.map((s) => OBBOps.toBox(SymbolGeometry.boundsOf(s))))
               let infos: string[] = [`type: ${el.type}`]
               infos.push(...this.buildInfos(e))
               const hideProperties = ["bounding-box", "primitives", "range", "candidates"]
@@ -318,7 +328,9 @@ export class IDebugSVGManager {
                   associatedStrokes.push(...this.model.strokes.slice(r.from.stroke, r.to.stroke + 1))
                 })
                 const color = s.type === "Math" ? "#ff6565" : "#099df7"
-                const box = BoxOps.createFromBoxes(associatedStrokes.map((s) => OBBOps.toBox(s.bounds)))
+                const box = BoxOps.createFromBoxes(
+                  associatedStrokes.map((s) => OBBOps.toBox(SymbolGeometry.boundsOf(s)))
+                )
                 this.drawRecognitionBox(
                   box,
                   [`type: ${s.type}`, `label: ${JSON.stringify(s.label || [])}`],

@@ -18,11 +18,11 @@ describe("PolyLine.ts", () => {
       expect(line.creationTime).toEqual(line.modificationDate)
       expect(line.style).toEqual(expect.objectContaining(style))
       expect(line.points).toEqual(points)
-      expect(OBBOps.toBox(line.bounds).x).toEqual(-5)
-      expect(OBBOps.toBox(line.bounds).y).toEqual(-5)
-      expect(line.bounds.width).toEqual(15)
-      expect(line.bounds.height).toEqual(15)
-      expect(line.vertices).toHaveLength(3)
+      expect(OBBOps.toBox(EdgePolyLineOps.computeBounds(line)).x).toEqual(-5)
+      expect(OBBOps.toBox(EdgePolyLineOps.computeBounds(line)).y).toEqual(-5)
+      expect(EdgePolyLineOps.computeBounds(line).width).toEqual(15)
+      expect(EdgePolyLineOps.computeBounds(line).height).toEqual(15)
+      expect(EdgePolyLineOps.computeVertices(line)).toHaveLength(3)
     })
     test("should create with default style", () => {
       const points: TPoint[] = [

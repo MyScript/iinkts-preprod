@@ -19,13 +19,13 @@ const dragSymbol = async (page, id, tx, ty) => {
     .poll(() => page.evaluate(() => rootEl.iink.model.symbolsSelected.length), { timeout: 3000 })
     .toBeGreaterThan(0)
 
-  const center = await page.evaluate(
-    (symbolId) => rootEl.iink.model.getRootSymbol(symbolId).bounds.center,
-    id
-  )
-  const svgBox = await page.locator("#rootEl svg").first().boundingBox()
-  const startX = svgBox.x + center.x
-  const startY = svgBox.y + center.y
+  // The rendered element's own rect, not the symbol's stored geometry: a stroke, shape or edge no
+  // longer stores a box, and where one is *drawn* is its raw coordinates seen through the matrix its
+  // group carries — which is exactly what a drag has to start from. Already in page coordinates, so
+  // there is no SVG offset to add.
+  const box = await page.locator(`#${id}`).boundingBox()
+  const startX = box.x + box.width / 2
+  const startY = box.y + box.height / 2
 
   await page.mouse.move(startX, startY)
   await page.mouse.down()
