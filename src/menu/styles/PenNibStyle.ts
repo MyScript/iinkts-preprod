@@ -1,12 +1,23 @@
+import ballpointIcon from "@/assets/svg/nib-ballpoint.svg"
+import brushIcon from "@/assets/svg/nib-brush.svg"
+import fountainIcon from "@/assets/svg/nib-fountain.svg"
+import pencilIcon from "@/assets/svg/nib-pencil.svg"
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import type { TMenuButtonList } from "@/menu/items"
 import { ButtonListMenuItem, CollapsibleWrapper } from "@/menu/items"
 import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
 import { DEFAULT_PEN_NIB, isPenNib, PEN_NIBS } from "@/style"
 
+const icons: { [key in keyof typeof PEN_NIBS]: string } = {
+  ballpoint: ballpointIcon as string,
+  brush: brushIcon as string,
+  fountain: fountainIcon as string,
+  pencil: pencilIcon as string,
+}
 /** Every nib, in the order the write tool offers them. */
 const NIB_OPTIONS = (Object.keys(PEN_NIBS) as (keyof typeof PEN_NIBS)[]).map((nib) => ({
-  label: nib.charAt(0).toUpperCase() + nib.slice(1),
+  icon: icons[nib],
+  // label: nib.charAt(0).toUpperCase() + nib.slice(1),
   value: nib,
 }))
 
@@ -59,6 +70,8 @@ export class PenNibStyle extends BaseMenuItem<HTMLDivElement> {
 
   update(): void {
     this.updateDisabled()
+    console.log('Pen Nib update');
+    this.nibItem?.update()
     this.updateVisible()
   }
 
