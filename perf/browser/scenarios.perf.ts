@@ -3,10 +3,10 @@ import { dirname, resolve } from "node:path"
 
 import { test, type Page } from "@playwright/test"
 
-import { generateDocument } from "../perf/lib/generateDocument.ts"
+import { generateDocument } from "../headless/lib/generateDocument.ts"
 // The shared e2e helpers are plain JavaScript; `allowJs` lets them resolve, `checkJs` keeps them out
 // of this project's type checking.
-import { passModalKey } from "../examples/helper.js"
+import { passModalKey } from "../../test/examples/helper.js"
 import { installProbe, measure, type TScenarioMeasurement } from "./lib/instrument.ts"
 
 /**

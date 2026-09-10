@@ -7,7 +7,7 @@ import {
   trendFor,
   type THistoryRecord,
   type THistorySource,
-} from "../../perf/lib/history"
+} from "./history"
 
 /**
  * The history record. It is unit-tested because it is the only artefact of a bench run that outlives
@@ -59,7 +59,9 @@ describe("toRecord", () => {
   })
 
   test("tolerates a report that carries no dispersion", () => {
-    expect(toRecord(source({ ratioMaxDeviation: undefined }), { commit: "a", branch: "b" }).ratioMaxDeviation).toEqual({})
+    expect(toRecord(source({ ratioMaxDeviation: undefined }), { commit: "a", branch: "b" }).ratioMaxDeviation).toEqual(
+      {}
+    )
   })
 
   test("copies the ratios rather than aliasing them", () => {
@@ -93,7 +95,10 @@ describe("sortRecords", () => {
   })
 
   test("does not mutate the array it was given", () => {
-    const input = [record({ recordedAt: "2026-09-08T00:00:00.000Z" }), record({ recordedAt: "2026-09-01T00:00:00.000Z" })]
+    const input = [
+      record({ recordedAt: "2026-09-08T00:00:00.000Z" }),
+      record({ recordedAt: "2026-09-01T00:00:00.000Z" }),
+    ]
     sortRecords(input)
     expect(input[0].recordedAt).toBe("2026-09-08T00:00:00.000Z")
   })

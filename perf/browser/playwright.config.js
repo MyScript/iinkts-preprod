@@ -11,7 +11,7 @@ import { defineConfig, devices } from "@playwright/test"
  * confirm that a micro-bench win is felt where the user is.
  */
 export default defineConfig({
-  globalSetup: "../examples/global-setup.js",
+  globalSetup: "../../test/examples/global-setup.js",
   testDir: ".",
   testMatch: "**/*.perf.ts",
   outputDir: "test-results",
@@ -44,7 +44,7 @@ export default defineConfig({
   webServer: process.env.BASE_URL
     ? undefined
     : {
-        command: "node test/perf-e2e/staticServer.mjs",
+        command: "node perf/browser/staticServer.mjs",
         // Pinned to the repository root: `cwd` otherwise defaults to this config's directory, which
         // both doubles the command path and makes the server serve the wrong root — it serves
         // `process.cwd()`, and the scenarios ask for `/examples` and `/dist`.

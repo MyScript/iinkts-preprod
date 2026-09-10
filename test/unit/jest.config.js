@@ -2,7 +2,9 @@ export default {
   rootDir: "../../",
   roots: [
     "<rootDir>/src",
-    "<rootDir>/test/unit"
+    "<rootDir>/test/unit",
+    // The perf harness keeps its unit tests beside what they test, so jest has to look there too.
+    "<rootDir>/perf"
   ],
   clearMocks: true,
   // Coverage is opt-in through the `test:unit:coverage` script, not a flag on `test:unit`:
@@ -49,7 +51,8 @@ export default {
   ],
   testEnvironment: "jsdom",
   testMatch: [
-    "**/unit/**/**.test.ts"
+    "**/unit/**/**.test.ts",
+    "**/perf/**/*.test.ts"
   ],
   testPathIgnorePatterns: [
     "/node_modules/",

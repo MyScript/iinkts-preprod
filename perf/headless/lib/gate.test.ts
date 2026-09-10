@@ -7,7 +7,7 @@ import {
   NULL_FACTOR,
   evaluate,
   type TPairedGateReport,
-} from "../../perf/lib/gate"
+} from "./gate"
 
 /**
  * The perf gate's decision rule. It is unit-tested because its predecessor twice reported a
