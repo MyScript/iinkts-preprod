@@ -289,7 +289,7 @@ describe("SVGRenderer.ts", () => {
           x,
           y: x * 2,
           p: 1,
-          t: x,
+          dt: x,
         })
       }
       renderer.drawSymbol(stroke)
@@ -462,8 +462,8 @@ describe("SVGRenderer.ts", () => {
 
       const stroke = StrokeOps.createFromPartial({
         pointers: [
-          { x: 100000, y: 100000, t: 0, p: 1 },
-          { x: 100010, y: 100010, t: 1, p: 1 },
+          { x: 100000, y: 100000, dt: 0, p: 1 },
+          { x: 100010, y: 100010, dt: 1, p: 1 },
         ],
       })
       // A bounds field that disagrees with the pointers: the renderer must trust the computed
@@ -621,8 +621,8 @@ describe("SVGRenderer.ts", () => {
 
       const stroke = StrokeOps.createFromPartial({
         pointers: [
-          { x: 0, y: 0, t: 0, p: 1 },
-          { x: 10, y: 10, t: 1, p: 1 },
+          { x: 0, y: 0, dt: 0, p: 1 },
+          { x: 10, y: 10, dt: 1, p: 1 },
         ],
       })
       renderer.drawSymbol(stroke)
@@ -650,8 +650,8 @@ describe("SVGRenderer.ts", () => {
       // normal draw path rather than a no-op.
       const stroke = StrokeOps.createFromPartial({
         pointers: [
-          { x: 0, y: 0, t: 0, p: 1 },
-          { x: 10, y: 10, t: 1, p: 1 },
+          { x: 0, y: 0, dt: 0, p: 1 },
+          { x: 10, y: 10, dt: 1, p: 1 },
         ],
         transform: MatrixTransform.identity().translate(3, 4),
       })
@@ -671,8 +671,8 @@ describe("SVGRenderer.ts", () => {
 
       const stroke = StrokeOps.createFromPartial({
         pointers: [
-          { x: 0, y: 0, t: 0, p: 1 },
-          { x: 10, y: 10, t: 1, p: 1 },
+          { x: 0, y: 0, dt: 0, p: 1 },
+          { x: 10, y: 10, dt: 1, p: 1 },
         ],
       })
       renderer.drawSymbol(stroke)

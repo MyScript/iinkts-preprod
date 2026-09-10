@@ -27,7 +27,7 @@ describe("IModel.ts", () => {
       for (let index = 0; index < 10; index++) {
         stroke.pointers.push({
           p: 1,
-          t: index,
+          dt: index,
           x: index,
           y: index,
         })
@@ -37,7 +37,7 @@ describe("IModel.ts", () => {
       expect(model.strokes[0]).toStrictEqual(stroke)
       const strokeUpdated = StrokeOps.create(DefaultPenStyle)
       strokeUpdated.id = stroke.id
-      strokeUpdated.pointers.push({ p: 0.5, t: 0.5, x: 100, y: 27 })
+      strokeUpdated.pointers.push({ p: 0.5, dt: 0.5, x: 100, y: 27 })
       model.updateStroke(strokeUpdated)
       expect(model.strokes).toHaveLength(1)
       expect(model.strokes[0]).toStrictEqual(strokeUpdated)
@@ -48,7 +48,7 @@ describe("IModel.ts", () => {
       for (let index = 0; index < 10; index++) {
         stroke.pointers.push({
           p: 1,
-          t: index,
+          dt: index,
           x: index,
           y: index,
         })
@@ -58,7 +58,7 @@ describe("IModel.ts", () => {
       expect(model.strokes[0]).toStrictEqual(stroke)
       const strokeUpdated = StrokeOps.create(DefaultPenStyle)
       strokeUpdated.id = "pouette"
-      strokeUpdated.pointers.push({ p: 0.5, t: 0.5, x: 100, y: 27 })
+      strokeUpdated.pointers.push({ p: 0.5, dt: 0.5, x: 100, y: 27 })
       model.updateStroke(strokeUpdated)
       expect(model.strokes).toHaveLength(1)
       expect(model.strokes[0]).not.toStrictEqual(strokeUpdated)

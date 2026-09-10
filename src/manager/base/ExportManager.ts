@@ -260,7 +260,7 @@ export abstract class ExportManager {
     if (value instanceof Blob) {
       return this.#createObjectUrl(value)
     }
-    const text = typeof value === "string" ? value : JSON.stringify(value, null, 2)
+    const text = typeof value === "string" ? value : JSON.stringify(value)
     return `data:${EXPORT_MIME_TYPES[format]};charset=utf-8,${encodeURIComponent(text)}`
   }
 

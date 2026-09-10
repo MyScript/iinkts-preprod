@@ -5,6 +5,7 @@ import type { TExport } from "@/client"
 import { HTTPClientV1 } from "@/client"
 import { CanvasTool } from "@/Constants"
 import type { TPointer } from "@/core/geometry"
+import { resolvePointerDelta } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import { DeferredPromise } from "@/core/std"
 import type { TPointerInfo } from "@/grabber"
@@ -326,7 +327,8 @@ export class InkCanvasDeprecated extends AbstractCanvas {
         flag = false
         return
       }
-      s.pointers?.forEach((pp, pIndex) => {
+      const sourcePointers = s.pointers ?? []
+      sourcePointers.forEach((pp, pIndex) => {
         if (!pp) {
           errors.push(`stroke ${strokeIndex + 1} has no pointer at ${pIndex}`)
           flag = false
@@ -334,7 +336,7 @@ export class InkCanvasDeprecated extends AbstractCanvas {
         }
         const pointer: TPointer = {
           p: pp.p || 1,
-          t: pp.t || pIndex,
+          dt: resolvePointerDelta(sourcePointers, pIndex),
           x: 0,
           y: 0,
         }

@@ -39,7 +39,7 @@ describe("TStroke / StrokeOps", () => {
     test("should add first pointer and update modification date", () => {
       const pointer: TPointer = {
         p: 1,
-        t: 1,
+        dt: 1,
         x: 0,
         y: 0,
       }
@@ -51,7 +51,7 @@ describe("TStroke / StrokeOps", () => {
     test("should not add the pointer if it is too close to the previous one", () => {
       const pointer: TPointer = {
         p: 1,
-        t: 1,
+        dt: 1,
         x: 1.1,
         y: 1.1,
       }
@@ -62,7 +62,7 @@ describe("TStroke / StrokeOps", () => {
     test("should update modification date if pointer added", () => {
       const pointer: TPointer = {
         p: 1,
-        t: 1,
+        dt: 1,
         x: 5,
         y: 5,
       }
@@ -73,7 +73,7 @@ describe("TStroke / StrokeOps", () => {
     test("should update length if pointer added", () => {
       const pointer: TPointer = {
         p: 1,
-        t: 1,
+        dt: 1,
         x: 50,
         y: 50,
       }
@@ -92,8 +92,8 @@ describe("TStroke / StrokeOps", () => {
     })
     test("should get with pointers", () => {
       const stroke = StrokeOps.create(DefaultStyle)
-      StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 1, y: 1 })
-      StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 11, y: 11 })
+      StrokeOps.addPointer(stroke, { p: 1, dt: 1, x: 1, y: 1 })
+      StrokeOps.addPointer(stroke, { p: 1, dt: 1, x: 11, y: 11 })
       expect(StrokeOps.computeBounds(stroke).height).toEqual(10)
       expect(StrokeOps.computeBounds(stroke).width).toEqual(10)
       expect(OBBOps.toBox(StrokeOps.computeBounds(stroke)).x).toEqual(1)
@@ -108,8 +108,8 @@ describe("TStroke / StrokeOps", () => {
         width: 20,
       }
       const stroke = StrokeOps.create(style)
-      StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 1, y: 1 })
-      StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 11, y: 11 })
+      StrokeOps.addPointer(stroke, { p: 1, dt: 1, x: 1, y: 1 })
+      StrokeOps.addPointer(stroke, { p: 1, dt: 1, x: 11, y: 11 })
 
       const clone = structuredClone(stroke)
       expect(clone).toEqual(stroke)
@@ -121,16 +121,16 @@ describe("TStroke / StrokeOps", () => {
         width: 20,
       }
       const stroke = StrokeOps.create(style)
-      StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 1, y: 1 })
-      StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 11, y: 11 })
+      StrokeOps.addPointer(stroke, { p: 1, dt: 1, x: 1, y: 1 })
+      StrokeOps.addPointer(stroke, { p: 1, dt: 1, x: 11, y: 11 })
 
       const clone = structuredClone(stroke)
       clone.pointers.forEach((p) => {
         p.x += 10
         p.y += 10
       })
-      expect(stroke.pointers[0]).toEqual({ p: 1, t: 1, x: 1, y: 1 })
-      expect(clone.pointers[0]).toEqual({ p: 1, t: 1, x: 11, y: 11 })
+      expect(stroke.pointers[0]).toEqual({ p: 1, dt: 1, x: 1, y: 1 })
+      expect(clone.pointers[0]).toEqual({ p: 1, dt: 1, x: 11, y: 11 })
     })
   })
 

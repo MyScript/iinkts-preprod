@@ -24,8 +24,8 @@ export class IWriterManager extends AbstractWriterManager {
     return this.canvas.model
   }
 
-  protected createCurrentSymbol(pointer: TPointer, style: TStyle, pointerType: string): TSymbol {
-    this.model.currentStroke = StrokeOps.create(style, pointerType)
+  protected createCurrentSymbol(pointer: TPointer, style: TStyle, pointerType: string, creationTime: number): TSymbol {
+    this.model.currentStroke = StrokeOps.create(style, pointerType, creationTime)
     StrokeOps.addPointer(this.model.currentStroke, pointer)
     return this.model.currentStroke
   }

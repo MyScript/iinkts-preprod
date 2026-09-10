@@ -43,8 +43,8 @@ describe("InsertGestureHandler.ts", () => {
   describe("createStrokesFromGestureSubStroke", () => {
     test("should create strokes from substroke data", () => {
       const strokeOrigin = buildIIStroke()
-      StrokeOps.addPointer(strokeOrigin, { x: 0, y: 0, p: 1, t: 100 })
-      StrokeOps.addPointer(strokeOrigin, { x: 5, y: 5, p: 0.8, t: 200 })
+      StrokeOps.addPointer(strokeOrigin, { x: 0, y: 0, p: 1, dt: 100 })
+      StrokeOps.addPointer(strokeOrigin, { x: 5, y: 5, p: 0.8, dt: 200 })
 
       const subStrokes = [
         { x: [0, 1], y: [0, 1] },
@@ -58,9 +58,28 @@ describe("InsertGestureHandler.ts", () => {
       expect(strokes[1].pointers.length).toBe(2)
     })
 
+    test("should give the sub-strokes the origin of the stroke they were cut from", () => {
+      // Their pointers keep the dt they were captured with, counted from the original stroke's
+      // origin. A fresh creationTime here would make `toWireStroke` place every one of those
+      // points at the instant of the split instead of when they were actually written.
+      const strokeOrigin = buildIIStroke({ nbPoint: 0 })
+      strokeOrigin.creationTime = 1700000000000
+      StrokeOps.addPointer(strokeOrigin, { x: 0, y: 0, p: 1, dt: 100 })
+      StrokeOps.addPointer(strokeOrigin, { x: 50, y: 50, p: 0.8, dt: 200 })
+
+      const strokes = handler.createStrokesFromGestureSubStroke(strokeOrigin, [
+        { x: [0, 1], y: [0, 1] },
+        { x: [50, 51], y: [50, 51] },
+      ])
+
+      expect(strokes.map((s) => s.creationTime)).toEqual([1700000000000, 1700000000000])
+      expect(strokes.map((s) => s.pointerType)).toEqual([strokeOrigin.pointerType, strokeOrigin.pointerType])
+      expect(strokes[0].pointers[0].dt).toEqual(100)
+    })
+
     test("should handle single substroke", () => {
       const strokeOrigin = buildIIStroke()
-      StrokeOps.addPointer(strokeOrigin, { x: 0, y: 0, p: 1, t: 100 })
+      StrokeOps.addPointer(strokeOrigin, { x: 0, y: 0, p: 1, dt: 100 })
 
       const subStrokes = [{ x: [0, 1], y: [0, 1] }]
 
@@ -73,9 +92,9 @@ describe("InsertGestureHandler.ts", () => {
   describe("computeSplitStroke", () => {
     test("should split stroke into before and after parts", () => {
       const strokeOrigin = buildIIStroke()
-      StrokeOps.addPointer(strokeOrigin, { x: 0, y: 0, p: 1, t: 100 })
-      StrokeOps.addPointer(strokeOrigin, { x: 5, y: 5, p: 0.8, t: 200 })
-      StrokeOps.addPointer(strokeOrigin, { x: 10, y: 10, p: 0.9, t: 300 })
+      StrokeOps.addPointer(strokeOrigin, { x: 0, y: 0, p: 1, dt: 100 })
+      StrokeOps.addPointer(strokeOrigin, { x: 5, y: 5, p: 0.8, dt: 200 })
+      StrokeOps.addPointer(strokeOrigin, { x: 10, y: 10, p: 0.9, dt: 300 })
 
       const subStrokes = [
         { x: [0, 1], y: [0, 1] },
@@ -90,8 +109,8 @@ describe("InsertGestureHandler.ts", () => {
 
     test("should translate after stroke", () => {
       const strokeOrigin = buildIIStroke()
-      StrokeOps.addPointer(strokeOrigin, { x: 0, y: 0, p: 1, t: 100 })
-      StrokeOps.addPointer(strokeOrigin, { x: 5, y: 5, p: 0.8, t: 200 })
+      StrokeOps.addPointer(strokeOrigin, { x: 0, y: 0, p: 1, dt: 100 })
+      StrokeOps.addPointer(strokeOrigin, { x: 5, y: 5, p: 0.8, dt: 200 })
 
       const subStrokes = [
         { x: [0, 1], y: [0, 1] },
@@ -111,11 +130,11 @@ describe("InsertGestureHandler.ts", () => {
   describe("computeChangesOnSplitStroke", () => {
     test("should return changes with replaced symbols", () => {
       const gestureStroke = buildIIStroke()
-      StrokeOps.addPointer(gestureStroke, { x: 5, y: 5, p: 1, t: 100 })
+      StrokeOps.addPointer(gestureStroke, { x: 5, y: 5, p: 1, dt: 100 })
 
       const strokeToSplit = buildIIStroke()
-      StrokeOps.addPointer(strokeToSplit, { x: 0, y: 0, p: 1, t: 100 })
-      StrokeOps.addPointer(strokeToSplit, { x: 10, y: 10, p: 1, t: 200 })
+      StrokeOps.addPointer(strokeToSplit, { x: 0, y: 0, p: 1, dt: 100 })
+      StrokeOps.addPointer(strokeToSplit, { x: 10, y: 10, p: 1, dt: 200 })
 
       canvas.model.addSymbol(strokeToSplit)
 
@@ -159,8 +178,8 @@ describe("InsertGestureHandler.ts", () => {
       canvas.model.addSymbol(textToSplit)
 
       const gestureStroke = buildIIStroke()
-      StrokeOps.addPointer(gestureStroke, { x: 15, y: 10, p: 1, t: 100 })
-      StrokeOps.addPointer(gestureStroke, { x: 15, y: 26, p: 1, t: 200 })
+      StrokeOps.addPointer(gestureStroke, { x: 15, y: 10, p: 1, dt: 100 })
+      StrokeOps.addPointer(gestureStroke, { x: 15, y: 26, p: 1, dt: 200 })
 
       const changes = handler.computeChangesOnSplitText(gestureStroke, textToSplit, InsertAction.LineBreak)
 

@@ -81,8 +81,8 @@ function buildStrokeWithSingleAnchor(blockId: string) {
   const stroke = StrokeOps.create()
   stroke.id = "edge-stroke-1"
   stroke.pointers = [
-    { x: 0, y: 0, t: 0, p: 1 },
-    { x: 10, y: 0, t: 1, p: 1 },
+    { x: 0, y: 0, dt: 0, p: 1 },
+    { x: 10, y: 0, dt: 1, p: 1 },
   ]
   stroke.jiixBlockType = "Edge"
   stroke.endAnchor = { symbolId: blockId, normalizedX: 1, normalizedY: 0.5 }
@@ -93,8 +93,8 @@ function buildStrokeWithBothAnchors(startBlockId: string, endBlockId: string) {
   const stroke = StrokeOps.create()
   stroke.id = "edge-stroke-1"
   stroke.pointers = [
-    { x: 0, y: 0, t: 0, p: 1 },
-    { x: 10, y: 0, t: 1, p: 1 },
+    { x: 0, y: 0, dt: 0, p: 1 },
+    { x: 10, y: 0, dt: 1, p: 1 },
   ]
   stroke.jiixBlockType = "Edge"
   stroke.startAnchor = { symbolId: startBlockId, normalizedX: 0, normalizedY: 0.5 }
@@ -110,8 +110,8 @@ function buildTwoStrokeEdgeGroup(blockId: string) {
   const bar = StrokeOps.create()
   bar.id = "edge-stroke-bar"
   bar.pointers = [
-    { x: 0, y: 0, t: 0, p: 1 },
-    { x: 10, y: 0, t: 1, p: 1 },
+    { x: 0, y: 0, dt: 0, p: 1 },
+    { x: 10, y: 0, dt: 1, p: 1 },
   ]
   bar.jiixBlockId = "block-edge-1"
   bar.jiixBlockType = "Edge"
@@ -120,8 +120,8 @@ function buildTwoStrokeEdgeGroup(blockId: string) {
   const chevron = StrokeOps.create()
   chevron.id = "edge-stroke-chevron"
   chevron.pointers = [
-    { x: 0, y: -2, t: 0, p: 1 },
-    { x: 0, y: 2, t: 1, p: 1 },
+    { x: 0, y: -2, dt: 0, p: 1 },
+    { x: 0, y: 2, dt: 1, p: 1 },
   ]
   chevron.jiixBlockId = "block-edge-1"
   chevron.jiixBlockType = "Edge"
@@ -138,7 +138,7 @@ function buildTwoStrokeEdgeGroup(blockId: string) {
 function mockBlockCenter(mock: ReturnType<typeof createCanvasMock>, strokeId: string, center: { x: number; y: number }) {
   const targetStroke = StrokeOps.create()
   targetStroke.id = strokeId
-  targetStroke.pointers = [{ ...center, t: 0, p: 0 }]
+  targetStroke.pointers = [{ ...center, dt: 0, p: 0 }]
   jest.spyOn(mock.model, "getRootSymbol").mockImplementation((id: string) => (id === strokeId ? targetStroke : undefined) as never)
   return targetStroke
 }
@@ -867,8 +867,8 @@ describe("IIConnectorManager", () => {
       // point[1] (10,0) is nearest the moving block's center (100,0) → full weight.
       // point[0] (0,0) is farthest → no movement.
       const drawnClone = (mock.renderer.drawSymbol as jest.Mock).mock.calls.at(-1)![0] as typeof stroke
-      expect(drawnClone.pointers[0]).toEqual({ x: 0, y: 0, t: 0, p: 1 })
-      expect(drawnClone.pointers[1]).toEqual({ x: 15, y: 5, t: 1, p: 1 })
+      expect(drawnClone.pointers[0]).toEqual({ x: 0, y: 0, dt: 0, p: 1 })
+      expect(drawnClone.pointers[1]).toEqual({ x: 15, y: 5, dt: 1, p: 1 })
     })
 
     test("dual-anchor edge stroke gets a gradient when only one connected block is moving", () => {
@@ -885,8 +885,8 @@ describe("IIConnectorManager", () => {
       manager.drawAnchoredEdgesForMatrix(["shape-stroke-1"], matrix)
 
       const drawnClone = (mock.renderer.drawSymbol as jest.Mock).mock.calls.at(-1)![0] as typeof stroke
-      expect(drawnClone.pointers[0]).toEqual({ x: 0, y: 0, t: 0, p: 1 })
-      expect(drawnClone.pointers[1]).toEqual({ x: 15, y: 5, t: 1, p: 1 })
+      expect(drawnClone.pointers[0]).toEqual({ x: 0, y: 0, dt: 0, p: 1 })
+      expect(drawnClone.pointers[1]).toEqual({ x: 15, y: 5, dt: 1, p: 1 })
     })
 
     test("dual-anchor edge stroke is rigidly translated when both connected blocks move together", () => {
@@ -902,8 +902,8 @@ describe("IIConnectorManager", () => {
       manager.drawAnchoredEdgesForMatrix(["shape-stroke-1", "shape-stroke-2"], matrix)
 
       const drawnClone = (mock.renderer.drawSymbol as jest.Mock).mock.calls.at(-1)![0] as typeof stroke
-      expect(drawnClone.pointers[0]).toEqual({ x: 5, y: 5, t: 0, p: 1 })
-      expect(drawnClone.pointers[1]).toEqual({ x: 15, y: 5, t: 1, p: 1 })
+      expect(drawnClone.pointers[0]).toEqual({ x: 5, y: 5, dt: 0, p: 1 })
+      expect(drawnClone.pointers[1]).toEqual({ x: 15, y: 5, dt: 1, p: 1 })
     })
 
     test("edge stroke that is itself being transformed is not previewed as a follower", () => {
@@ -939,13 +939,13 @@ describe("IIConnectorManager", () => {
       const drawnChevron = drawnClones.find((c) => c.id === chevron.id)!
 
       // bar[1] (10,0) is the group's nearest point to the target (100,0) → full weight.
-      expect(drawnBar.pointers[1]).toEqual({ x: 15, y: 5, t: 1, p: 1 })
+      expect(drawnBar.pointers[1]).toEqual({ x: 15, y: 5, dt: 1, p: 1 })
       // Both chevron points are farther from the target than any bar point, so they're the
       // group's farthest — weight 0, UNCHANGED. Isolated per-stroke math (the old algorithm)
       // would have called them a tie and moved chevron[0] fully while leaving chevron[1] put,
       // splitting the chevron apart instead of keeping it rigid relative to the group's far end.
-      expect(drawnChevron.pointers[0]).toEqual({ x: 0, y: -2, t: 0, p: 1 })
-      expect(drawnChevron.pointers[1]).toEqual({ x: 0, y: 2, t: 1, p: 1 })
+      expect(drawnChevron.pointers[0]).toEqual({ x: 0, y: -2, dt: 0, p: 1 })
+      expect(drawnChevron.pointers[1]).toEqual({ x: 0, y: 2, dt: 1, p: 1 })
     })
   })
 
@@ -964,8 +964,8 @@ describe("IIConnectorManager", () => {
       expect(followed.rigidStrokeIds).toEqual([])
       expect(followed.newSymbols.map((s) => s.id)).toEqual([stroke.id])
       expect((followed.oldSymbols[0] as typeof stroke).pointers).toEqual([
-        { x: 0, y: 0, t: 0, p: 1 },
-        { x: 10, y: 0, t: 1, p: 1 },
+        { x: 0, y: 0, dt: 0, p: 1 },
+        { x: 10, y: 0, dt: 1, p: 1 },
       ])
       // point[1] (10,0) is nearest the moving block's center (100,0) → full weight.
       expect(fromModel<typeof stroke>(stroke).pointers[0]).toEqual(expect.objectContaining({ x: 0, y: 0 }))

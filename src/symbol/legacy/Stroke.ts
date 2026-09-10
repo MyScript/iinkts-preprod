@@ -1,5 +1,5 @@
 import type { TPointer } from "@/core/geometry"
-import { MatrixTransform, type TMatrixTransform } from "@/core/geometry"
+import { MatrixTransform, resolvePointerDelta, type TMatrixTransform } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import { createUUID } from "@/core/std"
 import type { TPenStyle } from "@/style"
@@ -75,7 +75,8 @@ export function convertPartialStrokesToStrokes(json: TPartialDeep<TLegacyStroke>
       flag = false
       return
     }
-    j.pointers?.forEach((pp, pIndex) => {
+    const sourcePointers = j.pointers ?? []
+    sourcePointers.forEach((pp, pIndex) => {
       if (!pp) {
         errors.push(`stroke ${ji + 1} has no pointer at ${pIndex}`)
         flag = false
@@ -83,7 +84,7 @@ export function convertPartialStrokesToStrokes(json: TPartialDeep<TLegacyStroke>
       }
       const pointer: TPointer = {
         p: pp.p || 1,
-        t: pp.t || pIndex,
+        dt: resolvePointerDelta(sourcePointers, pIndex),
         x: 0,
         y: 0,
       }

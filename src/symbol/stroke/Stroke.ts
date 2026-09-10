@@ -1,7 +1,14 @@
 import type { TBox } from "@/core/geometry"
-import type { TPointer } from "@/core/geometry"
+import type { TPointer, TPointerImport } from "@/core/geometry"
 import type { TPoint, TSegment } from "@/core/geometry"
-import { MatrixTransform, mergeSymbolTransform, OBBOps, type TOBB } from "@/core/geometry"
+import {
+  MatrixTransform,
+  mergeSymbolTransform,
+  OBBOps,
+  resolvePointerDelta,
+  resolveStrokeOrigin,
+  type TOBB,
+} from "@/core/geometry"
 import {
   computeAngleAxeRadian,
   computeDistance,
@@ -52,6 +59,14 @@ export type TStroke = TBaseSymbol &
   }
 
 /**
+ * A stroke as read from a document. Identical to a deep-partial {@link TStroke} except that its
+ * pointers may still carry the absolute `t` written before pointers stored a delta — which is what
+ * lets {@link StrokeOps.createFromPartial} open a document saved by an earlier version.
+ * @group Symbol
+ */
+export type TStrokeImport = Omit<TPartialDeep<TStroke>, "pointers"> & { pointers?: (TPointerImport | undefined)[] }
+
+/**
  * @group Symbol
  * @summary Check if symbol is a stroke
  * @param symbol - Symbol to check
@@ -95,7 +110,12 @@ export function isRecognizedText(symbol: TBaseSymbol): symbol is TStroke {
  * @group Symbol
  */
 export const StrokeOps = {
-  create(style?: TPartialDeep<TStyle>, pointerType = "pen"): TStroke {
+  /**
+   * @param creationTime - Epoch instant the stroke began, defaulting to now. Pass the instant the
+   * capture actually started: it is the origin every pointer's {@link TPointer.dt} counts from, so
+   * it is what turns them back into the absolute times the recognizer orders strokes by.
+   */
+  create(style?: TPartialDeep<TStyle>, pointerType = "pen", creationTime?: number): TStroke {
     const mergedStyle = mergeSymbolStyle(style)
     const now = Date.now()
     const pointers: TPointer[] = []
@@ -103,7 +123,7 @@ export const StrokeOps = {
       type: SymbolType.Stroke,
       id: `${SymbolType.Stroke}-${createUUID()}`,
       style: mergedStyle,
-      creationTime: now,
+      creationTime: creationTime ?? now,
       modificationDate: now,
       pointerType,
       pointers,
@@ -177,11 +197,15 @@ export const StrokeOps = {
   },
 
   split(strokeToSplit: TStroke, i: number): { before: TStroke; after: TStroke } {
-    const before = StrokeOps.create(strokeToSplit.style, strokeToSplit.pointerType)
+    // Both halves keep the origin of the stroke they came from. Their pointers still carry the
+    // `dt` they were captured with, which counts from that origin - give a half a fresh
+    // `creationTime` and every one of its points would claim to have been drawn just now.
+    const { style, pointerType, creationTime } = strokeToSplit
+    const before = StrokeOps.create(style, pointerType, creationTime)
     before.pointers.push(...strokeToSplit.pointers.slice(0, i))
     before.length = StrokeOps.computeLength(before)
 
-    const after = StrokeOps.create(strokeToSplit.style, strokeToSplit.pointerType)
+    const after = StrokeOps.create(style, pointerType, creationTime)
     after.pointers.push(...strokeToSplit.pointers.slice(i))
     after.length = StrokeOps.computeLength(after)
 
@@ -225,11 +249,18 @@ export const StrokeOps = {
     return result
   },
 
-  createFromPartial(partial: TPartialDeep<TStroke>): TStroke {
+  createFromPartial(partial: TStrokeImport): TStroke {
     if (!partial.pointers?.length) {
       throw new Error(`not pointers`)
     }
-    const stroke = StrokeOps.create(partial.style, partial.pointerType)
+    // Keeping the original origin matters as much as keeping the pointers: it is what places this
+    // stroke against the others on the timeline. Dropped, every imported stroke would look like it
+    // was written the instant the document was opened, all at once.
+    const stroke = StrokeOps.create(
+      partial.style,
+      partial.pointerType,
+      resolveStrokeOrigin(partial.pointers ?? [], partial.creationTime)
+    )
     if (partial.id) {
       stroke.id = partial.id
     }
@@ -238,7 +269,8 @@ export const StrokeOps = {
     stroke.jiixBlockId = partial.jiixBlockId
     const errors: string[] = []
     let flag = true
-    partial.pointers?.forEach((pp, pIndex) => {
+    const sourcePointers = partial.pointers ?? []
+    sourcePointers.forEach((pp, pIndex) => {
       if (!pp) {
         errors.push(`no pointer at ${pIndex}`)
         flag = false
@@ -246,7 +278,7 @@ export const StrokeOps = {
       }
       const pointer: TPointer = {
         p: pp.p || 1,
-        t: pp.t || pIndex,
+        dt: resolvePointerDelta(sourcePointers, pIndex),
         x: 0,
         y: 0,
       }

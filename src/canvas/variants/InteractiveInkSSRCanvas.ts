@@ -5,6 +5,7 @@ import type { TExport, TJIIXExport } from "@/client"
 import { DefaultMarginConfiguration, WebSocketSSRClient } from "@/client"
 import { CanvasTool } from "@/Constants"
 import type { TPointer } from "@/core/geometry"
+import { resolvePointerDelta } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import { DeferredPromise } from "@/core/std"
 import type { TPointerInfo } from "@/grabber"
@@ -382,7 +383,8 @@ export class InteractiveInkSSRCanvas extends AbstractCanvas {
         errors.push(`stroke ${strokeIndex + 1} has not pointers`)
       }
       let flag = true
-      s.pointers?.forEach((pp, pIndex) => {
+      const sourcePointers = s.pointers ?? []
+      sourcePointers.forEach((pp, pIndex) => {
         flag = true
         if (!pp) {
           errors.push(`stroke ${strokeIndex + 1} has no pointer at ${pIndex}`)
@@ -390,7 +392,7 @@ export class InteractiveInkSSRCanvas extends AbstractCanvas {
         }
         const pointer: TPointer = {
           p: pp.p || 1,
-          t: pp.t || pIndex,
+          dt: resolvePointerDelta(sourcePointers, pIndex),
           x: 0,
           y: 0,
         }

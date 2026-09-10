@@ -73,7 +73,6 @@ export class Synchronizer
     const stroke = StrokeOps.create(style, shape.props.isPen ? "pen" : "mouse")
     stroke.id = shape.id
 
-    const baseTime = Date.now()
     let pointIndex = 0
 
     shape.props.segments.forEach(seg =>
@@ -82,7 +81,7 @@ export class Synchronizer
       {
         StrokeOps.addPointer(stroke, {
           p: 1,
-          t: baseTime + pointIndex * 20,
+          dt: pointIndex * 20,
           x: p.x + shape.x,
           y: p.y + shape.y
         })
@@ -218,7 +217,7 @@ export class Synchronizer
             {
               return {
                 p: 1,
-                t: Date.now() + i,
+                dt: i * 20,
                 x: p.x,
                 y: p.y
               }
