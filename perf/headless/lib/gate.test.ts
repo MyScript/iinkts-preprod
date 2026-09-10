@@ -214,6 +214,25 @@ describe("evaluate — cases it refuses to gate", () => {
 })
 
 describe("evaluate — runs it refuses outright", () => {
+  test("refuses a run narrowed to a few objects", () => {
+    const result = evaluate(report({ filter: ["renderer"] }))
+    expect(result.refusal?.kind).toBe("narrowed-run")
+    expect(result.verdicts).toHaveLength(0)
+    expect(result.regressions).toHaveLength(0)
+  })
+
+  test("judges a run whose filter is recorded but empty", () => {
+    // An absent filter and an empty one mean the same thing: nothing was narrowed.
+    expect(evaluate(report({ filter: [] })).refusal).toBeUndefined()
+  })
+
+  test("blames the narrowing before anything measured", () => {
+    // A narrowed run is disqualified by construction. Reporting it as short or noisy would send
+    // someone off to add rounds that cannot help.
+    const result = evaluate(report({ filter: ["model"], rounds: 1 }))
+    expect(result.refusal?.kind).toBe("narrowed-run")
+  })
+
   test("refuses a run with fewer rounds than the minimum", () => {
     const result = evaluate(report({ rounds: MIN_ROUNDS - 1 }))
     expect(result.refusal?.kind).toBe("too-few-rounds")

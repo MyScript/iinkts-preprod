@@ -23,6 +23,24 @@ const GROUPS = [control, model, symbol, core, history, renderer]
 /** The object names, in the order their cases are measured. */
 export const OBJECTS: string[] = GROUPS.map((group) => group.OBJECT)
 
-export function allCases(fixture: TBenchFixture): TBenchCase[] {
-  return GROUPS.flatMap((group) => group.cases(fixture))
+/**
+ * The cases to measure, optionally narrowed to a few objects.
+ *
+ * `control` survives every filter. It is not an object of the library but the run's calibration, and
+ * every ratio in a report is a case divided by it — narrowing it away leaves the suite unable to
+ * produce a report at all, which is how this was found.
+ *
+ * An unknown name throws rather than quietly measuring nothing: a typo in `--only` would otherwise
+ * produce an empty, cheerful run.
+ */
+export function allCases(fixture: TBenchFixture, only?: readonly string[]): TBenchCase[] {
+  if (!only?.length) return GROUPS.flatMap((group) => group.cases(fixture))
+
+  const unknown = only.filter((name) => !OBJECTS.includes(name))
+  if (unknown.length > 0) {
+    throw new Error(`no such object to measure: ${unknown.join(", ")}. Known: ${OBJECTS.join(", ")}`)
+  }
+  return GROUPS.filter((group) => group === control || only.includes(group.OBJECT)).flatMap((group) =>
+    group.cases(fixture)
+  )
 }
