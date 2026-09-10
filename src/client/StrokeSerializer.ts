@@ -19,7 +19,9 @@ export type TRecognitionPointer = {
   x: number
   y: number
   /**
-   * Capture timestamp in milliseconds.
+   * Capture time in milliseconds, counted from the start of the stroke this pointer belongs to —
+   * so the first pointer of a stroke sits at 0. {@link toWireStroke} adds the stroke's
+   * `creationTime` back on, because the wire carries absolute instants.
    *
    * **Recognition quality depends on it.** The recognizer uses the interval between points to tell
    * a deliberate stroke from a fast one, to segment characters and to resolve ambiguous shapes.
@@ -27,7 +29,7 @@ export type TRecognitionPointer = {
    * results, especially on cursive text and on shapes drawn in several passes. Supply it whenever
    * the capture source has it, even approximately.
    */
-  t?: number
+  dt?: number
   /** Pen pressure, 0 to 1. Affects stroke width when rendered; recognition tolerates its absence. */
   p?: number
 }
@@ -41,6 +43,15 @@ export type TRecognitionStroke = {
   id: string
   pointerType: string
   pointers: TRecognitionPointer[]
+  /**
+   * Epoch instant the stroke began — the origin its pointers' {@link TRecognitionPointer.dt} count
+   * from, and what {@link toWireStroke} adds back to reach the absolute times the wire carries.
+   *
+   * The recognizer reads the order strokes were written in from those absolute times, and uses it
+   * for gesture detection. Omit it and the stroke's points still carry the right intervals among
+   * themselves, but the stroke as a whole loses its place against the others.
+   */
+  creationTime?: number
   /**
    * The stroke's affine transform, if any. Baked into absolute coordinates by {@link toWireStroke}
    * before the pointers reach the wire — the server only ever deals in absolute geometry.
@@ -100,8 +111,8 @@ export function toWireStroke(stroke: TRecognitionStroke): TWireStroke {
     const pointer = toAbsolute(rawPointer)
     wire.x.push(pointer.x)
     wire.y.push(pointer.y)
-    if (typeof pointer.t === "number") {
-      t.push(pointer.t)
+    if (typeof pointer.dt === "number" && typeof stroke.creationTime === "number") {
+      t.push(+(stroke.creationTime + pointer.dt).toFixed(3))
     } else {
       everyPointerIsTimed = false
     }

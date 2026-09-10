@@ -36,7 +36,7 @@ export class ScratchGestureHandler extends GestureHandler {
           x,
           y: partPointersToRemove.y[i],
           p: 1,
-          t: 1,
+          dt: 1,
         })
       )
       const subStrokes = StrokeOps.substract(stroke, strokePartToErase)
