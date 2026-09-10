@@ -115,10 +115,10 @@ export default [
   },
 
   // Perf harness: node scripts and Playwright scenarios, both TypeScript and plain JS.
-  // Runs on node, not in a browser, and is type-checked by tsconfig.perf.json rather than by the
+  // Runs on node, not in a browser, and is type-checked by perf/tsconfig.json rather than by the
   // main typecheck project — see .local/v5-e1-tooling for why the two are separate.
   {
-    files: ["test/perf/**/*.ts", "test/perf-e2e/**/*.ts", "test/perf-e2e/**/*.mjs", "test/perf-e2e/**/*.js"],
+    files: ["perf/**/*.ts", "perf/**/*.mjs", "perf/**/*.js"],
     plugins: {
       "@typescript-eslint": typescriptEslint,
     },
@@ -132,6 +132,42 @@ export default [
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
       "no-unused-vars": "off",
+    },
+  },
+
+  // A case file must never reach for the library itself. The bench is pointed at a bundle chosen at
+  // run time, because an A/B measures two of them; a case importing `#iink` would always measure
+  // `dist/`, so both sides would run the same code and the case would read x1.000 whatever happened
+  // — dead, silent, indistinguishable from a healthy one. The library arrives through the fixture.
+  {
+    files: ["perf/headless/cases/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "#iink",
+              message: "a case measures the bundle the run was pointed at — take the library from the fixture",
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  // The harness keeps its unit tests beside what they test, so they land in the block above, which
+  // knows nothing about a test runner. This adds what jest brings.
+  {
+    files: ["perf/**/*.test.ts"],
+    plugins: {
+      jest: jestPlugin,
+    },
+    languageOptions: {
+      globals: { ...globals.node, ...jestPlugin.environments.globals.globals },
+    },
+    rules: {
+      ...jestPlugin.configs.recommended.rules,
     },
   },
 
