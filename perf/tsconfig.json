@@ -1,24 +1,24 @@
 {
-  "extends": "./tsconfig.base.json",
+  "extends": "../tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
-    "rootDir": "./",
+    "rootDir": "..",
     "types": [
+      "jest",
       "node"
     ],
     "allowImportingTsExtensions": true,
     "paths": {
       "#iink": [
-        "./dist/iink.d.ts"
+        "../dist/iink.d.ts"
       ]
     },
     "allowJs": true,
     "checkJs": false
   },
   "include": [
-    "test/perf",
-    "test/perf-e2e",
-    "test/examples/helper.js"
+    ".",
+    "../test/examples/helper.js"
   ],
   "exclude": [
     "node_modules",

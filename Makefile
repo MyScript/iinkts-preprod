@@ -113,6 +113,27 @@ test-examples-ci:
 		$(DOCKER_IMAGE_PLAYWRIGHT) \
 		corepack yarn test:examples
 
+# Browser performance, on the same scaffolding as the example tests: they need the backend and the
+# served pages that `prepare-test-examples-ci` brings up. Reported into an artifact, never gated —
+# see perf/README.md for why a browser number does not fail a build yet.
+test-perf-e2e-ci:
+	@echo "Starting browser perf scenarios"
+	@docker run --rm --ipc=host --user=$$(id -u) --userns=host --init \
+		$(NETWORK_PARAM) \
+		-e BASE_URL="$(BASE_URL)" \
+		-e CI="true" \
+		-e SCHEME="http" \
+		-e HOST="$(BACKEND_HOST)" \
+		-e APPLICATION_KEY="$(APPLICATION_KEY)" \
+		-e HMAC_KEY="$(HMAC_KEY)" \
+		-e PERF_E2E_DOCUMENT="$(PERF_E2E_DOCUMENT)" \
+		-e PERF_E2E_REPORT="$(PERF_E2E_REPORT)" \
+		-v $(CURRENT_PWD):/iink-ts \
+		-w "/iink-ts" \
+		--name "$(DOCKER_INSTANCE_PLAYWRIGHT)-perf" \
+		$(DOCKER_IMAGE_PLAYWRIGHT) \
+		corepack yarn bench:e2e
+
 dev-test-examples:
 	@make WITH_NETWORK=false -C ./ prepare-test-examples
 

@@ -3,10 +3,10 @@ import { dirname, resolve } from "node:path"
 
 import { test, type Page } from "@playwright/test"
 
-import { generateDocument } from "../perf/lib/generateDocument.ts"
+import { generateDocument } from "../headless/lib/generateDocument.ts"
 // The shared e2e helpers are plain JavaScript; `allowJs` lets them resolve, `checkJs` keeps them out
 // of this project's type checking.
-import { passModalKey } from "../examples/helper.js"
+import { passModalKey } from "../../test/examples/helper.js"
 import { installProbe, measure, type TScenarioMeasurement } from "./lib/instrument.ts"
 
 /**
@@ -37,7 +37,9 @@ const SEED = 20260827
  * a modal ever swallows a gesture again it fails loudly and `describePoint` names what was hit.
  */
 
-const REPORT = resolve(process.cwd(), ".local/bench/perf-e2e.json")
+// CI points this at the directory it carries forward from build to build, so the browser figures
+// land beside the micro-bench history instead of in a workspace that is thrown away.
+const REPORT = resolve(process.cwd(), process.env.PERF_E2E_REPORT || ".local/bench/perf-e2e.json")
 
 const results: Record<string, TScenarioMeasurement> = {}
 

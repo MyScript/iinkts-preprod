@@ -25,3 +25,5 @@ __diff_output__
 
 # tsc incremental state
 *.tsbuildinfo
+bench-history
+dist-ref

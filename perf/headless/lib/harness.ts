@@ -9,6 +9,10 @@ import { median, relativeMad } from "./stats.ts"
 /**
  * One measured case. `p50Ms` is the median latency of the samples tinybench collected; the median is
  * used rather than the mean because a single GC pause in a run would otherwise move the number.
+ *
+ * `samples` is how many measurements that median came from. It is worth reading: a p50 over a handful
+ * of draws of a right-skewed latency distribution is a coarse number, and the sample floor exists to
+ * stop that happening quietly.
  */
 export type TCaseResult = {
   name: string
@@ -26,6 +30,11 @@ export type TRunReport = {
   generatedAt: string
   /** Human-readable description of the generated document, for the record. */
   dataset?: string
+  /**
+   * Which bundle was measured. Two reports are only comparable when this differs and everything else
+   * does not, so a report that does not say what it measured cannot be one side of a comparison.
+   */
+  lib?: string
   /** Wall time spent seeding the resident document through the public API, for the record. */
   seedMs?: number
   host: string
@@ -74,13 +83,21 @@ export type TBenchCase = {
 export const CONTROL_CASE = "control: float arithmetic"
 
 /**
- * Iteration budget. tinybench's defaults (10 warmup + 10 measured iterations minimum) are wrong for
- * this suite: on master a single `import` iteration costs ~0.6 s, because insertion deep-clones the
- * document, so the defaults would spend minutes on one case. The budget is therefore explicit and
- * low, and the median across `repeats` whole suites is what recovers the stability that a long
- * single run would have given.
+ * Iteration budget. tinybench's own defaults (250 ms / 16 warmup, 1000 ms / 64 measured) are too
+ * generous for a suite paid on every build, so the budget is explicit and low here.
+ *
+ * `time` is a floor on duration and `iterations` a floor on sample count — tinybench runs while
+ * either is unmet — so the two together mean "at least 150 ms, and never fewer than 20 samples".
+ * The sample floor was 5, which is what the slow cases actually got: at 21 ms an iteration, `derive`
+ * finished its 150 ms budget with 7 samples, and a p50 over 7 draws of a right-skewed latency
+ * distribution is a coarse number. Fast cases are unaffected — at 0.3 ms an iteration a case already
+ * collects several hundred samples inside the time budget, so the floor never binds.
+ *
+ * The warmup is deliberately left at one iteration. Raising it to tinybench's 250 ms / 16 was
+ * measured on 2026-09-09 over three recordings per configuration and moved nothing (mean spread of
+ * the median ratio 30.9% against 29.7%), so the suite is not paying for a warm-up it does not need.
  */
-const MIN_ITERATIONS = 5
+const MIN_ITERATIONS = 20
 const WARMUP_ITERATIONS = 1
 
 async function runOnce(cases: TBenchCase[], timeMs: number): Promise<TCaseResult[]> {
@@ -107,7 +124,9 @@ async function runOnce(cases: TBenchCase[], timeMs: number): Promise<TCaseResult
     return {
       name: task.name,
       p50Ms: result.latency.p50,
-      samples: result.latency.samples?.length ?? 0,
+      // `samples` is the retained array, populated only under `retainSamples`, so reading its length
+      // reported 0 for every case in every report ever written. `samplesCount` is the count itself.
+      samples: result.latency.samplesCount,
     }
   })
 }
