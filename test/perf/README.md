@@ -55,9 +55,9 @@ Three choices in there are not free, and each was measured:
 ### The null test
 
 Point the reference at a copy of the current bundle and run the gate: every case must read x1.000, and
-whatever it reads instead is the method's own error. Three such runs put the worst case at 10.3%. That
-is where the 25% threshold comes from — roughly a factor of two over the worst thing observed on code
-that had not changed.
+whatever it reads instead is the method's own error. Four such runs put the worst case at 10.3%. That
+is where the **20% floor** under the limit comes from — roughly a factor of two over the worst thing
+observed on code that had not changed.
 
 A null test is also how a case is shown to be unfit. `read: getRootSymbol` repeated one lookup 100 000
 times and read 8.5%, 1.5% and then 29.4% out across three runs of identical code — an error with no
@@ -72,6 +72,33 @@ healthy.
 ```
 cp dist/iink.esm.js dist-ref/iink.esm.js && yarn bench:ab && yarn bench:gate
 ```
+
+## Where the limit comes from
+
+The limit is not a constant. A branch changes the cost of a case or two; every other case measures the
+same code on both sides and must read 1.000. How much those cases disagree with each other **is** the
+run's own error, measured on this agent, in this job — so the run is asked how wrong it is, and the
+limit is drawn from the answer:
+
+```
+limit = max(20%, 5 × the scatter of this run's gated cases)
+```
+
+Two details in there carry the whole design.
+
+**The scatter is measured around the run's own centre, not around 1.000.** Measured from 1.000, a
+change that slowed every case equally would push the scale up with it, the limit would widen to match,
+and the gate would quietly excuse the one kind of regression it should be surest about. Measured
+around the centre, a uniform slowdown leaves the scatter at zero, the limit falls to its floor, and
+every case is flagged. There is a unit test that asserts exactly that.
+
+**Past 10% scatter the run is refused, not widened.** At that point the limit the rule would produce
+is 50%, which is not a gate. Measured null runs sit between 1.2% and 3.0%, so the ceiling is three to
+eight times anything healthy.
+
+The floor matters too: on a quiet run the scatter term lands around 6-11%, under the floor, so 20%
+governs. The derived term is what stops a noisy agent from producing false regressions, not what sets
+the everyday limit.
 
 ## Gotchas
 
@@ -226,5 +253,7 @@ yarn bench         # one single-sided run, the fast local read; not gateable
 PERF_E2E_DOCUMENT=4419 PROJECT="Desktop Chrome" yarn bench:e2e   # browser scenarios
 ```
 
-Verified on 2026-09-09: a +60% regression injected into the paired report is caught at +64.8% against
-the 25% limit and exits 1; a four-round run is refused with exit 2; the null test passes with exit 0.
+Verified on 2026-09-10 against the real gate: a uniform +30% across every case is caught on all eight
+(the limit stays at its floor, which is the point) and exits 1; a single case at +40% is caught alone
+and exits 1; a run whose cases scatter by 13% is refused with exit 2; three null runs pass with exit 0
+at a 1.2-2.2% scatter.
