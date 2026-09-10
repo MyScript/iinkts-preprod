@@ -20,13 +20,19 @@ const BENCH_LIB = process.env.BENCH_LIB
 const bundleLabel = BENCH_LIB ?? "#iink"
 const bundleSpecifier = BENCH_LIB === undefined ? "#iink" : pathToFileURL(resolve(process.cwd(), BENCH_LIB)).href
 
-/** What the cases below reach for. Checked at load so a wrong bundle says so, in one line. */
+/**
+ * What the cases below reach for. Checked at load so a wrong bundle says so, in one line.
+ *
+ * Constructors and functions only. A configuration constant is not worth a line here: if one were
+ * missing, the setup that reads it throws before any measurement, which is the same outcome by a
+ * slightly less tidy route.
+ */
 const REQUIRED_EXPORTS = [
   "CanvasEvent",
-  "DefaultHistoryConfiguration",
   "IIHistoryManager",
   "IIModel",
   "MatrixTransform",
+  "SVGRenderer",
   "StrokeOps",
   "SymbolGeometry",
   "registerBuiltinSymbolUtils",
@@ -58,8 +64,10 @@ const {
   CanvasEvent,
   DefaultHistoryConfiguration,
   IIHistoryManager,
+  DefaultIIRendererConfiguration,
   IIModel,
   MatrixTransform,
+  SVGRenderer,
   StrokeOps,
   SymbolGeometry,
   registerBuiltinSymbolUtils,
@@ -112,6 +120,7 @@ const APPEND_PASSES = 1000 // 0.27 ms measured
 const SYMBOLS_READ_PASSES = 200 // 0.36 ms measured
 const GET_ROOT_PASSES = 200 // 1.52 ms measured, one pass reading all 500 ids
 const HISTORY_PASSES = 100 // 1.15 ms measured, one push-undo-redo cycle per pass
+const RENDERER_PAN_PASSES = 20 // 7.44 ms measured
 const HIT_TEST_PASSES = 20 // 7.84 ms measured
 const TRANSFORM_PASSES = 20 // 2.81 ms measured
 const GEOMETRY_COLD_PASSES = 1 // 110 ms measured: above the band, and one build of the set is its smallest unit
@@ -178,6 +187,32 @@ const allIds = strokes.map((stroke) => stroke.id)
 const history = new IIHistoryManager(DefaultHistoryConfiguration, new CanvasEvent(document.createElement("div")))
 history.init(model)
 const historyChanges = strokes.map((stroke) => ({ added: [stroke] }))
+
+/**
+ * A renderer holding the resident document, so panning it can be measured.
+ *
+ * The renderer is the suite's largest blind spot — seventeen files, no case — and panning is where it
+ * has already gone wrong: dragging a loaded document stuttered because every pointer move recomputed
+ * the viewBox and walked every symbol. `pan` still calls the virtualization reconciler, so the shape
+ * that regressed is the shape measured here.
+ *
+ * Under jsdom this measures jsdom's DOM, not a browser's, and the limit that follows was measured
+ * rather than assumed. Both were tried against this case:
+ *
+ * - Work added per symbol in the pan path — the pan-lag family — is caught: an attribute written on
+ *   every tracked element takes the case from 7.4 ms to 13.6 ms, x2.6 past a 20% limit.
+ * - **Virtualization breaking is not caught, and cannot be.** Disabling the cull entirely makes this
+ *   case *faster*, 7.4 ms to 5.9 ms, because `remove()` and the re-append stop being called. What a
+ *   broken cull actually costs is paint and layout over the elements left attached, and jsdom has
+ *   neither. Only the browser scenarios can see that one.
+ *
+ * So this case guards the pan path's own per-symbol work, and nothing about the culling it calls.
+ */
+const rendererElement = document.createElement("div")
+document.body.appendChild(rendererElement)
+const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
+renderer.init(rendererElement)
+strokes.forEach((stroke) => renderer.drawSymbol(stroke))
 const probeBox = { x: 200, y: 100, width: 40, height: 40 }
 const matrix = new MatrixTransform(1.02, 0.01, -0.01, 1.02, 3, -2)
 
@@ -298,6 +333,17 @@ const cases: TBenchCase[] = [
         history.push(historyChanges[pass % historyChanges.length])
         history.undo()
         history.redo()
+      }
+    },
+  },
+  {
+    name: sized(`renderer: pan across @${RESIDENT_SIZE}`, RENDERER_PAN_PASSES),
+    // Alternating direction, so the viewBox stays over the document. Panning one way for the length
+    // of a run would carry it off the content, every symbol would be culled, and the case would
+    // settle into measuring an empty screen.
+    fn: () => {
+      for (let pass = 0; pass < RENDERER_PAN_PASSES; pass++) {
+        renderer.pan(pass % 2 === 0 ? 20 : -20, 0)
       }
     },
   },
