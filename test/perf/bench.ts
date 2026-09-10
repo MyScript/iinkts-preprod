@@ -82,6 +82,10 @@ const SEED = 20260827
  * resolution of `performance.now()`, so it timed the clock rather than the code, and then failed CI
  * at +21% against a 15% limit on a tree nobody had touched.
  *
+ * A factor is not only about cost. `getRootSymbol` cleared the floor at 100 000 repeats of a single
+ * lookup and still read badly, because repeating one key is a shape the JIT treats unstably and is
+ * not what the library does either. Rotating over every resident id fixed both at once.
+ *
  * Each factor below is therefore chosen from a measurement, targeting **0.1-10 ms per iteration**:
  * high enough that timer overhead is negligible, low enough that a run stays affordable when every
  * case is later measured twice, once per build. A case whose smallest indivisible unit already costs
@@ -93,7 +97,7 @@ const SEED = 20260827
 const IMPORT_PASSES = 16 // 0.030 ms measured x1 -> ~0.5 ms
 const APPEND_PASSES = 1000 // 0.0003 ms measured x1 -> ~0.3 ms
 const SYMBOLS_READ_PASSES = 200 // 0.0015 ms measured x1 -> ~0.3 ms
-const GET_ROOT_PASSES = 100_000 // below timer resolution at x20 -> see the sink in the case below
+const GET_ROOT_PASSES = 200 // 0.27 ms measured at 60 passes over all 500 ids -> ~0.9 ms
 const HIT_TEST_PASSES = 20 // 7.6 ms measured, already in band
 const TRANSFORM_PASSES = 20 // 4.0 ms measured, already in band
 const GEOMETRY_COLD_PASSES = 1 // one build of the whole set is its smallest unit
@@ -142,7 +146,12 @@ for (const stroke of strokes) {
 }
 const seedMs = performance.now() - seedStart
 
-const firstId = strokes[0].id
+/**
+ * Every resident id, looked up in turn. Reading one id repeatedly is not what the library does, and it
+ * measured badly for the same reason it was unrealistic: a monomorphic loop over a single key sits on
+ * a JIT cliff, and its null-test error swung between 1.5% and 29.4% across runs of identical code.
+ */
+const allIds = strokes.map((stroke) => stroke.id)
 const probeBox = { x: 200, y: 100, width: 40, height: 40 }
 const matrix = new MatrixTransform(1.02, 0.01, -0.01, 1.02, 3, -2)
 
@@ -246,8 +255,10 @@ const cases: TBenchCase[] = [
     // call observable, the same way the hit test case does.
     fn: () => {
       let found = 0
-      for (let i = 0; i < GET_ROOT_PASSES; i++) {
-        if (model.getRootSymbol(firstId) !== undefined) found++
+      for (let pass = 0; pass < GET_ROOT_PASSES; pass++) {
+        for (const id of allIds) {
+          if (model.getRootSymbol(id) !== undefined) found++
+        }
       }
       if (found < 0) throw new Error("unreachable")
     },
