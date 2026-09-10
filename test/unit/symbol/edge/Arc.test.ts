@@ -28,10 +28,10 @@ describe("Arc.ts", () => {
       expect(arc.creationTime).toEqual(arc.modificationDate)
       expect(arc.style).toEqual(expect.objectContaining(style))
       expect(arc.center).toEqual(center)
-      expect(OBBOps.toBox(arc.bounds).x).toEqual(-15)
-      expect(OBBOps.toBox(arc.bounds).y).toEqual(-5)
-      expect(+arc.bounds.width.toFixed(0)).toEqual(27)
-      expect(+arc.bounds.height.toFixed(0)).toEqual(60)
+      expect(OBBOps.toBox(EdgeArcOps.computeBounds(arc, EdgeArcOps.computeVertices(arc))).x).toEqual(-15)
+      expect(OBBOps.toBox(EdgeArcOps.computeBounds(arc, EdgeArcOps.computeVertices(arc))).y).toEqual(-5)
+      expect(+EdgeArcOps.computeBounds(arc, EdgeArcOps.computeVertices(arc)).width.toFixed(0)).toEqual(27)
+      expect(+EdgeArcOps.computeBounds(arc, EdgeArcOps.computeVertices(arc)).height.toFixed(0)).toEqual(60)
     })
     test("should create with default style", () => {
       const center: TPoint = { x: 0, y: 0 }
@@ -53,8 +53,8 @@ describe("Arc.ts", () => {
     const largeCounterClockwiseArc = EdgeArcOps.create(center, Math.PI / 4, (-3 * Math.PI) / 4, 50, 50, 0)
 
     test(`should get vertices for small clockwise arc`, () => {
-      expect(smallClockwiseArc.vertices).toHaveLength(9)
-      expect(smallClockwiseArc.vertices).toEqual(
+      expect(EdgeArcOps.computeVertices(smallClockwiseArc)).toHaveLength(9)
+      expect(EdgeArcOps.computeVertices(smallClockwiseArc)).toEqual(
         expect.arrayContaining([
           { x: 3.536, y: 3.536 },
           { x: 2.357, y: 4.41 },
@@ -63,8 +63,8 @@ describe("Arc.ts", () => {
       )
     })
     test(`should get vertices for large clockwise arc`, () => {
-      expect(largeClockwiseArc.vertices).toHaveLength(13)
-      expect(largeClockwiseArc.vertices).toEqual(
+      expect(EdgeArcOps.computeVertices(largeClockwiseArc)).toHaveLength(13)
+      expect(EdgeArcOps.computeVertices(largeClockwiseArc)).toEqual(
         expect.arrayContaining([
           { x: 35.355, y: 35.355 },
           { x: 0, y: 50 },
@@ -73,8 +73,8 @@ describe("Arc.ts", () => {
       )
     })
     test(`should get vertices for small counter-clockwise arc`, () => {
-      expect(smallCounterClockwiseArc.vertices).toHaveLength(9)
-      expect(smallCounterClockwiseArc.vertices).toEqual(
+      expect(EdgeArcOps.computeVertices(smallCounterClockwiseArc)).toHaveLength(9)
+      expect(EdgeArcOps.computeVertices(smallCounterClockwiseArc)).toEqual(
         expect.arrayContaining([
           { x: 3.536, y: 3.536 },
           { x: 4.41, y: 2.357 },
@@ -83,8 +83,8 @@ describe("Arc.ts", () => {
       )
     })
     test(`should get vertices for large counter-clockwise arc`, () => {
-      expect(largeCounterClockwiseArc.vertices).toHaveLength(13)
-      expect(largeCounterClockwiseArc.vertices).toEqual(
+      expect(EdgeArcOps.computeVertices(largeCounterClockwiseArc)).toHaveLength(13)
+      expect(EdgeArcOps.computeVertices(largeCounterClockwiseArc)).toEqual(
         expect.arrayContaining([
           { x: 35.355, y: 35.355 },
           { x: 50, y: 0 },
@@ -93,8 +93,10 @@ describe("Arc.ts", () => {
       )
     })
     test(`should get snap points for small clockwise arc`, () => {
-      expect(smallClockwiseArc.snapPoints).toHaveLength(2)
-      expect(smallClockwiseArc.snapPoints).toEqual([
+      // Snap points are no longer stored on the arc; `EdgeArcOps` computes them from its vertices.
+      const snapPoints = EdgeArcOps.computeSnapPoints(EdgeArcOps.computeVertices(smallClockwiseArc))
+      expect(snapPoints).toHaveLength(2)
+      expect(snapPoints).toEqual([
         { x: 3.536, y: 3.536 },
         { x: 0, y: 5 },
       ])
@@ -439,8 +441,8 @@ describe("Arc.ts", () => {
     test("without anchors, draws through the true first/last vertices", () => {
       const arc = EdgeArcOps.create({ x: 0, y: 0 }, 0, Math.PI, 10, 10, 0)
       const path = EdgeArcOps.getSVGPath(arc)
-      const first = arc.vertices[0]
-      const last = arc.vertices.at(-1)!
+      const first = EdgeArcOps.computeVertices(arc)[0]
+      const last = EdgeArcOps.computeVertices(arc).at(-1)!
       expect(path.startsWith(`M ${first.x} ${first.y} Q`)).toBe(true)
       expect(path.endsWith(`${last.x} ${last.y}`)).toBe(true)
     })
@@ -450,9 +452,9 @@ describe("Arc.ts", () => {
       // still near the true start) vertices in place, drawing a spike from the entry point
       // back to them before the visible curve even began.
       const arc = EdgeArcOps.create({ x: 0, y: 0 }, 0, Math.PI, 10, 10, 0)
-      const trueStart = arc.vertices[0]
-      const v1 = arc.vertices[1]
-      const v2 = arc.vertices[2]
+      const trueStart = EdgeArcOps.computeVertices(arc)[0]
+      const v1 = EdgeArcOps.computeVertices(arc)[1]
+      const v2 = EdgeArcOps.computeVertices(arc)[2]
       // Entry point sits farther from the true start than v1 but closer than v2 — both v0 and
       // v1 (still "inside" the shape along the curve) must be dropped, not just v0.
       expect(computeDistance(v1, trueStart)).toBeLessThan(5)
@@ -467,15 +469,15 @@ describe("Arc.ts", () => {
       expect(containsPoint(points, trueStart)).toBe(false)
       expect(containsPoint(points, v1)).toBe(false)
       expect(containsPoint(points, v2)).toBe(true)
-      const last = arc.vertices.at(-1)!
+      const last = EdgeArcOps.computeVertices(arc).at(-1)!
       expect(path.endsWith(`${last.x} ${last.y}`)).toBe(true)
     })
 
     test("endAnchor.entryPoint drops every trailing vertex still closer to the true end than the entry point", () => {
       const arc = EdgeArcOps.create({ x: 0, y: 0 }, 0, Math.PI, 10, 10, 0)
-      const trueEnd = arc.vertices.at(-1)!
-      const vLast1 = arc.vertices.at(-2)!
-      const vLast2 = arc.vertices.at(-3)!
+      const trueEnd = EdgeArcOps.computeVertices(arc).at(-1)!
+      const vLast1 = EdgeArcOps.computeVertices(arc).at(-2)!
+      const vLast2 = EdgeArcOps.computeVertices(arc).at(-3)!
       expect(computeDistance(vLast1, trueEnd)).toBeLessThan(5)
       expect(computeDistance(vLast2, trueEnd)).toBeGreaterThan(5)
       const entryPoint = { x: -10, y: 5 }
@@ -484,7 +486,7 @@ describe("Arc.ts", () => {
       const path = EdgeArcOps.getSVGPath(arc)
       const points = parsePathPoints(path)
 
-      const first = arc.vertices[0]
+      const first = EdgeArcOps.computeVertices(arc)[0]
       expect(path.startsWith(`M ${first.x} ${first.y} Q`)).toBe(true)
       expect(path.endsWith(`${entryPoint.x} ${entryPoint.y}`)).toBe(true)
       expect(containsPoint(points, trueEnd)).toBe(false)

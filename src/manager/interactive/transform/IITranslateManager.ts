@@ -2,7 +2,10 @@ import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import type { TPoint } from "@/core/geometry"
 import { MatrixTransform, type TOBB } from "@/core/geometry"
 import type { TIIHistoryChanges } from "@/history"
+import { appendUpdated } from "@/history"
 import type { TSymbol } from "@/symbol"
+import { cloneSymbol } from "@/symbol/SymbolHelpers"
+import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 
 import { IIAbstractTransformManager } from "./AbstractTransformManager"
@@ -24,7 +27,7 @@ export class IITranslateManager extends IIAbstractTransformManager {
    * this.
    */
   protected applyThroughUtil(symbol: TSymbol, matrix: MatrixTransform): void {
-    symbolRegistry.getUtilFor(symbol).translate(symbol, { matrix, typeset: this.canvas.typeset })
+    symbolRegistry.getUtilFor(symbol).translate(symbol, { matrix })
   }
 
   translate(symbols: TSymbol[], tx: number, ty: number, addToHistory = true): Promise<void> {
@@ -40,19 +43,28 @@ export class IITranslateManager extends IIAbstractTransformManager {
     // what was just shown while dragging.
     const preTransformBoundsById = new Map<string, TOBB>()
     symbols.forEach((s) => {
-      const bounds = (s as unknown as { bounds?: TOBB }).bounds
-      if (bounds) {
-        preTransformBoundsById.set(s.id, { ...bounds, center: { ...bounds.center } })
+      // selectAll() populates symbolsSelected with no registry check ahead of it (see
+      // IISelectionManager.createInteractElementsGroup) — an unregistered symbol has no snapshot
+      // taken, so updateAnchoredEdges below leaves it untouched rather than throwing.
+      if (!symbolRegistry.has(s.type)) {
+        return
       }
+      const bounds = SymbolGeometry.boundsOf(s)
+      preTransformBoundsById.set(s.id, { ...bounds, center: { ...bounds.center } })
     })
+    // Snapshotted before the transform, and from `symbols` — the list actually being moved, not
+    // `symbolsSelected`. Recording the selection instead produced an entry with no symbols at all
+    // whenever a caller moved something that was not selected, and undo then consumed that entry
+    // and applied nothing. Only taken when the move is undoable: the gesture handlers translate
+    // with `addToHistory` false and would pay for clones nobody reads.
+    const preTransformSnapshots = addToHistory ? symbols.map((s) => cloneSymbol(s)) : []
     const matrix = MatrixTransform.identity().translate(tx, ty)
     this.applyAndDraw(symbols, matrix)
     this.applyTransformToGhostStrokesForSelectedMath(symbols, matrix)
     // Pre-convert edge strokes and converted Line/PolyEdge/Arc anchors moved by the connector,
-    // not by applyAndDraw above. Rigidly-moved raw strokes ride along in this method's own
-    // `translate` history entry (a uniform matrix is safe to undo by re-applying its inverse);
+    // not by applyAndDraw above. Rigidly-moved raw strokes are recorded alongside the selection;
     // everything else (gradient-moved raw strokes, converted edges recomputed from the target's
-    // new bounds) needs its own pre-mutation snapshot instead — see `updated` below.
+    // new bounds) carries its own pre-mutation snapshot — both end up in the same `updated` pair.
     const {
       rigidStrokeIds,
       oldSymbols: anchoredOldSymbols,
@@ -63,19 +75,18 @@ export class IITranslateManager extends IIAbstractTransformManager {
       preTransformBoundsById
     )
     if (addToHistory) {
-      const historySymbols = this.model.symbolsSelected
-      const changes: TIIHistoryChanges = {
-        translate: [
-          {
-            symbols: [...historySymbols, ...this.resolveFollowedSymbols(rigidStrokeIds, historySymbols)],
-            tx,
-            ty,
-          },
-        ],
-      }
-      if (anchoredNewSymbols.length) {
-        changes.updated = { oldSymbols: anchoredOldSymbols, newSymbols: anchoredNewSymbols }
-      }
+      const changes: TIIHistoryChanges = {}
+      // Excluded against `symbols`, the list actually moved — not against `symbolsSelected`. The
+      // two are the same during a drag but not for a programmatic caller, and an exclusion list
+      // built from the wrong set records a followed stroke twice.
+      this.recordTransformed(changes, [
+        ...preTransformSnapshots,
+        ...this.resolveFollowedSymbols(rigidStrokeIds, symbols),
+      ])
+      appendUpdated(
+        changes,
+        anchoredOldSymbols.map((before, index) => ({ before, after: anchoredNewSymbols[index] }))
+      )
       this.canvas.history.push(changes)
     }
     const strokes = this.canvas.extractStrokesFromSymbols(symbols)
@@ -83,15 +94,6 @@ export class IITranslateManager extends IIAbstractTransformManager {
       this.canvas.client.transformTranslate([...new Set([...strokes.map((s) => s.id), ...rigidStrokeIds])], tx, ty),
       ...this.replaceGradientFollowedStrokes(anchoredOldSymbols, anchoredNewSymbols),
     ]).then(() => undefined)
-  }
-
-  translateElement(id: string, tx: number, ty: number): void {
-    this.logger.info("translateElement", {
-      id,
-      tx,
-      ty,
-    })
-    this.canvas.renderer.setAttribute(id, "transform", `translate(${tx},${ty})`)
   }
 
   start(target: Element, origin: TPoint): void {
@@ -120,14 +122,16 @@ export class IITranslateManager extends IIAbstractTransformManager {
     tx = nudge.x
     ty = nudge.y
 
-    this.translateElement(this.interactElementsGroup.id as string, tx, ty)
+    // Built before the preview so one matrix serves both it and the connector below.
+    const matrix = MatrixTransform.identity().translate(tx, ty)
+
+    this.previewElementTransform(this.interactElementsGroup.id as string, matrix)
     this.model.symbolsSelected.forEach((s) => {
-      this.translateElement(s.id as string, tx, ty)
+      this.previewTransform(s, matrix)
     })
     this.getGhostStrokeIdsForSelectedMath(this.model.symbolsSelected).forEach((id) => {
-      this.translateElement(id, tx, ty)
+      this.previewElementTransform(id, matrix)
     })
-    const matrix = MatrixTransform.identity().translate(tx, ty)
     this.canvas.connector.drawAnchoredEdgesForMatrix(
       this.model.symbolsSelected.map((s) => s.id),
       matrix

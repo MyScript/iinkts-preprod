@@ -1,6 +1,6 @@
 import type { TBox } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
-import { applyMatrixToPoint, applyMatrixToPoints } from "@/core/geometry"
+import { isIdentityMatrix, MatrixTransform } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import { DecoratorKind } from "@/symbol/decorator/Decorator"
 import { SymbolType } from "@/symbol/Symbol"
@@ -8,7 +8,6 @@ import { MathOps, type TMath } from "@/symbol/typeset/Math"
 
 import { DecoratorUtil } from "../decorator/DecoratorUtil"
 import { SVGBuilder } from "../SVGBuilder"
-import type { TTranslateContext } from "../TransformContext"
 import { TypesetUtil } from "./TypesetUtil"
 
 const noSelection =
@@ -24,35 +23,12 @@ export class MathUtil extends TypesetUtil<TMath> {
     return MathOps.createFromPartial(partial)
   }
 
-  updateDerivedFields(math: TMath): void {
-    MathOps.updateDerivedFields(math)
-  }
-
   overlaps(math: TMath, box: TBox): boolean {
-    return MathOps.overlaps(math, box)
+    return this.overlapsQuery(math, box, (b) => MathOps.overlaps(math, b))
   }
 
   getSnapPoints(math: TMath): TPoint[] {
-    return math.snapPoints
-  }
-
-  protected glyphsOf(math: TMath): { fontSize: number }[] {
-    return math.elements
-  }
-
-  /**
-   * Moves more than text does: a math symbol's elements each carry their own bounds, and its own
-   * bounds centre is stored rather than derived, so both follow the matrix here.
-   */
-  translate(math: TMath, { matrix, typeset }: TTranslateContext): void {
-    this.moveAnchor(math, matrix)
-    applyMatrixToPoints([math.bounds.center], matrix)
-    math.elements.forEach((element) => {
-      const moved = applyMatrixToPoint({ x: element.bounds.x, y: element.bounds.y }, matrix)
-      element.bounds.x = moved.x
-      element.bounds.y = moved.y
-    })
-    typeset.setBounds(math)
+    return this.mapPointsForward(math, this.computeGeometry(math).snapPoints)
   }
 
   getSVGElement(math: TMath): SVGGraphicsElement {
@@ -67,8 +43,10 @@ export class MathUtil extends TypesetUtil<TMath> {
     if (math.style.opacity) {
       attrs.opacity = math.style.opacity.toString()
     }
-    if (math.rotation) {
-      attrs.transform = `rotate(${math.rotation.degree}, ${math.rotation.center.x}, ${math.rotation.center.y})`
+    // Turning a math symbol is composed into its matrix now, not recorded separately — there is no
+    // `.rotation` left to combine this with.
+    if (!isIdentityMatrix(math.transform)) {
+      attrs.transform = MatrixTransform.toCssString(math.transform)
     }
 
     const mathGroup = SVGBuilder.createGroup(attrs)

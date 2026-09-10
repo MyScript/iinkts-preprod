@@ -1,4 +1,4 @@
-import { TMathElement, TPoint, BoxOps, MathOps } from "@/iink"
+import { TMathElement, TPoint, BoxOps, MathOps, computeTypesetSnapPoints, OBBOps, computeTypesetVertices } from "@/iink"
 
 describe("Math.ts", () => {
   const elements: TMathElement[] = [
@@ -44,41 +44,16 @@ describe("Math.ts", () => {
       expect(MathOps.getLabel(math)).toEqual("x+1")
     })
 
-    test("should get vertices without rotation", () => {
+    test("should get vertices", () => {
       const math = MathOps.create(elements, point, box)
-      expect(math.vertices).toEqual(BoxOps.getCorners(box))
+      expect(computeTypesetVertices(OBBOps.toUnrotatedBox(math.bounds))).toEqual(BoxOps.getCorners(box))
     })
 
-    test("should get vertices with rotation 90°", () => {
+    test("should get snapPoints", () => {
       const math = MathOps.create(elements, point, box)
-      math.rotation = {
-        degree: 90,
-        center: { x: 0, y: 0 },
-      }
-      MathOps.updateDerivedFields(math)
-      const vertices = math.vertices
-      expect(vertices.length).toBe(4)
-      // Mirrored until this ticket, like the text ones: rotate(90) sends (x, y) to (−y, x).
-      expect(vertices[0].x).toBeCloseTo(-10, 1)
-      expect(vertices[0].y).toBeCloseTo(10, 1)
-    })
-
-    test("should get snapPoints without rotation", () => {
-      const math = MathOps.create(elements, point, box)
-      const snapPoints = math.snapPoints
+      const snapPoints = computeTypesetSnapPoints(OBBOps.toUnrotatedBox(math.bounds), math.point)
       expect(snapPoints.length).toBe(5)
       expect(snapPoints[4]).toEqual(BoxOps.getCenter(box))
-    })
-
-    test("should get snapPoints with rotation 90°", () => {
-      const math = MathOps.create(elements, point, box)
-      math.rotation = {
-        degree: 90,
-        center: { x: 0, y: 0 },
-      }
-      MathOps.updateDerivedFields(math)
-      const snapPoints = math.snapPoints
-      expect(snapPoints.length).toBe(5)
     })
   })
 

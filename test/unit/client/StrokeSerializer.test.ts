@@ -1,4 +1,4 @@
-import { StrokeOps, toWireStroke, type TRecognitionStroke, type TWireStroke } from "@/iink"
+import { MatrixTransform, StrokeOps, toWireStroke, type TRecognitionStroke, type TWireStroke } from "@/iink"
 
 describe("StrokeSerializer.ts", () => {
   describe("toWireStroke", () => {
@@ -134,6 +134,114 @@ describe("StrokeSerializer.ts", () => {
         t: [42],
         x: [7],
         y: [8],
+      })
+    })
+
+    describe("with a transform", () => {
+      // Every expected coordinate below is computed by hand from the matrix's definition, never by
+      // calling the library — a test that ran the code to build its own expectation would agree with
+      // whatever the code does, including a wrong convention (that is exactly how this exact test
+      // shipped a Critical earlier in this epic).
+
+      test("bakes a translation into the coordinates and leaves t/p untouched", () => {
+        const stroke: TRecognitionStroke = {
+          id: "stroke-8",
+          pointerType: "pen",
+          pointers: [
+            { x: 0, y: 0, t: 0, p: 1 },
+            { x: 10, y: 0, t: 1, p: 1 },
+          ],
+          // translate(100, 200): x' = x + 100, y' = y + 200, by hand.
+          transform: MatrixTransform.identity().translate(100, 200),
+        }
+
+        expect(toWireStroke(stroke)).toEqual({
+          id: "stroke-8",
+          pointerType: "pen",
+          x: [100, 110],
+          y: [200, 200],
+          t: [0, 1],
+          p: [1, 1],
+        })
+      })
+
+      test("bakes a rotation into the coordinates", () => {
+        // rotate(pi/2) with no center: MatrixTransform.rotate rounds cos/sin to 3 decimals before
+        // multiplying, so cos(pi/2) lands on 0 and sin(pi/2) on 1 exactly, giving the matrix
+        // { xx: 0, yx: 1, xy: -1, yy: 0, tx: 0, ty: 0 } — i.e. x' = -y, y' = x, by hand.
+        const stroke: TRecognitionStroke = {
+          id: "stroke-9",
+          pointerType: "pen",
+          pointers: [
+            { x: 5, y: 0 },
+            { x: 0, y: 5 },
+          ],
+          transform: MatrixTransform.identity().rotate(Math.PI / 2),
+        }
+
+        expect(toWireStroke(stroke)).toEqual({
+          id: "stroke-9",
+          pointerType: "pen",
+          x: [0, -5],
+          y: [5, 0],
+        })
+      })
+
+      test("does not give a never-timed, never-pressured pointer a t or p", () => {
+        const stroke: TRecognitionStroke = {
+          id: "stroke-10",
+          pointerType: "pen",
+          // scale(2, 3): x' = 2x, y' = 3y, by hand.
+          pointers: [
+            { x: 3, y: 4 },
+            { x: 1, y: -1 },
+          ],
+          transform: MatrixTransform.identity().scale(2, 3),
+        }
+
+        const wire = toWireStroke(stroke)
+        expect(wire).toEqual({ id: "stroke-10", pointerType: "pen", x: [6, 2], y: [12, -3] })
+        expect("t" in wire).toBe(false)
+        expect("p" in wire).toBe(false)
+      })
+
+      test("treats an explicit identity transform the same as no transform at all", () => {
+        const stroke: TRecognitionStroke = {
+          id: "stroke-11",
+          pointerType: "pen",
+          pointers: [{ x: 1, y: 2, t: 10, p: 0.5 }],
+          transform: MatrixTransform.identity(),
+        }
+
+        expect(toWireStroke(stroke)).toEqual({
+          id: "stroke-11",
+          pointerType: "pen",
+          x: [1],
+          y: [2],
+          t: [10],
+          p: [0.5],
+        })
+      })
+
+      test("rounds a transformed coordinate to three decimals", () => {
+        // rotate(pi/3) with no center: cos(pi/3) and sin(pi/3) round to 0.5 and 0.866 respectively
+        // before the multiply (MatrixTransform.rotate's own rounding), giving the matrix
+        // { xx: 0.5, yx: 0.866, xy: -0.866, yy: 0.5, tx: 0, ty: 0 }.
+        // x' = 0.5*1 + -0.866*1 = -0.366; y' = 0.866*1 + 0.5*1 = 1.366 — both already three decimals,
+        // so applyMatrixToPoint's rounding is a no-op here and the raw multiply result is exact.
+        const stroke: TRecognitionStroke = {
+          id: "stroke-12",
+          pointerType: "pen",
+          pointers: [{ x: 1, y: 1 }],
+          transform: MatrixTransform.identity().rotate(Math.PI / 3),
+        }
+
+        expect(toWireStroke(stroke)).toEqual({
+          id: "stroke-12",
+          pointerType: "pen",
+          x: [-0.366],
+          y: [1.366],
+        })
       })
     })
   })

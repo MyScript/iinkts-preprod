@@ -1,6 +1,7 @@
 import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
-import { buildIIMath, buildIIStroke, buildIIText, expectDerivedFieldsSettled, expectPointsRounded } from "../../../helpers"
+import { buildIIMath, buildIIStroke, buildIIText } from "../../../helpers"
 import {
+  SymbolGeometry,
   DecoratorKind,
   DecoratorOps,
   DefaultHistoryConfiguration,
@@ -14,22 +15,19 @@ import {
   ShapePolygonOps,
   StrokeOps,
   SvgElementRole,
-  TDecorator,
   TEdgeLine,
   TPoint,
-  TShapeCircle,
-  TShapePolygon,
   TStroke,
   SymbolUtil,
   TBaseSymbol,
   TPartialDeep,
-  TResizeContext,
-  TRotateContext,
-  TTranslateContext,
+  TTransformContext,
   applyMatrixToPoint,
   symbolRegistry,
+  TDecorator,
   TMath,
   TSymbol,
+  TSymbolGeometry,
   TText,
 } from "@/iink"
 
@@ -44,25 +42,31 @@ describe("IITranslateManager.ts", () => {
     const canvas = createCanvasMock()
     const manager = new IITranslateManager(asCanvas(canvas))
 
-    test("translate stroke", () => {
+    test("translate stroke composes the matrix rather than moving its pointers", () => {
       const stroke = StrokeOps.create()
       StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 1, y: 1 })
       StrokeOps.addPointer(stroke, { p: 1, t: 10, x: 10, y: 0 })
+      const pointersBefore = stroke.pointers.map((p) => ({ ...p }))
       const matrix = MatrixTransform.identity().translate(10, 15)
       manager.applyToSymbol(stroke, matrix)
-      expect(stroke.pointers[0]).toEqual(expect.objectContaining({ x: 11, y: 16 }))
-      expect(stroke.pointers[1]).toEqual(expect.objectContaining({ x: 20, y: 15 }))
+      expect(stroke.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 10, ty: 15 })
+      expect(stroke.pointers).toEqual(pointersBefore)
     })
-    test("translate shape Circle", () => {
+    test("translate shape Circle composes the matrix rather than moving its centre", () => {
       const center: TPoint = { x: 5, y: 5 }
       const radius = 4
       const circle = ShapeCircleOps.create(center, radius)
       const matrix = MatrixTransform.identity().translate(10, 15)
       manager.applyToSymbol(circle, matrix)
+      expect(circle.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 10, ty: 15 })
       expect(circle.radius).toEqual(radius)
-      expect(circle.center).toEqual({ x: 15, y: 20 })
+      expect(circle.center).toEqual(center)
     })
-    test("translate shape with kind unknown", () => {
+    test("translate shape with kind unknown no longer throws, since translate no longer resolves a kind", () => {
+      // IIC-2011 moved the refusal from the manager's switch to the family util's kind table; Task
+      // 11 then made translate/rotate/resize matrix-only, so the family util's own dispatch —
+      // `resolveKind`, the thing that threw — is no longer on this path at all. A symbol whose
+      // geometry cannot be computed can still have its matrix composed.
       const points: TPoint[] = [
         { x: 0, y: 0 },
         { x: 0, y: 5 },
@@ -73,37 +77,28 @@ describe("IITranslateManager.ts", () => {
       //@ts-ignore
       poly.kind = "pouet"
       const matrix = MatrixTransform.identity().translate(10, 15)
-      // IIC-2011 moved the refusal from the manager's switch to the family util's kind table, so
-      // the wording is now the one every other table lookup uses — and it no longer stringifies the
-      // whole symbol into the message. Rotation and resize keep the old wording until IIC-2012 and
-      // IIC-2013 move them too.
-      expect(() => manager.applyToSymbol(poly, matrix)).toThrow(
-        'Unable to translate shape, kind: "pouet" is unknown'
-      )
+      expect(() => manager.applyToSymbol(poly, matrix)).not.toThrow()
+      expect(poly.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 10, ty: 15 })
     })
-    test("should not translate edge with kind unknown", () => {
+    test("translate edge with kind unknown no longer throws, for the same reason", () => {
       const start: TPoint = { x: 0, y: 0 }
       const end: TPoint = { x: 0, y: 5 }
       const edge = EdgeLineOps.create(start, end)
       //@ts-ignore
       edge.kind = "pouet"
       const matrix = MatrixTransform.identity().translate(10, 15)
-      // IIC-2011 moved the refusal from the manager's switch to the family util's kind table, so
-      // the wording is now the one every other table lookup uses — and it no longer stringifies the
-      // whole symbol into the message. Rotation and resize keep the old wording until IIC-2012 and
-      // IIC-2013 move them too.
-      expect(() => manager.applyToSymbol(edge, matrix)).toThrow(
-        'Unable to translate edge, kind: "pouet" is unknown'
-      )
+      expect(() => manager.applyToSymbol(edge, matrix)).not.toThrow()
+      expect(edge.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 10, ty: 15 })
     })
-    test("translate edge Line", () => {
+    test("translate edge Line composes the matrix rather than moving its endpoints", () => {
       const start: TPoint = { x: 0, y: 0 }
       const end: TPoint = { x: 0, y: 5 }
       const line = EdgeLineOps.create(start, end)
       const matrix = MatrixTransform.identity().translate(10, 15)
       manager.applyToSymbol(line, matrix)
-      expect(line.start).toEqual(expect.objectContaining({ x: 10, y: 15 }))
-      expect(line.end).toEqual(expect.objectContaining({ x: 10, y: 20 }))
+      expect(line.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 10, ty: 15 })
+      expect(line.start).toEqual(start)
+      expect(line.end).toEqual(end)
     })
   })
 
@@ -115,6 +110,7 @@ describe("IITranslateManager.ts", () => {
     canvas.client.transformTranslate = jest.fn(() => Promise.resolve())
     canvas.renderer.setAttribute = jest.fn()
     canvas.renderer.drawSymbol = jest.fn()
+    canvas.renderer.setSymbolTransform = jest.fn()
 
     const manager = new IITranslateManager(asCanvas(canvas))
     manager.applyToSymbol = jest.fn()
@@ -126,8 +122,8 @@ describe("IITranslateManager.ts", () => {
     canvas.model.selectSymbol(strokeOrigin.id)
 
     const translationOrigin: TPoint = {
-      x: OBBOps.toBox(strokeOrigin.bounds).x + strokeOrigin.bounds.width / 2,
-      y: OBBOps.toBox(strokeOrigin.bounds).y + strokeOrigin.bounds.height / 2,
+      x: OBBOps.toBox(SymbolGeometry.boundsOf(strokeOrigin)).x + SymbolGeometry.boundsOf(strokeOrigin).width / 2,
+      y: OBBOps.toBox(SymbolGeometry.boundsOf(strokeOrigin)).y + SymbolGeometry.boundsOf(strokeOrigin).height / 2,
     }
 
     const testDatas = [
@@ -169,18 +165,13 @@ describe("IITranslateManager.ts", () => {
       test(`shoud continu with tx: "${data.tx} & ty ${data.ty}`, () => {
         expect(manager.continue(data.translateToPoint)).toEqual({ tx: data.tx, ty: data.ty })
 
-        expect(canvas.renderer.setAttribute).toHaveBeenNthCalledWith(
-          1,
-          group.id,
-          "transform",
-          `translate(${data.tx},${data.ty})`
-        )
-        expect(canvas.renderer.setAttribute).toHaveBeenNthCalledWith(
-          2,
-          strokeOrigin.id,
-          "transform",
-          `translate(${data.tx},${data.ty})`
-        )
+        // A full `matrix(...)` rather than `translate(tx,ty)`: it has to compose with the matrix a
+        // symbol already carries, and a bare `translate` would replace it. `strokeOrigin`'s own
+        // matrix is the identity here, so both writes come out the same — the composition itself is
+        // pinned by the "keeps the matrix a symbol already carries" test below.
+        const live = `matrix(1, 0, 0, 1, ${data.tx}, ${data.ty})`
+        expect(canvas.renderer.setAttribute).toHaveBeenNthCalledWith(1, group.id, "transform", live)
+        expect(canvas.renderer.setAttribute).toHaveBeenNthCalledWith(2, strokeOrigin.id, "transform", live)
       })
       test(`shoud end with tx: "${data.tx} & ty ${data.ty}`, async () => {
         const endPromise = manager.end(data.translateToPoint)
@@ -191,12 +182,57 @@ describe("IITranslateManager.ts", () => {
 
         const newStroke = canvas.model.getRootSymbol(strokeOrigin.id) as TStroke
         expect(manager.applyToSymbol).toHaveBeenCalledTimes(1)
-        expect(canvas.renderer.drawSymbol).toHaveBeenCalledTimes(1)
-        expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(newStroke)
+        // Committing a transform rewrites the element's `transform` attribute instead of rebuilding
+        // it through `drawSymbol` (task 12) - the final geometry reaches the renderer as an
+        // untouched `setSymbolTransform` call, not a `drawSymbol` one.
+        expect(canvas.renderer.drawSymbol).not.toHaveBeenCalled()
+        expect(canvas.renderer.setSymbolTransform).toHaveBeenCalledTimes(1)
+        expect(canvas.renderer.setSymbolTransform).toHaveBeenCalledWith(newStroke)
         expect(canvas.client.transformTranslate).toHaveBeenCalledTimes(1)
         expect(canvas.client.transformTranslate).toHaveBeenCalledWith([newStroke.id], data.tx, data.ty)
         expect(strokeOrigin).not.toEqual(newStroke)
       })
+    })
+  })
+
+  /**
+   * IIC-1999, the bug this whole epic started from. The drag preview used to write the gesture's
+   * transform alone, which replaced whatever the element already carried — so a symbol moved before
+   * snapped back to its raw coordinates for the length of the drag and jumped into place on release.
+   * Before the epic only a rotated typeset carried a baked transform; now every moved symbol does,
+   * so the same overwrite would affect all of them.
+   */
+  describe("the preview keeps the matrix a symbol already carries", () => {
+    test("composes the gesture onto the stored matrix rather than replacing it", () => {
+      const canvas = createCanvasMock()
+      const stroke = buildIIStroke()
+      // Already turned a quarter turn about the origin, as a previous committed rotate would have
+      // left it. A rotation rather than a translate on purpose: composing two translates commutes,
+      // so it could not tell composition apart from addition.
+      stroke.transform = MatrixTransform.identity().rotate(Math.PI / 2, { x: 0, y: 0 })
+      canvas.model.addSymbol(stroke)
+      canvas.model.selectSymbol(stroke.id)
+
+      const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
+      group.setAttribute("id", "already-moved-group")
+      group.setAttribute("role", SvgElementRole.InteractElementsGroup)
+      const target = document.createElementNS("http://www.w3.org/2000/svg", "circle")
+      group.appendChild(target)
+
+      const manager = new IITranslateManager(asCanvas(canvas))
+      manager.start(target, { x: 0, y: 0 })
+      manager.continue({ x: 10, y: 20 })
+
+      const written = (canvas.renderer.setAttribute as jest.Mock).mock.calls.find(
+        ([id, name]) => id === stroke.id && name === "transform"
+      )
+      // Hand-computed, not read back from the code under test. The stored quarter turn is
+      // {xx:0, yx:1, xy:-1, yy:0, tx:0, ty:0}; the live translate is {1,0,0,1,10,20}. Their product
+      // live*stored keeps the rotation's four leading terms and carries the live offset through
+      // unchanged: tx = 1*0 + 0*0 + 10 = 10, ty = 0*0 + 1*0 + 20 = 20. Replacing instead of
+      // composing would write "matrix(1, 0, 0, 1, 10, 20)" — the rotation gone, which is exactly
+      // the symptom: the symbol un-rotates for the duration of the drag.
+      expect(written?.[2]).toBe("matrix(0, 1, -1, 0, 10, 20)")
     })
   })
 
@@ -228,7 +264,14 @@ describe("IITranslateManager.ts", () => {
       manager.start(setupTarget(), { x: 0, y: 0 })
       manager.continue({ x: 10, y: 20 })
 
-      expect(canvas.renderer.setAttribute).toHaveBeenCalledWith("ghost-1", "transform", "translate(10,20)")
+      // The ghost must follow with the *same* transform the selection got: it previews the block the
+      // selection belongs to, so any divergence shows on screen as the ghost drifting away from the
+      // strokes it shadows.
+      const calls = (canvas.renderer.setAttribute as jest.Mock).mock.calls
+      const selectionWrite = calls.find(([id, name]) => id === stroke.id && name === "transform")
+      const ghostWrite = calls.find(([id, name]) => id === "ghost-1" && name === "transform")
+      expect(selectionWrite?.[2]).toBe("matrix(1, 0, 0, 1, 10, 20)")
+      expect(ghostWrite?.[2]).toBe(selectionWrite?.[2])
     })
 
     test("translate() permanently applies the matrix to the block's ghost strokes", async () => {
@@ -241,65 +284,6 @@ describe("IITranslateManager.ts", () => {
       await manager.translate([stroke], 10, 20, false)
 
       expect(canvas.math.applyTransformToGhostStrokes).toHaveBeenCalledWith("block-1", expect.anything())
-    })
-  })
-
-  describe("standalone decorator bounds follow translated targets", () => {
-    test("translate() recomputes the decorator's bounds from its (moved) target symbols", async () => {
-      const canvas = createCanvasMock()
-      const manager = new IITranslateManager(asCanvas(canvas))
-
-      const stroke = buildIIStroke()
-      canvas.model.addSymbol(stroke)
-      const decorator = DecoratorOps.create(DecoratorKind.Highlight, {}, [stroke.id], OBBOps.toBox(stroke.bounds))
-      canvas.model.addSymbol(decorator)
-      const centerBefore = { ...decorator.bounds.center }
-
-      await manager.translate([stroke], 10, 20, false)
-
-      const newDeco = canvas.model.getRootSymbol(decorator.id) as TDecorator
-      expect(newDeco.bounds.center).toEqual(
-        expect.objectContaining({ x: centerBefore.x + 10, y: centerBefore.y + 20 })
-      )
-    })
-
-    test("translate() leaves other decorators (not targeting a moved symbol) untouched", async () => {
-      const canvas = createCanvasMock()
-      const manager = new IITranslateManager(asCanvas(canvas))
-
-      const movedStroke = buildIIStroke()
-      const otherStroke = buildIIStroke()
-      canvas.model.addSymbol(movedStroke)
-      canvas.model.addSymbol(otherStroke)
-      const decorator = DecoratorOps.create(
-        DecoratorKind.Highlight,
-        {},
-        [otherStroke.id],
-        OBBOps.toBox(otherStroke.bounds)
-      )
-      canvas.model.addSymbol(decorator)
-      const centerBefore = { ...decorator.bounds.center }
-
-      await manager.translate([movedStroke], 10, 20, false)
-
-      expect(decorator.bounds.center).toEqual(centerBefore)
-    })
-
-    test("translate() shifts the decorator's baseline vertically along with its target stroke", async () => {
-      const canvas = createCanvasMock()
-      const manager = new IITranslateManager(asCanvas(canvas))
-
-      const stroke = buildIIStroke()
-      canvas.model.addSymbol(stroke)
-      const decorator = DecoratorOps.create(DecoratorKind.Underline, {}, [stroke.id], OBBOps.toBox(stroke.bounds))
-      decorator.baseline = 100
-      decorator.xHeight = 8
-      canvas.model.addSymbol(decorator)
-
-      await manager.translate([stroke], 0, 50, false)
-
-      const newDeco = canvas.model.getRootSymbol(decorator.id) as TDecorator
-      expect(newDeco.baseline).toBe(150)
     })
   })
 
@@ -327,7 +311,6 @@ describe("IITranslateManager.ts", () => {
       ]
       edgeStroke.jiixBlockType = "Edge"
       edgeStroke.endAnchor = { symbolId: shape.id, normalizedX: 1, normalizedY: 0.5 }
-      StrokeOps.updateBounds(edgeStroke)
       canvas.model.addSymbol(edgeStroke)
 
       return { shape, edgeStroke }
@@ -345,8 +328,10 @@ describe("IITranslateManager.ts", () => {
       // Read the model, not the object passed in: the transform commits a draft rather than
       // mutating the committed record, so the local reference is a pre-transform snapshot.
       const movedEdgeStroke = canvas.model.getRootSymbol(edgeStroke.id) as TStroke
-      expect(movedEdgeStroke.pointers[0]).toEqual(expect.objectContaining({ x: 5, y: 5 }))
-      expect(movedEdgeStroke.pointers[1]).toEqual(expect.objectContaining({ x: 15, y: 5 }))
+      // Composed once, not twice: {x:5,y:5} would be a double-apply's translation on top of the
+      // direct-transform path's own — the pointers themselves never move at all any more.
+      expect(movedEdgeStroke.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 5, ty: 5 })
+      expect(movedEdgeStroke.pointers).toEqual(edgeStroke.pointers)
     })
 
     test("translate() records the followed edge stroke's pre-transform snapshot in history so undo restores its points", async () => {
@@ -369,12 +354,9 @@ describe("IITranslateManager.ts", () => {
 
       // Gradient moves aren't uniform, so undo can't just re-apply an inverse matrix — it must
       // restore the pre-transform snapshot recorded in `changes.updated` instead. Replay the way
-      // InteractiveInkCanvas.#applyHistoryChanges does: `updated` first, then `translate`.
+      // InteractiveInkCanvas.#applyHistoryChanges does: `updated`, which is now the whole of it.
       const undoChanges = history.undo()
-      undoChanges.updated?.newSymbols.forEach((sym) => canvas.model.updateSymbol(sym))
-      undoChanges.translate?.forEach((tr) => {
-        manager.applyMatrix(tr.symbols, MatrixTransform.identity().translate(tr.tx, tr.ty))
-      })
+      undoChanges.updated?.forEach(({ after }) => canvas.model.updateSymbol(after))
 
       const restoredEdgeStroke = canvas.model.getRootSymbol(edgeStroke.id) as typeof edgeStroke
       expect(restoredEdgeStroke.pointers[0]).toEqual(
@@ -413,12 +395,9 @@ describe("IITranslateManager.ts", () => {
       expect(newEdge.end).not.toEqual(endBefore)
 
       // Replay the undo diff the way InteractiveInkCanvas.#applyHistoryChanges does: `updated`
-      // (restores the edge's snapshot directly) then `translate` (inverse-translates the shape).
+      // — one pass over `updated`, which carries the shape and the edge alike.
       const undoChanges = history.undo()
-      undoChanges.updated?.newSymbols.forEach((sym) => canvas.model.updateSymbol(sym))
-      undoChanges.translate?.forEach((tr) => {
-        manager.applyMatrix(tr.symbols, MatrixTransform.identity().translate(tr.tx, tr.ty))
-      })
+      undoChanges.updated?.forEach(({ after }) => canvas.model.updateSymbol(after))
 
       const restoredShape = canvas.model.getRootSymbol(shape.id) as typeof shape
       const restoredEdge = canvas.model.getRootSymbol(edge.id) as typeof edge
@@ -468,7 +447,6 @@ describe("IITranslateManager.ts", () => {
       ]
       edgeStroke.jiixBlockType = "Edge"
       edgeStroke.endAnchor = { symbolId: shape.id, normalizedX: 1, normalizedY: 0.5 }
-      StrokeOps.updateBounds(edgeStroke)
       canvas.model.addSymbol(edgeStroke)
 
       const matrix = MatrixTransform.identity().translate(30, 40)
@@ -531,7 +509,6 @@ describe("IITranslateManager.ts", () => {
       ]
       edgeStroke.jiixBlockType = "Edge"
       edgeStroke.endAnchor = { symbolId: shape.id, normalizedX: 1, normalizedY: 0.5 }
-      StrokeOps.updateBounds(edgeStroke)
       canvas.model.addSymbol(edgeStroke)
 
       await manager.translate([shape], 5, 5, false)
@@ -539,68 +516,6 @@ describe("IITranslateManager.ts", () => {
       const newEdgeStroke = canvas.model.getRootSymbol(edgeStroke.id) as TStroke
       expect(newEdgeStroke.pointers[0]).toEqual(expect.objectContaining({ x: 0, y: 0 }))
       expect(newEdgeStroke.pointers[1]).toEqual(expect.objectContaining({ x: 15, y: 5 }))
-    })
-  })
-
-  /**
-   * IIC-2004 moved the derive out of each `case` and into one call after the switch, asking the
-   * symbol's own util instead of a family dispatcher that re-resolved the kind. Deleting that one
-   * call left every existing test in this file green, so these are what hold it.
-   */
-  describe("derived fields", () => {
-    const canvas = createCanvasMock()
-    const manager = new IITranslateManager(asCanvas(canvas))
-
-    test("should leave a translated circle derived-consistent", () => {
-      const circle = ShapeCircleOps.create({ x: 5, y: 5 }, 4)
-      manager.applyToSymbol(circle, MatrixTransform.identity().translate(10, 15))
-      expectDerivedFieldsSettled(circle)
-    })
-
-    test("should leave a translated line derived-consistent", () => {
-      const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 10, y: 10 })
-      manager.applyToSymbol(line, MatrixTransform.identity().translate(10, 15))
-      expectDerivedFieldsSettled(line)
-    })
-  })
-
-  /**
-   * A translate by a third of a pixel: raw, every coordinate would keep seventeen decimals. IIC-2010
-   * put all thirteen of the managers' raw `applyToPoint` sites on the rounding helper, and nothing
-   * covered any of them — deleting the rounding outright left this whole file green.
-   *
-   * Each case names the geometry the transform writes. The derived fields are excluded on purpose:
-   * see `expectPointsRounded`.
-   */
-  describe("coordinate rounding", () => {
-    const canvas = createCanvasMock()
-    const manager = new IITranslateManager(asCanvas(canvas))
-
-    /** Each row names the geometry its own builder produced, so the narrowing is sound. */
-    const CASES: [string, () => TSymbol, (symbol: TSymbol) => TPoint[]][] = [
-      ["circle centre", () => ShapeCircleOps.create({ x: 5, y: 5 }, 4), (s) => [(s as TShapeCircle).center]],
-      [
-        "polygon points",
-        () =>
-          ShapePolygonOps.create([
-            { x: 0, y: 0 },
-            { x: 10, y: 0 },
-            { x: 10, y: 10 },
-          ]),
-        (s) => (s as TShapePolygon).points,
-      ],
-      [
-        "line endpoints",
-        () => EdgeLineOps.create({ x: 0, y: 0 }, { x: 10, y: 10 }),
-        (s) => [(s as TEdgeLine).start, (s as TEdgeLine).end],
-      ],
-      ["stroke pointers", () => buildIIStroke(), (s) => (s as TStroke).pointers],
-    ]
-
-    test.each(CASES)("%s should keep three decimals", (_name, build, stored) => {
-      const symbol = build()
-      manager.applyToSymbol(symbol, MatrixTransform.identity().translate(1 / 3, 1 / 3))
-      expectPointsRounded(stored(symbol))
     })
   })
 
@@ -613,44 +528,40 @@ describe("IITranslateManager.ts", () => {
     test.each([
       ["text", () => buildIIText({ point: { x: 0, y: 0 } })],
       ["math", () => buildIIMath()],
-    ])("%s should be re-measured by the typeset service", (_name, build) => {
-      // Not geometry: a typeset symbol's bounds come from drawing it hidden and reading getBBox(),
-      // so the util is handed a port instead of computing them. Dropping the call left every test
-      // in this file green before this one existed.
+    ])("%s composes the matrix without touching the typeset service", (_name, build) => {
+      // Translate is `SymbolUtil.applyTransform` now, for every type: nothing left in `TextUtil`/
+      // `MathUtil` re-measures on a move, because a translate no longer touches a stored
+      // coordinate at all — only the matrix changes.
       const canvas = createCanvasMock()
       const manager = new IITranslateManager(asCanvas(canvas))
       const symbol = build()
       manager.applyToSymbol(symbol, MatrixTransform.identity().translate(10, 15))
-      expect(canvas.typeset.setBounds).toHaveBeenCalledWith(symbol)
+      expect(canvas.typeset.setBounds).not.toHaveBeenCalled()
+      expect(symbol.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 10, ty: 15 })
     })
 
     test.each([
       ["text", () => buildIIText({ point: { x: 1, y: 2 } })],
       ["math", () => buildIIMath("y=3x+2", { point: { x: 1, y: 2 } })],
-    ])("%s should move its anchor point", (_name, build) => {
-      // A typeset symbol stores a position and is otherwise measured, so its anchor point is the
-      // whole of what a translate moves. Nothing asserted it: gutting the move left every test in
-      // this file green, including the one that checks the typeset service was called.
+    ])("%s composes the matrix rather than move its anchor point", (_name, build) => {
       const symbol = build()
       const canvas = createCanvasMock()
       new IITranslateManager(asCanvas(canvas)).applyToSymbol(symbol, MatrixTransform.identity().translate(10, 15))
-      expect(symbol.point).toEqual({ x: 11, y: 17 })
+      expect(symbol.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 10, ty: 15 })
+      expect(symbol.point).toEqual({ x: 1, y: 2 })
     })
 
-    test("math should also move its stored bounds centre and its elements", () => {
-      // Math carries more position than text: its own bounds centre, and one box per element. The
-      // typeset service is stubbed here, so these are the raw moves rather than a re-measurement.
+    test("math composes the matrix rather than move its stored bounds centre or its elements", () => {
+      // Math carries more position than text: its own bounds centre, and one box per element. None
+      // of it moves any more — the matrix is the whole of what a translate changes.
       const math = buildIIMath("y=3x+2", { point: { x: 1, y: 2 } })
       const centreBefore = { ...math.bounds.center }
       const elementBefore = { ...math.elements[0].bounds }
       const canvas = createCanvasMock()
       new IITranslateManager(asCanvas(canvas)).applyToSymbol(math, MatrixTransform.identity().translate(10, 15))
-      expect(math.bounds.center).toEqual({ x: centreBefore.x + 10, y: centreBefore.y + 15 })
-      expect(math.elements[0].bounds).toEqual({
-        ...elementBefore,
-        x: elementBefore.x + 10,
-        y: elementBefore.y + 15,
-      })
+      expect(math.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 10, ty: 15 })
+      expect(math.bounds.center).toEqual(centreBefore)
+      expect(math.elements[0].bounds).toEqual(elementBefore)
     })
 
     test("a symbol type the library does not know should translate", () => {
@@ -663,17 +574,19 @@ describe("IITranslateManager.ts", () => {
         create(partial: TPartialDeep<TStickyNote>): TStickyNote {
           return partial as TStickyNote
         }
-        updateDerivedFields(): void {}
+        computeGeometry(): TSymbolGeometry {
+          return { bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0), vertices: [], snapPoints: [], edges: [], length: 0 }
+        }
         overlaps(): boolean {
           return false
         }
-        translate(symbol: TStickyNote, { matrix }: TTranslateContext): void {
+        translate(symbol: TStickyNote, { matrix }: TTransformContext): void {
           symbol.point = applyMatrixToPoint(symbol.point, matrix)
         }
-        rotate(symbol: TStickyNote, { matrix }: TRotateContext): void {
+        rotate(symbol: TStickyNote, { matrix }: TTransformContext): void {
           symbol.point = applyMatrixToPoint(symbol.point, matrix)
         }
-        resize(symbol: TStickyNote, { matrix }: TResizeContext): void {
+        resize(symbol: TStickyNote, { matrix }: TTransformContext): void {
           symbol.point = applyMatrixToPoint(symbol.point, matrix)
         }
         getSVGElement(): SVGGraphicsElement {
@@ -686,7 +599,7 @@ describe("IITranslateManager.ts", () => {
       const sticky = { id: "n1", type: "sticky-note", point: { x: 1, y: 2 } } as unknown as TSymbol
       symbolRegistry
         .getUtilFor(sticky)
-        .translate(sticky, { matrix: MatrixTransform.identity().translate(10, 15), typeset: canvas.typeset })
+        .translate(sticky, { matrix: MatrixTransform.identity().translate(10, 15) })
 
       expect((sticky as unknown as TStickyNote).point).toEqual({ x: 11, y: 17 })
 
@@ -742,9 +655,9 @@ describe("IIC-1999, a selection of typeset symbols", () => {
 
     await manager.translate(symbols, 10, 15)
 
-    expect(canvas.model.symbols.map((s) => (s as TText).point)).toEqual([
-      { x: 10, y: 15 },
-      { x: 110, y: 15 },
+    expect(canvas.model.symbols.map((s) => (s as TText).transform)).toEqual([
+      { xx: 1, yx: 0, xy: 0, yy: 1, tx: 10, ty: 15 },
+      { xx: 1, yx: 0, xy: 0, yy: 1, tx: 10, ty: 15 },
     ])
   })
 
@@ -760,6 +673,80 @@ describe("IIC-1999, a selection of typeset symbols", () => {
 
     await manager.translate([text], 10, 15)
 
-    expect((canvas.model.symbols[0] as TText).point).toEqual({ x: 10, y: 15 })
+    expect((canvas.model.symbols[0] as TText).transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 10, ty: 15 })
+  })
+  /**
+   * A decorator's `targetBounds` is an input: `DecoratorUtil.applyTransform` is a no-op, so no
+   * matrix carries it, and `updateDecoratorsForTargets` is the only thing that keeps it in step
+   * with the symbols the decorator sits over. Nothing covered that writer, which is why deleting
+   * it read as free — these tests are what makes it cost something.
+   */
+  describe("standalone decorator targetBounds follow translated targets", () => {
+    test("translate() recomputes the decorator's targetBounds from its (moved) target symbols", async () => {
+      const canvas = createCanvasMock()
+      const manager = new IITranslateManager(asCanvas(canvas))
+
+      const stroke = buildIIStroke()
+      canvas.model.addSymbol(stroke)
+      const decorator = DecoratorOps.create(
+        DecoratorKind.Highlight,
+        {},
+        [stroke.id],
+        OBBOps.toBox(SymbolGeometry.boundsOf(stroke))
+      )
+      canvas.model.addSymbol(decorator)
+      const centerBefore = { ...decorator.targetBounds!.center }
+
+      await manager.translate([stroke], 10, 20, false)
+
+      const newDeco = canvas.model.getRootSymbol(decorator.id) as TDecorator
+      expect(newDeco.targetBounds!.center).toEqual(
+        expect.objectContaining({ x: centerBefore.x + 10, y: centerBefore.y + 20 })
+      )
+    })
+
+    test("translate() leaves other decorators (not targeting a moved symbol) untouched", async () => {
+      const canvas = createCanvasMock()
+      const manager = new IITranslateManager(asCanvas(canvas))
+
+      const movedStroke = buildIIStroke()
+      const otherStroke = buildIIStroke()
+      canvas.model.addSymbol(movedStroke)
+      canvas.model.addSymbol(otherStroke)
+      const decorator = DecoratorOps.create(
+        DecoratorKind.Highlight,
+        {},
+        [otherStroke.id],
+        OBBOps.toBox(SymbolGeometry.boundsOf(otherStroke))
+      )
+      canvas.model.addSymbol(decorator)
+      const centerBefore = { ...decorator.targetBounds!.center }
+
+      await manager.translate([movedStroke], 10, 20, false)
+
+      expect(decorator.targetBounds!.center).toEqual(centerBefore)
+    })
+
+    test("translate() shifts the decorator's baseline vertically along with its target stroke", async () => {
+      const canvas = createCanvasMock()
+      const manager = new IITranslateManager(asCanvas(canvas))
+
+      const stroke = buildIIStroke()
+      canvas.model.addSymbol(stroke)
+      const decorator = DecoratorOps.create(
+        DecoratorKind.Underline,
+        {},
+        [stroke.id],
+        OBBOps.toBox(SymbolGeometry.boundsOf(stroke))
+      )
+      decorator.baseline = 100
+      decorator.xHeight = 8
+      canvas.model.addSymbol(decorator)
+
+      await manager.translate([stroke], 0, 50, false)
+
+      const newDeco = canvas.model.getRootSymbol(decorator.id) as TDecorator
+      expect(newDeco.baseline).toBe(150)
+    })
   })
 })

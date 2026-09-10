@@ -1,6 +1,6 @@
 import { CanvasEventMock } from "../__mocks__/CanvasEventMock"
 import { buildIIStroke } from "../helpers"
-import { THistoryConfiguration, getInitialHistoryContext, IIHistoryManager, IIModel, DefaultHistoryConfiguration, MatrixTransform } from "@/iink"
+import { THistoryConfiguration, getInitialHistoryContext, IIHistoryManager, IIModel, DefaultHistoryConfiguration } from "@/iink"
 
 describe("IIHistoryManager.ts", () => {
   const event = new CanvasEventMock(document.createElement("div"))
@@ -146,48 +146,58 @@ describe("IIHistoryManager.ts", () => {
       expect(reversed).toEqual({ replaced: { newSymbols: [oldStroke], oldSymbols: [newStroke] } })
     })
 
-    test("should invert translate action", () => {
-      const stroke = buildIIStroke()
-      manager.push({ translate: [{ symbols: [stroke], tx: 42, ty: 24 }] })
+    test("should invert updated by swapping each pair", () => {
+      const before = buildIIStroke()
+      const after = buildIIStroke()
+      manager.push({ updated: [{ before, after }] })
       const reversed = manager.undo()
-      expect(reversed).toEqual({ translate: [{ symbols: [stroke], tx: -42, ty: -24 }] })
+      expect(reversed).toEqual({ updated: [{ before: after, after: before }] })
     })
 
-    test("should invert matrix action", () => {
-      const stroke = buildIIStroke()
-      const matrix = MatrixTransform.identity()
-        .rotate(Math.PI / 2)
-        .translate(2, 5)
-      manager.push({ matrix: { symbols: [stroke], matrix } })
-      const reversed = manager.undo()
-      expect(reversed).toEqual({ matrix: { symbols: [stroke], matrix: matrix.invert() } })
-    })
-
-    test("should invert updated action back to the old symbol state", () => {
-      const oldStroke = buildIIStroke()
-      const newStroke = buildIIStroke()
-      manager.push({ updated: { oldSymbols: [oldStroke], newSymbols: [newStroke] } })
-      const reversed = manager.undo()
-      expect(reversed).toEqual({ updated: { oldSymbols: [newStroke], newSymbols: [oldStroke] } })
-    })
-
-    test("should invert style action back to the old style", () => {
-      const stroke = buildIIStroke()
+    /**
+     * The reason `updated` is a list of pairs and not two parallel lists: one undoable step gathers
+     * symbols from more than one source — a transform records the symbols dragged *and* the
+     * connected edges recomputed from them — and two lists that fell out of step paired the wrong
+     * symbols together on undo, silently.
+     */
+    test("should keep every pair together through a reversal", () => {
+      const a = buildIIStroke()
+      const aMoved = buildIIStroke()
+      const b = buildIIStroke()
+      const bMoved = buildIIStroke()
       manager.push({
-        style: {
-          symbols: [stroke],
-          oldStyles: [{ color: "red" }],
-          newStyles: [{ color: "blue" }],
-        },
+        updated: [
+          { before: a, after: aMoved },
+          { before: b, after: bMoved },
+        ],
       })
+
       const reversed = manager.undo()
-      expect(reversed).toEqual({
-        style: {
-          symbols: [stroke],
-          oldStyles: [{ color: "blue" }],
-          newStyles: [{ color: "red" }],
-        },
-      })
+
+      expect(reversed.updated).toEqual([
+        { before: aMoved, after: a },
+        { before: bMoved, after: b },
+      ])
+    })
+
+    /**
+     * A restyle used to have its own form, carrying the styles before and after. It is a change to
+     * the symbol's record like any other now, so the pair carries it with no extra machinery — and
+     * a font change, which also moves the text's geometry, comes back whole rather than needing the
+     * `oldFontSizes` list the old form had to keep alongside.
+     */
+    test("should invert a restyle, which is now just a pair", () => {
+      const before = buildIIStroke()
+      before.style = { ...before.style, color: "red" }
+      const after = buildIIStroke()
+      after.id = before.id
+      after.style = { ...after.style, color: "blue" }
+      manager.push({ updated: [{ before, after }] })
+
+      const reversed = manager.undo()
+
+      expect(reversed.updated).toEqual([{ before: after, after: before }])
+      expect(reversed.updated![0].after.style.color).toBe("red")
     })
   })
 

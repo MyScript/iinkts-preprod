@@ -16,11 +16,11 @@ describe("Line.ts", () => {
       expect(line.style).toEqual(expect.objectContaining(style))
       expect(line.start).toEqual(start)
       expect(line.end).toEqual(end)
-      expect(OBBOps.toBox(line.bounds).x).toEqual(-5)
-      expect(OBBOps.toBox(line.bounds).y).toEqual(-5)
-      expect(line.bounds.width).toEqual(15)
-      expect(line.bounds.height).toEqual(15)
-      expect(line.vertices).toHaveLength(2)
+      expect(OBBOps.toBox(EdgeLineOps.computeBounds(line, EdgeLineOps.computeVertices(line))).x).toEqual(-5)
+      expect(OBBOps.toBox(EdgeLineOps.computeBounds(line, EdgeLineOps.computeVertices(line))).y).toEqual(-5)
+      expect(EdgeLineOps.computeBounds(line, EdgeLineOps.computeVertices(line)).width).toEqual(15)
+      expect(EdgeLineOps.computeBounds(line, EdgeLineOps.computeVertices(line)).height).toEqual(15)
+      expect(EdgeLineOps.computeVertices(line)).toHaveLength(2)
     })
     test("should create with default style", () => {
       const start: TPoint = { x: 0, y: 0 }

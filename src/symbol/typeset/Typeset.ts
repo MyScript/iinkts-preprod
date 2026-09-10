@@ -1,16 +1,7 @@
 import type { TBox } from "@/core/geometry"
 import type { TPoint, TSegment } from "@/core/geometry"
 import { BoxOps } from "@/core/geometry"
-import { computeRotatedPoint, findIntersectionBetween2Segment, isPointInsidePolygon } from "@/core/geometry"
-import { convertDegreeToRadian } from "@/core/math"
-/**
- * @group Symbol
- */
-export type TRotation = {
-  degree: number
-  center: TPoint
-}
-
+import { findIntersectionBetween2Segment, isPointInsidePolygon } from "@/core/geometry"
 /**
  * @group Symbol
  */
@@ -24,45 +15,31 @@ export type TTypesetChild = {
 }
 
 /**
- * The quad a typeset symbol occupies on screen.
- *
- * `bounds` must be the box **before** rotation — `OBBOps.toUnrotatedBox`, not `OBBOps.toBox`, which
- * would hand over an envelope already grown for the angle and get it rotated a second time.
+ * The quad a typeset symbol occupies on screen, **before** its matrix is applied —
+ * `OBBOps.toUnrotatedBox`, not `OBBOps.toBox`, which would hand over an envelope already grown for
+ * an angle and have `SymbolGeometry` grow it a second time. Turning a typeset symbol is composing
+ * its matrix now, not recording an angle here, so this is always the axis-aligned box.
  *
  * @group Symbol
  */
-export function computeTypesetVertices(bounds: TBox, rotation?: TRotation): TPoint[] {
-  if (rotation) {
-    // The renderer writes `rotate(degree, center)` on the symbol's group, and `computeRotatedPoint`
-    // is that same transform: positive turns the same way in a y-down space. This negated it until
-    // IIC-1999, so the model's quad was the renderer's quad mirrored about the centre — invisible
-    // at small angles, where only the y differs, and plainly wrong past that.
-    const rad = convertDegreeToRadian(rotation.degree)
-    return BoxOps.getCorners(bounds).map((p) => computeRotatedPoint(p, rotation.center, rad))
-  }
+export function computeTypesetVertices(bounds: TBox): TPoint[] {
   return BoxOps.getCorners(bounds)
 }
 
 /**
  * @group Symbol
  */
-export function computeTypesetSnapPoints(bounds: TBox, point: TPoint, rotation?: TRotation): TPoint[] {
+export function computeTypesetSnapPoints(bounds: TBox, point: TPoint): TPoint[] {
   const yMax = bounds.y + bounds.height
   const xMax = bounds.x + bounds.width
   const offsetY = yMax - point.y
-  const points: TPoint[] = [
+  return [
     { x: bounds.x, y: bounds.y + offsetY },
     { x: xMax, y: bounds.y + offsetY },
     { x: xMax, y: yMax - offsetY },
     { x: bounds.x, y: yMax - offsetY },
     BoxOps.getCenter(bounds),
   ]
-  if (rotation) {
-    // Same transform as the vertices, and it carried the same inverted sign.
-    const rad = convertDegreeToRadian(rotation.degree)
-    return points.map((p) => computeRotatedPoint(p, rotation.center, rad))
-  }
-  return points
 }
 
 /**
@@ -90,16 +67,12 @@ export function typesetOverlapsBox(vertices: TPoint[], edges: TSegment[], box: T
 
 /**
  * Filters `children` (Text chars / Math elements — anything shaped like {@link TTypesetChild})
- * to those whose (possibly rotated) bounds contain at least one of `points`.
+ * to those whose bounds contain at least one of `points`.
  * @group Symbol
  */
-export function computeChildrenOverlaps<T extends TTypesetChild>(
-  children: T[],
-  points: TPoint[],
-  rotation?: TRotation
-): T[] {
+export function computeChildrenOverlaps<T extends TTypesetChild>(children: T[], points: TPoint[]): T[] {
   return children.filter((c) => {
-    const corners = computeTypesetVertices(c.bounds, rotation)
+    const corners = computeTypesetVertices(c.bounds)
     return points.some((p) => isPointInsidePolygon(p, corners))
   })
 }

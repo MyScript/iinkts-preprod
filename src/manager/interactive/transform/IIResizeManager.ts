@@ -3,8 +3,10 @@ import { ResizeDirection } from "@/Constants"
 import type { TBox, TPoint } from "@/core/geometry"
 import { BoxOps, MatrixTransform, type TOBB } from "@/core/geometry"
 import type { TIIHistoryChanges } from "@/history"
+import { appendUpdated } from "@/history"
 import type { TSymbol } from "@/symbol"
 import { cloneSymbol } from "@/symbol"
+import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 
 import { IIAbstractTransformManager } from "./AbstractTransformManager"
@@ -41,16 +43,7 @@ export class IIResizeManager extends IIAbstractTransformManager {
    */
   protected applyThroughUtil(symbol: TSymbol, matrix: MatrixTransform): void {
     this.logger.debug("applyToSymbol", { symbol })
-    symbolRegistry.getUtilFor(symbol).resize(symbol, { matrix, origin: this.transformOrigin })
-  }
-
-  scaleElement(id: string, sx: number, sy: number): void {
-    this.logger.info("scaleElement", {
-      id,
-      sx,
-      sy,
-    })
-    this.canvas.renderer.setAttribute(id, "transform", `scale(${sx},${sy})`)
+    symbolRegistry.getUtilFor(symbol).resize(symbol, { matrix })
   }
 
   start(target: Element, origin: TPoint): void {
@@ -62,17 +55,20 @@ export class IIResizeManager extends IIAbstractTransformManager {
     this.interactElementsGroup = this.resolveInteractGroup(target)
     this.direction = target.getAttribute("resize-direction") as ResizeDirection
 
+    // selectAll() populates symbolsSelected with no registry check ahead of it (see
+    // IISelectionManager.createInteractElementsGroup) — a symbol type missing its util must not
+    // abort starting the resize. One filtered list feeds both the ratio question and the bounding
+    // box below: a symbol excluded from one must be excluded from the other, or the two disagree
+    // about what "the selection" even is.
+    const registeredSymbols = this.model.symbolsSelected.filter((s) => symbolRegistry.has(s.type))
+
     // One symbol that needs its ratio locked locks it for the whole selection, which is what the
     // three type tests here used to say. Asked of each symbol's util now, so a custom symbol can
     // require it too.
-    this.keepRatio = this.model.symbolsSelected.some((s) => symbolRegistry.getUtilFor(s).keepsAspectRatio(s))
+    this.keepRatio = registeredSymbols.some((s) => symbolRegistry.getUtilFor(s).keepsAspectRatio(s))
 
     this.transformOrigin = origin
-    this.boundingBox = BoxOps.createFromPoints(this.model.symbolsSelected.flatMap((s) => s.vertices))
-    this.setTransformOrigin(this.interactElementsGroup!.id, this.transformOrigin.x, this.transformOrigin.y)
-    this.model.symbolsSelected.forEach((s) => {
-      this.setTransformOrigin(s.id, this.transformOrigin.x, this.transformOrigin.y)
-    })
+    this.boundingBox = BoxOps.createFromPoints(registeredSymbols.flatMap((s) => SymbolGeometry.verticesOf(s)))
   }
 
   continue(point: TPoint): {
@@ -130,14 +126,17 @@ export class IIResizeManager extends IIAbstractTransformManager {
         scaleY = scaleX
       }
     }
-    this.scaleElement(this.interactElementsGroup.id, scaleX, scaleY)
+    // Built before the preview, and carrying `transformOrigin` explicitly, so one matrix serves both
+    // the preview and the connector below — and so the preview needs no `transform-origin`.
+    const matrix = MatrixTransform.identity().scale(scaleX, scaleY, this.transformOrigin)
+
+    this.previewElementTransform(this.interactElementsGroup.id, matrix)
     this.model.symbolsSelected.forEach((s) => {
-      this.scaleElement(s.id, scaleX, scaleY)
+      this.previewTransform(s, matrix)
     })
     this.getGhostStrokeIdsForSelectedMath(this.model.symbolsSelected).forEach((id) => {
-      this.scaleElement(id, scaleX, scaleY)
+      this.previewElementTransform(id, matrix)
     })
-    const matrix = MatrixTransform.identity().scale(scaleX, scaleY, this.transformOrigin)
     this.canvas.connector.drawAnchoredEdgesForMatrix(
       this.model.symbolsSelected.map((s) => s.id),
       matrix
@@ -170,10 +169,13 @@ export class IIResizeManager extends IIAbstractTransformManager {
     // what was just shown while dragging.
     const preTransformBoundsById = new Map<string, TOBB>()
     this.model.symbolsSelected.forEach((s) => {
-      const bounds = (s as unknown as { bounds?: TOBB }).bounds
-      if (bounds) {
-        preTransformBoundsById.set(s.id, { ...bounds, center: { ...bounds.center } })
+      // Same selectAll() gap as start()'s bounding box — an unregistered symbol has no snapshot
+      // taken, so updateAnchoredEdges below leaves it untouched rather than throwing.
+      if (!symbolRegistry.has(s.type)) {
+        return
       }
+      const bounds = SymbolGeometry.boundsOf(s)
+      preTransformBoundsById.set(s.id, { ...bounds, center: { ...bounds.center } })
     })
     const matrix = MatrixTransform.identity().scale(scaleX, scaleY, this.transformOrigin)
     this.applyAndDraw(this.model.symbolsSelected, matrix)
@@ -195,22 +197,15 @@ export class IIResizeManager extends IIAbstractTransformManager {
       ),
       ...this.replaceGradientFollowedStrokes(anchoredOldSymbols, anchoredNewSymbols),
     ])
-    const changes: TIIHistoryChanges = {
-      scale: [
-        {
-          symbols: oldSymbols,
-          origin: { ...this.transformOrigin },
-          scaleX,
-          scaleY,
-        },
-      ],
-    }
+    const changes: TIIHistoryChanges = {}
+    this.recordTransformed(changes, oldSymbols)
     // Converted Line/PolyEdge/Arc anchors are recomputed from the target's new bounds, and
-    // gradient-followed raw strokes are reshaped non-uniformly — neither has an inverse-scale to
-    // replay on undo, so both need their pre-mutation snapshot restored directly via `updated`.
-    if (anchoredNewSymbols.length) {
-      changes.updated = { oldSymbols: anchoredOldSymbols, newSymbols: anchoredNewSymbols }
-    }
+    // gradient-followed raw strokes are reshaped non-uniformly. They join the same `updated` pair
+    // as the resized selection — appended, not assigned, or one of the two sets would be lost.
+    appendUpdated(
+      changes,
+      anchoredOldSymbols.map((before, index) => ({ before, after: anchoredNewSymbols[index] }))
+    )
     this.canvas.history.push(changes)
     this.finalizeTransform()
   }

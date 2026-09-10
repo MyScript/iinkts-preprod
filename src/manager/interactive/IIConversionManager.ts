@@ -22,7 +22,7 @@ import { extractEdgeEndpoints, JIIXEdgeKind, JIIXElementType, JIIXNodeKind } fro
 import { latexToUnicodeMath } from "@/core"
 import type { TPoint } from "@/core/geometry"
 import { BoxOps, type TBox } from "@/core/geometry"
-import { OBBOps, type TOBB } from "@/core/geometry"
+import { OBBOps } from "@/core/geometry"
 import { computeAngleAxeRadian, convertBoundingBoxMillimeterToPixel } from "@/core/geometry"
 import { computeAverage, convertMillimeterToPixel, roundTo } from "@/core/math"
 import { createUUID, uniqueById } from "@/core/std"
@@ -56,6 +56,8 @@ import { ShapeEllipseOps } from "@/symbol/shape/Ellipse"
 import { ShapePolygonOps } from "@/symbol/shape/Polygon"
 import { MathOps } from "@/symbol/typeset/Math"
 import { TextOps } from "@/symbol/typeset/Text"
+import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
+import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 
 import { IIAbstractManager } from "./IIAbstractManager"
 
@@ -227,7 +229,7 @@ export class IIConversionManager extends IIAbstractManager {
         }
 
         this.canvas.typeset.setBounds(wordSymbol)
-        currentX += wordSymbol.bounds.width
+        currentX += SymbolGeometry.boundsOf(wordSymbol).width
         result.push({
           symbol: wordSymbol,
           strokes: wordStrokes,
@@ -485,10 +487,10 @@ export class IIConversionManager extends IIAbstractManager {
           return undefined
         }
         const target = this.model.getRootSymbol(targetId)
-        if (!target) {
+        if (!target || !symbolRegistry.has(target.type)) {
           return undefined
         }
-        return { targetId, box: OBBOps.toBox((target as { bounds: TOBB }).bounds) }
+        return { targetId, box: OBBOps.toBox(SymbolGeometry.boundsOf(target)) }
       })
       .filter((c): c is { targetId: string; box: TBox } => !!c)
 

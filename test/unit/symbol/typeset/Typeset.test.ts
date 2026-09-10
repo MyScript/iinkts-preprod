@@ -1,5 +1,4 @@
 import {
-  BoxOps,
   computeChildrenOverlaps,
   computeTypesetSnapPoints,
   computeTypesetVertices,
@@ -44,74 +43,35 @@ describe("Typeset.ts", () => {
       const child = buildChild("child", { x: 0, y: 0, width: 10, height: 10 })
       expect(computeChildrenOverlaps([child], [{ x: 100, y: 100 }])).toEqual([])
     })
+  })
 
-    test("should account for rotation when testing containment", () => {
-      const child = buildChild("child", { x: -5, y: -5, width: 10, height: 10 })
-      const rotation = { degree: 45, center: { x: 0, y: 0 } }
-      // (7,0) is outside the unrotated box but inside it once rotated -45deg back to axis-aligned.
-      const result = computeChildrenOverlaps([child], [{ x: 7, y: 0 }], rotation)
-      expect(result).toEqual([child])
+  describe("computeTypesetVertices / computeTypesetSnapPoints", () => {
+    // Turning a typeset symbol is composing its matrix now (`SymbolUtil.applyTransform`), applied
+    // afterwards by `SymbolGeometry` — these two helpers only ever describe the raw, axis-aligned
+    // box a typeset symbol was measured at, so there is no rotation left for them to apply.
+    const box: TBox = { x: 10, y: 20, width: 40, height: 10 }
+
+    test("should return the box's own corners, top-left first, clockwise", () => {
+      expect(computeTypesetVertices(box)).toEqual([
+        { x: 10, y: 20 },
+        { x: 50, y: 20 },
+        { x: 50, y: 30 },
+        { x: 10, y: 30 },
+      ])
     })
-  })
-})
 
-/**
- * A typeset symbol is turned by the renderer, which writes `rotate(degree, center)` on its group.
- * The model has to describe the same quad, or nothing that reads `vertices` — surround selection,
- * hit-testing, snapping — agrees with what is on screen.
- *
- * These compare the two directly: the expected corners are the SVG transform's own arithmetic,
- * `x' = cx + cos·dx − sin·dy`, `y' = cy + sin·dx + cos·dy`, which is what a browser applies. The
- * helpers are pure, so this is provable without a layout engine — and that matters, because the rest
- * of the typeset measurement path needs `getBBox` and cannot be tested at all under jsdom.
- */
-describe("Typeset rotation, against the transform the renderer writes", () => {
-  const box: TBox = { x: 10, y: 20, width: 40, height: 10 }
-  const center: TPoint = { x: 0, y: 0 }
-
-  /** What `rotate(degree, center)` does to a point, per the SVG spec. */
-  const asRendered = (point: TPoint, degree: number): TPoint => {
-    const radian = (degree * Math.PI) / 180
-    const dx = point.x - center.x
-    const dy = point.y - center.y
-    return {
-      x: +(center.x + Math.cos(radian) * dx - Math.sin(radian) * dy).toFixed(3),
-      y: +(center.y + Math.sin(radian) * dx + Math.cos(radian) * dy).toFixed(3),
-    }
-  }
-
-  test.each([10, 45, 90, 180, -30])("should place the corners where the renderer draws them at %s°", (degree) => {
-    const vertices = computeTypesetVertices(box, { degree, center })
-    const expected = BoxOps.getCorners(box).map((corner) => asRendered(corner, degree))
-    // Compared to a hundredth of a pixel, not exactly: `convertDegreeToRadian` rounds the radian to
-    // four decimals and `computeRotatedPoint` rounds coordinates to three, so the chain can land on
-    // either side of a half-thousandth. That tolerance still catches what matters — an inverted
-    // sign moves a corner by tens of pixels, and a doubly-applied rotation by the envelope's growth.
-    vertices.forEach((vertex, i) => {
-      expect(vertex.x).toBeCloseTo(expected[i].x, 2)
-      expect(vertex.y).toBeCloseTo(expected[i].y, 2)
+    test("should return snap points anchored on the given point", () => {
+      // offsetY = (bounds.y + bounds.height) - point.y = 30 - 28 = 2, so the anchor sits 2px above
+      // the box's bottom edge; the four side-midpoints below are offset by that same amount, plus
+      // the box's own centre.
+      const point: TPoint = { x: 10, y: 28 }
+      expect(computeTypesetSnapPoints(box, point)).toEqual([
+        { x: 10, y: 22 },
+        { x: 50, y: 22 },
+        { x: 50, y: 28 },
+        { x: 10, y: 28 },
+        { x: 30, y: 25 },
+      ])
     })
-  })
-
-  test("should turn the snap points the same way", () => {
-    // Same negation lived here, so a rotated typeset symbol snapped to mirrored points.
-    const point: TPoint = { x: 10, y: 28 }
-    const rotated = computeTypesetSnapPoints(box, point, { degree: 90, center })
-    const expected = computeTypesetSnapPoints(box, point).map((p) => asRendered(p, 90))
-    rotated.forEach((p, i) => {
-      expect(p.x).toBeCloseTo(expected[i].x, 2)
-      expect(p.y).toBeCloseTo(expected[i].y, 2)
-    })
-  })
-
-  test("should leave an unrotated symbol alone", () => {
-    expect(computeTypesetVertices(box)).toEqual(BoxOps.getCorners(box))
-  })
-
-  test("should not mirror a small rotation, which is how this went unnoticed", () => {
-    // At 10° only the y is mirrored by the old sign, so the wrong quad still overlapped the symbol
-    // enough for surround selection to catch it. The failure grew with the angle.
-    const [firstCorner] = computeTypesetVertices(box, { degree: 10, center })
-    expect(firstCorner.y).toBeGreaterThan(0)
   })
 })

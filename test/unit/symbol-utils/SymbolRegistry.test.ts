@@ -1,5 +1,12 @@
-import type { TBaseSymbol, TBox, TPartialDeep, TPoint, TResizeContext, TRotateContext, TTranslateContext } from "@/iink"
-import { applyMatrixToPoint, StrokeUtil, TextUtil } from "@/iink"
+import type {
+  TBaseSymbol,
+  TBox,
+  TPartialDeep,
+  TPoint,
+  TTransformContext,
+  TSymbolGeometry,
+} from "@/iink"
+import { applyMatrixToPoint, OBBOps, StrokeUtil, TextUtil } from "@/iink"
 import { registerBuiltinSymbolUtils, symbolRegistry, SymbolType, SymbolUtil } from "@/iink"
 
 beforeAll(() => {
@@ -14,14 +21,16 @@ class StickyNoteUtil extends SymbolUtil<TStickyNote> {
   create(partial: TPartialDeep<TStickyNote>): TStickyNote {
     return { ...partial, type: "sticky-note", text: partial.text ?? "" } as TStickyNote
   }
-  updateDerivedFields(): void {}
-  translate(symbol: TStickyNote, { matrix }: TTranslateContext): void {
+  computeGeometry(): TSymbolGeometry {
+    return { bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0), vertices: [], snapPoints: [], edges: [], length: 0 }
+  }
+  translate(symbol: TStickyNote, { matrix }: TTransformContext): void {
     symbol.point = applyMatrixToPoint(symbol.point, matrix)
   }
-  rotate(symbol: TStickyNote, { matrix }: TRotateContext): void {
+  rotate(symbol: TStickyNote, { matrix }: TTransformContext): void {
     symbol.point = applyMatrixToPoint(symbol.point, matrix)
   }
-  resize(symbol: TStickyNote, { matrix }: TResizeContext): void {
+  resize(symbol: TStickyNote, { matrix }: TTransformContext): void {
     symbol.point = applyMatrixToPoint(symbol.point, matrix)
   }
   overlaps(_symbol: TStickyNote, _box: TBox): boolean {

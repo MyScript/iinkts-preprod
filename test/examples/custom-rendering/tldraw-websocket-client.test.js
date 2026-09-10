@@ -65,7 +65,10 @@ test.describe("TLDraw WebSocket client", () => {
 
       const tabContentLoc = page.locator('#html-tab-content')
       await expect(tabContentLoc).toBeVisible()
-      await expect(tabContentLoc.frameLocator('iframe').locator('svg')).toHaveCount(1)
+      // The HTML export only lands once the server has answered the write: the tab is clicked
+      // straight after writeStrokes, so the default 2.5s expect budget is a race against the
+      // recognition round-trip, not against rendering (seen failing on Firefox in CI).
+      await expect(tabContentLoc.frameLocator('iframe').locator('svg')).toHaveCount(1, { timeout: 15_000 })
       await expect(page).toHaveScreenshot({ name: "tldraw-hello-html.png" })
     })
 

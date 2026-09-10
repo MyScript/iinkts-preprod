@@ -1,4 +1,4 @@
-import { SymbolStore, type TBaseSymbol } from "@/iink"
+import { MatrixTransform, SymbolStore, type TBaseSymbol } from "@/iink"
 
 type TRecord = TBaseSymbol & { label?: string }
 
@@ -9,6 +9,7 @@ const build = (id: string, label = id): TRecord => ({
   type: "test",
   style: {},
   label,
+  transform: MatrixTransform.identity(),
 })
 
 const ids = (store: SymbolStore<TRecord>) => store.list().map((s) => s.id)
@@ -241,6 +242,7 @@ describe("SymbolStore.listBy", () => {
     type: targetIds ? "decorator" : "stroke",
     style: {},
     targetIds,
+    transform: MatrixTransform.identity(),
   })
 
   const byTargetIds = (s: TTargeted) => s.targetIds ?? []

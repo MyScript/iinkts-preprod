@@ -189,6 +189,156 @@ stroke width.
 left out rather than padded, because the server pairs pointers by index across the arrays and a short
 column would attach the wrong values to the wrong points.
 
+### Geometry is computed, not stored
+
+`bounds`, `vertices`, `snapPoints` and `edges` are no longer properties of a stroke, a shape or an
+edge. Read them through `SymbolGeometry`:
+
+```diff
+- const box = stroke.bounds
+- const points = shape.vertices
++ import { SymbolGeometry } from "iink-ts"
++ const box = SymbolGeometry.boundsOf(stroke)
++ const points = SymbolGeometry.verticesOf(shape)
+```
+
+`of(symbol)` returns all of them in one call, which is what to use when you need more than one —
+each accessor is a read off the same cached record, but destructuring once reads better:
+
+```ts
+const { bounds, vertices, edges } = SymbolGeometry.of(symbol)
+```
+
+**Two frames, and picking the wrong one is the mistake to watch for.** `SymbolGeometry` applies the
+symbol's `transform`, so it answers in document coordinates — where the symbol is on screen. The
+symbol's own stored coordinates are the raw frame, and `SymbolGeometry.rawOf(symbol)` reports the
+geometry there. Use `boundsOf` to hit-test, to place something over the symbol, or to draw a
+selection box. Use `rawOf` when you are working with the symbol's own path data, which the element's
+`transform` attribute repositions for you — applying the matrix as well would move it twice.
+
+Writing into a symbol's own frame needs the inverse: a pointer position is a document point, and
+storing it as if it were raw geometry puts it in the wrong place as soon as the symbol has been
+turned or scaled.
+
+```diff
+- symbol.points[i] = { x, y }
++ import { applyInverseMatrixToPoint } from "iink-ts"
++ const raw = applyInverseMatrixToPoint({ x, y }, symbol.transform)
++ if (raw) { symbol.points[i] = raw }
+```
+
+`applyInverseMatrixToPoint` returns `undefined` for a matrix that cannot be inverted, which is the
+one case where there is no answer to give.
+
+Nothing needs refreshing after a write any more:
+
+```diff
+- symbolRegistry.getUtilFor(symbol).updateDerivedFields(symbol)
+- StrokeOps.updateBounds(stroke)
+```
+
+Both are removed, along with every per-kind `updateDerivedFields`. The next read recomputes.
+
+Two stored fields survive, because neither is derived from coordinates the symbol owns.
+`TStroke.length` is an accumulator that `StrokeOps.addPointer` maintains and the pressure model
+reads once per pointer; deriving it on read would make drawing a stroke quadratic in its own pointer
+count. `TText.bounds` and `TMath.bounds` are measured from the DOM with `getBBox()`. And
+`TDecorator.bounds` is renamed `targetBounds` — see below.
+
+If you built a symbol type of your own, its util's `computeGeometry` is where its geometry comes
+from now; there is no field to keep in step.
+
+### A symbol carries where it sits, as a matrix
+
+`TBaseSymbol.transform` is a `TMatrixTransform`, identity on a freshly created symbol. Transforms
+compose into it and the symbol's stored coordinates never move.
+
+If you construct symbols by hand rather than through `*Ops.create` or `createSymbolFromPartial`,
+give them one:
+
+```diff
++ import { mergeSymbolTransform } from "iink-ts"
+  const symbol = { id, type: "sticky-note", point: { x: 0, y: 0 }, style,
++   transform: mergeSymbolTransform(partial.transform),
+  }
+```
+
+`mergeSymbolTransform(undefined)` is the identity, so it doubles as the default. `isIdentityMatrix`
+is exported alongside it, for the "has this been moved at all" test that a renderer or a serializer
+wants before doing work.
+
+`TText.rotation`, `TMath.rotation` and the `TRotation` type are gone — the matrix supersedes them.
+
+The wire format is unchanged: `StrokeSerializer` bakes the matrix into the coordinates it sends, so
+a server sees the same strokes it always did.
+
+### History: one form for every change
+
+If you read or build `TIIHistoryChanges` — a custom menu action, an integration that pushes its own
+undoable steps — the five per-operation forms are gone:
+
+```diff
+- history.push({ translate: [{ symbols, tx: 10, ty: 0 }] })
+- history.push({ rotate: [{ symbols, angle, center }] })
+- history.push({ scale: [{ symbols, scaleX, scaleY, origin }] })
+- history.push({ matrix: { symbols, matrix } })
+- history.push({ style: { symbols, oldStyles, newStyles } })
++ import { appendUpdated } from "iink-ts"
++ const changes = {}
++ appendUpdated(changes, symbols.map((after, i) => ({ before: snapshots[i], after })))
++ history.push(changes)
+```
+
+Take the snapshots *before* you change anything, and read `after` back from the document rather than
+from the object you mutated — a write commits a draft, so the reference you started with is the
+pre-change record.
+
+`updated` itself changed shape, from two parallel lists to a list of pairs:
+
+```diff
+- changes.updated.newSymbols.forEach((sym) => restore(sym))
++ changes.updated.forEach(({ after }) => restore(after))
+```
+
+Use `appendUpdated` rather than assigning `changes.updated`. One undoable step can gather symbols
+from more than one source, and assigning twice keeps only the last.
+
+**Why the forms went.** Each described a change by its parameters so that undo could re-derive the
+old state by applying an inverse. A transform writes to `symbol.transform` and a restyle to
+`symbol.style`, both part of the record — so the record is the state, and restoring it is exact.
+Inverting a parameter was not: a scale's `1 / scaleX` is `Infinity` at zero, and it ignores the
+origin the scale was taken about.
+
+`TIIHistoryBackendChanges` lost the same four transform forms. Undo and redo reach the server as a
+stroke replacement, whose wire form carries the moved coordinates because the serializer bakes the
+matrix in. One consequence worth knowing: a restyle now reaches the server, where `style` had no
+backend form and silently did not.
+
+### A decorator's box is renamed for where it comes from
+
+`TDecorator` is the one symbol type that still stores a box, because it is the one type whose box is
+not derived: a decorator holds no coordinates at all — it is placed over other symbols, and its box
+arrives from outside. The field is renamed so it cannot be mistaken for a leftover derived field,
+and it is optional now.
+
+```diff
+- decorator.bounds
+- decorator.hasBounds
++ decorator.targetBounds          // TOBB | undefined; unset is "no box of its own"
+
+- DecoratorOps.setBounds(decorator, obb)
++ DecoratorOps.setTargetBounds(decorator, obb)
+```
+
+`hasBounds` is gone: presence of `targetBounds` is the flag, so the two can no longer disagree. The
+boolean only ever existed to shadow a zero-size box.
+
+If you place decorators yourself, you own that write. It comes from the recognizer's word box when
+JIIX has answered — which is tighter than the union of the strokes it covers, and not computable
+from them — and from that union otherwise. It has to be written again whenever the decorated symbols
+move or a target is removed; the built-in transform manager and erase paths do this, and
+`DecoratorUtil.applyTransform` is deliberately a no-op, so no matrix carries a decorator.
+
 ### A custom transform manager implements one method, not five
 
 Only relevant if you subclass `IIAbstractTransformManager`.
@@ -211,72 +361,47 @@ The five members existed so that a `switch (symbol.type)` in `applyToSymbol` cou
 that switch is why a symbol type the library did not know threw instead of moving. Routing through
 the symbol's own util means one method, and a custom symbol that transforms.
 
-### A custom `SymbolUtil` must implement `resize`
+### A custom `SymbolUtil` no longer implements `translate`, `rotate` or `resize`
 
-```diff
-  class StickyNoteUtil extends SymbolUtil<TStickyNote> {
-    ...
-    rotate(symbol, { matrix }) { ... }
-+   resize(symbol, { matrix }) {
-+     symbol.point = applyMatrixToPoint(symbol.point, matrix)
-+   }
-  }
+All three were abstract in the first v5 betas, and each one asked you to move your symbol's stored
+geometry. They are concrete now, and none of the six built-in utils overrides them:
+
+```ts
+translate(symbol, { matrix }) { this.applyTransform(symbol, matrix) }
 ```
 
-As with `rotate`, point it at the same code as `translate` if pushing your geometry through the
-matrix is the whole of it — the polygon, the polyedge and the line all do. Write it separately only
-if your symbol stores a size of its own: the circle scales its radius, the ellipse and the arc scale
-their radii about `origin` along their own axes, and text and math scale their font sizes.
-
-The context carries `matrix` and `origin`, the fixed point of the scale — the corner opposite the
-handle being dragged. There is no `typeset` port here, unlike translate and rotate: resizing a
-typeset symbol rebuilds its bounds arithmetically from the scale factors rather than re-measuring
-it, so no service is needed.
-
-### A custom `SymbolUtil` must implement `rotate`
-
-```diff
-  class StickyNoteUtil extends SymbolUtil<TStickyNote> {
-    ...
-    translate(symbol, { matrix }) { ... }
-+   rotate(symbol, { matrix }) {
-+     symbol.point = applyMatrixToPoint(symbol.point, matrix)
-+   }
-  }
-```
-
-If applying the matrix is the whole of turning your symbol, point `rotate` at the same code as
-`translate` — five of the six built-in kinds do exactly that. Implement it only differently if your
-symbol stores an angle of its own, as the ellipse and arc do, or if it is turned by recording an
-angle rather than by moving geometry, as text and math are.
-
-The context adds `center`, the point the gesture turns around. The geometric kinds never read it —
-it is already folded into the matrix — but a symbol rendered with a CSS or SVG rotation needs it.
-
-### A custom `SymbolUtil` must implement `translate`
+A transform composes into `symbol.transform` and leaves the coordinates alone, so the body is the
+same for every type and you inherit it. Delete yours unless your symbol stores something a matrix
+cannot express.
 
 ```diff
   class StickyNoteUtil extends SymbolUtil<TStickyNote> {
     readonly type = "sticky-note"
     create(partial) { ... }
-    updateDerivedFields(symbol) { ... }
     overlaps(symbol, box) { ... }
     getSVGElement(symbol) { ... }
-+   translate(symbol, { matrix }) {
-+     symbol.point = applyMatrixToPoint(symbol.point, matrix)
-+   }
+-   translate(symbol, { matrix }) {
+-     symbol.point = applyMatrixToPoint(symbol.point, matrix)
+-   }
+-   rotate(symbol, { matrix }) { ... }
+-   resize(symbol, { matrix, origin }) { ... }
   }
 ```
 
-Move the symbol's stored geometry and leave it derived-consistent; `applyMatrixToPoint` and
-`applyMatrixToPoints` from `core/geometry` round the way the document stores coordinates. Implement
-it as an empty body if your symbol is not meant to move — the built-in decorator util does, because
-a decorator's bounds are recomputed from the symbols it decorates.
+If you do override one, the second argument is a `TTransformContext` — `{ matrix }`, and nothing
+else. The three separate contexts are gone, and so are the extras they carried: `center` (the
+rotation centre) and `origin` (the fixed point of a scale) are folded into the matrix already, and
+the `typeset` measuring port went with them because a typeset symbol's measured box does not change
+when it moves.
 
-The second argument is a `TTranslateContext`: `matrix`, plus a `typeset` port that only text and
-math consult. A typeset symbol's bounds come from drawing it into the DOM hidden and reading
-`getBBox()`, which is not something a util can do for itself, so the service is passed in rather
-than imported.
+```diff
+- import type { TTranslateContext, TRotateContext, TResizeContext } from "iink-ts"
++ import type { TTransformContext } from "iink-ts"
+```
+
+An override that moves coordinates still works, but it gives up what the matrix buys: the renderer
+rewriting one attribute instead of rebuilding the element, and an undo that restores the previous
+value bit for bit rather than re-transforming coordinates and accumulating rounding.
 
 ### Resize handles come from the symbol's util
 
@@ -304,7 +429,6 @@ visible. No error said so.
   class StickyNoteUtil extends SymbolUtil<TStickyNote> {
     readonly type = "sticky-note"
     create(partial) { ... }
-    updateDerivedFields(symbol) { ... }
     overlaps(symbol, box) { ... }
 +   getSVGElement(symbol) { ... }
   }
@@ -318,28 +442,6 @@ That variant renders through `CanvasRenderer`, which dispatches on `isStroke` an
 tables instead of asking the registry, so your symbol is invisible there and the log says
 "symbol type unknown". `InteractiveInkCanvas`, `InkCanvas` and `InteractiveInkSSRCanvas` all draw
 it.
-
-### Derived fields come from the symbol's util
-
-The two family dispatchers are gone. They did nothing but resolve a kind that the util resolves
-anyway, so a transform paid for the same dispatch twice.
-
-```diff
-- import { ShapeOps, EdgeOps } from "iink-ts"
-- ShapeOps.updateShapeDerivedFields(shape)
-- EdgeOps.updateEdgeDerivedFields(edge)
-+ import { symbolRegistry } from "iink-ts"
-+ symbolRegistry.getUtilFor(symbol).updateDerivedFields(symbol)
-```
-
-The replacement is not per-family: one call covers strokes, text, math and any type you registered
-yourself, which the two removed functions never could.
-
-`getUtilFor` throws when no util owns the symbol's type, where `getUtil(type)` returns `undefined`.
-That is deliberate — a derive that is silently skipped leaves stale `bounds` behind a symbol whose
-own coordinates still read correctly, and the damage surfaces later in hit-testing. If you drive a
-transform manager yourself, without a canvas, call `registerBuiltinSymbolUtils()` first; both
-canvases already do it in their constructor.
 
 ### Internal layout: `src/utils/` no longer exists
 

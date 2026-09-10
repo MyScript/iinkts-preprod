@@ -18,9 +18,8 @@ import {
   TMath,
   TMathElement,
   TPartialDeep,
-  TSymbol,
 } from "@/iink"
-import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
+
 import { DecoratorOps } from "../../src/symbol/decorator/Decorator"
 import { TextOps } from "../../src/symbol/typeset/Text"
 import { MathOps } from "../../src/symbol/typeset/Math"
@@ -163,29 +162,6 @@ export function buildIIMath(
   return MathOps.create(elements, point, boundingBox, style)
 }
 
-/** The fields a symbol's util recomputes from its geometry, rather than storing independently. */
-const DERIVED_FIELDS = ["bounds", "vertices", "snapPoints", "edges"] as const
-
-function derivedSnapshot(symbol: TSymbol): string {
-  // Read loosely on purpose: which of these a symbol carries depends on its type, and the point is
-  // to compare whatever it does carry.
-  const source = symbol as unknown as Record<string, unknown>
-  return JSON.stringify(DERIVED_FIELDS.map((field) => source[field]))
-}
-
-/**
- * Asserts a symbol is already derived-consistent: re-deriving a copy changes nothing.
- *
- * Fails exactly when a code path moved a symbol's geometry and skipped the derive. That leaves
- * stale bounds behind a symbol whose own coordinates read correctly, so hit-testing and selection
- * go wrong somewhere else entirely — and no assertion on the moved coordinates can see it.
- */
-export function expectDerivedFieldsSettled(symbol: TSymbol): void {
-  const before = derivedSnapshot(symbol)
-  const copy = JSON.parse(JSON.stringify(symbol)) as TSymbol
-  symbolRegistry.getUtilFor(copy).updateDerivedFields(copy)
-  expect(derivedSnapshot(copy)).toBe(before)
-}
 
 /**
  * Asserts a transform wrote its coordinates rounded to the three decimals the document stores.

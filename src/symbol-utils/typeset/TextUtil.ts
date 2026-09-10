@@ -1,5 +1,6 @@
 import type { TBox } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
+import { isIdentityMatrix, MatrixTransform } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import { DecoratorKind } from "@/symbol/decorator/Decorator"
 import { SymbolType } from "@/symbol/Symbol"
@@ -7,7 +8,6 @@ import { TextOps, type TText } from "@/symbol/typeset/Text"
 
 import { DecoratorUtil } from "../decorator/DecoratorUtil"
 import { SVGBuilder } from "../SVGBuilder"
-import type { TTranslateContext } from "../TransformContext"
 import { TypesetUtil } from "./TypesetUtil"
 
 const noSelection =
@@ -23,25 +23,12 @@ export class TextUtil extends TypesetUtil<TText> {
     return TextOps.createFromPartial(partial)
   }
 
-  updateDerivedFields(text: TText): void {
-    TextOps.updateDerivedFields(text)
-  }
-
   overlaps(text: TText, box: TBox): boolean {
-    return TextOps.overlaps(text, box)
+    return this.overlapsQuery(text, box, (b) => TextOps.overlaps(text, b))
   }
 
   getSnapPoints(text: TText): TPoint[] {
-    return text.snapPoints
-  }
-
-  protected glyphsOf(text: TText): { fontSize: number }[] {
-    return text.chars
-  }
-
-  translate(text: TText, { matrix, typeset }: TTranslateContext): void {
-    this.moveAnchor(text, matrix)
-    typeset.setBounds(text)
+    return this.mapPointsForward(text, this.computeGeometry(text).snapPoints)
   }
 
   getSVGElement(text: TText): SVGGraphicsElement {
@@ -56,8 +43,10 @@ export class TextUtil extends TypesetUtil<TText> {
     if (text.style.opacity) {
       attrs.opacity = text.style.opacity.toString()
     }
-    if (text.rotation) {
-      attrs.transform = `rotate(${text.rotation.degree}, ${text.rotation.center.x}, ${text.rotation.center.y})`
+    // Turning a text symbol is composed into its matrix now, not recorded separately — there is no
+    // `.rotation` left to combine this with.
+    if (!isIdentityMatrix(text.transform)) {
+      attrs.transform = MatrixTransform.toCssString(text.transform)
     }
 
     const textGroup = SVGBuilder.createGroup(attrs)

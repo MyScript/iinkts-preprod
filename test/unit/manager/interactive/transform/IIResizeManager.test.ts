@@ -1,11 +1,5 @@
 import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
-import {
-  buildIIMath,
-  buildIIStroke,
-  buildIIText,
-  expectDerivedFieldsSettled,
-  expectPointsRounded,
-} from "../../../helpers"
+import { buildIIMath, buildIIStroke, buildIIText } from "../../../helpers"
 import {
   EdgeArcOps,
   EdgeLineOps,
@@ -21,15 +15,12 @@ import {
   ShapePolygonOps,
   StrokeOps,
   SvgElementRole,
-  TEdgeLine,
+  TBaseSymbol,
   TPoint,
-  TShapeCircle,
-  TShapePolygon,
   TStroke,
   TSymbol,
   TSymbolChar,
-  TextOps,
-} from "@/iink"
+  TextOps, SymbolGeometry } from "@/iink"
 
 describe("IIResizeManager.ts", () => {
   test("should create", () => {
@@ -53,28 +44,34 @@ describe("IIResizeManager.ts", () => {
       expect(() => manager.applyToSymbol(stroke, matrix)).toThrow('No util is registered for type "pouet"')
       expect(() => manager.applyToSymbol(stroke, matrix)).toThrow(/Registered types: .*stroke/)
     })
-    test("should resize stroke", () => {
+    test("should resize stroke by composing the matrix rather than moving its pointers", () => {
       const stroke = StrokeOps.create()
       const origin: TPoint = { x: 1, y: 2 }
       StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 1, y: 2 })
       StrokeOps.addPointer(stroke, { p: 1, t: 10, x: 21, y: 42 })
+      const pointersBefore = stroke.pointers.map((p) => ({ ...p }))
       const matrix = MatrixTransform.identity().scale(2, 3, origin)
       manager.applyToSymbol(stroke, matrix)
-      expect(stroke.pointers[0]).toEqual(expect.objectContaining({ x: 1, y: 2 }))
-      expect(stroke.pointers[1]).toEqual(expect.objectContaining({ x: 41, y: 122 }))
+      // Starting from identity, composing the matrix onto it is the matrix itself.
+      expect(stroke.transform).toEqual({ xx: 2, yx: 0, xy: 0, yy: 3, tx: -1, ty: -4 })
+      expect(stroke.pointers).toEqual(pointersBefore)
     })
-    test("should resize a math solver-output (draw) stroke like a normal stroke", () => {
+    test("should resize a math solver-output (draw) stroke the same way", () => {
       const stroke = StrokeOps.create()
       stroke.isSolverOutput = true
       const origin: TPoint = { x: 1, y: 2 }
       StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 1, y: 2 })
       StrokeOps.addPointer(stroke, { p: 1, t: 10, x: 21, y: 42 })
+      const pointersBefore = stroke.pointers.map((p) => ({ ...p }))
       const matrix = MatrixTransform.identity().scale(2, 3, origin)
       manager.applyToSymbol(stroke, matrix)
-      expect(stroke.pointers[0]).toEqual(expect.objectContaining({ x: 1, y: 2 }))
-      expect(stroke.pointers[1]).toEqual(expect.objectContaining({ x: 41, y: 122 }))
+      expect(stroke.transform).toEqual({ xx: 2, yx: 0, xy: 0, yy: 3, tx: -1, ty: -4 })
+      expect(stroke.pointers).toEqual(pointersBefore)
     })
-    test("should not resize shape with kind unknown", () => {
+    test("resize shape with kind unknown no longer throws, since resize no longer resolves a kind", () => {
+      // IIC-2013 moved the refusal to the shape util's kind table; Task 11 then made
+      // translate/rotate/resize matrix-only, so that table is no longer on this path at all — a
+      // symbol whose geometry cannot be computed can still have its matrix composed.
       const points: TPoint[] = [
         { x: 0, y: 0 },
         { x: 0, y: 5 },
@@ -86,23 +83,21 @@ describe("IIResizeManager.ts", () => {
       poly.kind = "pouet"
       const origin: TPoint = { x: 0, y: 0 }
       const matrix = MatrixTransform.identity().scale(2, 3, origin)
-      // IIC-2013 moved the refusal to the shape util's kind table. With rotate and translate
-      // already moved, all three transform managers word it the same way again.
-      expect(() => manager.applyToSymbol(poly, matrix)).toThrow(
-        'Unable to resize shape, kind: "pouet" is unknown'
-      )
+      expect(() => manager.applyToSymbol(poly, matrix)).not.toThrow()
+      expect(poly.transform).toEqual({ xx: 2, yx: 0, xy: 0, yy: 3, tx: 0, ty: 0 })
     })
-    test("should resize shape Circle", () => {
+    test("should resize shape Circle by composing the matrix rather than scaling its radius", () => {
       const center: TPoint = { x: 5, y: 5 }
       const radius = 4
       const shape = ShapeCircleOps.create(center, radius)
       const origin: TPoint = { x: 1, y: 2 }
       const matrix = MatrixTransform.identity().scale(2, 4, origin)
       manager.applyToSymbol(shape, matrix)
-      expect(shape.radius).toEqual(12)
-      expect(shape.center).toEqual({ x: 9, y: 14 })
+      expect(shape.transform).toEqual({ xx: 2, yx: 0, xy: 0, yy: 4, tx: -1, ty: -6 })
+      expect(shape.radius).toEqual(radius)
+      expect(shape.center).toEqual(center)
     })
-    test("should resize shape Ellipse", () => {
+    test("should resize shape Ellipse by composing the matrix rather than scaling its radii", () => {
       const center: TPoint = { x: 0, y: 0 }
       const radiusX = 50
       const radiusY = 10
@@ -110,16 +105,20 @@ describe("IIResizeManager.ts", () => {
       const shape = ShapeEllipseOps.create(center, radiusX, radiusY, orientation)
       const scaleX = 2
       const scaleY = 4
-      const shapeBoundsBox = OBBOps.toBox(shape.bounds)
+      const shapeBoundsBox = OBBOps.toBox(SymbolGeometry.boundsOf(shape))
       const origin: TPoint = { x: shapeBoundsBox.x, y: shapeBoundsBox.y }
       manager.transformOrigin = origin
       const matrix = MatrixTransform.identity().scale(scaleX, scaleY, origin)
       manager.applyToSymbol(shape, matrix)
-      expect(shape.radiusX).toEqual(radiusX * scaleX)
-      expect(shape.radiusY).toEqual(radiusY * scaleY)
-      expect(shape.center).toEqual({ x: 49.534, y: 29.931 })
+      // `matrix` is built independently of the code under test (`applyTransform`), so comparing
+      // against it is not circular: starting from identity, composing it is the matrix itself.
+      expect(shape.transform).toEqual(matrix)
+      expect(shape.radiusX).toEqual(radiusX)
+      expect(shape.radiusY).toEqual(radiusY)
+      expect(shape.center).toEqual(center)
+      expect(shape.orientation).toEqual(orientation)
     })
-    test("should resize shape Polygon", () => {
+    test("should resize shape Polygon by composing the matrix rather than moving its points", () => {
       const points: TPoint[] = [
         { x: 0, y: 0 },
         { x: 20, y: 0 },
@@ -129,20 +128,14 @@ describe("IIResizeManager.ts", () => {
       const shape = ShapePolygonOps.create(points)
       const scaleX = 2
       const scaleY = 4
-      const polyBoundsBox = OBBOps.toBox(shape.bounds)
+      const polyBoundsBox = OBBOps.toBox(SymbolGeometry.boundsOf(shape))
       const origin: TPoint = { x: polyBoundsBox.x, y: polyBoundsBox.y }
       const matrix = MatrixTransform.identity().scale(scaleX, scaleY, origin)
       manager.applyToSymbol(shape, matrix)
-      expect(shape.points[0].x).toEqual(0)
-      expect(shape.points[0].y).toEqual(0)
-      expect(shape.points[1].x).toEqual(40)
-      expect(shape.points[1].y).toEqual(0)
-      expect(shape.points[2].x).toEqual(40)
-      expect(shape.points[2].y).toEqual(40)
-      expect(shape.points[3].x).toEqual(0)
-      expect(shape.points[3].y).toEqual(40)
+      expect(shape.transform).toEqual(matrix)
+      expect(shape.points).toEqual(points)
     })
-    test("should not resize edge with kind unknown", () => {
+    test("resize edge with kind unknown no longer throws, for the same reason", () => {
       const start: TPoint = { x: 0, y: 0 }
       const end: TPoint = { x: 0, y: 5 }
       const edge = EdgeLineOps.create(start, end)
@@ -150,11 +143,10 @@ describe("IIResizeManager.ts", () => {
       edge.kind = "pouet"
       const origin: TPoint = { x: 0, y: 0 }
       const matrix = MatrixTransform.identity().scale(2, 3, origin)
-      expect(() => manager.applyToSymbol(edge, matrix)).toThrow(
-        'Unable to resize edge, kind: "pouet" is unknown'
-      )
+      expect(() => manager.applyToSymbol(edge, matrix)).not.toThrow()
+      expect(edge.transform).toEqual({ xx: 2, yx: 0, xy: 0, yy: 3, tx: 0, ty: 0 })
     })
-    test("should resize edge Arc", () => {
+    test("should resize edge Arc by composing the matrix rather than scaling its radii", () => {
       const center: TPoint = { x: 0, y: 0 }
       const startAngle = -Math.PI
       const sweepAngle = Math.PI
@@ -162,28 +154,32 @@ describe("IIResizeManager.ts", () => {
       const radiusY = 10
       const phi = 0
       const edge = EdgeArcOps.create(center, startAngle, sweepAngle, radiusX, radiusY, phi)
-      const edgeBoundsBox = OBBOps.toBox(edge.bounds)
+      const edgeBoundsBox = OBBOps.toBox(SymbolGeometry.boundsOf(edge))
       const origin: TPoint = { x: edgeBoundsBox.x, y: edgeBoundsBox.y }
       const scaleX = 2
       const scaleY = 3
       manager.transformOrigin = origin
       const matrix = MatrixTransform.identity().scale(scaleX, scaleY, origin)
       manager.applyToSymbol(edge, matrix)
-      expect(edge.center).toEqual({ x: 55, y: 29.796 })
-      expect(edge.radiusX).toEqual(radiusX * scaleX)
-      expect(edge.radiusY).toEqual(radiusY * scaleY)
+      expect(edge.transform).toEqual(matrix)
+      expect(edge.center).toEqual(center)
+      expect(edge.radiusX).toEqual(radiusX)
+      expect(edge.radiusY).toEqual(radiusY)
+      expect(edge.startAngle).toEqual(startAngle)
+      expect(edge.sweepAngle).toEqual(sweepAngle)
     })
-    test("resize edge Line", () => {
+    test("resize edge Line composes the matrix rather than moving its endpoints", () => {
       const start: TPoint = { x: 0, y: 0 }
       const end: TPoint = { x: 0, y: 5 }
       const edge = EdgeLineOps.create(start, end)
       const origin: TPoint = { x: 0, y: 0 }
       const matrix = MatrixTransform.identity().scale(2, 3, origin)
       manager.applyToSymbol(edge, matrix)
-      expect(edge.start).toEqual({ x: 0, y: 0 })
-      expect(edge.end).toEqual({ x: 0, y: 15 })
+      expect(edge.transform).toEqual({ xx: 2, yx: 0, xy: 0, yy: 3, tx: 0, ty: 0 })
+      expect(edge.start).toEqual(start)
+      expect(edge.end).toEqual(end)
     })
-    test("resize edge PolyEdge", () => {
+    test("resize edge PolyEdge composes the matrix rather than moving its points", () => {
       const points: TPoint[] = [
         { x: 0, y: 0 },
         { x: 20, y: 0 },
@@ -194,16 +190,10 @@ describe("IIResizeManager.ts", () => {
       const origin: TPoint = { x: 0, y: 0 }
       const matrix = MatrixTransform.identity().scale(2, 3, origin)
       manager.applyToSymbol(edge, matrix)
-      expect(edge.points[0].x).toEqual(0)
-      expect(edge.points[0].y).toEqual(0)
-      expect(edge.points[1].x).toEqual(40)
-      expect(edge.points[1].y).toEqual(0)
-      expect(edge.points[2].x).toEqual(40)
-      expect(edge.points[2].y).toEqual(30)
-      expect(edge.points[3].x).toEqual(0)
-      expect(edge.points[3].y).toEqual(30)
+      expect(edge.transform).toEqual({ xx: 2, yx: 0, xy: 0, yy: 3, tx: 0, ty: 0 })
+      expect(edge.points).toEqual(points)
     })
-    test("resize edge Text", () => {
+    test("resize edge Text composes the matrix rather than rebuilding bounds or scaling glyphs", () => {
       const point: TPoint = { x: 0, y: 0 }
       const chars: TSymbolChar[] = [
         {
@@ -216,12 +206,14 @@ describe("IIResizeManager.ts", () => {
         },
       ]
       const text = TextOps.create(chars, point, { height: 10, width: 5, x: 0, y: 0 })
+      const boundsBefore = structuredClone(text.bounds)
       const origin: TPoint = { x: 0, y: 0 }
       const matrix = MatrixTransform.identity().scale(2, 3, origin)
       manager.applyToSymbol(text, matrix)
-      expect(text.point).toEqual({ x: 0, y: 0 })
-      expect(chars[0].fontSize).toEqual(30)
-      expect(text.bounds).toEqual(OBBOps.fromBox({ x: 0, y: 0, width: 10, height: 30 }))
+      expect(text.transform).toEqual({ xx: 2, yx: 0, xy: 0, yy: 3, tx: 0, ty: 0 })
+      expect(text.point).toEqual(point)
+      expect(chars[0].fontSize).toEqual(12)
+      expect(text.bounds).toEqual(boundsBefore)
     })
   })
 
@@ -231,6 +223,7 @@ describe("IIResizeManager.ts", () => {
     canvas.client.transformScale = jest.fn(() => Promise.resolve())
     canvas.renderer.setAttribute = jest.fn()
     canvas.renderer.drawSymbol = jest.fn()
+    canvas.renderer.setSymbolTransform = jest.fn()
     canvas.snaps.snapConfiguration.guide = false
     canvas.snaps.snapConfiguration.symbol = false
 
@@ -243,54 +236,54 @@ describe("IIResizeManager.ts", () => {
     canvas.model.addSymbol(strokeOrigin)
     canvas.model.selectSymbol(strokeOrigin.id)
 
-    const sb = OBBOps.toBox(strokeOrigin.bounds)
+    const sb = OBBOps.toBox(SymbolGeometry.boundsOf(strokeOrigin))
     const resizeToPoint: TPoint = {
-      x: (sb.x + strokeOrigin.bounds.width + sb.x) / 4,
-      y: (sb.y + strokeOrigin.bounds.height + sb.y) / 4,
+      x: (sb.x + sb.width + sb.x) / 4,
+      y: (sb.y + sb.height + sb.y) / 4,
     }
 
     const testDatas = [
       {
         direction: ResizeDirection.North,
         transformOrigin: {
-          x: sb.x + strokeOrigin.bounds.width / 2,
-          y: sb.y + strokeOrigin.bounds.height,
+          x: sb.x + sb.width / 2,
+          y: sb.y + sb.height,
         },
         scale: {
           x: 1,
-          y: 1 + (sb.y - resizeToPoint.y) / strokeOrigin.bounds.height,
+          y: 1 + (sb.y - resizeToPoint.y) / sb.height,
         },
       },
       {
         direction: ResizeDirection.East,
         transformOrigin: {
           x: sb.x,
-          y: sb.y + strokeOrigin.bounds.height / 2,
+          y: sb.y + sb.height / 2,
         },
         scale: {
-          x: 1 + (resizeToPoint.x - (sb.x + strokeOrigin.bounds.width)) / strokeOrigin.bounds.width,
+          x: 1 + (resizeToPoint.x - (sb.x + sb.width)) / sb.width,
           y: 1,
         },
       },
       {
         direction: ResizeDirection.South,
         transformOrigin: {
-          x: sb.x + strokeOrigin.bounds.width / 2,
+          x: sb.x + sb.width / 2,
           y: sb.y,
         },
         scale: {
           x: 1,
-          y: 1 + (resizeToPoint.y - (sb.y + strokeOrigin.bounds.height)) / strokeOrigin.bounds.height,
+          y: 1 + (resizeToPoint.y - (sb.y + sb.height)) / sb.height,
         },
       },
       {
         direction: ResizeDirection.West,
         transformOrigin: {
-          x: sb.x + strokeOrigin.bounds.width,
-          y: sb.y + strokeOrigin.bounds.height / 2,
+          x: sb.x + sb.width,
+          y: sb.y + sb.height / 2,
         },
         scale: {
-          x: 1 + (sb.x - resizeToPoint.x) / strokeOrigin.bounds.width,
+          x: 1 + (sb.x - resizeToPoint.x) / sb.width,
           y: 1,
         },
       },
@@ -298,22 +291,22 @@ describe("IIResizeManager.ts", () => {
         direction: ResizeDirection.NorthEast,
         transformOrigin: {
           x: sb.x,
-          y: sb.y + strokeOrigin.bounds.height,
+          y: sb.y + sb.height,
         },
         scale: {
-          x: 1 + (resizeToPoint.x - (sb.x + strokeOrigin.bounds.width)) / strokeOrigin.bounds.width,
-          y: 1 + (sb.y - resizeToPoint.y) / strokeOrigin.bounds.height,
+          x: 1 + (resizeToPoint.x - (sb.x + sb.width)) / sb.width,
+          y: 1 + (sb.y - resizeToPoint.y) / sb.height,
         },
       },
       {
         direction: ResizeDirection.NorthWest,
         transformOrigin: {
-          x: sb.x + strokeOrigin.bounds.width,
-          y: sb.y + strokeOrigin.bounds.height,
+          x: sb.x + sb.width,
+          y: sb.y + sb.height,
         },
         scale: {
-          x: 1 + (sb.x - resizeToPoint.x) / strokeOrigin.bounds.width,
-          y: 1 + (sb.y - resizeToPoint.y) / strokeOrigin.bounds.height,
+          x: 1 + (sb.x - resizeToPoint.x) / sb.width,
+          y: 1 + (sb.y - resizeToPoint.y) / sb.height,
         },
       },
       {
@@ -323,19 +316,19 @@ describe("IIResizeManager.ts", () => {
           y: sb.y,
         },
         scale: {
-          x: 1 + (resizeToPoint.x - (sb.x + strokeOrigin.bounds.width)) / strokeOrigin.bounds.width,
-          y: 1 + (resizeToPoint.y - (sb.y + strokeOrigin.bounds.height)) / strokeOrigin.bounds.height,
+          x: 1 + (resizeToPoint.x - (sb.x + sb.width)) / sb.width,
+          y: 1 + (resizeToPoint.y - (sb.y + sb.height)) / sb.height,
         },
       },
       {
         direction: ResizeDirection.SouthWest,
         transformOrigin: {
-          x: sb.x + strokeOrigin.bounds.width,
+          x: sb.x + sb.width,
           y: sb.y,
         },
         scale: {
-          x: 1 + (sb.x - resizeToPoint.x) / strokeOrigin.bounds.width,
-          y: 1 + (resizeToPoint.y - (sb.y + strokeOrigin.bounds.height)) / strokeOrigin.bounds.height,
+          x: 1 + (sb.x - resizeToPoint.x) / sb.width,
+          y: 1 + (resizeToPoint.y - (sb.y + sb.height)) / sb.height,
         },
       },
     ]
@@ -355,37 +348,27 @@ describe("IIResizeManager.ts", () => {
       test(`should start with direction: "${data.direction}" `, () => {
         manager.start(resizeElement, data.transformOrigin)
         expect(manager.interactElementsGroup).toEqual(group)
-        expect(manager.boundingBox).toEqual(OBBOps.toBox(strokeOrigin.bounds))
+        expect(manager.boundingBox).toEqual(OBBOps.toBox(SymbolGeometry.boundsOf(strokeOrigin)))
         expect(manager.direction).toEqual(data.direction)
         expect(manager.transformOrigin).toEqual(data.transformOrigin)
-        expect(canvas.renderer.setAttribute).toHaveBeenNthCalledWith(
-          1,
-          group.id,
-          "transform-origin",
-          `${data.transformOrigin.x}px ${data.transformOrigin.y}px`
-        )
-        expect(canvas.renderer.setAttribute).toHaveBeenNthCalledWith(
-          2,
-          strokeOrigin.id,
-          "transform-origin",
-          `${data.transformOrigin.x}px ${data.transformOrigin.y}px`
-        )
+        // `start` no longer writes anything to the DOM. It used to set `transform-origin` on the
+        // group and on every selected symbol, which cannot survive alongside a stored matrix: that
+        // attribute applies to the whole transform list, so it would displace the symbol's own
+        // matrix as well as the gesture's. The live matrix carries `transformOrigin` itself instead.
+        expect(canvas.renderer.setAttribute).not.toHaveBeenCalled()
         expect(canvas.startOperation).toHaveBeenCalledWith("Resizing")
       })
       test(`shoud continu with direction: "${data.direction}"`, () => {
         expect(manager.continue(resizeToPoint)).toEqual({ scaleX: data.scale.x, scaleY: data.scale.y })
-        expect(canvas.renderer.setAttribute).toHaveBeenNthCalledWith(
-          1,
-          group.id,
-          "transform",
-          `scale(${data.scale.x},${data.scale.y})`
-        )
-        expect(canvas.renderer.setAttribute).toHaveBeenNthCalledWith(
-          2,
-          strokeOrigin.id,
-          "transform",
-          `scale(${data.scale.x},${data.scale.y})`
-        )
+        // A full `matrix(...)` rather than `scale(sx,sy)`: it has to compose with the matrix a symbol
+        // already carries, and a bare `scale` would replace it. `strokeOrigin`'s own matrix is the
+        // identity here, so both writes come out the same — the composition itself is pinned by the
+        // "keeps the matrix a symbol already carries" test below.
+        const live = MatrixTransform.identity()
+          .scale(data.scale.x, data.scale.y, data.transformOrigin)
+          .toCssString()
+        expect(canvas.renderer.setAttribute).toHaveBeenNthCalledWith(1, group.id, "transform", live)
+        expect(canvas.renderer.setAttribute).toHaveBeenNthCalledWith(2, strokeOrigin.id, "transform", live)
       })
       test(`shoud end with direction: "${data.direction}"`, async () => {
         const endPromise = manager.end(resizeToPoint)
@@ -393,8 +376,12 @@ describe("IIResizeManager.ts", () => {
         await endPromise
         const newStroke = canvas.model.getRootSymbol(strokeOrigin.id) as TStroke
         expect(manager.applyToSymbol).toHaveBeenCalledTimes(1)
-        expect(canvas.renderer.drawSymbol).toHaveBeenCalledTimes(1)
-        expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(newStroke)
+        // Committing a transform rewrites the element's `transform` attribute instead of rebuilding
+        // it through `drawSymbol` (task 12) - the final geometry reaches the renderer as an
+        // untouched `setSymbolTransform` call, not a `drawSymbol` one.
+        expect(canvas.renderer.drawSymbol).not.toHaveBeenCalled()
+        expect(canvas.renderer.setSymbolTransform).toHaveBeenCalledTimes(1)
+        expect(canvas.renderer.setSymbolTransform).toHaveBeenCalledWith(newStroke)
         expect(canvas.client.transformScale).toHaveBeenCalledTimes(1)
         expect(canvas.client.transformScale).toHaveBeenCalledWith(
           [strokeOrigin.id],
@@ -405,6 +392,49 @@ describe("IIResizeManager.ts", () => {
         )
         expect(strokeOrigin).not.toEqual(newStroke)
       })
+    })
+  })
+
+  /**
+   * IIC-1999. The drag preview used to write the gesture's transform alone, which replaced whatever
+   * the element already carried — so a symbol moved before snapped back to its raw coordinates for
+   * the length of the drag and jumped into place on release. Before this epic only a rotated typeset
+   * carried a baked transform; now every moved symbol does.
+   */
+  describe("the preview keeps the matrix a symbol already carries", () => {
+    test("composes the gesture onto the stored matrix rather than replacing it", () => {
+      const canvas = createCanvasMock()
+      const stroke = buildIIStroke()
+      // Already moved 100 to the right, as a previous committed translate would have left it.
+      stroke.transform = MatrixTransform.identity().translate(100, 0)
+      canvas.model.addSymbol(stroke)
+      canvas.model.selectSymbol(stroke.id)
+
+      const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
+      group.setAttribute("id", "already-moved-group")
+      group.setAttribute("role", SvgElementRole.InteractElementsGroup)
+      const target = document.createElementNS("http://www.w3.org/2000/svg", "circle")
+      target.setAttribute("resize-direction", ResizeDirection.East)
+      group.appendChild(target)
+
+      const manager = new IIResizeManager(asCanvas(canvas))
+      manager.start(target, { x: 0, y: 0 })
+      // Driven straight in rather than derived from a pointer position: this test is about the
+      // composition, and `continue`'s scale arithmetic is covered above.
+      manager.boundingBox = { x: 0, y: 0, width: 10, height: 10 }
+      manager.transformOrigin = { x: 0, y: 0 }
+      manager.keepRatio = false
+      manager.continue({ x: 20, y: 10 })
+
+      const written = (canvas.renderer.setAttribute as jest.Mock).mock.calls.find(
+        ([id, name]) => id === stroke.id && name === "transform"
+      )
+      // Hand-computed, not read back from the code under test. Dragging the east handle from x=10 to
+      // x=20 over a 10-wide box gives scaleX = 1 + 10/10 = 2 and scaleY = 1, so the live matrix about
+      // the origin is {xx:2, yx:0, xy:0, yy:1, tx:0, ty:0}; the stored translate is {1,0,0,1,100,0}.
+      // Their product live*stored has tx = 2*100 = 200 — the symbol's own offset scaled by the
+      // gesture. Replacing instead of composing would write "matrix(2, 0, 0, 1, 0, 0)" and lose it.
+      expect(written?.[2]).toBe("matrix(2, 0, 0, 1, 200, 0)")
     })
   })
 
@@ -434,11 +464,19 @@ describe("IIResizeManager.ts", () => {
       canvas.model.addSymbol(stroke)
       canvas.model.selectSymbol(stroke.id)
 
-      const sb = OBBOps.toBox(stroke.bounds)
-      manager.start(setupTarget(), { x: sb.x, y: sb.y + stroke.bounds.height / 2 })
-      manager.continue({ x: sb.x + stroke.bounds.width * 2, y: sb.y + stroke.bounds.height / 2 })
+      const sb = OBBOps.toBox(SymbolGeometry.boundsOf(stroke))
+      manager.start(setupTarget(), { x: sb.x, y: sb.y + sb.height / 2 })
+      manager.continue({ x: sb.x + sb.width * 2, y: sb.y + sb.height / 2 })
 
-      expect(canvas.renderer.setAttribute).toHaveBeenCalledWith("ghost-1", "transform", expect.stringContaining("scale("))
+      // The ghost must follow with the *same* transform the selection got, not merely with some
+      // scale: it previews the block the selection belongs to, so any divergence shows on screen as
+      // the ghost drifting away from the strokes it shadows. Compared against the write the selected
+      // stroke received rather than a hard-coded string — the property that actually matters.
+      const calls = (canvas.renderer.setAttribute as jest.Mock).mock.calls
+      const selectionWrite = calls.find(([id, name]) => id === stroke.id && name === "transform")
+      const ghostWrite = calls.find(([id, name]) => id === "ghost-1" && name === "transform")
+      expect(selectionWrite?.[2]).toEqual(expect.stringContaining("matrix("))
+      expect(ghostWrite?.[2]).toBe(selectionWrite?.[2])
     })
 
     test("end() permanently applies the matrix to the block's ghost strokes", async () => {
@@ -450,9 +488,9 @@ describe("IIResizeManager.ts", () => {
       canvas.model.addSymbol(stroke)
       canvas.model.selectSymbol(stroke.id)
 
-      const sb = OBBOps.toBox(stroke.bounds)
-      manager.start(setupTarget(), { x: sb.x, y: sb.y + stroke.bounds.height / 2 })
-      await manager.end({ x: sb.x + stroke.bounds.width * 2, y: sb.y + stroke.bounds.height / 2 })
+      const sb = OBBOps.toBox(SymbolGeometry.boundsOf(stroke))
+      manager.start(setupTarget(), { x: sb.x, y: sb.y + sb.height / 2 })
+      await manager.end({ x: sb.x + sb.width * 2, y: sb.y + sb.height / 2 })
 
       expect(canvas.math.applyTransformToGhostStrokes).toHaveBeenCalledWith("block-1", expect.anything())
     })
@@ -481,19 +519,18 @@ describe("IIResizeManager.ts", () => {
       ]
       edgeStrokeOrigin.jiixBlockType = "Edge"
       edgeStrokeOrigin.endAnchor = { symbolId: shape.id, normalizedX: 1, normalizedY: 0.5 }
-      StrokeOps.updateBounds(edgeStrokeOrigin)
       canvas.model.addSymbol(edgeStrokeOrigin)
       const originalPointers = edgeStrokeOrigin.pointers.map((p) => ({ ...p }))
 
-      const sb = OBBOps.toBox(shape.bounds)
+      const sb = OBBOps.toBox(SymbolGeometry.boundsOf(shape))
       const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
       group.setAttribute("role", SvgElementRole.InteractElementsGroup)
       const resizeElement = document.createElementNS("http://www.w3.org/2000/svg", "line")
       resizeElement.setAttribute("resize-direction", ResizeDirection.East)
       group.appendChild(resizeElement)
 
-      const transformOrigin: TPoint = { x: sb.x, y: sb.y + shape.bounds.height / 2 }
-      const resizeToPoint: TPoint = { x: sb.x + shape.bounds.width * 2, y: sb.y + shape.bounds.height / 2 }
+      const transformOrigin: TPoint = { x: sb.x, y: sb.y + sb.height / 2 }
+      const resizeToPoint: TPoint = { x: sb.x + sb.width * 2, y: sb.y + sb.height / 2 }
 
       manager.start(resizeElement, transformOrigin)
       const { scaleX, scaleY } = manager.continue(resizeToPoint)
@@ -539,18 +576,17 @@ describe("IIResizeManager.ts", () => {
       ]
       edgeStroke.jiixBlockType = "Edge"
       edgeStroke.endAnchor = { symbolId: shape.id, normalizedX: 1, normalizedY: 0.5 }
-      StrokeOps.updateBounds(edgeStroke)
       canvas.model.addSymbol(edgeStroke)
 
-      const sb = OBBOps.toBox(shape.bounds)
+      const sb = OBBOps.toBox(SymbolGeometry.boundsOf(shape))
       const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
       group.setAttribute("role", SvgElementRole.InteractElementsGroup)
       const resizeElement = document.createElementNS("http://www.w3.org/2000/svg", "line")
       resizeElement.setAttribute("resize-direction", ResizeDirection.East)
       group.appendChild(resizeElement)
 
-      const transformOrigin: TPoint = { x: sb.x, y: sb.y + shape.bounds.height / 2 }
-      const resizeToPoint: TPoint = { x: sb.x + shape.bounds.width * 2, y: sb.y + shape.bounds.height / 2 }
+      const transformOrigin: TPoint = { x: sb.x, y: sb.y + sb.height / 2 }
+      const resizeToPoint: TPoint = { x: sb.x + sb.width * 2, y: sb.y + sb.height / 2 }
 
       manager.start(resizeElement, transformOrigin)
       await manager.end(resizeToPoint)
@@ -583,19 +619,18 @@ describe("IIResizeManager.ts", () => {
       ]
       edgeStroke.jiixBlockType = "Edge"
       edgeStroke.endAnchor = { symbolId: shape.id, normalizedX: 1, normalizedY: 0.5 }
-      StrokeOps.updateBounds(edgeStroke)
       canvas.model.addSymbol(edgeStroke)
       const originalPointers = edgeStroke.pointers.map((p) => ({ ...p }))
 
-      const sb = OBBOps.toBox(shape.bounds)
+      const sb = OBBOps.toBox(SymbolGeometry.boundsOf(shape))
       const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
       group.setAttribute("role", SvgElementRole.InteractElementsGroup)
       const resizeElement = document.createElementNS("http://www.w3.org/2000/svg", "line")
       resizeElement.setAttribute("resize-direction", ResizeDirection.East)
       group.appendChild(resizeElement)
 
-      const transformOrigin: TPoint = { x: sb.x, y: sb.y + shape.bounds.height / 2 }
-      const resizeToPoint: TPoint = { x: sb.x + shape.bounds.width * 2, y: sb.y + shape.bounds.height / 2 }
+      const transformOrigin: TPoint = { x: sb.x, y: sb.y + sb.height / 2 }
+      const resizeToPoint: TPoint = { x: sb.x + sb.width * 2, y: sb.y + sb.height / 2 }
 
       manager.start(resizeElement, transformOrigin)
       await manager.end(resizeToPoint)
@@ -607,89 +642,35 @@ describe("IIResizeManager.ts", () => {
       expect(sentIds).not.toContain(newEdgeStroke.id)
       expect(canvas.client.replaceStrokes).toHaveBeenCalledWith([newEdgeStroke.id], [newEdgeStroke])
 
-      // History needs a PRE-transform snapshot of the followed stroke, else undo can't restore
-      // it — but since a gradient shift isn't a uniform scale, it lives in `updated`, not the
-      // `scale` entry's own inverse-matrix-replay symbol list.
+      // History needs a PRE-transform snapshot of the followed stroke, else undo cannot restore it.
+      // Every change is a before/after pair now, so the gradient-shifted stroke and the resized
+      // selection sit in the same list.
       const changes = (canvas.history.push as jest.Mock).mock.calls[0][0] as {
-        scale: { symbols: TStroke[] }[]
-        updated?: { oldSymbols: TStroke[]; newSymbols: TStroke[] }
+        updated?: { before: TStroke; after: TStroke }[]
       }
-      expect(changes.scale[0].symbols.find((s) => s.id === newEdgeStroke.id)).toBeUndefined()
-      const oldSnapshot = changes.updated?.oldSymbols.find((s) => s.id === newEdgeStroke.id)
-      expect(oldSnapshot).toBeDefined()
-      expect(oldSnapshot!.pointers).toEqual(originalPointers)
-      expect(changes.updated?.newSymbols.find((s) => s.id === newEdgeStroke.id)).toStrictEqual(newEdgeStroke)
+      const pair = changes.updated?.find((entry) => entry.before.id === newEdgeStroke.id)
+      expect(pair).toBeDefined()
+      expect(pair!.before.pointers).toEqual(originalPointers)
+      expect(pair!.after).toStrictEqual(newEdgeStroke)
+      // And the resized symbol's own pair is still there beside it. Two sources feed one entry — the
+      // selection and the followed stroke — and they must be appended, not assigned: assigning
+      // `updated` twice keeps only the last writer, which would leave the symbols the user actually
+      // dragged with nothing to undo.
+      expect(changes.updated?.find((entry) => entry.before.id === shape.id)).toBeDefined()
     })
   })
-
-  /**
-   * IIC-2004 moved the derive out of each `case` and into one call after the switch, asking the
-   * symbol's own util instead of a family dispatcher that re-resolved the kind. Deleting that one
-   * call left every existing test in this file green, so these are what hold it.
-   */
-  describe("derived fields", () => {
-    const canvas = createCanvasMock()
-    const manager = new IIResizeManager(asCanvas(canvas))
-
-    test("should leave a resized circle derived-consistent", () => {
-      const circle = ShapeCircleOps.create({ x: 5, y: 5 }, 4)
-      manager.applyToSymbol(circle, MatrixTransform.identity().scale(2, 3, { x: 1, y: 2 }))
-      expectDerivedFieldsSettled(circle)
-    })
-
-    test("should leave a resized line derived-consistent", () => {
-      const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 10, y: 10 })
-      manager.applyToSymbol(line, MatrixTransform.identity().scale(2, 3, { x: 1, y: 2 }))
-      expectDerivedFieldsSettled(line)
-    })
   })
-
-  /**
-   * A resize by a third of a pixel: raw, every coordinate would keep seventeen decimals. IIC-2010
-   * put all thirteen of the managers' raw `applyToPoint` sites on the rounding helper, and nothing
-   * covered any of them — deleting the rounding outright left this whole file green.
-   *
-   * Each case names the geometry the transform writes. The derived fields are excluded on purpose:
-   * see `expectPointsRounded`.
-   */
-  describe("coordinate rounding", () => {
-    const canvas = createCanvasMock()
-    const manager = new IIResizeManager(asCanvas(canvas))
-
-    /** Each row names the geometry its own builder produced, so the narrowing is sound. */
-    const CASES: [string, () => TSymbol, (symbol: TSymbol) => TPoint[]][] = [
-      ["circle centre", () => ShapeCircleOps.create({ x: 5, y: 5 }, 4), (s) => [(s as TShapeCircle).center]],
-      [
-        "polygon points",
-        () =>
-          ShapePolygonOps.create([
-            { x: 0, y: 0 },
-            { x: 10, y: 0 },
-            { x: 10, y: 10 },
-          ]),
-        (s) => (s as TShapePolygon).points,
-      ],
-      [
-        "line endpoints",
-        () => EdgeLineOps.create({ x: 0, y: 0 }, { x: 10, y: 10 }),
-        (s) => [(s as TEdgeLine).start, (s as TEdgeLine).end],
-      ],
-      ["stroke pointers", () => buildIIStroke(), (s) => (s as TStroke).pointers],
-    ]
-
-    test.each(CASES)("%s should keep three decimals", (_name, build, stored) => {
-      const symbol = build()
-      manager.applyToSymbol(symbol, MatrixTransform.identity().scale(1 / 3, 1 / 3, { x: 1 / 3, y: 1 / 3 }))
-      expectPointsRounded(stored(symbol))
-    })
-  })
-})
 
 /**
  * Two resize cells that nothing covered: gutting either left this whole file green. IIC-2013 moved
  * them onto the utils, so they are pinned here.
  */
-describe("IIResizeManager, the two uncovered resize cells", () => {
+/**
+ * These three cells — an arc's mirrored start angle/sweep, math's font scaling — were the last
+ * per-type resize logic left, and Task 11 deleted all of it: resize composes the matrix now, for
+ * every type, and leaves the raw fields it used to rewrite by hand untouched.
+ */
+describe("IIResizeManager, resize composes the matrix instead of touching these fields", () => {
   const resize = (symbol: TSymbol, matrix: MatrixTransform, origin: TPoint) => {
     const canvas = createCanvasMock()
     const manager = new IIResizeManager(asCanvas(canvas))
@@ -697,35 +678,37 @@ describe("IIResizeManager, the two uncovered resize cells", () => {
     manager.applyToSymbol(symbol, matrix)
   }
 
-  test("mirroring an arc should re-base its start angle and reverse its sweep", () => {
-    // A negative x scale flips the arc. Its start angle is measured from the other side afterwards,
-    // and it sweeps the other way — drop either and the arc resizes into a different curve.
+  test("mirroring an arc no longer re-bases its start angle or reverses its sweep", () => {
     const arc = EdgeArcOps.create({ x: 50, y: 50 }, 0.5, 1.5, 30, 20, 0)
     const origin: TPoint = { x: 0, y: 0 }
-    resize(arc, MatrixTransform.identity().scale(-1, 1, origin), origin)
-    expect(arc.startAngle).toBeCloseTo(+(Math.PI - 0.5).toFixed(3), 6)
-    expect(arc.sweepAngle).toBeCloseTo(-1.5, 6)
+    const matrix = MatrixTransform.identity().scale(-1, 1, origin)
+    resize(arc, matrix, origin)
+    expect(arc.transform).toEqual(matrix)
+    expect(arc.startAngle).toBe(0.5)
+    expect(arc.sweepAngle).toBe(1.5)
   })
 
-  test("mirroring an arc vertically should only reverse the sweep", () => {
+  test("mirroring an arc vertically leaves it just as untouched", () => {
     const arc = EdgeArcOps.create({ x: 50, y: 50 }, 0.5, 1.5, 30, 20, 0)
     const origin: TPoint = { x: 0, y: 0 }
-    resize(arc, MatrixTransform.identity().scale(1, -1, origin), origin)
-    expect(arc.startAngle).toBeCloseTo(0.5, 6)
-    expect(arc.sweepAngle).toBeCloseTo(-1.5, 6)
+    const matrix = MatrixTransform.identity().scale(1, -1, origin)
+    resize(arc, matrix, origin)
+    expect(arc.transform).toEqual(matrix)
+    expect(arc.startAngle).toBe(0.5)
+    expect(arc.sweepAngle).toBe(1.5)
   })
 
-  test("resizing math should scale its element font sizes", () => {
-    // Text's font scaling was covered; math's was not, even though the two shared one method.
+  test("resizing math no longer scales its element font sizes by hand", () => {
+    // The matrix scales the glyphs at render time instead, which is also what makes the operation
+    // exactly reversible — hand-scaling a font size and rounding it to three decimals could not be.
     const math = buildIIMath()
     const before = math.elements.map((element) => element.fontSize)
     expect(before.length).toBeGreaterThan(0)
     const origin: TPoint = { x: 0, y: 0 }
-    resize(math, MatrixTransform.identity().scale(2, 4, origin), origin)
-    // The mean of the two axes, which is what a typeset symbol scales its glyphs by.
-    expect(math.elements.map((element) => element.fontSize)).toEqual(
-      before.map((size) => +(size * 3).toFixed(3))
-    )
+    const matrix = MatrixTransform.identity().scale(2, 4, origin)
+    resize(math, matrix, origin)
+    expect(math.transform).toEqual(matrix)
+    expect(math.elements.map((element) => element.fontSize)).toEqual(before)
   })
 })
 
@@ -752,7 +735,7 @@ describe("IIResizeManager aspect ratio locking", () => {
     const handle = document.createElementNS("http://www.w3.org/2000/svg", "line")
     handle.setAttribute("resize-direction", direction)
     group.appendChild(handle)
-    const box = BoxOps.createFromPoints(symbols.flatMap((s) => s.vertices))
+    const box = BoxOps.createFromPoints(symbols.flatMap((s) => SymbolGeometry.verticesOf(s)))
     manager.start(handle, { x: box.x, y: box.y })
     return { manager, box }
   }
@@ -814,5 +797,48 @@ describe("IIResizeManager aspect ratio locking", () => {
     const scales = manager.continue({ x: box.x + box.width * 2, y: box.y })
     expect(scales.scaleY).toBe(1)
     expect(scales.scaleX).not.toBe(1)
+  })
+})
+
+describe("start() — selection containing an unregistered symbol type", () => {
+  /**
+   * selectAll() (and any other bulk-select path) populates symbolsSelected with no registry
+   * check ahead of it — start()'s bounding-box scan AND its keepRatio check must both skip an
+   * unregistered symbol rather than throw, or the gesture never reaches end(), leaving
+   * startOperation("Resizing") stuck open for the rest of the session (endOperation only runs
+   * from end(), never from a throw in start()). Both guards share one filtered list, so this
+   * fails if either is removed.
+   */
+  test("does not throw, computing both the bounding box and keepRatio from the registered symbols only", () => {
+    const canvas = createCanvasMock()
+    const manager = new IIResizeManager(asCanvas(canvas))
+
+    const stroke = buildIIStroke({ box: { x: 0, y: 0, width: 10, height: 10 } })
+    canvas.model.addSymbol(stroke)
+    canvas.model.selectSymbol(stroke.id)
+
+    const orphan = {
+      ...(buildIIStroke({ box: { x: 1000, y: 1000, width: 10, height: 10 } }) as unknown as TBaseSymbol),
+      type: "no-such-type",
+      id: "orphan-1",
+    } as unknown as TSymbol
+    canvas.model.addSymbol(orphan)
+    canvas.model.selectSymbol(orphan.id)
+
+    const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
+    group.setAttribute("role", SvgElementRole.InteractElementsGroup)
+    const handle = document.createElementNS("http://www.w3.org/2000/svg", "line")
+    handle.setAttribute("resize-direction", ResizeDirection.East)
+    group.appendChild(handle)
+
+    expect(() => manager.start(handle, { x: 0, y: 0 })).not.toThrow()
+
+    // Bounding box comes only from the registered stroke (0,0,10,10) — the orphan at
+    // (1000,1000,10,10) must not have pulled it out toward that far corner.
+    expect(manager.boundingBox).toEqual({ x: 0, y: 0, width: 10, height: 10 })
+    // A plain stroke never requires a locked ratio — this is really just checking that
+    // keepRatio was computed at all (over the filtered list) rather than throwing before
+    // assigning it.
+    expect(manager.keepRatio).toBe(false)
   })
 })

@@ -1,7 +1,7 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import { ResizeDirection, SELECTION_MARGIN, SvgElementRole } from "@/Constants"
 import type { TBox, TPoint } from "@/core/geometry"
-import { BoxOps } from "@/core/geometry"
+import { applyInverseMatrixToPoint, BoxOps } from "@/core/geometry"
 import { OBBOps } from "@/core/geometry"
 import type { TDraft } from "@/core/std"
 import { RafCoalescer } from "@/dom"
@@ -10,10 +10,13 @@ import { PointerEventGrabber } from "@/grabber"
 import { LoggerCategory } from "@/logger"
 import { SVGBuilder } from "@/renderer"
 import type { TDecorator, TEdge, TEdgeArc, TStroke, TSymbol } from "@/symbol"
-import { EdgeKind, isDecorator, isRecognizedMath, isStroke, StrokeOps, SymbolType } from "@/symbol"
-import { EdgeArcOps, reprojectArcMidpoint, stretchArcEndpoint } from "@/symbol/edge/Arc"
+import { EdgeKind, isDecorator, isRecognizedMath, isStroke, SymbolType } from "@/symbol"
+import { reprojectArcMidpoint, stretchArcEndpoint } from "@/symbol/edge/Arc"
 import { EdgeOps } from "@/symbol/edge/Edge"
+import { EdgeLineOps } from "@/symbol/edge/Line"
+import { EdgePolyLineOps } from "@/symbol/edge/PolyLine"
 import { EdgeUtil } from "@/symbol-utils/edge/EdgeUtil"
+import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 
 import { IIAbstractManager } from "./IIAbstractManager"
@@ -422,9 +425,16 @@ export class IISelectionManager extends IIAbstractManager {
       return
     }
 
+    // Reachable from `selectAll()`, which selects every symbol in the model with no render or
+    // registry check ahead of it — a custom symbol type missing its util must not abort building
+    // the selection outline, so it's left out of the bounding box, mirroring this file's own
+    // silent-skip precedent for a document-wide scan (`continue`'s `getUtil(...)?.overlaps(...) ??
+    // false`).
+    const registeredSymbols = symbols.filter((s) => symbolRegistry.has(s.type))
+
     const box1 = BoxOps.createFromBoxes(
-      symbols.map((s) => {
-        const b = OBBOps.toBox(s.bounds)
+      registeredSymbols.map((s) => {
+        const b = OBBOps.toBox(SymbolGeometry.boundsOf(s))
         return {
           x: b.x - (s.style.width || 1),
           y: b.y - (s.style.width || 1),
@@ -434,7 +444,7 @@ export class IISelectionManager extends IIAbstractManager {
       })
     )
 
-    const box2 = BoxOps.createFromPoints(symbols.flatMap((s) => s.vertices))
+    const box2 = BoxOps.createFromPoints(registeredSymbols.flatMap((s) => SymbolGeometry.verticesOf(s)))
     const ghostBoxes = this.getGhostBoxesForSelectedMath(symbols)
     const box = BoxOps.createFromBoxes([box1, box2, ...ghostBoxes])
 
@@ -500,9 +510,26 @@ export class IISelectionManager extends IIAbstractManager {
       return draft && EdgeOps.isEdge(draft) ? (draft as TDraft<TEdge>) : undefined
     }
     const moveVertex = (draft: TDraft<TEdge>, pointIndex: number, x: number, y: number) => {
-      draft.vertices[pointIndex].x = x
-      draft.vertices[pointIndex].y = y
-      symbolRegistry.getUtilFor(draft).updateDerivedFields(draft)
+      // `x`/`y` are where the pointer is, in document coordinates; `draft.vertices` are the edge's
+      // own raw coordinates, which its matrix places. Writing the one into the other lands the vertex
+      // off by exactly that matrix — an already-moved edge jumped when a handle was dragged.
+      const raw = applyInverseMatrixToPoint({ x, y }, draft.transform)
+      if (!raw) {
+        // The edge is flattened to nothing on some axis, so no raw coordinate corresponds to where
+        // the pointer is. Nothing sensible to store; leave the edge as it stands.
+        return
+      }
+      // Written through the kind's own `moveVertex` rather than into a vertices array: a line's
+      // vertices are its `start`/`end` and a polyline's are its `points`, and mutating a computed
+      // array would take the write and discard it. An arc never reaches here — it has its own
+      // handles, bound by `bindArcEl` below.
+      if (EdgeOps.isLineEdge(draft)) {
+        EdgeLineOps.moveVertex(draft, pointIndex, raw)
+      } else if (EdgeOps.isPolyEdge(draft)) {
+        EdgePolyLineOps.moveVertex(draft, pointIndex, raw)
+      } else {
+        return
+      }
     }
     const bindEl = (el: SVGCircleElement, pointIndex: number) => {
       this.#bindPointerDrag(
@@ -548,6 +575,15 @@ export class IISelectionManager extends IIAbstractManager {
       }
       const bindArcEl = (el: SVGCircleElement, isStart: boolean, isEnd: boolean) => {
         const updateArc = (arc: TDraft<TEdgeArc>, x: number, y: number) => {
+          // Same frame mismatch as `moveVertex`: the pointer speaks document coordinates, the arc's
+          // centre, radii and endpoints are raw. Mapped back through the arc's own matrix before any
+          // of the three reshaping helpers below sees it, so each still works in one frame.
+          const raw = applyInverseMatrixToPoint({ x, y }, arc.transform)
+          if (!raw) {
+            return
+          }
+          x = raw.x
+          y = raw.y
           if (isStart) {
             // Free stretch: lets the ellipse resize to reach the dragged point, rather than
             // sliding the endpoint's angle around the existing (unchanged-size) ellipse.
@@ -572,7 +608,6 @@ export class IISelectionManager extends IIAbstractManager {
           const point = this.getPoint(ev)
           const { x, y } = this.canvas.snaps.snapResize(point)
           updateArc(draft, x, y)
-          EdgeArcOps.updateDerivedFields(draft)
           this.model.commitSymbol(draft)
           this.renderer.drawSymbol(draft)
           if (isStart || isEnd) {
@@ -594,13 +629,12 @@ export class IISelectionManager extends IIAbstractManager {
             const point = this.getPoint(ev)
             const { x, y } = this.canvas.snaps.snapResize(point)
             updateArc(draft, x, y)
-            EdgeArcOps.updateDerivedFields(draft)
             this.canvas.connector.clearAnchorHint()
             if (isStart || isEnd) {
-              // Recomputed fresh, not the vertexIndex captured before this drag: updateDerivedFields
+              // Recomputed fresh, not the vertexIndex captured before this drag
               // just re-tessellated the arc, and the vertex COUNT can change with the new radius/
               // sweep — a stale index could silently miss applyEndpointAnchor's own isEnd check.
-              const currentIndex = isStart ? 0 : draft.vertices.length - 1
+              const currentIndex = isStart ? 0 : SymbolGeometry.verticesOf(draft).length - 1
               this.canvas.connector.applyEndpointAnchor(draft, currentIndex, { x, y })
             }
             this.renderer.layer.style.cursor = ""
@@ -610,14 +644,17 @@ export class IISelectionManager extends IIAbstractManager {
           }
         )
       }
-      EdgeArcOps.getResizePoints(arc).forEach(({ point, vertexIndex }) => {
-        const initialVertexCount = arc.vertices.length
-        const isStart = vertexIndex === 0
-        const isEnd = vertexIndex === initialVertexCount - 1
-        const pointEl = SVGBuilder.createCircle(point, radius, attrs)
-        bindArcEl(pointEl, isStart, isEnd)
-        group.appendChild(pointEl)
-      })
+      symbolRegistry
+        .getUtilFor(edge)
+        .getResizePoints(edge)
+        .forEach(({ point, vertexIndex }) => {
+          const initialVertexCount = SymbolGeometry.verticesOf(arc).length
+          const isStart = vertexIndex === 0
+          const isEnd = vertexIndex === initialVertexCount - 1
+          const pointEl = SVGBuilder.createCircle(point, radius, attrs)
+          bindArcEl(pointEl, isStart, isEnd)
+          group.appendChild(pointEl)
+        })
     } else {
       symbolRegistry
         .getUtilFor(edge)
@@ -841,22 +878,22 @@ export class IISelectionManager extends IIAbstractManager {
           if (textSets && textSets.covered.has(stroke.id)) {
             shouldBeSelected = textSets.selected.has(stroke.id)
           } else {
-            shouldBeSelected = StrokeOps.overlaps(s, selectionBox)
+            shouldBeSelected = symbolRegistry.getUtilFor(stroke).overlaps(stroke, selectionBox)
           }
         } else if (stroke.jiixBlockType === "Math") {
           if (mathSets && mathSets.covered.has(stroke.id)) {
             shouldBeSelected = mathSets.selected.has(stroke.id)
           } else {
-            shouldBeSelected = StrokeOps.overlaps(s, selectionBox)
+            shouldBeSelected = symbolRegistry.getUtilFor(stroke).overlaps(stroke, selectionBox)
           }
         } else if (stroke.jiixBlockType === "Node" || stroke.jiixBlockType === "Edge") {
           if (shapeSets && shapeSets.covered.has(stroke.id)) {
             shouldBeSelected = shapeSets.selected.has(stroke.id)
           } else {
-            shouldBeSelected = StrokeOps.overlaps(s, selectionBox)
+            shouldBeSelected = symbolRegistry.getUtilFor(stroke).overlaps(stroke, selectionBox)
           }
         } else {
-          shouldBeSelected = StrokeOps.overlaps(s, selectionBox)
+          shouldBeSelected = symbolRegistry.getUtilFor(stroke).overlaps(stroke, selectionBox)
         }
       } else {
         shouldBeSelected = symbolRegistry.getUtil(s.type)?.overlaps(s, selectionBox) ?? false

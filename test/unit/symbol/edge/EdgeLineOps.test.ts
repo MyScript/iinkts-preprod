@@ -1,7 +1,10 @@
-import { EdgeLineOps, TPoint, DefaultStyle, TStyle, TBox, EdgeDecoration, OBBOps } from "@/iink"
+import { EdgeLineOps, TPoint, DefaultStyle, TStyle, TBox, EdgeDecoration, OBBOps, MatrixTransform } from "@/iink"
 
 describe("EdgeLineOps", () => {
   describe("create", () => {
+    test("should initialise transform to identity", () => {
+      expect(EdgeLineOps.create({ x: 0, y: 0 }, { x: 10, y: 10 }).transform).toEqual(MatrixTransform.identity())
+    })
     test("should create with default style", () => {
       const start: TPoint = { x: 0, y: 0 }
       const end: TPoint = { x: 10, y: 10 }
@@ -22,21 +25,21 @@ describe("EdgeLineOps", () => {
     })
     test("should compute 2 vertices", () => {
       const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 5, y: 5 })
-      expect(line.vertices).toHaveLength(2)
+      expect(EdgeLineOps.computeVertices(line)).toHaveLength(2)
     })
     test("vertices[0] same ref as start", () => {
       const start: TPoint = { x: 0, y: 0 }
       const end: TPoint = { x: 5, y: 5 }
       const line = EdgeLineOps.create(start, end)
-      expect(line.vertices[0]).toBe(line.start)
-      expect(line.vertices[1]).toBe(line.end)
+      expect(EdgeLineOps.computeVertices(line)[0]).toBe(line.start)
+      expect(EdgeLineOps.computeVertices(line)[1]).toBe(line.end)
     })
     test("should compute bounds with margin", () => {
       const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 5, y: 5 }, undefined, undefined, { width: 20 })
-      expect(OBBOps.toBox(line.bounds).x).toEqual(-5)
-      expect(OBBOps.toBox(line.bounds).y).toEqual(-5)
-      expect(line.bounds.width).toEqual(15)
-      expect(line.bounds.height).toEqual(15)
+      expect(OBBOps.toBox(EdgeLineOps.computeBounds(line, EdgeLineOps.computeVertices(line))).x).toEqual(-5)
+      expect(OBBOps.toBox(EdgeLineOps.computeBounds(line, EdgeLineOps.computeVertices(line))).y).toEqual(-5)
+      expect(EdgeLineOps.computeBounds(line, EdgeLineOps.computeVertices(line)).width).toEqual(15)
+      expect(EdgeLineOps.computeBounds(line, EdgeLineOps.computeVertices(line)).height).toEqual(15)
     })
     test("should generate unique ids", () => {
       const l1 = EdgeLineOps.create({ x: 0, y: 0 }, { x: 1, y: 1 })
@@ -52,6 +55,11 @@ describe("EdgeLineOps", () => {
       expect(line.start).toEqual(partial.start)
       expect(line.end).toEqual(partial.end)
     })
+    test("should carry a given transform through, merged onto identity", () => {
+      const partial = { start: { x: 0, y: 0 }, end: { x: 5, y: 5 }, transform: { tx: 5, ty: 6 } }
+      const line = EdgeLineOps.createFromPartial(partial)
+      expect(line.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 5, ty: 6 })
+    })
     test("should preserve id", () => {
       const partial = { id: "line-id", start: { x: 0, y: 0 }, end: { x: 5, y: 5 } }
       const line = EdgeLineOps.createFromPartial(partial)
@@ -62,16 +70,6 @@ describe("EdgeLineOps", () => {
     })
     test("should throw if end missing", () => {
       expect(() => EdgeLineOps.createFromPartial({ start: { x: 0, y: 0 } })).toThrow()
-    })
-  })
-
-  describe("updateDerivedFields", () => {
-    test("should recompute vertices and bounds after end change", () => {
-      const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 5, y: 5 })
-      line.end = { x: 50, y: 50 }
-      EdgeLineOps.updateDerivedFields(line)
-      expect(line.vertices[1]).toBe(line.end)
-      expect(line.bounds.width).toBeGreaterThan(20)
     })
   })
 

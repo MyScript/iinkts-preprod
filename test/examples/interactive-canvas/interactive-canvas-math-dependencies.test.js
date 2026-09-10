@@ -48,7 +48,10 @@ const writeSourceThenDependent = async (page) => {
     writeStrokes(page, dependentStrokes),
   ])
   await callCanvasIdle(page)
-  const jiix = await pollJiix(page, 2)
+  // Two blocks means two recognition round-trips, and the second one is the slower of the two
+  // (the dependent expression is longer): the default 8s budget has been seen running out on
+  // Safari in CI while the export still held a single block.
+  const jiix = await pollJiix(page, 2, 20000)
 
   const sourceId = await getBlockIdByLabel(page, jiix, SOURCE_LABEL)
   const dependentId = jiix.elements.map((e) => e.id).find((id) => id !== sourceId)

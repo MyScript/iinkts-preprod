@@ -1,14 +1,17 @@
-import { StrokeOps, DefaultStyle, TStyle, TPointer, OBBOps } from "@/iink"
+import { StrokeOps, DefaultStyle, TStyle, TPointer, OBBOps, MatrixTransform } from "@/iink"
 
 describe("StrokeOps", () => {
   describe("create", () => {
+    test("should initialise transform to identity", () => {
+      expect(StrokeOps.create().transform).toEqual(MatrixTransform.identity())
+    })
     test("should create with default style", () => {
       const stroke = StrokeOps.create()
       expect(stroke.style).toEqual(DefaultStyle)
       expect(stroke.pointerType).toEqual("pen")
       expect(stroke.pointers).toHaveLength(0)
       expect(stroke.length).toEqual(0)
-      expect(OBBOps.toBox(stroke.bounds)).toEqual({ x: 0, y: 0, width: 0, height: 0 })
+      expect(OBBOps.toBox(StrokeOps.computeBounds(stroke))).toEqual({ x: 0, y: 0, width: 0, height: 0 })
     })
     test("should create with custom style", () => {
       const style: TStyle = { color: "blue", width: 20 }
@@ -34,7 +37,7 @@ describe("StrokeOps", () => {
     })
     test("vertices should be same reference as pointers", () => {
       const stroke = StrokeOps.create()
-      expect(stroke.vertices).toBe(stroke.pointers)
+      expect(StrokeOps.computeVertices(stroke)).toBe(stroke.pointers)
     })
   })
 
@@ -67,10 +70,10 @@ describe("StrokeOps", () => {
       const stroke = StrokeOps.create(DefaultStyle)
       StrokeOps.addPointer(stroke, { p: 1, t: 1, x: 1, y: 1 })
       StrokeOps.addPointer(stroke, { p: 1, t: 2, x: 11, y: 11 })
-      expect(OBBOps.toBox(stroke.bounds).x).toEqual(1)
-      expect(OBBOps.toBox(stroke.bounds).y).toEqual(1)
-      expect(stroke.bounds.width).toEqual(10)
-      expect(stroke.bounds.height).toEqual(10)
+      expect(OBBOps.toBox(StrokeOps.computeBounds(stroke)).x).toEqual(1)
+      expect(OBBOps.toBox(StrokeOps.computeBounds(stroke)).y).toEqual(1)
+      expect(StrokeOps.computeBounds(stroke).width).toEqual(10)
+      expect(StrokeOps.computeBounds(stroke).height).toEqual(10)
     })
   })
 
@@ -79,16 +82,14 @@ describe("StrokeOps", () => {
       const stroke = StrokeOps.create()
       stroke.pointers.push({ p: 1, t: 1, x: 5, y: 10 })
       stroke.pointers.push({ p: 1, t: 2, x: 15, y: 20 })
-      StrokeOps.updateBounds(stroke)
-      expect(OBBOps.toBox(stroke.bounds)).toEqual({ x: 5, y: 10, width: 10, height: 10 })
+      expect(OBBOps.toBox(StrokeOps.computeBounds(stroke))).toEqual({ x: 5, y: 10, width: 10, height: 10 })
     })
     test("should compute edges from pointers", () => {
       const stroke = StrokeOps.create()
       stroke.pointers.push({ p: 1, t: 1, x: 0, y: 0 })
       stroke.pointers.push({ p: 1, t: 2, x: 10, y: 10 })
       stroke.pointers.push({ p: 1, t: 3, x: 20, y: 20 })
-      StrokeOps.updateBounds(stroke)
-      expect(stroke.edges).toHaveLength(2)
+      expect(StrokeOps.computeEdges(stroke)).toHaveLength(2)
     })
   })
 
@@ -160,6 +161,14 @@ describe("StrokeOps", () => {
       }
       const stroke = StrokeOps.createFromPartial(partial)
       expect(stroke.pointers[0]).toEqual(expect.objectContaining({ x: 10, y: 20 }))
+    })
+    test("should carry a given transform through, merged onto identity", () => {
+      const partial = {
+        pointers: [{ x: 10, y: 20, t: 1, p: 0.5 }],
+        transform: { tx: 5, ty: 6 },
+      }
+      const stroke = StrokeOps.createFromPartial(partial)
+      expect(stroke.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 5, ty: 6 })
     })
     test("should preserve id if provided", () => {
       const partial = {

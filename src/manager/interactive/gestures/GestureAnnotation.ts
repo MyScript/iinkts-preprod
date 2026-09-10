@@ -3,10 +3,10 @@ import type { TBox } from "@/core/geometry"
 import { OBBOps, type TOBB } from "@/core/geometry"
 import type { TDraft } from "@/core/std"
 import type { TIIHistoryChanges } from "@/history"
-import type { TStyle } from "@/style"
 import type { DecoratorKind, TDecorator, TStroke, TText } from "@/symbol"
 import { isDecorator, isRecognizedText, isStroke, isText, SymbolType, type TSymbol } from "@/symbol"
 import { DecoratorOps } from "@/symbol/decorator/Decorator"
+import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 
 /**
  * Unified representation of a gesture's intent on a set of target strokes.
@@ -38,10 +38,8 @@ export class IIGestureAnnotationProcessor {
         await this.canvas.removeSymbols(ids)
         return undefined
       case "thicken": {
-        const { oldStyles, newSymbols } = this.#applyThicken(ids, annotation.factor)
-        return newSymbols.length
-          ? { style: { symbols: newSymbols, oldStyles, newStyles: newSymbols.map((s) => ({ ...s.style })) } }
-          : undefined
+        const updated = this.#applyThicken(ids, annotation.factor)
+        return updated.length ? { updated } : undefined
       }
       case "select":
         this.#applySelect(ids)
@@ -154,12 +152,15 @@ export class IIGestureAnnotationProcessor {
       erased.push(existing)
     } else {
       const decorator = DecoratorOps.create(kind, this.canvas.penStyle, targetIds)
+      // The recognizer's own word box when JIIX has answered, the union of the targets' boxes
+      // otherwise. Not interchangeable: a word box is tighter than the union of its strokes, and
+      // neither can be recomputed from the decorator, which stores no coordinates of its own.
       if (wordBounds) {
-        DecoratorOps.setBounds(decorator, OBBOps.fromBox(wordBounds))
+        DecoratorOps.setTargetBounds(decorator, OBBOps.fromBox(wordBounds))
       } else {
         const bounds = this.#computeBoundsFromTargets(targetIds)
         if (bounds) {
-          DecoratorOps.setBounds(decorator, bounds)
+          DecoratorOps.setTargetBounds(decorator, bounds)
         }
       }
       if (baseline !== null) {
@@ -203,12 +204,19 @@ export class IIGestureAnnotationProcessor {
     if (!syms.length) {
       return null
     }
-    return OBBOps.createFromOBBs(syms.map((s) => s.bounds))
+    return OBBOps.createFromOBBs(syms.map((s) => SymbolGeometry.boundsOf(s)))
   }
 
-  #applyThicken(ids: string[], factor: number): { oldStyles: TStyle[]; newSymbols: TStroke[] } {
-    const newSymbols: TStroke[] = []
-    const oldStyles: TStyle[] = []
+  /**
+   * Returns the before/after pairs the history wants.
+   *
+   * `after` is re-read from the document rather than taken from `before`: `updateSymbolsStyle`
+   * commits a draft, so the record the loop started with is the pre-change one. The code this
+   * replaces recorded that same stale object as the *new* symbol, which made a thicken undo restore
+   * the value it was already at.
+   */
+  #applyThicken(ids: string[], factor: number): { before: TSymbol; after: TSymbol }[] {
+    const updated: { before: TSymbol; after: TSymbol }[] = []
     const seen = new Set<string>()
     for (const id of ids) {
       const sym = this.canvas.model.getRootSymbol(id)
@@ -216,13 +224,15 @@ export class IIGestureAnnotationProcessor {
         continue
       }
       seen.add(sym.id)
-      const stroke = sym as TStroke
-      oldStyles.push({ ...stroke.style })
-      const newWidth = (stroke.style.width || 1) * factor
-      this.canvas.updateSymbolsStyle([stroke.id], { width: newWidth }, false)
-      newSymbols.push(stroke)
+      const before = sym as TStroke
+      const newWidth = (before.style.width || 1) * factor
+      this.canvas.updateSymbolsStyle([before.id], { width: newWidth }, false)
+      const after = this.canvas.model.getRootSymbol(before.id)
+      if (after) {
+        updated.push({ before, after })
+      }
     }
-    return { oldStyles, newSymbols }
+    return updated
   }
 
   #applySelect(ids: string[]): void {

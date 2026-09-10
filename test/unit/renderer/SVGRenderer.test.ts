@@ -15,10 +15,10 @@ import {
   TBaseSymbol,
   TPartialDeep,
   TPoint,
-  TResizeContext,
-  TRotateContext,
-  TTranslateContext,
+  TTransformContext,
+  TSymbolGeometry,
   applyMatrixToPoint,
+  MatrixTransform,
 } from "@/iink"
 
 beforeAll(() => {
@@ -455,6 +455,26 @@ describe("SVGRenderer.ts", () => {
   describe("virtualization (viewport culling)", () => {
     const farAwayBox: TBox = { x: 10000, y: 10000, width: 10, height: 10 }
 
+    test("culls a symbol by its computed bounds, not by a field it carries", () => {
+      const divElement: HTMLDivElement = document.createElement("div")
+      const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
+      renderer.init(divElement)
+
+      const stroke = StrokeOps.createFromPartial({
+        pointers: [
+          { x: 100000, y: 100000, t: 0, p: 1 },
+          { x: 100010, y: 100010, t: 1, p: 1 },
+        ],
+      })
+      // A bounds field that disagrees with the pointers: the renderer must trust the computed
+      // geometry, not this stale/tampered field.
+      Object.assign(stroke, { bounds: OBBOps.create({ x: 0, y: 0 }, 10, 10) })
+
+      renderer.drawSymbol(stroke)
+
+      expect(renderer.getElementById(stroke.id)?.parentNode).toBeNull()
+    })
+
     test("should not append an off-screen symbol's element to the DOM", () => {
       const divElement: HTMLDivElement = document.createElement("div")
       const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
@@ -497,7 +517,6 @@ describe("SVGRenderer.ts", () => {
         pointer.x += 40
         pointer.y += 25
       })
-      StrokeOps.updateBounds(moved)
       renderer.drawSymbol(moved)
 
       renderer.setViewBox(farAwayBox.x, farAwayBox.y, 400, 400)
@@ -594,6 +613,113 @@ describe("SVGRenderer.ts", () => {
     })
   })
 
+  describe("setSymbolTransform", () => {
+    test("rewrites the transform attribute on the same element instead of replacing it", () => {
+      const divElement: HTMLDivElement = document.createElement("div")
+      const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
+      renderer.init(divElement)
+
+      const stroke = StrokeOps.createFromPartial({
+        pointers: [
+          { x: 0, y: 0, t: 0, p: 1 },
+          { x: 10, y: 10, t: 1, p: 1 },
+        ],
+      })
+      renderer.drawSymbol(stroke)
+      const element = renderer.getElementById(stroke.id)
+
+      const moved = { ...stroke, transform: MatrixTransform.identity().translate(5, 5) }
+      renderer.setSymbolTransform(moved)
+
+      // Same node (not a rebuild) - a `replaceWith` would leave `element` detached and
+      // `getElementById` pointing at a different node.
+      expect(renderer.getElementById(stroke.id)).toBe(element)
+      // Pinned to the exact value, not merely "changed": `matrix(1, 0, 0, 1, 5, 5)` is the CSS
+      // rendering of the identity matrix translated by (5, 5), computed from `MatrixTransform`'s
+      // own `xx, yx, xy, yy, tx, ty` field order - not by running `setSymbolTransform` itself.
+      expect(element?.getAttribute("transform")).toBe("matrix(1, 0, 0, 1, 5, 5)")
+    })
+
+    test("draws the symbol when it is not tracked at all", () => {
+      const divElement: HTMLDivElement = document.createElement("div")
+      const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
+      renderer.init(divElement)
+
+      // A non-identity transform, so the fallback `drawSymbol` is forced to write the attribute
+      // (a stroke element omits it entirely for the identity matrix) - proof this went through the
+      // normal draw path rather than a no-op.
+      const stroke = StrokeOps.createFromPartial({
+        pointers: [
+          { x: 0, y: 0, t: 0, p: 1 },
+          { x: 10, y: 10, t: 1, p: 1 },
+        ],
+        transform: MatrixTransform.identity().translate(3, 4),
+      })
+      // Never drawn before, so nothing is tracked under this id yet.
+      renderer.setSymbolTransform(stroke)
+
+      const el = renderer.getElementById(stroke.id)
+      expect(el).not.toBeNull()
+      expect(el?.parentNode).toBe(renderer.layer)
+      expect(el?.getAttribute("transform")).toBe("matrix(1, 0, 0, 1, 3, 4)")
+    })
+
+    test("refreshes the tracked bounds, so a stale record does not resurrect the element at its old address", () => {
+      const divElement: HTMLDivElement = document.createElement("div")
+      const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
+      renderer.init(divElement)
+
+      const stroke = StrokeOps.createFromPartial({
+        pointers: [
+          { x: 0, y: 0, t: 0, p: 1 },
+          { x: 10, y: 10, t: 1, p: 1 },
+        ],
+      })
+      renderer.drawSymbol(stroke)
+      expect(renderer.getElementById(stroke.id)?.parentNode).toBe(renderer.layer)
+
+      // Moved far outside the (0, 0, 400, 400) viewBox and its virtualization margin.
+      const moved = { ...stroke, transform: MatrixTransform.identity().translate(1e6, 1e6) }
+      renderer.setSymbolTransform(moved)
+      expect(renderer.getElementById(stroke.id)?.parentNode).toBeNull()
+
+      // Re-apply the *same* viewBox: this only re-runs `#reconcileVirtualization`, it does not
+      // change what is in view. If the tracked bounds had not been refreshed above, reconciliation
+      // would still see the original (0, 0)-(10, 10) bounds, find them inside the viewBox, and
+      // re-attach the element right back where it is no longer drawn.
+      renderer.setViewBox(0, 0, 400, 400)
+
+      expect(renderer.getElementById(stroke.id)?.parentNode).toBeNull()
+    })
+
+    test("carries a pending redraw's matrix forward instead of writing onto the element it will discard", () => {
+      const divElement: HTMLDivElement = document.createElement("div")
+      const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
+      renderer.init(divElement)
+
+      const farAwayBox: TBox = { x: 10000, y: 10000, width: 10, height: 10 }
+      const stroke = buildIIStroke({ box: farAwayBox })
+      // First draw: nothing tracked yet, so an element is always built (just left unattached).
+      renderer.drawSymbol(stroke)
+      // Second draw while still off screen: this is what sets `pendingRedraw`.
+      renderer.drawSymbol(stroke)
+
+      const moved = { ...stroke, transform: MatrixTransform.identity().translate(20, 15) }
+      renderer.setSymbolTransform(moved)
+
+      // Pan the pending record's own location into view, forcing `#reconcileVirtualization` to
+      // perform the deferred rebuild.
+      renderer.setViewBox(farAwayBox.x, farAwayBox.y, 400, 400)
+
+      const el = renderer.getElementById(stroke.id)
+      expect(el?.parentNode).toBe(renderer.layer)
+      // The rebuilt element must carry the matrix from `moved`, not from the stroke as it stood
+      // when the redraw was first deferred - otherwise the deferred rebuild silently drops the
+      // transform commit that arrived while it was pending.
+      expect(el?.getAttribute("transform")).toBe("matrix(1, 0, 0, 1, 20, 15)")
+    })
+  })
+
   /**
    * The point of making `getSVGElement` part of the contract in IIC-2006: a registered symbol type
    * the library knows nothing about becomes visible, because the renderer asks its util instead of
@@ -607,14 +733,16 @@ describe("SVGRenderer.ts", () => {
       create(partial: TPartialDeep<TStickyNote>): TStickyNote {
         return { ...partial, type: "sticky-note", text: partial.text ?? "" } as TStickyNote
       }
-      updateDerivedFields(): void {}
-      translate(symbol: TStickyNote, { matrix }: TTranslateContext): void {
+      computeGeometry(): TSymbolGeometry {
+        return { bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0), vertices: [], snapPoints: [], edges: [], length: 0 }
+      }
+      translate(symbol: TStickyNote, { matrix }: TTransformContext): void {
         symbol.point = applyMatrixToPoint(symbol.point, matrix)
       }
-      rotate(symbol: TStickyNote, { matrix }: TRotateContext): void {
+      rotate(symbol: TStickyNote, { matrix }: TTransformContext): void {
         symbol.point = applyMatrixToPoint(symbol.point, matrix)
       }
-      resize(symbol: TStickyNote, { matrix }: TResizeContext): void {
+      resize(symbol: TStickyNote, { matrix }: TTransformContext): void {
         symbol.point = applyMatrixToPoint(symbol.point, matrix)
       }
       overlaps(): boolean {

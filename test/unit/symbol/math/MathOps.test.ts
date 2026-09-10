@@ -1,4 +1,4 @@
-import { TMathElement, TPoint, TBox, BoxOps, OBBOps, MathOps } from "@/iink"
+import { TMathElement, TPoint, TBox, BoxOps, OBBOps, MathOps, MatrixTransform, computeTypesetSnapPoints, computeClosedEdges, computeTypesetVertices } from "@/iink"
 
 const elements: TMathElement[] = [
   {
@@ -25,6 +25,9 @@ const bounds: TBox = BoxOps.createFromBoxes(elements.map((e) => e.bounds))
 
 describe("MathOps", () => {
   describe("create", () => {
+    test("should initialise transform to identity", () => {
+      expect(MathOps.create(elements, point, bounds).transform).toEqual(MatrixTransform.identity())
+    })
     test("should return a plain object with correct type", () => {
       const math = MathOps.create(elements, point, bounds)
       expect(math.type).toBe("math")
@@ -41,15 +44,11 @@ describe("MathOps", () => {
 
     test("should initialize derived fields (vertices, snapPoints, edges)", () => {
       const math = MathOps.create(elements, point, bounds)
-      expect(math.vertices).toHaveLength(4)
-      expect(math.snapPoints).toHaveLength(5)
-      expect(math.edges).toHaveLength(4)
+      expect(computeTypesetVertices(OBBOps.toUnrotatedBox(math.bounds))).toHaveLength(4)
+      expect(computeTypesetSnapPoints(OBBOps.toUnrotatedBox(math.bounds), math.point)).toHaveLength(5)
+      expect(computeClosedEdges(computeTypesetVertices(OBBOps.toUnrotatedBox(math.bounds)))).toHaveLength(4)
     })
 
-    test("should have no rotation by default", () => {
-      const math = MathOps.create(elements, point, bounds)
-      expect(math.rotation).toBeUndefined()
-    })
   })
 
   describe("createFromPartial", () => {
@@ -57,6 +56,11 @@ describe("MathOps", () => {
       const math = MathOps.createFromPartial({ elements, point, bounds })
       expect(math.elements).toHaveLength(2)
       expect(math.point).toEqual(point)
+    })
+
+    test("should carry a given transform through, merged onto identity", () => {
+      const math = MathOps.createFromPartial({ elements, point, bounds, transform: { tx: 5, ty: 6 } })
+      expect(math.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 5, ty: 6 })
     })
 
     test("should throw when elements is empty", () => {
@@ -74,30 +78,6 @@ describe("MathOps", () => {
     test("should set custom id from partial", () => {
       const math = MathOps.createFromPartial({ id: "my-math", elements, point, bounds })
       expect(math.id).toBe("my-math")
-    })
-  })
-
-  describe("updateDerivedFields", () => {
-    test("should compute vertices from corners when no rotation", () => {
-      const math = MathOps.create(elements, point, bounds)
-      MathOps.updateDerivedFields(math)
-      expect(math.vertices).toEqual(BoxOps.getCorners(bounds))
-    })
-
-    test("should compute rotated vertices when rotation is set", () => {
-      const math = MathOps.create(elements, point, bounds)
-      math.rotation = { degree: 90, center: { x: 0, y: 0 } }
-      MathOps.updateDerivedFields(math)
-      expect(math.vertices).not.toEqual(BoxOps.getCorners(bounds))
-      expect(math.vertices).toHaveLength(4)
-    })
-
-    test("should recompute edges when bounds change", () => {
-      const math = MathOps.create(elements, point, bounds)
-      const newBounds: TBox = { x: 100, y: 100, width: 50, height: 30 }
-      math.bounds = OBBOps.fromBox(newBounds)
-      MathOps.updateDerivedFields(math)
-      expect(math.vertices).toEqual(BoxOps.getCorners(newBounds))
     })
   })
 

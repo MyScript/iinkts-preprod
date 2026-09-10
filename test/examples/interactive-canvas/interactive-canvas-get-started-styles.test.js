@@ -5,7 +5,8 @@ import {
   waitForConvertedEvent,
   waitForSynchronizedEvent,
   writeStrokes,
-  callCanvasConvert
+  callCanvasConvert,
+  openMenuCollapsible
 } from "../helper"
 import helloOneStroke from "../__dataset__/helloOneStroke"
 
@@ -60,7 +61,7 @@ test.describe("Interactive ink canvas Get Started Menu Style", () => {
     ]
     thicknesses.forEach(async (thickness) => {
       test(`should write with size: ${ thickness.size }`, async ({ page }) => {
-        await page.locator("#ms-menu-style-thickness .collapsible-header").click()
+        await openMenuCollapsible(page, "#ms-menu-style-thickness")
         await page
           .locator("#ms-menu-style-thickness-" + thickness.width)
           .click()
@@ -95,7 +96,7 @@ test.describe("Interactive ink canvas Get Started Menu Style", () => {
     const DEFAULT_GUIDE_SIZE = 50
     fontSizes.forEach(async (fontSize) => {
       test(`should convert stroke with font size: ${fontSize.size}`, async ({ page }) => {
-        await page.locator("#ms-menu-style-font-size .collapsible-header").click()
+        await openMenuCollapsible(page, "#ms-menu-style-font-size")
         await page.locator(`[id="ms-menu-style-font-size-${fontSize.pixels}"]`).click()
         await Promise.all([
           waitForSynchronizedEvent(page),
@@ -121,7 +122,7 @@ test.describe("Interactive ink canvas Get Started Menu Style", () => {
     })
 
     test("should have a correct text converted size with fontSize Auto", async ({ page, }) => {
-      await page.locator("#ms-menu-style-font-size .collapsible-header").click()
+      await openMenuCollapsible(page, "#ms-menu-style-font-size")
       await page.locator("#ms-menu-style-font-size-auto").click()
 
       await Promise.all([
@@ -165,7 +166,7 @@ test.describe("Interactive ink canvas Get Started Menu Style", () => {
     ]
     fontWeights.forEach(fw => {
       test(`should have convert with font weight ${fw.label}`, async ({ page }) => {
-        await page.locator("#ms-menu-style-font-weight .collapsible-header").click()
+        await openMenuCollapsible(page, "#ms-menu-style-font-weight")
         await page.locator(`#${fw.id}`).click()
 
         await Promise.all([

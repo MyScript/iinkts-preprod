@@ -3,8 +3,10 @@ import type { TPoint } from "@/core/geometry"
 import { BoxOps, computeAngleRadian, MatrixTransform, type TOBB } from "@/core/geometry"
 import { convertDegreeToRadian, convertRadianToDegree, TWO_PI } from "@/core/math"
 import type { TIIHistoryChanges } from "@/history"
+import { appendUpdated } from "@/history"
 import type { TSymbol } from "@/symbol"
 import { cloneSymbol } from "@/symbol"
+import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 
 import { IIAbstractTransformManager } from "./AbstractTransformManager"
@@ -26,15 +28,7 @@ export class IIRotationManager extends IIAbstractTransformManager {
    * off `this` inside the util, which is what retired its definite-assignment assertion.
    */
   protected applyThroughUtil(symbol: TSymbol, matrix: MatrixTransform): void {
-    symbolRegistry.getUtilFor(symbol).rotate(symbol, { matrix, center: this.center })
-  }
-
-  rotateElement(id: string, degree: number): void {
-    this.logger.info("rotateElement", {
-      id,
-      degree,
-    })
-    this.canvas.renderer.setAttribute(id, "transform", `rotate(${degree})`)
+    symbolRegistry.getUtilFor(symbol).rotate(symbol, { matrix })
   }
 
   start(target: Element, origin: TPoint): void {
@@ -44,17 +38,18 @@ export class IIRotationManager extends IIAbstractTransformManager {
     // gesture. Ended synchronously in `end()`.
     this.canvas.startOperation("Rotating")
     this.interactElementsGroup = this.resolveInteractGroup(target)
-    const boundingBox = BoxOps.createFromPoints(this.model.symbolsSelected.flatMap((s) => s.vertices))
+    // selectAll() populates symbolsSelected with no registry check ahead of it (see
+    // IISelectionManager.createInteractElementsGroup) — a symbol type missing its util must not
+    // abort starting the rotation, so it's excluded from the bounding box, same silent-skip
+    // precedent as that file.
+    const registeredSymbols = this.model.symbolsSelected.filter((s) => symbolRegistry.has(s.type))
+    const boundingBox = BoxOps.createFromPoints(registeredSymbols.flatMap((s) => SymbolGeometry.verticesOf(s)))
 
     this.center = {
       x: boundingBox.x + boundingBox.width / 2,
       y: boundingBox.y + boundingBox.height / 2,
     }
     this.origin = origin
-    this.setTransformOrigin(this.interactElementsGroup.id, this.center.x, this.center.y)
-    this.model.symbolsSelected.forEach((s) => {
-      this.setTransformOrigin(s.id, this.center.x, this.center.y)
-    })
   }
 
   continue(point: TPoint): number {
@@ -70,15 +65,18 @@ export class IIRotationManager extends IIAbstractTransformManager {
       angleDegree = 360 - angleDegree
     }
 
-    this.rotateElement(this.interactElementsGroup.id, angleDegree)
+    const angleRad = convertDegreeToRadian(angleDegree)
+    // Built before the preview, and carrying `center` explicitly, so one matrix serves both the
+    // preview and the connector below — and so the preview needs no `transform-origin`.
+    const matrix = MatrixTransform.identity().rotate(angleRad, this.center)
+
+    this.previewElementTransform(this.interactElementsGroup.id, matrix)
     this.model.symbolsSelected.forEach((s) => {
-      this.rotateElement(s.id, angleDegree)
+      this.previewTransform(s, matrix)
     })
     this.getGhostStrokeIdsForSelectedMath(this.model.symbolsSelected).forEach((id) => {
-      this.rotateElement(id, angleDegree)
+      this.previewElementTransform(id, matrix)
     })
-    const angleRad = convertDegreeToRadian(angleDegree)
-    const matrix = MatrixTransform.identity().rotate(angleRad, this.center)
     this.canvas.connector.drawAnchoredEdgesForMatrix(
       this.model.symbolsSelected.map((s) => s.id),
       matrix
@@ -108,13 +106,16 @@ export class IIRotationManager extends IIAbstractTransformManager {
     const matrix = MatrixTransform.identity().rotate(angleRad, this.center)
     const preTransformBoundsById = new Map<string, TOBB>()
     this.model.symbolsSelected.forEach((s) => {
-      const bounds = (s as unknown as { bounds?: TOBB }).bounds
-      if (bounds) {
-        preTransformBoundsById.set(s.id, {
-          ...bounds,
-          center: { ...bounds.center },
-        })
+      // Same selectAll() gap as start()'s bounding box — an unregistered symbol has no snapshot
+      // taken, so updateAnchoredEdges below leaves it untouched rather than throwing.
+      if (!symbolRegistry.has(s.type)) {
+        return
       }
+      const bounds = SymbolGeometry.boundsOf(s)
+      preTransformBoundsById.set(s.id, {
+        ...bounds,
+        center: { ...bounds.center },
+      })
     })
     this.applyAndDraw(this.model.symbolsSelected, matrix)
     this.applyTransformToGhostStrokesForSelectedMath(this.model.symbolsSelected, matrix)
@@ -134,21 +135,15 @@ export class IIRotationManager extends IIAbstractTransformManager {
       ),
       ...this.replaceGradientFollowedStrokes(anchoredOldSymbols, anchoredNewSymbols),
     ])
-    const changes: TIIHistoryChanges = {
-      rotate: [
-        {
-          symbols: oldSymbols,
-          angle: angleRad,
-          center: { ...this.center },
-        },
-      ],
-    }
+    const changes: TIIHistoryChanges = {}
+    this.recordTransformed(changes, oldSymbols)
     // Converted Line/PolyEdge/Arc anchors are recomputed from the target's new bounds, and
-    // gradient-followed raw strokes are reshaped non-uniformly — neither has an inverse-rotation
-    // to replay on undo, so both need their pre-mutation snapshot restored directly via `updated`.
-    if (anchoredNewSymbols.length) {
-      changes.updated = { oldSymbols: anchoredOldSymbols, newSymbols: anchoredNewSymbols }
-    }
+    // gradient-followed raw strokes are reshaped non-uniformly. They join the same `updated` pair
+    // as the rotated selection — appended, not assigned, or one of the two sets would be lost.
+    appendUpdated(
+      changes,
+      anchoredOldSymbols.map((before, index) => ({ before, after: anchoredNewSymbols[index] }))
+    )
     this.canvas.history.push(changes)
     this.finalizeTransform()
   }
