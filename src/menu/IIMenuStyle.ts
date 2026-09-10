@@ -262,6 +262,7 @@ export class IIMenuStyle {
       if (strokeColorEl) {
         strokeColorEl.style.display = "block"
       }
+      this.styleItems.get("pen")?.update()
       if (fillColorEl) {
         fillColorEl.style.display = this.writeShape ? "block" : "none"
       }
@@ -292,6 +293,7 @@ export class IIMenuStyle {
       if (strokeColorEl) {
         strokeColorEl.style.display = "block"
       }
+      this.styleItems.get("pen")?.update()
       if (fillColorEl) {
         fillColorEl.style.display = shapeSelected ? "block" : "none"
       }
