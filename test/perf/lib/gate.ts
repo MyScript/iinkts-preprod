@@ -36,10 +36,10 @@ export type TPairedGateReport = {
  *
  * Provisional, and flat across cases on purpose: IIC-2050 replaces it with a limit derived from the
  * run's own null distribution — the control, and every case the branch did not touch, whose true
- * answer is known to be 1. Until then the figure comes from measurement rather than taste: two null
+ * answer is known to be 1. Until then the figure comes from measurement rather than taste: three null
  * runs, where both bundles were byte-identical so every case should have read exactly 1.000, put the
- * worst method error at 13.0% and six of eight cases under 4%. 25% leaves roughly a factor of two
- * over the worst thing observed on code that had not changed.
+ * worst method error at 10.3%. 25% leaves roughly a factor of two over the worst thing observed on
+ * code that had not changed.
  */
 export const REGRESSION_THRESHOLD = 0.25
 

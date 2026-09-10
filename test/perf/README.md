@@ -55,9 +55,15 @@ Three choices in there are not free, and each was measured:
 ### The null test
 
 Point the reference at a copy of the current bundle and run the gate: every case must read x1.000, and
-whatever it reads instead is the method's own error. Two such runs put the worst case at 13.0%, with
-six of eight cases under 4%. That is where the 25% threshold comes from — roughly a factor of two over
-the worst thing ever observed on code that had not changed.
+whatever it reads instead is the method's own error. Three such runs put the worst case at 10.3%. That
+is where the 25% threshold comes from — roughly a factor of two over the worst thing observed on code
+that had not changed.
+
+A null test is also how a case is shown to be unfit. `read: getRootSymbol` repeated one lookup 100 000
+times and read 8.5%, 1.5% and then 29.4% out across three runs of identical code — an error with no
+tendency to converge, which no threshold can be honest about. Rotating the lookup over every resident
+id, which is both the realistic shape and a kinder one for the JIT, brought it to 2.2%, 3.8% and 8.1%.
+**A case whose null error will not settle is a broken case, not a loose threshold.**
 
 **Run a null test whenever the harness changes.** It is what caught the loading asymmetry above, and
 nothing else would have: the gate was confidently, repeatably wrong, and every other signal looked
@@ -93,14 +99,14 @@ where both bundles were identical and every figure should be x1.000.
 
 | case | ms | of control | samples | paired (null test) |
 |---|---|---|---|---|
-| `derive: recompute derived fields for all @500` | 24.0421 | x202.7 | 8 | x0.999 |
-| `hit test: linear overlaps over all @500 x20` | 8.0859 | x68.2 | 8 | x1.030 |
-| `transform: matrix over every pointer @500 x20` | 4.2429 | x35.8 | 8 | x1.039 |
-| `read: getRootSymbol by id @500 x100000` | 0.9520 | x8.0 | 8 | x0.985 |
-| `import: build a model of 200 strokes x16` | 0.7561 | x6.4 | 8 | x0.962 |
-| `read: model.symbols @500 x200` | 0.3743 | x3.2 | 8 | x1.049 |
-| `append: add then remove one stroke @500 x1000` | 0.2838 | x2.4 | 8 | x1.009 |
-| `control: float arithmetic` | 0.1186 | x1.0 | 8 | x1.000 |
+| `derive: recompute derived fields for all @500` | 16.4763 | x186.8 | 8 | x1.034 |
+| `hit test: linear overlaps over all @500 x20` | 5.7365 | x65.0 | 8 | x0.993 |
+| `transform: matrix over every pointer @500 x20` | 2.2869 | x25.9 | 8 | x0.989 |
+| `read: getRootSymbol by id @500 x200` | 0.7943 | x9.0 | 8 | x1.081 |
+| `import: build a model of 200 strokes x16` | 0.4093 | x4.6 | 8 | x1.031 |
+| `read: model.symbols @500 x200` | 0.2137 | x2.4 | 8 | x0.975 |
+| `append: add then remove one stroke @500 x1000` | 0.1762 | x2.0 | 8 | x0.990 |
+| `control: float arithmetic` | 0.0882 | x1.0 | 8 | x1.012 |
 
 The paired column is the method's own error, not a property of the library: these two bundles were
 byte-identical.
