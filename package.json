@@ -31,7 +31,6 @@
   "homepage": "https://myscript.github.io/iinkTS/",
   "repository": "git://github.com/MyScript/iinkTS.git",
   "scripts": {
-    "lint": "eslint",
     "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
     "typecheck:perf": "tsc --noEmit -p perf/tsconfig.json",
     "bench": "node perf/headless/bench.ts",
@@ -42,8 +41,10 @@
     "bench:history": "node perf/showHistory.ts",
     "bench:e2e": "playwright test --config=perf/browser/playwright.config.js",
     "lint:src": "eslint src/",
+    "lint:perf": "eslint perf/",
     "lint:tu": "eslint test/unit/",
     "lint:te": "eslint --config=./test/examples/eslint.config.mjs ./test/examples",
+    "lint": "npm-run-all lint:src lint:perf lint:tu lint:te",
     "prettier": "prettier --write ./src/**/*.ts ./test/**/*.ts",
     "dev": "rollup -c config/rollup.config.dev.mjs -w --sourcemap",
     "dev:tldraw": "cd ./examples/custom-rendering/tldraw-websocket-client && yarn dev",
