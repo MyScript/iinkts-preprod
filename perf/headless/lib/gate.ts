@@ -33,6 +33,8 @@ export type TPairedGateReport = {
   onlyCurrent: string[]
   reference: { cases: { name: string; p50Ms: number }[]; controlSpread: number }
   current: { controlSpread: number }
+  /** Set when the run was narrowed to a few objects. Such a run is read, never judged. */
+  filter?: string[]
 }
 
 /**
@@ -112,7 +114,7 @@ export type TVerdict = {
 }
 
 export type TRefusal = {
-  kind: "too-few-rounds" | "control-too-noisy" | "cases-disagree"
+  kind: "narrowed-run" | "too-few-rounds" | "control-too-noisy" | "cases-disagree"
   message: string
 }
 
@@ -208,6 +210,19 @@ function verdictFor(report: TPairedGateReport, name: string, ratio: number, thre
 }
 
 export function evaluate(report: TPairedGateReport): TGateResult {
+  // First, because it disqualifies the run by construction rather than by how well it measured.
+  // Narrowing is for working on one object's performance, where the numbers are read by the person
+  // who asked for them; the limit here is drawn from how much the run's own cases disagree, and a
+  // handful of cases cannot say. Refusing is the honest answer, not a verdict on a thin population.
+  if (report.filter?.length) {
+    return refuse(
+      "narrowed-run",
+      `this run measured only ${report.filter.join(", ")}. The limit comes from how much the run's ` +
+        "own cases disagree with each other, which a narrowed run has too few of to establish. Read " +
+        "the numbers; there is no verdict to give."
+    )
+  }
+
   if (report.rounds < MIN_ROUNDS) {
     return refuse(
       "too-few-rounds",

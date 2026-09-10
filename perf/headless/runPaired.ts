@@ -20,6 +20,10 @@ const rounds = Number(process.env.BENCH_ROUNDS ?? arg("--rounds", String(DEFAULT
 const referenceLib = arg("--reference", "dist-ref/iink.esm.js")
 const currentLib = arg("--current-lib", "dist/iink.esm.js")
 const out = arg("--out", ".local/bench/paired.json")
+const only = arg("--only", "")
+  .split(",")
+  .map((name) => name.trim())
+  .filter(Boolean)
 
 for (const [what, path] of [
   ["reference", referenceLib],
@@ -36,11 +40,13 @@ for (const [what, path] of [
 const shaFile = resolve(process.cwd(), dirname(referenceLib), ".reference-sha")
 const referenceSha = existsSync(shaFile) ? readFileSync(shaFile, "utf8").trim() : undefined
 
-const report = runPaired({ rounds, referenceLib, currentLib, ...(referenceSha ? { referenceSha } : {}) })
+const report = runPaired({ rounds, referenceLib, currentLib, only, ...(referenceSha ? { referenceSha } : {}) })
 
 console.log(`\n${report.rounds} paired rounds on ${report.agent} | ${report.cpu}`)
 console.log(`reference: ${report.referenceLib}${referenceSha ? ` (${referenceSha.slice(0, 9)})` : ""}`)
-console.log(`current:   ${report.currentLib}\n`)
+console.log(`current:   ${report.currentLib}`)
+if (report.filter) console.log(`only:      ${report.filter.join(", ")} — the gate will refuse a narrowed run`)
+console.log("")
 
 const names = Object.keys(report.paired).sort()
 const width = Math.max(...names.map((n) => n.length))

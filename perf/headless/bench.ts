@@ -76,8 +76,19 @@ const outFile = process.argv.includes("--out")
   : ".local/bench/current.json"
 const repeats = process.argv.includes("--repeats") ? Number(process.argv[process.argv.indexOf("--repeats") + 1]) : 3
 
-const report = await runSuite(allCases(fixture), { repeats })
+/**
+ * Narrowing the run to a few objects. Read from the environment as well as the command line because
+ * a paired run has to hand the very same filter to both of its child processes.
+ */
+const onlyArg = process.argv.includes("--only") ? process.argv[process.argv.indexOf("--only") + 1] : undefined
+const only = (onlyArg ?? process.env.BENCH_ONLY ?? "")
+  .split(",")
+  .map((name) => name.trim())
+  .filter(Boolean)
+
+const report = await runSuite(allCases(fixture, only), { repeats })
 console.log(`bundle: ${bundleLabel}`)
+if (only.length > 0) console.log(`only: ${only.join(", ")}`)
 console.log(`dataset: ${fixture.dataset}`)
 console.log(`seeding the resident document via addSymbol: ${fixture.seedMs.toFixed(0)} ms`)
 printReport(report)
