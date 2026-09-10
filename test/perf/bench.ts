@@ -22,6 +22,9 @@ const bundleSpecifier = BENCH_LIB === undefined ? "#iink" : pathToFileURL(resolv
 
 /** What the cases below reach for. Checked at load so a wrong bundle says so, in one line. */
 const REQUIRED_EXPORTS = [
+  "CanvasEvent",
+  "DefaultHistoryConfiguration",
+  "IIHistoryManager",
   "IIModel",
   "MatrixTransform",
   "StrokeOps",
@@ -51,7 +54,17 @@ async function loadBundle(specifier: string, label: string): Promise<typeof impo
 }
 
 const iink = await loadBundle(bundleSpecifier, bundleLabel)
-const { IIModel, MatrixTransform, StrokeOps, SymbolGeometry, registerBuiltinSymbolUtils, symbolRegistry } = iink
+const {
+  CanvasEvent,
+  DefaultHistoryConfiguration,
+  IIHistoryManager,
+  IIModel,
+  MatrixTransform,
+  StrokeOps,
+  SymbolGeometry,
+  registerBuiltinSymbolUtils,
+  symbolRegistry,
+} = iink
 type TStroke = ReturnType<typeof StrokeOps.create>
 
 /**
@@ -98,6 +111,7 @@ const IMPORT_PASSES = 16 // 0.61 ms measured
 const APPEND_PASSES = 1000 // 0.27 ms measured
 const SYMBOLS_READ_PASSES = 200 // 0.36 ms measured
 const GET_ROOT_PASSES = 200 // 1.52 ms measured, one pass reading all 500 ids
+const HISTORY_PASSES = 100 // 1.15 ms measured, one push-undo-redo cycle per pass
 const HIT_TEST_PASSES = 20 // 7.84 ms measured
 const TRANSFORM_PASSES = 20 // 2.81 ms measured
 const GEOMETRY_COLD_PASSES = 1 // 110 ms measured: above the band, and one build of the set is its smallest unit
@@ -152,6 +166,18 @@ const seedMs = performance.now() - seedStart
  * a JIT cliff, and its null-test error swung between 1.5% and 29.4% across runs of identical code.
  */
 const allIds = strokes.map((stroke) => stroke.id)
+
+/**
+ * A history holding the resident document, and one recorded change per stroke to replay through it.
+ *
+ * Worth measuring because it has already been the cause once: writing on a loaded document lagged
+ * because every push cloned the whole document, which made the cost of recording a one-stroke change
+ * grow with the document it was recorded against. The stack is diff-only now, so a push should cost
+ * the same at 500 strokes as at 5 — and nothing in the suite would notice if that stopped being true.
+ */
+const history = new IIHistoryManager(DefaultHistoryConfiguration, new CanvasEvent(document.createElement("div")))
+history.init(model)
+const historyChanges = strokes.map((stroke) => ({ added: [stroke] }))
 const probeBox = { x: 200, y: 100, width: 40, height: 40 }
 const matrix = new MatrixTransform(1.02, 0.01, -0.01, 1.02, 3, -2)
 
@@ -261,6 +287,18 @@ const cases: TBenchCase[] = [
         }
       }
       if (found < 0) throw new Error("unreachable")
+    },
+  },
+  {
+    name: sized(`history: push then undo and redo @${RESIDENT_SIZE}`, HISTORY_PASSES),
+    // A push followed by its undo and redo leaves the stack where it started, so the case is steady:
+    // it saturates at `maxStackSize` and stays there rather than growing for the length of the run.
+    fn: () => {
+      for (let pass = 0; pass < HISTORY_PASSES; pass++) {
+        history.push(historyChanges[pass % historyChanges.length])
+        history.undo()
+        history.redo()
+      }
     },
   },
   {
