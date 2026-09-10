@@ -2,8 +2,9 @@ import { resolve } from "node:path"
 import { pathToFileURL } from "node:url"
 
 import { installDom } from "./lib/env.ts"
-import { countPointers, generateDocument } from "./lib/generateDocument.ts"
-import { CONTROL_CASE, printReport, runSuite, writeReport, type TBenchCase } from "./lib/harness.ts"
+import { buildFixture, type TIink } from "./lib/fixture.ts"
+import { allCases } from "./cases/index.ts"
+import { printReport, runSuite, writeReport } from "./lib/harness.ts"
 
 installDom()
 
@@ -48,7 +49,7 @@ const REQUIRED_EXPORTS = [
  * A bundle that does not have them fails immediately, naming itself, instead of failing later as an
  * undefined call inside a measured window.
  */
-async function loadBundle(specifier: string, label: string): Promise<typeof import("#iink")> {
+async function loadBundle(specifier: string, label: string): Promise<TIink> {
   const loaded = (await import(specifier)) as Record<string, unknown>
   const missing = REQUIRED_EXPORTS.filter((name) => loaded[name] === undefined)
   if (missing.length > 0) {
@@ -56,24 +57,10 @@ async function loadBundle(specifier: string, label: string): Promise<typeof impo
       `the bundle at ${label} is missing ${missing.join(", ")} — is it built, and is it a build of this library?`
     )
   }
-  return loaded as unknown as typeof import("#iink")
+  return loaded as unknown as TIink
 }
 
 const iink = await loadBundle(bundleSpecifier, bundleLabel)
-const {
-  CanvasEvent,
-  DefaultHistoryConfiguration,
-  IIHistoryManager,
-  DefaultIIRendererConfiguration,
-  IIModel,
-  MatrixTransform,
-  SVGRenderer,
-  StrokeOps,
-  SymbolGeometry,
-  registerBuiltinSymbolUtils,
-  symbolRegistry,
-} = iink
-type TStroke = ReturnType<typeof StrokeOps.create>
 
 /**
  * Resident document size. Held at 1200 rather than the 4419 of the reference document because
@@ -81,327 +68,18 @@ type TStroke = ReturnType<typeof StrokeOps.create>
  * `IIModel.symbols` deep-clones the whole map — so building a document is quadratic in deep clones.
  * That cost is not hidden: it is what the `import` case below measures.
  */
-const RESIDENT_SIZE = 500
 
-/**
- * Import is measured at a smaller size for the same reason: at 500 a single iteration already costs
- * ~125 000 deep clones. These two numbers are deliberately low, and raising them is a measurable
- * acceptance criterion for the store epic: once insertion stops cloning the document, the resident
- * document should reach the 4419 strokes of the reference document without the setup dominating.
- */
-const IMPORT_SIZE = 200
-
-/** Fixed seed. The document must be identical on every machine for the ratios to mean anything. */
-const SEED = 20260827
-
-/**
- * How many times each case repeats its own unit of work per measured operation.
- *
- * There used to be one shared factor of 20 here, which is the same mistake as one shared threshold:
- * the cases span seven orders of magnitude, so a single number cannot put them all in a measurable
- * band. Measured at 20 passes, one iteration of `getRootSymbol` cost 0.00003 ms — below the
- * resolution of `performance.now()`, so it timed the clock rather than the code, and then failed CI
- * at +21% against a 15% limit on a tree nobody had touched.
- *
- * A factor is not only about cost. `getRootSymbol` cleared the floor at 100 000 repeats of a single
- * lookup and still read badly, because repeating one key is a shape the JIT treats unstably and is
- * not what the library does either. Rotating over every resident id fixed both at once.
- *
- * Each factor below is therefore chosen from a measurement, targeting **0.1-10 ms per iteration**:
- * high enough that timer overhead is negligible, low enough that a run stays affordable when every
- * case is later measured twice, once per build. A case whose smallest indivisible unit already costs
- * more than the band keeps a factor of 1 and sits above it.
- *
- * These are constants, not calibrated at runtime, on purpose: the two sides of an A/B comparison must
- * do byte-for-byte the same work, and a factor recomputed per run would not guarantee that.
- */
-const IMPORT_PASSES = 16 // 0.61 ms measured
-const APPEND_PASSES = 1000 // 0.27 ms measured
-const SYMBOLS_READ_PASSES = 200 // 0.36 ms measured
-const GET_ROOT_PASSES = 200 // 1.52 ms measured, one pass reading all 500 ids
-const HISTORY_PASSES = 100 // 1.15 ms measured, one push-undo-redo cycle per pass
-const RENDERER_PAN_PASSES = 20 // 7.44 ms measured
-const HIT_TEST_PASSES = 20 // 7.84 ms measured
-const TRANSFORM_PASSES = 20 // 2.81 ms measured
-const GEOMETRY_COLD_PASSES = 1 // 110 ms measured: above the band, and one build of the set is its smallest unit
-const GEOMETRY_WARM_PASSES = 1 // 0.22 ms measured, one read of the whole set
-
-/**
- * Case names carry their repeat factor so a report can never be read as if it measured a single pass.
- * A factor of 1 adds nothing: the name of a case that does its work once should not claim a multiple.
- */
-function sized(name: string, passes: number): string {
-  return passes > 1 ? `${name} x${passes}` : name
-}
-
-registerBuiltinSymbolUtils()
-
-function buildStroke(generated: ReturnType<typeof generateDocument>[number]): TStroke {
-  const stroke = StrokeOps.create(undefined, generated.pointerType)
-  // Pushed verbatim, not through `addPointer`: that path runs the acquisition-delta filter and
-  // rewrites every `p` via `_computePressure`, so the resident document would stop being the one
-  // `baseline.json` was measured against. Nothing replaces the `updateBounds` call that used to
-  // follow — a stroke's box is derived on read now.
-  generated.pointers.forEach((p) => StrokeOps.addPointer(stroke, p))
-  return stroke
-}
-
-// The generator's whole contract is that `(count, seed)` fixes the geometry. If it ever stopped
-// holding, every ratio in the baseline would silently compare two different documents, so it is
-// checked here rather than trusted.
-const determinismProbe = 32
-if (
-  JSON.stringify(generateDocument(determinismProbe, SEED)) !== JSON.stringify(generateDocument(determinismProbe, SEED))
-) {
-  throw new Error("generateDocument is not deterministic — the baseline would be meaningless")
-}
-
-const generated = generateDocument(RESIDENT_SIZE, SEED)
-const strokes = generated.map(buildStroke)
-const importSource = generateDocument(IMPORT_SIZE, SEED + 1).map(buildStroke)
-
-// Seeding is timed and reported: on master it is the dominant cost of the whole file, because
-// `addSymbol` passes `this.symbols` to the logger and that getter deep-clones the entire map.
-const seedStart = performance.now()
-const model = new IIModel()
-for (const stroke of strokes) {
-  model.addSymbol(stroke)
-}
-const seedMs = performance.now() - seedStart
-
-/**
- * Every resident id, looked up in turn. Reading one id repeatedly is not what the library does, and it
- * measured badly for the same reason it was unrealistic: a monomorphic loop over a single key sits on
- * a JIT cliff, and its null-test error swung between 1.5% and 29.4% across runs of identical code.
- */
-const allIds = strokes.map((stroke) => stroke.id)
-
-/**
- * A history holding the resident document, and one recorded change per stroke to replay through it.
- *
- * Worth measuring because it has already been the cause once: writing on a loaded document lagged
- * because every push cloned the whole document, which made the cost of recording a one-stroke change
- * grow with the document it was recorded against. The stack is diff-only now, so a push should cost
- * the same at 500 strokes as at 5 — and nothing in the suite would notice if that stopped being true.
- */
-const history = new IIHistoryManager(DefaultHistoryConfiguration, new CanvasEvent(document.createElement("div")))
-history.init(model)
-const historyChanges = strokes.map((stroke) => ({ added: [stroke] }))
-
-/**
- * A renderer holding the resident document, so panning it can be measured.
- *
- * The renderer is the suite's largest blind spot — seventeen files, no case — and panning is where it
- * has already gone wrong: dragging a loaded document stuttered because every pointer move recomputed
- * the viewBox and walked every symbol. `pan` still calls the virtualization reconciler, so the shape
- * that regressed is the shape measured here.
- *
- * Under jsdom this measures jsdom's DOM, not a browser's, and the limit that follows was measured
- * rather than assumed. Both were tried against this case:
- *
- * - Work added per symbol in the pan path — the pan-lag family — is caught: an attribute written on
- *   every tracked element takes the case from 7.4 ms to 13.6 ms, x2.6 past a 20% limit.
- * - **Virtualization breaking is not caught, and cannot be.** Disabling the cull entirely makes this
- *   case *faster*, 7.4 ms to 5.9 ms, because `remove()` and the re-append stop being called. What a
- *   broken cull actually costs is paint and layout over the elements left attached, and jsdom has
- *   neither. Only the browser scenarios can see that one.
- *
- * So this case guards the pan path's own per-symbol work, and nothing about the culling it calls.
- */
-const rendererElement = document.createElement("div")
-document.body.appendChild(rendererElement)
-const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
-renderer.init(rendererElement)
-strokes.forEach((stroke) => renderer.drawSymbol(stroke))
-const probeBox = { x: 200, y: 100, width: 40, height: 40 }
-const matrix = new MatrixTransform(1.02, 0.01, -0.01, 1.02, 3, -2)
-
-/** Pre-built strokes for the append case, so generation never lands inside a measured window. */
-const appendPool = generateDocument(64, SEED + 2).map(buildStroke)
-let appendCursor = 0
-
-/**
- * Control payload: plain arithmetic over a preallocated buffer, no library code whatsoever. Sized so
- * one iteration lands in the same order of magnitude as the mid-range library cases — a control that
- * is far cheaper than what it normalises makes every ratio badly conditioned.
- */
-const controlBuffer = new Float64Array(65536)
-for (let i = 0; i < controlBuffer.length; i++) {
-  controlBuffer[i] = i * 0.5
-}
-
-/**
- * Volume of the reference document used to diagnose the pan-latency bug (see
- * `.local/v5-symbol-geometry-matrix/BASELINE.md`), reused here so the cache is measured at the size
- * that made the read cost visible in the first place.
- */
-const GEOMETRY_SYMBOL_COUNT = 4419
-const GEOMETRY_POINTS_PER_STROKE = 40
-
-/**
- * `SymbolGeometry` only caches for a frozen symbol — an unfrozen one is recomputed on every call, by
- * design. `Object.freeze` here is what makes a "warm" measurement possible at all: without it every
- * call below would silently take the uncached path and the two cases would measure the same thing.
- */
-function buildFrozenGeometryStrokes(): TStroke[] {
-  return Array.from({ length: GEOMETRY_SYMBOL_COUNT }, (_, i) =>
-    Object.freeze(
-      StrokeOps.createFromPartial({
-        pointers: Array.from({ length: GEOMETRY_POINTS_PER_STROKE }, (_, j) => ({
-          x: i + j,
-          y: i - j,
-          t: j,
-          p: 1,
-        })),
-      })
-    )
-  )
-}
-
-/**
- * Cached geometry is deep-frozen before it is stored, and for a stroke `vertices` is `pointers`
- * itself — reading geometry once therefore freezes the stroke's own arrays. These strokes exist only
- * to be read, never mutated after, so that is never a problem here.
- */
-const geometryWarmStrokes = buildFrozenGeometryStrokes()
-geometryWarmStrokes.forEach((s) => SymbolGeometry.boundsOf(s))
-
-const cases: TBenchCase[] = [
-  {
-    name: CONTROL_CASE,
-    fn: () => {
-      let acc = 0
-      for (let i = 0; i < controlBuffer.length; i++) {
-        acc += Math.sqrt(controlBuffer[i]) * 1.000001
-      }
-      if (acc < 0) throw new Error("unreachable")
-    },
-  },
-  {
-    name: sized(`import: build a model of ${IMPORT_SIZE} strokes`, IMPORT_PASSES),
-    fn: () => {
-      for (let pass = 0; pass < IMPORT_PASSES; pass++) {
-        const fresh = new IIModel()
-        for (const stroke of importSource) {
-          fresh.addSymbol(stroke)
-        }
-      }
-    },
-  },
-  {
-    name: sized(`append: add then remove one stroke @${RESIDENT_SIZE}`, APPEND_PASSES),
-    fn: () => {
-      for (let pass = 0; pass < APPEND_PASSES; pass++) {
-        const stroke = appendPool[appendCursor]
-        appendCursor = (appendCursor + 1) % appendPool.length
-        model.addSymbol(stroke)
-        model.removeSymbol(stroke.id)
-      }
-    },
-  },
-  {
-    name: sized(`read: model.symbols @${RESIDENT_SIZE}`, SYMBOLS_READ_PASSES),
-    fn: () => {
-      let seen = 0
-      for (let pass = 0; pass < SYMBOLS_READ_PASSES; pass++) {
-        seen += model.symbols.length
-      }
-      if (seen < 0) throw new Error("unreachable")
-    },
-  },
-  {
-    name: sized(`read: getRootSymbol by id @${RESIDENT_SIZE}`, GET_ROOT_PASSES),
-    // The lookup's result was discarded through `void`, which let V8 remove part of the work: the
-    // case reported 1.6 ns per `Map.get`, below what a real one costs. Counting the hits makes the
-    // call observable, the same way the hit test case does.
-    fn: () => {
-      let found = 0
-      for (let pass = 0; pass < GET_ROOT_PASSES; pass++) {
-        for (const id of allIds) {
-          if (model.getRootSymbol(id) !== undefined) found++
-        }
-      }
-      if (found < 0) throw new Error("unreachable")
-    },
-  },
-  {
-    name: sized(`history: push then undo and redo @${RESIDENT_SIZE}`, HISTORY_PASSES),
-    // A push followed by its undo and redo leaves the stack where it started, so the case is steady:
-    // it saturates at `maxStackSize` and stays there rather than growing for the length of the run.
-    fn: () => {
-      for (let pass = 0; pass < HISTORY_PASSES; pass++) {
-        history.push(historyChanges[pass % historyChanges.length])
-        history.undo()
-        history.redo()
-      }
-    },
-  },
-  {
-    name: sized(`renderer: pan across @${RESIDENT_SIZE}`, RENDERER_PAN_PASSES),
-    // Alternating direction, so the viewBox stays over the document. Panning one way for the length
-    // of a run would carry it off the content, every symbol would be culled, and the case would
-    // settle into measuring an empty screen.
-    fn: () => {
-      for (let pass = 0; pass < RENDERER_PAN_PASSES; pass++) {
-        renderer.pan(pass % 2 === 0 ? 20 : -20, 0)
-      }
-    },
-  },
-  {
-    name: sized(`hit test: linear overlaps over all @${RESIDENT_SIZE}`, HIT_TEST_PASSES),
-    fn: () => {
-      let hits = 0
-      for (let pass = 0; pass < HIT_TEST_PASSES; pass++) {
-        for (const stroke of strokes) {
-          if (symbolRegistry.getUtil(stroke.type)?.overlaps(stroke, probeBox)) {
-            hits++
-          }
-        }
-      }
-      if (hits < 0) throw new Error("unreachable")
-    },
-  },
-  {
-    name: sized(`transform: matrix over every pointer @${RESIDENT_SIZE}`, TRANSFORM_PASSES),
-    fn: () => {
-      for (let pass = 0; pass < TRANSFORM_PASSES; pass++) {
-        for (const stroke of strokes) {
-          for (const pointer of stroke.pointers) {
-            void MatrixTransform.applyToPoint(matrix, pointer)
-          }
-        }
-      }
-    },
-  },
-  {
-    name: sized(`symbolGeometry:cold @${GEOMETRY_SYMBOL_COUNT}`, GEOMETRY_COLD_PASSES),
-    // A fresh, freshly-frozen stroke set every invocation: every read is a first read, so this is the
-    // uncached path — building the strokes and computing their geometry, with nothing to reuse.
-    fn: () => {
-      buildFrozenGeometryStrokes().forEach((s) => SymbolGeometry.boundsOf(s))
-    },
-  },
-  {
-    name: sized(`symbolGeometry:warm @${GEOMETRY_SYMBOL_COUNT}`, GEOMETRY_WARM_PASSES),
-    // Same frozen strokes on every invocation, already warmed once above: this is a WeakMap hit per
-    // symbol, drawing and hit-testing's actual read shape, not the per-frame renderer path — the
-    // renderer's own pan virtualization reads `tracked.bounds`, not `SymbolGeometry`.
-    fn: () => {
-      geometryWarmStrokes.forEach((s) => SymbolGeometry.boundsOf(s))
-    },
-  },
-]
+const fixture = buildFixture(iink)
 
 const outFile = process.argv.includes("--out")
   ? process.argv[process.argv.indexOf("--out") + 1]
   : ".local/bench/current.json"
 const repeats = process.argv.includes("--repeats") ? Number(process.argv[process.argv.indexOf("--repeats") + 1]) : 3
 
-const report = await runSuite(cases, { repeats })
-const dataset = `${RESIDENT_SIZE} strokes / ${countPointers(generated)} pointers, seed ${SEED}`
+const report = await runSuite(allCases(fixture), { repeats })
 console.log(`bundle: ${bundleLabel}`)
-console.log(`dataset: ${dataset}`)
-console.log(`seeding the resident document via addSymbol: ${seedMs.toFixed(0)} ms`)
+console.log(`dataset: ${fixture.dataset}`)
+console.log(`seeding the resident document via addSymbol: ${fixture.seedMs.toFixed(0)} ms`)
 printReport(report)
-writeReport({ ...report, dataset, seedMs, lib: bundleLabel }, outFile)
+writeReport({ ...report, dataset: fixture.dataset, seedMs: fixture.seedMs, lib: bundleLabel }, outFile)
 console.log(`\nreport written to ${outFile}`)

@@ -135,6 +135,27 @@ export default [
     },
   },
 
+  // A case file must never reach for the library itself. The bench is pointed at a bundle chosen at
+  // run time, because an A/B measures two of them; a case importing `#iink` would always measure
+  // `dist/`, so both sides would run the same code and the case would read x1.000 whatever happened
+  // — dead, silent, indistinguishable from a healthy one. The library arrives through the fixture.
+  {
+    files: ["perf/headless/cases/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "#iink",
+              message: "a case measures the bundle the run was pointed at — take the library from the fixture",
+            },
+          ],
+        },
+      ],
+    },
+  },
+
   // The harness keeps its unit tests beside what they test, so they land in the block above, which
   // knows nothing about a test runner. This adds what jest brings.
   {
