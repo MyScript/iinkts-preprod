@@ -60,9 +60,10 @@ describe("evaluate — regression detection", () => {
     expect(result.regressions.map((v) => v.name)).toEqual(["case"])
   })
 
-  test("does not flag a drift sitting exactly on the threshold", () => {
-    // The threshold is a bound the run has to pass, not reach: a case landing exactly on it has not
-    // been shown to be worse than the noise the limit was drawn from.
+  test("does not flag a drift a hair under the threshold", () => {
+    // Named for what it can check. A drift exactly equal to the threshold is not constructible in
+    // floating point — `1 + 0.2` minus 1 is 0.19999999999999996 — so `>` and `>=` cannot be told
+    // apart here, and a test claiming to sit on the boundary would be claiming more than it does.
     expect(evaluate(withCase(1 + MIN_THRESHOLD)).regressions).toHaveLength(0)
   })
 
