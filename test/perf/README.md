@@ -129,13 +129,15 @@ gate's own error was at most 10.3% against a limit of 20%.
 - Cases are sized so one iteration lands in **0.1–10 ms**, with a repeat factor per case. Below about
   50 µs a case times the clock rather than the code, and the gate refuses to judge it. If a case gets
   fast enough to fall under that floor, raise its repeat factor; do not widen a threshold.
-- **A CI checkout is not a clone.** Jenkins fetches the refs it was told to, so `origin/master` is
-  routinely absent from a pull-request workspace — `yarn bench:ref` failed on PR-515 with `fatal: Not
-  a valid object name origin/master`. It now tries the spellings of the base, then the first parent of
-  the pull request's merge commit (which is the target's tip, and needs no network — the bench
-  container is given no git credentials), then a fetch, and finally fails listing the refs the
-  checkout does have. `BENCH_REF_BASE` names a different base; `BENCH_REF_SHA` or `--sha` skips the
-  question entirely and is resolved without ever looking for the base.
+- **A CI checkout is not a clone, and the bench container has no git credentials.** A pull-request
+  workspace holds the PR's own ref and nothing else — on PR-515 it held exactly one — so the base
+  branch has to be put there by the `Checkout` stage, which adds it to the fetch refspec. That is
+  where the fix lives, and it has to: fetching from inside the container fails with `Host key
+  verification failed`.
+  `yarn bench:ref` still tries, in order, the spellings of the base, the first parent of a pull
+  request's merge commit (the target's tip, no network needed), a fetch, and then fails listing the
+  refs the checkout does have. `BENCH_REF_BASE` names a different base; `BENCH_REF_SHA` or `--sha`
+  skips the question entirely and never looks for the base at all.
 - `yarn bench:e2e` is **not** run by CI. The browser scenarios are a manual instrument.
 - The seed loop passes the *same* stroke objects to `addSymbol`, so since E5 those objects are frozen
   by the commit. Any case that iterates `strokes` is measuring frozen records. This is intentional —

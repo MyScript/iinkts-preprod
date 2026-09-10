@@ -85,8 +85,11 @@ function baseCommit(base: string): string {
   const refs = git(["for-each-ref", "--format=%(refname)", "refs/heads", "refs/remotes"]) || "(none)"
   throw new Error(
     `cannot find the base branch "${base}" in this checkout, and fetching it did not work either.\n` +
-      `Set BENCH_REF_BASE to a ref that is here, or give the reference commit directly with ` +
-      `BENCH_REF_SHA.\nRefs this checkout does have:\n${refs}`
+      "In CI the fix is upstream of here: the Checkout stage adds the target branch to its fetch " +
+      "refspec, because this process has no git credentials of its own. If that stage ran and the " +
+      "branch is still missing, the refspec is not reaching this workspace.\n" +
+      "Otherwise set BENCH_REF_BASE to a ref that is here, or give the reference commit directly " +
+      `with BENCH_REF_SHA.\nRefs this checkout does have:\n${refs}`
   )
 }
 
@@ -122,8 +125,10 @@ function referenceSha(base: string): string {
   if (mergeBase === undefined) {
     throw new Error(
       `HEAD and ${base} (${baseSha.slice(0, 9)}) have no common ancestor in this checkout. ` +
-        "A shallow clone holds the tips without the history that joins them — fetch more depth, or " +
-        "give the reference commit directly with BENCH_REF_SHA."
+        "The branch is here and its history is not: a shallow clone holds the tips without what " +
+        "joins them. Deepening needs credentials this process does not have, so the fix is a " +
+        "non-shallow CloneOption on the Checkout stage — or give the reference commit directly " +
+        "with BENCH_REF_SHA."
     )
   }
   return mergeBase === head ? git(["rev-parse", "HEAD~1"]) : mergeBase
