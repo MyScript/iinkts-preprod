@@ -100,6 +100,23 @@ The floor matters too: on a quiet run the scatter term lands around 6-11%, under
 governs. The derived term is what stops a noisy agent from producing false regressions, not what sets
 the everyday limit.
 
+## What CI does with the verdict
+
+Three things can go wrong in the stage and they are not the same thing, so they no longer share a
+message — a broken reference build used to read exactly like a regression.
+
+| exit | meaning | build |
+|---|---|---|
+| 0 | no case moved past the limit | green |
+| 1 | a case regressed | UNSTABLE |
+| 2 | the gate refused to judge — too few rounds, or the run's own cases disagreed | UNSTABLE |
+| — | the measurement could not be taken at all | UNSTABLE, and says nothing was measured |
+
+**A regression does not currently stop a build.** Promoting it is one call in the `Jenkinsfile` —
+`unstable` to `error` — and it is left alone deliberately: that is a team decision, not a technical
+one. The technical part is settled, and it is the argument for promoting it: across four null runs the
+gate's own error was at most 10.3% against a limit of 20%.
+
 ## Gotchas
 
 - The bench needs a **production** build. A dev build (`yarn dev`) injects a livereload snippet whose
