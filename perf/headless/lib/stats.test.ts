@@ -1,4 +1,4 @@
-import { maxRelativeDeviation, median, relativeMad } from "../../perf/lib/stats"
+import { maxRelativeDeviation, median, relativeMad } from "./stats"
 
 describe("median", () => {
   test("returns the middle value for an odd count", () => {
