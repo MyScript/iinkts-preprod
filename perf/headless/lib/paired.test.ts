@@ -1,4 +1,4 @@
-import { pairedSamples, referenceFirst, unpairedCases, type TPairedRound } from "../../perf/lib/paired"
+import { pairedSamples, referenceFirst, unpairedCases, type TPairedRound } from "./paired"
 
 /**
  * The pairing arithmetic. Unit-tested because every verdict the gate gives is one of these numbers,

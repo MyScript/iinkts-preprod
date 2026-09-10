@@ -8,7 +8,7 @@ baseline and no reference figure to keep up to date.
 
 ## Why there is no baseline any more
 
-The gate used to compare a run against `test/perf/baseline.json`, a recording of one developer's
+The gate used to compare a run against `perf/headless/baseline.json`, a recording of one developer's
 laptop on one day, while CI ran in Docker on shared agents. Two failures followed from that, and both
 were measured rather than argued.
 
@@ -122,10 +122,9 @@ gate's own error was at most 10.3% against a limit of 20%.
 - The bench needs a **production** build. A dev build (`yarn dev`) injects a livereload snippet whose
   first statement touches `self.document`, and the bench dies with `ReferenceError: self is not
   defined` — a message that names nothing useful. Run `yarn build:lib` first.
-- `yarn typecheck` **excludes `test/perf` and `test/perf-e2e`** (see `tsconfig.typecheck.json`), apart
-  from `lib/gate.ts`, `lib/history.ts`, `lib/paired.ts` and `lib/stats.ts`, which are listed
-  explicitly and are import-free so they can be. A green `yarn typecheck` says nothing about the rest
-  of either directory — run `yarn typecheck:perf` for that.
+- `yarn typecheck` **excludes `perf/` entirely** (see `tsconfig.typecheck.json`): it imports `#iink`,
+  which needs `dist/` built, and uses `.ts` import specifiers. A green `yarn typecheck` therefore says
+  nothing about this tree — `yarn typecheck:perf` is what covers it, tests included.
 - Cases are sized so one iteration lands in **0.1–10 ms**, with a repeat factor per case. Below about
   50 µs a case times the clock rather than the code, and the gate refuses to judge it. If a case gets
   fast enough to fall under that floor, raise its repeat factor; do not widen a threshold.
@@ -174,7 +173,7 @@ byte-identical.
 
 Desktop Chrome. Blocking time is the primary figure; wall clock includes the websocket round trip and
 is reported only for context. There is no longer a document-size ceiling on these scenarios — see the
-comment at the top of `test/perf-e2e/scenarios.perf.ts` for why there was one and why it went.
+comment at the top of `perf/browser/scenarios.perf.ts` for why there was one and why it went.
 
 Document of 150 strokes, the size the master baseline used:
 

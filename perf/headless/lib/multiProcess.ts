@@ -23,7 +23,7 @@ import { maxRelativeDeviation, median, relativeMad } from "./stats.ts"
 type TEnv = Record<string, string | undefined>
 
 function runOneProcess(file: string, env: TEnv): TRunReport {
-  execFileSync(process.execPath, ["test/perf/bench.ts", "--out", file, "--repeats", "1"], {
+  execFileSync(process.execPath, ["perf/headless/bench.ts", "--out", file, "--repeats", "1"], {
     stdio: ["ignore", "ignore", "inherit"],
     env,
   })
