@@ -12,8 +12,12 @@
  * unchanged code more than once, so it needs unit tests, and a top-level script that reads files and
  * calls `process.exit` cannot have any.
  *
- * Deliberately free of imports, including type-only ones, so the unit test needs no `.ts`-extension
- * resolution. `TPairedReport` from `../lib/multiProcess.ts` structurally satisfies `TPairedGateReport`.
+ * Deliberately free of imports, including type-only ones. Not a style choice: the harness runs under
+ * node's type stripping, which needs `.ts` in a specifier, and the jest config that runs the unit test
+ * emits, so it cannot enable `allowImportingTsExtensions`. One of the two would break. That is why the
+ * median absolute deviation below is spelled out here instead of coming from `stats.ts` — it is six
+ * lines and it does not move; if it ever needs to, change both. `TPairedReport` from
+ * `../lib/multiProcess.ts` structurally satisfies `TPairedGateReport`.
  */
 
 /** The subset of a paired report the decision actually reads. The gate declares its own input. */
@@ -32,16 +36,34 @@ export type TPairedGateReport = {
 }
 
 /**
- * How far a case may move before it counts as a regression.
+ * Floor under the threshold, whatever the run says about itself.
  *
- * Provisional, and flat across cases on purpose: IIC-2050 replaces it with a limit derived from the
- * run's own null distribution — the control, and every case the branch did not touch, whose true
- * answer is known to be 1. Until then the figure comes from measurement rather than taste: three null
- * runs, where both bundles were byte-identical so every case should have read exactly 1.000, put the
- * worst method error at 10.3%. 25% leaves roughly a factor of two over the worst thing observed on
- * code that had not changed.
+ * A suspiciously quiet pair of runs must not be allowed to make the gate hair-trigger, because the
+ * next run on the same agent will not be as quiet. The figure comes from measurement: across four
+ * null runs — both bundles byte-identical, so every case had to read exactly 1.000 — the worst error
+ * the method made was 10.3%. 20% leaves roughly a factor of two over that.
  */
-export const REGRESSION_THRESHOLD = 0.25
+export const MIN_THRESHOLD = 0.2
+
+/**
+ * How many times the run's own scatter a case must exceed to be called a regression.
+ *
+ * Five rather than two or three because the scale below is a median absolute deviation, which is
+ * blind to the tail by construction: it describes where the middle of the scatter is, not how far it
+ * reaches. A bound has to clear the reach.
+ */
+export const NULL_FACTOR = 5
+
+/**
+ * Above this the run's own cases disagreed with each other too much for any verdict.
+ *
+ * Measured null runs sit between 1.2% and 3.0%. At 10% the threshold this rule would produce is 50%,
+ * which is not a gate; saying so is better than issuing a limit nothing could ever cross.
+ */
+export const MAX_NULL_SCALE = 0.1
+
+/** Below this many gated cases the scatter of the population means nothing, and only the floor applies. */
+export const MIN_NULL_CASES = 3
 
 /**
  * Below this median latency a case is not measured, it is timed against the clock's own cost.
@@ -90,7 +112,7 @@ export type TVerdict = {
 }
 
 export type TRefusal = {
-  kind: "too-few-rounds" | "control-too-noisy"
+  kind: "too-few-rounds" | "control-too-noisy" | "cases-disagree"
   message: string
 }
 
@@ -102,6 +124,9 @@ export type TGateResult = {
   onlyReference: string[]
   onlyCurrent: string[]
   regressions: TVerdict[]
+  /** How much this run's own gated cases scattered, and the limit that came out of it. */
+  nullScale: number
+  threshold: number
 }
 
 function pct(value: number): string {
@@ -109,7 +134,54 @@ function pct(value: number): string {
 }
 
 function refuse(kind: TRefusal["kind"], message: string): TGateResult {
-  return { refusal: { kind, message }, verdicts: [], onlyReference: [], onlyCurrent: [], regressions: [] }
+  return {
+    refusal: { kind, message },
+    verdicts: [],
+    onlyReference: [],
+    onlyCurrent: [],
+    regressions: [],
+    nullScale: 0,
+    threshold: MIN_THRESHOLD,
+  }
+}
+
+/**
+ * Why this case cannot be judged, or nothing. Split out because the run's own limit is derived from
+ * the cases that *can* be, so gatability has to be known before any verdict is given.
+ */
+function ungatedReasonFor(report: TPairedGateReport, name: string): TVerdict["ungatedReason"] {
+  // The floor is checked first: a case timed against the clock cannot be rescued by pairing it more
+  // often, and calling it under-sampled would send someone off to add rounds that cannot help.
+  if (belowTimerFloor(report, name)) return "timer-floor"
+  if ((report.samples[name]?.length ?? 0) < report.rounds * MIN_PAIRED_FRACTION) return "too-few-rounds"
+  return undefined
+}
+
+/**
+ * How wrong this run is about itself.
+ *
+ * A branch changes the cost of a case or two; the rest of the suite measures the same code on both
+ * sides and must read 1.000. Their disagreement is therefore the method's own error, measured on this
+ * agent, in this job — no recording of another machine required, and nothing to keep up to date.
+ *
+ * It is the scatter **around the run's own centre**, not the distance from 1.000, and that is the
+ * whole design. Were it measured from 1.000, a change that slowed every case equally would push the
+ * scale up with it, the limit would widen to match, and the gate would quietly excuse the one kind of
+ * regression it should be surest about. Measured around the centre, a uniform shift leaves the
+ * scatter at zero, the limit falls to its floor, and every case is flagged.
+ */
+function nullScaleOf(ratios: number[]): number {
+  if (ratios.length < MIN_NULL_CASES) return 0
+  const centre = medianOf(ratios)
+  if (centre <= 0) return 0
+  return medianOf(ratios.map((r) => Math.abs(r - centre))) / centre
+}
+
+/** See the note at the top of the file for why this is not `median` from `stats.ts`. */
+function medianOf(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b)
+  const mid = Math.floor(sorted.length / 2)
+  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid]
 }
 
 /** A baseline that predates per-case milliseconds has no opinion on measurability. Absent means no opinion. */
@@ -118,27 +190,20 @@ function belowTimerFloor(report: TPairedGateReport, name: string): boolean {
   return p50Ms !== undefined && p50Ms < MIN_GATED_MS
 }
 
-function verdictFor(report: TPairedGateReport, name: string, ratio: number): TVerdict {
-  const rounds = report.samples[name]?.length ?? 0
-  // The floor is checked first: a case timed against the clock cannot be rescued by pairing it more
-  // often, and calling it under-sampled would send someone off to add rounds that cannot help.
-  const ungatedReason = belowTimerFloor(report, name)
-    ? ("timer-floor" as const)
-    : rounds < report.rounds * MIN_PAIRED_FRACTION
-      ? ("too-few-rounds" as const)
-      : undefined
+function verdictFor(report: TPairedGateReport, name: string, ratio: number, threshold: number): TVerdict {
+  const ungatedReason = ungatedReasonFor(report, name)
   const gated = ungatedReason === undefined
   const drift = ratio - 1
   return {
     name,
     ratio,
     drift,
-    rounds,
-    threshold: REGRESSION_THRESHOLD,
+    rounds: report.samples[name]?.length ?? 0,
+    threshold,
     gated,
     ...(ungatedReason ? { ungatedReason } : {}),
-    regressed: gated && drift > REGRESSION_THRESHOLD,
-    improved: gated && drift < -REGRESSION_THRESHOLD,
+    regressed: gated && drift > threshold,
+    improved: gated && drift < -threshold,
   }
 }
 
@@ -161,8 +226,23 @@ export function evaluate(report: TPairedGateReport): TGateResult {
     )
   }
 
+  const gatable = Object.entries(report.paired)
+    .filter(([name]) => ungatedReasonFor(report, name) === undefined)
+    .map(([, ratio]) => ratio)
+  const nullScale = nullScaleOf(gatable)
+
+  if (nullScale > MAX_NULL_SCALE) {
+    return refuse(
+      "cases-disagree",
+      `this run's own cases scattered by ${pct(nullScale)}, above the ${pct(MAX_NULL_SCALE)} ceiling. ` +
+        "Most of them measure the same code on both sides and should agree; that they do not means " +
+        "the run measured the machine rather than the builds. Not reporting a verdict."
+    )
+  }
+
+  const threshold = Math.max(MIN_THRESHOLD, NULL_FACTOR * nullScale)
   const verdicts = Object.entries(report.paired)
-    .map(([name, ratio]) => verdictFor(report, name, ratio))
+    .map(([name, ratio]) => verdictFor(report, name, ratio, threshold))
     .sort((a, b) => b.drift - a.drift)
 
   return {
@@ -170,5 +250,7 @@ export function evaluate(report: TPairedGateReport): TGateResult {
     onlyReference: [...report.onlyReference],
     onlyCurrent: [...report.onlyCurrent],
     regressions: verdicts.filter((v) => v.regressed),
+    nullScale,
+    threshold,
   }
 }

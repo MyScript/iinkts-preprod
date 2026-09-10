@@ -1,8 +1,10 @@
 import {
+  MAX_NULL_SCALE,
   MAX_USABLE_SPREAD,
   MIN_GATED_MS,
   MIN_ROUNDS,
-  REGRESSION_THRESHOLD,
+  MIN_THRESHOLD,
+  NULL_FACTOR,
   evaluate,
   type TPairedGateReport,
 } from "../../perf/lib/gate"
@@ -49,19 +51,19 @@ describe("evaluate — regression detection", () => {
   })
 
   test("passes a drift below the threshold", () => {
-    const result = evaluate(withCase(1 + REGRESSION_THRESHOLD - 0.01))
+    const result = evaluate(withCase(1 + MIN_THRESHOLD - 0.01))
     expect(result.regressions).toHaveLength(0)
   })
 
   test("flags a drift above the threshold", () => {
-    const result = evaluate(withCase(1 + REGRESSION_THRESHOLD + 0.01))
+    const result = evaluate(withCase(1 + MIN_THRESHOLD + 0.01))
     expect(result.regressions.map((v) => v.name)).toEqual(["case"])
   })
 
   test("does not flag a drift sitting exactly on the threshold", () => {
     // The threshold is a bound the run has to pass, not reach: a case landing exactly on it has not
     // been shown to be worse than the noise the limit was drawn from.
-    expect(evaluate(withCase(1 + REGRESSION_THRESHOLD)).regressions).toHaveLength(0)
+    expect(evaluate(withCase(1 + MIN_THRESHOLD)).regressions).toHaveLength(0)
   })
 
   test("reports the drift as the distance from parity", () => {
@@ -69,28 +71,89 @@ describe("evaluate — regression detection", () => {
   })
 
   test("marks a symmetric drop as improved rather than regressed", () => {
-    const result = evaluate(withCase(1 - REGRESSION_THRESHOLD - 0.01))
+    const result = evaluate(withCase(1 - MIN_THRESHOLD - 0.01))
     const verdict = result.verdicts.find((v) => v.name === "case")
     expect(verdict?.improved).toBe(true)
     expect(verdict?.regressed).toBe(false)
   })
 
   test("sorts verdicts worst drift first", () => {
+    // Anchored with cases that agree: three cases disagreeing by 20% is a run the gate refuses
+    // outright, so a fixture that scatters cannot exercise the ordering.
     const base = report()
+    const names = ["a", "b", "c", "d", "e"]
     const result = evaluate({
       ...base,
-      samples: { a: Array(8).fill(1), b: Array(8).fill(1), c: Array(8).fill(1) },
-      paired: { a: 1, b: 1.3, c: 0.8 },
-      reference: {
-        cases: [
-          { name: "a", p50Ms: 5 },
-          { name: "b", p50Ms: 5 },
-          { name: "c", p50Ms: 5 },
-        ],
-        controlSpread: 0.03,
-      },
+      samples: Object.fromEntries(names.map((n) => [n, Array(base.rounds).fill(1)])),
+      paired: { a: 1.02, b: 1.05, c: 0.98, d: 1, e: 0.99 },
+      reference: { cases: names.map((n) => ({ name: n, p50Ms: 5 })), controlSpread: 0.03 },
     })
-    expect(result.verdicts.map((v) => v.name)).toEqual(["b", "a", "c"])
+    expect(result.verdicts.map((v) => v.name)).toEqual(["b", "a", "d", "e", "c"])
+  })
+})
+
+describe("evaluate — the limit the run gives itself", () => {
+  /** `count` cases whose ratios are `ratios`, all measurable and paired in every round. */
+  function population(ratios: number[]): TPairedGateReport {
+    const base = report()
+    const names = ratios.map((_, i) => `case ${i}`)
+    return {
+      ...base,
+      samples: Object.fromEntries(names.map((n) => [n, Array(base.rounds).fill(1)])),
+      paired: Object.fromEntries(names.map((n, i) => [n, ratios[i]])),
+      reference: { cases: names.map((n) => ({ name: n, p50Ms: 5 })), controlSpread: 0.03 },
+    }
+  }
+
+  test("falls back to the floor when the run's cases agree", () => {
+    const result = evaluate(population([1, 1.01, 0.99, 1.005]))
+    expect(result.threshold).toBe(MIN_THRESHOLD)
+  })
+
+  test("widens with the run's own scatter once that clears the floor", () => {
+    const result = evaluate(population([1, 1.1, 0.9, 1.1, 0.9]))
+    expect(result.nullScale).toBeCloseTo(0.1, 2)
+    expect(result.threshold).toBeCloseTo(NULL_FACTOR * result.nullScale, 10)
+  })
+
+  test("a change that slows every case equally does not widen the limit", () => {
+    // The defect this design exists to avoid. Were the scale measured from 1.000 rather than from the
+    // run's own centre, a uniform slowdown would raise it, the limit would follow, and the gate would
+    // excuse the one kind of regression it should be surest about.
+    const result = evaluate(population([1.3, 1.3, 1.3, 1.3]))
+    expect(result.threshold).toBe(MIN_THRESHOLD)
+    expect(result.regressions).toHaveLength(4)
+  })
+
+  test("one regressed case does not drag the limit up with it", () => {
+    const result = evaluate(population([1, 1.01, 0.99, 1.005, 2]))
+    expect(result.threshold).toBe(MIN_THRESHOLD)
+    expect(result.regressions.map((v) => v.name)).toEqual(["case 4"])
+  })
+
+  test("leaves ungated cases out of the scale", () => {
+    // A case timed against the clock says nothing about how wrong the run is.
+    const base = population([1, 1.01, 0.99, 1.005])
+    const withNoise = {
+      ...base,
+      paired: { ...base.paired, junk: 3 },
+      samples: { ...base.samples, junk: Array(base.rounds).fill(1) },
+      reference: { ...base.reference, cases: [...base.reference.cases, { name: "junk", p50Ms: MIN_GATED_MS / 10 }] },
+    }
+    expect(evaluate(withNoise).threshold).toBe(MIN_THRESHOLD)
+  })
+
+  test("uses the floor alone when too few cases can be gated", () => {
+    const result = evaluate(population([1, 1.4]))
+    expect(result.nullScale).toBe(0)
+    expect(result.threshold).toBe(MIN_THRESHOLD)
+  })
+
+  test("refuses a run whose own cases disagree past the ceiling", () => {
+    const scatter = MAX_NULL_SCALE + 0.05
+    const result = evaluate(population([1 - scatter, 1 + scatter, 1 - scatter, 1 + scatter]))
+    expect(result.refusal?.kind).toBe("cases-disagree")
+    expect(result.verdicts).toHaveLength(0)
   })
 })
 
