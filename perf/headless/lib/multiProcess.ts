@@ -66,6 +66,12 @@ export type TPairedReport = {
   /** The two bundles measured. Both explicit, so neither side is loaded by a different mechanism. */
   referenceLib: string
   currentLib: string
+  /**
+   * The objects the run was narrowed to, when it was. Recorded because the gate refuses to judge a
+   * narrowed run: its limit comes from how much the run's own cases disagree, and a handful of them
+   * cannot say.
+   */
+  filter?: string[]
   /** The commit the reference bundle was built from. */
   referenceSha?: string
   /** The current build's cost as a multiple of the reference's, per case, one entry per round. */
@@ -88,13 +94,17 @@ function runRounds(
   rounds: number,
   dir: string,
   referenceLib: string,
-  currentLib: string
+  currentLib: string,
+  only: string[]
 ): { reference: TRunReport[]; current: TRunReport[] } {
   // Both sides are pointed at an explicit bundle, and neither is left to the package's own `#iink`.
   // The two specifiers resolve the same file but not by the same mechanism, and an asymmetry in the
   // instrument is a defect whether or not a case has yet been found that shows it.
-  const referenceEnv: TEnv = { ...process.env, BENCH_LIB: referenceLib }
-  const currentEnv: TEnv = { ...process.env, BENCH_LIB: currentLib }
+  // One filter value, built once and given to both sides: the two must measure the same set or the
+  // pairing compares different suites.
+  const shared: TEnv = { ...process.env, ...(only.length > 0 ? { BENCH_ONLY: only.join(",") } : {}) }
+  const referenceEnv: TEnv = { ...shared, BENCH_LIB: referenceLib }
+  const currentEnv: TEnv = { ...shared, BENCH_LIB: currentLib }
 
   const reference: TRunReport[] = []
   const current: TRunReport[] = []
@@ -118,11 +128,12 @@ export function runPaired(options: {
   referenceLib: string
   currentLib: string
   referenceSha?: string
+  only?: string[]
 }): TPairedReport {
   const dir = mkdtempSync(join(tmpdir(), "iink-bench-ab-"))
   let sides: { reference: TRunReport[]; current: TRunReport[] }
   try {
-    sides = runRounds(options.rounds, dir, options.referenceLib, options.currentLib)
+    sides = runRounds(options.rounds, dir, options.referenceLib, options.currentLib, options.only ?? [])
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }
@@ -144,6 +155,7 @@ export function runPaired(options: {
     referenceLib: options.referenceLib,
     currentLib: options.currentLib,
     ...(options.referenceSha ? { referenceSha: options.referenceSha } : {}),
+    ...(options.only?.length ? { filter: [...options.only] } : {}),
     samples,
     paired: Object.fromEntries(Object.entries(samples).map(([name, values]) => [name, median(values)])),
     ...unpairedCases(paired),
