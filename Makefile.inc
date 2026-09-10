@@ -30,6 +30,10 @@ DOCKER_TAG_IINK_EXAMPLES := 1.0.0
 
 APPLICATION_KEY := 7d223f9e-a3cb-4213-ba4b-85e930605f8b
 HMAC_KEY := 5ab1935e-529a-4d48-a695-158450e52b13
+
+# Browser perf runs at the reference document size. At the 150-stroke default every scenario reports
+# zero blocking time — there is no jank to measure, so there is nothing that could regress.
+PERF_E2E_DOCUMENT ?= 4419
 EXAMPLES_LISTEN_PORT := 80
 BACKEND_LISTEN_PORT := 8897
 
