@@ -8,6 +8,7 @@ import { LoggerCategory } from "@/logger"
 import { SVGBuilder, SVGRendererConst } from "@/renderer"
 import type { TStroke } from "@/symbol"
 import { isStroke } from "@/symbol"
+import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 
 import { ColorPaletteManager } from "../base"
 import { IIAbstractManager } from "./IIAbstractManager"
@@ -308,7 +309,7 @@ export class IIOverlayManager extends IIAbstractManager {
       this.logger.warn("getMathBlockBounds", `Math block ${mathBlock.id} has no bounding box and no strokes`)
       return null
     }
-    return BoxOps.createFromBoxes(blockStrokes.map((s) => OBBOps.toBox(s.bounds)))
+    return BoxOps.createFromBoxes(blockStrokes.map((s) => OBBOps.toBox(SymbolGeometry.boundsOf(s))))
   }
 
   refresh(): void {

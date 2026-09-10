@@ -1,4 +1,4 @@
-import { ShapePolygonOps, TPoint, DefaultStyle, TStyle, TBox, OBBOps } from "@/iink"
+import { ShapePolygonOps, TPoint, DefaultStyle, TStyle, TBox, OBBOps, MatrixTransform } from "@/iink"
 
 describe("ShapePolygonOps", () => {
   describe("create", () => {
@@ -8,6 +8,9 @@ describe("ShapePolygonOps", () => {
       { x: 10, y: 10 },
       { x: 0, y: 10 },
     ]
+    test("should initialise transform to identity", () => {
+      expect(ShapePolygonOps.create(points).transform).toEqual(MatrixTransform.identity())
+    })
     test("should create with default style", () => {
       const polygon = ShapePolygonOps.create(points)
       expect(polygon.style).toEqual(DefaultStyle)
@@ -19,14 +22,14 @@ describe("ShapePolygonOps", () => {
     })
     test("should have vertices same ref as points", () => {
       const polygon = ShapePolygonOps.create(points)
-      expect(polygon.vertices).toBe(polygon.points)
+      expect(ShapePolygonOps.computeVertices(polygon)).toBe(polygon.points)
     })
     test("should compute bounds from points", () => {
       const polygon = ShapePolygonOps.create(points)
-      expect(OBBOps.toBox(polygon.bounds).x).toBeLessThanOrEqual(0)
-      expect(OBBOps.toBox(polygon.bounds).y).toBeLessThanOrEqual(0)
-      expect(polygon.bounds.width).toBeGreaterThan(0)
-      expect(polygon.bounds.height).toBeGreaterThan(0)
+      expect(OBBOps.toBox(ShapePolygonOps.computeBounds(polygon.points)).x).toBeLessThanOrEqual(0)
+      expect(OBBOps.toBox(ShapePolygonOps.computeBounds(polygon.points)).y).toBeLessThanOrEqual(0)
+      expect(ShapePolygonOps.computeBounds(polygon.points).width).toBeGreaterThan(0)
+      expect(ShapePolygonOps.computeBounds(polygon.points).height).toBeGreaterThan(0)
     })
     test("should generate unique ids", () => {
       const p1 = ShapePolygonOps.create(points)
@@ -44,6 +47,15 @@ describe("ShapePolygonOps", () => {
       ]
       const polygon = ShapePolygonOps.createFromPartial({ points: pts })
       expect(polygon.points).toEqual(pts)
+    })
+    test("should carry a given transform through, merged onto identity", () => {
+      const pts: TPoint[] = [
+        { x: 0, y: 0 },
+        { x: 5, y: 0 },
+        { x: 2, y: 5 },
+      ]
+      const polygon = ShapePolygonOps.createFromPartial({ points: pts, transform: { tx: 5, ty: 6 } })
+      expect(polygon.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 5, ty: 6 })
     })
     test("should preserve id", () => {
       const pts: TPoint[] = [
@@ -63,27 +75,6 @@ describe("ShapePolygonOps", () => {
           ],
         })
       ).toThrow()
-    })
-  })
-
-  describe("updateDerivedFields", () => {
-    test("should refresh vertices and bounds after points change", () => {
-      const pts: TPoint[] = [
-        { x: 0, y: 0 },
-        { x: 10, y: 0 },
-        { x: 10, y: 10 },
-        { x: 0, y: 10 },
-      ]
-      const polygon = ShapePolygonOps.create(pts)
-      polygon.points = [
-        { x: 0, y: 0 },
-        { x: 100, y: 0 },
-        { x: 100, y: 100 },
-        { x: 0, y: 100 },
-      ]
-      ShapePolygonOps.updateDerivedFields(polygon)
-      expect(polygon.bounds.width).toBeGreaterThan(50)
-      expect(polygon.vertices).toBe(polygon.points)
     })
   })
 
@@ -128,7 +119,7 @@ describe("ShapePolygonOps", () => {
     test("should update rectangle between points", () => {
       const polygon = ShapePolygonOps.createRectangleBetweenPoints({ x: 0, y: 0 }, { x: 5, y: 5 })
       ShapePolygonOps.updateRectangleBetweenPoints(polygon, { x: 0, y: 0 }, { x: 20, y: 20 })
-      expect(polygon.bounds.width).toBeGreaterThan(10)
+      expect(ShapePolygonOps.computeBounds(polygon.points).width).toBeGreaterThan(10)
     })
   })
 

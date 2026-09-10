@@ -1,7 +1,7 @@
 import { SELECTION_MARGIN } from "@/Constants"
 import type { TBox } from "@/core/geometry"
 import type { TPoint, TSegment } from "@/core/geometry"
-import { OBBOps, type TOBB } from "@/core/geometry"
+import { MatrixTransform, mergeSymbolTransform, OBBOps, type TOBB } from "@/core/geometry"
 import { isValidPoint } from "@/core/geometry"
 import { computePointOnEllipse } from "@/core/geometry"
 import { computeEllipseRadiusAverage, computeTessellationCount, isValidNumber, TWO_PI } from "@/core/math"
@@ -25,10 +25,6 @@ export type TShapeEllipse = TBaseSymbol & {
   radiusX: number
   radiusY: number
   orientation: number
-  vertices: TPoint[]
-  bounds: TOBB
-  snapPoints: TPoint[]
-  edges: TSegment[]
 }
 
 /**
@@ -55,12 +51,8 @@ export const ShapeEllipseOps = {
       radiusX,
       radiusY,
       orientation,
-      vertices: [],
-      bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0),
-      snapPoints: [],
-      edges: [],
+      transform: MatrixTransform.identity(),
     }
-    ShapeEllipseOps.updateDerivedFields(ellipse)
     return ellipse
   },
 
@@ -84,10 +76,11 @@ export const ShapeEllipseOps = {
     if (partial.id) {
       ellipse.id = partial.id
     }
+    ellipse.transform = mergeSymbolTransform(partial.transform)
     return ellipse
   },
 
-  updateDerivedFields(ellipse: TShapeEllipse): void {
+  computeVertices(ellipse: TShapeEllipse): TPoint[] {
     const perimeter = TWO_PI * computeEllipseRadiusAverage(ellipse.radiusX, ellipse.radiusY)
     const nbPoint = computeTessellationCount(perimeter, SELECTION_MARGIN)
     const vertices: TPoint[] = []
@@ -95,17 +88,28 @@ export const ShapeEllipseOps = {
       const theta = TWO_PI * (i / nbPoint)
       vertices.push(computePointOnEllipse(ellipse.center, ellipse.radiusX, ellipse.radiusY, ellipse.orientation, theta))
     }
-    ellipse.vertices = vertices
-    ellipse.bounds = OBBOps.createFromPoints(vertices)
-    ellipse.snapPoints = OBBOps.getSnapPoints(ellipse.bounds)
-    ellipse.edges = vertices.map((p, i) => ({
+    return vertices
+  },
+
+  /** Takes the vertices, like {@link computeEdges}: an ellipse's box is the box of its tessellation. */
+  computeBounds(vertices: TPoint[]): TOBB {
+    return OBBOps.createFromPoints(vertices)
+  },
+
+  computeEdges(vertices: TPoint[]): TSegment[] {
+    return vertices.map((p, i) => ({
       p1: p,
       p2: vertices[(i + 1) % vertices.length],
     }))
   },
 
   overlaps(ellipse: TShapeEllipse, box: TBox): boolean {
-    return OBBOps.polygonOverlapsBox(ellipse.bounds, ellipse.edges, box)
+    const vertices = ShapeEllipseOps.computeVertices(ellipse)
+    return OBBOps.polygonOverlapsBox(
+      ShapeEllipseOps.computeBounds(vertices),
+      ShapeEllipseOps.computeEdges(vertices),
+      box
+    )
   },
 
   createBetweenPoints(origin: TPoint, target: TPoint, style?: TPartialDeep<TStyle>): TShapeEllipse {
@@ -125,7 +129,6 @@ export const ShapeEllipseOps = {
     }
     ellipse.radiusX = Math.abs(origin.x - target.x) / 2
     ellipse.radiusY = Math.abs(origin.y - target.y) / 2
-    ShapeEllipseOps.updateDerivedFields(ellipse)
   },
 
   getSVGPath(ellipse: TShapeEllipse): string {

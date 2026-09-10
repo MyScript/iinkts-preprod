@@ -1,13 +1,16 @@
 import type { TBox } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
-import { OBBOps, type TOBB } from "@/core/geometry"
+import { isIdentityMatrix, MatrixTransform, mergeSymbolTransform, OBBOps, type TOBB } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import { DefaultStyle } from "@/style"
 import { DecoratorKind, DecoratorOps, type TDecorator } from "@/symbol/decorator/Decorator"
+import type { TBaseSymbol } from "@/symbol/Symbol"
 import { SymbolType } from "@/symbol/Symbol"
 
 import { SVGBuilder } from "../SVGBuilder"
+import { SymbolGeometry } from "../SymbolGeometry"
 import { SymbolUtil } from "../SymbolUtil"
+import type { TSymbolGeometry } from "../TSymbolGeometry"
 
 /**
  * How one kind of decorator is drawn.
@@ -119,18 +122,30 @@ export class DecoratorUtil extends SymbolUtil<TDecorator> {
       throw new Error("TDecorator requires kind")
     }
     const targetIds = (partial.targetIds ?? []).filter((id): id is string => id !== undefined)
-    const bounds = partial.bounds as TBox | undefined
-    return DecoratorOps.create(partial.kind, partial.style ?? {}, targetIds, bounds)
-  }
-
-  updateDerivedFields(decorator: TDecorator): void {
-    if (decorator.hasBounds) {
-      DecoratorOps.setBounds(decorator, decorator.bounds)
+    const targetBounds = partial.targetBounds
+    const decorator = DecoratorOps.create(partial.kind, partial.style ?? {}, targetIds)
+    // Read as the `TOBB` the field declares, field by field, rather than through `create`'s `TBox`
+    // parameter. The code this replaces did `partial.bounds as TBox` and handed that to
+    // `OBBOps.fromBox`, which reads `.x`/`.y` — so a decorator serialised by iinkTS itself (a
+    // `TOBB`, with `center` and no `x`) came back with a NaN centre on re-import. The cast was what
+    // hid the mismatch from the compiler.
+    if (targetBounds) {
+      DecoratorOps.setTargetBounds(
+        decorator,
+        OBBOps.create(
+          { x: targetBounds.center?.x ?? 0, y: targetBounds.center?.y ?? 0 },
+          targetBounds.width ?? 0,
+          targetBounds.height ?? 0,
+          targetBounds.angle ?? 0
+        )
+      )
     }
+    decorator.transform = mergeSymbolTransform(partial.transform)
+    return decorator
   }
 
   overlaps(decorator: TDecorator, box: TBox): boolean {
-    return DecoratorOps.overlaps(decorator, box)
+    return this.overlapsQuery(decorator, box, (b) => DecoratorOps.overlaps(decorator, b))
   }
 
   /**
@@ -139,17 +154,39 @@ export class DecoratorUtil extends SymbolUtil<TDecorator> {
    * would double the displacement. `IIAbstractTransformManager.applyToSymbol` still returns early
    * for decorators, so nothing calls this yet; it becomes the live path when IIC-2014 removes that
    * early return, and stating the exception here is what keeps it from being lost.
+   *
+   * Overriding `applyTransform` rather than `translate`/`rotate`/`resize` individually: those three
+   * are concrete on `SymbolUtil` now and all three route through this one method, so a single
+   * no-op here covers all three at once instead of three separate ones.
    */
-  translate(): void {}
+  applyTransform(): void {}
 
-  /** Nothing, for the same reason {@link translate} does nothing. */
-  rotate(): void {}
-
-  /** Nothing, for the same reason {@link translate} does nothing. */
-  resize(): void {}
+  /**
+   * A decorator's geometry is read, not derived: `targetBounds` is an input written by whoever
+   * placed it (see `TDecorator.targetBounds`). This util is the one that reports a stored box
+   * because it is the one type whose box does not come from coordinates it owns.
+   *
+   * No `targetBounds` means no box of its own — a decorator embedded in a `TText`/`TMath`, or
+   * standalone but not yet placed. It reports empty rather than two phantom points at the origin,
+   * which is what a zero-size box would produce.
+   */
+  computeGeometry(decorator: TDecorator): TSymbolGeometry {
+    const bounds = decorator.targetBounds
+    if (!bounds) {
+      return { bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0), vertices: [], snapPoints: [], edges: [], length: 0 }
+    }
+    const vertices = DecoratorOps.computeVertices(bounds)
+    return {
+      bounds,
+      vertices,
+      snapPoints: vertices,
+      edges: [{ p1: vertices[0], p2: vertices[1] }],
+      length: 0,
+    }
+  }
 
   getSnapPoints(decorator: TDecorator): TPoint[] {
-    return decorator.snapPoints
+    return this.mapPointsForward(decorator, this.computeGeometry(decorator).snapPoints)
   }
 
   canResize(_decorator: TDecorator): boolean {
@@ -161,20 +198,26 @@ export class DecoratorUtil extends SymbolUtil<TDecorator> {
   }
 
   getSVGElement(decorator: TDecorator): SVGGeometryElement | undefined {
-    return DecoratorUtil.renderFromBounds(decorator, decorator.bounds, decorator.baseline, decorator.xHeight, {
-      width: decorator.style.width,
-      color: decorator.style.color,
-    })
+    return DecoratorUtil.renderFromBounds(
+      decorator,
+      SymbolGeometry.rawOf(decorator).bounds,
+      decorator.baseline,
+      decorator.xHeight,
+      {
+        width: decorator.style.width,
+        color: decorator.style.color,
+      }
+    )
   }
 
-  static renderForSymbol(
-    decorator: TDecorator,
-    symbol: {
-      bounds: TOBB
-      style: { width?: number; color?: string }
-    }
-  ): SVGGeometryElement | undefined {
-    const bounds = decorator.hasBounds ? decorator.bounds : symbol.bounds
+  static renderForSymbol(decorator: TDecorator, symbol: TBaseSymbol): SVGGeometryElement | undefined {
+    // `SymbolGeometry.rawOf`, not `boundsOf`: this element is drawn either as the decorator's own
+    // top-level group (which carries its own `transform` below) or as a child of the host's group
+    // (which carries the host's), so the geometry itself must stay untransformed — the enclosing
+    // `transform` attribute is what repositions it, exactly once at each level. `rawOf` also keeps
+    // this on the cache `boundsOf` uses, rather than calling a util's `computeGeometry` uncached on
+    // every redraw.
+    const bounds = decorator.targetBounds ? SymbolGeometry.rawOf(decorator).bounds : SymbolGeometry.rawOf(symbol).bounds
     return DecoratorUtil.renderFromBounds(decorator, bounds, undefined, undefined, {
       width: symbol.style.width,
       color: symbol.style.color,
@@ -208,6 +251,9 @@ export class DecoratorUtil extends SymbolUtil<TDecorator> {
     }
     if (decorator.style.opacity) {
       attrs["opacity"] = decorator.style.opacity.toString()
+    }
+    if (!isIdentityMatrix(decorator.transform)) {
+      attrs.transform = MatrixTransform.toCssString(decorator.transform)
     }
     // Layered after, so a kind may override a shared attribute. The highlight does exactly that.
     Object.assign(attrs, definition.attributes(decorator))

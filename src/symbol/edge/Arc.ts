@@ -1,7 +1,7 @@
 import type { EdgeDecoration } from "@/Constants"
 import { SELECTION_MARGIN } from "@/Constants"
 import type { TBox } from "@/core/geometry"
-import { OBBOps, type TOBB } from "@/core/geometry"
+import { MatrixTransform, mergeSymbolTransform, OBBOps, type TOBB } from "@/core/geometry"
 import { isValidPoint, type TPoint, type TSegment } from "@/core/geometry"
 import { computeAngleFromPointOnEllipse, computeDistance, computePointOnEllipse } from "@/core/geometry"
 import { computeEllipseRadiusAverage, computeTessellationCount, isValidNumber } from "@/core/math"
@@ -30,10 +30,6 @@ export type TEdgeArc = TBaseSymbol & {
   endDecoration?: EdgeDecoration
   startAnchor?: TAnchor
   endAnchor?: TAnchor
-  vertices: TPoint[]
-  bounds: TOBB
-  snapPoints: TPoint[]
-  edges: TSegment[]
 }
 
 /**
@@ -68,12 +64,8 @@ export const EdgeArcOps = {
       phi,
       startDecoration,
       endDecoration,
-      vertices: [],
-      bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0),
-      snapPoints: [],
-      edges: [],
+      transform: MatrixTransform.identity(),
     }
-    EdgeArcOps.updateDerivedFields(arc)
     return arc
   },
 
@@ -107,6 +99,7 @@ export const EdgeArcOps = {
     if (partial.id) {
       arc.id = partial.id
     }
+    arc.transform = mergeSymbolTransform(partial.transform)
     return arc
   },
 
@@ -129,19 +122,23 @@ export const EdgeArcOps = {
     return v
   },
 
-  updateDerivedFields(arc: TEdgeArc): void {
-    const vertices = EdgeArcOps.computeVertices(arc)
-    arc.vertices = vertices
-    arc.bounds = computeEdgeBounds(vertices, arc.style, arc.startDecoration, arc.endDecoration)
-    arc.snapPoints = [vertices[0], vertices.at(-1)!]
-    arc.edges = vertices.slice(0, -1).map((p, i) => ({
+  computeBounds(arc: TEdgeArc, vertices: TPoint[]): TOBB {
+    return computeEdgeBounds(vertices, arc.style, arc.startDecoration, arc.endDecoration)
+  },
+
+  computeSnapPoints(vertices: TPoint[]): TPoint[] {
+    return [vertices[0], vertices.at(-1)!]
+  },
+
+  computeEdges(vertices: TPoint[]): TSegment[] {
+    return vertices.slice(0, -1).map((p, i) => ({
       p1: p,
       p2: vertices[i + 1],
     }))
   },
 
   getResizePoints(arc: TEdgeArc): TResizePoint[] {
-    const v = arc.vertices
+    const v = EdgeArcOps.computeVertices(arc)
     const mid = Math.floor(v.length / 2)
     return [
       { point: v[0], vertexIndex: 0 },
@@ -154,7 +151,8 @@ export const EdgeArcOps = {
   },
 
   overlaps(arc: TEdgeArc, box: TBox): boolean {
-    return OBBOps.polygonOverlapsBox(arc.bounds, arc.edges, box)
+    const vertices = EdgeArcOps.computeVertices(arc)
+    return OBBOps.polygonOverlapsBox(EdgeArcOps.computeBounds(arc, vertices), EdgeArcOps.computeEdges(vertices), box)
   },
 
   getSVGPath(arc: TEdgeArc): string {
@@ -165,7 +163,7 @@ export const EdgeArcOps = {
     // back to those near-center vertices before the visible curve even begins. Instead, drop
     // every vertex that's closer to the true endpoint than entryPoint is (i.e. still "inside"
     // the shape along the curve) and start/end the path at entryPoint itself.
-    const original = arc.vertices
+    const original = EdgeArcOps.computeVertices(arc)
     const trueStart = original[0]
     const trueEnd = original[original.length - 1]
 

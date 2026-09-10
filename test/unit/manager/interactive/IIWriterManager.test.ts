@@ -1,3 +1,4 @@
+import { buildIIStroke } from "../../helpers"
 import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
 import {
   IIWriterManager,
@@ -11,6 +12,8 @@ import {
   EdgeDecoration,
   EdgeKind,
   TStroke,
+  TBaseSymbol,
+  TSymbol,
   TPointerInfo,
 } from "@/iink"
 
@@ -296,6 +299,31 @@ describe("IIWriterManager.ts", () => {
       // and call drawCurrentSymbol again with a stale (now undefined) currentSymbol.
       await new Promise((resolve) => requestAnimationFrame(resolve))
       expect(manager.renderer.drawCurrentSymbol).not.toHaveBeenCalled()
+    })
+  })
+
+  describe("needContextLessGesture — hit-testing an unregistered symbol type", () => {
+    /**
+     * Whole-document scan on every completed stroke — one bad symbol type must not abort
+     * gesture detection for the rest of the document. Reaches the protected method the same way
+     * IISelectionManager.test.ts's createEdgeResizeGroup tests do.
+     */
+    test("skips it without throwing", () => {
+      const canvas = createCanvasMock()
+      const manager = new IIWriterManager(asCanvas(canvas)) as unknown as {
+        needContextLessGesture: (stroke: TStroke) => boolean
+      }
+
+      const orphan = {
+        ...(buildIIStroke() as unknown as TBaseSymbol),
+        type: "no-such-type",
+        id: "orphan-1",
+      } as unknown as TSymbol
+      canvas.model.addSymbol(orphan)
+
+      const stroke = buildIIStroke()
+
+      expect(() => manager.needContextLessGesture(stroke)).not.toThrow()
     })
   })
 })

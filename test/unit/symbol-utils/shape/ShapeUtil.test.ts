@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, test } from "@jest/globals"
 
 import { buildIICircle } from "../../helpers"
 
-import type { TPartialDeep, TShape } from "@/iink"
-import { OBBOps, ShapeKind, ShapeUtil, SymbolType } from "@/iink"
+import type { TOBB, TPartialDeep, TShape } from "@/iink"
+import { MatrixTransform, OBBOps, ShapeKind, ShapeUtil, SymbolType, TPoint, TSegment, ShapeCircleOps, ShapeEllipseOps, ShapePolygonOps, TShapePolygon, TShapeCircle, TShapeEllipse } from "@/iink"
 
 /**
  * `ShapeUtil` used to resolve a kind with a `switch` in each of four methods, which meant a kind
@@ -12,6 +12,37 @@ import { OBBOps, ShapeKind, ShapeUtil, SymbolType } from "@/iink"
  * These tests assert the property that made the table worth it: a kind is either wired everywhere
  * or nowhere. A partially handled kind fails here even though it would have typechecked before.
  */
+/**
+ * Each kind's own edge computation, the oracle now that the stored `edges` field is gone. A
+ * dispatch oracle like {@link SHAPE_BOUNDS_ORACLE}: it reaches the same `*Ops` calls `computeGeometry`
+ * makes, so it pins the routing, not the arithmetic.
+ */
+const EDGES_ORACLE: Record<string, (shape: TShape, vertices: TPoint[]) => TSegment[]> = {
+  [ShapeKind.Circle]: (_shape, vertices) => ShapeCircleOps.computeEdges(vertices),
+  [ShapeKind.Ellipse]: (_shape, vertices) => ShapeEllipseOps.computeEdges(vertices),
+  [ShapeKind.Polygon]: (shape) => ShapePolygonOps.computeEdges((shape as TShapePolygon).points),
+}
+
+/**
+ * Each kind's own bounds computation. This is a *dispatch* oracle: it proves `ShapeUtil` routes an
+ * ellipse to `ShapeEllipseOps` and not to `ShapePolygonOps`, and nothing more — it cannot fail if a
+ * kind's own `computeBounds` is wrong, because it is that same call. The value coverage lives in
+ * each kind's own test file, against hand-written boxes.
+ */
+const SHAPE_BOUNDS_ORACLE: Record<string, (shape: TShape) => TOBB> = {
+  [ShapeKind.Circle]: (shape) => ShapeCircleOps.computeBounds(shape as TShapeCircle),
+  [ShapeKind.Ellipse]: (shape) =>
+    ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(shape as TShapeEllipse)),
+  [ShapeKind.Polygon]: (shape) => ShapePolygonOps.computeBounds((shape as TShapePolygon).points),
+}
+
+/** Each kind's own vertex computation, the oracle now that the stored `vertices` field is gone. */
+const SHAPE_VERTICES_ORACLE: Record<string, (shape: TShape) => TPoint[]> = {
+  [ShapeKind.Circle]: (shape) => ShapeCircleOps.computeVertices(shape as TShapeCircle),
+  [ShapeKind.Ellipse]: (shape) => ShapeEllipseOps.computeVertices(shape as TShapeEllipse),
+  [ShapeKind.Polygon]: (shape) => ShapePolygonOps.computeVertices(shape as TShapePolygon),
+}
+
 const PARTIALS: Record<string, TPartialDeep<TShape>> = {
   [ShapeKind.Circle]: { type: SymbolType.Shape, kind: ShapeKind.Circle, center: { x: 50, y: 50 }, radius: 25 },
   [ShapeKind.Ellipse]: {
@@ -62,10 +93,20 @@ describe("ShapeUtil", () => {
       expect(shape().type).toBe(SymbolType.Shape)
     })
 
-    test("should update derived fields without dispatching elsewhere", () => {
+    test("computeGeometry should dispatch each kind to that kind's own computation", () => {
       const created = shape()
-      expect(() => util.updateDerivedFields(created)).not.toThrow()
-      expect(created.bounds).toBeDefined()
+
+      const geometry = util.computeGeometry(created)
+
+      expect(geometry.bounds).toEqual(SHAPE_BOUNDS_ORACLE[kind](created))
+      // Oracle is the kind's own vertex computation, not the stored field it replaced.
+      expect(geometry.vertices).toEqual(SHAPE_VERTICES_ORACLE[kind](created))
+      // Oracle is `OBBOps` directly, not the stored field it replaced: a circle's snap points are
+      // the eight points of its bounding box, and that is what the field held a copy of.
+      expect(geometry.snapPoints).toEqual(OBBOps.getSnapPoints(geometry.bounds))
+      // Oracle is the kind's own `computeEdges`, not the stored field it replaced.
+      expect(geometry.edges).toEqual(EDGES_ORACLE[kind](created, geometry.vertices))
+      expect(geometry.length).toBe(0)
     })
 
     test("should answer overlaps", () => {
@@ -82,6 +123,16 @@ describe("ShapeUtil", () => {
       expect(element.getAttribute("kind")).toBe(kind)
       expect(path?.getAttribute("d")).toBe(ShapeUtil.getSVGPath(shape()))
     })
+
+    test("should emit no transform attribute for a shape that was never moved", () => {
+      expect(util.getSVGElement(shape()).getAttribute("transform")).toBeNull()
+    })
+
+    test("should emit the shape's matrix as the element transform once moved", () => {
+      const moved = shape()
+      moved.transform = MatrixTransform.identity().translate(3, 4)
+      expect(util.getSVGElement(moved).getAttribute("transform")).toBe("matrix(1, 0, 0, 1, 3, 4)")
+    })
   })
 
   describe.each(UNIMPLEMENTED)("%s, a kind the enum declares and the table does not", (kind) => {
@@ -97,8 +148,21 @@ describe("ShapeUtil", () => {
 
     test("should stay tolerant where it always was", () => {
       // These two never threw on an unknown kind and still must not: they run over whole models.
-      expect(() => util.updateDerivedFields({ kind } as TShape)).not.toThrow()
       expect(util.overlaps({ kind } as TShape, { x: 0, y: 0, width: 1, height: 1 })).toBe(false)
+    })
+
+    test("computeGeometry should stay tolerant too, leaving the shape's own fields as its answer", () => {
+      const shape = { kind, bounds: "bounds", vertices: "vertices", snapPoints: "snapPoints", edges: "edges" } as unknown as TShape
+      expect(util.computeGeometry(shape)).toEqual({
+        // Not the object's own `bounds` any more: no shape type declares one, so a stray property
+        // arriving as data is not something the fallback can read or echo back.
+        bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0),
+        vertices: [],
+        // An unregistered kind has no snap points to offer, so the fallback returns none.
+        snapPoints: [],
+        edges: [],
+        length: 0,
+      })
     })
   })
 
@@ -197,29 +261,6 @@ describe("ShapeUtil, the contract members", () => {
     })
   })
 
-  describe("updateDerivedFields", () => {
-    test("should update circle bounds", () => {
-      const circle = buildIICircle({ center: { x: 10, y: 10 }, radius: 5 })
-      util.updateDerivedFields(circle)
-      expect(OBBOps.toBox(circle.bounds)).toMatchObject({ x: 5, y: 5, width: 10, height: 10 })
-    })
-
-    test("should not throw for ellipse", () => {
-      const shape = util.create({ kind: ShapeKind.Ellipse, center: { x: 0, y: 0 }, radiusX: 10, radiusY: 5 })
-      expect(() => util.updateDerivedFields(shape)).not.toThrow()
-    })
-
-    test("should not throw for polygon", () => {
-      const points = [
-        { x: 0, y: 0 },
-        { x: 10, y: 0 },
-        { x: 5, y: 10 },
-      ]
-      const shape = util.create({ kind: ShapeKind.Polygon, points })
-      expect(() => util.updateDerivedFields(shape)).not.toThrow()
-    })
-  })
-
   describe("overlaps", () => {
     test("should return true when circle overlaps box", () => {
       const circle = buildIICircle({ center: { x: 5, y: 5 }, radius: 3 })
@@ -237,14 +278,37 @@ describe("ShapeUtil, the contract members", () => {
       const unknownShape = { ...circle, kind: "unknown" } as unknown as TShape
       expect(util.overlaps(unknownShape, { x: 0, y: 0, width: 100, height: 100 })).toBe(false)
     })
+
+    /**
+     * Regression found in review: the containment early-out tested the circle's raw *bounding box*
+     * corners (at distance radius·√2 from center) rather than the circle's own vertices (at distance
+     * radius) — so once the query was rotated relative to the raw frame, a query that trivially
+     * surrounds the actual circle (half-size just over the radius) could still miss the (larger,
+     * fictional) box-corner distance, for every half-size up to radius·√2.
+     *
+     * A circle centered at the origin is unmoved by a rotation about that same origin — only the
+     * matrix (and so the query's own inverse mapping) changes, not where the circle actually sits —
+     * so a query box centered at the origin is exactly "does this query surround the circle" for
+     * every half-size, with no world-space translation to additionally account for.
+     */
+    test.each([5.1, 7.0])(
+      "a rotated circle (radius 5) is selected by a surrounding query of half-size %s",
+      (halfSize) => {
+        const circle = buildIICircle({ center: { x: 0, y: 0 }, radius: 5 })
+        circle.transform = MatrixTransform.identity().rotate(Math.PI / 4)
+
+        expect(
+          util.overlaps(circle, { x: -halfSize, y: -halfSize, width: 2 * halfSize, height: 2 * halfSize })
+        ).toBe(true)
+      }
+    )
   })
 
   describe("getSnapPoints", () => {
-    test("should return the shape snapPoints reference", () => {
+    test("should return the shape's snap points, computed from its bounds", () => {
       const circle = buildIICircle()
-      util.updateDerivedFields(circle)
       const result = util.getSnapPoints(circle)
-      expect(result).toBe(circle.snapPoints)
+      expect(result).toStrictEqual(OBBOps.getSnapPoints(util.computeGeometry(circle).bounds))
     })
   })
 

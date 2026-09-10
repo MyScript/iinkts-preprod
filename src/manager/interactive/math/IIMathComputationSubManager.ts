@@ -10,6 +10,7 @@ import type { TStyle } from "@/style/Style"
 import type { TStroke } from "@/symbol"
 import { isStroke } from "@/symbol"
 import { StrokeOps } from "@/symbol/stroke/Stroke"
+import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 
 import { IIAbstractManager } from "../IIAbstractManager"
 
@@ -228,7 +229,7 @@ export class IIMathComputationSubManager extends IIAbstractManager {
     if (!strokes || strokes.length === 0) {
       return undefined
     }
-    return BoxOps.createFromBoxes(strokes.map((s) => OBBOps.toBox(s.bounds)))
+    return BoxOps.createFromBoxes(strokes.map((s) => OBBOps.toBox(SymbolGeometry.boundsOf(s))))
   }
 
   /**
@@ -246,7 +247,6 @@ export class IIMathComputationSubManager extends IIAbstractManager {
         p.x = +np.x.toFixed(3)
         p.y = +np.y.toFixed(3)
       })
-      StrokeOps.updateBounds(stroke)
       this.renderer.drawSymbol(stroke)
     })
   }

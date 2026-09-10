@@ -1,6 +1,6 @@
 import type { TBox } from "@/core/geometry"
-import type { TPoint, TSegment } from "@/core/geometry"
-import { OBBOps, type TOBB } from "@/core/geometry"
+import type { TPoint } from "@/core/geometry"
+import { MatrixTransform, mergeSymbolTransform, OBBOps, type TOBB } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import { createUUID } from "@/core/std"
 import type { TStyle } from "@/style"
@@ -9,11 +9,10 @@ import type { TDecorator } from "@/symbol/decorator/Decorator"
 import { DecoratorOps } from "@/symbol/decorator/Decorator"
 import type { TBaseSymbol } from "@/symbol/Symbol"
 import { SymbolType } from "@/symbol/Symbol"
-import type { TRotation, TTypesetChild } from "@/symbol/typeset/Typeset"
+import type { TTypesetChild } from "@/symbol/typeset/Typeset"
 import {
   computeChildrenOverlaps,
   computeClosedEdges,
-  computeTypesetSnapPoints,
   computeTypesetVertices,
   typesetOverlapsBox,
 } from "@/symbol/typeset/Typeset"
@@ -37,10 +36,6 @@ export type TMath = TBaseSymbol & {
   elements: TMathElement[]
   decorators: TDecorator[]
   bounds: TOBB
-  rotation?: TRotation
-  vertices: TPoint[]
-  snapPoints: TPoint[]
-  edges: TSegment[]
 }
 
 /**
@@ -60,9 +55,6 @@ export const MathOps = {
   create(elements: TMathElement[], point: TPoint, boundsBox: TBox, style?: TPartialDeep<TStyle>): TMath {
     const mergedStyle = mergeSymbolStyle(style)
     const now = Date.now()
-    const vertices = computeTypesetVertices(boundsBox)
-    const snapPoints = computeTypesetSnapPoints(boundsBox, point)
-    const edges = computeClosedEdges(vertices)
     return {
       type: SymbolType.Math,
       id: `${SymbolType.Math}-${createUUID()}`,
@@ -73,10 +65,7 @@ export const MathOps = {
       elements,
       decorators: [],
       bounds: OBBOps.fromBox(boundsBox),
-      rotation: undefined,
-      vertices,
-      snapPoints,
-      edges,
+      transform: MatrixTransform.identity(),
     }
   },
 
@@ -116,32 +105,22 @@ export const MathOps = {
     if (partial.id) {
       math.id = partial.id
     }
-    if (partial.rotation) {
-      math.rotation = partial.rotation as TRotation
-    }
+    math.transform = mergeSymbolTransform(partial.transform)
     if (partial.decorators) {
       math.decorators = partial.decorators
         .filter((d) => d?.kind && d?.style)
         .map((d) => DecoratorOps.create(d!.kind!, d!.style!))
     }
-    MathOps.updateDerivedFields(math)
     return math
   },
 
-  updateDerivedFields(math: TMath): void {
-    // Unrotated, not `toBox`: the rotation is applied once below, from `math.rotation`.
-    const boundsBox = OBBOps.toUnrotatedBox(math.bounds)
-    math.vertices = computeTypesetVertices(boundsBox, math.rotation)
-    math.snapPoints = computeTypesetSnapPoints(boundsBox, math.point, math.rotation)
-    math.edges = computeClosedEdges(math.vertices)
-  },
-
   overlaps(math: TMath, box: TBox): boolean {
-    return typesetOverlapsBox(math.vertices, math.edges, box)
+    const vertices = computeTypesetVertices(OBBOps.toUnrotatedBox(math.bounds))
+    return typesetOverlapsBox(vertices, computeClosedEdges(vertices), box)
   },
 
   getChildrenOverlaps(math: TMath, points: TPoint[]): TMathElement[] {
-    return computeChildrenOverlaps(math.elements, points, math.rotation)
+    return computeChildrenOverlaps(math.elements, points)
   },
 
   updateChildrenStyle(math: TMath): void {
@@ -191,7 +170,6 @@ export const MathOps = {
       elements: math.elements,
       decorators: math.decorators,
       bounds: OBBOps.toBox(math.bounds),
-      rotation: math.rotation,
       style: math.style,
     }
   },

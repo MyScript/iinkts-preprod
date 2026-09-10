@@ -2,15 +2,15 @@ import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
 import { LeftClickEventMock, RightClickEventMock } from "../../__mocks__/EventMock"
 import { buildIICircle, buildIILine, buildIIStroke } from "../../helpers"
 import {
+  SymbolGeometry,
   IISelectionManager,
+  MatrixTransform,
   OBBOps,
   TBox,
   SvgElementRole,
   ResizeDirection,
   TPointerInfo,
   TStroke,
-  DecoratorOps,
-  DecoratorKind,
   EdgeArcOps,
   TEdgeArc,
   computePointOnEllipse,
@@ -20,6 +20,8 @@ import {
   EdgeUtil,
   ShapeUtil,
   TEdge,
+  TBaseSymbol,
+  TSymbol,
 } from "@/iink"
 
 describe("IISelectionManager.ts", () => {
@@ -114,16 +116,16 @@ describe("IISelectionManager.ts", () => {
       expect(group).not.toBeNull()
       const translateRect = group?.querySelector(`[role=${SvgElementRole.Translate}]`)
       expect(translateRect?.getAttribute("x")).toEqual(
-        (OBBOps.toBox(stroke.bounds).x - (stroke.style.width || 1)).toString()
+        (OBBOps.toBox(SymbolGeometry.boundsOf(stroke)).x - (stroke.style.width || 1)).toString()
       )
       expect(translateRect?.getAttribute("y")).toEqual(
-        (OBBOps.toBox(stroke.bounds).y - (stroke.style.width || 1)).toString()
+        (OBBOps.toBox(SymbolGeometry.boundsOf(stroke)).y - (stroke.style.width || 1)).toString()
       )
       expect(translateRect?.getAttribute("width")).toEqual(
-        (stroke.bounds.width + 2 * (stroke.style.width || 1)).toString()
+        (SymbolGeometry.boundsOf(stroke).width + 2 * (stroke.style.width || 1)).toString()
       )
       expect(translateRect?.getAttribute("height")).toEqual(
-        (stroke.bounds.height + 2 * (stroke.style.width || 1)).toString()
+        (SymbolGeometry.boundsOf(stroke).height + 2 * (stroke.style.width || 1)).toString()
       )
 
       const rotateCircles = group.querySelectorAll(`circle[role=${SvgElementRole.Rotate}]`)
@@ -364,7 +366,7 @@ describe("IISelectionManager.ts", () => {
       canvas.model.addSymbol(stroke)
       canvas.renderer.drawSymbol(stroke)
 
-      const strokeBox = OBBOps.toBox(stroke.bounds)
+      const strokeBox = OBBOps.toBox(SymbolGeometry.boundsOf(stroke))
       const ghostBox: TBox = {
         x: strokeBox.x + strokeBox.width + 50,
         y: strokeBox.y,
@@ -393,7 +395,7 @@ describe("IISelectionManager.ts", () => {
       canvas.model.addSymbol(stroke)
       canvas.renderer.drawSymbol(stroke)
 
-      const strokeBox = OBBOps.toBox(stroke.bounds)
+      const strokeBox = OBBOps.toBox(SymbolGeometry.boundsOf(stroke))
       const ghostBox: TBox = {
         x: strokeBox.x + strokeBox.width + 50,
         y: strokeBox.y,
@@ -645,24 +647,43 @@ describe("IISelectionManager.ts", () => {
     })
   })
 
-  describe("standalone decorators are never directly selectable", () => {
-    test("box selection over a decorated stroke selects the stroke, not the decorator", () => {
+  /**
+   * The regression this closes: `continue()`'s surround-select tested every symbol's raw (pre-move)
+   * geometry against the drag box, so a symbol moved by a translate/rotate/resize was never selected
+   * by a box drawn where it now actually sits.
+   */
+  describe("surrounding a translated symbol", () => {
+    test("a stroke moved by a translate is selected at its new position", () => {
       const canvas = createCanvasMock()
       const manager = new IISelectionManager(asCanvas(canvas))
       manager.drawSelectingRect = jest.fn()
       manager.renderer.updateSelectedState = jest.fn()
 
-      const stroke = buildIIStroke({ box: { height: 10, width: 10, x: 10, y: 10 } })
+      // Raw pointers sit at [100,110]x[100,110]; translate(-90,-90) puts the stroke at [10,20]x[10,20].
+      const stroke = buildIIStroke({ box: { x: 100, y: 100, width: 10, height: 10 } })
+      stroke.transform = MatrixTransform.identity().translate(-90, -90)
       manager.model.addSymbol(stroke)
-      const decorator = DecoratorOps.create(DecoratorKind.Surround, {}, [stroke.id], OBBOps.toBox(stroke.bounds))
-      manager.model.addSymbol(decorator)
 
       manager.start({ pointer: { x: 1, y: 2 } } as TPointerInfo)
       manager.continue({ pointer: { x: 20, y: 20 } } as TPointerInfo)
 
       expect(manager.model.selectedIds.has(stroke.id)).toBe(true)
-      expect(manager.model.selectedIds.has(decorator.id)).toBe(false)
-      expect(manager.renderer.updateSelectedState).not.toHaveBeenCalledWith(decorator, true)
+    })
+
+    test("the same stroke is not selected by a query drawn over its stale, pre-move position", () => {
+      const canvas = createCanvasMock()
+      const manager = new IISelectionManager(asCanvas(canvas))
+      manager.drawSelectingRect = jest.fn()
+      manager.renderer.updateSelectedState = jest.fn()
+
+      const stroke = buildIIStroke({ box: { x: 100, y: 100, width: 10, height: 10 } })
+      stroke.transform = MatrixTransform.identity().translate(-90, -90)
+      manager.model.addSymbol(stroke)
+
+      manager.start({ pointer: { x: 95, y: 95 } } as TPointerInfo)
+      manager.continue({ pointer: { x: 115, y: 115 } } as TPointerInfo)
+
+      expect(manager.model.selectedIds.has(stroke.id)).toBe(false)
     })
   })
 
@@ -690,6 +711,31 @@ describe("IISelectionManager.ts", () => {
         new LeftClickEventMock("pointerup", { clientX: target.x, clientY: target.y, pointerType: "pen", pressure: 1 })
       )
     }
+
+    /**
+     * The regression this closes: this branch called `EdgeArcOps.getResizePoints(arc)` directly,
+     * bypassing `EdgeUtil` (and so the matrix) entirely — a translated arc's handles rendered at
+     * its raw, pre-move position.
+     */
+    test("resize handles for a translated arc render at the moved position, not the raw one", () => {
+      const canvas = createCanvasMock()
+      const manager = new IISelectionManager(asCanvas(canvas))
+      const arc = EdgeArcOps.create({ x: 0, y: 0 }, Math.PI, -Math.PI, 5, 5, 0)
+      arc.transform = MatrixTransform.identity().translate(100, 200)
+      canvas.model.addSymbol(arc)
+      const group = (
+        manager as unknown as { createEdgeResizeGroup: (edge: TEdgeArc) => SVGGElement }
+      ).createEdgeResizeGroup(arc)
+
+      // `EdgeArcOps.getResizePoints` picks arc.vertices[0], its middle index and its last index —
+      // read directly here (the same stored field it reads), each shifted by the translate by hand.
+      const arcVertices = EdgeArcOps.computeVertices(arc)
+      const raw = [arcVertices[0], arcVertices[Math.floor(arcVertices.length / 2)], arcVertices[arcVertices.length - 1]]
+      const handles = Array.from(group.children) as unknown as SVGCircleElement[]
+      expect(handles.map((h) => [Number(h.getAttribute("cx")), Number(h.getAttribute("cy"))])).toEqual(
+        raw.map((p) => [p.x + 100, p.y + 200])
+      )
+    })
 
     test("dragging the start handle keeps the end endpoint fixed", () => {
       const { canvas, arc, group, current } = setup()
@@ -894,5 +940,55 @@ describe("IISelectionManager edge resize handles", () => {
   test("a symbol whose util reports no handles should get none", () => {
     // The contract's default. Most symbols resize by their bounding box alone.
     expect(new ShapeUtil().getResizePoints(buildIICircle())).toEqual([])
+  })
+
+  /**
+   * The regression this closes: resize handles rendered at a moved edge's raw (pre-move) vertices,
+   * because `getResizePoints` neither carried the util's result through the matrix nor (for arcs)
+   * even reached the util at all.
+   */
+  test("a translated line's resize handles land on the moved geometry, not the raw one", async () => {
+    const canvas = createCanvasMock()
+    const manager = new IISelectionManager(asCanvas(canvas))
+    await canvas.init()
+    const edge = buildIILine({ start: { x: 0, y: 0 }, end: { x: 40, y: 30 } })
+    edge.transform = MatrixTransform.identity().translate(5, 7)
+    canvas.model.addSymbol(edge)
+    canvas.renderer.drawSymbol(edge)
+    manager.drawSelectedGroup([edge])
+
+    // Hand-computed: EdgeLineOps.getResizePoints returns [start, end] = [(0,0),(40,30)]; translate(5,7)
+    // adds (5,7) to each raw coordinate.
+    const handles = Array.from(canvas.renderer.layer.querySelectorAll(`circle[role=${SvgElementRole.Resize}]`))
+    expect(handles.map((h) => [Number(h.getAttribute("cx")), Number(h.getAttribute("cy"))])).toEqual([
+      [5, 7],
+      [45, 37],
+    ])
+  })
+})
+
+describe("createInteractElementsGroup skips unregistered symbol types", () => {
+  /**
+   * `selectAll()` selects every symbol in the model with no render or registry check ahead of it,
+   * then draws the selection outline through this path — a custom symbol type missing its util
+   * must not abort building that outline for the whole selection.
+   */
+  test("does not throw when a selected symbol has no registered util, and still frames the rest", () => {
+    const canvas = createCanvasMock()
+    const manager = new IISelectionManager(asCanvas(canvas))
+
+    const stroke = buildIIStroke()
+    canvas.model.addSymbol(stroke)
+    canvas.renderer.drawSymbol(stroke)
+
+    const orphan = {
+      ...(buildIIStroke() as unknown as TBaseSymbol),
+      type: "no-such-type",
+      id: "orphan-1",
+    } as unknown as TSymbol
+    canvas.model.addSymbol(orphan)
+
+    expect(() => manager.drawSelectedGroup([stroke, orphan])).not.toThrow()
+    expect(manager.selectedGroup).toBeDefined()
   })
 })

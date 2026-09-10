@@ -1,6 +1,6 @@
 import type { EdgeDecoration } from "@/Constants"
 import type { TBox } from "@/core/geometry"
-import { OBBOps, type TOBB } from "@/core/geometry"
+import { MatrixTransform, mergeSymbolTransform, OBBOps, type TOBB } from "@/core/geometry"
 import { isValidPoint, type TPoint, type TSegment } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import { createUUID } from "@/core/std"
@@ -24,10 +24,6 @@ export type TEdgeLine = TBaseSymbol & {
   endAnchor?: TAnchor
   start: TPoint
   end: TPoint
-  vertices: TPoint[]
-  bounds: TOBB
-  snapPoints: TPoint[]
-  edges: TSegment[]
 }
 
 /**
@@ -54,12 +50,8 @@ export const EdgeLineOps = {
       endDecoration,
       start,
       end,
-      vertices: [],
-      bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0),
-      snapPoints: [],
-      edges: [],
+      transform: MatrixTransform.identity(),
     }
-    EdgeLineOps.updateDerivedFields(line)
     return line
   },
 
@@ -80,25 +72,49 @@ export const EdgeLineOps = {
     if (partial.id) {
       line.id = partial.id
     }
+    line.transform = mergeSymbolTransform(partial.transform)
     return line
   },
 
-  updateDerivedFields(line: TEdgeLine): void {
-    line.vertices = [line.start, line.end]
-    line.bounds = computeEdgeBounds(line.vertices, line.style, line.startDecoration, line.endDecoration)
-    line.snapPoints = line.vertices
-    line.edges = [{ p1: line.start, p2: line.end }]
+  computeVertices(line: TEdgeLine): TPoint[] {
+    return [line.start, line.end]
+  },
+
+  computeBounds(line: TEdgeLine, vertices: TPoint[]): TOBB {
+    return computeEdgeBounds(vertices, line.style, line.startDecoration, line.endDecoration)
+  },
+
+  computeEdges(line: TEdgeLine): TSegment[] {
+    return [{ p1: line.start, p2: line.end }]
   },
 
   getResizePoints(line: TEdgeLine): TResizePoint[] {
-    return line.vertices.map((point, vertexIndex) => ({
+    return EdgeLineOps.computeVertices(line).map((point, vertexIndex) => ({
       point,
       vertexIndex,
     }))
   },
 
+  /**
+   * Moves the vertex a resize handle owns, by writing into the geometry the line actually stores.
+   *
+   * A line's vertices are its `start` and `end`, and `computeVertices` returns those very objects —
+   * so the drag handler used to mutate `line.vertices[i]` and reach them by aliasing. That worked
+   * only as long as the array was stored and shared; a computed one would take the write and throw
+   * it away, silently. This says which field a handle owns instead of relying on that.
+   */
+  moveVertex(line: TEdgeLine, vertexIndex: number, point: TPoint): void {
+    const target = vertexIndex === 0 ? line.start : line.end
+    target.x = point.x
+    target.y = point.y
+  },
+
   overlaps(line: TEdgeLine, box: TBox): boolean {
-    return OBBOps.polygonOverlapsBox(line.bounds, line.edges, box)
+    return OBBOps.polygonOverlapsBox(
+      EdgeLineOps.computeBounds(line, EdgeLineOps.computeVertices(line)),
+      EdgeLineOps.computeEdges(line),
+      box
+    )
   },
 
   getSVGPath(line: TEdgeLine): string {

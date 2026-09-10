@@ -2,10 +2,13 @@ import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import { SvgElementRole } from "@/Constants"
 import type { MatrixTransform } from "@/core/geometry"
 import { applyMatrixToPoint, OBBOps } from "@/core/geometry"
+import type { TIIHistoryChanges } from "@/history"
+import { appendUpdated } from "@/history"
 import { LoggerCategory } from "@/logger"
 import type { TStroke, TSymbol } from "@/symbol"
 import { isDecorator, isStroke } from "@/symbol"
 import { DecoratorOps } from "@/symbol/decorator/Decorator"
+import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 
 import { IIAbstractManager } from "../IIAbstractManager"
 
@@ -20,8 +23,33 @@ export abstract class IIAbstractTransformManager extends IIAbstractManager {
     super(canvas, LoggerCategory.TRANSFORMER)
   }
 
-  setTransformOrigin(id: string, originX: number, originY: number): void {
-    this.canvas.renderer.setAttribute(id, "transform-origin", `${originX}px ${originY}px`)
+  /**
+   * The gesture's matrix, previewed on top of the one the symbol already carries.
+   *
+   * The live part multiplies onto the stored one rather than replacing it, so the SVG transform list
+   * reads outside-in: the symbol sits where its own matrix puts it, and the gesture moves it from
+   * there — the same order the commit will apply. Writing the live transform alone is what made an
+   * already-moved symbol snap back to its raw coordinates for the length of a drag and jump into
+   * place on release (IIC-1999). Before this epic only a rotated typeset carried a baked transform;
+   * now every moved symbol does, so the same overwrite would affect all of them.
+   *
+   * The stored matrix is untouched here. This is a preview: `applyAndDraw` is what settles it.
+   */
+  protected previewTransform(symbol: TSymbol, live: MatrixTransform): void {
+    this.canvas.renderer.setAttribute(symbol.id, "transform", live.clone().multiply(symbol.transform).toCssString())
+  }
+
+  /**
+   * The same, for an element with no symbol behind it — the interact-elements group, or a math
+   * ghost stroke. Nothing is composed because nothing is stored: these are drawn in document
+   * coordinates already.
+   *
+   * Note both preview methods write a full `matrix(...)`, carrying their own centre. The
+   * `transform-origin` attribute this class used to set cannot serve here: it applies to the whole
+   * transform list, so it would displace the stored matrix, which brings its own centre.
+   */
+  protected previewElementTransform(id: string, live: MatrixTransform): void {
+    this.canvas.renderer.setAttribute(id, "transform", live.toCssString())
   }
 
   protected resolveInteractGroup(target: Element): SVGGElement {
@@ -37,6 +65,28 @@ export abstract class IIAbstractTransformManager extends IIAbstractManager {
     this.applyAndDraw(symbols, matrix)
   }
 
+  /**
+   * Records a transform as the before/after pair `updated` wants, resolving "after" from the
+   * document by id rather than from the caller.
+   *
+   * By id, because a transform commits a draft: the object the caller holds is the pre-transform
+   * snapshot, and reading the moved value off it would record no change at all. Resolving both
+   * sides here also keeps the two lists the same length — a symbol the document no longer holds is
+   * dropped from both rather than shifting every pair after it.
+   *
+   * Call after `applyAndDraw`, with the snapshots taken before it.
+   */
+  protected recordTransformed(changes: TIIHistoryChanges, snapshots: TSymbol[]): void {
+    appendUpdated(
+      changes,
+      snapshots.flatMap((before) => {
+        // The committed record is frozen, so it is a value the history can hold as-is — no clone.
+        const after = this.model.getRootSymbol(before.id)
+        return after ? [{ before, after }] : []
+      })
+    )
+  }
+
   protected applyAndDraw(symbols: TSymbol[], matrix: MatrixTransform): void {
     symbols.forEach((s) => {
       // No fallback on the passed symbol: since IIC-1972 the history stack holds values rather than
@@ -48,8 +98,12 @@ export abstract class IIAbstractTransformManager extends IIAbstractManager {
         return
       }
       this.applyToSymbol(target, matrix)
-      this.canvas.renderer.drawSymbol(target)
       this.model.commitSymbol(target)
+      // Committing rewrites only the `transform` attribute instead of rebuilding the element: the
+      // element's geometry is the symbol's raw coordinates, which a transform never changes. The
+      // renderer must see the frozen, committed record here (not `target`, the now-stale draft) so
+      // that `SymbolGeometry`'s frozen-only cache actually holds for it.
+      this.canvas.renderer.setSymbolTransform(this.model.getRootSymbol(target.id) ?? target)
     })
     this.updateDecoratorsForTargets(symbols, matrix)
   }
@@ -74,7 +128,10 @@ export abstract class IIAbstractTransformManager extends IIAbstractManager {
       if (!targetSyms.length) {
         return
       }
-      DecoratorOps.setBounds(draft, OBBOps.createFromOBBs(targetSyms.map((s) => s.bounds)))
+      // Re-derived from the moved targets, not carried by a matrix: `DecoratorUtil.applyTransform`
+      // is deliberately a no-op, so a decorator never receives one. Its box is an input, and this
+      // is the writer that keeps it in step with the symbols it decorates.
+      DecoratorOps.setTargetBounds(draft, OBBOps.createFromOBBs(targetSyms.map((s) => SymbolGeometry.boundsOf(s))))
       // baseline is an absolute y-coordinate (used by Underline/Strikethrough rendering
       // in place of bounds), so it must follow the same transform as the target symbols.
       if (draft.baseline !== undefined) {

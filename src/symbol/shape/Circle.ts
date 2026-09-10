@@ -1,7 +1,7 @@
 import { SELECTION_MARGIN } from "@/Constants"
 import type { TBox } from "@/core/geometry"
 import { BoxOps } from "@/core/geometry"
-import { OBBOps, type TOBB } from "@/core/geometry"
+import { MatrixTransform, mergeSymbolTransform, OBBOps, type TOBB } from "@/core/geometry"
 import { isValidPoint, type TPoint, type TSegment } from "@/core/geometry"
 import { computeDistance, computeRotatedPoint, findIntersectBetweenSegmentAndCircle } from "@/core/geometry"
 import { TWO_PI } from "@/core/math"
@@ -22,10 +22,6 @@ export type TShapeCircle = TBaseSymbol & {
   style: TStyle
   center: TPoint
   radius: number
-  vertices: TPoint[]
-  bounds: TOBB
-  snapPoints: TPoint[]
-  edges: TSegment[]
 }
 
 /**
@@ -44,12 +40,8 @@ export const ShapeCircleOps = {
       modificationDate: now,
       center,
       radius,
-      vertices: [],
-      bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0),
-      snapPoints: [],
-      edges: [],
+      transform: MatrixTransform.identity(),
     }
-    ShapeCircleOps.updateDerivedFields(circle)
     return circle
   },
 
@@ -64,11 +56,15 @@ export const ShapeCircleOps = {
     if (partial.id) {
       circle.id = partial.id
     }
+    circle.transform = mergeSymbolTransform(partial.transform)
     return circle
   },
 
-  updateDerivedFields(circle: TShapeCircle): void {
-    circle.bounds = OBBOps.create(circle.center, circle.radius * 2, circle.radius * 2)
+  computeBounds(circle: TShapeCircle): TOBB {
+    return OBBOps.create(circle.center, circle.radius * 2, circle.radius * 2)
+  },
+
+  computeVertices(circle: TShapeCircle): TPoint[] {
     const firstPoint: TPoint = {
       x: circle.center.x,
       y: circle.radius + circle.center.y,
@@ -80,9 +76,11 @@ export const ShapeCircleOps = {
       const rad = TWO_PI * (i / nbPoint)
       vertices.push(computeRotatedPoint(firstPoint, circle.center, rad))
     }
-    circle.vertices = vertices
-    circle.snapPoints = OBBOps.getSnapPoints(circle.bounds)
-    circle.edges = vertices.map((p, i) => ({
+    return vertices
+  },
+
+  computeEdges(vertices: TPoint[]): TSegment[] {
+    return vertices.map((p, i) => ({
       p1: p,
       p2: vertices[(i + 1) % vertices.length],
     }))
@@ -90,7 +88,7 @@ export const ShapeCircleOps = {
 
   overlaps(circle: TShapeCircle, box: TBox): boolean {
     return (
-      OBBOps.isContained(circle.bounds, box) ||
+      OBBOps.isContained(ShapeCircleOps.computeBounds(circle), box) ||
       BoxOps.getSides(box).some(
         (seg) => findIntersectBetweenSegmentAndCircle(seg, circle.center, circle.radius).length > 0
       )
@@ -100,13 +98,11 @@ export const ShapeCircleOps = {
   createBetweenPoints(origin: TPoint, target: TPoint, style?: TPartialDeep<TStyle>): TShapeCircle {
     const circle = ShapeCircleOps.create(origin, 0, style)
     circle.radius = computeDistance(circle.center, target)
-    ShapeCircleOps.updateDerivedFields(circle)
     return circle
   },
 
   updateBetweenPoints(circle: TShapeCircle, _origin: TPoint, target: TPoint): void {
     circle.radius = computeDistance(circle.center, target)
-    ShapeCircleOps.updateDerivedFields(circle)
   },
 
   getSVGPath(circle: TShapeCircle): string {

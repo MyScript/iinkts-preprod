@@ -1,6 +1,15 @@
-import { describe, test, expect, beforeEach } from "@jest/globals"
+import { describe, test, expect, beforeAll, beforeEach } from "@jest/globals"
 import { buildIIText } from "../../helpers"
-import { TextUtil, SymbolType, OBBOps, type TSymbolChar, type TBox } from "@/iink"
+import {
+  TextUtil,
+  TextOps,
+  SymbolGeometry,
+  SymbolType,
+  OBBOps,
+  MatrixTransform,
+  registerBuiltinSymbolUtils,
+  type TSymbolChar,
+  type TBox, computeTypesetSnapPoints, computeClosedEdges, computeTypesetVertices } from "@/iink"
 
 const makeChar = (label: string, bounds: TBox): TSymbolChar => ({
   id: `char-${label}`,
@@ -13,6 +22,8 @@ const makeChar = (label: string, bounds: TBox): TSymbolChar => ({
 
 describe("TextUtil", () => {
   let util: TextUtil
+
+  beforeAll(() => registerBuiltinSymbolUtils())
 
   beforeEach(() => {
     util = new TextUtil()
@@ -54,16 +65,18 @@ describe("TextUtil", () => {
     })
   })
 
-  describe("updateDerivedFields", () => {
-    test("should not throw on valid text", () => {
-      const text = buildIIText()
-      expect(() => util.updateDerivedFields(text)).not.toThrow()
-    })
-
-    test("should update snapPoints after call", () => {
+  describe("computeGeometry", () => {
+    test("matches the legacy TextOps geometry already computed by create, not merely itself", () => {
       const text = buildIIText({ boundingBox: { x: 0, y: 10, width: 20, height: 30 } })
-      util.updateDerivedFields(text)
-      expect(Array.isArray(text.snapPoints)).toBe(true)
+
+      const geometry = util.computeGeometry(text)
+
+      expect(geometry.bounds).toEqual(text.bounds)
+      expect(geometry.vertices).toEqual(computeTypesetVertices(OBBOps.toUnrotatedBox(text.bounds)))
+      // Oracle is the shared typeset helper, not the stored field it replaced.
+      expect(geometry.snapPoints).toEqual(computeTypesetSnapPoints(OBBOps.toUnrotatedBox(text.bounds), text.point))
+      expect(geometry.edges).toEqual(computeClosedEdges(geometry.vertices))
+      expect(geometry.length).toBe(0)
     })
   })
 
@@ -79,12 +92,60 @@ describe("TextUtil", () => {
     })
   })
 
-  describe("getSnapPoints", () => {
-    test("should return the text snapPoints reference", () => {
+  describe("getSVGElement", () => {
+    test("emits no transform attribute for a symbol that was never moved", () => {
       const text = buildIIText()
-      util.updateDerivedFields(text)
+      expect(util.getSVGElement(text).getAttribute("transform")).toBeNull()
+    })
+
+    test("emits the symbol's matrix as the element transform once moved", () => {
+      const text = buildIIText()
+      text.transform = MatrixTransform.identity().translate(3, 4)
+      expect(util.getSVGElement(text).getAttribute("transform")).toBe("matrix(1, 0, 0, 1, 3, 4)")
+    })
+  })
+
+  describe("getSnapPoints", () => {
+    test("should return the text's snap points, computed from its measured box", () => {
+      const text = buildIIText()
       const result = util.getSnapPoints(text)
-      expect(result).toBe(text.snapPoints)
+      expect(result).toStrictEqual(computeTypesetSnapPoints(OBBOps.toUnrotatedBox(text.bounds), text.point))
+    })
+  })
+
+  describe("rotate/resize, composing the matrix", () => {
+    test("a second rotation composes with the first instead of replacing it", () => {
+      const text = TextOps.createFromPartial({
+        chars: [{ label: "a", color: "#000", fontSize: 10, fontWeight: "normal", id: "c1" }],
+        point: { x: 0, y: 0 },
+        bounds: OBBOps.fromBox({ x: 0, y: 0, width: 10, height: 10 }),
+      })
+      const center = { x: 5, y: 5 }
+
+      util.rotate(text, { matrix: MatrixTransform.identity().rotate(Math.PI / 4, center) })
+      util.rotate(text, { matrix: MatrixTransform.identity().rotate(Math.PI / 4, center) })
+
+      // `bounds.angle` is radians (`TOBB`'s own convention, per OBBOps — Task 9 fixed a bug that
+      // mixed degrees into it), so two quarter-quarter (45°) turns compose to π/2, not 90.
+      expect(SymbolGeometry.boundsOf(text).angle).toBeCloseTo(Math.PI / 2)
+    })
+
+    test("a resize of a turned text keeps its angle", () => {
+      // The bug this covers: `TypesetUtil.resize` used to set `bounds.angle = 0` while leaving a
+      // separate `rotation` field intact, desynchronising the hit box from what was drawn. There is
+      // only one matrix to compose now, so the angle a rotate composed into it survives a resize.
+      const text = TextOps.createFromPartial({
+        chars: [{ label: "a", color: "#000", fontSize: 10, fontWeight: "normal", id: "c1" }],
+        point: { x: 0, y: 0 },
+        bounds: OBBOps.fromBox({ x: 0, y: 0, width: 10, height: 10 }),
+      })
+      const center = { x: 5, y: 5 }
+      util.rotate(text, { matrix: MatrixTransform.identity().rotate(Math.PI / 2, center) })
+
+      util.resize(text, { matrix: MatrixTransform.identity().scale(2, 2, { x: 0, y: 0 }) })
+
+      // Radians again, for the same reason as above: a 90° turn is π/2.
+      expect(SymbolGeometry.boundsOf(text).angle).toBeCloseTo(Math.PI / 2)
     })
   })
 
