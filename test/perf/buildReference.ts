@@ -22,9 +22,81 @@ function git(args: string[], cwd = process.cwd()): string {
   return execFileSync("git", args, { cwd, encoding: "utf8" }).trim()
 }
 
-function arg(name: string, fallback: string): string {
-  const i = process.argv.indexOf(name)
-  return i === -1 ? fallback : process.argv[i + 1]
+/** An option given on the command line, then in the environment, or nothing. */
+function option(flag: string, variable: string): string | undefined {
+  const i = process.argv.indexOf(flag)
+  if (i !== -1) return process.argv[i + 1]
+  // An empty variable is an unset one. CI hands out `FOO=` for a value it did not have, and taking
+  // that literally is how a build ends up running `git worktree add ""`.
+  return process.env[variable] || undefined
+}
+
+/** `git rev-parse` for a ref that may not exist, without turning its absence into a crash. */
+function revParse(ref: string): string | undefined {
+  try {
+    return git(["rev-parse", "--verify", "--quiet", `${ref}^{commit}`])
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * The base branch, as a commit.
+ *
+ * A CI checkout is not a clone: Jenkins fetches the refs it was told to and no more, so
+ * `origin/master` is routinely absent from a pull-request workspace — which is exactly how this
+ * failed on PR-515 with `fatal: Not a valid object name origin/master`.
+ *
+ * Four routes, cheapest and safest first. The network is last on purpose: the bench runs inside a
+ * container that is given no git credentials, since the Jenkinsfile hands those out only inside
+ * `withCredentials`, so a fetch here is a hope rather than a plan.
+ */
+function baseCommit(base: string): string {
+  for (const spelling of [`origin/${base}`, `refs/remotes/origin/${base}`, base]) {
+    const sha = revParse(spelling)
+    if (sha) {
+      console.log(`base ${base} found as ${spelling}`)
+      return sha
+    }
+  }
+
+  // A pull-request build usually checks out Jenkins' merge of the branch into its target, and that
+  // merge's first parent is the target's tip — the base, already here, no network needed. Guarded on
+  // CHANGE_ID so a developer's own merge commit on an ordinary branch build cannot be mistaken for it.
+  const mergeParent = process.env.CHANGE_ID ? revParse("HEAD^1") : undefined
+  if (mergeParent && revParse("HEAD^2")) {
+    console.log(`base ${base} taken from the first parent of this pull request's merge commit`)
+    return mergeParent
+  }
+
+  try {
+    execFileSync("git", ["fetch", "--no-tags", "origin", `+refs/heads/${base}:refs/remotes/origin/${base}`], {
+      stdio: "inherit",
+    })
+  } catch {
+    // Reported below with everything else that was tried, rather than as a bare git failure.
+  }
+  const fetched = revParse(`refs/remotes/origin/${base}`)
+  if (fetched) {
+    console.log(`base ${base} fetched`)
+    return fetched
+  }
+
+  const refs = git(["for-each-ref", "--format=%(refname)", "refs/heads", "refs/remotes"]) || "(none)"
+  throw new Error(
+    `cannot find the base branch "${base}" in this checkout, and fetching it did not work either.\n` +
+      `Set BENCH_REF_BASE to a ref that is here, or give the reference commit directly with ` +
+      `BENCH_REF_SHA.\nRefs this checkout does have:\n${refs}`
+  )
+}
+
+/** A shallow checkout can hold two tips and none of the history that joins them. */
+function mergeBaseWith(baseSha: string): string | undefined {
+  try {
+    return git(["merge-base", baseSha, "HEAD"])
+  } catch {
+    return undefined
+  }
 }
 
 /**
@@ -34,7 +106,26 @@ function arg(name: string, fallback: string): string {
  */
 function referenceSha(base: string): string {
   const head = git(["rev-parse", "HEAD"])
-  const mergeBase = git(["merge-base", base, "HEAD"])
+  const baseSha = baseCommit(base)
+  let mergeBase = mergeBaseWith(baseSha)
+
+  if (mergeBase === undefined && revParse("HEAD") && git(["rev-parse", "--is-shallow-repository"]) === "true") {
+    console.log("no common ancestor in a shallow checkout — deepening")
+    try {
+      execFileSync("git", ["fetch", "--no-tags", "--deepen=200", "origin"], { stdio: "inherit" })
+    } catch {
+      // Same as above: the failure is reported with its context rather than on its own.
+    }
+    mergeBase = mergeBaseWith(baseSha)
+  }
+
+  if (mergeBase === undefined) {
+    throw new Error(
+      `HEAD and ${base} (${baseSha.slice(0, 9)}) have no common ancestor in this checkout. ` +
+        "A shallow clone holds the tips without the history that joins them — fetch more depth, or " +
+        "give the reference commit directly with BENCH_REF_SHA."
+    )
+  }
   return mergeBase === head ? git(["rev-parse", "HEAD~1"]) : mergeBase
 }
 
@@ -59,8 +150,12 @@ function prepareDependencies(sha: string): string {
   return lockUnchanged ? "installed (hard links unavailable)" : "installed (the lockfile moved)"
 }
 
-const base = arg("--base", process.env.BENCH_REF_BASE ?? "origin/master")
-const sha = arg("--sha", process.env.BENCH_REF_SHA ?? referenceSha(base))
+// A branch name, not a ref: which spelling of it exists is the checkout's business, not the caller's.
+// `CHANGE_TARGET` is what Jenkins calls the branch a pull request is aimed at.
+const base = option("--base", "BENCH_REF_BASE") ?? process.env.CHANGE_TARGET ?? "master"
+// Resolved only when it has to be. `--sha` and `BENCH_REF_SHA` are the way out of a checkout whose
+// base branch cannot be found, so they must not be reached through a call that needs it.
+const sha = option("--sha", "BENCH_REF_SHA") ?? referenceSha(base)
 
 if (existsSync(OUT) && existsSync(STAMP) && readFileSync(STAMP, "utf8").trim() === sha) {
   console.log(`reference bundle for ${sha.slice(0, 9)} is already built at ${OUT}`)
