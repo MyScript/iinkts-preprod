@@ -25,16 +25,30 @@ const DOM_GLOBALS = [
   "cancelAnimationFrame",
   "CustomEvent",
   "Event",
+  "EventTarget",
   "MutationObserver",
   "ResizeObserver",
 ] as const
+
+/**
+ * Globals that must come from jsdom even when node already provides one.
+ *
+ * Node has had `Event`, `CustomEvent` and `EventTarget` for several versions, so the "only fill what
+ * is missing" rule left node's in place — and the library dispatches the same event object on both
+ * an `EventTarget` subclass and a jsdom element, which cannot both accept it unless all three come
+ * from one realm. Leaving node's in place threw `parameter 1 is not of type 'Event'`; taking jsdom's
+ * event classes alone moved the throw to the other side, `must be an instance of Event. Received an
+ * instance of CustomEvent`.
+ */
+const REALM_BOUND = new Set<string>(["Event", "CustomEvent", "EventTarget"])
 
 export function installDom(): void {
   const dom = new JSDOM("<!doctype html><html><body></body></html>", { pretendToBeVisual: true })
   const source = dom.window as unknown as Record<string, unknown>
   const target = globalThis as unknown as Record<string, unknown>
   for (const key of DOM_GLOBALS) {
-    if (target[key] === undefined && source[key] !== undefined) {
+    if (source[key] === undefined) continue
+    if (target[key] === undefined || REALM_BOUND.has(key)) {
       target[key] = source[key]
     }
   }
