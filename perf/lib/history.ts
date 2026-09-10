@@ -27,10 +27,27 @@ export type THistorySource = {
   cases: { name: string; p50Ms: number; samples: number }[]
 }
 
+/**
+ * What the run measured, and what it measured it against.
+ *
+ * Without this a record says how fast a build was and stays silent about the build it was compared
+ * with, which is half the story: the figures come from a paired run, and reading one side of a pair
+ * without knowing the other is how a number gets quoted out of context months later.
+ */
+export type TMeasuredAgainst = {
+  /** The commit the reference bundle was built from — normally the merge-base. */
+  sha?: string
+  /** The two bundles, spelled as the run was given them. */
+  referenceLib?: string
+  currentLib?: string
+}
+
 export type THistoryRecord = {
   /** The commit the measured build was made from. One record per commit, overwritten on a re-run. */
   commit: string
   branch: string
+  /** Absent when the figures came from a single-sided run, which was compared with nothing. */
+  measuredAgainst?: TMeasuredAgainst
   recordedAt: string
   agent: string
   cpu: string
@@ -47,9 +64,15 @@ export type THistoryRecord = {
   samples: Record<string, number>
 }
 
-export function toRecord(source: THistorySource, git: { commit: string; branch: string }): THistoryRecord {
+export function toRecord(
+  source: THistorySource,
+  git: { commit: string; branch: string },
+  measuredAgainst?: TMeasuredAgainst
+): THistoryRecord {
+  const against = measuredAgainst && Object.values(measuredAgainst).some((v) => v !== undefined)
   return {
     commit: git.commit,
+    ...(against ? { measuredAgainst } : {}),
     branch: git.branch,
     recordedAt: source.generatedAt,
     agent: source.agent,

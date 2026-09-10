@@ -74,6 +74,23 @@ describe("toRecord", () => {
   })
 })
 
+describe("toRecord — what the run was measured against", () => {
+  test("keeps the reference it was given", () => {
+    const r = toRecord(source(), { commit: "abc", branch: "b" }, { sha: "deadbee", referenceLib: "dist-ref/x.js" })
+    expect(r.measuredAgainst).toEqual({ sha: "deadbee", referenceLib: "dist-ref/x.js" })
+  })
+
+  test("says nothing when there was nothing to compare against", () => {
+    // A single-sided run was held against no other build, and a record claiming otherwise would be
+    // worse than one that stays quiet.
+    expect(toRecord(source(), { commit: "abc", branch: "b" }).measuredAgainst).toBeUndefined()
+  })
+
+  test("says nothing when every field of the reference is absent", () => {
+    expect(toRecord(source(), { commit: "abc", branch: "b" }, {}).measuredAgainst).toBeUndefined()
+  })
+})
+
 describe("recordFileName", () => {
   test("names the record after the commit, so a rebuild replaces it", () => {
     expect(recordFileName(record({ commit: "abc1234" }))).toBe("abc1234.json")

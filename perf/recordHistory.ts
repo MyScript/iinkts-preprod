@@ -2,7 +2,14 @@ import { execFileSync } from "node:child_process"
 import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs"
 import { dirname, resolve } from "node:path"
 
-import { pruneRecords, recordFileName, toRecord, type THistoryRecord, type THistorySource } from "./lib/history.ts"
+import {
+  pruneRecords,
+  recordFileName,
+  toRecord,
+  type THistoryRecord,
+  type THistorySource,
+  type TMeasuredAgainst,
+} from "./lib/history.ts"
 
 /**
  * Appends the run just measured to the perf history, one record per commit.
@@ -37,15 +44,36 @@ function gitInfo(): { commit: string; branch: string } {
  * and keeps its absolute figures rather than the paired ratio — a paired ratio is relative to each
  * commit's own merge-base, so it is a different question every commit and cannot be read as a trend.
  */
-function historySource(parsed: unknown): THistorySource {
-  const paired = parsed as { paired?: unknown; current?: THistorySource }
-  return paired.paired !== undefined && paired.current !== undefined ? paired.current : (parsed as THistorySource)
+type TPairedShape = {
+  paired?: unknown
+  current?: THistorySource
+  referenceSha?: string
+  referenceLib?: string
+  currentLib?: string
 }
 
-const source = historySource(
-  JSON.parse(readFileSync(resolve(process.cwd(), arg("--current", ".local/bench/paired.json")), "utf8"))
-)
-const record = toRecord(source, gitInfo())
+function isPaired(parsed: TPairedShape): boolean {
+  return parsed.paired !== undefined && parsed.current !== undefined
+}
+
+function historySource(parsed: TPairedShape): THistorySource {
+  return isPaired(parsed) && parsed.current ? parsed.current : (parsed as unknown as THistorySource)
+}
+
+/** What the current side was held against, so the archived record is readable on its own. */
+function measuredAgainst(parsed: TPairedShape): TMeasuredAgainst | undefined {
+  if (!isPaired(parsed)) return undefined
+  return {
+    ...(parsed.referenceSha ? { sha: parsed.referenceSha } : {}),
+    ...(parsed.referenceLib ? { referenceLib: parsed.referenceLib } : {}),
+    ...(parsed.currentLib ? { currentLib: parsed.currentLib } : {}),
+  }
+}
+
+const parsed = JSON.parse(
+  readFileSync(resolve(process.cwd(), arg("--current", ".local/bench/paired.json")), "utf8")
+) as TPairedShape
+const record = toRecord(historySource(parsed), gitInfo(), measuredAgainst(parsed))
 
 const dir = resolve(process.cwd(), arg("--dir", ".local/bench-history"))
 const file = resolve(dir, recordFileName(record))
