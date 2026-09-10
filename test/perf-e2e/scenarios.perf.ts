@@ -37,7 +37,9 @@ const SEED = 20260827
  * a modal ever swallows a gesture again it fails loudly and `describePoint` names what was hit.
  */
 
-const REPORT = resolve(process.cwd(), ".local/bench/perf-e2e.json")
+// CI points this at the directory it carries forward from build to build, so the browser figures
+// land beside the micro-bench history instead of in a workspace that is thrown away.
+const REPORT = resolve(process.cwd(), process.env.PERF_E2E_REPORT || ".local/bench/perf-e2e.json")
 
 const results: Record<string, TScenarioMeasurement> = {}
 
