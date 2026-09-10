@@ -9,7 +9,7 @@ describe("IWriterManager.ts", () => {
     return canvas
   }
 
-  const pointerInfo = { pointer: { t: 1, p: 0.5, x: 1, y: 1 } } as TPointerInfo
+  const pointerInfo = { pointer: { dt: 1, p: 0.5, x: 1, y: 1 } } as TPointerInfo
 
   describe("the debounced auto-export", () => {
     beforeEach(() => {

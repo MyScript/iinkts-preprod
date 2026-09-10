@@ -1,5 +1,8 @@
 import { MatrixTransform, StrokeOps, toWireStroke, type TRecognitionStroke, type TWireStroke } from "@/iink"
 
+/** Stroke origin used by the fixtures; the wire carries `creationTime + dt`, not `dt`. */
+const CREATED_AT = 1700000000000
+
 describe("StrokeSerializer.ts", () => {
   describe("toWireStroke", () => {
     // The expected payload is written out in full rather than derived from the input. Deriving it
@@ -8,11 +11,12 @@ describe("StrokeSerializer.ts", () => {
     test("should produce exactly the payload the recognition API expects", () => {
       const stroke: TRecognitionStroke = {
         id: "stroke-1",
+        creationTime: CREATED_AT,
         pointerType: "pen",
         pointers: [
-          { x: 1, y: 2, t: 1000, p: 0.5 },
-          { x: 3, y: 4, t: 1008, p: 0.6 },
-          { x: 5, y: 6, t: 1016, p: 0.7 },
+          { x: 1, y: 2, dt: 1000, p: 0.5 },
+          { x: 3, y: 4, dt: 1008, p: 0.6 },
+          { x: 5, y: 6, dt: 1016, p: 0.7 },
         ],
       }
 
@@ -20,7 +24,7 @@ describe("StrokeSerializer.ts", () => {
         id: "stroke-1",
         pointerType: "pen",
         p: [0.5, 0.6, 0.7],
-        t: [1000, 1008, 1016],
+        t: [CREATED_AT + 1000, CREATED_AT + 1008, CREATED_AT + 1016],
         x: [1, 3, 5],
         y: [2, 4, 6],
       })
@@ -29,10 +33,11 @@ describe("StrokeSerializer.ts", () => {
     test("should keep the four arrays index-aligned and in pointer order", () => {
       const stroke: TRecognitionStroke = {
         id: "stroke-2",
+        creationTime: CREATED_AT,
         pointerType: "mouse",
         pointers: [
-          { x: 10, y: 20, t: 5, p: 1 },
-          { x: 30, y: 40, t: 6, p: 1 },
+          { x: 10, y: 20, dt: 5, p: 1 },
+          { x: 30, y: 40, dt: 6, p: 1 },
         ],
       }
 
@@ -45,7 +50,15 @@ describe("StrokeSerializer.ts", () => {
       // Order carries meaning: the server reconstructs each pointer from the same index across the
       // four arrays, so a stable sort or a reversal anywhere would be silent corruption.
       wire.x.forEach((_, i) => {
-        expect({ x: wire.x[i], y: wire.y[i], t: t[i], p: pressure[i] }).toEqual(stroke.pointers[i])
+        const source = stroke.pointers[i]
+        // `t` on the wire is the absolute instant, so it is compared against the origin plus the
+        // pointer's own offset - the pointer itself only ever carries the offset.
+        expect({ x: wire.x[i], y: wire.y[i], t: t[i], p: pressure[i] }).toEqual({
+          x: source.x,
+          y: source.y,
+          t: CREATED_AT + (source.dt as number),
+          p: source.p,
+        })
       })
     })
 
@@ -66,14 +79,21 @@ describe("StrokeSerializer.ts", () => {
     test("should omit p when pressure is absent", () => {
       const wire = toWireStroke({
         id: "stroke-5",
+        creationTime: CREATED_AT,
         pointerType: "mouse",
         pointers: [
-          { x: 1, y: 2, t: 10 },
-          { x: 3, y: 4, t: 20 },
+          { x: 1, y: 2, dt: 10 },
+          { x: 3, y: 4, dt: 20 },
         ],
       })
 
-      expect(wire).toEqual({ id: "stroke-5", pointerType: "mouse", x: [1, 3], y: [2, 4], t: [10, 20] })
+      expect(wire).toEqual({
+        id: "stroke-5",
+        pointerType: "mouse",
+        x: [1, 3],
+        y: [2, 4],
+        t: [CREATED_AT + 10, CREATED_AT + 20],
+      })
       expect("p" in wire).toBe(false)
     })
 
@@ -97,14 +117,31 @@ describe("StrokeSerializer.ts", () => {
         id: "stroke-7",
         pointerType: "pen",
         pointers: [
-          { x: 1, y: 2, t: 10 },
+          { x: 1, y: 2, dt: 10 },
           { x: 3, y: 4 },
-          { x: 5, y: 6, t: 30 },
+          { x: 5, y: 6, dt: 30 },
         ],
       })
 
       expect(wire).toEqual({ id: "stroke-7", pointerType: "pen", x: [1, 3, 5], y: [2, 4, 6] })
       expect("t" in wire).toBe(false)
+    })
+
+    test("should omit t entirely when the stroke has no origin to make its times absolute", () => {
+      // The wire carries absolute instants. With only offsets and nothing to anchor them, emitting
+      // them raw would tell the server every stroke in the document began at the same moment —
+      // destroying the very ordering it reads from them. Sending no column at all is the honest
+      // reading, and the server falls back to its own default.
+      const wire = toWireStroke({
+        id: "stroke-untimed",
+        pointerType: "pen",
+        pointers: [
+          { x: 1, y: 2, dt: 0, p: 1 },
+          { x: 3, y: 4, dt: 12, p: 1 },
+        ],
+      })
+      expect(wire.t).toBeUndefined()
+      expect(wire.x).toEqual([1, 3])
     })
 
     test("should return empty arrays for a stroke with no pointers", () => {
@@ -120,18 +157,18 @@ describe("StrokeSerializer.ts", () => {
       // The point of declaring `TRecognitionStroke` inside the client rather than importing the
       // symbol layer's type: structural typing makes a real `TStroke` a valid argument, so neither
       // package needs to know about the other.
-      const stroke = StrokeOps.create(undefined, "pen")
+      const stroke = StrokeOps.create(undefined, "pen", CREATED_AT)
       // `addPointer` overwrites the supplied pressure with its own computed value — 1 for the first
       // pointer, whose travelled distance is 0 — so the expected `p` below is the library's, not the
       // one passed in here.
-      StrokeOps.addPointer(stroke, { x: 7, y: 8, t: 42, p: 0.25 })
+      StrokeOps.addPointer(stroke, { x: 7, y: 8, dt: 42, p: 0.25 })
 
       const wire: TWireStroke = toWireStroke(stroke)
       expect(wire).toEqual({
         id: stroke.id,
         pointerType: "pen",
         p: [1],
-        t: [42],
+        t: [CREATED_AT + 42],
         x: [7],
         y: [8],
       })
@@ -146,10 +183,11 @@ describe("StrokeSerializer.ts", () => {
       test("bakes a translation into the coordinates and leaves t/p untouched", () => {
         const stroke: TRecognitionStroke = {
           id: "stroke-8",
+          creationTime: CREATED_AT,
           pointerType: "pen",
           pointers: [
-            { x: 0, y: 0, t: 0, p: 1 },
-            { x: 10, y: 0, t: 1, p: 1 },
+            { x: 0, y: 0, dt: 0, p: 1 },
+            { x: 10, y: 0, dt: 1, p: 1 },
           ],
           // translate(100, 200): x' = x + 100, y' = y + 200, by hand.
           transform: MatrixTransform.identity().translate(100, 200),
@@ -160,7 +198,7 @@ describe("StrokeSerializer.ts", () => {
           pointerType: "pen",
           x: [100, 110],
           y: [200, 200],
-          t: [0, 1],
+          t: [CREATED_AT, CREATED_AT + 1],
           p: [1, 1],
         })
       })
@@ -208,8 +246,9 @@ describe("StrokeSerializer.ts", () => {
       test("treats an explicit identity transform the same as no transform at all", () => {
         const stroke: TRecognitionStroke = {
           id: "stroke-11",
+          creationTime: CREATED_AT,
           pointerType: "pen",
-          pointers: [{ x: 1, y: 2, t: 10, p: 0.5 }],
+          pointers: [{ x: 1, y: 2, dt: 10, p: 0.5 }],
           transform: MatrixTransform.identity(),
         }
 
@@ -218,7 +257,7 @@ describe("StrokeSerializer.ts", () => {
           pointerType: "pen",
           x: [1],
           y: [2],
-          t: [10],
+          t: [CREATED_AT + 10],
           p: [0.5],
         })
       })

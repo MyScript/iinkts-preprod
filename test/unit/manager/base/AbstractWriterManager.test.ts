@@ -48,7 +48,7 @@ describe("AbstractWriterManager.ts", () => {
   })
 
   test("should create and draw the current symbol on start()", () => {
-    const info = { pointer: { t: 1, p: 1, x: 1, y: 1 } } as TPointerInfo
+    const info = { pointer: { dt: 1, p: 1, x: 1, y: 1 } } as TPointerInfo
 
     manager.start(info)
 
@@ -57,7 +57,7 @@ describe("AbstractWriterManager.ts", () => {
   })
 
   test("should update and draw the current symbol on continue()", () => {
-    const info = { pointer: { t: 1, p: 1, x: 1, y: 1 } } as TPointerInfo
+    const info = { pointer: { dt: 1, p: 1, x: 1, y: 1 } } as TPointerInfo
     manager.start(info)
 
     manager.continue(info)

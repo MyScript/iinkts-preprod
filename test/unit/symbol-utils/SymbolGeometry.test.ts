@@ -7,8 +7,8 @@ describe("SymbolGeometry", () => {
   const buildStroke = () =>
     StrokeOps.createFromPartial({
       pointers: [
-        { x: 0, y: 0, t: 0, p: 1 },
-        { x: 10, y: 4, t: 1, p: 1 },
+        { x: 0, y: 0, dt: 0, p: 1 },
+        { x: 10, y: 4, dt: 1, p: 1 },
       ],
     })
 
@@ -31,7 +31,7 @@ describe("SymbolGeometry", () => {
     const spy = jest.spyOn(util, "computeGeometry")
 
     const before = SymbolGeometry.boundsOf(draft)
-    draft.pointers.push({ x: 100, y: 100, t: 2, p: 1 })
+    draft.pointers.push({ x: 100, y: 100, dt: 2, p: 1 })
     const after = SymbolGeometry.boundsOf(draft)
 
     expect(spy).toHaveBeenCalledTimes(2)
@@ -150,8 +150,8 @@ describe("SymbolGeometry", () => {
     test("moves the computed bounds without touching the stored coordinates", () => {
       const stroke = StrokeOps.createFromPartial({
         pointers: [
-          { x: 0, y: 0, t: 0, p: 1 },
-          { x: 10, y: 0, t: 1, p: 1 },
+          { x: 0, y: 0, dt: 0, p: 1 },
+          { x: 10, y: 0, dt: 1, p: 1 },
         ],
       })
       const before = SymbolGeometry.boundsOf(stroke).center
@@ -161,7 +161,7 @@ describe("SymbolGeometry", () => {
 
       expect(after.x).toBeCloseTo(before.x + 100)
       expect(after.y).toBeCloseTo(before.y + 50)
-      expect(stroke.pointers[0]).toEqual({ x: 0, y: 0, t: 0, p: 1 })
+      expect(stroke.pointers[0]).toEqual({ x: 0, y: 0, dt: 0, p: 1 })
     })
 
     test("carries the matrix rotation into the bounds angle, in radians, without corrupting width/height", () => {
@@ -176,8 +176,8 @@ describe("SymbolGeometry", () => {
       // asserted here, not just the angle.
       const stroke = StrokeOps.createFromPartial({
         pointers: [
-          { x: 0, y: 0, t: 0, p: 1 },
-          { x: 10, y: 0, t: 1, p: 1 },
+          { x: 0, y: 0, dt: 0, p: 1 },
+          { x: 10, y: 0, dt: 1, p: 1 },
         ],
       })
       stroke.transform = MatrixTransform.identity().rotate(Math.PI / 2, { x: 0, y: 0 })
@@ -191,7 +191,7 @@ describe("SymbolGeometry", () => {
     })
 
     test("a symbol starts with the identity matrix", () => {
-      const stroke = StrokeOps.createFromPartial({ pointers: [{ x: 0, y: 0, t: 0, p: 1 }] })
+      const stroke = StrokeOps.createFromPartial({ pointers: [{ x: 0, y: 0, dt: 0, p: 1 }] })
       expect(stroke.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 0, ty: 0 })
     })
 
@@ -200,8 +200,8 @@ describe("SymbolGeometry", () => {
       // `length * hypot(matrix.xx, matrix.yx)` must leave it exactly where it started.
       const stroke = StrokeOps.createFromPartial({
         pointers: [
-          { x: 0, y: 0, t: 0, p: 1 },
-          { x: 10, y: 0, t: 1, p: 1 },
+          { x: 0, y: 0, dt: 0, p: 1 },
+          { x: 10, y: 0, dt: 1, p: 1 },
         ],
       })
       stroke.transform = MatrixTransform.identity().rotate(Math.PI / 2, { x: 0, y: 0 })
@@ -212,8 +212,8 @@ describe("SymbolGeometry", () => {
     test("scales length under a pure scale", () => {
       const stroke = StrokeOps.createFromPartial({
         pointers: [
-          { x: 0, y: 0, t: 0, p: 1 },
-          { x: 10, y: 0, t: 1, p: 1 },
+          { x: 0, y: 0, dt: 0, p: 1 },
+          { x: 10, y: 0, dt: 1, p: 1 },
         ],
       })
       stroke.transform = MatrixTransform.identity().scale(2, 2)
@@ -228,8 +228,8 @@ describe("SymbolGeometry", () => {
       const buildTranslated = () => {
         const stroke = StrokeOps.createFromPartial({
           pointers: [
-            { x: 0, y: 0, t: 0, p: 1 },
-            { x: 10, y: 0, t: 1, p: 1 },
+            { x: 0, y: 0, dt: 0, p: 1 },
+            { x: 10, y: 0, dt: 1, p: 1 },
           ],
         })
         stroke.transform = MatrixTransform.identity().translate(7, 0)
