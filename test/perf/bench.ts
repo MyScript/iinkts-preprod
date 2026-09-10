@@ -94,14 +94,14 @@ const SEED = 20260827
  * These are constants, not calibrated at runtime, on purpose: the two sides of an A/B comparison must
  * do byte-for-byte the same work, and a factor recomputed per run would not guarantee that.
  */
-const IMPORT_PASSES = 16 // 0.030 ms measured x1 -> ~0.5 ms
-const APPEND_PASSES = 1000 // 0.0003 ms measured x1 -> ~0.3 ms
-const SYMBOLS_READ_PASSES = 200 // 0.0015 ms measured x1 -> ~0.3 ms
-const GET_ROOT_PASSES = 200 // 0.27 ms measured at 60 passes over all 500 ids -> ~0.9 ms
-const HIT_TEST_PASSES = 20 // 7.6 ms measured, already in band
-const TRANSFORM_PASSES = 20 // 4.0 ms measured, already in band
-const GEOMETRY_COLD_PASSES = 1 // one build of the whole set is its smallest unit
-const GEOMETRY_WARM_PASSES = 1 // one read of the whole set is its smallest unit
+const IMPORT_PASSES = 16 // 0.61 ms measured
+const APPEND_PASSES = 1000 // 0.27 ms measured
+const SYMBOLS_READ_PASSES = 200 // 0.36 ms measured
+const GET_ROOT_PASSES = 200 // 1.52 ms measured, one pass reading all 500 ids
+const HIT_TEST_PASSES = 20 // 7.84 ms measured
+const TRANSFORM_PASSES = 20 // 2.81 ms measured
+const GEOMETRY_COLD_PASSES = 1 // 110 ms measured: above the band, and one build of the set is its smallest unit
+const GEOMETRY_WARM_PASSES = 1 // 0.22 ms measured, one read of the whole set
 
 /**
  * Case names carry their repeat factor so a report can never be read as if it measured a single pass.
