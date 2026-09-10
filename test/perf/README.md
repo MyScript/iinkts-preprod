@@ -148,16 +148,22 @@ Seeded document, 500 strokes / 7876 pointers, seed 20260827. `of control` is the
 in-run control, kept for reading only — the gate does not use it. `paired` is the last null-test run,
 where both bundles were identical and every figure should be x1.000.
 
+`symbolGeometry:cold` sits an order of magnitude above the 0.1-10 ms band and stays there: one build
+of the whole 4419-symbol set is its smallest indivisible unit, so there is no factor to lower. It
+costs the suite about two seconds a process, which is the price of measuring the uncached path at the
+size that made it worth measuring.
+
 | case | ms | of control | samples | paired (null test) |
 |---|---|---|---|---|
-| `derive: recompute derived fields for all @500` | 16.4763 | x186.8 | 8 | x1.034 |
-| `hit test: linear overlaps over all @500 x20` | 5.7365 | x65.0 | 8 | x0.993 |
-| `transform: matrix over every pointer @500 x20` | 2.2869 | x25.9 | 8 | x0.989 |
-| `read: getRootSymbol by id @500 x200` | 0.7943 | x9.0 | 8 | x1.081 |
-| `import: build a model of 200 strokes x16` | 0.4093 | x4.6 | 8 | x1.031 |
-| `read: model.symbols @500 x200` | 0.2137 | x2.4 | 8 | x0.975 |
-| `append: add then remove one stroke @500 x1000` | 0.1762 | x2.0 | 8 | x0.990 |
-| `control: float arithmetic` | 0.0882 | x1.0 | 8 | x1.012 |
+| `symbolGeometry:cold @4419` | 106.9384 | x1054.2 | 8 | x1.006 |
+| `hit test: linear overlaps over all @500 x20` | 7.4427 | x73.4 | 8 | x0.972 |
+| `transform: matrix over every pointer @500 x20` | 2.8869 | x28.5 | 8 | x0.972 |
+| `read: getRootSymbol by id @500 x200` | 1.2970 | x12.8 | 8 | x0.915 |
+| `import: build a model of 200 strokes x16` | 0.4497 | x4.4 | 8 | x0.999 |
+| `read: model.symbols @500 x200` | 0.2553 | x2.5 | 8 | x0.969 |
+| `symbolGeometry:warm @4419` | 0.2392 | x2.4 | 8 | x1.070 |
+| `append: add then remove one stroke @500 x1000` | 0.2341 | x2.3 | 8 | x0.962 |
+| `control: float arithmetic` | 0.1014 | x1.0 | 8 | x0.979 |
 
 The paired column is the method's own error, not a property of the library: these two bundles were
 byte-identical.
