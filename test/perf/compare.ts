@@ -1,14 +1,7 @@
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 
-import {
-  MIN_GATED_MS,
-  MIN_ROUNDS,
-  REGRESSION_THRESHOLD,
-  evaluate,
-  type TPairedGateReport,
-  type TVerdict,
-} from "./lib/gate.ts"
+import { MIN_GATED_MS, MIN_ROUNDS, evaluate, type TPairedGateReport, type TVerdict } from "./lib/gate.ts"
 
 /**
  * The regression gate. It compares two builds measured in the same job, minutes apart, and never a
@@ -35,7 +28,7 @@ function markFor(v: TVerdict): string {
 }
 
 function noteFor(v: TVerdict, rounds: number): string {
-  if (v.gated) return `limit ${(REGRESSION_THRESHOLD * 100).toFixed(0)}%`
+  if (v.gated) return `limit ${(v.threshold * 100).toFixed(0)}%`
   if (v.ungatedReason === "timer-floor") return `not gated, under the ${MIN_GATED_MS} ms floor`
   return `not gated, paired in only ${v.rounds} of ${rounds} rounds`
 }
@@ -62,9 +55,12 @@ if (result.refusal) {
   process.exit(2)
 }
 
+// The limit is the run's own, not a constant: most cases measure the same code on both sides, so how
+// much they disagree with each other is how wrong this run is, and the limit is drawn from that.
 console.log(
-  `\nx1.00 means the two builds cost the same. Anything past ${(REGRESSION_THRESHOLD * 100).toFixed(0)}% is a regression.\n`
+  `\nthis run's cases scatter by ${(result.nullScale * 100).toFixed(1)}%, so the limit is ${(result.threshold * 100).toFixed(0)}%`
 )
+console.log("x1.00 means the two builds cost the same.\n")
 
 const width = Math.max(...result.verdicts.map((v) => v.name.length))
 for (const v of result.verdicts) {
@@ -82,7 +78,7 @@ for (const name of result.onlyReference) {
 }
 
 if (result.regressions.length > 0) {
-  console.error(`\n${result.regressions.length} case(s) regressed past ${(REGRESSION_THRESHOLD * 100).toFixed(0)}%.`)
+  console.error(`\n${result.regressions.length} case(s) regressed past ${(result.threshold * 100).toFixed(0)}%.`)
   process.exit(1)
 }
-console.log(`\nno case moved past ${(REGRESSION_THRESHOLD * 100).toFixed(0)}% over ${MIN_ROUNDS}+ paired rounds.`)
+console.log(`\nno case moved past ${(result.threshold * 100).toFixed(0)}% over ${MIN_ROUNDS}+ paired rounds.`)
