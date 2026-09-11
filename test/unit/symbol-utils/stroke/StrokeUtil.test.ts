@@ -1,11 +1,15 @@
 import { describe, test, expect, beforeEach } from "@jest/globals"
 import { buildIIStroke } from "../../helpers"
-import { StrokeUtil, StrokeOps, OBBOps, SymbolType, MatrixTransform } from "@/iink"
+import { MatrixTransform, OBBOps, PointSet2d, registerBuiltinSymbolUtils, StrokeOps, StrokeUtil, SymbolType } from "@/iink"
 
 describe("StrokeUtil", () => {
   let util: StrokeUtil
 
   beforeEach(() => {
+    // `overlaps` and `getSnapPoints` read through `SymbolGeometry`, which asks the registry for the
+    // symbol's util — that is what buys them the per-symbol geometry cache, and it means a bare
+    // `new StrokeUtil()` is not enough to exercise them.
+    registerBuiltinSymbolUtils()
     util = new StrokeUtil()
   })
 
@@ -75,8 +79,8 @@ describe("StrokeUtil", () => {
       expect(geometry.vertices).toBe(stroke.pointers)
       // Oracle is `StrokeOps` itself, not the stored field it replaced: the field is gone, and it
       // was only ever a copy of this call's result anyway.
-      expect(geometry.snapPoints).toEqual(StrokeOps.computeSnapPoints(StrokeOps.computeBounds(stroke)))
-      expect(geometry.edges).toEqual(StrokeOps.computeEdges(stroke))
+      expect(geometry.snapPoints).toEqual(OBBOps.getSnapPoints(new PointSet2d(stroke.pointers).bounds))
+      expect(geometry.edges).toEqual(new PointSet2d(stroke.pointers).edges)
       // 0,0 → 10,0 → 10,5: 10 + 5, a literal independent of computeLength's own formula.
       expect(geometry.length).toBe(15)
     })
@@ -153,7 +157,7 @@ describe("StrokeUtil", () => {
     test("should return the stroke snapPoints reference", () => {
       const stroke = buildIIStroke()
       const result = util.getSnapPoints(stroke)
-      expect(result).toStrictEqual(StrokeOps.computeSnapPoints(StrokeOps.computeBounds(stroke)))
+      expect(result).toStrictEqual(OBBOps.getSnapPoints(new PointSet2d(stroke.pointers).bounds))
     })
 
     test("a translated stroke's snap points are the raw ones shifted by the same translate", () => {

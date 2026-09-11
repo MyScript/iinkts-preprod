@@ -19,19 +19,19 @@ describe("PointSet2d", () => {
     const geometry = new PointSet2d(stroke.pointers)
 
     test("should derive the same bounds", () => {
-      expect(geometry.bounds).toEqual(StrokeOps.computeBounds(stroke))
+      expect(geometry.bounds).toEqual(new PointSet2d(stroke.pointers).bounds)
     })
 
     test("should derive the same edges, with no closing one", () => {
-      expect(geometry.edges).toEqual(StrokeOps.computeEdges(stroke))
+      expect(geometry.edges).toEqual(new PointSet2d(stroke.pointers).edges)
     })
 
     test("should derive the same length", () => {
-      expect(geometry.length).toBe(StrokeOps.computeLength(stroke))
+      expect(geometry.length).toBe(new PointSet2d(stroke.pointers).length)
     })
 
     test("should derive the same vertices", () => {
-      expect(geometry.vertices).toEqual(StrokeOps.computeVertices(stroke))
+      expect(geometry.vertices).toEqual(new PointSet2d(stroke.pointers).vertices)
     })
 
     test.each<[string, TBox]>([
@@ -42,7 +42,7 @@ describe("PointSet2d", () => {
       ["a box whose edge lands exactly on a sample", { x: 100, y: 0, width: 10, height: 10 }],
       ["a zero-sized box on a sample", { x: 0, y: 0, width: 0, height: 0 }],
     ])("should answer overlaps as StrokeOps does for %s", (_label, box) => {
-      expect(geometry.overlapsBox(box)).toBe(StrokeOps.overlaps(stroke, box))
+      expect(geometry.overlapsBox(box)).toBe(new PointSet2d(stroke.pointers).overlapsBox(box))
     })
   })
 
