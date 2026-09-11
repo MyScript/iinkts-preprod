@@ -1,5 +1,6 @@
 import type { TBox } from "@/core/geometry"
 import type { TMatrixTransform, TPoint } from "@/core/geometry"
+import type { Geometry2d } from "@/core/geometry"
 import { applyMatrixToPoint, BoxOps, isIdentityMatrix, MatrixTransform, OBBOps } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import type { TBaseSymbol, TResizePoint } from "@/symbol/Symbol"
@@ -48,6 +49,19 @@ export abstract class SymbolUtil<T extends TBaseSymbol> {
    * This symbol's derived geometry, computed from the coordinates it stores.
    */
   abstract computeGeometry(symbol: T): TSymbolGeometry
+
+  /**
+   * This symbol's geometry as a shape that can answer questions about itself.
+   *
+   * Optional while the types move over one at a time: `SymbolGeometry` prefers this when a util
+   * offers it and falls back to wrapping {@link SymbolUtil.computeGeometry}'s record otherwise, so a
+   * type that has not been converted yet keeps behaving exactly as before. `computeGeometry` and
+   * this record-shaped detour both go once every type implements this.
+   *
+   * Implement it rather than `computeGeometry` for a new symbol type: a `Geometry2d` carries its own
+   * overlap, containment and distance tests, so the type no longer has to supply them.
+   */
+  getGeometry?(symbol: T): Geometry2d
 
   abstract overlaps(symbol: T, box: TBox): boolean
 
