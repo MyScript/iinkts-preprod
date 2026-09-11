@@ -1,6 +1,6 @@
 import type { TBox } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
-import { isIdentityMatrix, MatrixTransform, OBBOps } from "@/core/geometry"
+import { isIdentityMatrix, MatrixTransform, OBBOps, PointSet2d } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import { DefaultStyle } from "@/style"
 import { StrokeOps, type TStroke } from "@/symbol/stroke/Stroke"
@@ -18,6 +18,16 @@ export class StrokeUtil extends SymbolUtil<TStroke> {
 
   create(partial: TPartialDeep<TStroke>): TStroke {
     return StrokeOps.createFromPartial(partial)
+  }
+
+  /**
+   * A stroke is the run of points the pen left, and {@link PointSet2d} is exactly that shape: its
+   * path, length and box all come from the same samples, and it is caught by a query holding one of
+   * them rather than by the drawn line crossing it — which is what a stroke's selection has always
+   * meant.
+   */
+  getGeometry(stroke: TStroke): PointSet2d {
+    return new PointSet2d(stroke.pointers)
   }
 
   computeGeometry(stroke: TStroke): TSymbolGeometry {
