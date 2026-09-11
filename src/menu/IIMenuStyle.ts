@@ -5,7 +5,6 @@ import { DOMFactory } from "@/dom"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { IIModel } from "@/model"
 import type { TSymbol } from "@/symbol"
-import { ShapeOps } from "@/symbol/shape/Shape"
 
 import type { BaseMenuItem } from "./items"
 import {
@@ -249,66 +248,9 @@ export class IIMenuStyle {
       }
     }
 
-    if (this.canvas.tool === CanvasTool.Write) {
+    this.styleItems.forEach((st) => st.update())
+    if ([CanvasTool.Write, CanvasTool.Select].includes(this.canvas.tool)) {
       this.show()
-      // Show all style items for write mode
-      const strokeColorEl = this.styleItems.get("strokeColor")?.getElement()
-      const fillColorEl = this.styleItems.get("fillColor")?.getElement()
-      const thicknessEl = this.styleItems.get("thickness")?.getElement()
-      const fontSizeEl = this.styleItems.get("fontSize")?.getElement()
-      const fontWeightEl = this.styleItems.get("fontWeight")?.getElement()
-      const opacityEl = this.styleItems.get("opacity")?.getElement()
-
-      if (strokeColorEl) {
-        strokeColorEl.style.display = "block"
-      }
-      this.styleItems.get("pen")?.update()
-      if (fillColorEl) {
-        fillColorEl.style.display = this.writeShape ? "block" : "none"
-      }
-      if (thicknessEl) {
-        thicknessEl.style.display = "block"
-      }
-      if (fontSizeEl) {
-        fontSizeEl.style.display = "block"
-      }
-      if (fontWeightEl) {
-        fontWeightEl.style.display = "block"
-      }
-      if (opacityEl) {
-        opacityEl.style.display = "block"
-      }
-    } else if (this.canvas.tool === CanvasTool.Select) {
-      this.show()
-      const shapeSelected =
-        this.model.symbolsSelected.length && this.model.symbolsSelected.some((s) => ShapeOps.isShape(s))
-
-      const strokeColorEl = this.styleItems.get("strokeColor")?.getElement()
-      const fillColorEl = this.styleItems.get("fillColor")?.getElement()
-      const thicknessEl = this.styleItems.get("thickness")?.getElement()
-      const fontSizeEl = this.styleItems.get("fontSize")?.getElement()
-      const fontWeightEl = this.styleItems.get("fontWeight")?.getElement()
-      const opacityEl = this.styleItems.get("opacity")?.getElement()
-
-      if (strokeColorEl) {
-        strokeColorEl.style.display = "block"
-      }
-      this.styleItems.get("pen")?.update()
-      if (fillColorEl) {
-        fillColorEl.style.display = shapeSelected ? "block" : "none"
-      }
-      if (thicknessEl) {
-        thicknessEl.style.display = "block"
-      }
-      if (fontSizeEl) {
-        fontSizeEl.style.display = "block"
-      }
-      if (fontWeightEl) {
-        fontWeightEl.style.display = "block"
-      }
-      if (opacityEl) {
-        opacityEl.style.display = "block"
-      }
     } else {
       this.hide()
     }
