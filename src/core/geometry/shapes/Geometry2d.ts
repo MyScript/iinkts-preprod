@@ -3,7 +3,7 @@ import { BoxOps } from "../Box"
 import { isPointInsidePolygon } from "../containment"
 import { computeDistance } from "../distance"
 import { findIntersectionBetween2Segment } from "../intersection"
-import type { TMatrixTransform } from "../Matrix"
+import { MatrixTransform, type TMatrixTransform } from "../Matrix"
 import type { TOBB } from "../OBB"
 import { OBBOps } from "../OBB"
 import type { TPoint, TSegment } from "../Point"
@@ -27,6 +27,16 @@ import { computeNearestPointOnSegment } from "../segment"
 export type TGeometry2dOptions = {
   isClosed: boolean
   isFilled: boolean
+  /**
+   * The angle, in radians, of the frame this shape's tight box is measured in. Zero — axis-aligned —
+   * for a shape as it was built; whatever rotation it has been carried through afterwards.
+   *
+   * It exists so a turned shape keeps a *turned* box rather than the axis-aligned one that contains
+   * it. The two differ by up to a factor of sqrt(2) on the diagonal, and {@link Geometry2d.bounds}
+   * feeds containment and overlap, so the looser box does not merely look wrong — it selects symbols
+   * a query never reached.
+   */
+  frameAngle?: number
 }
 
 /**
@@ -54,15 +64,17 @@ export type TGeometry2dOptions = {
 export abstract class Geometry2d {
   readonly isClosed: boolean
   readonly isFilled: boolean
+  readonly frameAngle: number
 
   #vertices?: TPoint[]
   #edges?: TSegment[]
   #bounds?: TOBB
   #length?: number
 
-  constructor({ isClosed, isFilled }: TGeometry2dOptions) {
+  constructor({ isClosed, isFilled, frameAngle = 0 }: TGeometry2dOptions) {
     this.isClosed = isClosed
     this.isFilled = isFilled
+    this.frameAngle = frameAngle
   }
 
   /**
@@ -88,8 +100,20 @@ export abstract class Geometry2d {
    * different factors on each axis is an ellipse, not a circle, and not a tessellation of one
    * either. Returning the exact shape is what lets a moved symbol keep an exact test, where mapping
    * a fixed vertex list forward would bake in whatever approximation the vertices already carried.
+   *
+   * An implementation must carry {@link frameAngle} forward too, adding the matrix's own rotation to
+   * it — {@link Geometry2d.rotatedFrameAngle} does that. Dropping it silently widens the shape's box
+   * the first time anything turns it.
    */
   abstract transform(matrix: TMatrixTransform): Geometry2d
+
+  /**
+   * This shape's frame angle after `matrix` is applied — for an implementation of
+   * {@link Geometry2d.transform} to hand to the shape it builds.
+   */
+  protected rotatedFrameAngle(matrix: TMatrixTransform): number {
+    return this.frameAngle + MatrixTransform.rotation(matrix)
+  }
 
   /**
    * The segments between consecutive vertices, plus the closing one when {@link isClosed}.
@@ -117,9 +141,15 @@ export abstract class Geometry2d {
     return edges
   }
 
-  /** The smallest box containing every vertex, axis-aligned in this shape's own frame. */
+  /**
+   * The smallest box containing every vertex, measured in this shape's own frame.
+   *
+   * Axis-aligned while {@link frameAngle} is zero, and turned with the shape once it is not — which
+   * is what keeps a rotated shape's box tight instead of letting it grow to the axis-aligned box
+   * around the turned one.
+   */
   get bounds(): TOBB {
-    this.#bounds ??= OBBOps.createFromPoints(this.vertices)
+    this.#bounds ??= OBBOps.createFromPointsAtAngle(this.vertices, this.frameAngle)
     return this.#bounds
   }
 
