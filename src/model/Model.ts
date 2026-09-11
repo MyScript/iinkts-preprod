@@ -1,6 +1,6 @@
 import type { TExport } from "@/client"
 import type { TPoint, TPointer } from "@/core/geometry"
-import { computeDistance, computeDistanceSquared } from "@/core/geometry"
+import { computeDistanceSquared } from "@/core/geometry"
 import { isBetween } from "@/core/math"
 import { mergeExports } from "@/core/std"
 import { LoggerCategory, LoggerManager } from "@/logger"
@@ -49,19 +49,6 @@ export class Model {
     }
   }
 
-  protected computePressure(distance: number, globalDistance: number): number {
-    let ratio = 1.0
-    if (distance === globalDistance) {
-      ratio = 1.0
-    } else if (distance < 10) {
-      ratio = 0.2 + Math.pow(0.1 * distance, 0.4)
-    } else if (distance > globalDistance - 10) {
-      ratio = 0.2 + Math.pow(0.1 * (globalDistance - distance), 0.4)
-    }
-    const pressure = ratio * Math.max(0.1, 1.0 - 0.1 * Math.sqrt(distance))
-    return isNaN(pressure) ? 0.5 : Math.round(pressure * 100) / 100
-  }
-
   protected filterPointByAcquisitionDelta(stroke: Stroke, point: TPointer, lastPointer?: TPointer): boolean {
     const delta: number = 2 + (stroke.style["-myscript-pen-width"] || 0) / 4
     return (
@@ -108,9 +95,8 @@ export class Model {
     })
     const lastPointer = stroke.pointers.at(-1)
     if (this.filterPointByAcquisitionDelta(stroke, pointer, lastPointer)) {
-      const distance = lastPointer ? computeDistance(pointer, lastPointer) : 0
-      stroke.length += distance
-      pointer.p = this.computePressure(distance, stroke.length)
+      // `p` stays as the device reported it — see `StrokeOps.addPointer` for why deriving it from
+      // the gap to the previous pointer made thickness depend on the sampling rate.
       stroke.pointers.push(pointer)
       stroke.modificationDate = Date.now()
     }

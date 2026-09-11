@@ -4,6 +4,34 @@ See [MIGRATION.md](./MIGRATION.md) for step-by-step upgrade instructions.
 
 ## Breaking Changes
 
+### A stroke's thickness follows the pen, not the sampling rate
+Width was read off each pointer's `p`, which the capture overwrote with a value derived from the gap to the previous pointer. Spacing is only a proxy for speed while the sampling rate holds steady, and it does not: the browser coalesces samples under load. The same gesture therefore came out **17% thicker** when the samples arrived twice as densely.
+- `p` on a stored pointer is now exactly what the device reported, and nothing writes it back. Width is derived at draw time from distance over elapsed time, which reads the same however densely the stroke was sampled
+- a pen that reports a pressure of its own overrides the estimate; a constant pressure — what a mouse and most touch devices report — is read as "no measurement" rather than as a flat one
+- thinning is measured against a reference speed rather than from a standstill, so the slow part of a stroke keeps its full width and the whole range is available to the fast part. Without it every nib came out flatter than intended, and picking an expressive one merely drew everything thinner
+- a nib may carry a **broad edge** (`edgeAngle`), and then width follows the angle between travel and that edge instead of following speed — the property that makes a stroke look written rather than extruded. `fountain` holds a 45° edge: a circle comes out full on the sides across the edge and hairline where it runs along it, a 7:1 ratio at one unchanging speed. It reads geometry alone, so unlike speed it works on a document that carries no timing
+- a nib's ceiling is its own (`max`), and may exceed the nominal width: `brush` reaches 1.6, so where the hand slows the stroke swells past the width the style asks for. A nib that can only subtract width cannot look like a brush
+- the end taper is capped at a share of the stroke's own length. Real handwriting runs about 55 units per stroke, so the broadest nib's 22-unit taper at each end left 11 units of full width and drew a limp even line
+- `smoothing` averages a nib's width over neighbouring pointers, for the inertia a tuft of hair has — `brush` uses it so its width does not track speed point by point
+- a stroke whose `dt` was filled in from the pointer index carries no measured timing, and is left unshaded rather than shaded by an invention
+- removed: `StrokeOps._computePressure` and `Model.computePressure`, which had no reader left
+- new: `computeWidthProfile`, `computeOutlinePointers`, `isPenNib`, `PEN_NIBS`, `DEFAULT_PEN_NIB`, `TPenNib`, `TNibProfile`
+- all three stroke renderers — SVG, SSR and Canvas — go through the same profile, so width is decided in one place
+
+### A stroke records the instrument it was drawn with
+`TStyle.pen` names a nib: `ballpoint` (uniform line, blunt ends), `pencil`, `fountain` and `brush`, in order of how strongly speed and pressure move the line. It sits on the style rather than on the tool so a document reopened later redraws each stroke with the nib it was written with.
+- the write tool in the built-in menu becomes a submenu, the way the shape tool already was: `ms-menu-tool-write-pencil` is now the trigger, with one button per nib beside it
+- `pencil` is the default. **Strokes drawn by an earlier version render differently**: width now follows the pen's speed, and every nib reaches full width on a deliberate stroke while thinning as the pen accelerates. `ballpoint` is the one that draws a line of constant width
+- an unknown value under `pen` falls back to the default instead of throwing — a style is a loose bag of strings and numbers
+- `TStyle.penAngle`, `penSmoothing` and `penSpeed` override the nib's own values on a single stroke, so two settings can sit side by side on the canvas and be compared. `readNibOverrides` reads them
+- the style menu gains a nib picker, which applies to the current selection as well as to the pen: **a stroke already written takes a new nib and redraws**, because what was captured is the path and not the thickness
+- the action menu gains a `Pen` submenu for the tunables. A setting the current nib does not read is disabled rather than hidden
+- new example: `interactive_canvas_pen_nibs.html`, which draws one generated gesture per nib so the four can be compared without the hand getting in the way
+
+### A stroke computes its own length
+`TStroke.length` and `TLegacyStroke.length` are gone. The field was an accumulator maintained by hand whose only per-pointer reader was the pressure estimator above; with that gone it was written and never read. The earlier note in this changelog kept it on the grounds that deriving it on read would make drawing a stroke quadratic in its own pointer count — that reasoning applied to a reader running once per pointer, and no longer holds.
+- use `StrokeOps.computeLength(stroke)`, or `SymbolGeometry.lengthOf(symbol)` for the document-frame length. `TSymbolGeometry.length` is unchanged: it was already computed on read
+
 ### A pointer stores when it was captured, relative to its stroke
 `TPointer.t` is renamed `TPointer.dt` and its meaning changes: it counted epoch milliseconds, it now counts milliseconds since the stroke began, so the first pointer of every stroke is at 0. The absolute instant is `stroke.creationTime + dt`, which is what `toWireStroke` sends — the recognizer reads the order strokes were written in from those absolute times.
 - the rename is deliberate. Same name with a new meaning would have compiled everywhere and silently mis-timed every integrator who reads pointers; `dt` fails loudly instead
