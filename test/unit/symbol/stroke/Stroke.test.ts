@@ -1,4 +1,4 @@
-import { StrokeOps, DefaultStyle, TStyle, TPointer, OBBOps } from "@/iink"
+import { DefaultStyle, OBBOps, PointSet2d, StrokeOps, TPointer, TStyle } from "@/iink"
 
 describe("TStroke / StrokeOps", () => {
   describe("create", () => {
@@ -14,10 +14,10 @@ describe("TStroke / StrokeOps", () => {
       expect(stroke.style).toEqual(expect.objectContaining(style))
       expect(stroke.pointerType).toEqual("pen")
       expect(stroke.pointers).toHaveLength(0)
-      expect(OBBOps.toBox(StrokeOps.computeBounds(stroke)).x).toEqual(0)
-      expect(OBBOps.toBox(StrokeOps.computeBounds(stroke)).y).toEqual(0)
-      expect(StrokeOps.computeBounds(stroke).height).toEqual(0)
-      expect(StrokeOps.computeBounds(stroke).width).toEqual(0)
+      expect(OBBOps.toBox(new PointSet2d(stroke.pointers).bounds).x).toEqual(0)
+      expect(OBBOps.toBox(new PointSet2d(stroke.pointers).bounds).y).toEqual(0)
+      expect(new PointSet2d(stroke.pointers).bounds.height).toEqual(0)
+      expect(new PointSet2d(stroke.pointers).bounds.width).toEqual(0)
     })
     test("should create with default style", () => {
       const stroke = StrokeOps.create()
@@ -78,26 +78,26 @@ describe("TStroke / StrokeOps", () => {
         y: 50,
       }
       StrokeOps.addPointer(stroke, pointer)
-      expect(StrokeOps.computeLength(stroke)).toEqual(Math.sqrt(2 * Math.pow(50, 2)))
+      expect(new PointSet2d(stroke.pointers).length).toEqual(Math.sqrt(2 * Math.pow(50, 2)))
     })
   })
 
   describe("boundingBox", () => {
     test("should get without pointers", () => {
       const stroke = StrokeOps.create(DefaultStyle)
-      expect(StrokeOps.computeBounds(stroke).height).toEqual(0)
-      expect(StrokeOps.computeBounds(stroke).width).toEqual(0)
-      expect(OBBOps.toBox(StrokeOps.computeBounds(stroke)).x).toEqual(0)
-      expect(OBBOps.toBox(StrokeOps.computeBounds(stroke)).y).toEqual(0)
+      expect(new PointSet2d(stroke.pointers).bounds.height).toEqual(0)
+      expect(new PointSet2d(stroke.pointers).bounds.width).toEqual(0)
+      expect(OBBOps.toBox(new PointSet2d(stroke.pointers).bounds).x).toEqual(0)
+      expect(OBBOps.toBox(new PointSet2d(stroke.pointers).bounds).y).toEqual(0)
     })
     test("should get with pointers", () => {
       const stroke = StrokeOps.create(DefaultStyle)
       StrokeOps.addPointer(stroke, { p: 1, dt: 1, x: 1, y: 1 })
       StrokeOps.addPointer(stroke, { p: 1, dt: 1, x: 11, y: 11 })
-      expect(StrokeOps.computeBounds(stroke).height).toEqual(10)
-      expect(StrokeOps.computeBounds(stroke).width).toEqual(10)
-      expect(OBBOps.toBox(StrokeOps.computeBounds(stroke)).x).toEqual(1)
-      expect(OBBOps.toBox(StrokeOps.computeBounds(stroke)).y).toEqual(1)
+      expect(new PointSet2d(stroke.pointers).bounds.height).toEqual(10)
+      expect(new PointSet2d(stroke.pointers).bounds.width).toEqual(10)
+      expect(OBBOps.toBox(new PointSet2d(stroke.pointers).bounds).x).toEqual(1)
+      expect(OBBOps.toBox(new PointSet2d(stroke.pointers).bounds).y).toEqual(1)
     })
   })
 

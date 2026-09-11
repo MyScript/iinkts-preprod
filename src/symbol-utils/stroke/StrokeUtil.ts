@@ -7,6 +7,7 @@ import { StrokeOps, type TStroke } from "@/symbol/stroke/Stroke"
 import { SymbolType } from "@/symbol/Symbol"
 
 import { SVGBuilder } from "../SVGBuilder"
+import { SymbolGeometry } from "../SymbolGeometry"
 import { SymbolUtil } from "../SymbolUtil"
 import type { TSymbolGeometry } from "../TSymbolGeometry"
 
@@ -30,35 +31,44 @@ export class StrokeUtil extends SymbolUtil<TStroke> {
     return new PointSet2d(stroke.pointers)
   }
 
+  /**
+   * The record form, read off the geometry rather than computed a second time.
+   *
+   * Still here because `SymbolUtil` requires it while the other types are converted; every value
+   * comes from {@link StrokeUtil.getGeometry}, so there is one definition of a stroke's geometry, not
+   * two that could drift. It goes with the abstract method itself.
+   */
   computeGeometry(stroke: TStroke): TSymbolGeometry {
-    const bounds = StrokeOps.computeBounds(stroke)
+    const geometry = this.getGeometry(stroke)
     return {
-      bounds,
-      vertices: StrokeOps.computeVertices(stroke),
-      snapPoints: StrokeOps.computeSnapPoints(bounds),
-      edges: StrokeOps.computeEdges(stroke),
-      length: StrokeOps.computeLength(stroke),
+      bounds: geometry.bounds,
+      vertices: geometry.vertices,
+      snapPoints: OBBOps.getSnapPoints(geometry.bounds),
+      edges: geometry.edges,
+      length: geometry.length,
     }
   }
 
   /**
-   * A rotated or sheared query supplies its own exact test here, rather than falling through to
-   * `overlapsQuery`'s generic bounds/edges fallback: a stroke's real "overlaps" is "any raw pointer
-   * inside the query", not "the drawn line crosses it" — the generic edges-based test would count a
-   * query side crossing the segment between two consecutive pointers as an overlap even when no
-   * pointer itself lands inside the query, which is truer for a polygon than for a stroke.
+   * The geometry answers, so this no longer explains what a stroke's overlap means — {@link PointSet2d}
+   * does, once, for anything shaped like a run of samples.
+   *
+   * It also drops `overlapsQuery`'s whole apparatus for this type: that mapped the query *backwards*
+   * through the symbol's inverse matrix and needed a second, exact callback for the rotated case,
+   * because the raw geometry could not be moved. A `Geometry2d` can, so the symbol goes forwards
+   * instead and the axis-aligned query is tested as it stands — the same answer, without an inverse
+   * to guard against, a determinant to check, or a quad to special-case.
    */
   overlaps(stroke: TStroke, box: TBox): boolean {
-    return this.overlapsQuery(
-      stroke,
-      box,
-      (b) => StrokeOps.overlaps(stroke, b),
-      (query) => stroke.pointers.some((p) => OBBOps.quadContainsPoint(query, p))
-    )
+    return SymbolGeometry.of(stroke).overlapsBox(box)
   }
 
+  /**
+   * A stroke snaps on its box, not on the samples themselves: an ink trace has no corner anything
+   * would want to land on.
+   */
   getSnapPoints(stroke: TStroke): TPoint[] {
-    return this.mapPointsForward(stroke, this.computeGeometry(stroke).snapPoints)
+    return OBBOps.getSnapPoints(SymbolGeometry.of(stroke).bounds)
   }
 
   getSVGElement(stroke: TStroke): SVGGraphicsElement {
