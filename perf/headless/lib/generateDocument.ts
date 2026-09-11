@@ -6,7 +6,7 @@ import { createPrng, nextFloat, nextInt } from "./prng.ts"
  */
 export type TGeneratedStroke = {
   pointerType: string
-  pointers: { x: number; y: number; t: number; p: number }[]
+  pointers: { x: number; y: number; dt: number; p: number }[]
 }
 
 /**
@@ -42,7 +42,6 @@ export function generateDocument(count: number, seed = 1): TGeneratedStroke[] {
   const strokes: TGeneratedStroke[] = []
   let cursorX = LEFT_MARGIN
   let baseline = FIRST_BASELINE
-  let clock = 0
 
   for (let i = 0; i < count; i++) {
     const pointerCount = nextInt(rng, MIN_POINTERS, MAX_POINTERS)
@@ -63,15 +62,16 @@ export function generateDocument(count: number, seed = 1): TGeneratedStroke[] {
       pointers.push({
         x: cursorX + j * X_STEP + nextFloat(rng, -0.6, 0.6),
         y: baseline + Math.sin(phase + progress * Math.PI * 2) * amplitude + nextFloat(rng, -0.6, 0.6),
-        t: clock,
+        // Milliseconds since *this stroke's* gesture began, so the first pointer of every stroke is
+        // at 0 — `dt` is relative by definition, where the `t` this replaces was one clock running
+        // across the whole document. The interval is constant, so `j` reproduces it exactly.
+        dt: j * POINTER_INTERVAL_MS,
         p: nextFloat(rng, 0.45, 1),
       })
-      clock += POINTER_INTERVAL_MS
     }
 
     strokes.push({ pointerType: "pen", pointers })
     cursorX += width + WORD_GAP
-    clock += POINTER_INTERVAL_MS * 4
   }
 
   return strokes

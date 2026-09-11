@@ -11,7 +11,7 @@ import { countPointers, generateDocument } from "./generateDocument.ts"
 
 /** The library, whichever build the run was pointed at. */
 export type TIink = typeof import("#iink")
-type TStroke = ReturnType<TIink["StrokeOps"]["create"]>
+export type TStroke = ReturnType<TIink["StrokeOps"]["create"]>
 
 /**
  * Resident document size. Held at 500 rather than the 4419 of the reference document because
@@ -136,7 +136,7 @@ export function buildFixture(iink: TIink): TBenchFixture {
           pointers: Array.from({ length: GEOMETRY_POINTS_PER_STROKE }, (_, j) => ({
             x: i + j,
             y: i - j,
-            t: j,
+            dt: j,
             p: 1,
           })),
         })
