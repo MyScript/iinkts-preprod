@@ -1,5 +1,6 @@
-import { MatrixTransform, PointSet2d, DecoratorKind, DecoratorOps, StrokeOps, SymbolGeometry, SymbolStore, registerBuiltinSymbolUtils, symbolRegistry } from "@/iink"
+import { MatrixTransform, PointSet2d, StrokeOps, SymbolGeometry, SymbolStore, registerBuiltinSymbolUtils, symbolRegistry } from "@/iink"
 import type { TStroke } from "@/iink"
+import { buildIIText } from "../helpers"
 
 describe("SymbolGeometry", () => {
   beforeAll(() => registerBuiltinSymbolUtils())
@@ -291,10 +292,9 @@ describe("SymbolGeometry", () => {
   // The stroke is the one type converted so far, so every test above now exercises `getGeometry`.
   // The record path carries the other five, and nothing else here would notice it breaking.
   describe("a util still on computeGeometry", () => {
-    // A decorator: text, math and the decorator are what is left on the record path, and the
-    // decorator is the cheapest of them to build.
-    const buildCircle = () =>
-      Object.freeze(DecoratorOps.create(DecoratorKind.Underline, {}, [], { x: 0, y: 0, width: 10, height: 4 }))
+    // Text and math are what is left on the record path — every other type describes itself with a
+    // geometry object now, so this is the last pair that can stand for the wrapper at all.
+    const buildCircle = () => Object.freeze(buildIIText())
 
     test("has its record wrapped, and reads the same as the record itself", () => {
       const circle = buildCircle()

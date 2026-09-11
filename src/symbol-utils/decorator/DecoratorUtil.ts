@@ -1,6 +1,14 @@
 import type { TBox } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
-import { isIdentityMatrix, MatrixTransform, mergeSymbolTransform, OBBOps, type TOBB } from "@/core/geometry"
+import {
+  type Geometry2d,
+  isIdentityMatrix,
+  MatrixTransform,
+  mergeSymbolTransform,
+  OBBOps,
+  Polygon2d,
+  type TOBB,
+} from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import { DefaultStyle } from "@/style"
 import { DecoratorKind, DecoratorOps, type TDecorator } from "@/symbol/decorator/Decorator"
@@ -145,7 +153,7 @@ export class DecoratorUtil extends SymbolUtil<TDecorator> {
   }
 
   overlaps(decorator: TDecorator, box: TBox): boolean {
-    return this.overlapsQuery(decorator, box, (b) => DecoratorOps.overlaps(decorator, b))
+    return SymbolGeometry.of(decorator).overlapsBox(box)
   }
 
   /**
@@ -170,23 +178,40 @@ export class DecoratorUtil extends SymbolUtil<TDecorator> {
    * standalone but not yet placed. It reports empty rather than two phantom points at the origin,
    * which is what a zero-size box would produce.
    */
-  computeGeometry(decorator: TDecorator): TSymbolGeometry {
+  /**
+   * The box a decorator was placed against, as a shape.
+   *
+   * Its target's box rather than the line it draws: a decorator is found wherever what it decorates
+   * is, which is what `DecoratorOps.overlaps` tested against and what `targetBounds` holds. Filled,
+   * so a query landing inside the decorated text catches it the way a query crossing the text's edge
+   * does — again matching the box test this replaces.
+   *
+   * The box's own angle is handed over as the frame, so the corners come back as the very box that
+   * was stored rather than as an axis-aligned one drawn around it.
+   *
+   * A decorator with no target has no place on the page, and an empty polygon overlaps nothing.
+   */
+  getGeometry(decorator: TDecorator): Geometry2d {
     const bounds = decorator.targetBounds
-    if (!bounds) {
-      return { bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0), vertices: [], snapPoints: [], edges: [], length: 0 }
-    }
-    const vertices = DecoratorOps.computeVertices(bounds)
+    return bounds ? new Polygon2d(OBBOps.toCorners(bounds), true, bounds.angle) : new Polygon2d([])
+  }
+
+  computeGeometry(decorator: TDecorator): TSymbolGeometry {
+    const geometry = this.getGeometry(decorator)
+    const vertices = decorator.targetBounds ? DecoratorOps.computeVertices(decorator.targetBounds) : []
     return {
-      bounds,
+      bounds: geometry.bounds,
+      // The line it draws, not the box it is found by: these are what it renders and snaps on.
       vertices,
       snapPoints: vertices,
-      edges: [{ p1: vertices[0], p2: vertices[1] }],
+      edges: vertices.length === 2 ? [{ p1: vertices[0], p2: vertices[1] }] : [],
       length: 0,
     }
   }
 
+  /** The two ends of the line it draws — a decorator never moves, so there is no matrix to apply. */
   getSnapPoints(decorator: TDecorator): TPoint[] {
-    return this.mapPointsForward(decorator, this.computeGeometry(decorator).snapPoints)
+    return decorator.targetBounds ? DecoratorOps.computeVertices(decorator.targetBounds) : []
   }
 
   canResize(_decorator: TDecorator): boolean {
