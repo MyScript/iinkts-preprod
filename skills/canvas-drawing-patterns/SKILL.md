@@ -1,6 +1,6 @@
 ---
 name: canvas-drawing-patterns
-description: Canvas/ink-editor architecture checklist (manager lifecycle, API design, geometry perf) adapted for iinkTS from tldraw/excalidraw conventions. Invoke when adding or reviewing managers, renderer code, or hit-testing/geometry logic.
+description: Canvas/ink-editor architecture checklist for iinkTS (manager lifecycle, API design, geometry perf). Invoke when adding or reviewing managers, renderer code, or hit-testing/geometry logic.
 ---
 
 # Canvas/Drawing-App Patterns
