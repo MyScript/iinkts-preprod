@@ -37,6 +37,19 @@ export type TGeometry2dOptions = {
    * a query never reached.
    */
   frameAngle?: number
+  /**
+   * How far beyond its own outline this shape asks to be found, in units.
+   *
+   * Not decoration: a hairline is a few tenths of a unit across, and a box drawn exactly around it
+   * is a target nobody can hit. An edge pads its box by half `SELECTION_MARGIN` on each side for
+   * that reason, and by more again when it carries an arrow head, which is drawn outside the path it
+   * belongs to and would otherwise fall outside the shape's own bounds.
+   *
+   * It widens {@link Geometry2d.bounds} only. Edges, vertices and length stay the shape as drawn, so
+   * a crossing test is unchanged and only the "is it near enough" question moves — which is the one
+   * the padding is about.
+   */
+  padding?: number
 }
 
 /**
@@ -65,16 +78,18 @@ export abstract class Geometry2d {
   readonly isClosed: boolean
   readonly isFilled: boolean
   readonly frameAngle: number
+  readonly padding: number
 
   #vertices?: TPoint[]
   #edges?: TSegment[]
   #bounds?: TOBB
   #length?: number
 
-  constructor({ isClosed, isFilled, frameAngle = 0 }: TGeometry2dOptions) {
+  constructor({ isClosed, isFilled, frameAngle = 0, padding = 0 }: TGeometry2dOptions) {
     this.isClosed = isClosed
     this.isFilled = isFilled
     this.frameAngle = frameAngle
+    this.padding = padding
   }
 
   /**
@@ -149,8 +164,16 @@ export abstract class Geometry2d {
    * around the turned one.
    */
   get bounds(): TOBB {
-    this.#bounds ??= OBBOps.createFromPointsAtAngle(this.vertices, this.frameAngle)
+    this.#bounds ??= this.#computeBounds()
     return this.#bounds
+  }
+
+  #computeBounds(): TOBB {
+    const tight = OBBOps.createFromPointsAtAngle(this.vertices, this.frameAngle)
+    if (!this.padding) {
+      return tight
+    }
+    return { ...tight, width: tight.width + this.padding * 2, height: tight.height + this.padding * 2 }
   }
 
   /** Total length along the edges — a perimeter when {@link isClosed}, a path length otherwise. */
@@ -169,7 +192,18 @@ export abstract class Geometry2d {
    * approximate, which for a curve it always can.
    */
   overlapsBox(box: TBox): boolean {
-    if (OBBOps.isContained(this.bounds, box)) {
+    // A shape with no points has no extent, and must not be caught by anything. Without this its
+    // box is a zero-sized one at the origin, which `isContained` reports as inside any query
+    // covering the origin — so an unregistered kind would have selected itself near the page corner.
+    if (this.vertices.length === 0) {
+      return false
+    }
+    // Any vertex inside the query, rather than "the whole box fits inside it": the box carries
+    // `padding`, so a shape lying wholly within a query no larger than that padding would report no
+    // overlap — a hairline selected by a rectangle drawn snugly around it, missed for being too
+    // generously padded. Vertices are the shape as drawn, and a shape inside the query has all of
+    // them inside it.
+    if (this.vertices.some((vertex) => BoxOps.containsPoint(box, vertex))) {
       return true
     }
     const sides = BoxOps.getSides(box)

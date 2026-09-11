@@ -15,13 +15,13 @@ import { PointsGeometry2d } from "./PointsGeometry2d"
  * {@link PointSet2d} for why.
  */
 export class Polyline2d extends PointsGeometry2d {
-  constructor(points: TPoint[], frameAngle = 0) {
+  constructor(points: TPoint[], padding = 0, frameAngle = 0) {
     // Never filled: an open path has no interior to fill. `isFilled` would be meaningless rather
     // than merely false — `containsPoint` needs a closed ring to test against.
-    super(points, { isClosed: false, isFilled: false, frameAngle })
+    super(points, { isClosed: false, isFilled: false, frameAngle, padding })
   }
 
   override transform(matrix: TMatrixTransform): Polyline2d {
-    return new Polyline2d(this.mapPoints(matrix), this.rotatedFrameAngle(matrix))
+    return new Polyline2d(this.mapPoints(matrix), this.padding, this.rotatedFrameAngle(matrix))
   }
 }
