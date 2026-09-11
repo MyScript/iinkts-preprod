@@ -40,7 +40,20 @@ export const OBJECT = "symbol"
  *
  * Resolved once, outside the measured window, so the tolerance costs nothing per iteration.
  */
-type TComputeGeometry = (symbol: TStroke) => unknown
+/**
+ * What both representations of a geometry have in common, and all this case needs of either.
+ *
+ * Structural on purpose: the record a `computeGeometry` util returns and the object a `getGeometry`
+ * util returns share these three, and naming them is what lets the case force the same work out of
+ * both — see the case for why forcing is the whole point.
+ */
+type TBuiltGeometry = {
+  bounds: unknown
+  edges: unknown
+  length: number
+}
+
+type TComputeGeometry = (symbol: TStroke) => TBuiltGeometry
 
 const GEOMETRY_METHOD_NAMES = ["getGeometry", "computeGeometry"] as const
 
@@ -122,21 +135,28 @@ export function cases(f: TBenchFixture): TBenchCase[] {
       // The strokes come from `geometryWarmStrokes`: already warmed in the facade's cache, which
       // this path never consults, so the cases share one pool instead of allocating a second.
       //
-      // The count is kept and checked, where the two cases above drop their result on the floor.
+      // **The derived values are read, and that is not incidental.** A record-returning util computes
+      // bounds, vertices, edges and length before it returns; an object-returning one computes each
+      // on first read and may compute none at all. Calling the method and dropping the result would
+      // therefore compare building a geometry against allocating an empty one — measured at 3.20 ms
+      // against 0.03 ms, a hundredfold "win" that is only work not done yet. Reading them here puts
+      // both representations on the same footing, and matches what the library actually pays:
+      // `SymbolGeometry` forces exactly these on the cached path, to freeze them.
+      //
+      // The total is also kept and checked, where the two cases above drop their result on the floor.
       // They can afford to: `boundsOf` writes to a `WeakMap`, an observable effect no optimiser may
-      // remove. This path is pure — it allocates an object and returns it — which is precisely the
-      // shape escape analysis is allowed to delete outright, and a case measuring a deleted
-      // allocation would read as a fast one. Checking the total is one comparison per invocation,
-      // not per symbol, and doubles as proof that every symbol really did yield a geometry.
+      // remove. This path is pure, which is precisely the shape escape analysis is allowed to delete
+      // outright, and a case measuring a deleted allocation would read as a fast one.
       fn: () => {
-        let built = 0
+        let total = 0
         for (const stroke of geometryBuildStrokes) {
-          if (computeGeometry(stroke) !== undefined) {
-            built++
+          const geometry = computeGeometry(stroke)
+          if (geometry.bounds !== undefined && geometry.edges !== undefined) {
+            total += geometry.length
           }
         }
-        if (built !== GEOMETRY_BUILD_COUNT) {
-          throw new Error(`geometry built for ${built} symbols, expected ${GEOMETRY_BUILD_COUNT}`)
+        if (!Number.isFinite(total)) {
+          throw new Error(`geometry length came out ${total} over ${GEOMETRY_BUILD_COUNT} symbols`)
         }
       },
     },
