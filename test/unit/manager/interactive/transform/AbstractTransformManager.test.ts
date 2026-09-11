@@ -4,20 +4,8 @@ import { asCanvas, createCanvasMock } from "../../../__mocks__/createCanvasMock"
 import { buildIIDecorator, buildIIStroke } from "../../../helpers"
 
 import type { TBaseSymbol, TBox, TPartialDeep, TPoint, TTransformContext, TSymbol } from "@/iink"
-import {
-  applyMatrixToPoint,
-  DecoratorKind,
-  DecoratorUtil,
-  IIResizeManager,
-  IIRotationManager,
-  IITranslateManager,
-  MatrixTransform,
-  OBBOps,
-  registerBuiltinSymbolUtils,
-  symbolRegistry,
-  SymbolUtil,
-} from "@/iink"
-import type { TSymbolGeometry } from "@/iink"
+import { BoxOps, DecoratorKind, DecoratorUtil, Geometry2d, IIResizeManager, IIRotationManager, IITranslateManager, MatrixTransform, Polygon2d, SymbolUtil, applyMatrixToPoint, registerBuiltinSymbolUtils, symbolRegistry } from "@/iink"
+import type { } from "@/iink"
 
 /**
  * `IIAbstractTransformManager` used to declare five `applyTo*` members so that a
@@ -36,8 +24,10 @@ class StickyNoteUtil extends SymbolUtil<TStickyNote> {
   create(partial: TPartialDeep<TStickyNote>): TStickyNote {
     return { ...partial, type: "sticky-note" } as TStickyNote
   }
-  computeGeometry(): TSymbolGeometry {
-    return { bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0), vertices: [], snapPoints: [], edges: [], length: 0 }
+  getGeometry(symbol: TStickyNote): Geometry2d {
+    // A custom type says what shape it is and inherits every test from it, instead of hand-building
+    // a record of bounds, vertices, edges and snap points.
+    return new Polygon2d(BoxOps.getCorners({ x: symbol.point.x, y: symbol.point.y, width: 10, height: 10 }))
   }
   overlaps(_symbol: TStickyNote, _box: TBox): boolean {
     return false

@@ -1,35 +1,6 @@
 import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
 import { buildIIMath, buildIIStroke, buildIIText } from "../../../helpers"
-import {
-  SymbolGeometry,
-  DecoratorKind,
-  DecoratorOps,
-  DefaultHistoryConfiguration,
-  EdgeLineOps,
-  IIConnectorManager,
-  IIHistoryManager,
-  IITranslateManager,
-  MatrixTransform,
-  OBBOps,
-  ShapeCircleOps,
-  ShapePolygonOps,
-  StrokeOps,
-  SvgElementRole,
-  TEdgeLine,
-  TPoint,
-  TStroke,
-  SymbolUtil,
-  TBaseSymbol,
-  TPartialDeep,
-  TTransformContext,
-  applyMatrixToPoint,
-  symbolRegistry,
-  TDecorator,
-  TMath,
-  TSymbol,
-  TSymbolGeometry,
-  TText,
-} from "@/iink"
+import { BoxOps, DecoratorKind, DecoratorOps, DefaultHistoryConfiguration, EdgeLineOps, Geometry2d, IIConnectorManager, IIHistoryManager, IITranslateManager, MatrixTransform, OBBOps, Polygon2d, ShapeCircleOps, ShapePolygonOps, StrokeOps, SvgElementRole, SymbolGeometry, SymbolUtil, TBaseSymbol, TDecorator, TEdgeLine, TMath, TPartialDeep, TPoint, TStroke, TSymbol, TText, TTransformContext, applyMatrixToPoint, symbolRegistry } from "@/iink"
 
 describe("IITranslateManager.ts", () => {
   test("should create", () => {
@@ -574,8 +545,8 @@ describe("IITranslateManager.ts", () => {
         create(partial: TPartialDeep<TStickyNote>): TStickyNote {
           return partial as TStickyNote
         }
-        computeGeometry(): TSymbolGeometry {
-          return { bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0), vertices: [], snapPoints: [], edges: [], length: 0 }
+        getGeometry(symbol: TStickyNote): Geometry2d {
+          return new Polygon2d(BoxOps.getCorners({ x: symbol.point.x, y: symbol.point.y, width: 10, height: 10 }))
         }
         overlaps(): boolean {
           return false

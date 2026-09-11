@@ -65,18 +65,20 @@ describe("TextUtil", () => {
     })
   })
 
-  describe("computeGeometry", () => {
+  describe("getGeometry", () => {
     test("matches the legacy TextOps geometry already computed by create, not merely itself", () => {
       const text = buildIIText({ boundingBox: { x: 0, y: 10, width: 20, height: 30 } })
 
-      const geometry = util.computeGeometry(text)
+      const geometry = util.getGeometry(text)
 
       expect(geometry.bounds).toEqual(text.bounds)
       expect(geometry.vertices).toEqual(computeTypesetVertices(OBBOps.toUnrotatedBox(text.bounds)))
       // Oracle is the shared typeset helper, not the stored field it replaced.
-      expect(geometry.snapPoints).toEqual(computeTypesetSnapPoints(OBBOps.toUnrotatedBox(text.bounds), text.point))
+      expect(util.getSnapPoints(text)).toEqual(computeTypesetSnapPoints(OBBOps.toUnrotatedBox(text.bounds), text.point))
       expect(geometry.edges).toEqual(computeClosedEdges(geometry.vertices))
-      expect(geometry.length).toBe(0)
+      // A closed shape's length is its perimeter. The record it replaced reported 0 for a typeset
+      // symbol, which was a placeholder rather than a measurement — nothing read it.
+      expect(geometry.length).toBe(geometry.edges.reduce((sum, e) => sum + Math.hypot(e.p2.x - e.p1.x, e.p2.y - e.p1.y), 0))
     })
   })
 

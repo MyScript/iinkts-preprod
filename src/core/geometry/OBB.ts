@@ -356,7 +356,7 @@ export const OBBOps = {
    * rotated relative to that raw frame, a `query` that fully encloses the true shape can still miss
    * those corners, which is a real regression this fixes rather than a hypothetical: a query built
    * from `bounds` reported a rotated circle or a rotated diagonal line as unselected while a selection
-   * box plainly surrounded it. `vertices` is what every `computeGeometry` already tessellates a curve
+   * box plainly surrounded it. `vertices` is what every geometry already tessellates a curve
    * into (or, for a straight-edged type, already is the exact boundary) — a polygon is contained in a
    * convex region iff all its vertices are, whether or not the polygon itself is convex.
    *

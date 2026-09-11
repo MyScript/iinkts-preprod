@@ -1,4 +1,5 @@
-import { BoxOps, OBBOps, TBox, TextOps, TPoint, TSymbolChar, computeTypesetSnapPoints, computeClosedEdges, computeTypesetVertices } from "@/iink"
+import { typesetGeometry } from "../../helpers"
+import { BoxOps, OBBOps, TBox, TPoint, TSymbolChar, TextOps, computeClosedEdges, computeTypesetSnapPoints, computeTypesetVertices } from "@/iink"
 
 describe("Text.ts", () => {
   const chars: TSymbolChar[] = [
@@ -60,15 +61,15 @@ describe("Text.ts", () => {
     const text = TextOps.create(chars, point, box)
     test(`should return true if partially wrap`, () => {
       const boundaries: TBox = { height: 10, width: 10, x: -5, y: -5 }
-      expect(TextOps.overlaps(text, boundaries)).toEqual(true)
+      expect(typesetGeometry(text).overlapsBox(boundaries)).toEqual(true)
     })
     test(`should return true if totally wrap`, () => {
       const boundaries: TBox = { height: 500, width: 500, x: -25, y: -25 }
-      expect(TextOps.overlaps(text, boundaries)).toEqual(true)
+      expect(typesetGeometry(text).overlapsBox(boundaries)).toEqual(true)
     })
     test(`should return false if box is outside`, () => {
       const boundaries: TBox = { height: 2, width: 2, x: -50, y: -50 }
-      expect(TextOps.overlaps(text, boundaries)).toEqual(false)
+      expect(typesetGeometry(text).overlapsBox(boundaries)).toEqual(false)
     })
   })
 

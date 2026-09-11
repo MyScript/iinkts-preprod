@@ -1,9 +1,8 @@
-import type { TMatrixTransform, TOBB, TPoint, TSegment } from "@/core/geometry"
-import { applyMatrixToPoint, Geometry2d, isIdentityMatrix, MatrixTransform, OBBOps } from "@/core/geometry"
+import type { Geometry2d, TOBB, TPoint, TSegment } from "@/core/geometry"
+import { isIdentityMatrix } from "@/core/geometry"
 import type { TBaseSymbol } from "@/symbol/Symbol"
 
 import { symbolRegistry } from "./SymbolRegistry"
-import type { TSymbolGeometry } from "./TSymbolGeometry"
 
 /**
  * Derived geometry, keyed on the symbol object itself.
@@ -26,36 +25,9 @@ const cache = new WeakMap<TBaseSymbol, Geometry2d>()
 const rawCache = new WeakMap<TBaseSymbol, Geometry2d>()
 
 /**
- * The raw geometry seen through the symbol's matrix.
- *
- * Bounds go through the four corners of the raw box rather than through every point: O(1) per
- * symbol, and exact for any similarity. A non-uniform scale of an already-turned symbol maps the box
- * to a parallelogram, and what comes back is the enclosing OBB — still better than the field this
- * replaces, which zeroed the angle outright (`TypesetUtil.resize`).
- */
-function applyMatrix(geometry: TSymbolGeometry, matrix: TMatrixTransform): TSymbolGeometry {
-  const corners = OBBOps.toCorners(geometry.bounds).map((c) => applyMatrixToPoint(c, matrix))
-  return {
-    // Both terms are radians: `geometry.bounds.angle` (per TOBB's own convention, which every
-    // OBBOps function including `fromCorners` honours) and `MatrixTransform.rotation` (built from
-    // `acos`, never converted). Do not wrap either side in convertRadianToDegree/convertDegreeToRadian
-    // — that mixed a radians field with a degrees term and corrupted width/height along with the
-    // angle, for every symbol type, under any rotation. Caught in review: IIC task-9.
-    bounds: OBBOps.fromCorners(corners, geometry.bounds.angle + MatrixTransform.rotation(matrix)),
-    vertices: geometry.vertices.map((v) => applyMatrixToPoint(v, matrix)),
-    snapPoints: geometry.snapPoints.map((p) => applyMatrixToPoint(p, matrix)),
-    edges: geometry.edges.map((e) => ({
-      p1: applyMatrixToPoint(e.p1, matrix),
-      p2: applyMatrixToPoint(e.p2, matrix),
-    })),
-    length: geometry.length * Math.hypot(matrix.xx, matrix.yx),
-  }
-}
-
-/**
  * Freezes `value` and everything reachable from it, skipping whatever is already frozen.
  *
- * A util's `computeGeometry` result is only as immutable as whichever util built it: some hand back
+ * A util's geometry is only as immutable as whichever util built it: some hand back
  * a store-frozen symbol's own nested data as-is, others build fresh, unfrozen arrays. Without this,
  * a single stray write on one of the latter — `SymbolGeometry.boundsOf(s).width = 999` — would
  * poison every later read of `s`, for good, since the cache never recomputes for a frozen symbol.
@@ -73,63 +45,9 @@ function deepFreeze<TValue>(value: TValue): TValue {
   return value
 }
 
-/**
- * A {@link Geometry2d} wrapping the record a util that has not been converted yet hands back.
- *
- * Transitional, and deliberately dumb: every derived value is the one the util already computed, and
- * `transform` is the same `applyMatrix` the facade used before, so a type still on `computeGeometry`
- * behaves to the last decimal as it did. It goes when the last util implements `getGeometry`.
- *
- * `isClosed`/`isFilled` are false because a record never said: nothing reads them on this path —
- * overlap still goes through the util's own `overlaps`, not through the geometry — and guessing
- * "filled" here would change hit-testing for every unconverted type at once.
- */
-class RecordGeometry2d extends Geometry2d {
-  readonly #record: TSymbolGeometry
-
-  constructor(record: TSymbolGeometry) {
-    // The record's box already carries whatever angle it was built with; keeping it means this
-    // reports the same frame as the record it stands in for.
-    super({ isClosed: false, isFilled: false, frameAngle: record.bounds.angle })
-    this.#record = record
-  }
-
-  /** The record's own snap points, which a `Geometry2d` does not carry — see {@link snapPointsOf}. */
-  get snapPoints(): TPoint[] {
-    return this.#record.snapPoints
-  }
-
-  protected computeVertices(): TPoint[] {
-    return this.#record.vertices
-  }
-
-  override get bounds(): TOBB {
-    return this.#record.bounds
-  }
-
-  override get edges(): TSegment[] {
-    return this.#record.edges
-  }
-
-  override get length(): number {
-    return this.#record.length
-  }
-
-  override transform(matrix: TMatrixTransform): RecordGeometry2d {
-    return new RecordGeometry2d(applyMatrix(this.#record, matrix))
-  }
-}
-
-/**
- * The shape a util describes, however it describes it.
- *
- * A util that implements `getGeometry` is asked for it; one that still only has `computeGeometry`
- * has its record wrapped. Both come back as a `Geometry2d`, so nothing downstream has to know which
- * kind of util it is talking to — which is what lets the types move over one at a time.
- */
+/** The shape a symbol's util describes for it. */
 function fromUtil(symbol: TBaseSymbol): Geometry2d {
-  const util = symbolRegistry.getUtilFor(symbol)
-  return util.getGeometry ? util.getGeometry(symbol) : new RecordGeometry2d(util.computeGeometry(symbol))
+  return symbolRegistry.getUtilFor(symbol).getGeometry(symbol)
 }
 
 /**
@@ -140,7 +58,7 @@ function fromUtil(symbol: TBaseSymbol): Geometry2d {
  * reaches. Freezing the instance would therefore protect nothing at all — so each derived value is
  * read out and frozen on its own, which also settles the lazy fields while the symbol is known to be
  * frozen. That is no more eager than the record this replaces, which was fully built by
- * `computeGeometry` before it ever reached the cache.
+ * the util before it ever reached the cache.
  *
  * Only ever called for a frozen symbol, and that restriction is load-bearing rather than an
  * optimisation: a converted util hands back the symbol's own arrays — `PointSet2d`'s vertices *are*
@@ -233,8 +151,8 @@ export const SymbolGeometry = {
    *
    * A `Geometry2d` describes a shape; where that shape offers to snap is a decision about the symbol,
    * not about its outline — a text snaps on its box, never on its glyphs. Every util already answered
-   * this, with the same one line six times over (`mapPointsForward(symbol, computeGeometry(symbol)
-   * .snapPoints)`), which is exactly what this used to recompute for itself.
+   * this, with the same one line six times over, which is exactly what this used to recompute for
+   * itself.
    */
   snapPointsOf(symbol: TBaseSymbol): TPoint[] {
     return symbolRegistry.getUtilFor(symbol).getSnapPoints(symbol)

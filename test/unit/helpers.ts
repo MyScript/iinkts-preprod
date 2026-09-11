@@ -25,6 +25,7 @@ import {
   TStyle,
   TSymbolChar,
   TText,
+  computeTypesetVertices,
 } from "@/iink"
 
 import { DecoratorOps } from "../../src/symbol/decorator/Decorator"
@@ -209,4 +210,9 @@ export function edgeGeometry(vertices: TPoint[], edge: TEdge): Polyline2d {
 export function decoratorGeometry(decorator: TDecorator): Polygon2d {
   const bounds = decorator.targetBounds
   return bounds ? new Polygon2d(OBBOps.toCorners(bounds), true, bounds.angle) : new Polygon2d([])
+}
+
+/** A typeset symbol is found by the box it was measured at, as an outline. */
+export function typesetGeometry(symbol: TText | TMath): Polygon2d {
+  return new Polygon2d(computeTypesetVertices(OBBOps.toUnrotatedBox(symbol.bounds)))
 }

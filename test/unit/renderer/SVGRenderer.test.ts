@@ -1,25 +1,6 @@
 import { beforeAll, describe, test, expect } from "@jest/globals"
 import { buildIICircle, buildIIEraser, buildIILine, buildIIStroke, buildIIText } from "../helpers"
-import {
-  SVGRenderer,
-  DefaultIIRendererConfiguration,
-  OBBOps,
-  TBox,
-  TIIRendererConfiguration,
-  TSymbol,
-  TSymbolChar,
-  StrokeOps,
-  registerBuiltinSymbolUtils,
-  symbolRegistry,
-  SymbolUtil,
-  TBaseSymbol,
-  TPartialDeep,
-  TPoint,
-  TTransformContext,
-  TSymbolGeometry,
-  applyMatrixToPoint,
-  MatrixTransform,
-} from "@/iink"
+import { BoxOps, DefaultIIRendererConfiguration, Geometry2d, MatrixTransform, OBBOps, Polygon2d, SVGRenderer, StrokeOps, SymbolUtil, TBaseSymbol, TBox, TIIRendererConfiguration, TPartialDeep, TPoint, TSymbol, TSymbolChar, TTransformContext, applyMatrixToPoint, registerBuiltinSymbolUtils, symbolRegistry } from "@/iink"
 
 beforeAll(() => {
   registerBuiltinSymbolUtils()
@@ -733,8 +714,8 @@ describe("SVGRenderer.ts", () => {
       create(partial: TPartialDeep<TStickyNote>): TStickyNote {
         return { ...partial, type: "sticky-note", text: partial.text ?? "" } as TStickyNote
       }
-      computeGeometry(): TSymbolGeometry {
-        return { bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0), vertices: [], snapPoints: [], edges: [], length: 0 }
+      getGeometry(symbol: TStickyNote): Geometry2d {
+        return new Polygon2d(BoxOps.getCorners({ x: symbol.point.x, y: symbol.point.y, width: 10, height: 10 }))
       }
       translate(symbol: TStickyNote, { matrix }: TTransformContext): void {
         symbol.point = applyMatrixToPoint(symbol.point, matrix)
