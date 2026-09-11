@@ -1,9 +1,10 @@
+import { edgeGeometry } from "../../helpers"
 import { beforeEach, describe, expect, test } from "@jest/globals"
 
 import { buildIILine } from "../../helpers"
 
 import type { TEdge, TOBB, TPartialDeep } from "@/iink"
-import { EdgeArcOps, EdgeDecoration, registerBuiltinSymbolUtils, EdgeKind, EdgeUtil, MatrixTransform, OBBOps, SymbolType, TPoint, EdgeLineOps, TEdgeLine, EdgePolyLineOps, TEdgePolyLine, TEdgeArc } from "@/iink"
+import { EdgeArcOps, EdgeDecoration, registerBuiltinSymbolUtils, EdgeKind, EdgeUtil, MatrixTransform, OBBOps, SymbolType, TPoint, EdgeLineOps, TEdgeLine, TEdgePolyLine, TEdgeArc } from "@/iink"
 
 /**
  * `EdgeUtil` resolved a kind with a `switch` in each of four methods until IIC-2002 replaced them
@@ -27,17 +28,15 @@ registerBuiltinSymbolUtils()
  * own test file, against hand-written boxes.
  */
 const EDGE_BOUNDS_ORACLE: Record<string, (edge: TEdge) => TOBB> = {
-  [EdgeKind.Line]: (edge) =>
-    EdgeLineOps.computeBounds(edge as TEdgeLine, EdgeLineOps.computeVertices(edge as TEdgeLine)),
-  [EdgeKind.PolyEdge]: (edge) => EdgePolyLineOps.computeBounds(edge as TEdgePolyLine),
-  [EdgeKind.Arc]: (edge) =>
-    EdgeArcOps.computeBounds(edge as TEdgeArc, EdgeArcOps.computeVertices(edge as TEdgeArc)),
+  [EdgeKind.Line]: (edge) => edgeGeometry(EdgeLineOps.computeVertices(edge as TEdgeLine), edge).bounds,
+  [EdgeKind.PolyEdge]: (edge) => edgeGeometry((edge as TEdgePolyLine).points, edge).bounds,
+  [EdgeKind.Arc]: (edge) => edgeGeometry(EdgeArcOps.computeVertices(edge as TEdgeArc), edge).bounds,
 }
 
 /** Each kind's own vertex computation, the oracle now that the stored `vertices` field is gone. */
 const EDGE_VERTICES_ORACLE: Record<string, (edge: TEdge) => TPoint[]> = {
   [EdgeKind.Line]: (edge) => EdgeLineOps.computeVertices(edge as TEdgeLine),
-  [EdgeKind.PolyEdge]: (edge) => EdgePolyLineOps.computeVertices(edge as TEdgePolyLine),
+  [EdgeKind.PolyEdge]: (edge) => (edge as TEdgePolyLine).points,
   [EdgeKind.Arc]: (edge) => EdgeArcOps.computeVertices(edge as TEdgeArc),
 }
 

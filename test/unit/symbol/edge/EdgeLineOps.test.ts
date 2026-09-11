@@ -1,4 +1,5 @@
-import { EdgeLineOps, TPoint, DefaultStyle, TStyle, TBox, EdgeDecoration, OBBOps, MatrixTransform } from "@/iink"
+import { edgeGeometry } from "../../helpers"
+import { DefaultStyle, EdgeDecoration, EdgeLineOps, MatrixTransform, OBBOps, TBox, TPoint, TStyle } from "@/iink"
 
 describe("EdgeLineOps", () => {
   describe("create", () => {
@@ -36,10 +37,10 @@ describe("EdgeLineOps", () => {
     })
     test("should compute bounds with margin", () => {
       const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 5, y: 5 }, undefined, undefined, { width: 20 })
-      expect(OBBOps.toBox(EdgeLineOps.computeBounds(line, EdgeLineOps.computeVertices(line))).x).toEqual(-5)
-      expect(OBBOps.toBox(EdgeLineOps.computeBounds(line, EdgeLineOps.computeVertices(line))).y).toEqual(-5)
-      expect(EdgeLineOps.computeBounds(line, EdgeLineOps.computeVertices(line)).width).toEqual(15)
-      expect(EdgeLineOps.computeBounds(line, EdgeLineOps.computeVertices(line)).height).toEqual(15)
+      expect(OBBOps.toBox(edgeGeometry(EdgeLineOps.computeVertices(line), line).bounds).x).toEqual(-5)
+      expect(OBBOps.toBox(edgeGeometry(EdgeLineOps.computeVertices(line), line).bounds).y).toEqual(-5)
+      expect(edgeGeometry(EdgeLineOps.computeVertices(line), line).bounds.width).toEqual(15)
+      expect(edgeGeometry(EdgeLineOps.computeVertices(line), line).bounds.height).toEqual(15)
     })
     test("should generate unique ids", () => {
       const l1 = EdgeLineOps.create({ x: 0, y: 0 }, { x: 1, y: 1 })
@@ -87,15 +88,15 @@ describe("EdgeLineOps", () => {
     const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 0, y: 25 })
     test("should return true if partially intersects", () => {
       const box: TBox = { height: 10, width: 10, x: -5, y: -5 }
-      expect(EdgeLineOps.overlaps(line, box)).toEqual(true)
+      expect(edgeGeometry(EdgeLineOps.computeVertices(line), line).overlapsBox(box)).toEqual(true)
     })
     test("should return true if totally wraps", () => {
       const box: TBox = { height: 50, width: 50, x: -25, y: -25 }
-      expect(EdgeLineOps.overlaps(line, box)).toEqual(true)
+      expect(edgeGeometry(EdgeLineOps.computeVertices(line), line).overlapsBox(box)).toEqual(true)
     })
     test("should return false if box is outside", () => {
       const box: TBox = { height: 2, width: 2, x: 50, y: 50 }
-      expect(EdgeLineOps.overlaps(line, box)).toEqual(false)
+      expect(edgeGeometry(EdgeLineOps.computeVertices(line), line).overlapsBox(box)).toEqual(false)
     })
   })
 })

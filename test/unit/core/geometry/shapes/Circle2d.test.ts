@@ -46,8 +46,11 @@ describe("Circle2d", () => {
     test("should catch a graze the sampled outline would miss", () => {
       const circle = new Circle2d({ x: 0, y: 0 }, 100)
       const sampled = new Polygon2d(circle.vertices)
-      const mid = circle.vertices.length > 1 ? midpoint(circle.vertices[0], circle.vertices[1]) : { x: 100, y: 0 }
-      const graze = { x: mid.x, y: mid.y, width: 0.2, height: 0.2 }
+      // On the true curve, halfway between two samples: that is where the chord dips furthest inside
+      // the circle, so a query sitting on the curve there is outside the sampled polygon entirely.
+      const half = Math.PI / circle.vertices.length
+      const onCurve = { x: -100 * Math.sin(half), y: 100 * Math.cos(half) }
+      const graze = { x: onCurve.x - 0.05, y: onCurve.y - 0.05, width: 0.1, height: 0.1 }
 
       expect(sampled.overlapsBox(graze)).toBe(false)
       expect(circle.overlapsBox(graze)).toBe(true)
@@ -94,7 +97,3 @@ describe("Circle2d", () => {
     })
   })
 })
-
-function midpoint(a: { x: number; y: number }, b: { x: number; y: number }) {
-  return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
-}

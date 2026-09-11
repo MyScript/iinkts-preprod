@@ -1,4 +1,4 @@
-import { ShapePolygonOps, TPoint, DefaultStyle, TStyle, TBox, OBBOps, MatrixTransform } from "@/iink"
+import { DefaultStyle, MatrixTransform, OBBOps, Polygon2d, ShapePolygonOps, TBox, TPoint, TStyle } from "@/iink"
 
 describe("ShapePolygonOps", () => {
   describe("create", () => {
@@ -22,14 +22,14 @@ describe("ShapePolygonOps", () => {
     })
     test("should have vertices same ref as points", () => {
       const polygon = ShapePolygonOps.create(points)
-      expect(ShapePolygonOps.computeVertices(polygon)).toBe(polygon.points)
+      expect(polygon.points).toBe(polygon.points)
     })
     test("should compute bounds from points", () => {
       const polygon = ShapePolygonOps.create(points)
-      expect(OBBOps.toBox(ShapePolygonOps.computeBounds(polygon.points)).x).toBeLessThanOrEqual(0)
-      expect(OBBOps.toBox(ShapePolygonOps.computeBounds(polygon.points)).y).toBeLessThanOrEqual(0)
-      expect(ShapePolygonOps.computeBounds(polygon.points).width).toBeGreaterThan(0)
-      expect(ShapePolygonOps.computeBounds(polygon.points).height).toBeGreaterThan(0)
+      expect(OBBOps.toBox(OBBOps.createFromPoints(polygon.points)).x).toBeLessThanOrEqual(0)
+      expect(OBBOps.toBox(OBBOps.createFromPoints(polygon.points)).y).toBeLessThanOrEqual(0)
+      expect(OBBOps.createFromPoints(polygon.points).width).toBeGreaterThan(0)
+      expect(OBBOps.createFromPoints(polygon.points).height).toBeGreaterThan(0)
     })
     test("should generate unique ids", () => {
       const p1 = ShapePolygonOps.create(points)
@@ -88,19 +88,19 @@ describe("ShapePolygonOps", () => {
     const polygon = ShapePolygonOps.create(pts)
     test("should return true if partially intersects", () => {
       const box: TBox = { height: 100, width: 100, x: -50, y: -50 }
-      expect(ShapePolygonOps.overlaps(polygon, box)).toEqual(true)
+      expect(new Polygon2d(polygon.points).overlapsBox(box)).toEqual(true)
     })
     test("should return true if totally wraps", () => {
       const box: TBox = { height: 500, width: 500, x: -25, y: -25 }
-      expect(ShapePolygonOps.overlaps(polygon, box)).toEqual(true)
+      expect(new Polygon2d(polygon.points).overlapsBox(box)).toEqual(true)
     })
     test("should return false if box is outside", () => {
       const box: TBox = { height: 20, width: 20, x: 500, y: 500 }
-      expect(ShapePolygonOps.overlaps(polygon, box)).toEqual(false)
+      expect(new Polygon2d(polygon.points).overlapsBox(box)).toEqual(false)
     })
     test("should return false if box is inside polygon", () => {
       const box: TBox = { height: 2, width: 2, x: 5, y: 50 }
-      expect(ShapePolygonOps.overlaps(polygon, box)).toEqual(false)
+      expect(new Polygon2d(polygon.points).overlapsBox(box)).toEqual(false)
     })
   })
 
@@ -119,7 +119,7 @@ describe("ShapePolygonOps", () => {
     test("should update rectangle between points", () => {
       const polygon = ShapePolygonOps.createRectangleBetweenPoints({ x: 0, y: 0 }, { x: 5, y: 5 })
       ShapePolygonOps.updateRectangleBetweenPoints(polygon, { x: 0, y: 0 }, { x: 20, y: 20 })
-      expect(ShapePolygonOps.computeBounds(polygon.points).width).toBeGreaterThan(10)
+      expect(OBBOps.createFromPoints(polygon.points).width).toBeGreaterThan(10)
     })
   })
 

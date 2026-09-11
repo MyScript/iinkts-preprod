@@ -1,7 +1,6 @@
 import type { EdgeDecoration } from "@/Constants"
-import type { TBox } from "@/core/geometry"
-import { MatrixTransform, mergeSymbolTransform, OBBOps, type TOBB } from "@/core/geometry"
-import { isValidPoint, type TPoint, type TSegment } from "@/core/geometry"
+import { MatrixTransform, mergeSymbolTransform } from "@/core/geometry"
+import { isValidPoint, type TPoint } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import { createUUID } from "@/core/std"
 import type { TStyle } from "@/style"
@@ -9,7 +8,7 @@ import { mergeSymbolStyle } from "@/style"
 import { SymbolType, type TBaseSymbol, type TResizePoint } from "@/symbol/Symbol"
 
 import type { TAnchor } from "./Anchor"
-import { computeEdgeBounds, EdgeKind } from "./Edge-enum"
+import { EdgeKind } from "./Edge-enum"
 
 /**
  * @group Symbol
@@ -80,14 +79,6 @@ export const EdgeLineOps = {
     return [line.start, line.end]
   },
 
-  computeBounds(line: TEdgeLine, vertices: TPoint[]): TOBB {
-    return computeEdgeBounds(vertices, line.style, line.startDecoration, line.endDecoration)
-  },
-
-  computeEdges(line: TEdgeLine): TSegment[] {
-    return [{ p1: line.start, p2: line.end }]
-  },
-
   getResizePoints(line: TEdgeLine): TResizePoint[] {
     return EdgeLineOps.computeVertices(line).map((point, vertexIndex) => ({
       point,
@@ -107,14 +98,6 @@ export const EdgeLineOps = {
     const target = vertexIndex === 0 ? line.start : line.end
     target.x = point.x
     target.y = point.y
-  },
-
-  overlaps(line: TEdgeLine, box: TBox): boolean {
-    return OBBOps.polygonOverlapsBox(
-      EdgeLineOps.computeBounds(line, EdgeLineOps.computeVertices(line)),
-      EdgeLineOps.computeEdges(line),
-      box
-    )
   },
 
   getSVGPath(line: TEdgeLine): string {

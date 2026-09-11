@@ -50,10 +50,13 @@ export class Circle2d extends Geometry2d {
     const count = computeTessellationCount(TWO_PI * this.radius, SELECTION_MARGIN)
     const vertices: TPoint[] = []
     for (let i = 0; i < count; i++) {
+      // From the bottom of the circle, counter-clockwise — the convention the library already had,
+      // kept because a closed ring is walked by connectors and anything reading these expects to
+      // start where it always did.
       const angle = TWO_PI * (i / count)
       vertices.push({
-        x: this.center.x + this.radius * Math.cos(angle),
-        y: this.center.y + this.radius * Math.sin(angle),
+        x: this.center.x - this.radius * Math.sin(angle),
+        y: this.center.y + this.radius * Math.cos(angle),
       })
     }
     return vertices
