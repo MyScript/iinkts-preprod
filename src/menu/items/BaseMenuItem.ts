@@ -90,7 +90,7 @@ export abstract class BaseMenuItem<T extends HTMLElement = HTMLElement> {
     }
 
     if (typeof this.config.visible === "function") {
-      this.element.style.display = this.config.visible(this.canvas) ? "" : "none"
+      this.element.style.display = this.config.visible(this.canvas) ? "block" : "none"
     }
   }
 

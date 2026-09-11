@@ -10,7 +10,7 @@ describe("StrokeOps", () => {
       expect(stroke.style).toEqual(DefaultStyle)
       expect(stroke.pointerType).toEqual("pen")
       expect(stroke.pointers).toHaveLength(0)
-      expect(stroke.length).toEqual(0)
+      expect(StrokeOps.computeLength(stroke)).toEqual(0)
       expect(OBBOps.toBox(StrokeOps.computeBounds(stroke))).toEqual({ x: 0, y: 0, width: 0, height: 0 })
     })
     test("should create with custom style", () => {
@@ -60,11 +60,13 @@ describe("StrokeOps", () => {
       StrokeOps.addPointer(stroke, { p: 1, dt: 1, x: 5, y: 5 })
       expect(stroke.modificationDate).toBeGreaterThanOrEqual(before)
     })
-    test("should update length", () => {
+    test("should report a length derived from its pointers", () => {
+      // Derived on read, not accumulated into the stroke: nothing consumed the stored field once
+      // width stopped being computed from the gap between pointers.
       const stroke = StrokeOps.create(DefaultStyle)
       StrokeOps.addPointer(stroke, { p: 1, dt: 1, x: 0, y: 0 })
       StrokeOps.addPointer(stroke, { p: 1, dt: 2, x: 50, y: 50 })
-      expect(stroke.length).toBeCloseTo(Math.sqrt(2 * Math.pow(50, 2)))
+      expect(StrokeOps.computeLength(stroke)).toBeCloseTo(Math.sqrt(2 * Math.pow(50, 2)))
     })
     test("should update bounds", () => {
       const stroke = StrokeOps.create(DefaultStyle)

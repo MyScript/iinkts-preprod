@@ -10,6 +10,7 @@ import type {
   TGuideActionConfig,
   TMathActionConfig,
   TOverlayActionConfig,
+  TPenActionConfig,
   TSelectionActionConfig,
   TSnapActionConfig,
 } from "./actions"
@@ -25,6 +26,7 @@ import {
   MathMenuAction,
   MinimapMenuAction,
   OverlayMenuAction,
+  PenMenuAction,
   SelectionMenuAction,
   SnapMenuAction,
   ThemeMenuAction,
@@ -54,6 +56,8 @@ export type TMenuActionConfig = {
   gesture?: TGestureActionConfig
   /** Enable/disable Guide submenu. Pass an object to configure individual guide items. */
   guide?: TGuideActionConfig
+  /** Enable/disable Pen submenu. Pass an object to configure individual pen items. */
+  pen?: TPenActionConfig
   /** Enable/disable Snap submenu. Pass an object to configure individual snap items. */
   snap?: TSnapActionConfig
   /** Enable/disable Diagram submenu (toggles whether moving a connected shape follows its anchored edges) */
@@ -85,6 +89,7 @@ export const DefaultMenuActionConfig: Required<Omit<TMenuActionConfig, "themes">
   convert: true,
   gesture: true,
   guide: true,
+  pen: true,
   snap: true,
   diagram: true,
   math: true,
@@ -161,6 +166,12 @@ export class IIMenuAction {
         const guideAction = new GuideMenuAction(this.canvas, this.id, extractSubConfig(this.config.guide))
         this.menuActions.set("guide", guideAction)
         subMenuWrapper.appendChild(guideAction.getElement())
+      }
+
+      if (this.config.pen) {
+        const penAction = new PenMenuAction(this.canvas, this.id, extractSubConfig(this.config.pen))
+        this.menuActions.set("pen", penAction)
+        subMenuWrapper.appendChild(penAction.getElement())
       }
 
       if (this.config.snap) {

@@ -7,6 +7,7 @@ import {
 } from "@/core/geometry"
 import { TWO_PI } from "@/core/math"
 import { LoggerCategory, LoggerManager } from "@/logger"
+import { computeOutlinePointers, isPenNib, readNibOverrides } from "@/style"
 import type { Stroke } from "@/symbol"
 /**
  * @group Renderer
@@ -83,7 +84,15 @@ export class CanvasRendererStroke {
     const NUMBER_QUADRATICS = NUMBER_POINTS - 2
     const width = (stroke.style.width as number) > 0 ? (stroke.style.width as number) : context2d.lineWidth
     const color = (stroke.style.color as string) ? (stroke.style.color as string) : context2d.strokeStyle
-    const firstPoint = stroke.pointers[0] as TPointer
+    // See `computeWidthProfile`: `p` on a stored pointer is the device's measurement, the width to
+    // draw is derived from the pen's speed here.
+    const pointers = computeOutlinePointers(
+      stroke.pointers,
+      stroke.pointerType,
+      isPenNib(stroke.style.pen) ? stroke.style.pen : undefined,
+      readNibOverrides(stroke.style)
+    )
+    const firstPoint = pointers[0]
 
     context2d.save()
     try {
@@ -92,24 +101,21 @@ export class CanvasRendererStroke {
         this.renderArc(context2d, firstPoint, width * 0.6)
       } else {
         this.renderArc(context2d, firstPoint, width * firstPoint.p)
-        const secondPoint: TPointer = computeMiddlePointer(firstPoint, stroke.pointers[1])
+        const secondPoint: TPointer = computeMiddlePointer(firstPoint, pointers[1])
         this.renderLine(context2d, firstPoint, secondPoint, width)
 
         for (let i = 0; i < NUMBER_QUADRATICS; i++) {
-          const begin: TPointer = computeMiddlePointer(stroke.pointers[i], stroke.pointers[i + 1])
-          const end: TPointer = computeMiddlePointer(stroke.pointers[i + 1], stroke.pointers[i + 2])
-          const ctrl: TPointer = stroke.pointers[i + 1]
+          const begin: TPointer = computeMiddlePointer(pointers[i], pointers[i + 1])
+          const end: TPointer = computeMiddlePointer(pointers[i + 1], pointers[i + 2])
+          const ctrl: TPointer = pointers[i + 1]
           this.renderQuadratic(context2d, begin, end, ctrl, width)
         }
-        const beginLine: TPointer = computeMiddlePointer(
-          stroke.pointers[NUMBER_POINTS - 2],
-          stroke.pointers[NUMBER_POINTS - 1]
-        )
-        const endLine: TPointer = stroke.pointers[NUMBER_POINTS - 1]
+        const beginLine: TPointer = computeMiddlePointer(pointers[NUMBER_POINTS - 2], pointers[NUMBER_POINTS - 1])
+        const endLine: TPointer = pointers[NUMBER_POINTS - 1]
         this.renderLine(context2d, beginLine, endLine, width)
 
-        const beginFinal: TPointer = stroke.pointers[NUMBER_POINTS - 2]
-        const endFinal: TPointer = stroke.pointers[NUMBER_POINTS - 1]
+        const beginFinal: TPointer = pointers[NUMBER_POINTS - 2]
+        const endFinal: TPointer = pointers[NUMBER_POINTS - 1]
         this.renderFinal(context2d, beginFinal, endFinal, width)
       }
       context2d.closePath()

@@ -88,7 +88,10 @@ export class ShapeTool extends BaseMenuItem<HTMLDivElement> {
     wrapper.appendChild(content)
 
     // Event listeners
-    this.triggerButton.addEventListener("pointerdown", () => content.classList.toggle("open"))
+    this.triggerButton.addEventListener("pointerdown", () => {
+      this.canvas.tool = CanvasTool.Write
+      content.classList.toggle("open")
+    })
     this.#documentPointerdownHandler = (e: PointerEvent) => {
       if (!wrapper.contains(e.target as HTMLElement)) {
         content.classList.remove("open")
