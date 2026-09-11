@@ -52,7 +52,9 @@ describe("SymbolGeometry", () => {
 
     expect(SymbolGeometry.verticesOf(stroke)).toEqual(SymbolGeometry.of(stroke).vertices)
     expect(SymbolGeometry.edgesOf(stroke)).toEqual(SymbolGeometry.of(stroke).edges)
-    expect(SymbolGeometry.snapPointsOf(stroke)).toEqual(SymbolGeometry.of(stroke).snapPoints)
+    // Snap points are the util's answer, not the geometry's: a shape describes an outline, where
+    // a symbol decides where it offers to snap.
+    expect(SymbolGeometry.snapPointsOf(stroke)).toEqual(symbolRegistry.getUtilFor(stroke).getSnapPoints(stroke))
     expect(SymbolGeometry.lengthOf(stroke)).toEqual(SymbolGeometry.of(stroke).length)
   })
 
@@ -110,7 +112,9 @@ describe("SymbolGeometry", () => {
 
     expect(Object.isFrozen(geometry.vertices)).toBe(true)
     expect(Object.isFrozen(geometry.edges)).toBe(true)
-    expect(Object.isFrozen(geometry.snapPoints)).toBe(true)
+    expect(Object.isFrozen(geometry.bounds)).toBe(true)
+    // The geometry object itself, so nothing can swap a derived field out from under the cache.
+    expect(Object.isFrozen(geometry)).toBe(true)
   })
 
   // The accessors must not rely on `this`: a migration across hundreds of read sites will pass them
