@@ -1,4 +1,5 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import { CanvasTool, CanvasWriteTool } from "@/Constants"
 import type { TMenuColorList } from "@/menu/items"
 import { CollapsibleWrapper, ColorListMenuItem } from "@/menu/items"
 import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
@@ -16,6 +17,17 @@ export class FillColorStyle extends BaseMenuItem<HTMLDivElement> {
       type: "fillcolor" as const,
       id: `${idPrefix}-fill`,
       label: "Fill Color",
+      visible: (canvas: TInteractiveInkCanvas) => {
+        const writeShape = [
+          CanvasWriteTool.Rectangle,
+          CanvasWriteTool.Rhombus,
+          CanvasWriteTool.Circle,
+          CanvasWriteTool.Ellipse,
+          CanvasWriteTool.Triangle,
+          CanvasWriteTool.Parallelogram,
+        ].includes(canvas.writer.tool)
+        return CanvasTool.Select === canvas.tool || (CanvasTool.Write === canvas.tool && writeShape)
+      },
     }
     super(config, canvas)
     this.colors = colors

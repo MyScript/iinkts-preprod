@@ -1,4 +1,5 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import { CanvasTool } from "@/Constants"
 import type { TMenuRange } from "@/menu/items"
 import { CollapsibleWrapper, RangeMenuItem } from "@/menu/items"
 import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
@@ -15,6 +16,7 @@ export class OpacityStyle extends BaseMenuItem<HTMLDivElement> {
       type: "opacity" as const,
       id: `${idPrefix}-opacity`,
       label: "Opacity",
+      visible: (canvas: TInteractiveInkCanvas) => [CanvasTool.Write, CanvasTool.Select].includes(canvas.tool),
     }
     super(config, canvas)
   }

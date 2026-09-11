@@ -3,6 +3,7 @@ import brushIcon from "@/assets/svg/nib-brush.svg"
 import fountainIcon from "@/assets/svg/nib-fountain.svg"
 import pencilIcon from "@/assets/svg/nib-pencil.svg"
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import { CanvasTool } from "@/Constants"
 import type { TMenuButtonList } from "@/menu/items"
 import { ButtonListMenuItem, CollapsibleWrapper } from "@/menu/items"
 import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
@@ -32,7 +33,15 @@ export class PenNibStyle extends BaseMenuItem<HTMLDivElement> {
   private nibItem?: ButtonListMenuItem
 
   constructor(canvas: TInteractiveInkCanvas, idPrefix = "ms-menu-style") {
-    super({ type: "pen" as const, id: `${idPrefix}-pen`, label: "Pen" }, canvas)
+    super(
+      {
+        type: "pen" as const,
+        id: `${idPrefix}-pen`,
+        label: "Pen",
+        visible: (canvas: TInteractiveInkCanvas) => [CanvasTool.Write, CanvasTool.Select].includes(canvas.tool),
+      },
+      canvas
+    )
   }
 
   createElement(): HTMLDivElement {
@@ -70,7 +79,6 @@ export class PenNibStyle extends BaseMenuItem<HTMLDivElement> {
 
   update(): void {
     this.updateDisabled()
-    console.log('Pen Nib update');
     this.nibItem?.update()
     this.updateVisible()
   }

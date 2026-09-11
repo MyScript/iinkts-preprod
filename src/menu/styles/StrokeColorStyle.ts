@@ -1,4 +1,5 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import { CanvasTool } from "@/Constants"
 import type { TMenuColorList } from "@/menu/items"
 import { CollapsibleWrapper, ColorListMenuItem } from "@/menu/items"
 import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
@@ -16,6 +17,7 @@ export class StrokeColorStyle extends BaseMenuItem<HTMLDivElement> {
       type: "strokecolor" as const,
       id: `${idPrefix}-color`,
       label: "Stroke Color",
+      visible: (canvas: TInteractiveInkCanvas) => [CanvasTool.Write, CanvasTool.Select].includes(canvas.tool),
     }
     super(config, canvas)
     this.colors = colors
