@@ -27,8 +27,8 @@ import { Geometry2d } from "./Geometry2d"
 export class PointSet2d extends Geometry2d {
   readonly #points: TPoint[]
 
-  constructor(points: TPoint[]) {
-    super({ isClosed: false, isFilled: false })
+  constructor(points: TPoint[], frameAngle = 0) {
+    super({ isClosed: false, isFilled: false, frameAngle })
     this.#points = points
   }
 
@@ -47,6 +47,9 @@ export class PointSet2d extends Geometry2d {
   }
 
   override transform(matrix: TMatrixTransform): PointSet2d {
-    return new PointSet2d(this.#points.map((point) => applyMatrixToPoint(point, matrix)))
+    return new PointSet2d(
+      this.#points.map((point) => applyMatrixToPoint(point, matrix)),
+      this.rotatedFrameAngle(matrix)
+    )
   }
 }
