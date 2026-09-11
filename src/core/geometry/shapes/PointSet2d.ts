@@ -1,4 +1,4 @@
-import { BoxOps, type TBox } from "../Box"
+import type { TBox } from "../Box"
 import { applyMatrixToPoint, type TMatrixTransform } from "../Matrix"
 import type { TPoint } from "../Point"
 import { Geometry2d } from "./Geometry2d"
@@ -43,7 +43,17 @@ export class PointSet2d extends Geometry2d {
    * to land precisely on a point is a selection of it.
    */
   override overlapsBox(box: TBox): boolean {
-    return this.#points.some((point) => BoxOps.containsPoint(box, point))
+    // Compared in place rather than through `BoxOps.containsPoint`, which costs two `isBetween` calls
+    // per point. This runs once per sample per hit-test — 500 symbols over 20 passes is 10 000 calls
+    // before a single selection is resolved — and it is the one method here on that path.
+    const maxX = box.x + box.width
+    const maxY = box.y + box.height
+    for (const point of this.#points) {
+      if (point.x >= box.x && point.x <= maxX && point.y >= box.y && point.y <= maxY) {
+        return true
+      }
+    }
+    return false
   }
 
   override transform(matrix: TMatrixTransform): PointSet2d {
