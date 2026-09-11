@@ -1,7 +1,7 @@
 import type { TBox } from "../Box"
-import { applyMatrixToPoint, type TMatrixTransform } from "../Matrix"
+import type { TMatrixTransform } from "../Matrix"
 import type { TPoint } from "../Point"
-import { Geometry2d } from "./Geometry2d"
+import { PointsGeometry2d } from "./PointsGeometry2d"
 
 /**
  * @group Core/Geometry
@@ -24,16 +24,9 @@ import { Geometry2d } from "./Geometry2d"
  * something to catch that was never drawn. `isFilled` is false for the same reason a line has no
  * inside.
  */
-export class PointSet2d extends Geometry2d {
-  readonly #points: TPoint[]
-
+export class PointSet2d extends PointsGeometry2d {
   constructor(points: TPoint[], frameAngle = 0) {
-    super({ isClosed: false, isFilled: false, frameAngle })
-    this.#points = points
-  }
-
-  protected computeVertices(): TPoint[] {
-    return this.#points
+    super(points, { isClosed: false, isFilled: false, frameAngle })
   }
 
   /**
@@ -48,7 +41,7 @@ export class PointSet2d extends Geometry2d {
     // before a single selection is resolved — and it is the one method here on that path.
     const maxX = box.x + box.width
     const maxY = box.y + box.height
-    for (const point of this.#points) {
+    for (const point of this.points) {
       if (point.x >= box.x && point.x <= maxX && point.y >= box.y && point.y <= maxY) {
         return true
       }
@@ -57,9 +50,6 @@ export class PointSet2d extends Geometry2d {
   }
 
   override transform(matrix: TMatrixTransform): PointSet2d {
-    return new PointSet2d(
-      this.#points.map((point) => applyMatrixToPoint(point, matrix)),
-      this.rotatedFrameAngle(matrix)
-    )
+    return new PointSet2d(this.mapPoints(matrix), this.rotatedFrameAngle(matrix))
   }
 }

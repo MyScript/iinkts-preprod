@@ -1,6 +1,6 @@
-import { applyMatrixToPoint, type TMatrixTransform } from "../Matrix"
+import type { TMatrixTransform } from "../Matrix"
 import type { TPoint } from "../Point"
-import { Geometry2d } from "./Geometry2d"
+import { PointsGeometry2d } from "./PointsGeometry2d"
 
 /**
  * @group Core/Geometry
@@ -18,16 +18,9 @@ import { Geometry2d } from "./Geometry2d"
  * boundary, so a query strictly inside was always missed. That is right for an outline and wrong for
  * a filled shape, and only the caller knows which it has.
  */
-export class Polygon2d extends Geometry2d {
-  readonly #points: TPoint[]
-
+export class Polygon2d extends PointsGeometry2d {
   constructor(points: TPoint[], isFilled = false, frameAngle = 0) {
-    super({ isClosed: true, isFilled, frameAngle })
-    this.#points = points
-  }
-
-  protected computeVertices(): TPoint[] {
-    return this.#points
+    super(points, { isClosed: true, isFilled, frameAngle })
   }
 
   /**
@@ -36,10 +29,6 @@ export class Polygon2d extends Geometry2d {
    * around a turned polygon is only tight in a frame that turned too.
    */
   override transform(matrix: TMatrixTransform): Polygon2d {
-    return new Polygon2d(
-      this.#points.map((point) => applyMatrixToPoint(point, matrix)),
-      this.isFilled,
-      this.rotatedFrameAngle(matrix)
-    )
+    return new Polygon2d(this.mapPoints(matrix), this.isFilled, this.rotatedFrameAngle(matrix))
   }
 }
