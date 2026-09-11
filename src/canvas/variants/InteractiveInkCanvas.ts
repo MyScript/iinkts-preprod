@@ -239,7 +239,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
   }
   set tool(i: CanvasTool) {
     this.#tool = i
-    this.menu.tool.update()
+    this.menu.update()
     this.setCursorStyle()
     this.unselectAll()
 
@@ -323,6 +323,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
   set penStyle(penStyle: TPartialDeep<TStyle>) {
     this.logger.info("set penStyle", { penStyle })
     this.#penStyle = Object.assign({}, this.#penStyle, penStyle)
+    this.menu.update()
   }
 
   /**

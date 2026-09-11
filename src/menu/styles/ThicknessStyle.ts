@@ -1,4 +1,5 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import { CanvasTool } from "@/Constants"
 import type { TMenuButtonList } from "@/menu/items"
 import { ButtonListMenuItem, CollapsibleWrapper } from "@/menu/items"
 import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
@@ -26,6 +27,7 @@ export class ThicknessStyle extends BaseMenuItem<HTMLDivElement> {
       type: "thickness" as const,
       id: `${idPrefix}-thickness`,
       label: "Thickness",
+      visible: (canvas: TInteractiveInkCanvas) => [CanvasTool.Write, CanvasTool.Select].includes(canvas.tool),
     }
     super(config, canvas)
     this.thicknessList = thicknessList
