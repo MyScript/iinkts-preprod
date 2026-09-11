@@ -1,12 +1,4 @@
-import {
-  MatrixTransform,
-  registerBuiltinSymbolUtils,
-  ShapeCircleOps,
-  StrokeOps,
-  SymbolGeometry,
-  SymbolStore,
-  symbolRegistry,
-} from "@/iink"
+import { MatrixTransform, PointSet2d, ShapeCircleOps, StrokeOps, SymbolGeometry, SymbolStore, registerBuiltinSymbolUtils, symbolRegistry } from "@/iink"
 import type { TStroke } from "@/iink"
 
 describe("SymbolGeometry", () => {
@@ -86,7 +78,7 @@ describe("SymbolGeometry", () => {
 
   test("computes bounds matching StrokeOps' own bounds computation", () => {
     const stroke = buildStroke()
-    const expected = StrokeOps.computeBounds(stroke)
+    const expected = new PointSet2d(stroke.pointers).bounds
     Object.freeze(stroke)
 
     expect(SymbolGeometry.boundsOf(stroke)).toEqual(expected)
@@ -151,7 +143,7 @@ describe("SymbolGeometry", () => {
     const util = symbolRegistry.getUtilFor(record)
     const spy = jest.spyOn(util, "getGeometry")
 
-    expect(SymbolGeometry.boundsOf(record)).toEqual(StrokeOps.computeBounds(record))
+    expect(SymbolGeometry.boundsOf(record)).toEqual(new PointSet2d(record.pointers).bounds)
     SymbolGeometry.boundsOf(record)
 
     expect(spy).toHaveBeenCalledTimes(1)
@@ -266,7 +258,7 @@ describe("SymbolGeometry", () => {
     test("returns the untransformed geometry even when the symbol has moved", () => {
       const stroke = buildMoved()
 
-      expect(SymbolGeometry.rawOf(stroke).bounds).toEqual(StrokeOps.computeBounds(stroke))
+      expect(SymbolGeometry.rawOf(stroke).bounds).toEqual(new PointSet2d(stroke.pointers).bounds)
       expect(SymbolGeometry.rawOf(stroke).bounds).not.toEqual(SymbolGeometry.boundsOf(stroke))
     })
 

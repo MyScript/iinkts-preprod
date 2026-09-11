@@ -1,21 +1,12 @@
-import type { TBox } from "@/core/geometry"
 import type { TPointer, TPointerImport } from "@/core/geometry"
-import type { TPoint, TSegment } from "@/core/geometry"
 import {
   MatrixTransform,
   mergeSymbolTransform,
-  OBBOps,
+  PointSet2d,
   resolvePointerDelta,
   resolveStrokeOrigin,
-  type TOBB,
 } from "@/core/geometry"
-import {
-  computeAngleAxeRadian,
-  computeDistance,
-  computeLinksPointers,
-  computeMiddlePointer,
-  getClosestPoint,
-} from "@/core/geometry"
+import { computeAngleAxeRadian, computeLinksPointers, computeMiddlePointer, getClosestPoint } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import { createUUID } from "@/core/std"
 import type { TStyle } from "@/style"
@@ -131,31 +122,6 @@ export const StrokeOps = {
     }
   },
 
-  computeBounds(stroke: TStroke): TOBB {
-    return OBBOps.createFromPoints(stroke.pointers)
-  },
-
-  computeSnapPoints(bounds: TOBB): TPoint[] {
-    return OBBOps.getSnapPoints(bounds)
-  },
-
-  computeEdges(stroke: TStroke): TSegment[] {
-    return stroke.pointers.slice(0, -1).map((p, i) => ({
-      p1: p,
-      p2: stroke.pointers[i + 1],
-    }))
-  },
-
-  /** A stroke's vertices are its pointers verbatim — the same array, not a copy. */
-  computeVertices(stroke: TStroke): TPointer[] {
-    return stroke.pointers
-  },
-
-  /** Path length: the sum of the distances between consecutive pointers. */
-  computeLength(stroke: TStroke): number {
-    return stroke.pointers.reduce((sum, ptr, idx, arr) => (idx === 0 ? 0 : sum + computeDistance(ptr, arr[idx - 1])), 0)
-  },
-
   _filterPointByAcquisitionDelta(stroke: TStroke, point: TPointer): boolean {
     if (stroke.pointers.length === 0) {
       return true
@@ -176,12 +142,6 @@ export const StrokeOps = {
     }
   },
 
-  overlaps(stroke: TStroke, box: TBox): boolean {
-    return stroke.pointers.some(
-      (p) => p.x >= box.x && p.x <= box.x + box.width && p.y >= box.y && p.y <= box.y + box.height
-    )
-  },
-
   split(strokeToSplit: TStroke, i: number): { before: TStroke; after: TStroke } {
     // Both halves keep the origin of the stroke they came from. Their pointers still carry the
     // `dt` they were captured with, which counts from that origin - give a half a fresh
@@ -197,7 +157,9 @@ export const StrokeOps = {
   },
 
   substract(stroke: TStroke, partStroke: TStroke): { before?: TStroke; after?: TStroke } {
-    if (!StrokeOps.computeLength(partStroke)) {
+    // The geometry owns length now, so this degenerate-eraser guard asks it rather than keeping a
+    // second definition of what a stroke's length is.
+    if (!new PointSet2d(partStroke.pointers).length) {
       return { before: stroke }
     }
     const result: {

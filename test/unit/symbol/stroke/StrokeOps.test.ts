@@ -1,4 +1,4 @@
-import { StrokeOps, DefaultStyle, TStyle, TPointer, OBBOps, MatrixTransform } from "@/iink"
+import { DefaultStyle, MatrixTransform, OBBOps, PointSet2d, StrokeOps, TPointer, TStyle } from "@/iink"
 
 describe("StrokeOps", () => {
   describe("create", () => {
@@ -10,8 +10,8 @@ describe("StrokeOps", () => {
       expect(stroke.style).toEqual(DefaultStyle)
       expect(stroke.pointerType).toEqual("pen")
       expect(stroke.pointers).toHaveLength(0)
-      expect(StrokeOps.computeLength(stroke)).toEqual(0)
-      expect(OBBOps.toBox(StrokeOps.computeBounds(stroke))).toEqual({ x: 0, y: 0, width: 0, height: 0 })
+      expect(new PointSet2d(stroke.pointers).length).toEqual(0)
+      expect(OBBOps.toBox(new PointSet2d(stroke.pointers).bounds)).toEqual({ x: 0, y: 0, width: 0, height: 0 })
     })
     test("should create with custom style", () => {
       const style: TStyle = { color: "blue", width: 20 }
@@ -37,7 +37,7 @@ describe("StrokeOps", () => {
     })
     test("vertices should be same reference as pointers", () => {
       const stroke = StrokeOps.create()
-      expect(StrokeOps.computeVertices(stroke)).toBe(stroke.pointers)
+      expect(new PointSet2d(stroke.pointers).vertices).toBe(stroke.pointers)
     })
   })
 
@@ -66,16 +66,16 @@ describe("StrokeOps", () => {
       const stroke = StrokeOps.create(DefaultStyle)
       StrokeOps.addPointer(stroke, { p: 1, dt: 1, x: 0, y: 0 })
       StrokeOps.addPointer(stroke, { p: 1, dt: 2, x: 50, y: 50 })
-      expect(StrokeOps.computeLength(stroke)).toBeCloseTo(Math.sqrt(2 * Math.pow(50, 2)))
+      expect(new PointSet2d(stroke.pointers).length).toBeCloseTo(Math.sqrt(2 * Math.pow(50, 2)))
     })
     test("should update bounds", () => {
       const stroke = StrokeOps.create(DefaultStyle)
       StrokeOps.addPointer(stroke, { p: 1, dt: 1, x: 1, y: 1 })
       StrokeOps.addPointer(stroke, { p: 1, dt: 2, x: 11, y: 11 })
-      expect(OBBOps.toBox(StrokeOps.computeBounds(stroke)).x).toEqual(1)
-      expect(OBBOps.toBox(StrokeOps.computeBounds(stroke)).y).toEqual(1)
-      expect(StrokeOps.computeBounds(stroke).width).toEqual(10)
-      expect(StrokeOps.computeBounds(stroke).height).toEqual(10)
+      expect(OBBOps.toBox(new PointSet2d(stroke.pointers).bounds).x).toEqual(1)
+      expect(OBBOps.toBox(new PointSet2d(stroke.pointers).bounds).y).toEqual(1)
+      expect(new PointSet2d(stroke.pointers).bounds.width).toEqual(10)
+      expect(new PointSet2d(stroke.pointers).bounds.height).toEqual(10)
     })
   })
 
@@ -84,14 +84,14 @@ describe("StrokeOps", () => {
       const stroke = StrokeOps.create()
       stroke.pointers.push({ p: 1, dt: 1, x: 5, y: 10 })
       stroke.pointers.push({ p: 1, dt: 2, x: 15, y: 20 })
-      expect(OBBOps.toBox(StrokeOps.computeBounds(stroke))).toEqual({ x: 5, y: 10, width: 10, height: 10 })
+      expect(OBBOps.toBox(new PointSet2d(stroke.pointers).bounds)).toEqual({ x: 5, y: 10, width: 10, height: 10 })
     })
     test("should compute edges from pointers", () => {
       const stroke = StrokeOps.create()
       stroke.pointers.push({ p: 1, dt: 1, x: 0, y: 0 })
       stroke.pointers.push({ p: 1, dt: 2, x: 10, y: 10 })
       stroke.pointers.push({ p: 1, dt: 3, x: 20, y: 20 })
-      expect(StrokeOps.computeEdges(stroke)).toHaveLength(2)
+      expect(new PointSet2d(stroke.pointers).edges).toHaveLength(2)
     })
   })
 
@@ -144,12 +144,12 @@ describe("StrokeOps", () => {
     test("should return true when pointer is inside box", () => {
       const stroke = StrokeOps.create(DefaultStyle)
       StrokeOps.addPointer(stroke, { p: 1, dt: 1, x: 5, y: 5 })
-      expect(StrokeOps.overlaps(stroke, { x: 0, y: 0, width: 10, height: 10 })).toBe(true)
+      expect(new PointSet2d(stroke.pointers).overlapsBox({ x: 0, y: 0, width: 10, height: 10 })).toBe(true)
     })
     test("should return false when no pointer is inside box", () => {
       const stroke = StrokeOps.create(DefaultStyle)
       StrokeOps.addPointer(stroke, { p: 1, dt: 1, x: 50, y: 50 })
-      expect(StrokeOps.overlaps(stroke, { x: 0, y: 0, width: 10, height: 10 })).toBe(false)
+      expect(new PointSet2d(stroke.pointers).overlapsBox({ x: 0, y: 0, width: 10, height: 10 })).toBe(false)
     })
   })
 
