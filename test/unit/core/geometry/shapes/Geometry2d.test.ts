@@ -27,7 +27,7 @@ class TestGeometry extends Geometry2d {
   transform(matrix: TMatrixTransform): TestGeometry {
     return new TestGeometry(
       this.#points.map((p) => MatrixTransform.applyToPoint(matrix, p)),
-      { isClosed: this.isClosed, isFilled: this.isFilled }
+      { isClosed: this.isClosed, isFilled: this.isFilled, frameAngle: this.rotatedFrameAngle(matrix) }
     )
   }
 }
@@ -177,6 +177,32 @@ describe("Geometry2d", () => {
       const moved = original.transform(MatrixTransform.identity().translate(100, 0))
       expect(OBBOps.toBox(moved.bounds)).toEqual({ x: 100, y: 0, width: 10, height: 10 })
       expect(OBBOps.toBox(original.bounds)).toEqual({ x: 0, y: 0, width: 10, height: 10 })
+    })
+
+    test("should keep a rotated shape's box tight instead of widening it to the axes", () => {
+      // A flat 10-wide strip turned by 45 degrees. Measured in its own frame it is still 10 by 0;
+      // measured against the axes it would come out about 7.07 on each side, containing far more
+      // than the shape does.
+      const strip = new TestGeometry(
+        [
+          { x: 0, y: 0 },
+          { x: 10, y: 0 },
+        ],
+        { isClosed: false, isFilled: false }
+      )
+      const turned = strip.transform(MatrixTransform.identity().rotate(Math.PI / 4))
+
+      // Three decimals: `MatrixTransform.rotation` recovers the angle through `acos`, so 45 degrees
+      // comes back to about 1e-5. Pre-existing, and far below anything visible.
+      expect(turned.frameAngle).toBeCloseTo(Math.PI / 4, 3)
+      expect(turned.bounds.width).toBeCloseTo(10, 3)
+      expect(turned.bounds.height).toBeCloseTo(0, 3)
+    })
+
+    test("should accumulate the frame angle across successive transforms", () => {
+      const once = filledSquare().transform(MatrixTransform.identity().rotate(Math.PI / 6))
+      const twice = once.transform(MatrixTransform.identity().rotate(Math.PI / 6))
+      expect(twice.frameAngle).toBeCloseTo(once.frameAngle * 2, 3)
     })
 
     test("should keep the closed and filled flags", () => {

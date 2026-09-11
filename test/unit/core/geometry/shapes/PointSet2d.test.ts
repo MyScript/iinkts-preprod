@@ -111,6 +111,19 @@ describe("PointSet2d", () => {
       expect(moved.overlapsBox({ x: 50, y: 0, width: 20, height: 10 })).toBe(false)
     })
 
+    test("should keep a turned stroke's box tight", () => {
+      const turned = new PointSet2d(SAMPLES).transform(MatrixTransform.identity().rotate(Math.PI / 4))
+      // 200 long and flat, whichever way it is turned. Against the axes it would read about 141 on
+      // each side instead, a box containing far more than the stroke.
+      //
+      // Two decimals, not float precision: `MatrixTransform.rotation` recovers the angle through
+      // `acos`, and comes back about 2e-3 radians off. Pre-existing — the facade's own `applyMatrix`
+      // recovered the angle the same way — and over a 200-unit stroke that is 5e-4 of a unit, some
+      // four orders of magnitude below a pixel. It is the recovery that is imprecise, not this box.
+      expect(turned.bounds.width).toBeCloseTo(200, 2)
+      expect(turned.bounds.height).toBeCloseTo(0, 2)
+    })
+
     test("should scale the length with the matrix", () => {
       const moved = new PointSet2d(SAMPLES).transform(MatrixTransform.identity().scale(2, 2))
       expect(moved.length).toBe(400)

@@ -395,4 +395,44 @@ describe("OBBOps", () => {
       expect(OBBOps.contains(a, b)).toBe(false)
     })
   })
+
+  describe("createFromPointsAtAngle", () => {
+    test("should match createFromPoints at angle 0", () => {
+      const points: TPoint[] = [
+        { x: 0, y: 0 },
+        { x: 10, y: 4 },
+        { x: 3, y: -2 },
+      ]
+      expect(OBBOps.createFromPointsAtAngle(points, 0)).toEqual(OBBOps.createFromPoints(points))
+    })
+
+    test("should hug a shape lying along the frame's own axis", () => {
+      // A flat strip turned 45 degrees. Measured in its own frame it is 10 by 0; against the axes it
+      // would read about 7.07 on each side, a box holding far more than the strip.
+      const diagonal: TPoint[] = [
+        { x: 0, y: 0 },
+        { x: 10 * Math.SQRT1_2, y: 10 * Math.SQRT1_2 },
+      ]
+      const obb = OBBOps.createFromPointsAtAngle(diagonal, Math.PI / 4)
+      expect(obb.width).toBeCloseTo(10, 8)
+      expect(obb.height).toBeCloseTo(0, 8)
+      expect(obb.angle).toBe(Math.PI / 4)
+    })
+
+    test("should centre on the extents, not on the crowd of points", () => {
+      // Nine points bunched at the left end and one alone at the right. The centre of the box is 5;
+      // the centroid of the points is 0.5, which is where `fromCorners` would put it.
+      const lopsided: TPoint[] = [...Array.from({ length: 9 }, () => ({ x: 0, y: 0 })), { x: 10, y: 0 }]
+      expect(OBBOps.createFromPointsAtAngle(lopsided, 0).center).toEqual({ x: 5, y: 0 })
+    })
+
+    test("should keep the angle on an empty list rather than invent a shape", () => {
+      expect(OBBOps.createFromPointsAtAngle([], Math.PI / 3)).toEqual({
+        center: { x: 0, y: 0 },
+        width: 0,
+        height: 0,
+        angle: Math.PI / 3,
+      })
+    })
+  })
 })
