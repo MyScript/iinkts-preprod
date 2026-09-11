@@ -1,4 +1,4 @@
-import { ShapeCircleOps, TPoint, DefaultStyle, TStyle, TBox, OBBOps, MatrixTransform } from "@/iink"
+import { Circle2d, DefaultStyle, MatrixTransform, OBBOps, ShapeCircleOps, TBox, TPoint, TStyle } from "@/iink"
 
 describe("ShapeCircleOps", () => {
   describe("create", () => {
@@ -23,25 +23,25 @@ describe("ShapeCircleOps", () => {
     })
     test("should compute bounds as center±radius", () => {
       const circle = ShapeCircleOps.create({ x: 5, y: 0 }, 5)
-      expect(OBBOps.toBox(ShapeCircleOps.computeBounds(circle)).x).toEqual(0)
-      expect(OBBOps.toBox(ShapeCircleOps.computeBounds(circle)).y).toEqual(-5)
-      expect(ShapeCircleOps.computeBounds(circle).width).toEqual(10)
-      expect(ShapeCircleOps.computeBounds(circle).height).toEqual(10)
+      expect(OBBOps.toBox(new Circle2d(circle.center, circle.radius).bounds).x).toEqual(0)
+      expect(OBBOps.toBox(new Circle2d(circle.center, circle.radius).bounds).y).toEqual(-5)
+      expect(new Circle2d(circle.center, circle.radius).bounds.width).toEqual(10)
+      expect(new Circle2d(circle.center, circle.radius).bounds.height).toEqual(10)
     })
     test("should compute minimum 8 vertices for small circle", () => {
       const circle = ShapeCircleOps.create({ x: 0, y: 0 }, 5)
-      expect(ShapeCircleOps.computeVertices(circle)).toHaveLength(8)
+      expect(new Circle2d(circle.center, circle.radius).vertices).toHaveLength(8)
     })
     test("should compute more vertices for large circle", () => {
       const circle = ShapeCircleOps.create({ x: 0, y: 0 }, 50)
-      expect(ShapeCircleOps.computeVertices(circle)).toHaveLength(31)
+      expect(new Circle2d(circle.center, circle.radius).vertices).toHaveLength(31)
     })
     // Counts alone let the tessellation drift: a phase shift or a wrong radius keeps the length
     // and moves every point. The oracle here is the circle's own definition, written out rather
     // than borrowed from the implementation, so these values pin where the points actually land.
     test("should tessellate from the bottom of the circle, counter-clockwise, on the radius", () => {
       const circle = ShapeCircleOps.create({ x: 0, y: 0 }, 5)
-      const vertices = ShapeCircleOps.computeVertices(circle)
+      const vertices = new Circle2d(circle.center, circle.radius).vertices
       expect(vertices).toHaveLength(8)
       const expected = [
         { x: 0, y: 5 },
@@ -97,19 +97,19 @@ describe("ShapeCircleOps", () => {
     const circle = ShapeCircleOps.create({ x: 10, y: 10 }, 10)
     test("should return true if box partially intersects", () => {
       const box: TBox = { height: 10, width: 10, x: -5, y: -5 }
-      expect(ShapeCircleOps.overlaps(circle, box)).toEqual(true)
+      expect(new Circle2d(circle.center, circle.radius).overlapsBox(box)).toEqual(true)
     })
     test("should return true if box fully wraps circle", () => {
       const box: TBox = { height: 50, width: 50, x: -25, y: -25 }
-      expect(ShapeCircleOps.overlaps(circle, box)).toEqual(true)
+      expect(new Circle2d(circle.center, circle.radius).overlapsBox(box)).toEqual(true)
     })
     test("should return false if box is outside", () => {
       const box: TBox = { height: 2, width: 2, x: 50, y: 50 }
-      expect(ShapeCircleOps.overlaps(circle, box)).toEqual(false)
+      expect(new Circle2d(circle.center, circle.radius).overlapsBox(box)).toEqual(false)
     })
     test("should return false if box is fully inside circle", () => {
       const box: TBox = { height: 2, width: 2, x: 9, y: 9 }
-      expect(ShapeCircleOps.overlaps(circle, box)).toEqual(false)
+      expect(new Circle2d(circle.center, circle.radius).overlapsBox(box)).toEqual(false)
     })
   })
 

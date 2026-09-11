@@ -1,4 +1,4 @@
-import { ShapePolygonOps, TPoint, TStyle, TBox } from "@/iink"
+import { Polygon2d, ShapePolygonOps, TBox, TPoint, TStyle } from "@/iink"
 
 describe("Polygon.ts", () => {
   describe("overlaps", () => {
@@ -11,19 +11,19 @@ describe("Polygon.ts", () => {
     const polygon = ShapePolygonOps.create(points)
     test(`should return true if partially wrap`, () => {
       const boundaries: TBox = { height: 100, width: 100, x: -50, y: -50 }
-      expect(ShapePolygonOps.overlaps(polygon, boundaries)).toEqual(true)
+      expect(new Polygon2d(polygon.points).overlapsBox(boundaries)).toEqual(true)
     })
     test(`should return true if totally wrap`, () => {
       const boundaries: TBox = { height: 500, width: 500, x: -25, y: -25 }
-      expect(ShapePolygonOps.overlaps(polygon, boundaries)).toEqual(true)
+      expect(new Polygon2d(polygon.points).overlapsBox(boundaries)).toEqual(true)
     })
     test(`should return false if box is outside`, () => {
       const boundaries: TBox = { height: 20, width: 20, x: 500, y: 500 }
-      expect(ShapePolygonOps.overlaps(polygon, boundaries)).toEqual(false)
+      expect(new Polygon2d(polygon.points).overlapsBox(boundaries)).toEqual(false)
     })
     test(`should return false if box is inside`, () => {
       const boundaries: TBox = { height: 2, width: 2, x: 5, y: 50 }
-      expect(ShapePolygonOps.overlaps(polygon, boundaries)).toEqual(false)
+      expect(new Polygon2d(polygon.points).overlapsBox(boundaries)).toEqual(false)
     })
   })
 

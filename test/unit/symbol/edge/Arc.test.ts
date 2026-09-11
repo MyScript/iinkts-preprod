@@ -1,11 +1,5 @@
-import {
-  EdgeArcOps,
-  reprojectArcEndpoint,
-  reprojectArcMidpoint,
-  stretchArcEndpoint,
-  computePointOnEllipse,
-  computeDistance,
-} from "@/iink"
+import { edgeGeometry } from "../../helpers"
+import { EdgeArcOps, computeDistance, computePointOnEllipse, reprojectArcEndpoint, reprojectArcMidpoint, stretchArcEndpoint } from "@/iink"
 import { OBBOps, TPoint, DefaultStyle, TStyle, TBox } from "@/iink"
 
 describe("Arc.ts", () => {
@@ -28,10 +22,10 @@ describe("Arc.ts", () => {
       expect(arc.creationTime).toEqual(arc.modificationDate)
       expect(arc.style).toEqual(expect.objectContaining(style))
       expect(arc.center).toEqual(center)
-      expect(OBBOps.toBox(EdgeArcOps.computeBounds(arc, EdgeArcOps.computeVertices(arc))).x).toEqual(-15)
-      expect(OBBOps.toBox(EdgeArcOps.computeBounds(arc, EdgeArcOps.computeVertices(arc))).y).toEqual(-5)
-      expect(+EdgeArcOps.computeBounds(arc, EdgeArcOps.computeVertices(arc)).width.toFixed(0)).toEqual(27)
-      expect(+EdgeArcOps.computeBounds(arc, EdgeArcOps.computeVertices(arc)).height.toFixed(0)).toEqual(60)
+      expect(OBBOps.toBox(edgeGeometry(EdgeArcOps.computeVertices(arc), arc).bounds).x).toEqual(-15)
+      expect(OBBOps.toBox(edgeGeometry(EdgeArcOps.computeVertices(arc), arc).bounds).y).toEqual(-5)
+      expect(+edgeGeometry(EdgeArcOps.computeVertices(arc), arc).bounds.width.toFixed(0)).toEqual(27)
+      expect(+edgeGeometry(EdgeArcOps.computeVertices(arc), arc).bounds.height.toFixed(0)).toEqual(60)
     })
     test("should create with default style", () => {
       const center: TPoint = { x: 0, y: 0 }
@@ -113,15 +107,15 @@ describe("Arc.ts", () => {
     const arc = EdgeArcOps.create(center, startAngle, sweepAngle, radiusX, radiusY, phi)
     test(`should return true if partially wrap`, () => {
       const boundaries: TBox = { height: 20, width: 20, x: 0, y: 45 }
-      expect(EdgeArcOps.overlaps(arc, boundaries)).toEqual(true)
+      expect(edgeGeometry(EdgeArcOps.computeVertices(arc), arc).overlapsBox(boundaries)).toEqual(true)
     })
     test(`should return true if totally wrap`, () => {
       const boundaries: TBox = { height: 200, width: 100, x: -50, y: -5 }
-      expect(EdgeArcOps.overlaps(arc, boundaries)).toEqual(true)
+      expect(edgeGeometry(EdgeArcOps.computeVertices(arc), arc).overlapsBox(boundaries)).toEqual(true)
     })
     test(`should return false if box is outside`, () => {
       const boundaries: TBox = { height: 2, width: 2, x: 50, y: 50 }
-      expect(EdgeArcOps.overlaps(arc, boundaries)).toEqual(false)
+      expect(edgeGeometry(EdgeArcOps.computeVertices(arc), arc).overlapsBox(boundaries)).toEqual(false)
     })
   })
 

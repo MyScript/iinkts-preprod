@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, test } from "@jest/globals"
 
 import { buildIICircle } from "../../helpers"
 
-import type { TOBB, TPartialDeep, TShape } from "@/iink"
-import { MatrixTransform, OBBOps, registerBuiltinSymbolUtils, ShapeKind, ShapeUtil, SymbolType, ShapeCircleOps, ShapeEllipseOps, ShapePolygonOps, TShapePolygon, TShapeCircle, TShapeEllipse } from "@/iink"
+import type { TPartialDeep, TShape } from "@/iink"
+import { MatrixTransform, OBBOps, registerBuiltinSymbolUtils, ShapeKind, ShapeUtil, SymbolType } from "@/iink"
 
 /**
  * `ShapeUtil` used to resolve a kind with a `switch` in each of four methods, which meant a kind
@@ -29,12 +29,6 @@ import { MatrixTransform, OBBOps, registerBuiltinSymbolUtils, ShapeKind, ShapeUt
 // `new ShapeUtil()` is not enough to exercise them.
 registerBuiltinSymbolUtils()
 
-const SHAPE_BOUNDS_ORACLE: Record<string, (shape: TShape) => TOBB> = {
-  [ShapeKind.Circle]: (shape) => ShapeCircleOps.computeBounds(shape as TShapeCircle),
-  [ShapeKind.Ellipse]: (shape) =>
-    ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(shape as TShapeEllipse)),
-  [ShapeKind.Polygon]: (shape) => ShapePolygonOps.computeBounds((shape as TShapePolygon).points),
-}
 
 /** Each kind's own vertex computation, the oracle now that the stored `vertices` field is gone. */
 

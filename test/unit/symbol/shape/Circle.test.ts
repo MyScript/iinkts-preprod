@@ -1,5 +1,5 @@
 import { round } from "../../helpers"
-import { ShapeCircleOps, OBBOps, TPoint, DefaultStyle, TStyle, TBox } from "@/iink"
+import { Circle2d, DefaultStyle, OBBOps, ShapeCircleOps, TBox, TPoint, TStyle } from "@/iink"
 
 describe("Circle.ts", () => {
   describe("constructor", () => {
@@ -17,11 +17,11 @@ describe("Circle.ts", () => {
       expect(circle.style).toEqual(expect.objectContaining(style))
       expect(circle.center).toEqual(center)
       expect(circle.radius).toEqual(radius)
-      expect(OBBOps.toBox(ShapeCircleOps.computeBounds(circle)).x).toEqual(0)
-      expect(OBBOps.toBox(ShapeCircleOps.computeBounds(circle)).y).toEqual(-5)
-      expect(ShapeCircleOps.computeBounds(circle).width).toEqual(10)
-      expect(ShapeCircleOps.computeBounds(circle).height).toEqual(10)
-      expect(ShapeCircleOps.computeVertices(circle)).toHaveLength(8)
+      expect(OBBOps.toBox(new Circle2d(circle.center, circle.radius).bounds).x).toEqual(0)
+      expect(OBBOps.toBox(new Circle2d(circle.center, circle.radius).bounds).y).toEqual(-5)
+      expect(new Circle2d(circle.center, circle.radius).bounds.width).toEqual(10)
+      expect(new Circle2d(circle.center, circle.radius).bounds.height).toEqual(10)
+      expect(new Circle2d(circle.center, circle.radius).vertices).toHaveLength(8)
     })
     test("should create with default style", () => {
       const center: TPoint = { x: 5, y: 0 }
@@ -33,7 +33,7 @@ describe("Circle.ts", () => {
       const center: TPoint = { x: 5, y: 0 }
       const radius = 50
       const circle = ShapeCircleOps.create(center, radius)
-      expect(ShapeCircleOps.computeVertices(circle)).toHaveLength(31)
+      expect(new Circle2d(circle.center, circle.radius).vertices).toHaveLength(31)
     })
   })
 
@@ -43,19 +43,19 @@ describe("Circle.ts", () => {
     const circle = ShapeCircleOps.create(center, radius)
     test(`should return true if partially wrap`, () => {
       const boundaries: TBox = { height: 10, width: 10, x: -5, y: -5 }
-      expect(ShapeCircleOps.overlaps(circle, boundaries)).toEqual(true)
+      expect(new Circle2d(circle.center, circle.radius).overlapsBox(boundaries)).toEqual(true)
     })
     test(`should return true if totally wrap`, () => {
       const boundaries: TBox = { height: 50, width: 50, x: -25, y: -25 }
-      expect(ShapeCircleOps.overlaps(circle, boundaries)).toEqual(true)
+      expect(new Circle2d(circle.center, circle.radius).overlapsBox(boundaries)).toEqual(true)
     })
     test(`should return false if box is outside`, () => {
       const boundaries: TBox = { height: 2, width: 2, x: 50, y: 50 }
-      expect(ShapeCircleOps.overlaps(circle, boundaries)).toEqual(false)
+      expect(new Circle2d(circle.center, circle.radius).overlapsBox(boundaries)).toEqual(false)
     })
     test(`should return false if box is inside`, () => {
       const boundaries: TBox = { height: 2, width: 2, x: 9, y: 9 }
-      expect(ShapeCircleOps.overlaps(circle, boundaries)).toEqual(false)
+      expect(new Circle2d(circle.center, circle.radius).overlapsBox(boundaries)).toEqual(false)
     })
   })
 
@@ -100,11 +100,11 @@ describe("Circle.ts", () => {
       const circle = ShapeCircleOps.createBetweenPoints(origin, target)
       expect(circle.center).toEqual(origin)
       expect(circle.radius).toEqual(0)
-      expect(ShapeCircleOps.computeBounds(circle).height).toEqual(0)
-      expect(ShapeCircleOps.computeBounds(circle).width).toEqual(0)
-      expect(OBBOps.toBox(ShapeCircleOps.computeBounds(circle)).x).toEqual(1)
-      expect(OBBOps.toBox(ShapeCircleOps.computeBounds(circle)).y).toEqual(2)
-      expect(ShapeCircleOps.computeVertices(circle)).toHaveLength(8)
+      expect(new Circle2d(circle.center, circle.radius).bounds.height).toEqual(0)
+      expect(new Circle2d(circle.center, circle.radius).bounds.width).toEqual(0)
+      expect(OBBOps.toBox(new Circle2d(circle.center, circle.radius).bounds).x).toEqual(1)
+      expect(OBBOps.toBox(new Circle2d(circle.center, circle.radius).bounds).y).toEqual(2)
+      expect(new Circle2d(circle.center, circle.radius).vertices).toHaveLength(8)
     })
     test("should create when origin is at the top left", () => {
       const origin: TPoint = { x: 1, y: 2 }
@@ -112,10 +112,10 @@ describe("Circle.ts", () => {
       const circle = ShapeCircleOps.createBetweenPoints(origin, target)
       expect(circle.center).toEqual(origin)
       expect(round(circle.radius, 0)).toEqual(22)
-      expect(round(ShapeCircleOps.computeBounds(circle).width, 0)).toEqual(45)
-      expect(round(ShapeCircleOps.computeBounds(circle).height, 0)).toEqual(45)
-      expect(round(OBBOps.toBox(ShapeCircleOps.computeBounds(circle)).x, 0)).toEqual(-21)
-      expect(round(OBBOps.toBox(ShapeCircleOps.computeBounds(circle)).y, 0)).toEqual(-20)
+      expect(round(new Circle2d(circle.center, circle.radius).bounds.width, 0)).toEqual(45)
+      expect(round(new Circle2d(circle.center, circle.radius).bounds.height, 0)).toEqual(45)
+      expect(round(OBBOps.toBox(new Circle2d(circle.center, circle.radius).bounds).x, 0)).toEqual(-21)
+      expect(round(OBBOps.toBox(new Circle2d(circle.center, circle.radius).bounds).y, 0)).toEqual(-20)
     })
     test("should create when origin is at the top right", () => {
       const origin: TPoint = { x: 11, y: 2 }
@@ -123,10 +123,10 @@ describe("Circle.ts", () => {
       const circle = ShapeCircleOps.createBetweenPoints(origin, target)
       expect(circle.center).toEqual(origin)
       expect(round(circle.radius, 0)).toEqual(22)
-      expect(round(ShapeCircleOps.computeBounds(circle).width, 0)).toEqual(45)
-      expect(round(ShapeCircleOps.computeBounds(circle).height, 0)).toEqual(45)
-      expect(round(OBBOps.toBox(ShapeCircleOps.computeBounds(circle)).x, 0)).toEqual(-11)
-      expect(round(OBBOps.toBox(ShapeCircleOps.computeBounds(circle)).y, 0)).toEqual(-20)
+      expect(round(new Circle2d(circle.center, circle.radius).bounds.width, 0)).toEqual(45)
+      expect(round(new Circle2d(circle.center, circle.radius).bounds.height, 0)).toEqual(45)
+      expect(round(OBBOps.toBox(new Circle2d(circle.center, circle.radius).bounds).x, 0)).toEqual(-11)
+      expect(round(OBBOps.toBox(new Circle2d(circle.center, circle.radius).bounds).y, 0)).toEqual(-20)
     })
     test("should create when origin is at the bottom right", () => {
       const origin: TPoint = { x: 11, y: 22 }
@@ -134,10 +134,10 @@ describe("Circle.ts", () => {
       const circle = ShapeCircleOps.createBetweenPoints(origin, target)
       expect(circle.center).toEqual(origin)
       expect(round(circle.radius, 0)).toEqual(22)
-      expect(round(ShapeCircleOps.computeBounds(circle).width, 0)).toEqual(45)
-      expect(round(ShapeCircleOps.computeBounds(circle).height, 0)).toEqual(45)
-      expect(round(OBBOps.toBox(ShapeCircleOps.computeBounds(circle)).x, 0)).toEqual(-11)
-      expect(round(OBBOps.toBox(ShapeCircleOps.computeBounds(circle)).y, 0)).toEqual(-0)
+      expect(round(new Circle2d(circle.center, circle.radius).bounds.width, 0)).toEqual(45)
+      expect(round(new Circle2d(circle.center, circle.radius).bounds.height, 0)).toEqual(45)
+      expect(round(OBBOps.toBox(new Circle2d(circle.center, circle.radius).bounds).x, 0)).toEqual(-11)
+      expect(round(OBBOps.toBox(new Circle2d(circle.center, circle.radius).bounds).y, 0)).toEqual(-0)
     })
     test("should create when origin is at the bottom left", () => {
       const origin: TPoint = { x: 1, y: 22 }
@@ -145,10 +145,10 @@ describe("Circle.ts", () => {
       const circle = ShapeCircleOps.createBetweenPoints(origin, target)
       expect(circle.center).toEqual(origin)
       expect(round(circle.radius, 0)).toEqual(22)
-      expect(round(ShapeCircleOps.computeBounds(circle).width, 0)).toEqual(45)
-      expect(round(ShapeCircleOps.computeBounds(circle).height, 0)).toEqual(45)
-      expect(round(OBBOps.toBox(ShapeCircleOps.computeBounds(circle)).x, 0)).toEqual(-21)
-      expect(round(OBBOps.toBox(ShapeCircleOps.computeBounds(circle)).y, 0)).toEqual(-0)
+      expect(round(new Circle2d(circle.center, circle.radius).bounds.width, 0)).toEqual(45)
+      expect(round(new Circle2d(circle.center, circle.radius).bounds.height, 0)).toEqual(45)
+      expect(round(OBBOps.toBox(new Circle2d(circle.center, circle.radius).bounds).x, 0)).toEqual(-21)
+      expect(round(OBBOps.toBox(new Circle2d(circle.center, circle.radius).bounds).y, 0)).toEqual(-0)
     })
   })
 
@@ -159,26 +159,26 @@ describe("Circle.ts", () => {
     test("should updateBetweenPoints when target x increas", () => {
       expect(circle.center).toEqual(origin)
       expect(round(circle.radius, 0)).toEqual(5)
-      expect(round(ShapeCircleOps.computeBounds(circle).width, 0)).toEqual(10)
-      expect(round(ShapeCircleOps.computeBounds(circle).height, 0)).toEqual(10)
-      expect(round(OBBOps.toBox(ShapeCircleOps.computeBounds(circle)).x, 0)).toEqual(-4)
-      expect(round(OBBOps.toBox(ShapeCircleOps.computeBounds(circle)).y, 0)).toEqual(-3)
+      expect(round(new Circle2d(circle.center, circle.radius).bounds.width, 0)).toEqual(10)
+      expect(round(new Circle2d(circle.center, circle.radius).bounds.height, 0)).toEqual(10)
+      expect(round(OBBOps.toBox(new Circle2d(circle.center, circle.radius).bounds).x, 0)).toEqual(-4)
+      expect(round(OBBOps.toBox(new Circle2d(circle.center, circle.radius).bounds).y, 0)).toEqual(-3)
       ShapeCircleOps.updateBetweenPoints(circle, origin, { x: target.x + 6, y: target.y })
       expect(circle.center).toEqual(origin)
       expect(round(circle.radius, 0)).toEqual(10)
-      expect(round(ShapeCircleOps.computeBounds(circle).width, 0)).toEqual(20)
-      expect(round(ShapeCircleOps.computeBounds(circle).height, 0)).toEqual(20)
-      expect(round(OBBOps.toBox(ShapeCircleOps.computeBounds(circle)).x, 0)).toEqual(-9)
-      expect(round(OBBOps.toBox(ShapeCircleOps.computeBounds(circle)).y, 0)).toEqual(-8)
+      expect(round(new Circle2d(circle.center, circle.radius).bounds.width, 0)).toEqual(20)
+      expect(round(new Circle2d(circle.center, circle.radius).bounds.height, 0)).toEqual(20)
+      expect(round(OBBOps.toBox(new Circle2d(circle.center, circle.radius).bounds).x, 0)).toEqual(-9)
+      expect(round(OBBOps.toBox(new Circle2d(circle.center, circle.radius).bounds).y, 0)).toEqual(-8)
     })
     test("should updateBetweenPoints when target y increase", () => {
       ShapeCircleOps.updateBetweenPoints(circle, origin, { x: target.x, y: target.y + 4 })
       expect(circle.center).toEqual(origin)
       expect(round(circle.radius, 0)).toEqual(9)
-      expect(round(ShapeCircleOps.computeBounds(circle).width, 0)).toEqual(17)
-      expect(round(ShapeCircleOps.computeBounds(circle).height, 0)).toEqual(17)
-      expect(round(OBBOps.toBox(ShapeCircleOps.computeBounds(circle)).x, 0)).toEqual(-8)
-      expect(round(OBBOps.toBox(ShapeCircleOps.computeBounds(circle)).y, 0)).toEqual(-7)
+      expect(round(new Circle2d(circle.center, circle.radius).bounds.width, 0)).toEqual(17)
+      expect(round(new Circle2d(circle.center, circle.radius).bounds.height, 0)).toEqual(17)
+      expect(round(OBBOps.toBox(new Circle2d(circle.center, circle.radius).bounds).x, 0)).toEqual(-8)
+      expect(round(OBBOps.toBox(new Circle2d(circle.center, circle.radius).bounds).y, 0)).toEqual(-7)
     })
   })
 })

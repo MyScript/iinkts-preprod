@@ -1,4 +1,5 @@
-import { EdgePolyLineOps, TPoint, DefaultStyle, TStyle, TBox, EdgeDecoration, OBBOps, MatrixTransform } from "@/iink"
+import { edgeGeometry } from "../../helpers"
+import { DefaultStyle, EdgeDecoration, EdgePolyLineOps, MatrixTransform, OBBOps, Polyline2d, SELECTION_MARGIN, TBox, TPoint, TStyle } from "@/iink"
 
 describe("EdgePolyLineOps", () => {
   describe("create", () => {
@@ -35,10 +36,10 @@ describe("EdgePolyLineOps", () => {
     })
     test("should compute bounds with margin", () => {
       const line = EdgePolyLineOps.create(points, undefined, undefined, { width: 20 })
-      expect(OBBOps.toBox(EdgePolyLineOps.computeBounds(line)).x).toEqual(-5)
-      expect(OBBOps.toBox(EdgePolyLineOps.computeBounds(line)).y).toEqual(-5)
-      expect(EdgePolyLineOps.computeBounds(line).width).toEqual(15)
-      expect(EdgePolyLineOps.computeBounds(line).height).toEqual(15)
+      expect(OBBOps.toBox(new Polyline2d(line.points, SELECTION_MARGIN / 2).bounds).x).toEqual(-5)
+      expect(OBBOps.toBox(new Polyline2d(line.points, SELECTION_MARGIN / 2).bounds).y).toEqual(-5)
+      expect(new Polyline2d(line.points, SELECTION_MARGIN / 2).bounds.width).toEqual(15)
+      expect(new Polyline2d(line.points, SELECTION_MARGIN / 2).bounds.height).toEqual(15)
     })
     test("should generate unique ids", () => {
       const l1 = EdgePolyLineOps.create(points)
@@ -98,15 +99,15 @@ describe("EdgePolyLineOps", () => {
     const line = EdgePolyLineOps.create(middles)
     test("should return true if partially intersects", () => {
       const box: TBox = { height: 10, width: 10, x: -5, y: -5 }
-      expect(EdgePolyLineOps.overlaps(line, box)).toEqual(true)
+      expect(edgeGeometry(line.points, line).overlapsBox(box)).toEqual(true)
     })
     test("should return true if totally wraps", () => {
       const box: TBox = { height: 50, width: 50, x: -25, y: -25 }
-      expect(EdgePolyLineOps.overlaps(line, box)).toEqual(true)
+      expect(edgeGeometry(line.points, line).overlapsBox(box)).toEqual(true)
     })
     test("should return false if box is outside", () => {
       const box: TBox = { height: 2, width: 2, x: 50, y: 50 }
-      expect(EdgePolyLineOps.overlaps(line, box)).toEqual(false)
+      expect(edgeGeometry(line.points, line).overlapsBox(box)).toEqual(false)
     })
   })
 })
