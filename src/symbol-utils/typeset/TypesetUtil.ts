@@ -1,10 +1,10 @@
-import { OBBOps } from "@/core/geometry"
+import { OBBOps, Polygon2d, type TBox, type TPoint } from "@/core/geometry"
 import type { TMath } from "@/symbol/typeset/Math"
 import type { TText } from "@/symbol/typeset/Text"
-import { computeClosedEdges, computeTypesetSnapPoints, computeTypesetVertices } from "@/symbol/typeset/Typeset"
+import { computeTypesetSnapPoints, computeTypesetVertices } from "@/symbol/typeset/Typeset"
 
+import { SymbolGeometry } from "../SymbolGeometry"
 import { SymbolUtil } from "../SymbolUtil"
-import type { TSymbolGeometry } from "../TSymbolGeometry"
 
 /**
  * @group SymbolUtils
@@ -34,16 +34,37 @@ export abstract class TypesetUtil<T extends TText | TMath> extends SymbolUtil<T>
    * always the raw, unrotated box a typeset symbol was measured at — the matrix, not a stored angle,
    * is what turns it, and `SymbolGeometry` applies that matrix on top of this raw geometry.
    */
-  computeGeometry(symbol: T): TSymbolGeometry {
-    const boundsBox = OBBOps.toUnrotatedBox(symbol.bounds)
-    const vertices = computeTypesetVertices(boundsBox)
-    return {
-      bounds: symbol.bounds,
-      vertices,
-      snapPoints: computeTypesetSnapPoints(boundsBox, symbol.point),
-      edges: computeClosedEdges(vertices),
-      length: 0,
-    }
+  /**
+   * The box the symbol was measured at, as a shape.
+   *
+   * An outline rather than a filled one, and that is the behaviour it had: `typesetOverlapsBox` asked
+   * "a corner inside the query, or a side crossing one of its sides", both about the boundary. A
+   * query landing wholly inside a word therefore did not select it, and still does not.
+   *
+   * `symbol.bounds` is the raw box, always measured unrotated and unscaled — turning and scaling are
+   * the matrix's job — so its corners are the shape, and a frame angle would have nothing to carry.
+   */
+  getGeometry(symbol: T): Polygon2d {
+    return new Polygon2d(computeTypesetVertices(OBBOps.toUnrotatedBox(symbol.bounds)))
+  }
+
+  /**
+   * Where a typeset symbol offers to snap, before its matrix: the corners of its box lifted onto the
+   * baseline, and its centre. Not the box's own corners — a word is read from its baseline, and
+   * lining two words up by their descenders would look wrong.
+   */
+  protected rawSnapPoints(symbol: T): TPoint[] {
+    return computeTypesetSnapPoints(OBBOps.toUnrotatedBox(symbol.bounds), symbol.point)
+  }
+
+  /** Shared by text and math, which had the same one line each. */
+  overlaps(symbol: T, box: TBox): boolean {
+    return SymbolGeometry.of(symbol).overlapsBox(box)
+  }
+
+  /** Shared by text and math, which had the same one line each. */
+  getSnapPoints(symbol: T): TPoint[] {
+    return this.mapPointsForward(symbol, this.rawSnapPoints(symbol))
   }
 
   /**

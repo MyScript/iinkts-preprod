@@ -11,12 +11,7 @@ import { DecoratorOps } from "@/symbol/decorator/Decorator"
 import type { TBaseSymbol } from "@/symbol/Symbol"
 import { SymbolType } from "@/symbol/Symbol"
 import type { TTypesetChild } from "@/symbol/typeset/Typeset"
-import {
-  computeChildrenOverlaps,
-  computeClosedEdges,
-  computeTypesetVertices,
-  typesetOverlapsBox,
-} from "@/symbol/typeset/Typeset"
+import { computeChildrenOverlaps } from "@/symbol/typeset/Typeset"
 /**
  * @group Symbol
  */
@@ -93,11 +88,6 @@ export const TextOps = {
       })
     }
     return text
-  },
-
-  overlaps(text: TText, box: TBox): boolean {
-    const vertices = computeTypesetVertices(OBBOps.toUnrotatedBox(text.bounds))
-    return typesetOverlapsBox(vertices, computeClosedEdges(vertices), box)
   },
 
   getChildrenOverlaps(text: TText, points: TPoint[]): TSymbolChar[] {

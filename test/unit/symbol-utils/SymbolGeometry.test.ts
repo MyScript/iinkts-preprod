@@ -1,6 +1,5 @@
 import { MatrixTransform, PointSet2d, StrokeOps, SymbolGeometry, SymbolStore, registerBuiltinSymbolUtils, symbolRegistry } from "@/iink"
 import type { TStroke } from "@/iink"
-import { buildIIText } from "../helpers"
 
 describe("SymbolGeometry", () => {
   beforeAll(() => registerBuiltinSymbolUtils())
@@ -289,33 +288,7 @@ describe("SymbolGeometry", () => {
     })
   })
 
-  // The stroke is the one type converted so far, so every test above now exercises `getGeometry`.
-  // The record path carries the other five, and nothing else here would notice it breaking.
-  describe("a util still on computeGeometry", () => {
-    // Text and math are what is left on the record path — every other type describes itself with a
-    // geometry object now, so this is the last pair that can stand for the wrapper at all.
-    const buildCircle = () => Object.freeze(buildIIText())
-
-    test("has its record wrapped, and reads the same as the record itself", () => {
-      const circle = buildCircle()
-      const util = symbolRegistry.getUtilFor(circle)
-
-      expect(util.getGeometry).toBeUndefined()
-      expect(SymbolGeometry.boundsOf(circle)).toEqual(util.computeGeometry(circle).bounds)
-      expect(SymbolGeometry.edgesOf(circle)).toEqual(util.computeGeometry(circle).edges)
-      expect(SymbolGeometry.verticesOf(circle)).toEqual(util.computeGeometry(circle).vertices)
-    })
-
-    test("is asked for its record once, then served from cache", () => {
-      const circle = buildCircle()
-      const util = symbolRegistry.getUtilFor(circle)
-      const spy = jest.spyOn(util, "computeGeometry")
-
-      SymbolGeometry.boundsOf(circle)
-      SymbolGeometry.verticesOf(circle)
-
-      expect(spy).toHaveBeenCalledTimes(1)
-      spy.mockRestore()
-    })
-  })
+  // The `a util still on computeGeometry` suite that stood here is gone with the record path it
+  // covered: every util describes itself with a `Geometry2d` now, so the wrapper it tested has no
+  // caller left and no longer exists.
 })

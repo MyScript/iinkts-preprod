@@ -70,7 +70,7 @@ export const EdgePolyLineOps = {
   /**
    * A polyline's vertices are the points it stores, returned as-is.
    *
-   * Named rather than inlined so every caller goes through one place: `computeGeometry`,
+   * Named rather than inlined so every caller goes through one place: `getGeometry`,
    * `getResizePoints` and the edge-kind table all used to reach for the stored `vertices` field.
    */
   computeVertices(polyline: TEdgePolyLine): TPoint[] {

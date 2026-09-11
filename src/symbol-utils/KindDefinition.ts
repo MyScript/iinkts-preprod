@@ -18,7 +18,7 @@ export type TKindDefinition<T> = {
   /**
    * This kind's shape, which answers overlap, containment and distance for itself.
    *
-   * Replaces the pair `computeGeometry`/`overlaps` a kind used to supply: the second was always a
+   * Replaces the pair of geometry and overlap methods a kind used to supply: the second was always a
    * question about the first, and splitting them let a kind describe one shape and test another.
    */
   getGeometry(symbol: T): Geometry2d

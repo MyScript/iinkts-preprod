@@ -1,3 +1,4 @@
+import { typesetGeometry } from "../../helpers"
 import { TMathElement, TPoint, TBox, BoxOps, OBBOps, MathOps, MatrixTransform, computeTypesetSnapPoints, computeClosedEdges, computeTypesetVertices } from "@/iink"
 
 const elements: TMathElement[] = [
@@ -85,19 +86,19 @@ describe("MathOps", () => {
     test("should return true when box contains a vertex", () => {
       const math = MathOps.create(elements, point, bounds)
       const box: TBox = { x: -1, y: -1, width: 5, height: 5 }
-      expect(MathOps.overlaps(math, box)).toBe(true)
+      expect(typesetGeometry(math).overlapsBox(box)).toBe(true)
     })
 
     test("should return false when box is completely outside", () => {
       const math = MathOps.create(elements, point, bounds)
       const box: TBox = { x: 1000, y: 1000, width: 5, height: 5 }
-      expect(MathOps.overlaps(math, box)).toBe(false)
+      expect(typesetGeometry(math).overlapsBox(box)).toBe(false)
     })
 
     test("should return true when large box wraps symbol", () => {
       const math = MathOps.create(elements, point, bounds)
       const box: TBox = { x: -50, y: -50, width: 500, height: 500 }
-      expect(MathOps.overlaps(math, box)).toBe(true)
+      expect(typesetGeometry(math).overlapsBox(box)).toBe(true)
     })
   })
 

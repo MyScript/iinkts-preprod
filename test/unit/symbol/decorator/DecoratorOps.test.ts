@@ -17,7 +17,7 @@ describe("DecoratorOps", () => {
       // Through the util, not `DecoratorOps.computeVertices` directly: a decorator with no
       // `targetBounds` has no vertices, and that emptiness comes from `computeGeometry`'s guard.
       // Calling the raw computation on a zero-size box would return two coincident points instead.
-      expect(new DecoratorUtil().computeGeometry(d).vertices).toEqual([])
+      expect(new DecoratorUtil().getGeometry(d).vertices).toEqual([])
     })
 
     test("should merge style with DefaultStyle", () => {
@@ -83,12 +83,11 @@ describe("DecoratorOps", () => {
     test("should set edges from first to second vertex", () => {
       const d = DecoratorOps.create(DecoratorKind.Underline, {})
       DecoratorOps.setTargetBounds(d, OBBOps.fromBox({ x: 0, y: 0, width: 50, height: 10 }))
-      // Edges are no longer stored; a decorator's single edge joins its two vertices, which is
-      // what `DecoratorUtil.computeGeometry` builds and what this used to read off the field.
-      const edges = new DecoratorUtil().computeGeometry(d).edges
-      expect(edges).toHaveLength(1)
-      expect(edges[0].p1).toEqual(DecoratorOps.computeVertices(d.targetBounds!)[0])
-      expect(edges[0].p2).toEqual(DecoratorOps.computeVertices(d.targetBounds!)[1])
+      // The geometry is the target's box — a closed ring of four sides — while the line the
+      // decorator draws is what `DecoratorOps.computeVertices` gives and what it snaps on. The two
+      // are different answers to different questions: where it is found, and what it renders.
+      expect(new DecoratorUtil().getGeometry(d).edges).toHaveLength(4)
+      expect(new DecoratorUtil().getSnapPoints(d)).toEqual(DecoratorOps.computeVertices(d.targetBounds!))
     })
 
     test("should overwrite previous targetBounds when called again", () => {

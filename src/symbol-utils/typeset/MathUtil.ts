@@ -1,5 +1,3 @@
-import type { TBox } from "@/core/geometry"
-import type { TPoint } from "@/core/geometry"
 import { isIdentityMatrix, MatrixTransform } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import { DecoratorKind } from "@/symbol/decorator/Decorator"
@@ -21,14 +19,6 @@ export class MathUtil extends TypesetUtil<TMath> {
 
   create(partial: TPartialDeep<TMath>): TMath {
     return MathOps.createFromPartial(partial)
-  }
-
-  overlaps(math: TMath, box: TBox): boolean {
-    return this.overlapsQuery(math, box, (b) => MathOps.overlaps(math, b))
-  }
-
-  getSnapPoints(math: TMath): TPoint[] {
-    return this.mapPointsForward(math, this.computeGeometry(math).snapPoints)
   }
 
   getSVGElement(math: TMath): SVGGraphicsElement {
