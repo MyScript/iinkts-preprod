@@ -1,4 +1,12 @@
-import { MatrixTransform, registerBuiltinSymbolUtils, StrokeOps, SymbolGeometry, SymbolStore, symbolRegistry } from "@/iink"
+import {
+  MatrixTransform,
+  registerBuiltinSymbolUtils,
+  ShapeCircleOps,
+  StrokeOps,
+  SymbolGeometry,
+  SymbolStore,
+  symbolRegistry,
+} from "@/iink"
 import type { TStroke } from "@/iink"
 
 describe("SymbolGeometry", () => {
@@ -15,7 +23,7 @@ describe("SymbolGeometry", () => {
   test("computes a frozen symbol's geometry once and serves it from cache after", () => {
     const stroke = Object.freeze(buildStroke())
     const util = symbolRegistry.getUtilFor(stroke)
-    const spy = jest.spyOn(util, "computeGeometry")
+    const spy = jest.spyOn(util, "getGeometry")
 
     const first = SymbolGeometry.boundsOf(stroke)
     const second = SymbolGeometry.boundsOf(stroke)
@@ -28,7 +36,7 @@ describe("SymbolGeometry", () => {
   test("does not cache an unfrozen draft, whose geometry can still change under it", () => {
     const draft = buildStroke()
     const util = symbolRegistry.getUtilFor(draft)
-    const spy = jest.spyOn(util, "computeGeometry")
+    const spy = jest.spyOn(util, "getGeometry")
 
     const before = SymbolGeometry.boundsOf(draft)
     draft.pointers.push({ x: 100, y: 100, dt: 2, p: 1 })
@@ -141,7 +149,7 @@ describe("SymbolGeometry", () => {
     expect(Object.isFrozen(record.pointers)).toBe(true)
 
     const util = symbolRegistry.getUtilFor(record)
-    const spy = jest.spyOn(util, "computeGeometry")
+    const spy = jest.spyOn(util, "getGeometry")
 
     expect(SymbolGeometry.boundsOf(record)).toEqual(StrokeOps.computeBounds(record))
     SymbolGeometry.boundsOf(record)
@@ -265,7 +273,7 @@ describe("SymbolGeometry", () => {
     test("computes a frozen symbol's raw geometry once and serves it from cache after", () => {
       const stroke = buildMoved()
       const util = symbolRegistry.getUtilFor(stroke)
-      const spy = jest.spyOn(util, "computeGeometry")
+      const spy = jest.spyOn(util, "getGeometry")
 
       const first = SymbolGeometry.rawOf(stroke)
       const second = SymbolGeometry.rawOf(stroke)
@@ -275,13 +283,41 @@ describe("SymbolGeometry", () => {
       spy.mockRestore()
     })
 
-    test("shares its cached computation with of()/boundsOf(), so a transformed read costs no extra computeGeometry call", () => {
+    test("shares its cached computation with of()/boundsOf(), so a transformed read costs no extra geometry build", () => {
       const stroke = buildMoved()
       const util = symbolRegistry.getUtilFor(stroke)
-      const spy = jest.spyOn(util, "computeGeometry")
+      const spy = jest.spyOn(util, "getGeometry")
 
       SymbolGeometry.rawOf(stroke)
       SymbolGeometry.boundsOf(stroke)
+
+      expect(spy).toHaveBeenCalledTimes(1)
+      spy.mockRestore()
+    })
+  })
+
+  // The stroke is the one type converted so far, so every test above now exercises `getGeometry`.
+  // The record path carries the other five, and nothing else here would notice it breaking.
+  describe("a util still on computeGeometry", () => {
+    const buildCircle = () => Object.freeze(ShapeCircleOps.create({ x: 10, y: 20 }, 5))
+
+    test("has its record wrapped, and reads the same as the record itself", () => {
+      const circle = buildCircle()
+      const util = symbolRegistry.getUtilFor(circle)
+
+      expect(util.getGeometry).toBeUndefined()
+      expect(SymbolGeometry.boundsOf(circle)).toEqual(util.computeGeometry(circle).bounds)
+      expect(SymbolGeometry.edgesOf(circle)).toEqual(util.computeGeometry(circle).edges)
+      expect(SymbolGeometry.verticesOf(circle)).toEqual(util.computeGeometry(circle).vertices)
+    })
+
+    test("is asked for its record once, then served from cache", () => {
+      const circle = buildCircle()
+      const util = symbolRegistry.getUtilFor(circle)
+      const spy = jest.spyOn(util, "computeGeometry")
+
+      SymbolGeometry.boundsOf(circle)
+      SymbolGeometry.verticesOf(circle)
 
       expect(spy).toHaveBeenCalledTimes(1)
       spy.mockRestore()
