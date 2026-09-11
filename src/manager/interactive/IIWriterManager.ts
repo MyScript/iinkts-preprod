@@ -45,6 +45,7 @@ export class IIWriterManager extends AbstractWriterManager {
   }
   set tool(wt: CanvasWriteTool) {
     this.#tool = wt
+    this.canvas.menu.update()
     if (wt !== CanvasWriteTool.Pencil) {
       this.canvas.layers.root.classList.add("shape")
     } else {

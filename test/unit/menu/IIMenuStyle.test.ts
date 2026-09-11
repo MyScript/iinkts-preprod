@@ -254,9 +254,9 @@ describe("IIMenuStyle.ts", () => {
         const m = layer.querySelector("#ms-menu-style-color") as HTMLElement
         expect(m.style.display).toEqual("block")
       })
-      test("should not display menu fill", () => {
+      test("should display menu fill", () => {
         const m = layer.querySelector("#ms-menu-style-fill") as HTMLElement
-        expect(m.style.display).toEqual("none")
+        expect(m.style.display).toEqual("block")
       })
       test("should display menu thickness", () => {
         const m = layer.querySelector("#ms-menu-style-thickness") as HTMLElement
