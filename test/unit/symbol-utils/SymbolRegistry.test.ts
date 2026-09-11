@@ -4,9 +4,8 @@ import type {
   TPartialDeep,
   TPoint,
   TTransformContext,
-  TSymbolGeometry,
 } from "@/iink"
-import { applyMatrixToPoint, OBBOps, StrokeUtil, TextUtil } from "@/iink"
+import { BoxOps, Geometry2d, Polygon2d, StrokeUtil, TextUtil, applyMatrixToPoint } from "@/iink"
 import { registerBuiltinSymbolUtils, symbolRegistry, SymbolType, SymbolUtil } from "@/iink"
 
 beforeAll(() => {
@@ -21,8 +20,10 @@ class StickyNoteUtil extends SymbolUtil<TStickyNote> {
   create(partial: TPartialDeep<TStickyNote>): TStickyNote {
     return { ...partial, type: "sticky-note", text: partial.text ?? "" } as TStickyNote
   }
-  computeGeometry(): TSymbolGeometry {
-    return { bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0), vertices: [], snapPoints: [], edges: [], length: 0 }
+  getGeometry(symbol: TStickyNote): Geometry2d {
+    // A custom type says what shape it is and inherits every test from it, instead of hand-building
+    // a record of bounds, vertices, edges and snap points.
+    return new Polygon2d(BoxOps.getCorners({ x: symbol.point.x, y: symbol.point.y, width: 10, height: 10 }))
   }
   translate(symbol: TStickyNote, { matrix }: TTransformContext): void {
     symbol.point = applyMatrixToPoint(symbol.point, matrix)

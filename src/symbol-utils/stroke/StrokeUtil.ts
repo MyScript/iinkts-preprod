@@ -9,7 +9,6 @@ import { SymbolType } from "@/symbol/Symbol"
 import { SVGBuilder } from "../SVGBuilder"
 import { SymbolGeometry } from "../SymbolGeometry"
 import { SymbolUtil } from "../SymbolUtil"
-import type { TSymbolGeometry } from "../TSymbolGeometry"
 
 /**
  * @group SymbolUtils
@@ -32,28 +31,10 @@ export class StrokeUtil extends SymbolUtil<TStroke> {
   }
 
   /**
-   * The record form, read off the geometry rather than computed a second time.
-   *
-   * Still here because `SymbolUtil` requires it while the other types are converted; every value
-   * comes from {@link StrokeUtil.getGeometry}, so there is one definition of a stroke's geometry, not
-   * two that could drift. It goes with the abstract method itself.
-   */
-  computeGeometry(stroke: TStroke): TSymbolGeometry {
-    const geometry = this.getGeometry(stroke)
-    return {
-      bounds: geometry.bounds,
-      vertices: geometry.vertices,
-      snapPoints: OBBOps.getSnapPoints(geometry.bounds),
-      edges: geometry.edges,
-      length: geometry.length,
-    }
-  }
-
-  /**
    * The geometry answers, so this no longer explains what a stroke's overlap means — {@link PointSet2d}
    * does, once, for anything shaped like a run of samples.
    *
-   * It also drops `overlapsQuery`'s whole apparatus for this type: that mapped the query *backwards*
+   * It also drops the apparatus this type used to need: that mapped the query *backwards*
    * through the symbol's inverse matrix and needed a second, exact callback for the rotated case,
    * because the raw geometry could not be moved. A `Geometry2d` can, so the symbol goes forwards
    * instead and the axis-aligned query is tested as it stands — the same answer, without an inverse

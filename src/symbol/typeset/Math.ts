@@ -10,12 +10,7 @@ import { DecoratorOps } from "@/symbol/decorator/Decorator"
 import type { TBaseSymbol } from "@/symbol/Symbol"
 import { SymbolType } from "@/symbol/Symbol"
 import type { TTypesetChild } from "@/symbol/typeset/Typeset"
-import {
-  computeChildrenOverlaps,
-  computeClosedEdges,
-  computeTypesetVertices,
-  typesetOverlapsBox,
-} from "@/symbol/typeset/Typeset"
+import { computeChildrenOverlaps } from "@/symbol/typeset/Typeset"
 /**
  * @group Symbol
  * @remarks Individual math element (number, operator, variable, etc.)
@@ -112,11 +107,6 @@ export const MathOps = {
         .map((d) => DecoratorOps.create(d!.kind!, d!.style!))
     }
     return math
-  },
-
-  overlaps(math: TMath, box: TBox): boolean {
-    const vertices = computeTypesetVertices(OBBOps.toUnrotatedBox(math.bounds))
-    return typesetOverlapsBox(vertices, computeClosedEdges(vertices), box)
   },
 
   getChildrenOverlaps(math: TMath, points: TPoint[]): TMathElement[] {

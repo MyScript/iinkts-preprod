@@ -85,7 +85,7 @@ describe("ShapeUtil", () => {
     test("computeGeometry should read every field off the kind's own geometry", () => {
       const created = shape()
 
-      const geometry = util.computeGeometry(created)
+      const geometry = util.getGeometry(created)
       const shapeGeometry = util.getGeometry(created)
 
       // The record is now a view of the geometry, so the only thing worth asserting is that it does
@@ -96,7 +96,7 @@ describe("ShapeUtil", () => {
       expect(geometry.edges).toEqual(shapeGeometry.edges)
       expect(geometry.length).toBe(shapeGeometry.length)
       // A shape snaps on its box — corners, mid-sides and centre — whatever its outline is.
-      expect(geometry.snapPoints).toEqual(OBBOps.getSnapPoints(geometry.bounds))
+      expect(util.getSnapPoints(created)).toEqual(OBBOps.getSnapPoints(geometry.bounds))
     })
 
     // The old oracle was each kind's own `computeBounds`, which measures the *sampled* outline for a
@@ -160,18 +160,14 @@ describe("ShapeUtil", () => {
       expect(util.overlaps(unknown, { x: 0, y: 0, width: 1, height: 1 })).toBe(false)
     })
 
-    test("computeGeometry should stay tolerant too, leaving the shape's own fields as its answer", () => {
-      const shape = { kind, bounds: "bounds", vertices: "vertices", snapPoints: "snapPoints", edges: "edges" } as unknown as TShape
-      expect(util.computeGeometry(shape)).toEqual({
-        // Not the object's own `bounds` any more: no shape type declares one, so a stray property
-        // arriving as data is not something the fallback can read or echo back.
-        bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0),
-        vertices: [],
-        // An unregistered kind has no snap points to offer, so the fallback returns none.
-        snapPoints: [],
-        edges: [],
-        length: 0,
-      })
+    test("getGeometry should stay tolerant too, describing nothing rather than throwing", () => {
+      const unknown = { type: SymbolType.Shape, kind, transform: MatrixTransform.identity() } as unknown as TShape
+      const geometry = util.getGeometry(unknown)
+
+      expect(geometry.vertices).toEqual([])
+      expect(geometry.edges).toEqual([])
+      // And it is found by nothing, rather than by anything that happens to cover the origin.
+      expect(geometry.overlapsBox({ x: -1e6, y: -1e6, width: 2e6, height: 2e6 })).toBe(false)
     })
   })
 
@@ -317,7 +313,7 @@ describe("ShapeUtil, the contract members", () => {
     test("should return the shape's snap points, computed from its bounds", () => {
       const circle = buildIICircle()
       const result = util.getSnapPoints(circle)
-      expect(result).toStrictEqual(OBBOps.getSnapPoints(util.computeGeometry(circle).bounds))
+      expect(result).toStrictEqual(OBBOps.getSnapPoints(util.getGeometry(circle).bounds))
     })
   })
 

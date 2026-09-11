@@ -279,7 +279,7 @@ export function applyInverseMatrixToPoint(point: TPoint, matrix: TMatrixTransfor
  *
  * The determinant is the product of the two scale factors, so 1e-9 means a uniform scale of about
  * 3.2e-5 — far smaller than anything visible, and three orders below a symbol scaled to a thousandth
- * of its size. Matches the threshold `SymbolUtil.overlapsQuery` guards its own inverse with.
+ * of its size. The threshold below which a matrix is treated as non-invertible rather than divided by.
  */
 const INVERTIBLE_DETERMINANT_EPSILON = 1e-9
 

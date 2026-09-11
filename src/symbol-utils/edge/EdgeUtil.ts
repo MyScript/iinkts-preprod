@@ -15,7 +15,6 @@ import { defineKind, resolveKind, type TKindDefinition } from "../KindDefinition
 import { SVGBuilder } from "../SVGBuilder"
 import { SymbolGeometry } from "../SymbolGeometry"
 import { SymbolUtil } from "../SymbolUtil"
-import type { TSymbolGeometry } from "../TSymbolGeometry"
 import { arrowHeadEndMarkerId, arrowHeadStartMarkerId } from "./EdgeRenderOptions"
 
 /**
@@ -78,17 +77,6 @@ export class EdgeUtil extends SymbolUtil<TEdge> {
    */
   getGeometry(edge: TEdge): Geometry2d {
     return EDGE_KINDS[edge.kind]?.getGeometry(edge) ?? new Polyline2d([])
-  }
-
-  computeGeometry(edge: TEdge): TSymbolGeometry {
-    const geometry = this.getGeometry(edge)
-    return {
-      bounds: geometry.bounds,
-      vertices: geometry.vertices,
-      snapPoints: EDGE_KINDS[edge.kind]?.getSnapPoints?.(edge) ?? [],
-      edges: geometry.edges,
-      length: geometry.length,
-    }
   }
 
   overlaps(edge: TEdge, box: TBox): boolean {

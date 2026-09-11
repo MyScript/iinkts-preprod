@@ -46,19 +46,19 @@ describe("StrokeUtil", () => {
     })
   })
 
-  describe("computeGeometry", () => {
+  describe("getGeometry", () => {
     test("should compute bounds from pointers", () => {
       const stroke = buildIIStroke({ box: { x: 10, y: 20, width: 30, height: 40 } })
-      const bounds = OBBOps.toBox(util.computeGeometry(stroke).bounds)
+      const bounds = OBBOps.toBox(util.getGeometry(stroke).bounds)
       expect(bounds.x).toBeCloseTo(10, 0)
       expect(bounds.y).toBeCloseTo(20, 0)
     })
 
     test("should compute snapPoints", () => {
       const stroke = buildIIStroke()
-      // The field this used to read is gone; what it was really checking is that a stroke has
-      // snap points at all, which is a property of the computed geometry.
-      expect(util.computeGeometry(stroke).snapPoints.length).toBeGreaterThan(0)
+      // Snap points belong to the util, not to the shape: a stroke offers its box's handles, which
+      // is a decision about the symbol rather than a property of the ink.
+      expect(util.getSnapPoints(stroke).length).toBeGreaterThan(0)
     })
 
     test("matches the legacy StrokeOps writer, not merely itself", () => {
@@ -72,14 +72,12 @@ describe("StrokeUtil", () => {
         ],
       })
 
-      const geometry = util.computeGeometry(stroke)
+      const geometry = util.getGeometry(stroke)
 
       // 0,0 → 10,0 → 10,5: a 10-by-5 box at the origin, written out rather than recomputed.
       expect(OBBOps.toBox(geometry.bounds)).toEqual({ x: 0, y: 0, width: 10, height: 5 })
       expect(geometry.vertices).toBe(stroke.pointers)
-      // Oracle is `StrokeOps` itself, not the stored field it replaced: the field is gone, and it
-      // was only ever a copy of this call's result anyway.
-      expect(geometry.snapPoints).toEqual(OBBOps.getSnapPoints(new PointSet2d(stroke.pointers).bounds))
+      expect(util.getSnapPoints(stroke)).toEqual(OBBOps.getSnapPoints(new PointSet2d(stroke.pointers).bounds))
       expect(geometry.edges).toEqual(new PointSet2d(stroke.pointers).edges)
       // 0,0 → 10,0 → 10,5: 10 + 5, a literal independent of computeLength's own formula.
       expect(geometry.length).toBe(15)

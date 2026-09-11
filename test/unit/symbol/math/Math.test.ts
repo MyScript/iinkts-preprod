@@ -1,3 +1,4 @@
+import { typesetGeometry } from "../../helpers"
 import { TMathElement, TPoint, BoxOps, MathOps, computeTypesetSnapPoints, OBBOps, computeTypesetVertices } from "@/iink"
 
 describe("Math.ts", () => {
@@ -105,14 +106,14 @@ describe("Math.ts", () => {
       const math = MathOps.create(elements, point, box)
       const overlappingBox = { x: 5, y: 5, width: 10, height: 10 }
 
-      expect(MathOps.overlaps(math, overlappingBox)).toBe(true)
+      expect(typesetGeometry(math).overlapsBox(overlappingBox)).toBe(true)
     })
 
     test("should check no overlap with distant box", () => {
       const math = MathOps.create(elements, point, box)
       const distantBox = { x: 100, y: 100, width: 10, height: 10 }
 
-      expect(MathOps.overlaps(math, distantBox)).toBe(false)
+      expect(typesetGeometry(math).overlapsBox(distantBox)).toBe(false)
     })
   })
 

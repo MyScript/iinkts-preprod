@@ -567,10 +567,10 @@ describe("surrounding a rotated typeset symbol", () => {
     ["math", () => buildIIMath("y=3x+2", { point: { x: 10, y: 20 } }), () => new MathUtil()],
   ])("a rotated %s's raw vertices, read straight from the util, do NOT move — documenting the gap", (_name, build, buildUtil) => {
     const symbol = build()
-    const rawVerticesBefore = structuredClone(buildUtil().computeGeometry(symbol as never).vertices)
+    const rawVerticesBefore = structuredClone(buildUtil().getGeometry(symbol as never).vertices)
     rotateQuarterTurn(symbol)
 
-    expect(buildUtil().computeGeometry(symbol as never).vertices).toEqual(rawVerticesBefore)
+    expect(buildUtil().getGeometry(symbol as never).vertices).toEqual(rawVerticesBefore)
   })
 })
 

@@ -23,7 +23,6 @@ import { defineKind, resolveKind, type TKindDefinition } from "../KindDefinition
 import { SVGBuilder } from "../SVGBuilder"
 import { SymbolGeometry } from "../SymbolGeometry"
 import { SymbolUtil } from "../SymbolUtil"
-import type { TSymbolGeometry } from "../TSymbolGeometry"
 
 /**
  * The shape kinds this util can build, and how.
@@ -89,22 +88,6 @@ export class ShapeUtil extends SymbolUtil<TShape> {
    */
   getGeometry(shape: TShape): Geometry2d {
     return SHAPE_KINDS[shape.kind]?.getGeometry(shape) ?? new Polygon2d([])
-  }
-
-  computeGeometry(shape: TShape): TSymbolGeometry {
-    const geometry = this.getGeometry(shape)
-    return {
-      bounds: geometry.bounds,
-      vertices: geometry.vertices,
-      snapPoints: this.getSnapPointsRaw(shape),
-      edges: geometry.edges,
-      length: geometry.length,
-    }
-  }
-
-  /** The snap points before the symbol's matrix is applied — what the record form holds. */
-  private getSnapPointsRaw(shape: TShape): TPoint[] {
-    return SHAPE_KINDS[shape.kind] ? OBBOps.getSnapPoints(this.getGeometry(shape).bounds) : []
   }
 
   overlaps(shape: TShape, box: TBox): boolean {

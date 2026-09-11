@@ -18,7 +18,6 @@ import { SymbolType } from "@/symbol/Symbol"
 import { SVGBuilder } from "../SVGBuilder"
 import { SymbolGeometry } from "../SymbolGeometry"
 import { SymbolUtil } from "../SymbolUtil"
-import type { TSymbolGeometry } from "../TSymbolGeometry"
 
 /**
  * How one kind of decorator is drawn.
@@ -196,19 +195,6 @@ export class DecoratorUtil extends SymbolUtil<TDecorator> {
     return bounds ? new Polygon2d(OBBOps.toCorners(bounds), true, bounds.angle) : new Polygon2d([])
   }
 
-  computeGeometry(decorator: TDecorator): TSymbolGeometry {
-    const geometry = this.getGeometry(decorator)
-    const vertices = decorator.targetBounds ? DecoratorOps.computeVertices(decorator.targetBounds) : []
-    return {
-      bounds: geometry.bounds,
-      // The line it draws, not the box it is found by: these are what it renders and snaps on.
-      vertices,
-      snapPoints: vertices,
-      edges: vertices.length === 2 ? [{ p1: vertices[0], p2: vertices[1] }] : [],
-      length: 0,
-    }
-  }
-
   /** The two ends of the line it draws — a decorator never moves, so there is no matrix to apply. */
   getSnapPoints(decorator: TDecorator): TPoint[] {
     return decorator.targetBounds ? DecoratorOps.computeVertices(decorator.targetBounds) : []
@@ -240,7 +226,7 @@ export class DecoratorUtil extends SymbolUtil<TDecorator> {
     // top-level group (which carries its own `transform` below) or as a child of the host's group
     // (which carries the host's), so the geometry itself must stay untransformed — the enclosing
     // `transform` attribute is what repositions it, exactly once at each level. `rawOf` also keeps
-    // this on the cache `boundsOf` uses, rather than calling a util's `computeGeometry` uncached on
+    // this on the cache `boundsOf` uses, rather than rebuilding a util's geometry uncached on
     // every redraw.
     const bounds = decorator.targetBounds ? SymbolGeometry.rawOf(decorator).bounds : SymbolGeometry.rawOf(symbol).bounds
     return DecoratorUtil.renderFromBounds(decorator, bounds, undefined, undefined, {

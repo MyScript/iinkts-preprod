@@ -1,3 +1,4 @@
+import { typesetGeometry } from "../../helpers"
 import { TSymbolChar, TPoint, TBox, BoxOps, OBBOps, TextOps, MatrixTransform, computeTypesetSnapPoints, computeClosedEdges, computeTypesetVertices } from "@/iink"
 
 const chars: TSymbolChar[] = [
@@ -83,19 +84,19 @@ describe("TextOps", () => {
     test("should return true when box contains a vertex", () => {
       const text = TextOps.create(chars, point, bounds)
       const box: TBox = { x: -1, y: -1, width: 5, height: 5 }
-      expect(TextOps.overlaps(text, box)).toBe(true)
+      expect(typesetGeometry(text).overlapsBox(box)).toBe(true)
     })
 
     test("should return false when box is completely outside", () => {
       const text = TextOps.create(chars, point, bounds)
       const box: TBox = { x: 1000, y: 1000, width: 5, height: 5 }
-      expect(TextOps.overlaps(text, box)).toBe(false)
+      expect(typesetGeometry(text).overlapsBox(box)).toBe(false)
     })
 
     test("should return true when box is large and wraps symbol", () => {
       const text = TextOps.create(chars, point, bounds)
       const box: TBox = { x: -50, y: -50, width: 500, height: 500 }
-      expect(TextOps.overlaps(text, box)).toBe(true)
+      expect(typesetGeometry(text).overlapsBox(box)).toBe(true)
     })
   })
 
