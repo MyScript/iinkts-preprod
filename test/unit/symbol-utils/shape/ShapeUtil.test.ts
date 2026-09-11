@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, test } from "@jest/globals"
 import { buildIICircle } from "../../helpers"
 
 import type { TOBB, TPartialDeep, TShape } from "@/iink"
-import { MatrixTransform, OBBOps, ShapeKind, ShapeUtil, SymbolType, TPoint, TSegment, ShapeCircleOps, ShapeEllipseOps, ShapePolygonOps, TShapePolygon, TShapeCircle, TShapeEllipse } from "@/iink"
+import { MatrixTransform, OBBOps, registerBuiltinSymbolUtils, ShapeKind, ShapeUtil, SymbolType, ShapeCircleOps, ShapeEllipseOps, ShapePolygonOps, TShapePolygon, TShapeCircle, TShapeEllipse } from "@/iink"
 
 /**
  * `ShapeUtil` used to resolve a kind with a `switch` in each of four methods, which meant a kind
@@ -17,11 +17,6 @@ import { MatrixTransform, OBBOps, ShapeKind, ShapeUtil, SymbolType, TPoint, TSeg
  * dispatch oracle like {@link SHAPE_BOUNDS_ORACLE}: it reaches the same `*Ops` calls `computeGeometry`
  * makes, so it pins the routing, not the arithmetic.
  */
-const EDGES_ORACLE: Record<string, (shape: TShape, vertices: TPoint[]) => TSegment[]> = {
-  [ShapeKind.Circle]: (_shape, vertices) => ShapeCircleOps.computeEdges(vertices),
-  [ShapeKind.Ellipse]: (_shape, vertices) => ShapeEllipseOps.computeEdges(vertices),
-  [ShapeKind.Polygon]: (shape) => ShapePolygonOps.computeEdges((shape as TShapePolygon).points),
-}
 
 /**
  * Each kind's own bounds computation. This is a *dispatch* oracle: it proves `ShapeUtil` routes an
@@ -29,6 +24,11 @@ const EDGES_ORACLE: Record<string, (shape: TShape, vertices: TPoint[]) => TSegme
  * kind's own `computeBounds` is wrong, because it is that same call. The value coverage lives in
  * each kind's own test file, against hand-written boxes.
  */
+// `overlaps` and `getSnapPoints` read through `SymbolGeometry`, which asks the registry for the
+// symbol's util — that is what buys them the per-symbol geometry cache, and it means a bare
+// `new ShapeUtil()` is not enough to exercise them.
+registerBuiltinSymbolUtils()
+
 const SHAPE_BOUNDS_ORACLE: Record<string, (shape: TShape) => TOBB> = {
   [ShapeKind.Circle]: (shape) => ShapeCircleOps.computeBounds(shape as TShapeCircle),
   [ShapeKind.Ellipse]: (shape) =>
@@ -37,11 +37,6 @@ const SHAPE_BOUNDS_ORACLE: Record<string, (shape: TShape) => TOBB> = {
 }
 
 /** Each kind's own vertex computation, the oracle now that the stored `vertices` field is gone. */
-const SHAPE_VERTICES_ORACLE: Record<string, (shape: TShape) => TPoint[]> = {
-  [ShapeKind.Circle]: (shape) => ShapeCircleOps.computeVertices(shape as TShapeCircle),
-  [ShapeKind.Ellipse]: (shape) => ShapeEllipseOps.computeVertices(shape as TShapeEllipse),
-  [ShapeKind.Polygon]: (shape) => ShapePolygonOps.computeVertices(shape as TShapePolygon),
-}
 
 const PARTIALS: Record<string, TPartialDeep<TShape>> = {
   [ShapeKind.Circle]: { type: SymbolType.Shape, kind: ShapeKind.Circle, center: { x: 50, y: 50 }, radius: 25 },
@@ -93,20 +88,36 @@ describe("ShapeUtil", () => {
       expect(shape().type).toBe(SymbolType.Shape)
     })
 
-    test("computeGeometry should dispatch each kind to that kind's own computation", () => {
+    test("computeGeometry should read every field off the kind's own geometry", () => {
       const created = shape()
 
       const geometry = util.computeGeometry(created)
+      const shapeGeometry = util.getGeometry(created)
 
-      expect(geometry.bounds).toEqual(SHAPE_BOUNDS_ORACLE[kind](created))
-      // Oracle is the kind's own vertex computation, not the stored field it replaced.
-      expect(geometry.vertices).toEqual(SHAPE_VERTICES_ORACLE[kind](created))
-      // Oracle is `OBBOps` directly, not the stored field it replaced: a circle's snap points are
-      // the eight points of its bounding box, and that is what the field held a copy of.
+      // The record is now a view of the geometry, so the only thing worth asserting is that it does
+      // not drift from it. The geometry's own correctness is `Circle2d`/`Ellipse2d`/`Polygon2d`'s to
+      // prove, kind by kind, where it can be stated exactly instead of as a list of sampled points.
+      expect(geometry.bounds).toEqual(shapeGeometry.bounds)
+      expect(geometry.vertices).toEqual(shapeGeometry.vertices)
+      expect(geometry.edges).toEqual(shapeGeometry.edges)
+      expect(geometry.length).toBe(shapeGeometry.length)
+      // A shape snaps on its box — corners, mid-sides and centre — whatever its outline is.
       expect(geometry.snapPoints).toEqual(OBBOps.getSnapPoints(geometry.bounds))
-      // Oracle is the kind's own `computeEdges`, not the stored field it replaced.
-      expect(geometry.edges).toEqual(EDGES_ORACLE[kind](created, geometry.vertices))
-      expect(geometry.length).toBe(0)
+    })
+
+    // The old oracle was each kind's own `computeBounds`, which measures the *sampled* outline for a
+    // curve and so reads a little small — 50.02 against a true 50.99 for the ellipse here. The
+    // relationship, not the number, is what holds for every kind: the box contains the outline, and
+    // it does not contain much more than it.
+    test("getGeometry should bound the shape it describes, no looser than its own outline", () => {
+      const geometry = util.getGeometry(shape())
+      const sampled = OBBOps.toBox(OBBOps.createFromPoints(geometry.vertices))
+      const exact = OBBOps.toBox(geometry.bounds)
+
+      expect(exact.width).toBeGreaterThanOrEqual(sampled.width - 1e-9)
+      expect(exact.height).toBeGreaterThanOrEqual(sampled.height - 1e-9)
+      expect(exact.width).toBeLessThan(sampled.width + 2)
+      expect(exact.height).toBeLessThan(sampled.height + 2)
     })
 
     test("should answer overlaps", () => {
@@ -148,7 +159,11 @@ describe("ShapeUtil", () => {
 
     test("should stay tolerant where it always was", () => {
       // These two never threw on an unknown kind and still must not: they run over whole models.
-      expect(util.overlaps({ kind } as TShape, { x: 0, y: 0, width: 1, height: 1 })).toBe(false)
+      // A shape of an unknown *kind*, not an object of an unknown type: `overlaps` reads through
+      // `SymbolGeometry`, which resolves the util from `symbol.type`, so the type has to be there for
+      // the test to be about the kind at all.
+      const unknown = { type: SymbolType.Shape, kind, transform: MatrixTransform.identity() } as unknown as TShape
+      expect(util.overlaps(unknown, { x: 0, y: 0, width: 1, height: 1 })).toBe(false)
     })
 
     test("computeGeometry should stay tolerant too, leaving the shape's own fields as its answer", () => {
