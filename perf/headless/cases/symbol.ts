@@ -1,16 +1,67 @@
 import type { TBenchCase } from "../lib/harness.ts"
-import { sized, RESIDENT_SIZE, GEOMETRY_SYMBOL_COUNT, type TBenchFixture } from "../lib/fixture.ts"
+import { sized, RESIDENT_SIZE, GEOMETRY_SYMBOL_COUNT, type TBenchFixture, type TStroke } from "../lib/fixture.ts"
 
-/** Symbols: hit testing through the registry, and the geometry cache read cold and warm. */
+/** Symbols: hit testing through the registry, and the geometry read cold, warm, and on its own. */
 
 const HIT_TEST_PASSES = 20 // 7.84 ms measured
 const GEOMETRY_COLD_PASSES = 1 // 110 ms measured: above the band, one build of the set is its smallest unit
 const GEOMETRY_WARM_PASSES = 1 // 0.22 ms measured, one read of the whole set
+/**
+ * How many of the pooled strokes one iteration builds geometry for.
+ *
+ * Not the whole 4419 the two cases above use, and the difference is measured rather than chosen for
+ * symmetry. At the full set one iteration costs 15.25 ms — above the 0.1-10 ms band — so tinybench
+ * stops at its 20-sample floor, and a p50 over 20 draws of a right-skewed latency distribution is
+ * coarse. Over 24 paired rounds of byte-identical bundles that read x0.984 with a **37.8% tail**,
+ * worse than the gate's own 20% floor: an instrument that cannot see the regression it exists to
+ * catch.
+ *
+ * A smaller slice fixes both halves at once — more samples inside the time budget, and less garbage
+ * per iteration, which matters for a case whose whole subject is allocation. At 1000 it costs
+ * 3.20 ms and the same 24 paired rounds read x0.984 with a **16.4% tail**, under the floor.
+ *
+ * Read that gain against the control, not raw: the machine was quieter on the second run (the
+ * control's own tail went 22.7% to 12.9%), so the honest figure is this case's tail *relative to the
+ * control's*, 1.67x before and 1.27x after. Real, and smaller than the raw numbers suggest.
+ */
+const GEOMETRY_BUILD_COUNT = 1000
 
 export const OBJECT = "symbol"
 
+/**
+ * A util's geometry method, under whichever name the build being measured spells it.
+ *
+ * The two sides of an A/B are not the same code, and this is the one place that matters: the
+ * reference is built from the merge-base with the base branch, so for the length of the epic that
+ * renames `computeGeometry` to `getGeometry` the reference exposes the old name while `dist/` exposes
+ * the new one. The same case file runs against both. `tinybench` is configured with `throws: true`,
+ * so a case that reached for a name one side does not have would not degrade — it would take down
+ * that whole round, on the one instrument the epic's go/no-go decision rests on.
+ *
+ * Resolved once, outside the measured window, so the tolerance costs nothing per iteration.
+ */
+type TComputeGeometry = (symbol: TStroke) => unknown
+
+const GEOMETRY_METHOD_NAMES = ["getGeometry", "computeGeometry"] as const
+
+function resolveComputeGeometry(util: object): TComputeGeometry {
+  for (const name of GEOMETRY_METHOD_NAMES) {
+    const candidate: unknown = Reflect.get(util, name)
+    if (typeof candidate === "function") {
+      return (candidate as TComputeGeometry).bind(util)
+    }
+  }
+  throw new Error(
+    `no geometry method on the symbol util — looked for ${GEOMETRY_METHOD_NAMES.join(" and ")}. ` +
+      "The measured build exposes neither, so this case cannot say anything about it."
+  )
+}
+
 export function cases(f: TBenchFixture): TBenchCase[] {
   const { SymbolGeometry, symbolRegistry } = f.iink
+  const computeGeometry = resolveComputeGeometry(symbolRegistry.getUtilFor(f.geometryWarmStrokes[0]))
+  // Sliced once, here, so the measured window holds nothing but the geometry calls.
+  const geometryBuildStrokes = f.geometryWarmStrokes.slice(0, GEOMETRY_BUILD_COUNT)
   return [
     {
       name: sized(`symbol: hit test over all @${RESIDENT_SIZE}`, HIT_TEST_PASSES),
@@ -41,6 +92,52 @@ export function cases(f: TBenchFixture): TBenchCase[] {
       // f.renderer's own pan virtualization reads `tracked.bounds`, not `SymbolGeometry`.
       fn: () => {
         f.geometryWarmStrokes.forEach((s) => SymbolGeometry.boundsOf(s))
+      },
+    },
+    {
+      name: `symbol: geometry build @${GEOMETRY_BUILD_COUNT}`,
+      // Computing and allocating the geometry object, and nothing else.
+      //
+      // `geometry cold` above cannot answer that question: it builds 4419 strokes of 40 pointers
+      // through `createFromPartial` and freezes each one before reading any geometry, so what the
+      // geometry itself costs sits underneath the construction of the document it is computed from.
+      // Measured on 2026-09-11 over the same 4419 strokes: 120.63 ms for `geometry cold` against
+      // 15.25 ms for the geometry alone — **87% of `geometry cold` is stroke construction**. A change
+      // that made the geometry 20% dearer would surface there as +2.6%, well under the gate's own 20%
+      // floor (`MIN_THRESHOLD`), so the suite would pass and say nothing. That blind spot is this
+      // case's whole reason to exist.
+      //
+      // `geometry cold` is not wrong and is not replaced: it answers "what does importing a document
+      // cost", which is a real question with a real answer. This one answers "what does one more
+      // allocation per symbol cost" — the question when the geometry stops being an object literal
+      // and becomes a class instance.
+      //
+      // Reaching for the util directly rather than through `SymbolGeometry` is what makes this
+      // repeatable: the facade caches on symbol identity, so a second read of the same symbol is a
+      // `WeakMap` hit and measures the cache instead. The util's own method holds no cache and
+      // recomputes every call, so the same pre-built strokes can be measured over and over — which
+      // is the only way to keep construction out of the window, since a case runs at least
+      // `MIN_ITERATIONS` times and pre-building a fresh set per iteration is what we are removing.
+      //
+      // The strokes come from `geometryWarmStrokes`: already warmed in the facade's cache, which
+      // this path never consults, so the cases share one pool instead of allocating a second.
+      //
+      // The count is kept and checked, where the two cases above drop their result on the floor.
+      // They can afford to: `boundsOf` writes to a `WeakMap`, an observable effect no optimiser may
+      // remove. This path is pure — it allocates an object and returns it — which is precisely the
+      // shape escape analysis is allowed to delete outright, and a case measuring a deleted
+      // allocation would read as a fast one. Checking the total is one comparison per invocation,
+      // not per symbol, and doubles as proof that every symbol really did yield a geometry.
+      fn: () => {
+        let built = 0
+        for (const stroke of geometryBuildStrokes) {
+          if (computeGeometry(stroke) !== undefined) {
+            built++
+          }
+        }
+        if (built !== GEOMETRY_BUILD_COUNT) {
+          throw new Error(`geometry built for ${built} symbols, expected ${GEOMETRY_BUILD_COUNT}`)
+        }
       },
     },
   ]
