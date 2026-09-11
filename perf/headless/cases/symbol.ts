@@ -81,7 +81,8 @@ export function cases(f: TBenchFixture): TBenchCase[] {
       fn: () => {
         let hits = 0
         for (let pass = 0; pass < HIT_TEST_PASSES; pass++) {
-          for (const stroke of f.strokes) {
+          // Frozen, so the geometry cache applies — see `hitTestStrokes`.
+          for (const stroke of f.hitTestStrokes) {
             if (symbolRegistry.getUtil(stroke.type)?.overlaps(stroke, f.probeBox)) {
               hits++
             }

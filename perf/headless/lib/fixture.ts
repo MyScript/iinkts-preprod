@@ -62,6 +62,18 @@ export type TBenchFixture = {
   dataset: string
   seedMs: number
   strokes: TStroke[]
+  /**
+   * The resident document again, frozen — what hit-testing actually reads.
+   *
+   * Separate copies rather than `strokes` frozen in place: the model, the history and the renderer
+   * all hold those same references and expect to be able to write to them.
+   *
+   * It matters because `SymbolGeometry` caches per symbol and **only for a frozen one** — a draft is
+   * recomputed on every read, by design. `SymbolStore` deep-freezes what it commits, so every symbol
+   * a selection reads in production is frozen and cached; hit-testing unfrozen strokes would measure
+   * a geometry rebuilt on every call, which happens nowhere.
+   */
+  hitTestStrokes: TStroke[]
   importSource: TStroke[]
   model: InstanceType<TIink["IIModel"]>
   allIds: string[]
@@ -110,6 +122,12 @@ export function buildFixture(iink: TIink): TBenchFixture {
   const generated = generateDocument(RESIDENT_SIZE, SEED)
   const strokes = generated.map(buildStroke)
 
+  const hitTestStrokes = strokes.map((stroke) => {
+    const copy = structuredClone(stroke)
+    Object.freeze(copy.pointers)
+    return Object.freeze(copy)
+  })
+
   const seedStart = performance.now()
   const model = new IIModel()
   for (const stroke of strokes) {
@@ -157,6 +175,7 @@ export function buildFixture(iink: TIink): TBenchFixture {
     dataset: `${RESIDENT_SIZE} strokes / ${countPointers(generated)} pointers, seed ${SEED}`,
     seedMs,
     strokes,
+    hitTestStrokes,
     importSource: generateDocument(IMPORT_SIZE, SEED + 1).map(buildStroke),
     model,
     allIds: strokes.map((stroke) => stroke.id),
