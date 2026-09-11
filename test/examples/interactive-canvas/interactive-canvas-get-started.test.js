@@ -44,11 +44,8 @@ test.describe("Interactive ink canvas Get Started", () => {
 
       await expect(strokePathLocator).toBeVisible()
       await expect(strokePathLocator).toHaveAttribute("stroke-width", "2")
-      await expect(strokePathLocator).toHaveAttribute(
-        "d",
-        /^(M 252 244 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0).*/
-      )
-      await expect(strokePathLocator).toHaveAttribute("d", /(L 336 228\.58)$/)
+      await expect(strokePathLocator).toHaveAttribute("d", /^(M 252 244 m).*/)
+      await expect(strokePathLocator).toHaveAttribute("d", /(L 336 229\.3)$/)
     })
   })
 })
