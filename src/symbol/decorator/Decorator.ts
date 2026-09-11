@@ -82,10 +82,6 @@ export const DecoratorOps = {
     decorator.targetBounds = targetBounds
   },
 
-  overlaps(decorator: TDecorator, box: TBox): boolean {
-    return decorator.targetBounds ? OBBOps.overlapsBox(decorator.targetBounds, box) : false
-  },
-
   /** The two endpoints of the horizontal line a decorator's own geometry is: the middle of its bounds. */
   computeVertices(bounds: TOBB): TPoint[] {
     const yMid = bounds.center.y

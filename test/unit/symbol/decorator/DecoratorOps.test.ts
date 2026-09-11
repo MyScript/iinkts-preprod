@@ -1,3 +1,4 @@
+import { decoratorGeometry } from "../../helpers"
 import { describe, test, expect } from "@jest/globals"
 import { DecoratorOps, OBBOps, SymbolType, DecoratorKind, MatrixTransform, DecoratorUtil } from "@/iink"
 
@@ -103,19 +104,19 @@ describe("DecoratorOps", () => {
     test("should return false when targetBounds is unset", () => {
       const d = DecoratorOps.create(DecoratorKind.Highlight, {})
       expect(d.targetBounds).toBeUndefined()
-      expect(DecoratorOps.overlaps(d, { x: 0, y: 0, width: 200, height: 200 })).toBe(false)
+      expect(decoratorGeometry(d).overlapsBox({ x: 0, y: 0, width: 200, height: 200 })).toBe(false)
     })
 
     test("should return true when targetBounds overlap the query box", () => {
       const d = DecoratorOps.create(DecoratorKind.Highlight, {})
       DecoratorOps.setTargetBounds(d, OBBOps.fromBox({ x: 10, y: 10, width: 50, height: 20 }))
-      expect(DecoratorOps.overlaps(d, { x: 0, y: 0, width: 30, height: 30 })).toBe(true)
+      expect(decoratorGeometry(d).overlapsBox({ x: 0, y: 0, width: 30, height: 30 })).toBe(true)
     })
 
     test("should return false when targetBounds do not overlap the query box", () => {
       const d = DecoratorOps.create(DecoratorKind.Highlight, {})
       DecoratorOps.setTargetBounds(d, OBBOps.fromBox({ x: 200, y: 200, width: 50, height: 20 }))
-      expect(DecoratorOps.overlaps(d, { x: 0, y: 0, width: 100, height: 100 })).toBe(false)
+      expect(decoratorGeometry(d).overlapsBox({ x: 0, y: 0, width: 100, height: 100 })).toBe(false)
     })
   })
 })

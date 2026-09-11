@@ -1,23 +1,30 @@
 import {
+  DecoratorKind,
   DefaultPenStyle,
   DefaultStyle,
-  TBox,
-  TStyle,
-  Stroke,
-  TStroke,
-  StrokeOps,
-  TDecorator,
-  TShapeCircle,
-  TEdgeLine,
-  TText,
-  TSymbolChar,
-  TPoint,
-  DecoratorKind,
-  TEraser,
+  Ellipse2d,
   EraserOps,
+  OBBOps,
+  Polygon2d,
+  Polyline2d,
+  SELECTION_MARGIN,
+  Stroke,
+  StrokeOps,
+  TBox,
+  TDecorator,
+  TEdge,
+  TEdgeLine,
+  TEraser,
   TMath,
   TMathElement,
   TPartialDeep,
+  TPoint,
+  TShapeCircle,
+  TShapeEllipse,
+  TStroke,
+  TStyle,
+  TSymbolChar,
+  TText,
 } from "@/iink"
 
 import { DecoratorOps } from "../../src/symbol/decorator/Decorator"
@@ -181,4 +188,25 @@ export function expectPointsRounded(points: TPoint[]): void {
   const unrounded = points.filter((point) => point.x !== +point.x.toFixed(3) || point.y !== +point.y.toFixed(3))
   // Named, not counted: a failure has to show which coordinate kept its full precision.
   expect(unrounded).toEqual([])
+}
+
+/**
+ * The geometry a symbol's util builds for it, for tests that used to assert against the `*Ops`
+ * geometry methods the util replaced. Written once here rather than per file, so a change to how a
+ * kind describes itself is a change in one place.
+ */
+export function ellipseGeometry(ellipse: TShapeEllipse): Ellipse2d {
+  return Ellipse2d.fromRadii(ellipse.center, ellipse.radiusX, ellipse.radiusY, ellipse.orientation)
+}
+
+/** An edge's path, padded the way `EdgeUtil` pads it so it stays reachable by a selection. */
+export function edgeGeometry(vertices: TPoint[], edge: TEdge): Polyline2d {
+  const decorated = edge.startDecoration || edge.endDecoration
+  return new Polyline2d(vertices, SELECTION_MARGIN / 2 + (decorated ? (edge.style.width || 1) * 2.5 : 0))
+}
+
+/** A decorator is found by its target's box, filled, in that box's own frame. */
+export function decoratorGeometry(decorator: TDecorator): Polygon2d {
+  const bounds = decorator.targetBounds
+  return bounds ? new Polygon2d(OBBOps.toCorners(bounds), true, bounds.angle) : new Polygon2d([])
 }

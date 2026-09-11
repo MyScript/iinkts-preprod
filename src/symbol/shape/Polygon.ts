@@ -1,7 +1,6 @@
-import type { TBox } from "@/core/geometry"
-import type { TPoint, TSegment } from "@/core/geometry"
+import type { TPoint } from "@/core/geometry"
 import { BoxOps } from "@/core/geometry"
-import { MatrixTransform, mergeSymbolTransform, OBBOps, type TOBB } from "@/core/geometry"
+import { MatrixTransform, mergeSymbolTransform } from "@/core/geometry"
 import { isValidPoint } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import { createUUID } from "@/core/std"
@@ -55,36 +54,6 @@ export const ShapePolygonOps = {
     }
     polygon.transform = mergeSymbolTransform(partial.transform)
     return polygon
-  },
-
-  /**
-   * A polygon's vertices are the points it stores, returned as-is.
-   *
-   * Named rather than inlined so every caller goes through one place, like
-   * `EdgePolyLineOps.computeVertices`.
-   */
-  computeVertices(polygon: TShapePolygon): TPoint[] {
-    return polygon.points
-  },
-
-  /** Takes the points, like {@link computeEdges}: a polygon's box is the box of its own vertices. */
-  computeBounds(points: TPoint[]): TOBB {
-    return OBBOps.createFromPoints(points)
-  },
-
-  computeEdges(points: TPoint[]): TSegment[] {
-    return points.map((p, i) => ({
-      p1: p,
-      p2: points[(i + 1) % points.length],
-    }))
-  },
-
-  overlaps(polygon: TShapePolygon, box: TBox): boolean {
-    return OBBOps.polygonOverlapsBox(
-      ShapePolygonOps.computeBounds(polygon.points),
-      ShapePolygonOps.computeEdges(polygon.points),
-      box
-    )
   },
 
   createTriangleBetweenPoints(origin: TPoint, target: TPoint, style?: TPartialDeep<TStyle>): TShapePolygon {

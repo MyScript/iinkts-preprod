@@ -1,3 +1,4 @@
+import { ellipseGeometry } from "../../helpers"
 import { ShapeEllipseOps } from "@/symbol/shape/Ellipse"
 import { OBBOps, TPoint, DefaultStyle, TStyle, TBox } from "@/iink"
 
@@ -20,11 +21,11 @@ describe("Ellipse.ts", () => {
       expect(ellipse.center).toEqual(center)
       expect(ellipse.radiusX).toEqual(radiusX)
       expect(ellipse.radiusY).toEqual(radiusY)
-      expect(OBBOps.toBox(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse))).x).toEqual(0)
-      expect(OBBOps.toBox(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse))).y).toEqual(-10)
-      expect(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse)).width).toEqual(10)
-      expect(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse)).height).toEqual(20)
-      expect(ShapeEllipseOps.computeVertices(ellipse)).toHaveLength(8)
+      expect(OBBOps.toBox(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices)).x).toEqual(0)
+      expect(OBBOps.toBox(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices)).y).toEqual(-10)
+      expect(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices).width).toEqual(10)
+      expect(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices).height).toEqual(20)
+      expect(ellipseGeometry(ellipse).vertices).toHaveLength(8)
     })
     test("should create with default style", () => {
       const center: TPoint = { x: 5, y: 0 }
@@ -40,7 +41,7 @@ describe("Ellipse.ts", () => {
       const radiusY = 100
       const phi = 0
       const ellipse = ShapeEllipseOps.create(center, radiusX, radiusY, phi)
-      expect(ShapeEllipseOps.computeVertices(ellipse)).toHaveLength(50)
+      expect(ellipseGeometry(ellipse).vertices).toHaveLength(50)
     })
   })
 
@@ -74,11 +75,11 @@ describe("Ellipse.ts", () => {
       expect(ellipse.center).toEqual(origin)
       expect(ellipse.radiusX).toEqual(0)
       expect(ellipse.radiusY).toEqual(0)
-      expect(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse)).height).toEqual(0)
-      expect(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse)).width).toEqual(0)
-      expect(OBBOps.toBox(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse))).x).toEqual(1)
-      expect(OBBOps.toBox(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse))).y).toEqual(2)
-      expect(ShapeEllipseOps.computeVertices(ellipse)).toHaveLength(8)
+      expect(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices).height).toEqual(0)
+      expect(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices).width).toEqual(0)
+      expect(OBBOps.toBox(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices)).x).toEqual(1)
+      expect(OBBOps.toBox(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices)).y).toEqual(2)
+      expect(ellipseGeometry(ellipse).vertices).toHaveLength(8)
     })
     test("should create when origin is at the top left", () => {
       const origin: TPoint = { x: 1, y: 2 }
@@ -87,10 +88,10 @@ describe("Ellipse.ts", () => {
       expect(ellipse.center).toEqual({ x: 6, y: 12 })
       expect(ellipse.radiusX).toEqual(5)
       expect(ellipse.radiusY).toEqual(10)
-      expect(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse)).width).toEqual(10)
-      expect(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse)).height).toEqual(20)
-      expect(OBBOps.toBox(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse))).x).toEqual(1)
-      expect(OBBOps.toBox(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse))).y).toEqual(2)
+      expect(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices).width).toEqual(10)
+      expect(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices).height).toEqual(20)
+      expect(OBBOps.toBox(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices)).x).toEqual(1)
+      expect(OBBOps.toBox(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices)).y).toEqual(2)
     })
     test("should create when origin is at the top right", () => {
       const origin: TPoint = { x: 11, y: 2 }
@@ -99,10 +100,10 @@ describe("Ellipse.ts", () => {
       expect(ellipse.center).toEqual({ x: 6, y: 12 })
       expect(ellipse.radiusX).toEqual(5)
       expect(ellipse.radiusY).toEqual(10)
-      expect(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse)).width).toEqual(10)
-      expect(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse)).height).toEqual(20)
-      expect(OBBOps.toBox(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse))).x).toEqual(1)
-      expect(OBBOps.toBox(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse))).y).toEqual(2)
+      expect(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices).width).toEqual(10)
+      expect(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices).height).toEqual(20)
+      expect(OBBOps.toBox(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices)).x).toEqual(1)
+      expect(OBBOps.toBox(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices)).y).toEqual(2)
     })
     test("should create when origin is at the bottom right", () => {
       const origin: TPoint = { x: 11, y: 22 }
@@ -111,10 +112,10 @@ describe("Ellipse.ts", () => {
       expect(ellipse.center).toEqual({ x: 6, y: 12 })
       expect(ellipse.radiusX).toEqual(5)
       expect(ellipse.radiusY).toEqual(10)
-      expect(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse)).width).toEqual(10)
-      expect(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse)).height).toEqual(20)
-      expect(OBBOps.toBox(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse))).x).toEqual(1)
-      expect(OBBOps.toBox(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse))).y).toEqual(2)
+      expect(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices).width).toEqual(10)
+      expect(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices).height).toEqual(20)
+      expect(OBBOps.toBox(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices)).x).toEqual(1)
+      expect(OBBOps.toBox(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices)).y).toEqual(2)
     })
     test("should create when origin is at the bottom left", () => {
       const origin: TPoint = { x: 1, y: 22 }
@@ -123,10 +124,10 @@ describe("Ellipse.ts", () => {
       expect(ellipse.center).toEqual({ x: 6, y: 12 })
       expect(ellipse.radiusX).toEqual(5)
       expect(ellipse.radiusY).toEqual(10)
-      expect(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse)).width).toEqual(10)
-      expect(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse)).height).toEqual(20)
-      expect(OBBOps.toBox(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse))).x).toEqual(1)
-      expect(OBBOps.toBox(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse))).y).toEqual(2)
+      expect(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices).width).toEqual(10)
+      expect(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices).height).toEqual(20)
+      expect(OBBOps.toBox(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices)).x).toEqual(1)
+      expect(OBBOps.toBox(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices)).y).toEqual(2)
     })
   })
 
@@ -142,28 +143,28 @@ describe("Ellipse.ts", () => {
       expect(ellipse.center).toEqual({ x: 2.5, y: 4 })
       expect(ellipse.radiusX).toEqual(1.5)
       expect(ellipse.radiusY).toEqual(2)
-      expect(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse)).width).toEqual(3)
-      expect(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse)).height).toEqual(4)
-      expect(OBBOps.toBox(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse))).x).toEqual(1)
-      expect(OBBOps.toBox(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse))).y).toEqual(2)
+      expect(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices).width).toEqual(3)
+      expect(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices).height).toEqual(4)
+      expect(OBBOps.toBox(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices)).x).toEqual(1)
+      expect(OBBOps.toBox(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices)).y).toEqual(2)
       ShapeEllipseOps.updateBetweenPoints(ellipse, origin, { x: target.x + 6, y: target.y })
       expect(ellipse.center).toEqual({ x: 5.5, y: 4 })
       expect(ellipse.radiusX).toEqual(4.5)
       expect(ellipse.radiusY).toEqual(2)
-      expect(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse)).width).toEqual(9)
-      expect(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse)).height).toEqual(4)
-      expect(OBBOps.toBox(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse))).x).toEqual(1)
-      expect(OBBOps.toBox(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse))).y).toEqual(2)
+      expect(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices).width).toEqual(9)
+      expect(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices).height).toEqual(4)
+      expect(OBBOps.toBox(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices)).x).toEqual(1)
+      expect(OBBOps.toBox(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices)).y).toEqual(2)
     })
     test("should updateBetweenPoints when target y increase", () => {
       ShapeEllipseOps.updateBetweenPoints(ellipse, origin, { x: target.x, y: target.y + 4 })
       expect(ellipse.center).toEqual({ x: 2.5, y: 6 })
       expect(ellipse.radiusX).toEqual(1.5)
       expect(ellipse.radiusY).toEqual(4)
-      expect(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse)).width).toEqual(3)
-      expect(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse)).height).toEqual(8)
-      expect(OBBOps.toBox(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse))).x).toEqual(1)
-      expect(OBBOps.toBox(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse))).y).toEqual(2)
+      expect(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices).width).toEqual(3)
+      expect(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices).height).toEqual(8)
+      expect(OBBOps.toBox(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices)).x).toEqual(1)
+      expect(OBBOps.toBox(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices)).y).toEqual(2)
     })
   })
 
@@ -175,19 +176,19 @@ describe("Ellipse.ts", () => {
     const ellipse = ShapeEllipseOps.create(center, radiusX, radiusY, phi)
     test(`should return true if partially wrap`, () => {
       const boundaries: TBox = { height: 10, width: 10, x: -5, y: -5 }
-      expect(ShapeEllipseOps.overlaps(ellipse, boundaries)).toEqual(true)
+      expect(ellipseGeometry(ellipse).overlapsBox(boundaries)).toEqual(true)
     })
     test(`should return true if totally wrap`, () => {
       const boundaries: TBox = { height: 50, width: 50, x: -25, y: -25 }
-      expect(ShapeEllipseOps.overlaps(ellipse, boundaries)).toEqual(true)
+      expect(ellipseGeometry(ellipse).overlapsBox(boundaries)).toEqual(true)
     })
     test(`should return false if box is outside`, () => {
       const boundaries: TBox = { height: 2, width: 2, x: 50, y: 50 }
-      expect(ShapeEllipseOps.overlaps(ellipse, boundaries)).toEqual(false)
+      expect(ellipseGeometry(ellipse).overlapsBox(boundaries)).toEqual(false)
     })
     test(`should return false if box is inside`, () => {
       const boundaries: TBox = { height: 2, width: 2, x: 9, y: 9 }
-      expect(ShapeEllipseOps.overlaps(ellipse, boundaries)).toEqual(false)
+      expect(ellipseGeometry(ellipse).overlapsBox(boundaries)).toEqual(false)
     })
   })
 

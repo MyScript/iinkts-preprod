@@ -1,11 +1,7 @@
-import { SELECTION_MARGIN } from "@/Constants"
-import type { TBox } from "@/core/geometry"
-import { BoxOps } from "@/core/geometry"
-import { MatrixTransform, mergeSymbolTransform, OBBOps, type TOBB } from "@/core/geometry"
-import { isValidPoint, type TPoint, type TSegment } from "@/core/geometry"
-import { computeDistance, computeRotatedPoint, findIntersectBetweenSegmentAndCircle } from "@/core/geometry"
-import { TWO_PI } from "@/core/math"
-import { computeTessellationCount, isValidNumber } from "@/core/math"
+import { MatrixTransform, mergeSymbolTransform } from "@/core/geometry"
+import { isValidPoint, type TPoint } from "@/core/geometry"
+import { computeDistance } from "@/core/geometry"
+import { isValidNumber } from "@/core/math"
 import { createUUID } from "@/core/std"
 import { type TPartialDeep } from "@/core/std"
 import { mergeSymbolStyle, type TStyle } from "@/style"
@@ -58,41 +54,6 @@ export const ShapeCircleOps = {
     }
     circle.transform = mergeSymbolTransform(partial.transform)
     return circle
-  },
-
-  computeBounds(circle: TShapeCircle): TOBB {
-    return OBBOps.create(circle.center, circle.radius * 2, circle.radius * 2)
-  },
-
-  computeVertices(circle: TShapeCircle): TPoint[] {
-    const firstPoint: TPoint = {
-      x: circle.center.x,
-      y: circle.radius + circle.center.y,
-    }
-    const perimeter = TWO_PI * circle.radius
-    const nbPoint = computeTessellationCount(perimeter, SELECTION_MARGIN)
-    const vertices: TPoint[] = []
-    for (let i = 0; i < nbPoint; i++) {
-      const rad = TWO_PI * (i / nbPoint)
-      vertices.push(computeRotatedPoint(firstPoint, circle.center, rad))
-    }
-    return vertices
-  },
-
-  computeEdges(vertices: TPoint[]): TSegment[] {
-    return vertices.map((p, i) => ({
-      p1: p,
-      p2: vertices[(i + 1) % vertices.length],
-    }))
-  },
-
-  overlaps(circle: TShapeCircle, box: TBox): boolean {
-    return (
-      OBBOps.isContained(ShapeCircleOps.computeBounds(circle), box) ||
-      BoxOps.getSides(box).some(
-        (seg) => findIntersectBetweenSegmentAndCircle(seg, circle.center, circle.radius).length > 0
-      )
-    )
   },
 
   createBetweenPoints(origin: TPoint, target: TPoint, style?: TPartialDeep<TStyle>): TShapeCircle {

@@ -1,8 +1,7 @@
 import type { EdgeDecoration } from "@/Constants"
 import { SELECTION_MARGIN } from "@/Constants"
-import type { TBox } from "@/core/geometry"
-import { MatrixTransform, mergeSymbolTransform, OBBOps, type TOBB } from "@/core/geometry"
-import { isValidPoint, type TPoint, type TSegment } from "@/core/geometry"
+import { MatrixTransform, mergeSymbolTransform } from "@/core/geometry"
+import { isValidPoint, type TPoint } from "@/core/geometry"
 import { computeAngleFromPointOnEllipse, computeDistance, computePointOnEllipse } from "@/core/geometry"
 import { computeEllipseRadiusAverage, computeTessellationCount, isValidNumber } from "@/core/math"
 import type { TPartialDeep } from "@/core/std"
@@ -11,7 +10,7 @@ import { mergeSymbolStyle, type TStyle } from "@/style"
 import { SymbolType, type TBaseSymbol, type TResizePoint } from "@/symbol/Symbol"
 
 import type { TAnchor } from "./Anchor"
-import { computeEdgeBounds, EdgeKind } from "./Edge-enum"
+import { EdgeKind } from "./Edge-enum"
 
 /**
  * @group Symbol
@@ -122,19 +121,8 @@ export const EdgeArcOps = {
     return v
   },
 
-  computeBounds(arc: TEdgeArc, vertices: TPoint[]): TOBB {
-    return computeEdgeBounds(vertices, arc.style, arc.startDecoration, arc.endDecoration)
-  },
-
   computeSnapPoints(vertices: TPoint[]): TPoint[] {
     return [vertices[0], vertices.at(-1)!]
-  },
-
-  computeEdges(vertices: TPoint[]): TSegment[] {
-    return vertices.slice(0, -1).map((p, i) => ({
-      p1: p,
-      p2: vertices[i + 1],
-    }))
   },
 
   getResizePoints(arc: TEdgeArc): TResizePoint[] {
@@ -148,11 +136,6 @@ export const EdgeArcOps = {
         vertexIndex: v.length - 1,
       },
     ]
-  },
-
-  overlaps(arc: TEdgeArc, box: TBox): boolean {
-    const vertices = EdgeArcOps.computeVertices(arc)
-    return OBBOps.polygonOverlapsBox(EdgeArcOps.computeBounds(arc, vertices), EdgeArcOps.computeEdges(vertices), box)
   },
 
   getSVGPath(arc: TEdgeArc): string {

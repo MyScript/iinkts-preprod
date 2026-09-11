@@ -1,4 +1,5 @@
-import { EdgeLineOps, OBBOps, TPoint, DefaultStyle, TStyle, TBox } from "@/iink"
+import { edgeGeometry } from "../../helpers"
+import { DefaultStyle, EdgeLineOps, OBBOps, TBox, TPoint, TStyle } from "@/iink"
 
 describe("Line.ts", () => {
   describe("constructor", () => {
@@ -16,10 +17,10 @@ describe("Line.ts", () => {
       expect(line.style).toEqual(expect.objectContaining(style))
       expect(line.start).toEqual(start)
       expect(line.end).toEqual(end)
-      expect(OBBOps.toBox(EdgeLineOps.computeBounds(line, EdgeLineOps.computeVertices(line))).x).toEqual(-5)
-      expect(OBBOps.toBox(EdgeLineOps.computeBounds(line, EdgeLineOps.computeVertices(line))).y).toEqual(-5)
-      expect(EdgeLineOps.computeBounds(line, EdgeLineOps.computeVertices(line)).width).toEqual(15)
-      expect(EdgeLineOps.computeBounds(line, EdgeLineOps.computeVertices(line)).height).toEqual(15)
+      expect(OBBOps.toBox(edgeGeometry(EdgeLineOps.computeVertices(line), line).bounds).x).toEqual(-5)
+      expect(OBBOps.toBox(edgeGeometry(EdgeLineOps.computeVertices(line), line).bounds).y).toEqual(-5)
+      expect(edgeGeometry(EdgeLineOps.computeVertices(line), line).bounds.width).toEqual(15)
+      expect(edgeGeometry(EdgeLineOps.computeVertices(line), line).bounds.height).toEqual(15)
       expect(EdgeLineOps.computeVertices(line)).toHaveLength(2)
     })
     test("should create with default style", () => {
@@ -35,15 +36,15 @@ describe("Line.ts", () => {
     const line = EdgeLineOps.create(start, end)
     test(`should return true if partially wrap`, () => {
       const boundaries: TBox = { height: 10, width: 10, x: -5, y: -5 }
-      expect(EdgeLineOps.overlaps(line, boundaries)).toEqual(true)
+      expect(edgeGeometry(EdgeLineOps.computeVertices(line), line).overlapsBox(boundaries)).toEqual(true)
     })
     test(`should return true if totally wrap`, () => {
       const boundaries: TBox = { height: 50, width: 50, x: -25, y: -25 }
-      expect(EdgeLineOps.overlaps(line, boundaries)).toEqual(true)
+      expect(edgeGeometry(EdgeLineOps.computeVertices(line), line).overlapsBox(boundaries)).toEqual(true)
     })
     test(`should return false if box is outside`, () => {
       const boundaries: TBox = { height: 2, width: 2, x: 50, y: 50 }
-      expect(EdgeLineOps.overlaps(line, boundaries)).toEqual(false)
+      expect(edgeGeometry(EdgeLineOps.computeVertices(line), line).overlapsBox(boundaries)).toEqual(false)
     })
   })
   describe("clone", () => {

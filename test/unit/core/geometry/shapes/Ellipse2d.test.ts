@@ -10,10 +10,11 @@ describe("Ellipse2d", () => {
       expect(OBBOps.toBox(ellipse.bounds)).toEqual({ x: -30, y: -10, width: 60, height: 20 })
     })
 
-    // Closed form, not sampled: the box around the sampled outline is short on every side, and it is
-    // the box that feeds containment.
+    // Closed form, not sampled. Turned deliberately: an unturned ellipse is sampled at angles 0 and
+    // pi/2, which land exactly on its extremes, so its sampled box happens to be exact and would
+    // prove nothing. Turned, no vertex lands there and the chords fall inside the curve.
     test("should be wider than the box around its own sampled outline", () => {
-      const ellipse = Ellipse2d.fromRadii(CENTER, 30, 10)
+      const ellipse = Ellipse2d.fromRadii(CENTER, 30, 10, Math.PI / 5)
       const sampled = OBBOps.createFromPoints(ellipse.vertices)
       expect(ellipse.bounds.width).toBeGreaterThan(sampled.width)
       expect(ellipse.bounds.height).toBeGreaterThan(sampled.height)

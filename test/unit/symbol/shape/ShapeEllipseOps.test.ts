@@ -1,3 +1,4 @@
+import { ellipseGeometry } from "../../helpers"
 import { ShapeEllipseOps, TPoint, DefaultStyle, TStyle, TBox, OBBOps, MatrixTransform } from "@/iink"
 
 describe("ShapeEllipseOps", () => {
@@ -17,24 +18,24 @@ describe("ShapeEllipseOps", () => {
     })
     test("should compute bounds from vertices", () => {
       const ellipse = ShapeEllipseOps.create({ x: 5, y: 0 }, 5, 10, 0)
-      expect(OBBOps.toBox(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse))).x).toBeCloseTo(0, 0)
-      expect(OBBOps.toBox(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse))).y).toBeCloseTo(-10, 0)
-      expect(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse)).width).toBeCloseTo(10, 0)
-      expect(ShapeEllipseOps.computeBounds(ShapeEllipseOps.computeVertices(ellipse)).height).toBeCloseTo(20, 0)
+      expect(OBBOps.toBox(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices)).x).toBeCloseTo(0, 0)
+      expect(OBBOps.toBox(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices)).y).toBeCloseTo(-10, 0)
+      expect(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices).width).toBeCloseTo(10, 0)
+      expect(OBBOps.createFromPoints(ellipseGeometry(ellipse).vertices).height).toBeCloseTo(20, 0)
     })
     test("should compute minimum 8 vertices for small ellipse", () => {
       const ellipse = ShapeEllipseOps.create({ x: 0, y: 0 }, 5, 10, 0)
-      expect(ShapeEllipseOps.computeVertices(ellipse)).toHaveLength(8)
+      expect(ellipseGeometry(ellipse).vertices).toHaveLength(8)
     })
     test("should compute more vertices for large ellipse", () => {
       const ellipse = ShapeEllipseOps.create({ x: 0, y: 0 }, 50, 100, 0)
-      expect(ShapeEllipseOps.computeVertices(ellipse)).toHaveLength(50)
+      expect(ellipseGeometry(ellipse).vertices).toHaveLength(50)
     })
     // Same reason as the circle: a length assertion cannot see the tessellation drift. Oracle is
     // the un-rotated parametric ellipse `(cx + rx·cos θ, cy + ry·sin θ)`, written out here.
     test("should tessellate an un-rotated ellipse from its +x apex", () => {
       const ellipse = ShapeEllipseOps.create({ x: 0, y: 0 }, 5, 10, 0)
-      const vertices = ShapeEllipseOps.computeVertices(ellipse)
+      const vertices = ellipseGeometry(ellipse).vertices
       expect(vertices).toHaveLength(8)
       vertices.forEach((vertex, index) => {
         const theta = (2 * Math.PI * index) / 8
@@ -81,19 +82,19 @@ describe("ShapeEllipseOps", () => {
     const ellipse = ShapeEllipseOps.create({ x: 5, y: 0 }, 5, 10, 0)
     test("should return true if partially intersects", () => {
       const box: TBox = { height: 10, width: 10, x: -5, y: -5 }
-      expect(ShapeEllipseOps.overlaps(ellipse, box)).toEqual(true)
+      expect(ellipseGeometry(ellipse).overlapsBox(box)).toEqual(true)
     })
     test("should return true if totally wraps", () => {
       const box: TBox = { height: 50, width: 50, x: -25, y: -25 }
-      expect(ShapeEllipseOps.overlaps(ellipse, box)).toEqual(true)
+      expect(ellipseGeometry(ellipse).overlapsBox(box)).toEqual(true)
     })
     test("should return false if box is outside", () => {
       const box: TBox = { height: 2, width: 2, x: 50, y: 50 }
-      expect(ShapeEllipseOps.overlaps(ellipse, box)).toEqual(false)
+      expect(ellipseGeometry(ellipse).overlapsBox(box)).toEqual(false)
     })
     test("should return false if box is fully inside", () => {
       const box: TBox = { height: 2, width: 2, x: 9, y: 9 }
-      expect(ShapeEllipseOps.overlaps(ellipse, box)).toEqual(false)
+      expect(ellipseGeometry(ellipse).overlapsBox(box)).toEqual(false)
     })
   })
 

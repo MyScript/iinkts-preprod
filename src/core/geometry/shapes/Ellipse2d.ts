@@ -1,5 +1,5 @@
 import { TWO_PI } from "@/core/math"
-import { computeTessellationCount } from "@/core/math"
+import { computeEllipseRadiusAverage, computeTessellationCount } from "@/core/math"
 
 import { SELECTION_MARGIN } from "../../../Constants"
 import { applyMatrixToPoint, type TMatrixTransform } from "../Matrix"
@@ -97,9 +97,14 @@ export class Ellipse2d extends Geometry2d {
     return vertices
   }
 
+  /**
+   * The radius a circle of the same perimeter would have, to the same approximation the rest of the
+   * library uses — the quadratic mean of the two semi-axes, not the arithmetic one. Keeping the same
+   * estimate keeps the same vertex count, and so the same sampled outline, as before.
+   */
   #averageRadius(): number {
     const { xx, xy, yx, yy } = this.axes
-    return (Math.hypot(xx, yx) + Math.hypot(xy, yy)) / 2
+    return computeEllipseRadiusAverage(Math.hypot(xx, yx), Math.hypot(xy, yy))
   }
 
   /**
