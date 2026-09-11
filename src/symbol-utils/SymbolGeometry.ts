@@ -186,7 +186,12 @@ function rawOf(symbol: TBaseSymbol): Geometry2d {
  */
 function compute(symbol: TBaseSymbol): Geometry2d {
   const raw = rawOf(symbol)
-  return isIdentityMatrix(symbol.transform) ? raw : raw.transform(symbol.transform)
+  // A symbol can reach here without a matrix: `mergeSymbolTransform` backfills one on the wire, but
+  // a raw or malformed object — a kind no table owns, tolerated rather than thrown on — never went
+  // through it. Treated as identity, which is what every untransformed symbol means anyway; reading
+  // `undefined` here would throw where the code this replaced returned an answer.
+  const transform = symbol.transform
+  return !transform || isIdentityMatrix(transform) ? raw : raw.transform(transform)
 }
 
 function of(symbol: TBaseSymbol): Geometry2d {

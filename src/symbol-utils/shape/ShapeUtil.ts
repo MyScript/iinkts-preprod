@@ -1,6 +1,14 @@
 import type { TBox } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
-import { isIdentityMatrix, MatrixTransform, OBBOps } from "@/core/geometry"
+import {
+  Circle2d,
+  Ellipse2d,
+  type Geometry2d,
+  isIdentityMatrix,
+  MatrixTransform,
+  OBBOps,
+  Polygon2d,
+} from "@/core/geometry"
 import { convertRadianToDegree } from "@/core/math"
 import type { TPartialDeep } from "@/core/std"
 import { DefaultStyle } from "@/style"
@@ -13,6 +21,7 @@ import { SymbolType } from "@/symbol/Symbol"
 
 import { defineKind, resolveKind, type TKindDefinition } from "../KindDefinition"
 import { SVGBuilder } from "../SVGBuilder"
+import { SymbolGeometry } from "../SymbolGeometry"
 import { SymbolUtil } from "../SymbolUtil"
 import type { TSymbolGeometry } from "../TSymbolGeometry"
 
@@ -25,38 +34,30 @@ import type { TSymbolGeometry } from "../TSymbolGeometry"
  * `ShapeKind.Table` is absent on purpose — it is declared in the enum with no implementation behind
  * it, so it resolves like any unknown kind rather than like a shape that half works.
  */
+/**
+ * Whether a shape's style paints its inside, and so whether a query landing wholly within it — and
+ * touching no edge — selects it.
+ *
+ * Unpainted is the default everywhere: `getSVGElement` writes `shape.style.fill || "transparent"`,
+ * and the theme's own default is `#FFFFFF00`. Both are "no fill" spelled differently, so both have
+ * to be read as one.
+ */
+function isFilledStyle(shape: TShape): boolean {
+  const fill = shape.style.fill?.trim().toLowerCase()
+  return !!fill && fill !== "transparent" && fill !== "none" && !/^#[0-9a-f]{6}00$/.test(fill)
+}
+
 const SHAPE_KINDS: Partial<Record<ShapeKind, TKindDefinition<TShape>>> = {
   [ShapeKind.Circle]: defineKind<TShape, TShapeCircle>({
     create: (partial) => ShapeCircleOps.createFromPartial(partial),
-    computeGeometry: (shape) => {
-      const vertices = ShapeCircleOps.computeVertices(shape)
-      const bounds = ShapeCircleOps.computeBounds(shape)
-      return {
-        bounds,
-        vertices,
-        snapPoints: OBBOps.getSnapPoints(bounds),
-        edges: ShapeCircleOps.computeEdges(vertices),
-        length: 0,
-      }
-    },
-    overlaps: (shape, box) => ShapeCircleOps.overlaps(shape, box),
+    getGeometry: (shape) => new Circle2d(shape.center, shape.radius, isFilledStyle(shape)),
     getSVGPath: (shape) => ShapeCircleOps.getSVGPath(shape),
     keepsAspectRatio: true,
   }),
   [ShapeKind.Ellipse]: defineKind<TShape, TShapeEllipse>({
     create: (partial) => ShapeEllipseOps.createFromPartial(partial),
-    computeGeometry: (shape) => {
-      const vertices = ShapeEllipseOps.computeVertices(shape)
-      const bounds = ShapeEllipseOps.computeBounds(vertices)
-      return {
-        bounds,
-        vertices,
-        snapPoints: OBBOps.getSnapPoints(bounds),
-        edges: ShapeEllipseOps.computeEdges(vertices),
-        length: 0,
-      }
-    },
-    overlaps: (shape, box) => ShapeEllipseOps.overlaps(shape, box),
+    getGeometry: (shape) =>
+      Ellipse2d.fromRadii(shape.center, shape.radiusX, shape.radiusY, shape.orientation, isFilledStyle(shape)),
     getSVGPath: (shape) => ShapeEllipseOps.getSVGPath(shape),
     // The ellipse is the only kind whose path needs orienting, and this is where that used to live
     // as an `if (shape.kind === ShapeKind.Ellipse)` inside the shared `getSVGElement`.
@@ -66,17 +67,7 @@ const SHAPE_KINDS: Partial<Record<ShapeKind, TKindDefinition<TShape>>> = {
   }),
   [ShapeKind.Polygon]: defineKind<TShape, TShapePolygon>({
     create: (partial) => ShapePolygonOps.createFromPartial(partial),
-    computeGeometry: (shape) => {
-      const bounds = ShapePolygonOps.computeBounds(shape.points)
-      return {
-        bounds,
-        vertices: shape.points,
-        snapPoints: OBBOps.getSnapPoints(bounds),
-        edges: ShapePolygonOps.computeEdges(shape.points),
-        length: 0,
-      }
-    },
-    overlaps: (shape, box) => ShapePolygonOps.overlaps(shape, box),
+    getGeometry: (shape) => new Polygon2d(shape.points, isFilledStyle(shape)),
     getSVGPath: (shape) => ShapePolygonOps.getSVGPath(shape),
   }),
 }
@@ -91,27 +82,43 @@ export class ShapeUtil extends SymbolUtil<TShape> {
     return resolveKind(SHAPE_KINDS, partial.kind, "shape", "create").create(partial)
   }
 
+  /**
+   * An unregistered kind gets an empty polygon: no vertices, no edges, an empty box at the origin,
+   * and so no overlap with anything. Same answer the record fallback gave, said once instead of
+   * field by field.
+   */
+  getGeometry(shape: TShape): Geometry2d {
+    return SHAPE_KINDS[shape.kind]?.getGeometry(shape) ?? new Polygon2d([])
+  }
+
   computeGeometry(shape: TShape): TSymbolGeometry {
-    return (
-      SHAPE_KINDS[shape.kind]?.computeGeometry(shape) ?? {
-        // No stored `bounds` to fall back on any more: an unregistered kind's geometry cannot be
-        // computed, and there is no field left to echo, so it reports an empty box at the origin.
-        bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0),
-        vertices: [],
-        snapPoints: [],
-        // An unregistered kind offers no edges either; the fallback returns none.
-        edges: [],
-        length: 0,
-      }
-    )
+    const geometry = this.getGeometry(shape)
+    return {
+      bounds: geometry.bounds,
+      vertices: geometry.vertices,
+      snapPoints: this.getSnapPointsRaw(shape),
+      edges: geometry.edges,
+      length: geometry.length,
+    }
+  }
+
+  /** The snap points before the symbol's matrix is applied — what the record form holds. */
+  private getSnapPointsRaw(shape: TShape): TPoint[] {
+    return SHAPE_KINDS[shape.kind] ? OBBOps.getSnapPoints(this.getGeometry(shape).bounds) : []
   }
 
   overlaps(shape: TShape, box: TBox): boolean {
-    return this.overlapsQuery(shape, box, (b) => SHAPE_KINDS[shape.kind]?.overlaps(shape, b) ?? false)
+    return SymbolGeometry.of(shape).overlapsBox(box)
   }
 
+  /**
+   * A shape snaps on its box — corners, mid-sides and centre — whatever its outline looks like.
+   *
+   * None at all for a kind the table does not own: its box is an empty one at the origin, and
+   * offering nine snap points there would pull anything nearby to the corner of the page.
+   */
   getSnapPoints(shape: TShape): TPoint[] {
-    return this.mapPointsForward(shape, this.computeGeometry(shape).snapPoints)
+    return SHAPE_KINDS[shape.kind] ? OBBOps.getSnapPoints(SymbolGeometry.of(shape).bounds) : []
   }
 
   keepsAspectRatio(shape: TShape): boolean {

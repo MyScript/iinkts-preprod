@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, test } from "@jest/globals"
 import { buildIILine } from "../../helpers"
 
 import type { TEdge, TOBB, TPartialDeep } from "@/iink"
-import { EdgeArcOps, EdgeDecoration, EdgeKind, EdgeUtil, MatrixTransform, OBBOps, SymbolType, TPoint, TSegment, EdgeLineOps, TEdgeLine, EdgePolyLineOps, TEdgePolyLine, TEdgeArc } from "@/iink"
+import { EdgeArcOps, EdgeDecoration, registerBuiltinSymbolUtils, EdgeKind, EdgeUtil, MatrixTransform, OBBOps, SymbolType, TPoint, EdgeLineOps, TEdgeLine, EdgePolyLineOps, TEdgePolyLine, TEdgeArc } from "@/iink"
 
 /**
  * `EdgeUtil` resolved a kind with a `switch` in each of four methods until IIC-2002 replaced them
@@ -15,11 +15,10 @@ import { EdgeArcOps, EdgeDecoration, EdgeKind, EdgeUtil, MatrixTransform, OBBOps
  * dispatch oracle like {@link EDGE_BOUNDS_ORACLE}: it reaches the same `*Ops` calls `computeGeometry`
  * makes, so it pins the routing, not the arithmetic.
  */
-const EDGES_ORACLE: Record<string, (edge: TEdge, vertices: TPoint[]) => TSegment[]> = {
-  [EdgeKind.Line]: (edge) => EdgeLineOps.computeEdges(edge as TEdgeLine),
-  [EdgeKind.PolyEdge]: (edge) => EdgePolyLineOps.computeEdges((edge as TEdgePolyLine).points),
-  [EdgeKind.Arc]: (_edge, vertices) => EdgeArcOps.computeEdges(vertices),
-}
+// `overlaps` reads through `SymbolGeometry`, which resolves the util from the registry — that is
+// what buys it the per-symbol geometry cache, and a bare `new EdgeUtil()` cannot exercise it.
+registerBuiltinSymbolUtils()
+
 
 /**
  * Each kind's own bounds computation. This is a *dispatch* oracle: it proves `EdgeUtil` routes an
@@ -95,23 +94,29 @@ describe("EdgeUtil", () => {
       expect(edge().type).toBe(SymbolType.Edge)
     })
 
-    test("computeGeometry should dispatch each kind to that kind's own computation", () => {
+    test("computeGeometry should read every field off the kind's own geometry", () => {
       const created = edge()
 
       const geometry = util.computeGeometry(created)
+      const edgeGeometry = util.getGeometry(created)
 
-      expect(geometry.bounds).toEqual(EDGE_BOUNDS_ORACLE[kind](created))
-      // Oracle is the kind's own vertex computation, not the stored field it replaced.
-      expect(geometry.vertices).toEqual(EDGE_VERTICES_ORACLE[kind](created))
+      // The record is a view of the geometry now, so what matters is that it does not drift from it.
+      expect(geometry.bounds).toEqual(edgeGeometry.bounds)
+      expect(geometry.vertices).toEqual(edgeGeometry.vertices)
+      expect(geometry.edges).toEqual(edgeGeometry.edges)
       // Per kind, because the three do not agree: a line and a polyline snap by every vertex, an arc
       // only by its two endpoints. Asserting `geometry.vertices` for all three passed for the first
       // two and quietly accepted a 28-point answer for the arc.
       expect(geometry.snapPoints).toEqual(
         kind === EdgeKind.Arc ? EdgeArcOps.computeSnapPoints(geometry.vertices) : geometry.vertices
       )
-      // Oracle is the kind's own `computeEdges`, not the stored field it replaced.
-      expect(geometry.edges).toEqual(EDGES_ORACLE[kind](created, geometry.vertices))
-      expect(geometry.length).toBe(0)
+    })
+
+    test("getGeometry should be an open path bounding the edge the kind describes", () => {
+      const geometry = util.getGeometry(edge())
+      expect(geometry.isClosed).toBe(false)
+      expect(geometry.bounds).toEqual(EDGE_BOUNDS_ORACLE[kind](edge()))
+      expect(geometry.vertices).toEqual(EDGE_VERTICES_ORACLE[kind](edge()))
     })
 
     test("should answer overlaps", () => {
@@ -170,7 +175,14 @@ describe("EdgeUtil", () => {
 
     test("should stay tolerant where it always was", () => {
       // Both run over whole models and never threw on an unknown kind; they still must not.
-      const unknown = { kind: "spline" } as unknown as TEdge
+      // An edge of an unknown *kind*, not an object of an unknown type: `overlaps` reads through
+      // `SymbolGeometry`, which resolves the util from `symbol.type`, so the type has to be there for
+      // this to be about the kind at all.
+      const unknown = {
+        type: SymbolType.Edge,
+        kind: "spline",
+        transform: MatrixTransform.identity(),
+      } as unknown as TEdge
       expect(util.overlaps(unknown, { x: 0, y: 0, width: 1, height: 1 })).toBe(false)
     })
 
