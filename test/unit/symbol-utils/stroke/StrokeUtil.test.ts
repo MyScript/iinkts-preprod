@@ -200,4 +200,21 @@ describe("StrokeUtil", () => {
       expect(util.canRotate(stroke)).toBe(true)
     })
   })
+
+  describe("no group", () => {
+    test("should be the path itself, with nothing wrapping it", () => {
+      const element = new StrokeUtil().getSVGElement(buildIIStroke())
+      expect(element.tagName).toBe("path")
+      expect(element.getAttribute("d")).toBeTruthy()
+    })
+
+    test("should carry vector-effect on the drawn element, where it actually applies", () => {
+      // It used to sit on the wrapping group. `vector-effect` is not an inherited property, so there
+      // it applied to a group that draws nothing and never reached the path — it was inert. On the
+      // path it takes effect, and stroke width stops growing with the zoom.
+      expect(new StrokeUtil().getSVGElement(buildIIStroke()).getAttribute("vector-effect")).toBe(
+        "non-scaling-stroke"
+      )
+    })
+  })
 })
