@@ -128,7 +128,7 @@ describe("EdgeUtil", () => {
 
     test("should produce an svg element carrying that path", () => {
       const element = util.getSVGElement(edge())
-      const path = element.querySelector("path")
+      const path = element
       expect(element.getAttribute("kind")).toBe(kind)
       expect(path?.getAttribute("d")).toBe(EdgeUtil.getSVGPath(edge()))
     })
@@ -151,13 +151,13 @@ describe("EdgeUtil", () => {
         startDecoration: EdgeDecoration.Arrow,
         endDecoration: EdgeDecoration.Arrow,
       } as TPartialDeep<TEdge>)
-      const path = util.getSVGElement(decorated).querySelector("path")
+      const path = util.getSVGElement(decorated)
       expect(path?.getAttribute("marker-start")).toContain("url(#")
       expect(path?.getAttribute("marker-end")).toContain("url(#")
     })
 
     test("should leave an undecorated edge without markers", () => {
-      const path = util.getSVGElement(edge()).querySelector("path")
+      const path = util.getSVGElement(edge())
       expect(path?.getAttribute("marker-start")).toBeNull()
       expect(path?.getAttribute("marker-end")).toBeNull()
     })
