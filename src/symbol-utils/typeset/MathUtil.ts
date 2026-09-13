@@ -1,15 +1,9 @@
-import { isIdentityMatrix, MatrixTransform } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
-import { DecoratorKind } from "@/symbol/decorator/Decorator"
 import { SymbolType } from "@/symbol/Symbol"
-import { MathOps, type TMath } from "@/symbol/typeset/Math"
+import { MathOps, type TMath, type TMathElement } from "@/symbol/typeset/Math"
 
-import { DecoratorUtil } from "../decorator/DecoratorUtil"
 import { SVGBuilder } from "../SVGBuilder"
 import { TypesetUtil } from "./TypesetUtil"
-
-const noSelection =
-  "pointer-events: none; -webkit-touch-callout: none; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;"
 
 /**
  * @group SymbolUtils
@@ -21,103 +15,56 @@ export class MathUtil extends TypesetUtil<TMath> {
     return MathOps.createFromPartial(partial)
   }
 
-  getSVGElement(math: TMath): SVGGraphicsElement {
-    const attrs: { [key: string]: string } = {
-      id: math.id,
-      type: math.type,
-      "vector-effect": "non-scaling-stroke",
-      "stroke-linecap": "round",
-      "stroke-linejoin": "round",
-      style: noSelection,
-    }
-    if (math.style.opacity) {
-      attrs.opacity = math.style.opacity.toString()
-    }
-    // Turning a math symbol is composed into its matrix now, not recorded separately — there is no
-    // `.rotation` left to combine this with.
-    if (!isIdentityMatrix(math.transform)) {
-      attrs.transform = MatrixTransform.toCssString(math.transform)
-    }
-
-    const mathGroup = SVGBuilder.createGroup(attrs)
-
-    const hasSuperscript = math.elements.some((e) => e.position === "superscript")
-    const hasSubscript = math.elements.some((e) => e.position === "subscript")
-
-    if (hasSuperscript || hasSubscript) {
-      let currentX = math.point.x
-      const baselineY = math.point.y
-
-      math.elements.forEach((e, index) => {
-        const textAttrs: {
-          [key: string]: string
-        } = {
-          id: e.id,
-          fill: e.color,
-          "font-size": `${e.fontSize}px`,
-          "font-weight": e.fontWeight.toString(),
-          "font-family": e.fontFamily,
-        }
-
-        let x = currentX
-        let y = baselineY
-
-        if (e.position === "superscript") {
-          y = baselineY - e.fontSize * 1.5
-          x = currentX - e.label.length * e.fontSize * 0.3
-        } else if (e.position === "subscript") {
-          y = baselineY + e.fontSize * 1.2
-          x = currentX - e.label.length * e.fontSize * 0.3
-        } else {
-          if (index > 0) {
-            const prevElement = math.elements[index - 1]
-            if (prevElement.position === "normal") {
-              currentX += prevElement.label.length * prevElement.fontSize * 0.6
-              x = currentX
-            }
-          }
-        }
-
-        const textElement = SVGBuilder.createText({ x, y }, e.label)
-        Object.entries(textAttrs).forEach(([key, value]) => {
-          textElement.setAttribute(key, value)
-        })
-        mathGroup.appendChild(textElement)
-
-        if (e.position === "normal") {
-          currentX = x + e.label.length * e.fontSize * 0.6
-        }
-      })
-    } else {
-      const mathElement = SVGBuilder.createText(math.point, "")
-
-      math.elements.forEach((e) => {
-        const tspanAttrs: {
-          [key: string]: string
-        } = {
-          id: e.id,
-          fill: e.color,
-          "font-size": `${e.fontSize}px`,
-          "font-weight": e.fontWeight.toString(),
-          "font-family": e.fontFamily,
-        }
-        mathElement.appendChild(SVGBuilder.createTSpan(e.label, tspanAttrs))
-      })
-
-      mathGroup.append(mathElement)
-    }
-
-    math.decorators.forEach((d) => {
-      const deco = DecoratorUtil.renderForSymbol(d, math)
-      if (deco) {
-        if (d.kind === DecoratorKind.Highlight) {
-          mathGroup.prepend(deco)
-        } else {
-          mathGroup.append(deco)
-        }
-      }
+  /**
+   * One text element per element when any of them is a super- or subscript, laid out by hand;
+   * otherwise one text element with a tspan each, the way text does it.
+   *
+   * The hand-laid branch exists because a tspan cannot be lifted off the baseline on its own here —
+   * the positions are computed from each element's own font size.
+   */
+  protected buildContent(math: TMath): SVGElement[] {
+    const attributesOf = (element: TMathElement): Record<string, string> => ({
+      id: element.id,
+      fill: element.color,
+      "font-size": `${element.fontSize}px`,
+      "font-weight": element.fontWeight.toString(),
+      "font-family": element.fontFamily,
     })
 
-    return mathGroup
+    const hasScript = math.elements.some((e) => e.position === "superscript" || e.position === "subscript")
+    if (!hasScript) {
+      const mathElement = SVGBuilder.createText(math.point, "")
+      math.elements.forEach((e) => mathElement.appendChild(SVGBuilder.createTSpan(e.label, attributesOf(e))))
+      return [mathElement]
+    }
+
+    let currentX = math.point.x
+    const baselineY = math.point.y
+    return math.elements.map((e, index) => {
+      let x = currentX
+      let y = baselineY
+
+      if (e.position === "superscript") {
+        y = baselineY - e.fontSize * 1.5
+        x = currentX - e.label.length * e.fontSize * 0.3
+      } else if (e.position === "subscript") {
+        y = baselineY + e.fontSize * 1.2
+        x = currentX - e.label.length * e.fontSize * 0.3
+      } else if (index > 0) {
+        const previous = math.elements[index - 1]
+        if (previous.position === "normal") {
+          currentX += previous.label.length * previous.fontSize * 0.6
+          x = currentX
+        }
+      }
+
+      const textElement = SVGBuilder.createText({ x, y }, e.label)
+      Object.entries(attributesOf(e)).forEach(([key, value]) => textElement.setAttribute(key, value))
+
+      if (e.position === "normal") {
+        currentX = x + e.label.length * e.fontSize * 0.6
+      }
+      return textElement
+    })
   }
 }
