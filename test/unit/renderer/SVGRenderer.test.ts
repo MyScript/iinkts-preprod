@@ -203,9 +203,9 @@ describe("SVGRenderer.ts", () => {
       expect(el).toBeDefined()
       expect(el.getAttribute("id")).toEqual(stroke.id)
       expect(el.getAttribute("type")).toEqual("stroke")
-      const path = el.querySelector("path")!
-      expect(path.getAttribute("fill")).toEqual(stroke.style.color)
-      expect(path.getAttribute("stroke-width")).toEqual(stroke.style.width?.toString())
+      // The element found by id is the path itself: a path symbol no longer sits inside a group.
+      expect(el.getAttribute("fill")).toEqual(stroke.style.color)
+      expect(el.getAttribute("stroke-width")).toEqual(stroke.style.width?.toString())
     })
     test("should draw circle", () => {
       const circle = buildIICircle()
@@ -214,9 +214,8 @@ describe("SVGRenderer.ts", () => {
       expect(el).toBeDefined()
       expect(el.getAttribute("id")).toEqual(circle.id)
       expect(el.getAttribute("type")).toEqual("shape")
-      const path = el.querySelector("path")!
-      expect(path.getAttribute("stroke")).toEqual(circle.style.color)
-      expect(path.getAttribute("stroke-width")).toEqual(circle.style.width?.toString())
+      expect(el.getAttribute("stroke")).toEqual(circle.style.color)
+      expect(el.getAttribute("stroke-width")).toEqual(circle.style.width?.toString())
     })
     test("should draw line", () => {
       const line = buildIILine()
@@ -225,9 +224,8 @@ describe("SVGRenderer.ts", () => {
       expect(el).toBeDefined()
       expect(el.getAttribute("id")).toEqual(line.id)
       expect(el.getAttribute("type")).toEqual("edge")
-      const path = el.querySelector("path")!
-      expect(path.getAttribute("stroke")).toEqual(line.style.color)
-      expect(path.getAttribute("stroke-width")).toEqual(line.style.width?.toString())
+      expect(el.getAttribute("stroke")).toEqual(line.style.color)
+      expect(el.getAttribute("stroke-width")).toEqual(line.style.width?.toString())
     })
     test("should draw text", () => {
       const chars: TSymbolChar[] = [
@@ -264,7 +262,7 @@ describe("SVGRenderer.ts", () => {
     test("should draw stroke already renderer", () => {
       const stroke = buildIIStroke()
       renderer.drawSymbol(stroke)
-      const oldPath = divElement.querySelector(`#${stroke.id}`)!.querySelector("path")!.getAttribute("d")
+      const oldPath = divElement.querySelector(`#${stroke.id}`)!.getAttribute("d")
       for (let x = 0; x < 10; x++) {
         StrokeOps.addPointer(stroke, {
           x,
@@ -274,7 +272,7 @@ describe("SVGRenderer.ts", () => {
         })
       }
       renderer.drawSymbol(stroke)
-      expect(divElement.querySelector(`#${stroke.id}`)!.querySelector("path")!.getAttribute("d")!).not.toEqual(oldPath)
+      expect(divElement.querySelector(`#${stroke.id}`)!.getAttribute("d")!).not.toEqual(oldPath)
     })
     test("should replace stroke by circle", () => {
       const stroke = buildIIStroke()
@@ -406,9 +404,11 @@ describe("SVGRenderer.ts", () => {
       renderer.drawSymbol(stroke1)
       const stroke2 = buildIIStroke()
       renderer.drawSymbol(stroke2)
-      const nbGroup = renderer.layer.querySelectorAll("g").length
-      renderer.clearElements({ tagName: "g", attrs: { id: stroke2.id } })
-      expect(renderer.layer.querySelectorAll("g")).toHaveLength(nbGroup - 1)
+      // A stroke is a `path` now, not a `g` — the filter still narrows by tag and attribute, which
+      // is what this is about.
+      const nbPaths = renderer.layer.querySelectorAll("path").length
+      renderer.clearElements({ tagName: "path", attrs: { id: stroke2.id } })
+      expect(renderer.layer.querySelectorAll("path")).toHaveLength(nbPaths - 1)
     })
   })
 

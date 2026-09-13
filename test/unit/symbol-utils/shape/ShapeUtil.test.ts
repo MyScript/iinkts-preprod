@@ -124,19 +124,26 @@ describe("ShapeUtil", () => {
 
     test("should produce an svg element carrying that path", () => {
       const element = util.getSVGElement(shape())
-      const path = element.querySelector("path")
+      const path = element
       expect(element.getAttribute("kind")).toBe(kind)
       expect(path?.getAttribute("d")).toBe(ShapeUtil.getSVGPath(shape()))
     })
 
-    test("should emit no transform attribute for a shape that was never moved", () => {
-      expect(util.getSVGElement(shape()).getAttribute("transform")).toBeNull()
+    // The ellipse is the only kind that turns its own path, so it is the only one where the symbol's
+    // matrix and the kind's rotation meet on the same element. They have to compose: a plain merge
+    // would let one replace the other, and a turned ellipse that was also moved would lose the move.
+    const ownRotation = kind === ShapeKind.Ellipse ? " rotate(45, 50, 50)" : ""
+
+    test("should emit no matrix for a shape that was never moved", () => {
+      expect(util.getSVGElement(shape()).getAttribute("transform")).toBe(ownRotation.trim() || null)
     })
 
-    test("should emit the shape's matrix as the element transform once moved", () => {
+    test("should compose the shape's matrix with whatever the kind turns its path by", () => {
       const moved = shape()
       moved.transform = MatrixTransform.identity().translate(3, 4)
-      expect(util.getSVGElement(moved).getAttribute("transform")).toBe("matrix(1, 0, 0, 1, 3, 4)")
+      // Right to left, the nesting order the group and path used to give for free: the kind's own
+      // rotation first, the symbol's matrix after it.
+      expect(util.getSVGElement(moved).getAttribute("transform")).toBe(`matrix(1, 0, 0, 1, 3, 4)${ownRotation}`)
     })
   })
 
@@ -194,7 +201,7 @@ describe("ShapeUtil", () => {
 
   describe("path attributes", () => {
     test("should orient the ellipse, the one kind that needs it", () => {
-      const path = util.getSVGElement(util.create(PARTIALS[ShapeKind.Ellipse])).querySelector("path")
+      const path = util.getSVGElement(util.create(PARTIALS[ShapeKind.Ellipse]))
       expect(path?.getAttribute("transform")).toContain("rotate(45")
     })
 
@@ -202,14 +209,14 @@ describe("ShapeUtil", () => {
       // Before IIC-2002 this lived as an `if (shape.kind === ShapeKind.Ellipse)` in the shared
       // method; the table must not have leaked it onto every kind.
       IMPLEMENTED.filter((kind) => kind !== ShapeKind.Ellipse).forEach((kind) => {
-        const path = util.getSVGElement(util.create(PARTIALS[kind])).querySelector("path")
+        const path = util.getSVGElement(util.create(PARTIALS[kind]))
         expect(path?.getAttribute("transform")).toBeNull()
       })
     })
 
     test("should keep opacity alongside the extra attributes", () => {
       const shape = util.create({ ...PARTIALS[ShapeKind.Ellipse], style: { opacity: 0.5 } } as TPartialDeep<TShape>)
-      const path = util.getSVGElement(shape).querySelector("path")
+      const path = util.getSVGElement(shape)
       expect(path?.getAttribute("opacity")).toBe("0.5")
       expect(path?.getAttribute("transform")).toBeTruthy()
     })
