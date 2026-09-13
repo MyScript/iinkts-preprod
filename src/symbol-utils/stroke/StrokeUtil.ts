@@ -1,19 +1,18 @@
 import type { TBox } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
-import { isIdentityMatrix, MatrixTransform, OBBOps, PointSet2d } from "@/core/geometry"
+import { OBBOps, PointSet2d } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import { DefaultStyle } from "@/style"
 import { StrokeOps, type TStroke } from "@/symbol/stroke/Stroke"
 import { SymbolType } from "@/symbol/Symbol"
 
-import { SVGBuilder } from "../SVGBuilder"
+import { PathSymbolUtil } from "../PathSymbolUtil"
 import { SymbolGeometry } from "../SymbolGeometry"
-import { SymbolUtil } from "../SymbolUtil"
 
 /**
  * @group SymbolUtils
  */
-export class StrokeUtil extends SymbolUtil<TStroke> {
+export class StrokeUtil extends PathSymbolUtil<TStroke> {
   readonly type = SymbolType.Stroke
 
   create(partial: TPartialDeep<TStroke>): TStroke {
@@ -52,30 +51,23 @@ export class StrokeUtil extends SymbolUtil<TStroke> {
     return OBBOps.getSnapPoints(SymbolGeometry.of(stroke).bounds)
   }
 
-  getSVGElement(stroke: TStroke): SVGGraphicsElement {
-    const attrs: { [key: string]: string } = {
-      id: stroke.id,
-      type: "stroke",
-      "vector-effect": "non-scaling-stroke",
-      "stroke-linecap": "round",
-      "stroke-linejoin": "round",
-    }
-    if (!isIdentityMatrix(stroke.transform)) {
-      attrs.transform = MatrixTransform.toCssString(stroke.transform)
-    }
+  protected getPathData(stroke: TStroke): string {
+    return StrokeOps.getSVGPath(stroke)
+  }
 
-    const strokeGroup = SVGBuilder.createGroup(attrs)
-
-    const strokeAttrs: { [key: string]: string } = {
+  /**
+   * Filled, not stroked: a stroke's path is the outline of the ink, so the colour goes on `fill` and
+   * there is no stroke colour at all. `stroke-width` still carries the nominal width, which the
+   * outline was built from.
+   */
+  protected getPathAttributes(stroke: TStroke): Record<string, string> {
+    const attributes: Record<string, string> = {
       fill: stroke.style.color || DefaultStyle.color!,
       "stroke-width": stroke.style.width.toString(),
-      d: StrokeOps.getSVGPath(stroke),
     }
     if (stroke.style.opacity) {
-      strokeAttrs.opacity = stroke.style.opacity.toString()
+      attributes.opacity = stroke.style.opacity.toString()
     }
-    strokeGroup.append(SVGBuilder.createPath(strokeAttrs))
-
-    return strokeGroup
+    return attributes
   }
 }

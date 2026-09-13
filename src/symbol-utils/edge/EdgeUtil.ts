@@ -1,7 +1,7 @@
 import { EdgeDecoration, SELECTION_MARGIN } from "@/Constants"
 import type { TBox } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
-import { type Geometry2d, isIdentityMatrix, MatrixTransform, Polyline2d } from "@/core/geometry"
+import { type Geometry2d, Polyline2d } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import { DefaultStyle } from "@/style"
 import { EdgeArcOps, type TEdgeArc } from "@/symbol/edge/Arc"
@@ -12,9 +12,8 @@ import { EdgePolyLineOps, type TEdgePolyLine } from "@/symbol/edge/PolyLine"
 import { SymbolType, type TResizePoint } from "@/symbol/Symbol"
 
 import { defineKind, resolveKind, type TKindDefinition } from "../KindDefinition"
-import { SVGBuilder } from "../SVGBuilder"
+import { PathSymbolUtil } from "../PathSymbolUtil"
 import { SymbolGeometry } from "../SymbolGeometry"
-import { SymbolUtil } from "../SymbolUtil"
 import { arrowHeadEndMarkerId, arrowHeadStartMarkerId } from "./EdgeRenderOptions"
 
 /**
@@ -64,7 +63,7 @@ const EDGE_KINDS: Partial<Record<EdgeKind, TKindDefinition<TEdge>>> = {
 /**
  * @group SymbolUtils
  */
-export class EdgeUtil extends SymbolUtil<TEdge> {
+export class EdgeUtil extends PathSymbolUtil<TEdge> {
   readonly type = SymbolType.Edge
 
   create(partial: TPartialDeep<TEdge>): TEdge {
@@ -109,43 +108,35 @@ export class EdgeUtil extends SymbolUtil<TEdge> {
     return resolveKind(EDGE_KINDS, edge.kind, "edge", "getSVGPath for").getSVGPath(edge)
   }
 
-  getSVGElement(edge: TEdge): SVGGraphicsElement {
+  /** Which of the three kinds it is, on top of what every symbol's group carries. */
+  protected override getGroupAttributes(edge: TEdge): Record<string, string> {
+    return { ...super.getGroupAttributes(edge), kind: edge.kind }
+  }
+
+  protected getPathData(edge: TEdge): string {
+    return resolveKind(EDGE_KINDS, edge.kind, "edge", "getSVGElement for").getSVGPath(edge)
+  }
+
+  /** Stroked on no fill — a line encloses nothing — plus whichever arrow heads it carries. */
+  protected getPathAttributes(edge: TEdge): Record<string, string> {
     const definition = resolveKind(EDGE_KINDS, edge.kind, "edge", "getSVGElement for")
-
-    const attrs: { [key: string]: string } = {
-      id: edge.id,
-      type: edge.type,
-      kind: edge.kind,
-      "vector-effect": "non-scaling-stroke",
-      "stroke-linecap": "round",
-      "stroke-linejoin": "round",
-    }
-    if (!isIdentityMatrix(edge.transform)) {
-      attrs.transform = MatrixTransform.toCssString(edge.transform)
-    }
-
-    const group = SVGBuilder.createGroup(attrs)
-
-    const pathAttrs: { [key: string]: string } = {
+    const attributes: Record<string, string> = {
       fill: "transparent",
       stroke: edge.style.color || DefaultStyle.color!,
       "stroke-width": (edge.style.width || DefaultStyle.width).toString(),
-      d: definition.getSVGPath(edge),
       ...definition.extraPathAttributes?.(edge),
     }
     if (edge.style.opacity) {
-      pathAttrs["opacity"] = edge.style.opacity.toString()
+      attributes.opacity = edge.style.opacity.toString()
     }
-
     // Decorations are not kind dispatch — every kind of edge can carry an arrow head — so they stay
     // here rather than moving into the table.
     if (edge.startDecoration === EdgeDecoration.Arrow) {
-      pathAttrs["marker-start"] = `url(#${arrowHeadStartMarkerId})`
+      attributes["marker-start"] = `url(#${arrowHeadStartMarkerId})`
     }
     if (edge.endDecoration === EdgeDecoration.Arrow) {
-      pathAttrs["marker-end"] = `url(#${arrowHeadEndMarkerId})`
+      attributes["marker-end"] = `url(#${arrowHeadEndMarkerId})`
     }
-    group.appendChild(SVGBuilder.createPath(pathAttrs))
-    return group
+    return attributes
   }
 }

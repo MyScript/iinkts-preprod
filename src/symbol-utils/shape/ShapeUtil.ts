@@ -1,14 +1,6 @@
 import type { TBox } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
-import {
-  Circle2d,
-  Ellipse2d,
-  type Geometry2d,
-  isIdentityMatrix,
-  MatrixTransform,
-  OBBOps,
-  Polygon2d,
-} from "@/core/geometry"
+import { Circle2d, Ellipse2d, type Geometry2d, OBBOps, Polygon2d } from "@/core/geometry"
 import { convertRadianToDegree } from "@/core/math"
 import type { TPartialDeep } from "@/core/std"
 import { DefaultStyle } from "@/style"
@@ -20,9 +12,8 @@ import { ShapeKind } from "@/symbol/shape/Shape-enum"
 import { SymbolType } from "@/symbol/Symbol"
 
 import { defineKind, resolveKind, type TKindDefinition } from "../KindDefinition"
-import { SVGBuilder } from "../SVGBuilder"
+import { PathSymbolUtil } from "../PathSymbolUtil"
 import { SymbolGeometry } from "../SymbolGeometry"
-import { SymbolUtil } from "../SymbolUtil"
 
 /**
  * The shape kinds this util can build, and how.
@@ -74,7 +65,7 @@ const SHAPE_KINDS: Partial<Record<ShapeKind, TKindDefinition<TShape>>> = {
 /**
  * @group SymbolUtils
  */
-export class ShapeUtil extends SymbolUtil<TShape> {
+export class ShapeUtil extends PathSymbolUtil<TShape> {
   readonly type = SymbolType.Shape
 
   create(partial: TPartialDeep<TShape>): TShape {
@@ -112,35 +103,27 @@ export class ShapeUtil extends SymbolUtil<TShape> {
     return resolveKind(SHAPE_KINDS, shape.kind, "shape", "getSVGPath for").getSVGPath(shape)
   }
 
-  getSVGElement(shape: TShape): SVGGraphicsElement {
+  /** Which of the three kinds it is, on top of what every symbol's group carries. */
+  protected override getGroupAttributes(shape: TShape): Record<string, string> {
+    return { ...super.getGroupAttributes(shape), kind: shape.kind }
+  }
+
+  protected getPathData(shape: TShape): string {
+    return resolveKind(SHAPE_KINDS, shape.kind, "shape", "getSVGElement for").getSVGPath(shape)
+  }
+
+  /** Stroked *and* filled, the fill coming from the style — the only family that paints both. */
+  protected getPathAttributes(shape: TShape): Record<string, string> {
     const definition = resolveKind(SHAPE_KINDS, shape.kind, "shape", "getSVGElement for")
-
-    const attrs: { [key: string]: string } = {
-      id: shape.id,
-      type: shape.type,
-      kind: shape.kind,
-      "vector-effect": "non-scaling-stroke",
-      "stroke-linecap": "round",
-      "stroke-linejoin": "round",
-    }
-    if (!isIdentityMatrix(shape.transform)) {
-      attrs.transform = MatrixTransform.toCssString(shape.transform)
-    }
-
-    const group = SVGBuilder.createGroup(attrs)
-
-    const pathAttrs: { [key: string]: string } = {
+    const attributes: Record<string, string> = {
       fill: shape.style.fill || "transparent",
       stroke: shape.style.color || DefaultStyle.color!,
       "stroke-width": (shape.style.width || DefaultStyle.width).toString(),
-      d: definition.getSVGPath(shape),
       ...definition.extraPathAttributes?.(shape),
     }
     if (shape.style.opacity) {
-      pathAttrs["opacity"] = shape.style.opacity.toString()
+      attributes.opacity = shape.style.opacity.toString()
     }
-
-    group.appendChild(SVGBuilder.createPath(pathAttrs))
-    return group
+    return attributes
   }
 }

@@ -158,4 +158,33 @@ export abstract class SymbolUtil<T extends TBaseSymbol> {
    * "symbol type unknown". That variant is deprecated and not worth wiring up.
    */
   abstract getSVGElement(symbol: T): SVGGraphicsElement | undefined
+
+  /**
+   * The attributes on the group every symbol is drawn inside.
+   *
+   * The same five for every type, plus the matrix when there is one — written once here rather than
+   * copied into each `getSVGElement`, where six copies had already started to drift apart in what
+   * they called the `type` attribute.
+   *
+   * A type that needs more overrides this and spreads the result: the shape and edge families add
+   * their `kind`, and the typeset one adds what a rendered word needs that a path does not.
+   */
+  protected getGroupAttributes(symbol: T): Record<string, string> {
+    const attributes: Record<string, string> = {
+      id: symbol.id,
+      type: symbol.type,
+      "vector-effect": "non-scaling-stroke",
+      "stroke-linecap": "round",
+      "stroke-linejoin": "round",
+    }
+    // Guarded rather than read straight: a symbol of a kind no table owns is tolerated all the way
+    // to here, and such an object can arrive without the matrix `mergeSymbolTransform` normally
+    // backfills. Reading `undefined` would throw a meaningless error over the meaningful one the
+    // caller is about to raise about the kind itself.
+    const transform = symbol.transform
+    if (transform && !isIdentityMatrix(transform)) {
+      attributes.transform = MatrixTransform.toCssString(transform)
+    }
+    return attributes
+  }
 }
