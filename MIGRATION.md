@@ -137,7 +137,7 @@ than reusing one.
 **This is enforced at runtime, not by the compiler.** `Object.freeze` is what stops the write; the
 types will not warn you. Treat anything you read from `canvas.model` as frozen.
 
-Building a symbol from scratch is unaffected: `StrokeOps.create()` and friends return an object you
+Building a symbol from scratch is unaffected: `StrokeUtil.createEmpty()` and friends return an object you
 own, and it becomes frozen only when you hand it to `addSymbol`.
 
 Two accessors were sealed along the way: `model.selectedIds` is a `ReadonlySet` — change the selection
@@ -239,21 +239,22 @@ Nothing needs refreshing after a write any more:
 
 Both are removed, along with every per-kind `updateDerivedFields`. The next read recomputes.
 
-Two stored fields survive, because neither is derived from coordinates the symbol owns.
-`TStroke.length` is an accumulator that `StrokeOps.addPointer` maintains and the pressure model
-reads once per pointer; deriving it on read would make drawing a stroke quadratic in its own pointer
-count. `TText.bounds` and `TMath.bounds` are measured from the DOM with `getBBox()`. And
+Two stored boxes survive, because neither is derived from coordinates the symbol owns.
+`TText.bounds` and `TMath.bounds` are measured from the DOM with `getBBox()`. And
 `TDecorator.bounds` is renamed `targetBounds` — see below.
 
-If you built a symbol type of your own, its util's `computeGeometry` is where its geometry comes
-from now; there is no field to keep in step.
+`TStroke.length` survived this change and was removed by a later one, once the pressure model that
+read it per pointer was gone — see *A stroke computes its own length*.
+
+If you built a symbol type of your own, its util's `getGeometry` is where its geometry comes from
+now; there is no field to keep in step.
 
 ### A symbol carries where it sits, as a matrix
 
 `TBaseSymbol.transform` is a `TMatrixTransform`, identity on a freshly created symbol. Transforms
 compose into it and the symbol's stored coordinates never move.
 
-If you construct symbols by hand rather than through `*Ops.create` or `createSymbolFromPartial`,
+If you construct symbols by hand rather than through a util's `create*` or `createSymbolFromPartial`,
 give them one:
 
 ```diff
@@ -327,7 +328,7 @@ and it is optional now.
 + decorator.targetBounds          // TOBB | undefined; unset is "no box of its own"
 
 - DecoratorOps.setBounds(decorator, obb)
-+ DecoratorOps.setTargetBounds(decorator, obb)
++ DecoratorUtil.setTargetBounds(decorator, obb)
 ```
 
 `hasBounds` is gone: presence of `targetBounds` is the flag, so the two can no longer disagree. The
@@ -378,7 +379,7 @@ cannot express.
   class StickyNoteUtil extends SymbolUtil<TStickyNote> {
     readonly type = "sticky-note"
     create(partial) { ... }
-    overlaps(symbol, box) { ... }
+    getGeometry(symbol) { ... }
     getSVGElement(symbol) { ... }
 -   translate(symbol, { matrix }) {
 -     symbol.point = applyMatrixToPoint(symbol.point, matrix)
@@ -416,7 +417,7 @@ The replacement is not edge-specific: it answers for any symbol type, and a cust
 offer per-vertex handles by overriding `getResizePoints`. It returns an empty list by default, which
 is what every built-in but the edges does.
 
-`TResizePoint` names the `{ point, vertexIndex }` shape the three edge `Ops` already returned. It is
+`TResizePoint` names the `{ point, vertexIndex }` shape the three edge kinds already returned. It is
 structural, so nothing has to change to adopt it.
 
 ### A custom `SymbolUtil` must implement `getSVGElement`
@@ -429,7 +430,7 @@ visible. No error said so.
   class StickyNoteUtil extends SymbolUtil<TStickyNote> {
     readonly type = "sticky-note"
     create(partial) { ... }
-    overlaps(symbol, box) { ... }
+    getGeometry(symbol) { ... }
 +   getSVGElement(symbol) { ... }
   }
 ```
@@ -442,6 +443,114 @@ That variant renders through `CanvasRenderer`, which dispatches on `isStroke` an
 tables instead of asking the registry, so your symbol is invisible there and the log says
 "symbol type unknown". `InteractiveInkCanvas`, `InkCanvas` and `InteractiveInkSSRCanvas` all draw
 it.
+
+### A custom `SymbolUtil` describes its shape, not its geometry record
+
+`computeGeometry` is gone. Return a `Geometry2d` from `getGeometry` and the shape answers overlap,
+containment and distance on your behalf. `overlaps` is **no longer abstract**: it asks that shape, so
+delete yours unless your hit test is not a question about your outline.
+
+```diff
+  class StickyNoteUtil extends SymbolUtil<TStickyNote> {
+    readonly type = "sticky-note"
+-   computeGeometry(symbol) {
+-     const bounds = OBBOps.create(symbol.point, 10, 10)
+-     return { bounds, vertices: BoxOps.getCorners(...), snapPoints: [], edges: [...], length: 0 }
+-   }
+-   overlaps(symbol, box) { return OBBOps.polygonOverlapsBox(bounds, edges, box) }
++   getGeometry(symbol) {
++     return new Polygon2d(BoxOps.getCorners({ x: symbol.point.x, y: symbol.point.y, width: 10, height: 10 }))
++   }
+  }
+```
+
+Pick the shape that describes what you draw:
+
+| Shape | For |
+|---|---|
+| `Polygon2d(points, isFilled?)` | a closed outline — the last vertex joins the first |
+| `Polyline2d(points, padding?)` | an open path |
+| `PointSet2d(points)` | a run of samples, caught only where a sample lands (what a stroke is) |
+| `Circle2d(center, radius, isFilled?)` | tested by radius, not by a polygon standing in for it |
+| `Ellipse2d.fromRadii(center, rx, ry, orientation?, isFilled?)` | exact under any matrix |
+
+`isFilled` is worth a thought rather than a default: it decides whether a query landing wholly inside
+your outline, touching no edge, selects the symbol. An outline says no, a painted shape says yes.
+
+Reading geometry is unchanged — `SymbolGeometry.boundsOf(symbol)` and the other four accessors keep
+their signatures. `SymbolGeometry.of(symbol)` and `rawOf(symbol)` hand back a `Geometry2d` instead of
+a record; `bounds`, `vertices` and `edges` read the same on it.
+
+### A `*Ops` object is now its family's util
+
+Every symbol `*Ops` is gone. The members are statics on the util, under the same names except where
+two kinds of one family used the same one.
+
+```diff
+- import { StrokeOps, ShapeCircleOps, EdgeLineOps } from "iink-ts"
+- StrokeOps.create(style, "pen")
+- ShapeCircleOps.createBetweenPoints(origin, target, style)
+- EdgeLineOps.moveVertex(line, 0, point)
++ import { StrokeUtil, ShapeUtil, EdgeUtil } from "iink-ts"
++ StrokeUtil.createEmpty(style, "pen")
++ ShapeUtil.createCircleBetweenPoints(origin, target, style)
++ EdgeUtil.moveLineVertex(line, 0, point)
+```
+
+A name changed only where two kinds of one family would have collided on it — a shape family holding
+three `create`s and three `getSVGPath`s cannot keep them all. Where a member was already unique, it
+kept its name.
+
+| Was | Is |
+|---|---|
+| `StrokeOps.create` | `StrokeUtil.createEmpty` — it builds an empty stroke you then fill |
+| `StrokeOps.addPointer`, `split`, `substract`, `createFromPartial`, `getSVGPath` | `StrokeUtil.<same>` |
+| `ShapeOps.isShape`, `isCircleShape`, `isEllipseShape`, `isPolygonShape` | `ShapeUtil.<same>` |
+| `ShapeCircleOps.create` / `createFromPartial` / `createBetweenPoints` / `updateBetweenPoints` / `getSVGPath` | `ShapeUtil.createCircle` / `createCircleFromPartial` / `createCircleBetweenPoints` / `updateCircleBetweenPoints` / `getCirclePath` |
+| `ShapeEllipseOps.*` | the same, with `Ellipse` in place of `Circle` |
+| `ShapePolygonOps.create` / `createFromPartial` / `getSVGPath` | `ShapeUtil.createPolygon` / `createPolygonFromPartial` / `getPolygonPath`. Its eight `create`/`update{Triangle,Parallelogram,Rectangle,Rhombus}BetweenPoints` were already unique and keep their names |
+| `EdgeOps.isEdge`, `isLineEdge`, `isArcEdge`, `isPolyEdge` | `EdgeUtil.<same>` |
+| `EdgeLineOps.create` / `createFromPartial` / `moveVertex` / `getResizePoints` / `getSVGPath` | `EdgeUtil.createLine` / `createLineFromPartial` / `moveLineVertex` / `getLineResizePoints` / `getLinePath` |
+| `EdgeArcOps.*`, `EdgePolyLineOps.*` | the same, with `Arc` / `PolyLine` in place of `Line` |
+| `TextOps.create` / `MathOps.create` / `DecoratorOps.create` | `TextUtil.createText` / `MathUtil.createMath` / `DecoratorUtil.createDecorator` |
+| `TextOps`' and `MathOps`' `createFromPartial`, `getChildrenOverlaps`, `updateChildrenStyle`, `updateChildrenFont`, `getLabel`, `toJSON` | `TextUtil.<same>` / `MathUtil.<same>` |
+| `DecoratorOps.setTargetBounds`, `computeVertices` | `DecoratorUtil.<same>` |
+
+Each family also gained a dispatching `getSVGPath(symbol)` that picks the right kind for you, so
+`ShapeUtil.getSVGPath(shape)` and `EdgeUtil.getSVGPath(edge)` work whatever kind you hand them.
+
+Two things did not move. `EraserOps` stays where it is — an eraser is a transient tool artefact with
+no util to move to. And the guards that were already free functions stay beside their type:
+`isStroke`, `isText`, `isMath`, `isDecorator`.
+
+### A stroke, shape or edge is drawn as a bare `<path>`
+
+There is no `<g>` around it any more, so a selector that reached through one finds nothing.
+
+```diff
+- rootEl.querySelector(`#${symbol.id} path`)
+- rootEl.querySelectorAll('g[type="stroke"]')
++ rootEl.querySelector(`#${symbol.id}`)
++ rootEl.querySelectorAll('[type="stroke"]')
+```
+
+The element carrying the id is the drawn one, and it carries `type`, `kind` and the symbol's matrix
+as well. Text and math still have a group — they draw several glyphs plus their decorators.
+
+One visible consequence: `vector-effect` is not an inherited property, so on the group it applied to
+an element that draws nothing. It reaches the path now, and `non-scaling-stroke` does what it says —
+a stroked shape or edge keeps its width as the canvas zooms. Strokes are unaffected: a stroke is a
+filled outline with no stroke colour, so there is nothing for it to scale.
+
+If you implement a util in this family, `PathSymbolUtil` assembles the element for you:
+
+```diff
+  class TicketUtil extends PathSymbolUtil<TTicket> {
+-   getSVGElement(symbol) { /* build a group, append a path, return the group */ }
++   protected getPathData(symbol) { return "M 0 0 L 10 10" }
++   protected getPathAttributes(symbol) { return { stroke: symbol.style.color, fill: "transparent" } }
+  }
+```
 
 ### Internal layout: `src/utils/` no longer exists
 
