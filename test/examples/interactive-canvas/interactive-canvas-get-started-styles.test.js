@@ -45,7 +45,7 @@ test.describe("Interactive ink canvas Get Started Menu Style", () => {
         expect(stroke.style.color).toStrictEqual("#" + color.rgb)
         expect(stroke.style.width).toStrictEqual(2)
 
-        const strokePathLocator = page.locator(` #${ stroke.id } path`)
+        const strokePathLocator = page.locator(` #${stroke.id}`)
         await expect(strokePathLocator).toBeVisible()
         await expect(strokePathLocator).toHaveAttribute("fill", "#" + color.rgb)
       })
@@ -76,7 +76,7 @@ test.describe("Interactive ink canvas Get Started Menu Style", () => {
         expect(stroke.style.color).toStrictEqual("#000000")
         expect(stroke.style.width).toStrictEqual(thickness.width)
 
-        const strokePathLocator = page.locator(` #${ stroke.id } path`)
+        const strokePathLocator = page.locator(` #${stroke.id}`)
         await expect(strokePathLocator).toBeVisible()
         await expect(strokePathLocator).toHaveAttribute(
           "stroke-width",
@@ -202,7 +202,7 @@ test.describe("Interactive ink canvas Get Started Menu Style", () => {
       const strokes = await getCanvasSymbols(page)
       const stroke = strokes[0]
       expect(stroke.style.opacity).toStrictEqual(0.5)
-      await expect(page.locator(`#${ stroke.id } path`)).toHaveAttribute("opacity", "0.5")
+      await expect(page.locator(`#${stroke.id}`)).toHaveAttribute("opacity", "0.5")
     })
   })
 })
