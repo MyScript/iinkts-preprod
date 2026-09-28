@@ -40,7 +40,7 @@ test.describe("Interactive ink canvas Get Started", () => {
       const symLocator = page.locator(`#${stroke.id}`)
       await expect(symLocator).toBeVisible()
 
-      const strokePathLocator = page.locator(`#${stroke.id} path`)
+      const strokePathLocator = page.locator(`#${stroke.id}`)
 
       await expect(strokePathLocator).toBeVisible()
       await expect(strokePathLocator).toHaveAttribute("stroke-width", "2")
