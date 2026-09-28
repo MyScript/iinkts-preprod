@@ -61,6 +61,32 @@ export const mergeDeep = <T extends TMergeable>(target: TPartialDeep<T>, ...sour
 }
 
 /**
+ * Deep-assigns `override` onto `target`, mutating and returning it. Unlike {@link mergeDeep},
+ * an array in `override` replaces the one in `target` instead of being appended to it, and an
+ * explicit `undefined` clears the key — what updating a live configuration needs.
+ * @group Core/Std
+ */
+export const overrideDeep = <T extends object>(target: T, override: TPartialDeep<T>): T => {
+  const isObject = (item: unknown): item is Record<string, unknown> =>
+    typeof item === "object" && item !== null && !Array.isArray(item)
+  const record = target as Record<string, unknown>
+  for (const [key, value] of Object.entries(override as Record<string, unknown>)) {
+    if (FORBIDDEN_MERGE_KEYS.has(key)) {
+      continue
+    }
+    if (isObject(value)) {
+      if (!isObject(record[key])) {
+        record[key] = {}
+      }
+      overrideDeep(record[key] as object, value)
+    } else {
+      record[key] = Array.isArray(value) ? structuredClone(value) : value
+    }
+  }
+  return target
+}
+
+/**
  * @group Core/Std
  */
 export const isDeepEqual = (object1: unknown, object2: unknown): boolean => {

@@ -38,7 +38,7 @@ export class LanguageMenuAction extends BaseMenuItem<HTMLDivElement> {
       className: "select-language",
       onChange: (value) => {
         this.logger.info(`${this.config.id}.change`)
-        this.canvas.changeLanguage(value)
+        this.canvas.updateRecognitionConfiguration({ lang: value })
       },
     })
 

@@ -104,6 +104,28 @@ you don't want to `false`. `markdown` is only built when `text` recognition is e
 `openExportDialog(onConfirm)` now accepts an optional `onCancel` second argument. Existing one-argument
 calls keep working unchanged.
 
+### `changeLanguage` becomes `updateRecognitionConfiguration`
+
+```ts
+// v4
+await canvas.changeLanguage("fr_FR")
+// v5
+await canvas.updateRecognitionConfiguration({ lang: "fr_FR" })
+```
+
+The same call takes any part of the recognition configuration, the math solver included:
+`{ math: { solver: { "angle-unit": "deg" } } }`. An array you pass replaces the current one.
+
+### The math solver defaults to radians
+
+`recognition.math.solver["angle-unit"]` now defaults to `"rad"`. To keep evaluating angles in degrees:
+
+```ts
+Canvas.load(element, "INTERACTIVE_INK", {
+  configuration: { recognition: { math: { solver: { "angle-unit": "deg" } } } },
+})
+```
+
 ### The document is immutable: symbols you read are frozen
 
 **If you only read `canvas.model`, nothing changes for you** — except that reading it is now roughly
