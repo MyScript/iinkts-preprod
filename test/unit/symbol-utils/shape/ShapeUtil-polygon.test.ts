@@ -1,6 +1,6 @@
-import { DefaultStyle, MatrixTransform, OBBOps, Polygon2d, ShapePolygonOps, TBox, TPoint, TStyle } from "@/iink"
+import { DefaultStyle, MatrixTransform, OBBOps, Polygon2d, ShapeUtil, TBox, TPoint, TStyle } from "@/iink"
 
-describe("ShapePolygonOps", () => {
+describe("ShapeUtil polygon statics", () => {
   describe("create", () => {
     const points: TPoint[] = [
       { x: 0, y: 0 },
@@ -9,31 +9,31 @@ describe("ShapePolygonOps", () => {
       { x: 0, y: 10 },
     ]
     test("should initialise transform to identity", () => {
-      expect(ShapePolygonOps.create(points).transform).toEqual(MatrixTransform.identity())
+      expect(ShapeUtil.createPolygon(points).transform).toEqual(MatrixTransform.identity())
     })
     test("should create with default style", () => {
-      const polygon = ShapePolygonOps.create(points)
+      const polygon = ShapeUtil.createPolygon(points)
       expect(polygon.style).toEqual(DefaultStyle)
     })
     test("should create with custom style", () => {
       const style: TStyle = { color: "green", width: 3 }
-      const polygon = ShapePolygonOps.create(points, style)
+      const polygon = ShapeUtil.createPolygon(points, style)
       expect(polygon.style).toEqual(expect.objectContaining(style))
     })
     test("should have vertices same ref as points", () => {
-      const polygon = ShapePolygonOps.create(points)
+      const polygon = ShapeUtil.createPolygon(points)
       expect(polygon.points).toBe(polygon.points)
     })
     test("should compute bounds from points", () => {
-      const polygon = ShapePolygonOps.create(points)
+      const polygon = ShapeUtil.createPolygon(points)
       expect(OBBOps.toBox(OBBOps.createFromPoints(polygon.points)).x).toBeLessThanOrEqual(0)
       expect(OBBOps.toBox(OBBOps.createFromPoints(polygon.points)).y).toBeLessThanOrEqual(0)
       expect(OBBOps.createFromPoints(polygon.points).width).toBeGreaterThan(0)
       expect(OBBOps.createFromPoints(polygon.points).height).toBeGreaterThan(0)
     })
     test("should generate unique ids", () => {
-      const p1 = ShapePolygonOps.create(points)
-      const p2 = ShapePolygonOps.create(points)
+      const p1 = ShapeUtil.createPolygon(points)
+      const p2 = ShapeUtil.createPolygon(points)
       expect(p1.id).not.toEqual(p2.id)
     })
   })
@@ -45,7 +45,7 @@ describe("ShapePolygonOps", () => {
         { x: 5, y: 0 },
         { x: 2, y: 5 },
       ]
-      const polygon = ShapePolygonOps.createFromPartial({ points: pts })
+      const polygon = ShapeUtil.createPolygonFromPartial({ points: pts })
       expect(polygon.points).toEqual(pts)
     })
     test("should carry a given transform through, merged onto identity", () => {
@@ -54,7 +54,7 @@ describe("ShapePolygonOps", () => {
         { x: 5, y: 0 },
         { x: 2, y: 5 },
       ]
-      const polygon = ShapePolygonOps.createFromPartial({ points: pts, transform: { tx: 5, ty: 6 } })
+      const polygon = ShapeUtil.createPolygonFromPartial({ points: pts, transform: { tx: 5, ty: 6 } })
       expect(polygon.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 5, ty: 6 })
     })
     test("should preserve id", () => {
@@ -63,12 +63,12 @@ describe("ShapePolygonOps", () => {
         { x: 5, y: 0 },
         { x: 2, y: 5 },
       ]
-      const polygon = ShapePolygonOps.createFromPartial({ id: "poly-id", points: pts })
+      const polygon = ShapeUtil.createPolygonFromPartial({ id: "poly-id", points: pts })
       expect(polygon.id).toEqual("poly-id")
     })
     test("should throw if fewer than 3 points", () => {
       expect(() =>
-        ShapePolygonOps.createFromPartial({
+        ShapeUtil.createPolygonFromPartial({
           points: [
             { x: 0, y: 0 },
             { x: 1, y: 1 },
@@ -85,7 +85,7 @@ describe("ShapePolygonOps", () => {
       { x: 100, y: 100 },
       { x: 0, y: 100 },
     ]
-    const polygon = ShapePolygonOps.create(pts)
+    const polygon = ShapeUtil.createPolygon(pts)
     test("should return true if partially intersects", () => {
       const box: TBox = { height: 100, width: 100, x: -50, y: -50 }
       expect(new Polygon2d(polygon.points).overlapsBox(box)).toEqual(true)
@@ -106,33 +106,33 @@ describe("ShapePolygonOps", () => {
 
   describe("createTriangleBetweenPoints", () => {
     test("should create 3 points", () => {
-      const polygon = ShapePolygonOps.createTriangleBetweenPoints({ x: 0, y: 0 }, { x: 10, y: 10 })
+      const polygon = ShapeUtil.createTriangleBetweenPoints({ x: 0, y: 0 }, { x: 10, y: 10 })
       expect(polygon.points).toHaveLength(3)
     })
   })
 
   describe("createRectangleBetweenPoints", () => {
     test("should create 4 points", () => {
-      const polygon = ShapePolygonOps.createRectangleBetweenPoints({ x: 0, y: 0 }, { x: 10, y: 10 })
+      const polygon = ShapeUtil.createRectangleBetweenPoints({ x: 0, y: 0 }, { x: 10, y: 10 })
       expect(polygon.points).toHaveLength(4)
     })
     test("should update rectangle between points", () => {
-      const polygon = ShapePolygonOps.createRectangleBetweenPoints({ x: 0, y: 0 }, { x: 5, y: 5 })
-      ShapePolygonOps.updateRectangleBetweenPoints(polygon, { x: 0, y: 0 }, { x: 20, y: 20 })
+      const polygon = ShapeUtil.createRectangleBetweenPoints({ x: 0, y: 0 }, { x: 5, y: 5 })
+      ShapeUtil.updateRectangleBetweenPoints(polygon, { x: 0, y: 0 }, { x: 20, y: 20 })
       expect(OBBOps.createFromPoints(polygon.points).width).toBeGreaterThan(10)
     })
   })
 
   describe("createParallelogramBetweenPoints", () => {
     test("should create 4 points", () => {
-      const polygon = ShapePolygonOps.createParallelogramBetweenPoints({ x: 0, y: 0 }, { x: 10, y: 10 })
+      const polygon = ShapeUtil.createParallelogramBetweenPoints({ x: 0, y: 0 }, { x: 10, y: 10 })
       expect(polygon.points).toHaveLength(4)
     })
   })
 
   describe("createRhombusBetweenPoints", () => {
     test("should create 4 points", () => {
-      const polygon = ShapePolygonOps.createRhombusBetweenPoints({ x: 0, y: 0 }, { x: 10, y: 10 })
+      const polygon = ShapeUtil.createRhombusBetweenPoints({ x: 0, y: 0 }, { x: 10, y: 10 })
       expect(polygon.points).toHaveLength(4)
     })
   })

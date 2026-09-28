@@ -102,7 +102,7 @@ describe("OBBOps", () => {
      * does (a circle of radius r has AABB corners at r·√2), so testing `bounds`' corners for
      * containment - instead of the shape's own vertices - can make a query that truly surrounds the
      * shape fail containment. This pins the fix: an octagon inscribed in a radius-5 circle (a coarse
-     * stand-in for the real tessellated vertex list `ShapeCircleOps.computeVertices` builds) is fully
+     * stand-in for the real tessellated vertex list a circle's geometry builds) is fully
      * contained in a query whose own AABB corners (from a squarer `bounds`-shaped stand-in) would not
      * be.
      */

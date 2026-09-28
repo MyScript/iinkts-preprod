@@ -12,9 +12,6 @@ import { SVGBuilder } from "@/renderer"
 import type { TDecorator, TEdge, TEdgeArc, TStroke, TSymbol } from "@/symbol"
 import { EdgeKind, isDecorator, isRecognizedMath, isStroke, SymbolType } from "@/symbol"
 import { reprojectArcMidpoint, stretchArcEndpoint } from "@/symbol/edge/Arc"
-import { EdgeOps } from "@/symbol/edge/Edge"
-import { EdgeLineOps } from "@/symbol/edge/Line"
-import { EdgePolyLineOps } from "@/symbol/edge/PolyLine"
 import { EdgeUtil } from "@/symbol-utils/edge/EdgeUtil"
 import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
@@ -507,7 +504,7 @@ export class IISelectionManager extends IIAbstractManager {
     /** The edge as the document currently holds it, mutable. One per frame. */
     const draftEdge = (): TDraft<TEdge> | undefined => {
       const draft = this.model.draftSymbol(edge.id)
-      return draft && EdgeOps.isEdge(draft) ? (draft as TDraft<TEdge>) : undefined
+      return draft && EdgeUtil.isEdge(draft) ? (draft as TDraft<TEdge>) : undefined
     }
     const moveVertex = (draft: TDraft<TEdge>, pointIndex: number, x: number, y: number) => {
       // `x`/`y` are where the pointer is, in document coordinates; `draft.vertices` are the edge's
@@ -523,10 +520,10 @@ export class IISelectionManager extends IIAbstractManager {
       // vertices are its `start`/`end` and a polyline's are its `points`, and mutating a computed
       // array would take the write and discard it. An arc never reaches here — it has its own
       // handles, bound by `bindArcEl` below.
-      if (EdgeOps.isLineEdge(draft)) {
-        EdgeLineOps.moveVertex(draft, pointIndex, raw)
-      } else if (EdgeOps.isPolyEdge(draft)) {
-        EdgePolyLineOps.moveVertex(draft, pointIndex, raw)
+      if (EdgeUtil.isLineEdge(draft)) {
+        EdgeUtil.moveLineVertex(draft, pointIndex, raw)
+      } else if (EdgeUtil.isPolyEdge(draft)) {
+        EdgeUtil.movePolyLineVertex(draft, pointIndex, raw)
       } else {
         return
       }
@@ -571,7 +568,7 @@ export class IISelectionManager extends IIAbstractManager {
       /** The arc as the document currently holds it, mutable. One per frame. */
       const draftArc = (): TDraft<TEdgeArc> | undefined => {
         const draft = this.model.draftSymbol(arc.id)
-        return draft && EdgeOps.isEdge(draft) && EdgeOps.isArcEdge(draft) ? (draft as TDraft<TEdgeArc>) : undefined
+        return draft && EdgeUtil.isEdge(draft) && EdgeUtil.isArcEdge(draft) ? (draft as TDraft<TEdgeArc>) : undefined
       }
       const bindArcEl = (el: SVGCircleElement, isStart: boolean, isEnd: boolean) => {
         const updateArc = (arc: TDraft<TEdgeArc>, x: number, y: number) => {
@@ -724,7 +721,7 @@ export class IISelectionManager extends IIAbstractManager {
       return
     }
     this.removeSelectedGroup()
-    if (symbols.length === 1 && EdgeOps.isEdge(symbols[0])) {
+    if (symbols.length === 1 && EdgeUtil.isEdge(symbols[0])) {
       this.selectedGroup = this.createInteractEdgeGroup(symbols[0])
     } else {
       this.selectedGroup = this.createInteractElementsGroup(symbols)

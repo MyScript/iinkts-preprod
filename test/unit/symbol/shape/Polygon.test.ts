@@ -1,4 +1,4 @@
-import { Polygon2d, ShapePolygonOps, TBox, TPoint, TStyle } from "@/iink"
+import { Polygon2d, ShapeUtil, TBox, TPoint, TStyle } from "@/iink"
 
 describe("Polygon.ts", () => {
   describe("overlaps", () => {
@@ -8,7 +8,7 @@ describe("Polygon.ts", () => {
       { x: 100, y: 100 },
       { x: 0, y: 100 },
     ]
-    const polygon = ShapePolygonOps.create(points)
+    const polygon = ShapeUtil.createPolygon(points)
     test(`should return true if partially wrap`, () => {
       const boundaries: TBox = { height: 100, width: 100, x: -50, y: -50 }
       expect(new Polygon2d(polygon.points).overlapsBox(boundaries)).toEqual(true)
@@ -39,7 +39,7 @@ describe("Polygon.ts", () => {
         color: "blue",
         width: 20,
       }
-      const polygon = ShapePolygonOps.create(points, style)
+      const polygon = ShapeUtil.createPolygon(points, style)
       const clone = structuredClone(polygon)
       expect(clone).toEqual(polygon)
       expect(clone).not.toBe(polygon)

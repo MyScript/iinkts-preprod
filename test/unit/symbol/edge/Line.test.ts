@@ -1,5 +1,5 @@
 import { edgeGeometry } from "../../helpers"
-import { DefaultStyle, EdgeLineOps, OBBOps, TBox, TPoint, TStyle } from "@/iink"
+import { DefaultStyle, EdgeUtil, OBBOps, TBox, TPoint, TStyle } from "@/iink"
 
 describe("Line.ts", () => {
   describe("constructor", () => {
@@ -10,41 +10,41 @@ describe("Line.ts", () => {
         color: "blue",
         width: 20,
       }
-      const line = EdgeLineOps.create(start, end, undefined, undefined, style)
+      const line = EdgeUtil.createLine(start, end, undefined, undefined, style)
       expect(line).toBeDefined()
       expect(line.creationTime).toBeLessThanOrEqual(Date.now())
       expect(line.creationTime).toEqual(line.modificationDate)
       expect(line.style).toEqual(expect.objectContaining(style))
       expect(line.start).toEqual(start)
       expect(line.end).toEqual(end)
-      expect(OBBOps.toBox(edgeGeometry(EdgeLineOps.computeVertices(line), line).bounds).x).toEqual(-5)
-      expect(OBBOps.toBox(edgeGeometry(EdgeLineOps.computeVertices(line), line).bounds).y).toEqual(-5)
-      expect(edgeGeometry(EdgeLineOps.computeVertices(line), line).bounds.width).toEqual(15)
-      expect(edgeGeometry(EdgeLineOps.computeVertices(line), line).bounds.height).toEqual(15)
-      expect(EdgeLineOps.computeVertices(line)).toHaveLength(2)
+      expect(OBBOps.toBox(edgeGeometry(EdgeUtil.getLineVertices(line), line).bounds).x).toEqual(-5)
+      expect(OBBOps.toBox(edgeGeometry(EdgeUtil.getLineVertices(line), line).bounds).y).toEqual(-5)
+      expect(edgeGeometry(EdgeUtil.getLineVertices(line), line).bounds.width).toEqual(15)
+      expect(edgeGeometry(EdgeUtil.getLineVertices(line), line).bounds.height).toEqual(15)
+      expect(EdgeUtil.getLineVertices(line)).toHaveLength(2)
     })
     test("should create with default style", () => {
       const start: TPoint = { x: 0, y: 0 }
       const end: TPoint = { x: 5, y: 5 }
-      const line = EdgeLineOps.create(start, end)
+      const line = EdgeUtil.createLine(start, end)
       expect(line.style).toEqual(DefaultStyle)
     })
   })
   describe("overlaps", () => {
     const start: TPoint = { x: 0, y: 0 }
     const end: TPoint = { x: 0, y: 25 }
-    const line = EdgeLineOps.create(start, end)
+    const line = EdgeUtil.createLine(start, end)
     test(`should return true if partially wrap`, () => {
       const boundaries: TBox = { height: 10, width: 10, x: -5, y: -5 }
-      expect(edgeGeometry(EdgeLineOps.computeVertices(line), line).overlapsBox(boundaries)).toEqual(true)
+      expect(edgeGeometry(EdgeUtil.getLineVertices(line), line).overlapsBox(boundaries)).toEqual(true)
     })
     test(`should return true if totally wrap`, () => {
       const boundaries: TBox = { height: 50, width: 50, x: -25, y: -25 }
-      expect(edgeGeometry(EdgeLineOps.computeVertices(line), line).overlapsBox(boundaries)).toEqual(true)
+      expect(edgeGeometry(EdgeUtil.getLineVertices(line), line).overlapsBox(boundaries)).toEqual(true)
     })
     test(`should return false if box is outside`, () => {
       const boundaries: TBox = { height: 2, width: 2, x: 50, y: 50 }
-      expect(edgeGeometry(EdgeLineOps.computeVertices(line), line).overlapsBox(boundaries)).toEqual(false)
+      expect(edgeGeometry(EdgeUtil.getLineVertices(line), line).overlapsBox(boundaries)).toEqual(false)
     })
   })
   describe("clone", () => {
@@ -55,7 +55,7 @@ describe("Line.ts", () => {
         color: "blue",
         width: 20,
       }
-      const line = EdgeLineOps.create(start, end, undefined, undefined, style)
+      const line = EdgeUtil.createLine(start, end, undefined, undefined, style)
       const clone = structuredClone(line)
       expect(clone).toEqual(line)
       expect(clone).not.toBe(line)

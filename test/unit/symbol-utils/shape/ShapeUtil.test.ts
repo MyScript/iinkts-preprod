@@ -20,7 +20,7 @@ import { MatrixTransform, OBBOps, registerBuiltinSymbolUtils, ShapeKind, ShapeUt
 
 /**
  * Each kind's own bounds computation. This is a *dispatch* oracle: it proves `ShapeUtil` routes an
- * ellipse to `ShapeEllipseOps` and not to `ShapePolygonOps`, and nothing more — it cannot fail if a
+ * ellipse to the ellipse kind and not to the polygon one, and nothing more — it cannot fail if a
  * kind's own `computeBounds` is wrong, because it is that same call. The value coverage lives in
  * each kind's own test file, against hand-written boxes.
  */

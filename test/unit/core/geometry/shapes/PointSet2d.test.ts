@@ -1,5 +1,5 @@
 import { describe, test, expect } from "@jest/globals"
-import { MatrixTransform, OBBOps, PointSet2d, StrokeOps, TBox, TPoint, TStroke } from "@/iink"
+import { MatrixTransform, OBBOps, PointSet2d, StrokeUtil, TBox, TPoint, TStroke } from "@/iink"
 
 /** Points far enough apart that a query box can sit between two of them without touching either. */
 const SAMPLES: TPoint[] = [
@@ -9,11 +9,11 @@ const SAMPLES: TPoint[] = [
 ]
 
 const strokeOf = (points: TPoint[]): TStroke =>
-  StrokeOps.createFromPartial({ pointers: points.map((p, i) => ({ ...p, dt: i, p: 1 })) })
+  StrokeUtil.createFromPartial({ pointers: points.map((p, i) => ({ ...p, dt: i, p: 1 })) })
 
 describe("PointSet2d", () => {
-  describe("parity with StrokeOps", () => {
-    // StrokeOps is the oracle: these derivations are what the stroke already did, and A5 swaps the
+  describe("parity with the stroke's own derivations", () => {
+    // The oracle is what the stroke already derived for itself before this class existed, and the
     // util over to this class on the strength of them matching.
     const stroke = strokeOf(SAMPLES)
     const geometry = new PointSet2d(stroke.pointers)
@@ -41,7 +41,7 @@ describe("PointSet2d", () => {
       ["a box nowhere near the stroke", { x: 1000, y: 1000, width: 10, height: 10 }],
       ["a box whose edge lands exactly on a sample", { x: 100, y: 0, width: 10, height: 10 }],
       ["a zero-sized box on a sample", { x: 0, y: 0, width: 0, height: 0 }],
-    ])("should answer overlaps as StrokeOps does for %s", (_label, box) => {
+    ])("should answer overlaps as the stroke always did for %s", (_label, box) => {
       expect(geometry.overlapsBox(box)).toBe(new PointSet2d(stroke.pointers).overlapsBox(box))
     })
   })

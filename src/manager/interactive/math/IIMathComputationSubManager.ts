@@ -9,7 +9,7 @@ import { LoggerCategory } from "@/logger"
 import type { TStyle } from "@/style/Style"
 import type { TStroke } from "@/symbol"
 import { isStroke } from "@/symbol"
-import { StrokeOps } from "@/symbol/stroke/Stroke"
+import { StrokeUtil } from "@/symbol-utils"
 import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 
 import { IIAbstractManager } from "../IIAbstractManager"
@@ -171,7 +171,7 @@ export class IIMathComputationSubManager extends IIAbstractManager {
         y: convertMillimeterToPixel(strokeData.Y[i]),
       }))
       const pathData = this.buildGhostStrokePath(points)
-      const stroke = StrokeOps.createFromPartial({
+      const stroke = StrokeUtil.createFromPartial({
         id: `ghost-stroke-${createUUID()}`,
         pointers: points.map((p, i) => ({
           x: p.x,
@@ -524,7 +524,7 @@ export class IIMathComputationSubManager extends IIAbstractManager {
         t: strokeData.T?.[i] || i,
       }))
 
-      const stroke = StrokeOps.createFromPartial({
+      const stroke = StrokeUtil.createFromPartial({
         id: `solver-stroke-${createUUID()}`,
         pointers,
         style: defaultStyle,

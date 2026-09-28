@@ -1,11 +1,11 @@
-import { MatrixTransform, PointSet2d, StrokeOps, SymbolGeometry, SymbolStore, registerBuiltinSymbolUtils, symbolRegistry } from "@/iink"
+import { MatrixTransform, PointSet2d, StrokeUtil, SymbolGeometry, SymbolStore, registerBuiltinSymbolUtils, symbolRegistry } from "@/iink"
 import type { TStroke } from "@/iink"
 
 describe("SymbolGeometry", () => {
   beforeAll(() => registerBuiltinSymbolUtils())
 
   const buildStroke = () =>
-    StrokeOps.createFromPartial({
+    StrokeUtil.createFromPartial({
       pointers: [
         { x: 0, y: 0, dt: 0, p: 1 },
         { x: 10, y: 4, dt: 1, p: 1 },
@@ -76,7 +76,7 @@ describe("SymbolGeometry", () => {
     })
   })
 
-  test("computes bounds matching StrokeOps' own bounds computation", () => {
+  test("computes bounds matching the stroke's own geometry", () => {
     const stroke = buildStroke()
     const expected = new PointSet2d(stroke.pointers).bounds
     Object.freeze(stroke)
@@ -152,7 +152,7 @@ describe("SymbolGeometry", () => {
 
   describe("transform", () => {
     test("moves the computed bounds without touching the stored coordinates", () => {
-      const stroke = StrokeOps.createFromPartial({
+      const stroke = StrokeUtil.createFromPartial({
         pointers: [
           { x: 0, y: 0, dt: 0, p: 1 },
           { x: 10, y: 0, dt: 1, p: 1 },
@@ -170,7 +170,7 @@ describe("SymbolGeometry", () => {
 
     test("carries the matrix rotation into the bounds angle, in radians, without corrupting width/height", () => {
       // Hand-computed, not read off the code under test: raw bounds are center (5,0), width 10,
-      // height 0, angle 0 (StrokeOps.computeBounds is always axis-aligned). `rotate(PI/2, {0,0})`
+      // height 0, angle 0 (StrokeUtil.computeBounds is always axis-aligned). `rotate(PI/2, {0,0})`
       // rounds cos/sin to exactly 0/1 (MatrixTransform.rotate), giving matrix {xx:0,yx:1,xy:-1,yy:0}.
       // Every raw corner (a degenerate box: (0,0) and (10,0) each twice) maps to (0,0) or (0,10), so
       // the rotated box is still a 10-long, 0-wide segment — center (0,5), width 10, height 0 — just
@@ -178,7 +178,7 @@ describe("SymbolGeometry", () => {
       // wrapped this in convertRadianToDegree left the angle numerically as "90" (looking plausible
       // in isolation) while corrupting width/height into ~8.94/~4.48 — which is why both are
       // asserted here, not just the angle.
-      const stroke = StrokeOps.createFromPartial({
+      const stroke = StrokeUtil.createFromPartial({
         pointers: [
           { x: 0, y: 0, dt: 0, p: 1 },
           { x: 10, y: 0, dt: 1, p: 1 },
@@ -195,14 +195,14 @@ describe("SymbolGeometry", () => {
     })
 
     test("a symbol starts with the identity matrix", () => {
-      const stroke = StrokeOps.createFromPartial({ pointers: [{ x: 0, y: 0, dt: 0, p: 1 }] })
+      const stroke = StrokeUtil.createFromPartial({ pointers: [{ x: 0, y: 0, dt: 0, p: 1 }] })
       expect(stroke.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 0, ty: 0 })
     })
 
     test("leaves length unchanged under a pure rotation", () => {
       // Points (0,0) and (10,0): length is 10. A rotation has xx=cos, yx=sin with hypot(xx,yx)=1, so
       // `length * hypot(matrix.xx, matrix.yx)` must leave it exactly where it started.
-      const stroke = StrokeOps.createFromPartial({
+      const stroke = StrokeUtil.createFromPartial({
         pointers: [
           { x: 0, y: 0, dt: 0, p: 1 },
           { x: 10, y: 0, dt: 1, p: 1 },
@@ -214,7 +214,7 @@ describe("SymbolGeometry", () => {
     })
 
     test("scales length under a pure scale", () => {
-      const stroke = StrokeOps.createFromPartial({
+      const stroke = StrokeUtil.createFromPartial({
         pointers: [
           { x: 0, y: 0, dt: 0, p: 1 },
           { x: 10, y: 0, dt: 1, p: 1 },
@@ -230,7 +230,7 @@ describe("SymbolGeometry", () => {
       // once per (frozen) symbol, not on every read. Two distinct frozen symbols with the same matrix
       // still get two distinct, independently-cached, correctly-transformed results.
       const buildTranslated = () => {
-        const stroke = StrokeOps.createFromPartial({
+        const stroke = StrokeUtil.createFromPartial({
           pointers: [
             { x: 0, y: 0, dt: 0, p: 1 },
             { x: 10, y: 0, dt: 1, p: 1 },

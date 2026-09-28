@@ -12,8 +12,7 @@ import { IModel } from "@/model"
 import { SVGRenderer } from "@/renderer"
 import type { TStyle } from "@/style"
 import type { TStroke } from "@/symbol"
-import { StrokeOps } from "@/symbol"
-import { registerBuiltinSymbolUtils } from "@/symbol-utils"
+import { registerBuiltinSymbolUtils, StrokeUtil } from "@/symbol-utils"
 
 import type { TInkCanvas } from "../TInkCanvas"
 import type { TInkCanvasConfiguration } from "./InkCanvasConfiguration"
@@ -208,7 +207,7 @@ export class InkCanvas extends AbstractCanvas implements TInkCanvas {
     try {
       this.logger.info("import")
       this.#model = this.model.clone()
-      const strokes = pStrokes.map(StrokeOps.createFromPartial)
+      const strokes = pStrokes.map(StrokeUtil.createFromPartial)
       strokes.map((s) => {
         this.model.addStroke(s)
         this.renderer.drawSymbol(s)

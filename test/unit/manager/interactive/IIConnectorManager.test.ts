@@ -1,20 +1,7 @@
 import type { TBaseSymbol, TDraft, TSymbol } from "@/iink"
 import { describe, test, expect, jest, beforeEach } from "@jest/globals"
 import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import {
-  IIConnectorManager,
-  EdgeLineOps,
-  EdgePolyLineOps,
-  EdgeArcOps,
-  StrokeOps,
-  ShapeCircleOps,
-  ShapePolygonOps,
-  OBBOps,
-  type TOBB,
-  MatrixTransform,
-  SymbolType,
-  computePointOnEllipse,
-} from "@/iink"
+import { EdgeUtil, IIConnectorManager, MatrixTransform, OBBOps, ShapeUtil, StrokeUtil, SymbolType, computePointOnEllipse, type TOBB } from "@/iink"
 
 /**
  * The object under test is created here and is not in the model, so it is the caller's to mutate —
@@ -27,26 +14,26 @@ const TARGET_BOUNDS = OBBOps.fromBox({ x: 10, y: 20, width: 100, height: 80 })
 const TARGET_ID = "target-symbol"
 
 function buildLineWithStartAnchor() {
-  const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 100, y: 100 })
+  const line = EdgeUtil.createLine({ x: 0, y: 0 }, { x: 100, y: 100 })
   line.startAnchor = { symbolId: TARGET_ID, normalizedX: 0.5, normalizedY: 0.5 }
   return line
 }
 
 function buildLineWithEndAnchor() {
-  const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 100, y: 100 })
+  const line = EdgeUtil.createLine({ x: 0, y: 0 }, { x: 100, y: 100 })
   line.endAnchor = { symbolId: TARGET_ID, normalizedX: 1, normalizedY: 1 }
   return line
 }
 
 function buildLineWithBothAnchors() {
-  const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 100, y: 100 })
+  const line = EdgeUtil.createLine({ x: 0, y: 0 }, { x: 100, y: 100 })
   line.startAnchor = { symbolId: TARGET_ID, normalizedX: 0, normalizedY: 0 }
   line.endAnchor = { symbolId: TARGET_ID, normalizedX: 1, normalizedY: 1 }
   return line
 }
 
 function buildPolyLineWithStartAnchor() {
-  const poly = EdgePolyLineOps.create([
+  const poly = EdgeUtil.createPolyLine([
     { x: 0, y: 0 },
     { x: 50, y: 50 },
     { x: 100, y: 100 },
@@ -56,7 +43,7 @@ function buildPolyLineWithStartAnchor() {
 }
 
 function buildPolyLineWithEndAnchor() {
-  const poly = EdgePolyLineOps.create([
+  const poly = EdgeUtil.createPolyLine([
     { x: 0, y: 0 },
     { x: 50, y: 50 },
     { x: 100, y: 100 },
@@ -66,19 +53,19 @@ function buildPolyLineWithEndAnchor() {
 }
 
 function buildArcWithStartAnchor() {
-  const arc = EdgeArcOps.create({ x: 0, y: 0 }, 0, Math.PI, 10, 10, 0)
+  const arc = EdgeUtil.createArc({ x: 0, y: 0 }, 0, Math.PI, 10, 10, 0)
   arc.startAnchor = { symbolId: TARGET_ID, normalizedX: 0, normalizedY: 0.5 }
   return arc
 }
 
 function buildArcWithEndAnchor() {
-  const arc = EdgeArcOps.create({ x: 0, y: 0 }, 0, Math.PI, 10, 10, 0)
+  const arc = EdgeUtil.createArc({ x: 0, y: 0 }, 0, Math.PI, 10, 10, 0)
   arc.endAnchor = { symbolId: TARGET_ID, normalizedX: 0, normalizedY: 0.5 }
   return arc
 }
 
 function buildStrokeWithSingleAnchor(blockId: string) {
-  const stroke = StrokeOps.create()
+  const stroke = StrokeUtil.createEmpty()
   stroke.id = "edge-stroke-1"
   stroke.pointers = [
     { x: 0, y: 0, dt: 0, p: 1 },
@@ -90,7 +77,7 @@ function buildStrokeWithSingleAnchor(blockId: string) {
 }
 
 function buildStrokeWithBothAnchors(startBlockId: string, endBlockId: string) {
-  const stroke = StrokeOps.create()
+  const stroke = StrokeUtil.createEmpty()
   stroke.id = "edge-stroke-1"
   stroke.pointers = [
     { x: 0, y: 0, dt: 0, p: 1 },
@@ -107,7 +94,7 @@ function buildStrokeWithBothAnchors(startBlockId: string, endBlockId: string) {
 // stroke of one block. The chevron's own two points are nearly equidistant from the target, so
 // it has no reliable "own" direction — its correct weight only comes from the group's range.
 function buildTwoStrokeEdgeGroup(blockId: string) {
-  const bar = StrokeOps.create()
+  const bar = StrokeUtil.createEmpty()
   bar.id = "edge-stroke-bar"
   bar.pointers = [
     { x: 0, y: 0, dt: 0, p: 1 },
@@ -117,7 +104,7 @@ function buildTwoStrokeEdgeGroup(blockId: string) {
   bar.jiixBlockType = "Edge"
   bar.endAnchor = { symbolId: blockId, normalizedX: 1, normalizedY: 0.5 }
 
-  const chevron = StrokeOps.create()
+  const chevron = StrokeUtil.createEmpty()
   chevron.id = "edge-stroke-chevron"
   chevron.pointers = [
     { x: 0, y: -2, dt: 0, p: 1 },
@@ -136,7 +123,7 @@ function buildTwoStrokeEdgeGroup(blockId: string) {
 // through StrokeUtil.computeGeometry, which recomputes bounds from `pointers` rather than trusting
 // a stored field, so the mock needs a real (if minimal) point to derive the same zero-size box.
 function mockBlockCenter(mock: ReturnType<typeof createCanvasMock>, strokeId: string, center: { x: number; y: number }) {
-  const targetStroke = StrokeOps.create()
+  const targetStroke = StrokeUtil.createEmpty()
   targetStroke.id = strokeId
   targetStroke.pointers = [{ ...center, dt: 0, p: 0 }]
   jest.spyOn(mock.model, "getRootSymbol").mockImplementation((id: string) => (id === strokeId ? targetStroke : undefined) as never)
@@ -272,7 +259,7 @@ describe("IIConnectorManager", () => {
     })
 
     test("line edge with no anchors → not updated", () => {
-      const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 100, y: 100 })
+      const line = EdgeUtil.createLine({ x: 0, y: 0 }, { x: 100, y: 100 })
       const originalStart = { ...line.start }
       const originalEnd = { ...line.end }
       setupSymbols(mock, [line])
@@ -388,7 +375,7 @@ describe("IIConnectorManager", () => {
     })
 
     test("non-edge symbols (stroke) → ignored", () => {
-      const stroke = StrokeOps.create()
+      const stroke = StrokeUtil.createEmpty()
       setupSymbols(mock, [stroke])
       const updateSpy = jest.spyOn(mock.model, "updateSymbol")
 
@@ -448,9 +435,9 @@ describe("IIConnectorManager", () => {
     // when the anchor was first created — drawing a phantom segment from the shape's center to
     // that stale point once the connected shape actually moved.
     test("arc with startAnchor: entryPoint is refreshed after the connected shape moves, not left stale", () => {
-      const circle = ShapeCircleOps.create({ x: 50, y: 50 }, 30)
+      const circle = ShapeUtil.createCircle({ x: 50, y: 50 }, 30)
       jest.spyOn(mock.model, "getRootSymbol").mockImplementation((id: string) => (id === circle.id ? circle : undefined) as never)
-      const arc = EdgeArcOps.create({ x: 50, y: 50 }, 0, Math.PI, 20, 20, 0)
+      const arc = EdgeUtil.createArc({ x: 50, y: 50 }, 0, Math.PI, 20, 20, 0)
       arc.startAnchor = { symbolId: circle.id, normalizedX: 0.5, normalizedY: 0.5, entryPoint: { x: -9999, y: -9999 } }
       setupSymbols(mock, [arc, circle])
 
@@ -503,9 +490,9 @@ describe("IIConnectorManager", () => {
     })
 
     test("arc with startAnchor: preview also refreshes entryPoint on the drawn clone, without mutating the original (still-stale) arc", () => {
-      const circle = ShapeCircleOps.create({ x: 50, y: 50 }, 30)
+      const circle = ShapeUtil.createCircle({ x: 50, y: 50 }, 30)
       jest.spyOn(mock.model, "getRootSymbol").mockImplementation((id: string) => (id === circle.id ? circle : undefined) as never)
-      const arc = EdgeArcOps.create({ x: 50, y: 50 }, 0, Math.PI, 20, 20, 0)
+      const arc = EdgeUtil.createArc({ x: 50, y: 50 }, 0, Math.PI, 20, 20, 0)
       arc.startAnchor = { symbolId: circle.id, normalizedX: 0.5, normalizedY: 0.5, entryPoint: { x: -9999, y: -9999 } }
       setupSymbols(mock, [arc, circle])
 
@@ -524,7 +511,7 @@ describe("IIConnectorManager", () => {
     const CIRCLE_RADIUS = 30
 
     test("returns symbol whose bounds contain point", () => {
-      const circle = ShapeCircleOps.create(CIRCLE_CENTER, CIRCLE_RADIUS)
+      const circle = ShapeUtil.createCircle(CIRCLE_CENTER, CIRCLE_RADIUS)
       setupSymbols(mock, [circle])
 
       const result = manager.findSymbolAtPoint({ x: 55, y: 55 }, "other-id")
@@ -533,7 +520,7 @@ describe("IIConnectorManager", () => {
     })
 
     test("returns undefined when point outside all symbol bounds", () => {
-      const circle = ShapeCircleOps.create(CIRCLE_CENTER, CIRCLE_RADIUS)
+      const circle = ShapeUtil.createCircle(CIRCLE_CENTER, CIRCLE_RADIUS)
       setupSymbols(mock, [circle])
 
       const result = manager.findSymbolAtPoint({ x: 200, y: 200 }, "other-id")
@@ -542,7 +529,7 @@ describe("IIConnectorManager", () => {
     })
 
     test("excludes symbol with matching excludeId", () => {
-      const circle = ShapeCircleOps.create(CIRCLE_CENTER, CIRCLE_RADIUS)
+      const circle = ShapeUtil.createCircle(CIRCLE_CENTER, CIRCLE_RADIUS)
       setupSymbols(mock, [circle])
 
       const result = manager.findSymbolAtPoint({ x: 55, y: 55 }, circle.id)
@@ -556,7 +543,7 @@ describe("IIConnectorManager", () => {
       // top(50,0), right(100,50), bottom(50,100), left(0,50).
       // AABB = {x:0,y:0,w:100,h:100} (unchanged for a square).
       // Corner (5,5) is inside the AABB but outside the diamond.
-      const diamond = ShapePolygonOps.create([
+      const diamond = ShapeUtil.createPolygon([
         { x: 50, y: 0 }, // top
         { x: 100, y: 50 }, // right
         { x: 50, y: 100 }, // bottom
@@ -571,7 +558,7 @@ describe("IIConnectorManager", () => {
     })
 
     test("rotated polygon: point inside actual polygon → match", () => {
-      const diamond = ShapePolygonOps.create([
+      const diamond = ShapeUtil.createPolygon([
         { x: 50, y: 0 },
         { x: 100, y: 50 },
         { x: 50, y: 100 },
@@ -586,7 +573,7 @@ describe("IIConnectorManager", () => {
     })
 
     test("excludes edges from anchor targets", () => {
-      const line = EdgeLineOps.create({ x: 20, y: 20 }, { x: 80, y: 80 })
+      const line = EdgeUtil.createLine({ x: 20, y: 20 }, { x: 80, y: 80 })
       setupSymbols(mock, [line])
 
       const result = manager.findSymbolAtPoint({ x: 50, y: 50 }, "other-id")
@@ -595,7 +582,7 @@ describe("IIConnectorManager", () => {
     })
 
     test("skips an unregistered symbol type without throwing, still matching a real symbol at the same point", () => {
-      const circle = ShapeCircleOps.create(CIRCLE_CENTER, CIRCLE_RADIUS)
+      const circle = ShapeUtil.createCircle(CIRCLE_CENTER, CIRCLE_RADIUS)
       const orphan = {
         ...(circle as unknown as TBaseSymbol),
         type: "no-such-type",
@@ -614,14 +601,14 @@ describe("IIConnectorManager", () => {
 
   describe("applyEndpointAnchor", () => {
     test("sets startAnchor at center when pointIndex=0 and point hits shape", () => {
-      const square = ShapePolygonOps.create([
+      const square = ShapeUtil.createPolygon([
         { x: 0, y: 0 },
         { x: 100, y: 0 },
         { x: 100, y: 100 },
         { x: 0, y: 100 },
       ])
       setupSymbols(mock, [square])
-      const line = EdgeLineOps.create({ x: 55, y: 55 }, { x: 200, y: 200 })
+      const line = EdgeUtil.createLine({ x: 55, y: 55 }, { x: 200, y: 200 })
 
       manager.applyEndpointAnchor(asDraft(line), 0, { x: 55, y: 55 })
 
@@ -634,16 +621,16 @@ describe("IIConnectorManager", () => {
     })
 
     test("sets endAnchor at center when pointIndex=last and point hits shape", () => {
-      const square = ShapePolygonOps.create([
+      const square = ShapeUtil.createPolygon([
         { x: 0, y: 0 },
         { x: 100, y: 0 },
         { x: 100, y: 100 },
         { x: 0, y: 100 },
       ])
       setupSymbols(mock, [square])
-      const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 55, y: 55 })
+      const line = EdgeUtil.createLine({ x: 0, y: 0 }, { x: 55, y: 55 })
 
-      manager.applyEndpointAnchor(asDraft(line), EdgeLineOps.computeVertices(line).length - 1, { x: 55, y: 55 })
+      manager.applyEndpointAnchor(asDraft(line), EdgeUtil.getLineVertices(line).length - 1, { x: 55, y: 55 })
 
       expect(line.endAnchor?.symbolId).toBe(square.id)
       expect(line.endAnchor?.normalizedX).toBe(0.5)
@@ -657,7 +644,7 @@ describe("IIConnectorManager", () => {
       // Square (0,0)→(100,100), center=(50,50). Free end at (200,50).
       // Edge goes from (200,50) to center (50,50): horizontal line y=50.
       // Right border: x=100, y in [0,100] → entry at (100, 50).
-      const square = ShapePolygonOps.create([
+      const square = ShapeUtil.createPolygon([
         { x: 0, y: 0 },
         { x: 100, y: 0 },
         { x: 100, y: 100 },
@@ -668,9 +655,9 @@ describe("IIConnectorManager", () => {
       jest
         .spyOn(mock.model, "getRootSymbol")
         .mockReturnValue(square as unknown as ReturnType<typeof mock.model.getRootSymbol>)
-      const line = EdgeLineOps.create({ x: 200, y: 50 }, { x: 55, y: 55 })
+      const line = EdgeUtil.createLine({ x: 200, y: 50 }, { x: 55, y: 55 })
 
-      manager.applyEndpointAnchor(asDraft(line), EdgeLineOps.computeVertices(line).length - 1, { x: 55, y: 55 })
+      manager.applyEndpointAnchor(asDraft(line), EdgeUtil.getLineVertices(line).length - 1, { x: 55, y: 55 })
 
       expect(line.endAnchor?.entryPoint).toBeDefined()
       expect(line.endAnchor?.entryPoint?.x).toBeCloseTo(100)
@@ -679,7 +666,7 @@ describe("IIConnectorManager", () => {
 
     test("clears startAnchor when point hits no symbol", () => {
       setupSymbols(mock, [])
-      const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 100, y: 100 })
+      const line = EdgeUtil.createLine({ x: 0, y: 0 }, { x: 100, y: 100 })
       line.startAnchor = { symbolId: "old", normalizedX: 0.5, normalizedY: 0.5 }
 
       manager.applyEndpointAnchor(asDraft(line), 0, { x: 0, y: 0 })
@@ -688,9 +675,9 @@ describe("IIConnectorManager", () => {
     })
 
     test("ignores mid-vertex pointIndex (not start or end)", () => {
-      const circle = ShapeCircleOps.create({ x: 50, y: 50 }, 30)
+      const circle = ShapeUtil.createCircle({ x: 50, y: 50 }, 30)
       setupSymbols(mock, [circle])
-      const poly = EdgePolyLineOps.create([
+      const poly = EdgeUtil.createPolyLine([
         { x: 0, y: 0 },
         { x: 55, y: 55 },
         { x: 100, y: 100 },
@@ -703,9 +690,9 @@ describe("IIConnectorManager", () => {
     })
 
     test("Arc: sets startAnchor and stretches the ellipse so the endpoint lands exactly on the shape's center", () => {
-      const circle = ShapeCircleOps.create({ x: 50, y: 50 }, 30)
+      const circle = ShapeUtil.createCircle({ x: 50, y: 50 }, 30)
       setupSymbols(mock, [circle])
-      const arc = EdgeArcOps.create({ x: 50, y: 50 }, 0, Math.PI, 20, 20, 0)
+      const arc = EdgeUtil.createArc({ x: 50, y: 50 }, 0, Math.PI, 20, 20, 0)
       const endBefore = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle + arc.sweepAngle)
 
       manager.applyEndpointAnchor(asDraft(arc), 0, { x: 55, y: 55 })
@@ -723,9 +710,9 @@ describe("IIConnectorManager", () => {
     })
 
     test("Arc: dropping the endpoint away from any shape clears the anchor", () => {
-      const circle = ShapeCircleOps.create({ x: 50, y: 50 }, 30)
+      const circle = ShapeUtil.createCircle({ x: 50, y: 50 }, 30)
       setupSymbols(mock, [circle])
-      const arc = EdgeArcOps.create({ x: 50, y: 50 }, 0, Math.PI, 20, 20, 0)
+      const arc = EdgeUtil.createArc({ x: 50, y: 50 }, 0, Math.PI, 20, 20, 0)
       arc.startAnchor = { symbolId: circle.id, normalizedX: 0.5, normalizedY: 0.5 }
 
       manager.applyEndpointAnchor(asDraft(arc), 0, { x: 500, y: 500 })
@@ -736,7 +723,7 @@ describe("IIConnectorManager", () => {
 
   describe("showAnchorHint", () => {
     test("draws rect and returns target when point inside symbol", () => {
-      const circle = ShapeCircleOps.create({ x: 50, y: 50 }, 30)
+      const circle = ShapeUtil.createCircle({ x: 50, y: 50 }, 30)
       setupSymbols(mock, [circle])
 
       const result = manager.showAnchorHint({ x: 55, y: 55 }, "other-id")
@@ -755,7 +742,7 @@ describe("IIConnectorManager", () => {
     })
 
     test("clears previous hint before drawing new one", () => {
-      const circle = ShapeCircleOps.create({ x: 50, y: 50 }, 30)
+      const circle = ShapeUtil.createCircle({ x: 50, y: 50 }, 30)
       setupSymbols(mock, [circle])
 
       manager.showAnchorHint({ x: 55, y: 55 }, "other-id")
@@ -765,7 +752,7 @@ describe("IIConnectorManager", () => {
     })
 
     test("fills the hint rect with a hatched pattern tagged with the same role, so it clears together with the rect", () => {
-      const circle = ShapeCircleOps.create({ x: 50, y: 50 }, 30)
+      const circle = ShapeUtil.createCircle({ x: 50, y: 50 }, 30)
       setupSymbols(mock, [circle])
 
       manager.showAnchorHint({ x: 55, y: 55 }, "other-id")
@@ -1084,7 +1071,7 @@ describe("IIConnectorManager", () => {
     })
 
     test("leaves an edge without anchors untouched", () => {
-      const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 10, y: 10 })
+      const line = EdgeUtil.createLine({ x: 0, y: 0 }, { x: 10, y: 10 })
       const updateSpy = jest.spyOn(mock.model, "updateSymbol")
 
       manager.clearAnchoredEdgesFor([line])
@@ -1147,7 +1134,7 @@ describe("IIConnectorManager", () => {
     })
 
     test("leaves an edge without anchors untouched", () => {
-      const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 10, y: 10 })
+      const line = EdgeUtil.createLine({ x: 0, y: 0 }, { x: 10, y: 10 })
       const updateSpy = jest.spyOn(mock.model, "updateSymbol")
 
       manager.clearAnchoredEdgesFor([line])
@@ -1225,7 +1212,7 @@ describe("IIConnectorManager", () => {
     })
 
     test("leaves an edge without anchors untouched", () => {
-      const line = EdgeLineOps.create({ x: 0, y: 0 }, { x: 10, y: 10 })
+      const line = EdgeUtil.createLine({ x: 0, y: 0 }, { x: 10, y: 10 })
       const updateSpy = jest.spyOn(mock.model, "updateSymbol")
 
       manager.clearAnchoredEdgesFor([line])

@@ -12,8 +12,7 @@ import type { PDFExportManager } from "@/manager/base/PDFExportManager"
 import type { SVGRenderer } from "@/renderer"
 import type { TSymbol } from "@/symbol"
 import { isMath, isStroke, isText } from "@/symbol"
-import { MathOps } from "@/symbol/typeset/Math"
-import { TextOps } from "@/symbol/typeset/Text"
+import { MathUtil, TextUtil } from "@/symbol-utils"
 import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 
 /** JIIX stand-in used when the content has not been recognized yet, so exports stay empty instead of throwing */
@@ -83,12 +82,12 @@ export class IIExportManager extends ExportManager {
 
     symbols.forEach((s) => {
       if (isText(s)) {
-        const content = TextOps.getLabel(s)
+        const content = TextUtil.getLabel(s)
         if (content) {
           entries.push({ box: BoxOps.createFromPoints(SymbolGeometry.verticesOf(s)), label: content })
         }
       } else if (isMath(s)) {
-        const content = MathOps.getLabel(s)
+        const content = MathUtil.getLabel(s)
         if (content) {
           entries.push({ box: BoxOps.createFromPoints(SymbolGeometry.verticesOf(s)), label: content })
         }

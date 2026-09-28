@@ -1,5 +1,5 @@
 import { buildStrokeV2 } from "../helpers"
-import { IModel, StrokeOps, DefaultPenStyle, TExportV2 } from "@/iink"
+import { DefaultPenStyle, IModel, StrokeUtil, TExportV2 } from "@/iink"
 
 describe("IModel.ts", () => {
   const width = 100,
@@ -23,7 +23,7 @@ describe("IModel.ts", () => {
   describe("updateStroke", () => {
     test("should updateStroke", () => {
       const model = new IModel(width, height, rowHeight)
-      const stroke = StrokeOps.create(DefaultPenStyle)
+      const stroke = StrokeUtil.createEmpty(DefaultPenStyle)
       for (let index = 0; index < 10; index++) {
         stroke.pointers.push({
           p: 1,
@@ -35,7 +35,7 @@ describe("IModel.ts", () => {
       model.addStroke(stroke)
       expect(model.strokes).toHaveLength(1)
       expect(model.strokes[0]).toStrictEqual(stroke)
-      const strokeUpdated = StrokeOps.create(DefaultPenStyle)
+      const strokeUpdated = StrokeUtil.createEmpty(DefaultPenStyle)
       strokeUpdated.id = stroke.id
       strokeUpdated.pointers.push({ p: 0.5, dt: 0.5, x: 100, y: 27 })
       model.updateStroke(strokeUpdated)
@@ -44,7 +44,7 @@ describe("IModel.ts", () => {
     })
     test("should not updateStroke if id not exist", () => {
       const model = new IModel(width, height, rowHeight)
-      const stroke = StrokeOps.create(DefaultPenStyle)
+      const stroke = StrokeUtil.createEmpty(DefaultPenStyle)
       for (let index = 0; index < 10; index++) {
         stroke.pointers.push({
           p: 1,
@@ -56,7 +56,7 @@ describe("IModel.ts", () => {
       model.addStroke(stroke)
       expect(model.strokes).toHaveLength(1)
       expect(model.strokes[0]).toStrictEqual(stroke)
-      const strokeUpdated = StrokeOps.create(DefaultPenStyle)
+      const strokeUpdated = StrokeUtil.createEmpty(DefaultPenStyle)
       strokeUpdated.id = "pouette"
       strokeUpdated.pointers.push({ p: 0.5, dt: 0.5, x: 100, y: 27 })
       model.updateStroke(strokeUpdated)
@@ -69,7 +69,7 @@ describe("IModel.ts", () => {
   describe("strokes", () => {
     test("should addStrokes", () => {
       const model = new IModel(width, height, rowHeight)
-      const stroke = StrokeOps.create(DefaultPenStyle)
+      const stroke = StrokeUtil.createEmpty(DefaultPenStyle)
       model.addStroke(stroke)
       expect(model.strokes).toHaveLength(1)
       expect(model.strokes[0]).toStrictEqual(stroke)
@@ -77,7 +77,7 @@ describe("IModel.ts", () => {
 
     test("should extractUnsentStrokes", () => {
       const model = new IModel(width, height, rowHeight)
-      const stroke = StrokeOps.create(DefaultPenStyle)
+      const stroke = StrokeUtil.createEmpty(DefaultPenStyle)
       model.addStroke(stroke)
       expect(model.strokes).toHaveLength(1)
       expect(model.strokes).toHaveLength(1)

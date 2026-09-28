@@ -1,9 +1,5 @@
-import type { TBox, TPoint } from "@/core/geometry"
-import { MatrixTransform, OBBOps, type TOBB } from "@/core/geometry"
-import type { TPartialDeep } from "@/core/std"
-import { createUUID } from "@/core/std"
+import { type TOBB } from "@/core/geometry"
 import type { TStyle } from "@/style"
-import { mergeSymbolStyle } from "@/style"
 import type { TBaseSymbol } from "@/symbol/Symbol"
 import { SymbolType } from "@/symbol/Symbol"
 /**
@@ -58,37 +54,3 @@ export function isDecorator(symbol: TBaseSymbol): symbol is TDecorator {
 /**
  * @group Symbol
  */
-export const DecoratorOps = {
-  create(kind: DecoratorKind, style: TPartialDeep<TStyle>, targetIds: string[] = [], targetBounds?: TBox): TDecorator {
-    const mergedStyle = mergeSymbolStyle(style)
-    const now = Date.now()
-    const decorator: TDecorator = {
-      id: `${kind}-${createUUID()}`,
-      type: SymbolType.Decorator,
-      style: mergedStyle,
-      creationTime: now,
-      modificationDate: now,
-      kind,
-      targetIds,
-      transform: MatrixTransform.identity(),
-    }
-    if (targetBounds) {
-      DecoratorOps.setTargetBounds(decorator, OBBOps.fromBox(targetBounds))
-    }
-    return decorator
-  },
-
-  setTargetBounds(decorator: TDecorator, targetBounds: TOBB): void {
-    decorator.targetBounds = targetBounds
-  },
-
-  /** The two endpoints of the horizontal line a decorator's own geometry is: the middle of its bounds. */
-  computeVertices(bounds: TOBB): TPoint[] {
-    const yMid = bounds.center.y
-    const hw = bounds.width / 2
-    return [
-      { x: bounds.center.x - hw, y: yMid },
-      { x: bounds.center.x + hw, y: yMid },
-    ]
-  },
-}

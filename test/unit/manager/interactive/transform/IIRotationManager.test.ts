@@ -1,28 +1,6 @@
 import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
 import { buildIIMath, buildIIStroke, buildIIText } from "../../../helpers"
-import {
-  EdgeLineOps,
-  IIConnectorManager,
-  IIRotationManager,
-  EdgeArcOps,
-  ShapeEllipseOps,
-  BoxOps,
-  MathUtil,
-  TBaseSymbol,
-  TextUtil,
-  MatrixTransform,
-  OBBOps,
-  ShapeCircleOps,
-  ShapePolygonOps,
-  StrokeOps,
-  SvgElementRole,
-  SymbolGeometry,
-  TPoint,
-  TStroke,
-  TSymbol,
-  computeRotatedPoint,
-  convertDegreeToRadian,
-} from "@/iink"
+import { BoxOps, EdgeUtil, IIConnectorManager, IIRotationManager, MathUtil, MatrixTransform, OBBOps, ShapeUtil, StrokeUtil, SvgElementRole, SymbolGeometry, TBaseSymbol, TPoint, TStroke, TSymbol, TextUtil, computeRotatedPoint, convertDegreeToRadian } from "@/iink"
 
 describe("IIRotationManager.ts", () => {
   test("should create", () => {
@@ -42,7 +20,7 @@ describe("IIRotationManager.ts", () => {
       // translate/rotate/resize matrix-only, so that table (and the `resolveKind` call that used
       // to throw) is no longer on this path — a symbol whose geometry cannot be computed can still
       // have its matrix composed.
-      const edge = EdgeLineOps.create({ x: 0, y: 0 }, { x: 0, y: 5 })
+      const edge = EdgeUtil.createLine({ x: 0, y: 0 }, { x: 0, y: 5 })
       //@ts-ignore
       edge.kind = "pouet"
       const matrix = MatrixTransform.identity().rotate(Math.PI / 2, { x: 0, y: 0 })
@@ -57,7 +35,7 @@ describe("IIRotationManager.ts", () => {
         { x: 5, y: 5 },
         { x: 5, y: 0 },
       ]
-      const poly = ShapePolygonOps.create(points)
+      const poly = ShapeUtil.createPolygon(points)
       //@ts-ignore
       poly.kind = "pouet"
       const origin: TPoint = { x: 0, y: 0 }
@@ -66,10 +44,10 @@ describe("IIRotationManager.ts", () => {
       expect(poly.transform).toEqual({ xx: 0, yx: 1, xy: -1, yy: 0, tx: 0, ty: 0 })
     })
     test("rotate stroke composes the matrix rather than moving its pointers", () => {
-      const stroke = StrokeOps.create()
+      const stroke = StrokeUtil.createEmpty()
       const origin: TPoint = { x: 0, y: 0 }
-      StrokeOps.addPointer(stroke, { p: 1, dt: 1, x: 1, y: 1 })
-      StrokeOps.addPointer(stroke, { p: 1, dt: 10, x: 10, y: 0 })
+      StrokeUtil.addPointer(stroke, { p: 1, dt: 1, x: 1, y: 1 })
+      StrokeUtil.addPointer(stroke, { p: 1, dt: 10, x: 10, y: 0 })
       const pointersBefore = stroke.pointers.map((p) => ({ ...p }))
       const matrix = MatrixTransform.identity().rotate(Math.PI / 2, origin)
       manager.applyToSymbol(stroke, matrix)
@@ -77,11 +55,11 @@ describe("IIRotationManager.ts", () => {
       expect(stroke.pointers).toEqual(pointersBefore)
     })
     test("rotate a math solver-output (draw) stroke composes the matrix like a normal stroke", () => {
-      const stroke = StrokeOps.create()
+      const stroke = StrokeUtil.createEmpty()
       stroke.isSolverOutput = true
       const origin: TPoint = { x: 0, y: 0 }
-      StrokeOps.addPointer(stroke, { p: 1, dt: 1, x: 1, y: 1 })
-      StrokeOps.addPointer(stroke, { p: 1, dt: 10, x: 10, y: 0 })
+      StrokeUtil.addPointer(stroke, { p: 1, dt: 1, x: 1, y: 1 })
+      StrokeUtil.addPointer(stroke, { p: 1, dt: 10, x: 10, y: 0 })
       const pointersBefore = stroke.pointers.map((p) => ({ ...p }))
       const matrix = MatrixTransform.identity().rotate(Math.PI / 2, origin)
       manager.applyToSymbol(stroke, matrix)
@@ -91,7 +69,7 @@ describe("IIRotationManager.ts", () => {
     test("rotate shape Circle composes the matrix rather than moving its centre", () => {
       const center: TPoint = { x: 5, y: 5 }
       const radius = 4
-      const circle = ShapeCircleOps.create(center, radius)
+      const circle = ShapeUtil.createCircle(center, radius)
       const origin: TPoint = { x: 1, y: 2 }
       const matrix = MatrixTransform.identity().rotate(Math.PI / 2, origin)
       manager.applyToSymbol(circle, matrix)
@@ -102,7 +80,7 @@ describe("IIRotationManager.ts", () => {
     test("rotate edge Line composes the matrix rather than moving its endpoints", () => {
       const start: TPoint = { x: 0, y: 0 }
       const end: TPoint = { x: 0, y: 5 }
-      const line = EdgeLineOps.create(start, end)
+      const line = EdgeUtil.createLine(start, end)
       const origin: TPoint = { x: 0, y: 0 }
       const matrix = MatrixTransform.identity().rotate(Math.PI / 2, origin)
       manager.applyToSymbol(line, matrix)
@@ -123,9 +101,9 @@ describe("IIRotationManager.ts", () => {
     const manager = new IIRotationManager(asCanvas(canvas))
     manager.applyToSymbol = jest.fn()
 
-    const strokeOrigin = StrokeOps.create({})
-    StrokeOps.addPointer(strokeOrigin, { p: 1, dt: 1, x: 0, y: 0 })
-    StrokeOps.addPointer(strokeOrigin, { p: 1, dt: 1, x: 10, y: 50 })
+    const strokeOrigin = StrokeUtil.createEmpty({})
+    StrokeUtil.addPointer(strokeOrigin, { p: 1, dt: 1, x: 0, y: 0 })
+    StrokeUtil.addPointer(strokeOrigin, { p: 1, dt: 1, x: 10, y: 50 })
     canvas.model.addSymbol(strokeOrigin)
     canvas.model.selectSymbol(strokeOrigin.id)
 
@@ -339,11 +317,11 @@ describe("IIRotationManager.ts", () => {
       canvas.client.replaceStrokes = jest.fn(() => Promise.resolve())
       const manager = new IIRotationManager(asCanvas(canvas))
 
-      const shape = ShapeCircleOps.create({ x: 50, y: 50 }, 20)
+      const shape = ShapeUtil.createCircle({ x: 50, y: 50 }, 20)
       canvas.model.addSymbol(shape)
       canvas.model.selectSymbol(shape.id)
 
-      const edgeStroke = StrokeOps.create()
+      const edgeStroke = StrokeUtil.createEmpty()
       edgeStroke.pointers = [
         { x: 0, y: 0, dt: 0, p: 1 },
         { x: 10, y: 0, dt: 1, p: 1 },
@@ -400,12 +378,12 @@ describe("IIRotationManager.ts", () => {
       canvas.client.transformRotate = jest.fn(() => Promise.resolve())
       const manager = new IIRotationManager(asCanvas(canvas))
 
-      const shape = ShapeCircleOps.create({ x: 50, y: 50 }, 20)
+      const shape = ShapeUtil.createCircle({ x: 50, y: 50 }, 20)
       canvas.model.addSymbol(shape)
       canvas.model.selectSymbol(shape.id)
       jest.spyOn(canvas.jiix, "getStrokesForElement").mockImplementation((id) => (id === shape.id ? [shape.id] : []))
 
-      const edgeStroke = StrokeOps.create()
+      const edgeStroke = StrokeUtil.createEmpty()
       edgeStroke.pointers = [
         { x: 0, y: 0, dt: 0, p: 1 },
         { x: 5, y: 0, dt: 1, p: 1 },
@@ -460,14 +438,14 @@ describe("IIRotationManager, the cells that used to be rotation-specific", () =>
   }
 
   test("an ellipse's own orientation no longer moves — the matrix carries the turn", () => {
-    const ellipse = ShapeEllipseOps.create({ x: 10, y: 10 }, 30, 20, 0)
+    const ellipse = ShapeUtil.createEllipse({ x: 10, y: 10 }, 30, 20, 0)
     rotate(ellipse)
     expect(ellipse.orientation).toBe(0)
     expect(ellipse.transform).toEqual({ xx: 0, yx: 1, xy: -1, yy: 0, tx: 0, ty: 0 })
   })
 
   test("an arc's phi no longer moves either", () => {
-    const arc = EdgeArcOps.create({ x: 50, y: 50 }, 0, Math.PI, 30, 20, 0)
+    const arc = EdgeUtil.createArc({ x: 50, y: 50 }, 0, Math.PI, 30, 20, 0)
     rotate(arc)
     expect(arc.phi).toBe(0)
     expect(arc.transform).toEqual({ xx: 0, yx: 1, xy: -1, yy: 0, tx: 0, ty: 0 })
