@@ -1,4 +1,4 @@
-import { OBBOps, Polygon2d, type TBox, type TPoint } from "@/core/geometry"
+import { OBBOps, Polygon2d, type TPoint } from "@/core/geometry"
 import { DecoratorKind } from "@/symbol/decorator/Decorator"
 import type { TMath } from "@/symbol/typeset/Math"
 import type { TText } from "@/symbol/typeset/Text"
@@ -6,7 +6,6 @@ import { computeTypesetSnapPoints, computeTypesetVertices } from "@/symbol/types
 
 import { DecoratorUtil } from "../decorator/DecoratorUtil"
 import { SVGBuilder } from "../SVGBuilder"
-import { SymbolGeometry } from "../SymbolGeometry"
 import { SymbolUtil } from "../SymbolUtil"
 
 /**
@@ -113,10 +112,6 @@ export abstract class TypesetUtil<T extends TText | TMath> extends SymbolUtil<T>
   }
 
   /** Shared by text and math, which had the same one line each. */
-  overlaps(symbol: T, box: TBox): boolean {
-    return SymbolGeometry.of(symbol).overlapsBox(box)
-  }
-
   /** Shared by text and math, which had the same one line each. */
   getSnapPoints(symbol: T): TPoint[] {
     return this.mapPointsForward(symbol, this.rawSnapPoints(symbol))

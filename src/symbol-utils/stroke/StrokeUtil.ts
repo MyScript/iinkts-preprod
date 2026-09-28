@@ -1,4 +1,4 @@
-import type { TBox, TPointer } from "@/core/geometry"
+import type { TPointer } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
 import {
   computeAngleAxeRadian,
@@ -51,10 +51,6 @@ export class StrokeUtil extends PathSymbolUtil<TStroke> {
    * instead and the axis-aligned query is tested as it stands — the same answer, without an inverse
    * to guard against, a determinant to check, or a quad to special-case.
    */
-  overlaps(stroke: TStroke, box: TBox): boolean {
-    return SymbolGeometry.of(stroke).overlapsBox(box)
-  }
-
   /**
    * A stroke snaps on its box, not on the samples themselves: an ink trace has no corner anything
    * would want to land on.
