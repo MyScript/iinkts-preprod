@@ -175,7 +175,7 @@ export function buildStrokeV2({
   nbPoint = 5,
   pointerType = "pen",
 } = {}): TStroke {
-  const stroke = StrokeOps.create(style, pointerType)
+  const stroke = StrokeUtil.createEmpty(style, pointerType)
   for (let i = 0; i < nbPoint; i++) {
     stroke.pointers.push({
       p: Math.random(),
