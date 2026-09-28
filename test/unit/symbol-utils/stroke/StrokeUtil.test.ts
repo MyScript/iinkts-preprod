@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach } from "@jest/globals"
 import { buildIIStroke } from "../../helpers"
-import { MatrixTransform, OBBOps, PointSet2d, registerBuiltinSymbolUtils, StrokeOps, StrokeUtil, SymbolType } from "@/iink"
+import { MatrixTransform, OBBOps, PointSet2d, registerBuiltinSymbolUtils, StrokeUtil, SymbolType } from "@/iink"
 
 describe("StrokeUtil", () => {
   let util: StrokeUtil
@@ -61,10 +61,10 @@ describe("StrokeUtil", () => {
       expect(util.getSnapPoints(stroke).length).toBeGreaterThan(0)
     })
 
-    test("matches the legacy StrokeOps writer, not merely itself", () => {
+    test("matches hand-written oracles, not merely itself", () => {
       // Oracles below are hand-written from these three pointers, not borrowed from the
       // computation under test.
-      const stroke = StrokeOps.createFromPartial({
+      const stroke = StrokeUtil.createFromPartial({
         pointers: [
           { x: 0, y: 0, dt: 0, p: 1 },
           { x: 10, y: 0, dt: 1, p: 1 },
@@ -86,7 +86,7 @@ describe("StrokeUtil", () => {
 
   describe("getSVGElement", () => {
     test("emits the symbol's matrix as the element transform", () => {
-      const stroke = StrokeOps.createFromPartial({ pointers: [{ x: 0, y: 0, dt: 0, p: 1 }] })
+      const stroke = StrokeUtil.createFromPartial({ pointers: [{ x: 0, y: 0, dt: 0, p: 1 }] })
       stroke.transform = MatrixTransform.identity().translate(3, 4)
 
       const el = new StrokeUtil().getSVGElement(stroke)
@@ -95,7 +95,7 @@ describe("StrokeUtil", () => {
     })
 
     test("emits no transform attribute for a symbol that was never moved", () => {
-      const stroke = StrokeOps.createFromPartial({ pointers: [{ x: 0, y: 0, dt: 0, p: 1 }] })
+      const stroke = StrokeUtil.createFromPartial({ pointers: [{ x: 0, y: 0, dt: 0, p: 1 }] })
 
       expect(new StrokeUtil().getSVGElement(stroke).getAttribute("transform")).toBeNull()
     })

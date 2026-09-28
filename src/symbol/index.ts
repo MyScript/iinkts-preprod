@@ -4,7 +4,7 @@
  *
  * **Primitives** — {@link TPoint}, {@link TBox}, {@link BoxOps}
  *
- * **Stroke** — {@link TStroke}, {@link StrokeOps}
+ * **Stroke** — {@link TStroke}, {@link isStroke}
  *
  * **Text** — {@link TText}, {@link TextOps}
  *

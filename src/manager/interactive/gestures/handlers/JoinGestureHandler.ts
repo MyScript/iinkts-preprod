@@ -8,7 +8,7 @@ import type { GestureHelpers } from "@/manager/interactive/gestures/GestureHelpe
 import type { TGesture } from "@/manager/interactive/gestures/GestureTypes"
 import type { TStroke, TText } from "@/symbol"
 import { cloneSymbol, isText, type TSymbol } from "@/symbol"
-import { TextOps } from "@/symbol/typeset/Text"
+import { TextUtil } from "@/symbol-utils"
 import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 /**
@@ -86,7 +86,7 @@ export class JoinGestureHandler extends GestureHandler {
 
       if (isText(lastSymbBefore) && isText(firstSymbolAfter)) {
         const texts = [lastSymbBeforeClone as TText, firstSymbolAfterClone as TText]
-        const text = TextOps.create(
+        const text = TextUtil.createText(
           texts.flatMap((s) => s.chars),
           texts[0].point,
           BoxOps.createFromBoxes(texts.map((t) => OBBOps.toBox(SymbolGeometry.boundsOf(t))))

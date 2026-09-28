@@ -1,6 +1,6 @@
 import { beforeAll, describe, test, expect } from "@jest/globals"
 import { buildIICircle, buildIIEraser, buildIILine, buildIIStroke, buildIIText } from "../helpers"
-import { BoxOps, DefaultIIRendererConfiguration, Geometry2d, MatrixTransform, OBBOps, Polygon2d, SVGRenderer, StrokeOps, SymbolUtil, TBaseSymbol, TBox, TIIRendererConfiguration, TPartialDeep, TPoint, TSymbol, TSymbolChar, TTransformContext, applyMatrixToPoint, registerBuiltinSymbolUtils, symbolRegistry } from "@/iink"
+import { BoxOps, DefaultIIRendererConfiguration, Geometry2d, MatrixTransform, OBBOps, Polygon2d, SVGRenderer, StrokeUtil, SymbolUtil, TBaseSymbol, TBox, TIIRendererConfiguration, TPartialDeep, TPoint, TSymbol, TSymbolChar, TTransformContext, applyMatrixToPoint, registerBuiltinSymbolUtils, symbolRegistry } from "@/iink"
 
 beforeAll(() => {
   registerBuiltinSymbolUtils()
@@ -264,7 +264,7 @@ describe("SVGRenderer.ts", () => {
       renderer.drawSymbol(stroke)
       const oldPath = divElement.querySelector(`#${stroke.id}`)!.getAttribute("d")
       for (let x = 0; x < 10; x++) {
-        StrokeOps.addPointer(stroke, {
+        StrokeUtil.addPointer(stroke, {
           x,
           y: x * 2,
           p: 1,
@@ -441,7 +441,7 @@ describe("SVGRenderer.ts", () => {
       const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
       renderer.init(divElement)
 
-      const stroke = StrokeOps.createFromPartial({
+      const stroke = StrokeUtil.createFromPartial({
         pointers: [
           { x: 100000, y: 100000, dt: 0, p: 1 },
           { x: 100010, y: 100010, dt: 1, p: 1 },
@@ -600,7 +600,7 @@ describe("SVGRenderer.ts", () => {
       const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
       renderer.init(divElement)
 
-      const stroke = StrokeOps.createFromPartial({
+      const stroke = StrokeUtil.createFromPartial({
         pointers: [
           { x: 0, y: 0, dt: 0, p: 1 },
           { x: 10, y: 10, dt: 1, p: 1 },
@@ -629,7 +629,7 @@ describe("SVGRenderer.ts", () => {
       // A non-identity transform, so the fallback `drawSymbol` is forced to write the attribute
       // (a stroke element omits it entirely for the identity matrix) - proof this went through the
       // normal draw path rather than a no-op.
-      const stroke = StrokeOps.createFromPartial({
+      const stroke = StrokeUtil.createFromPartial({
         pointers: [
           { x: 0, y: 0, dt: 0, p: 1 },
           { x: 10, y: 10, dt: 1, p: 1 },
@@ -650,7 +650,7 @@ describe("SVGRenderer.ts", () => {
       const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
       renderer.init(divElement)
 
-      const stroke = StrokeOps.createFromPartial({
+      const stroke = StrokeUtil.createFromPartial({
         pointers: [
           { x: 0, y: 0, dt: 0, p: 1 },
           { x: 10, y: 10, dt: 1, p: 1 },

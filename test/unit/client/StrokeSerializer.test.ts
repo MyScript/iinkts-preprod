@@ -1,4 +1,4 @@
-import { MatrixTransform, StrokeOps, toWireStroke, type TRecognitionStroke, type TWireStroke } from "@/iink"
+import { MatrixTransform, StrokeUtil, toWireStroke, type TRecognitionStroke, type TWireStroke } from "@/iink"
 
 /** Stroke origin used by the fixtures; the wire carries `creationTime + dt`, not `dt`. */
 const CREATED_AT = 1700000000000
@@ -157,11 +157,11 @@ describe("StrokeSerializer.ts", () => {
       // The point of declaring `TRecognitionStroke` inside the client rather than importing the
       // symbol layer's type: structural typing makes a real `TStroke` a valid argument, so neither
       // package needs to know about the other.
-      const stroke = StrokeOps.create(undefined, "pen", CREATED_AT)
+      const stroke = StrokeUtil.createEmpty(undefined, "pen", CREATED_AT)
       // The pressure reaches the wire exactly as the device reported it. `addPointer` used to
       // overwrite it with a value derived from the gap to the previous pointer; width is a drawing
       // decision now, taken at render time, and never written back into the document.
-      StrokeOps.addPointer(stroke, { x: 7, y: 8, dt: 42, p: 0.25 })
+      StrokeUtil.addPointer(stroke, { x: 7, y: 8, dt: 42, p: 0.25 })
 
       const wire: TWireStroke = toWireStroke(stroke)
       expect(wire).toEqual({

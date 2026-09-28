@@ -1,5 +1,5 @@
 import { edgeGeometry } from "../../helpers"
-import { DefaultStyle, EdgePolyLineOps, OBBOps, Polyline2d, SELECTION_MARGIN, TBox, TPoint, TStyle } from "@/iink"
+import { DefaultStyle, EdgeUtil, OBBOps, Polyline2d, SELECTION_MARGIN, TBox, TPoint, TStyle } from "@/iink"
 
 describe("PolyLine.ts", () => {
   describe("constructor", () => {
@@ -13,7 +13,7 @@ describe("PolyLine.ts", () => {
         color: "blue",
         width: 20,
       }
-      const line = EdgePolyLineOps.create(points, undefined, undefined, style)
+      const line = EdgeUtil.createPolyLine(points, undefined, undefined, style)
       expect(line).toBeDefined()
       expect(line.creationTime).toBeLessThanOrEqual(Date.now())
       expect(line.creationTime).toEqual(line.modificationDate)
@@ -23,7 +23,7 @@ describe("PolyLine.ts", () => {
       expect(OBBOps.toBox(new Polyline2d(line.points, SELECTION_MARGIN / 2).bounds).y).toEqual(-5)
       expect(new Polyline2d(line.points, SELECTION_MARGIN / 2).bounds.width).toEqual(15)
       expect(new Polyline2d(line.points, SELECTION_MARGIN / 2).bounds.height).toEqual(15)
-      expect(EdgePolyLineOps.computeVertices(line)).toHaveLength(3)
+      expect(EdgeUtil.getPolyLineVertices(line)).toHaveLength(3)
     })
     test("should create with default style", () => {
       const points: TPoint[] = [
@@ -31,7 +31,7 @@ describe("PolyLine.ts", () => {
         { x: 5, y: 0 },
         { x: 5, y: 5 },
       ]
-      const line = EdgePolyLineOps.create(points)
+      const line = EdgeUtil.createPolyLine(points)
       expect(line.style).toEqual(DefaultStyle)
     })
   })
@@ -41,7 +41,7 @@ describe("PolyLine.ts", () => {
       { x: 15, y: 15 },
       { x: 0, y: 25 },
     ]
-    const line = EdgePolyLineOps.create(middles)
+    const line = EdgeUtil.createPolyLine(middles)
     test(`should return true if partially wrap`, () => {
       const boundaries: TBox = { height: 10, width: 10, x: -5, y: -5 }
       expect(edgeGeometry(line.points, line).overlapsBox(boundaries)).toEqual(true)
@@ -62,7 +62,7 @@ describe("PolyLine.ts", () => {
         { x: 15, y: 15 },
         { x: 0, y: 25 },
       ]
-      const line = EdgePolyLineOps.create(middles)
+      const line = EdgeUtil.createPolyLine(middles)
       const clone = structuredClone(line)
       expect(clone).toEqual(line)
       expect(clone).not.toBe(line)

@@ -1,7 +1,13 @@
+import { mergeSymbolTransform, type TOBB } from "@/core/geometry"
+import { MatrixTransform, OBBOps, type TBox, type TPoint } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
+import { createUUID } from "@/core/std"
+import { mergeSymbolStyle, type TStyle } from "@/style"
 import { SymbolType } from "@/symbol/Symbol"
-import { MathOps, type TMath, type TMathElement } from "@/symbol/typeset/Math"
+import { type TMath, type TMathElement } from "@/symbol/typeset/Math"
+import { computeChildrenOverlaps } from "@/symbol/typeset/Typeset"
 
+import { DecoratorUtil } from "../decorator/DecoratorUtil"
 import { SVGBuilder } from "../SVGBuilder"
 import { TypesetUtil } from "./TypesetUtil"
 
@@ -12,7 +18,7 @@ export class MathUtil extends TypesetUtil<TMath> {
   readonly type = SymbolType.Math
 
   create(partial: TPartialDeep<TMath>): TMath {
-    return MathOps.createFromPartial(partial)
+    return MathUtil.createFromPartial(partial)
   }
 
   /**
@@ -66,5 +72,122 @@ export class MathUtil extends TypesetUtil<TMath> {
       }
       return textElement
     })
+  }
+
+  static createMath(elements: TMathElement[], point: TPoint, boundsBox: TBox, style?: TPartialDeep<TStyle>): TMath {
+    const mergedStyle = mergeSymbolStyle(style)
+    const now = Date.now()
+    return {
+      type: SymbolType.Math,
+      id: `${SymbolType.Math}-${createUUID()}`,
+      style: mergedStyle,
+      creationTime: now,
+      modificationDate: now,
+      point,
+      elements,
+      decorators: [],
+      bounds: OBBOps.fromBox(boundsBox),
+      transform: MatrixTransform.identity(),
+    }
+  }
+
+  static createFromPartial(partial: TPartialDeep<TMath>): TMath {
+    if (!partial.elements?.length) {
+      throw new Error(`TMath requires elements`)
+    }
+    if (!partial.point) {
+      throw new Error(`TMath requires point`)
+    }
+    if (!partial.bounds) {
+      throw new Error(`TMath requires bounds`)
+    }
+
+    const elements: TMathElement[] = partial.elements.map((e) => ({
+      id: e!.id!,
+      label: e!.label!,
+      fontSize: e!.fontSize!,
+      fontWeight: e!.fontWeight! as "normal" | "bold",
+      fontFamily: e!.fontFamily!,
+      color: e!.color!,
+      bounds: {
+        x: e!.bounds!.x!,
+        y: e!.bounds!.y!,
+        width: e!.bounds!.width!,
+        height: e!.bounds!.height!,
+      },
+    }))
+
+    const rawBounds = partial.bounds as unknown
+    const boundsBox: TBox =
+      rawBounds && typeof rawBounds === "object" && "center" in rawBounds
+        ? OBBOps.toBox(rawBounds as TOBB)
+        : (rawBounds as TBox)
+    const math = MathUtil.createMath(elements, partial.point as TPoint, boundsBox, partial.style)
+
+    if (partial.id) {
+      math.id = partial.id
+    }
+    math.transform = mergeSymbolTransform(partial.transform)
+    if (partial.decorators) {
+      math.decorators = partial.decorators
+        .filter((d) => d?.kind && d?.style)
+        .map((d) => DecoratorUtil.createDecorator(d!.kind!, d!.style!))
+    }
+    return math
+  }
+
+  static getChildrenOverlaps(math: TMath, points: TPoint[]): TMathElement[] {
+    return computeChildrenOverlaps(math.elements, points)
+  }
+
+  static updateChildrenStyle(math: TMath): void {
+    math.elements.forEach((e) => {
+      if (math.style.color) {
+        e.color = math.style.color
+      }
+    })
+    math.modificationDate = Date.now()
+  }
+
+  static updateChildrenFont(
+    math: TMath,
+    {
+      fontSize,
+      fontWeight,
+      fontFamily,
+    }: {
+      fontSize?: number
+      fontWeight?: "normal" | "bold"
+      fontFamily?: string
+    }
+  ): void {
+    math.elements.forEach((e) => {
+      if (fontSize) {
+        e.fontSize = fontSize
+      }
+      if (fontWeight) {
+        e.fontWeight = fontWeight
+      }
+      if (fontFamily) {
+        e.fontFamily = fontFamily
+      }
+    })
+    math.modificationDate = Date.now()
+  }
+
+  static getLabel(math: TMath): string {
+    return math.elements.map((e) => e.label).join("")
+  }
+
+  static toJSON(math: TMath): TPartialDeep<TMath> {
+    return {
+      id: math.id,
+      type: math.type,
+      point: math.point,
+      elements: math.elements,
+      decorators: math.decorators,
+      bounds: OBBOps.toBox(math.bounds),
+      style: math.style,
+    }
   }
 }
