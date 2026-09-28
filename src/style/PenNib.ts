@@ -102,6 +102,9 @@ export const PEN_NIBS: Record<TPenNib, TNibProfile> = {
   brush: { speed: 1.6, min: 0.12, max: 1.6, taperLength: 18, taperMin: 0.15, usePressure: true, smoothing: 3 },
 }
 
+/**
+ * @group Styles
+ */
 export const DEFAULT_PEN_NIB: TPenNib = "pencil"
 
 /**
@@ -144,6 +147,9 @@ export function readNibOverrides(style: Readonly<Record<string, unknown>>): TNib
   return overrides
 }
 
+/**
+ * @group Styles
+ */
 export function isPenNib(value: unknown): value is TPenNib {
   return typeof value === "string" && Object.prototype.hasOwnProperty.call(PEN_NIBS, value)
 }
