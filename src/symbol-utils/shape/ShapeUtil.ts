@@ -1,4 +1,3 @@
-import type { TBox } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
 import { Circle2d, Ellipse2d, type Geometry2d, OBBOps, Polygon2d } from "@/core/geometry"
 import { BoxOps, computeDistance, isValidPoint, MatrixTransform, mergeSymbolTransform } from "@/core/geometry"
@@ -82,10 +81,6 @@ export class ShapeUtil extends PathSymbolUtil<TShape> {
    */
   getGeometry(shape: TShape): Geometry2d {
     return SHAPE_KINDS[shape.kind]?.getGeometry(shape) ?? new Polygon2d([])
-  }
-
-  overlaps(shape: TShape, box: TBox): boolean {
-    return SymbolGeometry.of(shape).overlapsBox(box)
   }
 
   /**

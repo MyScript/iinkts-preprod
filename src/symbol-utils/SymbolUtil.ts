@@ -5,6 +5,7 @@ import { applyMatrixToPoint, isIdentityMatrix, MatrixTransform } from "@/core/ge
 import type { TPartialDeep } from "@/core/std"
 import type { TBaseSymbol, TResizePoint } from "@/symbol/Symbol"
 
+import { SymbolGeometry } from "./SymbolGeometry"
 import type { TTransformContext } from "./TransformContext"
 
 /**
@@ -21,7 +22,7 @@ import type { TTransformContext } from "./TransformContext"
  * class StickyNoteUtil extends SymbolUtil<TStickyNote> {
  *   readonly type = "sticky-note"
  *   create(partial) { ... }
- *   overlaps(s, box) { ... }
+ *   getGeometry(s) { ... }
  *   translate(s, { matrix }) { ... }
  *   rotate(s, { matrix }) { ... }
  *   resize(s, { matrix }) { ... }
@@ -43,7 +44,16 @@ export abstract class SymbolUtil<T extends TBaseSymbol> {
    */
   abstract getGeometry(symbol: T): Geometry2d
 
-  abstract overlaps(symbol: T, box: TBox): boolean
+  /**
+   * Whether a query box touches this symbol — the question selection and erasing both ask.
+   *
+   * Answered by the shape {@link getGeometry} returns, so a type describes what it is once and
+   * inherits this. Every built-in used to write the same one line here. Override it only for a type
+   * whose hit test is not a question about its outline.
+   */
+  overlaps(symbol: T, box: TBox): boolean {
+    return SymbolGeometry.of(symbol).overlapsBox(box)
+  }
 
   /**
    * `points`, carried through `symbol.transform` the same way a transform manager moves the symbol

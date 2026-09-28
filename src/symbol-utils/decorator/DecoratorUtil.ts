@@ -153,10 +153,6 @@ export class DecoratorUtil extends SymbolUtil<TDecorator> {
     return decorator
   }
 
-  overlaps(decorator: TDecorator, box: TBox): boolean {
-    return SymbolGeometry.of(decorator).overlapsBox(box)
-  }
-
   /**
    * Deliberately nothing. A standalone decorator's bounds are recomputed from the symbols it
    * decorates, which the transform manager does after moving them — moving the decorator itself

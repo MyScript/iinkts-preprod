@@ -1,5 +1,4 @@
 import { EdgeDecoration, SELECTION_MARGIN } from "@/Constants"
-import type { TBox } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
 import {
   computeDistance,
@@ -23,7 +22,6 @@ import { SymbolType, type TBaseSymbol, type TResizePoint } from "@/symbol/Symbol
 
 import { defineKind, resolveKind, type TKindDefinition } from "../KindDefinition"
 import { PathSymbolUtil } from "../PathSymbolUtil"
-import { SymbolGeometry } from "../SymbolGeometry"
 import { arrowHeadEndMarkerId, arrowHeadStartMarkerId } from "./EdgeRenderOptions"
 
 /**
@@ -86,10 +84,6 @@ export class EdgeUtil extends PathSymbolUtil<TEdge> {
    */
   getGeometry(edge: TEdge): Geometry2d {
     return EDGE_KINDS[edge.kind]?.getGeometry(edge) ?? new Polyline2d([])
-  }
-
-  overlaps(edge: TEdge, box: TBox): boolean {
-    return SymbolGeometry.of(edge).overlapsBox(box)
   }
 
   /**
