@@ -2,9 +2,15 @@ import { JIIXElementType, type TJIIXExport } from "@/client"
 
 import { jiixToMermaid } from "./toMermaid"
 
+/**
+ * @group Export
+ */
 export type TLLMContentBlock =
   { type: "text"; content: string } | { type: "math"; latex: string } | { type: "diagram"; mermaid: string }
 
+/**
+ * @group Export
+ */
 export type TLLMExport = {
   blocks: TLLMContentBlock[]
 }

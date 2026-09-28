@@ -16,6 +16,7 @@ import type { MatrixTransform } from "@/core/geometry"
  * Deliberately carries no operation discriminator: a `switch (context.operation)` inside a util
  * would be the same dispatch this epic exists to delete, one layer down. Each operation keeps its
  * own method, and which one ran is the method you are in.
+ * @group SymbolUtils
  */
 export type TTransformContext = {
   matrix: MatrixTransform
