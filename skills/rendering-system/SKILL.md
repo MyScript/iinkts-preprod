@@ -16,7 +16,7 @@ The rendering system draws digital ink and recognized content to screen. Two ren
 | `SVGRenderer` | SVG DOM | Better quality | Default for most editors |
 | `CanvasRenderer` | Canvas 2D | Better performance | High stroke count scenarios |
 
-**Base abstraction**: `BaseRenderer` ([src/renderer/BaseRenderer.ts](src/renderer/BaseRenderer.ts))
+**Base abstraction**: `BaseRenderer` ([src/renderer/base/BaseRenderer.ts](src/renderer/base/BaseRenderer.ts))
 
 ## Renderer Selection
 
@@ -54,13 +54,13 @@ class SVGRenderer extends BaseRenderer {
 }
 ```
 
-**Per-type rendering** lives in each type's `*Util` class (`src/symbol-utils/{type}/{Type}Util.ts`): `StrokeUtil`, `TextUtil`, `MathUtil`, `ShapeUtil`, `EdgeUtil`, `DecoratorUtil` — each implements `getSVGElement(symbol)`. See the `symbol-system` skill for the full `*Ops`/`*Util` layering. Adding a new renderable type means adding a `getSVGElement()` to its `*Util`, not touching `SVGRenderer`.
+**Per-type rendering** lives in each type's `*Util` class (`src/symbol-utils/{type}/{Type}Util.ts`): `StrokeUtil`, `TextUtil`, `MathUtil`, `ShapeUtil`, `EdgeUtil`, `DecoratorUtil` — each implements `getSVGElement(symbol)`. See the `symbol-system` skill for what else a util holds. Adding a new renderable type means adding a `getSVGElement()` to its util — or, for a single-`<path>` symbol, extending `PathSymbolUtil` and implementing `getPathData`/`getPathAttributes` — not touching `SVGRenderer`.
 
 **Other renderer pieces**:
 - `SVGRendererConst` ([src/renderer/svg/utils/SVGRendererConst.ts](src/renderer/svg/utils/SVGRendererConst.ts)) — SVG constants/attr presets
 - `SVGBuilder` — real implementation in [src/symbol-utils/SVGBuilder.ts](src/symbol-utils/SVGBuilder.ts); `src/renderer/svg/utils/SVGBuilder.ts` is a re-export shim
-- `SVGStroker` ([src/renderer/svg/SVGStroker.ts](src/renderer/svg/SVGStroker.ts)) — stroke path generation
-- `SVGSSRenderer` ([src/renderer/svg/SVGSSRenderer.ts](src/renderer/svg/SVGSSRenderer.ts)) — server-side rendering support
+- `SVGStroker` ([src/renderer/ssr/SVGStroker.ts](src/renderer/ssr/SVGStroker.ts)) — stroke path generation
+- `SVGSSRenderer` ([src/renderer/ssr/SVGSSRenderer.ts](src/renderer/ssr/SVGSSRenderer.ts)) — server-side rendering support
 
 **Implementation**: [src/renderer/svg/SVGRenderer.ts](src/renderer/svg/SVGRenderer.ts)
 
@@ -166,7 +166,7 @@ getSVGElement(shape: TShape): SVGElement {
 
 #### Text Rendering
 
-**`TextUtil.getSVGElement()`** ([src/symbol-utils/text/TextUtil.ts](src/symbol-utils/text/TextUtil.ts)) — illustrative shape:
+**`TextUtil.getSVGElement()`** ([src/symbol-utils/typeset/TextUtil.ts](src/symbol-utils/typeset/TextUtil.ts)) — illustrative shape:
 
 ```typescript
 getSVGElement(text: TText): SVGTextElement {
@@ -314,7 +314,7 @@ drawText(text: IIText) {
 
 ### Pen Style
 
-**TPenStyle** ([src/style/Types.ts](src/style/Types.ts)):
+**TPenStyle** ([src/style/PenStyle.ts](src/style/PenStyle.ts)):
 
 ```typescript
 type TPenStyle = {
@@ -359,7 +359,7 @@ type TTheme = {
 
 ### Style Helpers
 
-**StyleHelper** ([src/style/StyleHelper.ts](src/style/StyleHelper.ts)):
+**StyleHelper** ([src/style-css/StyleHelper.ts](src/style-css/StyleHelper.ts)):
 
 - `rgbToHex(r, g, b)` - Color conversion
 - `hexToRgb(hex)` - Reverse conversion
@@ -371,7 +371,7 @@ Symbols can be transformed (translate, rotate, resize) via **MatrixTransform**.
 
 ### Matrix Transform
 
-**MatrixTransform** ([src/transform/MatrixTransform.ts](src/transform/MatrixTransform.ts)):
+**MatrixTransform** ([src/core/geometry/Matrix.ts](src/core/geometry/Matrix.ts)):
 
 ```typescript
 class MatrixTransform {
@@ -405,22 +405,22 @@ element.setAttribute('transform', rotation.toSVGString())
 
 ### Symbol Bounds
 
-**Box** class ([src/model/Box.ts](src/model/Box.ts)) for bounding boxes:
+A box is a plain record, and the operations on it are free functions — there is no `Box` class
+([src/core/geometry/Box.ts](src/core/geometry/Box.ts)):
 
 ```typescript
-class Box {
-  constructor(
-    public x: number,
-    public y: number,
-    public width: number,
-    public height: number
-  ) {}
-  
-  contains(point: TPoint): boolean
-  overlaps(other: Box): boolean
-  union(other: Box): Box
-}
+type TBox = { x: number; y: number; width: number; height: number }
+
+BoxOps.createFromPoints(points)        // and createFromBoxes(boxes) — the union
+BoxOps.containsPoint(box, point)       // contains(box, child), isContained(box, wrapper)
+BoxOps.overlaps(box1, box2)
+BoxOps.getCorners(box) / getSides(box) / getCenter(box) / getSnapPoints(box)
+BoxOps.nearestBoundaryPoint(box, point)
 ```
+
+A **symbol's** bounds do not come from here: ask its geometry, which is tight and knows about
+rotation — `SymbolGeometry.boundsOf(symbol)` returns a `TOBB`, and `OBBOps.toBox` flattens it to a
+`TBox` when a caller needs axis-aligned numbers.
 
 **Usage**: Selection, hit testing, clipping.
 

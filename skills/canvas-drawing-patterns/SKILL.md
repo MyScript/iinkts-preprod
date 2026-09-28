@@ -24,12 +24,12 @@ resize(el, { preserveAspectRatio: true, animate: false })
 
 ## Geometry / perf
 
-- Use `computeDistanceSquared` (no sqrt), not `computeDistance`, when only comparing against a threshold — already in `src/utils/geometry.ts`.
+- Use `computeDistanceSquared` (no sqrt), not `computeDistance`, when only comparing against a threshold — already in `src/core/geometry/distance.ts`.
 - Cache bounding boxes when queried repeatedly per frame/gesture instead of recomputing from raw points each time.
 
 ## Per-symbol-type encapsulation
 
-Keep type-specific logic in the matching `*Ops` object (`StrokeOps`, `TextOps`, `MathOps`, `ShapeOps`, `EdgeOps`, `DecoratorOps` — co-located with the type in `src/symbol/{type}/`), and rendering/registry glue in the matching `*Util` adapter (`src/symbol-utils/{type}/`), dispatched via `symbolRegistry.getUtil(symbol.type)`. Don't branch on `SymbolType` inline in managers or renderers. `src/symbol/SymbolHelpers.ts` is unrelated (just `cloneSymbol()`), not a dispatcher.
+Keep everything a type knows on its util in `src/symbol-utils/{type}/` — geometry, rendering, construction and editing alike — and reach it through `symbolRegistry.getUtil(symbol.type)`. `src/symbol/{type}/` holds the type and its guards, nothing more. Don't branch on `SymbolType` inline in managers or renderers. `src/symbol/SymbolHelpers.ts` is unrelated (just `cloneSymbol()`), not a dispatcher.
 
 ## Testing
 

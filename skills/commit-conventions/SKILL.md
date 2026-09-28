@@ -41,11 +41,11 @@ Optional body explaining WHY (not what) if complex.
 | `symbol` | TSymbol hierarchy, type guards, SymbolFactory |
 | `model` | Model, IModel, IIModel |
 | `menu` | Menu system, actions, context menus, tools |
-| `transform` | Matrix transformation utilities |
 | `history` | HistoryManager variants |
 | `grabber` | PointerEventGrabber |
 | `style` | Style, PenStyle, Theme, StyleManager |
-| `utils` | `src/utils/` functions |
+| `core` | `src/core/` primitives — geometry (incl. `Geometry2d`), math, std |
+| `symbol-utils` | Per-type utils, registry, `SymbolGeometry`, `SVGBuilder` |
 | `examples` | `examples/` directory |
 | `build` | Rollup config, build pipeline |
 | `deps` | Dependency updates |
