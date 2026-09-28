@@ -22,6 +22,7 @@
     "alphabetical",
   ],
   "excludeExternals": true,
+  "treatWarningsAsErrors": true,
   "readme": "README.md",
   "includeVersion": true,
   "disableSources": false,
