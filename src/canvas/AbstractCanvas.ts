@@ -47,7 +47,6 @@ declare global {
 }
 
 /**
- * @hidden
  * @group Canvas
  */
 export abstract class AbstractCanvas {

@@ -22,7 +22,6 @@
     "alphabetical",
   ],
   "excludeExternals": true,
-  "intentionallyNotExported": ["AbstractCanvas.resize"],
   "readme": "README.md",
   "includeVersion": true,
   "disableSources": false,
