@@ -10,8 +10,10 @@ import {
   type TOBB,
 } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
+import { createUUID } from "@/core/std"
+import { mergeSymbolStyle, type TStyle } from "@/style"
 import { DefaultStyle } from "@/style"
-import { DecoratorKind, DecoratorOps, type TDecorator } from "@/symbol/decorator/Decorator"
+import { DecoratorKind, type TDecorator } from "@/symbol/decorator/Decorator"
 import type { TBaseSymbol } from "@/symbol/Symbol"
 import { SymbolType } from "@/symbol/Symbol"
 
@@ -130,14 +132,14 @@ export class DecoratorUtil extends SymbolUtil<TDecorator> {
     }
     const targetIds = (partial.targetIds ?? []).filter((id): id is string => id !== undefined)
     const targetBounds = partial.targetBounds
-    const decorator = DecoratorOps.create(partial.kind, partial.style ?? {}, targetIds)
+    const decorator = DecoratorUtil.createDecorator(partial.kind, partial.style ?? {}, targetIds)
     // Read as the `TOBB` the field declares, field by field, rather than through `create`'s `TBox`
     // parameter. The code this replaces did `partial.bounds as TBox` and handed that to
     // `OBBOps.fromBox`, which reads `.x`/`.y` — so a decorator serialised by iinkTS itself (a
     // `TOBB`, with `center` and no `x`) came back with a NaN centre on re-import. The cast was what
     // hid the mismatch from the compiler.
     if (targetBounds) {
-      DecoratorOps.setTargetBounds(
+      DecoratorUtil.setTargetBounds(
         decorator,
         OBBOps.create(
           { x: targetBounds.center?.x ?? 0, y: targetBounds.center?.y ?? 0 },
@@ -181,7 +183,7 @@ export class DecoratorUtil extends SymbolUtil<TDecorator> {
    * The box a decorator was placed against, as a shape.
    *
    * Its target's box rather than the line it draws: a decorator is found wherever what it decorates
-   * is, which is what `DecoratorOps.overlaps` tested against and what `targetBounds` holds. Filled,
+   * is, which is what `DecoratorUtil.overlaps` tested against and what `targetBounds` holds. Filled,
    * so a query landing inside the decorated text catches it the way a query crossing the text's edge
    * does — again matching the box test this replaces.
    *
@@ -197,7 +199,7 @@ export class DecoratorUtil extends SymbolUtil<TDecorator> {
 
   /** The two ends of the line it draws — a decorator never moves, so there is no matrix to apply. */
   getSnapPoints(decorator: TDecorator): TPoint[] {
-    return decorator.targetBounds ? DecoratorOps.computeVertices(decorator.targetBounds) : []
+    return decorator.targetBounds ? DecoratorUtil.computeVertices(decorator.targetBounds) : []
   }
 
   canResize(_decorator: TDecorator): boolean {
@@ -276,5 +278,43 @@ export class DecoratorUtil extends SymbolUtil<TDecorator> {
       xHeight,
     }
     return definition.render(context, attrs)
+  }
+
+  static createDecorator(
+    kind: DecoratorKind,
+    style: TPartialDeep<TStyle>,
+    targetIds: string[] = [],
+    targetBounds?: TBox
+  ): TDecorator {
+    const mergedStyle = mergeSymbolStyle(style)
+    const now = Date.now()
+    const decorator: TDecorator = {
+      id: `${kind}-${createUUID()}`,
+      type: SymbolType.Decorator,
+      style: mergedStyle,
+      creationTime: now,
+      modificationDate: now,
+      kind,
+      targetIds,
+      transform: MatrixTransform.identity(),
+    }
+    if (targetBounds) {
+      DecoratorUtil.setTargetBounds(decorator, OBBOps.fromBox(targetBounds))
+    }
+    return decorator
+  }
+
+  static setTargetBounds(decorator: TDecorator, targetBounds: TOBB): void {
+    decorator.targetBounds = targetBounds
+  }
+
+  /** The two endpoints of the horizontal line a decorator's own geometry is: the middle of its bounds. */
+  static computeVertices(bounds: TOBB): TPoint[] {
+    const yMid = bounds.center.y
+    const hw = bounds.width / 2
+    return [
+      { x: bounds.center.x - hw, y: yMid },
+      { x: bounds.center.x + hw, y: yMid },
+    ]
   }
 }

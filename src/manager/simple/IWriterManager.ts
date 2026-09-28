@@ -6,7 +6,7 @@ import type { IModel } from "@/model"
 import type { TStyle } from "@/style"
 import type { TStroke, TSymbol } from "@/symbol"
 import { isStroke } from "@/symbol"
-import { StrokeOps } from "@/symbol/stroke/Stroke"
+import { StrokeUtil } from "@/symbol-utils"
 
 /**
  * @group Manager
@@ -25,14 +25,14 @@ export class IWriterManager extends AbstractWriterManager {
   }
 
   protected createCurrentSymbol(pointer: TPointer, style: TStyle, pointerType: string, creationTime: number): TSymbol {
-    this.model.currentStroke = StrokeOps.create(style, pointerType, creationTime)
-    StrokeOps.addPointer(this.model.currentStroke, pointer)
+    this.model.currentStroke = StrokeUtil.createEmpty(style, pointerType, creationTime)
+    StrokeUtil.addPointer(this.model.currentStroke, pointer)
     return this.model.currentStroke
   }
 
   protected updateCurrentSymbol(pointer: TPointer): TStroke {
     if (this.model.currentStroke && isStroke(this.model.currentStroke)) {
-      StrokeOps.addPointer(this.model.currentStroke, pointer)
+      StrokeUtil.addPointer(this.model.currentStroke, pointer)
     }
     return this.model.currentStroke!
   }

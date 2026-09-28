@@ -2,8 +2,7 @@ import { describe, test, expect, beforeAll, beforeEach } from "@jest/globals"
 import { buildIIText } from "../../helpers"
 import {
   TextUtil,
-  TextOps,
-  SymbolGeometry,
+    SymbolGeometry,
   SymbolType,
   OBBOps,
   MatrixTransform,
@@ -117,7 +116,7 @@ describe("TextUtil", () => {
 
   describe("rotate/resize, composing the matrix", () => {
     test("a second rotation composes with the first instead of replacing it", () => {
-      const text = TextOps.createFromPartial({
+      const text = TextUtil.createFromPartial({
         chars: [{ label: "a", color: "#000", fontSize: 10, fontWeight: "normal", id: "c1" }],
         point: { x: 0, y: 0 },
         bounds: OBBOps.fromBox({ x: 0, y: 0, width: 10, height: 10 }),
@@ -136,7 +135,7 @@ describe("TextUtil", () => {
       // The bug this covers: `TypesetUtil.resize` used to set `bounds.angle = 0` while leaving a
       // separate `rotation` field intact, desynchronising the hit box from what was drawn. There is
       // only one matrix to compose now, so the angle a rotate composed into it survives a resize.
-      const text = TextOps.createFromPartial({
+      const text = TextUtil.createFromPartial({
         chars: [{ label: "a", color: "#000", fontSize: 10, fontWeight: "normal", id: "c1" }],
         point: { x: 0, y: 0 },
         bounds: OBBOps.fromBox({ x: 0, y: 0, width: 10, height: 10 }),

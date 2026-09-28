@@ -1,6 +1,6 @@
 import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
 import { buildIIStroke, buildIIText } from "../../helpers"
-import { DecoratorContextMenu, DecoratorKind, DecoratorOps, DefaultStyle } from "@/iink"
+import { DecoratorContextMenu, DecoratorKind, DecoratorUtil, DefaultStyle } from "@/iink"
 
 describe("DecoratorContextMenu.ts", () => {
   afterEach(() => {
@@ -101,7 +101,7 @@ describe("DecoratorContextMenu.ts", () => {
   test("should set the decorator color for every decorable symbol on color pick", () => {
     const canvas = createCanvasMock()
     const text = buildTextSymbol()
-    text.decorators.push(DecoratorOps.create(DecoratorKind.Highlight, DefaultStyle))
+    text.decorators.push(DecoratorUtil.createDecorator(DecoratorKind.Highlight, DefaultStyle))
     canvas.model.addSymbol(text)
     canvas.model.selectSymbol(text.id)
     const item = new DecoratorContextMenu(asCanvas(canvas))
@@ -151,7 +151,7 @@ describe("DecoratorContextMenu.ts", () => {
   test("should show the menu and check the box on update() when every decorable symbol has the decorator", () => {
     const canvas = createCanvasMock()
     const text = buildTextSymbol()
-    text.decorators.push(DecoratorOps.create(DecoratorKind.Highlight, DefaultStyle))
+    text.decorators.push(DecoratorUtil.createDecorator(DecoratorKind.Highlight, DefaultStyle))
     canvas.model.addSymbol(text)
     canvas.model.selectSymbol(text.id)
     const item = new DecoratorContextMenu(asCanvas(canvas))

@@ -95,7 +95,7 @@ export class Model {
     })
     const lastPointer = stroke.pointers.at(-1)
     if (this.filterPointByAcquisitionDelta(stroke, pointer, lastPointer)) {
-      // `p` stays as the device reported it — see `StrokeOps.addPointer` for why deriving it from
+      // `p` stays as the device reported it — see `StrokeUtil.addPointer` for why deriving it from
       // the gap to the previous pointer made thickness depend on the sampling rate.
       stroke.pointers.push(pointer)
       stroke.modificationDate = Date.now()

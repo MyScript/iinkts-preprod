@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeAll, beforeEach } from "@jest/globals"
 import { buildIIDecorator } from "../../helpers"
 import type { TDecorator } from "@/iink"
-import { DecoratorUtil, DecoratorKind, DecoratorOps, OBBOps, SymbolType, MatrixTransform, registerBuiltinSymbolUtils } from "@/iink"
+import { DecoratorUtil, DecoratorKind, OBBOps, SymbolType, MatrixTransform, registerBuiltinSymbolUtils } from "@/iink"
 
 describe("DecoratorUtil", () => {
   let util: DecoratorUtil
@@ -54,16 +54,16 @@ describe("DecoratorUtil", () => {
       const decorator = util.create({ kind: DecoratorKind.Highlight })
       // Oracle is `DecoratorOps`, reached directly: `computeGeometry` is the one util method that
       // reports a stored box, so what it must be checked against is the writer, not a derivation.
-      DecoratorOps.setTargetBounds(decorator, OBBOps.fromBox({ x: 0, y: 0, width: 10, height: 10 }))
+      DecoratorUtil.setTargetBounds(decorator, OBBOps.fromBox({ x: 0, y: 0, width: 10, height: 10 }))
 
       const geometry = util.getGeometry(decorator)
 
       expect(geometry.bounds).toEqual(decorator.targetBounds)
       // The box's own corners: a decorator is *found* wherever its target is. The two points
-      // `DecoratorOps.computeVertices` gives are what it *draws*, and those are its snap points.
+      // `DecoratorUtil.computeVertices` gives are what it *draws*, and those are its snap points.
       expect(geometry.vertices).toEqual(OBBOps.toCorners(decorator.targetBounds!))
       // A decorator's snap points are its two vertices — that is what the removed field copied.
-      expect(util.getSnapPoints(decorator)).toEqual(DecoratorOps.computeVertices(decorator.targetBounds!))
+      expect(util.getSnapPoints(decorator)).toEqual(DecoratorUtil.computeVertices(decorator.targetBounds!))
       // A closed ring round the target's box: four sides, and a perimeter to match.
       expect(geometry.edges).toHaveLength(4)
       expect(geometry.isClosed).toBe(true)
@@ -106,7 +106,7 @@ describe("DecoratorUtil", () => {
 
     test("should overlap a box that meets its targetBounds", () => {
       const decorator = buildIIDecorator(DecoratorKind.Underline)
-      DecoratorOps.setTargetBounds(decorator, OBBOps.fromBox({ x: 10, y: 10, width: 50, height: 20 }))
+      DecoratorUtil.setTargetBounds(decorator, OBBOps.fromBox({ x: 10, y: 10, width: 50, height: 20 }))
       expect(util.overlaps(decorator, { x: 0, y: 0, width: 30, height: 30 })).toBe(true)
       expect(util.overlaps(decorator, { x: 200, y: 200, width: 30, height: 30 })).toBe(false)
     })
@@ -115,10 +115,10 @@ describe("DecoratorUtil", () => {
   describe("getSnapPoints", () => {
     test("should return the decorator's snap points once targetBounds are set", () => {
       const decorator = util.create({ kind: DecoratorKind.Strikethrough })
-      DecoratorOps.setTargetBounds(decorator, OBBOps.fromBox({ x: 0, y: 0, width: 10, height: 10 }))
+      DecoratorUtil.setTargetBounds(decorator, OBBOps.fromBox({ x: 0, y: 0, width: 10, height: 10 }))
       // Independent oracle: computed straight from `targetBounds`, so a `getSnapPoints` stubbed to
       // return `[]` fails this against a non-empty expectation.
-      const expected = DecoratorOps.computeVertices(decorator.targetBounds!)
+      const expected = DecoratorUtil.computeVertices(decorator.targetBounds!)
       expect(expected.length).toBeGreaterThan(0)
       expect(util.getSnapPoints(decorator)).toStrictEqual(expected)
     })
@@ -148,7 +148,7 @@ describe("DecoratorUtil", () => {
   })
 
   describe("getSVGElement", () => {
-    const buildUnderline = () => DecoratorOps.create(DecoratorKind.Underline, {}, [], { x: 0, y: 0, width: 20, height: 10 })
+    const buildUnderline = () => DecoratorUtil.createDecorator(DecoratorKind.Underline, {}, [], { x: 0, y: 0, width: 20, height: 10 })
 
     test("emits no transform attribute for a decorator that was never moved", () => {
       expect(util.getSVGElement(buildUnderline())?.getAttribute("transform")).toBeNull()

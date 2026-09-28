@@ -1,16 +1,13 @@
 import type { EdgeDecoration } from "@/Constants"
-import { SELECTION_MARGIN } from "@/Constants"
-import { MatrixTransform, mergeSymbolTransform } from "@/core/geometry"
-import { isValidPoint, type TPoint } from "@/core/geometry"
+import { type TPoint } from "@/core/geometry"
 import { computeAngleFromPointOnEllipse, computeDistance, computePointOnEllipse } from "@/core/geometry"
-import { computeEllipseRadiusAverage, computeTessellationCount, isValidNumber } from "@/core/math"
-import type { TPartialDeep } from "@/core/std"
-import { createUUID } from "@/core/std"
-import { mergeSymbolStyle, type TStyle } from "@/style"
-import { SymbolType, type TBaseSymbol, type TResizePoint } from "@/symbol/Symbol"
+import { computeEllipseRadiusAverage } from "@/core/math"
+import { type TStyle } from "@/style"
+import type { SymbolType } from "@/symbol/Symbol"
+import { type TBaseSymbol } from "@/symbol/Symbol"
 
 import type { TAnchor } from "./Anchor"
-import { EdgeKind } from "./Edge-enum"
+import type { EdgeKind } from "./Edge-enum"
 
 /**
  * @group Symbol
@@ -34,145 +31,6 @@ export type TEdgeArc = TBaseSymbol & {
 /**
  * @group Symbol
  */
-export const EdgeArcOps = {
-  create(
-    center: TPoint,
-    startAngle: number,
-    sweepAngle: number,
-    radiusX: number,
-    radiusY: number,
-    phi: number,
-    startDecoration?: EdgeDecoration,
-    endDecoration?: EdgeDecoration,
-    style?: TPartialDeep<TStyle>
-  ): TEdgeArc {
-    const mergedStyle = mergeSymbolStyle(style)
-    const now = Date.now()
-    const arc: TEdgeArc = {
-      type: SymbolType.Edge,
-      kind: EdgeKind.Arc,
-      id: `${SymbolType.Edge}-${createUUID()}`,
-      style: mergedStyle,
-      creationTime: now,
-      modificationDate: now,
-      center,
-      startAngle,
-      sweepAngle,
-      radiusX,
-      radiusY,
-      phi,
-      startDecoration,
-      endDecoration,
-      transform: MatrixTransform.identity(),
-    }
-    return arc
-  },
-
-  createFromPartial(partial: TPartialDeep<TEdgeArc>): TEdgeArc {
-    if (!isValidPoint(partial?.center)) {
-      throw new Error(`Unable to create a arc, center point is invalid`)
-    }
-    if (!isValidNumber(partial?.startAngle)) {
-      throw new Error(`Unable to create a arc, startAngle is invalid`)
-    }
-    if (!isValidNumber(partial?.sweepAngle)) {
-      throw new Error(`Unable to create a arc, sweepAngle is invalid`)
-    }
-    if (!isValidNumber(partial?.radiusX)) {
-      throw new Error(`Unable to create a arc, radiusX is invalid`)
-    }
-    if (!isValidNumber(partial?.radiusY)) {
-      throw new Error(`Unable to create a arc, radiusY is invalid`)
-    }
-    const arc = EdgeArcOps.create(
-      partial.center as TPoint,
-      partial.startAngle!,
-      partial.sweepAngle!,
-      partial.radiusX!,
-      partial.radiusY!,
-      partial.phi || 0,
-      partial.startDecoration,
-      partial.endDecoration,
-      partial.style
-    )
-    if (partial.id) {
-      arc.id = partial.id
-    }
-    arc.transform = mergeSymbolTransform(partial.transform)
-    return arc
-  },
-
-  computeVertices(arc: TEdgeArc): TPoint[] {
-    const length = Math.abs(arc.sweepAngle) * computeEllipseRadiusAverage(arc.radiusX, arc.radiusY)
-    const nbVertices = computeTessellationCount(length, SELECTION_MARGIN)
-    const angleStep = arc.sweepAngle / nbVertices
-    const v: TPoint[] = []
-    const endAngle = arc.startAngle + arc.sweepAngle
-    if (arc.sweepAngle > 0) {
-      for (let angle = arc.startAngle; angle < endAngle; angle += angleStep) {
-        v.push(computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, angle))
-      }
-    } else {
-      for (let angle = arc.startAngle; angle > endAngle; angle += angleStep) {
-        v.push(computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, angle))
-      }
-    }
-    v.push(computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, endAngle))
-    return v
-  },
-
-  computeSnapPoints(vertices: TPoint[]): TPoint[] {
-    return [vertices[0], vertices.at(-1)!]
-  },
-
-  getResizePoints(arc: TEdgeArc): TResizePoint[] {
-    const v = EdgeArcOps.computeVertices(arc)
-    const mid = Math.floor(v.length / 2)
-    return [
-      { point: v[0], vertexIndex: 0 },
-      { point: v[mid], vertexIndex: mid },
-      {
-        point: v[v.length - 1],
-        vertexIndex: v.length - 1,
-      },
-    ]
-  },
-
-  getSVGPath(arc: TEdgeArc): string {
-    // When anchored to a shape, the arc's real geometric endpoint sits at the shape's center
-    // (inside it), and the tessellation is dense — several vertices right after the true start
-    // are STILL near the center, not just the first one. Swapping only vertices[0] for
-    // entryPoint (where the arc crosses the shape's border) would draw a spike from the border
-    // back to those near-center vertices before the visible curve even begins. Instead, drop
-    // every vertex that's closer to the true endpoint than entryPoint is (i.e. still "inside"
-    // the shape along the curve) and start/end the path at entryPoint itself.
-    const original = EdgeArcOps.computeVertices(arc)
-    const trueStart = original[0]
-    const trueEnd = original[original.length - 1]
-
-    let kept = original
-    if (arc.startAnchor?.entryPoint) {
-      const cutDistance = computeDistance(trueStart, arc.startAnchor.entryPoint)
-      kept = kept.filter((v) => computeDistance(v, trueStart) >= cutDistance)
-    }
-    if (arc.endAnchor?.entryPoint) {
-      const cutDistance = computeDistance(trueEnd, arc.endAnchor.entryPoint)
-      kept = kept.filter((v) => computeDistance(v, trueEnd) >= cutDistance)
-    }
-
-    const vertices = [
-      ...(arc.startAnchor?.entryPoint ? [arc.startAnchor.entryPoint] : []),
-      ...kept,
-      ...(arc.endAnchor?.entryPoint ? [arc.endAnchor.entryPoint] : []),
-    ]
-
-    let path = `M ${vertices[0].x} ${vertices[0].y} Q`
-    for (let i = 0; i < vertices.length; i++) {
-      path += ` ${vertices[i].x} ${vertices[i].y}`
-    }
-    return path
-  },
-}
 
 function normalizeSweep(rawSweep: number, referenceSweep: number): number {
   const TWO_PI = Math.PI * 2

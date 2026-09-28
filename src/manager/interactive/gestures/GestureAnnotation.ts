@@ -5,7 +5,7 @@ import type { TDraft } from "@/core/std"
 import type { TIIHistoryChanges } from "@/history"
 import type { DecoratorKind, TDecorator, TStroke, TText } from "@/symbol"
 import { isDecorator, isRecognizedText, isStroke, isText, SymbolType, type TSymbol } from "@/symbol"
-import { DecoratorOps } from "@/symbol/decorator/Decorator"
+import { DecoratorUtil } from "@/symbol-utils"
 import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 
 /**
@@ -151,16 +151,16 @@ export class IIGestureAnnotationProcessor {
       this.canvas.renderer.removeElement(existing.id)
       erased.push(existing)
     } else {
-      const decorator = DecoratorOps.create(kind, this.canvas.penStyle, targetIds)
+      const decorator = DecoratorUtil.createDecorator(kind, this.canvas.penStyle, targetIds)
       // The recognizer's own word box when JIIX has answered, the union of the targets' boxes
       // otherwise. Not interchangeable: a word box is tighter than the union of its strokes, and
       // neither can be recomputed from the decorator, which stores no coordinates of its own.
       if (wordBounds) {
-        DecoratorOps.setTargetBounds(decorator, OBBOps.fromBox(wordBounds))
+        DecoratorUtil.setTargetBounds(decorator, OBBOps.fromBox(wordBounds))
       } else {
         const bounds = this.#computeBoundsFromTargets(targetIds)
         if (bounds) {
-          DecoratorOps.setTargetBounds(decorator, bounds)
+          DecoratorUtil.setTargetBounds(decorator, bounds)
         }
       }
       if (baseline !== null) {
@@ -183,7 +183,7 @@ export class IIGestureAnnotationProcessor {
       this.canvas.renderer.drawSymbol(sym)
       erased.push(removed)
     } else {
-      const decorator = DecoratorOps.create(kind, this.canvas.penStyle)
+      const decorator = DecoratorUtil.createDecorator(kind, this.canvas.penStyle)
       sym.decorators.push(decorator)
       this.canvas.model.commitSymbol(sym)
       this.canvas.renderer.drawSymbol(sym)
