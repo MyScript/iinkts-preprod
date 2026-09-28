@@ -1,4 +1,4 @@
-import { mergeDeep, mergeExports, redactServerSecrets, uniqueById } from "@/iink"
+import { mergeDeep, mergeExports, overrideDeep, redactServerSecrets, uniqueById } from "@/iink"
 
 describe("merge", () => {
   const testDatas = [
@@ -128,6 +128,49 @@ describe("mergeDeep prototype pollution", () => {
     const result = mergeDeep<Record<string, unknown>>({}, { proto: { a: 1 }, prototypes: 2 })
 
     expect(result).toEqual({ proto: { a: 1 }, prototypes: 2 })
+  })
+})
+
+describe("overrideDeep", () => {
+  test("should merge nested objects in place", () => {
+    const target = { a: { b: 1, c: 2 }, d: 3 }
+
+    const result = overrideDeep(target, { a: { b: 10 } })
+
+    expect(result).toBe(target)
+    expect(target).toEqual({ a: { b: 10, c: 2 }, d: 3 })
+  })
+
+  test("should replace arrays instead of concatenating them", () => {
+    const target = { types: ["text", "shape", "math"] }
+
+    overrideDeep(target, { types: ["math"] })
+
+    expect(target.types).toEqual(["math"])
+  })
+
+  test("should not share the source array with the target", () => {
+    const source = { types: ["math"] }
+    const target = { types: ["text"] }
+
+    overrideDeep(target, source)
+    source.types.push("text")
+
+    expect(target.types).toEqual(["math"])
+  })
+
+  test("should set a key to undefined when the override says so", () => {
+    const target: { options?: string } = { options: "numeric" }
+
+    overrideDeep(target, { options: undefined })
+
+    expect(target.options).toBeUndefined()
+  })
+
+  test("should not let __proto__ reach Object.prototype", () => {
+    overrideDeep<Record<string, unknown>>({}, JSON.parse('{"__proto__": {"polluted": "yes"}}'))
+
+    expect(Object.prototype).not.toHaveProperty("polluted")
   })
 })
 

@@ -25,7 +25,7 @@ describe("LanguageMenuAction.ts", () => {
     expect(select.options).toHaveLength(2)
   })
 
-  test("should call canvas.changeLanguage() when a language is picked", async () => {
+  test("should update the recognition language when a language is picked", async () => {
     fetchMock.mockResponseOnce(JSON.stringify({ result: { en_US: "English", fr_FR: "French" } }))
     const canvas = createCanvasMock()
     const item = new LanguageMenuAction(asCanvas(canvas))
@@ -37,7 +37,7 @@ describe("LanguageMenuAction.ts", () => {
     select.value = "fr_FR"
     select.dispatchEvent(new Event("change", { bubbles: true }))
 
-    expect(canvas.changeLanguage).toHaveBeenCalledWith("fr_FR")
+    expect(canvas.updateRecognitionConfiguration).toHaveBeenCalledWith({ lang: "fr_FR" })
   })
 
   test("should toggle the select panel open on trigger pointerdown", () => {

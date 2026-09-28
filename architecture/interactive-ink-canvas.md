@@ -121,7 +121,7 @@ classDiagram
     +downloadAsPNG(selection?) void
     +downloadAsJson(selection?) void
     +downloadAsText(selection?) void
-    +changeLanguage(code) Promise~void~
+    +updateRecognitionConfiguration(partial) Promise~void~
     +waitForIdle() Promise~void~
   }
   AbstractCanvas <|-- InteractiveInkCanvas

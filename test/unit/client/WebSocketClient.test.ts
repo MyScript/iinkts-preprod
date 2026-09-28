@@ -45,6 +45,42 @@ describe("WebSocketClient.ts", () => {
     })
   })
 
+  describe("newSession", () => {
+    const buildClient = () => {
+      const wsClient = new WebSocketClient(structuredClone(configuration))
+      wsClient.close = jest.fn(() => Promise.resolve())
+      wsClient.init = jest.fn(() => Promise.resolve())
+      return wsClient
+    }
+
+    test("should not duplicate the configuration arrays when the new one repeats them", async () => {
+      const wsClient = buildClient()
+      const types = [...wsClient.configuration.recognition["raw-content"].recognition!.types]
+
+      await wsClient.newSession({ recognition: wsClient.configuration.recognition })
+
+      expect(wsClient.configuration.recognition["raw-content"].recognition!.types).toEqual(types)
+    })
+
+    test("should replace an array given by the new configuration", async () => {
+      const wsClient = buildClient()
+
+      await wsClient.newSession({ recognition: { "raw-content": { recognition: { types: ["math"] } } } })
+
+      expect(wsClient.configuration.recognition["raw-content"].recognition!.types).toEqual(["math"])
+    })
+
+    test("should keep the keys the new configuration leaves out", async () => {
+      const wsClient = buildClient()
+      const host = wsClient.configuration.server.host
+
+      await wsClient.newSession({ recognition: { lang: "fr_FR" } })
+
+      expect(wsClient.configuration.recognition.lang).toEqual("fr_FR")
+      expect(wsClient.configuration.server.host).toEqual(host)
+    })
+  })
+
   describe("init", () => {
     const conf = structuredClone(configuration)
     conf.server.host = "init-test"
@@ -1227,6 +1263,18 @@ describe("WebSocketClient.ts", () => {
         })
       )
       wsClient.destroy()
+    })
+    test("should not replay into the next session a message sent while the previous one closes", async () => {
+      await wsClient.init()
+      const closing = wsClient.close(1000, "new-session")
+      const sending = wsClient.send({ type: "export", partId: "part-of-the-closing-session", mimeTypes: [] })
+      await closing
+      await wsClient.init()
+
+      await expect(sending).resolves.toBeUndefined()
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+      expect(mockServer.getMessages("export")).toHaveLength(0)
     })
     test("should resolve when receive fileChunckAck message", async () => {
       expect.assertions(1)

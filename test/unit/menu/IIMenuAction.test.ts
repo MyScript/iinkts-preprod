@@ -93,14 +93,14 @@ describe("IIMenuAction.ts", () => {
       canvas.layers.ui.root.querySelector("#ms-menu-action-clear")?.dispatchEvent(pointerEvt)
       expect(canvas.clear).toHaveBeenCalled()
     })
-    test("should call canvas.changeLanguage on change", () => {
-      expect(canvas.changeLanguage).not.toHaveBeenCalled()
+    test("should call canvas.updateRecognitionConfiguration on change", () => {
+      expect(canvas.updateRecognitionConfiguration).not.toHaveBeenCalled()
       canvas.tool = CanvasTool.Select
       const changeEvt = new ChangeEventMock({
         target: { value: "fr_FR" } as unknown as HTMLInputElement,
       })
       canvas.layers.ui.root.querySelector("#ms-menu-action-language")?.dispatchEvent(changeEvt)
-      expect(canvas.changeLanguage).toHaveBeenCalled()
+      expect(canvas.updateRecognitionConfiguration).toHaveBeenCalled()
     })
     test("should call canvas.undo on pointerup", () => {
       expect(canvas.undo).not.toHaveBeenCalled()
