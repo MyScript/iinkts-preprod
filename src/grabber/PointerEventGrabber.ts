@@ -18,8 +18,8 @@ export type TPointerInfo = {
   button: number
   buttons: number
   /**
-   * Epoch milliseconds of the `pointerdown` that opened the current gesture — the origin every
-   * {@link TPointer.dt} in this gesture counts from. A symbol built out of these pointers takes it
+   * Epoch milliseconds of the `pointerdown` that opened the current gesture — the origin the
+   * `dt` field of every {@link TPointer} in this gesture counts from. A symbol built out of these pointers takes it
    * as its `creationTime`, which is what turns their relative times back into absolute ones.
    */
   gestureStartTime: number

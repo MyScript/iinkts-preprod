@@ -81,7 +81,7 @@ export class StrokeUtil extends PathSymbolUtil<TStroke> {
 
   /**
    * @param creationTime - Epoch instant the stroke began, defaulting to now. Pass the instant the
-   * capture actually started: it is the origin every pointer's {@link TPointer.dt} counts from, so
+   * capture actually started: it is the origin the `dt` field of every {@link TPointer} counts from, so
    * it is what turns them back into the absolute times the recognizer orders strokes by.
    */
   static createEmpty(style?: TPartialDeep<TStyle>, pointerType = "pen", creationTime?: number): TStroke {
