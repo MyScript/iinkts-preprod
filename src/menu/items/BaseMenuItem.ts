@@ -31,6 +31,7 @@ export abstract class BaseMenuItem<T extends HTMLElement = HTMLElement> {
   protected canvas: TInteractiveInkCanvas
   protected element?: T
 
+  /** @hidden */
   protected get dom(): typeof DOMFactory {
     return this.canvas.dom
   }
