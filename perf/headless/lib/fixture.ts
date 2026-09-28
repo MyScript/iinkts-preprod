@@ -11,7 +11,40 @@ import { countPointers, generateDocument } from "./generateDocument.ts"
 
 /** The library, whichever build the run was pointed at. */
 export type TIink = typeof import("#iink")
-export type TStroke = ReturnType<TIink["StrokeOps"]["create"]>
+export type TStroke = ReturnType<TIink["StrokeUtil"]["createEmpty"]>
+
+/**
+ * Building a stroke, under whichever API the measured bundle exposes.
+ *
+ * The two sides of an A/B are not the same code, and this is where it shows: the reference is built
+ * from the merge-base, so while the epic that folds `StrokeOps` into `StrokeUtil` is in flight the
+ * reference exposes the old object and `dist/` the new statics. The fixture is shared by both.
+ *
+ * Resolved once, at setup, so the tolerance never sits inside a measured window.
+ */
+type TStrokeApi = {
+  createEmpty: (style: undefined, pointerType: string) => TStroke
+  addPointer: (stroke: TStroke, pointer: unknown) => void
+  createFromPartial: (partial: unknown) => TStroke
+}
+
+function resolveStrokeApi(iink: TIink): TStrokeApi {
+  const source: unknown = Reflect.get(iink, "StrokeOps") ?? iink.StrokeUtil
+  const pick = (...names: string[]): ((...args: never[]) => unknown) => {
+    for (const name of names) {
+      const candidate: unknown = Reflect.get(source as object, name)
+      if (typeof candidate === "function") {
+        return (candidate as (...args: never[]) => unknown).bind(source)
+      }
+    }
+    throw new Error(`the measured bundle exposes no stroke ${names.join(" or ")} — nothing to build a document from`)
+  }
+  return {
+    createEmpty: pick("createEmpty", "create") as TStrokeApi["createEmpty"],
+    addPointer: pick("addPointer") as TStrokeApi["addPointer"],
+    createFromPartial: pick("createFromPartial") as TStrokeApi["createFromPartial"],
+  }
+}
 
 /**
  * Resident document size. Held at 500 rather than the 4419 of the reference document because
@@ -98,16 +131,17 @@ export function buildFixture(iink: TIink): TBenchFixture {
     IIModel,
     MatrixTransform,
     SVGRenderer,
-    StrokeOps,
     SymbolGeometry,
     registerBuiltinSymbolUtils,
   } = iink
 
   registerBuiltinSymbolUtils()
 
+  const strokeApi = resolveStrokeApi(iink)
+
   const buildStroke = (generated: ReturnType<typeof generateDocument>[number]): TStroke => {
-    const stroke = StrokeOps.create(undefined, generated.pointerType)
-    generated.pointers.forEach((p) => StrokeOps.addPointer(stroke, p))
+    const stroke = strokeApi.createEmpty(undefined, generated.pointerType)
+    generated.pointers.forEach((p) => strokeApi.addPointer(stroke, p))
     return stroke
   }
 
@@ -150,7 +184,7 @@ export function buildFixture(iink: TIink): TBenchFixture {
   const buildFrozenGeometryStrokes = (): TStroke[] =>
     Array.from({ length: GEOMETRY_SYMBOL_COUNT }, (_, i) =>
       Object.freeze(
-        StrokeOps.createFromPartial({
+        strokeApi.createFromPartial({
           pointers: Array.from({ length: GEOMETRY_POINTS_PER_STROKE }, (_, j) => ({
             x: i + j,
             y: i - j,

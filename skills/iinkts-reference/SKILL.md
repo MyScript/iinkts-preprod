@@ -36,30 +36,32 @@ src/
 ├── renderer/
 │   ├── base/            # BaseRenderer
 │   ├── canvas/          # CanvasRenderer, CanvasRendererShape/Stroke/Text
+│   ├── ssr/             # SVGSSRenderer, SVGStroker
 │   └── svg/
 │       ├── utils/       # SVGRendererConst; SVGBuilder is a re-export shim → @/symbol-utils/SVGBuilder
-│       └── SVGRenderer.ts, SVGSSRenderer.ts, SVGStroker.ts
+│       └── SVGRenderer.ts, PenNib.ts
 ├── symbol-utils/        # Per-type rendering/behavior, plugin registry (see Symbol hierarchy below)
-│   ├── SymbolUtil.ts            # Abstract base: create/overlaps/getSVGElement per type
+│   ├── SymbolUtil.ts            # Abstract base: getGeometry (abstract) + getSVGElement per type
+│   ├── PathSymbolUtil.ts        # Base for single-<path> symbols (stroke/shape/edge)
+│   ├── SymbolGeometry.ts        # Façade caching a Geometry2d per frozen symbol
 │   ├── SymbolRegistry.ts        # symbolRegistry — register/lookup SymbolUtil by SymbolType
+│   ├── KindDefinition.ts        # TKindDefinition — one entry per kind inside a type
+│   ├── TransformContext.ts
 │   ├── registerBuiltinSymbolUtils.ts  # Registers the 6 built-in Util classes at startup
 │   ├── SymbolFactory.ts         # Symbol creation entry point
 │   ├── SVGBuilder.ts            # Real SVGBuilder implementation
-│   ├── stroke/StrokeUtil.ts, text/TextUtil.ts, math/MathUtil.ts
+│   ├── stroke/StrokeUtil.ts, typeset/{TypesetUtil,TextUtil,MathUtil}.ts
 │   ├── shape/ShapeUtil.ts, edge/EdgeUtil.ts, decorator/DecoratorUtil.ts
 │   └── edge/EdgeRenderOptions.ts
 ├── grabber/             # PointerEventGrabber
 ├── history/             # HistoryManager, IHistoryManager, IIHistoryManager
-├── symbol/              # Type + co-located *Ops (pure logic) + type guard, per type
-│   ├── primitives/      # TPoint, TBox, OBB, BoxOps
-│   ├── stroke/          # TStroke, StrokeOps, isStroke/isRecognizedMath/isRecognizedText
-│   ├── text/            # TText, TSymbolChar, TextOps, isText
-│   ├── math/            # TMath, TMathElement, MathOps, isMath
-│   ├── typeset/         # TTypesetChild, TRotation
-│   ├── decorator/       # TDecorator, DecoratorOps, isDecorator
-│   ├── eraser/          # TEraser, EraserOps
-│   ├── shape/           # TShapeCircle/Ellipse/Polygon, ShapeOps
-│   ├── edge/            # TEdgeArc, TEdgeLine, TEdgePolyLine, Anchor (smart connectors), EdgeOps
+├── symbol/              # Type + type guard, per type — nothing else
+│   ├── stroke/          # TStroke, isStroke/isRecognizedMath/isRecognizedText
+│   ├── typeset/         # TText/TSymbolChar/isText, TMath/TMathElement/isMath, TTypesetChild, TRotation
+│   ├── decorator/       # TDecorator, DecoratorKind, isDecorator
+│   ├── eraser/          # TEraser, EraserOps — a transient tool, not a symbol type, so no util
+│   ├── shape/           # TShapeCircle/Ellipse/Polygon, ShapeKind
+│   ├── edge/            # TEdgeArc, TEdgeLine, TEdgePolyLine, Anchor (smart connectors)
 │   ├── Symbol.ts        # SymbolType enum, TBaseSymbol, TSymbol union
 │   ├── SymbolHelpers.ts # cloneSymbol() only — NOT a dispatch class, see symbol-utils/ for that
 │   └── legacy/          # Stroke, CanvasSymbol (deprecated v1)
@@ -75,24 +77,16 @@ src/
 │   └── IIMath{CapabilitiesTable,DiagnosticChecker,FunctionEvaluator,VariableEditor,VariableInputList,VariablePerBlockEditor}.ts
 ├── smartguide/          # InteractiveInkSSRSmartGuide
 ├── style/               # Style, PenStyle, StyleManager, Theme
-├── transform/           # Matrix.ts — matrix transformation utilities
 ├── constants/           # Shared constants
 ├── assets/              # SVG assets
 ├── logger/              # LoggerManager, LoggerConfiguration (singleton)
 ├── worker/              # ping.worker.ts (WebSocket heartbeat)
-└── utils/
-    ├── geometry.ts      # Distance, angles, collision detection; TWO_PI, PI_HALF, ANGLE_EPSILON
-    ├── math.ts          # isValidNumber, isBetween, computeAverage
-    ├── validation.ts    # areValidCoordinates, isPlainObject
-    ├── quadratics.ts    # Bezier/quadratic helpers
-    ├── units.ts         # mm ↔ px conversion
-    ├── object.ts        # mergeDeep, isDeepEqual
-    ├── crypto.ts        # HMAC signing for WebSocket auth
-    ├── uuid.ts          # ID generation
-    ├── font.ts          # Font utilities
-    ├── language.ts      # Language helpers
-    ├── version.ts       # Version info
-    └── DeferredPromise.ts
+└── core/                # Cross-cutting primitives — there is no src/utils/
+    ├── geometry/        # TPoint, TBox, OBB, MatrixTransform, distance/angle/intersection/containment
+    │   └── shapes/      # Geometry2d, PointsGeometry2d, PointSet2d, Polyline2d, Polygon2d, Circle2d, Ellipse2d
+    ├── math/            # isValidNumber, angles, tessellation, mm ↔ px conversion
+    ├── std/             # mergeDeep, isDeepEqual, uuid, DeferredPromise, version, shared types
+    └── latex.ts
 ```
 
 See [SETUP.md](../../../SETUP.md) for prefix conventions (T/I/II).
@@ -126,7 +120,7 @@ export class ClientConfiguration implements TClientConfig {
 }
 
 // Usage: merge user config with defaults
-import { mergeDeep } from "@/utils"
+import { mergeDeep } from "@/core/std"
 this.config = mergeDeep({}, DefaultConfig, userConfig)
 ```
 
@@ -134,7 +128,7 @@ this.config = mergeDeep({}, DefaultConfig, userConfig)
 
 ## Async patterns
 
-1. **DeferredPromise**: Custom promise wrapper for tracking pending operations ([src/utils/DeferredPromise.ts](../../../src/utils/DeferredPromise.ts)). `WebSocketClient` uses maps of deferred promises for concurrent requests.
+1. **DeferredPromise**: Custom promise wrapper for tracking pending operations ([src/core/std/DeferredPromise.ts](../../../src/core/std/DeferredPromise.ts)). `WebSocketClient` uses maps of deferred promises for concurrent requests.
 2. **Dual async model**: Operations return Promises + emit Events
    ```typescript
    await client.addStrokes(strokes)  // Operation promise
@@ -167,11 +161,12 @@ type TBaseSymbol = { id: string; creationTime: number; modificationDate: number;
 type TSymbol = TEdge | TShape | TStroke | TText | TMath | TDecorator
 ```
 
-**Two layers of per-type logic — don't confuse them:**
-1. **`*Ops`** (`StrokeOps`, `TextOps`, `MathOps`, `DecoratorOps`, `EraserOps`, `BoxOps`, `ShapeOps`, `EdgeOps`) — pure functions/objects co-located with the type in `src/symbol/{type}/{Type}.ts`. This is where actual create/update/overlap logic lives. Type guards (`isStroke`, `isText`, `isMath`, `isDecorator`) live here too.
-2. **`*Util`** (`StrokeUtil`, `TextUtil`, `MathUtil`, `ShapeUtil`, `EdgeUtil`, `DecoratorUtil` in `src/symbol-utils/{type}/`) — thin adapter classes extending abstract `SymbolUtil`, mostly delegating to the matching `*Ops`, plus SVG-specific `getSVGElement()`. All 6 register into `symbolRegistry` via `registerBuiltinSymbolUtils()`.
+**One place per type — the util:**
+`src/symbol/{type}/{Type}.ts` holds the type and its guards (`isStroke`, `isText`, `isMath`, `isDecorator`). Everything else — construction, editing, geometry, rendering — is on `StrokeUtil`, `TextUtil`, `MathUtil`, `ShapeUtil`, `EdgeUtil`, `DecoratorUtil` in `src/symbol-utils/{type}/`, all extending `SymbolUtil` and registered by `registerBuiltinSymbolUtils()`. Instance methods are what the registry dispatches; statics are construction and editing, which have no symbol to dispatch on.
 
-`SVGRenderer` dispatches rendering with `symbolRegistry.getUtil(symbol.type).getSVGElement(symbol)` — don't branch on `SymbolType` inline, extend the matching `*Ops`/`*Util` pair instead.
+**There is no `*Ops` object for a symbol.** `BoxOps` and `OBBOps` are geometry primitives, not symbols; `EraserOps` belongs to a transient tool with no util.
+
+`SVGRenderer` dispatches rendering with `symbolRegistry.getUtil(symbol.type).getSVGElement(symbol)` — don't branch on `SymbolType` inline, extend the matching util instead.
 
 **Model distinctions**:
 - `Model` (basic): `Stroke[]` — InkCanvasDeprecated (v1)
@@ -190,17 +185,20 @@ type TSymbol = TEdge | TShape | TStroke | TText | TMath | TDecorator
 
 ## Key utilities
 
-Always check `src/utils/` before writing a new utility function.
+Always check `src/core/` before writing a new utility function — there is no `src/utils/`.
 
 ```typescript
 // Geometry
 import { computeDistance, computeDistanceSquared, computeAngleAxeRadian,
-         isPointInsideBox, TWO_PI, PI_HALF, ANGLE_EPSILON } from "@/utils"
+         isPointInsideBox, areValidCoordinates } from "@/core/geometry"
 if (computeDistanceSquared(p1, p2) < threshold * threshold) { ... } // no sqrt, ~2x faster for comparisons
 
-// Validation
-import { areValidCoordinates, isPlainObject } from "@/utils/validation"
-import { isValidNumber } from "@/utils/math"
+// A symbol's geometry is an object, not a record — reach it through the façade, never rebuild it
+import { SymbolGeometry } from "@/symbol-utils"
+SymbolGeometry.of(symbol).overlapsBox(box)   // or boundsOf / verticesOf / edgesOf / lengthOf
+
+// Scalars
+import { isValidNumber, TWO_PI } from "@/core/math"
 
 // SVG building — SVGBuilder's real implementation lives in @/symbol-utils; @/renderer/svg/utils re-exports it
 import { SVGBuilder } from "@/symbol-utils"
@@ -208,11 +206,9 @@ import { SVGRendererConst } from "@/renderer/svg/utils"
 SVGBuilder.createPath({ ...SVGRendererConst.guidePathAttrs, d: pathData })
 
 // Other
-import { mergeDeep, isDeepEqual } from "@/utils/object"
-import { uuid } from "@/utils/uuid"
-import { computeHmac } from "@/utils/crypto"
-import { convertMillimeterToPixel } from "@/utils/units"
-import { DeferredPromise } from "@/utils/DeferredPromise"
+import { mergeDeep, isDeepEqual, uuid, DeferredPromise } from "@/core/std"
+import { convertMillimeterToPixel } from "@/core/math"
+import { resolveHmac } from "@/client/HmacAuth"
 ```
 
 ## Examples

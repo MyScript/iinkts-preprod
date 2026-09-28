@@ -34,7 +34,7 @@ const REQUIRED_EXPORTS = [
   "IIModel",
   "MatrixTransform",
   "SVGRenderer",
-  "StrokeOps",
+  "StrokeUtil",
   "SymbolGeometry",
   "registerBuiltinSymbolUtils",
   "symbolRegistry",
