@@ -16,22 +16,26 @@ import type { TGesture } from "../GestureTypes"
 import { InsertAction } from "../GestureTypes"
 
 /**
- * Handler for INSERT gesture type
- * Inserts line breaks or space by drawing vertical line
- * @group Manager
- */
-/**
  * A group of symbols to shift, and by how much.
  *
  * Not a history form. It used to be one — `TIIHistoryChanges.translate` — and these handlers used
  * one object both to record the step and to drive it. History records before/after pairs now, so
  * the two parted ways: this stays as the instruction, and `apply` snapshots around it.
+ * @group Manager
  */
-type TShift = { symbols: TSymbol[]; tx: number; ty: number }
+export type TShift = { symbols: TSymbol[]; tx: number; ty: number }
 
-/** What a split computes: the symbols it replaces, and the groups it shifts to make room. */
-type TSplitOutcome = { replaced: { oldSymbols: TSymbol[]; newSymbols: TSymbol[] }; shifts: TShift[] }
+/**
+ * What a split computes: the symbols it replaces, and the groups it shifts to make room.
+ * @group Manager
+ */
+export type TSplitOutcome = { replaced: { oldSymbols: TSymbol[]; newSymbols: TSymbol[] }; shifts: TShift[] }
 
+/**
+ * Handler for INSERT gesture type
+ * Inserts line breaks or space by drawing vertical line
+ * @group Manager
+ */
 export class InsertGestureHandler extends GestureHandler {
   readonly gestureType = "INSERT" as const
 

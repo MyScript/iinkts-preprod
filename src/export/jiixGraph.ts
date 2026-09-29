@@ -99,6 +99,9 @@ export function resolveEdgeNodes(
   return from && to ? [from, to] : undefined
 }
 
+/**
+ * @group Export
+ */
 export type TJIIXGraphElements = {
   nodes: TJIIXNodeElement[]
   texts: TJIIXTextElement[]

@@ -129,7 +129,7 @@ function of(symbol: TBaseSymbol): Geometry2d {
  * @group SymbolUtils
  * @summary Reads a symbol's derived geometry — bounds, vertices, snap points, edges, length.
  *
- * Every accessor below calls the module-level {@link of} directly rather than `this.of` — so
+ * Every accessor below calls the module-level `of` directly rather than `this.of` — so
  * `const { boundsOf } = SymbolGeometry` and `symbols.map(SymbolGeometry.boundsOf)` both work. A
  * `this`-bound accessor throws the moment it is detached from the object, which is exactly the
  * shape a read-site migration across the codebase produces.

@@ -35,8 +35,9 @@ const ANCHOR_HINT_PATTERN_ID = "ms-anchor-hint-pattern"
  * A pre-convert edge stroke that should follow a transform of the moving set, and how:
  * "rigid" when both of its connected shapes are moving together (nothing shifts relatively),
  * "gradient" when only one is — `movingAnchor` identifies which one to follow toward.
+ * @group Manager
  */
-type TFollowedStroke = { symbol: TStroke; mode: "rigid" | "gradient"; movingAnchor?: TAnchor }
+export type TFollowedStroke = { symbol: TStroke; mode: "rigid" | "gradient"; movingAnchor?: TAnchor }
 
 /**
  * Result of committing the anchored-edges update pass (both pre-convert strokes and converted
@@ -49,8 +50,9 @@ type TFollowedStroke = { symbol: TStroke; mode: "rigid" | "gradient"; movingAnch
  * a matrix relative to their own prior state, so there's no inverse to replay either way). All
  * of these need their pre-mutation snapshot restored directly on undo via the `updated` history
  * entry, not re-derived.
+ * @group Manager
  */
-type TAnchoredEdgesUpdateResult = { rigidStrokeIds: string[]; oldSymbols: TSymbol[]; newSymbols: TSymbol[] }
+export type TAnchoredEdgesUpdateResult = { rigidStrokeIds: string[]; oldSymbols: TSymbol[]; newSymbols: TSymbol[] }
 
 /**
  * @group Manager
