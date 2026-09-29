@@ -13,7 +13,7 @@ export type TCanvasTheme = {
   vars: Record<string, string> | undefined
 }
 
-/** @group hidden */
+/** @hidden */
 const CANVAS_THEMES: TCanvasTheme[] = [
   {
     id: "default",

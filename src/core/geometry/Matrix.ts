@@ -58,6 +58,9 @@ function snapToUnit(value: number): number {
   return value
 }
 
+/**
+ * @group Core/Geometry
+ */
 export class MatrixTransform implements TMatrixTransform {
   xx: number
   yx: number
