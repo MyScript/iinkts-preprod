@@ -1,11 +1,11 @@
-import { MatrixTransform, registerBuiltinSymbolUtils, StrokeOps, SymbolGeometry, SymbolStore, symbolRegistry } from "@/iink"
+import { MatrixTransform, PointSet2d, StrokeUtil, SymbolGeometry, SymbolStore, registerBuiltinSymbolUtils, symbolRegistry } from "@/iink"
 import type { TStroke } from "@/iink"
 
 describe("SymbolGeometry", () => {
   beforeAll(() => registerBuiltinSymbolUtils())
 
   const buildStroke = () =>
-    StrokeOps.createFromPartial({
+    StrokeUtil.createFromPartial({
       pointers: [
         { x: 0, y: 0, dt: 0, p: 1 },
         { x: 10, y: 4, dt: 1, p: 1 },
@@ -15,7 +15,7 @@ describe("SymbolGeometry", () => {
   test("computes a frozen symbol's geometry once and serves it from cache after", () => {
     const stroke = Object.freeze(buildStroke())
     const util = symbolRegistry.getUtilFor(stroke)
-    const spy = jest.spyOn(util, "computeGeometry")
+    const spy = jest.spyOn(util, "getGeometry")
 
     const first = SymbolGeometry.boundsOf(stroke)
     const second = SymbolGeometry.boundsOf(stroke)
@@ -28,7 +28,7 @@ describe("SymbolGeometry", () => {
   test("does not cache an unfrozen draft, whose geometry can still change under it", () => {
     const draft = buildStroke()
     const util = symbolRegistry.getUtilFor(draft)
-    const spy = jest.spyOn(util, "computeGeometry")
+    const spy = jest.spyOn(util, "getGeometry")
 
     const before = SymbolGeometry.boundsOf(draft)
     draft.pointers.push({ x: 100, y: 100, dt: 2, p: 1 })
@@ -52,7 +52,9 @@ describe("SymbolGeometry", () => {
 
     expect(SymbolGeometry.verticesOf(stroke)).toEqual(SymbolGeometry.of(stroke).vertices)
     expect(SymbolGeometry.edgesOf(stroke)).toEqual(SymbolGeometry.of(stroke).edges)
-    expect(SymbolGeometry.snapPointsOf(stroke)).toEqual(SymbolGeometry.of(stroke).snapPoints)
+    // Snap points are the util's answer, not the geometry's: a shape describes an outline, where
+    // a symbol decides where it offers to snap.
+    expect(SymbolGeometry.snapPointsOf(stroke)).toEqual(symbolRegistry.getUtilFor(stroke).getSnapPoints(stroke))
     expect(SymbolGeometry.lengthOf(stroke)).toEqual(SymbolGeometry.of(stroke).length)
   })
 
@@ -74,9 +76,9 @@ describe("SymbolGeometry", () => {
     })
   })
 
-  test("computes bounds matching StrokeOps' own bounds computation", () => {
+  test("computes bounds matching the stroke's own geometry", () => {
     const stroke = buildStroke()
-    const expected = StrokeOps.computeBounds(stroke)
+    const expected = new PointSet2d(stroke.pointers).bounds
     Object.freeze(stroke)
 
     expect(SymbolGeometry.boundsOf(stroke)).toEqual(expected)
@@ -110,7 +112,9 @@ describe("SymbolGeometry", () => {
 
     expect(Object.isFrozen(geometry.vertices)).toBe(true)
     expect(Object.isFrozen(geometry.edges)).toBe(true)
-    expect(Object.isFrozen(geometry.snapPoints)).toBe(true)
+    expect(Object.isFrozen(geometry.bounds)).toBe(true)
+    // The geometry object itself, so nothing can swap a derived field out from under the cache.
+    expect(Object.isFrozen(geometry)).toBe(true)
   })
 
   // The accessors must not rely on `this`: a migration across hundreds of read sites will pass them
@@ -137,9 +141,9 @@ describe("SymbolGeometry", () => {
     expect(Object.isFrozen(record.pointers)).toBe(true)
 
     const util = symbolRegistry.getUtilFor(record)
-    const spy = jest.spyOn(util, "computeGeometry")
+    const spy = jest.spyOn(util, "getGeometry")
 
-    expect(SymbolGeometry.boundsOf(record)).toEqual(StrokeOps.computeBounds(record))
+    expect(SymbolGeometry.boundsOf(record)).toEqual(new PointSet2d(record.pointers).bounds)
     SymbolGeometry.boundsOf(record)
 
     expect(spy).toHaveBeenCalledTimes(1)
@@ -148,7 +152,7 @@ describe("SymbolGeometry", () => {
 
   describe("transform", () => {
     test("moves the computed bounds without touching the stored coordinates", () => {
-      const stroke = StrokeOps.createFromPartial({
+      const stroke = StrokeUtil.createFromPartial({
         pointers: [
           { x: 0, y: 0, dt: 0, p: 1 },
           { x: 10, y: 0, dt: 1, p: 1 },
@@ -166,7 +170,7 @@ describe("SymbolGeometry", () => {
 
     test("carries the matrix rotation into the bounds angle, in radians, without corrupting width/height", () => {
       // Hand-computed, not read off the code under test: raw bounds are center (5,0), width 10,
-      // height 0, angle 0 (StrokeOps.computeBounds is always axis-aligned). `rotate(PI/2, {0,0})`
+      // height 0, angle 0 (StrokeUtil.computeBounds is always axis-aligned). `rotate(PI/2, {0,0})`
       // rounds cos/sin to exactly 0/1 (MatrixTransform.rotate), giving matrix {xx:0,yx:1,xy:-1,yy:0}.
       // Every raw corner (a degenerate box: (0,0) and (10,0) each twice) maps to (0,0) or (0,10), so
       // the rotated box is still a 10-long, 0-wide segment — center (0,5), width 10, height 0 — just
@@ -174,7 +178,7 @@ describe("SymbolGeometry", () => {
       // wrapped this in convertRadianToDegree left the angle numerically as "90" (looking plausible
       // in isolation) while corrupting width/height into ~8.94/~4.48 — which is why both are
       // asserted here, not just the angle.
-      const stroke = StrokeOps.createFromPartial({
+      const stroke = StrokeUtil.createFromPartial({
         pointers: [
           { x: 0, y: 0, dt: 0, p: 1 },
           { x: 10, y: 0, dt: 1, p: 1 },
@@ -191,14 +195,14 @@ describe("SymbolGeometry", () => {
     })
 
     test("a symbol starts with the identity matrix", () => {
-      const stroke = StrokeOps.createFromPartial({ pointers: [{ x: 0, y: 0, dt: 0, p: 1 }] })
+      const stroke = StrokeUtil.createFromPartial({ pointers: [{ x: 0, y: 0, dt: 0, p: 1 }] })
       expect(stroke.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 0, ty: 0 })
     })
 
     test("leaves length unchanged under a pure rotation", () => {
       // Points (0,0) and (10,0): length is 10. A rotation has xx=cos, yx=sin with hypot(xx,yx)=1, so
       // `length * hypot(matrix.xx, matrix.yx)` must leave it exactly where it started.
-      const stroke = StrokeOps.createFromPartial({
+      const stroke = StrokeUtil.createFromPartial({
         pointers: [
           { x: 0, y: 0, dt: 0, p: 1 },
           { x: 10, y: 0, dt: 1, p: 1 },
@@ -210,7 +214,7 @@ describe("SymbolGeometry", () => {
     })
 
     test("scales length under a pure scale", () => {
-      const stroke = StrokeOps.createFromPartial({
+      const stroke = StrokeUtil.createFromPartial({
         pointers: [
           { x: 0, y: 0, dt: 0, p: 1 },
           { x: 10, y: 0, dt: 1, p: 1 },
@@ -226,7 +230,7 @@ describe("SymbolGeometry", () => {
       // once per (frozen) symbol, not on every read. Two distinct frozen symbols with the same matrix
       // still get two distinct, independently-cached, correctly-transformed results.
       const buildTranslated = () => {
-        const stroke = StrokeOps.createFromPartial({
+        const stroke = StrokeUtil.createFromPartial({
           pointers: [
             { x: 0, y: 0, dt: 0, p: 1 },
             { x: 10, y: 0, dt: 1, p: 1 },
@@ -254,14 +258,14 @@ describe("SymbolGeometry", () => {
     test("returns the untransformed geometry even when the symbol has moved", () => {
       const stroke = buildMoved()
 
-      expect(SymbolGeometry.rawOf(stroke).bounds).toEqual(StrokeOps.computeBounds(stroke))
+      expect(SymbolGeometry.rawOf(stroke).bounds).toEqual(new PointSet2d(stroke.pointers).bounds)
       expect(SymbolGeometry.rawOf(stroke).bounds).not.toEqual(SymbolGeometry.boundsOf(stroke))
     })
 
     test("computes a frozen symbol's raw geometry once and serves it from cache after", () => {
       const stroke = buildMoved()
       const util = symbolRegistry.getUtilFor(stroke)
-      const spy = jest.spyOn(util, "computeGeometry")
+      const spy = jest.spyOn(util, "getGeometry")
 
       const first = SymbolGeometry.rawOf(stroke)
       const second = SymbolGeometry.rawOf(stroke)
@@ -271,10 +275,10 @@ describe("SymbolGeometry", () => {
       spy.mockRestore()
     })
 
-    test("shares its cached computation with of()/boundsOf(), so a transformed read costs no extra computeGeometry call", () => {
+    test("shares its cached computation with of()/boundsOf(), so a transformed read costs no extra geometry build", () => {
       const stroke = buildMoved()
       const util = symbolRegistry.getUtilFor(stroke)
-      const spy = jest.spyOn(util, "computeGeometry")
+      const spy = jest.spyOn(util, "getGeometry")
 
       SymbolGeometry.rawOf(stroke)
       SymbolGeometry.boundsOf(stroke)
@@ -283,4 +287,8 @@ describe("SymbolGeometry", () => {
       spy.mockRestore()
     })
   })
+
+  // The `a util still on computeGeometry` suite that stood here is gone with the record path it
+  // covered: every util describes itself with a `Geometry2d` now, so the wrapper it tested has no
+  // caller left and no longer exists.
 })

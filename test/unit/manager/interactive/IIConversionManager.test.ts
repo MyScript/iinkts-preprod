@@ -12,21 +12,7 @@ import {
 } from "../../__dataset__/jiix.dataset"
 import { buildIIStroke } from "../../helpers"
 import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import {
-  EdgeOps,
-  IIConversionManager,
-  JIIXEdgeKind,
-  JIIXElementType,
-  JIIXNodeKind,
-  ShapeOps,
-  TEdgeLine,
-  TJIIXEdgeElement,
-  TJIIXMathElement,
-  TJIIXNodeElement,
-  TJIIXTextElement,
-  TextOps,
-  TSymbol,
-} from "@/iink"
+import { EdgeUtil, IIConversionManager, JIIXEdgeKind, JIIXElementType, JIIXNodeKind, ShapeUtil, TEdgeLine, TJIIXEdgeElement, TJIIXMathElement, TJIIXNodeElement, TJIIXTextElement, TSymbol, TextUtil } from "@/iink"
 
 describe("IIConversionManager.ts", () => {
   test("should create", () => {
@@ -117,7 +103,7 @@ describe("IIConversionManager.ts", () => {
       const result = manager.convertText(hTextJIIXElement, [helloStroke], false)!
       expect(result).toHaveLength(1)
       expect(result[0].strokes).toEqual([helloStroke])
-      expect(TextOps.getLabel(result[0].symbol)).toEqual("h")
+      expect(TextUtil.getLabel(result[0].symbol)).toEqual("h")
     })
     test("should skip a word that only references an embedded element (e.g. inline math) instead of building a degenerate zero-bounds text symbol", async () => {
       const helloStroke = buildIIStroke()
@@ -172,7 +158,7 @@ describe("IIConversionManager.ts", () => {
 
       const result = manager.convertText(textWithMathRef, [helloStroke, mathStroke], false)!
       expect(result).toHaveLength(1)
-      expect(TextOps.getLabel(result[0].symbol)).toEqual("hello")
+      expect(TextUtil.getLabel(result[0].symbol)).toEqual("hello")
     })
   })
 
@@ -338,8 +324,8 @@ describe("IIConversionManager.ts", () => {
       const manager = new IIConversionManager(asCanvas(canvas))
       const added = await manager.apply()
 
-      const edgeSymbol = added.find((s) => EdgeOps.isEdge(s)) as TEdgeLine
-      const shapeSymbol = added.find((s) => ShapeOps.isShape(s))
+      const edgeSymbol = added.find((s) => EdgeUtil.isEdge(s)) as TEdgeLine
+      const shapeSymbol = added.find((s) => ShapeUtil.isShape(s))
       expect(edgeSymbol.endAnchor?.symbolId).toBe(shapeSymbol!.id)
     })
 
@@ -368,7 +354,7 @@ describe("IIConversionManager.ts", () => {
       const manager = new IIConversionManager(asCanvas(canvas))
       const added = await manager.apply()
 
-      const edgeSymbol = added.find((s) => EdgeOps.isEdge(s)) as TEdgeLine
+      const edgeSymbol = added.find((s) => EdgeUtil.isEdge(s)) as TEdgeLine
       expect(edgeSymbol.startAnchor).toBeUndefined()
       expect(edgeSymbol.endAnchor).toBeUndefined()
     })

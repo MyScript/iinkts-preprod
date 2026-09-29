@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach } from "@jest/globals"
 import { buildIIMath } from "../../helpers"
-import { MathUtil, SymbolType, OBBOps, MatrixTransform, type TMathElement, computeTypesetSnapPoints, computeClosedEdges, computeTypesetVertices } from "@/iink"
+import { MathUtil, MatrixTransform, OBBOps, SymbolType, computeClosedEdges, computeTypesetSnapPoints, computeTypesetVertices, registerBuiltinSymbolUtils, type TMathElement } from "@/iink"
 
 const makeMathElement = (label: string, bounds = { x: 0, y: 0, width: 50, height: 30 }): TMathElement => ({
   id: "e1",
@@ -11,6 +11,10 @@ const makeMathElement = (label: string, bounds = { x: 0, y: 0, width: 50, height
   color: "#000000",
   bounds,
 })
+
+// `overlaps` reads through `SymbolGeometry`, which resolves the util from the registry — that is
+// what buys it the per-symbol geometry cache.
+registerBuiltinSymbolUtils()
 
 describe("MathUtil", () => {
   let util: MathUtil
@@ -43,18 +47,20 @@ describe("MathUtil", () => {
   })
 
 
-  describe("computeGeometry", () => {
+  describe("getGeometry", () => {
     test("matches the legacy MathOps geometry already computed by create, not merely itself", () => {
       const math = buildIIMath()
 
-      const geometry = util.computeGeometry(math)
+      const geometry = util.getGeometry(math)
 
       expect(geometry.bounds).toEqual(math.bounds)
       expect(geometry.vertices).toEqual(computeTypesetVertices(OBBOps.toUnrotatedBox(math.bounds)))
       // Oracle is the shared typeset helper, not the stored field it replaced.
-      expect(geometry.snapPoints).toEqual(computeTypesetSnapPoints(OBBOps.toUnrotatedBox(math.bounds), math.point))
+      expect(util.getSnapPoints(math)).toEqual(computeTypesetSnapPoints(OBBOps.toUnrotatedBox(math.bounds), math.point))
       expect(geometry.edges).toEqual(computeClosedEdges(geometry.vertices))
-      expect(geometry.length).toBe(0)
+      // A closed shape's length is its perimeter. The record it replaced reported 0 for a typeset
+      // symbol, which was a placeholder rather than a measurement — nothing read it.
+      expect(geometry.length).toBe(geometry.edges.reduce((sum, e) => sum + Math.hypot(e.p2.x - e.p1.x, e.p2.y - e.p1.y), 0))
     })
   })
 

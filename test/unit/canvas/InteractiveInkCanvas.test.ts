@@ -1,33 +1,6 @@
 import { jiixText } from "../__dataset__/exports.dataset"
 import { buildIICircle, buildIIStroke, buildIIText, buildIIDecorator } from "../helpers"
-import {
-  InteractiveInkCanvas,
-  DefaultInteractiveInkCanvasConfiguration,
-  CanvasTool,
-  TInteractiveInkCanvasOptions,
-  TStyle,
-  TPartialDeep,
-  TStroke,
-  SymbolType,
-  TShapeCircle,
-  ShapeKind,
-  TSymbol,
-  TBaseSymbol,
-  cloneSymbol,
-  DecoratorKind,
-  DecoratorOps,
-  TDecorator,
-  getInitialHistoryContext,
-  EdgeLineOps,
-  TEdgeLine,
-  ShapePolygonOps,
-  IIAbstractManager,
-  SymbolGeometry,
-  OBBOps,
-  SELECTION_MARGIN,
-  MatrixTransform,
-  isStroke,
-} from "@/iink"
+import { CanvasTool, DecoratorKind, DecoratorUtil, DefaultInteractiveInkCanvasConfiguration, EdgeUtil, IIAbstractManager, InteractiveInkCanvas, MatrixTransform, OBBOps, SELECTION_MARGIN, ShapeKind, ShapeUtil, SymbolGeometry, SymbolType, TBaseSymbol, TDecorator, TEdgeLine, TInteractiveInkCanvasOptions, TPartialDeep, TShapeCircle, TStroke, TStyle, TSymbol, cloneSymbol, getInitialHistoryContext, isStroke } from "@/iink"
 
 describe("InteractiveInkCanvas.ts", () => {
   global.fetch = jest.fn(() =>
@@ -538,7 +511,7 @@ describe("InteractiveInkCanvas.ts", () => {
       const erased = buildIIStroke({ box: { x: 100, y: 0, width: 10, height: 10 } })
       canvas.model.addSymbol(kept)
       canvas.model.addSymbol(erased)
-      const decorator = DecoratorOps.create(
+      const decorator = DecoratorUtil.createDecorator(
         DecoratorKind.Underline,
         {},
         [kept.id, erased.id],
@@ -557,12 +530,12 @@ describe("InteractiveInkCanvas.ts", () => {
 
     test("removeSymbols: erasing a connected shape clears the edge's anchor and is undo-safe", async () => {
       const canvas = await buildCanvasWithMocks()
-      const shape = ShapePolygonOps.create([
+      const shape = ShapeUtil.createPolygon([
         { x: 0, y: 0 },
         { x: 10, y: 0 },
         { x: 10, y: 10 },
       ])
-      const edge = EdgeLineOps.create({ x: -10, y: 5 }, { x: 0, y: 5 })
+      const edge = EdgeUtil.createLine({ x: -10, y: 5 }, { x: 0, y: 5 })
       edge.endAnchor = { symbolId: shape.id, normalizedX: 0, normalizedY: 0.5 }
       canvas.model.addSymbol(shape)
       canvas.model.addSymbol(edge)
@@ -578,12 +551,12 @@ describe("InteractiveInkCanvas.ts", () => {
 
     test("removeSymbol: erasing a connected shape clears the edge's anchor and is undo-safe", async () => {
       const canvas = await buildCanvasWithMocks()
-      const shape = ShapePolygonOps.create([
+      const shape = ShapeUtil.createPolygon([
         { x: 0, y: 0 },
         { x: 10, y: 0 },
         { x: 10, y: 10 },
       ])
-      const edge = EdgeLineOps.create({ x: -10, y: 5 }, { x: 0, y: 5 })
+      const edge = EdgeUtil.createLine({ x: -10, y: 5 }, { x: 0, y: 5 })
       edge.startAnchor = { symbolId: shape.id, normalizedX: 0, normalizedY: 0.5 }
       canvas.model.addSymbol(shape)
       canvas.model.addSymbol(edge)
@@ -647,7 +620,7 @@ describe("InteractiveInkCanvas.ts", () => {
       edgeStroke.endAnchor = { symbolId: "block-shape-3", normalizedX: 1, normalizedY: 0.5 }
       canvas.model.addSymbol(shapeStroke)
       canvas.model.addSymbol(edgeStroke)
-      const newShape = ShapePolygonOps.create([
+      const newShape = ShapeUtil.createPolygon([
         { x: 0, y: 0 },
         { x: 20, y: 0 },
         { x: 20, y: 20 },
@@ -661,17 +634,17 @@ describe("InteractiveInkCanvas.ts", () => {
 
     test("replaceSymbols: replacing a connected shape (new id) clears the edge's anchor", async () => {
       const canvas = await buildCanvasWithMocks()
-      const shape = ShapePolygonOps.create([
+      const shape = ShapeUtil.createPolygon([
         { x: 0, y: 0 },
         { x: 10, y: 0 },
         { x: 10, y: 10 },
       ])
-      const newShape = ShapePolygonOps.create([
+      const newShape = ShapeUtil.createPolygon([
         { x: 0, y: 0 },
         { x: 20, y: 0 },
         { x: 20, y: 20 },
       ])
-      const edge = EdgeLineOps.create({ x: -10, y: 5 }, { x: 0, y: 5 })
+      const edge = EdgeUtil.createLine({ x: -10, y: 5 }, { x: 0, y: 5 })
       edge.startAnchor = { symbolId: shape.id, normalizedX: 0, normalizedY: 0.5 }
       canvas.model.addSymbol(shape)
       canvas.model.addSymbol(edge)
@@ -683,18 +656,18 @@ describe("InteractiveInkCanvas.ts", () => {
 
     test("replaceSymbols: replacing a connected shape with a symbol keeping the same id preserves the edge's anchor", async () => {
       const canvas = await buildCanvasWithMocks()
-      const shape = ShapePolygonOps.create([
+      const shape = ShapeUtil.createPolygon([
         { x: 0, y: 0 },
         { x: 10, y: 0 },
         { x: 10, y: 10 },
       ])
-      const newShape = ShapePolygonOps.create([
+      const newShape = ShapeUtil.createPolygon([
         { x: 0, y: 0 },
         { x: 20, y: 0 },
         { x: 20, y: 20 },
       ])
       newShape.id = shape.id
-      const edge = EdgeLineOps.create({ x: -10, y: 5 }, { x: 0, y: 5 })
+      const edge = EdgeUtil.createLine({ x: -10, y: 5 }, { x: 0, y: 5 })
       edge.startAnchor = { symbolId: shape.id, normalizedX: 0, normalizedY: 0.5 }
       canvas.model.addSymbol(shape)
       canvas.model.addSymbol(edge)

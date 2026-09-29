@@ -1,11 +1,5 @@
-import {
-  EdgeArcOps,
-  reprojectArcEndpoint,
-  reprojectArcMidpoint,
-  stretchArcEndpoint,
-  computePointOnEllipse,
-  computeDistance,
-} from "@/iink"
+import { edgeGeometry } from "../../helpers"
+import { EdgeUtil, computeDistance, computePointOnEllipse, reprojectArcEndpoint, reprojectArcMidpoint, stretchArcEndpoint } from "@/iink"
 import { OBBOps, TPoint, DefaultStyle, TStyle, TBox } from "@/iink"
 
 describe("Arc.ts", () => {
@@ -22,16 +16,16 @@ describe("Arc.ts", () => {
         color: "blue",
         width: 20,
       }
-      const arc = EdgeArcOps.create(center, startAngle, sweepAngle, radiusX, radiusY, phi, undefined, undefined, style)
+      const arc = EdgeUtil.createArc(center, startAngle, sweepAngle, radiusX, radiusY, phi, undefined, undefined, style)
       expect(arc).toBeDefined()
       expect(arc.creationTime).toBeLessThanOrEqual(Date.now())
       expect(arc.creationTime).toEqual(arc.modificationDate)
       expect(arc.style).toEqual(expect.objectContaining(style))
       expect(arc.center).toEqual(center)
-      expect(OBBOps.toBox(EdgeArcOps.computeBounds(arc, EdgeArcOps.computeVertices(arc))).x).toEqual(-15)
-      expect(OBBOps.toBox(EdgeArcOps.computeBounds(arc, EdgeArcOps.computeVertices(arc))).y).toEqual(-5)
-      expect(+EdgeArcOps.computeBounds(arc, EdgeArcOps.computeVertices(arc)).width.toFixed(0)).toEqual(27)
-      expect(+EdgeArcOps.computeBounds(arc, EdgeArcOps.computeVertices(arc)).height.toFixed(0)).toEqual(60)
+      expect(OBBOps.toBox(edgeGeometry(EdgeUtil.getArcVertices(arc), arc).bounds).x).toEqual(-15)
+      expect(OBBOps.toBox(edgeGeometry(EdgeUtil.getArcVertices(arc), arc).bounds).y).toEqual(-5)
+      expect(+edgeGeometry(EdgeUtil.getArcVertices(arc), arc).bounds.width.toFixed(0)).toEqual(27)
+      expect(+edgeGeometry(EdgeUtil.getArcVertices(arc), arc).bounds.height.toFixed(0)).toEqual(60)
     })
     test("should create with default style", () => {
       const center: TPoint = { x: 0, y: 0 }
@@ -40,21 +34,21 @@ describe("Arc.ts", () => {
       const radiusX = 10
       const radiusY = 50
       const phi = 0
-      const arc = EdgeArcOps.create(center, startAngle, sweepAngle, radiusX, radiusY, phi)
+      const arc = EdgeUtil.createArc(center, startAngle, sweepAngle, radiusX, radiusY, phi)
       expect(arc.style).toEqual(DefaultStyle)
     })
   })
 
   describe("properties", () => {
     const center: TPoint = { x: 0, y: 0 }
-    const smallClockwiseArc = EdgeArcOps.create(center, Math.PI / 4, Math.PI / 4, 5, 5, 0)
-    const largeClockwiseArc = EdgeArcOps.create(center, Math.PI / 4, (3 * Math.PI) / 4, 50, 50, 0)
-    const smallCounterClockwiseArc = EdgeArcOps.create(center, Math.PI / 4, -Math.PI / 4, 5, 5, 0)
-    const largeCounterClockwiseArc = EdgeArcOps.create(center, Math.PI / 4, (-3 * Math.PI) / 4, 50, 50, 0)
+    const smallClockwiseArc = EdgeUtil.createArc(center, Math.PI / 4, Math.PI / 4, 5, 5, 0)
+    const largeClockwiseArc = EdgeUtil.createArc(center, Math.PI / 4, (3 * Math.PI) / 4, 50, 50, 0)
+    const smallCounterClockwiseArc = EdgeUtil.createArc(center, Math.PI / 4, -Math.PI / 4, 5, 5, 0)
+    const largeCounterClockwiseArc = EdgeUtil.createArc(center, Math.PI / 4, (-3 * Math.PI) / 4, 50, 50, 0)
 
     test(`should get vertices for small clockwise arc`, () => {
-      expect(EdgeArcOps.computeVertices(smallClockwiseArc)).toHaveLength(9)
-      expect(EdgeArcOps.computeVertices(smallClockwiseArc)).toEqual(
+      expect(EdgeUtil.getArcVertices(smallClockwiseArc)).toHaveLength(9)
+      expect(EdgeUtil.getArcVertices(smallClockwiseArc)).toEqual(
         expect.arrayContaining([
           { x: 3.536, y: 3.536 },
           { x: 2.357, y: 4.41 },
@@ -63,8 +57,8 @@ describe("Arc.ts", () => {
       )
     })
     test(`should get vertices for large clockwise arc`, () => {
-      expect(EdgeArcOps.computeVertices(largeClockwiseArc)).toHaveLength(13)
-      expect(EdgeArcOps.computeVertices(largeClockwiseArc)).toEqual(
+      expect(EdgeUtil.getArcVertices(largeClockwiseArc)).toHaveLength(13)
+      expect(EdgeUtil.getArcVertices(largeClockwiseArc)).toEqual(
         expect.arrayContaining([
           { x: 35.355, y: 35.355 },
           { x: 0, y: 50 },
@@ -73,8 +67,8 @@ describe("Arc.ts", () => {
       )
     })
     test(`should get vertices for small counter-clockwise arc`, () => {
-      expect(EdgeArcOps.computeVertices(smallCounterClockwiseArc)).toHaveLength(9)
-      expect(EdgeArcOps.computeVertices(smallCounterClockwiseArc)).toEqual(
+      expect(EdgeUtil.getArcVertices(smallCounterClockwiseArc)).toHaveLength(9)
+      expect(EdgeUtil.getArcVertices(smallCounterClockwiseArc)).toEqual(
         expect.arrayContaining([
           { x: 3.536, y: 3.536 },
           { x: 4.41, y: 2.357 },
@@ -83,8 +77,8 @@ describe("Arc.ts", () => {
       )
     })
     test(`should get vertices for large counter-clockwise arc`, () => {
-      expect(EdgeArcOps.computeVertices(largeCounterClockwiseArc)).toHaveLength(13)
-      expect(EdgeArcOps.computeVertices(largeCounterClockwiseArc)).toEqual(
+      expect(EdgeUtil.getArcVertices(largeCounterClockwiseArc)).toHaveLength(13)
+      expect(EdgeUtil.getArcVertices(largeCounterClockwiseArc)).toEqual(
         expect.arrayContaining([
           { x: 35.355, y: 35.355 },
           { x: 50, y: 0 },
@@ -94,7 +88,7 @@ describe("Arc.ts", () => {
     })
     test(`should get snap points for small clockwise arc`, () => {
       // Snap points are no longer stored on the arc; `EdgeArcOps` computes them from its vertices.
-      const snapPoints = EdgeArcOps.computeSnapPoints(EdgeArcOps.computeVertices(smallClockwiseArc))
+      const snapPoints = EdgeUtil.getArcSnapPoints(EdgeUtil.getArcVertices(smallClockwiseArc))
       expect(snapPoints).toHaveLength(2)
       expect(snapPoints).toEqual([
         { x: 3.536, y: 3.536 },
@@ -110,18 +104,18 @@ describe("Arc.ts", () => {
     const radiusX = 10
     const radiusY = 50
     const phi = 0
-    const arc = EdgeArcOps.create(center, startAngle, sweepAngle, radiusX, radiusY, phi)
+    const arc = EdgeUtil.createArc(center, startAngle, sweepAngle, radiusX, radiusY, phi)
     test(`should return true if partially wrap`, () => {
       const boundaries: TBox = { height: 20, width: 20, x: 0, y: 45 }
-      expect(EdgeArcOps.overlaps(arc, boundaries)).toEqual(true)
+      expect(edgeGeometry(EdgeUtil.getArcVertices(arc), arc).overlapsBox(boundaries)).toEqual(true)
     })
     test(`should return true if totally wrap`, () => {
       const boundaries: TBox = { height: 200, width: 100, x: -50, y: -5 }
-      expect(EdgeArcOps.overlaps(arc, boundaries)).toEqual(true)
+      expect(edgeGeometry(EdgeUtil.getArcVertices(arc), arc).overlapsBox(boundaries)).toEqual(true)
     })
     test(`should return false if box is outside`, () => {
       const boundaries: TBox = { height: 2, width: 2, x: 50, y: 50 }
-      expect(EdgeArcOps.overlaps(arc, boundaries)).toEqual(false)
+      expect(edgeGeometry(EdgeUtil.getArcVertices(arc), arc).overlapsBox(boundaries)).toEqual(false)
     })
   })
 
@@ -137,7 +131,7 @@ describe("Arc.ts", () => {
         color: "blue",
         width: 20,
       }
-      const arc = EdgeArcOps.create(center, startAngle, sweepAngle, radiusX, radiusY, phi, undefined, undefined, style)
+      const arc = EdgeUtil.createArc(center, startAngle, sweepAngle, radiusX, radiusY, phi, undefined, undefined, style)
       const clone = structuredClone(arc)
       expect(clone).toEqual(arc)
       expect(clone).not.toBe(arc)
@@ -146,7 +140,7 @@ describe("Arc.ts", () => {
 
   describe("anchors", () => {
     test("arc has no anchors by default, accepts optional startAnchor/endAnchor", () => {
-      const arc = EdgeArcOps.create({ x: 0, y: 0 }, 0, Math.PI, 10, 10, 0)
+      const arc = EdgeUtil.createArc({ x: 0, y: 0 }, 0, Math.PI, 10, 10, 0)
       expect(arc.startAnchor).toBeUndefined()
       arc.endAnchor = { symbolId: "shape-1", normalizedX: 0.1, normalizedY: 0.9 }
       expect(arc.endAnchor.symbolId).toBe("shape-1")
@@ -439,10 +433,10 @@ describe("Arc.ts", () => {
     }
 
     test("without anchors, draws through the true first/last vertices", () => {
-      const arc = EdgeArcOps.create({ x: 0, y: 0 }, 0, Math.PI, 10, 10, 0)
-      const path = EdgeArcOps.getSVGPath(arc)
-      const first = EdgeArcOps.computeVertices(arc)[0]
-      const last = EdgeArcOps.computeVertices(arc).at(-1)!
+      const arc = EdgeUtil.createArc({ x: 0, y: 0 }, 0, Math.PI, 10, 10, 0)
+      const path = EdgeUtil.getArcPath(arc)
+      const first = EdgeUtil.getArcVertices(arc)[0]
+      const last = EdgeUtil.getArcVertices(arc).at(-1)!
       expect(path.startsWith(`M ${first.x} ${first.y} Q`)).toBe(true)
       expect(path.endsWith(`${last.x} ${last.y}`)).toBe(true)
     })
@@ -451,10 +445,10 @@ describe("Arc.ts", () => {
       // Regression: substituting ONLY vertices[0] left the next few (densely-tessellated,
       // still near the true start) vertices in place, drawing a spike from the entry point
       // back to them before the visible curve even began.
-      const arc = EdgeArcOps.create({ x: 0, y: 0 }, 0, Math.PI, 10, 10, 0)
-      const trueStart = EdgeArcOps.computeVertices(arc)[0]
-      const v1 = EdgeArcOps.computeVertices(arc)[1]
-      const v2 = EdgeArcOps.computeVertices(arc)[2]
+      const arc = EdgeUtil.createArc({ x: 0, y: 0 }, 0, Math.PI, 10, 10, 0)
+      const trueStart = EdgeUtil.getArcVertices(arc)[0]
+      const v1 = EdgeUtil.getArcVertices(arc)[1]
+      const v2 = EdgeUtil.getArcVertices(arc)[2]
       // Entry point sits farther from the true start than v1 but closer than v2 — both v0 and
       // v1 (still "inside" the shape along the curve) must be dropped, not just v0.
       expect(computeDistance(v1, trueStart)).toBeLessThan(5)
@@ -462,31 +456,31 @@ describe("Arc.ts", () => {
       const entryPoint = { x: 10, y: 5 }
       arc.startAnchor = { symbolId: "shape-1", normalizedX: 0.5, normalizedY: 0.5, entryPoint }
 
-      const path = EdgeArcOps.getSVGPath(arc)
+      const path = EdgeUtil.getArcPath(arc)
       const points = parsePathPoints(path)
 
       expect(path.startsWith(`M ${entryPoint.x} ${entryPoint.y} Q ${entryPoint.x} ${entryPoint.y}`)).toBe(true)
       expect(containsPoint(points, trueStart)).toBe(false)
       expect(containsPoint(points, v1)).toBe(false)
       expect(containsPoint(points, v2)).toBe(true)
-      const last = EdgeArcOps.computeVertices(arc).at(-1)!
+      const last = EdgeUtil.getArcVertices(arc).at(-1)!
       expect(path.endsWith(`${last.x} ${last.y}`)).toBe(true)
     })
 
     test("endAnchor.entryPoint drops every trailing vertex still closer to the true end than the entry point", () => {
-      const arc = EdgeArcOps.create({ x: 0, y: 0 }, 0, Math.PI, 10, 10, 0)
-      const trueEnd = EdgeArcOps.computeVertices(arc).at(-1)!
-      const vLast1 = EdgeArcOps.computeVertices(arc).at(-2)!
-      const vLast2 = EdgeArcOps.computeVertices(arc).at(-3)!
+      const arc = EdgeUtil.createArc({ x: 0, y: 0 }, 0, Math.PI, 10, 10, 0)
+      const trueEnd = EdgeUtil.getArcVertices(arc).at(-1)!
+      const vLast1 = EdgeUtil.getArcVertices(arc).at(-2)!
+      const vLast2 = EdgeUtil.getArcVertices(arc).at(-3)!
       expect(computeDistance(vLast1, trueEnd)).toBeLessThan(5)
       expect(computeDistance(vLast2, trueEnd)).toBeGreaterThan(5)
       const entryPoint = { x: -10, y: 5 }
       arc.endAnchor = { symbolId: "shape-2", normalizedX: 0.5, normalizedY: 0.5, entryPoint }
 
-      const path = EdgeArcOps.getSVGPath(arc)
+      const path = EdgeUtil.getArcPath(arc)
       const points = parsePathPoints(path)
 
-      const first = EdgeArcOps.computeVertices(arc)[0]
+      const first = EdgeUtil.getArcVertices(arc)[0]
       expect(path.startsWith(`M ${first.x} ${first.y} Q`)).toBe(true)
       expect(path.endsWith(`${entryPoint.x} ${entryPoint.y}`)).toBe(true)
       expect(containsPoint(points, trueEnd)).toBe(false)

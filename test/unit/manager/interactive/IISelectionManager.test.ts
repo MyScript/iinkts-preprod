@@ -11,13 +11,10 @@ import {
   ResizeDirection,
   TPointerInfo,
   TStroke,
-  EdgeArcOps,
-  TEdgeArc,
+    TEdgeArc,
   computePointOnEllipse,
   IIConnectorManager,
-  ShapeCircleOps,
-  EdgePolyLineOps,
-  EdgeUtil,
+      EdgeUtil,
   ShapeUtil,
   TEdge,
   TBaseSymbol,
@@ -691,7 +688,7 @@ describe("IISelectionManager.ts", () => {
     function setup() {
       const canvas = createCanvasMock()
       const manager = new IISelectionManager(asCanvas(canvas))
-      const arc = EdgeArcOps.create({ x: 0, y: 0 }, Math.PI, -Math.PI, 5, 5, 0)
+      const arc = EdgeUtil.createArc({ x: 0, y: 0 }, Math.PI, -Math.PI, 5, 5, 0)
       canvas.model.addSymbol(arc)
       const group = (
         manager as unknown as { createEdgeResizeGroup: (edge: TEdgeArc) => SVGGElement }
@@ -713,23 +710,23 @@ describe("IISelectionManager.ts", () => {
     }
 
     /**
-     * The regression this closes: this branch called `EdgeArcOps.getResizePoints(arc)` directly,
+     * The regression this closes: this branch called `EdgeUtil.getArcResizePoints(arc)` directly,
      * bypassing `EdgeUtil` (and so the matrix) entirely — a translated arc's handles rendered at
      * its raw, pre-move position.
      */
     test("resize handles for a translated arc render at the moved position, not the raw one", () => {
       const canvas = createCanvasMock()
       const manager = new IISelectionManager(asCanvas(canvas))
-      const arc = EdgeArcOps.create({ x: 0, y: 0 }, Math.PI, -Math.PI, 5, 5, 0)
+      const arc = EdgeUtil.createArc({ x: 0, y: 0 }, Math.PI, -Math.PI, 5, 5, 0)
       arc.transform = MatrixTransform.identity().translate(100, 200)
       canvas.model.addSymbol(arc)
       const group = (
         manager as unknown as { createEdgeResizeGroup: (edge: TEdgeArc) => SVGGElement }
       ).createEdgeResizeGroup(arc)
 
-      // `EdgeArcOps.getResizePoints` picks arc.vertices[0], its middle index and its last index —
+      // `EdgeUtil.getArcResizePoints` picks arc.vertices[0], its middle index and its last index —
       // read directly here (the same stored field it reads), each shifted by the translate by hand.
-      const arcVertices = EdgeArcOps.computeVertices(arc)
+      const arcVertices = EdgeUtil.getArcVertices(arc)
       const raw = [arcVertices[0], arcVertices[Math.floor(arcVertices.length / 2)], arcVertices[arcVertices.length - 1]]
       const handles = Array.from(group.children) as unknown as SVGCircleElement[]
       expect(handles.map((h) => [Number(h.getAttribute("cx")), Number(h.getAttribute("cy"))])).toEqual(
@@ -816,9 +813,9 @@ describe("IISelectionManager.ts", () => {
       // Real connector: the stub would no-op findSymbolAtPoint/applyEndpointAnchor entirely.
       ;(canvas as unknown as { connector: IIConnectorManager }).connector = new IIConnectorManager(asCanvas(canvas))
       const manager = new IISelectionManager(asCanvas(canvas))
-      const arc = EdgeArcOps.create({ x: 0, y: 0 }, Math.PI, -Math.PI, 5, 5, 0)
+      const arc = EdgeUtil.createArc({ x: 0, y: 0 }, Math.PI, -Math.PI, 5, 5, 0)
       canvas.model.addSymbol(arc)
-      const circle = ShapeCircleOps.create({ x: 50, y: 0 }, 20)
+      const circle = ShapeUtil.createCircle({ x: 50, y: 0 }, 20)
       canvas.model.addSymbol(circle)
       const group = (
         manager as unknown as { createEdgeResizeGroup: (edge: TEdgeArc) => SVGGElement }
@@ -869,12 +866,12 @@ describe("IISelectionManager edge translate hit path", () => {
   const EDGES: Record<string, () => TEdge> = {
     line: () => buildIILine({ start: { x: 0, y: 0 }, end: { x: 40, y: 30 } }),
     polyedge: () =>
-      EdgePolyLineOps.create([
+      EdgeUtil.createPolyLine([
         { x: 0, y: 0 },
         { x: 20, y: 0 },
         { x: 20, y: 20 },
       ]),
-    arc: () => EdgeArcOps.create({ x: 50, y: 50 }, 0, Math.PI, 30, 20, 0),
+    arc: () => EdgeUtil.createArc({ x: 50, y: 50 }, 0, Math.PI, 30, 20, 0),
   }
 
   test.each(Object.entries(EDGES))("%s should be drawn from the edge's own path", async (_kind, build) => {
@@ -896,7 +893,7 @@ describe("IISelectionManager edge translate hit path", () => {
 })
 
 /**
- * `EdgeOps.getEdgeResizePoints` was an `if/else` dispatcher over the three edge kinds, with this
+ * `EdgeUtil.getEdgeResizePoints` was an `if/else` dispatcher over the three edge kinds, with this
  * manager as its only caller. IIC-2009 replaced it with `getResizePoints` on the contract, answered
  * from `EdgeUtil`'s kind table.
  *
@@ -907,7 +904,7 @@ describe("IISelectionManager edge resize handles", () => {
   const EDGES: Record<string, () => TEdge> = {
     line: () => buildIILine({ start: { x: 0, y: 0 }, end: { x: 40, y: 30 } }),
     polyedge: () =>
-      EdgePolyLineOps.create([
+      EdgeUtil.createPolyLine([
         { x: 0, y: 0 },
         { x: 20, y: 0 },
         { x: 20, y: 20 },
@@ -957,7 +954,7 @@ describe("IISelectionManager edge resize handles", () => {
     canvas.renderer.drawSymbol(edge)
     manager.drawSelectedGroup([edge])
 
-    // Hand-computed: EdgeLineOps.getResizePoints returns [start, end] = [(0,0),(40,30)]; translate(5,7)
+    // Hand-computed: EdgeUtil.getLineResizePoints returns [start, end] = [(0,0),(40,30)]; translate(5,7)
     // adds (5,7) to each raw coordinate.
     const handles = Array.from(canvas.renderer.layer.querySelectorAll(`circle[role=${SvgElementRole.Resize}]`))
     expect(handles.map((h) => [Number(h.getAttribute("cx")), Number(h.getAttribute("cy"))])).toEqual([

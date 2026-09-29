@@ -1,20 +1,21 @@
-import type { TBox } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
-import { isIdentityMatrix, MatrixTransform, OBBOps } from "@/core/geometry"
-import { convertRadianToDegree } from "@/core/math"
+import { Circle2d, Ellipse2d, type Geometry2d, OBBOps, Polygon2d } from "@/core/geometry"
+import { BoxOps, computeDistance, isValidPoint, MatrixTransform, mergeSymbolTransform } from "@/core/geometry"
+import { convertRadianToDegree, isValidNumber } from "@/core/math"
 import type { TPartialDeep } from "@/core/std"
+import { createUUID } from "@/core/std"
+import { mergeSymbolStyle, type TStyle } from "@/style"
 import { DefaultStyle } from "@/style"
-import { ShapeCircleOps, type TShapeCircle } from "@/symbol/shape/Circle"
-import { ShapeEllipseOps, type TShapeEllipse } from "@/symbol/shape/Ellipse"
-import { ShapePolygonOps, type TShapePolygon } from "@/symbol/shape/Polygon"
+import { type TShapeCircle } from "@/symbol/shape/Circle"
+import { type TShapeEllipse } from "@/symbol/shape/Ellipse"
+import { type TShapePolygon } from "@/symbol/shape/Polygon"
 import type { TShape } from "@/symbol/shape/Shape"
 import { ShapeKind } from "@/symbol/shape/Shape-enum"
-import { SymbolType } from "@/symbol/Symbol"
+import { SymbolType, type TBaseSymbol } from "@/symbol/Symbol"
 
 import { defineKind, resolveKind, type TKindDefinition } from "../KindDefinition"
-import { SVGBuilder } from "../SVGBuilder"
-import { SymbolUtil } from "../SymbolUtil"
-import type { TSymbolGeometry } from "../TSymbolGeometry"
+import { PathSymbolUtil } from "../PathSymbolUtil"
+import { SymbolGeometry } from "../SymbolGeometry"
 
 /**
  * The shape kinds this util can build, and how.
@@ -25,39 +26,31 @@ import type { TSymbolGeometry } from "../TSymbolGeometry"
  * `ShapeKind.Table` is absent on purpose — it is declared in the enum with no implementation behind
  * it, so it resolves like any unknown kind rather than like a shape that half works.
  */
+/**
+ * Whether a shape's style paints its inside, and so whether a query landing wholly within it — and
+ * touching no edge — selects it.
+ *
+ * Unpainted is the default everywhere: `getSVGElement` writes `shape.style.fill || "transparent"`,
+ * and the theme's own default is `#FFFFFF00`. Both are "no fill" spelled differently, so both have
+ * to be read as one.
+ */
+function isFilledStyle(shape: TShape): boolean {
+  const fill = shape.style.fill?.trim().toLowerCase()
+  return !!fill && fill !== "transparent" && fill !== "none" && !/^#[0-9a-f]{6}00$/.test(fill)
+}
+
 const SHAPE_KINDS: Partial<Record<ShapeKind, TKindDefinition<TShape>>> = {
   [ShapeKind.Circle]: defineKind<TShape, TShapeCircle>({
-    create: (partial) => ShapeCircleOps.createFromPartial(partial),
-    computeGeometry: (shape) => {
-      const vertices = ShapeCircleOps.computeVertices(shape)
-      const bounds = ShapeCircleOps.computeBounds(shape)
-      return {
-        bounds,
-        vertices,
-        snapPoints: OBBOps.getSnapPoints(bounds),
-        edges: ShapeCircleOps.computeEdges(vertices),
-        length: 0,
-      }
-    },
-    overlaps: (shape, box) => ShapeCircleOps.overlaps(shape, box),
-    getSVGPath: (shape) => ShapeCircleOps.getSVGPath(shape),
+    create: (partial) => ShapeUtil.createCircleFromPartial(partial),
+    getGeometry: (shape) => new Circle2d(shape.center, shape.radius, isFilledStyle(shape)),
+    getSVGPath: (shape) => ShapeUtil.getCirclePath(shape),
     keepsAspectRatio: true,
   }),
   [ShapeKind.Ellipse]: defineKind<TShape, TShapeEllipse>({
-    create: (partial) => ShapeEllipseOps.createFromPartial(partial),
-    computeGeometry: (shape) => {
-      const vertices = ShapeEllipseOps.computeVertices(shape)
-      const bounds = ShapeEllipseOps.computeBounds(vertices)
-      return {
-        bounds,
-        vertices,
-        snapPoints: OBBOps.getSnapPoints(bounds),
-        edges: ShapeEllipseOps.computeEdges(vertices),
-        length: 0,
-      }
-    },
-    overlaps: (shape, box) => ShapeEllipseOps.overlaps(shape, box),
-    getSVGPath: (shape) => ShapeEllipseOps.getSVGPath(shape),
+    create: (partial) => ShapeUtil.createEllipseFromPartial(partial),
+    getGeometry: (shape) =>
+      Ellipse2d.fromRadii(shape.center, shape.radiusX, shape.radiusY, shape.orientation, isFilledStyle(shape)),
+    getSVGPath: (shape) => ShapeUtil.getEllipsePath(shape),
     // The ellipse is the only kind whose path needs orienting, and this is where that used to live
     // as an `if (shape.kind === ShapeKind.Ellipse)` inside the shared `getSVGElement`.
     extraPathAttributes: (shape) => ({
@@ -65,53 +58,39 @@ const SHAPE_KINDS: Partial<Record<ShapeKind, TKindDefinition<TShape>>> = {
     }),
   }),
   [ShapeKind.Polygon]: defineKind<TShape, TShapePolygon>({
-    create: (partial) => ShapePolygonOps.createFromPartial(partial),
-    computeGeometry: (shape) => {
-      const bounds = ShapePolygonOps.computeBounds(shape.points)
-      return {
-        bounds,
-        vertices: shape.points,
-        snapPoints: OBBOps.getSnapPoints(bounds),
-        edges: ShapePolygonOps.computeEdges(shape.points),
-        length: 0,
-      }
-    },
-    overlaps: (shape, box) => ShapePolygonOps.overlaps(shape, box),
-    getSVGPath: (shape) => ShapePolygonOps.getSVGPath(shape),
+    create: (partial) => ShapeUtil.createPolygonFromPartial(partial),
+    getGeometry: (shape) => new Polygon2d(shape.points, isFilledStyle(shape)),
+    getSVGPath: (shape) => ShapeUtil.getPolygonPath(shape),
   }),
 }
 
 /**
  * @group SymbolUtils
  */
-export class ShapeUtil extends SymbolUtil<TShape> {
+export class ShapeUtil extends PathSymbolUtil<TShape> {
   readonly type = SymbolType.Shape
 
   create(partial: TPartialDeep<TShape>): TShape {
     return resolveKind(SHAPE_KINDS, partial.kind, "shape", "create").create(partial)
   }
 
-  computeGeometry(shape: TShape): TSymbolGeometry {
-    return (
-      SHAPE_KINDS[shape.kind]?.computeGeometry(shape) ?? {
-        // No stored `bounds` to fall back on any more: an unregistered kind's geometry cannot be
-        // computed, and there is no field left to echo, so it reports an empty box at the origin.
-        bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0),
-        vertices: [],
-        snapPoints: [],
-        // An unregistered kind offers no edges either; the fallback returns none.
-        edges: [],
-        length: 0,
-      }
-    )
+  /**
+   * An unregistered kind gets an empty polygon: no vertices, no edges, an empty box at the origin,
+   * and so no overlap with anything. Same answer the record fallback gave, said once instead of
+   * field by field.
+   */
+  getGeometry(shape: TShape): Geometry2d {
+    return SHAPE_KINDS[shape.kind]?.getGeometry(shape) ?? new Polygon2d([])
   }
 
-  overlaps(shape: TShape, box: TBox): boolean {
-    return this.overlapsQuery(shape, box, (b) => SHAPE_KINDS[shape.kind]?.overlaps(shape, b) ?? false)
-  }
-
+  /**
+   * A shape snaps on its box — corners, mid-sides and centre — whatever its outline looks like.
+   *
+   * None at all for a kind the table does not own: its box is an empty one at the origin, and
+   * offering nine snap points there would pull anything nearby to the corner of the page.
+   */
   getSnapPoints(shape: TShape): TPoint[] {
-    return this.mapPointsForward(shape, this.computeGeometry(shape).snapPoints)
+    return SHAPE_KINDS[shape.kind] ? OBBOps.getSnapPoints(SymbolGeometry.of(shape).bounds) : []
   }
 
   keepsAspectRatio(shape: TShape): boolean {
@@ -122,35 +101,342 @@ export class ShapeUtil extends SymbolUtil<TShape> {
     return resolveKind(SHAPE_KINDS, shape.kind, "shape", "getSVGPath for").getSVGPath(shape)
   }
 
-  getSVGElement(shape: TShape): SVGGraphicsElement {
+  /** Which of the three kinds it is, on top of what every symbol's group carries. */
+  protected override getGroupAttributes(shape: TShape): Record<string, string> {
+    return { ...super.getGroupAttributes(shape), kind: shape.kind }
+  }
+
+  protected getPathData(shape: TShape): string {
+    return resolveKind(SHAPE_KINDS, shape.kind, "shape", "getSVGElement for").getSVGPath(shape)
+  }
+
+  /** Stroked *and* filled, the fill coming from the style — the only family that paints both. */
+  protected getPathAttributes(shape: TShape): Record<string, string> {
     const definition = resolveKind(SHAPE_KINDS, shape.kind, "shape", "getSVGElement for")
-
-    const attrs: { [key: string]: string } = {
-      id: shape.id,
-      type: shape.type,
-      kind: shape.kind,
-      "vector-effect": "non-scaling-stroke",
-      "stroke-linecap": "round",
-      "stroke-linejoin": "round",
-    }
-    if (!isIdentityMatrix(shape.transform)) {
-      attrs.transform = MatrixTransform.toCssString(shape.transform)
-    }
-
-    const group = SVGBuilder.createGroup(attrs)
-
-    const pathAttrs: { [key: string]: string } = {
+    const attributes: Record<string, string> = {
       fill: shape.style.fill || "transparent",
       stroke: shape.style.color || DefaultStyle.color!,
       "stroke-width": (shape.style.width || DefaultStyle.width).toString(),
-      d: definition.getSVGPath(shape),
       ...definition.extraPathAttributes?.(shape),
     }
     if (shape.style.opacity) {
-      pathAttrs["opacity"] = shape.style.opacity.toString()
+      attributes.opacity = shape.style.opacity.toString()
     }
+    return attributes
+  }
 
-    group.appendChild(SVGBuilder.createPath(pathAttrs))
-    return group
+  static createCircle(center: TPoint, radius: number, style?: TPartialDeep<TStyle>): TShapeCircle {
+    const mergedStyle = mergeSymbolStyle(style)
+    const now = Date.now()
+    const circle: TShapeCircle = {
+      type: SymbolType.Shape,
+      kind: ShapeKind.Circle,
+      id: `${SymbolType.Shape}-${createUUID()}`,
+      style: mergedStyle,
+      creationTime: now,
+      modificationDate: now,
+      center,
+      radius,
+      transform: MatrixTransform.identity(),
+    }
+    return circle
+  }
+
+  static createCircleFromPartial(partial: TPartialDeep<TShapeCircle>): TShapeCircle {
+    if (!isValidPoint(partial.center)) {
+      throw new Error(`Unable to create circle, center is invalid`)
+    }
+    if (!isValidNumber(partial.radius)) {
+      throw new Error(`Unable to create circle, radius is undefined`)
+    }
+    const circle = ShapeUtil.createCircle(partial.center as TPoint, partial.radius!, partial.style)
+    if (partial.id) {
+      circle.id = partial.id
+    }
+    circle.transform = mergeSymbolTransform(partial.transform)
+    return circle
+  }
+
+  static createCircleBetweenPoints(origin: TPoint, target: TPoint, style?: TPartialDeep<TStyle>): TShapeCircle {
+    const circle = ShapeUtil.createCircle(origin, 0, style)
+    circle.radius = computeDistance(circle.center, target)
+    return circle
+  }
+
+  static updateCircleBetweenPoints(circle: TShapeCircle, _origin: TPoint, target: TPoint): void {
+    circle.radius = computeDistance(circle.center, target)
+  }
+
+  static getCirclePath(circle: TShapeCircle): string {
+    return `M ${circle.center.x - circle.radius} ${circle.center.y} a ${circle.radius} ${circle.radius} 0 1 1 ${circle.radius * 2} 0 a ${circle.radius} ${circle.radius} 0 1 1 -${circle.radius * 2} 0 Z`
+  }
+
+  static createEllipse(
+    center: TPoint,
+    radiusX: number,
+    radiusY: number,
+    orientation: number,
+    style?: TPartialDeep<TStyle>
+  ): TShapeEllipse {
+    const mergedStyle = mergeSymbolStyle(style)
+    const now = Date.now()
+    const ellipse: TShapeEllipse = {
+      type: SymbolType.Shape,
+      kind: ShapeKind.Ellipse,
+      id: `${SymbolType.Shape}-${createUUID()}`,
+      style: mergedStyle,
+      creationTime: now,
+      modificationDate: now,
+      center,
+      radiusX,
+      radiusY,
+      orientation,
+      transform: MatrixTransform.identity(),
+    }
+    return ellipse
+  }
+
+  static createEllipseFromPartial(partial: TPartialDeep<TShapeEllipse>): TShapeEllipse {
+    if (!isValidPoint(partial.center)) {
+      throw new Error(`Unable to create ellipse, center is undefined`)
+    }
+    if (!isValidNumber(partial.radiusX)) {
+      throw new Error(`Unable to create ellipse, radiusX is undefined`)
+    }
+    if (!isValidNumber(partial.radiusY)) {
+      throw new Error(`Unable to create ellipse, radiusY is undefined`)
+    }
+    const ellipse = ShapeUtil.createEllipse(
+      partial.center as TPoint,
+      partial.radiusX!,
+      partial.radiusY!,
+      partial.orientation || 0,
+      partial.style
+    )
+    if (partial.id) {
+      ellipse.id = partial.id
+    }
+    ellipse.transform = mergeSymbolTransform(partial.transform)
+    return ellipse
+  }
+
+  static createEllipseBetweenPoints(origin: TPoint, target: TPoint, style?: TPartialDeep<TStyle>): TShapeEllipse {
+    const center = {
+      x: (origin.x + target.x) / 2,
+      y: (origin.y + target.y) / 2,
+    }
+    const radiusX = Math.abs(origin.x - target.x) / 2
+    const radiusY = Math.abs(origin.y - target.y) / 2
+    return ShapeUtil.createEllipse(center, radiusX, radiusY, 0, style)
+  }
+
+  static updateEllipseBetweenPoints(ellipse: TShapeEllipse, origin: TPoint, target: TPoint): void {
+    ellipse.center = {
+      x: (origin.x + target.x) / 2,
+      y: (origin.y + target.y) / 2,
+    }
+    ellipse.radiusX = Math.abs(origin.x - target.x) / 2
+    ellipse.radiusY = Math.abs(origin.y - target.y) / 2
+  }
+
+  static getEllipsePath(ellipse: TShapeEllipse): string {
+    return `M ${ellipse.center.x - ellipse.radiusX} ${ellipse.center.y} a ${ellipse.radiusX} ${ellipse.radiusY} 0 1 1 ${ellipse.radiusX * 2} 0 a ${ellipse.radiusX} ${ellipse.radiusY} 0 1 1 -${ellipse.radiusX * 2} 0 Z`
+  }
+
+  static createPolygon(points: TPoint[], style?: TPartialDeep<TStyle>): TShapePolygon {
+    const mergedStyle = mergeSymbolStyle(style)
+    const now = Date.now()
+    const polygon: TShapePolygon = {
+      type: SymbolType.Shape,
+      kind: ShapeKind.Polygon,
+      id: `${SymbolType.Shape}-${createUUID()}`,
+      style: mergedStyle,
+      creationTime: now,
+      modificationDate: now,
+      points,
+      transform: MatrixTransform.identity(),
+    }
+    return polygon
+  }
+
+  static createPolygonFromPartial(partial: TPartialDeep<TShapePolygon>): TShapePolygon {
+    if (!partial?.points || partial?.points?.length < 3) {
+      throw new Error(`Unable to create polygon at least 3 points required`)
+    }
+    if (partial?.points?.some((p) => !isValidPoint(p))) {
+      throw new Error(`Unable to create a polygon, one or more points are invalid`)
+    }
+    const polygon = ShapeUtil.createPolygon(partial.points as TPoint[], partial.style)
+    if (partial.id) {
+      polygon.id = partial.id
+    }
+    polygon.transform = mergeSymbolTransform(partial.transform)
+    return polygon
+  }
+
+  static createTriangleBetweenPoints(origin: TPoint, target: TPoint, style?: TPartialDeep<TStyle>): TShapePolygon {
+    const points: TPoint[] = [
+      { x: origin.x, y: origin.y },
+      { x: target.x, y: origin.y },
+      {
+        x: (origin.x + target.x) / 2,
+        y: target.y,
+      },
+    ]
+    return ShapeUtil.createPolygon(points, style)
+  }
+
+  static updateTriangleBetweenPoints(poly: TShapePolygon, origin: TPoint, target: TPoint): void {
+    poly.points = [
+      { x: origin.x, y: origin.y },
+      { x: target.x, y: origin.y },
+      {
+        x: (origin.x + target.x) / 2,
+        y: target.y,
+      },
+    ]
+    poly.modificationDate = Date.now()
+  }
+
+  static createParallelogramBetweenPoints(origin: TPoint, target: TPoint, style?: TPartialDeep<TStyle>): TShapePolygon {
+    const points: TPoint[] = [
+      { x: origin.x, y: origin.y },
+      {
+        x: origin.x + (target.x - origin.x) * 0.75,
+        y: origin.y,
+      },
+      { x: target.x, y: target.y },
+      {
+        x: origin.x + (target.x - origin.x) * 0.25,
+        y: target.y,
+      },
+    ]
+    return ShapeUtil.createPolygon(points, style)
+  }
+
+  static updateParallelogramBetweenPoints(poly: TShapePolygon, origin: TPoint, target: TPoint): void {
+    poly.points = [
+      { x: origin.x, y: origin.y },
+      {
+        x: origin.x + (target.x - origin.x) * 0.75,
+        y: origin.y,
+      },
+      { x: target.x, y: target.y },
+      {
+        x: origin.x + (target.x - origin.x) * 0.25,
+        y: target.y,
+      },
+    ]
+    poly.modificationDate = Date.now()
+  }
+
+  static createRectangleBetweenPoints(origin: TPoint, target: TPoint, style?: TPartialDeep<TStyle>): TShapePolygon {
+    const box = BoxOps.createFromPoints([origin, target])
+    const points: TPoint[] = [
+      { x: box.x, y: box.y },
+      { x: box.x + box.width, y: box.y },
+      {
+        x: box.x + box.width,
+        y: box.y + box.height,
+      },
+      { x: box.x, y: box.y + box.height },
+    ]
+    return ShapeUtil.createPolygon(points, style)
+  }
+
+  static updateRectangleBetweenPoints(poly: TShapePolygon, origin: TPoint, target: TPoint): void {
+    const box = BoxOps.createFromPoints([origin, target])
+    poly.points = [
+      { x: box.x, y: box.y },
+      { x: box.x + box.width, y: box.y },
+      {
+        x: box.x + box.width,
+        y: box.y + box.height,
+      },
+      { x: box.x, y: box.y + box.height },
+    ]
+    poly.modificationDate = Date.now()
+  }
+
+  static createRhombusBetweenPoints(origin: TPoint, target: TPoint, style?: TPartialDeep<TStyle>): TShapePolygon {
+    const box = BoxOps.createFromPoints([origin, target])
+    const points: TPoint[] = [
+      { x: box.x + box.width / 2, y: box.y },
+      {
+        x: box.x + box.width,
+        y: box.y + box.height / 2,
+      },
+      {
+        x: box.x + box.width / 2,
+        y: box.y + box.height,
+      },
+      { x: box.x, y: box.y + box.height / 2 },
+    ]
+    return ShapeUtil.createPolygon(points, style)
+  }
+
+  static updateRhombusBetweenPoints(poly: TShapePolygon, origin: TPoint, target: TPoint): void {
+    const box = BoxOps.createFromPoints([origin, target])
+    poly.points = [
+      { x: box.x + box.width / 2, y: box.y },
+      {
+        x: box.x + box.width,
+        y: box.y + box.height / 2,
+      },
+      {
+        x: box.x + box.width / 2,
+        y: box.y + box.height,
+      },
+      { x: box.x, y: box.y + box.height / 2 },
+    ]
+    poly.modificationDate = Date.now()
+  }
+
+  static getPolygonPath(polygon: TShapePolygon): string {
+    let path = `M ${polygon.points[0].x} ${polygon.points[0].y}`
+    for (let i = 1; i < polygon.points.length; i++) {
+      path += ` L ${polygon.points[i].x} ${polygon.points[i].y}`
+    }
+    return path + " Z"
+  }
+
+  /**
+   * @group Symbol
+   * @summary Check if symbol is a shape (circle, ellipse, polygon)
+   * @param symbol - Symbol to check
+   * @returns True if symbol is a shape
+   */
+  static isShape(symbol: TBaseSymbol): symbol is TShape {
+    return symbol.type === SymbolType.Shape
+  }
+
+  /**
+   * @group Symbol
+   * @summary Type guard to check if a shape is a circle
+   * @param shape - The shape to check
+   * @returns True if the shape is a circle
+   */
+  static isCircleShape(shape: TBaseSymbol): shape is TShapeCircle {
+    return ShapeUtil.isShape(shape) && shape.kind === ShapeKind.Circle
+  }
+
+  /**
+   * @group Symbol
+   * @summary Type guard to check if a shape is an ellipse
+   * @param shape - The shape to check
+   * @returns True if the shape is an ellipse
+   */
+  static isEllipseShape(shape: TBaseSymbol): shape is TShapeEllipse {
+    return ShapeUtil.isShape(shape) && shape.kind === ShapeKind.Ellipse
+  }
+
+  /**
+   * @group Symbol
+   * @summary Type guard to check if a shape is a polygon
+   * @param shape - The shape to check
+   * @returns True if the shape is a polygon
+   */
+  static isPolygonShape(shape: TBaseSymbol): shape is TShapePolygon {
+    return ShapeUtil.isShape(shape) && shape.kind === ShapeKind.Polygon
   }
 }

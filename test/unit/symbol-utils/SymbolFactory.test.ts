@@ -60,7 +60,7 @@ describe("createSymbolFromPartial", () => {
   })
 
   // The three shape kinds and the three edge kinds used to be covered through
-  // `ShapeOps.createShapeFromPartial` and `EdgeOps.createEdgeFromPartial`. Those two were pure
+  // `ShapeUtil.createShapeFromPartial` and `EdgeUtil.createEdgeFromPartial`. Those two were pure
   // dispatchers duplicating `ShapeUtil.create` / `EdgeUtil.create`, and `SymbolFactory` was their
   // only caller, so they are gone. The coverage stays, now exercising the path production uses.
   describe("shape kinds", () => {

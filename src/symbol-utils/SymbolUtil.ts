@@ -1,21 +1,12 @@
 import type { TBox } from "@/core/geometry"
 import type { TMatrixTransform, TPoint } from "@/core/geometry"
-import { applyMatrixToPoint, BoxOps, isIdentityMatrix, MatrixTransform, OBBOps } from "@/core/geometry"
+import type { Geometry2d } from "@/core/geometry"
+import { applyMatrixToPoint, isIdentityMatrix, MatrixTransform } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import type { TBaseSymbol, TResizePoint } from "@/symbol/Symbol"
 
+import { SymbolGeometry } from "./SymbolGeometry"
 import type { TTransformContext } from "./TransformContext"
-import type { TSymbolGeometry } from "./TSymbolGeometry"
-
-/**
- * Below this, a matrix's determinant is treated as zero rather than divided by.
- *
- * `MatrixTransform.invert()` divides by the determinant unconditionally — for a symbol scaled to
- * (near) nothing, that produces `Infinity`/`NaN` coordinates rather than throwing. `1e-9` is well
- * under any determinant a real translate/rotate/uniform-resize produces (those stay near 1 in
- * magnitude), so this only catches a genuinely degenerate matrix, not an aggressively shrunk one.
- */
-const MIN_DETERMINANT = 1e-9
 
 /**
  * @group SymbolUtils
@@ -31,7 +22,7 @@ const MIN_DETERMINANT = 1e-9
  * class StickyNoteUtil extends SymbolUtil<TStickyNote> {
  *   readonly type = "sticky-note"
  *   create(partial) { ... }
- *   overlaps(s, box) { ... }
+ *   getGeometry(s) { ... }
  *   translate(s, { matrix }) { ... }
  *   rotate(s, { matrix }) { ... }
  *   resize(s, { matrix }) { ... }
@@ -45,112 +36,23 @@ export abstract class SymbolUtil<T extends TBaseSymbol> {
   abstract create(params: TPartialDeep<T>): T
 
   /**
-   * This symbol's derived geometry, computed from the coordinates it stores.
+   * This symbol's geometry: a shape that answers overlap, containment and distance for itself.
+   *
+   * The one thing a symbol type has to describe. Everything the library used to ask a type for
+   * separately — its bounds, its vertices, whether a query touches it — is a question this shape
+   * answers, so a new type supplies this and inherits the rest.
    */
-  abstract computeGeometry(symbol: T): TSymbolGeometry
-
-  abstract overlaps(symbol: T, box: TBox): boolean
+  abstract getGeometry(symbol: T): Geometry2d
 
   /**
-   * What every concrete `overlaps` override now does: map `box` — given in the document's frame —
-   * through the inverse of `symbol.transform`, then test it against `symbol`'s raw geometry with
-   * `rawOverlaps`, the type's own untouched test.
+   * Whether a query box touches this symbol — the question selection and erasing both ask.
    *
-   * The query is mapped rather than the symbol's geometry: `box` is always 4 corners, so mapping it
-   * is O(1) however many points `symbol` carries, where mapping every vertex, edge and pointer of a
-   * stroke or a polygon forward would not be. One implementation here replaces what would otherwise
-   * be the same inverse-and-dispatch logic written six times over, once per concrete `overlaps`.
-   *
-   * Two things a `TBox` cannot express, handled deliberately rather than approximated:
-   * - **A non-invertible matrix** (a symbol scaled to exactly nothing on some axis, or whose
-   *   determinant came out `NaN`). `MatrixTransform.invert()` divides by the determinant
-   *   unconditionally, so a caller that did not guard first would get `Infinity`/`NaN` coordinates
-   *   instead of a thrown error — and `pointInConvexPolygon` treats `NaN` corners as "contains
-   *   everything" (every comparison against `NaN` is `false`, so the sign check that would normally
-   *   reject a point never fires), the opposite of safe. A symbol with no extent along an axis has no
-   *   area for any query to land in, so this returns `false` — deliberately, not as a fallback nobody
-   *   chose. The determinant is scale-dependent, not a fixed "stays near 1": for a similarity
-   *   transform (rotate plus a *uniform* scale s) it is s², but a non-uniform resize's determinant is
-   *   the product of two independent scale factors and can land anywhere.
-   * - **A rotated or sheared query.** The image of an axis-aligned box under the inverse is only
-   *   itself axis-aligned when `symbol.transform` has no rotation (translate and axis-aligned resize
-   *   both qualify). Once it does — a rotation alone gives a rotated rectangle; a rotation composed
-   *   with a non-uniform resize gives a genuine parallelogram — a `TBox` cannot hold the result, and
-   *   neither can a `TOBB` in the sheared case (it assumes right angles). Widening it to its bounding
-   *   rectangle would select symbols the query never touched, so instead the mapped corners are kept
-   *   as a quad and tested with `OBBOps.polygonOverlapsQuad` against `symbol`'s own raw `vertices`
-   *   and `edges` — not the axis-aligned `bounds`: for anything but a plain rectangle, `bounds`'
-   *   corners reach further out on the diagonal than the shape itself (a circle of radius r has
-   *   corners at r·√2), and once `query` is rotated relative to the raw frame that overshoot can make
-   *   a query that genuinely surrounds the shape miss containment entirely — a real regression this
-   *   fixes, not a hypothetical.
-   *
-   *   Exact for the straight-edged types (`ShapePolygonOps`, `EdgeLineOps`, `EdgePolyLineOps`) and for
-   *   the two that were already a bounds/edges test at rest, whose own vertices simply are their
-   *   bounds' corners (`TextOps`/`MathOps`, via `typesetOverlapsBox`) — modulo one gap
-   *   `polygonOverlapsBox` never covered either, rotated or not: `query` sitting entirely inside the
-   *   shape without crossing its boundary. An accepted, quantifiable approximation for the two curved
-   *   shape kinds (`ShapeEllipseOps`, `EdgeArcOps`) and, once rotated, `ShapeCircleOps` too (exact at
-   *   rest: radius and segment intersection): their `vertices` tessellate the true curve
-   *   (`computeTessellationCount`, spaced by `SELECTION_MARGIN`) with straight chords, each a secant
-   *   of the curve, so the tessellated polygon sits entirely inside the true shape by at most that
-   *   chord's sagitta, `s ≈ c²/(8·r)` for a chord of length `c` on a curve of local radius `r`. `c` is
-   *   `SELECTION_MARGIN` (10) for a curve large enough that `computeTessellationCount` isn't floored
-   *   at its 8-point minimum, and `perimeter / 8` (smaller) below that — for a radius-5 circle,
-   *   `c ≈ 31.4 / 8 ≈ 3.9`, giving `s ≈ 3.9² / (8·5) ≈ 0.4px`, the same order of magnitude as the
-   *   ~0.6px measured directly against the real tessellation in review (this formula is a derived
-   *   approximation, not a re-measurement, and degrades as `c` approaches `r`).
-   *
-   *   `rawOverlapsQuad`, when a concrete override supplies it, replaces this generic fallback
-   *   outright with the type's own exact rotated-query test —
-   *   `StrokeUtil` is the one built-in user: a stroke's real test is "any raw pointer inside the
-   *   query", and the generic edges-crossing fallback would over-approximate it (a query side can
-   *   cross the segment *between* two consecutive pointers with no pointer itself inside the query —
-   *   a true overlap for a polygon, not for a stroke, whose own "overlaps" was never about the drawn
-   *   line crossing a box). `DecoratorOps.overlaps` also falls back to the generic test, in principle
-   *   no more exact than Ellipse/Arc's — unreachable in practice, since `DecoratorUtil.applyTransform`
-   *   is a no-op and a decorator's transform never becomes non-identity through the product this
-   *   dispatches from.
+   * Answered by the shape {@link getGeometry} returns, so a type describes what it is once and
+   * inherits this. Every built-in used to write the same one line here. Override it only for a type
+   * whose hit test is not a question about its outline.
    */
-  protected overlapsQuery(
-    symbol: T,
-    box: TBox,
-    rawOverlaps: (box: TBox) => boolean,
-    rawOverlapsQuad?: (query: TPoint[]) => boolean
-  ): boolean {
-    // A symbol arriving as data of a kind this util's table does not own (an unrecognized shape or
-    // edge kind, tolerated the same way `computeGeometry`'s fallback is) may never have gone through
-    // `createFromPartial` — `mergeSymbolTransform` is what normally backfills a missing `transform`
-    // on the wire, and a raw/malformed object can reach here without it. Treated as identity rather
-    // than left to crash `isIdentityMatrix` on `undefined`: an untransformed guess is what the rest
-    // of this method already assumes for every ordinary symbol.
-    const transform = symbol.transform ?? MatrixTransform.identity()
-    if (isIdentityMatrix(transform)) {
-      return rawOverlaps(box)
-    }
-    const determinant = transform.xx * transform.yy - transform.yx * transform.xy
-    if (!Number.isFinite(determinant) || Math.abs(determinant) < MIN_DETERMINANT) {
-      return false
-    }
-    const inverse = new MatrixTransform(
-      transform.xx,
-      transform.yx,
-      transform.xy,
-      transform.yy,
-      transform.tx,
-      transform.ty
-    ).invert()
-    const corners = BoxOps.getCorners(box).map((corner) => MatrixTransform.applyToPoint(inverse, corner))
-    if (transform.yx === 0 && transform.xy === 0) {
-      // Pure translate/scale: the inverse is diagonal too, so the mapped corners are still an
-      // axis-aligned box, exactly — no widening, no loss.
-      return rawOverlaps(BoxOps.createFromPoints(corners))
-    }
-    if (rawOverlapsQuad) {
-      return rawOverlapsQuad(corners)
-    }
-    const { vertices, edges } = this.computeGeometry(symbol)
-    return OBBOps.polygonOverlapsQuad(vertices, edges, corners)
+  overlaps(symbol: T, box: TBox): boolean {
+    return SymbolGeometry.of(symbol).overlapsBox(box)
   }
 
   /**
@@ -159,7 +61,7 @@ export abstract class SymbolUtil<T extends TBaseSymbol> {
    * frame and hand the result through this once, forward, rather than every symbol type mapping its
    * own points individually.
    *
-   * Forward, not inverse: unlike {@link overlapsQuery}, there is no query to map back — `points` are
+   * Forward, and exact: a point maps to a point however the matrix turns or scales, so `points` are
    * already the symbol's own geometry, and mapping a point through a matrix is always exact, however
    * that matrix turns or scales.
    */
@@ -266,4 +168,33 @@ export abstract class SymbolUtil<T extends TBaseSymbol> {
    * "symbol type unknown". That variant is deprecated and not worth wiring up.
    */
   abstract getSVGElement(symbol: T): SVGGraphicsElement | undefined
+
+  /**
+   * The attributes on the group every symbol is drawn inside.
+   *
+   * The same five for every type, plus the matrix when there is one — written once here rather than
+   * copied into each `getSVGElement`, where six copies had already started to drift apart in what
+   * they called the `type` attribute.
+   *
+   * A type that needs more overrides this and spreads the result: the shape and edge families add
+   * their `kind`, and the typeset one adds what a rendered word needs that a path does not.
+   */
+  protected getGroupAttributes(symbol: T): Record<string, string> {
+    const attributes: Record<string, string> = {
+      id: symbol.id,
+      type: symbol.type,
+      "vector-effect": "non-scaling-stroke",
+      "stroke-linecap": "round",
+      "stroke-linejoin": "round",
+    }
+    // Guarded rather than read straight: a symbol of a kind no table owns is tolerated all the way
+    // to here, and such an object can arrive without the matrix `mergeSymbolTransform` normally
+    // backfills. Reading `undefined` would throw a meaningless error over the meaningful one the
+    // caller is about to raise about the kind itself.
+    const transform = symbol.transform
+    if (transform && !isIdentityMatrix(transform)) {
+      attributes.transform = MatrixTransform.toCssString(transform)
+    }
+    return attributes
+  }
 }

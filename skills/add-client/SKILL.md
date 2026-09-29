@@ -54,7 +54,7 @@ A stateless (HTTP-batch-style) client needs far less: see `HTTPClientV2` — a s
 
 ```typescript
 import { LoggerManager, LoggerCategory } from "@/logger"
-import { DeferredPromise } from "@/utils/DeferredPromise"
+import { DeferredPromise } from "@/core/std"
 import { ClientEvent } from "./ClientEvent"
 
 export class YourClient {
@@ -71,7 +71,7 @@ export class YourClient {
 }
 ```
 
-**Authentication**: Use `computeHmac(message, applicationKey, hmacKey)` from `@/utils/crypto` — note the argument order, `message` comes first.
+**Authentication**: Use `computeHmac(message, applicationKey, hmacKey)` from `@/client/crypto` — note the argument order, `message` comes first. For an HTTP client, prefer `resolveHmac(server, message)` from `@/client/HmacAuth`, which also resolves an async `hmacKey`.
 
 **Error handling**: Emit via `this.event.emitError(error)` — never throw uncaught. `ClientEvent` also exposes `CONNECTION_STATUS_CHANGED` for connectivity-state consumers.
 

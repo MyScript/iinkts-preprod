@@ -1,26 +1,6 @@
 import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
 import { buildIIMath, buildIIStroke, buildIIText } from "../../../helpers"
-import {
-  EdgeArcOps,
-  EdgeLineOps,
-  EdgePolyLineOps,
-  IIConnectorManager,
-  IIResizeManager,
-  BoxOps,
-  MatrixTransform,
-  OBBOps,
-  ResizeDirection,
-  ShapeCircleOps,
-  ShapeEllipseOps,
-  ShapePolygonOps,
-  StrokeOps,
-  SvgElementRole,
-  TBaseSymbol,
-  TPoint,
-  TStroke,
-  TSymbol,
-  TSymbolChar,
-  TextOps, SymbolGeometry } from "@/iink"
+import { BoxOps, EdgeUtil, IIConnectorManager, IIResizeManager, MatrixTransform, OBBOps, ResizeDirection, ShapeUtil, StrokeUtil, SvgElementRole, SymbolGeometry, TBaseSymbol, TPoint, TStroke, TSymbol, TSymbolChar, TextUtil } from "@/iink"
 
 describe("IIResizeManager.ts", () => {
   test("should create", () => {
@@ -45,10 +25,10 @@ describe("IIResizeManager.ts", () => {
       expect(() => manager.applyToSymbol(stroke, matrix)).toThrow(/Registered types: .*stroke/)
     })
     test("should resize stroke by composing the matrix rather than moving its pointers", () => {
-      const stroke = StrokeOps.create()
+      const stroke = StrokeUtil.createEmpty()
       const origin: TPoint = { x: 1, y: 2 }
-      StrokeOps.addPointer(stroke, { p: 1, dt: 1, x: 1, y: 2 })
-      StrokeOps.addPointer(stroke, { p: 1, dt: 10, x: 21, y: 42 })
+      StrokeUtil.addPointer(stroke, { p: 1, dt: 1, x: 1, y: 2 })
+      StrokeUtil.addPointer(stroke, { p: 1, dt: 10, x: 21, y: 42 })
       const pointersBefore = stroke.pointers.map((p) => ({ ...p }))
       const matrix = MatrixTransform.identity().scale(2, 3, origin)
       manager.applyToSymbol(stroke, matrix)
@@ -57,11 +37,11 @@ describe("IIResizeManager.ts", () => {
       expect(stroke.pointers).toEqual(pointersBefore)
     })
     test("should resize a math solver-output (draw) stroke the same way", () => {
-      const stroke = StrokeOps.create()
+      const stroke = StrokeUtil.createEmpty()
       stroke.isSolverOutput = true
       const origin: TPoint = { x: 1, y: 2 }
-      StrokeOps.addPointer(stroke, { p: 1, dt: 1, x: 1, y: 2 })
-      StrokeOps.addPointer(stroke, { p: 1, dt: 10, x: 21, y: 42 })
+      StrokeUtil.addPointer(stroke, { p: 1, dt: 1, x: 1, y: 2 })
+      StrokeUtil.addPointer(stroke, { p: 1, dt: 10, x: 21, y: 42 })
       const pointersBefore = stroke.pointers.map((p) => ({ ...p }))
       const matrix = MatrixTransform.identity().scale(2, 3, origin)
       manager.applyToSymbol(stroke, matrix)
@@ -78,7 +58,7 @@ describe("IIResizeManager.ts", () => {
         { x: 5, y: 5 },
         { x: 5, y: 0 },
       ]
-      const poly = ShapePolygonOps.create(points)
+      const poly = ShapeUtil.createPolygon(points)
       //@ts-ignore
       poly.kind = "pouet"
       const origin: TPoint = { x: 0, y: 0 }
@@ -89,7 +69,7 @@ describe("IIResizeManager.ts", () => {
     test("should resize shape Circle by composing the matrix rather than scaling its radius", () => {
       const center: TPoint = { x: 5, y: 5 }
       const radius = 4
-      const shape = ShapeCircleOps.create(center, radius)
+      const shape = ShapeUtil.createCircle(center, radius)
       const origin: TPoint = { x: 1, y: 2 }
       const matrix = MatrixTransform.identity().scale(2, 4, origin)
       manager.applyToSymbol(shape, matrix)
@@ -102,7 +82,7 @@ describe("IIResizeManager.ts", () => {
       const radiusX = 50
       const radiusY = 10
       const orientation = 0
-      const shape = ShapeEllipseOps.create(center, radiusX, radiusY, orientation)
+      const shape = ShapeUtil.createEllipse(center, radiusX, radiusY, orientation)
       const scaleX = 2
       const scaleY = 4
       const shapeBoundsBox = OBBOps.toBox(SymbolGeometry.boundsOf(shape))
@@ -125,7 +105,7 @@ describe("IIResizeManager.ts", () => {
         { x: 20, y: 10 },
         { x: 0, y: 10 },
       ]
-      const shape = ShapePolygonOps.create(points)
+      const shape = ShapeUtil.createPolygon(points)
       const scaleX = 2
       const scaleY = 4
       const polyBoundsBox = OBBOps.toBox(SymbolGeometry.boundsOf(shape))
@@ -138,7 +118,7 @@ describe("IIResizeManager.ts", () => {
     test("resize edge with kind unknown no longer throws, for the same reason", () => {
       const start: TPoint = { x: 0, y: 0 }
       const end: TPoint = { x: 0, y: 5 }
-      const edge = EdgeLineOps.create(start, end)
+      const edge = EdgeUtil.createLine(start, end)
       //@ts-ignore
       edge.kind = "pouet"
       const origin: TPoint = { x: 0, y: 0 }
@@ -153,7 +133,7 @@ describe("IIResizeManager.ts", () => {
       const radiusX = 50
       const radiusY = 10
       const phi = 0
-      const edge = EdgeArcOps.create(center, startAngle, sweepAngle, radiusX, radiusY, phi)
+      const edge = EdgeUtil.createArc(center, startAngle, sweepAngle, radiusX, radiusY, phi)
       const edgeBoundsBox = OBBOps.toBox(SymbolGeometry.boundsOf(edge))
       const origin: TPoint = { x: edgeBoundsBox.x, y: edgeBoundsBox.y }
       const scaleX = 2
@@ -171,7 +151,7 @@ describe("IIResizeManager.ts", () => {
     test("resize edge Line composes the matrix rather than moving its endpoints", () => {
       const start: TPoint = { x: 0, y: 0 }
       const end: TPoint = { x: 0, y: 5 }
-      const edge = EdgeLineOps.create(start, end)
+      const edge = EdgeUtil.createLine(start, end)
       const origin: TPoint = { x: 0, y: 0 }
       const matrix = MatrixTransform.identity().scale(2, 3, origin)
       manager.applyToSymbol(edge, matrix)
@@ -186,7 +166,7 @@ describe("IIResizeManager.ts", () => {
         { x: 20, y: 10 },
         { x: 0, y: 10 },
       ]
-      const edge = EdgePolyLineOps.create(points)
+      const edge = EdgeUtil.createPolyLine(points)
       const origin: TPoint = { x: 0, y: 0 }
       const matrix = MatrixTransform.identity().scale(2, 3, origin)
       manager.applyToSymbol(edge, matrix)
@@ -205,7 +185,7 @@ describe("IIResizeManager.ts", () => {
           label: "A",
         },
       ]
-      const text = TextOps.create(chars, point, { height: 10, width: 5, x: 0, y: 0 })
+      const text = TextUtil.createText(chars, point, { height: 10, width: 5, x: 0, y: 0 })
       const boundsBefore = structuredClone(text.bounds)
       const origin: TPoint = { x: 0, y: 0 }
       const matrix = MatrixTransform.identity().scale(2, 3, origin)
@@ -230,9 +210,9 @@ describe("IIResizeManager.ts", () => {
     const manager = new IIResizeManager(asCanvas(canvas))
     manager.applyToSymbol = jest.fn()
 
-    const strokeOrigin = StrokeOps.create({})
-    StrokeOps.addPointer(strokeOrigin, { p: 1, dt: 1, x: 0, y: 0 })
-    StrokeOps.addPointer(strokeOrigin, { p: 1, dt: 1, x: 10, y: 50 })
+    const strokeOrigin = StrokeUtil.createEmpty({})
+    StrokeUtil.addPointer(strokeOrigin, { p: 1, dt: 1, x: 0, y: 0 })
+    StrokeUtil.addPointer(strokeOrigin, { p: 1, dt: 1, x: 10, y: 50 })
     canvas.model.addSymbol(strokeOrigin)
     canvas.model.selectSymbol(strokeOrigin.id)
 
@@ -505,14 +485,14 @@ describe("IIResizeManager.ts", () => {
       canvas.client.transformScale = jest.fn(() => Promise.resolve())
       const manager = new IIResizeManager(asCanvas(canvas))
 
-      const shape = ShapeCircleOps.create({ x: 50, y: 50 }, 20)
+      const shape = ShapeUtil.createCircle({ x: 50, y: 50 }, 20)
       canvas.model.addSymbol(shape)
       canvas.model.selectSymbol(shape.id)
       // The gradient-follow direction resolves the connected block's center via
       // jiix.getStrokesForElement + model.getRootSymbol — here the "block" is just the shape itself.
       jest.spyOn(canvas.jiix, "getStrokesForElement").mockImplementation((id) => (id === shape.id ? [shape.id] : []))
 
-      const edgeStrokeOrigin = StrokeOps.create()
+      const edgeStrokeOrigin = StrokeUtil.createEmpty()
       edgeStrokeOrigin.pointers = [
         { x: 0, y: 0, dt: 0, p: 1 },
         { x: 10, y: 0, dt: 1, p: 1 },
@@ -563,12 +543,12 @@ describe("IIResizeManager.ts", () => {
       canvas.client.transformScale = jest.fn(() => Promise.resolve())
       const manager = new IIResizeManager(asCanvas(canvas))
 
-      const shape = ShapeCircleOps.create({ x: 50, y: 50 }, 20)
+      const shape = ShapeUtil.createCircle({ x: 50, y: 50 }, 20)
       canvas.model.addSymbol(shape)
       canvas.model.selectSymbol(shape.id)
       jest.spyOn(canvas.jiix, "getStrokesForElement").mockImplementation((id) => (id === shape.id ? [shape.id] : []))
 
-      const edgeStroke = StrokeOps.create()
+      const edgeStroke = StrokeUtil.createEmpty()
       edgeStroke.pointers = [
         { x: 0, y: 0, dt: 0, p: 1 },
         { x: 5, y: 0, dt: 1, p: 1 },
@@ -608,11 +588,11 @@ describe("IIResizeManager.ts", () => {
       canvas.client.replaceStrokes = jest.fn(() => Promise.resolve())
       const manager = new IIResizeManager(asCanvas(canvas))
 
-      const shape = ShapeCircleOps.create({ x: 50, y: 50 }, 20)
+      const shape = ShapeUtil.createCircle({ x: 50, y: 50 }, 20)
       canvas.model.addSymbol(shape)
       canvas.model.selectSymbol(shape.id)
 
-      const edgeStroke = StrokeOps.create()
+      const edgeStroke = StrokeUtil.createEmpty()
       edgeStroke.pointers = [
         { x: 0, y: 0, dt: 0, p: 1 },
         { x: 10, y: 0, dt: 1, p: 1 },
@@ -679,7 +659,7 @@ describe("IIResizeManager, resize composes the matrix instead of touching these 
   }
 
   test("mirroring an arc no longer re-bases its start angle or reverses its sweep", () => {
-    const arc = EdgeArcOps.create({ x: 50, y: 50 }, 0.5, 1.5, 30, 20, 0)
+    const arc = EdgeUtil.createArc({ x: 50, y: 50 }, 0.5, 1.5, 30, 20, 0)
     const origin: TPoint = { x: 0, y: 0 }
     const matrix = MatrixTransform.identity().scale(-1, 1, origin)
     resize(arc, matrix, origin)
@@ -689,7 +669,7 @@ describe("IIResizeManager, resize composes the matrix instead of touching these 
   })
 
   test("mirroring an arc vertically leaves it just as untouched", () => {
-    const arc = EdgeArcOps.create({ x: 50, y: 50 }, 0.5, 1.5, 30, 20, 0)
+    const arc = EdgeUtil.createArc({ x: 50, y: 50 }, 0.5, 1.5, 30, 20, 0)
     const origin: TPoint = { x: 0, y: 0 }
     const matrix = MatrixTransform.identity().scale(1, -1, origin)
     resize(arc, matrix, origin)
@@ -741,14 +721,14 @@ describe("IIResizeManager aspect ratio locking", () => {
   }
 
   const buildStroke = () => {
-    const stroke = StrokeOps.create({})
-    StrokeOps.addPointer(stroke, { p: 1, dt: 1, x: 0, y: 0 })
-    StrokeOps.addPointer(stroke, { p: 1, dt: 2, x: 40, y: 20 })
+    const stroke = StrokeUtil.createEmpty({})
+    StrokeUtil.addPointer(stroke, { p: 1, dt: 1, x: 0, y: 0 })
+    StrokeUtil.addPointer(stroke, { p: 1, dt: 2, x: 40, y: 20 })
     return stroke
   }
 
   test("a circle in the selection should lock it", async () => {
-    const { manager } = await startResize([ShapeCircleOps.create({ x: 20, y: 20 }, 10)], ResizeDirection.East)
+    const { manager } = await startResize([ShapeUtil.createCircle({ x: 20, y: 20 }, 10)], ResizeDirection.East)
     expect(manager.keepRatio).toBe(true)
   })
 
@@ -762,9 +742,9 @@ describe("IIResizeManager aspect ratio locking", () => {
 
   test.each([
     ["a stroke", () => buildStroke()],
-    ["an ellipse", () => ShapeEllipseOps.create({ x: 20, y: 20 }, 30, 10, 0)],
-    ["a polygon", () => ShapePolygonOps.create([{ x: 0, y: 0 }, { x: 20, y: 0 }, { x: 20, y: 20 }])],
-    ["a line", () => EdgeLineOps.create({ x: 0, y: 0 }, { x: 20, y: 20 })],
+    ["an ellipse", () => ShapeUtil.createEllipse({ x: 20, y: 20 }, 30, 10, 0)],
+    ["a polygon", () => ShapeUtil.createPolygon([{ x: 0, y: 0 }, { x: 20, y: 0 }, { x: 20, y: 20 }])],
+    ["a line", () => EdgeUtil.createLine({ x: 0, y: 0 }, { x: 20, y: 20 })],
   ])("%s alone should not lock it", async (_name, build) => {
     const { manager } = await startResize([build()], ResizeDirection.East)
     expect(manager.keepRatio).toBe(false)
@@ -773,7 +753,7 @@ describe("IIResizeManager aspect ratio locking", () => {
   test("one locking symbol should lock the whole selection", async () => {
     // `some`, not `every` — which is what the three type tests said, and easy to invert by accident.
     const { manager } = await startResize(
-      [buildStroke(), ShapeCircleOps.create({ x: 60, y: 20 }, 10)],
+      [buildStroke(), ShapeUtil.createCircle({ x: 60, y: 20 }, 10)],
       ResizeDirection.East
     )
     expect(manager.keepRatio).toBe(true)
@@ -781,7 +761,7 @@ describe("IIResizeManager aspect ratio locking", () => {
 
   test("a locked drag should equalise the two scale factors", async () => {
     // The payoff. Dragging an east handle normally scales x alone; with the ratio locked, y follows.
-    const { manager, box } = await startResize([ShapeCircleOps.create({ x: 20, y: 20 }, 10)], ResizeDirection.East)
+    const { manager, box } = await startResize([ShapeUtil.createCircle({ x: 20, y: 20 }, 10)], ResizeDirection.East)
     const scales = manager.continue({ x: box.x + box.width * 2, y: box.y })
     expect(scales.scaleY).toBe(scales.scaleX)
     expect(scales.scaleX).not.toBe(1)
@@ -791,7 +771,7 @@ describe("IIResizeManager aspect ratio locking", () => {
     // Guards the guard: without this, the assertion above could pass on a gesture that happened to
     // produce equal factors anyway.
     const { manager, box } = await startResize(
-      [ShapeEllipseOps.create({ x: 20, y: 20 }, 30, 10, 0)],
+      [ShapeUtil.createEllipse({ x: 20, y: 20 }, 30, 10, 0)],
       ResizeDirection.East
     )
     const scales = manager.continue({ x: box.x + box.width * 2, y: box.y })

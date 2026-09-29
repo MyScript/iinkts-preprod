@@ -1,16 +1,25 @@
 import type { TBox } from "@/core/geometry"
 import type { TPoint } from "@/core/geometry"
-import { isIdentityMatrix, MatrixTransform, mergeSymbolTransform, OBBOps, type TOBB } from "@/core/geometry"
+import {
+  type Geometry2d,
+  isIdentityMatrix,
+  MatrixTransform,
+  mergeSymbolTransform,
+  OBBOps,
+  Polygon2d,
+  type TOBB,
+} from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
+import { createUUID } from "@/core/std"
+import { mergeSymbolStyle, type TStyle } from "@/style"
 import { DefaultStyle } from "@/style"
-import { DecoratorKind, DecoratorOps, type TDecorator } from "@/symbol/decorator/Decorator"
+import { DecoratorKind, type TDecorator } from "@/symbol/decorator/Decorator"
 import type { TBaseSymbol } from "@/symbol/Symbol"
 import { SymbolType } from "@/symbol/Symbol"
 
 import { SVGBuilder } from "../SVGBuilder"
 import { SymbolGeometry } from "../SymbolGeometry"
 import { SymbolUtil } from "../SymbolUtil"
-import type { TSymbolGeometry } from "../TSymbolGeometry"
 
 /**
  * How one kind of decorator is drawn.
@@ -123,14 +132,14 @@ export class DecoratorUtil extends SymbolUtil<TDecorator> {
     }
     const targetIds = (partial.targetIds ?? []).filter((id): id is string => id !== undefined)
     const targetBounds = partial.targetBounds
-    const decorator = DecoratorOps.create(partial.kind, partial.style ?? {}, targetIds)
+    const decorator = DecoratorUtil.createDecorator(partial.kind, partial.style ?? {}, targetIds)
     // Read as the `TOBB` the field declares, field by field, rather than through `create`'s `TBox`
     // parameter. The code this replaces did `partial.bounds as TBox` and handed that to
     // `OBBOps.fromBox`, which reads `.x`/`.y` — so a decorator serialised by iinkTS itself (a
     // `TOBB`, with `center` and no `x`) came back with a NaN centre on re-import. The cast was what
     // hid the mismatch from the compiler.
     if (targetBounds) {
-      DecoratorOps.setTargetBounds(
+      DecoratorUtil.setTargetBounds(
         decorator,
         OBBOps.create(
           { x: targetBounds.center?.x ?? 0, y: targetBounds.center?.y ?? 0 },
@@ -142,10 +151,6 @@ export class DecoratorUtil extends SymbolUtil<TDecorator> {
     }
     decorator.transform = mergeSymbolTransform(partial.transform)
     return decorator
-  }
-
-  overlaps(decorator: TDecorator, box: TBox): boolean {
-    return this.overlapsQuery(decorator, box, (b) => DecoratorOps.overlaps(decorator, b))
   }
 
   /**
@@ -170,23 +175,27 @@ export class DecoratorUtil extends SymbolUtil<TDecorator> {
    * standalone but not yet placed. It reports empty rather than two phantom points at the origin,
    * which is what a zero-size box would produce.
    */
-  computeGeometry(decorator: TDecorator): TSymbolGeometry {
+  /**
+   * The box a decorator was placed against, as a shape.
+   *
+   * Its target's box rather than the line it draws: a decorator is found wherever what it decorates
+   * is, which is what `DecoratorUtil.overlaps` tested against and what `targetBounds` holds. Filled,
+   * so a query landing inside the decorated text catches it the way a query crossing the text's edge
+   * does — again matching the box test this replaces.
+   *
+   * The box's own angle is handed over as the frame, so the corners come back as the very box that
+   * was stored rather than as an axis-aligned one drawn around it.
+   *
+   * A decorator with no target has no place on the page, and an empty polygon overlaps nothing.
+   */
+  getGeometry(decorator: TDecorator): Geometry2d {
     const bounds = decorator.targetBounds
-    if (!bounds) {
-      return { bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0), vertices: [], snapPoints: [], edges: [], length: 0 }
-    }
-    const vertices = DecoratorOps.computeVertices(bounds)
-    return {
-      bounds,
-      vertices,
-      snapPoints: vertices,
-      edges: [{ p1: vertices[0], p2: vertices[1] }],
-      length: 0,
-    }
+    return bounds ? new Polygon2d(OBBOps.toCorners(bounds), true, bounds.angle) : new Polygon2d([])
   }
 
+  /** The two ends of the line it draws — a decorator never moves, so there is no matrix to apply. */
   getSnapPoints(decorator: TDecorator): TPoint[] {
-    return this.mapPointsForward(decorator, this.computeGeometry(decorator).snapPoints)
+    return decorator.targetBounds ? DecoratorUtil.computeVertices(decorator.targetBounds) : []
   }
 
   canResize(_decorator: TDecorator): boolean {
@@ -215,7 +224,7 @@ export class DecoratorUtil extends SymbolUtil<TDecorator> {
     // top-level group (which carries its own `transform` below) or as a child of the host's group
     // (which carries the host's), so the geometry itself must stay untransformed — the enclosing
     // `transform` attribute is what repositions it, exactly once at each level. `rawOf` also keeps
-    // this on the cache `boundsOf` uses, rather than calling a util's `computeGeometry` uncached on
+    // this on the cache `boundsOf` uses, rather than rebuilding a util's geometry uncached on
     // every redraw.
     const bounds = decorator.targetBounds ? SymbolGeometry.rawOf(decorator).bounds : SymbolGeometry.rawOf(symbol).bounds
     return DecoratorUtil.renderFromBounds(decorator, bounds, undefined, undefined, {
@@ -265,5 +274,43 @@ export class DecoratorUtil extends SymbolUtil<TDecorator> {
       xHeight,
     }
     return definition.render(context, attrs)
+  }
+
+  static createDecorator(
+    kind: DecoratorKind,
+    style: TPartialDeep<TStyle>,
+    targetIds: string[] = [],
+    targetBounds?: TBox
+  ): TDecorator {
+    const mergedStyle = mergeSymbolStyle(style)
+    const now = Date.now()
+    const decorator: TDecorator = {
+      id: `${kind}-${createUUID()}`,
+      type: SymbolType.Decorator,
+      style: mergedStyle,
+      creationTime: now,
+      modificationDate: now,
+      kind,
+      targetIds,
+      transform: MatrixTransform.identity(),
+    }
+    if (targetBounds) {
+      DecoratorUtil.setTargetBounds(decorator, OBBOps.fromBox(targetBounds))
+    }
+    return decorator
+  }
+
+  static setTargetBounds(decorator: TDecorator, targetBounds: TOBB): void {
+    decorator.targetBounds = targetBounds
+  }
+
+  /** The two endpoints of the horizontal line a decorator's own geometry is: the middle of its bounds. */
+  static computeVertices(bounds: TOBB): TPoint[] {
+    const yMid = bounds.center.y
+    const hw = bounds.width / 2
+    return [
+      { x: bounds.center.x - hw, y: yMid },
+      { x: bounds.center.x + hw, y: yMid },
+    ]
   }
 }

@@ -6,7 +6,7 @@ import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
 import { DEFAULT_MENU_COLORS } from "@/menu/MenuConstants"
 import type { TText } from "@/symbol"
 import { DecoratorKind, isRecognizedMath, isText } from "@/symbol"
-import { DecoratorOps } from "@/symbol/decorator/Decorator"
+import { DecoratorUtil } from "@/symbol-utils"
 
 /** @group Menu */
 export type TContextDecoratorItemsConfig = {
@@ -97,7 +97,7 @@ export class DecoratorContextMenu extends BaseMenuItem<HTMLElement> {
       symbolsDecorable.forEach((s) => {
         if (enable) {
           if (!s.decorators.some((d) => d.kind === kind)) {
-            s.decorators.push(DecoratorOps.create(kind, this.canvas.penStyle))
+            s.decorators.push(DecoratorUtil.createDecorator(kind, this.canvas.penStyle))
           }
         } else {
           const decoIndex = s.decorators.findIndex((d) => d.kind === kind)

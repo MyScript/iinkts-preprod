@@ -56,7 +56,7 @@ Auth is a **message-field challenge/response**, not an HTTP header (that's HTTP-
 ← { type: 'sessionDescription', ... }
 ```
 
-**HMAC computation**: [src/utils/crypto.ts](src/utils/crypto.ts) — `computeHmac(message, applicationKey, hmacKey)`. Concatenates `applicationKey + hmacKey` as the HMAC-SHA-512 key (via WebCrypto `crypto.subtle`), signs `message`, hex-encodes.
+**HMAC computation**: [src/client/crypto.ts](src/client/crypto.ts) — `computeHmac(message, applicationKey, hmacKey)`. Concatenates `applicationKey + hmacKey` as the HMAC-SHA-512 key (via WebCrypto `crypto.subtle`), signs `message`, hex-encodes.
 
 ### 2. Recognition flow
 
@@ -174,7 +174,7 @@ Errors: non-OK response throws { code, message } (TApiError)
 
 ## Message Handling Pattern: DeferredPromise
 
-[src/utils/DeferredPromise.ts](src/utils/DeferredPromise.ts) — `.promise`/`.resolve`/`.reject`/`.isFullFilled`/`.isPending`. Used throughout `WebSocketClient` to track pending round trips keyed by `blockId`/`strokeId`/mimeType, since the protocol has no universal correlation id:
+[src/core/std/DeferredPromise.ts](src/core/std/DeferredPromise.ts) — `.promise`/`.resolve`/`.reject`/`.isFullFilled`/`.isPending`. Used throughout `WebSocketClient` to track pending round trips keyed by `blockId`/`strokeId`/mimeType, since the protocol has no universal correlation id:
 
 ```typescript
 async export(requestedMimeTypes?: string[]): Promise<TExport> {
