@@ -59,7 +59,7 @@ function isFiniteNumber(value: unknown): value is number {
 export type TPointerImport = TPartialDeep<TPointer> & TTimedPointerLike
 
 /**
- * The {@link TPointer.dt} of the pointer at `index`, accepting documents that predate `dt`.
+ * The `dt` field of the {@link TPointer} at `index`, accepting documents that predate `dt`.
  *
  * A pointer that already carries `dt` is taken as is. One that only carries the old absolute `t`
  * is rebased onto the first timed pointer of the same stroke, which reproduces the deltas the

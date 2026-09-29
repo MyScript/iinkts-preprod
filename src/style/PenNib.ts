@@ -43,7 +43,7 @@ export type TNibProfile = {
    * width — which is what a loaded brush does, and what a nib that can only subtract cannot.
    */
   max: number
-  /** Canvas units over which each end ramps up, capped by {@link TAPER_SHARE}. `0` gives blunt ends. */
+  /** Canvas units over which each end ramps up, capped by `TAPER_SHARE` (a quarter of the stroke's length). `0` gives blunt ends. */
   taperLength: number
   /** Multiplier at the very tip of a stroke. */
   taperMin: number
@@ -102,6 +102,9 @@ export const PEN_NIBS: Record<TPenNib, TNibProfile> = {
   brush: { speed: 1.6, min: 0.12, max: 1.6, taperLength: 18, taperMin: 0.15, usePressure: true, smoothing: 3 },
 }
 
+/**
+ * @group Styles
+ */
 export const DEFAULT_PEN_NIB: TPenNib = "pencil"
 
 /**
@@ -144,6 +147,9 @@ export function readNibOverrides(style: Readonly<Record<string, unknown>>): TNib
   return overrides
 }
 
+/**
+ * @group Styles
+ */
 export function isPenNib(value: unknown): value is TPenNib {
   return typeof value === "string" && Object.prototype.hasOwnProperty.call(PEN_NIBS, value)
 }

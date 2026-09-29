@@ -264,6 +264,9 @@ removed methods have **no compatibility shim**.
 - feat(manager): new `PDFExportManager` (`src/manager/base/`, constructor `(canvas: TInteractiveInkCanvas | InkCanvas)`) — builds the print-only DOM/CSS layer, computes page format/orientation/scale-to-page-count (`computePageCount`, `computeFitToPageScale`, `getPageDimensionsMm`), single-page fit-to-scale and multi-page tiled print modes (`buildSinglePagePrintContainer`/`buildMultiPagePrintContainer`), the settings dialog (`openExportDialog`, reusing `Modal.ts` form fields), and print orchestration (`print()`); exposes `TPDFPageFormat`, `TPDFOrientation`, `TPDFPageMode`, `TPDFExportDialogOptions`, `TPDFPageOptions`, `TPDFPageCount`, `TPDFPageSizeMm` and `PDFExportManager.DEFAULT_OPTIONS`
 - feat(menu): `ExportMenuAction`/`ExportContextMenu` now build the ten entries (JSON, SVG, PNG, Text, Markdown, Mermaid, PlantUML, LLM, JIIX, PDF), each toggleable through `TExportActionItemsConfig`/`TContextExportItemsConfig` and each routed through `canvas.download()`. The context menu resolves its scope at click time, so it always follows the current selection
 
+### Types returned by public methods can be named
+- feat(manager): `TAnchoredEdgesUpdateResult`, `TFollowedStroke` (`IIConnectorManager`), `TShift` and `TSplitOutcome` (`InsertGestureHandler.computeChangesOnSplitText`) are now exported, so code that stores what these methods return can type it
+
 
 ## Features
 
