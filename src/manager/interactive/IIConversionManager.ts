@@ -46,16 +46,8 @@ import type {
   TText,
 } from "@/symbol"
 import { isDecorator, isRecognizedMath } from "@/symbol"
-import { DecoratorOps } from "@/symbol/decorator/Decorator"
 import { resolveConnectionAnchors } from "@/symbol/edge/Anchor"
-import { EdgeArcOps } from "@/symbol/edge/Arc"
-import { EdgeLineOps } from "@/symbol/edge/Line"
-import { EdgePolyLineOps } from "@/symbol/edge/PolyLine"
-import { ShapeCircleOps } from "@/symbol/shape/Circle"
-import { ShapeEllipseOps } from "@/symbol/shape/Ellipse"
-import { ShapePolygonOps } from "@/symbol/shape/Polygon"
-import { MathOps } from "@/symbol/typeset/Math"
-import { TextOps } from "@/symbol/typeset/Text"
+import { DecoratorUtil, EdgeUtil, MathUtil, ShapeUtil, TextUtil } from "@/symbol-utils"
 import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 
@@ -127,7 +119,7 @@ export class IIConversionManager extends IIAbstractManager {
       x: boundingBox.x,
       y: boundingBox.y + boundingBox.height,
     }
-    const text = TextOps.create(charSymbols, point, boundingBox, strokes[0].style)
+    const text = TextUtil.createText(charSymbols, point, boundingBox, strokes[0].style)
     const strokeIds = new Set(strokes.map((s) => s.id))
 
     // Find standalone IIDecorator symbols in model whose targets overlap with converted strokes
@@ -146,7 +138,7 @@ export class IIConversionManager extends IIAbstractManager {
       decoratorsToRemove.push(dec)
       if (!appliedKinds.has(dec.kind)) {
         appliedKinds.add(dec.kind)
-        text.decorators.push(DecoratorOps.create(dec.kind, dec.style))
+        text.decorators.push(DecoratorUtil.createDecorator(dec.kind, dec.style))
       }
     }
 
@@ -246,7 +238,7 @@ export class IIConversionManager extends IIAbstractManager {
       x: convertMillimeterToPixel(circle.cx),
       y: convertMillimeterToPixel(circle.cy),
     }
-    return ShapeCircleOps.create(center, convertMillimeterToPixel(circle.r), strokes[0]?.style)
+    return ShapeUtil.createCircle(center, convertMillimeterToPixel(circle.r), strokes[0]?.style)
   }
 
   buildEllipse(ellipse: TJIIXNodeEllipse, strokes: TStroke[]): TShapeEllipse {
@@ -254,7 +246,7 @@ export class IIConversionManager extends IIAbstractManager {
       x: convertMillimeterToPixel(ellipse.cx),
       y: convertMillimeterToPixel(ellipse.cy),
     }
-    return ShapeEllipseOps.create(
+    return ShapeUtil.createEllipse(
       center,
       convertMillimeterToPixel(ellipse.rx),
       convertMillimeterToPixel(ellipse.ry),
@@ -274,7 +266,7 @@ export class IIConversionManager extends IIAbstractManager {
       { x: x + width, y: y + height },
       { x, y: y + height },
     ]
-    return ShapePolygonOps.create(points, strokes[0]?.style)
+    return ShapeUtil.createPolygon(points, strokes[0]?.style)
   }
 
   #buildPolygonFromPoints(polygon: { points: number[] }, strokes: TStroke[]): TShapePolygon {
@@ -285,7 +277,7 @@ export class IIConversionManager extends IIAbstractManager {
         y: convertMillimeterToPixel(polygon.points[i + 1]),
       })
     }
-    return ShapePolygonOps.create(points, strokes[0]?.style)
+    return ShapeUtil.createPolygon(points, strokes[0]?.style)
   }
 
   buildPolygon(polygon: TJIIXNodePolygon, strokes: TStroke[]): TShapePolygon {
@@ -362,7 +354,7 @@ export class IIConversionManager extends IIAbstractManager {
       point1.x = +((point1.x + point2.x) / 2).toFixed(3)
       point2.x = point1.x
     }
-    return EdgeLineOps.create(point1, point2, line.p1Decoration, line.p2Decoration, strokes[0]?.style)
+    return EdgeUtil.createLine(point1, point2, line.p1Decoration, line.p2Decoration, strokes[0]?.style)
   }
 
   buildPolyEdge(polyline: TJIIXEdgePolyEdge, strokes: TStroke[]): TEdgePolyLine {
@@ -388,7 +380,7 @@ export class IIConversionManager extends IIAbstractManager {
       }
     }
 
-    return EdgePolyLineOps.create(
+    return EdgeUtil.createPolyLine(
       points,
       polyline.edges[0].p1Decoration,
       polyline.edges.at(-1)!.p2Decoration,
@@ -403,7 +395,7 @@ export class IIConversionManager extends IIAbstractManager {
     }
     const radiusX = convertMillimeterToPixel(arc.rx)
     const radiusY = convertMillimeterToPixel(arc.ry)
-    return EdgeArcOps.create(
+    return EdgeUtil.createArc(
       center,
       arc.startAngle,
       arc.sweepAngle,
@@ -666,7 +658,7 @@ export class IIConversionManager extends IIAbstractManager {
       }
     }
 
-    const math = MathOps.create(mathElements, point, adjustedBounds, strokes[0]?.style)
+    const math = MathUtil.createMath(mathElements, point, adjustedBounds, strokes[0]?.style)
 
     return math
   }

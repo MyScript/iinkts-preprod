@@ -42,20 +42,16 @@ import { SVGRenderer } from "@/renderer"
 import type { TStyle } from "@/style"
 import type { TDecorator, TMath, TStroke, TSymbol, TText } from "@/symbol"
 import type { TBaseSymbol } from "@/symbol"
+import { cloneSymbol, extractStrokes, isDecorator, isMath, isStroke, isStrokeSolverOutput, isText } from "@/symbol"
 import {
-  cloneSymbol,
-  extractStrokes,
-  isDecorator,
-  isMath,
-  isStroke,
-  isStrokeSolverOutput,
-  isText,
-  StrokeOps,
-} from "@/symbol"
-import { DecoratorOps } from "@/symbol/decorator/Decorator"
-import { EdgeOps } from "@/symbol/edge/Edge"
-import { TextOps } from "@/symbol/typeset/Text"
-import { createSymbolFromPartial, createSymbolsFromPartial, registerBuiltinSymbolUtils } from "@/symbol-utils"
+  createSymbolFromPartial,
+  createSymbolsFromPartial,
+  DecoratorUtil,
+  EdgeUtil,
+  registerBuiltinSymbolUtils,
+  StrokeUtil,
+  TextUtil,
+} from "@/symbol-utils"
 import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 import type { SymbolUtil } from "@/symbol-utils/SymbolUtil"
@@ -711,7 +707,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       before.push(cloneSymbol(s))
       s.style = Object.assign({}, s.style, style)
       if (isText(s)) {
-        TextOps.updateChildrenStyle(s)
+        TextUtil.updateChildrenStyle(s)
         // `typeset.updateBounds` measures the fresh box and commits the draft in the same call —
         // reading the width before and after *that* call, rather than after a separate
         // `commitSymbol`, is what keeps `s` mutable long enough for `updateBounds` to write
@@ -767,7 +763,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       if (s) {
         if (isText(s)) {
           const before = cloneSymbol(s)
-          TextOps.updateChildrenFont(s, {
+          TextUtil.updateChildrenFont(s, {
             fontSize,
             fontWeight: fontWeight === "auto" ? undefined : fontWeight,
           })
@@ -937,7 +933,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
         if (geometryTargets.length) {
           // Losing a target shrinks the decorator: its box is an input, so nothing else would
           // narrow it and the underline would keep spanning the erased stroke.
-          DecoratorOps.setTargetBounds(
+          DecoratorUtil.setTargetBounds(
             draft,
             OBBOps.createFromOBBs(geometryTargets.map((s) => SymbolGeometry.boundsOf(s)))
           )
@@ -978,7 +974,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     const isTargetRemoved = (symbolId: string): boolean => removedIds.has(symbolId) || removedBlockIds.has(symbolId)
 
     for (const sym of [...this.model.symbols]) {
-      if (EdgeOps.isEdge(sym) && (EdgeOps.isLineEdge(sym) || EdgeOps.isPolyEdge(sym) || EdgeOps.isArcEdge(sym))) {
+      if (EdgeUtil.isEdge(sym) && (EdgeUtil.isLineEdge(sym) || EdgeUtil.isPolyEdge(sym) || EdgeUtil.isArcEdge(sym))) {
         const hitStart = sym.startAnchor && isTargetRemoved(sym.startAnchor.symbolId)
         const hitEnd = sym.endAnchor && isTargetRemoved(sym.endAnchor.symbolId)
         if (!hitStart && !hitEnd) {
@@ -988,7 +984,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
         // Guarded above on the committed record, drafted only now that it is actually losing an
         // anchor: the record itself is frozen.
         const draft = this.model.draftSymbol(sym.id)
-        if (!draft || !EdgeOps.isEdge(draft)) {
+        if (!draft || !EdgeUtil.isEdge(draft)) {
           continue
         }
         if (hitStart) {
@@ -1227,7 +1223,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       partialStrokes,
     })
     this.manageIdleState(false)
-    const strokes = partialStrokes.map(StrokeOps.createFromPartial)
+    const strokes = partialStrokes.map(StrokeUtil.createFromPartial)
     strokes.forEach((s) => {
       this.model.addSymbol(s)
       this.renderer.drawSymbol(s)

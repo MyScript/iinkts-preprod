@@ -10,7 +10,7 @@ import
   TStyle,
   TGesture,
   TStroke,
-  StrokeOps,
+  StrokeUtil,
   TServerWebsocketConfiguration,
 } from "iink-ts"
 import
@@ -70,7 +70,7 @@ export class Synchronizer
       fill: shape.props.fill,
       width: 1
     }
-    const stroke = StrokeOps.create(style, shape.props.isPen ? "pen" : "mouse")
+    const stroke = StrokeUtil.createEmpty(style, shape.props.isPen ? "pen" : "mouse")
     stroke.id = shape.id
 
     let pointIndex = 0
@@ -79,7 +79,7 @@ export class Synchronizer
     {
       seg.points.forEach((p) =>
       {
-        StrokeOps.addPointer(stroke, {
+        StrokeUtil.addPointer(stroke, {
           p: 1,
           dt: pointIndex * 20,
           x: p.x + shape.x,

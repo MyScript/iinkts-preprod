@@ -77,7 +77,7 @@ Existing subclasses: `IITranslateManager`, `IIRotationManager`, `IIResizeManager
 When manager needs async setup before it can be used:
 
 ```typescript
-import { DeferredPromise } from "@/utils/DeferredPromise"
+import { DeferredPromise } from "@/core/std"
 
 export class IIMyManager {
   initialized = new DeferredPromise<void>()

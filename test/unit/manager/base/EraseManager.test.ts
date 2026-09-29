@@ -154,7 +154,7 @@ describe("plain Ink hit-testing avoids redundant geometry recomputation", () => 
   test("computes a stroke's geometry once per hit-test, not three times", () => {
     registerBuiltinSymbolUtils()
     const strokeUtil = symbolRegistry.getUtil(SymbolType.Stroke)!
-    const computeGeometrySpy = jest.spyOn(strokeUtil, "computeGeometry")
+    const buildGeometrySpy = jest.spyOn(strokeUtil, "getGeometry")
 
     const stroke = buildIIStroke({ box: { x: 5, y: 5, width: 4, height: 4 } })
     const canvas = {
@@ -166,12 +166,12 @@ describe("plain Ink hit-testing avoids redundant geometry recomputation", () => 
     manager.currentEraser = buildIIEraser({ box: { x: 7, y: 7, width: 0, height: 0 }, nbPoint: 1 })
     manager.currentEraser.style.width = 20
 
-    computeGeometrySpy.mockClear()
+    buildGeometrySpy.mockClear()
     manager.continue({ pointer: { x: 7, y: 7, dt: 0, p: 1 }, pointerType: "pen" } as TPointerInfo)
 
-    expect(computeGeometrySpy).toHaveBeenCalledTimes(1)
+    expect(buildGeometrySpy).toHaveBeenCalledTimes(1)
     expect(manager.deletingIds.has(stroke.id)).toBe(true)
 
-    computeGeometrySpy.mockRestore()
+    buildGeometrySpy.mockRestore()
   })
 })

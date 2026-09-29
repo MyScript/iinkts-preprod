@@ -86,7 +86,7 @@ test.describe("Math Computation Modes", () => {
         }, { timeout: 10000 })
         .toBe(2)
       await expect(ghostStrokes.first()).toBeVisible()
-      await expect(ghostStrokes.locator("path").first()).toHaveCSS("opacity", "0.5")
+      await expect(ghostStrokes.first()).toHaveCSS("opacity", "0.5")
     })
     
     let boundsBefore

@@ -1,6 +1,6 @@
 import { buildIIStroke, buildIIText } from "../../../helpers"
 import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
-import { JoinGestureHandler, GestureHelpers, TGesture, StrokeOps } from "@/iink"
+import { GestureHelpers, JoinGestureHandler, StrokeUtil, TGesture } from "@/iink"
 
 describe("JoinGestureHandler.ts", () => {
   let canvas: ReturnType<typeof createCanvasMock>
@@ -21,8 +21,8 @@ describe("JoinGestureHandler.ts", () => {
   describe("apply", () => {
     test("should handle empty gesture", async () => {
       const gestureStroke = buildIIStroke()
-      StrokeOps.addPointer(gestureStroke, { x: 50, y: 50, p: 1, dt: 100 })
-      StrokeOps.addPointer(gestureStroke, { x: 50, y: 100, p: 1, dt: 200 })
+      StrokeUtil.addPointer(gestureStroke, { x: 50, y: 50, p: 1, dt: 100 })
+      StrokeUtil.addPointer(gestureStroke, { x: 50, y: 100, p: 1, dt: 200 })
 
       const gesture: TGesture = {
         gestureType: "JOIN",
@@ -75,8 +75,8 @@ describe("JoinGestureHandler.ts", () => {
       canvas.model.addSymbol(text2)
 
       const gestureStroke = buildIIStroke()
-      StrokeOps.addPointer(gestureStroke, { x: 45, y: 10, p: 1, dt: 100 })
-      StrokeOps.addPointer(gestureStroke, { x: 45, y: 26, p: 1, dt: 200 })
+      StrokeUtil.addPointer(gestureStroke, { x: 45, y: 10, p: 1, dt: 100 })
+      StrokeUtil.addPointer(gestureStroke, { x: 45, y: 26, p: 1, dt: 200 })
 
       const gesture: TGesture = {
         gestureType: "JOIN",
@@ -94,19 +94,19 @@ describe("JoinGestureHandler.ts", () => {
 
     test("should handle symbols above and below", async () => {
       const stroke1 = buildIIStroke()
-      StrokeOps.addPointer(stroke1, { x: 10, y: 10, p: 1, dt: 100 })
-      StrokeOps.addPointer(stroke1, { x: 20, y: 20, p: 1, dt: 200 })
+      StrokeUtil.addPointer(stroke1, { x: 10, y: 10, p: 1, dt: 100 })
+      StrokeUtil.addPointer(stroke1, { x: 20, y: 20, p: 1, dt: 200 })
 
       const stroke2 = buildIIStroke()
-      StrokeOps.addPointer(stroke2, { x: 10, y: 50, p: 1, dt: 300 })
-      StrokeOps.addPointer(stroke2, { x: 20, y: 60, p: 1, dt: 400 })
+      StrokeUtil.addPointer(stroke2, { x: 10, y: 50, p: 1, dt: 300 })
+      StrokeUtil.addPointer(stroke2, { x: 20, y: 60, p: 1, dt: 400 })
 
       canvas.model.addSymbol(stroke1)
       canvas.model.addSymbol(stroke2)
 
       const gestureStroke = buildIIStroke()
-      StrokeOps.addPointer(gestureStroke, { x: 15, y: 30, p: 1, dt: 500 })
-      StrokeOps.addPointer(gestureStroke, { x: 15, y: 45, p: 1, dt: 600 })
+      StrokeUtil.addPointer(gestureStroke, { x: 15, y: 30, p: 1, dt: 500 })
+      StrokeUtil.addPointer(gestureStroke, { x: 15, y: 45, p: 1, dt: 600 })
 
       const gesture: TGesture = {
         gestureType: "JOIN",

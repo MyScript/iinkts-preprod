@@ -1,25 +1,6 @@
 import { beforeAll, describe, test, expect } from "@jest/globals"
 import { buildIICircle, buildIIEraser, buildIILine, buildIIStroke, buildIIText } from "../helpers"
-import {
-  SVGRenderer,
-  DefaultIIRendererConfiguration,
-  OBBOps,
-  TBox,
-  TIIRendererConfiguration,
-  TSymbol,
-  TSymbolChar,
-  StrokeOps,
-  registerBuiltinSymbolUtils,
-  symbolRegistry,
-  SymbolUtil,
-  TBaseSymbol,
-  TPartialDeep,
-  TPoint,
-  TTransformContext,
-  TSymbolGeometry,
-  applyMatrixToPoint,
-  MatrixTransform,
-} from "@/iink"
+import { BoxOps, DefaultIIRendererConfiguration, Geometry2d, MatrixTransform, OBBOps, Polygon2d, SVGRenderer, StrokeUtil, SymbolUtil, TBaseSymbol, TBox, TIIRendererConfiguration, TPartialDeep, TPoint, TSymbol, TSymbolChar, TTransformContext, applyMatrixToPoint, registerBuiltinSymbolUtils, symbolRegistry } from "@/iink"
 
 beforeAll(() => {
   registerBuiltinSymbolUtils()
@@ -222,9 +203,9 @@ describe("SVGRenderer.ts", () => {
       expect(el).toBeDefined()
       expect(el.getAttribute("id")).toEqual(stroke.id)
       expect(el.getAttribute("type")).toEqual("stroke")
-      const path = el.querySelector("path")!
-      expect(path.getAttribute("fill")).toEqual(stroke.style.color)
-      expect(path.getAttribute("stroke-width")).toEqual(stroke.style.width?.toString())
+      // The element found by id is the path itself: a path symbol no longer sits inside a group.
+      expect(el.getAttribute("fill")).toEqual(stroke.style.color)
+      expect(el.getAttribute("stroke-width")).toEqual(stroke.style.width?.toString())
     })
     test("should draw circle", () => {
       const circle = buildIICircle()
@@ -233,9 +214,8 @@ describe("SVGRenderer.ts", () => {
       expect(el).toBeDefined()
       expect(el.getAttribute("id")).toEqual(circle.id)
       expect(el.getAttribute("type")).toEqual("shape")
-      const path = el.querySelector("path")!
-      expect(path.getAttribute("stroke")).toEqual(circle.style.color)
-      expect(path.getAttribute("stroke-width")).toEqual(circle.style.width?.toString())
+      expect(el.getAttribute("stroke")).toEqual(circle.style.color)
+      expect(el.getAttribute("stroke-width")).toEqual(circle.style.width?.toString())
     })
     test("should draw line", () => {
       const line = buildIILine()
@@ -244,9 +224,8 @@ describe("SVGRenderer.ts", () => {
       expect(el).toBeDefined()
       expect(el.getAttribute("id")).toEqual(line.id)
       expect(el.getAttribute("type")).toEqual("edge")
-      const path = el.querySelector("path")!
-      expect(path.getAttribute("stroke")).toEqual(line.style.color)
-      expect(path.getAttribute("stroke-width")).toEqual(line.style.width?.toString())
+      expect(el.getAttribute("stroke")).toEqual(line.style.color)
+      expect(el.getAttribute("stroke-width")).toEqual(line.style.width?.toString())
     })
     test("should draw text", () => {
       const chars: TSymbolChar[] = [
@@ -283,9 +262,9 @@ describe("SVGRenderer.ts", () => {
     test("should draw stroke already renderer", () => {
       const stroke = buildIIStroke()
       renderer.drawSymbol(stroke)
-      const oldPath = divElement.querySelector(`#${stroke.id}`)!.querySelector("path")!.getAttribute("d")
+      const oldPath = divElement.querySelector(`#${stroke.id}`)!.getAttribute("d")
       for (let x = 0; x < 10; x++) {
-        StrokeOps.addPointer(stroke, {
+        StrokeUtil.addPointer(stroke, {
           x,
           y: x * 2,
           p: 1,
@@ -293,7 +272,7 @@ describe("SVGRenderer.ts", () => {
         })
       }
       renderer.drawSymbol(stroke)
-      expect(divElement.querySelector(`#${stroke.id}`)!.querySelector("path")!.getAttribute("d")!).not.toEqual(oldPath)
+      expect(divElement.querySelector(`#${stroke.id}`)!.getAttribute("d")!).not.toEqual(oldPath)
     })
     test("should replace stroke by circle", () => {
       const stroke = buildIIStroke()
@@ -425,9 +404,11 @@ describe("SVGRenderer.ts", () => {
       renderer.drawSymbol(stroke1)
       const stroke2 = buildIIStroke()
       renderer.drawSymbol(stroke2)
-      const nbGroup = renderer.layer.querySelectorAll("g").length
-      renderer.clearElements({ tagName: "g", attrs: { id: stroke2.id } })
-      expect(renderer.layer.querySelectorAll("g")).toHaveLength(nbGroup - 1)
+      // A stroke is a `path` now, not a `g` — the filter still narrows by tag and attribute, which
+      // is what this is about.
+      const nbPaths = renderer.layer.querySelectorAll("path").length
+      renderer.clearElements({ tagName: "path", attrs: { id: stroke2.id } })
+      expect(renderer.layer.querySelectorAll("path")).toHaveLength(nbPaths - 1)
     })
   })
 
@@ -460,7 +441,7 @@ describe("SVGRenderer.ts", () => {
       const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
       renderer.init(divElement)
 
-      const stroke = StrokeOps.createFromPartial({
+      const stroke = StrokeUtil.createFromPartial({
         pointers: [
           { x: 100000, y: 100000, dt: 0, p: 1 },
           { x: 100010, y: 100010, dt: 1, p: 1 },
@@ -619,7 +600,7 @@ describe("SVGRenderer.ts", () => {
       const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
       renderer.init(divElement)
 
-      const stroke = StrokeOps.createFromPartial({
+      const stroke = StrokeUtil.createFromPartial({
         pointers: [
           { x: 0, y: 0, dt: 0, p: 1 },
           { x: 10, y: 10, dt: 1, p: 1 },
@@ -648,7 +629,7 @@ describe("SVGRenderer.ts", () => {
       // A non-identity transform, so the fallback `drawSymbol` is forced to write the attribute
       // (a stroke element omits it entirely for the identity matrix) - proof this went through the
       // normal draw path rather than a no-op.
-      const stroke = StrokeOps.createFromPartial({
+      const stroke = StrokeUtil.createFromPartial({
         pointers: [
           { x: 0, y: 0, dt: 0, p: 1 },
           { x: 10, y: 10, dt: 1, p: 1 },
@@ -669,7 +650,7 @@ describe("SVGRenderer.ts", () => {
       const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
       renderer.init(divElement)
 
-      const stroke = StrokeOps.createFromPartial({
+      const stroke = StrokeUtil.createFromPartial({
         pointers: [
           { x: 0, y: 0, dt: 0, p: 1 },
           { x: 10, y: 10, dt: 1, p: 1 },
@@ -733,8 +714,8 @@ describe("SVGRenderer.ts", () => {
       create(partial: TPartialDeep<TStickyNote>): TStickyNote {
         return { ...partial, type: "sticky-note", text: partial.text ?? "" } as TStickyNote
       }
-      computeGeometry(): TSymbolGeometry {
-        return { bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0), vertices: [], snapPoints: [], edges: [], length: 0 }
+      getGeometry(symbol: TStickyNote): Geometry2d {
+        return new Polygon2d(BoxOps.getCorners({ x: symbol.point.x, y: symbol.point.y, width: 10, height: 10 }))
       }
       translate(symbol: TStickyNote, { matrix }: TTransformContext): void {
         symbol.point = applyMatrixToPoint(symbol.point, matrix)

@@ -1,11 +1,15 @@
 import { describe, test, expect, beforeEach } from "@jest/globals"
 import { buildIIStroke } from "../../helpers"
-import { StrokeUtil, StrokeOps, OBBOps, SymbolType, MatrixTransform } from "@/iink"
+import { MatrixTransform, OBBOps, PointSet2d, registerBuiltinSymbolUtils, StrokeUtil, SymbolType } from "@/iink"
 
 describe("StrokeUtil", () => {
   let util: StrokeUtil
 
   beforeEach(() => {
+    // `overlaps` and `getSnapPoints` read through `SymbolGeometry`, which asks the registry for the
+    // symbol's util — that is what buys them the per-symbol geometry cache, and it means a bare
+    // `new StrokeUtil()` is not enough to exercise them.
+    registerBuiltinSymbolUtils()
     util = new StrokeUtil()
   })
 
@@ -42,25 +46,25 @@ describe("StrokeUtil", () => {
     })
   })
 
-  describe("computeGeometry", () => {
+  describe("getGeometry", () => {
     test("should compute bounds from pointers", () => {
       const stroke = buildIIStroke({ box: { x: 10, y: 20, width: 30, height: 40 } })
-      const bounds = OBBOps.toBox(util.computeGeometry(stroke).bounds)
+      const bounds = OBBOps.toBox(util.getGeometry(stroke).bounds)
       expect(bounds.x).toBeCloseTo(10, 0)
       expect(bounds.y).toBeCloseTo(20, 0)
     })
 
     test("should compute snapPoints", () => {
       const stroke = buildIIStroke()
-      // The field this used to read is gone; what it was really checking is that a stroke has
-      // snap points at all, which is a property of the computed geometry.
-      expect(util.computeGeometry(stroke).snapPoints.length).toBeGreaterThan(0)
+      // Snap points belong to the util, not to the shape: a stroke offers its box's handles, which
+      // is a decision about the symbol rather than a property of the ink.
+      expect(util.getSnapPoints(stroke).length).toBeGreaterThan(0)
     })
 
-    test("matches the legacy StrokeOps writer, not merely itself", () => {
+    test("matches hand-written oracles, not merely itself", () => {
       // Oracles below are hand-written from these three pointers, not borrowed from the
       // computation under test.
-      const stroke = StrokeOps.createFromPartial({
+      const stroke = StrokeUtil.createFromPartial({
         pointers: [
           { x: 0, y: 0, dt: 0, p: 1 },
           { x: 10, y: 0, dt: 1, p: 1 },
@@ -68,15 +72,13 @@ describe("StrokeUtil", () => {
         ],
       })
 
-      const geometry = util.computeGeometry(stroke)
+      const geometry = util.getGeometry(stroke)
 
       // 0,0 → 10,0 → 10,5: a 10-by-5 box at the origin, written out rather than recomputed.
       expect(OBBOps.toBox(geometry.bounds)).toEqual({ x: 0, y: 0, width: 10, height: 5 })
       expect(geometry.vertices).toBe(stroke.pointers)
-      // Oracle is `StrokeOps` itself, not the stored field it replaced: the field is gone, and it
-      // was only ever a copy of this call's result anyway.
-      expect(geometry.snapPoints).toEqual(StrokeOps.computeSnapPoints(StrokeOps.computeBounds(stroke)))
-      expect(geometry.edges).toEqual(StrokeOps.computeEdges(stroke))
+      expect(util.getSnapPoints(stroke)).toEqual(OBBOps.getSnapPoints(new PointSet2d(stroke.pointers).bounds))
+      expect(geometry.edges).toEqual(new PointSet2d(stroke.pointers).edges)
       // 0,0 → 10,0 → 10,5: 10 + 5, a literal independent of computeLength's own formula.
       expect(geometry.length).toBe(15)
     })
@@ -84,7 +86,7 @@ describe("StrokeUtil", () => {
 
   describe("getSVGElement", () => {
     test("emits the symbol's matrix as the element transform", () => {
-      const stroke = StrokeOps.createFromPartial({ pointers: [{ x: 0, y: 0, dt: 0, p: 1 }] })
+      const stroke = StrokeUtil.createFromPartial({ pointers: [{ x: 0, y: 0, dt: 0, p: 1 }] })
       stroke.transform = MatrixTransform.identity().translate(3, 4)
 
       const el = new StrokeUtil().getSVGElement(stroke)
@@ -93,7 +95,7 @@ describe("StrokeUtil", () => {
     })
 
     test("emits no transform attribute for a symbol that was never moved", () => {
-      const stroke = StrokeOps.createFromPartial({ pointers: [{ x: 0, y: 0, dt: 0, p: 1 }] })
+      const stroke = StrokeUtil.createFromPartial({ pointers: [{ x: 0, y: 0, dt: 0, p: 1 }] })
 
       expect(new StrokeUtil().getSVGElement(stroke).getAttribute("transform")).toBeNull()
     })
@@ -153,7 +155,7 @@ describe("StrokeUtil", () => {
     test("should return the stroke snapPoints reference", () => {
       const stroke = buildIIStroke()
       const result = util.getSnapPoints(stroke)
-      expect(result).toStrictEqual(StrokeOps.computeSnapPoints(StrokeOps.computeBounds(stroke)))
+      expect(result).toStrictEqual(OBBOps.getSnapPoints(new PointSet2d(stroke.pointers).bounds))
     })
 
     test("a translated stroke's snap points are the raw ones shifted by the same translate", () => {
@@ -196,6 +198,23 @@ describe("StrokeUtil", () => {
     test("canRotate should return true", () => {
       const stroke = buildIIStroke()
       expect(util.canRotate(stroke)).toBe(true)
+    })
+  })
+
+  describe("no group", () => {
+    test("should be the path itself, with nothing wrapping it", () => {
+      const element = new StrokeUtil().getSVGElement(buildIIStroke())
+      expect(element.tagName).toBe("path")
+      expect(element.getAttribute("d")).toBeTruthy()
+    })
+
+    test("should carry vector-effect on the drawn element, where it actually applies", () => {
+      // It used to sit on the wrapping group. `vector-effect` is not an inherited property, so there
+      // it applied to a group that draws nothing and never reached the path — it was inert. On the
+      // path it takes effect, and stroke width stops growing with the zoom.
+      expect(new StrokeUtil().getSVGElement(buildIIStroke()).getAttribute("vector-effect")).toBe(
+        "non-scaling-stroke"
+      )
     })
   })
 })

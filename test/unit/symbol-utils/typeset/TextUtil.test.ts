@@ -2,8 +2,7 @@ import { describe, test, expect, beforeAll, beforeEach } from "@jest/globals"
 import { buildIIText } from "../../helpers"
 import {
   TextUtil,
-  TextOps,
-  SymbolGeometry,
+    SymbolGeometry,
   SymbolType,
   OBBOps,
   MatrixTransform,
@@ -65,18 +64,20 @@ describe("TextUtil", () => {
     })
   })
 
-  describe("computeGeometry", () => {
+  describe("getGeometry", () => {
     test("matches the legacy TextOps geometry already computed by create, not merely itself", () => {
       const text = buildIIText({ boundingBox: { x: 0, y: 10, width: 20, height: 30 } })
 
-      const geometry = util.computeGeometry(text)
+      const geometry = util.getGeometry(text)
 
       expect(geometry.bounds).toEqual(text.bounds)
       expect(geometry.vertices).toEqual(computeTypesetVertices(OBBOps.toUnrotatedBox(text.bounds)))
       // Oracle is the shared typeset helper, not the stored field it replaced.
-      expect(geometry.snapPoints).toEqual(computeTypesetSnapPoints(OBBOps.toUnrotatedBox(text.bounds), text.point))
+      expect(util.getSnapPoints(text)).toEqual(computeTypesetSnapPoints(OBBOps.toUnrotatedBox(text.bounds), text.point))
       expect(geometry.edges).toEqual(computeClosedEdges(geometry.vertices))
-      expect(geometry.length).toBe(0)
+      // A closed shape's length is its perimeter. The record it replaced reported 0 for a typeset
+      // symbol, which was a placeholder rather than a measurement — nothing read it.
+      expect(geometry.length).toBe(geometry.edges.reduce((sum, e) => sum + Math.hypot(e.p2.x - e.p1.x, e.p2.y - e.p1.y), 0))
     })
   })
 
@@ -115,7 +116,7 @@ describe("TextUtil", () => {
 
   describe("rotate/resize, composing the matrix", () => {
     test("a second rotation composes with the first instead of replacing it", () => {
-      const text = TextOps.createFromPartial({
+      const text = TextUtil.createFromPartial({
         chars: [{ label: "a", color: "#000", fontSize: 10, fontWeight: "normal", id: "c1" }],
         point: { x: 0, y: 0 },
         bounds: OBBOps.fromBox({ x: 0, y: 0, width: 10, height: 10 }),
@@ -134,7 +135,7 @@ describe("TextUtil", () => {
       // The bug this covers: `TypesetUtil.resize` used to set `bounds.angle = 0` while leaving a
       // separate `rotation` field intact, desynchronising the hit box from what was drawn. There is
       // only one matrix to compose now, so the angle a rotate composed into it survives a resize.
-      const text = TextOps.createFromPartial({
+      const text = TextUtil.createFromPartial({
         chars: [{ label: "a", color: "#000", fontSize: 10, fontWeight: "normal", id: "c1" }],
         point: { x: 0, y: 0 },
         bounds: OBBOps.fromBox({ x: 0, y: 0, width: 10, height: 10 }),
