@@ -1,5 +1,5 @@
 import type { WebSocketClient } from "@/client"
-import type { TExport } from "@/client"
+import type { TExport, TRecognitionWebSocketConfiguration } from "@/client"
 import type { CanvasTool, TCanvasOperationLabel } from "@/Constants"
 import type { TBox } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
@@ -133,7 +133,7 @@ export type TInteractiveInkCanvas = {
   // ── Recognition / conversion ──────────────────────────────────────
   export(mimeTypes?: string[]): Promise<TExport>
   convert(symbols?: TSymbol[]): Promise<void>
-  changeLanguage(code: string): Promise<void>
+  updateRecognitionConfiguration(partial: TPartialDeep<TRecognitionWebSocketConfiguration>): Promise<void>
 
   // ── Export / download ─────────────────────────────────────────────
   exportAs<F extends TExportFormat>(format: F, options?: TExportOptions): Promise<TExportResultMap[F]>

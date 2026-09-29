@@ -1,14 +1,14 @@
 import type { TCanvasOptionsBase } from "@/canvas/AbstractCanvas"
 import { AbstractCanvas } from "@/canvas/AbstractCanvas"
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import type { TExport } from "@/client"
+import type { TExport, TRecognitionWebSocketConfiguration } from "@/client"
 import { WebSocketClient } from "@/client"
 import type { TCanvasOperationLabel } from "@/Constants"
 import { CanvasTool, GESTURE_OPERATION_LABELS, SELECTION_MARGIN } from "@/Constants"
 import type { TBox } from "@/core/geometry"
 import { BoxOps, isIdentityMatrix, MatrixTransform, OBBOps } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
-import { createUUID, mergeDeep } from "@/core/std"
+import { createUUID, mergeDeep, overrideDeep } from "@/core/std"
 import { RafCoalescer } from "@/dom"
 import { DOMFactory } from "@/dom"
 import type { THistoryContext, TIIHistoryBackendChanges, TIIHistoryChanges } from "@/history"
@@ -88,6 +88,8 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
   #model: IIModel
   #tool: CanvasTool = CanvasTool.Write
   #readOnly = false
+  #recognitionUpdate: Promise<void> = Promise.resolve()
+  #pendingRecognitionOverride?: TPartialDeep<TRecognitionWebSocketConfiguration>
   #layerUITimer?: ReturnType<typeof setTimeout>
   #recognizeStrokeTimer?: ReturnType<typeof setTimeout>
   #exportRetryTimer?: ReturnType<typeof setTimeout>
@@ -455,32 +457,69 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
   }
 
   /**
-   * Switch the recognition language without destroying the canvas.
-   * Opens a new backend session and re-sends all existing strokes.
-   * @param code - BCP 47 language code (e.g. `"en_US"`, `"fr_FR"`)
-   * @throws If the new session fails to open
+   * Change the recognition configuration (language, math solver…) without destroying the canvas.
+   * Opens a new backend session with it and re-sends every user stroke; the canvas is read-only
+   * meanwhile. Calls are serialized, and those waiting for a running one are applied together.
+   * @param partial - Keys to change; an array replaces the current one, `undefined` clears a key
+   * @throws If the new session fails to open; the previous configuration is then restored
+   * @example
+   * ```ts
+   * await canvas.updateRecognitionConfiguration({ lang: "fr_FR" })
+   * await canvas.updateRecognitionConfiguration({ math: { solver: { "angle-unit": "deg" } } })
+   * ```
    */
-  async changeLanguage(code: string): Promise<void> {
+  updateRecognitionConfiguration(partial: TPartialDeep<TRecognitionWebSocketConfiguration>): Promise<void> {
+    const isAlreadyQueued = this.#pendingRecognitionOverride !== undefined
+    this.#pendingRecognitionOverride = overrideDeep(this.#pendingRecognitionOverride ?? {}, partial)
+    if (!isAlreadyQueued) {
+      this.#recognitionUpdate = this.#recognitionUpdate
+        .catch(() => undefined)
+        .then(() => this.#applyPendingRecognitionOverride())
+    }
+    return this.#recognitionUpdate
+  }
+
+  async #applyPendingRecognitionOverride(): Promise<void> {
+    const override = this.#pendingRecognitionOverride ?? {}
+    this.#pendingRecognitionOverride = undefined
+    const snapshot = structuredClone(this.configuration.recognition)
+    const wasReadOnly = this.readOnly
     try {
-      this.logger.info("changeLanguage", { code })
-      this.manageIdleState(false)
-      // Reset the export when changing language to force synchronization.
-      this.model.invalidateExports()
-      this.configuration.recognition.lang = code
-      await this.client.newSession(this.configuration)
-      const strokes = this.extractStrokesFromSymbols(this.model.symbols)
-      if (strokes.length > 0) {
-        this.startOperation("Recognizing")
-        await this.client.addStrokes(strokes, false)
-      }
-      this.layers.hideLoader()
-      this.event.emitLoaded()
+      this.logger.info("updateRecognitionConfiguration", { override })
+      this.readOnly = true
+      overrideDeep(this.configuration.recognition, override)
+      await this.#resynchronizeSession()
     } catch (error) {
-      this.logger.error("changeLanguage", error)
+      this.logger.error("updateRecognitionConfiguration", error)
+      this.configuration.recognition = snapshot
       this.manageError(error as Error)
       throw error
     } finally {
+      this.readOnly = wasReadOnly
       this.updateLayerUI()
+    }
+  }
+
+  /**
+   * Opens a session with the current configuration and replays the user's strokes into it.
+   * Solver outputs are cleared first: they were computed with the previous configuration and,
+   * being strokes, would otherwise be sent back as ink.
+   */
+  async #resynchronizeSession(): Promise<void> {
+    this.manageIdleState(false)
+    await this.math.clearAllSolverOutputs()
+    // Reset the export to force synchronization.
+    this.model.invalidateExports()
+    await this.client.newSession(this.configuration)
+    const strokes = this.extractStrokesFromSymbols(this.model.symbols).filter((s) => !isStrokeSolverOutput(s))
+    if (strokes.length > 0) {
+      this.startOperation("Recognizing")
+      await this.client.addStrokes(strokes, false)
+    }
+    this.layers.hideLoader()
+    this.event.emitLoaded()
+    if (this.math.getComputationConfig().autoCompute) {
+      await this.math.tryAutoCompute()
     }
   }
 

@@ -1,5 +1,5 @@
 import { jiixText } from "../__dataset__/exports.dataset"
-import { buildIICircle, buildIIStroke, buildIIText, buildIIDecorator } from "../helpers"
+import { buildIICircle, buildIIStroke, buildIIText, buildIIDecorator, delay } from "../helpers"
 import { CanvasTool, DecoratorKind, DecoratorUtil, DefaultInteractiveInkCanvasConfiguration, EdgeUtil, IIAbstractManager, InteractiveInkCanvas, MatrixTransform, OBBOps, SELECTION_MARGIN, ShapeKind, ShapeUtil, SymbolGeometry, SymbolType, TBaseSymbol, TDecorator, TEdgeLine, TInteractiveInkCanvasOptions, TPartialDeep, TShapeCircle, TStroke, TStyle, TSymbol, cloneSymbol, getInitialHistoryContext, isStroke } from "@/iink"
 
 describe("InteractiveInkCanvas.ts", () => {
@@ -875,6 +875,202 @@ describe("InteractiveInkCanvas.ts", () => {
     test("should emit Imported", async () => {
       await canvas.importPointEvents(pStrokes)
       expect(canvas.event.emitImported).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe("updateRecognitionConfiguration", () => {
+    const buildCanvas = async () => {
+      const canvas = new InteractiveInkCanvas(document.createElement("div"), structuredClone(CanvasOptions))
+      canvas.client.init = jest.fn(() => Promise.resolve())
+      canvas.renderer.init = jest.fn()
+      canvas.menu.render = jest.fn()
+      await canvas.initialize()
+      canvas.client.newSession = jest.fn(() => Promise.resolve())
+      canvas.client.addStrokes = jest.fn(() => Promise.resolve())
+      canvas.math.clearAllSolverOutputs = jest.fn(() => Promise.resolve())
+      canvas.math.tryAutoCompute = jest.fn(() => Promise.resolve())
+      return canvas
+    }
+    const solverOutput = (): TStroke => {
+      const stroke = buildIIStroke()
+      stroke.isSolverOutput = true
+      return stroke
+    }
+
+    test("should deep-merge the partial into the recognition configuration", async () => {
+      const canvas = await buildCanvas()
+
+      await canvas.updateRecognitionConfiguration({ math: { solver: { "angle-unit": "deg" } } })
+
+      expect(canvas.configuration.recognition.math?.solver?.["angle-unit"]).toEqual("deg")
+      expect(canvas.configuration.recognition.math?.solver?.["rounding-mode"]).toEqual("half up")
+    })
+
+    test("should replace an array rather than append to it", async () => {
+      const canvas = await buildCanvas()
+
+      await canvas.updateRecognitionConfiguration({ "raw-content": { recognition: { types: ["math"] } } })
+
+      expect(canvas.configuration.recognition["raw-content"].recognition?.types).toEqual(["math"])
+    })
+
+    test("should open a new session with the updated configuration", async () => {
+      const canvas = await buildCanvas()
+
+      await canvas.updateRecognitionConfiguration({ lang: "fr_FR" })
+
+      expect(canvas.client.newSession).toHaveBeenCalledWith(canvas.configuration)
+      expect(canvas.configuration.recognition.lang).toEqual("fr_FR")
+    })
+
+    test("should clear the solver outputs before opening the new session", async () => {
+      const canvas = await buildCanvas()
+      const calls: string[] = []
+      canvas.math.clearAllSolverOutputs = jest.fn(async () => {
+        calls.push("clear")
+      })
+      canvas.client.newSession = jest.fn(async () => {
+        calls.push("newSession")
+      })
+
+      await canvas.updateRecognitionConfiguration({ lang: "fr_FR" })
+
+      expect(calls).toEqual(["clear", "newSession"])
+    })
+
+    test("should resend the user strokes but never a solver output", async () => {
+      const canvas = await buildCanvas()
+      const userStroke = buildIIStroke()
+      canvas.model.addSymbol(userStroke)
+      canvas.model.addSymbol(solverOutput())
+
+      await canvas.updateRecognitionConfiguration({ lang: "fr_FR" })
+
+      expect(canvas.client.addStrokes).toHaveBeenCalledWith([userStroke], false)
+    })
+
+    test("should not send strokes when the model has none", async () => {
+      const canvas = await buildCanvas()
+
+      await canvas.updateRecognitionConfiguration({ lang: "fr_FR" })
+
+      expect(canvas.client.addStrokes).not.toHaveBeenCalled()
+    })
+
+    test("should auto-compute again only when auto-compute is on", async () => {
+      const canvas = await buildCanvas()
+      canvas.math.updateComputationConfig({ autoCompute: true })
+      await canvas.updateRecognitionConfiguration({ lang: "fr_FR" })
+      expect(canvas.math.tryAutoCompute).toHaveBeenCalledTimes(1)
+
+      canvas.math.updateComputationConfig({ autoCompute: false })
+      await canvas.updateRecognitionConfiguration({ lang: "en_US" })
+      expect(canvas.math.tryAutoCompute).toHaveBeenCalledTimes(1)
+    })
+
+    test("should be read-only during the resynchronization", async () => {
+      const canvas = await buildCanvas()
+      let readOnlyDuringSession: boolean | undefined
+      canvas.client.newSession = jest.fn(async () => {
+        readOnlyDuringSession = canvas.readOnly
+      })
+
+      await canvas.updateRecognitionConfiguration({ lang: "fr_FR" })
+
+      expect(readOnlyDuringSession).toBe(true)
+      expect(canvas.readOnly).toBe(false)
+    })
+
+    test("should leave an integrator's read-only canvas read-only", async () => {
+      const canvas = await buildCanvas()
+      canvas.readOnly = true
+
+      await canvas.updateRecognitionConfiguration({ lang: "fr_FR" })
+
+      expect(canvas.readOnly).toBe(true)
+    })
+
+    test("should not start a resynchronization before the previous one ends", async () => {
+      const canvas = await buildCanvas()
+      const calls: string[] = []
+      canvas.client.newSession = jest.fn(async () => {
+        calls.push("start")
+        await delay(10)
+        calls.push("end")
+      })
+
+      const first = canvas.updateRecognitionConfiguration({ lang: "fr_FR" })
+      await delay(1)
+      await Promise.all([first, canvas.updateRecognitionConfiguration({ lang: "de_DE" })])
+
+      expect(calls).toEqual(["start", "end", "start", "end"])
+    })
+
+    test("should merge the calls made before the resynchronization starts into one", async () => {
+      const canvas = await buildCanvas()
+
+      await Promise.all([
+        canvas.updateRecognitionConfiguration({ lang: "fr_FR" }),
+        canvas.updateRecognitionConfiguration({ math: { solver: { "angle-unit": "deg" } } }),
+      ])
+
+      expect(canvas.client.newSession).toHaveBeenCalledTimes(1)
+      expect(canvas.configuration.recognition.lang).toEqual("fr_FR")
+      expect(canvas.configuration.recognition.math?.solver?.["angle-unit"]).toEqual("deg")
+    })
+
+    test("should merge the calls waiting for a running resynchronization into one", async () => {
+      const canvas = await buildCanvas()
+      canvas.client.newSession = jest.fn(async () => {
+        await delay(10)
+      })
+
+      const first = canvas.updateRecognitionConfiguration({ lang: "fr_FR" })
+      await delay(1)
+      await Promise.all([
+        first,
+        canvas.updateRecognitionConfiguration({ math: { solver: { "angle-unit": "deg" } } }),
+        canvas.updateRecognitionConfiguration({ math: { solver: { "rounding-mode": "truncate" } } }),
+      ])
+
+      expect(canvas.client.newSession).toHaveBeenCalledTimes(2)
+      expect(canvas.configuration.recognition.math?.solver).toEqual(
+        expect.objectContaining({ "angle-unit": "deg", "rounding-mode": "truncate" })
+      )
+    })
+
+    test("should run the next call even when the previous one failed", async () => {
+      const canvas = await buildCanvas()
+      canvas.client.newSession = jest
+        .fn()
+        .mockImplementationOnce(async () => {
+          await delay(10)
+          throw new Error("boom")
+        })
+        .mockResolvedValue(undefined)
+
+      const first = canvas.updateRecognitionConfiguration({ lang: "fr_FR" })
+      await delay(1)
+      const second = canvas.updateRecognitionConfiguration({ lang: "de_DE" })
+
+      await expect(first).rejects.toThrow("boom")
+      await expect(second).resolves.toBeUndefined()
+      expect(canvas.configuration.recognition.lang).toEqual("de_DE")
+    })
+
+    test("should restore the previous configuration and rethrow when the resynchronization fails", async () => {
+      const canvas = await buildCanvas()
+      const boom = new Error("server refused the session")
+      canvas.client.newSession = jest.fn(() => Promise.reject(boom))
+      const onError = jest.fn()
+      canvas.event.addErrorListener(onError)
+      const before = structuredClone(canvas.configuration.recognition)
+
+      await expect(canvas.updateRecognitionConfiguration({ lang: "fr_FR" })).rejects.toBe(boom)
+
+      expect(canvas.configuration.recognition).toEqual(before)
+      expect(onError).toHaveBeenCalledWith(boom)
+      expect(canvas.readOnly).toBe(false)
     })
   })
 

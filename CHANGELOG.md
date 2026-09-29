@@ -193,6 +193,19 @@ History entries no longer store a full `Model`/`IIModel` snapshot — only the d
 ### Shape ↔ edge connections
 - `IIConnectorManager.updateAnchoredEdges()` returns `TAnchoredEdgesUpdateResult` (ids of the pre-convert edge strokes it moved) instead of `void` — callers must include them in their history entry and backend transform message
 
+### One call changes the recognition configuration: `changeLanguage` is gone
+`InteractiveInkCanvas.updateRecognitionConfiguration(partial)` replaces `changeLanguage(code)`, which is removed with **no compatibility shim**: `changeLanguage("fr_FR")` becomes `updateRecognitionConfiguration({ lang: "fr_FR" })`. The same call changes the math solver, e.g. `{ math: { solver: { "angle-unit": "deg" } } }`.
+- it opens a new session with the merged configuration and re-sends every user stroke, as `changeLanguage` did. An array in the partial **replaces** the current one, and an explicit `undefined` clears a key
+- the canvas is read-only while it runs, then goes back to the read-only state it had before
+- calls are serialized: one made while a resynchronization is running waits for it, and the calls waiting together are applied in a single resynchronization
+- on failure the previous configuration is restored, the error goes through the `error` event and the promise rejects. `changeLanguage` left the new value in the configuration while the server still ran on the old one
+- solver outputs are cleared before the new session, then recomputed if auto-compute is on. `changeLanguage` re-sent the drawn results as ink: they were recognized as part of the expression and kept showing a value computed with the previous configuration
+- fix(client): `WebSocketClient.newSession(config)` merged the new configuration with `mergeDeep`, which appends arrays, so every array of the configuration (`raw-content` types, `gestures`, `mimeTypes`…) was duplicated on each new session, including each language change. An array in `config` now replaces the current one
+- fix(client): a message sent while `WebSocketClient.close()` was tearing the socket down (typically the debounced synchronize firing during a `newSession()`) was sent again once the next session was up. It was built for the closed session: an `export` on the previous part, whose answer carried the previous content and settled the new session's own export in its place, and `mathSolver` requests on block ids that the new session reuses for other blocks. Right after a resynchronization, auto-compute therefore read the previous content, where the block already ended with its result, and computed nothing. Such a message is now dropped; `close()` has already settled everything that waited on it
+
+### The math solver works in radians by default
+`DefaultSolverConfiguration["angle-unit"]` is now `"rad"` (was `"deg"`), and `DefaultRecognitionWebSocketConfiguration.recognition.math.solver` now spreads `DefaultSolverConfiguration` instead of declaring its own `angle-unit`. With no configuration, `sin(90)` no longer evaluates to `1`. Set `recognition.math.solver["angle-unit"]` to `"deg"` to keep the previous behaviour.
+
 ### Export: one `exportAs`, one `download`
 Every export on `InteractiveInkCanvas` now goes through two functions instead of nine. The nine
 removed methods have **no compatibility shim**.
@@ -246,6 +259,13 @@ removed methods have **no compatibility shim**.
 
 ## Features
 
+### Math solver settings in the Math menu
+- feat(menu): Math > **Solver** submenu to change the angle unit, the number of decimals, the decimal separator, the rounding mode, the solving mode (algebraic, numeric or the server default), the automatic variable management and its scoping policy. Each change goes through `updateRecognitionConfiguration`; the decimals slider waits `MATH_SOLVER_DEBOUNCE_MS` (300 ms) after the last move so that dragging it resynchronizes once
+- feat(menu): each setting can be hidden through `TMathActionItemsConfig.solver`, `false` hiding the whole submenu, or an object of `TMathSolverItemsConfig` flags (`angleUnit`, `fractionalDigits`, `decimalSeparator`, `roundingMode`, `options`, `autoVariable`, `scopingPolicy`)
+- feat(menu): "Show Dependencies on Hover" and "Highlight on Select" are now always built and shown only while automatic variable management is on, so switching it from the menu shows or hides them. They were built only when it was on at construction
+- feat(client): new exported `TScopingPolicy` and `TAutoVariableManagement`; `TRecognitionWebSocketConfiguration.math.solver` is now `TSolverConfiguration & { "auto-variable-management"?: TAutoVariableManagement }`, so it declares every solver key instead of `angle-unit` alone
+- feat(core): new exported `overrideDeep(target, override)`, a `mergeDeep` that replaces arrays rather than appending to them
+
 ### Shape ↔ edge connections
 - feat(connector): edges follow their connected shape when it is translated/resized/rotated, before Convert (raw ink strokes) as well as after (`TEdgeLine`/`TEdgePolyLine`/`TEdgeArc` with `startAnchor`/`endAnchor`)
 - feat(connector): new `IIConnectorManager.getFollowedStrokeIds(symbolIds)` — read-only counterpart of the rigid-follow pass, for callers needing the id list before mutating anything
@@ -267,8 +287,6 @@ removed methods have **no compatibility shim**.
 ### Types returned by public methods can be named
 - feat(manager): `TAnchoredEdgesUpdateResult`, `TFollowedStroke` (`IIConnectorManager`), `TShift` and `TSplitOutcome` (`InsertGestureHandler.computeChangesOnSplitText`) are now exported, so code that stores what these methods return can type it
 
-
-## Features
 
 ### Shape ↔ edge connections
 - feat(connector): edges follow their connected shape when it is translated/resized/rotated, before Convert (raw ink strokes) as well as after (`TEdgeLine`/`TEdgePolyLine`/`TEdgeArc` with `startAnchor`/`endAnchor`)

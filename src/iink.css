@@ -588,7 +588,6 @@
   border-radius: var(--ms-ink-radius-sm);
   border: 1px solid transparent;
   font-size: inherit;
-  padding: 0 var(--ms-ink-spacing-sm);
   background-color: transparent;
   color: var(--ms-ink-color);
   -webkit-tap-highlight-color: transparent;

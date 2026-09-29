@@ -1,7 +1,13 @@
 import type { TPartialDeep } from "@/core/std"
 import { isVersionSuperiorOrEqual, mergeDeep } from "@/core/std"
 
-import type { TExportConfiguration, TTextConfConfiguration } from "./recognition"
+import {
+  DefaultSolverConfiguration,
+  type TAutoVariableManagement,
+  type TExportConfiguration,
+  type TSolverConfiguration,
+  type TTextConfConfiguration,
+} from "./recognition"
 import type { TServerWebsocketConfiguration } from "./ServerConfiguration"
 import { DefaultServerWebsocketConfiguration } from "./ServerConfiguration"
 
@@ -34,12 +40,8 @@ export type TRecognitionWebSocketConfiguration = {
     ignoreGestureStrokes: boolean
   }
   math?: {
-    solver?: {
-      "auto-variable-management"?: {
-        enable?: boolean
-        "scoping-policy"?: "closest" | "last-modified" | "last-edited"
-      }
-      "angle-unit"?: "deg" | "rad"
+    solver?: TSolverConfiguration & {
+      "auto-variable-management"?: TAutoVariableManagement
     }
   }
 }
@@ -79,11 +81,11 @@ export const DefaultRecognitionWebSocketConfiguration: TRecognitionWebSocketConf
   },
   math: {
     solver: {
+      ...DefaultSolverConfiguration,
       "auto-variable-management": {
         enable: true,
         "scoping-policy": "closest",
       },
-      "angle-unit": "deg",
     },
   },
 }

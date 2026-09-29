@@ -365,7 +365,7 @@ export function createCanvasMock(overrides: Partial<TCanvasMock> = {}): TCanvasM
     paste: jest.fn().mockResolvedValue(undefined),
     export: jest.fn().mockResolvedValue({}),
     convert: jest.fn().mockResolvedValue(undefined),
-    changeLanguage: jest.fn().mockResolvedValue(undefined),
+    updateRecognitionConfiguration: jest.fn().mockResolvedValue(undefined),
     exportAs: jest.fn().mockResolvedValue(undefined),
     download: jest.fn().mockResolvedValue(undefined),
     clear: jest.fn().mockResolvedValue(undefined),
