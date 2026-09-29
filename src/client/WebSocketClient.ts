@@ -1,7 +1,7 @@
 import PingWorker from "web-worker:../worker/ping.worker.ts"
 
 import type { TMatrixTransform } from "@/core/geometry"
-import { DeferredPromise, isVersionSuperiorOrEqual, mergeDeep, type TPartialDeep } from "@/core/std"
+import { DeferredPromise, isVersionSuperiorOrEqual, mergeDeep, overrideDeep, type TPartialDeep } from "@/core/std"
 import type { THistoryContext, TIIHistoryBackendChanges } from "@/history"
 import { LoggerCategory, LoggerManager } from "@/logger"
 
@@ -651,7 +651,8 @@ export class WebSocketClient {
 
   async newSession(config: TPartialDeep<TWebSocketClientConfiguration>): Promise<void> {
     await this.close(1000, "new-session")
-    this.configuration = mergeDeep<WebSocketClientConfiguration>({}, this.configuration, config)
+    // overrideDeep, not a second mergeDeep source: mergeDeep appends arrays, which would repeat every one on each new session
+    this.configuration = overrideDeep(mergeDeep<WebSocketClientConfiguration>({}, this.configuration), config)
     this.sessionId = undefined
     this.currentPartId = undefined
     await this.init()
@@ -708,8 +709,10 @@ export class WebSocketClient {
         if (this.#closingPromise) {
           // A deliberate `close()` (e.g. `newSession()`) is already tearing down the socket —
           // wait for it instead of racing our own `init()` against the one it issues right after.
+          // The message is not replayed: it was built for the session being closed (its partId,
+          // its blockIds), and close() has already settled everything that waited on an answer.
           await this.#closingPromise
-          return this.send(message)
+          return
         }
         if (this.configuration.server.websocket.autoReconnect) {
           this.reconnectionCount++
