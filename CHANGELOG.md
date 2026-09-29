@@ -14,7 +14,7 @@ Width was read off each pointer's `p`, which the capture overwrote with a value 
 - the end taper is capped at a share of the stroke's own length. Real handwriting runs about 55 units per stroke, so the broadest nib's 22-unit taper at each end left 11 units of full width and drew a limp even line
 - `smoothing` averages a nib's width over neighbouring pointers, for the inertia a tuft of hair has — `brush` uses it so its width does not track speed point by point
 - a stroke whose `dt` was filled in from the pointer index carries no measured timing, and is left unshaded rather than shaded by an invention
-- removed: `StrokeOps._computePressure` and `Model.computePressure`, which had no reader left
+- removed: the stroke's `_computePressure` and `Model.computePressure`, which had no reader left
 - new: `computeWidthProfile`, `computeOutlinePointers`, `isPenNib`, `PEN_NIBS`, `DEFAULT_PEN_NIB`, `TPenNib`, `TNibProfile`
 - all three stroke renderers — SVG, SSR and Canvas — go through the same profile, so width is decided in one place
 
@@ -30,16 +30,16 @@ Width was read off each pointer's `p`, which the capture overwrote with a value 
 
 ### A stroke computes its own length
 `TStroke.length` and `TLegacyStroke.length` are gone. The field was an accumulator maintained by hand whose only per-pointer reader was the pressure estimator above; with that gone it was written and never read. The earlier note in this changelog kept it on the grounds that deriving it on read would make drawing a stroke quadratic in its own pointer count — that reasoning applied to a reader running once per pointer, and no longer holds.
-- use `StrokeOps.computeLength(stroke)`, or `SymbolGeometry.lengthOf(symbol)` for the document-frame length. `TSymbolGeometry.length` is unchanged: it was already computed on read
+- use `SymbolGeometry.lengthOf(symbol)` for the document-frame length, or `SymbolGeometry.rawOf(stroke).length` for the length in the stroke's own coordinates. Both were already computed on read
 
 ### A pointer stores when it was captured, relative to its stroke
 `TPointer.t` is renamed `TPointer.dt` and its meaning changes: it counted epoch milliseconds, it now counts milliseconds since the stroke began, so the first pointer of every stroke is at 0. The absolute instant is `stroke.creationTime + dt`, which is what `toWireStroke` sends — the recognizer reads the order strokes were written in from those absolute times.
 - the rename is deliberate. Same name with a new meaning would have compiled everywhere and silently mis-timed every integrator who reads pointers; `dt` fails loudly instead
-- **reading old documents keeps working.** `StrokeOps.createFromPartial` and `IIPlaybackManager.play` accept pointers that still carry the absolute `t` and rebase them, recovering both the intervals inside a stroke and the stroke's own `creationTime`
+- **reading old documents keeps working.** `StrokeUtil.createFromPartial` and `IIPlaybackManager.play` accept pointers that still carry the absolute `t` and rebase them, recovering both the intervals inside a stroke and the stroke's own `creationTime`
 - pointer times are no longer rounded to whole milliseconds. A pen samples several times per millisecond, and the previous default reported consecutive samples as captured at the same instant — 18% of intervals in a reference capture had a duration of exactly zero. `DefaultGrabberConfiguration.timestampFloatPrecision` changes from `0` to `-1` (no coarsening); it can still coarsen, it no longer decides the default
 - each coalesced sample is timed from its own event rather than from one clock read taken while replaying the batch, which is what produced those zero-length intervals
-- new: `TPointer.dt`, `TPointerImport`, `TStrokeImport`, `resolvePointerDelta`, `resolveStrokeOrigin`, `TPointerInfo.gestureStartTime`, a third `creationTime` argument to `StrokeOps.create`
-- every `dt` is an offset from its stroke's origin, never a difference between consecutive points. `StrokeOps.split` and the insert gesture's sub-strokes therefore inherit the origin of the stroke they were cut from — a fresh one would have claimed their points were drawn at the moment of the split. The insert gesture's sub-strokes also keep the original `pointerType`, which they previously dropped
+- new: `TPointer.dt`, `TPointerImport`, `TStrokeImport`, `resolvePointerDelta`, `resolveStrokeOrigin`, `TPointerInfo.gestureStartTime`, a third `creationTime` argument to `StrokeUtil.createEmpty`
+- every `dt` is an offset from its stroke's origin, never a difference between consecutive points. `StrokeUtil.split` and the insert gesture's sub-strokes therefore inherit the origin of the stroke they were cut from — a fresh one would have claimed their points were drawn at the moment of the split. The insert gesture's sub-strokes also keep the original `pointerType`, which they previously dropped
 - fixed: `IIPlaybackManager.play` ordered strokes by their first pointer's timestamp. Every first pointer is now at 0, so it orders by stroke origin instead
 
 ### The document is immutable
@@ -64,11 +64,44 @@ The three transform managers reached their per-type behaviour through a `switch 
 - a symbol whose type no util owns still fails, from `symbolRegistry.getUtilFor`: `No util is registered for type "x". Registered types: …`, which distinguishes a typo from a registry that was never populated. The old message was `Can't apply resize on symbol, type unknown: {…}`
 - see [MIGRATION.md](./MIGRATION.md)
 
+### A symbol's geometry answers for itself
+Geometry was a record — `{ bounds, vertices, snapPoints, edges, length }` — that each symbol type built and every type then had to interpret, because a record cannot be asked anything. Six of the eight `overlaps` implementations ended up as the same call; the two that did not had to be special-cased around it. A symbol's geometry is now an object that answers overlap, containment, distance and transformation for itself, and a type says what shape it is instead of how to test it.
+- new in `@/core/geometry`: `Geometry2d` and the shapes it comes in — `PointSet2d` (a stroke, caught by its samples), `Polyline2d` (an open path), `Polygon2d` (a closed ring), `Circle2d`, `Ellipse2d`, plus `PointsGeometry2d` for the ones that store their vertices
+- **`SymbolUtil.computeGeometry` is replaced by `getGeometry(symbol): Geometry2d`**, and it is the only geometry method a custom type implements. `overlaps`, `bounds`, `vertices`, `edges`, `length`, `containsPoint`, `nearestPoint` and `hitTestPoint` all come from the shape it returns
+- **`SymbolUtil.overlaps` is no longer abstract.** It asks that shape, which is what all five built-in implementations had become — the same line five times. A custom util may drop its own unless its hit test is not a question about its outline
+- removed: `TSymbolGeometry`, `SymbolUtil.overlapsQuery`, and the geometry members of every `*Ops` — `computeBounds`, `computeVertices`, `computeEdges`, `computeSnapPoints`, `computeLength`, `overlaps`
+- `SymbolGeometry`'s five accessors are unchanged. `of(symbol)` and `rawOf(symbol)` now return a `Geometry2d` rather than a record; both are read for `bounds`, `vertices` and `edges`, which the object carries under the same names
+- **two corrections of behaviour.** A query lying wholly inside a filled shape now selects it: the test this replaces asked only whether the shape's box sat inside the query or an edge crossed it, both questions about the boundary. And a rotated symbol keeps a *rotated* box rather than the axis-aligned one drawn around it — up to √2 wider on the diagonal, which selection and containment both read
+- a circle stretched unevenly becomes an exact `Ellipse2d`, where the outline was previously re-tessellated. `Ellipse2d` stores the linear map it is the image of, so carrying it through a matrix composes the two and never resamples
+- new on `OBBOps`: `createFromPointsAtAngle(points, angle)` — the tightest box at a given angle, where `fromCorners` takes the centroid as its centre and so only works on a rectangle's four corners
+- see [MIGRATION.md](./MIGRATION.md)
+
+### A path symbol is its path, with no group around it
+A stroke, a shape and an edge were each drawn as a `<g>` holding exactly one `<path>`. The group carried nothing the path could not carry itself, and cost a DOM node per symbol — 4419 of them on the reference document.
+- `getSVGElement` returns the `<path>` for those three types. `id`, `type` and `kind` are on it, and so is the symbol's matrix
+- **`vector-effect` now applies.** It is not an inherited property, so on the group it applied to an element that draws nothing and never reached the path: `non-scaling-stroke` was inert. On the path it takes effect, and a stroked shape or edge keeps its width as the canvas zooms
+- **a selector that reached through the group no longer matches.** `#<id> path` and `g[type="stroke"]` find nothing; the element carrying the id *is* the drawn one
+- text and math keep their group — they draw several glyphs plus their decorators — and a decorator is still a single bare element
+- new: `PathSymbolUtil`, which assembles the element once for the three path types. A type in that family implements `getPathData` and `getPathAttributes` instead of `getSVGElement`
+- new: `SymbolUtil.getGroupAttributes`, shared by every type
+- see [MIGRATION.md](./MIGRATION.md)
+
+### Everything a symbol type knows lives on its util
+A type's behaviour was split between an `*Ops` object beside its type and a `*Util` class in another folder, with no rule saying which held what. The utils now hold all of it, and the type file holds the type.
+- **removed from the public API**: `StrokeOps`, `ShapeOps`, `ShapeCircleOps`, `ShapeEllipseOps`, `ShapePolygonOps`, `EdgeOps`, `EdgeLineOps`, `EdgeArcOps`, `EdgePolyLineOps`, `TextOps`, `MathOps`, `DecoratorOps`. Every member moved to its family's util as a static, keeping its name except where two kinds of one family used the same one
+- renamed only where two kinds of one family would have collided — a shape family cannot hold three `create`s: `ShapeCircleOps.create`/`createFromPartial`/`createBetweenPoints`/`getSVGPath` → `ShapeUtil.createCircle`/`createCircleFromPartial`/`createCircleBetweenPoints`/`getCirclePath`, and the same for the ellipse and the polygon; `EdgeLineOps.create` → `EdgeUtil.createLine`, `moveVertex` → `moveLineVertex`, `getSVGPath` → `getLinePath`, and the same for the arc and the polyline; `TextOps.create` → `TextUtil.createText`; `MathOps.create` → `MathUtil.createMath`; `DecoratorOps.create` → `DecoratorUtil.createDecorator`; `StrokeOps.create` → `StrokeUtil.createEmpty`, which is what it builds
+- new on each family: a dispatching `getSVGPath(symbol)` — `ShapeUtil.getSVGPath` and `EdgeUtil.getSVGPath` take any kind of their family
+- `EraserOps` **stays**: an eraser is a transient tool artefact with no util to move to
+- type guards that were `*Ops` members are statics now — `ShapeUtil.isShape`, `EdgeUtil.isEdge`, `isLineEdge`, `isArcEdge`, `isPolyEdge`. The ones that were already free functions are untouched: `isStroke`, `isText`, `isMath`, `isDecorator` still live beside their type
+- removed: `EdgeOps.computeEdgeBounds` and the `computeEdgeBounds` helper behind it, whose padding an edge's geometry now applies itself
+- `StrokeOps`' five `_`-prefixed path helpers were exported despite the convention. They are private to `StrokeUtil` now
+- see [MIGRATION.md](./MIGRATION.md)
+
 ### A symbol stores no geometry it can compute
 `bounds`, `vertices`, `snapPoints` and `edges` are gone from every stroke, shape and edge type. They were copies of a computation, kept in step by hand: any path that moved a symbol's coordinates and forgot to re-derive left a stale box behind coordinates that read correctly, and the damage surfaced later in hit-testing rather than where the write happened. They are computed on read now, behind a cache keyed on the frozen record's identity — a mutated symbol is a different object, so there is no invalidation to get wrong.
 - new: `SymbolGeometry.boundsOf(symbol)`, `verticesOf`, `snapPointsOf`, `edgesOf`, `lengthOf`, plus `of(symbol)` for the whole record in one call and `rawOf(symbol)` for the pre-transform geometry. Every accessor works detached, so `symbols.map(SymbolGeometry.boundsOf)` is fine
 - removed: `SymbolUtil.updateDerivedFields` and every per-kind implementation, `StrokeOps.updateBounds`, and the `updateDerivedFields` on each `*Ops`. Nothing needs refreshing after a write any more
-- `TStroke.length` **stays**: it is an accumulator `StrokeOps.addPointer` maintains and `_computePressure` reads once per pointer, not a value read from storage. Deriving it on read would make drawing a stroke quadratic in its own pointer count. `SymbolGeometry.lengthOf` reports the document-frame length (raw × scale) and needs no stored field
+- `TStroke.length` **survived this change** — it was an accumulator, not a value read from storage — and was removed by a later one, once the per-pointer reader that justified it was gone. See *A stroke computes its own length* above. `SymbolGeometry.lengthOf` reports the document-frame length (raw × scale) and needs no stored field
 - `TText.bounds` and `TMath.bounds` **stay**: a typeset symbol's box is measured from the DOM with `getBBox()`, not derived from coordinates it owns
 - new on `OBBOps`: `toCorners`, `fromCorners`, `polygonOverlapsQuad`, `toUnrotatedBox`, `getSnapPoints`
 - see [MIGRATION.md](./MIGRATION.md)
@@ -103,7 +136,7 @@ The three transform managers reached their per-type behaviour through a `switch 
 
 ### A decorator's box is named for where it comes from
 `TDecorator` was the one symbol type whose `bounds` was never derived: a decorator holds no coordinates of its own and is placed over other symbols, so its box arrives from outside — the recognizer's word box when JIIX has answered, the union of its targets' boxes otherwise. It is the only stored geometry left on a stroke, shape or edge-like symbol, and it is renamed so it cannot be read as a leftover derived field.
-- renamed: `TDecorator.bounds` → `TDecorator.targetBounds`, now optional. `DecoratorOps.setBounds(decorator, obb)` → `DecoratorOps.setTargetBounds(decorator, obb)`
+- renamed: `TDecorator.bounds` → `TDecorator.targetBounds`, now optional. `DecoratorOps.setBounds(decorator, obb)` → `DecoratorUtil.setTargetBounds(decorator, obb)`
 - removed: `TDecorator.hasBounds`. Presence of `targetBounds` is the flag, so the two can no longer disagree — the boolean used to shadow a zero-size box
 - fixed: `DecoratorUtil.create` read the incoming partial's box as a `TBox` behind a cast and handed it to `OBBOps.fromBox`, which reads `.x`/`.y`. A decorator serialised by iinkTS itself — a `TOBB`, carrying `center` and no `x` — came back with a NaN centre on re-import
 - fixed: erasing one target out of several threw `TypeError: Cannot assign to read only property 'targetIds'`. That branch wrote onto the frozen record `model.symbols` hands out, so it had been dead since the document became immutable; it drafts and commits now

@@ -1,8 +1,7 @@
-import type { TBox } from "@/core/geometry"
+import type { Geometry2d } from "@/core/geometry"
+import type { TPoint } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import type { TResizePoint } from "@/symbol/Symbol"
-
-import type { TSymbolGeometry } from "./TSymbolGeometry"
 
 /**
  * Everything a family util needs to know about one kind within its family.
@@ -16,8 +15,23 @@ import type { TSymbolGeometry } from "./TSymbolGeometry"
  */
 export type TKindDefinition<T> = {
   create(partial: TPartialDeep<T>): T
-  computeGeometry(symbol: T): TSymbolGeometry
-  overlaps(symbol: T, box: TBox): boolean
+  /**
+   * This kind's shape, which answers overlap, containment and distance for itself.
+   *
+   * Replaces the pair of geometry and overlap methods a kind used to supply: the second was always a
+   * question about the first, and splitting them let a kind describe one shape and test another.
+   */
+  getGeometry(symbol: T): Geometry2d
+
+  /**
+   * Where this kind offers to snap, in its own untransformed frame — the family util carries them
+   * through the symbol's matrix.
+   *
+   * Kind-specific because it is a decision about the symbol rather than about its outline: an edge
+   * snaps on its own vertices, a shape on the corners and mid-sides of its box. Omitted means the
+   * box, which is what every shape kind wants and no edge kind does.
+   */
+  getSnapPoints?(symbol: T): TPoint[]
   getSVGPath(symbol: T): string
   /**
    * Extra attributes for the rendered path. Only a kind that needs them supplies this — it is what

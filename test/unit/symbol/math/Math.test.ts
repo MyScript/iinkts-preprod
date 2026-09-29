@@ -1,4 +1,5 @@
-import { TMathElement, TPoint, BoxOps, MathOps, computeTypesetSnapPoints, OBBOps, computeTypesetVertices } from "@/iink"
+import { typesetGeometry } from "../../helpers"
+import { BoxOps, MathUtil, OBBOps, TMathElement, TPoint, computeTypesetSnapPoints, computeTypesetVertices } from "@/iink"
 
 describe("Math.ts", () => {
   const elements: TMathElement[] = [
@@ -34,23 +35,23 @@ describe("Math.ts", () => {
   const box = BoxOps.createFromBoxes(elements.map((e) => e.bounds))
 
   test("should instantiate", () => {
-    const math = MathOps.create(elements, point, box)
+    const math = MathUtil.createMath(elements, point, box)
     expect(math).toBeDefined()
   })
 
   describe("properties", () => {
     test("should get label", () => {
-      const math = MathOps.create(elements, point, box)
-      expect(MathOps.getLabel(math)).toEqual("x+1")
+      const math = MathUtil.createMath(elements, point, box)
+      expect(MathUtil.getLabel(math)).toEqual("x+1")
     })
 
     test("should get vertices", () => {
-      const math = MathOps.create(elements, point, box)
+      const math = MathUtil.createMath(elements, point, box)
       expect(computeTypesetVertices(OBBOps.toUnrotatedBox(math.bounds))).toEqual(BoxOps.getCorners(box))
     })
 
     test("should get snapPoints", () => {
-      const math = MathOps.create(elements, point, box)
+      const math = MathUtil.createMath(elements, point, box)
       const snapPoints = computeTypesetSnapPoints(OBBOps.toUnrotatedBox(math.bounds), math.point)
       expect(snapPoints.length).toBe(5)
       expect(snapPoints[4]).toEqual(BoxOps.getCenter(box))
@@ -59,9 +60,9 @@ describe("Math.ts", () => {
 
   describe("methods", () => {
     test("should update children style", () => {
-      const math = MathOps.create(structuredClone(elements), point, box)
+      const math = MathUtil.createMath(structuredClone(elements), point, box)
       math.style.color = "#FF0000"
-      MathOps.updateChildrenStyle(math)
+      MathUtil.updateChildrenStyle(math)
 
       expect(math.elements[0].color).toBe("#FF0000")
       expect(math.elements[1].color).toBe("#FF0000")
@@ -69,8 +70,8 @@ describe("Math.ts", () => {
     })
 
     test("should update children font", () => {
-      const math = MathOps.create(structuredClone(elements), point, box)
-      MathOps.updateChildrenFont(math, { fontSize: 20, fontWeight: "bold", fontFamily: "Times" })
+      const math = MathUtil.createMath(structuredClone(elements), point, box)
+      MathUtil.updateChildrenFont(math, { fontSize: 20, fontWeight: "bold", fontFamily: "Times" })
 
       expect(math.elements[0].fontSize).toBe(20)
       expect(math.elements[0].fontWeight).toBe("bold")
@@ -78,8 +79,8 @@ describe("Math.ts", () => {
     })
 
     test("should update children font partially", () => {
-      const math = MathOps.create(structuredClone(elements), point, box)
-      MathOps.updateChildrenFont(math, { fontSize: 18 })
+      const math = MathUtil.createMath(structuredClone(elements), point, box)
+      MathUtil.updateChildrenFont(math, { fontSize: 18 })
 
       expect(math.elements[0].fontSize).toBe(18)
       expect(math.elements[0].fontWeight).toBe("normal")
@@ -87,42 +88,42 @@ describe("Math.ts", () => {
     })
 
     test("should find elements that overlap with points", () => {
-      const math = MathOps.create(elements, point, box)
-      const overlappingElements = MathOps.getChildrenOverlaps(math, [{ x: 12, y: 12 }])
+      const math = MathUtil.createMath(elements, point, box)
+      const overlappingElements = MathUtil.getChildrenOverlaps(math, [{ x: 12, y: 12 }])
 
       expect(overlappingElements.length).toBe(1)
       expect(overlappingElements[0].id).toBe("elem-1")
     })
 
     test("should find no elements when point is outside", () => {
-      const math = MathOps.create(elements, point, box)
-      const overlappingElements = MathOps.getChildrenOverlaps(math, [{ x: 100, y: 100 }])
+      const math = MathUtil.createMath(elements, point, box)
+      const overlappingElements = MathUtil.getChildrenOverlaps(math, [{ x: 100, y: 100 }])
 
       expect(overlappingElements.length).toBe(0)
     })
 
     test("should check overlap with box", () => {
-      const math = MathOps.create(elements, point, box)
+      const math = MathUtil.createMath(elements, point, box)
       const overlappingBox = { x: 5, y: 5, width: 10, height: 10 }
 
-      expect(MathOps.overlaps(math, overlappingBox)).toBe(true)
+      expect(typesetGeometry(math).overlapsBox(overlappingBox)).toBe(true)
     })
 
     test("should check no overlap with distant box", () => {
-      const math = MathOps.create(elements, point, box)
+      const math = MathUtil.createMath(elements, point, box)
       const distantBox = { x: 100, y: 100, width: 10, height: 10 }
 
-      expect(MathOps.overlaps(math, distantBox)).toBe(false)
+      expect(typesetGeometry(math).overlapsBox(distantBox)).toBe(false)
     })
   })
 
   describe("clone", () => {
     test("should clone math symbol", () => {
-      const math = MathOps.create(elements, point, box)
+      const math = MathUtil.createMath(elements, point, box)
       const clone = structuredClone(math)
 
       expect(clone.id).toBe(math.id)
-      expect(MathOps.getLabel(clone)).toBe(MathOps.getLabel(math))
+      expect(MathUtil.getLabel(clone)).toBe(MathUtil.getLabel(math))
       expect(clone.elements.length).toBe(math.elements.length)
       expect(clone.point).toEqual(math.point)
     })

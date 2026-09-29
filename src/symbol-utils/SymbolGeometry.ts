@@ -1,9 +1,8 @@
-import type { TMatrixTransform, TOBB, TPoint, TSegment } from "@/core/geometry"
-import { applyMatrixToPoint, isIdentityMatrix, MatrixTransform, OBBOps } from "@/core/geometry"
+import type { Geometry2d, TOBB, TPoint, TSegment } from "@/core/geometry"
+import { isIdentityMatrix } from "@/core/geometry"
 import type { TBaseSymbol } from "@/symbol/Symbol"
 
 import { symbolRegistry } from "./SymbolRegistry"
-import type { TSymbolGeometry } from "./TSymbolGeometry"
 
 /**
  * Derived geometry, keyed on the symbol object itself.
@@ -13,7 +12,7 @@ import type { TSymbolGeometry } from "./TSymbolGeometry"
  * cannot collide with its own stale entry. An unfrozen object is a draft mid-edit — computed every
  * time, never stored, which is the one case where identity would lie.
  */
-const cache = new WeakMap<TBaseSymbol, TSymbolGeometry>()
+const cache = new WeakMap<TBaseSymbol, Geometry2d>()
 
 /**
  * The pre-matrix geometry, cached separately from the transformed result `cache` above holds.
@@ -23,39 +22,12 @@ const cache = new WeakMap<TBaseSymbol, TSymbolGeometry>()
  * such a caller, reading a decorator's or its host's raw bounds to draw geometry the `transform`
  * attribute alone repositions.
  */
-const rawCache = new WeakMap<TBaseSymbol, TSymbolGeometry>()
-
-/**
- * The raw geometry seen through the symbol's matrix.
- *
- * Bounds go through the four corners of the raw box rather than through every point: O(1) per
- * symbol, and exact for any similarity. A non-uniform scale of an already-turned symbol maps the box
- * to a parallelogram, and what comes back is the enclosing OBB — still better than the field this
- * replaces, which zeroed the angle outright (`TypesetUtil.resize`).
- */
-function applyMatrix(geometry: TSymbolGeometry, matrix: TMatrixTransform): TSymbolGeometry {
-  const corners = OBBOps.toCorners(geometry.bounds).map((c) => applyMatrixToPoint(c, matrix))
-  return {
-    // Both terms are radians: `geometry.bounds.angle` (per TOBB's own convention, which every
-    // OBBOps function including `fromCorners` honours) and `MatrixTransform.rotation` (built from
-    // `acos`, never converted). Do not wrap either side in convertRadianToDegree/convertDegreeToRadian
-    // — that mixed a radians field with a degrees term and corrupted width/height along with the
-    // angle, for every symbol type, under any rotation. Caught in review: IIC task-9.
-    bounds: OBBOps.fromCorners(corners, geometry.bounds.angle + MatrixTransform.rotation(matrix)),
-    vertices: geometry.vertices.map((v) => applyMatrixToPoint(v, matrix)),
-    snapPoints: geometry.snapPoints.map((p) => applyMatrixToPoint(p, matrix)),
-    edges: geometry.edges.map((e) => ({
-      p1: applyMatrixToPoint(e.p1, matrix),
-      p2: applyMatrixToPoint(e.p2, matrix),
-    })),
-    length: geometry.length * Math.hypot(matrix.xx, matrix.yx),
-  }
-}
+const rawCache = new WeakMap<TBaseSymbol, Geometry2d>()
 
 /**
  * Freezes `value` and everything reachable from it, skipping whatever is already frozen.
  *
- * A util's `computeGeometry` result is only as immutable as whichever util built it: some hand back
+ * A util's geometry is only as immutable as whichever util built it: some hand back
  * a store-frozen symbol's own nested data as-is, others build fresh, unfrozen arrays. Without this,
  * a single stray write on one of the latter — `SymbolGeometry.boundsOf(s).width = 999` — would
  * poison every later read of `s`, for good, since the cache never recomputes for a frozen symbol.
@@ -73,21 +45,50 @@ function deepFreeze<TValue>(value: TValue): TValue {
   return value
 }
 
+/** The shape a symbol's util describes for it. */
+function fromUtil(symbol: TBaseSymbol): Geometry2d {
+  return symbolRegistry.getUtilFor(symbol).getGeometry(symbol)
+}
+
+/**
+ * Freezes a geometry and the values it derives.
+ *
+ * `deepFreeze` alone is not enough for an object: `vertices`, `bounds` and `edges` are getters on the
+ * prototype and hold their results in private fields, neither of which `Object.getOwnPropertyNames`
+ * reaches. Freezing the instance would therefore protect nothing at all — so each derived value is
+ * read out and frozen on its own, which also settles the lazy fields while the symbol is known to be
+ * frozen. That is no more eager than the record this replaces, which was fully built by
+ * the util before it ever reached the cache.
+ *
+ * Only ever called for a frozen symbol, and that restriction is load-bearing rather than an
+ * optimisation: a converted util hands back the symbol's own arrays — `PointSet2d`'s vertices *are*
+ * `stroke.pointers` — so freezing a draft's geometry would freeze the draft, and the next
+ * `addPointer` would throw.
+ */
+function freezeGeometry(geometry: Geometry2d): Geometry2d {
+  deepFreeze(geometry.bounds)
+  deepFreeze(geometry.vertices)
+  deepFreeze(geometry.edges)
+  // Frozen, then the original reference returned: `Object.freeze`'s return type is `Readonly<T>`,
+  // which drops the protected members and so no longer satisfies `Geometry2d`.
+  Object.freeze(geometry)
+  return geometry
+}
+
 /**
  * A symbol's geometry straight from its util, before its matrix is applied — cached the same way
- * `of` below caches the transformed result, so a frozen symbol's `computeGeometry` still runs at
- * most once no matter how many times the raw and the transformed geometry are each read.
+ * `of` below caches the transformed result, so a frozen symbol's geometry is still built at most
+ * once no matter how many times the raw and the transformed geometry are each read.
  */
-function rawOf(symbol: TBaseSymbol): TSymbolGeometry {
-  const raw = () => symbolRegistry.getUtilFor(symbol).computeGeometry(symbol)
+function rawOf(symbol: TBaseSymbol): Geometry2d {
   if (!Object.isFrozen(symbol)) {
-    return raw()
+    return fromUtil(symbol)
   }
   const cached = rawCache.get(symbol)
   if (cached) {
     return cached
   }
-  const geometry = deepFreeze(raw())
+  const geometry = freezeGeometry(fromUtil(symbol))
   rawCache.set(symbol, geometry)
   return geometry
 }
@@ -101,12 +102,17 @@ function rawOf(symbol: TBaseSymbol): TSymbolGeometry {
  * on the hot path the cache exists to avoid — two symbols never share a cache entry regardless, so
  * there is nothing to gain by sharing the untransformed computation between them.
  */
-function compute(symbol: TBaseSymbol): TSymbolGeometry {
+function compute(symbol: TBaseSymbol): Geometry2d {
   const raw = rawOf(symbol)
-  return isIdentityMatrix(symbol.transform) ? raw : applyMatrix(raw, symbol.transform)
+  // A symbol can reach here without a matrix: `mergeSymbolTransform` backfills one on the wire, but
+  // a raw or malformed object — a kind no table owns, tolerated rather than thrown on — never went
+  // through it. Treated as identity, which is what every untransformed symbol means anyway; reading
+  // `undefined` here would throw where the code this replaced returned an answer.
+  const transform = symbol.transform
+  return !transform || isIdentityMatrix(transform) ? raw : raw.transform(transform)
 }
 
-function of(symbol: TBaseSymbol): TSymbolGeometry {
+function of(symbol: TBaseSymbol): Geometry2d {
   if (!Object.isFrozen(symbol)) {
     return compute(symbol)
   }
@@ -114,7 +120,7 @@ function of(symbol: TBaseSymbol): TSymbolGeometry {
   if (cached) {
     return cached
   }
-  const geometry = deepFreeze(compute(symbol))
+  const geometry = freezeGeometry(compute(symbol))
   cache.set(symbol, geometry)
   return geometry
 }
@@ -140,8 +146,16 @@ export const SymbolGeometry = {
     return of(symbol).vertices
   },
 
+  /**
+   * Snap points come from the util, not from the geometry.
+   *
+   * A `Geometry2d` describes a shape; where that shape offers to snap is a decision about the symbol,
+   * not about its outline — a text snaps on its box, never on its glyphs. Every util already answered
+   * this, with the same one line six times over, which is exactly what this used to recompute for
+   * itself.
+   */
   snapPointsOf(symbol: TBaseSymbol): TPoint[] {
-    return of(symbol).snapPoints
+    return symbolRegistry.getUtilFor(symbol).getSnapPoints(symbol)
   },
 
   edgesOf(symbol: TBaseSymbol): TSegment[] {

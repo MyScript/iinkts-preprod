@@ -4,7 +4,7 @@ import { DOMFactory } from "@/dom"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { TStroke, TSymbol, TText } from "@/symbol"
 import { isStroke, isText } from "@/symbol"
-import { TextOps } from "@/symbol/typeset/Text"
+import { TextUtil } from "@/symbol-utils"
 
 import type {
   TContextDecoratorConfig,
@@ -235,7 +235,7 @@ export class IIMenuContext {
       if (editMenuInstance) {
         const textSymbol = this.canvas.model.symbolsSelected.find((s) => isText(s))
         if (editMenuInstance.editInput && this.canvas.model.symbolsSelected.length === 1 && textSymbol) {
-          editMenuInstance.editInput.value = TextOps.getLabel(textSymbol as TText)
+          editMenuInstance.editInput.value = TextUtil.getLabel(textSymbol as TText)
           editMenuInstance.getElement().style.removeProperty("display")
         } else {
           editMenuInstance.getElement().style.setProperty("display", "none")

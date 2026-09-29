@@ -118,6 +118,52 @@ export const OBBOps = {
     return OBBOps.fromBox(BoxOps.createFromPoints(points))
   },
 
+  /**
+   * The tightest box at `angle` containing every point.
+   *
+   * {@link OBBOps.createFromPoints} is this with `angle` 0. The general form exists because a shape
+   * carried through a rotation still has a tight box — the same box, turned — and describing it with
+   * an axis-aligned one instead inflates it by up to a factor of sqrt(2) on the diagonal, which a
+   * selection outline shows and a containment test then gets wrong.
+   *
+   * Not {@link OBBOps.fromCorners}: that takes the **centroid** of what it is given as the box's
+   * centre, which is the centre only when the points are the four corners of a rectangle — the one
+   * case it is ever called with. Fed a shape's vertices it would pull the box towards whichever side
+   * carries more of them. Here the centre comes from the extents, so any point list works.
+   */
+  createFromPointsAtAngle(points: TPoint[], angle: number): TOBB {
+    if (!points?.length) {
+      return { center: { x: 0, y: 0 }, width: 0, height: 0, angle }
+    }
+    const cos = Math.cos(angle)
+    const sin = Math.sin(angle)
+    let minX = Infinity
+    let maxX = -Infinity
+    let minY = Infinity
+    let maxY = -Infinity
+    for (const point of points) {
+      // Into the frame turned by -angle, where the box is axis-aligned and its extents are readable.
+      const x = cos * point.x + sin * point.y
+      const y = -sin * point.x + cos * point.y
+      minX = Math.min(minX, x)
+      maxX = Math.max(maxX, x)
+      minY = Math.min(minY, y)
+      maxY = Math.max(maxY, y)
+    }
+    const localCenterX = (minX + maxX) / 2
+    const localCenterY = (minY + maxY) / 2
+    return {
+      // Back out of the frame, so the centre is expressed where every caller reads it.
+      center: {
+        x: cos * localCenterX - sin * localCenterY,
+        y: sin * localCenterX + cos * localCenterY,
+      },
+      width: maxX - minX,
+      height: maxY - minY,
+      angle,
+    }
+  },
+
   createFromOBBs(obbs: TOBB[]): TOBB {
     if (!obbs.length) {
       return OBBOps.create({ x: 0, y: 0 }, 0, 0)
@@ -310,7 +356,7 @@ export const OBBOps = {
    * rotated relative to that raw frame, a `query` that fully encloses the true shape can still miss
    * those corners, which is a real regression this fixes rather than a hypothetical: a query built
    * from `bounds` reported a rotated circle or a rotated diagonal line as unselected while a selection
-   * box plainly surrounded it. `vertices` is what every `computeGeometry` already tessellates a curve
+   * box plainly surrounded it. `vertices` is what every geometry already tessellates a curve
    * into (or, for a straight-edged type, already is the exact boundary) — a polygon is contained in a
    * convex region iff all its vertices are, whether or not the polygon itself is convex.
    *

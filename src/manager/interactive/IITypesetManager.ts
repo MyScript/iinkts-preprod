@@ -4,7 +4,7 @@ import { OBBOps } from "@/core/geometry"
 import { LoggerCategory } from "@/logger"
 import type { TMath, TSymbol, TSymbolChar, TText } from "@/symbol"
 import { isText } from "@/symbol"
-import { TextOps } from "@/symbol/typeset/Text"
+import { TextUtil } from "@/symbol-utils"
 import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 
@@ -147,7 +147,7 @@ export class IITypesetManager extends IIAbstractManager {
       fontWeight: "normal",
       bounds: boundingBox,
     }
-    return this.getBoundingBox(TextOps.create([charSymbol], { x: 0, y: 0 }, boundingBox))?.width as number
+    return this.getBoundingBox(TextUtil.createText([charSymbol], { x: 0, y: 0 }, boundingBox))?.width as number
   }
 
   updateBounds<T extends TText | TMath>(typesetSymbol: T): T {

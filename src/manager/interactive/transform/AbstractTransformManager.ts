@@ -7,7 +7,7 @@ import { appendUpdated } from "@/history"
 import { LoggerCategory } from "@/logger"
 import type { TStroke, TSymbol } from "@/symbol"
 import { isDecorator, isStroke } from "@/symbol"
-import { DecoratorOps } from "@/symbol/decorator/Decorator"
+import { DecoratorUtil } from "@/symbol-utils"
 import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 
 import { IIAbstractManager } from "../IIAbstractManager"
@@ -131,7 +131,7 @@ export abstract class IIAbstractTransformManager extends IIAbstractManager {
       // Re-derived from the moved targets, not carried by a matrix: `DecoratorUtil.applyTransform`
       // is deliberately a no-op, so a decorator never receives one. Its box is an input, and this
       // is the writer that keeps it in step with the symbols it decorates.
-      DecoratorOps.setTargetBounds(draft, OBBOps.createFromOBBs(targetSyms.map((s) => SymbolGeometry.boundsOf(s))))
+      DecoratorUtil.setTargetBounds(draft, OBBOps.createFromOBBs(targetSyms.map((s) => SymbolGeometry.boundsOf(s))))
       // baseline is an absolute y-coordinate (used by Underline/Strikethrough rendering
       // in place of bounds), so it must follow the same transform as the target symbols.
       if (draft.baseline !== undefined) {

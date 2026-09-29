@@ -5,8 +5,7 @@ import type { GestureHelpers } from "@/manager/interactive/gestures/GestureHelpe
 import type { TGesture } from "@/manager/interactive/gestures/GestureTypes"
 import type { TStroke, TText } from "@/symbol"
 import { SymbolType, type TSymbol } from "@/symbol"
-import { StrokeOps } from "@/symbol/stroke/Stroke"
-import { TextOps } from "@/symbol/typeset/Text"
+import { StrokeUtil, TextUtil } from "@/symbol-utils"
 
 /**
  * Handler for SCRATCH gesture type
@@ -30,16 +29,16 @@ export class ScratchGestureHandler extends GestureHandler {
     const newStrokes: TStroke[] = []
     const partPointersToRemove = gesture.subStrokes?.find((ss) => ss.fullStrokeId === stroke.id)
     if (partPointersToRemove) {
-      const strokePartToErase = StrokeOps.create()
+      const strokePartToErase = StrokeUtil.createEmpty()
       partPointersToRemove.x.forEach((x, i) =>
-        StrokeOps.addPointer(strokePartToErase, {
+        StrokeUtil.addPointer(strokePartToErase, {
           x,
           y: partPointersToRemove.y[i],
           p: 1,
           dt: 1,
         })
       )
-      const subStrokes = StrokeOps.substract(stroke, strokePartToErase)
+      const subStrokes = StrokeUtil.substract(stroke, strokePartToErase)
       if (subStrokes.before && subStrokes.before.pointers.length > 1) {
         newStrokes.push(subStrokes.before)
       }
@@ -57,7 +56,7 @@ export class ScratchGestureHandler extends GestureHandler {
    * @returns Updated text symbol, or undefined if all characters removed
    */
   computeScratchOnText(gestureStroke: TStroke, textSymbol: TText): TText | undefined {
-    const charsToRemove = TextOps.getChildrenOverlaps(textSymbol, gestureStroke.pointers)
+    const charsToRemove = TextUtil.getChildrenOverlaps(textSymbol, gestureStroke.pointers)
     if (textSymbol.chars.length == charsToRemove.length) {
       return
     } else {

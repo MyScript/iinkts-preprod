@@ -1,35 +1,6 @@
 import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
 import { buildIIMath, buildIIStroke, buildIIText } from "../../../helpers"
-import {
-  SymbolGeometry,
-  DecoratorKind,
-  DecoratorOps,
-  DefaultHistoryConfiguration,
-  EdgeLineOps,
-  IIConnectorManager,
-  IIHistoryManager,
-  IITranslateManager,
-  MatrixTransform,
-  OBBOps,
-  ShapeCircleOps,
-  ShapePolygonOps,
-  StrokeOps,
-  SvgElementRole,
-  TEdgeLine,
-  TPoint,
-  TStroke,
-  SymbolUtil,
-  TBaseSymbol,
-  TPartialDeep,
-  TTransformContext,
-  applyMatrixToPoint,
-  symbolRegistry,
-  TDecorator,
-  TMath,
-  TSymbol,
-  TSymbolGeometry,
-  TText,
-} from "@/iink"
+import { BoxOps, DecoratorKind, DecoratorUtil, DefaultHistoryConfiguration, EdgeUtil, Geometry2d, IIConnectorManager, IIHistoryManager, IITranslateManager, MatrixTransform, OBBOps, Polygon2d, ShapeUtil, StrokeUtil, SvgElementRole, SymbolGeometry, SymbolUtil, TBaseSymbol, TDecorator, TEdgeLine, TMath, TPartialDeep, TPoint, TStroke, TSymbol, TText, TTransformContext, applyMatrixToPoint, symbolRegistry } from "@/iink"
 
 describe("IITranslateManager.ts", () => {
   test("should create", () => {
@@ -43,9 +14,9 @@ describe("IITranslateManager.ts", () => {
     const manager = new IITranslateManager(asCanvas(canvas))
 
     test("translate stroke composes the matrix rather than moving its pointers", () => {
-      const stroke = StrokeOps.create()
-      StrokeOps.addPointer(stroke, { p: 1, dt: 1, x: 1, y: 1 })
-      StrokeOps.addPointer(stroke, { p: 1, dt: 10, x: 10, y: 0 })
+      const stroke = StrokeUtil.createEmpty()
+      StrokeUtil.addPointer(stroke, { p: 1, dt: 1, x: 1, y: 1 })
+      StrokeUtil.addPointer(stroke, { p: 1, dt: 10, x: 10, y: 0 })
       const pointersBefore = stroke.pointers.map((p) => ({ ...p }))
       const matrix = MatrixTransform.identity().translate(10, 15)
       manager.applyToSymbol(stroke, matrix)
@@ -55,7 +26,7 @@ describe("IITranslateManager.ts", () => {
     test("translate shape Circle composes the matrix rather than moving its centre", () => {
       const center: TPoint = { x: 5, y: 5 }
       const radius = 4
-      const circle = ShapeCircleOps.create(center, radius)
+      const circle = ShapeUtil.createCircle(center, radius)
       const matrix = MatrixTransform.identity().translate(10, 15)
       manager.applyToSymbol(circle, matrix)
       expect(circle.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 10, ty: 15 })
@@ -73,7 +44,7 @@ describe("IITranslateManager.ts", () => {
         { x: 5, y: 5 },
         { x: 5, y: 0 },
       ]
-      const poly = ShapePolygonOps.create(points)
+      const poly = ShapeUtil.createPolygon(points)
       //@ts-ignore
       poly.kind = "pouet"
       const matrix = MatrixTransform.identity().translate(10, 15)
@@ -83,7 +54,7 @@ describe("IITranslateManager.ts", () => {
     test("translate edge with kind unknown no longer throws, for the same reason", () => {
       const start: TPoint = { x: 0, y: 0 }
       const end: TPoint = { x: 0, y: 5 }
-      const edge = EdgeLineOps.create(start, end)
+      const edge = EdgeUtil.createLine(start, end)
       //@ts-ignore
       edge.kind = "pouet"
       const matrix = MatrixTransform.identity().translate(10, 15)
@@ -93,7 +64,7 @@ describe("IITranslateManager.ts", () => {
     test("translate edge Line composes the matrix rather than moving its endpoints", () => {
       const start: TPoint = { x: 0, y: 0 }
       const end: TPoint = { x: 0, y: 5 }
-      const line = EdgeLineOps.create(start, end)
+      const line = EdgeUtil.createLine(start, end)
       const matrix = MatrixTransform.identity().translate(10, 15)
       manager.applyToSymbol(line, matrix)
       expect(line.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 10, ty: 15 })
@@ -115,9 +86,9 @@ describe("IITranslateManager.ts", () => {
     const manager = new IITranslateManager(asCanvas(canvas))
     manager.applyToSymbol = jest.fn()
 
-    const strokeOrigin = StrokeOps.create({})
-    StrokeOps.addPointer(strokeOrigin, { p: 1, dt: 1, x: 0, y: 0 })
-    StrokeOps.addPointer(strokeOrigin, { p: 1, dt: 1, x: 10, y: 50 })
+    const strokeOrigin = StrokeUtil.createEmpty({})
+    StrokeUtil.addPointer(strokeOrigin, { p: 1, dt: 1, x: 0, y: 0 })
+    StrokeUtil.addPointer(strokeOrigin, { p: 1, dt: 1, x: 10, y: 50 })
     canvas.model.addSymbol(strokeOrigin)
     canvas.model.selectSymbol(strokeOrigin.id)
 
@@ -298,13 +269,13 @@ describe("IITranslateManager.ts", () => {
       // uses to configure otherwise-readonly/auto-stubbed manager properties for tests.
       ;(canvas as unknown as { connector: IIConnectorManager }).connector = new IIConnectorManager(asCanvas(canvas))
 
-      const shape = ShapeCircleOps.create({ x: 50, y: 50 }, 20)
+      const shape = ShapeUtil.createCircle({ x: 50, y: 50 }, 20)
       canvas.model.addSymbol(shape)
       // The gradient-follow direction resolves the connected block's center via
       // jiix.getStrokesForElement + model.getRootSymbol — here the "block" is just the shape itself.
       jest.spyOn(canvas.jiix, "getStrokesForElement").mockImplementation((id) => (id === shape.id ? [shape.id] : []))
 
-      const edgeStroke = StrokeOps.create()
+      const edgeStroke = StrokeUtil.createEmpty()
       edgeStroke.pointers = [
         { x: 0, y: 0, dt: 0, p: 1 },
         { x: 10, y: 0, dt: 1, p: 1 },
@@ -376,10 +347,10 @@ describe("IITranslateManager.ts", () => {
       ;(canvas as unknown as { history: IIHistoryManager }).history = history
       const manager = new IITranslateManager(asCanvas(canvas))
 
-      const shape = ShapeCircleOps.create({ x: 50, y: 50 }, 20)
+      const shape = ShapeUtil.createCircle({ x: 50, y: 50 }, 20)
       canvas.model.addSymbol(shape)
 
-      const edge = EdgeLineOps.create({ x: 0, y: 0 }, { x: 100, y: 100 })
+      const edge = EdgeUtil.createLine({ x: 0, y: 0 }, { x: 100, y: 100 })
       edge.endAnchor = { symbolId: shape.id, normalizedX: 0.5, normalizedY: 0.5 }
       canvas.model.addSymbol(edge)
 
@@ -435,11 +406,11 @@ describe("IITranslateManager.ts", () => {
       ;(canvas as unknown as { connector: IIConnectorManager }).connector = new IIConnectorManager(asCanvas(canvas))
       const manager = new IITranslateManager(asCanvas(canvas))
 
-      const shape = ShapeCircleOps.create({ x: 50, y: 50 }, 20)
+      const shape = ShapeUtil.createCircle({ x: 50, y: 50 }, 20)
       canvas.model.addSymbol(shape)
       jest.spyOn(canvas.jiix, "getStrokesForElement").mockImplementation((id) => (id === shape.id ? [shape.id] : []))
 
-      const edgeStroke = StrokeOps.create()
+      const edgeStroke = StrokeUtil.createEmpty()
       edgeStroke.pointers = [
         { x: 0, y: 0, dt: 0, p: 1 },
         { x: 5, y: 0, dt: 1, p: 1 },
@@ -468,9 +439,9 @@ describe("IITranslateManager.ts", () => {
       canvas.client.transformTranslate = jest.fn(() => Promise.resolve())
       const manager = new IITranslateManager(asCanvas(canvas))
 
-      const shape = ShapeCircleOps.create({ x: 50, y: 50 }, 20)
+      const shape = ShapeUtil.createCircle({ x: 50, y: 50 }, 20)
       canvas.model.addSymbol(shape)
-      const edge = EdgeLineOps.create({ x: 0, y: 0 }, { x: 100, y: 100 })
+      const edge = EdgeUtil.createLine({ x: 0, y: 0 }, { x: 100, y: 100 })
       edge.endAnchor = { symbolId: shape.id, normalizedX: 0.5, normalizedY: 0.5 }
       canvas.model.addSymbol(edge)
 
@@ -496,13 +467,13 @@ describe("IITranslateManager.ts", () => {
       ;(canvas as unknown as { connector: IIConnectorManager }).connector = new IIConnectorManager(asCanvas(canvas))
       const manager = new IITranslateManager(asCanvas(canvas))
 
-      const shape = ShapeCircleOps.create({ x: 50, y: 50 }, 20)
+      const shape = ShapeUtil.createCircle({ x: 50, y: 50 }, 20)
       canvas.model.addSymbol(shape)
       // The gradient-follow direction resolves the connected block's center via
       // jiix.getStrokesForElement + model.getRootSymbol — here the "block" is just the shape itself.
       jest.spyOn(canvas.jiix, "getStrokesForElement").mockImplementation((id) => (id === shape.id ? [shape.id] : []))
 
-      const edgeStroke = StrokeOps.create()
+      const edgeStroke = StrokeUtil.createEmpty()
       edgeStroke.pointers = [
         { x: 0, y: 0, dt: 0, p: 1 },
         { x: 10, y: 0, dt: 1, p: 1 },
@@ -574,8 +545,8 @@ describe("IITranslateManager.ts", () => {
         create(partial: TPartialDeep<TStickyNote>): TStickyNote {
           return partial as TStickyNote
         }
-        computeGeometry(): TSymbolGeometry {
-          return { bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0), vertices: [], snapPoints: [], edges: [], length: 0 }
+        getGeometry(symbol: TStickyNote): Geometry2d {
+          return new Polygon2d(BoxOps.getCorners({ x: symbol.point.x, y: symbol.point.y, width: 10, height: 10 }))
         }
         overlaps(): boolean {
           return false
@@ -688,7 +659,7 @@ describe("IIC-1999, a selection of typeset symbols", () => {
 
       const stroke = buildIIStroke()
       canvas.model.addSymbol(stroke)
-      const decorator = DecoratorOps.create(
+      const decorator = DecoratorUtil.createDecorator(
         DecoratorKind.Highlight,
         {},
         [stroke.id],
@@ -713,7 +684,7 @@ describe("IIC-1999, a selection of typeset symbols", () => {
       const otherStroke = buildIIStroke()
       canvas.model.addSymbol(movedStroke)
       canvas.model.addSymbol(otherStroke)
-      const decorator = DecoratorOps.create(
+      const decorator = DecoratorUtil.createDecorator(
         DecoratorKind.Highlight,
         {},
         [otherStroke.id],
@@ -733,7 +704,7 @@ describe("IIC-1999, a selection of typeset symbols", () => {
 
       const stroke = buildIIStroke()
       canvas.model.addSymbol(stroke)
-      const decorator = DecoratorOps.create(
+      const decorator = DecoratorUtil.createDecorator(
         DecoratorKind.Underline,
         {},
         [stroke.id],

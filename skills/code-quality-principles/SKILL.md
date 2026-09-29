@@ -7,7 +7,7 @@ description: iinkTS code quality checklist — centralization, DRY, short functi
 
 ## Centralization
 
-One source of truth per concept. `src/utils/` for cross-cutting utilities, `Abstract*`/`Base*` classes for shared behavior. Before writing a utility function → grep `src/utils/` first.
+One source of truth per concept. `src/core/` for cross-cutting primitives, `Abstract*`/`Base*` classes for shared behavior. Before writing a utility function → grep `src/core/` first.
 
 ## DRY
 

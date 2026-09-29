@@ -18,10 +18,9 @@ import type { TEdge, TStroke, TSymbol } from "@/symbol"
 import type { TAnchor } from "@/symbol/edge/Anchor"
 import { computeNormalizedAnchor, resolveAnchorPoint } from "@/symbol/edge/Anchor"
 import { stretchArcEndpoint } from "@/symbol/edge/Arc"
-import { EdgeOps } from "@/symbol/edge/Edge"
-import { ShapeOps } from "@/symbol/shape/Shape"
 import { isStroke } from "@/symbol/stroke/Stroke"
 import { cloneSymbol } from "@/symbol/SymbolHelpers"
+import { EdgeUtil, ShapeUtil } from "@/symbol-utils"
 import { SVGBuilder } from "@/symbol-utils/SVGBuilder"
 import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
@@ -114,7 +113,7 @@ export class IIConnectorManager extends IIAbstractManager {
     if (this.#anchoredEdgesCacheVersion !== currentVersion) {
       this.#anchoredEdgesCacheVersion = currentVersion
       this.#anchoredEdgesCache = this.model.symbols.filter(
-        (s): s is TEdge => EdgeOps.isEdge(s) && (!!s.startAnchor || !!s.endAnchor)
+        (s): s is TEdge => EdgeUtil.isEdge(s) && (!!s.startAnchor || !!s.endAnchor)
       )
     }
     return this.#anchoredEdgesCache
@@ -129,7 +128,7 @@ export class IIConnectorManager extends IIAbstractManager {
       if (s.id === excludeId) {
         return false
       }
-      if (EdgeOps.isEdge(s)) {
+      if (EdgeUtil.isEdge(s)) {
         return false
       }
       // Whole-document scan on every anchor-hint hover (see showAnchorHint) — one bad symbol
@@ -137,7 +136,7 @@ export class IIConnectorManager extends IIAbstractManager {
       if (!symbolRegistry.has(s.type)) {
         return false
       }
-      if (ShapeOps.isShape(s)) {
+      if (ShapeUtil.isShape(s)) {
         return isPointInsidePolygon(point, SymbolGeometry.verticesOf(s))
       }
       return OBBOps.containsPoint(SymbolGeometry.boundsOf(s), point)
@@ -256,34 +255,34 @@ export class IIConnectorManager extends IIAbstractManager {
    * Must be called after the edge endpoints and anchor target shape are in their final positions.
    */
   private recomputeAllEntryPoints(edge: TEdge): void {
-    if (EdgeOps.isLineEdge(edge)) {
+    if (EdgeUtil.isLineEdge(edge)) {
       if (edge.startAnchor) {
         const target = this.model.getRootSymbol(edge.startAnchor.symbolId)
         edge.startAnchor.entryPoint =
-          target && ShapeOps.isShape(target)
+          target && ShapeUtil.isShape(target)
             ? this.#entryPointInEdgeFrame(edge, edge.start, edge.end, SymbolGeometry.verticesOf(target))
             : undefined
       }
       if (edge.endAnchor) {
         const target = this.model.getRootSymbol(edge.endAnchor.symbolId)
         edge.endAnchor.entryPoint =
-          target && ShapeOps.isShape(target)
+          target && ShapeUtil.isShape(target)
             ? this.#entryPointInEdgeFrame(edge, edge.end, edge.start, SymbolGeometry.verticesOf(target))
             : undefined
       }
-    } else if (EdgeOps.isPolyEdge(edge)) {
+    } else if (EdgeUtil.isPolyEdge(edge)) {
       const n = edge.points.length
       if (edge.startAnchor && n >= 2) {
         const target = this.model.getRootSymbol(edge.startAnchor.symbolId)
         edge.startAnchor.entryPoint =
-          target && ShapeOps.isShape(target)
+          target && ShapeUtil.isShape(target)
             ? this.#entryPointInEdgeFrame(edge, edge.points[0], edge.points[1], SymbolGeometry.verticesOf(target))
             : undefined
       }
       if (edge.endAnchor && n >= 2) {
         const target = this.model.getRootSymbol(edge.endAnchor.symbolId)
         edge.endAnchor.entryPoint =
-          target && ShapeOps.isShape(target)
+          target && ShapeUtil.isShape(target)
             ? this.#entryPointInEdgeFrame(
                 edge,
                 edge.points[n - 1],
@@ -292,7 +291,7 @@ export class IIConnectorManager extends IIAbstractManager {
               )
             : undefined
       }
-    } else if (EdgeOps.isArcEdge(edge)) {
+    } else if (EdgeUtil.isArcEdge(edge)) {
       // `edge` is always a draft here (every caller passes one mid-edit), so this never hits the
       // geometry cache — one verticesOf call shared by both branches instead of the three separate
       // reads (`.length`, `[0]`/`[1]`, `[n-1]`/`[n-2]`) the field-access version used to make.
@@ -303,14 +302,14 @@ export class IIConnectorManager extends IIAbstractManager {
       if (edge.startAnchor && n >= 2) {
         const target = this.model.getRootSymbol(edge.startAnchor.symbolId)
         edge.startAnchor.entryPoint =
-          target && ShapeOps.isShape(target)
+          target && ShapeUtil.isShape(target)
             ? this.#entryPointInEdgeFrame(edge, vertices[0], vertices[1], SymbolGeometry.verticesOf(target))
             : undefined
       }
       if (edge.endAnchor && n >= 2) {
         const target = this.model.getRootSymbol(edge.endAnchor.symbolId)
         edge.endAnchor.entryPoint =
-          target && ShapeOps.isShape(target)
+          target && ShapeUtil.isShape(target)
             ? this.#entryPointInEdgeFrame(edge, vertices[n - 1], vertices[n - 2], SymbolGeometry.verticesOf(target))
             : undefined
       }
@@ -324,7 +323,7 @@ export class IIConnectorManager extends IIAbstractManager {
    * Called after the user releases an edge endpoint drag.
    */
   applyEndpointAnchor(edge: TDraft<TEdge>, pointIndex: number, point: TPoint): void {
-    if (!EdgeOps.isLineEdge(edge) && !EdgeOps.isPolyEdge(edge) && !EdgeOps.isArcEdge(edge)) {
+    if (!EdgeUtil.isLineEdge(edge) && !EdgeUtil.isPolyEdge(edge) && !EdgeUtil.isArcEdge(edge)) {
       return
     }
     const isStart = pointIndex === 0
@@ -350,7 +349,7 @@ export class IIConnectorManager extends IIAbstractManager {
         normalizedX: 0.5,
         normalizedY: 0.5,
       }
-      if (EdgeOps.isLineEdge(edge)) {
+      if (EdgeUtil.isLineEdge(edge)) {
         if (isStart) {
           edge.start = center
           edge.startAnchor = anchor
@@ -359,7 +358,7 @@ export class IIConnectorManager extends IIAbstractManager {
           edge.end = center
           edge.endAnchor = anchor
         }
-      } else if (EdgeOps.isPolyEdge(edge)) {
+      } else if (EdgeUtil.isPolyEdge(edge)) {
         if (isStart) {
           edge.points[0] = center
           edge.startAnchor = anchor
@@ -368,7 +367,7 @@ export class IIConnectorManager extends IIAbstractManager {
           edge.points[edge.points.length - 1] = center
           edge.endAnchor = anchor
         }
-      } else if (EdgeOps.isArcEdge(edge)) {
+      } else if (EdgeUtil.isArcEdge(edge)) {
         // An arc has no independent start/end coordinate to overwrite directly — stretch the
         // ellipse (keeping the other endpoint fixed) so the anchored endpoint lands exactly on
         // the target's center, same as a manual endpoint drag.
@@ -408,7 +407,7 @@ export class IIConnectorManager extends IIAbstractManager {
     // even when only one shape is moving, the other endpoint's exit angle changes.
     const recomputeAnchor = (anchor: TAnchor, from: TPoint, to: TPoint): TAnchor => {
       const target = this.model.getRootSymbol(anchor.symbolId)
-      if (!target || !ShapeOps.isShape(target)) {
+      if (!target || !ShapeUtil.isShape(target)) {
         return anchor
       }
       const vertices = idSet.has(anchor.symbolId)
@@ -421,7 +420,7 @@ export class IIConnectorManager extends IIAbstractManager {
     }
 
     this.#getAnchoredEdges().forEach((symbol) => {
-      if (EdgeOps.isArcEdge(symbol)) {
+      if (EdgeUtil.isArcEdge(symbol)) {
         let clone = symbol
         let changed = false
         // No `isShape` filter on the target here: neither the Line/PolyEdge preview branches
@@ -464,13 +463,13 @@ export class IIConnectorManager extends IIAbstractManager {
         return
       }
 
-      if (!EdgeOps.isLineEdge(symbol) && !EdgeOps.isPolyEdge(symbol)) {
+      if (!EdgeUtil.isLineEdge(symbol) && !EdgeUtil.isPolyEdge(symbol)) {
         return
       }
 
       let changed = false
 
-      if (EdgeOps.isLineEdge(symbol)) {
+      if (EdgeUtil.isLineEdge(symbol)) {
         let start = symbol.start
         let end = symbol.end
         const startTargetSymbol =
@@ -508,7 +507,7 @@ export class IIConnectorManager extends IIAbstractManager {
           }
           this.canvas.renderer.drawSymbol(clone)
         }
-      } else if (EdgeOps.isPolyEdge(symbol)) {
+      } else if (EdgeUtil.isPolyEdge(symbol)) {
         const points = symbol.points.map((p) => ({
           ...p,
         }))
@@ -605,10 +604,10 @@ export class IIConnectorManager extends IIAbstractManager {
    */
   clearAnchoredEdgesFor(symbols: TSymbol[]): void {
     symbols.forEach((committed) => {
-      if (!EdgeOps.isEdge(committed)) {
+      if (!EdgeUtil.isEdge(committed)) {
         return
       }
-      if (!EdgeOps.isLineEdge(committed) && !EdgeOps.isPolyEdge(committed) && !EdgeOps.isArcEdge(committed)) {
+      if (!EdgeUtil.isLineEdge(committed) && !EdgeUtil.isPolyEdge(committed) && !EdgeUtil.isArcEdge(committed)) {
         return
       }
       if (!committed.startAnchor && !committed.endAnchor) {
@@ -662,7 +661,7 @@ export class IIConnectorManager extends IIAbstractManager {
     this.model.symbols.forEach((committed) => {
       // Guarded on the committed record, so only the edges that can actually move get drafted —
       // drafting every edge on every pass would put back the per-frame copy this epic removes.
-      if (!EdgeOps.isEdge(committed) || !isAnchoredToMoved(committed)) {
+      if (!EdgeUtil.isEdge(committed) || !isAnchoredToMoved(committed)) {
         return
       }
       const symbol = this.model.draftSymbol(committed.id) as TDraft<TEdge> | undefined
@@ -670,7 +669,7 @@ export class IIConnectorManager extends IIAbstractManager {
         return
       }
 
-      if (EdgeOps.isArcEdge(symbol)) {
+      if (EdgeUtil.isArcEdge(symbol)) {
         let changed = false
         const oldSymbol = cloneSymbol(symbol)
         if (symbol.startAnchor && idSet.has(symbol.startAnchor.symbolId)) {
@@ -697,14 +696,14 @@ export class IIConnectorManager extends IIAbstractManager {
         return
       }
 
-      if (!EdgeOps.isLineEdge(symbol) && !EdgeOps.isPolyEdge(symbol)) {
+      if (!EdgeUtil.isLineEdge(symbol) && !EdgeUtil.isPolyEdge(symbol)) {
         return
       }
 
       let changed = false
       const oldSymbol = cloneSymbol(symbol)
 
-      if (EdgeOps.isLineEdge(symbol)) {
+      if (EdgeUtil.isLineEdge(symbol)) {
         if (symbol.startAnchor && idSet.has(symbol.startAnchor.symbolId)) {
           const point = this.resolveAndUpdateAnchor(symbol.startAnchor, symbol, matrix, preTransformBoundsById)
           if (point) {
@@ -722,7 +721,7 @@ export class IIConnectorManager extends IIAbstractManager {
         if (changed) {
           this.recomputeAllEntryPoints(symbol)
         }
-      } else if (EdgeOps.isPolyEdge(symbol)) {
+      } else if (EdgeUtil.isPolyEdge(symbol)) {
         if (symbol.startAnchor && idSet.has(symbol.startAnchor.symbolId)) {
           const point = this.resolveAndUpdateAnchor(symbol.startAnchor, symbol, matrix, preTransformBoundsById)
           if (point && symbol.points.length > 0) {

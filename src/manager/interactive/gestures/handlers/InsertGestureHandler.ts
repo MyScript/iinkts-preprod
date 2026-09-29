@@ -6,8 +6,7 @@ import type { TIIHistoryChanges } from "@/history"
 import { appendUpdated } from "@/history"
 import type { TDecorator, TStroke, TText } from "@/symbol"
 import { cloneSymbol, isText, SymbolType, type TSymbol } from "@/symbol"
-import { StrokeOps } from "@/symbol/stroke/Stroke"
-import { TextOps } from "@/symbol/typeset/Text"
+import { StrokeUtil, TextUtil } from "@/symbol-utils"
 import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 
@@ -68,7 +67,7 @@ export class InsertGestureHandler extends GestureHandler {
       // Same origin as the stroke it is cut from: its pointers keep the `dt` they were captured
       // with, and those count from that origin. A fresh `creationTime` here would place every
       // one of them at the instant of the split.
-      const subStroke = StrokeOps.create(strokeOrigin.style, strokeOrigin.pointerType, strokeOrigin.creationTime)
+      const subStroke = StrokeUtil.createEmpty(strokeOrigin.style, strokeOrigin.pointerType, strokeOrigin.creationTime)
       subStrokes[0].x.forEach((x, i) => {
         subStroke.pointers.push({
           x,
@@ -83,7 +82,7 @@ export class InsertGestureHandler extends GestureHandler {
       // Same origin as the stroke it is cut from: its pointers keep the `dt` they were captured
       // with, and those count from that origin. A fresh `creationTime` here would place every
       // one of them at the instant of the split.
-      const subStroke = StrokeOps.create(strokeOrigin.style, strokeOrigin.pointerType, strokeOrigin.creationTime)
+      const subStroke = StrokeUtil.createEmpty(strokeOrigin.style, strokeOrigin.pointerType, strokeOrigin.creationTime)
       subStrokes[1].x.forEach((x, i) => {
         subStroke.pointers.push({
           x,
@@ -214,7 +213,7 @@ export class InsertGestureHandler extends GestureHandler {
     const charsAfter = textToSplit.chars.filter((c) => c.bounds.x + c.bounds.width / 2 > gestureBounds.center.x)
     const newTexts: TText[] = []
     if (charsBefore.length && charsAfter.length) {
-      const textBefore = TextOps.create(
+      const textBefore = TextUtil.createText(
         charsBefore,
         textToSplit.point,
         BoxOps.createFromBoxes(charsBefore.map((c) => c.bounds))
@@ -240,7 +239,11 @@ export class InsertGestureHandler extends GestureHandler {
           y: textBefore.point.y,
         }
       }
-      const textAfter = TextOps.create(charsAfter, pointAfter, BoxOps.createFromBoxes(charsAfter.map((c) => c.bounds)))
+      const textAfter = TextUtil.createText(
+        charsAfter,
+        pointAfter,
+        BoxOps.createFromBoxes(charsAfter.map((c) => c.bounds))
+      )
       textAfter.decorators = textToSplit.decorators.map((d) => cloneSymbol(d) as TDecorator)
       this.typeset.setBounds(textAfter)
       newTexts.push(textAfter)

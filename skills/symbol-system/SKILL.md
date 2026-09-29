@@ -1,9 +1,10 @@
 ---
 name: symbol-system
 description: >
-  Deep guide to the iinkTS symbol system: TSymbol union, type guards, the Ops/Util
-  two-layer pattern, SymbolFactory, symbolRegistry. Use when writing type-safe symbol
-  code, adding symbol behavior, or debugging type confusion between variants.
+  Deep guide to the iinkTS symbol system: TSymbol union, type guards, the util that
+  holds everything a type knows, Geometry2d, SymbolFactory, symbolRegistry. Use when
+  writing type-safe symbol code, adding symbol behavior, or debugging type confusion
+  between variants.
 ---
 
 # Symbol System
@@ -22,10 +23,22 @@ TSymbol (union, src/symbol/Symbol.ts)
 
 **Not in `TSymbol`**: `TEraser` (separate), legacy `Stroke`/`CanvasSymbol` (deprecated v1, `src/symbol/legacy/`), `TPoint`/`TBox`/`OBB` (primitives).
 
-## Two layers of per-type logic
+## One place per type: the util
 
-1. **`*Ops`** — pure functions/objects co-located with the type definition in `src/symbol/{type}/{Type}.ts`: `StrokeOps`, `TextOps`, `MathOps`, `DecoratorOps`, `EraserOps`, `BoxOps`, `ShapeOps`, `EdgeOps`. This is where `create`/update/overlap logic actually lives — usable standalone, no registry dependency.
-2. **`*Util`** — adapter classes in `src/symbol-utils/{type}/{Type}Util.ts` (`StrokeUtil`, `TextUtil`, `MathUtil`, `ShapeUtil`, `EdgeUtil`, `DecoratorUtil`), extending abstract `SymbolUtil`. Mostly delegate to the matching `*Ops`, plus implement `getSVGElement()` for rendering. All 6 register into `symbolRegistry` via `registerBuiltinSymbolUtils()`.
+`src/symbol/{type}/{Type}.ts` holds the **type and its guards, and nothing else**.
+
+`src/symbol-utils/{type}/{Type}Util.ts` holds **everything a type knows** — `StrokeUtil`, `TextUtil`,
+`MathUtil`, `ShapeUtil`, `EdgeUtil`, `DecoratorUtil`, all extending `SymbolUtil`. Instance methods are
+the contract the registry dispatches (`getGeometry`, `getSVGElement`, `canSelect`…); statics are
+construction and editing, which have no symbol to dispatch on — `StrokeUtil.createEmpty`,
+`ShapeUtil.createCircleBetweenPoints`, `EdgeUtil.moveLineVertex`. All 6 register via
+`registerBuiltinSymbolUtils()`.
+
+There is **no `*Ops` object for a symbol any more**. The two that remain are not symbols: `BoxOps` and
+`OBBOps` are geometry primitives, and `EraserOps` belongs to a transient tool with no util.
+
+A type describes its shape with `getGeometry(symbol): Geometry2d` and inherits overlap, containment
+and distance from it — see `src/core/geometry/shapes/`.
 
 `SVGRenderer` dispatches rendering with `symbolRegistry.getUtil(symbol.type).getSVGElement(symbol)` — no `switch` on `SymbolType` in the renderer.
 
@@ -79,10 +92,10 @@ Creating symbols by hand bypasses ID generation and default style merging.
 |---------|-----|
 | `symbol.type === "stroke"` inline check | Use `isStroke(symbol)` from `@/symbol/stroke/Stroke` |
 | Assuming `SymbolHelpers` dispatches by type | It only has `cloneSymbol()` — use `symbolRegistry` |
-| Branching on `SymbolType` in a manager/renderer | Add/extend the type's `*Ops`/`*Util` pair instead |
+| Branching on `SymbolType` in a manager/renderer | Add/extend the type's util instead |
 | Mutating `model.symbols` array directly | Use `model.addSymbol()` / `model.removeSymbol()` |
 | Looking for per-type logic in `src/symbol/` only | Rendering + capability flags live in `src/symbol-utils/` |
 
 ## Adding a New Symbol Type
 
-See the `add-symbol-type` skill for the full step-by-step (enum → type+Ops → Util adapter → registry → renderer → tests).
+See the `add-symbol-type` skill for the full step-by-step (enum → type + guard → util → registry → renderer → tests).

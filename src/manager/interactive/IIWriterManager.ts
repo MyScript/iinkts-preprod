@@ -13,11 +13,7 @@ import type { SVGRenderer } from "@/renderer"
 import type { TStyle } from "@/style"
 import type { TEdge, TShapeCircle, TShapeEllipse, TShapePolygon, TStroke, TSymbol } from "@/symbol"
 import { cloneSymbol, EdgeKind, isStroke, SymbolType } from "@/symbol"
-import { EdgeLineOps } from "@/symbol/edge/Line"
-import { ShapeCircleOps } from "@/symbol/shape/Circle"
-import { ShapeEllipseOps } from "@/symbol/shape/Ellipse"
-import { ShapePolygonOps } from "@/symbol/shape/Polygon"
-import { StrokeOps } from "@/symbol/stroke/Stroke"
+import { EdgeUtil, ShapeUtil, StrokeUtil } from "@/symbol-utils"
 import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 
@@ -131,25 +127,25 @@ export class IIWriterManager extends AbstractWriterManager {
   protected createCurrentSymbol(pointer: TPointer, style: TStyle, pointerType: string, creationTime: number): TSymbol {
     switch (this.tool) {
       case CanvasWriteTool.Pencil:
-        this.currentSymbol = StrokeOps.create(style, pointerType, creationTime)
+        this.currentSymbol = StrokeUtil.createEmpty(style, pointerType, creationTime)
         break
       case CanvasWriteTool.Rectangle:
-        this.currentSymbol = ShapePolygonOps.createRectangleBetweenPoints(pointer, pointer, style)
+        this.currentSymbol = ShapeUtil.createRectangleBetweenPoints(pointer, pointer, style)
         break
       case CanvasWriteTool.Triangle:
-        this.currentSymbol = ShapePolygonOps.createTriangleBetweenPoints(pointer, pointer, style)
+        this.currentSymbol = ShapeUtil.createTriangleBetweenPoints(pointer, pointer, style)
         break
       case CanvasWriteTool.Parallelogram:
-        this.currentSymbol = ShapePolygonOps.createParallelogramBetweenPoints(pointer, pointer, style)
+        this.currentSymbol = ShapeUtil.createParallelogramBetweenPoints(pointer, pointer, style)
         break
       case CanvasWriteTool.Rhombus:
-        this.currentSymbol = ShapePolygonOps.createRhombusBetweenPoints(pointer, pointer, style)
+        this.currentSymbol = ShapeUtil.createRhombusBetweenPoints(pointer, pointer, style)
         break
       case CanvasWriteTool.Circle:
-        this.currentSymbol = ShapeCircleOps.createBetweenPoints(pointer, pointer, style)
+        this.currentSymbol = ShapeUtil.createCircleBetweenPoints(pointer, pointer, style)
         break
       case CanvasWriteTool.Ellipse:
-        this.currentSymbol = ShapeEllipseOps.createBetweenPoints(pointer, pointer, style)
+        this.currentSymbol = ShapeUtil.createEllipseBetweenPoints(pointer, pointer, style)
         break
       case CanvasWriteTool.Line:
       case CanvasWriteTool.Arrow:
@@ -161,7 +157,7 @@ export class IIWriterManager extends AbstractWriterManager {
           startDecoration = EdgeDecoration.Arrow
           endDecoration = EdgeDecoration.Arrow
         }
-        this.currentSymbol = EdgeLineOps.create(pointer, pointer, startDecoration, endDecoration, style)
+        this.currentSymbol = EdgeUtil.createLine(pointer, pointer, startDecoration, endDecoration, style)
         break
       }
       default:
@@ -173,38 +169,26 @@ export class IIWriterManager extends AbstractWriterManager {
   protected updateCurrentSymbolShape(pointer: TPointer): void {
     switch (this.tool) {
       case CanvasWriteTool.Rectangle:
-        ShapePolygonOps.updateRectangleBetweenPoints(
-          this.currentSymbol as TShapePolygon,
-          this.currentSymbolOrigin!,
-          pointer
-        )
+        ShapeUtil.updateRectangleBetweenPoints(this.currentSymbol as TShapePolygon, this.currentSymbolOrigin!, pointer)
         break
       case CanvasWriteTool.Triangle:
-        ShapePolygonOps.updateTriangleBetweenPoints(
-          this.currentSymbol as TShapePolygon,
-          this.currentSymbolOrigin!,
-          pointer
-        )
+        ShapeUtil.updateTriangleBetweenPoints(this.currentSymbol as TShapePolygon, this.currentSymbolOrigin!, pointer)
         break
       case CanvasWriteTool.Parallelogram:
-        ShapePolygonOps.updateParallelogramBetweenPoints(
+        ShapeUtil.updateParallelogramBetweenPoints(
           this.currentSymbol as TShapePolygon,
           this.currentSymbolOrigin!,
           pointer
         )
         break
       case CanvasWriteTool.Rhombus:
-        ShapePolygonOps.updateRhombusBetweenPoints(
-          this.currentSymbol as TShapePolygon,
-          this.currentSymbolOrigin!,
-          pointer
-        )
+        ShapeUtil.updateRhombusBetweenPoints(this.currentSymbol as TShapePolygon, this.currentSymbolOrigin!, pointer)
         break
       case CanvasWriteTool.Circle:
-        ShapeCircleOps.updateBetweenPoints(this.currentSymbol as TShapeCircle, this.currentSymbolOrigin!, pointer)
+        ShapeUtil.updateCircleBetweenPoints(this.currentSymbol as TShapeCircle, this.currentSymbolOrigin!, pointer)
         break
       case CanvasWriteTool.Ellipse:
-        ShapeEllipseOps.updateBetweenPoints(this.currentSymbol as TShapeEllipse, this.currentSymbolOrigin!, pointer)
+        ShapeUtil.updateEllipseBetweenPoints(this.currentSymbol as TShapeEllipse, this.currentSymbolOrigin!, pointer)
         break
     }
   }
@@ -225,7 +209,7 @@ export class IIWriterManager extends AbstractWriterManager {
 
     switch (this.currentSymbol.type) {
       case SymbolType.Stroke:
-        StrokeOps.addPointer(this.currentSymbol as TStroke, pointer)
+        StrokeUtil.addPointer(this.currentSymbol as TStroke, pointer)
         break
       case SymbolType.Shape:
         this.updateCurrentSymbolShape(pointer)

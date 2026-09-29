@@ -1,17 +1,16 @@
-import type { TBox } from "@/core/geometry"
-import type { TPoint } from "@/core/geometry"
-import { isIdentityMatrix, MatrixTransform } from "@/core/geometry"
+import { isValidPoint, mergeSymbolTransform, type TOBB } from "@/core/geometry"
+import { MatrixTransform, OBBOps, type TBox, type TPoint } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
-import { DecoratorKind } from "@/symbol/decorator/Decorator"
+import { createUUID } from "@/core/std"
+import { mergeSymbolStyle, type TStyle } from "@/style"
 import { SymbolType } from "@/symbol/Symbol"
-import { TextOps, type TText } from "@/symbol/typeset/Text"
+import type { TSymbolChar } from "@/symbol/typeset/Text"
+import { type TText } from "@/symbol/typeset/Text"
+import { computeChildrenOverlaps } from "@/symbol/typeset/Typeset"
 
 import { DecoratorUtil } from "../decorator/DecoratorUtil"
 import { SVGBuilder } from "../SVGBuilder"
 import { TypesetUtil } from "./TypesetUtil"
-
-const noSelection =
-  "pointer-events: none; -webkit-touch-callout: none; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;"
 
 /**
  * @group SymbolUtils
@@ -20,60 +19,119 @@ export class TextUtil extends TypesetUtil<TText> {
   readonly type = SymbolType.Text
 
   create(partial: TPartialDeep<TText>): TText {
-    return TextOps.createFromPartial(partial)
+    return TextUtil.createFromPartial(partial)
   }
 
-  overlaps(text: TText, box: TBox): boolean {
-    return this.overlapsQuery(text, box, (b) => TextOps.overlaps(text, b))
+  /** One text element on the baseline, one tspan per character. */
+  protected buildContent(text: TText): SVGElement[] {
+    const textElement = SVGBuilder.createText(text.point, "")
+    text.chars.forEach((c) => {
+      textElement.appendChild(
+        SVGBuilder.createTSpan(c.label, {
+          id: c.id,
+          fill: c.color,
+          "font-size": `${c.fontSize}px`,
+          "font-weight": c.fontWeight.toString(),
+        })
+      )
+    })
+    return [textElement]
   }
 
-  getSnapPoints(text: TText): TPoint[] {
-    return this.mapPointsForward(text, this.computeGeometry(text).snapPoints)
+  static createText(chars: TSymbolChar[], point: TPoint, boundsBox: TBox, style?: TPartialDeep<TStyle>): TText {
+    const mergedStyle = mergeSymbolStyle(style)
+    const now = Date.now()
+    return {
+      type: SymbolType.Text,
+      id: `${SymbolType.Text}-${createUUID()}`,
+      style: mergedStyle,
+      creationTime: now,
+      modificationDate: now,
+      point,
+      chars,
+      decorators: [],
+      bounds: OBBOps.fromBox(boundsBox),
+      transform: MatrixTransform.identity(),
+    }
   }
 
-  getSVGElement(text: TText): SVGGraphicsElement {
-    const attrs: { [key: string]: string } = {
+  static createFromPartial(partial: TPartialDeep<TText>): TText {
+    if (!isValidPoint(partial?.point)) {
+      throw new Error(`Unable to create TText, point are invalid`)
+    }
+    if (!partial.chars?.length) {
+      throw new Error(`Unable to create TText, no chars`)
+    }
+    if (!partial.bounds) {
+      throw new Error(`Unable to create TText, no boundingBox`)
+    }
+    const rawBounds = partial.bounds as unknown
+    const boundsBox: TBox =
+      rawBounds && typeof rawBounds === "object" && "center" in rawBounds
+        ? OBBOps.toBox(rawBounds as TOBB)
+        : (rawBounds as TBox)
+    const text = TextUtil.createText(partial.chars as TSymbolChar[], partial.point as TPoint, boundsBox, partial.style)
+    if (partial.id) {
+      text.id = partial.id
+    }
+    text.transform = mergeSymbolTransform(partial.transform)
+    if (partial.decorators?.length) {
+      partial.decorators.forEach((d) => {
+        if (d?.kind) {
+          text.decorators.push(DecoratorUtil.createDecorator(d.kind, Object.assign({}, text.style, d.style)))
+        }
+      })
+    }
+    return text
+  }
+
+  static getChildrenOverlaps(text: TText, points: TPoint[]): TSymbolChar[] {
+    return computeChildrenOverlaps(text.chars, points)
+  }
+
+  static updateChildrenStyle(text: TText): void {
+    text.chars.forEach((c) => {
+      if (text.style.color) {
+        c.color = text.style.color
+      }
+    })
+    text.modificationDate = Date.now()
+  }
+
+  static updateChildrenFont(
+    text: TText,
+    {
+      fontSize,
+      fontWeight,
+    }: {
+      fontSize?: number
+      fontWeight?: "normal" | "bold"
+    }
+  ): void {
+    text.chars.forEach((c) => {
+      if (fontSize) {
+        c.fontSize = fontSize
+      }
+      if (fontWeight) {
+        c.fontWeight = fontWeight
+      }
+    })
+    text.modificationDate = Date.now()
+  }
+
+  static getLabel(text: TText): string {
+    return text.chars.map((c) => c.label).join("")
+  }
+
+  static toJSON(text: TText): TPartialDeep<TText> {
+    return {
       id: text.id,
       type: text.type,
-      "vector-effect": "non-scaling-stroke",
-      "stroke-linecap": "round",
-      "stroke-linejoin": "round",
-      style: noSelection,
+      point: text.point,
+      chars: text.chars,
+      style: text.style,
+      bounds: OBBOps.toBox(text.bounds),
+      decorators: text.decorators.length ? text.decorators : undefined,
     }
-    if (text.style.opacity) {
-      attrs.opacity = text.style.opacity.toString()
-    }
-    // Turning a text symbol is composed into its matrix now, not recorded separately — there is no
-    // `.rotation` left to combine this with.
-    if (!isIdentityMatrix(text.transform)) {
-      attrs.transform = MatrixTransform.toCssString(text.transform)
-    }
-
-    const textGroup = SVGBuilder.createGroup(attrs)
-    const textElement = SVGBuilder.createText(text.point, "")
-
-    text.chars.forEach((c) => {
-      const charAttrs: { [key: string]: string } = {
-        id: c.id,
-        fill: c.color,
-        "font-size": `${c.fontSize}px`,
-        "font-weight": c.fontWeight.toString(),
-      }
-      textElement.appendChild(SVGBuilder.createTSpan(c.label, charAttrs))
-    })
-    textGroup.append(textElement)
-
-    text.decorators.forEach((d) => {
-      const deco = DecoratorUtil.renderForSymbol(d, text)
-      if (deco) {
-        if (d.kind === DecoratorKind.Highlight) {
-          textGroup.prepend(deco)
-        } else {
-          textGroup.append(deco)
-        }
-      }
-    })
-
-    return textGroup
   }
 }

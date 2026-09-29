@@ -1,9 +1,10 @@
+import { edgeGeometry } from "../../helpers"
 import { beforeEach, describe, expect, test } from "@jest/globals"
 
 import { buildIILine } from "../../helpers"
 
 import type { TEdge, TOBB, TPartialDeep } from "@/iink"
-import { EdgeArcOps, EdgeDecoration, EdgeKind, EdgeUtil, MatrixTransform, OBBOps, SymbolType, TPoint, TSegment, EdgeLineOps, TEdgeLine, EdgePolyLineOps, TEdgePolyLine, TEdgeArc } from "@/iink"
+import { EdgeDecoration, registerBuiltinSymbolUtils, EdgeKind, EdgeUtil, MatrixTransform, SymbolType, TPoint, TEdgeLine, TEdgePolyLine, TEdgeArc } from "@/iink"
 
 /**
  * `EdgeUtil` resolved a kind with a `switch` in each of four methods until IIC-2002 replaced them
@@ -15,11 +16,10 @@ import { EdgeArcOps, EdgeDecoration, EdgeKind, EdgeUtil, MatrixTransform, OBBOps
  * dispatch oracle like {@link EDGE_BOUNDS_ORACLE}: it reaches the same `*Ops` calls `computeGeometry`
  * makes, so it pins the routing, not the arithmetic.
  */
-const EDGES_ORACLE: Record<string, (edge: TEdge, vertices: TPoint[]) => TSegment[]> = {
-  [EdgeKind.Line]: (edge) => EdgeLineOps.computeEdges(edge as TEdgeLine),
-  [EdgeKind.PolyEdge]: (edge) => EdgePolyLineOps.computeEdges((edge as TEdgePolyLine).points),
-  [EdgeKind.Arc]: (_edge, vertices) => EdgeArcOps.computeEdges(vertices),
-}
+// `overlaps` reads through `SymbolGeometry`, which resolves the util from the registry — that is
+// what buys it the per-symbol geometry cache, and a bare `new EdgeUtil()` cannot exercise it.
+registerBuiltinSymbolUtils()
+
 
 /**
  * Each kind's own bounds computation. This is a *dispatch* oracle: it proves `EdgeUtil` routes an
@@ -28,18 +28,16 @@ const EDGES_ORACLE: Record<string, (edge: TEdge, vertices: TPoint[]) => TSegment
  * own test file, against hand-written boxes.
  */
 const EDGE_BOUNDS_ORACLE: Record<string, (edge: TEdge) => TOBB> = {
-  [EdgeKind.Line]: (edge) =>
-    EdgeLineOps.computeBounds(edge as TEdgeLine, EdgeLineOps.computeVertices(edge as TEdgeLine)),
-  [EdgeKind.PolyEdge]: (edge) => EdgePolyLineOps.computeBounds(edge as TEdgePolyLine),
-  [EdgeKind.Arc]: (edge) =>
-    EdgeArcOps.computeBounds(edge as TEdgeArc, EdgeArcOps.computeVertices(edge as TEdgeArc)),
+  [EdgeKind.Line]: (edge) => edgeGeometry(EdgeUtil.getLineVertices(edge as TEdgeLine), edge).bounds,
+  [EdgeKind.PolyEdge]: (edge) => edgeGeometry((edge as TEdgePolyLine).points, edge).bounds,
+  [EdgeKind.Arc]: (edge) => edgeGeometry(EdgeUtil.getArcVertices(edge as TEdgeArc), edge).bounds,
 }
 
 /** Each kind's own vertex computation, the oracle now that the stored `vertices` field is gone. */
 const EDGE_VERTICES_ORACLE: Record<string, (edge: TEdge) => TPoint[]> = {
-  [EdgeKind.Line]: (edge) => EdgeLineOps.computeVertices(edge as TEdgeLine),
-  [EdgeKind.PolyEdge]: (edge) => EdgePolyLineOps.computeVertices(edge as TEdgePolyLine),
-  [EdgeKind.Arc]: (edge) => EdgeArcOps.computeVertices(edge as TEdgeArc),
+  [EdgeKind.Line]: (edge) => EdgeUtil.getLineVertices(edge as TEdgeLine),
+  [EdgeKind.PolyEdge]: (edge) => (edge as TEdgePolyLine).points,
+  [EdgeKind.Arc]: (edge) => EdgeUtil.getArcVertices(edge as TEdgeArc),
 }
 
 const PARTIALS: Record<string, TPartialDeep<TEdge>> = {
@@ -95,23 +93,29 @@ describe("EdgeUtil", () => {
       expect(edge().type).toBe(SymbolType.Edge)
     })
 
-    test("computeGeometry should dispatch each kind to that kind's own computation", () => {
+    test("computeGeometry should read every field off the kind's own geometry", () => {
       const created = edge()
 
-      const geometry = util.computeGeometry(created)
+      const geometry = util.getGeometry(created)
+      const edgeGeometry = util.getGeometry(created)
 
-      expect(geometry.bounds).toEqual(EDGE_BOUNDS_ORACLE[kind](created))
-      // Oracle is the kind's own vertex computation, not the stored field it replaced.
-      expect(geometry.vertices).toEqual(EDGE_VERTICES_ORACLE[kind](created))
+      // The record is a view of the geometry now, so what matters is that it does not drift from it.
+      expect(geometry.bounds).toEqual(edgeGeometry.bounds)
+      expect(geometry.vertices).toEqual(edgeGeometry.vertices)
+      expect(geometry.edges).toEqual(edgeGeometry.edges)
       // Per kind, because the three do not agree: a line and a polyline snap by every vertex, an arc
       // only by its two endpoints. Asserting `geometry.vertices` for all three passed for the first
       // two and quietly accepted a 28-point answer for the arc.
-      expect(geometry.snapPoints).toEqual(
-        kind === EdgeKind.Arc ? EdgeArcOps.computeSnapPoints(geometry.vertices) : geometry.vertices
+      expect(util.getSnapPoints(created)).toEqual(
+        kind === EdgeKind.Arc ? EdgeUtil.getArcSnapPoints(geometry.vertices) : geometry.vertices
       )
-      // Oracle is the kind's own `computeEdges`, not the stored field it replaced.
-      expect(geometry.edges).toEqual(EDGES_ORACLE[kind](created, geometry.vertices))
-      expect(geometry.length).toBe(0)
+    })
+
+    test("getGeometry should be an open path bounding the edge the kind describes", () => {
+      const geometry = util.getGeometry(edge())
+      expect(geometry.isClosed).toBe(false)
+      expect(geometry.bounds).toEqual(EDGE_BOUNDS_ORACLE[kind](edge()))
+      expect(geometry.vertices).toEqual(EDGE_VERTICES_ORACLE[kind](edge()))
     })
 
     test("should answer overlaps", () => {
@@ -124,7 +128,7 @@ describe("EdgeUtil", () => {
 
     test("should produce an svg element carrying that path", () => {
       const element = util.getSVGElement(edge())
-      const path = element.querySelector("path")
+      const path = element
       expect(element.getAttribute("kind")).toBe(kind)
       expect(path?.getAttribute("d")).toBe(EdgeUtil.getSVGPath(edge()))
     })
@@ -147,13 +151,13 @@ describe("EdgeUtil", () => {
         startDecoration: EdgeDecoration.Arrow,
         endDecoration: EdgeDecoration.Arrow,
       } as TPartialDeep<TEdge>)
-      const path = util.getSVGElement(decorated).querySelector("path")
+      const path = util.getSVGElement(decorated)
       expect(path?.getAttribute("marker-start")).toContain("url(#")
       expect(path?.getAttribute("marker-end")).toContain("url(#")
     })
 
     test("should leave an undecorated edge without markers", () => {
-      const path = util.getSVGElement(edge()).querySelector("path")
+      const path = util.getSVGElement(edge())
       expect(path?.getAttribute("marker-start")).toBeNull()
       expect(path?.getAttribute("marker-end")).toBeNull()
     })
@@ -170,28 +174,25 @@ describe("EdgeUtil", () => {
 
     test("should stay tolerant where it always was", () => {
       // Both run over whole models and never threw on an unknown kind; they still must not.
-      const unknown = { kind: "spline" } as unknown as TEdge
+      // An edge of an unknown *kind*, not an object of an unknown type: `overlaps` reads through
+      // `SymbolGeometry`, which resolves the util from `symbol.type`, so the type has to be there for
+      // this to be about the kind at all.
+      const unknown = {
+        type: SymbolType.Edge,
+        kind: "spline",
+        transform: MatrixTransform.identity(),
+      } as unknown as TEdge
       expect(util.overlaps(unknown, { x: 0, y: 0, width: 1, height: 1 })).toBe(false)
     })
 
-    test("computeGeometry should stay tolerant too, leaving the edge's own fields as its answer", () => {
-      const unknown = {
-        kind: "spline",
-        bounds: "bounds",
-        vertices: "vertices",
-        snapPoints: "snapPoints",
-        edges: "edges",
-      } as unknown as TEdge
-      expect(util.computeGeometry(unknown)).toEqual({
-        // Not the object's own `bounds` any more: no edge type declares one, so a stray property
-        // arriving as data is not something the fallback can read or echo back.
-        bounds: OBBOps.create({ x: 0, y: 0 }, 0, 0),
-        vertices: [],
-        // An unregistered kind has no snap points to offer, so the fallback returns none.
-        snapPoints: [],
-        edges: [],
-        length: 0,
-      })
+    test("getGeometry should stay tolerant too, describing nothing rather than throwing", () => {
+      const unknown = { type: SymbolType.Edge, kind: "spline", transform: MatrixTransform.identity() } as unknown as TEdge
+      const geometry = util.getGeometry(unknown)
+
+      expect(geometry.vertices).toEqual([])
+      expect(geometry.edges).toEqual([])
+      // And it is found by nothing, rather than by anything that happens to cover the origin.
+      expect(geometry.overlapsBox({ x: -1e6, y: -1e6, width: 2e6, height: 2e6 })).toBe(false)
     })
   })
 })
@@ -319,7 +320,7 @@ describe("EdgeUtil, the contract members", () => {
     test("should return the edge's snap points, which for a line are its vertices", () => {
       const line = buildIILine()
       const result = util.getSnapPoints(line)
-      expect(result).toStrictEqual(util.computeGeometry(line).vertices)
+      expect(result).toStrictEqual(util.getGeometry(line).vertices)
     })
 
     test("a rotated line's snap points land on the rotated geometry, not the raw one", () => {
