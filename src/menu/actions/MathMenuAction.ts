@@ -232,6 +232,10 @@ export class MathMenuAction extends SubMenuItem {
       items: [],
     }
 
+    if (itemsConfig?.solver !== false) {
+      config.items.push(buildSolverSubMenu(canvas, idPrefix, itemsConfig?.solver, solverDebouncer))
+    }
+
     if (enabled("autoCompute")) {
       config.items.push({
         type: "checkbox",
@@ -309,10 +313,6 @@ export class MathMenuAction extends SubMenuItem {
           await canvas.math.computeAllNumericalResults()
         },
       })
-    }
-
-    if (itemsConfig?.solver !== false) {
-      config.items.push(buildSolverSubMenu(canvas, idPrefix, itemsConfig?.solver, solverDebouncer))
     }
 
     if (enabled("showDependencies")) {
