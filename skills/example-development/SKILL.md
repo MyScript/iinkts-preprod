@@ -27,7 +27,7 @@ examples/
 ├── interactive-canvas-ssr/    # WebSocket SSR (InteractiveInkSSRCanvas) examples — 28 files
 ├── canvas/                    # HTTP (InkCanvas v2, InkCanvasDeprecated v1) examples — 16 files
 ├── non-specific/              # Configuration demos — 2 files
-├── custom-rendering/          # Third-party integrations (tldraw-websocket-client/)
+├── custom-rendering/          # Third-party integrations (tldraw-websocket-client/, excalidraw-websocket-client/)
 └── dev/                       # Development utilities (the only example still using the UMD build)
 ```
 
@@ -56,6 +56,8 @@ Batch recognition using HTTP API:
 **Custom Rendering** (`custom-rendering/`)
 
 `tldraw-websocket-client/index.html` — third-party integration with the tldraw canvas library.
+
+`excalidraw-websocket-client/index.html` — the same with Excalidraw. Excalidraw draws on a `<canvas>`, so its E2E test reads the scene through `window.excalidrawAPI` instead of the DOM.
 
 ## Example Template
 

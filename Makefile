@@ -6,6 +6,7 @@ purge:
 prepare: docker-mongo-scripts docker-wait4x
 	@PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 yarn install
 	yarn install:tldraw && yarn prepare:tldraw
+	yarn install:excalidraw && yarn copy:to:excalidraw
 
 lint:
 	@yarn lint
@@ -16,6 +17,10 @@ build-lib:
 build-tldraw-examples:
 	@yarn copy:to:tldraw
 	@cd ./examples/custom-rendering/tldraw-websocket-client && yarn build
+
+build-excalidraw-examples:
+	@yarn copy:to:excalidraw
+	@cd ./examples/custom-rendering/excalidraw-websocket-client && yarn build
 
 build-docs:
 	@yarn build:docs

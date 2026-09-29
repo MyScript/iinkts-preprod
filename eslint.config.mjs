@@ -29,6 +29,7 @@ export default [
       "examples/assets/**",
       "examples/dev-env-loader.generated.js",
       "examples/custom-rendering/tldraw-websocket-client/**",
+      "examples/custom-rendering/excalidraw-websocket-client/**",
       "*.config.mjs",
       "*.config.js",
       ".local/*"

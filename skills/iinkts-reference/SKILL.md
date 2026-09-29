@@ -217,7 +217,7 @@ import { resolveHmac } from "@/client/HmacAuth"
 - **`interactive-canvas-ssr/`** (28 files) → `InteractiveInkSSRCanvas` (WebSocket SSR)
 - **`canvas/`** (16 files) → `InkCanvas`/`InkCanvasDeprecated` (HTTP), pattern: `canvas_v2_{feature}.html` (current) / `canvas_v1_{feature}.html` (deprecated)
 - **`non-specific/`** → Configuration demos
-- **`custom-rendering/`** → Third-party integrations (`tldraw-websocket-client/`)
+- **`custom-rendering/`** → Third-party integrations (`tldraw-websocket-client/`, `excalidraw-websocket-client/`)
 
 Most examples: `<div id="rootEl">` → `Canvas.load(element, type, options)` → event listeners. Shared assets in `examples/assets/` and `examples/components/`. Matching E2E specs live in `test/examples/{same-subdir}/*.test.js`.
 
