@@ -266,6 +266,9 @@ removed methods have **no compatibility shim**.
 - feat(client): new exported `TScopingPolicy` and `TAutoVariableManagement`; `TRecognitionWebSocketConfiguration.math.solver` is now `TSolverConfiguration & { "auto-variable-management"?: TAutoVariableManagement }`, so it declares every solver key instead of `angle-unit` alone
 - feat(core): new exported `overrideDeep(target, override)`, a `mergeDeep` that replaces arrays rather than appending to them
 
+### Excalidraw integration example
+- feat(examples): new `examples/custom-rendering/excalidraw-websocket-client/`, the Excalidraw counterpart of the TLDraw demo, built on `WebSocketClient` IIC-2092. Freedraw elements are recognized as they are drawn; scratch-out and strike-through erase, surround selects, underline thickens; a Convert button turns the selection (or the whole scene) into Excalidraw text, rectangle, ellipse, diamond, line and arrow elements
+
 ### Shape ↔ edge connections
 - feat(connector): edges follow their connected shape when it is translated/resized/rotated, before Convert (raw ink strokes) as well as after (`TEdgeLine`/`TEdgePolyLine`/`TEdgeArc` with `startAnchor`/`endAnchor`)
 - feat(connector): new `IIConnectorManager.getFollowedStrokeIds(symbolIds)` — read-only counterpart of the rigid-follow pass, for callers needing the id list before mutating anything
