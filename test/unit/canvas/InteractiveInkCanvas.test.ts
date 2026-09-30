@@ -922,6 +922,7 @@ describe("InteractiveInkCanvas.ts", () => {
       canvas.menu.render = jest.fn()
       await canvas.initialize()
       canvas.client.newSession = jest.fn(() => Promise.resolve())
+      canvas.client.changeConfiguration = jest.fn(() => Promise.resolve())
       canvas.client.addStrokes = jest.fn(() => Promise.resolve())
       canvas.math.clearAllSolverOutputs = jest.fn(() => Promise.resolve())
       canvas.math.tryAutoCompute = jest.fn(() => Promise.resolve())
@@ -956,7 +957,73 @@ describe("InteractiveInkCanvas.ts", () => {
       await canvas.updateRecognitionConfiguration({ lang: "fr_FR" })
 
       expect(canvas.client.newSession).toHaveBeenCalledWith(canvas.configuration)
+      expect(canvas.client.changeConfiguration).not.toHaveBeenCalled()
       expect(canvas.configuration.recognition.lang).toEqual("fr_FR")
+    })
+
+    test("should change the configuration of the current session when the language is untouched", async () => {
+      const canvas = await buildCanvas()
+
+      await canvas.updateRecognitionConfiguration({ math: { solver: { "angle-unit": "deg" } } })
+
+      expect(canvas.client.changeConfiguration).toHaveBeenCalledWith(canvas.configuration)
+      expect(canvas.client.newSession).not.toHaveBeenCalled()
+    })
+
+    test("should change the configuration of the current session when the language is the current one", async () => {
+      const canvas = await buildCanvas()
+      const lang = canvas.configuration.recognition.lang
+
+      await canvas.updateRecognitionConfiguration({ lang })
+
+      expect(canvas.client.changeConfiguration).toHaveBeenCalledTimes(1)
+      expect(canvas.client.newSession).not.toHaveBeenCalled()
+    })
+
+    test("should not resend the strokes when the session is kept", async () => {
+      const canvas = await buildCanvas()
+      canvas.model.addSymbol(buildIIStroke())
+
+      await canvas.updateRecognitionConfiguration({ math: { solver: { "angle-unit": "deg" } } })
+
+      expect(canvas.client.addStrokes).not.toHaveBeenCalled()
+    })
+
+    test("should clear the solver outputs before changing the configuration of the session", async () => {
+      const canvas = await buildCanvas()
+      const calls: string[] = []
+      canvas.math.clearAllSolverOutputs = jest.fn(async () => {
+        calls.push("clear")
+      })
+      canvas.client.changeConfiguration = jest.fn(async () => {
+        calls.push("changeConfiguration")
+      })
+
+      await canvas.updateRecognitionConfiguration({ math: { solver: { "angle-unit": "deg" } } })
+
+      expect(calls).toEqual(["clear", "changeConfiguration"])
+    })
+
+    test("should auto-compute again after changing the configuration of the session", async () => {
+      const canvas = await buildCanvas()
+      canvas.math.updateComputationConfig({ autoCompute: true })
+
+      await canvas.updateRecognitionConfiguration({ math: { solver: { "angle-unit": "deg" } } })
+
+      expect(canvas.math.tryAutoCompute).toHaveBeenCalledTimes(1)
+    })
+
+    test("should be read-only while the configuration of the session changes", async () => {
+      const canvas = await buildCanvas()
+      let readOnlyDuringChange: boolean | undefined
+      canvas.client.changeConfiguration = jest.fn(async () => {
+        readOnlyDuringChange = canvas.readOnly
+      })
+
+      await canvas.updateRecognitionConfiguration({ math: { solver: { "angle-unit": "deg" } } })
+
+      expect(readOnlyDuringChange).toBe(true)
+      expect(canvas.readOnly).toBe(false)
     })
 
     test("should clear the solver outputs before opening the new session", async () => {
@@ -1064,6 +1131,7 @@ describe("InteractiveInkCanvas.ts", () => {
       ])
 
       expect(canvas.client.newSession).toHaveBeenCalledTimes(1)
+      expect(canvas.client.changeConfiguration).not.toHaveBeenCalled()
       expect(canvas.configuration.recognition.lang).toEqual("fr_FR")
       expect(canvas.configuration.recognition.math?.solver?.["angle-unit"]).toEqual("deg")
     })
@@ -1082,7 +1150,8 @@ describe("InteractiveInkCanvas.ts", () => {
         canvas.updateRecognitionConfiguration({ math: { solver: { "rounding-mode": "truncate" } } }),
       ])
 
-      expect(canvas.client.newSession).toHaveBeenCalledTimes(2)
+      expect(canvas.client.newSession).toHaveBeenCalledTimes(1)
+      expect(canvas.client.changeConfiguration).toHaveBeenCalledTimes(1)
       expect(canvas.configuration.recognition.math?.solver).toEqual(
         expect.objectContaining({ "angle-unit": "deg", "rounding-mode": "truncate" })
       )
@@ -1116,6 +1185,23 @@ describe("InteractiveInkCanvas.ts", () => {
       const before = structuredClone(canvas.configuration.recognition)
 
       await expect(canvas.updateRecognitionConfiguration({ lang: "fr_FR" })).rejects.toBe(boom)
+
+      expect(canvas.configuration.recognition).toEqual(before)
+      expect(onError).toHaveBeenCalledWith(boom)
+      expect(canvas.readOnly).toBe(false)
+    })
+
+    test("should restore the previous configuration and rethrow when the configuration change fails", async () => {
+      const canvas = await buildCanvas()
+      const boom = new Error("server refused the configuration")
+      canvas.client.changeConfiguration = jest.fn(() => Promise.reject(boom))
+      const onError = jest.fn()
+      canvas.event.addErrorListener(onError)
+      const before = structuredClone(canvas.configuration.recognition)
+
+      await expect(canvas.updateRecognitionConfiguration({ math: { solver: { "angle-unit": "deg" } } })).rejects.toBe(
+        boom
+      )
 
       expect(canvas.configuration.recognition).toEqual(before)
       expect(onError).toHaveBeenCalledWith(boom)
