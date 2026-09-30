@@ -517,8 +517,10 @@ describe("WebSocketSSRClient.ts", () => {
     test("should send import message", async () => {
       await wsr.init(height, width)
       wsr.import(model, blobToImport, mimeType)
-      //¯\_(ツ)_/¯  required to wait server received message
-      await delay(100)
+      // fileChunk is sent after an async FileReader read: poll instead of a fixed delay, slow CI exceeds 100ms
+      for (let i = 0; i < 40 && mockServer.getMessages("fileChunk").length === 0; i++) {
+        await delay(50)
+      }
       const importFileMessages = mockServer.getMessages("importFile")
       expect(importFileMessages).toHaveLength(1)
       //@ts-ignore
