@@ -24,6 +24,7 @@
     "node_modules",
     "dist",
     "perf",
-    "examples/custom-rendering/tldraw-websocket-client"
+    "examples/custom-rendering/tldraw-websocket-client",
+    "examples/custom-rendering/excalidraw-websocket-client"
   ]
 }
