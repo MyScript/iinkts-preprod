@@ -75,6 +75,50 @@ describe("WebSocketClient.ts", () => {
     })
   })
 
+  describe("changeConfiguration", () => {
+    const buildClient = () => {
+      const wsClient = new WebSocketClient(structuredClone(configuration))
+      wsClient.close = jest.fn(() => Promise.resolve())
+      wsClient.init = jest.fn(() => Promise.resolve())
+      return wsClient
+    }
+
+    test("should close the socket then reconnect", async () => {
+      const wsClient = buildClient()
+      const calls: string[] = []
+      wsClient.close = jest.fn(async () => {
+        calls.push("close")
+      })
+      wsClient.init = jest.fn(async () => {
+        calls.push("init")
+      })
+
+      await wsClient.changeConfiguration({ recognition: { lang: "fr_FR" } })
+
+      expect(wsClient.close).toHaveBeenCalledWith(1000, "new-conf")
+      expect(calls).toEqual(["close", "init"])
+    })
+
+    test("should not duplicate the configuration arrays when the new one repeats them", async () => {
+      const wsClient = buildClient()
+      const types = [...wsClient.configuration.recognition["raw-content"].recognition!.types]
+
+      await wsClient.changeConfiguration({ recognition: wsClient.configuration.recognition })
+
+      expect(wsClient.configuration.recognition["raw-content"].recognition!.types).toEqual(types)
+    })
+
+    test("should keep the keys the new configuration leaves out", async () => {
+      const wsClient = buildClient()
+      const host = wsClient.configuration.server.host
+
+      await wsClient.changeConfiguration({ recognition: { math: { solver: { "angle-unit": "deg" } } } })
+
+      expect(wsClient.configuration.recognition.math?.solver?.["angle-unit"]).toEqual("deg")
+      expect(wsClient.configuration.server.host).toEqual(host)
+    })
+  })
+
   describe("init", () => {
     const conf = structuredClone(configuration)
     conf.server.host = "init-test"
