@@ -2,7 +2,7 @@ import { decoratorGeometry } from "../../helpers"
 import { describe, test, expect } from "@jest/globals"
 import { OBBOps, SymbolType, DecoratorKind, MatrixTransform, DecoratorUtil } from "@/iink"
 
-describe("DecoratorOps", () => {
+describe("DecoratorUtil", () => {
   describe("create", () => {
     test("should initialise transform to identity", () => {
       const d = DecoratorUtil.createDecorator(DecoratorKind.Underline, { color: "red", width: 2 })
@@ -15,7 +15,7 @@ describe("DecoratorOps", () => {
       expect(d.targetIds).toEqual([])
       expect(d.targetBounds).toBeUndefined()
       // Through the util, not `DecoratorUtil.computeVertices` directly: a decorator with no
-      // `targetBounds` has no vertices, and that emptiness comes from `computeGeometry`'s guard.
+      // `targetBounds` has no vertices, and that emptiness comes from `getGeometry`'s guard.
       // Calling the raw computation on a zero-size box would return two coincident points instead.
       expect(new DecoratorUtil().getGeometry(d).vertices).toEqual([])
     })
