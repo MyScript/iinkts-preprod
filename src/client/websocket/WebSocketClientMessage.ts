@@ -36,6 +36,7 @@ export enum TWebSocketClientMessageType {
   SessionDescription = "sessionDescription",
   NewPart = "newPart",
   PartChanged = "partChanged",
+  ConfigurationChanged = "configurationChanged",
   ContentChanged = "contentChanged",
   Idle = "idle",
   Pong = "pong",
@@ -125,6 +126,12 @@ export type TWebSocketClientMessageGesture = TWebSocketClientMessage<TWebSocketC
 /**
  * @group Client
  */
+export type TWebSocketClientConfigurationChanged =
+  TWebSocketClientMessage<TWebSocketClientMessageType.ConfigurationChanged>
+
+/**
+ * @group Client
+ */
 export type TWebSocketClientMessageContextlessGesture =
   TWebSocketClientMessage<TWebSocketClientMessageType.ContextlessGesture> & {
     gestureType: "none" | "scratch" | "left-right" | "right-left" | "bottom-top" | "top-bottom" | "surround"
@@ -140,6 +147,11 @@ export type TWebSocketClientMessagePong = TWebSocketClientMessage<TWebSocketClie
  * @group Client
  */
 export type TWebSocketClientMessageIdle = TWebSocketClientMessage<TWebSocketClientMessageType.Idle>
+
+/**
+ * @group Client
+ */
+export type TWebSocketConfigurationCHanged = TWebSocketClientMessage<TWebSocketClientMessageType.ConfigurationChanged>
 
 /**
  * @group Client
@@ -325,6 +337,7 @@ export type TWebSocketClientMessageReceivedMap = {
   [TWebSocketClientMessageType.MathSolverResult]: TWebSocketClientMessageMathSolverResult
   [TWebSocketClientMessageType.Error]: TWebSocketClientMessageError
   [TWebSocketClientMessageType.Ack]: TWebSocketClientMessageAck
+  [TWebSocketClientMessageType.ConfigurationChanged]: TWebSocketClientConfigurationChanged
 }
 
 /**

@@ -39,7 +39,7 @@ export type TRecognitionWebSocketConfiguration = {
     enable: boolean
     ignoreGestureStrokes: boolean
   }
-  math?: {
+  math?: TSolverConfiguration & {
     solver?: TSolverConfiguration & {
       "auto-variable-management"?: TAutoVariableManagement
     }
