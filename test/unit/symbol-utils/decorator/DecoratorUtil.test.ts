@@ -52,7 +52,7 @@ describe("DecoratorUtil", () => {
   describe("getGeometry", () => {
     test("reads targetBounds rather than deriving anything, since a decorator owns no coordinates", () => {
       const decorator = util.create({ kind: DecoratorKind.Highlight })
-      // Oracle is `DecoratorOps`, reached directly: `computeGeometry` is the one util method that
+      // Oracle is `DecoratorUtil.setTargetBounds`, reached directly: `getGeometry` is the one util method that
       // reports a stored box, so what it must be checked against is the writer, not a derivation.
       DecoratorUtil.setTargetBounds(decorator, OBBOps.fromBox({ x: 0, y: 0, width: 10, height: 10 }))
 

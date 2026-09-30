@@ -6,13 +6,13 @@
  *
  * **Stroke** — {@link TStroke}, {@link isStroke}
  *
- * **Text** — {@link TText}, {@link TextOps}
+ * **Text** — {@link TText}, {@link TextUtil}
  *
- * **Math** — {@link TMath}, {@link MathOps}
+ * **Math** — {@link TMath}, {@link MathUtil}
  *
  * **Typeset** — {@link TTypesetChild}
  *
- * **Decorator** — {@link TDecorator}, {@link DecoratorOps}
+ * **Decorator** — {@link TDecorator}, {@link DecoratorUtil}
  *
  * **Eraser** — {@link TEraser}, {@link EraserOps}
  *
