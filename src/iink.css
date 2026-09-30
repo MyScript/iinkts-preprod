@@ -767,7 +767,7 @@
   left: 50%;
   transform: translate(-50%, -100%);
   white-space: nowrap;
-  background-color: var(--ms-ink-color);
+  background-color: var(--ms-ink-input-bg);
   color: var(--ms-ink-color);
   box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.225);
   font-weight: bold;
