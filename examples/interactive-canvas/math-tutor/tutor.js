@@ -4,10 +4,11 @@
  * once it is solved.
  */
 
-import { judge } from "./judge.js"
+import { analyzeFigure } from "./figure.js"
+import { judge, judgeFigure } from "./judge.js"
 import { linesFromJiix } from "./lines.js"
 import { nextExercise } from "./playlist.js"
-import { UI } from "./strings.js"
+import { EXPLORE, UI } from "./strings.js"
 
 /**
  * @typedef {import("./exercises.js").TExercise} TExercise
@@ -16,9 +17,12 @@ import { UI } from "./strings.js"
  * @typedef {import("./lines.js").TJiix} TJiix
  * @typedef {import("./overlay.js").TutorOverlay} TutorOverlay
  * @typedef {import("./overlay.js").TKatex} TKatex
+ * @typedef {import("./exercises.js").TExercise["kind"]} TKind
+ * @typedef {import("./figure.js").TFigureJiix} TFigureJiix
  * @typedef {{
- *   exportAs: (format: "jiix") => Promise<TJiix>,
+ *   exportAs: (format: "jiix") => Promise<TJiix & TFigureJiix>,
  *   clear: () => Promise<unknown>,
+ *   updateRecognitionConfiguration: (partial: object) => Promise<void>,
  *   event: EventTarget,
  * }} TTutorCanvas
  * @typedef {{
@@ -41,7 +45,20 @@ import { UI } from "./strings.js"
 export const PAUSE_MS = 2500
 
 /** @type {TLevel[]} */
-export const LEVELS = [1, 2]
+export const LEVELS = [1, 2, 3]
+
+/**
+ * What the recognizer looks for, per kind of exercise. Equations are math only: with shapes on,
+ * a `0` can come back as a circle and a `1` as a line.
+ * @type {Record<TKind, ("math" | "shape")[]>}
+ */
+export const RECOGNITION_TYPES = { equation: ["math"], figure: ["math", "shape"] }
+
+/** @param {TKind} kind */
+export function rawContentFor(kind) {
+  const types = RECOGNITION_TYPES[kind]
+  return { "raw-content": { recognition: { types }, classification: { types } } }
+}
 
 export class Tutor {
   /** @type {TTutorCanvas | undefined} */
@@ -57,6 +74,11 @@ export class Tutor {
   #solved = false
   /** @type {TLine[]} */
   #lines = []
+  /** @type {(TJiix & TFigureJiix) | undefined} */
+  #jiix
+  /** The recognition the session runs with; the page opens it for equations */
+  /** @type {TKind} */
+  #recognitionKind = "equation"
   #finished = false
   #penDown = false
   /** @type {ReturnType<typeof setTimeout> | undefined} */
@@ -86,6 +108,7 @@ export class Tutor {
   /** @param {TTutorCanvas} canvas */
   attach(canvas) {
     this.#canvas = canvas
+    this.#recognitionKind = "equation"
     canvas.event.addEventListener("exported", () => this.#refresh())
     this.#load(this.#exercise ?? nextExercise(this.#level, this.#played[this.#level]))
   }
@@ -127,18 +150,34 @@ export class Tutor {
       .then(async () => {
         const jiix = await this.#canvas?.exportAs("jiix")
         if (generation !== this.#generation) return
+        this.#jiix = jiix
         this.#lines = linesFromJiix(jiix)
+        // No pause re-armed here: it counts from the last pen up, not from when the server
+        // answered. An export landing after the pause is judged as finished right away.
         this.#judge()
-        this.#schedulePause()
       })
       .catch((error) => console.error(error))
   }
 
   #judge() {
-    if (!this.#exercise) return
-    const { marks, solved } = judge(this.#lines, this.#exercise, { finished: this.#finished })
-    this.overlay.render(marks)
-    if (solved && !this.#solved) this.#onSolved()
+    const exercise = this.#exercise
+    if (!exercise) return
+    const options = { finished: this.#finished }
+    if (exercise.kind !== "figure") {
+      const { marks, solved } = judge(this.#lines, exercise, options)
+      this.overlay.render(marks)
+      if (solved && !this.#solved) this.#onSolved()
+      return
+    }
+    const analysis = analyzeFigure(this.#jiix, this.#lines, exercise)
+    if (this.#solved) {
+      // Solved: the figure is the student's to play with, the hypotenuse follows their values
+      this.overlay.render([], { analysis, hint: EXPLORE, explore: true })
+      return
+    }
+    const { marks, solved, figureHint } = judgeFigure(analysis, exercise, options)
+    this.overlay.render(marks, { analysis, hint: figureHint, explore: false })
+    if (solved) this.#onSolved()
   }
 
   #onSolved() {
@@ -147,6 +186,7 @@ export class Tutor {
     this.elements.stars.textContent = `★ ${UI.stars(this.#solvedIds.size)}`
     this.elements.banner.hidden = false
     this.elements.nextButton.classList.add("is-ready")
+    if (this.#exercise?.kind === "figure") this.#judge()
   }
 
   #next() {
@@ -163,11 +203,32 @@ export class Tutor {
     this.#solved = false
     this.#finished = false
     this.#lines = []
+    this.#jiix = undefined
     this.overlay.clear()
     this.elements.banner.hidden = true
     this.elements.nextButton.classList.remove("is-ready")
     this.#renderStatement(exercise)
     await this.#canvas?.clear()
+    await this.#useRecognitionFor(exercise.kind)
+  }
+
+  /**
+   * Opens a session for this kind of exercise if the current one is for the other kind. Done
+   * on an empty sheet, so the new session has nothing to resend.
+   * @param {TKind} kind
+   */
+  async #useRecognitionFor(kind) {
+    if (!this.#canvas || kind === this.#recognitionKind) return
+    this.#recognitionKind = kind
+    // The canvas is read-only while the session reopens and drops what is drawn meanwhile:
+    // the sheet says so instead of swallowing the first stroke
+    const sheet = this.elements.rootElement.parentElement
+    sheet?.classList.add("is-preparing")
+    try {
+      await this.#canvas.updateRecognitionConfiguration(rawContentFor(kind))
+    } finally {
+      sheet?.classList.remove("is-preparing")
+    }
   }
 
   /** @param {TExercise} exercise */

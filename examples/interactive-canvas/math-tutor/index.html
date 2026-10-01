@@ -81,6 +81,18 @@
 
       .tutor-sheet { flex: 1; min-height: 0; position: relative; display: flex; }
       .tutor-sheet #rootEl { flex: 1; min-width: 0; }
+      .tutor-sheet.is-preparing #rootEl { pointer-events: none; opacity: 0.4; transition: opacity 0.2s; }
+      .tutor-sheet.is-preparing::after {
+        content: attr(data-preparing);
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        color: var(--ex-text-muted);
+        z-index: var(--tutor-over-ink);
+      }
       .tutor-margin {
         position: absolute;
         top: 0;
@@ -138,6 +150,35 @@
       .tutor-reading.is-correct { color: var(--tutor-correct); }
       .tutor-reading.is-wrong { color: var(--tutor-wrong); }
       @keyframes tutor-appear { from { opacity: 0; transform: translateY(-4px); } }
+
+      .tutor-overlay > svg.tutor-figure-layer { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+      .tutor-side { stroke-width: 6; stroke-linecap: round; opacity: 0.55; }
+      .tutor-side-a { stroke: var(--ex-primary); }
+      .tutor-side-b { stroke: #9b59b6; }
+      .tutor-side-c { stroke: var(--ex-accent-orange); }
+      .tutor-right-angle { fill: none; stroke: var(--tutor-correct); stroke-width: 2.5; }
+      .tutor-hypotenuse {
+        transform: translate(-50%, -50%);
+        padding: var(--ex-space-xs) var(--ex-space-sm);
+        border-radius: var(--ex-radius-md);
+        background: var(--ex-accent-orange);
+        color: #fff;
+        font-weight: 700;
+        white-space: nowrap;
+        animation: tutor-appear 0.25s ease-out;
+      }
+      .tutor-figure-hint {
+        left: 50%;
+        top: 72px;
+        transform: translateX(-50%);
+        max-width: 420px;
+        padding: var(--ex-space-sm) var(--ex-space-md);
+        border-radius: var(--ex-radius-lg);
+        background: var(--ex-primary);
+        color: #fff;
+        font-size: 14px;
+        box-shadow: var(--ex-shadow-sm);
+      }
 
       .tutor-banner {
         position: absolute;
@@ -214,7 +255,7 @@
             <button id="nextBtn">Next exercise</button>
           </div>
         </section>
-        <section class="tutor-sheet">
+        <section class="tutor-sheet" id="sheet">
           <div id="rootEl"></div>
           <div class="tutor-margin"><p id="marginTitle" class="tutor-margin-title"></p></div>
           <div id="overlay" class="tutor-overlay"></div>
@@ -229,7 +270,7 @@
       import { ModalCanvasOptions } from "../../components/modal/modalCanvasOptions.js"
       import { TutorOverlay } from "./overlay.js"
       import { UI } from "./strings.js"
-      import { Tutor } from "./tutor.js"
+      import { rawContentFor, Tutor } from "./tutor.js"
 
       const panelToggleBtn = document.getElementById("panelToggleBtn")
       const infoPanel = document.getElementById("info-panel")
@@ -240,6 +281,7 @@
 
       const rootElement = document.getElementById("rootEl")
       document.getElementById("marginTitle").textContent = UI.margin
+      document.getElementById("sheet").dataset.preparing = UI.preparing
       document.getElementById("banner").textContent = UI.solved
       document.getElementById("rotate").textContent = UI.rotate
       document.getElementById("restartBtn").textContent = UI.restart
@@ -267,7 +309,8 @@
 
       const canvasOptions = {
         configuration: {
-          recognition: { types: ["math"] },
+          // Level 3 switches to math + shapes when it starts
+          recognition: rawContentFor("equation"),
           // A palm resting on the tablet must not ink: pen only once a pen is seen
           grabber: { inputMode: "auto" },
           menu: {
@@ -289,6 +332,8 @@
               export: false,
               import: false,
               minimap: false,
+              pen: false,
+              diagram: false,
             },
           },
         },

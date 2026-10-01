@@ -938,6 +938,29 @@ describe("InteractiveInkCanvas.ts", () => {
       expect(calls).toEqual(["clear", "newSession"])
     })
 
+    // The bug these guard: `clear()` opens "Recognizing", closed when the server answers with
+    // contentChanged. Switching session before that answer left it open for good, and the canvas
+    // showed itself busy for the rest of the session.
+    test("should not keep waiting on what the previous session was recognizing, after a new session", async () => {
+      const canvas = await buildCanvas()
+      canvas.client.newSession = jest.fn(async () => undefined)
+      canvas.startOperation("Recognizing")
+
+      await canvas.updateRecognitionConfiguration({ lang: "fr_FR" })
+
+      expect(canvas.hasOperation("Recognizing")).toBe(false)
+    })
+
+    test("should not keep waiting on what the previous session was recognizing, after a configuration change", async () => {
+      const canvas = await buildCanvas()
+      canvas.client.changeConfiguration = jest.fn(async () => undefined)
+      canvas.startOperation("Recognizing")
+
+      await canvas.updateRecognitionConfiguration({ "raw-content": { recognition: { types: ["math", "shape"] } } })
+
+      expect(canvas.hasOperation("Recognizing")).toBe(false)
+    })
+
     test("should resend the user strokes but never a solver output", async () => {
       const canvas = await buildCanvas()
       const userStroke = buildIIStroke()

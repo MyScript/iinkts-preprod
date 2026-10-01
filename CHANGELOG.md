@@ -140,6 +140,7 @@ Every export on `InteractiveInkCanvas` goes through two functions instead of nin
 - `mergeDeep(target: any, ...sources): any` → `mergeDeep<T extends TMergeable>(target: TPartialDeep<T>, ...sources): T`. With the usual empty-object `target`, pass the type argument explicitly: `mergeDeep<TServerHTTPConfiguration>({}, DefaultServerHTTPConfiguration, override)`. No runtime change
 
 ## Bug Fixes
+- fix(canvas): `updateRecognitionConfiguration()` right after `clear()` left the "Recognizing" operation open for good: it only closes on the previous session's `contentChanged`, which never comes once that session is gone. The canvas then showed itself busy (`online-working`) for the rest of the session
 - fix(client): two concurrent `WebSocketClient.export()` calls for the same mime type each stored their pending answer under that type, the second overwriting the first, whose caller then waited forever. Exports now run one after another
 - fix(canvas): an export superseded by a model change while in flight retries through a debounce; a second superseded export cleared its timer without arming a new one, so the shared retry never ran and every caller hung. With the synchronizer among them, no sync ever ran again: after `clear()`, new strokes were never recognized and the canvas stayed `online-working`
 - fix(menu): picking a shape/edge type in `ShapeTool`/`EdgeTool` never closed the dropdown (queried `.sub-menu-content-shape`/`-edge` instead of `.sub-menu-content`), and `update()` could leave two buttons active
@@ -168,7 +169,7 @@ Every export on `InteractiveInkCanvas` goes through two functions instead of nin
 ## Features
 
 ### Math Tutor example
-- feat(examples): `examples/interactive-canvas/math-tutor/`, a handwritten math workbook for edtech demos. Each line of a two-step equation is read as it is written, transcribed in the margin, checked by substituting the known solution, and the first wrong one is flagged with a hint on the mistake (sign, division, square root, slip). Its pure modules (evaluator, hints, exercises, judge) are unit tested
+- feat(examples): `examples/interactive-canvas/math-tutor/`, a handwritten math workbook for edtech demos. Each line of a two-step equation is read as it is written, transcribed in the margin, checked by substituting the known solution, and the first wrong one is flagged with a hint on the mistake (sign, division, square root, slip). Level 3 has the student draw a right triangle by hand and label its sides: the angle is checked, each `a = 3` is bound to the side it is written next to, and once solved the hypotenuse follows the values written. Its pure modules (evaluator, hints, exercises, judge, figure) are unit tested
 
 ### Pen-only input for tablets
 - feat(grabber): new `grabber.inputMode` (`TGrabberInputMode`): `"any"` (default, unchanged behaviour), `"pen"` (pen pointers only) or `"auto"` (every pointer until the first pen event, then pen only). A palm resting on a tablet no longer inks, and no longer takes over the pen stroke being drawn. Works on every canvas variant; rejected pointers are ignored, not routed to pan
