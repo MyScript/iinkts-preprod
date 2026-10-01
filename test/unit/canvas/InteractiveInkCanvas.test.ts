@@ -1435,6 +1435,30 @@ describe("InteractiveInkCanvas.ts", () => {
       expect(canvas.event.emitError).toHaveBeenCalledTimes(1)
     })
 
+    test("should resolve every caller when concurrent exports both see the model change", async () => {
+      // The bug this guards: the second superseded export cleared the debounce timer of the
+      // first without arming a new one, so the retry they shared never ran and both waited
+      // forever — a synchronizer among them blocked every later sync.
+      const racingCanvas = new InteractiveInkCanvas(document.createElement("div"), CanvasOptions)
+      let calls = 0
+      racingCanvas.client.export = jest.fn(async () => {
+        calls++
+        // Each of the two first answers lands after the model changed under it
+        if (calls <= 2) racingCanvas.model.addSymbol(buildIIStroke())
+        return { "application/vnd.myscript.jiix": jiixText }
+      })
+      const settled = (promise: Promise<unknown>) =>
+        Promise.race([
+          promise.then(() => "resolved"),
+          new Promise((resolve) => setTimeout(() => resolve("pending"), 2000)),
+        ])
+
+      const results = await Promise.all([settled(racingCanvas.export()), settled(racingCanvas.export())])
+
+      expect(results).toEqual(["resolved", "resolved"])
+      expect(calls).toBe(3)
+    })
+
     test("should only request mimeTypes not already cached in model.exports", async () => {
       const cachedCanvas = new InteractiveInkCanvas(document.createElement("div"), CanvasOptions)
       cachedCanvas.model.mergeExport({ "text/plain": "already cached" })

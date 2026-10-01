@@ -94,6 +94,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
   #recognizeStrokeTimer?: ReturnType<typeof setTimeout>
   #exportRetryTimer?: ReturnType<typeof setTimeout>
   #pendingExportRetry?: Promise<TExport>
+  #settleExportRetry?: { resolve: (exports: TExport) => void; reject: (reason: unknown) => void }
   #pendingExportRetryMimeTypes = new Set<string>()
   static readonly EXPORT_RETRY_DEBOUNCE_MS = 300
   #clipboard: TSymbol[] = []
@@ -1691,18 +1692,25 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
    */
   #debouncedExportRetry(mimeTypes: string[]): Promise<TExport> {
     mimeTypes.forEach((mt) => this.#pendingExportRetryMimeTypes.add(mt))
-    clearTimeout(this.#exportRetryTimer)
     if (!this.#pendingExportRetry) {
       this.#pendingExportRetry = new Promise<TExport>((resolve, reject) => {
-        this.#exportRetryTimer = setTimeout(() => {
-          const mimeTypesToRetry = [...this.#pendingExportRetryMimeTypes]
-          this.#pendingExportRetryMimeTypes.clear()
-          this.#pendingExportRetry = undefined
-          this.export(mimeTypesToRetry).then(resolve, reject)
-        }, InteractiveInkCanvas.EXPORT_RETRY_DEBOUNCE_MS)
+        this.#settleExportRetry = { resolve, reject }
       })
     }
+    // Re-armed on every call: clearing the timer without arming a new one left the shared retry
+    // unscheduled, and every caller waiting on it hung.
+    clearTimeout(this.#exportRetryTimer)
+    this.#exportRetryTimer = setTimeout(() => this.#runExportRetry(), InteractiveInkCanvas.EXPORT_RETRY_DEBOUNCE_MS)
     return this.#pendingExportRetry
+  }
+
+  #runExportRetry(): void {
+    const mimeTypesToRetry = [...this.#pendingExportRetryMimeTypes]
+    const settle = this.#settleExportRetry
+    this.#pendingExportRetryMimeTypes.clear()
+    this.#pendingExportRetry = undefined
+    this.#settleExportRetry = undefined
+    this.export(mimeTypesToRetry).then(settle?.resolve, settle?.reject)
   }
 
   /**

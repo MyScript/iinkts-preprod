@@ -1143,8 +1143,18 @@ export class WebSocketClient {
   }
 
   async export(requestedMimeTypes?: string[]): Promise<TExport> {
+    const run = this.#exportQueue.then(() => this.#sendExport(requestedMimeTypes))
+    this.#exportQueue = run.catch(() => undefined)
+    return run
+  }
+
+  // Exports run one after another. Two in flight for the same mime type share one slot in
+  // `exportDeferredMap`: the second overwrote the first, whose caller then waited forever, since
+  // the server's answers can only settle the deferred the map still holds.
+  #exportQueue: Promise<unknown> = Promise.resolve()
+
+  async #sendExport(requestedMimeTypes?: string[]): Promise<TExport> {
     const mimeTypes: string[] = requestedMimeTypes || this.mimeTypes.slice()
-    await Promise.all(mimeTypes.map((mt) => this.exportDeferredMap.get(mt)?.promise))
     const deferreds = mimeTypes.map((mt) => {
       const deferred = new DeferredPromise<TExport>()
       this.exportDeferredMap.set(mt, deferred)
