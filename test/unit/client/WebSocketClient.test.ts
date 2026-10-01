@@ -1264,6 +1264,25 @@ describe("WebSocketClient.ts", () => {
       )
       wsClient.destroy()
     })
+    test("should resolve every export of concurrent calls for the same mime type", async () => {
+      // The bug this guards: both calls waited on the same previous export, then each stored its
+      // own pending answer under the same mime type, the second overwriting the first. The server
+      // answers resolved the second twice and the first never — a synchronizer awaiting it hung
+      // for the rest of the session.
+      await wsClient.init()
+      const settled = (promise: Promise<unknown>) =>
+        Promise.race([promise.then(() => "resolved"), delay(1000).then(() => "pending")])
+      const first = settled(wsClient.export())
+      const second = settled(wsClient.export())
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+      mockServer.sendHExportMessage()
+      await delay(100)
+      mockServer.sendHExportMessage()
+
+      await expect(Promise.all([first, second])).resolves.toEqual(["resolved", "resolved"])
+      expect(mockServer.getMessages("export")).toHaveLength(2)
+    })
     test("should not replay into the next session a message sent while the previous one closes", async () => {
       await wsClient.init()
       const closing = wsClient.close(1000, "new-session")
