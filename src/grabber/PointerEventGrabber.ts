@@ -189,7 +189,30 @@ export class PointerEventGrabber {
     }
   }
 
+  #penDetected = false
+
+  /** Applies `inputMode`: in "auto", the first pen seen switches the grabber to pen only */
+  protected acceptsPointerType(pointerType: string): boolean {
+    if (pointerType === "pen") {
+      this.#penDetected = true
+      return true
+    }
+    switch (this.configuration.inputMode) {
+      case "pen":
+        return false
+      case "auto":
+        return !this.#penDetected
+      default:
+        return true
+    }
+  }
+
   protected pointerDownHandler = (evt: PointerEvent) => {
+    // Checked before anything else: a rejected palm landing during a pen stroke must leave that
+    // stroke's time origin and capture state untouched.
+    if (!this.acceptsPointerType(evt.pointerType)) {
+      return
+    }
     // Reparenting layerCapture (e.g. moving one editor's DOM between several
     // inputs) changes the svg's screen position without touching its transform
     // (pan/zoom/resize) or firing a scroll event, so the version-keyed cache
