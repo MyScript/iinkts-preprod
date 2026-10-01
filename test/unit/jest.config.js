@@ -63,6 +63,14 @@ export default {
       tsconfig: {
         esModuleInterop: true,
         allowSyntheticDefaultImports: true,
+        // Example modules are plain JS served as is, without a build: their tests import them
+        allowJs: true,
+      }
+    }],
+    "^.+/examples/.+\\.js$": ["ts-jest", {
+      useESM: true,
+      tsconfig: {
+        allowJs: true,
       }
     }]
   },
