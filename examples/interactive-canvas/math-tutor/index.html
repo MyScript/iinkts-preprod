@@ -55,6 +55,28 @@
       .tutor-level.is-active { border-color: var(--ex-primary); background: var(--ex-hover); }
 
       .tutor-exercise { flex: 1; min-width: 0; text-align: center; }
+      /* On a tablet the levels and actions leave the statement a sliver: it wrapped one word per
+         line and the bar pushed the sheet off screen. The statement takes its own row instead. */
+      @media (max-width: 1280px) {
+        .tutor-bar { flex-wrap: wrap; row-gap: var(--ex-space-xs); }
+        .tutor-actions { margin-left: auto; }
+        .tutor-exercise { order: 3; flex-basis: 100%; }
+        /* The sheet needs the width: panel.css only folds the info panel under 900px, a tablet
+           in landscape is 1024–1194px. Same drawer, opened by the Info button, from 1280px down. */
+        :root { --tutor-margin-width: 200px; }
+        .btn-panel-toggle { display: flex; }
+        .ex-panel {
+          position: fixed;
+          left: 0;
+          top: var(--ex-header-height, 50px);
+          bottom: 0;
+          width: min(320px, 90vw);
+          z-index: 200;
+          transform: translateX(-100%);
+          transition: transform 280ms ease;
+        }
+        .ex-panel.open { transform: translateX(0); box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15); }
+      }
       .tutor-prompt { margin: 0; font-size: 13px; color: var(--tutor-muted); }
       .tutor-statement { font-size: 22px; color: var(--ex-text); }
       .tutor-statement .katex-display { margin: 2px 0; }
