@@ -1,6 +1,6 @@
 import { beforeAll, describe, test, expect } from "@jest/globals"
 import { buildIICircle, buildIIEraser, buildIILine, buildIIStroke, buildIIText } from "../helpers"
-import { BoxOps, DefaultIIRendererConfiguration, Geometry2d, MatrixTransform, OBBOps, Polygon2d, SVGRenderer, StrokeUtil, SymbolUtil, TBaseSymbol, TBox, TIIRendererConfiguration, TPartialDeep, TPoint, TSymbol, TSymbolChar, TTransformContext, applyMatrixToPoint, registerBuiltinSymbolUtils, symbolRegistry } from "@/iink"
+import { BoxOps, DefaultIIRendererConfiguration, Geometry2d, MatrixTransform, OBBOps, Polygon2d, SVGRenderer, SVGRendererConst, StrokeUtil, SymbolUtil, TBaseSymbol, TBox, TIIRendererConfiguration, TPartialDeep, TPoint, TSymbol, TSymbolChar, TTransformContext, applyMatrixToPoint, registerBuiltinSymbolUtils, symbolRegistry } from "@/iink"
 
 beforeAll(() => {
   registerBuiltinSymbolUtils()
@@ -195,6 +195,20 @@ describe("SVGRenderer.ts", () => {
       expect(el.getAttribute("stroke")).toEqual("grey")
       expect(el.getAttribute("opacity")).toEqual("0.2")
       expect(el.getAttribute("stroke-width")).toEqual("5")
+    })
+    test("should outline a selected symbol with a class, not an SVG filter", () => {
+      // WebKit's renderer crashed painting the former SVG selection filter on several strokes
+      const stroke = buildIIStroke()
+      renderer.drawSymbol(stroke)
+      const el = divElement.querySelector(`#${stroke.id}`)!
+
+      renderer.updateSelectedState(stroke, true)
+      expect(el.classList.contains(SVGRendererConst.selectedClassName)).toBe(true)
+      expect(el.hasAttribute("filter")).toBe(false)
+      expect(divElement.querySelector("#selection-filter")).toBeNull()
+
+      renderer.updateSelectedState(stroke, false)
+      expect(el.classList.contains(SVGRendererConst.selectedClassName)).toBe(false)
     })
     test("should draw stroke", () => {
       const stroke = buildIIStroke()
