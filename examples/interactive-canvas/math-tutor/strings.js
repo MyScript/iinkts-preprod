@@ -37,3 +37,20 @@ export const EXERCISE_HINTS = {
   twoSteps: (a, b) => `First ${b > 0 ? `subtract ${b} from` : `add ${-b} to`} both sides, then divide by ${a}.`,
   pythagoras: "In a right triangle, c² = a² + b².",
 }
+
+/** Page chrome */
+export const UI = {
+  title: "Math Tutor",
+  /** @param {number} level */
+  level: (level) => `Level ${level}`,
+  levelNames: { 1: "One step", 2: "Two steps", 3: "Triangle" },
+  check: "Check",
+  next: "Next exercise",
+  restart: "Start over",
+  margin: "What the machine reads",
+  solved: "Solved! Well done.",
+  /** @param {number} count */
+  stars: (count) => `${count} solved`,
+  rotate: "Turn your tablet to landscape to start.",
+  marks: { correct: "✓", wrong: "✗", unchecked: "?", pending: "…", "after-error": "" },
+}
