@@ -522,6 +522,9 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     if (this.math.getComputationConfig().autoCompute) {
       await this.math.tryAutoCompute()
     }
+    if (strokes.length === 0) {
+      this.clearOperation("Recognizing")
+    }
   }
 
   /**
