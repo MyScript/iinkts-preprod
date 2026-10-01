@@ -2,7 +2,8 @@
  * @group Renderer
  */
 export const SVGRendererConst = {
-  selectionFilterId: "selection-filter",
+  /** Class a selected symbol's element carries; its outline is drawn by the stylesheet */
+  selectedClassName: "ms-selected",
   removalFilterId: "removal-filter",
   crossMarker: "cross-marker",
   noSelection:
