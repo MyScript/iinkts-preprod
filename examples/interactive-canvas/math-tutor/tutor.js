@@ -4,6 +4,7 @@
  * once it is solved.
  */
 
+import { connectionView } from "./connection.js"
 import { analyzeFigure } from "./figure.js"
 import { judge, judgeFigure } from "./judge.js"
 import { linesFromJiix } from "./lines.js"
@@ -23,8 +24,10 @@ import { EXPLORE, UI } from "./strings.js"
  *   exportAs: (format: "jiix") => Promise<TJiix & TFigureJiix>,
  *   clear: () => Promise<unknown>,
  *   updateRecognitionConfiguration: (partial: object) => Promise<void>,
- *   event: EventTarget,
+ *   connectionState: TConnectionState,
+ *   event: EventTarget & { addConnectionStateChangedListener: (callback: (state: TConnectionState) => void) => void },
  * }} TTutorCanvas
+ * @typedef {import("./connection.js").TConnectionState} TConnectionState
  * @typedef {{
  *   rootElement: HTMLElement,
  *   statement: HTMLElement,
@@ -35,6 +38,8 @@ import { EXPLORE, UI } from "./strings.js"
  *   checkButton: HTMLButtonElement,
  *   nextButton: HTMLButtonElement,
  *   restartButton: HTMLButtonElement,
+ *   connection: HTMLElement,
+ *   notice: HTMLElement,
  * }} TTutorElements
  */
 
@@ -81,6 +86,8 @@ export class Tutor {
   #recognitionKind = "equation"
   #finished = false
   #penDown = false
+  /** No connection: what the sheet shows was recognized before it dropped, so nothing is judged */
+  #hold = false
   /** @type {ReturnType<typeof setTimeout> | undefined} */
   #pauseTimer
   #renderQueue = Promise.resolve()
@@ -110,6 +117,8 @@ export class Tutor {
     this.#canvas = canvas
     this.#recognitionKind = "equation"
     canvas.event.addEventListener("exported", () => this.#refresh())
+    canvas.event.addConnectionStateChangedListener((state) => this.#onConnection(state))
+    this.#onConnection(canvas.connectionState)
     this.#load(this.#exercise ?? nextExercise(this.#level, this.#played[this.#level]))
   }
 
@@ -138,8 +147,22 @@ export class Tutor {
     this.#pauseTimer = setTimeout(() => this.#finish(), PAUSE_MS)
   }
 
+  /** @param {TConnectionState} state */
+  #onConnection(state) {
+    const view = connectionView(state)
+    const wasHeld = this.#hold
+    this.#hold = view.hold
+    this.elements.connection.textContent = view.label
+    this.elements.connection.dataset.tone = view.tone
+    this.elements.notice.textContent = view.message ?? ""
+    this.elements.notice.hidden = !view.message
+    // Back online: the queued ink is replayed, the pause starts again to judge it once read
+    if (wasHeld && !view.hold) this.#schedulePause()
+  }
+
   #finish() {
     clearTimeout(this.#pauseTimer)
+    if (this.#hold) return
     this.#finished = true
     this.#judge()
   }

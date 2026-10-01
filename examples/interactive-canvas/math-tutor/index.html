@@ -180,6 +180,35 @@
         box-shadow: var(--ex-shadow-sm);
       }
 
+      .tutor-connection {
+        padding: 2px var(--ex-space-sm);
+        border-radius: var(--ex-radius-full);
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+        color: #fff;
+        background: var(--tutor-muted);
+      }
+      .tutor-connection[data-tone="ok"] { background: var(--tutor-correct); }
+      .tutor-connection[data-tone="warn"] { background: var(--ex-warning); color: var(--ex-text); }
+      .tutor-connection[data-tone="error"] { background: var(--tutor-wrong); }
+      .tutor-notice {
+        position: absolute;
+        left: 50%;
+        bottom: 72px;
+        transform: translateX(-50%);
+        max-width: 520px;
+        padding: var(--ex-space-sm) var(--ex-space-lg);
+        border-radius: var(--ex-radius-lg);
+        background: var(--ex-warning);
+        color: var(--ex-text);
+        font-size: 15px;
+        text-align: center;
+        box-shadow: var(--ex-shadow-sm);
+        pointer-events: none;
+        z-index: var(--tutor-over-ink);
+      }
+
       .tutor-banner {
         position: absolute;
         left: 50%;
@@ -249,6 +278,7 @@
             <div id="statement" class="tutor-statement"></div>
           </div>
           <div class="tutor-actions">
+            <span id="connection" class="tutor-connection"></span>
             <span id="stars" class="tutor-stars"></span>
             <button id="restartBtn">Start over</button>
             <button id="checkBtn">Check</button>
@@ -260,6 +290,7 @@
           <div class="tutor-margin"><p id="marginTitle" class="tutor-margin-title"></p></div>
           <div id="overlay" class="tutor-overlay"></div>
           <div id="banner" class="tutor-banner" hidden></div>
+          <div id="notice" class="tutor-notice" hidden></div>
         </section>
       </main>
     </div>
@@ -300,6 +331,8 @@
           checkButton: document.getElementById("checkBtn"),
           nextButton: document.getElementById("nextBtn"),
           restartButton: document.getElementById("restartBtn"),
+          connection: document.getElementById("connection"),
+          notice: document.getElementById("notice"),
         },
         overlay,
         window.katex
