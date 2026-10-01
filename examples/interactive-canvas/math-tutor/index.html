@@ -78,6 +78,10 @@
         animation: tutor-pulse 1.2s ease-in-out infinite;
       }
       @keyframes tutor-pulse { 50% { transform: scale(1.06); } }
+      /* No pulse nor fade-in for those who asked for less motion; it also keeps the buttons still enough to be clicked by automation */
+      @media (prefers-reduced-motion: reduce) {
+        .tutor *, .tutor-overlay > * { animation: none !important; transition: none !important; }
+      }
 
       .tutor-sheet { flex: 1; min-height: 0; position: relative; display: flex; }
       .tutor-sheet #rootEl { flex: 1; min-width: 0; }
