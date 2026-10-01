@@ -47,6 +47,7 @@ export const UI = {
   check: "Check",
   next: "Next exercise",
   restart: "Start over",
+  preparing: "Preparing the sheet…",
   margin: "What the machine reads",
   solved: "Solved! Well done.",
   /** @param {number} count */
@@ -54,3 +55,23 @@ export const UI = {
   rotate: "Turn your tablet to landscape to start.",
   marks: { correct: "✓", wrong: "✗", unchecked: "?", pending: "…", "after-error": "" },
 }
+
+/** Feedback on the drawing itself, on level 3 */
+export const FIGURE_HINTS = {
+  "no-triangle": "Draw a right triangle first.",
+  "not-right": "This triangle has no right angle: Pythagoras does not apply. Draw it again.",
+  labels: "Write a = … and b = … next to the two sides of the right angle.",
+  /**
+   * @param {number} a
+   * @param {number} b
+   */
+  values: (a, b) => `The two sides of the right angle are a = ${a} and b = ${b}.`,
+}
+
+/** Labels drawn over the figure */
+export const FIGURE_UI = {
+  /** @param {string} value */
+  hypotenuse: (value) => `c = √(a² + b²) = ${value}`,
+}
+
+export const EXPLORE = "Now change a or b: c follows."
