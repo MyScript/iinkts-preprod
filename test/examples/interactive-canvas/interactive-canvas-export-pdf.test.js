@@ -17,20 +17,16 @@ test.describe("Interactive ink canvas Live PDF Document", () => {
   })
 
   test("should write recognized text as a paragraph", async ({ page }) => {
-    await Promise.all([
-      waitForSynchronizedEvent(page),
-      writeStrokes(page, helloOneStroke.strokes),
-    ])
+    await writeStrokes(page, helloOneStroke.strokes)
+    await callCanvasIdle(page)
 
     await expect(page.locator(".doc-block p")).toHaveText("hello")
     await expect(page.locator(".doc-placeholder")).toHaveCount(0)
   })
 
   test("should turn an underlined line into the document title", async ({ page }) => {
-    await Promise.all([
-      waitForSynchronizedEvent(page),
-      writeStrokes(page, helloOneStroke.strokes),
-    ])
+    await writeStrokes(page, helloOneStroke.strokes)
+    await callCanvasIdle(page)
     await expect(page.locator(".doc-block p")).toHaveText("hello")
 
     const { minX, maxX, maxY } = boundsOf(helloOneStroke.strokes)
@@ -41,20 +37,22 @@ test.describe("Interactive ink canvas Live PDF Document", () => {
   })
 
   test("should typeset an equation with KaTeX", async ({ page }) => {
-    await Promise.all([
-      waitForSynchronizedEvent(page),
-      writeStrokes(page, equation.strokes),
-    ])
+    await writeStrokes(page, equation.strokes)
+    await callCanvasIdle(page)
 
-    await expect(page.locator('.doc-block[data-kind="math"] .katex')).toBeVisible()
+    await expect(page.locator('.doc-block[data-kind="math"] .katex')).toBeVisible({ timeout: 10000 })
   })
 
   test("should redraw a diagram as a numbered figure", async ({ page }) => {
+    // About 55 s on a loaded tablet run, too close to the default minute
+    test.setTimeout(120 * 1000)
+    // Replaying the diagram takes longer than waitForEvent's 30 s: wait for the canvas to be idle
+    // once it is written, not for a synchronization that has to land while it is being written
     await writeStrokes(page, diagramConnections.strokes)
     await callCanvasIdle(page)
 
     const figure = page.locator('.doc-block[data-kind="figure"]')
-    await expect(figure.locator("figcaption")).toHaveText("Figure 1")
+    await expect(figure.locator("figcaption")).toHaveText("Figure 1", { timeout: 10000 })
     await expect(figure.locator("svg rect")).toHaveCount(1)
     await expect(figure.locator("svg circle")).toHaveCount(2)
   })
@@ -68,19 +66,15 @@ test.describe("Interactive ink canvas Live PDF Document", () => {
 
   test("should keep the color of the strokes", async ({ page }) => {
     await page.evaluate(() => { window.canvas.penStyle = { color: "#e53935" } })
-    await Promise.all([
-      waitForSynchronizedEvent(page),
-      writeStrokes(page, helloOneStroke.strokes),
-    ])
+    await writeStrokes(page, helloOneStroke.strokes)
+    await callCanvasIdle(page)
 
     await expect(page.locator(".doc-block p span")).toHaveCSS("color", "rgb(229, 57, 53)")
   })
 
   test("should follow a color change on existing strokes", async ({ page }) => {
-    await Promise.all([
-      waitForSynchronizedEvent(page),
-      writeStrokes(page, helloOneStroke.strokes),
-    ])
+    await writeStrokes(page, helloOneStroke.strokes)
+    await callCanvasIdle(page)
     await expect(page.locator(".doc-block p")).toHaveText("hello")
 
     await page.evaluate(() => window.canvas.updateSymbolsStyle(window.canvas.model.symbols.map((s) => s.id), { color: "#1e88e5" }))
@@ -89,10 +83,8 @@ test.describe("Interactive ink canvas Live PDF Document", () => {
   })
 
   test("should highlight the ink of a hovered block", async ({ page }) => {
-    await Promise.all([
-      waitForSynchronizedEvent(page),
-      writeStrokes(page, helloOneStroke.strokes),
-    ])
+    await writeStrokes(page, helloOneStroke.strokes)
+    await callCanvasIdle(page)
     await expect(page.locator(".doc-block p")).toHaveText("hello")
 
     await page.locator(".doc-block").first().hover()
@@ -103,10 +95,8 @@ test.describe("Interactive ink canvas Live PDF Document", () => {
   })
 
   test("should print only the pages", async ({ page }) => {
-    await Promise.all([
-      waitForSynchronizedEvent(page),
-      writeStrokes(page, helloOneStroke.strokes),
-    ])
+    await writeStrokes(page, helloOneStroke.strokes)
+    await callCanvasIdle(page)
     await expect(page.locator(".doc-block p")).toHaveText("hello")
 
     await page.emulateMedia({ media: "print" })
@@ -117,10 +107,8 @@ test.describe("Interactive ink canvas Live PDF Document", () => {
   })
 
   test("should go back to the placeholder on clear", async ({ page }) => {
-    await Promise.all([
-      waitForSynchronizedEvent(page),
-      writeStrokes(page, helloOneStroke.strokes),
-    ])
+    await writeStrokes(page, helloOneStroke.strokes)
+    await callCanvasIdle(page)
     await expect(page.locator(".doc-block p")).toHaveText("hello")
 
     await page.locator("#clear").click()

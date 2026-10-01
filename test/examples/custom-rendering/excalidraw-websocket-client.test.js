@@ -27,16 +27,34 @@ const readScene = (page) => page.evaluate(() => ({
 
 const countOf = async (page, type) => (await readScene(page)).elements.filter(e => e.type === type).length
 
-// The last stroke of a gesture dataset is the gesture: the content is checked on the page before it is drawn
+/** How many contentChanged the server sent on the example's socket, one per stroke batch read */
+const contentChangedCounts = new WeakMap()
+const countContentChanged = (page) => {
+  contentChangedCounts.set(page, 0)
+  page.on("websocket", (socket) =>
+    socket.on("framereceived", (frame) => {
+      if (String(frame.payload).includes('"contentChanged"')) {
+        contentChangedCounts.set(page, contentChangedCounts.get(page) + 1)
+      }
+    })
+  )
+}
+
+// The last stroke of a gesture dataset is the gesture. It is only drawn once the server has read
+// the content: sent before that answer, a strike-through over a word it has not recognized yet
+// comes back as no gesture at all, and the strokes stay.
 const writeContentThenGesture = async (page, strokes) => {
   const content = strokes.slice(0, -1)
+  const before = contentChangedCounts.get(page)
   await writeStrokes(page, shift(content))
   await expect.poll(() => countOf(page, "freedraw")).toBe(content.length)
+  await expect.poll(() => contentChangedCounts.get(page) - before, { timeout: 15_000 }).toBeGreaterThanOrEqual(content.length)
   await writeStrokes(page, shift(strokes.slice(-1)))
 }
 
 test.describe("Excalidraw WebSocket client", () => {
   test.beforeEach(async ({ page }) => {
+    countContentChanged(page)
     await page.goto(`${process.env.PATH_PREFIX ? process.env.PATH_PREFIX : ""}/examples/custom-rendering/excalidraw-websocket-client/dist/index.html`)
     await page.getByLabel("Scheme:").selectOption(process.env.SCHEME)
     await page.getByRole("textbox", { name: "Host:" }).fill(process.env.HOST)

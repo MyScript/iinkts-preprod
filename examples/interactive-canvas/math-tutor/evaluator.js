@@ -66,6 +66,10 @@ const OPERATIONS = {
  * @returns {number | undefined}
  */
 export function evaluate(expression, scope = {}) {
+  if (!expression.type) {
+    console.warn(`expression unknow: ${expression}`)
+    return
+  }
   switch (expression.type) {
     case "number":
       return typeof expression.value === "number" ? expression.value : undefined
