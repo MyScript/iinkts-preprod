@@ -49,7 +49,8 @@ function write(text, x0, y0, advance = 42) {
   return strokes
 }
 function triangle() {
-  const corners = [[400, 200], [400, 450], [730, 450], [400, 200]]
+  // Kept clear of the toolbar at the bottom of the sheet and of the right margin, on a tablet too
+  const corners = [[400, 120], [400, 370], [730, 370], [400, 120]]
   const points = []
   for (let i = 0; i < 3; i++) {
     const [ax, ay] = corners[i]
@@ -69,8 +70,8 @@ const datasets = {
   "math_tutor_level2_step2.json": write("2x=4", 150, 160),
   "math_tutor_level2_answer.json": write("x=2", 150, 240),
   "math_tutor_level3_triangle.json": [triangle()],
-  "math_tutor_level3_legs.json": [...write("a=3", 255, 305, 40), ...write("b=4", 520, 470, 40)],
-  "math_tutor_level3_hypotenuse.json": write("c=5", 600, 260, 40),
+  "math_tutor_level3_legs.json": [...write("a=3", 255, 225, 40), ...write("b=4", 520, 390, 40)],
+  "math_tutor_level3_hypotenuse.json": write("c=5", 600, 180, 40),
 }
 for (const [name, strokes] of Object.entries(datasets)) writeFileSync(`${out}/${name}`, JSON.stringify(strokes))
 console.log(Object.keys(datasets).join("\n"))
