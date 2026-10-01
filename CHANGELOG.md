@@ -165,6 +165,9 @@ Every export on `InteractiveInkCanvas` goes through two functions instead of nin
 
 ## Features
 
+### Pen-only input for tablets
+- feat(grabber): new `grabber.inputMode` (`TGrabberInputMode`): `"any"` (default, unchanged behaviour), `"pen"` (pen pointers only) or `"auto"` (every pointer until the first pen event, then pen only). A palm resting on a tablet no longer inks, and no longer takes over the pen stroke being drawn. Works on every canvas variant; rejected pointers are ignored, not routed to pan
+
 ### Math solver settings in the Math menu
 - feat(menu): Math > **Solver** submenu: angle unit, number of decimals, decimal separator, rounding mode, solving mode (algebraic, numeric or server default), automatic variable management and its scoping policy. Each change goes through `updateRecognitionConfiguration`; the decimals slider waits `MATH_SOLVER_DEBOUNCE_MS` (300 ms) after the last move
 - feat(menu): each setting can be hidden through `TMathActionItemsConfig.solver` — `false` hides the submenu, or an object of `TMathSolverItemsConfig` flags (`angleUnit`, `fractionalDigits`, `decimalSeparator`, `roundingMode`, `options`, `autoVariable`, `scopingPolicy`)
