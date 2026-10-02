@@ -298,13 +298,19 @@ export type TExport = {
 }
 
 /**
- * @group Client
- * @summary Parses, in place, the JIIX export the websocket protocols send as a JSON string
+ * @group Client/Export
+ * @summary Exports as the websocket protocols send them: every format a string, JIIX included
+ * @remarks {@link parseExportedJIIX} turns it into a {@link TExport}.
  */
-export function parseExportedJIIX(exports: TExport): TExport {
-  const jiix = exports["application/vnd.myscript.jiix"]
-  if (jiix) {
-    exports["application/vnd.myscript.jiix"] = JSON.parse(jiix.toString()) as TJIIXExport
-  }
-  return exports
+export type TExportWire = {
+  [mimeType: string]: string | undefined
+}
+
+/**
+ * @group Client
+ * @summary Reads the exports of a websocket message, parsing the JIIX sent as a JSON string
+ */
+export function parseExportedJIIX(exports: TExportWire): TExport {
+  const { "application/vnd.myscript.jiix": jiix, ...others } = exports
+  return jiix ? { ...others, "application/vnd.myscript.jiix": JSON.parse(jiix) as TJIIXExport } : others
 }

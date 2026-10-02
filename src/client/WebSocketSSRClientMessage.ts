@@ -1,4 +1,4 @@
-import type { TExport } from "./Export"
+import type { TExportWire } from "./Export"
 
 /**
  * @group Client
@@ -76,7 +76,7 @@ export type TWebSocketSSRClientMessageContentChange = TWebSocketSSRClientMessage
  */
 export type TWebSocketSSRClientMessageExport = TWebSocketSSRClientMessage<"exported"> & {
   partId: string
-  exports: TExport
+  exports: TExportWire
 }
 
 /**

@@ -484,14 +484,11 @@ export class WebSocketClient {
   }
 
   protected manageExportMessage(exportMessage: TWebSocketClientMessageExport): void {
-    parseExportedJIIX(exportMessage.exports)
-
-    Object.keys(exportMessage.exports).forEach((key) => {
-      if (this.exportDeferredMap.has(key)) {
-        this.exportDeferredMap.get(key)!.resolve(exportMessage.exports)
-      }
+    const exports = parseExportedJIIX(exportMessage.exports)
+    Object.keys(exports).forEach((key) => {
+      this.exportDeferredMap.get(key)?.resolve(exports)
     })
-    this.event.emitExported(exportMessage.exports)
+    this.event.emitExported(exports)
   }
 
   protected manageWaitForIdle(): void {
