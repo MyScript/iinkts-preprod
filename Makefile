@@ -4,9 +4,9 @@ purge:
 	@git clean -xdf || true
 
 prepare: docker-mongo-scripts docker-wait4x
-	@PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 yarn install
-	yarn install:tldraw && yarn prepare:tldraw
-	yarn install:excalidraw && yarn copy:to:excalidraw
+	PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 yarn install && yarn build:lib
+	make -C ./ build-tldraw-examples
+	make -C ./ build-excalidraw-examples
 
 lint:
 	@yarn lint
@@ -108,6 +108,7 @@ test-examples-ci:
 		-e BASE_URL="$(BASE_URL)" \
 		-e PROJECT="$(PROJECT)" \
 		-e CI="true" \
+		-e HOME="/tmp" \
     -e SCHEME="http" \
 		-e HOST="$(BACKEND_HOST)" \
 		-e APPLICATION_KEY="$(APPLICATION_KEY)" \
@@ -127,6 +128,7 @@ test-perf-e2e-ci:
 		$(NETWORK_PARAM) \
 		-e BASE_URL="$(BASE_URL)" \
 		-e CI="true" \
+		-e HOME="/tmp" \
 		-e SCHEME="http" \
 		-e HOST="$(BACKEND_HOST)" \
 		-e APPLICATION_KEY="$(APPLICATION_KEY)" \
@@ -149,6 +151,7 @@ test-examples:
 	@docker run --rm --ipc=host --user=$$(id -u) --userns=host --init \
 		-e "PROJECT=$(PROJECT)" \
 		-e "CI=true" \
+		-e "HOME=/tmp" \
 		-e "BASE_URL=$(BASE_URL)" \
     -e "SCHEME=http" \
 		-e "HOST=$(BACKEND_HOST)" \
