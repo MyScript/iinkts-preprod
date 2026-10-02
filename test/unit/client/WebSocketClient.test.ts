@@ -40,6 +40,10 @@ describe("WebSocketClient.ts", () => {
       const wsClient = new WebSocketClient(conf)
       expect(wsClient.url).toEqual("ws://pony/api/v4.0/iink/offscreen?applicationKey=applicationKey")
     })
+    test("should encode the application key in the url", () => {
+      const wsClient = new WebSocketClient({ ...conf, server: { ...conf.server, applicationKey: "a&b=c" } })
+      expect(wsClient.url).toEqual("ws://pony/api/v4.0/iink/offscreen?applicationKey=a%26b%3Dc")
+    })
 
     test(`should get mimeTypes`, () => {
       const wsClient = new WebSocketClient(conf)
@@ -96,6 +100,21 @@ describe("WebSocketClient.ts", () => {
     afterEach(async () => {
       await wsClient.destroy()
       mockServer.close()
+    })
+
+    test("should reject init when the HMAC key cannot be resolved", async () => {
+      const failingConf = structuredClone(conf)
+      failingConf.server.host = "init-hmac-failure-test"
+      const client = new WebSocketClient({
+        ...failingConf,
+        server: { ...failingConf.server, hmacKey: () => Promise.reject(new Error("token endpoint down")) },
+      })
+      client.event.emitError = jest.fn()
+      const server = new ServerWebSocketMock(client.url)
+      server.init()
+      await expect(client.init()).rejects.toThrow("token endpoint down")
+      await client.destroy()
+      server.close()
     })
 
     test("should have dialog sequence with hmacChallenge", async () => {

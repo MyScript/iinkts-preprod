@@ -72,12 +72,12 @@ export type THTTPClientV1PostData = {
  * @group Client
  */
 export class HTTPClientV1 {
-  #logger = LoggerManager.getLogger(LoggerCategory.CLIENT)
+  protected logger = LoggerManager.getLogger(LoggerCategory.CLIENT)
 
   configuration: HTTPClientV1Configuration
 
   constructor(config: TPartialDeep<THTTPClientV1Configuration>) {
-    this.#logger.info("constructor", { config: redactServerSecrets(config) })
+    this.logger.info("constructor", { config: redactServerSecrets(config) })
     this.configuration = new HTTPClientV1Configuration(config)
   }
 
@@ -118,7 +118,7 @@ export class HTTPClientV1 {
   }
 
   protected buildData(model: Model): THTTPClientV1PostData {
-    this.#logger.info("buildData", { model })
+    this.logger.info("buildData", { model })
     const isPenStyleEqual = (ps1: TPenStyle, ps2: TPenStyle) => {
       return (
         ps1 &&
@@ -170,12 +170,12 @@ export class HTTPClientV1 {
       width: model.width,
       strokeGroups: strokeGroupsToSend,
     }
-    this.#logger.debug("buildData", { data })
+    this.logger.debug("buildData", { data })
     return data
   }
 
   protected async post(data: unknown, mimeType: string): Promise<unknown> {
-    this.#logger.info("post", { data, mimeType })
+    this.logger.info("post", { data, mimeType })
     // Before posting: `data` holds this configuration, and the HMAC signs the body as sent
     const version = await ensureServerVersion(this.configuration)
     if (!isVersionSuperiorOrEqual(version, "2.3.0")) {
@@ -193,18 +193,18 @@ export class HTTPClientV1 {
   }
 
   protected async tryFetch(data: THTTPClientV1PostData, mimeType: string): Promise<TExport> {
-    this.#logger.debug("tryFetch", { data, mimeType })
+    this.logger.debug("tryFetch", { data, mimeType })
     try {
       const result = await this.post(data, mimeType)
       return { [mimeType]: result as TJIIXExport | string | Blob }
     } catch (error) {
-      this.#logger.error("tryFetch", { data, mimeType, error })
+      this.logger.error("tryFetch", { data, mimeType, error })
       throw toRecognitionError(error)
     }
   }
 
   protected getMimeTypes(requestedMimeTypes?: string[]): string[] {
-    this.#logger.info("getMimeTypes", {
+    this.logger.info("getMimeTypes", {
       requestedMimeTypes,
     })
     let mimeTypes: string[] = requestedMimeTypes || []
@@ -233,7 +233,7 @@ export class HTTPClientV1 {
   }
 
   async convert(model: Model, conversionState?: TConverstionState, requestedMimeTypes?: string[]): Promise<Model> {
-    this.#logger.info("convert", {
+    this.logger.info("convert", {
       model,
       conversionState,
       requestedMimeTypes,
@@ -247,14 +247,14 @@ export class HTTPClientV1 {
     exports.forEach((e) => {
       myModel.mergeConvert(e)
     })
-    this.#logger.debug("convert", {
+    this.logger.debug("convert", {
       model: myModel,
     })
     return myModel
   }
 
   async export(model: Model, requestedMimeTypes?: string[]): Promise<Model> {
-    this.#logger.info("export", {
+    this.logger.info("export", {
       model,
       requestedMimeTypes,
     })
@@ -264,7 +264,7 @@ export class HTTPClientV1 {
     }
     const mimeTypes = this.getMimeTypes(requestedMimeTypes)
     if (!mimeTypes.length) {
-      this.#logger.error("export", {
+      this.logger.error("export", {
         model,
         requestedMimeTypes,
         "Export failed, no mimeTypes define in recognition configuration": String,
@@ -279,14 +279,14 @@ export class HTTPClientV1 {
     exports.forEach((e) => {
       myModel.mergeExport(e)
     })
-    this.#logger.debug("export", {
+    this.logger.debug("export", {
       model: myModel,
     })
     return myModel
   }
 
   async resize(model: Model): Promise<Model> {
-    this.#logger.info("resize", { model })
+    this.logger.info("resize", { model })
     return this.export(model)
   }
 }

@@ -105,7 +105,7 @@ const createMathSolverNeutralResults = (): TMathSolverResultMap => ({
  * @group Client
  */
 export class WebSocketClient {
-  #logger = LoggerManager.getLogger(LoggerCategory.CLIENT)
+  protected logger = LoggerManager.getLogger(LoggerCategory.CLIENT)
 
   protected socket!: WebSocket
   protected pingWorker?: Worker
@@ -129,22 +129,22 @@ export class WebSocketClient {
   // Resolved once the queued message is actually sent (post-reconnect), not once any server ack
   // arrives — mutating calls (addStrokes, undo, etc.) never wait for a server ack; there's no
   // correlation id on "contentChanged"/"gestureDetected" to safely match one to a specific call.
-  #offlineQueue: {
+  protected offlineQueue: {
     message: TWebSocketClientMessage
     deferred: DeferredPromise<void>
   }[] = []
-  #reconnectTimer?: ReturnType<typeof setTimeout>
-  #reconnectAttempts = 0
+  protected reconnectTimer?: ReturnType<typeof setTimeout>
+  protected reconnectAttempts = 0
   // Guards against concurrent init() calls: the offline-queue reconnect loop and the legacy
   // auto-reconnect in `send()` can both observe a closed socket and call init() around the same
   // time. Without this, each would create its own `new WebSocket()`, leaving two live sockets
   // with only the last one referenced by `this.socket`.
-  #connectingPromise: Promise<void> | null = null
+  protected connectingPromise: Promise<void> | null = null
   // Set for the duration of a deliberate `close()` (e.g. `newSession()` switching language).
   // `send()`'s legacy auto-reconnect must wait for this instead of racing its own `init()` against
   // the one `newSession()` issues right after — starting a second socket before the first one's
   // close handshake completes has left the server never answering on either connection.
-  #closingPromise: Promise<void> | null = null
+  protected closingPromise: Promise<void> | null = null
 
   configuration: WebSocketClientConfiguration
   initialized: DeferredPromise<void>
@@ -152,10 +152,10 @@ export class WebSocketClient {
   event: ClientEvent
 
   constructor(config: TPartialDeep<TWebSocketClientConfiguration>, event?: ClientEvent) {
-    this.#logger.info("constructor", { config: redactServerSecrets(config) })
+    this.logger.info("constructor", { config: redactServerSecrets(config) })
     this.configuration = new WebSocketClientConfiguration(config)
     const scheme = this.configuration.server.scheme === "https" ? "wss" : "ws"
-    this.url = `${scheme}://${this.configuration.server.host}/api/v4.0/iink/offscreen?applicationKey=${this.configuration.server.applicationKey}`
+    this.url = `${scheme}://${this.configuration.server.host}/api/v4.0/iink/offscreen?applicationKey=${encodeURIComponent(this.configuration.server.applicationKey)}`
 
     this.event = event || new ClientEvent()
     this.initialized = new DeferredPromise<void>()
@@ -175,7 +175,7 @@ export class WebSocketClient {
    * Number of addStrokes batches currently queued locally while disconnected.
    */
   get offlineQueueLength(): number {
-    return this.#offlineQueue.length
+    return this.offlineQueue.length
   }
 
   /**
@@ -185,7 +185,7 @@ export class WebSocketClient {
     return this.offlineQueueLength > 0
   }
 
-  #send(message: TWebSocketClientMessage): void {
+  protected sendOnSocket(message: TWebSocketClientMessage): void {
     if (!this.socket) {
       throw new Error("Client must be initilized")
     }
@@ -256,41 +256,41 @@ export class WebSocketClient {
     this.sendToSupportDeferred = []
   }
 
-  #isDisconnected(): boolean {
+  protected isDisconnected(): boolean {
     return (
       !this.socket || this.socket.readyState === this.socket.CLOSING || this.socket.readyState === this.socket.CLOSED
     )
   }
 
-  #enqueueOfflineMessage(message: TWebSocketClientMessage, deferred: DeferredPromise<void>): void {
-    if (this.#offlineQueue.length >= this.configuration.server.websocket.offlineQueueMaxSize) {
+  protected enqueueOfflineMessage(message: TWebSocketClientMessage, deferred: DeferredPromise<void>): void {
+    if (this.offlineQueue.length >= this.configuration.server.websocket.offlineQueueMaxSize) {
       deferred.reject(new Error("Offline queue full: unable to queue addStrokes while disconnected"))
       return
     }
-    this.#offlineQueue.push({ message, deferred })
+    this.offlineQueue.push({ message, deferred })
     this.event.emitConnectionStatusChanged("offline")
-    this.#startReconnectLoop()
+    this.startReconnectLoop()
   }
 
-  #startReconnectLoop(): void {
-    if (this.#reconnectTimer) {
+  protected startReconnectLoop(): void {
+    if (this.reconnectTimer) {
       return
     }
-    this.#scheduleReconnectAttempt()
+    this.scheduleReconnectAttempt()
   }
 
-  #scheduleReconnectAttempt(): void {
+  protected scheduleReconnectAttempt(): void {
     const { reconnectDelay, maxReconnectAttempts } = this.configuration.server.websocket
-    this.#reconnectTimer = setTimeout(async () => {
-      this.#reconnectTimer = undefined
-      this.#reconnectAttempts++
+    this.reconnectTimer = setTimeout(async () => {
+      this.reconnectTimer = undefined
+      this.reconnectAttempts++
       try {
         await this.init()
       } catch {
-        if (this.#reconnectAttempts >= maxReconnectAttempts) {
-          this.#giveUpReconnecting()
+        if (this.reconnectAttempts >= maxReconnectAttempts) {
+          this.giveUpReconnecting()
         } else {
-          this.#scheduleReconnectAttempt()
+          this.scheduleReconnectAttempt()
         }
       }
     }, reconnectDelay)
@@ -302,24 +302,24 @@ export class WebSocketClient {
    * attempt still scheduled by the other path so it doesn't open a redundant second socket
    * once this one is up, and drains the offline queue since nothing else would.
    */
-  #onConnected(): Promise<void> {
-    this.#hasConnected = true
-    this.#clearReconnectLoop()
-    this.#reconnectAttempts = 0
+  protected onConnected(): Promise<void> {
+    this.hasConnected = true
+    this.clearReconnectLoop()
+    this.reconnectAttempts = 0
     this.event.emitConnectionStatusChanged("connected")
-    return this.#drainOfflineQueue()
+    return this.drainOfflineQueue()
   }
 
-  async #drainOfflineQueue(): Promise<void> {
-    while (this.#offlineQueue.length > 0) {
-      if (this.#isDisconnected()) {
-        this.#startReconnectLoop()
+  protected async drainOfflineQueue(): Promise<void> {
+    while (this.offlineQueue.length > 0) {
+      if (this.isDisconnected()) {
+        this.startReconnectLoop()
         return
       }
-      const item = this.#offlineQueue[0]
-      this.#send(item.message)
+      const item = this.offlineQueue[0]
+      this.sendOnSocket(item.message)
       item.deferred.resolve()
-      this.#offlineQueue.shift()
+      this.offlineQueue.shift()
     }
   }
 
@@ -327,21 +327,21 @@ export class WebSocketClient {
    * Reconnection attempts exhausted: reject and clear the queue, emit "error", and
    * reset the attempt counter so the next `addStrokes()` (or drop) gets a fresh retry budget.
    */
-  #giveUpReconnecting(): void {
-    this.#reconnectAttempts = 0
-    this.#clearOfflineQueue(new Error("Unable to reconnect after offline queueing; queued strokes were not sent"))
+  protected giveUpReconnecting(): void {
+    this.reconnectAttempts = 0
+    this.clearOfflineQueue(new Error("Unable to reconnect after offline queueing; queued strokes were not sent"))
     this.event.emitConnectionStatusChanged("error")
   }
 
-  #clearOfflineQueue(error: Error): void {
-    this.#offlineQueue.forEach((item) => item.deferred.reject(error))
-    this.#offlineQueue = []
+  protected clearOfflineQueue(error: Error): void {
+    this.offlineQueue.forEach((item) => item.deferred.reject(error))
+    this.offlineQueue = []
   }
 
-  #clearReconnectLoop(): void {
-    if (this.#reconnectTimer) {
-      clearTimeout(this.#reconnectTimer)
-      this.#reconnectTimer = undefined
+  protected clearReconnectLoop(): void {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer)
+      this.reconnectTimer = undefined
     }
   }
 
@@ -352,19 +352,19 @@ export class WebSocketClient {
   }
 
   /** Set on the first successful connection: a drop after it is recoverable, one before is not */
-  #hasConnected = false
+  protected hasConnected = false
 
   /**
    * A network drop (1006, also what each failed reconnection attempt reports) once connected,
    * with the offline queue on: the ink is kept and replayed, so it is a state, not an error.
    * Reported as an error, it opened the canvas error modal over the ink every few seconds.
    */
-  #isRecoverableDrop(evt: CloseEvent): boolean {
-    return this.#hasConnected && evt.code === 1006 && this.configuration.server.websocket.offlineQueueEnabled
+  protected isRecoverableDrop(evt: CloseEvent): boolean {
+    return this.hasConnected && evt.code === 1006 && this.configuration.server.websocket.offlineQueueEnabled
   }
 
   protected closeCallback(evt: CloseEvent): void {
-    this.#logger.info("closeCallback", { evt })
+    this.logger.info("closeCallback", { evt })
     let message = evt.reason
     if (!this.currentErrorCode) {
       message = mapCloseCodeToMessage(evt.code) ?? ClientError.CANT_ESTABLISH
@@ -374,7 +374,7 @@ export class WebSocketClient {
     this.closeDeferred?.resolve()
     if (!this.currentErrorCode && evt.code !== 1000) {
       // Pending requests are rejected either way: a reconnection attempt's init() waits on one
-      if (!this.#isRecoverableDrop(evt)) {
+      if (!this.isRecoverableDrop(evt)) {
         this.event.emitError(new Error(message))
       }
       this.rejectDeferredPending(message)
@@ -386,7 +386,7 @@ export class WebSocketClient {
 
   protected openCallback(): void {
     this.reconnectionCount = 0
-    this.#send({
+    this.sendOnSocket({
       type: "authenticate",
       "myscript-client-name": "iink-ts",
       "myscript-client-version": "1.0.0-buildVersion",
@@ -400,10 +400,17 @@ export class WebSocketClient {
     ) {
       return this.initialized.reject(new Error("HMAC key is not a string nor a function"))
     }
-    this.#send({
+    this.sendOnSocket({
       type: "hmac",
       hmac: await resolveHmac(this.configuration.server, hmacChallengeMessage.hmacChallenge),
     })
+  }
+
+  /** A handshake step failed: `init()` waits on `initialized`, so it must hear of it, not only the `error` listeners */
+  protected failInitialization(error: unknown): void {
+    const reason = error instanceof Error ? error : new Error(String(error))
+    this.initialized.reject(reason)
+    this.event.emitError(reason)
   }
 
   protected initPing(): void {
@@ -430,7 +437,7 @@ export class WebSocketClient {
       delete this.configuration.recognition["raw-content"].classification
     }
     const pixelTomm = 25.4 / 96
-    this.#send({
+    this.sendOnSocket({
       type: this.sessionId ? "restoreSession" : "initSession",
       iinkSessionId: this.sessionId,
       scaleX: pixelTomm,
@@ -445,12 +452,12 @@ export class WebSocketClient {
       this.event.emitSessionOpened(this.sessionId)
     }
     if (this.currentPartId) {
-      this.#send({
+      this.sendOnSocket({
         type: "openContentPart",
         id: this.currentPartId,
       })
     } else {
-      this.#send({
+      this.sendOnSocket({
         type: "newContentPart",
         contentType: "Raw Content",
         mimeTypes: this.mimeTypes,
@@ -525,7 +532,7 @@ export class WebSocketClient {
     const blockId =
       mathSolverMessage.action === "get-variable-definitions" ? DOCUMENT_BLOCK_ID : mathSolverMessage.blockId
     if (typeof blockId !== "string") {
-      this.#logger.warn(
+      this.logger.warn(
         "manageMathSolverResult",
         "Received math solver result without blockId, unable to resolve corresponding promise",
         mathSolverMessage
@@ -588,7 +595,7 @@ export class WebSocketClient {
       return
     }
     if (!isWebSocketClientMessageReceived(websocketMessage)) {
-      this.#logger.warn("messageCallback", `Message type unknown: "${message.data}".`)
+      this.logger.warn("messageCallback", `Message type unknown: "${message.data}".`)
       return
     }
     try {
@@ -598,7 +605,7 @@ export class WebSocketClient {
       }
       switch (websocketMessage.type) {
         case TWebSocketClientMessageType.HMAC_Challenge:
-          this.manageHMACChallenge(websocketMessage).catch((err) => this.event.emitError(err))
+          this.manageHMACChallenge(websocketMessage).catch((err) => this.failInitialization(err))
           break
         case TWebSocketClientMessageType.Authenticated:
           this.manageAuthenticated()
@@ -639,7 +646,7 @@ export class WebSocketClient {
         default: {
           // Unreachable once the guard passed; a TWebSocketClientMessageType without a case stops compiling here
           const unhandled: never = websocketMessage
-          this.#logger.warn("messageCallback", `Message type unhandled: "${JSON.stringify(unhandled)}".`)
+          this.logger.warn("messageCallback", `Message type unhandled: "${JSON.stringify(unhandled)}".`)
           break
         }
       }
@@ -660,18 +667,18 @@ export class WebSocketClient {
   }
 
   async init(): Promise<void> {
-    if (this.#connectingPromise) {
-      return this.#connectingPromise
+    if (this.connectingPromise) {
+      return this.connectingPromise
     }
-    this.#connectingPromise = this.#connect()
-      .then(() => this.#onConnected())
+    this.connectingPromise = this.connect()
+      .then(() => this.onConnected())
       .finally(() => {
-        this.#connectingPromise = null
+        this.connectingPromise = null
       })
-    return this.#connectingPromise
+    return this.connectingPromise
   }
 
-  async #connect(): Promise<void> {
+  protected async connect(): Promise<void> {
     this.event.emitStartInitialization()
     if (this.currentErrorCode === "restore.session.not.found") {
       this.currentErrorCode = undefined
@@ -701,16 +708,16 @@ export class WebSocketClient {
       case this.socket.CONNECTING:
       case this.socket.OPEN:
         await this.initialized.promise
-        this.#send(message)
+        this.sendOnSocket(message)
         return Promise.resolve()
       case this.socket.CLOSING:
       case this.socket.CLOSED:
-        if (this.#closingPromise) {
+        if (this.closingPromise) {
           // A deliberate `close()` (e.g. `newSession()`) is already tearing down the socket —
           // wait for it instead of racing our own `init()` against the one it issues right after.
           // The message is not replayed: it was built for the session being closed (its partId,
           // its blockIds), and close() has already settled everything that waited on an answer.
-          await this.#closingPromise
+          await this.closingPromise
           return
         }
         if (this.configuration.server.websocket.autoReconnect) {
@@ -718,7 +725,7 @@ export class WebSocketClient {
           if (this.configuration.server.websocket.maxRetryCount > this.reconnectionCount) {
             await this.init()
             await this.waitForIdle()
-            return this.#send(message)
+            return this.sendOnSocket(message)
           } else {
             return Promise.reject(
               new Error("Unable to send message. The maximum number of connection attempts has been reached.")
@@ -754,9 +761,9 @@ export class WebSocketClient {
     for (let i = 0; i < strokes.length; i += chunkSize) {
       const strokesPart = strokes.slice(i, i + chunkSize)
       const message = this.buildAddStrokesMessage(strokesPart, _processGestures)
-      if (this.configuration.server.websocket.offlineQueueEnabled && this.#isDisconnected()) {
+      if (this.configuration.server.websocket.offlineQueueEnabled && this.isDisconnected()) {
         const deferred = new DeferredPromise<void>()
-        this.#enqueueOfflineMessage(message, deferred)
+        this.enqueueOfflineMessage(message, deferred)
         promises.push(deferred.promise)
       } else {
         promises.push(this.send(message))
@@ -845,7 +852,7 @@ export class WebSocketClient {
       allSeries.push(points)
     }
 
-    this.#logger.info("Evaluate result transformed", {
+    this.logger.info("Evaluate result transformed", {
       inputVar: evaluation.inputVariableName || "x",
       outputVar: evaluation.outputVariableName || "?",
       seriesCount: allSeries.length,
@@ -1039,17 +1046,17 @@ export class WebSocketClient {
   }
 
   async export(requestedMimeTypes?: string[]): Promise<TExport> {
-    const run = this.#exportQueue.then(() => this.#sendExport(requestedMimeTypes))
-    this.#exportQueue = run.catch(() => undefined)
+    const run = this.exportQueue.then(() => this.sendExport(requestedMimeTypes))
+    this.exportQueue = run.catch(() => undefined)
     return run
   }
 
   // Exports run one after another. Two in flight for the same mime type share one slot in
   // `exportDeferredMap`: the second overwrote the first, whose caller then waited forever, since
   // the server's answers can only settle the deferred the map still holds.
-  #exportQueue: Promise<unknown> = Promise.resolve()
+  protected exportQueue: Promise<unknown> = Promise.resolve()
 
-  async #sendExport(requestedMimeTypes?: string[]): Promise<TExport> {
+  protected async sendExport(requestedMimeTypes?: string[]): Promise<TExport> {
     const mimeTypes: string[] = requestedMimeTypes || this.mimeTypes.slice()
     const deferreds = mimeTypes.map((mt) => {
       const deferred = new DeferredPromise<TExport>()
@@ -1084,8 +1091,8 @@ export class WebSocketClient {
   }
 
   async close(code: number, reason: string): Promise<void> {
-    this.#clearReconnectLoop()
-    this.#clearOfflineQueue(new Error(`Client closed (${reason}): queued strokes were not sent`))
+    this.clearReconnectLoop()
+    this.clearOfflineQueue(new Error(`Client closed (${reason}): queued strokes were not sent`))
     this.resolveDeferredPending()
     this.resetAllDeferred()
     this.closeDeferred = new DeferredPromise<void>()
@@ -1097,10 +1104,10 @@ export class WebSocketClient {
       }
       await this.closeDeferred!.promise
     }
-    this.#closingPromise = doClose().finally(() => {
-      this.#closingPromise = null
+    this.closingPromise = doClose().finally(() => {
+      this.closingPromise = null
     })
-    await this.#closingPromise
+    await this.closingPromise
   }
 
   async destroy(): Promise<void> {
