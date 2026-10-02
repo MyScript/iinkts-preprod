@@ -11,7 +11,7 @@ import type { TPartialDeep } from "@/core/std"
 import { createUUID, mergeDeep, overrideDeep } from "@/core/std"
 import { RafCoalescer } from "@/dom"
 import { DOMFactory } from "@/dom"
-import type { THistoryContext, TIIHistoryBackendChanges, TIIHistoryChanges } from "@/history"
+import type { TIIHistoryBackendChanges, TIIHistoryChanges } from "@/history"
 import { appendUpdated, extractIIBackendChanges, IIHistoryManager } from "@/history"
 import type { TDownloadFormat, TExportFormat, TExportOptions, TExportResultMap, TPDFDownloadOptions } from "@/manager"
 import {
@@ -385,7 +385,9 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     }
   }
 
-  protected async onContentChanged(undoRedoContext: THistoryContext): Promise<void> {
+  // The backend's undo/redo state is ignored: in this variant the local history drives undo/redo,
+  // and `changed` must agree with what the history itself emits on push/undo/redo
+  protected async onContentChanged(): Promise<void> {
     clearTimeout(this.#recognizeStrokeTimer)
     this.#recognizeStrokeTimer = setTimeout(async () => {
       try {
@@ -402,7 +404,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
         this.clearOperation("Recognizing")
       }
       this.updateLayerUI(0)
-      this.event.emitChanged(undoRedoContext)
+      this.event.emitChanged(this.history.context)
     }, 500)
   }
 
