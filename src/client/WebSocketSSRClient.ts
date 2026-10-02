@@ -314,17 +314,17 @@ export class WebSocketSSRClient {
     this.logger.info("manageExportMessage", {
       exportMessage,
     })
-    parseExportedJIIX(exportMessage.exports)
+    const exports = parseExportedJIIX(exportMessage.exports)
     this.initialized.resolve()
-    this.addStrokeDeferred?.resolve(exportMessage.exports)
-    this.exportDeferred?.resolve(exportMessage.exports)
-    this.convertDeferred?.resolve(exportMessage.exports)
-    this.importDeferred?.resolve(exportMessage.exports)
-    this.undoDeferred?.resolve(exportMessage.exports)
-    this.redoDeferred?.resolve(exportMessage.exports)
-    this.clearDeferred?.resolve(exportMessage.exports)
-    this.importPointEventsDeferred?.resolve(exportMessage.exports)
-    this.event.emitExported(exportMessage.exports)
+    this.addStrokeDeferred?.resolve(exports)
+    this.exportDeferred?.resolve(exports)
+    this.convertDeferred?.resolve(exports)
+    this.importDeferred?.resolve(exports)
+    this.undoDeferred?.resolve(exports)
+    this.redoDeferred?.resolve(exports)
+    this.clearDeferred?.resolve(exports)
+    this.importPointEventsDeferred?.resolve(exports)
+    this.event.emitExported(exports)
   }
 
   protected async manageWaitForIdle(): Promise<void> {
