@@ -1,7 +1,14 @@
 import PingWorker from "web-worker:../worker/ping.worker.ts"
 
 import type { TMatrixTransform } from "@/core/geometry"
-import { DeferredPromise, isVersionSuperiorOrEqual, mergeDeep, overrideDeep, type TPartialDeep } from "@/core/std"
+import {
+  DeferredPromise,
+  isVersionSuperiorOrEqual,
+  mergeDeep,
+  overrideDeep,
+  type TPartialDeep,
+  typedKeys,
+} from "@/core/std"
 import type { THistoryContext, TIIHistoryBackendChanges } from "@/history"
 import { LoggerCategory, LoggerManager } from "@/logger"
 
@@ -20,6 +27,8 @@ import { WebSocketClientConfiguration } from "./WebSocketClientConfiguration"
 import type {
   TInteractiveInkSessionDescriptionMessage,
   TMathEvaluable,
+  TMathSolverAction,
+  TMathSolverResultMap,
   TMathVariable,
   TMathVariableDefinition,
   TMathVariableDefinitions,
@@ -42,6 +51,35 @@ const RECEIVED_MESSAGE_TYPES: ReadonlySet<unknown> = new Set(Object.values(TWebS
 // Checks the discriminant only: the payload is trusted to match its type, as the server's contract
 const isWebSocketClientMessageReceived = (value: unknown): value is TWebSocketClientMessageReceived =>
   typeof value === "object" && value !== null && "type" in value && RECEIVED_MESSAGE_TYPES.has(value.type)
+
+/**
+ * @group Client
+ * @summary Pending math solver requests, by action then block id
+ * @remarks The server answers each block's requests of one action in order.
+ */
+export type TMathSolverQueues = {
+  [A in TMathSolverAction]?: Map<string, DeferredPromise<TMathSolverResultMap[A]>[]>
+}
+
+// `get-variable-definitions` answers for the whole document, not a block: its requests queue under this key
+const DOCUMENT_BLOCK_ID = ""
+
+// What a math request settles with when a deliberate close makes it moot
+const createMathSolverNeutralResults = (): TMathSolverResultMap => ({
+  "available-actions": [],
+  // "null" (not "") so callers doing `JSON.parse(await promise)` (see `getNumericalComputation`) get `null` instead of throwing
+  "numerical-computation": "null",
+  "get-diagnostic": "",
+  "get-variables": [],
+  "set-variable-value": undefined,
+  // NaN, not 0 — 0 would read as a real value; NaN clearly signals "no value"
+  "get-variable-value": NaN,
+  "remove-variable-value": undefined,
+  "as-variable-definition": { name: "", value: NaN },
+  "get-variable-definitions": [],
+  "get-evaluables": [],
+  evaluate: [],
+})
 
 /**
  * A websocket dialog have this sequence :
@@ -86,17 +124,7 @@ export class WebSocketClient {
   protected exportDeferredMap: Map<string, DeferredPromise<TExport>>
   protected closeDeferred?: DeferredPromise<void>
   protected waitForIdleDeferred?: DeferredPromise<void>
-  protected availableActionsDeferred: Map<string, DeferredPromise<string[]>[]>
-  protected numericalComputationDeferred: Map<string, DeferredPromise<string>[]>
-  protected getDiagnosticDeferred: Map<string, DeferredPromise<string>[]>
-  protected getVariablesDeferred: Map<string, DeferredPromise<TMathVariable[]>[]>
-  protected setVariableValueDeferred: Map<string, DeferredPromise<void>[]>
-  protected getVariableValueDeferred: Map<string, DeferredPromise<number>[]>
-  protected removeVariableValueDeferred: Map<string, DeferredPromise<void>[]>
-  protected asVariableDefinitionDeferred: Map<string, DeferredPromise<TMathVariableDefinition>[]>
-  protected getVariableDefinitionsDeferred: DeferredPromise<TMathVariableDefinitions[]>[]
-  protected getEvaluablesDeferred: Map<string, DeferredPromise<TMathEvaluable[]>[]>
-  protected evaluateDeferred: Map<string, DeferredPromise<number[][]>[]>
+  protected mathSolverQueues: TMathSolverQueues = {}
   protected sendToSupportDeferred: DeferredPromise<void>[]
 
   // Resolved once the queued message is actually sent (post-reconnect), not once any server ack
@@ -137,17 +165,6 @@ export class WebSocketClient {
     this.boundMessageCallback = this.messageCallback.bind(this)
     this.exportDeferredMap = new Map()
     this.contextlessGestureDeferred = new Map()
-    this.availableActionsDeferred = new Map()
-    this.numericalComputationDeferred = new Map()
-    this.getDiagnosticDeferred = new Map()
-    this.getVariablesDeferred = new Map()
-    this.setVariableValueDeferred = new Map()
-    this.getVariableValueDeferred = new Map()
-    this.removeVariableValueDeferred = new Map()
-    this.asVariableDefinitionDeferred = new Map()
-    this.getVariableDefinitionsDeferred = []
-    this.getEvaluablesDeferred = new Map()
-    this.evaluateDeferred = new Map()
     this.sendToSupportDeferred = []
   }
 
@@ -189,6 +206,13 @@ export class WebSocketClient {
       v.reject(error)
     })
     this.waitForIdleDeferred?.reject(error)
+    // Cleared once rejected: the server answers none of them, so a later answer must not settle one
+    Object.values(this.mathSolverQueues).forEach((queues) => {
+      queues.forEach((queue) => queue.forEach((deferred) => deferred.reject(error)))
+    })
+    this.mathSolverQueues = {}
+    this.sendToSupportDeferred.forEach((deferred) => deferred.reject(error))
+    this.sendToSupportDeferred = []
   }
 
   /**
@@ -211,27 +235,16 @@ export class WebSocketClient {
       deferred.resolve({})
     })
 
-    this.resolveAllInQueue(this.availableActionsDeferred, [])
-    // "null" (not "") so callers doing `JSON.parse(await promise)` (see `getNumericalComputation`) get `null` instead of throwing
-    this.resolveAllInQueue(this.numericalComputationDeferred, "null")
-    this.resolveAllInQueue(this.getDiagnosticDeferred, "")
-    this.resolveAllInQueue(this.getVariablesDeferred, [])
-    this.resolveAllInQueue(this.setVariableValueDeferred, undefined)
-    // NaN, not 0 — 0 would read as a real value; NaN clearly signals "no value"
-    this.resolveAllInQueue(this.getVariableValueDeferred, NaN)
-    this.resolveAllInQueue(this.removeVariableValueDeferred, undefined)
-    this.resolveAllInQueue(this.asVariableDefinitionDeferred, { name: "", value: NaN })
-    this.getVariableDefinitionsDeferred.forEach((deferred) => deferred.resolve([]))
-    this.resolveAllInQueue(this.getEvaluablesDeferred, [])
-    this.resolveAllInQueue(this.evaluateDeferred, [])
+    const neutralResults = createMathSolverNeutralResults()
+    typedKeys(neutralResults).forEach((action) => this.resolveAllMathSolverRequests(action, neutralResults[action]))
     this.sendToSupportDeferred.forEach((deferred) => deferred.resolve())
   }
 
-  /** Resolve every still-pending deferred in every queue of `map` with the same neutral `value`. */
-  protected resolveAllInQueue<T>(map: Map<string, DeferredPromise<T>[]>, value: T): void {
-    Array.from(map.values()).forEach((queue) => {
-      queue.forEach((deferred) => deferred.resolve(value))
-    })
+  protected resolveAllMathSolverRequests<A extends TMathSolverAction>(
+    action: A,
+    result: TMathSolverResultMap[A]
+  ): void {
+    this.mathSolverQueues[action]?.forEach((queue) => queue.forEach((deferred) => deferred.resolve(result)))
   }
 
   protected resetAllDeferred(): void {
@@ -240,17 +253,7 @@ export class WebSocketClient {
     this.exportDeferredMap.clear()
     this.waitForIdleDeferred = undefined
     this.closeDeferred = undefined
-    this.availableActionsDeferred.clear()
-    this.numericalComputationDeferred.clear()
-    this.getDiagnosticDeferred.clear()
-    this.getVariablesDeferred.clear()
-    this.setVariableValueDeferred.clear()
-    this.getVariableValueDeferred.clear()
-    this.removeVariableValueDeferred.clear()
-    this.asVariableDefinitionDeferred.clear()
-    this.getVariableDefinitionsDeferred = []
-    this.getEvaluablesDeferred.clear()
-    this.evaluateDeferred.clear()
+    this.mathSolverQueues = {}
     this.sendToSupportDeferred = []
   }
 
@@ -533,79 +536,60 @@ export class WebSocketClient {
     this.contextlessGestureDeferred.get(gestureMessage.strokeId)?.resolve(gestureMessage)
   }
 
-  protected resolveFirstInQueue<T>(
-    map: Map<string, DeferredPromise<T>[]>,
-    blockId: string | undefined,
-    value?: T
-  ): void {
-    if (blockId === undefined || blockId === null) {
-      return
-    }
-    const queue = map.get(blockId)
-    if (!queue?.length) {
-      return
-    }
-    queue.shift()!.resolve(value as T)
-    if (queue.length === 0) {
-      map.delete(blockId)
-    }
-  }
-
   protected manageMathSolverResult(mathSolverMessage: TWebSocketClientMessageMathSolverResult): void {
-    if (mathSolverMessage.action === "get-variable-definitions") {
-      if (this.getVariableDefinitionsDeferred.length) {
-        this.getVariableDefinitionsDeferred.shift()!.resolve(mathSolverMessage.result)
-      }
-      return
-    }
-
-    const blockId = mathSolverMessage.blockId
-    if (blockId === undefined || blockId === null) {
+    const blockId =
+      mathSolverMessage.action === "get-variable-definitions" ? DOCUMENT_BLOCK_ID : mathSolverMessage.blockId
+    if (typeof blockId !== "string") {
       this.#logger.warn(
         "manageMathSolverResult",
         "Received math solver result without blockId, unable to resolve corresponding promise",
         mathSolverMessage
       )
+      return
     }
+    this.resolveMathSolverRequest(mathSolverMessage.action, blockId, mathSolverMessage.result)
+  }
 
-    switch (mathSolverMessage.action) {
-      case "available-actions":
-        this.resolveFirstInQueue(this.availableActionsDeferred, blockId, mathSolverMessage.result)
-        break
-      case "numerical-computation":
-        this.resolveFirstInQueue(this.numericalComputationDeferred, blockId, mathSolverMessage.result)
-        break
-      case "get-diagnostic":
-        this.resolveFirstInQueue(this.getDiagnosticDeferred, blockId, mathSolverMessage.result)
-        break
-      case "get-variables":
-        this.resolveFirstInQueue(this.getVariablesDeferred, blockId, mathSolverMessage.result)
-        break
-      case "set-variable-value":
-        this.resolveFirstInQueue(this.setVariableValueDeferred, blockId)
-        break
-      case "get-variable-value":
-        this.resolveFirstInQueue(this.getVariableValueDeferred, blockId, mathSolverMessage.result)
-        break
-      case "remove-variable-value":
-        this.resolveFirstInQueue(this.removeVariableValueDeferred, blockId)
-        break
-      case "as-variable-definition":
-        this.resolveFirstInQueue(this.asVariableDefinitionDeferred, blockId, mathSolverMessage.result)
-        break
-      case "get-evaluables":
-        this.resolveFirstInQueue(this.getEvaluablesDeferred, blockId, mathSolverMessage.result)
-        break
-      case "evaluate":
-        this.resolveFirstInQueue(this.evaluateDeferred, blockId, mathSolverMessage.result)
-        break
-      default: {
-        // A TMathSolverAction without a case stops compiling here
-        const unhandled: never = mathSolverMessage
-        this.#logger.warn("manageMathSolverResult", `Math solver action unhandled: "${JSON.stringify(unhandled)}".`)
-        break
-      }
+  protected resolveMathSolverRequest<A extends TMathSolverAction>(
+    action: A,
+    blockId: string,
+    result: TMathSolverResultMap[A]
+  ): void {
+    const queue = this.mathSolverQueues[action]?.get(blockId)
+    const deferred = queue?.shift()
+    if (queue?.length === 0) {
+      this.mathSolverQueues[action]?.delete(blockId)
     }
+    deferred?.resolve(result)
+  }
+
+  protected async requestMathSolver<A extends TMathSolverAction>(
+    action: A,
+    blockId: string | undefined,
+    parameters: Record<string, unknown> = {}
+  ): Promise<TMathSolverResultMap[A]> {
+    const deferred = new DeferredPromise<TMathSolverResultMap[A]>()
+    const queues = this.getMathSolverQueue(action)
+    const key = blockId ?? DOCUMENT_BLOCK_ID
+    queues.set(key, [...(queues.get(key) ?? []), deferred])
+    try {
+      // blockId undefined is dropped by JSON.stringify, as get-variable-definitions expects
+      await this.send({ type: "mathSolver", action, blockId, ...parameters })
+    } catch (error) {
+      // Never sent, never answered: left queued, it would take the answer to the next request
+      queues.set(
+        key,
+        (queues.get(key) ?? []).filter((queued) => queued !== deferred)
+      )
+      throw error
+    }
+    return deferred.promise
+  }
+
+  protected getMathSolverQueue<A extends TMathSolverAction>(action: A): NonNullable<TMathSolverQueues[A]> {
+    const queues: NonNullable<TMathSolverQueues[A]> = this.mathSolverQueues[action] ?? new Map()
+    this.mathSolverQueues[action] = queues
+    return queues
   }
 
   protected messageCallback(message: MessageEvent<string>): void {
@@ -799,135 +783,43 @@ export class WebSocketClient {
   }
 
   async getAvailableActions(blockId: string): Promise<string[]> {
-    const deferred = new DeferredPromise<string[]>()
-    const queue = this.availableActionsDeferred.get(blockId) ?? []
-    queue.push(deferred)
-    this.availableActionsDeferred.set(blockId, queue)
-    await this.send({
-      type: "mathSolver",
-      action: "available-actions",
-      blockId,
-    })
-    return deferred.promise
+    return this.requestMathSolver("available-actions", blockId)
   }
 
   async getNumericalComputation(blockId: string): Promise<TJIIXMathElement> {
-    const deferred = new DeferredPromise<string>()
-    const queue = this.numericalComputationDeferred.get(blockId) ?? []
-    queue.push(deferred)
-    this.numericalComputationDeferred.set(blockId, queue)
-    await this.send({
-      type: "mathSolver",
-      action: "numerical-computation",
-      blockId: blockId,
-    })
-    return JSON.parse(await deferred.promise) as TJIIXMathElement
+    return JSON.parse(await this.requestMathSolver("numerical-computation", blockId)) as TJIIXMathElement
   }
 
   async getDiagnostic(blockId: string, task: string): Promise<string> {
-    const deferred = new DeferredPromise<string>()
-    const queue = this.getDiagnosticDeferred.get(blockId) ?? []
-    queue.push(deferred)
-    this.getDiagnosticDeferred.set(blockId, queue)
-    await this.send({
-      type: "mathSolver",
-      action: "get-diagnostic",
-      task,
-      blockId,
-    })
-    return deferred.promise
+    return this.requestMathSolver("get-diagnostic", blockId, { task })
   }
 
   async getVariables(blockId: string): Promise<TMathVariable[]> {
-    const deferred = new DeferredPromise<TMathVariable[]>()
-    const queue = this.getVariablesDeferred.get(blockId) ?? []
-    queue.push(deferred)
-    this.getVariablesDeferred.set(blockId, queue)
-    await this.send({
-      type: "mathSolver",
-      action: "get-variables",
-      blockId,
-    })
-    return deferred.promise
+    return this.requestMathSolver("get-variables", blockId)
   }
 
   async getVariableValue(blockId: string, variableName: string): Promise<number> {
-    const deferred = new DeferredPromise<number>()
-    const queue = this.getVariableValueDeferred.get(blockId) ?? []
-    queue.push(deferred)
-    this.getVariableValueDeferred.set(blockId, queue)
-    await this.send({
-      type: "mathSolver",
-      action: "get-variable-value",
-      blockId,
-      variableName,
-    })
-    return deferred.promise
+    return this.requestMathSolver("get-variable-value", blockId, { variableName })
   }
 
   async setVariableValue(blockId: string, variableName: string, variableValue: number): Promise<void> {
-    const deferred = new DeferredPromise<void>()
-    const queue = this.setVariableValueDeferred.get(blockId) ?? []
-    queue.push(deferred)
-    this.setVariableValueDeferred.set(blockId, queue)
-    await this.send({
-      type: "mathSolver",
-      action: "set-variable-value",
-      blockId,
-      variableName,
-      variableValue,
-    })
-    await deferred.promise
+    await this.requestMathSolver("set-variable-value", blockId, { variableName, variableValue })
   }
 
   async removeVariableValue(blockId: string, variableName: string): Promise<void> {
-    const deferred = new DeferredPromise<void>()
-    const queue = this.removeVariableValueDeferred.get(blockId) ?? []
-    queue.push(deferred)
-    this.removeVariableValueDeferred.set(blockId, queue)
-    await this.send({
-      type: "mathSolver",
-      action: "remove-variable-value",
-      blockId,
-      variableName,
-    })
-    await deferred.promise
+    await this.requestMathSolver("remove-variable-value", blockId, { variableName })
   }
 
   async asVariableDefinition(blockId: string): Promise<TMathVariableDefinition> {
-    const deferred = new DeferredPromise<TMathVariableDefinition>()
-    const queue = this.asVariableDefinitionDeferred.get(blockId) ?? []
-    queue.push(deferred)
-    this.asVariableDefinitionDeferred.set(blockId, queue)
-    await this.send({
-      type: "mathSolver",
-      action: "as-variable-definition",
-      blockId,
-    })
-    return deferred.promise
+    return this.requestMathSolver("as-variable-definition", blockId)
   }
 
   async getVariableDefinitions(): Promise<TMathVariableDefinitions[]> {
-    const deferred = new DeferredPromise<TMathVariableDefinitions[]>()
-    this.getVariableDefinitionsDeferred.push(deferred)
-    await this.send({
-      type: "mathSolver",
-      action: "get-variable-definitions",
-    })
-    return deferred.promise
+    return this.requestMathSolver("get-variable-definitions", undefined)
   }
 
   async getEvaluables(blockId: string): Promise<TMathEvaluable[]> {
-    const deferred = new DeferredPromise<TMathEvaluable[]>()
-    const queue = this.getEvaluablesDeferred.get(blockId) ?? []
-    queue.push(deferred)
-    this.getEvaluablesDeferred.set(blockId, queue)
-    await this.send({
-      type: "mathSolver",
-      action: "get-evaluables",
-      blockId,
-    })
-    return deferred.promise
+    return this.requestMathSolver("get-evaluables", blockId)
   }
 
   async evaluate(
@@ -940,17 +832,7 @@ export class WebSocketClient {
       pointCount: number
     }
   ): Promise<{ [key: string]: number }[][]> {
-    const deferred = new DeferredPromise<number[][]>()
-    const queue = this.evaluateDeferred.get(blockId) ?? []
-    queue.push(deferred)
-    this.evaluateDeferred.set(blockId, queue)
-    await this.send({
-      type: "mathSolver",
-      action: "evaluate",
-      blockId,
-      evaluation,
-    })
-    const result = await deferred.promise
+    const result = await this.requestMathSolver("evaluate", blockId, { evaluation })
 
     // Transform result arrays to series of points
     // Result format: [[x1, y1, x2, y2, ...], [x1, y1, x2, y2, ...]] for multiple curves
@@ -987,7 +869,6 @@ export class WebSocketClient {
       totalPoints: allSeries.reduce((sum, series) => sum + series.length, 0),
     })
 
-    this.evaluateDeferred.delete(blockId)
     return allSeries
   }
 

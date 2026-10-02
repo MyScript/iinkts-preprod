@@ -1,4 +1,4 @@
-import { mergeDeep, mergeExports, overrideDeep, redactServerSecrets, uniqueById } from "@/iink"
+import { mergeDeep, mergeExports, overrideDeep, redactServerSecrets, typedKeys, uniqueById } from "@/iink"
 
 describe("merge", () => {
   const testDatas = [
@@ -267,5 +267,14 @@ describe("mergeExports", () => {
     const current: TExportLike = { "text/plain": "hello" }
     const incoming: TExportLike = { "text/plain": "world" }
     expect(mergeExports(current, incoming)).toEqual({ "text/plain": "world" })
+  })
+})
+
+describe("typedKeys", () => {
+  test("should list the object's own enumerable keys, in insertion order", () => {
+    expect(typedKeys({ b: 1, a: 2 })).toEqual(["b", "a"])
+  })
+  test("should return an empty list for an empty object", () => {
+    expect(typedKeys({})).toEqual([])
   })
 })
