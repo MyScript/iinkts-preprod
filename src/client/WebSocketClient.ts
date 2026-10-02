@@ -186,7 +186,7 @@ export class WebSocketClient {
     return this.offlineQueueLength > 0
   }
 
-  async #send(message: TWebSocketClientMessage): Promise<void> {
+  #send(message: TWebSocketClientMessage): void {
     if (!this.socket) {
       throw new Error("Client must be initilized")
     }
@@ -318,7 +318,7 @@ export class WebSocketClient {
         return
       }
       const item = this.#offlineQueue[0]
-      await this.#send(item.message)
+      this.#send(item.message)
       item.deferred.resolve()
       this.#offlineQueue.shift()
     }

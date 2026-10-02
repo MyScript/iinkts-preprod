@@ -185,6 +185,25 @@ export class WebSocketSSRClient {
     }
   }
 
+  /**
+   * Settles the requests still waiting for an answer with an empty result, as on a deliberate
+   * close in {@link WebSocketClient}: the operation is moot, not failed, so callers that never
+   * awaited it get no unhandled rejection.
+   */
+  protected resolvePendingRequests(): void {
+    const empty: TExport = {}
+    this.addStrokeDeferred?.resolve(empty)
+    this.exportDeferred?.resolve(empty)
+    this.importPointEventsDeferred?.resolve(empty)
+    this.convertDeferred?.resolve(empty)
+    this.importDeferred?.resolve(empty)
+    this.resizeDeferred?.resolve()
+    this.waitForIdleDeferred?.resolve()
+    this.undoDeferred?.resolve(empty)
+    this.redoDeferred?.resolve(empty)
+    this.clearDeferred?.resolve(empty)
+  }
+
   protected closeCallback(evt: CloseEvent): void {
     let message = ""
     if (!this.currentErrorCode) {
@@ -340,7 +359,14 @@ export class WebSocketSSRClient {
       message,
     })
     this.currentErrorCode = undefined
-    const websocketMessage: TWebSocketSSRClientMessage = JSON.parse(message.data)
+    let websocketMessage: TWebSocketSSRClientMessage
+    try {
+      websocketMessage = JSON.parse(message.data)
+    } catch {
+      // The payload is not JSON at all: the payload itself is the useful diagnostic.
+      this.event.emitError(new Error(message.data))
+      return
+    }
     if (websocketMessage.type === "pong") {
       this.pingCount = 0
       return
@@ -382,7 +408,7 @@ export class WebSocketSSRClient {
     try {
       this.event.emitStartInitialization()
       this.#logger.info("init", { height, width })
-      this.destroy()
+      this.resetConnection()
 
       if (!this.configuration.server.version) {
         this.configuration.server.version = (await getApiInfos(this.configuration)).version
@@ -420,22 +446,25 @@ export class WebSocketSSRClient {
       this.#logger.debug("send", { message })
       this.socket.send(JSON.stringify(message))
       return Promise.resolve()
+    }
+    if (this.socket.readyState === this.socket.CONNECTING) {
+      return Promise.reject(new Error(`Can not send message: ${message.type}, connection not ready`))
+    }
+    if (!this.configuration.server.websocket.autoReconnect) {
+      return Promise.reject(new Error("Unable to send message. Connection closed and automatic reconnection disabled"))
+    }
+    this.reconnectionCount++
+    if (this.configuration.server.websocket.maxRetryCount >= this.reconnectionCount) {
+      this.#logger.debug("send", `try to reconnect number: ${this.reconnectionCount}.`)
+      await this.init(this.viewSizeHeight, this.viewSizeWidth)
+      await this.setPenStyle(this.penStyle as TPenStyle)
+      await this.setPenStyleClasses(this.penStyleClasses as string)
+      await this.setTheme(this.theme as TTheme)
+      return this.send(message)
     } else {
-      if (this.socket.readyState != this.socket.CONNECTING && this.configuration.server.websocket.autoReconnect) {
-        this.reconnectionCount++
-        if (this.configuration.server.websocket.maxRetryCount >= this.reconnectionCount) {
-          this.#logger.debug("send", `try to reconnect number: ${this.reconnectionCount}.`)
-          await this.init(this.viewSizeHeight, this.viewSizeWidth)
-          await this.setPenStyle(this.penStyle as TPenStyle)
-          await this.setPenStyleClasses(this.penStyleClasses as string)
-          await this.setTheme(this.theme as TTheme)
-          return this.send(message)
-        } else {
-          return Promise.reject(
-            new Error("Unable to send message. The maximum number of connection attempts has been reached.")
-          )
-        }
-      }
+      return Promise.reject(
+        new Error("Unable to send message. The maximum number of connection attempts has been reached.")
+      )
     }
   }
 
@@ -714,6 +743,13 @@ export class WebSocketSSRClient {
 
   destroy(): void {
     this.#logger.info("destroy")
+    // Dropped unsettled, their callers would wait forever
+    this.resolvePendingRequests()
+    this.resetConnection()
+  }
+
+  /** Drops the socket and every pending promise without settling them: `init()` starts over from here */
+  protected resetConnection(): void {
     this.connected = undefined
     this.ackDeferred = undefined
     this.addStrokeDeferred = undefined
