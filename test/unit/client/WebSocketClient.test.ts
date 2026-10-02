@@ -233,6 +233,30 @@ describe("WebSocketClient.ts", () => {
       spyWarn.mockRestore()
     })
 
+    test("should report the whole undo/redo state a contentChanged message carries", () => {
+      const wsClient = new WebSocketClient(configuration)
+      const spyContentChanged = jest.spyOn(wsClient.event, "emitContentChanged")
+      const payload = {
+        type: "contentChanged",
+        partId: "part",
+        canUndo: true,
+        canRedo: false,
+        empty: false,
+        undoStackIndex: 3,
+        possibleUndoCount: 2,
+      }
+
+      invoke(wsClient, JSON.stringify(payload))
+
+      expect(spyContentChanged).toHaveBeenCalledWith({
+        canUndo: true,
+        canRedo: false,
+        empty: false,
+        stackIndex: 3,
+        possibleUndoCount: 2,
+      })
+    })
+
     test("should report a handler's own error rather than the payload", () => {
       const wsClient = new WebSocketClient(configuration)
       const boom = new Error("manageSessionDescriptionMessage blew up")

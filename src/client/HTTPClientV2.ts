@@ -5,7 +5,7 @@ import type { TJIIXExport } from "./Export"
 import type { TExportV2 } from "./ExportV2"
 import type { THTTPClientV2Configuration } from "./HTTPClientV2Configuration"
 import { HTTPClientV2Configuration } from "./HTTPClientV2Configuration"
-import { postRecognition, toRecognitionError } from "./HTTPRecognition"
+import { postRecognition, toRecognitionContentType, toRecognitionError } from "./HTTPRecognition"
 import { ensureServerVersion } from "./infos"
 import type {
   TDiagramConfiguration,
@@ -93,11 +93,7 @@ export class HTTPClientV2 {
   protected buildData(strokes: TRecognitionStroke[]): THTTPClientV2PostData {
     this.logger.info("buildData", { strokes })
 
-    const contentType: string =
-      this.configuration.recognition.type === "Raw Content"
-        ? "Raw Content"
-        : this.configuration.recognition.type.charAt(0).toUpperCase() +
-          this.configuration.recognition.type.slice(1).toLowerCase()
+    const contentType = toRecognitionContentType(this.configuration.recognition.type)
 
     const data = {
       configuration: this.postConfig,

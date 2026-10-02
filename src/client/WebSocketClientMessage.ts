@@ -1,3 +1,5 @@
+import type { THistoryContext } from "@/history"
+
 import type { TExportWire } from "./Export"
 
 /**
@@ -329,3 +331,22 @@ export type TWebSocketClientMessageReceivedMap = {
  * @group Client
  */
 export type TWebSocketClientMessageReceived = TWebSocketClientMessageReceivedMap[TWebSocketClientMessageType]
+
+/**
+ * @group Client
+ * @summary The undo/redo state a `contentChanged` message carries, both websocket protocols alike
+ */
+export function readHistoryContext(
+  message: Pick<
+    TWebSocketClientMessageContentChange,
+    "canUndo" | "canRedo" | "empty" | "undoStackIndex" | "possibleUndoCount"
+  >
+): THistoryContext {
+  return {
+    canUndo: message.canUndo,
+    canRedo: message.canRedo,
+    empty: message.empty,
+    stackIndex: message.undoStackIndex,
+    possibleUndoCount: message.possibleUndoCount,
+  }
+}
