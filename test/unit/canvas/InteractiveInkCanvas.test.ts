@@ -938,6 +938,19 @@ describe("InteractiveInkCanvas.ts", () => {
       expect(calls).toEqual(["clear", "newSession"])
     })
 
+    // The bug these guard: `clear()` opens "Recognizing", closed when the server answers with
+    // contentChanged. Switching session before that answer left it open for good, and the canvas
+    // showed itself busy for the rest of the session.
+    test("should not keep waiting on what the previous session was recognizing, after a new session", async () => {
+      const canvas = await buildCanvas()
+      canvas.client.newSession = jest.fn(async () => undefined)
+      canvas.startOperation("Recognizing")
+
+      await canvas.updateRecognitionConfiguration({ lang: "fr_FR" })
+
+      expect(canvas.hasOperation("Recognizing")).toBe(false)
+    })
+
     test("should resend the user strokes but never a solver output", async () => {
       const canvas = await buildCanvas()
       const userStroke = buildIIStroke()
@@ -1433,6 +1446,30 @@ describe("InteractiveInkCanvas.ts", () => {
       canvas.event.emitError = jest.fn()
       await expect(async () => await canvas.export()).rejects.toEqual("export-error")
       expect(canvas.event.emitError).toHaveBeenCalledTimes(1)
+    })
+
+    test("should resolve every caller when concurrent exports both see the model change", async () => {
+      // The bug this guards: the second superseded export cleared the debounce timer of the
+      // first without arming a new one, so the retry they shared never ran and both waited
+      // forever — a synchronizer among them blocked every later sync.
+      const racingCanvas = new InteractiveInkCanvas(document.createElement("div"), CanvasOptions)
+      let calls = 0
+      racingCanvas.client.export = jest.fn(async () => {
+        calls++
+        // Each of the two first answers lands after the model changed under it
+        if (calls <= 2) racingCanvas.model.addSymbol(buildIIStroke())
+        return { "application/vnd.myscript.jiix": jiixText }
+      })
+      const settled = (promise: Promise<unknown>) =>
+        Promise.race([
+          promise.then(() => "resolved"),
+          new Promise((resolve) => setTimeout(() => resolve("pending"), 2000)),
+        ])
+
+      const results = await Promise.all([settled(racingCanvas.export()), settled(racingCanvas.export())])
+
+      expect(results).toEqual(["resolved", "resolved"])
+      expect(calls).toBe(3)
     })
 
     test("should only request mimeTypes not already cached in model.exports", async () => {

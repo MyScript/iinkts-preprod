@@ -295,6 +295,7 @@ export class WebSocketClient {
    * once this one is up, and drains the offline queue since nothing else would.
    */
   #onConnected(): Promise<void> {
+    this.#hasConnected = true
     this.#clearReconnectLoop()
     this.#reconnectAttempts = 0
     this.event.emitConnectionStatusChanged("connected")
@@ -342,6 +343,18 @@ export class WebSocketClient {
     this.socket.removeEventListener("message", this.boundMessageCallback)
   }
 
+  /** Set on the first successful connection: a drop after it is recoverable, one before is not */
+  #hasConnected = false
+
+  /**
+   * A network drop (1006, also what each failed reconnection attempt reports) once connected,
+   * with the offline queue on: the ink is kept and replayed, so it is a state, not an error.
+   * Reported as an error, it opened the canvas error modal over the ink every few seconds.
+   */
+  #isRecoverableDrop(evt: CloseEvent): boolean {
+    return this.#hasConnected && evt.code === 1006 && this.configuration.server.websocket.offlineQueueEnabled
+  }
+
   protected closeCallback(evt: CloseEvent): void {
     this.#logger.info("closeCallback", { evt })
     let message = evt.reason
@@ -352,8 +365,10 @@ export class WebSocketClient {
     this.clearSocketListener()
     this.closeDeferred?.resolve()
     if (!this.currentErrorCode && evt.code !== 1000) {
-      const error = new Error(message)
-      this.event.emitError(error)
+      // Pending requests are rejected either way: a reconnection attempt's init() waits on one
+      if (!this.#isRecoverableDrop(evt)) {
+        this.event.emitError(new Error(message))
+      }
       this.rejectDeferredPending(message)
     }
     this.pingWorker?.terminate()
@@ -1143,8 +1158,18 @@ export class WebSocketClient {
   }
 
   async export(requestedMimeTypes?: string[]): Promise<TExport> {
+    const run = this.#exportQueue.then(() => this.#sendExport(requestedMimeTypes))
+    this.#exportQueue = run.catch(() => undefined)
+    return run
+  }
+
+  // Exports run one after another. Two in flight for the same mime type share one slot in
+  // `exportDeferredMap`: the second overwrote the first, whose caller then waited forever, since
+  // the server's answers can only settle the deferred the map still holds.
+  #exportQueue: Promise<unknown> = Promise.resolve()
+
+  async #sendExport(requestedMimeTypes?: string[]): Promise<TExport> {
     const mimeTypes: string[] = requestedMimeTypes || this.mimeTypes.slice()
-    await Promise.all(mimeTypes.map((mt) => this.exportDeferredMap.get(mt)?.promise))
     const deferreds = mimeTypes.map((mt) => {
       const deferred = new DeferredPromise<TExport>()
       this.exportDeferredMap.set(mt, deferred)

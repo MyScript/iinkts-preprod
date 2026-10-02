@@ -2,6 +2,11 @@
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
+    // Example modules are plain JS typed with JSDoc; their unit tests import them. `composite`
+    // (from the base) would then check declaration emit on every JS file, eslint configs included,
+    // and nothing is emitted here
+    "allowJs": true,
+    "composite": false,
     "rootDir": "./",
     "types": ["jest", "node"],
     "paths": {

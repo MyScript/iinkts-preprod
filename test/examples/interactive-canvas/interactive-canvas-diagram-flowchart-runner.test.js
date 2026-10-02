@@ -3,6 +3,9 @@ import { passModalKey, writeStrokes, callCanvasIdle, pollJiix } from "../helper"
 import dataset from "../__dataset__/diagram_connections"
 
 test.describe("Interactive ink canvas flowchart runner", () => {
+  // Replaying the diagram dataset takes close to a minute on a loaded WebKit run
+  test.describe.configure({ timeout: 120 * 1000 })
+
   test.beforeEach(async ({ page }) => {
     await page.goto(
       `${process.env.PATH_PREFIX ? process.env.PATH_PREFIX : ""}/examples/interactive-canvas/interactive_canvas_diagram_flowchart_runner.html`

@@ -32,6 +32,7 @@
   --ms-ink-surface: #f5f6f7;
   --ms-ink-text-muted: #717171;
   --ms-ink-guide-color: #c8c8c8;
+  --ms-ink-selection-color: #3e68ff;
 
   --ms-ink-menu-bg: #ffffff;
   --ms-ink-menu-title-bg: #b3dfff;
@@ -130,6 +131,13 @@
   left: 0;
   top: 0;
   z-index: 20;
+}
+
+/* Outline of a selected symbol. Stacked drop-shadows read as a crisp outline; an SVG filter
+   (dilate + flood + composite) did the same but crashed WebKit's renderer on a selection */
+.ms-ink .ms-layer-rendering .ms-selected {
+  filter: drop-shadow(0 0 0.5px var(--ms-ink-selection-color)) drop-shadow(0 0 0.5px var(--ms-ink-selection-color))
+    drop-shadow(0 0 1px var(--ms-ink-selection-color));
 }
 
 .ms-ink .ms-layer-rendering .ms-rendering-canvas {

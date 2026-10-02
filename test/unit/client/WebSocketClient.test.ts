@@ -498,6 +498,47 @@ describe("WebSocketClient.ts", () => {
       disabledMockServer.close()
     })
 
+    // A dropped network shows as 1006, and so does each failed reconnection attempt. Reported as
+    // errors, they opened the canvas error modal every few seconds, right over the ink the
+    // offline queue is there to keep.
+    test("should not report a network drop as an error once connected: the queue keeps the ink", async () => {
+      await wsClient.init()
+      const spyEmitError: jest.SpyInstance = jest.spyOn(wsClient.event, "emitError")
+      const statuses: string[] = []
+      wsClient.event.addConnectionStatusChangedListener((status) => statuses.push(status))
+      const [client] = mockServer.server.clients()
+      client.close({ code: 1006, reason: "network drop", wasClean: false })
+      await delay(10)
+      expect(spyEmitError).not.toHaveBeenCalled()
+      expect(statuses).toContain("offline")
+    })
+
+    test("should still report a network drop as an error when the offline queue is disabled", async () => {
+      const disabledConf = structuredClone(conf)
+      disabledConf.server.host = "offline-queue-drop-disabled-test"
+      disabledConf.server.websocket.offlineQueueEnabled = false
+      const disabledClient = new WebSocketClient(disabledConf)
+      const disabledMockServer = new ServerWebSocketMock(disabledClient.url)
+      disabledMockServer.init()
+      await disabledClient.init()
+      const spyEmitError: jest.SpyInstance = jest.spyOn(disabledClient.event, "emitError")
+      const [client] = disabledMockServer.server.clients()
+      client.close({ code: 1006, reason: "network drop", wasClean: false })
+      await delay(10)
+      expect(spyEmitError).toHaveBeenCalledTimes(1)
+      await disabledClient.destroy()
+      disabledMockServer.close()
+    })
+
+    test("should still report an error the server closes with, network drop aside", async () => {
+      await wsClient.init()
+      const spyEmitError: jest.SpyInstance = jest.spyOn(wsClient.event, "emitError")
+      const [client] = mockServer.server.clients()
+      client.close({ code: 1011, reason: ClientError.INTERNAL_ERROR, wasClean: false })
+      await delay(10)
+      expect(spyEmitError).toHaveBeenCalledTimes(1)
+    })
+
     test("should open only one socket when a direct send() races the offline-queue reconnect loop", async () => {
       // autoReconnect must be on here: it's what makes send() attempt its own immediate
       // reconnect (e.g. via recognizeGesture during contextless gesture detection while
@@ -1264,6 +1305,25 @@ describe("WebSocketClient.ts", () => {
       )
       wsClient.destroy()
     })
+    test("should resolve every export of concurrent calls for the same mime type", async () => {
+      // The bug this guards: both calls waited on the same previous export, then each stored its
+      // own pending answer under the same mime type, the second overwriting the first. The server
+      // answers resolved the second twice and the first never — a synchronizer awaiting it hung
+      // for the rest of the session.
+      await wsClient.init()
+      const settled = (promise: Promise<unknown>) =>
+        Promise.race([promise.then(() => "resolved"), delay(1000).then(() => "pending")])
+      const first = settled(wsClient.export())
+      const second = settled(wsClient.export())
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+      mockServer.sendHExportMessage()
+      await delay(100)
+      mockServer.sendHExportMessage()
+
+      await expect(Promise.all([first, second])).resolves.toEqual(["resolved", "resolved"])
+      expect(mockServer.getMessages("export")).toHaveLength(2)
+    })
     test("should not replay into the next session a message sent while the previous one closes", async () => {
       await wsClient.init()
       const closing = wsClient.close(1000, "new-session")
@@ -1389,7 +1449,7 @@ describe("WebSocketClient.ts", () => {
       { code: 1001, message: ClientError.GOING_AWAY },
       { code: 1002, message: ClientError.PROTOCOL_ERROR },
       { code: 1003, message: ClientError.UNSUPPORTED_DATA },
-      { code: 1006, message: ClientError.ABNORMAL_CLOSURE },
+      // 1006 once connected is a network drop the offline queue recovers from: see "offline queue"
       { code: 1007, message: ClientError.INVALID_FRAME_PAYLOAD },
       { code: 1008, message: ClientError.POLICY_VIOLATION },
       { code: 1009, message: ClientError.MESSAGE_TOO_BIG },
