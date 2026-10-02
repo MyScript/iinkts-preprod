@@ -599,8 +599,12 @@ export class WebSocketClient {
       case "evaluate":
         this.resolveFirstInQueue(this.evaluateDeferred, blockId, mathSolverMessage.result)
         break
-      default:
+      default: {
+        // A TMathSolverAction without a case stops compiling here
+        const unhandled: never = mathSolverMessage
+        this.#logger.warn("manageMathSolverResult", `Math solver action unhandled: "${JSON.stringify(unhandled)}".`)
         break
+      }
     }
   }
 
