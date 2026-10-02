@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test"
-import { boundsOf, passModalKey, writePointers, writeStrokes, waitForSynchronizedEvent } from "../helper"
+import { boundsOf, callCanvasIdle, passModalKey, writePointers, writeStrokes, waitForSynchronizedEvent } from "../helper"
 import helloOneStroke from "../__dataset__/helloOneStroke"
 import equation from "../__dataset__/equation"
 import diagramConnections from "../__dataset__/diagram_connections"
@@ -50,10 +50,8 @@ test.describe("Interactive ink canvas Live PDF Document", () => {
   })
 
   test("should redraw a diagram as a numbered figure", async ({ page }) => {
-    await Promise.all([
-      waitForSynchronizedEvent(page),
-      writeStrokes(page, diagramConnections.strokes),
-    ])
+    await writeStrokes(page, diagramConnections.strokes)
+    await callCanvasIdle(page)
 
     const figure = page.locator('.doc-block[data-kind="figure"]')
     await expect(figure.locator("figcaption")).toHaveText("Figure 1")
