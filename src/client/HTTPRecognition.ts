@@ -21,6 +21,17 @@ export type THTTPRecognitionRequest = {
 
 /**
  * @group Client
+ * @summary The `contentType` a recognition request names for a recognition type: `"TEXT"` → `"Text"`, `"Raw Content"` as is
+ */
+export function toRecognitionContentType(recognitionType: string): string {
+  if (recognitionType === "Raw Content") {
+    return recognitionType
+  }
+  return recognitionType.charAt(0).toUpperCase() + recognitionType.slice(1).toLowerCase()
+}
+
+/**
+ * @group Client
  * @summary Reads a recognition response body according to its content type
  */
 export async function parseRecognitionResponse(response: Response): Promise<unknown> {

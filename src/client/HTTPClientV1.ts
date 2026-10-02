@@ -8,7 +8,7 @@ import type { Stroke } from "@/symbol"
 import type { TExport, TJIIXExport } from "./Export"
 import type { THTTPClientV1Configuration } from "./HTTPClientV1Configuration"
 import { HTTPClientV1Configuration } from "./HTTPClientV1Configuration"
-import { postRecognition, toRecognitionError } from "./HTTPRecognition"
+import { postRecognition, toRecognitionContentType, toRecognitionError } from "./HTTPRecognition"
 import { ensureServerVersion } from "./infos"
 import type {
   TDiagramConfiguration,
@@ -155,11 +155,7 @@ export class HTTPClientV1 {
       strokeGroupsToSend.push(newGroup)
     })
 
-    const contentType: string =
-      this.configuration.recognition.type === "Raw Content"
-        ? "Raw Content"
-        : this.configuration.recognition.type.charAt(0).toUpperCase() +
-          this.configuration.recognition.type.slice(1).toLowerCase()
+    const contentType = toRecognitionContentType(this.configuration.recognition.type)
 
     const data = {
       configuration: this.postConfig,

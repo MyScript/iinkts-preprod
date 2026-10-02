@@ -5,6 +5,7 @@ import {
   computeHmac,
   parseRecognitionResponse,
   postRecognition,
+  toRecognitionContentType,
   toRecognitionError,
   TServerHTTPConfiguration,
 } from "@/iink"
@@ -91,6 +92,17 @@ describe("HTTPRecognition.ts", () => {
     test("should read any other content type as text", async () => {
       const response = new Response("a", { headers: { "content-type": "text/plain" } })
       await expect(parseRecognitionResponse(response)).resolves.toEqual("a")
+    })
+  })
+
+  describe("toRecognitionContentType", () => {
+    test.each([
+      ["TEXT", "Text"],
+      ["MATH", "Math"],
+      ["DIAGRAM", "Diagram"],
+      ["Raw Content", "Raw Content"],
+    ])("should name %s as %s", (recognitionType, contentType) => {
+      expect(toRecognitionContentType(recognitionType)).toEqual(contentType)
     })
   })
 

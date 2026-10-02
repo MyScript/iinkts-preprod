@@ -1,5 +1,10 @@
 const MM_TO_PX_RATIO = 96 / 25.4
-const PX_TO_MM_RATIO = 25.4 / 96
+
+/**
+ * @group Core/Math
+ * @summary Millimeters in one CSS pixel (96 per inch)
+ */
+export const PX_TO_MM_RATIO = 25.4 / 96
 
 /**
  * @group Core/Math
