@@ -1,7 +1,7 @@
 import type { ExcalidrawElement, ExcalidrawFreeDrawElement } from "@excalidraw/excalidraw/element/types"
 import type { AppState } from "@excalidraw/excalidraw/types"
 import type { WebSocketClient } from "iink-ts"
-import { geometrySignature, isFreeDraw, toRecognitionStroke } from "./FreeDrawStroke"
+import { geometrySignature, isFreeDraw, POINT_INTERVAL_MS, toRecognitionStroke } from "./FreeDrawStroke"
 
 /**
  * A multi-selection move emits one change per frame; the batch gathers what one frame emitted
@@ -62,7 +62,10 @@ export class Synchronizer
 
   private markSent(element: ExcalidrawFreeDrawElement): void
   {
-    const creationTime = this.sent.get(element.id)?.creationTime ?? Date.now()
+    // A stroke is first seen once drawn: its synthesized points must end now, not start now,
+    // or a long stroke overlaps in time the gesture drawn right after it
+    const creationTime = this.sent.get(element.id)?.creationTime
+      ?? Date.now() - (element.points.length - 1) * POINT_INTERVAL_MS
     this.sent.set(element.id, { signature: geometrySignature(element), creationTime })
   }
 
