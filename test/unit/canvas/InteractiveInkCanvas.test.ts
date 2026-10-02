@@ -304,6 +304,18 @@ describe("InteractiveInkCanvas.ts", () => {
       expect(emitChanged).toHaveBeenCalledTimes(1)
     })
 
+    test("should emit changed with the local history state, not the backend's", async () => {
+      jest.spyOn(canvas.synchronizer, "synchronize").mockResolvedValue(undefined)
+      const emitChanged = jest.spyOn(canvas.event, "emitChanged")
+      const backendContext = { canUndo: true, canRedo: true, empty: false, stackIndex: 7, possibleUndoCount: 7 }
+
+      canvas.client.event.emitContentChanged(backendContext)
+      await jest.advanceTimersByTimeAsync(500)
+
+      // The local history drives undo/redo in this variant; the backend's stack only mirrors what it was sent
+      expect(emitChanged).toHaveBeenCalledWith(canvas.history.context)
+    })
+
     test("should clear the Recognizing operation even when the synchronize failed", async () => {
       jest.spyOn(canvas.synchronizer, "synchronize").mockRejectedValue(new Error("synchronize failed"))
       jest.spyOn(canvas, "manageError").mockImplementation(() => undefined)
