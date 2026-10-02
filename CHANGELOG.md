@@ -140,6 +140,11 @@ Every export on `InteractiveInkCanvas` goes through two functions instead of nin
 - `mergeDeep(target: any, ...sources): any` → `mergeDeep<T extends TMergeable>(target: TPartialDeep<T>, ...sources): T`. With the usual empty-object `target`, pass the type argument explicitly: `mergeDeep<TServerHTTPConfiguration>({}, DefaultServerHTTPConfiguration, override)`. No runtime change
 
 ## Bug Fixes
+- fix(client): with `offlineQueueEnabled` (the default), a network drop (1006, also each failed reconnection attempt) was emitted as `error`: the canvas reopened its error modal over the ink every `reconnectDelay`, and strokes drawn meanwhile were lost on its backdrop. **Behaviour change**: once connected, such a drop is only a connection state (`offline`/`syncing`); other close codes, a failure before the first connection and a disabled queue still emit `error`
+- fix(canvas): `updateRecognitionConfiguration()` on an empty sheet (e.g. right after `clear()`) left "Recognizing" open for good, the canvas stuck `online-working`: the reopened session never sends the `contentChanged` that closes it. It is now closed when there is no ink to read
+- fix(renderer): selecting several strokes crashed WebKit's renderer, which painted the SVG selection filter on each. The outline is now a CSS `drop-shadow` on the new `ms-selected` class, colored by the new `--ms-ink-selection-color` token. **API change**: `SVGRendererConst.selectionFilterId` → `SVGRendererConst.selectedClassName`; `#selection-filter` removed
+- fix(client): of two concurrent `WebSocketClient.export()` calls for the same mime type, the first never resolved: the second overwrote its pending answer. Exports now run one after another
+- fix(canvas): a second export superseded by a model change cleared the shared retry's debounce timer without re-arming it, so every caller hung; with the synchronizer among them, no sync ran again and new strokes were never recognized
 - fix(menu): picking a shape/edge type in `ShapeTool`/`EdgeTool` never closed the dropdown (queried `.sub-menu-content-shape`/`-edge` instead of `.sub-menu-content`), and `update()` could leave two buttons active
 - fix(canvas,client): `CanvasEvent.emit()`/`ClientEvent.emit()` delivered any falsy payload (`emitIdle(false)`, `0`, `""`) as `detail: null`; now checks `data !== undefined`
 - fix(client): `HTTPClientV2.post()` lacked the runtime check stripping `recognition.export.jiix.text.lines` for servers below 3.2.0 when the version is auto-detected
@@ -164,6 +169,12 @@ Every export on `InteractiveInkCanvas` goes through two functions instead of nin
 - fix(model): `Model.addStroke()` now throws `Stroke id already exist: <id>` on a duplicate id, like `IModel.addStroke`/`IIModel.addSymbol`
 
 ## Features
+
+### Math Tutor example
+- feat(examples): `examples/interactive-canvas/math-tutor/`, a handwritten math workbook for edtech demos: each line is transcribed and checked as it is written, and the first wrong one gets a hint on the mistake (sign, division, square root, slip). Level 3 checks a hand-drawn right triangle and its labelled sides; once solved, the hypotenuse follows the values written
+
+### Pen-only input for tablets
+- feat(grabber): new `grabber.inputMode` (`TGrabberInputMode`): `"any"` (default), `"pen"`, or `"auto"` (any pointer until the first pen, then pen only). A resting palm no longer inks nor takes over the pen stroke; rejected pointers are ignored, not routed to pan
 
 ### Math solver settings in the Math menu
 - feat(menu): Math > **Solver** submenu: angle unit, number of decimals, decimal separator, rounding mode, solving mode (algebraic, numeric or server default), automatic variable management and its scoping policy. Each change goes through `updateRecognitionConfiguration`; the decimals slider waits `MATH_SOLVER_DEBOUNCE_MS` (300 ms) after the last move

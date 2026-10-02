@@ -4,6 +4,7 @@ import {
   DefaultGrabberConfiguration,
   PointerEventGrabber,
   TGrabberConfiguration,
+  TGrabberInputMode,
 } from "@/iink"
 
 describe("PointerEventGrabber.ts", () => {
@@ -381,6 +382,83 @@ describe("PointerEventGrabber.ts", () => {
       })
       wrapperHTML.dispatchEvent(pointerDownEvt)
       expect(grabber.onPointerDown).not.toHaveBeenCalled()
+      grabber.detach()
+    })
+  })
+
+  describe("Should filter pointer types with inputMode", () => {
+    const wrapperHTML: HTMLElement = document.createElement("div")
+    document.body.appendChild(wrapperHTML)
+
+    function createGrabber(inputMode?: TGrabberInputMode): PointerEventGrabber {
+      const grabber = new PointerEventGrabber({ ...DefaultGrabberConfiguration, ...(inputMode && { inputMode }) })
+      grabber.onPointerDown = jest.fn()
+      grabber.onPointerMove = jest.fn()
+      grabber.onPointerUp = jest.fn()
+      grabber.attach(wrapperHTML)
+      return grabber
+    }
+
+    function dispatch(type: string, pointerType: string, timeStamp = 0): void {
+      wrapperHTML.dispatchEvent(new LeftClickEventMock(type, { pointerType, clientX: 10, clientY: 10, pressure: 1, timeStamp }))
+    }
+
+    test("should accept every pointer type by default", () => {
+      expect(DefaultGrabberConfiguration.inputMode).toBe("any")
+      const grabber = createGrabber()
+      dispatch("pointerdown", "touch")
+      dispatch("pointerup", "touch")
+      dispatch("pointerdown", "mouse")
+      dispatch("pointerup", "mouse")
+      dispatch("pointerdown", "pen")
+      expect(grabber.onPointerDown).toHaveBeenCalledTimes(3)
+      grabber.detach()
+    })
+
+    test("should only accept pen with inputMode pen", () => {
+      const grabber = createGrabber("pen")
+      dispatch("pointerdown", "touch")
+      dispatch("pointerdown", "mouse")
+      expect(grabber.onPointerDown).not.toHaveBeenCalled()
+      dispatch("pointerdown", "pen")
+      expect(grabber.onPointerDown).toHaveBeenCalledTimes(1)
+      grabber.detach()
+    })
+
+    test("should accept touch with inputMode auto until a pen is seen", () => {
+      const grabber = createGrabber("auto")
+      dispatch("pointerdown", "touch")
+      dispatch("pointerup", "touch")
+      expect(grabber.onPointerDown).toHaveBeenCalledTimes(1)
+      dispatch("pointerdown", "pen")
+      dispatch("pointerup", "pen")
+      expect(grabber.onPointerDown).toHaveBeenCalledTimes(2)
+      dispatch("pointerdown", "touch")
+      dispatch("pointerdown", "mouse")
+      expect(grabber.onPointerDown).toHaveBeenCalledTimes(2)
+      grabber.detach()
+    })
+
+    test("should keep the pen stroke when a palm lands during it", () => {
+      // The bug this guards: an accepted palm took over `pointerType`, so the pen moves that
+      // followed were dropped and the stroke was cut short.
+      const grabber = createGrabber("auto")
+      dispatch("pointerdown", "pen")
+      dispatch("pointerdown", "touch")
+      dispatch("pointermove", "pen")
+      expect(grabber.onPointerDown).toHaveBeenCalledTimes(1)
+      expect(grabber.onPointerMove).toHaveBeenCalledTimes(1)
+      grabber.detach()
+    })
+
+    test("should not reset the pen gesture time origin on a rejected palm", () => {
+      const grabber = createGrabber("pen")
+      const moves: number[] = []
+      grabber.onPointerMove = (info) => moves.push(info.pointer.dt)
+      dispatch("pointerdown", "pen", 1000)
+      dispatch("pointerdown", "touch", 1500)
+      dispatch("pointermove", "pen", 1100)
+      expect(moves).toEqual([100])
       grabber.detach()
     })
   })
