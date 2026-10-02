@@ -25,6 +25,25 @@ export enum ClientError {
 
 /**
  * @group Client
+ * @summary Message for an error code the server sends, `undefined` when it has none of its own
+ */
+export function mapErrorCodeToMessage(code: string | number | undefined): ClientError | undefined {
+  switch (code) {
+    case "no.activity":
+      return ClientError.NO_ACTIVITY
+    case "access.not.granted":
+      return ClientError.WRONG_CREDENTIALS
+    case "session.too.old":
+      return ClientError.TOO_OLD
+    case "restore.session.not.found":
+      return ClientError.NO_SESSION_FOUND
+    default:
+      return undefined
+  }
+}
+
+/**
+ * @group Client
  */
 export function mapCloseCodeToMessage(code: number): string | null {
   switch (code) {
