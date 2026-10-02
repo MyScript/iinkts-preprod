@@ -115,6 +115,7 @@ export class IIMenuStyle {
       this.config.strokeColor = config.strokeColor ?? this.config.strokeColor
       this.config.fillColor = config.fillColor ?? this.config.fillColor
       this.config.thickness = config.thickness ?? this.config.thickness
+      this.config.pen = config.pen ?? this.config.pen
       this.config.fontSize = config.fontSize ?? this.config.fontSize
       this.config.fontWeight = config.fontWeight ?? this.config.fontWeight
       this.config.opacity = config.opacity ?? this.config.opacity
