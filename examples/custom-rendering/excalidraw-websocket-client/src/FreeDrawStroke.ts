@@ -5,7 +5,7 @@ import type { TRecognitionStroke } from "iink-ts"
  * Excalidraw stores no timestamp per point; the interval between points is synthesized, as the
  * TLDraw example does
  */
-const POINT_INTERVAL_MS = 20
+export const POINT_INTERVAL_MS = 20
 
 export type TBox = { minX: number, minY: number, maxX: number, maxY: number }
 
