@@ -1,5 +1,4 @@
 import { DeferredPromise, isVersionSuperiorOrEqual, type TPartialDeep, typedKeys } from "@/core/std"
-import type { THistoryContext } from "@/history"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { Model } from "@/model"
 import type { TPenStyle, TTheme } from "@/style"
@@ -14,6 +13,7 @@ import { ensureServerVersion } from "./infos"
 import type { TConverstionState } from "./RecognitionConfiguration"
 import { redactServerSecrets } from "./ServerConfiguration"
 import { toWireStroke } from "./StrokeSerializer"
+import { readHistoryContext } from "./WebSocketClientMessage"
 import type { TWebSocketSSRClientConfiguration } from "./WebSocketSSRClientConfiguration"
 import { WebSocketSSRClientConfiguration } from "./WebSocketSSRClientConfiguration"
 import type {
@@ -139,9 +139,9 @@ export class WebSocketSSRClient {
     this.pingCount++
     if (this.configuration.server.websocket.maxPingLostCount < this.pingCount) {
       this.socket.close(1000, "MAXIMUM_PING_REACHED")
-    } else if (this.socket.readyState <= 1) {
+    } else if (this.socket.readyState < this.socket.CLOSING) {
       setTimeout(() => {
-        if (this.socket.readyState <= 1) {
+        if (this.socket.readyState < this.socket.CLOSING) {
           this.socket.send(JSON.stringify({ type: "ping" }))
           this.infinitePing()
         }
@@ -343,14 +343,7 @@ export class WebSocketSSRClient {
 
   protected manageContentChangeMessage(contentChangeMessage: TWebSocketSSRClientMessageContentChange): void {
     this.logger.info("manageContentChangeMessage", { contentChangeMessage })
-    const context: THistoryContext = {
-      canRedo: contentChangeMessage.canRedo,
-      canUndo: contentChangeMessage.canUndo,
-      empty: contentChangeMessage.empty,
-      stackIndex: contentChangeMessage.undoStackIndex,
-      possibleUndoCount: contentChangeMessage.possibleUndoCount,
-    }
-    this.event.emitContentChanged(context)
+    this.event.emitContentChanged(readHistoryContext(contentChangeMessage))
   }
 
   protected manageSVGPatchMessage(svgPatchMessage: TWebSocketSSRClientMessageSVGPatch): void {
@@ -447,14 +440,14 @@ export class WebSocketSSRClient {
       await this.initialized.promise
       this.event.emitEndInitialization()
     } catch (err: unknown) {
-      this.rejectDeferredPending(err as Error)
+      this.rejectDeferredPending(err instanceof Error ? err : new Error(String(err)))
       return this.initialized.promise
     }
   }
 
   async send(message: TWebSocketSSRClientMessage): Promise<void> {
     if (!this.socket) {
-      return Promise.reject(new Error("Client must be initilized"))
+      return Promise.reject(new Error("Client must be initialized"))
     }
     await this.connected?.promise
     if (this.socket.readyState === this.socket.OPEN) {
@@ -472,14 +465,25 @@ export class WebSocketSSRClient {
     if (this.configuration.server.websocket.maxRetryCount >= this.reconnectionCount) {
       this.logger.debug("send", `try to reconnect number: ${this.reconnectionCount}.`)
       await this.init(this.viewSizeHeight, this.viewSizeWidth)
-      await this.setPenStyle(this.penStyle as TPenStyle)
-      await this.setPenStyleClasses(this.penStyleClasses as string)
-      await this.setTheme(this.theme as TTheme)
+      await this.restoreStyles()
       return this.send(message)
     } else {
       return Promise.reject(
         new Error("Unable to send message. The maximum number of connection attempts has been reached.")
       )
+    }
+  }
+
+  /** Sends again, on a new session, the styles set on the previous one; one never set stays unset */
+  protected async restoreStyles(): Promise<void> {
+    if (this.penStyle) {
+      await this.setPenStyle(this.penStyle)
+    }
+    if (this.penStyleClasses !== undefined) {
+      await this.setPenStyleClasses(this.penStyleClasses)
+    }
+    if (this.theme) {
+      await this.setTheme(this.theme)
     }
   }
 

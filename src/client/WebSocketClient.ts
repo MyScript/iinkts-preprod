@@ -1,6 +1,7 @@
 import PingWorker from "web-worker:../worker/ping.worker.ts"
 
 import type { TMatrixTransform } from "@/core/geometry"
+import { PX_TO_MM_RATIO } from "@/core/math"
 import {
   DeferredPromise,
   isVersionSuperiorOrEqual,
@@ -9,7 +10,7 @@ import {
   type TPartialDeep,
   typedKeys,
 } from "@/core/std"
-import type { THistoryContext, TIIHistoryBackendChanges } from "@/history"
+import type { TIIHistoryBackendChanges } from "@/history"
 import { LoggerCategory, LoggerManager } from "@/logger"
 
 import { ClientError, mapCloseCodeToMessage, mapErrorCodeToMessage } from "./ClientError"
@@ -43,7 +44,7 @@ import type {
   TWebSocketClientMessagePartChange,
   TWebSocketClientMessageReceived,
 } from "./WebSocketClientMessage"
-import { TWebSocketClientMessageType } from "./WebSocketClientMessage"
+import { readHistoryContext, TWebSocketClientMessageType } from "./WebSocketClientMessage"
 
 const RECEIVED_MESSAGE_TYPES: ReadonlySet<unknown> = new Set(Object.values(TWebSocketClientMessageType))
 
@@ -187,7 +188,7 @@ export class WebSocketClient {
 
   protected sendOnSocket(message: TWebSocketClientMessage): void {
     if (!this.socket) {
-      throw new Error("Client must be initilized")
+      throw new Error("Client must be initialized")
     }
     if (this.socket.readyState === this.socket.OPEN) {
       this.socket.send(JSON.stringify(message))
@@ -419,7 +420,7 @@ export class WebSocketClient {
       pingDelay: this.configuration.server.websocket.pingDelay,
     })
     this.pingWorker.onmessage = () => {
-      if (this.socket.readyState <= 1) {
+      if (this.socket.readyState < this.socket.CLOSING) {
         if (this.pingCount < this.configuration.server.websocket.maxPingLostCount) {
           this.send({ type: "ping" })
         } else {
@@ -436,12 +437,11 @@ export class WebSocketClient {
       delete this.configuration.recognition.export.jiix.text.lines
       delete this.configuration.recognition["raw-content"].classification
     }
-    const pixelTomm = 25.4 / 96
     this.sendOnSocket({
       type: this.sessionId ? "restoreSession" : "initSession",
       iinkSessionId: this.sessionId,
-      scaleX: pixelTomm,
-      scaleY: pixelTomm,
+      scaleX: PX_TO_MM_RATIO,
+      scaleY: PX_TO_MM_RATIO,
       configuration: this.configuration.recognition,
     })
   }
@@ -477,10 +477,7 @@ export class WebSocketClient {
 
   protected manageContentChangedMessage(contentChangeMessage: TWebSocketClientMessageContentChange): void {
     this.initialized.resolve()
-    this.event.emitContentChanged({
-      canRedo: contentChangeMessage.canRedo,
-      canUndo: contentChangeMessage.canUndo,
-    } as THistoryContext)
+    this.event.emitContentChanged(readHistoryContext(contentChangeMessage))
   }
 
   protected manageExportMessage(exportMessage: TWebSocketClientMessageExport): void {
@@ -698,7 +695,7 @@ export class WebSocketClient {
 
   async send(message: TWebSocketClientMessage): Promise<void> {
     if (!this.socket) {
-      return Promise.reject(new Error("Client must be initilized"))
+      return Promise.reject(new Error("Client must be initialized"))
     }
 
     switch (this.socket.readyState) {
@@ -978,11 +975,10 @@ export class WebSocketClient {
     }
     const deferred = new DeferredPromise<TWebSocketClientMessageContextlessGesture>()
     this.contextlessGestureDeferred.set(stroke.id, deferred)
-    const pixelTomm = 25.4 / 96
     await this.send({
       type: "contextlessGesture",
-      scaleX: pixelTomm,
-      scaleY: pixelTomm,
+      scaleX: PX_TO_MM_RATIO,
+      scaleY: PX_TO_MM_RATIO,
       stroke: toWireStroke(stroke),
     })
     return deferred.promise

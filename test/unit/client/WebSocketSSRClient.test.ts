@@ -265,7 +265,7 @@ describe("WebSocketSSRClient.ts", () => {
     test("should throw error if client has not been initialize", async () => {
       expect.assertions(1)
       const testDataToSend = { type: "test", data: "test-data" }
-      await expect(wsr.send(testDataToSend)).rejects.toEqual(new Error("Client must be initilized"))
+      await expect(wsr.send(testDataToSend)).rejects.toEqual(new Error("Client must be initialized"))
     })
     test("should send message", async () => {
       expect.assertions(1)
