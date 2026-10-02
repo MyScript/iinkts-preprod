@@ -327,19 +327,27 @@ export type TWebSocketClientMessageAck = TWebSocketClientMessage<TWebSocketClien
 
 /**
  * @group Client
+ * @summary Message the server sends, by {@link TWebSocketClientMessageType}
+ * @remarks Every member of the enum needs an entry: {@link TWebSocketClientMessageReceived} indexes this map with the whole enum, so a missing one stops compiling.
  */
-export type TWebSocketClientMessageReceived =
-  | TWebSocketClientMessageAuthenticated
-  | TWebSocketClientMessageHMACChallenge
-  | TInteractiveInkSessionDescriptionMessage
-  | TWebSocketClientMessageNewPart
-  | TWebSocketClientMessagePartChange
-  | TWebSocketClientMessageContentChange
-  | TWebSocketClientMessageExport
-  | TWebSocketClientMessageGesture
-  | TWebSocketClientMessageContextlessGesture
-  | TWebSocketClientMessagePong
-  | TWebSocketClientMessageIdle
-  | TWebSocketClientMessageMathSolverResult
-  | TWebSocketClientMessageError
-  | TWebSocketClientMessageAck
+export type TWebSocketClientMessageReceivedMap = {
+  [TWebSocketClientMessageType.HMAC_Challenge]: TWebSocketClientMessageHMACChallenge
+  [TWebSocketClientMessageType.Authenticated]: TWebSocketClientMessageAuthenticated
+  [TWebSocketClientMessageType.SessionDescription]: TInteractiveInkSessionDescriptionMessage
+  [TWebSocketClientMessageType.NewPart]: TWebSocketClientMessageNewPart
+  [TWebSocketClientMessageType.PartChanged]: TWebSocketClientMessagePartChange
+  [TWebSocketClientMessageType.ContentChanged]: TWebSocketClientMessageContentChange
+  [TWebSocketClientMessageType.Idle]: TWebSocketClientMessageIdle
+  [TWebSocketClientMessageType.Pong]: TWebSocketClientMessagePong
+  [TWebSocketClientMessageType.Exported]: TWebSocketClientMessageExport
+  [TWebSocketClientMessageType.GestureDetected]: TWebSocketClientMessageGesture
+  [TWebSocketClientMessageType.ContextlessGesture]: TWebSocketClientMessageContextlessGesture
+  [TWebSocketClientMessageType.MathSolverResult]: TWebSocketClientMessageMathSolverResult
+  [TWebSocketClientMessageType.Error]: TWebSocketClientMessageError
+  [TWebSocketClientMessageType.Ack]: TWebSocketClientMessageAck
+}
+
+/**
+ * @group Client
+ */
+export type TWebSocketClientMessageReceived = TWebSocketClientMessageReceivedMap[TWebSocketClientMessageType]
