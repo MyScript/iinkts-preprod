@@ -54,6 +54,14 @@ describe("WebSocketSSRClient.ts", () => {
       const wsr = new WebSocketSSRClient(customConf)
       expect(wsr.url).toEqual("ws://pony/api/v4.0/iink/document?applicationKey=applicationKey")
     })
+    test("should encode the application key in the url", () => {
+      const customConf = structuredClone(WebSocketSSRClientTextConfiguration)
+      customConf.server.scheme = "http"
+      customConf.server.host = "pony"
+      customConf.server.applicationKey = "a&b=c"
+      const wsr = new WebSocketSSRClient(customConf)
+      expect(wsr.url).toEqual("ws://pony/api/v4.0/iink/document?applicationKey=a%26b%3Dc")
+    })
 
     testDatas.forEach(({ type, config }) => {
       test(`should get mimeTypes for ${type}`, () => {
@@ -86,6 +94,21 @@ describe("WebSocketSSRClient.ts", () => {
     afterEach(() => {
       wsr.destroy()
       mockServer.close()
+    })
+
+    test("should reject init when the HMAC key cannot be resolved", async () => {
+      const failingConf = structuredClone(customConf)
+      failingConf.server.host = "init-hmac-failure-test"
+      const client = new WebSocketSSRClient({
+        ...failingConf,
+        server: { ...failingConf.server, hmacKey: () => Promise.reject(new Error("token endpoint down")) },
+      })
+      client.event.emitError = jest.fn()
+      const server = new ServerWebSocketSSRMock(client.url)
+      server.init(true)
+      await expect(client.init(height, width)).rejects.toThrow("token endpoint down")
+      client.destroy()
+      server.close()
     })
 
     test("should sent newContentPackage message", async () => {
