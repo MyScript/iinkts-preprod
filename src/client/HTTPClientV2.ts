@@ -1,14 +1,12 @@
 import { isVersionSuperiorOrEqual, type TPartialDeep } from "@/core/std"
 import { LoggerCategory, LoggerManager } from "@/logger"
 
-import { parseApiError } from "./ClientApiError"
-import { ClientError } from "./ClientError"
 import type { TJIIXExport } from "./Export"
 import type { TExportV2 } from "./ExportV2"
-import { resolveHmac } from "./HmacAuth"
 import type { THTTPClientV2Configuration } from "./HTTPClientV2Configuration"
 import { HTTPClientV2Configuration } from "./HTTPClientV2Configuration"
-import { getApiInfos } from "./infos"
+import { postRecognition, toRecognitionError } from "./HTTPRecognition"
+import { ensureServerVersion } from "./infos"
 import type {
   TDiagramConfiguration,
   TExportConfiguration,
@@ -114,105 +112,23 @@ export class HTTPClientV2 {
 
   protected async post(data: unknown, mimeType: string): Promise<unknown> {
     this.#logger.info("post", { data, mimeType })
-    const headers = new Headers()
-    headers.append("Accept", mimeType)
-    headers.append("applicationKey", this.configuration.server.applicationKey)
-    try {
-      // If an HMAC key is provided, compute the HMAC of the request body and add it to the headers
-      const hmac = await resolveHmac(this.configuration.server, JSON.stringify(data))
-      if (hmac) {
-        headers.append("hmac", hmac)
-      }
-    } catch (error: Error | unknown) {
-      // If there is an error during HMAC computation, log the error and proceed without the HMAC header
-      if (error instanceof Error) {
-        this.#logger.error("post.computeHmac", error.message)
-      } else {
-        this.#logger.error("post.computeHmac", String(error))
-      }
-    }
-    headers.append("Content-Type", "application/json")
-
-    if (!this.configuration.server.version) {
-      this.configuration.server.version = (await getApiInfos(this.configuration)).version
-    }
-
-    if (this.configuration.server.version && isVersionSuperiorOrEqual(this.configuration.server.version, "2.0.4")) {
-      headers.append("myscript-client-name", "iink-ts")
-      headers.append("myscript-client-version", "1.0.0-buildVersion")
-    }
-    if (!isVersionSuperiorOrEqual(this.configuration.server.version!, "3.2.0")) {
+    // Before posting: `data` holds this configuration, and the HMAC signs the body as sent
+    const version = await ensureServerVersion(this.configuration)
+    if (!isVersionSuperiorOrEqual(version, "3.2.0")) {
       delete this.configuration.recognition.export.jiix.text.lines
     }
-
-    const reqInit: RequestInit = {
-      method: "POST",
-      headers,
-      body: JSON.stringify(data),
-      credentials: "omit",
-    }
-    const request = new Request(this.url, reqInit)
-    const response: Response = await fetch(request)
-    if (response.ok) {
-      const contentType = response.headers.get("content-type")
-      let result: unknown
-      switch (contentType) {
-        case "application/vnd.openxmlformats-officedocument.presentationml.presentation":
-        case "image/png":
-        case "image/jpeg":
-          result = await response.blob()
-          break
-        case "application/json":
-          result = await response.json()
-          break
-        case "application/vnd.myscript.jiix":
-          result = await response
-            .clone()
-            .json()
-            .catch(async () => await response.text())
-          break
-        default:
-          result = await response.text()
-          break
-      }
-      this.#logger.debug("post", { result })
-      return result
-    } else {
-      const err = await parseApiError(response)
-      this.#logger.error("post", { err })
-      throw err
-    }
+    return postRecognition({ url: this.url, server: this.configuration.server, accept: mimeType, data })
   }
 
-  protected async tryFetch(data: THTTPClientV2PostData, mimeType: string): Promise<TExportV2 | never> {
-    this.#logger.debug("tryFetch", {
-      data,
-      mimeType,
-    })
-    return this.post(data, mimeType)
-      .then((res) => {
-        const exports: TExportV2 = {}
-        exports[mimeType] = res as TJIIXExport | string | Blob
-        this.#logger.debug("tryFetch", {
-          exports,
-        })
-        return exports
-      })
-      .catch((err) => {
-        this.#logger.error("tryFetch", {
-          data,
-          mimeType,
-          err,
-        })
-        let message = err.message || ClientError.UNKNOWN
-        if (!err.code) {
-          message = ClientError.CANT_ESTABLISH
-        } else if (err.code === "access.not.granted") {
-          message = ClientError.WRONG_CREDENTIALS
-        }
-        const error = new Error(message)
-        throw error
-      })
+  protected async tryFetch(data: THTTPClientV2PostData, mimeType: string): Promise<TExportV2> {
+    this.#logger.debug("tryFetch", { data, mimeType })
+    try {
+      const result = await this.post(data, mimeType)
+      return { [mimeType]: result as TJIIXExport | string | Blob }
+    } catch (error) {
+      this.#logger.error("tryFetch", { data, mimeType, error })
+      throw toRecognitionError(error)
+    }
   }
 
   protected getMimeTypes(requestedMimeTypes?: string[]): string[] {

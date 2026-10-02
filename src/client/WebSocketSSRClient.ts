@@ -6,11 +6,11 @@ import type { TPenStyle, TTheme } from "@/style"
 import { StyleHelper } from "@/style-css"
 import type { Stroke } from "@/symbol"
 
-import { ClientError, mapCloseCodeToMessage } from "./ClientError"
+import { ClientError, mapCloseCodeToMessage, mapErrorCodeToMessage } from "./ClientError"
 import { ClientEvent } from "./ClientEvent"
-import type { TExport, TJIIXExport } from "./Export"
+import { parseExportedJIIX, type TExport } from "./Export"
 import { resolveHmac } from "./HmacAuth"
-import { getApiInfos } from "./infos"
+import { ensureServerVersion } from "./infos"
 import type { TConverstionState } from "./RecognitionConfiguration"
 import { redactServerSecrets } from "./ServerConfiguration"
 import { toWireStroke } from "./StrokeSerializer"
@@ -289,11 +289,7 @@ export class WebSocketSSRClient {
       websocketMessage,
     })
     const exportMessage = websocketMessage as TWebSocketSSRClientMessageExport
-    if (exportMessage.exports["application/vnd.myscript.jiix"]) {
-      exportMessage.exports["application/vnd.myscript.jiix"] = JSON.parse(
-        exportMessage.exports["application/vnd.myscript.jiix"].toString()
-      ) as TJIIXExport
-    }
+    parseExportedJIIX(exportMessage.exports)
     this.initialized.resolve()
     this.addStrokeDeferred?.resolve(exportMessage.exports)
     this.exportDeferred?.resolve(exportMessage.exports)
@@ -314,19 +310,8 @@ export class WebSocketSSRClient {
   protected manageErrorMessage(websocketMessage: TWebSocketSSRClientMessage): void {
     const err = websocketMessage as TWebSocketSSRClientMessageError
     this.currentErrorCode = err.data?.code || err.code
-    let message = err.data?.message || err.message || ClientError.UNKNOWN
-
-    switch (this.currentErrorCode) {
-      case "no.activity":
-        message = ClientError.NO_ACTIVITY
-        break
-      case "access.not.granted":
-        message = ClientError.WRONG_CREDENTIALS
-        break
-      case "session.too.old":
-        message = ClientError.TOO_OLD
-        break
-    }
+    const message =
+      mapErrorCodeToMessage(this.currentErrorCode) ?? (err.data?.message || err.message || ClientError.UNKNOWN)
     const error = new Error(message)
     this.rejectDeferredPending(error)
     this.event.emitError(error)
@@ -410,8 +395,9 @@ export class WebSocketSSRClient {
       this.#logger.info("init", { height, width })
       this.resetConnection()
 
+      // Awaited only when unknown: a known version keeps the socket opening in the same tick as init()
       if (!this.configuration.server.version) {
-        this.configuration.server.version = (await getApiInfos(this.configuration)).version
+        await ensureServerVersion(this.configuration)
       }
       this.connected = new DeferredPromise<void>()
       this.initialized = new DeferredPromise<void>()

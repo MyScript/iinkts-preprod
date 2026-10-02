@@ -42,3 +42,14 @@ export async function getApiInfos(
     }
   }
 }
+
+/**
+ * @group Client
+ * @summary The server version, fetched once and stored in the configuration
+ */
+export async function ensureServerVersion(configuration: { server: TServerHTTPConfiguration }): Promise<string> {
+  if (!configuration.server.version) {
+    configuration.server.version = (await getApiInfos(configuration)).version
+  }
+  return configuration.server.version
+}

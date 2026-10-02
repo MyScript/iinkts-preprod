@@ -296,3 +296,15 @@ export type TExport = {
    */
   "application/vnd.openxmlformats-officedocument.presentationml.presentation"?: Blob
 }
+
+/**
+ * @group Client
+ * @summary Parses, in place, the JIIX export the websocket protocols send as a JSON string
+ */
+export function parseExportedJIIX(exports: TExport): TExport {
+  const jiix = exports["application/vnd.myscript.jiix"]
+  if (jiix) {
+    exports["application/vnd.myscript.jiix"] = JSON.parse(jiix.toString()) as TJIIXExport
+  }
+  return exports
+}
