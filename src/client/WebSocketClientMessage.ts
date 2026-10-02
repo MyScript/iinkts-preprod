@@ -161,110 +161,10 @@ export type TMathEvaluable = {
 /**
  * @group Client
  */
-export type TWebSocketClientMessageMathSolverAvailableActions =
-  TWebSocketClientMessage<TWebSocketClientMessageType.MathSolverResult> & {
-    blockId: string
-    action: "available-actions"
-    result: string[]
-  }
-
-/**
- * @group Client
- */
-export type TWebSocketClientMessageMathSolverGetDiagnostic =
-  TWebSocketClientMessage<TWebSocketClientMessageType.MathSolverResult> & {
-    blockId: string
-    action: "get-diagnostic"
-    result: string
-  }
-
-/**
- * @group Client
- */
-export type TWebSocketClientMessageMathSolverNumericalComputation =
-  TWebSocketClientMessage<TWebSocketClientMessageType.MathSolverResult> & {
-    blockId: string
-    action: "numerical-computation"
-    result: string
-  }
-
-/**
- * @group Client
- */
-export type TWebSocketClientMessageMathSolverGetVariables =
-  TWebSocketClientMessage<TWebSocketClientMessageType.MathSolverResult> & {
-    blockId: string
-    action: "get-variables"
-    result: TMathVariable[]
-  }
-
-/**
- * @group Client
- */
-export type TWebSocketClientMessageMathSolverSetVariableValue =
-  TWebSocketClientMessage<TWebSocketClientMessageType.MathSolverResult> & {
-    blockId: string
-    action: "set-variable-value"
-    result?: undefined
-  }
-
-/**
- * @group Client
- */
-export type TWebSocketClientMessageMathSolverGetVariableValue =
-  TWebSocketClientMessage<TWebSocketClientMessageType.MathSolverResult> & {
-    blockId: string
-    action: "get-variable-value"
-    result: number
-  }
-
-/**
- * @group Client
- */
-export type TWebSocketClientMessageMathSolverGetEvaluables =
-  TWebSocketClientMessage<TWebSocketClientMessageType.MathSolverResult> & {
-    blockId: string
-    action: "get-evaluables"
-    result: TMathEvaluable[]
-  }
-
-/**
- * @group Client
- */
-export type TWebSocketClientMessageMathSolverEvaluate =
-  TWebSocketClientMessage<TWebSocketClientMessageType.MathSolverResult> & {
-    blockId: string
-    action: "evaluate"
-    result: number[][]
-  }
-
-/**
- * @group Client
- */
-export type TWebSocketClientMessageMathSolverRemoveVariableValue =
-  TWebSocketClientMessage<TWebSocketClientMessageType.MathSolverResult> & {
-    blockId: string
-    action: "remove-variable-value"
-    result?: undefined
-  }
-
-/**
- * @group Client
- */
 export type TMathVariableDefinition = {
   name: string
   value: number
 }
-
-/**
- * @group Client
- */
-export type TWebSocketClientMessageMathSolverAsVariableDefinition =
-  TWebSocketClientMessage<TWebSocketClientMessageType.MathSolverResult> & {
-    blockId: string
-    action: "as-variable-definition"
-    result: TMathVariableDefinition
-  }
 
 /**
  * @group Client
@@ -285,28 +185,106 @@ export type TMathVariableDefinitions = {
 
 /**
  * @group Client
+ * @summary `result` of a math solver message, by `action`
+ * @remarks Every action of {@link TWebSocketClientMessageMathSolverResult} comes from this map: adding an entry adds the message.
  */
-export type TWebSocketClientMessageMathSolverGetVariableDefinitions =
-  TWebSocketClientMessage<TWebSocketClientMessageType.MathSolverResult> & {
-    action: "get-variable-definitions"
-    result: TMathVariableDefinitions[]
-  }
+export type TMathSolverResultMap = {
+  "available-actions": string[]
+  "get-diagnostic": string
+  "numerical-computation": string
+  "get-variables": TMathVariable[]
+  "set-variable-value": undefined
+  "get-variable-value": number
+  "get-evaluables": TMathEvaluable[]
+  "remove-variable-value": undefined
+  "as-variable-definition": TMathVariableDefinition
+  "get-variable-definitions": TMathVariableDefinitions[]
+  evaluate: number[][]
+}
 
 /**
  * @group Client
  */
-export type TWebSocketClientMessageMathSolverResult =
-  | TWebSocketClientMessageMathSolverAvailableActions
-  | TWebSocketClientMessageMathSolverGetDiagnostic
-  | TWebSocketClientMessageMathSolverNumericalComputation
-  | TWebSocketClientMessageMathSolverGetVariables
-  | TWebSocketClientMessageMathSolverSetVariableValue
-  | TWebSocketClientMessageMathSolverGetVariableValue
-  | TWebSocketClientMessageMathSolverGetEvaluables
-  | TWebSocketClientMessageMathSolverRemoveVariableValue
-  | TWebSocketClientMessageMathSolverAsVariableDefinition
-  | TWebSocketClientMessageMathSolverGetVariableDefinitions
-  | TWebSocketClientMessageMathSolverEvaluate
+export type TMathSolverAction = keyof TMathSolverResultMap
+
+/**
+ * @group Client
+ * @summary Math solver message for one action
+ * @remarks `result` is optional when the action answers nothing; `get-variable-definitions` is not tied to a block, so it has no `blockId`.
+ */
+export type TWebSocketClientMessageMathSolver<A extends TMathSolverAction> =
+  TWebSocketClientMessage<TWebSocketClientMessageType.MathSolverResult> & {
+    action: A
+  } & (undefined extends TMathSolverResultMap[A]
+      ? { result?: TMathSolverResultMap[A] }
+      : { result: TMathSolverResultMap[A] }) &
+    (A extends "get-variable-definitions" ? unknown : { blockId: string })
+
+/**
+ * @group Client
+ */
+export type TWebSocketClientMessageMathSolverAvailableActions = TWebSocketClientMessageMathSolver<"available-actions">
+
+/**
+ * @group Client
+ */
+export type TWebSocketClientMessageMathSolverGetDiagnostic = TWebSocketClientMessageMathSolver<"get-diagnostic">
+
+/**
+ * @group Client
+ */
+export type TWebSocketClientMessageMathSolverNumericalComputation =
+  TWebSocketClientMessageMathSolver<"numerical-computation">
+
+/**
+ * @group Client
+ */
+export type TWebSocketClientMessageMathSolverGetVariables = TWebSocketClientMessageMathSolver<"get-variables">
+
+/**
+ * @group Client
+ */
+export type TWebSocketClientMessageMathSolverSetVariableValue = TWebSocketClientMessageMathSolver<"set-variable-value">
+
+/**
+ * @group Client
+ */
+export type TWebSocketClientMessageMathSolverGetVariableValue = TWebSocketClientMessageMathSolver<"get-variable-value">
+
+/**
+ * @group Client
+ */
+export type TWebSocketClientMessageMathSolverGetEvaluables = TWebSocketClientMessageMathSolver<"get-evaluables">
+
+/**
+ * @group Client
+ */
+export type TWebSocketClientMessageMathSolverEvaluate = TWebSocketClientMessageMathSolver<"evaluate">
+
+/**
+ * @group Client
+ */
+export type TWebSocketClientMessageMathSolverRemoveVariableValue =
+  TWebSocketClientMessageMathSolver<"remove-variable-value">
+
+/**
+ * @group Client
+ */
+export type TWebSocketClientMessageMathSolverAsVariableDefinition =
+  TWebSocketClientMessageMathSolver<"as-variable-definition">
+
+/**
+ * @group Client
+ */
+export type TWebSocketClientMessageMathSolverGetVariableDefinitions =
+  TWebSocketClientMessageMathSolver<"get-variable-definitions">
+
+/**
+ * @group Client
+ */
+export type TWebSocketClientMessageMathSolverResult = {
+  [A in TMathSolverAction]: TWebSocketClientMessageMathSolver<A>
+}[TMathSolverAction]
 
 /**
  * @group Client

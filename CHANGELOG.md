@@ -137,7 +137,7 @@ Every export on `InteractiveInkCanvas` goes through two functions instead of nin
 
 ### Type-only
 - `Logger.debug`/`info`/`warn`/`error` take `...data: unknown[]` instead of `...data: any`. No runtime change
-- `TWebSocketClientMessageReceived` is derived from the new `TWebSocketClientMessageReceivedMap` (one entry per `TWebSocketClientMessageType`, a missing one no longer compiles) instead of a hand-kept union; it resolves to the same members. `WebSocketClient` now checks a message's `type` before dispatching it and logs an unknown one with its raw payload (it used to print `[object Object]`). No other runtime change
+- `TWebSocketClientMessageReceived` is derived from the new `TWebSocketClientMessageReceivedMap` (one entry per `TWebSocketClientMessageType`, a missing one no longer compiles) instead of a hand-kept union; it resolves to the same members. Likewise `TWebSocketClientMessageMathSolverResult` comes from the new `TMathSolverResultMap` (`result` type by action) through the new generic `TWebSocketClientMessageMathSolver<A extends TMathSolverAction>`; the eleven `TWebSocketClientMessageMathSolver*` aliases stay, now one-liners over it. `WebSocketClient` now checks a message's `type` before dispatching it and logs an unknown one with its raw payload (it used to print `[object Object]`). No other runtime change
 - `mergeDeep(target: any, ...sources): any` → `mergeDeep<T extends TMergeable>(target: TPartialDeep<T>, ...sources): T`. With the usual empty-object `target`, pass the type argument explicitly: `mergeDeep<TServerHTTPConfiguration>({}, DefaultServerHTTPConfiguration, override)`. No runtime change
 
 ## Bug Fixes
