@@ -1,4 +1,4 @@
-import { DeferredPromise, isVersionSuperiorOrEqual, type TPartialDeep } from "@/core/std"
+import { DeferredPromise, isVersionSuperiorOrEqual, type TPartialDeep, typedKeys } from "@/core/std"
 import type { THistoryContext } from "@/history"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { Model } from "@/model"
@@ -18,13 +18,34 @@ import type { TWebSocketSSRClientConfiguration } from "./WebSocketSSRClientConfi
 import { WebSocketSSRClientConfiguration } from "./WebSocketSSRClientConfiguration"
 import type {
   TWebSocketSSRClientMessage,
+  TWebSocketSSRClientMessageAck,
   TWebSocketSSRClientMessageContentChange,
   TWebSocketSSRClientMessageError,
   TWebSocketSSRClientMessageExport,
-  TWebSocketSSRClientMessageHMACChallenge,
   TWebSocketSSRClientMessagePartChange,
+  TWebSocketSSRClientMessageReceived,
+  TWebSocketSSRClientMessageReceivedMap,
   TWebSocketSSRClientMessageSVGPatch,
 } from "./WebSocketSSRClientMessage"
+
+// A record, not a list: a type missing from the received map stops compiling here
+const RECEIVED_MESSAGE_TYPE_RECORD: Record<keyof TWebSocketSSRClientMessageReceivedMap, true> = {
+  ack: true,
+  contentPackageDescription: true,
+  partChanged: true,
+  newPart: true,
+  contentChanged: true,
+  exported: true,
+  svgPatch: true,
+  error: true,
+  idle: true,
+  pong: true,
+}
+const RECEIVED_MESSAGE_TYPES: ReadonlySet<unknown> = new Set(typedKeys(RECEIVED_MESSAGE_TYPE_RECORD))
+
+// Checks the discriminant only: the payload is trusted to match its type, as the server's contract
+const isWebSocketSSRClientMessageReceived = (value: unknown): value is TWebSocketSSRClientMessageReceived =>
+  typeof value === "object" && value !== null && "type" in value && RECEIVED_MESSAGE_TYPES.has(value.type)
 
 /**
  * A websocket dialog have this sequence :
@@ -223,12 +244,11 @@ export class WebSocketSSRClient {
     }
   }
 
-  protected async manageAckMessage(websocketMessage: TWebSocketSSRClientMessage): Promise<void> {
+  protected async manageAckMessage(ackMessage: TWebSocketSSRClientMessageAck): Promise<void> {
     this.#logger.info("manageAckMessage", {
-      websocketMessage,
+      ackMessage,
     })
-    const hmacChallengeMessage = websocketMessage as TWebSocketSSRClientMessageHMACChallenge
-    if (hmacChallengeMessage.hmacChallenge) {
+    if (ackMessage.hmacChallenge) {
       if (
         typeof this.configuration.server.hmacKey !== "function" &&
         typeof this.configuration.server.hmacKey !== "string"
@@ -237,11 +257,11 @@ export class WebSocketSSRClient {
       }
       this.send({
         type: "hmac",
-        hmac: await resolveHmac(this.configuration.server, hmacChallengeMessage.hmacChallenge),
+        hmac: await resolveHmac(this.configuration.server, ackMessage.hmacChallenge),
       })
     }
-    if (hmacChallengeMessage.iinkSessionId) {
-      this.sessionId = hmacChallengeMessage.iinkSessionId
+    if (ackMessage.iinkSessionId) {
+      this.sessionId = ackMessage.iinkSessionId
     }
     if (!isVersionSuperiorOrEqual(this.configuration.server.version!, "2.3.0")) {
       delete this.configuration.recognition.convert
@@ -275,20 +295,18 @@ export class WebSocketSSRClient {
     }
   }
 
-  protected managePartChangeMessage(websocketMessage: TWebSocketSSRClientMessage): void {
+  protected managePartChangeMessage(partChangeMessage: TWebSocketSSRClientMessagePartChange): void {
     this.#logger.info("managePartChangeMessage", {
-      websocketMessage,
+      partChangeMessage,
     })
-    const partChangeMessage = websocketMessage as TWebSocketSSRClientMessagePartChange
     this.currentPartId = partChangeMessage.partId
     this.initialized.resolve()
   }
 
-  protected manageExportMessage(websocketMessage: TWebSocketSSRClientMessage): void {
+  protected manageExportMessage(exportMessage: TWebSocketSSRClientMessageExport): void {
     this.#logger.info("manageExportMessage", {
-      websocketMessage,
+      exportMessage,
     })
-    const exportMessage = websocketMessage as TWebSocketSSRClientMessageExport
     parseExportedJIIX(exportMessage.exports)
     this.initialized.resolve()
     this.addStrokeDeferred?.resolve(exportMessage.exports)
@@ -307,8 +325,7 @@ export class WebSocketSSRClient {
     this.waitForIdleDeferred?.resolve()
   }
 
-  protected manageErrorMessage(websocketMessage: TWebSocketSSRClientMessage): void {
-    const err = websocketMessage as TWebSocketSSRClientMessageError
+  protected manageErrorMessage(err: TWebSocketSSRClientMessageError): void {
     this.currentErrorCode = err.data?.code || err.code
     const message =
       mapErrorCodeToMessage(this.currentErrorCode) ?? (err.data?.message || err.message || ClientError.UNKNOWN)
@@ -317,9 +334,8 @@ export class WebSocketSSRClient {
     this.event.emitError(error)
   }
 
-  protected manageContentChangeMessage(websocketMessage: TWebSocketSSRClientMessage): void {
-    this.#logger.info("manageContentChangeMessage", { websocketMessage })
-    const contentChangeMessage = websocketMessage as TWebSocketSSRClientMessageContentChange
+  protected manageContentChangeMessage(contentChangeMessage: TWebSocketSSRClientMessageContentChange): void {
+    this.#logger.info("manageContentChangeMessage", { contentChangeMessage })
     const context: THistoryContext = {
       canRedo: contentChangeMessage.canRedo,
       canUndo: contentChangeMessage.canUndo,
@@ -330,12 +346,11 @@ export class WebSocketSSRClient {
     this.event.emitContentChanged(context)
   }
 
-  protected manageSVGPatchMessage(websocketMessage: TWebSocketSSRClientMessage): void {
+  protected manageSVGPatchMessage(svgPatchMessage: TWebSocketSSRClientMessageSVGPatch): void {
     this.#logger.info("manageSVGPatchMessage", {
-      websocketMessage,
+      svgPatchMessage,
     })
     this.resizeDeferred?.resolve()
-    const svgPatchMessage = websocketMessage as TWebSocketSSRClientMessageSVGPatch
     this.event.emitSVGPatch(svgPatchMessage)
   }
 
@@ -344,12 +359,16 @@ export class WebSocketSSRClient {
       message,
     })
     this.currentErrorCode = undefined
-    let websocketMessage: TWebSocketSSRClientMessage
+    let websocketMessage: unknown
     try {
       websocketMessage = JSON.parse(message.data)
     } catch {
       // The payload is not JSON at all: the payload itself is the useful diagnostic.
       this.event.emitError(new Error(message.data))
+      return
+    }
+    if (!isWebSocketSSRClientMessageReceived(websocketMessage)) {
+      this.#logger.warn("messageCallback", `Message type unknown: "${message.data}".`)
       return
     }
     if (websocketMessage.type === "pong") {
@@ -384,8 +403,11 @@ export class WebSocketSSRClient {
       case "idle":
         this.manageWaitForIdle()
         break
-      default:
-        this.#logger.warn("messageCallback", `Message type unknown: "${websocketMessage.type}".`)
+      default: {
+        // Unreachable once the guard passed; a received type without a case stops compiling here
+        const unhandled: never = websocketMessage
+        this.#logger.warn("messageCallback", `Message type unhandled: "${JSON.stringify(unhandled)}".`)
+      }
     }
   }
 
