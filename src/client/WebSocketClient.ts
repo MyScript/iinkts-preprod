@@ -12,13 +12,12 @@ import {
 import type { THistoryContext, TIIHistoryBackendChanges } from "@/history"
 import { LoggerCategory, LoggerManager } from "@/logger"
 
-import { ClientError, mapCloseCodeToMessage } from "./ClientError"
+import { ClientError, mapCloseCodeToMessage, mapErrorCodeToMessage } from "./ClientError"
 import { ClientEvent } from "./ClientEvent"
-import type { TExport } from "./Export"
-import type { TJIIXExport } from "./Export"
+import { parseExportedJIIX, type TExport } from "./Export"
 import type { TJIIXMathElement } from "./ExportMath"
 import { resolveHmac } from "./HmacAuth"
-import { getApiInfos } from "./infos"
+import { ensureServerVersion } from "./infos"
 import { redactServerSecrets } from "./ServerConfiguration"
 import type { TRecognitionStroke } from "./StrokeSerializer"
 import { toWireStroke } from "./StrokeSerializer"
@@ -478,11 +477,7 @@ export class WebSocketClient {
   }
 
   protected manageExportMessage(exportMessage: TWebSocketClientMessageExport): void {
-    if (exportMessage.exports["application/vnd.myscript.jiix"]) {
-      exportMessage.exports["application/vnd.myscript.jiix"] = JSON.parse(
-        exportMessage.exports["application/vnd.myscript.jiix"].toString()
-      ) as TJIIXExport
-    }
+    parseExportedJIIX(exportMessage.exports)
 
     Object.keys(exportMessage.exports).forEach((key) => {
       if (this.exportDeferredMap.has(key)) {
@@ -508,17 +503,7 @@ export class WebSocketClient {
         message: ClientError.NO_ACTIVITY,
       })
     } else {
-      switch (this.currentErrorCode) {
-        case "access.not.granted":
-          message = ClientError.WRONG_CREDENTIALS
-          break
-        case "session.too.old":
-          message = ClientError.TOO_OLD
-          break
-        case "restore.session.not.found":
-          message = ClientError.NO_SESSION_FOUND
-          break
-      }
+      message = mapErrorCodeToMessage(this.currentErrorCode) ?? message
       this.rejectDeferredPending(message)
       this.event.emitError(new Error(message))
     }
@@ -693,9 +678,7 @@ export class WebSocketClient {
       this.sessionId = undefined
       this.currentPartId = undefined
     }
-    if (!this.configuration.server.version) {
-      this.configuration.server.version = (await getApiInfos(this.configuration)).version
-    }
+    await ensureServerVersion(this.configuration)
     this.socket = new WebSocket(this.url)
     this.clearSocketListener()
     this.socket.addEventListener("open", this.boundOpenCallback)

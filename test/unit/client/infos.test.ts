@@ -1,5 +1,5 @@
 import { WebSocketSSRClientTextConfiguration } from "../__dataset__/configuration.dataset"
-import { getApiInfos } from "@/iink"
+import { ensureServerVersion, getApiInfos } from "@/iink"
 
 describe("language.ts", () => {
   global.fetch = jest.fn(() =>
@@ -53,5 +53,26 @@ describe("language.ts", () => {
         "Failed to get infos: configuration.server.scheme & configuration.server.host are required!"
       )
     })
+  })
+})
+
+describe("ensureServerVersion", () => {
+  test("should keep a version already configured, without fetching", async () => {
+    const fetchSpy = jest.fn()
+    global.fetch = fetchSpy
+    const configuration = { server: structuredClone(WebSocketSSRClientTextConfiguration.server) }
+    configuration.server.version = "3.2.0"
+    await expect(ensureServerVersion(configuration)).resolves.toEqual("3.2.0")
+    expect(fetchSpy).not.toHaveBeenCalled()
+  })
+
+  test("should fetch the version once and store it in the configuration", async () => {
+    global.fetch = jest.fn(() =>
+      Promise.resolve({ ok: true, json: () => Promise.resolve({ version: "3.4.0" }) })
+    ) as jest.Mock
+    const configuration = { server: structuredClone(WebSocketSSRClientTextConfiguration.server) }
+    configuration.server.version = ""
+    await expect(ensureServerVersion(configuration)).resolves.toEqual("3.4.0")
+    expect(configuration.server.version).toEqual("3.4.0")
   })
 })
