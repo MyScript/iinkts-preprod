@@ -37,6 +37,12 @@ import type {
 } from "./WebSocketClientMessage"
 import { TWebSocketClientMessageType } from "./WebSocketClientMessage"
 
+const RECEIVED_MESSAGE_TYPES: ReadonlySet<unknown> = new Set(Object.values(TWebSocketClientMessageType))
+
+// Checks the discriminant only: the payload is trusted to match its type, as the server's contract
+const isWebSocketClientMessageReceived = (value: unknown): value is TWebSocketClientMessageReceived =>
+  typeof value === "object" && value !== null && "type" in value && RECEIVED_MESSAGE_TYPES.has(value.type)
+
 /**
  * A websocket dialog have this sequence :
  * --------------- Client --------------------------------------------------------------- Server ---------------
@@ -600,12 +606,16 @@ export class WebSocketClient {
 
   protected messageCallback(message: MessageEvent<string>): void {
     this.currentErrorCode = undefined
-    let websocketMessage: TWebSocketClientMessageReceived
+    let websocketMessage: unknown
     try {
       websocketMessage = JSON.parse(message.data)
     } catch {
       // The payload is not JSON at all: the payload itself is the useful diagnostic.
       this.event.emitError(new Error(message.data))
+      return
+    }
+    if (!isWebSocketClientMessageReceived(websocketMessage)) {
+      this.#logger.warn("messageCallback", `Message type unknown: "${message.data}".`)
       return
     }
     try {
@@ -653,9 +663,12 @@ export class WebSocketClient {
         case TWebSocketClientMessageType.Ack:
           this.manageAck()
           break
-        default:
-          this.#logger.warn("messageCallback", `Message type unknown: "${websocketMessage}".`)
+        default: {
+          // Unreachable once the guard passed; a TWebSocketClientMessageType without a case stops compiling here
+          const unhandled: never = websocketMessage
+          this.#logger.warn("messageCallback", `Message type unhandled: "${JSON.stringify(unhandled)}".`)
           break
+        }
       }
     } catch (error) {
       // A handler threw. Reporting the payload here, as this used to, hid every

@@ -15,6 +15,8 @@ import {
   TIIHistoryBackendChanges,
   TWebSocketClientConfiguration,
   toWireStroke,
+  LoggerManager,
+  LoggerCategory,
 } from "@/iink"
 
 import { toResolve } from "jest-extended"
@@ -197,6 +199,19 @@ describe("WebSocketClient.ts", () => {
 
       // For an unparseable payload the payload itself is the useful diagnostic.
       expect(spyEmitError).toHaveBeenCalledWith(new Error("<html>502 Bad Gateway</html>"))
+    })
+
+    test("should warn with the raw payload and not report an error when the type is unknown", () => {
+      const wsClient = new WebSocketClient(configuration)
+      const spyEmitError = jest.spyOn(wsClient.event, "emitError")
+      const spyWarn = jest.spyOn(LoggerManager.getLogger(LoggerCategory.CLIENT), "warn")
+      const payload = JSON.stringify({ type: "notAMessageType" })
+
+      invoke(wsClient, payload)
+
+      expect(spyWarn).toHaveBeenCalledWith("messageCallback", `Message type unknown: "${payload}".`)
+      expect(spyEmitError).not.toHaveBeenCalled()
+      spyWarn.mockRestore()
     })
 
     test("should report a handler's own error rather than the payload", () => {
