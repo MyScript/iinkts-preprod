@@ -45,12 +45,12 @@ export type THTTPClientV2PostData = {
  * @group Client
  */
 export class HTTPClientV2 {
-  #logger = LoggerManager.getLogger(LoggerCategory.CLIENT)
+  protected logger = LoggerManager.getLogger(LoggerCategory.CLIENT)
 
   configuration: HTTPClientV2Configuration
 
   constructor(config: TPartialDeep<THTTPClientV2Configuration>) {
-    this.#logger.info("constructor", { config: redactServerSecrets(config) })
+    this.logger.info("constructor", { config: redactServerSecrets(config) })
     this.configuration = new HTTPClientV2Configuration(config)
   }
 
@@ -91,7 +91,7 @@ export class HTTPClientV2 {
   }
 
   protected buildData(strokes: TRecognitionStroke[]): THTTPClientV2PostData {
-    this.#logger.info("buildData", { strokes })
+    this.logger.info("buildData", { strokes })
 
     const contentType: string =
       this.configuration.recognition.type === "Raw Content"
@@ -106,12 +106,12 @@ export class HTTPClientV2 {
       contentType,
       strokes: strokes.map((s) => toWireStroke(s)),
     }
-    this.#logger.debug("buildData", { data })
+    this.logger.debug("buildData", { data })
     return data
   }
 
   protected async post(data: unknown, mimeType: string): Promise<unknown> {
-    this.#logger.info("post", { data, mimeType })
+    this.logger.info("post", { data, mimeType })
     // Before posting: `data` holds this configuration, and the HMAC signs the body as sent
     const version = await ensureServerVersion(this.configuration)
     if (!isVersionSuperiorOrEqual(version, "3.2.0")) {
@@ -121,18 +121,18 @@ export class HTTPClientV2 {
   }
 
   protected async tryFetch(data: THTTPClientV2PostData, mimeType: string): Promise<TExportV2> {
-    this.#logger.debug("tryFetch", { data, mimeType })
+    this.logger.debug("tryFetch", { data, mimeType })
     try {
       const result = await this.post(data, mimeType)
       return { [mimeType]: result as TJIIXExport | string | Blob }
     } catch (error) {
-      this.#logger.error("tryFetch", { data, mimeType, error })
+      this.logger.error("tryFetch", { data, mimeType, error })
       throw toRecognitionError(error)
     }
   }
 
   protected getMimeTypes(requestedMimeTypes?: string[]): string[] {
-    this.#logger.info("getMimeTypes", {
+    this.logger.info("getMimeTypes", {
       requestedMimeTypes,
     })
     let mimeTypes: string[] = requestedMimeTypes || []
@@ -161,7 +161,7 @@ export class HTTPClientV2 {
   }
 
   async send(strokes: TRecognitionStroke[], requestedMimeTypes?: string[]): Promise<TExportV2> {
-    this.#logger.info("send", strokes)
+    this.logger.info("send", strokes)
 
     const recognition: TExportV2 = {}
     if (strokes.length === 0) {
@@ -175,7 +175,7 @@ export class HTTPClientV2 {
       Object.assign(recognition, e)
     })
 
-    this.#logger.debug("send", recognition)
+    this.logger.debug("send", recognition)
     return recognition
   }
 }

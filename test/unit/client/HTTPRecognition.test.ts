@@ -51,6 +51,14 @@ describe("HTTPRecognition.ts", () => {
       expect(request.headers.get("myscript-client-name")).toBeNull()
     })
 
+    test("should send the request unsigned when the HMAC key cannot be resolved: the signature is optional", async () => {
+      fetchMock.mockResponseOnce("")
+      const failingServer = { ...server, hmacKey: () => Promise.reject(new Error("token endpoint down")) }
+      await postRecognition({ url, server: failingServer, accept: "text/plain", data: {} })
+      const request = fetchMock.mock.calls[0][0] as Request
+      expect(request.headers.get("hmac")).toBeNull()
+    })
+
     test("should send the request unsigned when no HMAC key is configured", async () => {
       fetchMock.mockResponseOnce("")
       await postRecognition({ url, server: { ...server, hmacKey: "" }, accept: "text/plain", data: {} })

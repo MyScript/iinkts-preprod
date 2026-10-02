@@ -41,6 +41,16 @@ export async function parseRecognitionResponse(response: Response): Promise<unkn
   }
 }
 
+// The signature is optional for the server: when the key cannot be resolved, the request goes out unsigned
+async function signBody(server: TServerHTTPConfiguration, body: string): Promise<string | undefined> {
+  try {
+    return await resolveHmac(server, body)
+  } catch (error) {
+    logger.error("signBody", error instanceof Error ? error.message : String(error))
+    return undefined
+  }
+}
+
 async function buildRecognitionHeaders(
   server: TServerHTTPConfiguration,
   accept: string,
@@ -49,14 +59,9 @@ async function buildRecognitionHeaders(
   const headers = new Headers()
   headers.append("Accept", accept)
   headers.append("applicationKey", server.applicationKey)
-  try {
-    const hmac = await resolveHmac(server, body)
-    if (hmac) {
-      headers.append("hmac", hmac)
-    }
-  } catch (error) {
-    // The request still goes out unsigned: the server's answer says what is wrong with the key
-    logger.error("buildRecognitionHeaders.computeHmac", error instanceof Error ? error.message : String(error))
+  const hmac = await signBody(server, body)
+  if (hmac) {
+    headers.append("hmac", hmac)
   }
   headers.append("Content-Type", "application/json")
   if (server.version && isVersionSuperiorOrEqual(server.version, "2.0.4")) {
