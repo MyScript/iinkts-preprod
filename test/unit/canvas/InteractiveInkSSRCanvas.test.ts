@@ -515,7 +515,7 @@ describe("InteractiveInkSSRCanvas.ts", () => {
     })
     test("should updatesLayer when client emit SVG_PATCH", async () => {
       const svgPatch: TWebSocketSSRClientMessageSVGPatch = {
-        type: "REPLACE_ALL",
+        type: "svgPatch",
         layer: "MODEL",
         updates: [],
       }

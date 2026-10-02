@@ -21,6 +21,8 @@ import {
   TConverstionState,
   TWebSocketSSRClientConfiguration,
   toWireStroke,
+  LoggerManager,
+  LoggerCategory,
 } from "@/iink"
 
 describe("WebSocketSSRClient.ts", () => {
@@ -1055,6 +1057,19 @@ describe("WebSocketSSRClient.ts", () => {
         data: "<html>502 Bad Gateway</html>",
       } as MessageEvent<string>)
       expect(spyEmitError).toHaveBeenCalledWith(new Error("<html>502 Bad Gateway</html>"))
+    })
+
+    test("should warn with the raw payload and not report an error when the type is unknown", () => {
+      const wsr = new WebSocketSSRClient(WebSocketSSRClientTextConfiguration)
+      const spyEmitError = jest.spyOn(wsr.event, "emitError")
+      const spyWarn = jest.spyOn(LoggerManager.getLogger(LoggerCategory.CLIENT), "warn")
+      const payload = JSON.stringify({ type: "notAMessageType" })
+      ;(wsr as unknown as { messageCallback: (message: MessageEvent<string>) => void }).messageCallback({
+        data: payload,
+      } as MessageEvent<string>)
+      expect(spyWarn).toHaveBeenCalledWith("messageCallback", `Message type unknown: "${payload}".`)
+      expect(spyEmitError).not.toHaveBeenCalled()
+      spyWarn.mockRestore()
     })
   })
 })
