@@ -252,6 +252,22 @@ describe("WebSocketSSRClient.ts", () => {
       const messageSent = JSON.parse(mockServer.getLastMessage() as string)
       expect(messageSent).toEqual(testDataToSend)
     })
+    test("should reject instead of dropping the message when closed without automatic reconnection", async () => {
+      const noReconnectConf = structuredClone(customConf)
+      noReconnectConf.server.host = "send-no-reconnect-test"
+      noReconnectConf.server.websocket.autoReconnect = false
+      const client = new WebSocketSSRClient(noReconnectConf)
+      client.event.emitError = jest.fn()
+      const server = new ServerWebSocketSSRMock(client.url)
+      server.init()
+      await client.init(height, width)
+      client.close(1000, "CLOSE_CLIENT")
+      await expect(client.send({ type: "test" })).rejects.toThrow(
+        "Unable to send message. Connection closed and automatic reconnection disabled"
+      )
+      client.destroy()
+      server.close()
+    })
     //TODO fix test
     test.skip("should reconnect before send message", async () => {
       expect.assertions(1)
@@ -1016,6 +1032,29 @@ describe("WebSocketSSRClient.ts", () => {
       // 2 -> CLOSING
       await expect(mockServer.server.clients()[0].readyState).toEqual(2)
       mockServer.close()
+    })
+    test("should settle a request still waiting for its answer", async () => {
+      const wsr = new WebSocketSSRClient(customConf)
+      mockServer = new ServerWebSocketSSRMock(wsr.url)
+      mockServer.init()
+      await wsr.init(height, width)
+      const pending = wsr.export(new Model())
+      //¯\_(ツ)_/¯  required to wait for the instantiation of the promise of the client
+      await delay(50)
+      wsr.destroy()
+      await expect(pending).resolves.toBeInstanceOf(Model)
+      mockServer.close()
+    })
+  })
+
+  describe("messageCallback", () => {
+    test("should report the raw payload when it is not JSON at all", () => {
+      const wsr = new WebSocketSSRClient(WebSocketSSRClientTextConfiguration)
+      const spyEmitError = jest.spyOn(wsr.event, "emitError")
+      ;(wsr as unknown as { messageCallback: (message: MessageEvent<string>) => void }).messageCallback({
+        data: "<html>502 Bad Gateway</html>",
+      } as MessageEvent<string>)
+      expect(spyEmitError).toHaveBeenCalledWith(new Error("<html>502 Bad Gateway</html>"))
     })
   })
 })

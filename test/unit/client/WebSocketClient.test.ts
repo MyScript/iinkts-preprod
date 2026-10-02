@@ -326,6 +326,14 @@ describe("WebSocketClient.ts", () => {
       const messageSent = JSON.parse(mockServer.getLastMessage() as string)
       expect(messageSent).toEqual(testDataToSend)
     })
+    test("should reject when the socket fails to send", async () => {
+      await wsClient.init()
+      const socket = (wsClient as unknown as { socket: WebSocket }).socket
+      jest.spyOn(socket, "send").mockImplementation(() => {
+        throw new Error("send failed")
+      })
+      await expect(wsClient.send({ type: "test" })).rejects.toThrow("send failed")
+    })
   })
 
   describe("addStrokes", () => {
