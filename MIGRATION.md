@@ -586,6 +586,41 @@ If you implement a util in this family, `PathSymbolUtil` assembles the element f
   }
 ```
 
+### Menus: add items without subclassing
+
+**If you subclassed a menu only to add buttons, drop the subclass.** `canvas.menu.addItem` adds an item to
+any of the four menus and keeps it across `canvas.menu.setConfig()`:
+
+```ts
+// v4 — subclass, override render(), append raw DOM, clean it up yourself
+class CustomMenuTool extends IIMenuTool {
+  render(layer) {
+    super.render(layer)
+    this.wrapper.appendChild(myButton)
+  }
+}
+Canvas.load(element, "INTERACTIVE_INK", { override: { menu: { tool: CustomMenuTool } } })
+
+// v5 — register a factory: called on every render of that menu
+canvas.menu.addItem("tool", "my-button", () => createMyButton())
+canvas.menu.addItem("action", "my-export", () => new ButtonMenuItem(/* … */), { zone: "dropdown", after: "export" })
+canvas.menu.removeItem("tool", "my-button")
+```
+
+The factory returns a `BaseMenuItem`, which the menu updates with the canvas, or a plain `HTMLElement`,
+which stays static. Every menu has a `"bar"` and a `"dropdown"` zone; `before`/`after` place the item next
+to another one, and `replace: true` puts it in place of a built-in item of the same key.
+
+**If you replace a menu class** (`options.override.menu`), three things change:
+
+- the option takes **classes** (`TMenuOverride`), as it always did at runtime; the type used to declare
+  instances. `context` can be replaced too.
+- your class is constructed like the built-in one, `(canvas, id, config)`, so it receives
+  `configuration.menu.<menu>`; a constructor taking `(canvas)` alone keeps working. It also survives
+  `canvas.menu.setConfig()`, which used to rebuild the built-in menu in its place.
+- the menus extend `IIAbstractMenu`: `wrapper` is typed `HTMLElement`, the rendered items are the protected
+  `items` map, and `addItem(key, item, options)` is the protected way to add one in `render()`.
+
 ### Internal layout: `src/utils/` no longer exists
 
 **If you import from `iink-ts` and nothing else, this section does not apply to you.** The package's
