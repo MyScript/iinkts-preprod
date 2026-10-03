@@ -1,5 +1,5 @@
 import { createCanvasMock, asCanvas } from "../__mocks__/createCanvasMock"
-import { IIMenuManager, IIMenuStyle, IIMenuTool, IIMenuAction } from "@/iink"
+import { IIMenuManager, IIMenuStyle, IIMenuTool, IIMenuAction, IIMenuContext } from "@/iink"
 
 describe("IIMenuManager.ts", () => {
   test("should instanciate", () => {
@@ -14,7 +14,6 @@ describe("IIMenuManager.ts", () => {
         name = "override-style"
       }
       const canvas = createCanvasMock()
-      //@ts-ignore
       const manager = new IIMenuManager(asCanvas(canvas), { style: CustomMenuStyle })
       //@ts-ignore
       expect(manager.style.name).toEqual("override-style")
@@ -24,7 +23,6 @@ describe("IIMenuManager.ts", () => {
         name = "override-tool"
       }
       const canvas = createCanvasMock()
-      //@ts-ignore
       const manager = new IIMenuManager(asCanvas(canvas), { tool: CustomMenuTool })
       //@ts-ignore
       expect(manager.tool.name).toEqual("override-tool")
@@ -34,10 +32,50 @@ describe("IIMenuManager.ts", () => {
         name = "override-action"
       }
       const canvas = createCanvasMock()
-      //@ts-ignore
       const manager = new IIMenuManager(asCanvas(canvas), { action: CustomMenuAction })
       //@ts-ignore
       expect(manager.action.name).toEqual("override-action")
+    })
+  })
+
+  describe("override classes", () => {
+    class CustomMenuStyle extends IIMenuStyle {}
+    class CustomMenuTool extends IIMenuTool {}
+    class CustomMenuAction extends IIMenuAction {}
+    class CustomMenuContext extends IIMenuContext {}
+    const custom = {
+      style: CustomMenuStyle,
+      tool: CustomMenuTool,
+      action: CustomMenuAction,
+      context: CustomMenuContext,
+    }
+
+    test("should keep the override classes across setConfig", () => {
+      const canvas = createCanvasMock()
+      const manager = new IIMenuManager(asCanvas(canvas), custom)
+      // setConfig only rebuilds once rendered (it has a layer); menus disabled, nothing is drawn
+      manager.layer = document.createElement("div")
+      canvas.configuration.menu.enable = false
+
+      manager.setConfig({ action: { clear: false } })
+
+      // setConfig rebuilt the menus with the base classes, dropping the integrator's
+      expect(manager.style).toBeInstanceOf(CustomMenuStyle)
+      expect(manager.tool).toBeInstanceOf(CustomMenuTool)
+      expect(manager.action).toBeInstanceOf(CustomMenuAction)
+      expect(manager.context).toBeInstanceOf(CustomMenuContext)
+      manager.destroy()
+    })
+
+    test("should construct an override class with its id and configuration, like the base one", () => {
+      const canvas = createCanvasMock()
+      const manager = new IIMenuManager(asCanvas(canvas), custom)
+      const builtIn = new IIMenuManager(asCanvas(canvas))
+
+      for (const menu of ["style", "tool", "action", "context"] as const) {
+        expect(manager[menu].id).toEqual(builtIn[menu].id)
+        expect(manager[menu].config).toEqual(builtIn[menu].config)
+      }
     })
   })
 

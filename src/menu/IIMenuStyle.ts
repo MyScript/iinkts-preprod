@@ -80,7 +80,7 @@ import {
  * @group Menu
  */
 export class IIMenuStyle {
-  #logger = LoggerManager.getLogger(LoggerCategory.MENU)
+  protected logger = LoggerManager.getLogger(LoggerCategory.MENU)
 
   canvas: TInteractiveInkCanvas
   id: string
@@ -90,13 +90,13 @@ export class IIMenuStyle {
   subMenuWrapper?: HTMLDivElement
   subMenuContent?: HTMLDivElement
 
-  #documentPointerdownHandler?: (e: PointerEvent) => void
+  protected documentPointerdownHandler?: (e: PointerEvent) => void
   // Style items
   private styleItems: Map<string, BaseMenuItem> = new Map()
 
   constructor(canvas: TInteractiveInkCanvas, id = "ms-menu-style", config?: TMenuStyleConfig) {
     this.id = id
-    this.#logger.info("constructor")
+    this.logger.info("constructor")
     this.canvas = canvas
     this.config = { ...DefaultMenuStyleConfig }
     if (config) {
@@ -146,7 +146,7 @@ export class IIMenuStyle {
 
   render(layer: HTMLElement): void {
     if (this.canvas.configuration.menu.style.enable) {
-      this.#logger.info("Rendering menu styles with config", this.config)
+      this.logger.info("Rendering menu styles with config", this.config)
 
       this.triggerBtn = DOMFactory.button({
         id: this.id,
@@ -214,12 +214,12 @@ export class IIMenuStyle {
 
       // Event listeners
       this.triggerBtn.addEventListener("pointerdown", () => this.subMenuContent?.classList.toggle("open"))
-      this.#documentPointerdownHandler = (e: PointerEvent) => {
+      this.documentPointerdownHandler = (e: PointerEvent) => {
         if (this.subMenuWrapper && !this.subMenuWrapper.contains(e.target as HTMLElement)) {
           this.subMenuContent?.classList.remove("open")
         }
       }
-      document.addEventListener("pointerdown", this.#documentPointerdownHandler)
+      document.addEventListener("pointerdown", this.documentPointerdownHandler)
 
       this.wrapper = DOMFactory.div({
         className: ["ms-menu", "ms-menu-top-right"],
@@ -270,9 +270,9 @@ export class IIMenuStyle {
   }
 
   destroy(): void {
-    if (this.#documentPointerdownHandler) {
-      document.removeEventListener("pointerdown", this.#documentPointerdownHandler)
-      this.#documentPointerdownHandler = undefined
+    if (this.documentPointerdownHandler) {
+      document.removeEventListener("pointerdown", this.documentPointerdownHandler)
+      this.documentPointerdownHandler = undefined
     }
     if (this.wrapper) {
       // Destroy all style items
