@@ -115,7 +115,7 @@ export class IIMenuStyle extends IIAbstractMenu<Required<TMenuStyleConfig>> {
       return
     }
     this.logger.info("Rendering menu styles with config", this.config)
-    this.wrapper = DOMFactory.div({ className: ["ms-menu", "ms-menu-top-right"] })
+    this.wrapper = DOMFactory.div({ className: ["ms-menu", "ms-menu-style"] })
     this.renderDropdownItems()
     layer.appendChild(this.wrapper)
     this.update()

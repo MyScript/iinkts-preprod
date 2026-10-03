@@ -12,6 +12,7 @@ import { SymbolType } from "@/symbol/Symbol"
 import type { TStroke } from "@/symbol/stroke/Stroke"
 import { DOMFactory } from "@/dom"
 import { CanvasLayer } from "@/canvas/CanvasLayer"
+import { LayoutManager } from "@/manager/base/LayoutManager"
 import { registerBuiltinSymbolUtils } from "@/symbol-utils"
 import { CanvasEventMock } from "./CanvasEventMock"
 
@@ -182,13 +183,16 @@ export function createCanvasMock(overrides: Partial<TCanvasMock> = {}): TCanvasM
   let _readOnly = false
   const _activeOperations = new Map<string, number>()
 
+  const layers = overrides.layers ?? new CanvasLayer(document.createElement("div"))
   const base = {
     model,
     renderer,
     client,
     configuration,
     event,
-    layers: overrides.layers ?? new CanvasLayer(document.createElement("div")),
+    layers,
+    // Not rendered: menus fall back to the UI layer, as before the layout existed
+    layout: overrides.layout ?? new LayoutManager(layers, ["action", "style", "tool", "state", "minimap"]),
     dom: overrides.dom ?? DOMFactory,
     history: overrides.history ?? stubManager(),
     writer:

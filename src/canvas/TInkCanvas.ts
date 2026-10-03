@@ -3,6 +3,7 @@ import type { TExportV2 } from "@/client"
 import type { CanvasTool } from "@/Constants"
 import type { TPartialDeep } from "@/core/std"
 import type { IHistoryManager } from "@/history"
+import type { LayoutManager } from "@/manager"
 import type { IModel } from "@/model"
 import type { SVGRenderer } from "@/renderer"
 import type { TStyle } from "@/style"
@@ -29,6 +30,7 @@ export type TInkCanvas = {
   readonly configuration: InkCanvasConfiguration
   readonly event: CanvasEvent
   readonly layers: CanvasLayer
+  readonly layout: LayoutManager
   readonly renderer: SVGRenderer
   readonly client: HTTPClientV2
   get penStyle(): TStyle

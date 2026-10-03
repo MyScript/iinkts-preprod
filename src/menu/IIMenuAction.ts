@@ -131,7 +131,7 @@ export class IIMenuAction extends IIAbstractMenu<
       return
     }
     this.logger.info("Rendering menu actions with config", this.config)
-    this.wrapper = DOMFactory.div({ className: ["ms-menu", "ms-menu-top-left", "ms-menu-row"] })
+    this.wrapper = DOMFactory.div({ className: ["ms-menu", "ms-menu-action", "ms-menu-row"] })
     this.renderDropdownItems()
     this.renderBarItems(layer)
     layer.appendChild(this.wrapper)
@@ -207,7 +207,9 @@ export class IIMenuAction extends IIAbstractMenu<
       this.addItem("zoom", new ZoomMenuAction(this.canvas, this.id), bar)
     }
     if (config.minimap) {
-      this.addItem("minimap", new MinimapMenuAction(this.canvas, layer, this.id), bar)
+      // The minimap opens in its own slot of the layout
+      const minimapHost = this.canvas.layout.host("minimap") ?? layer
+      this.addItem("minimap", new MinimapMenuAction(this.canvas, minimapHost, this.id), bar)
     }
   }
 }
