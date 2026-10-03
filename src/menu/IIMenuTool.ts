@@ -38,7 +38,7 @@ export const DefaultMenuToolConfig: Required<TMenuToolConfig> = {
  * @group Menu
  */
 export class IIMenuTool {
-  #logger = LoggerManager.getLogger(LoggerCategory.MENU)
+  protected logger = LoggerManager.getLogger(LoggerCategory.MENU)
 
   canvas: TInteractiveInkCanvas
   id: string
@@ -50,7 +50,7 @@ export class IIMenuTool {
 
   constructor(canvas: TInteractiveInkCanvas, id = "ms-menu-tool", config?: TMenuToolConfig) {
     this.id = id
-    this.#logger.info("constructor")
+    this.logger.info("constructor")
     this.canvas = canvas
     this.config = {
       ...DefaultMenuToolConfig,
@@ -60,7 +60,7 @@ export class IIMenuTool {
 
   render(layer: HTMLElement): void {
     if (this.canvas.configuration.menu.tool.enable) {
-      this.#logger.info("Rendering menu tools with config", this.config)
+      this.logger.info("Rendering menu tools with config", this.config)
 
       this.wrapper = DOMFactory.div({
         className: ["ms-menu", "ms-menu-bottom", "ms-menu-row"],
