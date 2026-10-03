@@ -60,7 +60,7 @@ export function cases(f: TBenchFixture): TBenchCase[] {
         let found = 0
         for (let pass = 0; pass < GET_ROOT_PASSES; pass++) {
           for (const id of f.allIds) {
-            if (f.model.getRootSymbol(id) !== undefined) found++
+            if (f.model.getSymbol(id) !== undefined) found++
           }
         }
         if (found < 0) throw new Error("unreachable")

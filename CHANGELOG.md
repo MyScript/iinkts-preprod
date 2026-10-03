@@ -25,6 +25,7 @@ A stroke's width used to be read off each pointer's `p`, which the capture overw
 Symbols are frozen when committed and handed to readers directly instead of the document being deep-cloned on every read: `model.symbols` on 500 strokes goes from 11.59 ms to 0.0012 ms; building a 200-stroke model is 28% slower.
 - mutating a symbol read from `model` throws (runtime `Object.freeze`, not types) — use `model.draftSymbol(id)` then `model.commitSymbol(draft)`. A committed draft is frozen, so a per-frame gesture needs a fresh draft each frame
 - `model.selectedIds` is a `ReadonlySet`; `modificationDate` and `exports` are getters
+- **renamed**: `IIModel.getRootSymbol(id)` → `IIModel.getSymbol(id)`. Same behaviour: the committed, frozen symbol, no copy — the cheap read, against `draftSymbol(id)` for a write
 - new: `SymbolStore`, `TDraft`, `TReadonlyDeep`, `TSymbolOrder`, `IIModel.symbolCount`, `IIModel.decoratorsByTargetId`, `IIModel.selectionVersion`
 - fixed: `changeOrderSymbol` was a no-op; partially erasing characters was never stored; undo/redo replay rewrote the entry it was replaying; edge-connection anchors were silently dropped behind a swallowed throw
 
