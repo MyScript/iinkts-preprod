@@ -332,6 +332,34 @@ describe("IISynchronizerManager.ts", () => {
     })
   })
 
+  describe("retry", () => {
+    test("should retry a failed export and resolve once one succeeds", async () => {
+      const canvas = createCanvasMock()
+      canvas.export = jest
+        .fn()
+        .mockRejectedValueOnce(new Error("first"))
+        .mockRejectedValueOnce(new Error("second"))
+        .mockResolvedValue(undefined)
+      const manager = new IISynchronizerManager(asCanvas(canvas))
+
+      await expect(manager.synchronize()).resolves.toBeUndefined()
+      expect(canvas.export).toHaveBeenCalledTimes(3)
+    })
+
+    test("should give up after MAX_RETRY_ATTEMPTS with the last error", async () => {
+      const canvas = createCanvasMock()
+      canvas.export = jest
+        .fn()
+        .mockRejectedValueOnce(new Error("first"))
+        .mockRejectedValueOnce(new Error("second"))
+        .mockRejectedValueOnce(new Error("last"))
+      const manager = new IISynchronizerManager(asCanvas(canvas))
+
+      await expect(manager.synchronize()).rejects.toThrow("last")
+      expect(canvas.export).toHaveBeenCalledTimes(IISynchronizerManager.MAX_RETRY_ATTEMPTS)
+    })
+  })
+
   describe("math dependency enrichment", () => {
     function setupMath(mathBlockIds: string[]) {
       const canvas = createCanvasMock()
@@ -350,6 +378,23 @@ describe("IISynchronizerManager.ts", () => {
 
       expect(canvas.math.enrichMathDependencies).toHaveBeenCalledWith("math-0", expect.any(Function))
       expect(canvas.math.enrichMathDependencies).toHaveBeenCalledWith("math-1", expect.any(Function))
+    })
+
+    test("should cancel each enrichment's timeout once the enrichment settles", async () => {
+      const { manager } = setupMath(["math-0", "math-1"])
+      const setTimeoutSpy = jest.spyOn(globalThis, "setTimeout")
+      const clearTimeoutSpy = jest.spyOn(globalThis, "clearTimeout")
+
+      await manager.synchronize()
+
+      const enrichTimers = setTimeoutSpy.mock.calls
+        .map((call, i) => ({ delay: call[1], id: setTimeoutSpy.mock.results[i].value }))
+        .filter(({ delay }) => delay === IISynchronizerManager.ENRICH_TIMEOUT_MS)
+      // Left running, each one fired 5 s later for an enrichment long since done, on every sync
+      expect(enrichTimers).toHaveLength(2)
+      enrichTimers.forEach(({ id }) => expect(clearTimeoutSpy).toHaveBeenCalledWith(id))
+      setTimeoutSpy.mockRestore()
+      clearTimeoutSpy.mockRestore()
     })
 
     test("should report stale once a new synchronize() is queued mid-enrichment, then resolve fresh on the redo pass", async () => {
