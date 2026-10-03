@@ -1,8 +1,7 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import { DOMFactory } from "@/dom"
-import { LoggerCategory, LoggerManager } from "@/logger"
 
-import type { BaseMenuItem } from "./items"
+import { IIAbstractMenu } from "./IIAbstractMenu"
 import { EdgeTool, EraseTool, MoveTool, SelectTool, ShapeTool, WriteTool } from "./tools"
 
 /**
@@ -37,108 +36,40 @@ export const DefaultMenuToolConfig: Required<TMenuToolConfig> = {
 /**
  * @group Menu
  */
-export class IIMenuTool {
-  protected logger = LoggerManager.getLogger(LoggerCategory.MENU)
-
-  canvas: TInteractiveInkCanvas
-  id: string
-  wrapper?: HTMLDivElement
-  config: Required<TMenuToolConfig>
-
-  // Instances des classes d'outils
-  private menuTools: Map<string, BaseMenuItem> = new Map()
-
+export class IIMenuTool extends IIAbstractMenu<Required<TMenuToolConfig>> {
   constructor(canvas: TInteractiveInkCanvas, id = "ms-menu-tool", config?: TMenuToolConfig) {
-    this.id = id
-    this.logger.info("constructor")
-    this.canvas = canvas
-    this.config = {
-      ...DefaultMenuToolConfig,
-      ...config,
-    }
+    super(canvas, id, { ...DefaultMenuToolConfig, ...config })
   }
 
   render(layer: HTMLElement): void {
-    if (this.canvas.configuration.menu.tool.enable) {
-      this.logger.info("Rendering menu tools with config", this.config)
-
-      this.wrapper = DOMFactory.div({
-        className: ["ms-menu", "ms-menu-bottom", "ms-menu-row"],
-      })
-
-      // Ajouter les outils conditionnellement
-      if (this.config.write) {
-        const writeTool = new WriteTool(this.canvas, this.id)
-        this.menuTools.set("write", writeTool)
-        this.wrapper.appendChild(writeTool.getElement())
-      }
-
-      if (this.config.move) {
-        const moveTool = new MoveTool(this.canvas, this.id)
-        this.menuTools.set("move", moveTool)
-        this.wrapper.appendChild(moveTool.getElement())
-      }
-
-      if (this.config.select) {
-        const selectTool = new SelectTool(this.canvas, this.id)
-        this.menuTools.set("select", selectTool)
-        this.wrapper.appendChild(selectTool.getElement())
-      }
-
-      if (this.config.erase) {
-        const eraseTool = new EraseTool(this.canvas, this.id)
-        this.menuTools.set("erase", eraseTool)
-        this.wrapper.appendChild(eraseTool.getElement())
-      }
-
-      if (this.config.edge) {
-        const edgeTool = new EdgeTool(this.canvas, this.id)
-        this.menuTools.set("edge", edgeTool)
-        this.wrapper.appendChild(edgeTool.getElement())
-      }
-
-      if (this.config.shape) {
-        const shapeTool = new ShapeTool(this.canvas, this.id)
-        this.menuTools.set("shape", shapeTool)
-        this.wrapper.appendChild(shapeTool.getElement())
-      }
-
-      layer.appendChild(this.wrapper)
-      this.update()
-      this.show()
+    if (!this.canvas.configuration.menu.tool.enable) {
+      return
     }
-  }
+    this.logger.info("Rendering menu tools with config", this.config)
+    const wrapper = DOMFactory.div({ className: ["ms-menu", "ms-menu-bottom", "ms-menu-row"] })
+    this.wrapper = wrapper
 
-  update(): void {
-    this.menuTools.forEach((tool) => {
-      tool.update()
-    })
-  }
-
-  show(): void {
-    if (this.wrapper) {
-      this.wrapper.style.visibility = "visible"
+    if (this.config.write) {
+      this.addItem("write", new WriteTool(this.canvas, this.id), wrapper)
     }
-  }
-
-  hide(): void {
-    if (this.wrapper) {
-      this.wrapper.style.visibility = "hidden"
+    if (this.config.move) {
+      this.addItem("move", new MoveTool(this.canvas, this.id), wrapper)
     }
-  }
-
-  destroy(): void {
-    if (this.wrapper) {
-      this.menuTools.forEach((tool) => {
-        tool.destroy()
-      })
-      this.menuTools.clear()
-
-      while (this.wrapper.lastChild) {
-        this.wrapper.removeChild(this.wrapper.lastChild)
-      }
-      this.wrapper.remove()
-      this.wrapper = undefined
+    if (this.config.select) {
+      this.addItem("select", new SelectTool(this.canvas, this.id), wrapper)
     }
+    if (this.config.erase) {
+      this.addItem("erase", new EraseTool(this.canvas, this.id), wrapper)
+    }
+    if (this.config.edge) {
+      this.addItem("edge", new EdgeTool(this.canvas, this.id), wrapper)
+    }
+    if (this.config.shape) {
+      this.addItem("shape", new ShapeTool(this.canvas, this.id), wrapper)
+    }
+
+    layer.appendChild(wrapper)
+    this.update()
+    this.show()
   }
 }
