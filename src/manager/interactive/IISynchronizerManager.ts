@@ -40,9 +40,10 @@ export class IISynchronizerManager extends IIAbstractManager {
 
   static readonly SYNCHRONIZE_TIMEOUT = 30000
   static readonly MAX_RETRY_ATTEMPTS = 3
-  /** Elements processed between yields in `#doSynchronize`'s loop, so a large
-   * document doesn't block the main thread (and pending pointer input) in one go. */
-  static readonly SYNC_YIELD_CHUNK_SIZE = 50
+  /** Main-thread time `#doSynchronize`'s loop may take before yielding a frame, so a large
+   * document doesn't block pending pointer input in one go. A time budget, not an element count:
+   * counting yielded one frame per N elements even when the pass had nothing to do. */
+  static readonly SYNC_YIELD_BUDGET_MS = 8
 
   constructor(canvas: TInteractiveInkCanvas) {
     super(canvas, LoggerCategory.SYNCHRONIZER)
@@ -166,7 +167,7 @@ export class IISynchronizerManager extends IIAbstractManager {
     // `markDirty: false`, because jiixBlockId/anchors are local bookkeeping and must not clear
     // `model.exports`, which the very sync being processed just populated.
     this.model.touch()
-    let processedSinceYield = 0
+    let sliceStart = performance.now()
     for (const el of jiix.elements || []) {
       const snapshotKey = this.#elementSnapshotKey(el)
       try {
@@ -211,14 +212,13 @@ export class IISynchronizerManager extends IIAbstractManager {
         this.logger.error("#doSynchronize", `Failed to synchronize element of type ${el.type}:`, error)
       }
 
-      processedSinceYield++
-      if (processedSinceYield >= IISynchronizerManager.SYNC_YIELD_CHUNK_SIZE) {
-        processedSinceYield = 0
+      if (performance.now() - sliceStart >= IISynchronizerManager.SYNC_YIELD_BUDGET_MS) {
         // A big document (thousands of elements) would otherwise keep this loop
         // running synchronously for one long stretch, delaying any pointer input
         // (e.g. a new stroke) queued up behind it until the whole loop is done.
         await new Promise((resolve) => requestAnimationFrame(resolve))
         await this.#waitForGestureIdle()
+        sliceStart = performance.now()
       }
     }
 
