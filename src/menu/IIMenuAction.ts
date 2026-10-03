@@ -1,7 +1,7 @@
 import menuIcon from "@/assets/svg/menu.svg"
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import type { TRecognitionType } from "@/client"
 import { DOMFactory } from "@/dom"
-import { LoggerCategory, LoggerManager } from "@/logger"
 import type { IIModel } from "@/model"
 
 import type {
@@ -34,7 +34,7 @@ import {
   ZoomMenuAction,
 } from "./actions"
 import type { TCanvasTheme } from "./CanvasThemes"
-import type { BaseMenuItem } from "./items"
+import { IIAbstractMenu } from "./IIAbstractMenu"
 
 /**
  * @group Menu
@@ -101,31 +101,14 @@ export const DefaultMenuActionConfig: Required<Omit<TMenuActionConfig, "themes">
   theme: true,
 }
 
-function extractSubConfig<T>(config: boolean | T): T | undefined {
-  return typeof config === "object" && config !== null ? config : undefined
-}
-
 /**
  * @group Menu
  */
-export class IIMenuAction {
-  protected logger = LoggerManager.getLogger(LoggerCategory.MENU)
-
-  canvas: TInteractiveInkCanvas
-  id: string
-  wrapper?: HTMLElement
-  config: Required<Omit<TMenuActionConfig, "themes">> & Pick<TMenuActionConfig, "themes">
-
-  private menuActions: Map<string, BaseMenuItem> = new Map()
-  protected documentPointerdownHandler?: (e: PointerEvent) => void
-
+export class IIMenuAction extends IIAbstractMenu<
+  Required<Omit<TMenuActionConfig, "themes">> & Pick<TMenuActionConfig, "themes">
+> {
   constructor(canvas: TInteractiveInkCanvas, id = "ms-menu-action", config?: TMenuActionConfig) {
-    this.id = id
-    this.canvas = canvas
-    this.config = {
-      ...DefaultMenuActionConfig,
-      ...config,
-    }
+    super(canvas, id, { ...DefaultMenuActionConfig, ...config })
   }
 
   get model(): IIModel {
@@ -136,197 +119,90 @@ export class IIMenuAction {
     return this.canvas.renderer.parent.clientWidth < 700
   }
 
+  /** Whether the recognition configuration lets the backend recognize `type` */
+  protected recognizes(type: TRecognitionType): boolean {
+    return !!this.canvas.configuration.recognition["raw-content"].recognition?.types.includes(type)
+  }
+
   render(layer: HTMLElement): void {
-    if (this.canvas.configuration.menu.action.enable) {
-      this.logger.info("Rendering menu actions with config", this.config)
+    if (!this.canvas.configuration.menu.action.enable) {
+      return
+    }
+    this.logger.info("Rendering menu actions with config", this.config)
+    const column = DOMFactory.div({ className: "ms-menu-column" })
+    this.renderDropdownItems(column)
 
-      const menuTrigger = DOMFactory.button({
-        id: this.id,
-        className: "square",
-        html: menuIcon,
-      })
+    const wrapper = DOMFactory.div({ className: ["ms-menu", "ms-menu-top-left", "ms-menu-row"] })
+    this.wrapper = wrapper
+    // Only add the dropdown if there are items
+    if (column.children.length > 0) {
+      const trigger = DOMFactory.button({ id: this.id, className: "square", html: menuIcon })
+      wrapper.appendChild(this.createDropdown(trigger, column, "bottom-right").element)
+    }
+    this.renderBarItems(layer, wrapper)
 
-      const subMenuWrapper = DOMFactory.div({
-        className: "ms-menu-column",
-      })
+    layer.appendChild(wrapper)
+    this.update()
+    this.show()
+  }
 
-      if (this.config.theme) {
-        const themeAction = new ThemeMenuAction(this.canvas, this.id, this.config.themes)
-        this.menuActions.set("theme", themeAction)
-        subMenuWrapper.appendChild(themeAction.getElement())
-      }
-
-      if (this.config.gesture) {
-        const gestureAction = new GestureMenuAction(this.canvas, this.id, extractSubConfig(this.config.gesture))
-        this.menuActions.set("gesture", gestureAction)
-        subMenuWrapper.appendChild(gestureAction.getElement())
-      }
-
-      if (this.config.guide) {
-        const guideAction = new GuideMenuAction(this.canvas, this.id, extractSubConfig(this.config.guide))
-        this.menuActions.set("guide", guideAction)
-        subMenuWrapper.appendChild(guideAction.getElement())
-      }
-
-      if (this.config.pen) {
-        const penAction = new PenMenuAction(this.canvas, this.id, extractSubConfig(this.config.pen))
-        this.menuActions.set("pen", penAction)
-        subMenuWrapper.appendChild(penAction.getElement())
-      }
-
-      if (this.config.snap) {
-        const snapAction = new SnapMenuAction(this.canvas, this.id, extractSubConfig(this.config.snap))
-        this.menuActions.set("snap", snapAction)
-        subMenuWrapper.appendChild(snapAction.getElement())
-      }
-
-      if (
-        this.config.diagram &&
-        this.canvas.configuration.recognition["raw-content"].recognition?.types.includes("shape")
-      ) {
-        const diagramAction = new DiagramMenuAction(this.canvas, this.id)
-        this.menuActions.set("diagram", diagramAction)
-        subMenuWrapper.appendChild(diagramAction.getElement())
-      }
-
-      if (
-        this.config.math &&
-        this.canvas.configuration.recognition["raw-content"].recognition?.types.includes("math")
-      ) {
-        const mathAction = new MathMenuAction(this.canvas, this.id, extractSubConfig(this.config.math))
-        this.menuActions.set("math", mathAction)
-        subMenuWrapper.appendChild(mathAction.getElement())
-      }
-
-      if (this.config.overlay) {
-        const overlayAction = new OverlayMenuAction(this.canvas, this.id, extractSubConfig(this.config.overlay))
-        this.menuActions.set("overlay", overlayAction)
-        subMenuWrapper.appendChild(overlayAction.getElement())
-      }
-
-      if (this.config.selection) {
-        const selectionAction = new SelectionMenuAction(this.canvas, this.id, extractSubConfig(this.config.selection))
-        this.menuActions.set("selection", selectionAction)
-        subMenuWrapper.appendChild(selectionAction.getElement())
-      }
-
-      if (this.config.import) {
-        const importAction = new ImportMenuAction(this.canvas, this.id)
-        this.menuActions.set("import", importAction)
-        subMenuWrapper.appendChild(importAction.getElement())
-      }
-
-      if (this.config.export) {
-        const exportAction = new ExportMenuAction(this.canvas, this.id, extractSubConfig(this.config.export))
-        this.menuActions.set("export", exportAction)
-        subMenuWrapper.appendChild(exportAction.getElement())
-      }
-
-      this.wrapper = DOMFactory.div({
-        className: ["ms-menu", "ms-menu-top-left", "ms-menu-row"],
-      })
-
-      // Only add submenu if there are items
-      if (subMenuWrapper.children.length > 0) {
-        const subMenuElement = DOMFactory.div({
-          className: "sub-menu",
-        })
-        subMenuElement.appendChild(menuTrigger)
-
-        const subMenuContent = DOMFactory.div({
-          className: ["sub-menu-content", "bottom-right"],
-        })
-        subMenuContent.appendChild(subMenuWrapper)
-        subMenuElement.appendChild(subMenuContent)
-
-        // Event listeners
-        menuTrigger.addEventListener("pointerdown", () => subMenuContent.classList.toggle("open"))
-        this.documentPointerdownHandler = (e: PointerEvent) => {
-          if (!subMenuElement.contains(e.target as HTMLElement)) {
-            subMenuContent.classList.remove("open")
-          }
-        }
-        document.addEventListener("pointerdown", this.documentPointerdownHandler)
-
-        this.wrapper.appendChild(subMenuElement)
-      }
-
-      if (this.config.language) {
-        const languageAction = new LanguageMenuAction(this.canvas, this.id)
-        this.menuActions.set("language", languageAction)
-        this.wrapper.appendChild(languageAction.getElement())
-      }
-
-      if (this.config.clear) {
-        const clearAction = new ClearMenuAction(this.canvas, this.id)
-        this.menuActions.set("clear", clearAction)
-        this.wrapper.appendChild(clearAction.getElement())
-      }
-
-      if (this.config.undoRedo) {
-        const undoRedoAction = new UndoRedoMenuAction(this.canvas, this.id)
-        this.menuActions.set("undoRedo", undoRedoAction)
-        this.wrapper.appendChild(undoRedoAction.getElement())
-      }
-
-      if (this.config.convert) {
-        const convertAction = new ConvertMenuAction(this.canvas, this.id)
-        this.menuActions.set("convert", convertAction)
-        this.wrapper.appendChild(convertAction.getElement())
-      }
-
-      if (this.config.zoom) {
-        const zoomAction = new ZoomMenuAction(this.canvas, this.id)
-        this.menuActions.set("zoom", zoomAction)
-        this.wrapper.appendChild(zoomAction.getElement())
-      }
-
-      if (this.config.minimap) {
-        const minimapAction = new MinimapMenuAction(this.canvas, layer, this.id)
-        this.menuActions.set("minimap", minimapAction)
-        this.wrapper.appendChild(minimapAction.getElement())
-      }
-
-      layer.appendChild(this.wrapper)
-      this.update()
-      this.show()
+  protected renderDropdownItems(column: HTMLElement): void {
+    const { config } = this
+    if (config.theme) {
+      this.addItem("theme", new ThemeMenuAction(this.canvas, this.id, config.themes), column)
+    }
+    if (config.gesture) {
+      this.addItem("gesture", new GestureMenuAction(this.canvas, this.id, this.subConfig(config.gesture)), column)
+    }
+    if (config.guide) {
+      this.addItem("guide", new GuideMenuAction(this.canvas, this.id, this.subConfig(config.guide)), column)
+    }
+    if (config.pen) {
+      this.addItem("pen", new PenMenuAction(this.canvas, this.id, this.subConfig(config.pen)), column)
+    }
+    if (config.snap) {
+      this.addItem("snap", new SnapMenuAction(this.canvas, this.id, this.subConfig(config.snap)), column)
+    }
+    if (config.diagram && this.recognizes("shape")) {
+      this.addItem("diagram", new DiagramMenuAction(this.canvas, this.id), column)
+    }
+    if (config.math && this.recognizes("math")) {
+      this.addItem("math", new MathMenuAction(this.canvas, this.id, this.subConfig(config.math)), column)
+    }
+    if (config.overlay) {
+      this.addItem("overlay", new OverlayMenuAction(this.canvas, this.id, this.subConfig(config.overlay)), column)
+    }
+    if (config.selection) {
+      const selection = new SelectionMenuAction(this.canvas, this.id, this.subConfig(config.selection))
+      this.addItem("selection", selection, column)
+    }
+    if (config.import) {
+      this.addItem("import", new ImportMenuAction(this.canvas, this.id), column)
+    }
+    if (config.export) {
+      this.addItem("export", new ExportMenuAction(this.canvas, this.id, this.subConfig(config.export)), column)
     }
   }
 
-  update(): void {
-    this.menuActions.forEach((menuAction) => {
-      menuAction.update()
-    })
-  }
-
-  show(): void {
-    if (this.wrapper) {
-      this.wrapper.style.visibility = "visible"
+  protected renderBarItems(layer: HTMLElement, bar: HTMLElement): void {
+    const { config } = this
+    if (config.language) {
+      this.addItem("language", new LanguageMenuAction(this.canvas, this.id), bar)
     }
-  }
-
-  hide(): void {
-    if (this.wrapper) {
-      this.wrapper.style.visibility = "hidden"
+    if (config.clear) {
+      this.addItem("clear", new ClearMenuAction(this.canvas, this.id), bar)
     }
-  }
-
-  destroy(): void {
-    if (this.wrapper) {
-      if (this.documentPointerdownHandler) {
-        document.removeEventListener("pointerdown", this.documentPointerdownHandler)
-        this.documentPointerdownHandler = undefined
-      }
-      this.menuActions.forEach((menuAction) => {
-        menuAction.destroy()
-      })
-      this.menuActions.clear()
-
-      while (this.wrapper.lastChild) {
-        this.wrapper.removeChild(this.wrapper.lastChild)
-      }
-      this.wrapper.remove()
-      this.wrapper = undefined
+    if (config.undoRedo) {
+      this.addItem("undoRedo", new UndoRedoMenuAction(this.canvas, this.id), bar)
+    }
+    if (config.convert) {
+      this.addItem("convert", new ConvertMenuAction(this.canvas, this.id), bar)
+    }
+    if (config.zoom) {
+      this.addItem("zoom", new ZoomMenuAction(this.canvas, this.id), bar)
+    }
+    if (config.minimap) {
+      this.addItem("minimap", new MinimapMenuAction(this.canvas, layer, this.id), bar)
     }
   }
 }
