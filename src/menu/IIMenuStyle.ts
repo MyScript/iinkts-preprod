@@ -5,7 +5,7 @@ import { DOMFactory } from "@/dom"
 import type { IIModel } from "@/model"
 import type { TSymbol } from "@/symbol"
 
-import { IIAbstractMenu } from "./IIAbstractMenu"
+import { IIAbstractMenu, type TMenuZone } from "./IIAbstractMenu"
 import {
   DEFAULT_FONT_SIZE_LIST,
   DEFAULT_FONT_WEIGHT_LIST,
@@ -79,6 +79,7 @@ import {
  * @group Menu
  */
 export class IIMenuStyle extends IIAbstractMenu<Required<TMenuStyleConfig>> {
+  readonly defaultZone: TMenuZone = "dropdown"
   triggerBtn?: HTMLButtonElement
   subMenuWrapper?: HTMLDivElement
   subMenuContent?: HTMLDivElement
@@ -114,43 +115,49 @@ export class IIMenuStyle extends IIAbstractMenu<Required<TMenuStyleConfig>> {
       return
     }
     this.logger.info("Rendering menu styles with config", this.config)
-    const column = DOMFactory.div({ className: "ms-menu-column" })
-    this.renderDropdownItems(column)
+    this.wrapper = DOMFactory.div({ className: ["ms-menu", "ms-menu-top-right"] })
+    this.renderDropdownItems()
+    layer.appendChild(this.wrapper)
+    this.update()
+  }
 
+  protected createZone(zone: TMenuZone, wrapper: HTMLElement): HTMLElement {
+    if (zone === "bar") {
+      const bar = DOMFactory.div({ className: "ms-menu-row" })
+      wrapper.prepend(bar)
+      return bar
+    }
+    const column = DOMFactory.div({ className: "ms-menu-column" })
     this.triggerBtn = DOMFactory.button({ id: this.id, className: "square", html: styleIcon })
     const dropdown = this.createDropdown(this.triggerBtn, column, "bottom-left")
     this.subMenuWrapper = dropdown.element
     this.subMenuContent = dropdown.content
-
-    const wrapper = DOMFactory.div({ className: ["ms-menu", "ms-menu-top-right"] })
-    this.wrapper = wrapper
     wrapper.appendChild(dropdown.element)
-    layer.appendChild(wrapper)
-    this.update()
+    return column
   }
 
-  protected renderDropdownItems(column: HTMLElement): void {
+  protected renderDropdownItems(): void {
     const { config } = this
     if (config.strokeColor) {
-      this.addItem("strokeColor", new StrokeColorStyle(this.canvas, config.colors, this.id), column)
+      this.addItem("strokeColor", new StrokeColorStyle(this.canvas, config.colors, this.id))
     }
     if (config.fillColor) {
-      this.addItem("fillColor", new FillColorStyle(this.canvas, config.colors, this.id), column)
+      this.addItem("fillColor", new FillColorStyle(this.canvas, config.colors, this.id))
     }
     if (config.pen) {
-      this.addItem("pen", new PenNibStyle(this.canvas, this.id), column)
+      this.addItem("pen", new PenNibStyle(this.canvas, this.id))
     }
     if (config.thickness) {
-      this.addItem("thickness", new ThicknessStyle(this.canvas, config.thicknessList, this.id), column)
+      this.addItem("thickness", new ThicknessStyle(this.canvas, config.thicknessList, this.id))
     }
     if (config.fontSize) {
-      this.addItem("fontSize", new FontSizeStyle(this.canvas, config.fontSizeList, this.rowHeight, this.id), column)
+      this.addItem("fontSize", new FontSizeStyle(this.canvas, config.fontSizeList, this.rowHeight, this.id))
     }
     if (config.fontWeight) {
-      this.addItem("fontWeight", new FontWeightStyle(this.canvas, config.fontWeightList, this.id), column)
+      this.addItem("fontWeight", new FontWeightStyle(this.canvas, config.fontWeightList, this.id))
     }
     if (config.opacity) {
-      this.addItem("opacity", new OpacityStyle(this.canvas, this.id), column)
+      this.addItem("opacity", new OpacityStyle(this.canvas, this.id))
     }
   }
 

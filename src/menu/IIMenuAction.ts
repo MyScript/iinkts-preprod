@@ -34,7 +34,7 @@ import {
   ZoomMenuAction,
 } from "./actions"
 import type { TCanvasTheme } from "./CanvasThemes"
-import { IIAbstractMenu } from "./IIAbstractMenu"
+import { IIAbstractMenu, type TMenuItemOptions, type TMenuZone } from "./IIAbstractMenu"
 
 /**
  * @group Menu
@@ -107,6 +107,8 @@ export const DefaultMenuActionConfig: Required<Omit<TMenuActionConfig, "themes">
 export class IIMenuAction extends IIAbstractMenu<
   Required<Omit<TMenuActionConfig, "themes">> & Pick<TMenuActionConfig, "themes">
 > {
+  readonly defaultZone: TMenuZone = "dropdown"
+
   constructor(canvas: TInteractiveInkCanvas, id = "ms-menu-action", config?: TMenuActionConfig) {
     super(canvas, id, { ...DefaultMenuActionConfig, ...config })
   }
@@ -129,62 +131,65 @@ export class IIMenuAction extends IIAbstractMenu<
       return
     }
     this.logger.info("Rendering menu actions with config", this.config)
-    const column = DOMFactory.div({ className: "ms-menu-column" })
-    this.renderDropdownItems(column)
-
-    const wrapper = DOMFactory.div({ className: ["ms-menu", "ms-menu-top-left", "ms-menu-row"] })
-    this.wrapper = wrapper
-    // Only add the dropdown if there are items
-    if (column.children.length > 0) {
-      const trigger = DOMFactory.button({ id: this.id, className: "square", html: menuIcon })
-      wrapper.appendChild(this.createDropdown(trigger, column, "bottom-right").element)
-    }
-    this.renderBarItems(layer, wrapper)
-
-    layer.appendChild(wrapper)
+    this.wrapper = DOMFactory.div({ className: ["ms-menu", "ms-menu-top-left", "ms-menu-row"] })
+    this.renderDropdownItems()
+    this.renderBarItems(layer)
+    layer.appendChild(this.wrapper)
     this.update()
     this.show()
   }
 
-  protected renderDropdownItems(column: HTMLElement): void {
+  protected createZone(zone: TMenuZone, wrapper: HTMLElement): HTMLElement {
+    if (zone === "bar") {
+      return wrapper
+    }
+    const column = DOMFactory.div({ className: "ms-menu-column" })
+    const trigger = DOMFactory.button({ id: this.id, className: "square", html: menuIcon })
+    // First in the row, before the bar items
+    wrapper.prepend(this.createDropdown(trigger, column, "bottom-right").element)
+    return column
+  }
+
+  protected renderDropdownItems(): void {
     const { config } = this
     if (config.theme) {
-      this.addItem("theme", new ThemeMenuAction(this.canvas, this.id, config.themes), column)
+      this.addItem("theme", new ThemeMenuAction(this.canvas, this.id, config.themes))
     }
     if (config.gesture) {
-      this.addItem("gesture", new GestureMenuAction(this.canvas, this.id, this.subConfig(config.gesture)), column)
+      this.addItem("gesture", new GestureMenuAction(this.canvas, this.id, this.subConfig(config.gesture)))
     }
     if (config.guide) {
-      this.addItem("guide", new GuideMenuAction(this.canvas, this.id, this.subConfig(config.guide)), column)
+      this.addItem("guide", new GuideMenuAction(this.canvas, this.id, this.subConfig(config.guide)))
     }
     if (config.pen) {
-      this.addItem("pen", new PenMenuAction(this.canvas, this.id, this.subConfig(config.pen)), column)
+      this.addItem("pen", new PenMenuAction(this.canvas, this.id, this.subConfig(config.pen)))
     }
     if (config.snap) {
-      this.addItem("snap", new SnapMenuAction(this.canvas, this.id, this.subConfig(config.snap)), column)
+      this.addItem("snap", new SnapMenuAction(this.canvas, this.id, this.subConfig(config.snap)))
     }
     if (config.diagram && this.recognizes("shape")) {
-      this.addItem("diagram", new DiagramMenuAction(this.canvas, this.id), column)
+      this.addItem("diagram", new DiagramMenuAction(this.canvas, this.id))
     }
     if (config.math && this.recognizes("math")) {
-      this.addItem("math", new MathMenuAction(this.canvas, this.id, this.subConfig(config.math)), column)
+      this.addItem("math", new MathMenuAction(this.canvas, this.id, this.subConfig(config.math)))
     }
     if (config.overlay) {
-      this.addItem("overlay", new OverlayMenuAction(this.canvas, this.id, this.subConfig(config.overlay)), column)
+      this.addItem("overlay", new OverlayMenuAction(this.canvas, this.id, this.subConfig(config.overlay)))
     }
     if (config.selection) {
       const selection = new SelectionMenuAction(this.canvas, this.id, this.subConfig(config.selection))
-      this.addItem("selection", selection, column)
+      this.addItem("selection", selection)
     }
     if (config.import) {
-      this.addItem("import", new ImportMenuAction(this.canvas, this.id), column)
+      this.addItem("import", new ImportMenuAction(this.canvas, this.id))
     }
     if (config.export) {
-      this.addItem("export", new ExportMenuAction(this.canvas, this.id, this.subConfig(config.export)), column)
+      this.addItem("export", new ExportMenuAction(this.canvas, this.id, this.subConfig(config.export)))
     }
   }
 
-  protected renderBarItems(layer: HTMLElement, bar: HTMLElement): void {
+  protected renderBarItems(layer: HTMLElement): void {
+    const bar: TMenuItemOptions = { zone: "bar" }
     const { config } = this
     if (config.language) {
       this.addItem("language", new LanguageMenuAction(this.canvas, this.id), bar)

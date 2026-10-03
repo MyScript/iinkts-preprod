@@ -1,5 +1,5 @@
 import { asCanvas, createCanvasMock } from "../__mocks__/createCanvasMock"
-import { BaseMenuItem, IIAbstractMenu } from "@/iink"
+import { BaseMenuItem, IIAbstractMenu, TMenuItemOptions, TMenuZone } from "@/iink"
 
 class TestItem extends BaseMenuItem<HTMLButtonElement> {
   createElement(): HTMLButtonElement {
@@ -8,40 +8,72 @@ class TestItem extends BaseMenuItem<HTMLButtonElement> {
   update(): void {}
 }
 
-class TestMenu extends IIAbstractMenu<{ placement: "bottom-left" }> {
+class TestMenu extends IIAbstractMenu<{ items: { key: string; options?: TMenuItemOptions }[] }> {
+  readonly defaultZone: TMenuZone = "dropdown"
   dropdown?: { element: HTMLDivElement; content: HTMLDivElement }
 
   render(layer: HTMLElement): void {
-    const wrapper = document.createElement("div")
-    this.wrapper = wrapper
+    this.wrapper = document.createElement("div")
+    this.config.items.forEach(({ key, options }) =>
+      this.addItem(key, new TestItem({ id: key, type: "button" }, this.canvas), options)
+    )
+    layer.appendChild(this.wrapper)
+  }
+
+  protected createZone(zone: TMenuZone, wrapper: HTMLElement): HTMLElement {
+    if (zone === "bar") {
+      return wrapper
+    }
     const column = document.createElement("div")
-    this.addItem("first", new TestItem({ id: "first", type: "button" }, this.canvas), column)
-    const trigger = document.createElement("button")
-    this.dropdown = this.createDropdown(trigger, column, this.config.placement)
+    this.dropdown = this.createDropdown(document.createElement("button"), column, "bottom-left")
     wrapper.appendChild(this.dropdown.element)
-    layer.appendChild(wrapper)
+    return column
   }
 
   get rendered(): Map<string, BaseMenuItem> {
     return this.items
   }
+
+  addOutsideRender(key: string): void {
+    this.addItem(key, new TestItem({ id: key, type: "button" }, this.canvas))
+  }
 }
 
 describe("IIAbstractMenu.ts", () => {
-  function setup() {
+  function setup(items: { key: string; options?: TMenuItemOptions }[] = [{ key: "first" }]) {
     const canvas = createCanvasMock()
     const layer = document.createElement("div")
     document.body.appendChild(layer)
-    const menu = new TestMenu(asCanvas(canvas), "test-menu", { placement: "bottom-left" })
+    const menu = new TestMenu(asCanvas(canvas), "test-menu", { items })
     menu.render(layer)
     return { menu, layer }
   }
 
-  test("should keep the items it adds and append their elements", () => {
+  test("should put an item in the default zone when it names none", () => {
     const { menu } = setup()
-    const item = menu.rendered.get("first")
-    expect(item).toBeDefined()
-    expect(menu.dropdown?.content.contains(item!.getElement())).toBe(true)
+    expect(menu.dropdown?.content.contains(menu.rendered.get("first")!.getElement())).toBe(true)
+  })
+
+  test("should put an item in the zone it names", () => {
+    const { menu } = setup([{ key: "first", options: { zone: "bar" } }])
+    expect(menu.wrapper?.contains(menu.rendered.get("first")!.getElement())).toBe(true)
+  })
+
+  test("should build a zone only once an item goes to it", () => {
+    const { menu } = setup([{ key: "first", options: { zone: "bar" } }])
+    // No dropdown item: no empty dropdown, no document listener
+    expect(menu.dropdown).toBeUndefined()
+  })
+
+  test("should build each zone once, whatever the number of items", () => {
+    const { menu } = setup([{ key: "first" }, { key: "second" }])
+    expect(menu.wrapper?.querySelectorAll(".sub-menu")).toHaveLength(1)
+    expect(menu.dropdown?.content.querySelectorAll("button")).toHaveLength(2)
+  })
+
+  test("should refuse an item added before render() set the wrapper", () => {
+    const menu = new TestMenu(asCanvas(createCanvasMock()), "test-menu", { items: [] })
+    expect(() => menu.addOutsideRender("early")).toThrow("test-menu: items are added during render()")
   })
 
   test("should update every item", () => {
@@ -90,5 +122,12 @@ describe("IIAbstractMenu.ts", () => {
     document.body.dispatchEvent(new Event("pointerdown", { bubbles: true }))
     expect(content.classList.contains("open")).toBe(true)
     removeListener.mockRestore()
+  })
+
+  test("should build its zones again after a destroy", () => {
+    const { menu, layer } = setup()
+    menu.destroy()
+    menu.render(layer)
+    expect(menu.wrapper?.querySelectorAll(".sub-menu")).toHaveLength(1)
   })
 })

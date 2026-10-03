@@ -22,7 +22,7 @@ import {
   ReorderContextMenu,
   SelectAllContextMenu,
 } from "./context"
-import { IIAbstractMenu } from "./IIAbstractMenu"
+import { IIAbstractMenu, type TMenuZone } from "./IIAbstractMenu"
 
 /**
  * @group Menu
@@ -70,6 +70,7 @@ export const DefaultMenuContextConfig: Required<TMenuContextConfig> = {
  * @group Menu
  */
 export class IIMenuContext extends IIAbstractMenu<Required<TMenuContextConfig>> {
+  readonly defaultZone: TMenuZone = "dropdown"
   /** Hides the menu when the rendering layer scrolls, as the element it points at moves */
   protected scrollHandler?: () => void
 
@@ -245,7 +246,7 @@ export class IIMenuContext extends IIAbstractMenu<Required<TMenuContextConfig>> 
     this.logger.info("Rendering context menu with config", this.config)
     const wrapper = DOMFactory.div({ id: `${this.id}-wrapper`, className: ["ms-menu", "ms-menu-context"] })
     this.wrapper = wrapper
-    this.renderListItems(wrapper)
+    this.renderDropdownItems()
 
     wrapper.style.setProperty("display", "none")
     layer.appendChild(wrapper)
@@ -255,34 +256,44 @@ export class IIMenuContext extends IIAbstractMenu<Required<TMenuContextConfig>> 
     this.canvas.layers.rendering.addEventListener("scroll", this.scrollHandler)
   }
 
-  protected renderListItems(list: HTMLElement): void {
+  protected createZone(zone: TMenuZone, wrapper: HTMLElement): HTMLElement {
+    if (zone === "dropdown") {
+      return wrapper
+    }
+    // A row of quick actions above the list
+    const bar = DOMFactory.div({ className: ["ms-menu-row", "ms-menu-context-bar"] })
+    wrapper.prepend(bar)
+    return bar
+  }
+
+  protected renderDropdownItems(): void {
     const { config, canvas, id } = this
     if (config.edit) {
-      this.addItem("edit", new EditContextMenu(canvas, id), list)
+      this.addItem("edit", new EditContextMenu(canvas, id))
     }
     if (config.decorator) {
-      this.addItem("decorator", new DecoratorContextMenu(canvas, id, this.subConfig(config.decorator)), list)
+      this.addItem("decorator", new DecoratorContextMenu(canvas, id, this.subConfig(config.decorator)))
     }
     if (config.reorder) {
-      this.addItem("reorder", new ReorderContextMenu(canvas, id, this.subConfig(config.reorder)), list)
+      this.addItem("reorder", new ReorderContextMenu(canvas, id, this.subConfig(config.reorder)))
     }
     if (config.export) {
-      this.addItem("export", new ExportContextMenu(canvas, id, this.subConfig(config.export)), list)
+      this.addItem("export", new ExportContextMenu(canvas, id, this.subConfig(config.export)))
     }
     if (config.convert) {
-      this.addItem("convert", new ConvertContextMenu(canvas, id), list)
+      this.addItem("convert", new ConvertContextMenu(canvas, id))
     }
     if (config.math) {
-      this.addItem("math", new MathContextMenu(canvas, id, this.subConfig(config.math)), list)
+      this.addItem("math", new MathContextMenu(canvas, id, this.subConfig(config.math)))
     }
     if (config.duplicate) {
-      this.addItem("duplicate", new DuplicateContextMenu(canvas, id), list)
+      this.addItem("duplicate", new DuplicateContextMenu(canvas, id))
     }
     if (config.remove) {
-      this.addItem("remove", new RemoveContextMenu(canvas, id), list)
+      this.addItem("remove", new RemoveContextMenu(canvas, id))
     }
     if (config.selectAll) {
-      this.addItem("selectAll", new SelectAllContextMenu(canvas, id), list)
+      this.addItem("selectAll", new SelectAllContextMenu(canvas, id))
     }
   }
 
