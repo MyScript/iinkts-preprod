@@ -206,8 +206,7 @@ describe("IIMenuContext.ts", () => {
       const menuContext = new IIMenuContext(asCanvas(canvas), "ms-menu-context")
       menuContext.render(canvas.layers.rendering)
 
-      const contextMenus = (menuContext as unknown as { contextMenus: Map<string, { destroy: () => void }> })
-        .contextMenus
+      const contextMenus = (menuContext as unknown as { items: Map<string, { destroy: () => void }> }).items
       expect(contextMenus.size).toBeGreaterThan(0)
       const destroySpies = Array.from(contextMenus.values()).map((contextMenu) => jest.spyOn(contextMenu, "destroy"))
 
