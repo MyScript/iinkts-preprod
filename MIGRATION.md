@@ -586,6 +586,34 @@ If you implement a util in this family, `PathSymbolUtil` assembles the element f
   }
 ```
 
+### Menus sit in a layout: position classes are gone
+
+**If you only use the built-in menus as they are, nothing changes visually.** The menus, the connection
+state and the minimap now sit in the slots of a layout, `configuration.layout`, whose default is the
+previous look. To move them, see the CHANGELOG ("Place the menus where you want").
+
+**If your CSS targets a menu by its position class, rename it** — the class no longer exists, and the rule
+silently stops applying:
+
+| Before | Now |
+|---|---|
+| `.ms-menu-top-left` (action menu) | `.ms-menu-action` |
+| `.ms-menu-top-right` (style menu) | `.ms-menu-style` |
+| `.ms-menu-bottom` (tool menu) | `.ms-menu-tool` |
+
+The menus are no longer `position: absolute`: the slot is (`.ms-layout-slot.ms-layout-top-left`, …). To
+shift a whole corner — say, below your own header — target the slot:
+
+```css
+.ms-ink .ms-layout-top-left,
+.ms-ink .ms-layout-top-right {
+  top: 60px;
+}
+```
+
+The connection state (`.ms-ink-state`) and the minimap (`.ms-menu-minimap`) are positioned by their slots
+too (`bottom-left`, `bottom-right`).
+
 ### Menus: add items without subclassing
 
 **If you subclassed a menu only to add buttons, drop the subclass.** `canvas.menu.addItem` adds an item to

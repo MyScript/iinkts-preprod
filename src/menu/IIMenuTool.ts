@@ -51,7 +51,7 @@ export class IIMenuTool extends IIAbstractMenu<Required<TMenuToolConfig>> {
       return
     }
     this.logger.info("Rendering menu tools with config", this.config)
-    this.wrapper = DOMFactory.div({ className: ["ms-menu", "ms-menu-bottom", "ms-menu-row"] })
+    this.wrapper = DOMFactory.div({ className: ["ms-menu", "ms-menu-tool", "ms-menu-row"] })
     this.renderBarItems()
     layer.appendChild(this.wrapper)
     this.update()

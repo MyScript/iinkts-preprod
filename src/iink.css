@@ -231,6 +231,81 @@
     -1px -1px 5px rgba(0, 0, 0, 0.25);
 }
 
+/** layout: the slots of the UI layer, see LayoutManager **/
+.ms-ink .ms-layout-slot {
+  position: absolute;
+  z-index: 99;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* An occupant that rendered nothing (a disabled menu) takes no room */
+.ms-ink .ms-layout-host:empty {
+  display: none;
+}
+
+.ms-ink .ms-layout-top-left {
+  top: 0;
+  left: 5px;
+  align-items: flex-start;
+}
+
+.ms-ink .ms-layout-top-center {
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  align-items: center;
+}
+
+.ms-ink .ms-layout-top-right {
+  top: 0;
+  right: 5px;
+  align-items: flex-end;
+}
+
+.ms-ink .ms-layout-middle-left {
+  top: 50%;
+  left: 5px;
+  transform: translateY(-50%);
+  flex-direction: row;
+  align-items: center;
+}
+
+.ms-ink .ms-layout-middle-right {
+  top: 50%;
+  right: 5px;
+  transform: translateY(-50%);
+  flex-direction: row;
+  align-items: center;
+}
+
+.ms-ink .ms-layout-bottom-left {
+  bottom: 8px;
+  left: 8px;
+  align-items: flex-start;
+}
+
+.ms-ink .ms-layout-bottom-center {
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  align-items: center;
+}
+
+.ms-ink .ms-layout-bottom-right {
+  bottom: 16px;
+  right: 16px;
+  align-items: flex-end;
+}
+
+/* In a slot, the connection state flows with the other occupants; relative keeps its tooltip anchored */
+.ms-ink .ms-layout-slot .ms-ink-state {
+  position: relative;
+  bottom: auto;
+  left: auto;
+}
+
 .ms-ink .ms-ink-state-icon {
   display: flex;
   width: 18px;
