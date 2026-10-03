@@ -109,7 +109,7 @@ function extractSubConfig<T>(config: boolean | T): T | undefined {
  * @group Menu
  */
 export class IIMenuAction {
-  #logger = LoggerManager.getLogger(LoggerCategory.MENU)
+  protected logger = LoggerManager.getLogger(LoggerCategory.MENU)
 
   canvas: TInteractiveInkCanvas
   id: string
@@ -117,7 +117,7 @@ export class IIMenuAction {
   config: Required<Omit<TMenuActionConfig, "themes">> & Pick<TMenuActionConfig, "themes">
 
   private menuActions: Map<string, BaseMenuItem> = new Map()
-  #documentPointerdownHandler?: (e: PointerEvent) => void
+  protected documentPointerdownHandler?: (e: PointerEvent) => void
 
   constructor(canvas: TInteractiveInkCanvas, id = "ms-menu-action", config?: TMenuActionConfig) {
     this.id = id
@@ -138,7 +138,7 @@ export class IIMenuAction {
 
   render(layer: HTMLElement): void {
     if (this.canvas.configuration.menu.action.enable) {
-      this.#logger.info("Rendering menu actions with config", this.config)
+      this.logger.info("Rendering menu actions with config", this.config)
 
       const menuTrigger = DOMFactory.button({
         id: this.id,
@@ -241,12 +241,12 @@ export class IIMenuAction {
 
         // Event listeners
         menuTrigger.addEventListener("pointerdown", () => subMenuContent.classList.toggle("open"))
-        this.#documentPointerdownHandler = (e: PointerEvent) => {
+        this.documentPointerdownHandler = (e: PointerEvent) => {
           if (!subMenuElement.contains(e.target as HTMLElement)) {
             subMenuContent.classList.remove("open")
           }
         }
-        document.addEventListener("pointerdown", this.#documentPointerdownHandler)
+        document.addEventListener("pointerdown", this.documentPointerdownHandler)
 
         this.wrapper.appendChild(subMenuElement)
       }
@@ -313,9 +313,9 @@ export class IIMenuAction {
 
   destroy(): void {
     if (this.wrapper) {
-      if (this.#documentPointerdownHandler) {
-        document.removeEventListener("pointerdown", this.#documentPointerdownHandler)
-        this.#documentPointerdownHandler = undefined
+      if (this.documentPointerdownHandler) {
+        document.removeEventListener("pointerdown", this.documentPointerdownHandler)
+        this.documentPointerdownHandler = undefined
       }
       this.menuActions.forEach((menuAction) => {
         menuAction.destroy()

@@ -30,53 +30,52 @@ export type TMenuConfigUpdate = {
 }
 
 /**
+ * @group Menu
+ * @summary Menu classes `options.override.menu` can replace
+ * @remarks Each one is constructed like the built-in menu it replaces: `(canvas, id, config)`, at load and on every {@link IIMenuManager.setConfig}.
+ */
+export type TMenuOverride = {
+  style?: typeof IIMenuStyle
+  tool?: typeof IIMenuTool
+  action?: typeof IIMenuAction
+  context?: typeof IIMenuContext
+}
+
+/**
  * @group Manager
  */
 export class IIMenuManager {
   #logger = LoggerManager.getLogger(LoggerCategory.MENU)
   canvas: TInteractiveInkCanvas
   layer?: HTMLElement
-  action: IIMenuAction
-  tool: IIMenuTool
-  context: IIMenuContext
-  style: IIMenuStyle
+  // Assigned by createMenus(), from the constructor
+  action!: IIMenuAction
+  tool!: IIMenuTool
+  context!: IIMenuContext
+  style!: IIMenuStyle
 
-  constructor(
-    canvas: TInteractiveInkCanvas,
-    custom?: {
-      style?: IIMenuStyle
-      tool?: IIMenuTool
-      action?: IIMenuAction
-      context?: IIMenuContext
-    }
-  ) {
+  /** The classes the menus are built from: the overrides, else the built-in ones */
+  protected menuClasses: Required<TMenuOverride>
+
+  constructor(canvas: TInteractiveInkCanvas, custom?: TMenuOverride) {
     this.#logger.info("constructor")
     this.canvas = canvas
+    this.menuClasses = {
+      style: custom?.style ?? IIMenuStyle,
+      tool: custom?.tool ?? IIMenuTool,
+      action: custom?.action ?? IIMenuAction,
+      context: custom?.context ?? IIMenuContext,
+    }
+    this.createMenus()
+  }
 
-    if (custom?.style) {
-      const CustomMenuStyle = custom.style as unknown as typeof IIMenuStyle
-      this.style = new CustomMenuStyle(this.canvas)
-    } else {
-      this.style = new IIMenuStyle(this.canvas, "ms-menu-style", this.canvas.configuration.menu.style)
-    }
-    if (custom?.tool) {
-      const CustomMenuTool = custom.tool as unknown as typeof IIMenuTool
-      this.tool = new CustomMenuTool(this.canvas)
-    } else {
-      this.tool = new IIMenuTool(this.canvas, "ms-menu-tool", this.canvas.configuration.menu.tool)
-    }
-    if (custom?.action) {
-      const CustomMenuAction = custom.action as unknown as typeof IIMenuAction
-      this.action = new CustomMenuAction(this.canvas)
-    } else {
-      this.action = new IIMenuAction(this.canvas, "ms-menu-action", this.canvas.configuration.menu.action)
-    }
-    if (custom?.context) {
-      const CustomMenuAction = custom.context as unknown as typeof IIMenuContext
-      this.context = new CustomMenuAction(this.canvas)
-    } else {
-      this.context = new IIMenuContext(this.canvas, "ms-menu-context", this.canvas.configuration.menu.context)
-    }
+  /** Builds the four menus from {@link menuClasses} and the current configuration; renders nothing */
+  protected createMenus(): void {
+    const { menu } = this.canvas.configuration
+    this.style = new this.menuClasses.style(this.canvas, "ms-menu-style", menu.style)
+    this.tool = new this.menuClasses.tool(this.canvas, "ms-menu-tool", menu.tool)
+    this.action = new this.menuClasses.action(this.canvas, "ms-menu-action", menu.action)
+    this.context = new this.menuClasses.context(this.canvas, "ms-menu-context", menu.context)
   }
 
   render(layer: HTMLElement): void {
@@ -127,10 +126,7 @@ export class IIMenuManager {
     this.style.destroy()
     this.context.destroy()
 
-    this.action = new IIMenuAction(this.canvas, "ms-menu-action", this.canvas.configuration.menu.action)
-    this.tool = new IIMenuTool(this.canvas, "ms-menu-tool", this.canvas.configuration.menu.tool)
-    this.style = new IIMenuStyle(this.canvas, "ms-menu-style", this.canvas.configuration.menu.style)
-    this.context = new IIMenuContext(this.canvas, "ms-menu-context", this.canvas.configuration.menu.context)
+    this.createMenus()
 
     if (this.canvas.configuration.menu.enable) {
       if (this.canvas.configuration.menu.action.enable) {
