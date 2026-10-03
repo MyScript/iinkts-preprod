@@ -114,7 +114,9 @@ export class IIMenuManager {
       return
     }
     const instance = this.getMenu(name)
-    instance.render(this.layer)
+    // Each menu renders into the slot the layout gives it; the context menu follows the pointer over the whole layer
+    const host = name === "context" ? undefined : this.canvas.layout.host(name)
+    instance.render(host ?? this.layer)
     instance.renderRegisteredItems(this.registry[name])
   }
 

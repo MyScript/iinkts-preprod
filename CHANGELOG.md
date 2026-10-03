@@ -187,6 +187,13 @@ Every export on `InteractiveInkCanvas` goes through two functions instead of nin
 
 ## Features
 
+### Place the menus where you want: `configuration.layout`
+The canvas UI has 8 slots (`top-left`, `top-center`, `top-right`, `middle-left`, `middle-right`, `bottom-left`, `bottom-center`, `bottom-right`), and `configuration.layout` says what goes in each, in stacking order — e.g. `{ "bottom-center": ["action", "tool"] }` puts the action bar right above the tools.
+- occupants: the menus (`action`, `style`, `tool`) and, in `InteractiveInkCanvas` and `InkCanvas` (INK_V2), the connection state (`state`) and the minimap (`minimap`)
+- a slot you give replaces the default one; an occupant you leave out keeps its default slot (`enable: false` still hides a menu); one listed twice shows in its first slot only, with a warning
+- the default layout is today's look; new: `LayoutManager` (`canvas.layout`), `TLayoutConfiguration`, `TLayoutSlot`, `LAYOUT_SLOTS`, `DefaultLayoutConfiguration`
+- **CSS change**: the menus no longer carry their position. `ms-menu-top-left` → `ms-menu-action`, `ms-menu-top-right` → `ms-menu-style`, `ms-menu-bottom` → `ms-menu-tool`; a slot is `.ms-layout-slot.ms-layout-<slot>`, each occupant sits in `.ms-layout-host-<name>`. The connection state and the minimap no longer position themselves either
+
 ### Add your own items to the menus
 `canvas.menu.addItem(menu, key, factory, options?)` adds an item to the action, tool, style or context menu without subclassing it; `canvas.menu.removeItem(menu, key)` takes it away.
 - `factory` returns a `BaseMenuItem` (updated with the menu: the generic `ButtonMenuItem`, `CheckboxMenuItem`… or your own) or a raw `HTMLElement` (static: removed with the menu, never updated). It is called on every render, since the menus are rebuilt by `setConfig`, which now keeps the added items
