@@ -133,7 +133,7 @@ export class IIModel {
     return this.#store.listBy(targetIdsOf)
   }
 
-  getRootSymbol(id: string): TSymbol | undefined {
+  getSymbol(id: string): TSymbol | undefined {
     return this.#store.get(id)
   }
 

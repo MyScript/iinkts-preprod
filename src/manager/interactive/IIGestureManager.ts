@@ -105,7 +105,7 @@ export class IIGestureManager extends IIAbstractManager {
   async #applyInternal(gesture: TGesture): Promise<void> {
     this.logger.info("apply", { gesture })
 
-    const gestureSymbol = this.model.getRootSymbol(gesture.gestureStrokeId)
+    const gestureSymbol = this.model.getSymbol(gesture.gestureStrokeId)
     if (!gestureSymbol || !isStroke(gestureSymbol)) {
       this.logger.warn("apply", `Gesture stroke not found in model: ${gesture.gestureStrokeId}`)
       return

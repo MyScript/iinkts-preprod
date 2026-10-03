@@ -259,14 +259,14 @@ export class IIConnectorManager extends IIAbstractManager {
   private recomputeAllEntryPoints(edge: TEdge): void {
     if (EdgeUtil.isLineEdge(edge)) {
       if (edge.startAnchor) {
-        const target = this.model.getRootSymbol(edge.startAnchor.symbolId)
+        const target = this.model.getSymbol(edge.startAnchor.symbolId)
         edge.startAnchor.entryPoint =
           target && ShapeUtil.isShape(target)
             ? this.#entryPointInEdgeFrame(edge, edge.start, edge.end, SymbolGeometry.verticesOf(target))
             : undefined
       }
       if (edge.endAnchor) {
-        const target = this.model.getRootSymbol(edge.endAnchor.symbolId)
+        const target = this.model.getSymbol(edge.endAnchor.symbolId)
         edge.endAnchor.entryPoint =
           target && ShapeUtil.isShape(target)
             ? this.#entryPointInEdgeFrame(edge, edge.end, edge.start, SymbolGeometry.verticesOf(target))
@@ -275,14 +275,14 @@ export class IIConnectorManager extends IIAbstractManager {
     } else if (EdgeUtil.isPolyEdge(edge)) {
       const n = edge.points.length
       if (edge.startAnchor && n >= 2) {
-        const target = this.model.getRootSymbol(edge.startAnchor.symbolId)
+        const target = this.model.getSymbol(edge.startAnchor.symbolId)
         edge.startAnchor.entryPoint =
           target && ShapeUtil.isShape(target)
             ? this.#entryPointInEdgeFrame(edge, edge.points[0], edge.points[1], SymbolGeometry.verticesOf(target))
             : undefined
       }
       if (edge.endAnchor && n >= 2) {
-        const target = this.model.getRootSymbol(edge.endAnchor.symbolId)
+        const target = this.model.getSymbol(edge.endAnchor.symbolId)
         edge.endAnchor.entryPoint =
           target && ShapeUtil.isShape(target)
             ? this.#entryPointInEdgeFrame(
@@ -302,14 +302,14 @@ export class IIConnectorManager extends IIAbstractManager {
       const vertices = SymbolGeometry.rawOf(edge).vertices
       const n = vertices.length
       if (edge.startAnchor && n >= 2) {
-        const target = this.model.getRootSymbol(edge.startAnchor.symbolId)
+        const target = this.model.getSymbol(edge.startAnchor.symbolId)
         edge.startAnchor.entryPoint =
           target && ShapeUtil.isShape(target)
             ? this.#entryPointInEdgeFrame(edge, vertices[0], vertices[1], SymbolGeometry.verticesOf(target))
             : undefined
       }
       if (edge.endAnchor && n >= 2) {
-        const target = this.model.getRootSymbol(edge.endAnchor.symbolId)
+        const target = this.model.getSymbol(edge.endAnchor.symbolId)
         edge.endAnchor.entryPoint =
           target && ShapeUtil.isShape(target)
             ? this.#entryPointInEdgeFrame(edge, vertices[n - 1], vertices[n - 2], SymbolGeometry.verticesOf(target))
@@ -408,7 +408,7 @@ export class IIConnectorManager extends IIAbstractManager {
     // Always recompute both anchor entry points using final endpoint positions —
     // even when only one shape is moving, the other endpoint's exit angle changes.
     const recomputeAnchor = (anchor: TAnchor, from: TPoint, to: TPoint): TAnchor => {
-      const target = this.model.getRootSymbol(anchor.symbolId)
+      const target = this.model.getSymbol(anchor.symbolId)
       if (!target || !ShapeUtil.isShape(target)) {
         return anchor
       }
@@ -429,7 +429,7 @@ export class IIConnectorManager extends IIAbstractManager {
         // below nor the commit path (resolveAndUpdateAnchor) apply one, and a preview that
         // skips what the commit path moves makes the arc jump on pointer-up.
         if (symbol.startAnchor && idSet.has(symbol.startAnchor.symbolId)) {
-          const targetSymbol = this.model.getRootSymbol(symbol.startAnchor.symbolId)
+          const targetSymbol = this.model.getSymbol(symbol.startAnchor.symbolId)
           if (targetSymbol) {
             const box = OBBOps.toBox(SymbolGeometry.boundsOf(targetSymbol))
             const point = matrix.applyToPoint(resolveAnchorPoint(symbol.startAnchor!, box))
@@ -438,7 +438,7 @@ export class IIConnectorManager extends IIAbstractManager {
           }
         }
         if (symbol.endAnchor && idSet.has(symbol.endAnchor.symbolId)) {
-          const targetSymbol = this.model.getRootSymbol(symbol.endAnchor.symbolId)
+          const targetSymbol = this.model.getSymbol(symbol.endAnchor.symbolId)
           if (targetSymbol) {
             const box = OBBOps.toBox(SymbolGeometry.boundsOf(targetSymbol))
             const point = matrix.applyToPoint(resolveAnchorPoint(symbol.endAnchor!, box))
@@ -476,11 +476,11 @@ export class IIConnectorManager extends IIAbstractManager {
         let end = symbol.end
         const startTargetSymbol =
           symbol.startAnchor && idSet.has(symbol.startAnchor.symbolId)
-            ? this.model.getRootSymbol(symbol.startAnchor.symbolId)
+            ? this.model.getSymbol(symbol.startAnchor.symbolId)
             : undefined
         const endTargetSymbol =
           symbol.endAnchor && idSet.has(symbol.endAnchor.symbolId)
-            ? this.model.getRootSymbol(symbol.endAnchor.symbolId)
+            ? this.model.getSymbol(symbol.endAnchor.symbolId)
             : undefined
 
         if (startTargetSymbol) {
@@ -515,11 +515,11 @@ export class IIConnectorManager extends IIAbstractManager {
         }))
         const startTargetSymbol =
           symbol.startAnchor && idSet.has(symbol.startAnchor.symbolId)
-            ? this.model.getRootSymbol(symbol.startAnchor.symbolId)
+            ? this.model.getSymbol(symbol.startAnchor.symbolId)
             : undefined
         const endTargetSymbol =
           symbol.endAnchor && idSet.has(symbol.endAnchor.symbolId)
-            ? this.model.getRootSymbol(symbol.endAnchor.symbolId)
+            ? this.model.getSymbol(symbol.endAnchor.symbolId)
             : undefined
 
         if (startTargetSymbol) {
@@ -580,7 +580,7 @@ export class IIConnectorManager extends IIAbstractManager {
     matrix: MatrixTransform | undefined,
     preTransformBoundsById: Map<string, TOBB> | undefined
   ): { x: number; y: number } | undefined {
-    const target = this.model.getRootSymbol(anchor.symbolId)
+    const target = this.model.getSymbol(anchor.symbolId)
     if (!target) {
       return undefined
     }
@@ -945,7 +945,7 @@ export class IIConnectorManager extends IIAbstractManager {
         if (preBounds) {
           return preBounds
         }
-        const target = this.model.getRootSymbol(id)
+        const target = this.model.getSymbol(id)
         return target ? SymbolGeometry.boundsOf(target) : undefined
       })
       .filter((b): b is TOBB => !!b)
