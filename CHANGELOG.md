@@ -187,6 +187,13 @@ Every export on `InteractiveInkCanvas` goes through two functions instead of nin
 
 ## Features
 
+### Add your own items to the menus
+`canvas.menu.addItem(menu, key, factory, options?)` adds an item to the action, tool, style or context menu without subclassing it; `canvas.menu.removeItem(menu, key)` takes it away.
+- `factory` returns a `BaseMenuItem` (updated with the menu: the generic `ButtonMenuItem`, `CheckboxMenuItem`… or your own) or a raw `HTMLElement` (static: removed with the menu, never updated). It is called on every render, since the menus are rebuilt by `setConfig`, which now keeps the added items
+- `options.zone`: `"bar"` or `"dropdown"`, each menu having a default one; `options.before`/`options.after`: next to another item, by key; `options.replace`: take the place of a built-in item of the same key, refused otherwise
+- a shown menu is rebuilt at once; an open context menu stays open where it was
+- new: `TMenuName`, `TMenuItemFactory`, `TRegisteredMenuItem`, `IIMenuManager.getMenu`, `IIAbstractMenu.renderRegisteredItems`; `TMenuItemOptions` gains `before`, `after`, `replace`
+
 ### Math Tutor example
 - feat(examples): `examples/interactive-canvas/math-tutor/`, a handwritten math workbook for edtech demos: each line is transcribed and checked as it is written, and the first wrong one gets a hint on the mistake (sign, division, square root, slip). Level 3 checks a hand-drawn right triangle and its labelled sides; once solved, the hypotenuse follows the values written
 

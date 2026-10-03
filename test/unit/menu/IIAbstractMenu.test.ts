@@ -1,12 +1,6 @@
 import { asCanvas, createCanvasMock } from "../__mocks__/createCanvasMock"
+import { StubMenuItem } from "../helpers"
 import { BaseMenuItem, IIAbstractMenu, TMenuItemOptions, TMenuZone } from "@/iink"
-
-class TestItem extends BaseMenuItem<HTMLButtonElement> {
-  createElement(): HTMLButtonElement {
-    return document.createElement("button")
-  }
-  update(): void {}
-}
 
 class TestMenu extends IIAbstractMenu<{ items: { key: string; options?: TMenuItemOptions }[] }> {
   readonly defaultZone: TMenuZone = "dropdown"
@@ -15,7 +9,7 @@ class TestMenu extends IIAbstractMenu<{ items: { key: string; options?: TMenuIte
   render(layer: HTMLElement): void {
     this.wrapper = document.createElement("div")
     this.config.items.forEach(({ key, options }) =>
-      this.addItem(key, new TestItem({ id: key, type: "button" }, this.canvas), options)
+      this.addItem(key, new StubMenuItem(key, this.canvas), options)
     )
     layer.appendChild(this.wrapper)
   }
@@ -35,7 +29,7 @@ class TestMenu extends IIAbstractMenu<{ items: { key: string; options?: TMenuIte
   }
 
   addOutsideRender(key: string): void {
-    this.addItem(key, new TestItem({ id: key, type: "button" }, this.canvas))
+    this.addItem(key, new StubMenuItem(key, this.canvas))
   }
 }
 
@@ -122,6 +116,17 @@ describe("IIAbstractMenu.ts", () => {
     document.body.dispatchEvent(new Event("pointerdown", { bubbles: true }))
     expect(content.classList.contains("open")).toBe(true)
     removeListener.mockRestore()
+  })
+
+  test("should start over when rendered again without a destroy, refusing nothing", () => {
+    const { menu } = setup([{ key: "first" }, { key: "second", options: { zone: "bar" } }])
+    const otherLayer = document.createElement("div")
+
+    menu.render(otherLayer)
+
+    // Same keys again: the previous render's items belong to the previous wrapper, not to this one
+    expect(otherLayer.querySelectorAll("button#first, button#second")).toHaveLength(2)
+    expect(menu.rendered.size).toBe(2)
   })
 
   test("should build its zones again after a destroy", () => {
