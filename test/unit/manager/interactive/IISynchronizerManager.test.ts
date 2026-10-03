@@ -207,6 +207,19 @@ describe("IISynchronizerManager.ts", () => {
       restoreRaf()
     })
 
+    test("should not copy a single stroke on a sync where nothing changed", async () => {
+      const { canvas, manager, restoreRaf } = setup(3)
+      await manager.synchronize()
+      const draftSymbol = jest.spyOn(canvas.model, "draftSymbol")
+
+      await manager.synchronize()
+
+      // A draft is a structuredClone: on a large, already-synced document, drafting every stroke
+      // just to read its jiixBlockId cost a full copy of the document on every sync
+      expect(draftSymbol).not.toHaveBeenCalled()
+      restoreRaf()
+    })
+
     test("should reprocess a block whose stroke lost its jiixBlockId even though content is unchanged (e.g. a history snapshot restored by undo() after clear())", async () => {
       const { canvas, manager, strokes, restoreRaf } = setup(3)
       await manager.synchronize()
@@ -369,6 +382,34 @@ describe("IISynchronizerManager.ts", () => {
       const updatedEdgeStroke = canvas.model.getRootSymbol(edgeStroke.id) as TStroke
       expect(updatedEdgeStroke.endAnchor?.symbolId).toBe("node-1")
       expect(updatedEdgeStroke.startAnchor).toBeUndefined()
+    })
+
+    test("should not rewrite an edge stroke whose anchors did not change", async () => {
+      const canvas = createCanvasMock()
+      const edgeStroke = buildIIStroke()
+      const nodeStroke = buildIIStroke({ box: { x: 35, y: -2, width: 6, height: 6 } })
+      canvas.model.addSymbol(edgeStroke)
+      canvas.model.addSymbol(nodeStroke)
+      const jiixExport = buildJiixExport([
+        buildNodeElement("node-1", nodeStroke.id),
+        buildEdgeElement("edge-1", edgeStroke.id, ["node-1"], [0]),
+      ])
+      canvas.export = jest.fn().mockImplementation(async () => {
+        canvas.model.mergeExport({ "application/vnd.myscript.jiix": jiixExport })
+      })
+      jest.spyOn(canvas.jiix, "getStrokesForElement").mockImplementation((id: string) =>
+        id === "node-1" ? [nodeStroke.id] : []
+      )
+      const manager = new IISynchronizerManager(asCanvas(canvas))
+      await manager.synchronize()
+      const draftSymbol = jest.spyOn(canvas.model, "draftSymbol")
+      const commitSymbol = jest.spyOn(canvas.model, "commitSymbol")
+
+      await manager.synchronize()
+
+      expect(draftSymbol).not.toHaveBeenCalled()
+      expect(commitSymbol).not.toHaveBeenCalled()
+      expect((canvas.model.getRootSymbol(edgeStroke.id) as TStroke).endAnchor?.symbolId).toBe("node-1")
     })
 
     test("edge element with no connected[] clears any previously-set anchor (live-truth overwrite)", async () => {

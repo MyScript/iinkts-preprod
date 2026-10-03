@@ -13,7 +13,7 @@ import { extractEdgeEndpoints, JIIXEdgeKind, JIIXElementType } from "@/client"
 import { CanvasTool, GESTURE_OPERATION_LABELS } from "@/Constants"
 import { BoxOps } from "@/core/geometry"
 import { OBBOps } from "@/core/geometry"
-import type { TDraft } from "@/core/std"
+import { isDeepEqual, type TDraft } from "@/core/std"
 import { LoggerCategory } from "@/logger"
 import type { TStroke } from "@/symbol"
 import { isStroke } from "@/symbol"
@@ -177,7 +177,11 @@ export class IISynchronizerManager extends IIAbstractManager {
         // — re-annotate whenever the metadata itself is missing, not only on content changes.
         const needsMetadata = strokes.some((s) => s.jiixBlockId !== el.id)
         if (needsMetadata || this.#lastElementSnapshots.get(el.id) !== snapshotKey) {
-          for (const stroke of strokes) {
+          for (const committed of strokes) {
+            const stroke = this.#draftStroke(committed.id)
+            if (!stroke) {
+              continue
+            }
             this.#updateBlockMetadata(stroke, el)
 
             if (el.type === JIIXElementType.Text) {
@@ -342,10 +346,11 @@ export class IISynchronizerManager extends IIAbstractManager {
   }
 
   /**
-   * Get strokes from JIIX items
+   * The committed strokes JIIX items point to. Read, not drafted: most of them are left untouched,
+   * and a draft is a full copy - only the strokes about to be written get one, see {@link #draftStroke}.
    */
-  #getStrokesFromItems(items: TJIIXStrokeItem[]): TDraft<TStroke>[] {
-    const strokes: TDraft<TStroke>[] = []
+  #getStrokesFromItems(items: TJIIXStrokeItem[]): TStroke[] {
+    const strokes: TStroke[] = []
     const seen = new Set<string>()
 
     for (const item of items) {
@@ -354,13 +359,18 @@ export class IISynchronizerManager extends IIAbstractManager {
         continue
       }
       seen.add(strokeId)
-      const symbol = this.model.draftSymbol(strokeId)
+      const symbol = this.model.getRootSymbol(strokeId)
       if (symbol && isStroke(symbol)) {
-        strokes.push(symbol as TDraft<TStroke>)
+        strokes.push(symbol)
       }
     }
 
     return strokes
+  }
+
+  #draftStroke(id: string): TDraft<TStroke> | undefined {
+    const draft = this.model.draftSymbol(id)
+    return draft && isStroke(draft) ? draft : undefined
   }
 
   /**
@@ -396,32 +406,40 @@ export class IISynchronizerManager extends IIAbstractManager {
   /**
    * Resolve and store this edge element's connection anchors on every one of its strokes.
    * Always overwrites from the latest JIIX truth — a connection reported in a previous sync
-   * but absent now is cleared, not kept.
+   * but absent now is cleared, not kept. A stroke whose anchors already match is left as is.
    */
-  /**
-   * Takes the committed strokes and drafts its own: the metadata loop above commits the drafts it
-   * was handed, and a committed draft is frozen.
-   */
-  #syncEdgeConnections(el: TJIIXElement, committed: TStroke[]): void {
+  #syncEdgeConnections(el: TJIIXElement, strokes: TStroke[]): void {
     if (el.type !== JIIXElementType.Edge) {
       return
     }
-    const strokes = committed
-      .map((s) => this.model.draftSymbol(s.id))
-      .filter((s): s is TDraft<TStroke> => !!s && isStroke(s))
+    const { startAnchor, endAnchor } = this.#resolveEdgeAnchors(el)
+    strokes.forEach(({ id }) => {
+      // Re-read: the metadata loop may have just committed a newer version of this stroke
+      const current = this.model.getRootSymbol(id)
+      if (!current || !isStroke(current)) {
+        return
+      }
+      if (isDeepEqual(current.startAnchor, startAnchor) && isDeepEqual(current.endAnchor, endAnchor)) {
+        return
+      }
+      const stroke = this.#draftStroke(id)
+      if (!stroke) {
+        return
+      }
+      stroke.startAnchor = startAnchor
+      stroke.endAnchor = endAnchor
+      // Anchors aren't part of the JIIX export content either — same reasoning as the
+      // metadata-update loop above.
+      this.model.commitSymbol(stroke, false)
+    })
+  }
+
+  #resolveEdgeAnchors(el: TJIIXEdgeElement): Pick<TStroke, "startAnchor" | "endAnchor"> {
     const endpoints = extractEdgeEndpoints(el)
     const connectedIds = el.connected ?? []
     if (!endpoints || connectedIds.length === 0) {
-      strokes.forEach((stroke) => {
-        stroke.startAnchor = undefined
-        stroke.endAnchor = undefined
-        // Anchors aren't part of the JIIX export content either — same reasoning as the
-        // metadata-update loop above.
-        this.model.commitSymbol(stroke, false)
-      })
-      return
+      return { startAnchor: undefined, endAnchor: undefined }
     }
-
     const connections = connectedIds
       .map((blockId) => {
         const strokeIds = this.canvas.jiix.getStrokesForElement(blockId)
@@ -435,12 +453,6 @@ export class IISynchronizerManager extends IIAbstractManager {
         return { targetId: blockId, box: BoxOps.createFromBoxes(boxes) }
       })
       .filter((c): c is { targetId: string; box: ReturnType<typeof BoxOps.createFromBoxes> } => !!c)
-
-    const { startAnchor, endAnchor } = resolveConnectionAnchors(endpoints.start, endpoints.end, connections)
-    strokes.forEach((stroke) => {
-      stroke.startAnchor = startAnchor
-      stroke.endAnchor = endAnchor
-      this.model.commitSymbol(stroke, false)
-    })
+    return resolveConnectionAnchors(endpoints.start, endpoints.end, connections)
   }
 }

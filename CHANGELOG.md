@@ -221,6 +221,7 @@ Every export on `InteractiveInkCanvas` goes through two functions instead of nin
 - feat(manager): `TAnchoredEdgesUpdateResult`, `TFollowedStroke` (`IIConnectorManager`), `TShift` and `TSplitOutcome` (`InsertGestureHandler.computeChangesOnSplitText`) are exported
 
 ## Performance
+- perf(manager): `IISynchronizerManager` drafted (a `structuredClone`) every stroke of the document on every synchronize, before knowing whether its block changed, and redrafted and recommitted every edge stroke even when its anchors were unchanged. It now reads the committed strokes and drafts only the ones it writes: a sync of an unchanged 4000-stroke document (80 points each) goes from 128 ms to 94 ms
 - perf(manager): `IIConversionManager.convertNode()`/`convertEdge()` deduped strokes in O(n²), copy-pasted 4×; now the exported O(n) `uniqueById()` (`src/core/std/object.ts`)
 - perf: six hand-rolled "coalesce to one `requestAnimationFrame`" copies (`IIWriterManager`, `IIMoveManager`, `Minimap`, `IISelectionManager` arc-handle drag, `Chart.ts` pan, `InteractiveInkCanvas` wheel-zoom) replaced by the exported `RafCoalescer` (`src/dom/RafCoalescer.ts`)
 
