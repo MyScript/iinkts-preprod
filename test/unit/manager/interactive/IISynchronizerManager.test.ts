@@ -105,7 +105,7 @@ describe("IISynchronizerManager.ts", () => {
       const { canvas, manager, strokes, restoreRaf } = setup(5)
       await manager.synchronize()
       strokes.forEach((stroke, i) => {
-        const newStroke = canvas.model.getRootSymbol(stroke.id) as TStroke
+        const newStroke = canvas.model.getSymbol(stroke.id) as TStroke
         expect(newStroke.jiixBlockId).toBe(`block-${i}`)
         expect(newStroke.jiixBlockType).toBe("Text")
       })
@@ -121,7 +121,7 @@ describe("IISynchronizerManager.ts", () => {
       expect(rafSpy).toHaveBeenCalledTimes(2)
       // Yielding must not skip or duplicate work.
       strokes.forEach((stroke, i) => {
-        const newStroke = canvas.model.getRootSymbol(stroke.id) as TStroke
+        const newStroke = canvas.model.getSymbol(stroke.id) as TStroke
         expect(newStroke.jiixBlockId).toBe(`block-${i}`)
       })
       restoreRaf()
@@ -146,7 +146,7 @@ describe("IISynchronizerManager.ts", () => {
       await syncPromise
 
       strokes.forEach((stroke, i) => {
-        const newStroke = canvas.model.getRootSymbol(stroke.id) as TStroke
+        const newStroke = canvas.model.getSymbol(stroke.id) as TStroke
         expect(newStroke.jiixBlockId).toBe(`block-${i}`)
       })
       restoreRaf()
@@ -164,7 +164,7 @@ describe("IISynchronizerManager.ts", () => {
       await syncPromise
 
       strokes.forEach((stroke, i) => {
-        const newStroke = canvas.model.getRootSymbol(stroke.id) as TStroke
+        const newStroke = canvas.model.getSymbol(stroke.id) as TStroke
         expect(newStroke.jiixBlockId).toBe(`block-${i}`)
       })
       restoreRaf()
@@ -187,7 +187,7 @@ describe("IISynchronizerManager.ts", () => {
       await syncPromise
 
       strokes.forEach((stroke, i) => {
-        const newStroke = canvas.model.getRootSymbol(stroke.id) as TStroke
+        const newStroke = canvas.model.getSymbol(stroke.id) as TStroke
         expect(newStroke.jiixBlockId).toBe(`block-${i}`)
       })
       restoreRaf()
@@ -236,7 +236,7 @@ describe("IISynchronizerManager.ts", () => {
 
       expect(canvas.jiix.updateTextMetadata).toHaveBeenCalledTimes(4)
       strokes.forEach((stroke, i) => {
-        const newStroke = canvas.model.getRootSymbol(stroke.id) as TStroke
+        const newStroke = canvas.model.getSymbol(stroke.id) as TStroke
         expect(newStroke.jiixBlockId).toBe(`block-${i}`)
       })
       restoreRaf()
@@ -283,8 +283,8 @@ describe("IISynchronizerManager.ts", () => {
 
       await manager.synchronize()
 
-      expect((canvas.model.getRootSymbol(strokes[1].id) as TStroke).jiixBlockId).toBe("block-1")
-      expect((canvas.model.getRootSymbol(strokes[2].id) as TStroke).jiixBlockId).toBe("block-2")
+      expect((canvas.model.getSymbol(strokes[1].id) as TStroke).jiixBlockId).toBe("block-1")
+      expect((canvas.model.getSymbol(strokes[2].id) as TStroke).jiixBlockId).toBe("block-2")
       restoreRaf()
     })
 
@@ -379,7 +379,7 @@ describe("IISynchronizerManager.ts", () => {
       const manager = new IISynchronizerManager(asCanvas(canvas))
       await manager.synchronize()
 
-      const updatedEdgeStroke = canvas.model.getRootSymbol(edgeStroke.id) as TStroke
+      const updatedEdgeStroke = canvas.model.getSymbol(edgeStroke.id) as TStroke
       expect(updatedEdgeStroke.endAnchor?.symbolId).toBe("node-1")
       expect(updatedEdgeStroke.startAnchor).toBeUndefined()
     })
@@ -409,7 +409,7 @@ describe("IISynchronizerManager.ts", () => {
 
       expect(draftSymbol).not.toHaveBeenCalled()
       expect(commitSymbol).not.toHaveBeenCalled()
-      expect((canvas.model.getRootSymbol(edgeStroke.id) as TStroke).endAnchor?.symbolId).toBe("node-1")
+      expect((canvas.model.getSymbol(edgeStroke.id) as TStroke).endAnchor?.symbolId).toBe("node-1")
     })
 
     test("edge element with no connected[] clears any previously-set anchor (live-truth overwrite)", async () => {
@@ -427,7 +427,7 @@ describe("IISynchronizerManager.ts", () => {
       const manager = new IISynchronizerManager(asCanvas(canvas))
       await manager.synchronize()
 
-      const updatedEdgeStroke = canvas.model.getRootSymbol(edgeStroke.id) as TStroke
+      const updatedEdgeStroke = canvas.model.getSymbol(edgeStroke.id) as TStroke
       expect(updatedEdgeStroke.startAnchor).toBeUndefined()
       expect(updatedEdgeStroke.endAnchor).toBeUndefined()
     })
@@ -471,14 +471,14 @@ describe("IISynchronizerManager.ts", () => {
       const manager = new IISynchronizerManager(asCanvas(canvas))
 
       await manager.synchronize()
-      expect((canvas.model.getRootSymbol(edgeStroke.id) as TStroke).endAnchor?.symbolId).toBe("node-a")
+      expect((canvas.model.getSymbol(edgeStroke.id) as TStroke).endAnchor?.symbolId).toBe("node-a")
 
       // Second sync: same edge element id/content fingerprint (label/words/chars/lines are all
       // absent on Edge elements, and jiixBlockId is already set) - the pre-existing
       // metadata-caching gate would treat this as "unchanged" and skip re-processing, which is
       // exactly why #syncEdgeConnections must run unconditionally, outside that gate.
       await manager.synchronize()
-      const updatedEdgeStroke = canvas.model.getRootSymbol(edgeStroke.id) as TStroke
+      const updatedEdgeStroke = canvas.model.getSymbol(edgeStroke.id) as TStroke
       expect(updatedEdgeStroke.endAnchor?.symbolId).toBe("node-b")
       expect(updatedEdgeStroke.startAnchor).toBeUndefined()
     })

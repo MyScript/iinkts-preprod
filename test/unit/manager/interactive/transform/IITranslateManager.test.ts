@@ -151,7 +151,7 @@ describe("IITranslateManager.ts", () => {
         expect(canvas.endOperation).toHaveBeenCalledWith("Translating")
         await endPromise
 
-        const newStroke = canvas.model.getRootSymbol(strokeOrigin.id) as TStroke
+        const newStroke = canvas.model.getSymbol(strokeOrigin.id) as TStroke
         expect(manager.applyToSymbol).toHaveBeenCalledTimes(1)
         // Committing a transform rewrites the element's `transform` attribute instead of rebuilding
         // it through `drawSymbol` (task 12) - the final geometry reaches the renderer as an
@@ -272,7 +272,7 @@ describe("IITranslateManager.ts", () => {
       const shape = ShapeUtil.createCircle({ x: 50, y: 50 }, 20)
       canvas.model.addSymbol(shape)
       // The gradient-follow direction resolves the connected block's center via
-      // jiix.getStrokesForElement + model.getRootSymbol — here the "block" is just the shape itself.
+      // jiix.getStrokesForElement + model.getSymbol — here the "block" is just the shape itself.
       jest.spyOn(canvas.jiix, "getStrokesForElement").mockImplementation((id) => (id === shape.id ? [shape.id] : []))
 
       const edgeStroke = StrokeUtil.createEmpty()
@@ -298,7 +298,7 @@ describe("IITranslateManager.ts", () => {
 
       // Read the model, not the object passed in: the transform commits a draft rather than
       // mutating the committed record, so the local reference is a pre-transform snapshot.
-      const movedEdgeStroke = canvas.model.getRootSymbol(edgeStroke.id) as TStroke
+      const movedEdgeStroke = canvas.model.getSymbol(edgeStroke.id) as TStroke
       // Composed once, not twice: {x:5,y:5} would be a double-apply's translation on top of the
       // direct-transform path's own — the pointers themselves never move at all any more.
       expect(movedEdgeStroke.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 5, ty: 5 })
@@ -317,7 +317,7 @@ describe("IITranslateManager.ts", () => {
 
       await manager.translate([shape], 5, 5)
 
-      const newEdgeStroke = canvas.model.getRootSymbol(edgeStroke.id) as TStroke
+      const newEdgeStroke = canvas.model.getSymbol(edgeStroke.id) as TStroke
       // This connection is gradient-followed (single anchor, shape moving): point[1] (10,0) is
       // nearest the shape's center (50,50) → full weight; point[0] is farthest → unchanged.
       expect(newEdgeStroke.pointers[0]).toEqual(expect.objectContaining({ x: 0, y: 0 }))
@@ -329,7 +329,7 @@ describe("IITranslateManager.ts", () => {
       const undoChanges = history.undo()
       undoChanges.updated?.forEach(({ after }) => canvas.model.updateSymbol(after))
 
-      const restoredEdgeStroke = canvas.model.getRootSymbol(edgeStroke.id) as typeof edgeStroke
+      const restoredEdgeStroke = canvas.model.getSymbol(edgeStroke.id) as typeof edgeStroke
       expect(restoredEdgeStroke.pointers[0]).toEqual(
         expect.objectContaining({ x: pointersBefore[0].x, y: pointersBefore[0].y })
       )
@@ -360,7 +360,7 @@ describe("IITranslateManager.ts", () => {
 
       await manager.translate([shape], 20, 20)
 
-      const newEdge = canvas.model.getRootSymbol(edge.id) as TEdgeLine
+      const newEdge = canvas.model.getSymbol(edge.id) as TEdgeLine
       // Anchor recomputed from the shape's new bounds center (70,70), not translated by (20,20).
       expect(newEdge.end).toEqual({ x: 70, y: 70 })
       expect(newEdge.end).not.toEqual(endBefore)
@@ -370,8 +370,8 @@ describe("IITranslateManager.ts", () => {
       const undoChanges = history.undo()
       undoChanges.updated?.forEach(({ after }) => canvas.model.updateSymbol(after))
 
-      const restoredShape = canvas.model.getRootSymbol(shape.id) as typeof shape
-      const restoredEdge = canvas.model.getRootSymbol(edge.id) as typeof edge
+      const restoredShape = canvas.model.getSymbol(shape.id) as typeof shape
+      const restoredEdge = canvas.model.getSymbol(edge.id) as typeof edge
       expect(restoredShape.center).toEqual({ x: 50, y: 50 })
       expect(restoredEdge.end).toEqual(endBefore)
     })
@@ -390,7 +390,7 @@ describe("IITranslateManager.ts", () => {
       const sentIds = (canvas.client.transformTranslate as jest.Mock).mock.calls[0][0] as string[]
       expect(sentIds).not.toContain(edgeStroke.id)
 
-      const newEdgeStroke = canvas.model.getRootSymbol(edgeStroke.id) as TStroke
+      const newEdgeStroke = canvas.model.getSymbol(edgeStroke.id) as TStroke
       expect(canvas.client.replaceStrokes).toHaveBeenCalledWith([edgeStroke.id], [newEdgeStroke])
     })
 
@@ -427,7 +427,7 @@ describe("IITranslateManager.ts", () => {
 
       await manager.translate([shape], 30, 40, false)
 
-      const newEdgeStroke = canvas.model.getRootSymbol(edgeStroke.id) as TStroke
+      const newEdgeStroke = canvas.model.getSymbol(edgeStroke.id) as TStroke
       expect(newEdgeStroke.pointers).toEqual(previewPointers)
     })
 
@@ -448,7 +448,7 @@ describe("IITranslateManager.ts", () => {
       await manager.translate([shape], 20, 20, false)
 
       // The anchor was in fact recomputed (proves the connector ran, not a no-op).
-      const newEdge = canvas.model.getRootSymbol(edge.id) as TEdgeLine
+      const newEdge = canvas.model.getSymbol(edge.id) as TEdgeLine
       expect(newEdge.end).toEqual({ x: 70, y: 70 })
 
       // Neither the shape nor the edge is raw ink once converted — nothing for the backend here.
@@ -470,7 +470,7 @@ describe("IITranslateManager.ts", () => {
       const shape = ShapeUtil.createCircle({ x: 50, y: 50 }, 20)
       canvas.model.addSymbol(shape)
       // The gradient-follow direction resolves the connected block's center via
-      // jiix.getStrokesForElement + model.getRootSymbol — here the "block" is just the shape itself.
+      // jiix.getStrokesForElement + model.getSymbol — here the "block" is just the shape itself.
       jest.spyOn(canvas.jiix, "getStrokesForElement").mockImplementation((id) => (id === shape.id ? [shape.id] : []))
 
       const edgeStroke = StrokeUtil.createEmpty()
@@ -484,7 +484,7 @@ describe("IITranslateManager.ts", () => {
 
       await manager.translate([shape], 5, 5, false)
 
-      const newEdgeStroke = canvas.model.getRootSymbol(edgeStroke.id) as TStroke
+      const newEdgeStroke = canvas.model.getSymbol(edgeStroke.id) as TStroke
       expect(newEdgeStroke.pointers[0]).toEqual(expect.objectContaining({ x: 0, y: 0 }))
       expect(newEdgeStroke.pointers[1]).toEqual(expect.objectContaining({ x: 15, y: 5 }))
     })
@@ -670,7 +670,7 @@ describe("IIC-1999, a selection of typeset symbols", () => {
 
       await manager.translate([stroke], 10, 20, false)
 
-      const newDeco = canvas.model.getRootSymbol(decorator.id) as TDecorator
+      const newDeco = canvas.model.getSymbol(decorator.id) as TDecorator
       expect(newDeco.targetBounds!.center).toEqual(
         expect.objectContaining({ x: centerBefore.x + 10, y: centerBefore.y + 20 })
       )
@@ -716,7 +716,7 @@ describe("IIC-1999, a selection of typeset symbols", () => {
 
       await manager.translate([stroke], 0, 50, false)
 
-      const newDeco = canvas.model.getRootSymbol(decorator.id) as TDecorator
+      const newDeco = canvas.model.getSymbol(decorator.id) as TDecorator
       expect(newDeco.baseline).toBe(150)
     })
   })

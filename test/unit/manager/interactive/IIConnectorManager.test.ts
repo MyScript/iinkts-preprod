@@ -117,7 +117,7 @@ function buildTwoStrokeEdgeGroup(blockId: string) {
   return { bar, chevron }
 }
 
-// Mocks resolving a block's center (via jiix.getStrokesForElement + model.getRootSymbol) to a
+// Mocks resolving a block's center (via jiix.getStrokesForElement + model.getSymbol) to a
 // stroke sitting at the given point, so gradient-follow direction is deterministic in tests.
 // A real single-point stroke rather than a bare { bounds } object: SymbolGeometry.boundsOf routes
 // through StrokeUtil.computeGeometry, which recomputes bounds from `pointers` rather than trusting
@@ -126,7 +126,7 @@ function mockBlockCenter(mock: ReturnType<typeof createCanvasMock>, strokeId: st
   const targetStroke = StrokeUtil.createEmpty()
   targetStroke.id = strokeId
   targetStroke.pointers = [{ ...center, dt: 0, p: 0 }]
-  jest.spyOn(mock.model, "getRootSymbol").mockImplementation((id: string) => (id === strokeId ? targetStroke : undefined) as never)
+  jest.spyOn(mock.model, "getSymbol").mockImplementation((id: string) => (id === strokeId ? targetStroke : undefined) as never)
   return targetStroke
 }
 
@@ -154,9 +154,9 @@ describe("IIConnectorManager", () => {
     mock = createCanvasMock()
     manager = new IIConnectorManager(asCanvas(mock))
     jest
-      .spyOn(mock.model, "getRootSymbol")
+      .spyOn(mock.model, "getSymbol")
       .mockReturnValue({ id: TARGET_ID, type: SymbolType.Decorator, targetBounds: TARGET_BOUNDS, transform: MatrixTransform.identity() } as unknown as ReturnType<
-        typeof mock.model.getRootSymbol
+        typeof mock.model.getSymbol
       >)
   })
 
@@ -272,8 +272,8 @@ describe("IIConnectorManager", () => {
       expect(updateSpy).not.toHaveBeenCalled()
     })
 
-    test("target not found (getRootSymbol returns undefined) → not updated", () => {
-      jest.spyOn(mock.model, "getRootSymbol").mockReturnValue(undefined)
+    test("target not found (getSymbol returns undefined) → not updated", () => {
+      jest.spyOn(mock.model, "getSymbol").mockReturnValue(undefined)
       const line = buildLineWithStartAnchor()
       const originalStart = { ...line.start }
       setupSymbols(mock, [line])
@@ -318,9 +318,9 @@ describe("IIConnectorManager", () => {
 
       beforeEach(() => {
         jest
-          .spyOn(mock.model, "getRootSymbol")
+          .spyOn(mock.model, "getSymbol")
           .mockReturnValue({ id: TARGET_ID, type: SymbolType.Decorator, targetBounds: POST_BOUNDS, transform: MatrixTransform.identity() } as unknown as ReturnType<
-            typeof mock.model.getRootSymbol
+            typeof mock.model.getSymbol
           >)
       })
 
@@ -436,7 +436,7 @@ describe("IIConnectorManager", () => {
     // that stale point once the connected shape actually moved.
     test("arc with startAnchor: entryPoint is refreshed after the connected shape moves, not left stale", () => {
       const circle = ShapeUtil.createCircle({ x: 50, y: 50 }, 30)
-      jest.spyOn(mock.model, "getRootSymbol").mockImplementation((id: string) => (id === circle.id ? circle : undefined) as never)
+      jest.spyOn(mock.model, "getSymbol").mockImplementation((id: string) => (id === circle.id ? circle : undefined) as never)
       const arc = EdgeUtil.createArc({ x: 50, y: 50 }, 0, Math.PI, 20, 20, 0)
       arc.startAnchor = { symbolId: circle.id, normalizedX: 0.5, normalizedY: 0.5, entryPoint: { x: -9999, y: -9999 } }
       setupSymbols(mock, [arc, circle])
@@ -491,7 +491,7 @@ describe("IIConnectorManager", () => {
 
     test("arc with startAnchor: preview also refreshes entryPoint on the drawn clone, without mutating the original (still-stale) arc", () => {
       const circle = ShapeUtil.createCircle({ x: 50, y: 50 }, 30)
-      jest.spyOn(mock.model, "getRootSymbol").mockImplementation((id: string) => (id === circle.id ? circle : undefined) as never)
+      jest.spyOn(mock.model, "getSymbol").mockImplementation((id: string) => (id === circle.id ? circle : undefined) as never)
       const arc = EdgeUtil.createArc({ x: 50, y: 50 }, 0, Math.PI, 20, 20, 0)
       arc.startAnchor = { symbolId: circle.id, normalizedX: 0.5, normalizedY: 0.5, entryPoint: { x: -9999, y: -9999 } }
       setupSymbols(mock, [arc, circle])
@@ -651,10 +651,10 @@ describe("IIConnectorManager", () => {
         { x: 0, y: 100 },
       ])
       setupSymbols(mock, [square])
-      // getRootSymbol must return the real shape so isShape + vertices work
+      // getSymbol must return the real shape so isShape + vertices work
       jest
-        .spyOn(mock.model, "getRootSymbol")
-        .mockReturnValue(square as unknown as ReturnType<typeof mock.model.getRootSymbol>)
+        .spyOn(mock.model, "getSymbol")
+        .mockReturnValue(square as unknown as ReturnType<typeof mock.model.getSymbol>)
       const line = EdgeUtil.createLine({ x: 200, y: 50 }, { x: 55, y: 55 })
 
       manager.applyEndpointAnchor(asDraft(line), EdgeUtil.getLineVertices(line).length - 1, { x: 55, y: 55 })
@@ -821,7 +821,7 @@ describe("IIConnectorManager", () => {
     })
 
     test("arc anchored to a non-Shape target is previewed, like the Line/PolyEdge branches and the commit path", () => {
-      // getRootSymbol is mocked to a bare { id, type, bounds } — a registered type so
+      // getSymbol is mocked to a bare { id, type, bounds } — a registered type so
       // SymbolGeometry.boundsOf can resolve it, but no `kind`, so it isn't a real, recognized
       // TShape either. The commit path moves such an arc, so the preview must too, otherwise the
       // arc only jumps on pointer-up.
@@ -1234,9 +1234,9 @@ describe("connectorConfiguration.followConnectedEdges = false — disables all f
     mock = createCanvasMock()
     manager = new IIConnectorManager(asCanvas(mock), { followConnectedEdges: false })
     jest
-      .spyOn(mock.model, "getRootSymbol")
+      .spyOn(mock.model, "getSymbol")
       .mockReturnValue({ id: TARGET_ID, type: SymbolType.Decorator, targetBounds: TARGET_BOUNDS, transform: MatrixTransform.identity() } as unknown as ReturnType<
-        typeof mock.model.getRootSymbol
+        typeof mock.model.getSymbol
       >)
   })
 

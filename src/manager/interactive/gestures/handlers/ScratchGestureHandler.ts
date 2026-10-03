@@ -144,7 +144,7 @@ export class ScratchGestureHandler extends GestureHandler {
     } = { oldSymbols: [], newSymbols: [] }
 
     gesture.strokeIds.forEach((id) => {
-      const sym = this.model.getRootSymbol(id)
+      const sym = this.model.getSymbol(id)
       if (
         sym &&
         !symbolsToErase.some((s) => s.id === sym.id) &&

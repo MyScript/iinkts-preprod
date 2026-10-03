@@ -157,7 +157,7 @@ describe("IIAbstractTransformManager", () => {
       expect(frozenAtCallTime).toEqual([true])
 
       const passed = (canvas.renderer.setSymbolTransform as jest.Mock).mock.calls[0][0] as TSymbol
-      expect(passed).toBe(canvas.model.getRootSymbol(stroke.id))
+      expect(passed).toBe(canvas.model.getSymbol(stroke.id))
     })
   })
 })

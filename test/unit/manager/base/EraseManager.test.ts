@@ -106,7 +106,7 @@ describe("partial character erase", () => {
 
     await manager.end({ pointer: { x: 0, y: 0, dt: 0, p: 1 }, pointerType: "pen" } as TPointerInfo)
 
-    const stored = canvas.model.getRootSymbol(text.id) as typeof text
+    const stored = canvas.model.getSymbol(text.id) as typeof text
     expect(stored.chars.map((c) => c.id)).toEqual(["c2"])
   })
 })

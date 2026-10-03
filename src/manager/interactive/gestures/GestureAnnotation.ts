@@ -122,7 +122,7 @@ export class IIGestureAnnotationProcessor {
   async #waitForPendingClassification(ids: string[]): Promise<void> {
     const isPending = () =>
       ids.some((id) => {
-        const sym = this.canvas.model.getRootSymbol(id)
+        const sym = this.canvas.model.getSymbol(id)
         return sym && isStroke(sym) && !sym.jiixBlockType
       })
     for (const delay of [100, 200, 300, 400, 500, 500]) {
@@ -200,7 +200,7 @@ export class IIGestureAnnotationProcessor {
   }
 
   #computeBoundsFromTargets(targetIds: string[]): TOBB | null {
-    const syms = targetIds.map((id) => this.canvas.model.getRootSymbol(id)).filter((s): s is TSymbol => !!s)
+    const syms = targetIds.map((id) => this.canvas.model.getSymbol(id)).filter((s): s is TSymbol => !!s)
     if (!syms.length) {
       return null
     }
@@ -219,7 +219,7 @@ export class IIGestureAnnotationProcessor {
     const updated: { before: TSymbol; after: TSymbol }[] = []
     const seen = new Set<string>()
     for (const id of ids) {
-      const sym = this.canvas.model.getRootSymbol(id)
+      const sym = this.canvas.model.getSymbol(id)
       if (!sym || sym.type !== SymbolType.Stroke || seen.has(sym.id)) {
         continue
       }
@@ -227,7 +227,7 @@ export class IIGestureAnnotationProcessor {
       const before = sym as TStroke
       const newWidth = (before.style.width || 1) * factor
       this.canvas.updateSymbolsStyle([before.id], { width: newWidth }, false)
-      const after = this.canvas.model.getRootSymbol(before.id)
+      const after = this.canvas.model.getSymbol(before.id)
       if (after) {
         updated.push({ before, after })
       }

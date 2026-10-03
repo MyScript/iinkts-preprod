@@ -359,7 +359,7 @@ export class IISynchronizerManager extends IIAbstractManager {
         continue
       }
       seen.add(strokeId)
-      const symbol = this.model.getRootSymbol(strokeId)
+      const symbol = this.model.getSymbol(strokeId)
       if (symbol && isStroke(symbol)) {
         strokes.push(symbol)
       }
@@ -415,7 +415,7 @@ export class IISynchronizerManager extends IIAbstractManager {
     const { startAnchor, endAnchor } = this.#resolveEdgeAnchors(el)
     strokes.forEach(({ id }) => {
       // Re-read: the metadata loop may have just committed a newer version of this stroke
-      const current = this.model.getRootSymbol(id)
+      const current = this.model.getSymbol(id)
       if (!current || !isStroke(current)) {
         return
       }
@@ -444,7 +444,7 @@ export class IISynchronizerManager extends IIAbstractManager {
       .map((blockId) => {
         const strokeIds = this.canvas.jiix.getStrokesForElement(blockId)
         const boxes = strokeIds
-          .map((id) => this.model.getRootSymbol(id))
+          .map((id) => this.model.getSymbol(id))
           .filter((s): s is TStroke => !!s && isStroke(s))
           .map((s) => OBBOps.toBox(SymbolGeometry.boundsOf(s)))
         if (boxes.length === 0) {

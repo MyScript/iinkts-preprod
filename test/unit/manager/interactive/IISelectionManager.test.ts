@@ -694,7 +694,7 @@ describe("IISelectionManager.ts", () => {
         manager as unknown as { createEdgeResizeGroup: (edge: TEdgeArc) => SVGGElement }
       ).createEdgeResizeGroup(arc)
       /** The drag commits a draft, so the local `arc` is a pre-drag snapshot: read the document. */
-      const current = () => canvas.model.getRootSymbol(arc.id) as TEdgeArc
+      const current = () => canvas.model.getSymbol(arc.id) as TEdgeArc
       return { canvas, arc, group, current }
     }
 
@@ -820,7 +820,7 @@ describe("IISelectionManager.ts", () => {
       const group = (
         manager as unknown as { createEdgeResizeGroup: (edge: TEdgeArc) => SVGGElement }
       ).createEdgeResizeGroup(arc)
-      const current = () => canvas.model.getRootSymbol(arc.id) as TEdgeArc
+      const current = () => canvas.model.getSymbol(arc.id) as TEdgeArc
 
       dragHandle(canvas, group, 2, { x: 55, y: 5 })
 

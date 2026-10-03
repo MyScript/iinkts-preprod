@@ -158,7 +158,7 @@ export class InsertGestureHandler extends GestureHandler {
       return gestureBounds.center.x < b.center.x - b.width / 2
     })
 
-    const symbolToSplit = this.model.getRootSymbol(strokeIdToSplit)
+    const symbolToSplit = this.model.getSymbol(strokeIdToSplit)
     if (symbolToSplit?.type === SymbolType.Stroke) {
       const newStrokes = this.computeSplitStroke(symbolToSplit, subStrokes)
       if (newStrokes.before) {
@@ -394,7 +394,7 @@ export class InsertGestureHandler extends GestureHandler {
       appendUpdated(
         changes,
         snapshots.flat().flatMap((before) => {
-          const after = this.canvas.model.getRootSymbol(before.id)
+          const after = this.canvas.model.getSymbol(before.id)
           return after ? [{ before, after }] : []
         })
       )
