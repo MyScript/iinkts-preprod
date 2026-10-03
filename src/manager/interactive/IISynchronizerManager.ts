@@ -38,8 +38,10 @@ export class IISynchronizerManager extends IIAbstractManager {
   // skipped instead of being reprocessed on every synchronize().
   #lastElementSnapshots = new Map<string, string>()
 
-  static readonly SYNCHRONIZE_TIMEOUT = 30000
   static readonly MAX_RETRY_ATTEMPTS = 3
+  static readonly RETRY_DELAY_MS = 500
+  /** How long one math block's dependency enrichment may take before the sync stops waiting for it */
+  static readonly ENRICH_TIMEOUT_MS = 5000
   /** Main-thread time `#doSynchronize`'s loop may take before yielding a frame, so a large
    * document doesn't block pending pointer input in one go. A time budget, not an element count:
    * counting yielded one frame per N elements even when the pass had nothing to do. */
@@ -77,44 +79,25 @@ export class IISynchronizerManager extends IIAbstractManager {
     } while (this.#dirtyDuringSync)
   }
 
+  /** Retries any failure (in practice the export round-trip: element failures are caught per element) */
   async #synchronizeWithRetry(): Promise<void> {
-    let lastError: Error | undefined
-
-    for (let attempt = 1; attempt <= IISynchronizerManager.MAX_RETRY_ATTEMPTS; attempt++) {
+    const maxAttempts = IISynchronizerManager.MAX_RETRY_ATTEMPTS
+    for (let attempt = 1; ; attempt++) {
       try {
-        if (attempt > 1) {
-          this.logger.warn("synchronize", `Retry attempt ${attempt}/${IISynchronizerManager.MAX_RETRY_ATTEMPTS}`)
-        }
-
         await this.#doSynchronize()
-
         if (attempt > 1) {
           this.logger.info("synchronize", `Synchronization succeeded on attempt ${attempt}`)
         }
         return
       } catch (error) {
-        lastError = error as Error
-
-        if (attempt < IISynchronizerManager.MAX_RETRY_ATTEMPTS) {
-          this.logger.warn(
-            "synchronize",
-            `Will retry synchronization (attempt ${attempt + 1}/${IISynchronizerManager.MAX_RETRY_ATTEMPTS})`
-          )
-          await new Promise((resolve) => setTimeout(resolve, 500))
-          continue
-        } else {
-          // Non-timeout error - don't retry, fail immediately
-          this.logger.error("synchronize", "Synchronization failed with non-timeout error:", error)
+        if (attempt >= maxAttempts) {
+          this.logger.error("synchronize", `Synchronization failed after ${maxAttempts} attempts:`, error)
           throw error
         }
+        this.logger.warn("synchronize", `Will retry synchronization (attempt ${attempt + 1}/${maxAttempts})`)
+        await new Promise((resolve) => setTimeout(resolve, IISynchronizerManager.RETRY_DELAY_MS))
       }
     }
-
-    this.logger.error(
-      "synchronize",
-      `Synchronization failed after ${IISynchronizerManager.MAX_RETRY_ATTEMPTS} attempts`
-    )
-    throw lastError || new Error(`Synchronization failed after ${IISynchronizerManager.MAX_RETRY_ATTEMPTS} attempts`)
   }
 
   /** Never contend with an in-progress gesture (writing, translating, resizing, rotating) for the main thread. */
@@ -127,14 +110,21 @@ export class IISynchronizerManager extends IIAbstractManager {
   /** Serializes only the fields `#updateBlockMetadata`/`updateTextMetadata` actually read,
    * so an unrelated JIIX field changing doesn't cause a false "changed" positive. */
   #elementSnapshotKey(element: TJIIXElement): string {
-    const textElement = element as TJIIXTextElement
-    return JSON.stringify({
-      type: element.type,
-      label: textElement.label,
-      words0: textElement.words?.[0],
-      chars0: textElement.chars?.[0],
-      lines0: textElement.lines?.[0],
-    })
+    switch (element.type) {
+      case JIIXElementType.Text:
+        return JSON.stringify({
+          type: element.type,
+          label: element.label,
+          words0: element.words?.[0],
+          chars0: element.chars?.[0],
+          lines0: element.lines?.[0],
+        })
+      case JIIXElementType.Math:
+        return JSON.stringify({ type: element.type, label: element.label })
+      default:
+        // Nodes and edges carry none of the fields read: their type is the whole key
+        return JSON.stringify({ type: element.type })
+    }
   }
 
   async #doSynchronize(): Promise<void> {
@@ -227,12 +217,15 @@ export class IISynchronizerManager extends IIAbstractManager {
 
     // Enrich math blocks with dependencies — parallel with individual timeout to avoid one hanging block stalling the whole sync
     const mathBlockIds = this.model.mathBlocks.map((m) => m.id)
-    const ENRICH_TIMEOUT_MS = 5000
     await Promise.allSettled(
       mathBlockIds.map(async (blockId) => {
-        const timeout = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error(`enrichMathDependencies timeout for "${blockId}"`)), ENRICH_TIMEOUT_MS)
-        )
+        let timer: ReturnType<typeof setTimeout> | undefined
+        const timeout = new Promise<never>((_, reject) => {
+          timer = setTimeout(
+            () => reject(new Error(`enrichMathDependencies timeout for "${blockId}"`)),
+            IISynchronizerManager.ENRICH_TIMEOUT_MS
+          )
+        })
         try {
           // `isStale` lets the enrichment discard its result instead of committing it if strokes
           // kept coming in while the backend round-trip was in flight (this pass's mathBlockIds
@@ -249,6 +242,8 @@ export class IISynchronizerManager extends IIAbstractManager {
           } else {
             this.logger.error("synchronize", "Error enriching math dependencies:", err)
           }
+        } finally {
+          clearTimeout(timer)
         }
       })
     )
