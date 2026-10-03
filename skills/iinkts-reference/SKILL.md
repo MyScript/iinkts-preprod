@@ -66,6 +66,8 @@ src/
 │   ├── SymbolHelpers.ts # cloneSymbol() only — NOT a dispatch class, see symbol-utils/ for that
 │   └── legacy/          # Stroke, CanvasSymbol (deprecated v1)
 ├── menu/
+│   ├── IIAbstractMenu.ts # base of the 4 menus: items, zones "bar"/"dropdown", dropdown mechanics
+│   ├── IIMenuManager.ts # canvas.menu: builds the menus (override classes), item registry, setConfig
 │   ├── actions/         # 12 action handlers (Clear, Convert, Export, Undo, etc.)
 │   ├── context/         # 9 context menus
 │   ├── items/           # 9 item types (Button, Checkbox, Color, Range, etc.)
@@ -182,6 +184,8 @@ type TSymbol = TEdge | TShape | TStroke | TText | TMath | TDecorator
 **Gestures** (`manager/interactive/gestures/`): `GestureHandler` + `handlers/` per-gesture, `IIGestureAnnotationProcessor` for annotation logic, orchestrated by `IIGestureManager`.
 
 **Typeset** (`IITypesetManager`): handles both text and math typeset bounds via SVG `getBBox`, replaced former `IITextManager`.
+
+**Menus** (`menu/`): `IIMenuAction`, `IIMenuStyle`, `IIMenuTool`, `IIMenuContext` extend `IIAbstractMenu<TConfig>`. Each has two zones, `"bar"` and `"dropdown"`, built on their first item (`createZone`), and a `defaultZone`. In `render()`, a menu sets `wrapper` first, then calls the protected `addItem(key, item, { zone, before, after, replace })`. An integrator adds items with `canvas.menu.addItem(menu, key, factory, options)`: the `IIMenuManager` registry keeps **factories** (menus are rebuilt by every `setConfig`, and a destroyed item can't be reused) and replays them after each render. A whole menu is replaced through `options.override.menu` (`TMenuOverride`, classes constructed `(canvas, id, config)`). Menu members are protected, never `#private`: they are overridable.
 
 ## Key utilities
 
