@@ -1,4 +1,4 @@
-import { DecoratorKind, DecoratorUtil, DefaultPenStyle, DefaultStyle, EdgeUtil, Ellipse2d, EraserOps, MathUtil, OBBOps, Polygon2d, Polyline2d, SELECTION_MARGIN, ShapeUtil, Stroke, StrokeUtil, TBox, TDecorator, TEdge, TEdgeLine, TEraser, TMath, TMathElement, TPartialDeep, TPoint, TShapeCircle, TShapeEllipse, TStroke, TStyle, TSymbolChar, TText, TextUtil, computeTypesetVertices } from "@/iink"
+import { BaseMenuItem, DecoratorKind, DecoratorUtil, DefaultPenStyle, DefaultStyle, EdgeUtil, Ellipse2d, EraserOps, MathUtil, OBBOps, Polygon2d, Polyline2d, SELECTION_MARGIN, ShapeUtil, Stroke, StrokeUtil, TBox, TDecorator, TEdge, TEdgeLine, TEraser, TMath, TMathElement, TPartialDeep, TPoint, TShapeCircle, TShapeEllipse, TStroke, TStyle, TSymbolChar, TText, TextUtil, computeTypesetVertices, TInteractiveInkCanvas } from "@/iink"
 
 
 export const delay = (delayInms: number) => {
@@ -182,4 +182,17 @@ export function decoratorGeometry(decorator: TDecorator): Polygon2d {
 /** A typeset symbol is found by the box it was measured at, as an outline. */
 export function typesetGeometry(symbol: TText | TMath): Polygon2d {
   return new Polygon2d(computeTypesetVertices(OBBOps.toUnrotatedBox(symbol.bounds)))
+}
+
+/** A menu item with nothing of its own: a button, for tests about where a menu puts its items */
+export class StubMenuItem extends BaseMenuItem<HTMLButtonElement> {
+  constructor(id: string, canvas: TInteractiveInkCanvas) {
+    super({ id, type: "button" }, canvas)
+  }
+  createElement(): HTMLButtonElement {
+    const button = document.createElement("button")
+    button.id = this.config.id
+    return button
+  }
+  update(): void {}
 }
