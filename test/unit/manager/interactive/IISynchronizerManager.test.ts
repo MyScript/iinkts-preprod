@@ -112,18 +112,40 @@ describe("IISynchronizerManager.ts", () => {
       restoreRaf()
     })
 
-    test("should yield to the event loop periodically instead of processing every element in one blocking pass", async () => {
-      const chunkSize = IISynchronizerManager.SYNC_YIELD_CHUNK_SIZE
-      const { canvas, manager, strokes, rafSpy, restoreRaf } = setup(chunkSize * 2 + 1)
+    test("should yield to the event loop once its time budget is spent, instead of one blocking pass", async () => {
+      const budget = IISynchronizerManager.SYNC_YIELD_BUDGET_MS
+      const { canvas, manager, strokes, rafSpy, restoreRaf } = setup(5)
+      let now = 0
+      const clock = jest.spyOn(performance, "now").mockImplementation(() => now)
+      // Each element costs a little over half the budget: the budget runs out every second element
+      jest.mocked(canvas.jiix.updateTextMetadata).mockImplementation(() => {
+        now += budget / 2 + 1
+      })
+
       await manager.synchronize()
 
-      // One yield after each full chunk (here: 2 chunks completed mid-loop).
+      // Out after elements 2 and 4; element 5 alone fits
       expect(rafSpy).toHaveBeenCalledTimes(2)
       // Yielding must not skip or duplicate work.
       strokes.forEach((stroke, i) => {
         const newStroke = canvas.model.getSymbol(stroke.id) as TStroke
         expect(newStroke.jiixBlockId).toBe(`block-${i}`)
       })
+      clock.mockRestore()
+      restoreRaf()
+    })
+
+    test("should not yield on a large document whose pass fits in the budget", async () => {
+      const { manager, rafSpy, restoreRaf } = setup(200)
+      await manager.synchronize()
+      rafSpy.mockClear()
+      const clock = jest.spyOn(performance, "now").mockReturnValue(0)
+
+      await manager.synchronize()
+
+      // Yielding every N elements cost one frame per N even when there was nothing to do
+      expect(rafSpy).not.toHaveBeenCalled()
+      clock.mockRestore()
       restoreRaf()
     })
 
