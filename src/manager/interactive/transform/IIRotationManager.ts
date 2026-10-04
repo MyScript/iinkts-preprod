@@ -1,13 +1,19 @@
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import type { TPoint } from "@/core/geometry"
-import { BoxOps, computeAngleRadian, MatrixTransform, type TOBB } from "@/core/geometry"
-import { convertDegreeToRadian, convertRadianToDegree, TWO_PI } from "@/core/math"
+import type { TInteractiveInkCanvas } from "@/canvas"
+import type { TPoint } from "@/core"
+import {
+  BoxOps,
+  computeAngleRadian,
+  convertDegreeToRadian,
+  convertRadianToDegree,
+  MatrixTransform,
+  type TOBB,
+  TWO_PI,
+} from "@/core"
 import type { TIIHistoryChanges } from "@/history"
 import { appendUpdated } from "@/history"
 import type { TSymbol } from "@/symbol"
 import { cloneSymbol } from "@/symbol"
-import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
-import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
+import { SymbolGeometry, symbolRegistry } from "@/symbol-utils"
 
 import { IIAbstractTransformManager } from "./AbstractTransformManager"
 

@@ -7,8 +7,8 @@
  * direction and no conversion at the call site.
  */
 
-import type { TMatrixTransform } from "@/core/geometry"
-import { applyMatrixToPoint, isIdentityMatrix } from "@/core/geometry"
+import type { TMatrixTransform } from "@/core"
+import { applyMatrixToPoint, isIdentityMatrix } from "@/core"
 
 /**
  * One captured point of a stroke. `x` and `y` are required; `t` and `p` are not, so a caller that

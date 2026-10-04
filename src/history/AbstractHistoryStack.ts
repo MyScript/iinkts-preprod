@@ -1,4 +1,4 @@
-import type { CanvasEvent } from "@/canvas/CanvasEvent"
+import type { CanvasEvent } from "@/canvas"
 import { LoggerCategory, LoggerManager } from "@/logger"
 
 import type { THistoryConfiguration } from "./HistoryConfiguration"

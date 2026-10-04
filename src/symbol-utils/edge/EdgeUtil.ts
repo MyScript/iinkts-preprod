@@ -1,26 +1,31 @@
 import { HIT_TOLERANCE } from "@/constants"
-import { TESSELLATION_SEGMENT_LENGTH } from "@/core"
-import type { TPoint } from "@/core/geometry"
+import type { TPartialDeep, TPoint } from "@/core"
 import {
   computeDistance,
+  computeEllipseRadiusAverage,
   computePointOnEllipse,
+  computeTessellationCount,
+  createUUID,
+  type Geometry2d,
+  isValidNumber,
   isValidPoint,
   MatrixTransform,
   mergeSymbolTransform,
-} from "@/core/geometry"
-import { type Geometry2d, Polyline2d } from "@/core/geometry"
-import { computeEllipseRadiusAverage, computeTessellationCount, isValidNumber } from "@/core/math"
-import type { TPartialDeep } from "@/core/std"
-import { createUUID } from "@/core/std"
-import { mergeSymbolStyle, type TStyle } from "@/style"
-import { DefaultStyle } from "@/style"
-import { EdgeDecoration } from "@/symbol"
-import { type TEdgeArc } from "@/symbol/edge/Arc"
-import type { TEdge } from "@/symbol/edge/Edge"
-import { EdgeKind } from "@/symbol/edge/Edge-enum"
-import { type TEdgeLine } from "@/symbol/edge/Line"
-import { type TEdgePolyLine } from "@/symbol/edge/PolyLine"
-import { SymbolType, type TBaseSymbol, type TResizePoint } from "@/symbol/Symbol"
+  Polyline2d,
+  TESSELLATION_SEGMENT_LENGTH,
+} from "@/core"
+import { DefaultStyle, mergeSymbolStyle, type TStyle } from "@/style"
+import type { TEdge } from "@/symbol"
+import {
+  EdgeDecoration,
+  EdgeKind,
+  SymbolType,
+  type TBaseSymbol,
+  type TEdgeArc,
+  type TEdgeLine,
+  type TEdgePolyLine,
+  type TResizePoint,
+} from "@/symbol"
 
 import { defineKind, resolveKind, type TKindDefinition } from "../KindDefinition"
 import { PathSymbolUtil } from "../PathSymbolUtil"

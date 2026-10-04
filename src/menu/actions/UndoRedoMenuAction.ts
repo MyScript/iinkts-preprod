@@ -1,7 +1,8 @@
 import redoIcon from "@/assets/svg/redo.svg"
 import undoIcon from "@/assets/svg/undo.svg"
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
+import type { TInteractiveInkCanvas } from "@/canvas"
+
+import { BaseMenuItem } from "../items/BaseMenuItem"
 
 /**
  * @group Menu

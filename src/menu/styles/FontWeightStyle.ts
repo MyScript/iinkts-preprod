@@ -1,9 +1,10 @@
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import type { TInteractiveInkCanvas } from "@/canvas"
 import { CanvasTool } from "@/manager"
-import type { TMenuButtonList } from "@/menu/items"
-import { ButtonListMenuItem, CollapsibleWrapper } from "@/menu/items"
-import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
 import { isText } from "@/symbol"
+
+import type { TMenuButtonList } from "../items"
+import { ButtonListMenuItem, CollapsibleWrapper } from "../items"
+import { BaseMenuItem } from "../items/BaseMenuItem"
 /**
  * @group Menu
  * @remarks Font weight style menu

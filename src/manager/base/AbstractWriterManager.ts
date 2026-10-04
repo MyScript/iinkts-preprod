@@ -1,6 +1,5 @@
-import type { TInkCanvas } from "@/canvas/TInkCanvas"
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import type { TPointer } from "@/core/geometry"
+import type { TInkCanvas, TInteractiveInkCanvas } from "@/canvas"
+import type { TPointer } from "@/core"
 import type { TPointerInfo } from "@/grabber"
 import { PointerEventGrabber } from "@/grabber"
 import { LoggerCategory, LoggerManager } from "@/logger"

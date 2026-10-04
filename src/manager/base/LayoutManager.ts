@@ -1,5 +1,5 @@
-import type { CanvasLayer } from "@/canvas/CanvasLayer"
-import type { TPartialDeep } from "@/core/std"
+import type { CanvasLayer } from "@/canvas"
+import type { TPartialDeep } from "@/core"
 import { DOMFactory } from "@/dom"
 import { LoggerCategory, LoggerManager } from "@/logger"
 

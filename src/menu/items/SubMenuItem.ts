@@ -1,5 +1,5 @@
 import ArrowDown from "@/assets/svg/nav-arrow-down.svg"
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import type { TInteractiveInkCanvas } from "@/canvas"
 
 import type { TGenericMenuItem, TMenuItemBase } from "./BaseMenuItem"
 import { BaseMenuItem } from "./BaseMenuItem"

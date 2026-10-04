@@ -1,22 +1,21 @@
-import type { TPointer } from "@/core/geometry"
-import type { TPoint } from "@/core/geometry"
+import type { TPartialDeep, TPoint, TPointer } from "@/core"
 import {
   computeAngleAxeRadian,
   computeLinksPointers,
   computeMiddlePointer,
+  createUUID,
   getClosestPoint,
   MatrixTransform,
   mergeSymbolTransform,
+  OBBOps,
+  PointSet2d,
   resolvePointerDelta,
   resolveStrokeOrigin,
-} from "@/core/geometry"
-import { OBBOps, PointSet2d } from "@/core/geometry"
-import type { TPartialDeep } from "@/core/std"
-import { createUUID } from "@/core/std"
+} from "@/core"
 import type { TStyle } from "@/style"
 import { computeOutlinePointers, DefaultStyle, mergeSymbolStyle, readNibOverrides } from "@/style"
-import type { TStroke, TStrokeImport } from "@/symbol/stroke/Stroke"
-import { SymbolType } from "@/symbol/Symbol"
+import type { TStroke, TStrokeImport } from "@/symbol"
+import { SymbolType } from "@/symbol"
 
 import { PathSymbolUtil } from "../PathSymbolUtil"
 import { SymbolGeometry } from "../SymbolGeometry"

@@ -1,21 +1,16 @@
-import type { TCanvasOptionsBase } from "@/canvas/AbstractCanvas"
-import { AbstractCanvas } from "@/canvas/AbstractCanvas"
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import type { TExport, TRecognitionWebSocketConfiguration } from "@/client"
 import { WebSocketClient } from "@/client"
 import { DUPLICATE_OFFSET, SELECTION_PADDING } from "@/constants"
-import type { TBox } from "@/core/geometry"
-import { BoxOps, isIdentityMatrix, MatrixTransform, OBBOps } from "@/core/geometry"
-import type { TPartialDeep } from "@/core/std"
-import { createUUID, mergeDeep, overrideDeep } from "@/core/std"
-import { RafCoalescer } from "@/dom"
-import { DOMFactory } from "@/dom"
+import type { TBox, TPartialDeep } from "@/core"
+import { BoxOps, createUUID, isIdentityMatrix, MatrixTransform, mergeDeep, OBBOps, overrideDeep } from "@/core"
+import { DOMFactory, RafCoalescer } from "@/dom"
 import type { TIIHistoryBackendChanges, TIIHistoryChanges } from "@/history"
 import { appendUpdated, extractIIBackendChanges, IIHistoryManager } from "@/history"
 import type { TDownloadFormat, TExportFormat, TExportOptions, TExportResultMap, TPDFDownloadOptions } from "@/manager"
-import { CanvasTool, GESTURE_OPERATION_LABELS } from "@/manager"
 import {
+  CanvasTool,
   EraseManager,
+  GESTURE_OPERATION_LABELS,
   IIConnectorManager,
   IIConversionManager,
   IIExportManager,
@@ -42,9 +37,9 @@ import { IIModel } from "@/model"
 import type { TIIRendererConfiguration } from "@/renderer"
 import { SVGRenderer } from "@/renderer"
 import type { TStyle } from "@/style"
-import type { TDecorator, TMath, TStroke, TSymbol, TText } from "@/symbol"
-import type { TBaseSymbol } from "@/symbol"
+import type { TBaseSymbol, TDecorator, TMath, TStroke, TSymbol, TText } from "@/symbol"
 import { cloneSymbol, extractStrokes, isDecorator, isMath, isStroke, isStrokeSolverOutput, isText } from "@/symbol"
+import type { SymbolUtil } from "@/symbol-utils"
 import {
   createSymbolFromPartial,
   createSymbolsFromPartial,
@@ -52,13 +47,15 @@ import {
   EdgeUtil,
   registerBuiltinSymbolUtils,
   StrokeUtil,
+  SymbolGeometry,
+  symbolRegistry,
   TextUtil,
 } from "@/symbol-utils"
-import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
-import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
-import type { SymbolUtil } from "@/symbol-utils/SymbolUtil"
 
+import type { TCanvasOptionsBase } from "../AbstractCanvas"
+import { AbstractCanvas } from "../AbstractCanvas"
 import type { TCanvasOperationLabel } from "../TCanvasOperationLabel"
+import type { TInteractiveInkCanvas } from "../TInteractiveInkCanvas"
 import type { TInteractiveInkCanvasConfiguration } from "./InteractiveInkCanvasConfiguration"
 import { InteractiveInkCanvasConfiguration } from "./InteractiveInkCanvasConfiguration"
 

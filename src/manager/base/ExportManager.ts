@@ -1,21 +1,16 @@
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import type { TBox } from "@/core/geometry"
+import type { TInteractiveInkCanvas } from "@/canvas"
+import type { TBox } from "@/core"
 import type { Logger } from "@/logger"
 import { LoggerCategory, LoggerManager } from "@/logger"
-import type { TPDFExportDialogOptions } from "@/manager/base/PDFExportManager"
-import { PDFExportManager } from "@/manager/base/PDFExportManager"
-import type {
-  TDownloadFormat,
-  TExportFormat,
-  TExportOptions,
-  TExportResultMap,
-  TPDFDownloadOptions,
-} from "@/manager/base/TExport"
-import { EXPORT_EXTENSIONS, EXPORT_MIME_TYPES } from "@/manager/base/TExport"
 import type { IIModel } from "@/model"
 import { SVGBuilder } from "@/renderer"
 import type { TSymbol } from "@/symbol"
 import { cloneSymbol } from "@/symbol"
+
+import type { TPDFExportDialogOptions } from "./PDFExportManager"
+import { PDFExportManager } from "./PDFExportManager"
+import type { TDownloadFormat, TExportFormat, TExportOptions, TExportResultMap, TPDFDownloadOptions } from "./TExport"
+import { EXPORT_EXTENSIONS, EXPORT_MIME_TYPES } from "./TExport"
 /**
  * One exporter per format, each resolving with the type {@link TExportResultMap} declares for it.
  *

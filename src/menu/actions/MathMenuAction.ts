@@ -1,14 +1,15 @@
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import type { TInteractiveInkCanvas } from "@/canvas"
 import type { TRecognitionWebSocketConfiguration } from "@/client"
 import { IIMathCapabilitiesTable, IIMathVariableCanvas } from "@/components"
-import type { TPartialDeep } from "@/core/std"
-import type { TMathResultMode } from "@/manager/interactive/math"
-import type { TMenuItemBase } from "@/menu/items/BaseMenuItem"
-import type { TMenuCheckbox } from "@/menu/items/CheckboxMenuItem"
-import type { TMenuRange } from "@/menu/items/RangeMenuItem"
-import type { TMenuSelect } from "@/menu/items/SelectMenuItem"
-import type { TMenuSubMenu, TSubMenuItems } from "@/menu/items/SubMenuItem"
-import { SubMenuItem } from "@/menu/items/SubMenuItem"
+import type { TPartialDeep } from "@/core"
+import type { TMathResultMode } from "@/manager"
+
+import type { TMenuItemBase } from "../items/BaseMenuItem"
+import type { TMenuCheckbox } from "../items/CheckboxMenuItem"
+import type { TMenuRange } from "../items/RangeMenuItem"
+import type { TMenuSelect } from "../items/SelectMenuItem"
+import type { TMenuSubMenu, TSubMenuItems } from "../items/SubMenuItem"
+import { SubMenuItem } from "../items/SubMenuItem"
 
 /** @group Menu */
 export type TMathActionItemsConfig = {

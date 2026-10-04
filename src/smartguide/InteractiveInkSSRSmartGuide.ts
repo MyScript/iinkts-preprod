@@ -1,9 +1,7 @@
-import type { CanvasEvent } from "@/canvas/CanvasEvent"
-import type { TConverstionState, TMarginConfiguration } from "@/client"
-import type { TJIIXExport, TJIIXWord } from "@/client"
+import type { CanvasEvent } from "@/canvas"
+import type { TConverstionState, TJIIXExport, TJIIXWord, TMarginConfiguration } from "@/client"
 import { ExportType } from "@/client"
-import { convertMillimeterToPixel } from "@/core/math"
-import { createUUID } from "@/core/std"
+import { convertMillimeterToPixel, createUUID } from "@/core"
 import { LoggerCategory, LoggerManager } from "@/logger"
 
 import style from "./InteractiveInkSSRSmartGuide.css"

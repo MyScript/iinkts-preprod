@@ -1,5 +1,5 @@
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import type { InteractiveInkCanvasConfiguration } from "@/canvas/variants/InteractiveInkCanvasConfiguration"
+import type { TInteractiveInkCanvas } from "@/canvas"
+import type { InteractiveInkCanvasConfiguration } from "@/canvas/variants"
 import type { WebSocketClient } from "@/client"
 import type { Logger, LoggerCategory } from "@/logger"
 import { LoggerManager } from "@/logger"

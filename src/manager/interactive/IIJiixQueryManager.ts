@@ -1,4 +1,4 @@
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import type { TInteractiveInkCanvas } from "@/canvas"
 import type {
   TJIIXEdgeElement,
   TJIIXElement,
@@ -10,14 +10,11 @@ import type {
   TJIIXTextElement,
 } from "@/client"
 import { JIIXElementType } from "@/client"
-import type { TBox } from "@/core/geometry"
-import { BoxOps } from "@/core/geometry"
-import { OBBOps } from "@/core/geometry"
-import { convertBoundingBoxMillimeterToPixel } from "@/core/geometry"
-import { convertMillimeterToPixel } from "@/core/math"
+import type { TBox } from "@/core"
+import { BoxOps, convertBoundingBoxMillimeterToPixel, convertMillimeterToPixel, OBBOps } from "@/core"
 import { LoggerCategory } from "@/logger"
 import type { TStroke, TSymbol } from "@/symbol"
-import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
+import { SymbolGeometry } from "@/symbol-utils"
 
 import { IIAbstractManager } from "./IIAbstractManager"
 

@@ -1,18 +1,13 @@
-import type { TInkCanvas } from "@/canvas/TInkCanvas"
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import type { TPoint, TSegment } from "@/core/geometry"
-import { BoxOps } from "@/core/geometry"
-import { OBBOps, type TOBB } from "@/core/geometry"
-import { computeDistanceBetweenPointAndSegment, computeDistanceSquared } from "@/core/geometry"
+import type { TInkCanvas, TInteractiveInkCanvas } from "@/canvas"
+import type { TPoint, TSegment } from "@/core"
+import { BoxOps, computeDistanceBetweenPointAndSegment, computeDistanceSquared, OBBOps, type TOBB } from "@/core"
 import type { TPointerInfo } from "@/grabber"
 import { PointerEventGrabber } from "@/grabber"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { SVGRenderer } from "@/renderer"
 import type { TEraser, TSymbol } from "@/symbol"
-import { isText } from "@/symbol"
-import { EraserOps } from "@/symbol/eraser/Eraser"
-import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
-import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
+import { EraserOps, isText } from "@/symbol"
+import { SymbolGeometry, symbolRegistry } from "@/symbol-utils"
 /**
  * @group Manager
  */
