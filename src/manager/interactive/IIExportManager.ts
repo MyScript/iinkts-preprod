@@ -1,5 +1,4 @@
 import type { TInteractiveInkCanvas } from "@/canvas"
-import type { InteractiveInkCanvasConfiguration } from "@/canvas/variants"
 import type { TJIIXExport, WebSocketClient } from "@/client"
 import { ExportType } from "@/client"
 import type { TBox } from "@/core"
@@ -41,7 +40,7 @@ export class IIExportManager extends ExportManager {
     return this.canvas.client
   }
 
-  get configuration(): InteractiveInkCanvasConfiguration {
+  get configuration(): TInteractiveInkCanvas["configuration"] {
     return this.canvas.configuration
   }
 
