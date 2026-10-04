@@ -192,6 +192,10 @@ Every export on `InteractiveInkCanvas` goes through two functions instead of nin
 
 ## Features
 
+### Every module is exported
+Each folder's barrel now reaches every file in it, so the helpers the built-in clients and symbol utils were written with are available to a custom one.
+- new: `resolveHmac`, `parseApiError`, `TApiError` (client helpers, for a custom client); `TKindDefinition`, `defineKind`, `resolveKind` (how the built-in families resolve their kinds — `@experimental`, not yet a stable contract)
+
 ### Place the menus where you want: `configuration.layout`
 The canvas UI has 8 slots (`top-left`, `top-center`, `top-right`, `middle-left`, `middle-right`, `bottom-left`, `bottom-center`, `bottom-right`), and `configuration.layout` says what goes in each, in stacking order — e.g. `{ "bottom-center": ["action", "tool"] }` puts the action bar right above the tools.
 - occupants: the menus (`action`, `style`, `tool`) and, in `InteractiveInkCanvas` and `InkCanvas` (INK_V2), the connection state (`state`) and the minimap (`minimap`)
