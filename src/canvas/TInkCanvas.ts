@@ -30,7 +30,7 @@ export type TInkCanvas = {
   readonly configuration: InkCanvasConfiguration
   readonly event: CanvasEvent
   readonly layers: CanvasLayer
-  readonly layout: LayoutManager
+  readonly layout: LayoutManager<TInkCanvas>
   readonly renderer: SVGRenderer
   readonly client: HTTPClientV2
   get penStyle(): TStyle

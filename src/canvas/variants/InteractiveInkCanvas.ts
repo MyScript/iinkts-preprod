@@ -34,8 +34,9 @@ import {
   IIWriterManager,
   LayoutManager,
   PDFExportManager,
+  type TLayoutOccupant,
 } from "@/manager"
-import type { TMenuOverride } from "@/menu"
+import type { TMenuItemRegistration, TMenuOverride } from "@/menu"
 import { IIMenuManager } from "@/menu"
 import { IIModel } from "@/model"
 import type { TIIRendererConfiguration } from "@/renderer"
@@ -74,6 +75,13 @@ export type TInteractiveInkCanvasOptions = TPartialDeep<
   override?: {
     client?: WebSocketClient
     menu?: TMenuOverride
+  }
+  /** Content added at load, so it is there from the first render (functions: hence not in `configuration`) */
+  extend?: {
+    /** Items added to the menus, like `canvas.menu.addItem` */
+    menuItems?: TMenuItemRegistration[]
+    /** Custom occupants of the layout, like `canvas.layout.add` */
+    layout?: TLayoutOccupant<TInteractiveInkCanvas>[]
   }
 }
 
@@ -149,7 +157,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
   connector: IIConnectorManager
   /** Manages the floating UI menu (tool selector, style panel, action buttons). */
   /** Where the menus, the connection state and the minimap sit */
-  layout: LayoutManager
+  layout: LayoutManager<TInteractiveInkCanvas>
   menu: IIMenuManager
   /** Replays a recorded set of strokes with play/pause/speed control. */
   playback: IIPlaybackManager
@@ -210,8 +218,14 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     this.exportManager = new IIExportManager(this, this.pdfExport)
     this.math = new IIMathManager(this, this.#configuration.math)
     this.connector = new IIConnectorManager(this, this.#configuration.connector)
-    this.layout = new LayoutManager(this.layers, INTERACTIVE_INK_LAYOUT_OCCUPANTS, options?.configuration?.layout)
-    this.menu = new IIMenuManager(this, options?.override?.menu)
+    this.layout = new LayoutManager<TInteractiveInkCanvas>(
+      this.layers,
+      INTERACTIVE_INK_LAYOUT_OCCUPANTS,
+      options?.configuration?.layout,
+      this,
+      options?.extend?.layout
+    )
+    this.menu = new IIMenuManager(this, options?.override?.menu, options?.extend?.menuItems)
     this.playback = new IIPlaybackManager(this)
   }
 

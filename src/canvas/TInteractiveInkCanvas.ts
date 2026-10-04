@@ -88,7 +88,7 @@ export type TInteractiveInkCanvas = {
   readonly exportManager: IIExportManager
   readonly math: IIMathManager
   readonly connector: IIConnectorManager
-  readonly layout: LayoutManager
+  readonly layout: LayoutManager<TInteractiveInkCanvas>
   readonly menu: IIMenuManager
   readonly playback: IIPlaybackManager
 
