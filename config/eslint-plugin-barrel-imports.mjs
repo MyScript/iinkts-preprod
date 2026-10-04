@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url"
 /**
  * One rule for how library code reaches other library code, see .local/barrel-imports/PLAN.md.
  *
- * - across folders of `src/`: only the folder barrel `@/x` (plus the sub-barrels below)
+ * - across folders of `src/`: only the folder barrel `@/x`
  * - inside a folder: relative paths only, and a relative path never leaves the folder
  * - `src/constants` is a leaf: it imports nothing else from `src/`
  * - unit tests reach the library only through `@/iink`
@@ -16,7 +16,6 @@ import { fileURLToPath } from "node:url"
  */
 
 const SRC_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../src")
-const SUB_BARRELS = ["canvas/variants"]
 const LEAF_FOLDERS = ["constants"]
 
 function isModule(srcDir, inner) {
@@ -37,7 +36,7 @@ function checkSrc(srcDir, file, spec) {
     if (own && LEAF_FOLDERS.includes(own)) return `\`${own}\` is a leaf and must not import from anywhere else in src/`
     if (!isModule(srcDir, inner)) return undefined // asset, stylesheet
     if (folder === own) return `inside \`${own}\`, import with a relative path, not \`${spec}\``
-    if (inner.includes("/") && !SUB_BARRELS.includes(inner)) return `import \`@/${folder}\`, not the deep path \`${spec}\``
+    if (inner.includes("/")) return `import \`@/${folder}\`, not the deep path \`${spec}\``
     return undefined
   }
   if (spec.startsWith(".") && own) {
