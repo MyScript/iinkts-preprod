@@ -7,7 +7,7 @@ import type { TPartialDeep } from "@/core/std"
 import type { PointerEventGrabber } from "@/grabber"
 import type { TIHistoryChanges } from "@/history"
 import { IHistoryManager } from "@/history"
-import { EraseManager, IDebugSVGManager, IWriterManager, LayoutManager } from "@/manager"
+import { EraseManager, IDebugSVGManager, IWriterManager, LayoutManager, type TLayoutOccupant } from "@/manager"
 import { IModel } from "@/model"
 import { SVGRenderer } from "@/renderer"
 import type { TStyle } from "@/style"
@@ -32,6 +32,11 @@ export type TInkCanvasOptions = TPartialDeep<
   override?: {
     grabber?: PointerEventGrabber
     client?: HTTPClientV2
+  }
+  /** Content added at load, so it is there from the first render (functions: hence not in `configuration`) */
+  extend?: {
+    /** Custom occupants of the layout, like `canvas.layout.add` */
+    layout?: TLayoutOccupant<TInkCanvas>[]
   }
 }
 
@@ -59,7 +64,7 @@ export class InkCanvas extends AbstractCanvas implements TInkCanvas {
   eraser: EraseManager
   debugger: IDebugSVGManager
   /** Where the connection state and custom occupants sit */
-  layout: LayoutManager
+  layout: LayoutManager<TInkCanvas>
   #tool: CanvasTool = CanvasTool.Write
 
   constructor(rootElement: HTMLElement, options?: TInkCanvasOptions) {
@@ -82,7 +87,13 @@ export class InkCanvas extends AbstractCanvas implements TInkCanvas {
     this.writer = new IWriterManager(this)
     this.eraser = new EraseManager(this)
     this.debugger = new IDebugSVGManager(this)
-    this.layout = new LayoutManager(this.layers, INK_LAYOUT_OCCUPANTS, options?.configuration?.layout)
+    this.layout = new LayoutManager<TInkCanvas>(
+      this.layers,
+      INK_LAYOUT_OCCUPANTS,
+      options?.configuration?.layout,
+      this,
+      options?.extend?.layout
+    )
     this.tool = CanvasTool.Write
     this.history = new IHistoryManager(this.#configuration["undo-redo"], this.event)
   }

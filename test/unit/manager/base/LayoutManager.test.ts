@@ -7,6 +7,7 @@ import {
   slotOpenTowards,
   slotOrientation,
   TLayoutConfiguration,
+  TLayoutOccupant,
 } from "@/iink"
 
 const INTERACTIVE_OCCUPANTS = ["action", "style", "tool", "state", "minimap"]
@@ -117,5 +118,108 @@ describe("slot geometry", () => {
     expect(slotOrientation(slot)).toBe(orientation)
     expect(slotOpenTowards(slot)).toBe(openTowards)
     expect(slotAnchor(slot)).toBe(anchor)
+  })
+})
+
+describe("LayoutManager at runtime", () => {
+  const canvas = { name: "canvas" }
+
+  function rendered(configuration?: TLayoutConfiguration, registered: TLayoutOccupant<typeof canvas>[] = []) {
+    const layers = new CanvasLayer(document.createElement("div"))
+    const layout = new LayoutManager(layers, INTERACTIVE_OCCUPANTS, configuration, canvas, registered)
+    layout.render()
+    return { layers, layout }
+  }
+
+  function badge(text: string): HTMLElement {
+    const element = document.createElement("span")
+    element.textContent = text
+    return element
+  }
+
+  test("should move an occupant on set, keeping its host and content, and announce only that move", () => {
+    const { layout } = rendered()
+    const toolHost = layout.host("tool")!
+    toolHost.appendChild(badge("tool content"))
+    const moves: [string, string | undefined][] = []
+    layout.onOccupantMoved((occupant, slot) => moves.push([occupant, slot]))
+
+    layout.set({ "middle-left": ["tool"] })
+
+    expect(layout.slotOf("tool")).toBe("middle-left")
+    expect(layout.host("tool")).toBe(toolHost)
+    expect(toolHost.textContent).toBe("tool content")
+    expect(toolHost.parentElement?.classList.contains("ms-layout-middle-left")).toBe(true)
+    expect(moves).toEqual([["tool", "middle-left"]])
+  })
+
+  test("should build a custom occupant into its slot, with the slot's context", () => {
+    const { layout } = rendered()
+    const factory = jest.fn(() => badge("mine"))
+
+    layout.add("mine", factory, { slot: "middle-right" })
+
+    expect(factory).toHaveBeenCalledWith(canvas, { slot: "middle-right", orientation: "vertical", openTowards: "left" })
+    expect(layout.host("mine")?.textContent).toBe("mine")
+  })
+
+  test("should place a custom occupant next to another one of its slot", () => {
+    const { layout } = rendered()
+    layout.add("before-tool", () => badge("a"), { slot: "bottom-center", before: "tool" })
+    layout.add("after-tool", () => badge("b"), { slot: "bottom-center", after: "tool" })
+    expect(layout.occupantsOf("bottom-center")).toEqual(["before-tool", "tool", "after-tool"])
+  })
+
+  test("should rebuild a custom occupant moved to another slot, for that slot", () => {
+    const { layout } = rendered()
+    const factory = jest.fn((_canvas: typeof canvas, { slot }: { slot: string }) => badge(slot))
+    layout.add("mine", factory, { slot: "top-center" })
+
+    layout.set({ "middle-left": ["mine"] })
+
+    expect(factory).toHaveBeenCalledTimes(2)
+    expect(layout.host("mine")?.textContent).toBe("middle-left")
+  })
+
+  test("should refuse a key already taken, built-in or added", () => {
+    const { layout } = rendered()
+    expect(() => layout.add("tool", () => badge("x"))).toThrow('"tool" is already an occupant of the layout')
+    layout.add("mine", () => badge("x"))
+    expect(() => layout.add("mine", () => badge("x"))).toThrow('"mine" is already an occupant of the layout')
+  })
+
+  test("should show nothing, with a warning, for an occupant no slot places", () => {
+    const warn = jest.spyOn(LoggerManager.getLogger(LoggerCategory.CANVAS), "warn")
+    const { layout } = rendered()
+    layout.add("orphan", () => badge("x"))
+    expect(layout.host("orphan")).toBeUndefined()
+    expect(warn).toHaveBeenCalledWith("layout", '"orphan" is not placed in any slot: not shown')
+    // The table can place it later
+    layout.set({ "top-center": ["orphan"] })
+    expect(layout.host("orphan")?.textContent).toBe("x")
+    warn.mockRestore()
+  })
+
+  test("should remove a custom occupant and its slot, and say whether there was one", () => {
+    const { layers, layout } = rendered()
+    layout.add("mine", () => badge("x"), { slot: "top-center" })
+    expect(layout.remove("mine")).toBe(true)
+    expect(layers.ui.root.querySelector(".ms-layout-top-center")).toBeNull()
+    expect(layout.remove("mine")).toBe(false)
+  })
+
+  test("should keep rendering the layout when a factory throws", () => {
+    const { layout } = rendered()
+    layout.add("broken", () => {
+      throw new Error("boom")
+    }, { slot: "top-center" })
+    expect(layout.host("tool")).toBeDefined()
+  })
+
+  test("should take the occupants declared at load and build them on the first render", () => {
+    const factory = jest.fn(() => badge("declared"))
+    const { layout } = rendered(undefined, [{ key: "declared", factory, slot: "top-center" }])
+    expect(factory).toHaveBeenCalledTimes(1)
+    expect(layout.host("declared")?.textContent).toBe("declared")
   })
 })
