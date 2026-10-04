@@ -49,7 +49,7 @@ export type TMenuLayoutConfig = {
  * @remarks A raw `HTMLElement` is for static content: it is removed with the menu, never updated. Anything that must
  * follow the canvas state is a {@link BaseMenuItem}.
  */
-export type TMenuItemFactory = () => BaseMenuItem | HTMLElement
+export type TMenuItemFactory = (canvas: TInteractiveInkCanvas) => BaseMenuItem | HTMLElement
 
 /**
  * @group Menu
@@ -253,7 +253,7 @@ export abstract class IIAbstractMenu<TConfig extends TMenuLayoutConfig> {
     registered.forEach(({ factory, options }, key) => {
       try {
         const previous = this.items.get(key)
-        this.addItem(key, factory(), options)
+        this.addItem(key, factory(this.canvas), options)
         const added = this.items.get(key)
         if (added && added !== previous) {
           added.update()
