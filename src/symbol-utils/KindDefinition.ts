@@ -10,8 +10,10 @@ import type { TResizePoint } from "@/symbol/Symbol"
  * `switch` per method, which let a new kind be added to `create` and forgotten in `overlaps`. One
  * table of these instead makes a kind a single entry, and a missing method a compile error.
  *
- * Deliberately not exported through `src/symbol-utils/index.ts`: this is how the built-in families
- * are written, not yet a contract integrators may implement against.
+ * Exported because every file is reachable from its folder barrel, but this is how the built-in
+ * families are written, not yet a contract integrators may implement against.
+ * @group SymbolUtils
+ * @experimental
  */
 export type TKindDefinition<T> = {
   create(partial: TPartialDeep<T>): T
@@ -57,6 +59,8 @@ export type TKindDefinition<T> = {
  * The switches these tables replaced carried a cast per branch per method — twelve in `ShapeUtil`,
  * twelve in `EdgeUtil`. Writing each entry against its own type collapses all of them into the one
  * cast below, which is the only place a kind's type is asserted rather than checked.
+ * @group SymbolUtils
+ * @experimental
  */
 export function defineKind<TFamily, TKind extends TFamily>(
   definition: TKindDefinition<TKind>
@@ -64,6 +68,12 @@ export function defineKind<TFamily, TKind extends TFamily>(
   return definition as TKindDefinition<TFamily>
 }
 
+/**
+ * Looks a kind up in its family's table, throwing a message naming the family and the operation
+ * when the kind is unknown.
+ * @group SymbolUtils
+ * @experimental
+ */
 export function resolveKind<T>(
   table: Partial<Record<string, TKindDefinition<T>>>,
   kind: string | undefined,
