@@ -1,6 +1,4 @@
-import {
-  computeDistance,
-} from "@/iink"
+import { computeDistance } from "@/iink"
 
 describe("computeDistance", () => {
   const testDatas = [

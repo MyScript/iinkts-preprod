@@ -1,10 +1,5 @@
 import { DEMO_EXERCISES } from "../../../../../examples/interactive-canvas/math-tutor/demo-exercises.js"
-import {
-  analyzeFigure,
-  bindDefinitions,
-  findTriangle,
-  rightAngleVertex,
-} from "../../../../../examples/interactive-canvas/math-tutor/figure.js"
+import { analyzeFigure, bindDefinitions, findTriangle, rightAngleVertex } from "../../../../../examples/interactive-canvas/math-tutor/figure.js"
 import type { TLine } from "../../../../../examples/interactive-canvas/math-tutor/lines.js"
 
 import { add, eq, num, sqrt, sup, v } from "./fixtures"

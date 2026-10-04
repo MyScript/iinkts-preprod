@@ -1,7 +1,4 @@
-import {
-  computeAngleFromPointOnEllipse,
-  computePointOnEllipse,
-} from "@/iink"
+import { computeAngleFromPointOnEllipse, computePointOnEllipse } from "@/iink"
 
 describe("computePointOnEllipse", () => {
   const testDatas = [

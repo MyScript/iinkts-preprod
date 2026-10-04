@@ -1,10 +1,6 @@
 import { round } from "../../helpers"
 
-import {
-  computeDistanceBetweenPointAndSegment,
-  computeNearestPointOnSegment,
-  createPointsOnSegment,
-} from "@/iink"
+import { computeDistanceBetweenPointAndSegment, computeNearestPointOnSegment, createPointsOnSegment } from "@/iink"
 
 describe("createPointsOnSegment", () => {
   const testDatas = [

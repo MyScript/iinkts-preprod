@@ -1,16 +1,6 @@
-import { SymbolGeometry } from "@/iink"
+import { SymbolGeometry, DefaultIIRendererConfiguration, TGesture, TSymbolChar, IIGestureManager, TStroke, TWebSocketClientMessageType, BoxOps, OBBOps } from "@/iink"
 import { buildIICircle, buildIIStroke, buildIIText } from "../../helpers"
 import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import {
-  DefaultIIRendererConfiguration,
-  TGesture,
-  TSymbolChar,
-  IIGestureManager,
-  TStroke,
-  TWebSocketClientMessageType,
-  BoxOps,
-  OBBOps,
-} from "@/iink"
 
 describe("IIGestureManager.ts", () => {
   const rowHeight = DefaultIIRendererConfiguration.guides.gap

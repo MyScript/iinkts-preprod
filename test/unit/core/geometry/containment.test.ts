@@ -1,7 +1,4 @@
-import {
-  TPoint,
-  isPointInsidePolygon,
-} from "@/iink"
+import { TPoint, isPointInsidePolygon } from "@/iink"
 
 describe("isPointInsidePolygon", () => {
   const testDatas: { point: TPoint; points: TPoint[]; expected: boolean }[] = [
