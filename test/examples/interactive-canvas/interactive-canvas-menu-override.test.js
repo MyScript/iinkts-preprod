@@ -23,7 +23,7 @@ test.describe("Interactive ink canvas menu items and overrides", () => {
       }).observe(document, { childList: true, subtree: true })
     })
     await page.goto(
-      `${process.env.PATH_PREFIX ? process.env.PATH_PREFIX : ""}/examples/interactive-canvas/interactive_canvas_override_menu.html`
+      `${process.env.PATH_PREFIX ? process.env.PATH_PREFIX : ""}/examples/interactive-canvas/interactive_canvas_menu_override.html`
     )
     await passModalKey(page)
   })
