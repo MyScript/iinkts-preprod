@@ -223,6 +223,36 @@ describe("IIAbstractMenu in its layout slot", () => {
     expect(forced.collapsed).toBe(false)
   })
 
+  function renderedTool(layout?: TLayoutConfiguration): IIMenuTool {
+    const canvas = canvasIn(layout)
+    canvas.layout.render()
+    const tool = new IIMenuTool(canvas)
+    tool.render(canvas.layout.host("tool") ?? document.createElement("div"))
+    return tool
+  }
+
+  test("should fold its host away when it hides in a shared slot, and bring it back", () => {
+    const tool = renderedTool({ "bottom-center": ["action", "tool"] })
+    const host = tool.wrapper?.parentElement
+
+    tool.hide()
+    expect(host?.classList.contains("ms-layout-host-hidden")).toBe(true)
+    // The host folds, so the menu itself stays as it is
+    expect(tool.wrapper?.style.visibility).toBe("")
+
+    tool.show()
+    expect(host?.classList.contains("ms-layout-host-hidden")).toBe(false)
+  })
+
+  test("should just turn invisible when it hides alone in its slot, keeping its room", () => {
+    const tool = renderedTool()
+    tool.hide()
+    expect(tool.wrapper?.style.visibility).toBe("hidden")
+    expect(tool.wrapper?.parentElement?.classList.contains("ms-layout-host-hidden")).toBe(false)
+    tool.show()
+    expect(tool.wrapper?.style.visibility).toBe("visible")
+  })
+
   test("should leave the directions of a menu outside the layout to its items", () => {
     const context = new IIMenuContext(canvasIn())
     expect(context.slot).toBeUndefined()
