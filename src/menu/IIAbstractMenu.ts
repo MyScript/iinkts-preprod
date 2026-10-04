@@ -1,4 +1,4 @@
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import type { TInteractiveInkCanvas } from "@/canvas"
 import { DOMFactory } from "@/dom"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import {
@@ -8,7 +8,7 @@ import {
   type TLayoutSlot,
   type TMenuDirection,
   type TMenuOrientation,
-} from "@/manager/base/LayoutManager"
+} from "@/manager"
 
 import { BaseMenuItem, type TMenuPosition } from "./items"
 

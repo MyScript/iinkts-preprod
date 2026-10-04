@@ -1,12 +1,10 @@
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import type { TBox } from "@/core/geometry"
-import { OBBOps } from "@/core/geometry"
+import type { TInteractiveInkCanvas } from "@/canvas"
+import type { TBox } from "@/core"
+import { OBBOps } from "@/core"
 import { LoggerCategory } from "@/logger"
 import type { TMath, TSymbol, TSymbolChar, TText } from "@/symbol"
 import { isText } from "@/symbol"
-import { TextUtil } from "@/symbol-utils"
-import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
-import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
+import { SymbolGeometry, symbolRegistry, TextUtil } from "@/symbol-utils"
 
 import { IIAbstractManager } from "./IIAbstractManager"
 

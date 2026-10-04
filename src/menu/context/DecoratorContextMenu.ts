@@ -1,12 +1,13 @@
 import ArrowDown from "@/assets/svg/nav-arrow-down.svg"
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import type { TDraft } from "@/core/std"
-import type { TGenericMenuItem } from "@/menu/items/BaseMenuItem"
-import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
-import { DEFAULT_MENU_COLORS } from "@/menu/MenuConstants"
+import type { TInteractiveInkCanvas } from "@/canvas"
+import type { TDraft } from "@/core"
 import type { TText } from "@/symbol"
 import { DecoratorKind, isRecognizedMath, isText } from "@/symbol"
 import { DecoratorUtil } from "@/symbol-utils"
+
+import type { TGenericMenuItem } from "../items/BaseMenuItem"
+import { BaseMenuItem } from "../items/BaseMenuItem"
+import { DEFAULT_MENU_COLORS } from "../MenuConstants"
 
 /** @group Menu */
 export type TContextDecoratorItemsConfig = {

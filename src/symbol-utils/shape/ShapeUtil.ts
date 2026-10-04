@@ -1,17 +1,29 @@
-import type { TPoint } from "@/core/geometry"
-import { Circle2d, Ellipse2d, type Geometry2d, OBBOps, Polygon2d } from "@/core/geometry"
-import { BoxOps, computeDistance, isValidPoint, MatrixTransform, mergeSymbolTransform } from "@/core/geometry"
-import { convertRadianToDegree, isValidNumber } from "@/core/math"
-import type { TPartialDeep } from "@/core/std"
-import { createUUID } from "@/core/std"
-import { mergeSymbolStyle, type TStyle } from "@/style"
-import { DefaultStyle } from "@/style"
-import { type TShapeCircle } from "@/symbol/shape/Circle"
-import { type TShapeEllipse } from "@/symbol/shape/Ellipse"
-import { type TShapePolygon } from "@/symbol/shape/Polygon"
-import type { TShape } from "@/symbol/shape/Shape"
-import { ShapeKind } from "@/symbol/shape/Shape-enum"
-import { SymbolType, type TBaseSymbol } from "@/symbol/Symbol"
+import type { TPartialDeep, TPoint } from "@/core"
+import {
+  BoxOps,
+  Circle2d,
+  computeDistance,
+  convertRadianToDegree,
+  createUUID,
+  Ellipse2d,
+  type Geometry2d,
+  isValidNumber,
+  isValidPoint,
+  MatrixTransform,
+  mergeSymbolTransform,
+  OBBOps,
+  Polygon2d,
+} from "@/core"
+import { DefaultStyle, mergeSymbolStyle, type TStyle } from "@/style"
+import type { TShape } from "@/symbol"
+import {
+  ShapeKind,
+  SymbolType,
+  type TBaseSymbol,
+  type TShapeCircle,
+  type TShapeEllipse,
+  type TShapePolygon,
+} from "@/symbol"
 
 import { defineKind, resolveKind, type TKindDefinition } from "../KindDefinition"
 import { PathSymbolUtil } from "../PathSymbolUtil"

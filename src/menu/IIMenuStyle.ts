@@ -1,5 +1,5 @@
 import styleIcon from "@/assets/svg/palette.svg"
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import type { TInteractiveInkCanvas } from "@/canvas"
 import { DOMFactory } from "@/dom"
 import { CanvasTool, CanvasWriteTool } from "@/manager"
 import type { IIModel } from "@/model"

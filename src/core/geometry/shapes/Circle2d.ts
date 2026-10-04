@@ -1,6 +1,4 @@
-import { TWO_PI } from "@/core/math"
-import { computeTessellationCount } from "@/core/math"
-
+import { computeTessellationCount, TWO_PI } from "../../math"
 import { TESSELLATION_SEGMENT_LENGTH } from "../../math/tessellation"
 import { BoxOps, type TBox } from "../Box"
 import { findIntersectBetweenSegmentAndCircle } from "../intersection"

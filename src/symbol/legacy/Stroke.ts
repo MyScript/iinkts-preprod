@@ -1,7 +1,5 @@
-import type { TPointer } from "@/core/geometry"
-import { MatrixTransform, resolvePointerDelta, type TMatrixTransform } from "@/core/geometry"
-import type { TPartialDeep } from "@/core/std"
-import { createUUID } from "@/core/std"
+import type { TPartialDeep, TPointer } from "@/core"
+import { createUUID, MatrixTransform, resolvePointerDelta, type TMatrixTransform } from "@/core"
 import type { TPenStyle } from "@/style"
 import { DefaultPenStyle } from "@/style"
 

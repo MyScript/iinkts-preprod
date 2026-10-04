@@ -1,10 +1,10 @@
-import type { TPointer } from "@/core/geometry"
+import type { TPointer } from "@/core"
 import {
   computeFinalOutlinePoints,
   computeLineOutlinePoints,
   computeMiddlePointer,
   computeQuadraticOutlinePoints,
-} from "@/core/geometry"
+} from "@/core"
 import { computeOutlinePointers, isPenNib, readNibOverrides } from "@/style"
 import type { TLegacyStroke } from "@/symbol"
 /**

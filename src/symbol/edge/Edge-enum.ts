@@ -1,7 +1,6 @@
 import { HIT_TOLERANCE } from "@/constants"
-import type { TPoint } from "@/core/geometry"
-import { BoxOps } from "@/core/geometry"
-import { OBBOps, type TOBB } from "@/core/geometry"
+import type { TPoint } from "@/core"
+import { BoxOps, OBBOps, type TOBB } from "@/core"
 import type { TStyle } from "@/style"
 
 /**

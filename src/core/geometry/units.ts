@@ -1,5 +1,4 @@
-import { convertMillimeterToPixel } from "@/core/math"
-
+import { convertMillimeterToPixel } from "../math"
 import type { TBox } from "./Box"
 
 /**

@@ -1,12 +1,17 @@
-import { isValidPoint, mergeSymbolTransform, type TOBB } from "@/core/geometry"
-import { MatrixTransform, OBBOps, type TBox, type TPoint } from "@/core/geometry"
-import type { TPartialDeep } from "@/core/std"
-import { createUUID } from "@/core/std"
+import type { TPartialDeep } from "@/core"
+import {
+  createUUID,
+  isValidPoint,
+  MatrixTransform,
+  mergeSymbolTransform,
+  OBBOps,
+  type TBox,
+  type TOBB,
+  type TPoint,
+} from "@/core"
 import { mergeSymbolStyle, type TStyle } from "@/style"
-import { SymbolType } from "@/symbol/Symbol"
-import type { TSymbolChar } from "@/symbol/typeset/Text"
-import { type TText } from "@/symbol/typeset/Text"
-import { computeChildrenOverlaps } from "@/symbol/typeset/Typeset"
+import type { TSymbolChar } from "@/symbol"
+import { computeChildrenOverlaps, SymbolType, type TText } from "@/symbol"
 
 import { DecoratorUtil } from "../decorator/DecoratorUtil"
 import { SVGBuilder } from "../SVGBuilder"

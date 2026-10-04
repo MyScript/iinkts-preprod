@@ -1,5 +1,5 @@
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import { mergeDeep } from "@/core/std"
+import type { TInteractiveInkCanvas } from "@/canvas"
+import { mergeDeep } from "@/core"
 import { DOMFactory } from "@/dom"
 import { LoggerCategory, LoggerManager } from "@/logger"
 

@@ -1,7 +1,8 @@
 import languageIcon from "@/assets/svg/language.svg"
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import type { TInteractiveInkCanvas } from "@/canvas"
 import { getAvailableLanguageList } from "@/client"
-import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
+
+import { BaseMenuItem } from "../items/BaseMenuItem"
 
 /**
  * @group Menu

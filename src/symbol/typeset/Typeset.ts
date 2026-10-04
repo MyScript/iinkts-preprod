@@ -1,7 +1,5 @@
-import type { TBox } from "@/core/geometry"
-import type { TPoint, TSegment } from "@/core/geometry"
-import { BoxOps } from "@/core/geometry"
-import { findIntersectionBetween2Segment, isPointInsidePolygon } from "@/core/geometry"
+import type { TBox, TPoint, TSegment } from "@/core"
+import { BoxOps, findIntersectionBetween2Segment, isPointInsidePolygon } from "@/core"
 /**
  * @group Symbol
  */

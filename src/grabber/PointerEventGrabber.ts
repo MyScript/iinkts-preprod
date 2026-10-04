@@ -1,4 +1,4 @@
-import type { TPointer } from "@/core/geometry"
+import type { TPointer } from "@/core"
 import { bumpSvgTransformVersion, getSvgTransformVersion } from "@/dom"
 import { LoggerCategory, LoggerLevel, LoggerManager } from "@/logger"
 

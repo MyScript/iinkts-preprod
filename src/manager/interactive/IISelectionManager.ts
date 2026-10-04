@@ -1,21 +1,23 @@
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import type { TInteractiveInkCanvas } from "@/canvas"
 import { SELECTION_PADDING } from "@/constants"
-import type { TBox, TPoint } from "@/core/geometry"
-import { applyInverseMatrixToPoint, BoxOps } from "@/core/geometry"
-import { OBBOps } from "@/core/geometry"
-import type { TDraft } from "@/core/std"
+import type { TBox, TDraft, TPoint } from "@/core"
+import { applyInverseMatrixToPoint, BoxOps, OBBOps } from "@/core"
 import { RafCoalescer } from "@/dom"
 import type { TPointerInfo } from "@/grabber"
 import { PointerEventGrabber } from "@/grabber"
 import { LoggerCategory } from "@/logger"
-import { SvgElementRole } from "@/renderer"
-import { SVGBuilder } from "@/renderer"
+import { SVGBuilder, SvgElementRole } from "@/renderer"
 import type { TDecorator, TEdge, TEdgeArc, TStroke, TSymbol } from "@/symbol"
-import { EdgeKind, isDecorator, isRecognizedMath, isStroke, SymbolType } from "@/symbol"
-import { reprojectArcMidpoint, stretchArcEndpoint } from "@/symbol/edge/Arc"
-import { EdgeUtil } from "@/symbol-utils/edge/EdgeUtil"
-import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
-import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
+import {
+  EdgeKind,
+  isDecorator,
+  isRecognizedMath,
+  isStroke,
+  reprojectArcMidpoint,
+  stretchArcEndpoint,
+  SymbolType,
+} from "@/symbol"
+import { EdgeUtil, SymbolGeometry, symbolRegistry } from "@/symbol-utils"
 
 import { IIAbstractManager } from "./IIAbstractManager"
 import type { IIResizeManager } from "./transform/IIResizeManager"

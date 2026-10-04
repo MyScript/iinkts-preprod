@@ -1,5 +1,5 @@
-import type { TPartialDeep } from "@/core/std"
-import { mergeDeep } from "@/core/std"
+import type { TPartialDeep } from "@/core"
+import { mergeDeep } from "@/core"
 import { LoggerCategory, LoggerManager } from "@/logger"
 
 import type { TPenStyle } from "./PenStyle"

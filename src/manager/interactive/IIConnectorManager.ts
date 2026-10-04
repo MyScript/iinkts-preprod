@@ -1,5 +1,5 @@
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import type { MatrixTransform, TPoint } from "@/core/geometry"
+import type { TInteractiveInkCanvas } from "@/canvas"
+import type { MatrixTransform, TDraft, TPoint } from "@/core"
 import {
   applyInverseMatrixToPoint,
   applyMatrixToPoint,
@@ -10,20 +10,12 @@ import {
   isPointInsidePolygon,
   OBBOps,
   type TOBB,
-} from "@/core/geometry"
-import type { TDraft } from "@/core/std"
-import { type TPartialDeep } from "@/core/std"
+  type TPartialDeep,
+} from "@/core"
 import { LoggerCategory } from "@/logger"
-import type { TEdge, TStroke, TSymbol } from "@/symbol"
-import type { TAnchor } from "@/symbol/edge/Anchor"
-import { computeNormalizedAnchor, resolveAnchorPoint } from "@/symbol/edge/Anchor"
-import { stretchArcEndpoint } from "@/symbol/edge/Arc"
-import { isStroke } from "@/symbol/stroke/Stroke"
-import { cloneSymbol } from "@/symbol/SymbolHelpers"
-import { EdgeUtil, ShapeUtil } from "@/symbol-utils"
-import { SVGBuilder } from "@/symbol-utils/SVGBuilder"
-import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
-import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
+import type { TAnchor, TEdge, TStroke, TSymbol } from "@/symbol"
+import { cloneSymbol, computeNormalizedAnchor, isStroke, resolveAnchorPoint, stretchArcEndpoint } from "@/symbol"
+import { EdgeUtil, ShapeUtil, SVGBuilder, SymbolGeometry, symbolRegistry } from "@/symbol-utils"
 
 import { IIAbstractManager } from "./IIAbstractManager"
 
