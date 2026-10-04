@@ -294,15 +294,35 @@ export abstract class IIAbstractMenu<TConfig extends TMenuLayoutConfig> {
   }
 
   show(): void {
-    if (this.wrapper) {
-      this.wrapper.style.visibility = "visible"
-    }
+    this.setHidden(false)
   }
 
   hide(): void {
-    if (this.wrapper) {
-      this.wrapper.style.visibility = "hidden"
+    this.setHidden(true)
+  }
+
+  /** Whether another occupant shares this menu's slot */
+  protected sharesSlot(): boolean {
+    const slot = this.slot
+    return slot ? this.canvas.layout.occupantsOf(slot).length > 1 : false
+  }
+
+  /**
+   * Alone in its slot, the menu just turns invisible and keeps its room. Sharing it, its host folds away (animated in
+   * CSS) so the other occupants close the gap instead of leaving a hole.
+   */
+  protected setHidden(hidden: boolean): void {
+    if (!this.wrapper) {
+      return
     }
+    const host = this.wrapper.parentElement
+    if (host?.classList.contains("ms-layout-host") && this.sharesSlot()) {
+      host.classList.toggle("ms-layout-host-hidden", hidden)
+      this.wrapper.style.removeProperty("visibility")
+      return
+    }
+    host?.classList.remove("ms-layout-host-hidden")
+    this.wrapper.style.visibility = hidden ? "hidden" : "visible"
   }
 
   destroy(): void {

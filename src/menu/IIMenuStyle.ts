@@ -125,9 +125,7 @@ export class IIMenuStyle extends IIAbstractMenu<Required<TMenuStyleConfig> & TMe
    * shares a horizontal slot, where an open panel would cover the ink above or below the other bars
    */
   get collapsed(): boolean {
-    const slot = this.slot
-    const sharesSlot = slot ? this.canvas.layout.occupantsOf(slot).length > 1 : false
-    return this.config.collapsed ?? (this.isMobile || (this.orientation === "horizontal" && sharesSlot))
+    return this.config.collapsed ?? (this.isMobile || (this.orientation === "horizontal" && this.sharesSlot()))
   }
 
   render(layer: HTMLElement): void {
