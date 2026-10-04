@@ -1,4 +1,3 @@
-import { SvgElementRole } from "@/Constants"
 import type { TBox, TPoint, TPointer } from "@/core/geometry"
 import { BoxOps } from "@/core/geometry"
 import { OBBOps, type TOBB } from "@/core/geometry"
@@ -14,6 +13,7 @@ import { arrowHeadEndMarkerId, arrowHeadStartMarkerId } from "@/symbol-utils/edg
 import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 
+import { SvgElementRole } from "./SvgElementRole"
 import { SVGBuilder } from "./utils/SVGBuilder"
 import { GUIDE_PATH_ATTRS, SUB_GUIDE_PATH_ATTRS, SVGRendererConst } from "./utils/SVGRendererConst"
 

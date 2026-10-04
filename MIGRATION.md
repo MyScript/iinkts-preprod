@@ -374,6 +374,25 @@ from them — and from that union otherwise. It has to be written again whenever
 move or a target is removed; the built-in transform manager and erase paths do this, and
 `DecoratorUtil.applyTransform` is deliberately a no-op, so no matrix carries a decorator.
 
+### `SELECTION_MARGIN` is split by meaning
+
+The constant served three purposes that only shared the value 10. Pick the one your code meant:
+
+```diff
+- box.x - SELECTION_MARGIN                   // frame around a selection
++ box.x - SELECTION_PADDING                  // 10
+
+- SELECTION_MARGIN / 2                       // how close a pointer must be to a thin edge
++ HIT_TOLERANCE                              // 5
+
+- computeTessellationCount(length, SELECTION_MARGIN)
++ computeTessellationCount(length, TESSELLATION_SEGMENT_LENGTH)   // 10
+```
+
+`DUPLICATE_OFFSET` (10) is where `duplicate` places the copy. All four are exported from the package
+root like the rest; the `Constants` module they came from is gone, so a deep import of it must point
+at the package root instead.
+
 ### A custom transform manager implements one method, not five
 
 Only relevant if you subclass `IIAbstractTransformManager`.

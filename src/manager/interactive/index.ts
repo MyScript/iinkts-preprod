@@ -8,6 +8,8 @@
  * @remarks
  * All managers in this group work with InteractiveInkCanvas and depend on the IIModel (Interactive Ink Model).
  */
+export * from "./CanvasWriteTool"
+export * from "./GestureOperationLabels"
 export * from "./gestures"
 export * from "./IIAbstractManager"
 export * from "./IIConnectorManager"

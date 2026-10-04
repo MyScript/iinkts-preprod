@@ -13,9 +13,15 @@ export function computeEllipseRadiusAverage(radiusX: number, radiusY: number): n
 
 /**
  * @group Core/Math
+ * @summary Target length of one segment when a curve is approximated by a polyline
+ */
+export const TESSELLATION_SEGMENT_LENGTH = 10 as const
+
+/**
+ * @group Core/Math
  * @summary Compute how many vertices a curve of the given length should tessellate into
  * @param length - Arc/perimeter length to cover
- * @param minSegmentLength - Target length per segment (e.g. `SELECTION_MARGIN`)
+ * @param minSegmentLength - Target length per segment (e.g. {@link TESSELLATION_SEGMENT_LENGTH})
  * @param minPoints - Floor on the returned count, regardless of how short `length` is
  */
 export function computeTessellationCount(length: number, minSegmentLength: number, minPoints = 8): number {

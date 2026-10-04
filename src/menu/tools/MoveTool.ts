@@ -1,6 +1,6 @@
 import handIcon from "@/assets/svg/drag-hand-gesture.svg"
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import { CanvasTool } from "@/Constants"
+import { CanvasTool } from "@/manager"
 import type { TMenuButton } from "@/menu/items/ButtonMenuItem"
 import { ButtonMenuItem } from "@/menu/items/ButtonMenuItem"
 
