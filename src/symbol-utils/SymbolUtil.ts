@@ -1,9 +1,6 @@
-import type { TBox } from "@/core/geometry"
-import type { TMatrixTransform, TPoint } from "@/core/geometry"
-import type { Geometry2d } from "@/core/geometry"
-import { applyMatrixToPoint, isIdentityMatrix, MatrixTransform } from "@/core/geometry"
-import type { TPartialDeep } from "@/core/std"
-import type { TBaseSymbol, TResizePoint } from "@/symbol/Symbol"
+import type { Geometry2d, TBox, TMatrixTransform, TPartialDeep, TPoint } from "@/core"
+import { applyMatrixToPoint, isIdentityMatrix, MatrixTransform } from "@/core"
+import type { TBaseSymbol, TResizePoint } from "@/symbol"
 
 import { SymbolGeometry } from "./SymbolGeometry"
 import type { TTransformContext } from "./TransformContext"

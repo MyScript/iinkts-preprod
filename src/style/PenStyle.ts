@@ -1,4 +1,4 @@
-import type { TPartialDeep } from "@/core/std"
+import type { TPartialDeep } from "@/core"
 
 import type { TStyle } from "./Style"
 

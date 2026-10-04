@@ -1,12 +1,13 @@
-import type { TCanvasOptionsBase } from "@/canvas/AbstractCanvas"
-import { AbstractCanvas } from "@/canvas/AbstractCanvas"
-import type { TConverstionState, TMarginConfiguration, TWebSocketSSRClientMessageSVGPatch } from "@/client"
-import type { TExport, TJIIXExport } from "@/client"
+import type {
+  TConverstionState,
+  TExport,
+  TJIIXExport,
+  TMarginConfiguration,
+  TWebSocketSSRClientMessageSVGPatch,
+} from "@/client"
 import { DefaultMarginConfiguration, WebSocketSSRClient } from "@/client"
-import type { TPointer } from "@/core/geometry"
-import { resolvePointerDelta } from "@/core/geometry"
-import type { TPartialDeep } from "@/core/std"
-import { DeferredPromise } from "@/core/std"
+import type { TPartialDeep, TPointer } from "@/core"
+import { DeferredPromise, resolvePointerDelta } from "@/core"
 import type { TPointerInfo } from "@/grabber"
 import { PointerEventGrabber } from "@/grabber"
 import type { THistoryContext } from "@/history"
@@ -20,6 +21,8 @@ import { DefaultPenStyle, StyleManager } from "@/style"
 import type { TLegacyStroke } from "@/symbol"
 import { Stroke } from "@/symbol"
 
+import type { TCanvasOptionsBase } from "../AbstractCanvas"
+import { AbstractCanvas } from "../AbstractCanvas"
 import { InteractiveInkSSRCanvasConfiguration } from "./InteractiveInkSSRCanvasConfiguration"
 
 /**

@@ -1,11 +1,12 @@
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import type { TInteractiveInkCanvas } from "@/canvas"
 import type { TIIHistoryChanges } from "@/history"
-import { GestureHandler } from "@/manager/interactive/gestures/GestureHandler"
-import type { GestureHelpers } from "@/manager/interactive/gestures/GestureHelpers"
-import type { TGesture } from "@/manager/interactive/gestures/GestureTypes"
 import type { TStroke, TText } from "@/symbol"
 import { SymbolType, type TSymbol } from "@/symbol"
 import { StrokeUtil, TextUtil } from "@/symbol-utils"
+
+import { GestureHandler } from "../GestureHandler"
+import type { GestureHelpers } from "../GestureHelpers"
+import type { TGesture } from "../GestureTypes"
 
 /**
  * Handler for SCRATCH gesture type

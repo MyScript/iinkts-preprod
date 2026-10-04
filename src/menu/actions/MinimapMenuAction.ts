@@ -1,8 +1,9 @@
 import minimapIcon from "@/assets/svg/minimap.svg"
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import type { TInteractiveInkCanvas } from "@/canvas"
 import { Minimap } from "@/components"
-import type { TMenuButton } from "@/menu/items/ButtonMenuItem"
-import { ButtonMenuItem } from "@/menu/items/ButtonMenuItem"
+
+import type { TMenuButton } from "../items/ButtonMenuItem"
+import { ButtonMenuItem } from "../items/ButtonMenuItem"
 
 /**
  * @group Menu

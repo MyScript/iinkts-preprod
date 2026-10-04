@@ -1,4 +1,4 @@
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import type { TInteractiveInkCanvas } from "@/canvas"
 import type {
   TJIIXEdgeElement,
   TJIIXEdgeLine,
@@ -10,14 +10,11 @@ import type {
   TJIIXTextElement,
 } from "@/client"
 import { extractEdgeEndpoints, JIIXEdgeKind, JIIXElementType } from "@/client"
-import { BoxOps } from "@/core/geometry"
-import { OBBOps } from "@/core/geometry"
-import { isDeepEqual, type TDraft } from "@/core/std"
+import { BoxOps, isDeepEqual, OBBOps, type TDraft } from "@/core"
 import { LoggerCategory } from "@/logger"
 import type { TStroke } from "@/symbol"
-import { isStroke } from "@/symbol"
-import { resolveConnectionAnchors } from "@/symbol/edge/Anchor"
-import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
+import { isStroke, resolveConnectionAnchors } from "@/symbol"
+import { SymbolGeometry } from "@/symbol-utils"
 
 import { CanvasTool } from "../base/CanvasTool"
 import { GESTURE_OPERATION_LABELS } from "./GestureOperationLabels"

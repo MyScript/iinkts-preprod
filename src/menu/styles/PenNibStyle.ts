@@ -2,12 +2,13 @@ import ballpointIcon from "@/assets/svg/nib-ballpoint.svg"
 import brushIcon from "@/assets/svg/nib-brush.svg"
 import fountainIcon from "@/assets/svg/nib-fountain.svg"
 import pencilIcon from "@/assets/svg/nib-pencil.svg"
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import type { TInteractiveInkCanvas } from "@/canvas"
 import { CanvasTool } from "@/manager"
-import type { TMenuButtonList } from "@/menu/items"
-import { ButtonListMenuItem, CollapsibleWrapper } from "@/menu/items"
-import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
 import { DEFAULT_PEN_NIB, isPenNib, PEN_NIBS } from "@/style"
+
+import type { TMenuButtonList } from "../items"
+import { ButtonListMenuItem, CollapsibleWrapper } from "../items"
+import { BaseMenuItem } from "../items/BaseMenuItem"
 
 const icons: { [key in keyof typeof PEN_NIBS]: string } = {
   ballpoint: ballpointIcon as string,

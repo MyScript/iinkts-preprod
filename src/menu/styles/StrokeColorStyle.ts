@@ -1,8 +1,9 @@
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import type { TInteractiveInkCanvas } from "@/canvas"
 import { CanvasTool } from "@/manager"
-import type { TMenuColorList } from "@/menu/items"
-import { CollapsibleWrapper, ColorListMenuItem } from "@/menu/items"
-import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
+
+import type { TMenuColorList } from "../items"
+import { CollapsibleWrapper, ColorListMenuItem } from "../items"
+import { BaseMenuItem } from "../items/BaseMenuItem"
 
 /**
  * @group Menu

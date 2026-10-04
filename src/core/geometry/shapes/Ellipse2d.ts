@@ -1,6 +1,4 @@
-import { TWO_PI } from "@/core/math"
-import { computeEllipseRadiusAverage, computeTessellationCount } from "@/core/math"
-
+import { computeEllipseRadiusAverage, computeTessellationCount, TWO_PI } from "../../math"
 import { TESSELLATION_SEGMENT_LENGTH } from "../../math/tessellation"
 import { applyMatrixToPoint, type TMatrixTransform } from "../Matrix"
 import type { TOBB } from "../OBB"

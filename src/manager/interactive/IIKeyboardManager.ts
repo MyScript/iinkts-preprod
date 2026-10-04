@@ -1,4 +1,4 @@
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import type { TInteractiveInkCanvas } from "@/canvas"
 import { LoggerCategory } from "@/logger"
 
 import { CanvasTool } from "../base/CanvasTool"

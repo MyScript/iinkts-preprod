@@ -1,5 +1,5 @@
 import moreIcon from "@/assets/svg/more.svg"
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import type { TInteractiveInkCanvas } from "@/canvas"
 import { DOMFactory } from "@/dom"
 
 import { IIAbstractMenu, type TMenuLayoutConfig, type TMenuZone } from "./IIAbstractMenu"

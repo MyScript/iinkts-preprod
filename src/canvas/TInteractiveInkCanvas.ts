@@ -1,11 +1,9 @@
-import type { WebSocketClient } from "@/client"
-import type { TExport, TRecognitionWebSocketConfiguration } from "@/client"
-import type { TBox } from "@/core/geometry"
-import type { TPartialDeep } from "@/core/std"
+import type { TExport, TRecognitionWebSocketConfiguration, WebSocketClient } from "@/client"
+import type { TBox, TPartialDeep } from "@/core"
 import type { DOMFactory } from "@/dom"
 import type { IIHistoryManager } from "@/history"
-import type { CanvasTool } from "@/manager"
 import type {
+  CanvasTool,
   EraseManager,
   IIConnectorManager,
   IIConversionManager,
@@ -32,11 +30,10 @@ import type {
 } from "@/manager"
 import type { IIMenuManager } from "@/menu"
 import type { IIModel } from "@/model"
-import type { SVGRenderer } from "@/renderer"
-import type { TIIRendererConfiguration } from "@/renderer"
+import type { SVGRenderer, TIIRendererConfiguration } from "@/renderer"
 import type { TStyle } from "@/style"
 import type { TBaseSymbol, TStroke, TSymbol } from "@/symbol"
-import type { SymbolUtil } from "@/symbol-utils/SymbolUtil"
+import type { SymbolUtil } from "@/symbol-utils"
 
 import type { CanvasEvent, TCanvasConnectionState } from "./CanvasEvent"
 import type { CanvasLayer } from "./CanvasLayer"

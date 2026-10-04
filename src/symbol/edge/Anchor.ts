@@ -1,6 +1,5 @@
-import type { TBox } from "@/core/geometry"
-import type { TPoint } from "@/core/geometry"
-import { computeDistance } from "@/core/geometry"
+import type { TBox, TPoint } from "@/core"
+import { computeDistance } from "@/core"
 /**
  * Anchor point on a symbol, expressed as normalized 0-1 coordinates within the symbol's bounds.
  * (0,0) = top-left, (1,1) = bottom-right.

@@ -1,8 +1,9 @@
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import type { TPartialDeep } from "@/core/std"
-import type { TMenuSubMenu } from "@/menu/items/SubMenuItem"
-import { SubMenuItem } from "@/menu/items/SubMenuItem"
+import type { TInteractiveInkCanvas } from "@/canvas"
+import type { TPartialDeep } from "@/core"
 import type { TSymbol } from "@/symbol"
+
+import type { TMenuSubMenu } from "../items/SubMenuItem"
+import { SubMenuItem } from "../items/SubMenuItem"
 /**
  * @group Menu
  * @remarks Menu action Import - Import de fichiers JSON

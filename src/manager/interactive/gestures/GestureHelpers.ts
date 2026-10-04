@@ -1,4 +1,4 @@
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import type { TInteractiveInkCanvas } from "@/canvas"
 import type { TSymbol } from "@/symbol"
 import { isRecognizedText, SymbolType } from "@/symbol"
 /**

@@ -1,4 +1,4 @@
-import type { TDraft } from "@/core/std"
+import type { TDraft } from "@/core"
 import type { TBaseSymbol } from "@/symbol"
 
 /**

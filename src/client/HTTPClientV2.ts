@@ -1,4 +1,4 @@
-import { isVersionSuperiorOrEqual, type TPartialDeep } from "@/core/std"
+import { isVersionSuperiorOrEqual, type TPartialDeep } from "@/core"
 import { LoggerCategory, LoggerManager } from "@/logger"
 
 import type { TJIIXExport } from "./Export"

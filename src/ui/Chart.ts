@@ -1,7 +1,5 @@
-import { areValidCoordinates } from "@/core/geometry"
-import { TWO_PI } from "@/core/math"
-import { RafCoalescer } from "@/dom"
-import { DOMFactory } from "@/dom"
+import { areValidCoordinates, TWO_PI } from "@/core"
+import { DOMFactory, RafCoalescer } from "@/dom"
 /**
  * @group UI
  */

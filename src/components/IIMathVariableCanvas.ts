@@ -1,7 +1,7 @@
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import type { TInteractiveInkCanvas } from "@/canvas"
 import { DOMFactory } from "@/dom"
 import { LoggerCategory, LoggerManager } from "@/logger"
-import type { TMathVariableUsage } from "@/manager/interactive/math"
+import type { TMathVariableUsage } from "@/manager"
 import { Modal } from "@/ui"
 
 import type { TVariableInputItem } from "./IIMathVariableInputList"

@@ -1,4 +1,4 @@
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import type { TInteractiveInkCanvas } from "@/canvas"
 import { RafCoalescer } from "@/dom"
 import type { TPointerInfo } from "@/grabber"
 import { PointerEventGrabber } from "@/grabber"

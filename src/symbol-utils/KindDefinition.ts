@@ -1,7 +1,5 @@
-import type { Geometry2d } from "@/core/geometry"
-import type { TPoint } from "@/core/geometry"
-import type { TPartialDeep } from "@/core/std"
-import type { TResizePoint } from "@/symbol/Symbol"
+import type { Geometry2d, TPartialDeep, TPoint } from "@/core"
+import type { TResizePoint } from "@/symbol"
 
 /**
  * Everything a family util needs to know about one kind within its family.

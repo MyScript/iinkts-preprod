@@ -1,15 +1,11 @@
-import type { TCanvasConfiguration } from "@/canvas/AbstractCanvas"
-import type { TCanvasTriggerConfiguration } from "@/canvas/CanvasTriggerConfiguration"
-import { DefaultCanvasTriggerConfiguration } from "@/canvas/CanvasTriggerConfiguration"
 import type {
   THTTPClientV2Configuration,
   THTTPClientV2RecognitionConfiguration,
   TServerHTTPConfiguration,
 } from "@/client"
 import { DefaultHTTPClientV2Configuration, HTTPClientV2Configuration } from "@/client"
-import { convertPixelToMillimeter } from "@/core/math"
-import type { TPartialDeep } from "@/core/std"
-import { mergeDeep } from "@/core/std"
+import type { TPartialDeep } from "@/core"
+import { convertPixelToMillimeter, mergeDeep } from "@/core"
 import type { TGrabberConfiguration } from "@/grabber"
 import { DefaultGrabberConfiguration } from "@/grabber"
 import type { THistoryConfiguration } from "@/history"
@@ -20,6 +16,10 @@ import type { TIIRendererConfiguration } from "@/renderer"
 import { DefaultIIRendererConfiguration } from "@/renderer"
 import type { TStyle } from "@/style"
 import { DefaultStyle } from "@/style"
+
+import type { TCanvasConfiguration } from "../AbstractCanvas"
+import type { TCanvasTriggerConfiguration } from "../CanvasTriggerConfiguration"
+import { DefaultCanvasTriggerConfiguration } from "../CanvasTriggerConfiguration"
 /**
  * @group Canvas
  */

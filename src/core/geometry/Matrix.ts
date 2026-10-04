@@ -1,5 +1,4 @@
-import type { TPartialDeep } from "@/core/std"
-
+import type { TPartialDeep } from "../std"
 import type { TPoint } from "./Point"
 /**
  * @group Core/Geometry

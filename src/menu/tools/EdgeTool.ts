@@ -1,10 +1,11 @@
 import lineIcon from "@/assets/svg/linear.svg"
 import arrowIcon from "@/assets/svg/linear-arrow.svg"
 import doubleArrowIcon from "@/assets/svg/linear-double-arrow.svg"
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import type { TInteractiveInkCanvas } from "@/canvas"
 import { CanvasTool, CanvasWriteTool } from "@/manager"
-import type { TMenuItemBase } from "@/menu/items/BaseMenuItem"
-import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
+
+import type { TMenuItemBase } from "../items/BaseMenuItem"
+import { BaseMenuItem } from "../items/BaseMenuItem"
 
 type TEdgeToolConfig = TMenuItemBase & {
   type: "edge"
