@@ -1,12 +1,6 @@
 import { jiixMathDuplicateStrokes, jiixText } from "../../__dataset__/exports.dataset"
 import { buildIIMath, buildIIStroke, buildIIText } from "../../helpers"
-import {
-  DefaultInteractiveInkCanvasConfiguration,
-  InteractiveInkCanvas,
-  TInteractiveInkCanvasOptions,
-  TSymbolChar,
-  TText,
-} from "@/iink"
+import { DefaultInteractiveInkCanvasConfiguration, InteractiveInkCanvas, TInteractiveInkCanvasOptions, TSymbolChar, TText } from "@/iink"
 
 describe("IIExportManager.ts", () => {
   const CanvasOptions: TInteractiveInkCanvasOptions = {

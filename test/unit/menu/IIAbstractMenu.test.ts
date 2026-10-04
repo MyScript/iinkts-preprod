@@ -1,19 +1,6 @@
 import { asCanvas, createCanvasMock } from "../__mocks__/createCanvasMock"
 import { StubMenuItem } from "../helpers"
-import {
-  BaseMenuItem,
-  CanvasLayer,
-  IIAbstractMenu,
-  IIMenuAction,
-  IIMenuContext,
-  IIMenuStyle,
-  IIMenuTool,
-  LayoutManager,
-  TLayoutConfiguration,
-  TMenuItemOptions,
-  TMenuLayoutConfig,
-  TMenuZone,
-} from "@/iink"
+import { BaseMenuItem, CanvasLayer, IIAbstractMenu, IIMenuAction, IIMenuContext, IIMenuStyle, IIMenuTool, LayoutManager, TLayoutConfiguration, TMenuItemOptions, TMenuLayoutConfig, TMenuZone } from "@/iink"
 
 class TestMenu extends IIAbstractMenu<{ items: { key: string; options?: TMenuItemOptions }[] } & TMenuLayoutConfig> {
   readonly defaultZone: TMenuZone = "dropdown"

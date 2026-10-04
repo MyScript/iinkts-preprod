@@ -1,9 +1,6 @@
 import { round } from "../../helpers"
 
-import {
-  convertDegreeToRadian,
-  convertRadianToDegree,
-} from "@/iink"
+import { convertDegreeToRadian, convertRadianToDegree } from "@/iink"
 
 describe("convert angle", () => {
   const degreToRad = [

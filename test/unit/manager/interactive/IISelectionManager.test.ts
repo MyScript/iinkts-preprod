@@ -1,25 +1,7 @@
 import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
 import { LeftClickEventMock, RightClickEventMock } from "../../__mocks__/EventMock"
 import { buildIICircle, buildIILine, buildIIStroke } from "../../helpers"
-import {
-  SymbolGeometry,
-  IISelectionManager,
-  MatrixTransform,
-  OBBOps,
-  TBox,
-  SvgElementRole,
-  ResizeDirection,
-  TPointerInfo,
-  TStroke,
-    TEdgeArc,
-  computePointOnEllipse,
-  IIConnectorManager,
-      EdgeUtil,
-  ShapeUtil,
-  TEdge,
-  TBaseSymbol,
-  TSymbol,
-} from "@/iink"
+import { SymbolGeometry, IISelectionManager, MatrixTransform, OBBOps, TBox, SvgElementRole, ResizeDirection, TPointerInfo, TStroke, TEdgeArc, computePointOnEllipse, IIConnectorManager, EdgeUtil, ShapeUtil, TEdge, TBaseSymbol, TSymbol } from "@/iink"
 
 describe("IISelectionManager.ts", () => {
   Object.defineProperty(global.SVGElement.prototype, "getBBox", {

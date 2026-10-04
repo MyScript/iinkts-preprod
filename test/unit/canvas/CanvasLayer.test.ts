@@ -1,4 +1,4 @@
-import { CanvasLayer } from "@/canvas/CanvasLayer"
+import { CanvasLayer } from "@/iink"
 
 describe("CanvasLayer.ts", () => {
   describe("canvas state badge", () => {

@@ -1,21 +1,6 @@
 import { WebSocketSSRClientMock } from "../__mocks__/WebSocketSSRClientMock"
 import { buildStroke, delay } from "../helpers"
-import {
-  InteractiveInkSSRCanvas,
-  Model,
-  DefaultInteractiveInkSSRCanvasConfiguration,
-  DefaultPenStyle,
-  TInteractiveInkSSRCanvasConfiguration,
-  TExport,
-  TWebSocketSSRClientMessageSVGPatch,
-  TPointer,
-  TPenStyle,
-  TTheme,
-  WebSocketSSRClient,
-  PointerEventGrabber,
-  CanvasTool,
-  TInteractiveInkSSRCanvasOptions,
-} from "@/iink"
+import { InteractiveInkSSRCanvas, Model, DefaultInteractiveInkSSRCanvasConfiguration, DefaultPenStyle, TInteractiveInkSSRCanvasConfiguration, TExport, TWebSocketSSRClientMessageSVGPatch, TPointer, TPenStyle, TTheme, WebSocketSSRClient, PointerEventGrabber, CanvasTool, TInteractiveInkSSRCanvasOptions } from "@/iink"
 
 describe("InteractiveInkSSRCanvas.ts", () => {
   const height = 100,
