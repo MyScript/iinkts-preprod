@@ -1,23 +1,7 @@
 import { InteractiveInkCanvasOverrideConfiguration } from "../__dataset__/configuration.dataset"
-import {
-  ServerWebSocketMock,
-  contextlessGestureMessage,
-  gestureDetectedMessage,
-  hTextJIIX,
-  partChangeMessage,
-} from "../__mocks__/ServerWebSocketMock"
+import { ServerWebSocketMock, contextlessGestureMessage, gestureDetectedMessage, hTextJIIX, partChangeMessage } from "../__mocks__/ServerWebSocketMock"
 import { buildIIStroke, delay } from "../helpers"
-import {
-  WebSocketClient,
-  ClientError,
-  TMatrixTransform,
-  MatrixTransform,
-  TIIHistoryBackendChanges,
-  TWebSocketClientConfiguration,
-  toWireStroke,
-  LoggerManager,
-  LoggerCategory,
-} from "@/iink"
+import { WebSocketClient, ClientError, TMatrixTransform, MatrixTransform, TIIHistoryBackendChanges, TWebSocketClientConfiguration, toWireStroke, LoggerManager, LoggerCategory } from "@/iink"
 
 import { toResolve } from "jest-extended"
 expect.extend({ toResolve })

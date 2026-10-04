@@ -1,7 +1,6 @@
-import { edgeGeometry } from "../../helpers"
+import { edgeGeometry, buildIILine } from "../../helpers"
 import { beforeEach, describe, expect, test } from "@jest/globals"
 
-import { buildIILine } from "../../helpers"
 
 import type { TEdge, TOBB, TPartialDeep } from "@/iink"
 import { EdgeDecoration, registerBuiltinSymbolUtils, EdgeKind, EdgeUtil, MatrixTransform, SymbolType, TPoint, TEdgeLine, TEdgePolyLine, TEdgeArc } from "@/iink"

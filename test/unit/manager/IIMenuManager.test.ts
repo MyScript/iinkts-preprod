@@ -1,16 +1,5 @@
 import { createCanvasMock, asCanvas } from "../__mocks__/createCanvasMock"
-import {
-  BaseMenuItem,
-  CanvasLayer,
-  IIMenuManager,
-  IIMenuStyle,
-  IIMenuTool,
-  IIMenuAction,
-  IIMenuContext,
-  LayoutManager,
-  TInteractiveInkCanvas,
-  TMenuItemRegistration,
-} from "@/iink"
+import { BaseMenuItem, CanvasLayer, IIMenuManager, IIMenuStyle, IIMenuTool, IIMenuAction, IIMenuContext, LayoutManager, TInteractiveInkCanvas, TMenuItemRegistration } from "@/iink"
 import { StubMenuItem } from "../helpers"
 
 describe("IIMenuManager.ts", () => {

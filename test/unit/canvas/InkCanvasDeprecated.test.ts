@@ -1,15 +1,5 @@
 import { delay } from "../helpers"
-import {
-  InkCanvasDeprecated,
-  Model,
-  DefaultPenStyle,
-  TInkCanvasDeprecatedOptions,
-  TInkCanvasDeprecatedConfiguration,
-  TPointer,
-  PointerEventGrabber,
-  HTTPClientV1,
-  DefaultInkCanvasDeprecatedConfiguration,
-} from "@/iink"
+import { InkCanvasDeprecated, Model, DefaultPenStyle, TInkCanvasDeprecatedOptions, TInkCanvasDeprecatedConfiguration, TPointer, PointerEventGrabber, HTTPClientV1, DefaultInkCanvasDeprecatedConfiguration } from "@/iink"
 
 describe("InkCanvasDeprecated.ts", () => {
   const height = 100,

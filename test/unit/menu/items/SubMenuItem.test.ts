@@ -1,19 +1,5 @@
 import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import {
-  ButtonListMenuItem,
-  ButtonMenuItem,
-  CheckboxMenuItem,
-  ColorListMenuItem,
-  createMenuItemInstance,
-  FileInputMenuItem,
-  RangeMenuItem,
-  SelectMenuItem,
-  SubMenuItem,
-  TAllMenuItems,
-  TGenericMenuItem,
-  TMenuButton,
-  TMenuSubMenu,
-} from "@/iink"
+import { ButtonListMenuItem, ButtonMenuItem, CheckboxMenuItem, ColorListMenuItem, createMenuItemInstance, FileInputMenuItem, RangeMenuItem, SelectMenuItem, SubMenuItem, TAllMenuItems, TGenericMenuItem, TMenuButton, TMenuSubMenu } from "@/iink"
 
 describe("SubMenuItem.ts", () => {
   afterEach(() => {
