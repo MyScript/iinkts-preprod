@@ -10,7 +10,6 @@ import type {
   TJIIXTextElement,
 } from "@/client"
 import { extractEdgeEndpoints, JIIXEdgeKind, JIIXElementType } from "@/client"
-import { CanvasTool, GESTURE_OPERATION_LABELS } from "@/Constants"
 import { BoxOps } from "@/core/geometry"
 import { OBBOps } from "@/core/geometry"
 import { isDeepEqual, type TDraft } from "@/core/std"
@@ -20,6 +19,8 @@ import { isStroke } from "@/symbol"
 import { resolveConnectionAnchors } from "@/symbol/edge/Anchor"
 import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 
+import { CanvasTool } from "../base/CanvasTool"
+import { GESTURE_OPERATION_LABELS } from "./GestureOperationLabels"
 import { IIAbstractManager } from "./IIAbstractManager"
 
 /**

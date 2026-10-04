@@ -1,6 +1,6 @@
 import pencilIcon from "@/assets/svg/edit-pencil.svg"
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import { CanvasTool, CanvasWriteTool } from "@/Constants"
+import { CanvasTool, CanvasWriteTool } from "@/manager"
 import type { TMenuButton } from "@/menu/items/ButtonMenuItem"
 import { ButtonMenuItem } from "@/menu/items/ButtonMenuItem"
 

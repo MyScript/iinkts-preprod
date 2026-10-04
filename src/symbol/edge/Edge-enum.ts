@@ -1,4 +1,4 @@
-import { type EdgeDecoration, SELECTION_MARGIN } from "@/Constants"
+import { HIT_TOLERANCE } from "@/constants"
 import type { TPoint } from "@/core/geometry"
 import { BoxOps } from "@/core/geometry"
 import { OBBOps, type TOBB } from "@/core/geometry"
@@ -14,6 +14,14 @@ export enum EdgeKind {
 }
 
 /**
+ * How an edge's end is drawn, and how the recognizer reports it in JIIX.
+ * @group Symbol
+ */
+export enum EdgeDecoration {
+  Arrow = "arrow-head",
+}
+
+/**
  * @group Symbol
  */
 export function computeEdgeBounds(
@@ -23,10 +31,10 @@ export function computeEdgeBounds(
   endDecoration?: EdgeDecoration
 ): TOBB {
   const bb = BoxOps.createFromPoints(vertices)
-  bb.x -= SELECTION_MARGIN / 2
-  bb.y -= SELECTION_MARGIN / 2
-  bb.height += SELECTION_MARGIN
-  bb.width += SELECTION_MARGIN
+  bb.x -= HIT_TOLERANCE
+  bb.y -= HIT_TOLERANCE
+  bb.height += 2 * HIT_TOLERANCE
+  bb.width += 2 * HIT_TOLERANCE
   if (startDecoration || endDecoration) {
     bb.x -= (style.width || 1) * 2.5
     bb.y -= (style.width || 1) * 2.5

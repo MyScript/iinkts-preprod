@@ -2,7 +2,7 @@ import lineIcon from "@/assets/svg/linear.svg"
 import arrowIcon from "@/assets/svg/linear-arrow.svg"
 import doubleArrowIcon from "@/assets/svg/linear-double-arrow.svg"
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import { CanvasTool, CanvasWriteTool } from "@/Constants"
+import { CanvasTool, CanvasWriteTool } from "@/manager"
 import type { TMenuItemBase } from "@/menu/items/BaseMenuItem"
 import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
 

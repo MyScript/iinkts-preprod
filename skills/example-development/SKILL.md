@@ -276,7 +276,7 @@ See `examples/canvas/canvas_v1_text_styling.html` for a full example. `canvas.pe
 ### Tool Switching
 
 ```javascript
-import { CanvasTool } from '../../dist/iink.esm.js'  // enum defined in src/Constants.ts
+import { CanvasTool } from '../../dist/iink.esm.js'  // enum defined in src/manager/base/CanvasTool.ts
 
 canvas.tool = CanvasTool.Erase
 canvas.tool = CanvasTool.Write

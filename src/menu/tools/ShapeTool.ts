@@ -4,7 +4,7 @@ import rectangleIcon from "@/assets/svg/rectangle.svg"
 import rhombusIcon from "@/assets/svg/rhombus.svg"
 import triangleIcon from "@/assets/svg/triangle.svg"
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import { CanvasTool, CanvasWriteTool } from "@/Constants"
+import { CanvasTool, CanvasWriteTool } from "@/manager"
 import type { TMenuItemBase } from "@/menu/items/BaseMenuItem"
 import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
 

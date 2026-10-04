@@ -1,5 +1,5 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import { CanvasTool, CanvasWriteTool } from "@/Constants"
+import { CanvasTool, CanvasWriteTool } from "@/manager"
 import type { TMenuColorList } from "@/menu/items"
 import { CollapsibleWrapper, ColorListMenuItem } from "@/menu/items"
 import { BaseMenuItem } from "@/menu/items/BaseMenuItem"

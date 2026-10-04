@@ -98,6 +98,11 @@ Every helper moved to the lowest layer its inputs allow; the new `core` layer im
 - `TPoint`, `TPointer`, `TSegment`, `TBox`, `TOBB` moved from `symbol/primitives` to `core/geometry`
 - see [MIGRATION.md](./MIGRATION.md) for the full mapping
 
+### `SELECTION_MARGIN` split by meaning, `Constants` dissolved
+One value of 10 served three unrelated purposes, so tuning the selection frame also changed how finely circles are drawn and how close a click must land on an edge.
+- **removed**: `SELECTION_MARGIN` → `SELECTION_PADDING` (10, selection frame and handles, `getSymbolsBounds` default), `HIT_TOLERANCE` (5, per side around a thin edge — the former `SELECTION_MARGIN / 2`), `DUPLICATE_OFFSET` (10, where `duplicate` places the copy), `TESSELLATION_SEGMENT_LENGTH` (10, target segment length when a curve becomes a polyline). Values are unchanged
+- the other constants moved next to their owner: `CanvasTool` (`manager/base`), `CanvasWriteTool`, `GESTURE_OPERATION_LABELS`, `ResizeDirection` (`manager/interactive`), `TCanvasOperationLabel` (`canvas`), `SvgElementRole` (`renderer`), `EdgeDecoration` (`symbol`), `MathDiagnosticMessages` (`components`). Still exported under the same names, so only deep imports of `Constants` are affected
+
 ### Shape ↔ edge connections
 - `IIConnectorManager.updateAnchoredEdges()` returns `TAnchoredEdgesUpdateResult` (`{ rigidStrokeIds, oldSymbols, newSymbols }`: the pre-convert edge strokes it moved and the edges it recomputed) instead of `void` — callers must include them in their history entry
 

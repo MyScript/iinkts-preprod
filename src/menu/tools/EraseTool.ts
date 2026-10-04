@@ -1,6 +1,6 @@
 import eraseIcon from "@/assets/svg/erase.svg"
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import { CanvasTool } from "@/Constants"
+import { CanvasTool } from "@/manager"
 import type { TMenuItemBase } from "@/menu/items/BaseMenuItem"
 import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
 import { DEFAULT_ERASER_SIZE_LIST } from "@/menu/MenuConstants"

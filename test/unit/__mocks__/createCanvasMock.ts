@@ -4,7 +4,7 @@ import {
   InteractiveInkCanvasConfiguration,
 } from "@/canvas/variants/InteractiveInkCanvasConfiguration"
 import { DefaultStyle } from "@/style/Style"
-import { CanvasTool, CanvasWriteTool } from "@/Constants"
+import { CanvasTool, CanvasWriteTool } from "@/iink"
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import type { TStyle } from "@/style"
 import type { TSymbol } from "@/symbol/Symbol"
