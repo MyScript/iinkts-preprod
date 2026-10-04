@@ -4,60 +4,50 @@ import h from "../__dataset__/h"
 
 test.describe("Interactive ink canvas menu items and overrides", () => {
   test.beforeEach(async ({ page }) => {
+    // Records whether the tool bar already held its added item when it first entered the page
+    await page.addInitScript(() => {
+      new MutationObserver((mutations, observer) => {
+        for (const mutation of mutations) {
+          for (const node of mutation.addedNodes) {
+            if (!(node instanceof Element)) {
+              continue
+            }
+            const toolBar = node.matches(".ms-menu-tool") ? node : node.querySelector(".ms-menu-tool")
+            if (toolBar) {
+              window.firstToolBarHadAddedItem = !!toolBar.querySelector("#reset-zoom")
+              observer.disconnect()
+              return
+            }
+          }
+        }
+      }).observe(document, { childList: true, subtree: true })
+    })
     await page.goto(
       `${process.env.PATH_PREFIX ? process.env.PATH_PREFIX : ""}/examples/interactive-canvas/interactive_canvas_override_menu.html`
     )
     await passModalKey(page)
   })
 
-  // Commented out until the menu layout work (.local/menu-layout/PLAN.md) rewrites the example:
-  // it no longer has the zoom buttons nor the tool bar's "…" dropdown these tests rely on.
-  // test("should add the items to the action and tool bars", async ({ page }) => {
-  //   await expect(page.locator("#download-png")).toBeVisible()
-  //   await expect(page.locator("#stroke-count")).toBeVisible()
-  //   await expect(page.locator("#reset-zoom")).toBeVisible()
-  //   // The "…" dropdown holding the item sent to the tool menu's dropdown zone ends the tool bar
-  //   const toolBar = page.locator(".ms-menu-bottom")
-  //   await expect(toolBar.locator(":scope > :last-child #ms-menu-tool-more")).toBeAttached()
-  // })
+  test("should add the items to the action and tool bars", async ({ page }) => {
+    await expect(page.locator("#download-png")).toBeVisible()
+    await expect(page.locator("#stroke-count")).toBeVisible()
+    await expect(page.locator("#reset-zoom")).toBeVisible()
+    // Nothing goes to the tool bar's dropdown zone: no "…" button
+    await expect(page.locator("#ms-menu-tool-more")).not.toBeAttached()
+  })
 
-  // test("should open the tool bar's dropdown on the item sent to it", async ({ page }) => {
-  //   await expect(page.locator("#zoom-in")).toBeHidden()
-  //   await page.locator("#ms-menu-tool-more").click()
-  //   await expect(page.locator("#zoom-in")).toBeVisible()
-  // })
+  test("should render the added items with their menu, not after it", async ({ page }) => {
+    await expect(page.locator("#reset-zoom")).toBeVisible()
+    // Declared in options.extend: no first render without them, then a second one with them
+    expect(await page.evaluate(() => window.firstToolBarHadAddedItem)).toBe(true)
+  })
 
-  // test("should zoom in and out from the current level", async ({ page }) => {
-  //   const zoom = () => page.evaluate(() => Math.round(window.canvas.renderer.getZoom() * 100))
-  //   expect(await zoom()).toBe(100)
-  //   await page.locator("#ms-menu-tool-more").click()
-  //
-  //   await page.locator("#zoom-in").click()
-  //   await page.locator("#zoom-in").click()
-  //   // Each step multiplies the current level: 1.2 × 1.2
-  //   await expect.poll(zoom).toBe(144)
-  //
-  //   await page.locator("#zoom-out").click()
-  //   await expect.poll(zoom).toBe(120)
-  //
-  //   await page.locator("#reset-zoom").click()
-  //   await expect.poll(zoom).toBe(100)
-  // })
-
-  // test("should put the zoom buttons side by side in the tool bar's dropdown", async ({ page }) => {
-  //   await page.locator("#ms-menu-tool-more").click()
-  //   const zoomOut = await page.locator("#zoom-out").boundingBox()
-  //   const zoomIn = await page.locator("#zoom-in").boundingBox()
-  //   expect(zoomIn.y).toBe(zoomOut.y)
-  //   expect(zoomIn.x).toBeGreaterThan(zoomOut.x)
-  // })
-
-  test("should move undo/redo from the action bar to the style menu's bar", async ({ page }) => {
+  test("should move undo/redo from the action bar to the tool bar", async ({ page }) => {
     await expect(page.locator("#ms-menu-action-undoredo")).not.toBeAttached()
-    await expect(page.locator("#ms-menu-style-undoredo-undo")).toBeVisible()
-    await expect(page.locator("#ms-menu-style-undoredo-undo")).toBeDisabled()
+    await expect(page.locator("#ms-menu-tool-undoredo-undo")).toBeVisible()
+    await expect(page.locator("#ms-menu-tool-undoredo-undo")).toBeDisabled()
     await writeStrokes(page, h.strokes)
-    await expect(page.locator("#ms-menu-style-undoredo-undo")).toBeEnabled()
+    await expect(page.locator("#ms-menu-tool-undoredo-undo")).toBeEnabled()
   })
 
   test("should count the strokes in the badge as the user writes", async ({ page }) => {
