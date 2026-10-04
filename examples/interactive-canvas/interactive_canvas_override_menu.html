@@ -65,19 +65,19 @@
     <div class="ex-page-layout">
       <aside id="info-panel" class="ex-panel">
         <p class="ex-panel-heading">Adding items to the menus, and replacing a menu</p>
-        <p class="ex-panel-intro"><code>canvas.menu.addItem(menu, key, factory, options)</code> adds an item to the <code>action</code>, <code>tool</code>, <code>style</code> or <code>context</code> menu without subclassing it. Each menu has a <code>"bar"</code> and a <code>"dropdown"</code> zone; the item can also go <code>before</code>/<code>after</code> another one, or <code>replace</code> a built-in one.</p>
+        <p class="ex-panel-intro">Items declared in <code>canvasOptions.extend.menuItems</code> are in the <code>action</code>, <code>tool</code>, <code>style</code> or <code>context</code> menu from the first render, without subclassing it; <code>canvas.menu.addItem(menu, key, factory, options)</code> adds one later. Each menu has a <code>"bar"</code> and a <code>"dropdown"</code> zone; an item can also go <code>before</code>/<code>after</code> another one, or <code>replace</code> a built-in one.</p>
         <div class="ex-panel-divider"></div>
         <div class="ex-panel-item">
           <div class="ex-panel-item-desc">The action bar gets a <strong>Download PNG</strong> button (a plain <code>HTMLElement</code>: static) and a <strong>stroke count</strong> whose badge follows the document (a <code>BaseMenuItem</code>: the menu updates it).</div>
         </div>
         <div class="ex-panel-item">
-          <div class="ex-panel-item-desc">The tool bar gets <strong>Reset zoom</strong>, and <strong>Zoom in</strong>/<strong>Zoom out</strong> sent to its dropdown zone: the tool bar has none of its own, so a <strong>…</strong> button appears to hold it.</div>
+          <div class="ex-panel-item-desc">The tool bar gets a <strong>Reset zoom</strong> button.</div>
         </div>
         <div class="ex-panel-item">
           <div class="ex-panel-item-desc">The context menu (right-click or long press) gets a <strong>Count the selection</strong> quick action, in the row above its list.</div>
         </div>
         <div class="ex-panel-item">
-          <div class="ex-panel-item-desc">A built-in item can move: the configuration hides undo/redo (and the other action bar buttons), and <code>addItem</code> puts a <code>UndoRedoMenuAction</code> in the <strong>style</strong> menu's bar instead.</div>
+          <div class="ex-panel-item-desc">A built-in item can move: the configuration hides undo/redo (and the other action bar buttons), and a <code>UndoRedoMenuAction</code> joins the <strong>tool</strong> bar instead.</div>
         </div>
         <div class="ex-panel-item">
           <div class="ex-panel-item-desc">For what adding items cannot do, the menu class is replaced through <code>canvasOptions.override.menu</code>: <strong>CustomMenuStyle</strong> extends <code>IIMenuStyle</code> to allow six brand colors only, without font controls.</div>
@@ -160,10 +160,14 @@
         canvas.menu.update()
       }
 
-      function addMenuItems(canvas) {
+      // Declared in canvasOptions.extend.menuItems: the items are in their menus from the first render.
+      // canvas.menu.addItem(menu, key, factory, options) does the same once the canvas is loaded.
+      // Each factory gets the canvas and runs on every render of its menu.
+      const menuItems = [
         // A raw element is for static content: removed with the menu, never updated
-        canvas.menu.addItem('action', 'download-png', () =>
-          menuButton('download-png', 'Download as PNG', icons.download, async () => {
+        {
+          menu: 'action', key: 'download-png', options: { zone: 'bar' },
+          factory: (canvas) => menuButton('download-png', 'Download as PNG', icons.download, async () => {
             try {
               await canvas.download('png')
               showToast('PNG downloaded')
@@ -171,27 +175,28 @@
             catch (e) {
               showToast('Export failed: ' + e.message)
             }
-          }), { zone: 'bar' })
-
-        canvas.menu.addItem('action', 'stroke-count', () => new StrokeCountItem(canvas), { zone: 'bar' })
-
-        canvas.menu.addItem('tool', 'reset-zoom', () =>
-          menuButton('reset-zoom', 'Reset zoom', icons.zoomReset, () => {
+          })
+        },
+        { menu: 'action', key: 'stroke-count', options: { zone: 'bar' }, factory: (canvas) => new StrokeCountItem(canvas) },
+        {
+          menu: 'tool', key: 'reset-zoom',
+          factory: (canvas) => menuButton('reset-zoom', 'Reset zoom', icons.zoomReset, () => {
             zoomTo(canvas, 1)
             showToast('Zoom reset to 100%')
-          }))
-
+          })
+        },
         // A built-in item can move to another menu: undo/redo, hidden from the action bar by the
-        // configuration below, sits in the style menu's bar. Its id prefix keeps its ids unique there.
-        canvas.menu.addItem('tool', 'undoRedo', () => new UndoRedoMenuAction(canvas, 'ms-menu-style'), { zone: 'bar' })
-
+        // configuration below, sits in the tool bar. Its id prefix keeps its ids unique there.
+        { menu: 'tool', key: 'undoRedo', factory: (canvas) => new UndoRedoMenuAction(canvas, 'ms-menu-tool') },
         // A quick action above the context menu list
-        canvas.menu.addItem('context', 'count-selected', () =>
-          menuButton('count-selected', 'Count the selection', icons.count, () => {
+        {
+          menu: 'context', key: 'count-selected', options: { zone: 'bar' },
+          factory: (canvas) => menuButton('count-selected', 'Count the selection', icons.count, () => {
             const count = canvas.model.symbolsSelected.length
             showToast(`${count} symbol${count !== 1 ? 's' : ''} selected`)
-          }), { zone: 'bar' })
-      }
+          })
+        },
+      ]
 
       // ─── Overridden menu ─────────────────────────────────────────────────────────
       // For what adding items cannot do, replace the menu class through canvasOptions.override.menu.
@@ -241,7 +246,8 @@
           menu: {
             style: CustomMenuStyle
           }
-        }
+        },
+        extend: { menuItems }
       }
 
       let canvas
@@ -249,7 +255,6 @@
       async function loadCanvas(options) {
         await canvas?.destroy()
         canvas = await Canvas.load(rootElement, 'INTERACTIVE_INK', options)
-        addMenuItems(canvas)
         window.canvas = canvas
       }
       showModalBtn.addEventListener('click', () => {
