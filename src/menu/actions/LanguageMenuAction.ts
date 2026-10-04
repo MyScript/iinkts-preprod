@@ -60,7 +60,7 @@ export class LanguageMenuAction extends BaseMenuItem<HTMLDivElement> {
     this.subMenuWrapper.appendChild(triggerBtn)
 
     this.subMenuContent = this.dom.div({
-      className: ["sub-menu-content", "bottom-right"],
+      className: ["sub-menu-content", this.openPosition ?? "bottom-right"],
     })
     this.subMenuContent.appendChild(this.select)
     this.subMenuWrapper.appendChild(this.subMenuContent)

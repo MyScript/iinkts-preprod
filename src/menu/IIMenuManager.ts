@@ -3,7 +3,13 @@ import { mergeDeep } from "@/core/std"
 import { DOMFactory } from "@/dom"
 import { LoggerCategory, LoggerManager } from "@/logger"
 
-import type { IIAbstractMenu, TMenuItemFactory, TMenuItemOptions, TRegisteredMenuItem } from "./IIAbstractMenu"
+import type {
+  IIAbstractMenu,
+  TMenuItemFactory,
+  TMenuItemOptions,
+  TMenuLayoutConfig,
+  TRegisteredMenuItem,
+} from "./IIAbstractMenu"
 import type { TMenuActionConfig } from "./IIMenuAction"
 import { IIMenuAction } from "./IIMenuAction"
 import type { TMenuContextConfig } from "./IIMenuContext"
@@ -84,7 +90,7 @@ export class IIMenuManager {
     MENU_NAMES.forEach((name) => this.createMenu(name))
   }
 
-  getMenu(name: TMenuName): IIAbstractMenu<unknown> {
+  getMenu(name: TMenuName): IIAbstractMenu<TMenuLayoutConfig> {
     return this[name]
   }
 

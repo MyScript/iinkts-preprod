@@ -5,13 +5,22 @@ import { DOMFactory } from "@/dom"
 import type { IIModel } from "@/model"
 import type { TSymbol } from "@/symbol"
 
-import { IIAbstractMenu, type TMenuZone } from "./IIAbstractMenu"
+import { IIAbstractMenu, type TMenuLayoutConfig, type TMenuZone } from "./IIAbstractMenu"
 import {
   DEFAULT_FONT_SIZE_LIST,
   DEFAULT_FONT_WEIGHT_LIST,
   DEFAULT_MENU_COLORS,
   DEFAULT_THICKNESS_LIST,
 } from "./MenuConstants"
+
+/**
+ * @group Menu
+ * @summary How the style menu sits in its slot: {@link TMenuLayoutConfig}, and whether its panel folds
+ */
+export type TMenuStyleLayoutConfig = TMenuLayoutConfig & {
+  /** Fold the panel behind its palette trigger; defaults to folding on a narrow screen or in a shared horizontal slot */
+  collapsed?: boolean
+}
 
 /**
  * @group Menu
@@ -78,13 +87,14 @@ import {
 /**
  * @group Menu
  */
-export class IIMenuStyle extends IIAbstractMenu<Required<TMenuStyleConfig>> {
+export class IIMenuStyle extends IIAbstractMenu<Required<TMenuStyleConfig> & TMenuStyleLayoutConfig> {
+  readonly layoutName = "style"
   readonly defaultZone: TMenuZone = "dropdown"
   triggerBtn?: HTMLButtonElement
   subMenuWrapper?: HTMLDivElement
   subMenuContent?: HTMLDivElement
 
-  constructor(canvas: TInteractiveInkCanvas, id = "ms-menu-style", config?: TMenuStyleConfig) {
+  constructor(canvas: TInteractiveInkCanvas, id = "ms-menu-style", config?: TMenuStyleConfig & TMenuStyleLayoutConfig) {
     super(canvas, id, buildMenuStyleConfig(config))
   }
 
@@ -110,6 +120,16 @@ export class IIMenuStyle extends IIAbstractMenu<Required<TMenuStyleConfig>> {
     return this.canvas.renderer.parent.clientWidth < 700
   }
 
+  /**
+   * Whether the panel folds behind its palette trigger: `collapsed` when set, else on a narrow screen or when the menu
+   * shares a horizontal slot, where an open panel would cover the ink above or below the other bars
+   */
+  get collapsed(): boolean {
+    const slot = this.slot
+    const sharesSlot = slot ? this.canvas.layout.occupantsOf(slot).length > 1 : false
+    return this.config.collapsed ?? (this.isMobile || (this.orientation === "horizontal" && sharesSlot))
+  }
+
   render(layer: HTMLElement): void {
     if (!this.canvas.configuration.menu.style.enable) {
       return
@@ -129,7 +149,7 @@ export class IIMenuStyle extends IIAbstractMenu<Required<TMenuStyleConfig>> {
     }
     const column = DOMFactory.div({ className: "ms-menu-column" })
     this.triggerBtn = DOMFactory.button({ id: this.id, className: "square", html: styleIcon })
-    const dropdown = this.createDropdown(this.triggerBtn, column, "bottom-left")
+    const dropdown = this.createDropdown(this.triggerBtn, column, this.barOpenPosition() ?? "bottom-left")
     this.subMenuWrapper = dropdown.element
     this.subMenuContent = dropdown.content
     wrapper.appendChild(dropdown.element)
@@ -163,7 +183,7 @@ export class IIMenuStyle extends IIAbstractMenu<Required<TMenuStyleConfig>> {
 
   update(): void {
     if (this.subMenuContent && this.subMenuWrapper) {
-      if (this.isMobile) {
+      if (this.collapsed) {
         // wrap — only if not already inside subMenuWrapper
         if (this.subMenuContent.parentElement !== this.subMenuWrapper) {
           this.subMenuContent.classList.add("sub-menu-content")
@@ -196,8 +216,10 @@ export class IIMenuStyle extends IIAbstractMenu<Required<TMenuStyleConfig>> {
   }
 }
 
-function buildMenuStyleConfig(config?: TMenuStyleConfig): Required<TMenuStyleConfig> {
-  const built = { ...DefaultMenuStyleConfig }
+function buildMenuStyleConfig(
+  config?: TMenuStyleConfig & TMenuStyleLayoutConfig
+): Required<TMenuStyleConfig> & TMenuStyleLayoutConfig {
+  const built: Required<TMenuStyleConfig> & TMenuStyleLayoutConfig = { ...DefaultMenuStyleConfig }
   if (!config) {
     return built
   }
@@ -220,5 +242,8 @@ function buildMenuStyleConfig(config?: TMenuStyleConfig): Required<TMenuStyleCon
   built.fontSize = config.fontSize ?? built.fontSize
   built.fontWeight = config.fontWeight ?? built.fontWeight
   built.opacity = config.opacity ?? built.opacity
+  built.orientation = config.orientation
+  built.openTowards = config.openTowards
+  built.collapsed = config.collapsed
   return built
 }

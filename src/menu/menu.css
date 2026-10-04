@@ -136,6 +136,32 @@
   right: -8px;
 }
 
+/* Above, growing rightwards from the trigger's left edge: a dropdown of a bottom-left slot */
+.ms-ink .sub-menu .sub-menu-content.top-right {
+  top: -8px;
+  left: 0;
+  transform: translate(0, -100%);
+}
+
+/* Above, growing leftwards from the trigger's right edge: a dropdown of a bottom-right slot */
+.ms-ink .sub-menu .sub-menu-content.top-left {
+  top: -8px;
+  right: 0;
+  transform: translate(0, -100%);
+}
+
+.ms-ink .sub-menu .sub-menu-content.left-top {
+  top: 0%;
+  left: -8px;
+  transform: translate(-100%, 0%);
+}
+
+.ms-ink .sub-menu .sub-menu-content.left {
+  top: 50%;
+  left: -8px;
+  transform: translate(-100%, -50%);
+}
+
 .ms-ink .ms-menu-context {
   position: absolute;
 }

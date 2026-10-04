@@ -77,7 +77,7 @@ export class ShapeTool extends BaseMenuItem<HTMLDivElement> {
     subMenuContent.appendChild(this.createShapeButton(rhombusIcon, CanvasWriteTool.Rhombus, "Rhombus"))
 
     const content = this.dom.div({
-      className: ["sub-menu-content", "top"],
+      className: ["sub-menu-content", this.openPosition ?? "top"],
     })
     content.appendChild(subMenuContent)
 

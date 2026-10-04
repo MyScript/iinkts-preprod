@@ -22,7 +22,7 @@ import {
   ReorderContextMenu,
   SelectAllContextMenu,
 } from "./context"
-import { IIAbstractMenu, type TMenuZone } from "./IIAbstractMenu"
+import { IIAbstractMenu, type TMenuLayoutConfig, type TMenuZone } from "./IIAbstractMenu"
 
 /**
  * @group Menu
@@ -69,7 +69,7 @@ export const DefaultMenuContextConfig: Required<TMenuContextConfig> = {
 /**
  * @group Menu
  */
-export class IIMenuContext extends IIAbstractMenu<Required<TMenuContextConfig>> {
+export class IIMenuContext extends IIAbstractMenu<Required<TMenuContextConfig> & TMenuLayoutConfig> {
   readonly defaultZone: TMenuZone = "dropdown"
   /** Hides the menu when the rendering layer scrolls, as the element it points at moves */
   protected scrollHandler?: () => void
@@ -79,7 +79,7 @@ export class IIMenuContext extends IIAbstractMenu<Required<TMenuContextConfig>> 
     y: number
   }
 
-  constructor(canvas: TInteractiveInkCanvas, id = "ms-menu-context", config?: TMenuContextConfig) {
+  constructor(canvas: TInteractiveInkCanvas, id = "ms-menu-context", config?: TMenuContextConfig & TMenuLayoutConfig) {
     super(canvas, id, { ...DefaultMenuContextConfig, ...config })
     this.position = { x: 0, y: 0 }
   }
