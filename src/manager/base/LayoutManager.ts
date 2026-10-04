@@ -25,6 +25,51 @@ export type TLayoutSlot = (typeof LAYOUT_SLOTS)[number]
 
 /**
  * @group Manager
+ * @summary The axis of a menu's bar
+ */
+export type TMenuOrientation = "horizontal" | "vertical"
+
+/**
+ * @group Manager
+ * @summary The side a menu's dropdowns open towards
+ */
+export type TMenuDirection = "up" | "down" | "left" | "right"
+
+/**
+ * @group Manager
+ * @summary The axis a slot gives its menus: vertical bars on the sides, horizontal ones at the top and bottom
+ */
+export function slotOrientation(slot: TLayoutSlot): TMenuOrientation {
+  return slot.startsWith("middle") ? "vertical" : "horizontal"
+}
+
+/**
+ * @group Manager
+ * @summary The side a slot's menus open towards: away from the edge they sit on
+ */
+export function slotOpenTowards(slot: TLayoutSlot): TMenuDirection {
+  if (slot.startsWith("top")) {
+    return "down"
+  }
+  if (slot.startsWith("bottom")) {
+    return "up"
+  }
+  return slot === "middle-left" ? "right" : "left"
+}
+
+/**
+ * @group Manager
+ * @summary The horizontal side a slot sits against, which a dropdown grows away from
+ */
+export function slotAnchor(slot: TLayoutSlot): "start" | "center" | "end" {
+  if (slot.endsWith("left")) {
+    return "start"
+  }
+  return slot.endsWith("right") ? "end" : "center"
+}
+
+/**
+ * @group Manager
  * @summary What goes in each slot, in stacking order
  * @remarks A slot given here replaces the default one. An occupant it leaves out keeps its default slot;
  * one listed twice only shows in the first.
@@ -132,6 +177,11 @@ export class LayoutManager {
 
   protected isKnown(occupant: string): boolean {
     return this.occupants.includes(occupant)
+  }
+
+  /** The occupants of a slot, in stacking order */
+  occupantsOf(slot: TLayoutSlot): readonly string[] {
+    return this.placement[slot]
   }
 
   /** The slot an occupant sits in */

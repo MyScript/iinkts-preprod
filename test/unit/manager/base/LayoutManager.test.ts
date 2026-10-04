@@ -1,4 +1,13 @@
-import { CanvasLayer, LayoutManager, LoggerCategory, LoggerManager, TLayoutConfiguration } from "@/iink"
+import {
+  CanvasLayer,
+  LayoutManager,
+  LoggerCategory,
+  LoggerManager,
+  slotAnchor,
+  slotOpenTowards,
+  slotOrientation,
+  TLayoutConfiguration,
+} from "@/iink"
 
 const INTERACTIVE_OCCUPANTS = ["action", "style", "tool", "state", "minimap"]
 
@@ -91,5 +100,22 @@ describe("LayoutManager.ts", () => {
       expect(layers.ui.root.querySelector(".ms-layout-slot")).toBeNull()
       expect(layout.host("tool")).toBeUndefined()
     })
+  })
+})
+
+describe("slot geometry", () => {
+  test.each([
+    ["top-left", "horizontal", "down", "start"],
+    ["top-center", "horizontal", "down", "center"],
+    ["top-right", "horizontal", "down", "end"],
+    ["middle-left", "vertical", "right", "start"],
+    ["middle-right", "vertical", "left", "end"],
+    ["bottom-left", "horizontal", "up", "start"],
+    ["bottom-center", "horizontal", "up", "center"],
+    ["bottom-right", "horizontal", "up", "end"],
+  ] as const)("%s: %s bars opening %s, anchored at the %s", (slot, orientation, openTowards, anchor) => {
+    expect(slotOrientation(slot)).toBe(orientation)
+    expect(slotOpenTowards(slot)).toBe(openTowards)
+    expect(slotAnchor(slot)).toBe(anchor)
   })
 })

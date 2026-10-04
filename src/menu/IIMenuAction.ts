@@ -34,7 +34,7 @@ import {
   ZoomMenuAction,
 } from "./actions"
 import type { TCanvasTheme } from "./CanvasThemes"
-import { IIAbstractMenu, type TMenuItemOptions, type TMenuZone } from "./IIAbstractMenu"
+import { IIAbstractMenu, type TMenuItemOptions, type TMenuLayoutConfig, type TMenuZone } from "./IIAbstractMenu"
 
 /**
  * @group Menu
@@ -105,11 +105,12 @@ export const DefaultMenuActionConfig: Required<Omit<TMenuActionConfig, "themes">
  * @group Menu
  */
 export class IIMenuAction extends IIAbstractMenu<
-  Required<Omit<TMenuActionConfig, "themes">> & Pick<TMenuActionConfig, "themes">
+  Required<Omit<TMenuActionConfig, "themes">> & Pick<TMenuActionConfig, "themes"> & TMenuLayoutConfig
 > {
   readonly defaultZone: TMenuZone = "dropdown"
+  readonly layoutName = "action"
 
-  constructor(canvas: TInteractiveInkCanvas, id = "ms-menu-action", config?: TMenuActionConfig) {
+  constructor(canvas: TInteractiveInkCanvas, id = "ms-menu-action", config?: TMenuActionConfig & TMenuLayoutConfig) {
     super(canvas, id, { ...DefaultMenuActionConfig, ...config })
   }
 
@@ -131,7 +132,7 @@ export class IIMenuAction extends IIAbstractMenu<
       return
     }
     this.logger.info("Rendering menu actions with config", this.config)
-    this.wrapper = DOMFactory.div({ className: ["ms-menu", "ms-menu-action", "ms-menu-row"] })
+    this.wrapper = DOMFactory.div({ className: ["ms-menu", "ms-menu-action", this.barClassName()] })
     this.renderDropdownItems()
     this.renderBarItems(layer)
     layer.appendChild(this.wrapper)
@@ -146,7 +147,7 @@ export class IIMenuAction extends IIAbstractMenu<
     const column = DOMFactory.div({ className: "ms-menu-column" })
     const trigger = DOMFactory.button({ id: this.id, className: "square", html: menuIcon })
     // First in the row, before the bar items
-    wrapper.prepend(this.createDropdown(trigger, column, "bottom-right").element)
+    wrapper.prepend(this.createDropdown(trigger, column, this.barOpenPosition() ?? "bottom-right").element)
     return column
   }
 
