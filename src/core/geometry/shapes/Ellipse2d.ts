@@ -1,7 +1,7 @@
 import { TWO_PI } from "@/core/math"
 import { computeEllipseRadiusAverage, computeTessellationCount } from "@/core/math"
 
-import { SELECTION_MARGIN } from "../../../Constants"
+import { TESSELLATION_SEGMENT_LENGTH } from "../../math/tessellation"
 import { applyMatrixToPoint, type TMatrixTransform } from "../Matrix"
 import type { TOBB } from "../OBB"
 import type { TPoint } from "../Point"
@@ -82,14 +82,14 @@ export class Ellipse2d extends Geometry2d {
    * This is the one approximation the class carries, and it is what {@link Geometry2d.overlapsBox}
    * and {@link Geometry2d.nearestPoint} fall back on. Each chord is a secant, so the sampled polygon
    * sits inside the true ellipse by at most that chord's sagitta — about `c²/(8r)` for a chord of
-   * length `c` on a curve of local radius `r`. Spacing is `SELECTION_MARGIN`, which puts the error
+   * length `c` on a curve of local radius `r`. Spacing is `TESSELLATION_SEGMENT_LENGTH`, which puts the error
    * well under a pixel for anything drawn at a normal size.
    *
    * `bounds` does **not** go through here: an ellipse's box has a closed form, and using the sampled
    * points would make it a shade too small in every direction at once.
    */
   protected computeVertices(): TPoint[] {
-    const count = computeTessellationCount(TWO_PI * this.#averageRadius(), SELECTION_MARGIN)
+    const count = computeTessellationCount(TWO_PI * this.#averageRadius(), TESSELLATION_SEGMENT_LENGTH)
     const vertices: TPoint[] = []
     for (let i = 0; i < count; i++) {
       vertices.push(this.pointAt(TWO_PI * (i / count)))

@@ -1,6 +1,6 @@
 import { jiixText } from "../__dataset__/exports.dataset"
 import { buildIICircle, buildIIStroke, buildIIText, buildIIDecorator, delay } from "../helpers"
-import { CanvasTool, DecoratorKind, DecoratorUtil, DefaultInteractiveInkCanvasConfiguration, EdgeUtil, IIAbstractManager, InteractiveInkCanvas, MatrixTransform, OBBOps, SELECTION_MARGIN, ShapeKind, ShapeUtil, SymbolGeometry, SymbolType, TBaseSymbol, TDecorator, TEdgeLine, TInteractiveInkCanvasOptions, TPartialDeep, TShapeCircle, TStroke, TStyle, TSymbol, cloneSymbol, getInitialHistoryContext, isStroke } from "@/iink"
+import { CanvasTool, DecoratorKind, DecoratorUtil, DefaultInteractiveInkCanvasConfiguration, EdgeUtil, IIAbstractManager, InteractiveInkCanvas, MatrixTransform, DUPLICATE_OFFSET, OBBOps, ShapeKind, ShapeUtil, SymbolGeometry, SymbolType, TBaseSymbol, TDecorator, TEdgeLine, TInteractiveInkCanvasOptions, TPartialDeep, TShapeCircle, TStroke, TStyle, TSymbol, cloneSymbol, getInitialHistoryContext, isStroke } from "@/iink"
 
 describe("InteractiveInkCanvas.ts", () => {
   global.fetch = jest.fn(() =>
@@ -827,9 +827,9 @@ describe("InteractiveInkCanvas.ts", () => {
 
       // Computed independently of `duplicate`, from the registered stroke's own real geometry —
       // if the gate dropped every symbol instead of just the orphan, `bounds.height` inside
-      // `duplicate` would degenerate to 0 and the applied ty would be `SELECTION_MARGIN` alone,
+      // `duplicate` would degenerate to 0 and the applied ty would be `DUPLICATE_OFFSET` alone,
       // not this value.
-      const expectedTy = OBBOps.toBox(SymbolGeometry.boundsOf(stroke)).height + SELECTION_MARGIN
+      const expectedTy = OBBOps.toBox(SymbolGeometry.boundsOf(stroke)).height + DUPLICATE_OFFSET
 
       const result = await canvas.duplicate([stroke, orphan])
       expect(result).toHaveLength(2)

@@ -3,8 +3,7 @@ import { AbstractCanvas } from "@/canvas/AbstractCanvas"
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import type { TExport, TRecognitionWebSocketConfiguration } from "@/client"
 import { WebSocketClient } from "@/client"
-import type { TCanvasOperationLabel } from "@/Constants"
-import { CanvasTool, GESTURE_OPERATION_LABELS, SELECTION_MARGIN } from "@/Constants"
+import { DUPLICATE_OFFSET, SELECTION_PADDING } from "@/constants"
 import type { TBox } from "@/core/geometry"
 import { BoxOps, isIdentityMatrix, MatrixTransform, OBBOps } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
@@ -14,6 +13,7 @@ import { DOMFactory } from "@/dom"
 import type { TIIHistoryBackendChanges, TIIHistoryChanges } from "@/history"
 import { appendUpdated, extractIIBackendChanges, IIHistoryManager } from "@/history"
 import type { TDownloadFormat, TExportFormat, TExportOptions, TExportResultMap, TPDFDownloadOptions } from "@/manager"
+import { CanvasTool, GESTURE_OPERATION_LABELS } from "@/manager"
 import {
   EraseManager,
   IIConnectorManager,
@@ -58,6 +58,7 @@ import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
 import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
 import type { SymbolUtil } from "@/symbol-utils/SymbolUtil"
 
+import type { TCanvasOperationLabel } from "../TCanvasOperationLabel"
 import type { TInteractiveInkCanvasConfiguration } from "./InteractiveInkCanvasConfiguration"
 import { InteractiveInkCanvasConfiguration } from "./InteractiveInkCanvasConfiguration"
 
@@ -1307,10 +1308,10 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
   /**
    * Get bounding box for a list of symbols
    * @param symbols - Symbols to calculate bounds for
-   * @param margin - TMargin to add around bounds (default: SELECTION_MARGIN)
+   * @param margin - TMargin to add around bounds (default: SELECTION_PADDING)
    * @returns Bounding box containing all symbols
    */
-  getSymbolsBounds(symbols: TSymbol[], margin: number = SELECTION_MARGIN): TBox {
+  getSymbolsBounds(symbols: TSymbol[], margin: number = SELECTION_PADDING): TBox {
     // Public API: callers (export, minimap, viewport framing) can pass an arbitrary symbol
     // list, including a selection built with no registry check, so an unregistered type is
     // dropped from the bounds computation instead of throwing.
@@ -1781,7 +1782,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
           clone.id = `${clone.type}-${createUUID()}`
         }
 
-        const matrix = MatrixTransform.identity().translate(SELECTION_MARGIN, bounds.height + SELECTION_MARGIN)
+        const matrix = MatrixTransform.identity().translate(DUPLICATE_OFFSET, bounds.height + DUPLICATE_OFFSET)
         this.transform.translate.applyToSymbol(clone, matrix)
         return clone
       })

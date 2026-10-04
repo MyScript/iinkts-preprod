@@ -1,4 +1,3 @@
-import type { EdgeDecoration } from "@/Constants"
 import { type TPoint } from "@/core/geometry"
 import { computeAngleFromPointOnEllipse, computeDistance, computePointOnEllipse } from "@/core/geometry"
 import { computeEllipseRadiusAverage } from "@/core/math"
@@ -7,6 +6,7 @@ import type { SymbolType } from "@/symbol/Symbol"
 import { type TBaseSymbol } from "@/symbol/Symbol"
 
 import type { TAnchor } from "./Anchor"
+import type { EdgeDecoration } from "./Edge-enum"
 import type { EdgeKind } from "./Edge-enum"
 
 /**

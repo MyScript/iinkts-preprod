@@ -1,10 +1,10 @@
-import type { EdgeDecoration } from "@/Constants"
 import { type TPoint } from "@/core/geometry"
 import type { TStyle } from "@/style"
 import type { SymbolType } from "@/symbol/Symbol"
 import { type TBaseSymbol } from "@/symbol/Symbol"
 
 import type { TAnchor } from "./Anchor"
+import type { EdgeDecoration } from "./Edge-enum"
 import type { EdgeKind } from "./Edge-enum"
 /**
  * @group Symbol

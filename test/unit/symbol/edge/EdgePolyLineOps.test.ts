@@ -1,5 +1,5 @@
 import { edgeGeometry } from "../../helpers"
-import { DefaultStyle, EdgeDecoration, EdgeUtil, MatrixTransform, OBBOps, Polyline2d, SELECTION_MARGIN, TBox, TPoint, TStyle } from "@/iink"
+import { DefaultStyle, EdgeDecoration, EdgeUtil, MatrixTransform, OBBOps, Polyline2d, HIT_TOLERANCE, TBox, TPoint, TStyle } from "@/iink"
 
 describe("EdgePolyLineOps", () => {
   describe("create", () => {
@@ -36,10 +36,10 @@ describe("EdgePolyLineOps", () => {
     })
     test("should compute bounds with margin", () => {
       const line = EdgeUtil.createPolyLine(points, undefined, undefined, { width: 20 })
-      expect(OBBOps.toBox(new Polyline2d(line.points, SELECTION_MARGIN / 2).bounds).x).toEqual(-5)
-      expect(OBBOps.toBox(new Polyline2d(line.points, SELECTION_MARGIN / 2).bounds).y).toEqual(-5)
-      expect(new Polyline2d(line.points, SELECTION_MARGIN / 2).bounds.width).toEqual(15)
-      expect(new Polyline2d(line.points, SELECTION_MARGIN / 2).bounds.height).toEqual(15)
+      expect(OBBOps.toBox(new Polyline2d(line.points, HIT_TOLERANCE).bounds).x).toEqual(-5)
+      expect(OBBOps.toBox(new Polyline2d(line.points, HIT_TOLERANCE).bounds).y).toEqual(-5)
+      expect(new Polyline2d(line.points, HIT_TOLERANCE).bounds.width).toEqual(15)
+      expect(new Polyline2d(line.points, HIT_TOLERANCE).bounds.height).toEqual(15)
     })
     test("should generate unique ids", () => {
       const l1 = EdgeUtil.createPolyLine(points)

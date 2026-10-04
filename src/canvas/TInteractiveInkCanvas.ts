@@ -1,10 +1,10 @@
 import type { WebSocketClient } from "@/client"
 import type { TExport, TRecognitionWebSocketConfiguration } from "@/client"
-import type { CanvasTool, TCanvasOperationLabel } from "@/Constants"
 import type { TBox } from "@/core/geometry"
 import type { TPartialDeep } from "@/core/std"
 import type { DOMFactory } from "@/dom"
 import type { IIHistoryManager } from "@/history"
+import type { CanvasTool } from "@/manager"
 import type {
   EraseManager,
   IIConnectorManager,
@@ -40,6 +40,7 @@ import type { SymbolUtil } from "@/symbol-utils/SymbolUtil"
 
 import type { CanvasEvent, TCanvasConnectionState } from "./CanvasEvent"
 import type { CanvasLayer } from "./CanvasLayer"
+import type { TCanvasOperationLabel } from "./TCanvasOperationLabel"
 import type { InteractiveInkCanvasConfiguration } from "./variants/InteractiveInkCanvasConfiguration"
 
 /**
