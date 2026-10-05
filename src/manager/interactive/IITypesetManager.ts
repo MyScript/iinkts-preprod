@@ -187,7 +187,7 @@ export class IITypesetManager extends IIAbstractManager {
         this.updateBounds(draft)
         this.renderer.drawSymbol(draft)
         // `committed` is already a frozen value, so it is the snapshot — nothing to clone.
-        return [{ before: committed, after: this.model.getRootSymbol(committed.id) ?? draft }]
+        return [{ before: committed, after: this.model.getSymbol(committed.id) ?? draft }]
       })
     }
     return

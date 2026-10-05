@@ -180,7 +180,7 @@ describe("IIRotationManager.ts", () => {
         expect(canvas.endOperation).toHaveBeenCalledWith("Rotating")
         await endPromise
 
-        const newStroke = canvas.model.getRootSymbol(strokeOrigin.id) as TStroke
+        const newStroke = canvas.model.getSymbol(strokeOrigin.id) as TStroke
         expect(manager.applyToSymbol).toHaveBeenCalledTimes(1)
         // Committing a transform rewrites the element's `transform` attribute instead of rebuilding
         // it through `drawSymbol` (task 12) - the final geometry reaches the renderer as an
@@ -342,7 +342,7 @@ describe("IIRotationManager.ts", () => {
       manager.start(rotateElement, origin)
       await manager.end(computeRotatedPoint(origin, center, Math.PI / 2))
 
-      const newEdgeStroke = canvas.model.getRootSymbol(edgeStroke.id) as TStroke
+      const newEdgeStroke = canvas.model.getSymbol(edgeStroke.id) as TStroke
       // The edge stroke really moved with the shape...
       expect(newEdgeStroke.pointers).not.toEqual(originalPointers)
       // ...but it was reshaped non-uniformly (gradient-followed, single anchor), so it must never
@@ -409,7 +409,7 @@ describe("IIRotationManager.ts", () => {
       const previewClone = (canvas.renderer.drawSymbol as jest.Mock).mock.calls.find(
         (c) => (c[0] as { id: string }).id === edgeStroke.id
       )![0] as typeof edgeStroke
-      const newEdgeStroke = canvas.model.getRootSymbol(edgeStroke.id) as TStroke
+      const newEdgeStroke = canvas.model.getSymbol(edgeStroke.id) as TStroke
       expect(newEdgeStroke.pointers).toEqual(previewClone.pointers)
     })
   })

@@ -49,7 +49,7 @@ Three choices in there are not free, and each was measured:
   the run lands on it as a systematic bias rather than as noise.
 - **Both sides loaded the same way.** Loading the current build through the package's `#iink` and the
   reference through a `file://` URL resolves the same file by different mechanisms, and that asymmetry
-  alone produced a **reproducible 23.5% false regression** on `read: getRootSymbol` — x0.767 then
+  alone produced a **reproducible 23.5% false regression** on `read: getSymbol` — x0.767 then
   x0.764 across two independent runs of byte-identical bundles. Both sides now take an explicit path.
 
 ### The null test
@@ -59,7 +59,7 @@ whatever it reads instead is the method's own error. Four such runs put the wors
 is where the **20% floor** under the limit comes from — roughly a factor of two over the worst thing
 observed on code that had not changed.
 
-A null test is also how a case is shown to be unfit. `read: getRootSymbol` repeated one lookup 100 000
+A null test is also how a case is shown to be unfit. `read: getSymbol` repeated one lookup 100 000
 times and read 8.5%, 1.5% and then 29.4% out across three runs of identical code — an error with no
 tendency to converge, which no threshold can be honest about. Rotating the lookup over every resident
 id, which is both the realistic shape and a kinder one for the JIT, brought it to 2.2%, 3.8% and 8.1%.
@@ -159,7 +159,7 @@ size that made it worth measuring.
 | `symbolGeometry:cold @4419` | 106.9384 | x1054.2 | 8 | x1.006 |
 | `hit test: linear overlaps over all @500 x20` | 7.4427 | x73.4 | 8 | x0.972 |
 | `transform: matrix over every pointer @500 x20` | 2.8869 | x28.5 | 8 | x0.972 |
-| `read: getRootSymbol by id @500 x200` | 1.2970 | x12.8 | 8 | x0.915 |
+| `read: getSymbol by id @500 x200` | 1.2970 | x12.8 | 8 | x0.915 |
 | `import: build a model of 200 strokes x16` | 0.4497 | x4.4 | 8 | x0.999 |
 | `read: model.symbols @500 x200` | 0.2553 | x2.5 | 8 | x0.969 |
 | `symbolGeometry:warm @4419` | 0.2392 | x2.4 | 8 | x1.070 |

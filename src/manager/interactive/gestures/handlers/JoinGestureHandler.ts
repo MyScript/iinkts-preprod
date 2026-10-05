@@ -201,7 +201,7 @@ export class JoinGestureHandler extends GestureHandler {
       appendUpdated(
         changes,
         snapshots.flatMap((before) => {
-          const after = this.canvas.model.getRootSymbol(before.id)
+          const after = this.canvas.model.getSymbol(before.id)
           return after ? [{ before, after }] : []
         })
       )
