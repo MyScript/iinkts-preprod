@@ -1,9 +1,5 @@
 import { buildIIStroke } from "../../helpers"
-import {
-  DefaultInteractiveInkCanvasConfiguration,
-  InteractiveInkCanvas,
-  TInteractiveInkCanvasOptions,
-} from "@/iink"
+import { DefaultInteractiveInkCanvasConfiguration, InteractiveInkCanvas, TInteractiveInkCanvasOptions } from "@/iink"
 
 describe("ExportManager.ts", () => {
   const CanvasOptions: TInteractiveInkCanvasOptions = {

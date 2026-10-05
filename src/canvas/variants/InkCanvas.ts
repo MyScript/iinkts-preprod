@@ -1,19 +1,25 @@
-import type { TCanvasOptionsBase } from "@/canvas/AbstractCanvas"
-import { AbstractCanvas } from "@/canvas/AbstractCanvas"
 import type { TExport, TExportV2 } from "@/client"
 import { HTTPClientV2 } from "@/client"
-import { CanvasTool } from "@/Constants"
-import type { TPartialDeep } from "@/core/std"
+import type { TPartialDeep } from "@/core"
 import type { PointerEventGrabber } from "@/grabber"
 import type { TIHistoryChanges } from "@/history"
 import { IHistoryManager } from "@/history"
-import { EraseManager, IDebugSVGManager, IWriterManager, LayoutManager, type TLayoutOccupant } from "@/manager"
+import {
+  CanvasTool,
+  EraseManager,
+  IDebugSVGManager,
+  IWriterManager,
+  LayoutManager,
+  type TLayoutOccupant,
+} from "@/manager"
 import { IModel } from "@/model"
 import { SVGRenderer } from "@/renderer"
 import type { TStyle } from "@/style"
 import type { TStroke } from "@/symbol"
 import { registerBuiltinSymbolUtils, StrokeUtil } from "@/symbol-utils"
 
+import type { TCanvasOptionsBase } from "../AbstractCanvas"
+import { AbstractCanvas } from "../AbstractCanvas"
 import type { TInkCanvas } from "../TInkCanvas"
 import type { TInkCanvasConfiguration } from "./InkCanvasConfiguration"
 import { InkCanvasConfiguration } from "./InkCanvasConfiguration"

@@ -1,6 +1,6 @@
-import type { TBox } from "@/core/geometry"
-import type { TPoint } from "@/core/geometry"
+import type { TBox, TPartialDeep, TPoint } from "@/core"
 import {
+  createUUID,
   type Geometry2d,
   isIdentityMatrix,
   MatrixTransform,
@@ -8,14 +8,10 @@ import {
   OBBOps,
   Polygon2d,
   type TOBB,
-} from "@/core/geometry"
-import type { TPartialDeep } from "@/core/std"
-import { createUUID } from "@/core/std"
-import { mergeSymbolStyle, type TStyle } from "@/style"
-import { DefaultStyle } from "@/style"
-import { DecoratorKind, type TDecorator } from "@/symbol/decorator/Decorator"
-import type { TBaseSymbol } from "@/symbol/Symbol"
-import { SymbolType } from "@/symbol/Symbol"
+} from "@/core"
+import { DefaultStyle, mergeSymbolStyle, type TStyle } from "@/style"
+import type { TBaseSymbol } from "@/symbol"
+import { DecoratorKind, SymbolType, type TDecorator } from "@/symbol"
 
 import { SVGBuilder } from "../SVGBuilder"
 import { SymbolGeometry } from "../SymbolGeometry"

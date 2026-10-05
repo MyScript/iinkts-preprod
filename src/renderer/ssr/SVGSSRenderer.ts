@@ -11,9 +11,9 @@ import type {
 } from "@/client"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { Model } from "@/model"
-import type { TRendererConfiguration } from "@/renderer/RendererConfiguration"
 import type { TLegacyStroke } from "@/symbol"
 
+import type { TRendererConfiguration } from "../RendererConfiguration"
 import { SVGStroker } from "./SVGStroker"
 
 /**

@@ -1,5 +1,5 @@
-import type { TPartialDeep } from "@/core/std"
-import type { TSymbol } from "@/symbol/Symbol"
+import type { TPartialDeep } from "@/core"
+import type { TSymbol } from "@/symbol"
 
 import { symbolRegistry } from "./SymbolRegistry"
 

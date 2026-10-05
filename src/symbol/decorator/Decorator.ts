@@ -1,7 +1,8 @@
-import { type TOBB } from "@/core/geometry"
+import { type TOBB } from "@/core"
 import type { TStyle } from "@/style"
-import type { TBaseSymbol } from "@/symbol/Symbol"
-import { SymbolType } from "@/symbol/Symbol"
+
+import type { TBaseSymbol } from "../Symbol"
+import { SymbolType } from "../Symbol"
 /**
  * @group Symbol
  */

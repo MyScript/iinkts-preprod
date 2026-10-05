@@ -5,6 +5,7 @@ import type { TServerHTTPConfiguration } from "./ServerConfiguration"
  * Resolves the server configuration's `hmacKey` (a literal string or an async resolver
  * function) and computes the HMAC signature for `data`, or returns `undefined` if no HMAC key
  * is configured.
+ * @group Client
  */
 export async function resolveHmac(server: TServerHTTPConfiguration, message: string): Promise<string | undefined> {
   if (!server.hmacKey) {

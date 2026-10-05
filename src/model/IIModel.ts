@@ -1,6 +1,6 @@
 import type { TExport, TJIIXMathElement, TJIIXTextElement } from "@/client"
 import { JIIXElementType } from "@/client"
-import { mergeExports, type TDraft } from "@/core/std"
+import { mergeExports, type TDraft } from "@/core"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import { SymbolStore, type TSymbolOrder } from "@/store"
 import type { TSymbol } from "@/symbol"

@@ -1,8 +1,6 @@
-import { OBBOps, Polygon2d, type TPoint } from "@/core/geometry"
-import { DecoratorKind } from "@/symbol/decorator/Decorator"
-import type { TMath } from "@/symbol/typeset/Math"
-import type { TText } from "@/symbol/typeset/Text"
-import { computeTypesetSnapPoints, computeTypesetVertices } from "@/symbol/typeset/Typeset"
+import { OBBOps, Polygon2d, type TPoint } from "@/core"
+import type { TMath, TText } from "@/symbol"
+import { computeTypesetSnapPoints, computeTypesetVertices, DecoratorKind } from "@/symbol"
 
 import { DecoratorUtil } from "../decorator/DecoratorUtil"
 import { SVGBuilder } from "../SVGBuilder"

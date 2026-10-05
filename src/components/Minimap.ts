@@ -1,6 +1,5 @@
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import { RafCoalescer } from "@/dom"
-import { DOMFactory } from "@/dom"
+import type { TInteractiveInkCanvas } from "@/canvas"
+import { DOMFactory, RafCoalescer } from "@/dom"
 /**
  * @group Components
  */

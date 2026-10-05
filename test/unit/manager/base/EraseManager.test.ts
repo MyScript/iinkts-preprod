@@ -1,15 +1,6 @@
 import { buildIICircle, buildIIEraser, buildIIStroke, buildIIText } from "../../helpers"
 import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import {
-  EraseManager,
-  TPointerInfo,
-  SymbolType,
-  TBaseSymbol,
-  TSymbol,
-  TInkCanvas,
-  symbolRegistry,
-  registerBuiltinSymbolUtils,
-} from "@/iink"
+import { EraseManager, TPointerInfo, SymbolType, TBaseSymbol, TSymbol, TInkCanvas, symbolRegistry, registerBuiltinSymbolUtils } from "@/iink"
 
 describe("EraseManager.ts", () => {
   test("should create", () => {

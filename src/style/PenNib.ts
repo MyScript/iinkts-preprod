@@ -1,4 +1,4 @@
-import type { TPointer } from "@/core/geometry"
+import type { TPointer } from "@/core"
 
 /** Nominal half-width: the multiplier at which a stroke draws exactly its own style width. */
 const WIDTH_NOMINAL = 1

@@ -1,14 +1,11 @@
-import type { TCanvasConfiguration } from "@/canvas/AbstractCanvas"
-import type { TCanvasTriggerConfiguration } from "@/canvas/CanvasTriggerConfiguration"
-import { DefaultCanvasTriggerConfiguration } from "@/canvas/CanvasTriggerConfiguration"
 import type {
   TServerWebsocketConfiguration,
   TWebSocketSSRClientConfiguration,
   TWebSocketSSRClientRecognitionConfiguration,
 } from "@/client"
 import { DefaultWebSocketSSRClientConfiguration, WebSocketSSRClientConfiguration } from "@/client"
-import type { TPartialDeep } from "@/core/std"
-import { mergeDeep } from "@/core/std"
+import type { TPartialDeep } from "@/core"
+import { mergeDeep } from "@/core"
 import type { TGrabberConfiguration } from "@/grabber"
 import { DefaultGrabberConfiguration } from "@/grabber"
 import type { THistoryConfiguration } from "@/history"
@@ -19,6 +16,10 @@ import type { TRendererConfiguration } from "@/renderer"
 import { DefaultRendererConfiguration } from "@/renderer"
 import type { TPenStyle, TTheme } from "@/style"
 import { DefaultTheme } from "@/style"
+
+import type { TCanvasConfiguration } from "../AbstractCanvas"
+import type { TCanvasTriggerConfiguration } from "../CanvasTriggerConfiguration"
+import { DefaultCanvasTriggerConfiguration } from "../CanvasTriggerConfiguration"
 /**
  * @group Canvas
  */

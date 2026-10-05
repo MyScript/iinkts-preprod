@@ -1,7 +1,6 @@
-import type { TInkCanvas } from "@/canvas/TInkCanvas"
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import type { TBox } from "@/core/geometry"
-import { convertPixelToMillimeter } from "@/core/math"
+import type { TInkCanvas, TInteractiveInkCanvas } from "@/canvas"
+import type { TBox } from "@/core"
+import { convertPixelToMillimeter } from "@/core"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import { Modal } from "@/ui"
 /**

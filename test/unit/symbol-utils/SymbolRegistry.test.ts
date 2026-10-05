@@ -1,12 +1,5 @@
-import type {
-  TBaseSymbol,
-  TBox,
-  TPartialDeep,
-  TPoint,
-  TTransformContext,
-} from "@/iink"
-import { BoxOps, Geometry2d, Polygon2d, StrokeUtil, TextUtil, applyMatrixToPoint } from "@/iink"
-import { registerBuiltinSymbolUtils, symbolRegistry, SymbolType, SymbolUtil } from "@/iink"
+import type { TBaseSymbol, TBox, TPartialDeep, TPoint, TTransformContext } from "@/iink"
+import { BoxOps, Geometry2d, Polygon2d, StrokeUtil, TextUtil, applyMatrixToPoint, registerBuiltinSymbolUtils, symbolRegistry, SymbolType, SymbolUtil } from "@/iink"
 
 beforeAll(() => {
   registerBuiltinSymbolUtils()

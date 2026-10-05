@@ -1,10 +1,11 @@
-import type { TPoint } from "@/core/geometry"
-import { type TOBB } from "@/core/geometry"
+import type { TPoint } from "@/core"
+import { type TOBB } from "@/core"
 import type { TStyle } from "@/style"
-import type { TDecorator } from "@/symbol/decorator/Decorator"
-import type { TBaseSymbol } from "@/symbol/Symbol"
-import { SymbolType } from "@/symbol/Symbol"
-import type { TTypesetChild } from "@/symbol/typeset/Typeset"
+
+import type { TDecorator } from "../decorator/Decorator"
+import type { TBaseSymbol } from "../Symbol"
+import { SymbolType } from "../Symbol"
+import type { TTypesetChild } from "./Typeset"
 /**
  * @group Symbol
  */

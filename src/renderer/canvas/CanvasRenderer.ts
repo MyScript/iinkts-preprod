@@ -1,10 +1,10 @@
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { Model } from "@/model"
-import { BaseRenderer } from "@/renderer/base"
-import type { TRendererConfiguration } from "@/renderer/RendererConfiguration"
 import type { Stroke, TBaseSymbol } from "@/symbol"
 import { isStroke } from "@/symbol"
 
+import { BaseRenderer } from "../base"
+import type { TRendererConfiguration } from "../RendererConfiguration"
 import { CanvasRendererShape } from "./CanvasRendererShape"
 import { CanvasRendererStroke } from "./CanvasRendererStroke"
 import { CanvasRendererText } from "./CanvasRendererText"

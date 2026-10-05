@@ -1,17 +1,6 @@
 import { buildIIStroke } from "../../helpers"
 import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import {
-  IISynchronizerManager,
-  JIIXEdgeKind,
-  JIIXElementType,
-  TJIIXEdgeElement,
-  TJIIXElement,
-  TJIIXExport,
-  TJIIXMathElement,
-  TJIIXNodeElement,
-  TJIIXTextElement,
-  TStroke,
-} from "@/iink"
+import { IISynchronizerManager, JIIXEdgeKind, JIIXElementType, TJIIXEdgeElement, TJIIXElement, TJIIXExport, TJIIXMathElement, TJIIXNodeElement, TJIIXTextElement, TStroke } from "@/iink"
 
 function buildMathElement(id: string): TJIIXMathElement {
   return { type: JIIXElementType.Math, id }
