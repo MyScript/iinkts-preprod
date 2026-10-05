@@ -1,8 +1,21 @@
 import { asCanvas, createCanvasMock } from "../__mocks__/createCanvasMock"
 import { StubMenuItem } from "../helpers"
-import { BaseMenuItem, IIAbstractMenu, TMenuItemOptions, TMenuZone } from "@/iink"
+import {
+  BaseMenuItem,
+  CanvasLayer,
+  IIAbstractMenu,
+  IIMenuAction,
+  IIMenuContext,
+  IIMenuStyle,
+  IIMenuTool,
+  LayoutManager,
+  TLayoutConfiguration,
+  TMenuItemOptions,
+  TMenuLayoutConfig,
+  TMenuZone,
+} from "@/iink"
 
-class TestMenu extends IIAbstractMenu<{ items: { key: string; options?: TMenuItemOptions }[] }> {
+class TestMenu extends IIAbstractMenu<{ items: { key: string; options?: TMenuItemOptions }[] } & TMenuLayoutConfig> {
   readonly defaultZone: TMenuZone = "dropdown"
   dropdown?: { element: HTMLDivElement; content: HTMLDivElement }
 
@@ -134,5 +147,115 @@ describe("IIAbstractMenu.ts", () => {
     menu.destroy()
     menu.render(layer)
     expect(menu.wrapper?.querySelectorAll(".sub-menu")).toHaveLength(1)
+  })
+})
+
+describe("IIAbstractMenu in its layout slot", () => {
+  global.fetch = jest.fn(() => Promise.resolve({ json: () => Promise.resolve({ result: {} }) })) as jest.Mock
+  const POSITIONS = ["top", "top-left", "top-right", "left", "left-top", "right", "right-top", "bottom", "bottom-left", "bottom-right"]
+
+  function canvasIn(layout?: TLayoutConfiguration) {
+    const layers = new CanvasLayer(document.createElement("div"))
+    const canvas = createCanvasMock({
+      layers,
+      layout: new LayoutManager(layers, ["action", "style", "tool", "state", "minimap"], layout),
+    })
+    return asCanvas(canvas)
+  }
+
+  /** The position class of each sub-menu content under `root`, outermost first */
+  function positionsIn(root: Element | null | undefined): string[] {
+    return Array.from(root?.querySelectorAll(".sub-menu-content") ?? []).map(
+      (content) => POSITIONS.find((position) => content.classList.contains(position)) ?? "none"
+    )
+  }
+
+  /** The action menu's own dropdown (☰) and the sub-menus of the items in its column */
+  function actionPositions(menu: IIMenuAction): { dropdown: string; column: string[] } {
+    const dropdown = menu.wrapper?.querySelector(":scope > .sub-menu > .sub-menu-content")
+    const [own, ...column] = positionsIn(dropdown?.parentElement)
+    return { dropdown: own, column: Array.from(new Set(column)) }
+  }
+
+  test("should open as before in the default slots", () => {
+    const canvas = canvasIn()
+    const tool = new IIMenuTool(canvas)
+    tool.render(document.createElement("div"))
+    const action = new IIMenuAction(canvas)
+    action.render(document.createElement("div"))
+
+    expect(new Set(positionsIn(tool.wrapper))).toEqual(new Set(["top"]))
+    expect(actionPositions(action)).toEqual({ dropdown: "bottom-right", column: ["right-top"] })
+    expect(tool.orientation).toBe("horizontal")
+  })
+
+  test("should open up and inwards from the bottom-right corner", () => {
+    const action = new IIMenuAction(canvasIn({ "bottom-right": ["action"] }))
+    action.render(document.createElement("div"))
+    expect(actionPositions(action)).toEqual({ dropdown: "top-left", column: ["left-top"] })
+  })
+
+  test("should stand vertical and open rightwards on the left side", () => {
+    const tool = new IIMenuTool(canvasIn({ "middle-left": ["tool"] }))
+    tool.render(document.createElement("div"))
+    expect(tool.orientation).toBe("vertical")
+    expect(tool.wrapper?.classList.contains("ms-menu-column")).toBe(true)
+    expect(new Set(positionsIn(tool.wrapper))).toEqual(new Set(["right-top"]))
+  })
+
+  test("should follow the menu's own orientation and openTowards over its slot's", () => {
+    const tool = new IIMenuTool(canvasIn({ "middle-left": ["tool"] }), "ms-menu-tool", {
+      orientation: "horizontal",
+      openTowards: "down",
+    })
+    tool.render(document.createElement("div"))
+    expect(tool.wrapper?.classList.contains("ms-menu-row")).toBe(true)
+    expect(new Set(positionsIn(tool.wrapper))).toEqual(new Set(["bottom-right"]))
+  })
+
+  test("should fold the style panel in a shared horizontal slot, unless told otherwise", () => {
+    Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, value: 1200 })
+    const alone = new IIMenuStyle(canvasIn())
+    const shared = new IIMenuStyle(canvasIn({ "bottom-center": ["style", "tool"] }))
+    const forced = new IIMenuStyle(canvasIn({ "bottom-center": ["style", "tool"] }), "ms-menu-style", { collapsed: false })
+    expect(alone.collapsed).toBe(false)
+    expect(shared.collapsed).toBe(true)
+    expect(forced.collapsed).toBe(false)
+  })
+
+  function renderedTool(layout?: TLayoutConfiguration): IIMenuTool {
+    const canvas = canvasIn(layout)
+    canvas.layout.render()
+    const tool = new IIMenuTool(canvas)
+    tool.render(canvas.layout.host("tool") ?? document.createElement("div"))
+    return tool
+  }
+
+  test("should fold its host away when it hides in a shared slot, and bring it back", () => {
+    const tool = renderedTool({ "bottom-center": ["action", "tool"] })
+    const host = tool.wrapper?.parentElement
+
+    tool.hide()
+    expect(host?.classList.contains("ms-layout-host-hidden")).toBe(true)
+    // The host folds, so the menu itself stays as it is
+    expect(tool.wrapper?.style.visibility).toBe("")
+
+    tool.show()
+    expect(host?.classList.contains("ms-layout-host-hidden")).toBe(false)
+  })
+
+  test("should just turn invisible when it hides alone in its slot, keeping its room", () => {
+    const tool = renderedTool()
+    tool.hide()
+    expect(tool.wrapper?.style.visibility).toBe("hidden")
+    expect(tool.wrapper?.parentElement?.classList.contains("ms-layout-host-hidden")).toBe(false)
+    tool.show()
+    expect(tool.wrapper?.style.visibility).toBe("visible")
+  })
+
+  test("should leave the directions of a menu outside the layout to its items", () => {
+    const context = new IIMenuContext(canvasIn())
+    expect(context.slot).toBeUndefined()
+    expect(context.openTowards).toBeUndefined()
   })
 })

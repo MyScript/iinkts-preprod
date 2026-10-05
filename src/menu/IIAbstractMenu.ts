@@ -1,6 +1,14 @@
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import { DOMFactory } from "@/dom"
 import { LoggerCategory, LoggerManager } from "@/logger"
+import {
+  slotAnchor,
+  slotOpenTowards,
+  slotOrientation,
+  type TLayoutSlot,
+  type TMenuDirection,
+  type TMenuOrientation,
+} from "@/manager/base/LayoutManager"
 
 import { BaseMenuItem, type TMenuPosition } from "./items"
 
@@ -26,11 +34,22 @@ export type TMenuItemOptions = {
 
 /**
  * @group Menu
+ * @summary How a menu sits in its slot; without them, the slot decides (see `configuration.layout`)
+ */
+export type TMenuLayoutConfig = {
+  /** The axis of the menu's bar; defaults to the slot's: vertical on the sides, horizontal elsewhere */
+  orientation?: TMenuOrientation
+  /** The side every dropdown of the menu opens towards, its items' sub-menus included; defaults to away from the slot's edge */
+  openTowards?: TMenuDirection
+}
+
+/**
+ * @group Menu
  * @summary Builds an item each time its menu renders: a menu destroys its items, which cannot be reused
  * @remarks A raw `HTMLElement` is for static content: it is removed with the menu, never updated. Anything that must
  * follow the canvas state is a {@link BaseMenuItem}.
  */
-export type TMenuItemFactory = () => BaseMenuItem | HTMLElement
+export type TMenuItemFactory = (canvas: TInteractiveInkCanvas) => BaseMenuItem | HTMLElement
 
 /**
  * @group Menu
@@ -63,7 +82,7 @@ class ElementMenuItem extends BaseMenuItem {
  * @remarks Every member is protected or public, never private: menus are replaced through `options.override.menu`.
  * A zone is built on its first item, so a menu shows no empty row nor an empty dropdown.
  */
-export abstract class IIAbstractMenu<TConfig> {
+export abstract class IIAbstractMenu<TConfig extends TMenuLayoutConfig> {
   protected logger = LoggerManager.getLogger(LoggerCategory.MENU)
   canvas: TInteractiveInkCanvas
   id: string
@@ -72,6 +91,8 @@ export abstract class IIAbstractMenu<TConfig> {
 
   /** Where an item goes when {@link addItem} names no zone */
   abstract readonly defaultZone: TMenuZone
+  /** The name the layout places this menu by (`configuration.layout`); none for a menu outside the layout */
+  readonly layoutName?: string
 
   /** The rendered items, by key: updated and destroyed with the menu */
   protected items: Map<string, BaseMenuItem> = new Map()
@@ -93,6 +114,58 @@ export abstract class IIAbstractMenu<TConfig> {
 
   /** Builds the container of `zone` and inserts it in `wrapper` */
   protected abstract createZone(zone: TMenuZone, wrapper: HTMLElement): HTMLElement
+
+  /** The slot the layout put this menu in */
+  get slot(): TLayoutSlot | undefined {
+    return this.layoutName ? this.canvas.layout.slotOf(this.layoutName) : undefined
+  }
+
+  get orientation(): TMenuOrientation {
+    const slot = this.slot
+    return this.config.orientation ?? (slot ? slotOrientation(slot) : "horizontal")
+  }
+
+  /** Undefined for a menu outside the layout, whose items keep their own directions */
+  get openTowards(): TMenuDirection | undefined {
+    const slot = this.slot
+    return this.config.openTowards ?? (slot ? slotOpenTowards(slot) : undefined)
+  }
+
+  /** The class laying the bar out along {@link orientation} */
+  protected barClassName(): string {
+    return this.orientation === "vertical" ? "ms-menu-column" : "ms-menu-row"
+  }
+
+  /** Where a dropdown opening from the bar goes: towards {@link openTowards}, growing away from the slot's side */
+  protected barOpenPosition(): TMenuPosition | undefined {
+    const anchor = this.slot ? slotAnchor(this.slot) : "start"
+    switch (this.openTowards) {
+      case "down":
+        return anchor === "start" ? "bottom-right" : anchor === "end" ? "bottom-left" : "bottom"
+      case "up":
+        return anchor === "start" ? "top-right" : anchor === "end" ? "top-left" : "top"
+      case "right":
+        return "right-top"
+      case "left":
+        return "left-top"
+      default:
+        return undefined
+    }
+  }
+
+  /** Where a sub-menu opening from a dropdown's column goes: sideways, towards the inside of the canvas */
+  protected columnOpenPosition(): TMenuPosition | undefined {
+    const openTowards = this.openTowards
+    if (!openTowards) {
+      return undefined
+    }
+    const towardsLeft = openTowards === "left" || (this.slot ? slotAnchor(this.slot) === "end" : false)
+    return towardsLeft ? "left-top" : "right-top"
+  }
+
+  protected itemOpenPosition(zone: TMenuZone): TMenuPosition | undefined {
+    return zone === "bar" ? this.barOpenPosition() : this.columnOpenPosition()
+  }
 
   /** A sub-menu's config entry: `true` enables it with its defaults, an object configures it */
   protected subConfig<T>(config: boolean | T): T | undefined {
@@ -136,6 +209,9 @@ export abstract class IIAbstractMenu<TConfig> {
   protected addItem(key: string, item: BaseMenuItem | HTMLElement, options?: TMenuItemOptions): void {
     this.currentWrapper()
     const menuItem = item instanceof BaseMenuItem ? item : new ElementMenuItem(key, item, this.canvas)
+    if (!menuItem.openPosition) {
+      menuItem.openPosition = this.itemOpenPosition(options?.zone ?? this.defaultZone)
+    }
     const element = menuItem.getElement()
     const replaced = this.items.get(key)
     if (replaced && !options?.replace) {
@@ -177,7 +253,7 @@ export abstract class IIAbstractMenu<TConfig> {
     registered.forEach(({ factory, options }, key) => {
       try {
         const previous = this.items.get(key)
-        this.addItem(key, factory(), options)
+        this.addItem(key, factory(this.canvas), options)
         const added = this.items.get(key)
         if (added && added !== previous) {
           added.update()
@@ -218,15 +294,35 @@ export abstract class IIAbstractMenu<TConfig> {
   }
 
   show(): void {
-    if (this.wrapper) {
-      this.wrapper.style.visibility = "visible"
-    }
+    this.setHidden(false)
   }
 
   hide(): void {
-    if (this.wrapper) {
-      this.wrapper.style.visibility = "hidden"
+    this.setHidden(true)
+  }
+
+  /** Whether another occupant shares this menu's slot */
+  protected sharesSlot(): boolean {
+    const slot = this.slot
+    return slot ? this.canvas.layout.occupantsOf(slot).length > 1 : false
+  }
+
+  /**
+   * Alone in its slot, the menu just turns invisible and keeps its room. Sharing it, its host folds away (animated in
+   * CSS) so the other occupants close the gap instead of leaving a hole.
+   */
+  protected setHidden(hidden: boolean): void {
+    if (!this.wrapper) {
+      return
     }
+    const host = this.wrapper.parentElement
+    if (host?.classList.contains("ms-layout-host") && this.sharesSlot()) {
+      host.classList.toggle("ms-layout-host-hidden", hidden)
+      this.wrapper.style.removeProperty("visibility")
+      return
+    }
+    host?.classList.remove("ms-layout-host-hidden")
+    this.wrapper.style.visibility = hidden ? "hidden" : "visible"
   }
 
   destroy(): void {
