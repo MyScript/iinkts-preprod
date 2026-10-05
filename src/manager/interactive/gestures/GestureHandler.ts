@@ -1,18 +1,18 @@
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import type { TInteractiveInkCanvas } from "@/canvas"
 import type { WebSocketClient } from "@/client"
 import type { IIHistoryManager } from "@/history"
 import { type Logger, LoggerCategory, LoggerManager } from "@/logger"
-import type { TGesture, TGestureType } from "@/manager/interactive/gestures/GestureTypes"
-import type { IITypesetManager } from "@/manager/interactive/IITypesetManager"
-import type { IITranslateManager } from "@/manager/interactive/transform/IITranslateManager"
 import type { IIModel } from "@/model"
 import type { SVGRenderer } from "@/renderer"
 import { isDecorator, isStroke, type TStroke, type TSymbol } from "@/symbol"
-import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
+import { SymbolGeometry } from "@/symbol-utils"
 
 import type { IIGestureManager } from "../IIGestureManager"
+import type { IITypesetManager } from "../IITypesetManager"
+import type { IITranslateManager } from "../transform/IITranslateManager"
 import { IIGestureAnnotationProcessor } from "./GestureAnnotation"
 import type { GestureHelpers } from "./GestureHelpers"
+import type { TGesture, TGestureType } from "./GestureTypes"
 
 /**
  * Base interface for gesture handlers

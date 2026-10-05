@@ -5,6 +5,7 @@
  * This module contains the base classes and shared managers used by multiple canvas variants.
  */
 export * from "./AbstractWriterManager"
+export * from "./CanvasTool"
 export * from "./ColorPaletteManager"
 export * from "./EraseManager"
 export * from "./ExportManager"

@@ -1,15 +1,15 @@
 import type { TConnectionStatus, TServerHTTPConfiguration } from "@/client"
 import { getApiInfos, type TApiInfos } from "@/client"
-import type { TCanvasOperationLabel } from "@/Constants"
-import { CanvasTool } from "@/Constants"
-import type { TPartialDeep } from "@/core/std"
+import type { TPartialDeep } from "@/core"
 import type { TLoggerConfiguration } from "@/logger"
 import { DefaultLoggerConfiguration, LoggerCategory, LoggerManager } from "@/logger"
-import type { TLayoutConfiguration } from "@/manager/base/LayoutManager"
+import type { TLayoutConfiguration } from "@/manager"
+import { CanvasTool } from "@/manager"
 
 import type { TCanvasConnectionState } from "./CanvasEvent"
 import { CanvasEvent } from "./CanvasEvent"
 import { CanvasLayer } from "./CanvasLayer"
+import type { TCanvasOperationLabel } from "./TCanvasOperationLabel"
 
 /**
  * @hidden

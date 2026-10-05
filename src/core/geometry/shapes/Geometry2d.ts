@@ -41,7 +41,7 @@ export type TGeometry2dOptions = {
    * How far beyond its own outline this shape asks to be found, in units.
    *
    * Not decoration: a hairline is a few tenths of a unit across, and a box drawn exactly around it
-   * is a target nobody can hit. An edge pads its box by half `SELECTION_MARGIN` on each side for
+   * is a target nobody can hit. An edge pads its box by `HIT_TOLERANCE` on each side for
    * that reason, and by more again when it carries an arrow head, which is drawn outside the path it
    * belongs to and would otherwise fall outside the shape's own bounds.
    *

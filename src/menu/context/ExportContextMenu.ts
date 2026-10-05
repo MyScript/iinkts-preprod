@@ -1,8 +1,9 @@
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import type { TInteractiveInkCanvas } from "@/canvas"
 import type { TRecognitionType } from "@/client"
 import type { TDownloadFormat, TExportOptions } from "@/manager"
-import type { TMenuSubMenu } from "@/menu/items/SubMenuItem"
-import { SubMenuItem } from "@/menu/items/SubMenuItem"
+
+import type { TMenuSubMenu } from "../items/SubMenuItem"
+import { SubMenuItem } from "../items/SubMenuItem"
 
 /** @group Menu */
 export type TContextExportItemsConfig = {

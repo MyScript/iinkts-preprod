@@ -1,16 +1,13 @@
-import type { TInkCanvas } from "@/canvas/TInkCanvas"
-import type { TBox } from "@/core/geometry"
-import { BoxOps } from "@/core/geometry"
-import { isIdentityMatrix, MatrixTransform, OBBOps } from "@/core/geometry"
-import { createUUID } from "@/core/std"
+import type { TInkCanvas } from "@/canvas"
+import type { TBox } from "@/core"
+import { BoxOps, createUUID, isIdentityMatrix, MatrixTransform, OBBOps } from "@/core"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { IModel } from "@/model"
 import type { SVGRenderer } from "@/renderer"
 import { SVGBuilder, SVGRendererConst } from "@/renderer"
 import type { TStroke, TSymbol } from "@/symbol"
 import { isText } from "@/symbol"
-import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
-import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
+import { SymbolGeometry, symbolRegistry } from "@/symbol-utils"
 /**
  * @group Manager
  */

@@ -1,12 +1,11 @@
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import type { TPoint } from "@/core/geometry"
-import { MatrixTransform, type TOBB } from "@/core/geometry"
+import type { TInteractiveInkCanvas } from "@/canvas"
+import type { TPoint } from "@/core"
+import { MatrixTransform, type TOBB } from "@/core"
 import type { TIIHistoryChanges } from "@/history"
 import { appendUpdated } from "@/history"
 import type { TSymbol } from "@/symbol"
-import { cloneSymbol } from "@/symbol/SymbolHelpers"
-import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
-import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
+import { cloneSymbol } from "@/symbol"
+import { SymbolGeometry, symbolRegistry } from "@/symbol-utils"
 
 import { IIAbstractTransformManager } from "./AbstractTransformManager"
 

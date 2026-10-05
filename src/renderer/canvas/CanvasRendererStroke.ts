@@ -1,11 +1,11 @@
-import type { TPointer } from "@/core/geometry"
+import type { TPointer } from "@/core"
 import {
   computeFinalOutlinePoints,
   computeLineOutlinePoints,
   computeMiddlePointer,
   computeQuadraticOutlinePoints,
-} from "@/core/geometry"
-import { TWO_PI } from "@/core/math"
+  TWO_PI,
+} from "@/core"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import { computeOutlinePointers, isPenNib, readNibOverrides } from "@/style"
 import type { Stroke } from "@/symbol"

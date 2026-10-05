@@ -1,12 +1,13 @@
-import type { TInkCanvas } from "@/canvas/TInkCanvas"
-import type { TPointer } from "@/core/geometry"
+import type { TInkCanvas } from "@/canvas"
+import type { TPointer } from "@/core"
 import type { TPointerInfo } from "@/grabber"
-import { AbstractWriterManager } from "@/manager/base/AbstractWriterManager"
 import type { IModel } from "@/model"
 import type { TStyle } from "@/style"
 import type { TStroke, TSymbol } from "@/symbol"
 import { isStroke } from "@/symbol"
 import { StrokeUtil } from "@/symbol-utils"
+
+import { AbstractWriterManager } from "../base/AbstractWriterManager"
 
 /**
  * @group Manager

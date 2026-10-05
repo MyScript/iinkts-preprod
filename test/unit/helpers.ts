@@ -1,4 +1,4 @@
-import { BaseMenuItem, DecoratorKind, DecoratorUtil, DefaultPenStyle, DefaultStyle, EdgeUtil, Ellipse2d, EraserOps, MathUtil, OBBOps, Polygon2d, Polyline2d, SELECTION_MARGIN, ShapeUtil, Stroke, StrokeUtil, TBox, TDecorator, TEdge, TEdgeLine, TEraser, TMath, TMathElement, TPartialDeep, TPoint, TShapeCircle, TShapeEllipse, TStroke, TStyle, TSymbolChar, TText, TextUtil, computeTypesetVertices, TInteractiveInkCanvas } from "@/iink"
+import { BaseMenuItem, DecoratorKind, DecoratorUtil, DefaultPenStyle, DefaultStyle, EdgeUtil, Ellipse2d, EraserOps, MathUtil, OBBOps, Polygon2d, Polyline2d, HIT_TOLERANCE, ShapeUtil, Stroke, StrokeUtil, TBox, TDecorator, TEdge, TEdgeLine, TEraser, TMath, TMathElement, TPartialDeep, TPoint, TShapeCircle, TShapeEllipse, TStroke, TStyle, TSymbolChar, TText, TextUtil, computeTypesetVertices, TInteractiveInkCanvas } from "@/iink"
 
 
 export const delay = (delayInms: number) => {
@@ -170,7 +170,7 @@ export function ellipseGeometry(ellipse: TShapeEllipse): Ellipse2d {
 /** An edge's path, padded the way `EdgeUtil` pads it so it stays reachable by a selection. */
 export function edgeGeometry(vertices: TPoint[], edge: TEdge): Polyline2d {
   const decorated = edge.startDecoration || edge.endDecoration
-  return new Polyline2d(vertices, SELECTION_MARGIN / 2 + (decorated ? (edge.style.width || 1) * 2.5 : 0))
+  return new Polyline2d(vertices, HIT_TOLERANCE + (decorated ? (edge.style.width || 1) * 2.5 : 0))
 }
 
 /** A decorator is found by its target's box, filled, in that box's own frame. */

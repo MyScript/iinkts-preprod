@@ -1,15 +1,15 @@
 import PingWorker from "web-worker:../worker/ping.worker.ts"
 
-import type { TMatrixTransform } from "@/core/geometry"
-import { PX_TO_MM_RATIO } from "@/core/math"
+import type { TMatrixTransform } from "@/core"
 import {
   DeferredPromise,
   isVersionSuperiorOrEqual,
   mergeDeep,
   overrideDeep,
+  PX_TO_MM_RATIO,
   type TPartialDeep,
   typedKeys,
-} from "@/core/std"
+} from "@/core"
 import type { TIIHistoryBackendChanges } from "@/history"
 import { LoggerCategory, LoggerManager } from "@/logger"
 

@@ -5,10 +5,14 @@ import { FlatCompat } from "@eslint/eslintrc"
 import js from "@eslint/js"
 import typescriptEslint from "@typescript-eslint/eslint-plugin"
 import tsParser from "@typescript-eslint/parser"
+import { createTypeScriptImportResolver } from "eslint-import-resolver-typescript"
+import importX from "eslint-plugin-import-x"
 import jestPlugin from "eslint-plugin-jest"
 import prettierPlugin from "eslint-plugin-prettier/recommended"
 import simpleImportSort from "eslint-plugin-simple-import-sort"
 import globals from "globals"
+
+import barrelImports from "./config/eslint-plugin-barrel-imports.mjs"
 
 const compat = new FlatCompat({
   baseDirectory: path.dirname(fileURLToPath(import.meta.url)),
@@ -97,6 +101,23 @@ export default [
           max: 1,
         },
       ],
+    },
+  },
+
+  // Imports: across folders only through the folder barrel, relative inside a folder, `constants`
+  // is a leaf (see config/eslint-plugin-barrel-imports.mjs). And no runtime import cycle: type
+  // imports are ignored. The TypeScript settings are required — without them `no-cycle` parses no
+  // `.ts` dependency and stays silent even on a two-file cycle.
+  {
+    files: ["src/**/*.ts"],
+    plugins: { iink: barrelImports, "import-x": importX },
+    settings: {
+      ...importX.flatConfigs.typescript.settings,
+      "import-x/resolver-next": [createTypeScriptImportResolver({ project: "./tsconfig.json" })],
+    },
+    rules: {
+      "iink/barrel-imports": "error",
+      "import-x/no-cycle": "error",
     },
   },
 
@@ -371,8 +392,8 @@ export default [
         {
           patterns: [
             {
-              group: ["@/*", "@/**", "!@/dom", "!@/dom/**", "!@/core", "!@/core/**", "!@/logger", "!@/Constants"],
-              message: "ui widgets may only depend on dom, core, logger and Constants",
+              group: ["@/*", "@/**", "!@/dom", "!@/dom/**", "!@/core", "!@/core/**", "!@/logger", "!@/constants"],
+              message: "ui widgets may only depend on dom, core, logger and constants",
             },
           ],
         },

@@ -1,5 +1,4 @@
-import { resolveHmac } from "@/client/HmacAuth"
-import { computeHmac, TServerHTTPConfiguration } from "@/iink"
+import { resolveHmac, computeHmac, TServerHTTPConfiguration } from "@/iink"
 
 describe("HmacAuth.ts", () => {
   const baseServer: TServerHTTPConfiguration = {

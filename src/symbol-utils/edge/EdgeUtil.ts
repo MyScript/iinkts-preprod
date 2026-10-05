@@ -1,24 +1,31 @@
-import { EdgeDecoration, SELECTION_MARGIN } from "@/Constants"
-import type { TPoint } from "@/core/geometry"
+import { HIT_TOLERANCE } from "@/constants"
+import type { TPartialDeep, TPoint } from "@/core"
 import {
   computeDistance,
+  computeEllipseRadiusAverage,
   computePointOnEllipse,
+  computeTessellationCount,
+  createUUID,
+  type Geometry2d,
+  isValidNumber,
   isValidPoint,
   MatrixTransform,
   mergeSymbolTransform,
-} from "@/core/geometry"
-import { type Geometry2d, Polyline2d } from "@/core/geometry"
-import { computeEllipseRadiusAverage, computeTessellationCount, isValidNumber } from "@/core/math"
-import type { TPartialDeep } from "@/core/std"
-import { createUUID } from "@/core/std"
-import { mergeSymbolStyle, type TStyle } from "@/style"
-import { DefaultStyle } from "@/style"
-import { type TEdgeArc } from "@/symbol/edge/Arc"
-import type { TEdge } from "@/symbol/edge/Edge"
-import { EdgeKind } from "@/symbol/edge/Edge-enum"
-import { type TEdgeLine } from "@/symbol/edge/Line"
-import { type TEdgePolyLine } from "@/symbol/edge/PolyLine"
-import { SymbolType, type TBaseSymbol, type TResizePoint } from "@/symbol/Symbol"
+  Polyline2d,
+  TESSELLATION_SEGMENT_LENGTH,
+} from "@/core"
+import { DefaultStyle, mergeSymbolStyle, type TStyle } from "@/style"
+import type { TEdge } from "@/symbol"
+import {
+  EdgeDecoration,
+  EdgeKind,
+  SymbolType,
+  type TBaseSymbol,
+  type TEdgeArc,
+  type TEdgeLine,
+  type TEdgePolyLine,
+  type TResizePoint,
+} from "@/symbol"
 
 import { defineKind, resolveKind, type TKindDefinition } from "../KindDefinition"
 import { PathSymbolUtil } from "../PathSymbolUtil"
@@ -31,14 +38,14 @@ import { arrowHeadEndMarkerId, arrowHeadStartMarkerId } from "./EdgeRenderOption
 /**
  * How far beyond its own path an edge asks to be found.
  *
- * Half {@link SELECTION_MARGIN} on each side, because a hairline drawn exactly is a target nobody can
+ * {@link HIT_TOLERANCE} on each side, because a hairline drawn exactly is a target nobody can
  * hit — and more again when the edge carries an arrow head, which is drawn outside the path it
  * belongs to and would otherwise sit outside the shape's own bounds. Both figures are the ones
  * `computeEdgeBounds` applied before the geometry owned this.
  */
 function edgePadding(edge: TEdge): number {
   const decorated = edge.startDecoration || edge.endDecoration
-  return SELECTION_MARGIN / 2 + (decorated ? (edge.style.width || 1) * 2.5 : 0)
+  return HIT_TOLERANCE + (decorated ? (edge.style.width || 1) * 2.5 : 0)
 }
 
 const EDGE_KINDS: Partial<Record<EdgeKind, TKindDefinition<TEdge>>> = {
@@ -290,7 +297,7 @@ export class EdgeUtil extends PathSymbolUtil<TEdge> {
 
   static getArcVertices(arc: TEdgeArc): TPoint[] {
     const length = Math.abs(arc.sweepAngle) * computeEllipseRadiusAverage(arc.radiusX, arc.radiusY)
-    const nbVertices = computeTessellationCount(length, SELECTION_MARGIN)
+    const nbVertices = computeTessellationCount(length, TESSELLATION_SEGMENT_LENGTH)
     const angleStep = arc.sweepAngle / nbVertices
     const v: TPoint[] = []
     const endAngle = arc.startAngle + arc.sweepAngle

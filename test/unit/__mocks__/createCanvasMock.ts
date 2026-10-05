@@ -1,19 +1,5 @@
-import { IIModel } from "@/model"
-import {
-  DefaultInteractiveInkCanvasConfiguration,
-  InteractiveInkCanvasConfiguration,
-} from "@/canvas/variants/InteractiveInkCanvasConfiguration"
-import { DefaultStyle } from "@/style/Style"
-import { CanvasTool, CanvasWriteTool } from "@/Constants"
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import type { TStyle } from "@/style"
-import type { TSymbol } from "@/symbol/Symbol"
-import { SymbolType } from "@/symbol/Symbol"
-import type { TStroke } from "@/symbol/stroke/Stroke"
-import { DOMFactory } from "@/dom"
-import { CanvasLayer } from "@/canvas/CanvasLayer"
-import { LayoutManager } from "@/manager/base/LayoutManager"
-import { registerBuiltinSymbolUtils } from "@/symbol-utils"
+import { IIModel, DefaultInteractiveInkCanvasConfiguration, InteractiveInkCanvasConfiguration, DefaultStyle, CanvasTool, CanvasWriteTool, SymbolType, DOMFactory, CanvasLayer, LayoutManager, registerBuiltinSymbolUtils } from "@/iink"
+import type { TInteractiveInkCanvas, TStyle, TSymbol, TStroke } from "@/iink"
 import { CanvasEventMock } from "./CanvasEventMock"
 
 /**

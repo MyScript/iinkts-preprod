@@ -1,6 +1,6 @@
-import type { Geometry2d, TOBB, TPoint, TSegment } from "@/core/geometry"
-import { isIdentityMatrix } from "@/core/geometry"
-import type { TBaseSymbol } from "@/symbol/Symbol"
+import type { Geometry2d, TOBB, TPoint, TSegment } from "@/core"
+import { isIdentityMatrix } from "@/core"
+import type { TBaseSymbol } from "@/symbol"
 
 import { symbolRegistry } from "./SymbolRegistry"
 

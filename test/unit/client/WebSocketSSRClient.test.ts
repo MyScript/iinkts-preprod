@@ -1,29 +1,8 @@
-import {
-  WebSocketSSRClientMathConfiguration,
-  WebSocketSSRClientTextConfiguration,
-} from "../__dataset__/configuration.dataset"
-import {
-  ServerWebSocketSSRMock,
-  emptyJIIX,
-  errorNotGrantedMessage,
-  hTextJIIX,
-  partChangeMessage,
-} from "../__mocks__/ServerWebSocketSSRMock"
+import { WebSocketSSRClientMathConfiguration, WebSocketSSRClientTextConfiguration } from "../__dataset__/configuration.dataset"
+import { ServerWebSocketSSRMock, emptyJIIX, errorNotGrantedMessage, hTextJIIX, partChangeMessage } from "../__mocks__/ServerWebSocketSSRMock"
 import { buildStroke, delay } from "../helpers"
 
-import {
-  WebSocketSSRClient,
-  ClientError,
-  TRecognitionTypeV1,
-  TPenStyle,
-  TTheme,
-  Model,
-  TConverstionState,
-  TWebSocketSSRClientConfiguration,
-  toWireStroke,
-  LoggerManager,
-  LoggerCategory,
-} from "@/iink"
+import { WebSocketSSRClient, ClientError, TRecognitionTypeV1, TPenStyle, TTheme, Model, TConverstionState, TWebSocketSSRClientConfiguration, toWireStroke, LoggerManager, LoggerCategory } from "@/iink"
 
 describe("WebSocketSSRClient.ts", () => {
   const height = 100,

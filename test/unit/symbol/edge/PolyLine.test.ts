@@ -1,5 +1,5 @@
 import { edgeGeometry } from "../../helpers"
-import { DefaultStyle, EdgeUtil, OBBOps, Polyline2d, SELECTION_MARGIN, TBox, TPoint, TStyle } from "@/iink"
+import { DefaultStyle, EdgeUtil, OBBOps, Polyline2d, HIT_TOLERANCE, TBox, TPoint, TStyle } from "@/iink"
 
 describe("PolyLine.ts", () => {
   describe("constructor", () => {
@@ -19,10 +19,10 @@ describe("PolyLine.ts", () => {
       expect(line.creationTime).toEqual(line.modificationDate)
       expect(line.style).toEqual(expect.objectContaining(style))
       expect(line.points).toEqual(points)
-      expect(OBBOps.toBox(new Polyline2d(line.points, SELECTION_MARGIN / 2).bounds).x).toEqual(-5)
-      expect(OBBOps.toBox(new Polyline2d(line.points, SELECTION_MARGIN / 2).bounds).y).toEqual(-5)
-      expect(new Polyline2d(line.points, SELECTION_MARGIN / 2).bounds.width).toEqual(15)
-      expect(new Polyline2d(line.points, SELECTION_MARGIN / 2).bounds.height).toEqual(15)
+      expect(OBBOps.toBox(new Polyline2d(line.points, HIT_TOLERANCE).bounds).x).toEqual(-5)
+      expect(OBBOps.toBox(new Polyline2d(line.points, HIT_TOLERANCE).bounds).y).toEqual(-5)
+      expect(new Polyline2d(line.points, HIT_TOLERANCE).bounds.width).toEqual(15)
+      expect(new Polyline2d(line.points, HIT_TOLERANCE).bounds.height).toEqual(15)
       expect(EdgeUtil.getPolyLineVertices(line)).toHaveLength(3)
     })
     test("should create with default style", () => {

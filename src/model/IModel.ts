@@ -1,5 +1,5 @@
 import type { TExportV2 } from "@/client"
-import { mergeExports } from "@/core/std"
+import { mergeExports } from "@/core"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { TStroke } from "@/symbol"
 

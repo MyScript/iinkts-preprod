@@ -1,4 +1,4 @@
-import { DeferredPromise, isVersionSuperiorOrEqual, type TPartialDeep, typedKeys } from "@/core/std"
+import { DeferredPromise, isVersionSuperiorOrEqual, type TPartialDeep, typedKeys } from "@/core"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { Model } from "@/model"
 import type { TPenStyle, TTheme } from "@/style"

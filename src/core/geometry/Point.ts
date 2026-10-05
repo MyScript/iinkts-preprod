@@ -1,5 +1,5 @@
-import { isValidNumber } from "@/core/math"
-import type { TPartialDeep } from "@/core/std"
+import { isValidNumber } from "../math"
+import type { TPartialDeep } from "../std"
 
 /**
  * @group Core/Geometry

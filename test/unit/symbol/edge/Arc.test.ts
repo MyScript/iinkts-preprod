@@ -1,6 +1,5 @@
 import { edgeGeometry } from "../../helpers"
-import { EdgeUtil, computeDistance, computePointOnEllipse, reprojectArcEndpoint, reprojectArcMidpoint, stretchArcEndpoint } from "@/iink"
-import { OBBOps, TPoint, DefaultStyle, TStyle, TBox } from "@/iink"
+import { EdgeUtil, computeDistance, computePointOnEllipse, reprojectArcEndpoint, reprojectArcMidpoint, stretchArcEndpoint, OBBOps, TPoint, DefaultStyle, TStyle, TBox } from "@/iink"
 
 describe("Arc.ts", () => {
   describe("constructor", () => {

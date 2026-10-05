@@ -1,4 +1,4 @@
-import { isVersionSuperiorOrEqual } from "@/core/std"
+import { isVersionSuperiorOrEqual } from "@/core"
 import { LoggerCategory, LoggerManager } from "@/logger"
 
 import { parseApiError } from "./ClientApiError"

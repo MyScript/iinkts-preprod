@@ -1,4 +1,4 @@
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import type { TInteractiveInkCanvas } from "@/canvas"
 import type { TJIIXMathElement } from "@/client"
 import { DOMFactory } from "@/dom"
 import type { TStroke, TSymbol, TText } from "@/symbol"

@@ -1,4 +1,4 @@
-import type { TPoint } from "@/core/geometry"
+import type { TPoint } from "@/core"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { TBaseSymbol, TCanvasTextSymbol, TCanvasTextUnderlineSymbol, TCanvasUnderLineSymbol } from "@/symbol"
 /**

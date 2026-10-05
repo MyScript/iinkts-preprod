@@ -1,15 +1,18 @@
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import type { TMathVariable, TMathVariableDefinition, TMathVariableDefinitions } from "@/client"
-import type { TJIIXMathElement, TJIIXMathExpression } from "@/client"
-import { SOURCE_TYPE_COLORS, SOURCE_TYPE_LABELS } from "@/components/IIMathVariableInputList"
-import type { TBox } from "@/core/geometry"
-import { BoxOps } from "@/core/geometry"
-import { OBBOps } from "@/core/geometry"
-import { convertBoundingBoxMillimeterToPixel, getBoxConnectionPoint } from "@/core/geometry"
+import type { TInteractiveInkCanvas } from "@/canvas"
+import type {
+  TJIIXMathElement,
+  TJIIXMathExpression,
+  TMathVariable,
+  TMathVariableDefinition,
+  TMathVariableDefinitions,
+} from "@/client"
+import { SOURCE_TYPE_COLORS, SOURCE_TYPE_LABELS } from "@/components"
+import type { TBox } from "@/core"
+import { BoxOps, convertBoundingBoxMillimeterToPixel, getBoxConnectionPoint, OBBOps } from "@/core"
 import { LoggerCategory } from "@/logger"
 import type { TStroke } from "@/symbol"
 import { isRecognizedMath, isStroke } from "@/symbol"
-import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
+import { SymbolGeometry } from "@/symbol-utils"
 
 import { ColorPaletteManager } from "../../base"
 import { IIAbstractManager } from "../IIAbstractManager"

@@ -1,5 +1,5 @@
 import menuIcon from "@/assets/svg/menu.svg"
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import type { TInteractiveInkCanvas } from "@/canvas"
 import type { TRecognitionType } from "@/client"
 import { DOMFactory } from "@/dom"
 import type { IIModel } from "@/model"

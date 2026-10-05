@@ -1,4 +1,4 @@
-import { BoxOps, MatrixTransform, Geometry2d, Polygon2d, SymbolUtil, TBaseSymbol, TBox, TPartialDeep, TPoint, } from "@/iink"
+import { BoxOps, MatrixTransform, Geometry2d, Polygon2d, SymbolUtil, TBaseSymbol, TBox, TPartialDeep, TPoint } from "@/iink"
 
 /** The raw (pre-matrix) box every test double instance answers `computeGeometry` with below. */
 const RAW_BOX: TBox = { x: 0, y: 0, width: 10, height: 10 }

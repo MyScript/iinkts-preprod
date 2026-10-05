@@ -1,14 +1,22 @@
 import ArrowDown from "@/assets/svg/nav-arrow-down.svg"
+import type { TInteractiveInkCanvas } from "@/canvas"
 
-import type { TMenuItemBase } from "./BaseMenuItem"
+import type { TGenericMenuItem, TMenuItemBase } from "./BaseMenuItem"
 import { BaseMenuItem } from "./BaseMenuItem"
 import type { TMenuButtonList } from "./ButtonListMenuItem"
+import { ButtonListMenuItem } from "./ButtonListMenuItem"
 import type { TMenuButton } from "./ButtonMenuItem"
+import { ButtonMenuItem } from "./ButtonMenuItem"
 import type { TMenuCheckbox } from "./CheckboxMenuItem"
+import { CheckboxMenuItem } from "./CheckboxMenuItem"
+import type { TMenuColorList } from "./ColorListMenuItem"
+import { ColorListMenuItem } from "./ColorListMenuItem"
 import type { TMenuFileInput } from "./FileInputMenuItem"
-import { createMenuItemInstance } from "./MenuItemFactory"
+import { FileInputMenuItem } from "./FileInputMenuItem"
 import type { TMenuRange } from "./RangeMenuItem"
+import { RangeMenuItem } from "./RangeMenuItem"
 import type { TMenuSelect } from "./SelectMenuItem"
+import { SelectMenuItem } from "./SelectMenuItem"
 
 /**
  * @group Menu
@@ -246,5 +254,38 @@ export class SubMenuItem extends BaseMenuItem<HTMLDivElement> {
     this.subMenuItems.clear()
 
     super.destroy()
+  }
+}
+
+/**
+ * @group Menu
+ * @remarks Type union enriched with all menu item types
+ */
+export type TAllMenuItems = TSubMenuItems | TMenuSubMenu | TMenuColorList | TMenuRange | TMenuFileInput
+
+/**
+ * @group Menu
+ * @remarks Factory function to create an instance of the appropriate menu item class
+ */
+export function createMenuItemInstance(config: TAllMenuItems, canvas: TInteractiveInkCanvas): BaseMenuItem {
+  switch (config.type) {
+    case "button":
+      return new ButtonMenuItem(config, canvas)
+    case "checkbox":
+      return new CheckboxMenuItem(config, canvas)
+    case "select":
+      return new SelectMenuItem(config, canvas)
+    case "buttonlist":
+      return new ButtonListMenuItem(config, canvas)
+    case "submenu":
+      return new SubMenuItem(config, canvas)
+    case "colorlist":
+      return new ColorListMenuItem(config, canvas)
+    case "range":
+      return new RangeMenuItem(config, canvas)
+    case "fileinput":
+      return new FileInputMenuItem(config, canvas)
+    default:
+      throw new Error(`Unknown menu item type: ${(config as TGenericMenuItem).type}`)
   }
 }

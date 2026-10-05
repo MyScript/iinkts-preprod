@@ -1,10 +1,5 @@
 import { DEMO_EXERCISES } from "../../../../../examples/interactive-canvas/math-tutor/demo-exercises.js"
-import {
-  formatLinear,
-  generateExercise,
-  isSolved,
-  PYTHAGOREAN_TRIPLES,
-} from "../../../../../examples/interactive-canvas/math-tutor/exercises.js"
+import { formatLinear, generateExercise, isSolved, PYTHAGOREAN_TRIPLES } from "../../../../../examples/interactive-canvas/math-tutor/exercises.js"
 import type { TExercise } from "../../../../../examples/interactive-canvas/math-tutor/exercises.js"
 import { checkLines } from "../../../../../examples/interactive-canvas/math-tutor/evaluator.js"
 

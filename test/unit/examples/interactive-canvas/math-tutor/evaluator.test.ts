@@ -1,25 +1,6 @@
-import {
-  checkLine,
-  checkLines,
-  evaluate,
-  parseAnswer,
-} from "../../../../../examples/interactive-canvas/math-tutor/evaluator.js"
+import { checkLine, checkLines, evaluate, parseAnswer } from "../../../../../examples/interactive-canvas/math-tutor/evaluator.js"
 
-import {
-  add,
-  div,
-  eq,
-  frac,
-  mul,
-  neg,
-  num,
-  op,
-  sqrt,
-  sub,
-  sup,
-  twoXPlusThreeEqualsSeven,
-  v,
-} from "./fixtures"
+import { add, div, eq, frac, mul, neg, num, op, sqrt, sub, sup, twoXPlusThreeEqualsSeven, v } from "./fixtures"
 
 describe("math-tutor/evaluator", () => {
   describe("evaluate", () => {

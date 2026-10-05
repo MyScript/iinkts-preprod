@@ -1,15 +1,4 @@
-import {
-  arcJIIX,
-  circleJIIX,
-  ellipseJIIX,
-  hTextJIIX,
-  lineJIIX,
-  parallelogramJIIX,
-  polygonJIIX,
-  rectangleJIIX,
-  rhombusJIIX,
-  triangleJIIX,
-} from "../../__dataset__/jiix.dataset"
+import { arcJIIX, circleJIIX, ellipseJIIX, hTextJIIX, lineJIIX, parallelogramJIIX, polygonJIIX, rectangleJIIX, rhombusJIIX, triangleJIIX } from "../../__dataset__/jiix.dataset"
 import { buildIIStroke } from "../../helpers"
 import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
 import { EdgeUtil, IIConversionManager, JIIXEdgeKind, JIIXElementType, JIIXNodeKind, ShapeUtil, TEdgeLine, TJIIXEdgeElement, TJIIXMathElement, TJIIXNodeElement, TJIIXTextElement, TSymbol, TextUtil } from "@/iink"

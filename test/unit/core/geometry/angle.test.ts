@@ -1,9 +1,6 @@
 import { round } from "../../helpers"
 
-import {
-  computeAngleAxeRadian,
-  computeRotatedPoint,
-} from "@/iink"
+import { computeAngleAxeRadian, computeRotatedPoint } from "@/iink"
 
 describe("computeAngleAxeRadian", () => {
   const testDatas = [

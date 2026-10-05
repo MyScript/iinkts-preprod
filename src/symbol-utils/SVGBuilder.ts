@@ -1,4 +1,4 @@
-import type { TBox, TPoint } from "@/core/geometry"
+import type { TBox, TPoint } from "@/core"
 const XMLNS = "http://www.w3.org/2000/svg"
 /**
  * @group SymbolUtils

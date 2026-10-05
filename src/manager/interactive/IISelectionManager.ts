@@ -1,25 +1,29 @@
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import { ResizeDirection, SELECTION_MARGIN, SvgElementRole } from "@/Constants"
-import type { TBox, TPoint } from "@/core/geometry"
-import { applyInverseMatrixToPoint, BoxOps } from "@/core/geometry"
-import { OBBOps } from "@/core/geometry"
-import type { TDraft } from "@/core/std"
+import type { TInteractiveInkCanvas } from "@/canvas"
+import { SELECTION_PADDING } from "@/constants"
+import type { TBox, TDraft, TPoint } from "@/core"
+import { applyInverseMatrixToPoint, BoxOps, OBBOps } from "@/core"
 import { RafCoalescer } from "@/dom"
 import type { TPointerInfo } from "@/grabber"
 import { PointerEventGrabber } from "@/grabber"
 import { LoggerCategory } from "@/logger"
-import { SVGBuilder } from "@/renderer"
+import { SVGBuilder, SvgElementRole } from "@/renderer"
 import type { TDecorator, TEdge, TEdgeArc, TStroke, TSymbol } from "@/symbol"
-import { EdgeKind, isDecorator, isRecognizedMath, isStroke, SymbolType } from "@/symbol"
-import { reprojectArcMidpoint, stretchArcEndpoint } from "@/symbol/edge/Arc"
-import { EdgeUtil } from "@/symbol-utils/edge/EdgeUtil"
-import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
-import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
+import {
+  EdgeKind,
+  isDecorator,
+  isRecognizedMath,
+  isStroke,
+  reprojectArcMidpoint,
+  stretchArcEndpoint,
+  SymbolType,
+} from "@/symbol"
+import { EdgeUtil, SymbolGeometry, symbolRegistry } from "@/symbol-utils"
 
 import { IIAbstractManager } from "./IIAbstractManager"
 import type { IIResizeManager } from "./transform/IIResizeManager"
 import type { IIRotationManager } from "./transform/IIRotationManager"
 import type { IITranslateManager } from "./transform/IITranslateManager"
+import { ResizeDirection } from "./transform/ResizeDirection"
 
 /**
  * @group Manager
@@ -234,7 +238,7 @@ export class IISelectionManager extends IIAbstractManager {
     const radius = 8
     const center: TPoint = {
       x: box.x + box.width / 2,
-      y: box.y - 4 * SELECTION_MARGIN,
+      y: box.y - 4 * SELECTION_PADDING,
     }
     const attrs1 = {
       role: SvgElementRole.Rotate,
@@ -260,7 +264,7 @@ export class IISelectionManager extends IIAbstractManager {
         { x: center.x, y: center.y + radius },
         {
           x: center.x,
-          y: box.y - SELECTION_MARGIN,
+          y: box.y - SELECTION_PADDING,
         },
         attrs3
       )
@@ -286,20 +290,20 @@ export class IISelectionManager extends IIAbstractManager {
       stroke: "#3e68ff",
     })
     const P_NW: TPoint = {
-      x: box.x - SELECTION_MARGIN,
-      y: box.y - SELECTION_MARGIN,
+      x: box.x - SELECTION_PADDING,
+      y: box.y - SELECTION_PADDING,
     }
     const P_NE: TPoint = {
-      x: box.x + box.width + SELECTION_MARGIN,
-      y: box.y - SELECTION_MARGIN,
+      x: box.x + box.width + SELECTION_PADDING,
+      y: box.y - SELECTION_PADDING,
     }
     const P_SE: TPoint = {
-      x: box.x + box.width + SELECTION_MARGIN,
-      y: box.y + box.height + SELECTION_MARGIN,
+      x: box.x + box.width + SELECTION_PADDING,
+      y: box.y + box.height + SELECTION_PADDING,
     }
     const P_SW: TPoint = {
-      x: box.x - SELECTION_MARGIN,
-      y: box.y + box.height + SELECTION_MARGIN,
+      x: box.x - SELECTION_PADDING,
+      y: box.y + box.height + SELECTION_PADDING,
     }
 
     const bindEl = (el: SVGElement, transformOrigin: TPoint, cursor: string) => {

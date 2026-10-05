@@ -1,16 +1,14 @@
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import { BoxOps, MatrixTransform, OBBOps } from "@/core/geometry"
-import { roundTo } from "@/core/math"
+import type { TInteractiveInkCanvas } from "@/canvas"
+import { BoxOps, MatrixTransform, OBBOps, roundTo } from "@/core"
 import type { TIIHistoryChanges } from "@/history"
 import { appendUpdated } from "@/history"
-import { GestureHandler } from "@/manager/interactive/gestures/GestureHandler"
-import type { GestureHelpers } from "@/manager/interactive/gestures/GestureHelpers"
-import type { TGesture } from "@/manager/interactive/gestures/GestureTypes"
 import type { TStroke, TText } from "@/symbol"
 import { cloneSymbol, isText, type TSymbol } from "@/symbol"
-import { TextUtil } from "@/symbol-utils"
-import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
-import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
+import { SymbolGeometry, symbolRegistry, TextUtil } from "@/symbol-utils"
+
+import { GestureHandler } from "../GestureHandler"
+import type { GestureHelpers } from "../GestureHelpers"
+import type { TGesture } from "../GestureTypes"
 /**
  * Handler for JOIN gesture type
  * Joins rows of text together by removing line breaks

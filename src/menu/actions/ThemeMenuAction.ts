@@ -1,9 +1,9 @@
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import type { TMenuSubMenu } from "@/menu/items/SubMenuItem"
-import { SubMenuItem } from "@/menu/items/SubMenuItem"
+import type { TInteractiveInkCanvas } from "@/canvas"
 
 import type { TCanvasTheme } from "../CanvasThemes"
 import { CanvasThemes } from "../CanvasThemes"
+import type { TMenuSubMenu } from "../items/SubMenuItem"
+import { SubMenuItem } from "../items/SubMenuItem"
 
 const STORAGE_KEY_ATTR = "data-theme-id"
 

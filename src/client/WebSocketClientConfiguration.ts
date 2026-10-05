@@ -1,5 +1,5 @@
-import type { TPartialDeep } from "@/core/std"
-import { isVersionSuperiorOrEqual, mergeDeep } from "@/core/std"
+import type { TPartialDeep } from "@/core"
+import { isVersionSuperiorOrEqual, mergeDeep } from "@/core"
 
 import {
   DefaultSolverConfiguration,

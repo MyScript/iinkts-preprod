@@ -1,11 +1,6 @@
 import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
-import type { TJIIXMathElement, TJIIXMathNumber } from "@/client"
-import {
-  IIMathComputationSubManager,
-  JIIXElementType,
-  JIIXMathExpressionType,
-  MatrixTransform
-} from "@/iink"
+import type { TJIIXMathElement, TJIIXMathNumber } from "@/iink"
+import { IIMathComputationSubManager, JIIXElementType, JIIXMathExpressionType, MatrixTransform } from "@/iink"
 
 type TSolverOutputExpression = TJIIXMathNumber & { "solver-output": true }
 

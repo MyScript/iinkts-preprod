@@ -1,10 +1,10 @@
-import type { TPointer, TPointerImport } from "@/core/geometry"
-import type { TPartialDeep } from "@/core/std"
+import type { TPartialDeep, TPointer, TPointerImport } from "@/core"
 import type { TStyle } from "@/style"
-import type { DecoratorKind } from "@/symbol/decorator/Decorator"
-import type { TAnchor } from "@/symbol/edge/Anchor"
-import type { TBaseSymbol } from "@/symbol/Symbol"
-import { SymbolType } from "@/symbol/Symbol"
+
+import type { DecoratorKind } from "../decorator/Decorator"
+import type { TAnchor } from "../edge/Anchor"
+import type { TBaseSymbol } from "../Symbol"
+import { SymbolType } from "../Symbol"
 /**
  * @group Symbol
  */

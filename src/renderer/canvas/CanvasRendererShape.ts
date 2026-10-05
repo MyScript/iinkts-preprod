@@ -1,6 +1,5 @@
-import type { TPoint } from "@/core/geometry"
-import { computeEllipseArcPoints } from "@/core/geometry"
-import { normalizeAngle } from "@/core/math"
+import type { TPoint } from "@/core"
+import { computeEllipseArcPoints, normalizeAngle } from "@/core"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { TBaseSymbol, TCanvasShapeEllipseSymbol, TCanvasShapeLineSymbol, TCanvasShapeTableSymbol } from "@/symbol"
 /**

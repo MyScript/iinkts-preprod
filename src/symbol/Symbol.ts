@@ -1,5 +1,4 @@
-import type { TMatrixTransform, TPoint } from "@/core/geometry"
-import type { TPartialDeep } from "@/core/std"
+import type { TMatrixTransform, TPartialDeep, TPoint } from "@/core"
 import type { TStyle } from "@/style"
 
 import type { TDecorator } from "./decorator/Decorator"

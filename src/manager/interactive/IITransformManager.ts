@@ -1,5 +1,5 @@
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import type { MatrixTransform } from "@/core/geometry"
+import type { TInteractiveInkCanvas } from "@/canvas"
+import type { MatrixTransform } from "@/core"
 import { LoggerCategory } from "@/logger"
 import type { TSymbol } from "@/symbol"
 

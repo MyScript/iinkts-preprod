@@ -1,5 +1,4 @@
-import { isBetween } from "@/core/math"
-
+import { isBetween } from "../math"
 import type { TBox } from "./Box"
 import type { TPoint, TSegment } from "./Point"
 
