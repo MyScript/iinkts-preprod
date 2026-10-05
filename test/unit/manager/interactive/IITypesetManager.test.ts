@@ -182,14 +182,14 @@ describe("IITypesetManager.ts", () => {
       canvas.model.addSymbol(moved)
       canvas.model.addSymbol(following)
       // What the bug was: the committed record is frozen all the way down.
-      expect(Object.isFrozen(canvas.model.getRootSymbol(following.id))).toBe(true)
+      expect(Object.isFrozen(canvas.model.getSymbol(following.id))).toBe(true)
 
-      const pairs = manager.moveTextAfter(canvas.model.getRootSymbol(moved.id) as typeof moved, 25)
+      const pairs = manager.moveTextAfter(canvas.model.getSymbol(moved.id) as typeof moved, 25)
 
       expect(pairs).toHaveLength(1)
       expect(pairs![0].before.id).toBe(following.id)
       expect((pairs![0].before as typeof following).point.x).toBe(200)
-      expect((canvas.model.getRootSymbol(following.id) as typeof following).point.x).toBe(225)
+      expect((canvas.model.getSymbol(following.id) as typeof following).point.x).toBe(225)
       // The snapshot is a value, not a view on the document: it must not have moved with it.
       expect((pairs![0].before as typeof following).point.x).toBe(200)
     })
@@ -207,10 +207,10 @@ describe("IITypesetManager.ts", () => {
       canvas.model.addSymbol(moved)
       canvas.model.addSymbol(preceding)
 
-      const pairs = manager.moveTextAfter(canvas.model.getRootSymbol(moved.id) as typeof moved, 25)
+      const pairs = manager.moveTextAfter(canvas.model.getSymbol(moved.id) as typeof moved, 25)
 
       expect(pairs).toEqual([])
-      expect((canvas.model.getRootSymbol(preceding.id) as typeof preceding).point.x).toBe(10)
+      expect((canvas.model.getSymbol(preceding.id) as typeof preceding).point.x).toBe(10)
     })
   })
 })

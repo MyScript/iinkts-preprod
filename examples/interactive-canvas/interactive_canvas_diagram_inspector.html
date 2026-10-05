@@ -193,7 +193,7 @@
     function elementIdsFor(blockId) {
       const fromIndex = canvas.jiix
         .getStrokeIdsForBlock(blockId)
-        .map((strokeId) => canvas.model.getRootSymbol(strokeId)?.id)
+        .map((strokeId) => canvas.model.getSymbol(strokeId)?.id)
         .filter(Boolean)
       if (fromIndex.length) {
         return [...new Set(fromIndex)]

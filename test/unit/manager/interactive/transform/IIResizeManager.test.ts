@@ -354,7 +354,7 @@ describe("IIResizeManager.ts", () => {
         const endPromise = manager.end(resizeToPoint)
         expect(canvas.endOperation).toHaveBeenCalledWith("Resizing")
         await endPromise
-        const newStroke = canvas.model.getRootSymbol(strokeOrigin.id) as TStroke
+        const newStroke = canvas.model.getSymbol(strokeOrigin.id) as TStroke
         expect(manager.applyToSymbol).toHaveBeenCalledTimes(1)
         // Committing a transform rewrites the element's `transform` attribute instead of rebuilding
         // it through `drawSymbol` (task 12) - the final geometry reaches the renderer as an
@@ -489,7 +489,7 @@ describe("IIResizeManager.ts", () => {
       canvas.model.addSymbol(shape)
       canvas.model.selectSymbol(shape.id)
       // The gradient-follow direction resolves the connected block's center via
-      // jiix.getStrokesForElement + model.getRootSymbol — here the "block" is just the shape itself.
+      // jiix.getStrokesForElement + model.getSymbol — here the "block" is just the shape itself.
       jest.spyOn(canvas.jiix, "getStrokesForElement").mockImplementation((id) => (id === shape.id ? [shape.id] : []))
 
       const edgeStrokeOrigin = StrokeUtil.createEmpty()
@@ -526,7 +526,7 @@ describe("IIResizeManager.ts", () => {
         originalPointers[0],
         { ...originalPointers[1], x: +transformedLast.x.toFixed(3), y: +transformedLast.y.toFixed(3) },
       ]
-      const newEdgeStroke = canvas.model.getRootSymbol(edgeStrokeOrigin.id) as TStroke
+      const newEdgeStroke = canvas.model.getSymbol(edgeStrokeOrigin.id) as TStroke
       expect(newEdgeStroke.pointers).toEqual(expectedPointers)
       expect(newEdgeStroke.pointers).not.toEqual(originalPointers)
     })
@@ -576,7 +576,7 @@ describe("IIResizeManager.ts", () => {
       const previewClone = (canvas.renderer.drawSymbol as jest.Mock).mock.calls.find(
         (c) => (c[0] as { id: string }).id === edgeStroke.id
       )![0] as typeof edgeStroke
-      const newEdgeStroke = canvas.model.getRootSymbol(edgeStroke.id) as TStroke
+      const newEdgeStroke = canvas.model.getSymbol(edgeStroke.id) as TStroke
       expect(newEdgeStroke.pointers).toEqual(previewClone.pointers)
     })
 
@@ -615,7 +615,7 @@ describe("IIResizeManager.ts", () => {
       manager.start(resizeElement, transformOrigin)
       await manager.end(resizeToPoint)
 
-      const newEdgeStroke = canvas.model.getRootSymbol(edgeStroke.id) as TStroke
+      const newEdgeStroke = canvas.model.getSymbol(edgeStroke.id) as TStroke
       // Gradient-followed (single anchor): reshaped non-uniformly, so it must never be folded
       // into the uniform transformScale call — its full new content goes via replaceStrokes.
       const sentIds = (canvas.client.transformScale as jest.Mock).mock.calls[0][0] as string[]
