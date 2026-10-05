@@ -2,6 +2,8 @@ import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import type { DOMFactory } from "@/dom"
 import { LoggerCategory, LoggerManager } from "@/logger"
 
+import type { TMenuPosition } from "./SubMenuItem"
+
 /**
  * @group Menu
  * @remarks Base type for menu items
@@ -30,6 +32,11 @@ export abstract class BaseMenuItem<T extends HTMLElement = HTMLElement> {
   protected config: TGenericMenuItem
   protected canvas: TInteractiveInkCanvas
   protected element?: T
+  /**
+   * Where this item opens its sub-menu, set by its menu from the menu's slot before the element is built;
+   * an item that opens one reads it before its own default
+   */
+  openPosition?: TMenuPosition
 
   /** @hidden */
   protected get dom(): typeof DOMFactory {

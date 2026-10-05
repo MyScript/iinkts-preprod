@@ -5,6 +5,7 @@ import { CanvasTool } from "@/Constants"
 import type { TPartialDeep } from "@/core/std"
 import type { TLoggerConfiguration } from "@/logger"
 import { DefaultLoggerConfiguration, LoggerCategory, LoggerManager } from "@/logger"
+import type { TLayoutConfiguration } from "@/manager/base/LayoutManager"
 
 import type { TCanvasConnectionState } from "./CanvasEvent"
 import { CanvasEvent } from "./CanvasEvent"
@@ -20,6 +21,8 @@ export type TCanvasConfiguration = {
     /** Whether to show the connection-state badge (bottom-left icon). Defaults to `true`. */
     showConnectionState?: boolean
   }
+  /** Where the menus, the connection state and the minimap sit; see {@link TLayoutConfiguration} */
+  layout?: TLayoutConfiguration
 }
 
 /**

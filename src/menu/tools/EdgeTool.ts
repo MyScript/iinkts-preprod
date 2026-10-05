@@ -73,7 +73,7 @@ export class EdgeTool extends BaseMenuItem<HTMLDivElement> {
     subMenuContent.appendChild(this.createEdgeButton(doubleArrowIcon, CanvasWriteTool.DoubleArrow, "Double Arrow"))
 
     const content = this.dom.div({
-      className: ["sub-menu-content", "top"],
+      className: ["sub-menu-content", this.openPosition ?? "top"],
     })
     content.appendChild(subMenuContent)
 

@@ -1,5 +1,16 @@
 import { createCanvasMock, asCanvas } from "../__mocks__/createCanvasMock"
-import { BaseMenuItem, IIMenuManager, IIMenuStyle, IIMenuTool, IIMenuAction, IIMenuContext } from "@/iink"
+import {
+  BaseMenuItem,
+  CanvasLayer,
+  IIMenuManager,
+  IIMenuStyle,
+  IIMenuTool,
+  IIMenuAction,
+  IIMenuContext,
+  LayoutManager,
+  TInteractiveInkCanvas,
+  TMenuItemRegistration,
+} from "@/iink"
 import { StubMenuItem } from "../helpers"
 
 describe("IIMenuManager.ts", () => {
@@ -320,5 +331,49 @@ describe("IIMenuManager registry", () => {
     expect(manager.context.wrapper?.style.display).toBe("block")
     expect(manager.context.position).toEqual({ x: 40, y: 60 })
     expect(manager.context.wrapper?.querySelector(".ms-menu-context-bar #quick")).not.toBeNull()
+  })
+})
+
+describe("IIMenuManager in the layout", () => {
+  function setup(items: TMenuItemRegistration[] = []) {
+    const layers = new CanvasLayer(document.createElement("div"))
+    const layout = new LayoutManager<TInteractiveInkCanvas>(layers, ["action", "style", "tool", "state", "minimap"])
+    const canvas = createCanvasMock({ layers, layout })
+    canvas.configuration.menu.enable = true
+    // The action menu fetches the language list on render: not what these tests are about
+    canvas.configuration.menu.action.enable = false
+    canvas.configuration.menu.context.math = false
+    const manager = new IIMenuManager(asCanvas(canvas), undefined, items)
+    layout.render()
+    manager.render(layers.ui.root)
+    return { canvas, layout, manager, layers }
+  }
+
+  test("should show an item declared at load from the first render, built with the canvas", () => {
+    const factory = jest.fn(() => {
+      const element = document.createElement("button")
+      element.id = "declared"
+      return element
+    })
+    const { canvas, manager } = setup([{ menu: "tool", key: "declared", factory }])
+
+    expect(manager.tool.wrapper?.querySelector("#declared")).not.toBeNull()
+    expect(factory).toHaveBeenCalledTimes(1)
+    expect(factory).toHaveBeenCalledWith(asCanvas(canvas))
+  })
+
+  test("should rebuild a menu the layout moves, for its new slot", () => {
+    const { layout, manager } = setup()
+    layout.set({ "middle-left": ["tool"] })
+
+    expect(manager.tool.wrapper?.parentElement).toBe(layout.host("tool"))
+    expect(layout.host("tool")?.parentElement?.classList.contains("ms-layout-middle-left")).toBe(true)
+    expect(manager.tool.wrapper?.classList.contains("ms-menu-column")).toBe(true)
+  })
+
+  test("should render nowhere a menu the layout places nowhere", () => {
+    const { layout, layers } = setup()
+    layout.set({ "bottom-center": [] })
+    expect(layers.ui.root.querySelector(".ms-menu-tool")).toBeNull()
   })
 })

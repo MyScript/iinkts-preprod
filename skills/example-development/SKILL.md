@@ -37,7 +37,7 @@ Matching E2E specs live in `test/examples/{same-subdir}/*.test.js` (real extensi
 
 **Interactive Canvas Examples** (`interactive-canvas/` — 19 files, pattern `interactive_canvas_{feature}.html`)
 
-Real-time recognition using WebSocket protocol (`InteractiveInkCanvas`): `interactive_canvas_get_started.html`, `_connection_status`, `_create_symbols`, `_default_options`, `_gestures`, `_keyboard_shortcuts`, `_live_monitor`, `_math_computation_modes`, `_math_context_menu`, `_math_dependencies`, `_math_variables`, `_menu_config`, `_minimap`, `_override_menu`, `_selection`, `_showcase`, `_stroke_playback`, `_style`, `_zoom_pan`.
+Real-time recognition using WebSocket protocol (`InteractiveInkCanvas`): `interactive_canvas_get_started.html`, `_connection_status`, `_create_symbols`, `_default_options`, `_gestures`, `_keyboard_shortcuts`, `_live_monitor`, `_math_computation_modes`, `_math_context_menu`, `_math_dependencies`, `_math_variables`, `_menu_config`, `_menu_layout`, `_menu_override`, `_minimap`, `_selection`, `_showcase`, `_stroke_playback`, `_style`, `_zoom_pan`.
 
 **Interactive Canvas SSR Examples** (`interactive-canvas-ssr/` — 28 files)
 
