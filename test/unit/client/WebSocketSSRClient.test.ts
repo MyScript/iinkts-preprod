@@ -21,6 +21,8 @@ import {
   TConverstionState,
   TWebSocketSSRClientConfiguration,
   toWireStroke,
+  LoggerManager,
+  LoggerCategory,
 } from "@/iink"
 
 describe("WebSocketSSRClient.ts", () => {
@@ -51,6 +53,14 @@ describe("WebSocketSSRClient.ts", () => {
       customConf.server.applicationKey = "applicationKey"
       const wsr = new WebSocketSSRClient(customConf)
       expect(wsr.url).toEqual("ws://pony/api/v4.0/iink/document?applicationKey=applicationKey")
+    })
+    test("should encode the application key in the url", () => {
+      const customConf = structuredClone(WebSocketSSRClientTextConfiguration)
+      customConf.server.scheme = "http"
+      customConf.server.host = "pony"
+      customConf.server.applicationKey = "a&b=c"
+      const wsr = new WebSocketSSRClient(customConf)
+      expect(wsr.url).toEqual("ws://pony/api/v4.0/iink/document?applicationKey=a%26b%3Dc")
     })
 
     testDatas.forEach(({ type, config }) => {
@@ -84,6 +94,21 @@ describe("WebSocketSSRClient.ts", () => {
     afterEach(() => {
       wsr.destroy()
       mockServer.close()
+    })
+
+    test("should reject init when the HMAC key cannot be resolved", async () => {
+      const failingConf = structuredClone(customConf)
+      failingConf.server.host = "init-hmac-failure-test"
+      const client = new WebSocketSSRClient({
+        ...failingConf,
+        server: { ...failingConf.server, hmacKey: () => Promise.reject(new Error("token endpoint down")) },
+      })
+      client.event.emitError = jest.fn()
+      const server = new ServerWebSocketSSRMock(client.url)
+      server.init(true)
+      await expect(client.init(height, width)).rejects.toThrow("token endpoint down")
+      client.destroy()
+      server.close()
     })
 
     test("should sent newContentPackage message", async () => {
@@ -240,7 +265,7 @@ describe("WebSocketSSRClient.ts", () => {
     test("should throw error if client has not been initialize", async () => {
       expect.assertions(1)
       const testDataToSend = { type: "test", data: "test-data" }
-      await expect(wsr.send(testDataToSend)).rejects.toEqual(new Error("Client must be initilized"))
+      await expect(wsr.send(testDataToSend)).rejects.toEqual(new Error("Client must be initialized"))
     })
     test("should send message", async () => {
       expect.assertions(1)
@@ -251,6 +276,22 @@ describe("WebSocketSSRClient.ts", () => {
       await delay(100)
       const messageSent = JSON.parse(mockServer.getLastMessage() as string)
       expect(messageSent).toEqual(testDataToSend)
+    })
+    test("should reject instead of dropping the message when closed without automatic reconnection", async () => {
+      const noReconnectConf = structuredClone(customConf)
+      noReconnectConf.server.host = "send-no-reconnect-test"
+      noReconnectConf.server.websocket.autoReconnect = false
+      const client = new WebSocketSSRClient(noReconnectConf)
+      client.event.emitError = jest.fn()
+      const server = new ServerWebSocketSSRMock(client.url)
+      server.init()
+      await client.init(height, width)
+      client.close(1000, "CLOSE_CLIENT")
+      await expect(client.send({ type: "test" })).rejects.toThrow(
+        "Unable to send message. Connection closed and automatic reconnection disabled"
+      )
+      client.destroy()
+      server.close()
     })
     //TODO fix test
     test.skip("should reconnect before send message", async () => {
@@ -1016,6 +1057,42 @@ describe("WebSocketSSRClient.ts", () => {
       // 2 -> CLOSING
       await expect(mockServer.server.clients()[0].readyState).toEqual(2)
       mockServer.close()
+    })
+    test("should settle a request still waiting for its answer", async () => {
+      const wsr = new WebSocketSSRClient(customConf)
+      mockServer = new ServerWebSocketSSRMock(wsr.url)
+      mockServer.init()
+      await wsr.init(height, width)
+      const pending = wsr.export(new Model())
+      //¯\_(ツ)_/¯  required to wait for the instantiation of the promise of the client
+      await delay(50)
+      wsr.destroy()
+      await expect(pending).resolves.toBeInstanceOf(Model)
+      mockServer.close()
+    })
+  })
+
+  describe("messageCallback", () => {
+    test("should report the raw payload when it is not JSON at all", () => {
+      const wsr = new WebSocketSSRClient(WebSocketSSRClientTextConfiguration)
+      const spyEmitError = jest.spyOn(wsr.event, "emitError")
+      ;(wsr as unknown as { messageCallback: (message: MessageEvent<string>) => void }).messageCallback({
+        data: "<html>502 Bad Gateway</html>",
+      } as MessageEvent<string>)
+      expect(spyEmitError).toHaveBeenCalledWith(new Error("<html>502 Bad Gateway</html>"))
+    })
+
+    test("should warn with the raw payload and not report an error when the type is unknown", () => {
+      const wsr = new WebSocketSSRClient(WebSocketSSRClientTextConfiguration)
+      const spyEmitError = jest.spyOn(wsr.event, "emitError")
+      const spyWarn = jest.spyOn(LoggerManager.getLogger(LoggerCategory.CLIENT), "warn")
+      const payload = JSON.stringify({ type: "notAMessageType" })
+      ;(wsr as unknown as { messageCallback: (message: MessageEvent<string>) => void }).messageCallback({
+        data: payload,
+      } as MessageEvent<string>)
+      expect(spyWarn).toHaveBeenCalledWith("messageCallback", `Message type unknown: "${payload}".`)
+      expect(spyEmitError).not.toHaveBeenCalled()
+      spyWarn.mockRestore()
     })
   })
 })

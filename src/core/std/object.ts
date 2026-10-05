@@ -154,6 +154,13 @@ const isObject = (object: unknown): object is Record<string, unknown> => {
 
 /**
  * @group Core/Std
+ * @summary `Object.keys` typed with the keys of `T`
+ * @remarks Sound only for an object built from a literal of `T`: a subtype carrying extra keys would list them too.
+ */
+export const typedKeys = <T extends object>(object: T): (keyof T)[] => Object.keys(object) as (keyof T)[]
+
+/**
+ * @group Core/Std
  */
 export const uniqueById = <T extends { id: string }>(items: T[]): T[] => {
   const seenIds = new Set<string>()

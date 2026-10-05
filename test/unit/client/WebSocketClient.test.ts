@@ -15,6 +15,8 @@ import {
   TIIHistoryBackendChanges,
   TWebSocketClientConfiguration,
   toWireStroke,
+  LoggerManager,
+  LoggerCategory,
 } from "@/iink"
 
 import { toResolve } from "jest-extended"
@@ -37,6 +39,10 @@ describe("WebSocketClient.ts", () => {
     test("should get url", () => {
       const wsClient = new WebSocketClient(conf)
       expect(wsClient.url).toEqual("ws://pony/api/v4.0/iink/offscreen?applicationKey=applicationKey")
+    })
+    test("should encode the application key in the url", () => {
+      const wsClient = new WebSocketClient({ ...conf, server: { ...conf.server, applicationKey: "a&b=c" } })
+      expect(wsClient.url).toEqual("ws://pony/api/v4.0/iink/offscreen?applicationKey=a%26b%3Dc")
     })
 
     test(`should get mimeTypes`, () => {
@@ -94,6 +100,21 @@ describe("WebSocketClient.ts", () => {
     afterEach(async () => {
       await wsClient.destroy()
       mockServer.close()
+    })
+
+    test("should reject init when the HMAC key cannot be resolved", async () => {
+      const failingConf = structuredClone(conf)
+      failingConf.server.host = "init-hmac-failure-test"
+      const client = new WebSocketClient({
+        ...failingConf,
+        server: { ...failingConf.server, hmacKey: () => Promise.reject(new Error("token endpoint down")) },
+      })
+      client.event.emitError = jest.fn()
+      const server = new ServerWebSocketMock(client.url)
+      server.init()
+      await expect(client.init()).rejects.toThrow("token endpoint down")
+      await client.destroy()
+      server.close()
     })
 
     test("should have dialog sequence with hmacChallenge", async () => {
@@ -197,6 +218,43 @@ describe("WebSocketClient.ts", () => {
 
       // For an unparseable payload the payload itself is the useful diagnostic.
       expect(spyEmitError).toHaveBeenCalledWith(new Error("<html>502 Bad Gateway</html>"))
+    })
+
+    test("should warn with the raw payload and not report an error when the type is unknown", () => {
+      const wsClient = new WebSocketClient(configuration)
+      const spyEmitError = jest.spyOn(wsClient.event, "emitError")
+      const spyWarn = jest.spyOn(LoggerManager.getLogger(LoggerCategory.CLIENT), "warn")
+      const payload = JSON.stringify({ type: "notAMessageType" })
+
+      invoke(wsClient, payload)
+
+      expect(spyWarn).toHaveBeenCalledWith("messageCallback", `Message type unknown: "${payload}".`)
+      expect(spyEmitError).not.toHaveBeenCalled()
+      spyWarn.mockRestore()
+    })
+
+    test("should report the whole undo/redo state a contentChanged message carries", () => {
+      const wsClient = new WebSocketClient(configuration)
+      const spyContentChanged = jest.spyOn(wsClient.event, "emitContentChanged")
+      const payload = {
+        type: "contentChanged",
+        partId: "part",
+        canUndo: true,
+        canRedo: false,
+        empty: false,
+        undoStackIndex: 3,
+        possibleUndoCount: 2,
+      }
+
+      invoke(wsClient, JSON.stringify(payload))
+
+      expect(spyContentChanged).toHaveBeenCalledWith({
+        canUndo: true,
+        canRedo: false,
+        empty: false,
+        stackIndex: 3,
+        possibleUndoCount: 2,
+      })
     })
 
     test("should report a handler's own error rather than the payload", () => {
@@ -310,6 +368,14 @@ describe("WebSocketClient.ts", () => {
       await delay(300)
       const messageSent = JSON.parse(mockServer.getLastMessage() as string)
       expect(messageSent).toEqual(testDataToSend)
+    })
+    test("should reject when the socket fails to send", async () => {
+      await wsClient.init()
+      const socket = (wsClient as unknown as { socket: WebSocket }).socket
+      jest.spyOn(socket, "send").mockImplementation(() => {
+        throw new Error("send failed")
+      })
+      await expect(wsClient.send({ type: "test" })).rejects.toThrow("send failed")
     })
   })
 
@@ -1426,6 +1492,111 @@ describe("WebSocketClient.ts", () => {
       expect(order).toEqual(["first", "second"])
 
       await expect(Promise.all([firstPromise, secondPromise])).toResolve()
+    })
+  })
+
+  describe("math solver", () => {
+    const conf = structuredClone(configuration)
+    conf.server.host = "math-solver-test"
+    let mockServer: ServerWebSocketMock
+    let wsClient: WebSocketClient
+
+    const sendResult = (result: Record<string, unknown>) =>
+      mockServer.send(JSON.stringify({ type: "mathSolverResult", ...result }))
+
+    beforeEach(() => {
+      wsClient = new WebSocketClient(conf)
+      mockServer = new ServerWebSocketMock(wsClient.url)
+      mockServer.init()
+    })
+    afterEach(async () => {
+      await wsClient.destroy()
+      mockServer.close()
+    })
+
+    test("should send the action with its parameters", async () => {
+      await wsClient.init()
+      wsClient.getVariableValue("block-1", "x")
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(50)
+      expect(JSON.parse(mockServer.getLastMessage() as string)).toEqual({
+        type: "mathSolver",
+        action: "get-variable-value",
+        blockId: "block-1",
+        variableName: "x",
+      })
+    })
+
+    test("should resolve a request with the result of the same action and block", async () => {
+      await wsClient.init()
+      const promise = wsClient.getVariables("block-1")
+      //¯\_(ツ)_/¯  required to wait for the instantiation of the promise of the client
+      await delay(50)
+      sendResult({ action: "get-variables", blockId: "block-2", result: [{ name: "y" }] })
+      sendResult({ action: "get-diagnostic", blockId: "block-1", result: "ok" })
+      sendResult({ action: "get-variables", blockId: "block-1", result: [{ name: "x" }] })
+      await expect(promise).resolves.toEqual([{ name: "x" }])
+    })
+
+    test("should resolve get-variable-definitions, which is tied to no block", async () => {
+      await wsClient.init()
+      const promise = wsClient.getVariableDefinitions()
+      //¯\_(ツ)_/¯  required to wait for the instantiation of the promise of the client
+      await delay(50)
+      sendResult({ action: "get-variable-definitions", result: [{ name: "x", definitions: [] }] })
+      await expect(promise).resolves.toEqual([{ name: "x", definitions: [] }])
+    })
+
+    test("should resolve two concurrent evaluate calls on the same block", async () => {
+      await wsClient.init()
+      const evaluation = { inputVariableName: "x", outputVariableName: "y", from: 0, to: 1, pointCount: 2 }
+      const first = wsClient.evaluate("block-1", evaluation)
+      const second = wsClient.evaluate("block-1", evaluation)
+      //¯\_(ツ)_/¯  required to wait for the instantiation of the promise of the client
+      await delay(50)
+      sendResult({ action: "evaluate", blockId: "block-1", result: [[0, 1]] })
+      await expect(first).resolves.toEqual([[{ x: 0, y: 1 }]])
+      sendResult({ action: "evaluate", blockId: "block-1", result: [[0, 2]] })
+      await expect(second).resolves.toEqual([[{ x: 0, y: 2 }]])
+    })
+
+    test("should reject pending requests when the server closes abnormally", async () => {
+      await wsClient.init()
+      jest.spyOn(wsClient.event, "emitError").mockImplementation(() => undefined)
+      const pending = [
+        wsClient.getVariables("block-1"),
+        wsClient.getVariableDefinitions(),
+        wsClient.sendToSupport({ ticketId: "TICKET-1" }),
+      ]
+      //¯\_(ツ)_/¯  required to wait for the instantiation of the promise of the client
+      await delay(50)
+      const [client] = mockServer.server.clients()
+      client.close({ code: 1011, reason: ClientError.INTERNAL_ERROR, wasClean: false })
+      const settled = await Promise.allSettled(pending)
+      expect(settled.map((s) => s.status)).toEqual(["rejected", "rejected", "rejected"])
+    })
+
+    test("should not let a request that was never sent take the answer to the next one", async () => {
+      await expect(wsClient.getVariables("block-1")).rejects.toThrow()
+      await wsClient.init()
+      const promise = wsClient.getVariables("block-1")
+      //¯\_(ツ)_/¯  required to wait for the instantiation of the promise of the client
+      await delay(50)
+      sendResult({ action: "get-variables", blockId: "block-1", result: [{ name: "x" }] })
+      await expect(promise).resolves.toEqual([{ name: "x" }])
+    })
+
+    test("should settle pending requests with a neutral value on a deliberate close", async () => {
+      await wsClient.init()
+      const variables = wsClient.getVariables("block-1")
+      const value = wsClient.getVariableValue("block-1", "x")
+      const definitions = wsClient.getVariableDefinitions()
+      //¯\_(ツ)_/¯  required to wait for the instantiation of the promise of the client
+      await delay(50)
+      await wsClient.close(1000, "new-session")
+      await expect(variables).resolves.toEqual([])
+      await expect(value).resolves.toBeNaN()
+      await expect(definitions).resolves.toEqual([])
     })
   })
 
