@@ -1,6 +1,6 @@
 import Server from "jest-websocket-mock"
 import { DeserializedMessage } from "jest-websocket-mock/lib/websocket"
-import { TWebSocketSSRClientMessage } from "@/client"
+import { TWebSocketSSRClientMessage } from "@/iink"
 
 export const ackWithHMACMessage = {
   type: "ack",

@@ -1,22 +1,20 @@
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import type { TInteractiveInkCanvas } from "@/canvas"
 import type { WebSocketClient } from "@/client"
-import { CanvasWriteTool, SELECTION_MARGIN } from "@/Constants"
-import { EdgeDecoration } from "@/Constants"
-import type { TPoint, TPointer } from "@/core/geometry"
-import { OBBOps } from "@/core/geometry"
+import { SELECTION_PADDING } from "@/constants"
+import type { TPoint, TPointer } from "@/core"
+import { OBBOps } from "@/core"
 import { RafCoalescer } from "@/dom"
 import type { TPointerInfo } from "@/grabber"
 import type { IIHistoryManager } from "@/history"
-import { AbstractWriterManager } from "@/manager/base/AbstractWriterManager"
 import type { IIModel } from "@/model"
 import type { SVGRenderer } from "@/renderer"
 import type { TStyle } from "@/style"
 import type { TEdge, TShapeCircle, TShapeEllipse, TShapePolygon, TStroke, TSymbol } from "@/symbol"
-import { cloneSymbol, EdgeKind, isStroke, SymbolType } from "@/symbol"
-import { EdgeUtil, ShapeUtil, StrokeUtil } from "@/symbol-utils"
-import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
-import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
+import { cloneSymbol, EdgeDecoration, EdgeKind, isStroke, SymbolType } from "@/symbol"
+import { EdgeUtil, ShapeUtil, StrokeUtil, SymbolGeometry, symbolRegistry } from "@/symbol-utils"
 
+import { AbstractWriterManager } from "../base/AbstractWriterManager"
+import { CanvasWriteTool } from "./CanvasWriteTool"
 import type { TGesture } from "./gestures"
 import type { IIGestureManager } from "./IIGestureManager"
 import type { IISnapManager } from "./IISnapManager"
@@ -110,7 +108,7 @@ export class IIWriterManager extends AbstractWriterManager {
   }
 
   protected needContextLessGesture(stroke: TStroke): boolean {
-    const strokeBoundsWithMargin = this.canvas.getSymbolsBounds([stroke], 2 * SELECTION_MARGIN)
+    const strokeBoundsWithMargin = this.canvas.getSymbolsBounds([stroke], 2 * SELECTION_PADDING)
     return (
       this.detectGesture &&
       // Whole-document scan on every stroke-end — one unregistered symbol type must not abort

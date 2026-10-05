@@ -1,4 +1,4 @@
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
+import type { TInteractiveInkCanvas } from "@/canvas"
 import type {
   TJIIXChar,
   TJIIXEdgeArc,
@@ -19,13 +19,20 @@ import type {
   TJIIXWord,
 } from "@/client"
 import { extractEdgeEndpoints, JIIXEdgeKind, JIIXElementType, JIIXNodeKind } from "@/client"
-import { latexToUnicodeMath } from "@/core"
-import type { TPoint } from "@/core/geometry"
-import { BoxOps, type TBox } from "@/core/geometry"
-import { OBBOps } from "@/core/geometry"
-import { computeAngleAxeRadian, convertBoundingBoxMillimeterToPixel } from "@/core/geometry"
-import { computeAverage, convertMillimeterToPixel, roundTo } from "@/core/math"
-import { createUUID, uniqueById } from "@/core/std"
+import type { TPoint } from "@/core"
+import {
+  BoxOps,
+  computeAngleAxeRadian,
+  computeAverage,
+  convertBoundingBoxMillimeterToPixel,
+  convertMillimeterToPixel,
+  createUUID,
+  latexToUnicodeMath,
+  OBBOps,
+  roundTo,
+  type TBox,
+  uniqueById,
+} from "@/core"
 import { LoggerCategory } from "@/logger"
 import type {
   DecoratorKind,
@@ -45,11 +52,8 @@ import type {
   TSymbolChar,
   TText,
 } from "@/symbol"
-import { isDecorator, isRecognizedMath } from "@/symbol"
-import { resolveConnectionAnchors } from "@/symbol/edge/Anchor"
-import { DecoratorUtil, EdgeUtil, MathUtil, ShapeUtil, TextUtil } from "@/symbol-utils"
-import { SymbolGeometry } from "@/symbol-utils/SymbolGeometry"
-import { symbolRegistry } from "@/symbol-utils/SymbolRegistry"
+import { isDecorator, isRecognizedMath, resolveConnectionAnchors } from "@/symbol"
+import { DecoratorUtil, EdgeUtil, MathUtil, ShapeUtil, SymbolGeometry, symbolRegistry, TextUtil } from "@/symbol-utils"
 
 import { IIAbstractManager } from "./IIAbstractManager"
 

@@ -1,12 +1,11 @@
-import type { TCanvasConfiguration } from "@/canvas/AbstractCanvas"
 import type {
   TRecognitionWebSocketConfiguration,
   TServerWebsocketConfiguration,
   TWebSocketClientConfiguration,
 } from "@/client"
 import { DefaultWebSocketClientConfiguration, WebSocketClientConfiguration } from "@/client"
-import type { TPartialDeep } from "@/core/std"
-import { mergeDeep } from "@/core/std"
+import type { TPartialDeep } from "@/core"
+import { mergeDeep } from "@/core"
 import type { TGrabberConfiguration } from "@/grabber"
 import { DefaultGrabberConfiguration } from "@/grabber"
 import type { THistoryConfiguration } from "@/history"
@@ -36,6 +35,8 @@ import type { TIIRendererConfiguration } from "@/renderer"
 import { DefaultIIRendererConfiguration } from "@/renderer"
 import type { TStyle } from "@/style"
 import { DefaultStyle } from "@/style"
+
+import type { TCanvasConfiguration } from "../AbstractCanvas"
 /**
  * @group Canvas
  */

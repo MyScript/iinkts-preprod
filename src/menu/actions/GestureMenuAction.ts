@@ -1,7 +1,15 @@
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import { CanvasTool, CanvasWriteTool } from "@/Constants"
-import type { TMenuSubMenu } from "@/menu/items/SubMenuItem"
-import { SubMenuItem } from "@/menu/items/SubMenuItem"
+import type { TInteractiveInkCanvas } from "@/canvas"
+import {
+  CanvasTool,
+  CanvasWriteTool,
+  InsertAction,
+  StrikeThroughAction,
+  SurroundAction,
+  UnderlineAction,
+} from "@/manager"
+
+import type { TMenuSubMenu } from "../items/SubMenuItem"
+import { SubMenuItem } from "../items/SubMenuItem"
 
 /** @group Menu */
 export type TGestureActionItemsConfig = {
@@ -13,7 +21,6 @@ export type TGestureActionItemsConfig = {
 }
 /** @group Menu */
 export type TGestureActionConfig = boolean | TGestureActionItemsConfig
-import { InsertAction, StrikeThroughAction, SurroundAction, UnderlineAction } from "@/manager"
 
 /**
  * @group Menu

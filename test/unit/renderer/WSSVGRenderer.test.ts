@@ -1,19 +1,5 @@
 import { delay } from "../helpers"
-import {
-  InteractiveInkSSRSVGRenderer,
-  DefaultRendererConfiguration,
-  Model,
-  Stroke,
-  DefaultPenStyle,
-  TUpdatePatchAppendChild,
-  TUpdatePatchInsertBefore,
-  TUpdatePatchRemoveAttribut,
-  TUpdatePatchRemoveChild,
-  TUpdatePatchRemoveElement,
-  TUpdatePatchReplaceAll,
-  TUpdatePatchReplaceELement,
-  TUpdatePatchSetAttribut,
-} from "@/iink"
+import { InteractiveInkSSRSVGRenderer, DefaultRendererConfiguration, Model, Stroke, DefaultPenStyle, TUpdatePatchAppendChild, TUpdatePatchInsertBefore, TUpdatePatchRemoveAttribut, TUpdatePatchRemoveChild, TUpdatePatchRemoveElement, TUpdatePatchReplaceAll, TUpdatePatchReplaceELement, TUpdatePatchSetAttribut } from "@/iink"
 
 describe("InteractiveInkSSRSVGRenderer.ts", () => {
   const stroke = new Stroke(DefaultPenStyle)

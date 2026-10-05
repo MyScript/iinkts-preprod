@@ -1,10 +1,11 @@
 import ArrowDown from "@/assets/svg/nav-arrow-down.svg"
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import { createUUID, type TDraft } from "@/core/std"
-import type { TGenericMenuItem } from "@/menu/items/BaseMenuItem"
-import { BaseMenuItem } from "@/menu/items/BaseMenuItem"
+import type { TInteractiveInkCanvas } from "@/canvas"
+import { createUUID, type TDraft } from "@/core"
 import type { TText } from "@/symbol"
 import { isText } from "@/symbol"
+
+import type { TGenericMenuItem } from "../items/BaseMenuItem"
+import { BaseMenuItem } from "../items/BaseMenuItem"
 /**
  * @group Menu
  * @remarks Menu contextuel Edit - Édite le texte sélectionné

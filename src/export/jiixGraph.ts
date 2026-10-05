@@ -6,7 +6,7 @@ import {
   type TJIIXNodeElement,
   type TJIIXTextElement,
 } from "@/client"
-import { computePointOnEllipse, isPointInsideBox, type TBox, type TPoint } from "@/core/geometry"
+import { computePointOnEllipse, isPointInsideBox, type TBox, type TPoint } from "@/core"
 
 /**
  * @group Export

@@ -1,4 +1,4 @@
-import type { MatrixTransform } from "@/core/geometry"
+import type { MatrixTransform } from "@/core"
 
 /**
  * What moving a symbol needs beyond the symbol itself.

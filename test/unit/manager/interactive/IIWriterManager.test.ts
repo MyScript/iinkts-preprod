@@ -1,21 +1,6 @@
 import { buildIIStroke } from "../../helpers"
 import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import {
-  IIWriterManager,
-  DefaultStyle,
-  SymbolType,
-  TPointer,
-  CanvasWriteTool,
-  ShapeKind,
-  TShape,
-  TEdge,
-  EdgeDecoration,
-  EdgeKind,
-  TStroke,
-  TBaseSymbol,
-  TSymbol,
-  TPointerInfo,
-} from "@/iink"
+import { IIWriterManager, DefaultStyle, SymbolType, TPointer, CanvasWriteTool, ShapeKind, TShape, TEdge, EdgeDecoration, EdgeKind, TStroke, TBaseSymbol, TSymbol, TPointerInfo } from "@/iink"
 
 describe("IIWriterManager.ts", () => {
   test("should create", () => {

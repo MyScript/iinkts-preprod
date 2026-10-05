@@ -1,7 +1,5 @@
-import { TWO_PI } from "@/core/math"
-import { computeTessellationCount } from "@/core/math"
-
-import { SELECTION_MARGIN } from "../../../Constants"
+import { computeTessellationCount, TWO_PI } from "../../math"
+import { TESSELLATION_SEGMENT_LENGTH } from "../../math/tessellation"
 import { BoxOps, type TBox } from "../Box"
 import { findIntersectBetweenSegmentAndCircle } from "../intersection"
 import { applyMatrixToPoint, type TMatrixTransform } from "../Matrix"
@@ -47,7 +45,7 @@ export class Circle2d extends Geometry2d {
    * exact answer of their own.
    */
   protected computeVertices(): TPoint[] {
-    const count = computeTessellationCount(TWO_PI * this.radius, SELECTION_MARGIN)
+    const count = computeTessellationCount(TWO_PI * this.radius, TESSELLATION_SEGMENT_LENGTH)
     const vertices: TPoint[] = []
     for (let i = 0; i < count; i++) {
       // From the bottom of the circle, counter-clockwise — the convention the library already had,

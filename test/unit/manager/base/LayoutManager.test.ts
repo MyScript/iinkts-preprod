@@ -1,14 +1,4 @@
-import {
-  CanvasLayer,
-  LayoutManager,
-  LoggerCategory,
-  LoggerManager,
-  slotAnchor,
-  slotOpenTowards,
-  slotOrientation,
-  TLayoutConfiguration,
-  TLayoutOccupant,
-} from "@/iink"
+import { CanvasLayer, LayoutManager, LoggerCategory, LoggerManager, slotAnchor, slotOpenTowards, slotOrientation, TLayoutConfiguration, TLayoutOccupant } from "@/iink"
 
 const INTERACTIVE_OCCUPANTS = ["action", "style", "tool", "state", "minimap"]
 

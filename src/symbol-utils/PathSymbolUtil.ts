@@ -1,4 +1,4 @@
-import type { TBaseSymbol } from "@/symbol/Symbol"
+import type { TBaseSymbol } from "@/symbol"
 
 import { SVGBuilder } from "./SVGBuilder"
 import { SymbolUtil } from "./SymbolUtil"

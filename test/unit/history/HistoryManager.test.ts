@@ -1,14 +1,6 @@
 import { CanvasEventMock } from "../__mocks__/CanvasEventMock"
 import { delay } from "../helpers"
-import {
-  TPointer,
-  THistoryConfiguration,
-  getInitialHistoryContext,
-  HistoryManager,
-  Model,
-  DefaultHistoryConfiguration,
-  DefaultPenStyle,
-} from "@/iink"
+import { TPointer, THistoryConfiguration, getInitialHistoryContext, HistoryManager, Model, DefaultHistoryConfiguration, DefaultPenStyle } from "@/iink"
 
 describe("HistoryManager.ts", () => {
   const event = new CanvasEventMock(document.createElement("div"))

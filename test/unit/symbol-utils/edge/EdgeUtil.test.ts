@@ -1,7 +1,6 @@
-import { edgeGeometry } from "../../helpers"
+import { edgeGeometry, buildIILine } from "../../helpers"
 import { beforeEach, describe, expect, test } from "@jest/globals"
 
-import { buildIILine } from "../../helpers"
 
 import type { TEdge, TOBB, TPartialDeep } from "@/iink"
 import { EdgeDecoration, registerBuiltinSymbolUtils, EdgeKind, EdgeUtil, MatrixTransform, SymbolType, TPoint, TEdgeLine, TEdgePolyLine, TEdgeArc } from "@/iink"
@@ -256,7 +255,7 @@ describe("EdgeUtil, the contract members", () => {
 
   describe("overlaps", () => {
     test("should return true when box fully contains line bounds (totally wraps)", () => {
-      // Use a large box that fully contains the line bounds (including SELECTION_MARGIN expansion)
+      // Use a large box that fully contains the line bounds (including HIT_TOLERANCE expansion)
       const line = buildIILine({ start: { x: 0, y: 0 }, end: { x: 5, y: 5 } })
       expect(util.overlaps(line, { x: -10, y: -10, width: 30, height: 30 })).toBe(true)
     })

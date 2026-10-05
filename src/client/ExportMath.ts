@@ -1,4 +1,4 @@
-import type { TBox } from "@/core/geometry"
+import type { TBox } from "@/core"
 
 import type { JIIXElementType } from "./Export"
 import type { TJIIXBase, TJIIXElementBase } from "./ExportCommon"

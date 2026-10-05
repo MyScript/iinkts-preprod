@@ -1,8 +1,8 @@
-import { type TPoint } from "@/core/geometry"
+import { type TPoint } from "@/core"
 import { type TStyle } from "@/style"
-import type { SymbolType } from "@/symbol/Symbol"
-import { type TBaseSymbol } from "@/symbol/Symbol"
 
+import type { SymbolType } from "../Symbol"
+import { type TBaseSymbol } from "../Symbol"
 import type { ShapeKind } from "./Shape-enum"
 
 /**

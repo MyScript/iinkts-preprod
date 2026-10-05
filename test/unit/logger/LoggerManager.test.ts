@@ -1,11 +1,4 @@
-import {
-  DefaultLoggerConfiguration,
-  Logger,
-  LoggerCategory,
-  LoggerLevel,
-  LoggerManager,
-  TLoggerConfiguration,
-} from "@/iink"
+import { DefaultLoggerConfiguration, Logger, LoggerCategory, LoggerLevel, LoggerManager, TLoggerConfiguration } from "@/iink"
 
 describe("LoggerManager.ts", () => {
   test("should return a Logger instance for a category", () => {

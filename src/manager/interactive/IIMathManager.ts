@@ -1,12 +1,12 @@
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import type { TJIIXMathElement } from "@/client"
+import type { TInteractiveInkCanvas } from "@/canvas"
 import type {
+  TJIIXMathElement,
   TMathEvaluable,
   TMathVariable,
   TMathVariableDefinition,
   TMathVariableDefinitions,
-} from "@/client/WebSocketClientMessage"
-import type { MatrixTransform, TBox } from "@/core/geometry"
+} from "@/client"
+import type { MatrixTransform, TBox } from "@/core"
 import { LoggerCategory } from "@/logger"
 
 import { IIAbstractManager } from "./IIAbstractManager"

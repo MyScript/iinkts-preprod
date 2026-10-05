@@ -5,7 +5,6 @@ import { buildIIDecorator, buildIIStroke } from "../../../helpers"
 
 import type { TBaseSymbol, TBox, TPartialDeep, TPoint, TTransformContext, TSymbol } from "@/iink"
 import { BoxOps, DecoratorKind, DecoratorUtil, Geometry2d, IIResizeManager, IIRotationManager, IITranslateManager, MatrixTransform, Polygon2d, SymbolUtil, applyMatrixToPoint, registerBuiltinSymbolUtils, symbolRegistry } from "@/iink"
-import type { } from "@/iink"
 
 /**
  * `IIAbstractTransformManager` used to declare five `applyTo*` members so that a

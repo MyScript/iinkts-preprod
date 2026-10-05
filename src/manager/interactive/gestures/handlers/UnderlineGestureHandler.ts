@@ -1,10 +1,11 @@
-import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
-import { GestureHandler } from "@/manager/interactive/gestures/GestureHandler"
-import type { GestureHelpers } from "@/manager/interactive/gestures/GestureHelpers"
-import type { TGesture } from "@/manager/interactive/gestures/GestureTypes"
-import { UnderlineAction } from "@/manager/interactive/gestures/GestureTypes"
+import type { TInteractiveInkCanvas } from "@/canvas"
 import type { TStroke } from "@/symbol"
 import { DecoratorKind } from "@/symbol"
+
+import { GestureHandler } from "../GestureHandler"
+import type { GestureHelpers } from "../GestureHelpers"
+import type { TGesture } from "../GestureTypes"
+import { UnderlineAction } from "../GestureTypes"
 /**
  * Handler for UNDERLINE gesture type
  * Supports two actions: Draw (apply decorator) and Thicken (increase stroke width)

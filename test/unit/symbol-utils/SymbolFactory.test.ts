@@ -1,12 +1,4 @@
-import {
-  createSymbolFromPartial,
-  createSymbolsFromPartial,
-  EdgeKind,
-  registerBuiltinSymbolUtils,
-  ShapeKind,
-  symbolRegistry,
-  SymbolType,
-} from "@/iink"
+import { createSymbolFromPartial, createSymbolsFromPartial, EdgeKind, registerBuiltinSymbolUtils, ShapeKind, symbolRegistry, SymbolType } from "@/iink"
 
 // The factory asks the registry which util owns a type, so the built-ins have to be registered
 // first. Before IIC-2001 this file passed without registering anything, because the factory carried

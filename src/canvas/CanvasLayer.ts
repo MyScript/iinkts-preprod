@@ -4,10 +4,11 @@ import syncIcon from "@/assets/svg/sync.svg"
 import warningTriangleIcon from "@/assets/svg/warning-triangle.svg"
 import wifiIcon from "@/assets/svg/wifi.svg"
 import wifiOffIcon from "@/assets/svg/wifi-off.svg"
-import type { TCanvasConnectionState } from "@/canvas/CanvasEvent"
 import { DOMFactory } from "@/dom"
 import style from "@/iink.css"
 import { Modal } from "@/ui"
+
+import type { TCanvasConnectionState } from "./CanvasEvent"
 
 /**
  * @group Canvas

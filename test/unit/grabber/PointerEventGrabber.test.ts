@@ -1,11 +1,5 @@
 import { DoubleTouchEventMock, LeftClickEventMock, RightClickEventMock, TouchEventMock } from "../__mocks__/EventMock"
-import {
-  bumpSvgTransformVersion,
-  DefaultGrabberConfiguration,
-  PointerEventGrabber,
-  TGrabberConfiguration,
-  TGrabberInputMode,
-} from "@/iink"
+import { bumpSvgTransformVersion, DefaultGrabberConfiguration, PointerEventGrabber, TGrabberConfiguration, TGrabberInputMode } from "@/iink"
 
 describe("PointerEventGrabber.ts", () => {
   test("should create with default configuration", () => {
