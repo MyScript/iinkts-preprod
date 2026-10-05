@@ -7,7 +7,7 @@ import type { TPartialDeep } from "@/core/std"
 import type { PointerEventGrabber } from "@/grabber"
 import type { TIHistoryChanges } from "@/history"
 import { IHistoryManager } from "@/history"
-import { EraseManager, IDebugSVGManager, IWriterManager } from "@/manager"
+import { EraseManager, IDebugSVGManager, IWriterManager, LayoutManager, type TLayoutOccupant } from "@/manager"
 import { IModel } from "@/model"
 import { SVGRenderer } from "@/renderer"
 import type { TStyle } from "@/style"
@@ -17,6 +17,9 @@ import { registerBuiltinSymbolUtils, StrokeUtil } from "@/symbol-utils"
 import type { TInkCanvas } from "../TInkCanvas"
 import type { TInkCanvasConfiguration } from "./InkCanvasConfiguration"
 import { InkCanvasConfiguration } from "./InkCanvasConfiguration"
+
+/** The occupants the layout of an ink canvas can place: no menus there */
+const INK_LAYOUT_OCCUPANTS = ["state"] as const
 
 /**
  * @group Canvas
@@ -29,6 +32,11 @@ export type TInkCanvasOptions = TPartialDeep<
   override?: {
     grabber?: PointerEventGrabber
     client?: HTTPClientV2
+  }
+  /** Content added at load, so it is there from the first render (functions: hence not in `configuration`) */
+  extend?: {
+    /** Custom occupants of the layout, like `canvas.layout.add` */
+    layout?: TLayoutOccupant<TInkCanvas>[]
   }
 }
 
@@ -55,6 +63,8 @@ export class InkCanvas extends AbstractCanvas implements TInkCanvas {
   writer: IWriterManager
   eraser: EraseManager
   debugger: IDebugSVGManager
+  /** Where the connection state and custom occupants sit */
+  layout: LayoutManager<TInkCanvas>
   #tool: CanvasTool = CanvasTool.Write
 
   constructor(rootElement: HTMLElement, options?: TInkCanvasOptions) {
@@ -77,6 +87,13 @@ export class InkCanvas extends AbstractCanvas implements TInkCanvas {
     this.writer = new IWriterManager(this)
     this.eraser = new EraseManager(this)
     this.debugger = new IDebugSVGManager(this)
+    this.layout = new LayoutManager<TInkCanvas>(
+      this.layers,
+      INK_LAYOUT_OCCUPANTS,
+      options?.configuration?.layout,
+      this,
+      options?.extend?.layout
+    )
     this.tool = CanvasTool.Write
     this.history = new IHistoryManager(this.#configuration["undo-redo"], this.event)
   }
@@ -124,6 +141,7 @@ export class InkCanvas extends AbstractCanvas implements TInkCanvas {
     try {
       this.logger.info("initialize")
       this.layers.render()
+      this.layout.render()
       this.layers.showLoader()
       this.tool = CanvasTool.Write
       this.renderer.init(this.layers.rendering)
@@ -318,6 +336,7 @@ export class InkCanvas extends AbstractCanvas implements TInkCanvas {
   async destroy(): Promise<void> {
     this.logger.info("destroy")
     this.writer.detach()
+    this.layout.destroy()
     this.teardownCommon()
     this.clearRootElementReference()
     return Promise.resolve()

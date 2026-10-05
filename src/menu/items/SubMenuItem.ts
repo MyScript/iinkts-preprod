@@ -14,7 +14,17 @@ import type { TMenuSelect } from "./SelectMenuItem"
  * @group Menu
  * @remarks Submenu position type
  */
-export type TMenuPosition = "top" | "left" | "right" | "right-top" | "bottom" | "bottom-left" | "bottom-right"
+export type TMenuPosition =
+  | "top"
+  | "top-left"
+  | "top-right"
+  | "left"
+  | "left-top"
+  | "right"
+  | "right-top"
+  | "bottom"
+  | "bottom-left"
+  | "bottom-right"
 
 /**
  * @group Menu
@@ -49,15 +59,21 @@ export class SubMenuItem extends BaseMenuItem<HTMLDivElement> {
   protected closedRotation: number = 0
   protected openedRotation: number = 180
 
+  /** The side the sub-menu opens on is the first part of its position: "right-top" opens on the right */
+  protected sideOf(position: TMenuPosition): string {
+    return position.split("-")[0]
+  }
+
   protected getArrowRotationForPosition(position: TMenuPosition): number {
-    if (position.includes("bottom")) {
-      return 180
-    } else if (position.includes("left")) {
-      return 90
-    } else if (position.includes("right")) {
-      return -90
-    } else {
-      return 0
+    switch (this.sideOf(position)) {
+      case "bottom":
+        return 180
+      case "left":
+        return 90
+      case "right":
+        return -90
+      default:
+        return 0
     }
   }
 
@@ -73,7 +89,7 @@ export class SubMenuItem extends BaseMenuItem<HTMLDivElement> {
       id: `${this.config.id}-trigger`,
       className: ["between", "full-width"],
     })
-    const position = this.config.position || "right-top"
+    const position = this.openPosition ?? this.config.position ?? "right-top"
 
     this.closedRotation = this.getArrowRotationForPosition(position)
     this.openedRotation = this.closedRotation + 180
@@ -104,7 +120,7 @@ export class SubMenuItem extends BaseMenuItem<HTMLDivElement> {
       this.trigger.textContent = this.config.label
     }
 
-    if (position.includes("left")) {
+    if (this.sideOf(position) === "left") {
       this.trigger.prepend(this.arrowSpan)
     } else {
       this.trigger.appendChild(this.arrowSpan)
@@ -130,6 +146,10 @@ export class SubMenuItem extends BaseMenuItem<HTMLDivElement> {
 
     this.config.items.forEach((item) => {
       const menuItem = createMenuItemInstance(item, this.canvas)
+      // A nested sub-menu opens sideways, on the side its parent opened towards
+      if (this.openPosition && !menuItem.openPosition) {
+        menuItem.openPosition = this.sideOf(this.openPosition) === "left" ? "left-top" : "right-top"
+      }
       const element = menuItem.getElement()
       if (element) {
         this.subMenuWrapper!.appendChild(element)

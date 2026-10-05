@@ -32,9 +32,11 @@ import {
   IITransformManager,
   IITypesetManager,
   IIWriterManager,
+  LayoutManager,
   PDFExportManager,
+  type TLayoutOccupant,
 } from "@/manager"
-import type { TMenuOverride } from "@/menu"
+import type { TMenuItemRegistration, TMenuOverride } from "@/menu"
 import { IIMenuManager } from "@/menu"
 import { IIModel } from "@/model"
 import type { TIIRendererConfiguration } from "@/renderer"
@@ -59,6 +61,9 @@ import type { SymbolUtil } from "@/symbol-utils/SymbolUtil"
 import type { TInteractiveInkCanvasConfiguration } from "./InteractiveInkCanvasConfiguration"
 import { InteractiveInkCanvasConfiguration } from "./InteractiveInkCanvasConfiguration"
 
+/** The occupants the layout of an interactive ink canvas can place */
+const INTERACTIVE_INK_LAYOUT_OCCUPANTS = ["action", "style", "tool", "state", "minimap"] as const
+
 /**
  * @group Canvas
  */
@@ -70,6 +75,13 @@ export type TInteractiveInkCanvasOptions = TPartialDeep<
   override?: {
     client?: WebSocketClient
     menu?: TMenuOverride
+  }
+  /** Content added at load, so it is there from the first render (functions: hence not in `configuration`) */
+  extend?: {
+    /** Items added to the menus, like `canvas.menu.addItem` */
+    menuItems?: TMenuItemRegistration[]
+    /** Custom occupants of the layout, like `canvas.layout.add` */
+    layout?: TLayoutOccupant<TInteractiveInkCanvas>[]
   }
 }
 
@@ -144,6 +156,8 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
   /** Manages smart connectors and anchor-based endpoint updates. */
   connector: IIConnectorManager
   /** Manages the floating UI menu (tool selector, style panel, action buttons). */
+  /** Where the menus, the connection state and the minimap sit */
+  layout: LayoutManager<TInteractiveInkCanvas>
   menu: IIMenuManager
   /** Replays a recorded set of strokes with play/pause/speed control. */
   playback: IIPlaybackManager
@@ -204,7 +218,14 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     this.exportManager = new IIExportManager(this, this.pdfExport)
     this.math = new IIMathManager(this, this.#configuration.math)
     this.connector = new IIConnectorManager(this, this.#configuration.connector)
-    this.menu = new IIMenuManager(this, options?.override?.menu)
+    this.layout = new LayoutManager<TInteractiveInkCanvas>(
+      this.layers,
+      INTERACTIVE_INK_LAYOUT_OCCUPANTS,
+      options?.configuration?.layout,
+      this,
+      options?.extend?.layout
+    )
+    this.menu = new IIMenuManager(this, options?.override?.menu, options?.extend?.menuItems)
     this.playback = new IIPlaybackManager(this)
   }
 
@@ -430,6 +451,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       this.layers.showLoader()
       this.tool = CanvasTool.Write
       this.renderer.init(this.layers.rendering)
+      this.layout.render()
       this.menu.render(this.layers.ui.root)
       this.setCssVars(this.#configuration.cssVars)
 
@@ -1978,6 +2000,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     this.exportManager.destroy()
     this.teardownCommon()
     this.menu.destroy()
+    this.layout.destroy()
     this.client.destroy()
     this.model.clear()
     this.history.clear()

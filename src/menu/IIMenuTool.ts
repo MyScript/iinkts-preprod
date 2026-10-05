@@ -2,7 +2,7 @@ import moreIcon from "@/assets/svg/more.svg"
 import type { TInteractiveInkCanvas } from "@/canvas/TInteractiveInkCanvas"
 import { DOMFactory } from "@/dom"
 
-import { IIAbstractMenu, type TMenuZone } from "./IIAbstractMenu"
+import { IIAbstractMenu, type TMenuLayoutConfig, type TMenuZone } from "./IIAbstractMenu"
 import { EdgeTool, EraseTool, MoveTool, SelectTool, ShapeTool, WriteTool } from "./tools"
 
 /**
@@ -37,12 +37,13 @@ export const DefaultMenuToolConfig: Required<TMenuToolConfig> = {
 /**
  * @group Menu
  */
-export class IIMenuTool extends IIAbstractMenu<Required<TMenuToolConfig>> {
+export class IIMenuTool extends IIAbstractMenu<Required<TMenuToolConfig> & TMenuLayoutConfig> {
+  readonly layoutName = "tool"
   readonly defaultZone: TMenuZone = "bar"
   /** The "…" dropdown at the end of the row, once an item goes to the dropdown zone */
   protected moreDropdown?: HTMLElement
 
-  constructor(canvas: TInteractiveInkCanvas, id = "ms-menu-tool", config?: TMenuToolConfig) {
+  constructor(canvas: TInteractiveInkCanvas, id = "ms-menu-tool", config?: TMenuToolConfig & TMenuLayoutConfig) {
     super(canvas, id, { ...DefaultMenuToolConfig, ...config })
   }
 
@@ -51,7 +52,7 @@ export class IIMenuTool extends IIAbstractMenu<Required<TMenuToolConfig>> {
       return
     }
     this.logger.info("Rendering menu tools with config", this.config)
-    this.wrapper = DOMFactory.div({ className: ["ms-menu", "ms-menu-bottom", "ms-menu-row"] })
+    this.wrapper = DOMFactory.div({ className: ["ms-menu", "ms-menu-tool", this.barClassName()] })
     this.renderBarItems()
     layer.appendChild(this.wrapper)
     this.update()
@@ -86,7 +87,7 @@ export class IIMenuTool extends IIAbstractMenu<Required<TMenuToolConfig>> {
     }
     const column = DOMFactory.div({ className: "ms-menu-column" })
     const trigger = DOMFactory.button({ id: `${this.id}-more`, className: "square", html: moreIcon })
-    this.moreDropdown = this.createDropdown(trigger, column, "top").element
+    this.moreDropdown = this.createDropdown(trigger, column, this.barOpenPosition() ?? "top").element
     wrapper.appendChild(this.moreDropdown)
     return column
   }

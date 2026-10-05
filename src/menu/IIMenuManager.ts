@@ -3,7 +3,13 @@ import { mergeDeep } from "@/core/std"
 import { DOMFactory } from "@/dom"
 import { LoggerCategory, LoggerManager } from "@/logger"
 
-import type { IIAbstractMenu, TMenuItemFactory, TMenuItemOptions, TRegisteredMenuItem } from "./IIAbstractMenu"
+import type {
+  IIAbstractMenu,
+  TMenuItemFactory,
+  TMenuItemOptions,
+  TMenuLayoutConfig,
+  TRegisteredMenuItem,
+} from "./IIAbstractMenu"
 import type { TMenuActionConfig } from "./IIMenuAction"
 import { IIMenuAction } from "./IIMenuAction"
 import type { TMenuContextConfig } from "./IIMenuContext"
@@ -49,6 +55,21 @@ export type TMenuName = "action" | "tool" | "style" | "context"
 
 const MENU_NAMES: readonly TMenuName[] = ["action", "style", "tool", "context"]
 
+function isMenuName(name: string): name is TMenuName {
+  return MENU_NAMES.some((menu) => menu === name)
+}
+
+/**
+ * @group Menu
+ * @summary An item declared at load, in `options.extend.menuItems`: in its menu from the first render
+ */
+export type TMenuItemRegistration = {
+  menu: TMenuName
+  key: string
+  factory: TMenuItemFactory
+  options?: TMenuItemOptions
+}
+
 /**
  * @group Manager
  */
@@ -72,7 +93,7 @@ export class IIMenuManager {
     context: new Map(),
   }
 
-  constructor(canvas: TInteractiveInkCanvas, custom?: TMenuOverride) {
+  constructor(canvas: TInteractiveInkCanvas, custom?: TMenuOverride, items: readonly TMenuItemRegistration[] = []) {
     this.#logger.info("constructor")
     this.canvas = canvas
     this.menuClasses = {
@@ -81,10 +102,22 @@ export class IIMenuManager {
       action: custom?.action ?? IIMenuAction,
       context: custom?.context ?? IIMenuContext,
     }
+    // Declared at load: in the registry before the first render, so they show from the start
+    items.forEach(({ menu, key, factory, options }) => this.register(menu, key, factory, options))
     MENU_NAMES.forEach((name) => this.createMenu(name))
+    this.canvas.layout.onOccupantMoved((occupant) => this.onOccupantMoved(occupant))
   }
 
-  getMenu(name: TMenuName): IIAbstractMenu<unknown> {
+  /** A menu the layout moved rebuilds for its new slot; the minimap lives in the action menu, which rebuilds for it */
+  protected onOccupantMoved(occupant: string): void {
+    if (occupant === "minimap") {
+      this.rebuildMenu("action")
+    } else if (isMenuName(occupant)) {
+      this.rebuildMenu(occupant)
+    }
+  }
+
+  getMenu(name: TMenuName): IIAbstractMenu<TMenuLayoutConfig> {
     return this[name]
   }
 
@@ -114,7 +147,13 @@ export class IIMenuManager {
       return
     }
     const instance = this.getMenu(name)
-    instance.render(this.layer)
+    // Each menu renders into the slot the layout gives it; the context menu follows the pointer over the whole layer
+    const host = name === "context" ? undefined : this.canvas.layout.host(name)
+    if (!host && name !== "context" && this.canvas.layout.isRendered) {
+      // The layout places this menu nowhere
+      return
+    }
+    instance.render(host ?? this.layer)
     instance.renderRegisteredItems(this.registry[name])
   }
 
@@ -184,12 +223,16 @@ export class IIMenuManager {
    * }, { zone: "bar" })
    */
   addItem(menu: TMenuName, key: string, factory: TMenuItemFactory, options?: TMenuItemOptions): void {
+    this.register(menu, key, factory, options)
+    this.rebuildMenu(menu)
+  }
+
+  protected register(menu: TMenuName, key: string, factory: TMenuItemFactory, options?: TMenuItemOptions): void {
     const registered = this.registry[menu]
     if (registered.has(key)) {
       throw new Error(`"${key}" is already registered in the ${menu} menu`)
     }
     registered.set(key, { factory, options })
-    this.rebuildMenu(menu)
   }
 
   /** Removes an item added by {@link addItem}; false when there was none under that key */

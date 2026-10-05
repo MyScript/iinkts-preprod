@@ -276,7 +276,7 @@ describe("IIMenuTool zones", () => {
   test("should have no \"…\" dropdown while nothing goes to the dropdown zone", () => {
     const { layer } = render([{ key: "extra-bar" }])
     expect(layer.querySelector("#ms-menu-tool-more")).toBeNull()
-    expect(layer.querySelector("#extra-bar")?.parentElement).toBe(layer.querySelector(".ms-menu-bottom"))
+    expect(layer.querySelector("#extra-bar")?.parentElement).toBe(layer.querySelector(".ms-menu-tool"))
   })
 
   test("should open a \"…\" dropdown upwards for an item in the dropdown zone, last in the row", () => {
