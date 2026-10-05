@@ -1,18 +1,17 @@
-import type { TExport } from "./Export"
+import type { TExportWire } from "./Export"
 
 /**
  * @group Client
  */
-export type TWebSocketSSRClientMessage = {
-  type: string
+export type TWebSocketSSRClientMessage<T extends string = string> = {
+  type: T
   [key: string]: unknown
 }
 
 /**
  * @group Client
  */
-export type TWebSocketSSRClientMessageError = {
-  type: string
+export type TWebSocketSSRClientMessageError = TWebSocketSSRClientMessage<"error"> & {
   code?: number | string
   message?: string
   data?: {
@@ -23,8 +22,17 @@ export type TWebSocketSSRClientMessageError = {
 
 /**
  * @group Client
+ * @remarks Carries `hmacChallenge` when the server expects a signature, see {@link TWebSocketSSRClientMessageHMACChallenge}
  */
-export type TWebSocketSSRClientMessageHMACChallenge = TWebSocketSSRClientMessage & {
+export type TWebSocketSSRClientMessageAck = TWebSocketSSRClientMessage<"ack"> & {
+  hmacChallenge?: string
+  iinkSessionId?: string
+}
+
+/**
+ * @group Client
+ */
+export type TWebSocketSSRClientMessageHMACChallenge = TWebSocketSSRClientMessageAck & {
   hmacChallenge: string
   iinkSessionId: string
 }
@@ -32,14 +40,15 @@ export type TWebSocketSSRClientMessageHMACChallenge = TWebSocketSSRClientMessage
 /**
  * @group Client
  */
-export type TWebSocketSSRClientMessageContentPackageDescriptionMessage = TWebSocketSSRClientMessage & {
-  contentPartCount: number
-}
+export type TWebSocketSSRClientMessageContentPackageDescriptionMessage =
+  TWebSocketSSRClientMessage<"contentPackageDescription"> & {
+    contentPartCount: number
+  }
 
 /**
  * @group Client
  */
-export type TWebSocketSSRClientMessagePartChange = TWebSocketSSRClientMessage & {
+export type TWebSocketSSRClientMessagePartChange = TWebSocketSSRClientMessage<"partChanged"> & {
   partIdx: number
   partId: string
   partCount: number
@@ -48,7 +57,12 @@ export type TWebSocketSSRClientMessagePartChange = TWebSocketSSRClientMessage & 
 /**
  * @group Client
  */
-export type TWebSocketSSRClientMessageContentChange = TWebSocketSSRClientMessage & {
+export type TWebSocketSSRClientMessageNewPart = TWebSocketSSRClientMessage<"newPart">
+
+/**
+ * @group Client
+ */
+export type TWebSocketSSRClientMessageContentChange = TWebSocketSSRClientMessage<"contentChanged"> & {
   partId: string
   canUndo: boolean
   canRedo: boolean
@@ -60,10 +74,20 @@ export type TWebSocketSSRClientMessageContentChange = TWebSocketSSRClientMessage
 /**
  * @group Client
  */
-export type TWebSocketSSRClientMessageExport = TWebSocketSSRClientMessage & {
+export type TWebSocketSSRClientMessageExport = TWebSocketSSRClientMessage<"exported"> & {
   partId: string
-  exports: TExport
+  exports: TExportWire
 }
+
+/**
+ * @group Client
+ */
+export type TWebSocketSSRClientMessageIdle = TWebSocketSSRClientMessage<"idle">
+
+/**
+ * @group Client
+ */
+export type TWebSocketSSRClientMessagePong = TWebSocketSSRClientMessage<"pong">
 
 /**
  * @group Client
@@ -159,7 +183,31 @@ export type TUpdatePatchSetAttribut = TUpdatePatch & {
 /**
  * @group Client
  */
-export type TWebSocketSSRClientMessageSVGPatch = TWebSocketSSRClientMessage & {
+export type TWebSocketSSRClientMessageSVGPatch = TWebSocketSSRClientMessage<"svgPatch"> & {
   updates: TUpdatePatch[]
   layer: "MODEL" | "CAPTURE"
 }
+
+/**
+ * @group Client
+ * @summary Message the server sends, by `type`
+ * @remarks {@link TWebSocketSSRClientMessageReceived} is built from this map: adding an entry adds the message.
+ */
+export type TWebSocketSSRClientMessageReceivedMap = {
+  ack: TWebSocketSSRClientMessageAck
+  contentPackageDescription: TWebSocketSSRClientMessageContentPackageDescriptionMessage
+  partChanged: TWebSocketSSRClientMessagePartChange
+  newPart: TWebSocketSSRClientMessageNewPart
+  contentChanged: TWebSocketSSRClientMessageContentChange
+  exported: TWebSocketSSRClientMessageExport
+  svgPatch: TWebSocketSSRClientMessageSVGPatch
+  error: TWebSocketSSRClientMessageError
+  idle: TWebSocketSSRClientMessageIdle
+  pong: TWebSocketSSRClientMessagePong
+}
+
+/**
+ * @group Client
+ */
+export type TWebSocketSSRClientMessageReceived =
+  TWebSocketSSRClientMessageReceivedMap[keyof TWebSocketSSRClientMessageReceivedMap]

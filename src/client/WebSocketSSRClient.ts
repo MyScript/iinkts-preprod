@@ -1,30 +1,51 @@
-import { DeferredPromise, isVersionSuperiorOrEqual, type TPartialDeep } from "@/core/std"
-import type { THistoryContext } from "@/history"
+import { DeferredPromise, isVersionSuperiorOrEqual, type TPartialDeep, typedKeys } from "@/core/std"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { Model } from "@/model"
 import type { TPenStyle, TTheme } from "@/style"
 import { StyleHelper } from "@/style-css"
 import type { Stroke } from "@/symbol"
 
-import { ClientError, mapCloseCodeToMessage } from "./ClientError"
+import { ClientError, mapCloseCodeToMessage, mapErrorCodeToMessage } from "./ClientError"
 import { ClientEvent } from "./ClientEvent"
-import type { TExport, TJIIXExport } from "./Export"
+import { parseExportedJIIX, type TExport } from "./Export"
 import { resolveHmac } from "./HmacAuth"
-import { getApiInfos } from "./infos"
+import { ensureServerVersion } from "./infos"
 import type { TConverstionState } from "./RecognitionConfiguration"
 import { redactServerSecrets } from "./ServerConfiguration"
 import { toWireStroke } from "./StrokeSerializer"
+import { readHistoryContext } from "./WebSocketClientMessage"
 import type { TWebSocketSSRClientConfiguration } from "./WebSocketSSRClientConfiguration"
 import { WebSocketSSRClientConfiguration } from "./WebSocketSSRClientConfiguration"
 import type {
   TWebSocketSSRClientMessage,
+  TWebSocketSSRClientMessageAck,
   TWebSocketSSRClientMessageContentChange,
   TWebSocketSSRClientMessageError,
   TWebSocketSSRClientMessageExport,
-  TWebSocketSSRClientMessageHMACChallenge,
   TWebSocketSSRClientMessagePartChange,
+  TWebSocketSSRClientMessageReceived,
+  TWebSocketSSRClientMessageReceivedMap,
   TWebSocketSSRClientMessageSVGPatch,
 } from "./WebSocketSSRClientMessage"
+
+// A record, not a list: a type missing from the received map stops compiling here
+const RECEIVED_MESSAGE_TYPE_RECORD: Record<keyof TWebSocketSSRClientMessageReceivedMap, true> = {
+  ack: true,
+  contentPackageDescription: true,
+  partChanged: true,
+  newPart: true,
+  contentChanged: true,
+  exported: true,
+  svgPatch: true,
+  error: true,
+  idle: true,
+  pong: true,
+}
+const RECEIVED_MESSAGE_TYPES: ReadonlySet<unknown> = new Set(typedKeys(RECEIVED_MESSAGE_TYPE_RECORD))
+
+// Checks the discriminant only: the payload is trusted to match its type, as the server's contract
+const isWebSocketSSRClientMessageReceived = (value: unknown): value is TWebSocketSSRClientMessageReceived =>
+  typeof value === "object" && value !== null && "type" in value && RECEIVED_MESSAGE_TYPES.has(value.type)
 
 /**
  * A websocket dialog have this sequence :
@@ -54,7 +75,7 @@ import type {
  * @group Client
  */
 export class WebSocketSSRClient {
-  #logger = LoggerManager.getLogger(LoggerCategory.CLIENT)
+  protected logger = LoggerManager.getLogger(LoggerCategory.CLIENT)
 
   protected socket!: WebSocket
   protected pingCount = 0
@@ -92,10 +113,10 @@ export class WebSocketSSRClient {
   event: ClientEvent
 
   constructor(config?: TPartialDeep<TWebSocketSSRClientConfiguration>) {
-    this.#logger.info("constructor", { config: redactServerSecrets(config) })
+    this.logger.info("constructor", { config: redactServerSecrets(config) })
     this.configuration = new WebSocketSSRClientConfiguration(config)
     const scheme = this.configuration.server.scheme === "https" ? "wss" : "ws"
-    this.url = `${scheme}://${this.configuration.server.host}/api/v4.0/iink/document?applicationKey=${this.configuration.server.applicationKey}`
+    this.url = `${scheme}://${this.configuration.server.host}/api/v4.0/iink/document?applicationKey=${encodeURIComponent(this.configuration.server.applicationKey)}`
     this.event = new ClientEvent()
     this.initialized = new DeferredPromise<void>()
     this.boundOpenCallback = this.openCallback.bind(this)
@@ -118,9 +139,9 @@ export class WebSocketSSRClient {
     this.pingCount++
     if (this.configuration.server.websocket.maxPingLostCount < this.pingCount) {
       this.socket.close(1000, "MAXIMUM_PING_REACHED")
-    } else if (this.socket.readyState <= 1) {
+    } else if (this.socket.readyState < this.socket.CLOSING) {
       setTimeout(() => {
-        if (this.socket.readyState <= 1) {
+        if (this.socket.readyState < this.socket.CLOSING) {
           this.socket.send(JSON.stringify({ type: "ping" }))
           this.infinitePing()
         }
@@ -185,12 +206,31 @@ export class WebSocketSSRClient {
     }
   }
 
+  /**
+   * Settles the requests still waiting for an answer with an empty result, as on a deliberate
+   * close in {@link WebSocketClient}: the operation is moot, not failed, so callers that never
+   * awaited it get no unhandled rejection.
+   */
+  protected resolvePendingRequests(): void {
+    const empty: TExport = {}
+    this.addStrokeDeferred?.resolve(empty)
+    this.exportDeferred?.resolve(empty)
+    this.importPointEventsDeferred?.resolve(empty)
+    this.convertDeferred?.resolve(empty)
+    this.importDeferred?.resolve(empty)
+    this.resizeDeferred?.resolve()
+    this.waitForIdleDeferred?.resolve()
+    this.undoDeferred?.resolve(empty)
+    this.redoDeferred?.resolve(empty)
+    this.clearDeferred?.resolve(empty)
+  }
+
   protected closeCallback(evt: CloseEvent): void {
     let message = ""
     if (!this.currentErrorCode) {
       const mapped = mapCloseCodeToMessage(evt.code)
       if (mapped === null) {
-        this.#logger.warn("closeCallback", "unknown CloseEvent.code", { evt })
+        this.logger.warn("closeCallback", "unknown CloseEvent.code", { evt })
         message = ClientError.CANT_ESTABLISH
       } else {
         message = mapped
@@ -204,12 +244,11 @@ export class WebSocketSSRClient {
     }
   }
 
-  protected async manageAckMessage(websocketMessage: TWebSocketSSRClientMessage): Promise<void> {
-    this.#logger.info("manageAckMessage", {
-      websocketMessage,
+  protected async manageAckMessage(ackMessage: TWebSocketSSRClientMessageAck): Promise<void> {
+    this.logger.info("manageAckMessage", {
+      ackMessage,
     })
-    const hmacChallengeMessage = websocketMessage as TWebSocketSSRClientMessageHMACChallenge
-    if (hmacChallengeMessage.hmacChallenge) {
+    if (ackMessage.hmacChallenge) {
       if (
         typeof this.configuration.server.hmacKey !== "function" &&
         typeof this.configuration.server.hmacKey !== "string"
@@ -218,11 +257,11 @@ export class WebSocketSSRClient {
       }
       this.send({
         type: "hmac",
-        hmac: await resolveHmac(this.configuration.server, hmacChallengeMessage.hmacChallenge),
+        hmac: await resolveHmac(this.configuration.server, ackMessage.hmacChallenge),
       })
     }
-    if (hmacChallengeMessage.iinkSessionId) {
-      this.sessionId = hmacChallengeMessage.iinkSessionId
+    if (ackMessage.iinkSessionId) {
+      this.sessionId = ackMessage.iinkSessionId
     }
     if (!isVersionSuperiorOrEqual(this.configuration.server.version!, "2.3.0")) {
       delete this.configuration.recognition.convert
@@ -237,10 +276,17 @@ export class WebSocketSSRClient {
     this.ackDeferred?.resolve()
   }
 
+  /** A handshake step failed: `init()` waits on `initialized`, so it must hear of it, not only the `error` listeners */
+  protected failInitialization(error: unknown): void {
+    const reason = error instanceof Error ? error : new Error(String(error))
+    this.initialized.reject(reason)
+    this.event.emitError(reason)
+  }
+
   protected async manageContentPackageDescriptionMessage(): Promise<void> {
     this.reconnectionCount = 0
     await this.ackDeferred?.promise
-    this.#logger.info("manageContentPackageDescriptionMessage")
+    this.logger.info("manageContentPackageDescriptionMessage")
     if (this.currentPartId) {
       this.send({
         type: "openContentPart",
@@ -256,35 +302,29 @@ export class WebSocketSSRClient {
     }
   }
 
-  protected managePartChangeMessage(websocketMessage: TWebSocketSSRClientMessage): void {
-    this.#logger.info("managePartChangeMessage", {
-      websocketMessage,
+  protected managePartChangeMessage(partChangeMessage: TWebSocketSSRClientMessagePartChange): void {
+    this.logger.info("managePartChangeMessage", {
+      partChangeMessage,
     })
-    const partChangeMessage = websocketMessage as TWebSocketSSRClientMessagePartChange
     this.currentPartId = partChangeMessage.partId
     this.initialized.resolve()
   }
 
-  protected manageExportMessage(websocketMessage: TWebSocketSSRClientMessage): void {
-    this.#logger.info("manageExportMessage", {
-      websocketMessage,
+  protected manageExportMessage(exportMessage: TWebSocketSSRClientMessageExport): void {
+    this.logger.info("manageExportMessage", {
+      exportMessage,
     })
-    const exportMessage = websocketMessage as TWebSocketSSRClientMessageExport
-    if (exportMessage.exports["application/vnd.myscript.jiix"]) {
-      exportMessage.exports["application/vnd.myscript.jiix"] = JSON.parse(
-        exportMessage.exports["application/vnd.myscript.jiix"].toString()
-      ) as TJIIXExport
-    }
+    const exports = parseExportedJIIX(exportMessage.exports)
     this.initialized.resolve()
-    this.addStrokeDeferred?.resolve(exportMessage.exports)
-    this.exportDeferred?.resolve(exportMessage.exports)
-    this.convertDeferred?.resolve(exportMessage.exports)
-    this.importDeferred?.resolve(exportMessage.exports)
-    this.undoDeferred?.resolve(exportMessage.exports)
-    this.redoDeferred?.resolve(exportMessage.exports)
-    this.clearDeferred?.resolve(exportMessage.exports)
-    this.importPointEventsDeferred?.resolve(exportMessage.exports)
-    this.event.emitExported(exportMessage.exports)
+    this.addStrokeDeferred?.resolve(exports)
+    this.exportDeferred?.resolve(exports)
+    this.convertDeferred?.resolve(exports)
+    this.importDeferred?.resolve(exports)
+    this.undoDeferred?.resolve(exports)
+    this.redoDeferred?.resolve(exports)
+    this.clearDeferred?.resolve(exports)
+    this.importPointEventsDeferred?.resolve(exports)
+    this.event.emitExported(exports)
   }
 
   protected async manageWaitForIdle(): Promise<void> {
@@ -292,62 +332,52 @@ export class WebSocketSSRClient {
     this.waitForIdleDeferred?.resolve()
   }
 
-  protected manageErrorMessage(websocketMessage: TWebSocketSSRClientMessage): void {
-    const err = websocketMessage as TWebSocketSSRClientMessageError
+  protected manageErrorMessage(err: TWebSocketSSRClientMessageError): void {
     this.currentErrorCode = err.data?.code || err.code
-    let message = err.data?.message || err.message || ClientError.UNKNOWN
-
-    switch (this.currentErrorCode) {
-      case "no.activity":
-        message = ClientError.NO_ACTIVITY
-        break
-      case "access.not.granted":
-        message = ClientError.WRONG_CREDENTIALS
-        break
-      case "session.too.old":
-        message = ClientError.TOO_OLD
-        break
-    }
+    const message =
+      mapErrorCodeToMessage(this.currentErrorCode) ?? (err.data?.message || err.message || ClientError.UNKNOWN)
     const error = new Error(message)
     this.rejectDeferredPending(error)
     this.event.emitError(error)
   }
 
-  protected manageContentChangeMessage(websocketMessage: TWebSocketSSRClientMessage): void {
-    this.#logger.info("manageContentChangeMessage", { websocketMessage })
-    const contentChangeMessage = websocketMessage as TWebSocketSSRClientMessageContentChange
-    const context: THistoryContext = {
-      canRedo: contentChangeMessage.canRedo,
-      canUndo: contentChangeMessage.canUndo,
-      empty: contentChangeMessage.empty,
-      stackIndex: contentChangeMessage.undoStackIndex,
-      possibleUndoCount: contentChangeMessage.possibleUndoCount,
-    }
-    this.event.emitContentChanged(context)
+  protected manageContentChangeMessage(contentChangeMessage: TWebSocketSSRClientMessageContentChange): void {
+    this.logger.info("manageContentChangeMessage", { contentChangeMessage })
+    this.event.emitContentChanged(readHistoryContext(contentChangeMessage))
   }
 
-  protected manageSVGPatchMessage(websocketMessage: TWebSocketSSRClientMessage): void {
-    this.#logger.info("manageSVGPatchMessage", {
-      websocketMessage,
+  protected manageSVGPatchMessage(svgPatchMessage: TWebSocketSSRClientMessageSVGPatch): void {
+    this.logger.info("manageSVGPatchMessage", {
+      svgPatchMessage,
     })
     this.resizeDeferred?.resolve()
-    const svgPatchMessage = websocketMessage as TWebSocketSSRClientMessageSVGPatch
     this.event.emitSVGPatch(svgPatchMessage)
   }
 
   protected messageCallback(message: MessageEvent<string>): void {
-    this.#logger.debug("messageCallback", {
+    this.logger.debug("messageCallback", {
       message,
     })
     this.currentErrorCode = undefined
-    const websocketMessage: TWebSocketSSRClientMessage = JSON.parse(message.data)
+    let websocketMessage: unknown
+    try {
+      websocketMessage = JSON.parse(message.data)
+    } catch {
+      // The payload is not JSON at all: the payload itself is the useful diagnostic.
+      this.event.emitError(new Error(message.data))
+      return
+    }
+    if (!isWebSocketSSRClientMessageReceived(websocketMessage)) {
+      this.logger.warn("messageCallback", `Message type unknown: "${message.data}".`)
+      return
+    }
     if (websocketMessage.type === "pong") {
       this.pingCount = 0
       return
     }
     switch (websocketMessage.type) {
       case "ack":
-        this.manageAckMessage(websocketMessage).catch((err) => this.event.emitError(err))
+        this.manageAckMessage(websocketMessage).catch((err) => this.failInitialization(err))
         break
       case "contentPackageDescription":
         this.manageContentPackageDescriptionMessage()
@@ -373,19 +403,23 @@ export class WebSocketSSRClient {
       case "idle":
         this.manageWaitForIdle()
         break
-      default:
-        this.#logger.warn("messageCallback", `Message type unknown: "${websocketMessage.type}".`)
+      default: {
+        // Unreachable once the guard passed; a received type without a case stops compiling here
+        const unhandled: never = websocketMessage
+        this.logger.warn("messageCallback", `Message type unhandled: "${JSON.stringify(unhandled)}".`)
+      }
     }
   }
 
   async init(height: number, width: number): Promise<void> {
     try {
       this.event.emitStartInitialization()
-      this.#logger.info("init", { height, width })
-      this.destroy()
+      this.logger.info("init", { height, width })
+      this.resetConnection()
 
+      // Awaited only when unknown: a known version keeps the socket opening in the same tick as init()
       if (!this.configuration.server.version) {
-        this.configuration.server.version = (await getApiInfos(this.configuration)).version
+        await ensureServerVersion(this.configuration)
       }
       this.connected = new DeferredPromise<void>()
       this.initialized = new DeferredPromise<void>()
@@ -406,41 +440,55 @@ export class WebSocketSSRClient {
       await this.initialized.promise
       this.event.emitEndInitialization()
     } catch (err: unknown) {
-      this.rejectDeferredPending(err as Error)
+      this.rejectDeferredPending(err instanceof Error ? err : new Error(String(err)))
       return this.initialized.promise
     }
   }
 
   async send(message: TWebSocketSSRClientMessage): Promise<void> {
     if (!this.socket) {
-      return Promise.reject(new Error("Client must be initilized"))
+      return Promise.reject(new Error("Client must be initialized"))
     }
     await this.connected?.promise
     if (this.socket.readyState === this.socket.OPEN) {
-      this.#logger.debug("send", { message })
+      this.logger.debug("send", { message })
       this.socket.send(JSON.stringify(message))
       return Promise.resolve()
+    }
+    if (this.socket.readyState === this.socket.CONNECTING) {
+      return Promise.reject(new Error(`Can not send message: ${message.type}, connection not ready`))
+    }
+    if (!this.configuration.server.websocket.autoReconnect) {
+      return Promise.reject(new Error("Unable to send message. Connection closed and automatic reconnection disabled"))
+    }
+    this.reconnectionCount++
+    if (this.configuration.server.websocket.maxRetryCount >= this.reconnectionCount) {
+      this.logger.debug("send", `try to reconnect number: ${this.reconnectionCount}.`)
+      await this.init(this.viewSizeHeight, this.viewSizeWidth)
+      await this.restoreStyles()
+      return this.send(message)
     } else {
-      if (this.socket.readyState != this.socket.CONNECTING && this.configuration.server.websocket.autoReconnect) {
-        this.reconnectionCount++
-        if (this.configuration.server.websocket.maxRetryCount >= this.reconnectionCount) {
-          this.#logger.debug("send", `try to reconnect number: ${this.reconnectionCount}.`)
-          await this.init(this.viewSizeHeight, this.viewSizeWidth)
-          await this.setPenStyle(this.penStyle as TPenStyle)
-          await this.setPenStyleClasses(this.penStyleClasses as string)
-          await this.setTheme(this.theme as TTheme)
-          return this.send(message)
-        } else {
-          return Promise.reject(
-            new Error("Unable to send message. The maximum number of connection attempts has been reached.")
-          )
-        }
-      }
+      return Promise.reject(
+        new Error("Unable to send message. The maximum number of connection attempts has been reached.")
+      )
+    }
+  }
+
+  /** Sends again, on a new session, the styles set on the previous one; one never set stays unset */
+  protected async restoreStyles(): Promise<void> {
+    if (this.penStyle) {
+      await this.setPenStyle(this.penStyle)
+    }
+    if (this.penStyleClasses !== undefined) {
+      await this.setPenStyleClasses(this.penStyleClasses)
+    }
+    if (this.theme) {
+      await this.setTheme(this.theme)
     }
   }
 
   async addStrokes(strokes: Stroke[]): Promise<TExport> {
-    this.#logger.info("addStrokes", { strokes })
+    this.logger.info("addStrokes", { strokes })
     await this.initialized.promise
     this.addStrokeDeferred = new DeferredPromise<TExport>()
     if (strokes.length === 0) {
@@ -455,7 +503,7 @@ export class WebSocketSSRClient {
   }
 
   async setPenStyle(penStyle: TPenStyle): Promise<void> {
-    this.#logger.info("setPenStyle", { penStyle })
+    this.logger.info("setPenStyle", { penStyle })
     await this.initialized.promise
     this.penStyle = penStyle
     const message: TWebSocketSSRClientMessage = {
@@ -468,7 +516,7 @@ export class WebSocketSSRClient {
   async setPenStyleClasses(penStyleClasses: string): Promise<void> {
     await this.initialized.promise
     this.penStyleClasses = penStyleClasses
-    this.#logger.info("setPenStyleClasses", {
+    this.logger.info("setPenStyleClasses", {
       penStyleClasses,
     })
     const message: TWebSocketSSRClientMessage = {
@@ -479,7 +527,7 @@ export class WebSocketSSRClient {
   }
 
   async setTheme(theme: TTheme): Promise<void> {
-    this.#logger.info("setTheme", { theme })
+    this.logger.info("setTheme", { theme })
     await this.initialized.promise
     this.theme = theme
     const message: TWebSocketSSRClientMessage = {
@@ -490,7 +538,7 @@ export class WebSocketSSRClient {
   }
 
   async export(model: Model, requestedMimeTypes?: string[]): Promise<Model> {
-    this.#logger.info("export", {
+    this.logger.info("export", {
       model,
       requestedMimeTypes,
     })
@@ -530,14 +578,14 @@ export class WebSocketSSRClient {
     const exports: TExport = await this.exportDeferred?.promise
     localModel.updatePositionReceived()
     localModel.mergeExport(exports)
-    this.#logger.debug("export", {
+    this.logger.debug("export", {
       model: localModel,
     })
     return localModel
   }
 
   async import(model: Model, data: Blob, mimeType?: string): Promise<Model> {
-    this.#logger.info("import", {
+    this.logger.info("import", {
       data,
       mimeType,
     })
@@ -579,7 +627,7 @@ export class WebSocketSSRClient {
   }
 
   async resize(model: Model): Promise<Model> {
-    this.#logger.info("resize", { model })
+    this.logger.info("resize", { model })
     await this.initialized.promise
     if (isNaN(model.height) || isNaN(model.width)) {
       return model
@@ -599,7 +647,7 @@ export class WebSocketSSRClient {
   }
 
   async importPointEvents(strokes: Stroke[]): Promise<TExport> {
-    this.#logger.info("importPointsEvents", {
+    this.logger.info("importPointsEvents", {
       strokes,
     })
     await this.initialized.promise
@@ -613,7 +661,7 @@ export class WebSocketSSRClient {
   }
 
   async convert(model: Model, conversionState?: TConverstionState): Promise<Model> {
-    this.#logger.info("convert", {
+    this.logger.info("convert", {
       model,
       conversionState,
     })
@@ -628,7 +676,7 @@ export class WebSocketSSRClient {
     const myExportConverted: TExport = await this.convertDeferred?.promise
     localModel.updatePositionReceived()
     localModel.mergeConvert(myExportConverted)
-    this.#logger.debug("convert", {
+    this.logger.debug("convert", {
       model: localModel,
     })
     return localModel
@@ -645,7 +693,7 @@ export class WebSocketSSRClient {
   }
 
   async undo(model: Model): Promise<Model> {
-    this.#logger.info("undo", { model })
+    this.logger.info("undo", { model })
     await this.initialized.promise
     const localModel = model.clone()
     this.undoDeferred = new DeferredPromise<TExport>()
@@ -656,7 +704,7 @@ export class WebSocketSSRClient {
     const undoExports = await this.undoDeferred?.promise
     localModel.updatePositionReceived()
     localModel.mergeExport(undoExports)
-    this.#logger.debug("undo", {
+    this.logger.debug("undo", {
       model: localModel,
     })
     this.undoDeferred = undefined
@@ -664,7 +712,7 @@ export class WebSocketSSRClient {
   }
 
   async redo(model: Model): Promise<Model> {
-    this.#logger.info("redo", { model })
+    this.logger.info("redo", { model })
     await this.initialized.promise
     const localModel = model.clone()
     this.redoDeferred = new DeferredPromise<TExport>()
@@ -675,7 +723,7 @@ export class WebSocketSSRClient {
     const redoExports = await this.redoDeferred?.promise
     localModel.updatePositionReceived()
     localModel.mergeExport(redoExports)
-    this.#logger.debug("redo", {
+    this.logger.debug("redo", {
       model: redoExports,
     })
     this.redoDeferred = undefined
@@ -683,7 +731,7 @@ export class WebSocketSSRClient {
   }
 
   async clear(model: Model): Promise<Model> {
-    this.#logger.info("clear", { model })
+    this.logger.info("clear", { model })
     await this.initialized.promise
     const localModel = model.clone()
     localModel.modificationDate = Date.now()
@@ -696,7 +744,7 @@ export class WebSocketSSRClient {
     localModel.updatePositionReceived()
     localModel.mergeExport(clearExports)
     this.clearDeferred = undefined
-    this.#logger.info("clear", {
+    this.logger.info("clear", {
       model: localModel,
     })
     return localModel
@@ -704,7 +752,7 @@ export class WebSocketSSRClient {
 
   close(code: number, reason: string): void {
     if (this.socket.readyState === this.socket.OPEN || this.socket.readyState === this.socket.CONNECTING) {
-      this.#logger.info("close", { code, reason })
+      this.logger.info("close", { code, reason })
       this.socket.removeEventListener("close", this.boundCloseCallback)
       this.socket.removeEventListener("message", this.boundMessageCallback)
       this.socket.removeEventListener("open", this.boundOpenCallback)
@@ -713,7 +761,14 @@ export class WebSocketSSRClient {
   }
 
   destroy(): void {
-    this.#logger.info("destroy")
+    this.logger.info("destroy")
+    // Dropped unsettled, their callers would wait forever
+    this.resolvePendingRequests()
+    this.resetConnection()
+  }
+
+  /** Drops the socket and every pending promise without settling them: `init()` starts over from here */
+  protected resetConnection(): void {
     this.connected = undefined
     this.ackDeferred = undefined
     this.addStrokeDeferred = undefined
