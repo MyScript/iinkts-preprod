@@ -153,3 +153,11 @@
 .ms-ink .ms-menu-context {
   position: absolute;
 }
+
+/* Quick actions above the context menu list: the "bar" zone */
+.ms-ink .ms-menu-context-bar {
+  justify-content: flex-start;
+  padding-bottom: 4px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--ms-ink-input-border);
+}

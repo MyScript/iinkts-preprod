@@ -1,7 +1,7 @@
 import { LeftClickEventMock } from "../__mocks__/EventMock"
 import { createCanvasMock, asCanvas } from "../__mocks__/createCanvasMock"
-import { buildIICircle, buildIIStroke } from "../helpers"
-import { CanvasTool, IIMenuStyle, CanvasWriteTool } from "@/iink"
+import { buildIICircle, buildIIStroke, StubMenuItem } from "../helpers"
+import { CanvasTool, IIMenuStyle, CanvasWriteTool, TMenuItemOptions } from "@/iink"
 
 describe("IIMenuStyle.ts", () => {
   test("should create", () => {
@@ -335,5 +335,36 @@ describe("IIMenuStyle.ts", () => {
       expect(layer.childElementCount).toEqual(0)
       expect(menu.wrapper).toBeUndefined()
     })
+  })
+})
+
+describe("IIMenuStyle zones", () => {
+  class ExtendedMenuStyle extends IIMenuStyle {
+    extra: { key: string; options?: TMenuItemOptions }[] = []
+    render(layer: HTMLElement): void {
+      super.render(layer)
+      this.extra.forEach(({ key, options }) => this.addItem(key, new StubMenuItem(key, this.canvas), options))
+    }
+  }
+
+  function render(extra: { key: string; options?: TMenuItemOptions }[]) {
+    const layer = document.createElement("div")
+    const menu = new ExtendedMenuStyle(asCanvas(createCanvasMock()))
+    menu.extra = extra
+    menu.render(layer)
+    return { menu, layer }
+  }
+
+  test("should have no bar while nothing goes to it", () => {
+    const { menu } = render([{ key: "extra-dropdown" }])
+    expect(menu.wrapper?.querySelector(":scope > .ms-menu-row")).toBeNull()
+    expect(menu.subMenuContent?.querySelector("#extra-dropdown")).not.toBeNull()
+  })
+
+  test("should put a bar item in a row first in the menu", () => {
+    const { menu } = render([{ key: "extra-bar", options: { zone: "bar" } }])
+    const bar = menu.wrapper?.firstElementChild
+    expect(bar?.classList.contains("ms-menu-row")).toBe(true)
+    expect(bar?.querySelector("#extra-bar")).not.toBeNull()
   })
 })

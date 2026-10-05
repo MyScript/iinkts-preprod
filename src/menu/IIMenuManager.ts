@@ -3,6 +3,7 @@ import { mergeDeep } from "@/core/std"
 import { DOMFactory } from "@/dom"
 import { LoggerCategory, LoggerManager } from "@/logger"
 
+import type { IIAbstractMenu, TMenuItemFactory, TMenuItemOptions, TRegisteredMenuItem } from "./IIAbstractMenu"
 import type { TMenuActionConfig } from "./IIMenuAction"
 import { IIMenuAction } from "./IIMenuAction"
 import type { TMenuContextConfig } from "./IIMenuContext"
@@ -30,74 +31,121 @@ export type TMenuConfigUpdate = {
 }
 
 /**
+ * @group Menu
+ * @summary Menu classes `options.override.menu` can replace
+ * @remarks Each one is constructed like the built-in menu it replaces: `(canvas, id, config)`, at load and on every {@link IIMenuManager.setConfig}.
+ */
+export type TMenuOverride = {
+  style?: typeof IIMenuStyle
+  tool?: typeof IIMenuTool
+  action?: typeof IIMenuAction
+  context?: typeof IIMenuContext
+}
+
+/**
+ * @group Menu
+ */
+export type TMenuName = "action" | "tool" | "style" | "context"
+
+const MENU_NAMES: readonly TMenuName[] = ["action", "style", "tool", "context"]
+
+/**
  * @group Manager
  */
 export class IIMenuManager {
   #logger = LoggerManager.getLogger(LoggerCategory.MENU)
   canvas: TInteractiveInkCanvas
   layer?: HTMLElement
-  action: IIMenuAction
-  tool: IIMenuTool
-  context: IIMenuContext
-  style: IIMenuStyle
+  // Assigned by createMenu(), from the constructor
+  action!: IIMenuAction
+  tool!: IIMenuTool
+  context!: IIMenuContext
+  style!: IIMenuStyle
 
-  constructor(
-    canvas: TInteractiveInkCanvas,
-    custom?: {
-      style?: IIMenuStyle
-      tool?: IIMenuTool
-      action?: IIMenuAction
-      context?: IIMenuContext
-    }
-  ) {
+  /** The classes the menus are built from: the overrides, else the built-in ones */
+  protected menuClasses: Required<TMenuOverride>
+  /** Items added through {@link addItem}, by menu: kept here as the menus are rebuilt on every {@link setConfig} */
+  protected registry: Record<TMenuName, Map<string, TRegisteredMenuItem>> = {
+    action: new Map(),
+    tool: new Map(),
+    style: new Map(),
+    context: new Map(),
+  }
+
+  constructor(canvas: TInteractiveInkCanvas, custom?: TMenuOverride) {
     this.#logger.info("constructor")
     this.canvas = canvas
+    this.menuClasses = {
+      style: custom?.style ?? IIMenuStyle,
+      tool: custom?.tool ?? IIMenuTool,
+      action: custom?.action ?? IIMenuAction,
+      context: custom?.context ?? IIMenuContext,
+    }
+    MENU_NAMES.forEach((name) => this.createMenu(name))
+  }
 
-    if (custom?.style) {
-      const CustomMenuStyle = custom.style as unknown as typeof IIMenuStyle
-      this.style = new CustomMenuStyle(this.canvas)
-    } else {
-      this.style = new IIMenuStyle(this.canvas, "ms-menu-style", this.canvas.configuration.menu.style)
+  getMenu(name: TMenuName): IIAbstractMenu<unknown> {
+    return this[name]
+  }
+
+  /** Builds one menu from {@link menuClasses} and the current configuration; renders nothing */
+  protected createMenu(name: TMenuName): void {
+    const { menu } = this.canvas.configuration
+    switch (name) {
+      case "style":
+        this.style = new this.menuClasses.style(this.canvas, "ms-menu-style", menu.style)
+        break
+      case "tool":
+        this.tool = new this.menuClasses.tool(this.canvas, "ms-menu-tool", menu.tool)
+        break
+      case "action":
+        this.action = new this.menuClasses.action(this.canvas, "ms-menu-action", menu.action)
+        break
+      case "context":
+        this.context = new this.menuClasses.context(this.canvas, "ms-menu-context", menu.context)
+        break
     }
-    if (custom?.tool) {
-      const CustomMenuTool = custom.tool as unknown as typeof IIMenuTool
-      this.tool = new CustomMenuTool(this.canvas)
-    } else {
-      this.tool = new IIMenuTool(this.canvas, "ms-menu-tool", this.canvas.configuration.menu.tool)
+  }
+
+  /** Renders one menu, then the items registered for it, when the menus and that menu are enabled */
+  protected renderMenu(name: TMenuName): void {
+    const { menu } = this.canvas.configuration
+    if (!this.layer || !menu.enable || !menu[name].enable) {
+      return
     }
-    if (custom?.action) {
-      const CustomMenuAction = custom.action as unknown as typeof IIMenuAction
-      this.action = new CustomMenuAction(this.canvas)
-    } else {
-      this.action = new IIMenuAction(this.canvas, "ms-menu-action", this.canvas.configuration.menu.action)
+    const instance = this.getMenu(name)
+    instance.render(this.layer)
+    instance.renderRegisteredItems(this.registry[name])
+  }
+
+  /** Destroys and rebuilds one menu; the context menu keeps its position and whether it was open */
+  protected rebuildMenu(name: TMenuName): void {
+    const contextState = { position: { ...this.context.position }, visible: this.isContextVisible() }
+    this.getMenu(name).destroy()
+    this.createMenu(name)
+    this.renderMenu(name)
+    if (name === "context") {
+      this.restoreContext(contextState)
     }
-    if (custom?.context) {
-      const CustomMenuAction = custom.context as unknown as typeof IIMenuContext
-      this.context = new CustomMenuAction(this.canvas)
-    } else {
-      this.context = new IIMenuContext(this.canvas, "ms-menu-context", this.canvas.configuration.menu.context)
+  }
+
+  protected isContextVisible(): boolean {
+    return !!this.context.wrapper && this.context.wrapper.style.display !== "none"
+  }
+
+  protected restoreContext({ position, visible }: { position: { x: number; y: number }; visible: boolean }): void {
+    this.context.position = position
+    if (visible) {
+      this.context.show()
     }
   }
 
   render(layer: HTMLElement): void {
     if (this.canvas.configuration.menu.enable) {
       this.layer = layer
-
       const styleElement = DOMFactory.style(style as string, { "ms-menu-style": "" })
       this.layer.prepend(styleElement)
-
-      if (this.canvas.configuration.menu.action.enable) {
-        this.action.render(this.layer)
-      }
-      if (this.canvas.configuration.menu.style.enable) {
-        this.style.render(this.layer)
-      }
-      if (this.canvas.configuration.menu.tool.enable) {
-        this.tool.render(this.layer)
-      }
-      if (this.canvas.configuration.menu.context.enable) {
-        this.context.render(this.layer)
-      }
+      MENU_NAMES.forEach((name) => this.renderMenu(name))
     }
   }
 
@@ -112,44 +160,45 @@ export class IIMenuManager {
    */
   setConfig(config: TMenuConfigUpdate): void {
     mergeDeep(this.canvas.configuration.menu, config)
-
     if (!this.layer) {
       return
     }
+    const contextState = { position: { ...this.context.position }, visible: this.isContextVisible() }
+    MENU_NAMES.forEach((name) => this.getMenu(name).destroy())
+    MENU_NAMES.forEach((name) => this.createMenu(name))
+    MENU_NAMES.forEach((name) => this.renderMenu(name))
+    this.restoreContext(contextState)
+  }
 
-    const contextPosition = {
-      ...this.context.position,
+  /**
+   * Adds an item to a menu, built by `factory` on every render of that menu, which happens at once if it is shown.
+   * It is kept across {@link setConfig}. The item goes after the menu's own items, in `options.zone` (each menu has
+   * a default one), or next to `options.before`/`options.after`.
+   * @throws when `key` is already registered for that menu
+   * @example
+   * canvas.menu.addItem("action", "download-png", () => {
+   *   const button = document.createElement("button")
+   *   button.textContent = "PNG"
+   *   button.addEventListener("pointerdown", () => canvas.download("png"))
+   *   return button
+   * }, { zone: "bar" })
+   */
+  addItem(menu: TMenuName, key: string, factory: TMenuItemFactory, options?: TMenuItemOptions): void {
+    const registered = this.registry[menu]
+    if (registered.has(key)) {
+      throw new Error(`"${key}" is already registered in the ${menu} menu`)
     }
-    const contextVisible = this.context.wrapper?.style.display !== "none"
+    registered.set(key, { factory, options })
+    this.rebuildMenu(menu)
+  }
 
-    this.action.destroy()
-    this.tool.destroy()
-    this.style.destroy()
-    this.context.destroy()
-
-    this.action = new IIMenuAction(this.canvas, "ms-menu-action", this.canvas.configuration.menu.action)
-    this.tool = new IIMenuTool(this.canvas, "ms-menu-tool", this.canvas.configuration.menu.tool)
-    this.style = new IIMenuStyle(this.canvas, "ms-menu-style", this.canvas.configuration.menu.style)
-    this.context = new IIMenuContext(this.canvas, "ms-menu-context", this.canvas.configuration.menu.context)
-
-    if (this.canvas.configuration.menu.enable) {
-      if (this.canvas.configuration.menu.action.enable) {
-        this.action.render(this.layer)
-      }
-      if (this.canvas.configuration.menu.style.enable) {
-        this.style.render(this.layer)
-      }
-      if (this.canvas.configuration.menu.tool.enable) {
-        this.tool.render(this.layer)
-      }
-      if (this.canvas.configuration.menu.context.enable) {
-        this.context.render(this.layer)
-        this.context.position = contextPosition
-        if (contextVisible) {
-          this.context.show()
-        }
-      }
+  /** Removes an item added by {@link addItem}; false when there was none under that key */
+  removeItem(menu: TMenuName, key: string): boolean {
+    const removed = this.registry[menu].delete(key)
+    if (removed) {
+      this.rebuildMenu(menu)
     }
+    return removed
   }
 
   update(): void {
@@ -171,9 +220,6 @@ export class IIMenuManager {
   }
 
   destroy(): void {
-    this.action.destroy()
-    this.tool.destroy()
-    this.style.destroy()
-    this.context.destroy()
+    MENU_NAMES.forEach((name) => this.getMenu(name).destroy())
   }
 }
