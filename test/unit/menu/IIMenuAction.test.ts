@@ -1,6 +1,7 @@
 import { createCanvasMock, asCanvas } from "../__mocks__/createCanvasMock"
 import { ChangeEventMock, LeftClickEventMock } from "../__mocks__/EventMock"
-import { CanvasTool, IIMenuAction, StrikeThroughAction, SurroundAction } from "@/iink"
+import { CanvasTool, IIMenuAction, StrikeThroughAction, SurroundAction, TMenuActionConfig, TMenuItemOptions } from "@/iink"
+import { StubMenuItem } from "../helpers"
 
 describe("IIMenuAction.ts", () => {
   global.fetch = jest.fn(() =>
@@ -267,5 +268,59 @@ describe("IIMenuAction.ts", () => {
       expect(canvas.layers.ui.root.contains(menu.wrapper!)).toEqual(false)
       expect(menu.wrapper).toBeUndefined()
     })
+  })
+})
+
+describe("IIMenuAction zones", () => {
+  const noDropdownItem: TMenuActionConfig = {
+    theme: false,
+    gesture: false,
+    guide: false,
+    pen: false,
+    snap: false,
+    diagram: false,
+    math: false,
+    overlay: false,
+    selection: false,
+    import: false,
+    export: false,
+  }
+
+  class ExtendedMenuAction extends IIMenuAction {
+    extra: { key: string; options?: TMenuItemOptions }[] = []
+    render(layer: HTMLElement): void {
+      super.render(layer)
+      this.extra.forEach(({ key, options }) => this.addItem(key, new StubMenuItem(key, this.canvas), options))
+    }
+  }
+
+  function render(config?: TMenuActionConfig, extra: { key: string; options?: TMenuItemOptions }[] = []) {
+    const canvas = createCanvasMock()
+    const menu = new ExtendedMenuAction(asCanvas(canvas), "ms-menu-action", config)
+    menu.extra = extra
+    menu.render(canvas.layers.ui.root)
+    return { menu, root: canvas.layers.ui.root }
+  }
+
+  test("should have no dropdown when no item goes to it", () => {
+    const { root } = render(noDropdownItem)
+    // The dropdown trigger carries the menu id
+    expect(root.querySelector("#ms-menu-action")).toBeNull()
+  })
+
+  test("should keep the dropdown first in the bar", () => {
+    const { menu } = render()
+    expect(menu.wrapper?.firstElementChild?.classList.contains("sub-menu")).toBe(true)
+  })
+
+  test("should build the dropdown for an added item, first in the bar", () => {
+    const { menu, root } = render(noDropdownItem, [{ key: "extra-dropdown" }])
+    expect(menu.wrapper?.firstElementChild?.querySelector("#extra-dropdown")).not.toBeNull()
+    expect(root.querySelector("#ms-menu-action")).not.toBeNull()
+  })
+
+  test("should put an added bar item in the bar", () => {
+    const { menu, root } = render(undefined, [{ key: "extra-bar", options: { zone: "bar" } }])
+    expect(root.querySelector("#extra-bar")?.parentElement).toBe(menu.wrapper)
   })
 })

@@ -34,7 +34,7 @@ import {
   IIWriterManager,
   PDFExportManager,
 } from "@/manager"
-import type { IIMenuAction, IIMenuStyle, IIMenuTool } from "@/menu"
+import type { TMenuOverride } from "@/menu"
 import { IIMenuManager } from "@/menu"
 import { IIModel } from "@/model"
 import type { TIIRendererConfiguration } from "@/renderer"
@@ -69,11 +69,7 @@ export type TInteractiveInkCanvasOptions = TPartialDeep<
 > & {
   override?: {
     client?: WebSocketClient
-    menu?: {
-      style?: IIMenuStyle
-      tool?: IIMenuTool
-      action?: IIMenuAction
-    }
+    menu?: TMenuOverride
   }
 }
 

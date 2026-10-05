@@ -1,9 +1,10 @@
-import { buildIIStroke } from "../helpers"
+import { buildIIStroke, StubMenuItem } from "../helpers"
 import { createCanvasMock, asCanvas } from "../__mocks__/createCanvasMock"
 import {
   IIMenuContext,
   IIJiixQueryManager,
-  IIMathManager
+  IIMathManager,
+  TMenuItemOptions,
 } from "@/iink"
 
 const ONLY_MATH_MENU_CONFIG = {
@@ -206,8 +207,7 @@ describe("IIMenuContext.ts", () => {
       const menuContext = new IIMenuContext(asCanvas(canvas), "ms-menu-context")
       menuContext.render(canvas.layers.rendering)
 
-      const contextMenus = (menuContext as unknown as { contextMenus: Map<string, { destroy: () => void }> })
-        .contextMenus
+      const contextMenus = (menuContext as unknown as { items: Map<string, { destroy: () => void }> }).items
       expect(contextMenus.size).toBeGreaterThan(0)
       const destroySpies = Array.from(contextMenus.values()).map((contextMenu) => jest.spyOn(contextMenu, "destroy"))
 
@@ -227,5 +227,36 @@ describe("IIMenuContext.ts", () => {
 
       expect(removeSpy).toHaveBeenCalledWith("scroll", expect.any(Function))
     })
+  })
+})
+
+describe("IIMenuContext zones", () => {
+  class ExtendedMenuContext extends IIMenuContext {
+    extra: { key: string; options?: TMenuItemOptions }[] = []
+    render(layer: HTMLElement): void {
+      super.render(layer)
+      this.extra.forEach(({ key, options }) => this.addItem(key, new StubMenuItem(key, this.canvas), options))
+    }
+  }
+
+  function render(extra: { key: string; options?: TMenuItemOptions }[]) {
+    const canvas = createCanvasMock()
+    const menu = new ExtendedMenuContext(asCanvas(canvas))
+    menu.extra = extra
+    menu.render(canvas.layers.rendering)
+    return menu
+  }
+
+  test("should add a list item to the list itself, after the built-in ones", () => {
+    const menu = render([{ key: "extra-list" }])
+    expect(menu.wrapper?.lastElementChild?.id).toBe("extra-list")
+    expect(menu.wrapper?.querySelector(".ms-menu-context-bar")).toBeNull()
+  })
+
+  test("should put a bar item in a row of quick actions above the list", () => {
+    const menu = render([{ key: "extra-bar", options: { zone: "bar" } }])
+    const bar = menu.wrapper?.firstElementChild
+    expect(bar?.classList.contains("ms-menu-context-bar")).toBe(true)
+    expect(bar?.querySelector("#extra-bar")).not.toBeNull()
   })
 })
