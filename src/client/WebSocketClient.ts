@@ -1,17 +1,24 @@
 import PingWorker from "web-worker:../worker/ping.worker.ts"
 
 import type { TMatrixTransform } from "@/core/geometry"
-import { DeferredPromise, isVersionSuperiorOrEqual, mergeDeep, overrideDeep, type TPartialDeep } from "@/core/std"
-import type { THistoryContext, TIIHistoryBackendChanges } from "@/history"
+import { PX_TO_MM_RATIO } from "@/core/math"
+import {
+  DeferredPromise,
+  isVersionSuperiorOrEqual,
+  mergeDeep,
+  overrideDeep,
+  type TPartialDeep,
+  typedKeys,
+} from "@/core/std"
+import type { TIIHistoryBackendChanges } from "@/history"
 import { LoggerCategory, LoggerManager } from "@/logger"
 
-import { ClientError, mapCloseCodeToMessage } from "./ClientError"
+import { ClientError, mapCloseCodeToMessage, mapErrorCodeToMessage } from "./ClientError"
 import { ClientEvent } from "./ClientEvent"
-import type { TExport } from "./Export"
-import type { TJIIXExport } from "./Export"
+import { parseExportedJIIX, type TExport } from "./Export"
 import type { TJIIXMathElement } from "./ExportMath"
 import { resolveHmac } from "./HmacAuth"
-import { getApiInfos } from "./infos"
+import { ensureServerVersion } from "./infos"
 import { redactServerSecrets } from "./ServerConfiguration"
 import type { TRecognitionStroke } from "./StrokeSerializer"
 import { toWireStroke } from "./StrokeSerializer"
@@ -20,6 +27,8 @@ import { WebSocketClientConfiguration } from "./WebSocketClientConfiguration"
 import type {
   TInteractiveInkSessionDescriptionMessage,
   TMathEvaluable,
+  TMathSolverAction,
+  TMathSolverResultMap,
   TMathVariable,
   TMathVariableDefinition,
   TMathVariableDefinitions,
@@ -35,7 +44,42 @@ import type {
   TWebSocketClientMessagePartChange,
   TWebSocketClientMessageReceived,
 } from "./WebSocketClientMessage"
-import { TWebSocketClientMessageType } from "./WebSocketClientMessage"
+import { readHistoryContext, TWebSocketClientMessageType } from "./WebSocketClientMessage"
+
+const RECEIVED_MESSAGE_TYPES: ReadonlySet<unknown> = new Set(Object.values(TWebSocketClientMessageType))
+
+// Checks the discriminant only: the payload is trusted to match its type, as the server's contract
+const isWebSocketClientMessageReceived = (value: unknown): value is TWebSocketClientMessageReceived =>
+  typeof value === "object" && value !== null && "type" in value && RECEIVED_MESSAGE_TYPES.has(value.type)
+
+/**
+ * @group Client
+ * @summary Pending math solver requests, by action then block id
+ * @remarks The server answers each block's requests of one action in order.
+ */
+export type TMathSolverQueues = {
+  [A in TMathSolverAction]?: Map<string, DeferredPromise<TMathSolverResultMap[A]>[]>
+}
+
+// `get-variable-definitions` answers for the whole document, not a block: its requests queue under this key
+const DOCUMENT_BLOCK_ID = ""
+
+// What a math request settles with when a deliberate close makes it moot
+const createMathSolverNeutralResults = (): TMathSolverResultMap => ({
+  "available-actions": [],
+  // "null" (not "") so callers doing `JSON.parse(await promise)` (see `getNumericalComputation`) get `null` instead of throwing
+  "numerical-computation": "null",
+  "get-diagnostic": "",
+  "get-variables": [],
+  "set-variable-value": undefined,
+  // NaN, not 0 — 0 would read as a real value; NaN clearly signals "no value"
+  "get-variable-value": NaN,
+  "remove-variable-value": undefined,
+  "as-variable-definition": { name: "", value: NaN },
+  "get-variable-definitions": [],
+  "get-evaluables": [],
+  evaluate: [],
+})
 
 /**
  * A websocket dialog have this sequence :
@@ -62,7 +106,7 @@ import { TWebSocketClientMessageType } from "./WebSocketClientMessage"
  * @group Client
  */
 export class WebSocketClient {
-  #logger = LoggerManager.getLogger(LoggerCategory.CLIENT)
+  protected logger = LoggerManager.getLogger(LoggerCategory.CLIENT)
 
   protected socket!: WebSocket
   protected pingWorker?: Worker
@@ -80,38 +124,28 @@ export class WebSocketClient {
   protected exportDeferredMap: Map<string, DeferredPromise<TExport>>
   protected closeDeferred?: DeferredPromise<void>
   protected waitForIdleDeferred?: DeferredPromise<void>
-  protected availableActionsDeferred: Map<string, DeferredPromise<string[]>[]>
-  protected numericalComputationDeferred: Map<string, DeferredPromise<string>[]>
-  protected getDiagnosticDeferred: Map<string, DeferredPromise<string>[]>
-  protected getVariablesDeferred: Map<string, DeferredPromise<TMathVariable[]>[]>
-  protected setVariableValueDeferred: Map<string, DeferredPromise<void>[]>
-  protected getVariableValueDeferred: Map<string, DeferredPromise<number>[]>
-  protected removeVariableValueDeferred: Map<string, DeferredPromise<void>[]>
-  protected asVariableDefinitionDeferred: Map<string, DeferredPromise<TMathVariableDefinition>[]>
-  protected getVariableDefinitionsDeferred: DeferredPromise<TMathVariableDefinitions[]>[]
-  protected getEvaluablesDeferred: Map<string, DeferredPromise<TMathEvaluable[]>[]>
-  protected evaluateDeferred: Map<string, DeferredPromise<number[][]>[]>
+  protected mathSolverQueues: TMathSolverQueues = {}
   protected sendToSupportDeferred: DeferredPromise<void>[]
 
   // Resolved once the queued message is actually sent (post-reconnect), not once any server ack
   // arrives — mutating calls (addStrokes, undo, etc.) never wait for a server ack; there's no
   // correlation id on "contentChanged"/"gestureDetected" to safely match one to a specific call.
-  #offlineQueue: {
+  protected offlineQueue: {
     message: TWebSocketClientMessage
     deferred: DeferredPromise<void>
   }[] = []
-  #reconnectTimer?: ReturnType<typeof setTimeout>
-  #reconnectAttempts = 0
+  protected reconnectTimer?: ReturnType<typeof setTimeout>
+  protected reconnectAttempts = 0
   // Guards against concurrent init() calls: the offline-queue reconnect loop and the legacy
   // auto-reconnect in `send()` can both observe a closed socket and call init() around the same
   // time. Without this, each would create its own `new WebSocket()`, leaving two live sockets
   // with only the last one referenced by `this.socket`.
-  #connectingPromise: Promise<void> | null = null
+  protected connectingPromise: Promise<void> | null = null
   // Set for the duration of a deliberate `close()` (e.g. `newSession()` switching language).
   // `send()`'s legacy auto-reconnect must wait for this instead of racing its own `init()` against
   // the one `newSession()` issues right after — starting a second socket before the first one's
   // close handshake completes has left the server never answering on either connection.
-  #closingPromise: Promise<void> | null = null
+  protected closingPromise: Promise<void> | null = null
 
   configuration: WebSocketClientConfiguration
   initialized: DeferredPromise<void>
@@ -119,10 +153,10 @@ export class WebSocketClient {
   event: ClientEvent
 
   constructor(config: TPartialDeep<TWebSocketClientConfiguration>, event?: ClientEvent) {
-    this.#logger.info("constructor", { config: redactServerSecrets(config) })
+    this.logger.info("constructor", { config: redactServerSecrets(config) })
     this.configuration = new WebSocketClientConfiguration(config)
     const scheme = this.configuration.server.scheme === "https" ? "wss" : "ws"
-    this.url = `${scheme}://${this.configuration.server.host}/api/v4.0/iink/offscreen?applicationKey=${this.configuration.server.applicationKey}`
+    this.url = `${scheme}://${this.configuration.server.host}/api/v4.0/iink/offscreen?applicationKey=${encodeURIComponent(this.configuration.server.applicationKey)}`
 
     this.event = event || new ClientEvent()
     this.initialized = new DeferredPromise<void>()
@@ -131,17 +165,6 @@ export class WebSocketClient {
     this.boundMessageCallback = this.messageCallback.bind(this)
     this.exportDeferredMap = new Map()
     this.contextlessGestureDeferred = new Map()
-    this.availableActionsDeferred = new Map()
-    this.numericalComputationDeferred = new Map()
-    this.getDiagnosticDeferred = new Map()
-    this.getVariablesDeferred = new Map()
-    this.setVariableValueDeferred = new Map()
-    this.getVariableValueDeferred = new Map()
-    this.removeVariableValueDeferred = new Map()
-    this.asVariableDefinitionDeferred = new Map()
-    this.getVariableDefinitionsDeferred = []
-    this.getEvaluablesDeferred = new Map()
-    this.evaluateDeferred = new Map()
     this.sendToSupportDeferred = []
   }
 
@@ -153,7 +176,7 @@ export class WebSocketClient {
    * Number of addStrokes batches currently queued locally while disconnected.
    */
   get offlineQueueLength(): number {
-    return this.#offlineQueue.length
+    return this.offlineQueue.length
   }
 
   /**
@@ -163,9 +186,9 @@ export class WebSocketClient {
     return this.offlineQueueLength > 0
   }
 
-  async #send(message: TWebSocketClientMessage): Promise<void> {
+  protected sendOnSocket(message: TWebSocketClientMessage): void {
     if (!this.socket) {
-      throw new Error("Client must be initilized")
+      throw new Error("Client must be initialized")
     }
     if (this.socket.readyState === this.socket.OPEN) {
       this.socket.send(JSON.stringify(message))
@@ -183,6 +206,13 @@ export class WebSocketClient {
       v.reject(error)
     })
     this.waitForIdleDeferred?.reject(error)
+    // Cleared once rejected: the server answers none of them, so a later answer must not settle one
+    Object.values(this.mathSolverQueues).forEach((queues) => {
+      queues.forEach((queue) => queue.forEach((deferred) => deferred.reject(error)))
+    })
+    this.mathSolverQueues = {}
+    this.sendToSupportDeferred.forEach((deferred) => deferred.reject(error))
+    this.sendToSupportDeferred = []
   }
 
   /**
@@ -205,27 +235,16 @@ export class WebSocketClient {
       deferred.resolve({})
     })
 
-    this.resolveAllInQueue(this.availableActionsDeferred, [])
-    // "null" (not "") so callers doing `JSON.parse(await promise)` (see `getNumericalComputation`) get `null` instead of throwing
-    this.resolveAllInQueue(this.numericalComputationDeferred, "null")
-    this.resolveAllInQueue(this.getDiagnosticDeferred, "")
-    this.resolveAllInQueue(this.getVariablesDeferred, [])
-    this.resolveAllInQueue(this.setVariableValueDeferred, undefined)
-    // NaN, not 0 — 0 would read as a real value; NaN clearly signals "no value"
-    this.resolveAllInQueue(this.getVariableValueDeferred, NaN)
-    this.resolveAllInQueue(this.removeVariableValueDeferred, undefined)
-    this.resolveAllInQueue(this.asVariableDefinitionDeferred, { name: "", value: NaN })
-    this.getVariableDefinitionsDeferred.forEach((deferred) => deferred.resolve([]))
-    this.resolveAllInQueue(this.getEvaluablesDeferred, [])
-    this.resolveAllInQueue(this.evaluateDeferred, [])
+    const neutralResults = createMathSolverNeutralResults()
+    typedKeys(neutralResults).forEach((action) => this.resolveAllMathSolverRequests(action, neutralResults[action]))
     this.sendToSupportDeferred.forEach((deferred) => deferred.resolve())
   }
 
-  /** Resolve every still-pending deferred in every queue of `map` with the same neutral `value`. */
-  protected resolveAllInQueue<T>(map: Map<string, DeferredPromise<T>[]>, value: T): void {
-    Array.from(map.values()).forEach((queue) => {
-      queue.forEach((deferred) => deferred.resolve(value))
-    })
+  protected resolveAllMathSolverRequests<A extends TMathSolverAction>(
+    action: A,
+    result: TMathSolverResultMap[A]
+  ): void {
+    this.mathSolverQueues[action]?.forEach((queue) => queue.forEach((deferred) => deferred.resolve(result)))
   }
 
   protected resetAllDeferred(): void {
@@ -234,55 +253,45 @@ export class WebSocketClient {
     this.exportDeferredMap.clear()
     this.waitForIdleDeferred = undefined
     this.closeDeferred = undefined
-    this.availableActionsDeferred.clear()
-    this.numericalComputationDeferred.clear()
-    this.getDiagnosticDeferred.clear()
-    this.getVariablesDeferred.clear()
-    this.setVariableValueDeferred.clear()
-    this.getVariableValueDeferred.clear()
-    this.removeVariableValueDeferred.clear()
-    this.asVariableDefinitionDeferred.clear()
-    this.getVariableDefinitionsDeferred = []
-    this.getEvaluablesDeferred.clear()
-    this.evaluateDeferred.clear()
+    this.mathSolverQueues = {}
     this.sendToSupportDeferred = []
   }
 
-  #isDisconnected(): boolean {
+  protected isDisconnected(): boolean {
     return (
       !this.socket || this.socket.readyState === this.socket.CLOSING || this.socket.readyState === this.socket.CLOSED
     )
   }
 
-  #enqueueOfflineMessage(message: TWebSocketClientMessage, deferred: DeferredPromise<void>): void {
-    if (this.#offlineQueue.length >= this.configuration.server.websocket.offlineQueueMaxSize) {
+  protected enqueueOfflineMessage(message: TWebSocketClientMessage, deferred: DeferredPromise<void>): void {
+    if (this.offlineQueue.length >= this.configuration.server.websocket.offlineQueueMaxSize) {
       deferred.reject(new Error("Offline queue full: unable to queue addStrokes while disconnected"))
       return
     }
-    this.#offlineQueue.push({ message, deferred })
+    this.offlineQueue.push({ message, deferred })
     this.event.emitConnectionStatusChanged("offline")
-    this.#startReconnectLoop()
+    this.startReconnectLoop()
   }
 
-  #startReconnectLoop(): void {
-    if (this.#reconnectTimer) {
+  protected startReconnectLoop(): void {
+    if (this.reconnectTimer) {
       return
     }
-    this.#scheduleReconnectAttempt()
+    this.scheduleReconnectAttempt()
   }
 
-  #scheduleReconnectAttempt(): void {
+  protected scheduleReconnectAttempt(): void {
     const { reconnectDelay, maxReconnectAttempts } = this.configuration.server.websocket
-    this.#reconnectTimer = setTimeout(async () => {
-      this.#reconnectTimer = undefined
-      this.#reconnectAttempts++
+    this.reconnectTimer = setTimeout(async () => {
+      this.reconnectTimer = undefined
+      this.reconnectAttempts++
       try {
         await this.init()
       } catch {
-        if (this.#reconnectAttempts >= maxReconnectAttempts) {
-          this.#giveUpReconnecting()
+        if (this.reconnectAttempts >= maxReconnectAttempts) {
+          this.giveUpReconnecting()
         } else {
-          this.#scheduleReconnectAttempt()
+          this.scheduleReconnectAttempt()
         }
       }
     }, reconnectDelay)
@@ -294,24 +303,24 @@ export class WebSocketClient {
    * attempt still scheduled by the other path so it doesn't open a redundant second socket
    * once this one is up, and drains the offline queue since nothing else would.
    */
-  #onConnected(): Promise<void> {
-    this.#hasConnected = true
-    this.#clearReconnectLoop()
-    this.#reconnectAttempts = 0
+  protected onConnected(): Promise<void> {
+    this.hasConnected = true
+    this.clearReconnectLoop()
+    this.reconnectAttempts = 0
     this.event.emitConnectionStatusChanged("connected")
-    return this.#drainOfflineQueue()
+    return this.drainOfflineQueue()
   }
 
-  async #drainOfflineQueue(): Promise<void> {
-    while (this.#offlineQueue.length > 0) {
-      if (this.#isDisconnected()) {
-        this.#startReconnectLoop()
+  protected async drainOfflineQueue(): Promise<void> {
+    while (this.offlineQueue.length > 0) {
+      if (this.isDisconnected()) {
+        this.startReconnectLoop()
         return
       }
-      const item = this.#offlineQueue[0]
-      await this.#send(item.message)
+      const item = this.offlineQueue[0]
+      this.sendOnSocket(item.message)
       item.deferred.resolve()
-      this.#offlineQueue.shift()
+      this.offlineQueue.shift()
     }
   }
 
@@ -319,21 +328,21 @@ export class WebSocketClient {
    * Reconnection attempts exhausted: reject and clear the queue, emit "error", and
    * reset the attempt counter so the next `addStrokes()` (or drop) gets a fresh retry budget.
    */
-  #giveUpReconnecting(): void {
-    this.#reconnectAttempts = 0
-    this.#clearOfflineQueue(new Error("Unable to reconnect after offline queueing; queued strokes were not sent"))
+  protected giveUpReconnecting(): void {
+    this.reconnectAttempts = 0
+    this.clearOfflineQueue(new Error("Unable to reconnect after offline queueing; queued strokes were not sent"))
     this.event.emitConnectionStatusChanged("error")
   }
 
-  #clearOfflineQueue(error: Error): void {
-    this.#offlineQueue.forEach((item) => item.deferred.reject(error))
-    this.#offlineQueue = []
+  protected clearOfflineQueue(error: Error): void {
+    this.offlineQueue.forEach((item) => item.deferred.reject(error))
+    this.offlineQueue = []
   }
 
-  #clearReconnectLoop(): void {
-    if (this.#reconnectTimer) {
-      clearTimeout(this.#reconnectTimer)
-      this.#reconnectTimer = undefined
+  protected clearReconnectLoop(): void {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer)
+      this.reconnectTimer = undefined
     }
   }
 
@@ -344,19 +353,19 @@ export class WebSocketClient {
   }
 
   /** Set on the first successful connection: a drop after it is recoverable, one before is not */
-  #hasConnected = false
+  protected hasConnected = false
 
   /**
    * A network drop (1006, also what each failed reconnection attempt reports) once connected,
    * with the offline queue on: the ink is kept and replayed, so it is a state, not an error.
    * Reported as an error, it opened the canvas error modal over the ink every few seconds.
    */
-  #isRecoverableDrop(evt: CloseEvent): boolean {
-    return this.#hasConnected && evt.code === 1006 && this.configuration.server.websocket.offlineQueueEnabled
+  protected isRecoverableDrop(evt: CloseEvent): boolean {
+    return this.hasConnected && evt.code === 1006 && this.configuration.server.websocket.offlineQueueEnabled
   }
 
   protected closeCallback(evt: CloseEvent): void {
-    this.#logger.info("closeCallback", { evt })
+    this.logger.info("closeCallback", { evt })
     let message = evt.reason
     if (!this.currentErrorCode) {
       message = mapCloseCodeToMessage(evt.code) ?? ClientError.CANT_ESTABLISH
@@ -366,7 +375,7 @@ export class WebSocketClient {
     this.closeDeferred?.resolve()
     if (!this.currentErrorCode && evt.code !== 1000) {
       // Pending requests are rejected either way: a reconnection attempt's init() waits on one
-      if (!this.#isRecoverableDrop(evt)) {
+      if (!this.isRecoverableDrop(evt)) {
         this.event.emitError(new Error(message))
       }
       this.rejectDeferredPending(message)
@@ -378,7 +387,7 @@ export class WebSocketClient {
 
   protected openCallback(): void {
     this.reconnectionCount = 0
-    this.#send({
+    this.sendOnSocket({
       type: "authenticate",
       "myscript-client-name": "iink-ts",
       "myscript-client-version": "1.0.0-buildVersion",
@@ -392,10 +401,17 @@ export class WebSocketClient {
     ) {
       return this.initialized.reject(new Error("HMAC key is not a string nor a function"))
     }
-    this.#send({
+    this.sendOnSocket({
       type: "hmac",
       hmac: await resolveHmac(this.configuration.server, hmacChallengeMessage.hmacChallenge),
     })
+  }
+
+  /** A handshake step failed: `init()` waits on `initialized`, so it must hear of it, not only the `error` listeners */
+  protected failInitialization(error: unknown): void {
+    const reason = error instanceof Error ? error : new Error(String(error))
+    this.initialized.reject(reason)
+    this.event.emitError(reason)
   }
 
   protected initPing(): void {
@@ -404,7 +420,7 @@ export class WebSocketClient {
       pingDelay: this.configuration.server.websocket.pingDelay,
     })
     this.pingWorker.onmessage = () => {
-      if (this.socket.readyState <= 1) {
+      if (this.socket.readyState < this.socket.CLOSING) {
         if (this.pingCount < this.configuration.server.websocket.maxPingLostCount) {
           this.send({ type: "ping" })
         } else {
@@ -421,12 +437,11 @@ export class WebSocketClient {
       delete this.configuration.recognition.export.jiix.text.lines
       delete this.configuration.recognition["raw-content"].classification
     }
-    const pixelTomm = 25.4 / 96
-    this.#send({
+    this.sendOnSocket({
       type: this.sessionId ? "restoreSession" : "initSession",
       iinkSessionId: this.sessionId,
-      scaleX: pixelTomm,
-      scaleY: pixelTomm,
+      scaleX: PX_TO_MM_RATIO,
+      scaleY: PX_TO_MM_RATIO,
       configuration: this.configuration.recognition,
     })
   }
@@ -437,12 +452,12 @@ export class WebSocketClient {
       this.event.emitSessionOpened(this.sessionId)
     }
     if (this.currentPartId) {
-      this.#send({
+      this.sendOnSocket({
         type: "openContentPart",
         id: this.currentPartId,
       })
     } else {
-      this.#send({
+      this.sendOnSocket({
         type: "newContentPart",
         contentType: "Raw Content",
         mimeTypes: this.mimeTypes,
@@ -462,25 +477,15 @@ export class WebSocketClient {
 
   protected manageContentChangedMessage(contentChangeMessage: TWebSocketClientMessageContentChange): void {
     this.initialized.resolve()
-    this.event.emitContentChanged({
-      canRedo: contentChangeMessage.canRedo,
-      canUndo: contentChangeMessage.canUndo,
-    } as THistoryContext)
+    this.event.emitContentChanged(readHistoryContext(contentChangeMessage))
   }
 
   protected manageExportMessage(exportMessage: TWebSocketClientMessageExport): void {
-    if (exportMessage.exports["application/vnd.myscript.jiix"]) {
-      exportMessage.exports["application/vnd.myscript.jiix"] = JSON.parse(
-        exportMessage.exports["application/vnd.myscript.jiix"].toString()
-      ) as TJIIXExport
-    }
-
-    Object.keys(exportMessage.exports).forEach((key) => {
-      if (this.exportDeferredMap.has(key)) {
-        this.exportDeferredMap.get(key)!.resolve(exportMessage.exports)
-      }
+    const exports = parseExportedJIIX(exportMessage.exports)
+    Object.keys(exports).forEach((key) => {
+      this.exportDeferredMap.get(key)?.resolve(exports)
     })
-    this.event.emitExported(exportMessage.exports)
+    this.event.emitExported(exports)
   }
 
   protected manageWaitForIdle(): void {
@@ -499,17 +504,7 @@ export class WebSocketClient {
         message: ClientError.NO_ACTIVITY,
       })
     } else {
-      switch (this.currentErrorCode) {
-        case "access.not.granted":
-          message = ClientError.WRONG_CREDENTIALS
-          break
-        case "session.too.old":
-          message = ClientError.TOO_OLD
-          break
-        case "restore.session.not.found":
-          message = ClientError.NO_SESSION_FOUND
-          break
-      }
+      message = mapErrorCodeToMessage(this.currentErrorCode) ?? message
       this.rejectDeferredPending(message)
       this.event.emitError(new Error(message))
     }
@@ -527,85 +522,74 @@ export class WebSocketClient {
     this.contextlessGestureDeferred.get(gestureMessage.strokeId)?.resolve(gestureMessage)
   }
 
-  protected resolveFirstInQueue<T>(
-    map: Map<string, DeferredPromise<T>[]>,
-    blockId: string | undefined,
-    value?: T
-  ): void {
-    if (blockId === undefined || blockId === null) {
-      return
-    }
-    const queue = map.get(blockId)
-    if (!queue?.length) {
-      return
-    }
-    queue.shift()!.resolve(value as T)
-    if (queue.length === 0) {
-      map.delete(blockId)
-    }
-  }
-
   protected manageMathSolverResult(mathSolverMessage: TWebSocketClientMessageMathSolverResult): void {
-    if (mathSolverMessage.action === "get-variable-definitions") {
-      if (this.getVariableDefinitionsDeferred.length) {
-        this.getVariableDefinitionsDeferred.shift()!.resolve(mathSolverMessage.result)
-      }
-      return
-    }
-
-    const blockId = mathSolverMessage.blockId
-    if (blockId === undefined || blockId === null) {
-      this.#logger.warn(
+    const blockId =
+      mathSolverMessage.action === "get-variable-definitions" ? DOCUMENT_BLOCK_ID : mathSolverMessage.blockId
+    if (typeof blockId !== "string") {
+      this.logger.warn(
         "manageMathSolverResult",
         "Received math solver result without blockId, unable to resolve corresponding promise",
         mathSolverMessage
       )
+      return
     }
+    this.resolveMathSolverRequest(mathSolverMessage.action, blockId, mathSolverMessage.result)
+  }
 
-    switch (mathSolverMessage.action) {
-      case "available-actions":
-        this.resolveFirstInQueue(this.availableActionsDeferred, blockId, mathSolverMessage.result)
-        break
-      case "numerical-computation":
-        this.resolveFirstInQueue(this.numericalComputationDeferred, blockId, mathSolverMessage.result)
-        break
-      case "get-diagnostic":
-        this.resolveFirstInQueue(this.getDiagnosticDeferred, blockId, mathSolverMessage.result)
-        break
-      case "get-variables":
-        this.resolveFirstInQueue(this.getVariablesDeferred, blockId, mathSolverMessage.result)
-        break
-      case "set-variable-value":
-        this.resolveFirstInQueue(this.setVariableValueDeferred, blockId)
-        break
-      case "get-variable-value":
-        this.resolveFirstInQueue(this.getVariableValueDeferred, blockId, mathSolverMessage.result)
-        break
-      case "remove-variable-value":
-        this.resolveFirstInQueue(this.removeVariableValueDeferred, blockId)
-        break
-      case "as-variable-definition":
-        this.resolveFirstInQueue(this.asVariableDefinitionDeferred, blockId, mathSolverMessage.result)
-        break
-      case "get-evaluables":
-        this.resolveFirstInQueue(this.getEvaluablesDeferred, blockId, mathSolverMessage.result)
-        break
-      case "evaluate":
-        this.resolveFirstInQueue(this.evaluateDeferred, blockId, mathSolverMessage.result)
-        break
-      default:
-        break
+  protected resolveMathSolverRequest<A extends TMathSolverAction>(
+    action: A,
+    blockId: string,
+    result: TMathSolverResultMap[A]
+  ): void {
+    const queue = this.mathSolverQueues[action]?.get(blockId)
+    const deferred = queue?.shift()
+    if (queue?.length === 0) {
+      this.mathSolverQueues[action]?.delete(blockId)
     }
+    deferred?.resolve(result)
+  }
+
+  protected async requestMathSolver<A extends TMathSolverAction>(
+    action: A,
+    blockId: string | undefined,
+    parameters: Record<string, unknown> = {}
+  ): Promise<TMathSolverResultMap[A]> {
+    const deferred = new DeferredPromise<TMathSolverResultMap[A]>()
+    const queues = this.getMathSolverQueue(action)
+    const key = blockId ?? DOCUMENT_BLOCK_ID
+    queues.set(key, [...(queues.get(key) ?? []), deferred])
+    try {
+      // blockId undefined is dropped by JSON.stringify, as get-variable-definitions expects
+      await this.send({ type: "mathSolver", action, blockId, ...parameters })
+    } catch (error) {
+      // Never sent, never answered: left queued, it would take the answer to the next request
+      queues.set(
+        key,
+        (queues.get(key) ?? []).filter((queued) => queued !== deferred)
+      )
+      throw error
+    }
+    return deferred.promise
+  }
+
+  protected getMathSolverQueue<A extends TMathSolverAction>(action: A): NonNullable<TMathSolverQueues[A]> {
+    const queues: NonNullable<TMathSolverQueues[A]> = this.mathSolverQueues[action] ?? new Map()
+    this.mathSolverQueues[action] = queues
+    return queues
   }
 
   protected messageCallback(message: MessageEvent<string>): void {
     this.currentErrorCode = undefined
-    let websocketMessage: TWebSocketClientMessageReceived
+    let websocketMessage: unknown
     try {
       websocketMessage = JSON.parse(message.data)
     } catch {
       // The payload is not JSON at all: the payload itself is the useful diagnostic.
       this.event.emitError(new Error(message.data))
+      return
+    }
+    if (!isWebSocketClientMessageReceived(websocketMessage)) {
+      this.logger.warn("messageCallback", `Message type unknown: "${message.data}".`)
       return
     }
     try {
@@ -615,7 +599,7 @@ export class WebSocketClient {
       }
       switch (websocketMessage.type) {
         case TWebSocketClientMessageType.HMAC_Challenge:
-          this.manageHMACChallenge(websocketMessage).catch((err) => this.event.emitError(err))
+          this.manageHMACChallenge(websocketMessage).catch((err) => this.failInitialization(err))
           break
         case TWebSocketClientMessageType.Authenticated:
           this.manageAuthenticated()
@@ -653,9 +637,12 @@ export class WebSocketClient {
         case TWebSocketClientMessageType.Ack:
           this.manageAck()
           break
-        default:
-          this.#logger.warn("messageCallback", `Message type unknown: "${websocketMessage}".`)
+        default: {
+          // Unreachable once the guard passed; a TWebSocketClientMessageType without a case stops compiling here
+          const unhandled: never = websocketMessage
+          this.logger.warn("messageCallback", `Message type unhandled: "${JSON.stringify(unhandled)}".`)
           break
+        }
       }
     } catch (error) {
       // A handler threw. Reporting the payload here, as this used to, hid every
@@ -674,27 +661,25 @@ export class WebSocketClient {
   }
 
   async init(): Promise<void> {
-    if (this.#connectingPromise) {
-      return this.#connectingPromise
+    if (this.connectingPromise) {
+      return this.connectingPromise
     }
-    this.#connectingPromise = this.#connect()
-      .then(() => this.#onConnected())
+    this.connectingPromise = this.connect()
+      .then(() => this.onConnected())
       .finally(() => {
-        this.#connectingPromise = null
+        this.connectingPromise = null
       })
-    return this.#connectingPromise
+    return this.connectingPromise
   }
 
-  async #connect(): Promise<void> {
+  protected async connect(): Promise<void> {
     this.event.emitStartInitialization()
     if (this.currentErrorCode === "restore.session.not.found") {
       this.currentErrorCode = undefined
       this.sessionId = undefined
       this.currentPartId = undefined
     }
-    if (!this.configuration.server.version) {
-      this.configuration.server.version = (await getApiInfos(this.configuration)).version
-    }
+    await ensureServerVersion(this.configuration)
     this.socket = new WebSocket(this.url)
     this.clearSocketListener()
     this.socket.addEventListener("open", this.boundOpenCallback)
@@ -710,23 +695,23 @@ export class WebSocketClient {
 
   async send(message: TWebSocketClientMessage): Promise<void> {
     if (!this.socket) {
-      return Promise.reject(new Error("Client must be initilized"))
+      return Promise.reject(new Error("Client must be initialized"))
     }
 
     switch (this.socket.readyState) {
       case this.socket.CONNECTING:
       case this.socket.OPEN:
         await this.initialized.promise
-        this.#send(message)
+        this.sendOnSocket(message)
         return Promise.resolve()
       case this.socket.CLOSING:
       case this.socket.CLOSED:
-        if (this.#closingPromise) {
+        if (this.closingPromise) {
           // A deliberate `close()` (e.g. `newSession()`) is already tearing down the socket —
           // wait for it instead of racing our own `init()` against the one it issues right after.
           // The message is not replayed: it was built for the session being closed (its partId,
           // its blockIds), and close() has already settled everything that waited on an answer.
-          await this.#closingPromise
+          await this.closingPromise
           return
         }
         if (this.configuration.server.websocket.autoReconnect) {
@@ -734,7 +719,7 @@ export class WebSocketClient {
           if (this.configuration.server.websocket.maxRetryCount > this.reconnectionCount) {
             await this.init()
             await this.waitForIdle()
-            return this.#send(message)
+            return this.sendOnSocket(message)
           } else {
             return Promise.reject(
               new Error("Unable to send message. The maximum number of connection attempts has been reached.")
@@ -770,9 +755,9 @@ export class WebSocketClient {
     for (let i = 0; i < strokes.length; i += chunkSize) {
       const strokesPart = strokes.slice(i, i + chunkSize)
       const message = this.buildAddStrokesMessage(strokesPart, _processGestures)
-      if (this.configuration.server.websocket.offlineQueueEnabled && this.#isDisconnected()) {
+      if (this.configuration.server.websocket.offlineQueueEnabled && this.isDisconnected()) {
         const deferred = new DeferredPromise<void>()
-        this.#enqueueOfflineMessage(message, deferred)
+        this.enqueueOfflineMessage(message, deferred)
         promises.push(deferred.promise)
       } else {
         promises.push(this.send(message))
@@ -782,135 +767,43 @@ export class WebSocketClient {
   }
 
   async getAvailableActions(blockId: string): Promise<string[]> {
-    const deferred = new DeferredPromise<string[]>()
-    const queue = this.availableActionsDeferred.get(blockId) ?? []
-    queue.push(deferred)
-    this.availableActionsDeferred.set(blockId, queue)
-    await this.send({
-      type: "mathSolver",
-      action: "available-actions",
-      blockId,
-    })
-    return deferred.promise
+    return this.requestMathSolver("available-actions", blockId)
   }
 
   async getNumericalComputation(blockId: string): Promise<TJIIXMathElement> {
-    const deferred = new DeferredPromise<string>()
-    const queue = this.numericalComputationDeferred.get(blockId) ?? []
-    queue.push(deferred)
-    this.numericalComputationDeferred.set(blockId, queue)
-    await this.send({
-      type: "mathSolver",
-      action: "numerical-computation",
-      blockId: blockId,
-    })
-    return JSON.parse(await deferred.promise) as TJIIXMathElement
+    return JSON.parse(await this.requestMathSolver("numerical-computation", blockId)) as TJIIXMathElement
   }
 
   async getDiagnostic(blockId: string, task: string): Promise<string> {
-    const deferred = new DeferredPromise<string>()
-    const queue = this.getDiagnosticDeferred.get(blockId) ?? []
-    queue.push(deferred)
-    this.getDiagnosticDeferred.set(blockId, queue)
-    await this.send({
-      type: "mathSolver",
-      action: "get-diagnostic",
-      task,
-      blockId,
-    })
-    return deferred.promise
+    return this.requestMathSolver("get-diagnostic", blockId, { task })
   }
 
   async getVariables(blockId: string): Promise<TMathVariable[]> {
-    const deferred = new DeferredPromise<TMathVariable[]>()
-    const queue = this.getVariablesDeferred.get(blockId) ?? []
-    queue.push(deferred)
-    this.getVariablesDeferred.set(blockId, queue)
-    await this.send({
-      type: "mathSolver",
-      action: "get-variables",
-      blockId,
-    })
-    return deferred.promise
+    return this.requestMathSolver("get-variables", blockId)
   }
 
   async getVariableValue(blockId: string, variableName: string): Promise<number> {
-    const deferred = new DeferredPromise<number>()
-    const queue = this.getVariableValueDeferred.get(blockId) ?? []
-    queue.push(deferred)
-    this.getVariableValueDeferred.set(blockId, queue)
-    await this.send({
-      type: "mathSolver",
-      action: "get-variable-value",
-      blockId,
-      variableName,
-    })
-    return deferred.promise
+    return this.requestMathSolver("get-variable-value", blockId, { variableName })
   }
 
   async setVariableValue(blockId: string, variableName: string, variableValue: number): Promise<void> {
-    const deferred = new DeferredPromise<void>()
-    const queue = this.setVariableValueDeferred.get(blockId) ?? []
-    queue.push(deferred)
-    this.setVariableValueDeferred.set(blockId, queue)
-    await this.send({
-      type: "mathSolver",
-      action: "set-variable-value",
-      blockId,
-      variableName,
-      variableValue,
-    })
-    await deferred.promise
+    await this.requestMathSolver("set-variable-value", blockId, { variableName, variableValue })
   }
 
   async removeVariableValue(blockId: string, variableName: string): Promise<void> {
-    const deferred = new DeferredPromise<void>()
-    const queue = this.removeVariableValueDeferred.get(blockId) ?? []
-    queue.push(deferred)
-    this.removeVariableValueDeferred.set(blockId, queue)
-    await this.send({
-      type: "mathSolver",
-      action: "remove-variable-value",
-      blockId,
-      variableName,
-    })
-    await deferred.promise
+    await this.requestMathSolver("remove-variable-value", blockId, { variableName })
   }
 
   async asVariableDefinition(blockId: string): Promise<TMathVariableDefinition> {
-    const deferred = new DeferredPromise<TMathVariableDefinition>()
-    const queue = this.asVariableDefinitionDeferred.get(blockId) ?? []
-    queue.push(deferred)
-    this.asVariableDefinitionDeferred.set(blockId, queue)
-    await this.send({
-      type: "mathSolver",
-      action: "as-variable-definition",
-      blockId,
-    })
-    return deferred.promise
+    return this.requestMathSolver("as-variable-definition", blockId)
   }
 
   async getVariableDefinitions(): Promise<TMathVariableDefinitions[]> {
-    const deferred = new DeferredPromise<TMathVariableDefinitions[]>()
-    this.getVariableDefinitionsDeferred.push(deferred)
-    await this.send({
-      type: "mathSolver",
-      action: "get-variable-definitions",
-    })
-    return deferred.promise
+    return this.requestMathSolver("get-variable-definitions", undefined)
   }
 
   async getEvaluables(blockId: string): Promise<TMathEvaluable[]> {
-    const deferred = new DeferredPromise<TMathEvaluable[]>()
-    const queue = this.getEvaluablesDeferred.get(blockId) ?? []
-    queue.push(deferred)
-    this.getEvaluablesDeferred.set(blockId, queue)
-    await this.send({
-      type: "mathSolver",
-      action: "get-evaluables",
-      blockId,
-    })
-    return deferred.promise
+    return this.requestMathSolver("get-evaluables", blockId)
   }
 
   async evaluate(
@@ -923,17 +816,7 @@ export class WebSocketClient {
       pointCount: number
     }
   ): Promise<{ [key: string]: number }[][]> {
-    const deferred = new DeferredPromise<number[][]>()
-    const queue = this.evaluateDeferred.get(blockId) ?? []
-    queue.push(deferred)
-    this.evaluateDeferred.set(blockId, queue)
-    await this.send({
-      type: "mathSolver",
-      action: "evaluate",
-      blockId,
-      evaluation,
-    })
-    const result = await deferred.promise
+    const result = await this.requestMathSolver("evaluate", blockId, { evaluation })
 
     // Transform result arrays to series of points
     // Result format: [[x1, y1, x2, y2, ...], [x1, y1, x2, y2, ...]] for multiple curves
@@ -963,14 +846,13 @@ export class WebSocketClient {
       allSeries.push(points)
     }
 
-    this.#logger.info("Evaluate result transformed", {
+    this.logger.info("Evaluate result transformed", {
       inputVar: evaluation.inputVariableName || "x",
       outputVar: evaluation.outputVariableName || "?",
       seriesCount: allSeries.length,
       totalPoints: allSeries.reduce((sum, series) => sum + series.length, 0),
     })
 
-    this.evaluateDeferred.delete(blockId)
     return allSeries
   }
 
@@ -1093,11 +975,10 @@ export class WebSocketClient {
     }
     const deferred = new DeferredPromise<TWebSocketClientMessageContextlessGesture>()
     this.contextlessGestureDeferred.set(stroke.id, deferred)
-    const pixelTomm = 25.4 / 96
     await this.send({
       type: "contextlessGesture",
-      scaleX: pixelTomm,
-      scaleY: pixelTomm,
+      scaleX: PX_TO_MM_RATIO,
+      scaleY: PX_TO_MM_RATIO,
       stroke: toWireStroke(stroke),
     })
     return deferred.promise
@@ -1158,17 +1039,17 @@ export class WebSocketClient {
   }
 
   async export(requestedMimeTypes?: string[]): Promise<TExport> {
-    const run = this.#exportQueue.then(() => this.#sendExport(requestedMimeTypes))
-    this.#exportQueue = run.catch(() => undefined)
+    const run = this.exportQueue.then(() => this.sendExport(requestedMimeTypes))
+    this.exportQueue = run.catch(() => undefined)
     return run
   }
 
   // Exports run one after another. Two in flight for the same mime type share one slot in
   // `exportDeferredMap`: the second overwrote the first, whose caller then waited forever, since
   // the server's answers can only settle the deferred the map still holds.
-  #exportQueue: Promise<unknown> = Promise.resolve()
+  protected exportQueue: Promise<unknown> = Promise.resolve()
 
-  async #sendExport(requestedMimeTypes?: string[]): Promise<TExport> {
+  protected async sendExport(requestedMimeTypes?: string[]): Promise<TExport> {
     const mimeTypes: string[] = requestedMimeTypes || this.mimeTypes.slice()
     const deferreds = mimeTypes.map((mt) => {
       const deferred = new DeferredPromise<TExport>()
@@ -1203,8 +1084,8 @@ export class WebSocketClient {
   }
 
   async close(code: number, reason: string): Promise<void> {
-    this.#clearReconnectLoop()
-    this.#clearOfflineQueue(new Error(`Client closed (${reason}): queued strokes were not sent`))
+    this.clearReconnectLoop()
+    this.clearOfflineQueue(new Error(`Client closed (${reason}): queued strokes were not sent`))
     this.resolveDeferredPending()
     this.resetAllDeferred()
     this.closeDeferred = new DeferredPromise<void>()
@@ -1216,10 +1097,10 @@ export class WebSocketClient {
       }
       await this.closeDeferred!.promise
     }
-    this.#closingPromise = doClose().finally(() => {
-      this.#closingPromise = null
+    this.closingPromise = doClose().finally(() => {
+      this.closingPromise = null
     })
-    await this.#closingPromise
+    await this.closingPromise
   }
 
   async destroy(): Promise<void> {
