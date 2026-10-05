@@ -132,7 +132,8 @@ Canvas.load(element, "INTERACTIVE_INK", {
 ten thousand times cheaper. The document's symbols are frozen when committed and handed to you
 directly, instead of the whole document being deep-cloned on every read.
 
-Four names are added (`SymbolStore`, `TDraft`, `TReadonlyDeep`, `TSymbolOrder`) and **none removed**.
+Four names are added (`SymbolStore`, `TDraft`, `TReadonlyDeep`, `TSymbolOrder`), none removed, and one
+renamed: `IIModel.getRootSymbol` → `getSymbol` (see below).
 
 **If you mutated a symbol you read from the model, that code now throws.** It never worked the way it
 looked: the getter handed you a deep clone, so the mutation was lost unless you passed the object
@@ -168,6 +169,17 @@ getters.
 
 **New on `IIModel`:** `draftSymbol` / `commitSymbol`, `symbolCount` (counts without building the
 list), `decoratorsByTargetId` (an index, memoized against `version`).
+
+**Renamed on `IIModel`:** `getRootSymbol(id)` is now `getSymbol(id)`. It behaves the same: it returns
+the committed, frozen symbol without copying it. Use it to read one symbol, and `draftSymbol(id)` to
+change it.
+
+```ts
+// v4
+const symbol = canvas.model.getRootSymbol(id)
+// v5
+const symbol = canvas.model.getSymbol(id)
+```
 
 ### The client owns the stroke shape it sends
 

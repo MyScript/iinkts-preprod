@@ -671,7 +671,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     this.manageIdleState(false)
     this.updateTypesetBounds(sym)
 
-    const oldSymbol = this.model.getRootSymbol(sym.id)
+    const oldSymbol = this.model.getSymbol(sym.id)
     const oldStrokes = oldSymbol ? this.extractStrokesFromSymbols([oldSymbol]) : []
 
     this.model.updateSymbol(sym)
@@ -702,7 +702,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
 
     const oldSymbolsMap = new Map<string, TSymbol>()
     symList.forEach((sym) => {
-      const oldSymbol = this.model.getRootSymbol(sym.id)
+      const oldSymbol = this.model.getSymbol(sym.id)
       if (oldSymbol) {
         oldSymbolsMap.set(sym.id, oldSymbol)
       }
@@ -821,7 +821,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
           }
           // `typeset.updateBounds` above already committed the draft, which stamps
           // `modificationDate`; the old code stamped it again afterwards.
-          updated.push({ before, after: this.model.getRootSymbol(s.id) ?? s })
+          updated.push({ before, after: this.model.getSymbol(s.id) ?? s })
           symbols.push(s)
         }
       }
@@ -970,7 +970,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
           continue
         }
         draft.targetIds = remaining
-        const targetSyms = remaining.map((id) => this.model.getRootSymbol(id)).filter((s): s is TSymbol => !!s)
+        const targetSyms = remaining.map((id) => this.model.getSymbol(id)).filter((s): s is TSymbol => !!s)
         // Whole-document scan (`this.model.symbols`): an unregistered target type must not
         // abort cleanup for every other decorator, so it is filtered out silently rather
         // than let `SymbolGeometry.boundsOf` throw.
@@ -1078,7 +1078,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
    */
   async removeSymbol(id: string, addToHistory = true): Promise<void> {
     this.logger.info("removeSymbol", { id })
-    const symbol = this.model.getRootSymbol(id)
+    const symbol = this.model.getSymbol(id)
     if (symbol) {
       this.manageIdleState(false)
       this.startOperation("Recognizing")
@@ -1138,7 +1138,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     const symbolsRemoved: TSymbol[] = []
     const strokesIds: string[] = []
     ids.forEach((id) => {
-      const sym = this.model.getRootSymbol(id)
+      const sym = this.model.getSymbol(id)
       if (sym) {
         symbolsRemoved.push(sym)
         if (isStroke(sym)) {
@@ -1534,7 +1534,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       // was when the step happened, and a stroke has no `jiixBlockId` at the moment it is written —
       // recognition assigns one later. Reading only the snapshot found no block for an undo of a
       // freshly drawn stroke, so a ghost result outlived the expression it belonged to.
-      const live = this.model.getRootSymbol(stroke.id)
+      const live = this.model.getSymbol(stroke.id)
       return (live && isStroke(live) ? live.jiixBlockId : undefined) ?? stroke.jiixBlockId
     })
     return [...new Set(blockIds)].filter((id): id is string => !!id)
@@ -1573,7 +1573,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       // matrix as its expression or thrown away. Restoring a record that only moved leaves the
       // result itself valid, so the delta between where the symbol is and where it is going back to
       // is what the ghost has to follow.
-      const current = this.model.getRootSymbol(after.id)
+      const current = this.model.getSymbol(after.id)
       this.model.updateSymbol(restore(after))
       this.renderer.drawSymbol(after)
       if (current) {

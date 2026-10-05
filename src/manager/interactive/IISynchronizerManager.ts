@@ -13,7 +13,7 @@ import { extractEdgeEndpoints, JIIXEdgeKind, JIIXElementType } from "@/client"
 import { CanvasTool, GESTURE_OPERATION_LABELS } from "@/Constants"
 import { BoxOps } from "@/core/geometry"
 import { OBBOps } from "@/core/geometry"
-import type { TDraft } from "@/core/std"
+import { isDeepEqual, type TDraft } from "@/core/std"
 import { LoggerCategory } from "@/logger"
 import type { TStroke } from "@/symbol"
 import { isStroke } from "@/symbol"
@@ -38,11 +38,14 @@ export class IISynchronizerManager extends IIAbstractManager {
   // skipped instead of being reprocessed on every synchronize().
   #lastElementSnapshots = new Map<string, string>()
 
-  static readonly SYNCHRONIZE_TIMEOUT = 30000
   static readonly MAX_RETRY_ATTEMPTS = 3
-  /** Elements processed between yields in `#doSynchronize`'s loop, so a large
-   * document doesn't block the main thread (and pending pointer input) in one go. */
-  static readonly SYNC_YIELD_CHUNK_SIZE = 50
+  static readonly RETRY_DELAY_MS = 500
+  /** How long one math block's dependency enrichment may take before the sync stops waiting for it */
+  static readonly ENRICH_TIMEOUT_MS = 5000
+  /** Main-thread time `#doSynchronize`'s loop may take before yielding a frame, so a large
+   * document doesn't block pending pointer input in one go. A time budget, not an element count:
+   * counting yielded one frame per N elements even when the pass had nothing to do. */
+  static readonly SYNC_YIELD_BUDGET_MS = 8
 
   constructor(canvas: TInteractiveInkCanvas) {
     super(canvas, LoggerCategory.SYNCHRONIZER)
@@ -76,44 +79,25 @@ export class IISynchronizerManager extends IIAbstractManager {
     } while (this.#dirtyDuringSync)
   }
 
+  /** Retries any failure (in practice the export round-trip: element failures are caught per element) */
   async #synchronizeWithRetry(): Promise<void> {
-    let lastError: Error | undefined
-
-    for (let attempt = 1; attempt <= IISynchronizerManager.MAX_RETRY_ATTEMPTS; attempt++) {
+    const maxAttempts = IISynchronizerManager.MAX_RETRY_ATTEMPTS
+    for (let attempt = 1; ; attempt++) {
       try {
-        if (attempt > 1) {
-          this.logger.warn("synchronize", `Retry attempt ${attempt}/${IISynchronizerManager.MAX_RETRY_ATTEMPTS}`)
-        }
-
         await this.#doSynchronize()
-
         if (attempt > 1) {
           this.logger.info("synchronize", `Synchronization succeeded on attempt ${attempt}`)
         }
         return
       } catch (error) {
-        lastError = error as Error
-
-        if (attempt < IISynchronizerManager.MAX_RETRY_ATTEMPTS) {
-          this.logger.warn(
-            "synchronize",
-            `Will retry synchronization (attempt ${attempt + 1}/${IISynchronizerManager.MAX_RETRY_ATTEMPTS})`
-          )
-          await new Promise((resolve) => setTimeout(resolve, 500))
-          continue
-        } else {
-          // Non-timeout error - don't retry, fail immediately
-          this.logger.error("synchronize", "Synchronization failed with non-timeout error:", error)
+        if (attempt >= maxAttempts) {
+          this.logger.error("synchronize", `Synchronization failed after ${maxAttempts} attempts:`, error)
           throw error
         }
+        this.logger.warn("synchronize", `Will retry synchronization (attempt ${attempt + 1}/${maxAttempts})`)
+        await new Promise((resolve) => setTimeout(resolve, IISynchronizerManager.RETRY_DELAY_MS))
       }
     }
-
-    this.logger.error(
-      "synchronize",
-      `Synchronization failed after ${IISynchronizerManager.MAX_RETRY_ATTEMPTS} attempts`
-    )
-    throw lastError || new Error(`Synchronization failed after ${IISynchronizerManager.MAX_RETRY_ATTEMPTS} attempts`)
   }
 
   /** Never contend with an in-progress gesture (writing, translating, resizing, rotating) for the main thread. */
@@ -126,14 +110,21 @@ export class IISynchronizerManager extends IIAbstractManager {
   /** Serializes only the fields `#updateBlockMetadata`/`updateTextMetadata` actually read,
    * so an unrelated JIIX field changing doesn't cause a false "changed" positive. */
   #elementSnapshotKey(element: TJIIXElement): string {
-    const textElement = element as TJIIXTextElement
-    return JSON.stringify({
-      type: element.type,
-      label: textElement.label,
-      words0: textElement.words?.[0],
-      chars0: textElement.chars?.[0],
-      lines0: textElement.lines?.[0],
-    })
+    switch (element.type) {
+      case JIIXElementType.Text:
+        return JSON.stringify({
+          type: element.type,
+          label: element.label,
+          words0: element.words?.[0],
+          chars0: element.chars?.[0],
+          lines0: element.lines?.[0],
+        })
+      case JIIXElementType.Math:
+        return JSON.stringify({ type: element.type, label: element.label })
+      default:
+        // Nodes and edges carry none of the fields read: their type is the whole key
+        return JSON.stringify({ type: element.type })
+    }
   }
 
   async #doSynchronize(): Promise<void> {
@@ -166,7 +157,7 @@ export class IISynchronizerManager extends IIAbstractManager {
     // `markDirty: false`, because jiixBlockId/anchors are local bookkeeping and must not clear
     // `model.exports`, which the very sync being processed just populated.
     this.model.touch()
-    let processedSinceYield = 0
+    let sliceStart = performance.now()
     for (const el of jiix.elements || []) {
       const snapshotKey = this.#elementSnapshotKey(el)
       try {
@@ -177,7 +168,11 @@ export class IISynchronizerManager extends IIAbstractManager {
         // — re-annotate whenever the metadata itself is missing, not only on content changes.
         const needsMetadata = strokes.some((s) => s.jiixBlockId !== el.id)
         if (needsMetadata || this.#lastElementSnapshots.get(el.id) !== snapshotKey) {
-          for (const stroke of strokes) {
+          for (const committed of strokes) {
+            const stroke = this.#draftStroke(committed.id)
+            if (!stroke) {
+              continue
+            }
             this.#updateBlockMetadata(stroke, el)
 
             if (el.type === JIIXElementType.Text) {
@@ -207,14 +202,13 @@ export class IISynchronizerManager extends IIAbstractManager {
         this.logger.error("#doSynchronize", `Failed to synchronize element of type ${el.type}:`, error)
       }
 
-      processedSinceYield++
-      if (processedSinceYield >= IISynchronizerManager.SYNC_YIELD_CHUNK_SIZE) {
-        processedSinceYield = 0
+      if (performance.now() - sliceStart >= IISynchronizerManager.SYNC_YIELD_BUDGET_MS) {
         // A big document (thousands of elements) would otherwise keep this loop
         // running synchronously for one long stretch, delaying any pointer input
         // (e.g. a new stroke) queued up behind it until the whole loop is done.
         await new Promise((resolve) => requestAnimationFrame(resolve))
         await this.#waitForGestureIdle()
+        sliceStart = performance.now()
       }
     }
 
@@ -223,12 +217,15 @@ export class IISynchronizerManager extends IIAbstractManager {
 
     // Enrich math blocks with dependencies — parallel with individual timeout to avoid one hanging block stalling the whole sync
     const mathBlockIds = this.model.mathBlocks.map((m) => m.id)
-    const ENRICH_TIMEOUT_MS = 5000
     await Promise.allSettled(
       mathBlockIds.map(async (blockId) => {
-        const timeout = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error(`enrichMathDependencies timeout for "${blockId}"`)), ENRICH_TIMEOUT_MS)
-        )
+        let timer: ReturnType<typeof setTimeout> | undefined
+        const timeout = new Promise<never>((_, reject) => {
+          timer = setTimeout(
+            () => reject(new Error(`enrichMathDependencies timeout for "${blockId}"`)),
+            IISynchronizerManager.ENRICH_TIMEOUT_MS
+          )
+        })
         try {
           // `isStale` lets the enrichment discard its result instead of committing it if strokes
           // kept coming in while the backend round-trip was in flight (this pass's mathBlockIds
@@ -245,6 +242,8 @@ export class IISynchronizerManager extends IIAbstractManager {
           } else {
             this.logger.error("synchronize", "Error enriching math dependencies:", err)
           }
+        } finally {
+          clearTimeout(timer)
         }
       })
     )
@@ -342,10 +341,11 @@ export class IISynchronizerManager extends IIAbstractManager {
   }
 
   /**
-   * Get strokes from JIIX items
+   * The committed strokes JIIX items point to. Read, not drafted: most of them are left untouched,
+   * and a draft is a full copy - only the strokes about to be written get one, see {@link #draftStroke}.
    */
-  #getStrokesFromItems(items: TJIIXStrokeItem[]): TDraft<TStroke>[] {
-    const strokes: TDraft<TStroke>[] = []
+  #getStrokesFromItems(items: TJIIXStrokeItem[]): TStroke[] {
+    const strokes: TStroke[] = []
     const seen = new Set<string>()
 
     for (const item of items) {
@@ -354,13 +354,18 @@ export class IISynchronizerManager extends IIAbstractManager {
         continue
       }
       seen.add(strokeId)
-      const symbol = this.model.draftSymbol(strokeId)
+      const symbol = this.model.getSymbol(strokeId)
       if (symbol && isStroke(symbol)) {
-        strokes.push(symbol as TDraft<TStroke>)
+        strokes.push(symbol)
       }
     }
 
     return strokes
+  }
+
+  #draftStroke(id: string): TDraft<TStroke> | undefined {
+    const draft = this.model.draftSymbol(id)
+    return draft && isStroke(draft) ? draft : undefined
   }
 
   /**
@@ -396,37 +401,45 @@ export class IISynchronizerManager extends IIAbstractManager {
   /**
    * Resolve and store this edge element's connection anchors on every one of its strokes.
    * Always overwrites from the latest JIIX truth — a connection reported in a previous sync
-   * but absent now is cleared, not kept.
+   * but absent now is cleared, not kept. A stroke whose anchors already match is left as is.
    */
-  /**
-   * Takes the committed strokes and drafts its own: the metadata loop above commits the drafts it
-   * was handed, and a committed draft is frozen.
-   */
-  #syncEdgeConnections(el: TJIIXElement, committed: TStroke[]): void {
+  #syncEdgeConnections(el: TJIIXElement, strokes: TStroke[]): void {
     if (el.type !== JIIXElementType.Edge) {
       return
     }
-    const strokes = committed
-      .map((s) => this.model.draftSymbol(s.id))
-      .filter((s): s is TDraft<TStroke> => !!s && isStroke(s))
+    const { startAnchor, endAnchor } = this.#resolveEdgeAnchors(el)
+    strokes.forEach(({ id }) => {
+      // Re-read: the metadata loop may have just committed a newer version of this stroke
+      const current = this.model.getSymbol(id)
+      if (!current || !isStroke(current)) {
+        return
+      }
+      if (isDeepEqual(current.startAnchor, startAnchor) && isDeepEqual(current.endAnchor, endAnchor)) {
+        return
+      }
+      const stroke = this.#draftStroke(id)
+      if (!stroke) {
+        return
+      }
+      stroke.startAnchor = startAnchor
+      stroke.endAnchor = endAnchor
+      // Anchors aren't part of the JIIX export content either — same reasoning as the
+      // metadata-update loop above.
+      this.model.commitSymbol(stroke, false)
+    })
+  }
+
+  #resolveEdgeAnchors(el: TJIIXEdgeElement): Pick<TStroke, "startAnchor" | "endAnchor"> {
     const endpoints = extractEdgeEndpoints(el)
     const connectedIds = el.connected ?? []
     if (!endpoints || connectedIds.length === 0) {
-      strokes.forEach((stroke) => {
-        stroke.startAnchor = undefined
-        stroke.endAnchor = undefined
-        // Anchors aren't part of the JIIX export content either — same reasoning as the
-        // metadata-update loop above.
-        this.model.commitSymbol(stroke, false)
-      })
-      return
+      return { startAnchor: undefined, endAnchor: undefined }
     }
-
     const connections = connectedIds
       .map((blockId) => {
         const strokeIds = this.canvas.jiix.getStrokesForElement(blockId)
         const boxes = strokeIds
-          .map((id) => this.model.getRootSymbol(id))
+          .map((id) => this.model.getSymbol(id))
           .filter((s): s is TStroke => !!s && isStroke(s))
           .map((s) => OBBOps.toBox(SymbolGeometry.boundsOf(s)))
         if (boxes.length === 0) {
@@ -435,12 +448,6 @@ export class IISynchronizerManager extends IIAbstractManager {
         return { targetId: blockId, box: BoxOps.createFromBoxes(boxes) }
       })
       .filter((c): c is { targetId: string; box: ReturnType<typeof BoxOps.createFromBoxes> } => !!c)
-
-    const { startAnchor, endAnchor } = resolveConnectionAnchors(endpoints.start, endpoints.end, connections)
-    strokes.forEach((stroke) => {
-      stroke.startAnchor = startAnchor
-      stroke.endAnchor = endAnchor
-      this.model.commitSymbol(stroke, false)
-    })
+    return resolveConnectionAnchors(endpoints.start, endpoints.end, connections)
   }
 }

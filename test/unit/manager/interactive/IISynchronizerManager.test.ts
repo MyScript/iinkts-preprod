@@ -105,25 +105,47 @@ describe("IISynchronizerManager.ts", () => {
       const { canvas, manager, strokes, restoreRaf } = setup(5)
       await manager.synchronize()
       strokes.forEach((stroke, i) => {
-        const newStroke = canvas.model.getRootSymbol(stroke.id) as TStroke
+        const newStroke = canvas.model.getSymbol(stroke.id) as TStroke
         expect(newStroke.jiixBlockId).toBe(`block-${i}`)
         expect(newStroke.jiixBlockType).toBe("Text")
       })
       restoreRaf()
     })
 
-    test("should yield to the event loop periodically instead of processing every element in one blocking pass", async () => {
-      const chunkSize = IISynchronizerManager.SYNC_YIELD_CHUNK_SIZE
-      const { canvas, manager, strokes, rafSpy, restoreRaf } = setup(chunkSize * 2 + 1)
+    test("should yield to the event loop once its time budget is spent, instead of one blocking pass", async () => {
+      const budget = IISynchronizerManager.SYNC_YIELD_BUDGET_MS
+      const { canvas, manager, strokes, rafSpy, restoreRaf } = setup(5)
+      let now = 0
+      const clock = jest.spyOn(performance, "now").mockImplementation(() => now)
+      // Each element costs a little over half the budget: the budget runs out every second element
+      jest.mocked(canvas.jiix.updateTextMetadata).mockImplementation(() => {
+        now += budget / 2 + 1
+      })
+
       await manager.synchronize()
 
-      // One yield after each full chunk (here: 2 chunks completed mid-loop).
+      // Out after elements 2 and 4; element 5 alone fits
       expect(rafSpy).toHaveBeenCalledTimes(2)
       // Yielding must not skip or duplicate work.
       strokes.forEach((stroke, i) => {
-        const newStroke = canvas.model.getRootSymbol(stroke.id) as TStroke
+        const newStroke = canvas.model.getSymbol(stroke.id) as TStroke
         expect(newStroke.jiixBlockId).toBe(`block-${i}`)
       })
+      clock.mockRestore()
+      restoreRaf()
+    })
+
+    test("should not yield on a large document whose pass fits in the budget", async () => {
+      const { manager, rafSpy, restoreRaf } = setup(200)
+      await manager.synchronize()
+      rafSpy.mockClear()
+      const clock = jest.spyOn(performance, "now").mockReturnValue(0)
+
+      await manager.synchronize()
+
+      // Yielding every N elements cost one frame per N even when there was nothing to do
+      expect(rafSpy).not.toHaveBeenCalled()
+      clock.mockRestore()
       restoreRaf()
     })
 
@@ -146,7 +168,7 @@ describe("IISynchronizerManager.ts", () => {
       await syncPromise
 
       strokes.forEach((stroke, i) => {
-        const newStroke = canvas.model.getRootSymbol(stroke.id) as TStroke
+        const newStroke = canvas.model.getSymbol(stroke.id) as TStroke
         expect(newStroke.jiixBlockId).toBe(`block-${i}`)
       })
       restoreRaf()
@@ -164,7 +186,7 @@ describe("IISynchronizerManager.ts", () => {
       await syncPromise
 
       strokes.forEach((stroke, i) => {
-        const newStroke = canvas.model.getRootSymbol(stroke.id) as TStroke
+        const newStroke = canvas.model.getSymbol(stroke.id) as TStroke
         expect(newStroke.jiixBlockId).toBe(`block-${i}`)
       })
       restoreRaf()
@@ -187,7 +209,7 @@ describe("IISynchronizerManager.ts", () => {
       await syncPromise
 
       strokes.forEach((stroke, i) => {
-        const newStroke = canvas.model.getRootSymbol(stroke.id) as TStroke
+        const newStroke = canvas.model.getSymbol(stroke.id) as TStroke
         expect(newStroke.jiixBlockId).toBe(`block-${i}`)
       })
       restoreRaf()
@@ -207,6 +229,19 @@ describe("IISynchronizerManager.ts", () => {
       restoreRaf()
     })
 
+    test("should not copy a single stroke on a sync where nothing changed", async () => {
+      const { canvas, manager, restoreRaf } = setup(3)
+      await manager.synchronize()
+      const draftSymbol = jest.spyOn(canvas.model, "draftSymbol")
+
+      await manager.synchronize()
+
+      // A draft is a structuredClone: on a large, already-synced document, drafting every stroke
+      // just to read its jiixBlockId cost a full copy of the document on every sync
+      expect(draftSymbol).not.toHaveBeenCalled()
+      restoreRaf()
+    })
+
     test("should reprocess a block whose stroke lost its jiixBlockId even though content is unchanged (e.g. a history snapshot restored by undo() after clear())", async () => {
       const { canvas, manager, strokes, restoreRaf } = setup(3)
       await manager.synchronize()
@@ -223,7 +258,7 @@ describe("IISynchronizerManager.ts", () => {
 
       expect(canvas.jiix.updateTextMetadata).toHaveBeenCalledTimes(4)
       strokes.forEach((stroke, i) => {
-        const newStroke = canvas.model.getRootSymbol(stroke.id) as TStroke
+        const newStroke = canvas.model.getSymbol(stroke.id) as TStroke
         expect(newStroke.jiixBlockId).toBe(`block-${i}`)
       })
       restoreRaf()
@@ -270,8 +305,8 @@ describe("IISynchronizerManager.ts", () => {
 
       await manager.synchronize()
 
-      expect((canvas.model.getRootSymbol(strokes[1].id) as TStroke).jiixBlockId).toBe("block-1")
-      expect((canvas.model.getRootSymbol(strokes[2].id) as TStroke).jiixBlockId).toBe("block-2")
+      expect((canvas.model.getSymbol(strokes[1].id) as TStroke).jiixBlockId).toBe("block-1")
+      expect((canvas.model.getSymbol(strokes[2].id) as TStroke).jiixBlockId).toBe("block-2")
       restoreRaf()
     })
 
@@ -297,6 +332,34 @@ describe("IISynchronizerManager.ts", () => {
     })
   })
 
+  describe("retry", () => {
+    test("should retry a failed export and resolve once one succeeds", async () => {
+      const canvas = createCanvasMock()
+      canvas.export = jest
+        .fn()
+        .mockRejectedValueOnce(new Error("first"))
+        .mockRejectedValueOnce(new Error("second"))
+        .mockResolvedValue(undefined)
+      const manager = new IISynchronizerManager(asCanvas(canvas))
+
+      await expect(manager.synchronize()).resolves.toBeUndefined()
+      expect(canvas.export).toHaveBeenCalledTimes(3)
+    })
+
+    test("should give up after MAX_RETRY_ATTEMPTS with the last error", async () => {
+      const canvas = createCanvasMock()
+      canvas.export = jest
+        .fn()
+        .mockRejectedValueOnce(new Error("first"))
+        .mockRejectedValueOnce(new Error("second"))
+        .mockRejectedValueOnce(new Error("last"))
+      const manager = new IISynchronizerManager(asCanvas(canvas))
+
+      await expect(manager.synchronize()).rejects.toThrow("last")
+      expect(canvas.export).toHaveBeenCalledTimes(IISynchronizerManager.MAX_RETRY_ATTEMPTS)
+    })
+  })
+
   describe("math dependency enrichment", () => {
     function setupMath(mathBlockIds: string[]) {
       const canvas = createCanvasMock()
@@ -315,6 +378,23 @@ describe("IISynchronizerManager.ts", () => {
 
       expect(canvas.math.enrichMathDependencies).toHaveBeenCalledWith("math-0", expect.any(Function))
       expect(canvas.math.enrichMathDependencies).toHaveBeenCalledWith("math-1", expect.any(Function))
+    })
+
+    test("should cancel each enrichment's timeout once the enrichment settles", async () => {
+      const { manager } = setupMath(["math-0", "math-1"])
+      const setTimeoutSpy = jest.spyOn(globalThis, "setTimeout")
+      const clearTimeoutSpy = jest.spyOn(globalThis, "clearTimeout")
+
+      await manager.synchronize()
+
+      const enrichTimers = setTimeoutSpy.mock.calls
+        .map((call, i) => ({ delay: call[1], id: setTimeoutSpy.mock.results[i].value }))
+        .filter(({ delay }) => delay === IISynchronizerManager.ENRICH_TIMEOUT_MS)
+      // Left running, each one fired 5 s later for an enrichment long since done, on every sync
+      expect(enrichTimers).toHaveLength(2)
+      enrichTimers.forEach(({ id }) => expect(clearTimeoutSpy).toHaveBeenCalledWith(id))
+      setTimeoutSpy.mockRestore()
+      clearTimeoutSpy.mockRestore()
     })
 
     test("should report stale once a new synchronize() is queued mid-enrichment, then resolve fresh on the redo pass", async () => {
@@ -366,9 +446,37 @@ describe("IISynchronizerManager.ts", () => {
       const manager = new IISynchronizerManager(asCanvas(canvas))
       await manager.synchronize()
 
-      const updatedEdgeStroke = canvas.model.getRootSymbol(edgeStroke.id) as TStroke
+      const updatedEdgeStroke = canvas.model.getSymbol(edgeStroke.id) as TStroke
       expect(updatedEdgeStroke.endAnchor?.symbolId).toBe("node-1")
       expect(updatedEdgeStroke.startAnchor).toBeUndefined()
+    })
+
+    test("should not rewrite an edge stroke whose anchors did not change", async () => {
+      const canvas = createCanvasMock()
+      const edgeStroke = buildIIStroke()
+      const nodeStroke = buildIIStroke({ box: { x: 35, y: -2, width: 6, height: 6 } })
+      canvas.model.addSymbol(edgeStroke)
+      canvas.model.addSymbol(nodeStroke)
+      const jiixExport = buildJiixExport([
+        buildNodeElement("node-1", nodeStroke.id),
+        buildEdgeElement("edge-1", edgeStroke.id, ["node-1"], [0]),
+      ])
+      canvas.export = jest.fn().mockImplementation(async () => {
+        canvas.model.mergeExport({ "application/vnd.myscript.jiix": jiixExport })
+      })
+      jest.spyOn(canvas.jiix, "getStrokesForElement").mockImplementation((id: string) =>
+        id === "node-1" ? [nodeStroke.id] : []
+      )
+      const manager = new IISynchronizerManager(asCanvas(canvas))
+      await manager.synchronize()
+      const draftSymbol = jest.spyOn(canvas.model, "draftSymbol")
+      const commitSymbol = jest.spyOn(canvas.model, "commitSymbol")
+
+      await manager.synchronize()
+
+      expect(draftSymbol).not.toHaveBeenCalled()
+      expect(commitSymbol).not.toHaveBeenCalled()
+      expect((canvas.model.getSymbol(edgeStroke.id) as TStroke).endAnchor?.symbolId).toBe("node-1")
     })
 
     test("edge element with no connected[] clears any previously-set anchor (live-truth overwrite)", async () => {
@@ -386,7 +494,7 @@ describe("IISynchronizerManager.ts", () => {
       const manager = new IISynchronizerManager(asCanvas(canvas))
       await manager.synchronize()
 
-      const updatedEdgeStroke = canvas.model.getRootSymbol(edgeStroke.id) as TStroke
+      const updatedEdgeStroke = canvas.model.getSymbol(edgeStroke.id) as TStroke
       expect(updatedEdgeStroke.startAnchor).toBeUndefined()
       expect(updatedEdgeStroke.endAnchor).toBeUndefined()
     })
@@ -430,14 +538,14 @@ describe("IISynchronizerManager.ts", () => {
       const manager = new IISynchronizerManager(asCanvas(canvas))
 
       await manager.synchronize()
-      expect((canvas.model.getRootSymbol(edgeStroke.id) as TStroke).endAnchor?.symbolId).toBe("node-a")
+      expect((canvas.model.getSymbol(edgeStroke.id) as TStroke).endAnchor?.symbolId).toBe("node-a")
 
       // Second sync: same edge element id/content fingerprint (label/words/chars/lines are all
       // absent on Edge elements, and jiixBlockId is already set) - the pre-existing
       // metadata-caching gate would treat this as "unchanged" and skip re-processing, which is
       // exactly why #syncEdgeConnections must run unconditionally, outside that gate.
       await manager.synchronize()
-      const updatedEdgeStroke = canvas.model.getRootSymbol(edgeStroke.id) as TStroke
+      const updatedEdgeStroke = canvas.model.getSymbol(edgeStroke.id) as TStroke
       expect(updatedEdgeStroke.endAnchor?.symbolId).toBe("node-b")
       expect(updatedEdgeStroke.startAnchor).toBeUndefined()
     })

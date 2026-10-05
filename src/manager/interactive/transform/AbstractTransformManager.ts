@@ -81,7 +81,7 @@ export abstract class IIAbstractTransformManager extends IIAbstractManager {
       changes,
       snapshots.flatMap((before) => {
         // The committed record is frozen, so it is a value the history can hold as-is — no clone.
-        const after = this.model.getRootSymbol(before.id)
+        const after = this.model.getSymbol(before.id)
         return after ? [{ before, after }] : []
       })
     )
@@ -103,7 +103,7 @@ export abstract class IIAbstractTransformManager extends IIAbstractManager {
       // element's geometry is the symbol's raw coordinates, which a transform never changes. The
       // renderer must see the frozen, committed record here (not `target`, the now-stale draft) so
       // that `SymbolGeometry`'s frozen-only cache actually holds for it.
-      this.canvas.renderer.setSymbolTransform(this.model.getRootSymbol(target.id) ?? target)
+      this.canvas.renderer.setSymbolTransform(this.model.getSymbol(target.id) ?? target)
     })
     this.updateDecoratorsForTargets(symbols, matrix)
   }
@@ -124,7 +124,7 @@ export abstract class IIAbstractTransformManager extends IIAbstractManager {
       if (!draft || !isDecorator(draft)) {
         return
       }
-      const targetSyms = draft.targetIds.map((id) => this.model.getRootSymbol(id)).filter((s): s is TSymbol => !!s)
+      const targetSyms = draft.targetIds.map((id) => this.model.getSymbol(id)).filter((s): s is TSymbol => !!s)
       if (!targetSyms.length) {
         return
       }
@@ -155,7 +155,7 @@ export abstract class IIAbstractTransformManager extends IIAbstractManager {
     const knownIds = new Set(alreadyIncluded.map((s) => s.id))
     return followedIds
       .filter((id) => !knownIds.has(id))
-      .map((id) => this.model.getRootSymbol(id))
+      .map((id) => this.model.getSymbol(id))
       .filter((s): s is TSymbol => !!s)
   }
 

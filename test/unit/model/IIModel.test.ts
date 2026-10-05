@@ -162,13 +162,13 @@ describe("IIModel.ts", () => {
     model.addSymbol(circle1)
 
     test("shoud get symbol if stroke root", () => {
-      expect(model.getRootSymbol(stroke1.id)).toEqual(stroke1)
+      expect(model.getSymbol(stroke1.id)).toEqual(stroke1)
     })
     test("shoud get symbol if circle root", () => {
-      expect(model.getRootSymbol(circle1.id)).toEqual(circle1)
+      expect(model.getSymbol(circle1.id)).toEqual(circle1)
     })
     test("shoud get undefined if child of group root", () => {
-      expect(model.getRootSymbol("pouet")).toBeUndefined()
+      expect(model.getSymbol("pouet")).toBeUndefined()
     })
   })
 

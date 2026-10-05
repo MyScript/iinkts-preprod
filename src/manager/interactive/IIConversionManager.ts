@@ -478,7 +478,7 @@ export class IIConversionManager extends IIAbstractManager {
         if (!targetId) {
           return undefined
         }
-        const target = this.model.getRootSymbol(targetId)
+        const target = this.model.getSymbol(targetId)
         if (!target || !symbolRegistry.has(target.type)) {
           return undefined
         }

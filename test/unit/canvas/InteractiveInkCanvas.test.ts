@@ -472,7 +472,7 @@ describe("InteractiveInkCanvas.ts", () => {
     })
     test("remove stroke", async () => {
       const stroke = buildIIStroke()
-      canvas.model.getRootSymbol = jest.fn(() => stroke)
+      canvas.model.getSymbol = jest.fn(() => stroke)
       canvas.model.addSymbol(stroke)
       await canvas.removeSymbol(stroke.id)
       expect(canvas.model.removeSymbol).toHaveBeenNthCalledWith(1, stroke.id)
@@ -481,7 +481,7 @@ describe("InteractiveInkCanvas.ts", () => {
     })
     test("remove shape", async () => {
       const shape = buildIICircle()
-      canvas.model.getRootSymbol = jest.fn(() => shape)
+      canvas.model.getSymbol = jest.fn(() => shape)
       canvas.model.addSymbol(shape)
       await canvas.removeSymbol(shape.id)
       expect(canvas.model.removeSymbol).toHaveBeenNthCalledWith(1, shape.id)
@@ -535,7 +535,7 @@ describe("InteractiveInkCanvas.ts", () => {
 
       await canvas.removeSymbols([erased.id])
 
-      const after = canvas.model.getRootSymbol(decorator.id) as TDecorator
+      const after = canvas.model.getSymbol(decorator.id) as TDecorator
       expect(after.targetIds).toEqual([kept.id])
       expect(after.targetBounds).toEqual(SymbolGeometry.boundsOf(kept))
     })
@@ -553,11 +553,11 @@ describe("InteractiveInkCanvas.ts", () => {
       canvas.model.addSymbol(edge)
 
       await canvas.removeSymbols([shape.id])
-      const edgeAfterRemove = canvas.model.getRootSymbol(edge.id) as TEdgeLine
+      const edgeAfterRemove = canvas.model.getSymbol(edge.id) as TEdgeLine
       expect(edgeAfterRemove.endAnchor).toBeUndefined()
 
       await canvas.undo()
-      const restoredEdge = canvas.model.getRootSymbol(edge.id) as TEdgeLine
+      const restoredEdge = canvas.model.getSymbol(edge.id) as TEdgeLine
       expect(restoredEdge.endAnchor?.symbolId).toBe(shape.id)
     })
 
@@ -574,11 +574,11 @@ describe("InteractiveInkCanvas.ts", () => {
       canvas.model.addSymbol(edge)
 
       await canvas.removeSymbol(shape.id)
-      const edgeAfterRemove = canvas.model.getRootSymbol(edge.id) as TEdgeLine
+      const edgeAfterRemove = canvas.model.getSymbol(edge.id) as TEdgeLine
       expect(edgeAfterRemove.startAnchor).toBeUndefined()
 
       await canvas.undo()
-      const restoredEdge = canvas.model.getRootSymbol(edge.id) as TEdgeLine
+      const restoredEdge = canvas.model.getSymbol(edge.id) as TEdgeLine
       expect(restoredEdge.startAnchor?.symbolId).toBe(shape.id)
     })
 
@@ -597,11 +597,11 @@ describe("InteractiveInkCanvas.ts", () => {
 
       await canvas.removeSymbols([shapeStroke.id])
 
-      const edgeAfterRemove = canvas.model.getRootSymbol(edgeStroke.id) as TStroke
+      const edgeAfterRemove = canvas.model.getSymbol(edgeStroke.id) as TStroke
       expect(edgeAfterRemove.endAnchor).toBeUndefined()
 
       await canvas.undo()
-      const restoredEdge = canvas.model.getRootSymbol(edgeStroke.id) as TStroke
+      const restoredEdge = canvas.model.getSymbol(edgeStroke.id) as TStroke
       expect(restoredEdge.endAnchor?.symbolId).toBe("block-shape-1")
     })
 
@@ -618,7 +618,7 @@ describe("InteractiveInkCanvas.ts", () => {
 
       await canvas.removeSymbol(shapeStroke.id)
 
-      const edgeAfterRemove = canvas.model.getRootSymbol(edgeStroke.id) as TStroke
+      const edgeAfterRemove = canvas.model.getSymbol(edgeStroke.id) as TStroke
       expect(edgeAfterRemove.startAnchor).toBeUndefined()
     })
 
@@ -640,7 +640,7 @@ describe("InteractiveInkCanvas.ts", () => {
 
       await canvas.replaceSymbols([shapeStroke], [newShape])
 
-      const edgeAfterReplace = canvas.model.getRootSymbol(edgeStroke.id) as TStroke
+      const edgeAfterReplace = canvas.model.getSymbol(edgeStroke.id) as TStroke
       expect(edgeAfterReplace.endAnchor).toBeUndefined()
     })
 
@@ -662,7 +662,7 @@ describe("InteractiveInkCanvas.ts", () => {
       canvas.model.addSymbol(edge)
 
       await canvas.replaceSymbols([shape], [newShape])
-      const edgeAfterReplace = canvas.model.getRootSymbol(edge.id) as TEdgeLine
+      const edgeAfterReplace = canvas.model.getSymbol(edge.id) as TEdgeLine
       expect(edgeAfterReplace.startAnchor).toBeUndefined()
     })
 
@@ -685,7 +685,7 @@ describe("InteractiveInkCanvas.ts", () => {
       canvas.model.addSymbol(edge)
 
       await canvas.replaceSymbols([shape], [newShape])
-      const edgeAfterReplace = canvas.model.getRootSymbol(edge.id) as TEdgeLine
+      const edgeAfterReplace = canvas.model.getSymbol(edge.id) as TEdgeLine
       expect(edgeAfterReplace.startAnchor?.symbolId).toBe(shape.id)
     })
   })
@@ -703,7 +703,7 @@ describe("InteractiveInkCanvas.ts", () => {
       await canvas.initialize()
       expect(canvas.model.symbols[0].style.color).toEqual("#000000")
       canvas.updateSymbolsStyle([stroke1.id], { color: "red" })
-      const newStroke1 = canvas.model.getRootSymbol(stroke1.id)
+      const newStroke1 = canvas.model.getSymbol(stroke1.id)
       expect(canvas.model.symbols[0].style.color).toEqual("red")
       expect(canvas.renderer.drawSymbol).toHaveBeenCalledTimes(1)
       expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(newStroke1)
@@ -712,18 +712,18 @@ describe("InteractiveInkCanvas.ts", () => {
       await canvas.initialize()
       expect(stroke2.style.width).toEqual(2)
       canvas.updateSymbolsStyle([stroke2.id], { width: 42 })
-      const newStroke2 = canvas.model.getRootSymbol(stroke2.id) as TStroke
+      const newStroke2 = canvas.model.getSymbol(stroke2.id) as TStroke
       expect(newStroke2.style.width).toEqual(42)
       expect(canvas.renderer.drawSymbol).toHaveBeenCalledTimes(1)
       expect(canvas.renderer.drawSymbol).toHaveBeenCalledWith(newStroke2)
     })
     test("should push both old and new style so the change can be reversed", async () => {
       await canvas.initialize()
-      const oldStroke1 = canvas.model.getRootSymbol(stroke1.id) as TStroke
+      const oldStroke1 = canvas.model.getSymbol(stroke1.id) as TStroke
       const oldStyle = { ...oldStroke1.style }
       canvas.history.push = jest.fn()
       canvas.updateSymbolsStyle([stroke1.id], { color: "green" })
-      const newStroke1 = canvas.model.getRootSymbol(stroke1.id) as TStroke
+      const newStroke1 = canvas.model.getSymbol(stroke1.id) as TStroke
       // A restyle is a before/after pair like any other change now: the record carries the style,
       // so there is nothing to record beside it.
       expect(canvas.history.push).toHaveBeenNthCalledWith(1, {
@@ -1205,7 +1205,7 @@ describe("InteractiveInkCanvas.ts", () => {
         const before = cloneSymbol(stroke) as TStroke
         stroke.transform = MatrixTransform.identity().translate(50, 25)
         canvas.model.addSymbol(stroke)
-        return { before, after: canvas.model.getRootSymbol(stroke.id) as TStroke }
+        return { before, after: canvas.model.getSymbol(stroke.id) as TStroke }
       })
       canvas.math.hasGhostStrokes = jest.fn().mockReturnValue(true)
       canvas.math.applyTransformToGhostStrokes = jest.fn()
@@ -1290,8 +1290,8 @@ describe("InteractiveInkCanvas.ts", () => {
 
       await canvas.undo()
 
-      expect(canvas.model.getRootSymbol(strokeA.id)?.style.color).toBe("#ff0000")
-      expect(canvas.model.getRootSymbol(strokeB.id)?.style.width).toBe(9)
+      expect(canvas.model.getSymbol(strokeA.id)?.style.color).toBe("#ff0000")
+      expect(canvas.model.getSymbol(strokeB.id)?.style.width).toBe(9)
     })
 
     /**

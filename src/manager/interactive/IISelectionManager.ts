@@ -1013,7 +1013,7 @@ export class IISelectionManager extends IIAbstractManager {
     blockIds.forEach((blockId) => {
       this.canvas.jiix.getStrokesForElement(blockId).forEach((id) => {
         if (!this.model.selectedIds.has(id)) {
-          const sym = this.model.getRootSymbol(id)
+          const sym = this.model.getSymbol(id)
           if (sym) {
             this.model.selectSymbol(id)
             this.renderer.updateSelectedState(sym, true)

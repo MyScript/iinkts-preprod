@@ -70,11 +70,11 @@ const GEOMETRY_POINTS_PER_STROKE = 40
  *
  * There used to be one shared factor of 20, which is the same mistake as one shared threshold: the
  * cases span seven orders of magnitude, so a single number cannot put them all in a measurable band.
- * At 20 passes one iteration of `getRootSymbol` cost 0.00003 ms — below the resolution of
+ * At 20 passes one iteration of `getSymbol` cost 0.00003 ms — below the resolution of
  * `performance.now()`, so it timed the clock rather than the code, and then failed CI at +21%
  * against a 15% limit on a tree nobody had touched.
  *
- * A factor is not only about cost. `getRootSymbol` cleared the floor at 100 000 repeats of a single
+ * A factor is not only about cost. `getSymbol` cleared the floor at 100 000 repeats of a single
  * lookup and still read badly, because repeating one key is a shape the JIT treats unstably and is
  * not what the library does either. Rotating over every resident id fixed both at once.
  *
