@@ -135,7 +135,8 @@ test-perf-e2e-ci:
 		-e APPLICATION_KEY="$(APPLICATION_KEY)" \
 		-e HMAC_KEY="$(HMAC_KEY)" \
 		-e PERF_E2E_DOCUMENT="$(PERF_E2E_DOCUMENT)" \
-		-e PERF_E2E_REPORT="$(PERF_E2E_REPORT)" \
+		-e PERF_E2E_REPORT_DIR="$(PERF_E2E_REPORT_DIR)" \
+		-e PERF_E2E_ROUNDS="$(PERF_E2E_ROUNDS)" \
 		-v $(CURRENT_PWD):/iink-ts \
 		-w "/iink-ts" \
 		--name "$(DOCKER_INSTANCE_PLAYWRIGHT)-perf" \
