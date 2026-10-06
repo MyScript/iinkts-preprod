@@ -20,6 +20,8 @@ export type TBrowserReport = {
   referenceSha?: string
   longTasks: boolean
   results: Record<string, TScenarioSides>
+  /** Reference runs that crashed the page: their cells are empty, see `measureBoth`. */
+  referenceCrashes: string[]
 }
 
 export const REPORT_DIR = resolve(process.cwd(), process.env.PERF_E2E_REPORT_DIR || ".local/bench/perf-e2e")
@@ -45,9 +47,13 @@ function readReport(file: string): TBrowserReport | undefined {
 export function mergeReport(report: TBrowserReport): void {
   const file = reportPath(report.project)
   const previous = existsSync(file) ? readReport(file) : undefined
-  const results = previous?.run === report.run ? { ...previous.results, ...report.results } : report.results
+  const sameRun = previous?.run === report.run
+  const results = sameRun ? { ...previous.results, ...report.results } : report.results
+  const referenceCrashes = sameRun
+    ? [...new Set([...(previous.referenceCrashes ?? []), ...report.referenceCrashes])]
+    : report.referenceCrashes
   mkdirSync(REPORT_DIR, { recursive: true })
-  writeFileSync(file, `${JSON.stringify({ ...report, results }, null, 2)}\n`)
+  writeFileSync(file, `${JSON.stringify({ ...report, results, referenceCrashes }, null, 2)}\n`)
 }
 
 /** Every project's report this run wrote. */
@@ -74,5 +80,8 @@ export function formatReport(report: TBrowserReport): string {
     ),
     "",
     `before/after: each build's median over the rounds.${report.longTasks ? "" : " No blocking time: this engine does not report long tasks."}`,
+    ...(report.referenceCrashes?.length
+      ? [`the reference build crashed the page, its cells are empty: ${report.referenceCrashes.join("; ")}`]
+      : []),
   ].join("\n")
 }
