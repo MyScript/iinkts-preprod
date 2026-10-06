@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test"
 import { passModalKey, writeStrokes, callCanvasIdle, pollJiix } from "../helper"
 import dataset from "../__dataset__/diagram_connections"
 
-test.describe("Interactive ink canvas diagram inspector", () => {
+test.describe("Interactive ink canvas diagram inspector", { tag: "@slow" }, () => {
   // Replaying the diagram dataset takes close to a minute on a loaded WebKit run
   test.describe.configure({ timeout: 120 * 1000 })
 

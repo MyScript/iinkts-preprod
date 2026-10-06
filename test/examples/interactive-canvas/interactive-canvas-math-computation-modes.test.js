@@ -58,7 +58,7 @@ const writeSumExpressionAndGetBlockId = async (page) => {
   return jiix.elements[0].id
 }
 
-test.describe("Math Computation Modes", () => {
+test.describe("Math Computation Modes", { tag: "@touch" }, () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(`${process.env.PATH_PREFIX ? process.env.PATH_PREFIX : ""}/examples/interactive-canvas/interactive_canvas_math_computation_modes.html`)
     await passModalKey(page)

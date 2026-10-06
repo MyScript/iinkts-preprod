@@ -66,7 +66,7 @@ const getSolverOutputIds = async (page, jiixBlockId) => {
     .sort()
 }
 
-test.describe("Math Dependencies", () => {
+test.describe("Math Dependencies", { tag: "@slow" }, () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(`${process.env.PATH_PREFIX ? process.env.PATH_PREFIX : ""}/examples/interactive-canvas/interactive_canvas_math_dependencies.html`)
     await passModalKey(page)
