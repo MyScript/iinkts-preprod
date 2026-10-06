@@ -46,8 +46,7 @@ export class PointerEventGrabber {
    * ancestor between `window` and `layerCapture`.
    */
   #scrollHandler = () => {
-    const svgElement =
-      this.layerCapture instanceof SVGSVGElement ? this.layerCapture : this.layerCapture.querySelector("svg")
+    const svgElement = this.getCaptureSvg()
     if (svgElement) {
       bumpSvgTransformVersion(svgElement)
     }
@@ -75,6 +74,23 @@ export class PointerEventGrabber {
       requestedFloatPrecision,
     })
     return oneFloat
+  }
+
+  #captureSvg?: SVGSVGElement
+
+  /**
+   * The svg pointers are mapped into. Every coalesced pointer sample needs it, so the lookup is
+   * kept rather than redone per sample; it is redone only once the kept svg has left
+   * `layerCapture`, which is what a renderer that rebuilds its svg does.
+   */
+  protected getCaptureSvg(): SVGSVGElement | null {
+    if (this.layerCapture instanceof SVGSVGElement) {
+      return this.layerCapture
+    }
+    if (!this.#captureSvg || !this.layerCapture.contains(this.#captureSvg)) {
+      this.#captureSvg = this.layerCapture.querySelector("svg") ?? undefined
+    }
+    return this.#captureSvg ?? null
   }
 
   #cachedCTM?: DOMMatrix
@@ -138,8 +154,7 @@ export class PointerEventGrabber {
 
     let x: number, y: number
 
-    const svgElement: SVGSVGElement | null =
-      this.layerCapture instanceof SVGSVGElement ? this.layerCapture : this.layerCapture.querySelector("svg")
+    const svgElement = this.getCaptureSvg()
 
     if (svgElement) {
       const ctm = this.getCachedScreenCTM(svgElement)

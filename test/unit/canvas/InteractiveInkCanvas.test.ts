@@ -840,6 +840,30 @@ describe("InteractiveInkCanvas.ts", () => {
     })
   })
 
+  describe("duplicate — fresh ids", () => {
+    test("should give each copy a new id without scanning the document per copy", async () => {
+      const canvas = new InteractiveInkCanvas(document.createElement("div"), CanvasOptions)
+      canvas.client.init = jest.fn()
+      canvas.client.waitForIdle = jest.fn(() => Promise.resolve())
+      canvas.client.addStrokes = jest.fn()
+      canvas.renderer.drawSymbol = jest.fn()
+      canvas.selector.drawSelectedGroup = jest.fn()
+      canvas.selector.removeSelectedGroup = jest.fn()
+      const strokes = [buildIIStroke(), buildIIStroke(), buildIIStroke()]
+      strokes.forEach((s) => canvas.model.addSymbol(s))
+      const originalIds = strokes.map((s) => s.id)
+      const symbolsSpy = jest.spyOn(canvas.model, "symbols", "get")
+
+      const result = await canvas.duplicate(strokes)
+
+      // Reads of the whole document must not grow with the number of copies.
+      expect(symbolsSpy.mock.calls.length).toBeLessThan(strokes.length)
+      const ids = result.map((s) => s.id)
+      expect(new Set(ids).size).toBe(strokes.length)
+      ids.forEach((id) => expect(originalIds).not.toContain(id))
+    })
+  })
+
   describe("importPointsEvent", () => {
     const pStrokes: TPartialDeep<TStroke>[] = [
       {
