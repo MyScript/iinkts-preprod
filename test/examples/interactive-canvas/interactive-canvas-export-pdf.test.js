@@ -4,7 +4,7 @@ import helloOneStroke from "../__dataset__/helloOneStroke"
 import equation from "../__dataset__/equation"
 import diagramConnections from "../__dataset__/diagram_connections"
 
-test.describe("Interactive ink canvas Live PDF Document", () => {
+test.describe("Interactive ink canvas Live PDF Document", { tag: "@slow" }, () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(`${process.env.PATH_PREFIX ? process.env.PATH_PREFIX : ""}/examples/interactive-canvas/interactive_canvas_export_pdf.html`)
     await passModalKey(page)
