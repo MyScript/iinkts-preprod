@@ -57,6 +57,8 @@ type TBuild = keyof TScenarioSides
 type TScenario = (page: Page) => Promise<Record<string, TScenarioMeasurement>>
 
 const results: Record<string, TScenarioSides> = {}
+/** Runs of the reference build that crashed the page, so the report can say why a cell is empty. */
+const referenceCrashes: string[] = []
 let longTasks = false
 
 type TCanvasWindow = {
@@ -164,13 +166,43 @@ async function measureBoth(context: BrowserContext, scenario: TScenario): Promis
     for (const build of order) {
       const page = await openExample(context, build)
       longTasks = await longTasksSupported(page)
-      const measured = await scenario(page)
+      const measured = await unlessCrashed(page, scenario)
       await page.close()
+      if (!measured) {
+        // The reference is the base branch's code: a crash there is a bug this branch may have fixed,
+        // so it leaves its cells empty instead of failing the run. In the current build it is news.
+        if (build === "current") throw new Error(`the current build crashed the browser page (round ${round + 1})`)
+        referenceCrashes.push(`${test.info().title}, round ${round + 1}`)
+        continue
+      }
       for (const [name, measurement] of Object.entries(measured)) {
         results[name] ??= { reference: [], current: [] }
         results[name][build].push(measurement)
       }
     }
+  }
+}
+
+/**
+ * Runs the scenario, or gives up as soon as the page's process crashes. A crashed page never answers
+ * again, so without this every pending command waits out the test timeout — 15 minutes per run.
+ */
+async function unlessCrashed(
+  page: Page,
+  scenario: TScenario
+): Promise<Record<string, TScenarioMeasurement> | undefined> {
+  let onCrash = (): void => {}
+  const crashed = new Promise<undefined>((resolve) => {
+    onCrash = () => resolve(undefined)
+    page.once("crash", onCrash)
+  })
+  const measuring = scenario(page)
+  // Once the page is gone the scenario's pending commands reject; nobody is waiting for them anymore.
+  measuring.catch(() => {})
+  try {
+    return await Promise.race([measuring, crashed])
+  } finally {
+    page.off("crash", onCrash)
   }
 }
 
@@ -186,6 +218,7 @@ function saveReport(project: string): void {
     ...(existsSync(REFERENCE_SHA) ? { referenceSha: readFileSync(REFERENCE_SHA, "utf8").trim() } : {}),
     longTasks,
     results,
+    referenceCrashes,
   })
 }
 

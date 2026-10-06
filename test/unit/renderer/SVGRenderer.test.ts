@@ -210,6 +210,20 @@ describe("SVGRenderer.ts", () => {
       renderer.updateSelectedState(stroke, false)
       expect(el.classList.contains(SVGRendererConst.selectedClassName)).toBe(false)
     })
+    test("should fade a symbol being erased with a class, not an SVG filter", () => {
+      // WebKit's renderer crashed painting the former SVG removal filter, on as few as five strokes
+      const stroke = buildIIStroke()
+      renderer.drawSymbol(stroke)
+      const el = divElement.querySelector(`#${stroke.id}`)!
+
+      renderer.updateDeletingState(stroke, true)
+      expect(el.classList.contains(SVGRendererConst.deletingClassName)).toBe(true)
+      expect(el.hasAttribute("filter")).toBe(false)
+      expect(divElement.querySelector("#removal-filter")).toBeNull()
+
+      renderer.updateDeletingState(stroke, false)
+      expect(el.classList.contains(SVGRendererConst.deletingClassName)).toBe(false)
+    })
     test("should draw stroke", () => {
       const stroke = buildIIStroke()
       renderer.drawSymbol(stroke)
