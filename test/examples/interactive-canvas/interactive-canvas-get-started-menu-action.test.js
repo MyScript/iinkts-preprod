@@ -20,7 +20,7 @@ import helloInsert from "../__dataset__/helloInsert"
 import helloOneStroke from "../__dataset__/helloOneStroke"
 import helloOneStrokeSurrounded from "../__dataset__/helloOneStrokeSurrounded"
 
-test.describe("Interactive ink canvas Get Started Menu Action", () => {
+test.describe("Interactive ink canvas Get Started Menu Action", { tag: ["@touch", "@slow"] }, () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(`${process.env.PATH_PREFIX ? process.env.PATH_PREFIX : ""}/examples/interactive-canvas/interactive_canvas_get_started.html`)
     await passModalKey(page)

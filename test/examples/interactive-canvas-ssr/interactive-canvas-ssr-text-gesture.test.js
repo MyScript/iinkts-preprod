@@ -9,7 +9,7 @@ import {
 
 import helloStrike from '../__dataset__/helloStrike'
 
-test.describe('Interactive Canvas SSR Text Gesture', () => {
+test.describe('Interactive Canvas SSR Text Gesture', { tag: "@touch" }, () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(`${process.env.PATH_PREFIX ? process.env.PATH_PREFIX : ""}/examples/interactive-canvas-ssr/interactive_canvas_ssr_text_gesture.html`)
     await passModalKey(page)

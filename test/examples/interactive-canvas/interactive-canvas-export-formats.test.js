@@ -8,7 +8,7 @@ import {
 import locator from "../locators"
 import helloOneStroke from "../__dataset__/helloOneStroke"
 
-test.describe("Interactive ink canvas Export Formats", () => {
+test.describe("Interactive ink canvas Export Formats", { tag: "@minimal" }, () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
       window.__printCalled = false

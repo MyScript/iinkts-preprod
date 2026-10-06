@@ -23,7 +23,7 @@ const drawnStrokes = async (page) =>
       })
   )
 
-test.describe("Interactive ink canvas Pen nibs", () => {
+test.describe("Interactive ink canvas Pen nibs", { tag: "@touch" }, () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(
       `${process.env.PATH_PREFIX ? process.env.PATH_PREFIX : ""}/examples/interactive-canvas/interactive_canvas_pen_nibs.html`

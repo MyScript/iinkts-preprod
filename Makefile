@@ -107,6 +107,7 @@ test-examples-ci:
 		$(NETWORK_PARAM) \
 		-e BASE_URL="$(BASE_URL)" \
 		-e PROJECT="$(PROJECT)" \
+		-e E2E_SCOPE="$(E2E_SCOPE)" \
 		-e CI="true" \
 		-e HOME="/tmp" \
     -e SCHEME="http" \

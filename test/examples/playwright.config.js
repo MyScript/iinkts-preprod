@@ -1,6 +1,18 @@
 import process from 'node:process'
 import { defineConfig, devices } from "@playwright/test"
 
+/*
+ * Tags, on a root `describe` (a variant is targeted by its folder, not by a tag):
+ * - @minimal: the vital path of a variant, played by every project
+ * - @touch: an interaction a touch screen can change (gestures, drag, selection, tools, menus)
+ * - @slow: a test over 30s in CI; `--grep-invert @slow` for a quick local loop
+ * Untagged by level means "complete": a project without `grep` plays everything.
+ * E2E_SCOPE overrides every project's filter: "complete" (everything) or "minimal" (@minimal only);
+ * unset or "default" keeps each project's own.
+ */
+const MINIMAL = /@minimal/
+const MINIMAL_AND_TOUCH = /@minimal|@touch/
+
 const defaultProject = [
   {
     name: "Desktop Chrome",
@@ -12,15 +24,21 @@ const defaultProject = [
     }
   },
   {
+    // Engine signal only: the PR pipeline does not run it
     name: "Desktop Firefox",
+    grep: MINIMAL,
     use: {...devices["Desktop Firefox"]}
   },
   {
+    // Same engine as Tablet Safari, which plays everything
     name: "Desktop Safari",
+    grep: MINIMAL,
     use: {...devices["Desktop Safari"]}
   },
   {
     name: "Tablet Chrome",
+    // Same engine as Whiteboard Chrome: not in the PR pipeline
+    grep: MINIMAL_AND_TOUCH,
     use: {
       ...devices["Galaxy Tab S4 landscape"],
       contextOptions: {
@@ -32,7 +50,35 @@ const defaultProject = [
     name: "Tablet Safari",
     use: {...devices["iPad Mini landscape"]}
   },
+  {
+    // An interactive whiteboard: a large touch screen running a Chromium browser
+    name: "Whiteboard Chrome",
+    grep: MINIMAL_AND_TOUCH,
+    use: {
+      ...devices["Desktop Chrome"],
+      viewport: { width: 1920, height: 1080 },
+      hasTouch: true,
+      contextOptions: {
+        permissions: ["clipboard-read", "clipboard-write"],
+      },
+    }
+  },
 ]
+
+const scope = process.env.E2E_SCOPE || "default"
+const SCOPES = { complete: undefined, minimal: MINIMAL }
+if (scope !== "default" && !(scope in SCOPES)) {
+  console.error(`E2E_SCOPE not found: ${scope}, values allowed are: [default, ${Object.keys(SCOPES).join(", ")}]`)
+}
+
+/** The project with the filter E2E_SCOPE asks for, or its own */
+function scoped(project) {
+  if (!(scope in SCOPES)) {
+    return project
+  }
+  const { grep, ...rest } = project
+  return SCOPES[scope] ? { ...rest, grep: SCOPES[scope] } : rest
+}
 
 let projects
 if (process.env.PROJECT) {
@@ -41,11 +87,11 @@ if (process.env.PROJECT) {
     console.error(`PROJECT not found: ${process.env.PROJECT}, values allowed are: [${defaultProject.map(p => p.name).join(", ")}]` )
   }
   else {
-    projects = [proj]
+    projects = [scoped(proj)]
   }
 }
 else {
-  projects = defaultProject
+  projects = defaultProject.map(scoped)
 }
 process.env.PLAYWRIGHT_LIST_PRINT_STEPS = true
 
