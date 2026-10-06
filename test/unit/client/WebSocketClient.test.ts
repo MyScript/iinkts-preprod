@@ -6,6 +6,10 @@ import { WebSocketClient, ClientError, TMatrixTransform, MatrixTransform, TIIHis
 import { toResolve } from "jest-extended"
 expect.extend({ toResolve })
 
+jest.mock("web-worker:../worker/ping.worker.ts", () =>
+  jest.fn().mockImplementation(() => ({ postMessage: jest.fn(), terminate: jest.fn() }))
+)
+
 describe("WebSocketClient.ts", () => {
   const configuration: TWebSocketClientConfiguration = {
     recognition: InteractiveInkCanvasOverrideConfiguration.recognition,
@@ -1644,6 +1648,26 @@ describe("WebSocketClient.ts", () => {
       // 2 -> CLOSING
       await expect(mockServer.server.clients()[0].readyState).toEqual(2)
       mockServer.close()
+    })
+  })
+
+  describe("ping", () => {
+    class PingWebSocketClient extends WebSocketClient {
+      startPing(): void {
+        this.initPing()
+      }
+      get currentPingWorker(): Worker | undefined {
+        return this.pingWorker
+      }
+    }
+
+    test("should terminate the previous ping worker before starting a new one", () => {
+      const wsClient = new PingWebSocketClient(structuredClone(configuration))
+      wsClient.startPing()
+      const firstWorker = wsClient.currentPingWorker
+      wsClient.startPing()
+      expect(firstWorker?.terminate).toHaveBeenCalledTimes(1)
+      expect(wsClient.currentPingWorker).not.toBe(firstWorker)
     })
   })
 })

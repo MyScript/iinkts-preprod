@@ -522,4 +522,54 @@ describe("PointerEventGrabber.ts", () => {
       grabber.detach()
     })
   })
+
+  describe("should look the capture svg up once, not per pointer sample", () => {
+    const createSvg = (): SVGSVGElement => {
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg") as SVGSVGElement
+      svg.getScreenCTM = jest.fn(() => ({ inverse: () => ({}) }) as unknown as DOMMatrix)
+      svg.createSVGPoint = jest.fn(() => ({ x: 0, y: 0, matrixTransform: () => ({ x: 1, y: 2 }) }) as unknown as DOMPoint)
+      return svg
+    }
+    const move = (wrapper: HTMLElement, x: number) =>
+      wrapper.dispatchEvent(
+        new LeftClickEventMock("pointermove", { pointerType: "pen", clientX: x, clientY: x, pressure: 1 })
+      )
+
+    test("should not query the svg again on each pointermove", () => {
+      const wrapperHTML = document.createElement("div")
+      document.body.appendChild(wrapperHTML)
+      wrapperHTML.appendChild(createSvg())
+      const grabber = new PointerEventGrabber(DefaultGrabberConfiguration)
+      grabber.attach(wrapperHTML)
+      grabber.onPointerMove = jest.fn()
+      wrapperHTML.dispatchEvent(
+        new LeftClickEventMock("pointerdown", { pointerType: "pen", clientX: 0, clientY: 0, pressure: 1 })
+      )
+      const querySpy = jest.spyOn(wrapperHTML, "querySelector")
+      move(wrapperHTML, 1)
+      move(wrapperHTML, 2)
+      move(wrapperHTML, 3)
+      expect(querySpy).not.toHaveBeenCalled()
+      expect(grabber.onPointerMove).toHaveBeenCalledTimes(3)
+      grabber.detach()
+    })
+
+    test("should pick up a capture svg that replaced the cached one", () => {
+      const wrapperHTML = document.createElement("div")
+      document.body.appendChild(wrapperHTML)
+      const oldSvg = createSvg()
+      wrapperHTML.appendChild(oldSvg)
+      const grabber = new PointerEventGrabber(DefaultGrabberConfiguration)
+      grabber.attach(wrapperHTML)
+      grabber.onPointerMove = jest.fn()
+      wrapperHTML.dispatchEvent(
+        new LeftClickEventMock("pointerdown", { pointerType: "pen", clientX: 0, clientY: 0, pressure: 1 })
+      )
+      const newSvg = createSvg()
+      wrapperHTML.replaceChild(newSvg, oldSvg)
+      move(wrapperHTML, 1)
+      expect(newSvg.getScreenCTM).toHaveBeenCalledTimes(1)
+      grabber.detach()
+    })
+  })
 })

@@ -415,6 +415,8 @@ export class WebSocketClient {
   }
 
   protected initPing(): void {
+    // init() can run again without the close callback having terminated the previous worker.
+    this.pingWorker?.terminate()
     this.pingWorker = new PingWorker()
     this.pingWorker.postMessage({
       pingDelay: this.configuration.server.websocket.pingDelay,
