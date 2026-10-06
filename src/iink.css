@@ -140,6 +140,12 @@
     drop-shadow(0 0 1px var(--ms-ink-selection-color));
 }
 
+/* A symbol the eraser is passing over. A CSS opacity filter scales its alpha like the former SVG
+   removal filter (an alpha transfer table), which crashed WebKit's renderer on a few strokes */
+.ms-ink .ms-layer-rendering .ms-deleting {
+  filter: opacity(25%);
+}
+
 .ms-ink .ms-layer-rendering .ms-rendering-canvas {
   z-index: 9;
   pointer-events: none;
