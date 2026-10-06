@@ -27,7 +27,8 @@ type TRawSamples = { longTasks: number[]; frames: number[] }
 
 /**
  * Installed before any page script runs, so no long task is missed during load. `PerformanceObserver`
- * with `longtask` is Chromium-only, which is why the perf project pins a single browser.
+ * with `longtask` is Chromium-only: elsewhere the observer is not started, blocking time stays at 0,
+ * and the report leaves it out — see `longTasksSupported`.
  */
 export async function installProbe(page: Page): Promise<void> {
   await page.addInitScript(() => {
@@ -46,12 +47,15 @@ export async function installProbe(page: Page): Promise<void> {
           state.longTasks = []
           state.frames = []
           state.observer?.disconnect()
-          state.observer = new PerformanceObserver((list) => {
-            for (const entry of list.getEntries()) {
-              state.longTasks.push(entry.duration)
-            }
-          })
-          state.observer.observe({ entryTypes: ["longtask"] })
+          state.observer = undefined
+          if (PerformanceObserver.supportedEntryTypes?.includes("longtask")) {
+            state.observer = new PerformanceObserver((list) => {
+              for (const entry of list.getEntries()) {
+                state.longTasks.push(entry.duration)
+              }
+            })
+            state.observer.observe({ entryTypes: ["longtask"] })
+          }
           cancelAnimationFrame(state.raf)
           state.raf = requestAnimationFrame(sample)
         },
@@ -63,6 +67,11 @@ export async function installProbe(page: Page): Promise<void> {
       },
     })
   })
+}
+
+/** Whether this browser reports long tasks at all, so a 0 ms blocking time means something. */
+export async function longTasksSupported(page: Page): Promise<boolean> {
+  return await page.evaluate(() => PerformanceObserver.supportedEntryTypes?.includes("longtask") ?? false)
 }
 
 function percentile(values: number[], p: number): number {

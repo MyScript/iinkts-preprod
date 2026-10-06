@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 
 import { MIN_GATED_MS, MIN_ROUNDS, evaluate, type TPairedGateReport, type TVerdict } from "./lib/gate.ts"
+import { formatTable } from "../lib/table.ts"
 
 /**
  * The regression gate. It compares two builds measured in the same job, minutes apart, and never a
@@ -23,8 +24,8 @@ function arg(name: string, fallback: string): string {
  */
 function markFor(v: TVerdict): string {
   if (v.regressed) return "REGRESSED"
-  if (!v.gated) return v.ungatedReason === "timer-floor" ? "too small" : "unpaired "
-  return v.improved ? "improved " : "         "
+  if (!v.gated) return v.ungatedReason === "timer-floor" ? "too small" : "unpaired"
+  return v.improved ? "improved" : ""
 }
 
 function noteFor(v: TVerdict, rounds: number): string {
@@ -40,6 +41,17 @@ const report = JSON.parse(readFileSync(resolve(process.cwd(), file), "utf8")) as
   referenceLib?: string
   referenceSha?: string
   currentLib?: string
+  current: { cases: { name: string; p50Ms: number }[] }
+}
+
+/** Each build's median per case, keyed by name, for the before and after columns. */
+function p50ByName(cases: { name: string; p50Ms: number }[]): Map<string, number> {
+  return new Map(cases.map((c) => [c.name, c.p50Ms]))
+}
+
+function formatMs(ms: number | undefined): string {
+  if (ms === undefined) return "—"
+  return ms < 10 ? ms.toFixed(3) : ms.toFixed(1)
 }
 
 const result = evaluate(report)
@@ -60,15 +72,29 @@ if (result.refusal) {
 console.log(
   `\nthis run's cases scatter by ${(result.nullScale * 100).toFixed(1)}%, so the limit is ${(result.threshold * 100).toFixed(0)}%`
 )
-console.log("x1.00 means the two builds cost the same.\n")
+console.log("+0.0% means the two builds cost the same.\n")
 
-const width = Math.max(...result.verdicts.map((v) => v.name.length))
-for (const v of result.verdicts) {
-  const sign = v.drift >= 0 ? "+" : ""
-  console.log(
-    `${markFor(v)} ${v.name.padEnd(width)}  x${v.ratio.toFixed(3)}  ${sign}${(v.drift * 100).toFixed(1)}%  (${noteFor(v, report.rounds)})`
-  )
-}
+const before = p50ByName(report.reference.cases)
+const after = p50ByName(report.current.cases)
+const rows = result.verdicts.map((v) => [
+  v.name,
+  formatMs(before.get(v.name)),
+  formatMs(after.get(v.name)),
+  `${v.drift >= 0 ? "+" : ""}${(v.drift * 100).toFixed(1)}%`,
+  markFor(v),
+  noteFor(v, report.rounds),
+])
+console.log(
+  formatTable(["case", "before (ms)", "after (ms)", "change", "verdict", "note"], rows, [
+    "left",
+    "right",
+    "right",
+    "right",
+  ])
+)
+// The change is the median of the per-round ratios, which is what the gate judges; the two medians
+// beside it are each build's own and need not divide to exactly that figure.
+console.log("\nbefore/after: each build's median; change: median of the paired rounds, what the gate judges.")
 
 for (const name of result.onlyCurrent) {
   console.log(`\nadded by this branch, nothing to compare it against: ${name}`)
