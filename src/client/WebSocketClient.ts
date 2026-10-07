@@ -8,7 +8,6 @@ import {
   overrideDeep,
   PX_TO_MM_RATIO,
   type TPartialDeep,
-  typedKeys,
 } from "@/core"
 import type { TIIHistoryBackendChanges } from "@/history"
 import { LoggerCategory, LoggerManager } from "@/logger"
@@ -58,11 +57,13 @@ const strokeIdSize = (id: string): number => id.length + 2
 
 /**
  * @group Client
- * @summary Pending math solver requests, by action then block id
- * @remarks The server answers each block's requests of one action in order.
+ * @summary A request waiting on an answer from the server
+ * @remarks `neutral` is what it settles with when a deliberate close makes the answer moot.
  */
-export type TMathSolverQueues = {
-  [A in TMathSolverAction]?: Map<string, DeferredPromise<TMathSolverResultMap[A]>[]>
+export type TPendingRequest = {
+  neutral: unknown
+  resolve(answer: unknown): void
+  reject(error: Error | string): void
 }
 
 // `get-variable-definitions` answers for the whole document, not a block: its requests queue under this key
@@ -129,12 +130,12 @@ export class WebSocketClient {
   protected currentPartId?: string
   protected currentErrorCode?: string | number
 
-  protected contextlessGestureDeferred: Map<string, DeferredPromise<TWebSocketClientMessageContextlessGesture>>
-  protected exportDeferredMap: Map<string, DeferredPromise<TExport>>
-  protected closeDeferred?: DeferredPromise<void>
-  protected waitForIdleDeferred?: DeferredPromise<void>
-  protected mathSolverQueues: TMathSolverQueues = {}
-  protected sendToSupportDeferred: DeferredPromise<void>[]
+  /**
+   * Every request waiting on the server, under the key its answer is matched on (`gesture:<strokeId>`,
+   * `export:<mimeType>`, `math:<action>:<blockId>`, `idle`, `support`), oldest first: the server
+   * answers the requests of one key in order.
+   */
+  protected pendingRequests = new Map<string, TPendingRequest[]>()
 
   // Resolved once the queued message is actually sent (post-reconnect), not once any server ack
   // arrives — mutating calls (addStrokes, undo, etc.) never wait for a server ack; there's no
@@ -172,9 +173,6 @@ export class WebSocketClient {
     this.boundOpenCallback = this.openCallback.bind(this)
     this.boundCloseCallback = this.closeCallback.bind(this)
     this.boundMessageCallback = this.messageCallback.bind(this)
-    this.exportDeferredMap = new Map()
-    this.contextlessGestureDeferred = new Map()
-    this.sendToSupportDeferred = []
   }
 
   get mimeTypes(): string[] {
@@ -208,20 +206,38 @@ export class WebSocketClient {
 
   protected rejectDeferredPending(error: Error | string): void {
     this.initialized.reject(error)
-    Array.from(this.contextlessGestureDeferred.values()).forEach((v) => {
-      v.reject(error)
-    })
-    Array.from(this.exportDeferredMap.values()).forEach((v) => {
-      v.reject(error)
-    })
-    this.waitForIdleDeferred?.reject(error)
-    // Cleared once rejected: the server answers none of them, so a later answer must not settle one
-    Object.values(this.mathSolverQueues).forEach((queues) => {
-      queues.forEach((queue) => queue.forEach((deferred) => deferred.reject(error)))
-    })
-    this.mathSolverQueues = {}
-    this.sendToSupportDeferred.forEach((deferred) => deferred.reject(error))
-    this.sendToSupportDeferred = []
+    this.pendingRequests.forEach((requests) => requests.forEach((request) => request.reject(error)))
+    // The server answers none of them now, so a later answer must not settle another request
+    this.pendingRequests.clear()
+  }
+
+  /** Registers a request under the key its answer will be matched on, after those already waiting there. */
+  protected waitForAnswer<T>(key: string, neutral: T): DeferredPromise<T> {
+    const deferred = new DeferredPromise<T>()
+    const requests = this.pendingRequests.get(key) ?? []
+    requests.push({ neutral, resolve: deferred.resolve, reject: deferred.reject })
+    this.pendingRequests.set(key, requests)
+    return deferred
+  }
+
+  /** Settles the oldest request waiting on `key`, or all of them, with the server's answer. */
+  protected answer(key: string, answer: unknown, all = false): void {
+    const requests = this.pendingRequests.get(key) ?? []
+    const answered = all ? requests.splice(0) : requests.splice(0, 1)
+    if (!requests.length) {
+      this.pendingRequests.delete(key)
+    }
+    answered.forEach((request) => request.resolve(answer))
+  }
+
+  /** Drops a request that was never sent: left waiting, it would take the answer meant for the next one. */
+  protected withdraw(key: string, reject: TPendingRequest["reject"]): void {
+    const requests = (this.pendingRequests.get(key) ?? []).filter((request) => request.reject !== reject)
+    if (requests.length) {
+      this.pendingRequests.set(key, requests)
+    } else {
+      this.pendingRequests.delete(key)
+    }
   }
 
   /**
@@ -231,39 +247,13 @@ export class WebSocketClient {
    */
   protected resolveDeferredPending(): void {
     this.initialized.resolve()
-    this.waitForIdleDeferred?.resolve()
-
-    Array.from(this.contextlessGestureDeferred.entries()).forEach(([strokeId, deferred]) => {
-      deferred.resolve({
-        type: TWebSocketClientMessageType.ContextlessGesture,
-        strokeId,
-        gestureType: "none",
-      })
-    })
-    Array.from(this.exportDeferredMap.values()).forEach((deferred) => {
-      deferred.resolve({})
-    })
-
-    const neutralResults = createMathSolverNeutralResults()
-    typedKeys(neutralResults).forEach((action) => this.resolveAllMathSolverRequests(action, neutralResults[action]))
-    this.sendToSupportDeferred.forEach((deferred) => deferred.resolve())
-  }
-
-  protected resolveAllMathSolverRequests<A extends TMathSolverAction>(
-    action: A,
-    result: TMathSolverResultMap[A]
-  ): void {
-    this.mathSolverQueues[action]?.forEach((queue) => queue.forEach((deferred) => deferred.resolve(result)))
+    this.pendingRequests.forEach((requests) => requests.forEach((request) => request.resolve(request.neutral)))
+    this.pendingRequests.clear()
   }
 
   protected resetAllDeferred(): void {
     this.initialized = new DeferredPromise<void>()
-    this.contextlessGestureDeferred.clear()
-    this.exportDeferredMap.clear()
-    this.waitForIdleDeferred = undefined
-    this.closeDeferred = undefined
-    this.mathSolverQueues = {}
-    this.sendToSupportDeferred = []
+    this.pendingRequests.clear()
   }
 
   protected isDisconnected(): boolean {
@@ -381,7 +371,7 @@ export class WebSocketClient {
     }
 
     this.clearSocketListener()
-    this.closeDeferred?.resolve()
+    this.answer("close", undefined, true)
     if (!this.currentErrorCode && evt.code !== 1000) {
       // Pending requests are rejected either way: a reconnection attempt's init() waits on one
       if (!this.isRecoverableDrop(evt)) {
@@ -494,13 +484,14 @@ export class WebSocketClient {
   protected manageExportMessage(exportMessage: TWebSocketClientMessageExport): void {
     const exports = parseExportedJIIX(exportMessage.exports)
     Object.keys(exports).forEach((key) => {
-      this.exportDeferredMap.get(key)?.resolve(exports)
+      this.answer(`export:${key}`, exports)
     })
     this.event.emitExported(exports)
   }
 
   protected manageWaitForIdle(): void {
-    this.waitForIdleDeferred?.resolve()
+    // Every caller waiting for idle is answered by the same idle
+    this.answer("idle", undefined, true)
     this.event.emitIdle(true)
   }
 
@@ -522,7 +513,7 @@ export class WebSocketClient {
   }
 
   protected manageAck(): void {
-    this.sendToSupportDeferred.shift()?.resolve()
+    this.answer("support", undefined)
   }
 
   protected manageGestureDetected(gestureMessage: TWebSocketClientMessageGesture): void {
@@ -530,7 +521,7 @@ export class WebSocketClient {
   }
 
   protected manageContextlessGesture(gestureMessage: TWebSocketClientMessageContextlessGesture): void {
-    this.contextlessGestureDeferred.get(gestureMessage.strokeId)?.resolve(gestureMessage)
+    this.answer(`gesture:${gestureMessage.strokeId}`, gestureMessage)
   }
 
   protected manageMathSolverResult(mathSolverMessage: TWebSocketClientMessageMathSolverResult): void {
@@ -544,20 +535,7 @@ export class WebSocketClient {
       )
       return
     }
-    this.resolveMathSolverRequest(mathSolverMessage.action, blockId, mathSolverMessage.result)
-  }
-
-  protected resolveMathSolverRequest<A extends TMathSolverAction>(
-    action: A,
-    blockId: string,
-    result: TMathSolverResultMap[A]
-  ): void {
-    const queue = this.mathSolverQueues[action]?.get(blockId)
-    const deferred = queue?.shift()
-    if (queue?.length === 0) {
-      this.mathSolverQueues[action]?.delete(blockId)
-    }
-    deferred?.resolve(result)
+    this.answer(`math:${mathSolverMessage.action}:${blockId}`, mathSolverMessage.result)
   }
 
   protected async requestMathSolver<A extends TMathSolverAction>(
@@ -565,28 +543,16 @@ export class WebSocketClient {
     blockId: string | undefined,
     parameters: Record<string, unknown> = {}
   ): Promise<TMathSolverResultMap[A]> {
-    const deferred = new DeferredPromise<TMathSolverResultMap[A]>()
-    const queues = this.getMathSolverQueue(action)
-    const key = blockId ?? DOCUMENT_BLOCK_ID
-    queues.set(key, [...(queues.get(key) ?? []), deferred])
+    const key = `math:${action}:${blockId ?? DOCUMENT_BLOCK_ID}`
+    const deferred = this.waitForAnswer(key, createMathSolverNeutralResults()[action])
     try {
       // blockId undefined is dropped by JSON.stringify, as get-variable-definitions expects
       await this.send({ type: "mathSolver", action, blockId, ...parameters })
     } catch (error) {
-      // Never sent, never answered: left queued, it would take the answer to the next request
-      queues.set(
-        key,
-        (queues.get(key) ?? []).filter((queued) => queued !== deferred)
-      )
+      this.withdraw(key, deferred.reject)
       throw error
     }
     return deferred.promise
-  }
-
-  protected getMathSolverQueue<A extends TMathSolverAction>(action: A): NonNullable<TMathSolverQueues[A]> {
-    const queues: NonNullable<TMathSolverQueues[A]> = this.mathSolverQueues[action] ?? new Map()
-    this.mathSolverQueues[action] = queues
-    return queues
   }
 
   protected messageCallback(message: MessageEvent<string>): void {
@@ -1022,8 +988,11 @@ export class WebSocketClient {
     if (!stroke) {
       return
     }
-    const deferred = new DeferredPromise<TWebSocketClientMessageContextlessGesture>()
-    this.contextlessGestureDeferred.set(stroke.id, deferred)
+    const deferred = this.waitForAnswer<TWebSocketClientMessageContextlessGesture>(`gesture:${stroke.id}`, {
+      type: TWebSocketClientMessageType.ContextlessGesture,
+      strokeId: stroke.id,
+      gestureType: "none",
+    })
     await this.send({
       type: "contextlessGesture",
       scaleX: PX_TO_MM_RATIO,
@@ -1034,14 +1003,9 @@ export class WebSocketClient {
   }
 
   async waitForIdle(): Promise<void> {
-    if (!this.waitForIdleDeferred || this.waitForIdleDeferred.isFullFilled) {
-      this.waitForIdleDeferred = new DeferredPromise<void>()
-    }
-    const message: TWebSocketClientMessage = {
-      type: "waitForIdle",
-    }
-    await this.send(message)
-    return this.waitForIdleDeferred?.promise
+    const deferred = this.waitForAnswer<void>("idle", undefined)
+    await this.send({ type: "waitForIdle" })
+    return deferred.promise
   }
 
   // Not split by `maxMessageBytes`: an undo or redo is one step of the server's history, and
@@ -1095,25 +1059,15 @@ export class WebSocketClient {
     return run
   }
 
-  // Exports run one after another. Two in flight for the same mime type share one slot in
-  // `exportDeferredMap`: the second overwrote the first, whose caller then waited forever, since
-  // the server's answers can only settle the deferred the map still holds.
+  // Exports run one after another: the server's answer names its mime types, not the request it
+  // answers, so two exports in flight could only be told apart by their order.
   protected exportQueue: Promise<unknown> = Promise.resolve()
 
   protected async sendExport(requestedMimeTypes?: string[]): Promise<TExport> {
     const mimeTypes: string[] = requestedMimeTypes || this.mimeTypes.slice()
-    const deferreds = mimeTypes.map((mt) => {
-      const deferred = new DeferredPromise<TExport>()
-      this.exportDeferredMap.set(mt, deferred)
-      return deferred
-    })
-
-    const message: TWebSocketClientMessage = {
-      type: "export",
-      partId: this.currentPartId,
-      mimeTypes,
-    }
-    await this.send(message)
+    const none: TExport = {}
+    const deferreds = mimeTypes.map((mt) => this.waitForAnswer(`export:${mt}`, none))
+    await this.send({ type: "export", partId: this.currentPartId, mimeTypes })
     const exports = await Promise.all(deferreds.map((deferred) => deferred.promise))
     return Object.assign({}, ...exports)
   }
@@ -1125,8 +1079,7 @@ export class WebSocketClient {
   }
 
   async sendToSupport(data: Record<string, unknown>): Promise<void> {
-    const deferred = new DeferredPromise<void>()
-    this.sendToSupportDeferred.push(deferred)
+    const deferred = this.waitForAnswer<void>("support", undefined)
     await this.send({
       type: "sendToSupport",
       metadata: { ...data },
@@ -1139,14 +1092,15 @@ export class WebSocketClient {
     this.clearOfflineQueue(new Error(`Client closed (${reason}): queued strokes were not sent`))
     this.resolveDeferredPending()
     this.resetAllDeferred()
-    this.closeDeferred = new DeferredPromise<void>()
+    // Answered by the socket's close event; an error message arriving meanwhile ends the wait too
+    const closed = this.waitForAnswer<void>("close", undefined)
     const doClose = async (): Promise<void> => {
       if (this.socket.readyState === this.socket.OPEN || this.socket.readyState === this.socket.CONNECTING) {
         this.socket.close(code, reason)
       } else {
-        this.closeDeferred!.resolve()
+        this.answer("close", undefined, true)
       }
-      await this.closeDeferred!.promise
+      await closed.promise.catch(() => undefined)
     }
     this.closingPromise = doClose().finally(() => {
       this.closingPromise = null
