@@ -109,6 +109,13 @@ export class WebSocketClient {
   protected logger = LoggerManager.getLogger(LoggerCategory.CLIENT)
 
   protected socket!: WebSocket
+  /**
+   * Largest `addStrokes` message sent in one frame, counted in characters of its JSON. A backend
+   * closes the connection (1009, "message too big") on a frame above its limit — between 400 and
+   * 524 KB for the docker backend — and a thousand long strokes weigh over 1 MB. Half that limit,
+   * so a backend configured a little tighter still holds. Lower it for one with a smaller limit.
+   */
+  protected maxAddStrokesMessageBytes = 256 * 1024
   protected pingWorker?: Worker
   protected pingCount = 0
   protected reconnectionCount = 0
@@ -753,9 +760,7 @@ export class WebSocketClient {
     }
     const promises: Promise<void>[] = []
     const _processGestures = processGestures && strokes.length < 3
-    const chunkSize = 1000
-    for (let i = 0; i < strokes.length; i += chunkSize) {
-      const strokesPart = strokes.slice(i, i + chunkSize)
+    for (const strokesPart of this.chunkStrokes(strokes)) {
       const message = this.buildAddStrokesMessage(strokesPart, _processGestures)
       if (this.configuration.server.websocket.offlineQueueEnabled && this.isDisconnected()) {
         const deferred = new DeferredPromise<void>()
@@ -766,6 +771,32 @@ export class WebSocketClient {
       }
     }
     await Promise.all(promises)
+  }
+
+  /**
+   * Groups strokes into `addStrokes` messages of at most a thousand strokes that each stay under
+   * `maxAddStrokesMessageBytes`. Order is kept; a stroke larger than the budget goes alone.
+   */
+  protected chunkStrokes(strokes: TRecognitionStroke[]): TRecognitionStroke[][] {
+    // Room left for the message around the strokes: its type and processGestures fields.
+    const budget = this.maxAddStrokesMessageBytes - 256
+    const chunks: TRecognitionStroke[][] = []
+    let current: TRecognitionStroke[] = []
+    let currentBytes = 0
+    for (const stroke of strokes) {
+      const bytes = JSON.stringify(toWireStroke(stroke)).length + 1
+      if (current.length && (current.length === 1000 || currentBytes + bytes > budget)) {
+        chunks.push(current)
+        current = []
+        currentBytes = 0
+      }
+      current.push(stroke)
+      currentBytes += bytes
+    }
+    if (current.length) {
+      chunks.push(current)
+    }
+    return chunks
   }
 
   async getAvailableActions(blockId: string): Promise<string[]> {

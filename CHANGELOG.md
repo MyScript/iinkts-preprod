@@ -191,6 +191,7 @@ Every export on `InteractiveInkCanvas` goes through two functions instead of nin
 - fix(symbol): a rotated text or math block reported a box mirrored about its rotation centre (and rotated twice), so surrounding it no longer selected it
 - fix(model): `Model.addStroke()` now throws `Stroke id already exist: <id>` on a duplicate id, like `IModel.addStroke`/`IIModel.addSymbol`
 - fix(manager): a JOIN gesture between two strokes (or any two symbols that are not both texts) of a row left the first one after the gesture in place while shifting those behind it, which landed them over or in front of it (broken since 4.0.0). The whole remainder of the row moves together again
+- fix(client): `WebSocketClient.addStrokes()` split its messages by count only, a thousand strokes each, which weighs over 1 MB for long strokes; a backend with a smaller frame limit (the docker backend's is between 400 and 524 KB) closed the session with 1009 "message too big" on any large import, and every gesture after it did nothing. Messages are now also capped by size, at the new protected `maxAddStrokesMessageBytes` (256 KiB), which a subclass can lower for a tighter backend
 
 ## Features
 
