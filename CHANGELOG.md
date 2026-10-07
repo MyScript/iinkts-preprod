@@ -190,6 +190,8 @@ Every export on `InteractiveInkCanvas` goes through two functions instead of nin
 - fix(manager): `IITranslateManager` silently returned an unknown edge kind untransformed while rotate and resize threw; all three now go through the util registry and fail alike
 - fix(symbol): a rotated text or math block reported a box mirrored about its rotation centre (and rotated twice), so surrounding it no longer selected it
 - fix(model): `Model.addStroke()` now throws `Stroke id already exist: <id>` on a duplicate id, like `IModel.addStroke`/`IIModel.addSymbol`
+- fix(manager): a JOIN gesture between two strokes (or any two symbols that are not both texts) of a row left the first one after the gesture in place while shifting those behind it, which landed them over or in front of it (broken since 4.0.0). The whole remainder of the row moves together again
+- fix(client): `WebSocketClient` sent messages of any size, while the backend closes the connection (1009, "message too big") on an incoming message over 500 KB: a large import (`addStrokes` went a thousand strokes at a time, over 1 MB for long strokes), or a transform, erase or replace over many strokes, ended the session, and every gesture after it did nothing. `addStrokes`, `replaceStrokes`, `eraseStrokes` and the four `transform*` now split what they send to stay under the new protected `maxMessageBytes` (256 KiB), which a subclass can lower; `undo`/`redo` stay one message each, being one step of the server's history
 
 ## Features
 
