@@ -236,7 +236,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
   }
 
   /**
-   * True while strokes are queued locally waiting for reconnection.
+   * True while the connection is down after a first one succeeded, changes queued or not.
    * Listen to `event.addConnectionStatusChangedListener` for change notifications.
    */
   get isOffline(): boolean {
