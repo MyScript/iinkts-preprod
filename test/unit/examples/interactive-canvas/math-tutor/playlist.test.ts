@@ -6,9 +6,9 @@ describe("math-tutor/playlist", () => {
 
   describe("nextExercise", () => {
     test("should play the demo exercises of a level first, then generated ones", () => {
-      const demoLevel2 = DEMO_EXERCISES.filter((exercise) => exercise.level === 2)
-      demoLevel2.forEach((exercise, played) => expect(nextExercise(2, played, constant)).toBe(exercise))
-      expect(nextExercise(2, demoLevel2.length, constant).id).toMatch(/^generated-/)
+      const demoLevel = DEMO_EXERCISES.filter((exercise) => exercise.level === "geometry-2")
+      demoLevel.forEach((exercise, played) => expect(nextExercise("geometry-2", played, constant)).toBe(exercise))
+      expect(nextExercise("geometry-2", demoLevel.length, constant).id).toMatch(/^generated-/)
     })
   })
 })
