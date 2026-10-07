@@ -1,5 +1,5 @@
-import type { TJIIXBase, TJIIXWord } from "./ExportCommon"
-import type { TRecognitionTypeV2 } from "./RecognitionConfiguration"
+import type { TRecognitionTypeV2 } from "../shared/RecognitionConfiguration"
+import type { TJIIXBase, TJIIXWord } from "./JIIXCommon"
 
 /**
  * @group Client/Export

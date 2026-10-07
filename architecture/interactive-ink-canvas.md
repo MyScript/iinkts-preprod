@@ -412,4 +412,4 @@ classDiagram
 | `IIHistoryManager` / `AbstractHistoryStack` | `src/history/` |
 | `IIMenuManager` | `src/menu/IIMenuManager.ts` |
 | `ColorPaletteManager` | `src/manager/base/ColorPaletteManager.ts` |
-| `WebSocketClient` | `src/client/WebSocketClient.ts` — see [websocket-protocol.md](websocket-protocol.md) |
+| `WebSocketClient` | `src/client/websocket/WebSocketClient.ts` — see [websocket-protocol.md](websocket-protocol.md) |

@@ -5,22 +5,22 @@ import type { TPenStyle } from "@/style"
 import { StyleHelper } from "@/style-css"
 import type { Stroke } from "@/symbol"
 
-import type { TExport, TJIIXExport } from "./Export"
-import type { THTTPClientV1Configuration } from "./HTTPClientV1Configuration"
-import { HTTPClientV1Configuration } from "./HTTPClientV1Configuration"
-import { postRecognition, toRecognitionContentType, toRecognitionError } from "./HTTPRecognition"
-import { ensureServerVersion } from "./infos"
+import type { TExport, TJIIXExport } from "../jiix/JIIX"
 import type {
   TDiagramConfiguration,
   TExportConfiguration,
   TMathConfiguration,
   TRawContentConfiguration,
   TTextConfiguration,
-} from "./recognition"
-import type { TConverstionState } from "./RecognitionConfiguration"
-import { redactServerSecrets } from "./ServerConfiguration"
-import type { TWireStroke } from "./StrokeSerializer"
-import { toWireStroke } from "./StrokeSerializer"
+} from "../recognition"
+import { ensureServerVersion } from "../shared/infos"
+import type { TConverstionState } from "../shared/RecognitionConfiguration"
+import { redactServerSecrets, serverUrl } from "../shared/ServerConfiguration"
+import type { TWireStroke } from "../shared/StrokeSerializer"
+import { toWireStroke } from "../shared/StrokeSerializer"
+import type { THTTPClientV1Configuration } from "./HTTPClientV1Configuration"
+import { HTTPClientV1Configuration } from "./HTTPClientV1Configuration"
+import { postRecognition, toRecognitionContentType, toRecognitionError } from "./HTTPRecognition"
 
 /**
  * @group Client
@@ -82,7 +82,7 @@ export class HTTPClientV1 {
   }
 
   get url() {
-    return `${this.configuration.server.scheme}://${this.configuration.server.host}/api/v4.0/iink/batch`
+    return serverUrl(this.configuration.server, "batch")
   }
 
   get postConfig(): THTTPClientV1PostConfiguration {

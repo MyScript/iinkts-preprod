@@ -28,11 +28,12 @@ src/
 │       ├── IITypesetManager.ts, IIWriterManager.ts
 │       └── IIAbstractManager.ts
 ├── model/               # Model, IModel, IIModel
-├── client/
-│   ├── recognition/     # Config files (MathConfiguration, TextConfiguration, etc.)
-│   ├── HTTPClientV1.ts (deprecated), HTTPClientV2.ts
-│   ├── WebSocketClient.ts, WebSocketSSRClient.ts
-│   └── ClientEvent.ts, ClientError.ts
+├── client/              # grouped by protocol; language.ts, font.ts at the root
+│   ├── http/            # HTTPClientV1 (deprecated), HTTPClientV2, their configurations, HTTPRecognition
+│   ├── websocket/       # WebSocketClient, WebSocketSSRClient, their configurations and messages
+│   ├── jiix/            # The JIIX format: JIIX, JIIXCommon, JIIXMath, JIIXV2, JIIXEdgeGeometry
+│   ├── shared/          # ClientEvent, ClientError, ServerConfiguration, StrokeSerializer, HMAC, infos
+│   └── recognition/     # Config files (MathConfiguration, TextConfiguration, etc.)
 ├── renderer/
 │   ├── base/            # BaseRenderer
 │   ├── canvas/          # CanvasRenderer, CanvasRendererShape/Stroke/Text
@@ -214,7 +215,7 @@ SVGBuilder.createPath({ ...SVGRendererConst.guidePathAttrs, d: pathData })
 // Other
 import { mergeDeep, isDeepEqual, uuid, DeferredPromise } from "@/core/std"
 import { convertMillimeterToPixel } from "@/core/math"
-import { resolveHmac } from "@/client/HmacAuth"
+import { resolveHmac } from "@/client"
 ```
 
 ## Examples

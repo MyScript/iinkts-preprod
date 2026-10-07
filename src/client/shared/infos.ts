@@ -1,5 +1,6 @@
 import type { TPartialDeep } from "@/core"
 
+import { getJSON } from "./getJSON"
 import { assertServerConfig, type TServerHTTPConfiguration } from "./ServerConfiguration"
 
 /**
@@ -21,23 +22,13 @@ export async function getApiInfos(
 ): Promise<TApiInfos> {
   try {
     assertServerConfig(configuration?.server, "Failed to get infos")
-    const response = await fetch(`${configuration.server.scheme}://${configuration.server.host}/api/v4.0/iink/version`)
-    if (response.ok) {
-      const version = (await response.json()) as TApiInfos
-      return version
-    } else {
-      //latest version published before this endpoint
-      return {
-        version: "3.1.3",
-        gitCommit: "unknown",
-        nativeVersion: "<=3.1.1",
-      }
-    }
+    return await getJSON<TApiInfos>(configuration.server, "version")
   } catch {
-    //latest version published before this endpoint
+    // No such endpoint, or no answer: the server predates it, so it is at most the last version
+    // published without it
     return {
       version: "3.1.3",
-      gitCommit: "7e148bd566438ca77dc83cb4edcc6ed0f51a8a15",
+      gitCommit: "unknown",
       nativeVersion: "<=3.1.1",
     }
   }

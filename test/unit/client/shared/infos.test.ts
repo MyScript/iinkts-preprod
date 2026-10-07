@@ -1,4 +1,4 @@
-import { WebSocketSSRClientTextConfiguration } from "../__dataset__/configuration.dataset"
+import { WebSocketSSRClientTextConfiguration } from "../../__dataset__/configuration.dataset"
 import { ensureServerVersion, getApiInfos } from "@/iink"
 
 describe("language.ts", () => {
