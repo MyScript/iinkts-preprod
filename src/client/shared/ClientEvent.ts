@@ -1,8 +1,8 @@
 import type { THistoryContext } from "@/history"
 
-import type { TExport } from "./Export"
-import type { TWebSocketClientMessageGesture } from "./WebSocketClientMessage"
-import type { TWebSocketSSRClientMessageSVGPatch } from "./WebSocketSSRClientMessage"
+import type { TExport } from "../jiix/JIIX"
+import type { TWebSocketClientMessageGesture } from "../websocket/WebSocketClientMessage"
+import type { TWebSocketSSRClientMessageSVGPatch } from "../websocket/WebSocketSSRClientMessage"
 
 /**
  * @group Client
