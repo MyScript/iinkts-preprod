@@ -1755,6 +1755,74 @@ describe("WebSocketClient.ts", () => {
     })
   })
 
+  describe("pending requests", () => {
+    class PendingClient extends WebSocketClient {
+      failAll(error: string): void {
+        this.rejectDeferredPending(error)
+      }
+      answerAllNeutrally(): void {
+        this.resolveDeferredPending()
+      }
+      forgetAll(): void {
+        this.resetAllDeferred()
+      }
+    }
+
+    /** One request of every kind left waiting on an answer the server never sends. */
+    const startEveryKind = (wsClient: PendingClient) => {
+      jest.spyOn(wsClient, "send").mockResolvedValue()
+      return {
+        initialized: wsClient.initialized.promise,
+        gesture: wsClient.recognizeGesture(buildIIStroke()),
+        exported: wsClient.export(),
+        idle: wsClient.waitForIdle(),
+        math: wsClient.getVariables("block-1"),
+        support: wsClient.sendToSupport({ note: "x" }),
+      }
+    }
+
+    test("should reject every kind of pending request on an error", async () => {
+      const wsClient = new PendingClient(structuredClone(configuration))
+      const pending = startEveryKind(wsClient)
+      await delay(0)
+
+      wsClient.failAll("boom")
+
+      for (const promise of Object.values(pending)) {
+        await expect(promise).rejects.toBe("boom")
+      }
+    })
+
+    test("should answer every kind of pending request neutrally on a deliberate close", async () => {
+      const wsClient = new PendingClient(structuredClone(configuration))
+      const pending = startEveryKind(wsClient)
+      await delay(0)
+
+      wsClient.answerAllNeutrally()
+
+      await expect(pending.initialized).resolves.toBeUndefined()
+      await expect(pending.gesture).resolves.toMatchObject({ gestureType: "none" })
+      await expect(pending.exported).resolves.toEqual({})
+      await expect(pending.idle).resolves.toBeUndefined()
+      await expect(pending.math).resolves.toEqual([])
+      await expect(pending.support).resolves.toBeUndefined()
+    })
+
+    test("should forget every pending request on reset", async () => {
+      const wsClient = new PendingClient(structuredClone(configuration))
+      const previousInit = wsClient.initialized
+      startEveryKind(wsClient)
+      await delay(0)
+
+      wsClient.forgetAll()
+
+      expect(wsClient.initialized).not.toBe(previousInit)
+      // A late answer from the server settles nothing once forgotten
+      wsClient.answerAllNeutrally()
+      await expect(wsClient.initialized.promise).resolves.toBeUndefined()
+    })
+  })
+
   describe("ping", () => {
     class PingWebSocketClient extends WebSocketClient {
       startPing(): void {
