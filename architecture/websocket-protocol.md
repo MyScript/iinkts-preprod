@@ -1,8 +1,8 @@
 # WebSocket protocol — InteractiveInkCanvas ↔ MyScript backend
 
-Full message lifecycle used by `InteractiveInkCanvas` (`src/canvas/variants/InteractiveInkCanvas.ts`) via `WebSocketClient` (`src/client/WebSocketClient.ts`) against the MyScript Cloud recognition server. All message shapes come from `TWebSocketClientMessageType` in `src/client/WebSocketClientMessage.ts`.
+Full message lifecycle used by `InteractiveInkCanvas` (`src/canvas/variants/InteractiveInkCanvas.ts`) via `WebSocketClient` (`src/client/websocket/WebSocketClient.ts`) against the MyScript Cloud recognition server. All message shapes come from `TWebSocketClientMessageType` in `src/client/websocket/WebSocketClientMessage.ts`.
 
-> Note: the `debug-websocket` and `recognizer-system` project skills describe a different, outdated protocol (`src/recognizer/...`, message types like `strokesAdded`/`sessionInitialized`) — that path no longer exists in the codebase. This document reflects the current `src/client/WebSocketClient.ts` implementation; treat it as the source of truth.
+> Note: the `debug-websocket` and `recognizer-system` project skills describe a different, outdated protocol (`src/recognizer/...`, message types like `strokesAdded`/`sessionInitialized`) — that path no longer exists in the codebase. This document reflects the current `src/client/websocket/WebSocketClient.ts` implementation; treat it as the source of truth.
 
 ```mermaid
 sequenceDiagram
@@ -112,19 +112,17 @@ sequenceDiagram
 
 ## Reconnection & offline queue
 
-Two independent mechanisms in `WebSocketClient.ts`:
-1. **Legacy auto-reconnect in `send()`** — if the socket is closing/closed and `configuration.server.websocket.autoReconnect` is true (default), retries `init()` + the send, up to `maxRetryCount` (default 2).
-2. **Offline queue + background reconnect loop** — if `offlineQueueEnabled` (default true), `addStrokes()` queues locally (max 50) while disconnected; a timer retries every `reconnectDelay` (default 3000ms) up to `maxReconnectAttempts` (default 10), then drains the queue in order. Gives up and emits `CONNECTION_STATUS_CHANGED("error")` if exhausted.
+One path in `WebSocketClient.ts`, switched by `configuration.server.websocket.autoReconnect` (default true): every change made while disconnected is queued (max `offlineQueueMaxSize`, 50) and replayed in order on reconnection; requests that wait on an answer wait for the reconnection and go after the replay. A timer retries every `reconnectDelay` (default 3000ms) up to `maxReconnectAttempts` (default 10), then rejects the queue and the waiting requests and emits `CONNECTION_STATUS_CHANGED("error")`. With `autoReconnect` false, both reject at once while disconnected.
 
 ## Source files
 
 | Concern | File |
 |---|---|
-| Protocol state machine | `src/client/WebSocketClient.ts` |
-| Message type enum + payload shapes | `src/client/WebSocketClientMessage.ts` |
-| HMAC/applicationKey config | `src/client/ServerConfiguration.ts` |
+| Protocol state machine | `src/client/websocket/WebSocketClient.ts` |
+| Message type enum + payload shapes | `src/client/websocket/WebSocketClientMessage.ts` |
+| HMAC/applicationKey config | `src/client/shared/ServerConfiguration.ts` |
 | HMAC computation | `src/utils/crypto.ts` |
-| Public event surface | `src/client/ClientEvent.ts` |
-| Close-code → message mapping | `src/client/ClientError.ts` |
+| Public event surface | `src/client/shared/ClientEvent.ts` |
+| Close-code → message mapping | `src/client/shared/ClientError.ts` |
 | Editor-side wiring (init/undo/redo/export/destroy) | `src/canvas/variants/InteractiveInkCanvas.ts` |
 | Debounced JIIX re-sync after `contentChanged` | `src/manager/interactive/IISynchronizerManager.ts` |

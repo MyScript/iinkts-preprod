@@ -1,12 +1,12 @@
-import { InteractiveInkCanvasOverrideConfiguration } from "../__dataset__/configuration.dataset"
-import { ServerWebSocketMock, contextlessGestureMessage, gestureDetectedMessage, hTextJIIX, partChangeMessage } from "../__mocks__/ServerWebSocketMock"
-import { buildIIStroke, delay } from "../helpers"
-import { WebSocketClient, ClientError, TMatrixTransform, MatrixTransform, TIIHistoryBackendChanges, TWebSocketClientConfiguration, TWebSocketClientMessage, TStroke, toWireStroke, LoggerManager, LoggerCategory } from "@/iink"
+import { InteractiveInkCanvasOverrideConfiguration } from "../../__dataset__/configuration.dataset"
+import { ServerWebSocketMock, contextlessGestureMessage, gestureDetectedMessage, hTextJIIX, partChangeMessage } from "../../__mocks__/ServerWebSocketMock"
+import { buildIIStroke, delay } from "../../helpers"
+import { WebSocketClient, ClientError, TMatrixTransform, MatrixTransform, TIIHistoryBackendChanges, TWebSocketClientConfiguration, TWebSocketClientMessage, TStroke, toWireStroke, LoggerManager, LoggerCategory, TWebSocketClientMessageType } from "@/iink"
 
 import { toResolve } from "jest-extended"
 expect.extend({ toResolve })
 
-jest.mock("web-worker:../worker/ping.worker.ts", () =>
+jest.mock("web-worker:../../worker/ping.worker.ts", () =>
   jest.fn().mockImplementation(() => ({ postMessage: jest.fn(), terminate: jest.fn() }))
 )
 
@@ -465,7 +465,7 @@ describe("WebSocketClient.ts", () => {
     // the offline queue instead of reaching `send`.
     const onlineConf = (): TWebSocketClientConfiguration => {
       const conf = structuredClone(configuration)
-      conf.server.websocket.offlineQueueEnabled = false
+      conf.server.websocket.autoReconnect = false
       return conf
     }
 
@@ -540,6 +540,21 @@ describe("WebSocketClient.ts", () => {
       expect(new Set(sent.map((message) => message.type)).size).toBe(1)
     })
 
+    test.each([
+      ["transformTranslate", (c: WebSocketClient) => c.transformTranslate([], 1, 2)],
+      ["transformRotate", (c: WebSocketClient) => c.transformRotate([], 0.5)],
+      ["transformScale", (c: WebSocketClient) => c.transformScale([], 2, 2)],
+      ["transformMatrix", (c: WebSocketClient) => c.transformMatrix([], MatrixTransform.identity())],
+      ["eraseStrokes", (c: WebSocketClient) => c.eraseStrokes([])],
+    ])("%s should send nothing for no stroke", async (_, call) => {
+      const wsClient = new SmallFrameClient(onlineConf(), 600)
+      const sent = recordSends(wsClient)
+
+      await call(wsClient)
+
+      expect(sent).toHaveLength(0)
+    })
+
     test("replaceStrokes should send the replacement first, then the strokes left over as additions", async () => {
       const newStrokes = Array.from({ length: 6 }, () => buildIIStroke({ nbPoint: 40, box: { x: 0, y: 0, width: 400, height: 400 } }))
       const budget = strokeBytes(newStrokes[0]) * 2 + 400
@@ -562,7 +577,7 @@ describe("WebSocketClient.ts", () => {
   describe("offline queue", () => {
     const conf = structuredClone(configuration)
     conf.server.host = "offline-queue-test"
-    conf.server.websocket.offlineQueueEnabled = true
+    conf.server.websocket.autoReconnect = true
     conf.server.websocket.reconnectDelay = 50
     conf.server.websocket.maxReconnectAttempts = 5
     let mockServer: ServerWebSocketMock
@@ -607,6 +622,213 @@ describe("WebSocketClient.ts", () => {
       expect(wsClient.isOffline).toBe(false)
     })
 
+    test("should queue every change made while disconnected and replay them in order", async () => {
+      await wsClient.init()
+      await wsClient.close(1000, "simulate-drop")
+      const before = mockServer.messages.length
+
+      const changes = Promise.all([
+        wsClient.addStrokes(strokes),
+        wsClient.eraseStrokes(["stroke-1"]),
+        wsClient.transformTranslate(["stroke-2"], 1, 2),
+        wsClient.replaceStrokes(["stroke-3"], strokes),
+        wsClient.clear(),
+      ])
+      await delay(10)
+      expect(wsClient.offlineQueueLength).toBe(5)
+      await delay(200)
+
+      await expect(changes).toResolve()
+      const replayed = mockServer.messages
+        .slice(before)
+        .map((m) => (JSON.parse(m as string) as { type: string }).type)
+        .filter((type) => !["authenticate", "hmac", "restoreSession", "openContentPart", "ping"].includes(type))
+      expect(replayed).toEqual(["addStrokes", "eraseStrokes", "transform", "replaceStrokes", "clear"])
+    })
+
+    // initialized resolves when the handshake ends, before the queue is replayed: a request or a
+    // change issued on the reconnected socket in between used to overtake the queue — an export
+    // then answered with the content from before the drop.
+    test("should not let a request or a change made during the reconnection overtake the queue", async () => {
+      class EagerClient extends WebSocketClient {
+        onOpen?: () => void
+        protected openCallback(): void {
+          const onOpen = this.onOpen
+          this.onOpen = undefined
+          onOpen?.()
+          super.openCallback()
+        }
+      }
+      const eagerConf = structuredClone(conf)
+      eagerConf.server.host = "offline-queue-overtake-test"
+      const eagerClient = new EagerClient(eagerConf)
+      const server = new ServerWebSocketMock(eagerClient.url)
+      server.init()
+      await eagerClient.init()
+      await eagerClient.close(1000, "simulate-drop")
+      const before = server.messages.length
+      const queued = eagerClient.addStrokes(strokes, false)
+      let lateRequest: Promise<void> | undefined
+      let lateChange: Promise<void> | undefined
+      eagerClient.onOpen = () => {
+        lateRequest = eagerClient.send({ type: "probe" })
+        lateChange = eagerClient.eraseStrokes(["stroke-1"])
+      }
+
+      await waitUntil(() => server.getMessages("probe").length > 0 && server.getMessages("eraseStrokes").length > 0)
+      await expect(Promise.all([queued, lateRequest, lateChange])).toResolve()
+      const types = server.messages.slice(before).map((m) => (JSON.parse(m as string) as { type: string }).type)
+      expect(types.indexOf("probe")).toBeGreaterThan(types.indexOf("addStrokes"))
+      expect(types.indexOf("eraseStrokes")).toBeGreaterThan(types.indexOf("addStrokes"))
+      await eagerClient.destroy()
+      server.close()
+    })
+
+    test("should let a request wait for the reconnection, and send it after the queued changes", async () => {
+      await wsClient.init()
+      await wsClient.close(1000, "simulate-drop")
+      const before = mockServer.messages.length
+
+      const change = wsClient.addStrokes(strokes, false)
+      const request = wsClient.send({ type: "probe" })
+      await delay(200)
+
+      await expect(change).toResolve()
+      await expect(request).toResolve()
+      const types = mockServer.messages.slice(before).map((m) => (JSON.parse(m as string) as { type: string }).type)
+      expect(types.indexOf("probe")).toBeGreaterThan(types.indexOf("addStrokes"))
+    })
+
+    /** Polls `condition` rather than sleeping a fixed time: these tests run under parallel load. */
+    const waitUntil = async (condition: () => boolean, timeout = 3000) => {
+      const start = Date.now()
+      while (!condition()) {
+        if (Date.now() - start > timeout) throw new Error("waitUntil: condition never met")
+        await delay(10)
+      }
+    }
+
+    /**
+     * A server that stays reachable but drops new connections with 1006: every one while `down` is
+     * set, or only the next `dropNext` ones.
+     */
+    const flakyServer = (url: string) => {
+      const server = new ServerWebSocketMock(url)
+      const state = { down: false, dropNext: 0 }
+      server.on("connection", (socket) => {
+        if (state.down || state.dropNext > 0) {
+          state.dropNext = Math.max(0, state.dropNext - 1)
+          socket.close({ code: 1006, reason: "server down", wasClean: false })
+        }
+      })
+      server.init()
+      return { server, state }
+    }
+
+    test("should keep a request made while disconnected through a failed reconnection attempt", async () => {
+      const retryConf = structuredClone(conf)
+      retryConf.server.host = "offline-queue-retry-test"
+      const retryClient = new WebSocketClient(retryConf)
+      const { server, state } = flakyServer(retryClient.url)
+      await retryClient.init()
+      await retryClient.close(1000, "simulate-drop")
+      // The first reconnection attempt is dropped with a 1006 close; the next one gets through
+      state.dropNext = 1
+
+      const request = retryClient.getVariables("block-1")
+      await waitUntil(() => server.getMessages("mathSolver").length > 0)
+      const socket = server.server.clients().at(-1)
+      socket?.send(JSON.stringify({ type: "mathSolverResult", action: "get-variables", blockId: "block-1", result: [] }))
+
+      await expect(request).resolves.toEqual([])
+      await retryClient.destroy()
+      server.close()
+    })
+
+    // A handshake step that fails late — e.g. the HMAC answered on a socket already closing — used
+    // to reject the `initialized` of the attempt after it; that attempt then failed without a close
+    // event to replace it, and so did every attempt after, until the client gave up.
+    test("should give each connection attempt its own handshake, not one a late failure already rejected", async () => {
+      const staleConf = structuredClone(conf)
+      staleConf.server.host = "offline-queue-stale-init-test"
+      const staleClient = new WebSocketClient(staleConf)
+      const server = new ServerWebSocketMock(staleClient.url)
+      server.init()
+      await staleClient.init()
+      await staleClient.close(1000, "simulate-drop")
+      staleClient.initialized.reject(new Error("late handshake failure of a previous attempt"))
+      staleClient.initialized.promise.catch(() => undefined)
+
+      await expect(staleClient.init()).toResolve()
+      await staleClient.destroy()
+      server.close()
+    })
+
+    test("should ignore an HMAC challenge read on a socket that is no longer open", async () => {
+      class HandshakeClient extends WebSocketClient {
+        answerChallenge(): Promise<void> {
+          return this.manageHMACChallenge({
+            type: TWebSocketClientMessageType.HMAC_Challenge,
+            hmacChallenge: "c",
+            iinkSessionId: "s",
+          })
+        }
+      }
+      const handshakeConf = structuredClone(conf)
+      handshakeConf.server.host = "offline-queue-closing-hmac-test"
+      const handshakeClient = new HandshakeClient(handshakeConf)
+      const server = new ServerWebSocketMock(handshakeClient.url)
+      server.init()
+      await handshakeClient.init()
+      await handshakeClient.close(1000, "simulate-drop")
+      const emitError = jest.spyOn(handshakeClient.event, "emitError")
+
+      await expect(handshakeClient.answerChallenge()).toResolve()
+      expect(emitError).not.toHaveBeenCalled()
+      server.close()
+    })
+
+    test("should close the socket a failed handshake left open before opening the next one", async () => {
+      const leakConf = structuredClone(conf)
+      leakConf.server.host = "offline-queue-leak-test"
+      let failKey = true
+      const leakClient = new WebSocketClient({
+        ...leakConf,
+        server: {
+          ...leakConf.server,
+          hmacKey: () => (failKey ? Promise.reject(new Error("token endpoint down")) : Promise.resolve("key")),
+        },
+      })
+      leakClient.event.emitError = jest.fn()
+      const server = new ServerWebSocketMock(leakClient.url)
+      server.init()
+      await expect(leakClient.init()).rejects.toThrow("token endpoint down")
+      failKey = false
+
+      await leakClient.init()
+
+      expect(server.server.clients()).toHaveLength(1)
+      await leakClient.destroy()
+      server.close()
+    })
+
+    test("should reject a request waiting for the reconnection once the client gives up", async () => {
+      const giveUpConf = structuredClone(conf)
+      giveUpConf.server.host = "offline-queue-give-up-test"
+      giveUpConf.server.websocket.maxReconnectAttempts = 2
+      const giveUpClient = new WebSocketClient(giveUpConf)
+      const { server, state } = flakyServer(giveUpClient.url)
+      await giveUpClient.init()
+      await giveUpClient.close(1000, "simulate-drop")
+      state.down = true
+
+      const request = giveUpClient.send({ type: "probe" })
+
+      await expect(request).rejects.toThrow("Unable to reconnect")
+      await giveUpClient.destroy()
+      server.close()
+    })
+
     test("should reject new addStrokes once offline queue is full", async () => {
       const fullQueueConf = structuredClone(conf)
       fullQueueConf.server.host = "offline-queue-full-test"
@@ -640,10 +862,23 @@ describe("WebSocketClient.ts", () => {
       await expect(promise).toResolve()
     })
 
-    test("should not queue when offlineQueueEnabled is false", async () => {
+    test("should report offline while disconnected, nothing queued, and online once reconnected", async () => {
+      expect(wsClient.isOffline).toBe(false)
+      await wsClient.init()
+      const [client] = mockServer.server.clients()
+      client.close({ code: 1006, reason: "network drop", wasClean: false })
+      await delay(10)
+
+      expect(wsClient.isOffline).toBe(true)
+      expect(wsClient.offlineQueueLength).toBe(0)
+
+      await wsClient.send({ type: "probe" })
+      expect(wsClient.isOffline).toBe(false)
+    })
+
+    test("should neither queue nor reconnect when autoReconnect is false", async () => {
       const disabledConf = structuredClone(conf)
       disabledConf.server.host = "offline-queue-disabled-test"
-      disabledConf.server.websocket.offlineQueueEnabled = false
       disabledConf.server.websocket.autoReconnect = false
       const disabledClient = new WebSocketClient(disabledConf)
       const disabledMockServer = new ServerWebSocketMock(disabledClient.url)
@@ -651,7 +886,7 @@ describe("WebSocketClient.ts", () => {
       await disabledClient.init()
       await disabledClient.close(1000, "simulate-drop")
       await expect(disabledClient.addStrokes(strokes)).rejects.toThrow()
-      expect(disabledClient.isOffline).toBe(false)
+      expect(disabledClient.offlineQueueLength).toBe(0)
       await disabledClient.destroy()
       disabledMockServer.close()
     })
@@ -671,10 +906,10 @@ describe("WebSocketClient.ts", () => {
       expect(statuses).toContain("offline")
     })
 
-    test("should still report a network drop as an error when the offline queue is disabled", async () => {
+    test("should still report a network drop as an error when autoReconnect is false", async () => {
       const disabledConf = structuredClone(conf)
       disabledConf.server.host = "offline-queue-drop-disabled-test"
-      disabledConf.server.websocket.offlineQueueEnabled = false
+      disabledConf.server.websocket.autoReconnect = false
       const disabledClient = new WebSocketClient(disabledConf)
       const disabledMockServer = new ServerWebSocketMock(disabledClient.url)
       disabledMockServer.init()
@@ -698,10 +933,7 @@ describe("WebSocketClient.ts", () => {
     })
 
     test("should open only one socket when a direct send() races the offline-queue reconnect loop", async () => {
-      // autoReconnect must be on here: it's what makes send() attempt its own immediate
-      // reconnect (e.g. via recognizeGesture during contextless gesture detection while
-      // writing a stroke) instead of just rejecting — the path that used to race the
-      // offline-queue reconnect loop below.
+      // send() used to reconnect on its own, racing the reconnect loop; it now waits for that loop.
       const raceConf = structuredClone(conf)
       raceConf.server.host = "offline-queue-race-test"
       raceConf.server.websocket.autoReconnect = true
@@ -716,11 +948,9 @@ describe("WebSocketClient.ts", () => {
       const [client] = raceMockServer.server.clients()
       client.close({ code: 1006, reason: "simulate-drop", wasClean: false })
       await delay(10)
-      // This call bypasses the offline queue and goes straight through send()'s own
-      // auto-reconnect, racing the reconnect loop's already-scheduled attempt.
+      // A request, not a change: it waits for the reconnect loop rather than the queue.
       const sendPromise = raceClient.send({ type: "test", data: "race" }).catch(() => undefined)
-      // Let both the immediate send()-triggered reconnect and the delayed reconnect-loop
-      // attempt (reconnectDelay = 50ms) have a chance to run.
+      // Let the reconnect-loop attempt (reconnectDelay = 50ms) run.
       await delay(300)
       expect(raceMockServer.server.clients()).toHaveLength(1)
       await sendPromise
@@ -1752,6 +1982,74 @@ describe("WebSocketClient.ts", () => {
       // 2 -> CLOSING
       await expect(mockServer.server.clients()[0].readyState).toEqual(2)
       mockServer.close()
+    })
+  })
+
+  describe("pending requests", () => {
+    class PendingClient extends WebSocketClient {
+      failAll(error: string): void {
+        this.rejectDeferredPending(error)
+      }
+      answerAllNeutrally(): void {
+        this.resolveDeferredPending()
+      }
+      forgetAll(): void {
+        this.resetAllDeferred()
+      }
+    }
+
+    /** One request of every kind left waiting on an answer the server never sends. */
+    const startEveryKind = (wsClient: PendingClient) => {
+      jest.spyOn(wsClient, "send").mockResolvedValue()
+      return {
+        initialized: wsClient.initialized.promise,
+        gesture: wsClient.recognizeGesture(buildIIStroke()),
+        exported: wsClient.export(),
+        idle: wsClient.waitForIdle(),
+        math: wsClient.getVariables("block-1"),
+        support: wsClient.sendToSupport({ note: "x" }),
+      }
+    }
+
+    test("should reject every kind of pending request on an error", async () => {
+      const wsClient = new PendingClient(structuredClone(configuration))
+      const pending = startEveryKind(wsClient)
+      await delay(0)
+
+      wsClient.failAll("boom")
+
+      for (const promise of Object.values(pending)) {
+        await expect(promise).rejects.toBe("boom")
+      }
+    })
+
+    test("should answer every kind of pending request neutrally on a deliberate close", async () => {
+      const wsClient = new PendingClient(structuredClone(configuration))
+      const pending = startEveryKind(wsClient)
+      await delay(0)
+
+      wsClient.answerAllNeutrally()
+
+      await expect(pending.initialized).resolves.toBeUndefined()
+      await expect(pending.gesture).resolves.toMatchObject({ gestureType: "none" })
+      await expect(pending.exported).resolves.toEqual({})
+      await expect(pending.idle).resolves.toBeUndefined()
+      await expect(pending.math).resolves.toEqual([])
+      await expect(pending.support).resolves.toBeUndefined()
+    })
+
+    test("should forget every pending request on reset", async () => {
+      const wsClient = new PendingClient(structuredClone(configuration))
+      const previousInit = wsClient.initialized
+      startEveryKind(wsClient)
+      await delay(0)
+
+      wsClient.forgetAll()
+
+      expect(wsClient.initialized).not.toBe(previousInit)
+      // A late answer from the server settles nothing once forgotten
+      wsClient.answerAllNeutrally()
+      await expect(wsClient.initialized.promise).resolves.toBeUndefined()
     })
   })
 

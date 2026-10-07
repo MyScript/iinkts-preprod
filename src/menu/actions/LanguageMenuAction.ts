@@ -44,16 +44,19 @@ export class LanguageMenuAction extends BaseMenuItem<HTMLDivElement> {
     })
 
     // Chargement asynchrone des langues disponibles
-    getAvailableLanguageList(this.canvas.configuration).then((json) => {
-      const languages = json.result as {
-        [key: string]: string
-      }
-      for (const key in languages) {
-        const selected = key === this.canvas.configuration.recognition.lang
-        const opt = new Option(languages[key], key, selected, selected)
-        this.select.appendChild(opt)
-      }
-    })
+    getAvailableLanguageList(this.canvas.configuration)
+      .then((json) => {
+        const languages = json.result as {
+          [key: string]: string
+        }
+        for (const key in languages) {
+          const selected = key === this.canvas.configuration.recognition.lang
+          const opt = new Option(languages[key], key, selected, selected)
+          this.select.appendChild(opt)
+        }
+      })
+      // No list to pick from: the select stays empty and recognition keeps its language
+      .catch((error) => this.logger.error("getAvailableLanguageList", error))
 
     this.subMenuWrapper = this.dom.div({
       className: "sub-menu",

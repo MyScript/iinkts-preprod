@@ -1,7 +1,7 @@
 import type { TBox } from "@/core"
 
-import type { JIIXElementType } from "./Export"
-import type { TJIIXBase, TJIIXElementBase } from "./ExportCommon"
+import type { JIIXElementType } from "./JIIX"
+import type { TJIIXBase, TJIIXElementBase } from "./JIIXCommon"
 
 /**
  * @group Client/Export

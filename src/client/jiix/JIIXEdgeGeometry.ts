@@ -1,8 +1,8 @@
 import type { TPoint } from "@/core"
 import { computePointOnEllipse, convertMillimeterToPixel } from "@/core"
 
-import type { TJIIXEdgeElement } from "./Export"
-import { JIIXEdgeKind } from "./Export"
+import type { TJIIXEdgeElement } from "./JIIX"
+import { JIIXEdgeKind } from "./JIIX"
 
 /**
  * Extract an edge JIIX element's own start/end points (in pixels), regardless of

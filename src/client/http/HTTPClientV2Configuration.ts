@@ -8,17 +8,17 @@ import type {
   TRawContentConfiguration,
   TShapeConfiguration,
   TTextHTTPClientV2Configuration,
-} from "./recognition"
+} from "../recognition"
 import {
   DefaultExportConfiguration,
   DefaultMathV2Configuration,
   DefaultRawContentV2Configuration,
   DefaultShapeConfiguration,
   DefaultTexConfigurationV2,
-} from "./recognition"
-import type { TRecognitionTypeV2 } from "./RecognitionConfiguration"
-import type { TServerHTTPConfiguration } from "./ServerConfiguration"
-import { DefaultServerHTTPConfiguration } from "./ServerConfiguration"
+} from "../recognition"
+import type { TRecognitionTypeV2 } from "../shared/RecognitionConfiguration"
+import type { TServerHTTPConfiguration } from "../shared/ServerConfiguration"
+import { DefaultServerHTTPConfiguration } from "../shared/ServerConfiguration"
 
 /**
  * @group Client

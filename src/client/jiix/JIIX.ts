@@ -1,14 +1,14 @@
 import type { TBox } from "@/core"
 import type { EdgeDecoration } from "@/symbol"
 
-import type { TJIIXChar, TJIIXElementBase, TJIIXLine, TJIIXWord } from "./ExportCommon"
-import type { TJIIXMathElement } from "./ExportMath"
+import type { TJIIXChar, TJIIXElementBase, TJIIXLine, TJIIXWord } from "./JIIXCommon"
+import type { TJIIXMathElement } from "./JIIXMath"
 
 /**
  * @group Client/Export
  */
 // Re-export common types for backward compatibility
-export type { TJIIXBase, TJIIXChar, TJIIXElementBase, TJIIXLine, TJIIXStrokeItem, TJIIXWord } from "./ExportCommon"
+export type { TJIIXBase, TJIIXChar, TJIIXElementBase, TJIIXLine, TJIIXStrokeItem, TJIIXWord } from "./JIIXCommon"
 
 /**
  * @group Client/Export
@@ -29,8 +29,8 @@ export type {
   TJIIXMathSymbol,
   TJIIXMathSymbolExpression,
   TJIIXMathVariable,
-} from "./ExportMath"
-export { JIIXMathExpressionType } from "./ExportMath"
+} from "./JIIXMath"
+export { JIIXMathExpressionType } from "./JIIXMath"
 
 /**
  * @group Client/Export
