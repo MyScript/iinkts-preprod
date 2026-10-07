@@ -5,14 +5,14 @@ import type { TPenStyle, TTheme } from "@/style"
 import { StyleHelper } from "@/style-css"
 import type { Stroke } from "@/symbol"
 
-import { ClientError, mapCloseCodeToMessage, mapErrorCodeToMessage } from "./ClientError"
-import { ClientEvent } from "./ClientEvent"
-import { parseExportedJIIX, type TExport } from "./Export"
-import { resolveHmac } from "./HmacAuth"
-import { ensureServerVersion } from "./infos"
-import type { TConverstionState } from "./RecognitionConfiguration"
-import { redactServerSecrets } from "./ServerConfiguration"
-import { toWireStroke } from "./StrokeSerializer"
+import { parseExportedJIIX, type TExport } from "../jiix/JIIX"
+import { ClientError, mapCloseCodeToMessage, mapErrorCodeToMessage } from "../shared/ClientError"
+import { ClientEvent } from "../shared/ClientEvent"
+import { resolveHmac } from "../shared/HmacAuth"
+import { ensureServerVersion } from "../shared/infos"
+import type { TConverstionState } from "../shared/RecognitionConfiguration"
+import { redactServerSecrets, serverUrl } from "../shared/ServerConfiguration"
+import { toWireStroke } from "../shared/StrokeSerializer"
 import { readHistoryContext } from "./WebSocketClientMessage"
 import type { TWebSocketSSRClientConfiguration } from "./WebSocketSSRClientConfiguration"
 import { WebSocketSSRClientConfiguration } from "./WebSocketSSRClientConfiguration"
@@ -115,8 +115,10 @@ export class WebSocketSSRClient {
   constructor(config?: TPartialDeep<TWebSocketSSRClientConfiguration>) {
     this.logger.info("constructor", { config: redactServerSecrets(config) })
     this.configuration = new WebSocketSSRClientConfiguration(config)
-    const scheme = this.configuration.server.scheme === "https" ? "wss" : "ws"
-    this.url = `${scheme}://${this.configuration.server.host}/api/v4.0/iink/document?applicationKey=${encodeURIComponent(this.configuration.server.applicationKey)}`
+    this.url = serverUrl(this.configuration.server, "document", {
+      websocket: true,
+      query: { applicationKey: this.configuration.server.applicationKey },
+    })
     this.event = new ClientEvent()
     this.initialized = new DeferredPromise<void>()
     this.boundOpenCallback = this.openCallback.bind(this)

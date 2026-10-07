@@ -84,7 +84,7 @@ export type TWireStroke = {
  *
  * The output shape is part of the wire contract — every key, and the order pointers appear in each
  * array, is what the server parses. It is asserted against a literal in
- * `test/unit/client/StrokeSerializer.test.ts` so it cannot drift with a refactor.
+ * `test/unit/client/shared/StrokeSerializer.test.ts` so it cannot drift with a refactor.
  *
  * `t` and `p` are all-or-nothing: an array is emitted only if **every** pointer supplies that value.
  * The server reads each pointer by taking the same index across the arrays, so a partially filled

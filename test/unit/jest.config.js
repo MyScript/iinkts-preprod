@@ -34,7 +34,8 @@ export default {
   ],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",
-    "web-worker:(.*)\\.worker.ts": "<rootDir>/src/worker/$1.worker.ts",
+    // Only the worker's name: the relative path before it depends on where the importing file sits.
+    "web-worker:(?:.*/)?([^/]+)\\.worker.ts": "<rootDir>/src/worker/$1.worker.ts",
   },
   modulePathIgnorePatterns: [
     "<rootDir>/test/unit/__dataset__",

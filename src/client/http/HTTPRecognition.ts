@@ -1,10 +1,10 @@
 import { isVersionSuperiorOrEqual } from "@/core"
 import { LoggerCategory, LoggerManager } from "@/logger"
 
+import { ClientError, mapErrorCodeToMessage } from "../shared/ClientError"
+import { resolveHmac } from "../shared/HmacAuth"
+import type { TServerHTTPConfiguration } from "../shared/ServerConfiguration"
 import { parseApiError } from "./ClientApiError"
-import { ClientError, mapErrorCodeToMessage } from "./ClientError"
-import { resolveHmac } from "./HmacAuth"
-import type { TServerHTTPConfiguration } from "./ServerConfiguration"
 
 const logger = LoggerManager.getLogger(LoggerCategory.CLIENT)
 

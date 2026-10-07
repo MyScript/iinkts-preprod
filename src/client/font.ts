@@ -1,6 +1,7 @@
 import type { TPartialDeep } from "@/core"
 
-import { assertServerConfig, type TServerHTTPConfiguration } from "./ServerConfiguration"
+import { getJSON } from "./shared/getJSON"
+import { assertServerConfig, type TServerHTTPConfiguration } from "./shared/ServerConfiguration"
 
 /**
  * @group Client
@@ -15,10 +16,9 @@ export async function getAvailableFontList(
   if (!configuration?.recognition?.lang) {
     throw new Error("Failed to get fonts: configuration.recognition.lang is required!")
   }
-  const response = await fetch(
-    `${configuration.server.scheme}://${configuration.server.host}/api/v4.0/iink/font/google/language/` +
-      configuration.recognition.lang
+  const { result } = await getJSON<{ result: string[] }>(
+    configuration.server,
+    `font/google/language/${configuration.recognition.lang}`
   )
-  const { result } = await response.json()
   return result.sort()
 }

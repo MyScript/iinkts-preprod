@@ -1,6 +1,6 @@
 import type { THistoryContext } from "@/history"
 
-import type { TExportWire } from "./Export"
+import type { TExportWire } from "../jiix/JIIX"
 
 /**
  * @group Client
