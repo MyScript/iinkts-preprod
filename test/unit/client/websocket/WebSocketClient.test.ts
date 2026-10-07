@@ -824,6 +824,20 @@ describe("WebSocketClient.ts", () => {
       await expect(promise).toResolve()
     })
 
+    test("should report offline while disconnected, nothing queued, and online once reconnected", async () => {
+      expect(wsClient.isOffline).toBe(false)
+      await wsClient.init()
+      const [client] = mockServer.server.clients()
+      client.close({ code: 1006, reason: "network drop", wasClean: false })
+      await delay(10)
+
+      expect(wsClient.isOffline).toBe(true)
+      expect(wsClient.offlineQueueLength).toBe(0)
+
+      await wsClient.send({ type: "probe" })
+      expect(wsClient.isOffline).toBe(false)
+    })
+
     test("should neither queue nor reconnect when autoReconnect is false", async () => {
       const disabledConf = structuredClone(conf)
       disabledConf.server.host = "offline-queue-disabled-test"
@@ -834,7 +848,7 @@ describe("WebSocketClient.ts", () => {
       await disabledClient.init()
       await disabledClient.close(1000, "simulate-drop")
       await expect(disabledClient.addStrokes(strokes)).rejects.toThrow()
-      expect(disabledClient.isOffline).toBe(false)
+      expect(disabledClient.offlineQueueLength).toBe(0)
       await disabledClient.destroy()
       disabledMockServer.close()
     })
