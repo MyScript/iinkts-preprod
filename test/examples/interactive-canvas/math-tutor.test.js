@@ -21,7 +21,7 @@ async function waitForFigureSession(page) {
     .toBe(true)
 }
 
-test.describe("Interactive ink canvas Math Tutor", () => {
+test.describe("Interactive ink canvas Math Tutor", { tag: "@slow" }, () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(`${process.env.PATH_PREFIX ? process.env.PATH_PREFIX : ""}/examples/interactive-canvas/math-tutor/index.html`)
     await passModalKey(page)

@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test"
 import { passModalKey } from "../helper"
 
-test.describe("Interactive ink canvas menu layout", () => {
+test.describe("Interactive ink canvas menu layout", { tag: "@touch" }, () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(
       `${process.env.PATH_PREFIX ? process.env.PATH_PREFIX : ""}/examples/interactive-canvas/interactive_canvas_menu_layout.html`

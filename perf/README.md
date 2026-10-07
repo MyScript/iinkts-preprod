@@ -137,7 +137,8 @@ gate's own error was at most 10.3% against a limit of 20%.
   request's merge commit (the target's tip, no network needed), a fetch, and then fails listing the
   refs the checkout does have. `BENCH_REF_BASE` names a different base; `BENCH_REF_SHA` or `--sha`
   skips the question entirely and never looks for the base at all.
-- `yarn bench:e2e` is **not** run by CI. The browser scenarios are a manual instrument.
+- `yarn bench:e2e` runs in CI (stage `Browser perf`) but is **reported, never gated**. Like the gate,
+  it needs `dist-ref/` from `yarn bench:ref` and refuses to start without it.
 - The seed loop passes the *same* stroke objects to `addSymbol`, so since E5 those objects are frozen
   by the commit. Any case that iterates `strokes` is measuring frozen records. This is intentional —
   it is what the library hands out — but a case cannot be assumed to measure plain objects just
@@ -171,7 +172,17 @@ byte-identical.
 
 ## Browser scenarios — `yarn bench:e2e`
 
-Desktop Chrome. Blocking time is the primary figure; wall clock includes the websocket round trip and
+Desktop Chrome and Tablet Safari (`PROJECT` narrows to one). Every scenario measures both builds in
+the same browser, `PERF_E2E_ROUNDS` paired rounds (3 by default) in ABBA order: the reference is the
+same example page with `dist/iink.esm.js` swapped for `dist-ref/iink.esm.js` by a route. The run
+prints one table per project — scenario, metric, before, after, change, description — where before
+and after are each build's median, and writes it to `PERF_E2E_REPORT_DIR/<project>.json`
+(`.local/bench/perf-e2e/` by default). WebKit reports no long tasks, so Tablet Safari has no blocking
+row: read its frame figures.
+
+The tables below are single-build figures from before the A/B run, kept for the analysis under them.
+
+Blocking time is the primary figure; wall clock includes the websocket round trip and
 is reported only for context. There is no longer a document-size ceiling on these scenarios — see the
 comment at the top of `perf/browser/scenarios.perf.ts` for why there was one and why it went.
 

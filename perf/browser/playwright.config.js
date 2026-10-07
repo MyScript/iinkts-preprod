@@ -4,12 +4,16 @@ import { defineConfig, devices } from "@playwright/test"
 
 /**
  * Browser-side performance scenarios. Separate from `test/examples` on purpose: those assert
- * behaviour and must stay fast and parallel; these measure timing and must run alone, on one
- * browser, with retries off — a retried perf run would silently report the luckier number.
+ * behaviour and must stay fast and parallel; these measure timing and must run alone, one worker,
+ * with retries off — a retried perf run would silently report the luckier number.
  *
  * Reported, never gated. Browser numbers are too noisy to fail a pull request on; they exist to
  * confirm that a micro-bench win is felt where the user is.
  */
+// One id per run, set here in the main process and inherited by the workers, so the report files
+// can tell this run's scenarios from a previous run's — see perf/browser/lib/reportFile.ts.
+process.env.PERF_E2E_RUN ||= new Date().toISOString()
+
 export default defineConfig({
   globalSetup: "../../test/examples/global-setup.js",
   testDir: ".",
@@ -18,7 +22,7 @@ export default defineConfig({
   retries: 0,
   workers: 1,
   timeout: 5 * 60 * 1000,
-  reporter: "list",
+  reporter: [["list"], ["./abReporter.ts"]],
   use: {
     headless: process.env.HEADLESS === "false" ? false : true,
     baseURL: process.env.BASE_URL || "http://localhost:8000",
@@ -26,12 +30,18 @@ export default defineConfig({
     video: "off",
     screenshot: "off",
   },
+  // The two targets the products are measured on, the same devices as the example tests. `PROJECT`
+  // narrows the run to one of them.
   projects: [
     {
       name: "Desktop Chrome",
       use: { ...devices["Desktop Chrome"] },
     },
-  ],
+    {
+      name: "Tablet Safari",
+      use: { ...devices["iPad Mini landscape"] },
+    },
+  ].filter((project) => !process.env.PROJECT || project.name === process.env.PROJECT),
   // In CI the pages are already served — `make prepare-test-examples-ci` brings up the backend and
   // the example server, and `BASE_URL` points at them, which is the same assumption the examples'
   // own config makes by having no `webServer` at all. Starting a second one here would serve a

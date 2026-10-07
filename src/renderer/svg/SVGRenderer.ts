@@ -213,13 +213,6 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
     const filtersGroup = SVGBuilder.createGroup({
       id: "filters-group",
     })
-    const removalFilter = SVGBuilder.createFilter(SVGRendererConst.removalFilterId)
-    const bfeComponentTransfer = SVGBuilder.createComponentTransfert()
-    const bfeFuncA = SVGBuilder.createTransfertFunctionTable("feFuncA", "0 0.25")
-    bfeComponentTransfer.appendChild(bfeFuncA)
-    removalFilter.appendChild(bfeComponentTransfer)
-    filtersGroup.appendChild(removalFilter)
-
     return filtersGroup
   }
 
@@ -611,11 +604,9 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
     if (!el) {
       return
     }
-    if (isDeleting) {
-      el.setAttribute("filter", `url(#${SVGRendererConst.removalFilterId})`)
-    } else {
-      el.removeAttribute("filter")
-    }
+    // A CSS opacity filter, not an SVG one: WebKit's renderer crashed painting the SVG removal filter
+    // (an alpha transfer table) on as few as five strokes
+    el.classList.toggle(SVGRendererConst.deletingClassName, isDeleting)
   }
 
   replaceSymbol(id: string, symbols: TSymbol[]): SVGGraphicsElement[] | undefined {
