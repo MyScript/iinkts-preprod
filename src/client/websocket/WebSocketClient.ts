@@ -18,7 +18,7 @@ import { ClientError, mapCloseCodeToMessage, mapErrorCodeToMessage } from "../sh
 import { ClientEvent } from "../shared/ClientEvent"
 import { resolveHmac } from "../shared/HmacAuth"
 import { ensureServerVersion } from "../shared/infos"
-import { redactServerSecrets } from "../shared/ServerConfiguration"
+import { redactServerSecrets, serverUrl } from "../shared/ServerConfiguration"
 import type { TRecognitionStroke } from "../shared/StrokeSerializer"
 import { toWireStroke } from "../shared/StrokeSerializer"
 import type { TWebSocketClientConfiguration } from "./WebSocketClientConfiguration"
@@ -165,8 +165,10 @@ export class WebSocketClient {
   constructor(config: TPartialDeep<TWebSocketClientConfiguration>, event?: ClientEvent) {
     this.logger.info("constructor", { config: redactServerSecrets(config) })
     this.configuration = new WebSocketClientConfiguration(config)
-    const scheme = this.configuration.server.scheme === "https" ? "wss" : "ws"
-    this.url = `${scheme}://${this.configuration.server.host}/api/v4.0/iink/offscreen?applicationKey=${encodeURIComponent(this.configuration.server.applicationKey)}`
+    this.url = serverUrl(this.configuration.server, "offscreen", {
+      websocket: true,
+      query: { applicationKey: this.configuration.server.applicationKey },
+    })
 
     this.event = event || new ClientEvent()
     this.initialized = new DeferredPromise<void>()

@@ -69,6 +69,23 @@ export const DefaultServerWebsocketConfiguration: TServerWebsocketConfiguration 
 }
 
 /**
+ * The URL of a server endpoint, under `/api/v4.0/iink/`. For a websocket, `http`/`https` become
+ * `ws`/`wss`. Query values are URI-encoded; `endpoint` is used as given.
+ * @group Client
+ */
+export function serverUrl(
+  server: Pick<TServerHTTPConfiguration, "scheme" | "host">,
+  endpoint: string,
+  { websocket = false, query = {} }: { websocket?: boolean; query?: Record<string, string> } = {}
+): string {
+  const scheme = websocket ? (server.scheme === "https" ? "wss" : "ws") : server.scheme
+  const search = Object.entries(query)
+    .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+    .join("&")
+  return `${scheme}://${server.host}/api/v4.0/iink/${endpoint}${search ? `?${search}` : ""}`
+}
+
+/**
  * Assert that server config has both scheme and host. Throws if either is missing.
  * @group Client
  */

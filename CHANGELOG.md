@@ -267,7 +267,8 @@ The canvas UI has 8 slots (`top-left`, `top-center`, `top-right`, `middle-left`,
 - refactor(canvas): `AbstractCanvas` owns the cursor-class toggle (`setCursorStyle()`, new `abstract get tool(): CanvasTool`, `protected` hooks `cursorClasses`/`getCursorClass()`), previously copied into all four variants; `InteractiveInkCanvas` only overrides the hooks
 - refactor(canvas): `AbstractCanvas.resolveDimensions()` (new `abstract get minDimensions()`) replaces the size fallback repeated in all four `resize()`
 - refactor(canvas): `AbstractCanvas.teardownCommon()` (new `abstract renderer: { destroy(): void }`) replaces the teardown sequence repeated in all four `destroy()`; each still calls `clearRootElementReference()` last
-- refactor(client): `HTTPClientV1`/`HTTPClientV2` share `resolveHmac()` (`src/client/HmacAuth.ts`); the WebSocket clients keep their own HMAC-challenge flow
+- refactor(client): `HTTPClientV1`/`HTTPClientV2` share `resolveHmac()` (`src/client/shared/HmacAuth.ts`); the WebSocket clients keep their own HMAC-challenge flow
+- refactor(client): every server URL comes from the new exported `serverUrl(server, endpoint, { websocket?, query? })` (`src/client/shared/ServerConfiguration.ts`) instead of seven copies of `${scheme}://${host}/api/v4.0/iink/…` in the four clients, `getAvailableFontList`, `getAvailableLanguageList` and `getApiInfos`
 - refactor(examples): the anti-flash-of-wrong-theme inline script, identical in 69 of 71 example pages, is now `examples/assets/js/theme-init.js`, loaded at the same head position
 
 # [v4.1.0](https://github.com/MyScript/iinkTS/tree/v4.1.0)
