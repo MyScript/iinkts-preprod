@@ -39,7 +39,17 @@
         background: var(--ex-surface);
         border-bottom: 1px solid var(--ex-border);
       }
-      .tutor-levels { display: flex; gap: var(--ex-space-xs); }
+      .tutor-levels { display: flex; gap: var(--ex-space-md); }
+      .tutor-track { display: flex; align-items: center; gap: var(--ex-space-xs); }
+      .tutor-track-title {
+        writing-mode: vertical-rl;
+        transform: rotate(180deg);
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--tutor-muted);
+      }
       .tutor-level {
         display: flex;
         flex-direction: column;
@@ -80,6 +90,12 @@
       .tutor-prompt { margin: 0; font-size: 13px; color: var(--tutor-muted); }
       .tutor-statement { font-size: 22px; color: var(--ex-text); }
       .tutor-statement .katex-display { margin: 2px 0; }
+      .tutor-given-figure { display: block; margin: 2px auto 0; overflow: visible; }
+      .tutor-given-shape { fill: color-mix(in srgb, var(--ex-primary) 10%, transparent); stroke: var(--ex-text); stroke-width: 1.5; stroke-linejoin: round; }
+      polyline.tutor-given-shape { fill: none; }
+      .tutor-given-dot { fill: var(--ex-text); }
+      .tutor-given-right-angle { fill: none; stroke: var(--tutor-correct); stroke-width: 1.5; }
+      .tutor-given-label { fill: var(--ex-text); font-size: 13px; font-weight: 600; }
 
       .tutor-actions { display: flex; align-items: center; gap: var(--ex-space-sm); }
       .tutor-stars { font-weight: 600; color: var(--ex-accent-orange); white-space: nowrap; }
@@ -107,18 +123,6 @@
 
       .tutor-sheet { flex: 1; min-height: 0; position: relative; display: flex; }
       .tutor-sheet #rootEl { flex: 1; min-width: 0; }
-      .tutor-sheet.is-preparing #rootEl { pointer-events: none; opacity: 0.4; transition: opacity 0.2s; }
-      .tutor-sheet.is-preparing::after {
-        content: attr(data-preparing);
-        position: absolute;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 18px;
-        color: var(--ex-text-muted);
-        z-index: var(--tutor-over-ink);
-      }
       .tutor-margin {
         position: absolute;
         top: 0;
@@ -164,6 +168,8 @@
         box-shadow: var(--ex-shadow-sm);
         animation: tutor-appear 0.25s ease-out;
       }
+      /* On a line that holds but is not finished: a nudge, not an error */
+      .tutor-hint.is-correct { background: var(--ex-primary); }
       .tutor-reading {
         right: var(--ex-space-sm);
         width: calc(var(--tutor-margin-width) - 2 * var(--ex-space-sm));
@@ -177,34 +183,6 @@
       .tutor-reading.is-wrong { color: var(--tutor-wrong); }
       @keyframes tutor-appear { from { opacity: 0; transform: translateY(-4px); } }
 
-      .tutor-overlay > svg.tutor-figure-layer { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-      .tutor-side { stroke-width: 6; stroke-linecap: round; opacity: 0.55; }
-      .tutor-side-a { stroke: var(--ex-primary); }
-      .tutor-side-b { stroke: #9b59b6; }
-      .tutor-side-c { stroke: var(--ex-accent-orange); }
-      .tutor-right-angle { fill: none; stroke: var(--tutor-correct); stroke-width: 2.5; }
-      .tutor-hypotenuse {
-        transform: translate(-50%, -50%);
-        padding: var(--ex-space-xs) var(--ex-space-sm);
-        border-radius: var(--ex-radius-md);
-        background: var(--ex-accent-orange);
-        color: #fff;
-        font-weight: 700;
-        white-space: nowrap;
-        animation: tutor-appear 0.25s ease-out;
-      }
-      .tutor-figure-hint {
-        left: 50%;
-        top: 72px;
-        transform: translateX(-50%);
-        max-width: 420px;
-        padding: var(--ex-space-sm) var(--ex-space-md);
-        border-radius: var(--ex-radius-lg);
-        background: var(--ex-primary);
-        color: #fff;
-        font-size: 14px;
-        box-shadow: var(--ex-shadow-sm);
-      }
 
       .tutor-connection {
         padding: 2px var(--ex-space-sm);
@@ -283,7 +261,10 @@
     <div class="ex-page-layout">
       <aside id="info-panel" class="ex-panel">
         <p class="ex-panel-heading">Math Tutor — handwritten workbook</p>
-        <p class="ex-panel-intro">Solve the equation by hand, one step per line. The canvas reads every line as you write and tells you which one goes wrong, and why.</p>
+        <p class="ex-panel-intro">Solve the exercise by hand, one step per line. The canvas reads every line as you write and tells you which one goes wrong, and why.</p>
+        <div class="ex-panel-item">
+          <div class="ex-panel-item-desc"><strong>Algebra</strong>: one-step, then two-step equations. <strong>Geometry</strong>: the perimeter, then the area of a shape. A reasoning only counts once it ends on the result: <code>P = 20</code>, not <code>P = (4 + 6) × 2</code>.</div>
+        </div>
         <div class="ex-panel-divider"></div>
         <div class="ex-panel-item">
           <div class="ex-panel-item-desc">The right margin shows what the machine read on each line: if a line turns red, check there first whether it read you right.</div>
@@ -327,7 +308,7 @@
       import { ModalCanvasOptions } from "../../components/modal/modalCanvasOptions.js"
       import { TutorOverlay } from "./overlay.js"
       import { UI } from "./strings.js"
-      import { rawContentFor, Tutor } from "./tutor.js"
+      import { MATH_RECOGNITION, Tutor } from "./tutor.js"
 
       const panelToggleBtn = document.getElementById("panelToggleBtn")
       const infoPanel = document.getElementById("info-panel")
@@ -338,7 +319,6 @@
 
       const rootElement = document.getElementById("rootEl")
       document.getElementById("marginTitle").textContent = UI.margin
-      document.getElementById("sheet").dataset.preparing = UI.preparing
       document.getElementById("banner").textContent = UI.solved
       document.getElementById("rotate").textContent = UI.rotate
       document.getElementById("restartBtn").textContent = UI.restart
@@ -368,8 +348,7 @@
 
       const canvasOptions = {
         configuration: {
-          // Level 3 switches to math + shapes when it starts
-          recognition: rawContentFor("equation"),
+          recognition: MATH_RECOGNITION,
           // A palm resting on the tablet must not ink: pen only once a pen is seen
           grabber: { inputMode: "auto" },
           menu: {

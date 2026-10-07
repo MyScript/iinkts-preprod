@@ -1,6 +1,6 @@
-import { checkLine, checkLines, evaluate, parseAnswer } from "../../../../../examples/interactive-canvas/math-tutor/evaluator.js"
+import { checkLine, checkLines, evaluate, isFinalValue, parseAnswer } from "../../../../../examples/interactive-canvas/math-tutor/evaluator.js"
 
-import { add, div, eq, frac, mul, neg, num, op, sqrt, sub, sup, twoXPlusThreeEqualsSeven, v } from "./fixtures"
+import { add, div, eq, frac, mul, neg, num, op, sqrt, sub, sup, sym, twoXPlusThreeEqualsSeven, v } from "./fixtures"
 
 describe("math-tutor/evaluator", () => {
   describe("evaluate", () => {
@@ -51,6 +51,36 @@ describe("math-tutor/evaluator", () => {
       expect(parseAnswer(eq(v("x"), v("y")))).toBeUndefined()
       expect(parseAnswer(eq(num(2), v("x")))).toBeUndefined()
       expect(parseAnswer(add(v("x"), num(2)))).toBeUndefined()
+    })
+
+    test("should reject a right value that is not computed yet", () => {
+      expect(parseAnswer(eq(v("P"), mul(add(num(4), num(6)), num(2))))).toBeUndefined()
+      expect(parseAnswer(eq(v("x"), frac(num(4), num(2))))).toBeUndefined()
+    })
+
+    test("should read a chain by its last member", () => {
+      expect(parseAnswer(eq(v("P"), add(num(12), num(8)), num(20)))).toEqual({ variable: "P", value: 20 })
+    })
+  })
+
+  describe("isFinalValue", () => {
+    test("should accept a number, a fraction in lowest terms and a number of π", () => {
+      expect(isFinalValue(num(20))).toBe(true)
+      expect(isFinalValue(num(28.27, "28.27"))).toBe(true)
+      expect(isFinalValue(neg(num(3)))).toBe(true)
+      expect(isFinalValue(frac(num(1), num(2)))).toBe(true)
+      expect(isFinalValue(mul(num(8), sym("π")))).toBe(true)
+      expect(isFinalValue(mul(sym("π"), num(8)))).toBe(true)
+      expect(isFinalValue(sym("π"))).toBe(true)
+    })
+
+    test("should refuse what is left to compute", () => {
+      expect(isFinalValue(mul(num(2), num(4), sym("π")))).toBe(false)
+      expect(isFinalValue(mul(sym("π"), sup(num(3), num(2))))).toBe(false)
+      expect(isFinalValue(add(num(12), num(8)))).toBe(false)
+      expect(isFinalValue(frac(num(6), num(3)))).toBe(false)
+      expect(isFinalValue(frac(num(4), num(1)))).toBe(false)
+      expect(isFinalValue(v("x"))).toBe(false)
     })
   })
 

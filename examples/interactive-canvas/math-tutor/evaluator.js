@@ -130,15 +130,71 @@ export function checkLine(expression, scope) {
 }
 
 /**
- * Reads a final answer: a variable alone on the left, a constant on the right (`x = -3`, `x = 1/2`).
+ * @param {TExpression} expression
+ * @returns {boolean}
+ */
+function isInteger(expression) {
+  return expression.type === "number" && typeof expression.value === "number" && Number.isInteger(expression.value)
+}
+
+/**
+ * @param {number} a
+ * @param {number} b
+ * @returns {number}
+ */
+function gcd(a, b) {
+  return b === 0 ? Math.abs(a) : gcd(b, a % b)
+}
+
+/**
+ * Whether a value is written as a result, with nothing left to compute: a number (`20`, `-3`,
+ * `28.27`), a fraction in lowest terms (`1/2`), or a number of π (`8π`, `π`). `(4 + 6) × 2` or
+ * `2 × 4 × π` hold the right value but are not finished.
+ * @param {TExpression} expression
+ * @returns {boolean}
+ */
+export function isFinalValue(expression) {
+  const operands = expression.operands ?? []
+  switch (expression.type) {
+    case "number":
+      return true
+    case "symbol":
+      return expression.label === "π"
+    case "-":
+      return operands.length === 1 && isFinalValue(operands[0])
+    case "/":
+    case "fraction": {
+      const [numerator, denominator] = operands
+      return (
+        operands.length === 2 &&
+        isInteger(numerator) &&
+        isInteger(denominator) &&
+        Math.abs(Number(denominator.value)) !== 1 &&
+        gcd(Number(numerator.value), Number(denominator.value)) === 1
+      )
+    }
+    case "×":
+      return (
+        operands.length === 2 &&
+        operands.some((operand) => operand.type === "symbol" && operand.label === "π") &&
+        operands.some((operand) => operand.type === "number")
+      )
+    default:
+      return false
+  }
+}
+
+/**
+ * Reads a final answer: a variable alone on the left, a result on the right (`x = -3`, `P = 20`,
+ * `A = 9π`). A chain counts by its last member: `P = 12 + 8 = 20`.
  * @param {TExpression} expression
  * @returns {TAnswer | undefined}
  */
 export function parseAnswer(expression) {
-  if (expression.type !== "=" || expression.operands?.length !== 2) return undefined
-  const [left, right] = expression.operands
-  if (left.type !== "variable" || left.label === undefined) return undefined
-  const value = evaluate(right)
+  const members = expression.type === "=" ? (expression.operands ?? []) : []
+  const [left, right] = [members[0], members[members.length - 1]]
+  if (members.length < 2 || left.type !== "variable" || left.label === undefined) return undefined
+  const value = isFinalValue(right) ? evaluate(right) : undefined
   return value === undefined ? undefined : { variable: left.label, value }
 }
 
