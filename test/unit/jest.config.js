@@ -14,12 +14,15 @@ export default {
     "!<rootDir>/src/modules.d.ts",
     "!<rootDir>/src/Constants.ts",
   ],
+  // The floor of what the suite measured on 2026-10-06 (88.05 / 88.71 / 86.82 / 88.05), not a
+  // round target: a 75 here let twelve points of coverage drift away without failing anything.
+  // Raise it when coverage goes up, never lower it to make a change pass.
   coverageThreshold: {
     global: {
-      branches: 75,
-      functions: 75,
-      lines: 75,
-      statements: 75,
+      branches: 88,
+      functions: 86,
+      lines: 88,
+      statements: 88,
     },
   },
   coverageReporters: ["text-summary", "lcov"],
