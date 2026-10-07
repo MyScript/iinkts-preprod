@@ -1,6 +1,6 @@
 import { buildIIStroke, buildIIText } from "../../../helpers"
 import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
-import { GestureHelpers, JoinGestureHandler, StrokeUtil, TGesture } from "@/iink"
+import { GestureHelpers, JoinGestureHandler, OBBOps, StrokeUtil, SymbolGeometry, TGesture } from "@/iink"
 
 describe("JoinGestureHandler.ts", () => {
   let canvas: ReturnType<typeof createCanvasMock>
@@ -151,6 +151,73 @@ describe("JoinGestureHandler.ts", () => {
 
       const translatedSymbols = translateSpy.mock.calls.flatMap((call) => call[0])
       expect(translatedSymbols).not.toContain(strayStroke)
+    })
+  })
+
+  describe("apply — what moves where", () => {
+    let rowHeight: number
+    let translate: jest.Mock
+    const join = (): TGesture => ({
+      gestureType: "JOIN",
+      gestureStrokeId: "gesture",
+      strokeIds: [],
+      strokeBeforeIds: [],
+      strokeAfterIds: [],
+    })
+    const rightEdge = (s: ReturnType<typeof buildIIStroke>) => {
+      const b = OBBOps.toBox(SymbolGeometry.boundsOf(s))
+      return b.x + b.width
+    }
+    const leftEdge = (s: ReturnType<typeof buildIIStroke>) => OBBOps.toBox(SymbolGeometry.boundsOf(s)).x
+
+    beforeEach(() => {
+      rowHeight = canvas.configuration.rendering.guides.gap
+      translate = jest.fn(() => Promise.resolve())
+      ;(canvas.gesture as unknown as Record<string, unknown>).translator = { translate, applyToSymbol: jest.fn() }
+    })
+
+    test("should close the gap between two strokes of a row, moving every stroke after it", async () => {
+      const before = buildIIStroke({ box: { height: 9, width: 10, x: 0, y: 0.6 * rowHeight } })
+      const firstAfter = buildIIStroke({ box: { height: 9, width: 10, x: 100, y: 0.6 * rowHeight } })
+      const secondAfter = buildIIStroke({ box: { height: 9, width: 10, x: 150, y: 0.6 * rowHeight } })
+      ;[before, firstAfter, secondAfter].forEach((s) => canvas.model.addSymbol(s))
+      const gestureStroke = buildIIStroke({ box: { height: 9, width: 10, x: 40, y: 0.6 * rowHeight } })
+
+      await handler.apply(gestureStroke, join())
+
+      expect(translate).toHaveBeenCalledTimes(1)
+      expect(translate).toHaveBeenCalledWith(
+        expect.arrayContaining([firstAfter, secondAfter]),
+        rightEdge(before) - leftEdge(firstAfter),
+        0,
+        false
+      )
+      expect(canvas.replaceSymbols).not.toHaveBeenCalled()
+      expect(canvas.history.push).toHaveBeenCalledTimes(1)
+    })
+
+    test("should lift a row's strokes after the last stroke of the row above", async () => {
+      const above = buildIIStroke({ box: { height: 9, width: 10, x: 100, y: 0.6 * rowHeight } })
+      const after = buildIIStroke({ box: { height: 9, width: 10, x: 100, y: 1.6 * rowHeight } })
+      ;[above, after].forEach((s) => canvas.model.addSymbol(s))
+      const gestureStroke = buildIIStroke({ box: { height: 9, width: 10, x: 10, y: 1.6 * rowHeight } })
+
+      await handler.apply(gestureStroke, join())
+
+      expect(translate).toHaveBeenNthCalledWith(1, [after], rightEdge(above) - leftEdge(after) + rowHeight * 2, -rowHeight, false)
+      expect(canvas.history.push).toHaveBeenCalledTimes(1)
+    })
+
+    test("should only lift a row's strokes when the row above is empty", async () => {
+      const farAbove = buildIIStroke({ box: { height: 9, width: 10, x: 100, y: 0.6 * rowHeight } })
+      const after = buildIIStroke({ box: { height: 9, width: 10, x: 100, y: 4.6 * rowHeight } })
+      ;[farAbove, after].forEach((s) => canvas.model.addSymbol(s))
+      const gestureStroke = buildIIStroke({ box: { height: 9, width: 10, x: 10, y: 4.6 * rowHeight } })
+
+      await handler.apply(gestureStroke, join())
+
+      expect(translate).toHaveBeenNthCalledWith(1, [after], 0, -rowHeight, false)
+      expect(canvas.history.push).toHaveBeenCalledTimes(1)
     })
   })
 })

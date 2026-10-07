@@ -1775,7 +1775,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
         const clone = cloneSymbol(s)
 
         // Generate unique ID for cloned symbols
-        while (this.model.symbols.find((sym) => sym.id === clone.id)) {
+        while (this.model.getSymbol(clone.id)) {
           clone.id = `${clone.type}-${createUUID()}`
         }
 
