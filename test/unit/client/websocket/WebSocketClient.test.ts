@@ -646,6 +646,44 @@ describe("WebSocketClient.ts", () => {
       expect(replayed).toEqual(["addStrokes", "eraseStrokes", "transform", "replaceStrokes", "clear"])
     })
 
+    // initialized resolves when the handshake ends, before the queue is replayed: a request or a
+    // change issued on the reconnected socket in between used to overtake the queue — an export
+    // then answered with the content from before the drop.
+    test("should not let a request or a change made during the reconnection overtake the queue", async () => {
+      class EagerClient extends WebSocketClient {
+        onOpen?: () => void
+        protected openCallback(): void {
+          const onOpen = this.onOpen
+          this.onOpen = undefined
+          onOpen?.()
+          super.openCallback()
+        }
+      }
+      const eagerConf = structuredClone(conf)
+      eagerConf.server.host = "offline-queue-overtake-test"
+      const eagerClient = new EagerClient(eagerConf)
+      const server = new ServerWebSocketMock(eagerClient.url)
+      server.init()
+      await eagerClient.init()
+      await eagerClient.close(1000, "simulate-drop")
+      const before = server.messages.length
+      const queued = eagerClient.addStrokes(strokes, false)
+      let lateRequest: Promise<void> | undefined
+      let lateChange: Promise<void> | undefined
+      eagerClient.onOpen = () => {
+        lateRequest = eagerClient.send({ type: "probe" })
+        lateChange = eagerClient.eraseStrokes(["stroke-1"])
+      }
+
+      await waitUntil(() => server.getMessages("probe").length > 0 && server.getMessages("eraseStrokes").length > 0)
+      await expect(Promise.all([queued, lateRequest, lateChange])).toResolve()
+      const types = server.messages.slice(before).map((m) => (JSON.parse(m as string) as { type: string }).type)
+      expect(types.indexOf("probe")).toBeGreaterThan(types.indexOf("addStrokes"))
+      expect(types.indexOf("eraseStrokes")).toBeGreaterThan(types.indexOf("addStrokes"))
+      await eagerClient.destroy()
+      server.close()
+    })
+
     test("should let a request wait for the reconnection, and send it after the queued changes", async () => {
       await wsClient.init()
       await wsClient.close(1000, "simulate-drop")
