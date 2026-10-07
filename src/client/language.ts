@@ -1,6 +1,6 @@
 import type { TPartialDeep } from "@/core"
 
-import { assertServerConfig, type TServerHTTPConfiguration } from "./ServerConfiguration"
+import { assertServerConfig, type TServerHTTPConfiguration } from "./shared/ServerConfiguration"
 
 /**
  * @group Client

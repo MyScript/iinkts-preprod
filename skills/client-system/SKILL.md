@@ -21,11 +21,11 @@ The client system handles communication with the MyScript Cloud backend for hand
 | `HTTPClientV2` | HTTP/REST, stateless batch | `InkCanvas` |
 | `HTTPClientV1` | HTTP/REST, **deprecated** | `InkCanvasDeprecated` |
 
-`WebSocketSSRClient` is **not** a subclass of `WebSocketClient` — it's an independent implementation with its own config type (`WebSocketSSRClientConfiguration`). This skill covers `WebSocketClient` and `HTTPClientV2/V1` in detail; consult `src/client/WebSocketSSRClient.ts` directly for SSR-specific protocol details.
+`WebSocketSSRClient` is **not** a subclass of `WebSocketClient` — it's an independent implementation with its own config type (`WebSocketSSRClientConfiguration`). This skill covers `WebSocketClient` and `HTTPClientV2/V1` in detail; consult `src/client/websocket/WebSocketSSRClient.ts` directly for SSR-specific protocol details.
 
 ## WebSocket Protocol Flow
 
-**Implementation**: [src/client/WebSocketClient.ts](src/client/WebSocketClient.ts) — a sequence diagram already lives in the doc comment at the top of the file (lines 36-55), consult it first.
+**Implementation**: [src/client/websocket/WebSocketClient.ts](src/client/websocket/WebSocketClient.ts) — a sequence diagram already lives in the doc comment at the top of the file (lines 36-55), consult it first.
 
 ### 1. Connection + handshake
 
@@ -56,7 +56,7 @@ Auth is a **message-field challenge/response**, not an HTTP header (that's HTTP-
 ← { type: 'sessionDescription', ... }
 ```
 
-**HMAC computation**: [src/client/crypto.ts](src/client/crypto.ts) — `computeHmac(message, applicationKey, hmacKey)`. Concatenates `applicationKey + hmacKey` as the HMAC-SHA-512 key (via WebCrypto `crypto.subtle`), signs `message`, hex-encodes.
+**HMAC computation**: [src/client/shared/crypto.ts](src/client/shared/crypto.ts) — `computeHmac(message, applicationKey, hmacKey)`. Concatenates `applicationKey + hmacKey` as the HMAC-SHA-512 key (via WebCrypto `crypto.subtle`), signs `message`, hex-encodes.
 
 ### 2. Recognition flow
 
@@ -107,11 +107,11 @@ There is **no `convert` message** on the WebSocket protocol — conversion is an
 
 There is **no `close`/`closed` JSON message**. Closing the session is a native `WebSocket.close(code, reason)` call, handled via the native `CloseEvent`, not a protocol message.
 
-**Type definitions**: [src/client/WebSocketClientMessage.ts](src/client/WebSocketClientMessage.ts) — full server→client enum `TWebSocketClientMessageType`: `hmacChallenge, authenticated, sessionDescription, newPart, partChanged, contentChanged, idle, pong, exported, gestureDetected, contextlessGesture, mathSolverResult, error, ack`.
+**Type definitions**: [src/client/websocket/WebSocketClientMessage.ts](src/client/websocket/WebSocketClientMessage.ts) — full server→client enum `TWebSocketClientMessageType`: `hmacChallenge, authenticated, sessionDescription, newPart, partChanged, contentChanged, idle, pong, exported, gestureDetected, contextlessGesture, mathSolverResult, error, ack`.
 
 ### Event emission
 
-Events go through `ClientEvent` (`src/client/ClientEvent.ts`), enum `ClientEventName`:
+Events go through `ClientEvent` (`src/client/shared/ClientEvent.ts`), enum `ClientEventName`:
 
 ```typescript
 client.event.addContentChangedListener((evt) => { ... })
@@ -129,7 +129,7 @@ There is **no dedicated `CLEARED` event** — `clear()` just triggers the normal
 
 ## HTTP Protocol Flow (HTTPClientV2)
 
-**Implementation**: [src/client/HTTPClientV2.ts](src/client/HTTPClientV2.ts)
+**Implementation**: [src/client/http/HTTPClientV2.ts](src/client/http/HTTPClientV2.ts)
 
 Single entry point, no separate init/connect/export calls — HTTP is a stateless one-shot recognize:
 
@@ -170,7 +170,7 @@ Errors: non-OK response throws { code, message } (TApiError)
 
 ### HTTPClientV1 (deprecated)
 
-`src/client/HTTPClientV1.ts` — `@deprecated Use HTTPClientV2 instead`. Endpoint `/api/v4.0/iink/batch`. Body uses legacy `strokeGroups` (grouped by pen style) plus `xDPI`/`yDPI`/`height`/`width`/optional `conversionState` — materially different shape from V2. Uniquely exposes `convert(model, conversionState?, requestedMimeTypes?)` and `resize(model)`, neither of which exist on V2 or the WebSocket client.
+`src/client/http/HTTPClientV1.ts` — `@deprecated Use HTTPClientV2 instead`. Endpoint `/api/v4.0/iink/batch`. Body uses legacy `strokeGroups` (grouped by pen style) plus `xDPI`/`yDPI`/`height`/`width`/optional `conversionState` — materially different shape from V2. Uniquely exposes `convert(model, conversionState?, requestedMimeTypes?)` and `resize(model)`, neither of which exist on V2 or the WebSocket client.
 
 ## Message Handling Pattern: DeferredPromise
 

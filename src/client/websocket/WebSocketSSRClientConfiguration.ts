@@ -7,16 +7,16 @@ import type {
   TMathConfiguration,
   TRecognitionRendererConfiguration,
   TTextConfiguration,
-} from "./recognition"
+} from "../recognition"
 import {
   DefaultExportConfiguration,
   DefaultMathConfiguration,
   DefaultRecognitionRendererConfiguration,
   DefaultTextConfiguration,
-} from "./recognition"
-import type { TRecognitionTypeV1 } from "./RecognitionConfiguration"
-import type { TServerWebsocketConfiguration } from "./ServerConfiguration"
-import { DefaultServerWebsocketConfiguration } from "./ServerConfiguration"
+} from "../recognition"
+import type { TRecognitionTypeV1 } from "../shared/RecognitionConfiguration"
+import type { TServerWebsocketConfiguration } from "../shared/ServerConfiguration"
+import { DefaultServerWebsocketConfiguration } from "../shared/ServerConfiguration"
 
 /**
  * @group Client

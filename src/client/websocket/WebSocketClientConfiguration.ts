@@ -7,9 +7,9 @@ import {
   type TExportConfiguration,
   type TSolverConfiguration,
   type TTextConfConfiguration,
-} from "./recognition"
-import type { TServerWebsocketConfiguration } from "./ServerConfiguration"
-import { DefaultServerWebsocketConfiguration } from "./ServerConfiguration"
+} from "../recognition"
+import type { TServerWebsocketConfiguration } from "../shared/ServerConfiguration"
+import { DefaultServerWebsocketConfiguration } from "../shared/ServerConfiguration"
 
 /**
  * Content kinds the Interactive Ink session can recognize.

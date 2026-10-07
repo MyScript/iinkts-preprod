@@ -1,12 +1,12 @@
-import { InteractiveInkCanvasOverrideConfiguration } from "../__dataset__/configuration.dataset"
-import { ServerWebSocketMock, contextlessGestureMessage, gestureDetectedMessage, hTextJIIX, partChangeMessage } from "../__mocks__/ServerWebSocketMock"
-import { buildIIStroke, delay } from "../helpers"
+import { InteractiveInkCanvasOverrideConfiguration } from "../../__dataset__/configuration.dataset"
+import { ServerWebSocketMock, contextlessGestureMessage, gestureDetectedMessage, hTextJIIX, partChangeMessage } from "../../__mocks__/ServerWebSocketMock"
+import { buildIIStroke, delay } from "../../helpers"
 import { WebSocketClient, ClientError, TMatrixTransform, MatrixTransform, TIIHistoryBackendChanges, TWebSocketClientConfiguration, TWebSocketClientMessage, TStroke, toWireStroke, LoggerManager, LoggerCategory } from "@/iink"
 
 import { toResolve } from "jest-extended"
 expect.extend({ toResolve })
 
-jest.mock("web-worker:../worker/ping.worker.ts", () =>
+jest.mock("web-worker:../../worker/ping.worker.ts", () =>
   jest.fn().mockImplementation(() => ({ postMessage: jest.fn(), terminate: jest.fn() }))
 )
 
