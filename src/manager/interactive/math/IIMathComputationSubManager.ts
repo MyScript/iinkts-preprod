@@ -1,5 +1,5 @@
 import type { TInteractiveInkCanvas } from "@/canvas"
-import type { TJIIXMathElement, TJIIXMathExpression } from "@/client"
+import type { TJIIXMathElement, TJIIXMathExpression, TJIIXStrokeItem } from "@/client"
 import type { MatrixTransform, TBox, TPoint } from "@/core"
 import { BoxOps, convertMillimeterToPixel, createUUID, isDeepEqualIgnoring, OBBOps } from "@/core"
 import { LoggerCategory } from "@/logger"
@@ -434,36 +434,34 @@ export class IIMathComputationSubManager extends IIAbstractManager {
     F?: number[]
     T?: number[]
   }> {
-    const items: Array<{
-      X: number[]
-      Y: number[]
-      F?: number[]
-      T?: number[]
-    }> = []
-
-    const exprRecord = expression as Record<string, unknown>
-    if (
-      expression?.type === "number" &&
-      exprRecord["solver-output"] === true &&
-      exprRecord.items &&
-      Array.isArray(exprRecord.items)
-    ) {
-      items.push(
-        ...(exprRecord.items as Array<{
-          X: number[]
-          Y: number[]
-          F?: number[]
-          T?: number[]
-        }>)
-      )
+    if ((expression as Record<string, unknown>)["solver-output"] === true) {
+      return this.extractAllStrokesFromExpression(expression)
     }
-
-    if ("operands" in expression && expression.operands && Array.isArray(expression.operands)) {
-      expression.operands.forEach((operand: TJIIXMathExpression) => {
-        items.push(...this.extractSolverOutputStrokesFromExpression(operand))
-      })
+    if (!("operands" in expression) || !Array.isArray(expression.operands)) {
+      return []
     }
-    return items
+    return expression.operands.flatMap((operand: TJIIXMathExpression) =>
+      this.extractSolverOutputStrokesFromExpression(operand)
+    )
+  }
+
+  /**
+   * Below a solver-output node every stroke is generated, flagged or not.
+   */
+  protected extractAllStrokesFromExpression(expression: TJIIXMathExpression): Array<{
+    X: number[]
+    Y: number[]
+    F?: number[]
+    T?: number[]
+  }> {
+    const items = (expression.items ?? []).filter(
+      (item): item is TJIIXStrokeItem & { X: number[]; Y: number[] } => !!item.X && !!item.Y
+    )
+    const operands = "operands" in expression && Array.isArray(expression.operands) ? expression.operands : []
+    return [
+      ...items,
+      ...operands.flatMap((operand: TJIIXMathExpression) => this.extractAllStrokesFromExpression(operand)),
+    ]
   }
 
   protected extractSolverOutputStrokes(mathElement: TJIIXMathElement): Array<{
