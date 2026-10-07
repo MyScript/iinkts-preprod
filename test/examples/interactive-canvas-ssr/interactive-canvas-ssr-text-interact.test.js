@@ -11,7 +11,7 @@ import madrid from "../__dataset__/madrid"
 import tokyo from "../__dataset__/tokyo"
 import paris from "../__dataset__/paris"
 
-test.describe("Interactive Canvas SSR Text interact", () => {
+test.describe("Interactive Canvas SSR Text interact", { tag: "@slow" }, () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(`${process.env.PATH_PREFIX ? process.env.PATH_PREFIX : ""}/examples/interactive-canvas-ssr/interactive_canvas_ssr_text_interact.html`)
     await passModalKey(page)

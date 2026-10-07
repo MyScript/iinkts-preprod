@@ -7,7 +7,7 @@ import {
 } from "../helper"
 import helloOneStroke from "../__dataset__/helloOneStroke"
 
-test.describe("Interactive ink canvas Get Started", () => {
+test.describe("Interactive ink canvas Get Started", { tag: "@minimal" }, () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(`${process.env.PATH_PREFIX ? process.env.PATH_PREFIX : ""}/examples/interactive-canvas/interactive_canvas_get_started.html`)
     await passModalKey(page)

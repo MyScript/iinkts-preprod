@@ -19,7 +19,7 @@ import sum from '../__dataset__/sum'
 import threeScratchOut from '../__dataset__/threeScratchOut'
 import equation from '../__dataset__/equation'
 
-test.describe('Interactive Canvas SSR Math', function () {
+test.describe('Interactive Canvas SSR Math', { tag: "@slow" }, function () {
   test.beforeEach(async ({ page }) => {
     await page.goto(`${process.env.PATH_PREFIX ? process.env.PATH_PREFIX : ""}/examples/interactive-canvas-ssr/interactive_canvas_ssr_math.html`)
     await passModalKey(page)

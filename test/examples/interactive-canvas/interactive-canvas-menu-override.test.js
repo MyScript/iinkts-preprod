@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test"
 import { passModalKey, writeStrokes } from "../helper"
 import h from "../__dataset__/h"
 
-test.describe("Interactive ink canvas menu items and overrides", () => {
+test.describe("Interactive ink canvas menu items and overrides", { tag: "@touch" }, () => {
   test.beforeEach(async ({ page }) => {
     // Records whether the tool bar already held its added item when it first entered the page
     await page.addInitScript(() => {
