@@ -190,6 +190,7 @@ Every export on `InteractiveInkCanvas` goes through two functions instead of nin
 - fix(manager): `IITranslateManager` silently returned an unknown edge kind untransformed while rotate and resize threw; all three now go through the util registry and fail alike
 - fix(symbol): a rotated text or math block reported a box mirrored about its rotation centre (and rotated twice), so surrounding it no longer selected it
 - fix(model): `Model.addStroke()` now throws `Stroke id already exist: <id>` on a duplicate id, like `IModel.addStroke`/`IIModel.addSymbol`
+- fix(manager): a JOIN gesture between two strokes (or any two symbols that are not both texts) of a row left the first one after the gesture in place while shifting those behind it, which landed them over or in front of it (broken since 4.0.0). The whole remainder of the row moves together again
 
 ## Features
 

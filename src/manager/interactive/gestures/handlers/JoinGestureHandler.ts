@@ -96,7 +96,11 @@ export class JoinGestureHandler extends GestureHandler {
         }
       }
 
-      const rest = symbolsAfterGestureInRow.filter((s) => s.id !== firstSymbolAfter.id)
+      // Merged texts already carry `firstSymbolAfter` to its new place. Anything else must move with
+      // the rest of the row, or the symbols behind it would be shifted over it.
+      const rest = changes.replaced
+        ? symbolsAfterGestureInRow.filter((s) => s.id !== firstSymbolAfter.id)
+        : symbolsAfterGestureInRow
       if (rest.length) {
         shifts.push({
           symbols: rest,
