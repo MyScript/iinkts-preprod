@@ -1,6 +1,6 @@
 import type { TPartialDeep } from "@/core"
 
-import { assertServerConfig, type TServerHTTPConfiguration } from "./ServerConfiguration"
+import { assertServerConfig, serverUrl, type TServerHTTPConfiguration } from "./ServerConfiguration"
 
 /**
  * @group Client
@@ -21,7 +21,7 @@ export async function getApiInfos(
 ): Promise<TApiInfos> {
   try {
     assertServerConfig(configuration?.server, "Failed to get infos")
-    const response = await fetch(`${configuration.server.scheme}://${configuration.server.host}/api/v4.0/iink/version`)
+    const response = await fetch(serverUrl(configuration.server, "version"))
     if (response.ok) {
       const version = (await response.json()) as TApiInfos
       return version

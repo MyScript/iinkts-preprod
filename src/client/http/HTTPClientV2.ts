@@ -11,7 +11,7 @@ import type {
   TTextConfiguration,
 } from "../recognition"
 import { ensureServerVersion } from "../shared/infos"
-import { redactServerSecrets } from "../shared/ServerConfiguration"
+import { redactServerSecrets, serverUrl } from "../shared/ServerConfiguration"
 import type { TRecognitionStroke, TWireStroke } from "../shared/StrokeSerializer"
 import { toWireStroke } from "../shared/StrokeSerializer"
 import type { THTTPClientV2Configuration } from "./HTTPClientV2Configuration"
@@ -55,7 +55,7 @@ export class HTTPClientV2 {
   }
 
   get url() {
-    return `${this.configuration.server.scheme}://${this.configuration.server.host}/api/v4.0/iink/recognize`
+    return serverUrl(this.configuration.server, "recognize")
   }
 
   get postConfig(): THTTPClientV2PostConfiguration {

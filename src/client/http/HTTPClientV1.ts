@@ -15,7 +15,7 @@ import type {
 } from "../recognition"
 import { ensureServerVersion } from "../shared/infos"
 import type { TConverstionState } from "../shared/RecognitionConfiguration"
-import { redactServerSecrets } from "../shared/ServerConfiguration"
+import { redactServerSecrets, serverUrl } from "../shared/ServerConfiguration"
 import type { TWireStroke } from "../shared/StrokeSerializer"
 import { toWireStroke } from "../shared/StrokeSerializer"
 import type { THTTPClientV1Configuration } from "./HTTPClientV1Configuration"
@@ -82,7 +82,7 @@ export class HTTPClientV1 {
   }
 
   get url() {
-    return `${this.configuration.server.scheme}://${this.configuration.server.host}/api/v4.0/iink/batch`
+    return serverUrl(this.configuration.server, "batch")
   }
 
   get postConfig(): THTTPClientV1PostConfiguration {
