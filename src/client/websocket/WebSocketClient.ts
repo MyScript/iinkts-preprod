@@ -121,7 +121,6 @@ export class WebSocketClient {
   protected maxMessageBytes = 256 * 1024
   protected pingWorker?: Worker
   protected pingCount = 0
-  protected reconnectionCount = 0
   protected sessionId?: string
 
   protected boundOpenCallback: () => void
@@ -146,6 +145,8 @@ export class WebSocketClient {
   }[] = []
   protected reconnectTimer?: ReturnType<typeof setTimeout>
   protected reconnectAttempts = 0
+  /** Settled once the reconnect loop has reconnected and replayed the queue, or has given up. */
+  protected reconnection?: DeferredPromise<void>
   // Guards against concurrent init() calls: the offline-queue reconnect loop and the legacy
   // auto-reconnect in `send()` can both observe a closed socket and call init() around the same
   // time. Without this, each would create its own `new WebSocket()`, leaving two live sockets
@@ -218,7 +219,12 @@ export class WebSocketClient {
     this.pendingRequests.clear()
   }
 
-  /** Registers a request under the key its answer will be matched on, after those already waiting there. */
+  /**
+   * Registers a request under the key its answer will be matched on, after those already waiting there.
+   * Called once the request is sent, not before: a request still waiting for a reconnection must not
+   * be failed by the close of a reconnection attempt. The answer cannot be missed — it arrives in a
+   * later `message` event, after the microtask that registers it.
+   */
   protected waitForAnswer<T>(key: string, neutral: T): DeferredPromise<T> {
     const deferred = new DeferredPromise<T>()
     const requests = this.pendingRequests.get(key) ?? []
@@ -235,16 +241,6 @@ export class WebSocketClient {
       this.pendingRequests.delete(key)
     }
     answered.forEach((request) => request.resolve(answer))
-  }
-
-  /** Drops a request that was never sent: left waiting, it would take the answer meant for the next one. */
-  protected withdraw(key: string, reject: TPendingRequest["reject"]): void {
-    const requests = (this.pendingRequests.get(key) ?? []).filter((request) => request.reject !== reject)
-    if (requests.length) {
-      this.pendingRequests.set(key, requests)
-    } else {
-      this.pendingRequests.delete(key)
-    }
   }
 
   /**
@@ -271,7 +267,7 @@ export class WebSocketClient {
 
   protected enqueueOfflineMessage(message: TWebSocketClientMessage, deferred: DeferredPromise<void>): void {
     if (this.offlineQueue.length >= this.configuration.server.websocket.offlineQueueMaxSize) {
-      deferred.reject(new Error("Offline queue full: unable to queue addStrokes while disconnected"))
+      deferred.reject(new Error("Offline queue full: unable to queue a change while disconnected"))
       return
     }
     this.offlineQueue.push({ message, deferred })
@@ -304,17 +300,28 @@ export class WebSocketClient {
   }
 
   /**
-   * Runs once per successful connection, regardless of which caller triggered it (the
-   * reconnect loop above, or the legacy auto-reconnect in `send()`). Cancels any reconnect
-   * attempt still scheduled by the other path so it doesn't open a redundant second socket
-   * once this one is up, and drains the offline queue since nothing else would.
+   * Runs once per successful connection, whoever triggered it. Cancels any reconnect attempt
+   * still scheduled, replays the offline queue, and only then lets the requests waiting for the
+   * reconnection go: one sent before the replay would read content the server does not have yet.
    */
-  protected onConnected(): Promise<void> {
+  protected async onConnected(): Promise<void> {
     this.hasConnected = true
     this.clearReconnectLoop()
     this.reconnectAttempts = 0
     this.event.emitConnectionStatusChanged("connected")
-    return this.drainOfflineQueue()
+    await this.drainOfflineQueue()
+    if (!this.isDisconnected()) {
+      this.reconnection?.resolve()
+      this.reconnection = undefined
+    }
+  }
+
+  /** Resolves once the reconnect loop has reconnected and replayed the queue; rejects if it gives up. */
+  protected waitForReconnection(): Promise<void> {
+    this.reconnection ??= new DeferredPromise<void>()
+    const reconnected = this.reconnection.promise
+    this.startReconnectLoop()
+    return reconnected
   }
 
   protected async drainOfflineQueue(): Promise<void> {
@@ -331,12 +338,16 @@ export class WebSocketClient {
   }
 
   /**
-   * Reconnection attempts exhausted: reject and clear the queue, emit "error", and
-   * reset the attempt counter so the next `addStrokes()` (or drop) gets a fresh retry budget.
+   * Reconnection attempts exhausted: reject the queue and the requests waiting for the
+   * reconnection, emit "error", and reset the attempt counter so the next change (or drop) gets a
+   * fresh retry budget.
    */
   protected giveUpReconnecting(): void {
     this.reconnectAttempts = 0
-    this.clearOfflineQueue(new Error("Unable to reconnect after offline queueing; queued strokes were not sent"))
+    const error = new Error("Unable to reconnect: queued changes and waiting requests were not sent")
+    this.clearOfflineQueue(error)
+    this.reconnection?.reject(error)
+    this.reconnection = undefined
     this.event.emitConnectionStatusChanged("error")
   }
 
@@ -389,7 +400,6 @@ export class WebSocketClient {
   }
 
   protected openCallback(): void {
-    this.reconnectionCount = 0
     this.sendOnSocket({
       type: "authenticate",
       "myscript-client-name": "iink-ts",
@@ -404,10 +414,14 @@ export class WebSocketClient {
     ) {
       return this.initialized.reject(new Error("HMAC key is not a string nor a function"))
     }
-    this.sendOnSocket({
-      type: "hmac",
-      hmac: await resolveHmac(this.configuration.server, hmacChallengeMessage.hmacChallenge),
-    })
+    const socket = this.socket
+    const hmac = await resolveHmac(this.configuration.server, hmacChallengeMessage.hmacChallenge)
+    // The HMAC may take a while: if this socket closed or was replaced meanwhile, its close event
+    // already failed its attempt, and sending now would fail the next attempt instead
+    if (socket !== this.socket || socket.readyState !== socket.OPEN) {
+      return
+    }
+    this.sendOnSocket({ type: "hmac", hmac })
   }
 
   /** A handshake step failed: `init()` waits on `initialized`, so it must hear of it, not only the `error` listeners */
@@ -547,16 +561,10 @@ export class WebSocketClient {
     blockId: string | undefined,
     parameters: Record<string, unknown> = {}
   ): Promise<TMathSolverResultMap[A]> {
+    // blockId undefined is dropped by JSON.stringify, as get-variable-definitions expects
+    await this.send({ type: "mathSolver", action, blockId, ...parameters })
     const key = `math:${action}:${blockId ?? DOCUMENT_BLOCK_ID}`
-    const deferred = this.waitForAnswer(key, createMathSolverNeutralResults()[action])
-    try {
-      // blockId undefined is dropped by JSON.stringify, as get-variable-definitions expects
-      await this.send({ type: "mathSolver", action, blockId, ...parameters })
-    } catch (error) {
-      this.withdraw(key, deferred.reject)
-      throw error
-    }
-    return deferred.promise
+    return this.waitForAnswer(key, createMathSolverNeutralResults()[action]).promise
   }
 
   protected messageCallback(message: MessageEvent<string>): void {
@@ -661,8 +669,16 @@ export class WebSocketClient {
       this.currentPartId = undefined
     }
     await ensureServerVersion(this.configuration)
+    // A fresh handshake per attempt: a late failure of a previous one must not have rejected it
+    this.initialized = new DeferredPromise<void>()
+    // An attempt whose handshake failed without a close event leaves its socket open and listening
+    if (this.socket) {
+      this.clearSocketListener()
+      if (this.socket.readyState < this.socket.CLOSING) {
+        this.socket.close()
+      }
+    }
     this.socket = new WebSocket(this.url)
-    this.clearSocketListener()
     this.socket.addEventListener("open", this.boundOpenCallback)
     this.socket.addEventListener("close", this.boundCloseCallback)
     this.socket.addEventListener("message", this.boundMessageCallback)
@@ -695,17 +711,11 @@ export class WebSocketClient {
           await this.closingPromise
           return
         }
-        if (this.configuration.server.websocket.autoReconnect) {
-          this.reconnectionCount++
-          if (this.configuration.server.websocket.maxRetryCount > this.reconnectionCount) {
-            await this.init()
-            await this.waitForIdle()
-            this.sendOnSocket(message)
-            return
-          }
-          throw new Error("Unable to send message. The maximum number of connection attempts has been reached.")
+        if (!this.configuration.server.websocket.offlineQueueEnabled) {
+          throw new Error("Unable to send message. Connection closed and automatic reconnection disabled")
         }
-        throw new Error("Unable to send message. Connection closed and automatic reconnection disabled")
+        await this.waitForReconnection()
+        this.sendOnSocket(message)
     }
   }
 
@@ -724,19 +734,25 @@ export class WebSocketClient {
     if (strokes.length === 0) {
       return
     }
-    const promises: Promise<void>[] = []
     const _processGestures = processGestures && strokes.length < 3
-    for (const strokesPart of this.chunkBySize(strokes, wireStrokeSize, 1000)) {
-      const message = this.buildAddStrokesMessage(strokesPart, _processGestures)
-      if (this.configuration.server.websocket.offlineQueueEnabled && this.isDisconnected()) {
-        const deferred = new DeferredPromise<void>()
-        this.enqueueOfflineMessage(message, deferred)
-        promises.push(deferred.promise)
-      } else {
-        promises.push(this.send(message))
-      }
+    await Promise.all(
+      this.chunkBySize(strokes, wireStrokeSize, 1000).map((part) =>
+        this.sendChange(this.buildAddStrokesMessage(part, _processGestures))
+      )
+    )
+  }
+
+  /**
+   * Sends a change to the content. While disconnected it is queued and replayed in order once
+   * reconnected, rather than lost: the server must end up with every change the canvas made.
+   */
+  protected sendChange(message: TWebSocketClientMessage): Promise<void> {
+    if (this.configuration.server.websocket.offlineQueueEnabled && this.isDisconnected()) {
+      const deferred = new DeferredPromise<void>()
+      this.enqueueOfflineMessage(message, deferred)
+      return deferred.promise
     }
-    await Promise.all(promises)
+    return this.send(message)
   }
 
   /**
@@ -770,7 +786,7 @@ export class WebSocketClient {
     strokeIds: string[],
     build: (strokeIds: string[]) => TWebSocketClientMessage
   ): Promise<void> {
-    await Promise.all(this.chunkBySize(strokeIds, strokeIdSize).map((ids) => this.send(build(ids))))
+    await Promise.all(this.chunkBySize(strokeIds, strokeIdSize).map((ids) => this.sendChange(build(ids))))
   }
 
   async getAvailableActions(blockId: string): Promise<string[]> {
@@ -881,8 +897,8 @@ export class WebSocketClient {
     // no frame over the budget.
     const [first = [], ...rest] = this.chunkBySize(newStrokes, wireStrokeSize, 1000)
     await Promise.all([
-      this.send(this.buildReplaceStrokesMessage(oldStrokeIds, first)),
-      ...rest.map((strokes) => this.send(this.buildAddStrokesMessage(strokes, false))),
+      this.sendChange(this.buildReplaceStrokesMessage(oldStrokeIds, first)),
+      ...rest.map((strokes) => this.sendChange(this.buildAddStrokesMessage(strokes, false))),
     ])
   }
 
@@ -971,24 +987,22 @@ export class WebSocketClient {
     if (!stroke) {
       return
     }
-    const deferred = this.waitForAnswer<TWebSocketClientMessageContextlessGesture>(`gesture:${stroke.id}`, {
-      type: TWebSocketClientMessageType.ContextlessGesture,
-      strokeId: stroke.id,
-      gestureType: "none",
-    })
     await this.send({
       type: "contextlessGesture",
       scaleX: PX_TO_MM_RATIO,
       scaleY: PX_TO_MM_RATIO,
       stroke: toWireStroke(stroke),
     })
-    return deferred.promise
+    return this.waitForAnswer<TWebSocketClientMessageContextlessGesture>(`gesture:${stroke.id}`, {
+      type: TWebSocketClientMessageType.ContextlessGesture,
+      strokeId: stroke.id,
+      gestureType: "none",
+    }).promise
   }
 
   async waitForIdle(): Promise<void> {
-    const deferred = this.waitForAnswer<void>("idle", undefined)
     await this.send({ type: "waitForIdle" })
-    return deferred.promise
+    return this.waitForAnswer<void>("idle", undefined).promise
   }
 
   // Not split by `maxMessageBytes`: an undo or redo is one step of the server's history, and
@@ -1017,11 +1031,7 @@ export class WebSocketClient {
     if (changes.length === 0) {
       return
     }
-    const message: TWebSocketClientMessage = {
-      type: "undo",
-      changes,
-    }
-    await this.send(message)
+    await this.sendChange({ type: "undo", changes })
   }
 
   async redo(actions: TIIHistoryBackendChanges): Promise<void> {
@@ -1029,11 +1039,7 @@ export class WebSocketClient {
     if (changes.length === 0) {
       return
     }
-    const message: TWebSocketClientMessage = {
-      type: "redo",
-      changes,
-    }
-    await this.send(message)
+    await this.sendChange({ type: "redo", changes })
   }
 
   async export(requestedMimeTypes?: string[]): Promise<TExport> {
@@ -1044,31 +1050,28 @@ export class WebSocketClient {
 
   protected async sendExport(requestedMimeTypes?: string[]): Promise<TExport> {
     const mimeTypes: string[] = requestedMimeTypes || this.mimeTypes.slice()
+    await this.send({ type: "export", partId: this.currentPartId, mimeTypes })
     const none: TExport = {}
     const deferreds = mimeTypes.map((mt) => this.waitForAnswer(`export:${mt}`, none))
-    await this.send({ type: "export", partId: this.currentPartId, mimeTypes })
     const exports = await Promise.all(deferreds.map((deferred) => deferred.promise))
     return Object.assign({}, ...exports)
   }
 
   async clear(): Promise<void> {
-    await this.send({
-      type: "clear",
-    })
+    await this.sendChange({ type: "clear" })
   }
 
   async sendToSupport(data: Record<string, unknown>): Promise<void> {
-    const deferred = this.waitForAnswer<void>("support", undefined)
-    await this.send({
-      type: "sendToSupport",
-      metadata: { ...data },
-    })
-    return deferred.promise
+    await this.send({ type: "sendToSupport", metadata: { ...data } })
+    return this.waitForAnswer<void>("support", undefined).promise
   }
 
   async close(code: number, reason: string): Promise<void> {
     this.clearReconnectLoop()
-    this.clearOfflineQueue(new Error(`Client closed (${reason}): queued strokes were not sent`))
+    const closedError = new Error(`Client closed (${reason}): queued changes and waiting requests were not sent`)
+    this.clearOfflineQueue(closedError)
+    this.reconnection?.reject(closedError)
+    this.reconnection = undefined
     this.resolveDeferredPending()
     this.resetAllDeferred()
     // Answered by the socket's close event; an error message arriving meanwhile ends the wait too
