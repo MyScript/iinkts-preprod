@@ -195,7 +195,7 @@ export class WebSocketClient {
   }
 
   /**
-   * True while strokes are queued locally waiting for reconnection (see `server.websocket.offlineQueueEnabled`).
+   * True while strokes are queued locally waiting for reconnection (see `server.websocket.autoReconnect`).
    */
   get isOffline(): boolean {
     return this.offlineQueueLength > 0
@@ -371,11 +371,11 @@ export class WebSocketClient {
 
   /**
    * A network drop (1006, also what each failed reconnection attempt reports) once connected,
-   * with the offline queue on: the ink is kept and replayed, so it is a state, not an error.
+   * with `autoReconnect` on: the changes are kept and replayed, so it is a state, not an error.
    * Reported as an error, it opened the canvas error modal over the ink every few seconds.
    */
   protected isRecoverableDrop(evt: CloseEvent): boolean {
-    return this.hasConnected && evt.code === 1006 && this.configuration.server.websocket.offlineQueueEnabled
+    return this.hasConnected && evt.code === 1006 && this.configuration.server.websocket.autoReconnect
   }
 
   protected closeCallback(evt: CloseEvent): void {
@@ -711,7 +711,7 @@ export class WebSocketClient {
           await this.closingPromise
           return
         }
-        if (!this.configuration.server.websocket.offlineQueueEnabled) {
+        if (!this.configuration.server.websocket.autoReconnect) {
           throw new Error("Unable to send message. Connection closed and automatic reconnection disabled")
         }
         await this.waitForReconnection()
@@ -747,7 +747,7 @@ export class WebSocketClient {
    * reconnected, rather than lost: the server must end up with every change the canvas made.
    */
   protected sendChange(message: TWebSocketClientMessage): Promise<void> {
-    if (this.configuration.server.websocket.offlineQueueEnabled && this.isDisconnected()) {
+    if (this.configuration.server.websocket.autoReconnect && this.isDisconnected()) {
       const deferred = new DeferredPromise<void>()
       this.enqueueOfflineMessage(message, deferred)
       return deferred.promise

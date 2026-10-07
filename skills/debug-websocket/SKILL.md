@@ -144,12 +144,11 @@ Contrast with HTTP clients (`HTTPClientV2`/`HTTPClientV1`): there, `computeHmac(
 
 ## Reconnection Behavior
 
-Two layers in `WebSocketClient.ts` — if strokes seem to vanish after a network blip, check these before assuming data loss:
+One reconnection path in `WebSocketClient.ts` — if changes seem to vanish after a network blip, check it before assuming data loss:
 
-1. **Offline queue**: if `configuration.server.websocket.offlineQueueEnabled` is true (default), calls made while disconnected are queued and replayed in order once reconnected, instead of failing immediately.
-2. **Legacy auto-reconnect in `send()`**: if `autoReconnect` is true (default) and the socket is closing/closed, `send()` transparently reconnects and retries, up to `maxRetryCount` (default `2`).
-
-Reconnect attempts for the offline-queue path run every `reconnectDelay` ms (default `3000`) up to `maxReconnectAttempts` (default `10`) before giving up and emitting a `CONNECTION_STATUS_CHANGED: "error"` event.
+- With `configuration.server.websocket.autoReconnect` true (default), every change made while disconnected (`addStrokes`, `replaceStrokes`, `eraseStrokes`, transforms, `undo`, `redo`, `clear`) is queued (max `offlineQueueMaxSize`, default `50`) and replayed in order once reconnected; requests that wait on an answer (`export`, `waitForIdle`, math solver, gestures, `sendToSupport`) wait for the reconnection and go after the replay.
+- A reconnect loop retries every `reconnectDelay` ms (default `3000`) up to `maxReconnectAttempts` (default `10`), then gives up: the queue and the waiting requests reject and a `CONNECTION_STATUS_CHANGED: "error"` event is emitted.
+- With `autoReconnect` false, changes and requests reject at once while disconnected. `maxRetryCount` is read by `WebSocketSSRClient` only.
 
 ## Checking Connection State
 

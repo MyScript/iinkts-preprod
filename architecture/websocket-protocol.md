@@ -112,9 +112,7 @@ sequenceDiagram
 
 ## Reconnection & offline queue
 
-Two independent mechanisms in `WebSocketClient.ts`:
-1. **Legacy auto-reconnect in `send()`** — if the socket is closing/closed and `configuration.server.websocket.autoReconnect` is true (default), retries `init()` + the send, up to `maxRetryCount` (default 2).
-2. **Offline queue + background reconnect loop** — if `offlineQueueEnabled` (default true), `addStrokes()` queues locally (max 50) while disconnected; a timer retries every `reconnectDelay` (default 3000ms) up to `maxReconnectAttempts` (default 10), then drains the queue in order. Gives up and emits `CONNECTION_STATUS_CHANGED("error")` if exhausted.
+One path in `WebSocketClient.ts`, switched by `configuration.server.websocket.autoReconnect` (default true): every change made while disconnected is queued (max `offlineQueueMaxSize`, 50) and replayed in order on reconnection; requests that wait on an answer wait for the reconnection and go after the replay. A timer retries every `reconnectDelay` (default 3000ms) up to `maxReconnectAttempts` (default 10), then rejects the queue and the waiting requests and emits `CONNECTION_STATUS_CHANGED("error")`. With `autoReconnect` false, both reject at once while disconnected.
 
 ## Source files
 
