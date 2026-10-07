@@ -116,6 +116,22 @@ await canvas.updateRecognitionConfiguration({ lang: "fr_FR" })
 The same call takes any part of the recognition configuration, the math solver included:
 `{ math: { solver: { "angle-unit": "deg" } } }`. An array you pass replaces the current one.
 
+### `autoReconnect` is the only reconnection switch
+
+`server.websocket.offlineQueueEnabled` is removed. `autoReconnect` (default `true`) now turns on everything
+`WebSocketClient` does across a drop: every change made while disconnected is queued and replayed in order,
+and requests wait for the reconnection. Off, both reject at once while disconnected.
+
+```ts
+// v4
+configuration: { server: { websocket: { offlineQueueEnabled: false } } }
+// v5
+configuration: { server: { websocket: { autoReconnect: false } } }
+```
+
+`maxRetryCount` no longer affects `WebSocketClient`, which retries up to `maxReconnectAttempts` every
+`reconnectDelay` ms; it is still read by `WebSocketSSRClient`.
+
 ### The math solver defaults to radians
 
 `recognition.math.solver["angle-unit"]` now defaults to `"rad"`. To keep evaluating angles in degrees:

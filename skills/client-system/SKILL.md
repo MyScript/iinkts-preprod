@@ -192,12 +192,12 @@ async export(requestedMimeTypes?: string[]): Promise<TExport> {
 
 ## Reconnection Strategy (WebSocketClient only)
 
-Two layers, both in `WebSocketClient.ts`:
+One path, in `WebSocketClient.ts`, switched by `server.websocket.autoReconnect` (default true):
 
-1. **Offline queue + background reconnect loop** — when `addStrokes()` etc. is called while disconnected and `server.websocket.offlineQueueEnabled` is true, messages queue (`#enqueueOfflineMessage`) and `#startReconnectLoop()` retries `init()` every `server.websocket.reconnectDelay` ms (default 3000) up to `maxReconnectAttempts` (default 10), then `#giveUpReconnecting()` rejects the queue and emits `CONNECTION_STATUS_CHANGED: "error"`. On reconnect, `#drainOfflineQueue()` replays queued messages in order.
-2. **Legacy synchronous auto-reconnect in `send()`** — if the socket is closing/closed and `server.websocket.autoReconnect` is true (default), `send()` itself calls `init()` and retries, bounded by `server.websocket.maxRetryCount` (default 2).
+1. **Changes are queued** — `sendChange()` queues every change made while disconnected (`enqueueOfflineMessage`, max `offlineQueueMaxSize`) and `startReconnectLoop()` retries `init()` every `reconnectDelay` ms (default 3000) up to `maxReconnectAttempts` (default 10). On reconnect, `onConnected()` replays the queue in order (`drainOfflineQueue()`), then settles `reconnection`.
+2. **Requests wait** — `send()` on a closed socket awaits `waitForReconnection()`, so a request goes after the replay; when the loop gives up (`giveUpReconnecting()`), the queue and the waiting requests reject and `CONNECTION_STATUS_CHANGED: "error"` is emitted.
 
-Guards `#connectingPromise` / `#closingPromise` prevent both paths from racing a deliberate `close()`/`newSession()` teardown.
+Each `connect()` gets a fresh `initialized` and closes a socket a failed attempt left open; `connectingPromise` / `closingPromise` keep a reconnection from racing a deliberate `close()`/`newSession()`. `maxRetryCount` is read by `WebSocketSSRClient` only.
 
 ## Ping Worker (WebSocket Keep-Alive)
 

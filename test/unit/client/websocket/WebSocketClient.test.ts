@@ -465,7 +465,7 @@ describe("WebSocketClient.ts", () => {
     // the offline queue instead of reaching `send`.
     const onlineConf = (): TWebSocketClientConfiguration => {
       const conf = structuredClone(configuration)
-      conf.server.websocket.offlineQueueEnabled = false
+      conf.server.websocket.autoReconnect = false
       return conf
     }
 
@@ -577,7 +577,7 @@ describe("WebSocketClient.ts", () => {
   describe("offline queue", () => {
     const conf = structuredClone(configuration)
     conf.server.host = "offline-queue-test"
-    conf.server.websocket.offlineQueueEnabled = true
+    conf.server.websocket.autoReconnect = true
     conf.server.websocket.reconnectDelay = 50
     conf.server.websocket.maxReconnectAttempts = 5
     let mockServer: ServerWebSocketMock
@@ -824,10 +824,9 @@ describe("WebSocketClient.ts", () => {
       await expect(promise).toResolve()
     })
 
-    test("should not queue when offlineQueueEnabled is false", async () => {
+    test("should neither queue nor reconnect when autoReconnect is false", async () => {
       const disabledConf = structuredClone(conf)
       disabledConf.server.host = "offline-queue-disabled-test"
-      disabledConf.server.websocket.offlineQueueEnabled = false
       disabledConf.server.websocket.autoReconnect = false
       const disabledClient = new WebSocketClient(disabledConf)
       const disabledMockServer = new ServerWebSocketMock(disabledClient.url)
@@ -855,10 +854,10 @@ describe("WebSocketClient.ts", () => {
       expect(statuses).toContain("offline")
     })
 
-    test("should still report a network drop as an error when the offline queue is disabled", async () => {
+    test("should still report a network drop as an error when autoReconnect is false", async () => {
       const disabledConf = structuredClone(conf)
       disabledConf.server.host = "offline-queue-drop-disabled-test"
-      disabledConf.server.websocket.offlineQueueEnabled = false
+      disabledConf.server.websocket.autoReconnect = false
       const disabledClient = new WebSocketClient(disabledConf)
       const disabledMockServer = new ServerWebSocketMock(disabledClient.url)
       disabledMockServer.init()
