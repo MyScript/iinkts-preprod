@@ -60,14 +60,14 @@ export class ScratchGestureHandler extends GestureHandler {
     const charsToRemove = TextUtil.getChildrenOverlaps(textSymbol, gestureStroke.pointers)
     if (textSymbol.chars.length == charsToRemove.length) {
       return
-    } else {
-      charsToRemove.forEach((c) => {
-        const cIndex = textSymbol.chars.findIndex((c1) => c1.id === c.id)
-        textSymbol.chars.splice(cIndex, 1)
-      })
-      this.typeset.updateBounds(textSymbol)
-      return textSymbol
     }
+    // A copy, not the text itself: the committed record is frozen by the store, and it is also
+    // what history keeps as the "before" of this replace, so undo needs it untouched.
+    const scratched = structuredClone(textSymbol)
+    const removedIds = new Set(charsToRemove.map((c) => c.id))
+    scratched.chars = scratched.chars.filter((c) => !removedIds.has(c.id))
+    this.typeset.updateBounds(scratched)
+    return scratched
   }
 
   /**
