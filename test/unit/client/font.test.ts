@@ -4,6 +4,7 @@ import { getAvailableFontList } from "@/iink"
 describe("font.ts", () => {
   global.fetch = jest.fn(() =>
     Promise.resolve({
+      ok: true,
       json: () => Promise.resolve({ result: [] }),
     })
   ) as jest.Mock
@@ -61,5 +62,12 @@ describe("font.ts", () => {
     getAvailableFontList(conf).catch((e) => {
       expect(e.message).toBe("Failed to get fonts: configuration.recognition.lang is required!")
     })
+  })
+
+  test("should reject when the server answers with an error status", async () => {
+    const fetchMock = global.fetch
+    global.fetch = jest.fn(() => Promise.resolve({ ok: false, status: 500, statusText: "Internal Server Error", json: jest.fn() })) as jest.Mock
+    await expect(getAvailableFontList(WebSocketSSRClientTextConfiguration)).rejects.toThrow("500 Internal Server Error")
+    global.fetch = fetchMock
   })
 })

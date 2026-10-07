@@ -1,6 +1,7 @@
 export * from "./ClientError"
 export * from "./ClientEvent"
 export * from "./crypto"
+export * from "./getJSON"
 export * from "./HmacAuth"
 export * from "./infos"
 export * from "./RecognitionConfiguration"
