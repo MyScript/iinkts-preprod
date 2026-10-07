@@ -4,6 +4,7 @@ import { getAvailableLanguageList } from "@/iink"
 describe("language.ts", () => {
   global.fetch = jest.fn(() =>
     Promise.resolve({
+      ok: true,
       json: () => Promise.resolve({ result: { fr: "fr_FR" } }),
     })
   ) as jest.Mock
@@ -53,5 +54,12 @@ describe("language.ts", () => {
         "Failed to get languages: configuration.server.scheme & configuration.server.host are required!"
       )
     })
+  })
+
+  test("should reject when the server answers with an error status", async () => {
+    const fetchMock = global.fetch
+    global.fetch = jest.fn(() => Promise.resolve({ ok: false, status: 500, statusText: "Internal Server Error", json: jest.fn() })) as jest.Mock
+    await expect(getAvailableLanguageList(WebSocketSSRClientTextConfiguration)).rejects.toThrow("500 Internal Server Error")
+    global.fetch = fetchMock
   })
 })

@@ -1,6 +1,7 @@
 import type { TPartialDeep } from "@/core"
 
-import { assertServerConfig, serverUrl, type TServerHTTPConfiguration } from "./shared/ServerConfiguration"
+import { getJSON } from "./shared/getJSON"
+import { assertServerConfig, type TServerHTTPConfiguration } from "./shared/ServerConfiguration"
 
 /**
  * @group Client
@@ -13,6 +14,5 @@ export async function getAvailableLanguageList(
   result: { [key: string]: string }
 }> {
   assertServerConfig(configuration?.server, "Failed to get languages")
-  const response = await fetch(serverUrl(configuration.server, "availableLanguageList"))
-  return response.json()
+  return getJSON(configuration.server, "availableLanguageList")
 }

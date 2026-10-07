@@ -25,6 +25,21 @@ describe("LanguageMenuAction.ts", () => {
     expect(select.options).toHaveLength(2)
   })
 
+  test("should leave the select empty, not fail, when the language list cannot be fetched", async () => {
+    fetchMock.mockResponseOnce("Service Unavailable", { status: 503 })
+    const unhandled = jest.fn()
+    process.on("unhandledRejection", unhandled)
+    const canvas = createCanvasMock()
+    const item = new LanguageMenuAction(asCanvas(canvas))
+
+    const wrapper = item.getElement()
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    process.off("unhandledRejection", unhandled)
+    expect(unhandled).not.toHaveBeenCalled()
+    expect((wrapper.querySelector("select") as HTMLSelectElement).options).toHaveLength(0)
+  })
+
   test("should update the recognition language when a language is picked", async () => {
     fetchMock.mockResponseOnce(JSON.stringify({ result: { en_US: "English", fr_FR: "French" } }))
     const canvas = createCanvasMock()
