@@ -39,6 +39,23 @@ describe("math-tutor/hints", () => {
       expect(diagnose(eq(v("c"), num(25)), previous, { c: 5 })).toBe("square-root")
     })
 
+    test("should name the exercise's own typical mistake first", () => {
+      // Rectangle 3 × 4, P = 14: writing 7 or 12 is the half perimeter or the area
+      const traps = [
+        { mistake: "half-perimeter" as const, expected: 14, written: 7 },
+        { mistake: "area" as const, expected: 14, written: 12 },
+      ]
+      const solution = { a: 3, b: 4, P: 14 }
+      expect(diagnose(eq(v("P"), num(7)), undefined, solution, traps)).toBe("half-perimeter")
+      expect(diagnose(eq(v("P"), num(12)), undefined, solution, traps)).toBe("area")
+    })
+
+    test("should not spring a trap on a line expecting another value", () => {
+      // 2 × 6 = 12 is a wrong line too, but not one meant to give the perimeter
+      const traps = [{ mistake: "area" as const, expected: 14, written: 12 }]
+      expect(diagnose(eq(mul(num(2), num(3)), num(12)), undefined, {}, traps)).not.toBe("area")
+    })
+
     test("should call a near miss an arithmetic slip", () => {
       expect(diagnose(eq(v("x"), num(19)), undefined, { x: 18 })).toBe("slip")
     })

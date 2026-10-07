@@ -1,13 +1,13 @@
 import { DEMO_EXERCISES } from "../../../../../examples/interactive-canvas/math-tutor/demo-exercises.js"
 import type { TExpression } from "../../../../../examples/interactive-canvas/math-tutor/evaluator.js"
-import { analyzeFigure } from "../../../../../examples/interactive-canvas/math-tutor/figure.js"
-import { judge, judgeFigure } from "../../../../../examples/interactive-canvas/math-tutor/judge.js"
-import { FIGURE_HINTS, HINTS } from "../../../../../examples/interactive-canvas/math-tutor/strings.js"
+import { measureExercise } from "../../../../../examples/interactive-canvas/math-tutor/exercises.js"
+import { judge } from "../../../../../examples/interactive-canvas/math-tutor/judge.js"
+import { HINTS, UNFINISHED } from "../../../../../examples/interactive-canvas/math-tutor/strings.js"
 
-import { add, eq, mul, num, sqrt, sup, twoXPlusThreeEqualsSeven, v } from "./fixtures"
+import { add, eq, mul, num, twoXPlusThreeEqualsSeven, v } from "./fixtures"
 
 describe("math-tutor/judge", () => {
-  const exercise = DEMO_EXERCISES.find((e) => e.tex === "2x + 3 = 7")!
+  const exercise = DEMO_EXERCISES.flatMap((e) => (e.kind === "equation" && e.tex === "2x + 3 = 7" ? [e] : []))[0]
   const toLines = (...expressions: TExpression[]) =>
     expressions.map((expression, index) => ({
       id: `line-${index}`,
@@ -68,64 +68,62 @@ describe("math-tutor/judge", () => {
     expect(judge([], exercise, { finished: true })).toEqual({ marks: [], solved: false })
   })
 
-  describe("judgeFigure", () => {
-    const figure = DEMO_EXERCISES.find((e) => e.kind === "figure" && e.params.a === 3)!
-    const jiix = { elements: [{ type: "Node", id: "tri", kind: "triangle", points: [80, 40, 80, 106, 159, 106] }] }
-    const at = (id: string, expression: TExpression, x: number, y: number) => ({
-      id,
-      label: id,
-      expression,
-      box: { x: x - 10, y: y - 4, width: 20, height: 8 },
-    })
-    const a = at("a", eq(v("a"), num(3)), 70, 73)
-    const b = at("b", eq(v("b"), num(4)), 120, 114)
-    const run = (lines: ReturnType<typeof at>[], finished = true) =>
-      judgeFigure(analyzeFigure(jiix, lines, figure), figure, { finished })
-    const statusOf = (result: ReturnType<typeof run>, id: string) =>
-      result.marks.find((mark) => mark.line.id === id)?.status
+  describe("unfinished result", () => {
+    const rectangle = measureExercise("r", { type: "rectangle", width: 6, height: 4 }, "perimeter")
+    const formula = eq(v("P"), mul(add(num(6), num(4)), num(2)))
 
-    test("should explain what is wrong with the drawing", () => {
-      const notRight = { elements: [{ type: "Node", id: "tri", kind: "triangle", points: [100, 40, 80, 106, 159, 106] }] }
-      expect(judgeFigure(analyzeFigure(notRight, [], figure), figure, { finished: true }).figureHint).toBe(
-        FIGURE_HINTS["not-right"]
+    test("should keep the check mark on a line that holds, and ask for the result", () => {
+      const result = judge(toLines(formula), rectangle, { finished: true })
+      expect(result.marks[0]).toMatchObject({ status: "correct", hint: UNFINISHED("P") })
+      expect(result.solved).toBe(false)
+    })
+
+    test("should not ask while the line is still being written", () => {
+      expect(judge(toLines(formula), rectangle, { finished: false }).marks[0].hint).toBeUndefined()
+    })
+
+    test("should drop the request once the result is written", () => {
+      const result = judge(toLines(formula, eq(v("P"), num(20))), rectangle, { finished: true })
+      expect(result.marks.map((mark) => mark.hint)).toEqual([undefined, undefined])
+      expect(result.solved).toBe(true)
+    })
+
+    test("should not ask on a line about something else", () => {
+      // An intermediate step of an equation is not an unfinished answer
+      expect(judge(toLines(twoXPlusThreeEqualsSeven), exercise, { finished: true }).marks[0].hint).toBeUndefined()
+    })
+  })
+
+  describe("typical mistakes of a shape", () => {
+    const hintOf = (shape: Parameters<typeof measureExercise>[1], quantity: "perimeter" | "area", written: TExpression) =>
+      judge(toLines(written), measureExercise("m", shape, quantity), { finished: true }).marks[0].hint
+    const rectangle = { type: "rectangle", width: 3, height: 4 } as const
+
+    test("should spot a perimeter that counts each side once, or that is the area", () => {
+      // `P = 3 + 4` is wrong already: the line is checked with P = 14
+      expect(hintOf(rectangle, "perimeter", eq(v("P"), add(num(3), num(4))))).toBe(HINTS["half-perimeter"])
+      expect(hintOf(rectangle, "perimeter", eq(v("P"), num(12)))).toBe(HINTS.area)
+    })
+
+    test("should spot an area that is the perimeter", () => {
+      expect(hintOf(rectangle, "area", eq(v("A"), num(14)))).toBe(HINTS["perimeter-for-area"])
+    })
+
+    test("should spot a doubled side for a squared one", () => {
+      expect(hintOf({ type: "square", side: 5 }, "area", eq(v("A"), num(10)))).toBe(HINTS.square)
+    })
+
+    test("should spot a triangle area not halved, and a perimeter missing the hypotenuse", () => {
+      const triangle: Parameters<typeof measureExercise>[1] = { type: "right-triangle", legs: [3, 4] }
+      expect(hintOf(triangle, "area", eq(v("A"), num(12)))).toBe(HINTS["triangle-half"])
+      expect(hintOf(triangle, "perimeter", eq(v("P"), num(7)))).toBe(HINTS["missing-side"])
+    })
+
+    test("should spot a circumference computed with the radius instead of the diameter", () => {
+      const pi = { type: "symbol", label: "π" }
+      expect(hintOf({ type: "circle", radius: 3 }, "perimeter", eq(v("P"), mul(num(3), pi)))).toBe(
+        HINTS["radius-for-diameter"]
       )
-      expect(run([a]).figureHint).toBe(FIGURE_HINTS.labels)
-      expect(run([a, b]).figureHint).toBeUndefined()
-    })
-
-    test("should check the legs against the given values", () => {
-      const wrongLeg = at("b", eq(v("b"), num(5)), 120, 114)
-      const result = run([a, wrongLeg])
-      expect(statusOf(result, "a")).toBe("correct")
-      expect(statusOf(result, "b")).toBe("wrong")
-      expect(result.marks.find((mark) => mark.line.id === "b")?.hint).toBe(FIGURE_HINTS.values(3, 4))
-      expect(result.solved).toBe(false)
-    })
-
-    test("should be solved by the hypotenuse written on its side", () => {
-      const result = run([a, b, at("c", eq(v("c"), num(5)), 128, 66)])
-      expect(statusOf(result, "c")).toBe("correct")
-      expect(result.solved).toBe(true)
-    })
-
-    test("should diagnose a wrong hypotenuse", () => {
-      const result = run([a, b, at("c", eq(v("c"), num(25)), 128, 66)])
-      expect(statusOf(result, "c")).toBe("wrong")
-      expect(result.marks.find((mark) => mark.line.id === "c")?.hint).toBe(HINTS["square-root"])
-    })
-
-    test("should be solved by a reasoning written beside the figure", () => {
-      const formula = at("formula", eq(v("c"), sqrt(add(sup(v("a"), num(2)), sup(v("b"), num(2))))), 250, 150)
-      const answer = at("answer", eq(v("c"), num(5)), 250, 170)
-      expect(run([a, b, formula, answer], false).solved).toBe(false)
-      const result = run([a, b, formula, answer])
-      expect(statusOf(result, "formula")).toBe("correct")
-      expect(result.solved).toBe(true)
-    })
-
-    test("should not be solved while the drawing is wrong", () => {
-      const result = run([a, at("c", eq(v("c"), num(5)), 128, 66)])
-      expect(result.solved).toBe(false)
     })
   })
 })
