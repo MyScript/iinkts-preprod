@@ -75,7 +75,7 @@ const buildDenseEraseGrid = (bounds, step = 15) => {
   return pointers
 }
 
-test.describe("Interactive ink canvas full undo/redo", () => {
+test.describe("Interactive ink canvas full undo/redo", { tag: "@minimal" }, () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(`${process.env.PATH_PREFIX ? process.env.PATH_PREFIX : ""}/examples/interactive-canvas/interactive_canvas_get_started.html`)
     await passModalKey(page)

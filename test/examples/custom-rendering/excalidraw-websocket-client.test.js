@@ -52,7 +52,7 @@ const writeContentThenGesture = async (page, strokes) => {
   await writeStrokes(page, shift(strokes.slice(-1)))
 }
 
-test.describe("Excalidraw WebSocket client", () => {
+test.describe("Excalidraw WebSocket client", { tag: "@touch" }, () => {
   test.beforeEach(async ({ page }) => {
     countContentChanged(page)
     await page.goto(`${process.env.PATH_PREFIX ? process.env.PATH_PREFIX : ""}/examples/custom-rendering/excalidraw-websocket-client/dist/index.html`)

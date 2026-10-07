@@ -10,7 +10,7 @@ import {
 import one from "../__dataset__/1"
 import equation from "../__dataset__/equation"
 
-test.describe("Ink Canvas v2 Math", () => {
+test.describe("Ink Canvas v2 Math", { tag: "@minimal" }, () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(`${process.env.PATH_PREFIX ? process.env.PATH_PREFIX : ""}/examples/canvas/canvas_v2_math.html`)
     await passModalKey(page)

@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test"
 import { writeStrokes } from "../helper"
 import helloOneStroke from "../__dataset__/helloOneStroke"
 
-test.describe("TLDraw WebSocket client", () => {
+test.describe("TLDraw WebSocket client", { tag: "@minimal" }, () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(`${process.env.PATH_PREFIX ? process.env.PATH_PREFIX : ""}/examples/custom-rendering/tldraw-websocket-client/dist/index.html`)
     if(await page.getByRole('textbox', { name: 'Host:' }).isVisible()) {

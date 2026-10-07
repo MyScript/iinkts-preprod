@@ -49,7 +49,7 @@ const findSharedAnchorTargetId = (edges) => {
   )
 }
 
-test.describe("Interactive ink canvas diagram connections", () => {
+test.describe("Interactive ink canvas diagram connections", { tag: ["@touch", "@slow"] }, () => {
   // Replaying the diagram dataset takes close to a minute on a loaded WebKit run
   test.describe.configure({ timeout: 120 * 1000 })
 
