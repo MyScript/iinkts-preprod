@@ -1,22 +1,22 @@
 import { isVersionSuperiorOrEqual, type TPartialDeep } from "@/core"
 import { LoggerCategory, LoggerManager } from "@/logger"
 
-import type { TJIIXExport } from "./Export"
-import type { TExportV2 } from "./ExportV2"
-import type { THTTPClientV2Configuration } from "./HTTPClientV2Configuration"
-import { HTTPClientV2Configuration } from "./HTTPClientV2Configuration"
-import { postRecognition, toRecognitionContentType, toRecognitionError } from "./HTTPRecognition"
-import { ensureServerVersion } from "./infos"
+import type { TJIIXExport } from "../jiix/JIIX"
+import type { TExportV2 } from "../jiix/JIIXV2"
 import type {
   TDiagramConfiguration,
   TExportConfiguration,
   TMathConfiguration,
   TRawContentConfiguration,
   TTextConfiguration,
-} from "./recognition"
-import { redactServerSecrets } from "./ServerConfiguration"
-import type { TRecognitionStroke, TWireStroke } from "./StrokeSerializer"
-import { toWireStroke } from "./StrokeSerializer"
+} from "../recognition"
+import { ensureServerVersion } from "../shared/infos"
+import { redactServerSecrets } from "../shared/ServerConfiguration"
+import type { TRecognitionStroke, TWireStroke } from "../shared/StrokeSerializer"
+import { toWireStroke } from "../shared/StrokeSerializer"
+import type { THTTPClientV2Configuration } from "./HTTPClientV2Configuration"
+import { HTTPClientV2Configuration } from "./HTTPClientV2Configuration"
+import { postRecognition, toRecognitionContentType, toRecognitionError } from "./HTTPRecognition"
 
 /**
  * @group Client

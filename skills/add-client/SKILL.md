@@ -27,7 +27,7 @@ Clients handle the transport layer between iinkTS and a MyScript-compatible back
 
 ### 1. Define the interface contract
 
-Reference `src/client/WebSocketClient.ts` for the full real surface (see `recognizer-system` skill for the verified method list — `addStrokes`, `eraseStrokes`, `replaceStrokes`, `transformTranslate/Rotate/Scale/Matrix`, `export`, `clear`, `undo`/`redo`, `close`, `destroy`). Minimum required for a stateful (WebSocket-style) client:
+Reference `src/client/websocket/WebSocketClient.ts` for the full real surface (see `recognizer-system` skill for the verified method list — `addStrokes`, `eraseStrokes`, `replaceStrokes`, `transformTranslate/Rotate/Scale/Matrix`, `export`, `clear`, `undo`/`redo`, `close`, `destroy`). Minimum required for a stateful (WebSocket-style) client:
 
 ```typescript
 interface IYourClient {
@@ -50,7 +50,7 @@ A stateless (HTTP-batch-style) client needs far less: see `HTTPClientV2` — a s
 
 ### 2. Create the client file
 
-`src/client/YourClient.ts`:
+`src/client/<protocol>/YourClient.ts` (`http/` or `websocket/`):
 
 ```typescript
 import { LoggerManager, LoggerCategory } from "@/logger"
@@ -71,13 +71,13 @@ export class YourClient {
 }
 ```
 
-**Authentication**: Use `computeHmac(message, applicationKey, hmacKey)` from `@/client/crypto` — note the argument order, `message` comes first. For an HTTP client, prefer `resolveHmac(server, message)` from `@/client/HmacAuth`, which also resolves an async `hmacKey`.
+**Authentication**: Use `computeHmac(message, applicationKey, hmacKey)` from `@/client` — note the argument order, `message` comes first. For an HTTP client, prefer `resolveHmac(server, message)` from `@/client/HmacAuth`, which also resolves an async `hmacKey`.
 
 **Error handling**: Emit via `this.event.emitError(error)` — never throw uncaught. `ClientEvent` also exposes `CONNECTION_STATUS_CHANGED` for connectivity-state consumers.
 
-### 3. Export from client index
+### 3. Export from the protocol folder's barrel
 
-`src/client/index.ts`:
+`src/client/<protocol>/index.ts` (`src/client/index.ts` already re-exports every protocol folder):
 ```typescript
 export * from "./YourClient"
 ```
@@ -130,7 +130,7 @@ At that point, add a `package.json` and barrel `index.ts` to the package directo
 - [ ] `event: ClientEvent` exposed (stateful clients)
 - [ ] HMAC auth wired if needed (`computeHmac`)
 - [ ] All errors emitted via `event.emitError()`, none thrown uncaught
-- [ ] Exported from `src/client/index.ts`
+- [ ] Exported from its folder barrel (`src/client/<protocol>/index.ts`)
 - [ ] Canvas variant created if needed
 - [ ] Registered in `CanvasFactory`
 - [ ] Tests written (≥80% coverage)

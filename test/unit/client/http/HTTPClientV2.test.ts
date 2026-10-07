@@ -1,5 +1,5 @@
 import fetchMock from "jest-fetch-mock"
-import { HTTPClientV1MathConfiguration, HTTPClientV1TextConfiguration, HTTPClientV1DiagramConfiguration, HTTPClientV1RawContentConfiguration } from "../__dataset__/configuration.dataset"
+import { HTTPClientV1MathConfiguration, HTTPClientV1TextConfiguration, HTTPClientV1DiagramConfiguration, HTTPClientV1RawContentConfiguration } from "../../__dataset__/configuration.dataset"
 import { HTTPClientV2, DefaultPenStyle, Model, TPointer, TRecognitionTypeV2, THTTPClientV2Configuration, DefaultHTTPClientV2Configuration, computeHmac } from "@/iink"
 
 describe("HTTPClientV2.ts", () => {

@@ -9,7 +9,7 @@ import type {
   TRawContentConfiguration,
   TRecognitionRendererConfiguration,
   TTextConfiguration,
-} from "./recognition"
+} from "../recognition"
 import {
   DefaultDiagramConfiguration,
   DefaultExportConfiguration,
@@ -17,10 +17,10 @@ import {
   DefaultRawContentConfiguration,
   DefaultRecognitionRendererConfiguration,
   DefaultTextConfiguration,
-} from "./recognition"
-import type { TRecognitionTypeV1 } from "./RecognitionConfiguration"
-import type { TServerHTTPConfiguration } from "./ServerConfiguration"
-import { DefaultServerHTTPConfiguration } from "./ServerConfiguration"
+} from "../recognition"
+import type { TRecognitionTypeV1 } from "../shared/RecognitionConfiguration"
+import type { TServerHTTPConfiguration } from "../shared/ServerConfiguration"
+import { DefaultServerHTTPConfiguration } from "../shared/ServerConfiguration"
 
 /**
  * @group Client

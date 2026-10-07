@@ -8,7 +8,7 @@ description: >
 
 # Debug WebSocket
 
-Applies to `WebSocketClient` (`src/client/WebSocketClient.ts`), used by `InteractiveInkCanvas`. `InteractiveInkSSRCanvas` uses the separate `WebSocketSSRClient` class — check `src/client/WebSocketSSRClient.ts` directly for SSR-specific behavior not covered here.
+Applies to `WebSocketClient` (`src/client/websocket/WebSocketClient.ts`), used by `InteractiveInkCanvas`. `InteractiveInkSSRCanvas` uses the separate `WebSocketSSRClient` class — check `src/client/websocket/WebSocketSSRClient.ts` directly for SSR-specific behavior not covered here.
 
 ## Quick Diagnostic Checklist
 
@@ -16,7 +16,7 @@ Applies to `WebSocketClient` (`src/client/WebSocketClient.ts`), used by `Interac
 2. **Is the session authenticated?** Look for the `hmacChallenge` → `hmac` → `authenticated` exchange (see flow below).
 3. **Are strokes being sent?** Enable verbose logs (see below).
 4. **Is the server responding?** Check for `contentChanged` messages.
-5. **Did the socket close unexpectedly?** Check the close code against the table below (`src/client/ClientError.ts`).
+5. **Did the socket close unexpectedly?** Check the close code against the table below (`src/client/shared/ClientError.ts`).
 
 ## Enable Verbose Logging
 
@@ -68,7 +68,7 @@ If the `hmac` reply is wrong, the server closes the socket (see close codes belo
 
 ## Common Error Patterns — Close Codes
 
-Real codes are standard WebSocket close codes, mapped in `mapCloseCodeToMessage()` (`src/client/ClientError.ts`) — **not** custom 4xxx application codes:
+Real codes are standard WebSocket close codes, mapped in `mapCloseCodeToMessage()` (`src/client/shared/ClientError.ts`) — **not** custom 4xxx application codes:
 
 | Close Code | `ClientError` | Meaning |
 |---|---|---|
@@ -97,10 +97,10 @@ Fix guidance:
 
 ```typescript
 // 1. Where strokes enter the client
-// src/client/WebSocketClient.ts → addStrokes()
+// src/client/websocket/WebSocketClient.ts → addStrokes()
 
 // 2. Where the raw message is parsed and dispatched
-// src/client/WebSocketClient.ts → protected messageCallback() (line ~587)
+// src/client/websocket/WebSocketClient.ts → protected messageCallback() (line ~587)
 // Unknown message types log a warning: "Message type unknown: ..."
 
 // 3. Where the export/content update reaches the canvas
@@ -129,7 +129,7 @@ client.socket.addEventListener("message", (e) => {
 
 `src/worker/ping.worker.ts` is a pure ticker: it receives `{ pingDelay }` once and then posts `{ type: 'ping' }` back on every interval — it never talks to the server itself. `WebSocketClient.initPing()` is what actually sends the WS `{ type: 'ping' }` message on each tick and expects a `pong` back.
 
-- Config: `configuration.server.websocket.pingEnabled` (default `true`), `pingDelay` (default `15000`ms — **not** 30s), `maxPingLostCount` (default `20`) — see `DefaultServerWebsocketConfiguration` in `src/client/ServerConfiguration.ts`.
+- Config: `configuration.server.websocket.pingEnabled` (default `true`), `pingDelay` (default `15000`ms — **not** 30s), `maxPingLostCount` (default `20`) — see `DefaultServerWebsocketConfiguration` in `src/client/shared/ServerConfiguration.ts`.
 - If `pingCount` (pings sent without a reply) reaches `maxPingLostCount`, the client closes the socket itself with reason `MAXIMUM_PING_REACHED` — this shows up as a self-initiated close, not a server-side drop.
 
 ## HMAC Computation

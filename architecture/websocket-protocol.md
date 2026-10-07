@@ -1,8 +1,8 @@
 # WebSocket protocol — InteractiveInkCanvas ↔ MyScript backend
 
-Full message lifecycle used by `InteractiveInkCanvas` (`src/canvas/variants/InteractiveInkCanvas.ts`) via `WebSocketClient` (`src/client/WebSocketClient.ts`) against the MyScript Cloud recognition server. All message shapes come from `TWebSocketClientMessageType` in `src/client/WebSocketClientMessage.ts`.
+Full message lifecycle used by `InteractiveInkCanvas` (`src/canvas/variants/InteractiveInkCanvas.ts`) via `WebSocketClient` (`src/client/websocket/WebSocketClient.ts`) against the MyScript Cloud recognition server. All message shapes come from `TWebSocketClientMessageType` in `src/client/websocket/WebSocketClientMessage.ts`.
 
-> Note: the `debug-websocket` and `recognizer-system` project skills describe a different, outdated protocol (`src/recognizer/...`, message types like `strokesAdded`/`sessionInitialized`) — that path no longer exists in the codebase. This document reflects the current `src/client/WebSocketClient.ts` implementation; treat it as the source of truth.
+> Note: the `debug-websocket` and `recognizer-system` project skills describe a different, outdated protocol (`src/recognizer/...`, message types like `strokesAdded`/`sessionInitialized`) — that path no longer exists in the codebase. This document reflects the current `src/client/websocket/WebSocketClient.ts` implementation; treat it as the source of truth.
 
 ```mermaid
 sequenceDiagram
@@ -120,11 +120,11 @@ Two independent mechanisms in `WebSocketClient.ts`:
 
 | Concern | File |
 |---|---|
-| Protocol state machine | `src/client/WebSocketClient.ts` |
-| Message type enum + payload shapes | `src/client/WebSocketClientMessage.ts` |
-| HMAC/applicationKey config | `src/client/ServerConfiguration.ts` |
+| Protocol state machine | `src/client/websocket/WebSocketClient.ts` |
+| Message type enum + payload shapes | `src/client/websocket/WebSocketClientMessage.ts` |
+| HMAC/applicationKey config | `src/client/shared/ServerConfiguration.ts` |
 | HMAC computation | `src/utils/crypto.ts` |
-| Public event surface | `src/client/ClientEvent.ts` |
-| Close-code → message mapping | `src/client/ClientError.ts` |
+| Public event surface | `src/client/shared/ClientEvent.ts` |
+| Close-code → message mapping | `src/client/shared/ClientError.ts` |
 | Editor-side wiring (init/undo/redo/export/destroy) | `src/canvas/variants/InteractiveInkCanvas.ts` |
 | Debounced JIIX re-sync after `contentChanged` | `src/manager/interactive/IISynchronizerManager.ts` |

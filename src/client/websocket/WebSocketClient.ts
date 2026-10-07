@@ -1,4 +1,4 @@
-import PingWorker from "web-worker:../worker/ping.worker.ts"
+import PingWorker from "web-worker:../../worker/ping.worker.ts"
 
 import type { TMatrixTransform } from "@/core"
 import {
@@ -12,15 +12,15 @@ import {
 import type { TIIHistoryBackendChanges } from "@/history"
 import { LoggerCategory, LoggerManager } from "@/logger"
 
-import { ClientError, mapCloseCodeToMessage, mapErrorCodeToMessage } from "./ClientError"
-import { ClientEvent } from "./ClientEvent"
-import { parseExportedJIIX, type TExport } from "./Export"
-import type { TJIIXMathElement } from "./ExportMath"
-import { resolveHmac } from "./HmacAuth"
-import { ensureServerVersion } from "./infos"
-import { redactServerSecrets } from "./ServerConfiguration"
-import type { TRecognitionStroke } from "./StrokeSerializer"
-import { toWireStroke } from "./StrokeSerializer"
+import { parseExportedJIIX, type TExport } from "../jiix/JIIX"
+import type { TJIIXMathElement } from "../jiix/JIIXMath"
+import { ClientError, mapCloseCodeToMessage, mapErrorCodeToMessage } from "../shared/ClientError"
+import { ClientEvent } from "../shared/ClientEvent"
+import { resolveHmac } from "../shared/HmacAuth"
+import { ensureServerVersion } from "../shared/infos"
+import { redactServerSecrets } from "../shared/ServerConfiguration"
+import type { TRecognitionStroke } from "../shared/StrokeSerializer"
+import { toWireStroke } from "../shared/StrokeSerializer"
 import type { TWebSocketClientConfiguration } from "./WebSocketClientConfiguration"
 import { WebSocketClientConfiguration } from "./WebSocketClientConfiguration"
 import type {
@@ -95,7 +95,7 @@ const createMathSolverNeutralResults = (): TMathSolverResultMap => ({
  *                                                    <==================       { type: "authenticated" }
  * { type: "initSession" | "restoreSession" }         ==================>
  *                                                    <==================       { type: "sessionDescription" }
- * { type: "sendToSupport", [key]:[value] }        ==================>
+ * { type: "sendToSupport", [key]:[value] }           ==================>
  *                                                    <==================        { type: "ack" }
  * { type: "newContentPart" | "openContentPart" }     ==================>
  *                                                    <==================       { type: "partChanged" }
