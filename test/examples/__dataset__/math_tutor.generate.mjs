@@ -24,6 +24,8 @@ const G = {
   a: [ellipse(12, 27, 11, 12), [[23, 14], [23, 40]]],
   b: [[[3, 0], [3, 40]], ellipse(13, 28, 10, 12, 0.75, 1.75)],
   c: [ellipse(13, 27, 12, 12, 0.12, -0.62)],
+  P: [[[0, 0], [0, 40]], [[0, 0], [16, 0], [25, 6], [25, 14], [16, 20], [0, 20]]],
+  A: [[[0, 40], [13, 0], [26, 40]], [[6, 24], [20, 24]]],
 }
 
 let clock = 1000
@@ -48,30 +50,17 @@ function write(text, x0, y0, advance = 42) {
   }
   return strokes
 }
-function triangle() {
-  // Kept clear of the toolbar at the bottom of the sheet and of the right margin, on a tablet too
-  const corners = [[400, 120], [400, 370], [730, 370], [400, 120]]
-  const points = []
-  for (let i = 0; i < 3; i++) {
-    const [ax, ay] = corners[i]
-    const [bx, by] = corners[i + 1]
-    const n = Math.ceil(Math.hypot(bx - ax, by - ay) / 6)
-    for (let k = 0; k < n; k++) points.push([ax + ((bx - ax) * k) / n + Math.sin(k) * 1.2, ay + ((by - ay) * k) / n + Math.cos(k) * 1.2])
-  }
-  points.push(corners[3])
-  clock += 120
-  return { pointers: points.map(([x, y]) => ({ x: +x.toFixed(1), y: +y.toFixed(1), t: (clock += 8), p: 0.5 })) }
-}
-
 const datasets = {
   "math_tutor_level1_answer.json": write("x=7", 150, 80),
   "math_tutor_level2_step1.json": write("2x+3=7", 150, 80),
   "math_tutor_level2_wrong_step2.json": write("2x=10", 150, 160),
   "math_tutor_level2_step2.json": write("2x=4", 150, 160),
   "math_tutor_level2_answer.json": write("x=2", 150, 240),
-  "math_tutor_level3_triangle.json": [triangle()],
-  "math_tutor_level3_legs.json": [...write("a=3", 255, 225, 40), ...write("b=4", 520, 390, 40)],
-  "math_tutor_level3_hypotenuse.json": write("c=5", 600, 180, 40),
+  // The perimeter of the first demo rectangle, 6 by 4: first left to compute, then the result
+  "math_tutor_geometry1_unfinished.json": write("P=10+10", 150, 80),
+  "math_tutor_geometry1_answer.json": write("P=20", 150, 160),
+  // Its area
+  "math_tutor_geometry2_answer.json": write("A=24", 150, 80),
 }
 for (const [name, strokes] of Object.entries(datasets)) writeFileSync(`${out}/${name}`, JSON.stringify(strokes))
 console.log(Object.keys(datasets).join("\n"))
