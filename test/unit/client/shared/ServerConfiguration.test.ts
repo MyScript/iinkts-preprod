@@ -1,4 +1,4 @@
-import { redactServerSecrets } from "@/iink"
+import { redactServerSecrets, serverUrl } from "@/iink"
 
 describe("redactServerSecrets", () => {
   test("should redact hmacKey and applicationKey", () => {
@@ -44,5 +44,30 @@ describe("redactServerSecrets", () => {
   test("should leave non-object input untouched", () => {
     expect(redactServerSecrets(undefined)).toEqual(undefined)
     expect(redactServerSecrets({})).toEqual({})
+  })
+})
+
+describe("serverUrl", () => {
+  const server = { scheme: "https" as const, host: "cloud.myscript.com" }
+
+  test("should build an HTTP endpoint URL", () => {
+    expect(serverUrl(server, "recognize")).toBe("https://cloud.myscript.com/api/v4.0/iink/recognize")
+  })
+
+  test("should keep the scheme of a plain http server", () => {
+    expect(serverUrl({ ...server, scheme: "http" }, "version")).toBe("http://cloud.myscript.com/api/v4.0/iink/version")
+  })
+
+  test("should turn https into wss, and http into ws, for a websocket", () => {
+    expect(serverUrl(server, "offscreen", { websocket: true })).toBe("wss://cloud.myscript.com/api/v4.0/iink/offscreen")
+    expect(serverUrl({ ...server, scheme: "http" }, "document", { websocket: true })).toBe(
+      "ws://cloud.myscript.com/api/v4.0/iink/document"
+    )
+  })
+
+  test("should encode the query values", () => {
+    expect(serverUrl(server, "offscreen", { websocket: true, query: { applicationKey: "a&b=c" } })).toBe(
+      "wss://cloud.myscript.com/api/v4.0/iink/offscreen?applicationKey=a%26b%3Dc"
+    )
   })
 })
