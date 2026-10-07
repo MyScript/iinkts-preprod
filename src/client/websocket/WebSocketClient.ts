@@ -321,7 +321,10 @@ export class WebSocketClient {
   protected waitForReconnection(): Promise<void> {
     this.reconnection ??= new DeferredPromise<void>()
     const reconnected = this.reconnection.promise
-    this.startReconnectLoop()
+    // An attempt already under way settles it; a second one would replace its socket
+    if (!this.connectingPromise) {
+      this.startReconnectLoop()
+    }
     return reconnected
   }
 
@@ -700,6 +703,10 @@ export class WebSocketClient {
       case this.socket.CONNECTING:
       case this.socket.OPEN:
         await this.initialized.promise
+        // Reconnected but the queue not replayed yet: going now would answer from stale content
+        if (this.offlineQueue.length > 0) {
+          await this.waitForReconnection()
+        }
         this.sendOnSocket(message)
         return
       case this.socket.CLOSING:
@@ -748,7 +755,9 @@ export class WebSocketClient {
    * reconnected, rather than lost: the server must end up with every change the canvas made.
    */
   protected sendChange(message: TWebSocketClientMessage): Promise<void> {
-    if (this.configuration.server.websocket.autoReconnect && this.isDisconnected()) {
+    // Queued while disconnected, and also while the queue still waits to be replayed: a change
+    // made during the reconnection must not overtake the ones made before it
+    if (this.configuration.server.websocket.autoReconnect && (this.isDisconnected() || this.offlineQueue.length > 0)) {
       const deferred = new DeferredPromise<void>()
       this.enqueueOfflineMessage(message, deferred)
       return deferred.promise
