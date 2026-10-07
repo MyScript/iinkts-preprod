@@ -188,17 +188,18 @@ export class WebSocketClient {
   }
 
   /**
-   * Number of addStrokes batches currently queued locally while disconnected.
+   * Number of changes queued while disconnected, waiting to be replayed (see `server.websocket.autoReconnect`).
    */
   get offlineQueueLength(): number {
     return this.offlineQueue.length
   }
 
   /**
-   * True while strokes are queued locally waiting for reconnection (see `server.websocket.autoReconnect`).
+   * True while the connection is down after a first one succeeded, whether changes are queued or
+   * not; false again once reconnected. `offlineQueueLength` tells how many changes wait.
    */
   get isOffline(): boolean {
-    return this.offlineQueueLength > 0
+    return this.hasConnected && this.socket?.readyState !== this.socket?.OPEN
   }
 
   protected sendOnSocket(message: TWebSocketClientMessage): void {
