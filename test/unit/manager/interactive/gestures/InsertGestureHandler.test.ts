@@ -212,4 +212,63 @@ describe("InsertGestureHandler.ts", () => {
       expect(translatedSymbols).not.toContain(strayStroke)
     })
   })
+
+  describe("apply — split and line break", () => {
+    let rowHeight: number
+    let translate: jest.Mock
+    const insert = (extra: Partial<TGesture> = {}): TGesture => ({
+      gestureType: "INSERT",
+      gestureStrokeId: "gesture",
+      strokeIds: [],
+      strokeBeforeIds: [],
+      strokeAfterIds: [],
+      ...extra,
+    })
+
+    beforeEach(() => {
+      rowHeight = canvas.configuration.rendering.guides.gap
+      translate = jest.fn(() => Promise.resolve())
+      ;(canvas.gesture as unknown as Record<string, unknown>).translator = { translate }
+      ;(canvas.gesture as unknown as Record<string, unknown>).insertAction = InsertAction.LineBreak
+    })
+
+    test("should replace a cut stroke by its two halves", async () => {
+      const stroke = buildIIStroke({ box: { x: 0, y: 0.2 * rowHeight, width: 100, height: 0 }, nbPoint: 10 })
+      canvas.model.addSymbol(stroke)
+      const [left, right] = [stroke.pointers.slice(0, 5), stroke.pointers.slice(5)]
+      const gestureStroke = buildIIStroke({ box: { x: 50, y: 0.1 * rowHeight, width: 0, height: 9 } })
+
+      await handler.apply(
+        gestureStroke,
+        insert({
+          strokeIds: [stroke.id],
+          subStrokes: [
+            { fullStrokeId: stroke.id, x: left.map((p) => p.x), y: left.map((p) => p.y) },
+            { fullStrokeId: stroke.id, x: right.map((p) => p.x), y: right.map((p) => p.y) },
+          ],
+        })
+      )
+
+      expect(translate).not.toHaveBeenCalled()
+      expect(canvas.replaceSymbols).toHaveBeenNthCalledWith(
+        1,
+        [stroke],
+        [expect.objectContaining({ type: "stroke" }), expect.objectContaining({ type: "stroke" })],
+        false
+      )
+      expect(canvas.history.push).toHaveBeenCalledTimes(1)
+    })
+
+    test("should push a row's strokes down one row on a line break before them", async () => {
+      const stroke = buildIIStroke({ box: { x: 50, y: 0.6 * rowHeight, width: 10, height: 9 } })
+      canvas.model.addSymbol(stroke)
+      const gestureStroke = buildIIStroke({ box: { x: 30, y: 0.6 * rowHeight, width: 5, height: 9 } })
+
+      await handler.apply(gestureStroke, insert())
+
+      expect(translate).toHaveBeenNthCalledWith(1, [stroke], 0, rowHeight, false)
+      expect(canvas.replaceSymbols).not.toHaveBeenCalled()
+      expect(canvas.history.push).toHaveBeenCalledTimes(1)
+    })
+  })
 })

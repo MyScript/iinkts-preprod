@@ -1,10 +1,14 @@
 import { InteractiveInkCanvasOverrideConfiguration } from "../__dataset__/configuration.dataset"
 import { ServerWebSocketMock, contextlessGestureMessage, gestureDetectedMessage, hTextJIIX, partChangeMessage } from "../__mocks__/ServerWebSocketMock"
 import { buildIIStroke, delay } from "../helpers"
-import { WebSocketClient, ClientError, TMatrixTransform, MatrixTransform, TIIHistoryBackendChanges, TWebSocketClientConfiguration, toWireStroke, LoggerManager, LoggerCategory } from "@/iink"
+import { WebSocketClient, ClientError, TMatrixTransform, MatrixTransform, TIIHistoryBackendChanges, TWebSocketClientConfiguration, TWebSocketClientMessage, TStroke, toWireStroke, LoggerManager, LoggerCategory } from "@/iink"
 
 import { toResolve } from "jest-extended"
 expect.extend({ toResolve })
+
+jest.mock("web-worker:../worker/ping.worker.ts", () =>
+  jest.fn().mockImplementation(() => ({ postMessage: jest.fn(), terminate: jest.fn() }))
+)
 
 describe("WebSocketClient.ts", () => {
   const configuration: TWebSocketClientConfiguration = {
@@ -448,6 +452,110 @@ describe("WebSocketClient.ts", () => {
       mockServer.sendContentChangeMessage()
       await expect(firstPromise).resolves.toEqual(gestureDetectedMessage)
       await expect(secondPromise).resolves.toBeUndefined()
+    })
+  })
+
+  describe("message size", () => {
+    const strokeBytes = (s: TStroke) => JSON.stringify(toWireStroke(s)).length
+    const wireStrokesOf = (message: TWebSocketClientMessage): unknown[] =>
+      Array.isArray(message.strokes) ? message.strokes : []
+    const idOf = (wire: unknown) => (typeof wire === "object" && wire !== null && "id" in wire ? wire.id : undefined)
+
+    // Not initialized, so the client counts as disconnected: without this the messages would wait in
+    // the offline queue instead of reaching `send`.
+    const onlineConf = (): TWebSocketClientConfiguration => {
+      const conf = structuredClone(configuration)
+      conf.server.websocket.offlineQueueEnabled = false
+      return conf
+    }
+
+    class SmallFrameClient extends WebSocketClient {
+      constructor(
+        conf: TWebSocketClientConfiguration,
+        protected readonly maxMessageBytes: number
+      ) {
+        super(conf)
+      }
+    }
+
+    test("should split strokes over several messages so none outgrows the frame budget", async () => {
+      const strokes = Array.from({ length: 6 }, () => buildIIStroke({ nbPoint: 40, box: { x: 0, y: 0, width: 400, height: 400 } }))
+      const budget = strokeBytes(strokes[0]) * 2 + 200
+      const wsClient = new SmallFrameClient(onlineConf(), budget)
+      const sent: TWebSocketClientMessage[] = []
+      jest.spyOn(wsClient, "send").mockImplementation((message) => {
+        sent.push(message)
+        return Promise.resolve()
+      })
+
+      await wsClient.addStrokes(strokes, false)
+
+      expect(sent.length).toBeGreaterThan(1)
+      sent.forEach((message) => expect(JSON.stringify(message).length).toBeLessThanOrEqual(budget))
+      const sentIds = sent.flatMap((message) => wireStrokesOf(message).map(idOf))
+      expect(sentIds).toEqual(strokes.map((s) => s.id))
+    })
+
+    test("should still send a stroke larger than the budget, alone", async () => {
+      const strokes = [buildIIStroke(), buildIIStroke({ nbPoint: 200, box: { x: 0, y: 0, width: 2000, height: 2000 } }), buildIIStroke()]
+      const wsClient = new SmallFrameClient(onlineConf(), strokeBytes(strokes[0]) + 200)
+      const sent: TWebSocketClientMessage[] = []
+      jest.spyOn(wsClient, "send").mockImplementation((message) => {
+        sent.push(message)
+        return Promise.resolve()
+      })
+
+      await wsClient.addStrokes(strokes, false)
+
+      expect(sent.map((message) => wireStrokesOf(message).length)).toEqual([1, 1, 1])
+    })
+
+    const recordSends = (wsClient: WebSocketClient): TWebSocketClientMessage[] => {
+      const sent: TWebSocketClientMessage[] = []
+      jest.spyOn(wsClient, "send").mockImplementation((message) => {
+        sent.push(message)
+        return Promise.resolve()
+      })
+      return sent
+    }
+    const ids = Array.from({ length: 30 }, (_, i) => `stroke-${String(i).padStart(36, "0")}`)
+    const idsOf = (message: TWebSocketClientMessage): unknown[] => (Array.isArray(message.strokeIds) ? message.strokeIds : [])
+
+    test.each([
+      ["transformTranslate", (c: WebSocketClient) => c.transformTranslate(ids, 1, 2)],
+      ["transformRotate", (c: WebSocketClient) => c.transformRotate(ids, 0.5)],
+      ["transformScale", (c: WebSocketClient) => c.transformScale(ids, 2, 2)],
+      ["transformMatrix", (c: WebSocketClient) => c.transformMatrix(ids, MatrixTransform.identity())],
+      ["eraseStrokes", (c: WebSocketClient) => c.eraseStrokes(ids)],
+    ])("%s should split its stroke ids so no message outgrows the frame budget", async (_, call) => {
+      const budget = 600
+      const wsClient = new SmallFrameClient(onlineConf(), budget)
+      const sent = recordSends(wsClient)
+
+      await call(wsClient)
+
+      expect(sent.length).toBeGreaterThan(1)
+      sent.forEach((message) => expect(JSON.stringify(message).length).toBeLessThanOrEqual(budget))
+      expect(sent.flatMap(idsOf)).toEqual(ids)
+      expect(new Set(sent.map((message) => message.type)).size).toBe(1)
+    })
+
+    test("replaceStrokes should send the replacement first, then the strokes left over as additions", async () => {
+      const newStrokes = Array.from({ length: 6 }, () => buildIIStroke({ nbPoint: 40, box: { x: 0, y: 0, width: 400, height: 400 } }))
+      const budget = strokeBytes(newStrokes[0]) * 2 + 400
+      const wsClient = new SmallFrameClient(onlineConf(), budget)
+      const sent = recordSends(wsClient)
+
+      await wsClient.replaceStrokes(["old-1", "old-2"], newStrokes)
+
+      expect(sent.length).toBeGreaterThan(1)
+      expect(sent[0]).toMatchObject({ type: "replaceStrokes", oldStrokeIds: ["old-1", "old-2"] })
+      sent.slice(1).forEach((message) => expect(message.type).toBe("addStrokes"))
+      sent.forEach((message) => expect(JSON.stringify(message).length).toBeLessThanOrEqual(budget))
+      const sentIds = sent.flatMap((message) =>
+        (Array.isArray(message.newStrokes) ? message.newStrokes : wireStrokesOf(message)).map(idOf)
+      )
+      expect(sentIds).toEqual(newStrokes.map((s) => s.id))
     })
   })
 
@@ -1644,6 +1752,26 @@ describe("WebSocketClient.ts", () => {
       // 2 -> CLOSING
       await expect(mockServer.server.clients()[0].readyState).toEqual(2)
       mockServer.close()
+    })
+  })
+
+  describe("ping", () => {
+    class PingWebSocketClient extends WebSocketClient {
+      startPing(): void {
+        this.initPing()
+      }
+      get currentPingWorker(): Worker | undefined {
+        return this.pingWorker
+      }
+    }
+
+    test("should terminate the previous ping worker before starting a new one", () => {
+      const wsClient = new PingWebSocketClient(structuredClone(configuration))
+      wsClient.startPing()
+      const firstWorker = wsClient.currentPingWorker
+      wsClient.startPing()
+      expect(firstWorker?.terminate).toHaveBeenCalledTimes(1)
+      expect(wsClient.currentPingWorker).not.toBe(firstWorker)
     })
   })
 })
