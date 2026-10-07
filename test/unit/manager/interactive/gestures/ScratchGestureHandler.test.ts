@@ -1,6 +1,6 @@
 import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
-import { buildIIStroke, buildIIText } from "../../../helpers"
-import { GestureHelpers, ScratchGestureHandler, StrokeUtil, TGesture } from "@/iink"
+import { buildIICircle, buildIIStroke, buildIIText } from "../../../helpers"
+import { GestureHelpers, OBBOps, ScratchGestureHandler, StrokeUtil, SymbolGeometry, TGesture, TSymbolChar } from "@/iink"
 
 describe("ScratchGestureHandler.ts", () => {
   let canvas: ReturnType<typeof createCanvasMock>
@@ -185,6 +185,97 @@ describe("ScratchGestureHandler.ts", () => {
 
       // Should complete without errors
       expect(true).toBe(true)
+    })
+  })
+
+  describe("apply — what is erased, what is replaced", () => {
+    const scratch = (strokeIds: string[], extra: Partial<TGesture> = {}): TGesture => ({
+      gestureType: "SCRATCH",
+      gestureStrokeId: "gesture",
+      strokeIds,
+      strokeBeforeIds: [],
+      strokeAfterIds: [],
+      ...extra,
+    })
+    const twoChars = (): TSymbolChar[] => [
+      { bounds: { height: 10, width: 5, x: 0, y: 10 }, color: "black", fontSize: 16, fontWeight: "normal", id: "char-1", label: "A" },
+      { bounds: { height: 10, width: 5, x: 5, y: 10 }, color: "black", fontSize: 16, fontWeight: "normal", id: "char-2", label: "b" },
+    ]
+
+    test("should touch nothing when the gesture covers no stroke", async () => {
+      await handler.apply(buildIIStroke(), scratch([]))
+      expect(canvas.removeSymbols).not.toHaveBeenCalled()
+      expect(canvas.replaceSymbols).not.toHaveBeenCalled()
+      expect(canvas.history.push).not.toHaveBeenCalled()
+    })
+
+    test("should erase a scratched shape", async () => {
+      const circle = buildIICircle()
+      canvas.model.addSymbol(circle)
+      const gestureStroke = buildIIStroke({ box: OBBOps.toBox(SymbolGeometry.boundsOf(circle)), nbPoint: 100 })
+      await handler.apply(gestureStroke, scratch([circle.id]))
+      expect(canvas.removeSymbols).toHaveBeenNthCalledWith(1, [circle.id], false)
+      expect(canvas.replaceSymbols).not.toHaveBeenCalled()
+      expect(canvas.history.push).toHaveBeenCalledTimes(1)
+    })
+
+    test("should erase a text whose every char is scratched", async () => {
+      const text = buildIIText({ chars: twoChars(), boundingBox: { height: 10, width: 10, x: 0, y: 10 } })
+      canvas.model.addSymbol(text)
+      const gestureStroke = buildIIStroke({ box: { height: 20, width: 20, x: -5, y: 5 }, nbPoint: 100 })
+      await handler.apply(gestureStroke, scratch([text.id]))
+      expect(canvas.removeSymbols).toHaveBeenNthCalledWith(1, [text.id], false)
+      expect(canvas.replaceSymbols).not.toHaveBeenCalled()
+      expect(canvas.history.push).toHaveBeenCalledTimes(1)
+    })
+
+    test("should keep the chars of a text the scratch does not reach", async () => {
+      const chars = twoChars()
+      const text = buildIIText({ chars, boundingBox: { height: 10, width: 10, x: 0, y: 10 } })
+      canvas.model.addSymbol(text)
+      const gestureStroke = buildIIStroke({ box: chars[0].bounds })
+      await handler.apply(gestureStroke, scratch([text.id]))
+      expect(canvas.removeSymbols).not.toHaveBeenCalled()
+      expect(canvas.replaceSymbols).toHaveBeenNthCalledWith(
+        1,
+        [text],
+        [expect.objectContaining({ id: text.id, chars: [expect.objectContaining({ id: "char-2" })] })],
+        false
+      )
+      // The committed text is what undo restores: it must still hold both chars.
+      expect(text.chars.map((c) => c.id)).toEqual(["char-1", "char-2"])
+      expect(canvas.history.push).toHaveBeenCalledTimes(1)
+    })
+
+    test("should erase a stroke the gesture gives no sub-stroke for", async () => {
+      const stroke = buildIIStroke()
+      canvas.model.addSymbol(stroke)
+      await handler.apply(buildIIStroke(), scratch([stroke.id]))
+      expect(canvas.removeSymbols).toHaveBeenNthCalledWith(1, [stroke.id], false)
+      expect(canvas.replaceSymbols).not.toHaveBeenCalled()
+      expect(canvas.history.push).toHaveBeenCalledTimes(1)
+    })
+
+    test("should replace a stroke scratched in its middle by the two parts left", async () => {
+      // A box wide enough for all 50 points to survive `addPointer`'s minimum spacing.
+      const stroke = buildIIStroke({ box: { x: 0, y: 0, width: 500, height: 500 }, nbPoint: 50 })
+      canvas.model.addSymbol(stroke)
+      const middle = stroke.pointers.slice(10, 25)
+      expect(middle).toHaveLength(15)
+      await handler.apply(
+        buildIIStroke(),
+        scratch([stroke.id], {
+          subStrokes: [{ fullStrokeId: stroke.id, x: middle.map((p) => p.x), y: middle.map((p) => p.y) }],
+        })
+      )
+      expect(canvas.removeSymbols).not.toHaveBeenCalled()
+      expect(canvas.replaceSymbols).toHaveBeenNthCalledWith(
+        1,
+        [stroke],
+        [expect.objectContaining({ type: "stroke" }), expect.objectContaining({ type: "stroke" })],
+        false
+      )
+      expect(canvas.history.push).toHaveBeenCalledTimes(1)
     })
   })
 })
