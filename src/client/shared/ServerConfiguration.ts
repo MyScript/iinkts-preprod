@@ -34,12 +34,16 @@ export type TServerWebsocketConfiguration = TServerHTTPConfiguration & {
     pingEnabled: boolean
     pingDelay: number
     maxPingLostCount: number
+    /**
+     * Reconnect automatically after a drop. `WebSocketClient` then queues the changes made while
+     * disconnected and replays them in order, and lets requests wait for the reconnection; off,
+     * both reject at once while disconnected.
+     */
     autoReconnect: boolean
+    /** `WebSocketSSRClient` only: reconnection attempts per send. `WebSocketClient` uses `maxReconnectAttempts`. */
     maxRetryCount: number
     fileChunkSize: number
-    /** Queue `addStrokes()` calls locally while disconnected and replay them in order on reconnect. */
-    offlineQueueEnabled: boolean
-    /** Max number of queued addStrokes batches; further calls reject once reached. */
+    /** Max number of changes queued while disconnected; further changes reject once reached. */
     offlineQueueMaxSize: number
     /** Delay in ms between reconnection attempts while offline. */
     reconnectDelay: number
@@ -61,7 +65,6 @@ export const DefaultServerWebsocketConfiguration: TServerWebsocketConfiguration 
     autoReconnect: true,
     maxRetryCount: 2,
     fileChunkSize: 300000,
-    offlineQueueEnabled: true,
     offlineQueueMaxSize: 50,
     reconnectDelay: 3000,
     maxReconnectAttempts: 10,
