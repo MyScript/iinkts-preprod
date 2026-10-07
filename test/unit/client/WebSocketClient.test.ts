@@ -455,7 +455,7 @@ describe("WebSocketClient.ts", () => {
     })
   })
 
-  describe("addStrokes — message size", () => {
+  describe("message size", () => {
     const strokeBytes = (s: TStroke) => JSON.stringify(toWireStroke(s)).length
     const wireStrokesOf = (message: TWebSocketClientMessage): unknown[] =>
       Array.isArray(message.strokes) ? message.strokes : []
@@ -472,7 +472,7 @@ describe("WebSocketClient.ts", () => {
     class SmallFrameClient extends WebSocketClient {
       constructor(
         conf: TWebSocketClientConfiguration,
-        protected readonly maxAddStrokesMessageBytes: number
+        protected readonly maxMessageBytes: number
       ) {
         super(conf)
       }
@@ -508,6 +508,54 @@ describe("WebSocketClient.ts", () => {
       await wsClient.addStrokes(strokes, false)
 
       expect(sent.map((message) => wireStrokesOf(message).length)).toEqual([1, 1, 1])
+    })
+
+    const recordSends = (wsClient: WebSocketClient): TWebSocketClientMessage[] => {
+      const sent: TWebSocketClientMessage[] = []
+      jest.spyOn(wsClient, "send").mockImplementation((message) => {
+        sent.push(message)
+        return Promise.resolve()
+      })
+      return sent
+    }
+    const ids = Array.from({ length: 30 }, (_, i) => `stroke-${String(i).padStart(36, "0")}`)
+    const idsOf = (message: TWebSocketClientMessage): unknown[] => (Array.isArray(message.strokeIds) ? message.strokeIds : [])
+
+    test.each([
+      ["transformTranslate", (c: WebSocketClient) => c.transformTranslate(ids, 1, 2)],
+      ["transformRotate", (c: WebSocketClient) => c.transformRotate(ids, 0.5)],
+      ["transformScale", (c: WebSocketClient) => c.transformScale(ids, 2, 2)],
+      ["transformMatrix", (c: WebSocketClient) => c.transformMatrix(ids, MatrixTransform.identity())],
+      ["eraseStrokes", (c: WebSocketClient) => c.eraseStrokes(ids)],
+    ])("%s should split its stroke ids so no message outgrows the frame budget", async (_, call) => {
+      const budget = 600
+      const wsClient = new SmallFrameClient(onlineConf(), budget)
+      const sent = recordSends(wsClient)
+
+      await call(wsClient)
+
+      expect(sent.length).toBeGreaterThan(1)
+      sent.forEach((message) => expect(JSON.stringify(message).length).toBeLessThanOrEqual(budget))
+      expect(sent.flatMap(idsOf)).toEqual(ids)
+      expect(new Set(sent.map((message) => message.type)).size).toBe(1)
+    })
+
+    test("replaceStrokes should send the replacement first, then the strokes left over as additions", async () => {
+      const newStrokes = Array.from({ length: 6 }, () => buildIIStroke({ nbPoint: 40, box: { x: 0, y: 0, width: 400, height: 400 } }))
+      const budget = strokeBytes(newStrokes[0]) * 2 + 400
+      const wsClient = new SmallFrameClient(onlineConf(), budget)
+      const sent = recordSends(wsClient)
+
+      await wsClient.replaceStrokes(["old-1", "old-2"], newStrokes)
+
+      expect(sent.length).toBeGreaterThan(1)
+      expect(sent[0]).toMatchObject({ type: "replaceStrokes", oldStrokeIds: ["old-1", "old-2"] })
+      sent.slice(1).forEach((message) => expect(message.type).toBe("addStrokes"))
+      sent.forEach((message) => expect(JSON.stringify(message).length).toBeLessThanOrEqual(budget))
+      const sentIds = sent.flatMap((message) =>
+        (Array.isArray(message.newStrokes) ? message.newStrokes : wireStrokesOf(message)).map(idOf)
+      )
+      expect(sentIds).toEqual(newStrokes.map((s) => s.id))
     })
   })
 

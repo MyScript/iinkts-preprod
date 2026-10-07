@@ -52,6 +52,10 @@ const RECEIVED_MESSAGE_TYPES: ReadonlySet<unknown> = new Set(Object.values(TWebS
 const isWebSocketClientMessageReceived = (value: unknown): value is TWebSocketClientMessageReceived =>
   typeof value === "object" && value !== null && "type" in value && RECEIVED_MESSAGE_TYPES.has(value.type)
 
+// What one item adds to a message's JSON, for `chunkBySize`.
+const wireStrokeSize = (stroke: TRecognitionStroke): number => JSON.stringify(toWireStroke(stroke)).length
+const strokeIdSize = (id: string): number => id.length + 2
+
 /**
  * @group Client
  * @summary Pending math solver requests, by action then block id
@@ -110,12 +114,10 @@ export class WebSocketClient {
 
   protected socket!: WebSocket
   /**
-   * Largest `addStrokes` message sent in one frame, counted in characters of its JSON. A backend
-   * closes the connection (1009, "message too big") on a frame above its limit — between 400 and
-   * 524 KB for the docker backend — and a thousand long strokes weigh over 1 MB. Half that limit,
-   * so a backend configured a little tighter still holds. Lower it for one with a smaller limit.
+   * Largest message sent in one frame, in characters of its JSON. The backend closes the connection
+   * (1009) on an incoming message over 500 KB; half of that leaves room to spare.
    */
-  protected maxAddStrokesMessageBytes = 256 * 1024
+  protected maxMessageBytes = 256 * 1024
   protected pingWorker?: Worker
   protected pingCount = 0
   protected reconnectionCount = 0
@@ -760,7 +762,7 @@ export class WebSocketClient {
     }
     const promises: Promise<void>[] = []
     const _processGestures = processGestures && strokes.length < 3
-    for (const strokesPart of this.chunkStrokes(strokes)) {
+    for (const strokesPart of this.chunkBySize(strokes, wireStrokeSize, 1000)) {
       const message = this.buildAddStrokesMessage(strokesPart, _processGestures)
       if (this.configuration.server.websocket.offlineQueueEnabled && this.isDisconnected()) {
         const deferred = new DeferredPromise<void>()
@@ -774,29 +776,37 @@ export class WebSocketClient {
   }
 
   /**
-   * Groups strokes into `addStrokes` messages of at most a thousand strokes that each stay under
-   * `maxAddStrokesMessageBytes`. Order is kept; a stroke larger than the budget goes alone.
+   * Groups `items` so that each group, once sent, stays under `maxMessageBytes`, with at most
+   * `maxCount` items. Order is kept; an item larger than the budget goes alone.
    */
-  protected chunkStrokes(strokes: TRecognitionStroke[]): TRecognitionStroke[][] {
-    // Room left for the message around the strokes: its type and processGestures fields.
-    const budget = this.maxAddStrokesMessageBytes - 256
-    const chunks: TRecognitionStroke[][] = []
-    let current: TRecognitionStroke[] = []
+  protected chunkBySize<T>(items: T[], sizeOf: (item: T) => number, maxCount = Infinity): T[][] {
+    // Room left for the message around the items: its type and other fields.
+    const budget = this.maxMessageBytes - 256
+    const chunks: T[][] = []
+    let current: T[] = []
     let currentBytes = 0
-    for (const stroke of strokes) {
-      const bytes = JSON.stringify(toWireStroke(stroke)).length + 1
-      if (current.length && (current.length === 1000 || currentBytes + bytes > budget)) {
+    for (const item of items) {
+      const bytes = sizeOf(item) + 1
+      if (current.length && (current.length === maxCount || currentBytes + bytes > budget)) {
         chunks.push(current)
         current = []
         currentBytes = 0
       }
-      current.push(stroke)
+      current.push(item)
       currentBytes += bytes
     }
     if (current.length) {
       chunks.push(current)
     }
     return chunks
+  }
+
+  /** Sends `build`'s message once per group of `strokeIds` that fits in a frame. */
+  protected async sendPerStrokeIds(
+    strokeIds: string[],
+    build: (strokeIds: string[]) => TWebSocketClientMessage
+  ): Promise<void> {
+    await Promise.all(this.chunkBySize(strokeIds, strokeIdSize).map((ids) => this.send(build(ids))))
   }
 
   async getAvailableActions(blockId: string): Promise<string[]> {
@@ -903,7 +913,13 @@ export class WebSocketClient {
     if (oldStrokeIds.length === 0) {
       return
     }
-    await this.send(this.buildReplaceStrokesMessage(oldStrokeIds, newStrokes))
+    // The first group goes with the replacement, the others as plain additions: same content, and
+    // no frame over the budget.
+    const [first = [], ...rest] = this.chunkBySize(newStrokes, wireStrokeSize, 1000)
+    await Promise.all([
+      this.send(this.buildReplaceStrokesMessage(oldStrokeIds, first)),
+      ...rest.map((strokes) => this.send(this.buildAddStrokesMessage(strokes, false))),
+    ])
   }
 
   protected buildTransformTranslateMessage(strokeIds: string[], tx: number, ty: number): TWebSocketClientMessage {
@@ -919,7 +935,7 @@ export class WebSocketClient {
     if (strokeIds.length === 0) {
       return
     }
-    await this.send(this.buildTransformTranslateMessage(strokeIds, tx, ty))
+    await this.sendPerStrokeIds(strokeIds, (ids) => this.buildTransformTranslateMessage(ids, tx, ty))
   }
 
   protected buildTransformRotateMessage(
@@ -941,7 +957,7 @@ export class WebSocketClient {
     if (strokeIds.length === 0) {
       return
     }
-    await this.send(this.buildTransformRotateMessage(strokeIds, angle, x0, y0))
+    await this.sendPerStrokeIds(strokeIds, (ids) => this.buildTransformRotateMessage(ids, angle, x0, y0))
   }
 
   protected buildTransformScaleMessage(
@@ -971,7 +987,7 @@ export class WebSocketClient {
     if (strokeIds.length === 0) {
       return
     }
-    await this.send(this.buildTransformScaleMessage(strokeIds, scaleX, scaleY, x0, y0))
+    await this.sendPerStrokeIds(strokeIds, (ids) => this.buildTransformScaleMessage(ids, scaleX, scaleY, x0, y0))
   }
 
   protected buildTransformMatrixMessage(strokeIds: string[], matrix: TMatrixTransform): TWebSocketClientMessage {
@@ -986,7 +1002,7 @@ export class WebSocketClient {
     if (strokeIds.length === 0) {
       return
     }
-    await this.send(this.buildTransformMatrixMessage(strokeIds, matrix))
+    await this.sendPerStrokeIds(strokeIds, (ids) => this.buildTransformMatrixMessage(ids, matrix))
   }
 
   protected buildEraseStrokesMessage(strokeIds: string[]): TWebSocketClientMessage {
@@ -999,7 +1015,7 @@ export class WebSocketClient {
     if (strokeIds.length === 0) {
       return
     }
-    await this.send(this.buildEraseStrokesMessage(strokeIds))
+    await this.sendPerStrokeIds(strokeIds, (ids) => this.buildEraseStrokesMessage(ids))
   }
 
   async recognizeGesture(stroke: TRecognitionStroke): Promise<TWebSocketClientMessageContextlessGesture | undefined> {
@@ -1028,6 +1044,8 @@ export class WebSocketClient {
     return this.waitForIdleDeferred?.promise
   }
 
+  // Not split by `maxMessageBytes`: an undo or redo is one step of the server's history, and
+  // spreading it over several messages would record several.
   protected buildUndoRedoChanges(changes: TIIHistoryBackendChanges): TWebSocketClientMessage[] {
     const changesMessages: TWebSocketClientMessage[] = []
     if (changes.added?.length) {
