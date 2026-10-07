@@ -1,5 +1,5 @@
 import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
-import type { TJIIXMathElement, TJIIXMathNumber } from "@/iink"
+import type { TJIIXMathElement, TJIIXMathNumber, TJIIXMathOperator, TJIIXMathPower, TJIIXStrokeItem } from "@/iink"
 import { IIMathComputationSubManager, JIIXElementType, JIIXMathExpressionType, MatrixTransform } from "@/iink"
 
 type TSolverOutputExpression = TJIIXMathNumber & { "solver-output": true }
@@ -66,6 +66,62 @@ describe("IIMathComputationSubManager.ts", () => {
       expect(wasRecomputed).toBe(true)
       expect(canvas.client.getNumericalComputation).toHaveBeenCalledTimes(1)
       expect(canvas.addSymbols).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe("solver output strokes", () => {
+    const stroke = (id: string): TJIIXStrokeItem => ({ type: "stroke", id, X: [0, 1, 2], Y: [0, 1, 2] })
+
+    test("takes every stroke under the first solver-output node, even from unflagged descendants", async () => {
+      const canvas = createCanvasMock()
+      const manager = new IIMathComputationSubManager(asCanvas(canvas))
+      const mantissa: TSolverOutputExpression = {
+        id: "mantissa",
+        type: JIIXMathExpressionType.Number,
+        label: "1.798",
+        value: 1.798,
+        "solver-output": true,
+        items: [stroke("mantissa")],
+      }
+      const exponent: TSolverOutputExpression = {
+        id: "exponent",
+        type: JIIXMathExpressionType.Number,
+        label: "308",
+        value: 308,
+        "solver-output": true,
+        items: [stroke("308")],
+      }
+      const power: TJIIXMathPower & { "solver-output": true } = {
+        id: "power",
+        type: JIIXMathExpressionType.Power,
+        "solver-output": true,
+        operands: [
+          { id: "base", type: JIIXMathExpressionType.Number, label: "10", value: 10, items: [stroke("10")] },
+          exponent,
+        ],
+      }
+      const times: TJIIXMathOperator & { "solver-output": true } = {
+        id: "times",
+        type: JIIXMathExpressionType.Multiply,
+        "solver-output": true,
+        items: [stroke("times-sign")],
+        operands: [mantissa, power],
+      }
+      const approx: TJIIXMathOperator = {
+        id: "approx",
+        type: "≃",
+        items: [stroke("user-sign")],
+        operands: [
+          { id: "user-2", type: JIIXMathExpressionType.Number, label: "2", value: 2, items: [stroke("user-2")] },
+          times,
+        ],
+      }
+      const result: TJIIXMathElement = { id: "block-1", type: JIIXElementType.Math, expressions: [approx] }
+      canvas.client.getNumericalComputation = jest.fn().mockResolvedValue(result)
+
+      const { addedStrokesCount } = await manager.computeNumericalResult("block-1", "draw")
+
+      expect(addedStrokesCount).toBe(4)
     })
   })
 
