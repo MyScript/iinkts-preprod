@@ -156,6 +156,11 @@ export class WebSocketClient {
   // the one `newSession()` issues right after — starting a second socket before the first one's
   // close handshake completes has left the server never answering on either connection.
   protected closingPromise: Promise<void> | null = null
+  /** Set on the first successful connection: a drop after it is recoverable, one before is not */
+  protected hasConnected = false
+  // Exports run one after another: the server's answer names its mime types, not the request it
+  // answers, so two exports in flight could only be told apart by their order.
+  protected exportQueue: Promise<unknown> = Promise.resolve()
 
   configuration: WebSocketClientConfiguration
   initialized: DeferredPromise<void>
@@ -352,9 +357,6 @@ export class WebSocketClient {
     this.socket.removeEventListener("close", this.boundCloseCallback)
     this.socket.removeEventListener("message", this.boundMessageCallback)
   }
-
-  /** Set on the first successful connection: a drop after it is recoverable, one before is not */
-  protected hasConnected = false
 
   /**
    * A network drop (1006, also what each failed reconnection attempt reports) once connected,
@@ -674,7 +676,7 @@ export class WebSocketClient {
 
   async send(message: TWebSocketClientMessage): Promise<void> {
     if (!this.socket) {
-      return Promise.reject(new Error("Client must be initialized"))
+      throw new Error("Client must be initialized")
     }
 
     switch (this.socket.readyState) {
@@ -682,7 +684,7 @@ export class WebSocketClient {
       case this.socket.OPEN:
         await this.initialized.promise
         this.sendOnSocket(message)
-        return Promise.resolve()
+        return
       case this.socket.CLOSING:
       case this.socket.CLOSED:
         if (this.closingPromise) {
@@ -698,18 +700,12 @@ export class WebSocketClient {
           if (this.configuration.server.websocket.maxRetryCount > this.reconnectionCount) {
             await this.init()
             await this.waitForIdle()
-            return this.sendOnSocket(message)
-          } else {
-            return Promise.reject(
-              new Error("Unable to send message. The maximum number of connection attempts has been reached.")
-            )
+            this.sendOnSocket(message)
+            return
           }
-        } else {
-          return Promise.reject(
-            new Error("Unable to send message. Connection closed and automatic reconnection disabled")
-          )
+          throw new Error("Unable to send message. The maximum number of connection attempts has been reached.")
         }
-        break
+        throw new Error("Unable to send message. Connection closed and automatic reconnection disabled")
     }
   }
 
@@ -1045,10 +1041,6 @@ export class WebSocketClient {
     this.exportQueue = run.catch(() => undefined)
     return run
   }
-
-  // Exports run one after another: the server's answer names its mime types, not the request it
-  // answers, so two exports in flight could only be told apart by their order.
-  protected exportQueue: Promise<unknown> = Promise.resolve()
 
   protected async sendExport(requestedMimeTypes?: string[]): Promise<TExport> {
     const mimeTypes: string[] = requestedMimeTypes || this.mimeTypes.slice()
