@@ -1,7 +1,7 @@
 import { InteractiveInkCanvasOverrideConfiguration } from "../__dataset__/configuration.dataset"
 import { ServerWebSocketMock, contextlessGestureMessage, gestureDetectedMessage, hTextJIIX, partChangeMessage } from "../__mocks__/ServerWebSocketMock"
 import { buildIIStroke, delay } from "../helpers"
-import { WebSocketClient, ClientError, TMatrixTransform, MatrixTransform, TIIHistoryBackendChanges, TWebSocketClientConfiguration, toWireStroke, LoggerManager, LoggerCategory } from "@/iink"
+import { WebSocketClient, ClientError, TMatrixTransform, MatrixTransform, TIIHistoryBackendChanges, TWebSocketClientConfiguration, TWebSocketClientMessage, TStroke, toWireStroke, LoggerManager, LoggerCategory } from "@/iink"
 
 import { toResolve } from "jest-extended"
 expect.extend({ toResolve })
@@ -452,6 +452,62 @@ describe("WebSocketClient.ts", () => {
       mockServer.sendContentChangeMessage()
       await expect(firstPromise).resolves.toEqual(gestureDetectedMessage)
       await expect(secondPromise).resolves.toBeUndefined()
+    })
+  })
+
+  describe("addStrokes — message size", () => {
+    const strokeBytes = (s: TStroke) => JSON.stringify(toWireStroke(s)).length
+    const wireStrokesOf = (message: TWebSocketClientMessage): unknown[] =>
+      Array.isArray(message.strokes) ? message.strokes : []
+    const idOf = (wire: unknown) => (typeof wire === "object" && wire !== null && "id" in wire ? wire.id : undefined)
+
+    // Not initialized, so the client counts as disconnected: without this the messages would wait in
+    // the offline queue instead of reaching `send`.
+    const onlineConf = (): TWebSocketClientConfiguration => {
+      const conf = structuredClone(configuration)
+      conf.server.websocket.offlineQueueEnabled = false
+      return conf
+    }
+
+    class SmallFrameClient extends WebSocketClient {
+      constructor(
+        conf: TWebSocketClientConfiguration,
+        protected readonly maxAddStrokesMessageBytes: number
+      ) {
+        super(conf)
+      }
+    }
+
+    test("should split strokes over several messages so none outgrows the frame budget", async () => {
+      const strokes = Array.from({ length: 6 }, () => buildIIStroke({ nbPoint: 40, box: { x: 0, y: 0, width: 400, height: 400 } }))
+      const budget = strokeBytes(strokes[0]) * 2 + 200
+      const wsClient = new SmallFrameClient(onlineConf(), budget)
+      const sent: TWebSocketClientMessage[] = []
+      jest.spyOn(wsClient, "send").mockImplementation((message) => {
+        sent.push(message)
+        return Promise.resolve()
+      })
+
+      await wsClient.addStrokes(strokes, false)
+
+      expect(sent.length).toBeGreaterThan(1)
+      sent.forEach((message) => expect(JSON.stringify(message).length).toBeLessThanOrEqual(budget))
+      const sentIds = sent.flatMap((message) => wireStrokesOf(message).map(idOf))
+      expect(sentIds).toEqual(strokes.map((s) => s.id))
+    })
+
+    test("should still send a stroke larger than the budget, alone", async () => {
+      const strokes = [buildIIStroke(), buildIIStroke({ nbPoint: 200, box: { x: 0, y: 0, width: 2000, height: 2000 } }), buildIIStroke()]
+      const wsClient = new SmallFrameClient(onlineConf(), strokeBytes(strokes[0]) + 200)
+      const sent: TWebSocketClientMessage[] = []
+      jest.spyOn(wsClient, "send").mockImplementation((message) => {
+        sent.push(message)
+        return Promise.resolve()
+      })
+
+      await wsClient.addStrokes(strokes, false)
+
+      expect(sent.map((message) => wireStrokesOf(message).length)).toEqual([1, 1, 1])
     })
   })
 
