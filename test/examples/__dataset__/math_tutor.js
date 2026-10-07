@@ -5,9 +5,9 @@ import level2Answer from "./json/math_tutor_level2_answer.json" with { type: "js
 import level2Step1 from "./json/math_tutor_level2_step1.json" with { type: "json" }
 import level2Step2 from "./json/math_tutor_level2_step2.json" with { type: "json" }
 import level2WrongStep2 from "./json/math_tutor_level2_wrong_step2.json" with { type: "json" }
-import level3Hypotenuse from "./json/math_tutor_level3_hypotenuse.json" with { type: "json" }
-import level3Legs from "./json/math_tutor_level3_legs.json" with { type: "json" }
-import level3Triangle from "./json/math_tutor_level3_triangle.json" with { type: "json" }
+import geometry1Answer from "./json/math_tutor_geometry1_answer.json" with { type: "json" }
+import geometry1Unfinished from "./json/math_tutor_geometry1_unfinished.json" with { type: "json" }
+import geometry2Answer from "./json/math_tutor_geometry2_answer.json" with { type: "json" }
 
 export default {
   /** `x = 7`, the answer to the first demo exercise `x + 5 = 12` */
@@ -17,8 +17,9 @@ export default {
   level2Step2,
   level2WrongStep2,
   level2Answer,
-  /** A right triangle, `a = 3` and `b = 4` along its legs, `c = 5` along the hypotenuse */
-  level3Triangle,
-  level3Legs,
-  level3Hypotenuse,
+  /** The perimeter of the first demo rectangle, 6 by 4: `P = 10 + 10`, then `P = 20` */
+  geometry1Unfinished,
+  geometry1Answer,
+  /** `A = 24`, its area */
+  geometry2Answer,
 }

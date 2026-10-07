@@ -10,7 +10,10 @@ import { HINTS } from "./strings.js"
 /**
  * @typedef {import("./evaluator.js").TExpression} TExpression
  * @typedef {import("./evaluator.js").TScope} TScope
- * @typedef {"sign" | "division" | "square-root" | "slip"} TMistake
+ * @typedef {"sign" | "division" | "square-root" | "slip" | TShapeMistake} TMistake
+ * @typedef {"half-perimeter" | "area" | "perimeter-for-area" | "square" | "radius-for-diameter" | "triangle-half" | "missing-side"} TShapeMistake
+ * @typedef {{ mistake: TMistake, expected: number, written: number }} TTrap a wrong value typical of
+ *   one exercise: writing `written` where `expected` was due
  */
 
 const EPSILON = 1e-9
@@ -122,13 +125,16 @@ function isSlip(written, expected) {
  * @param {TExpression} line the wrong line
  * @param {TExpression | undefined} previous the line above, if any
  * @param {TScope} solution
+ * @param {TTrap[]} [traps] the exercise's own typical mistakes, checked first
  * @returns {TMistake | undefined}
  */
-export function diagnose(line, previous, solution) {
+export function diagnose(line, previous, solution, traps = []) {
   if (line.type !== "=" || line.operands?.length !== 2) return undefined
   const expected = evaluate(line.operands[0], solution)
   const written = evaluate(line.operands[1])
   if (expected === undefined || written === undefined) return undefined
+  const trap = traps.find((candidate) => same(expected, candidate.expected) && same(written, candidate.written))
+  if (trap) return trap.mistake
   if (isSignMistake(written, expected, previous)) return "sign"
   if (isDivisionMistake(written, expected, previous)) return "division"
   if (isSquareRootMistake(written, expected)) return "square-root"

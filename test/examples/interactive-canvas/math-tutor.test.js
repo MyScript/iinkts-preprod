@@ -5,20 +5,9 @@ import tutor from "../__dataset__/math_tutor"
 // A verdict waits for the pen to rest (PAUSE_MS, 2.5 s) and for the server to read the line
 const VERDICT_TIMEOUT = 15000
 
-/** Level 3 reopens the session with shapes on: wait until it is ready before drawing */
-async function waitForFigureSession(page) {
-  await expect
-    .poll(
-      () =>
-        page.evaluate(
-          () =>
-            window.canvas.configuration.recognition["raw-content"].recognition.types.includes("shape") &&
-            !document.getElementById("sheet").classList.contains("is-preparing") &&
-            window.canvas.connectionState === "online-idle"
-        ),
-      { timeout: VERDICT_TIMEOUT }
-    )
-    .toBe(true)
+/** The levels are numbered from 1 in each track: a level button is found within its track */
+function levelButton(page, track, level) {
+  return page.getByRole("group", { name: track }).getByRole("button", { name: new RegExp(`Level ${level}`) })
 }
 
 test.describe("Interactive ink canvas Math Tutor", { tag: "@slow" }, () => {
@@ -44,7 +33,7 @@ test.describe("Interactive ink canvas Math Tutor", { tag: "@slow" }, () => {
   })
 
   test("should flag the first wrong line with a hint on the mistake", async ({ page }) => {
-    await page.getByRole("button", { name: /Level 2/ }).click()
+    await levelButton(page, "Algebra", 2).click()
     await expect(page.locator("#statement")).toContainText("7")
 
     await writeStrokes(page, tutor.level2Step1)
@@ -62,7 +51,7 @@ test.describe("Interactive ink canvas Math Tutor", { tag: "@slow" }, () => {
   test("should start over, solve the exercise and move on to the next one", async ({ page }) => {
     // Two reasonings replayed stroke by stroke take about 40 s: too close to the default minute
     test.setTimeout(120 * 1000)
-    await page.getByRole("button", { name: /Level 2/ }).click()
+    await levelButton(page, "Algebra", 2).click()
     await writeStrokes(page, tutor.level2Step1)
     await writeStrokes(page, tutor.level2WrongStep2)
     await expect(page.locator(".tutor-mark.is-wrong")).toHaveCount(1, { timeout: VERDICT_TIMEOUT })
@@ -82,24 +71,31 @@ test.describe("Interactive ink canvas Math Tutor", { tag: "@slow" }, () => {
     await expect(page.locator("#banner")).toBeHidden()
   })
 
-  test("should check a hand-drawn right triangle, its labels and the hypotenuse", async ({ page }) => {
-    await page.getByRole("button", { name: /Level 3/ }).click()
-    await waitForFigureSession(page)
+  test("should ask to finish a perimeter that is not computed yet, then accept the result", async ({ page }) => {
+    await levelButton(page, "Geometry", 1).click()
+    await expect(page.locator("#prompt")).toHaveText("Find the perimeter P of this rectangle. Write each step on its own line.")
+    await expect(page.locator("#statement svg text")).toHaveText(["6", "4"])
 
-    await writeStrokes(page, tutor.level3Triangle)
-    await expect(page.locator(".tutor-right-angle")).toBeAttached({ timeout: VERDICT_TIMEOUT })
-    await expect(page.locator(".tutor-figure-hint")).toHaveText(
-      "Write a = … and b = … next to the two sides of the right angle."
+    await writeStrokes(page, tutor.geometry1Unfinished)
+    await expect(page.locator(".tutor-hint.is-correct")).toHaveText(
+      "Right so far. Now finish the calculation: P = one number (π can stay, as in 8π).",
+      { timeout: VERDICT_TIMEOUT }
     )
+    await expect(page.locator(".tutor-mark.is-correct")).toHaveCount(1)
+    await expect(page.locator("#banner")).toBeHidden()
 
-    await writeStrokes(page, tutor.level3Legs)
-    await expect(page.locator(".tutor-side-a")).toBeAttached({ timeout: VERDICT_TIMEOUT })
-    await expect(page.locator(".tutor-side-b")).toBeAttached()
-    await expect(page.locator(".tutor-figure-hint")).toHaveCount(0)
-
-    await writeStrokes(page, tutor.level3Hypotenuse)
+    await writeStrokes(page, tutor.geometry1Answer)
     await expect(page.locator("#banner")).toBeVisible({ timeout: VERDICT_TIMEOUT })
-    await expect(page.locator(".tutor-hypotenuse")).toHaveText("c = √(a² + b²) = 5")
-    await expect(page.locator(".tutor-figure-hint")).toHaveText("Now change a or b: c follows.")
+    await expect(page.locator(".tutor-mark.is-correct")).toHaveCount(2)
+    await expect(page.locator(".tutor-hint")).toHaveCount(0)
+  })
+
+  test("should find the area of the given rectangle", async ({ page }) => {
+    await levelButton(page, "Geometry", 2).click()
+    await expect(page.locator("#prompt")).toHaveText("Find the area A of this rectangle. Write each step on its own line.")
+
+    await writeStrokes(page, tutor.geometry2Answer)
+    await expect(page.locator("#banner")).toBeVisible({ timeout: VERDICT_TIMEOUT })
+    await expect(page.locator(".tutor-mark.is-correct")).toHaveCount(1)
   })
 })
