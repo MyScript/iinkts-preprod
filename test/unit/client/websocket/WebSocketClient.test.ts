@@ -540,6 +540,21 @@ describe("WebSocketClient.ts", () => {
       expect(new Set(sent.map((message) => message.type)).size).toBe(1)
     })
 
+    test.each([
+      ["transformTranslate", (c: WebSocketClient) => c.transformTranslate([], 1, 2)],
+      ["transformRotate", (c: WebSocketClient) => c.transformRotate([], 0.5)],
+      ["transformScale", (c: WebSocketClient) => c.transformScale([], 2, 2)],
+      ["transformMatrix", (c: WebSocketClient) => c.transformMatrix([], MatrixTransform.identity())],
+      ["eraseStrokes", (c: WebSocketClient) => c.eraseStrokes([])],
+    ])("%s should send nothing for no stroke", async (_, call) => {
+      const wsClient = new SmallFrameClient(onlineConf(), 600)
+      const sent = recordSends(wsClient)
+
+      await call(wsClient)
+
+      expect(sent).toHaveLength(0)
+    })
+
     test("replaceStrokes should send the replacement first, then the strokes left over as additions", async () => {
       const newStrokes = Array.from({ length: 6 }, () => buildIIStroke({ nbPoint: 40, box: { x: 0, y: 0, width: 400, height: 400 } }))
       const budget = strokeBytes(newStrokes[0]) * 2 + 400

@@ -769,7 +769,7 @@ export class WebSocketClient {
     return chunks
   }
 
-  /** Sends `build`'s message once per group of `strokeIds` that fits in a frame. */
+  /** Sends `build`'s message once per group of `strokeIds` that fits in a frame; nothing for no id. */
   protected async sendPerStrokeIds(
     strokeIds: string[],
     build: (strokeIds: string[]) => TWebSocketClientMessage
@@ -900,9 +900,6 @@ export class WebSocketClient {
     }
   }
   async transformTranslate(strokeIds: string[], tx: number, ty: number): Promise<void> {
-    if (strokeIds.length === 0) {
-      return
-    }
     await this.sendPerStrokeIds(strokeIds, (ids) => this.buildTransformTranslateMessage(ids, tx, ty))
   }
 
@@ -922,9 +919,6 @@ export class WebSocketClient {
     }
   }
   async transformRotate(strokeIds: string[], angle: number, x0: number = 0, y0: number = 0): Promise<void> {
-    if (strokeIds.length === 0) {
-      return
-    }
     await this.sendPerStrokeIds(strokeIds, (ids) => this.buildTransformRotateMessage(ids, angle, x0, y0))
   }
 
@@ -952,9 +946,6 @@ export class WebSocketClient {
     x0: number = 0,
     y0: number = 0
   ): Promise<void> {
-    if (strokeIds.length === 0) {
-      return
-    }
     await this.sendPerStrokeIds(strokeIds, (ids) => this.buildTransformScaleMessage(ids, scaleX, scaleY, x0, y0))
   }
 
@@ -967,9 +958,6 @@ export class WebSocketClient {
     }
   }
   async transformMatrix(strokeIds: string[], matrix: TMatrixTransform): Promise<void> {
-    if (strokeIds.length === 0) {
-      return
-    }
     await this.sendPerStrokeIds(strokeIds, (ids) => this.buildTransformMatrixMessage(ids, matrix))
   }
 
@@ -980,9 +968,6 @@ export class WebSocketClient {
     }
   }
   async eraseStrokes(strokeIds: string[]): Promise<void> {
-    if (strokeIds.length === 0) {
-      return
-    }
     await this.sendPerStrokeIds(strokeIds, (ids) => this.buildEraseStrokesMessage(ids))
   }
 
