@@ -4,7 +4,7 @@ import { measureExercise } from "../../../../../examples/interactive-canvas/math
 import { judge } from "../../../../../examples/interactive-canvas/math-tutor/judge.js"
 import { HINTS, UNFINISHED } from "../../../../../examples/interactive-canvas/math-tutor/strings.js"
 
-import { add, eq, mul, num, twoXPlusThreeEqualsSeven, v } from "./fixtures"
+import { add, eq, mul, num, pi, twoXPlusThreeEqualsSeven, v } from "./fixtures"
 
 describe("math-tutor/judge", () => {
   const exercise = DEMO_EXERCISES.flatMap((e) => (e.kind === "equation" && e.tex === "2x + 3 = 7" ? [e] : []))[0]
@@ -120,7 +120,6 @@ describe("math-tutor/judge", () => {
     })
 
     test("should spot a circumference computed with the radius instead of the diameter", () => {
-      const pi = { type: "symbol", label: "π" }
       expect(hintOf({ type: "circle", radius: 3 }, "perimeter", eq(v("P"), mul(num(3), pi)))).toBe(
         HINTS["radius-for-diameter"]
       )

@@ -3,7 +3,8 @@ import type { TExpression } from "../../../../../examples/interactive-canvas/mat
 /** JIIX expression builders, shaped like what the server sends (see the IIC-2096 spike report) */
 export const num = (value: number, label = String(value)): TExpression => ({ type: "number", label, value })
 export const v = (label: string): TExpression => ({ type: "variable", label })
-export const sym = (label: string): TExpression => ({ type: "symbol", label })
+/** The server reads π as a variable that carries its value, not as a symbol */
+export const pi: TExpression = { type: "variable", label: "π", value: 3.14159265 }
 export const op = (type: string, ...operands: TExpression[]): TExpression => ({ type, operands })
 
 export const add = (...operands: TExpression[]) => op("+", ...operands)
