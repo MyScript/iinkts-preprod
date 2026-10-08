@@ -214,6 +214,7 @@ test.describe("Interactive ink canvas Get Started Menu Action", { tag: ["@touch"
     await test.step("should define strikethrough on draw", async () => {
       await page.locator(locator.menu.action.gesture.triggerBtn).click()
       await page.locator(locator.menu.action.gesture.detectCheckbox).check()
+      await page.locator(locator.menu.action.gesture.strikeThroughMenuBtn).click()
       await page.locator(locator.menu.action.gesture.strikeThroughSelect).selectOption({ value: "draw" })
     })
 
@@ -282,6 +283,7 @@ test.describe("Interactive ink canvas Get Started Menu Action", { tag: ["@touch"
       await page.locator(locator.menu.action.gesture.detectCheckbox).check()
 
       //select draw on strikethrough
+      await page.locator(locator.menu.action.gesture.strikeThroughMenuBtn).click()
       await page.locator(locator.menu.action.gesture.strikeThroughSelect).selectOption({ value: "erase" })
     })
 
@@ -316,6 +318,7 @@ test.describe("Interactive ink canvas Get Started Menu Action", { tag: ["@touch"
       await page.locator(locator.menu.action.gesture.detectCheckbox).check()
 
       //select draw on surround
+      await page.locator(locator.menu.action.gesture.surroundMenuBtn).click()
       await page.locator(locator.menu.action.gesture.surroundSelect).selectOption({ value: "select" })
     })
 
@@ -367,6 +370,7 @@ test.describe("Interactive ink canvas Get Started Menu Action", { tag: ["@touch"
       await page.locator(locator.menu.action.gesture.detectCheckbox).check()
 
       //select surround on surround
+      await page.locator(locator.menu.action.gesture.surroundMenuBtn).click()
       await page.locator(locator.menu.action.gesture.surroundSelect).selectOption({ value: "surround" })
     })
 
@@ -454,6 +458,8 @@ test.describe("Interactive ink canvas Get Started Menu Action", { tag: ["@touch"
       await expect(page.locator(locator.menu.action.gesture.insertSelect)).toBeHidden()
       await page.locator(locator.menu.action.gesture.triggerBtn).click()
       await expect(page.locator(locator.menu.action.gesture.detectCheckbox)).toBeVisible()
+      await expect(page.locator(locator.menu.action.gesture.insertSelect)).toBeHidden()
+      await page.locator(locator.menu.action.gesture.insertMenuBtn).click()
       await expect(page.locator(locator.menu.action.gesture.insertSelect)).toBeVisible()
     })
 

@@ -19,6 +19,39 @@ describe("GestureMenuAction.ts", () => {
     expect(wrapper.querySelector("#ms-menu-action-gesture-insert-input")).toBeNull()
   })
 
+  test("should group each gesture in its own submenu with an enable checkbox and an explicit action select", () => {
+    const canvas = createCanvasMock()
+    const item = new GestureMenuAction(asCanvas(canvas))
+
+    const wrapper = item.getElement()
+    const surroundMenu = wrapper.querySelector("#ms-menu-action-gesture-surround-menu") as HTMLElement
+
+    expect(surroundMenu.querySelector("#ms-menu-action-gesture-surround-menu-trigger")?.textContent).toContain(
+      "Surround"
+    )
+    expect(surroundMenu.querySelector("#ms-menu-action-gesture-surround-enable-input")).toBeTruthy()
+    expect(surroundMenu.querySelector("#ms-menu-action-gesture-surround-input")).toBeTruthy()
+    expect(surroundMenu.textContent).toContain("Enable")
+    expect(surroundMenu.textContent).toContain("Action on detection")
+  })
+
+  test("should reflect and toggle the gesture in the recognition configuration from the enable checkbox", () => {
+    const canvas = createCanvasMock()
+    const item = new GestureMenuAction(asCanvas(canvas))
+    const wrapper = item.getElement()
+    document.body.appendChild(wrapper)
+    const checkbox = wrapper.querySelector("#ms-menu-action-gesture-surround-enable-input") as HTMLInputElement
+
+    expect(checkbox.checked).toBe(true)
+
+    checkbox.checked = false
+    checkbox.dispatchEvent(new Event("change", { bubbles: true }))
+
+    const conf = jest.mocked(canvas.updateRecognitionConfiguration).mock.calls[0][0]
+    expect(conf["raw-content"]?.gestures).not.toContain("surround")
+    expect(conf["raw-content"]?.gestures).toContain("underline")
+  })
+
   test("should omit an item when disabled via itemsConfig", () => {
     const canvas = createCanvasMock()
     const item = new GestureMenuAction(asCanvas(canvas), "ms-menu-action", { surround: false })
