@@ -69,12 +69,16 @@ export default {
         allowSyntheticDefaultImports: true,
         // Example modules are plain JS served as is, without a build: their tests import them
         allowJs: true,
+        // Transpile only: a type-checking compiler in every worker cost about 1.4 GB each and got
+        // the CI stage killed for memory. Types are checked once by `yarn typecheck`, tests included.
+        isolatedModules: true,
       }
     }],
     "^.+/examples/.+\\.js$": ["ts-jest", {
       useESM: true,
       tsconfig: {
         allowJs: true,
+        isolatedModules: true,
       }
     }]
   },
