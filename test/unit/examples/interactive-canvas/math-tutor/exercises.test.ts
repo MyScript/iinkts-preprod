@@ -11,7 +11,7 @@ import type { TExercise } from "../../../../../examples/interactive-canvas/math-
 import { checkLines } from "../../../../../examples/interactive-canvas/math-tutor/evaluator.js"
 import { measure } from "../../../../../examples/interactive-canvas/math-tutor/shapes.js"
 
-import { add, eq, mul, num, sup, sym, twoXPlusThreeEqualsSeven, v } from "./fixtures"
+import { add, eq, mul, num, op, pi, twoXPlusThreeEqualsSeven, v } from "./fixtures"
 
 /** Deterministic stand-in for Math.random, cycling through the given values */
 function sequence(...values: number[]): () => number {
@@ -167,7 +167,7 @@ describe("math-tutor/exercises", () => {
 
     test("should accept the area of a circle with π kept or rounded", () => {
       const circle = measureExercise("c", { type: "circle", radius: 3 }, "area")
-      const withPi = [eq(v("A"), mul(sym("π"), sup(num(3), num(2)))), eq(v("A"), mul(num(9), sym("π")))]
+      const withPi = [eq(v("A"), mul(pi, op("power", num(3), num(2)))), eq(v("A"), mul(num(9), pi))]
       expect(isSolved(circle, checkLines(withPi, circle.solution))).toBe(true)
       // π can stay, but the rest must be computed: π × 3² is not finished
       expect(isSolved(circle, checkLines(withPi.slice(0, 1), circle.solution))).toBe(false)
