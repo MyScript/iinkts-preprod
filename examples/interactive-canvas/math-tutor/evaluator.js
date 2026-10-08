@@ -28,6 +28,16 @@ const RELATIVE_EPSILON = 1e-9
 const SYMBOLS = { π: Math.PI, e: Math.E }
 
 /**
+ * The server reads π as a variable that carries a rounded value (`3.14159265`): it is
+ * recognised by its label and worth Math.PI, so that `9π` equals the exact solution.
+ * @param {TExpression} expression
+ * @returns {boolean}
+ */
+function isPi(expression) {
+  return (expression.type === "variable" || expression.type === "symbol") && expression.label === "π"
+}
+
+/**
  * @param {number | undefined} value
  * @returns {number | undefined}
  */
@@ -70,6 +80,7 @@ export function evaluate(expression, scope = {}) {
     console.warn(`expression unknow: ${expression}`)
     return
   }
+  if (isPi(expression)) return Math.PI
   switch (expression.type) {
     case "number":
       return typeof expression.value === "number" ? expression.value : undefined
@@ -158,8 +169,9 @@ export function isFinalValue(expression) {
   switch (expression.type) {
     case "number":
       return true
+    case "variable":
     case "symbol":
-      return expression.label === "π"
+      return isPi(expression)
     case "-":
       return operands.length === 1 && isFinalValue(operands[0])
     case "/":
@@ -174,11 +186,7 @@ export function isFinalValue(expression) {
       )
     }
     case "×":
-      return (
-        operands.length === 2 &&
-        operands.some((operand) => operand.type === "symbol" && operand.label === "π") &&
-        operands.some((operand) => operand.type === "number")
-      )
+      return operands.length === 2 && operands.some(isPi) && operands.some((operand) => operand.type === "number")
     default:
       return false
   }

@@ -1,6 +1,6 @@
 import { checkLine, checkLines, evaluate, isFinalValue, parseAnswer } from "../../../../../examples/interactive-canvas/math-tutor/evaluator.js"
 
-import { add, div, eq, frac, mul, neg, num, op, sqrt, sub, sup, sym, twoXPlusThreeEqualsSeven, v } from "./fixtures"
+import { add, div, eq, frac, mul, neg, num, op, pi, sqrt, sub, sup, twoXPlusThreeEqualsSeven, v } from "./fixtures"
 
 describe("math-tutor/evaluator", () => {
   describe("evaluate", () => {
@@ -26,8 +26,10 @@ describe("math-tutor/evaluator", () => {
       expect(evaluate(twoXPlusThreeEqualsSeven.operands![0], { x: 2 })).toBe(7)
     })
 
-    test("should read π as a symbol", () => {
-      expect(evaluate({ type: "symbol", label: "π" })).toBeCloseTo(Math.PI)
+    test("should read π as Math.PI, not the rounded value the server sends", () => {
+      expect(evaluate(pi)).toBe(Math.PI)
+      expect(evaluate(pi, { x: 2 })).toBe(Math.PI)
+      expect(evaluate({ type: "symbol", label: "π" })).toBe(Math.PI)
     })
 
     test("should give up on what it cannot compute", () => {
@@ -69,14 +71,14 @@ describe("math-tutor/evaluator", () => {
       expect(isFinalValue(num(28.27, "28.27"))).toBe(true)
       expect(isFinalValue(neg(num(3)))).toBe(true)
       expect(isFinalValue(frac(num(1), num(2)))).toBe(true)
-      expect(isFinalValue(mul(num(8), sym("π")))).toBe(true)
-      expect(isFinalValue(mul(sym("π"), num(8)))).toBe(true)
-      expect(isFinalValue(sym("π"))).toBe(true)
+      expect(isFinalValue(mul(num(8), pi))).toBe(true)
+      expect(isFinalValue(mul(pi, num(8)))).toBe(true)
+      expect(isFinalValue(pi)).toBe(true)
     })
 
     test("should refuse what is left to compute", () => {
-      expect(isFinalValue(mul(num(2), num(4), sym("π")))).toBe(false)
-      expect(isFinalValue(mul(sym("π"), sup(num(3), num(2))))).toBe(false)
+      expect(isFinalValue(mul(num(2), num(4), pi))).toBe(false)
+      expect(isFinalValue(mul(pi, sup(num(3), num(2))))).toBe(false)
       expect(isFinalValue(add(num(12), num(8)))).toBe(false)
       expect(isFinalValue(frac(num(6), num(3)))).toBe(false)
       expect(isFinalValue(frac(num(4), num(1)))).toBe(false)
