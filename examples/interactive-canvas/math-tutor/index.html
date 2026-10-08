@@ -131,7 +131,8 @@
         width: var(--tutor-margin-width);
         border-left: 2px dashed var(--ex-border);
         background: color-mix(in srgb, var(--ex-surface) 70%, transparent);
-        pointer-events: none;
+        /* Catches the pen so nothing gets written in the margin; a stroke dragged into it ends at its edge */
+        touch-action: none;
         z-index: var(--tutor-over-ink);
       }
       .tutor-margin-title {
