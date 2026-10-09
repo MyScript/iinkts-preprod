@@ -116,6 +116,33 @@ await canvas.updateRecognitionConfiguration({ lang: "fr_FR" })
 The same call takes any part of the recognition configuration, the math solver included:
 `{ math: { solver: { "angle-unit": "deg" } } }`. An array you pass replaces the current one.
 
+### One call updates symbols: by id, with a patch
+
+`updateSymbols(ids, patch, addToHistory?)` and `updateSymbol(id, patch, addToHistory?)` take ids, not
+records. The patch is an object (`style`, `font`) or a function that changes a draft of each symbol.
+`updateSymbolsStyle` and `updateTextFontStyle` are gone.
+
+```ts
+// v4
+canvas.updateSymbolsStyle(ids, { color: "#ff0000" })
+canvas.updateSymbolsStyle(ids, { width: 4 }, false)
+canvas.updateTextFontStyle(ids, { fontSize: 18, fontWeight: "bold" })
+const draft = canvas.model.draftSymbol(text.id)
+draft.decorators = []
+await canvas.updateSymbol(draft)
+// v5
+await canvas.updateSymbols(ids, { style: { color: "#ff0000" } })
+await canvas.updateSymbols(ids, { style: { width: 4 } }, false)
+await canvas.updateSymbols(ids, { font: { size: 18, weight: "bold" } })
+await canvas.updateSymbol(text.id, (draft) => {
+  if (isText(draft)) draft.decorators = []
+})
+```
+
+The canvas drafts each symbol itself: do not hand it one. The patch is applied before the call returns
+its promise. `font` is ignored by anything but a text. `updateSymbol` resolves `undefined` for an id
+with no symbol. `InkCanvas.updateSymbolsStyle` is unchanged.
+
 ### `autoReconnect` is the only reconnection switch
 
 `server.websocket.offlineQueueEnabled` is removed. `autoReconnect` (default `true`) now turns on everything

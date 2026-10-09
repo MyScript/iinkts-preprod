@@ -39,7 +39,7 @@ describe("FontWeightStyle.ts", () => {
     button.dispatchEvent(new Event("pointerup", { bubbles: true }))
 
     expect(canvas.configuration.fontStyle.weight).toEqual("bold")
-    expect(canvas.updateTextFontStyle).toHaveBeenCalledWith([text.id], { fontWeight: "bold" })
+    expect(canvas.updateSymbols).toHaveBeenCalledWith([text.id], { font: { weight: "bold" } })
     expect(canvas.selector.redrawSelectedGroup).toHaveBeenCalledTimes(1)
   })
 
@@ -53,7 +53,7 @@ describe("FontWeightStyle.ts", () => {
     button.dispatchEvent(new Event("pointerup", { bubbles: true }))
 
     expect(canvas.configuration.fontStyle.weight).toEqual("auto")
-    expect(canvas.updateTextFontStyle).not.toHaveBeenCalled()
+    expect(canvas.updateSymbols).not.toHaveBeenCalled()
     expect(canvas.selector.redrawSelectedGroup).not.toHaveBeenCalled()
   })
 

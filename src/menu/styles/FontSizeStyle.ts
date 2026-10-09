@@ -53,11 +53,9 @@ export class FontSizeStyle extends BaseMenuItem<HTMLDivElement> {
           const fontSize = parseFloat(value)
           canvas.configuration.fontStyle.size = fontSize
           const textSymbols = canvas.model.symbolsSelected.filter((s) => isText(s))
-          canvas.updateTextFontStyle(
+          canvas.updateSymbols(
             textSymbols.map((s) => s.id),
-            {
-              fontSize: fontSize * this.rowHeight,
-            }
+            { font: { size: fontSize * this.rowHeight } }
           )
           canvas.selector.redrawSelectedGroup()
         }

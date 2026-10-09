@@ -219,7 +219,7 @@ function createSymbolInputColor(symbol) {
   inputColor.value = symbol.style.color
   inputColor.classList.add("symbol-input")
   inputColor.addEventListener("change", (evt) => {
-    canvas?.updateSymbolsStyle([symbol.id], { color: evt.target.value })
+    canvas?.updateSymbols([symbol.id], { style: { color: evt.target.value } })
   })
   return inputColor
 }
@@ -244,13 +244,13 @@ function createSymbolInputWidth(symbol) {
   minus.addEventListener("pointerup", () => {
     symbol.style.width--
     syncMinusState()
-    canvas?.updateSymbolsStyle([symbol.id], { width: symbol.style.width })
+    canvas?.updateSymbols([symbol.id], { style: { width: symbol.style.width } })
   })
 
   plus.addEventListener("pointerup", () => {
     symbol.style.width++
     syncMinusState()
-    canvas?.updateSymbolsStyle([symbol.id], { width: symbol.style.width })
+    canvas?.updateSymbols([symbol.id], { style: { width: symbol.style.width } })
   })
 
   syncMinusState()

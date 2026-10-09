@@ -42,7 +42,7 @@ describe("StrokeColorStyle.ts", () => {
     button.dispatchEvent(new Event("click", { bubbles: true, cancelable: true }))
 
     expect(canvas.penStyle.color).toEqual("#654321")
-    expect(canvas.updateSymbolsStyle).toHaveBeenCalledWith([stroke.id], { color: "#654321" })
+    expect(canvas.updateSymbols).toHaveBeenCalledWith([stroke.id], { style: { color: "#654321" } })
   })
 
   test("should cascade destroy() to the nested ColorListMenuItem", () => {

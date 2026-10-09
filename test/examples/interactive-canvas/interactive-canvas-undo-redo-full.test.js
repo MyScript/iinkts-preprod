@@ -21,7 +21,7 @@ const NEW_FONT_SIZE_PIXELS = 1 // "L" font size => 1 * DEFAULT_GUIDE_SIZE
 const NEW_FONT_WEIGHT = "bold"
 
 // Style/font menu changes only restyle a symbol that is currently selected (InteractiveInkCanvas.ts
-// updateSymbolsStyle/updateTextFontStyle) — without a selection they only set the default style
+// updateSymbols with a patch) — without a selection they only set the default style
 // applied to future strokes. Select programmatically instead of via a surround gesture: more
 // robust than drawing a second real gesture in the same test (see helper.js selectBlockById).
 const selectSymbol = async (page, id) => {

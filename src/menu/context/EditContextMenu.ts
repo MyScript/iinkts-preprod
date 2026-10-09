@@ -1,7 +1,6 @@
 import ArrowDown from "@/assets/svg/nav-arrow-down.svg"
 import type { TInteractiveInkCanvas } from "@/canvas"
-import { createUUID, type TDraft } from "@/core"
-import type { TText } from "@/symbol"
+import { createUUID } from "@/core"
 import { isText } from "@/symbol"
 
 import type { TGenericMenuItem } from "../items/BaseMenuItem"
@@ -53,27 +52,32 @@ export class EditContextMenu extends BaseMenuItem<HTMLElement> {
     this.editSaveBtn.addEventListener("pointerdown", async (e) => {
       e.stopPropagation()
       const selectedText = this.canvas.model.symbolsSelected.find((s) => isText(s))
-      // A draft: every branch below rewrites the symbol's chars and commits it.
-      const textSymbol = selectedText && (this.canvas.model.draftSymbol(selectedText.id) as TDraft<TText>)
-      if (textSymbol) {
-        const firstChar = textSymbol.chars[0]
-        textSymbol.chars = []
-        for (let i = 0; i < this.editInput!.value.length; i++) {
-          textSymbol.chars.push({
-            label: this.editInput!.value.charAt(i),
-            id: createUUID(),
-            color: firstChar.color,
-            fontSize: firstChar.fontSize,
-            fontWeight: firstChar.fontWeight,
-            bounds: firstChar.bounds,
-          })
-        }
+      if (selectedText) {
+        const label = this.editInput!.value
         try {
-          await this.canvas.updateSymbol(textSymbol)
-          this.canvas.selector.drawSelectedGroup([textSymbol])
+          // The patch rewrites the chars of a draft; the canvas re-measures and commits it
+          const updated = await this.canvas.updateSymbol(selectedText.id, (draft) => {
+            if (!isText(draft)) {
+              return
+            }
+            const firstChar = draft.chars[0]
+            draft.chars = []
+            for (let i = 0; i < label.length; i++) {
+              draft.chars.push({
+                label: label.charAt(i),
+                id: createUUID(),
+                color: firstChar.color,
+                fontSize: firstChar.fontSize,
+                fontWeight: firstChar.fontWeight,
+                bounds: firstChar.bounds,
+              })
+            }
+          })
+          if (updated) {
+            this.canvas.selector.drawSelectedGroup([updated])
+          }
         } catch (error) {
-          // The chars above were already rewritten, so swallowing here leaves the edit
-          // half-applied with no redraw and no feedback.
+          // Reported rather than swallowed: the edit would otherwise end with no redraw and no feedback
           this.canvas.manageError(error as Error)
         }
       }

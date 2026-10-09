@@ -251,7 +251,7 @@
         // because what was captured is the path and not the thickness.
         const ids = canvas.model.symbols.filter((s) => s.type === "stroke").map((s) => s.id)
         if (ids.length) {
-          canvas.updateSymbolsStyle(ids, { pen: selectedNib() })
+          canvas.updateSymbols(ids, { style: { pen: selectedNib() } })
         }
       })
 

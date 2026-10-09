@@ -39,9 +39,9 @@ export class StrokeColorStyle extends BaseMenuItem<HTMLDivElement> {
       initValue: color,
       onChange: (color, canvas) => {
         canvas.penStyle = { color }
-        canvas.updateSymbolsStyle(
+        canvas.updateSymbols(
           canvas.model.symbolsSelected.map((s) => s.id),
-          { color }
+          { style: { color } }
         )
       },
     }

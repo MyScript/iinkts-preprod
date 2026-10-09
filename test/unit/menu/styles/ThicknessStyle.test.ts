@@ -47,7 +47,7 @@ describe("ThicknessStyle.ts", () => {
     button.dispatchEvent(new Event("pointerup", { bubbles: true }))
 
     expect(canvas.penStyle.width).toEqual(8)
-    expect(canvas.updateSymbolsStyle).toHaveBeenCalledWith([stroke.id], { width: 8 })
+    expect(canvas.updateSymbols).toHaveBeenCalledWith([stroke.id], { style: { width: 8 } })
     expect(canvas.selector.redrawSelectedGroup).toHaveBeenCalledTimes(1)
   })
 
@@ -60,7 +60,7 @@ describe("ThicknessStyle.ts", () => {
     const button = wrapper.querySelector("#ms-menu-style-thickness-8") as HTMLButtonElement
     button.dispatchEvent(new Event("pointerup", { bubbles: true }))
 
-    expect(canvas.updateSymbolsStyle).not.toHaveBeenCalled()
+    expect(canvas.updateSymbols).not.toHaveBeenCalled()
     expect(canvas.selector.redrawSelectedGroup).not.toHaveBeenCalled()
   })
 
