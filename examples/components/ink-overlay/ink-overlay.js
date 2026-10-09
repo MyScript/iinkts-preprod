@@ -3,13 +3,14 @@
  * Draws HTML over the ink without touching the canvas model: anything drawn as a model change
  * would land in undo/redo and reach the server.
  *
- * Each item is anchored to a box in millimeters in the document frame, as JIIX gives them; the
- * boxes reach the screen through the rendering layer's CTM, which pan and zoom keep up to date.
- * The overlay keeps the items on their boxes, the caller decides what they look like and where
- * they sit around their box.
+ * Each item is anchored to a box in the document frame; the boxes reach the screen through the
+ * rendering layer's CTM, which pan and zoom keep up to date. The overlay keeps the items on their
+ * boxes, the caller decides what they look like and where they sit around their box.
+ *
+ * The library is not imported here: it is only built after the unit tests and the typecheck that
+ * reach this file. The caller hands over the conversion of its boxes to the rendering layer's
+ * pixels, `convertBoundingBoxMillimeterToPixel` for JIIX boxes in millimeters.
  */
-
-import { convertBoundingBoxMillimeterToPixel } from "../../../dist/iink.esm.js"
 
 /**
  * @typedef {{ x: number, y: number, width: number, height: number }} TBox
@@ -17,7 +18,8 @@ import { convertBoundingBoxMillimeterToPixel } from "../../../dist/iink.esm.js"
  *   element: HTMLElement,
  *   box: TBox,
  *   place: (element: HTMLElement, box: TBox) => void
- * }} TInkOverlayItem `box` in document millimeters, handed back to `place` in container pixels
+ * }} TInkOverlayItem `box` in document units, handed back to `place` in container pixels
+ * @typedef {(box: TBox) => TBox} TToPixels from document units to the rendering layer's pixels
  */
 
 /**
@@ -40,10 +42,12 @@ export class InkOverlay {
   /**
    * @param {HTMLElement} container positioned element laid over the canvas
    * @param {HTMLElement} canvasElement the canvas root, holding the rendering layer
+   * @param {TToPixels} toPixels
    */
-  constructor(container, canvasElement) {
+  constructor(container, canvasElement, toPixels) {
     this.container = container
     this.canvasElement = canvasElement
+    this.toPixels = toPixels
     this.#follow()
   }
 
@@ -85,7 +89,7 @@ export class InkOverlay {
    * @returns {TBox}
    */
   #toContainer(box, matrix, origin) {
-    const pixels = convertBoundingBoxMillimeterToPixel(box)
+    const pixels = this.toPixels(box)
     const topLeft = transform(matrix, pixels.x, pixels.y)
     const bottomRight = transform(matrix, pixels.x + pixels.width, pixels.y + pixels.height)
     return {

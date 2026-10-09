@@ -2,10 +2,6 @@ import { convertBoundingBoxMillimeterToPixel } from "@/iink"
 import { InkOverlay } from "../../../../../examples/components/ink-overlay/ink-overlay.js"
 import type { TBox } from "../../../../../examples/components/ink-overlay/ink-overlay.js"
 
-jest.mock("../../../../../dist/iink.esm.js", () => ({
-  convertBoundingBoxMillimeterToPixel: jest.requireActual("@/iink").convertBoundingBoxMillimeterToPixel,
-}))
-
 describe("components/ink-overlay", () => {
   const frames: FrameRequestCallback[] = []
   const nextFrame = () => frames.shift()?.(0)
@@ -36,7 +32,7 @@ describe("components/ink-overlay", () => {
   })
 
   test("should show the rendered items in the container", () => {
-    const overlay = new InkOverlay(container, canvasElement)
+    const overlay = new InkOverlay(container, canvasElement, convertBoundingBoxMillimeterToPixel)
     const first = item({ x: 0, y: 0, width: 1, height: 1 })
     const second = item({ x: 0, y: 0, width: 1, height: 1 })
     overlay.render([first, second])
@@ -45,9 +41,9 @@ describe("components/ink-overlay", () => {
     expect(container.children).toHaveLength(0)
   })
 
-  test("should place each item on its box, from document millimeters to container pixels", () => {
+  test("should place each item on its box, converted to container pixels", () => {
     svg.getScreenCTM = () => ctm(2, 100, 50)
-    const overlay = new InkOverlay(container, canvasElement)
+    const overlay = new InkOverlay(container, canvasElement, convertBoundingBoxMillimeterToPixel)
     const line = item({ x: 10, y: 5, width: 20, height: 4 })
     overlay.render([line])
     nextFrame()
@@ -61,7 +57,7 @@ describe("components/ink-overlay", () => {
   })
 
   test("should place the items again only when the view moved", () => {
-    const overlay = new InkOverlay(container, canvasElement)
+    const overlay = new InkOverlay(container, canvasElement, convertBoundingBoxMillimeterToPixel)
     const line = item({ x: 1, y: 1, width: 1, height: 1 })
     overlay.render([line])
     nextFrame()
@@ -73,7 +69,7 @@ describe("components/ink-overlay", () => {
   })
 
   test("should place newly rendered items even when the view did not move", () => {
-    const overlay = new InkOverlay(container, canvasElement)
+    const overlay = new InkOverlay(container, canvasElement, convertBoundingBoxMillimeterToPixel)
     overlay.render([item({ x: 1, y: 1, width: 1, height: 1 })])
     nextFrame()
     const next = item({ x: 2, y: 2, width: 1, height: 1 })
@@ -84,7 +80,7 @@ describe("components/ink-overlay", () => {
 
   test("should wait for the rendering layer before placing anything", () => {
     canvasElement.innerHTML = ""
-    const overlay = new InkOverlay(container, canvasElement)
+    const overlay = new InkOverlay(container, canvasElement, convertBoundingBoxMillimeterToPixel)
     const line = item({ x: 1, y: 1, width: 1, height: 1 })
     overlay.render([line])
     nextFrame()
@@ -92,7 +88,7 @@ describe("components/ink-overlay", () => {
   })
 
   test("should stop following the view once destroyed", () => {
-    const overlay = new InkOverlay(container, canvasElement)
+    const overlay = new InkOverlay(container, canvasElement, convertBoundingBoxMillimeterToPixel)
     overlay.render([item({ x: 1, y: 1, width: 1, height: 1 })])
     overlay.destroy()
     expect(frames).toHaveLength(0)
