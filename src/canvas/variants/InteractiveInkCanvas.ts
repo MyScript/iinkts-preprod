@@ -363,9 +363,17 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
    * Display an error in the canvas overlay and emit an `error` event.
    * @param error - Error to display and emit
    */
-  manageError(error: Error): void {
-    this.layers.showMessageError(error)
-    this.event.emitError(error)
+  manageError(error: unknown): void {
+    const reason = error instanceof Error ? error : new Error(String(error))
+    this.layers.showMessageError(reason)
+    this.event.emitError(reason)
+  }
+
+  /** Reports a failed call on the canvas, then rethrows it to the caller */
+  #reportAndThrow(label: string, error: unknown): never {
+    this.logger.error(label, error)
+    this.manageError(error)
+    throw error
   }
 
   registerSymbolUtil<T extends TBaseSymbol>(util: SymbolUtil<T>): void {
@@ -417,7 +425,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
         // Without this the rejection escapes the async setTimeout callback as an unhandled
         // rejection, and the two calls after the finally never run — so the UI never refreshes
         // and consumers never get `changed`, even though the local content did change.
-        this.manageError(error as Error)
+        this.manageError(error)
       } finally {
         // Clears every "Recognizing" started since the last synchronize (writer/transform pointerDown,
         // programmatic API calls) in one shot — not a matched start/end pair, since several may have
@@ -517,10 +525,8 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       overrideDeep(this.configuration.recognition, override)
       await this.#resynchronizeSession(isLangChanged)
     } catch (error) {
-      this.logger.error("updateRecognitionConfiguration", error)
       this.configuration.recognition = snapshot
-      this.manageError(error as Error)
-      throw error
+      this.#reportAndThrow("updateRecognitionConfiguration", error)
     } finally {
       this.readOnly = wasReadOnly
       this.updateLayerUI()
@@ -566,9 +572,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     try {
       return createSymbolFromPartial(partialSymbol)
     } catch (error) {
-      this.logger.error("buildSymbol", error)
-      this.manageError(error as Error)
-      throw error
+      this.#reportAndThrow("buildSymbol", error)
     }
   }
 
@@ -606,9 +610,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     try {
       return await this.addSymbol(this.buildSymbol(partialSymbol))
     } catch (error) {
-      this.logger.error("createSymbol", error)
-      this.manageError(error as Error)
-      throw error
+      this.#reportAndThrow("createSymbol", error)
     } finally {
       this.updateLayerUI()
     }
@@ -624,9 +626,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       const symbols = createSymbolsFromPartial(partialSymbols)
       return await this.addSymbols(symbols)
     } catch (error) {
-      this.logger.error("createSymbols", error)
-      this.manageError(error as Error)
-      throw error
+      this.#reportAndThrow("createSymbols", error)
     }
   }
 
@@ -1553,9 +1553,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       this.jiix.invalidateIndex()
       return this.model.exports!
     } catch (error) {
-      this.logger.error("export", { error })
-      this.manageError(error as Error)
-      throw error
+      this.#reportAndThrow("export", error)
     }
   }
 
@@ -1598,9 +1596,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       this.select(addedSymbols.map((s) => s.id))
       this.event.emitConverted()
     } catch (error) {
-      this.logger.error("convert", error)
-      this.manageError(error as Error)
-      throw error
+      this.#reportAndThrow("convert", error)
     } finally {
       this.updateLayerUI()
     }
@@ -1640,9 +1636,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       this.select(syms.map((s) => s.id))
       return syms
     } catch (error) {
-      this.logger.error("duplicate", error)
-      this.manageError(error as Error)
-      throw error
+      this.#reportAndThrow("duplicate", error)
     } finally {
       this.updateLayerUI()
     }
@@ -1687,7 +1681,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       this.updateLayerUI(50)
       this.manageIdleState(true)
     } catch (error) {
-      this.manageError(error as Error)
+      this.manageError(error)
     }
   }
 
@@ -1738,7 +1732,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       // client's contentChanged event — that never arrives if the clear failed, so the badge
       // would stay lit forever.
       this.clearOperation("Recognizing")
-      this.manageError(error as Error)
+      this.manageError(error)
     }
   }
 
