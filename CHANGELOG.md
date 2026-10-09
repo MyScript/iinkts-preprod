@@ -91,6 +91,7 @@ The protocol conversion moved to the client, which no longer depends on the symb
 - a pointer's `dt` and `p` are **optional**, so geometry alone can be sent. Supply `dt` whenever the source has it: the recognizer uses inter-point timing to segment characters and resolve ambiguous shapes (measurably worse on cursive text and multi-pass shapes without it). `TWireStroke.t`/`.p` are optional to match and emitted all-or-nothing, so a column never misaligns with `x`/`y`
 - `TStrokeGroupToSend.strokes` and `THTTPClientV2PostData.strokes` are `TWireStroke[]`; `WebSocketClient.addStrokes`/`replaceStrokes`/`recognizeGesture` and `HTTPClientV2.send` take `TRecognitionStroke` (a `TStroke` still satisfies it)
 - renamed: `TStrokeMinimal` → `TStrokeCapture`, still the base of `TStroke`
+- `WebSocketClient`: the protected `buildAddStrokesMessage` and `buildReplaceStrokesMessage` take `TWireStroke[]`, so `addStrokes`/`replaceStrokes` convert each stroke once instead of twice (once to size the frame, once to send it). A subclass overriding them receives wire strokes. Messages are routed through the new protected `messageHandlers` (`TWebSocketClientMessageHandlers`, one entry per `TWebSocketClientMessageType`) instead of a `switch`; overriding a `manage*` method still takes effect
 
 ### Internal layout: `src/utils/` dissolved
 Every helper moved to the lowest layer its inputs allow; the new `core` layer imports nothing else from the library. The exported surface is unchanged (787 names), so only deep imports are affected.
