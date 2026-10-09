@@ -98,4 +98,13 @@ test.describe("Interactive ink canvas Math Tutor", { tag: "@slow" }, () => {
     await expect(page.locator("#banner")).toBeVisible({ timeout: VERDICT_TIMEOUT })
     await expect(page.locator(".tutor-mark.is-correct")).toHaveCount(1)
   })
+
+  test("should accept a result written under the line it continues, without repeating A", async ({ page }) => {
+    await levelButton(page, "Geometry", 2).click()
+
+    await writeStrokes(page, tutor.geometry2Step)
+    await writeStrokes(page, tutor.geometry2Continued)
+    await expect(page.locator("#banner")).toBeVisible({ timeout: VERDICT_TIMEOUT })
+    await expect(page.locator(".tutor-mark.is-correct")).toHaveCount(2)
+  })
 })

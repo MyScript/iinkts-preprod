@@ -1,6 +1,7 @@
 import { linesFromJiix } from "../../../../../../examples/assets/js/math/lines.js"
+import type { TJiixExpression } from "../../../../../../examples/assets/js/math/lines.js"
 
-import { eq, num, v } from "./fixtures"
+import { eq, missing, mul, num, v } from "./fixtures"
 
 describe("assets/js/math/lines", () => {
   const box = (x: number, y: number) => ({ x, y, width: 20, height: 8 })
@@ -38,6 +39,47 @@ describe("assets/js/math/lines", () => {
       ],
     }
     expect(linesFromJiix(jiix).map((line) => line.id)).toEqual(["a"])
+  })
+
+  describe("a line written without its left side", () => {
+    // What the server sends for `= 24`: the `=` keeps an empty slot where its left side would be
+    const written = (id: string, label: string, y: number, expression: TJiixExpression) => ({
+      type: "Math",
+      id,
+      label,
+      "bounding-box": box(10, y),
+      expressions: [expression],
+    })
+    const continued = (right: TJiixExpression) => ({ type: "=", operands: [null, right] })
+    const expressions = (...elements: ReturnType<typeof written>[]) =>
+      linesFromJiix({ elements }).map((line) => line.expression)
+
+    test("should continue the line above, taking its left side", () => {
+      const [, line] = linesFromJiix({
+        elements: [written("a", "A=6\\times 4", 20, eq(v("A"), mul(num(6), num(4)))), written("b", "=24", 40, continued(num(24)))],
+      })
+      expect(line.expression).toEqual(eq(v("A"), num(24)))
+      expect(line.label).toBe("=24")
+    })
+
+    test("should keep continuing down a chain of such lines", () => {
+      const lines = expressions(
+        written("a", "A=6\\times 4", 20, eq(v("A"), mul(num(6), num(4)))),
+        written("b", "=4\\times 6", 40, continued(mul(num(4), num(6)))),
+        written("c", "=24", 60, continued(num(24)))
+      )
+      expect(lines[2]).toEqual(eq(v("A"), num(24)))
+    })
+
+    test("should continue a calculation that is not an equality", () => {
+      const lines = expressions(written("a", "6\\times 4", 20, mul(num(6), num(4))), written("b", "=24", 40, continued(num(24))))
+      expect(lines[1]).toEqual(eq(mul(num(6), num(4)), num(24)))
+    })
+
+    test("should mark a side left blank as missing, with no line above to take it from", () => {
+      const lines = expressions(written("a", "=24", 20, continued(num(24))), written("b", "A=", 40, { type: "=", operands: [v("A"), null] }))
+      expect(lines).toEqual([eq(missing, num(24)), eq(v("A"), missing)])
+    })
   })
 
   test("should accept a JIIX without elements", () => {
