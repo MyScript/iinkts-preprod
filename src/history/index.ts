@@ -1,7 +1,0 @@
-export * from "./AbstractDiffHistoryManager"
-export * from "./AbstractHistoryStack"
-export * from "./HistoryConfiguration"
-export * from "./HistoryContext"
-export * from "./HistoryManager"
-export * from "./IHistoryManager"
-export * from "./IIHistoryManager"
