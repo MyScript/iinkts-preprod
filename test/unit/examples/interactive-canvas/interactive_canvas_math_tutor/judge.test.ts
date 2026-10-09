@@ -1,12 +1,12 @@
-import { DEMO_EXERCISES } from "../../../../../examples/interactive-canvas/math-tutor/demo-exercises.js"
-import type { TExpression } from "../../../../../examples/interactive-canvas/math-tutor/evaluator.js"
-import { measureExercise } from "../../../../../examples/interactive-canvas/math-tutor/exercises.js"
-import { judge } from "../../../../../examples/interactive-canvas/math-tutor/judge.js"
-import { HINTS, UNFINISHED } from "../../../../../examples/interactive-canvas/math-tutor/strings.js"
+import { DEMO_EXERCISES } from "../../../../../examples/interactive-canvas/interactive_canvas_math_tutor/demo-exercises.js"
+import type { TExpression } from "../../../../../examples/assets/js/math/evaluator.js"
+import { measureExercise } from "../../../../../examples/interactive-canvas/interactive_canvas_math_tutor/exercises.js"
+import { judge } from "../../../../../examples/interactive-canvas/interactive_canvas_math_tutor/judge.js"
+import { HINTS, UNFINISHED } from "../../../../../examples/interactive-canvas/interactive_canvas_math_tutor/strings.js"
 
-import { add, eq, mul, num, pi, twoXPlusThreeEqualsSeven, v } from "./fixtures"
+import { add, eq, mul, num, pi, twoXPlusThreeEqualsSeven, v } from "../../assets/js/math/fixtures"
 
-describe("math-tutor/judge", () => {
+describe("interactive_canvas_math_tutor/judge", () => {
   const exercise = DEMO_EXERCISES.flatMap((e) => (e.kind === "equation" && e.tex === "2x + 3 = 7" ? [e] : []))[0]
   const toLines = (...expressions: TExpression[]) =>
     expressions.map((expression, index) => ({

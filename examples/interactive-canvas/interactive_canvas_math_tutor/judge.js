@@ -11,13 +11,13 @@
  * line keeps its check mark and asks for the calculation to be finished.
  */
 
-import { checkLines } from "./evaluator.js"
+import { checkLines } from "../../assets/js/math/evaluator.js"
 import { isSolved } from "./exercises.js"
 import { diagnose, hintFor } from "./hints.js"
 import { UNFINISHED } from "./strings.js"
 
 /**
- * @typedef {import("./lines.js").TLine} TLine
+ * @typedef {import("../../assets/js/math/lines.js").TLine} TLine
  * @typedef {import("./exercises.js").TExercise} TExercise
  * @typedef {"correct" | "wrong" | "pending" | "unchecked" | "after-error"} TMarkStatus
  * @typedef {{ line: TLine, status: TMarkStatus, hint?: string }} TMark

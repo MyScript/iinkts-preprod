@@ -1,8 +1,8 @@
-import { linesFromJiix } from "../../../../../examples/interactive-canvas/math-tutor/lines.js"
+import { linesFromJiix } from "../../../../../../examples/assets/js/math/lines.js"
 
 import { eq, num, v } from "./fixtures"
 
-describe("math-tutor/lines", () => {
+describe("assets/js/math/lines", () => {
   const box = (x: number, y: number) => ({ x, y, width: 20, height: 8 })
   const math = (id: string, label: string, x: number, y: number) => ({
     type: "Math",

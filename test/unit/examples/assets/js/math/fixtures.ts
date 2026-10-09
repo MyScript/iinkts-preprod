@@ -1,4 +1,4 @@
-import type { TExpression } from "../../../../../examples/interactive-canvas/math-tutor/evaluator.js"
+import type { TExpression } from "../../../../../../examples/assets/js/math/evaluator.js"
 
 /** JIIX expression builders, shaped like what the server sends (see the IIC-2096 spike report) */
 export const num = (value: number, label = String(value)): TExpression => ({ type: "number", label, value })

@@ -1,4 +1,4 @@
-import { DEMO_EXERCISES } from "../../../../../examples/interactive-canvas/math-tutor/demo-exercises.js"
+import { DEMO_EXERCISES } from "../../../../../examples/interactive-canvas/interactive_canvas_math_tutor/demo-exercises.js"
 import {
   formatLinear,
   generateExercise,
@@ -6,12 +6,12 @@ import {
   LEVELS,
   measureExercise,
   SHAPE_SIZES,
-} from "../../../../../examples/interactive-canvas/math-tutor/exercises.js"
-import type { TExercise } from "../../../../../examples/interactive-canvas/math-tutor/exercises.js"
-import { checkLines } from "../../../../../examples/interactive-canvas/math-tutor/evaluator.js"
-import { measure } from "../../../../../examples/interactive-canvas/math-tutor/shapes.js"
+} from "../../../../../examples/interactive-canvas/interactive_canvas_math_tutor/exercises.js"
+import type { TExercise } from "../../../../../examples/interactive-canvas/interactive_canvas_math_tutor/exercises.js"
+import { checkLines } from "../../../../../examples/assets/js/math/evaluator.js"
+import { measure } from "../../../../../examples/interactive-canvas/interactive_canvas_math_tutor/shapes.js"
 
-import { add, eq, mul, num, op, pi, twoXPlusThreeEqualsSeven, v } from "./fixtures"
+import { add, eq, mul, num, op, pi, twoXPlusThreeEqualsSeven, v } from "../../assets/js/math/fixtures"
 
 /** Deterministic stand-in for Math.random, cycling through the given values */
 function sequence(...values: number[]): () => number {
@@ -40,7 +40,7 @@ function expectConsistent(exercise: TExercise): void {
   }
 }
 
-describe("math-tutor/exercises", () => {
+describe("interactive_canvas_math_tutor/exercises", () => {
   describe("formatLinear", () => {
     test("should write the equation the way a teacher would", () => {
       expect(formatLinear(2, 3, 7)).toBe("2x + 3 = 7")
