@@ -107,6 +107,12 @@ One value of 10 served three unrelated purposes, so tuning the selection frame a
 ### Shape ↔ edge connections
 - `IIConnectorManager.updateAnchoredEdges()` returns `TAnchoredEdgesUpdateResult` (`{ rigidStrokeIds, oldSymbols, newSymbols }`: the pre-convert edge strokes it moved and the edges it recomputed) instead of `void` — callers must include them in their history entry
 
+### One call updates symbols: by id, with a patch
+`InteractiveInkCanvas.updateSymbols(ids, patch, addToHistory?)` and `updateSymbol(id, patch, addToHistory?)` take ids and a patch instead of records, and replace `updateSymbolsStyle` and `updateTextFontStyle`, with **no compatibility shim**. The patch is an object, `{ style?, font? }` (new `TSymbolPatch`), or a function that changes a draft of each symbol (new `TSymbolUpdate`): `updateSymbolsStyle(ids, style)` → `updateSymbols(ids, { style })`, `updateTextFontStyle(ids, { fontSize, fontWeight })` → `updateSymbols(ids, { font: { size, weight } })`, `updateSymbol(draft)` → `updateSymbol(id, (draft) => …)`. `updateSymbol` resolves `undefined` for an unknown id. `InkCanvas.updateSymbolsStyle` is unchanged
+- one path for every update: only the symbols named are drafted (O(m), not a scan of the document); the committed record is the history snapshot, so nothing is cloned; texts and maths are re-measured; the backend hears only of strokes that appeared or disappeared, and `idle(false)` is emitted only then (a restyle or an edge handle drag emitted it with nothing sent)
+- fix: a change that made a text wider or narrower — a restyle, a label edit — slid the texts after it on its row without recording them (or, for an edit, did not slide them), so undo left them where they had moved; they are in the same history entry now, as they were for a font change
+- a font change takes `addToHistory` (`updateTextFontStyle` always recorded one); an id with no symbol, or a font on no text, records nothing
+
 ### One call changes the recognition configuration: `changeLanguage` is gone
 `InteractiveInkCanvas.updateRecognitionConfiguration(partial)` replaces `changeLanguage(code)`, with **no compatibility shim**: `changeLanguage("fr_FR")` → `updateRecognitionConfiguration({ lang: "fr_FR" })`. It also changes the math solver, e.g. `{ math: { solver: { "angle-unit": "deg" } } }`.
 - opens a new session with the merged configuration and re-sends every user stroke. An array in the partial **replaces** the current one; an explicit `undefined` clears a key

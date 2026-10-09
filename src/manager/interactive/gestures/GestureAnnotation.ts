@@ -208,7 +208,7 @@ export class IIGestureAnnotationProcessor {
   /**
    * Returns the before/after pairs the history wants.
    *
-   * `after` is re-read from the document rather than taken from `before`: `updateSymbolsStyle`
+   * `after` is re-read from the document rather than taken from `before`: `updateSymbols`
    * commits a draft, so the record the loop started with is the pre-change one. The code this
    * replaces recorded that same stale object as the *new* symbol, which made a thicken undo restore
    * the value it was already at.
@@ -224,7 +224,7 @@ export class IIGestureAnnotationProcessor {
       seen.add(sym.id)
       const before = sym as TStroke
       const newWidth = (before.style.width || 1) * factor
-      this.canvas.updateSymbolsStyle([before.id], { width: newWidth }, false)
+      this.canvas.updateSymbols([before.id], { style: { width: newWidth } }, false)
       const after = this.canvas.model.getSymbol(before.id)
       if (after) {
         updated.push({ before, after })

@@ -42,7 +42,7 @@ describe("FillColorStyle.ts", () => {
     button.dispatchEvent(new Event("click", { bubbles: true, cancelable: true }))
 
     expect(canvas.penStyle.fill).toEqual("#654321")
-    expect(canvas.updateSymbolsStyle).toHaveBeenCalledWith([stroke.id], { fill: "#654321" })
+    expect(canvas.updateSymbols).toHaveBeenCalledWith([stroke.id], { style: { fill: "#654321" } })
   })
 
   test("should cascade destroy() to the nested ColorListMenuItem", () => {

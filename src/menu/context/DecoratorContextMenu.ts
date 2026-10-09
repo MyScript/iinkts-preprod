@@ -1,6 +1,5 @@
 import ArrowDown from "@/assets/svg/nav-arrow-down.svg"
 import type { TInteractiveInkCanvas } from "@/canvas"
-import type { TDraft } from "@/core"
 import type { TText } from "@/symbol"
 import { DecoratorKind, isRecognizedMath, isText } from "@/symbol"
 import { DecoratorUtil } from "@/symbol-utils"
@@ -89,25 +88,24 @@ export class DecoratorContextMenu extends BaseMenuItem<HTMLElement> {
     })
     checkbox.addEventListener("change", (e) => {
       const enable = (e.target as HTMLInputElement).checked
-      // Drafts, not reads: the loop below adds or removes a decorator on each of them and the
-      // `updateSymbols` call after it commits them.
-      const symbolsDecorable = this.symbolsDecorable
-        .map((s) => this.canvas.model.draftSymbol(s.id))
-        .filter((s): s is TDraft<TText> => !!s && isText(s))
-
-      symbolsDecorable.forEach((s) => {
-        if (enable) {
-          if (!s.decorators.some((d) => d.kind === kind)) {
-            s.decorators.push(DecoratorUtil.createDecorator(kind, this.canvas.penStyle))
+      this.canvas.updateSymbols(
+        this.symbolsDecorable.map((s) => s.id),
+        (s) => {
+          if (!isText(s)) {
+            return
           }
-        } else {
-          const decoIndex = s.decorators.findIndex((d) => d.kind === kind)
-          if (decoIndex > -1) {
-            s.decorators.splice(decoIndex, 1)
+          if (enable) {
+            if (!s.decorators.some((d) => d.kind === kind)) {
+              s.decorators.push(DecoratorUtil.createDecorator(kind, this.canvas.penStyle))
+            }
+          } else {
+            const decoIndex = s.decorators.findIndex((d) => d.kind === kind)
+            if (decoIndex > -1) {
+              s.decorators.splice(decoIndex, 1)
+            }
           }
         }
-      })
-      this.canvas.updateSymbols(symbolsDecorable)
+      )
 
       document.querySelectorAll(`#${idPrefix}-decorator-${kind}-color button`).forEach((b) => {
         ;(b as HTMLButtonElement).disabled = !enable
@@ -160,19 +158,15 @@ export class DecoratorContextMenu extends BaseMenuItem<HTMLElement> {
       btn.addEventListener("pointerup", (e) => {
         e.preventDefault()
         e.stopPropagation()
-        // Drafts, not reads: the decorator whose colour changes is nested inside a committed record.
-        const recoloured = this.symbolsDecorable
-          .filter((s) => s.decorators.some((d) => d.kind === kind))
-          .map((s) => this.canvas.model.draftSymbol(s.id))
-          .filter((s): s is TDraft<TText> => !!s && isText(s))
-
-        recoloured.forEach((s) => {
-          const deco = s.decorators.find((d) => d.kind === kind)
-          if (deco) {
-            deco.style.color = color
+        this.canvas.updateSymbols(
+          this.symbolsDecorable.filter((s) => s.decorators.some((d) => d.kind === kind)).map((s) => s.id),
+          (s) => {
+            const deco = isText(s) ? s.decorators.find((d) => d.kind === kind) : undefined
+            if (deco) {
+              deco.style.color = color
+            }
           }
-        })
-        this.canvas.updateSymbols(recoloured)
+        )
         colorList.querySelectorAll("*").forEach((e) => e.classList.remove("active"))
         btn.classList.add("active")
       })

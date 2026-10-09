@@ -1,6 +1,6 @@
 import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
 import { buildIIText } from "../../helpers"
-import { EditContextMenu } from "@/iink"
+import { EditContextMenu, type TText } from "@/iink"
 
 describe("EditContextMenu.ts", () => {
   afterEach(() => {
@@ -75,7 +75,7 @@ describe("EditContextMenu.ts", () => {
     await Promise.resolve()
 
     // IIModel.symbolsSelected clones on read, so the handler mutates a clone, not `text` itself
-    const updatedText = (canvas.updateSymbol as jest.Mock).mock.calls[0][0]
+    const updatedText = canvas.model.getSymbol((canvas.updateSymbol as jest.Mock).mock.calls[0][0]) as TText
     expect(updatedText.chars).toHaveLength(2)
     expect(updatedText.chars.map((c: { label: string }) => c.label)).toEqual(["H", "i"])
     expect(updatedText.chars[0].color).toEqual("#000000")

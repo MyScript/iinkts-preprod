@@ -77,7 +77,7 @@ test.describe("Interactive ink canvas Live PDF Document", { tag: "@slow" }, () =
     await callCanvasIdle(page)
     await expect(page.locator(".doc-block p")).toHaveText("hello")
 
-    await page.evaluate(() => window.canvas.updateSymbolsStyle(window.canvas.model.symbols.map((s) => s.id), { color: "#1e88e5" }))
+    await page.evaluate(() => window.canvas.updateSymbols(window.canvas.model.symbols.map((s) => s.id), { style: { color: "#1e88e5" } }))
 
     await expect(page.locator(".doc-block p span")).toHaveCSS("color", "rgb(30, 136, 229)")
   })

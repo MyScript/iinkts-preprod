@@ -145,8 +145,8 @@ describe("IIMenuStyle.ts", () => {
       canvas.model.selectSymbol(stroke.id)
       const btn = layer.querySelector("#ms-menu-style-color-list-808080") as HTMLButtonElement
       btn.dispatchEvent(clickEvt)
-      expect(canvas.updateSymbolsStyle).toHaveBeenCalledTimes(1)
-      expect(canvas.updateSymbolsStyle).toHaveBeenCalledWith([stroke.id], { color: "#808080" })
+      expect(canvas.updateSymbols).toHaveBeenCalledTimes(1)
+      expect(canvas.updateSymbols).toHaveBeenCalledWith([stroke.id], { style: { color: "#808080" } })
     })
     test("should update fill of selected symbols", () => {
       const stroke = buildIIStroke()
@@ -154,8 +154,8 @@ describe("IIMenuStyle.ts", () => {
       canvas.model.selectSymbol(stroke.id)
       const btn = layer.querySelector("#ms-menu-style-fill-list-ffff00") as HTMLButtonElement
       btn.dispatchEvent(clickEvt)
-      expect(canvas.updateSymbolsStyle).toHaveBeenCalledTimes(1)
-      expect(canvas.updateSymbolsStyle).toHaveBeenCalledWith([stroke.id], { fill: "#ffff00" })
+      expect(canvas.updateSymbols).toHaveBeenCalledTimes(1)
+      expect(canvas.updateSymbols).toHaveBeenCalledWith([stroke.id], { style: { fill: "#ffff00" } })
     })
     test("should update style thickness", () => {
       const btn = layer.querySelector("#ms-menu-style-thickness-8") as HTMLButtonElement
@@ -168,8 +168,8 @@ describe("IIMenuStyle.ts", () => {
       canvas.model.selectSymbol(stroke.id)
       const btn = layer.querySelector("#ms-menu-style-thickness-8") as HTMLButtonElement
       btn.dispatchEvent(pointerUpEvt)
-      expect(canvas.updateSymbolsStyle).toHaveBeenCalledTimes(1)
-      expect(canvas.updateSymbolsStyle).toHaveBeenCalledWith([stroke.id], { width: 8 })
+      expect(canvas.updateSymbols).toHaveBeenCalledTimes(1)
+      expect(canvas.updateSymbols).toHaveBeenCalledWith([stroke.id], { style: { width: 8 } })
       expect(canvas.selector.redrawSelectedGroup).toHaveBeenNthCalledWith(1)
     })
     test("should update style opacity", () => {
@@ -186,8 +186,8 @@ describe("IIMenuStyle.ts", () => {
       const input = layer.querySelector("#ms-menu-style-opacity-input") as HTMLInputElement
       input.value = "42"
       input.dispatchEvent(new Event("input"))
-      expect(canvas.updateSymbolsStyle).toHaveBeenCalledTimes(1)
-      expect(canvas.updateSymbolsStyle).toHaveBeenCalledWith([stroke.id], { opacity: 0.42 })
+      expect(canvas.updateSymbols).toHaveBeenCalledTimes(1)
+      expect(canvas.updateSymbols).toHaveBeenCalledWith([stroke.id], { style: { opacity: 0.42 } })
     })
   })
 
