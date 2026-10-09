@@ -464,6 +464,13 @@ describe("InteractiveInkCanvas.ts", () => {
       expect(canvas.renderer.replaceSymbol).toHaveBeenNthCalledWith(1, shape.id, [stroke])
       expect(canvas.client.addStrokes).toHaveBeenNthCalledWith(1, [stroke], false)
     })
+    test("replace leaves the caller's old symbols untouched", async () => {
+      // A gesture hands its history entry's own array: emptying it rewrote what undo restores
+      const oldSymbols = [buildIIStroke(), buildIIStroke()]
+      const handed = [...oldSymbols]
+      await canvas.replaceSymbols(handed, [buildIIStroke()])
+      expect(handed).toEqual(oldSymbols)
+    })
     test("change order symbol", async () => {
       const stroke = buildIIStroke()
       await canvas.changeOrderSymbol(stroke, "last")
