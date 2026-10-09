@@ -37,7 +37,7 @@ import { IIModel } from "@/model"
 import type { TIIRendererConfiguration } from "@/renderer"
 import { SVGRenderer } from "@/renderer"
 import type { TStyle } from "@/style"
-import type { TBaseSymbol, TDecorator, TMath, TStroke, TSymbol, TText } from "@/symbol"
+import type { TAnchor, TBaseSymbol, TDecorator, TMath, TStroke, TSymbol, TText } from "@/symbol"
 import { cloneSymbol, extractStrokes, isDecorator, isMath, isStroke, isStrokeSolverOutput, isText } from "@/symbol"
 import type { SymbolUtil } from "@/symbol-utils"
 import {
@@ -58,6 +58,12 @@ import type { TCanvasOperationLabel } from "../TCanvasOperationLabel"
 import type { TInteractiveInkCanvas } from "../TInteractiveInkCanvas"
 import type { TInteractiveInkCanvasConfiguration } from "./InteractiveInkCanvasConfiguration"
 import { InteractiveInkCanvasConfiguration } from "./InteractiveInkCanvasConfiguration"
+
+/** What cleaning up after a removal changed, for the history entry of that removal */
+type TRemovalCleanup = {
+  erased: TDecorator[]
+  updated: NonNullable<TIIHistoryChanges["updated"]>
+}
 
 /** The occupants the layout of an interactive ink canvas can place */
 const INTERACTIVE_INK_LAYOUT_OCCUPANTS = ["action", "style", "tool", "state", "minimap"] as const
@@ -883,35 +889,11 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
 
       this.#optimizeClientCall(oldStrokes, newStrokes)
 
-      // All old symbols (including symToReplace) are gone; new symbols replace them
-      const allOldIds = new Set(oldSymbols.map((s) => s.id))
+      // Only clean up what pointed at symbols fully gone (not re-created by newSymbols)
       const newIds = new Set(newSymbols.map((s) => s.id))
-      // Only clean up decorators whose targets are fully gone (not re-created by newSymbols)
-      const removedIds = new Set([...allOldIds].filter((id) => !newIds.has(id)))
-      const {
-        erased: decErased,
-        updatedOld: decUpdatedOld,
-        updatedNew: decUpdatedNew,
-      } = this.#cleanupDecoratorsForRemovedIds(removedIds)
-      const { updatedOld: anchorUpdatedOld, updatedNew: anchorUpdatedNew } = this.#cleanupAnchorsForRemovedIds(
-        removedIds,
-        oldSymbols.filter((s) => removedIds.has(s.id))
-      )
-
+      const cleanup = this.#cleanupAfterRemoval(oldSymbols.filter((s) => !newIds.has(s.id)))
       if (addToHistory) {
-        const changes: TIIHistoryChanges = {
-          replaced: { oldSymbols: [...oldSymbols], newSymbols },
-        }
-        if (decErased.length) {
-          changes.erased = decErased
-        }
-        const updatedOld = [...decUpdatedOld, ...anchorUpdatedOld]
-        const updatedNew = [...decUpdatedNew, ...anchorUpdatedNew]
-        appendUpdated(
-          changes,
-          updatedOld.map((before, index) => ({ before, after: updatedNew[index] }))
-        )
-        this.history.push(changes)
+        this.history.push(this.#withRemovalCleanup({ replaced: { oldSymbols: [...oldSymbols], newSymbols } }, cleanup))
       }
       this.updateLayerUI()
     }
@@ -956,138 +938,117 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
   }
 
   /**
-   * After removing strokes, clean up orphaned/partial standalone decorators.
-   * Returns erased and updated decorators so callers can include them in history.
-   */
-  #cleanupDecoratorsForRemovedIds(removedIds: Set<string>): {
-    erased: TDecorator[]
-    updatedOld: TDecorator[]
-    updatedNew: TDecorator[]
-  } {
-    const erased: TDecorator[] = []
-    const updatedOld: TDecorator[] = []
-    const updatedNew: TDecorator[] = []
-
-    for (const sym of [...this.model.symbols]) {
-      if (!isDecorator(sym)) {
-        continue
-      }
-      const dec = sym as TDecorator
-      const remaining = dec.targetIds.filter((id) => !removedIds.has(id))
-      if (remaining.length === 0) {
-        this.model.removeSymbol(dec.id)
-        this.renderer.removeElement(dec.id)
-        erased.push(dec)
-      } else if (remaining.length < dec.targetIds.length) {
-        const oldDec: TDecorator = { ...dec }
-        // Drafted rather than mutated where it lies: `model.symbols` hands out the store's
-        // deep-frozen committed records, so writing `targetIds` straight onto `dec` threw
-        // `TypeError: Cannot assign to read only property`. That made this whole branch — losing
-        // one target out of several — dead from the moment the store began freezing, and nothing
-        // exercised it to say so.
-        const draft = this.model.draftSymbol(dec.id)
-        if (!draft || !isDecorator(draft)) {
-          continue
-        }
-        draft.targetIds = remaining
-        const targetSyms = remaining.map((id) => this.model.getSymbol(id)).filter((s): s is TSymbol => !!s)
-        // Whole-document scan (`this.model.symbols`): an unregistered target type must not
-        // abort cleanup for every other decorator, so it is filtered out silently rather
-        // than let `SymbolGeometry.boundsOf` throw.
-        const geometryTargets = targetSyms.filter((s) => symbolRegistry.has(s.type))
-        if (geometryTargets.length) {
-          // Losing a target shrinks the decorator: its box is an input, so nothing else would
-          // narrow it and the underline would keep spanning the erased stroke.
-          DecoratorUtil.setTargetBounds(
-            draft,
-            OBBOps.createFromOBBs(geometryTargets.map((s) => SymbolGeometry.boundsOf(s)))
-          )
-        }
-        this.model.updateSymbol(draft)
-        this.renderer.drawSymbol(draft)
-        updatedOld.push(oldDec)
-        updatedNew.push(draft)
-      }
-    }
-
-    return { erased, updatedOld, updatedNew }
-  }
-
-  /**
-   * After removing symbols, clear anchors on edges (and pre-convert Edge strokes) that
-   * pointed at a removed target. Returns updated symbols so callers can include them in
-   * history - undoing the removal then also restores the anchor.
+   * After removing symbols, cleans up what pointed at them, in one pass over the document: a
+   * standalone decorator left with no target is erased, one losing some shrinks to the rest, and an
+   * edge anchor on a removed target is cleared. Returns what changed so callers can include it in
+   * history - undoing the removal then also restores the decorator and the anchor.
    * `removedSymbols` must be the symbol objects captured *before* they left the model: their
    * `jiixBlockId` is what pre-convert anchors point at, and it can no longer be looked up here.
    */
-  #cleanupAnchorsForRemovedIds(
-    removedIds: Set<string>,
-    removedSymbols: TSymbol[]
-  ): {
-    updatedOld: TSymbol[]
-    updatedNew: TSymbol[]
-  } {
-    const updatedOld: TSymbol[] = []
-    const updatedNew: TSymbol[] = []
-
-    const removedBlockIds = new Set<string>()
-    removedSymbols.forEach((sym) => {
-      if (isStroke(sym) && sym.jiixBlockId) {
-        removedBlockIds.add(sym.jiixBlockId)
-      }
-    })
+  #cleanupAfterRemoval(removedSymbols: TSymbol[]): TRemovalCleanup {
+    const cleanup: TRemovalCleanup = { erased: [], updated: [] }
+    if (!removedSymbols.length) {
+      return cleanup
+    }
+    const removedIds = new Set(removedSymbols.map((s) => s.id))
+    const removedBlockIds = new Set(
+      removedSymbols.flatMap((s) => (isStroke(s) && s.jiixBlockId ? [s.jiixBlockId] : []))
+    )
     const isTargetRemoved = (symbolId: string): boolean => removedIds.has(symbolId) || removedBlockIds.has(symbolId)
-
-    for (const sym of [...this.model.symbols]) {
-      if (EdgeUtil.isEdge(sym) && (EdgeUtil.isLineEdge(sym) || EdgeUtil.isPolyEdge(sym) || EdgeUtil.isArcEdge(sym))) {
-        const hitStart = sym.startAnchor && isTargetRemoved(sym.startAnchor.symbolId)
-        const hitEnd = sym.endAnchor && isTargetRemoved(sym.endAnchor.symbolId)
-        if (!hitStart && !hitEnd) {
-          continue
-        }
-        const oldSym = { ...sym }
-        // Guarded above on the committed record, drafted only now that it is actually losing an
-        // anchor: the record itself is frozen.
-        const draft = this.model.draftSymbol(sym.id)
-        if (!draft || !EdgeUtil.isEdge(draft)) {
-          continue
-        }
-        if (hitStart) {
-          draft.startAnchor = undefined
-        }
-        if (hitEnd) {
-          draft.endAnchor = undefined
-        }
-        this.model.commitSymbol(draft)
-        this.renderer.drawSymbol(draft)
-        updatedOld.push(oldSym)
-        updatedNew.push(draft)
-        continue
-      }
-      if (isStroke(sym) && sym.jiixBlockType === "Edge" && (sym.startAnchor || sym.endAnchor)) {
-        const hitStart = sym.startAnchor && isTargetRemoved(sym.startAnchor.symbolId)
-        const hitEnd = sym.endAnchor && isTargetRemoved(sym.endAnchor.symbolId)
-        if (!hitStart && !hitEnd) {
-          continue
-        }
-        const oldSym = { ...sym }
-        const draft = this.model.draftSymbol(sym.id)
-        if (!draft || !isStroke(draft)) {
-          continue
-        }
-        if (hitStart) {
-          draft.startAnchor = undefined
-        }
-        if (hitEnd) {
-          draft.endAnchor = undefined
-        }
-        this.model.commitSymbol(draft)
-        updatedOld.push(oldSym)
-        updatedNew.push(draft)
+    // `model.symbols` is a fresh array: removing or updating a symbol during the loop does not disturb it
+    for (const sym of this.model.symbols) {
+      if (isDecorator(sym)) {
+        this.#detachRemovedTargets(sym, removedIds, cleanup)
+      } else {
+        this.#detachRemovedAnchors(sym, isTargetRemoved, cleanup)
       }
     }
+    return cleanup
+  }
 
-    return { updatedOld, updatedNew }
+  #detachRemovedTargets(dec: TDecorator, removedIds: Set<string>, cleanup: TRemovalCleanup): void {
+    const remaining = dec.targetIds.filter((id) => !removedIds.has(id))
+    if (remaining.length === dec.targetIds.length) {
+      return
+    }
+    if (!remaining.length) {
+      this.model.removeSymbol(dec.id)
+      this.renderer.removeElement(dec.id)
+      cleanup.erased.push(dec)
+      return
+    }
+    // Drafted rather than mutated where it lies: `model.symbols` hands out the store's
+    // deep-frozen committed records, so writing `targetIds` straight onto `dec` threw
+    // `TypeError: Cannot assign to read only property`. That made this whole branch — losing
+    // one target out of several — dead from the moment the store began freezing, and nothing
+    // exercised it to say so.
+    const draft = this.model.draftSymbol(dec.id)
+    if (!draft || !isDecorator(draft)) {
+      return
+    }
+    draft.targetIds = remaining
+    // Whole-document scan (`this.model.symbols`): an unregistered target type must not
+    // abort cleanup for every other decorator, so it is filtered out silently rather
+    // than let `SymbolGeometry.boundsOf` throw.
+    const geometryTargets = remaining
+      .map((id) => this.model.getSymbol(id))
+      .filter((s): s is TSymbol => !!s && symbolRegistry.has(s.type))
+    if (geometryTargets.length) {
+      // Losing a target shrinks the decorator: its box is an input, so nothing else would
+      // narrow it and the underline would keep spanning the erased stroke.
+      DecoratorUtil.setTargetBounds(
+        draft,
+        OBBOps.createFromOBBs(geometryTargets.map((s) => SymbolGeometry.boundsOf(s)))
+      )
+    }
+    this.model.updateSymbol(draft)
+    this.renderer.drawSymbol(draft)
+    cleanup.updated.push({ before: { ...dec }, after: draft })
+  }
+
+  /** The anchors of an edge, or of a pre-convert Edge stroke; undefined for any other symbol */
+  #anchorsOf(sym: TSymbol): { startAnchor?: TAnchor; endAnchor?: TAnchor } | undefined {
+    if (EdgeUtil.isEdge(sym) && (EdgeUtil.isLineEdge(sym) || EdgeUtil.isPolyEdge(sym) || EdgeUtil.isArcEdge(sym))) {
+      return sym
+    }
+    return isStroke(sym) && sym.jiixBlockType === "Edge" ? sym : undefined
+  }
+
+  #detachRemovedAnchors(sym: TSymbol, isTargetRemoved: (id: string) => boolean, cleanup: TRemovalCleanup): void {
+    const anchors = this.#anchorsOf(sym)
+    const hitStart = !!anchors?.startAnchor && isTargetRemoved(anchors.startAnchor.symbolId)
+    const hitEnd = !!anchors?.endAnchor && isTargetRemoved(anchors.endAnchor.symbolId)
+    if (!hitStart && !hitEnd) {
+      return
+    }
+    // Guarded above on the committed record, drafted only now that it is actually losing an
+    // anchor: the record itself is frozen.
+    const draft = this.model.draftSymbol(sym.id)
+    const draftAnchors = draft && this.#anchorsOf(draft)
+    if (!draft || !draftAnchors) {
+      return
+    }
+    if (hitStart) {
+      draftAnchors.startAnchor = undefined
+    }
+    if (hitEnd) {
+      draftAnchors.endAnchor = undefined
+    }
+    this.model.commitSymbol(draft)
+    // A pre-convert stroke draws no anchor, so it has nothing to redraw
+    if (!isStroke(draft)) {
+      this.renderer.drawSymbol(draft)
+    }
+    cleanup.updated.push({ before: { ...sym }, after: draft })
+  }
+
+  /** Adds what cleaning up after a removal changed to the removal's own history entry */
+  #withRemovalCleanup(changes: TIIHistoryChanges, { erased, updated }: TRemovalCleanup): TIIHistoryChanges {
+    if (erased.length) {
+      changes.erased = [...(changes.erased ?? []), ...erased]
+    }
+    appendUpdated(changes, updated)
+    return changes
   }
 
   /**
@@ -1113,30 +1074,9 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       }
       this.model.removeSymbol(symbol.id)
       this.renderer.removeSymbol(symbol.id)
-      const removedIds = new Set([id])
-      const {
-        erased: decErased,
-        updatedOld: decUpdatedOld,
-        updatedNew: decUpdatedNew,
-      } = this.#cleanupDecoratorsForRemovedIds(removedIds)
-      const { updatedOld: anchorUpdatedOld, updatedNew: anchorUpdatedNew } = this.#cleanupAnchorsForRemovedIds(
-        removedIds,
-        [symbol]
-      )
+      const cleanup = this.#cleanupAfterRemoval([symbol])
       if (addToHistory) {
-        const changes: TIIHistoryChanges = {
-          erased: [symbol],
-        }
-        if (decErased.length) {
-          changes.erased = [...changes.erased!, ...decErased]
-        }
-        const updatedOld = [...decUpdatedOld, ...anchorUpdatedOld]
-        const updatedNew = [...decUpdatedNew, ...anchorUpdatedNew]
-        appendUpdated(
-          changes,
-          updatedOld.map((before, index) => ({ before, after: updatedNew[index] }))
-        )
-        this.history.push(changes)
+        this.history.push(this.#withRemovalCleanup({ erased: [symbol] }, cleanup))
       }
       this.updateLayerUI()
     } else {
@@ -1176,31 +1116,9 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       this.client.eraseStrokes(strokesIds)
     }
 
-    const removedIds = new Set(symbolsRemoved.map((s) => s.id))
-    const {
-      erased: decErased,
-      updatedOld: decUpdatedOld,
-      updatedNew: decUpdatedNew,
-    } = this.#cleanupDecoratorsForRemovedIds(removedIds)
-    const { updatedOld: anchorUpdatedOld, updatedNew: anchorUpdatedNew } = this.#cleanupAnchorsForRemovedIds(
-      removedIds,
-      symbolsRemoved
-    )
-
+    const cleanup = this.#cleanupAfterRemoval(symbolsRemoved)
     if (addToHistory && symbolsRemoved.length) {
-      const changes: TIIHistoryChanges = {
-        erased: symbolsRemoved,
-      }
-      if (decErased.length) {
-        changes.erased = [...changes.erased!, ...decErased]
-      }
-      const updatedOld = [...decUpdatedOld, ...anchorUpdatedOld]
-      const updatedNew = [...decUpdatedNew, ...anchorUpdatedNew]
-      appendUpdated(
-        changes,
-        updatedOld.map((before, index) => ({ before, after: updatedNew[index] }))
-      )
-      this.history.push(changes)
+      this.history.push(this.#withRemovalCleanup({ erased: symbolsRemoved }, cleanup))
       this.updateLayerUI()
     }
     this.manageIdleState(false)
