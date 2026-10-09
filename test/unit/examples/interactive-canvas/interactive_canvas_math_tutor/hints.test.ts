@@ -1,9 +1,9 @@
-import { diagnose, hintFor } from "../../../../../examples/interactive-canvas/math-tutor/hints.js"
-import { HINTS } from "../../../../../examples/interactive-canvas/math-tutor/strings.js"
+import { diagnose, hintFor } from "../../../../../examples/interactive-canvas/interactive_canvas_math_tutor/hints.js"
+import { HINTS } from "../../../../../examples/interactive-canvas/interactive_canvas_math_tutor/strings.js"
 
-import { add, eq, mul, neg, num, sqrt, sub, sup, twoXPlusThreeEqualsSeven, v } from "./fixtures"
+import { add, eq, mul, neg, num, sqrt, sub, sup, twoXPlusThreeEqualsSeven, v } from "../../assets/js/math/fixtures"
 
-describe("math-tutor/hints", () => {
+describe("interactive_canvas_math_tutor/hints", () => {
   const solution = { x: 2 }
   const twoXEqualsFour = eq(mul(num(2), v("x")), num(4))
 

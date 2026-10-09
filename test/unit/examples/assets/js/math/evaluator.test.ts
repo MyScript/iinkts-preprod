@@ -1,8 +1,8 @@
-import { checkLine, checkLines, evaluate, isFinalValue, parseAnswer } from "../../../../../examples/interactive-canvas/math-tutor/evaluator.js"
+import { checkLine, checkLines, evaluate, isFinalValue, parseAnswer } from "../../../../../../examples/assets/js/math/evaluator.js"
 
 import { add, div, eq, frac, mul, neg, num, op, pi, sqrt, sub, sup, twoXPlusThreeEqualsSeven, v } from "./fixtures"
 
-describe("math-tutor/evaluator", () => {
+describe("assets/js/math/evaluator", () => {
   describe("evaluate", () => {
     test("should evaluate numbers and the four operations", () => {
       expect(evaluate(num(4))).toBe(4)

@@ -1,0 +1,87 @@
+// @ts-check
+/**
+ * Draws HTML over the ink without touching the canvas model: anything drawn as a model change
+ * would land in undo/redo and reach the server.
+ *
+ * Each item is anchored to a box in millimeters in the document frame, as JIIX gives them; the
+ * boxes reach the screen through the rendering layer's CTM, which pan and zoom keep up to date.
+ * The overlay keeps the items on their boxes, the caller decides what they look like and where
+ * they sit around their box.
+ */
+
+import { convertBoundingBoxMillimeterToPixel } from "../../../dist/iink.esm.js"
+
+/**
+ * @typedef {{ x: number, y: number, width: number, height: number }} TBox
+ * @typedef {{
+ *   element: HTMLElement,
+ *   box: TBox,
+ *   place: (element: HTMLElement, box: TBox) => void
+ * }} TInkOverlayItem `box` in document millimeters, handed back to `place` in container pixels
+ */
+
+export class InkOverlay {
+  /** @type {TInkOverlayItem[]} */
+  #items = []
+  #layoutKey = ""
+  #frame = 0
+
+  /**
+   * @param {HTMLElement} container positioned element laid over the canvas
+   * @param {HTMLElement} canvasElement the canvas root, holding the rendering layer
+   */
+  constructor(container, canvasElement) {
+    this.container = container
+    this.canvasElement = canvasElement
+    this.#follow()
+  }
+
+  /**
+   * @param {TInkOverlayItem[]} items
+   */
+  render(items) {
+    this.#items = items
+    this.container.replaceChildren(...items.map((item) => item.element))
+    this.#layoutKey = ""
+  }
+
+  clear() {
+    this.render([])
+  }
+
+  destroy() {
+    window.cancelAnimationFrame(this.#frame)
+    this.clear()
+  }
+
+  /** Repositions on every frame where the view moved: pan, zoom, resize */
+  #follow() {
+    this.#frame = window.requestAnimationFrame(() => this.#follow())
+    const layer = this.canvasElement.querySelector(".ms-layer-rendering svg")
+    const matrix = layer instanceof SVGSVGElement ? layer.getScreenCTM() : null
+    if (!matrix || this.#items.length === 0) return
+    const origin = this.container.getBoundingClientRect()
+    const key = [matrix.a, matrix.d, matrix.e, matrix.f, origin.left, origin.top, origin.width].join()
+    if (key === this.#layoutKey) return
+    this.#layoutKey = key
+    this.#items.forEach((item) => item.place(item.element, this.#toContainer(item.box, matrix, origin)))
+  }
+
+  /**
+   * @param {TBox} box
+   * @param {DOMMatrix} matrix
+   * @param {DOMRect} origin
+   * @returns {TBox}
+   */
+  #toContainer(box, matrix, origin) {
+    const pixels = convertBoundingBoxMillimeterToPixel(box)
+    const topLeft = matrix.transformPoint({ x: pixels.x, y: pixels.y })
+    const bottomRight = matrix.transformPoint({ x: pixels.x + pixels.width, y: pixels.y + pixels.height })
+    return {
+      x: topLeft.x - origin.left,
+      y: topLeft.y - origin.top,
+      width: bottomRight.x - topLeft.x,
+      height: bottomRight.y - topLeft.y,
+    }
+  }
+}

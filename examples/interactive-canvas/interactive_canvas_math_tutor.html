@@ -10,15 +10,16 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="HandheldFriendly" content="true" />
     <title>Math Tutor</title>
-    <link rel="stylesheet" href="../../assets/style/reset.css" />
-    <link rel="stylesheet" href="../../assets/style/components.css" />
-    <link rel="stylesheet" href="../../assets/style/examples.css" />
-    <link rel="stylesheet" href="../../assets/style/inputs.css" />
-    <link rel="stylesheet" href="../../assets/style/panel.css" />
-    <link rel="stylesheet" href="../../components/code-viewer/code-viewer.css" />
+    <link rel="stylesheet" href="../assets/style/reset.css" />
+    <link rel="stylesheet" href="../assets/style/components.css" />
+    <link rel="stylesheet" href="../assets/style/examples.css" />
+    <link rel="stylesheet" href="../assets/style/inputs.css" />
+    <link rel="stylesheet" href="../assets/style/panel.css" />
+    <link rel="stylesheet" href="../components/code-viewer/code-viewer.css" />
+    <link rel="stylesheet" href="../components/ink-overlay/ink-overlay.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" integrity="sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X" crossorigin="anonymous" />
     <script src="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.js" integrity="sha384-g7c+Jr9ZivxKLnZTDUhnkOnsh30B4H0rpLUpJ4jAIKs4fnJI+sEnkvrMWph2EDg4" crossorigin="anonymous"></script>
-    <script src="../../assets/js/theme-init.js"></script>
+    <script src="../assets/js/theme-init.js"></script>
     <style>
       :root {
         --tutor-margin-width: 260px;
@@ -143,8 +144,7 @@
         color: var(--tutor-muted);
       }
 
-      .tutor-overlay { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: var(--tutor-over-ink); }
-      .tutor-overlay > div { position: absolute; }
+      .tutor-overlay { z-index: var(--tutor-over-ink); }
       .tutor-mark {
         transform: translate(-100%, -50%);
         font-size: 22px;
@@ -296,7 +296,7 @@
         <section class="tutor-sheet" id="sheet">
           <div id="rootEl"></div>
           <div class="tutor-margin"><p id="marginTitle" class="tutor-margin-title"></p></div>
-          <div id="overlay" class="tutor-overlay"></div>
+          <div id="overlay" class="ink-overlay tutor-overlay"></div>
           <div id="banner" class="tutor-banner" hidden></div>
           <div id="notice" class="tutor-notice" hidden></div>
         </section>
@@ -305,11 +305,11 @@
     <div id="rotate" class="tutor-rotate"></div>
 
     <script type="module">
-      import { Canvas } from "../../../dist/iink.esm.js"
-      import { ModalCanvasOptions } from "../../components/modal/modalCanvasOptions.js"
-      import { TutorOverlay } from "./overlay.js"
-      import { UI } from "./strings.js"
-      import { MATH_RECOGNITION, Tutor } from "./tutor.js"
+      import { Canvas } from "../../dist/iink.esm.js"
+      import { ModalCanvasOptions } from "../components/modal/modalCanvasOptions.js"
+      import { TutorOverlay } from "./interactive_canvas_math_tutor/overlay.js"
+      import { UI } from "./interactive_canvas_math_tutor/strings.js"
+      import { MATH_RECOGNITION, Tutor } from "./interactive_canvas_math_tutor/tutor.js"
 
       const panelToggleBtn = document.getElementById("panelToggleBtn")
       const infoPanel = document.getElementById("info-panel")
@@ -399,7 +399,7 @@
       window.tutor = tutor
       Object.defineProperty(window, "canvas", { get: () => canvas })
     </script>
-    <script type="module" src="../../components/code-viewer/code-viewer.js"></script>
-    <script src="../../assets/js/theme.js"></script>
+    <script type="module" src="../components/code-viewer/code-viewer.js"></script>
+    <script src="../assets/js/theme.js"></script>
   </body>
 </html>

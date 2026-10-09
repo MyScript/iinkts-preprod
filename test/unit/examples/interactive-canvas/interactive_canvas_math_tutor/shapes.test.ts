@@ -1,7 +1,7 @@
-import { measure, shapeFigure, shapeSvg, triangleCorners } from "../../../../../examples/interactive-canvas/math-tutor/shapes.js"
-import { FIGURE_UI } from "../../../../../examples/interactive-canvas/math-tutor/strings.js"
+import { measure, shapeFigure, shapeSvg, triangleCorners } from "../../../../../examples/interactive-canvas/interactive_canvas_math_tutor/shapes.js"
+import { FIGURE_UI } from "../../../../../examples/interactive-canvas/interactive_canvas_math_tutor/strings.js"
 
-describe("math-tutor/shapes", () => {
+describe("interactive_canvas_math_tutor/shapes", () => {
   describe("measure", () => {
     test("should compute the perimeter and the area of each shape", () => {
       expect(measure({ type: "square", side: 5 }, "perimeter").value).toBe(20)
