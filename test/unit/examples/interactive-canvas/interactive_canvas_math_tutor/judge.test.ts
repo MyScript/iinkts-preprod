@@ -101,6 +101,30 @@ describe("interactive_canvas_math_tutor/judge", () => {
     })
   })
 
+  describe("unknown read in the other case", () => {
+    // The recognizer reads a quickly written `A` or `P` as `a` or `p` now and then
+    const perimeter = measureExercise("p", { type: "rectangle", width: 6, height: 4 }, "perimeter")
+    const area = measureExercise("a", { type: "rectangle", width: 6, height: 4 }, "area")
+
+    test("should solve the exercise whatever the case of its unknown", () => {
+      expect(judge(toLines(eq(v("p"), num(20))), perimeter, { finished: true }).solved).toBe(true)
+      expect(judge(toLines(eq(v("a"), mul(num(6), num(4))), eq(v("a"), num(24))), area, { finished: true })).toMatchObject({
+        solved: true,
+        marks: [{ status: "correct" }, { status: "correct" }],
+      })
+      expect(judge(toLines(twoXPlusThreeEqualsSeven, eq(v("X"), num(2))), exercise, { finished: true }).solved).toBe(true)
+    })
+
+    test("should still check the line and spot its mistake", () => {
+      expect(statuses(judge(toLines(eq(v("a"), num(25))), area, { finished: true }))).toEqual(["wrong"])
+    })
+
+    test("should ask for the result, naming the unknown as the exercise does", () => {
+      const result = judge(toLines(eq(v("p"), mul(add(num(6), num(4)), num(2)))), perimeter, { finished: true })
+      expect(result.marks[0]).toMatchObject({ status: "correct", hint: UNFINISHED("P") })
+    })
+  })
+
   describe("typical mistakes of a shape", () => {
     const hintOf = (shape: Parameters<typeof measureExercise>[1], quantity: "perimeter" | "area", written: TExpression) =>
       judge(toLines(written), measureExercise("m", shape, quantity), { finished: true }).marks[0].hint
