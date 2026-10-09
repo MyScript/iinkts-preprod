@@ -20,6 +20,17 @@ import { convertBoundingBoxMillimeterToPixel } from "../../../dist/iink.esm.js"
  * }} TInkOverlayItem `box` in document millimeters, handed back to `place` in container pixels
  */
 
+/**
+ * `getScreenCTM` returns an SVGMatrix in some browsers, without `transformPoint`: the affine
+ * transform is applied from its coefficients.
+ * @param {Pick<DOMMatrix, "a" | "b" | "c" | "d" | "e" | "f">} matrix
+ * @param {number} x
+ * @param {number} y
+ */
+function transform({ a, b, c, d, e, f }, x, y) {
+  return { x: a * x + c * y + e, y: b * x + d * y + f }
+}
+
 export class InkOverlay {
   /** @type {TInkOverlayItem[]} */
   #items = []
@@ -75,8 +86,8 @@ export class InkOverlay {
    */
   #toContainer(box, matrix, origin) {
     const pixels = convertBoundingBoxMillimeterToPixel(box)
-    const topLeft = matrix.transformPoint({ x: pixels.x, y: pixels.y })
-    const bottomRight = matrix.transformPoint({ x: pixels.x + pixels.width, y: pixels.y + pixels.height })
+    const topLeft = transform(matrix, pixels.x, pixels.y)
+    const bottomRight = transform(matrix, pixels.x + pixels.width, pixels.y + pixels.height)
     return {
       x: topLeft.x - origin.left,
       y: topLeft.y - origin.top,
