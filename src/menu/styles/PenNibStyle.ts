@@ -64,9 +64,9 @@ export class PenNibStyle extends BaseMenuItem<HTMLDivElement> {
         }
         canvas.penStyle = { pen: value }
         if (canvas.model.symbolsSelected.length) {
-          canvas.updateSymbolsStyle(
+          canvas.updateSymbols(
             canvas.model.symbolsSelected.map((s) => s.id),
-            { pen: value }
+            { style: { pen: value } }
           )
           canvas.selector.redrawSelectedGroup()
         }

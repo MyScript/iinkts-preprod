@@ -39,7 +39,7 @@ describe("FontSizeStyle.ts", () => {
     button.dispatchEvent(new Event("pointerup", { bubbles: true }))
 
     expect(canvas.configuration.fontStyle.size).toEqual(16)
-    expect(canvas.updateTextFontStyle).toHaveBeenCalledWith([text.id], { fontSize: 16 * rowHeight })
+    expect(canvas.updateSymbols).toHaveBeenCalledWith([text.id], { font: { size: 16 * rowHeight } })
     expect(canvas.selector.redrawSelectedGroup).toHaveBeenCalledTimes(1)
   })
 
@@ -53,7 +53,7 @@ describe("FontSizeStyle.ts", () => {
     button.dispatchEvent(new Event("pointerup", { bubbles: true }))
 
     expect(canvas.configuration.fontStyle.size).toEqual("auto")
-    expect(canvas.updateTextFontStyle).not.toHaveBeenCalled()
+    expect(canvas.updateSymbols).not.toHaveBeenCalled()
     expect(canvas.selector.redrawSelectedGroup).not.toHaveBeenCalled()
   })
 

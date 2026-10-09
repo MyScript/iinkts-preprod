@@ -40,9 +40,9 @@ export class OpacityStyle extends BaseMenuItem<HTMLDivElement> {
       onChange: (value: number, canvas) => {
         canvas.penStyle = { opacity: value / 100 }
         if (canvas.model.symbolsSelected.length) {
-          canvas.updateSymbolsStyle(
+          canvas.updateSymbols(
             canvas.model.symbolsSelected.map((s) => s.id),
-            { opacity: value / 100 }
+            { style: { opacity: value / 100 } }
           )
         }
       },

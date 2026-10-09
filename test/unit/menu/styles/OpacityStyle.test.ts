@@ -50,10 +50,10 @@ describe("OpacityStyle.ts", () => {
     input.dispatchEvent(new Event("input", { bubbles: true }))
 
     expect(canvas.penStyle.opacity).toEqual(0.4)
-    expect(canvas.updateSymbolsStyle).toHaveBeenCalledWith([stroke.id], { opacity: 0.4 })
+    expect(canvas.updateSymbols).toHaveBeenCalledWith([stroke.id], { style: { opacity: 0.4 } })
   })
 
-  test("should not call updateSymbolsStyle when nothing is selected", () => {
+  test("should not call updateSymbols when nothing is selected", () => {
     const canvas = createCanvasMock()
     const style = new OpacityStyle(asCanvas(canvas))
     const input = style.getElement().querySelector("input") as HTMLInputElement
@@ -61,7 +61,7 @@ describe("OpacityStyle.ts", () => {
     input.value = "40"
     input.dispatchEvent(new Event("input", { bubbles: true }))
 
-    expect(canvas.updateSymbolsStyle).not.toHaveBeenCalled()
+    expect(canvas.updateSymbols).not.toHaveBeenCalled()
   })
 
   test("should cascade destroy() to the nested RangeMenuItem", () => {
