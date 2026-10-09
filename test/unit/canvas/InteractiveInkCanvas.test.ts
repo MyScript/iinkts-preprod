@@ -1,6 +1,6 @@
 import { jiixText } from "../__dataset__/exports.dataset"
 import { buildIICircle, buildIIStroke, buildIIText, buildIIDecorator, delay } from "../helpers"
-import { CanvasTool, DecoratorKind, DecoratorUtil, DefaultInteractiveInkCanvasConfiguration, EdgeUtil, IIAbstractManager, InteractiveInkCanvas, MatrixTransform, DUPLICATE_OFFSET, OBBOps, ShapeKind, ShapeUtil, SymbolGeometry, SymbolType, TBaseSymbol, TDecorator, TEdgeLine, TInteractiveInkCanvasOptions, TPartialDeep, TShapeCircle, TStroke, TStyle, TSymbol, cloneSymbol, getInitialHistoryContext, isStroke } from "@/iink"
+import { CanvasTool, DecoratorKind, DecoratorUtil, DefaultInteractiveInkCanvasConfiguration, EdgeUtil, IIAbstractManager, InteractiveInkCanvas, MatrixTransform, DUPLICATE_OFFSET, OBBOps, ShapeKind, ShapeUtil, SymbolGeometry, SymbolType, TBaseSymbol, TDecorator, TEdgeLine, TInteractiveInkCanvasOptions, TPartialDeep, TShapeCircle, TStroke, TStyle, TSymbol, TSymbolChar, TText, cloneSymbol, getInitialHistoryContext, isStroke } from "@/iink"
 
 describe("InteractiveInkCanvas.ts", () => {
   global.fetch = jest.fn(() =>
@@ -464,6 +464,13 @@ describe("InteractiveInkCanvas.ts", () => {
       expect(canvas.renderer.replaceSymbol).toHaveBeenNthCalledWith(1, shape.id, [stroke])
       expect(canvas.client.addStrokes).toHaveBeenNthCalledWith(1, [stroke], false)
     })
+    test("replace leaves the caller's old symbols untouched", async () => {
+      // A gesture hands its history entry's own array: emptying it rewrote what undo restores
+      const oldSymbols = [buildIIStroke(), buildIIStroke()]
+      const handed = [...oldSymbols]
+      await canvas.replaceSymbols(handed, [buildIIStroke()])
+      expect(handed).toEqual(oldSymbols)
+    })
     test("change order symbol", async () => {
       const stroke = buildIIStroke()
       await canvas.changeOrderSymbol(stroke, "last")
@@ -690,7 +697,15 @@ describe("InteractiveInkCanvas.ts", () => {
     })
   })
 
-  describe("updateSymbolsStyle", () => {
+  describe("updateSymbols with a patch", () => {
+    const char = (label: string): TSymbolChar => ({
+      id: `char-${label}`,
+      label,
+      color: "#000000",
+      fontSize: 10,
+      fontWeight: "normal",
+      bounds: { x: 0, y: 0, width: 5, height: 10 },
+    })
     const canvas = new InteractiveInkCanvas(document.createElement("div"), CanvasOptions)
     canvas.client.init = jest.fn()
     canvas.client.waitForIdle = jest.fn(() => Promise.resolve())
@@ -702,7 +717,7 @@ describe("InteractiveInkCanvas.ts", () => {
     test("should update symbol color and draw", async () => {
       await canvas.initialize()
       expect(canvas.model.symbols[0].style.color).toEqual("#000000")
-      canvas.updateSymbolsStyle([stroke1.id], { color: "red" })
+      canvas.updateSymbols([stroke1.id], { style: { color: "red" } })
       const newStroke1 = canvas.model.getSymbol(stroke1.id)
       expect(canvas.model.symbols[0].style.color).toEqual("red")
       expect(canvas.renderer.drawSymbol).toHaveBeenCalledTimes(1)
@@ -711,7 +726,7 @@ describe("InteractiveInkCanvas.ts", () => {
     test("should update symbol width and draw", async () => {
       await canvas.initialize()
       expect(stroke2.style.width).toEqual(2)
-      canvas.updateSymbolsStyle([stroke2.id], { width: 42 })
+      canvas.updateSymbols([stroke2.id], { style: { width: 42 } })
       const newStroke2 = canvas.model.getSymbol(stroke2.id) as TStroke
       expect(newStroke2.style.width).toEqual(42)
       expect(canvas.renderer.drawSymbol).toHaveBeenCalledTimes(1)
@@ -722,12 +737,58 @@ describe("InteractiveInkCanvas.ts", () => {
       const oldStroke1 = canvas.model.getSymbol(stroke1.id) as TStroke
       const oldStyle = { ...oldStroke1.style }
       canvas.history.push = jest.fn()
-      canvas.updateSymbolsStyle([stroke1.id], { color: "green" })
+      canvas.updateSymbols([stroke1.id], { style: { color: "green" } })
       const newStroke1 = canvas.model.getSymbol(stroke1.id) as TStroke
       // A restyle is a before/after pair like any other change now: the record carries the style,
       // so there is nothing to record beside it.
       expect(canvas.history.push).toHaveBeenNthCalledWith(1, {
         updated: [{ before: expect.objectContaining({ id: stroke1.id, style: oldStyle }), after: newStroke1 }],
+      })
+    })
+    test("should not push history when told not to", async () => {
+      await canvas.initialize()
+      canvas.history.push = jest.fn()
+      canvas.updateSymbols([stroke1.id], { style: { color: "blue" } }, false)
+      expect(canvas.model.getSymbol(stroke1.id)?.style.color).toEqual("blue")
+      expect(canvas.history.push).not.toHaveBeenCalled()
+    })
+    test("should change the font of a text and leave other symbols alone", async () => {
+      await canvas.initialize()
+      const text = buildIIText({ chars: [char("a"), char("b")] })
+      canvas.model.addSymbol(text)
+      // jsdom measures no text: commit the draft as typeset would, without measuring it
+      canvas.typeset.updateBounds = jest.fn((t) => {
+        canvas.model.updateSymbol(t)
+        return t
+      })
+      canvas.history.push = jest.fn()
+      canvas.updateSymbols([text.id, stroke1.id], { font: { size: 30, weight: "bold" } })
+      const newText = canvas.model.getSymbol(text.id) as TText
+      newText.chars.forEach((c) => {
+        expect(c.fontSize).toEqual(30)
+        expect(c.fontWeight).toEqual("bold")
+      })
+      expect(canvas.renderer.drawSymbol).not.toHaveBeenCalledWith(expect.objectContaining({ id: stroke1.id }))
+      expect(canvas.history.push).toHaveBeenNthCalledWith(1, {
+        updated: [{ before: expect.objectContaining({ id: text.id }), after: newText }],
+      })
+    })
+    test("should record the texts a restyle slides along, so undo puts them back", async () => {
+      await canvas.initialize()
+      const text = buildIIText({ chars: [char("a")] })
+      canvas.model.addSymbol(text)
+      const moved = { before: buildIIText(), after: buildIIText() }
+      // A restyle that makes the text wider pushes the texts after it on its row
+      canvas.typeset.moveTextAfter = jest.fn(() => [moved])
+      canvas.typeset.updateBounds = jest.fn((t) => {
+        t.bounds = OBBOps.fromBox({ x: 0, y: 0, width: 999, height: 30 })
+        canvas.model.updateSymbol(t)
+        return t
+      })
+      canvas.history.push = jest.fn()
+      canvas.updateSymbols([text.id], { style: { fontWeight: "bold" } })
+      expect(canvas.history.push).toHaveBeenNthCalledWith(1, {
+        updated: expect.arrayContaining([moved, expect.objectContaining({ after: canvas.model.getSymbol(text.id) })]),
       })
     })
   })
@@ -745,15 +806,36 @@ describe("InteractiveInkCanvas.ts", () => {
       canvas.model.addSymbol(stroke)
       const oldStroke = cloneSymbol(stroke)
 
-      const updatedStroke = cloneSymbol(stroke) as TStroke
-      updatedStroke.style.color = "green"
       canvas.history.push = jest.fn()
 
-      await canvas.updateSymbol(updatedStroke)
+      const updatedStroke = await canvas.updateSymbol(stroke.id, (draft) => {
+        draft.style.color = "green"
+      })
 
+      expect(updatedStroke?.style.color).toEqual("green")
       expect(canvas.history.push).toHaveBeenNthCalledWith(1, {
         updated: [{ before: oldStroke, after: updatedStroke }],
       })
+    })
+    test("should skip an id with no symbol", async () => {
+      await canvas.initialize()
+      canvas.history.push = jest.fn()
+      expect(await canvas.updateSymbol("no-such-id", { style: { color: "red" } })).toBeUndefined()
+      expect(canvas.history.push).not.toHaveBeenCalled()
+    })
+    test("should re-measure a text a function patch changed", async () => {
+      await canvas.initialize()
+      const text = buildIIText()
+      canvas.model.addSymbol(text)
+      canvas.typeset.updateBounds = jest.fn((t) => {
+        canvas.model.updateSymbol(t)
+        return t
+      })
+      await canvas.updateSymbol(text.id, (draft) => {
+        draft.style.color = "blue"
+      })
+      expect(canvas.typeset.updateBounds).toHaveBeenCalledWith(expect.objectContaining({ id: text.id }))
+      expect(canvas.model.getSymbol(text.id)?.style.color).toEqual("blue")
     })
   })
 
@@ -1664,7 +1746,8 @@ describe("InteractiveInkCanvas.ts", () => {
       canvas.event.emitError = jest.fn()
       await expect(async () => await canvas.convert()).rejects.toEqual("convert-error")
       expect(canvas.event.emitError).toHaveBeenCalledTimes(1)
-      expect(canvas.event.emitError).toHaveBeenCalledWith("convert-error")
+      // A rejection that is not an Error reaches the error listeners as one, as their type says
+      expect(canvas.event.emitError).toHaveBeenCalledWith(new Error("convert-error"))
     })
   })
 
