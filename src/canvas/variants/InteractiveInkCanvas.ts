@@ -1096,8 +1096,10 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
    */
   select(ids: string[]): void {
     this.tool = CanvasTool.Select
+    // A Set: `ids.includes` inside a pass over the whole document was O(n·m)
+    const idsToSelect = new Set(ids)
     this.model.symbols.forEach((s) => {
-      const shouldBeSelected = ids.includes(s.id)
+      const shouldBeSelected = idsToSelect.has(s.id)
       const wasSelected = this.model.selectedIds.has(s.id)
       if (wasSelected !== shouldBeSelected) {
         if (shouldBeSelected) {
@@ -1110,16 +1112,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     })
     this.selector.expandSelectionForMathBlocks()
     this.selector.expandSelectionForBlocks()
-    this.selector.drawSelectedGroup(this.model.symbolsSelected)
-
-    const selectedMathJiixBlockId = this.selector.getSelectedMathJiixBlockId()
-    if (selectedMathJiixBlockId) {
-      this.math.selectBlock(selectedMathJiixBlockId)
-    } else {
-      this.math.clearBlockSelection()
-    }
-    this.updateLayerUI()
-    this.event.emitSelected(this.model.symbolsSelected)
+    this.#afterSelectionChanged()
   }
 
   /**
@@ -1131,6 +1124,11 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       this.model.selectSymbol(s.id)
       this.renderer.updateSelectedState(s, true)
     })
+    this.#afterSelectionChanged()
+  }
+
+  /** Draws the selection, follows it with the math block selection, and tells the listeners */
+  #afterSelectionChanged(): void {
     this.selector.drawSelectedGroup(this.model.symbolsSelected)
 
     const selectedMathJiixBlockId = this.selector.getSelectedMathJiixBlockId()

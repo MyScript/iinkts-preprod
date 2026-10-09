@@ -273,6 +273,7 @@ The canvas UI has 8 slots (`top-left`, `top-center`, `top-right`, `middle-left`,
 - feat(manager): `TAnchoredEdgesUpdateResult`, `TFollowedStroke` (`IIConnectorManager`), `TShift` and `TSplitOutcome` (`InsertGestureHandler.computeChangesOnSplitText`) are exported
 
 ## Performance
+- perf(canvas): `InteractiveInkCanvas.select(ids)` looked each symbol of the document up with `ids.includes`, O(n·m); it uses a `Set` now
 - perf(canvas): removing symbols from `InteractiveInkCanvas` scanned the whole document twice (decorators, then edge anchors), copying it each time; it is now one pass over the array `model.symbols` already returns fresh
 - perf(manager): `IISynchronizerManager` drafted (a `structuredClone`) every stroke of the document on every synchronize, before knowing whether its block changed, and redrafted and recommitted every edge stroke even when its anchors were unchanged. It now reads the committed strokes and drafts only the ones it writes: a sync of an unchanged 4000-stroke document (80 points each) goes from 128 ms to 94 ms. Its loop also yielded a frame every 50 elements, so that same sync took 80 frames (1.3 s) with nothing to do; it now yields once 8 ms of work are spent: 27 ms, 1 frame. **API change**: `IISynchronizerManager.SYNC_YIELD_CHUNK_SIZE` → `SYNC_YIELD_BUDGET_MS`
 - perf(manager): `IIConversionManager.convertNode()`/`convertEdge()` deduped strokes in O(n²), copy-pasted 4×; now the exported O(n) `uniqueById()` (`src/core/std/object.ts`)
