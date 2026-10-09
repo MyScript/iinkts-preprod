@@ -153,9 +153,9 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
   math: IIMathManager
   /** Manages smart connectors and anchor-based endpoint updates. */
   connector: IIConnectorManager
-  /** Manages the floating UI menu (tool selector, style panel, action buttons). */
   /** Where the menus, the connection state and the minimap sit */
   layout: LayoutManager<TInteractiveInkCanvas>
+  /** Manages the floating UI menu (tool selector, style panel, action buttons). */
   menu: IIMenuManager
   /** Replays a recorded set of strokes with play/pause/speed control. */
   playback: IIPlaybackManager
@@ -869,10 +869,11 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     const oldStrokes = this.extractStrokesFromSymbols(oldSymbols)
     const newStrokes = this.extractStrokesFromSymbols(newSymbols)
 
-    const symToReplace = oldSymbols.shift()
+    // Destructured, not shifted: the caller's array is left as it was handed over
+    const [symToReplace, ...otherOldSymbols] = oldSymbols
 
     if (symToReplace) {
-      oldSymbols.forEach((s) => {
+      otherOldSymbols.forEach((s) => {
         this.renderer.removeSymbol(s.id)
         this.model.removeSymbol(s.id)
       })
@@ -883,7 +884,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       this.#optimizeClientCall(oldStrokes, newStrokes)
 
       // All old symbols (including symToReplace) are gone; new symbols replace them
-      const allOldIds = new Set([symToReplace.id, ...oldSymbols.map((s) => s.id)])
+      const allOldIds = new Set(oldSymbols.map((s) => s.id))
       const newIds = new Set(newSymbols.map((s) => s.id))
       // Only clean up decorators whose targets are fully gone (not re-created by newSymbols)
       const removedIds = new Set([...allOldIds].filter((id) => !newIds.has(id)))
@@ -894,15 +895,12 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       } = this.#cleanupDecoratorsForRemovedIds(removedIds)
       const { updatedOld: anchorUpdatedOld, updatedNew: anchorUpdatedNew } = this.#cleanupAnchorsForRemovedIds(
         removedIds,
-        [symToReplace, ...oldSymbols].filter((s) => removedIds.has(s.id))
+        oldSymbols.filter((s) => removedIds.has(s.id))
       )
 
       if (addToHistory) {
         const changes: TIIHistoryChanges = {
-          replaced: {
-            oldSymbols: [symToReplace, ...oldSymbols],
-            newSymbols,
-          },
+          replaced: { oldSymbols: [...oldSymbols], newSymbols },
         }
         if (decErased.length) {
           changes.erased = decErased
