@@ -19,7 +19,7 @@ import { ClientEvent } from "../shared/ClientEvent"
 import { resolveHmac } from "../shared/HmacAuth"
 import { ensureServerVersion } from "../shared/infos"
 import { redactServerSecrets, serverUrl } from "../shared/ServerConfiguration"
-import type { TRecognitionStroke } from "../shared/StrokeSerializer"
+import type { TRecognitionStroke, TWireStroke } from "../shared/StrokeSerializer"
 import { toWireStroke } from "../shared/StrokeSerializer"
 import type { TWebSocketClientConfiguration } from "./WebSocketClientConfiguration"
 import { WebSocketClientConfiguration } from "./WebSocketClientConfiguration"
@@ -42,6 +42,7 @@ import type {
   TWebSocketClientMessageNewPart,
   TWebSocketClientMessagePartChange,
   TWebSocketClientMessageReceived,
+  TWebSocketClientMessageReceivedMap,
 } from "./WebSocketClientMessage"
 import { readHistoryContext, TWebSocketClientMessageType } from "./WebSocketClientMessage"
 
@@ -52,7 +53,7 @@ const isWebSocketClientMessageReceived = (value: unknown): value is TWebSocketCl
   typeof value === "object" && value !== null && "type" in value && RECEIVED_MESSAGE_TYPES.has(value.type)
 
 // What one item adds to a message's JSON, for `chunkBySize`.
-const wireStrokeSize = (stroke: TRecognitionStroke): number => JSON.stringify(toWireStroke(stroke)).length
+const wireStrokeSize = (stroke: TWireStroke): number => JSON.stringify(stroke).length
 const strokeIdSize = (id: string): number => id.length + 2
 
 /**
@@ -69,22 +70,31 @@ export type TPendingRequest = {
 // `get-variable-definitions` answers for the whole document, not a block: its requests queue under this key
 const DOCUMENT_BLOCK_ID = ""
 
-// What a math request settles with when a deliberate close makes it moot
-const createMathSolverNeutralResults = (): TMathSolverResultMap => ({
-  "available-actions": [],
+/**
+ * @group Client
+ * @summary One handler per message type the server sends
+ */
+export type TWebSocketClientMessageHandlers = {
+  [K in TWebSocketClientMessageType]: (message: TWebSocketClientMessageReceivedMap[K]) => void
+}
+
+// What a math request settles with when a deliberate close makes it moot; a factory per action, so a
+// request allocates only its own value and no caller shares a mutable one
+const MATH_SOLVER_NEUTRAL_RESULTS: { [A in TMathSolverAction]: () => TMathSolverResultMap[A] } = {
+  "available-actions": () => [],
   // "null" (not "") so callers doing `JSON.parse(await promise)` (see `getNumericalComputation`) get `null` instead of throwing
-  "numerical-computation": "null",
-  "get-diagnostic": "",
-  "get-variables": [],
-  "set-variable-value": undefined,
+  "numerical-computation": () => "null",
+  "get-diagnostic": () => "",
+  "get-variables": () => [],
+  "set-variable-value": () => undefined,
   // NaN, not 0 — 0 would read as a real value; NaN clearly signals "no value"
-  "get-variable-value": NaN,
-  "remove-variable-value": undefined,
-  "as-variable-definition": { name: "", value: NaN },
-  "get-variable-definitions": [],
-  "get-evaluables": [],
-  evaluate: [],
-})
+  "get-variable-value": () => NaN,
+  "remove-variable-value": () => undefined,
+  "as-variable-definition": () => ({ name: "", value: NaN }),
+  "get-variable-definitions": () => [],
+  "get-evaluables": () => [],
+  evaluate: () => [],
+}
 
 /**
  * A websocket dialog have this sequence :
@@ -162,6 +172,25 @@ export class WebSocketClient {
   // Exports run one after another: the server's answer names its mime types, not the request it
   // answers, so two exports in flight could only be told apart by their order.
   protected exportQueue: Promise<unknown> = Promise.resolve()
+  /** Routes each message the server sends; overriding a `manage*` method changes what its entry does. */
+  protected messageHandlers: TWebSocketClientMessageHandlers = {
+    [TWebSocketClientMessageType.Pong]: () => (this.pingCount = 0),
+    [TWebSocketClientMessageType.HMAC_Challenge]: (m) =>
+      this.manageHMACChallenge(m).catch((err) => this.failInitialization(err)),
+    [TWebSocketClientMessageType.Authenticated]: () => this.manageAuthenticated(),
+    [TWebSocketClientMessageType.SessionDescription]: (m) => this.manageSessionDescriptionMessage(m),
+    [TWebSocketClientMessageType.NewPart]: (m) => this.manageNewPartMessage(m),
+    [TWebSocketClientMessageType.PartChanged]: (m) => this.managePartChangeMessage(m),
+    [TWebSocketClientMessageType.ContentChanged]: (m) => this.manageContentChangedMessage(m),
+    [TWebSocketClientMessageType.Exported]: (m) => this.manageExportMessage(m),
+    [TWebSocketClientMessageType.GestureDetected]: (m) => this.manageGestureDetected(m),
+    [TWebSocketClientMessageType.ContextlessGesture]: (m) => this.manageContextlessGesture(m),
+    [TWebSocketClientMessageType.MathSolverResult]: (m) => this.manageMathSolverResult(m),
+    [TWebSocketClientMessageType.Error]: (m) => this.manageErrorMessage(m),
+    [TWebSocketClientMessageType.Idle]: () => this.manageWaitForIdle(),
+    [TWebSocketClientMessageType.ConfigurationChanged]: () => this.manageConfigurationChanged(),
+    [TWebSocketClientMessageType.Ack]: () => this.manageAck(),
+  }
 
   configuration: WebSocketClientConfiguration
   initialized: DeferredPromise<void>
@@ -202,21 +231,28 @@ export class WebSocketClient {
     return this.hasConnected && this.socket?.readyState !== this.socket?.OPEN
   }
 
-  protected sendOnSocket(message: TWebSocketClientMessage): void {
+  protected assertInitialized(): void {
     if (!this.socket) {
       throw new Error("Client must be initialized")
     }
-    if (this.socket.readyState === this.socket.OPEN) {
-      this.socket.send(JSON.stringify(message))
-    } else {
+  }
+
+  protected sendOnSocket(message: TWebSocketClientMessage): void {
+    this.assertInitialized()
+    if (this.socket.readyState !== WebSocket.OPEN) {
       throw new Error(`Can not send message: ${message.type}, connection not ready, state: ${this.socket.readyState}`)
     }
+    this.socket.send(JSON.stringify(message))
   }
 
   protected rejectDeferredPending(error: Error | string): void {
     this.initialized.reject(error)
-    this.pendingRequests.forEach((requests) => requests.forEach((request) => request.reject(error)))
-    // The server answers none of them now, so a later answer must not settle another request
+    this.settlePending((request) => request.reject(error))
+  }
+
+  /** Settles every request waiting on the server: none is answered now, so a later answer must not settle another one */
+  protected settlePending(settle: (request: TPendingRequest) => void): void {
+    this.pendingRequests.forEach((requests) => requests.forEach(settle))
     this.pendingRequests.clear()
   }
 
@@ -251,8 +287,7 @@ export class WebSocketClient {
    */
   protected resolveDeferredPending(): void {
     this.initialized.resolve()
-    this.pendingRequests.forEach((requests) => requests.forEach((request) => request.resolve(request.neutral)))
-    this.pendingRequests.clear()
+    this.settlePending((request) => request.resolve(request.neutral))
   }
 
   protected resetAllDeferred(): void {
@@ -261,9 +296,7 @@ export class WebSocketClient {
   }
 
   protected isDisconnected(): boolean {
-    return (
-      !this.socket || this.socket.readyState === this.socket.CLOSING || this.socket.readyState === this.socket.CLOSED
-    )
+    return (this.socket?.readyState ?? WebSocket.CLOSED) >= WebSocket.CLOSING
   }
 
   protected enqueueOfflineMessage(message: TWebSocketClientMessage, deferred: DeferredPromise<void>): void {
@@ -348,11 +381,15 @@ export class WebSocketClient {
    */
   protected giveUpReconnecting(): void {
     this.reconnectAttempts = 0
-    const error = new Error("Unable to reconnect: queued changes and waiting requests were not sent")
+    this.abandonReconnection(new Error("Unable to reconnect: queued changes and waiting requests were not sent"))
+    this.event.emitConnectionStatusChanged("error")
+  }
+
+  /** Fails the queued changes and the requests waiting for the reconnection. */
+  protected abandonReconnection(error: Error): void {
     this.clearOfflineQueue(error)
     this.reconnection?.reject(error)
     this.reconnection = undefined
-    this.event.emitConnectionStatusChanged("error")
   }
 
   protected clearOfflineQueue(error: Error): void {
@@ -439,9 +476,7 @@ export class WebSocketClient {
     // init() can run again without the close callback having terminated the previous worker.
     this.pingWorker?.terminate()
     this.pingWorker = new PingWorker()
-    this.pingWorker.postMessage({
-      pingDelay: this.configuration.server.websocket.pingDelay,
-    })
+    this.pingWorker.postMessage({ pingDelay: this.configuration.server.websocket.pingDelay })
     this.pingWorker.onmessage = () => {
       if (this.socket.readyState < this.socket.CLOSING) {
         if (this.pingCount < this.configuration.server.websocket.maxPingLostCount) {
@@ -474,18 +509,11 @@ export class WebSocketClient {
       this.sessionId = sessionDescriptionMessage.iinkSessionId
       this.event.emitSessionOpened(this.sessionId)
     }
-    if (this.currentPartId) {
-      this.sendOnSocket({
-        type: "openContentPart",
-        id: this.currentPartId,
-      })
-    } else {
-      this.sendOnSocket({
-        type: "newContentPart",
-        contentType: "Raw Content",
-        mimeTypes: this.mimeTypes,
-      })
-    }
+    this.sendOnSocket(
+      this.currentPartId
+        ? { type: "openContentPart", id: this.currentPartId }
+        : { type: "newContentPart", contentType: "Raw Content", mimeTypes: this.mimeTypes }
+    )
   }
 
   protected manageNewPartMessage(newPartMessage: TWebSocketClientMessageNewPart): void {
@@ -505,9 +533,7 @@ export class WebSocketClient {
 
   protected manageExportMessage(exportMessage: TWebSocketClientMessageExport): void {
     const exports = parseExportedJIIX(exportMessage.exports)
-    Object.keys(exports).forEach((key) => {
-      this.answer(`export:${key}`, exports)
-    })
+    Object.keys(exports).forEach((key) => this.answer(`export:${key}`, exports))
     this.event.emitExported(exports)
   }
 
@@ -528,10 +554,7 @@ export class WebSocketClient {
 
     if (this.currentErrorCode === "no.activity") {
       this.rejectDeferredPending(message)
-      this.event.emitConnectionClose({
-        code: 1000,
-        message: ClientError.NO_ACTIVITY,
-      })
+      this.event.emitConnectionClose({ code: 1000, message: ClientError.NO_ACTIVITY })
     } else {
       message = mapErrorCodeToMessage(this.currentErrorCode) ?? message
       this.rejectDeferredPending(message)
@@ -573,7 +596,7 @@ export class WebSocketClient {
     // blockId undefined is dropped by JSON.stringify, as get-variable-definitions expects
     await this.send({ type: "mathSolver", action, blockId, ...parameters })
     const key = `math:${action}:${blockId ?? DOCUMENT_BLOCK_ID}`
-    return this.waitForAnswer(key, createMathSolverNeutralResults()[action]).promise
+    return this.waitForAnswer(key, MATH_SOLVER_NEUTRAL_RESULTS[action]()).promise
   }
 
   protected messageCallback(message: MessageEvent<string>): void {
@@ -591,60 +614,7 @@ export class WebSocketClient {
       return
     }
     try {
-      if (websocketMessage.type === TWebSocketClientMessageType.Pong) {
-        this.pingCount = 0
-        return
-      }
-      switch (websocketMessage.type) {
-        case TWebSocketClientMessageType.HMAC_Challenge:
-          this.manageHMACChallenge(websocketMessage).catch((err) => this.failInitialization(err))
-          break
-        case TWebSocketClientMessageType.Authenticated:
-          this.manageAuthenticated()
-          break
-        case TWebSocketClientMessageType.SessionDescription:
-          this.manageSessionDescriptionMessage(websocketMessage)
-          break
-        case TWebSocketClientMessageType.NewPart:
-          this.manageNewPartMessage(websocketMessage)
-          break
-        case TWebSocketClientMessageType.PartChanged:
-          this.managePartChangeMessage(websocketMessage)
-          break
-        case TWebSocketClientMessageType.ContentChanged:
-          this.manageContentChangedMessage(websocketMessage)
-          break
-        case TWebSocketClientMessageType.Exported:
-          this.manageExportMessage(websocketMessage)
-          break
-        case TWebSocketClientMessageType.GestureDetected:
-          this.manageGestureDetected(websocketMessage)
-          break
-        case TWebSocketClientMessageType.ContextlessGesture:
-          this.manageContextlessGesture(websocketMessage)
-          break
-        case TWebSocketClientMessageType.MathSolverResult:
-          this.manageMathSolverResult(websocketMessage)
-          break
-        case TWebSocketClientMessageType.Error:
-          this.manageErrorMessage(websocketMessage)
-          break
-        case TWebSocketClientMessageType.Idle:
-          this.manageWaitForIdle()
-          break
-        case TWebSocketClientMessageType.ConfigurationChanged:
-          this.manageConfigurationChanged()
-          break
-        case TWebSocketClientMessageType.Ack:
-          this.manageAck()
-          break
-        default: {
-          // Unreachable once the guard passed; a TWebSocketClientMessageType without a case stops compiling here
-          const unhandled: never = websocketMessage
-          this.logger.warn("messageCallback", `Message type unhandled: "${JSON.stringify(unhandled)}".`)
-          break
-        }
-      }
+      this.dispatchMessage(websocketMessage.type, websocketMessage)
     } catch (error) {
       // A handler threw. Reporting the payload here, as this used to, hid every
       // message-handling bug in the client behind an error that only said what the server sent.
@@ -652,19 +622,30 @@ export class WebSocketClient {
     }
   }
 
+  protected dispatchMessage<K extends TWebSocketClientMessageType>(
+    type: K,
+    message: TWebSocketClientMessageReceivedMap[K]
+  ): void {
+    this.messageHandlers[type](message)
+  }
+
   async newSession(config: TPartialDeep<TWebSocketClientConfiguration>): Promise<void> {
     await this.close(1000, "new-session")
-    // overrideDeep, not a second mergeDeep source: mergeDeep appends arrays, which would repeat every one on each new session
-    this.configuration = overrideDeep(mergeDeep<WebSocketClientConfiguration>({}, this.configuration), config)
+    this.mergeConfiguration(config)
     this.sessionId = undefined
     this.currentPartId = undefined
     await this.init()
   }
 
   async changeConfiguration(config: TPartialDeep<TWebSocketClientConfiguration>): Promise<void> {
-    this.configuration = overrideDeep(mergeDeep<WebSocketClientConfiguration>({}, this.configuration), config)
+    this.mergeConfiguration(config)
     await this.send({ type: "changeConfiguration", configuration: this.configuration.recognition })
     return this.waitForAnswer<void>("configurationChanged", undefined).promise
+  }
+
+  protected mergeConfiguration(config: TPartialDeep<TWebSocketClientConfiguration>): void {
+    // overrideDeep, not a second mergeDeep source: mergeDeep appends arrays, which would repeat every one on each new session
+    this.configuration = overrideDeep(mergeDeep<WebSocketClientConfiguration>({}, this.configuration), config)
   }
 
   async init(): Promise<void> {
@@ -709,9 +690,7 @@ export class WebSocketClient {
   }
 
   async send(message: TWebSocketClientMessage): Promise<void> {
-    if (!this.socket) {
-      throw new Error("Client must be initialized")
-    }
+    this.assertInitialized()
 
     switch (this.socket.readyState) {
       case this.socket.CONNECTING:
@@ -741,13 +720,10 @@ export class WebSocketClient {
     }
   }
 
-  protected buildAddStrokesMessage(strokes: TRecognitionStroke[], processGestures = true): TWebSocketClientMessage {
-    return {
-      type: "addStrokes",
-      processGestures,
-      strokes: strokes.map((s) => toWireStroke(s)),
-    }
+  protected buildAddStrokesMessage(strokes: TWireStroke[], processGestures = true): TWebSocketClientMessage {
+    return { type: "addStrokes", processGestures, strokes }
   }
+
   /**
    * @remarks Resolves once the message is sent, not once the server acks it — gesture detection
    * results (if any) arrive asynchronously via `event.addGestureDetectedListener`, not this promise.
@@ -757,11 +733,9 @@ export class WebSocketClient {
       return
     }
     const _processGestures = processGestures && strokes.length < 3
-    await Promise.all(
-      this.chunkBySize(strokes, wireStrokeSize, 1000).map((part) =>
-        this.sendChange(this.buildAddStrokesMessage(part, _processGestures))
-      )
-    )
+    // Converted once: measuring the groups and sending them read the same wire strokes
+    const groups = this.chunkBySize(strokes.map(toWireStroke), wireStrokeSize, 1000)
+    await Promise.all(groups.map((part) => this.sendChange(this.buildAddStrokesMessage(part, _processGestures))))
   }
 
   /**
@@ -862,64 +836,31 @@ export class WebSocketClient {
       to: number
       pointCount: number
     }
-  ): Promise<{ [key: string]: number }[][]> {
+  ): Promise<Record<string, number>[][]> {
     const result = await this.requestMathSolver("evaluate", blockId, { evaluation })
-
-    // Transform result arrays to series of points
-    // Result format: [[x1, y1, x2, y2, ...], [x1, y1, x2, y2, ...]] for multiple curves
-    const allSeries: {
-      [key: string]: number
-    }[][] = []
-
-    for (const flatArray of result) {
-      const points: { [key: string]: number }[] = []
-
-      // Server always returns [x1, y1, x2, y2, ...] format, even for constant functions
-      const xKey = evaluation.inputVariableName || "x"
-      const yKey = evaluation.outputVariableName || "?"
-
-      for (let i = 0; i < flatArray.length; i += 2) {
-        if (i + 1 < flatArray.length) {
-          const xVal = flatArray[i]
-          const yVal = flatArray[i + 1]
-
-          points.push({
-            [xKey]: xVal,
-            [yKey]: yVal,
-          })
-        }
+    // The server returns one flat [x1, y1, x2, y2, ...] array per curve, even for a constant function
+    const xKey = evaluation.inputVariableName || "x"
+    const yKey = evaluation.outputVariableName || "?"
+    return result.map((flat) => {
+      const points: Record<string, number>[] = []
+      for (let i = 0; i + 1 < flat.length; i += 2) {
+        points.push({ [xKey]: flat[i], [yKey]: flat[i + 1] })
       }
-
-      allSeries.push(points)
-    }
-
-    this.logger.info("Evaluate result transformed", {
-      inputVar: evaluation.inputVariableName || "x",
-      outputVar: evaluation.outputVariableName || "?",
-      seriesCount: allSeries.length,
-      totalPoints: allSeries.reduce((sum, series) => sum + series.length, 0),
+      return points
     })
-
-    return allSeries
   }
 
-  protected buildReplaceStrokesMessage(
-    oldStrokeIds: string[],
-    newStrokes: TRecognitionStroke[]
-  ): TWebSocketClientMessage {
-    return {
-      type: "replaceStrokes",
-      oldStrokeIds,
-      newStrokes: newStrokes.map((s) => toWireStroke(s)),
-    }
+  protected buildReplaceStrokesMessage(oldStrokeIds: string[], newStrokes: TWireStroke[]): TWebSocketClientMessage {
+    return { type: "replaceStrokes", oldStrokeIds, newStrokes }
   }
+
   async replaceStrokes(oldStrokeIds: string[], newStrokes: TRecognitionStroke[]): Promise<void> {
     if (oldStrokeIds.length === 0) {
       return
     }
     // The first group goes with the replacement, the others as plain additions: same content, and
     // no frame over the budget.
-    const [first = [], ...rest] = this.chunkBySize(newStrokes, wireStrokeSize, 1000)
+    const [first = [], ...rest] = this.chunkBySize(newStrokes.map(toWireStroke), wireStrokeSize, 1000)
     await Promise.all([
       this.sendChange(this.buildReplaceStrokesMessage(oldStrokeIds, first)),
       ...rest.map((strokes) => this.sendChange(this.buildAddStrokesMessage(strokes, false))),
@@ -927,34 +868,18 @@ export class WebSocketClient {
   }
 
   protected buildTransformTranslateMessage(strokeIds: string[], tx: number, ty: number): TWebSocketClientMessage {
-    return {
-      type: "transform",
-      transformationType: "TRANSLATE",
-      strokeIds,
-      tx,
-      ty,
-    }
+    return { type: "transform", transformationType: "TRANSLATE", strokeIds, tx, ty }
   }
+
   async transformTranslate(strokeIds: string[], tx: number, ty: number): Promise<void> {
     await this.sendPerStrokeIds(strokeIds, (ids) => this.buildTransformTranslateMessage(ids, tx, ty))
   }
 
-  protected buildTransformRotateMessage(
-    strokeIds: string[],
-    angle: number,
-    x0: number = 0,
-    y0: number = 0
-  ): TWebSocketClientMessage {
-    return {
-      type: "transform",
-      transformationType: "ROTATE",
-      strokeIds,
-      angle,
-      x0,
-      y0,
-    }
+  protected buildTransformRotateMessage(strokeIds: string[], angle: number, x0 = 0, y0 = 0): TWebSocketClientMessage {
+    return { type: "transform", transformationType: "ROTATE", strokeIds, angle, x0, y0 }
   }
-  async transformRotate(strokeIds: string[], angle: number, x0: number = 0, y0: number = 0): Promise<void> {
+
+  async transformRotate(strokeIds: string[], angle: number, x0 = 0, y0 = 0): Promise<void> {
     await this.sendPerStrokeIds(strokeIds, (ids) => this.buildTransformRotateMessage(ids, angle, x0, y0))
   }
 
@@ -962,47 +887,28 @@ export class WebSocketClient {
     strokeIds: string[],
     scaleX: number,
     scaleY: number,
-    x0: number = 0,
-    y0: number = 0
+    x0 = 0,
+    y0 = 0
   ): TWebSocketClientMessage {
-    return {
-      type: "transform",
-      transformationType: "SCALE",
-      strokeIds,
-      scaleX,
-      scaleY,
-      x0,
-      y0,
-    }
+    return { type: "transform", transformationType: "SCALE", strokeIds, scaleX, scaleY, x0, y0 }
   }
-  async transformScale(
-    strokeIds: string[],
-    scaleX: number,
-    scaleY: number,
-    x0: number = 0,
-    y0: number = 0
-  ): Promise<void> {
+
+  async transformScale(strokeIds: string[], scaleX: number, scaleY: number, x0 = 0, y0 = 0): Promise<void> {
     await this.sendPerStrokeIds(strokeIds, (ids) => this.buildTransformScaleMessage(ids, scaleX, scaleY, x0, y0))
   }
 
   protected buildTransformMatrixMessage(strokeIds: string[], matrix: TMatrixTransform): TWebSocketClientMessage {
-    return {
-      type: "transform",
-      transformationType: "MATRIX",
-      strokeIds,
-      ...matrix,
-    }
+    return { type: "transform", transformationType: "MATRIX", strokeIds, ...matrix }
   }
+
   async transformMatrix(strokeIds: string[], matrix: TMatrixTransform): Promise<void> {
     await this.sendPerStrokeIds(strokeIds, (ids) => this.buildTransformMatrixMessage(ids, matrix))
   }
 
   protected buildEraseStrokesMessage(strokeIds: string[]): TWebSocketClientMessage {
-    return {
-      type: "eraseStrokes",
-      strokeIds,
-    }
+    return { type: "eraseStrokes", strokeIds }
   }
+
   async eraseStrokes(strokeIds: string[]): Promise<void> {
     await this.sendPerStrokeIds(strokeIds, (ids) => this.buildEraseStrokesMessage(ids))
   }
@@ -1034,36 +940,32 @@ export class WebSocketClient {
   protected buildUndoRedoChanges(changes: TIIHistoryBackendChanges): TWebSocketClientMessage[] {
     const changesMessages: TWebSocketClientMessage[] = []
     if (changes.added?.length) {
-      changesMessages.push(this.buildAddStrokesMessage(changes.added, false))
+      changesMessages.push(this.buildAddStrokesMessage(changes.added.map(toWireStroke), false))
     }
     if (changes.erased?.length) {
       changesMessages.push(this.buildEraseStrokesMessage(changes.erased.map((s) => s.id)))
     }
     if (changes.replaced?.newStrokes.length) {
-      changesMessages.push(
-        this.buildReplaceStrokesMessage(
-          changes.replaced.oldStrokes.map((s) => s.id),
-          changes.replaced.newStrokes
-        )
-      )
+      const oldIds = changes.replaced.oldStrokes.map((s) => s.id)
+      changesMessages.push(this.buildReplaceStrokesMessage(oldIds, changes.replaced.newStrokes.map(toWireStroke)))
     }
     return changesMessages
   }
 
-  async undo(actions: TIIHistoryBackendChanges): Promise<void> {
+  /** Sends one step of the server's history; nothing when it changes nothing. */
+  protected async sendHistoryStep(type: "undo" | "redo", actions: TIIHistoryBackendChanges): Promise<void> {
     const changes = this.buildUndoRedoChanges(actions)
-    if (changes.length === 0) {
-      return
+    if (changes.length) {
+      await this.sendChange({ type, changes })
     }
-    await this.sendChange({ type: "undo", changes })
+  }
+
+  async undo(actions: TIIHistoryBackendChanges): Promise<void> {
+    await this.sendHistoryStep("undo", actions)
   }
 
   async redo(actions: TIIHistoryBackendChanges): Promise<void> {
-    const changes = this.buildUndoRedoChanges(actions)
-    if (changes.length === 0) {
-      return
-    }
-    await this.sendChange({ type: "redo", changes })
+    await this.sendHistoryStep("redo", actions)
   }
 
   async export(requestedMimeTypes?: string[]): Promise<TExport> {
@@ -1092,16 +994,13 @@ export class WebSocketClient {
 
   async close(code: number, reason: string): Promise<void> {
     this.clearReconnectLoop()
-    const closedError = new Error(`Client closed (${reason}): queued changes and waiting requests were not sent`)
-    this.clearOfflineQueue(closedError)
-    this.reconnection?.reject(closedError)
-    this.reconnection = undefined
+    this.abandonReconnection(new Error(`Client closed (${reason}): queued changes and waiting requests were not sent`))
     this.resolveDeferredPending()
     this.resetAllDeferred()
     // Answered by the socket's close event; an error message arriving meanwhile ends the wait too
     const closed = this.waitForAnswer<void>("close", undefined)
     const doClose = async (): Promise<void> => {
-      if (this.socket.readyState === this.socket.OPEN || this.socket.readyState === this.socket.CONNECTING) {
+      if (this.socket.readyState < WebSocket.CLOSING) {
         this.socket.close(code, reason)
       } else {
         this.answer("close", undefined, true)
