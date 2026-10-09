@@ -1,5 +1,5 @@
 import type { TExport, TRecognitionWebSocketConfiguration, WebSocketClient } from "@/client"
-import type { TBox, TPartialDeep } from "@/core"
+import type { TBox, TDraft, TPartialDeep } from "@/core"
 import type { DOMFactory } from "@/dom"
 import type { IIHistoryManager } from "@/history"
 import type {
@@ -39,6 +39,24 @@ import type { CanvasEvent, TCanvasConnectionState } from "./CanvasEvent"
 import type { CanvasLayer } from "./CanvasLayer"
 import type { TCanvasOperationLabel } from "./TCanvasOperationLabel"
 import type { InteractiveInkCanvasConfiguration } from "./variants/InteractiveInkCanvasConfiguration"
+
+/**
+ * What `updateSymbols(ids, patch)` changes on each symbol it names.
+ * @group Canvas
+ */
+export type TSymbolPatch = {
+  /** Merged into the symbol's style; a text hands it down to its chars */
+  style?: TPartialDeep<TStyle>
+  /** Applied to the chars of a text; any other symbol ignores it. `weight: "auto"` keeps each char's own weight */
+  font?: { size?: number; weight?: "normal" | "bold" | "auto" }
+}
+
+/**
+ * What `updateSymbols(ids, patch)` does to each symbol: an object patch, or a function that changes a
+ * draft of the symbol at will.
+ * @group Canvas
+ */
+export type TSymbolUpdate = TSymbolPatch | ((draft: TDraft<TSymbol>) => void)
 
 /**
  * Structural type for InteractiveInkCanvas used by all managers.
@@ -94,16 +112,8 @@ export type TInteractiveInkCanvas = {
   createSymbols(partialSymbols: TPartialDeep<TSymbol>[]): Promise<TSymbol[]>
   addSymbol(sym: TSymbol, addToHistory?: boolean): Promise<TSymbol>
   addSymbols(symList: TSymbol[], addToHistory?: boolean): Promise<TSymbol[]>
-  updateSymbol(sym: TSymbol, addToHistory?: boolean): Promise<TSymbol>
-  updateSymbols(symList: TSymbol[], addToHistory?: boolean): Promise<TSymbol[]>
-  updateSymbolsStyle(symbolIds: string[], style: TPartialDeep<TStyle>, addToHistory?: boolean): void
-  updateTextFontStyle(
-    textIds: string[],
-    opts: {
-      fontSize?: number
-      fontWeight?: "normal" | "bold" | "auto"
-    }
-  ): void
+  updateSymbol(id: string, patch: TSymbolUpdate, addToHistory?: boolean): Promise<TSymbol | undefined>
+  updateSymbols(ids: string[], patch: TSymbolUpdate, addToHistory?: boolean): Promise<TSymbol[]>
   replaceSymbols(oldSymbols: TSymbol[], newSymbols: TSymbol[], addToHistory?: boolean): Promise<void>
   changeOrderSymbols(symbols: TSymbol[], position: "first" | "last" | "forward" | "backward"): void
   removeSymbol(id: string, addToHistory?: boolean): Promise<void>

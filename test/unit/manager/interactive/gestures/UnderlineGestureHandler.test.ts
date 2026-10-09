@@ -31,7 +31,7 @@ describe("UnderlineGestureHandler.ts", () => {
 
       await handler.apply(gestureStroke, gesture)
 
-      expect(canvas.updateSymbolsStyle).not.toHaveBeenCalled()
+      expect(canvas.updateSymbols).not.toHaveBeenCalled()
       expect(canvas.history.push).not.toHaveBeenCalled()
     })
 
@@ -50,9 +50,8 @@ describe("UnderlineGestureHandler.ts", () => {
 
       await handler.apply(gestureStroke, gesture)
 
-      expect(canvas.updateSymbolsStyle).toHaveBeenCalledWith(
-        [stroke.id],
-        { width: (stroke.style.width || 1) * 2 },
+      expect(canvas.updateSymbols).toHaveBeenCalledWith(
+        [stroke.id], { style: { width: (stroke.style.width || 1) * 2 } },
         false
       )
       expect(canvas.history.push).toHaveBeenCalledTimes(1)
@@ -76,7 +75,7 @@ describe("UnderlineGestureHandler.ts", () => {
       await handler.apply(gestureStroke, gesture)
 
       expect(canvas.history.push).toHaveBeenCalledTimes(1)
-      expect(canvas.updateSymbolsStyle).not.toHaveBeenCalled()
+      expect(canvas.updateSymbols).not.toHaveBeenCalled()
     })
   })
 })

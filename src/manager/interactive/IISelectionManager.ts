@@ -551,17 +551,16 @@ export class IISelectionManager extends IIAbstractManager {
           this.canvas.connector.showAnchorHint({ x, y }, draft.id)
         },
         (ev) => {
-          const draft = draftEdge()
-          if (!draft) {
-            return
-          }
           const point = this.getPoint(ev)
           const { x, y } = this.canvas.snaps.snapResize(point)
-          moveVertex(draft, pointIndex, x, y)
           this.canvas.connector.clearAnchorHint()
-          this.canvas.connector.applyEndpointAnchor(draft, pointIndex, { x, y })
           this.renderer.layer.style.cursor = ""
-          this.canvas.updateSymbol(draft)
+          this.canvas.updateSymbol(edge.id, (draft) => {
+            if (EdgeUtil.isEdge(draft)) {
+              moveVertex(draft, pointIndex, x, y)
+              this.canvas.connector.applyEndpointAnchor(draft, pointIndex, { x, y })
+            }
+          })
           this.canvas.snaps.clearSnapToElementLines()
           this.drawSelectedGroup(this.model.symbolsSelected)
         }
@@ -623,23 +622,23 @@ export class IISelectionManager extends IIAbstractManager {
           (ev) => dragCoalescer.schedule(() => runHandler(ev)),
           (ev) => {
             dragCoalescer.cancel()
-            const draft = draftArc()
-            if (!draft) {
-              return
-            }
             const point = this.getPoint(ev)
             const { x, y } = this.canvas.snaps.snapResize(point)
-            updateArc(draft, x, y)
             this.canvas.connector.clearAnchorHint()
-            if (isStart || isEnd) {
-              // Recomputed fresh, not the vertexIndex captured before this drag
-              // just re-tessellated the arc, and the vertex COUNT can change with the new radius/
-              // sweep — a stale index could silently miss applyEndpointAnchor's own isEnd check.
-              const currentIndex = isStart ? 0 : SymbolGeometry.verticesOf(draft).length - 1
-              this.canvas.connector.applyEndpointAnchor(draft, currentIndex, { x, y })
-            }
             this.renderer.layer.style.cursor = ""
-            this.canvas.updateSymbol(draft)
+            this.canvas.updateSymbol(arc.id, (draft) => {
+              if (!EdgeUtil.isEdge(draft) || !EdgeUtil.isArcEdge(draft)) {
+                return
+              }
+              updateArc(draft, x, y)
+              if (isStart || isEnd) {
+                // Recomputed fresh, not the vertexIndex captured before this drag
+                // just re-tessellated the arc, and the vertex COUNT can change with the new radius/
+                // sweep — a stale index could silently miss applyEndpointAnchor's own isEnd check.
+                const currentIndex = isStart ? 0 : SymbolGeometry.verticesOf(draft).length - 1
+                this.canvas.connector.applyEndpointAnchor(draft, currentIndex, { x, y })
+              }
+            })
             this.canvas.snaps.clearSnapToElementLines()
             this.drawSelectedGroup(this.model.symbolsSelected)
           }

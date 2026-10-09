@@ -47,11 +47,9 @@ export class FontWeightStyle extends BaseMenuItem<HTMLDivElement> {
         canvas.configuration.fontStyle.weight = value as "auto" | "normal" | "bold"
         if (value !== "auto") {
           const textSymbols = canvas.model.symbolsSelected.filter((s) => isText(s))
-          canvas.updateTextFontStyle(
+          canvas.updateSymbols(
             textSymbols.map((s) => s.id),
-            {
-              fontWeight: value as "normal" | "bold",
-            }
+            { font: { weight: value as "normal" | "bold" } }
           )
           canvas.selector.redrawSelectedGroup()
         }

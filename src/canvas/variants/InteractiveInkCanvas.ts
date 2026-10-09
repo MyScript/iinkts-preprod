@@ -1,7 +1,7 @@
 import type { TExport, TRecognitionWebSocketConfiguration } from "@/client"
 import { WebSocketClient } from "@/client"
 import { DUPLICATE_OFFSET, SELECTION_PADDING } from "@/constants"
-import type { TBox, TPartialDeep } from "@/core"
+import type { TBox, TDraft, TPartialDeep } from "@/core"
 import { BoxOps, createUUID, isIdentityMatrix, MatrixTransform, mergeDeep, OBBOps, overrideDeep } from "@/core"
 import { DOMFactory, RafCoalescer } from "@/dom"
 import type { TIIHistoryBackendChanges, TIIHistoryChanges } from "@/history"
@@ -37,7 +37,7 @@ import { IIModel } from "@/model"
 import type { TIIRendererConfiguration } from "@/renderer"
 import { SVGRenderer } from "@/renderer"
 import type { TStyle } from "@/style"
-import type { TAnchor, TBaseSymbol, TDecorator, TMath, TStroke, TSymbol } from "@/symbol"
+import type { TAnchor, TBaseSymbol, TDecorator, TMath, TStroke, TSymbol, TText } from "@/symbol"
 import { cloneSymbol, extractStrokes, isDecorator, isMath, isStroke, isStrokeSolverOutput, isText } from "@/symbol"
 import type { SymbolUtil } from "@/symbol-utils"
 import {
@@ -55,7 +55,7 @@ import {
 import type { TCanvasOptionsBase } from "../AbstractCanvas"
 import { AbstractCanvas } from "../AbstractCanvas"
 import type { TCanvasOperationLabel } from "../TCanvasOperationLabel"
-import type { TInteractiveInkCanvas } from "../TInteractiveInkCanvas"
+import type { TInteractiveInkCanvas, TSymbolPatch, TSymbolUpdate } from "../TInteractiveInkCanvas"
 import type { TInteractiveInkCanvasConfiguration } from "./InteractiveInkCanvasConfiguration"
 import { InteractiveInkCanvasConfiguration } from "./InteractiveInkCanvasConfiguration"
 
@@ -580,8 +580,9 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
    * and calling the most appropriate method (erase, add, or replace)
    * @param oldStrokes - Strokes before the change
    * @param newStrokes - Strokes after the change
+   * @returns Whether anything was sent
    */
-  #optimizeClientCall(oldStrokes: TStroke[], newStrokes: TStroke[]): void {
+  #optimizeClientCall(oldStrokes: TStroke[], newStrokes: TStroke[]): boolean {
     const oldStrokeIds = new Set(oldStrokes.map((s) => s.id))
     const newStrokeIds = new Set(newStrokes.map((s) => s.id))
 
@@ -598,6 +599,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       this.startOperation("Recognizing")
       this.client.addStrokes(addedStrokes, false)
     }
+    return removedStrokeIds.length > 0 || addedStrokes.length > 0
   }
 
   /**
@@ -671,136 +673,111 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
   }
 
   /**
-   * Update an existing symbol
-   * @param sym - Symbol to update
-   * @param addToHistory - Whether to add to history (default: true)
-   * @returns Promise resolving to updated symbol
+   * Update one symbol: `updateSymbols([id], patch, addToHistory)`.
+   * @returns The updated record, or undefined when no symbol has this id
    */
-  async updateSymbol(sym: TSymbol, addToHistory = true): Promise<TSymbol> {
-    await this.updateSymbols([sym], addToHistory)
-    return sym
+  async updateSymbol(id: string, patch: TSymbolUpdate, addToHistory = true): Promise<TSymbol | undefined> {
+    const [updated] = await this.updateSymbols([id], patch, addToHistory)
+    return updated
   }
 
   /**
-   * Update multiple existing symbols
-   * @param symList - Array of symbols to update
-   * @param addToHistory - Whether to add to history (default: true)
-   * @returns Promise resolving to array of updated symbols
+   * Update symbols by id, each with the same patch.
+   *
+   * - an object patch: `style` is merged into each symbol's style, `font` is applied to the texts
+   *   (any other symbol ignores it);
+   * - a function patch: called with a draft of each symbol, to change it at will.
+   *
+   * Texts and maths are re-measured, and a text that gets wider or narrower slides the texts after it
+   * on its row. The backend hears only of strokes that appeared or disappeared: style is not
+   * recognized. Only the symbols named are touched, whatever the size of the document.
+   * @param addToHistory - Whether to add to history (default: true). Texts slid along are part of the same entry.
+   * @returns The updated records; an id with no symbol is skipped
+   * @example
+   * ```ts
+   * await canvas.updateSymbols(ids, { style: { color: "#ff0000" } })
+   * await canvas.updateSymbols(ids, { font: { size: 18, weight: "bold" } })
+   * await canvas.updateSymbols([text.id], (draft) => { if (isText(draft)) draft.decorators = [] })
+   * ```
    */
-  async updateSymbols(symList: TSymbol[], addToHistory = true): Promise<TSymbol[]> {
-    this.logger.info("updateSymbols", { symList })
-    this.manageIdleState(false)
-
-    const oldSymbolsMap = new Map<string, TSymbol>()
-    symList.forEach((sym) => {
-      const oldSymbol = this.model.getSymbol(sym.id)
-      if (oldSymbol) {
-        oldSymbolsMap.set(sym.id, oldSymbol)
-      }
-    })
-    const oldStrokes = this.extractStrokesFromSymbols(Array.from(oldSymbolsMap.values()))
-
-    symList.forEach((s) => {
-      this.updateTypesetBounds(s)
-      this.model.updateSymbol(s)
-      this.renderer.drawSymbol(s)
-    })
-
-    const newStrokes = this.extractStrokesFromSymbols(symList)
-    this.#optimizeClientCall(oldStrokes, newStrokes)
-
-    if (addToHistory) {
-      this.history.push({
-        updated: symList.map((after) => ({ before: oldSymbolsMap.get(after.id) ?? after, after })),
-      })
-    }
-    this.updateLayerUI()
-    return symList
-  }
-
-  /**
-   * Update style of multiple symbols
-   * @param symbolIds - Array of symbol IDs to update
-   * @param style - Partial style to apply
-   * @param addToHistory - Whether to add to history (default: true)
-   */
-  updateSymbolsStyle(symbolIds: string[], style: TPartialDeep<TStyle>, addToHistory = true): void {
-    this.logger.info("updateSymbolsStyle", { symbolIds, style })
-    const symbols: TSymbol[] = []
-    // Snapshots, not just the old styles: history records a whole before/after record now, which
-    // also covers the geometry a font change moves. Cloned before the draft is mutated.
-    const before: TSymbol[] = []
-    // Driven by the id list rather than by a scan of the document: `symbolIds.includes` inside a
-    // full pass was O(n·m), and drafting by id is O(m).
-    symbolIds.forEach((id) => {
-      const s = this.model.draftSymbol(id)
-      if (!s) {
+  async updateSymbols(ids: string[], patch: TSymbolUpdate, addToHistory = true): Promise<TSymbol[]> {
+    this.logger.info("updateSymbols", { ids, patch })
+    const befores: TSymbol[] = []
+    const afters: TSymbol[] = []
+    // One flat list of before/after pairs: the symbols patched, and the texts that had to slide along
+    // because a text got wider or narrower. Both are just symbols whose record changed.
+    const updated: NonNullable<TIIHistoryChanges["updated"]> = []
+    // Driven by the id list rather than by a scan of the document: drafting by id is O(m).
+    ids.forEach((id) => {
+      // The committed record is frozen, so it is the snapshot: nothing to clone
+      const before = this.model.getSymbol(id)
+      const draft = before && this.#isChangedBy(before, patch) ? this.model.draftSymbol(id) : undefined
+      if (!before || !draft) {
         return
       }
-      before.push(cloneSymbol(s))
-      s.style = Object.assign({}, s.style, style)
-      if (isText(s)) {
-        TextUtil.updateChildrenStyle(s)
-        // `typeset.updateBounds` measures the fresh box and commits the draft in the same call —
-        // reading the width before and after *that* call, rather than after a separate
-        // `commitSymbol`, is what keeps `s` mutable long enough for `updateBounds` to write
-        // `bounds` at all: a committed symbol is frozen, and assigning into a frozen `bounds`
-        // throws.
-        const lastWidth = SymbolGeometry.boundsOf(s).width
-        this.typeset.updateBounds(s)
-        const tx = SymbolGeometry.boundsOf(s).width - lastWidth
-        if (tx !== 0) {
-          this.typeset.moveTextAfter(s, tx)
-        }
-      } else {
-        // `commitSymbol` stamps `modificationDate` itself; the old code stamped it again *after*
-        // committing, which was redundant and wrote to an already-stored record.
-        this.model.commitSymbol(s)
-      }
-      this.renderer.drawSymbol(s)
-      symbols.push(s)
+      updated.push(...this.#applyPatch(draft, patch))
+      this.renderer.drawSymbol(draft)
+      const after = this.model.getSymbol(id) ?? draft
+      updated.push({ before, after })
+      befores.push(before)
+      afters.push(after)
     })
-    if (addToHistory && symbols.length) {
-      this.history.push({ updated: symbols.map((after, index) => ({ before: before[index], after })) })
+    if (this.#optimizeClientCall(this.extractStrokesFromSymbols(befores), this.extractStrokesFromSymbols(afters))) {
+      this.manageIdleState(false)
     }
-  }
-
-  /**
-   * Update font style of text symbols
-   * @param textIds - Array of text symbol IDs
-   * @param options - Font style options (fontSize, fontWeight)
-   */
-  updateTextFontStyle(
-    textIds: string[],
-    { fontSize, fontWeight }: { fontSize?: number; fontWeight?: "normal" | "bold" | "auto" }
-  ): void {
-    this.logger.info("updateTextFontStyle", { textIds, fontSize, fontWeight })
-    // One flat list of before/after pairs: the texts whose font changed, and the texts that had to
-    // slide along because a font change makes a word wider or narrower. Both are just symbols whose
-    // record changed, so history no longer distinguishes them.
-    const updated: { before: TSymbol; after: TSymbol }[] = []
-    // Driven by the id list rather than by a scan of the document, same as `updateSymbolsStyle`.
-    textIds.forEach((id) => {
-      const s = this.model.draftSymbol(id)
-      if (!s || !isText(s)) {
-        return
-      }
-      const before = cloneSymbol(s)
-      TextUtil.updateChildrenFont(s, { fontSize, fontWeight: fontWeight === "auto" ? undefined : fontWeight })
-      const lastWidth = SymbolGeometry.boundsOf(s).width
-      this.typeset.updateBounds(s)
-      this.renderer.drawSymbol(s)
-      const tx = SymbolGeometry.boundsOf(s).width - lastWidth
-      if (tx !== 0) {
-        updated.push(...(this.typeset.moveTextAfter(s, tx) ?? []))
-      }
-      // `typeset.updateBounds` above already committed the draft, which stamps
-      // `modificationDate`; the old code stamped it again afterwards.
-      updated.push({ before, after: this.model.getSymbol(s.id) ?? s })
-    })
-    if (updated.length) {
+    if (addToHistory && updated.length) {
       this.history.push({ updated })
     }
+    this.updateLayerUI()
+    return afters
+  }
+
+  /** A font alone changes nothing but a text */
+  #isChangedBy(symbol: TSymbol, patch: TSymbolUpdate): boolean {
+    return typeof patch === "function" || !!patch.style || isText(symbol)
+  }
+
+  /** Applies the patch to the draft and commits it. Returns the texts it slid along. */
+  #applyPatch(draft: TDraft<TSymbol>, patch: TSymbolUpdate): NonNullable<TIIHistoryChanges["updated"]> {
+    if (typeof patch === "function") {
+      patch(draft)
+    } else if (patch.style) {
+      draft.style = { ...draft.style, ...patch.style }
+    }
+    if (isText(draft)) {
+      return this.#retypesetText(draft, typeof patch === "function" ? {} : patch)
+    }
+    if (isMath(draft)) {
+      // Measures the math and commits the draft in one call
+      this.typeset.updateBounds(draft)
+    } else {
+      this.model.commitSymbol(draft)
+    }
+    return []
+  }
+
+  /**
+   * Hands a text's new style and font down to its chars, re-measures it, commits the draft, and
+   * slides the texts after it on its row by the width it gained or lost. Returns those moves.
+   */
+  #retypesetText(text: TText, { style, font }: TSymbolPatch): NonNullable<TIIHistoryChanges["updated"]> {
+    if (style) {
+      TextUtil.updateChildrenStyle(text)
+    }
+    if (font) {
+      TextUtil.updateChildrenFont(text, {
+        fontSize: font.size,
+        fontWeight: font.weight === "auto" ? undefined : font.weight,
+      })
+    }
+    // `typeset.updateBounds` measures the fresh box and commits the draft in the same call —
+    // reading the width before and after *that* call, rather than after a separate
+    // `commitSymbol`, is what keeps `text` mutable long enough for `updateBounds` to write
+    // `bounds` at all: a committed symbol is frozen, and assigning into a frozen `bounds` throws.
+    const lastWidth = SymbolGeometry.boundsOf(text).width
+    this.typeset.updateBounds(text)
+    const tx = SymbolGeometry.boundsOf(text).width - lastWidth
+    return tx !== 0 ? (this.typeset.moveTextAfter(text, tx) ?? []) : []
   }
 
   /**

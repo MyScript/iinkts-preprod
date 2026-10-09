@@ -91,7 +91,7 @@ describe("DecoratorContextMenu.ts", () => {
     checkbox.dispatchEvent(new Event("change", { bubbles: true }))
 
     // IIModel.symbolsSelected clones on read, so the handler mutates a clone, not `text` itself
-    const updatedSymbols = (canvas.updateSymbols as jest.Mock).mock.calls[0][0]
+    const updatedSymbols = (canvas.updateSymbols as jest.Mock).mock.calls[0][0].map((id: string) => canvas.model.getSymbol(id))
     expect(updatedSymbols).toHaveLength(1)
     expect(updatedSymbols[0].decorators.some((d: { kind: string }) => d.kind === DecoratorKind.Highlight)).toBe(true)
     expect(firstColorButton.disabled).toBe(false)
@@ -113,7 +113,7 @@ describe("DecoratorContextMenu.ts", () => {
 
     redButton.dispatchEvent(new Event("pointerup", { bubbles: true, cancelable: true }))
 
-    const updatedSymbols = (canvas.updateSymbols as jest.Mock).mock.calls[0][0]
+    const updatedSymbols = (canvas.updateSymbols as jest.Mock).mock.calls[0][0].map((id: string) => canvas.model.getSymbol(id))
     const decorator = updatedSymbols[0].decorators.find((d: { kind: string }) => d.kind === DecoratorKind.Highlight)
     expect(decorator?.style.color).toEqual("#ff0000")
     expect(redButton.classList.contains("active")).toBe(true)
