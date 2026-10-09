@@ -12,7 +12,7 @@ function levelButton(page, track, level) {
 
 test.describe("Interactive ink canvas Math Tutor", { tag: "@slow" }, () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto(`${process.env.PATH_PREFIX ? process.env.PATH_PREFIX : ""}/examples/interactive-canvas/math-tutor/index.html`)
+    await page.goto(`${process.env.PATH_PREFIX ? process.env.PATH_PREFIX : ""}/examples/interactive-canvas/interactive_canvas_math_tutor.html`)
     await passModalKey(page)
   })
 
