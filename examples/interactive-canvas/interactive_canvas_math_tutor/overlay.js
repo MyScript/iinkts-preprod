@@ -5,6 +5,7 @@
  * left to the ink overlay.
  */
 
+import { convertBoundingBoxMillimeterToPixel } from "../../../dist/iink.esm.js"
 import { InkOverlay } from "../../components/ink-overlay/ink-overlay.js"
 import { UI } from "./strings.js"
 
@@ -52,7 +53,7 @@ export class TutorOverlay {
    * @param {TKatex | undefined} katex
    */
   constructor(container, canvasElement, katex) {
-    this.ink = new InkOverlay(container, canvasElement)
+    this.ink = new InkOverlay(container, canvasElement, convertBoundingBoxMillimeterToPixel)
     this.katex = katex
   }
 
