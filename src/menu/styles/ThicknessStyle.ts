@@ -53,9 +53,9 @@ export class ThicknessStyle extends BaseMenuItem<HTMLDivElement> {
         const numValue = parseInt(value)
         canvas.penStyle = { width: numValue }
         if (canvas.model.symbolsSelected.length) {
-          canvas.updateSymbolsStyle(
+          canvas.updateSymbols(
             canvas.model.symbolsSelected.map((s) => s.id),
-            { width: numValue }
+            { style: { width: numValue } }
           )
           canvas.selector.redrawSelectedGroup()
         }

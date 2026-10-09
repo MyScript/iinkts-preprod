@@ -1,5 +1,5 @@
 import { IIModel, DefaultInteractiveInkCanvasConfiguration, InteractiveInkCanvasConfiguration, DefaultStyle, CanvasTool, CanvasWriteTool, SymbolType, DOMFactory, CanvasLayer, LayoutManager, registerBuiltinSymbolUtils } from "@/iink"
-import type { TInteractiveInkCanvas, TStyle, TSymbol, TStroke } from "@/iink"
+import type { TInteractiveInkCanvas, TStyle, TSymbol, TStroke, TSymbolUpdate } from "@/iink"
 import { CanvasEventMock } from "./CanvasEventMock"
 
 /**
@@ -153,6 +153,19 @@ export function createCanvasMock(overrides: Partial<TCanvasMock> = {}): TCanvasM
     overrides.configuration ??
     new InteractiveInkCanvasConfiguration(JSON.parse(JSON.stringify(DefaultInteractiveInkCanvasConfiguration)))
   const model = overrides.model ?? new IIModel()
+  const applyUpdate = (id: string, patch: TSymbolUpdate): TSymbol | undefined => {
+    const draft = model.draftSymbol(id)
+    if (!draft) {
+      return undefined
+    }
+    if (typeof patch === "function") {
+      patch(draft)
+    } else if (patch.style) {
+      draft.style = { ...draft.style, ...patch.style }
+    }
+    model.commitSymbol(draft)
+    return model.getSymbol(id) ?? draft
+  }
   const renderer = overrides.renderer ?? createRendererStub()
   const event = overrides.event ?? new CanvasEventMock(document.createElement("div"))
   const client = overrides.client ?? stubManager()
@@ -322,16 +335,13 @@ export function createCanvasMock(overrides: Partial<TCanvasMock> = {}): TCanvasM
     // These write through to the model, like the real canvas: since IIC-1974 the document holds
     // frozen records and callers commit drafts, so a stub that swallowed the write would leave the
     // model showing the pre-drag value and the test asserting on nothing.
-    updateSymbol: jest.fn().mockImplementation((sym: unknown) => {
-      model.updateSymbol(sym as TSymbol)
-      return Promise.resolve(sym)
+    // Apply the patch to a draft and commit it: no typesetting, no history, no backend
+    updateSymbol: jest.fn().mockImplementation((id: string, patch: TSymbolUpdate) => {
+      return Promise.resolve(applyUpdate(id, patch))
     }),
-    updateSymbols: jest.fn().mockImplementation((syms: unknown) => {
-      ;(syms as TSymbol[]).forEach((s) => model.updateSymbol(s))
-      return Promise.resolve(syms)
+    updateSymbols: jest.fn().mockImplementation((ids: string[], patch: TSymbolUpdate) => {
+      return Promise.resolve(ids.flatMap((id) => applyUpdate(id, patch) ?? []))
     }),
-    updateSymbolsStyle: jest.fn(),
-    updateTextFontStyle: jest.fn(),
     replaceSymbols: jest.fn().mockResolvedValue(undefined),
     changeOrderSymbols: jest.fn(),
     removeSymbol: jest.fn().mockResolvedValue(undefined),

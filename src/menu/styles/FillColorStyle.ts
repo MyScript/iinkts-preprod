@@ -48,9 +48,9 @@ export class FillColorStyle extends BaseMenuItem<HTMLDivElement> {
       initValue: color,
       onChange: (fill, canvas) => {
         canvas.penStyle = { fill }
-        canvas.updateSymbolsStyle(
+        canvas.updateSymbols(
           canvas.model.symbolsSelected.map((s) => s.id),
-          { fill }
+          { style: { fill } }
         )
       },
     }
