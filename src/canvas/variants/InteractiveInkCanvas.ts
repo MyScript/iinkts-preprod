@@ -639,24 +639,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
 
   /** @hidden */
   async addSymbol(sym: TSymbol, addToHistory = true): Promise<TSymbol> {
-    this.logger.info("addSymbol", { sym })
-    this.manageIdleState(false)
-    this.updateTypesetBounds(sym)
-    this.model.addSymbol(sym)
-    this.renderer.drawSymbol(sym)
-
-    const strokes = this.extractStrokesFromSymbols([sym])
-    if (strokes.length > 0) {
-      this.startOperation("Recognizing")
-    }
-    this.client.addStrokes(strokes, false)
-
-    if (addToHistory) {
-      this.history.push({
-        added: [sym],
-      })
-    }
-    this.updateLayerUI()
+    await this.addSymbols([sym], addToHistory)
     return sym
   }
 
@@ -667,7 +650,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
    * @returns Promise resolving to array of added symbols
    */
   async addSymbols(symList: TSymbol[], addToHistory = true): Promise<TSymbol[]> {
-    this.logger.info("addSymbol", { symList })
+    this.logger.info("addSymbols", { symList })
     this.manageIdleState(false)
     symList.forEach((s) => {
       this.updateTypesetBounds(s)
@@ -695,26 +678,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
    * @returns Promise resolving to updated symbol
    */
   async updateSymbol(sym: TSymbol, addToHistory = true): Promise<TSymbol> {
-    this.logger.info("updateSymbol", { sym })
-    this.manageIdleState(false)
-    this.updateTypesetBounds(sym)
-
-    const oldSymbol = this.model.getSymbol(sym.id)
-    const oldStrokes = oldSymbol ? this.extractStrokesFromSymbols([oldSymbol]) : []
-
-    this.model.updateSymbol(sym)
-    this.renderer.drawSymbol(sym)
-
-    const newStrokes = this.extractStrokesFromSymbols([sym])
-
-    this.#optimizeClientCall(oldStrokes, newStrokes)
-
-    if (addToHistory) {
-      this.history.push({
-        updated: [{ before: oldSymbol ?? sym, after: sym }],
-      })
-    }
-    this.updateLayerUI()
+    await this.updateSymbols([sym], addToHistory)
     return sym
   }
 
@@ -725,7 +689,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
    * @returns Promise resolving to array of updated symbols
    */
   async updateSymbols(symList: TSymbol[], addToHistory = true): Promise<TSymbol[]> {
-    this.logger.info("updateSymbol", { symList })
+    this.logger.info("updateSymbols", { symList })
     this.manageIdleState(false)
 
     const oldSymbolsMap = new Map<string, TSymbol>()
@@ -1064,14 +1028,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       this.manageIdleState(false)
       this.startOperation("Recognizing")
       this.client.eraseStrokes([id])
-      if (
-        isStroke(symbol) &&
-        symbol.jiixBlockType === "Math" &&
-        symbol.jiixBlockId &&
-        this.math.hasGhostStrokes(symbol.jiixBlockId)
-      ) {
-        this.math.clearGhostStrokes(symbol.jiixBlockId)
-      }
+      this.#clearGhostOf(symbol)
       this.model.removeSymbol(symbol.id)
       this.renderer.removeSymbol(symbol.id)
       const cleanup = this.#cleanupAfterRemoval([symbol])
@@ -1085,6 +1042,15 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       this.client.eraseStrokes([id])
     }
     this.selector.removeSelectedGroup()
+  }
+
+  /** A removed stroke of a math block takes the block's ghost result with it */
+  #clearGhostOf(symbol: TSymbol): void {
+    if (isStroke(symbol) && symbol.jiixBlockType === "Math" && symbol.jiixBlockId) {
+      if (this.math.hasGhostStrokes(symbol.jiixBlockId)) {
+        this.math.clearGhostStrokes(symbol.jiixBlockId)
+      }
+    }
   }
 
   /**
@@ -1103,9 +1069,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
         symbolsRemoved.push(sym)
         if (isStroke(sym)) {
           strokesIds.push(sym.id)
-          if (sym.jiixBlockType === "Math" && sym.jiixBlockId && this.math.hasGhostStrokes(sym.jiixBlockId)) {
-            this.math.clearGhostStrokes(sym.jiixBlockId)
-          }
+          this.#clearGhostOf(sym)
         }
         this.model.removeSymbol(sym.id)
         this.renderer.removeSymbol(sym.id)
