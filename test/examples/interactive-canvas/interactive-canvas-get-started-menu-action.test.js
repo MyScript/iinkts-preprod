@@ -214,7 +214,11 @@ test.describe("Interactive ink canvas Get Started Menu Action", { tag: ["@touch"
     await test.step("should define strikethrough on draw", async () => {
       await page.locator(locator.menu.action.gesture.triggerBtn).click()
       await page.locator(locator.menu.action.gesture.detectCheckbox).check()
+      await page.locator(locator.menu.action.gesture.strikeThroughMenuBtn).click()
       await page.locator(locator.menu.action.gesture.strikeThroughSelect).selectOption({ value: "draw" })
+      // The strikethrough submenu overlaps the strokes written next: close the menu so they reach the canvas
+      await page.locator(locator.menu.action.triggerBtn).click()
+      await expect(page.locator(locator.menu.action.gesture.triggerBtn)).toBeHidden()
     })
 
     await test.step("should draw strikethrough on stroke", async () => {
@@ -282,7 +286,11 @@ test.describe("Interactive ink canvas Get Started Menu Action", { tag: ["@touch"
       await page.locator(locator.menu.action.gesture.detectCheckbox).check()
 
       //select draw on strikethrough
+      await page.locator(locator.menu.action.gesture.strikeThroughMenuBtn).click()
       await page.locator(locator.menu.action.gesture.strikeThroughSelect).selectOption({ value: "erase" })
+      // The strikethrough submenu overlaps the strokes written next: close the menu so they reach the canvas
+      await page.locator(locator.menu.action.triggerBtn).click()
+      await expect(page.locator(locator.menu.action.gesture.triggerBtn)).toBeHidden()
     })
 
     await test.step("should erase stroke when strikethrough", async () => {
@@ -316,7 +324,11 @@ test.describe("Interactive ink canvas Get Started Menu Action", { tag: ["@touch"
       await page.locator(locator.menu.action.gesture.detectCheckbox).check()
 
       //select draw on surround
+      await page.locator(locator.menu.action.gesture.surroundMenuBtn).click()
       await page.locator(locator.menu.action.gesture.surroundSelect).selectOption({ value: "select" })
+      // The surround submenu overlaps the strokes written next: close the menu so they reach the canvas
+      await page.locator(locator.menu.action.triggerBtn).click()
+      await expect(page.locator(locator.menu.action.gesture.triggerBtn)).toBeHidden()
     })
 
     await test.step("write hello in one stroke", async () => {
@@ -367,7 +379,11 @@ test.describe("Interactive ink canvas Get Started Menu Action", { tag: ["@touch"
       await page.locator(locator.menu.action.gesture.detectCheckbox).check()
 
       //select surround on surround
+      await page.locator(locator.menu.action.gesture.surroundMenuBtn).click()
       await page.locator(locator.menu.action.gesture.surroundSelect).selectOption({ value: "surround" })
+      // The surround submenu overlaps the strokes written next: close the menu so they reach the canvas
+      await page.locator(locator.menu.action.triggerBtn).click()
+      await expect(page.locator(locator.menu.action.gesture.triggerBtn)).toBeHidden()
     })
 
     await test.step("write again hello surrounded", async () => {
@@ -454,6 +470,8 @@ test.describe("Interactive ink canvas Get Started Menu Action", { tag: ["@touch"
       await expect(page.locator(locator.menu.action.gesture.insertSelect)).toBeHidden()
       await page.locator(locator.menu.action.gesture.triggerBtn).click()
       await expect(page.locator(locator.menu.action.gesture.detectCheckbox)).toBeVisible()
+      await expect(page.locator(locator.menu.action.gesture.insertSelect)).toBeHidden()
+      await page.locator(locator.menu.action.gesture.insertMenuBtn).click()
       await expect(page.locator(locator.menu.action.gesture.insertSelect)).toBeVisible()
     })
 

@@ -9,9 +9,11 @@ import { SymbolGeometry, symbolRegistry, TextUtil } from "@/symbol-utils"
 import { GestureHandler } from "../GestureHandler"
 import type { GestureHelpers } from "../GestureHelpers"
 import type { TGesture } from "../GestureTypes"
+import { JoinAction } from "../GestureTypes"
 /**
  * Handler for JOIN gesture type
  * Joins rows of text together by removing line breaks
+ * Supports two actions: Join (glue words, pull rows up) and CloseGap (one word space, rows stay)
  * @group Manager
  */
 export class JoinGestureHandler extends GestureHandler {
@@ -19,6 +21,24 @@ export class JoinGestureHandler extends GestureHandler {
 
   constructor(canvas: TInteractiveInkCanvas, helpers: GestureHelpers) {
     super(canvas, helpers)
+  }
+
+  /**
+   * The right edge of what precedes the gesture in its row and the left edge of what follows it.
+   */
+  protected getGapEdges(before: TSymbol[], after: TSymbol[]): { lastXBefore: number; firstXAfter: number } {
+    const rightEdge = (s: TSymbol) => {
+      const b = SymbolGeometry.boundsOf(s)
+      return b.center.x + b.width / 2
+    }
+    const leftEdge = (s: TSymbol) => {
+      const b = SymbolGeometry.boundsOf(s)
+      return b.center.x - b.width / 2
+    }
+    return {
+      lastXBefore: Math.max(...before.map(rightEdge)),
+      firstXAfter: Math.min(...after.map(leftEdge)),
+    }
   }
 
   async apply(gestureStroke: TStroke, gesture: TGesture): Promise<void> {
@@ -54,28 +74,23 @@ export class JoinGestureHandler extends GestureHandler {
     // shift below.
     const shifts: { symbols: TSymbol[]; tx: number; ty: number }[] = []
 
-    if (symbolsBeforeGestureInRow.length && symbolsAfterGestureInRow.length) {
+    if (
+      this.manager.joinAction === JoinAction.CloseGap &&
+      symbolsBeforeGestureInRow.length &&
+      symbolsAfterGestureInRow.length
+    ) {
+      const { lastXBefore, firstXAfter } = this.getGapEdges(symbolsBeforeGestureInRow, symbolsAfterGestureInRow)
+      shifts.push({
+        symbols: symbolsAfterGestureInRow,
+        tx: lastXBefore + this.strokeSpaceWidth - firstXAfter,
+        ty: 0,
+      })
+    } else if (this.manager.joinAction === JoinAction.CloseGap) {
+      // Rows stay in place: with nothing on one side of the gesture, there is no gap to close.
+    } else if (symbolsBeforeGestureInRow.length && symbolsAfterGestureInRow.length) {
       const lastSymbBefore = this.getLastSymbol(symbolsBeforeGestureInRow)!
       const firstSymbolAfter = this.getFirstSymbol(symbolsAfterGestureInRow)!
-
-      const firstBeforeBounds = SymbolGeometry.boundsOf(symbolsBeforeGestureInRow[0])
-      let lastXBefore = firstBeforeBounds.center.x + firstBeforeBounds.width / 2
-      for (let i = 1; i < symbolsBeforeGestureInRow.length; i++) {
-        const b = SymbolGeometry.boundsOf(symbolsBeforeGestureInRow[i])
-        const xMax = b.center.x + b.width / 2
-        if (xMax > lastXBefore) {
-          lastXBefore = xMax
-        }
-      }
-      const firstAfterBounds = SymbolGeometry.boundsOf(symbolsAfterGestureInRow[0])
-      let firstXAfter = firstAfterBounds.center.x - firstAfterBounds.width / 2
-      for (let i = 1; i < symbolsAfterGestureInRow.length; i++) {
-        const b = SymbolGeometry.boundsOf(symbolsAfterGestureInRow[i])
-        const xMin = b.center.x - b.width / 2
-        if (xMin < firstXAfter) {
-          firstXAfter = xMin
-        }
-      }
+      const { lastXBefore, firstXAfter } = this.getGapEdges(symbolsBeforeGestureInRow, symbolsAfterGestureInRow)
       const translateX = lastXBefore - firstXAfter
 
       const lastSymbBeforeClone = cloneSymbol(lastSymbBefore)
