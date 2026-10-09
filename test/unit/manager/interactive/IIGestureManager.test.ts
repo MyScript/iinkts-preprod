@@ -94,6 +94,14 @@ describe("IIGestureManager.ts", () => {
 
     beforeEach(() => {
       canvas.model.clear()
+      canvas.configuration.recognition["raw-content"].gestures = [
+        "underline",
+        "scratch-out",
+        "join",
+        "insert",
+        "strike-through",
+        "surround",
+      ]
     })
 
     test("should return undefined when recognizeGesture return nothing", async () => {
@@ -230,6 +238,14 @@ describe("IIGestureManager.ts", () => {
           })
         )
       })
+      test("must return undefined when scratch-out is disabled in the recognition configuration", async () => {
+        canvas.configuration.recognition["raw-content"].gestures = ["join"]
+        const gestureStroke = buildIIStroke({ box: { height: 2, width: 10, x: 0, y: 10 } })
+        const text = buildIIText({ boundingBox: { height: 12, width: 10, x: 0, y: 0 } })
+        canvas.model.addSymbol(gestureStroke)
+        canvas.model.addSymbol(text)
+        expect(await gestMan.getGestureFromContextLess(gestureStroke)).toBeUndefined()
+      })
     })
 
     describe("bottom-top", () => {
@@ -260,6 +276,14 @@ describe("IIGestureManager.ts", () => {
             gestureStrokeId: gestureStroke.id,
           })
         )
+      })
+      test("must return undefined when join is disabled in the recognition configuration", async () => {
+        canvas.configuration.recognition["raw-content"].gestures = ["insert"]
+        const gestureStroke = buildIIStroke({ box: { height: 20, width: 10, x: 0, y: rowHeight } })
+        const text = buildIIText({ boundingBox: { height: 12, width: 10, x: 0, y: rowHeight } })
+        canvas.model.addSymbol(gestureStroke)
+        canvas.model.addSymbol(text)
+        expect(await gestMan.getGestureFromContextLess(gestureStroke)).toBeUndefined()
       })
     })
 

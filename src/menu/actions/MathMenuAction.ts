@@ -5,7 +5,6 @@ import type { TPartialDeep } from "@/core"
 import type { TMathResultMode } from "@/manager"
 
 import type { TMenuItemBase } from "../items/BaseMenuItem"
-import type { TMenuCheckbox } from "../items/CheckboxMenuItem"
 import type { TMenuRange } from "../items/RangeMenuItem"
 import type { TMenuSelect } from "../items/SelectMenuItem"
 import type { TMenuSubMenu, TSubMenuItems } from "../items/SubMenuItem"
@@ -35,9 +34,6 @@ export type TMathSolverItemsConfig = {
   fractionalDigits?: boolean
   decimalSeparator?: boolean
   roundingMode?: boolean
-  options?: boolean
-  autoVariable?: boolean
-  scopingPolicy?: boolean
 }
 
 /**
@@ -51,9 +47,6 @@ const SOLVER_ITEM_KEYS: (keyof TMathSolverItemsConfig)[] = [
   "fractionalDigits",
   "decimalSeparator",
   "roundingMode",
-  "options",
-  "autoVariable",
-  "scopingPolicy",
 ]
 
 type TWebSocketSolverConfiguration = NonNullable<NonNullable<TRecognitionWebSocketConfiguration["math"]>["solver"]>
@@ -120,21 +113,6 @@ function fractionalDigitsRange(canvas: TInteractiveInkCanvas, id: string, deboun
   }
 }
 
-function autoVariableCheckbox(id: string): TMenuCheckbox {
-  return {
-    type: "checkbox",
-    id,
-    label: "Auto variables",
-    getValue: isAutoVariableEnabled,
-    setValue: (canvas, value) => {
-      if (!value) {
-        canvas.math.clearVariableInteractions()
-      }
-      changeSolver(canvas, { "auto-variable-management": { enable: value } })
-    },
-  }
-}
-
 function buildSolverItems(
   canvas: TInteractiveInkCanvas,
   id: string,
@@ -171,30 +149,6 @@ function buildSolverItems(
       ],
       read: (solver) => solver["rounding-mode"],
       write: (value) => ({ "rounding-mode": value }),
-    }),
-    options: solverSelect({
-      id: `${id}-options`,
-      label: "Solving",
-      serverDefault: true,
-      choices: [
-        { value: "algebraic", label: "Algebraic" },
-        { value: "numeric", label: "Numeric" },
-      ],
-      read: (solver) => solver.options,
-      write: (value) => ({ options: value }),
-    }),
-    autoVariable: autoVariableCheckbox(`${id}-auto-variable`),
-    scopingPolicy: solverSelect({
-      id: `${id}-scoping-policy`,
-      label: "Variable scoping",
-      visible: isAutoVariableEnabled,
-      choices: [
-        { value: "closest", label: "Closest" },
-        { value: "last-modified", label: "Last modified" },
-        { value: "last-edited", label: "Last edited" },
-      ],
-      read: (solver) => solver["auto-variable-management"]?.["scoping-policy"],
-      write: (value) => ({ "auto-variable-management": { "scoping-policy": value } }),
     }),
   }
 }

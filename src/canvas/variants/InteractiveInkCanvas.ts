@@ -503,11 +503,13 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     this.#pendingRecognitionOverride = undefined
     const snapshot = structuredClone(this.configuration.recognition)
     const wasReadOnly = this.readOnly
+    // Read before overrideDeep: afterwards the override's lang always equals the configured one
+    const isLangChanged = !!override.lang && override.lang !== this.configuration.recognition.lang
     try {
       this.logger.info("updateRecognitionConfiguration", { override })
       this.readOnly = true
       overrideDeep(this.configuration.recognition, override)
-      await this.#resynchronizeSession()
+      await this.#resynchronizeSession(isLangChanged)
     } catch (error) {
       this.logger.error("updateRecognitionConfiguration", error)
       this.configuration.recognition = snapshot
@@ -524,24 +526,28 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
    * Solver outputs are cleared first: they were computed with the previous configuration and,
    * being strokes, would otherwise be sent back as ink.
    */
-  async #resynchronizeSession(): Promise<void> {
+  async #resynchronizeSession(needNewSession: boolean): Promise<void> {
     this.manageIdleState(false)
     await this.math.clearAllSolverOutputs()
     // Reset the export to force synchronization.
     this.model.invalidateExports()
-    await this.client.newSession(this.configuration)
-    const strokes = this.extractStrokesFromSymbols(this.model.symbols).filter((s) => !isStrokeSolverOutput(s))
-    if (strokes.length > 0) {
-      this.startOperation("Recognizing")
-      await this.client.addStrokes(strokes, false)
+    if (needNewSession) {
+      await this.client.newSession(this.configuration)
+      const strokes = this.extractStrokesFromSymbols(this.model.symbols).filter((s) => !isStrokeSolverOutput(s))
+      if (strokes.length > 0) {
+        this.startOperation("Recognizing")
+        await this.client.addStrokes(strokes, false)
+      }
+      if (strokes.length === 0) {
+        this.clearOperation("Recognizing")
+      }
+    } else {
+      await this.client.changeConfiguration(this.configuration)
     }
     this.layers.hideLoader()
     this.event.emitLoaded()
     if (this.math.getComputationConfig().autoCompute) {
       await this.math.tryAutoCompute()
-    }
-    if (strokes.length === 0) {
-      this.clearOperation("Recognizing")
     }
   }
 

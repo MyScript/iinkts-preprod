@@ -517,6 +517,11 @@ export class WebSocketClient {
     this.event.emitIdle(true)
   }
 
+  protected manageConfigurationChanged(): void {
+    // Every caller waiting for idle is answered by the same idle
+    this.answer("configurationChanged", undefined, true)
+  }
+
   protected manageErrorMessage(errorMessage: TWebSocketClientMessageError): void {
     this.currentErrorCode = errorMessage.data?.code || errorMessage.code
     let message = errorMessage.data?.message || errorMessage.message || ClientError.UNKNOWN
@@ -627,6 +632,9 @@ export class WebSocketClient {
         case TWebSocketClientMessageType.Idle:
           this.manageWaitForIdle()
           break
+        case TWebSocketClientMessageType.ConfigurationChanged:
+          this.manageConfigurationChanged()
+          break
         case TWebSocketClientMessageType.Ack:
           this.manageAck()
           break
@@ -651,6 +659,12 @@ export class WebSocketClient {
     this.sessionId = undefined
     this.currentPartId = undefined
     await this.init()
+  }
+
+  async changeConfiguration(config: TPartialDeep<TWebSocketClientConfiguration>): Promise<void> {
+    this.configuration = overrideDeep(mergeDeep<WebSocketClientConfiguration>({}, this.configuration), config)
+    await this.send({ type: "changeConfiguration", configuration: this.configuration.recognition })
+    return this.waitForAnswer<void>("configurationChanged", undefined).promise
   }
 
   async init(): Promise<void> {
