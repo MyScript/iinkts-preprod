@@ -1671,7 +1671,8 @@ describe("InteractiveInkCanvas.ts", () => {
       canvas.event.emitError = jest.fn()
       await expect(async () => await canvas.convert()).rejects.toEqual("convert-error")
       expect(canvas.event.emitError).toHaveBeenCalledTimes(1)
-      expect(canvas.event.emitError).toHaveBeenCalledWith("convert-error")
+      // A rejection that is not an Error reaches the error listeners as one, as their type says
+      expect(canvas.event.emitError).toHaveBeenCalledWith(new Error("convert-error"))
     })
   })
 
