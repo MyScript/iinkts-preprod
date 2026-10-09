@@ -13,14 +13,9 @@ describe("components/ink-overlay", () => {
   let canvasElement: HTMLElement
   let svg: SVGSVGElement
 
+  // Shaped like the SVGMatrix Chrome returns: coefficients only, no transformPoint
   const ctm = (scale: number, dx: number, dy: number) =>
-    ({
-      a: scale,
-      d: scale,
-      e: dx,
-      f: dy,
-      transformPoint: ({ x = 0, y = 0 }: DOMPointInit) => ({ x: x * scale + dx, y: y * scale + dy }),
-    }) as unknown as DOMMatrix
+    ({ a: scale, b: 0, c: 0, d: scale, e: dx, f: dy }) as unknown as DOMMatrix
 
   const item = (box: TBox) => ({
     element: document.createElement("div"),
