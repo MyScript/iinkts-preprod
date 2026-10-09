@@ -84,7 +84,8 @@ export type TInteractiveInkCanvasOptions = TPartialDeep<
   }
 > & {
   override?: {
-    client?: WebSocketClient
+    /** A `WebSocketClient` subclass, instantiated by the canvas with its configuration */
+    client?: typeof WebSocketClient
     menu?: TMenuOverride
   }
   /** Content added at load, so it is there from the first render (functions: hence not in `configuration`) */
@@ -187,12 +188,8 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     registerBuiltinSymbolUtils()
     this.#configuration = new InteractiveInkCanvasConfiguration(options?.configuration)
     this.#penStyle = Object.assign({}, this.#configuration.penStyle)
-    if (options?.override?.client) {
-      const CustomRecognizer = options?.override.client as unknown as typeof WebSocketClient
-      this.client = new CustomRecognizer(this.#configuration)
-    } else {
-      this.client = new WebSocketClient(this.#configuration)
-    }
+    const Client = options?.override?.client ?? WebSocketClient
+    this.client = new Client(this.#configuration)
     this.client.event.addErrorListener(this.manageError.bind(this))
     this.client.event.addExportedListener(this.event.emitExported.bind(this.event))
     this.client.event.addContentChangedListener(this.onContentChanged.bind(this))
