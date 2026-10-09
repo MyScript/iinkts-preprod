@@ -4,7 +4,7 @@ import { measureExercise } from "../../../../../examples/interactive-canvas/inte
 import { judge } from "../../../../../examples/interactive-canvas/interactive_canvas_math_tutor/judge.js"
 import { HINTS, UNFINISHED } from "../../../../../examples/interactive-canvas/interactive_canvas_math_tutor/strings.js"
 
-import { add, eq, mul, num, pi, twoXPlusThreeEqualsSeven, v } from "../../assets/js/math/fixtures"
+import { add, eq, missing, mul, num, pi, twoXPlusThreeEqualsSeven, v } from "../../assets/js/math/fixtures"
 
 describe("interactive_canvas_math_tutor/judge", () => {
   const exercise = DEMO_EXERCISES.flatMap((e) => (e.kind === "equation" && e.tex === "2x + 3 = 7" ? [e] : []))[0]
@@ -62,6 +62,13 @@ describe("interactive_canvas_math_tutor/judge", () => {
   test("should leave a line it cannot read unchecked", () => {
     const result = judge(toLines(add(num(1), num(2)), twoXEqualsFour), exercise, { finished: false })
     expect(statuses(result)).toEqual(["unchecked", "pending"])
+  })
+
+  test("should leave a line with a side left blank unchecked", () => {
+    // `x =` paused before its result: the server sends the empty side, it used to stop the judging
+    const result = judge(toLines(twoXPlusThreeEqualsSeven, eq(v("x"), missing)), exercise, { finished: true })
+    expect(statuses(result)).toEqual(["correct", "unchecked"])
+    expect(result.solved).toBe(false)
   })
 
   test("should not be solved without any line", () => {
