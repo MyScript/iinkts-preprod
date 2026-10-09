@@ -12,7 +12,7 @@ function levelButton(page, track, level) {
 
 test.describe("Interactive ink canvas Math Tutor", { tag: "@slow" }, () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto(`${process.env.PATH_PREFIX ? process.env.PATH_PREFIX : ""}/examples/interactive-canvas/math-tutor/index.html`)
+    await page.goto(`${process.env.PATH_PREFIX ? process.env.PATH_PREFIX : ""}/examples/interactive-canvas/interactive_canvas_math_tutor.html`)
     await passModalKey(page)
   })
 
@@ -97,5 +97,14 @@ test.describe("Interactive ink canvas Math Tutor", { tag: "@slow" }, () => {
     await writeStrokes(page, tutor.geometry2Answer)
     await expect(page.locator("#banner")).toBeVisible({ timeout: VERDICT_TIMEOUT })
     await expect(page.locator(".tutor-mark.is-correct")).toHaveCount(1)
+  })
+
+  test("should accept a result written under the line it continues, without repeating A", async ({ page }) => {
+    await levelButton(page, "Geometry", 2).click()
+
+    await writeStrokes(page, tutor.geometry2Step)
+    await writeStrokes(page, tutor.geometry2Continued)
+    await expect(page.locator("#banner")).toBeVisible({ timeout: VERDICT_TIMEOUT })
+    await expect(page.locator(".tutor-mark.is-correct")).toHaveCount(2)
   })
 })

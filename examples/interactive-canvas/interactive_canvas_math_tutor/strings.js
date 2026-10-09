@@ -129,14 +129,3 @@ export const FIGURE_UI = {
     }
   },
 }
-
-/** Connection pill and the message shown while verdicts are on hold */
-export const CONNECTION = {
-  connecting: "Connecting…",
-  online: "Online",
-  offline: "Offline",
-  syncing: "Reconnecting…",
-  error: "Connection lost",
-  waiting: "No connection: keep writing, your lines will be checked as soon as it is back.",
-  lost: "The connection could not be restored. Reload the page to continue.",
-}

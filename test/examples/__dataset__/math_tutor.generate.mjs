@@ -26,6 +26,8 @@ const G = {
   c: [ellipse(13, 27, 12, 12, 0.12, -0.62)],
   P: [[[0, 0], [0, 40]], [[0, 0], [16, 0], [25, 6], [25, 14], [16, 20], [0, 20]]],
   A: [[[0, 40], [13, 0], [26, 40]], [[6, 24], [20, 24]]],
+  "6": [[[22, 0], [10, 6], [3, 18], [2, 30], [8, 39], [18, 40], [25, 33], [24, 25], [15, 21], [6, 25], [3, 30]]],
+  "×": [[[4, 16], [22, 34]], [[22, 16], [4, 34]]],
 }
 
 let clock = 1000
@@ -61,6 +63,9 @@ const datasets = {
   "math_tutor_geometry1_answer.json": write("P=20", 150, 160),
   // Its area
   "math_tutor_geometry2_answer.json": write("A=24", 150, 80),
+  // The same area computed, then its result written under the `=` without repeating `A`
+  "math_tutor_geometry2_step.json": write("A=6×4", 150, 80),
+  "math_tutor_geometry2_continued.json": write("=24", 192, 160),
 }
 for (const [name, strokes] of Object.entries(datasets)) writeFileSync(`${out}/${name}`, JSON.stringify(strokes))
 console.log(Object.keys(datasets).join("\n"))

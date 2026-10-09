@@ -14,9 +14,9 @@ import { measure } from "./shapes.js"
 import { EXERCISE_HINTS, FORMULA_HINTS, PROMPTS } from "./strings.js"
 
 /**
- * @typedef {import("./evaluator.js").TScope} TScope
- * @typedef {import("./evaluator.js").TAnswer} TAnswer
- * @typedef {import("./evaluator.js").TLinesCheck} TLinesCheck
+ * @typedef {import("../../assets/js/math/evaluator.js").TScope} TScope
+ * @typedef {import("../../assets/js/math/evaluator.js").TAnswer} TAnswer
+ * @typedef {import("../../assets/js/math/evaluator.js").TLinesCheck} TLinesCheck
  * @typedef {import("./hints.js").TTrap} TTrap
  * @typedef {import("./shapes.js").TShapeSpec} TShapeSpec
  * @typedef {import("./shapes.js").TQuantity} TQuantity

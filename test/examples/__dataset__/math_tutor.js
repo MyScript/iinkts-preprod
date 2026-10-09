@@ -8,6 +8,8 @@ import level2WrongStep2 from "./json/math_tutor_level2_wrong_step2.json" with { 
 import geometry1Answer from "./json/math_tutor_geometry1_answer.json" with { type: "json" }
 import geometry1Unfinished from "./json/math_tutor_geometry1_unfinished.json" with { type: "json" }
 import geometry2Answer from "./json/math_tutor_geometry2_answer.json" with { type: "json" }
+import geometry2Step from "./json/math_tutor_geometry2_step.json" with { type: "json" }
+import geometry2Continued from "./json/math_tutor_geometry2_continued.json" with { type: "json" }
 
 export default {
   /** `x = 7`, the answer to the first demo exercise `x + 5 = 12` */
@@ -22,4 +24,7 @@ export default {
   geometry1Answer,
   /** `A = 24`, its area */
   geometry2Answer,
+  /** `A = 6 × 4`, then `= 24` under it: the result goes on from the line above */
+  geometry2Step,
+  geometry2Continued,
 }

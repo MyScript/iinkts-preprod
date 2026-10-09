@@ -1,12 +1,12 @@
-import { DEMO_EXERCISES } from "../../../../../examples/interactive-canvas/math-tutor/demo-exercises.js"
-import type { TExpression } from "../../../../../examples/interactive-canvas/math-tutor/evaluator.js"
-import { measureExercise } from "../../../../../examples/interactive-canvas/math-tutor/exercises.js"
-import { judge } from "../../../../../examples/interactive-canvas/math-tutor/judge.js"
-import { HINTS, UNFINISHED } from "../../../../../examples/interactive-canvas/math-tutor/strings.js"
+import { DEMO_EXERCISES } from "../../../../../examples/interactive-canvas/interactive_canvas_math_tutor/demo-exercises.js"
+import type { TExpression } from "../../../../../examples/assets/js/math/evaluator.js"
+import { measureExercise } from "../../../../../examples/interactive-canvas/interactive_canvas_math_tutor/exercises.js"
+import { judge } from "../../../../../examples/interactive-canvas/interactive_canvas_math_tutor/judge.js"
+import { HINTS, UNFINISHED } from "../../../../../examples/interactive-canvas/interactive_canvas_math_tutor/strings.js"
 
-import { add, eq, mul, num, pi, twoXPlusThreeEqualsSeven, v } from "./fixtures"
+import { add, eq, missing, mul, num, pi, twoXPlusThreeEqualsSeven, v } from "../../assets/js/math/fixtures"
 
-describe("math-tutor/judge", () => {
+describe("interactive_canvas_math_tutor/judge", () => {
   const exercise = DEMO_EXERCISES.flatMap((e) => (e.kind === "equation" && e.tex === "2x + 3 = 7" ? [e] : []))[0]
   const toLines = (...expressions: TExpression[]) =>
     expressions.map((expression, index) => ({
@@ -64,6 +64,13 @@ describe("math-tutor/judge", () => {
     expect(statuses(result)).toEqual(["unchecked", "pending"])
   })
 
+  test("should leave a line with a side left blank unchecked", () => {
+    // `x =` paused before its result: the server sends the empty side, it used to stop the judging
+    const result = judge(toLines(twoXPlusThreeEqualsSeven, eq(v("x"), missing)), exercise, { finished: true })
+    expect(statuses(result)).toEqual(["correct", "unchecked"])
+    expect(result.solved).toBe(false)
+  })
+
   test("should not be solved without any line", () => {
     expect(judge([], exercise, { finished: true })).toEqual({ marks: [], solved: false })
   })
@@ -91,6 +98,30 @@ describe("math-tutor/judge", () => {
     test("should not ask on a line about something else", () => {
       // An intermediate step of an equation is not an unfinished answer
       expect(judge(toLines(twoXPlusThreeEqualsSeven), exercise, { finished: true }).marks[0].hint).toBeUndefined()
+    })
+  })
+
+  describe("unknown read in the other case", () => {
+    // The recognizer reads a quickly written `A` or `P` as `a` or `p` now and then
+    const perimeter = measureExercise("p", { type: "rectangle", width: 6, height: 4 }, "perimeter")
+    const area = measureExercise("a", { type: "rectangle", width: 6, height: 4 }, "area")
+
+    test("should solve the exercise whatever the case of its unknown", () => {
+      expect(judge(toLines(eq(v("p"), num(20))), perimeter, { finished: true }).solved).toBe(true)
+      expect(judge(toLines(eq(v("a"), mul(num(6), num(4))), eq(v("a"), num(24))), area, { finished: true })).toMatchObject({
+        solved: true,
+        marks: [{ status: "correct" }, { status: "correct" }],
+      })
+      expect(judge(toLines(twoXPlusThreeEqualsSeven, eq(v("X"), num(2))), exercise, { finished: true }).solved).toBe(true)
+    })
+
+    test("should still check the line and spot its mistake", () => {
+      expect(statuses(judge(toLines(eq(v("a"), num(25))), area, { finished: true }))).toEqual(["wrong"])
+    })
+
+    test("should ask for the result, naming the unknown as the exercise does", () => {
+      const result = judge(toLines(eq(v("p"), mul(add(num(6), num(4)), num(2)))), perimeter, { finished: true })
+      expect(result.marks[0]).toMatchObject({ status: "correct", hint: UNFINISHED("P") })
     })
   })
 
