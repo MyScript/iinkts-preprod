@@ -37,7 +37,7 @@ import { IIModel } from "@/model"
 import type { TIIRendererConfiguration } from "@/renderer"
 import { SVGRenderer } from "@/renderer"
 import type { TStyle } from "@/style"
-import type { TAnchor, TBaseSymbol, TDecorator, TMath, TStroke, TSymbol, TText } from "@/symbol"
+import type { TAnchor, TBaseSymbol, TDecorator, TMath, TStroke, TSymbol } from "@/symbol"
 import { cloneSymbol, extractStrokes, isDecorator, isMath, isStroke, isStrokeSolverOutput, isText } from "@/symbol"
 import type { SymbolUtil } from "@/symbol-utils"
 import {
@@ -63,6 +63,13 @@ import { InteractiveInkCanvasConfiguration } from "./InteractiveInkCanvasConfigu
 type TRemovalCleanup = {
   erased: TDecorator[]
   updated: NonNullable<TIIHistoryChanges["updated"]>
+}
+
+/** The cursor class of each tool; any other one draws */
+const TOOL_CURSOR_CLASSES: Partial<Record<CanvasTool, string>> = {
+  [CanvasTool.Erase]: "erase",
+  [CanvasTool.Select]: "select",
+  [CanvasTool.Move]: "move",
 }
 
 /** The occupants the layout of an interactive ink canvas can place */
@@ -267,24 +274,8 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       this.keyboard.resetStoredTool()
     }
 
-    this.eraser.detach()
-    this.selector.detach()
-    this.move.detach()
-    this.writer.detach()
-    switch (this.#tool) {
-      case CanvasTool.Erase:
-        this.eraser.attach(this.layers.rendering)
-        break
-      case CanvasTool.Select:
-        this.selector.attach(this.layers.rendering)
-        break
-      case CanvasTool.Move:
-        this.move.attach(this.layers.rendering)
-        break
-      default:
-        this.writer.attach(this.layers.rendering)
-        break
-    }
+    this.#detachToolManagers()
+    this.#toolManager(i).attach(this.layers.rendering)
     this.event.emitToolChanged(i)
   }
 
@@ -389,16 +380,24 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
   }
 
   protected getCursorClass(): string {
-    switch (this.#tool) {
-      case CanvasTool.Erase:
-        return "erase"
-      case CanvasTool.Select:
-        return "select"
-      case CanvasTool.Move:
-        return "move"
-      default:
-        return "draw"
+    return TOOL_CURSOR_CLASSES[this.#tool] ?? "draw"
+  }
+
+  /** The manager handling pointer input for a tool; writing is the default */
+  #toolManager(tool: CanvasTool): EraseManager | IISelectionManager | IIMoveManager | IIWriterManager {
+    const managers: Partial<Record<CanvasTool, EraseManager | IISelectionManager | IIMoveManager>> = {
+      [CanvasTool.Erase]: this.eraser,
+      [CanvasTool.Select]: this.selector,
+      [CanvasTool.Move]: this.move,
     }
+    return managers[tool] ?? this.writer
+  }
+
+  #detachToolManagers(): void {
+    this.eraser.detach()
+    this.selector.detach()
+    this.move.detach()
+    this.writer.detach()
   }
 
   /**
@@ -726,10 +725,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
    * @param addToHistory - Whether to add to history (default: true)
    */
   updateSymbolsStyle(symbolIds: string[], style: TPartialDeep<TStyle>, addToHistory = true): void {
-    this.logger.info("updateSymbolsStyle", {
-      symbolIds,
-      style,
-    })
+    this.logger.info("updateSymbolsStyle", { symbolIds, style })
     const symbols: TSymbol[] = []
     // Snapshots, not just the old styles: history records a whole before/after record now, which
     // also covers the geometry a font change moves. Cloned before the draft is mutated.
@@ -776,20 +772,9 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
    */
   updateTextFontStyle(
     textIds: string[],
-    {
-      fontSize,
-      fontWeight,
-    }: {
-      fontSize?: number
-      fontWeight?: "normal" | "bold" | "auto"
-    }
+    { fontSize, fontWeight }: { fontSize?: number; fontWeight?: "normal" | "bold" | "auto" }
   ): void {
-    this.logger.info("updateTextFontStyle", {
-      textIds,
-      fontSize,
-      fontWeight,
-    })
-    const symbols: TText[] = []
+    this.logger.info("updateTextFontStyle", { textIds, fontSize, fontWeight })
     // One flat list of before/after pairs: the texts whose font changed, and the texts that had to
     // slide along because a font change makes a word wider or narrower. Both are just symbols whose
     // record changed, so history no longer distinguishes them.
@@ -797,26 +782,21 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     // Driven by the id list rather than by a scan of the document, same as `updateSymbolsStyle`.
     textIds.forEach((id) => {
       const s = this.model.draftSymbol(id)
-      if (s) {
-        if (isText(s)) {
-          const before = cloneSymbol(s)
-          TextUtil.updateChildrenFont(s, {
-            fontSize,
-            fontWeight: fontWeight === "auto" ? undefined : fontWeight,
-          })
-          const lastWidth = SymbolGeometry.boundsOf(s).width
-          this.typeset.updateBounds(s)
-          this.renderer.drawSymbol(s)
-          const tx = SymbolGeometry.boundsOf(s).width - lastWidth
-          if (tx !== 0) {
-            updated.push(...(this.typeset.moveTextAfter(s, tx) ?? []))
-          }
-          // `typeset.updateBounds` above already committed the draft, which stamps
-          // `modificationDate`; the old code stamped it again afterwards.
-          updated.push({ before, after: this.model.getSymbol(s.id) ?? s })
-          symbols.push(s)
-        }
+      if (!s || !isText(s)) {
+        return
       }
+      const before = cloneSymbol(s)
+      TextUtil.updateChildrenFont(s, { fontSize, fontWeight: fontWeight === "auto" ? undefined : fontWeight })
+      const lastWidth = SymbolGeometry.boundsOf(s).width
+      this.typeset.updateBounds(s)
+      this.renderer.drawSymbol(s)
+      const tx = SymbolGeometry.boundsOf(s).width - lastWidth
+      if (tx !== 0) {
+        updated.push(...(this.typeset.moveTextAfter(s, tx) ?? []))
+      }
+      // `typeset.updateBounds` above already committed the draft, which stamps
+      // `modificationDate`; the old code stamped it again afterwards.
+      updated.push({ before, after: this.model.getSymbol(s.id) ?? s })
     })
     if (updated.length) {
       this.history.push({ updated })
@@ -830,10 +810,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
    * @param addToHistory - Whether to add this operation to history (default: true)
    */
   async replaceSymbols(oldSymbols: TSymbol[], newSymbols: TSymbol[], addToHistory = true): Promise<void> {
-    this.logger.info("replaceSymbol", {
-      oldSymbols,
-      newSymbols,
-    })
+    this.logger.info("replaceSymbols", { oldSymbols, newSymbols })
     this.manageIdleState(false)
 
     const oldStrokes = this.extractStrokesFromSymbols(oldSymbols)
@@ -869,11 +846,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
    * @param position - New position (first, last, forward, backward)
    */
   changeOrderSymbol(symbol: TSymbol, position: "first" | "last" | "forward" | "backward"): void {
-    this.model.changeOrderSymbol(symbol.id, position)
-    this.renderer.changeOrderSymbol(symbol, position)
-    this.history.push({
-      order: { symbols: [symbol], position },
-    })
+    this.changeOrderSymbols([symbol], position)
   }
 
   /**
@@ -881,14 +854,12 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
    * @param symbols - Symbols to reorder
    * @param position - New position (first, last, forward, backward)
    */
-  changeOrderSymbols(symbols: TSymbol[], position: "first" | "last" | "forward" | "backward") {
+  changeOrderSymbols(symbols: TSymbol[], position: "first" | "last" | "forward" | "backward"): void {
     symbols.forEach((s) => {
       this.model.changeOrderSymbol(s.id, position)
       this.renderer.changeOrderSymbol(s, position)
     })
-    this.history.push({
-      order: { symbols, position },
-    })
+    this.history.push({ order: { symbols, position } })
   }
 
   /**
@@ -1164,9 +1135,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
    * @returns Promise resolving to updated model
    */
   async importPointEvents(partialStrokes: TPartialDeep<TStroke>[]): Promise<IIModel> {
-    this.logger.info("importPointEvents", {
-      partialStrokes,
-    })
+    this.logger.info("importPointEvents", { partialStrokes })
     this.manageIdleState(false)
     const strokes = partialStrokes.map(StrokeUtil.createFromPartial)
     strokes.forEach((s) => {
@@ -1177,9 +1146,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       this.startOperation("Recognizing")
       this.client.addStrokes(strokes, false)
     }
-    this.history.push({
-      added: strokes,
-    })
+    this.history.push({ added: strokes })
     this.logger.debug("importPointEvents", this.model)
     this.updateLayerUI()
     this.event.emitImported(this.model.exports as TExport)
@@ -1316,10 +1283,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
    * @returns Array of extracted math symbols
    */
   extractMathsFromSymbols(symbols: TSymbol[] | undefined): TMath[] {
-    if (!symbols?.length) {
-      return []
-    }
-    return symbols.filter(isMath)
+    return symbols?.filter(isMath) ?? []
   }
 
   protected handleWheel = (event: WheelEvent): void => {
@@ -1328,10 +1292,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       event.stopPropagation()
       const rect = this.layers.root.getBoundingClientRect()
       this.#pendingWheelDeltaY += event.deltaY
-      this.#pendingWheelOffset = {
-        x: event.clientX - rect.left,
-        y: event.clientY - rect.top,
-      }
+      this.#pendingWheelOffset = { x: event.clientX - rect.left, y: event.clientY - rect.top }
       this.#scheduleWheelZoom()
     }
   }
@@ -1389,22 +1350,9 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     if (into.has(restored.jiixBlockId) || !this.math.hasGhostStrokes(restored.jiixBlockId)) {
       return
     }
-    const inverse = new MatrixTransform(
-      current.transform.xx,
-      current.transform.yx,
-      current.transform.xy,
-      current.transform.yy,
-      current.transform.tx,
-      current.transform.ty
-    ).invert()
-    const delta = new MatrixTransform(
-      restored.transform.xx,
-      restored.transform.yx,
-      restored.transform.xy,
-      restored.transform.yy,
-      restored.transform.tx,
-      restored.transform.ty
-    ).multiply(inverse)
+    // `identity().multiply(m)` copies `m`: `invert` and `multiply` work in place, and a record is frozen
+    const inverse = MatrixTransform.identity().multiply(current.transform).invert()
+    const delta = MatrixTransform.identity().multiply(restored.transform).multiply(inverse)
     if (isIdentityMatrix(delta)) {
       return
     }
@@ -1487,12 +1435,11 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       this.model.replaceSymbol(anchor.id, changes.replaced.newSymbols.map(restore))
       this.renderer.replaceSymbol(anchor.id, changes.replaced.newSymbols)
     }
-    if (changes.order) {
-      changes.order.symbols.forEach((sym) => {
-        this.model.changeOrderSymbol(sym.id, changes.order!.position)
-        this.renderer.changeOrderSymbol(sym, changes.order!.position)
-      })
-    }
+    const { order } = changes
+    order?.symbols.forEach((sym) => {
+      this.model.changeOrderSymbol(sym.id, order.position)
+      this.renderer.changeOrderSymbol(sym, order.position)
+    })
   }
 
   /** Steps the history back or forth: locally first, then on the backend as one consolidated message. */
@@ -1653,18 +1600,9 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
    * @param dimensions - New height and/or width
    * @returns Promise that resolves when resize is complete
    */
-  async resize({
-    height,
-    width,
-  }: {
-    height?: number
-    width?: number
-  } = {}): Promise<void> {
+  async resize({ height, width }: { height?: number; width?: number } = {}): Promise<void> {
     try {
-      this.logger.info("resize", {
-        height,
-        width,
-      })
+      this.logger.info("resize", { height, width })
       const dims = this.resolveDimensions(height, width)
 
       if (dims.height === this.#renderedHeight && dims.width === this.#renderedWidth) {
@@ -1735,13 +1673,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
   }
 
   #isCopyableSymbol(symbol: TSymbol): boolean {
-    if (isDecorator(symbol)) {
-      return false
-    }
-    if (isStrokeSolverOutput(symbol)) {
-      return false
-    }
-    return true
+    return !isDecorator(symbol) && !isStrokeSolverOutput(symbol)
   }
 
   #cloneSymbolForPaste(symbol: TSymbol, tx: number, ty: number): TSymbol {
@@ -1768,9 +1700,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     if (!this.#clipboard.length) {
       return
     }
-    this.logger.info("paste", {
-      count: this.#clipboard.length,
-    })
+    this.logger.info("paste", { count: this.#clipboard.length })
     const clones = this.#clipboard.map((s) =>
       this.#cloneSymbolForPaste(s, InteractiveInkCanvas.PASTE_OFFSET, InteractiveInkCanvas.PASTE_OFFSET)
     )
@@ -1828,15 +1758,8 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     this.layers.root.removeEventListener("wheel", this.handleWheel)
     this.#wheelZoomCoalescer.cancel()
 
-    this.layers.root.classList.remove("draw")
-    this.layers.root.classList.remove("erase")
-    this.layers.root.classList.remove("select")
-    this.layers.root.classList.remove("move")
-
-    this.eraser.detach()
-    this.selector.detach()
-    this.move.detach()
-    this.writer.detach()
+    this.layers.root.classList.remove(...this.cursorClasses)
+    this.#detachToolManagers()
 
     this.#destroyManagers()
     this.exportManager.destroy()
