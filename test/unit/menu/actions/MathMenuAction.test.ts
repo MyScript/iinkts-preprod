@@ -48,9 +48,6 @@ describe("MathMenuAction.ts", () => {
       "#ms-menu-action-math-solver-fractional-digits-wrapper",
       "#ms-menu-action-math-solver-decimal-separator",
       "#ms-menu-action-math-solver-rounding-mode",
-      "#ms-menu-action-math-solver-options",
-      "#ms-menu-action-math-solver-auto-variable",
-      "#ms-menu-action-math-solver-scoping-policy",
     ]
     const buildAction = (itemsConfig?: TMathActionItemsConfig) => {
       const canvas = createCanvasMock()
@@ -103,39 +100,6 @@ describe("MathMenuAction.ts", () => {
       pick(element, "#ms-menu-action-math-solver-angle-unit", "deg")
 
       expect(canvas.updateRecognitionConfiguration).toHaveBeenCalledWith({ math: { solver: { "angle-unit": "deg" } } })
-    })
-
-    test("clears the solver options when Server default is picked", () => {
-      const { canvas, element } = buildAction()
-
-      pick(element, "#ms-menu-action-math-solver-options", "")
-
-      expect(canvas.updateRecognitionConfiguration).toHaveBeenCalledWith({ math: { solver: { options: undefined } } })
-    })
-
-    test("switches the automatic variable management", () => {
-      const { canvas, element } = buildAction()
-      const checkbox = element.querySelector("#ms-menu-action-math-solver-auto-variable-input") as HTMLInputElement
-
-      checkbox.checked = false
-      checkbox.dispatchEvent(new Event("change", { bubbles: true }))
-
-      expect(canvas.updateRecognitionConfiguration).toHaveBeenCalledWith({
-        math: { solver: { "auto-variable-management": { enable: false } } },
-      })
-    })
-
-    test("hides the variable settings while the automatic variable management is off", () => {
-      const { canvas, action, element } = buildAction()
-      canvas.configuration.recognition.math!.solver!["auto-variable-management"]!.enable = false
-
-      action.update()
-
-      ;[
-        "#ms-menu-action-math-solver-scoping-policy",
-        "#ms-menu-action-math-show-dependency-on-hover",
-        "#ms-menu-action-math-highlight-on-select",
-      ].forEach((id) => expect((element.querySelector(id) as HTMLElement).style.display).toEqual("none"))
     })
 
     describe("fractional digits", () => {

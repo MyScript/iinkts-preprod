@@ -75,6 +75,51 @@ describe("WebSocketClient.ts", () => {
     })
   })
 
+  describe("changeConfiguration", () => {
+    const buildClient = () => {
+      const wsClient = new WebSocketClient(structuredClone(configuration))
+      wsClient.close = jest.fn(() => Promise.resolve())
+      wsClient.init = jest.fn(() => Promise.resolve())
+      // The server answers once the request is sent, in a later message event
+      wsClient.send = jest.fn(async () => {
+        setTimeout(() => wsClient["manageConfigurationChanged"]())
+      })
+      return wsClient
+    }
+
+    test("should send the new recognition configuration without closing the session", async () => {
+      const wsClient = buildClient()
+
+      await wsClient.changeConfiguration({ recognition: { math: { solver: { "angle-unit": "deg" } } } })
+
+      expect(wsClient.close).not.toHaveBeenCalled()
+      expect(wsClient.init).not.toHaveBeenCalled()
+      expect(wsClient.send).toHaveBeenCalledWith({
+        type: "changeConfiguration",
+        configuration: wsClient.configuration.recognition,
+      })
+    })
+
+    test("should not duplicate the configuration arrays when the new one repeats them", async () => {
+      const wsClient = buildClient()
+      const types = [...wsClient.configuration.recognition["raw-content"].recognition!.types]
+
+      await wsClient.changeConfiguration({ recognition: wsClient.configuration.recognition })
+
+      expect(wsClient.configuration.recognition["raw-content"].recognition!.types).toEqual(types)
+    })
+
+    test("should keep the keys the new configuration leaves out", async () => {
+      const wsClient = buildClient()
+      const host = wsClient.configuration.server.host
+
+      await wsClient.changeConfiguration({ recognition: { math: { solver: { "angle-unit": "deg" } } } })
+
+      expect(wsClient.configuration.recognition.math?.solver?.["angle-unit"]).toEqual("deg")
+      expect(wsClient.configuration.server.host).toEqual(host)
+    })
+  })
+
   describe("init", () => {
     const conf = structuredClone(configuration)
     conf.server.host = "init-test"

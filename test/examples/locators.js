@@ -3,8 +3,11 @@ export default {
   menu: {
     action: {
       gesture: {
-        triggerBtn: "#ms-menu-action-gesture button" ,
+        triggerBtn: "#ms-menu-action-gesture-trigger",
         detectCheckbox: "#ms-menu-action-gesture-detect-input",
+        strikeThroughMenuBtn: "#ms-menu-action-gesture-strikethrough-menu-trigger",
+        surroundMenuBtn: "#ms-menu-action-gesture-surround-menu-trigger",
+        insertMenuBtn: "#ms-menu-action-gesture-insert-menu-trigger",
         strikeThroughSelect: "#ms-menu-action-gesture-strikethrough-input",
         surroundSelect: "#ms-menu-action-gesture-surround-input",
         insertSelect: "#ms-menu-action-gesture-insert-input"
