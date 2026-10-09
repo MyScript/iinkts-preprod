@@ -1365,10 +1365,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
    */
   async undo(): Promise<IIModel> {
     this.logger.info("undo")
-    if (this.history.context.canUndo) {
-      return this.#undoInternal()
-    }
-    return this.model
+    return this.history.context.canUndo ? this.#replayHistory("undo") : this.model
   }
 
   #hasBackendActions(actions: TIIHistoryBackendChanges): boolean {
@@ -1500,12 +1497,10 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     }
   }
 
-  async #undoInternal(): Promise<IIModel> {
-    const changes = this.history.undo()
-    this.logger.debug("undo", {
-      changes,
-    })
-
+  /** Steps the history back or forth: locally first, then on the backend as one consolidated message. */
+  async #replayHistory(direction: "undo" | "redo"): Promise<IIModel> {
+    const changes = direction === "undo" ? this.history.undo() : this.history.redo()
+    this.logger.debug(direction, { changes })
     // Resolved before the replay: it reads each stroke's block off the document, and the replay is
     // about to remove some of them.
     const invalidatedGhostBlocks = this.#ghostBlocksInvalidatedBy(changes)
@@ -1513,16 +1508,13 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     const actionsToBackend = extractIIBackendChanges(changes)
     try {
       if (this.#hasBackendActions(actionsToBackend)) {
-        invalidatedGhostBlocks.forEach((jiixBlockId) => {
-          this.math.clearGhostStrokes(jiixBlockId)
-        })
+        invalidatedGhostBlocks.forEach((jiixBlockId) => this.math.clearGhostStrokes(jiixBlockId))
         this.startOperation("Recognizing")
-        await this.client.undo(actionsToBackend)
+        await this.client[direction](actionsToBackend)
       }
     } finally {
       this.updateLayerUI()
     }
-    this.updateLayerUI()
     return this.model
   }
 
@@ -1532,33 +1524,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
    */
   async redo(): Promise<IIModel> {
     this.logger.info("redo")
-
-    if (this.history.context.canRedo) {
-      return this.#redoInternal()
-    }
-    return this.model
-  }
-
-  async #redoInternal(): Promise<IIModel> {
-    const changes = this.history.redo()
-    this.logger.debug("redo", { changes })
-    // Resolved before the replay, for the same reason as in `#undoInternal`.
-    const invalidatedGhostBlocks = this.#ghostBlocksInvalidatedBy(changes)
-    this.#applyHistoryChanges(changes)
-    const actionsToBackend = extractIIBackendChanges(changes)
-    try {
-      if (this.#hasBackendActions(actionsToBackend)) {
-        invalidatedGhostBlocks.forEach((jiixBlockId) => {
-          this.math.clearGhostStrokes(jiixBlockId)
-        })
-        this.startOperation("Recognizing")
-        await this.client.redo(actionsToBackend)
-      }
-    } finally {
-      this.updateLayerUI()
-    }
-    this.updateLayerUI()
-    return this.model
+    return this.history.context.canRedo ? this.#replayHistory("redo") : this.model
   }
 
   /**
