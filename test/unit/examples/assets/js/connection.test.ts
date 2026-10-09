@@ -1,7 +1,6 @@
-import { connectionView } from "../../../../../examples/interactive-canvas/math-tutor/connection.js"
-import { CONNECTION } from "../../../../../examples/interactive-canvas/math-tutor/strings.js"
+import { CONNECTION, connectionView } from "../../../../../examples/assets/js/connection.js"
 
-describe("math-tutor/connection", () => {
+describe("assets/js/connection", () => {
   test("should show the same calm online state whether the client is busy or not", () => {
     // online-working comes back on every stroke: a pill changing with it would flicker
     expect(connectionView("online-idle")).toEqual({ label: CONNECTION.online, tone: "ok", hold: false })

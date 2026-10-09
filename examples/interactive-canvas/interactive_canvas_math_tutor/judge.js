@@ -11,13 +11,14 @@
  * line keeps its check mark and asks for the calculation to be finished.
  */
 
-import { checkLines } from "./evaluator.js"
+import { checkLines } from "../../assets/js/math/evaluator.js"
 import { isSolved } from "./exercises.js"
 import { diagnose, hintFor } from "./hints.js"
 import { UNFINISHED } from "./strings.js"
 
 /**
- * @typedef {import("./lines.js").TLine} TLine
+ * @typedef {import("../../assets/js/math/evaluator.js").TExpression} TExpression
+ * @typedef {import("../../assets/js/math/lines.js").TLine} TLine
  * @typedef {import("./exercises.js").TExercise} TExercise
  * @typedef {"correct" | "wrong" | "pending" | "unchecked" | "after-error"} TMarkStatus
  * @typedef {{ line: TLine, status: TMarkStatus, hint?: string }} TMark
@@ -25,12 +26,27 @@ import { UNFINISHED } from "./strings.js"
  */
 
 /**
+ * The recognizer reads a quickly written `A` or `P` as `a` or `p` now and then: in either case
+ * the letter stands for the unknown the exercise asks for.
+ * @param {TExpression} expression
+ * @param {string} variable
+ * @returns {TExpression}
+ */
+function spelledAs(expression, variable) {
+  if (expression.type === "variable" && expression.label?.toLowerCase() === variable.toLowerCase()) {
+    return { ...expression, label: variable }
+  }
+  const { operands } = expression
+  return operands ? { ...expression, operands: operands.map((operand) => spelledAs(operand, variable)) } : expression
+}
+
+/**
  * The line gives the unknown asked for, `P = …`, whatever its right side.
- * @param {TLine | undefined} line
+ * @param {TExpression | undefined} expression
  * @param {string} variable
  */
-function isAbout(line, variable) {
-  const left = line?.expression.type === "=" ? line.expression.operands?.[0] : undefined
+function isAbout(expression, variable) {
+  const left = expression?.type === "=" ? expression.operands?.[0] : undefined
   return left?.type === "variable" && left.label === variable
 }
 
@@ -51,10 +67,9 @@ function markOf(line, status, hint) {
  * @returns {TJudgement}
  */
 export function judge(lines, exercise, { finished }) {
-  const check = checkLines(
-    lines.map((line) => line.expression),
-    exercise.solution
-  )
+  const { variable } = exercise.answer
+  const expressions = lines.map((line) => spelledAs(line.expression, variable))
+  const check = checkLines(expressions, exercise.solution)
   const lastPending = !finished
   let errorSeen = false
   const marks = lines.map((line, index) => {
@@ -63,13 +78,13 @@ export function judge(lines, exercise, { finished }) {
     const { verdict } = check.verdicts[index]
     if (verdict !== "wrong") return markOf(line, verdict)
     errorSeen = true
-    const mistake = diagnose(line.expression, lines[index - 1]?.expression, exercise.solution, exercise.traps)
+    const mistake = diagnose(expressions[index], expressions[index - 1], exercise.solution, exercise.traps)
     return markOf(line, "wrong", hintFor(mistake, exercise.hint))
   })
   const solved = !lastPending && isSolved(exercise, check)
   const last = marks[marks.length - 1]
-  if (!solved && last?.status === "correct" && isAbout(last.line, exercise.answer.variable)) {
-    marks[marks.length - 1] = markOf(last.line, "correct", UNFINISHED(exercise.answer.variable))
+  if (!solved && last?.status === "correct" && isAbout(expressions[expressions.length - 1], variable)) {
+    marks[marks.length - 1] = markOf(last.line, "correct", UNFINISHED(variable))
   }
   return { marks, solved }
 }

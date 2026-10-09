@@ -4,10 +4,10 @@
  * once it is solved.
  */
 
-import { connectionView } from "./connection.js"
+import { connectionView } from "../../assets/js/connection.js"
 import { LEVELS } from "./exercises.js"
 import { judge } from "./judge.js"
-import { linesFromJiix } from "./lines.js"
+import { linesFromJiix } from "../../assets/js/math/lines.js"
 import { nextExercise } from "./playlist.js"
 import { shapeSvg } from "./shapes.js"
 import { UI } from "./strings.js"
@@ -15,8 +15,8 @@ import { UI } from "./strings.js"
 /**
  * @typedef {import("./exercises.js").TExercise} TExercise
  * @typedef {import("./exercises.js").TLevel} TLevel
- * @typedef {import("./lines.js").TLine} TLine
- * @typedef {import("./lines.js").TJiix} TJiix
+ * @typedef {import("../../assets/js/math/lines.js").TLine} TLine
+ * @typedef {import("../../assets/js/math/lines.js").TJiix} TJiix
  * @typedef {import("./overlay.js").TutorOverlay} TutorOverlay
  * @typedef {import("./overlay.js").TKatex} TKatex
  * @typedef {{
@@ -25,7 +25,7 @@ import { UI } from "./strings.js"
  *   connectionState: TConnectionState,
  *   event: EventTarget & { addConnectionStateChangedListener: (callback: (state: TConnectionState) => void) => void },
  * }} TTutorCanvas
- * @typedef {import("./connection.js").TConnectionState} TConnectionState
+ * @typedef {import("../../assets/js/connection.js").TConnectionState} TConnectionState
  * @typedef {{
  *   rootElement: HTMLElement,
  *   statement: HTMLElement,

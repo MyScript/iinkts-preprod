@@ -4,12 +4,12 @@
  * with the value expected, in the light of the line above.
  */
 
-import { evaluate } from "./evaluator.js"
+import { evaluate } from "../../assets/js/math/evaluator.js"
 import { HINTS } from "./strings.js"
 
 /**
- * @typedef {import("./evaluator.js").TExpression} TExpression
- * @typedef {import("./evaluator.js").TScope} TScope
+ * @typedef {import("../../assets/js/math/evaluator.js").TExpression} TExpression
+ * @typedef {import("../../assets/js/math/evaluator.js").TScope} TScope
  * @typedef {"sign" | "division" | "square-root" | "slip" | TShapeMistake} TMistake
  * @typedef {"half-perimeter" | "area" | "perimeter-for-area" | "square" | "radius-for-diameter" | "triangle-half" | "missing-side"} TShapeMistake
  * @typedef {{ mistake: TMistake, expected: number, written: number }} TTrap a wrong value typical of
