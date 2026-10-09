@@ -80,23 +80,24 @@ describe("WebSocketClient.ts", () => {
       const wsClient = new WebSocketClient(structuredClone(configuration))
       wsClient.close = jest.fn(() => Promise.resolve())
       wsClient.init = jest.fn(() => Promise.resolve())
+      // The server answers once the request is sent, in a later message event
+      wsClient.send = jest.fn(async () => {
+        setTimeout(() => wsClient["manageConfigurationChanged"]())
+      })
       return wsClient
     }
 
-    test("should close the socket then reconnect", async () => {
+    test("should send the new recognition configuration without closing the session", async () => {
       const wsClient = buildClient()
-      const calls: string[] = []
-      wsClient.close = jest.fn(async () => {
-        calls.push("close")
-      })
-      wsClient.init = jest.fn(async () => {
-        calls.push("init")
-      })
 
-      await wsClient.changeConfiguration({ recognition: { lang: "fr_FR" } })
+      await wsClient.changeConfiguration({ recognition: { math: { solver: { "angle-unit": "deg" } } } })
 
-      expect(wsClient.close).toHaveBeenCalledWith(1000, "new-conf")
-      expect(calls).toEqual(["close", "init"])
+      expect(wsClient.close).not.toHaveBeenCalled()
+      expect(wsClient.init).not.toHaveBeenCalled()
+      expect(wsClient.send).toHaveBeenCalledWith({
+        type: "changeConfiguration",
+        configuration: wsClient.configuration.recognition,
+      })
     })
 
     test("should not duplicate the configuration arrays when the new one repeats them", async () => {
