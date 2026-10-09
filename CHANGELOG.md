@@ -196,6 +196,7 @@ Every export on `InteractiveInkCanvas` goes through two functions instead of nin
 - fix(symbol): a rotated text or math block reported a box mirrored about its rotation centre (and rotated twice), so surrounding it no longer selected it
 - fix(model): `Model.addStroke()` now throws `Stroke id already exist: <id>` on a duplicate id, like `IModel.addStroke`/`IIModel.addSymbol`
 - fix(client): `getAvailableLanguageList()` resolved with the server's error body when the request failed, and `getAvailableFontList()` threw a bare `TypeError`; both now reject with `GET <endpoint> failed: <status> <statusText>`. `LanguageMenuAction` never caught that request, so a failed language list was an unhandled rejection; it now logs it and leaves the select empty
+- fix(manager): a gesture recognized without context (a stroke next to typeset text, a shape or a math block) was applied even when missing from `raw-content.gestures` — with the default configuration, a vertical stroke there still joined or split rows although `join` and `insert` are off. `IIGestureManager.getGestureFromContextLess()` now returns nothing for a gesture that is not listed
 - fix(manager): a JOIN gesture between two strokes (or any two symbols that are not both texts) of a row left the first one after the gesture in place while shifting those behind it, which landed them over or in front of it (broken since 4.0.0). The whole remainder of the row moves together again
 - fix(client): `WebSocketClient` sent messages of any size, while the backend closes the connection (1009, "message too big") on an incoming message over 500 KB: a large import (`addStrokes` went a thousand strokes at a time, over 1 MB for long strokes), or a transform, erase or replace over many strokes, ended the session, and every gesture after it did nothing. `addStrokes`, `replaceStrokes`, `eraseStrokes` and the four `transform*` now split what they send to stay under the new protected `maxMessageBytes` (256 KiB), which a subclass can lower; `undo`/`redo` stay one message each, being one step of the server's history
 
@@ -237,6 +238,12 @@ The canvas UI has 8 slots (`top-left`, `top-center`, `top-right`, `middle-left`,
 - feat(menu): "Show Dependencies on Hover" and "Highlight on Select" are always built, shown only while automatic variable management is on
 - feat(client): new exported `TScopingPolicy`, `TAutoVariableManagement`; `TRecognitionWebSocketConfiguration.math.solver` is now `TSolverConfiguration & { "auto-variable-management"?: TAutoVariableManagement }`
 - feat(core): new exported `overrideDeep(target, override)`, a `mergeDeep` that replaces arrays
+
+### Gesture menu: one submenu per gesture
+- feat(menu): Gesture lists one submenu per gesture listed in `raw-content.gestures`: Scratch-out, Surround, Strikethrough, Underline, Insert, Join. Each has an **Enable** checkbox, which adds or removes the gesture through `updateRecognitionConfiguration`, and, except Scratch-out (single behavior), an **Action on detection** select, disabled while the gesture is off. `TGestureActionItemsConfig` gains `join` and `scratchOut`
+- feat(manager): new `JoinAction` — `Join` (default, unchanged: glue the two words around the gesture, or pull the next row up) and `CloseGap` (close the gap down to a single word space, words kept apart, rows left in place). Set through `IIGestureManager.joinAction` or `configuration.gesture.join` (`TGestureConfiguration`)
+- feat(manager): new `IIGestureManager.isGestureEnabled(gestureType)`
+- feat(client): new exported `TRecognitionGesture`, the type of `raw-content.gestures` entries
 
 ### Excalidraw integration example
 - feat(examples): `examples/custom-rendering/excalidraw-websocket-client/`, the Excalidraw counterpart of the TLDraw demo, on `WebSocketClient`. Freedraw is recognized as drawn; scratch-out/strike-through erase, surround selects, underline thickens; Convert turns the selection (or scene) into Excalidraw text, rectangle, ellipse, diamond, line and arrow elements

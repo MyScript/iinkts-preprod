@@ -18,6 +18,12 @@ import { DefaultServerWebsocketConfiguration } from "../shared/ServerConfigurati
 export type TRecognitionType = "text" | "shape" | "math"
 
 /**
+ * Gestures the Interactive Ink session can detect, as listed in `raw-content.gestures`.
+ * @group Client
+ */
+export type TRecognitionGesture = "underline" | "scratch-out" | "join" | "insert" | "strike-through" | "surround"
+
+/**
  * @group Client
  */
 export type TRecognitionWebSocketConfiguration = {
@@ -33,7 +39,7 @@ export type TRecognitionWebSocketConfiguration = {
     classification?: {
       types: TRecognitionType[]
     }
-    gestures?: ("underline" | "scratch-out" | "join" | "insert" | "strike-through" | "surround")[]
+    gestures?: TRecognitionGesture[]
   }
   gesture: {
     enable: boolean

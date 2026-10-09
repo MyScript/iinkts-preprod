@@ -1,5 +1,5 @@
 import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import { GestureMenuAction, CanvasTool, CanvasWriteTool, SurroundAction } from "@/iink"
+import { GestureMenuAction, CanvasTool, CanvasWriteTool, JoinAction, SurroundAction } from "@/iink"
 
 describe("GestureMenuAction.ts", () => {
   afterEach(() => {
@@ -89,6 +89,55 @@ describe("GestureMenuAction.ts", () => {
     select.dispatchEvent(new Event("change", { bubbles: true }))
 
     expect(canvas.gesture.surroundAction).toEqual(SurroundAction.Highlight)
+    expect(canvas.tool).toEqual(CanvasTool.Write)
+    expect(canvas.writer.tool).toEqual(CanvasWriteTool.Pencil)
+  })
+
+  test("should give scratch-out an enable-only submenu, as it has a single behavior", () => {
+    const canvas = createCanvasMock()
+    const item = new GestureMenuAction(asCanvas(canvas))
+
+    const wrapper = item.getElement()
+    const scratchMenu = wrapper.querySelector("#ms-menu-action-gesture-scratchOut-menu") as HTMLElement
+
+    expect(scratchMenu.querySelector("#ms-menu-action-gesture-scratchOut-enable-input")).toBeTruthy()
+    expect(scratchMenu.textContent).not.toContain("Action on detection")
+  })
+
+  test("should toggle scratch-out in the recognition configuration from its enable checkbox", () => {
+    const canvas = createCanvasMock()
+    const item = new GestureMenuAction(asCanvas(canvas))
+    const wrapper = item.getElement()
+    document.body.appendChild(wrapper)
+    const checkbox = wrapper.querySelector("#ms-menu-action-gesture-scratchOut-enable-input") as HTMLInputElement
+
+    checkbox.checked = false
+    checkbox.dispatchEvent(new Event("change", { bubbles: true }))
+
+    const conf = jest.mocked(canvas.updateRecognitionConfiguration).mock.calls[0][0]
+    expect(conf["raw-content"]?.gestures).not.toContain("scratch-out")
+  })
+
+  test("should only build the join submenu when join is in the recognition gestures", () => {
+    const canvas = createCanvasMock()
+    expect(new GestureMenuAction(asCanvas(canvas)).getElement().querySelector("#ms-menu-action-gesture-join-menu")).toBeNull()
+
+    canvas.configuration.recognition["raw-content"].gestures = ["join"]
+    expect(new GestureMenuAction(asCanvas(canvas)).getElement().querySelector("#ms-menu-action-gesture-join-menu")).toBeTruthy()
+  })
+
+  test("should set the join action and reset to the pencil writer tool from the select", () => {
+    const canvas = createCanvasMock()
+    canvas.configuration.recognition["raw-content"].gestures = ["join"]
+    const item = new GestureMenuAction(asCanvas(canvas))
+    const wrapper = item.getElement()
+    document.body.appendChild(wrapper)
+    const select = wrapper.querySelector("#ms-menu-action-gesture-join-input") as HTMLSelectElement
+
+    select.value = JoinAction.CloseGap
+    select.dispatchEvent(new Event("change", { bubbles: true }))
+
+    expect(canvas.gesture.joinAction).toEqual(JoinAction.CloseGap)
     expect(canvas.tool).toEqual(CanvasTool.Write)
     expect(canvas.writer.tool).toEqual(CanvasWriteTool.Pencil)
   })
