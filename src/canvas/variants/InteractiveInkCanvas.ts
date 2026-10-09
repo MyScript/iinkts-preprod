@@ -59,7 +59,10 @@ import type { TInteractiveInkCanvas } from "../TInteractiveInkCanvas"
 import type { TInteractiveInkCanvasConfiguration } from "./InteractiveInkCanvasConfiguration"
 import { InteractiveInkCanvasConfiguration } from "./InteractiveInkCanvasConfiguration"
 
-/** What cleaning up after a removal changed, for the history entry of that removal */
+/**
+ * What cleaning up after a removal changed, for the history entry of that removal
+ * @hidden
+ */
 type TRemovalCleanup = {
   erased: TDecorator[]
   updated: NonNullable<TIIHistoryChanges["updated"]>
