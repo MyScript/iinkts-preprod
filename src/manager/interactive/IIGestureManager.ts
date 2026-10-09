@@ -1,4 +1,5 @@
 import type { TInteractiveInkCanvas } from "@/canvas"
+import type { TRecognitionGesture } from "@/client"
 import type { TPartialDeep } from "@/core"
 import { isBetween, OBBOps } from "@/core"
 import type { IIHistoryManager } from "@/history"
@@ -22,6 +23,7 @@ import type { TGesture, TGestureConfiguration, TGestureType } from "./gestures/G
 import {
   DefaultGestureConfiguration,
   InsertAction,
+  JoinAction,
   StrikeThroughAction,
   SurroundAction,
   UnderlineAction,
@@ -42,11 +44,20 @@ export class IIGestureManager extends IIAbstractManager {
   static readonly #SURROUND_SELECT_TYPES = new Set([SymbolType.Stroke, SymbolType.Text])
   static readonly #ERASE_OVERLAY_TYPES = new Set([SymbolType.Stroke, SymbolType.Text])
   static readonly #ERASE_CONTAIN_TYPES = new Set([SymbolType.Shape, SymbolType.Edge])
+  static readonly #RECOGNITION_GESTURES: Record<TGestureType, TRecognitionGesture> = {
+    UNDERLINE: "underline",
+    SCRATCH: "scratch-out",
+    JOIN: "join",
+    INSERT: "insert",
+    STRIKETHROUGH: "strike-through",
+    SURROUND: "surround",
+  }
 
   insertAction: InsertAction = InsertAction.LineBreak
   surroundAction: SurroundAction = SurroundAction.Select
   strikeThroughAction: StrikeThroughAction = StrikeThroughAction.Draw
   underlineAction: UnderlineAction = UnderlineAction.Draw
+  joinAction: JoinAction = JoinAction.Join
 
   constructor(canvas: TInteractiveInkCanvas, gestureAction?: TPartialDeep<TGestureConfiguration>) {
     super(canvas, LoggerCategory.GESTURE)
@@ -55,6 +66,7 @@ export class IIGestureManager extends IIAbstractManager {
     this.strikeThroughAction = gestureAction?.strikeThrough || DefaultGestureConfiguration.strikeThrough
     this.underlineAction = gestureAction?.underline || DefaultGestureConfiguration.underline
     this.insertAction = gestureAction?.insert || DefaultGestureConfiguration.insert
+    this.joinAction = gestureAction?.join || DefaultGestureConfiguration.join
 
     // Initialize helpers with reference to this manager and register handlers
     this.#helpers = new GestureHelpers(canvas)
@@ -138,9 +150,20 @@ export class IIGestureManager extends IIAbstractManager {
    * @returns The detected gesture or undefined
    */
   async getGestureFromContextLess(gestureStroke: TStroke): Promise<TGesture | undefined> {
-    return this.canvas.trackOperation("Applying gesture", async () =>
-      this.#getGestureFromContextLessInternal(gestureStroke)
-    )
+    return this.canvas.trackOperation("Applying gesture", async () => {
+      const gesture = await this.#getGestureFromContextLessInternal(gestureStroke)
+      return gesture && this.isGestureEnabled(gesture.gestureType) ? gesture : undefined
+    })
+  }
+
+  /**
+   * Whether a gesture is listed in the recognition configuration's `raw-content.gestures`.
+   * The server only detects the listed ones; the contextless path must honor the same list,
+   * or a gesture turned off would still be applied next to typeset content.
+   */
+  isGestureEnabled(gestureType: TGestureType): boolean {
+    const gestures = this.canvas.configuration.recognition["raw-content"]?.gestures ?? []
+    return gestures.includes(IIGestureManager.#RECOGNITION_GESTURES[gestureType])
   }
 
   async #getGestureFromContextLessInternal(gestureStroke: TStroke): Promise<TGesture | undefined> {
