@@ -320,6 +320,9 @@ test.describe("Interactive ink canvas Get Started Menu Action", { tag: ["@touch"
       //select draw on surround
       await page.locator(locator.menu.action.gesture.surroundMenuBtn).click()
       await page.locator(locator.menu.action.gesture.surroundSelect).selectOption({ value: "select" })
+      // The surround submenu overlaps the strokes written next: close the menu so they reach the canvas
+      await page.locator(locator.menu.action.triggerBtn).click()
+      await expect(page.locator(locator.menu.action.gesture.triggerBtn)).toBeHidden()
     })
 
     await test.step("write hello in one stroke", async () => {
@@ -372,6 +375,9 @@ test.describe("Interactive ink canvas Get Started Menu Action", { tag: ["@touch"
       //select surround on surround
       await page.locator(locator.menu.action.gesture.surroundMenuBtn).click()
       await page.locator(locator.menu.action.gesture.surroundSelect).selectOption({ value: "surround" })
+      // The surround submenu overlaps the strokes written next: close the menu so they reach the canvas
+      await page.locator(locator.menu.action.triggerBtn).click()
+      await expect(page.locator(locator.menu.action.gesture.triggerBtn)).toBeHidden()
     })
 
     await test.step("write again hello surrounded", async () => {
