@@ -171,6 +171,11 @@ export class MathUtil extends TypesetUtil<TMath> {
     math.modificationDate = Date.now()
   }
 
+  /** Whether every element of the math block is bold. An empty block is not. */
+  static isBold(math: TMath): boolean {
+    return math.elements.length > 0 && math.elements.every((e) => e.fontWeight === "bold")
+  }
+
   static getLabel(math: TMath): string {
     return math.elements.map((e) => e.label).join("")
   }

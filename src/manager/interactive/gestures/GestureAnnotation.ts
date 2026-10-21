@@ -3,8 +3,8 @@ import type { TBox, TDraft } from "@/core"
 import { OBBOps, type TOBB } from "@/core"
 import type { TIIHistoryChanges } from "@/history"
 import type { DecoratorKind, TDecorator, TStroke, TText } from "@/symbol"
-import { isDecorator, isRecognizedText, isStroke, isText, SymbolType, type TSymbol } from "@/symbol"
-import { DecoratorUtil, SymbolGeometry } from "@/symbol-utils"
+import { isDecorator, isMath, isRecognizedText, isStroke, isText, type TSymbol } from "@/symbol"
+import { DecoratorUtil, MathUtil, SymbolGeometry, TextUtil } from "@/symbol-utils"
 
 /**
  * Unified representation of a gesture's intent on a set of target strokes.
@@ -17,7 +17,13 @@ export type TGestureAnnotation =
       decoratorKind: DecoratorKind
     }
   | { kind: "erase" }
-  | { kind: "thicken"; factor: number }
+  | {
+      kind: "thicken"
+      /** Stroke widths to step through, the thickness menu's */
+      widths: number[]
+      /** Font weights to step through, the font weight menu's */
+      fontWeights: ("normal" | "bold")[]
+    }
   | { kind: "select" }
 
 /**
@@ -35,10 +41,9 @@ export class IIGestureAnnotationProcessor {
       case "erase":
         await this.canvas.removeSymbols(ids)
         return undefined
-      case "thicken": {
-        const updated = this.#applyThicken(ids, annotation.factor)
-        return updated.length ? { updated } : undefined
-      }
+      case "thicken":
+        await this.#stepThickness(ids, annotation.widths, annotation.fontWeights)
+        return undefined
       case "select":
         this.#applySelect(ids)
         return undefined
@@ -206,31 +211,38 @@ export class IIGestureAnnotationProcessor {
   }
 
   /**
-   * Returns the before/after pairs the history wants.
-   *
-   * `after` is re-read from the document rather than taken from `before`: `updateSymbols`
-   * commits a draft, so the record the loop started with is the pre-change one. The code this
-   * replaces recorded that same stale object as the *new* symbol, which made a thicken undo restore
-   * the value it was already at.
+   * Moves each target one level up: a stroke to the first width above its own, a text or math block
+   * to the next font weight; past the last level, back to the first. A kind with no level is left as
+   * is. `updateSymbols` records the history, the texts it slides along included.
    */
-  #applyThicken(ids: string[], factor: number): { before: TSymbol; after: TSymbol }[] {
-    const updated: { before: TSymbol; after: TSymbol }[] = []
-    const seen = new Set<string>()
-    for (const id of ids) {
+  async #stepThickness(ids: string[], widths: number[], fontWeights: ("normal" | "bold")[]): Promise<void> {
+    const sortedWidths = [...widths].sort((a, b) => a - b)
+    const targets = [...new Set(ids)].filter((id) => {
       const sym = this.canvas.model.getSymbol(id)
-      if (!sym || sym.type !== SymbolType.Stroke || seen.has(sym.id)) {
-        continue
-      }
-      seen.add(sym.id)
-      const before = sym as TStroke
-      const newWidth = (before.style.width || 1) * factor
-      this.canvas.updateSymbols([before.id], { style: { width: newWidth } }, false)
-      const after = this.canvas.model.getSymbol(before.id)
-      if (after) {
-        updated.push({ before, after })
-      }
+      return (
+        !!sym &&
+        ((isStroke(sym) && sortedWidths.length > 0) || ((isText(sym) || isMath(sym)) && fontWeights.length > 0))
+      )
+    })
+    if (!targets.length) {
+      return
     }
-    return updated
+    await this.canvas.updateSymbols(targets, (draft) => {
+      if (isText(draft)) {
+        const fontWeight = this.#nextFontWeight(fontWeights, TextUtil.isBold(draft) ? "bold" : "normal")
+        TextUtil.updateChildrenFont(draft, { fontWeight })
+      } else if (isMath(draft)) {
+        const fontWeight = this.#nextFontWeight(fontWeights, MathUtil.isBold(draft) ? "bold" : "normal")
+        MathUtil.updateChildrenFont(draft, { fontWeight })
+      } else if (isStroke(draft)) {
+        const width = draft.style.width || 1
+        draft.style = { ...draft.style, width: sortedWidths.find((w) => w > width) ?? sortedWidths[0] }
+      }
+    })
+  }
+
+  #nextFontWeight(fontWeights: ("normal" | "bold")[], current: "normal" | "bold"): "normal" | "bold" {
+    return fontWeights[(fontWeights.indexOf(current) + 1) % fontWeights.length]
   }
 
   #applySelect(ids: string[]): void {
