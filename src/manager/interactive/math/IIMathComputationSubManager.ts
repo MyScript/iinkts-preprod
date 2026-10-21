@@ -25,7 +25,7 @@ export type TMathResultMode = "draw" | "ghost"
 export type TMathComputationConfig = {
   /** How solver output is displayed */
   resultMode: TMathResultMode
-  /** Automatically compute results when blocks end with = or ? */
+  /** Automatically compute every block the server offers numerical computation for (ending with = or ?, or a vertical operation with an empty result row) */
   autoCompute: boolean
   /** Color applied to result strokes (both draw and ghost modes) */
   resultColor: string
