@@ -1,5 +1,5 @@
 import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import { IIMathManager, JIIXElementType, JIIXMathExpressionType } from "@/iink"
+import { IIMathManager, IIModel, JIIXElementType, JIIXMathExpressionType } from "@/iink"
 import type { TJIIXMathElement, TJIIXMathNumber } from "@/iink"
 
 type TSolverOutputExpression = TJIIXMathNumber & { "solver-output": true }
@@ -20,7 +20,61 @@ function buildSolverOutputResult(blockId: string, value: number): TJIIXMathEleme
   }
 }
 
+// JIIX the server sends for "3 + 2" written as a vertical operation: the result row is
+// empty, so the last operand is null and the label ends with \end{array}, not "=" or "?"
+const VERTICAL_OPERATION_JIIX = `{
+  "type": "Raw Content",
+  "elements": [{
+    "id": "raw-content/33",
+    "type": "Math",
+    "label": "\\\\begin{array}{cc}\\n& 3 \\\\\\\\\\n+ & 2 \\\\\\\\\\n\\\\hline\\n& ? \\\\\\\\\\n\\\\end{array}",
+    "expressions": [{
+      "type": "vertical operation",
+      "id": "raw-content/56",
+      "operands": [{
+        "type": "+",
+        "id": "raw-content/55",
+        "operands": [
+          { "type": "number", "id": "raw-content/19", "label": "3", "value": 3 },
+          { "type": "number", "id": "raw-content/46", "label": "2", "value": 2 }
+        ]
+      }, null]
+    }]
+  }],
+  "id": "MainBlock",
+  "version": "3"
+}`
+
+function createAutoComputeCanvas(actions: string[]) {
+  const model = new IIModel()
+  model.mergeExport({ "application/vnd.myscript.jiix": JSON.parse(VERTICAL_OPERATION_JIIX) })
+  const canvas = createCanvasMock({ model })
+  canvas.client.getAvailableActions = jest.fn().mockResolvedValue(actions)
+  canvas.client.getNumericalComputation = jest.fn().mockResolvedValue(buildSolverOutputResult("raw-content/33", 5))
+  return canvas
+}
+
 describe("IIMathManager.ts", () => {
+  describe("tryAutoCompute", () => {
+    test("computes a vertical operation the server can compute, though its label ends with neither = nor ?", async () => {
+      const canvas = createAutoComputeCanvas(["numerical-computation"])
+      const manager = new IIMathManager(asCanvas(canvas))
+
+      await manager.tryAutoCompute()
+
+      expect(canvas.client.getNumericalComputation).toHaveBeenCalledWith("raw-content/33")
+    })
+
+    test("leaves a block alone when the server does not offer numerical computation", async () => {
+      const canvas = createAutoComputeCanvas([])
+      const manager = new IIMathManager(asCanvas(canvas))
+
+      await manager.tryAutoCompute()
+
+      expect(canvas.client.getNumericalComputation).not.toHaveBeenCalled()
+    })
+  })
+
   describe("getBlockCapabilities", () => {
     test("aggregates capabilities from the client for the given block", async () => {
       const canvas = createCanvasMock()

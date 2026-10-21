@@ -472,17 +472,11 @@ export class IIMathManager extends IIAbstractManager {
     // gets recomputed. export() is a no-op if the jiix export is already current.
     await this.canvas.export(["application/vnd.myscript.jiix"])
 
+    // The server decides which blocks ask for a result: it offers numerical-computation for
+    // "2+3=" or a vertical operation with an empty result row, not for "2+3"
     const mathBlocks = this.canvas.model.mathBlocks
     for (const mb of mathBlocks) {
       if (!mb.id) {
-        continue
-      }
-      const label = mb.label ?? ""
-
-      if (!(label.endsWith("=") || label.endsWith("?"))) {
-        if (this.#computation.hasGhostStrokes(mb.id)) {
-          this.#computation.clearGhostStrokes(mb.id)
-        }
         continue
       }
 
@@ -494,7 +488,7 @@ export class IIMathManager extends IIAbstractManager {
           this.#computation.clearGhostStrokes(mb.id)
         }
       } catch (error) {
-        this.logger.debug("tryAutoCompute", `Cannot auto-compute "${label}":`, (error as Error).message)
+        this.logger.debug("tryAutoCompute", `Cannot auto-compute "${mb.label ?? ""}":`, (error as Error).message)
       }
     }
     this.canvas.selector.redrawSelectedGroup()
