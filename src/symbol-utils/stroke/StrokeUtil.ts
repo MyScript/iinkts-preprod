@@ -99,6 +99,14 @@ export class StrokeUtil extends PathSymbolUtil<TStroke> {
     }
   }
 
+  /**
+   * Whether the stroke reads as bold: wider than 2px. The rule the conversion uses to pick a text's
+   * font weight, and the one the thicken gesture toggles on.
+   */
+  static isBold(stroke: TStroke): boolean {
+    return (stroke.style.width || 1) > 2
+  }
+
   static #filterPointByAcquisitionDelta(stroke: TStroke, point: TPointer): boolean {
     if (stroke.pointers.length === 0) {
       return true
