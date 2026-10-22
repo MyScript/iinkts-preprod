@@ -1,5 +1,0 @@
-export * from "./JIIX"
-export * from "./JIIXCommon"
-export * from "./JIIXEdgeGeometry"
-export * from "./JIIXMath"
-export * from "./JIIXV2"
