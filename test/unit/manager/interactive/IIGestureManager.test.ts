@@ -1,5 +1,5 @@
-import { SymbolGeometry, DefaultIIRendererConfiguration, TGesture, IIGestureManager, TStroke, TWebSocketClientMessageType, BoxOps, OBBOps } from "@/iink"
-import { buildIICircle, buildIIStroke, buildIIText } from "../../helpers"
+import { SymbolGeometry, DefaultIIRendererConfiguration, TGesture, IIGestureManager, TStroke, TWebSocketClientMessageType, BoxOps, OBBOps, UnderlineAction } from "@/iink"
+import { buildIICircle, buildIIMath, buildIIStroke, buildIIText } from "../../helpers"
 import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
 
 describe("IIGestureManager.ts", () => {
@@ -207,6 +207,26 @@ describe("IIGestureManager.ts", () => {
             strokeIds: [text.id],
           })
         )
+      })
+      test("should return gesture underline on a math block when underlineAction is Thicken", async () => {
+        gestMan.underlineAction = UnderlineAction.Thicken
+        const gestureStroke = buildIIStroke({ box: { height: 2, width: 10, x: 0, y: 10 } })
+        const math = buildIIMath("x", { boundingBox: { height: 12, width: 10, x: 0, y: 0 } })
+        canvas.model.addSymbol(gestureStroke)
+        canvas.model.addSymbol(math)
+        expect(await gestMan.getGestureFromContextLess(gestureStroke)).toEqual(
+          expect.objectContaining({
+            gestureType: "UNDERLINE",
+            strokeIds: [math.id],
+          })
+        )
+        gestMan.underlineAction = UnderlineAction.Draw
+      })
+      test("should ignore a math block when underlineAction is Draw", async () => {
+        const gestureStroke = buildIIStroke({ box: { height: 2, width: 10, x: 0, y: 10 } })
+        canvas.model.addSymbol(gestureStroke)
+        canvas.model.addSymbol(buildIIMath("x", { boundingBox: { height: 12, width: 10, x: 0, y: 0 } }))
+        expect(await gestMan.getGestureFromContextLess(gestureStroke)).toBeUndefined()
       })
     })
 

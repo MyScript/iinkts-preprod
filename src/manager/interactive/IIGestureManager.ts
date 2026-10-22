@@ -41,6 +41,8 @@ export class IIGestureManager extends IIAbstractManager {
   #helpers: GestureHelpers
 
   static readonly #TEXT_STROKE_GROUP_TYPES = new Set([SymbolType.Text, SymbolType.Stroke])
+  // Thicken also bolds a math block; a decorator has no place on one
+  static readonly #THICKEN_TYPES = new Set([SymbolType.Text, SymbolType.Stroke, SymbolType.Math])
   static readonly #SURROUND_SELECT_TYPES = new Set([SymbolType.Stroke, SymbolType.Text])
   static readonly #ERASE_OVERLAY_TYPES = new Set([SymbolType.Stroke, SymbolType.Text])
   static readonly #ERASE_CONTAIN_TYPES = new Set([SymbolType.Shape, SymbolType.Edge])
@@ -205,8 +207,12 @@ export class IIGestureManager extends IIAbstractManager {
       }
       case "left-right":
       case "right-left": {
+        const underlineTypes =
+          this.underlineAction === UnderlineAction.Thicken
+            ? IIGestureManager.#THICKEN_TYPES
+            : IIGestureManager.#TEXT_STROKE_GROUP_TYPES
         const symbolsToUnderline = this.model.symbols.filter((s) => {
-          if (s.id === gestureStroke.id || !IIGestureManager.#TEXT_STROKE_GROUP_TYPES.has(s.type)) {
+          if (s.id === gestureStroke.id || !underlineTypes.has(s.type)) {
             return false
           }
           const sBounds = SymbolGeometry.boundsOf(s)
