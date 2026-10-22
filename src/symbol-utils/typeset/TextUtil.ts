@@ -124,6 +124,11 @@ export class TextUtil extends TypesetUtil<TText> {
     text.modificationDate = Date.now()
   }
 
+  /** Whether every char of the text is bold. An empty text is not. */
+  static isBold(text: TText): boolean {
+    return text.chars.length > 0 && text.chars.every((c) => c.fontWeight === "bold")
+  }
+
   static getLabel(text: TText): string {
     return text.chars.map((c) => c.label).join("")
   }

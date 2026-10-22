@@ -1,6 +1,6 @@
 import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
-import { buildIIStroke } from "../../../helpers"
-import { DecoratorKind, IIGestureAnnotationProcessor, OBBOps, StrokeUtil, SymbolGeometry, TDecorator, isStroke } from "@/iink"
+import { buildIIMath, buildIIStroke, buildIIText } from "../../../helpers"
+import { DecoratorKind, DefaultStyle, IIGestureAnnotationProcessor, OBBOps, StrokeUtil, SymbolGeometry, TDecorator, TGestureAnnotation, TMath, TStroke, TSymbolChar, TText, isStroke } from "@/iink"
 
 describe("GestureAnnotation.ts", () => {
   describe("IIGestureAnnotationProcessor.apply (decorator)", () => {
@@ -110,6 +110,108 @@ describe("GestureAnnotation.ts", () => {
       await applySurround(canvas, stroke.id)
 
       expect(decoratorIn(canvas)?.targetBounds).toEqual(SymbolGeometry.boundsOf(stroke))
+    })
+  })
+
+  describe("IIGestureAnnotationProcessor.apply (thicken)", () => {
+    // The default thickness and font weight menus, "auto" left out
+    const levels: TGestureAnnotation = { kind: "thicken", widths: [1, 2, 4, 8], fontWeights: ["normal", "bold"] }
+    const char = (fontWeight: "normal" | "bold"): TSymbolChar => ({
+      id: `char-${fontWeight}`,
+      label: "a",
+      color: "#000000",
+      fontSize: 16,
+      fontWeight,
+      bounds: { x: 0, y: 0, width: 10, height: 16 },
+    })
+    const setup = () => {
+      const canvas = createCanvasMock()
+      return { canvas, processor: new IIGestureAnnotationProcessor(asCanvas(canvas)) }
+    }
+    const widthOf = (canvas: ReturnType<typeof createCanvasMock>, id: string) =>
+      (canvas.model.getSymbol(id) as TStroke).style.width
+    const weightsOf = (canvas: ReturnType<typeof createCanvasMock>, id: string) =>
+      (canvas.model.getSymbol(id) as TText).chars.map((c) => c.fontWeight)
+
+    test.each([
+      [1, 2],
+      [2, 4],
+      [4, 8],
+      [3, 4],
+    ])("moves a stroke of width %p to the next thickness, %p", async (width, expected) => {
+      const { canvas, processor } = setup()
+      const stroke = buildIIStroke({ style: { ...DefaultStyle, width } })
+      canvas.model.addSymbol(stroke)
+
+      await processor.apply([stroke.id], levels)
+
+      expect(widthOf(canvas, stroke.id)).toBe(expected)
+    })
+
+    test.each([8, 12])("brings a stroke of width %p, at or past the last thickness, back to the first", async (width) => {
+      const { canvas, processor } = setup()
+      const stroke = buildIIStroke({ style: { ...DefaultStyle, width } })
+      canvas.model.addSymbol(stroke)
+
+      await processor.apply([stroke.id], levels)
+
+      expect(widthOf(canvas, stroke.id)).toBe(1)
+    })
+
+    test("steps a converted text through the font weights, back to the first past the last", async () => {
+      const { canvas, processor } = setup()
+      const text = buildIIText({ chars: [char("normal")] })
+      canvas.model.addSymbol(text)
+
+      await processor.apply([text.id], levels)
+      expect(weightsOf(canvas, text.id)).toEqual(["bold"])
+
+      await processor.apply([text.id], levels)
+      expect(weightsOf(canvas, text.id)).toEqual(["normal"])
+    })
+
+    test("steps a math block through the font weights, back to the first past the last", async () => {
+      const { canvas, processor } = setup()
+      const math = buildIIMath("x")
+      canvas.model.addSymbol(math)
+      const weights = () => (canvas.model.getSymbol(math.id) as TMath).elements.map((e) => e.fontWeight)
+
+      await processor.apply([math.id], levels)
+      expect(weights()).toEqual(["bold"])
+
+      await processor.apply([math.id], levels)
+      expect(weights()).toEqual(["normal"])
+    })
+
+    test("moves each target from its own level, in one updateSymbols call", async () => {
+      const { canvas, processor } = setup()
+      const thin = buildIIStroke({ style: { ...DefaultStyle, width: 2 } })
+      const thick = buildIIStroke({ style: { ...DefaultStyle, width: 8 } })
+      const text = buildIIText({ chars: [char("bold"), char("normal")] })
+      canvas.model.addSymbol(thin)
+      canvas.model.addSymbol(thick)
+      canvas.model.addSymbol(text)
+
+      await processor.apply([thin.id, thick.id, text.id], levels)
+
+      expect(widthOf(canvas, thin.id)).toBe(4)
+      expect(widthOf(canvas, thick.id)).toBe(1)
+      expect(weightsOf(canvas, text.id)).toEqual(["bold", "bold"])
+      expect(canvas.updateSymbols).toHaveBeenCalledTimes(1)
+    })
+
+    test("leaves a kind with no level as it is", async () => {
+      const { canvas, processor } = setup()
+      const stroke = buildIIStroke({ style: { ...DefaultStyle, width: 2 } })
+      const text = buildIIText({ chars: [char("normal")] })
+      canvas.model.addSymbol(stroke)
+      canvas.model.addSymbol(text)
+
+      await processor.apply([stroke.id, text.id], { kind: "thicken", widths: [], fontWeights: ["normal", "bold"] })
+
+      expect(widthOf(canvas, stroke.id)).toBe(2)
+      expect(weightsOf(canvas, text.id)).toEqual(["bold"])
+      expect(canvas.updateSymbols).toHaveBeenCalledWith([text.id], expect.any(Function))
     })
   })
 })

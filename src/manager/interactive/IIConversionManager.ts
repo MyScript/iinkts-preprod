@@ -53,7 +53,16 @@ import type {
   TText,
 } from "@/symbol"
 import { isDecorator, isRecognizedMath, resolveConnectionAnchors } from "@/symbol"
-import { DecoratorUtil, EdgeUtil, MathUtil, ShapeUtil, SymbolGeometry, symbolRegistry, TextUtil } from "@/symbol-utils"
+import {
+  DecoratorUtil,
+  EdgeUtil,
+  MathUtil,
+  ShapeUtil,
+  StrokeUtil,
+  SymbolGeometry,
+  symbolRegistry,
+  TextUtil,
+} from "@/symbol-utils"
 
 import { IIAbstractManager } from "./IIAbstractManager"
 
@@ -94,7 +103,7 @@ export class IIConversionManager extends IIAbstractManager {
     }))
     let fontWeight = this.fontStyleConfiguration.weight
     if (fontWeight === "auto") {
-      fontWeight = (strokes[0].style.width || 1) > 2 ? "bold" : "normal"
+      fontWeight = StrokeUtil.isBold(strokes[0]) ? "bold" : "normal"
     }
 
     const color = strokes[0].style.color || "black"
@@ -503,7 +512,7 @@ export class IIConversionManager extends IIAbstractManager {
 
     let fontWeight = this.fontStyleConfiguration.weight
     if (fontWeight === "auto") {
-      fontWeight = (strokes[0]?.style.width || 1) > 2 ? "bold" : "normal"
+      fontWeight = strokes[0] && StrokeUtil.isBold(strokes[0]) ? "bold" : "normal"
     }
     const color = strokes[0]?.style.color || "black"
 
