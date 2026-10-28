@@ -148,7 +148,11 @@ Every export on `InteractiveInkCanvas` goes through two functions instead of nin
 - `PDFExportManager.openExportDialog(onConfirm, onCancel?)`: new optional cancel callback, so `download("pdf")` settles on cancellation instead of hanging
 - `TExportActionItemsConfig`/`TContextExportItemsConfig` gained `markdown`, `mermaid`, `plantuml`, `llm`, `jiix` (enabled by default; `markdown` only built with `text` recognition, `mermaid`/`plantuml` only with `shape`)
 
+### `CanvasEventName.POINTEREVENTS` is removed
+It was declared but never emitted.
+
 ### Type-only
+- `AbstractHistoryStack.event` and its constructor take `THistoryEvent` (new: `{ emitChanged(context) }`, which `CanvasEvent` satisfies) instead of `CanvasEvent`: the history no longer imports the canvas. No runtime change
 - `TInteractiveInkCanvasOptions.override.client` is typed `typeof WebSocketClient`, the class the canvas instantiates, instead of an instance, which the canvas cast to a class. No runtime change
 - `Logger.debug`/`info`/`warn`/`error` take `...data: unknown[]` instead of `...data: any`. No runtime change
 - `TWebSocketClientMessageReceived` is derived from the new `TWebSocketClientMessageReceivedMap` (one entry per `TWebSocketClientMessageType`, a missing one no longer compiles) instead of a hand-kept union; it resolves to the same members. Likewise `TWebSocketClientMessageMathSolverResult` comes from the new `TMathSolverResultMap` (`result` type by action) through the new generic `TWebSocketClientMessageMathSolver<A extends TMathSolverAction>`; the eleven `TWebSocketClientMessageMathSolver*` aliases stay, now one-liners over it. `WebSocketClient` now checks a message's `type` before dispatching it and logs an unknown one with its raw payload (it used to print `[object Object]`). No other runtime change
