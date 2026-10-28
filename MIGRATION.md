@@ -159,6 +159,10 @@ configuration: { server: { websocket: { autoReconnect: false } } }
 `maxRetryCount` no longer affects `WebSocketClient`, which retries up to `maxReconnectAttempts` every
 `reconnectDelay` ms; it is still read by `WebSocketSSRClient`.
 
+### `CanvasEventName.POINTEREVENTS` is removed
+
+Nothing ever emitted it.
+
 ### The math solver defaults to radians
 
 `recognition.math.solver["angle-unit"]` now defaults to `"rad"`. To keep evaluating angles in degrees:
