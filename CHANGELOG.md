@@ -148,6 +148,13 @@ Every export on `InteractiveInkCanvas` goes through two functions instead of nin
 - `PDFExportManager.openExportDialog(onConfirm, onCancel?)`: new optional cancel callback, so `download("pdf")` settles on cancellation instead of hanging
 - `TExportActionItemsConfig`/`TContextExportItemsConfig` gained `markdown`, `mermaid`, `plantuml`, `llm`, `jiix` (enabled by default; `markdown` only built with `text` recognition, `mermaid`/`plantuml` only with `shape`)
 
+### The HMAC signature is computed on your server: `server.sign`
+`server.hmacKey` put the HMAC key in the browser, where anyone could read it; its function form only fetched the same key from elsewhere before exposing it the same way.
+- new: `server.sign(message, applicationKey) => Promise<string>` (`THmacSigner`) resolves the signature of the WebSocket HMAC challenge or of the HTTP request body, so the key stays on a server you own. It takes precedence over `hmacKey`. `resolveHmac` calls it
+- **removed**: the function form of `hmacKey`. `TServerHTTPConfiguration.hmacKey` is a `string`, kept for development; anything else makes `resolveHmac` throw
+- `WebSocketClient`/`WebSocketSSRClient` no longer check the type of `hmacKey` before answering a challenge: `resolveHmac` does, and its error still rejects `init()`
+- new example `examples/server-signing/`: a dependency-free Node signing server and a page that holds no credential
+
 ### `CanvasEventName.POINTEREVENTS` is removed
 It was declared but never emitted.
 

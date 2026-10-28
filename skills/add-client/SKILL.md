@@ -71,7 +71,7 @@ export class YourClient {
 }
 ```
 
-**Authentication**: Use `computeHmac(message, applicationKey, hmacKey)` from `@/client` — note the argument order, `message` comes first. For an HTTP client, prefer `resolveHmac(server, message)` from `@/client/HmacAuth`, which also resolves an async `hmacKey`.
+**Authentication**: Use `resolveHmac(server, message)` from `@/client`: it calls `server.sign` (signature computed on the integrator's server, the production default) and falls back to a string `hmacKey` via `computeHmac(message, applicationKey, hmacKey)` — note the argument order, `message` comes first.
 
 **Error handling**: Emit via `this.event.emitError(error)` — never throw uncaught. `ClientEvent` also exposes `CONNECTION_STATUS_CHANGED` for connectivity-state consumers.
 

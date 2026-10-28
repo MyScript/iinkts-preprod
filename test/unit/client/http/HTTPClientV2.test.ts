@@ -53,7 +53,7 @@ describe("HTTPClientV2.ts", () => {
 
     const request = fetchMock.mock.calls[0][0] as Request
     const { applicationKey, hmacKey } = rr.configuration.server
-    const expected = await computeHmac(await request.clone().text(), applicationKey, hmacKey as string)
+    const expected = await computeHmac(await request.clone().text(), applicationKey, hmacKey)
     expect(request.headers.get("hmac")).toEqual(expected)
   })
 
