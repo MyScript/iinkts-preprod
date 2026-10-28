@@ -159,6 +159,26 @@ configuration: { server: { websocket: { autoReconnect: false } } }
 `maxRetryCount` no longer affects `WebSocketClient`, which retries up to `maxReconnectAttempts` every
 `reconnectDelay` ms; it is still read by `WebSocketSSRClient`.
 
+### `hmacKey` is a string only: sign on your server with `server.sign`
+
+The function form of `hmacKey` is removed: it fetched the key and still handed it to the browser. Return
+the signature instead of the key, from a server that holds it:
+
+```ts
+// v4
+server: { applicationKey, hmacKey: async () => (await fetch("/hmac-key")).text() }
+// v5
+server: {
+  applicationKey,
+  hmacKey: "",
+  sign: async (message) => (await (await fetch("/sign", { method: "POST", body: JSON.stringify({ message }) })).json()).signature,
+}
+```
+
+The server computes HMAC-SHA512 of `message`, keyed by `applicationKey + hmacKey`, as lowercase hex
+(Node: `createHmac("sha512", applicationKey + hmacKey).update(message).digest("hex")`). See
+`examples/server-signing/`. A string `hmacKey` still works, for development.
+
 ### `CanvasEventName.POINTEREVENTS` is removed
 
 Nothing ever emitted it.
