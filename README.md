@@ -115,7 +115,7 @@ yarn add iink-ts
           scheme: "https",
           host: "cloud.myscript.com",
           applicationKey: "<YOU-APPLICATION-KEY>",
-          hmacKey: "<YOUR-HMAC-KEY>",
+          hmacKey: "<YOUR-HMAC-KEY>", // development only: in production, use sign (see Authentication)
         }
       }
     }
@@ -146,7 +146,7 @@ yarn add iink-ts
             scheme: "https",
             host: "cloud.myscript.com",
             applicationKey: "<YOU-APPLICATION-KEY>",
-            hmacKey: "<YOUR-HMAC-KEY>",
+            hmacKey: "<YOUR-HMAC-KEY>", // development only: in production, use sign (see Authentication)
           },
         }
       }
@@ -181,7 +181,7 @@ You can find this guide, and a more complete example on the [MyScript Developer 
           scheme: "https",
           host: "cloud.myscript.com",
           applicationKey: "<YOU-APPLICATION-KEY>",
-          hmacKey: "<YOUR-HMAC-KEY>",
+          hmacKey: "<YOUR-HMAC-KEY>", // development only: in production, use sign (see Authentication)
         },
       }
     }
@@ -217,7 +217,7 @@ You can find this guide, and a more complete example on the [MyScript Developer 
             scheme: "https",
             host: "cloud.myscript.com",
             applicationKey: "<YOU-APPLICATION-KEY>",
-            hmacKey: "<YOUR-HMAC-KEY>",
+            hmacKey: "<YOUR-HMAC-KEY>", // development only: in production, use sign (see Authentication)
           }
         }
       }
@@ -227,6 +227,53 @@ You can find this guide, and a more complete example on the [MyScript Developer 
   </body>
 </html>
 ```
+
+## Authentication
+
+The MyScript server checks an HMAC signature computed with your HMAC key. **Do not ship the HMAC key to
+the browser**: anyone can read it there and use your quota. Keep it on a server you own and let the
+canvas ask that server for each signature with `server.sign`:
+
+```javascript
+const options = {
+  configuration: {
+    server: {
+      scheme: "https",
+      host: "cloud.myscript.com",
+      applicationKey: "<YOU-APPLICATION-KEY>",
+      hmacKey: "",
+      sign: async (message) => {
+        const response = await fetch("/sign", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message }),
+        })
+        return (await response.json()).signature
+      },
+    },
+  },
+}
+```
+
+`message` is the WebSocket HMAC challenge, or the body of an HTTP recognition request. The server
+returns HMAC-SHA512 of it, keyed by the application key followed by the HMAC key, as lowercase hex. In
+Node:
+
+```javascript
+import { createHmac } from "node:crypto"
+
+const signature = createHmac("sha512", APPLICATION_KEY + HMAC_KEY).update(message).digest("hex")
+```
+
+Put the signing route behind your own authentication and rate-limit it: whoever can call it can get
+messages signed. [`examples/server-signing/server.js`](./examples/server-signing/server.js) is a complete, dependency-free
+signing server with a page that holds no credential at all:
+
+```shell
+node --env-file=.env.local examples/server-signing/server.js
+```
+
+`hmacKey` as a string remains for development and prototypes.
 
 ## Documentation
 

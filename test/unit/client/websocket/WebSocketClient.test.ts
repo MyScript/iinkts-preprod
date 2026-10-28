@@ -135,17 +135,34 @@ describe("WebSocketClient.ts", () => {
       mockServer.close()
     })
 
-    test("should reject init when the HMAC key cannot be resolved", async () => {
+    test("should reject init when the HMAC signature cannot be resolved", async () => {
       const failingConf = structuredClone(conf)
       failingConf.server.host = "init-hmac-failure-test"
       const client = new WebSocketClient({
         ...failingConf,
-        server: { ...failingConf.server, hmacKey: () => Promise.reject(new Error("token endpoint down")) },
+        server: { ...failingConf.server, sign: () => Promise.reject(new Error("signing endpoint down")) },
       })
       client.event.emitError = jest.fn()
       const server = new ServerWebSocketMock(client.url)
       server.init()
-      await expect(client.init()).rejects.toThrow("token endpoint down")
+      await expect(client.init()).rejects.toThrow("signing endpoint down")
+      await client.destroy()
+      server.close()
+    })
+
+    test("should answer the HMAC challenge with the signature of server.sign", async () => {
+      const signingConf = structuredClone(conf)
+      signingConf.server.host = "init-hmac-sign-test"
+      const sign = jest.fn(async (message: string) => `signed-${message}`)
+      const client = new WebSocketClient({ ...signingConf, server: { ...signingConf.server, sign } })
+      const server = new ServerWebSocketMock(client.url)
+      server.init()
+      await client.init()
+      expect(sign).toHaveBeenCalledWith("1f434e8b-cc46-4a8c-be76-708eea2ff305", signingConf.server.applicationKey)
+      expect(JSON.parse(server.getMessages("hmac")[0] as string)).toEqual({
+        type: "hmac",
+        hmac: "signed-1f434e8b-cc46-4a8c-be76-708eea2ff305",
+      })
       await client.destroy()
       server.close()
     })
@@ -841,13 +858,13 @@ describe("WebSocketClient.ts", () => {
         ...leakConf,
         server: {
           ...leakConf.server,
-          hmacKey: () => (failKey ? Promise.reject(new Error("token endpoint down")) : Promise.resolve("key")),
+          sign: () => (failKey ? Promise.reject(new Error("signing endpoint down")) : Promise.resolve("signature")),
         },
       })
       leakClient.event.emitError = jest.fn()
       const server = new ServerWebSocketMock(leakClient.url)
       server.init()
-      await expect(leakClient.init()).rejects.toThrow("token endpoint down")
+      await expect(leakClient.init()).rejects.toThrow("signing endpoint down")
       failKey = false
 
       await leakClient.init()
