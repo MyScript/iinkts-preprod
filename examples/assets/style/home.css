@@ -707,3 +707,12 @@
 @media (max-width: 420px) {
   .card-grid { grid-template-columns: 1fr; }
 }
+
+.card-thumb {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  object-position: top center;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+}
