@@ -320,6 +320,8 @@ If you're integrating iinkTS or rebuilding your own client from scratch, these d
 
 Upgrading from an earlier major version? See [MIGRATION.md](./MIGRATION.md) for breaking changes and step-by-step instructions.
 
+iinkTS follows [semantic versioning](https://semver.org) for the API the guides on the Developer website describe: `Canvas.load`, the configuration, the canvas methods and events, and the classes `options.override` accepts. The [API Reference](https://myscript.github.io/iinkTS/docs/) lists everything the package exports; the rest of it (managers, renderers, internal helpers) may change in a minor release, and so may subclassing a class `options.override` does not accept.
+
 ## Development
 
 Instructions to help you build the project and develop are available in the [SETUP.md](./SETUP.md) file.
